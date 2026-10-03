@@ -1,4 +1,5 @@
-import type { Chapter, ChapterInfo, LevelDef, PowerUpId, SpawnEntry, SpeciesId } from './types';
+import { itemsForLevel } from './items';
+import type { Chapter, ChapterInfo, LevelDef, SpawnEntry, SpeciesId } from './types';
 import { applyTwists, twistsFor } from './twists';
 import { LEVELS_PER_CHAPTER } from './zones';
 
@@ -34,7 +35,6 @@ export interface ChapterRecipe {
   readonly goal: readonly [number, number];
   /** Player radius at the final tier, first .. last level. */
   readonly finalSize: readonly [number, number];
-  readonly powerUps?: readonly PowerUpId[];
   readonly world?: { readonly width: number; readonly height: number };
   readonly overrides?: Readonly<Record<number, Partial<LevelDef>>>;
 }
@@ -71,7 +71,7 @@ export function generateLevel(info: ChapterInfo, recipe: ChapterRecipe, index: n
       jellyfish: Math.round(range(recipe.jellyfish, t)),
       hookEverySec: recipe.hookEverySec[0] === 0 ? 0 : Math.round(range(recipe.hookEverySec, t)),
     },
-    powerUps: recipe.powerUps ?? ['speed', 'shrink'],
+    items: [],
     // Par grows with the goal; ~1.25 s per growth point.
     parTime: Math.round(goal * 1.25 + 15),
     twists: ['grow'],
@@ -79,7 +79,9 @@ export function generateLevel(info: ChapterInfo, recipe: ChapterRecipe, index: n
     modifiers: {},
     debuts: recipe.spawns.filter((s) => s.debut === index).map((s) => s.species),
   };
-  return { ...applyTwists(base, twistsFor(info.id, index), { index, boss: recipe.boss }), ...recipe.overrides?.[index] };
+  const twisted = applyTwists(base, twistsFor(info.id, index), { index, boss: recipe.boss });
+  const number = (info.id - 1) * LEVELS_PER_CHAPTER + index + 1;
+  return { ...twisted, items: itemsForLevel(number, twisted.modifiers.dark ?? false), ...recipe.overrides?.[index] };
 }
 
 export function generateChapter(info: ChapterInfo, recipe: ChapterRecipe): Chapter {

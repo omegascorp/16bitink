@@ -1,9 +1,9 @@
-import type { Chapter, LevelDef, PlayerFishId, PowerUpId, SpeciesId, TwistId, ZoneId } from './types';
+import { ITEM_IDS, MAX_ITEMS_PER_LEVEL, type ItemId } from './items';
+import type { Chapter, LevelDef, PlayerFishId, SpeciesId, TwistId, ZoneId } from './types';
 import { ALL_SPECIES } from './species';
 import { PLAYER_FISH, ZONE_IDS } from './zones';
 
 const SPECIES: readonly SpeciesId[] = ALL_SPECIES;
-const POWER_UPS: readonly PowerUpId[] = ['speed', 'shrink'];
 const TWISTS: readonly TwistId[] = ['grow', 'collect', 'current', 'bounty', 'rush', 'storm', 'dark', 'survive', 'boss'];
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -56,7 +56,7 @@ function hasShape(v: unknown): v is LevelDef {
     isNum(world?.width) && isNum(world?.height) &&
     isNum(hazards?.jellyfish) && isNum(hazards?.hookEverySec) &&
     isNum(l.maxFish) && isNum(l.parTime) &&
-    Array.isArray(l.powerUps) && l.powerUps.every((p) => POWER_UPS.includes(p as PowerUpId)) &&
+    Array.isArray(l.items) && l.items.length <= MAX_ITEMS_PER_LEVEL && l.items.every((p) => ITEM_IDS.includes(p as ItemId)) &&
     Array.isArray(l.spawns) && l.spawns.length > 0 &&
     l.spawns.every((s: Record<string, unknown>) =>
       SPECIES.includes(s?.species as SpeciesId) && isNum(s?.weight) &&

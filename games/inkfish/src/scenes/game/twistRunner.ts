@@ -6,6 +6,7 @@ import { rangeOf, type Rng } from '../../logic/rng';
 import { touches } from '../../logic/sizing';
 import { spawnSpecial, type Fish } from './fish';
 import type { Player } from './player';
+import { TUNING } from './tuning';
 
 interface Drop {
   readonly sprite: Phaser.GameObjects.Image;
@@ -103,7 +104,8 @@ export class TwistRunner {
     if (nearest) this.arrow(view, zoom, nearest);
     if (this.streaks) this.drawStreaks(view, now);
     if (this.dark) {
-      const radius = 150 + player.drawSize * 2.6;
+      const glow = now < player.glowUntil ? TUNING.glowFactor : 1;
+      const radius = (150 + player.drawSize * 2.6) * glow;
       this.dark.setPosition(ps.x, ps.y).setScale(radius / (DARK_TEX * DARK_HOLE));
     }
   }

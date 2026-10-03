@@ -3,6 +3,7 @@ import { fishKey } from '../art/textures';
 import type { PlayerFishId } from '../levels/types';
 import { getHost } from '../host';
 import type { LevelDescription } from '../levels/twists';
+import { itemKey } from './game/items';
 import { DASH_ZONE } from './game/player';
 import { HUD_EVENT, type GameScene, type HudSnapshot } from './GameScene';
 import { BLUE_INK, inkButton, inkText, INK_HEX, RED_INK, uiScale, wobblyRect } from './ui';
@@ -85,15 +86,17 @@ export class HudScene extends Phaser.Scene {
     this.scene.pause('Game');
     const lines = [inkText(this, 0, -86, d.tag, 28, RED_INK), inkText(this, 0, -40, name, 58, BLUE_INK), inkText(this, 0, 18, d.goal, 28)];
     d.notes.forEach((n, i) => lines.push(inkText(this, 0, 56 + i * 30, n, 23, '#5b5446')));
+    const textBottom = (d.notes.length ? 56 + (d.notes.length - 1) * 30 : 18) + 36;
+    const shelf = this.itemShelf(d.items, textBottom + 26);
     const w = Math.max(460, ...lines.map((t) => t.width + 60));
-    // Fit the paper to the text: from above the tag to below the last line.
+    // Fit the paper to the content: from above the tag to below the item shelf.
     const top = -126;
-    const bottom = (d.notes.length ? 56 + (d.notes.length - 1) * 30 : 18) + 36;
+    const bottom = textBottom + (d.items.length ? 140 : 0);
     const h = bottom - top;
     const g = this.add.graphics();
     g.fillStyle(0xfffaf0, 0.96).fillRect(-w / 2, top, w, h);
     wobblyRect(g, -w / 2, top, w, h, 31);
-    const card = this.add.container(this.scale.width / 2, this.scale.height / 2, [g, ...lines]);
+    const card = this.add.container(this.scale.width / 2, this.scale.height / 2 - (h - 260) / 2, [g, ...lines, ...shelf]);
     card.setScale(Math.min(1, (this.scale.width - 32) / w, uiScale(this, 640, 480))).setAlpha(0);
     this.intro = card;
     this.tweens.add({ targets: card, alpha: 1, duration: 220 });
@@ -106,6 +109,22 @@ export class HudScene extends Phaser.Scene {
     };
     this.input.once('pointerdown', skip);
     this.input.keyboard?.once('keydown', skip);
+  }
+
+  /**
+   * "What might sink through": each item's drawing with its name, helpful ones
+   * in blue, litter in red with a warning, so players learn them by sight.
+   */
+  private itemShelf(items: LevelDescription['items'], y: number): Phaser.GameObjects.GameObject[] {
+    if (items.length === 0) return [];
+    const gap = 150;
+    const objects: Phaser.GameObjects.GameObject[] = [inkText(this, 0, y, 'Sinking through:', 22, '#5b5446')];
+    items.forEach((it, i) => {
+      const x = (i - (items.length - 1) / 2) * gap;
+      objects.push(this.add.image(x, y + 46, itemKey(it.id, 0)).setScale(0.36));
+      objects.push(inkText(this, x, y + 86, it.good ? it.name : `${it.name} (avoid)`, 19, it.good ? BLUE_INK : RED_INK));
+    });
+    return objects;
   }
 
   private dismissIntro(): void {

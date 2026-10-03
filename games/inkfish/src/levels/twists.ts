@@ -1,4 +1,6 @@
+import { ITEM_INFO, type ItemId } from './items';
 import { SPECIES_INFO } from './species';
+import { LEVELS_PER_CHAPTER } from './zones';
 import type { LevelDef, Modifiers, Objective, SpawnEntry, SpeciesId, TwistId } from './types';
 
 /**
@@ -106,6 +108,8 @@ export interface LevelDescription {
   readonly goal: string;
   /** Extra rules worth knowing before you start. */
   readonly notes: readonly string[];
+  /** What may sink through this level, helpful ones first. */
+  readonly items: readonly { readonly id: ItemId; readonly name: string; readonly good: boolean }[];
 }
 
 function goalText(level: LevelDef): string {
@@ -121,6 +125,12 @@ function goalText(level: LevelDef): string {
   }
 }
 
+/** 1-based position of a level across the whole game, from its id (c3-l4 is level 24). */
+export function levelNumber(level: LevelDef): number {
+  const m = /^c(\d+)-l(\d+)$/.exec(level.id);
+  return m ? (Number(m[1]) - 1) * LEVELS_PER_CHAPTER + Number(m[2]) : 0;
+}
+
 export interface DescribeOptions {
   /** Name of the player fish when this level is the first one with it. */
   readonly newPlayer?: string;
@@ -132,11 +142,19 @@ export function describeLevel(level: LevelDef, opts: DescribeOptions = {}): Leve
   const notes: string[] = [];
   if (opts.newPlayer) notes.push(`You swim as a ${opts.newPlayer} now.`);
   for (const id of level.debuts) notes.push(`New fish: ${SPECIES_INFO[id].name}. ${SPECIES_INFO[id].note}`);
+  const number = levelNumber(level);
+  for (const id of level.items.filter((i) => ITEM_INFO[i].debut === number && number > 1)) {
+    const item = ITEM_INFO[id];
+    notes.push(item.good ? `New item: ${item.name}. ${item.note}` : `Watch out for the ${item.name}. ${item.note}`);
+  }
   const c = level.modifiers.current;
   if (c) notes.push(`A strong current pulls everything to the ${c > 0 ? 'right' : 'left'}.`);
   if (level.modifiers.lives === 1) notes.push('Only one life: a single hit ends the level.');
   if (level.modifiers.dark) notes.push('It’s dark: you only see what’s close to you.');
   if (level.twists.includes('storm')) notes.push(jellyBloom ? 'The water is thick with jellyfish.' : 'Hooks keep dropping. Watch for the dotted lines.');
   const tag = labels.map((l, i) => (i === 0 ? l : l.charAt(0).toLowerCase() + l.slice(1))).join(', ');
-  return { tag, goal: goalText(level), notes };
+  const items = [...level.items]
+    .sort((a, b) => Number(ITEM_INFO[b].good) - Number(ITEM_INFO[a].good))
+    .map((id) => ({ id, name: ITEM_INFO[id].name, good: ITEM_INFO[id].good }));
+  return { tag, goal: goalText(level), notes, items };
 }

@@ -1,11 +1,13 @@
 import { drawFish, FISH_TEX, type FishShape, type InkVariant } from '../src/art/fishArt';
+import { drawItem, ITEM_SIZE } from '../src/art/itemArt';
 import { makeCanvas } from '../src/art/pen';
 import { DEEP } from '../src/art/fish/species/deep';
 import { GIANTS } from '../src/art/fish/species/giants';
 import { PLAYERS } from '../src/art/fish/species/players';
 import { REEF } from '../src/art/fish/species/reef';
 import { SHALLOWS } from '../src/art/fish/species/shallows';
-import { ART_RES, drawHook, drawJelly, drawPowerUp, drawRock, drawWeed } from '../src/art/propArt';
+import { ITEM_IDS } from '../src/levels/items';
+import { ART_RES, drawHook, drawJelly, drawRock, drawWeed } from '../src/art/propArt';
 
 // Dev-only sheet for reviewing the procedural ink art: big, and at in-game size.
 const sheet = document.getElementById('sheet')!;
@@ -44,7 +46,10 @@ const props = row();
 const R = ART_RES;
 figure(props, 'jelly', 128 * R, 128 * R, (ctx) => drawJelly(ctx, 101), 1 / R);
 figure(props, 'hook', 48 * R, 76 * R, (ctx) => drawHook(ctx, 101), 1 / R);
-figure(props, 'speed', 80 * R, 80 * R, (ctx) => drawPowerUp(ctx, 'speed', 101), 1 / R);
-figure(props, 'shrink', 80 * R, 80 * R, (ctx) => drawPowerUp(ctx, 'shrink', 101), 1 / R);
 for (const kind of [0, 1, 2] as const) figure(props, `weed ${kind}`, 128 * R, 256 * R, (ctx) => drawWeed(ctx, 7 + kind * 13, kind, 0, 128 * R, 256 * R), 1 / R);
 figure(props, 'rock', 256 * R, 128 * R, (ctx) => drawRock(ctx, 40, 256 * R, 128 * R), 1 / R);
+// Sinking items: full texture size, then roughly in-game size.
+const items = row();
+for (const id of ITEM_IDS) figure(items, id, ITEM_SIZE * R, ITEM_SIZE * R, (ctx) => drawItem(ctx, id, 101), 1 / R);
+const itemsSmall = row();
+for (const id of ITEM_IDS) figure(itemsSmall, id, ITEM_SIZE * R, ITEM_SIZE * R, (ctx) => drawItem(ctx, id, 101), 48 / (ITEM_SIZE * R));

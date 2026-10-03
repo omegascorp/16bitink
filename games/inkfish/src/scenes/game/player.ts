@@ -22,6 +22,14 @@ export interface Player {
   dashReadyAt: number;
   /** On a hook: controls are off and the hook moves the fish. */
   hooked: boolean;
+  /** Sick from plastic or tangled in rings: swims slower. */
+  slowUntil: number;
+  /** Six-pack rings: no dash until this time. */
+  tangledUntil: number;
+  /** Hiding in a tin can: the next hit is absorbed. */
+  shield: boolean;
+  /** Glow stick: a bigger circle of light in the dark. */
+  glowUntil: number;
 }
 
 /** Bottom-right screen area reserved for the touch dash button. */
@@ -33,7 +41,8 @@ export function createPlayer(scene: Phaser.Scene, level: LevelDef, shape: Player
     .image(level.world.width / 2, level.world.height / 2, fishKey(shape, 'light', 0))
     .setDepth(20)
     .setScale(size / FISH_RADIUS);
-  return { sprite, shape, size, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0, hooked: false };
+  return { sprite, shape, size, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0, hooked: false,
+    slowUntil: 0, tangledUntil: 0, shield: false, glowUntil: 0 };
 }
 
 export interface Controls {
@@ -100,7 +109,7 @@ export function desiredDirection(scene: Phaser.Scene, c: Controls, p: Player): {
 
 export function movePlayer(p: Player, dir: { x: number; y: number }, level: LevelDef, now: number, dt: number): void {
   const stunned = now < p.stunnedUntil;
-  const max = TUNING.playerSpeed * (now < p.speedUntil ? TUNING.speedBoost : 1);
+  const max = TUNING.playerSpeed * (now < p.speedUntil ? TUNING.speedBoost : 1) * (now < p.slowUntil ? TUNING.slowFactor : 1);
   const tx = stunned ? 0 : dir.x * max;
   const ty = stunned ? 0 : dir.y * max;
   const k = Math.min(1, dt * TUNING.playerAccel);
@@ -112,7 +121,7 @@ export function movePlayer(p: Player, dir: { x: number; y: number }, level: Leve
 }
 
 export function tryDash(p: Player, dir: { x: number; y: number }, now: number): boolean {
-  if (now < p.dashReadyAt || now < p.stunnedUntil) return false;
+  if (now < p.dashReadyAt || now < p.stunnedUntil || now < p.tangledUntil) return false;
   let { x, y } = dir;
   if (!x && !y) {
     x = p.sprite.flipX ? -1 : 1;
@@ -141,6 +150,7 @@ export function renderPlayer(p: Player, now: number, frame: number, dt: number):
   const invuln = now < p.invulnerableUntil;
   s.setAlpha(invuln && Math.floor(now / 120) % 2 === 0 ? 0.35 : 1);
   if (now < p.stunnedUntil) s.setTint(0x9b6fc4);
+  else if (now < p.slowUntil) s.setTint(0xa9c08c);
   else if (now < p.speedUntil) s.setTint(0xffe2a0);
   else s.clearTint();
 }

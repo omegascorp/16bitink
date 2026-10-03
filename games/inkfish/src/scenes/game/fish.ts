@@ -15,18 +15,20 @@ export interface Fish {
   readonly species: SpeciesId;
   readonly role: FishRole;
   readonly baseSize: number;
-  /** Current radius after puffing/shrinking. */
+  /** Current radius after puffing. */
   size: number;
   vx: number;
   vy: number;
   phase: number;
   /** Timestamps (scene time ms) for behaviour states. */
-  shrinkUntil: number;
+  /** Shocked by a battery: edible while stunned even if it's a bit bigger than you. */
+  shockedUntil: number;
   stateUntil: number;
   cooldownUntil: number;
   /** After eating another fish, a hunter ignores prey until this time. */
   fullUntil: number;
-  state: 'cruise' | 'chase' | 'lunge' | 'puffed' | 'tired' | 'stunned' | 'hooked';
+  /** dead: knocked out by a firecracker, floating belly-up; anyone can eat it. */
+  state: 'cruise' | 'chase' | 'lunge' | 'puffed' | 'tired' | 'stunned' | 'hooked' | 'dead';
 }
 
 const cruiseOf = (species: SpeciesId): readonly [number, number] => SPECIES_INFO[species].cruise;
@@ -62,13 +64,13 @@ function makeFish(scene: Phaser.Scene, species: SpeciesId, size: number, role: F
   const sprite = scene.add.image(x, y, fishKey(species, 'light', 0)).setDepth(role === 'boss' ? 11 : 10).setScale(size / FISH_RADIUS);
   return {
     sprite, species, role, baseSize: size, size, vx, vy: 0, phase: rng() * Math.PI * 2,
-    shrinkUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
+    shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
   };
 }
 
 /** Everyday behaviour by species type (see levels/species.ts). */
-function behave(f: Fish, p: PlayerView, dist: number, rel: string, now: number, dt: number, shrunk: boolean): void {
-  const canStrike = f.state === 'cruise' && rel === 'predator' && now > f.cooldownUntil && !shrunk;
+function behave(f: Fish, p: PlayerView, dist: number, rel: string, now: number, dt: number): void {
+  const canStrike = f.state === 'cruise' && rel === 'predator' && now > f.cooldownUntil;
   switch (SPECIES_INFO[f.species].behaviour) {
     case 'school':
       if (rel === 'prey' && dist < 130) steerTo(f, f.sprite.x * 2 - p.x, f.sprite.y * 2 - p.y, 125, dt);
@@ -114,7 +116,7 @@ function updateGoalFish(f: Fish, p: PlayerView, dist: number, rel: string, now: 
     steerTo(f, f.sprite.x * 2 - p.x, f.sprite.y * 2 - p.y, 175, dt);
     return true;
   }
-  if (f.state === 'cruise' && rel === 'predator' && dist < 620 && now > f.cooldownUntil && now > f.shrinkUntil) {
+  if (f.state === 'cruise' && rel === 'predator' && dist < 620 && now > f.cooldownUntil) {
     f.state = 'chase';
     f.stateUntil = now + 3200;
   }
@@ -146,18 +148,34 @@ export function stunFish(f: Fish, now: number, ms: number): void {
 
 /** Fish that can't bite, chase or be bitten by the player right now. */
 export function isHelpless(f: Fish): boolean {
-  return f.state === 'hooked' || f.state === 'stunned';
+  return f.state === 'hooked' || f.state === 'stunned' || f.state === 'dead';
 }
 
 /** Per-species behaviour. Mutates the fish in place (hot loop, pooled entities). */
-export function updateFish(f: Fish, p: PlayerView, world: { readonly width: number; readonly height: number }, now: number, dt: number): void {
+/** A point hunters chase instead of the player (a rubber duck decoy). */
+export interface Decoy {
+  readonly x: number;
+  readonly y: number;
+}
+
+export function updateFish(
+  f: Fish, player: PlayerView, world: { readonly width: number; readonly height: number }, now: number, dt: number, decoy: Decoy | null = null,
+): void {
   f.phase += dt;
   // A hooked fish is moved by its hook.
   if (f.state === 'hooked') return;
+  if (f.state === 'dead') {
+    // Belly-up, drifting slowly towards the light.
+    f.vx -= f.vx * Math.min(1, dt * 3);
+    f.sprite.x += f.vx * dt;
+    f.sprite.y = keepInWater(f.sprite.y - 16 * dt, -16, f.size, world.height).y;
+    return;
+  }
+  // Hunters go for the decoy when there is one; everyone else reacts to the player.
+  const p: PlayerView = decoy && SPECIES_INFO[f.species].behaviour !== 'school' ? { ...player, ...decoy } : player;
   const dist = Phaser.Math.Distance.Between(f.sprite.x, f.sprite.y, p.x, p.y);
-  const shrunk = now < f.shrinkUntil;
   const puffed = f.state === 'puffed' && now < f.stateUntil;
-  f.size = f.baseSize * (shrunk ? 0.5 : 1) * (puffed ? 1.7 : 1);
+  f.size = f.baseSize * (puffed ? 1.7 : 1);
   const rel = relationTo(p.size, f.size);
   const cruise = Math.sign(f.vx || (f.sprite.flipX ? -1 : 1)) * cruiseOf(f.species)[0];
 
@@ -173,7 +191,7 @@ export function updateFish(f: Fish, p: PlayerView, world: { readonly width: numb
   } else if (updateGoalFish(f, p, dist, rel, now, dt)) {
     // Steered by its role.
   } else {
-    behave(f, p, dist, rel, now, dt, shrunk);
+    behave(f, p, dist, rel, now, dt);
   }
 
   // Ease back to cruising speed after a chase.
@@ -197,9 +215,14 @@ function turnAtWalls(f: Fish, width: number): void {
 export function renderFish(f: Fish, playerSize: number, frame: number): void {
   const heavy = relationTo(playerSize, f.size) === 'predator' && !isHelpless(f);
   f.sprite.setTexture(fishKey(f.species, heavy ? 'heavy' : 'light', frame));
-  // Ease scale so puff/shrink animate instead of popping.
+  // Ease scale so puffing animates instead of popping.
   const target = f.size / FISH_RADIUS;
   f.sprite.setScale(f.sprite.scaleX + (target - f.sprite.scaleX) * 0.25);
+  if (f.state === 'dead') {
+    f.sprite.setTint(0xb3ab9c).setFlipY(true).setRotation(Math.sin(f.phase * 1.5) * 0.08);
+    return;
+  }
+  f.sprite.setFlipY(false);
   if (f.state === 'stunned') f.sprite.setTint(0xc4a8e0);
   else f.sprite.clearTint();
   if (f.state === 'hooked') {

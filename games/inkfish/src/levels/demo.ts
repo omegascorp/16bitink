@@ -24,7 +24,7 @@ const TIDE_POOL: ChapterRecipe = {
   goal: [55, 110],
   finalSize: [40, 52],
   overrides: {
-    0: { powerUps: ['speed'], hazards: { jellyfish: 0, hookEverySec: 0 } },
+    0: { hazards: { jellyfish: 0, hookEverySec: 0 } },
     1: { hazards: { jellyfish: 2, hookEverySec: 0 } },
   },
 };

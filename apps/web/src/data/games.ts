@@ -42,7 +42,7 @@ export const GAMES: readonly CatalogGame[] = [
     tagline: 'Eat smaller fish. Grow. Don’t get eaten.',
     description: [
       'A fish-eat-fish game drawn entirely in pen and ink. Start as a doodle-sized fry in a sketchbook tide pool and eat your way up the food chain.',
-      'Chain meals into an Ink Frenzy, dodge fishing hooks and jellyfish, and splash shrink-ink to turn predators into lunch.',
+      'Chain meals into an Ink Frenzy, dodge fishing hooks and jellyfish, and grab what sinks from above: a battery to shock predators into lunch, or a plastic bag you really shouldn’t eat.',
     ],
     status: 'playable',
     cover: '/covers/inkfish.png',

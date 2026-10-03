@@ -1,7 +1,7 @@
+import type { ItemId } from './items';
 import type { SpeciesId } from './species';
 
 export type { SpeciesId };
-export type PowerUpId = 'speed' | 'shrink';
 /** Where a chapter takes place; also how deep, since the seabed slopes down. */
 export type ZoneId =
   | 'tidepool' | 'seagrass' | 'kelp' | 'reef' | 'wreck'
@@ -55,7 +55,8 @@ export interface LevelDef {
   readonly spawns: readonly SpawnEntry[];
   readonly maxFish: number;
   readonly hazards: { readonly jellyfish: number; readonly hookEverySec: number };
-  readonly powerUps: readonly PowerUpId[];
+  /** Kinds of human-made items that sink through this level (at most three). */
+  readonly items: readonly ItemId[];
   /** Seconds to earn three ink blots. */
   readonly parTime: number;
   readonly twists: readonly TwistId[];

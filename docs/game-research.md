@@ -99,7 +99,21 @@ Giants are their own species, appear only once (as the chapter's final boss), an
 - Species behaviours (each species has one): school (flees), cruise, chase, lunge (ambush), wave (eel S-curves), puff (inflates to 1.7× when you approach), hover (drifts in place). Spiky species (puffer, lionfish, scorpionfish, filefish, rockfish, ghost shark) prick instead of bite.
 - Hazards: jellyfish stun you; fishing hooks are telegraphed by a dotted pencil line, then drop. A hooked fish is reeled up by the mouth: with lives left you lose one and thrash free near the surface, on your last life you're hauled out of the water.
 - Hazards hit everyone, not just the player: jellyfish stun enemies (a stung predator can't bite, so luring hunters into jellies is a tactic), hooks catch and reel off any fish, and hunters (flagged per species) eat fish under 70% of their size when they bump into them.
-- Power-ups: Quick Quill (speed) and Shrink-ink (nearby fish shrink to 0.5× for 5 s).
+- Falling items: human-made things sink from the surface and rest on the seabed for a while. Eat one to use it. A level drops at most 2 helpful kinds and 1 harmful kind, and the intro card shows which (`src/levels/items.ts`). New items unlock as you progress:
+
+  | Level | Item | Effect |
+  |---|---|---|
+  | 1 | Energy drink can | Speed boost |
+  | 3 | Bag of chum | A school of small prey rushes in |
+  | 5 | Plastic bag (harmful) | Looks like a jellyfish; makes you sick: slower, loses some growth |
+  | 8 | Battery | Shocks fish nearby; stunned fish up to 1.6× your size can be eaten |
+  | 12 | Tin can | Shield: absorbs the next bite, spike or hook |
+  | 16 | Six-pack rings (harmful) | Tangled: slower, no dash |
+  | 22 | Rubber duck | Decoy: hunters chase it instead of you |
+  | 27 | Firecracker | Knocks out fish around you; they float belly-up and anyone can eat them |
+  | 35 | Spinner lure (harmful) | Hides a hook: costs a life ("Snagged!") |
+  | 45 | Message in a bottle | Treasure points |
+  | 67 | Glow stick | Bigger circle of light, only in lights-out levels |
 - 3 lives with invulnerability blinks, a par-time ink-blot rating (1–3), and best scores saved locally.
 
 ## Planned for the full game

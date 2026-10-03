@@ -37,7 +37,7 @@ function fitBox(shape: PlayerFishId | SpeciesId, w: number, h: number): number {
 /** A little pen vignette of how it ended, drawn above the title. */
 function deathPicture(scene: Phaser.Scene, death: Death, player: PlayerFishId, staple: SpeciesId, y: number): Phaser.GameObjects.GameObject[] {
   const me = (frame: string): Phaser.GameObjects.Image => scene.add.image(0, 0, frame);
-  if (death.cause === 'hooked') {
+  if (death.cause === 'hooked' || death.cause === 'snagged') {
     // Lifted a little: the steam needs headroom and the pan must clear the title.
     const panScale = 220 / (PAN_SIZE.w * ART_RES);
     return [

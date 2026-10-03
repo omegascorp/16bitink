@@ -2,7 +2,7 @@ import { SPECIES_INFO, type SpeciesInfo } from '../levels/species';
 import type { SpeciesId } from '../levels/types';
 
 /** How the player's fish met its end; each has its own animation and result screen. */
-export type DeathCause = 'eaten' | 'spiked' | 'hooked' | 'timeout';
+export type DeathCause = 'eaten' | 'spiked' | 'hooked' | 'snagged' | 'timeout';
 
 export interface Death {
   readonly cause: DeathCause;
@@ -34,6 +34,8 @@ export function deathText(death: Death): { readonly title: string; readonly line
       return { title: 'Cooked!', line: 'Reeled up and fried for supper.' };
     case 'spiked':
       return { title: 'Spiked!', line: death.killer ? `You bumped into ${article(SPECIES_INFO[death.killer].name)} ${SPECIES_INFO[death.killer].name}.` : 'You bumped into something spiky.' };
+    case 'snagged':
+      return { title: 'Snagged!', line: 'That shiny lure was hiding a hook.' };
     case 'timeout':
       return { title: 'Time’s up!', line: 'The school swam off before you were full.' };
     case 'eaten':
@@ -44,5 +46,5 @@ export function deathText(death: Death): { readonly title: string; readonly line
 
 /** Floating text for a hit that costs a life but not the level. */
 export function hitText(cause: DeathCause): string {
-  return { eaten: 'Chomp!', spiked: 'Ouch!', hooked: 'Hooked!', timeout: 'Hurry!' }[cause];
+  return { eaten: 'Chomp!', spiked: 'Ouch!', hooked: 'Hooked!', snagged: 'Snagged!', timeout: 'Hurry!' }[cause];
 }

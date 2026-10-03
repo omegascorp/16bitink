@@ -1,10 +1,12 @@
 import type Phaser from 'phaser';
 import { PLAYER_FISH } from '../levels/zones';
 import { BONES_SIZE, drawBones, drawPan, PAN_SIZE } from './deathArt';
+import { drawItem, ITEM_SIZE } from './itemArt';
 import { DARK_TEX, drawDarkness, drawInkDrop, DROP_SIZE } from './twistArt';
+import { ITEM_IDS } from '../levels/items';
 import { drawFish, FISH_TEX, type FishShape, type InkVariant } from './fishArt';
 import { makeCanvas } from './pen';
-import { ART_RES, drawBubble, drawWreck, drawHook, drawJelly, drawPaper, drawPowerUp, drawRock, drawWeed, type WeedKind } from './propArt';
+import { ART_RES, drawBubble, drawWreck, drawHook, drawJelly, drawPaper, drawRock, drawWeed, type WeedKind } from './propArt';
 
 export { ART_RES };
 
@@ -38,9 +40,8 @@ export function generateInkTextures(scene: Phaser.Scene): void {
     const R = ART_RES;
     add(scene, boilKey('jelly', f), 128 * R, 128 * R, (ctx) => drawJelly(ctx, seed));
     add(scene, boilKey('hook', f), 48 * R, 76 * R, (ctx) => drawHook(ctx, seed));
-    add(scene, boilKey('pu-speed', f), 80 * R, 80 * R, (ctx) => drawPowerUp(ctx, 'speed', seed));
+    for (const kind of ITEM_IDS) add(scene, boilKey(`item-${kind}`, f), ITEM_SIZE * R, ITEM_SIZE * R, (ctx) => drawItem(ctx, kind, seed));
     add(scene, boilKey('drop', f), DROP_SIZE * R, DROP_SIZE * R, (ctx) => drawInkDrop(ctx, seed));
-    add(scene, boilKey('pu-shrink', f), 80 * R, 80 * R, (ctx) => drawPowerUp(ctx, 'shrink', seed));
     for (const kind of WEED_KINDS) {
       const { w, h } = WEED_SIZE;
       add(scene, weedKey(kind, f), w * R, h * R, (ctx) => drawWeed(ctx, 7 + kind * 13, kind, f, w * R, h * R));

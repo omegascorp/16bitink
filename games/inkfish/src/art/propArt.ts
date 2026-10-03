@@ -260,43 +260,6 @@ export function drawHook(ctx: CanvasRenderingContext2D, seed: number): void {
   }
 }
 
-export function drawPowerUp(ctx: CanvasRenderingContext2D, kind: 'speed' | 'shrink', seed: number): void {
-  const pen = new Pen(ctx, seed, 0.5);
-  const s = ART_RES;
-  const c = 40 * s;
-  pen.fill(ellipse(c, c, 30 * s, 30 * s, 28), PAPER_FILL, 0.92);
-  pen.stroke(ellipse(c, c, 30 * s, 30 * s, 28).concat([{ x: c + 30 * s, y: c }]), 1.2 * s, INK, 1);
-  pen.hair(ellipse(c, c, 26.5 * s, 26.5 * s, 28).concat([{ x: c + 26.5 * s, y: c }]), 0.45 * s, INK, 0.6);
-  if (kind === 'speed') {
-    // A fountain-pen nib with a slit, breather hole and motion lines.
-    const nib: Pt[] = [{ x: c + 12 * s, y: c - 20 * s }, { x: c + 20 * s, y: c - 12 * s }, { x: c - 4 * s, y: c + 14 * s }, { x: c - 14 * s, y: c + 18 * s }, { x: c - 10 * s, y: c + 8 * s }];
-    pen.fill(nib, '#d9a441', 0.75);
-    pen.stroke(nib.concat([nib[0]!]), 1 * s, INK, 1, false);
-    pen.hair([{ x: c + 6 * s, y: c - 6 * s }, { x: c - 11 * s, y: c + 14 * s }], 0.5 * s, INK, 0.9);
-    pen.dot(c + 7 * s, c - 7 * s, 1.6 * s, INK);
-    pen.clipped(nib, () => {
-      for (let i = 0; i < 8; i++) pen.hair([{ x: c - 10 * s + i * 3 * s, y: c + 20 * s }, { x: c + i * 3 * s, y: c - 4 * s }], 0.4 * s, INK, 0.45);
-    });
-    for (let i = 0; i < 3; i++) pen.hair([{ x: c - 22 * s, y: c - 8 * s + i * 7 * s }, { x: c - 12 * s, y: c - 11 * s + i * 7 * s }], 0.6 * s, INK, 0.8);
-  } else {
-    // An ink splat with satellite drops.
-    const rng = createRng(seed);
-    const splat: Pt[] = [];
-    for (let i = 0; i < 26; i++) {
-      const a = (i / 26) * Math.PI * 2;
-      const r = (i % 2 ? 9 + rng() * 3 : 13 + rng() * 7) * s;
-      splat.push({ x: c + Math.cos(a) * r, y: c + Math.sin(a) * r });
-    }
-    pen.fill(splat, INK, 0.95);
-    for (let i = 0; i < 6; i++) {
-      const a = rng() * Math.PI * 2;
-      const d = (19 + rng() * 5) * s;
-      pen.dot(c + Math.cos(a) * d, c + Math.sin(a) * d, (0.8 + rng() * 1.4) * s);
-    }
-    pen.dot(c - 4 * s, c - 5 * s, 2 * s, PAPER_FILL, 0.5);
-  }
-}
-
 export function drawBubble(ctx: CanvasRenderingContext2D, seed: number): void {
   const pen = new Pen(ctx, seed, 0.25);
   const s = ART_RES;
