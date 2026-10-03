@@ -57,7 +57,7 @@ const RECIPES: Readonly<Record<number, Recipe>> = {
   },
   7: {
     names: ['Dimming', 'Lantern Light', 'Faint Lines', 'Glowworms', 'Twilight Rush', 'Ghost Ink', 'Fading Page', 'Dusk Patrol', 'Silver Shoal', 'Lights Out'],
-    spawns: [s('bristlemouth', 5, 8, 14, 0), s('pearleye', 3, 20, 32, 0), s('barreleye', 2, 22, 34, 2), s('sabertooth', 2, 40, 58, 4), s('dragonfish', 2, 40, 62, 6), s('eel', 1.5, 64, 90)],
+    spawns: [s('bristlemouth', 5, 8, 14, 0), s('pearleye', 3, 20, 32, 0), s('barreleye', 2, 22, 34, 2), s('sabertooth', 2, 40, 58, 4), s('dragonfish', 2, 40, 62, 6), s('eel', 1.5, 64, 90), s('coelacanth', 0.6, 56, 74, 7)],
     boss: 'oarfish', jellyfish: [5, 9], hookEverySec: [0, 0],
   },
   8: {
@@ -73,7 +73,7 @@ const RECIPES: Readonly<Record<number, Recipe>> = {
   10: {
     names: ['The Crack', 'Walls of Ink', 'Pressure Lines', 'The Narrows', 'Trench Rush', 'Echoes', 'Hadal Hunt', 'The Floor', 'Deepest Blot', 'Challenger Deep'],
     spawns: [s('bristlemouth', 5, 8, 14), s('blobfish', 3, 22, 34, 0), s('snipeeel', 2.5, 26, 40, 1), s('ghostshark', 2, 44, 64, 3), s('angler', 2, 42, 66, 5), s('rattail', 2, 40, 56), s('tripodfish', 1.5, 30, 44), s('cuskeel', 2, 60, 84)],
-    boss: 'coelacanth', jellyfish: [8, 11], hookEverySec: [0, 0],
+    boss: 'giantsquid', jellyfish: [8, 11], hookEverySec: [0, 0],
   },
 };
 

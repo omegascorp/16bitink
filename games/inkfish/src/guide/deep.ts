@@ -264,6 +264,17 @@ export const DEEP_GUIDE = {
     eats: 'fish, squid, octopus',
     fact: 'Thought extinct for 66 million years until a living one was caught off South Africa in 1938.',
   },
+  giantsquid: {
+    latin: 'Architeuthis dux',
+    length: 'up to ~13 m with tentacles (females)',
+    weight: 'up to ~275 kg',
+    lifespan: 'probably under 5 years',
+    speed: 'slow cruiser; jets backwards in bursts',
+    depth: '300-1,000 m',
+    range: 'All oceans; most often found off New Zealand and Japan',
+    eats: 'deep-sea fish, other squid',
+    fact: 'Its eyes are up to 27 cm across, the biggest of any animal, and it was first filmed alive only in 2004.',
+  },
 } as const satisfies Record<
   | 'bristlemouth'
   | 'pearleye'
@@ -286,6 +297,7 @@ export const DEEP_GUIDE = {
   | 'oarfish'
   | 'sleepershark'
   | 'goblinshark'
-  | 'coelacanth',
+  | 'coelacanth'
+  | 'giantsquid',
   GuideEntry
 >;

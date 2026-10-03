@@ -86,12 +86,21 @@ Each zone has its own residents, and new ones arrive mid-chapter: the intro card
 | 4 Reef | chromis, clownfish, angelfish, parrotfish, boxfish, triggerfish, lionfish | goliath grouper |
 | 5 Wreck | herring, snapper, cod, scorpionfish, jack, moray | reef shark |
 | 6 Drop-off | anchovy, mackerel, flying fish, needlefish, bonito, mahi-mahi | swordfish |
-| 7 Twilight | bristlemouth, pearleye, barreleye, sabertooth, dragonfish | oarfish |
+| 7 Twilight | bristlemouth, pearleye, barreleye, sabertooth, dragonfish, coelacanth (rare) | oarfish |
 | 8 Midnight | bigscale, whalefish, fangtooth, black dragonfish, gulper eel | sleeper shark |
 | 9 Abyss | rattail, tripodfish, lizardfish, halosaur, cusk-eel | goblin shark |
-| 10 Trench | blobfish, snipe eel, ghost shark, anglerfish | coelacanth |
+| 10 Trench | blobfish, snipe eel, ghost shark, anglerfish | giant squid |
 
 Giants are their own species, appear only once (as the chapter's final boss), and are the biggest fish on that level: every other spawn is capped below them.
+
+The giant squid, the last giant of the game, is the only one that isn't a fish, and it fights differently:
+- **Drawn in parts:** a pen-drawn body (mantle and head, with the hit shape), plus eight arms and two feeding tentacles. Each limb is a pen-drawn strip bent along a curve every frame (Phaser `Rope`), with flapping fins and a pupil that follows the player.
+- **Arm poses:** the poses (fanned, writhing, streamlined, striking) live in `art/squidPose.ts`. The live rig and the guide portrait use the same poses.
+- **Behaviour:**
+  - It drifts, then stalks the player arms-first.
+  - It strikes in three steps: a wind-up (it draws back and flares its arms, the tell to dodge), then its tentacles shoot out at where the player was, and their clubs cost a life if they touch.
+  - After a strike it jets away backwards and leaves a sepia ink cloud.
+  - Once the player is full size it flees in inking bursts and has to be chased down.
 
 ## Core mechanics (built)
 

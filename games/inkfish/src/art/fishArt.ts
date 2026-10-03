@@ -5,6 +5,8 @@ import {
 } from './fish/kit';
 import { CRITTER_BODY, drawCritter, isCritter } from './critterArt';
 import { ellipse, INK, makeCanvas, Pen, type Pt } from './pen';
+import { drawSquidPortrait, isSquid } from './squidArt';
+import { SQUID_BODY } from './squidPose';
 
 export { FISH_RADIUS, FISH_TEX };
 export type FishShape = SpeciesId | PlayerFishId;
@@ -373,11 +375,13 @@ export function drawFish(ctx: CanvasRenderingContext2D, shape: FishShape, varian
 /** One boil frame of any swimmer or crawler: fish by anatomy, seabed critters by their own drawings. */
 export function drawCreature(ctx: CanvasRenderingContext2D, shape: FishShape, variant: InkVariant, frame: number, seed: number): void {
   if (isCritter(shape)) drawCritter(ctx, shape, variant, frame, seed);
+  else if (isSquid(shape)) drawSquidPortrait(ctx, variant, seed);
   else drawFish(ctx, shape, variant, seed);
 }
 
 /** Half length and half height of the solid body in texture px, for hit shapes and framing. */
 export function bodyProportions(shape: FishShape): { readonly hl: number; readonly hh: number } {
+  if (isSquid(shape)) return SQUID_BODY;
   return isCritter(shape) ? CRITTER_BODY[shape] : ANATOMY[shape];
 }
 
@@ -388,7 +392,7 @@ export function fishLights(shape: FishShape): readonly Light[] {
   const cached = lightCache.get(shape);
   if (cached) return cached;
   const lights: Light[] = [];
-  if (!isCritter(shape)) drawFish(makeCanvas(FISH_TEX, FISH_TEX).ctx, shape, 'light', 101, lights);
+  if (!isCritter(shape) && !isSquid(shape)) drawFish(makeCanvas(FISH_TEX, FISH_TEX).ctx, shape, 'light', 101, lights);
   lightCache.set(shape, lights);
   return lights;
 }

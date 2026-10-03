@@ -3,6 +3,7 @@ import { getChapters, getHost } from '../host';
 import { ART_RES, birdKey, ensureBirdTextures, fishKey } from '../art/textures';
 import { PAN_SIZE } from '../art/deathArt';
 import { bodyProportions } from '../art/fishArt';
+import { isSquid } from '../art/squidArt';
 import { DEMO_CHAPTER, LOCKED_CHAPTER_TEASERS } from '../levels/demo';
 import type { PlayerFishId, SpeciesId } from '../levels/types';
 import { deathText, type Death } from '../logic/deaths';
@@ -59,7 +60,9 @@ function deathPicture(scene: Phaser.Scene, death: Death, player: PlayerFishId, s
     const bird = scene.add.image(-20, y - 20, birdKey(death.bird, 1)).setScale(0.75).setRotation(-0.15);
     return [bird, me(fishKey(player, 'light', 0)).setPosition(46, y + 14).setScale(fitBox(player, 60, 40)).setRotation(-1.35)];
   }
-  const killer = scene.add.image(-85, y, fishKey(death.killer ?? staple, 'heavy', 0)).setScale(0.55);
+  const killerShape = death.killer ?? staple;
+  // The giant squid's picture includes its long arms: draw it smaller.
+  const killer = scene.add.image(-85, y, fishKey(killerShape, 'heavy', 0)).setScale(isSquid(killerShape) ? 0.32 : 0.55);
   if (death.cause === 'spiked' || death.cause === 'pinched') {
     return [killer, me(fishKey(player, 'light', 0)).setPosition(80, y + 6).setScale(fitBox(player, 100, 70)).setTint(DEAD_TINT).setFlipY(true).setRotation(-0.12)];
   }

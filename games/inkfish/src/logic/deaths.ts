@@ -28,6 +28,7 @@ const EATEN_BY: Partial<Record<SpeciesId, string>> = {
   moray: 'A moray shot out of a porthole.',
   shark: 'The reef shark finally stopped circling.',
   swordfish: 'Slashed, then swallowed, by the swordfish.',
+  giantsquid: 'The giant squid’s tentacles reeled you in.',
 };
 
 const article = (name: string): string => (/^[aeiou]/.test(name) ? 'an' : 'a');

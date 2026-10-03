@@ -9,6 +9,7 @@ import { drawFishGlow, drawSoftGlow, GLOW_TEX } from './glowArt';
 import { drawJellyGlow, drawJellyKind, JELLY_TEX } from './jellyArt';
 import { JELLY_INFO, type JellyId } from '../levels/jellies';
 import { isCritter } from './critterArt';
+import { drawSquidBody, drawSquidFin, drawSquidLimb, drawSquidPortrait, drawSquidPupil, isSquid, SQUID_TEX } from './squidArt';
 import { DECOR_SIZE, drawDecor, type DecorId } from './decorArt';
 import { drawDecorGlow, isGlowDecor } from './decorGlow';
 import { xAt } from './fish/kit';
@@ -126,6 +127,10 @@ export function ensureBirdTextures(scene: Phaser.Scene, kinds: readonly BirdId[]
  */
 export function ensureFishTextures(scene: Phaser.Scene, shapes: readonly FishShape[], variants: readonly InkVariant[] = ['light', 'heavy']): void {
   for (const shape of new Set(shapes)) {
+    if (isSquid(shape)) {
+      ensureSquidTextures(scene, variants);
+      continue;
+    }
     for (const variant of variants) {
       for (let f = 0; f < BOIL_FRAMES; f++) {
         add(scene, fishKey(shape, variant, f), FISH_TEX, FISH_TEX, (ctx) => drawCreature(ctx, shape, variant, f, frameSeed(f)));
@@ -133,6 +138,26 @@ export function ensureFishTextures(scene: Phaser.Scene, shapes: readonly FishSha
       }
     }
   }
+}
+
+export type SquidPart = 'body' | 'arm' | 'tentacle' | 'fin';
+export const squidKey = (part: SquidPart, variant: InkVariant, frame: number): string => `squid-${part}-${variant}-${frame}`;
+export const SQUID_PUPIL_KEY = 'squid-pupil';
+
+/** The giant squid: its portrait under the usual fish key, and the parts its rig moves in play. */
+function ensureSquidTextures(scene: Phaser.Scene, variants: readonly InkVariant[]): void {
+  const { body, limb, fin, pupil, portrait } = SQUID_TEX;
+  for (const variant of variants) {
+    for (let f = 0; f < BOIL_FRAMES; f++) {
+      const seed = frameSeed(f);
+      add(scene, fishKey('giantsquid', variant, f), portrait.w, portrait.h, (ctx) => drawSquidPortrait(ctx, variant, seed));
+      add(scene, squidKey('body', variant, f), body.w, body.h, (ctx) => drawSquidBody(ctx, variant, seed));
+      add(scene, squidKey('arm', variant, f), limb.w, limb.h, (ctx) => drawSquidLimb(ctx, 'arm', variant, seed + 11));
+      add(scene, squidKey('tentacle', variant, f), limb.w, limb.h, (ctx) => drawSquidLimb(ctx, 'tentacle', variant, seed + 23));
+      add(scene, squidKey('fin', variant, f), fin.w, fin.h, (ctx) => drawSquidFin(ctx, variant, seed + 37));
+    }
+  }
+  add(scene, SQUID_PUPIL_KEY, pupil.w, pupil.h, drawSquidPupil);
 }
 
 /** The tail piece reaches this far under the body, so no gap opens at the hinge when it swings. */
@@ -144,7 +169,7 @@ const TAIL_OVERLAP = 5;
  * body (eels, the oarfish), which keep a single image.
  */
 export function tailCut(shape: FishShape): number | null {
-  if (isCritter(shape)) return null;
+  if (isCritter(shape) || isSquid(shape)) return null;
   const a = ANATOMY[shape];
   if (a.tail === 'point' || a.wave) return null;
   return Math.round(xAt(a, 1) + Math.max(5, a.hl * 0.08));

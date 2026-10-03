@@ -1,5 +1,5 @@
 import { ITEM_INFO, type ItemId } from './items';
-import { SPECIES_INFO, type SpeciesInfo } from './species';
+import { giantName, SPECIES_INFO, type SpeciesInfo } from './species';
 import { COVER_DEBUT, ZONE_COVER } from './cover';
 import { LEVELS_PER_CHAPTER, zoneInfo } from './zones';
 import type { LevelDef, Modifiers, Objective, SpawnEntry, SpeciesId, TwistId } from './types';
@@ -123,7 +123,7 @@ function goalText(level: LevelDef): string {
   switch (o.kind) {
     case 'collect': return `Grow to full size and catch ${o.count} ink bottles.`;
     case 'bounty': return `Grow to full size and eat the ${o.count} ${SPECIES_INFO[o.species].plural} circled in red.`;
-    case 'boss': return `Grow to full size, then eat the giant ${SPECIES_INFO[o.species].name}.`;
+    case 'boss': return `Grow to full size, then eat the ${giantName(o.species)}.`;
     default:
       return level.modifiers.timeLimit
         ? `Grow to full size in ${level.modifiers.timeLimit} seconds.`

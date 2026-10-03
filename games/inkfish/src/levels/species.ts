@@ -90,6 +90,7 @@ export const SPECIES_INFO = {
   barreleye: s('barreleye', 'barreleyes', 'hover', [20, 35], 'A see-through head with tube eyes.'),
   sabertooth: s('sabertooth', 'sabertooths', 'chase', [60, 90], 'Long fangs, quick temper.', { hunter: true }),
   dragonfish: s('dragonfish', 'dragonfish', 'lunge', [35, 55], 'Hexagon scales and rows of lights; rises to hunt at night.', { hunter: true }),
+  coelacanth: s('coelacanth', 'coelacanths', 'cruise', [25, 40], 'A living fossil, older than the dinosaurs. Rare: lucky you.', { hunter: true }),
   // Midnight
   bigscale: s('bigscale', 'bigscales', 'school', [50, 80], 'Small and plentiful in the deep.'),
   fangtooth: s('fangtooth', 'fangtooths', 'lunge', [30, 50], 'The biggest teeth for its size.', { hunter: true }),
@@ -126,7 +127,7 @@ export const SPECIES_INFO = {
   oarfish: s('oarfish', 'oarfish', 'wave', [50, 80], 'The longest bony fish in the sea.', { hunter: true, giant: true }),
   sleepershark: s('sleeper shark', 'sleeper sharks', 'chase', [50, 75], 'Slow, silent, enormous.', { hunter: true, giant: true }),
   goblinshark: s('goblin shark', 'goblin sharks', 'chase', [60, 90], 'Its jaws shoot forward.', { hunter: true, giant: true }),
-  coelacanth: s('coelacanth', 'coelacanths', 'chase', [50, 80], 'A living fossil, older than dinosaurs.', { hunter: true, giant: true }),
+  giantsquid: s('giant squid', 'giant squids', 'chase', [40, 70], 'Eyes as big as plates, and two tentacles that strike from far away.', { hunter: true, giant: true }),
 } as const satisfies Record<string, SpeciesInfo>;
 
 export type SpeciesId = keyof typeof SPECIES_INFO;
@@ -134,3 +135,9 @@ export type SpeciesId = keyof typeof SPECIES_INFO;
 export const ALL_SPECIES = Object.keys(SPECIES_INFO) as SpeciesId[];
 
 export const speciesInfo = (id: SpeciesId): SpeciesInfo => SPECIES_INFO[id];
+
+/** How the goal text names a giant: "giant pike", but just "giant squid" for one already called giant. */
+export function giantName(species: SpeciesId): string {
+  const { name } = SPECIES_INFO[species];
+  return name.startsWith('giant ') ? name : `giant ${name}`;
+}

@@ -6,6 +6,9 @@ import type { LevelDef, SpeciesId } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { pickSpawn, relationTo } from '../../logic/sizing';
 import { keepInWater } from '../../logic/water';
+import { isSquid } from '../../art/squidArt';
+import { renderSquid, updateSquid } from './squid';
+import { attachSquid } from './squidRig';
 import { attachTail, setSwimTexture, setTailBeat, stroke, turnToward, type SwimState } from './swim';
 
 /** Ordinary fish come and go; marked fish and the giant are level goals and never leave. */
@@ -65,7 +68,8 @@ export function spawnSpecial(scene: Phaser.Scene, species: SpeciesId, size: numb
 
 export function makeFish(scene: Phaser.Scene, species: SpeciesId, size: number, role: FishRole, x: number, y: number, vx: number, rng: Rng): Fish {
   const sprite = scene.add.image(x, y, fishKey(species, 'light', 0)).setDepth(role === 'boss' ? 11 : 10).setScale(size / FISH_RADIUS).setFlipX(vx < 0);
-  attachTail(sprite, species);
+  if (isSquid(species)) attachSquid(sprite);
+  else attachTail(sprite, species);
   return {
     sprite, species, role, baseSize: size, size, vx, vy: 0, phase: rng() * Math.PI * 2, swim: rng() * Math.PI * 2, turn: vx < 0 ? -1 : 1,
     tilt: 0, shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
@@ -198,6 +202,10 @@ export function updateFish(f: Fish, player: PlayerView, world: SeaWorld, now: nu
     f.cooldownUntil = now + 3000;
   }
 
+  if (isSquid(f.species) && f.state !== 'stunned') {
+    updateSquid(f, p, dist, world, now, dt);
+    return;
+  }
   if (f.state === 'stunned') {
     f.vx -= f.vx * Math.min(1, dt * 4);
     f.vy = 22;
@@ -227,6 +235,10 @@ function turnAtWalls(f: Fish, width: number): void {
 
 export function renderFish(f: Fish, playerSize: number, frame: number, dt: number): void {
   const heavy = relationTo(playerSize, f.size) === 'predator' && !isHelpless(f);
+  if (isSquid(f.species)) {
+    renderSquid(f, frame, dt, heavy);
+    return;
+  }
   setSwimTexture(f.sprite, fishKey(f.species, heavy ? 'heavy' : 'light', frame));
   // Ease scale (y holds the true size) so puffing animates instead of popping.
   const target = f.size / FISH_RADIUS;

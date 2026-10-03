@@ -159,6 +159,12 @@ const RECIPES: Readonly<Record<SfxId, (v: Voice) => void>> = {
     noise(v, { dur: 0.25, gain: 0.25, filter: 'lowpass', from: 700, to: 200 });
     for (const [f, d] of [[3520, 0.04], [4700, 0.09], [3950, 0.15], [5270, 0.22]] as const) tone(v, { from: f, dur: 0.12, gain: 0.05, delay: d, attack: 0.002 });
   },
+  // Tentacles whipping out: a rising swish, then a wet slap.
+  lash: (v) => {
+    noise(v, { dur: 0.22, gain: 0.7, filter: 'bandpass', from: 400, to: 3200, q: 1.4, attack: 0.04 });
+    noise(v, { dur: 0.12, gain: 0.5, filter: 'lowpass', from: 900, delay: 0.24, attack: 0.003 });
+    tone(v, { from: 140, to: 60, dur: 0.16, gain: 0.3, delay: 0.24 });
+  },
   win: (v) => {
     notes(v, [523, 659, 784], 0.12, { type: 'triangle', dur: 0.2, gain: 0.2 });
     tone(v, { type: 'triangle', from: 1047, dur: 0.6, gain: 0.22, delay: 0.36 });

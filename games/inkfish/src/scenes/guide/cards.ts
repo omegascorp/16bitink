@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { isCritter } from '../../art/critterArt';
+import { isSquid } from '../../art/squidArt';
 import { bodyProportions, type FishShape } from '../../art/fishArt';
 import { birdKey, ensureBirdTextures, ensureFishTextures, ensureJellyTextures, fishKey, jellyKey } from '../../art/textures';
 import { GUIDE, guideArt, guideName, type GuideEntry, type GuideId } from '../../guide';
@@ -22,6 +23,11 @@ export function creaturePicture(scene: Phaser.Scene, id: GuideId, x: number, y: 
   }
   const shape = id as FishShape;
   ensureFishTextures(scene, [shape], ['light']);
+  if (isSquid(shape)) {
+    // The squid's portrait includes its arms: fit the whole picture.
+    const img = scene.add.image(x, y, fishKey(shape, 'light', 0));
+    return img.setScale(Math.min(w / img.width, h / img.height) * 1.25);
+  }
   const a = bodyProportions(shape);
   // Crabs and lobsters reach out with legs and claws well past their body.
   const reach = isCritter(shape) ? 0.6 : 1;

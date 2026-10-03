@@ -80,3 +80,25 @@ describe('art', () => {
     expect(missingAnatomy([...ALL_SPECIES, ...PLAYER_FISH])).toEqual([]);
   });
 });
+
+describe('the last giant', () => {
+  it('is a giant squid, waiting at the bottom of the trench', () => {
+    const finale = chapters.at(-1)!.levels.at(-1)!.objective;
+    expect(finale.kind === 'boss' && finale.species).toBe('giantsquid');
+    expect(info('giantsquid').giant).toBe(true);
+  });
+
+  it('keeps the coelacanth as a rare twilight fish, no longer a boss', () => {
+    expect(info('coelacanth').giant).toBeFalsy();
+    const twilight = chapters.find((c) => c.zone === 'twilight')!;
+    expect(twilight.levels.some((l) => l.spawns.some((s) => s.species === 'coelacanth'))).toBe(true);
+  });
+});
+
+describe('giant names', () => {
+  it('calls a giant "the giant X", without saying giant twice', async () => {
+    const { giantName } = await import('../src/levels/species');
+    expect(giantName('bass')).toBe('giant striped bass');
+    expect(giantName('giantsquid')).toBe('giant squid');
+  });
+});

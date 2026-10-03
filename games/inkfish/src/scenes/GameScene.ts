@@ -13,6 +13,8 @@ import { growthPointsFor, relationTo, scoreFor } from '../logic/sizing';
 import { targetZoom } from './game/camera';
 import { playEaten, playSpiked, spikeMarks } from './game/deathFx';
 import { isHelpless, isOffWorld, renderFish, spawnFish, stunFish, updateFish, type Decoy, type Fish } from './game/fish';
+import { clubsTouch, takeSquidEvents } from './game/squid';
+import { isSquid } from '../art/squidArt';
 import {
   destroyHook, hangPoint, hookCatch, hookRelease, hookTip, spawnJellies, updateHook, updateJelly, type Hook, type Jelly,
 } from './game/hazards';
@@ -305,6 +307,7 @@ export class GameScene extends Phaser.Scene {
       // Crawlers hold on to the seabed against the current.
       if (f.state !== 'hooked' && !crawler) this.drift(f.sprite, f.size, 0.7, dt, f.role !== 'normal');
       renderFish(f, p.size, this.boilFrame, dt);
+      if (isSquid(f.species)) this.squidFx(f);
       if (f.state !== 'hooked' && isOffWorld(f, this.level)) {
         f.sprite.destroy();
         return false;
@@ -326,6 +329,14 @@ export class GameScene extends Phaser.Scene {
       return true;
     });
     this.huntPrey(now);
+  }
+
+  /** The giant squid's sounds, and its tentacle clubs grabbing you from afar. */
+  private squidFx(f: Fish): void {
+    for (const e of takeSquidEvents(f)) this.sfx(e === 'strike' ? 'lash' : e === 'ink' ? 'splash' : 'dash', f.sprite, e === 'jet' ? 0.7 : 1);
+    const p = this.player;
+    if (this.ended || p.hooked || p.hidden || p.airborne || isHelpless(f) || relationTo(p.size, f.size) !== 'predator') return;
+    if (clubsTouch(f, bodyOf(p.sprite, p.shape))) this.hurt('eaten', f);
   }
 
   /** The food chain doesn't wait for the player: hunters snap up smaller fish they bump into. */
