@@ -1,14 +1,15 @@
 import Phaser from 'phaser';
 import { getChapters, getHost } from '../host';
-import { guidePages, type GuideId, type GuidePage } from '../guide';
+import { guidePages, guideProgress, type GuideId, type GuidePage } from '../guide';
 import { ZONE_INFO } from '../levels/zones';
 import { loadSave } from '../logic/save';
 import { CARD, guideCard, guideDetail } from './guide/cards';
+import { drawProgressRing, progressBar } from './guide/progress';
 import { depthLabel } from './map/mapWorld';
 import { BLUE_INK, HAND_FONT, INK_HEX, inkButton, inkText, paperBackdrop, RED_INK, uiScale } from './ui';
 
 const GAP = 14;
-const TOP = 150;
+const TOP = 168;
 const BOTTOM = 90;
 
 /**
@@ -74,7 +75,7 @@ export class GuideScene extends Phaser.Scene {
       inkText(this, 20 + 110 * s, 36 * s, 'Fish guide', 46 * s, BLUE_INK),
       this.add.text(24, 64 * s, `${met} of ${all.length} creatures met`, { fontFamily: HAND_FONT, fontSize: `${22 * s}px`, color: '#4a463e' }),
       inkButton(this, width - 90 * s, 36 * s, '← Map', () => this.scene.start('Menu'), { width: 140 * s, height: 46 * s, size: 24 * s }),
-      inkText(this, width / 2, 112 * s, `${info.id}. ${info.name}, ${depthLabel(info.depth)}`, 28 * s),
+      inkText(this, width / 2, 104 * s, `${info.id}. ${info.name}, ${depthLabel(info.depth)}`, 28 * s),
     ];
     this.buildTabs(s);
     const page = this.pages.find((p) => p.chapter === this.chapter);
@@ -83,6 +84,8 @@ export class GuideScene extends Phaser.Scene {
       if (!host.unlocked) inkButton(this, width / 2, height / 2 + 40 * s, 'Unlock all levels', () => host.onBuy(), { width: 260 * s, height: 50 * s, size: 26 * s, color: RED_INK });
       return;
     }
+    // How much of this chapter's page is filled in, right under its name.
+    progressBar(this, width / 2 - 70 * s, 140 * s, 240 * s, 16 * s, guideProgress(page.ids, this.seen), s);
     this.buildGrid(page.ids, s);
   }
 
@@ -92,10 +95,12 @@ export class GuideScene extends Phaser.Scene {
     const gap = Math.min(52 * s, (width - 40) / n);
     for (const z of ZONE_INFO) {
       const active = z.id === this.chapter;
-      const owned = this.pages.some((p) => p.chapter === z.id);
+      const page = this.pages.find((p) => p.chapter === z.id);
+      const owned = Boolean(page);
       const g = this.add.graphics();
       g.fillStyle(active ? 0x1f3f8a : 0xfffaf0, active ? 1 : 0.92).fillCircle(0, 0, 17 * s);
       g.lineStyle(active ? 2.4 : 1.4, owned ? INK_HEX : 0xa69c8a, 1).strokeCircle(0, 0, 17 * s);
+      if (page) drawProgressRing(g, 21 * s, guideProgress(page.ids, this.seen));
       const t = this.add.text(0, 0, String(z.id), { fontFamily: HAND_FONT, fontSize: `${22 * s}px`, color: active ? '#fbf6ea' : owned ? '#1b1a1f' : '#a69c8a' }).setOrigin(0.5);
       const tab = this.add.container(width / 2 + (z.id - 1 - (n - 1) / 2) * gap, height - 34 * s, [g, t]).setSize(40 * s, 40 * s).setInteractive({ useHandCursor: true });
       tab.on('pointerup', () => {

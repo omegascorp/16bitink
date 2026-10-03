@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GUIDE, guidePages } from '../src/guide';
+import { GUIDE, guidePages, guideProgress } from '../src/guide';
 import { GUIDE_LIMITS, type GuideEntry } from '../src/guide/types';
 import { BIRD_INFO } from '../src/logic/birds';
 import { SPECIES_INFO } from '../src/levels/species';
@@ -37,5 +37,21 @@ describe('fish guide', () => {
   it('every listed creature has a card', () => {
     const pages = guidePages([DEMO_CHAPTER, ...INKFISH_FULL_CHAPTERS]);
     for (const id of pages.flatMap((p) => p.ids)) expect(GUIDE[id], id).toBeDefined();
+  });
+});
+
+describe('guide progress', () => {
+  it('counts the creatures met on a page and rounds the share down', () => {
+    expect(guideProgress(['a', 'b', 'c'], new Set(['a', 'z']))).toEqual({ met: 1, total: 3, percent: 33 });
+  });
+
+  it('reads 100% only when every creature is met', () => {
+    expect(guideProgress(['a', 'b'], new Set(['a', 'b'])).percent).toBe(100);
+    const ids = Array.from({ length: 200 }, (_, i) => `f${i}`);
+    expect(guideProgress(ids, new Set(ids.slice(1))).percent).toBe(99);
+  });
+
+  it('treats an empty page as nothing to find', () => {
+    expect(guideProgress([], new Set())).toEqual({ met: 0, total: 0, percent: 0 });
   });
 });

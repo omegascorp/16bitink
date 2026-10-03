@@ -45,3 +45,16 @@ export function guideName(id: GuideId): string {
 export function guideArt(id: GuideId): 'fish' | 'bird' {
   return id in BIRD_INFO ? 'bird' : 'fish';
 }
+
+export interface GuideProgress {
+  readonly met: number;
+  readonly total: number;
+  /** Rounded down, so 100 means every creature on the page is met. */
+  readonly percent: number;
+}
+
+/** How much of one guide page you've filled in. */
+export function guideProgress(ids: readonly string[], seen: ReadonlySet<string>): GuideProgress {
+  const met = ids.filter((id) => seen.has(id)).length;
+  return { met, total: ids.length, percent: ids.length ? Math.floor((met / ids.length) * 100) : 0 };
+}

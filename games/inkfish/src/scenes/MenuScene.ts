@@ -1,12 +1,14 @@
 import Phaser from 'phaser';
 import { BOIL_FPS, BOIL_FRAMES, ensureFishTextures, fishKey } from '../art/textures';
 import { getChapters, getFullError, getHost } from '../host';
+import { guidePages, guideProgress, type GuidePage } from '../guide';
 import { allLevels } from '../levels/chapters';
 import { LEVELS_PER_CHAPTER, ZONE_INFO } from '../levels/zones';
 import { isLevelOpen, loadSave } from '../logic/save';
 import { loadPaidChapters } from './BootScene';
 import { computeMapLayout, zoneIndexAt, type MapChapter, type MapLayout, type MapNode } from './map/layout';
 import { buildMapWorld, depthLabel, mapFauna, type Boiler, type NodeState } from './map/mapWorld';
+import { drawProgressBar } from './guide/progress';
 import { BLUE_INK, HAND_FONT, INK_HEX, inkButton, inkText, RED_INK, uiScale } from './ui';
 
 const DRAG_THRESHOLD = 8;
@@ -26,6 +28,7 @@ export class MenuScene extends Phaser.Scene {
   private tabs: Phaser.GameObjects.Container[] = [];
   private depthText!: Phaser.GameObjects.Text;
   private activeZone = -1;
+  private guide: { pages: GuidePage[]; seen: Set<string>; bar: Phaser.GameObjects.Graphics; text: Phaser.GameObjects.Text } | null = null;
 
   constructor() {
     super('Menu');
@@ -163,6 +166,12 @@ export class MenuScene extends Phaser.Scene {
     ui(this.add.text(24, 64 * s, `${done} of ${this.layout.nodes.length} levels`, { fontFamily: HAND_FONT, fontSize: `${22 * s}px`, color: '#4a463e' }));
     ui(inkButton(this, width - 110 * s, 36 * s, '← 16bit.ink', () => host.onExit(), { width: 180 * s, height: 46 * s, size: 24 * s }));
     ui(inkButton(this, width - 310 * s, 36 * s, 'Fish guide', () => this.scene.start('Guide', { chapter: (this.activeZone >= 0 ? this.activeZone : 0) + 1 }), { width: 160 * s, height: 46 * s, size: 24 * s }));
+    // Under the button: how much of this chapter's guide page you've filled in.
+    const bar = this.add.graphics().setPosition(width - 310 * s, 72 * s);
+    const text = this.add.text(width - 310 * s, 90 * s, '', { fontFamily: HAND_FONT, fontSize: `${18 * s}px`, color: '#4a463e' }).setOrigin(0.5);
+    ui(bar);
+    ui(text);
+    this.guide = { pages: guidePages(getChapters(this)), seen: new Set(save.seen), bar, text };
 
     // Chapter tabs: jump straight to any zone, 100 levels is a long swim.
     const n = this.layout.zones.length;
@@ -197,6 +206,7 @@ export class MenuScene extends Phaser.Scene {
     this.activeZone = index;
     const z = this.layout.zones[index]!;
     this.depthText.setText(`${z.chapter.info.name}, ${depthLabel(z.chapter.info.depth)}`);
+    this.showGuideProgress(z.chapter.info.id);
     this.tabs.forEach((tab, i) => {
       const g = tab.list[0] as Phaser.GameObjects.Graphics;
       const r = 17 * uiScale(this, 900, 600);
@@ -206,5 +216,18 @@ export class MenuScene extends Phaser.Scene {
       g.lineStyle(active ? 2.4 : 1.4, tab.getData('locked') ? 0xa69c8a : INK_HEX, 1).strokeCircle(0, 0, r);
       (tab.list[1] as Phaser.GameObjects.Text).setColor(active ? '#fbf6ea' : tab.getData('locked') ? '#a69c8a' : '#1b1a1f');
     });
+  }
+
+  private showGuideProgress(chapter: number): void {
+    if (!this.guide) return;
+    const { pages, seen, bar, text } = this.guide;
+    const page = pages.find((p) => p.chapter === chapter);
+    bar.setVisible(Boolean(page));
+    text.setVisible(Boolean(page));
+    if (!page) return;
+    const s = uiScale(this, 900, 600);
+    const p = guideProgress(page.ids, seen);
+    drawProgressBar(bar, 150 * s, 10 * s, p, 23);
+    text.setText(p.percent >= 100 ? `Chapter ${chapter} complete!` : `Chapter ${chapter}: ${p.percent}% met`);
   }
 }

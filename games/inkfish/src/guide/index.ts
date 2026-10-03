@@ -7,5 +7,5 @@ import type { GuideEntry, GuideId } from './types';
 /** Real-life fact cards for every creature in the game. */
 export const GUIDE: Readonly<Record<GuideId, GuideEntry>> = { ...SHALLOW_GUIDE, ...OPEN_GUIDE, ...DEEP_GUIDE, ...OTHER_GUIDE };
 
-export { guideArt, guideName, guidePages, type GuidePage } from './catalog';
+export { guideArt, guideName, guidePages, guideProgress, type GuidePage, type GuideProgress } from './catalog';
 export type { GuideEntry, GuideId } from './types';
