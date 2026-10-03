@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { getChapters, getHost } from '../host';
 import { ART_RES, fishKey } from '../art/textures';
 import { PAN_SIZE } from '../art/deathArt';
+import { ANATOMY } from '../art/fish/registry';
 import { DEMO_CHAPTER, LOCKED_CHAPTER_TEASERS } from '../levels/demo';
 import type { PlayerFishId, SpeciesId } from '../levels/types';
 import { deathText, type Death } from '../logic/deaths';
@@ -21,7 +22,17 @@ export interface ResultData {
 }
 
 const DEAD_TINT = 0xb3ab9c;
-const COOKED_TINT = 0xd9975a;
+/** Light golden-brown: cooked, but the fish's own stripes and spots still show. */
+const COOKED_TINT = 0xf2c084;
+
+/**
+ * Scale that fits this fish (fins and tail included) inside a w x h box, so a
+ * long barracuda and a tall butterflyfish both come out at a sensible size.
+ */
+function fitBox(shape: PlayerFishId | SpeciesId, w: number, h: number): number {
+  const a = ANATOMY[shape];
+  return Math.min(w / (a.hl * 2.3), h / (a.hh * 3));
+}
 
 /** A little pen vignette of how it ended, drawn above the title. */
 function deathPicture(scene: Phaser.Scene, death: Death, player: PlayerFishId, staple: SpeciesId, y: number): Phaser.GameObjects.GameObject[] {
@@ -31,19 +42,20 @@ function deathPicture(scene: Phaser.Scene, death: Death, player: PlayerFishId, s
     const panScale = 220 / (PAN_SIZE.w * ART_RES);
     return [
       scene.add.image(0, y - 14, 'pan').setScale(panScale),
-      me(fishKey(player, 'light', 0)).setPosition(-27, y - 3).setScale(0.34).setTint(COOKED_TINT).setFlipY(true).setRotation(0.08),
+      // Belly-up in the pan, sized to fill it so you can tell which fish it was.
+      me(fishKey(player, 'light', 0)).setPosition(-24, y - 4).setScale(fitBox(player, 100, 46)).setTint(COOKED_TINT).setFlipY(true).setRotation(0.06),
     ];
   }
   if (death.cause === 'timeout') {
     // The school swims off; the player trails behind, too late.
     return [
       ...[0, 1, 2].map((i) => scene.add.image(40 + i * 46, y - 18 + (i % 2) * 26, fishKey(staple, 'light', 0)).setScale(0.26)),
-      me(fishKey(player, 'light', 0)).setPosition(-90, y + 4).setScale(0.42),
+      me(fishKey(player, 'light', 0)).setPosition(-90, y + 4).setScale(fitBox(player, 100, 70)),
     ];
   }
   const killer = scene.add.image(-85, y, fishKey(death.killer ?? staple, 'heavy', 0)).setScale(0.55);
   if (death.cause === 'spiked') {
-    return [killer, me(fishKey(player, 'light', 0)).setPosition(80, y + 6).setScale(0.42).setTint(DEAD_TINT).setFlipY(true).setRotation(-0.12)];
+    return [killer, me(fishKey(player, 'light', 0)).setPosition(80, y + 6).setScale(fitBox(player, 100, 70)).setTint(DEAD_TINT).setFlipY(true).setRotation(-0.12)];
   }
   return [killer, scene.add.image(85, y + 8, 'bones').setScale(0.5).setRotation(0.1)];
 }
@@ -95,7 +107,10 @@ export class ResultScene extends Phaser.Scene {
     persistSave(host.storage, recordResult(loadSave(host.storage), level.id, data.score, blots));
     const g = this.add.graphics();
     for (let i = 0; i < 3; i++) drawBlot(g, -60 + i * 60, -40, 22, i < blots, i * 7 + 1);
-    root.add([inkText(this, 0, -200, 'Full belly!', 76, BLUE_INK), inkText(this, 0, -120, `Score ${data.score} · ${Math.round(data.seconds)}s`, 32), g]);
+    // Your fish, well fed, bobbing above the title.
+    const me = this.add.image(0, -282, fishKey(data.player ?? 'inkling', 'light', 0)).setScale(fitBox(data.player ?? 'inkling', 140, 80));
+    this.tweens.add({ targets: me, y: me.y - 8, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    root.add([me, inkText(this, 0, -200, 'Full belly!', 76, BLUE_INK), inkText(this, 0, -120, `Score ${data.score} · ${Math.round(data.seconds)}s`, 32), g]);
 
     const next = levels[data.levelIndex + 1];
     const isDemoEnd = !next && !host.unlocked && level.id === DEMO_CHAPTER.levels.at(-1)?.id;
