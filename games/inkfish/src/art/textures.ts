@@ -19,7 +19,7 @@ import { BIRD_FRAMES, BIRD_TEX, drawBird } from './birdArt';
 import type { BirdId } from '../logic/birds';
 import type { ShoreKind } from '../levels/shore';
 import { drawShore, SHORE_SIZE } from './shoreArt';
-import { ART_RES, drawBubble, drawWreck, drawHook, drawPaper, drawRock, drawWeed, type WeedKind } from './propArt';
+import { ART_RES, drawBubble, drawHook, drawPaper, drawRock, drawWeed, type WeedKind } from './propArt';
 
 export { ART_RES };
 
@@ -75,7 +75,6 @@ export function generateInkTextures(scene: Phaser.Scene): void {
   add(scene, 'paper', 512, 512, (ctx) => drawPaper(ctx, 512));
   for (const kind of BOAT_KINDS) add(scene, `boat-${kind}`, BOAT_SPEC[kind].w * ART_RES, BOAT_SPEC[kind].h * ART_RES, (ctx) => drawBoat(ctx, kind, 31));
   for (let i = 0; i < CLOUD_COUNT; i++) add(scene, cloudKey(i), CLOUD_SIZE.w * ART_RES, CLOUD_SIZE.h * ART_RES, (ctx) => drawCloud(ctx, 61 + i * 17));
-  add(scene, 'wreck', 360 * ART_RES, 200 * ART_RES, (ctx) => drawWreck(ctx, 360 * ART_RES, 200 * ART_RES));
 }
 
 const frameSeed = (f: number): number => 101 + f * 977;

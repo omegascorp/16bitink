@@ -2,6 +2,7 @@ import { drawDeepDecor, type DeepDecorId } from './decorDeep';
 import { drawGlowDecor, type GlowDecorId } from './decorGlow';
 import { drawLostDecor, type LostDecorId } from './decorLost';
 import { drawShallowDecor, type ShallowDecorId } from './decorShallow';
+import { drawShipwreck, SHIPWRECK_SIZE } from './decorWreck';
 
 /**
  * Things lying on the seabed (static scenery, no gameplay): shells, corals,
@@ -12,7 +13,7 @@ import { drawShallowDecor, type ShallowDecorId } from './decorShallow';
  * ART_RES; the object stands on the canvas's bottom edge (the game places it
  * with origin (0.5, 1) on the sand, sunk a few px), centred horizontally.
  */
-export type DecorId = ShallowDecorId | DeepDecorId | GlowDecorId | LostDecorId;
+export type DecorId = ShallowDecorId | DeepDecorId | GlowDecorId | LostDecorId | 'shipwreck';
 
 /** In-game size (world px) of each decor texture; the canvas is ART_RES times larger. */
 export const DECOR_SIZE: Readonly<Record<DecorId, { readonly w: number; readonly h: number }>> = {
@@ -46,6 +47,8 @@ export const DECOR_SIZE: Readonly<Record<DecorId, { readonly w: number; readonly
   amphora: { w: 130, h: 80 },
   lobsterpot: { w: 120, h: 90 },
   cannon: { w: 170, h: 70 },
+  // The sunken ship of the shipwreck chapter, also drawn on the map (decorWreck.ts).
+  shipwreck: SHIPWRECK_SIZE,
 };
 
 export const DECOR_IDS = Object.keys(DECOR_SIZE) as DecorId[];
@@ -55,5 +58,9 @@ export function drawDecor(ctx: CanvasRenderingContext2D, kind: DecorId, seed: nu
   if (drawShallowDecor(ctx, kind as ShallowDecorId, seed)) return;
   if (drawDeepDecor(ctx, kind as DeepDecorId, seed)) return;
   if (drawGlowDecor(ctx, kind as GlowDecorId, seed)) return;
+  if (kind === 'shipwreck') {
+    drawShipwreck(ctx, seed);
+    return;
+  }
   drawLostDecor(ctx, kind as LostDecorId, seed);
 }

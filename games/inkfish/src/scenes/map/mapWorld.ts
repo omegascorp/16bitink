@@ -1,12 +1,16 @@
 import Phaser from 'phaser';
 import { ART_RES, fishKey, weedKey } from '../../art/textures';
-import type { SpeciesId } from '../../levels/types';
 import { createRng, rangeOf } from '../../logic/rng';
 import { ZONE_WEEDS } from '../game/world';
-import { ZONE_DARKNESS } from '../../levels/zones';
+import { ZONE_DARKNESS, ZONE_NIGHT } from '../../levels/zones';
+import { GlowTwins } from '../game/glowTwins';
+import { lightMapDecor, mapDecor, mapJellies, mapNight, mapSky } from './mapScenery';
 import { BLUE_INK, drawBlot, HAND_FONT, INK_HEX } from '../ui';
 import { MAP, type MapLayout, type MapNode } from './layout';
 import { bakeMapBackground } from './mapArt';
+import { ZONE_FAUNA } from './fauna';
+
+export { mapFauna } from './fauna';
 import { drawTwistIcon } from './twistIcons';
 import { twistsFor } from '../../levels/twists';
 
@@ -26,18 +30,6 @@ export interface MapWorld {
 }
 
 const PENCIL = '#a69c8a';
-/** Two locals per zone swim above the route: a taste of who lives there. */
-const ZONE_FAUNA: Readonly<Record<string, readonly SpeciesId[]>> = {
-  tidepool: ['minnow', 'blenny'], seagrass: ['wrasse', 'pipefish'], kelp: ['garibaldi', 'sheephead'], reef: ['clownfish', 'angelfish'],
-  wreck: ['snapper', 'moray'], dropoff: ['mackerel', 'mahi'], twilight: ['pearleye', 'dragonfish'], midnight: ['fangtooth', 'whalefish'],
-  abyss: ['rattail', 'tripodfish'], trench: ['blobfish', 'ghostshark'],
-};
-
-/** Map fauna textures (light only): call before building the map. */
-export function mapFauna(): SpeciesId[] {
-  return Object.values(ZONE_FAUNA).flat();
-}
-
 function text(scene: Phaser.Scene, x: number, y: number, s: string, size: number, color: string): Phaser.GameObjects.Text {
   return scene.add.text(x, y, s, { fontFamily: HAND_FONT, fontSize: `${size}px`, color, padding: { x: size * 0.2, y: 4 } }).setOrigin(0.5);
 }
@@ -69,14 +61,10 @@ export function buildMapWorld(scene: Phaser.Scene, layout: MapLayout, states: Re
   for (let x = 0; x <= layout.width; x += 10) lines.lineTo(x, layout.floorAt(x) + (rng() - 0.5) * 1.2);
   lines.strokePath();
 
-  layout.zones.forEach((z, zi) => {
-    const locked = z.chapter.locked;
-    const alpha = locked ? 0.45 : 1;
-    const info = z.chapter.info;
-    // On dark water, pencil and ink flip to pale so they stay legible.
-    const dark = ZONE_DARKNESS[info.zone] > 0.45;
-    const pencil = dark ? '#d8cfbd' : PENCIL;
-    const flora = ZONE_WEEDS[info.zone];
+  // Scenery first, so night can fall over the deep chapters' seabed and only their living light shows through.
+  layout.zones.forEach((z) => {
+    const alpha = z.chapter.locked ? 0.45 : 1;
+    const flora = ZONE_WEEDS[z.chapter.info.zone];
     for (let i = 0; i < Math.ceil(flora.rocks / 2); i++) {
       const x = rangeOf(rng, z.x0, z.x1);
       add(scene.add.image(x, layout.floorAt(x) + 8, `rock-${i % 3}`).setOrigin(0.5, 0.94).setScale(rangeOf(rng, 0.45, 0.8) / ART_RES).setAlpha(alpha));
@@ -87,13 +75,25 @@ export function buildMapWorld(scene: Phaser.Scene, layout: MapLayout, states: Re
       const sprite = add(scene.add.image(x, layout.floorAt(x) + 6, weedKey(kind, 0)).setOrigin(0.5, 1).setScale(rangeOf(rng, 0.5, 0.8) / ART_RES).setAlpha(alpha));
       boilers.push({ sprite, key: (f) => weedKey(kind, f) });
     }
-    if (info.zone === 'wreck') {
-      const x = (z.x0 + z.x1) / 2 + 60;
-      add(scene.add.image(x, layout.floorAt(x) + 14, 'wreck').setOrigin(0.5, 1).setScale(0.75 / ART_RES).setAlpha(alpha));
-    }
+  });
+  const decor = mapDecor(scene, layout, add);
+  mapSky(scene, layout, add, boilers);
+  add(mapNight(scene, layout));
+  const glows = new GlowTwins(scene, true);
+  lightMapDecor(decor, glows, add);
+
+  layout.zones.forEach((z, zi) => {
+    const locked = z.chapter.locked;
+    const alpha = locked ? 0.45 : 1;
+    const info = z.chapter.info;
+    // On dark water, pencil and ink flip to pale so they stay legible.
+    const dark = ZONE_DARKNESS[info.zone] > 0.45;
+    const pencil = dark ? '#d8cfbd' : PENCIL;
+    const night = ZONE_NIGHT[info.zone].alpha > 0;
+    mapJellies(scene, z, layout, add, boilers, glows, rng);
     // Ambient fish drift above the route, the zone's locals.
     for (let i = 0; i < 3; i++) {
-      const species = ZONE_FAUNA[info.zone]![i % 2]!;
+      const species = ZONE_FAUNA[info.zone][i % 2]!;
       const x = rangeOf(rng, z.x0 + 60, z.x1 - 60);
       const y = Math.max(MAP.surfaceY + 50, layout.floorAt(x) - rangeOf(rng, 190, 300));
       const sprite = add(scene.add.image(x, y, fishKey(species, 'light', 0)).setScale(rangeOf(rng, 0.16, 0.26)).setAlpha(alpha * 0.85));
@@ -109,9 +109,11 @@ export function buildMapWorld(scene: Phaser.Scene, layout: MapLayout, states: Re
         },
       });
       boilers.push({ sprite, key: (f) => fishKey(species, 'light', f) });
+      const glow = night ? glows.trackFish(sprite, species) : null;
+      if (glow) add(glow);
     }
     // Depth marker where the zone begins (the surface needs no label).
-    if (zi > 0) add(scene.add.text(z.x0, layout.floorAt(z.x0) + 28, depthLabel([info.depth[0], info.depth[0]]).split(' to ')[0]!, { fontFamily: HAND_FONT, fontSize: '22px', color: '#4a463e' }).setOrigin(0.5, 0));
+    if (zi > 0) add(scene.add.text(z.x0, layout.floorAt(z.x0) + 28, depthLabel([info.depth[0], info.depth[0]]).split(' to ')[0]!, { fontFamily: HAND_FONT, fontSize: '22px', color: night ? '#d8cfbd' : '#4a463e' }).setOrigin(0.5, 0));
     // Chapter heading: the player fish of this chapter, its name and depth.
     const cx = (z.x0 + z.x1) / 2;
     const hy = Math.max(MAP.surfaceY + 70, z.floorY - 330);

@@ -38,6 +38,7 @@ Ten "eat smaller to grow" games, researched October 2026, and what InkFish takes
 - **Chapter 1 is free (10 levels).** Chapters 2–10 (90 levels) are paid and served from the server.
 - **The level map is a side-view sea chart:**
   - The seabed steps down from the shore, one plateau per zone, and the water darkens with depth.
+  - The map shows each chapter as its levels look: sky, an island, a fishing boat and a bird over chapters 1-6; each zone's seabed landmarks (the shipwreck, the whale fall, the black smoker, the volcano) and a few smaller pieces; the zone's jellyfish and two fish that really live there; night with glowing life over chapters 7-10, where map captions switch to pale ink.
   - Locked zones are shown as pencil drafts.
   - Chapter tabs jump between zones.
   - The map grows on its own when a zone is added.

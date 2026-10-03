@@ -3,7 +3,7 @@ import { BOIL_FPS, BOIL_FRAMES, ensureFishTextures, fishKey } from '../art/textu
 import { getChapters, getFullError, getHost } from '../host';
 import { guidePages, guideProgress, type GuidePage } from '../guide';
 import { allLevels } from '../levels/chapters';
-import { LEVELS_PER_CHAPTER, ZONE_INFO } from '../levels/zones';
+import { LEVELS_PER_CHAPTER, ZONE_INFO, ZONE_NIGHT } from '../levels/zones';
 import { isLevelOpen, loadSave } from '../logic/save';
 import { loadPaidChapters } from './BootScene';
 import { computeMapLayout, zoneIndexAt, type MapChapter, type MapLayout, type MapNode } from './map/layout';
@@ -12,6 +12,10 @@ import { drawProgressBar } from './guide/progress';
 import { BLUE_INK, HAND_FONT, INK_HEX, inkButton, inkText, RED_INK, uiScale } from './ui';
 
 const DRAG_THRESHOLD = 8;
+/** Captions on the map: soft ink on sunlit water, pale ink on the deep chapters' night. */
+const SOFT_INK = '#4a463e';
+const PALE_INK = '#e4dccb';
+const PALE_BLUE = '#a9c4ff';
 
 /**
  * Level select as a side-view sea chart: the seabed slopes from the shore
@@ -28,6 +32,8 @@ export class MenuScene extends Phaser.Scene {
   private tabs: Phaser.GameObjects.Container[] = [];
   private depthText!: Phaser.GameObjects.Text;
   private activeZone = -1;
+  private countText: Phaser.GameObjects.Text | null = null;
+  private titleText: Phaser.GameObjects.Text | null = null;
   private guide: { pages: GuidePage[]; seen: Set<string>; bar: Phaser.GameObjects.Graphics; text: Phaser.GameObjects.Text } | null = null;
 
   constructor() {
@@ -162,13 +168,15 @@ export class MenuScene extends Phaser.Scene {
       this.uiLayer.add(o);
     };
     const done = Object.keys(save.levels).length;
-    ui(inkText(this, 20 + 90 * s, 34 * s, 'InkFish', 46 * s, BLUE_INK));
-    ui(this.add.text(24, 64 * s, `${done} of ${this.layout.nodes.length} levels`, { fontFamily: HAND_FONT, fontSize: `${22 * s}px`, color: '#4a463e' }));
+    this.titleText = inkText(this, 20 + 90 * s, 34 * s, 'InkFish', 46 * s, BLUE_INK);
+    ui(this.titleText);
+    this.countText = this.add.text(24, 64 * s, `${done} of ${this.layout.nodes.length} levels`, { fontFamily: HAND_FONT, fontSize: `${22 * s}px`, color: SOFT_INK });
+    ui(this.countText);
     ui(inkButton(this, width - 110 * s, 36 * s, '← 16bit.ink', () => host.onExit(), { width: 180 * s, height: 46 * s, size: 24 * s }));
     ui(inkButton(this, width - 310 * s, 36 * s, 'Fish guide', () => this.scene.start('Guide', { chapter: (this.activeZone >= 0 ? this.activeZone : 0) + 1 }), { width: 160 * s, height: 46 * s, size: 24 * s }));
     // Under the button: how much of this chapter's guide page you've filled in.
     const bar = this.add.graphics().setPosition(width - 310 * s, 72 * s);
-    const text = this.add.text(width - 310 * s, 90 * s, '', { fontFamily: HAND_FONT, fontSize: `${18 * s}px`, color: '#4a463e' }).setOrigin(0.5);
+    const text = this.add.text(width - 310 * s, 90 * s, '', { fontFamily: HAND_FONT, fontSize: `${18 * s}px`, color: SOFT_INK }).setOrigin(0.5);
     ui(bar);
     ui(text);
     this.guide = { pages: guidePages(getChapters(this)), seen: new Set(save.seen), bar, text };
@@ -188,7 +196,7 @@ export class MenuScene extends Phaser.Scene {
       ui(c);
       return c;
     });
-    this.depthText = this.add.text(width / 2, y - 34 * s, '', { fontFamily: HAND_FONT, fontSize: `${22 * s}px`, color: '#4a463e' }).setOrigin(0.5);
+    this.depthText = this.add.text(width / 2, y - 34 * s, '', { fontFamily: HAND_FONT, fontSize: `${22 * s}px`, color: SOFT_INK }).setOrigin(0.5);
     ui(this.depthText);
 
     if (!host.unlocked) {
@@ -207,6 +215,11 @@ export class MenuScene extends Phaser.Scene {
     const z = this.layout.zones[index]!;
     this.depthText.setText(`${z.chapter.info.name}, ${depthLabel(z.chapter.info.depth)}`);
     this.showGuideProgress(z.chapter.info.id);
+    // Over the deep chapters' night, the fixed captions switch to pale ink.
+    const night = ZONE_NIGHT[z.chapter.info.zone].alpha > 0;
+    const caption = night ? PALE_INK : SOFT_INK;
+    this.titleText?.setColor(night ? PALE_BLUE : BLUE_INK);
+    for (const t of [this.depthText, this.countText, this.guide?.text]) t?.setColor(caption);
     this.tabs.forEach((tab, i) => {
       const g = tab.list[0] as Phaser.GameObjects.Graphics;
       const r = 17 * uiScale(this, 900, 600);

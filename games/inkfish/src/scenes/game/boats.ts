@@ -29,7 +29,7 @@ export const BOAT_ARRIVE_MS = 1600;
 const SAIL_IN_FROM = 700;
 const LEAVE_ACCEL = 60;
 
-const ZONE_BOATS: Readonly<Partial<Record<ZoneId, readonly BoatKind[]>>> = {
+export const ZONE_BOATS: Readonly<Partial<Record<ZoneId, readonly BoatKind[]>>> = {
   tidepool: ['dinghy'],
   seagrass: ['dinghy', 'skiff'],
   kelp: ['skiff', 'dinghy'],

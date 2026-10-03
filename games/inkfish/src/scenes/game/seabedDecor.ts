@@ -16,7 +16,7 @@ export const ZONE_DECOR: Readonly<Record<ZoneId, { readonly common: readonly Dec
   seagrass: { common: ['scallops', 'sanddollar', 'pebbles', 'seapen', 'starfish'], landmarks: ['amphora', 'anchor'] },
   kelp: { common: ['starfish', 'anemone', 'pebbles', 'mussels', 'scallops'], landmarks: ['lobsterpot', 'anchor'] },
   reef: { common: ['braincoral', 'staghorn', 'seafan', 'tubesponge', 'anemone', 'starfish'], landmarks: ['giantclam', 'amphora'] },
-  wreck: { common: ['mussels', 'anemone', 'pebbles', 'scallops', 'amphora'], landmarks: ['cannon', 'anchor'] },
+  wreck: { common: ['mussels', 'anemone', 'pebbles', 'cannon', 'amphora'], landmarks: ['shipwreck'] },
   dropoff: { common: ['seafan', 'glasssponge', 'brittlestar', 'pebbles', 'tubesponge'], landmarks: ['anchor', 'whalebones'] },
   twilight: { common: ['brittlestar', 'sealily', 'glasssponge', 'bamboocoral', 'nodules'], landmarks: ['whalebones', 'anchor'] },
   midnight: { common: ['sealily', 'bamboocoral', 'umbellula', 'brittlestar', 'nodules'], landmarks: ['whalebones', 'volcano'] },

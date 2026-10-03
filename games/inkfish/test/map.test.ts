@@ -4,6 +4,8 @@ import { generateChapter, generateLevel } from '../src/levels/generate';
 import { parseChapters } from '../src/levels/validate';
 import { LEVELS_PER_CHAPTER, ZONE_DARKNESS, ZONE_INFO } from '../src/levels/zones';
 import { computeMapLayout, MAP, zoneIndexAt, type MapChapter } from '../src/scenes/map/layout';
+import { ZONE_FAUNA } from '../src/scenes/map/fauna';
+import { INKFISH_FULL_CHAPTERS } from '../content/paid';
 
 const chapters: MapChapter[] = [
   { info: DEMO_CHAPTER, levelIds: DEMO_CHAPTER.levels.map((l) => l.id), locked: false },
@@ -95,5 +97,14 @@ describe('map layout', () => {
 
   it('rejects an empty map', () => {
     expect(() => computeMapLayout([])).toThrow();
+  });
+});
+
+describe('map fauna', () => {
+  it('shows only fish that really live in each chapter', () => {
+    for (const ch of [DEMO_CHAPTER, ...INKFISH_FULL_CHAPTERS]) {
+      const residents = new Set(ch.levels.flatMap((l) => l.spawns.map((s) => s.species)));
+      for (const species of ZONE_FAUNA[ch.zone]) expect(residents.has(species), `${ch.zone}: ${species}`).toBe(true);
+    }
   });
 });

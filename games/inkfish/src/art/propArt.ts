@@ -219,31 +219,6 @@ export function drawBubble(ctx: CanvasRenderingContext2D, seed: number): void {
 // ---------------------------------------------------------------- wreck
 
 /** A broken-backed sailing ship lying on the seabed, in pen. */
-export function drawWreck(ctx: CanvasRenderingContext2D, w: number, h: number): void {
-  const pen = new Pen(ctx, 77, 0.8);
-  const s = w / 360;
-  const P = (x: number, y: number): Pt => ({ x: x * s, y: y * s });
-  const hull = [P(20, 150), P(60, 186), P(250, 192), P(320, 168), P(345, 120), P(300, 128), P(210, 140), P(170, 118), P(140, 140), P(40, 130)];
-  pen.fill(hull, PAPER_FILL, 1);
-  pen.fill(hull, '#7a6a55', 0.35);
-  pen.clipped(hull, () => {
-    // Planks follow the hull's curve; heavy hatching in the hold.
-    for (let k = 0; k < 9; k++) pen.hair([P(30, 140 + k * 6), P(150, 150 + k * 5), P(330, 130 + k * 7)], 0.8 * s, INK, 0.6);
-    for (let x = 150; x < 230; x += 3) pen.hair([P(x, 120), P(x - 10, 190)], 0.6 * s, INK, 0.7);
-  });
-  pen.stroke(hull.concat([hull[0]!]), 2 * s, INK);
-  // Snapped mast with rigging.
-  pen.stroke([P(110, 136), P(96, 40), P(104, 30)], 2.2 * s, INK);
-  pen.stroke([P(96, 70), P(150, 76)], 1.4 * s, INK, 1, false);
-  pen.hair([P(96, 44), P(40, 130)], 0.6 * s, INK, 0.7);
-  pen.hair([P(98, 52), P(170, 118)], 0.6 * s, INK, 0.7);
-  // Portholes.
-  for (const x of [240, 270, 300]) {
-    pen.fill([P(x - 6, 158), P(x + 6, 158), P(x + 6, 170), P(x - 6, 170)], '#2a2228', 0.7);
-    pen.circle(x * s, 164 * s, 7 * s, 1 * s);
-  }
-}
-
 /** Tileable sketchbook paper: fibres and speckles on cream. */
 export function drawPaper(ctx: CanvasRenderingContext2D, size: number): void {
   const rng = createRng(16);
