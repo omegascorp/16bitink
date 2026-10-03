@@ -41,7 +41,7 @@ Ten "eat smaller to grow" games, researched October 2026, and what InkFish takes
   - Locked zones are shown as pencil drafts.
   - Chapter tabs jump between zones.
   - The map grows on its own when a zone is added.
-- **A new player fish every chapter (every 10 levels):** inkling, goby, perch fry, butterflyfish, barracuda, young tuna, lanternfish, hatchetfish, viperfish, and the hadal snailfish (the deepest fish ever filmed) for the last page. All are drawn in blue ink, so the player always reads as "you". The first level of a chapter announces the new fish.
+- **A new player fish every chapter (every 10 levels):** inkling, goby, perch fry, butterflyfish, barracuda, young tuna, lanternfish, hatchetfish, viperfish, and the hadal snailfish (the deepest fish ever filmed) for the hadal trench. All are drawn in blue ink, so the player always reads as "you". The first level of a chapter announces the new fish.
 - **Levels are generated from per-chapter recipes** (`games/inkfish/src/levels/generate.ts`).
   - A recipe sets which species appear, the hazard ramps, the growth goal and the final size.
   - The generator produces 10 levels with a smooth ramp, then gives each its own twist (`src/levels/twists.ts`).

@@ -32,8 +32,9 @@ export function bakeMapBackground(scene: Phaser.Scene, layout: MapLayout): Phase
   const images: Phaser.GameObjects.Image[] = [];
   const rng = createRng(7);
   for (let x0 = 0, i = 0; x0 < layout.width; x0 += CHUNK, i++) {
-    // Chunks overlap slightly so no hairline seam shows between them.
-    const wWorld = Math.min(CHUNK + 6, layout.width - x0);
+    // Chunks butt edge to edge on whole pixels: overlapping them would paint
+    // the translucent washes twice and draw a dark stripe at every seam.
+    const wWorld = Math.min(CHUNK, layout.width - x0);
     const { canvas, ctx } = makeCanvas(Math.ceil(wWorld * BG_RES), Math.ceil(layout.height * BG_RES));
     ctx.scale(BG_RES, BG_RES);
     // Water, in two seamless washes: zone darkness left to right, then depth top to bottom.
@@ -53,6 +54,7 @@ export function bakeMapBackground(scene: Phaser.Scene, layout: MapLayout): Phase
     ctx.beginPath();
     ctx.moveTo(0, layout.height);
     for (let x = 0; x <= wWorld; x += 12) ctx.lineTo(x, layout.floorAt(x0 + x));
+    ctx.lineTo(wWorld, layout.floorAt(x0 + wWorld));
     ctx.lineTo(wWorld, layout.height);
     ctx.closePath();
     ctx.fillStyle = 'rgba(214,198,160,0.75)';

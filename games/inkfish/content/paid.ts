@@ -71,7 +71,7 @@ const RECIPES: Readonly<Record<number, Recipe>> = {
     boss: 'goblinshark', jellyfish: [7, 10], hookEverySec: [0, 0],
   },
   10: {
-    names: ['The Crack', 'Walls of Ink', 'Pressure Lines', 'The Narrows', 'Trench Rush', 'Echoes', 'Deepest Blot', 'Hadal Hunt', 'The Floor', 'The Last Page'],
+    names: ['The Crack', 'Walls of Ink', 'Pressure Lines', 'The Narrows', 'Trench Rush', 'Echoes', 'Deepest Blot', 'Hadal Hunt', 'The Floor', 'Challenger Deep'],
     spawns: [s('bristlemouth', 5, 8, 14), s('blobfish', 3, 22, 34, 0), s('snipeeel', 2.5, 26, 40, 1), s('ghostshark', 2, 44, 64, 3), s('rattail', 2, 40, 56), s('tripodfish', 1.5, 30, 44), s('cuskeel', 2, 60, 84)],
     boss: 'coelacanth', jellyfish: [8, 11], hookEverySec: [0, 0],
   },
