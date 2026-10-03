@@ -27,17 +27,17 @@ export class BootScene extends Phaser.Scene {
     generateInkTextures(this);
     this.registry.set(REG.chapters, [DEMO_CHAPTER]);
     this.registry.set(REG.fullError, null);
-    await loadFullChapters(this);
+    await loadPaidChapters(this);
     this.scene.start('Menu');
   }
 }
 
 /** Fetches paid chapters when the host says the player owns the game. */
-export async function loadFullChapters(scene: Phaser.Scene): Promise<void> {
+export async function loadPaidChapters(scene: Phaser.Scene): Promise<void> {
   const host = getHost(scene);
   if (!host.unlocked) return;
   try {
-    const chapters = parseChapters(await host.loadFullChapters());
+    const chapters = parseChapters(await host.loadContent());
     scene.registry.set(REG.chapters, [DEMO_CHAPTER, ...chapters]);
     scene.registry.set(REG.fullError, null);
   } catch (err) {

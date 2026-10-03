@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { findGame, isPurchasable } from '../../data/games';
-import { optionalEnv, requireEnv } from '../../lib/env';
+import { optionalEnv } from '../../lib/env';
 import { fail, isSameOrigin, json } from '../../lib/http';
 import { stripeClient } from '../../lib/stripe';
 
@@ -18,9 +18,13 @@ export const POST: APIRoute = async ({ request, url }) => {
   if (!isPurchasable(game)) return fail(404, 'This game is not for sale');
 
   try {
-    const session = await stripeClient().checkout.sessions.create({
+    const stripe = stripeClient();
+    const prices = await stripe.prices.list({ lookup_keys: [game.stripeLookupKey], active: true, limit: 1 });
+    const price = prices.data[0];
+    if (!price) throw new Error(`No active Stripe price with lookup key "${game.stripeLookupKey}"`);
+    const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      line_items: [{ price: requireEnv(game.stripePriceEnv), quantity: 1 }],
+      line_items: [{ price: price.id, quantity: 1 }],
       // Email is collected by Stripe and used later for purchase restore.
       customer_creation: 'always',
       automatic_tax: { enabled: optionalEnv('STRIPE_AUTOMATIC_TAX') === 'true' },

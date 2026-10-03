@@ -1,3 +1,7 @@
+import type { KeyValueStore } from '@16bitink/game-sdk';
+
+export type { KeyValueStore };
+
 export interface LevelRecord {
   readonly bestScore: number;
   readonly blots: number;
@@ -11,10 +15,6 @@ export interface SaveData {
 export const SAVE_KEY = 'inkfish:save';
 const EMPTY: SaveData = { version: 1, levels: {} };
 
-export interface KeyValueStore {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-}
 
 function isRecord(value: unknown): value is LevelRecord {
   if (typeof value !== 'object' || value === null) return false;

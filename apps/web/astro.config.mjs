@@ -3,7 +3,8 @@ import { defineConfig } from 'astro/config';
 
 export default defineConfig({
   site: 'https://16bit.ink',
-  adapter: cloudflare(),
+  // We don't transform images, so skip the Cloudflare Images binding.
+  adapter: cloudflare({ imageService: 'passthrough' }),
   trailingSlash: 'never',
   build: { format: 'file' },
   // The game package ships TypeScript source; let Vite bundle it.

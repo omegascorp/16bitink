@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - games/*
+  - packages/*
 allowBuilds:
   esbuild: true
   sharp: true

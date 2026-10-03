@@ -43,7 +43,7 @@ At $4.99 the MoR fixed fee costs about 15%. Still, an MoR is the low-effort choi
 
 ## Anti-piracy, realistically
 
-- The client bundle contains **only** the demo levels. Paid chapters are served by `/api/levels/inkfish` after the cookie is verified.
+- The client bundle contains **only** the demo levels. Paid chapters live in the game package's server-only `content` entry and are served by `/api/content/inkfish` after the cookie is verified.
 - A paying user could still dump the JSON. That's acceptable at this price point.
 - Spend effort on easy restore, not on DRM.
 

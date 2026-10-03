@@ -10,6 +10,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@16bitink/game-sdk':
+        specifier: workspace:*
+        version: link:../../packages/game-sdk
       '@16bitink/inkfish':
         specifier: workspace:*
         version: link:../../games/inkfish
@@ -44,6 +47,9 @@ importers:
 
   games/inkfish:
     dependencies:
+      '@16bitink/game-sdk':
+        specifier: workspace:*
+        version: link:../../packages/game-sdk
       phaser:
         specifier: ^4.2.1
         version: 4.2.1
@@ -60,6 +66,12 @@ importers:
       vitest:
         specifier: ^5.0.3
         version: 5.0.3(@vitest/coverage-v8@5.0.3)(vite@8.3.2(esbuild@0.28.1)(yaml@2.9.1))
+
+  packages/game-sdk:
+    devDependencies:
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
 
 packages:
 

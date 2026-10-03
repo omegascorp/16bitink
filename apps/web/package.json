@@ -19,6 +19,7 @@
     "wrangler": "^4.146.0"
   },
   "dependencies": {
+    "@16bitink/game-sdk": "workspace:*",
     "@16bitink/inkfish": "workspace:*",
     "@astrojs/cloudflare": "^14.3.3",
     "astro": "^7.3.5",

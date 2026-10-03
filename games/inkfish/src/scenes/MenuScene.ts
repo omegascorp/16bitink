@@ -4,7 +4,7 @@ import { getChapters, getFullError, getHost } from '../host';
 import { LOCKED_CHAPTER_TEASERS } from '../levels/demo';
 import type { Chapter, LevelDef } from '../levels/types';
 import { isLevelOpen, loadSave } from '../logic/save';
-import { loadFullChapters } from './BootScene';
+import { loadPaidChapters } from './BootScene';
 import { BLUE_INK, drawBlot, inkButton, inkText, paperBackdrop, uiScale } from './ui';
 
 export function allLevels(chapters: readonly Chapter[]): LevelDef[] {
@@ -63,7 +63,7 @@ export class MenuScene extends Phaser.Scene {
     const error = getFullError(this);
     if (error) {
       root.add(inkText(this, 0, y, error, 22, '#a3342b'));
-      root.add(inkButton(this, 0, y + 50, 'Retry', () => void loadFullChapters(this).then(() => this.scene.restart()), { width: 160 }));
+      root.add(inkButton(this, 0, y + 50, 'Retry', () => void loadPaidChapters(this).then(() => this.scene.restart()), { width: 160 }));
       y += 110;
     }
 

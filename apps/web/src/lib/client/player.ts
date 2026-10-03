@@ -1,3 +1,5 @@
+import { isGameModule, type GameModule } from '@16bitink/game-sdk';
+import { GAME_LOADERS } from '../../games/loaders';
 import { startCheckout } from './checkout';
 
 interface ApiEnvelope<T> {
@@ -34,9 +36,18 @@ async function goFullscreen(el: HTMLElement): Promise<void> {
   }
 }
 
+/** Downloads a game package and checks it implements the SDK contract. */
+async function loadGame(game: string): Promise<GameModule> {
+  const loader = GAME_LOADERS[game];
+  if (!loader) throw new Error(`No loader registered for game "${game}"`);
+  const mod = (await loader()).default;
+  if (!isGameModule(mod)) throw new Error(`Game "${game}" does not export a GameModule`);
+  return mod;
+}
+
 const isIos = (): boolean => /iPhone|iPod/.test(navigator.userAgent) && !('standalone' in navigator && navigator.standalone);
 
-export function bootPlayer(game: string): void {
+export function bootPlayer(game: string, fonts: readonly string[]): void {
   const stage = document.getElementById('stage');
   const splash = document.getElementById('splash');
   const play = document.getElementById('play') as HTMLButtonElement | null;
@@ -47,9 +58,9 @@ export function bootPlayer(game: string): void {
   // Start the ownership check and engine download while the player reads the splash.
   const unlockedP = isUnlocked(game);
   // Re-created on retry: a failed dynamic import stays rejected forever.
-  let engineP = import('@16bitink/inkfish');
+  let engineP = loadGame(game);
   engineP.catch(() => undefined);
-  const fontP = document.fonts.load('32px Caveat').catch(() => undefined);
+  const fontP = Promise.all(fonts.map((f) => document.fonts.load(f))).catch(() => undefined);
 
   play.addEventListener('click', async () => {
     play.disabled = true;
@@ -57,22 +68,25 @@ export function bootPlayer(game: string): void {
     // Must be requested synchronously inside the click for browsers to allow it.
     const fs = goFullscreen(stage);
     try {
-      const [{ bootInkfish }, unlocked] = await Promise.all([engineP, unlockedP, fontP, fs]);
+      const [module, unlocked] = await Promise.all([engineP, unlockedP, fontP, fs]);
       splash.remove();
-      bootInkfish(stage, {
+      const handle = module.mount(stage, {
         unlocked,
         storage: safeStorage(),
-        loadFullChapters: () => getJson<unknown>(`/api/levels/${game}`),
+        loadContent: () => getJson<unknown>(`/api/content/${encodeURIComponent(game)}`),
         onBuy: () => {
           if (document.fullscreenElement) void document.exitFullscreen();
           void startCheckout(game).then((r) => r.error && alert(r.error));
         },
-        onExit: () => window.location.assign(`/games/${game}`),
+        onExit: () => {
+          handle.destroy();
+          window.location.assign(`/games/${game}`);
+        },
       });
     } catch (err) {
       console.error('[16bit.ink] failed to start game', err);
       status.textContent = 'The game failed to load. Check your connection and try again.';
-      engineP = import('@16bitink/inkfish');
+      engineP = loadGame(game);
       engineP.catch(() => undefined);
       play.disabled = false;
       play.textContent = 'Try again';

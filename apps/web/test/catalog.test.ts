@@ -1,17 +1,36 @@
 import { describe, expect, it } from 'vitest';
+import { INKFISH_FULL_CHAPTERS } from '@16bitink/inkfish/content';
 import { parseChapters } from '../../../games/inkfish/src/levels/validate';
-import { findGame, GAMES, isPurchasable } from '../src/data/games';
-import { INKFISH_FULL_CHAPTERS } from '../src/lib/levels/inkfish-full';
+import { findGame, GAMES, isPurchasable, playableGames } from '../src/data/games';
+import { PAID_CONTENT } from '../src/games/content.server';
+import { GAME_LOADERS } from '../src/games/loaders';
 
 describe('catalog', () => {
-  it('has unique slugs', () => {
+  it('has unique, URL-safe slugs', () => {
     expect(new Set(GAMES.map((g) => g.slug)).size).toBe(GAMES.length);
+    for (const g of GAMES) expect(g.slug).toMatch(/^[a-z0-9-]{1,40}$/);
   });
 
-  it('only sells playable games with a price env', () => {
+  it('only sells playable games with a Stripe lookup key', () => {
     expect(isPurchasable(findGame('inkfish'))).toBe(true);
     expect(isPurchasable(findGame('blot'))).toBe(false);
     expect(isPurchasable(undefined)).toBe(false);
+  });
+});
+
+describe('game registries stay in sync with the catalog', () => {
+  it('every playable game has a client loader', () => {
+    for (const g of playableGames()) expect(GAME_LOADERS[g.slug], g.slug).toBeTypeOf('function');
+  });
+
+  it('every loader and paid-content entry belongs to a playable game', () => {
+    const playable = new Set(playableGames().map((g) => g.slug));
+    for (const slug of Object.keys(GAME_LOADERS)) expect(playable.has(slug), slug).toBe(true);
+    for (const slug of Object.keys(PAID_CONTENT)) expect(playable.has(slug), slug).toBe(true);
+  });
+
+  it('every purchasable game has paid content to deliver', () => {
+    for (const g of playableGames().filter(isPurchasable)) expect(PAID_CONTENT[g.slug], g.slug).toBeDefined();
   });
 });
 

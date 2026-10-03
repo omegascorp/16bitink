@@ -1,8 +1,9 @@
-import type { Chapter, LevelDef, SpawnEntry } from '@16bitink/inkfish/levels';
+import type { Chapter, LevelDef, SpawnEntry } from '../src/levels/types';
 
 /**
- * Paid chapters. Server-only: never imported by client code, served by
- * /api/levels/inkfish to verified owners.
+ * Paid chapters. SERVER-ONLY: imported by the website's content registry
+ * and served by /api/content/inkfish to verified owners. Never import
+ * this from the game's client code or it ships to everyone.
  */
 
 const WORLD = { width: 3600, height: 2000 } as const;
