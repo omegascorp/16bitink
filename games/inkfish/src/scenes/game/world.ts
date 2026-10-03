@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
-import { ART_RES, CLOUD_COUNT, cloudKey, ensureDecorTextures, weedKey } from '../../art/textures';
+import { ART_RES, CLOUD_COUNT, cloudKey, ensureDecorTextures, ensureShoreTextures, shoreKey, weedKey } from '../../art/textures';
+import { SHORE_SIZE } from '../../art/shoreArt';
+import { planShore, SHORE_PARALLAX } from '../../levels/shore';
 import { hashUnit, SKY, type Seabed } from '../../logic/water';
 import { decorKinds, placeDecor, planDecor } from './seabedDecor';
 import type { LevelDef, ZoneId } from '../../levels/types';
@@ -35,7 +37,10 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
   const rng = createRng(Math.floor(hashUnit(level.id, 7) * 1e6) + 1);
   const top = sky ? -SKY.height : 0;
   scene.add.tileSprite(0, top, width, height - top, 'paper').setOrigin(0).setDepth(0);
-  if (sky) drawSky(scene, width, rng);
+  if (sky) {
+    drawSky(scene, width, rng);
+    drawShoreline(scene, level.id, zone, width);
+  }
 
   const wash = scene.add.graphics().setDepth(1);
   const bands = 12;
@@ -49,11 +54,13 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
   }
 
   const lines = scene.add.graphics().setDepth(2);
-  // Surface: a wavy double pen line.
-  lines.lineStyle(1.4, INK, 0.75);
-  wobblyPath(lines, width, (x) => 60 + Math.sin(x / 70) * 6, rng);
-  lines.lineStyle(0.7, INK, 0.3);
-  wobblyPath(lines, width, (x) => 72 + Math.sin(x / 70 + 1) * 5, rng);
+  // Surface: a wavy double pen line. Deep down there is no surface in sight, just more dark water.
+  if (sky) {
+    lines.lineStyle(1.4, INK, 0.75);
+    wobblyPath(lines, width, (x) => SKY.surfaceY + Math.sin(x / 70) * 6, rng);
+    lines.lineStyle(0.7, INK, 0.3);
+    wobblyPath(lines, width, (x) => SKY.surfaceY + 12 + Math.sin(x / 70 + 1) * 5, rng);
+  }
   // Current strokes: little "~" marks scattered through the water.
   lines.lineStyle(0.8, INK, 0.16);
   for (let i = 0; i < 90; i++) {
@@ -113,6 +120,17 @@ function drawSky(scene: Phaser.Scene, width: number, rng: () => number): void {
     const y = rangeOf(rng, -SKY.height + 50, -70);
     scene.add.image(x, y, cloudKey(Math.floor(rng() * CLOUD_COUNT))).setDepth(1)
       .setScale(rangeOf(rng, 0.6, 1.1) / ART_RES).setAlpha(0.85).setFlipX(rng() < 0.5);
+  }
+}
+
+/** Islands, rocks and lighthouses on the horizon, scrolling slower than the water so they read as far off. */
+function drawShoreline(scene: Phaser.Scene, levelId: string, zone: ZoneId, width: number): void {
+  const plan = planShore(levelId, zone, width);
+  ensureShoreTextures(scene, plan.map((p) => p.kind));
+  for (const p of plan) {
+    const { h } = SHORE_SIZE[p.kind];
+    scene.add.image(p.x, SKY.surfaceY + 3, shoreKey(p.kind)).setOrigin(0.5, (h - 4) / h)
+      .setScrollFactor(SHORE_PARALLAX, 1).setScale(p.scale / ART_RES).setAlpha(p.far ? 0.5 : 0.9).setDepth(p.far ? 1.4 : 1.5);
   }
 }
 

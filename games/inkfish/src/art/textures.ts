@@ -13,6 +13,8 @@ import { makeCanvas } from './pen';
 import { BOAT_KINDS, BOAT_SPEC, CLOUD_SIZE, drawBoat, drawCloud } from './skyArt';
 import { BIRD_FRAMES, BIRD_TEX, drawBird } from './birdArt';
 import type { BirdId } from '../logic/birds';
+import type { ShoreKind } from '../levels/shore';
+import { drawShore, SHORE_SIZE } from './shoreArt';
 import { ART_RES, drawBubble, drawWreck, drawHook, drawJelly, drawPaper, drawRock, drawWeed, type WeedKind } from './propArt';
 
 export { ART_RES };
@@ -73,6 +75,13 @@ export function generateInkTextures(scene: Phaser.Scene): void {
 }
 
 const frameSeed = (f: number): number => 101 + f * 977;
+
+export const shoreKey = (kind: ShoreKind): string => `shore-${kind}`;
+
+/** Horizon scenery for a level, drawn on demand. */
+export function ensureShoreTextures(scene: Phaser.Scene, kinds: readonly ShoreKind[]): void {
+  for (const kind of new Set(kinds)) add(scene, shoreKey(kind), SHORE_SIZE[kind].w * ART_RES, SHORE_SIZE[kind].h * ART_RES, (ctx) => drawShore(ctx, kind, 47));
+}
 
 export const birdKey = (kind: BirdId, frame: number): string => `bird-${kind}-${frame}`;
 
