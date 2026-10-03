@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import type { SpeciesId } from '../levels/types';
 import { PLAYER_FISH } from '../levels/zones';
 import { BONES_SIZE, drawBones, drawPan, PAN_SIZE } from './deathArt';
+import { DARK_TEX, drawDarkness, drawInkDrop, DROP_SIZE } from './twistArt';
 import { drawFish, FISH_TEX, type FishShape, type InkVariant } from './fishArt';
 import { makeCanvas } from './pen';
 import { ART_RES, drawBubble, drawWreck, drawHook, drawJelly, drawPaper, drawPowerUp, drawRock, drawWeed, type WeedKind } from './propArt';
@@ -47,6 +48,7 @@ export function generateInkTextures(scene: Phaser.Scene): void {
     add(scene, boilKey('jelly', f), 128 * R, 128 * R, (ctx) => drawJelly(ctx, seed));
     add(scene, boilKey('hook', f), 48 * R, 76 * R, (ctx) => drawHook(ctx, seed));
     add(scene, boilKey('pu-speed', f), 80 * R, 80 * R, (ctx) => drawPowerUp(ctx, 'speed', seed));
+    add(scene, boilKey('drop', f), DROP_SIZE * R, DROP_SIZE * R, (ctx) => drawInkDrop(ctx, seed));
     add(scene, boilKey('pu-shrink', f), 80 * R, 80 * R, (ctx) => drawPowerUp(ctx, 'shrink', seed));
     for (const kind of WEED_KINDS) {
       const { w, h } = WEED_SIZE;
@@ -60,6 +62,7 @@ export function generateInkTextures(scene: Phaser.Scene): void {
   }
   add(scene, 'bones', BONES_SIZE.w * ART_RES, BONES_SIZE.h * ART_RES, (ctx) => drawBones(ctx, 9));
   add(scene, 'pan', PAN_SIZE.w * ART_RES, PAN_SIZE.h * ART_RES, (ctx) => drawPan(ctx, 12));
+  add(scene, 'darkness', DARK_TEX, DARK_TEX, drawDarkness);
   add(scene, 'paper', 512, 512, (ctx) => drawPaper(ctx, 512));
   add(scene, 'wreck', 360 * ART_RES, 200 * ART_RES, (ctx) => drawWreck(ctx, 360 * ART_RES, 200 * ART_RES));
 }

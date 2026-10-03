@@ -49,7 +49,26 @@ Ten "eat smaller to grow" games, researched October 2026, and what InkFish takes
   - All of them are drawn in blue ink, so the player always reads as "you".
 - **Levels are generated from per-chapter recipes** (`games/inkfish/src/levels/generate.ts`).
   - A recipe sets which species appear, the hazard ramps, the growth goal and the final size.
-  - The generator produces 10 levels with a smooth ramp, a "school rush" at level 5 and a harder finale.
+  - The generator produces 10 levels with a smooth ramp, then gives each its own twist (`src/levels/twists.ts`).
+
+### Level twists
+
+Every level is won by growing to full size. Most twists add a task or a rule on top of that; the opener and "One life" only change how you grow. Every chapter follows the same arc, so each new idea arrives on its own:
+
+| Level | Twist | What changes |
+|---|---|---|
+| 1 | Feeding time | Plain: just grow |
+| 2 | Ink drops | Also collect every ink drop scattered across the level |
+| 3 | Strong current | Everything drifts left or right |
+| 4 | Marked fish | Also eat 3 fish circled in red; they flee and are only edible after your first growth |
+| 5 | School rush | Grow before the clock runs out, with a dense school of prey |
+| 6 | Hook storm / Jelly bloom | Hooks every 4 s; below the drop-off, where hooks can't reach, a jellyfish swarm instead |
+| 7 | Lights out | You only see a small circle around you |
+| 8 | One life | A single hit ends the level, with extra predators |
+| 9 | Remix | A goal twist plus a rule twist, a different pair in each chapter |
+| 10 | The giant | A boss version of the chapter's biggest predator hunts you; grow, then eat it |
+
+Off-screen goals get a red arrow at the screen edge. Each level opens with an intro card, and the map shows a small icon per twist.
   - Hand-tune any level with `overrides`.
 - **Fishing hooks stop below the drop-off**, since fishing lines don't reach that deep.
 

@@ -34,6 +34,13 @@ function deathPicture(scene: Phaser.Scene, death: Death, player: PlayerFishId, y
       me(fishKey(player, 'light', 0)).setPosition(-27, y - 3).setScale(0.34).setTint(COOKED_TINT).setFlipY(true).setRotation(0.08),
     ];
   }
+  if (death.cause === 'timeout') {
+    // The school swims off; the player trails behind, too late.
+    return [
+      ...[0, 1, 2].map((i) => scene.add.image(40 + i * 46, y - 18 + (i % 2) * 26, fishKey('minnow', 'light', 0)).setScale(0.26)),
+      me(fishKey(player, 'light', 0)).setPosition(-90, y + 4).setScale(0.42),
+    ];
+  }
   const killer = scene.add.image(-85, y, fishKey(death.killer ?? 'pike', 'heavy', 0)).setScale(0.55);
   if (death.cause === 'spiked') {
     return [killer, me(fishKey(player, 'light', 0)).setPosition(80, y + 6).setScale(0.42).setTint(DEAD_TINT).setFlipY(true).setRotation(-0.12)];

@@ -6,9 +6,13 @@ import { rangeOf, type Rng } from '../../logic/rng';
 import { pickSpawn, relationTo } from '../../logic/sizing';
 import { keepInWater } from '../../logic/water';
 
+/** Ordinary fish come and go; marked fish and the giant are level goals and never leave. */
+export type FishRole = 'normal' | 'bounty' | 'boss';
+
 export interface Fish {
   readonly sprite: Phaser.GameObjects.Image;
   readonly species: SpeciesId;
+  readonly role: FishRole;
   readonly baseSize: number;
   /** Current radius after puffing/shrinking. */
   size: number;
@@ -46,12 +50,42 @@ export function spawnFish(scene: Phaser.Scene, level: LevelDef, playerSize: numb
   const speed = rangeOf(rng, ...CRUISE[entry.species]);
   // Head towards the far side so fish cross the player's area.
   const goRight = x < level.world.width / 2 ? rng() < 0.8 : rng() < 0.2;
-  const sprite = scene.add.image(x, y, fishKey(entry.species, 'light', 0)).setDepth(10).setScale(size / FISH_RADIUS);
+  return makeFish(scene, entry.species, size, 'normal', x, y, goRight ? speed : -speed, rng);
+}
+
+/** A goal fish placed by the level: a marked fish or the giant. */
+export function spawnSpecial(scene: Phaser.Scene, species: SpeciesId, size: number, role: FishRole, x: number, y: number, rng: Rng): Fish {
+  const speed = rangeOf(rng, ...CRUISE[species]) * (rng() < 0.5 ? -1 : 1);
+  return makeFish(scene, species, size, role, x, y, speed, rng);
+}
+
+function makeFish(scene: Phaser.Scene, species: SpeciesId, size: number, role: FishRole, x: number, y: number, vx: number, rng: Rng): Fish {
+  const sprite = scene.add.image(x, y, fishKey(species, 'light', 0)).setDepth(role === 'boss' ? 11 : 10).setScale(size / FISH_RADIUS);
   return {
-    sprite, species: entry.species, baseSize: size, size,
-    vx: goRight ? speed : -speed, vy: 0, phase: rng() * Math.PI * 2,
+    sprite, species, role, baseSize: size, size, vx, vy: 0, phase: rng() * Math.PI * 2,
     shrinkUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
   };
+}
+
+/** Goal fish have their own minds: marked fish flee, the giant hunts you down. Returns true if it steered. */
+function updateGoalFish(f: Fish, p: PlayerView, dist: number, rel: string, now: number, dt: number): boolean {
+  if (f.role === 'bounty') {
+    if (rel !== 'prey' || dist > 190) return false;
+    steerTo(f, f.sprite.x * 2 - p.x, f.sprite.y * 2 - p.y, 150, dt);
+    return true;
+  }
+  if (f.role !== 'boss') return false;
+  if (rel === 'prey' && dist < 320) {
+    steerTo(f, f.sprite.x * 2 - p.x, f.sprite.y * 2 - p.y, 175, dt);
+    return true;
+  }
+  if (f.state === 'cruise' && rel === 'predator' && dist < 620 && now > f.cooldownUntil && now > f.shrinkUntil) {
+    f.state = 'chase';
+    f.stateUntil = now + 3200;
+  }
+  if (f.state !== 'chase') return false;
+  steerTo(f, p.x, p.y, 168, dt);
+  return true;
 }
 
 export interface PlayerView {
@@ -81,7 +115,7 @@ export function isHelpless(f: Fish): boolean {
 }
 
 /** Per-species behaviour. Mutates the fish in place (hot loop, pooled entities). */
-export function updateFish(f: Fish, p: PlayerView, worldHeight: number, now: number, dt: number): void {
+export function updateFish(f: Fish, p: PlayerView, world: { readonly width: number; readonly height: number }, now: number, dt: number): void {
   f.phase += dt;
   // A hooked fish is moved by its hook.
   if (f.state === 'hooked') return;
@@ -101,6 +135,8 @@ export function updateFish(f: Fish, p: PlayerView, worldHeight: number, now: num
   if (f.state === 'stunned') {
     f.vx -= f.vx * Math.min(1, dt * 4);
     f.vy = 22;
+  } else if (updateGoalFish(f, p, dist, rel, now, dt)) {
+    // Steered by its role.
   } else switch (f.species) {
     case 'minnow':
       if (rel === 'prey' && dist < 130) steerTo(f, f.sprite.x * 2 - p.x, f.sprite.y * 2 - p.y, 125, dt);
@@ -141,9 +177,17 @@ export function updateFish(f: Fish, p: PlayerView, worldHeight: number, now: num
     f.vx += (cruise - f.vx) * Math.min(1, dt * 1.5);
   }
   f.sprite.x += f.vx * dt;
-  const water = keepInWater(f.sprite.y + f.vy * dt, f.vy, f.size, worldHeight);
+  if (f.role !== 'normal') turnAtWalls(f, world.width);
+  const water = keepInWater(f.sprite.y + f.vy * dt, f.vy, f.size, world.height);
   f.sprite.y = water.y;
   f.vy = water.vy;
+}
+
+/** Goal fish patrol the level instead of swimming off it. */
+function turnAtWalls(f: Fish, width: number): void {
+  const m = f.size + 40;
+  if (f.sprite.x < m) f.vx = Math.abs(f.vx);
+  else if (f.sprite.x > width - m) f.vx = -Math.abs(f.vx);
 }
 
 export function renderFish(f: Fish, playerSize: number, frame: number): void {
@@ -165,6 +209,7 @@ export function renderFish(f: Fish, playerSize: number, frame: number): void {
 }
 
 export function isOffWorld(f: Fish, level: LevelDef): boolean {
+  if (f.role !== 'normal') return false;
   const m = f.size * 3 + 40;
   const { x, y } = f.sprite;
   return x < -m || x > level.world.width + m || y < -m || y > level.world.height + m;

@@ -2,15 +2,24 @@ import Phaser from 'phaser';
 import { fishKey } from '../art/textures';
 import type { PlayerFishId } from '../levels/types';
 import { getHost } from '../host';
+import type { LevelDescription } from '../levels/twists';
 import { DASH_ZONE } from './game/player';
 import { HUD_EVENT, type GameScene, type HudSnapshot } from './GameScene';
-import { BLUE_INK, inkButton, inkText, INK_HEX, RED_INK, wobblyRect } from './ui';
+import { BLUE_INK, inkButton, inkText, INK_HEX, RED_INK, uiScale, wobblyRect } from './ui';
 
 interface HudData {
   readonly levelName: string;
   readonly player: PlayerFishId;
   readonly touch: boolean;
+  /** Lights-out level: HUD text turns pale to read against the dark. */
+  readonly dark?: boolean;
+  /** What's special about this level, shown on a card before play starts. */
+  readonly intro?: LevelDescription;
 }
+
+/** How long the intro card stays up, plus a little per extra rule. */
+const INTRO_MS = 2600;
+const INTRO_NOTE_MS = 900;
 
 const BAR_W = 260;
 const BAR_H = 18;
@@ -19,6 +28,9 @@ export class HudScene extends Phaser.Scene {
   private bars!: Phaser.GameObjects.Graphics;
   private scoreText!: Phaser.GameObjects.Text;
   private frenzyText!: Phaser.GameObjects.Text;
+  private objectiveText!: Phaser.GameObjects.Text;
+  private intro: Phaser.GameObjects.Container | null = null;
+  private textColor = '#1b1a1f';
   private lifeIcons: Phaser.GameObjects.Image[] = [];
   private dashBtn: Phaser.GameObjects.Container | null = null;
   private pauseLayer: Phaser.GameObjects.Container | null = null;
@@ -36,10 +48,12 @@ export class HudScene extends Phaser.Scene {
     this.cornerButtons = [];
     this.pauseLayer = null;
     this.last = null;
-    this.add.text(20, 14, data.levelName, { fontFamily: '"Caveat", cursive', fontSize: '24px', color: '#1b1a1f' });
+    this.textColor = data.dark ? '#ece4d2' : '#1b1a1f';
+    this.add.text(20, 14, data.levelName, { fontFamily: '"Caveat", cursive', fontSize: '24px', color: this.textColor });
     this.bars = this.add.graphics();
     this.scoreText = inkText(this, 0, 30, '0', 40, BLUE_INK);
-    this.frenzyText = this.add.text(20, 96, '', { fontFamily: '"Caveat", cursive', fontSize: '26px', color: RED_INK });
+    this.objectiveText = this.add.text(20, 94, '', { fontFamily: '"Caveat", cursive', fontSize: '26px', color: '#1b1a1f' });
+    this.frenzyText = this.add.text(20, 124, '', { fontFamily: '"Caveat", cursive', fontSize: '26px', color: RED_INK });
 
     const fsAvailable = this.scale.fullscreen.available;
     this.addCornerButton(0, '❚❚', () => this.togglePause());
@@ -59,6 +73,45 @@ export class HudScene extends Phaser.Scene {
     this.scale.on('resize', this.layout, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', this.layout, this));
     this.layout();
+    this.intro = null;
+    if (data.intro) this.showIntro(data.levelName, data.intro);
+  }
+
+  /**
+   * The level's twist on a paper card. The game waits underneath until the
+   * card times out or the player taps or presses a key.
+   */
+  private showIntro(name: string, d: LevelDescription): void {
+    this.scene.pause('Game');
+    const lines = [inkText(this, 0, -86, d.tag, 28, RED_INK), inkText(this, 0, -40, name, 58, BLUE_INK), inkText(this, 0, 18, d.goal, 28)];
+    d.notes.forEach((n, i) => lines.push(inkText(this, 0, 56 + i * 30, n, 23, '#5b5446')));
+    const w = Math.max(460, ...lines.map((t) => t.width + 60));
+    const h = 190 + d.notes.length * 30;
+    const g = this.add.graphics();
+    g.fillStyle(0xfffaf0, 0.96).fillRect(-w / 2, -h / 2 - 20, w, h);
+    wobblyRect(g, -w / 2, -h / 2 - 20, w, h, 31);
+    const card = this.add.container(this.scale.width / 2, this.scale.height / 2, [g, ...lines]);
+    card.setScale(Math.min(1, (this.scale.width - 32) / w, uiScale(this, 640, 480))).setAlpha(0);
+    this.intro = card;
+    this.tweens.add({ targets: card, alpha: 1, duration: 220 });
+    const timer = this.time.delayedCall(INTRO_MS + d.notes.length * INTRO_NOTE_MS, () => this.dismissIntro());
+    const skip = (): void => {
+      timer.remove();
+      this.input.off('pointerdown', skip);
+      this.input.keyboard?.off('keydown', skip);
+      this.dismissIntro();
+    };
+    this.input.once('pointerdown', skip);
+    this.input.keyboard?.once('keydown', skip);
+  }
+
+  private dismissIntro(): void {
+    const card = this.intro;
+    if (!card) return;
+    this.intro = null;
+    this.tweens.add({ targets: card, alpha: 0, y: card.y - 30, duration: 260, onComplete: () => card.destroy() });
+    this.scene.get('Game').input.keyboard?.resetKeys();
+    if (!this.pauseLayer) this.scene.resume('Game');
   }
 
   private cornerButtons: Phaser.GameObjects.Container[] = [];
@@ -104,6 +157,7 @@ export class HudScene extends Phaser.Scene {
     // Frenzy: thinner red-ink bar under the growth bar.
     g.fillStyle(0xa3342b, 0.6).fillRect(x, y + 30, BAR_W * s.frenzyMeter, 8);
     wobblyRect(g, x, y + 30, BAR_W, 8, 9, 1.4);
+    this.objectiveText.setText(s.objective).setColor(s.urgent ? RED_INK : this.textColor);
     this.frenzyText.setText(s.multiplier > 1 ? `×${s.multiplier} ${s.frenzyLabel}` : '');
     this.scoreText.setText(String(s.score));
     this.syncLives(s.lives);
@@ -126,6 +180,10 @@ export class HudScene extends Phaser.Scene {
 
   private togglePause(): void {
     if (this.scene.isActive('Result')) return;
+    if (this.intro) {
+      this.dismissIntro();
+      return;
+    }
     if (this.pauseLayer) {
       this.pauseLayer.destroy();
       this.pauseLayer = null;

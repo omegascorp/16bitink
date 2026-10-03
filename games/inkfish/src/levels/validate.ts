@@ -1,8 +1,9 @@
-import type { Chapter, LevelDef, PlayerFishId, PowerUpId, SpeciesId, ZoneId } from './types';
+import type { Chapter, LevelDef, PlayerFishId, PowerUpId, SpeciesId, TwistId, ZoneId } from './types';
 import { PLAYER_FISH, ZONE_IDS } from './zones';
 
 const SPECIES: readonly SpeciesId[] = ['minnow', 'perch', 'puffer', 'pike', 'angler', 'eel'];
 const POWER_UPS: readonly PowerUpId[] = ['speed', 'shrink'];
+const TWISTS: readonly TwistId[] = ['grow', 'collect', 'current', 'bounty', 'rush', 'storm', 'dark', 'survive', 'boss'];
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const isTriple = (v: unknown): v is [number, number, number] =>
@@ -22,7 +23,24 @@ function hasSaneRanges(l: LevelDef): boolean {
 }
 
 function isLevel(v: unknown): v is LevelDef {
-  return hasShape(v) && hasSaneRanges(v);
+  return hasShape(v) && hasSaneRanges(v) && hasValidTwists(v);
+}
+
+const optional = (v: unknown, ok: (x: unknown) => boolean): boolean => v === undefined || ok(v);
+
+function hasValidTwists(l: LevelDef): boolean {
+  const o = l.objective as unknown as Record<string, unknown> | undefined;
+  const m = l.modifiers as unknown as Record<string, unknown> | undefined;
+  if (!Array.isArray(l.twists) || l.twists.length === 0 || !l.twists.every((t) => TWISTS.includes(t))) return false;
+  if (typeof o !== 'object' || o === null || typeof m !== 'object' || m === null) return false;
+  const objectiveOk =
+    o.kind === 'grow' ||
+    (o.kind === 'collect' && isPos(o.count)) ||
+    (o.kind === 'boss' && SPECIES.includes(o.species as SpeciesId) && isPos(o.size)) ||
+    (o.kind === 'bounty' && isPos(o.count) && SPECIES.includes(o.species as SpeciesId) &&
+      Array.isArray(o.size) && o.size.length === 2 && o.size.every(isPos) && (o.size as number[])[0]! <= (o.size as number[])[1]!);
+  return objectiveOk && optional(m.timeLimit, isPos) && optional(m.current, isNum) && optional(m.dark, (d) => typeof d === 'boolean') &&
+    optional(m.lives, (n) => isPos(n) && Number.isInteger(n));
 }
 
 function hasShape(v: unknown): v is LevelDef {

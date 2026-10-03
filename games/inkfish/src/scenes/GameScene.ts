@@ -6,6 +6,7 @@ import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy, 
 import { addGrowth, growthProgress, initialGrowth, playerSizeFor, type GrowthState } from '../logic/growth';
 import { canHunt, HUNT_COOLDOWN_MS } from '../logic/ecosystem';
 import { causeOfBite, deathText, hitText, type Death, type DeathCause } from '../logic/deaths';
+import { initialProgress, objectiveLine, objectiveOutcome, type ObjectiveProgress } from '../logic/objective';
 import { createRng, type Rng } from '../logic/rng';
 import { waterTop } from '../logic/water';
 import { growthPointsFor, relationTo, scoreFor, touches } from '../logic/sizing';
@@ -20,7 +21,9 @@ import {
 } from './game/player';
 import { spawnPowerUp, updatePowerUp, type PowerUp } from './game/powerups';
 import { TUNING } from './game/tuning';
+import { TwistRunner } from './game/twistRunner';
 import { drawWorld } from './game/world';
+import { describeLevel } from '../levels/twists';
 import { allLevels, chapterOf } from '../levels/chapters';
 import { HAND_FONT } from './ui';
 
@@ -35,6 +38,9 @@ export interface HudSnapshot {
   readonly frenzyLabel: string;
   readonly dashReady: boolean;
   readonly speedLeft: number;
+  /** The level goal's progress line, e.g. "Ink drops 3/10". */
+  readonly objective: string;
+  readonly urgent: boolean;
 }
 
 export interface GameSceneData {
@@ -70,6 +76,8 @@ export class GameScene extends Phaser.Scene {
   private boilClock = 0;
   private ended = false;
   private death: Death | null = null;
+  private twist!: TwistRunner;
+  private progress: ObjectiveProgress = initialProgress;
 
   constructor() {
     super('Game');
@@ -84,7 +92,8 @@ export class GameScene extends Phaser.Scene {
     this.rng = createRng(Date.now());
     Object.assign(this, {
       fish: [], jellies: [], hooks: [], hookedFish: new Map(), playerHook: null, releaseAt: 0, powerUps: [], growth: initialGrowth, frenzy: initialFrenzy,
-      score: 0, lives: TUNING.lives, elapsedMs: 0, boilFrame: 0, boilClock: 0, ended: false, death: null,
+      score: 0, elapsedMs: 0, boilFrame: 0, boilClock: 0, ended: false, death: null, progress: initialProgress,
+      lives: level.modifiers.lives ?? TUNING.lives,
     });
     this.nextHookAt = level.hazards.hookEverySec * 1000;
     this.nextPowerUpAt = TUNING.powerUpEverySec * 600;
@@ -96,6 +105,8 @@ export class GameScene extends Phaser.Scene {
     const chapter = chapterOf(this.level);
     this.weeds = drawWorld(this, this.level, chapter.zone);
     this.player = createPlayer(this, this.level, chapter.player);
+    this.twist = new TwistRunner(this, this.level, this.rng);
+    this.fish = [...this.fish, ...this.twist.setup(this.player.sprite)];
     this.controls = createControls(this);
     this.jellies = spawnJellies(this, this.level, this.rng);
     this.cameras.main.startFollow(this.player.sprite, true, 0.08, 0.08);
@@ -109,7 +120,10 @@ export class GameScene extends Phaser.Scene {
     });
     this.input.mouse?.disableContextMenu();
 
-    this.scene.launch('Hud', { levelName: this.level.name, player: chapter.player, touch: this.controls.touch });
+    this.scene.launch('Hud', {
+      levelName: this.level.name, player: chapter.player, touch: this.controls.touch,
+      intro: describeLevel(this.level), dark: this.level.modifiers.dark ?? false,
+    });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scene.stop('Hud'));
     this.emitHud();
   }
@@ -138,7 +152,10 @@ export class GameScene extends Phaser.Scene {
     }
     this.elapsedMs += deltaMs;
 
-    if (!this.player.hooked) movePlayer(this.player, desiredDirection(this, this.controls, this.player), this.level, now, dt);
+    if (!this.player.hooked) {
+      movePlayer(this.player, desiredDirection(this, this.controls, this.player), this.level, now, dt);
+      this.drift(this.player.sprite, this.player.size, 0.85, dt);
+    }
     renderPlayer(this.player, now, this.boilFrame, dt);
     const cam = this.cameras.main;
     cam.setZoom(Phaser.Math.Linear(cam.zoom, this.zoomFor(this.player.size), Math.min(1, dt * 2)));
@@ -147,6 +164,7 @@ export class GameScene extends Phaser.Scene {
     this.updateFishes(now, dt);
     this.updateHazards(now, deltaMs, dt);
     this.updatePowerUps(now);
+    this.updateObjective(now);
     this.emitHud();
   }
 
@@ -166,7 +184,8 @@ export class GameScene extends Phaser.Scene {
       this.fish.push(spawnFish(this, this.level, p.size, camView, this.rng));
     }
     this.fish = this.fish.filter((f) => {
-      updateFish(f, view, this.level.world.height, now, dt);
+      updateFish(f, view, this.level.world, now, dt);
+      if (f.state !== 'hooked') this.drift(f.sprite, f.size, 0.7, dt);
       renderFish(f, p.size, this.boilFrame);
       if (f.state !== 'hooked' && isOffWorld(f, this.level)) {
         f.sprite.destroy();
@@ -194,7 +213,7 @@ export class GameScene extends Phaser.Scene {
     for (const hunter of this.fish) {
       if (isHelpless(hunter) || now < hunter.fullUntil || eaten.has(hunter)) continue;
       const prey = this.fish.find((f) =>
-        f !== hunter && !eaten.has(f) && f.state !== 'hooked' && canHunt(hunter.species, hunter.size, f.size) &&
+        f !== hunter && !eaten.has(f) && f.state !== 'hooked' && f.role === 'normal' && canHunt(hunter.species, hunter.size, f.size) &&
         touches(hunter.sprite.x, hunter.sprite.y, hunter.size, f.sprite.x, f.sprite.y, f.size, 0.6));
       if (!prey) continue;
       eaten.add(prey);
@@ -218,7 +237,42 @@ export class GameScene extends Phaser.Scene {
     f.sprite.destroy();
     this.player.chompAt = this.time.now;
     if (this.growth.tier > before) this.growUp();
-    if (this.growth.complete) this.finish('win');
+    this.progress = {
+      ...this.progress,
+      grown: this.growth.complete,
+      bounties: this.progress.bounties + (f.role === 'bounty' ? 1 : 0),
+      bossEaten: this.progress.bossEaten || f.role === 'boss',
+    };
+    if (f.role === 'boss') this.floatText(f.sprite.x, f.sprite.y - f.size * 1.6, 'Giant eaten!', '#a3342b', 48);
+    if (f.role === 'bounty' && this.level.objective.kind === 'bounty') {
+      this.floatText(f.sprite.x, f.sprite.y - f.size * 1.6, `Marked ${this.progress.bounties}/${this.level.objective.count}`, '#a3342b', 36);
+    }
+  }
+
+  /** The current pushes a swimmer sideways, never past the world's edge. */
+  private drift(sprite: Phaser.GameObjects.Image, radius: number, strength: number, dt: number): void {
+    const c = this.twist.current;
+    if (!c) return;
+    sprite.x = Phaser.Math.Clamp(sprite.x + c * strength * dt, radius, this.level.world.width - radius);
+  }
+
+  /** Twist bookkeeping: drops, goal markers, the clock, and whether the level is decided. */
+  private updateObjective(now: number): void {
+    const goals = this.fish.filter((f) => f.role !== 'normal');
+    this.twist.update(now, this.boilFrame, this.player, goals);
+    const picked = this.player.hooked ? [] : this.twist.collect(this.player);
+    for (const at of picked) {
+      this.score += 150;
+      this.burst(at.x, at.y, 6);
+      if (this.level.objective.kind === 'collect') {
+        this.floatText(at.x, at.y - 30, `${this.progress.collected + 1}/${this.level.objective.count}`, '#1f3f8a', 34);
+      }
+      this.progress = { ...this.progress, collected: this.progress.collected + 1 };
+    }
+    this.progress = { ...this.progress, seconds: this.elapsedMs / 1000 };
+    const outcome = objectiveOutcome(this.level, this.progress);
+    if (outcome === 'won') this.finish('win');
+    else if (outcome === 'lost') this.die({ cause: 'timeout' });
   }
 
   private growUp(): void {
@@ -272,6 +326,7 @@ export class GameScene extends Phaser.Scene {
     const p = this.player;
     for (const j of this.jellies) {
       updateJelly(j, this.level, dt, this.boilFrame);
+      j.sprite.x += this.twist.current * 0.5 * dt;
       if (!this.ended && !p.hooked && now > p.stunnedUntil + 600 && now > p.invulnerableUntil &&
         touches(p.sprite.x, p.sprite.y, p.size, j.sprite.x, j.sprite.y, j.radius, 0.7)) {
         p.stunnedUntil = now + TUNING.stunMs;
@@ -312,7 +367,7 @@ export class GameScene extends Phaser.Scene {
       this.hookPlayer(h, now);
       return;
     }
-    const fish = this.fish.find((f) => f.state !== 'hooked' && touches(f.sprite.x, f.sprite.y, f.size, tip.x, tip.y, 12, 0.8));
+    const fish = this.fish.find((f) => f.state !== 'hooked' && f.role === 'normal' && touches(f.sprite.x, f.sprite.y, f.size, tip.x, tip.y, 12, 0.8));
     if (!fish) return;
     fish.state = 'hooked';
     hookCatch(h, fish.size);
@@ -420,6 +475,7 @@ export class GameScene extends Phaser.Scene {
   private emitHud(): void {
     const mult = frenzyMultiplier(this.frenzy);
     const now = this.time.now;
+    const line = objectiveLine(this.level, this.progress);
     const snapshot: HudSnapshot = {
       levelName: this.level.name,
       progress: growthProgress(this.level, this.growth),
@@ -431,6 +487,8 @@ export class GameScene extends Phaser.Scene {
       frenzyLabel: frenzyLabel(mult),
       dashReady: now >= this.player.dashReadyAt,
       speedLeft: Math.max(0, this.player.speedUntil - now),
+      objective: line.text,
+      urgent: line.urgent,
     };
     this.events.emit(HUD_EVENT, snapshot);
   }
