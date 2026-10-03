@@ -2,7 +2,7 @@ import { SPECIES_INFO, type SpeciesInfo } from '../levels/species';
 import type { SpeciesId } from '../levels/types';
 
 /** How the player's fish met its end; each has its own animation and result screen. */
-export type DeathCause = 'eaten' | 'spiked' | 'hooked' | 'snagged' | 'timeout';
+export type DeathCause = 'eaten' | 'spiked' | 'pinched' | 'hooked' | 'snagged' | 'timeout';
 
 export interface Death {
   readonly cause: DeathCause;
@@ -10,9 +10,10 @@ export interface Death {
   readonly killer?: SpeciesId;
 }
 
-/** What happens when a bigger fish touches you: spiky fish prick, the rest bite. */
+/** What happens when a bigger creature touches you: spiky ones prick, crabs pinch, the rest bite. */
 export function causeOfBite(species: SpeciesId): DeathCause {
-  return (SPECIES_INFO[species] as SpeciesInfo).spiky ? 'spiked' : 'eaten';
+  const info = SPECIES_INFO[species] as SpeciesInfo;
+  return info.spiky ? 'spiked' : info.pinches ? 'pinched' : 'eaten';
 }
 
 /** A few fish get their own line; everyone else gets the plain one. */
@@ -27,6 +28,7 @@ const EATEN_BY: Partial<Record<SpeciesId, string>> = {
 };
 
 const article = (name: string): string => (/^[aeiou]/.test(name) ? 'an' : 'a');
+const capital = (word: string): string => word.charAt(0).toUpperCase() + word.slice(1);
 
 export function deathText(death: Death): { readonly title: string; readonly line: string } {
   switch (death.cause) {
@@ -34,6 +36,8 @@ export function deathText(death: Death): { readonly title: string; readonly line
       return { title: 'Cooked!', line: 'Reeled up and fried for supper.' };
     case 'spiked':
       return { title: 'Spiked!', line: death.killer ? `You bumped into ${article(SPECIES_INFO[death.killer].name)} ${SPECIES_INFO[death.killer].name}.` : 'You bumped into something spiky.' };
+    case 'pinched':
+      return { title: 'Pinched!', line: death.killer ? `${capital(article(SPECIES_INFO[death.killer].name))} ${SPECIES_INFO[death.killer].name} caught you in its claws.` : 'Something with claws got you.' };
     case 'snagged':
       return { title: 'Snagged!', line: 'That shiny lure was hiding a hook.' };
     case 'timeout':
@@ -46,5 +50,5 @@ export function deathText(death: Death): { readonly title: string; readonly line
 
 /** Floating text for a hit that costs a life but not the level. */
 export function hitText(cause: DeathCause): string {
-  return { eaten: 'Chomp!', spiked: 'Ouch!', hooked: 'Hooked!', snagged: 'Snagged!', timeout: 'Hurry!' }[cause];
+  return { eaten: 'Chomp!', spiked: 'Ouch!', pinched: 'Pinch!', hooked: 'Hooked!', snagged: 'Snagged!', timeout: 'Hurry!' }[cause];
 }

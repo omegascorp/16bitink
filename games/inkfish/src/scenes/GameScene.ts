@@ -26,6 +26,8 @@ import { capsulesTouch, capsuleTouchesCircle } from '../logic/body';
 import { TUNING } from './game/tuning';
 import { TwistRunner } from './game/twistRunner';
 import { drawWorld, swayWeeds } from './game/world';
+import { isCrawler, spawnCrawler, updateCrawler } from './game/crawlers';
+import { seabedFor, type Seabed } from '../logic/water';
 import { describeLevel } from '../levels/twists';
 import { PLAYER_FISH_NAMES } from '../levels/zones';
 import { allLevels, chapterOf } from '../levels/chapters';
@@ -57,7 +59,7 @@ export const HUD_EVENT = 'hud';
 function levelSpecies(level: LevelDef): SpeciesId[] {
   const o = level.objective;
   const goal = o.kind === 'bounty' || o.kind === 'boss' ? [o.species] : [];
-  return [...level.spawns.map((s) => s.species), ...goal];
+  return [...level.spawns.map((s) => s.species), ...level.bottom.map((s) => s.species), ...goal];
 }
 
 export class GameScene extends Phaser.Scene {
@@ -79,6 +81,8 @@ export class GameScene extends Phaser.Scene {
   private decoy: Decoy | null = null;
   private shieldG!: Phaser.GameObjects.Graphics;
   private weeds: Phaser.GameObjects.Image[] = [];
+  /** This level's sand: crawlers walk on it, swimmers can't go below it. */
+  private seabed!: Seabed;
   private growth: GrowthState = initialGrowth;
   private frenzy: FrenzyState = initialFrenzy;
   private score = 0;
@@ -120,7 +124,8 @@ export class GameScene extends Phaser.Scene {
     const residents = levelSpecies(this.level);
     releaseFishTextures(this, residents);
     ensureFishTextures(this, residents);
-    this.weeds = drawWorld(this, this.level, chapter.zone);
+    this.seabed = seabedFor(this.level.id, world);
+    this.weeds = drawWorld(this, this.level, chapter.zone, this.seabed);
     this.player = createPlayer(this, this.level, chapter.player);
     this.twist = new TwistRunner(this, this.level, this.rng);
     this.itemHost = this.makeItemHost();
@@ -177,7 +182,7 @@ export class GameScene extends Phaser.Scene {
     this.elapsedMs += deltaMs;
 
     if (!this.player.hooked) {
-      movePlayer(this.player, desiredDirection(this, this.controls, this.player), this.level, now, dt);
+      movePlayer(this.player, desiredDirection(this, this.controls, this.player), this.level, now, dt, this.seabed.floorAt);
       this.drift(this.player.sprite, this.player.size, 0.85, dt);
     }
     renderPlayer(this.player, now, this.boilFrame, dt);
@@ -205,18 +210,25 @@ export class GameScene extends Phaser.Scene {
     const p = this.player;
     const view = { x: p.sprite.x, y: p.sprite.y, size: p.size };
     const camView = this.cameras.main.worldView;
-    while (this.fish.length < this.level.maxFish) {
-      this.fish.push(spawnFish(this, this.level, p.size, camView, this.rng));
+    const floorAt = this.seabed.floorAt;
+    const crawlers = this.fish.filter((f) => isCrawler(f.species)).length;
+    for (let n = this.fish.length - crawlers; n < this.level.maxFish; n++) this.fish.push(spawnFish(this, this.level, p.size, camView, this.rng));
+    if (this.level.bottom.length) {
+      for (let n = crawlers; n < this.level.maxCrawlers; n++) this.fish.push(spawnCrawler(this, this.level, p.size, camView, floorAt, this.rng));
     }
+    const sea = { ...this.level.world, floorAt };
     this.fish = this.fish.filter((f) => {
-      updateFish(f, view, this.level.world, now, dt, this.decoy);
+      const crawler = isCrawler(f.species);
+      if (crawler) updateCrawler(f, view, floorAt, now, dt);
+      else updateFish(f, view, sea, now, dt, this.decoy);
       // Knocked-out fish that nobody ate sink out of the story.
       if (f.state === 'dead' && now > f.stateUntil) {
         f.sprite.destroy();
         return false;
       }
       // Ordinary fish ride the current off the map and get replaced; goal fish stay in play.
-      if (f.state !== 'hooked') this.drift(f.sprite, f.size, 0.7, dt, f.role !== 'normal');
+      // Crawlers hold on to the seabed against the current.
+      if (f.state !== 'hooked' && !crawler) this.drift(f.sprite, f.size, 0.7, dt, f.role !== 'normal');
       renderFish(f, p.size, this.boilFrame, dt);
       if (f.state !== 'hooked' && isOffWorld(f, this.level)) {
         f.sprite.destroy();
@@ -472,7 +484,7 @@ export class GameScene extends Phaser.Scene {
     }
     const p = this.player;
     this.items = this.items.filter((it) => {
-      if (!updateItem(it, this.level, now, dt, this.boilFrame)) return false;
+      if (!updateItem(it, now, dt, this.boilFrame, this.seabed.floorAt)) return false;
       if (p.hooked || !capsuleTouchesCircle(bodyOf(p.sprite, p.shape), it.sprite.x, it.sprite.y, 22)) return true;
       this.burst(it.sprite.x, it.sprite.y, 5);
       it.sprite.destroy();

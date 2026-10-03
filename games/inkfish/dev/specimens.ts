@@ -8,6 +8,8 @@ import { REEF } from '../src/art/fish/species/reef';
 import { SHALLOWS } from '../src/art/fish/species/shallows';
 import { ITEM_IDS } from '../src/levels/items';
 import { ART_RES, drawHook, drawJelly, drawRock, drawWeed } from '../src/art/propArt';
+import { CRITTER_IDS, drawCritter } from '../src/art/critterArt';
+import { DECOR_IDS, DECOR_SIZE, drawDecor } from '../src/art/decorArt';
 
 // Dev-only sheet for reviewing the procedural ink art: big, and at in-game size.
 const sheet = document.getElementById('sheet')!;
@@ -53,3 +55,26 @@ const items = row();
 for (const id of ITEM_IDS) figure(items, id, ITEM_SIZE * R, ITEM_SIZE * R, (ctx) => drawItem(ctx, id, 101), 1 / R);
 const itemsSmall = row();
 for (const id of ITEM_IDS) figure(itemsSmall, id, ITEM_SIZE * R, ITEM_SIZE * R, (ctx) => drawItem(ctx, id, 101), 48 / (ITEM_SIZE * R));
+// Seabed: crawlers (?critters=1 shows only these) and decor (?decor=1).
+const critterRow = row();
+for (const id of CRITTER_IDS) {
+  for (const variant of ['light', 'heavy'] as InkVariant[]) {
+    figure(critterRow, `${id} ${variant}`, FISH_TEX, FISH_TEX, (ctx) => drawCritter(ctx, id, variant, 0, 101), 200 / FISH_TEX);
+  }
+}
+const critterPoses = row();
+for (const id of CRITTER_IDS) for (const f of [0, 1, 2]) figure(critterPoses, `${id} f${f}`, FISH_TEX, FISH_TEX, (ctx) => drawCritter(ctx, id, 'light', f, 101 + f * 977), 90 / FISH_TEX);
+const decorRow = row();
+for (const id of DECOR_IDS) {
+  const { w, h } = DECOR_SIZE[id];
+  figure(decorRow, id, w * R, h * R, (ctx) => drawDecor(ctx, id, 101), 1);
+}
+const decorSmall = row();
+for (const id of DECOR_IDS) {
+  const { w, h } = DECOR_SIZE[id];
+  figure(decorSmall, id, w * R, h * R, (ctx) => drawDecor(ctx, id, 101), 0.5 / R * 1.4);
+}
+if (params.get('critters') || params.get('decor')) {
+  const keep = params.get('critters') ? [critterRow, critterPoses] : [decorRow, decorSmall];
+  for (const r of [...sheet.children]) if (!keep.includes(r as HTMLElement)) r.remove();
+}

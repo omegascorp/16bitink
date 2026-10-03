@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { FISH_RADIUS } from '../../art/fishArt';
 import { fishKey } from '../../art/textures';
 import type { LevelDef, PlayerFishId } from '../../levels/types';
-import { waterBottom, waterTop } from '../../logic/water';
+import { aboveSeabed, waterBottom, waterTop } from '../../logic/water';
 import { attachTail, setSwimTexture, setTailBeat, stroke, turnToward, type SwimState } from './swim';
 import { TUNING } from './tuning';
 
@@ -109,7 +109,7 @@ export function desiredDirection(scene: Phaser.Scene, c: Controls, p: Player): {
   return { x: (dx / d) * intent, y: (dy / d) * intent };
 }
 
-export function movePlayer(p: Player, dir: { x: number; y: number }, level: LevelDef, now: number, dt: number): void {
+export function movePlayer(p: Player, dir: { x: number; y: number }, level: LevelDef, now: number, dt: number, floorAt?: (x: number) => number): void {
   const stunned = now < p.stunnedUntil;
   const max = TUNING.playerSpeed * (now < p.speedUntil ? TUNING.speedBoost : 1) * (now < p.slowUntil ? TUNING.slowFactor : 1);
   const tx = stunned ? 0 : dir.x * max;
@@ -119,7 +119,9 @@ export function movePlayer(p: Player, dir: { x: number; y: number }, level: Leve
   p.vy += (ty - p.vy) * k;
   const r = p.size;
   p.sprite.x = Phaser.Math.Clamp(p.sprite.x + p.vx * dt, r, level.world.width - r);
-  p.sprite.y = Phaser.Math.Clamp(p.sprite.y + p.vy * dt, waterTop(r), waterBottom(level.world.height, r));
+  // Down to the sand: crabs and shrimp live there.
+  const bottom = floorAt ? aboveSeabed(floorAt(p.sprite.x), r) : waterBottom(level.world.height, r);
+  p.sprite.y = Phaser.Math.Clamp(p.sprite.y + p.vy * dt, waterTop(r), bottom);
 }
 
 export function tryDash(p: Player, dir: { x: number; y: number }, now: number): boolean {

@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
-import { ART_RES, weedKey } from '../../art/textures';
+import { ART_RES, ensureDecorTextures, weedKey } from '../../art/textures';
+import { hashUnit, type Seabed } from '../../logic/water';
+import { decorKinds, placeDecor, planDecor } from './seabedDecor';
 import type { LevelDef, ZoneId } from '../../levels/types';
 import { ZONE_DARKNESS } from '../../levels/zones';
 import type { WeedKind } from '../../art/propArt';
@@ -21,12 +23,13 @@ export const ZONE_WEEDS: Readonly<Record<ZoneId, { readonly kinds: readonly Weed
   trench: { kinds: [], count: 0, rocks: 9 },
 };
 
-/** Paper, depth wash, surface and sea-floor sketch. Returns boiling weed sprites. */
-export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId): Phaser.GameObjects.Image[] {
+/** Paper, depth wash, surface and the level's own seabed with its scenery. Returns boiling weed sprites. */
+export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, seabed: Seabed): Phaser.GameObjects.Image[] {
   const dark = ZONE_DARKNESS[zone];
   const flora = ZONE_WEEDS[zone];
   const { width, height } = level.world;
-  const rng = createRng(level.id.length * 97 + level.chapter);
+  // Seeded by the whole level id, so every level lays out its own seabed.
+  const rng = createRng(Math.floor(hashUnit(level.id, 7) * 1e6) + 1);
   scene.add.tileSprite(0, 0, width, height, 'paper').setOrigin(0).setDepth(0);
 
   const wash = scene.add.graphics().setDepth(1);
@@ -54,7 +57,7 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId): P
     lines.strokePath();
   }
   // Sea floor with stippled sand.
-  const floor = (x: number): number => height - 70 - Math.sin(x / 160) * 18 - Math.sin(x / 47) * 5;
+  const floor = seabed.floorAt;
   lines.fillStyle(0xe6d8b8, 0.6);
   lines.beginPath();
   lines.moveTo(0, height);
@@ -72,7 +75,13 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId): P
     lines.fillCircle(x, floor(x) + 4 + depth * depth * (height - floor(x)), rng() * 0.7 + 0.25);
   }
 
-  for (let i = 0; i < flora.rocks; i++) {
+  const plan = planDecor(level.id, zone, width);
+  ensureDecorTextures(scene, decorKinds(plan));
+  placeDecor(scene, plan, floor, 1);
+
+  // Rock and weed counts vary level to level around the zone's usual.
+  const rocks = Math.round(flora.rocks * rangeOf(rng, 0.5, 1.4));
+  for (let i = 0; i < rocks; i++) {
     const x = rangeOf(rng, 0, width);
     // Origin near the bottom so the rock sits down into the sand.
     scene.add.image(x, floor(x) + 10, `rock-${i % 3}`).setOrigin(0.5, 0.94).setDepth(3)
@@ -80,7 +89,7 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId): P
   }
   // Scales are capped so weeds are never magnified past their texture.
   if (flora.kinds.length === 0) return [];
-  return Array.from({ length: flora.count }, () => {
+  return Array.from({ length: Math.round(flora.count * rangeOf(rng, 0.55, 1.35)) }, () => {
     const x = rangeOf(rng, 0, width);
     const kind = flora.kinds[Math.floor(rng() * flora.kinds.length)]!;
     return scene.add.image(x, floor(x) + 10, weedKey(kind, 0)).setOrigin(0.5, 1).setDepth(4)

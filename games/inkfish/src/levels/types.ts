@@ -54,6 +54,10 @@ export interface LevelDef {
   readonly world: { readonly width: number; readonly height: number };
   readonly spawns: readonly SpawnEntry[];
   readonly maxFish: number;
+  /** Crawlers on the seabed (crabs, shrimp, snails): spawned along the sand, not in open water. */
+  readonly bottom: readonly SpawnEntry[];
+  /** How many crawlers are about at once. */
+  readonly maxCrawlers: number;
   readonly hazards: { readonly jellyfish: number; readonly hookEverySec: number };
   /** Kinds of human-made items that sink through this level (at most three). */
   readonly items: readonly ItemId[];

@@ -3,6 +3,7 @@ import { ANATOMY } from './fish/registry';
 import {
   bezier, bottomAt, C, FISH_RADIUS, FISH_TEX, heightAt, outline, PAPER_FILL, topAt, xAt, type Anatomy, type Fin, type Kit,
 } from './fish/kit';
+import { CRITTER_BODY, drawCritter, isCritter } from './critterArt';
 import { ellipse, INK, Pen, type Pt } from './pen';
 
 export { FISH_RADIUS, FISH_TEX };
@@ -375,4 +376,15 @@ export function drawFish(ctx: CanvasRenderingContext2D, shape: FishShape, varian
     pen.stroke([{ x: ex - a.eye.r * 1.3, y: ey - a.eye.r * 1.5 }, { x: ex + a.eye.r * 1.2, y: ey - a.eye.r * 0.9 }], 1.8, ink, 1, false);
   }
   if (a.wave) undulate(ctx, a.wave);
+}
+
+/** One boil frame of any swimmer or crawler: fish by anatomy, seabed critters by their own drawings. */
+export function drawCreature(ctx: CanvasRenderingContext2D, shape: FishShape, variant: InkVariant, frame: number, seed: number): void {
+  if (isCritter(shape)) drawCritter(ctx, shape, variant, frame, seed);
+  else drawFish(ctx, shape, variant, seed);
+}
+
+/** Half length and half height of the solid body in texture px, for hit shapes and framing. */
+export function bodyProportions(shape: FishShape): { readonly hl: number; readonly hh: number } {
+  return isCritter(shape) ? CRITTER_BODY[shape] : ANATOMY[shape];
 }

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { getChapters, getHost } from '../host';
 import { ART_RES, fishKey } from '../art/textures';
 import { PAN_SIZE } from '../art/deathArt';
-import { ANATOMY } from '../art/fish/registry';
+import { bodyProportions } from '../art/fishArt';
 import { DEMO_CHAPTER, LOCKED_CHAPTER_TEASERS } from '../levels/demo';
 import type { PlayerFishId, SpeciesId } from '../levels/types';
 import { deathText, type Death } from '../logic/deaths';
@@ -30,7 +30,7 @@ const COOKED_TINT = 0xf2c084;
  * long barracuda and a tall butterflyfish both come out at a sensible size.
  */
 function fitBox(shape: PlayerFishId | SpeciesId, w: number, h: number): number {
-  const a = ANATOMY[shape];
+  const a = bodyProportions(shape);
   return Math.min(w / (a.hl * 2.3), h / (a.hh * 3));
 }
 
@@ -54,7 +54,7 @@ function deathPicture(scene: Phaser.Scene, death: Death, player: PlayerFishId, s
     ];
   }
   const killer = scene.add.image(-85, y, fishKey(death.killer ?? staple, 'heavy', 0)).setScale(0.55);
-  if (death.cause === 'spiked') {
+  if (death.cause === 'spiked' || death.cause === 'pinched') {
     return [killer, me(fishKey(player, 'light', 0)).setPosition(80, y + 6).setScale(fitBox(player, 100, 70)).setTint(DEAD_TINT).setFlipY(true).setRotation(-0.12)];
   }
   return [killer, scene.add.image(85, y + 8, 'bones').setScale(0.5).setRotation(0.1)];

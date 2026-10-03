@@ -3,7 +3,7 @@ import { ART_RES, boilKey } from '../../art/textures';
 import { ITEM_INFO, type ItemId } from '../../levels/items';
 import type { LevelDef } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
-import { waterBottom, WATER } from '../../logic/water';
+import { WATER } from '../../logic/water';
 import { TUNING } from './tuning';
 
 /** Share of drops that are litter, when the level has any. */
@@ -40,7 +40,7 @@ export function spawnItem(scene: Phaser.Scene, level: LevelDef, view: Phaser.Geo
 }
 
 /** Sinks, tumbles and settles on the seabed. Returns false once it's gone. */
-export function updateItem(it: FallingItem, level: LevelDef, now: number, dt: number, frame: number): boolean {
+export function updateItem(it: FallingItem, now: number, dt: number, frame: number, floorAt: (x: number) => number): boolean {
   const s = it.sprite;
   s.setTexture(itemKey(it.kind, frame));
   if (it.landedAt === null) {
@@ -48,7 +48,8 @@ export function updateItem(it: FallingItem, level: LevelDef, now: number, dt: nu
     s.y += info.sink * dt;
     s.x += Math.sin(now / 700 + it.sway) * 18 * dt;
     s.rotation += Math.sin(now / 900 + it.sway) * 0.6 * dt;
-    const floor = waterBottom(level.world.height, 10);
+    // Comes to rest on the sand, a little sunk in.
+    const floor = floorAt(s.x) - 8;
     if (s.y >= floor) {
       s.y = floor;
       it.landedAt = now;

@@ -4,7 +4,9 @@ import { BONES_SIZE, drawBones, drawPan, PAN_SIZE } from './deathArt';
 import { drawItem, ITEM_SIZE } from './itemArt';
 import { DARK_TEX, drawDarkness, drawInkDrop, DROP_SIZE } from './twistArt';
 import { ITEM_IDS } from '../levels/items';
-import { drawFish, FISH_TEX, type FishShape, type InkVariant } from './fishArt';
+import { drawCreature, FISH_TEX, type FishShape, type InkVariant } from './fishArt';
+import { isCritter } from './critterArt';
+import { DECOR_SIZE, drawDecor, type DecorId } from './decorArt';
 import { xAt } from './fish/kit';
 import { ANATOMY } from './fish/registry';
 import { makeCanvas } from './pen';
@@ -74,7 +76,7 @@ export function ensureFishTextures(scene: Phaser.Scene, shapes: readonly FishSha
   for (const shape of new Set(shapes)) {
     for (const variant of variants) {
       for (let f = 0; f < BOIL_FRAMES; f++) {
-        add(scene, fishKey(shape, variant, f), FISH_TEX, FISH_TEX, (ctx) => drawFish(ctx, shape, variant, frameSeed(f)));
+        add(scene, fishKey(shape, variant, f), FISH_TEX, FISH_TEX, (ctx) => drawCreature(ctx, shape, variant, f, frameSeed(f)));
         addSwimFrames(scene, fishKey(shape, variant, f), shape);
       }
     }
@@ -90,6 +92,7 @@ const TAIL_OVERLAP = 5;
  * body (eels, the oarfish), which keep a single image.
  */
 export function tailCut(shape: FishShape): number | null {
+  if (isCritter(shape)) return null;
   const a = ANATOMY[shape];
   if (a.tail === 'point' || a.wave) return null;
   return Math.round(xAt(a, 1) + Math.max(5, a.hl * 0.08));
@@ -120,5 +123,13 @@ export function releaseFishTextures(scene: Phaser.Scene, keep: readonly FishShap
   for (const key of scene.textures.getTextureKeys()) {
     const shape = /^fish-(\w+)-(light|heavy)-\d+$/.exec(key)?.[1] as FishShape | undefined;
     if (shape && !kept.has(shape)) scene.textures.remove(key);
+  }
+}
+
+/** Seabed scenery for a level (drawn on demand: only the kinds this level uses). */
+export function ensureDecorTextures(scene: Phaser.Scene, kinds: readonly DecorId[]): void {
+  for (const kind of kinds) {
+    const { w, h } = DECOR_SIZE[kind];
+    add(scene, `decor-${kind}`, w * ART_RES, h * ART_RES, (ctx) => drawDecor(ctx, kind, 101));
   }
 }

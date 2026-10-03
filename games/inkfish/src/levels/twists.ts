@@ -1,5 +1,5 @@
 import { ITEM_INFO, type ItemId } from './items';
-import { SPECIES_INFO } from './species';
+import { SPECIES_INFO, type SpeciesInfo } from './species';
 import { LEVELS_PER_CHAPTER } from './zones';
 import type { LevelDef, Modifiers, Objective, SpawnEntry, SpeciesId, TwistId } from './types';
 
@@ -74,6 +74,7 @@ export function applyTwists(level: LevelDef, twists: readonly TwistId[], ctx: Tw
     objective,
     modifiers,
     spawns: capped(has('rush') ? staple(2.5) : has('survive') ? predators(1.3) : level.spawns),
+    bottom: capped(level.bottom),
     maxFish: Math.round(level.maxFish * (has('rush') ? 1.4 : has('survive') ? 1.1 : 1)),
     hazards: has('storm')
       ? hooksHere
@@ -141,7 +142,10 @@ export function describeLevel(level: LevelDef, opts: DescribeOptions = {}): Leve
   const labels = level.twists.map((t) => (t === 'storm' && jellyBloom ? 'Jelly bloom' : LABEL[t]));
   const notes: string[] = [];
   if (opts.newPlayer) notes.push(`You swim as a ${opts.newPlayer} now.`);
-  for (const id of level.debuts) notes.push(`New fish: ${SPECIES_INFO[id].name}. ${SPECIES_INFO[id].note}`);
+  for (const id of level.debuts) {
+    const info = SPECIES_INFO[id] as SpeciesInfo;
+    notes.push(`${info.bottom ? 'On the seabed' : 'New fish'}: ${info.name}. ${info.note}`);
+  }
   const number = levelNumber(level);
   for (const id of level.items.filter((i) => ITEM_INFO[i].debut === number && number > 1)) {
     const item = ITEM_INFO[id];

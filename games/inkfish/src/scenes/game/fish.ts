@@ -28,6 +28,8 @@ export interface Fish extends SwimState {
   cooldownUntil: number;
   /** After eating another fish, a hunter ignores prey until this time. */
   fullUntil: number;
+  /** Lean to follow the ground under a crawler, radians (0 for swimmers). */
+  tilt: number;
   /** dead: knocked out by a firecracker, floating belly-up; anyone can eat it. */
   state: 'cruise' | 'chase' | 'lunge' | 'puffed' | 'tired' | 'stunned' | 'hooked' | 'dead';
 }
@@ -61,12 +63,12 @@ export function spawnSpecial(scene: Phaser.Scene, species: SpeciesId, size: numb
   return makeFish(scene, species, size, role, x, y, speed, rng);
 }
 
-function makeFish(scene: Phaser.Scene, species: SpeciesId, size: number, role: FishRole, x: number, y: number, vx: number, rng: Rng): Fish {
+export function makeFish(scene: Phaser.Scene, species: SpeciesId, size: number, role: FishRole, x: number, y: number, vx: number, rng: Rng): Fish {
   const sprite = scene.add.image(x, y, fishKey(species, 'light', 0)).setDepth(role === 'boss' ? 11 : 10).setScale(size / FISH_RADIUS).setFlipX(vx < 0);
   attachTail(sprite, species);
   return {
     sprite, species, role, baseSize: size, size, vx, vy: 0, phase: rng() * Math.PI * 2, swim: rng() * Math.PI * 2, turn: vx < 0 ? -1 : 1,
-    shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
+    tilt: 0, shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
   };
 }
 
@@ -160,9 +162,14 @@ export interface Decoy {
   readonly y: number;
 }
 
-export function updateFish(
-  f: Fish, player: PlayerView, world: { readonly width: number; readonly height: number }, now: number, dt: number, decoy: Decoy | null = null,
-): void {
+/** The level as a swimmer sees it: its size and, when known, the seabed under any x. */
+export interface SeaWorld {
+  readonly width: number;
+  readonly height: number;
+  floorAt?(x: number): number;
+}
+
+export function updateFish(f: Fish, player: PlayerView, world: SeaWorld, now: number, dt: number, decoy: Decoy | null = null): void {
   f.phase += dt;
   // A hooked fish is moved by its hook.
   if (f.state === 'hooked') return;
@@ -170,7 +177,7 @@ export function updateFish(
     // Belly-up, drifting slowly towards the light.
     f.vx -= f.vx * Math.min(1, dt * 3);
     f.sprite.x += f.vx * dt;
-    f.sprite.y = keepInWater(f.sprite.y - 16 * dt, -16, f.size, world.height).y;
+    f.sprite.y = keepInWater(f.sprite.y - 16 * dt, -16, f.size, world.height, world.floorAt?.(f.sprite.x)).y;
     return;
   }
   // Hunters go for the decoy when there is one; everyone else reacts to the player.
@@ -202,7 +209,7 @@ export function updateFish(
   }
   f.sprite.x += f.vx * dt;
   if (f.role !== 'normal') turnAtWalls(f, world.width);
-  const water = keepInWater(f.sprite.y + f.vy * dt, f.vy, f.size, world.height);
+  const water = keepInWater(f.sprite.y + f.vy * dt, f.vy, f.size, world.height, world.floorAt?.(f.sprite.x));
   f.sprite.y = water.y;
   f.vy = water.vy;
 }
@@ -223,7 +230,7 @@ export function renderFish(f: Fish, playerSize: number, frame: number, dt: numbe
   if (f.state === 'dead') {
     // Belly-up and limp: the tail just sways with the water.
     setTailBeat(f.sprite, Math.sin(f.phase * 1.3) * 0.06);
-    f.sprite.setScale(scale).setTint(0xb3ab9c).setFlipY(true).setRotation(Math.sin(f.phase * 1.5) * 0.08);
+    f.sprite.setScale(scale).setTint(0xb3ab9c).setFlipY(true).setRotation(f.tilt + Math.sin(f.phase * 1.5) * 0.08);
     return;
   }
   f.sprite.setFlipY(false);
@@ -242,7 +249,7 @@ export function renderFish(f: Fish, playerSize: number, frame: number, dt: numbe
   const facing = turnToward(f, Math.abs(f.vx) > 4 ? (f.vx < 0 ? -1 : 1) : 0, dt);
   f.sprite.setFlipX(f.turn < 0).setScale(scale * facing, scale);
   const wobble = f.state === 'stunned' ? Math.sin(f.phase * 9) * 0.2 : 0;
-  f.sprite.setRotation(Phaser.Math.Clamp(f.vy / 400, -0.35, 0.35) * (f.sprite.flipX ? -1 : 1) + wobble);
+  f.sprite.setRotation(f.tilt + Phaser.Math.Clamp(f.vy / 400, -0.35, 0.35) * (f.sprite.flipX ? -1 : 1) + wobble);
 }
 
 export function isOffWorld(f: Fish, level: LevelDef): boolean {

@@ -14,9 +14,24 @@ describe('species', () => {
   });
 
   it('puts every regular species in the water somewhere', () => {
-    const seen = new Set(levels.flatMap((l) => l.spawns.map((s) => s.species)));
+    const seen = new Set(levels.flatMap((l) => [...l.spawns, ...l.bottom].map((s) => s.species)));
     const missing = ALL_SPECIES.filter((id) => !info(id).giant && !seen.has(id));
     expect(missing).toEqual([]);
+  });
+
+  it('keeps crawlers on the seabed and swimmers in open water', () => {
+    for (const l of levels) {
+      expect(l.spawns.every((s) => !info(s.species).bottom)).toBe(true);
+      expect(l.bottom.every((s) => info(s.species).bottom && info(s.species).behaviour === 'crawl')).toBe(true);
+    }
+  });
+
+  it('gives every zone something to eat on the seabed', () => {
+    for (const ch of chapters) {
+      const l = ch.levels.at(-1)!;
+      expect(l.maxCrawlers).toBeGreaterThan(0);
+      expect(l.bottom.some((s) => s.size[0] < l.playerSizes[0])).toBe(true);
+    }
   });
 
   it('gives each chapter a new player fish', () => {
@@ -53,7 +68,7 @@ describe('giants', () => {
     for (const ch of chapters) {
       const l = ch.levels.at(-1)!;
       if (l.objective.kind !== 'boss') throw new Error('expected a giant');
-      const biggestOther = Math.max(...l.spawns.map((s) => s.size[1]));
+      const biggestOther = Math.max(...[...l.spawns, ...l.bottom].map((s) => s.size[1]));
       expect(l.objective.size).toBeGreaterThan(biggestOther);
     }
   });

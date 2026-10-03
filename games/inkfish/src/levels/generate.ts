@@ -1,3 +1,4 @@
+import { BOTTOM_LIFE } from './bottom';
 import { itemsForLevel } from './items';
 import type { Chapter, ChapterInfo, LevelDef, SpawnEntry, SpeciesId } from './types';
 import { applyTwists, twistsFor } from './twists';
@@ -58,6 +59,8 @@ export function generateLevel(info: ChapterInfo, recipe: ChapterRecipe, index: n
     }))
     .filter((s) => (s.debut ?? 0) <= index)
     .map(({ debut: _debut, ...entry }) => entry);
+  const life = BOTTOM_LIFE[info.zone];
+  const bottom = life.crawlers.filter((c) => (c.debut ?? 0) <= index).map(({ debut: _debut, ...entry }) => entry);
   const base: LevelDef = {
     id: `c${info.id}-l${index + 1}`,
     chapter: info.id,
@@ -67,6 +70,8 @@ export function generateLevel(info: ChapterInfo, recipe: ChapterRecipe, index: n
     world: recipe.world ?? { width: 3200, height: 1800 },
     spawns,
     maxFish: Math.round(range(recipe.maxFish, t)),
+    bottom,
+    maxCrawlers: Math.round(range(life.count, t)),
     hazards: {
       jellyfish: Math.round(range(recipe.jellyfish, t)),
       hookEverySec: recipe.hookEverySec[0] === 0 ? 0 : Math.round(range(recipe.hookEverySec, t)),
@@ -77,7 +82,7 @@ export function generateLevel(info: ChapterInfo, recipe: ChapterRecipe, index: n
     twists: ['grow'],
     objective: { kind: 'grow' },
     modifiers: {},
-    debuts: recipe.spawns.filter((s) => s.debut === index).map((s) => s.species),
+    debuts: [...recipe.spawns, ...life.crawlers].filter((s) => s.debut === index).map((s) => s.species),
   };
   const twisted = applyTwists(base, twistsFor(info.id, index), { index, boss: recipe.boss });
   const number = (info.id - 1) * LEVELS_PER_CHAPTER + index + 1;

@@ -10,8 +10,9 @@
  *   wave    swims in S-curves (eels)
  *   puff    inflates when you come close (puffers)
  *   hover   barely moves, drifts in place (deep-sea floaters)
+ *   crawl   walks along the seabed in stops and starts, scuttles off when chased (crabs, shrimp)
  */
-export type Behaviour = 'school' | 'cruise' | 'chase' | 'lunge' | 'wave' | 'puff' | 'hover';
+export type Behaviour = 'school' | 'cruise' | 'chase' | 'lunge' | 'wave' | 'puff' | 'hover' | 'crawl';
 
 export interface SpeciesInfo {
   /** Singular display name, lower case. */
@@ -26,13 +27,17 @@ export interface SpeciesInfo {
   readonly hunter?: boolean;
   /** Only ever appears as a chapter's giant. */
   readonly giant?: boolean;
+  /** Lives on the seabed (crawl behaviour); spawned along the sand, never in open water. */
+  readonly bottom?: boolean;
+  /** Bigger ones grab you with claws instead of biting. */
+  readonly pinches?: boolean;
   /** One-line field note shown when the species first appears. */
   readonly note: string;
 }
 
 const s = (
   name: string, plural: string, behaviour: Behaviour, cruise: readonly [number, number], note: string,
-  flags: { spiky?: boolean; hunter?: boolean; giant?: boolean } = {},
+  flags: { spiky?: boolean; hunter?: boolean; giant?: boolean; bottom?: boolean; pinches?: boolean } = {},
 ): SpeciesInfo => ({ name, plural, behaviour, cruise, note, ...flags });
 
 export const SPECIES_INFO = {
@@ -101,6 +106,16 @@ export const SPECIES_INFO = {
   blobfish: s('blobfish', 'blobfish', 'hover', [10, 20], 'Not so blobby at home.'),
   ghostshark: s('ghost shark', 'ghost sharks', 'cruise', [40, 60], 'Not a shark. A pale ancient wanderer.', { spiky: true }),
   snipeeel: s('snipe eel', 'snipe eels', 'wave', [50, 75], 'Thin as a thread, beak like a bird.'),
+  // Seabed crawlers: they walk the sand; dive down to eat them.
+  shorecrab: s('shore crab', 'shore crabs', 'crawl', [30, 55], 'Scuttles sideways. Big ones pinch.', { bottom: true, pinches: true }),
+  periwinkle: s('periwinkle', 'periwinkles', 'crawl', [6, 12], 'A slow snail on the rocks. Easy food.', { bottom: true }),
+  shrimp: s('shrimp', 'shrimp', 'crawl', [25, 45], 'Picks at the sand, then flicks away backwards.', { bottom: true }),
+  hermitcrab: s('hermit crab', 'hermit crabs', 'crawl', [18, 32], 'Lives in a borrowed shell.', { bottom: true, pinches: true }),
+  urchin: s('sea urchin', 'sea urchins', 'crawl', [3, 7], 'A ball of spines. Never bite one.', { bottom: true, spiky: true }),
+  lobster: s('lobster', 'lobsters', 'crawl', [20, 40], 'Heavy claws. Mind the big ones.', { bottom: true, pinches: true }),
+  spidercrab: s('spider crab', 'spider crabs', 'crawl', [18, 34], 'Legs longer than you are.', { bottom: true, pinches: true }),
+  isopod: s('giant isopod', 'giant isopods', 'crawl', [14, 26], 'An armoured woodlouse the size of a cat.', { bottom: true }),
+  seapig: s('sea pig', 'sea pigs', 'crawl', [8, 16], 'A sea cucumber that walks on little legs.', { bottom: true }),
   // Giants: one per chapter, the boss of the last level.
   bass: s('striped bass', 'striped bass', 'chase', [70, 100], 'The old boss of the pool.', { hunter: true, giant: true }),
   tarpon: s('tarpon', 'tarpon', 'chase', [80, 110], 'A silver king with huge scales.', { hunter: true, giant: true }),

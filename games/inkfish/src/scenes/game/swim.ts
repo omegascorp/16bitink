@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { C } from '../../art/fish/kit';
-import type { FishShape } from '../../art/fishArt';
-import { ANATOMY } from '../../art/fish/registry';
+import { bodyProportions, type FishShape } from '../../art/fishArt';
 import { tailCut } from '../../art/textures';
 import { capsuleOf, type Capsule } from '../../logic/body';
 
@@ -128,7 +127,6 @@ export function gulp(sprite: Image, into: { x: number; y: number }): void {
 
 /** The collision capsule of a fish sprite as currently drawn (size, facing, tilt). */
 export function bodyOf(sprite: Image, shape: FishShape): Capsule {
-  const a = ANATOMY[shape];
   // scaleY is the true size; scaleX is squashed while turning.
-  return capsuleOf({ x: sprite.x, y: sprite.y, rotation: sprite.rotation, flipped: sprite.flipX, scale: sprite.scaleY }, a);
+  return capsuleOf({ x: sprite.x, y: sprite.y, rotation: sprite.rotation, flipped: sprite.flipX, scale: sprite.scaleY }, bodyProportions(shape));
 }

@@ -19,7 +19,8 @@ function hasSaneRanges(l: LevelDef): boolean {
     l.playerSizes.every(isPos) && ascending(l.playerSizes) &&
     isPos(l.world.width) && isPos(l.world.height) && isPos(l.maxFish) && isPos(l.parTime) &&
     l.hazards.jellyfish >= 0 && l.hazards.hookEverySec >= 0 &&
-    l.spawns.every((s) => s.weight > 0 && s.size[0] > 0 && s.size[0] <= s.size[1])
+    [...l.spawns, ...l.bottom].every((s) => s.weight > 0 && s.size[0] > 0 && s.size[0] <= s.size[1]) &&
+    l.maxCrawlers >= 0
   );
 }
 
@@ -45,6 +46,11 @@ function hasValidTwists(l: LevelDef): boolean {
     optional(m.lives, (n) => isPos(n) && Number.isInteger(n));
 }
 
+function isSpawn(s: Record<string, unknown>): boolean {
+  return SPECIES.includes(s?.species as SpeciesId) && isNum(s?.weight) &&
+    Array.isArray(s?.size) && s.size.length === 2 && s.size.every(isNum);
+}
+
 function hasShape(v: unknown): v is LevelDef {
   if (typeof v !== 'object' || v === null) return false;
   const l = v as Record<string, unknown>;
@@ -57,10 +63,8 @@ function hasShape(v: unknown): v is LevelDef {
     isNum(hazards?.jellyfish) && isNum(hazards?.hookEverySec) &&
     isNum(l.maxFish) && isNum(l.parTime) &&
     Array.isArray(l.items) && l.items.length <= MAX_ITEMS_PER_LEVEL && l.items.every((p) => ITEM_IDS.includes(p as ItemId)) &&
-    Array.isArray(l.spawns) && l.spawns.length > 0 &&
-    l.spawns.every((s: Record<string, unknown>) =>
-      SPECIES.includes(s?.species as SpeciesId) && isNum(s?.weight) &&
-      Array.isArray(s?.size) && s.size.length === 2 && s.size.every(isNum))
+    Array.isArray(l.spawns) && l.spawns.length > 0 && l.spawns.every(isSpawn) &&
+    Array.isArray(l.bottom) && l.bottom.every(isSpawn) && isNum(l.maxCrawlers)
   );
 }
 
