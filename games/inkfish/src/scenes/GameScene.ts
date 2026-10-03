@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, ensureFishTextures, releaseFishTextures, weedKey } from '../art/textures';
-import { getChapters } from '../host';
+import { getChapters, getHost } from '../host';
 import type { LevelDef, SpeciesId } from '../levels/types';
 import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy, type FrenzyState } from '../logic/frenzy';
 import { addGrowth, growthProgress, initialGrowth, playerSizeFor, type GrowthState } from '../logic/growth';
@@ -33,9 +33,11 @@ import { isCrawler, spawnCrawler, updateCrawler } from './game/crawlers';
 import { seabedFor, SKY, type Seabed } from '../logic/water';
 import { Fleet } from './game/boats';
 import { Flock, type Bird } from './game/flock';
+import { Sightings } from './game/sightings';
 import { splash } from './game/splash';
 import { describeLevel, levelNumber } from '../levels/twists';
 import { PLAYER_FISH_NAMES, ZONE_SKY } from '../levels/zones';
+import { PLAYER_STATS } from '../levels/playerStats';
 import { allLevels, chapterOf } from '../levels/chapters';
 import { HAND_FONT } from './ui';
 
@@ -98,6 +100,8 @@ export class GameScene extends Phaser.Scene {
   private sky = false;
   private fleet!: Fleet;
   private flock!: Flock;
+  /** Creatures met this level, for the fish guide. */
+  private sightings!: Sightings;
   private growth: GrowthState = initialGrowth;
   private frenzy: FrenzyState = initialFrenzy;
   private score = 0;
@@ -140,6 +144,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, -skyH, world.width, world.height + skyH).setBackgroundColor('#f4eddc');
     this.fleet = new Fleet(this, chapter.zone, this.sky, this.rng);
     this.flock = new Flock(this, chapter.zone, this.rng);
+    this.sightings = new Sightings(getHost(this).storage, [chapter.player]);
     const residents = levelSpecies(this.level);
     releaseFishTextures(this, residents);
     ensureFishTextures(this, residents);
@@ -161,8 +166,9 @@ export class GameScene extends Phaser.Scene {
     const kb = this.input.keyboard;
     kb?.on('keydown-SPACE', () => this.dash());
     kb?.on('keydown-SHIFT', () => this.dash());
+    // A mouse click dashes, like Space; fingers steer, and dash with the on-screen button.
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      if (p.rightButtonDown()) this.dash();
+      if (!p.wasTouch && (p.leftButtonDown() || p.rightButtonDown())) this.dash();
     });
     this.input.mouse?.disableContextMenu();
 
@@ -171,10 +177,14 @@ export class GameScene extends Phaser.Scene {
       intro: describeLevel(this.level, {
         // A new chapter means a new fish to swim as.
         newPlayer: chapter.id > 1 && this.level.id.endsWith('-l1') ? PLAYER_FISH_NAMES[chapter.player] : undefined,
+        newPlayerTrait: PLAYER_STATS[chapter.player].trait,
       }),
       dark: this.level.modifiers.dark ?? false,
     });
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scene.stop('Hud'));
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.sightings.save();
+      this.scene.stop('Hud');
+    });
     this.emitHud();
   }
 
@@ -228,6 +238,10 @@ export class GameScene extends Phaser.Scene {
     this.drawShield();
     this.updateObjective(now);
     this.emitHud();
+    this.sightings.look(now, cam.worldView, [
+      ...this.fish.map((f) => ({ x: f.sprite.x, y: f.sprite.y, id: f.species })),
+      ...this.flock.birds.map((b) => ({ x: b.sprite.x, y: b.sprite.y, id: b.kind })),
+    ]);
   }
 
   private tickBoil(deltaMs: number): void {
@@ -627,6 +641,8 @@ export class GameScene extends Phaser.Scene {
   private finish(kind: 'win' | 'lose'): void {
     if (this.ended) return;
     this.ended = true;
+    // Before the result screen reads the save.
+    this.sightings.save();
     this.emitHud();
     this.time.delayedCall(kind === 'win' ? 700 : 1900, () => {
       this.scene.pause();

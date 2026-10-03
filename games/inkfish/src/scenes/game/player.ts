@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { FISH_RADIUS } from '../../art/fishArt';
 import { fishKey } from '../../art/textures';
+import { PLAYER_STATS, type SwimStats } from '../../levels/playerStats';
 import type { LevelDef, PlayerFishId } from '../../levels/types';
 import { JUMP, stepSurface, type SurfaceEvent } from '../../logic/jump';
 import { aboveSeabed, waterBottom, waterTop } from '../../logic/water';
@@ -10,6 +11,8 @@ import { TUNING } from './tuning';
 export interface Player extends SwimState {
   readonly sprite: Phaser.GameObjects.Image;
   readonly shape: PlayerFishId;
+  /** How this fish handles: speed, agility, dash and leap. */
+  readonly stats: SwimStats;
   /** Gameplay radius; jumps on tier-up. */
   size: number;
   /** Rendered radius; eases towards `size` so growth animates. */
@@ -50,7 +53,7 @@ export function createPlayer(scene: Phaser.Scene, level: LevelDef, shape: Player
     .setDepth(20)
     .setScale(size / FISH_RADIUS);
   attachTail(sprite, shape);
-  return { sprite, shape, size, swim: 0, turn: 1, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0, dashedAt: -10000, hooked: false,
+  return { sprite, shape, stats: PLAYER_STATS[shape], size, swim: 0, turn: 1, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0, dashedAt: -10000, hooked: false,
     slowUntil: 0, tangledUntil: 0, shield: false, glowUntil: 0, hidden: false, airborne: false };
 }
 
@@ -124,10 +127,10 @@ export function movePlayer(
     p.vx *= 1 - JUMP.airDrag * dt;
   } else {
     const stunned = now < p.stunnedUntil;
-    const max = TUNING.playerSpeed * (now < p.speedUntil ? TUNING.speedBoost : 1) * (now < p.slowUntil ? TUNING.slowFactor : 1) * (p.hidden ? TUNING.coverSpeed : 1);
+    const max = TUNING.playerSpeed * p.stats.speed * (now < p.speedUntil ? TUNING.speedBoost : 1) * (now < p.slowUntil ? TUNING.slowFactor : 1) * (p.hidden ? TUNING.coverSpeed : 1);
     const tx = stunned ? 0 : dir.x * max;
     const ty = stunned ? 0 : dir.y * max;
-    const k = Math.min(1, dt * TUNING.playerAccel);
+    const k = Math.min(1, dt * TUNING.playerAccel * p.stats.agility);
     p.vx += (tx - p.vx) * k;
     p.vy += (ty - p.vy) * k;
   }
@@ -135,7 +138,7 @@ export function movePlayer(
   p.sprite.x = Phaser.Math.Clamp(p.sprite.x + p.vx * dt, r, level.world.width - r);
   const top = waterTop(r);
   const rushing = now - p.dashedAt < JUMP.rushMs || now < p.speedUntil;
-  const { state, event } = stepSurface({ y: p.sprite.y, vy: p.vy, airborne: p.airborne }, top, dt, sky, rushing);
+  const { state, event } = stepSurface({ y: p.sprite.y, vy: p.vy, airborne: p.airborne }, top, dt, sky, rushing, p.stats.leap);
   p.airborne = state.airborne;
   p.vy = state.vy;
   // Down to the sand: crabs and shrimp live there.
@@ -152,8 +155,8 @@ export function tryDash(p: Player, dir: { x: number; y: number }, now: number): 
     y = 0;
   }
   const d = Math.hypot(x, y) || 1;
-  p.vx = (x / d) * TUNING.dashSpeed;
-  p.vy = (y / d) * TUNING.dashSpeed;
+  p.vx = (x / d) * TUNING.dashSpeed * p.stats.dash;
+  p.vy = (y / d) * TUNING.dashSpeed * p.stats.dash;
   p.dashReadyAt = now + TUNING.dashCooldownMs;
   p.dashedAt = now;
   return true;

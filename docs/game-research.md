@@ -41,7 +41,7 @@ Ten "eat smaller to grow" games, researched October 2026, and what InkFish takes
   - Locked zones are shown as pencil drafts.
   - Chapter tabs jump between zones.
   - The map grows on its own when a zone is added.
-- **A new player fish every chapter (every 10 levels):** inkling, goby, perch fry, butterflyfish, barracuda, young tuna, lanternfish, viperfish, stoplight loosejaw, and the hadal snailfish (the deepest fish ever filmed) for the hadal trench. All are drawn in blue ink, so the player always reads as "you". The first level of a chapter announces the new fish.
+- **A new player fish every chapter (every 10 levels):** inkling, goby, perch fry, butterflyfish, barracuda, young tuna, lanternfish, viperfish, stoplight loosejaw, and the hadal snailfish (the deepest fish ever filmed) for the hadal trench. All are drawn in blue ink, so the player always reads as "you". The first level of a chapter announces the new fish. Each handles differently (games/inkfish/src/levels/playerStats.ts): cruising speed, agility, dash and leap height are small multipliers, loosely true to life, and each new fish trades one strength for another (the tuna cruises and leaps best, the deep fish are slow drifters with the hardest lunges), so later chapters never feel like a downgrade.
 - **Levels are generated from per-chapter recipes** (`games/inkfish/src/levels/generate.ts`).
   - A recipe sets which species appear, the hazard ramps, the growth goal and the final size.
   - The generator produces 10 levels with a smooth ramp, then gives each its own twist (`src/levels/twists.ts`).
@@ -94,9 +94,10 @@ Giants are their own species, appear only once (as the chapter's final boss), an
 
 ## Core mechanics (built)
 
-- Steering by mouse, finger or keyboard, with inertia. Dash: Space, Shift, right-click or the touch button.
+- Steering by mouse, finger or keyboard, with inertia. Dash: Space, Shift, a mouse click or the touch button.
 - Leaping: in chapters 1-6 (open sky), dash up into the surface to leap out in an arc you can't steer. In the air nothing in the water can reach you and chasers lose track of you. Deeper chapters have no sky.
 - Birds (chapters 1-6): dragonflies, terns, gulls, pelicans and gannets follow the same size rule as fish. Smaller birds are snacks you leap for; bigger ones cast a shadow on the water, hover, then plunge in after you (and grab other fish too). A bird can carry you off: "Snatched!".
+- Fish guide (from the map): one page per chapter, a card for every creature. A creature unlocks the first time it swims or flies into view (saved in `seen`); its card gives real-life figures (length, weight, lifespan, speed, depth, range, diet) and one fact.
 - Skyline (chapters 1-6): each level plans its own horizon from the zone's landmarks (rocks, lighthouses, palm islands, dunes, headlands, a distant volcano), scrolling slower than the water so it reads as far off. Chapters 7-10 show no surface at all.
 - Edibility by size ratio: prey < 0.9× your size, predator > 1.1×. Spawns are biased so ~60% are prey.
 - Species behaviours (each species has one): school (flees), cruise, chase, lunge (ambush), wave (eel S-curves), puff (inflates to 1.7× when you approach), hover (drifts in place). Spiky species (puffer, lionfish, scorpionfish, filefish, rockfish, ghost shark) prick instead of bite.

@@ -4,7 +4,7 @@ import { parseChapters } from '../src/levels/validate';
 import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy } from '../src/logic/frenzy';
 import { addGrowth, blotsFor, growthProgress, initialGrowth, playerSizeFor } from '../src/logic/growth';
 import { createRng } from '../src/logic/rng';
-import { isLevelOpen, loadSave, parseSave, persistSave, recordResult, SAVE_KEY } from '../src/logic/save';
+import { isLevelOpen, loadSave, markSeen, parseSave, persistSave, recordResult, SAVE_KEY } from '../src/logic/save';
 import { growthPointsFor, pickSpawn, relationTo, scoreFor, touches } from '../src/logic/sizing';
 
 const level = DEMO_CHAPTER.levels[0]!;
@@ -159,5 +159,23 @@ describe('parseChapters ranges', () => {
     expect(() => parseChapters(wrap({ ...good, world: { width: 0, height: 100 } }))).toThrow();
     expect(() => parseChapters(wrap({ ...good, spawns: [{ species: 'minnow', weight: -1, size: [8, 14] }] }))).toThrow();
     expect(() => parseChapters(wrap({ ...good, spawns: [{ species: 'minnow', weight: 1, size: [14, 8] }] }))).toThrow();
+  });
+});
+
+describe('creatures met (fish guide)', () => {
+  it('survive a save round trip, without duplicates', () => {
+    const save = markSeen(markSeen(parseSave(null), ['minnow', 'perch']), ['perch', 'tern']);
+    expect(save.seen).toEqual(['minnow', 'perch', 'tern']);
+    expect(parseSave(JSON.stringify(save)).seen).toEqual(['minnow', 'perch', 'tern']);
+  });
+
+  it('drop junk from untrusted storage, and old saves start empty', () => {
+    expect(parseSave(JSON.stringify({ levels: {}, seen: ['eel', 5, null, 'x'.repeat(200), 'eel'] })).seen).toEqual(['eel']);
+    expect(parseSave(JSON.stringify({ levels: {} })).seen).toEqual([]);
+  });
+
+  it('leave the save untouched when nothing is new', () => {
+    const save = markSeen(parseSave(null), ['eel']);
+    expect(markSeen(save, ['eel'])).toBe(save);
   });
 });

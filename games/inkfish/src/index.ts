@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import { REG } from './host';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
+import { GuideScene } from './scenes/GuideScene';
 import { HudScene } from './scenes/HudScene';
 import { MenuScene } from './scenes/MenuScene';
 import { ResultScene } from './scenes/ResultScene';
@@ -25,7 +26,7 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     // Mipmaps keep hairline pen detail clean when sprites are drawn small.
     render: { antialias: true, roundPixels: false, mipmapFilter: 'LINEAR_MIPMAP_LINEAR' },
     input: { activePointers: 3 },
-    scene: [BootScene, MenuScene, GameScene, HudScene, ResultScene],
+    scene: [BootScene, MenuScene, GameScene, HudScene, ResultScene, GuideScene],
   });
   game.registry.set(REG.host, host);
   return { phaser: game, destroy: () => game.destroy(true) };

@@ -10,10 +10,15 @@ export interface LevelRecord {
 export interface SaveData {
   readonly version: 1;
   readonly levels: Readonly<Record<string, LevelRecord>>;
+  /** Creatures met so far (ids), which unlocks their page in the fish guide. */
+  readonly seen: readonly string[];
 }
 
 export const SAVE_KEY = 'inkfish:save';
-const EMPTY: SaveData = { version: 1, levels: {} };
+const EMPTY: SaveData = { version: 1, levels: {}, seen: [] };
+/** Sanity caps on untrusted storage: more creatures than exist, longer ids than any. */
+const MAX_SEEN = 400;
+const MAX_ID = 40;
 
 
 function isRecord(value: unknown): value is LevelRecord {
@@ -31,7 +36,9 @@ export function parseSave(raw: string | null): SaveData {
     const levels = (data as { levels?: unknown }).levels;
     if (typeof levels !== 'object' || levels === null) return EMPTY;
     const valid = Object.entries(levels).filter(([, rec]) => isRecord(rec));
-    return { version: 1, levels: Object.fromEntries(valid) as Record<string, LevelRecord> };
+    const seen = (data as { seen?: unknown }).seen;
+    const ids = Array.isArray(seen) ? seen.filter((id): id is string => typeof id === 'string' && id.length <= MAX_ID).slice(0, MAX_SEEN) : [];
+    return { version: 1, levels: Object.fromEntries(valid) as Record<string, LevelRecord>, seen: [...new Set(ids)] };
   } catch {
     return EMPTY;
   }
@@ -44,6 +51,13 @@ export function recordResult(save: SaveData, levelId: string, score: number, blo
     blots: Math.max(prev?.blots ?? 0, blots),
   };
   return { ...save, levels: { ...save.levels, [levelId]: next } };
+}
+
+/** Adds newly met creatures; returns the same save when nothing is new. */
+export function markSeen(save: SaveData, ids: Iterable<string>): SaveData {
+  const known = new Set(save.seen);
+  const fresh = [...new Set(ids)].filter((id) => !known.has(id));
+  return fresh.length ? { ...save, seen: [...save.seen, ...fresh] } : save;
 }
 
 /** Levels open in order; `allOpen` (local dev flag) skips the progress requirement, not the level list. */

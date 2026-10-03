@@ -89,7 +89,7 @@ export const SPECIES_INFO = {
   pearleye: s('pearleye', 'pearleyes', 'cruise', [40, 70], 'Eyes that look straight up.'),
   barreleye: s('barreleye', 'barreleyes', 'hover', [20, 35], 'A see-through head with tube eyes.'),
   sabertooth: s('sabertooth', 'sabertooths', 'chase', [60, 90], 'Long fangs, quick temper.', { hunter: true }),
-  dragonfish: s('dragonfish', 'dragonfish', 'lunge', [35, 55], 'Glows in red, a light no one else can see.', { hunter: true }),
+  dragonfish: s('dragonfish', 'dragonfish', 'lunge', [35, 55], 'Hexagon scales and rows of lights; rises to hunt at night.', { hunter: true }),
   // Midnight
   bigscale: s('bigscale', 'bigscales', 'school', [50, 80], 'Small and plentiful in the deep.'),
   fangtooth: s('fangtooth', 'fangtooths', 'lunge', [30, 50], 'The biggest teeth for its size.', { hunter: true }),

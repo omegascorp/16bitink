@@ -9,7 +9,7 @@ export const WATER = {
 /** Open air above the surface in sunlit levels: room to leap, boats, sky. */
 export const SKY = {
   /** How far the world extends above y = 0. Taller than the highest leap. */
-  height: 320,
+  height: 380,
   /** Where the surface pen line is drawn. */
   surfaceY: 60,
 } as const;

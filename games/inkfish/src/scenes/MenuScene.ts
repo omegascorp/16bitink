@@ -162,6 +162,7 @@ export class MenuScene extends Phaser.Scene {
     ui(inkText(this, 20 + 90 * s, 34 * s, 'InkFish', 46 * s, BLUE_INK));
     ui(this.add.text(24, 64 * s, `${done} of ${this.layout.nodes.length} levels`, { fontFamily: HAND_FONT, fontSize: `${22 * s}px`, color: '#4a463e' }));
     ui(inkButton(this, width - 110 * s, 36 * s, '← 16bit.ink', () => host.onExit(), { width: 180 * s, height: 46 * s, size: 24 * s }));
+    ui(inkButton(this, width - 310 * s, 36 * s, 'Fish guide', () => this.scene.start('Guide', { chapter: (this.activeZone >= 0 ? this.activeZone : 0) + 1 }), { width: 160 * s, height: 46 * s, size: 24 * s }));
 
     // Chapter tabs: jump straight to any zone, 100 levels is a long swim.
     const n = this.layout.zones.length;

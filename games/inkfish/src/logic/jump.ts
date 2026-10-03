@@ -18,8 +18,8 @@ export const JUMP = {
   airDrag: 0.4,
   /** Fraction of the falling speed kept on hitting the water. */
   entryDamp: 0.4,
-  /** No leap goes higher than this above the surface; the sky is drawn at least this tall. */
-  maxHeight: 280,
+  /** No leap goes higher than this above the surface, even for the best leapers; the sky is drawn taller. */
+  maxHeight: 340,
 } as const;
 
 export interface AirState {
@@ -35,9 +35,10 @@ export type SurfaceEvent = 'leap' | 'splash' | null;
  * sits while in the water. Under water this only moves `y` (the caller keeps
  * it inside the water as before); it reports 'leap' when the swimmer breaks
  * out and 'splash' when it falls back in. `rushing` (just dashed, or on a
- * speed boost) leaps on any upward swim into the surface.
+ * speed boost) leaps on any upward swim into the surface. `leap` scales the
+ * height of the jump (a fish's leap stat).
  */
-export function stepSurface(s: AirState, top: number, dt: number, canLeap: boolean, rushing = false): { state: AirState; event: SurfaceEvent } {
+export function stepSurface(s: AirState, top: number, dt: number, canLeap: boolean, rushing = false, leap = 1): { state: AirState; event: SurfaceEvent } {
   if (s.airborne) {
     const vy = s.vy + JUMP.gravity * dt;
     const y = s.y + vy * dt;
@@ -46,7 +47,8 @@ export function stepSurface(s: AirState, top: number, dt: number, canLeap: boole
   }
   const y = s.y + s.vy * dt;
   if (canLeap && y < top && (s.vy < -JUMP.minSpeed || (rushing && s.vy < 0))) {
-    const launch = Math.min(JUMP.maxLaunch, Math.max(JUMP.minLaunch, -s.vy * JUMP.kick));
+    // Height grows with the square of launch speed, so the leap stat scales it by its square root.
+    const launch = Math.min(JUMP.maxLaunch, Math.max(JUMP.minLaunch, -s.vy * JUMP.kick)) * Math.sqrt(leap);
     return { state: { y, vy: -launch, airborne: true }, event: 'leap' };
   }
   return { state: { y, vy: s.vy, airborne: false }, event: null };

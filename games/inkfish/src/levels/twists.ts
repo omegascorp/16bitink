@@ -144,21 +144,28 @@ function coverNote(level: LevelDef, number: number): string | null {
   return null;
 }
 
+/** Level number whose intro teaches leaping. */
+const LEAP_TIP_LEVEL = 2;
+
 export interface DescribeOptions {
   /** Name of the player fish when this level is the first one with it. */
   readonly newPlayer?: string;
+  /** How the new fish handles, one line. */
+  readonly newPlayerTrait?: string;
 }
 
 export function describeLevel(level: LevelDef, opts: DescribeOptions = {}): LevelDescription {
   const jellyBloom = level.twists.includes('storm') && level.hazards.hookEverySec === 0;
   const labels = level.twists.map((t) => (t === 'storm' && jellyBloom ? 'Jelly bloom' : LABEL[t]));
   const notes: string[] = [];
-  if (opts.newPlayer) notes.push(`You swim as a ${opts.newPlayer} now.`);
+  if (opts.newPlayer) notes.push(`You swim as a ${opts.newPlayer} now. ${opts.newPlayerTrait ?? ''}`.trim());
   for (const id of level.debuts) {
     const info = SPECIES_INFO[id] as SpeciesInfo;
     notes.push(`${info.bottom ? 'On the seabed' : 'New fish'}: ${info.name}. ${info.note}`);
   }
   const number = levelNumber(level);
+  // Taught once, on the first level after the basics.
+  if (number === LEAP_TIP_LEVEL) notes.push('Tip: dash up into the surface to leap out of the water.');
   for (const id of level.items.filter((i) => ITEM_INFO[i].debut === number && number > 1)) {
     const item = ITEM_INFO[id];
     notes.push(item.good ? `New item: ${item.name}. ${item.note}` : `Watch out for the ${item.name}. ${item.note}`);
