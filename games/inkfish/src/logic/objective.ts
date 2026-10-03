@@ -52,7 +52,7 @@ export function objectiveLine(level: LevelDef, p: ObjectiveProgress): { readonly
   // Task finished but still growing: point the player back at the growth bar.
   const grow = 'Now grow to full size!';
   switch (o.kind) {
-    case 'collect': return { text: withClock(taskDone(level, p) ? grow : `Ink drops ${p.collected}/${o.count}`, left), urgent };
+    case 'collect': return { text: withClock(taskDone(level, p) ? grow : `Ink bottles ${p.collected}/${o.count}`, left), urgent };
     case 'bounty': return { text: withClock(taskDone(level, p) ? grow : `Marked ${SPECIES_INFO[o.species].name} ${p.bounties}/${o.count}`, left), urgent };
     case 'boss': return { text: p.grown ? `Now eat the giant ${SPECIES_INFO[o.species].name}!` : `Grow, then eat the giant ${SPECIES_INFO[o.species].name}`, urgent: p.grown };
     default: return { text: withClock(left === null ? '' : 'Grow to full size', left), urgent };

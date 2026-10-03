@@ -78,7 +78,7 @@ export function capsulesTouch(a: Capsule, b: Capsule, factor = 1): boolean {
   return segmentSegment2(a, b) < reach * reach;
 }
 
-/** A body overlaps a round thing (jellyfish, hook tip, item, ink drop). */
+/** A body overlaps a round thing (jellyfish, hook tip, item, ink bottle). */
 export function capsuleTouchesCircle(a: Capsule, x: number, y: number, r: number, factor = 1): boolean {
   const reach = (a.r + r) * factor;
   return pointSegment2(x, y, a.ax, a.ay, a.bx, a.by) < reach * reach;

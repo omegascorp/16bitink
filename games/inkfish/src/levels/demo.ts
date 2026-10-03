@@ -6,7 +6,7 @@ import { LEVELS_PER_CHAPTER, ZONE_INFO } from './zones';
 const TIDE_POOL: ChapterRecipe = {
   names: [
     'First Doodle', 'Margin Notes', 'Crosshatch Current', 'Blotted Reef', 'School Rush',
-    'Smudge Shallows', 'Nib Narrows', 'Rockpool Rumble', 'Low Tide', 'The Inkwell',
+    'Smudge Shallows', 'Rockpool Rumble', 'Low Tide', 'Nib Narrows', 'The Inkwell',
   ],
   // Debuts: a new species every level or two, so the pool keeps surprising you.
   spawns: [

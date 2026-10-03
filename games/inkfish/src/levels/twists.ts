@@ -7,19 +7,23 @@ import type { LevelDef, Modifiers, Objective, SpawnEntry, SpeciesId, TwistId } f
 /**
  * Every chapter runs the same arc so new rules arrive one at a time:
  * a plain opener, one level per twist, a remix of two, then a giant.
+ * The dark is the hardest twist, so it comes last: on its own right before
+ * the giant, then again for the giant itself, hunted in the dark.
  * Slot 8 (the remix) is picked per chapter so no two chapters repeat it.
  */
-const ARC: readonly (TwistId | 'remix')[] = ['grow', 'collect', 'current', 'bounty', 'rush', 'storm', 'dark', 'survive', 'remix', 'boss'];
+const ARC: readonly (TwistId | 'remix' | 'finale')[] = ['grow', 'collect', 'current', 'bounty', 'rush', 'storm', 'survive', 'remix', 'dark', 'finale'];
+const FINALE: readonly TwistId[] = ['boss', 'dark'];
 
-/** A goal twist paired with a rule twist; one per chapter, in order. */
+/** Two twists paired, one per chapter, in order. Never the dark: that has its own level right after. */
 const REMIXES: readonly (readonly [TwistId, TwistId])[] = [
-  ['collect', 'current'], ['bounty', 'current'], ['survive', 'storm'], ['rush', 'current'], ['collect', 'dark'],
-  ['bounty', 'storm'], ['bounty', 'dark'], ['survive', 'dark'], ['rush', 'dark'], ['collect', 'storm'],
+  ['collect', 'current'], ['bounty', 'current'], ['survive', 'storm'], ['rush', 'current'], ['collect', 'storm'],
+  ['bounty', 'storm'], ['collect', 'survive'], ['bounty', 'survive'], ['rush', 'storm'], ['rush', 'survive'],
 ];
 
 export function twistsFor(chapter: number, index: number): readonly TwistId[] {
   const slot = ARC[index % ARC.length]!;
-  return slot === 'remix' ? REMIXES[(chapter - 1) % REMIXES.length]! : [slot];
+  if (slot === 'remix') return REMIXES[(chapter - 1) % REMIXES.length]!;
+  return slot === 'finale' ? FINALE : [slot];
 }
 
 /** Twists that only add a rule; the rest decide the goal. */
@@ -99,7 +103,7 @@ function parTimeFor(objective: Objective, modifiers: Modifiers, base: number, go
 
 
 const LABEL: Readonly<Record<TwistId, string>> = {
-  grow: 'Feeding time', collect: 'Ink drops', current: 'Strong current', bounty: 'Marked fish', rush: 'School rush',
+  grow: 'Feeding time', collect: 'Ink bottles', current: 'Strong current', bounty: 'Marked fish', rush: 'School rush',
   storm: 'Hook storm', dark: 'Lights out', survive: 'One life', boss: 'The giant',
 };
 
@@ -117,7 +121,7 @@ export interface LevelDescription {
 function goalText(level: LevelDef): string {
   const o = level.objective;
   switch (o.kind) {
-    case 'collect': return `Grow to full size and collect all ${o.count} ink drops.`;
+    case 'collect': return `Grow to full size and catch ${o.count} ink bottles.`;
     case 'bounty': return `Grow to full size and eat the ${o.count} ${SPECIES_INFO[o.species].plural} circled in red.`;
     case 'boss': return `Grow to full size, then eat the giant ${SPECIES_INFO[o.species].name}.`;
     default:
@@ -175,6 +179,7 @@ export function describeLevel(level: LevelDef, opts: DescribeOptions = {}): Leve
   const c = level.modifiers.current;
   if (c) notes.push(`A strong current pulls everything to the ${c > 0 ? 'right' : 'left'}.`);
   if (level.modifiers.lives === 1) notes.push('Only one life: a single hit ends the level.');
+  if (level.objective.kind === 'collect') notes.push('Ink bottles sink from above: catch them before they smash on the seabed.');
   if (level.modifiers.dark) notes.push('It’s dark: you only see what’s close to you.');
   if (level.twists.includes('storm')) notes.push(jellyBloom ? 'The water is thick with jellyfish.' : 'Hooks keep dropping. Watch for the dotted lines.');
   const tag = labels.map((l, i) => (i === 0 ? l : l.charAt(0).toLowerCase() + l.slice(1))).join(', ');

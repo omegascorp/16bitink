@@ -47,7 +47,7 @@ describe('falling items', () => {
 
   it('drops glow sticks only where it is dark', () => {
     expect(itemsForLevel(70, false)).not.toContain('glowstick');
-    expect(itemsForLevel(66, true)).not.toContain('glowstick');
+    expect(itemsForLevel(68, true)).not.toContain('glowstick');
     expect(itemsForLevel(70, true)).toContain('glowstick');
   });
 

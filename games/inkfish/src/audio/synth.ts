@@ -153,6 +153,12 @@ const RECIPES: Readonly<Record<SfxId, (v: Voice) => void>> = {
   drop: (v) => tone(v, { from: 900, to: 1600, dur: 0.08, gain: 0.22 }),
   frenzy: (v) => notes(v, [784, 1047, 1319], 0.05, { type: 'triangle', dur: 0.14, gain: 0.14 }),
   spotted: (v) => notes(v, [880, 660], 0.12, { type: 'square', dur: 0.1, gain: 0.16 }),
+  // A bottle breaks on the seabed: a crunch of glass, then tinkling bits.
+  smash: (v) => {
+    noise(v, { dur: 0.16, gain: 0.45, filter: 'highpass', from: 2500, attack: 0.002 });
+    noise(v, { dur: 0.25, gain: 0.25, filter: 'lowpass', from: 700, to: 200 });
+    for (const [f, d] of [[3520, 0.04], [4700, 0.09], [3950, 0.15], [5270, 0.22]] as const) tone(v, { from: f, dur: 0.12, gain: 0.05, delay: d, attack: 0.002 });
+  },
   win: (v) => {
     notes(v, [523, 659, 784], 0.12, { type: 'triangle', dur: 0.2, gain: 0.2 });
     tone(v, { type: 'triangle', from: 1047, dur: 0.6, gain: 0.22, delay: 0.36 });

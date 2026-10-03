@@ -148,12 +148,8 @@ export function buildMapWorld(scene: Phaser.Scene, layout: MapLayout, states: Re
     const deep = ZONE_DARKNESS[layout.zones[n.zone]!.chapter.info.zone] > 0.45;
     const twists = twistsFor(layout.zones[n.zone]!.chapter.info.id, n.index - firstOfZone[n.zone]!);
     const faded = state === 'locked' || state === 'closed';
-    if (twists.includes('boss')) {
-      // The chapter's giant: a red pencil ring around the node.
-      nodesG.lineStyle(2, 0xa3342b, faded ? 0.45 : 0.9).strokeCircle(n.x, n.y, r + 7);
-    }
-    const icons = twists.filter((t) => t !== 'grow' && t !== 'boss');
-    icons.forEach((t, k) => drawTwistIcon(nodesG, t, n.x + (k - (icons.length - 1) / 2) * 19, n.y - r - 14, deep ? 0xd8cfbd : INK_HEX, faded ? 0.5 : 0.9));
+    const icons = twists.filter((t) => t !== 'grow');
+    icons.forEach((t, k) => drawTwistIcon(nodesG, t, n.x + (k - (icons.length - 1) / 2) * 21, n.y - r - 14, deep ? 0xd8cfbd : INK_HEX, faded ? 0.5 : 0.9));
     if (state === 'locked') {
       // Dashed pencil circle: drawn, but not inked yet.
       nodesG.lineStyle(1.6, deep ? 0xd8cfbd : 0xa69c8a, 0.9);

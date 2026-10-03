@@ -11,16 +11,29 @@ const BLUE = 0x1f3f8a;
 export function drawTwistIcon(g: Phaser.GameObjects.Graphics, twist: TwistId, x: number, y: number, ink: number, alpha: number): void {
   switch (twist) {
     case 'collect':
-      g.fillStyle(BLUE, alpha).fillCircle(x, y + 2, 5).fillTriangle(x - 4.4, y + 0.2, x + 4.4, y + 0.2, x, y - 8);
+      // An ink bottle: a squat body full of blue, a short neck, a cork.
+      g.fillStyle(BLUE, alpha).fillRoundedRect(x - 5.5, y - 2, 11, 9, 2);
+      g.lineStyle(1.2, ink, alpha).strokeRoundedRect(x - 5.5, y - 2, 11, 9, 2).strokeRect(x - 2, y - 5, 4, 3);
+      g.fillStyle(0xb98a55, alpha).fillRect(x - 2.2, y - 8.5, 4.4, 3.5);
       return;
     case 'current':
       g.lineStyle(1.8, ink, alpha);
       for (const dx of [-5, 2]) g.beginPath().moveTo(x + dx - 2, y - 5).lineTo(x + dx + 3, y).lineTo(x + dx - 2, y + 5).strokePath();
       return;
     case 'bounty':
-      g.lineStyle(1.6, RED, alpha);
-      for (let a = 0; a < Math.PI * 2; a += 0.9) g.beginPath().arc(x, y, 6.5, a, a + 0.55).strokePath();
-      g.fillStyle(RED, alpha).fillCircle(x, y, 1.8);
+      // Several small marked fish: three little circled dots.
+      for (const [dx, dy] of [[-4.5, 3.5], [4.5, 3.5], [0, -4.5]] as const) {
+        g.lineStyle(1.3, RED, alpha).strokeCircle(x + dx, y + dy, 3.4);
+        g.fillStyle(RED, alpha).fillCircle(x + dx, y + dy, 1.1);
+      }
+      return;
+    case 'boss':
+      // One big quarry: a crosshair.
+      g.lineStyle(1.8, RED, alpha).strokeCircle(x, y, 6.5);
+      g.lineStyle(1.4, RED, alpha)
+        .lineBetween(x - 9.5, y, x - 3, y).lineBetween(x + 3, y, x + 9.5, y)
+        .lineBetween(x, y - 9.5, x, y - 3).lineBetween(x, y + 3, x, y + 9.5);
+      g.fillStyle(RED, alpha).fillCircle(x, y, 1.6);
       return;
     case 'rush':
       g.lineStyle(1.5, ink, alpha).strokeCircle(x, y, 6.5);

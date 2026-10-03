@@ -55,7 +55,7 @@ export interface HudSnapshot {
   readonly frenzyLabel: string;
   readonly dashReady: boolean;
   readonly speedLeft: number;
-  /** The level goal's progress line, e.g. "Ink drops 3/10". */
+  /** The level goal's progress line, e.g. "Ink bottles 3/10". */
   readonly objective: string;
   readonly urgent: boolean;
 }
@@ -162,7 +162,7 @@ export class GameScene extends Phaser.Scene {
     this.hideout = new Hideout(this, covers, this.seabed.floorAt);
     this.player = createPlayer(this, this.level, chapter.player);
     this.deep.lightPlayer(this.player.sprite, chapter.player, playerGlowTint(chapter.player));
-    this.twist = new TwistRunner(this, this.level, this.rng);
+    this.twist = new TwistRunner(this, this.level, this.seabed.floorAt, this.rng);
     this.itemHost = this.makeItemHost();
     this.shieldG = this.add.graphics().setDepth(21);
     this.fish = [...this.fish, ...this.twist.setup(this.player.sprite)];
@@ -254,7 +254,7 @@ export class GameScene extends Phaser.Scene {
     this.updateHazards(now, deltaMs, dt);
     this.updateItems(now, dt);
     this.drawShield();
-    this.updateObjective(now);
+    this.updateObjective(now, dt);
     this.emitHud();
     this.sightings.look(now, cam.worldView, [
       ...this.fish.map((f) => ({ x: f.sprite.x, y: f.sprite.y, id: f.species })),
@@ -387,10 +387,10 @@ export class GameScene extends Phaser.Scene {
     sprite.x = contain ? Phaser.Math.Clamp(x, radius, this.level.world.width - radius) : x;
   }
 
-  /** Twist bookkeeping: drops, goal markers, the clock, and whether the level is decided. */
-  private updateObjective(now: number): void {
+  /** Twist bookkeeping: ink bottles, goal markers, the clock, and whether the level is decided. */
+  private updateObjective(now: number, dt: number): void {
     const goals = this.fish.filter((f) => f.role !== 'normal');
-    this.twist.update(now, this.boilFrame, this.player, goals);
+    for (const at of this.twist.update(now, dt, this.boilFrame, this.player, goals)) this.sfx('smash', at);
     const picked = this.player.hooked ? [] : this.twist.collect(this.player);
     for (const at of picked) {
       this.score += 150;

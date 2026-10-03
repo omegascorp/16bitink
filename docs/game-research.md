@@ -54,17 +54,17 @@ Every level is won by growing to full size. Most twists add a task or a rule on 
 | Level | Twist | What changes |
 |---|---|---|
 | 1 | Feeding time | Plain: just grow |
-| 2 | Ink drops | Also collect every ink drop scattered across the level |
+| 2 | Ink bottles | Also catch ink bottles sinking from the surface, two at a time; one that reaches the seabed smashes and another follows |
 | 3 | Strong current | Everything drifts left or right |
 | 4 | Marked fish | Also eat 3 fish circled in red; they flee and are only edible after your first growth |
 | 5 | School rush | Grow before the clock runs out, with a dense school of prey |
 | 6 | Hook storm / Jelly bloom | Hooks every 4 s; below the drop-off, where hooks can't reach, a jellyfish swarm instead |
-| 7 | Lights out | You only see a small circle around you |
-| 8 | One life | A single hit ends the level, with extra predators |
-| 9 | Remix | A goal twist plus a rule twist, a different pair in each chapter |
-| 10 | The giant | A boss version of the chapter's biggest predator hunts you; grow, then eat it |
+| 7 | One life | A single hit ends the level, with extra predators |
+| 8 | Remix | Two twists paired, a different pair in each chapter (never the dark) |
+| 9 | Lights out | You only see a small circle around you |
+| 10 | The giant, lights out | A boss version of the chapter's biggest predator hunts you in the dark; grow, then eat it. Its red ring shows through the dark |
 
-Off-screen goals get a red arrow at the screen edge. Each level opens with an intro card, and the map shows a small icon per twist.
+The dark is the hardest twist, so it closes every chapter: on its own, then for the giant. Off-screen goals get a red arrow at the screen edge. Each level opens with an intro card, and the map shows a small icon per twist (the giant is a crosshair, marked fish a cluster of small circles).
   - Hand-tune any level with `overrides`.
 - **Fishing hooks stop below the drop-off**, since fishing lines don't reach that deep.
 

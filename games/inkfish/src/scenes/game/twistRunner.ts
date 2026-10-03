@@ -1,18 +1,12 @@
 import Phaser from 'phaser';
 import { DARK_HOLE, DARK_TEX } from '../../art/twistArt';
-import { ART_RES, boilKey } from '../../art/textures';
 import type { LevelDef } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
-import { capsuleTouchesCircle } from '../../logic/body';
 import { spawnSpecial, type Fish } from './fish';
+import { InkBottles } from './inkBottles';
 import type { Player } from './player';
 import { bodyOf } from './swim';
 import { TUNING } from './tuning';
-
-interface Drop {
-  readonly sprite: Phaser.GameObjects.Image;
-  readonly baseY: number;
-}
 
 interface Point {
   readonly x: number;
@@ -33,19 +27,24 @@ const hash = (n: number): number => {
 };
 
 /**
- * Runs the parts of a level's twists that live in the world: ink drops,
+ * Runs the parts of a level's twists that live in the world: ink bottles,
  * marked fish and the giant, the red pencil markers and edge arrows that
  * point at them, current streaks, and the darkness around the player.
  */
 export class TwistRunner {
   /** Sideways drift in world units per second, 0 when there is no current. */
   readonly current: number;
-  private drops: Drop[] = [];
+  private bottles: InkBottles | null = null;
   private readonly marks: Phaser.GameObjects.Graphics;
   private readonly streaks: Phaser.GameObjects.Graphics | null;
   private readonly dark: Phaser.GameObjects.Image | null;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly level: LevelDef, private readonly rng: Rng) {
+  constructor(
+    private readonly scene: Phaser.Scene,
+    private readonly level: LevelDef,
+    private readonly floorAt: (x: number) => number,
+    private readonly rng: Rng,
+  ) {
     this.current = level.modifiers.current ?? 0;
     this.marks = scene.add.graphics().setDepth(37);
     this.streaks = this.current ? scene.add.graphics().setDepth(3) : null;
@@ -55,7 +54,7 @@ export class TwistRunner {
   /** Places the level's goals away from the player. Returns goal fish to add to the shoal. */
   setup(start: Point): Fish[] {
     const o = this.level.objective;
-    if (o.kind === 'collect') this.drops = this.spread(o.count, start, 280).map((p) => this.makeDrop(p));
+    if (o.kind === 'collect') this.bottles = new InkBottles(this.scene, o.count, this.level.world, this.floorAt, this.rng);
     if (o.kind === 'bounty') {
       return this.spread(o.count, start, 500).map((p) =>
         spawnSpecial(this.scene, o.species, Math.round(rangeOf(this.rng, o.size[0], o.size[1])), 'bounty', p.x, p.y, this.rng));
@@ -80,33 +79,22 @@ export class TwistRunner {
     return points;
   }
 
-  private makeDrop(p: Point): Drop {
-    const sprite = this.scene.add.image(p.x, p.y, boilKey('drop', 0)).setDepth(13).setScale(0.8 / ART_RES);
-    return { sprite, baseY: p.y };
-  }
-
-  /** Picks up drops the player touches; returns where each one was. */
+  /** Catches the ink bottles the player touches; returns where each one was. */
   collect(player: Player): Point[] {
-    const ps = player.sprite;
-    const body = bodyOf(ps, player.shape);
-    const got = this.drops.filter((d) => capsuleTouchesCircle(body, d.sprite.x, d.sprite.y, 16));
-    if (got.length === 0) return [];
-    this.drops = this.drops.filter((d) => !got.includes(d));
-    return got.map((d) => {
-      const at = { x: d.sprite.x, y: d.sprite.y };
-      this.scene.tweens.add({ targets: d.sprite, scale: 0, alpha: 0, duration: 220, ease: 'Back.In', onComplete: () => d.sprite.destroy() });
-      return at;
-    });
+    return this.bottles?.collect(bodyOf(player.sprite, player.shape)) ?? [];
   }
 
-  /** Per-frame drawing: drops bob, goals get rings and arrows, current streaks drift, darkness follows. */
-  update(now: number, frame: number, player: Player, goals: readonly Fish[]): void {
-    for (const d of this.drops) d.sprite.setY(d.baseY + Math.sin(now / 400 + d.baseY) * 6).setTexture(boilKey('drop', frame));
+  /**
+   * Per-frame: bottles sink, goals get rings and arrows, current streaks drift,
+   * darkness follows. Returns where any bottle smashed on the seabed.
+   */
+  update(now: number, dt: number, frame: number, player: Player, goals: readonly Fish[]): Point[] {
+    const smashed = this.bottles?.update(now, dt, frame, player.sprite.x, this.current) ?? [];
     const view = this.scene.cameras.main.worldView;
     const zoom = this.scene.cameras.main.zoom;
     this.marks.clear();
     for (const f of goals) this.ring(f, now);
-    const targets: Point[] = [...this.drops.map((d) => d.sprite), ...goals.map((f) => f.sprite)];
+    const targets: Point[] = [...(this.bottles?.targets ?? []), ...goals.map((f) => f.sprite)];
     const ps = player.sprite;
     const nearest = targets
       .filter((t) => !view.contains(t.x, t.y))
@@ -118,6 +106,7 @@ export class TwistRunner {
       const radius = (150 + player.drawSize * 2.6) * glow;
       this.dark.setPosition(ps.x, ps.y).setScale(radius / (DARK_TEX * DARK_HOLE));
     }
+    return smashed;
   }
 
   /** A red pencil circle, dashes slowly turning, around a goal fish. */

@@ -8,7 +8,7 @@ import { ITEM_INFO, type ItemId } from '../levels/items';
 export type SfxId =
   | 'eat' | 'eatBig' | 'dash' | 'grow' | 'hurt' | 'zap' | 'hooked' | 'free' | 'splash'
   | 'squawk' | 'powerup' | 'yuck' | 'boom' | 'clang' | 'drop' | 'frenzy' | 'spotted'
-  | 'win' | 'lose' | 'click';
+  | 'smash' | 'win' | 'lose' | 'click';
 
 /** The sound of an item's own effect, on top of the power-up cheer for good ones. */
 const ITEM_EFFECT_SFX: Readonly<Partial<Record<ItemId, SfxId>>> = {
@@ -26,7 +26,7 @@ export function itemSfx(kind: ItemId): SfxId[] {
 export const MIN_GAP_MS: Readonly<Record<SfxId, number>> = {
   eat: 45, eatBig: 200, dash: 120, grow: 400, hurt: 200, zap: 140, hooked: 300, free: 300, splash: 120,
   squawk: 350, powerup: 150, yuck: 200, boom: 200, clang: 150, drop: 60, frenzy: 250, spotted: 600,
-  win: 1000, lose: 1000, click: 40,
+  smash: 200, win: 1000, lose: 1000, click: 40,
 };
 
 /** Pitch multiplier for a meal: little fish make a high "plip", big ones a deep gulp. */

@@ -32,7 +32,7 @@ export const ITEM_INFO: Readonly<Record<ItemId, ItemInfo>> = {
   firecracker: { name: 'firecracker', good: true, debut: 27, sink: 90, note: 'A blast that knocks out fish around you. Anyone can eat them.' },
   lure: { name: 'spinner lure', good: false, debut: 35, sink: 60, note: 'Shiny, but it hides a hook. It costs a life.' },
   bottle: { name: 'message in a bottle', good: true, debut: 45, sink: 40, note: 'Someone’s treasure. Worth a lot of points.' },
-  glowstick: { name: 'glow stick', good: true, debut: 67, sink: 50, note: 'Lights up more of the dark around you.', darkOnly: true },
+  glowstick: { name: 'glow stick', good: true, debut: 69, sink: 50, note: 'Lights up more of the dark around you.', darkOnly: true },
 };
 
 export const ITEM_IDS = Object.keys(ITEM_INFO) as ItemId[];

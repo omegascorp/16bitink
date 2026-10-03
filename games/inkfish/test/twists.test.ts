@@ -23,8 +23,16 @@ describe('twists', () => {
   });
 
   it('remixes a different pair of twists in every chapter', () => {
-    const remixes = chapters.map((ch) => key(ch.levels[8]!.twists));
+    const remixes = chapters.map((ch) => key(ch.levels[7]!.twists));
     expect(new Set(remixes).size).toBe(chapters.length);
+  });
+
+  it('saves the dark, the hardest twist, for the end: the level before the giant, and the giant itself', () => {
+    for (const ch of chapters) {
+      const dark = ch.levels.flatMap((l, i) => (l.modifiers.dark ? [i] : []));
+      expect(dark).toEqual([LEVELS_PER_CHAPTER - 2, LEVELS_PER_CHAPTER - 1]);
+      expect(describeLevel(ch.levels.at(-1)!).tag).toBe('The giant, lights out');
+    }
   });
 
   it('turns hook storms into jelly blooms where hooks cannot reach', () => {
@@ -66,7 +74,7 @@ describe('twists', () => {
       expect(d.goal.length).toBeGreaterThan(5);
       expect(d.tag.length).toBeGreaterThan(2);
     }
-    expect(describeLevel(DEMO_CHAPTER.levels[1]!).goal).toMatch(/ink drops/);
+    expect(describeLevel(DEMO_CHAPTER.levels[1]!).goal).toMatch(/ink bottles/);
   });
 
   it('survives the trip through JSON and validation', () => {
@@ -84,7 +92,7 @@ describe('twists', () => {
   });
 
   it('schedules a remix from the chapter number', () => {
-    expect(twistsFor(1, 8)).not.toEqual(twistsFor(2, 8));
-    expect(twistsFor(3, 9)).toEqual(['boss']);
+    expect(twistsFor(1, 7)).not.toEqual(twistsFor(2, 7));
+    expect(twistsFor(3, 9)).toEqual(['boss', 'dark']);
   });
 });
