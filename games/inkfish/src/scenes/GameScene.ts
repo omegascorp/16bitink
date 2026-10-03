@@ -212,7 +212,8 @@ export class GameScene extends Phaser.Scene {
         f.sprite.destroy();
         return false;
       }
-      if (f.state !== 'hooked') this.drift(f.sprite, f.size, 0.7, dt);
+      // Ordinary fish ride the current off the map and get replaced; goal fish stay in play.
+      if (f.state !== 'hooked') this.drift(f.sprite, f.size, 0.7, dt, f.role !== 'normal');
       renderFish(f, p.size, this.boilFrame);
       if (f.state !== 'hooked' && isOffWorld(f, this.level)) {
         f.sprite.destroy();
@@ -278,11 +279,12 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** The current pushes a swimmer sideways, never past the world's edge. */
-  private drift(sprite: Phaser.GameObjects.Image, radius: number, strength: number, dt: number): void {
+  /** The current pushes a swimmer sideways; `contain` keeps it inside the world's edges. */
+  private drift(sprite: Phaser.GameObjects.Image, radius: number, strength: number, dt: number, contain = true): void {
     const c = this.twist.current;
     if (!c) return;
-    sprite.x = Phaser.Math.Clamp(sprite.x + c * strength * dt, radius, this.level.world.width - radius);
+    const x = sprite.x + c * strength * dt;
+    sprite.x = contain ? Phaser.Math.Clamp(x, radius, this.level.world.width - radius) : x;
   }
 
   /** Twist bookkeeping: drops, goal markers, the clock, and whether the level is decided. */

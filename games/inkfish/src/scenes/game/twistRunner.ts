@@ -22,6 +22,14 @@ const RED = 0xa3342b;
 const INK = 0x1b1a1f;
 /** Goals are placed at least this far from where the player starts. */
 const GOAL_DISTANCE = 650;
+/** Current marks: world tile size, marks per tile, lifetimes (s), speed as a multiple of the current. */
+const FLOW = { tile: 300, perTile: 7, minLife: 2.2, maxLife: 4, speed: 1.6 } as const;
+
+/** Stable pseudo-random 0..1 for a seed, no state. */
+const hash = (n: number): number => {
+  const v = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return v - Math.floor(v);
+};
 
 /**
  * Runs the parts of a level's twists that live in the world: ink drops,
@@ -147,22 +155,56 @@ export class TwistRunner {
     this.marks.lineStyle(1.4 / zoom, INK, 0.8).strokeTriangle(tip.x, tip.y, l.x, l.y, r.x, r.y);
   }
 
-  /** Faint "~>" pen marks drifting with the current so you can see which way it pulls. */
+  /**
+   * The current, made visible: wavy flow lines and specks of sea dust anchored
+   * in the world (so they slide past as you swim), carried downstream faster
+   * than you drift. Each one fades in, travels, fades out, and respawns somewhere
+   * new in its tile, so nothing pops or repeats in step.
+   */
   private drawStreaks(view: Phaser.Geom.Rectangle, now: number): void {
     const g = this.streaks!.clear();
-    const w = view.width + 240;
-    const h = view.height + 240;
+    const t = now / 1000;
     const dir = Math.sign(this.current);
-    g.lineStyle(1.3, INK, 0.22);
-    for (let i = 0; i < 34; i++) {
-      const bx = ((i * 7919) % 1000) / 1000;
-      const by = ((i * 104729) % 997) / 997;
-      const x = view.left - 120 + Phaser.Math.Wrap(bx * w + (now / 1000) * this.current * 1.6, 0, w);
-      const y = view.top - 120 + by * h + Math.sin(now / 700 + i) * 6;
-      g.beginPath().moveTo(x - 26 * dir, y);
-      for (let k = 1; k <= 4; k++) g.lineTo(x - 26 * dir + k * 9 * dir, y + (k % 2 ? -3 : 3));
-      g.strokePath();
-      g.lineBetween(x + 10 * dir, y, x + 4 * dir, y - 4).lineBetween(x + 10 * dir, y, x + 4 * dir, y + 4);
+    const speed = Math.abs(this.current) * FLOW.speed;
+    // Upstream tiles too: their streaks travel into view.
+    const reach = speed * FLOW.maxLife;
+    const left = dir > 0 ? view.left - reach : view.left - 120;
+    const right = dir > 0 ? view.right + 120 : view.right + reach;
+    for (let tx = Math.floor(left / FLOW.tile); tx <= Math.floor(right / FLOW.tile); tx++) {
+      for (let ty = Math.floor((view.top - 60) / FLOW.tile); ty <= Math.floor((view.bottom + 60) / FLOW.tile); ty++) {
+        for (let i = 0; i < FLOW.perTile; i++) this.flowMark(g, view, tx, ty, i, t, dir, speed);
+      }
+    }
+  }
+
+  private flowMark(g: Phaser.GameObjects.Graphics, view: Phaser.Geom.Rectangle, tx: number, ty: number, i: number, t: number, dir: number, speed: number): void {
+    const seed = tx * 73.13 + ty * 191.7 + i * 12.97;
+    const life = FLOW.minLife + hash(seed) * (FLOW.maxLife - FLOW.minLife);
+    const clock = t + hash(seed + 1) * life;
+    const cycle = Math.floor(clock / life);
+    const age = clock - cycle * life;
+    const r = (k: number): number => hash(seed + cycle * 31.7 + k);
+    const x = (tx + r(2)) * FLOW.tile + dir * speed * age;
+    const y = (ty + r(3)) * FLOW.tile + Math.sin(t * 1.3 + seed) * 8;
+    if (x < view.left - 140 || x > view.right + 140 || y < view.top - 40 || y > view.bottom + 40) return;
+    const fade = Math.sin(Math.PI * (age / life));
+    if (i % 3 === 2) {
+      // Sea dust: a speck tumbling along.
+      g.fillStyle(INK, 0.3 * fade).fillCircle(x, y, 1.2 + r(4) * 1.4);
+      return;
+    }
+    // A flow line: a ripple running along a gentle S, thinning at its tail.
+    const len = 50 + r(4) * 90;
+    const amp = 3 + r(5) * 4;
+    let px = x;
+    let py = y;
+    for (let k = 1; k <= 10; k++) {
+      const s = k / 10;
+      const nx = x - dir * len * s;
+      const ny = y + Math.sin(s * 5 - t * 6 + seed) * amp * s;
+      g.lineStyle(1.6 * (1 - s * 0.6), INK, 0.32 * fade * (1 - s * 0.5)).lineBetween(px, py, nx, ny);
+      px = nx;
+      py = ny;
     }
   }
 }

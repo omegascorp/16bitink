@@ -250,14 +250,7 @@ export function drawHook(ctx: CanvasRenderingContext2D, seed: number): void {
   pen.hair([P(33.4, 14), P(33.4, 50)], 0.4 * s, PAPER_FILL, 0.9);
   pen.stroke([P(14, 48), P(17, 52), P(13.5, 52.5)], 1.1 * s, INK, 1, false);
   pen.stroke(ellipse(32 * s, 6 * s, 3.2 * s, 3.2 * s, 12).concat([P(35.2, 6)]), 1.1 * s, INK, 1, false);
-  // A coiled worm: segmented, with ring hairs.
-  const worm = [P(28, 26), P(22, 30), P(28, 35), P(22, 40), P(27, 45)];
-  pen.stroke(worm, 4.2 * s, '#b0574f', 0.85, false);
-  for (let i = 1; i < worm.length; i++) {
-    const a = worm[i - 1]!;
-    const b = worm[i]!;
-    pen.hair([{ x: (a.x + b.x) / 2 - 3 * s, y: (a.y + b.y) / 2 }, { x: (a.x + b.x) / 2 + 3 * s, y: (a.y + b.y) / 2 + s }], 0.4 * s, INK, 0.6);
-  }
+  // The bait worm is drawn live in scenes/game/worm.ts so it can squirm.
 }
 
 export function drawBubble(ctx: CanvasRenderingContext2D, seed: number): void {

@@ -3,6 +3,7 @@ import { ART_RES, boilKey } from '../../art/textures';
 import type { LevelDef } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { TUNING } from './tuning';
+import { drawWorm } from './worm';
 
 export interface Jelly {
   readonly sprite: Phaser.GameObjects.Image;
@@ -35,6 +36,8 @@ export type HookPhase = 'warn' | 'drop' | 'hold' | 'reel';
 export interface Hook {
   readonly sprite: Phaser.GameObjects.Image;
   readonly line: Phaser.GameObjects.Graphics;
+  /** The live bait, redrawn every frame. */
+  readonly worm: Phaser.GameObjects.Graphics;
   readonly x: number;
   readonly depth: number;
   phase: HookPhase;
@@ -42,7 +45,12 @@ export interface Hook {
   y: number;
   /** Radius of whatever hangs on the barb; 0 while the hook is empty. */
   load: number;
+  /** Ms since the hook appeared: the worm's clock. */
+  age: number;
 }
+
+/** Where the hook texture's eye sits relative to the sprite origin (texture units). */
+const HOOK_EYE = { x: 0, y: 2 } as const;
 
 /** Drops near the player so it's a real threat, telegraphed by a dotted line first. */
 export function spawnHook(scene: Phaser.Scene, level: LevelDef, px: number, py: number, rng: Rng): Hook {
@@ -50,12 +58,14 @@ export function spawnHook(scene: Phaser.Scene, level: LevelDef, px: number, py: 
   const depth = Phaser.Math.Clamp(py + rangeOf(rng, -120, 160), 260, level.world.height - 220);
   const sprite = scene.add.image(x, -80, boilKey('hook', 0)).setOrigin(0.66, 0.05).setDepth(12).setScale(1 / ART_RES);
   const line = scene.add.graphics().setDepth(11);
-  return { sprite, line, x, depth, phase: 'warn', t: 0, y: -80, load: 0 };
+  const worm = scene.add.graphics().setDepth(12.5);
+  return { sprite, line, worm, x, depth, phase: 'warn', t: 0, y: -80, load: 0, age: 0 };
 }
 
 /** Returns false when the hook has left the screen and should be destroyed. */
 export function updateHook(h: Hook, dtMs: number, frame: number): boolean {
   h.t += dtMs;
+  h.age += dtMs;
   h.line.clear();
   if (h.phase === 'warn') {
     // Dotted pencil guide line growing down towards the target depth.
@@ -80,6 +90,9 @@ export function updateHook(h: Hook, dtMs: number, frame: number): boolean {
     h.line.lineBetween(h.x, 0, h.x, h.y);
   }
   h.sprite.setPosition(h.x, h.y).setTexture(boilKey('hook', frame));
+  // Whatever bit the hook took the worm with it; a rising empty hook's worm thrashes.
+  h.worm.clear();
+  if (h.load === 0) drawWorm(h.worm, h.x + HOOK_EYE.x, h.y + HOOK_EYE.y, h.age / 1000, h.phase === 'reel');
   return true;
 }
 
@@ -110,4 +123,5 @@ export function hangPoint(h: Hook, radius: number, phase: number): { x: number; 
 export function destroyHook(h: Hook): void {
   h.sprite.destroy();
   h.line.destroy();
+  h.worm.destroy();
 }
