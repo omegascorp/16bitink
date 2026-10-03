@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { FISH_RADIUS } from '../../art/fishArt';
 import { fishKey } from '../../art/textures';
 import type { LevelDef, PlayerFishId } from '../../levels/types';
+import { waterBottom, waterTop } from '../../logic/water';
 import { TUNING } from './tuning';
 
 export interface Player {
@@ -19,6 +20,8 @@ export interface Player {
   stunnedUntil: number;
   speedUntil: number;
   dashReadyAt: number;
+  /** On a hook: controls are off and the hook moves the fish. */
+  hooked: boolean;
 }
 
 /** Bottom-right screen area reserved for the touch dash button. */
@@ -30,7 +33,7 @@ export function createPlayer(scene: Phaser.Scene, level: LevelDef, shape: Player
     .image(level.world.width / 2, level.world.height / 2, fishKey(shape, 'light', 0))
     .setDepth(20)
     .setScale(size / FISH_RADIUS);
-  return { sprite, shape, size, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0 };
+  return { sprite, shape, size, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0, hooked: false };
 }
 
 export interface Controls {
@@ -105,7 +108,7 @@ export function movePlayer(p: Player, dir: { x: number; y: number }, level: Leve
   p.vy += (ty - p.vy) * k;
   const r = p.size;
   p.sprite.x = Phaser.Math.Clamp(p.sprite.x + p.vx * dt, r, level.world.width - r);
-  p.sprite.y = Phaser.Math.Clamp(p.sprite.y + p.vy * dt, 80 + r * 0.5, level.world.height - 90 - r * 0.5);
+  p.sprite.y = Phaser.Math.Clamp(p.sprite.y + p.vy * dt, waterTop(r), waterBottom(level.world.height, r));
 }
 
 export function tryDash(p: Player, dir: { x: number; y: number }, now: number): boolean {
@@ -129,8 +132,12 @@ export function renderPlayer(p: Player, now: number, frame: number, dt: number):
   const base = p.drawSize / FISH_RADIUS;
   const chomp = now - p.chompAt < 140 ? 0.85 : 1;
   s.setScale(base, base * chomp);
-  if (Math.abs(p.vx) > 8) s.setFlipX(p.vx < 0);
-  s.setRotation(Phaser.Math.Clamp(p.vy / 700, -0.45, 0.45) * (s.flipX ? -1 : 1));
+  if (p.hooked) {
+    s.setFlipX(false).setRotation(-Math.PI / 2 + Math.sin(now / 40) * 0.35);
+  } else {
+    if (Math.abs(p.vx) > 8) s.setFlipX(p.vx < 0);
+    s.setRotation(Phaser.Math.Clamp(p.vy / 700, -0.45, 0.45) * (s.flipX ? -1 : 1));
+  }
   const invuln = now < p.invulnerableUntil;
   s.setAlpha(invuln && Math.floor(now / 120) % 2 === 0 ? 0.35 : 1);
   if (now < p.stunnedUntil) s.setTint(0x9b6fc4);

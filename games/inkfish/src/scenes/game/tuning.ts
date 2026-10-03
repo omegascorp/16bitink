@@ -9,6 +9,10 @@ export const TUNING = {
   lives: 3,
   invulnerableMs: 2500,
   stunMs: 1100,
+  /** Jellyfish stings other fish for longer: they have no player to steer them out. */
+  fishStunMs: 1800,
+  /** How long a hooked player thrashes before slipping off (if lives remain). */
+  hookStruggleMs: 750,
   shrinkMs: 5000,
   shrinkFactor: 0.5,
   shrinkRadius: 520,

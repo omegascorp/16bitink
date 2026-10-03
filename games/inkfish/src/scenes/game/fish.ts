@@ -4,6 +4,7 @@ import { fishKey } from '../../art/textures';
 import type { LevelDef, SpeciesId } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { pickSpawn, relationTo } from '../../logic/sizing';
+import { keepInWater } from '../../logic/water';
 
 export interface Fish {
   readonly sprite: Phaser.GameObjects.Image;
@@ -18,7 +19,9 @@ export interface Fish {
   shrinkUntil: number;
   stateUntil: number;
   cooldownUntil: number;
-  state: 'cruise' | 'chase' | 'lunge' | 'puffed' | 'tired' | 'hooked';
+  /** After eating another fish, a hunter ignores prey until this time. */
+  fullUntil: number;
+  state: 'cruise' | 'chase' | 'lunge' | 'puffed' | 'tired' | 'stunned' | 'hooked';
 }
 
 const CRUISE: Record<SpeciesId, [number, number]> = {
@@ -47,7 +50,7 @@ export function spawnFish(scene: Phaser.Scene, level: LevelDef, playerSize: numb
   return {
     sprite, species: entry.species, baseSize: size, size,
     vx: goRight ? speed : -speed, vy: 0, phase: rng() * Math.PI * 2,
-    shrinkUntil: 0, stateUntil: 0, cooldownUntil: 0, state: 'cruise',
+    shrinkUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
   };
 }
 
@@ -65,23 +68,40 @@ function steerTo(f: Fish, tx: number, ty: number, speed: number, dt: number, acc
   f.vy += ((dy / d) * speed - f.vy) * Math.min(1, dt * accel);
 }
 
+/** Jellyfish sting: the fish stops swimming and sinks a little, harmless while it lasts. */
+export function stunFish(f: Fish, now: number, ms: number): void {
+  if (f.state === 'hooked' || f.state === 'stunned') return;
+  f.state = 'stunned';
+  f.stateUntil = now + ms;
+}
+
+/** Fish that can't bite, chase or be bitten by the player right now. */
+export function isHelpless(f: Fish): boolean {
+  return f.state === 'hooked' || f.state === 'stunned';
+}
+
 /** Per-species behaviour. Mutates the fish in place (hot loop, pooled entities). */
-export function updateFish(f: Fish, p: PlayerView, now: number, dt: number): void {
+export function updateFish(f: Fish, p: PlayerView, worldHeight: number, now: number, dt: number): void {
+  f.phase += dt;
+  // A hooked fish is moved by its hook.
+  if (f.state === 'hooked') return;
   const dist = Phaser.Math.Distance.Between(f.sprite.x, f.sprite.y, p.x, p.y);
   const shrunk = now < f.shrinkUntil;
   const puffed = f.state === 'puffed' && now < f.stateUntil;
   f.size = f.baseSize * (shrunk ? 0.5 : 1) * (puffed ? 1.7 : 1);
   const rel = relationTo(p.size, f.size);
-  const cruise = Math.sign(f.vx || 1) * CRUISE[f.species][0];
-  f.phase += dt;
+  const cruise = Math.sign(f.vx || (f.sprite.flipX ? -1 : 1)) * CRUISE[f.species][0];
 
-  if (f.state !== 'cruise' && now >= f.stateUntil && f.state !== 'hooked') {
+  if (f.state !== 'cruise' && now >= f.stateUntil) {
     f.state = f.state === 'chase' || f.state === 'lunge' ? 'tired' : 'cruise';
     f.stateUntil = now + 1800;
     f.cooldownUntil = now + 3000;
   }
 
-  switch (f.species) {
+  if (f.state === 'stunned') {
+    f.vx -= f.vx * Math.min(1, dt * 4);
+    f.vy = 22;
+  } else switch (f.species) {
     case 'minnow':
       if (rel === 'prey' && dist < 130) steerTo(f, f.sprite.x * 2 - p.x, f.sprite.y * 2 - p.y, 125, dt);
       else f.vy = Math.sin(f.phase * 3) * 30;
@@ -121,17 +141,27 @@ export function updateFish(f: Fish, p: PlayerView, now: number, dt: number): voi
     f.vx += (cruise - f.vx) * Math.min(1, dt * 1.5);
   }
   f.sprite.x += f.vx * dt;
-  f.sprite.y += f.vy * dt;
+  const water = keepInWater(f.sprite.y + f.vy * dt, f.vy, f.size, worldHeight);
+  f.sprite.y = water.y;
+  f.vy = water.vy;
 }
 
 export function renderFish(f: Fish, playerSize: number, frame: number): void {
-  const heavy = relationTo(playerSize, f.size) === 'predator';
+  const heavy = relationTo(playerSize, f.size) === 'predator' && !isHelpless(f);
   f.sprite.setTexture(fishKey(f.species, heavy ? 'heavy' : 'light', frame));
-  f.sprite.setFlipX(f.vx < 0);
   // Ease scale so puff/shrink animate instead of popping.
   const target = f.size / FISH_RADIUS;
   f.sprite.setScale(f.sprite.scaleX + (target - f.sprite.scaleX) * 0.25);
-  f.sprite.setRotation(Phaser.Math.Clamp(f.vy / 400, -0.35, 0.35) * (f.vx < 0 ? -1 : 1));
+  if (f.state === 'stunned') f.sprite.setTint(0xc4a8e0);
+  else f.sprite.clearTint();
+  if (f.state === 'hooked') {
+    // Hanging from the barb by the mouth, thrashing.
+    f.sprite.setFlipX(false).setRotation(-Math.PI / 2 + Math.sin(f.phase * 22) * 0.3);
+    return;
+  }
+  if (Math.abs(f.vx) > 4) f.sprite.setFlipX(f.vx < 0);
+  const wobble = f.state === 'stunned' ? Math.sin(f.phase * 9) * 0.2 : 0;
+  f.sprite.setRotation(Phaser.Math.Clamp(f.vy / 400, -0.35, 0.35) * (f.sprite.flipX ? -1 : 1) + wobble);
 }
 
 export function isOffWorld(f: Fish, level: LevelDef): boolean {

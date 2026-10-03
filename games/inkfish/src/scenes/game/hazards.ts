@@ -40,6 +40,8 @@ export interface Hook {
   phase: HookPhase;
   t: number;
   y: number;
+  /** Radius of whatever hangs on the barb; 0 while the hook is empty. */
+  load: number;
 }
 
 /** Drops near the player so it's a real threat, telegraphed by a dotted line first. */
@@ -48,7 +50,7 @@ export function spawnHook(scene: Phaser.Scene, level: LevelDef, px: number, py: 
   const depth = Phaser.Math.Clamp(py + rangeOf(rng, -120, 160), 260, level.world.height - 220);
   const sprite = scene.add.image(x, -80, boilKey('hook', 0)).setOrigin(0.66, 0.05).setDepth(12).setScale(1 / ART_RES);
   const line = scene.add.graphics().setDepth(11);
-  return { sprite, line, x, depth, phase: 'warn', t: 0, y: -80 };
+  return { sprite, line, x, depth, phase: 'warn', t: 0, y: -80, load: 0 };
 }
 
 /** Returns false when the hook has left the screen and should be destroyed. */
@@ -68,8 +70,10 @@ export function updateHook(h: Hook, dtMs: number, frame: number): boolean {
     h.y = h.depth + Math.sin(h.t / 300) * 8;
     if (h.t >= TUNING.hookHoldMs) Object.assign(h, { phase: 'reel', t: 0 });
   } else {
-    h.y -= dtMs * 0.9;
-    if (h.y < -120) return false;
+    // A loaded hook starts with a hard jerk and keeps hauling; an empty one just lifts.
+    const speed = h.load > 0 ? 0.45 + Math.min(1, h.t / 500) * 0.55 : 0.9;
+    h.y -= dtMs * speed;
+    if (h.y < -120 - h.load * 2.2) return false;
   }
   if (h.phase !== 'warn') {
     h.line.lineStyle(1.6, 0x1b1a1f, 0.85);
@@ -79,9 +83,28 @@ export function updateHook(h: Hook, dtMs: number, frame: number): boolean {
   return true;
 }
 
-/** World-space point of the barb, used for collisions. */
+/** World-space point of the barb, used for collisions. Only an empty, lowered hook bites. */
 export function hookTip(h: Hook): { x: number; y: number; active: boolean } {
-  return { x: h.x - 10, y: h.y + 56, active: h.phase === 'drop' || h.phase === 'hold' };
+  return { x: h.x - 10, y: h.y + 56, active: h.load === 0 && (h.phase === 'drop' || h.phase === 'hold') };
+}
+
+/** Something bit: start reeling it in at once. */
+export function hookCatch(h: Hook, radius: number): void {
+  Object.assign(h, { phase: 'reel', t: 0, load: radius });
+}
+
+/** The catch slipped off: the hook keeps rising empty. */
+export function hookRelease(h: Hook): void {
+  h.load = 0;
+}
+
+/**
+ * Where the centre of a fish hanging from the barb sits: mouth on the hook,
+ * body below it, swinging a little as it thrashes.
+ */
+export function hangPoint(h: Hook, radius: number, phase: number): { x: number; y: number } {
+  const tip = hookTip(h);
+  return { x: tip.x + Math.sin(phase * 6) * radius * 0.15, y: tip.y + radius * 0.85 };
 }
 
 export function destroyHook(h: Hook): void {

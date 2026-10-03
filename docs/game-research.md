@@ -73,7 +73,8 @@ Ten "eat smaller to grow" games, researched October 2026, and what InkFish takes
   - pike chases
   - angler ambush-lunges
   - eel sine-patrols
-- Hazards: jellyfish stun you; fishing hooks are telegraphed by a dotted pencil line, then drop. Hooks are instant hurt.
+- Hazards: jellyfish stun you; fishing hooks are telegraphed by a dotted pencil line, then drop. A hooked fish is reeled up by the mouth: with lives left you lose one and thrash free near the surface, on your last life you're hauled out of the water.
+- Hazards hit everyone, not just the player: jellyfish stun enemies (a stung predator can't bite, so luring hunters into jellies is a tactic), hooks catch and reel off any fish, and hunters (perch, pike, angler, eel) eat fish under 70% of their size when they bump into them.
 - Power-ups: Quick Quill (speed) and Shrink-ink (nearby fish shrink to 0.5× for 5 s).
 - 3 lives with invulnerability blinks, a par-time ink-blot rating (1–3), and best scores saved locally.
 

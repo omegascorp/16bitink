@@ -4,11 +4,15 @@ import { getChapters } from '../host';
 import type { LevelDef } from '../levels/types';
 import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy, type FrenzyState } from '../logic/frenzy';
 import { addGrowth, growthProgress, initialGrowth, playerSizeFor, type GrowthState } from '../logic/growth';
+import { canHunt, HUNT_COOLDOWN_MS } from '../logic/ecosystem';
 import { createRng, type Rng } from '../logic/rng';
+import { waterTop } from '../logic/water';
 import { growthPointsFor, relationTo, scoreFor, touches } from '../logic/sizing';
 import { targetZoom } from './game/camera';
-import { isOffWorld, renderFish, spawnFish, updateFish, type Fish } from './game/fish';
-import { destroyHook, hookTip, spawnHook, spawnJellies, updateHook, updateJelly, type Hook, type Jelly } from './game/hazards';
+import { isHelpless, isOffWorld, renderFish, spawnFish, stunFish, updateFish, type Fish } from './game/fish';
+import {
+  destroyHook, hangPoint, hookCatch, hookRelease, hookTip, spawnHook, spawnJellies, updateHook, updateJelly, type Hook, type Jelly,
+} from './game/hazards';
 import {
   createControls, createPlayer, desiredDirection, movePlayer, renderPlayer, tryDash, type Controls, type Player,
 } from './game/player';
@@ -46,6 +50,11 @@ export class GameScene extends Phaser.Scene {
   private fish: Fish[] = [];
   private jellies: Jelly[] = [];
   private hooks: Hook[] = [];
+  /** What each hook is reeling in, if it caught a fish. */
+  private hookedFish = new Map<Hook, Fish>();
+  /** The hook the player is on, if any. */
+  private playerHook: Hook | null = null;
+  private releaseAt = 0;
   private powerUps: PowerUp[] = [];
   private weeds: Phaser.GameObjects.Image[] = [];
   private growth: GrowthState = initialGrowth;
@@ -71,7 +80,7 @@ export class GameScene extends Phaser.Scene {
     this.level = level;
     this.rng = createRng(Date.now());
     Object.assign(this, {
-      fish: [], jellies: [], hooks: [], powerUps: [], growth: initialGrowth, frenzy: initialFrenzy,
+      fish: [], jellies: [], hooks: [], hookedFish: new Map(), playerHook: null, releaseAt: 0, powerUps: [], growth: initialGrowth, frenzy: initialFrenzy,
       score: 0, lives: TUNING.lives, elapsedMs: 0, boilFrame: 0, boilClock: 0, ended: false,
     });
     this.nextHookAt = level.hazards.hookEverySec * 1000;
@@ -104,7 +113,7 @@ export class GameScene extends Phaser.Scene {
 
   /** Public so the HUD's touch button can trigger it. */
   dash(): void {
-    if (this.ended) return;
+    if (this.ended || this.player.hooked) return;
     const dir = desiredDirection(this, this.controls, this.player);
     if (tryDash(this.player, dir, this.time.now)) this.burst(this.player.sprite.x, this.player.sprite.y, 5);
   }
@@ -121,7 +130,7 @@ export class GameScene extends Phaser.Scene {
     this.elapsedMs += deltaMs;
     this.tickBoil(deltaMs);
 
-    movePlayer(this.player, desiredDirection(this, this.controls, this.player), this.level, now, dt);
+    if (!this.player.hooked) movePlayer(this.player, desiredDirection(this, this.controls, this.player), this.level, now, dt);
     renderPlayer(this.player, now, this.boilFrame, dt);
     const cam = this.cameras.main;
     cam.setZoom(Phaser.Math.Linear(cam.zoom, this.zoomFor(this.player.size), Math.min(1, dt * 2)));
@@ -149,22 +158,43 @@ export class GameScene extends Phaser.Scene {
       this.fish.push(spawnFish(this, this.level, p.size, camView, this.rng));
     }
     this.fish = this.fish.filter((f) => {
-      updateFish(f, view, now, dt);
+      updateFish(f, view, this.level.world.height, now, dt);
       renderFish(f, p.size, this.boilFrame);
-      if (isOffWorld(f, this.level)) {
+      if (f.state !== 'hooked' && isOffWorld(f, this.level)) {
         f.sprite.destroy();
         return false;
       }
-      if (this.ended || !touches(p.sprite.x, p.sprite.y, p.size, f.sprite.x, f.sprite.y, f.size)) return true;
+      // A fish on the line belongs to the angler now.
+      if (this.ended || p.hooked || f.state === 'hooked') return true;
+      if (!touches(p.sprite.x, p.sprite.y, p.size, f.sprite.x, f.sprite.y, f.size)) return true;
       const rel = relationTo(p.size, f.size);
       if (rel === 'prey') {
         this.eat(f);
         return false;
       }
-      if (rel === 'predator') this.hurt(f.sprite.x, f.sprite.y);
+      // A stung predator can't bite back.
+      if (rel === 'predator' && !isHelpless(f)) this.hurt(f.sprite.x, f.sprite.y);
       else this.bump(f);
       return true;
     });
+    this.huntPrey(now);
+  }
+
+  /** The food chain doesn't wait for the player: hunters snap up smaller fish they bump into. */
+  private huntPrey(now: number): void {
+    const eaten = new Set<Fish>();
+    for (const hunter of this.fish) {
+      if (isHelpless(hunter) || now < hunter.fullUntil || eaten.has(hunter)) continue;
+      const prey = this.fish.find((f) =>
+        f !== hunter && !eaten.has(f) && f.state !== 'hooked' && canHunt(hunter.species, hunter.size, f.size) &&
+        touches(hunter.sprite.x, hunter.sprite.y, hunter.size, f.sprite.x, f.sprite.y, f.size, 0.6));
+      if (!prey) continue;
+      eaten.add(prey);
+      hunter.fullUntil = now + HUNT_COOLDOWN_MS;
+      this.burst(prey.sprite.x, prey.sprite.y, 4);
+      prey.sprite.destroy();
+    }
+    if (eaten.size) this.fish = this.fish.filter((f) => !eaten.has(f));
   }
 
   private eat(f: Fish): void {
@@ -220,11 +250,12 @@ export class GameScene extends Phaser.Scene {
     const p = this.player;
     for (const j of this.jellies) {
       updateJelly(j, this.level, dt, this.boilFrame);
-      if (now > p.stunnedUntil + 600 && now > p.invulnerableUntil &&
+      if (!p.hooked && now > p.stunnedUntil + 600 && now > p.invulnerableUntil &&
         touches(p.sprite.x, p.sprite.y, p.size, j.sprite.x, j.sprite.y, j.radius, 0.7)) {
         p.stunnedUntil = now + TUNING.stunMs;
         this.floatText(p.sprite.x, p.sprite.y - 30, 'zzap!', '#6b3f99');
       }
+      this.stingFish(j, now);
     }
     if (this.level.hazards.hookEverySec > 0 && this.elapsedMs > this.nextHookAt) {
       this.nextHookAt = this.elapsedMs + this.level.hazards.hookEverySec * 1000;
@@ -232,13 +263,92 @@ export class GameScene extends Phaser.Scene {
     }
     this.hooks = this.hooks.filter((h) => {
       const alive = updateHook(h, deltaMs, this.boilFrame);
-      const tip = hookTip(h);
-      if (alive && tip.active && touches(p.sprite.x, p.sprite.y, p.size, tip.x, tip.y, 12, 0.8)) {
-        this.hurt(tip.x, tip.y);
-      }
-      if (!alive) destroyHook(h);
+      if (alive) this.biteHook(h, now);
+      this.carry(h, now);
+      if (!alive) this.landCatch(h);
       return alive;
     });
+  }
+
+  /** Jellyfish sting any fish that brushes them, not just the player. */
+  private stingFish(j: Jelly, now: number): void {
+    const view = this.cameras.main.worldView;
+    for (const f of this.fish) {
+      if (isHelpless(f) || !touches(f.sprite.x, f.sprite.y, f.size, j.sprite.x, j.sprite.y, j.radius, 0.7)) continue;
+      stunFish(f, now, TUNING.fishStunMs);
+      if (view.contains(f.sprite.x, f.sprite.y)) this.floatText(f.sprite.x, f.sprite.y - f.size, 'zzap!', '#6b3f99', 22);
+    }
+  }
+
+  /** An empty, lowered hook snags the first fish (or player) that touches the barb. */
+  private biteHook(h: Hook, now: number): void {
+    const tip = hookTip(h);
+    if (!tip.active) return;
+    const p = this.player;
+    if (!this.ended && !p.hooked && now > p.invulnerableUntil &&
+      touches(p.sprite.x, p.sprite.y, p.size, tip.x, tip.y, 12, 0.8)) {
+      this.hookPlayer(h, now);
+      return;
+    }
+    const fish = this.fish.find((f) => f.state !== 'hooked' && touches(f.sprite.x, f.sprite.y, f.size, tip.x, tip.y, 12, 0.8));
+    if (!fish) return;
+    fish.state = 'hooked';
+    hookCatch(h, fish.size);
+    this.hookedFish.set(h, fish);
+    this.burst(tip.x, tip.y, 4);
+  }
+
+  /** Whatever is on the hook rides up with it. */
+  private carry(h: Hook, now: number): void {
+    const fish = this.hookedFish.get(h);
+    if (fish) {
+      const pt = hangPoint(h, fish.size, fish.phase);
+      fish.sprite.setPosition(pt.x, pt.y);
+    }
+    if (this.playerHook !== h) return;
+    const p = this.player;
+    const pt = hangPoint(h, p.size, now / 1000);
+    p.sprite.setPosition(pt.x, pt.y);
+    // With a life to spare the player thrashes free; with none they're hauled out of the water.
+    if (this.lives > 0 && (now >= this.releaseAt || pt.y < waterTop(p.size) + p.size)) this.wriggleFree(h, now);
+  }
+
+  private hookPlayer(h: Hook, now: number): void {
+    const p = this.player;
+    hookCatch(h, p.size);
+    this.playerHook = h;
+    this.releaseAt = now + TUNING.hookStruggleMs;
+    Object.assign(p, { hooked: true, vx: 0, vy: 0 });
+    this.lives -= 1;
+    this.frenzy = initialFrenzy;
+    this.burst(p.sprite.x, p.sprite.y, 10);
+    this.cameras.main.shake(220, 0.008);
+    this.floatText(p.sprite.x, p.sprite.y - 40, 'Hooked!', '#a3342b', 40);
+  }
+
+  private wriggleFree(h: Hook, now: number): void {
+    const p = this.player;
+    hookRelease(h);
+    this.playerHook = null;
+    Object.assign(p, { hooked: false, vx: 0, vy: 180, invulnerableUntil: now + TUNING.invulnerableMs });
+    this.burst(p.sprite.x, p.sprite.y - p.size, 6);
+    this.floatText(p.sprite.x, p.sprite.y - 40, 'Wriggled free!', '#1f3f8a', 32);
+  }
+
+  /** The hook left the water: its catch is gone for good. */
+  private landCatch(h: Hook): void {
+    const fish = this.hookedFish.get(h);
+    if (fish) {
+      fish.sprite.destroy();
+      this.fish = this.fish.filter((f) => f !== fish);
+      this.hookedFish.delete(h);
+    }
+    if (this.playerHook === h) {
+      this.playerHook = null;
+      this.player.sprite.setVisible(false);
+      this.finish('lose');
+    }
+    destroyHook(h);
   }
 
   private updatePowerUps(now: number): void {
