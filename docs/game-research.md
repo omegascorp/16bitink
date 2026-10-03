@@ -95,6 +95,8 @@ Giants are their own species, appear only once (as the chapter's final boss), an
 
 ## Core mechanics (built)
 
+- Sound: every effect is synthesized live with the Web Audio API (audio/synth.ts), no audio files: gulps pitched by the size of the meal, dash whoosh, growth chime, hurt thud, jellyfish buzz, hook clink and reel ratchet, splashes, bird squawks, item sounds, combo sparkle, win and lose jingles, pencil-tick button clicks. Sounds away from the player are panned and fade with distance off screen; repeats are throttled. Audio starts on the first click or key press, pauses with a hidden tab, and the HUD's note button (or M) mutes it, remembered in storage.
+
 - Steering by mouse, finger or keyboard, with inertia. Dash: Space, Shift, a mouse click or the touch button.
 - Leaping: in chapters 1-6 (open sky), dash up into the surface to leap out in an arc you can't steer. In the air nothing in the water can reach you and chasers lose track of you. Deeper chapters have no sky.
 - Birds (chapters 1-6): dragonflies, terns, gulls, pelicans and gannets follow the same size rule as fish. Smaller birds are snacks you leap for; bigger ones cast a shadow on the water, hover, then plunge in after you (and grab other fish too). A bird can carry you off: "Snatched!".

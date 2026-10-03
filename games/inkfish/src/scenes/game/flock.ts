@@ -52,6 +52,8 @@ const FLAP = [0, 1, 2, 1] as const;
 
 export interface FlockFx {
   splash(x: number, size: number): void;
+  /** A bird has picked its target and is about to dive. */
+  squawk(x: number, y: number): void;
 }
 
 export class Flock {
@@ -129,7 +131,10 @@ export class Flock {
       s.x += b.dir * info.speed * dt;
       s.y += (b.cruiseY + bob - s.y) * Math.min(1, dt * 2);
       s.setRotation(0).setFlipX(b.dir < 0);
-      if (wantsDive({ kind: b.kind, size: b.size, x: s.x, restUntil: b.restUntil }, q, SKY.surfaceY, now)) Object.assign(b, { state: 'aim', t: 0 });
+      if (wantsDive({ kind: b.kind, size: b.size, x: s.x, restUntil: b.restUntil }, q, SKY.surfaceY, now)) {
+        Object.assign(b, { state: 'aim', t: 0 });
+        if (b.kind !== 'dragonfly') fx.squawk(s.x, s.y);
+      }
     } else if (b.state === 'aim') {
       // Hang in the air, tipping over towards the water.
       const tip = Math.min(1, b.t / AIM_MS) * 1.1;

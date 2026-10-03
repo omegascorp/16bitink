@@ -6,6 +6,7 @@ import type { LevelDescription } from '../levels/twists';
 import { itemKey } from './game/items';
 import { DASH_ZONE } from './game/player';
 import { HUD_EVENT, type GameScene, type HudSnapshot } from './GameScene';
+import { getSound } from '../host';
 import { BLUE_INK, inkButton, inkText, INK_HEX, RED_INK, uiScale, wobblyRect } from './ui';
 
 /** Score and warnings on dark water. */
@@ -76,6 +77,7 @@ export class HudScene extends Phaser.Scene {
     const fsAvailable = this.scale.fullscreen.available;
     this.addCornerButton(0, '❚❚', () => this.togglePause());
     if (fsAvailable) this.addCornerButton(1, '⤢', () => this.toggleFullscreen());
+    this.addMuteButton(fsAvailable ? 2 : 1);
     this.dashBtn = data.touch ? this.makeDashButton(game) : null;
 
     game.events.on(HUD_EVENT, this.onSnapshot, this);
@@ -155,10 +157,29 @@ export class HudScene extends Phaser.Scene {
 
   private cornerButtons: Phaser.GameObjects.Container[] = [];
 
-  private addCornerButton(slot: number, label: string, onClick: () => void): void {
+  private addCornerButton(slot: number, label: string, onClick: () => void): Phaser.GameObjects.Container {
     const btn = inkButton(this, 0, 0, label, onClick, { width: 52, height: 48, size: 28, seed: slot + 5 });
     btn.setData('slot', slot);
     this.cornerButtons = [...this.cornerButtons.filter((b) => b.active), btn];
+    return btn;
+  }
+
+  /** Sound on/off: a note, struck through in red while muted. M toggles it too. */
+  private addMuteButton(slot: number): void {
+    const sound = getSound(this);
+    if (!sound) return;
+    const strike = this.add.graphics();
+    strike.lineStyle(3, 0xa3342b, 0.9).lineBetween(-15, 13, 15, -13);
+    const sync = (): void => {
+      strike.setVisible(sound.muted);
+    };
+    const toggle = (): void => {
+      sound.setMuted(!sound.muted);
+      sync();
+    };
+    this.addCornerButton(slot, '♪', toggle).add(strike);
+    this.input.keyboard?.on('keydown-M', toggle);
+    sync();
   }
 
   private makeDashButton(game: GameScene): Phaser.GameObjects.Container {

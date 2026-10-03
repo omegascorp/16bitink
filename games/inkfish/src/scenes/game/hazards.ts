@@ -171,8 +171,9 @@ export function updateHook(h: Hook, dtMs: number, frame: number, current = 0): b
   h.tilt = -Math.atan2(eye.x - before.x, eye.y - before.y);
   h.sprite.setPosition(eye.x, eye.y).setRotation(h.tilt).setTexture(boilKey('hook', frame));
   // Whatever bit the hook took the worm with it; a rising empty hook's worm thrashes.
+  // No worm while the hook is still up with the angler (during the warning line).
   h.worm.clear().setPosition(eye.x, eye.y).setRotation(h.tilt);
-  if (h.load === 0) drawWorm(h.worm, HOOK_EYE.x, HOOK_EYE.y, h.age / 1000, h.phase === 'reel');
+  if (h.load === 0 && h.sprite.visible) drawWorm(h.worm, HOOK_EYE.x, HOOK_EYE.y, h.age / 1000, h.phase === 'reel');
   return true;
 }
 

@@ -55,7 +55,7 @@ export const GAMES: readonly CatalogGame[] = [
       'Full game: 90 more levels across 9 deeper zones',
       'One-time purchase, no ads, no energy timers',
     ],
-    controls: ['Mouse / finger: swim', 'Space, click or the dash button: dash', 'Esc / P: pause'],
+    controls: ['Mouse / finger: swim', 'Space, click or the dash button: dash', 'Esc / P: pause', 'M: sound on/off'],
   },
   {
     slug: 'pixel-quill',

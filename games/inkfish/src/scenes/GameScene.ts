@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, ensureFishTextures, jellyGlowKey, releaseFishTextures, weedKey } from '../art/textures';
-import { getChapters, getHost } from '../host';
+import { getChapters, getHost, getSound } from '../host';
 import type { LevelDef, SpeciesId } from '../levels/types';
 import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy, type FrenzyState } from '../logic/frenzy';
 import { addGrowth, growthProgress, initialGrowth, playerSizeFor, type GrowthState } from '../logic/growth';
@@ -27,6 +27,7 @@ import { TUNING } from './game/tuning';
 import { TwistRunner } from './game/twistRunner';
 import { drawWorld, swayWeeds } from './game/world';
 import { DeepLight, playerGlowTint } from './game/deepLight';
+import { itemSfx, pitchForSize, type SfxId } from '../audio/recipes';
 import { JELLY_INFO } from '../levels/jellies';
 import { buildCover } from './game/coverPatches';
 import { Hideout } from './game/hideout';
@@ -202,7 +203,9 @@ export class GameScene extends Phaser.Scene {
   dash(): void {
     if (this.ended || this.player.hooked) return;
     const dir = desiredDirection(this, this.controls, this.player);
-    if (tryDash(this.player, dir, this.time.now)) this.burst(this.player.sprite.x, this.player.sprite.y, 5);
+    if (!tryDash(this.player, dir, this.time.now)) return;
+    this.burst(this.player.sprite.x, this.player.sprite.y, 5);
+    this.sfx('dash');
   }
 
   private zoomFor(size: number): number {
@@ -227,11 +230,15 @@ export class GameScene extends Phaser.Scene {
     if (!this.player.hooked) {
       const p = this.player;
       const surfaced = movePlayer(p, desiredDirection(this, this.controls, p), this.level, now, dt, this.seabed.floorAt, this.sky);
-      if (surfaced) splash(this, p.sprite.x, SKY.surfaceY + 8, p.size, this.rng);
+      if (surfaced) {
+        splash(this, p.sprite.x, SKY.surfaceY + 8, p.size, this.rng);
+        this.sfx('splash', undefined, pitchForSize(p.size) * 0.8);
+      }
       if (!p.airborne) this.drift(p.sprite, p.size, 0.85, dt);
     }
     this.hideout.update(this.player, now, deltaMs, dt, () => {
       this.floatText(this.player.sprite.x, this.player.sprite.y - 40, 'Spotted!', '#a3342b', 36);
+      this.sfx('spotted');
     });
     renderPlayer(this.player, now, this.boilFrame, dt);
     const cam = this.cameras.main;
@@ -333,6 +340,7 @@ export class GameScene extends Phaser.Scene {
       eaten.add(prey);
       hunter.fullUntil = now + HUNT_COOLDOWN_MS;
       this.burst(prey.sprite.x, prey.sprite.y, 4);
+      this.sfx('eat', prey.sprite, pitchForSize(prey.size), 0.45);
       gulp(prey.sprite, mouthOf(hunter.sprite, hunter.size, hunter.turn));
     }
     if (eaten.size) this.fish = this.fish.filter((f) => !eaten.has(f));
@@ -344,6 +352,8 @@ export class GameScene extends Phaser.Scene {
     const gained = scoreFor(size, mult);
     this.score += gained;
     this.frenzy = feedFrenzy(this.frenzy);
+    const combo = frenzyMultiplier(this.frenzy);
+    this.sfx(combo > mult ? 'frenzy' : 'eat', undefined, combo > mult ? 0.9 + combo * 0.1 : pitchForSize(size));
     const before = this.growth.tier;
     this.growth = addGrowth(this.level, this.growth, growthPointsFor(size));
     this.floatText(sprite.x, sprite.y - size, mult > 1 ? `+${gained} ×${mult}` : `+${gained}`, '#1f3f8a');
@@ -362,6 +372,7 @@ export class GameScene extends Phaser.Scene {
       bounties: this.progress.bounties + (f.role === 'bounty' ? 1 : 0),
       bossEaten: this.progress.bossEaten || f.role === 'boss',
     };
+    if (f.role === 'boss' || f.role === 'bounty') this.sfx('eatBig');
     if (f.role === 'boss') this.floatText(f.sprite.x, f.sprite.y - f.size * 1.6, 'Giant eaten!', '#a3342b', 48);
     if (f.role === 'bounty' && this.level.objective.kind === 'bounty') {
       this.floatText(f.sprite.x, f.sprite.y - f.size * 1.6, `Marked ${this.progress.bounties}/${this.level.objective.count}`, '#a3342b', 36);
@@ -384,6 +395,7 @@ export class GameScene extends Phaser.Scene {
     for (const at of picked) {
       this.score += 150;
       this.burst(at.x, at.y, 6);
+      this.sfx('drop');
       if (this.level.objective.kind === 'collect') {
         this.floatText(at.x, at.y - 30, `${this.progress.collected + 1}/${this.level.objective.count}`, '#1f3f8a', 34);
       }
@@ -399,6 +411,7 @@ export class GameScene extends Phaser.Scene {
     const size = playerSizeFor(this.level, this.growth.tier);
     this.player.size = size;
     this.floatText(this.player.sprite.x, this.player.sprite.y - size * 2, 'Bigger!', '#a3342b', 44);
+    this.sfx('grow');
     this.cameras.main.shake(180, 0.004);
   }
 
@@ -429,6 +442,7 @@ export class GameScene extends Phaser.Scene {
     if (cause === 'spiked') spikeMarks(this, p.sprite.x, p.sprite.y, p.size);
     else this.burst(p.sprite.x, p.sprite.y, 14);
     this.floatText(p.sprite.x, p.sprite.y - 40, hitText(cause), '#a3342b', 40);
+    this.sfx('hurt');
     p.invulnerableUntil = now + TUNING.invulnerableMs;
     if (bird) {
       // Pecked and dropped: you tumble back down into the water, the bird flies off.
@@ -444,7 +458,13 @@ export class GameScene extends Phaser.Scene {
   private updateBirds(now: number, dt: number): void {
     const p = this.player;
     const quarry = { x: p.sprite.x, y: p.sprite.y, size: p.size, playerSize: p.size, safe: this.ended || p.hooked || p.hidden };
-    const fx = { splash: (x: number, size: number) => splash(this, x, SKY.surfaceY + 8, size, this.rng) };
+    const fx = {
+      splash: (x: number, size: number) => {
+        splash(this, x, SKY.surfaceY + 8, size, this.rng);
+        this.sfx('splash', { x, y: SKY.surfaceY }, pitchForSize(size), 0.7);
+      },
+      squawk: (x: number, y: number) => this.sfx('squawk', { x, y }),
+    };
     this.flock.update(now, dt, quarry, this.cameras.main.worldView, this.level.world.width, fx);
     if (this.ended) return;
     for (const b of [...this.flock.birds]) {
@@ -496,6 +516,7 @@ export class GameScene extends Phaser.Scene {
         capsuleTouchesCircle(bodyOf(p.sprite, p.shape), j.sprite.x, j.sprite.y, j.radius, 0.8)) {
         p.stunnedUntil = now + TUNING.stunMs;
         this.floatText(p.sprite.x, p.sprite.y - 30, 'zzap!', '#6b3f99');
+        this.sfx('zap');
       }
       this.stingFish(j, now);
     }
@@ -520,6 +541,7 @@ export class GameScene extends Phaser.Scene {
       if (isHelpless(f) || !capsuleTouchesCircle(bodyOf(f.sprite, f.species), j.sprite.x, j.sprite.y, j.radius, 0.8)) continue;
       stunFish(f, now, TUNING.fishStunMs);
       if (view.contains(f.sprite.x, f.sprite.y)) this.floatText(f.sprite.x, f.sprite.y - f.size, 'zzap!', '#6b3f99', 22);
+      this.sfx('zap', f.sprite, 1.3, 0.5);
     }
   }
 
@@ -539,6 +561,7 @@ export class GameScene extends Phaser.Scene {
     hookCatch(h, fish.size);
     this.hookedFish.set(h, fish);
     this.burst(tip.x, tip.y, 4);
+    this.sfx('hooked', tip, 1, 0.5);
   }
 
   /** Whatever is on the hook rides up with it. */
@@ -567,6 +590,7 @@ export class GameScene extends Phaser.Scene {
     this.burst(p.sprite.x, p.sprite.y, 10);
     this.cameras.main.shake(220, 0.008);
     this.floatText(p.sprite.x, p.sprite.y - 40, hitText('hooked'), '#a3342b', 40);
+    this.sfx('hooked');
   }
 
   private wriggleFree(h: Hook, now: number): void {
@@ -576,6 +600,7 @@ export class GameScene extends Phaser.Scene {
     Object.assign(p, { hooked: false, vx: 0, vy: 180, invulnerableUntil: now + TUNING.invulnerableMs });
     this.burst(p.sprite.x, p.sprite.y - p.size, 6);
     this.floatText(p.sprite.x, p.sprite.y - 40, 'Wriggled free!', '#1f3f8a', 32);
+    this.sfx('free');
   }
 
   /** The hook left the water: its catch is gone for good. */
@@ -607,6 +632,7 @@ export class GameScene extends Phaser.Scene {
       if (!updateItem(it, now, dt, this.boilFrame, this.seabed.floorAt)) return false;
       if (p.hooked || p.airborne || !capsuleTouchesCircle(bodyOf(p.sprite, p.shape), it.sprite.x, it.sprite.y, 22)) return true;
       this.burst(it.sprite.x, it.sprite.y, 5);
+      for (const id of itemSfx(it.kind)) this.sfx(id, undefined, id === 'squawk' ? 1.4 : 1);
       it.sprite.destroy();
       applyItem(this.itemHost, it.kind, now);
       return false;
@@ -656,6 +682,7 @@ export class GameScene extends Phaser.Scene {
     p.invulnerableUntil = now + 1200;
     this.burst(p.sprite.x, p.sprite.y, 8);
     this.floatText(p.sprite.x, p.sprite.y - 40, 'Clang!', '#4a463e', 40);
+    this.sfx('clang');
     return true;
   }
 
@@ -665,6 +692,7 @@ export class GameScene extends Phaser.Scene {
     // Before the result screen reads the save.
     this.sightings.save();
     this.emitHud();
+    this.sfx(kind);
     this.time.delayedCall(kind === 'win' ? 700 : 1900, () => {
       this.scene.pause();
       this.scene.launch('Result', {
@@ -693,6 +721,11 @@ export class GameScene extends Phaser.Scene {
       urgent: line.urgent,
     };
     this.events.emit(HUD_EVENT, snapshot);
+  }
+
+  /** A sound effect; with `at`, panned and faded by where it is on (or off) screen. */
+  private sfx(id: SfxId, at?: { readonly x: number; readonly y: number }, pitch = 1, gain = 1): void {
+    getSound(this)?.play(id, { at, view: at ? this.cameras.main.worldView : undefined, pitch, gain });
   }
 
   private floatText(x: number, y: number, text: string, color: string, size = 30): void {

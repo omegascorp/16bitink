@@ -1,5 +1,6 @@
 import type { GameHandle, GameHost, GameModule } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
+import { SoundBoard } from './audio/sound';
 import { REG } from './host';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
@@ -26,10 +27,20 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     // Mipmaps keep hairline pen detail clean when sprites are drawn small.
     render: { antialias: true, roundPixels: false, mipmapFilter: 'LINEAR_MIPMAP_LINEAR' },
     input: { activePointers: 3 },
+    // Sound effects are synthesized by our own SoundBoard (audio/sound.ts); Phaser's audio stays off.
+    audio: { noAudio: true },
     scene: [BootScene, MenuScene, GameScene, HudScene, ResultScene, GuideScene],
   });
   game.registry.set(REG.host, host);
-  return { phaser: game, destroy: () => game.destroy(true) };
+  const sound = new SoundBoard(host.storage);
+  game.registry.set(REG.sound, sound);
+  return {
+    phaser: game,
+    destroy: () => {
+      sound.destroy();
+      game.destroy(true);
+    },
+  };
 }
 
 const inkfish: GameModule = { mount };

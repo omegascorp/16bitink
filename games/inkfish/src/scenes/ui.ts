@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getSound } from '../host';
 import { INK } from '../art/pen';
 import { createRng } from '../logic/rng';
 
@@ -69,6 +70,7 @@ export function inkButton(
     pressedAt = null;
     if (!start || Phaser.Math.Distance.Between(start.x, start.y, p.x, p.y) > 12) return;
     ev.stopPropagation();
+    getSound(scene)?.play('click');
     onClick();
   });
   return c;
