@@ -20,7 +20,7 @@ import {
   destroyHook, hangPoint, hookCatch, hookRelease, hookTip, spawnJellies, updateHook, updateJelly, type Hook, type Jelly,
 } from './game/hazards';
 import {
-  createControls, createPlayer, desiredDirection, movePlayer, renderPlayer, tryDash, type Controls, type Player,
+  createControls, createPlayer, desiredDirection, movePlayer, renderPlayer, isSettled, settlePlayer, tryDash, type Controls, type Player,
 } from './game/player';
 import { applyItem, type ItemHost } from './game/itemEffects';
 import { spawnItem, updateItem, type FallingItem } from './game/items';
@@ -78,6 +78,8 @@ function levelSpecies(level: LevelDef): SpeciesId[] {
 
 /** How far the camera leans up into the sky while you swim near the surface, px. */
 const SKY_LOOK = 110;
+/** Longest the win card waits for the fish to settle, ms past the usual pause. */
+const SETTLE_MAX_MS = 3000;
 
 export class GameScene extends Phaser.Scene {
   private level!: LevelDef;
@@ -226,7 +228,9 @@ export class GameScene extends Phaser.Scene {
     swayWeeds(this.weeds, this.twist.current, this.time.now);
     this.lightTheDeep(now, dt);
     if (this.ended) {
-      // The sea carries on while the ending plays; the player's sprite belongs to the death animation.
+      // The sea carries on while the ending plays. A winner settles into a
+      // calm pose; a loser's sprite belongs to the death animation.
+      if (!this.death) settlePlayer(this.player, this.level, now, this.boilFrame, dt, this.seabed.floorAt, this.sky);
       this.updateFishes(now, dt);
       this.updateHazards(now, deltaMs, dt);
       return;
@@ -709,13 +713,21 @@ export class GameScene extends Phaser.Scene {
     this.sightings.save();
     this.emitHud();
     this.sfx(kind);
-    this.time.delayedCall(kind === 'win' ? 700 : 1900, () => {
+    const showResult = (): void => {
       this.scene.pause();
       this.scene.launch('Result', {
         kind, levelIndex: this.levelIndex, score: this.score, seconds: this.elapsedMs / 1000,
         death: this.death ?? undefined, player: this.player.shape,
       });
-    });
+    };
+    // A winner is shown only once it has settled (landed from a leap, level,
+    // turned all the way), so it isn't frozen mid-air, mid-dive or edge-on.
+    const deadline = this.time.now + SETTLE_MAX_MS;
+    const whenSettled = (): void => {
+      if (isSettled(this.player) || this.time.now > deadline) showResult();
+      else this.time.delayedCall(100, whenSettled);
+    };
+    this.time.delayedCall(kind === 'win' ? 900 : 1900, kind === 'win' ? whenSettled : showResult);
   }
 
   private emitHud(): void {

@@ -4,6 +4,7 @@ import { fishKey } from '../../art/textures';
 import { PLAYER_STATS, type SwimStats } from '../../levels/playerStats';
 import type { LevelDef, PlayerFishId } from '../../levels/types';
 import { JUMP, stepSurface, type SurfaceEvent } from '../../logic/jump';
+import { settleFacing } from '../../logic/settle';
 import { aboveSeabed, waterBottom, waterTop } from '../../logic/water';
 import { attachTail, setSwimTexture, setTailBeat, stroke, turnToward, type SwimState } from './swim';
 import { TUNING } from './tuning';
@@ -162,7 +163,7 @@ export function tryDash(p: Player, dir: { x: number; y: number }, now: number): 
   return true;
 }
 
-export function renderPlayer(p: Player, now: number, frame: number, dt: number): void {
+export function renderPlayer(p: Player, now: number, frame: number, dt: number, settling = false): void {
   const s = p.sprite;
   setSwimTexture(s, fishKey(p.shape, 'light', frame));
   p.drawSize += (p.size - p.drawSize) * Math.min(1, dt * 5);
@@ -176,7 +177,7 @@ export function renderPlayer(p: Player, now: number, frame: number, dt: number):
     // Dashing and energy rushes beat harder; idle fins still keep a slow stroke.
     const effort = now < p.speedUntil || speed > TUNING.playerSpeed * 1.2 ? 1.6 : now < p.stunnedUntil ? 0.3 : 1;
     setTailBeat(s, stroke(p, speed, dt, effort));
-    const facing = turnToward(p, Math.abs(p.vx) > 8 ? (p.vx < 0 ? -1 : 1) : 0, dt);
+    const facing = turnToward(p, settling ? settleFacing(p.vx, p.turn) : Math.abs(p.vx) > 8 ? (p.vx < 0 ? -1 : 1) : 0, dt);
     s.setFlipX(p.turn < 0).setScale(base * facing, base * chomp);
     // In the air the body follows its arc: nose up on the way out, down on the way back.
     const tilt = p.airborne ? Phaser.Math.Clamp(Math.atan2(p.vy, Math.abs(p.vx) + 60), -1.2, 1.2) : Phaser.Math.Clamp(p.vy / 700, -0.45, 0.45);
@@ -188,4 +189,24 @@ export function renderPlayer(p: Player, now: number, frame: number, dt: number):
   else if (now < p.slowUntil) s.setTint(0xa9c08c);
   else if (now < p.speedUntil) s.setTint(0xffe2a0);
   else s.clearTint();
+}
+
+/**
+ * After a win: no more steering, so the fish coasts to a stop (or falls back
+ * from a leap), finishes any half-done turn and levels out, ready to be
+ * frozen behind the result card in a calm pose rather than mid-turn or
+ * mid-bite. Effect tints and the hurt blink are dropped.
+ */
+export function settlePlayer(
+  p: Player, level: LevelDef, now: number, frame: number, dt: number, floorAt?: (x: number) => number, sky = false,
+): void {
+  if (p.hooked) return;
+  Object.assign(p, { invulnerableUntil: 0, stunnedUntil: 0, slowUntil: 0, speedUntil: 0 });
+  movePlayer(p, { x: 0, y: 0 }, level, now, dt, floorAt, sky);
+  renderPlayer(p, now, frame, dt, true);
+}
+
+/** In the water, level and turned all the way: a pose worth freezing behind the result card. */
+export function isSettled(p: Player): boolean {
+  return !p.airborne && Math.abs(p.sprite.rotation) < 0.04 && Math.abs(p.turn) > 0.97;
 }

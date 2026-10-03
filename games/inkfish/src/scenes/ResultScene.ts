@@ -97,6 +97,25 @@ function deathPicture(scene: Phaser.Scene, death: Death, player: PlayerFishId, s
   return [killer, scene.add.image(85, y + 8, 'bones').setScale(0.5).setRotation(0.1)];
 }
 
+const PAPER = 0xf4eddc;
+
+/**
+ * The paper laid over the frozen level: the sea still shows faintly at the
+ * edges, but behind the card itself the paper thickens to opaque, so fish
+ * left in the water never sit on top of the title, stars or buttons.
+ */
+function paperBackdrop(scene: Phaser.Scene): Phaser.GameObjects.Graphics {
+  const g = scene.add.graphics();
+  g.fillStyle(PAPER, 0.86).fillRect(-3000, -3000, 6000, 6000);
+  // Stacked soft layers: a gentle fade rather than a hard-edged panel.
+  for (let i = 0; i < 8; i++) {
+    const w = 560 + i * 70;
+    const h = 780 + i * 50;
+    g.fillStyle(PAPER, 0.3).fillRoundedRect(-w / 2, -h / 2 - 20, w, h, 120);
+  }
+  return g;
+}
+
 export class ResultScene extends Phaser.Scene {
   constructor() {
     super('Result');
@@ -109,9 +128,7 @@ export class ResultScene extends Phaser.Scene {
     if (!level) throw new Error(`Result for unknown level ${data.levelIndex}`);
     const { width, height } = this.scale;
     const root = this.add.container(width / 2, height / 2).setScale(uiScale(this, 700, 640));
-    const bg = this.add.graphics();
-    bg.fillStyle(0xf4eddc, 0.92).fillRect(-3000, -3000, 6000, 6000);
-    root.add(bg);
+    root.add(paperBackdrop(this));
     const relayout = (): void => {
       root.setPosition(this.scale.width / 2, this.scale.height / 2).setScale(uiScale(this, 700, 640));
     };
