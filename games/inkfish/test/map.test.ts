@@ -33,12 +33,13 @@ describe('level generator', () => {
   const recipe = {
     names: ['a'], spawns: [{ species: 'minnow' as const, weight: 4, size: [8, 14] as const }, { species: 'pike' as const, weight: 1, size: [40, 50] as const }],
     maxFish: [20, 30] as const, jellyfish: [0, 4] as const, hookEverySec: [20, 10] as const,
-    goal: [50, 100] as const, finalSize: [40, 50] as const,
+    goal: [50, 100] as const, finalSize: [40, 50] as const, boss: 'bass' as const,
   };
 
   it('ramps difficulty across the chapter', () => {
     const first = generateLevel(info, recipe, 0);
-    const last = generateLevel(info, recipe, LEVELS_PER_CHAPTER - 1);
+    // The giant's level caps everyone else's size, so compare the level before it.
+    const last = generateLevel(info, recipe, LEVELS_PER_CHAPTER - 2);
     expect(last.tiers[2]).toBeGreaterThan(first.tiers[2]);
     expect(last.hazards.jellyfish).toBeGreaterThan(first.hazards.jellyfish);
     expect(last.hazards.hookEverySec).toBeLessThan(first.hazards.hookEverySec);

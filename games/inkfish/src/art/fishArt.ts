@@ -1,97 +1,14 @@
 import type { PlayerFishId, SpeciesId } from '../levels/types';
+import { ANATOMY } from './fish/registry';
+import {
+  bezier, bottomAt, C, FISH_RADIUS, FISH_TEX, heightAt, outline, PAPER_FILL, topAt, xAt, type Anatomy, type Fin, type Kit,
+} from './fish/kit';
 import { ellipse, INK, Pen, type Pt } from './pen';
 
+export { FISH_RADIUS, FISH_TEX };
 export type FishShape = SpeciesId | PlayerFishId;
 /** light = prey/peer look, heavy = predator look (engraved cross-hatching). */
 export type InkVariant = 'light' | 'heavy';
-
-/** Texture side in px (power of two, so the GPU can mipmap the fine lines). */
-export const FISH_TEX = 256;
-/** A fish of game radius R is drawn at scale R / FISH_RADIUS. */
-export const FISH_RADIUS = 86;
-
-const C = FISH_TEX / 2;
-const PAPER_FILL = '#fffaf0';
-
-type Tail = 'fork' | 'round' | 'point';
-
-interface Fin {
-  /** Along the body, 0 = nose, 1 = tail base. */
-  readonly from: number;
-  readonly to: number;
-  /** Height relative to the body's half height. */
-  readonly height: number;
-  readonly spiny?: boolean;
-}
-
-interface Anatomy {
-  /** Half length and maximum half height of the body. */
-  readonly hl: number;
-  readonly hh: number;
-  /** Where the body is tallest (0 nose .. 1 tail). */
-  readonly peak: number;
-  /** 0 = pointed snout, 1 = round head. */
-  readonly blunt: number;
-  /** Tail-stalk height as a fraction of hh. */
-  readonly peduncle: number;
-  readonly tail: Tail;
-  readonly tailSize: number;
-  readonly dorsal?: Fin;
-  readonly dorsal2?: Fin;
-  readonly anal?: Fin;
-  readonly pectoral: number;
-  readonly pelvic: boolean;
-  readonly scales: boolean;
-  readonly eye: { readonly t: number; readonly r: number };
-  readonly mouth: 'small' | 'teeth' | 'gape' | 'beak';
-  readonly wash: string;
-  readonly finWash?: string;
-  readonly ink?: string;
-  readonly extras?: (k: Kit) => void;
-  /** Body undulation amplitude in px (eels). */
-  readonly wave?: number;
-}
-
-/** Everything a species' extra-detail hook needs. */
-interface Kit {
-  readonly pen: Pen;
-  readonly a: Anatomy;
-  readonly body: Pt[];
-  readonly heavy: boolean;
-  readonly ink: string;
-  x(t: number): number;
-  h(t: number): number;
-}
-
-// ---------------------------------------------------------------- profile
-
-function heightAt(a: Anatomy, t: number): number {
-  if (t <= a.peak) {
-    const u = t / a.peak;
-    return a.hh * Math.pow(Math.sin((u * Math.PI) / 2), 0.35 + 0.9 * (1 - a.blunt));
-  }
-  const u = (t - a.peak) / (1 - a.peak);
-  return a.hh * (a.peduncle + (1 - a.peduncle) * Math.pow(Math.cos((u * Math.PI) / 2), 1.15));
-}
-
-const xAt = (a: Anatomy, t: number): number => C + a.hl - 2 * a.hl * t;
-const topAt = (a: Anatomy, t: number): number => C - heightAt(a, t) * 1.04;
-const bottomAt = (a: Anatomy, t: number): number => C + heightAt(a, t) * 0.92;
-
-function outline(a: Anatomy): Pt[] {
-  const n = 48;
-  const top = Array.from({ length: n + 1 }, (_, i) => ({ x: xAt(a, i / n), y: topAt(a, i / n) }));
-  const bottom = Array.from({ length: n + 1 }, (_, i) => ({ x: xAt(a, 1 - i / n), y: bottomAt(a, 1 - i / n) }));
-  return [...top, ...bottom];
-}
-
-function bezier(p0: Pt, c: Pt, p1: Pt, n = 12): Pt[] {
-  return Array.from({ length: n + 1 }, (_, i) => {
-    const t = i / n;
-    const u = 1 - t;
-    return { x: u * u * p0.x + 2 * u * t * c.x + t * t * p1.x, y: u * u * p0.y + 2 * u * t * c.y + t * t * p1.y };
-  });
-}
 
 // ---------------------------------------------------------------- fins
 
@@ -105,7 +22,20 @@ function drawTail(k: Kit): void {
   const top = { x: x0, y: C - base * 0.9 };
   const bot = { x: x0, y: C + base * 0.9 };
   const edge: Pt[] =
-    a.tail === 'fork'
+    a.tail === 'lunate'
+      ? [
+          ...bezier(top, { x: x0 - L * 0.35, y: C - S * 0.5 }, { x: x0 - L * 0.9, y: C - S * 1.15 }),
+          ...bezier({ x: x0 - L * 0.9, y: C - S * 1.15 }, { x: x0 - L * 0.45, y: C }, { x: x0 - L * 0.9, y: C + S * 1.15 }),
+          ...bezier({ x: x0 - L * 0.9, y: C + S * 1.15 }, { x: x0 - L * 0.35, y: C + S * 0.5 }, bot),
+        ]
+      : a.tail === 'shark'
+      ? [
+          ...bezier(top, { x: x0 - L * 0.5, y: C - S * 0.7 }, { x: x0 - L * 1.15, y: C - S * 1.25 }),
+          ...bezier({ x: x0 - L * 1.15, y: C - S * 1.25 }, { x: x0 - L * 0.75, y: C - S * 0.2 }, { x: x0 - L * 0.5, y: C + S * 0.05 }),
+          ...bezier({ x: x0 - L * 0.5, y: C + S * 0.05 }, { x: x0 - L * 0.6, y: C + S * 0.45 }, { x: x0 - L * 0.42, y: C + S * 0.62 }),
+          ...bezier({ x: x0 - L * 0.42, y: C + S * 0.62 }, { x: x0 - L * 0.2, y: C + S * 0.4 }, bot),
+        ]
+      : a.tail === 'fork'
       ? [
           ...bezier(top, { x: x0 - L * 0.5, y: C - S * 0.55 }, { x: x0 - L, y: C - S }),
           ...bezier({ x: x0 - L, y: C - S }, { x: x0 - L * 0.62, y: C - S * 0.25 }, { x: x0 - L * 0.55, y: C }),
@@ -145,11 +75,13 @@ function drawEdgeFin(k: Kit, fin: Fin, side: 'top' | 'bottom'): void {
     const f = i / n;
     const t = fin.from + (fin.to - fin.from) * f;
     // Spiny fins are tallest at the front; soft fins are rounded.
-    const prof = fin.spiny ? 0.35 + 0.65 * Math.pow(1 - f, 0.6) : Math.pow(Math.sin(Math.PI * Math.min(1, f * 1.15)), 0.7);
+    const prof = fin.tri
+      ? f < 0.3 ? f / 0.3 : Math.pow(1 - (f - 0.3) / 0.7, 0.8)
+      : fin.spiny ? 0.35 + 0.65 * Math.pow(1 - f, 0.6) : Math.pow(Math.sin(Math.PI * Math.min(1, f * 1.15)), 0.7);
     const height = a.hh * fin.height * Math.max(0.12, prof);
     base.push({ x: xAt(a, t), y: edgeY(t) - dir * 2 });
     // Rays rake back towards the tail.
-    tips.push({ x: xAt(a, t) - height * 0.45, y: edgeY(t) + dir * height });
+    tips.push({ x: xAt(a, t) - height * (fin.tri ? 0.8 : 0.45), y: edgeY(t) + dir * height });
   }
   const edge: Pt[] = fin.spiny
     ? tips.flatMap((p, i) => {
@@ -354,14 +286,21 @@ function anglerMouth(k: Kit): void {
   pen.clipped(mouthShape, () => {
     for (let x = corner.x; x < chin.x + 4; x += 2.2) pen.hair([{ x, y: C - a.hh * 0.2 }, { x: x - 6, y: C + a.hh * 0.6 }], 0.5, ink, 0.7);
   });
-  // Teeth: longest at the front, hanging down from the upper jaw and rising from the lower.
-  for (let i = 1; i <= 7; i++) {
-    const f = i / 8;
-    const len = 11 - f * 6 + pen.rng() * 2;
-    const u = upper[Math.round(f * 0.85 * (upper.length - 1))]!;
-    needle(pen, u, { x: u.x - len * 0.25, y: u.y + len }, 3.2, ink);
-    const l = lower[Math.round(f * 0.85 * (lower.length - 1))]!;
-    needle(pen, l, { x: l.x - len * 0.35, y: l.y - len * 1.05 }, 3.4, ink);
+  // Interlocking fangs: upper and lower teeth alternate along the jaw, so they
+  // can be long without crossing. Each is sized to the gap between the jaws
+  // there, longest at the front where the mouth is widest.
+  const at = (curve: Pt[], f: number): Pt => curve[Math.round(Math.min(1, f) * (curve.length - 1))]!;
+  for (let i = 0; i < 6; i++) {
+    for (const jaw of ['upper', 'lower'] as const) {
+      const f = 0.05 + i * 0.13 + (jaw === 'lower' ? 0.065 : 0);
+      const u = at(upper, f);
+      const l = at(lower, f);
+      const len = Math.min(12, Math.abs(l.y - u.y) * 0.62) * (0.9 + pen.rng() * 0.15);
+      if (len < 2.5) continue;
+      const width = Math.max(1.6, Math.min(3.4, len * 0.38));
+      if (jaw === 'upper') needle(pen, u, { x: u.x - len * 0.2, y: u.y + len }, width, ink);
+      else needle(pen, l, { x: l.x - len * 0.25, y: l.y - len }, width, ink);
+    }
   }
   pen.stroke(upper, 1.3, ink, 1, false);
   pen.stroke(lower, 1.5, ink);
@@ -369,17 +308,6 @@ function anglerMouth(k: Kit): void {
   // A little crease where the lips meet.
   pen.hair(bezier(corner, { x: corner.x - 4, y: corner.y + 3 }, { x: corner.x - 6, y: corner.y + 8 }, 4), 0.6, ink, 0.8);
 }
-
-// ---------------------------------------------------------------- species
-
-const backStipple = (density: number) => (k: Kit): void => {
-  k.pen.stipple(k.body, 900, (x, y) => {
-    const t = (C + k.a.hl - x) / (2 * k.a.hl);
-    const top = topAt(k.a, t);
-    const rel = (y - top) / (heightAt(k.a, t) * 2 || 1);
-    return Math.max(0, (0.45 - rel) * density);
-  }, 0.5, k.ink);
-};
 
 /** Bends a finished drawing into a sine wave by shifting 1px columns (eels swim in S-curves). */
 function undulate(ctx: CanvasRenderingContext2D, amplitude: number): void {
@@ -395,173 +323,16 @@ function undulate(ctx: CanvasRenderingContext2D, amplitude: number): void {
   }
 }
 
-const ANATOMY: Record<FishShape, Anatomy> = {
-  inkling: {
-    hl: 70, hh: 40, peak: 0.38, blunt: 0.8, peduncle: 0.3, tail: 'round', tailSize: 1.0,
-    dorsal: { from: 0.34, to: 0.72, height: 0.55 }, anal: { from: 0.6, to: 0.82, height: 0.42 },
-    pectoral: 0.55, pelvic: true, scales: true, eye: { t: 0.17, r: 11 }, mouth: 'small',
-    wash: '#3466c2', ink: '#1f3f8a',
-  },
-  // Player fish: always blue ink, so "you" read the same in every zone.
-  perchfry: {
-    hl: 64, hh: 36, peak: 0.38, blunt: 0.7, peduncle: 0.28, tail: 'fork', tailSize: 0.95,
-    dorsal: { from: 0.22, to: 0.5, height: 0.7, spiny: true }, dorsal2: { from: 0.55, to: 0.74, height: 0.5 },
-    anal: { from: 0.64, to: 0.8, height: 0.45 }, pectoral: 0.5, pelvic: true, scales: true,
-    eye: { t: 0.16, r: 10 }, mouth: 'small', wash: '#3466c2', finWash: '#7fa3e0', ink: '#1f3f8a',
-    extras: (k) => {
-      k.pen.clipped(k.body, () => {
-        for (let b = 0; b < 4; b++) {
-          const t0 = 0.32 + b * 0.14;
-          for (let t = t0; t < t0 + 0.045; t += 0.008) {
-            k.pen.hair([{ x: k.x(t), y: topAt(k.a, t) }, { x: k.x(t) - 2, y: C + k.h(t) * 0.4 }], 0.5, k.ink, 0.6);
-          }
-        }
-      });
-    },
-  },
-  barracuda: {
-    hl: 96, hh: 20, peak: 0.45, blunt: 0.15, peduncle: 0.4, tail: 'fork', tailSize: 1.5,
-    dorsal: { from: 0.4, to: 0.5, height: 0.9, spiny: true }, dorsal2: { from: 0.7, to: 0.8, height: 0.8 },
-    anal: { from: 0.72, to: 0.82, height: 0.7 }, pectoral: 0.45, pelvic: true, scales: true,
-    eye: { t: 0.14, r: 7 }, mouth: 'teeth', wash: '#3466c2', ink: '#1f3f8a',
-    extras: (k) => {
-      // Dark chevrons along the flank.
-      for (let i = 0; i < 9; i++) {
-        const t = 0.3 + i * 0.065;
-        const x = k.x(t);
-        k.pen.hair([{ x: x + 3, y: C - k.h(t) * 0.75 }, { x: x - 2, y: C - k.h(t) * 0.1 }, { x: x + 3, y: C + k.h(t) * 0.3 }], 0.7, k.ink, 0.6);
-      }
-    },
-  },
-  lanternfish: {
-    hl: 66, hh: 26, peak: 0.32, blunt: 0.9, peduncle: 0.3, tail: 'fork', tailSize: 1.15,
-    dorsal: { from: 0.42, to: 0.58, height: 0.8 }, anal: { from: 0.6, to: 0.8, height: 0.55 },
-    pectoral: 0.5, pelvic: true, scales: true, eye: { t: 0.13, r: 12 }, mouth: 'small',
-    wash: '#2a4d9e', ink: '#1f3f8a',
-    extras: (k) => {
-      // Photophores: glowing dots along the belly and one by the eye.
-      const glow = (x: number, y: number, r: number): void => {
-        k.pen.fill(ellipse(x, y, r * 2.2, r * 2.2, 12), '#f0c94a', 0.25);
-        k.pen.fill(ellipse(x, y, r, r, 10), '#f6d76a', 1);
-        k.pen.hair(ellipse(x, y, r, r, 10).concat([{ x: x + r, y }]), 0.45, k.ink, 0.9);
-      };
-      for (let i = 0; i < 10; i++) {
-        const t = 0.2 + i * 0.07;
-        glow(k.x(t), bottomAt(k.a, t) - 4 - (i % 2) * 2, 1.8);
-      }
-      glow(k.x(0.06), C - k.h(0.06) * 0.1, 2.4);
-    },
-  },
-  minnow: {
-    hl: 78, hh: 21, peak: 0.36, blunt: 0.5, peduncle: 0.32, tail: 'fork', tailSize: 1.5,
-    dorsal: { from: 0.42, to: 0.58, height: 0.95 }, anal: { from: 0.66, to: 0.8, height: 0.6 },
-    pectoral: 0.45, pelvic: true, scales: true, eye: { t: 0.12, r: 6 }, mouth: 'small',
-    wash: '#8fa3a8', extras: backStipple(1.4),
-  },
-  perch: {
-    hl: 68, hh: 42, peak: 0.38, blunt: 0.55, peduncle: 0.26, tail: 'fork', tailSize: 0.95,
-    dorsal: { from: 0.2, to: 0.52, height: 0.78, spiny: true }, dorsal2: { from: 0.56, to: 0.76, height: 0.55 },
-    anal: { from: 0.66, to: 0.82, height: 0.48 }, pectoral: 0.5, pelvic: true, scales: true,
-    eye: { t: 0.15, r: 8 }, mouth: 'small', wash: '#b59a4a', finWash: '#c0563f',
-    extras: (k) => {
-      // Dark saddle bands, drawn as dense vertical hatching.
-      k.pen.clipped(k.body, () => {
-        for (let b = 0; b < 5; b++) {
-          const t0 = 0.3 + b * 0.13;
-          for (let t = t0; t < t0 + 0.05; t += 0.007) {
-            const x = k.x(t);
-            k.pen.hair([{ x, y: topAt(k.a, t) }, { x: x - 2, y: C + k.h(t) * 0.45 }], 0.5, k.ink, 0.7);
-          }
-        }
-      });
-    },
-  },
-  puffer: {
-    hl: 58, hh: 52, peak: 0.45, blunt: 0.95, peduncle: 0.24, tail: 'round', tailSize: 0.75,
-    dorsal: { from: 0.7, to: 0.82, height: 0.42 }, anal: { from: 0.72, to: 0.84, height: 0.38 },
-    pectoral: 0.4, pelvic: false, scales: false, eye: { t: 0.22, r: 10 }, mouth: 'beak', wash: '#c9b36a',
-    extras: (k) => {
-      // Spines: a base dot with a fine prickle pointing backwards.
-      k.pen.clipped(k.body, () => {
-        const ex = k.x(k.a.eye.t);
-        const ey = C - k.h(k.a.eye.t) * 0.3;
-        for (let i = 0; i < 70; i++) {
-          const t = 0.12 + k.pen.rng() * 0.75;
-          const y = C + k.h(t) * (k.pen.rng() * 1.7 - 0.85);
-          const x = k.x(t);
-          if (Math.hypot(x - ex, y - ey) < k.a.eye.r * 2.2) continue;
-          k.pen.dot(x, y, 0.8, k.ink, 0.8);
-          k.pen.hair([{ x, y }, { x: x - 4, y: y + (y < C ? -2 : 2) }], 0.45, k.ink, 0.7);
-        }
-      });
-      // Outline prickles.
-      k.body.forEach((p, i) => {
-        if (i % 4 || p.x < xAt(k.a, 0.85)) return;
-        const dx = p.x - C;
-        const dy = p.y - C;
-        const d = Math.hypot(dx, dy) || 1;
-        k.pen.hair([p, { x: p.x + (dx / d) * 5, y: p.y + (dy / d) * 5 }], 0.6, k.ink, 0.9);
-      });
-    },
-  },
-  pike: {
-    hl: 92, hh: 22, peak: 0.45, blunt: 0.15, peduncle: 0.45, tail: 'fork', tailSize: 1.3,
-    dorsal: { from: 0.72, to: 0.86, height: 0.95 }, anal: { from: 0.74, to: 0.88, height: 0.8 },
-    pectoral: 0.4, pelvic: true, scales: true, eye: { t: 0.13, r: 6 }, mouth: 'teeth', wash: '#5f7f4e',
-    extras: (k) => {
-      // Pale bean-shaped spots, each ringed in stipple.
-      for (let i = 0; i < 16; i++) {
-        const t = 0.28 + k.pen.rng() * 0.6;
-        const y = C + k.h(t) * (k.pen.rng() * 1.2 - 0.6);
-        const spot = ellipse(k.x(t), y, 3.2, 1.8, 10);
-        k.pen.fill(spot, PAPER_FILL, 0.85);
-        k.pen.hair(spot.concat([spot[0]!]), 0.4, k.ink, 0.6);
-      }
-      backStipple(1.2)(k);
-    },
-  },
-  angler: {
-    hl: 62, hh: 46, peak: 0.3, blunt: 0.95, peduncle: 0.3, tail: 'round', tailSize: 0.7,
-    dorsal: { from: 0.62, to: 0.78, height: 0.5 }, anal: { from: 0.66, to: 0.8, height: 0.4 },
-    pectoral: 0.6, pelvic: false, scales: false, eye: { t: 0.24, r: 5.5 }, mouth: 'gape', wash: '#6a5148',
-    extras: (k) => {
-      // Warty skin.
-      k.pen.stipple(k.body, 1400, () => 0.35, 0.5, k.ink);
-      for (let i = 0; i < 12; i++) {
-        const t = 0.25 + k.pen.rng() * 0.6;
-        const y = C + k.h(t) * (k.pen.rng() * 1.4 - 0.7);
-        k.pen.hair(ellipse(k.x(t), y, 1.8, 1.4, 8).concat([{ x: k.x(t) + 1.8, y }]), 0.45, k.ink, 0.7);
-      }
-      // Lure on a jointed stalk, with a glowing bulb.
-      const root = { x: k.x(0.28), y: topAt(k.a, 0.28) };
-      const bulb = { x: k.x(0) + 16, y: topAt(k.a, 0.3) - 26 };
-      k.pen.stroke(bezier(root, { x: k.x(0.12), y: bulb.y - 18 }, bulb), 1.1, k.ink, 1, false);
-      k.pen.fill(ellipse(bulb.x, bulb.y, 9, 9, 16), '#f0c94a', 0.25);
-      k.pen.fill(ellipse(bulb.x, bulb.y, 5, 5, 14), '#f0c94a', 0.95);
-      k.pen.stroke(ellipse(bulb.x, bulb.y, 5, 5, 14).concat([{ x: bulb.x + 5, y: bulb.y }]), 0.8, k.ink, 1, false);
-      for (let i = 0; i < 8; i++) {
-        const ang = (i / 8) * Math.PI * 2;
-        k.pen.hair([{ x: bulb.x + Math.cos(ang) * 7, y: bulb.y + Math.sin(ang) * 7 }, { x: bulb.x + Math.cos(ang) * 10, y: bulb.y + Math.sin(ang) * 10 }], 0.45, '#b08a1a', 0.8);
-      }
-    },
-  },
-  eel: {
-    hl: 108, hh: 13, peak: 0.3, blunt: 0.6, peduncle: 0.12, tail: 'point', tailSize: 0,
-    dorsal: { from: 0.32, to: 1, height: 0.75 }, anal: { from: 0.55, to: 1, height: 0.65 },
-    pectoral: 0.6, pelvic: false, scales: false, eye: { t: 0.07, r: 4.5 }, mouth: 'small', wash: '#4c5a66',
-    extras: backStipple(1.6), wave: 9,
-  },
-};
-
 /** Draws one boil frame of a fish facing right, centred in a FISH_TEX square canvas. */
 export function drawFish(ctx: CanvasRenderingContext2D, shape: FishShape, variant: InkVariant, seed: number): void {
-  const a = ANATOMY[shape];
+  const a: Anatomy = ANATOMY[shape];
   const pen = new Pen(ctx, seed, 0.55);
   const heavy = variant === 'heavy';
   const ink = a.ink ?? INK;
   const body = outline(a);
   const k: Kit = { pen, a, body, heavy, ink, x: (t) => xAt(a, t), h: (t) => heightAt(a, t) };
 
+  a.under?.(k);
   // Fins behind the body.
   drawTail(k);
   if (a.dorsal) drawEdgeFin(k, a.dorsal, 'top');
@@ -583,8 +354,8 @@ export function drawFish(ctx: CanvasRenderingContext2D, shape: FishShape, varian
   contourHatch(k, heavy ? Math.round((a.hh * 1.9) / 2.4) : 6, true, heavy ? 2.4 : 2.8, heavy ? 0.75 : 0.6);
   contourHatch(k, heavy ? 4 : 2, false, 2.6, 0.5);
   if (heavy) crossHatch(k, 3.2, 0.5);
-  lateralLine(k);
-  gills(k);
+  if (a.lateral !== false) lateralLine(k);
+  if ((a.gills ?? 'bony') === 'bony') gills(k);
   drawPectoral(k);
   // Back and belly as two open strokes: no line across the tail stalk.
   const half = body.length / 2;

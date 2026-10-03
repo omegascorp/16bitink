@@ -1,3 +1,4 @@
+import { SPECIES_INFO, type SpeciesInfo } from '../levels/species';
 import type { SpeciesId } from '../levels/types';
 
 /** How the player's fish met its end; each has its own animation and result screen. */
@@ -9,32 +10,35 @@ export interface Death {
   readonly killer?: SpeciesId;
 }
 
-const SPIKY: ReadonlySet<SpeciesId> = new Set<SpeciesId>(['puffer']);
-
 /** What happens when a bigger fish touches you: spiky fish prick, the rest bite. */
 export function causeOfBite(species: SpeciesId): DeathCause {
-  return SPIKY.has(species) ? 'spiked' : 'eaten';
+  return (SPECIES_INFO[species] as SpeciesInfo).spiky ? 'spiked' : 'eaten';
 }
 
-const EATEN_BY: Readonly<Record<SpeciesId, string>> = {
+/** A few fish get their own line; everyone else gets the plain one. */
+const EATEN_BY: Partial<Record<SpeciesId, string>> = {
   minnow: 'A school of minnows nibbled you up.',
-  perch: 'A perch had you for lunch.',
-  puffer: 'A puffer gulped you down.',
   pike: 'Swallowed whole by a pike.',
   angler: "Lured in by the angler's lantern.",
-  eel: 'Snapped up by an eel.',
+  gulper: 'The gulper eel opened wide. Very wide.',
+  moray: 'A moray shot out of a porthole.',
+  shark: 'The reef shark finally stopped circling.',
+  swordfish: 'Slashed, then swallowed, by the swordfish.',
 };
+
+const article = (name: string): string => (/^[aeiou]/.test(name) ? 'an' : 'a');
 
 export function deathText(death: Death): { readonly title: string; readonly line: string } {
   switch (death.cause) {
     case 'hooked':
       return { title: 'Cooked!', line: 'Reeled up and fried for supper.' };
     case 'spiked':
-      return { title: 'Spiked!', line: 'You bumped into a puffed-up puffer.' };
+      return { title: 'Spiked!', line: death.killer ? `You bumped into ${article(SPECIES_INFO[death.killer].name)} ${SPECIES_INFO[death.killer].name}.` : 'You bumped into something spiky.' };
     case 'timeout':
       return { title: 'Time’s up!', line: 'The school swam off before you were full.' };
     case 'eaten':
-      return { title: 'Eaten!', line: death.killer ? EATEN_BY[death.killer] : 'Something bigger got you.' };
+      if (!death.killer) return { title: 'Eaten!', line: 'Something bigger got you.' };
+      return { title: 'Eaten!', line: EATEN_BY[death.killer] ?? `Eaten by ${article(SPECIES_INFO[death.killer].name)} ${SPECIES_INFO[death.killer].name}.` };
   }
 }
 

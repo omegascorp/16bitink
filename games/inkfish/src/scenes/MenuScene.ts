@@ -1,12 +1,12 @@
 import Phaser from 'phaser';
-import { BOIL_FPS, BOIL_FRAMES, fishKey } from '../art/textures';
+import { BOIL_FPS, BOIL_FRAMES, ensureFishTextures, fishKey } from '../art/textures';
 import { getChapters, getFullError, getHost } from '../host';
 import { allLevels } from '../levels/chapters';
 import { LEVELS_PER_CHAPTER, ZONE_INFO } from '../levels/zones';
 import { isLevelOpen, loadSave } from '../logic/save';
 import { loadPaidChapters } from './BootScene';
 import { computeMapLayout, zoneIndexAt, type MapChapter, type MapLayout, type MapNode } from './map/layout';
-import { buildMapWorld, depthLabel, type Boiler, type NodeState } from './map/mapWorld';
+import { buildMapWorld, depthLabel, mapFauna, type Boiler, type NodeState } from './map/mapWorld';
 import { BLUE_INK, HAND_FONT, INK_HEX, inkButton, inkText, RED_INK, uiScale } from './ui';
 
 const DRAG_THRESHOLD = 8;
@@ -64,6 +64,7 @@ export class MenuScene extends Phaser.Scene {
     // Everything played: rest on the last level you finished.
     current ??= [...this.layout.nodes].reverse().find((n) => states.get(n.levelId) === 'done') ?? this.layout.nodes[0]!;
 
+    ensureFishTextures(this, mapFauna(), ['light']);
     const world = buildMapWorld(this, this.layout, states, blots);
     const worldLayer = this.add.layer(world.objects);
     this.boilers = [...world.boilers];

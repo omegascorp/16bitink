@@ -32,7 +32,7 @@ describe('sizing', () => {
     const picks = Array.from({ length: 500 }, () => pickSpawn(level.spawns, 18, rng));
     const prey = picks.filter((p) => relationTo(18, p.size) === 'prey').length;
     expect(prey / picks.length).toBeGreaterThan(0.55);
-    expect(picks.some((p) => p.entry.species === 'pike')).toBe(true);
+    expect(picks.some((p) => relationTo(18, p.size) === 'predator')).toBe(true);
   });
 
   it('caps prey spawn size below the edible threshold', () => {

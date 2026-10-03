@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, weedKey } from '../art/textures';
+import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, ensureFishTextures, releaseFishTextures, weedKey } from '../art/textures';
 import { getChapters } from '../host';
-import type { LevelDef } from '../levels/types';
+import type { LevelDef, SpeciesId } from '../levels/types';
 import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy, type FrenzyState } from '../logic/frenzy';
 import { addGrowth, growthProgress, initialGrowth, playerSizeFor, type GrowthState } from '../logic/growth';
 import { canHunt, HUNT_COOLDOWN_MS } from '../logic/ecosystem';
@@ -24,6 +24,7 @@ import { TUNING } from './game/tuning';
 import { TwistRunner } from './game/twistRunner';
 import { drawWorld } from './game/world';
 import { describeLevel } from '../levels/twists';
+import { PLAYER_FISH_NAMES } from '../levels/zones';
 import { allLevels, chapterOf } from '../levels/chapters';
 import { HAND_FONT } from './ui';
 
@@ -48,6 +49,13 @@ export interface GameSceneData {
 }
 
 export const HUD_EVENT = 'hud';
+
+/** Every species a level can put in the water, goals included. */
+function levelSpecies(level: LevelDef): SpeciesId[] {
+  const o = level.objective;
+  const goal = o.kind === 'bounty' || o.kind === 'boss' ? [o.species] : [];
+  return [...level.spawns.map((s) => s.species), ...goal];
+}
 
 export class GameScene extends Phaser.Scene {
   private level!: LevelDef;
@@ -103,6 +111,9 @@ export class GameScene extends Phaser.Scene {
     const { world } = this.level;
     this.cameras.main.setBounds(0, 0, world.width, world.height).setBackgroundColor('#f4eddc');
     const chapter = chapterOf(this.level);
+    const residents = levelSpecies(this.level);
+    releaseFishTextures(this, residents);
+    ensureFishTextures(this, residents);
     this.weeds = drawWorld(this, this.level, chapter.zone);
     this.player = createPlayer(this, this.level, chapter.player);
     this.twist = new TwistRunner(this, this.level, this.rng);
@@ -122,7 +133,11 @@ export class GameScene extends Phaser.Scene {
 
     this.scene.launch('Hud', {
       levelName: this.level.name, player: chapter.player, touch: this.controls.touch,
-      intro: describeLevel(this.level), dark: this.level.modifiers.dark ?? false,
+      intro: describeLevel(this.level, {
+        // A new chapter means a new fish to swim as.
+        newPlayer: chapter.id > 1 && this.level.id.endsWith('-l1') ? PLAYER_FISH_NAMES[chapter.player] : undefined,
+      }),
+      dark: this.level.modifiers.dark ?? false,
     });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scene.stop('Hud'));
     this.emitHud();

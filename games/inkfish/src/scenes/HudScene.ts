@@ -86,10 +86,13 @@ export class HudScene extends Phaser.Scene {
     const lines = [inkText(this, 0, -86, d.tag, 28, RED_INK), inkText(this, 0, -40, name, 58, BLUE_INK), inkText(this, 0, 18, d.goal, 28)];
     d.notes.forEach((n, i) => lines.push(inkText(this, 0, 56 + i * 30, n, 23, '#5b5446')));
     const w = Math.max(460, ...lines.map((t) => t.width + 60));
-    const h = 190 + d.notes.length * 30;
+    // Fit the paper to the text: from above the tag to below the last line.
+    const top = -126;
+    const bottom = (d.notes.length ? 56 + (d.notes.length - 1) * 30 : 18) + 36;
+    const h = bottom - top;
     const g = this.add.graphics();
-    g.fillStyle(0xfffaf0, 0.96).fillRect(-w / 2, -h / 2 - 20, w, h);
-    wobblyRect(g, -w / 2, -h / 2 - 20, w, h, 31);
+    g.fillStyle(0xfffaf0, 0.96).fillRect(-w / 2, top, w, h);
+    wobblyRect(g, -w / 2, top, w, h, 31);
     const card = this.add.container(this.scale.width / 2, this.scale.height / 2, [g, ...lines]);
     card.setScale(Math.min(1, (this.scale.width - 32) / w, uiScale(this, 640, 480))).setAlpha(0);
     this.intro = card;

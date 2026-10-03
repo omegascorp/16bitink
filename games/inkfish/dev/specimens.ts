@@ -1,10 +1,20 @@
 import { drawFish, FISH_TEX, type FishShape, type InkVariant } from '../src/art/fishArt';
 import { makeCanvas } from '../src/art/pen';
+import { DEEP } from '../src/art/fish/species/deep';
+import { GIANTS } from '../src/art/fish/species/giants';
+import { PLAYERS } from '../src/art/fish/species/players';
+import { REEF } from '../src/art/fish/species/reef';
+import { SHALLOWS } from '../src/art/fish/species/shallows';
 import { ART_RES, drawHook, drawJelly, drawPowerUp, drawRock, drawWeed } from '../src/art/propArt';
 
 // Dev-only sheet for reviewing the procedural ink art: big, and at in-game size.
 const sheet = document.getElementById('sheet')!;
-const shapes: FishShape[] = ['inkling', 'minnow', 'perch', 'puffer', 'pike', 'angler', 'eel'];
+// ?group=players|shallows|reef|deep|giants shows one habitat file; ?shapes=a,b picks fish by id.
+const GROUPS: Record<string, object> = { players: PLAYERS, shallows: SHALLOWS, reef: REEF, deep: DEEP, giants: GIANTS };
+const params = new URLSearchParams(location.search);
+const group = GROUPS[params.get('group') ?? ''];
+const picked = params.get('shapes')?.split(',').filter(Boolean) as FishShape[] | undefined;
+const shapes: FishShape[] = picked ?? (group ? (Object.keys(group) as FishShape[]) : ['inkling', 'minnow', 'perch', 'puffer', 'pike', 'angler', 'eel']);
 
 function figure(row: HTMLElement, label: string, w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void, display = 1): void {
   const { canvas, ctx } = makeCanvas(w, h);

@@ -1,7 +1,8 @@
 import type { Chapter, LevelDef, PlayerFishId, PowerUpId, SpeciesId, TwistId, ZoneId } from './types';
+import { ALL_SPECIES } from './species';
 import { PLAYER_FISH, ZONE_IDS } from './zones';
 
-const SPECIES: readonly SpeciesId[] = ['minnow', 'perch', 'puffer', 'pike', 'angler', 'eel'];
+const SPECIES: readonly SpeciesId[] = ALL_SPECIES;
 const POWER_UPS: readonly PowerUpId[] = ['speed', 'shrink'];
 const TWISTS: readonly TwistId[] = ['grow', 'collect', 'current', 'bounty', 'rush', 'storm', 'dark', 'survive', 'boss'];
 
@@ -39,7 +40,8 @@ function hasValidTwists(l: LevelDef): boolean {
     (o.kind === 'boss' && SPECIES.includes(o.species as SpeciesId) && isPos(o.size)) ||
     (o.kind === 'bounty' && isPos(o.count) && SPECIES.includes(o.species as SpeciesId) &&
       Array.isArray(o.size) && o.size.length === 2 && o.size.every(isPos) && (o.size as number[])[0]! <= (o.size as number[])[1]!);
-  return objectiveOk && optional(m.timeLimit, isPos) && optional(m.current, isNum) && optional(m.dark, (d) => typeof d === 'boolean') &&
+  const debutsOk = Array.isArray(l.debuts) && l.debuts.every((d) => SPECIES.includes(d));
+  return objectiveOk && debutsOk && optional(m.timeLimit, isPos) && optional(m.current, isNum) && optional(m.dark, (d) => typeof d === 'boolean') &&
     optional(m.lives, (n) => isPos(n) && Number.isInteger(n));
 }
 

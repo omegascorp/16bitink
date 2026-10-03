@@ -12,19 +12,25 @@ export const LEVELS_PER_CHAPTER = 10;
 
 export const ZONE_INFO: readonly ChapterInfo[] = [
   { id: 1, zone: 'tidepool', name: 'Tide Pool Sketchbook', player: 'inkling', depth: [0, 5] },
-  { id: 2, zone: 'seagrass', name: 'Seagrass Margins', player: 'inkling', depth: [5, 15] },
+  { id: 2, zone: 'seagrass', name: 'Seagrass Margins', player: 'goby', depth: [5, 15] },
   { id: 3, zone: 'kelp', name: 'Kelp Forest', player: 'perchfry', depth: [15, 30] },
-  { id: 4, zone: 'reef', name: 'Crosshatch Reef', player: 'perchfry', depth: [30, 50] },
+  { id: 4, zone: 'reef', name: 'Crosshatch Reef', player: 'butterfly', depth: [30, 50] },
   { id: 5, zone: 'wreck', name: 'Shipwreck Sketches', player: 'barracuda', depth: [50, 120] },
-  { id: 6, zone: 'dropoff', name: 'The Drop-off', player: 'barracuda', depth: [120, 200] },
+  { id: 6, zone: 'dropoff', name: 'The Drop-off', player: 'tuna', depth: [120, 200] },
   { id: 7, zone: 'twilight', name: 'Twilight Ink', player: 'lanternfish', depth: [200, 1000] },
-  { id: 8, zone: 'midnight', name: 'Midnight Blot', player: 'lanternfish', depth: [1000, 4000] },
-  { id: 9, zone: 'abyss', name: 'The Abyssal Plain', player: 'lanternfish', depth: [4000, 6000] },
-  { id: 10, zone: 'trench', name: 'The Last Page', player: 'lanternfish', depth: [6000, 11000] },
+  { id: 8, zone: 'midnight', name: 'Midnight Blot', player: 'hatchetfish', depth: [1000, 4000] },
+  { id: 9, zone: 'abyss', name: 'The Abyssal Plain', player: 'viperfish', depth: [4000, 6000] },
+  { id: 10, zone: 'trench', name: 'The Last Page', player: 'snailfish', depth: [6000, 11000] },
 ];
 
 export const ZONE_IDS: readonly ZoneId[] = ZONE_INFO.map((z) => z.zone);
-export const PLAYER_FISH: readonly PlayerFishId[] = ['inkling', 'perchfry', 'barracuda', 'lanternfish'];
+/** One new player fish per chapter, in chapter order. */
+export const PLAYER_FISH: readonly PlayerFishId[] = ZONE_INFO.map((z) => z.player);
+
+export const PLAYER_FISH_NAMES: Readonly<Record<PlayerFishId, string>> = {
+  inkling: 'inkling', goby: 'goby', perchfry: 'perch fry', butterfly: 'butterflyfish', barracuda: 'barracuda',
+  tuna: 'young tuna', lanternfish: 'lanternfish', hatchetfish: 'hatchetfish', viperfish: 'viperfish', snailfish: 'snailfish',
+};
 
 /** How dark the water is drawn in a zone, 0 (sunlit) .. 1 (pitch black). */
 export const ZONE_DARKNESS: Readonly<Record<ZoneId, number>> = {

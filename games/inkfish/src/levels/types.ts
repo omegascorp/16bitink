@@ -1,11 +1,15 @@
-export type SpeciesId = 'minnow' | 'perch' | 'puffer' | 'pike' | 'angler' | 'eel';
+import type { SpeciesId } from './species';
+
+export type { SpeciesId };
 export type PowerUpId = 'speed' | 'shrink';
 /** Where a chapter takes place; also how deep, since the seabed slopes down. */
 export type ZoneId =
   | 'tidepool' | 'seagrass' | 'kelp' | 'reef' | 'wreck'
   | 'dropoff' | 'twilight' | 'midnight' | 'abyss' | 'trench';
-/** The young fish the player swims as in a chapter. */
-export type PlayerFishId = 'inkling' | 'perchfry' | 'barracuda' | 'lanternfish';
+/** The young fish the player swims as: a new one every chapter. */
+export type PlayerFishId =
+  | 'inkling' | 'goby' | 'perchfry' | 'butterfly' | 'barracuda'
+  | 'tuna' | 'lanternfish' | 'hatchetfish' | 'viperfish' | 'snailfish';
 
 export interface SpawnEntry {
   readonly species: SpeciesId;
@@ -57,6 +61,8 @@ export interface LevelDef {
   readonly twists: readonly TwistId[];
   readonly objective: Objective;
   readonly modifiers: Modifiers;
+  /** Species seen for the first time in this level, announced on the intro card. */
+  readonly debuts: readonly SpeciesId[];
 }
 
 /** What the map needs to draw a chapter, owned or not. */

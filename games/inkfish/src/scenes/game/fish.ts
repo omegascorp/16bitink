@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { FISH_RADIUS } from '../../art/fishArt';
 import { fishKey } from '../../art/textures';
+import { SPECIES_INFO } from '../../levels/species';
 import type { LevelDef, SpeciesId } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { pickSpawn, relationTo } from '../../logic/sizing';
@@ -28,9 +29,7 @@ export interface Fish {
   state: 'cruise' | 'chase' | 'lunge' | 'puffed' | 'tired' | 'stunned' | 'hooked';
 }
 
-const CRUISE: Record<SpeciesId, [number, number]> = {
-  minnow: [90, 140], perch: [60, 95], puffer: [35, 55], pike: [70, 100], angler: [25, 40], eel: [100, 130],
-};
+const cruiseOf = (species: SpeciesId): readonly [number, number] => SPECIES_INFO[species].cruise;
 
 /**
  * Spawns a fish somewhere in the world but outside the camera view
@@ -47,7 +46,7 @@ export function spawnFish(scene: Phaser.Scene, level: LevelDef, playerSize: numb
     const onScreen = x > view.left - margin && x < view.right + margin && y > view.top - margin && y < view.bottom + margin;
     if (!onScreen) break;
   }
-  const speed = rangeOf(rng, ...CRUISE[entry.species]);
+  const speed = rangeOf(rng, ...cruiseOf(entry.species));
   // Head towards the far side so fish cross the player's area.
   const goRight = x < level.world.width / 2 ? rng() < 0.8 : rng() < 0.2;
   return makeFish(scene, entry.species, size, 'normal', x, y, goRight ? speed : -speed, rng);
@@ -55,7 +54,7 @@ export function spawnFish(scene: Phaser.Scene, level: LevelDef, playerSize: numb
 
 /** A goal fish placed by the level: a marked fish or the giant. */
 export function spawnSpecial(scene: Phaser.Scene, species: SpeciesId, size: number, role: FishRole, x: number, y: number, rng: Rng): Fish {
-  const speed = rangeOf(rng, ...CRUISE[species]) * (rng() < 0.5 ? -1 : 1);
+  const speed = rangeOf(rng, ...cruiseOf(species)) * (rng() < 0.5 ? -1 : 1);
   return makeFish(scene, species, size, role, x, y, speed, rng);
 }
 
@@ -65,6 +64,42 @@ function makeFish(scene: Phaser.Scene, species: SpeciesId, size: number, role: F
     sprite, species, role, baseSize: size, size, vx, vy: 0, phase: rng() * Math.PI * 2,
     shrinkUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
   };
+}
+
+/** Everyday behaviour by species type (see levels/species.ts). */
+function behave(f: Fish, p: PlayerView, dist: number, rel: string, now: number, dt: number, shrunk: boolean): void {
+  const canStrike = f.state === 'cruise' && rel === 'predator' && now > f.cooldownUntil && !shrunk;
+  switch (SPECIES_INFO[f.species].behaviour) {
+    case 'school':
+      if (rel === 'prey' && dist < 130) steerTo(f, f.sprite.x * 2 - p.x, f.sprite.y * 2 - p.y, 125, dt);
+      else f.vy = Math.sin(f.phase * 3) * 30;
+      return;
+    case 'puff':
+      if (f.state === 'cruise' && dist < 150 + f.size && now > f.cooldownUntil) {
+        f.state = 'puffed';
+        f.stateUntil = now + 2200;
+      }
+      f.vy = Math.sin(f.phase * 1.5) * 12;
+      return;
+    case 'chase':
+      if (canStrike && dist < 380) Object.assign(f, { state: 'chase', stateUntil: now + 2800 });
+      if (f.state === 'chase') steerTo(f, p.x, p.y, 175, dt);
+      else f.vy = Math.sin(f.phase) * 18;
+      return;
+    case 'lunge':
+      if (canStrike && dist < 230) Object.assign(f, { state: 'lunge', stateUntil: now + 550 });
+      if (f.state === 'lunge') steerTo(f, p.x, p.y, 360, dt, 8);
+      else f.vy = Math.sin(f.phase * 0.8) * 10;
+      return;
+    case 'wave':
+      f.vy = Math.cos(f.phase * 1.6) * 70;
+      return;
+    case 'hover':
+      f.vy = Math.sin(f.phase * 0.7) * 6;
+      return;
+    default:
+      f.vy = Math.sin(f.phase * 1.2) * 20;
+  }
 }
 
 /** Goal fish have their own minds: marked fish flee, the giant hunts you down. Returns true if it steered. */
@@ -124,7 +159,7 @@ export function updateFish(f: Fish, p: PlayerView, world: { readonly width: numb
   const puffed = f.state === 'puffed' && now < f.stateUntil;
   f.size = f.baseSize * (shrunk ? 0.5 : 1) * (puffed ? 1.7 : 1);
   const rel = relationTo(p.size, f.size);
-  const cruise = Math.sign(f.vx || (f.sprite.flipX ? -1 : 1)) * CRUISE[f.species][0];
+  const cruise = Math.sign(f.vx || (f.sprite.flipX ? -1 : 1)) * cruiseOf(f.species)[0];
 
   if (f.state !== 'cruise' && now >= f.stateUntil) {
     f.state = f.state === 'chase' || f.state === 'lunge' ? 'tired' : 'cruise';
@@ -137,39 +172,8 @@ export function updateFish(f: Fish, p: PlayerView, world: { readonly width: numb
     f.vy = 22;
   } else if (updateGoalFish(f, p, dist, rel, now, dt)) {
     // Steered by its role.
-  } else switch (f.species) {
-    case 'minnow':
-      if (rel === 'prey' && dist < 130) steerTo(f, f.sprite.x * 2 - p.x, f.sprite.y * 2 - p.y, 125, dt);
-      else f.vy = Math.sin(f.phase * 3) * 30;
-      break;
-    case 'puffer':
-      if (f.state === 'cruise' && dist < 150 + f.size && now > f.cooldownUntil) {
-        f.state = 'puffed';
-        f.stateUntil = now + 2200;
-      }
-      f.vy = Math.sin(f.phase * 1.5) * 12;
-      break;
-    case 'pike':
-      if (f.state === 'cruise' && rel === 'predator' && dist < 380 && now > f.cooldownUntil && !shrunk) {
-        f.state = 'chase';
-        f.stateUntil = now + 2800;
-      }
-      if (f.state === 'chase') steerTo(f, p.x, p.y, 175, dt);
-      else f.vy = Math.sin(f.phase) * 18;
-      break;
-    case 'angler':
-      if (f.state === 'cruise' && rel === 'predator' && dist < 230 && now > f.cooldownUntil && !shrunk) {
-        f.state = 'lunge';
-        f.stateUntil = now + 550;
-      }
-      if (f.state === 'lunge') steerTo(f, p.x, p.y, 360, dt, 8);
-      else f.vy = Math.sin(f.phase * 0.8) * 10;
-      break;
-    case 'eel':
-      f.vy = Math.cos(f.phase * 1.6) * 70;
-      break;
-    default:
-      f.vy = Math.sin(f.phase * 1.2) * 20;
+  } else {
+    behave(f, p, dist, rel, now, dt, shrunk);
   }
 
   // Ease back to cruising speed after a chase.

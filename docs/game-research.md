@@ -41,12 +41,7 @@ Ten "eat smaller to grow" games, researched October 2026, and what InkFish takes
   - Locked zones are shown as pencil drafts.
   - Chapter tabs jump between zones.
   - The map grows on its own when a zone is added.
-- **The player fish changes about every two zones:**
-  - Inkling: tide pool, seagrass
-  - perch fry: kelp, reef
-  - barracuda: wreck, drop-off
-  - lanternfish: twilight to trench
-  - All of them are drawn in blue ink, so the player always reads as "you".
+- **A new player fish every chapter (every 10 levels):** inkling, goby, perch fry, butterflyfish, barracuda, young tuna, lanternfish, hatchetfish, viperfish, and the hadal snailfish (the deepest fish ever filmed) for the last page. All are drawn in blue ink, so the player always reads as "you". The first level of a chapter announces the new fish.
 - **Levels are generated from per-chapter recipes** (`games/inkfish/src/levels/generate.ts`).
   - A recipe sets which species appear, the hazard ramps, the growth goal and the final size.
   - The generator produces 10 levels with a smooth ramp, then gives each its own twist (`src/levels/twists.ts`).
@@ -76,34 +71,42 @@ Off-screen goals get a red arrow at the screen edge. Each level opens with an in
 
 - **More levels in a zone:** raise `LEVELS_PER_CHAPTER`, or override per chapter later.
 - **A new zone:** append it to `levels/zones.ts` and add its recipe to `content/paid.ts`.
-- **The bottleneck is enemy variety.** Six species across 100 levels will feel repetitive. Next species to draw:
-  - deep zones: hatchetfish, gulper eel, giant squid
-  - reef: clownfish, grouper
-  - shark bosses for chapter finales
+- **A new species:** add it to `levels/species.ts` (name, behaviour, speed, spiky/hunter), draw its anatomy in the matching `art/fish/species/*.ts` file (review it at `/specimens.html?group=<file>`), and add it to a chapter recipe with a `debut` level.
+
+### Species (65)
+
+Each zone has its own residents, and new ones arrive mid-chapter: the intro card says "New fish: lionfish. Venomous spines. Do not touch." A level only draws textures for the fish it uses.
+
+| Chapter | Residents (new ones debut level by level) | Giant |
+|---|---|---|
+| 1 Tide pool | minnow, perch, blenny, puffer, sculpin, pike | striped bass |
+| 2 Seagrass | sand lance, wrasse, pipefish, filefish, mullet | tarpon |
+| 3 Kelp | sardine, garibaldi, kelpfish, rockfish, sheephead, eel | lingcod |
+| 4 Reef | chromis, clownfish, angelfish, parrotfish, boxfish, triggerfish, lionfish | goliath grouper |
+| 5 Wreck | herring, snapper, cod, scorpionfish, jack, moray, angler | reef shark |
+| 6 Drop-off | anchovy, mackerel, flying fish, needlefish, bonito, mahi-mahi | swordfish |
+| 7 Twilight | bristlemouth, pearleye, barreleye, sabertooth, dragonfish | oarfish |
+| 8 Midnight | bigscale, whalefish, fangtooth, black dragonfish, gulper eel | sleeper shark |
+| 9 Abyss | rattail, tripodfish, lizardfish, halosaur, cusk-eel | goblin shark |
+| 10 Trench | blobfish, snipe eel, ghost shark | coelacanth |
+
+Giants are their own species, appear only once (as the chapter's final boss), and are the biggest fish on that level: every other spawn is capped below them.
 
 ## Core mechanics (built)
 
 - Steering by mouse, finger or keyboard, with inertia. Dash: Space, Shift, right-click or the touch button.
 - Edibility by size ratio: prey < 0.9× your size, predator > 1.1×. Spawns are biased so ~60% are prey.
-- Species behaviours:
-  - minnow flees
-  - perch cruises
-  - puffer inflates to 1.7× when you approach (a timing puzzle)
-  - pike chases
-  - angler ambush-lunges
-  - eel sine-patrols
+- Species behaviours (each species has one): school (flees), cruise, chase, lunge (ambush), wave (eel S-curves), puff (inflates to 1.7× when you approach), hover (drifts in place). Spiky species (puffer, lionfish, scorpionfish, filefish, rockfish, ghost shark) prick instead of bite.
 - Hazards: jellyfish stun you; fishing hooks are telegraphed by a dotted pencil line, then drop. A hooked fish is reeled up by the mouth: with lives left you lose one and thrash free near the surface, on your last life you're hauled out of the water.
-- Hazards hit everyone, not just the player: jellyfish stun enemies (a stung predator can't bite, so luring hunters into jellies is a tactic), hooks catch and reel off any fish, and hunters (perch, pike, angler, eel) eat fish under 70% of their size when they bump into them.
+- Hazards hit everyone, not just the player: jellyfish stun enemies (a stung predator can't bite, so luring hunters into jellies is a tactic), hooks catch and reel off any fish, and hunters (flagged per species) eat fish under 70% of their size when they bump into them.
 - Power-ups: Quick Quill (speed) and Shrink-ink (nearby fish shrink to 0.5× for 5 s).
 - 3 lives with invulnerability blinks, a par-time ink-blot rating (1–3), and best scores saved locally.
 
 ## Planned for the full game
 
-1. More enemy species (above)
-2. Chapter-finale bosses
-3. Abilities per player fish (barracuda burst speed, lanternfish light in the dark zones)
-4. Endless mode with a hunger drain and a daily-seed leaderboard
-5. Trait stealing
+1. Abilities per player fish (barracuda burst speed, lanternfish light in the dark zones)
+2. Endless mode with a hunger drain and a daily-seed leaderboard
+3. Trait stealing
 6. Ink comic panels between zones
 7. Cosmetic pen styles
 

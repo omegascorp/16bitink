@@ -1,5 +1,4 @@
 import type Phaser from 'phaser';
-import type { SpeciesId } from '../levels/types';
 import { PLAYER_FISH } from '../levels/zones';
 import { BONES_SIZE, drawBones, drawPan, PAN_SIZE } from './deathArt';
 import { DARK_TEX, drawDarkness, drawInkDrop, DROP_SIZE } from './twistArt';
@@ -13,7 +12,6 @@ export { ART_RES };
 export const BOIL_FRAMES = 3;
 export const BOIL_FPS = 8;
 
-export const SPECIES: readonly SpeciesId[] = ['minnow', 'perch', 'puffer', 'pike', 'angler', 'eel'];
 
 export const fishKey = (shape: FishShape, variant: InkVariant, frame: number): string => `fish-${shape}-${variant}-${frame}`;
 export const boilKey = (base: string, frame: number): string => `${base}-${frame}`;
@@ -37,13 +35,6 @@ function add(scene: Phaser.Scene, key: string, w: number, h: number, draw: (ctx:
 export function generateInkTextures(scene: Phaser.Scene): void {
   for (let f = 0; f < BOIL_FRAMES; f++) {
     const seed = 101 + f * 977;
-    for (const shape of SPECIES) {
-      for (const variant of ['light', 'heavy'] as const) {
-        add(scene, fishKey(shape, variant, f), FISH_TEX, FISH_TEX, (ctx) => drawFish(ctx, shape, variant, seed));
-      }
-    }
-    // The player is never a predator to itself: light variant only.
-    for (const shape of PLAYER_FISH) add(scene, fishKey(shape, 'light', f), FISH_TEX, FISH_TEX, (ctx) => drawFish(ctx, shape, 'light', seed));
     const R = ART_RES;
     add(scene, boilKey('jelly', f), 128 * R, 128 * R, (ctx) => drawJelly(ctx, seed));
     add(scene, boilKey('hook', f), 48 * R, 76 * R, (ctx) => drawHook(ctx, seed));
@@ -55,6 +46,8 @@ export function generateInkTextures(scene: Phaser.Scene): void {
       add(scene, weedKey(kind, f), w * R, h * R, (ctx) => drawWeed(ctx, 7 + kind * 13, kind, f, w * R, h * R));
     }
   }
+  // The player is never a predator to itself: light variant only. Other fish are drawn per level.
+  ensureFishTextures(scene, PLAYER_FISH, ['light']);
   add(scene, 'bubble', 16 * ART_RES, 16 * ART_RES, (ctx) => drawBubble(ctx, 3));
   for (let i = 0; i < 3; i++) {
     const { w, h } = ROCK_SIZE;
@@ -65,4 +58,30 @@ export function generateInkTextures(scene: Phaser.Scene): void {
   add(scene, 'darkness', DARK_TEX, DARK_TEX, drawDarkness);
   add(scene, 'paper', 512, 512, (ctx) => drawPaper(ctx, 512));
   add(scene, 'wreck', 360 * ART_RES, 200 * ART_RES, (ctx) => drawWreck(ctx, 360 * ART_RES, 200 * ART_RES));
+}
+
+const frameSeed = (f: number): number => 101 + f * 977;
+
+/**
+ * Draws the boil frames for these fish if they aren't cached yet. With ~65
+ * species, drawing them all at boot would take seconds; a level only needs
+ * its own handful.
+ */
+export function ensureFishTextures(scene: Phaser.Scene, shapes: readonly FishShape[], variants: readonly InkVariant[] = ['light', 'heavy']): void {
+  for (const shape of new Set(shapes)) {
+    for (const variant of variants) {
+      for (let f = 0; f < BOIL_FRAMES; f++) {
+        add(scene, fishKey(shape, variant, f), FISH_TEX, FISH_TEX, (ctx) => drawFish(ctx, shape, variant, frameSeed(f)));
+      }
+    }
+  }
+}
+
+/** Frees GPU memory held by fish textures not in `keep`. Player fish always stay. */
+export function releaseFishTextures(scene: Phaser.Scene, keep: readonly FishShape[]): void {
+  const kept = new Set<FishShape>([...keep, ...PLAYER_FISH]);
+  for (const key of scene.textures.getTextureKeys()) {
+    const shape = /^fish-(\w+)-(light|heavy)-\d+$/.exec(key)?.[1] as FishShape | undefined;
+    if (shape && !kept.has(shape)) scene.textures.remove(key);
+  }
 }

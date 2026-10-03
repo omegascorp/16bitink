@@ -1,3 +1,4 @@
+import { SPECIES_INFO } from '../levels/species';
 import type { LevelDef } from '../levels/types';
 
 /** Everything the goals care about, gathered by the game scene. */
@@ -52,8 +53,8 @@ export function objectiveLine(level: LevelDef, p: ObjectiveProgress): { readonly
   const grow = 'Now grow to full size!';
   switch (o.kind) {
     case 'collect': return { text: withClock(taskDone(level, p) ? grow : `Ink drops ${p.collected}/${o.count}`, left), urgent };
-    case 'bounty': return { text: withClock(taskDone(level, p) ? grow : `Marked ${o.species} ${p.bounties}/${o.count}`, left), urgent };
-    case 'boss': return { text: p.grown ? `Now eat the giant ${o.species}!` : `Grow, then eat the giant ${o.species}`, urgent: p.grown };
+    case 'bounty': return { text: withClock(taskDone(level, p) ? grow : `Marked ${SPECIES_INFO[o.species].name} ${p.bounties}/${o.count}`, left), urgent };
+    case 'boss': return { text: p.grown ? `Now eat the giant ${SPECIES_INFO[o.species].name}!` : `Grow, then eat the giant ${SPECIES_INFO[o.species].name}`, urgent: p.grown };
     default: return { text: withClock(left === null ? '' : 'Grow to full size', left), urgent };
   }
 }

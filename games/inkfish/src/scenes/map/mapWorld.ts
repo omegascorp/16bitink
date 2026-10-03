@@ -26,11 +26,17 @@ export interface MapWorld {
 }
 
 const PENCIL = '#a69c8a';
+/** Two locals per zone swim above the route: a taste of who lives there. */
 const ZONE_FAUNA: Readonly<Record<string, readonly SpeciesId[]>> = {
-  tidepool: ['minnow', 'perch'], seagrass: ['minnow', 'puffer'], kelp: ['perch', 'pike'], reef: ['puffer', 'perch'],
-  wreck: ['pike', 'eel'], dropoff: ['pike', 'eel'], twilight: ['eel', 'angler'], midnight: ['angler', 'eel'],
-  abyss: ['angler', 'eel'], trench: ['angler', 'eel'],
+  tidepool: ['minnow', 'blenny'], seagrass: ['wrasse', 'pipefish'], kelp: ['garibaldi', 'sheephead'], reef: ['clownfish', 'angelfish'],
+  wreck: ['snapper', 'moray'], dropoff: ['mackerel', 'mahi'], twilight: ['pearleye', 'dragonfish'], midnight: ['fangtooth', 'whalefish'],
+  abyss: ['rattail', 'tripodfish'], trench: ['blobfish', 'ghostshark'],
 };
+
+/** Map fauna textures (light only): call before building the map. */
+export function mapFauna(): SpeciesId[] {
+  return Object.values(ZONE_FAUNA).flat();
+}
 
 function text(scene: Phaser.Scene, x: number, y: number, s: string, size: number, color: string): Phaser.GameObjects.Text {
   return scene.add.text(x, y, s, { fontFamily: HAND_FONT, fontSize: `${size}px`, color, padding: { x: size * 0.2, y: 4 } }).setOrigin(0.5);

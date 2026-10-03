@@ -3,7 +3,7 @@ import { getChapters, getHost } from '../host';
 import { ART_RES, fishKey } from '../art/textures';
 import { PAN_SIZE } from '../art/deathArt';
 import { DEMO_CHAPTER, LOCKED_CHAPTER_TEASERS } from '../levels/demo';
-import type { PlayerFishId } from '../levels/types';
+import type { PlayerFishId, SpeciesId } from '../levels/types';
 import { deathText, type Death } from '../logic/deaths';
 import { blotsFor } from '../logic/growth';
 import { loadSave, persistSave, recordResult } from '../logic/save';
@@ -24,7 +24,7 @@ const DEAD_TINT = 0xb3ab9c;
 const COOKED_TINT = 0xd9975a;
 
 /** A little pen vignette of how it ended, drawn above the title. */
-function deathPicture(scene: Phaser.Scene, death: Death, player: PlayerFishId, y: number): Phaser.GameObjects.GameObject[] {
+function deathPicture(scene: Phaser.Scene, death: Death, player: PlayerFishId, staple: SpeciesId, y: number): Phaser.GameObjects.GameObject[] {
   const me = (frame: string): Phaser.GameObjects.Image => scene.add.image(0, 0, frame);
   if (death.cause === 'hooked') {
     // Lifted a little: the steam needs headroom and the pan must clear the title.
@@ -37,11 +37,11 @@ function deathPicture(scene: Phaser.Scene, death: Death, player: PlayerFishId, y
   if (death.cause === 'timeout') {
     // The school swims off; the player trails behind, too late.
     return [
-      ...[0, 1, 2].map((i) => scene.add.image(40 + i * 46, y - 18 + (i % 2) * 26, fishKey('minnow', 'light', 0)).setScale(0.26)),
+      ...[0, 1, 2].map((i) => scene.add.image(40 + i * 46, y - 18 + (i % 2) * 26, fishKey(staple, 'light', 0)).setScale(0.26)),
       me(fishKey(player, 'light', 0)).setPosition(-90, y + 4).setScale(0.42),
     ];
   }
-  const killer = scene.add.image(-85, y, fishKey(death.killer ?? 'pike', 'heavy', 0)).setScale(0.55);
+  const killer = scene.add.image(-85, y, fishKey(death.killer ?? staple, 'heavy', 0)).setScale(0.55);
   if (death.cause === 'spiked') {
     return [killer, me(fishKey(player, 'light', 0)).setPosition(80, y + 6).setScale(0.42).setTint(DEAD_TINT).setFlipY(true).setRotation(-0.12)];
   }
@@ -81,7 +81,7 @@ export class ResultScene extends Phaser.Scene {
       const death = data.death ?? { cause: 'eaten' };
       const text = deathText(death);
       root.add([
-        ...deathPicture(this, death, data.player ?? 'inkling', -230),
+        ...deathPicture(this, death, data.player ?? 'inkling', level.spawns[0]!.species, -230),
         inkText(this, 0, -130, text.title, 80, RED_INK),
         inkText(this, 0, -74, text.line, 26, '#5b5446'),
         inkText(this, 0, -32, `Score ${data.score}`, 30),
