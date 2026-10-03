@@ -1,7 +1,8 @@
 import { mount } from '../src/index';
 
-// Set by vite.config.ts from DEV_UNLOCK when the dev server starts.
+// Set by vite.config.ts from DEV_UNLOCK / DEV_ALL_LEVELS when the dev server starts.
 declare const __DEV_UNLOCK__: boolean;
+declare const __DEV_ALL_LEVELS__: boolean;
 
 // Dev harness: `DEV_UNLOCK=true pnpm dev` plays as an owner with the real paid chapters.
 const unlocked = __DEV_UNLOCK__;
@@ -10,6 +11,7 @@ const parent = document.getElementById('game');
 if (!parent) throw new Error('#game missing');
 const handle = mount(parent, {
   unlocked,
+  allLevelsOpen: __DEV_ALL_LEVELS__,
   storage: window.localStorage,
   loadContent: async () => {
     // Mirrors the site: no unlock, no paid content.

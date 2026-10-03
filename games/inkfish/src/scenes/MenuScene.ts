@@ -56,7 +56,7 @@ export class MenuScene extends Phaser.Scene {
       let state: NodeState;
       if (zone.chapter.locked) state = 'locked';
       else if (rec) state = 'done';
-      else if (isLevelOpen(save, ids, n.levelId)) state = current ? 'open' : 'current';
+      else if (isLevelOpen(save, ids, n.levelId, host.allLevelsOpen === true)) state = current ? 'open' : 'current';
       else state = 'closed';
       if (state === 'current') current = n;
       states.set(n.levelId, state);

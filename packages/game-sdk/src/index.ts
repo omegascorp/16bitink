@@ -29,6 +29,12 @@ export interface GameHost {
   onExit(): void;
   /** Per-browser persistence; undefined when storage is blocked. */
   readonly storage?: KeyValueStore;
+  /**
+   * Local development only (DEV_ALL_LEVELS): every level the player can
+   * access is playable without finishing the ones before it. Never opens
+   * paid content; that still needs `unlocked`.
+   */
+  readonly allLevelsOpen?: boolean;
 }
 
 /** Returned by `mount` so the host can tear a game down cleanly. */

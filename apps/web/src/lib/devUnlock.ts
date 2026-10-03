@@ -6,9 +6,10 @@ export function isLocalHost(hostname: string): boolean {
 }
 
 /**
- * The dev unlock treats every game as owned without paying, so it needs two locks:
- * an explicit DEV_UNLOCK=true (only ever set in .dev.vars) AND a request
- * that is addressed to this machine. Either alone is not enough.
+ * Local dev switches (DEV_UNLOCK: every game owned; DEV_ALL_LEVELS: every
+ * level open without playing through) need two locks: the flag set to
+ * exactly "true" (only ever in .dev.vars) AND a request addressed to this
+ * machine. Either alone is not enough.
  */
 export function devUnlockAllowed(flag: string | undefined, hostname: string): boolean {
   return flag === 'true' && isLocalHost(hostname);

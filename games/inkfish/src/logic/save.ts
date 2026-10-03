@@ -46,9 +46,11 @@ export function recordResult(save: SaveData, levelId: string, score: number, blo
   return { ...save, levels: { ...save.levels, [levelId]: next } };
 }
 
-export function isLevelOpen(save: SaveData, orderedIds: readonly string[], levelId: string): boolean {
+/** Levels open in order; `allOpen` (local dev flag) skips the progress requirement, not the level list. */
+export function isLevelOpen(save: SaveData, orderedIds: readonly string[], levelId: string, allOpen = false): boolean {
   const index = orderedIds.indexOf(levelId);
   if (index <= 0) return index === 0;
+  if (allOpen) return true;
   return save.levels[orderedIds[index - 1]!] !== undefined;
 }
 

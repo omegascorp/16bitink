@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { devUnlockAllowed } from '../src/lib/devUnlock';
 
-describe('dev unlock guard', () => {
+describe('dev unlock guard (DEV_UNLOCK and DEV_ALL_LEVELS)', () => {
   it('works only when the flag is on and the request is local', () => {
     expect(devUnlockAllowed('true', 'localhost')).toBe(true);
     expect(devUnlockAllowed('true', '127.0.0.1')).toBe(true);

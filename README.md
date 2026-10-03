@@ -13,7 +13,7 @@ docs/               Research, tech & monetization decisions, art pipeline
 
 ```bash
 pnpm install
-pnpm --filter @16bitink/inkfish dev     # game alone at http://localhost:5174 (prefix DEV_UNLOCK=true to play as an owner)
+pnpm --filter @16bitink/inkfish dev     # game alone at http://localhost:5174 (prefix DEV_UNLOCK=true to play as an owner, DEV_ALL_LEVELS=true to open every level)
 pnpm dev                                # site at http://localhost:4321
 pnpm test                               # unit tests (game logic, entitlement tokens, catalog)
 ```
@@ -23,7 +23,7 @@ pnpm test                               # unit tests (game logic, entitlement to
 There are exactly two ways in:
 
 - **Production:** a completed Stripe payment in live mode with a non-zero total. 100%-off promotion codes and test-mode payments never unlock the live site.
-- **Local only:** `DEV_UNLOCK=true` in `apps/web/.dev.vars` (site) or in the environment when starting the game's dev server. It works only for requests to localhost, so it can't unlock the live site even if set there by mistake.
+- **Local only:** `DEV_UNLOCK=true` in `apps/web/.dev.vars` (site) or in the environment when starting the game's dev server. It works only for requests to localhost, so it can't unlock the live site even if set there by mistake. `DEV_ALL_LEVELS=true` (same places, same localhost-only rule) opens every level without playing through; it never opens paid chapters by itself.
 
 For checkout locally, copy `apps/web/.dev.vars.example` to `apps/web/.dev.vars`, use Stripe **test** keys, and forward webhooks:
 
@@ -43,7 +43,7 @@ pnpm --filter @16bitink/web build && cd apps/web && npx wrangler dev --port 8788
    npx wrangler secret put ENTITLEMENT_SECRET     # openssl rand -base64 48 (at least 32 characters, or the site refuses to run)
    ```
 3. Add a Stripe webhook to `https://16bit.ink/api/webhook` for `checkout.session.completed`, `checkout.session.async_payment_succeeded` and `charge.refunded`.
-   Never set `DEV_UNLOCK` in production.
+   Never set `DEV_UNLOCK` or `DEV_ALL_LEVELS` in production.
 4. In the Cloudflare dashboard, add a WAF rate-limiting rule for `/api/checkout` and `/purchase/success` (e.g. 10 req/min per IP).
 5. Run `pnpm --filter @16bitink/web deploy`. `wrangler.jsonc` binds the `16bit.ink` custom domain, so the domain must be on Cloudflare DNS.
 

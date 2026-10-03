@@ -114,6 +114,14 @@ describe('save', () => {
     expect(isLevelOpen(s, ids, 'zzz')).toBe(false);
   });
 
+  it('opens every listed level with the dev all-levels flag, but nothing unlisted', () => {
+    const ids = ['a', 'b', 'c'];
+    const fresh = parseSave(null);
+    expect(ids.every((id) => isLevelOpen(fresh, ids, id, true))).toBe(true);
+    expect(isLevelOpen(fresh, ids, 'c', false)).toBe(false);
+    expect(isLevelOpen(fresh, ids, 'zzz', true)).toBe(false);
+  });
+
   it('round-trips through a store and survives store failures', () => {
     const map = new Map<string, string>();
     const store = { getItem: (k: string) => map.get(k) ?? null, setItem: (k: string, v: string) => void map.set(k, v) };

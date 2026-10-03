@@ -15,13 +15,20 @@ async function getJson<T>(url: string): Promise<T> {
   return body.data;
 }
 
-async function isUnlocked(game: string): Promise<boolean> {
+interface Access {
+  readonly unlocked: boolean;
+  /** Local dev only: the server decides, from DEV_ALL_LEVELS on localhost. */
+  readonly allLevelsOpen: boolean;
+}
+
+async function checkAccess(game: string): Promise<Access> {
   try {
-    return (await getJson<{ unlocked: boolean }>(`/api/entitlement?game=${encodeURIComponent(game)}`)).unlocked;
+    const data = await getJson<Partial<Access>>(`/api/entitlement?game=${encodeURIComponent(game)}`);
+    return { unlocked: data.unlocked === true, allLevelsOpen: data.allLevelsOpen === true };
   } catch (err) {
     // Offline or server hiccup: the free chapter still plays.
     console.warn('[16bit.ink] ownership check failed', err);
-    return false;
+    return { unlocked: false, allLevelsOpen: false };
   }
 }
 
@@ -56,7 +63,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
   if (isIos()) document.getElementById('ios-hint')?.removeAttribute('hidden');
 
   // Start the ownership check and engine download while the player reads the splash.
-  const unlockedP = isUnlocked(game);
+  const accessP = checkAccess(game);
   // Re-created on retry: a failed dynamic import stays rejected forever.
   let engineP = loadGame(game);
   engineP.catch(() => undefined);
@@ -68,10 +75,11 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
     // Must be requested synchronously inside the click for browsers to allow it.
     const fs = goFullscreen(stage);
     try {
-      const [module, unlocked] = await Promise.all([engineP, unlockedP, fontP, fs]);
+      const [module, { unlocked, allLevelsOpen }] = await Promise.all([engineP, accessP, fontP, fs]);
       splash.remove();
       const handle = module.mount(stage, {
         unlocked,
+        allLevelsOpen,
         storage: safeStorage(),
         loadContent: () => getJson<unknown>(`/api/content/${encodeURIComponent(game)}`),
         onBuy: () => {

@@ -7,3 +7,6 @@ STRIPE_AUTOMATIC_TAX=false
 # Local only: every game counts as owned (no Stripe needed). Remove it to test
 # the free version. Only works on localhost; never set it in production.
 DEV_UNLOCK=true
+# Local only: every level is playable without finishing the ones before it
+# (paid chapters still need DEV_UNLOCK or a purchase). Only works on localhost.
+DEV_ALL_LEVELS=true
