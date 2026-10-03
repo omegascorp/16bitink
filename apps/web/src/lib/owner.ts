@@ -1,7 +1,7 @@
 import type { AstroCookies } from 'astro';
 import { devUnlockAllowed } from './devUnlock';
 import { entitlementCookie, verifyEntitlement, type EntitlementClaims } from './entitlement';
-import { optionalEnv, requireEnv } from './env';
+import { optionalEnv, requireSecret } from './env';
 
 /**
  * Reads and verifies the ownership cookie for `game`. Locally, DEV_UNLOCK=true
@@ -12,5 +12,5 @@ export async function ownership(cookies: AstroCookies, game: string, url: URL): 
     return { v: 1, g: game, s: 'dev_unlock', iat: Math.floor(Date.now() / 1000) };
   }
   const token = cookies.get(entitlementCookie(game))?.value;
-  return verifyEntitlement(token, game, requireEnv('ENTITLEMENT_SECRET'));
+  return verifyEntitlement(token, game, requireSecret('ENTITLEMENT_SECRET'));
 }

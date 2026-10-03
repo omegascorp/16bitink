@@ -3,7 +3,8 @@ import Base from '../../layouts/Base.astro';
 import { findGame } from '../../data/games';
 import { isFulfillable } from '../../lib/fulfil';
 import { ENTITLEMENT_MAX_AGE, entitlementCookie, signEntitlement } from '../../lib/entitlement';
-import { requireEnv } from '../../lib/env';
+import { isLocalHost } from '../../lib/devUnlock';
+import { requireSecret } from '../../lib/env';
 import { stripeClient } from '../../lib/stripe';
 
 export const prerender = false;
@@ -22,10 +23,11 @@ if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) {
   try {
     const session = await stripeClient().checkout.sessions.retrieve(sessionId);
     const game = findGame(session.metadata?.game ?? '');
-    if (!isFulfillable(session, Date.now()) || !game) {
+    // Test-mode (fake card) payments only count when testing on this machine.
+    if (!isFulfillable(session, Date.now(), { allowTestMode: isLocalHost(Astro.url.hostname) }) || !game) {
       error = 'We could not confirm that payment yet. If you were charged, refresh this page in a minute.';
     } else {
-      const token = await signEntitlement({ v: 1, g: game.slug, s: session.id, iat: Math.floor(Date.now() / 1000) }, requireEnv('ENTITLEMENT_SECRET'));
+      const token = await signEntitlement({ v: 1, g: game.slug, s: session.id, iat: Math.floor(Date.now() / 1000) }, requireSecret('ENTITLEMENT_SECRET'));
       Astro.cookies.set(entitlementCookie(game.slug), token, {
         path: '/', httpOnly: true, secure: import.meta.env.PROD, sameSite: 'lax', maxAge: ENTITLEMENT_MAX_AGE,
       });

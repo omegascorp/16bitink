@@ -20,3 +20,11 @@ describe('dev unlock guard', () => {
     expect(devUnlockAllowed('true', 'evil-localhost')).toBe(false);
   });
 });
+
+describe('local host check', () => {
+  it('knows this machine from the real site', async () => {
+    const { isLocalHost } = await import('../src/lib/devUnlock');
+    expect(isLocalHost('localhost')).toBe(true);
+    expect(isLocalHost('16bit.ink')).toBe(false);
+  });
+});
