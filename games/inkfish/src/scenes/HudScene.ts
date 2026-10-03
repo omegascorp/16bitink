@@ -111,7 +111,7 @@ export class HudScene extends Phaser.Scene {
     const offset = this.cornerButtons.length * 62 + 50;
     while (this.lifeIcons.length > Math.max(0, lives)) this.lifeIcons.pop()?.destroy();
     while (this.lifeIcons.length < lives) {
-      this.lifeIcons.push(this.add.image(0, 36, fishKey('inkling', 'light', 0)).setScale(0.2));
+      this.lifeIcons.push(this.add.image(0, 36, fishKey('inkling', 'light', 0)).setScale(0.16));
     }
     this.lifeIcons.forEach((icon, i) => icon.setPosition(width - offset - i * 44, 36));
   }

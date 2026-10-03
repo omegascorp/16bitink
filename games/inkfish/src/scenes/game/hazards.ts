@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { boilKey } from '../../art/textures';
+import { ART_RES, boilKey } from '../../art/textures';
 import type { LevelDef } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { TUNING } from './tuning';
@@ -16,7 +16,7 @@ export function spawnJellies(scene: Phaser.Scene, level: LevelDef, rng: Rng): Je
     const sprite = scene.add
       .image(rangeOf(rng, 200, level.world.width - 200), rangeOf(rng, 300, level.world.height - 300), boilKey('jelly', 0))
       .setDepth(9)
-      .setScale(0.7);
+      .setScale(0.7 / ART_RES);
     return { sprite, radius: 30, vx: rangeOf(rng, -25, 25), phase: rng() * 6 };
   });
 }
@@ -46,7 +46,7 @@ export interface Hook {
 export function spawnHook(scene: Phaser.Scene, level: LevelDef, px: number, py: number, rng: Rng): Hook {
   const x = Phaser.Math.Clamp(px + rangeOf(rng, -260, 260), 120, level.world.width - 120);
   const depth = Phaser.Math.Clamp(py + rangeOf(rng, -120, 160), 260, level.world.height - 220);
-  const sprite = scene.add.image(x, -80, boilKey('hook', 0)).setOrigin(0.66, 0.05).setDepth(12);
+  const sprite = scene.add.image(x, -80, boilKey('hook', 0)).setOrigin(0.66, 0.05).setDepth(12).setScale(1 / ART_RES);
   const line = scene.add.graphics().setDepth(11);
   return { sprite, line, x, depth, phase: 'warn', t: 0, y: -80 };
 }

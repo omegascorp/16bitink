@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BOIL_FPS, BOIL_FRAMES, boilKey } from '../art/textures';
+import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, weedKey } from '../art/textures';
 import { getChapters } from '../host';
 import type { LevelDef } from '../levels/types';
 import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy, type FrenzyState } from '../logic/frenzy';
@@ -137,7 +137,7 @@ export class GameScene extends Phaser.Scene {
     if (this.boilClock < 1000 / BOIL_FPS) return;
     this.boilClock = 0;
     this.boilFrame = (this.boilFrame + 1) % BOIL_FRAMES;
-    for (const w of this.weeds) w.setTexture(boilKey('weed', this.boilFrame));
+    for (const w of this.weeds) w.setTexture(weedKey(w.getData('kind') as 0 | 1 | 2, this.boilFrame));
   }
 
   private updateFishes(now: number, dt: number): void {
@@ -311,7 +311,7 @@ export class GameScene extends Phaser.Scene {
 
   private burst(x: number, y: number, count: number): void {
     for (let i = 0; i < count; i++) {
-      const b = this.add.image(x, y, 'bubble').setDepth(30).setScale(0.6 + this.rng() * 0.8);
+      const b = this.add.image(x, y, 'bubble').setDepth(30).setScale((0.6 + this.rng() * 0.8) / ART_RES);
       this.tweens.add({
         targets: b, x: x + (this.rng() - 0.5) * 90, y: y - 30 - this.rng() * 80, alpha: 0,
         duration: 600 + this.rng() * 500, ease: 'Sine.Out', onComplete: () => b.destroy(),

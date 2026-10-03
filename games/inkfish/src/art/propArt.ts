@@ -1,105 +1,307 @@
-import { createRng } from '../logic/rng';
+import { createRng, type Rng } from '../logic/rng';
 import { ellipse, INK, PAPER, Pen, type Pt } from './pen';
 
-export function drawJelly(ctx: CanvasRenderingContext2D, seed: number): void {
-  const pen = new Pen(ctx, seed, 1);
-  const cx = 64;
-  const top = 26;
-  const bell: Pt[] = [];
-  for (let i = 0; i <= 16; i++) {
-    const a = Math.PI + (i / 16) * Math.PI;
-    bell.push({ x: cx + Math.cos(a) * 36, y: top + 30 + Math.sin(a) * 30 });
+/**
+ * Props are drawn at ART_RES× their in-game size and displayed at
+ * 1 / ART_RES scale, so fine pen lines stay crisp instead of blurring.
+ */
+export const ART_RES = 2;
+
+const PAPER_FILL = '#fffaf0';
+const KELP_INK = '#24392a';
+const KELP_WASH = '#6f8f5f';
+
+function bez(p0: Pt, c: Pt, p1: Pt, n = 16): Pt[] {
+  return Array.from({ length: n + 1 }, (_, i) => {
+    const t = i / n;
+    const u = 1 - t;
+    return { x: u * u * p0.x + 2 * u * t * c.x + t * t * p1.x, y: u * u * p0.y + 2 * u * t * c.y + t * t * p1.y };
+  });
+}
+
+/** Offsets a centreline both ways by `width(u)` to make a ribbon polygon. */
+function ribbon(center: readonly Pt[], width: (u: number) => number): { left: Pt[]; right: Pt[]; shape: Pt[] } {
+  const left: Pt[] = [];
+  const right: Pt[] = [];
+  center.forEach((p, i) => {
+    const a = center[Math.max(0, i - 1)]!;
+    const b = center[Math.min(center.length - 1, i + 1)]!;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const w = width(i / (center.length - 1));
+    left.push({ x: p.x - (dy / d) * w, y: p.y + (dx / d) * w });
+    right.push({ x: p.x + (dy / d) * w, y: p.y - (dx / d) * w });
+  });
+  return { left, right, shape: [...left, ...[...right].reverse()] };
+}
+
+// ---------------------------------------------------------------- weeds
+
+/** A kelp blade with a midrib, ruffled edges and fine veins. */
+function blade(pen: Pen, center: readonly Pt[], maxW: number, rng: Rng): void {
+  const ruffle = rng() * 6;
+  const { left, right, shape } = ribbon(center, (u) => maxW * Math.pow(Math.sin(Math.PI * Math.min(1, u * 1.05)), 0.7) * (1 + 0.12 * Math.sin(u * 22 + ruffle)));
+  pen.fill(shape, PAPER_FILL, 1);
+  pen.fill(shape, KELP_WASH, 0.3);
+  // Shade one side of the blade with fine hatching.
+  pen.clipped(shape, () => {
+    right.forEach((p, i) => {
+      if (i % 2) return;
+      const c = center[i]!;
+      pen.hair([p, { x: (p.x + c.x) / 2, y: (p.y + c.y) / 2 + 2 }], 0.6, KELP_INK, 0.55);
+    });
+  });
+  pen.hair(center, 0.9, KELP_INK, 0.8);
+  left.forEach((p, i) => {
+    if (i % 3 || i === 0) return;
+    pen.hair([center[i]!, p], 0.5, KELP_INK, 0.4);
+  });
+  pen.stroke(left, 1.4, KELP_INK, 1, false);
+  pen.stroke(right, 1.4, KELP_INK, 1, false);
+}
+
+function kelp(pen: Pen, w: number, h: number, rng: Rng): void {
+  const x0 = w / 2 + (rng() - 0.5) * 30;
+  const height = h * (0.72 + rng() * 0.22);
+  const stem: Pt[] = [];
+  for (let i = 0; i <= 30; i++) {
+    const u = i / 30;
+    stem.push({ x: x0 + Math.sin(u * 4 + rng()) * 16 * u, y: h - 4 - u * height });
   }
-  for (let i = 0; i <= 6; i++) bell.push({ x: cx + 36 - i * 12, y: top + 30 + (i % 2) * 5 });
-  pen.fill(bell, '#fffaf0', 0.9);
-  pen.fill(bell, '#9b6fc4', 0.3);
-  pen.hatch(bell, 6, Math.PI / 3, 0.8, { onlyBelow: top + 20, alpha: 0.5 });
-  pen.closed(bell, 2.2);
-  for (let t = 0; t < 5; t++) {
-    const x0 = cx - 26 + t * 13;
-    const pts: Pt[] = [];
-    for (let i = 0; i <= 8; i++) pts.push({ x: x0 + Math.sin(i * 0.9 + t + seed) * 5, y: top + 34 + i * 9 });
-    pen.stroke(pts, 1.3, INK, 0.85);
+  const { left, right, shape } = ribbon(stem, (u) => 4.5 * (1 - u * 0.6));
+  pen.fill(shape, KELP_WASH, 0.45);
+  pen.stroke(left, 1.3, KELP_INK, 1, false);
+  pen.stroke(right, 1.3, KELP_INK, 1, false);
+  // Blades sprout alternately, longer near the base.
+  for (let i = 4; i < stem.length - 1; i += 3) {
+    const p = stem[i]!;
+    const side = i % 2 ? 1 : -1;
+    const len = (60 + rng() * 40) * (1 - i / stem.length * 0.5);
+    const tip = { x: p.x + side * len * 0.75, y: p.y - len * 0.75 };
+    blade(pen, bez(p, { x: p.x + side * len * 0.65, y: p.y - len * 0.05 }, tip, 18), 9 + rng() * 4, rng);
+  }
+  // Holdfast: a tangle of little roots.
+  for (let i = 0; i < 9; i++) {
+    const a = Math.PI * (0.15 + rng() * 0.7);
+    pen.hair([{ x: x0, y: h - 6 }, { x: x0 + Math.cos(a) * 18, y: h - 6 + Math.sin(a) * 6 }], 0.9, KELP_INK, 0.8);
   }
 }
 
-export function drawHook(ctx: CanvasRenderingContext2D, seed: number): void {
-  const pen = new Pen(ctx, seed, 0.8);
-  const hook: Pt[] = [
-    { x: 32, y: 4 }, { x: 32, y: 52 }, { x: 30, y: 62 }, { x: 22, y: 68 }, { x: 13, y: 64 },
-    { x: 10, y: 54 }, { x: 14, y: 48 },
-  ];
-  pen.stroke(hook, 3.2);
-  pen.stroke([{ x: 14, y: 48 }, { x: 18, y: 56 }], 2.2);
-  pen.circle(32, 6, 4, 2);
-  // A sad wriggling worm as bait.
-  pen.stroke([{ x: 28, y: 30 }, { x: 22, y: 34 }, { x: 28, y: 40 }, { x: 22, y: 46 }], 4, '#b0574f', 0.85);
-}
-
-export function drawPowerUp(ctx: CanvasRenderingContext2D, kind: 'speed' | 'shrink', seed: number): void {
-  const pen = new Pen(ctx, seed, 0.9);
-  const c = 40;
-  pen.fill(ellipse(c, c, 30, 30, 20), '#fffaf0', 0.85);
-  pen.circle(c, c, 30, 2.2);
-  pen.circle(c, c, 26, 0.8);
-  if (kind === 'speed') {
-    // A quill nib with motion lines.
-    pen.fill([{ x: 52, y: 20 }, { x: 30, y: 46 }, { x: 26, y: 58 }, { x: 36, y: 52 }, { x: 58, y: 26 }], '#d9a441', 0.8);
-    pen.closed([{ x: 52, y: 20 }, { x: 30, y: 46 }, { x: 26, y: 58 }, { x: 36, y: 52 }, { x: 58, y: 26 }], 2);
-    for (let i = 0; i < 3; i++) pen.stroke([{ x: 14, y: 30 + i * 8 }, { x: 26, y: 26 + i * 8 }], 1.4);
-  } else {
-    // An ink splat.
-    const splat: Pt[] = [];
-    const rng = createRng(seed);
-    for (let i = 0; i < 18; i++) {
-      const a = (i / 18) * Math.PI * 2;
-      const r = i % 2 ? 9 + rng() * 4 : 15 + rng() * 6;
-      splat.push({ x: c + Math.cos(a) * r, y: c + Math.sin(a) * r });
-    }
-    pen.fill(splat, INK, 0.95);
-    pen.dot(c + 20, c - 14, 2.5);
-    pen.dot(c - 18, c + 16, 2);
-  }
-}
-
-export function drawBubble(ctx: CanvasRenderingContext2D, seed: number): void {
-  const pen = new Pen(ctx, seed, 0.4);
-  pen.circle(8, 8, 6, 1.2);
-  pen.stroke([{ x: 5, y: 6 }, { x: 7, y: 4 }], 1);
-}
-
-export function drawWeed(ctx: CanvasRenderingContext2D, seed: number, h: number): void {
-  const pen = new Pen(ctx, seed, 1.4);
-  const rng = createRng(seed * 7 + 1);
-  for (let s = 0; s < 3; s++) {
-    const x0 = 30 + s * 20 + rng() * 10;
-    const stem: Pt[] = [];
-    const height = h * (0.5 + rng() * 0.32);
-    for (let i = 0; i <= 12; i++) stem.push({ x: x0 + Math.sin(i * 0.7 + s) * 8, y: h - (i / 12) * height });
-    pen.stroke(stem, 2, '#2f4a32');
-    stem.forEach((p, i) => {
-      if (i % 2 || i === 0) return;
-      const dir = i % 4 ? 1 : -1;
-      const leaf: Pt[] = [p, { x: p.x + dir * 14, y: p.y - 8 }, { x: p.x + dir * 20, y: p.y - 4 }, p];
-      pen.fill(leaf, '#6f8f5f', 0.35);
-      pen.stroke(leaf, 1.2, '#2f4a32');
+function eelgrass(pen: Pen, w: number, h: number, rng: Rng): void {
+  const n = 6 + Math.floor(rng() * 3);
+  for (let i = 0; i < n; i++) {
+    const x0 = w / 2 + (i - n / 2) * 7 + (rng() - 0.5) * 6;
+    const height = h * (0.5 + rng() * 0.45);
+    const lean = (rng() - 0.5) * 120;
+    const center = bez({ x: x0, y: h - 4 }, { x: x0 + lean * 0.2, y: h - height * 0.6 }, { x: x0 + lean, y: h - height }, 24);
+    const { left, right, shape } = ribbon(center, (u) => 5.5 * (1 - Math.pow(u, 1.6)) + 0.4);
+    pen.fill(shape, PAPER_FILL, 1);
+    pen.fill(shape, KELP_WASH, 0.28 + rng() * 0.12);
+    // Parallel veins run the length of each blade.
+    pen.hair(center, 0.5, KELP_INK, 0.55);
+    pen.stroke(left, 1.2, KELP_INK, 1, false);
+    pen.stroke(right, 1.2, KELP_INK, 1, false);
+    pen.clipped(shape, () => {
+      for (let k = 0; k < center.length * 0.35; k++) {
+        const p = left[k]!;
+        pen.hair([p, { x: p.x + 4, y: p.y - 3 }], 0.5, KELP_INK, 0.5);
+      }
     });
   }
 }
 
-export function drawRock(ctx: CanvasRenderingContext2D, seed: number, w: number, h: number): void {
-  const pen = new Pen(ctx, seed, 1.5);
-  const rng = createRng(seed);
-  const pts: Pt[] = [];
-  for (let i = 0; i <= 10; i++) {
-    const t = i / 10;
-    pts.push({ x: 8 + t * (w - 16), y: h - 6 - Math.sin(Math.PI * t) * (h - 20) * (0.75 + rng() * 0.3) });
+function seaFern(pen: Pen, w: number, h: number, rng: Rng): void {
+  const x0 = w / 2;
+  const height = h * (0.6 + rng() * 0.25);
+  const stem = bez({ x: x0, y: h - 4 }, { x: x0 + (rng() - 0.5) * 50, y: h - height * 0.5 }, { x: x0 + (rng() - 0.5) * 40, y: h - height }, 30);
+  pen.stroke(stem, 1.8, KELP_INK, 1, false);
+  for (let i = 3; i < stem.length; i += 2) {
+    const p = stem[i]!;
+    const side = i % 4 === 1 ? 1 : -1;
+    const len = (46 + rng() * 26) * (1 - (i / stem.length) * 0.65);
+    const branch = bez(p, { x: p.x + side * len * 0.6, y: p.y - len * 0.1 }, { x: p.x + side * len, y: p.y - len * 0.55 }, 10);
+    pen.stroke(branch, 1, KELP_INK, 1, false);
+    // Leaflets alternate along each branch.
+    branch.forEach((b, j) => {
+      if (j === 0 || j % 2) return;
+      const leaf = ellipse(b.x + side * 1.5, b.y - 4, 2.6, 5, 10);
+      pen.fill(leaf, KELP_WASH, 0.45);
+      pen.hair(leaf.concat([leaf[0]!]), 0.6, KELP_INK, 0.85);
+    });
   }
-  pts.push({ x: w - 8, y: h - 4 }, { x: 8, y: h - 4 });
-  pen.fill(pts, '#fffaf0', 1);
-  pen.fill(pts, '#8a7f70', 0.3);
-  pen.hatch(pts, 5, Math.PI / 4, 0.9, { onlyBelow: h * 0.45, alpha: 0.6 });
-  pen.closed(pts, 2.4);
+}
+
+export type WeedKind = 0 | 1 | 2;
+
+/** One boil frame of a weed clump. Canvas is w×h at ART_RES. */
+export function drawWeed(ctx: CanvasRenderingContext2D, seed: number, kind: WeedKind, frame: number, w: number, h: number): void {
+  // Same shape every frame (seeded by `seed`), different pen wobble (`frame`).
+  const pen = new Pen(ctx, seed * 31 + frame * 977, 0.7);
+  const rng = createRng(seed);
+  if (kind === 0) kelp(pen, w, h, rng);
+  else if (kind === 1) eelgrass(pen, w, h, rng);
+  else seaFern(pen, w, h, rng);
+}
+
+// ---------------------------------------------------------------- rocks
+
+export function drawRock(ctx: CanvasRenderingContext2D, seed: number, w: number, h: number): void {
+  const pen = new Pen(ctx, seed, 0.9);
+  const rng = createRng(seed);
+  const cx = w / 2;
+  const base = h - 14;
+  // Lumpy dome: radius modulated by a few random harmonics.
+  const harmonics = [rng() * 6, rng() * 6, rng() * 6];
+  const pts: Pt[] = [];
+  for (let i = 0; i <= 40; i++) {
+    const a = Math.PI + (i / 40) * Math.PI;
+    const r = 1 + 0.08 * Math.sin(a * 3 + harmonics[0]!) + 0.05 * Math.sin(a * 7 + harmonics[1]!) + 0.03 * Math.sin(a * 13 + harmonics[2]!);
+    pts.push({ x: cx + Math.cos(a) * (w / 2 - 18) * r, y: base + Math.sin(a) * (h - 30) * r * (0.75 + rng() * 0.02) });
+  }
+  pts.push({ x: w - 14, y: base + 6 }, { x: 14, y: base + 6 });
+  pen.fill(pts, PAPER_FILL, 1);
+  pen.fill(pts, '#8a7f70', 0.22);
+  // Form shading: contour lines echoing the dome on the shadow (right) side.
+  pen.clipped(pts, () => {
+    for (let k = 1; k <= 9; k++) {
+      const inset = k * 5;
+      const arc = pts.slice(18, 41).map((p) => ({ x: p.x - inset * 0.7, y: p.y + inset * 0.55 }));
+      pen.hair(arc, 0.7, INK, 0.65 - k * 0.04);
+    }
+    for (let x = cx; x < w; x += 4) pen.hair([{ x, y: base + 6 }, { x: x - 10, y: base - h * 0.35 }], 0.5, INK, 0.35);
+  });
+  pen.stipple(pts, 2600, (x, y) => Math.min(1, ((x - cx) / w + 0.5) * 0.6 + ((y - (base - h)) / h) * 0.6), 0.75);
+  // Cracks.
+  for (let c = 0; c < 2; c++) {
+    let p = pts[10 + Math.floor(rng() * 20)]!;
+    const crack: Pt[] = [p];
+    for (let i = 0; i < 5; i++) {
+      p = { x: p.x + (rng() - 0.5) * 14, y: p.y + 6 + rng() * 6 };
+      crack.push(p);
+    }
+    pen.hair(crack, 0.9, INK, 0.8);
+  }
+  pen.stroke(pts.slice(0, 41), 2.2, INK, 1);
+  // Pebbles at the foot.
+  for (let i = 0; i < 7; i++) {
+    const px = 20 + rng() * (w - 40);
+    const pr = 3 + rng() * 4;
+    const pebble = ellipse(px, base + 4, pr * 1.3, pr * 0.8, 10);
+    pen.fill(pebble, PAPER_FILL, 1);
+    pen.hair(pebble.concat([pebble[0]!]), 0.9, INK, 0.9);
+    pen.hair([{ x: px, y: base + 4 + pr * 0.3 }, { x: px + pr, y: base + 4 + pr * 0.1 }], 0.5, INK, 0.6);
+  }
+}
+
+// ---------------------------------------------------------------- creatures & items
+
+export function drawJelly(ctx: CanvasRenderingContext2D, seed: number): void {
+  const pen = new Pen(ctx, seed, 0.6);
+  const s = ART_RES;
+  const cx = 64 * s;
+  const rim = 58 * s;
+  const bell: Pt[] = [];
+  for (let i = 0; i <= 24; i++) {
+    const a = Math.PI + (i / 24) * Math.PI;
+    bell.push({ x: cx + Math.cos(a) * 38 * s, y: rim + Math.sin(a) * 34 * s });
+  }
+  // Frilled margin.
+  for (let i = 0; i <= 16; i++) bell.push({ x: cx + 38 * s - (i / 16) * 76 * s, y: rim + (i % 2 ? 3 : 0) * s });
+  // Fine tentacles behind the bell.
+  for (let t = 0; t < 14; t++) {
+    const x0 = cx - 34 * s + (t / 13) * 68 * s;
+    const pts: Pt[] = [];
+    for (let i = 0; i <= 14; i++) pts.push({ x: x0 + Math.sin(i * 0.7 + t + seed) * 4 * s, y: rim + i * 4.6 * s });
+    pen.hair(pts, 0.5 * s, INK, 0.55);
+  }
+  // Oral arms: frilly ribbons.
+  for (let k = 0; k < 4; k++) {
+    const x0 = cx - 12 * s + k * 8 * s;
+    const center: Pt[] = [];
+    for (let i = 0; i <= 12; i++) center.push({ x: x0 + Math.sin(i * 0.6 + k * 1.7 + seed) * 5 * s, y: rim + i * 3.6 * s });
+    const { left, right, shape } = ribbon(center, (u) => (3.2 - u * 2.2) * s);
+    pen.fill(shape, '#c9a8e0', 0.5);
+    pen.hair(left, 0.5 * s, INK, 0.8);
+    pen.hair(right, 0.5 * s, INK, 0.8);
+  }
+  pen.fill(bell, PAPER_FILL, 0.92);
+  pen.fill(bell, '#9b6fc4', 0.22);
+  // Radial canals and gonad rings seen through the bell.
+  for (let r = 0; r < 9; r++) {
+    const a = Math.PI + ((r + 0.5) / 9) * Math.PI;
+    pen.hair(bez({ x: cx, y: rim - 26 * s }, { x: cx + Math.cos(a) * 20 * s, y: rim - 24 * s + Math.sin(a) * 6 * s }, { x: cx + Math.cos(a) * 36 * s, y: rim + Math.sin(a) * 30 * s + 2 * s }, 8), 0.45 * s, INK, 0.45);
+  }
+  for (let g = 0; g < 4; g++) {
+    const gx = cx - 15 * s + g * 10 * s;
+    pen.hair(ellipse(gx, rim - 14 * s, 4 * s, 2.5 * s, 10).concat([{ x: gx + 4 * s, y: rim - 14 * s }]), 0.5 * s, '#6b3f99', 0.7);
+  }
+  pen.stipple(bell, 600, (_x, y) => Math.max(0, (y - (rim - 40 * s)) / (40 * s)) * 0.5, 0.5 * s);
+  pen.stroke(bell, 1.1 * s, INK, 1);
+}
+
+export function drawHook(ctx: CanvasRenderingContext2D, seed: number): void {
+  const pen = new Pen(ctx, seed, 0.5);
+  const s = ART_RES;
+  const P = (x: number, y: number): Pt => ({ x: x * s, y: y * s });
+  const shank = [P(32, 9), P(32, 52), P(30, 62), P(22, 68), P(13, 64), P(10, 54), P(14, 48)];
+  pen.stroke(shank, 1.8 * s, INK, 1);
+  // Highlight along the metal and the barb.
+  pen.hair([P(33.4, 14), P(33.4, 50)], 0.4 * s, PAPER_FILL, 0.9);
+  pen.stroke([P(14, 48), P(17, 52), P(13.5, 52.5)], 1.1 * s, INK, 1, false);
+  pen.stroke(ellipse(32 * s, 6 * s, 3.2 * s, 3.2 * s, 12).concat([P(35.2, 6)]), 1.1 * s, INK, 1, false);
+  // A coiled worm: segmented, with ring hairs.
+  const worm = [P(28, 26), P(22, 30), P(28, 35), P(22, 40), P(27, 45)];
+  pen.stroke(worm, 4.2 * s, '#b0574f', 0.85, false);
+  for (let i = 1; i < worm.length; i++) {
+    const a = worm[i - 1]!;
+    const b = worm[i]!;
+    pen.hair([{ x: (a.x + b.x) / 2 - 3 * s, y: (a.y + b.y) / 2 }, { x: (a.x + b.x) / 2 + 3 * s, y: (a.y + b.y) / 2 + s }], 0.4 * s, INK, 0.6);
+  }
+}
+
+export function drawPowerUp(ctx: CanvasRenderingContext2D, kind: 'speed' | 'shrink', seed: number): void {
+  const pen = new Pen(ctx, seed, 0.5);
+  const s = ART_RES;
+  const c = 40 * s;
+  pen.fill(ellipse(c, c, 30 * s, 30 * s, 28), PAPER_FILL, 0.92);
+  pen.stroke(ellipse(c, c, 30 * s, 30 * s, 28).concat([{ x: c + 30 * s, y: c }]), 1.2 * s, INK, 1);
+  pen.hair(ellipse(c, c, 26.5 * s, 26.5 * s, 28).concat([{ x: c + 26.5 * s, y: c }]), 0.45 * s, INK, 0.6);
+  if (kind === 'speed') {
+    // A fountain-pen nib with a slit, breather hole and motion lines.
+    const nib: Pt[] = [{ x: c + 12 * s, y: c - 20 * s }, { x: c + 20 * s, y: c - 12 * s }, { x: c - 4 * s, y: c + 14 * s }, { x: c - 14 * s, y: c + 18 * s }, { x: c - 10 * s, y: c + 8 * s }];
+    pen.fill(nib, '#d9a441', 0.75);
+    pen.stroke(nib.concat([nib[0]!]), 1 * s, INK, 1, false);
+    pen.hair([{ x: c + 6 * s, y: c - 6 * s }, { x: c - 11 * s, y: c + 14 * s }], 0.5 * s, INK, 0.9);
+    pen.dot(c + 7 * s, c - 7 * s, 1.6 * s, INK);
+    pen.clipped(nib, () => {
+      for (let i = 0; i < 8; i++) pen.hair([{ x: c - 10 * s + i * 3 * s, y: c + 20 * s }, { x: c + i * 3 * s, y: c - 4 * s }], 0.4 * s, INK, 0.45);
+    });
+    for (let i = 0; i < 3; i++) pen.hair([{ x: c - 22 * s, y: c - 8 * s + i * 7 * s }, { x: c - 12 * s, y: c - 11 * s + i * 7 * s }], 0.6 * s, INK, 0.8);
+  } else {
+    // An ink splat with satellite drops.
+    const rng = createRng(seed);
+    const splat: Pt[] = [];
+    for (let i = 0; i < 26; i++) {
+      const a = (i / 26) * Math.PI * 2;
+      const r = (i % 2 ? 9 + rng() * 3 : 13 + rng() * 7) * s;
+      splat.push({ x: c + Math.cos(a) * r, y: c + Math.sin(a) * r });
+    }
+    pen.fill(splat, INK, 0.95);
+    for (let i = 0; i < 6; i++) {
+      const a = rng() * Math.PI * 2;
+      const d = (19 + rng() * 5) * s;
+      pen.dot(c + Math.cos(a) * d, c + Math.sin(a) * d, (0.8 + rng() * 1.4) * s);
+    }
+    pen.dot(c - 4 * s, c - 5 * s, 2 * s, PAPER_FILL, 0.5);
+  }
+}
+
+export function drawBubble(ctx: CanvasRenderingContext2D, seed: number): void {
+  const pen = new Pen(ctx, seed, 0.25);
+  const s = ART_RES;
+  pen.hair(ellipse(8 * s, 8 * s, 6 * s, 6 * s, 16).concat([{ x: 14 * s, y: 8 * s }]), 0.7 * s, INK, 0.8);
+  pen.hair(bez({ x: 4.5 * s, y: 7 * s }, { x: 5 * s, y: 4.5 * s }, { x: 7.5 * s, y: 4 * s }, 6), 0.6 * s, INK, 0.7);
 }
 
 /** Tileable sketchbook paper: fibres and speckles on cream. */

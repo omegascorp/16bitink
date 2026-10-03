@@ -27,7 +27,7 @@ export class MenuScene extends Phaser.Scene {
     const save = loadSave(host.storage);
     const ids = levels.map((l) => l.id);
 
-    const hero = this.add.image(-170, 70, fishKey('inkling', 'light', 0)).setScale(0.55);
+    const hero = this.add.image(-170, 70, fishKey('inkling', 'light', 0)).setScale(0.43);
     this.tweens.add({ targets: hero, y: 78, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     root.add([hero, inkText(this, 30, 62, 'InkFish', 84, BLUE_INK), inkText(this, 30, 118, 'eat · grow · don’t get eaten', 26)]);
 

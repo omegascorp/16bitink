@@ -24,14 +24,56 @@ export class Pen {
     return (this.rng() - 0.5) * 2 * amount;
   }
 
-  /** Polyline through points, smoothed, with pressure-varying width. */
-  stroke(points: readonly Pt[], width: number, color = INK, alpha = 1): void {
+  /**
+   * Polyline through points, smoothed, with pressure-varying width.
+   * `retrace` adds a faint second pass (the pen went over it twice):
+   * nice on contours, noise on hairline detail.
+   */
+  stroke(points: readonly Pt[], width: number, color = INK, alpha = 1, retrace = true): void {
     if (points.length < 2) return;
     const pts = points.map((p) => ({ x: p.x + this.jitter(), y: p.y + this.jitter() }));
     this.trace(pts, width, color, alpha);
-    // Faint second pass, slightly offset: the pen went over it twice.
-    const ghost = pts.map((p) => ({ x: p.x + this.jitter(0.8), y: p.y + this.jitter(0.8) }));
-    this.trace(ghost, width * 0.55, color, alpha * 0.35);
+    if (!retrace) return;
+    const ghost = pts.map((p) => ({ x: p.x + this.jitter(0.6), y: p.y + this.jitter(0.6) }));
+    this.trace(ghost, width * 0.45, color, alpha * 0.22);
+  }
+
+  /** Fine single-pass line for interior detail (no re-trace, less wobble). */
+  hair(points: readonly Pt[], width: number, color = INK, alpha = 0.85): void {
+    if (points.length < 2) return;
+    const pts = points.map((p) => ({ x: p.x + this.jitter(0.35), y: p.y + this.jitter(0.35) }));
+    this.trace(pts, width, color, alpha);
+  }
+
+  /** Random dots, denser where `density(x, y)` is high (0..1), clipped to a shape. */
+  stipple(clip: readonly Pt[], count: number, density: (x: number, y: number) => number, r = 0.55, color = INK): void {
+    const { ctx } = this;
+    const xs = clip.map((p) => p.x);
+    const ys = clip.map((p) => p.y);
+    const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    ctx.save();
+    pathOf(ctx, clip);
+    ctx.clip();
+    ctx.fillStyle = color;
+    for (let i = 0; i < count; i++) {
+      const x = x0 + this.rng() * (x1 - x0);
+      const y = y0 + this.rng() * (y1 - y0);
+      if (this.rng() > density(x, y)) continue;
+      ctx.globalAlpha = 0.55 + this.rng() * 0.4;
+      ctx.beginPath();
+      ctx.arc(x, y, r * (0.6 + this.rng() * 0.8), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /** Runs `draw` with drawing clipped to a closed shape. */
+  clipped(clip: readonly Pt[], draw: () => void): void {
+    this.ctx.save();
+    pathOf(this.ctx, clip);
+    this.ctx.clip();
+    draw();
+    this.ctx.restore();
   }
 
   private trace(pts: readonly Pt[], width: number, color: string, alpha: number): void {
@@ -46,11 +88,11 @@ export class Pen {
       const b = pts[i]!;
       // Pressure: thinner at stroke ends, thicker mid-stroke.
       const t = i / pts.length;
-      ctx.lineWidth = Math.max(0.6, width * (0.65 + 0.5 * Math.sin(Math.PI * t)) + this.jitter(0.25));
+      ctx.lineWidth = Math.max(0.3, width * (0.6 + 0.55 * Math.sin(Math.PI * t)) * (1 + this.jitter(0.12)));
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
-      const mx = (a.x + b.x) / 2 + this.jitter(0.4);
-      const my = (a.y + b.y) / 2 + this.jitter(0.4);
+      const mx = (a.x + b.x) / 2 + this.jitter(0.2);
+      const my = (a.y + b.y) / 2 + this.jitter(0.2);
       ctx.quadraticCurveTo(mx, my, b.x, b.y);
       ctx.stroke();
     }

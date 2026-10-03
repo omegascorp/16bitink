@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { boilKey } from '../../art/textures';
+import { ART_RES, boilKey } from '../../art/textures';
 import type { LevelDef, PowerUpId } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { TUNING } from './tuning';
@@ -18,7 +18,7 @@ export function spawnPowerUp(scene: Phaser.Scene, level: LevelDef, view: Phaser.
   const x = Phaser.Math.Clamp(rangeOf(rng, view.left + 80, view.right - 80), 80, level.world.width - 80);
   const y = Phaser.Math.Clamp(rangeOf(rng, view.top + 80, view.bottom - 80), 140, level.world.height - 160);
   const sprite = scene.add.image(x, y, boilKey(`pu-${kind}`, 0)).setDepth(13).setScale(0);
-  scene.tweens.add({ targets: sprite, scale: 0.75, duration: 400, ease: 'Back.Out' });
+  scene.tweens.add({ targets: sprite, scale: 0.75 / ART_RES, duration: 400, ease: 'Back.Out' });
   return { sprite, kind, expiresAt: now + TUNING.powerUpTtlMs, baseY: y };
 }
 

@@ -22,7 +22,8 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
       height: parent.clientHeight || window.innerHeight,
       fullscreenTarget: parent,
     },
-    render: { antialias: true, roundPixels: false },
+    // Mipmaps keep hairline pen detail clean when sprites are drawn small.
+    render: { antialias: true, roundPixels: false, mipmapFilter: 'LINEAR_MIPMAP_LINEAR' },
     input: { activePointers: 3 },
     scene: [BootScene, MenuScene, GameScene, HudScene, ResultScene],
   });
