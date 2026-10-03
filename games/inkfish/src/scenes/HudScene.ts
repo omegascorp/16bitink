@@ -11,6 +11,10 @@ import { BLUE_INK, inkButton, inkText, INK_HEX, RED_INK, uiScale, wobblyRect } f
 /** Score and warnings on dark water. */
 const PALE_BLUE = '#a9c4ff';
 const PALE_RED = '#ff9a8a';
+/** Bar outlines and fills on dark water. */
+const PALE_INK_HEX = 0xece4d2;
+const PALE_ACCENT = { track: 0x0b1530, trackAlpha: 0.6, growth: 0x6f9bff, growthAlpha: 0.75, frenzy: 0xff7a6a } as const;
+const INK_ACCENT = { track: 0xfffaf0, trackAlpha: 0.9, growth: 0x3466c2, growthAlpha: 0.55, frenzy: 0xa3342b } as const;
 
 interface HudData {
   readonly levelName: string;
@@ -34,6 +38,8 @@ export class HudScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Text;
   private frenzyText!: Phaser.GameObjects.Text;
   private urgentColor = RED_INK;
+  private lineColor = INK_HEX;
+  private accent: { readonly track: number; readonly trackAlpha: number; readonly growth: number; readonly growthAlpha: number; readonly frenzy: number } = INK_ACCENT;
   private objectiveText!: Phaser.GameObjects.Text;
   private intro: Phaser.GameObjects.Container | null = null;
   private textColor = '#1b1a1f';
@@ -58,8 +64,10 @@ export class HudScene extends Phaser.Scene {
     this.add.text(20, 14, data.levelName, { fontFamily: '"Caveat", cursive', fontSize: '24px', color: this.textColor });
     this.bars = this.add.graphics();
     this.scoreText = inkText(this, 0, 30, '0', 40, data.dark ? PALE_BLUE : BLUE_INK);
-    this.objectiveText = this.add.text(20, 94, '', { fontFamily: '"Caveat", cursive', fontSize: '26px', color: '#1b1a1f' });
+    this.objectiveText = this.add.text(20, 94, '', { fontFamily: '"Caveat", cursive', fontSize: '26px', color: this.textColor });
     this.urgentColor = data.dark ? PALE_RED : RED_INK;
+    this.lineColor = data.dark ? PALE_INK_HEX : INK_HEX;
+    this.accent = data.dark ? PALE_ACCENT : INK_ACCENT;
     this.frenzyText = this.add.text(20, 124, '', { fontFamily: '"Caveat", cursive', fontSize: '26px', color: this.urgentColor });
 
     const fsAvailable = this.scale.fullscreen.available;
@@ -178,13 +186,13 @@ export class HudScene extends Phaser.Scene {
     const g = this.bars.clear();
     const x = 20;
     const y = 50;
-    g.fillStyle(0xfffaf0, 0.9).fillRect(x, y, BAR_W, BAR_H);
-    g.fillStyle(0x3466c2, 0.55).fillRect(x, y, BAR_W * s.progress, BAR_H);
-    for (const m of s.tierMarks) g.lineStyle(2, INK_HEX, 0.8).lineBetween(x + BAR_W * m, y - 4, x + BAR_W * m, y + BAR_H + 4);
-    wobblyRect(g, x, y, BAR_W, BAR_H, 3);
+    g.fillStyle(this.accent.track, this.accent.trackAlpha).fillRect(x, y, BAR_W, BAR_H);
+    g.fillStyle(this.accent.growth, this.accent.growthAlpha).fillRect(x, y, BAR_W * s.progress, BAR_H);
+    for (const m of s.tierMarks) g.lineStyle(2, this.lineColor, 0.8).lineBetween(x + BAR_W * m, y - 4, x + BAR_W * m, y + BAR_H + 4);
+    wobblyRect(g, x, y, BAR_W, BAR_H, 3, 2.2, this.lineColor);
     // Frenzy: thinner red-ink bar under the growth bar.
-    g.fillStyle(0xa3342b, 0.6).fillRect(x, y + 30, BAR_W * s.frenzyMeter, 8);
-    wobblyRect(g, x, y + 30, BAR_W, 8, 9, 1.4);
+    g.fillStyle(this.accent.frenzy, 0.6).fillRect(x, y + 30, BAR_W * s.frenzyMeter, 8);
+    wobblyRect(g, x, y + 30, BAR_W, 8, 9, 1.4, this.lineColor);
     this.objectiveText.setText(s.objective).setColor(s.urgent ? this.urgentColor : this.textColor);
     this.frenzyText.setText(s.multiplier > 1 ? `×${s.multiplier} ${s.frenzyLabel}` : '');
     this.scoreText.setText(String(s.score));
