@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import type { SpeciesId } from '../levels/types';
 import { PLAYER_FISH } from '../levels/zones';
+import { BONES_SIZE, drawBones, drawPan, PAN_SIZE } from './deathArt';
 import { drawFish, FISH_TEX, type FishShape, type InkVariant } from './fishArt';
 import { makeCanvas } from './pen';
 import { ART_RES, drawBubble, drawWreck, drawHook, drawJelly, drawPaper, drawPowerUp, drawRock, drawWeed, type WeedKind } from './propArt';
@@ -57,6 +58,8 @@ export function generateInkTextures(scene: Phaser.Scene): void {
     const { w, h } = ROCK_SIZE;
     add(scene, `rock-${i}`, w * ART_RES, h * ART_RES, (ctx) => drawRock(ctx, 40 + i, w * ART_RES, h * ART_RES));
   }
+  add(scene, 'bones', BONES_SIZE.w * ART_RES, BONES_SIZE.h * ART_RES, (ctx) => drawBones(ctx, 9));
+  add(scene, 'pan', PAN_SIZE.w * ART_RES, PAN_SIZE.h * ART_RES, (ctx) => drawPan(ctx, 12));
   add(scene, 'paper', 512, 512, (ctx) => drawPaper(ctx, 512));
   add(scene, 'wreck', 360 * ART_RES, 200 * ART_RES, (ctx) => drawWreck(ctx, 360 * ART_RES, 200 * ART_RES));
 }

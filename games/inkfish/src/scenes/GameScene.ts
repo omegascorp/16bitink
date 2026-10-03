@@ -5,10 +5,12 @@ import type { LevelDef } from '../levels/types';
 import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy, type FrenzyState } from '../logic/frenzy';
 import { addGrowth, growthProgress, initialGrowth, playerSizeFor, type GrowthState } from '../logic/growth';
 import { canHunt, HUNT_COOLDOWN_MS } from '../logic/ecosystem';
+import { causeOfBite, deathText, hitText, type Death, type DeathCause } from '../logic/deaths';
 import { createRng, type Rng } from '../logic/rng';
 import { waterTop } from '../logic/water';
 import { growthPointsFor, relationTo, scoreFor, touches } from '../logic/sizing';
 import { targetZoom } from './game/camera';
+import { playEaten, playSpiked, spikeMarks } from './game/deathFx';
 import { isHelpless, isOffWorld, renderFish, spawnFish, stunFish, updateFish, type Fish } from './game/fish';
 import {
   destroyHook, hangPoint, hookCatch, hookRelease, hookTip, spawnHook, spawnJellies, updateHook, updateJelly, type Hook, type Jelly,
@@ -67,6 +69,7 @@ export class GameScene extends Phaser.Scene {
   private boilFrame = 0;
   private boilClock = 0;
   private ended = false;
+  private death: Death | null = null;
 
   constructor() {
     super('Game');
@@ -81,7 +84,7 @@ export class GameScene extends Phaser.Scene {
     this.rng = createRng(Date.now());
     Object.assign(this, {
       fish: [], jellies: [], hooks: [], hookedFish: new Map(), playerHook: null, releaseAt: 0, powerUps: [], growth: initialGrowth, frenzy: initialFrenzy,
-      score: 0, lives: TUNING.lives, elapsedMs: 0, boilFrame: 0, boilClock: 0, ended: false,
+      score: 0, lives: TUNING.lives, elapsedMs: 0, boilFrame: 0, boilClock: 0, ended: false, death: null,
     });
     this.nextHookAt = level.hazards.hookEverySec * 1000;
     this.nextPowerUpAt = TUNING.powerUpEverySec * 600;
@@ -124,11 +127,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, deltaMs: number): void {
-    if (this.ended) return;
     const dt = Math.min(deltaMs, 50) / 1000;
     const now = this.time.now;
-    this.elapsedMs += deltaMs;
     this.tickBoil(deltaMs);
+    if (this.ended) {
+      // The sea carries on while the ending plays; the player's sprite belongs to the death animation.
+      this.updateFishes(now, dt);
+      this.updateHazards(now, deltaMs, dt);
+      return;
+    }
+    this.elapsedMs += deltaMs;
 
     if (!this.player.hooked) movePlayer(this.player, desiredDirection(this, this.controls, this.player), this.level, now, dt);
     renderPlayer(this.player, now, this.boilFrame, dt);
@@ -173,7 +181,7 @@ export class GameScene extends Phaser.Scene {
         return false;
       }
       // A stung predator can't bite back.
-      if (rel === 'predator' && !isHelpless(f)) this.hurt(f.sprite.x, f.sprite.y);
+      if (rel === 'predator' && !isHelpless(f)) this.hurt(causeOfBite(f.species), f);
       else this.bump(f);
       return true;
     });
@@ -228,36 +236,50 @@ export class GameScene extends Phaser.Scene {
     f.vx -= Math.cos(a) * 60;
   }
 
-  private hurt(x: number, y: number): void {
+  /** A bigger fish got you: lose a life, or the level if it was the last one. */
+  private hurt(cause: DeathCause, by: Fish): void {
     const p = this.player;
     const now = this.time.now;
     if (now < p.invulnerableUntil || this.ended) return;
     this.lives -= 1;
     this.frenzy = initialFrenzy;
-    this.burst(x, y, 14);
     this.cameras.main.shake(260, 0.01);
     if (this.lives <= 0) {
-      p.sprite.setVisible(false);
-      this.finish('lose');
+      this.die({ cause, killer: by.species });
+      if (cause === 'spiked') playSpiked(this, p, waterTop(p.size));
+      else playEaten(this, p, by, { burst: (x, y, n) => this.burst(x, y, n) });
       return;
     }
+    if (cause === 'spiked') spikeMarks(this, p.sprite.x, p.sprite.y, p.size);
+    else this.burst(p.sprite.x, p.sprite.y, 14);
+    this.floatText(p.sprite.x, p.sprite.y - 40, hitText(cause), '#a3342b', 40);
     p.invulnerableUntil = now + TUNING.invulnerableMs;
     p.sprite.setPosition(p.sprite.x, Math.max(160, p.sprite.y - 220));
-    this.floatText(p.sprite.x, p.sprite.y - 40, 'Gulp!', '#a3342b', 40);
+  }
+
+  /** Ends the level with a cause, announced where the player can see it. */
+  private die(death: Death): void {
+    this.death = death;
+    const view = this.cameras.main.worldView;
+    const p = this.player.sprite;
+    const x = Phaser.Math.Clamp(p.x, view.left + 120, view.right - 120);
+    const y = Phaser.Math.Clamp(p.y - 60, view.top + 80, view.bottom - 80);
+    this.floatText(x, y, deathText(death).title, '#a3342b', 52);
+    this.finish('lose');
   }
 
   private updateHazards(now: number, deltaMs: number, dt: number): void {
     const p = this.player;
     for (const j of this.jellies) {
       updateJelly(j, this.level, dt, this.boilFrame);
-      if (!p.hooked && now > p.stunnedUntil + 600 && now > p.invulnerableUntil &&
+      if (!this.ended && !p.hooked && now > p.stunnedUntil + 600 && now > p.invulnerableUntil &&
         touches(p.sprite.x, p.sprite.y, p.size, j.sprite.x, j.sprite.y, j.radius, 0.7)) {
         p.stunnedUntil = now + TUNING.stunMs;
         this.floatText(p.sprite.x, p.sprite.y - 30, 'zzap!', '#6b3f99');
       }
       this.stingFish(j, now);
     }
-    if (this.level.hazards.hookEverySec > 0 && this.elapsedMs > this.nextHookAt) {
+    if (!this.ended && this.level.hazards.hookEverySec > 0 && this.elapsedMs > this.nextHookAt) {
       this.nextHookAt = this.elapsedMs + this.level.hazards.hookEverySec * 1000;
       this.hooks.push(spawnHook(this, this.level, p.sprite.x, p.sprite.y, this.rng));
     }
@@ -323,7 +345,7 @@ export class GameScene extends Phaser.Scene {
     this.frenzy = initialFrenzy;
     this.burst(p.sprite.x, p.sprite.y, 10);
     this.cameras.main.shake(220, 0.008);
-    this.floatText(p.sprite.x, p.sprite.y - 40, 'Hooked!', '#a3342b', 40);
+    this.floatText(p.sprite.x, p.sprite.y - 40, hitText('hooked'), '#a3342b', 40);
   }
 
   private wriggleFree(h: Hook, now: number): void {
@@ -346,7 +368,7 @@ export class GameScene extends Phaser.Scene {
     if (this.playerHook === h) {
       this.playerHook = null;
       this.player.sprite.setVisible(false);
-      this.finish('lose');
+      this.die({ cause: 'hooked' });
     }
     destroyHook(h);
   }
@@ -386,10 +408,11 @@ export class GameScene extends Phaser.Scene {
     if (this.ended) return;
     this.ended = true;
     this.emitHud();
-    this.time.delayedCall(kind === 'win' ? 700 : 1000, () => {
+    this.time.delayedCall(kind === 'win' ? 700 : 1900, () => {
       this.scene.pause();
       this.scene.launch('Result', {
         kind, levelIndex: this.levelIndex, score: this.score, seconds: this.elapsedMs / 1000,
+        death: this.death ?? undefined, player: this.player.shape,
       });
     });
   }
