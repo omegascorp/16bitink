@@ -222,6 +222,7 @@ function eye(k: Kit): void {
 
 function mouth(k: Kit): void {
   const { a, pen, ink } = k;
+  if (a.mouth === 'none') return;
   const nx = xAt(a, 0);
   const t = 0.07;
   const y = C + heightAt(a, t) * 0.18;
@@ -358,6 +359,7 @@ export function drawFish(ctx: CanvasRenderingContext2D, shape: FishShape, varian
   pen.stroke(body.slice(0, half), heavy ? 2.6 : 2.1, ink);
   pen.stroke([...body.slice(half), body[0]!], heavy ? 2.6 : 2.1, ink);
   mouth(k);
+  a.face?.(k);
   eye(k);
   if (heavy) {
     // Furrowed brow: predators read as predators at a glance.

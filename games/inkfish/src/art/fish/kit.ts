@@ -52,7 +52,8 @@ export interface Anatomy {
   readonly pelvic: boolean;
   readonly scales: boolean;
   readonly eye: { readonly t: number; readonly r: number };
-  readonly mouth: 'small' | 'teeth' | 'gape' | 'beak';
+  /** 'none': the species draws its own jaws. */
+  readonly mouth: 'small' | 'teeth' | 'gape' | 'beak' | 'none';
   readonly wash: string;
   readonly finWash?: string;
   readonly ink?: string;
@@ -62,6 +63,8 @@ export interface Anatomy {
   readonly lateral?: boolean;
   /** Detail drawn on top of the finished body. */
   readonly extras?: (k: Kit) => void;
+  /** Jaws drawn over the finished outline, after the mouth (pair with mouth: 'none'). */
+  readonly face?: (k: Kit) => void;
   /** Detail drawn first, behind fins and body (filaments, long rays). */
   readonly under?: (k: Kit) => void;
   /** Body undulation amplitude in px (eels). */

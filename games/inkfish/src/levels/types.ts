@@ -9,7 +9,7 @@ export type ZoneId =
 /** The young fish the player swims as: a new one every chapter. */
 export type PlayerFishId =
   | 'inkling' | 'goby' | 'perchfry' | 'butterfly' | 'barracuda'
-  | 'tuna' | 'lanternfish' | 'hatchetfish' | 'viperfish' | 'snailfish';
+  | 'tuna' | 'lanternfish' | 'loosejaw' | 'viperfish' | 'snailfish';
 
 export interface SpawnEntry {
   readonly species: SpeciesId;

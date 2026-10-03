@@ -41,7 +41,7 @@ Ten "eat smaller to grow" games, researched October 2026, and what InkFish takes
   - Locked zones are shown as pencil drafts.
   - Chapter tabs jump between zones.
   - The map grows on its own when a zone is added.
-- **A new player fish every chapter (every 10 levels):** inkling, goby, perch fry, butterflyfish, barracuda, young tuna, lanternfish, hatchetfish, viperfish, and the hadal snailfish (the deepest fish ever filmed) for the hadal trench. All are drawn in blue ink, so the player always reads as "you". The first level of a chapter announces the new fish.
+- **A new player fish every chapter (every 10 levels):** inkling, goby, perch fry, butterflyfish, barracuda, young tuna, lanternfish, viperfish, stoplight loosejaw, and the hadal snailfish (the deepest fish ever filmed) for the hadal trench. All are drawn in blue ink, so the player always reads as "you". The first level of a chapter announces the new fish.
 - **Levels are generated from per-chapter recipes** (`games/inkfish/src/levels/generate.ts`).
   - A recipe sets which species appear, the hazard ramps, the growth goal and the final size.
   - The generator produces 10 levels with a smooth ramp, then gives each its own twist (`src/levels/twists.ts`).
@@ -83,12 +83,12 @@ Each zone has its own residents, and new ones arrive mid-chapter: the intro card
 | 2 Seagrass | sand lance, wrasse, pipefish, filefish, mullet | tarpon |
 | 3 Kelp | sardine, garibaldi, kelpfish, rockfish, sheephead, eel | lingcod |
 | 4 Reef | chromis, clownfish, angelfish, parrotfish, boxfish, triggerfish, lionfish | goliath grouper |
-| 5 Wreck | herring, snapper, cod, scorpionfish, jack, moray, angler | reef shark |
+| 5 Wreck | herring, snapper, cod, scorpionfish, jack, moray | reef shark |
 | 6 Drop-off | anchovy, mackerel, flying fish, needlefish, bonito, mahi-mahi | swordfish |
 | 7 Twilight | bristlemouth, pearleye, barreleye, sabertooth, dragonfish | oarfish |
 | 8 Midnight | bigscale, whalefish, fangtooth, black dragonfish, gulper eel | sleeper shark |
 | 9 Abyss | rattail, tripodfish, lizardfish, halosaur, cusk-eel | goblin shark |
-| 10 Trench | blobfish, snipe eel, ghost shark | coelacanth |
+| 10 Trench | blobfish, snipe eel, ghost shark, anglerfish | coelacanth |
 
 Giants are their own species, appear only once (as the chapter's final boss), and are the biggest fish on that level: every other spawn is capped below them.
 

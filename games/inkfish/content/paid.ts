@@ -47,7 +47,7 @@ const RECIPES: Readonly<Record<number, Recipe>> = {
   },
   5: {
     names: ['Barnacle Bay', 'Porthole Panic', 'Rigging', 'Cargo Hold', 'Wreck Rush', 'Captain’s Cabin', 'Anchor’s Shadow', 'Broken Mast', 'Crow’s Nest', 'Keel'],
-    spawns: [s('herring', 5, 8, 14, 0), s('snapper', 3, 24, 38, 0), s('cod', 2.5, 30, 46, 1), s('scorpionfish', 1.5, 30, 44, 3), s('jack', 2, 40, 56, 5), s('moray', 1.5, 58, 82, 6), s('angler', 1.5, 38, 58)],
+    spawns: [s('herring', 5, 8, 14, 0), s('snapper', 3, 24, 38, 0), s('cod', 2.5, 30, 46, 1), s('scorpionfish', 1.5, 30, 44, 3), s('jack', 2, 40, 56, 5), s('moray', 1.5, 58, 82, 6)],
     boss: 'shark', jellyfish: [4, 7], hookEverySec: [14, 8],
   },
   6: {
@@ -57,22 +57,22 @@ const RECIPES: Readonly<Record<number, Recipe>> = {
   },
   7: {
     names: ['Dimming', 'Lantern Light', 'Faint Lines', 'Glowworms', 'Twilight Rush', 'Ghost Ink', 'Silver Shoal', 'Fading Page', 'Dusk Patrol', 'Lights Out'],
-    spawns: [s('bristlemouth', 5, 8, 14, 0), s('pearleye', 3, 20, 32, 0), s('barreleye', 2, 22, 34, 2), s('sabertooth', 2, 40, 58, 4), s('dragonfish', 2, 40, 62, 6), s('angler', 2, 40, 64), s('eel', 1.5, 64, 90)],
+    spawns: [s('bristlemouth', 5, 8, 14, 0), s('pearleye', 3, 20, 32, 0), s('barreleye', 2, 22, 34, 2), s('sabertooth', 2, 40, 58, 4), s('dragonfish', 2, 40, 62, 6), s('eel', 1.5, 64, 90)],
     boss: 'oarfish', jellyfish: [5, 9], hookEverySec: [0, 0],
   },
   8: {
     names: ['Ink Black', 'Deep Crosshatch', 'Pressure', 'Lures', 'Midnight Rush', 'Blind Lines', 'Snow of Ink', 'Teeth', 'Cold Blot', 'Midnight'],
-    spawns: [s('bigscale', 5, 8, 14, 0), s('whalefish', 3, 20, 34, 0), s('fangtooth', 2.5, 36, 54, 2), s('blackdragon', 2, 50, 72, 4), s('gulper', 2, 60, 90, 6), s('angler', 2, 42, 66)],
+    spawns: [s('bigscale', 5, 8, 14, 0), s('whalefish', 3, 20, 34, 0), s('fangtooth', 2.5, 36, 54, 2), s('blackdragon', 2, 50, 72, 4), s('gulper', 2, 60, 90, 6)],
     boss: 'sleepershark', jellyfish: [6, 9], hookEverySec: [0, 0],
   },
   9: {
     names: ['The Plain', 'Silt', 'Footprints', 'Sea Snow', 'Abyss Rush', 'Vents', 'Bone Field', 'Hush', 'Lonely Light', 'The Edge of the Page'],
-    spawns: [s('bristlemouth', 5, 8, 14), s('rattail', 3, 22, 36, 0), s('tripodfish', 2.5, 28, 40, 1), s('lizardfish', 2, 36, 54, 3), s('halosaur', 2, 40, 60, 5), s('cuskeel', 2, 56, 80, 7), s('angler', 1.5, 44, 68)],
+    spawns: [s('bristlemouth', 5, 8, 14), s('rattail', 3, 22, 36, 0), s('tripodfish', 2.5, 28, 40, 1), s('lizardfish', 2, 36, 54, 3), s('halosaur', 2, 40, 60, 5), s('cuskeel', 2, 56, 80, 7)],
     boss: 'goblinshark', jellyfish: [7, 10], hookEverySec: [0, 0],
   },
   10: {
     names: ['The Crack', 'Walls of Ink', 'Pressure Lines', 'The Narrows', 'Trench Rush', 'Echoes', 'Deepest Blot', 'Hadal Hunt', 'The Floor', 'Challenger Deep'],
-    spawns: [s('bristlemouth', 5, 8, 14), s('blobfish', 3, 22, 34, 0), s('snipeeel', 2.5, 26, 40, 1), s('ghostshark', 2, 44, 64, 3), s('rattail', 2, 40, 56), s('tripodfish', 1.5, 30, 44), s('cuskeel', 2, 60, 84)],
+    spawns: [s('bristlemouth', 5, 8, 14), s('blobfish', 3, 22, 34, 0), s('snipeeel', 2.5, 26, 40, 1), s('ghostshark', 2, 44, 64, 3), s('angler', 2, 42, 66, 5), s('rattail', 2, 40, 56), s('tripodfish', 1.5, 30, 44), s('cuskeel', 2, 60, 84)],
     boss: 'coelacanth', jellyfish: [8, 11], hookEverySec: [0, 0],
   },
 };
