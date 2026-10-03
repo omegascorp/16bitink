@@ -233,13 +233,18 @@ function mouth(k: Kit): void {
     anglerMouth(k);
     return;
   }
-  // Pike: a long toothy jaw line under the snout.
+  // Pike: a long toothy jaw line under the snout. It starts just inside the
+  // tip, and each tooth is only as long as the head is tall there, so nothing
+  // pokes out past the outline of a pointed snout.
   const back = xAt(a, 0.14);
-  const jaw = bezier({ x: nx + 1, y: C + 1 }, { x: (nx + back) / 2, y: C + 3 }, { x: back, y: C + 2.5 });
+  const jaw = bezier({ x: xAt(a, 0.015), y: C + 1 }, { x: (nx + back) / 2, y: C + 3 }, { x: back, y: C + 2.5 });
   pen.stroke(jaw, 1, ink, 1, false);
   for (let i = 1; i < 7; i++) {
     const p = jaw[Math.round((i / 7) * (jaw.length - 1))]!;
-    needle(pen, p, { x: p.x - 0.6, y: p.y - 2.6 }, 1.4, ink);
+    const room = (p.y - topAt(a, (C + a.hl - p.x) / (2 * a.hl))) * 0.45;
+    const length = Math.min(2.6, room);
+    if (length < 1) continue;
+    needle(pen, p, { x: p.x - 0.6, y: p.y - length }, 1.4, ink);
   }
 }
 

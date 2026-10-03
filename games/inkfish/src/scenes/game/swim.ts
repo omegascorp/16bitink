@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { C } from '../../art/fish/kit';
 import type { FishShape } from '../../art/fishArt';
+import { ANATOMY } from '../../art/fish/registry';
 import { tailCut } from '../../art/textures';
+import { capsuleOf, type Capsule } from '../../logic/body';
 
 /**
  * Swimming animation for any fish sprite: the tail is a second image hinged
@@ -19,6 +21,9 @@ interface Rig {
 }
 
 type Image = Phaser.GameObjects.Image;
+
+/** Widest tail swing (radians) the hinge overlap in art/textures.ts can hide. */
+const MAX_BEAT = 0.3;
 
 const rigsByScene = new WeakMap<Phaser.Scene, Map<Image, Rig>>();
 
@@ -95,8 +100,10 @@ export interface SwimState {
 
 /** How fast and wide the tail beats for a speed (world units/s); `effort` > 1 for dashes and struggles. */
 export function stroke(state: SwimState, speed: number, dt: number, effort = 1): number {
+  // Faster swimming beats quicker more than wider: past MAX_BEAT the tail
+  // would swing out from under the body and open a gap at the hinge.
   state.swim += dt * (5 + Math.min(speed, 400) / 22) * effort;
-  const amp = (0.16 + Math.min(0.22, speed / 700)) * Math.min(effort, 1.8);
+  const amp = Math.min(MAX_BEAT, (0.13 + Math.min(0.12, speed / 900)) * effort);
   return Math.sin(state.swim) * amp;
 }
 
@@ -117,4 +124,11 @@ export function gulp(sprite: Image, into: { x: number; y: number }): void {
     targets: sprite, x: into.x, y: into.y, scaleX: 0, scaleY: 0, alpha: 0.4,
     duration: 130, ease: 'Quad.In', onComplete: () => sprite.destroy(),
   });
+}
+
+/** The collision capsule of a fish sprite as currently drawn (size, facing, tilt). */
+export function bodyOf(sprite: Image, shape: FishShape): Capsule {
+  const a = ANATOMY[shape];
+  // scaleY is the true size; scaleX is squashed while turning.
+  return capsuleOf({ x: sprite.x, y: sprite.y, rotation: sprite.rotation, flipped: sprite.flipX, scale: sprite.scaleY }, a);
 }

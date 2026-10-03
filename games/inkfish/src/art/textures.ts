@@ -82,7 +82,7 @@ export function ensureFishTextures(scene: Phaser.Scene, shapes: readonly FishSha
 }
 
 /** The tail piece reaches this far under the body, so no gap opens at the hinge when it swings. */
-const TAIL_OVERLAP = 3;
+const TAIL_OVERLAP = 5;
 
 /**
  * Where a fish texture splits into body and swinging tail (px from the left),

@@ -114,7 +114,7 @@ export const SHALLOWS: Partial<Record<SpeciesId, Anatomy>> = {
     },
   },
   pike: {
-    hl: 92, hh: 22, peak: 0.45, blunt: 0.15, peduncle: 0.45, tail: 'fork', tailSize: 1.3,
+    hl: 92, hh: 22, peak: 0.45, blunt: 0.42, peduncle: 0.45, tail: 'fork', tailSize: 1.3,
     dorsal: { from: 0.72, to: 0.86, height: 0.95 }, anal: { from: 0.74, to: 0.88, height: 0.8 },
     pectoral: 0.4, pelvic: true, scales: true, eye: { t: 0.13, r: 6 }, mouth: 'teeth', wash: '#5f7f4e',
     extras: (k) => {

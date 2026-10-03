@@ -3,9 +3,10 @@ import { DARK_HOLE, DARK_TEX } from '../../art/twistArt';
 import { ART_RES, boilKey } from '../../art/textures';
 import type { LevelDef } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
-import { touches } from '../../logic/sizing';
+import { capsuleTouchesCircle } from '../../logic/body';
 import { spawnSpecial, type Fish } from './fish';
 import type { Player } from './player';
+import { bodyOf } from './swim';
 import { TUNING } from './tuning';
 
 interface Drop {
@@ -87,7 +88,8 @@ export class TwistRunner {
   /** Picks up drops the player touches; returns where each one was. */
   collect(player: Player): Point[] {
     const ps = player.sprite;
-    const got = this.drops.filter((d) => touches(ps.x, ps.y, player.size, d.sprite.x, d.sprite.y, 18, 0.9));
+    const body = bodyOf(ps, player.shape);
+    const got = this.drops.filter((d) => capsuleTouchesCircle(body, d.sprite.x, d.sprite.y, 16));
     if (got.length === 0) return [];
     this.drops = this.drops.filter((d) => !got.includes(d));
     return got.map((d) => {
@@ -193,16 +195,19 @@ export class TwistRunner {
       g.fillStyle(INK, 0.3 * fade).fillCircle(x, y, 1.2 + r(4) * 1.4);
       return;
     }
-    // A flow line: a ripple running along a gentle S, thinning at its tail.
-    const len = 50 + r(4) * 90;
-    const amp = 3 + r(5) * 4;
+    // A flow line: one long, shallow swell, tapered evenly at both ends (no
+    // heavy head and no wiggling tail), its curve rolling slowly downstream.
+    const len = 90 + r(4) * 110;
+    const amp = 2 + r(5) * 2.5;
+    const steps = 12;
     let px = x;
-    let py = y;
-    for (let k = 1; k <= 10; k++) {
-      const s = k / 10;
+    let py = y + Math.sin(-t * 1.6 + seed) * amp;
+    for (let k = 1; k <= steps; k++) {
+      const s = k / steps;
       const nx = x - dir * len * s;
-      const ny = y + Math.sin(s * 5 - t * 6 + seed) * amp * s;
-      g.lineStyle(1.6 * (1 - s * 0.6), INK, 0.32 * fade * (1 - s * 0.5)).lineBetween(px, py, nx, ny);
+      const ny = y + Math.sin(s * Math.PI * 1.2 - t * 1.6 + seed) * amp;
+      const body = Math.sin(Math.PI * (s - 0.5 / steps));
+      g.lineStyle(0.6 + body * 0.9, INK, 0.3 * fade * body).lineBetween(px, py, nx, ny);
       px = nx;
       py = ny;
     }

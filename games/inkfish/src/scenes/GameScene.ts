@@ -9,7 +9,7 @@ import { causeOfBite, deathText, hitText, type Death, type DeathCause } from '..
 import { initialProgress, objectiveLine, objectiveOutcome, type ObjectiveProgress } from '../logic/objective';
 import { createRng, type Rng } from '../logic/rng';
 import { waterTop } from '../logic/water';
-import { growthPointsFor, relationTo, scoreFor, touches } from '../logic/sizing';
+import { growthPointsFor, relationTo, scoreFor } from '../logic/sizing';
 import { targetZoom } from './game/camera';
 import { playEaten, playSpiked, spikeMarks } from './game/deathFx';
 import { isHelpless, isOffWorld, renderFish, spawnFish, stunFish, updateFish, type Decoy, type Fish } from './game/fish';
@@ -21,7 +21,8 @@ import {
 } from './game/player';
 import { applyItem, type ItemHost } from './game/itemEffects';
 import { spawnItem, updateItem, type FallingItem } from './game/items';
-import { gulp, mouthOf } from './game/swim';
+import { bodyOf, gulp, mouthOf } from './game/swim';
+import { capsulesTouch, capsuleTouchesCircle } from '../logic/body';
 import { TUNING } from './game/tuning';
 import { TwistRunner } from './game/twistRunner';
 import { drawWorld } from './game/world';
@@ -222,7 +223,7 @@ export class GameScene extends Phaser.Scene {
       }
       // A fish on the line belongs to the angler now.
       if (this.ended || p.hooked || f.state === 'hooked') return true;
-      if (!touches(p.sprite.x, p.sprite.y, p.size, f.sprite.x, f.sprite.y, f.size)) return true;
+      if (!capsulesTouch(bodyOf(p.sprite, p.shape), bodyOf(f.sprite, f.species))) return true;
       const rel = relationTo(p.size, f.size);
       // Knocked out or shocked (and not much bigger than you): dinner, whatever its size.
       const shocked = f.state === 'stunned' && now < f.shockedUntil && f.role !== 'boss' && f.size <= p.size * TUNING.shockEdibleRatio;
@@ -245,7 +246,7 @@ export class GameScene extends Phaser.Scene {
       if (isHelpless(hunter) || now < hunter.fullUntil || eaten.has(hunter)) continue;
       const prey = this.fish.find((f) =>
         f !== hunter && !eaten.has(f) && f.state !== 'hooked' && f.role === 'normal' && canHunt(hunter.species, hunter.size, f.size) &&
-        touches(hunter.sprite.x, hunter.sprite.y, hunter.size, f.sprite.x, f.sprite.y, f.size, 0.6));
+        capsulesTouch(bodyOf(hunter.sprite, hunter.species), bodyOf(f.sprite, f.species), 0.8));
       if (!prey) continue;
       eaten.add(prey);
       hunter.fullUntil = now + HUNT_COOLDOWN_MS;
@@ -361,7 +362,7 @@ export class GameScene extends Phaser.Scene {
       updateJelly(j, this.level, dt, this.boilFrame);
       j.sprite.x += this.twist.current * 0.5 * dt;
       if (!this.ended && !p.hooked && now > p.stunnedUntil + 600 && now > p.invulnerableUntil &&
-        touches(p.sprite.x, p.sprite.y, p.size, j.sprite.x, j.sprite.y, j.radius, 0.7)) {
+        capsuleTouchesCircle(bodyOf(p.sprite, p.shape), j.sprite.x, j.sprite.y, j.radius, 0.8)) {
         p.stunnedUntil = now + TUNING.stunMs;
         this.floatText(p.sprite.x, p.sprite.y - 30, 'zzap!', '#6b3f99');
       }
@@ -384,7 +385,7 @@ export class GameScene extends Phaser.Scene {
   private stingFish(j: Jelly, now: number): void {
     const view = this.cameras.main.worldView;
     for (const f of this.fish) {
-      if (isHelpless(f) || !touches(f.sprite.x, f.sprite.y, f.size, j.sprite.x, j.sprite.y, j.radius, 0.7)) continue;
+      if (isHelpless(f) || !capsuleTouchesCircle(bodyOf(f.sprite, f.species), j.sprite.x, j.sprite.y, j.radius, 0.8)) continue;
       stunFish(f, now, TUNING.fishStunMs);
       if (view.contains(f.sprite.x, f.sprite.y)) this.floatText(f.sprite.x, f.sprite.y - f.size, 'zzap!', '#6b3f99', 22);
     }
@@ -396,11 +397,11 @@ export class GameScene extends Phaser.Scene {
     if (!tip.active) return;
     const p = this.player;
     if (!this.ended && !p.hooked && now > p.invulnerableUntil &&
-      touches(p.sprite.x, p.sprite.y, p.size, tip.x, tip.y, 12, 0.8)) {
+      capsuleTouchesCircle(bodyOf(p.sprite, p.shape), tip.x, tip.y, 12, 0.9)) {
       if (!this.absorbHit(now)) this.hookPlayer(h, now);
       return;
     }
-    const fish = this.fish.find((f) => f.state !== 'hooked' && f.role === 'normal' && touches(f.sprite.x, f.sprite.y, f.size, tip.x, tip.y, 12, 0.8));
+    const fish = this.fish.find((f) => f.state !== 'hooked' && f.role === 'normal' && capsuleTouchesCircle(bodyOf(f.sprite, f.species), tip.x, tip.y, 12, 0.9));
     if (!fish) return;
     fish.state = 'hooked';
     hookCatch(h, fish.size);
@@ -471,7 +472,7 @@ export class GameScene extends Phaser.Scene {
     const p = this.player;
     this.items = this.items.filter((it) => {
       if (!updateItem(it, this.level, now, dt, this.boilFrame)) return false;
-      if (p.hooked || !touches(p.sprite.x, p.sprite.y, p.size, it.sprite.x, it.sprite.y, 24, 0.9)) return true;
+      if (p.hooked || !capsuleTouchesCircle(bodyOf(p.sprite, p.shape), it.sprite.x, it.sprite.y, 22)) return true;
       this.burst(it.sprite.x, it.sprite.y, 5);
       it.sprite.destroy();
       applyItem(this.itemHost, it.kind, now);
