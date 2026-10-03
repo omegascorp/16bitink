@@ -1,9 +1,13 @@
+import { getSecret } from 'astro:env/server';
 import { assertStrongSecret } from './secret';
-import { env as cfEnv } from 'cloudflare:workers';
 
-/** Typed access to secrets with a clear failure instead of `undefined` deep in a handler. */
+/**
+ * Server environment: `apps/web/.env` locally, the App Platform app's
+ * environment variables in production. Typed access with a clear failure
+ * instead of `undefined` deep in a handler.
+ */
 export function requireEnv(name: string): string {
-  const value = (cfEnv as unknown as Record<string, unknown>)[name];
+  const value = getSecret(name);
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error(`Missing required environment variable ${name}`);
   }
@@ -16,6 +20,6 @@ export function requireSecret(name: string): string {
 }
 
 export function optionalEnv(name: string): string | undefined {
-  const value = (cfEnv as unknown as Record<string, unknown>)[name];
+  const value = getSecret(name);
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }

@@ -14,7 +14,7 @@ Astro.response.headers.set('cache-control', 'no-store');
     {owned && game ? (
       <>
         <h1>Thank you!</h1>
-        <p>The full version of <strong>{game.title}</strong> is unlocked on this browser. Your Stripe receipt is on its way to your inbox. To play on another device, sign in with Google there using this same email.</p>
+        <p>The full version of <strong>{game.title}</strong> is unlocked on this browser. It was a one-time purchase, so there is nothing more to pay, ever. Your Stripe receipt is on its way to your inbox. To play on another device, sign in with Google there using this same email.</p>
         <a class="btn btn-ink" href={`/play/${game.slug}`}>Play the full game</a>
       </>
     ) : (

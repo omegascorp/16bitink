@@ -1,11 +1,10 @@
 import Stripe from 'stripe';
 import { requireEnv } from './env';
 
-export function stripeClient(): Stripe {
-  return new Stripe(requireEnv('STRIPE_SECRET_KEY'), {
-    // Workers have fetch, not Node's http module.
-    httpClient: Stripe.createFetchHttpClient(),
-  });
-}
+let client: Stripe | undefined;
 
-export const webCrypto = Stripe.createSubtleCryptoProvider();
+/** One client for the server's lifetime; it keeps its connections alive between requests. */
+export function stripeClient(): Stripe {
+  client ??= new Stripe(requireEnv('STRIPE_SECRET_KEY'));
+  return client;
+}

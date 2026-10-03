@@ -18,7 +18,7 @@ const { game } = Astro.props;
       <img src={game.cover} alt={`${game.title} gameplay`} width="1200" height="675" />
     </div>
     <div class="info">
-      <p class="pixel-label">Free demo · full game {game.price}</p>
+      <p class="pixel-label">Free demo · full game {game.price} one-time</p>
       <h1>{game.title}</h1>
       <p class="tag">{game.tagline}</p>
       {game.description.map((p) => <p>{p}</p>)}
@@ -26,6 +26,7 @@ const { game } = Astro.props;
         <a class="btn btn-ink" href={`/play/${game.slug}`}>Play free, full-screen</a>
         <BuyButton game={game.slug} label={`Unlock full game · ${game.price}`} />
       </div>
+      <p class="one-time"><strong>One-time purchase.</strong> Pay once and the full game is yours to keep: no subscription, no ads, nothing more to buy.</p>
       <p class="cancelled" hidden>Checkout cancelled. No charge was made.</p>
       <p class="restore">Bought it already? <a href={`/auth/google?return=/games/${game.slug}`}>Sign in with Google</a> with the email on your receipt to unlock it here.</p>
       <div class="cols">
@@ -60,6 +61,8 @@ const { game } = Astro.props;
   .tag { font-family: var(--font-hand); font-size: 1.8rem; color: var(--blue-ink); margin: -6px 0 12px; }
   .actions { display: flex; flex-wrap: wrap; gap: 14px; margin: 26px 0 10px; }
   .cancelled { color: var(--red-ink); }
+  .one-time { margin: 0 0 6px; font-size: 1rem; }
+  .one-time strong { color: var(--blue-ink); }
   .restore { color: var(--ink-soft); font-size: 0.95rem; margin: 4px 0 0; }
   .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 28px; margin-top: 28px; }
   ul { padding-left: 1.1em; margin: 0; }

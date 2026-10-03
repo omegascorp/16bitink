@@ -25,6 +25,8 @@ export interface GameHost {
   loadContent(): Promise<unknown>;
   /** Starts the purchase flow for this game. */
   onBuy(): void;
+  /** The full game's one-time price as shown to players, e.g. "$4.99". */
+  readonly price?: string;
   /** Leaves the game (back to its catalog page). */
   onExit(): void;
   /** Per-browser persistence; undefined when storage is blocked. */

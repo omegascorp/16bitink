@@ -202,6 +202,8 @@ export class MenuScene extends Phaser.Scene {
     if (!host.unlocked) {
       const locked = this.layout.nodes.length - playable;
       ui(inkButton(this, width - 170 * s, height - 90 * s, `Unlock ${locked} more levels`, () => host.onBuy(), { width: 300 * s, height: 52 * s, size: 26 * s, color: RED_INK }));
+      const once = host.price ? `${host.price}, one-time purchase` : 'One-time purchase';
+      ui(inkText(this, width - 170 * s, height - 50 * s, once, 18 * s, SOFT_INK));
     }
     const error = getFullError(this);
     if (error) {

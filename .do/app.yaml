@@ -1,0 +1,52 @@
+# DigitalOcean App Platform spec for 16bit.ink.
+#   doctl apps create --spec .do/app.yaml        (first time)
+#   doctl apps update <app-id> --spec .do/app.yaml
+# Secrets are set as encrypted values in the dashboard (or with doctl);
+# never commit them here. Never set DEV_UNLOCK or DEV_ALL_LEVELS.
+name: 16bitink
+region: fra
+domains:
+  - domain: 16bit.ink
+    type: PRIMARY
+services:
+  - name: web
+    github:
+      repo: OWNER/16bitink   # set to the real GitHub repo
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    environment_slug: node-js
+    build_command: pnpm install --frozen-lockfile && pnpm build
+    run_command: node apps/web/dist/server/entry.mjs
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    health_check:
+      http_path: /
+    envs:
+      - key: HOST
+        value: 0.0.0.0
+        scope: RUN_TIME
+      - key: PORT
+        value: "8080"
+        scope: RUN_TIME
+      - key: STRIPE_AUTOMATIC_TAX
+        value: "false"
+        scope: RUN_TIME
+      - key: STRIPE_SECRET_KEY
+        type: SECRET
+        scope: RUN_TIME
+      - key: STRIPE_WEBHOOK_SECRET
+        type: SECRET
+        scope: RUN_TIME
+      - key: ENTITLEMENT_SECRET
+        type: SECRET
+        scope: RUN_TIME
+      - key: MONGODB_URI
+        type: SECRET
+        scope: RUN_TIME
+      - key: GOOGLE_CLIENT_ID
+        scope: RUN_TIME
+      - key: GOOGLE_CLIENT_SECRET
+        type: SECRET
+        scope: RUN_TIME

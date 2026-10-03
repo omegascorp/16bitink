@@ -19,6 +19,7 @@ const handle = mount(parent, {
     return (await import('../content/paid')).INKFISH_FULL_CHAPTERS;
   },
   onBuy: () => alert('Checkout would open here'),
+  price: '$4.99',
   onExit: () => alert('Exit to catalog'),
 });
 // Exposed for automated smoke tests only.

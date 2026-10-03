@@ -3,7 +3,7 @@
 Hand-drawn browser games. Catalog site + games, starting with **InkFish**, a pen-and-ink fish-eat-fish game. Chapter 1 is free; the full game is a one-time Stripe purchase.
 
 ```
-apps/web            Astro 7 site on Cloudflare Workers: catalog, game pages, full-screen player, Stripe checkout
+apps/web            Astro 7 site (Node server on DigitalOcean App Platform): catalog, game pages, full-screen player, Stripe checkout, Google sign-in, MongoDB purchases
 packages/game-sdk   The contract between site and games (GameModule, GameHost)
 games/inkfish       Phaser 4 game package: client game (src/) + server-only paid content (content/)
 docs/               Research, tech & monetization decisions, art pipeline
@@ -15,7 +15,8 @@ docs/               Research, tech & monetization decisions, art pipeline
 pnpm install
 pnpm --filter @16bitink/inkfish dev     # game alone at http://localhost:5174 (prefix DEV_UNLOCK=true to play as an owner, DEV_ALL_LEVELS=true to open every level)
 pnpm dev                                # site at http://localhost:4321
-pnpm test                               # unit tests (game logic, entitlement tokens, catalog)
+pnpm test                               # unit tests (game logic, tokens, purchases, catalog)
+MONGODB_TEST_URI=mongodb://localhost:27017/16bitink_test pnpm --filter @16bitink/web test   # + database integration tests
 ```
 
 ### Unlocking the full game
@@ -23,29 +24,42 @@ pnpm test                               # unit tests (game logic, entitlement to
 There are exactly two ways in:
 
 - **Production:** a completed Stripe payment in live mode with a non-zero total. 100%-off promotion codes and test-mode payments never unlock the live site.
-- **Local only:** `DEV_UNLOCK=true` in `apps/web/.dev.vars` (site) or in the environment when starting the game's dev server. It works only for requests to localhost, so it can't unlock the live site even if set there by mistake. `DEV_ALL_LEVELS=true` (same places, same localhost-only rule) opens every level without playing through; it never opens paid chapters by itself.
+- **Local only:** `DEV_UNLOCK=true` in `apps/web/.env` (site) or in the environment when starting the game's dev server. It works only for requests to localhost, so it can't unlock the live site even if set there by mistake. `DEV_ALL_LEVELS=true` (same places, same localhost-only rule) opens every level without playing through; it never opens paid chapters by itself.
 
-For checkout locally, copy `apps/web/.dev.vars.example` to `apps/web/.dev.vars`, use Stripe **test** keys, and forward webhooks:
+A purchase is saved in MongoDB (collection `purchases`, one record per paid Stripe Checkout Session) by the Stripe webhook and the success page. A full refund or a chargeback marks it, and the game locks again. Google sign-in restores purchases made with the same email on any device.
 
-```bash
-stripe listen --forward-to localhost:8788/api/webhook
-pnpm --filter @16bitink/web build && cd apps/web && npx wrangler dev --port 8788
-```
+For checkout locally:
 
-## Deploy (Cloudflare)
-
-1. In Stripe, create the product "InkFish – Full Game" with a one-time price, and give the price the lookup key `inkfish_full`.
-2. Set the secrets:
+1. Copy `apps/web/.env.example` to `apps/web/.env`. Use Stripe **test** keys and a local MongoDB (`MONGODB_URI`).
+2. Create the test product and price: `pnpm --filter @16bitink/web stripe:setup`.
+3. Forward webhooks, and put the `whsec_…` it prints into `.env` as `STRIPE_WEBHOOK_SECRET`:
    ```bash
-   cd apps/web
-   npx wrangler secret put STRIPE_SECRET_KEY
-   npx wrangler secret put STRIPE_WEBHOOK_SECRET
-   npx wrangler secret put ENTITLEMENT_SECRET     # openssl rand -base64 48 (at least 32 characters, or the site refuses to run)
+   stripe listen --forward-to localhost:4321/api/webhook
    ```
-3. Add a Stripe webhook to `https://16bit.ink/api/webhook` for `checkout.session.completed`, `checkout.session.async_payment_succeeded` and `charge.refunded`.
+4. `pnpm dev`, then buy with the test card `4242 4242 4242 4242`.
+
+## Deploy (DigitalOcean App Platform)
+
+1. **Stripe:** set `STRIPE_SECRET_KEY` in `apps/web/.env` to the **live** key and run `pnpm --filter @16bitink/web stripe:setup`. This creates "InkFish: Full Game", a one-time $4.99 price with lookup key `inkfish_full`. Then put the test key back.
+2. **MongoDB:** create a database (DigitalOcean Managed MongoDB or Atlas) and allow the app to reach it. Its connection string is `MONGODB_URI`.
+3. **App:** set the real GitHub repo in `.do/app.yaml`, then `doctl apps create --spec .do/app.yaml`. In the app's settings, fill in the encrypted variables:
+   - `STRIPE_SECRET_KEY`
+   - `STRIPE_WEBHOOK_SECRET`
+   - `ENTITLEMENT_SECRET` (`openssl rand -base64 48`; at least 32 characters, or the site refuses to run)
+   - `MONGODB_URI`
+   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+
    Never set `DEV_UNLOCK` or `DEV_ALL_LEVELS` in production.
-4. In the Cloudflare dashboard, add a WAF rate-limiting rule for `/api/checkout` and `/purchase/success` (e.g. 10 req/min per IP).
-5. Run `pnpm --filter @16bitink/web deploy`. `wrangler.jsonc` binds the `16bit.ink` custom domain, so the domain must be on Cloudflare DNS.
+4. **Stripe webhook:** add an endpoint for `https://16bit.ink/api/webhook` with these events:
+   - `checkout.session.completed`
+   - `checkout.session.async_payment_succeeded`
+   - `charge.refunded`
+   - `charge.dispute.created`
+   - `charge.dispute.closed`
+5. **Google:** add `https://16bit.ink/auth/google/callback` to the OAuth client's redirect URIs.
+6. **Domain:** point `16bit.ink` at the app (App Platform issues the certificate).
+
+Checkout, purchase confirmation and sign-in are rate-limited in the app (in memory, per instance).
 
 ## Adding a game
 

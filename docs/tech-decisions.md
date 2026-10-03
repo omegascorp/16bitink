@@ -7,16 +7,18 @@ Researched October 2026.
 | Layer | Choice | Why |
 |---|---|---|
 | Game engine | **Phaser 4.2** + TypeScript | v4 stable since Apr 2026. Built-in scenes, input, tweens, scale manager and fullscreen. New WebGL renderer. |
-| Site | **Astro 7** | Zero-JS catalog pages (SEO), on-demand endpoints for checkout. Cloudflare-owned since Jan 2026, still open source. |
-| Hosting | **Cloudflare Workers + static assets** | Free tier allows commercial use. Unlimited static bandwidth suits game assets. R2 has zero egress for future art atlases. |
+| Site | **Astro 7** (Node adapter, standalone) | Zero-JS catalog pages (SEO), on-demand endpoints for checkout. |
+| Hosting | **DigitalOcean App Platform** (one Node service, `.do/app.yaml`) | A plain long-running Node server: one shared MongoDB connection, no edge-runtime limits. |
+| Database | **MongoDB + Mongoose** | One `purchases` collection, one record per paid checkout. Written by the Stripe webhook and the success page (idempotent), read by Google sign-in and the refund check. |
 | Payments | **Stripe Checkout** (one-time) | Hosted, PCI-free. Webhook for fulfilment. |
-| Entitlements | HMAC-signed httpOnly cookie + Google sign-in restore | Zero-infra. Signing in looks up paid Checkout Sessions in Stripe by the verified Google email, so Stripe is the purchase record and no DB is needed. Refunds and disputes drop out at the next sign-in. |
+| Entitlements | HMAC-signed httpOnly cookie, checked against the database + Google sign-in restore | The cookie is the fast path. A refund or chargeback recorded by the webhook locks it again. Signing in finds purchases by the verified Google email or account. If the database is down, valid cookies still play. |
 
 Rejected:
 - **PixiJS:** renderer only, so we'd rebuild an engine for every catalog game.
 - **KAPLAY:** weaker on mobile with many sprites.
 - **Next.js:** React weight we don't need.
 - **Vercel:** its Hobby plan forbids commercial use.
+- **Cloudflare Workers** (the first choice): MongoDB needs a TCP connection per request there (~300 ms) and a Mongoose packaging patch. The project moved to DigitalOcean.
 
 ## Monetization: free demo + one-time unlock (option A), not in-app purchases
 
@@ -57,7 +59,8 @@ At $4.99 the MoR fixed fee costs about 15%. Still, an MoR is the low-effort choi
 ## Next steps
 
 1. **Restore for non-Google buyers:** Google sign-in (`/auth/google`, OIDC code flow with PKCE) restores purchases whose Stripe email matches the Google email. Signed-in checkouts lock the email to it. A buyer who paid with another email still needs support, or a later magic-link restore.
-   - Session cookie `ink_user` (30 days) carries the games owned at sign-in. Signing out drops restored games; games bought on that browser keep their own cookie.
+   - Session cookie `ink_user` (30 days) identifies the account; ownership is checked live against the database.
+   - Purchases live in MongoDB (`purchases`); the webhook also revokes on full refunds and chargebacks. Signing out drops restored games; games bought on that browser keep their own cookie.
 2. Pick Stripe+Tax vs a merchant of record (see above).
 3. Real pen art: replace `generateInkTextures()` with scanned atlases (see `art-pipeline.md`).
 4. Audio (Phaser audio sprites), bosses, Endless mode.

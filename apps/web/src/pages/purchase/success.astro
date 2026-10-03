@@ -6,6 +6,9 @@ import { ENTITLEMENT_MAX_AGE, entitlementCookie, signEntitlement } from '../../l
 import { isLocalHost } from '../../lib/devUnlock';
 import { requireSecret } from '../../lib/env';
 import { stripeClient } from '../../lib/stripe';
+import { db } from '../../lib/db';
+import { savePurchase } from '../../lib/db/purchaseRepo';
+import { purchaseFromSession } from '../../lib/purchases';
 
 export const prerender = false;
 
@@ -32,6 +35,12 @@ if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) {
         path: '/', httpOnly: true, secure: import.meta.env.PROD, sameSite: 'lax', maxAge: ENTITLEMENT_MAX_AGE,
       });
       gameSlug = game.slug;
+      // The webhook saves it too; whichever comes first wins. A database
+      // hiccup must not cost the buyer their unlock: the cookie is set anyway.
+      const purchase = purchaseFromSession(session);
+      if (purchase) {
+        await db().then(() => savePurchase(purchase)).catch((err: unknown) => console.error('[purchase/success] could not save purchase', err));
+      }
     }
   } catch (err) {
     console.error('[purchase/success] verification failed', err);

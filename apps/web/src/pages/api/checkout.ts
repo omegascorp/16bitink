@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { findGame, isPurchasable } from '../../data/games';
+import { checkoutParams } from '../../lib/checkoutParams';
 import { optionalEnv } from '../../lib/env';
 import { fail, isSameOrigin, json } from '../../lib/http';
 import { currentUser } from '../../lib/owner';
@@ -23,21 +24,14 @@ export const POST: APIRoute = async ({ request, url, cookies }) => {
     const prices = await stripe.prices.list({ lookup_keys: [game.stripeLookupKey], active: true, limit: 1 });
     const price = prices.data[0];
     if (!price) throw new Error(`No active Stripe price with lookup key "${game.stripeLookupKey}"`);
-    // Signed in: lock the receipt email to the Google one, so signing in
-    // anywhere else finds this purchase (lib/restore.ts).
+    // A recurring price would turn the unlock into a subscription: refuse it.
+    if (price.type !== 'one_time') throw new Error(`Price "${game.stripeLookupKey}" must be one-time, not ${price.type}`);
     const user = await currentUser(cookies);
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      line_items: [{ price: price.id, quantity: 1 }],
-      // Email is collected by Stripe and used later for purchase restore.
-      customer_creation: 'always',
-      ...(user ? { customer_email: user.email, client_reference_id: user.sub } : {}),
-      automatic_tax: { enabled: optionalEnv('STRIPE_AUTOMATIC_TAX') === 'true' },
-      allow_promotion_codes: true,
-      metadata: { game: game.slug },
-      success_url: `${url.origin}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${url.origin}/games/${game.slug}?checkout=cancelled`,
-    });
+    const session = await stripe.checkout.sessions.create(checkoutParams({
+      priceId: price.id, game: game.slug, title: game.title, origin: url.origin,
+      automaticTax: optionalEnv('STRIPE_AUTOMATIC_TAX') === 'true',
+      user: user ? { email: user.email, sub: user.sub } : null,
+    }));
     if (!session.url) throw new Error('Stripe returned no checkout URL');
     return json({ success: true, data: { url: session.url } });
   } catch (err) {

@@ -5,6 +5,11 @@
     "dev": "pnpm --filter @16bitink/web dev",
     "build": "pnpm --filter @16bitink/web build",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck"
-  }
+    "typecheck": "pnpm -r typecheck",
+    "start": "pnpm --filter @16bitink/web start"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "packageManager": "pnpm@12.8.1"
 }

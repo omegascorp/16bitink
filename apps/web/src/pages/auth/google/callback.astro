@@ -3,9 +3,10 @@ import Base from '../../../layouts/Base.astro';
 import { isLocalHost } from '../../../lib/devUnlock';
 import { requireEnv, requireSecret } from '../../../lib/env';
 import { CALLBACK_PATH, GOOGLE_TOKEN_URL, checkIdToken, decodeJwtPayload } from '../../../lib/google';
-import { findOwnedGames } from '../../../lib/restore';
+import { db } from '../../../lib/db';
+import { findPurchasesFor } from '../../../lib/db/purchaseRepo';
+import { ownedGames } from '../../../lib/purchases';
 import { FLOW_COOKIE, SESSION_COOKIE, SESSION_MAX_AGE, signSession, verifyFlow } from '../../../lib/session';
-import { stripeClient } from '../../../lib/stripe';
 
 export const prerender = false;
 
@@ -50,7 +51,8 @@ if (params.get('error')) {
       error = 'Google could not confirm a verified email for that account.';
     } else {
       // Test-mode (fake card) purchases only count when testing on this machine.
-      const games = await findOwnedGames(stripeClient(), user.email, { allowTestMode: isLocalHost(Astro.url.hostname) });
+      await db();
+      const games = ownedGames(await findPurchasesFor(user.email, user.sub), { allowTestMode: isLocalHost(Astro.url.hostname) });
       const token = await signSession({ v: 1, ...user, games, iat: nowSec, exp: nowSec + SESSION_MAX_AGE }, secret);
       Astro.cookies.set(SESSION_COOKIE, token, {
         path: '/', httpOnly: true, secure: import.meta.env.PROD, sameSite: 'lax', maxAge: SESSION_MAX_AGE,

@@ -81,6 +81,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
         unlocked,
         allLevelsOpen,
         storage: safeStorage(),
+        price: stage.dataset.price || undefined,
         loadContent: () => getJson<unknown>(`/api/content/${encodeURIComponent(game)}`),
         onBuy: () => {
           if (document.fullscreenElement) void document.exitFullscreen();

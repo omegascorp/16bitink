@@ -6,23 +6,23 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "wrangler dev",
-    "deploy": "astro build && wrangler deploy",
+    "start": "node dist/server/entry.mjs",
+    "stripe:setup": "node --env-file=.env scripts/stripe-setup.mjs",
     "test": "vitest run",
     "typecheck": "astro check"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "@cloudflare/workers-types": "^5.20261002.1",
+    "@types/node": "^24.19.1",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.3",
-    "wrangler": "^4.146.0"
+    "vitest": "^5.0.3"
   },
   "dependencies": {
     "@16bitink/game-sdk": "workspace:*",
     "@16bitink/inkfish": "workspace:*",
-    "@astrojs/cloudflare": "^14.3.3",
+    "@astrojs/node": "^11.1.6",
     "astro": "^7.3.5",
+    "mongoose": "^9.10.3",
     "stripe": "^23.0.0",
     "zod": "^4.6.5"
   }
