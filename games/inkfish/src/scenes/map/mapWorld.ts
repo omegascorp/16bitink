@@ -99,7 +99,15 @@ export function buildMapWorld(scene: Phaser.Scene, layout: MapLayout, states: Re
       const sprite = add(scene.add.image(x, y, fishKey(species, 'light', 0)).setScale(rangeOf(rng, 0.16, 0.26)).setAlpha(alpha * 0.85));
       const dir = rng() < 0.5 ? -1 : 1;
       sprite.setFlipX(dir < 0);
-      scene.tweens.add({ targets: sprite, x: x + dir * 70, y: y + rangeOf(rng, -12, 12), duration: rangeOf(rng, 5000, 8000), yoyo: true, repeat: -1, ease: 'Sine.InOut', onYoyo: () => sprite.setFlipX(!sprite.flipX), onRepeat: () => sprite.setFlipX(!sprite.flipX) });
+      // Face the way it's actually moving (yoyo callbacks fire once per tweened property, so flipping there double-flips).
+      let lastX = x;
+      scene.tweens.add({
+        targets: sprite, x: x + dir * 70, y: y + rangeOf(rng, -12, 12), duration: rangeOf(rng, 5000, 8000), yoyo: true, repeat: -1, ease: 'Sine.InOut',
+        onUpdate: () => {
+          if (Math.abs(sprite.x - lastX) > 0.01) sprite.setFlipX(sprite.x < lastX);
+          lastX = sprite.x;
+        },
+      });
       boilers.push({ sprite, key: (f) => fishKey(species, 'light', f) });
     }
     // Depth marker where the zone begins (the surface needs no label).

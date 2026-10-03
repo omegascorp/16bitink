@@ -6,11 +6,12 @@ import type { LevelDef, SpeciesId } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { pickSpawn, relationTo } from '../../logic/sizing';
 import { keepInWater } from '../../logic/water';
+import { attachTail, setSwimTexture, setTailBeat, stroke, turnToward, type SwimState } from './swim';
 
 /** Ordinary fish come and go; marked fish and the giant are level goals and never leave. */
 export type FishRole = 'normal' | 'bounty' | 'boss';
 
-export interface Fish {
+export interface Fish extends SwimState {
   readonly sprite: Phaser.GameObjects.Image;
   readonly species: SpeciesId;
   readonly role: FishRole;
@@ -61,9 +62,10 @@ export function spawnSpecial(scene: Phaser.Scene, species: SpeciesId, size: numb
 }
 
 function makeFish(scene: Phaser.Scene, species: SpeciesId, size: number, role: FishRole, x: number, y: number, vx: number, rng: Rng): Fish {
-  const sprite = scene.add.image(x, y, fishKey(species, 'light', 0)).setDepth(role === 'boss' ? 11 : 10).setScale(size / FISH_RADIUS);
+  const sprite = scene.add.image(x, y, fishKey(species, 'light', 0)).setDepth(role === 'boss' ? 11 : 10).setScale(size / FISH_RADIUS).setFlipX(vx < 0);
+  attachTail(sprite, species);
   return {
-    sprite, species, role, baseSize: size, size, vx, vy: 0, phase: rng() * Math.PI * 2,
+    sprite, species, role, baseSize: size, size, vx, vy: 0, phase: rng() * Math.PI * 2, swim: rng() * Math.PI * 2, turn: vx < 0 ? -1 : 1,
     shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
   };
 }
@@ -212,14 +214,16 @@ function turnAtWalls(f: Fish, width: number): void {
   else if (f.sprite.x > width - m) f.vx = -Math.abs(f.vx);
 }
 
-export function renderFish(f: Fish, playerSize: number, frame: number): void {
+export function renderFish(f: Fish, playerSize: number, frame: number, dt: number): void {
   const heavy = relationTo(playerSize, f.size) === 'predator' && !isHelpless(f);
-  f.sprite.setTexture(fishKey(f.species, heavy ? 'heavy' : 'light', frame));
-  // Ease scale so puffing animates instead of popping.
+  setSwimTexture(f.sprite, fishKey(f.species, heavy ? 'heavy' : 'light', frame));
+  // Ease scale (y holds the true size) so puffing animates instead of popping.
   const target = f.size / FISH_RADIUS;
-  f.sprite.setScale(f.sprite.scaleX + (target - f.sprite.scaleX) * 0.25);
+  const scale = f.sprite.scaleY + (target - f.sprite.scaleY) * 0.25;
   if (f.state === 'dead') {
-    f.sprite.setTint(0xb3ab9c).setFlipY(true).setRotation(Math.sin(f.phase * 1.5) * 0.08);
+    // Belly-up and limp: the tail just sways with the water.
+    setTailBeat(f.sprite, Math.sin(f.phase * 1.3) * 0.06);
+    f.sprite.setScale(scale).setTint(0xb3ab9c).setFlipY(true).setRotation(Math.sin(f.phase * 1.5) * 0.08);
     return;
   }
   f.sprite.setFlipY(false);
@@ -227,10 +231,16 @@ export function renderFish(f: Fish, playerSize: number, frame: number): void {
   else f.sprite.clearTint();
   if (f.state === 'hooked') {
     // Hanging from the barb by the mouth, thrashing.
-    f.sprite.setFlipX(false).setRotation(-Math.PI / 2 + Math.sin(f.phase * 22) * 0.3);
+    setTailBeat(f.sprite, stroke(f, 0, dt, 3.2));
+    f.sprite.setScale(scale).setFlipX(false).setRotation(-Math.PI / 2 + Math.sin(f.phase * 22) * 0.3);
     return;
   }
-  if (Math.abs(f.vx) > 4) f.sprite.setFlipX(f.vx < 0);
+  const speed = Math.hypot(f.vx, f.vy);
+  const effort = f.state === 'stunned' ? 0.35 : f.state === 'chase' || f.state === 'lunge' ? 1.5 : 1;
+  setTailBeat(f.sprite, stroke(f, speed, dt, effort));
+  // Turning round: squash through edge-on, flipping at the midpoint.
+  const facing = turnToward(f, Math.abs(f.vx) > 4 ? (f.vx < 0 ? -1 : 1) : 0, dt);
+  f.sprite.setFlipX(f.turn < 0).setScale(scale * facing, scale);
   const wobble = f.state === 'stunned' ? Math.sin(f.phase * 9) * 0.2 : 0;
   f.sprite.setRotation(Phaser.Math.Clamp(f.vy / 400, -0.35, 0.35) * (f.sprite.flipX ? -1 : 1) + wobble);
 }

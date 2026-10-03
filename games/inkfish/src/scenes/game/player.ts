@@ -3,9 +3,10 @@ import { FISH_RADIUS } from '../../art/fishArt';
 import { fishKey } from '../../art/textures';
 import type { LevelDef, PlayerFishId } from '../../levels/types';
 import { waterBottom, waterTop } from '../../logic/water';
+import { attachTail, setSwimTexture, setTailBeat, stroke, turnToward, type SwimState } from './swim';
 import { TUNING } from './tuning';
 
-export interface Player {
+export interface Player extends SwimState {
   readonly sprite: Phaser.GameObjects.Image;
   readonly shape: PlayerFishId;
   /** Gameplay radius; jumps on tier-up. */
@@ -41,7 +42,8 @@ export function createPlayer(scene: Phaser.Scene, level: LevelDef, shape: Player
     .image(level.world.width / 2, level.world.height / 2, fishKey(shape, 'light', 0))
     .setDepth(20)
     .setScale(size / FISH_RADIUS);
-  return { sprite, shape, size, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0, hooked: false,
+  attachTail(sprite, shape);
+  return { sprite, shape, size, swim: 0, turn: 1, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0, hooked: false,
     slowUntil: 0, tangledUntil: 0, shield: false, glowUntil: 0 };
 }
 
@@ -136,15 +138,20 @@ export function tryDash(p: Player, dir: { x: number; y: number }, now: number): 
 
 export function renderPlayer(p: Player, now: number, frame: number, dt: number): void {
   const s = p.sprite;
-  s.setTexture(fishKey(p.shape, 'light', frame));
+  setSwimTexture(s, fishKey(p.shape, 'light', frame));
   p.drawSize += (p.size - p.drawSize) * Math.min(1, dt * 5);
   const base = p.drawSize / FISH_RADIUS;
   const chomp = now - p.chompAt < 140 ? 0.85 : 1;
-  s.setScale(base, base * chomp);
   if (p.hooked) {
-    s.setFlipX(false).setRotation(-Math.PI / 2 + Math.sin(now / 40) * 0.35);
+    setTailBeat(s, stroke(p, 0, dt, 3.2));
+    s.setScale(base, base * chomp).setFlipX(false).setRotation(-Math.PI / 2 + Math.sin(now / 40) * 0.35);
   } else {
-    if (Math.abs(p.vx) > 8) s.setFlipX(p.vx < 0);
+    const speed = Math.hypot(p.vx, p.vy);
+    // Dashing and energy rushes beat harder; idle fins still keep a slow stroke.
+    const effort = now < p.speedUntil || speed > TUNING.playerSpeed * 1.2 ? 1.6 : now < p.stunnedUntil ? 0.3 : 1;
+    setTailBeat(s, stroke(p, speed, dt, effort));
+    const facing = turnToward(p, Math.abs(p.vx) > 8 ? (p.vx < 0 ? -1 : 1) : 0, dt);
+    s.setFlipX(p.turn < 0).setScale(base * facing, base * chomp);
     s.setRotation(Phaser.Math.Clamp(p.vy / 700, -0.45, 0.45) * (s.flipX ? -1 : 1));
   }
   const invuln = now < p.invulnerableUntil;

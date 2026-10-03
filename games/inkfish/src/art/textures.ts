@@ -5,6 +5,8 @@ import { drawItem, ITEM_SIZE } from './itemArt';
 import { DARK_TEX, drawDarkness, drawInkDrop, DROP_SIZE } from './twistArt';
 import { ITEM_IDS } from '../levels/items';
 import { drawFish, FISH_TEX, type FishShape, type InkVariant } from './fishArt';
+import { xAt } from './fish/kit';
+import { ANATOMY } from './fish/registry';
 import { makeCanvas } from './pen';
 import { ART_RES, drawBubble, drawWreck, drawHook, drawJelly, drawPaper, drawRock, drawWeed, type WeedKind } from './propArt';
 
@@ -73,9 +75,43 @@ export function ensureFishTextures(scene: Phaser.Scene, shapes: readonly FishSha
     for (const variant of variants) {
       for (let f = 0; f < BOIL_FRAMES; f++) {
         add(scene, fishKey(shape, variant, f), FISH_TEX, FISH_TEX, (ctx) => drawFish(ctx, shape, variant, frameSeed(f)));
+        addSwimFrames(scene, fishKey(shape, variant, f), shape);
       }
     }
   }
+}
+
+/** The tail piece reaches this far under the body, so no gap opens at the hinge when it swings. */
+const TAIL_OVERLAP = 3;
+
+/**
+ * Where a fish texture splits into body and swinging tail (px from the left),
+ * just inside the tail stalk; null for fish that swim by bending the whole
+ * body (eels, the oarfish), which keep a single image.
+ */
+export function tailCut(shape: FishShape): number | null {
+  const a = ANATOMY[shape];
+  if (a.tail === 'point' || a.wave) return null;
+  return Math.round(xAt(a, 1) + Math.max(5, a.hl * 0.08));
+}
+
+/**
+ * 'body' and 'tail' frames on a fish texture, pivoting on the hinge: the body
+ * on the fish's centre, the tail on the stalk. A custom pivot also makes
+ * flipX mirror around that point instead of the frame's middle.
+ */
+function addSwimFrames(scene: Phaser.Scene, key: string, shape: FishShape): void {
+  const cut = tailCut(shape);
+  const tex = scene.textures.get(key);
+  if (cut === null || tex.has('body')) return;
+  const body = tex.add('body', 0, cut, 0, FISH_TEX - cut, FISH_TEX);
+  const tail = tex.add('tail', 0, 0, 0, cut + TAIL_OVERLAP, FISH_TEX);
+  // Adding a frame makes it the texture's default; keep the whole fish as the
+  // default so plain images (map, intro card, end screens) still show the tail.
+  tex.firstFrame = '__BASE';
+  if (!body || !tail) return;
+  Object.assign(body, { customPivot: true, pivotX: (FISH_TEX / 2 - cut) / (FISH_TEX - cut), pivotY: 0.5 });
+  Object.assign(tail, { customPivot: true, pivotX: cut / (cut + TAIL_OVERLAP), pivotY: 0.5 });
 }
 
 /** Frees GPU memory held by fish textures not in `keep`. Player fish always stay. */

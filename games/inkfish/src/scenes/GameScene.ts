@@ -21,6 +21,7 @@ import {
 } from './game/player';
 import { applyItem, type ItemHost } from './game/itemEffects';
 import { spawnItem, updateItem, type FallingItem } from './game/items';
+import { gulp, mouthOf } from './game/swim';
 import { TUNING } from './game/tuning';
 import { TwistRunner } from './game/twistRunner';
 import { drawWorld } from './game/world';
@@ -214,7 +215,7 @@ export class GameScene extends Phaser.Scene {
       }
       // Ordinary fish ride the current off the map and get replaced; goal fish stay in play.
       if (f.state !== 'hooked') this.drift(f.sprite, f.size, 0.7, dt, f.role !== 'normal');
-      renderFish(f, p.size, this.boilFrame);
+      renderFish(f, p.size, this.boilFrame, dt);
       if (f.state !== 'hooked' && isOffWorld(f, this.level)) {
         f.sprite.destroy();
         return false;
@@ -249,7 +250,7 @@ export class GameScene extends Phaser.Scene {
       eaten.add(prey);
       hunter.fullUntil = now + HUNT_COOLDOWN_MS;
       this.burst(prey.sprite.x, prey.sprite.y, 4);
-      prey.sprite.destroy();
+      gulp(prey.sprite, mouthOf(hunter.sprite, hunter.size, hunter.turn));
     }
     if (eaten.size) this.fish = this.fish.filter((f) => !eaten.has(f));
   }
@@ -264,7 +265,7 @@ export class GameScene extends Phaser.Scene {
     this.growth = addGrowth(this.level, this.growth, growthPointsFor(f.size));
     this.floatText(f.sprite.x, f.sprite.y - f.size, mult > 1 ? `+${gained} ×${mult}` : `+${gained}`, '#1f3f8a');
     this.burst(f.sprite.x, f.sprite.y, 6);
-    f.sprite.destroy();
+    gulp(f.sprite, mouthOf(this.player.sprite, this.player.size, this.player.turn));
     this.player.chompAt = this.time.now;
     if (this.growth.tier > before) this.growUp();
     this.progress = {
