@@ -84,9 +84,29 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId): P
     const x = rangeOf(rng, 0, width);
     const kind = flora.kinds[Math.floor(rng() * flora.kinds.length)]!;
     return scene.add.image(x, floor(x) + 10, weedKey(kind, 0)).setOrigin(0.5, 1).setDepth(4)
-      .setScale(rangeOf(rng, 0.75, 1.15) / ART_RES).setFlipX(rng() < 0.5).setData('kind', kind);
+      .setScale(rangeOf(rng, 0.75, 1.15) / ART_RES).setFlipX(rng() < 0.5).setData('kind', kind).setData('phase', rng() * Math.PI * 2);
   });
 }
+
+/**
+ * Seaweed rooted at its base: a slow sway in still water; in a current it
+ * leans downstream and flutters harder, in gusts. `current` is in world
+ * units per second (sign = direction).
+ */
+export function swayWeeds(weeds: readonly Phaser.GameObjects.Image[], current: number, now: number): void {
+  const t = now / 1000;
+  const lean = Math.sign(current) * Math.min(WEED_SWAY.maxLean, Math.abs(current) * WEED_SWAY.leanPerCurrent);
+  const amp = current ? WEED_SWAY.currentAmp : WEED_SWAY.calmAmp;
+  const speed = current ? WEED_SWAY.currentSpeed : WEED_SWAY.calmSpeed;
+  for (const w of weeds) {
+    const phase = (w.getData('phase') as number | undefined) ?? 0;
+    // A gust rolls along the seabed: weeds further downstream catch it a moment later.
+    const gust = current ? 0.75 + 0.25 * Math.sin(t * 0.7 - w.x / 260) : 1;
+    w.setRotation(lean * gust + Math.sin(t * speed + phase) * amp);
+  }
+}
+
+const WEED_SWAY = { maxLean: 0.32, leanPerCurrent: 0.0028, calmAmp: 0.05, currentAmp: 0.08, calmSpeed: 0.9, currentSpeed: 2.2 } as const;
 
 function wobblyPath(g: Phaser.GameObjects.Graphics, width: number, yAt: (x: number) => number, rng: () => number): void {
   g.beginPath();

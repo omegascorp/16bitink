@@ -25,7 +25,7 @@ import { bodyOf, gulp, mouthOf } from './game/swim';
 import { capsulesTouch, capsuleTouchesCircle } from '../logic/body';
 import { TUNING } from './game/tuning';
 import { TwistRunner } from './game/twistRunner';
-import { drawWorld } from './game/world';
+import { drawWorld, swayWeeds } from './game/world';
 import { describeLevel } from '../levels/twists';
 import { PLAYER_FISH_NAMES } from '../levels/zones';
 import { allLevels, chapterOf } from '../levels/chapters';
@@ -167,6 +167,7 @@ export class GameScene extends Phaser.Scene {
     const dt = Math.min(deltaMs, 50) / 1000;
     const now = this.time.now;
     this.tickBoil(deltaMs);
+    swayWeeds(this.weeds, this.twist.current, this.time.now);
     if (this.ended) {
       // The sea carries on while the ending plays; the player's sprite belongs to the death animation.
       this.updateFishes(now, dt);
@@ -373,7 +374,7 @@ export class GameScene extends Phaser.Scene {
       this.hooks.push(spawnHook(this, this.level, p.sprite.x, p.sprite.y, this.rng));
     }
     this.hooks = this.hooks.filter((h) => {
-      const alive = updateHook(h, deltaMs, this.boilFrame);
+      const alive = updateHook(h, deltaMs, this.boilFrame, this.twist.current);
       if (alive) this.biteHook(h, now);
       this.carry(h, now);
       if (!alive) this.landCatch(h);
