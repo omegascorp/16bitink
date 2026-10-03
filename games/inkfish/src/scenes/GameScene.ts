@@ -26,9 +26,12 @@ import { capsulesTouch, capsuleTouchesCircle } from '../logic/body';
 import { TUNING } from './game/tuning';
 import { TwistRunner } from './game/twistRunner';
 import { drawWorld, swayWeeds } from './game/world';
+import { buildCover } from './game/coverPatches';
+import { Hideout } from './game/hideout';
+import { planCover } from '../levels/cover';
 import { isCrawler, spawnCrawler, updateCrawler } from './game/crawlers';
 import { seabedFor, type Seabed } from '../logic/water';
-import { describeLevel } from '../levels/twists';
+import { describeLevel, levelNumber } from '../levels/twists';
 import { PLAYER_FISH_NAMES } from '../levels/zones';
 import { allLevels, chapterOf } from '../levels/chapters';
 import { HAND_FONT } from './ui';
@@ -80,6 +83,8 @@ export class GameScene extends Phaser.Scene {
   private itemHost!: ItemHost;
   private decoy: Decoy | null = null;
   private shieldG!: Phaser.GameObjects.Graphics;
+  /** Weed and coral to hide in. */
+  private hideout!: Hideout;
   private weeds: Phaser.GameObjects.Image[] = [];
   /** This level's sand: crawlers walk on it, swimmers can't go below it. */
   private seabed!: Seabed;
@@ -126,6 +131,9 @@ export class GameScene extends Phaser.Scene {
     ensureFishTextures(this, residents);
     this.seabed = seabedFor(this.level.id, world);
     this.weeds = drawWorld(this, this.level, chapter.zone, this.seabed);
+    const covers = buildCover(this, planCover(this.level.id, levelNumber(this.level), chapter.zone, world.width), this.seabed.floorAt, levelNumber(this.level) * 31 + 7);
+    this.weeds.push(...covers.flatMap((c) => c.weeds));
+    this.hideout = new Hideout(this, covers, this.seabed.floorAt);
     this.player = createPlayer(this, this.level, chapter.player);
     this.twist = new TwistRunner(this, this.level, this.rng);
     this.itemHost = this.makeItemHost();
@@ -185,6 +193,9 @@ export class GameScene extends Phaser.Scene {
       movePlayer(this.player, desiredDirection(this, this.controls, this.player), this.level, now, dt, this.seabed.floorAt);
       this.drift(this.player.sprite, this.player.size, 0.85, dt);
     }
+    this.hideout.update(this.player, now, deltaMs, dt, () => {
+      this.floatText(this.player.sprite.x, this.player.sprite.y - 40, 'Spotted!', '#a3342b', 36);
+    });
     renderPlayer(this.player, now, this.boilFrame, dt);
     const cam = this.cameras.main;
     cam.setZoom(Phaser.Math.Linear(cam.zoom, this.zoomFor(this.player.size), Math.min(1, dt * 2)));
@@ -208,7 +219,7 @@ export class GameScene extends Phaser.Scene {
 
   private updateFishes(now: number, dt: number): void {
     const p = this.player;
-    const view = { x: p.sprite.x, y: p.sprite.y, size: p.size };
+    const view = { x: p.sprite.x, y: p.sprite.y, size: p.size, hidden: p.hidden };
     const camView = this.cameras.main.worldView;
     const floorAt = this.seabed.floorAt;
     const crawlers = this.fish.filter((f) => isCrawler(f.species)).length;
@@ -235,7 +246,8 @@ export class GameScene extends Phaser.Scene {
         return false;
       }
       // A fish on the line belongs to the angler now.
-      if (this.ended || p.hooked || f.state === 'hooked') return true;
+      // Hidden in cover: you can't be bitten, and you can't eat.
+      if (this.ended || p.hooked || p.hidden || f.state === 'hooked') return true;
       if (!capsulesTouch(bodyOf(p.sprite, p.shape), bodyOf(f.sprite, f.species))) return true;
       const rel = relationTo(p.size, f.size);
       // Knocked out or shocked (and not much bigger than you): dinner, whatever its size.

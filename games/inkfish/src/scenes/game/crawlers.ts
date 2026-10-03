@@ -52,7 +52,7 @@ export function updateCrawler(f: Fish, p: PlayerView, floorAt: (x: number) => nu
   const dist = Phaser.Math.Distance.Between(f.sprite.x, f.sprite.y, p.x, p.y);
   let target = 0;
   if (f.state === 'cruise') {
-    if (relationTo(p.size, f.size) === 'prey' && dist < SCARE_DISTANCE + p.size) {
+    if (!p.hidden && relationTo(p.size, f.size) === 'prey' && dist < SCARE_DISTANCE + p.size) {
       const away = Math.sign(f.sprite.x - p.x) || heading;
       target = away * fast * (f.species === 'shrimp' ? BOLT.shrimp : BOLT.other);
     } else {

@@ -1,6 +1,7 @@
 import { ITEM_INFO, type ItemId } from './items';
 import { SPECIES_INFO, type SpeciesInfo } from './species';
-import { LEVELS_PER_CHAPTER } from './zones';
+import { COVER_DEBUT, ZONE_COVER } from './cover';
+import { LEVELS_PER_CHAPTER, zoneInfo } from './zones';
 import type { LevelDef, Modifiers, Objective, SpawnEntry, SpeciesId, TwistId } from './types';
 
 /**
@@ -132,6 +133,17 @@ export function levelNumber(level: LevelDef): number {
   return m ? (Number(m[1]) - 1) * LEVELS_PER_CHAPTER + Number(m[2]) : 0;
 }
 
+/** Hiding places get a line when they first appear, and so does their absence in open water. */
+function coverNote(level: LevelDef, number: number): string | null {
+  if (number === COVER_DEBUT) return 'Dense weed to hide in: hunters lose you there for a few seconds, but you can’t eat while hidden.';
+  // Said once, on the first level of the first zone without any.
+  const hasCover = (chapter: number): boolean => ZONE_COVER[zoneInfo(chapter).zone].kinds.length > 0;
+  if (level.id.endsWith('-l1') && level.chapter > 1 && !hasCover(level.chapter) && hasCover(level.chapter - 1)) {
+    return 'Open water: nowhere to hide down here.';
+  }
+  return null;
+}
+
 export interface DescribeOptions {
   /** Name of the player fish when this level is the first one with it. */
   readonly newPlayer?: string;
@@ -151,6 +163,8 @@ export function describeLevel(level: LevelDef, opts: DescribeOptions = {}): Leve
     const item = ITEM_INFO[id];
     notes.push(item.good ? `New item: ${item.name}. ${item.note}` : `Watch out for the ${item.name}. ${item.note}`);
   }
+  const cover = coverNote(level, number);
+  if (cover) notes.push(cover);
   const c = level.modifiers.current;
   if (c) notes.push(`A strong current pulls everything to the ${c > 0 ? 'right' : 'left'}.`);
   if (level.modifiers.lives === 1) notes.push('Only one life: a single hit ends the level.');

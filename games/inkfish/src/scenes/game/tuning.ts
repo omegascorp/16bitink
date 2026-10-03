@@ -34,4 +34,8 @@ export const TUNING = {
   hookWarnMs: 1500,
   hookHoldMs: 3200,
   baseVisibleHeight: 430,
+  /** Hiding in weed or coral: how long it hides you per visit, the wait after being spotted, and your speed inside. */
+  hideMs: 6000,
+  hideCooldownMs: 4000,
+  coverSpeed: 0.7,
 } as const;

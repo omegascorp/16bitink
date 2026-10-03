@@ -31,6 +31,8 @@ export interface Player extends SwimState {
   shield: boolean;
   /** Glow stick: a bigger circle of light in the dark. */
   glowUntil: number;
+  /** Tucked into weed or coral: fish can't see you, and you can't eat. */
+  hidden: boolean;
 }
 
 /** Bottom-right screen area reserved for the touch dash button. */
@@ -44,7 +46,7 @@ export function createPlayer(scene: Phaser.Scene, level: LevelDef, shape: Player
     .setScale(size / FISH_RADIUS);
   attachTail(sprite, shape);
   return { sprite, shape, size, swim: 0, turn: 1, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0, hooked: false,
-    slowUntil: 0, tangledUntil: 0, shield: false, glowUntil: 0 };
+    slowUntil: 0, tangledUntil: 0, shield: false, glowUntil: 0, hidden: false };
 }
 
 export interface Controls {
@@ -111,7 +113,7 @@ export function desiredDirection(scene: Phaser.Scene, c: Controls, p: Player): {
 
 export function movePlayer(p: Player, dir: { x: number; y: number }, level: LevelDef, now: number, dt: number, floorAt?: (x: number) => number): void {
   const stunned = now < p.stunnedUntil;
-  const max = TUNING.playerSpeed * (now < p.speedUntil ? TUNING.speedBoost : 1) * (now < p.slowUntil ? TUNING.slowFactor : 1);
+  const max = TUNING.playerSpeed * (now < p.speedUntil ? TUNING.speedBoost : 1) * (now < p.slowUntil ? TUNING.slowFactor : 1) * (p.hidden ? TUNING.coverSpeed : 1);
   const tx = stunned ? 0 : dir.x * max;
   const ty = stunned ? 0 : dir.y * max;
   const k = Math.min(1, dt * TUNING.playerAccel);
@@ -157,7 +159,7 @@ export function renderPlayer(p: Player, now: number, frame: number, dt: number):
     s.setRotation(Phaser.Math.Clamp(p.vy / 700, -0.45, 0.45) * (s.flipX ? -1 : 1));
   }
   const invuln = now < p.invulnerableUntil;
-  s.setAlpha(invuln && Math.floor(now / 120) % 2 === 0 ? 0.35 : 1);
+  s.setAlpha(invuln && Math.floor(now / 120) % 2 === 0 ? 0.35 : p.hidden ? 0.7 : 1);
   if (now < p.stunnedUntil) s.setTint(0x9b6fc4);
   else if (now < p.slowUntil) s.setTint(0xa9c08c);
   else if (now < p.speedUntil) s.setTint(0xffe2a0);

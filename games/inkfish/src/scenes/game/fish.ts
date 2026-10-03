@@ -133,6 +133,8 @@ export interface PlayerView {
   readonly x: number;
   readonly y: number;
   readonly size: number;
+  /** Hiding in cover: fish neither chase it nor flee from it. */
+  readonly hidden?: boolean;
 }
 
 function steerTo(f: Fish, tx: number, ty: number, speed: number, dt: number, accel = 3): void {
@@ -181,11 +183,13 @@ export function updateFish(f: Fish, player: PlayerView, world: SeaWorld, now: nu
     return;
   }
   // Hunters go for the decoy when there is one; everyone else reacts to the player.
-  const p: PlayerView = decoy && SPECIES_INFO[f.species].behaviour !== 'school' ? { ...player, ...decoy } : player;
+  const p: PlayerView = decoy && SPECIES_INFO[f.species].behaviour !== 'school' ? { ...player, ...decoy, hidden: false } : player;
   const dist = Phaser.Math.Distance.Between(f.sprite.x, f.sprite.y, p.x, p.y);
   const puffed = f.state === 'puffed' && now < f.stateUntil;
   f.size = f.baseSize * (puffed ? 1.7 : 1);
-  const rel = relationTo(p.size, f.size);
+  // A hidden player is invisible: nobody chases it, nobody runs from it.
+  const rel = p.hidden ? 'peer' : relationTo(p.size, f.size);
+  if (p.hidden && (f.state === 'chase' || f.state === 'lunge')) Object.assign(f, { state: 'tired', stateUntil: now + 1800, cooldownUntil: now + 3000 });
   const cruise = Math.sign(f.vx || (f.sprite.flipX ? -1 : 1)) * cruiseOf(f.species)[0];
 
   if (f.state !== 'cruise' && now >= f.stateUntil) {
