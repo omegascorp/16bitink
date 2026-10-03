@@ -338,6 +338,23 @@ export const REEF: Partial<Record<SpeciesId, Anatomy>> = {
       k.pen.fill(ellipse(k.x(0.25), C - k.h(0.25) * 0.4, 3, 2.4, 10), '#1d1b24', 0.75);
     },
   },
+  barracuda: {
+    // Great barracuda: a long silver pike of a fish with an underbite, dark bars and a few black blotches.
+    hl: 96, hh: 20, peak: 0.45, blunt: 0.15, peduncle: 0.4, tail: 'fork', tailSize: 1.5,
+    dorsal: { from: 0.4, to: 0.5, height: 0.9, spiny: true }, dorsal2: { from: 0.7, to: 0.8, height: 0.8 },
+    anal: { from: 0.72, to: 0.82, height: 0.7 }, pectoral: 0.45, pelvic: true, scales: true,
+    eye: { t: 0.14, r: 7 }, mouth: 'teeth', wash: '#8e9aa3', finWash: '#9c9a86',
+    extras: (k) => {
+      // Dark chevrons along the flank.
+      for (let i = 0; i < 9; i++) {
+        const t = 0.3 + i * 0.065;
+        const x = k.x(t);
+        k.pen.hair([{ x: x + 3, y: C - k.h(t) * 0.75 }, { x: x - 2, y: C - k.h(t) * 0.1 }, { x: x + 3, y: C + k.h(t) * 0.3 }], 0.8, k.ink, 0.65);
+      }
+      // A few inky blotches low on the flank, towards the tail.
+      for (const t of [0.6, 0.72, 0.83]) k.pen.fill(ellipse(k.x(t), C + k.h(t) * 0.35, 2.6, 1.8, 10), '#2a2d33', 0.7);
+    },
+  },
   moray: {
     hl: 108, hh: 19, peak: 0.3, blunt: 0.85, peduncle: 0.28, tail: 'point', tailSize: 0,
     dorsal: { from: 0.14, to: 1, height: 0.32 }, anal: { from: 0.45, to: 1, height: 0.3 },

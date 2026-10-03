@@ -57,9 +57,9 @@ function drawTail(k: Kit): void {
 function membrane(k: Kit, shape: Pt[], root: Pt, rays: number): void {
   const { pen, a, heavy, ink } = k;
   pen.fill(shape, PAPER_FILL, 1);
-  pen.fill(shape, a.finWash ?? a.wash, heavy ? 0.3 : 0.16);
-  // Rays: from the root to evenly spaced points along the outer edge.
-  for (let i = 1; i < rays; i++) {
+  pen.fill(shape, a.finWash ?? a.wash, a.finAlpha ?? (heavy ? 0.3 : 0.16));
+  // Rays: from the root to evenly spaced points along the outer edge. Shark fins have none.
+  for (let i = 1; i < (a.smoothFins ? 0 : rays); i++) {
     const p = shape[Math.round((i / rays) * (shape.length - 1))]!;
     pen.hair([root, { x: (root.x + p.x) / 2 + pen.jitter(0.6), y: (root.y + p.y) / 2 }, p], 0.55, ink, 0.6);
   }
@@ -97,9 +97,9 @@ function drawEdgeFin(k: Kit, fin: Fin, side: 'top' | 'bottom'): void {
     : tips;
   const shape = [...base, ...[...edge].reverse()];
   pen.fill(shape, PAPER_FILL, 1);
-  pen.fill(shape, a.finWash ?? a.wash, 0.16);
+  pen.fill(shape, a.finWash ?? a.wash, a.finAlpha ?? 0.16);
   base.forEach((b, i) => {
-    if (i % (fin.spiny ? 1 : 2)) return;
+    if (a.smoothFins || i % (fin.spiny ? 1 : 2)) return;
     pen.hair([b, tips[i]!], fin.spiny ? 0.9 : 0.5, ink, fin.spiny ? 0.9 : 0.6);
   });
   pen.stroke(edge, fin.spiny ? 0.8 : 1.1, ink, 1, false);

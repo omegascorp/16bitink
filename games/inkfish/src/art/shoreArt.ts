@@ -11,7 +11,7 @@ export const SHORE_SIZE: Readonly<Record<ShoreKind, { readonly w: number; readon
   lighthouse: { w: 220, h: 270 },
   palms: { w: 380, h: 220 },
   dunes: { w: 520, h: 80 },
-  headland: { w: 440, h: 230 },
+  headland: { w: 440, h: 250 },
   volcano: { w: 480, h: 230 },
 };
 
@@ -49,6 +49,15 @@ function ridge(P: (x: number, y: number) => Pt, base: number, points: readonly (
     out.push(...bez(P(x0, base - h0), P((x0 + x1) / 2, base - Math.max(h0, h1) - 4), P(x1, base - h1), 6).slice(i ? 1 : 0));
   }
   return out;
+}
+
+/** Height of a ridge line at canvas x, so things stand on it rather than float above it. */
+function groundAt(top: readonly Pt[], x: number): number {
+  const i = top.findIndex((p) => p.x >= x);
+  if (i <= 0) return top[Math.max(0, i)]?.y ?? 0;
+  const a = top[i - 1]!;
+  const b = top[i]!;
+  return a.y + ((b.y - a.y) * (x - a.x)) / Math.max(1e-6, b.x - a.x);
 }
 
 function palm(pen: Pen, P: (x: number, y: number) => Pt, x: number, ground: number, height: number, lean: number): void {
@@ -111,13 +120,11 @@ export function drawShore(ctx: CanvasRenderingContext2D, kind: ShoreKind, seed: 
       for (let i = -2; i <= 2; i++) pen.hair([P(x, base - 22), P(x + i * 4, base - 34 - pen.rng() * 8)], 0.6 * s, GREEN, 0.9);
     }
   } else if (kind === 'headland') {
-    // A cliff rising from the sea on the right, sloping away inland to the left.
-    landmass(pen, ridge(P, base, [[0, 70], [80, 110], [190, 150], [300, 170], [380, 160], [420, 120], [436, 0]]), base, '#a19a85');
+    // A cliff rising from the sea on the right, its long back sloping down to the water on the left.
+    const top = ridge(P, base, [[6, 0], [30, 30], [80, 88], [140, 128], [200, 152], [300, 170], [380, 160], [420, 120], [436, 0]]);
+    landmass(pen, top, base, '#a19a85');
     pen.hatch([P(380, base - 160), P(436, base), P(400, base), P(370, base - 120)], 3 * s, 1.4, 0.5 * s, { alpha: 0.5 });
-    for (const [x, hgt] of [[120, 40], [170, 52], [210, 46], [260, 58], [320, 44]] as const) {
-      const ground = base - (x < 190 ? 110 + (x - 80) * 0.36 : 150 + (x - 190) * 0.18);
-      pine(pen, P, x, ground, hgt);
-    }
+    for (const [x, hgt] of [[120, 40], [170, 52], [210, 46], [260, 58], [320, 44]] as const) pine(pen, P, x, groundAt(top, x * s) / s, hgt);
   } else {
     // A distant volcano with a curl of smoke.
     landmass(pen, ridge(P, base, [[10, 0], [120, 50], [200, 130], [228, 150], [252, 150], [280, 128], [370, 46], [470, 0]]), base, '#7d7a8a', 0.4);

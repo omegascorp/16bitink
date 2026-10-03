@@ -43,3 +43,17 @@ describe('birds', () => {
     expect(diveTarget('gannet', { x: 5, y: SURFACE + 20 }, SURFACE).y).toBe(SURFACE + 20);
   });
 });
+
+describe('bird beaks', () => {
+  it('know where their beak tip is, ahead of the body and inside the drawing', async () => {
+    const { beakTip, BIRD_TEX } = await import('../src/art/birdArt');
+    for (const kind of ['gull', 'tern', 'pelican', 'gannet', 'dragonfly'] as const) {
+      const tip = beakTip(kind);
+      expect(tip.x).toBeGreaterThan(10);
+      expect(Math.abs(tip.x)).toBeLessThan(BIRD_TEX.w / 2);
+      expect(Math.abs(tip.y)).toBeLessThan(BIRD_TEX.h / 2);
+    }
+    // The pelican's long bill reaches furthest.
+    expect(beakTip('pelican').x).toBeGreaterThan(beakTip('tern').x);
+  });
+});

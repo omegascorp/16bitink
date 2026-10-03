@@ -4,9 +4,11 @@ import { ART_RES, birdKey, ensureBirdTextures, fishKey } from '../art/textures';
 import { PAN_SIZE } from '../art/deathArt';
 import { bodyProportions } from '../art/fishArt';
 import { isSquid } from '../art/squidArt';
+import { beakTip } from '../art/birdArt';
 import { DEMO_CHAPTER, LOCKED_CHAPTER_TEASERS } from '../levels/demo';
 import type { PlayerFishId, SpeciesId } from '../levels/types';
 import { deathText, type Death } from '../logic/deaths';
+import type { BirdId } from '../logic/birds';
 import { blotsFor } from '../logic/growth';
 import { loadSave, persistSave, recordResult } from '../logic/save';
 import { allLevels } from '../levels/chapters';
@@ -35,6 +37,37 @@ function fitBox(shape: PlayerFishId | SpeciesId, w: number, h: number): number {
   return Math.min(w / (a.hl * 2.3), h / (a.hh * 3));
 }
 
+/**
+ * Carried off: the bird climbs away, wings up, with you held by the head in
+ * its beak, dangling and dripping. The fish goes under the bird so the beak
+ * closes over its head.
+ */
+function snatchedPicture(scene: Phaser.Scene, kind: BirdId, player: PlayerFishId, y: number): Phaser.GameObjects.GameObject[] {
+  ensureBirdTextures(scene, [kind]);
+  const at = { x: -30, y: y - 6 };
+  const scale = 0.8;
+  const rotation = -0.12;
+  const tip = beakTip(kind);
+  const tx = tip.x * ART_RES * scale;
+  const ty = tip.y * ART_RES * scale;
+  const beak = { x: at.x + tx * Math.cos(rotation) - ty * Math.sin(rotation), y: at.y + tx * Math.sin(rotation) + ty * Math.cos(rotation) };
+  const fishScale = fitBox(player, 66, 42);
+  const hang = -Math.PI / 2 + 0.14;
+  const hold = bodyProportions(player).hl * fishScale * 0.8;
+  const fish = scene.add.image(beak.x - Math.cos(hang) * hold, beak.y - Math.sin(hang) * hold, fishKey(player, 'light', 0))
+    .setScale(fishScale).setRotation(hang);
+  // Drips falling off the tail.
+  const tail = { x: beak.x - Math.cos(hang) * hold * 2.2, y: beak.y - Math.sin(hang) * hold * 2.2 };
+  const drips = scene.add.graphics();
+  [[0, 10, 3], [-7, 24, 2.4], [5, 36, 2]].forEach(([dx, dy, r]) => {
+    const cx = tail.x + dx!;
+    const cy = tail.y + dy!;
+    drips.fillStyle(0x7fa3e0, 0.75).fillCircle(cx, cy, r!).fillTriangle(cx - r! * 0.9, cy - r! * 0.4, cx + r! * 0.9, cy - r! * 0.4, cx, cy - r! * 2.6);
+  });
+  const bird = scene.add.image(at.x, at.y, birdKey(kind, 0)).setScale(scale).setRotation(rotation);
+  return [fish, drips, bird];
+}
+
 /** A little pen vignette of how it ended, drawn above the title. */
 function deathPicture(scene: Phaser.Scene, death: Death, player: PlayerFishId, staple: SpeciesId, y: number): Phaser.GameObjects.GameObject[] {
   const me = (frame: string): Phaser.GameObjects.Image => scene.add.image(0, 0, frame);
@@ -54,12 +87,7 @@ function deathPicture(scene: Phaser.Scene, death: Death, player: PlayerFishId, s
       me(fishKey(player, 'light', 0)).setPosition(-90, y + 4).setScale(fitBox(player, 100, 70)),
     ];
   }
-  if (death.cause === 'snatched' && death.bird) {
-    // Carried off: the bird flies away with you dangling from its beak.
-    ensureBirdTextures(scene, [death.bird]);
-    const bird = scene.add.image(-20, y - 20, birdKey(death.bird, 1)).setScale(0.75).setRotation(-0.15);
-    return [bird, me(fishKey(player, 'light', 0)).setPosition(46, y + 14).setScale(fitBox(player, 60, 40)).setRotation(-1.35)];
-  }
+  if (death.cause === 'snatched' && death.bird) return snatchedPicture(scene, death.bird, player, y);
   const killerShape = death.killer ?? staple;
   // The giant squid's picture includes its long arms: draw it smaller.
   const killer = scene.add.image(-85, y, fishKey(killerShape, 'heavy', 0)).setScale(isSquid(killerShape) ? 0.32 : 0.55);

@@ -17,6 +17,8 @@ export interface SwimStats {
   readonly leap: number;
   /** One line for the chapter intro. */
   readonly trait: string;
+  /** Feels nearby prey through its electric field (sharks): see logic/sense.ts. */
+  readonly sense?: boolean;
 }
 
 export const PLAYER_STATS: Readonly<Record<PlayerFishId, SwimStats>> = {
@@ -26,10 +28,13 @@ export const PLAYER_STATS: Readonly<Record<PlayerFishId, SwimStats>> = {
   perchfry: { speed: 1, agility: 1.05, dash: 1.05, leap: 0.95, trait: 'Steady and even.' },
   // A deep, flat body that pivots in its own length around coral.
   butterfly: { speed: 0.92, agility: 1.4, dash: 0.95, leap: 0.8, trait: 'Not fast, but it turns on a coin.' },
-  // Ambush hunter: lunges at around 40 km/h.
-  barracuda: { speed: 1.08, agility: 0.95, dash: 1.35, leap: 1.15, trait: 'An explosive dash.' },
   // Built for endless cruising; tunas often leap clear of the water.
   tuna: { speed: 1.2, agility: 0.9, dash: 1.2, leap: 1.25, trait: 'The fastest swimmer yet, and it leaps high.' },
+  // The fastest shark, a famous leaper, and like all sharks it feels the electric field of prey.
+  mako: {
+    speed: 1.15, agility: 0.92, dash: 1.4, leap: 1.25, sense: true,
+    trait: 'A shark: a huge dash, and it senses prey nearby, even in the dark.',
+  },
   // Climbs hundreds of metres to the surface and back every night.
   lanternfish: { speed: 1.05, agility: 1.1, dash: 1.1, leap: 1, trait: 'A tireless climber, quick all round.' },
   // Hangs still in the dark, then strikes.

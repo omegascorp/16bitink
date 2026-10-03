@@ -102,3 +102,16 @@ describe('giant names', () => {
     expect(giantName('giantsquid')).toBe('giant squid');
   });
 });
+
+describe('the fish you swim as', () => {
+  it('is a tuna at the wreck and a mako shark pup at the drop-off', () => {
+    expect(chapters.find((c) => c.zone === 'wreck')!.player).toBe('tuna');
+    expect(chapters.find((c) => c.zone === 'dropoff')!.player).toBe('mako');
+  });
+
+  it('meets the barracuda at the wreck as a hunter to keep away from', () => {
+    expect(info('barracuda').hunter).toBe(true);
+    const wreck = chapters.find((c) => c.zone === 'wreck')!;
+    expect(wreck.levels.some((l) => l.spawns.some((s) => s.species === 'barracuda'))).toBe(true);
+  });
+});

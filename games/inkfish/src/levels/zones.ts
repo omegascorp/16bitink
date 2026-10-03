@@ -15,8 +15,8 @@ export const ZONE_INFO: readonly ChapterInfo[] = [
   { id: 2, zone: 'seagrass', name: 'Seagrass Margins', player: 'goby', depth: [5, 15] },
   { id: 3, zone: 'kelp', name: 'Kelp Forest', player: 'perchfry', depth: [15, 30] },
   { id: 4, zone: 'reef', name: 'Crosshatch Reef', player: 'butterfly', depth: [30, 50] },
-  { id: 5, zone: 'wreck', name: 'Shipwreck Sketches', player: 'barracuda', depth: [50, 120] },
-  { id: 6, zone: 'dropoff', name: 'The Drop-off', player: 'tuna', depth: [120, 200] },
+  { id: 5, zone: 'wreck', name: 'Shipwreck Sketches', player: 'tuna', depth: [50, 120] },
+  { id: 6, zone: 'dropoff', name: 'The Drop-off', player: 'mako', depth: [120, 200] },
   { id: 7, zone: 'twilight', name: 'Twilight Ink', player: 'lanternfish', depth: [200, 1000] },
   { id: 8, zone: 'midnight', name: 'Midnight Blot', player: 'viperfish', depth: [1000, 4000] },
   { id: 9, zone: 'abyss', name: 'The Abyssal Plain', player: 'loosejaw', depth: [4000, 6000] },
@@ -28,8 +28,8 @@ export const ZONE_IDS: readonly ZoneId[] = ZONE_INFO.map((z) => z.zone);
 export const PLAYER_FISH: readonly PlayerFishId[] = ZONE_INFO.map((z) => z.player);
 
 export const PLAYER_FISH_NAMES: Readonly<Record<PlayerFishId, string>> = {
-  inkling: 'inkling', goby: 'goby', perchfry: 'perch fry', butterfly: 'butterflyfish', barracuda: 'barracuda',
-  tuna: 'young tuna', lanternfish: 'lanternfish', loosejaw: 'stoplight loosejaw', viperfish: 'viperfish', snailfish: 'snailfish',
+  inkling: 'inkling', goby: 'goby', perchfry: 'perch fry', butterfly: 'butterflyfish', tuna: 'young tuna',
+  mako: 'mako shark pup', lanternfish: 'lanternfish', loosejaw: 'stoplight loosejaw', viperfish: 'viperfish', snailfish: 'snailfish',
 };
 
 /** Zones with open sky above: you can leap out, and boats fish from the surface. Deeper, the top of the screen is just more dark water. */

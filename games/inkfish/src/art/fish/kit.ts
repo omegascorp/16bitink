@@ -56,6 +56,10 @@ export interface Anatomy {
   readonly mouth: 'small' | 'teeth' | 'gape' | 'beak' | 'none';
   readonly wash: string;
   readonly finWash?: string;
+  /** How strongly the fins are washed (default faint); dark-finned fish like sharks go higher. */
+  readonly finAlpha?: number;
+  /** Stiff, smooth fins with no rays (sharks): drawn solid, shaded along the trailing edge. */
+  readonly smoothFins?: boolean;
   readonly ink?: string;
   /** Gill cover style: bony fish have a cover, sharks show slits. Default bony. */
   readonly gills?: 'bony' | 'slits' | 'none';
@@ -69,6 +73,13 @@ export interface Anatomy {
   readonly under?: (k: Kit) => void;
   /** Body undulation amplitude in px (eels). */
   readonly wave?: number;
+  /**
+   * A hand-shaped body instead of the default spindle: back and belly lines at
+   * t (0 nose .. 1 tail base), in multiples of hh from the centre line, y down
+   * (so the back is negative). For bodies the spindle can't do, like a shark's
+   * arched back over a flat belly.
+   */
+  readonly profile?: (t: number) => { readonly top: number; readonly bottom: number };
 }
 
 /** Everything a species' detail hook needs. */
@@ -95,6 +106,10 @@ export interface Light {
 // ---------------------------------------------------------------- profile
 
 export function heightAt(a: Anatomy, t: number): number {
+  if (a.profile) {
+    const p = a.profile(t);
+    return ((p.bottom - p.top) / 2) * a.hh;
+  }
   if (t <= a.peak) {
     const u = t / a.peak;
     return a.hh * Math.pow(Math.sin((u * Math.PI) / 2), 0.35 + 0.9 * (1 - a.blunt));
@@ -104,8 +119,8 @@ export function heightAt(a: Anatomy, t: number): number {
 }
 
 export const xAt = (a: Anatomy, t: number): number => C + a.hl - 2 * a.hl * t;
-export const topAt = (a: Anatomy, t: number): number => C - heightAt(a, t) * 1.04;
-export const bottomAt = (a: Anatomy, t: number): number => C + heightAt(a, t) * 0.92;
+export const topAt = (a: Anatomy, t: number): number => (a.profile ? C + a.profile(t).top * a.hh : C - heightAt(a, t) * 1.04);
+export const bottomAt = (a: Anatomy, t: number): number => (a.profile ? C + a.profile(t).bottom * a.hh : C + heightAt(a, t) * 0.92);
 
 export function outline(a: Anatomy): Pt[] {
   const n = 48;

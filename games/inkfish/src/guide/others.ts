@@ -1,7 +1,8 @@
 import type { GuideEntry } from './types';
 
 /**
- * Fact cards for the seabed crawlers, the birds and the fish you swim as.
+ * Fact cards for the seabed crawlers, the birds and the fish you swim as
+ * (plus the barracuda, which you swam as until it became a wreck hunter).
  * Figures are approximate adult maximums from FishBase, SeaLifeBase, MarLIN,
  * BTO ringing records and similar references.
  */
@@ -225,6 +226,17 @@ export const OTHER_GUIDE = {
     eats: 'fish, squid',
     fact: 'It hunts by sight and may strike at anything shiny that flashes like a fish.',
   },
+  mako: {
+    latin: 'Isurus oxyrinchus',
+    length: 'up to ~4 m',
+    weight: 'up to ~570 kg',
+    lifespan: 'up to ~30 years',
+    speed: 'the fastest shark; bursts quoted ~70 km/h',
+    depth: '0-500 m, mostly near the surface',
+    range: 'warm and temperate oceans worldwide',
+    eats: 'fish (even tuna and swordfish), squid',
+    fact: 'It can leap up to 6 m clear of the water.',
+  },
   // Atlantic bluefin: the classic big tuna of the Atlantic and Mediterranean.
   tuna: {
     latin: 'Thunnus thynnus',
@@ -285,7 +297,7 @@ export const OTHER_GUIDE = {
 } as const satisfies Record<
   | 'shorecrab' | 'periwinkle' | 'shrimp' | 'hermitcrab' | 'urchin' | 'lobster' | 'spidercrab' | 'isopod' | 'seapig'
   | 'dragonfly' | 'tern' | 'gull' | 'pelican' | 'gannet'
-  | 'inkling' | 'goby' | 'perchfry' | 'butterfly' | 'barracuda' | 'tuna'
+  | 'inkling' | 'goby' | 'perchfry' | 'butterfly' | 'barracuda' | 'tuna' | 'mako'
   | 'lanternfish' | 'viperfish' | 'loosejaw' | 'snailfish',
   GuideEntry
 >;

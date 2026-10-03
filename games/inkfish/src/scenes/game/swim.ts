@@ -117,6 +117,11 @@ export function mouthOf(sprite: Image, radius: number, turn: number): { x: numbe
   return { x: sprite.x + Math.sign(turn || 1) * radius * 0.85, y: sprite.y };
 }
 
+/** How far a swimmer's nose is from its centre, world px (where a bird or a hook holds it). */
+export function noseReach(sprite: Image, shape: FishShape): number {
+  return bodyProportions(shape).hl * Math.abs(sprite.scaleY);
+}
+
 /** Swallowed: the fish is sucked into the eater's mouth, shrinking, then gone. */
 export function gulp(sprite: Image, into: { x: number; y: number }): void {
   sprite.scene.tweens.add({

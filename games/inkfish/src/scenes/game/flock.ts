@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BIRD_RADIUS, DIVE_FRAME } from '../../art/birdArt';
+import { beakTip, BIRD_RADIUS, DIVE_FRAME } from '../../art/birdArt';
 import { ART_RES, birdKey, ensureBirdTextures } from '../../art/textures';
 import type { ZoneId } from '../../levels/types';
 import { BIRD_INFO, birdSize, diveTarget, pickBird, wantsDive, ZONE_BIRDS, type BirdId, type Quarry } from '../../logic/birds';
@@ -34,6 +34,8 @@ export interface Bird {
   prize: Phaser.GameObjects.Image | null;
   /** The prize is a fish the bird owns now (destroyed with it), not the player. */
   ownsPrize: boolean;
+  /** How far the prize's nose is from its centre, world px: it's held by the head. */
+  prizeNose: number;
 }
 
 const AIM_MS = 600;
@@ -45,8 +47,6 @@ const REST_MS = 5000;
 const FIRST_BIRD_MS = 3000;
 const BIRD_EVERY_MS: readonly [number, number] = [4000, 9000];
 const FLAP_HZ: Readonly<Record<BirdId, number>> = { dragonfly: 22, tern: 6, gull: 4.5, pelican: 3, gannet: 5 };
-/** Beak tip ahead of the body centre, in multiples of the bird's size. */
-const BEAK_REACH: Readonly<Record<BirdId, number>> = { dragonfly: 0.4, tern: 1.05, gull: 1.0, pelican: 1.5, gannet: 1.15 };
 /** The flap cycle through the wing frames: up, level, down, level. */
 const FLAP = [0, 1, 2, 1] as const;
 
@@ -87,13 +87,18 @@ export class Flock {
   /** Where the beak tip is, for striking and carrying things off. */
   beakOf(b: Bird): { x: number; y: number } {
     const s = b.sprite;
-    const reach = b.size * BEAK_REACH[b.kind] * (s.flipX ? -1 : 1);
-    return { x: s.x + Math.cos(s.rotation) * reach, y: s.y + Math.sin(s.rotation) * reach };
+    const tip = beakTip(b.kind);
+    const k = b.size / BIRD_RADIUS;
+    const x = tip.x * k * (s.flipX ? -1 : 1);
+    const y = tip.y * k;
+    const c = Math.cos(s.rotation);
+    const n = Math.sin(s.rotation);
+    return { x: s.x + x * c - y * n, y: s.y + x * n + y * c };
   }
 
   /** The bird caught something: it carries it up and away. A fish is the bird's to destroy; the player's sprite isn't. */
-  carryOff(b: Bird, prize: Phaser.GameObjects.Image, owns: boolean): void {
-    Object.assign(b, { state: 'carry', t: 0, prize, ownsPrize: owns });
+  carryOff(b: Bird, prize: Phaser.GameObjects.Image, owns: boolean, nose: number): void {
+    Object.assign(b, { state: 'carry', t: 0, prize, ownsPrize: owns, prizeNose: nose });
   }
 
   /** It struck and missed or let go: back up and away for a while. */
@@ -116,7 +121,7 @@ export class Flock {
     const x = dir > 0 ? view.left - 120 : view.right + 120;
     const sprite = this.scene.add.image(x, cruiseY, birdKey(kind, 0)).setDepth(18)
       .setScale(size / BIRD_RADIUS / ART_RES).setFlipX(dir < 0);
-    this.birds.push({ sprite, kind, size, state: 'cruise', dir, cruiseY, t: 0, age: this.rng() * 1000, restUntil: 0, vx: dir * info.speed, vy: 0, target: { x, y: cruiseY }, prize: null, ownsPrize: false });
+    this.birds.push({ sprite, kind, size, state: 'cruise', dir, cruiseY, t: 0, age: this.rng() * 1000, restUntil: 0, vx: dir * info.speed, vy: 0, target: { x, y: cruiseY }, prize: null, ownsPrize: false, prizeNose: 0 });
   }
 
   private step(b: Bird, now: number, dt: number, q: Quarry, fx: FlockFx): void {
@@ -164,9 +169,13 @@ export class Flock {
       s.y -= 220 * dt;
       this.face(b, b.dir * info.speed, -220);
       if (b.prize?.active) {
-        // Dangling head-first from the beak.
+        // Held by the head, nose up in the beak, the body dangling and swinging below.
         const beak = this.beakOf(b);
-        b.prize.setPosition(beak.x, beak.y + b.prize.displayHeight * 0.3).setRotation(Math.PI / 2 * 0.85).setFlipX(false);
+        const a = -Math.PI / 2 + Math.sin(b.t / 140) * 0.2;
+        const hold = b.prizeNose * 0.8;
+        b.prize
+          .setPosition(beak.x - Math.cos(a) * hold, beak.y - Math.sin(a) * hold)
+          .setRotation(a).setFlipX(false).setFlipY(false).setDepth(s.depth - 0.5);
       }
     }
     const isWet = s.y > SKY.surfaceY;

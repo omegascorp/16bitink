@@ -42,7 +42,7 @@ Ten "eat smaller to grow" games, researched October 2026, and what InkFish takes
   - Locked zones are shown as pencil drafts.
   - Chapter tabs jump between zones.
   - The map grows on its own when a zone is added.
-- **A new player fish every chapter (every 10 levels):** inkling, goby, perch fry, butterflyfish, barracuda, young tuna, lanternfish, viperfish, stoplight loosejaw, and the hadal snailfish (the deepest fish ever filmed) for the hadal trench. All are drawn in blue ink, so the player always reads as "you". The first level of a chapter announces the new fish. Each handles differently (games/inkfish/src/levels/playerStats.ts): cruising speed, agility, dash and leap height are small multipliers, loosely true to life, and each new fish trades one strength for another (the tuna cruises and leaps best, the deep fish are slow drifters with the hardest lunges), so later chapters never feel like a downgrade.
+- **A new player fish every chapter (every 10 levels):** inkling, goby, perch fry, butterflyfish, young tuna (at the wreck, where real tuna gather to hunt), mako shark pup, lanternfish, viperfish, stoplight loosejaw, and the hadal snailfish (the deepest fish ever filmed) for the hadal trench. All are drawn in blue ink, so the player always reads as "you". The first level of a chapter announces the new fish. Each handles differently (games/inkfish/src/levels/playerStats.ts): cruising speed, agility, dash and leap height are small multipliers, loosely true to life, and each new fish trades one strength for another (the tuna cruises and leaps best, the deep fish are slow drifters with the hardest lunges), so later chapters never feel like a downgrade. The mako is the first fish with an ability of its own: like every shark it feels the electric field of nearby prey, so every 1.6 s a ripple spreads from it and the edible fish within range flicker with blue sparks for a moment, even in the dark, with sparks at the screen edge for prey out of view (logic/sense.ts, scenes/game/sharkSense.ts). The barracuda, the old chapter 5 fish, now lurks at the wreck as a hunter.
 - **Levels are generated from per-chapter recipes** (`games/inkfish/src/levels/generate.ts`).
   - A recipe sets which species appear, the hazard ramps, the growth goal and the final size.
   - The generator produces 10 levels with a smooth ramp, then gives each its own twist (`src/levels/twists.ts`).
@@ -84,7 +84,7 @@ Each zone has its own residents, and new ones arrive mid-chapter: the intro card
 | 2 Seagrass | sand lance, wrasse, pipefish, filefish, mullet | tarpon |
 | 3 Kelp | sardine, garibaldi, kelpfish, rockfish, sheephead, eel | lingcod |
 | 4 Reef | chromis, clownfish, angelfish, parrotfish, boxfish, triggerfish, lionfish | goliath grouper |
-| 5 Wreck | herring, snapper, cod, scorpionfish, jack, moray | reef shark |
+| 5 Wreck | herring, snapper, cod, scorpionfish, jack, barracuda, moray | reef shark |
 | 6 Drop-off | anchovy, mackerel, flying fish, needlefish, bonito, mahi-mahi | swordfish |
 | 7 Twilight | bristlemouth, pearleye, barreleye, sabertooth, dragonfish, coelacanth (rare) | oarfish |
 | 8 Midnight | bigscale, whalefish, fangtooth, black dragonfish, gulper eel | sleeper shark |
@@ -136,7 +136,7 @@ The giant squid, the last giant of the game, is the only one that isn't a fish, 
 
 ## Planned for the full game
 
-1. Abilities per player fish (barracuda burst speed, lanternfish light in the dark zones)
+1. Abilities for more player fish (the mako has its sense; lanternfish light in the dark zones could be next)
 2. Endless mode with a hunger drain and a daily-seed leaderboard
 3. Trait stealing
 6. Ink comic panels between zones

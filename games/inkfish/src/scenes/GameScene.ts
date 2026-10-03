@@ -14,6 +14,7 @@ import { targetZoom } from './game/camera';
 import { playEaten, playSpiked, spikeMarks } from './game/deathFx';
 import { isHelpless, isOffWorld, renderFish, spawnFish, stunFish, updateFish, type Decoy, type Fish } from './game/fish';
 import { clubsTouch, takeSquidEvents } from './game/squid';
+import { SharkSense } from './game/sharkSense';
 import { isSquid } from '../art/squidArt';
 import {
   destroyHook, hangPoint, hookCatch, hookRelease, hookTip, spawnJellies, updateHook, updateJelly, type Hook, type Jelly,
@@ -23,7 +24,7 @@ import {
 } from './game/player';
 import { applyItem, type ItemHost } from './game/itemEffects';
 import { spawnItem, updateItem, type FallingItem } from './game/items';
-import { bodyOf, gulp, mouthOf } from './game/swim';
+import { bodyOf, gulp, mouthOf, noseReach } from './game/swim';
 import { capsulesTouch, capsuleTouchesCircle } from '../logic/body';
 import { TUNING } from './game/tuning';
 import { TwistRunner } from './game/twistRunner';
@@ -87,6 +88,8 @@ export class GameScene extends Phaser.Scene {
   private fish: Fish[] = [];
   private jellies: Jelly[] = [];
   private deep!: DeepLight;
+  /** The mako's electric sense; null for fish without one. */
+  private sense: SharkSense | null = null;
   private hooks: Hook[] = [];
   /** What each hook is reeling in, if it caught a fish. */
   private hookedFish = new Map<Hook, Fish>();
@@ -164,6 +167,7 @@ export class GameScene extends Phaser.Scene {
     this.hideout = new Hideout(this, covers, this.seabed.floorAt);
     this.player = createPlayer(this, this.level, chapter.player);
     this.deep.lightPlayer(this.player.sprite, chapter.player, playerGlowTint(chapter.player));
+    this.sense = PLAYER_STATS[chapter.player].sense ? new SharkSense(this) : null;
     this.twist = new TwistRunner(this, this.level, this.seabed.floorAt, this.rng);
     this.itemHost = this.makeItemHost();
     this.shieldG = this.add.graphics().setDepth(21);
@@ -257,6 +261,7 @@ export class GameScene extends Phaser.Scene {
     this.updateItems(now, dt);
     this.drawShield();
     this.updateObjective(now, dt);
+    this.sense?.update(now, this.player, this.fish);
     this.emitHud();
     this.sightings.look(now, cam.worldView, [
       ...this.fish.map((f) => ({ x: f.sprite.x, y: f.sprite.y, id: f.species })),
@@ -445,7 +450,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.shake(260, 0.01);
     if (this.lives <= 0) {
       this.die({ cause, killer: by?.species, bird: bird?.kind });
-      if (bird) this.flock.carryOff(bird, p.sprite, false);
+      if (bird) this.flock.carryOff(bird, p.sprite, false, noseReach(p.sprite, p.shape));
       else if (cause === 'spiked') playSpiked(this, p, waterTop(p.size));
       else if (by) playEaten(this, p, by, { burst: (x, y, n) => this.burst(x, y, n) });
       return;
@@ -503,7 +508,7 @@ export class GameScene extends Phaser.Scene {
     const fish = this.fish.find((f) => catchable(f) && capsuleTouchesCircle(bodyOf(f.sprite, f.species), beak.x, beak.y, b.size * 0.35));
     if (!fish) return;
     this.fish = this.fish.filter((f) => f !== fish);
-    this.flock.carryOff(b, fish.sprite, true);
+    this.flock.carryOff(b, fish.sprite, true, noseReach(fish.sprite, fish.species));
   }
 
   /** Ends the level with a cause, announced where the player can see it. */

@@ -22,14 +22,14 @@ function membrane(k: Kit, shape: Pt[], root: Pt, rays: number, wash?: string): v
  * A stiff swept-back shark fin: convex leading edge, concave trailing edge.
  * `dir` is the sweep direction (unit-ish vector from root towards the tip).
  */
-function sickle(k: Kit, root: Pt, tip: Pt, chord: number, wash?: string): void {
+export function sickle(k: Kit, root: Pt, tip: Pt, chord: number, wash?: string, alpha?: number): void {
   const back = { x: root.x - chord, y: root.y };
   const lead = { x: (root.x + tip.x) / 2 + (tip.y - root.y) * 0.18, y: (root.y + tip.y) / 2 - (tip.x - root.x) * 0.18 };
   const trail = { x: (back.x + tip.x) / 2 + (tip.y - back.y) * -0.12, y: (back.y + tip.y) / 2 + (tip.x - back.x) * 0.12 };
   const shape = [...bezier(root, lead, tip, 10), ...bezier(tip, trail, back, 10)];
   const { pen, a, heavy, ink } = k;
   pen.fill(shape, PAPER_FILL, 1);
-  pen.fill(shape, wash ?? a.finWash ?? a.wash, heavy ? 0.42 : 0.3);
+  pen.fill(shape, wash ?? a.finWash ?? a.wash, alpha ?? (heavy ? 0.42 : 0.3));
   pen.clipped(shape, () => {
     for (let i = 1; i < 7; i++) {
       const f = i / 7;
@@ -40,7 +40,7 @@ function sickle(k: Kit, root: Pt, tip: Pt, chord: number, wash?: string): void {
 }
 
 /** Underslung shark mouth: a crescent under the snout. */
-function sharkMouth(k: Kit, at: number, width: number): void {
+export function sharkMouth(k: Kit, at: number, width: number): void {
   const x = k.x(at);
   const y = bottomAt(k.a, at) - 3;
   k.pen.stroke(bezier({ x: x + width * 0.5, y: y - 1 }, { x, y: y + 2.5 }, { x: x - width * 0.5, y: y - 2 }, 8), 1.1, k.ink, 1, false);

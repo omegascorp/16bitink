@@ -70,6 +70,7 @@ export const SPECIES_INFO = {
   lionfish: s('lionfish', 'lionfish', 'hover', [25, 40], 'Venomous spines. Do not touch.', { spiky: true, hunter: true }),
   boxfish: s('boxfish', 'boxfish', 'hover', [25, 40], 'A swimming box with a tiny tail.'),
   // Wreck
+  barracuda: s('barracuda', 'barracudas', 'lunge', [50, 80], 'Hangs still by the wreck, then strikes like an arrow.', { hunter: true }),
   herring: s('herring', 'herring', 'school', [100, 150], 'Shoals of silver around the hull.'),
   snapper: s('snapper', 'snapper', 'cruise', [60, 90], 'Snaps up anything small.', { hunter: true }),
   jack: s('jack', 'jacks', 'chase', [90, 130], 'Fast, and hunts in packs.', { hunter: true }),
