@@ -7,6 +7,8 @@ export default defineConfig({
   adapter: cloudflare({ imageService: 'passthrough' }),
   trailingSlash: 'never',
   build: { format: 'file' },
+  // No Astro dev toolbar floating over the pages (and the game) in `astro dev`.
+  devToolbar: { enabled: false },
   // The game package ships TypeScript source; let Vite bundle it.
   vite: {
     ssr: { noExternal: ['@16bitink/inkfish'] },
