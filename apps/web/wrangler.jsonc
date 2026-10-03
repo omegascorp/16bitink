@@ -14,5 +14,6 @@
     "STRIPE_AUTOMATIC_TAX": "false"
   }
   // Secrets (wrangler secret put …): STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
-  // ENTITLEMENT_SECRET
+  // ENTITLEMENT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET.
+  // Google OAuth redirect URI: https://16bit.ink/auth/google/callback
 }

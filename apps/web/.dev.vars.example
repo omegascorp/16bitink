@@ -4,6 +4,11 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 # Random 32+ byte string, e.g. `openssl rand -base64 48`
 ENTITLEMENT_SECRET=change-me
 STRIPE_AUTOMATIC_TAX=false
+# Google sign-in (restores purchases on any device). Create an OAuth client
+# (type "Web application") in Google Cloud Console, APIs & Services, Credentials,
+# with redirect URI http://localhost:4321/auth/google/callback
+GOOGLE_CLIENT_ID=....apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-...
 # Local only: every game counts as owned (no Stripe needed). Remove it to test
 # the free version. Only works on localhost; never set it in production.
 DEV_UNLOCK=true

@@ -10,7 +10,7 @@ Researched October 2026.
 | Site | **Astro 7** | Zero-JS catalog pages (SEO), on-demand endpoints for checkout. Cloudflare-owned since Jan 2026, still open source. |
 | Hosting | **Cloudflare Workers + static assets** | Free tier allows commercial use. Unlimited static bandwidth suits game assets. R2 has zero egress for future art atlases. |
 | Payments | **Stripe Checkout** (one-time) | Hosted, PCI-free. Webhook for fulfilment. |
-| Entitlements | HMAC-signed httpOnly cookie (now) → DB + magic link (next) | Zero-infra launch. The DB adds cross-device restore and refund revocation. |
+| Entitlements | HMAC-signed httpOnly cookie + Google sign-in restore | Zero-infra. Signing in looks up paid Checkout Sessions in Stripe by the verified Google email, so Stripe is the purchase record and no DB is needed. Refunds and disputes drop out at the next sign-in. |
 
 Rejected:
 - **PixiJS:** renderer only, so we'd rebuild an engine for every catalog game.
@@ -56,10 +56,8 @@ At $4.99 the MoR fixed fee costs about 15%. Still, an MoR is the low-effort choi
 
 ## Next steps
 
-1. **Entitlement DB + restore:** Cloudflare D1 (or Supabase).
-   - The webhook upserts `(email, game, session_id)`.
-   - `/restore` emails a magic link via Resend/Postmark, which re-issues the cookie.
-   - `charge.refunded` revokes.
+1. **Restore for non-Google buyers:** Google sign-in (`/auth/google`, OIDC code flow with PKCE) restores purchases whose Stripe email matches the Google email. Signed-in checkouts lock the email to it. A buyer who paid with another email still needs support, or a later magic-link restore.
+   - Session cookie `ink_user` (30 days) carries the games owned at sign-in. Signing out drops restored games; games bought on that browser keep their own cookie.
 2. Pick Stripe+Tax vs a merchant of record (see above).
 3. Real pen art: replace `generateInkTextures()` with scanned atlases (see `art-pipeline.md`).
 4. Audio (Phaser audio sprites), bosses, Endless mode.

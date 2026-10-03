@@ -1,0 +1,73 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { isLocalHost } from '../../../lib/devUnlock';
+import { requireEnv, requireSecret } from '../../../lib/env';
+import { CALLBACK_PATH, GOOGLE_TOKEN_URL, checkIdToken, decodeJwtPayload } from '../../../lib/google';
+import { findOwnedGames } from '../../../lib/restore';
+import { FLOW_COOKIE, SESSION_COOKIE, SESSION_MAX_AGE, signSession, verifyFlow } from '../../../lib/session';
+import { stripeClient } from '../../../lib/stripe';
+
+export const prerender = false;
+
+// The code in the address bar is a bearer credential: keep it out of Referer.
+Astro.response.headers.set('referrer-policy', 'no-referrer');
+Astro.response.headers.set('cache-control', 'no-store');
+
+const params = Astro.url.searchParams;
+const secret = requireSecret('ENTITLEMENT_SECRET');
+const nowSec = Math.floor(Date.now() / 1000);
+const flow = await verifyFlow(Astro.cookies.get(FLOW_COOKIE)?.value, secret, nowSec);
+Astro.cookies.delete(FLOW_COOKIE, { path: '/auth/google' });
+
+let error: string | null = null;
+let ret = '/';
+
+if (params.get('error')) {
+  error = 'Sign-in was cancelled. Nothing changed.';
+} else if (!flow || params.get('state') !== flow.state || !params.get('code')) {
+  // A stale tab, a second click, or a forged callback.
+  error = 'That sign-in link has expired. Please try again.';
+} else {
+  ret = flow.ret;
+  try {
+    const clientId = requireEnv('GOOGLE_CLIENT_ID');
+    const res = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code: params.get('code')!,
+        client_id: clientId,
+        client_secret: requireEnv('GOOGLE_CLIENT_SECRET'),
+        redirect_uri: `${Astro.url.origin}${CALLBACK_PATH}`,
+        grant_type: 'authorization_code',
+        code_verifier: flow.verifier,
+      }),
+    });
+    const body = (await res.json().catch(() => null)) as { id_token?: unknown } | null;
+    if (!res.ok || typeof body?.id_token !== 'string') throw new Error(`Google token exchange failed (${res.status})`);
+    const user = checkIdToken(decodeJwtPayload(body.id_token), { clientId, nonce: flow.nonce, nowSec });
+    if (!user) {
+      error = 'Google could not confirm a verified email for that account.';
+    } else {
+      // Test-mode (fake card) purchases only count when testing on this machine.
+      const games = await findOwnedGames(stripeClient(), user.email, { allowTestMode: isLocalHost(Astro.url.hostname) });
+      const token = await signSession({ v: 1, ...user, games, iat: nowSec, exp: nowSec + SESSION_MAX_AGE }, secret);
+      Astro.cookies.set(SESSION_COOKIE, token, {
+        path: '/', httpOnly: true, secure: import.meta.env.PROD, sameSite: 'lax', maxAge: SESSION_MAX_AGE,
+      });
+    }
+  } catch (err) {
+    console.error('[auth/google/callback] sign-in failed', err);
+    error = 'Something went wrong signing you in. Please try again.';
+  }
+}
+if (!error) return Astro.redirect(ret, 303);
+---
+<Base title="Sign in" description="Sign in with Google">
+  <meta name="referrer" content="no-referrer" slot="head" />
+  <section class="paper-card narrow">
+    <h1>Not signed in</h1>
+    <p>{error}</p>
+    <a class="btn" href={`/auth/google?return=${encodeURIComponent(ret)}`}>Sign in with Google</a>
+  </section>
+</Base>

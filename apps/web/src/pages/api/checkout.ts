@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { findGame, isPurchasable } from '../../data/games';
 import { optionalEnv } from '../../lib/env';
 import { fail, isSameOrigin, json } from '../../lib/http';
+import { currentUser } from '../../lib/owner';
 import { stripeClient } from '../../lib/stripe';
 
 export const prerender = false;
@@ -10,7 +11,7 @@ export const prerender = false;
 const Body = z.object({ game: z.string().regex(/^[a-z0-9-]{1,40}$/) });
 
 /** Creates a Stripe Checkout Session for a one-time full-game unlock. */
-export const POST: APIRoute = async ({ request, url }) => {
+export const POST: APIRoute = async ({ request, url, cookies }) => {
   if (!isSameOrigin(request)) return fail(403, 'Cross-origin request rejected');
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return fail(400, 'Invalid request');
@@ -22,11 +23,15 @@ export const POST: APIRoute = async ({ request, url }) => {
     const prices = await stripe.prices.list({ lookup_keys: [game.stripeLookupKey], active: true, limit: 1 });
     const price = prices.data[0];
     if (!price) throw new Error(`No active Stripe price with lookup key "${game.stripeLookupKey}"`);
+    // Signed in: lock the receipt email to the Google one, so signing in
+    // anywhere else finds this purchase (lib/restore.ts).
+    const user = await currentUser(cookies);
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: [{ price: price.id, quantity: 1 }],
       // Email is collected by Stripe and used later for purchase restore.
       customer_creation: 'always',
+      ...(user ? { customer_email: user.email, client_reference_id: user.sub } : {}),
       automatic_tax: { enabled: optionalEnv('STRIPE_AUTOMATIC_TAX') === 'true' },
       allow_promotion_codes: true,
       metadata: { game: game.slug },

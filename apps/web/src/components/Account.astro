@@ -1,0 +1,77 @@
+---
+/**
+ * Header sign-in. Pages are static, so who is signed in is fetched in the
+ * browser; until then (or without JS) a plain sign-in link shows.
+ */
+---
+<account-menu>
+  <a href="/auth/google" data-signin>Sign in with Google</a>
+  <span class="account-user" hidden>
+    <span class="account-name"></span>
+    <button type="button" class="account-signout">Sign out</button>
+  </span>
+</account-menu>
+
+<script>
+  interface Me {
+    readonly signedIn: boolean;
+    readonly name?: string;
+    readonly email?: string;
+  }
+
+  class AccountMenu extends HTMLElement {
+    async connectedCallback(): Promise<void> {
+      const signIn = this.querySelector<HTMLAnchorElement>('a[data-signin]');
+      const user = this.querySelector<HTMLElement>('.account-user');
+      const name = this.querySelector<HTMLElement>('.account-name');
+      const signOut = this.querySelector<HTMLButtonElement>('.account-signout');
+      if (!signIn || !user || !name || !signOut) return;
+      signIn.href = `/auth/google?return=${encodeURIComponent(location.pathname + location.search)}`;
+      signOut.addEventListener('click', () => void this.signOut(signOut));
+      const me = await this.fetchMe();
+      if (!me?.signedIn) return;
+      name.textContent = me.name ?? '';
+      name.title = me.email ?? '';
+      signIn.hidden = true;
+      user.hidden = false;
+    }
+
+    private async fetchMe(): Promise<Me | null> {
+      try {
+        const res = await fetch('/api/me', { credentials: 'same-origin' });
+        const body = (await res.json().catch(() => null)) as { success?: boolean; data?: Me } | null;
+        return res.ok && body?.success ? (body.data ?? null) : null;
+      } catch {
+        // Offline: leave the sign-in link showing.
+        return null;
+      }
+    }
+
+    private async signOut(button: HTMLButtonElement): Promise<void> {
+      button.disabled = true;
+      try {
+        const res = await fetch('/auth/signout', { method: 'POST', credentials: 'same-origin' });
+        if (!res.ok) throw new Error(`Sign out failed (${res.status})`);
+        location.reload();
+      } catch (err) {
+        console.warn('[16bit.ink] sign out failed', err);
+        button.disabled = false;
+        button.textContent = 'Sign out failed, retry';
+      }
+    }
+  }
+  customElements.define('account-menu', AccountMenu);
+</script>
+
+<style>
+  account-menu { display: flex; align-items: center; font-size: 0.95rem; }
+  .account-user { display: inline-flex; align-items: baseline; gap: 12px; }
+  .account-user[hidden] { display: none; }
+  .account-name { font-family: var(--font-hand); font-size: 1.35rem; color: var(--blue-ink); max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .account-signout {
+    font: inherit; color: var(--ink-soft); background: none; border: 0; padding: 0; cursor: pointer;
+    text-decoration: underline dashed var(--ink-faint); text-underline-offset: 4px;
+  }
+  .account-signout:hover { color: var(--ink); }
+  .account-signout:focus-visible { outline: 2px dashed var(--blue-ink); outline-offset: 3px; }
+</style>
