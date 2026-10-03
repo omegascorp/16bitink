@@ -31,8 +31,8 @@ describe('jellyfish', () => {
     }
   });
 
-  it('lights the jellies of the dark zones that really glow', () => {
-    for (const z of ['twilight', 'midnight', 'abyss'] as const) expect(JELLY_INFO[ZONE_JELLY[z]].glow, z).toBeDefined();
+  it('lights every jelly of the dark zones, and none in sunlit water', () => {
+    for (const z of ['twilight', 'midnight', 'abyss', 'trench'] as const) expect(JELLY_INFO[ZONE_JELLY[z]].glow, z).toBeDefined();
     for (const z of ['tidepool', 'seagrass', 'kelp', 'reef', 'wreck'] as const) expect(JELLY_INFO[ZONE_JELLY[z]].glow, z).toBeUndefined();
   });
 });

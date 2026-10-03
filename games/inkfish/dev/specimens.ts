@@ -9,6 +9,7 @@ import { SHALLOWS } from '../src/art/fish/species/shallows';
 import { ITEM_IDS } from '../src/levels/items';
 import { ART_RES, drawHook, drawRock, drawWeed } from '../src/art/propArt';
 import { drawJellyGlow, drawJellyKind, JELLY_TEX } from '../src/art/jellyArt';
+import { BOAT_KINDS, BOAT_SPEC, drawBoat } from '../src/art/skyArt';
 import { JELLY_IDS } from '../src/levels/jellies';
 import { CRITTER_IDS, drawCritter } from '../src/art/critterArt';
 import { DECOR_IDS, DECOR_SIZE, drawDecor } from '../src/art/decorArt';
@@ -49,6 +50,9 @@ const small = row();
 for (const s of shapes) figure(small, s, FISH_TEX, FISH_TEX, (ctx) => drawFish(ctx, s, 'light', 101), 70 / FISH_TEX);
 const props = row();
 const R = ART_RES;
+// Boats that drop the hooks.
+const boats = row();
+for (const kind of BOAT_KINDS) figure(boats, kind, BOAT_SPEC[kind].w * R, BOAT_SPEC[kind].h * R, (ctx) => drawBoat(ctx, kind, 31), 1 / R);
 // Jellies, one per zone: on paper, then on deep water with their glow.
 const jellies = row();
 for (const id of JELLY_IDS) figure(jellies, id, JELLY_TEX * R, JELLY_TEX * R, (ctx) => drawJellyKind(ctx, id, 0, 101), 1.2 / R);

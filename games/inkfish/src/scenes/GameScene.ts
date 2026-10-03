@@ -168,7 +168,7 @@ export class GameScene extends Phaser.Scene {
     this.controls = createControls(this);
     this.jellies = spawnJellies(this, this.level, chapter.zone, this.rng);
     for (const j of this.jellies) {
-      if (JELLY_INFO[j.kind].glow) this.deep.attach(j.sprite, jellyGlowKey(j.kind), { alpha: 0.85, pulse: 0.5 });
+      if (JELLY_INFO[j.kind].glow) this.deep.attach(j.sprite, jellyGlowKey(j.kind), { alpha: 1, pulse: 0.5 });
     }
     this.cameras.main.startFollow(this.player.sprite, true, 0.08, 0.08);
     this.cameras.main.setZoom(this.zoomFor(this.player.size));

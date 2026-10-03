@@ -104,12 +104,13 @@ export function drawBoat(ctx: CanvasRenderingContext2D, kind: BoatKind, seed: nu
     pen.fill(ellipse(172 * s, (wl - 11) * s, 9 * s, 3 * s, 10), WOOD, 0.6);
   } else if (kind === 'skiff') {
     angler(pen, P, { x: 76, y: wl - 22 }, true, rod);
-    hull(pen, P, { left: 40, right: 270, top: wl - 26, bow: wl - 40, keel: wl + 14, water: wl }, '#5d7d9a');
+    const shape = hull(pen, P, { left: 40, right: 270, top: wl - 26, bow: wl - 40, keel: wl + 14, water: wl }, '#5d7d9a');
+    // A painted stripe following the sheer, just under the gunwale.
+    pen.clipped(shape, () => pen.stroke(bez(P(40, wl - 19), P(155, wl - 13), P(270, wl - 33)), 2.6 * s, PAINT, 0.75, false));
     // Outboard motor hanging off the stern.
     const motor = [P(22, wl - 40), P(44, wl - 40), P(44, wl - 22), P(36, wl - 20), P(34, wl + 12), P(28, wl + 12), P(26, wl - 20), P(22, wl - 22)];
     pen.fill(motor, '#3a3a40', 0.75);
     pen.stroke([...motor, motor[0]!], 1.2 * s, INK, 1, false);
-    pen.hair([P(140, wl - 30), P(250, wl - 36)], 1 * s, PAINT, 0.8);
   } else {
     // Wheelhouse, mast and a long outrigger rod off the stern.
     const house = [P(190, wl - 30), P(196, wl - 92), P(282, wl - 92), P(292, wl - 30)];

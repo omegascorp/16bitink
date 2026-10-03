@@ -299,15 +299,25 @@ export function drawJellyGlow(ctx: CanvasRenderingContext2D, kind: JellyId): voi
       break;
     case 'atolla':
       // The "burglar alarm": a ring of blue lights around the crown.
+      h(CX, 52, 50, color, 0.4);
       for (let i = 0; i < 14; i++) {
         const a = Math.PI + (i / 13) * Math.PI;
-        h(CX + Math.cos(a) * 34, 58 + Math.sin(a) * 12, 8, color, 0.9);
+        h(CX + Math.cos(a) * 34, 58 + Math.sin(a) * 12, 10, color, 1);
       }
-      h(CX, 52, 40, color, 0.25);
+      // A spark running down the long trailing tentacle.
+      for (let k = 1; k <= 3; k++) h(78, 60 + k * 16, 5, color, 0.7);
       break;
     case 'crownjelly':
-      h(CX, 40, 34, color, 0.35);
-      for (let i = 0; i < 10; i++) h(CX - 22 + i * 4.9, 58 - Math.sin((i / 9) * Math.PI) * 6, 6, color, 0.75);
+      // Light from the whole helmet, brightest round the rim, and along the tentacles.
+      h(CX, 38, 44, color, 0.55);
+      for (let i = 0; i < 10; i++) h(CX - 22 + i * 4.9, 58 - Math.sin((i / 9) * Math.PI) * 6, 8, color, 1);
+      for (let t = 0; t < 12; t += 2) h(CX - 26 + (t / 11) * 52 + ((t / 11) * 2 - 1) * 10, 80, 5, color, 0.6);
+      break;
+    case 'trenchjelly':
+      // A ring of lights round the little bell and a glimmer at the ends of its fine tentacles.
+      h(CX, 56, 38, color, 0.5);
+      for (let i = 0; i < 9; i++) h(CX - 20 + i * 5, 62, 6, color, 0.95);
+      for (let i = 0; i < 7; i++) h(CX - 24 + i * 8, 98, 4, color, 0.6);
       break;
     default:
       h(CX, 50, 36, color, 0.5);

@@ -31,7 +31,7 @@ export const JELLY_INFO: Readonly<Record<JellyId, JellyInfo>> = {
   combjelly: { name: 'comb jelly', scale: 0.8, motion: 'glide', glow: '#6fd0ff' },
   atolla: { name: 'atolla jelly', scale: 0.95, motion: 'pulse', glow: '#4f9dff' },
   crownjelly: { name: 'crown jelly', scale: 1.05, motion: 'pulse', glow: '#5c8cff' },
-  trenchjelly: { name: 'trench jelly', scale: 0.8, motion: 'pulse' },
+  trenchjelly: { name: 'trench jelly', scale: 0.8, motion: 'pulse', glow: '#8a7dff' },
 };
 
 export const JELLY_IDS = Object.keys(JELLY_INFO) as JellyId[];
