@@ -26,7 +26,7 @@ const { game } = Astro.props;
         <a class="btn btn-ink" href={`/play/${game.slug}`}>Play free, full-screen</a>
         <BuyButton game={game.slug} label={`Unlock full game · ${game.price}`} />
       </div>
-      <p class="one-time"><strong>One-time purchase.</strong> Pay once and the full game is yours to keep: no subscription, no ads, nothing more to buy.</p>
+      <p class="one-time"><strong>One-time purchase.</strong> Pay once and the full game is yours to keep: no subscription, no ads, nothing more to buy. Refunds within 14 days, see the <a href="/terms#refunds">terms</a>.</p>
       <p class="cancelled" hidden>Checkout cancelled. No charge was made.</p>
       <p class="restore">Bought it already? <a href={`/auth/google?return=/games/${game.slug}`}>Sign in with Google</a> with the email on your receipt to unlock it here.</p>
       <div class="cols">

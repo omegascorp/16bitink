@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import { findGame } from '../../data/games';
 import { ownership } from '../../lib/owner';
+import { COMPANY } from '../../data/company';
 
 export const prerender = false;
 
@@ -20,7 +21,7 @@ Astro.response.headers.set('cache-control', 'no-store');
     ) : (
       <>
         <h1>Nothing unlocked here</h1>
-        <p>This browser doesn't hold a purchase. If you just paid, open the link from the same browser you checked out in, or email <a href="mailto:hello@16bit.ink">hello@16bit.ink</a> with your receipt.</p>
+        <p>This browser doesn't hold a purchase. If you just paid, open the link from the same browser you checked out in, or email <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a> with your receipt.</p>
         <a class="btn" href="/">Back to the catalog</a>
       </>
     )}

@@ -1,0 +1,107 @@
+---
+import LegalPage from '../layouts/LegalPage.astro';
+import { COMPANY } from '../data/company';
+
+const mail = `mailto:${COMPANY.email}`;
+---
+<LegalPage title="Privacy Policy" description="What personal data 16bit.ink collects, why, and the choices you have.">
+  <p>This policy explains what personal data 16bit.ink collects when you play or buy our games, why we collect it, who we share it with, and the choices you have. The short version: you can play the free part of a game without giving us anything. When you buy a game, we keep only what we need to deliver it, restore it on your other devices, and keep our accounts. We don't show ads, use analytics or tracking cookies, or sell your data.</p>
+
+  <h2>Who is responsible for your data</h2>
+  <p>{COMPANY.name}, registered in {COMPANY.registered}, runs 16bit.ink and is responsible for your personal data (the "controller"). Contact us about privacy at <a href={mail}>{COMPANY.email}</a>.</p>
+
+  <h2>What we collect, and why</h2>
+
+  <h3>When you just play</h3>
+  <p>Nothing that identifies you. Your game progress, scores, settings and the fish you've discovered are saved in your browser's local storage, on your device only. We never receive them. Clearing your browser's site data deletes them.</p>
+
+  <h3>When you buy a game</h3>
+  <p>Checkout happens on Stripe's secure payment page. Stripe collects your payment details, email address and billing details. We never see or store your full card number. Once the payment succeeds, we save a purchase record with:</p>
+  <ul>
+    <li>the game you bought, the price paid, the currency and the date;</li>
+    <li>the email address you used at checkout;</li>
+    <li>your Google account ID, if you were signed in with Google when you paid;</li>
+    <li>Stripe's reference numbers for the checkout and the payment, and whether it was later refunded or disputed.</li>
+  </ul>
+  <p>We use this record to unlock the game for you, restore it when you sign in on another device, handle refunds and disputes, and keep the accounting records the law requires.</p>
+
+  <h3>When you sign in with Google</h3>
+  <p>Signing in is optional. You only need it to restore a purchase on another device. Google tells us your name, your email address and your Google account ID. We don't receive your Google password or access anything else in your Google account. We keep these details in a signed cookie in your browser for up to 30 days, so the site knows who you are. We don't keep a separate account profile on our servers. Your Google account ID is saved on our side only in the record of a purchase made while you were signed in.</p>
+
+  <h3>When you visit the website</h3>
+  <p>Like any website, our servers receive your IP address, browser type and the pages you request. Our hosting provider keeps this information briefly in server logs, which we use only to keep the site running and secure: for example, to fix errors and to stop abuse. To protect checkout and sign-in from abuse, we count requests per IP address for up to one minute.</p>
+  <p>Our pages load fonts from Google Fonts. Your browser fetches them from Google's servers, so Google receives your IP address. See <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>.</p>
+
+  <h3>When you email us</h3>
+  <p>We use your email and whatever you tell us to answer you, for example to look up a purchase or give a refund.</p>
+
+  <h2>Cookies and local storage</h2>
+  <p>We use only cookies that the site needs to work, so we don't ask for cookie consent. We use no advertising or analytics cookies.</p>
+  <table>
+    <thead>
+      <tr><th>Name</th><th>What it does</th><th>How long it lasts</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>ink_own_&lt;game&gt;</code></td><td>Proves this browser bought a game. It holds a signed purchase reference, not your name or email.</td><td>5 years</td></tr>
+      <tr><td><code>ink_user</code></td><td>Keeps you signed in with Google. It holds your Google account ID, name and email, signed so it can't be altered.</td><td>30 days, or until you sign out</td></tr>
+      <tr><td><code>ink_signin</code></td><td>Protects a Google sign-in while it is in progress.</td><td>10 minutes</td></tr>
+      <tr><td>Local storage</td><td>Game progress, settings and discoveries, on your device only.</td><td>Until you clear your browser's site data</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Who we share data with</h2>
+  <p>We don't sell or rent your personal data, and we don't share it for advertising. We share it only with the service providers that run parts of 16bit.ink for us, and only what each one needs:</p>
+  <ul>
+    <li><strong>Stripe</strong> processes payments, sends your receipt, and screens payments for fraud. See the <a href="https://stripe.com/privacy">Stripe Privacy Policy</a>.</li>
+    <li><strong>Google</strong> provides sign-in and web fonts. See the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.</li>
+    <li><strong>DigitalOcean</strong> hosts the website and its servers.</li>
+    <li><strong>Our database provider</strong> stores purchase records on our behalf.</li>
+  </ul>
+  <p>We may also share data where the law requires it, or to protect our rights or someone's safety, for example in a payment fraud investigation.</p>
+
+  <h2>Our legal reasons for using your data</h2>
+  <p>If you live in the European Economic Area or the United Kingdom, the law requires us to tell you our legal basis for each use:</p>
+  <ul>
+    <li><strong>To perform our contract with you:</strong> unlocking and restoring a game you bought, sign-in, and refunds.</li>
+    <li><strong>To meet legal obligations:</strong> keeping records of sales for tax and accounting.</li>
+    <li><strong>For our legitimate interests:</strong> keeping the website secure, preventing fraud and abuse, and answering your messages. We make sure these interests don't override your rights.</li>
+  </ul>
+
+  <h2>How long we keep data</h2>
+  <ul>
+    <li><strong>Purchase records:</strong> while you own the game, so we can restore it for you, and for as long as tax and accounting law requires us to keep sales records.</li>
+    <li><strong>Sign-in details:</strong> only in the cookie in your browser, for up to 30 days.</li>
+    <li><strong>Server logs:</strong> briefly, as kept by our hosting provider.</li>
+    <li><strong>Support emails:</strong> as long as needed to resolve your request.</li>
+  </ul>
+
+  <h2>Where your data is processed</h2>
+  <p>We are based in the United Arab Emirates, and our service providers may process data in other countries, including the United States and the European Union. Where data leaves the EEA or the UK, our providers protect it with legal safeguards such as the European Commission's Standard Contractual Clauses.</p>
+
+  <h2>Your rights</h2>
+  <p>Depending on where you live, you may have the right to:</p>
+  <ul>
+    <li>get a copy of the personal data we hold about you;</li>
+    <li>correct it if it's wrong;</li>
+    <li>have it deleted;</li>
+    <li>limit or object to how we use it;</li>
+    <li>receive it in a portable format.</li>
+  </ul>
+  <p>To use any of these rights, email <a href={mail}>{COMPANY.email}</a> from the address you used to buy, or include your Stripe receipt, so we can confirm it's you. We'll answer within one month.</p>
+  <p>If we delete your purchase records, we can no longer restore your game on a new device. We'll still keep what tax and accounting law requires.</p>
+  <p>You also have the right to complain to your local data protection authority.</p>
+  <p>To clear the data in your browser yourself, sign out and clear this site's cookies and storage in your browser settings.</p>
+
+  <h2>Children</h2>
+  <p>Anyone can play the free part of our games without giving any personal data. Buying a game or signing in is meant for adults, or for children with a parent's or guardian's help. We don't knowingly collect personal data from children under 13, or under 16 in the European Economic Area and the United Kingdom, without a parent's consent. If you believe a child has given us personal data, email <a href={mail}>{COMPANY.email}</a> and we'll delete it.</p>
+
+  <h2>Security</h2>
+  <p>The site is served only over encrypted connections (HTTPS). Our cookies are signed so they can't be forged, and they can't be read by scripts on the page. Access to purchase records is limited to the people who run 16bit.ink. No system is perfectly secure, but we work to protect your data and keep as little of it as we can.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>We'll update this policy if what we collect or how we use it changes. When we do, we'll change the date at the top. For important changes, we'll also give notice on the website.</p>
+
+  <h2>Contact</h2>
+  <p>{COMPANY.name}, {COMPANY.registered}<br /><a href={mail}>{COMPANY.email}</a></p>
+  <p>Please also read our <a href="/terms">Terms of Service</a>.</p>
+</LegalPage>

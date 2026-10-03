@@ -15,6 +15,8 @@ export default defineConfig({
     ],
   },
   trailingSlash: 'never',
+  // The old combined terms page.
+  redirects: { '/legal': '/terms' },
   build: { format: 'file' },
   // No Astro dev toolbar floating over the pages (and the game) in `astro dev`.
   devToolbar: { enabled: false },

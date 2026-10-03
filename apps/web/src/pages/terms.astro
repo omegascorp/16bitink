@@ -1,0 +1,76 @@
+---
+import LegalPage from '../layouts/LegalPage.astro';
+import { COMPANY } from '../data/company';
+
+const mail = `mailto:${COMPANY.email}`;
+---
+<LegalPage title="Terms of Service" description="The terms for playing and buying games on 16bit.ink, including our refund policy.">
+  <p>These terms cover your use of 16bit.ink: the website, the games on it, and buying the full version of a game (together, the "Services"). By playing a game or buying one, you agree to these terms. If you don't agree, please don't use the Services.</p>
+  <p>Questions about these terms? Email us at <a href={mail}>{COMPANY.email}</a>.</p>
+
+  <h2>Who we are</h2>
+  <p>16bit.ink is run by {COMPANY.name}, registered in {COMPANY.registered}. When these terms say "we", "us" or "our", they mean {COMPANY.name}. "You" means the person using the Services.</p>
+
+  <h2>Who can use the Services</h2>
+  <p>Anyone can play the free part of our games. To buy a game or sign in with Google, you must be old enough to make a binding agreement where you live, or have a parent or guardian do it for you and agree to these terms on your behalf. Players under 13 should only buy or sign in through a parent or guardian.</p>
+
+  <h2>Free play and the full game</h2>
+  <p>Each game starts with a free part, such as InkFish's first chapter, that you can play without paying or signing up. You can unlock the rest of a game with a single payment. The price is shown on the game's page and at checkout.</p>
+  <p>The full game is a <strong>one-time purchase</strong>. It is not a subscription: you are charged once, and never again for that game. There are no ads and nothing else to buy inside the game. Later updates to a game you bought, including new levels, are included at no extra cost.</p>
+
+  <h2>Payment</h2>
+  <p>Payments are processed by Stripe. We never see or store your full card details. You confirm that you are allowed to use the payment method you choose.</p>
+  <p>Prices are in US dollars and include any sales tax or VAT we are required to charge. Your bank may add its own currency-conversion fees. We may change prices for future purchases at any time; that never changes what you already paid for.</p>
+  <p>A discount code may lower the price of a purchase. Discount codes can't be exchanged for cash.</p>
+
+  <h2>Your access to a game you bought</h2>
+  <p>When you buy a game, we give you a personal, non-exclusive, non-transferable licence to play the full version for your own non-commercial use. You get a licence to play; you don't buy the game itself.</p>
+  <p>The unlock is saved in the browser you bought it in. To play on another device or browser, sign in with Google there, using the same email you paid with (or that you were signed in with when you paid). If you clear your browser's cookies, sign in again the same way. If neither works, email us your Stripe receipt and we'll help.</p>
+  <p>Our games run in modern web browsers. Please try the free part first: it is the best way to check that a game runs well on your device.</p>
+
+  <h2 id="refunds">Refunds</h2>
+  <p>If you're not happy with a game you bought, email <a href={mail}>{COMPANY.email}</a> within <strong>14 days of purchase</strong> with your Stripe receipt or the email you paid with, and we'll refund you in full. You don't need to give a reason. After 14 days, we look at each request individually, and we always give refunds where the law requires them.</p>
+  <p>A refund removes the full game from every browser and account it was unlocked in.</p>
+  <p>Please contact us before disputing a payment with your bank. A chargeback also removes the full game, and we may refuse future purchases from someone who files chargebacks without contacting us first.</p>
+
+  <h2>Fair play</h2>
+  <p>When using the Services, you agree not to:</p>
+  <ul>
+    <li>get to paid content without paying, or help others do so;</li>
+    <li>copy, share, sell or publish a game's paid content, art, music or code;</li>
+    <li>attack, overload, scrape or reverse-engineer the Services, or get around our security or rate limits;</li>
+    <li>use the Services to break any law, or to harm anyone.</li>
+  </ul>
+  <p>If you break these rules, we may suspend or end your access, including to a game you bought.</p>
+
+  <h2>Our games and content</h2>
+  <p>The games, drawings, animations, music, sounds, text and code on 16bit.ink belong to {COMPANY.name} or the people who license them to us, and are protected by copyright and other laws. Apart from the licence described above, these terms don't give you any rights to them.</p>
+  <p>You're welcome to share screenshots and videos of your play, as long as you don't present them as your own work or use them to sell something.</p>
+
+  <h2>Changes to the games and the Services</h2>
+  <p>We keep improving our games. We may change, rebalance or add levels and features. We'll keep a game you bought playable for as long as we run 16bit.ink. If we ever have to stop offering a game you bought, we'll give you notice by email (if we have it) or on the website.</p>
+  <p>We work hard to keep the Services running, but we can't promise they will always be available, error-free or compatible with every device or browser.</p>
+
+  <h2>Other services we use</h2>
+  <p>The Services rely on Stripe for payments and on Google for sign-in. Your use of those features is also subject to their terms: the <a href="https://stripe.com/legal/consumer">Stripe Consumer Terms</a> and the <a href="https://policies.google.com/terms">Google Terms of Service</a>. We aren't responsible for third-party websites or services we link to.</p>
+
+  <h2>Privacy</h2>
+  <p>Our <a href="/privacy">Privacy Policy</a> explains what personal data we collect and how we use it. It is part of these terms.</p>
+
+  <h2>Liability</h2>
+  <p>We provide the Services "as is". To the extent the law allows, we don't give any warranties beyond those in these terms, and we are not liable for indirect or consequential losses, such as lost data, lost profits or lost time.</p>
+  <p>To the extent the law allows, our total liability to you for any claim about the Services is limited to the amount you paid us in the 12 months before the claim.</p>
+  <p>Nothing in these terms limits any rights you have as a consumer that can't be waived or limited under the law of the country where you live.</p>
+
+  <h2>Ending these terms</h2>
+  <p>You can stop using the Services at any time. If you'd like us to delete your purchase records, see the <a href="/privacy">Privacy Policy</a>. Without those records, we can no longer restore a game on a new device. We may end or suspend your access if you seriously or repeatedly break these terms.</p>
+
+  <h2>Changes to these terms</h2>
+  <p>We may update these terms as the Services change. When we do, we'll change the date at the top of this page. For important changes, we'll also give notice on the website. If you keep using the Services after a change, the new terms apply. A change never takes away a game you already bought.</p>
+
+  <h2>Governing law</h2>
+  <p>These terms are governed by the laws of the United Arab Emirates as applied in the Emirate of Dubai, and disputes go to the courts of Dubai. If you live outside the UAE, you also keep the protection of any mandatory consumer laws of your country, and you can bring a claim in your local courts where those laws allow it.</p>
+
+  <h2>Contact</h2>
+  <p>{COMPANY.name}, {COMPANY.registered}<br /><a href={mail}>{COMPANY.email}</a></p>
+</LegalPage>
