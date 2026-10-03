@@ -14,7 +14,7 @@ import { targetZoom } from './game/camera';
 import { playEaten, playSpiked, spikeMarks } from './game/deathFx';
 import { isHelpless, isOffWorld, renderFish, spawnFish, stunFish, updateFish, type Decoy, type Fish } from './game/fish';
 import {
-  destroyHook, hangPoint, hookCatch, hookRelease, hookTip, spawnHook, spawnJellies, updateHook, updateJelly, type Hook, type Jelly,
+  destroyHook, hangPoint, hookCatch, hookRelease, hookTip, spawnJellies, updateHook, updateJelly, type Hook, type Jelly,
 } from './game/hazards';
 import {
   createControls, createPlayer, desiredDirection, movePlayer, renderPlayer, tryDash, type Controls, type Player,
@@ -30,9 +30,11 @@ import { buildCover } from './game/coverPatches';
 import { Hideout } from './game/hideout';
 import { planCover } from '../levels/cover';
 import { isCrawler, spawnCrawler, updateCrawler } from './game/crawlers';
-import { seabedFor, type Seabed } from '../logic/water';
+import { seabedFor, SKY, type Seabed } from '../logic/water';
+import { Fleet } from './game/boats';
+import { splash } from './game/splash';
 import { describeLevel, levelNumber } from '../levels/twists';
-import { PLAYER_FISH_NAMES } from '../levels/zones';
+import { PLAYER_FISH_NAMES, ZONE_SKY } from '../levels/zones';
 import { allLevels, chapterOf } from '../levels/chapters';
 import { HAND_FONT } from './ui';
 
@@ -88,6 +90,9 @@ export class GameScene extends Phaser.Scene {
   private weeds: Phaser.GameObjects.Image[] = [];
   /** This level's sand: crawlers walk on it, swimmers can't go below it. */
   private seabed!: Seabed;
+  /** Open air above the water: leaping, and boats behind the hooks. */
+  private sky = false;
+  private fleet!: Fleet;
   private growth: GrowthState = initialGrowth;
   private frenzy: FrenzyState = initialFrenzy;
   private score = 0;
@@ -124,13 +129,16 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     const { world } = this.level;
-    this.cameras.main.setBounds(0, 0, world.width, world.height).setBackgroundColor('#f4eddc');
     const chapter = chapterOf(this.level);
+    this.sky = ZONE_SKY[chapter.zone];
+    const skyH = this.sky ? SKY.height : 0;
+    this.cameras.main.setBounds(0, -skyH, world.width, world.height + skyH).setBackgroundColor('#f4eddc');
+    this.fleet = new Fleet(this, chapter.zone, this.sky, this.rng);
     const residents = levelSpecies(this.level);
     releaseFishTextures(this, residents);
     ensureFishTextures(this, residents);
     this.seabed = seabedFor(this.level.id, world);
-    this.weeds = drawWorld(this, this.level, chapter.zone, this.seabed);
+    this.weeds = drawWorld(this, this.level, chapter.zone, this.seabed, this.sky);
     const covers = buildCover(this, planCover(this.level.id, levelNumber(this.level), chapter.zone, world.width), this.seabed.floorAt, levelNumber(this.level) * 31 + 7);
     this.weeds.push(...covers.flatMap((c) => c.weeds));
     this.hideout = new Hideout(this, covers, this.seabed.floorAt);
@@ -173,7 +181,7 @@ export class GameScene extends Phaser.Scene {
 
   private zoomFor(size: number): number {
     const { width, height } = this.scale;
-    return targetZoom(width, height, this.level.world.width, this.level.world.height, size, this.level.playerSizes[0]);
+    return targetZoom(width, height, this.level.world.width, this.level.world.height + (this.sky ? SKY.height : 0), size, this.level.playerSizes[0]);
   }
 
   update(_time: number, deltaMs: number): void {
@@ -190,8 +198,10 @@ export class GameScene extends Phaser.Scene {
     this.elapsedMs += deltaMs;
 
     if (!this.player.hooked) {
-      movePlayer(this.player, desiredDirection(this, this.controls, this.player), this.level, now, dt, this.seabed.floorAt);
-      this.drift(this.player.sprite, this.player.size, 0.85, dt);
+      const p = this.player;
+      const surfaced = movePlayer(p, desiredDirection(this, this.controls, p), this.level, now, dt, this.seabed.floorAt, this.sky);
+      if (surfaced) splash(this, p.sprite.x, SKY.surfaceY + 8, p.size, this.rng);
+      if (!p.airborne) this.drift(p.sprite, p.size, 0.85, dt);
     }
     this.hideout.update(this.player, now, deltaMs, dt, () => {
       this.floatText(this.player.sprite.x, this.player.sprite.y - 40, 'Spotted!', '#a3342b', 36);
@@ -219,7 +229,8 @@ export class GameScene extends Phaser.Scene {
 
   private updateFishes(now: number, dt: number): void {
     const p = this.player;
-    const view = { x: p.sprite.x, y: p.sprite.y, size: p.size, hidden: p.hidden };
+    // Leaping out of the water shakes off anything chasing you, like hiding does.
+    const view = { x: p.sprite.x, y: p.sprite.y, size: p.size, hidden: p.hidden || p.airborne };
     const camView = this.cameras.main.worldView;
     const floorAt = this.seabed.floorAt;
     const crawlers = this.fish.filter((f) => isCrawler(f.species)).length;
@@ -247,7 +258,7 @@ export class GameScene extends Phaser.Scene {
       }
       // A fish on the line belongs to the angler now.
       // Hidden in cover: you can't be bitten, and you can't eat.
-      if (this.ended || p.hooked || p.hidden || f.state === 'hooked') return true;
+      if (this.ended || p.hooked || p.hidden || p.airborne || f.state === 'hooked') return true;
       if (!capsulesTouch(bodyOf(p.sprite, p.shape), bodyOf(f.sprite, f.species))) return true;
       const rel = relationTo(p.size, f.size);
       // Knocked out or shocked (and not much bigger than you): dinner, whatever its size.
@@ -386,7 +397,7 @@ export class GameScene extends Phaser.Scene {
     for (const j of this.jellies) {
       updateJelly(j, this.level, dt, this.boilFrame);
       j.sprite.x += this.twist.current * 0.5 * dt;
-      if (!this.ended && !p.hooked && now > p.stunnedUntil + 600 && now > p.invulnerableUntil &&
+      if (!this.ended && !p.hooked && !p.airborne && now > p.stunnedUntil + 600 && now > p.invulnerableUntil &&
         capsuleTouchesCircle(bodyOf(p.sprite, p.shape), j.sprite.x, j.sprite.y, j.radius, 0.8)) {
         p.stunnedUntil = now + TUNING.stunMs;
         this.floatText(p.sprite.x, p.sprite.y - 30, 'zzap!', '#6b3f99');
@@ -395,8 +406,9 @@ export class GameScene extends Phaser.Scene {
     }
     if (!this.ended && this.level.hazards.hookEverySec > 0 && this.elapsedMs > this.nextHookAt) {
       this.nextHookAt = this.elapsedMs + this.level.hazards.hookEverySec * 1000;
-      this.hooks.push(spawnHook(this, this.level, p.sprite.x, p.sprite.y, this.rng));
+      this.hooks.push(this.fleet.launch(this.level, p.sprite.x, p.sprite.y));
     }
+    this.fleet.update(deltaMs, this.level.world.width);
     this.hooks = this.hooks.filter((h) => {
       const alive = updateHook(h, deltaMs, this.boilFrame, this.twist.current);
       if (alive) this.biteHook(h, now);
@@ -421,7 +433,7 @@ export class GameScene extends Phaser.Scene {
     const tip = hookTip(h);
     if (!tip.active) return;
     const p = this.player;
-    if (!this.ended && !p.hooked && now > p.invulnerableUntil &&
+    if (!this.ended && !p.hooked && !p.airborne && now > p.invulnerableUntil &&
       capsuleTouchesCircle(bodyOf(p.sprite, p.shape), tip.x, tip.y, 12, 0.9)) {
       if (!this.absorbHit(now)) this.hookPlayer(h, now);
       return;
@@ -484,6 +496,7 @@ export class GameScene extends Phaser.Scene {
       this.player.sprite.setVisible(false);
       this.die({ cause: 'hooked' });
     }
+    this.fleet.hookDone(h);
     destroyHook(h);
   }
 
@@ -497,7 +510,7 @@ export class GameScene extends Phaser.Scene {
     const p = this.player;
     this.items = this.items.filter((it) => {
       if (!updateItem(it, now, dt, this.boilFrame, this.seabed.floorAt)) return false;
-      if (p.hooked || !capsuleTouchesCircle(bodyOf(p.sprite, p.shape), it.sprite.x, it.sprite.y, 22)) return true;
+      if (p.hooked || p.airborne || !capsuleTouchesCircle(bodyOf(p.sprite, p.shape), it.sprite.x, it.sprite.y, 22)) return true;
       this.burst(it.sprite.x, it.sprite.y, 5);
       it.sprite.destroy();
       applyItem(this.itemHost, it.kind, now);

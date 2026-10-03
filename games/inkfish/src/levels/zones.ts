@@ -32,6 +32,12 @@ export const PLAYER_FISH_NAMES: Readonly<Record<PlayerFishId, string>> = {
   tuna: 'young tuna', lanternfish: 'lanternfish', loosejaw: 'stoplight loosejaw', viperfish: 'viperfish', snailfish: 'snailfish',
 };
 
+/** Zones with open sky above: you can leap out, and boats fish from the surface. Deeper, the top of the screen is just more dark water. */
+export const ZONE_SKY: Readonly<Record<ZoneId, boolean>> = {
+  tidepool: true, seagrass: true, kelp: true, reef: true, wreck: true,
+  dropoff: true, twilight: false, midnight: false, abyss: false, trench: false,
+};
+
 /** How dark the water is drawn in a zone, 0 (sunlit) .. 1 (pitch black). */
 export const ZONE_DARKNESS: Readonly<Record<ZoneId, number>> = {
   tidepool: 0, seagrass: 0.08, kelp: 0.15, reef: 0.22, wreck: 0.32,

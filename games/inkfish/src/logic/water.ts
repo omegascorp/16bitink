@@ -6,6 +6,14 @@ export const WATER = {
   floorMargin: 90,
 } as const;
 
+/** Open air above the surface in sunlit levels: room to leap, boats, sky. */
+export const SKY = {
+  /** How far the world extends above y = 0. Taller than the highest leap. */
+  height: 320,
+  /** Where the surface pen line is drawn. */
+  surfaceY: 60,
+} as const;
+
 export function waterTop(radius: number): number {
   return WATER.surface + radius * 0.5;
 }

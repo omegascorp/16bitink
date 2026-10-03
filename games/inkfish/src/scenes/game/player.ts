@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { FISH_RADIUS } from '../../art/fishArt';
 import { fishKey } from '../../art/textures';
 import type { LevelDef, PlayerFishId } from '../../levels/types';
+import { JUMP, stepSurface, type SurfaceEvent } from '../../logic/jump';
 import { aboveSeabed, waterBottom, waterTop } from '../../logic/water';
 import { attachTail, setSwimTexture, setTailBeat, stroke, turnToward, type SwimState } from './swim';
 import { TUNING } from './tuning';
@@ -21,6 +22,8 @@ export interface Player extends SwimState {
   stunnedUntil: number;
   speedUntil: number;
   dashReadyAt: number;
+  /** When the last dash started: a fresh dash into the surface leaps. */
+  dashedAt: number;
   /** On a hook: controls are off and the hook moves the fish. */
   hooked: boolean;
   /** Sick from plastic or tangled in rings: swims slower. */
@@ -33,6 +36,8 @@ export interface Player extends SwimState {
   glowUntil: number;
   /** Tucked into weed or coral: fish can't see you, and you can't eat. */
   hidden: boolean;
+  /** Leaping through the air: no steering, and nothing in the water can reach you. */
+  airborne: boolean;
 }
 
 /** Bottom-right screen area reserved for the touch dash button. */
@@ -45,8 +50,8 @@ export function createPlayer(scene: Phaser.Scene, level: LevelDef, shape: Player
     .setDepth(20)
     .setScale(size / FISH_RADIUS);
   attachTail(sprite, shape);
-  return { sprite, shape, size, swim: 0, turn: 1, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0, hooked: false,
-    slowUntil: 0, tangledUntil: 0, shield: false, glowUntil: 0, hidden: false };
+  return { sprite, shape, size, swim: 0, turn: 1, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0, dashedAt: -10000, hooked: false,
+    slowUntil: 0, tangledUntil: 0, shield: false, glowUntil: 0, hidden: false, airborne: false };
 }
 
 export interface Controls {
@@ -111,23 +116,36 @@ export function desiredDirection(scene: Phaser.Scene, c: Controls, p: Player): {
   return { x: (dx / d) * intent, y: (dy / d) * intent };
 }
 
-export function movePlayer(p: Player, dir: { x: number; y: number }, level: LevelDef, now: number, dt: number, floorAt?: (x: number) => number): void {
-  const stunned = now < p.stunnedUntil;
-  const max = TUNING.playerSpeed * (now < p.speedUntil ? TUNING.speedBoost : 1) * (now < p.slowUntil ? TUNING.slowFactor : 1) * (p.hidden ? TUNING.coverSpeed : 1);
-  const tx = stunned ? 0 : dir.x * max;
-  const ty = stunned ? 0 : dir.y * max;
-  const k = Math.min(1, dt * TUNING.playerAccel);
-  p.vx += (tx - p.vx) * k;
-  p.vy += (ty - p.vy) * k;
+/** Moves the player one frame. With `sky`, rushing the surface fast enough leaps out; returns 'leap' or 'splash' on the frame it happens. */
+export function movePlayer(
+  p: Player, dir: { x: number; y: number }, level: LevelDef, now: number, dt: number, floorAt?: (x: number) => number, sky = false,
+): SurfaceEvent {
+  if (p.airborne) {
+    p.vx *= 1 - JUMP.airDrag * dt;
+  } else {
+    const stunned = now < p.stunnedUntil;
+    const max = TUNING.playerSpeed * (now < p.speedUntil ? TUNING.speedBoost : 1) * (now < p.slowUntil ? TUNING.slowFactor : 1) * (p.hidden ? TUNING.coverSpeed : 1);
+    const tx = stunned ? 0 : dir.x * max;
+    const ty = stunned ? 0 : dir.y * max;
+    const k = Math.min(1, dt * TUNING.playerAccel);
+    p.vx += (tx - p.vx) * k;
+    p.vy += (ty - p.vy) * k;
+  }
   const r = p.size;
   p.sprite.x = Phaser.Math.Clamp(p.sprite.x + p.vx * dt, r, level.world.width - r);
+  const top = waterTop(r);
+  const rushing = now - p.dashedAt < JUMP.rushMs || now < p.speedUntil;
+  const { state, event } = stepSurface({ y: p.sprite.y, vy: p.vy, airborne: p.airborne }, top, dt, sky, rushing);
+  p.airborne = state.airborne;
+  p.vy = state.vy;
   // Down to the sand: crabs and shrimp live there.
   const bottom = floorAt ? aboveSeabed(floorAt(p.sprite.x), r) : waterBottom(level.world.height, r);
-  p.sprite.y = Phaser.Math.Clamp(p.sprite.y + p.vy * dt, waterTop(r), bottom);
+  p.sprite.y = state.airborne ? state.y : Phaser.Math.Clamp(state.y, top, bottom);
+  return event;
 }
 
 export function tryDash(p: Player, dir: { x: number; y: number }, now: number): boolean {
-  if (now < p.dashReadyAt || now < p.stunnedUntil || now < p.tangledUntil) return false;
+  if (p.airborne || now < p.dashReadyAt || now < p.stunnedUntil || now < p.tangledUntil) return false;
   let { x, y } = dir;
   if (!x && !y) {
     x = p.sprite.flipX ? -1 : 1;
@@ -137,6 +155,7 @@ export function tryDash(p: Player, dir: { x: number; y: number }, now: number): 
   p.vx = (x / d) * TUNING.dashSpeed;
   p.vy = (y / d) * TUNING.dashSpeed;
   p.dashReadyAt = now + TUNING.dashCooldownMs;
+  p.dashedAt = now;
   return true;
 }
 
@@ -156,7 +175,9 @@ export function renderPlayer(p: Player, now: number, frame: number, dt: number):
     setTailBeat(s, stroke(p, speed, dt, effort));
     const facing = turnToward(p, Math.abs(p.vx) > 8 ? (p.vx < 0 ? -1 : 1) : 0, dt);
     s.setFlipX(p.turn < 0).setScale(base * facing, base * chomp);
-    s.setRotation(Phaser.Math.Clamp(p.vy / 700, -0.45, 0.45) * (s.flipX ? -1 : 1));
+    // In the air the body follows its arc: nose up on the way out, down on the way back.
+    const tilt = p.airborne ? Phaser.Math.Clamp(Math.atan2(p.vy, Math.abs(p.vx) + 60), -1.2, 1.2) : Phaser.Math.Clamp(p.vy / 700, -0.45, 0.45);
+    s.setRotation(tilt * (s.flipX ? -1 : 1));
   }
   const invuln = now < p.invulnerableUntil;
   s.setAlpha(invuln && Math.floor(now / 120) % 2 === 0 ? 0.35 : p.hidden ? 0.7 : 1);

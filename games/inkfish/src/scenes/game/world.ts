@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { ART_RES, ensureDecorTextures, weedKey } from '../../art/textures';
-import { hashUnit, type Seabed } from '../../logic/water';
+import { ART_RES, CLOUD_COUNT, cloudKey, ensureDecorTextures, weedKey } from '../../art/textures';
+import { hashUnit, SKY, type Seabed } from '../../logic/water';
 import { decorKinds, placeDecor, planDecor } from './seabedDecor';
 import type { LevelDef, ZoneId } from '../../levels/types';
 import { ZONE_DARKNESS } from '../../levels/zones';
@@ -23,21 +23,29 @@ export const ZONE_WEEDS: Readonly<Record<ZoneId, { readonly kinds: readonly Weed
   trench: { kinds: [], count: 0, rocks: 9 },
 };
 
-/** Paper, depth wash, surface and the level's own seabed with its scenery. Returns boiling weed sprites. */
-export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, seabed: Seabed): Phaser.GameObjects.Image[] {
+/**
+ * Paper, depth wash, surface and the level's own seabed with its scenery; with
+ * `sky`, open air above the surface too. Returns boiling weed sprites.
+ */
+export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, seabed: Seabed, sky = false): Phaser.GameObjects.Image[] {
   const dark = ZONE_DARKNESS[zone];
   const flora = ZONE_WEEDS[zone];
   const { width, height } = level.world;
   // Seeded by the whole level id, so every level lays out its own seabed.
   const rng = createRng(Math.floor(hashUnit(level.id, 7) * 1e6) + 1);
-  scene.add.tileSprite(0, 0, width, height, 'paper').setOrigin(0).setDepth(0);
+  const top = sky ? -SKY.height : 0;
+  scene.add.tileSprite(0, top, width, height - top, 'paper').setOrigin(0).setDepth(0);
+  if (sky) drawSky(scene, width, rng);
 
   const wash = scene.add.graphics().setDepth(1);
   const bands = 12;
+  // With open sky the water starts at the surface line; the air stays plain paper.
+  const waterFrom = sky ? SKY.surfaceY : 0;
+  const band = (height - waterFrom) / bands;
   for (let i = 0; i < bands; i++) {
     // Deeper zones get a heavier ink wash.
     wash.fillStyle(dark > 0.5 ? 0x1c2a4a : 0x2c4f86, (0.012 + i * 0.0075) * (1 + dark * 5));
-    wash.fillRect(0, (i / bands) * height, width, height / bands + 1);
+    wash.fillRect(0, waterFrom + i * band, width, band + 1);
   }
 
   const lines = scene.add.graphics().setDepth(2);
@@ -95,6 +103,17 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
     return scene.add.image(x, floor(x) + 10, weedKey(kind, 0)).setOrigin(0.5, 1).setDepth(4)
       .setScale(rangeOf(rng, 0.75, 1.15) / ART_RES).setFlipX(rng() < 0.5).setData('kind', kind).setData('phase', rng() * Math.PI * 2);
   });
+}
+
+/** A few loose clouds drifting in the open air above the surface. */
+function drawSky(scene: Phaser.Scene, width: number, rng: () => number): void {
+  const count = Math.round(width / 700 + rng() * 2);
+  for (let i = 0; i < count; i++) {
+    const x = (width / count) * (i + rangeOf(rng, 0.1, 0.9));
+    const y = rangeOf(rng, -SKY.height + 50, -70);
+    scene.add.image(x, y, cloudKey(Math.floor(rng() * CLOUD_COUNT))).setDepth(1)
+      .setScale(rangeOf(rng, 0.6, 1.1) / ART_RES).setAlpha(0.85).setFlipX(rng() < 0.5);
+  }
 }
 
 /**

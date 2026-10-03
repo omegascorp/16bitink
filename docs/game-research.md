@@ -95,9 +95,10 @@ Giants are their own species, appear only once (as the chapter's final boss), an
 ## Core mechanics (built)
 
 - Steering by mouse, finger or keyboard, with inertia. Dash: Space, Shift, right-click or the touch button.
+- Leaping: in chapters 1-6 (open sky), dash up into the surface to leap out in an arc you can't steer. In the air nothing in the water can reach you and chasers lose track of you. Deeper chapters have no sky.
 - Edibility by size ratio: prey < 0.9× your size, predator > 1.1×. Spawns are biased so ~60% are prey.
 - Species behaviours (each species has one): school (flees), cruise, chase, lunge (ambush), wave (eel S-curves), puff (inflates to 1.7× when you approach), hover (drifts in place). Spiky species (puffer, lionfish, scorpionfish, filefish, rockfish, ghost shark) prick instead of bite.
-- Hazards: jellyfish stun you; fishing hooks are telegraphed by a dotted pencil line, then drop. A hooked fish is reeled up by the mouth: with lives left you lose one and thrash free near the surface, on your last life you're hauled out of the water.
+- Hazards: jellyfish stun you; fishing hooks come from boats: in sunlit chapters (1-6) a boat sails in first, then a dotted pencil line shows where its hook will drop. A hooked fish is reeled up by the mouth: with lives left you lose one and thrash free near the surface, on your last life you're hauled out of the water.
 - Hazards hit everyone, not just the player: jellyfish stun enemies (a stung predator can't bite, so luring hunters into jellies is a tactic), hooks catch and reel off any fish, and hunters (flagged per species) eat fish under 70% of their size when they bump into them.
 - Falling items: human-made things sink from the surface and rest on the seabed for a while. Eat one to use it. A level drops at most 2 helpful kinds and 1 harmful kind, and the intro card shows which (`src/levels/items.ts`). New items unlock as you progress:
 

@@ -10,6 +10,7 @@ import { DECOR_SIZE, drawDecor, type DecorId } from './decorArt';
 import { xAt } from './fish/kit';
 import { ANATOMY } from './fish/registry';
 import { makeCanvas } from './pen';
+import { BOAT_KINDS, BOAT_SPEC, CLOUD_SIZE, drawBoat, drawCloud } from './skyArt';
 import { ART_RES, drawBubble, drawWreck, drawHook, drawJelly, drawPaper, drawRock, drawWeed, type WeedKind } from './propArt';
 
 export { ART_RES };
@@ -22,6 +23,8 @@ export const BOIL_FPS = 8;
 export const fishKey = (shape: FishShape, variant: InkVariant, frame: number): string => `fish-${shape}-${variant}-${frame}`;
 export const boilKey = (base: string, frame: number): string => `${base}-${frame}`;
 export const WEED_KINDS: readonly WeedKind[] = [0, 1, 2];
+export const CLOUD_COUNT = 3;
+export const cloudKey = (i: number): string => `cloud-${i}`;
 export const weedKey = (kind: WeedKind, frame: number): string => `weed-${kind}-${frame}`;
 /** Prop texture sizes at in-game scale (textures are ART_RES times larger). */
 export const WEED_SIZE = { w: 128, h: 256 } as const;
@@ -62,6 +65,8 @@ export function generateInkTextures(scene: Phaser.Scene): void {
   add(scene, 'pan', PAN_SIZE.w * ART_RES, PAN_SIZE.h * ART_RES, (ctx) => drawPan(ctx, 12));
   add(scene, 'darkness', DARK_TEX, DARK_TEX, drawDarkness);
   add(scene, 'paper', 512, 512, (ctx) => drawPaper(ctx, 512));
+  for (const kind of BOAT_KINDS) add(scene, `boat-${kind}`, BOAT_SPEC[kind].w * ART_RES, BOAT_SPEC[kind].h * ART_RES, (ctx) => drawBoat(ctx, kind, 31));
+  for (let i = 0; i < CLOUD_COUNT; i++) add(scene, cloudKey(i), CLOUD_SIZE.w * ART_RES, CLOUD_SIZE.h * ART_RES, (ctx) => drawCloud(ctx, 61 + i * 17));
   add(scene, 'wreck', 360 * ART_RES, 200 * ART_RES, (ctx) => drawWreck(ctx, 360 * ART_RES, 200 * ART_RES));
 }
 
