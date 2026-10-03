@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getChapters, getHost } from '../host';
-import { ART_RES, fishKey } from '../art/textures';
+import { ART_RES, birdKey, ensureBirdTextures, fishKey } from '../art/textures';
 import { PAN_SIZE } from '../art/deathArt';
 import { bodyProportions } from '../art/fishArt';
 import { DEMO_CHAPTER, LOCKED_CHAPTER_TEASERS } from '../levels/demo';
@@ -52,6 +52,12 @@ function deathPicture(scene: Phaser.Scene, death: Death, player: PlayerFishId, s
       ...[0, 1, 2].map((i) => scene.add.image(40 + i * 46, y - 18 + (i % 2) * 26, fishKey(staple, 'light', 0)).setScale(0.26)),
       me(fishKey(player, 'light', 0)).setPosition(-90, y + 4).setScale(fitBox(player, 100, 70)),
     ];
+  }
+  if (death.cause === 'snatched' && death.bird) {
+    // Carried off: the bird flies away with you dangling from its beak.
+    ensureBirdTextures(scene, [death.bird]);
+    const bird = scene.add.image(-20, y - 20, birdKey(death.bird, 1)).setScale(0.75).setRotation(-0.15);
+    return [bird, me(fishKey(player, 'light', 0)).setPosition(46, y + 14).setScale(fitBox(player, 60, 40)).setRotation(-1.35)];
   }
   const killer = scene.add.image(-85, y, fishKey(death.killer ?? staple, 'heavy', 0)).setScale(0.55);
   if (death.cause === 'spiked' || death.cause === 'pinched') {

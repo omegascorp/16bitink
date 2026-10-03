@@ -96,6 +96,7 @@ Giants are their own species, appear only once (as the chapter's final boss), an
 
 - Steering by mouse, finger or keyboard, with inertia. Dash: Space, Shift, right-click or the touch button.
 - Leaping: in chapters 1-6 (open sky), dash up into the surface to leap out in an arc you can't steer. In the air nothing in the water can reach you and chasers lose track of you. Deeper chapters have no sky.
+- Birds (chapters 1-6): dragonflies, terns, gulls, pelicans and gannets follow the same size rule as fish. Smaller birds are snacks you leap for; bigger ones cast a shadow on the water, hover, then plunge in after you (and grab other fish too). A bird can carry you off: "Snatched!".
 - Edibility by size ratio: prey < 0.9× your size, predator > 1.1×. Spawns are biased so ~60% are prey.
 - Species behaviours (each species has one): school (flees), cruise, chase, lunge (ambush), wave (eel S-curves), puff (inflates to 1.7× when you approach), hover (drifts in place). Spiky species (puffer, lionfish, scorpionfish, filefish, rockfish, ghost shark) prick instead of bite.
 - Hazards: jellyfish stun you; fishing hooks come from boats: in sunlit chapters (1-6) a boat sails in first, then a dotted pencil line shows where its hook will drop. A hooked fish is reeled up by the mouth: with lives left you lose one and thrash free near the surface, on your last life you're hauled out of the water.

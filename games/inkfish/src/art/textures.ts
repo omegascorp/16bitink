@@ -11,6 +11,8 @@ import { xAt } from './fish/kit';
 import { ANATOMY } from './fish/registry';
 import { makeCanvas } from './pen';
 import { BOAT_KINDS, BOAT_SPEC, CLOUD_SIZE, drawBoat, drawCloud } from './skyArt';
+import { BIRD_FRAMES, BIRD_TEX, drawBird } from './birdArt';
+import type { BirdId } from '../logic/birds';
 import { ART_RES, drawBubble, drawWreck, drawHook, drawJelly, drawPaper, drawRock, drawWeed, type WeedKind } from './propArt';
 
 export { ART_RES };
@@ -71,6 +73,15 @@ export function generateInkTextures(scene: Phaser.Scene): void {
 }
 
 const frameSeed = (f: number): number => 101 + f * 977;
+
+export const birdKey = (kind: BirdId, frame: number): string => `bird-${kind}-${frame}`;
+
+/** Wing frames for the birds a level uses (only sunlit levels have any). */
+export function ensureBirdTextures(scene: Phaser.Scene, kinds: readonly BirdId[]): void {
+  for (const kind of new Set(kinds)) {
+    for (let f = 0; f < BIRD_FRAMES; f++) add(scene, birdKey(kind, f), BIRD_TEX.w * ART_RES, BIRD_TEX.h * ART_RES, (ctx) => drawBird(ctx, kind, f, 5 + f));
+  }
+}
 
 /**
  * Draws the boil frames for these fish if they aren't cached yet. With ~65

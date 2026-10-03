@@ -1,13 +1,16 @@
 import { SPECIES_INFO, type SpeciesInfo } from '../levels/species';
 import type { SpeciesId } from '../levels/types';
+import { BIRD_INFO, type BirdId } from './birds';
 
 /** How the player's fish met its end; each has its own animation and result screen. */
-export type DeathCause = 'eaten' | 'spiked' | 'pinched' | 'hooked' | 'snagged' | 'timeout';
+export type DeathCause = 'eaten' | 'spiked' | 'pinched' | 'hooked' | 'snagged' | 'snatched' | 'timeout';
 
 export interface Death {
   readonly cause: DeathCause;
   /** The fish responsible, when there was one. */
   readonly killer?: SpeciesId;
+  /** The bird responsible, for 'snatched'. */
+  readonly bird?: BirdId;
 }
 
 /** What happens when a bigger creature touches you: spiky ones prick, crabs pinch, the rest bite. */
@@ -38,6 +41,8 @@ export function deathText(death: Death): { readonly title: string; readonly line
       return { title: 'Spiked!', line: death.killer ? `You bumped into ${article(SPECIES_INFO[death.killer].name)} ${SPECIES_INFO[death.killer].name}.` : 'You bumped into something spiky.' };
     case 'pinched':
       return { title: 'Pinched!', line: death.killer ? `${capital(article(SPECIES_INFO[death.killer].name))} ${SPECIES_INFO[death.killer].name} caught you in its claws.` : 'Something with claws got you.' };
+    case 'snatched':
+      return { title: 'Snatched!', line: death.bird ? `${capital(article(BIRD_INFO[death.bird].name))} ${BIRD_INFO[death.bird].name} plucked you out of the sea.` : 'Something swooped down and took you.' };
     case 'snagged':
       return { title: 'Snagged!', line: 'That shiny lure was hiding a hook.' };
     case 'timeout':
@@ -50,5 +55,5 @@ export function deathText(death: Death): { readonly title: string; readonly line
 
 /** Floating text for a hit that costs a life but not the level. */
 export function hitText(cause: DeathCause): string {
-  return { eaten: 'Chomp!', spiked: 'Ouch!', pinched: 'Pinch!', hooked: 'Hooked!', snagged: 'Snagged!', timeout: 'Hurry!' }[cause];
+  return { eaten: 'Chomp!', spiked: 'Ouch!', pinched: 'Pinch!', hooked: 'Hooked!', snatched: 'Peck!', snagged: 'Snagged!', timeout: 'Hurry!' }[cause];
 }

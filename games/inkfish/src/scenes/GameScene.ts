@@ -32,6 +32,7 @@ import { planCover } from '../levels/cover';
 import { isCrawler, spawnCrawler, updateCrawler } from './game/crawlers';
 import { seabedFor, SKY, type Seabed } from '../logic/water';
 import { Fleet } from './game/boats';
+import { Flock, type Bird } from './game/flock';
 import { splash } from './game/splash';
 import { describeLevel, levelNumber } from '../levels/twists';
 import { PLAYER_FISH_NAMES, ZONE_SKY } from '../levels/zones';
@@ -67,6 +68,9 @@ function levelSpecies(level: LevelDef): SpeciesId[] {
   return [...level.spawns.map((s) => s.species), ...level.bottom.map((s) => s.species), ...goal];
 }
 
+/** How far the camera leans up into the sky while you swim near the surface, px. */
+const SKY_LOOK = 110;
+
 export class GameScene extends Phaser.Scene {
   private level!: LevelDef;
   private levelIndex = 0;
@@ -93,6 +97,7 @@ export class GameScene extends Phaser.Scene {
   /** Open air above the water: leaping, and boats behind the hooks. */
   private sky = false;
   private fleet!: Fleet;
+  private flock!: Flock;
   private growth: GrowthState = initialGrowth;
   private frenzy: FrenzyState = initialFrenzy;
   private score = 0;
@@ -134,6 +139,7 @@ export class GameScene extends Phaser.Scene {
     const skyH = this.sky ? SKY.height : 0;
     this.cameras.main.setBounds(0, -skyH, world.width, world.height + skyH).setBackgroundColor('#f4eddc');
     this.fleet = new Fleet(this, chapter.zone, this.sky, this.rng);
+    this.flock = new Flock(this, chapter.zone, this.rng);
     const residents = levelSpecies(this.level);
     releaseFishTextures(this, residents);
     ensureFishTextures(this, residents);
@@ -209,6 +215,11 @@ export class GameScene extends Phaser.Scene {
     renderPlayer(this.player, now, this.boilFrame, dt);
     const cam = this.cameras.main;
     cam.setZoom(Phaser.Math.Linear(cam.zoom, this.zoomFor(this.player.size), Math.min(1, dt * 2)));
+    if (this.sky) {
+      // Near the surface the view leans up into the sky, so birds and boats are in sight.
+      const near = Phaser.Math.Clamp(1 - (this.player.sprite.y - SKY.surfaceY) / 320, 0, 1);
+      cam.followOffset.y += (near * SKY_LOOK - cam.followOffset.y) * Math.min(1, dt * 2);
+    }
 
     this.frenzy = drainFrenzy(this.frenzy, dt);
     this.updateFishes(now, dt);
@@ -292,22 +303,27 @@ export class GameScene extends Phaser.Scene {
     if (eaten.size) this.fish = this.fish.filter((f) => !eaten.has(f));
   }
 
-  private eat(f: Fish): void {
-    if (this.ended) return;
+  /** A meal of this size: score, frenzy, growth, and the gulp. */
+  private feed(size: number, sprite: Phaser.GameObjects.Image): void {
     const mult = frenzyMultiplier(this.frenzy);
-    const gained = scoreFor(f.size, mult);
+    const gained = scoreFor(size, mult);
     this.score += gained;
     this.frenzy = feedFrenzy(this.frenzy);
     const before = this.growth.tier;
-    this.growth = addGrowth(this.level, this.growth, growthPointsFor(f.size));
-    this.floatText(f.sprite.x, f.sprite.y - f.size, mult > 1 ? `+${gained} ×${mult}` : `+${gained}`, '#1f3f8a');
-    this.burst(f.sprite.x, f.sprite.y, 6);
-    gulp(f.sprite, mouthOf(this.player.sprite, this.player.size, this.player.turn));
+    this.growth = addGrowth(this.level, this.growth, growthPointsFor(size));
+    this.floatText(sprite.x, sprite.y - size, mult > 1 ? `+${gained} ×${mult}` : `+${gained}`, '#1f3f8a');
+    this.burst(sprite.x, sprite.y, 6);
+    gulp(sprite, mouthOf(this.player.sprite, this.player.size, this.player.turn));
     this.player.chompAt = this.time.now;
     if (this.growth.tier > before) this.growUp();
+    this.progress = { ...this.progress, grown: this.growth.complete };
+  }
+
+  private eat(f: Fish): void {
+    if (this.ended) return;
+    this.feed(f.size, f.sprite);
     this.progress = {
       ...this.progress,
-      grown: this.growth.complete,
       bounties: this.progress.bounties + (f.role === 'bounty' ? 1 : 0),
       bossEaten: this.progress.bossEaten || f.role === 'boss',
     };
@@ -359,8 +375,8 @@ export class GameScene extends Phaser.Scene {
     f.vx -= Math.cos(a) * 60;
   }
 
-  /** A bigger fish got you: lose a life, or the level if it was the last one. */
-  private hurt(cause: DeathCause, by?: Fish): void {
+  /** A bigger fish (or bird) got you: lose a life, or the level if it was the last one. */
+  private hurt(cause: DeathCause, by?: Fish, bird?: Bird): void {
     const p = this.player;
     const now = this.time.now;
     if (now < p.invulnerableUntil || this.ended) return;
@@ -369,8 +385,9 @@ export class GameScene extends Phaser.Scene {
     this.frenzy = initialFrenzy;
     this.cameras.main.shake(260, 0.01);
     if (this.lives <= 0) {
-      this.die({ cause, killer: by?.species });
-      if (cause === 'spiked') playSpiked(this, p, waterTop(p.size));
+      this.die({ cause, killer: by?.species, bird: bird?.kind });
+      if (bird) this.flock.carryOff(bird, p.sprite, false);
+      else if (cause === 'spiked') playSpiked(this, p, waterTop(p.size));
       else if (by) playEaten(this, p, by, { burst: (x, y, n) => this.burst(x, y, n) });
       return;
     }
@@ -378,7 +395,49 @@ export class GameScene extends Phaser.Scene {
     else this.burst(p.sprite.x, p.sprite.y, 14);
     this.floatText(p.sprite.x, p.sprite.y - 40, hitText(cause), '#a3342b', 40);
     p.invulnerableUntil = now + TUNING.invulnerableMs;
-    p.sprite.setPosition(p.sprite.x, Math.max(160, p.sprite.y - 220));
+    if (bird) {
+      // Pecked and dropped: you tumble back down into the water, the bird flies off.
+      Object.assign(p, { airborne: false, vy: 200 });
+      p.sprite.setPosition(p.sprite.x, Math.max(p.sprite.y, SKY.surfaceY) + 160);
+      this.flock.retreat(bird, now);
+    } else {
+      p.sprite.setPosition(p.sprite.x, Math.max(160, p.sprite.y - 220));
+    }
+  }
+
+  /** Birds overhead: snacks you can leap for, hunters that plunge in after you (and other fish). */
+  private updateBirds(now: number, dt: number): void {
+    const p = this.player;
+    const quarry = { x: p.sprite.x, y: p.sprite.y, size: p.size, playerSize: p.size, safe: this.ended || p.hooked || p.hidden };
+    const fx = { splash: (x: number, size: number) => splash(this, x, SKY.surfaceY + 8, size, this.rng) };
+    this.flock.update(now, dt, quarry, this.cameras.main.worldView, this.level.world.width, fx);
+    if (this.ended) return;
+    for (const b of [...this.flock.birds]) {
+      if (b.state === 'carry') continue;
+      if (b.state === 'dive') this.birdCatchesFish(b);
+      // The body, or the beak that leads it in a dive.
+      const me = bodyOf(p.sprite, p.shape);
+      const beak = this.flock.beakOf(b);
+      const touching = capsuleTouchesCircle(me, b.sprite.x, b.sprite.y, b.size * 0.5) || capsuleTouchesCircle(me, beak.x, beak.y, b.size * 0.25);
+      if (p.hooked || p.hidden || !touching) continue;
+      const rel = relationTo(p.size, b.size);
+      if (rel === 'prey') {
+        this.flock.take(b);
+        this.feed(b.size, b.sprite);
+      } else if (rel === 'predator') {
+        this.hurt('snatched', undefined, b);
+      }
+    }
+  }
+
+  /** A plunging bird grabs the first smaller fish in its path and carries it off. */
+  private birdCatchesFish(b: Bird): void {
+    const beak = this.flock.beakOf(b);
+    const catchable = (f: Fish): boolean => f.role === 'normal' && f.state !== 'hooked' && !isCrawler(f.species) && f.size < b.size * 0.9;
+    const fish = this.fish.find((f) => catchable(f) && capsuleTouchesCircle(bodyOf(f.sprite, f.species), beak.x, beak.y, b.size * 0.35));
+    if (!fish) return;
+    this.fish = this.fish.filter((f) => f !== fish);
+    this.flock.carryOff(b, fish.sprite, true);
   }
 
   /** Ends the level with a cause, announced where the player can see it. */
@@ -394,6 +453,7 @@ export class GameScene extends Phaser.Scene {
 
   private updateHazards(now: number, deltaMs: number, dt: number): void {
     const p = this.player;
+    this.updateBirds(now, dt);
     for (const j of this.jellies) {
       updateJelly(j, this.level, dt, this.boilFrame);
       j.sprite.x += this.twist.current * 0.5 * dt;
