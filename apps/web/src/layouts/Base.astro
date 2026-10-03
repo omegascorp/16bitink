@@ -35,7 +35,6 @@ const ogImage = new URL(image, Astro.site);
     <header class="wrap site-header">
       <Logo />
       <nav aria-label="Main">
-        <a href="/#games">Games</a>
         <a href="/about">About</a>
       </nav>
     </header>
@@ -43,8 +42,8 @@ const ogImage = new URL(image, Astro.site);
       <slot />
     </main>
     <footer class="wrap site-footer">
-      <span>Drawn by hand, played in the browser. © {new Date().getFullYear()} 16bit.ink</span>
-      <span><a href="/about">About</a> · <a href="/legal">Terms &amp; refunds</a></span>
+      <span>© {new Date().getFullYear()} 16bit.ink</span>
+      <span class="links"><a href="/about">About</a><a href="/legal">Terms &amp; refunds</a></span>
     </footer>
   </body>
 </html>

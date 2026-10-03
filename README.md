@@ -1,6 +1,6 @@
 # 16bit.ink
 
-Hand-drawn browser games. Catalog site + games, starting with **Inkfish**, a pen-and-ink fish-eat-fish game. Chapter 1 is free; the full game is a one-time Stripe purchase.
+Hand-drawn browser games. Catalog site + games, starting with **InkFish**, a pen-and-ink fish-eat-fish game. Chapter 1 is free; the full game is a one-time Stripe purchase.
 
 ```
 apps/web            Astro 7 site on Cloudflare Workers: catalog, game pages, full-screen player, Stripe checkout
@@ -27,7 +27,7 @@ pnpm --filter @16bitink/web build && cd apps/web && npx wrangler dev --port 8788
 
 ## Deploy (Cloudflare)
 
-1. In Stripe, create the product "Inkfish – Full Game" with a one-time price, and give the price the lookup key `inkfish_full`.
+1. In Stripe, create the product "InkFish – Full Game" with a one-time price, and give the price the lookup key `inkfish_full`.
 2. Set the secrets:
    ```bash
    cd apps/web

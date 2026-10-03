@@ -38,7 +38,7 @@ export interface CatalogGame {
 export const GAMES: readonly CatalogGame[] = [
   {
     slug: 'inkfish',
-    title: 'Inkfish',
+    title: 'InkFish',
     tagline: 'Eat smaller fish. Grow. Don’t get eaten.',
     description: [
       'A fish-eat-fish game drawn entirely in pen and ink. Start as a doodle-sized fry in a sketchbook tide pool and eat your way up the food chain.',

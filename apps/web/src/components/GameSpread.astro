@@ -1,0 +1,63 @@
+---
+import type { CatalogGame } from '../data/games';
+
+interface Props {
+  game: CatalogGame;
+}
+const { game } = Astro.props;
+const play = `/play/${game.slug}`;
+---
+<article class="spread">
+  <a href={play} class="cover" aria-label={`Play ${game.title}`}>
+    <img src={game.cover} alt="" width="1200" height="675" fetchpriority="high" />
+  </a>
+  <div class="caption">
+    <h2><a href={play}>{game.title}</a></h2>
+    <p class="tagline">{game.tagline}</p>
+    <a class="btn btn-ink play" href={play}>Play free</a>
+    <p class="terms">First chapter free, full game {game.price}. <a href={`/games/${game.slug}`}>About the game</a></p>
+  </div>
+</article>
+
+<style>
+  .spread { position: relative; }
+
+  .cover {
+    display: block; position: relative;
+    padding: 10px; background: var(--paper-2);
+    border: 2px solid var(--ink); box-shadow: var(--shadow);
+    transform: rotate(-0.6deg);
+    transition: transform 0.25s ease;
+  }
+  .cover:hover { transform: rotate(0deg) scale(1.005); }
+  .cover:focus-visible { outline: 3px dashed var(--blue-ink); outline-offset: 6px; }
+  /* Two strips of tape hold the page in the sketchbook. */
+  .cover::before, .cover::after {
+    content: ''; position: absolute; top: -13px; width: 96px; height: 26px; background: var(--tape);
+  }
+  .cover::before { left: 8%; transform: rotate(-4deg); }
+  .cover::after { right: 8%; transform: rotate(3deg); }
+  .cover img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+  @media (prefers-reduced-motion: no-preference) {
+    /* Line boil: the same hand-drawn wobble the game uses. */
+    .cover img { filter: url(#boil); }
+  }
+
+  .caption {
+    display: grid; grid-template-columns: 1fr auto; align-items: end; column-gap: 24px;
+    padding: 0 4px;
+  }
+  h2 {
+    grid-column: 1; margin: -0.42em 0 0; position: relative; z-index: 1;
+    font-size: clamp(4.5rem, 13vw, 9rem); line-height: 1; transform: rotate(-2deg); transform-origin: left bottom;
+  }
+  h2 a { color: var(--blue-ink); text-decoration: none; text-shadow: 0 0 10px var(--paper), 0 0 4px var(--paper); }
+  .tagline { grid-column: 1; margin: 4px 0 0; font-family: var(--font-hand); font-size: 1.9rem; line-height: 1.2; }
+  .play { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 2rem; min-height: 60px; padding-inline: 34px; }
+  .terms { grid-column: 1 / -1; margin: 18px 0 0; color: var(--ink-soft); font-size: 0.95rem; }
+
+  @media (max-width: 640px) {
+    .caption { grid-template-columns: 1fr; }
+    .play { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 18px; }
+  }
+</style>

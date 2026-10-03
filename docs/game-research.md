@@ -1,8 +1,8 @@
-# Inkfish: mechanics research
+# InkFish: mechanics research
 
-Ten "eat smaller to grow" games, researched October 2026, and what Inkfish takes from each.
+Ten "eat smaller to grow" games, researched October 2026, and what InkFish takes from each.
 
-| # | Game | Growth model | Standout mechanic | Taken into Inkfish |
+| # | Game | Growth model | Standout mechanic | Taken into InkFish |
 |---|---|---|---|---|
 | 1 | **Feeding Frenzy** (2004, PC/XBLA) | Meter fills; discrete growth spurts | The moment a former predator becomes food | ✅ 3-tier growth meter per level |
 | 2 | **Feeding Frenzy 2** (2006) | Same, 60 levels, 6 characters | Frenzy multiplier up to 6×; *shrink-enemy* power-up | ✅ Frenzy ×1–×5, ✅ Shrink-ink |

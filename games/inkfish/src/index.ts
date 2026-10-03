@@ -10,7 +10,7 @@ import { ResultScene } from './scenes/ResultScene';
 export { DEMO_CHAPTER } from './levels/demo';
 export type { Chapter, LevelDef } from './levels/types';
 
-/** Mounts Inkfish into `parent`, filling it completely and tracking its size. */
+/** Mounts InkFish into `parent`, filling it completely and tracking its size. */
 export function mount(parent: HTMLElement, host: GameHost): GameHandle & { readonly phaser: Phaser.Game } {
   const game = new Phaser.Game({
     type: Phaser.WEBGL,

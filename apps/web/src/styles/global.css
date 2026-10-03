@@ -58,12 +58,11 @@ h3 { font-size: 1.9rem; }
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding-block: 20px;
 }
-.site-header nav { display: flex; gap: 18px; font-family: var(--font-pixel); font-size: 0.8rem; text-transform: uppercase; }
+.site-header nav { display: flex; gap: 18px; font-family: var(--font-hand); font-size: 1.5rem; }
 .site-header nav a { color: var(--ink); text-decoration: none; }
 .site-header nav a:hover { color: var(--blue-ink); text-decoration: underline wavy; }
 
-.logo { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; }
-.logo svg { width: 34px; height: 34px; image-rendering: pixelated; }
+.logo { display: inline-flex; align-items: baseline; color: var(--ink); text-decoration: none; }
 .logo .bits { font-family: var(--font-pixel); font-size: 1.35rem; letter-spacing: 0.02em; }
 .logo .ink { font-family: var(--font-hand); font-size: 2rem; color: var(--blue-ink); margin-left: -4px; transform: translateY(2px) rotate(-4deg); display: inline-block; }
 
@@ -71,6 +70,7 @@ h3 { font-size: 1.9rem; }
   margin-top: 80px; padding-block: 32px; border-top: 2px dashed var(--ink-faint);
   font-size: 0.9rem; color: var(--ink-soft); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
 }
+.site-footer .links { display: flex; gap: 20px; }
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;

@@ -1,27 +1,26 @@
 ---
 import Base from '../layouts/Base.astro';
-import GameCard from '../components/GameCard.astro';
-import { GAMES } from '../data/games';
+import GameSpread from '../components/GameSpread.astro';
+import { playableGames } from '../data/games';
 ---
-<Base title="16bit.ink — hand-drawn browser games" description="Small games drawn with pen and ink, played full-screen in your browser. Start with Inkfish, a fish-eat-fish game.">
-  <section class="hero">
-    <p class="pixel-label">Pen &amp; ink · played in the browser</p>
-    <h1>Hand-drawn games<br />you can play <em>right now.</em></h1>
-    <p class="lede">Every fish, rock and hook is drawn with a pen. Every game runs full-screen in your browser: no installs and no accounts. Play the first chapter free and buy the rest once if you like it.</p>
-    <a class="btn btn-ink" href="/play/inkfish">Play Inkfish free →</a>
-  </section>
+<Base title="16bit.ink: hand-drawn browser games" description="Small games drawn with a pen. Play them full-screen in your browser.">
+  <!-- Displacement filter shared by every cover: redraws the wobble 8 times a second. -->
+  <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+    <filter id="boil">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="1">
+        <animate attributeName="seed" values="1;2;3" dur="0.375s" calcMode="discrete" repeatCount="indefinite" />
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" scale="2.6" />
+    </filter>
+  </svg>
 
-  <section id="games" aria-labelledby="games-title">
-    <h2 id="games-title">The catalog</h2>
-    <div class="grid">
-      {GAMES.map((game, i) => <GameCard game={game} index={i} />)}
-    </div>
-  </section>
+  <p class="intro">Small games, drawn with a pen.</p>
+  <div class="games">
+    {playableGames().map((game) => <GameSpread game={game} />)}
+  </div>
 </Base>
 
 <style>
-  .hero { padding: 40px 0 64px; max-width: 760px; }
-  .hero em { color: var(--blue-ink); font-style: normal; text-decoration: underline wavy var(--red-ink) 2px; text-underline-offset: 8px; }
-  .lede { font-size: 1.2rem; color: var(--ink-soft); margin: 0 0 28px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 36px 28px; padding-top: 16px; }
+  .intro { margin: 8px 0 44px; font-family: var(--font-hand); font-size: clamp(1.6rem, 3.5vw, 2.1rem); color: var(--ink-soft); }
+  .games { display: grid; gap: 96px; }
 </style>
