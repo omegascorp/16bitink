@@ -6,12 +6,12 @@ import { ownership } from '../../../lib/owner';
 export const prerender = false;
 
 /** A game's paid content, only for verified owners. */
-export const GET: APIRoute = async ({ params, cookies }) => {
+export const GET: APIRoute = async ({ params, cookies, url }) => {
   const game = params.game ?? '';
   const content = Object.hasOwn(PAID_CONTENT, game) ? PAID_CONTENT[game] : undefined;
   if (content === undefined) return fail(404, 'Unknown game');
   try {
-    if (!(await ownership(cookies, game))) return fail(403, 'Full game not unlocked');
+    if (!(await ownership(cookies, game, url))) return fail(403, 'Full game not unlocked');
     return json({ success: true, data: content }, 200, { 'cache-control': 'private, no-store' });
   } catch (err) {
     console.error('[content] failed', { game, err });

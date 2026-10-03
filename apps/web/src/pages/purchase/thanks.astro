@@ -6,7 +6,7 @@ import { ownership } from '../../lib/owner';
 export const prerender = false;
 
 const game = findGame(Astro.url.searchParams.get('game') ?? '');
-const owned = game ? (await ownership(Astro.cookies, game.slug)) !== null : false;
+const owned = game ? (await ownership(Astro.cookies, game.slug, Astro.url)) !== null : false;
 Astro.response.headers.set('cache-control', 'no-store');
 ---
 <Base title={owned && game ? `Thanks! ${game.title} unlocked` : 'Purchase'} description="Purchase confirmation">
