@@ -80,6 +80,16 @@ export interface Kit {
   readonly ink: string;
   x(t: number): number;
   h(t: number): number;
+  /** Collects every light the species draws, when the game wants a glow layer for it. */
+  readonly lights?: Light[];
+}
+
+/** One glowing spot on a fish, in texture px. */
+export interface Light {
+  readonly x: number;
+  readonly y: number;
+  readonly r: number;
+  readonly color: string;
 }
 
 // ---------------------------------------------------------------- profile
@@ -177,6 +187,7 @@ export function spots(k: Kit, count: number, r: readonly [number, number], color
 
 /** Glowing light organs: a halo, a bright core, a hairline ring. */
 export function glow(k: Kit, x: number, y: number, r: number, color = '#f6d76a'): void {
+  k.lights?.push({ x, y, r, color });
   k.pen.fill(ellipse(x, y, r * 2.2, r * 2.2, 12), color, 0.25);
   k.pen.fill(ellipse(x, y, r, r, 10), color, 1);
   k.pen.hair(ring(x, y, r, r, 10), 0.45, k.ink, 0.9);

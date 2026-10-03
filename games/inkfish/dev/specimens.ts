@@ -7,9 +7,12 @@ import { PLAYERS } from '../src/art/fish/species/players';
 import { REEF } from '../src/art/fish/species/reef';
 import { SHALLOWS } from '../src/art/fish/species/shallows';
 import { ITEM_IDS } from '../src/levels/items';
-import { ART_RES, drawHook, drawJelly, drawRock, drawWeed } from '../src/art/propArt';
+import { ART_RES, drawHook, drawRock, drawWeed } from '../src/art/propArt';
+import { drawJellyGlow, drawJellyKind, JELLY_TEX } from '../src/art/jellyArt';
+import { JELLY_IDS } from '../src/levels/jellies';
 import { CRITTER_IDS, drawCritter } from '../src/art/critterArt';
 import { DECOR_IDS, DECOR_SIZE, drawDecor } from '../src/art/decorArt';
+import { drawDecorGlow, isGlowDecor } from '../src/art/decorGlow';
 
 // Dev-only sheet for reviewing the procedural ink art: big, and at in-game size.
 const sheet = document.getElementById('sheet')!;
@@ -46,7 +49,18 @@ const small = row();
 for (const s of shapes) figure(small, s, FISH_TEX, FISH_TEX, (ctx) => drawFish(ctx, s, 'light', 101), 70 / FISH_TEX);
 const props = row();
 const R = ART_RES;
-figure(props, 'jelly', 128 * R, 128 * R, (ctx) => drawJelly(ctx, 101), 1 / R);
+// Jellies, one per zone: on paper, then on deep water with their glow.
+const jellies = row();
+for (const id of JELLY_IDS) figure(jellies, id, JELLY_TEX * R, JELLY_TEX * R, (ctx) => drawJellyKind(ctx, id, 0, 101), 1.2 / R);
+const deepJellies = row();
+for (const id of JELLY_IDS) {
+  figure(deepJellies, id, JELLY_TEX * R, JELLY_TEX * R, (ctx) => {
+    ctx.fillStyle = '#272b3a';
+    ctx.fillRect(0, 0, JELLY_TEX * R, JELLY_TEX * R);
+    drawJellyKind(ctx, id, 0, 101);
+    drawJellyGlow(ctx, id);
+  }, 1.2 / R);
+}
 figure(props, 'hook', 48 * R, 76 * R, (ctx) => drawHook(ctx, 101), 1 / R);
 for (const kind of [0, 1, 2] as const) figure(props, `weed ${kind}`, 128 * R, 256 * R, (ctx) => drawWeed(ctx, 7 + kind * 13, kind, 0, 128 * R, 256 * R), 1 / R);
 figure(props, 'rock', 256 * R, 128 * R, (ctx) => drawRock(ctx, 40, 256 * R, 128 * R), 1 / R);
@@ -74,7 +88,20 @@ for (const id of DECOR_IDS) {
   const { w, h } = DECOR_SIZE[id];
   figure(decorSmall, id, w * R, h * R, (ctx) => drawDecor(ctx, id, 101), 0.5 / R * 1.4);
 }
+// Glowing scenery as the deep zones show it: under the night layer, with its glow on top.
+const decorGlow = row();
+for (const id of DECOR_IDS.filter(isGlowDecor)) {
+  const { w, h } = DECOR_SIZE[id];
+  figure(decorGlow, `${id} (deep)`, w * R, h * R, (ctx) => {
+    ctx.fillStyle = '#272b3a';
+    ctx.fillRect(0, 0, w * R, h * R);
+    drawDecor(ctx, id, 101);
+    ctx.fillStyle = 'rgba(5,10,28,0.8)';
+    ctx.fillRect(0, 0, w * R, h * R);
+    drawDecorGlow(ctx, id, 101);
+  }, 1);
+}
 if (params.get('critters') || params.get('decor')) {
-  const keep = params.get('critters') ? [critterRow, critterPoses] : [decorRow, decorSmall];
+  const keep = params.get('critters') ? [critterRow, critterPoses] : [decorGlow, decorRow, decorSmall];
   for (const r of [...sheet.children]) if (!keep.includes(r as HTMLElement)) r.remove();
 }

@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { GUIDE, guidePages, guideProgress } from '../src/guide';
 import { GUIDE_LIMITS, type GuideEntry } from '../src/guide/types';
 import { BIRD_INFO } from '../src/logic/birds';
+import { JELLY_IDS } from '../src/levels/jellies';
 import { SPECIES_INFO } from '../src/levels/species';
 import { PLAYER_FISH } from '../src/levels/zones';
 import { DEMO_CHAPTER } from '../src/levels/demo';
 import { INKFISH_FULL_CHAPTERS } from '../content/paid';
 
-const everyone = [...Object.keys(SPECIES_INFO), ...PLAYER_FISH, ...Object.keys(BIRD_INFO)];
+const everyone = [...Object.keys(SPECIES_INFO), ...PLAYER_FISH, ...Object.keys(BIRD_INFO), ...JELLY_IDS];
 
 describe('fish guide', () => {
   it('has a card for every creature in the game', () => {

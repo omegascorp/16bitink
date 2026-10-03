@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, ensureFishTextures, releaseFishTextures, weedKey } from '../art/textures';
+import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, ensureFishTextures, jellyGlowKey, releaseFishTextures, weedKey } from '../art/textures';
 import { getChapters, getHost } from '../host';
 import type { LevelDef, SpeciesId } from '../levels/types';
 import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy, type FrenzyState } from '../logic/frenzy';
@@ -26,6 +26,8 @@ import { capsulesTouch, capsuleTouchesCircle } from '../logic/body';
 import { TUNING } from './game/tuning';
 import { TwistRunner } from './game/twistRunner';
 import { drawWorld, swayWeeds } from './game/world';
+import { DeepLight, playerGlowTint } from './game/deepLight';
+import { JELLY_INFO } from '../levels/jellies';
 import { buildCover } from './game/coverPatches';
 import { Hideout } from './game/hideout';
 import { planCover } from '../levels/cover';
@@ -81,6 +83,7 @@ export class GameScene extends Phaser.Scene {
   private controls!: Controls;
   private fish: Fish[] = [];
   private jellies: Jelly[] = [];
+  private deep!: DeepLight;
   private hooks: Hook[] = [];
   /** What each hook is reeling in, if it caught a fish. */
   private hookedFish = new Map<Hook, Fish>();
@@ -149,17 +152,24 @@ export class GameScene extends Phaser.Scene {
     releaseFishTextures(this, residents);
     ensureFishTextures(this, residents);
     this.seabed = seabedFor(this.level.id, world);
-    this.weeds = drawWorld(this, this.level, chapter.zone, this.seabed, this.sky);
+    const scenery = drawWorld(this, this.level, chapter.zone, this.seabed, this.sky);
+    this.weeds = scenery.weeds;
+    this.deep = new DeepLight(this, chapter.zone, world, levelNumber(this.level) * 53 + 11);
+    this.deep.lightDecor(scenery.decor);
     const covers = buildCover(this, planCover(this.level.id, levelNumber(this.level), chapter.zone, world.width), this.seabed.floorAt, levelNumber(this.level) * 31 + 7);
     this.weeds.push(...covers.flatMap((c) => c.weeds));
     this.hideout = new Hideout(this, covers, this.seabed.floorAt);
     this.player = createPlayer(this, this.level, chapter.player);
+    this.deep.lightPlayer(this.player.sprite, chapter.player, playerGlowTint(chapter.player));
     this.twist = new TwistRunner(this, this.level, this.rng);
     this.itemHost = this.makeItemHost();
     this.shieldG = this.add.graphics().setDepth(21);
     this.fish = [...this.fish, ...this.twist.setup(this.player.sprite)];
     this.controls = createControls(this);
-    this.jellies = spawnJellies(this, this.level, this.rng);
+    this.jellies = spawnJellies(this, this.level, chapter.zone, this.rng);
+    for (const j of this.jellies) {
+      if (JELLY_INFO[j.kind].glow) this.deep.attach(j.sprite, jellyGlowKey(j.kind), { alpha: 0.85, pulse: 0.5 });
+    }
     this.cameras.main.startFollow(this.player.sprite, true, 0.08, 0.08);
     this.cameras.main.setZoom(this.zoomFor(this.player.size));
 
@@ -179,7 +189,7 @@ export class GameScene extends Phaser.Scene {
         newPlayer: chapter.id > 1 && this.level.id.endsWith('-l1') ? PLAYER_FISH_NAMES[chapter.player] : undefined,
         newPlayerTrait: PLAYER_STATS[chapter.player].trait,
       }),
-      dark: this.level.modifiers.dark ?? false,
+      dark: (this.level.modifiers.dark ?? false) || this.deep.active,
     });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.sightings.save();
@@ -205,6 +215,7 @@ export class GameScene extends Phaser.Scene {
     const now = this.time.now;
     this.tickBoil(deltaMs);
     swayWeeds(this.weeds, this.twist.current, this.time.now);
+    this.lightTheDeep(now, dt);
     if (this.ended) {
       // The sea carries on while the ending plays; the player's sprite belongs to the death animation.
       this.updateFishes(now, dt);
@@ -241,7 +252,17 @@ export class GameScene extends Phaser.Scene {
     this.sightings.look(now, cam.worldView, [
       ...this.fish.map((f) => ({ x: f.sprite.x, y: f.sprite.y, id: f.species })),
       ...this.flock.birds.map((b) => ({ x: b.sprite.x, y: b.sprite.y, id: b.kind })),
+      ...this.jellies.map((j) => ({ x: j.sprite.x, y: j.sprite.y, id: j.kind })),
     ]);
+  }
+
+  /** Living light in the deep zones: every fish's lights, marine snow, the player's own glow. */
+  private lightTheDeep(now: number, dt: number): void {
+    if (!this.deep.active) return;
+    for (const f of this.fish) this.deep.trackFish(f.sprite, f.species);
+    const p = this.player;
+    const glow = now < p.glowUntil ? TUNING.glowFactor : 1;
+    this.deep.update(dt, now, p.sprite, (170 + p.drawSize * 2.4) * glow);
   }
 
   private tickBoil(deltaMs: number): void {

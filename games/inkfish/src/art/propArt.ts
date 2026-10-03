@@ -196,50 +196,6 @@ export function drawRock(ctx: CanvasRenderingContext2D, seed: number, w: number,
 
 // ---------------------------------------------------------------- creatures & items
 
-export function drawJelly(ctx: CanvasRenderingContext2D, seed: number): void {
-  const pen = new Pen(ctx, seed, 0.6);
-  const s = ART_RES;
-  const cx = 64 * s;
-  const rim = 58 * s;
-  const bell: Pt[] = [];
-  for (let i = 0; i <= 24; i++) {
-    const a = Math.PI + (i / 24) * Math.PI;
-    bell.push({ x: cx + Math.cos(a) * 38 * s, y: rim + Math.sin(a) * 34 * s });
-  }
-  // Frilled margin.
-  for (let i = 0; i <= 16; i++) bell.push({ x: cx + 38 * s - (i / 16) * 76 * s, y: rim + (i % 2 ? 3 : 0) * s });
-  // Fine tentacles behind the bell.
-  for (let t = 0; t < 14; t++) {
-    const x0 = cx - 34 * s + (t / 13) * 68 * s;
-    const pts: Pt[] = [];
-    for (let i = 0; i <= 14; i++) pts.push({ x: x0 + Math.sin(i * 0.7 + t + seed) * 4 * s, y: rim + i * 4.6 * s });
-    pen.hair(pts, 0.5 * s, INK, 0.55);
-  }
-  // Oral arms: frilly ribbons.
-  for (let k = 0; k < 4; k++) {
-    const x0 = cx - 12 * s + k * 8 * s;
-    const center: Pt[] = [];
-    for (let i = 0; i <= 12; i++) center.push({ x: x0 + Math.sin(i * 0.6 + k * 1.7 + seed) * 5 * s, y: rim + i * 3.6 * s });
-    const { left, right, shape } = ribbon(center, (u) => (3.2 - u * 2.2) * s);
-    pen.fill(shape, '#c9a8e0', 0.5);
-    pen.hair(left, 0.5 * s, INK, 0.8);
-    pen.hair(right, 0.5 * s, INK, 0.8);
-  }
-  pen.fill(bell, PAPER_FILL, 0.92);
-  pen.fill(bell, '#9b6fc4', 0.22);
-  // Radial canals and gonad rings seen through the bell.
-  for (let r = 0; r < 9; r++) {
-    const a = Math.PI + ((r + 0.5) / 9) * Math.PI;
-    pen.hair(bez({ x: cx, y: rim - 26 * s }, { x: cx + Math.cos(a) * 20 * s, y: rim - 24 * s + Math.sin(a) * 6 * s }, { x: cx + Math.cos(a) * 36 * s, y: rim + Math.sin(a) * 30 * s + 2 * s }, 8), 0.45 * s, INK, 0.45);
-  }
-  for (let g = 0; g < 4; g++) {
-    const gx = cx - 15 * s + g * 10 * s;
-    pen.hair(ellipse(gx, rim - 14 * s, 4 * s, 2.5 * s, 10).concat([{ x: gx + 4 * s, y: rim - 14 * s }]), 0.5 * s, '#6b3f99', 0.7);
-  }
-  pen.stipple(bell, 600, (_x, y) => Math.max(0, (y - (rim - 40 * s)) / (40 * s)) * 0.5, 0.5 * s);
-  pen.stroke(bell, 1.1 * s, INK, 1);
-}
-
 export function drawHook(ctx: CanvasRenderingContext2D, seed: number): void {
   const pen = new Pen(ctx, seed, 0.5);
   const s = ART_RES;

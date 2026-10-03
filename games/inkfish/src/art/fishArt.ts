@@ -1,10 +1,10 @@
 import type { PlayerFishId, SpeciesId } from '../levels/types';
 import { ANATOMY } from './fish/registry';
 import {
-  bezier, bottomAt, C, FISH_RADIUS, FISH_TEX, heightAt, outline, PAPER_FILL, topAt, xAt, type Anatomy, type Fin, type Kit,
+  bezier, bottomAt, C, FISH_RADIUS, FISH_TEX, heightAt, outline, PAPER_FILL, topAt, xAt, type Anatomy, type Fin, type Kit, type Light,
 } from './fish/kit';
 import { CRITTER_BODY, drawCritter, isCritter } from './critterArt';
-import { ellipse, INK, Pen, type Pt } from './pen';
+import { ellipse, INK, makeCanvas, Pen, type Pt } from './pen';
 
 export { FISH_RADIUS, FISH_TEX };
 export type FishShape = SpeciesId | PlayerFishId;
@@ -321,13 +321,13 @@ function undulate(ctx: CanvasRenderingContext2D, amplitude: number): void {
 }
 
 /** Draws one boil frame of a fish facing right, centred in a FISH_TEX square canvas. */
-export function drawFish(ctx: CanvasRenderingContext2D, shape: FishShape, variant: InkVariant, seed: number): void {
+export function drawFish(ctx: CanvasRenderingContext2D, shape: FishShape, variant: InkVariant, seed: number, lights?: Light[]): void {
   const a: Anatomy = ANATOMY[shape];
   const pen = new Pen(ctx, seed, 0.55);
   const heavy = variant === 'heavy';
   const ink = a.ink ?? INK;
   const body = outline(a);
-  const k: Kit = { pen, a, body, heavy, ink, x: (t) => xAt(a, t), h: (t) => heightAt(a, t) };
+  const k: Kit = { pen, a, body, heavy, ink, x: (t) => xAt(a, t), h: (t) => heightAt(a, t), lights };
 
   a.under?.(k);
   // Fins behind the body.
@@ -379,4 +379,16 @@ export function drawCreature(ctx: CanvasRenderingContext2D, shape: FishShape, va
 /** Half length and half height of the solid body in texture px, for hit shapes and framing. */
 export function bodyProportions(shape: FishShape): { readonly hl: number; readonly hh: number } {
   return isCritter(shape) ? CRITTER_BODY[shape] : ANATOMY[shape];
+}
+
+const lightCache = new Map<FishShape, readonly Light[]>();
+
+/** Where a fish's lights sit, in texture px (empty for fish that don't glow). Found by drawing it once. */
+export function fishLights(shape: FishShape): readonly Light[] {
+  const cached = lightCache.get(shape);
+  if (cached) return cached;
+  const lights: Light[] = [];
+  if (!isCritter(shape)) drawFish(makeCanvas(FISH_TEX, FISH_TEX).ctx, shape, 'light', 101, lights);
+  lightCache.set(shape, lights);
+  return lights;
 }

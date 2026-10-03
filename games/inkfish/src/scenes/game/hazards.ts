@@ -1,34 +1,50 @@
 import Phaser from 'phaser';
-import { ART_RES, boilKey } from '../../art/textures';
-import type { LevelDef } from '../../levels/types';
+import { ART_RES, boilKey, ensureJellyTextures, jellyKey } from '../../art/textures';
+import { JELLY_INFO, pickJelly, type JellyId } from '../../levels/jellies';
+import type { LevelDef, ZoneId } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { TUNING } from './tuning';
 import { drawWorm } from './worm';
 
 export interface Jelly {
   readonly sprite: Phaser.GameObjects.Image;
+  readonly kind: JellyId;
   readonly radius: number;
   vx: number;
   phase: number;
 }
 
-export function spawnJellies(scene: Phaser.Scene, level: LevelDef, rng: Rng): Jelly[] {
-  return Array.from({ length: level.hazards.jellyfish }, () => {
+/** A standard jelly's drawn scale and sting reach; each kind scales both. */
+const JELLY_SCALE = 0.7;
+const JELLY_RADIUS = 30;
+
+export function spawnJellies(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, rng: Rng): Jelly[] {
+  const kinds = Array.from({ length: level.hazards.jellyfish }, () => pickJelly(zone, rng));
+  ensureJellyTextures(scene, kinds);
+  return kinds.map((kind) => {
+    const { scale, motion } = JELLY_INFO[kind];
     const sprite = scene.add
-      .image(rangeOf(rng, 200, level.world.width - 200), rangeOf(rng, 300, level.world.height - 300), boilKey('jelly', 0))
+      .image(rangeOf(rng, 200, level.world.width - 200), rangeOf(rng, 300, level.world.height - 300), jellyKey(kind, 0))
       .setDepth(9)
-      .setScale(0.7 / ART_RES);
-    return { sprite, radius: 30, vx: rangeOf(rng, -25, 25), phase: rng() * 6 };
+      .setScale((JELLY_SCALE * scale) / ART_RES);
+    const drift = motion === 'dart' ? rangeOf(rng, 40, 70) * (rng() < 0.5 ? -1 : 1) : rangeOf(rng, -25, 25);
+    return { sprite, kind, radius: JELLY_RADIUS * scale, vx: drift, phase: rng() * 6 };
   });
 }
 
 export function updateJelly(j: Jelly, level: LevelDef, dt: number, frame: number): void {
   j.phase += dt;
   j.sprite.x = Phaser.Math.Wrap(j.sprite.x + j.vx * dt, -60, level.world.width + 60);
-  // Pulse upward, drift down: the jellyfish "breathes".
-  j.sprite.y += (Math.sin(j.phase * 2) > 0.6 ? -55 : 14) * dt;
+  const motion = JELLY_INFO[j.kind].motion;
+  if (motion === 'glide') {
+    // Comb jellies row smoothly on their combs: a slow, even bob.
+    j.sprite.y += Math.sin(j.phase * 0.8) * 18 * dt;
+  } else {
+    // Pulse upward, drift down: the jellyfish "breathes".
+    j.sprite.y += (Math.sin(j.phase * 2) > 0.6 ? -55 : 14) * dt;
+  }
   j.sprite.y = Phaser.Math.Clamp(j.sprite.y, 140, level.world.height - 200);
-  j.sprite.setTexture(boilKey('jelly', frame));
+  j.sprite.setTexture(jellyKey(j.kind, frame));
 }
 
 /** 'arrive': waiting, out of sight, while its boat sails into place. */

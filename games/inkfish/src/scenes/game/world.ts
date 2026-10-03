@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { ART_RES, CLOUD_COUNT, cloudKey, ensureDecorTextures, ensureShoreTextures, shoreKey, weedKey } from '../../art/textures';
 import { SHORE_SIZE } from '../../art/shoreArt';
+import { DECOR_SIZE } from '../../art/decorArt';
+import { isGlowDecor } from '../../art/decorGlow';
 import { planShore, SHORE_PARALLAX } from '../../levels/shore';
 import { hashUnit, SKY, type Seabed } from '../../logic/water';
-import { decorKinds, placeDecor, planDecor } from './seabedDecor';
+import { decorKinds, placeDecor, planDecor, type PlacedDecor } from './seabedDecor';
 import type { LevelDef, ZoneId } from '../../levels/types';
 import { ZONE_DARKNESS } from '../../levels/zones';
 import type { WeedKind } from '../../art/propArt';
@@ -27,9 +29,10 @@ export const ZONE_WEEDS: Readonly<Record<ZoneId, { readonly kinds: readonly Weed
 
 /**
  * Paper, depth wash, surface and the level's own seabed with its scenery; with
- * `sky`, open air above the surface too. Returns boiling weed sprites.
+ * `sky`, open air above the surface too. Returns the boiling weed sprites and
+ * the seabed scenery (the deep zones light up the pieces that glow).
  */
-export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, seabed: Seabed, sky = false): Phaser.GameObjects.Image[] {
+export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, seabed: Seabed, sky = false): { weeds: Phaser.GameObjects.Image[]; decor: PlacedDecor[] } {
   const dark = ZONE_DARKNESS[zone];
   const flora = ZONE_WEEDS[zone];
   const { width, height } = level.world;
@@ -43,15 +46,14 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
   }
 
   const wash = scene.add.graphics().setDepth(1);
-  const bands = 12;
   // With open sky the water starts at the surface line; the air stays plain paper.
+  // Deeper zones get a heavier ink wash, darkening with depth.
   const waterFrom = sky ? SKY.surfaceY : 0;
-  const band = (height - waterFrom) / bands;
-  for (let i = 0; i < bands; i++) {
-    // Deeper zones get a heavier ink wash.
-    wash.fillStyle(dark > 0.5 ? 0x1c2a4a : 0x2c4f86, (0.012 + i * 0.0075) * (1 + dark * 5));
-    wash.fillRect(0, waterFrom + i * band, width, band + 1);
-  }
+  const color = dark > 0.5 ? 0x1c2a4a : 0x2c4f86;
+  const alphaTop = Math.min(1, 0.012 * (1 + dark * 5));
+  const alphaBottom = Math.min(1, 0.095 * (1 + dark * 5));
+  wash.fillGradientStyle(color, color, color, color, alphaTop, alphaTop, alphaBottom, alphaBottom);
+  wash.fillRect(0, waterFrom, width, height - waterFrom);
 
   const lines = scene.add.graphics().setDepth(2);
   // Surface: a wavy double pen line. Deep down there is no surface in sight, just more dark water.
@@ -92,24 +94,30 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
 
   const plan = planDecor(level.id, zone, width);
   ensureDecorTextures(scene, decorKinds(plan));
-  placeDecor(scene, plan, floor, 1);
+  const decor = placeDecor(scene, plan, floor, 1);
 
   // Rock and weed counts vary level to level around the zone's usual.
   const rocks = Math.round(flora.rocks * rangeOf(rng, 0.5, 1.4));
+  // Boulders stand in front of the landmark, so keep them off a glowing one: its light would shine through them.
+  const glowing = plan.filter((d) => d.landmark && isGlowDecor(d.kind));
+  const clear = (x: number): boolean => glowing.every((d) => Math.abs(x - d.x) > (DECOR_SIZE[d.kind].w * d.scale) / 2 + 60);
   for (let i = 0; i < rocks; i++) {
     const x = rangeOf(rng, 0, width);
+    const scale = rangeOf(rng, 0.8, 1.3);
+    const flip = rng() < 0.5;
+    if (!clear(x)) continue;
     // Origin near the bottom so the rock sits down into the sand.
-    scene.add.image(x, floor(x) + 10, `rock-${i % 3}`).setOrigin(0.5, 0.94).setDepth(3)
-      .setScale(rangeOf(rng, 0.8, 1.3) / ART_RES).setFlipX(rng() < 0.5);
+    scene.add.image(x, floor(x) + 10, `rock-${i % 3}`).setOrigin(0.5, 0.94).setDepth(3).setScale(scale / ART_RES).setFlipX(flip);
   }
   // Scales are capped so weeds are never magnified past their texture.
-  if (flora.kinds.length === 0) return [];
-  return Array.from({ length: Math.round(flora.count * rangeOf(rng, 0.55, 1.35)) }, () => {
+  if (flora.kinds.length === 0) return { weeds: [], decor };
+  const weeds = Array.from({ length: Math.round(flora.count * rangeOf(rng, 0.55, 1.35)) }, () => {
     const x = rangeOf(rng, 0, width);
     const kind = flora.kinds[Math.floor(rng() * flora.kinds.length)]!;
     return scene.add.image(x, floor(x) + 10, weedKey(kind, 0)).setOrigin(0.5, 1).setDepth(4)
       .setScale(rangeOf(rng, 0.75, 1.15) / ART_RES).setFlipX(rng() < 0.5).setData('kind', kind).setData('phase', rng() * Math.PI * 2);
   });
+  return { weeds, decor };
 }
 
 /** A few loose clouds drifting in the open air above the surface. */

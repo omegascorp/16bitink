@@ -18,10 +18,10 @@ export const ZONE_DECOR: Readonly<Record<ZoneId, { readonly common: readonly Dec
   reef: { common: ['braincoral', 'staghorn', 'seafan', 'tubesponge', 'anemone', 'starfish'], landmarks: ['giantclam', 'amphora'] },
   wreck: { common: ['mussels', 'anemone', 'pebbles', 'scallops', 'amphora'], landmarks: ['cannon', 'anchor'] },
   dropoff: { common: ['seafan', 'glasssponge', 'brittlestar', 'pebbles', 'tubesponge'], landmarks: ['anchor', 'whalebones'] },
-  twilight: { common: ['brittlestar', 'sealily', 'glasssponge', 'seapen', 'nodules'], landmarks: ['whalebones', 'anchor'] },
-  midnight: { common: ['sealily', 'glasssponge', 'brittlestar', 'nodules'], landmarks: ['whalebones'] },
-  abyss: { common: ['nodules', 'sealily', 'glasssponge', 'brittlestar'], landmarks: ['blacksmoker', 'whalebones'] },
-  trench: { common: ['nodules', 'tubeworms', 'brittlestar'], landmarks: ['blacksmoker'] },
+  twilight: { common: ['brittlestar', 'sealily', 'glasssponge', 'bamboocoral', 'nodules'], landmarks: ['whalebones', 'anchor'] },
+  midnight: { common: ['sealily', 'bamboocoral', 'umbellula', 'brittlestar', 'nodules'], landmarks: ['whalebones', 'volcano'] },
+  abyss: { common: ['nodules', 'umbellula', 'glasssponge', 'bamboocoral', 'brittlestar'], landmarks: ['blacksmoker', 'whalebones', 'volcano'] },
+  trench: { common: ['nodules', 'tubeworms', 'umbellula', 'brittlestar'], landmarks: ['blacksmoker', 'volcano'] },
 };
 
 export const decorKey = (kind: DecorId): string => `decor-${kind}`;
@@ -57,10 +57,16 @@ export function decorKinds(plan: readonly DecorPlan[]): DecorId[] {
 }
 
 /** Lays the planned pieces on the sand: landmarks behind the rocks, small things in front. */
-export function placeDecor(scene: Phaser.Scene, plan: readonly DecorPlan[], floorAt: (x: number) => number, alpha: number): void {
-  for (const d of plan) {
+export function placeDecor(scene: Phaser.Scene, plan: readonly DecorPlan[], floorAt: (x: number) => number, alpha: number): PlacedDecor[] {
+  return plan.map((d) => {
     const sink = Math.min(10, DECOR_SIZE[d.kind].h * 0.08);
-    scene.add.image(d.x, floorAt(d.x) + sink, decorKey(d.kind)).setOrigin(0.5, 1).setDepth(d.landmark ? 2.5 : 3.5)
+    const sprite = scene.add.image(d.x, floorAt(d.x) + sink, decorKey(d.kind)).setOrigin(0.5, 1).setDepth(d.landmark ? 2.5 : 3.5)
       .setScale(d.scale / ART_RES).setFlipX(d.flip).setAlpha(alpha);
-  }
+    return { kind: d.kind, sprite };
+  });
+}
+
+export interface PlacedDecor {
+  readonly kind: DecorId;
+  readonly sprite: Phaser.GameObjects.Image;
 }

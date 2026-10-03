@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import { isCritter } from '../../art/critterArt';
 import { bodyProportions, type FishShape } from '../../art/fishArt';
-import { birdKey, ensureBirdTextures, ensureFishTextures, fishKey } from '../../art/textures';
+import { birdKey, ensureBirdTextures, ensureFishTextures, ensureJellyTextures, fishKey, jellyKey } from '../../art/textures';
 import { GUIDE, guideArt, guideName, type GuideEntry, type GuideId } from '../../guide';
 import type { BirdId } from '../../logic/birds';
+import type { JellyId } from '../../levels/jellies';
 import { BLUE_INK, HAND_FONT, inkButton, inkText, wobblyRect } from '../ui';
 
 /** The creature's drawing, fitted inside a w x h box. */
@@ -13,6 +14,11 @@ export function creaturePicture(scene: Phaser.Scene, id: GuideId, x: number, y: 
     const img = scene.add.image(x, y, birdKey(id as BirdId, 1));
     // The bird fills only the middle of its texture.
     return img.setScale(Math.min(w / img.width, h / img.height) * 2);
+  }
+  if (guideArt(id) === 'jelly') {
+    ensureJellyTextures(scene, [id as JellyId]);
+    const img = scene.add.image(x, y, jellyKey(id as JellyId, 0));
+    return img.setScale(Math.min(w / img.width, h / img.height) * 1.15);
   }
   const shape = id as FishShape;
   ensureFishTextures(scene, [shape], ['light']);

@@ -44,6 +44,20 @@ export const ZONE_DARKNESS: Readonly<Record<ZoneId, number>> = {
   dropoff: 0.42, twilight: 0.55, midnight: 0.7, abyss: 0.8, trench: 0.88,
 };
 
+/**
+ * Below the reach of sunlight, a layer of night over the scenery that only
+ * living light shines through (scenes/game/deepLight.ts). Per zone: how dark
+ * (0 = none) and its colour, from the last blue of twilight to black.
+ */
+export const ZONE_NIGHT: Readonly<Record<ZoneId, { readonly alpha: number; readonly color: number }>> = {
+  tidepool: { alpha: 0, color: 0 }, seagrass: { alpha: 0, color: 0 }, kelp: { alpha: 0, color: 0 },
+  reef: { alpha: 0, color: 0 }, wreck: { alpha: 0, color: 0 }, dropoff: { alpha: 0, color: 0 },
+  twilight: { alpha: 0.72, color: 0x0b2150 },
+  midnight: { alpha: 0.8, color: 0x07112e },
+  abyss: { alpha: 0.85, color: 0x050a1c },
+  trench: { alpha: 0.88, color: 0x030614 },
+};
+
 export function zoneInfo(chapterId: number): ChapterInfo {
   const z = ZONE_INFO.find((c) => c.id === chapterId);
   if (!z) throw new Error(`No zone for chapter ${chapterId}`);

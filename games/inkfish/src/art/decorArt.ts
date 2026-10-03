@@ -1,4 +1,5 @@
 import { drawDeepDecor, type DeepDecorId } from './decorDeep';
+import { drawGlowDecor, type GlowDecorId } from './decorGlow';
 import { drawLostDecor, type LostDecorId } from './decorLost';
 import { drawShallowDecor, type ShallowDecorId } from './decorShallow';
 
@@ -7,11 +8,11 @@ import { drawShallowDecor, type ShallowDecorId } from './decorShallow';
  * sponges, bones, lost human objects. Each zone draws from its own set, and
  * each level picks its own mix so no two seabeds look alike.
  *
- * Drawing contract (both decor files): the canvas is DECOR_SIZE[kind] times
+ * Drawing contract (every decor file): the canvas is DECOR_SIZE[kind] times
  * ART_RES; the object stands on the canvas's bottom edge (the game places it
  * with origin (0.5, 1) on the sand, sunk a few px), centred horizontally.
  */
-export type DecorId = ShallowDecorId | DeepDecorId | LostDecorId;
+export type DecorId = ShallowDecorId | DeepDecorId | GlowDecorId | LostDecorId;
 
 /** In-game size (world px) of each decor texture; the canvas is ART_RES times larger. */
 export const DECOR_SIZE: Readonly<Record<DecorId, { readonly w: number; readonly h: number }>> = {
@@ -36,6 +37,10 @@ export const DECOR_SIZE: Readonly<Record<DecorId, { readonly w: number; readonly
   tubeworms: { w: 110, h: 130 },
   blacksmoker: { w: 120, h: 220 },
   whalebones: { w: 300, h: 110 },
+  // Deep sea scenery that glows (decorGlow.ts)
+  umbellula: { w: 80, h: 190 },
+  bamboocoral: { w: 150, h: 140 },
+  volcano: { w: 340, h: 260 },
   // Lost human-made things (decorLost.ts)
   anchor: { w: 130, h: 150 },
   amphora: { w: 130, h: 80 },
@@ -49,5 +54,6 @@ export const DECOR_IDS = Object.keys(DECOR_SIZE) as DecorId[];
 export function drawDecor(ctx: CanvasRenderingContext2D, kind: DecorId, seed: number): void {
   if (drawShallowDecor(ctx, kind as ShallowDecorId, seed)) return;
   if (drawDeepDecor(ctx, kind as DeepDecorId, seed)) return;
+  if (drawGlowDecor(ctx, kind as GlowDecorId, seed)) return;
   drawLostDecor(ctx, kind as LostDecorId, seed);
 }

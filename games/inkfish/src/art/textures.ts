@@ -4,9 +4,13 @@ import { BONES_SIZE, drawBones, drawPan, PAN_SIZE } from './deathArt';
 import { drawItem, ITEM_SIZE } from './itemArt';
 import { DARK_TEX, drawDarkness, drawInkDrop, DROP_SIZE } from './twistArt';
 import { ITEM_IDS } from '../levels/items';
-import { drawCreature, FISH_TEX, type FishShape, type InkVariant } from './fishArt';
+import { drawCreature, FISH_TEX, fishLights, type FishShape, type InkVariant } from './fishArt';
+import { drawFishGlow, drawSoftGlow, GLOW_TEX } from './glowArt';
+import { drawJellyGlow, drawJellyKind, JELLY_TEX } from './jellyArt';
+import { JELLY_INFO, type JellyId } from '../levels/jellies';
 import { isCritter } from './critterArt';
 import { DECOR_SIZE, drawDecor, type DecorId } from './decorArt';
+import { drawDecorGlow, isGlowDecor } from './decorGlow';
 import { xAt } from './fish/kit';
 import { ANATOMY } from './fish/registry';
 import { makeCanvas } from './pen';
@@ -15,7 +19,7 @@ import { BIRD_FRAMES, BIRD_TEX, drawBird } from './birdArt';
 import type { BirdId } from '../logic/birds';
 import type { ShoreKind } from '../levels/shore';
 import { drawShore, SHORE_SIZE } from './shoreArt';
-import { ART_RES, drawBubble, drawWreck, drawHook, drawJelly, drawPaper, drawRock, drawWeed, type WeedKind } from './propArt';
+import { ART_RES, drawBubble, drawWreck, drawHook, drawPaper, drawRock, drawWeed, type WeedKind } from './propArt';
 
 export { ART_RES };
 
@@ -49,7 +53,6 @@ export function generateInkTextures(scene: Phaser.Scene): void {
   for (let f = 0; f < BOIL_FRAMES; f++) {
     const seed = 101 + f * 977;
     const R = ART_RES;
-    add(scene, boilKey('jelly', f), 128 * R, 128 * R, (ctx) => drawJelly(ctx, seed));
     add(scene, boilKey('hook', f), 48 * R, 76 * R, (ctx) => drawHook(ctx, seed));
     for (const kind of ITEM_IDS) add(scene, boilKey(`item-${kind}`, f), ITEM_SIZE * R, ITEM_SIZE * R, (ctx) => drawItem(ctx, kind, seed));
     add(scene, boilKey('drop', f), DROP_SIZE * R, DROP_SIZE * R, (ctx) => drawInkDrop(ctx, seed));
@@ -68,6 +71,7 @@ export function generateInkTextures(scene: Phaser.Scene): void {
   add(scene, 'bones', BONES_SIZE.w * ART_RES, BONES_SIZE.h * ART_RES, (ctx) => drawBones(ctx, 9));
   add(scene, 'pan', PAN_SIZE.w * ART_RES, PAN_SIZE.h * ART_RES, (ctx) => drawPan(ctx, 12));
   add(scene, 'darkness', DARK_TEX, DARK_TEX, drawDarkness);
+  add(scene, GLOW_KEY, GLOW_TEX, GLOW_TEX, drawSoftGlow);
   add(scene, 'paper', 512, 512, (ctx) => drawPaper(ctx, 512));
   for (const kind of BOAT_KINDS) add(scene, `boat-${kind}`, BOAT_SPEC[kind].w * ART_RES, BOAT_SPEC[kind].h * ART_RES, (ctx) => drawBoat(ctx, kind, 31));
   for (let i = 0; i < CLOUD_COUNT; i++) add(scene, cloudKey(i), CLOUD_SIZE.w * ART_RES, CLOUD_SIZE.h * ART_RES, (ctx) => drawCloud(ctx, 61 + i * 17));
@@ -75,6 +79,30 @@ export function generateInkTextures(scene: Phaser.Scene): void {
 }
 
 const frameSeed = (f: number): number => 101 + f * 977;
+
+/** The plain soft dot (see glowArt.ts). */
+export const GLOW_KEY = 'glow';
+export const fishGlowKey = (shape: FishShape): string => `fishglow-${shape}`;
+
+/** The glow layer for a fish that carries lights; null for fish that don't glow. */
+export function ensureFishGlow(scene: Phaser.Scene, shape: FishShape): string | null {
+  const lights = fishLights(shape);
+  if (lights.length === 0) return null;
+  add(scene, fishGlowKey(shape), FISH_TEX, FISH_TEX, (ctx) => drawFishGlow(ctx, lights));
+  return fishGlowKey(shape);
+}
+
+export const jellyKey = (kind: JellyId, frame: number): string => `jelly-${kind}-${frame}`;
+export const jellyGlowKey = (kind: JellyId): string => `jellyglow-${kind}`;
+
+/** Boil frames (and the glow layer, for glowing kinds) for the jellies a level uses. */
+export function ensureJellyTextures(scene: Phaser.Scene, kinds: readonly JellyId[]): void {
+  const side = JELLY_TEX * ART_RES;
+  for (const kind of new Set(kinds)) {
+    for (let f = 0; f < BOIL_FRAMES; f++) add(scene, jellyKey(kind, f), side, side, (ctx) => drawJellyKind(ctx, kind, f, frameSeed(f)));
+    if (JELLY_INFO[kind].glow) add(scene, jellyGlowKey(kind), side, side, (ctx) => drawJellyGlow(ctx, kind));
+  }
+}
 
 export const shoreKey = (kind: ShoreKind): string => `shore-${kind}`;
 
@@ -156,5 +184,8 @@ export function ensureDecorTextures(scene: Phaser.Scene, kinds: readonly DecorId
   for (const kind of kinds) {
     const { w, h } = DECOR_SIZE[kind];
     add(scene, `decor-${kind}`, w * ART_RES, h * ART_RES, (ctx) => drawDecor(ctx, kind, 101));
+    if (isGlowDecor(kind)) add(scene, decorGlowKey(kind), w * ART_RES, h * ART_RES, (ctx) => drawDecorGlow(ctx, kind, 101));
   }
 }
+
+export const decorGlowKey = (kind: DecorId): string => `decorglow-${kind}`;

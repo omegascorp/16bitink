@@ -1,8 +1,9 @@
 import type { BirdId } from '../logic/birds';
+import type { JellyId } from '../levels/jellies';
 import type { PlayerFishId, SpeciesId } from '../levels/types';
 
-/** Everything the fish guide can describe: fish and seabed critters, the fish you swim as, and birds. */
-export type GuideId = SpeciesId | PlayerFishId | BirdId;
+/** Everything the fish guide can describe: fish and seabed critters, the fish you swim as, jellyfish and birds. */
+export type GuideId = SpeciesId | PlayerFishId | BirdId | JellyId;
 
 /**
  * One real-life fact card. Short phrases, not sentences, so a card reads at a
