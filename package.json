@@ -1,0 +1,10 @@
+{
+  "name": "16bitink",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @16bitink/web dev",
+    "build": "pnpm --filter @16bitink/web build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  }
+}

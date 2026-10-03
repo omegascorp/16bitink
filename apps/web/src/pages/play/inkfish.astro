@@ -1,0 +1,71 @@
+---
+import { findGame } from '../../data/games';
+const game = findGame('inkfish');
+if (!game) throw new Error('inkfish missing from catalog');
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- viewport-fit=cover + safe-area padding: edge-to-edge on notched phones -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>Play {game.title} | 16bit.ink</title>
+    <meta name="description" content={game.tagline} />
+    <meta name="theme-color" content="#f4eddc" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Silkscreen&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="stage" aria-label={`${game.title} game`}>
+      <div id="splash">
+        <p class="brand"><span class="bits">16bit</span><span class="ink">.ink</span></p>
+        <h1>{game.title}</h1>
+        <p class="tag">{game.tagline}</p>
+        <button id="play" type="button">Tap to play</button>
+        <p id="ios-hint" hidden>Tip: Share → <strong>Add to Home Screen</strong> for true full-screen on iPhone.</p>
+        <p id="status" role="status"></p>
+        <a class="back" href={`/games/${game.slug}`}>← back</a>
+      </div>
+    </div>
+
+    <script>
+      import { bootPlayer } from '../../lib/client/player';
+      bootPlayer('inkfish');
+    </script>
+
+    <style is:global>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #f4eddc; overscroll-behavior: none; }
+      #stage {
+        position: fixed; inset: 0; width: 100vw; height: 100dvh;
+        touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+        background: #f4eddc;
+      }
+      #stage canvas { display: block; }
+      #splash {
+        position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 8px; padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom); text-align: center;
+        font-family: 'Caveat', cursive; color: #1b1a1f; z-index: 2;
+      }
+      #splash h1 { font-size: clamp(4rem, 16vw, 8rem); margin: 0; line-height: 0.9; color: #1f3f8a; }
+      .tag { font-size: 1.8rem; margin: 0 0 18px; }
+      .brand { font-size: 1.6rem; margin: 0; }
+      .brand .bits { font-family: 'Silkscreen', monospace; font-size: 1.1rem; }
+      .brand .ink { color: #1f3f8a; }
+      #play {
+        font: 700 2.2rem 'Caveat', cursive; padding: 10px 36px; min-height: 60px; cursor: pointer;
+        color: #fbf6ea; background: #1f3f8a; border: 3px solid #1b1a1f;
+        border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; box-shadow: 3px 4px 0 #1b1a1f;
+      }
+      #play:active { transform: translate(2px, 3px); box-shadow: none; }
+      #play:focus-visible { outline: 3px dashed #1f3f8a; outline-offset: 5px; }
+      #ios-hint, #status { font-family: Georgia, serif; font-size: 0.95rem; max-width: 34ch; margin: 8px 0 0; }
+      #status { color: #a3342b; }
+      .back { font-size: 1.5rem; color: #1b1a1f; margin-top: 14px; }
+    </style>
+  </body>
+</html>

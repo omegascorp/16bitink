@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/Base.astro';
+import GameCard from '../components/GameCard.astro';
+import { GAMES } from '../data/games';
+---
+<Base title="16bit.ink — hand-drawn browser games" description="Small games drawn with pen and ink, played full-screen in your browser. Start with Inkfish, a fish-eat-fish game.">
+  <section class="hero">
+    <p class="pixel-label">Pen &amp; ink · played in the browser</p>
+    <h1>Hand-drawn games<br />you can play <em>right now.</em></h1>
+    <p class="lede">Every fish, rock and hook is drawn with a pen. Every game runs full-screen in your browser: no installs and no accounts. Play the first chapter free and buy the rest once if you like it.</p>
+    <a class="btn btn-ink" href="/play/inkfish">Play Inkfish free →</a>
+  </section>
+
+  <section id="games" aria-labelledby="games-title">
+    <h2 id="games-title">The catalog</h2>
+    <div class="grid">
+      {GAMES.map((game, i) => <GameCard game={game} index={i} />)}
+    </div>
+  </section>
+</Base>
+
+<style>
+  .hero { padding: 40px 0 64px; max-width: 760px; }
+  .hero em { color: var(--blue-ink); font-style: normal; text-decoration: underline wavy var(--red-ink) 2px; text-underline-offset: 8px; }
+  .lede { font-size: 1.2rem; color: var(--ink-soft); margin: 0 0 28px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 36px 28px; padding-top: 16px; }
+</style>

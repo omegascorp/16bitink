@@ -1,0 +1,39 @@
+---
+interface Props {
+  game: string;
+  label: string;
+}
+const { game, label } = Astro.props;
+---
+<buy-button data-game={game}>
+  <button type="button" class="btn btn-red">{label}</button>
+  <p class="buy-error" role="alert" hidden></p>
+</buy-button>
+
+<script>
+  import { startCheckout } from '../lib/client/checkout';
+
+  class BuyButton extends HTMLElement {
+    connectedCallback(): void {
+      const button = this.querySelector('button');
+      const error = this.querySelector<HTMLElement>('.buy-error');
+      const game = this.dataset.game ?? '';
+      button?.addEventListener('click', async () => {
+        button.disabled = true;
+        error?.setAttribute('hidden', '');
+        const result = await startCheckout(game);
+        if (result.error && error) {
+          error.textContent = result.error;
+          error.removeAttribute('hidden');
+        }
+        button.disabled = false;
+      });
+    }
+  }
+  customElements.define('buy-button', BuyButton);
+</script>
+
+<style>
+  buy-button { display: contents; }
+  .buy-error { flex-basis: 100%; color: var(--red-ink); margin: 0; }
+</style>

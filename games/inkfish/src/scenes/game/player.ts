@@ -1,0 +1,138 @@
+import Phaser from 'phaser';
+import { FISH_RADIUS } from '../../art/fishArt';
+import { fishKey } from '../../art/textures';
+import type { LevelDef } from '../../levels/types';
+import { TUNING } from './tuning';
+
+export interface Player {
+  readonly sprite: Phaser.GameObjects.Image;
+  /** Gameplay radius; jumps on tier-up. */
+  size: number;
+  /** Rendered radius; eases towards `size` so growth animates. */
+  drawSize: number;
+  /** Time of the last bite, for the chomp squash. */
+  chompAt: number;
+  vx: number;
+  vy: number;
+  invulnerableUntil: number;
+  stunnedUntil: number;
+  speedUntil: number;
+  dashReadyAt: number;
+}
+
+/** Bottom-right screen area reserved for the touch dash button. */
+export const DASH_ZONE = 170;
+
+export function createPlayer(scene: Phaser.Scene, level: LevelDef): Player {
+  const size = level.playerSizes[0];
+  const sprite = scene.add
+    .image(level.world.width / 2, level.world.height / 2, fishKey('inkling', 'light', 0))
+    .setDepth(20)
+    .setScale(size / FISH_RADIUS);
+  return { sprite, size, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0 };
+}
+
+export interface Controls {
+  readonly keys: Record<'up' | 'down' | 'left' | 'right' | 'w' | 'a' | 's' | 'd', Phaser.Input.Keyboard.Key>;
+  usingKeys: boolean;
+  /** Device has a touchscreen (shows the dash button). */
+  readonly touch: boolean;
+  /** Last pointer input was a finger: steer only while it's down. Mice steer by hovering. */
+  lastWasTouch: boolean;
+}
+
+export function createControls(scene: Phaser.Scene): Controls {
+  const kb = scene.input.keyboard;
+  if (!kb) throw new Error('Keyboard plugin missing');
+  const K = Phaser.Input.Keyboard.KeyCodes;
+  const keys = {
+    up: kb.addKey(K.UP), down: kb.addKey(K.DOWN), left: kb.addKey(K.LEFT), right: kb.addKey(K.RIGHT),
+    w: kb.addKey(K.W), a: kb.addKey(K.A), s: kb.addKey(K.S), d: kb.addKey(K.D),
+  };
+  scene.input.addPointer(1);
+  const controls: Controls = { keys, usingKeys: false, touch: scene.sys.game.device.input.touch, lastWasTouch: false };
+  const track = (p: Phaser.Input.Pointer): void => {
+    controls.usingKeys = false;
+    controls.lastWasTouch = p.wasTouch;
+  };
+  scene.input.on('pointermove', track);
+  scene.input.on('pointerdown', track);
+  return controls;
+}
+
+function keyDir(c: Controls): { x: number; y: number } {
+  const k = c.keys;
+  const x = (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0);
+  const y = (k.down.isDown || k.s.isDown ? 1 : 0) - (k.up.isDown || k.w.isDown ? 1 : 0);
+  return { x, y };
+}
+
+function steeringPointer(scene: Phaser.Scene, c: Controls): Phaser.Input.Pointer | null {
+  if (!c.lastWasTouch) return scene.input.mousePointer ?? scene.input.activePointer;
+  const { width, height } = scene.scale;
+  const ptrs = [scene.input.pointer1, scene.input.pointer2];
+  return ptrs.find((p) => p?.isDown && !(p.x > width - DASH_ZONE && p.y > height - DASH_ZONE)) ?? null;
+}
+
+/** Direction the player wants to go: unit-ish vector scaled 0..1 by intent. */
+export function desiredDirection(scene: Phaser.Scene, c: Controls, p: Player): { x: number; y: number } {
+  const kd = keyDir(c);
+  if (kd.x || kd.y) {
+    c.usingKeys = true;
+    const len = Math.hypot(kd.x, kd.y);
+    return { x: kd.x / len, y: kd.y / len };
+  }
+  if (c.usingKeys) return { x: 0, y: 0 };
+  const ptr = steeringPointer(scene, c);
+  if (!ptr) return { x: 0, y: 0 };
+  const world = scene.cameras.main.getWorldPoint(ptr.x, ptr.y);
+  const dx = world.x - p.sprite.x;
+  const dy = world.y - p.sprite.y;
+  const d = Math.hypot(dx, dy);
+  if (d < 4) return { x: 0, y: 0 };
+  const intent = Math.min(1, d / 40);
+  return { x: (dx / d) * intent, y: (dy / d) * intent };
+}
+
+export function movePlayer(p: Player, dir: { x: number; y: number }, level: LevelDef, now: number, dt: number): void {
+  const stunned = now < p.stunnedUntil;
+  const max = TUNING.playerSpeed * (now < p.speedUntil ? TUNING.speedBoost : 1);
+  const tx = stunned ? 0 : dir.x * max;
+  const ty = stunned ? 0 : dir.y * max;
+  const k = Math.min(1, dt * TUNING.playerAccel);
+  p.vx += (tx - p.vx) * k;
+  p.vy += (ty - p.vy) * k;
+  const r = p.size;
+  p.sprite.x = Phaser.Math.Clamp(p.sprite.x + p.vx * dt, r, level.world.width - r);
+  p.sprite.y = Phaser.Math.Clamp(p.sprite.y + p.vy * dt, 80 + r * 0.5, level.world.height - 90 - r * 0.5);
+}
+
+export function tryDash(p: Player, dir: { x: number; y: number }, now: number): boolean {
+  if (now < p.dashReadyAt || now < p.stunnedUntil) return false;
+  let { x, y } = dir;
+  if (!x && !y) {
+    x = p.sprite.flipX ? -1 : 1;
+    y = 0;
+  }
+  const d = Math.hypot(x, y) || 1;
+  p.vx = (x / d) * TUNING.dashSpeed;
+  p.vy = (y / d) * TUNING.dashSpeed;
+  p.dashReadyAt = now + TUNING.dashCooldownMs;
+  return true;
+}
+
+export function renderPlayer(p: Player, now: number, frame: number, dt: number): void {
+  const s = p.sprite;
+  s.setTexture(fishKey('inkling', 'light', frame));
+  p.drawSize += (p.size - p.drawSize) * Math.min(1, dt * 5);
+  const base = p.drawSize / FISH_RADIUS;
+  const chomp = now - p.chompAt < 140 ? 0.85 : 1;
+  s.setScale(base, base * chomp);
+  if (Math.abs(p.vx) > 8) s.setFlipX(p.vx < 0);
+  s.setRotation(Phaser.Math.Clamp(p.vy / 700, -0.45, 0.45) * (s.flipX ? -1 : 1));
+  const invuln = now < p.invulnerableUntil;
+  s.setAlpha(invuln && Math.floor(now / 120) % 2 === 0 ? 0.35 : 1);
+  if (now < p.stunnedUntil) s.setTint(0x9b6fc4);
+  else if (now < p.speedUntil) s.setTint(0xffe2a0);
+  else s.clearTint();
+}

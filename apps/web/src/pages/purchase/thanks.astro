@@ -1,0 +1,28 @@
+---
+import Base from '../../layouts/Base.astro';
+import { findGame } from '../../data/games';
+import { ownership } from '../../lib/owner';
+
+export const prerender = false;
+
+const game = findGame(Astro.url.searchParams.get('game') ?? '');
+const owned = game ? (await ownership(Astro.cookies, game.slug)) !== null : false;
+Astro.response.headers.set('cache-control', 'no-store');
+---
+<Base title={owned && game ? `Thanks! ${game.title} unlocked` : 'Purchase'} description="Purchase confirmation">
+  <section class="paper-card narrow tape">
+    {owned && game ? (
+      <>
+        <h1>Thank you!</h1>
+        <p>The full version of <strong>{game.title}</strong> is unlocked on this browser. Your Stripe receipt is on its way to your inbox. Keep it, because you'll need it to restore the game on another device.</p>
+        <a class="btn btn-ink" href={`/play/${game.slug}`}>Play the full game</a>
+      </>
+    ) : (
+      <>
+        <h1>Nothing unlocked here</h1>
+        <p>This browser doesn't hold a purchase. If you just paid, open the link from the same browser you checked out in, or email <a href="mailto:hello@16bit.ink">hello@16bit.ink</a> with your receipt.</p>
+        <a class="btn" href="/">Back to the catalog</a>
+      </>
+    )}
+  </section>
+</Base>

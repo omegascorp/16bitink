@@ -1,0 +1,12 @@
+{
+  "name": "16bit.ink",
+  "short_name": "16bit.ink",
+  "description": "Hand-drawn browser games.",
+  "start_url": "/play/inkfish",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#f4eddc",
+  "theme_color": "#f4eddc",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

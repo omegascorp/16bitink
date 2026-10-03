@@ -1,0 +1,20 @@
+/** Gameplay constants in one place for easy balancing. */
+export const TUNING = {
+  playerSpeed: 300,
+  playerAccel: 5,
+  speedBoost: 1.6,
+  speedBoostMs: 6000,
+  dashSpeed: 820,
+  dashCooldownMs: 1400,
+  lives: 3,
+  invulnerableMs: 2500,
+  stunMs: 1100,
+  shrinkMs: 5000,
+  shrinkFactor: 0.5,
+  shrinkRadius: 520,
+  powerUpEverySec: 13,
+  powerUpTtlMs: 11000,
+  hookWarnMs: 1500,
+  hookHoldMs: 3200,
+  baseVisibleHeight: 430,
+} as const;

@@ -1,0 +1,49 @@
+---
+import Base from '../../layouts/Base.astro';
+import { findGame } from '../../data/games';
+import { isFulfillable } from '../../lib/fulfil';
+import { ENTITLEMENT_MAX_AGE, entitlementCookie, signEntitlement } from '../../lib/entitlement';
+import { requireEnv } from '../../lib/env';
+import { stripeClient } from '../../lib/stripe';
+
+export const prerender = false;
+
+// Never trust the redirect alone: ask Stripe whether this session was paid.
+// The session id is a bearer credential: never leak it via Referer, and
+// swap it out of the address bar (redirect below) once the cookie is set.
+Astro.response.headers.set('referrer-policy', 'no-referrer');
+const sessionId = Astro.url.searchParams.get('session_id') ?? '';
+let gameSlug: string | null = null;
+let error: string | null = null;
+
+if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) {
+  error = 'That purchase link looks incomplete.';
+} else {
+  try {
+    const session = await stripeClient().checkout.sessions.retrieve(sessionId);
+    const game = findGame(session.metadata?.game ?? '');
+    if (!isFulfillable(session, Date.now()) || !game) {
+      error = 'We could not confirm that payment yet. If you were charged, refresh this page in a minute.';
+    } else {
+      const token = await signEntitlement({ v: 1, g: game.slug, s: session.id, iat: Math.floor(Date.now() / 1000) }, requireEnv('ENTITLEMENT_SECRET'));
+      Astro.cookies.set(entitlementCookie(game.slug), token, {
+        path: '/', httpOnly: true, secure: import.meta.env.PROD, sameSite: 'lax', maxAge: ENTITLEMENT_MAX_AGE,
+      });
+      gameSlug = game.slug;
+    }
+  } catch (err) {
+    console.error('[purchase/success] verification failed', err);
+    error = 'Something went wrong confirming your purchase. Please refresh, or contact us with your receipt.';
+  }
+}
+if (gameSlug) return Astro.redirect(`/purchase/thanks?game=${gameSlug}`, 303);
+Astro.response.headers.set('cache-control', 'no-store');
+---
+<Base title="Purchase" description="Purchase confirmation">
+  <meta name="referrer" content="no-referrer" slot="head" />
+  <section class="paper-card narrow">
+    <h1>Hmm.</h1>
+    <p>{error}</p>
+    <a class="btn" href="/">Back to the catalog</a>
+  </section>
+</Base>

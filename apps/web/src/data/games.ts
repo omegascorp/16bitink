@@ -1,0 +1,60 @@
+export type GameStatus = 'playable' | 'sketching';
+
+export interface CatalogGame {
+  readonly slug: string;
+  readonly title: string;
+  readonly tagline: string;
+  readonly description: readonly string[];
+  readonly status: GameStatus;
+  readonly cover?: string;
+  /** Display price for the full-game unlock; the charged amount lives in Stripe. */
+  readonly price?: string;
+  /** Env var that holds the Stripe Price ID for this game's unlock. */
+  readonly stripePriceEnv?: string;
+  readonly features?: readonly string[];
+  readonly controls?: readonly string[];
+}
+
+export const GAMES: readonly CatalogGame[] = [
+  {
+    slug: 'inkfish',
+    title: 'Inkfish',
+    tagline: 'Eat smaller fish. Grow. Don’t get eaten.',
+    description: [
+      'A fish-eat-fish game drawn entirely in pen and ink. Start as a doodle-sized fry in a sketchbook tide pool and eat your way up the food chain.',
+      'Chain meals into an Ink Frenzy, dodge fishing hooks and jellyfish, and splash shrink-ink to turn predators into lunch.',
+    ],
+    status: 'playable',
+    cover: '/covers/inkfish.png',
+    price: '$4.99',
+    stripePriceEnv: 'STRIPE_PRICE_INKFISH',
+    features: [
+      'Chapter 1 free: 5 levels, no sign-up',
+      'Full game: 3 more chapters, new fish and hazards',
+      'One-time purchase, no ads, no energy timers',
+    ],
+    controls: ['Mouse / finger: swim', 'Space, right-click or the dash button: dash', 'Esc / P: pause'],
+  },
+  {
+    slug: 'pixel-quill',
+    title: 'Untitled #2',
+    tagline: 'Still in the sketchbook.',
+    description: ['Something with birds. Probably.'],
+    status: 'sketching',
+  },
+  {
+    slug: 'blot',
+    title: 'Untitled #3',
+    tagline: 'A pencil draft.',
+    description: ['Ink spills, physics, puzzles.'],
+    status: 'sketching',
+  },
+];
+
+export function findGame(slug: string): CatalogGame | undefined {
+  return GAMES.find((g) => g.slug === slug);
+}
+
+export function isPurchasable(game: CatalogGame | undefined): game is CatalogGame & { stripePriceEnv: string } {
+  return game?.status === 'playable' && typeof game.stripePriceEnv === 'string';
+}
