@@ -269,25 +269,16 @@ function anglerMouth(k: Kit): void {
   const { a, pen, ink } = k;
   const nx = xAt(a, 0);
   const corner = { x: xAt(a, 0.3), y: C + a.hh * 0.06 };
-  const snout = { x: nx - 1, y: C - a.hh * 0.06 };
-  const chin = { x: nx + 5, y: C + a.hh * 0.42 };
+  // Lips meet the head's outline at the front; the opening reaches just past
+  // it so the outline doesn't cross the open mouth.
+  const snout = { x: nx + 1, y: C - a.hh * 0.06 };
+  const chin = { x: nx + 1, y: C + a.hh * 0.42 };
   const upper = bezier(snout, { x: nx - 14, y: C + a.hh * 0.12 }, corner, 14);
   const lower = bezier(chin, { x: nx - 12, y: C + a.hh * 0.5 }, corner, 14);
-  const underJaw = bezier(chin, { x: nx - 2, y: C + a.hh * 0.62 }, { x: xAt(a, 0.16), y: bottomAt(a, 0.16) - 2 }, 8);
-
-  // Jaw flesh that juts past the snout: painted only *behind* existing
-  // pixels (destination-over), so the body's own shading stays on top.
-  const jaw = [...lower, ...[...underJaw].reverse()];
-  pen.ctx.save();
-  pen.ctx.globalCompositeOperation = 'destination-over';
-  pen.fill(jaw, a.wash, k.heavy ? 0.38 : 0.22);
-  pen.fill(jaw, PAPER_FILL, 1);
-  pen.ctx.restore();
-  pen.clipped(jaw, () => {
-    for (let y = chin.y; y < chin.y + a.hh * 0.3; y += 2.4) pen.hair([{ x: chin.x + 2, y }, { x: chin.x - 16, y: y + 2 }], 0.5, ink, 0.6);
-  });
-  // Dark mouth interior, deepened with fine engraved hatching.
+  // Dark mouth interior, deepened with fine engraved hatching. Blank it first,
+  // so the head's outline doesn't show through the open mouth.
   const mouthShape = [...upper, ...[...lower].reverse()];
+  pen.fill(mouthShape, PAPER_FILL, 1);
   pen.fill(mouthShape, '#2a2228', 0.78);
   pen.clipped(mouthShape, () => {
     for (let x = corner.x; x < chin.x + 4; x += 2.2) pen.hair([{ x, y: C - a.hh * 0.2 }, { x: x - 6, y: C + a.hh * 0.6 }], 0.5, ink, 0.7);
@@ -310,7 +301,6 @@ function anglerMouth(k: Kit): void {
   }
   pen.stroke(upper, 1.3, ink, 1, false);
   pen.stroke(lower, 1.5, ink);
-  pen.stroke(underJaw, 1.6, ink);
   // A little crease where the lips meet.
   pen.hair(bezier(corner, { x: corner.x - 4, y: corner.y + 3 }, { x: corner.x - 6, y: corner.y + 8 }, 4), 0.6, ink, 0.8);
 }
