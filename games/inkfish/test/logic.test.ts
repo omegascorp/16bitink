@@ -66,6 +66,34 @@ describe('frenzy', () => {
     expect(frenzyLabel(1)).toBe('');
     expect(frenzyLabel(3)).toBe('Frenzy');
   });
+
+  /** Eats `meals` fish, `gapSec` apart; returns the best multiplier reached. */
+  function binge(meals: number, gapSec: number): number {
+    let s = initialFrenzy;
+    let best = 1;
+    for (let i = 0; i < meals; i++) {
+      s = feedFrenzy(drainFrenzy(s, i === 0 ? 0 : gapSec));
+      best = Math.max(best, frenzyMultiplier(s));
+    }
+    return best;
+  }
+
+  it('rewards two quick meals with x2', () => {
+    expect(binge(2, 1)).toBe(2);
+  });
+
+  it('builds to a frenzy with steady eating, a fish every two seconds', () => {
+    expect(binge(5, 2)).toBeGreaterThanOrEqual(3);
+    expect(binge(12, 2)).toBe(5);
+  });
+
+  it('gives nothing for slow eating: it is a combo, not a bonus', () => {
+    expect(binge(10, 6)).toBe(1);
+  });
+
+  it('takes a while to drain from full, so a short chase does not lose it', () => {
+    expect(frenzyMultiplier(drainFrenzy({ meter: 1 }, 4))).toBeGreaterThanOrEqual(3);
+  });
 });
 
 describe('growth', () => {

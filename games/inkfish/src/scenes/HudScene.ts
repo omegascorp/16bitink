@@ -32,6 +32,8 @@ const INTRO_NOTE_MS = 900;
 
 const BAR_W = 260;
 const BAR_H = 18;
+/** Screen width from which the combo multiplier fits beside its meter without reaching the score. */
+const WIDE_HUD = 900;
 
 export class HudScene extends Phaser.Scene {
   private bars!: Phaser.GameObjects.Graphics;
@@ -68,7 +70,8 @@ export class HudScene extends Phaser.Scene {
     this.urgentColor = data.dark ? PALE_RED : RED_INK;
     this.lineColor = data.dark ? PALE_INK_HEX : INK_HEX;
     this.accent = data.dark ? PALE_ACCENT : INK_ACCENT;
-    this.frenzyText = this.add.text(20, 124, '', { fontFamily: '"Caveat", cursive', fontSize: '26px', color: this.urgentColor });
+    // The combo multiplier sits at the end of its meter, so the meter explains itself.
+    this.frenzyText = this.add.text(0, 0, '', { fontFamily: '"Caveat", cursive', fontSize: '26px', color: this.urgentColor }).setOrigin(0, 0.5);
 
     const fsAvailable = this.scale.fullscreen.available;
     this.addCornerButton(0, '❚❚', () => this.togglePause());
@@ -171,6 +174,9 @@ export class HudScene extends Phaser.Scene {
   private layout(): void {
     const { width, height } = this.scale;
     this.scoreText.setPosition(width / 2, 34);
+    // Wide screens: the multiplier at the end of its meter. Narrow ones: under the objective, clear of the score.
+    if (width >= WIDE_HUD) this.frenzyText.setPosition(20 + BAR_W + 12, 84).setOrigin(0, 0.5);
+    else this.frenzyText.setPosition(20, 124).setOrigin(0, 0);
     this.cornerButtons.forEach((b) => b.setPosition(width - 40 - (b.getData('slot') as number) * 62, 36));
     this.dashBtn?.setPosition(width - DASH_ZONE / 2, height - DASH_ZONE / 2);
     this.pauseLayer?.setPosition(width / 2, height / 2);
@@ -190,9 +196,12 @@ export class HudScene extends Phaser.Scene {
     g.fillStyle(this.accent.growth, this.accent.growthAlpha).fillRect(x, y, BAR_W * s.progress, BAR_H);
     for (const m of s.tierMarks) g.lineStyle(2, this.lineColor, 0.8).lineBetween(x + BAR_W * m, y - 4, x + BAR_W * m, y + BAR_H + 4);
     wobblyRect(g, x, y, BAR_W, BAR_H, 3, 2.2, this.lineColor);
-    // Frenzy: thinner red-ink bar under the growth bar.
-    g.fillStyle(this.accent.frenzy, 0.6).fillRect(x, y + 30, BAR_W * s.frenzyMeter, 8);
-    wobblyRect(g, x, y + 30, BAR_W, 8, 9, 1.4, this.lineColor);
+    // Combo meter: a thinner red bar under the growth bar, filling as you eat in quick
+    // succession; only shown while a combo is running.
+    if (s.frenzyMeter > 0) {
+      g.fillStyle(this.accent.frenzy, 0.6).fillRect(x, y + 30, BAR_W * s.frenzyMeter, 8);
+      wobblyRect(g, x, y + 30, BAR_W, 8, 9, 1.4, this.lineColor);
+    }
     this.objectiveText.setText(s.objective).setColor(s.urgent ? this.urgentColor : this.textColor);
     this.frenzyText.setText(s.multiplier > 1 ? `×${s.multiplier} ${s.frenzyLabel}` : '');
     this.scoreText.setText(String(s.score));

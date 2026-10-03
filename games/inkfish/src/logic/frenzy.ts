@@ -3,8 +3,13 @@ export interface FrenzyState {
   readonly meter: number;
 }
 
-export const FRENZY_GAIN = 0.11;
-export const FRENZY_DRAIN_PER_SEC = 0.16;
+/**
+ * A meal fills a fifth of the meter, and a full meter takes ~16 s to drain:
+ * two quick meals make x2, a fish every couple of seconds builds to x5, and
+ * eating slower than one every ~3.5 s never builds a combo.
+ */
+export const FRENZY_GAIN = 0.2;
+export const FRENZY_DRAIN_PER_SEC = 0.06;
 export const MAX_MULTIPLIER = 5;
 
 export const initialFrenzy: FrenzyState = { meter: 0 };
