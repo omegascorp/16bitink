@@ -1,8 +1,9 @@
 import type Phaser from 'phaser';
 import type { SpeciesId } from '../levels/types';
+import { PLAYER_FISH } from '../levels/zones';
 import { drawFish, FISH_TEX, type FishShape, type InkVariant } from './fishArt';
 import { makeCanvas } from './pen';
-import { ART_RES, drawBubble, drawHook, drawJelly, drawPaper, drawPowerUp, drawRock, drawWeed, type WeedKind } from './propArt';
+import { ART_RES, drawBubble, drawWreck, drawHook, drawJelly, drawPaper, drawPowerUp, drawRock, drawWeed, type WeedKind } from './propArt';
 
 export { ART_RES };
 
@@ -34,11 +35,13 @@ function add(scene: Phaser.Scene, key: string, w: number, h: number, draw: (ctx:
 export function generateInkTextures(scene: Phaser.Scene): void {
   for (let f = 0; f < BOIL_FRAMES; f++) {
     const seed = 101 + f * 977;
-    for (const shape of [...SPECIES, 'inkling'] as const) {
+    for (const shape of SPECIES) {
       for (const variant of ['light', 'heavy'] as const) {
         add(scene, fishKey(shape, variant, f), FISH_TEX, FISH_TEX, (ctx) => drawFish(ctx, shape, variant, seed));
       }
     }
+    // The player is never a predator to itself: light variant only.
+    for (const shape of PLAYER_FISH) add(scene, fishKey(shape, 'light', f), FISH_TEX, FISH_TEX, (ctx) => drawFish(ctx, shape, 'light', seed));
     const R = ART_RES;
     add(scene, boilKey('jelly', f), 128 * R, 128 * R, (ctx) => drawJelly(ctx, seed));
     add(scene, boilKey('hook', f), 48 * R, 76 * R, (ctx) => drawHook(ctx, seed));
@@ -55,4 +58,5 @@ export function generateInkTextures(scene: Phaser.Scene): void {
     add(scene, `rock-${i}`, w * ART_RES, h * ART_RES, (ctx) => drawRock(ctx, 40 + i, w * ART_RES, h * ART_RES));
   }
   add(scene, 'paper', 512, 512, (ctx) => drawPaper(ctx, 512));
+  add(scene, 'wreck', 360 * ART_RES, 200 * ART_RES, (ctx) => drawWreck(ctx, 360 * ART_RES, 200 * ART_RES));
 }

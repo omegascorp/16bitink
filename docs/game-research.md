@@ -22,7 +22,47 @@ Ten "eat smaller to grow" games, researched October 2026, and what InkFish takes
 3. **Keep moving.** Frenzy multiplier decay now; hunger in Endless mode later.
 4. **Line boil.** Every sprite cycles three redrawn frames at 8 fps, so the world looks hand-animated.
 
-## What's built (free Chapter 1, 5 levels)
+## Structure: 100 levels on one sloping seabed
+
+- **10 zones × 10 levels**, in depth order:
+  - tide pool (0–5 m)
+  - seagrass
+  - kelp
+  - reef
+  - shipwreck
+  - drop-off
+  - twilight zone
+  - midnight zone
+  - abyssal plain
+  - trench (to 11 km)
+- **Chapter 1 is free (10 levels).** Chapters 2–10 (90 levels) are paid and served from the server.
+- **The level map is a side-view sea chart:**
+  - The seabed steps down from the shore, one plateau per zone, and the water darkens with depth.
+  - Locked zones are shown as pencil drafts.
+  - Chapter tabs jump between zones.
+  - The map grows on its own when a zone is added.
+- **The player fish changes about every two zones:**
+  - Inkling: tide pool, seagrass
+  - perch fry: kelp, reef
+  - barracuda: wreck, drop-off
+  - lanternfish: twilight to trench
+  - All of them are drawn in blue ink, so the player always reads as "you".
+- **Levels are generated from per-chapter recipes** (`games/inkfish/src/levels/generate.ts`).
+  - A recipe sets which species appear, the hazard ramps, the growth goal and the final size.
+  - The generator produces 10 levels with a smooth ramp, a "school rush" at level 5 and a harder finale.
+  - Hand-tune any level with `overrides`.
+- **Fishing hooks stop below the drop-off**, since fishing lines don't reach that deep.
+
+### Adding content
+
+- **More levels in a zone:** raise `LEVELS_PER_CHAPTER`, or override per chapter later.
+- **A new zone:** append it to `levels/zones.ts` and add its recipe to `content/paid.ts`.
+- **The bottleneck is enemy variety.** Six species across 100 levels will feel repetitive. Next species to draw:
+  - deep zones: hatchetfish, gulper eel, giant squid
+  - reef: clownfish, grouper
+  - shark bosses for chapter finales
+
+## Core mechanics (built)
 
 - Steering by mouse, finger or keyboard, with inertia. Dash: Space, Shift, right-click or the touch button.
 - Edibility by size ratio: prey < 0.9× your size, predator > 1.1×. Spawns are biased so ~60% are prey.
@@ -36,18 +76,15 @@ Ten "eat smaller to grow" games, researched October 2026, and what InkFish takes
 - Hazards: jellyfish stun you; fishing hooks are telegraphed by a dotted pencil line, then drop. Hooks are instant hurt.
 - Power-ups: Quick Quill (speed) and Shrink-ink (nearby fish shrink to 0.5× for 5 s).
 - 3 lives with invulnerability blinks, a par-time ink-blot rating (1–3), and best scores saved locally.
-- The demo ends on a cliffhanger screen with an unlock CTA. Locked chapters show as "pencil drafts".
 
-## What's paid (full game)
+## Planned for the full game
 
-- **Built:** Chapters 2–4 (10 levels), served from the server only to owners.
-- **Planned, ordered by value/effort:**
-  1. Bosses at the end of each chapter (giant eel: eat the prey it spits out)
-  2. Endless mode with a hunger drain and a daily-seed leaderboard
-  3. Playable species with different stats
-  4. Trait stealing (spines, glow lure, poison)
-  5. Abyss darkness/lantern mechanic
-  6. Ink comic panels between chapters
-  7. Cosmetic pen styles (fountain, brush, sepia)
+1. More enemy species (above)
+2. Chapter-finale bosses
+3. Abilities per player fish (barracuda burst speed, lanternfish light in the dark zones)
+4. Endless mode with a hunger drain and a daily-seed leaderboard
+5. Trait stealing
+6. Ink comic panels between zones
+7. Cosmetic pen styles
 
 **Do not gate:** core mechanics (frenzy, dash, the first two power-ups). **Never add:** consumable boosts or energy timers. They clash with the premium, handmade identity.

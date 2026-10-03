@@ -1,4 +1,5 @@
-import type { Chapter, LevelDef, PowerUpId, SpeciesId } from './types';
+import type { Chapter, LevelDef, PlayerFishId, PowerUpId, SpeciesId, ZoneId } from './types';
+import { PLAYER_FISH, ZONE_IDS } from './zones';
 
 const SPECIES: readonly SpeciesId[] = ['minnow', 'perch', 'puffer', 'pike', 'angler', 'eel'];
 const POWER_UPS: readonly PowerUpId[] = ['speed', 'shrink'];
@@ -48,11 +49,18 @@ export function parseChapters(data: unknown): Chapter[] {
   if (!Array.isArray(data)) throw new Error('Expected an array of chapters');
   return data.map((c, i) => {
     const ch = c as Record<string, unknown>;
-    if (!isNum(ch?.id) || typeof ch.name !== 'string' || !Array.isArray(ch.levels)) {
+    const depth = ch?.depth;
+    const d = Array.isArray(depth) && depth.length === 2 && depth.every(isNum) ? (depth as [number, number]) : null;
+    const validDepth = d !== null && d[0] >= 0 && d[0] < d[1];
+    if (!isNum(ch?.id) || typeof ch.name !== 'string' || !Array.isArray(ch.levels) ||
+      !ZONE_IDS.includes(ch.zone as ZoneId) || !PLAYER_FISH.includes(ch.player as PlayerFishId) || !validDepth) {
       throw new Error(`Chapter ${i} is malformed`);
     }
     const bad = ch.levels.findIndex((l) => !isLevel(l));
     if (bad >= 0) throw new Error(`Chapter ${ch.id} level ${bad} is malformed`);
-    return { id: ch.id, name: ch.name, levels: ch.levels as LevelDef[] };
+    return {
+      id: ch.id, name: ch.name, zone: ch.zone as ZoneId, player: ch.player as PlayerFishId,
+      depth: d, levels: ch.levels as LevelDef[],
+    };
   });
 }

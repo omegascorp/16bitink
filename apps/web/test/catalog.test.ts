@@ -36,7 +36,8 @@ describe('game registries stay in sync with the catalog', () => {
 
 describe('paid inkfish chapters', () => {
   it('pass the game client validator', () => {
-    expect(parseChapters(JSON.parse(JSON.stringify(INKFISH_FULL_CHAPTERS)))).toHaveLength(3);
+    expect(parseChapters(JSON.parse(JSON.stringify(INKFISH_FULL_CHAPTERS)))).toHaveLength(9);
+    expect(INKFISH_FULL_CHAPTERS.flatMap((c) => c.levels)).toHaveLength(90);
   });
 
   it('have unique level ids that do not clash with the demo', () => {

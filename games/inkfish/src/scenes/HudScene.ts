@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { fishKey } from '../art/textures';
+import type { PlayerFishId } from '../levels/types';
 import { getHost } from '../host';
 import { DASH_ZONE } from './game/player';
 import { HUD_EVENT, type GameScene, type HudSnapshot } from './GameScene';
@@ -7,6 +8,7 @@ import { BLUE_INK, inkButton, inkText, INK_HEX, RED_INK, wobblyRect } from './ui
 
 interface HudData {
   readonly levelName: string;
+  readonly player: PlayerFishId;
   readonly touch: boolean;
 }
 
@@ -21,6 +23,7 @@ export class HudScene extends Phaser.Scene {
   private dashBtn: Phaser.GameObjects.Container | null = null;
   private pauseLayer: Phaser.GameObjects.Container | null = null;
   private last: HudSnapshot | null = null;
+  private player: PlayerFishId = 'inkling';
 
   constructor() {
     super('Hud');
@@ -29,6 +32,7 @@ export class HudScene extends Phaser.Scene {
   create(data: HudData): void {
     const game = this.scene.get('Game') as GameScene;
     this.lifeIcons = [];
+    this.player = data.player;
     this.cornerButtons = [];
     this.pauseLayer = null;
     this.last = null;
@@ -111,7 +115,7 @@ export class HudScene extends Phaser.Scene {
     const offset = this.cornerButtons.length * 62 + 50;
     while (this.lifeIcons.length > Math.max(0, lives)) this.lifeIcons.pop()?.destroy();
     while (this.lifeIcons.length < lives) {
-      this.lifeIcons.push(this.add.image(0, 36, fishKey('inkling', 'light', 0)).setScale(0.16));
+      this.lifeIcons.push(this.add.image(0, 36, fishKey(this.player, 'light', 0)).setScale(0.16));
     }
     this.lifeIcons.forEach((icon, i) => icon.setPosition(width - offset - i * 44, 36));
   }

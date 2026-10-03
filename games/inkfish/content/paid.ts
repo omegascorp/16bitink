@@ -1,60 +1,76 @@
-import type { Chapter, LevelDef, SpawnEntry } from '../src/levels/types';
+import { generateChapter, type ChapterRecipe } from '../src/levels/generate';
+import type { Chapter, SpawnEntry } from '../src/levels/types';
+import { ZONE_INFO } from '../src/levels/zones';
 
 /**
- * Paid chapters. SERVER-ONLY: imported by the website's content registry
- * and served by /api/content/inkfish to verified owners. Never import
- * this from the game's client code or it ships to everyone.
+ * Paid chapters 2–10 (90 levels). SERVER-ONLY: imported by the website's
+ * content registry and served by /api/content/inkfish to verified owners.
+ * Never import this from the game's client code or it ships to everyone.
  */
 
-const WORLD = { width: 3600, height: 2000 } as const;
+type S = SpawnEntry['species'];
+const s = (species: S, weight: number, min: number, max: number): SpawnEntry => ({ species, weight, size: [min, max] });
 
-interface Draft {
-  readonly name: string;
-  readonly tiers: readonly [number, number, number];
-  readonly sizes: readonly [number, number, number];
-  readonly spawns: readonly SpawnEntry[];
-  readonly maxFish: number;
-  readonly jellyfish: number;
-  readonly hookEverySec: number;
-  readonly parTime: number;
+/** Shared difficulty ramp: each chapter starts a bit harder than the last ended easy. */
+function ramp(chapter: number): Pick<ChapterRecipe, 'goal' | 'finalSize' | 'maxFish'> {
+  const c = chapter - 1;
+  return {
+    goal: [60 + c * 10, 115 + c * 12],
+    finalSize: [42 + c * 2, 54 + c * 2.5],
+    maxFish: [28 + c, 36 + c * 1.5],
+  };
 }
 
-function chapter(id: number, name: string, drafts: readonly Draft[]): Chapter {
-  const levels: LevelDef[] = drafts.map((d, i) => ({
-    id: `c${id}-l${i + 1}`, chapter: id, name: d.name,
-    tiers: d.tiers, playerSizes: d.sizes, world: WORLD, spawns: d.spawns, maxFish: d.maxFish,
-    hazards: { jellyfish: d.jellyfish, hookEverySec: d.hookEverySec }, powerUps: ['speed', 'shrink'], parTime: d.parTime,
-  }));
-  return { id, name, levels };
-}
+const RECIPES: Readonly<Record<number, Omit<ChapterRecipe, 'goal' | 'finalSize' | 'maxFish'>>> = {
+  2: {
+    names: ['Long Strokes', 'Blade Runner', 'Grass Margins', 'Puffer Parade', 'Seed School', 'Meadow Ink', 'Swaying Lines', 'Pike Patrol', 'Feather Current', 'Mown Meadow'],
+    spawns: [s('minnow', 5, 8, 14), s('perch', 3, 22, 36), s('puffer', 2.5, 26, 42), s('pike', 1.5, 46, 62)],
+    jellyfish: [2, 5], hookEverySec: [18, 11],
+  },
+  3: {
+    names: ['Tangled Lines', 'Holdfast', 'Canopy Shade', 'Ambush Alley', 'Kelp Rush', 'Frond Maze', 'Stipple Stalks', 'The Long Eel', 'Sunbeams', 'Forest Floor'],
+    spawns: [s('minnow', 5, 8, 14), s('perch', 3, 22, 38), s('pike', 2, 48, 64), s('eel', 1.5, 58, 80)],
+    jellyfish: [3, 6], hookEverySec: [16, 10],
+  },
+  4: {
+    names: ['Coral Scribbles', 'Spiny Margins', 'Puffer Gardens', 'Brain Coral', 'Reef Rush', 'Hatch Lines', 'Grotto', 'Anglers Arrive', 'Bleached Bones', 'Reef Crest'],
+    spawns: [s('minnow', 5, 8, 14), s('puffer', 3.5, 26, 44), s('perch', 2.5, 24, 40), s('angler', 1.5, 36, 56)],
+    jellyfish: [3, 7], hookEverySec: [15, 9],
+  },
+  5: {
+    names: ['Barnacle Bay', 'Porthole Panic', 'Rigging', 'Cargo Hold', 'Wreck Rush', 'Captain’s Cabin', 'Anchor’s Shadow', 'Broken Mast', 'Crow’s Nest', 'Keel'],
+    spawns: [s('minnow', 5, 8, 14), s('pike', 3, 50, 70), s('eel', 2, 62, 84), s('angler', 2, 38, 58)],
+    jellyfish: [4, 7], hookEverySec: [14, 8],
+  },
+  6: {
+    names: ['The Edge', 'Blue Blank', 'Updraft', 'Vertigo', 'Open Rush', 'Cold Current', 'Long Fall', 'Shelf Break', 'Last Light', 'Over the Edge'],
+    spawns: [s('minnow', 5, 8, 14), s('pike', 3, 52, 74), s('eel', 2.5, 64, 88), s('angler', 2, 40, 62)],
+    jellyfish: [5, 8], hookEverySec: [12, 7],
+  },
+  7: {
+    names: ['Dimming', 'Lantern Light', 'Faint Lines', 'Glowworms', 'Twilight Rush', 'Ghost Ink', 'Silver Shoal', 'Fading Page', 'Dusk Patrol', 'Lights Out'],
+    spawns: [s('minnow', 5, 8, 14), s('eel', 3, 64, 90), s('angler', 3, 40, 64), s('puffer', 1.5, 28, 46)],
+    jellyfish: [5, 9], hookEverySec: [0, 0],
+  },
+  8: {
+    names: ['Ink Black', 'Deep Crosshatch', 'Pressure', 'Lures', 'Midnight Rush', 'Blind Lines', 'Snow of Ink', 'Teeth', 'Cold Blot', 'Midnight'],
+    spawns: [s('minnow', 5, 8, 14), s('angler', 4, 42, 66), s('eel', 3, 66, 94)],
+    jellyfish: [6, 9], hookEverySec: [0, 0],
+  },
+  9: {
+    names: ['The Plain', 'Silt', 'Footprints', 'Sea Snow', 'Abyss Rush', 'Vents', 'Bone Field', 'Hush', 'Lonely Light', 'The Edge of the Page'],
+    spawns: [s('minnow', 5, 8, 14), s('angler', 4, 44, 68), s('eel', 3, 70, 96), s('pike', 1.5, 56, 78)],
+    jellyfish: [7, 10], hookEverySec: [0, 0],
+  },
+  10: {
+    names: ['The Crack', 'Walls of Ink', 'Pressure Lines', 'The Narrows', 'Trench Rush', 'Echoes', 'Deepest Blot', 'Hadal Hunt', 'The Floor', 'The Last Page'],
+    spawns: [s('minnow', 5, 8, 14), s('angler', 4, 46, 70), s('eel', 3.5, 72, 100), s('pike', 2, 58, 80)],
+    jellyfish: [8, 11], hookEverySec: [0, 0],
+  },
+};
 
-const kelp = chapter(2, 'Kelp Margins', [
-  { name: 'Tangled Lines', tiers: [24, 56, 100], sizes: [18, 32, 50], maxFish: 34, jellyfish: 3, hookEverySec: 14, parTime: 110,
-    spawns: [{ species: 'minnow', weight: 4, size: [8, 14] }, { species: 'perch', weight: 3, size: [22, 38] }, { species: 'pike', weight: 2.5, size: [46, 66] }] },
-  { name: 'Puffer Parade', tiers: [26, 60, 110], sizes: [18, 34, 52], maxFish: 36, jellyfish: 4, hookEverySec: 13, parTime: 115,
-    spawns: [{ species: 'minnow', weight: 4, size: [8, 14] }, { species: 'puffer', weight: 4, size: [24, 40] }, { species: 'pike', weight: 2, size: [50, 68] }] },
-  { name: 'Ambush Alley', tiers: [28, 64, 120], sizes: [18, 34, 54], maxFish: 36, jellyfish: 4, hookEverySec: 12, parTime: 125,
-    spawns: [{ species: 'minnow', weight: 4, size: [8, 14] }, { species: 'perch', weight: 2, size: [22, 38] }, { species: 'angler', weight: 3, size: [36, 56] }, { species: 'pike', weight: 1.5, size: [52, 70] }] },
-  { name: 'The Long Eel', tiers: [30, 70, 130], sizes: [18, 36, 58], maxFish: 38, jellyfish: 5, hookEverySec: 11, parTime: 135,
-    spawns: [{ species: 'minnow', weight: 4, size: [8, 14] }, { species: 'perch', weight: 3, size: [24, 40] }, { species: 'eel', weight: 2.5, size: [60, 84] }] },
-]);
-
-const wreck = chapter(3, 'Shipwreck Sketches', [
-  { name: 'Barnacle Bay', tiers: [30, 70, 130], sizes: [18, 36, 56], maxFish: 38, jellyfish: 5, hookEverySec: 10, parTime: 130,
-    spawns: [{ species: 'minnow', weight: 4, size: [8, 14] }, { species: 'puffer', weight: 3, size: [26, 42] }, { species: 'pike', weight: 2.5, size: [50, 70] }] },
-  { name: 'Porthole Panic', tiers: [32, 74, 140], sizes: [18, 36, 58], maxFish: 40, jellyfish: 6, hookEverySec: 9, parTime: 140,
-    spawns: [{ species: 'minnow', weight: 4, size: [8, 14] }, { species: 'perch', weight: 3, size: [24, 40] }, { species: 'angler', weight: 3, size: [38, 58] }] },
-  { name: 'Anchor’s Shadow', tiers: [34, 80, 150], sizes: [18, 38, 60], maxFish: 40, jellyfish: 6, hookEverySec: 8, parTime: 150,
-    spawns: [{ species: 'minnow', weight: 4, size: [8, 14] }, { species: 'pike', weight: 3, size: [50, 72] }, { species: 'eel', weight: 2, size: [64, 86] }] },
-]);
-
-const abyss = chapter(4, 'The Abyssal Blot', [
-  { name: 'Lantern Light', tiers: [36, 84, 160], sizes: [18, 38, 62], maxFish: 42, jellyfish: 7, hookEverySec: 0, parTime: 160,
-    spawns: [{ species: 'minnow', weight: 4, size: [8, 14] }, { species: 'angler', weight: 4, size: [38, 62] }, { species: 'eel', weight: 2, size: [66, 90] }] },
-  { name: 'Deep Crosshatch', tiers: [38, 90, 170], sizes: [18, 40, 64], maxFish: 44, jellyfish: 8, hookEverySec: 0, parTime: 170,
-    spawns: [{ species: 'minnow', weight: 4, size: [8, 14] }, { species: 'puffer', weight: 2, size: [28, 46] }, { species: 'angler', weight: 3, size: [40, 64] }, { species: 'pike', weight: 2, size: [56, 76] }] },
-  { name: 'The Last Page', tiers: [40, 96, 185], sizes: [18, 40, 68], maxFish: 46, jellyfish: 8, hookEverySec: 7, parTime: 185,
-    spawns: [{ species: 'minnow', weight: 4, size: [8, 14] }, { species: 'perch', weight: 2, size: [24, 42] }, { species: 'angler', weight: 3, size: [40, 64] }, { species: 'eel', weight: 3, size: [70, 96] }] },
-]);
-
-export const INKFISH_FULL_CHAPTERS: readonly Chapter[] = [kelp, wreck, abyss];
+export const INKFISH_FULL_CHAPTERS: readonly Chapter[] = ZONE_INFO.filter((z) => z.id > 1).map((z) => {
+  const recipe = RECIPES[z.id];
+  if (!recipe) throw new Error(`Missing recipe for chapter ${z.id}`);
+  return generateChapter(z, { ...recipe, ...ramp(z.id), world: { width: 3600, height: 2000 } });
+});

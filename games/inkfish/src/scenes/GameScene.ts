@@ -15,7 +15,7 @@ import {
 import { spawnPowerUp, updatePowerUp, type PowerUp } from './game/powerups';
 import { TUNING } from './game/tuning';
 import { drawWorld } from './game/world';
-import { allLevels } from './MenuScene';
+import { allLevels, chapterOf } from '../levels/chapters';
 import { HAND_FONT } from './ui';
 
 export interface HudSnapshot {
@@ -81,8 +81,9 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     const { world } = this.level;
     this.cameras.main.setBounds(0, 0, world.width, world.height).setBackgroundColor('#f4eddc');
-    this.weeds = drawWorld(this, this.level);
-    this.player = createPlayer(this, this.level);
+    const chapter = chapterOf(this.level);
+    this.weeds = drawWorld(this, this.level, chapter.zone);
+    this.player = createPlayer(this, this.level, chapter.player);
     this.controls = createControls(this);
     this.jellies = spawnJellies(this, this.level, this.rng);
     this.cameras.main.startFollow(this.player.sprite, true, 0.08, 0.08);
@@ -96,7 +97,7 @@ export class GameScene extends Phaser.Scene {
     });
     this.input.mouse?.disableContextMenu();
 
-    this.scene.launch('Hud', { levelName: this.level.name, tiers: this.level.tiers, touch: this.controls.touch });
+    this.scene.launch('Hud', { levelName: this.level.name, player: chapter.player, touch: this.controls.touch });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scene.stop('Hud'));
     this.emitHud();
   }

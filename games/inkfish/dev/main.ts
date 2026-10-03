@@ -1,6 +1,6 @@
 import { mount } from '../src/index';
 
-// Dev harness: ?unlocked=1 simulates an owner by serving the demo again as "chapter 2".
+// Dev harness: ?unlocked=1 simulates an owner by serving the real paid chapters.
 const unlocked = new URLSearchParams(location.search).has('unlocked');
 await document.fonts.load('32px Caveat').catch(() => undefined);
 const parent = document.getElementById('game');
@@ -8,10 +8,7 @@ if (!parent) throw new Error('#game missing');
 const handle = mount(parent, {
   unlocked,
   storage: window.localStorage,
-  loadContent: async () => {
-    const { DEMO_CHAPTER } = await import('../src/levels/demo');
-    return [{ ...DEMO_CHAPTER, id: 2, name: 'Dev Copy', levels: DEMO_CHAPTER.levels.map((l) => ({ ...l, id: `dev-${l.id}`, chapter: 2 })) }];
-  },
+  loadContent: async () => (await import('../content/paid')).INKFISH_FULL_CHAPTERS,
   onBuy: () => alert('Checkout would open here'),
   onExit: () => alert('Exit to catalog'),
 });

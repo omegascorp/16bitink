@@ -3,7 +3,7 @@ import { getChapters, getHost } from '../host';
 import { DEMO_CHAPTER } from '../levels/demo';
 import { blotsFor } from '../logic/growth';
 import { loadSave, persistSave, recordResult } from '../logic/save';
-import { allLevels } from './MenuScene';
+import { allLevels } from '../levels/chapters';
 import { BLUE_INK, drawBlot, inkButton, inkText, RED_INK, uiScale } from './ui';
 
 export interface ResultData {

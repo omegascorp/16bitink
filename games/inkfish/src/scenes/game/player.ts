@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
 import { FISH_RADIUS } from '../../art/fishArt';
 import { fishKey } from '../../art/textures';
-import type { LevelDef } from '../../levels/types';
+import type { LevelDef, PlayerFishId } from '../../levels/types';
 import { TUNING } from './tuning';
 
 export interface Player {
   readonly sprite: Phaser.GameObjects.Image;
+  readonly shape: PlayerFishId;
   /** Gameplay radius; jumps on tier-up. */
   size: number;
   /** Rendered radius; eases towards `size` so growth animates. */
@@ -23,13 +24,13 @@ export interface Player {
 /** Bottom-right screen area reserved for the touch dash button. */
 export const DASH_ZONE = 170;
 
-export function createPlayer(scene: Phaser.Scene, level: LevelDef): Player {
+export function createPlayer(scene: Phaser.Scene, level: LevelDef, shape: PlayerFishId): Player {
   const size = level.playerSizes[0];
   const sprite = scene.add
-    .image(level.world.width / 2, level.world.height / 2, fishKey('inkling', 'light', 0))
+    .image(level.world.width / 2, level.world.height / 2, fishKey(shape, 'light', 0))
     .setDepth(20)
     .setScale(size / FISH_RADIUS);
-  return { sprite, size, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0 };
+  return { sprite, shape, size, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0 };
 }
 
 export interface Controls {
@@ -123,7 +124,7 @@ export function tryDash(p: Player, dir: { x: number; y: number }, now: number): 
 
 export function renderPlayer(p: Player, now: number, frame: number, dt: number): void {
   const s = p.sprite;
-  s.setTexture(fishKey('inkling', 'light', frame));
+  s.setTexture(fishKey(p.shape, 'light', frame));
   p.drawSize += (p.size - p.drawSize) * Math.min(1, dt * 5);
   const base = p.drawSize / FISH_RADIUS;
   const chomp = now - p.chompAt < 140 ? 0.85 : 1;

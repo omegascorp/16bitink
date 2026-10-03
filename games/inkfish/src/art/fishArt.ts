@@ -1,7 +1,7 @@
-import type { SpeciesId } from '../levels/types';
+import type { PlayerFishId, SpeciesId } from '../levels/types';
 import { ellipse, INK, Pen, type Pt } from './pen';
 
-export type FishShape = SpeciesId | 'inkling';
+export type FishShape = SpeciesId | PlayerFishId;
 /** light = prey/peer look, heavy = predator look (engraved cross-hatching). */
 export type InkVariant = 'light' | 'heavy';
 
@@ -401,6 +401,56 @@ const ANATOMY: Record<FishShape, Anatomy> = {
     dorsal: { from: 0.34, to: 0.72, height: 0.55 }, anal: { from: 0.6, to: 0.82, height: 0.42 },
     pectoral: 0.55, pelvic: true, scales: true, eye: { t: 0.17, r: 11 }, mouth: 'small',
     wash: '#3466c2', ink: '#1f3f8a',
+  },
+  // Player fish: always blue ink, so "you" read the same in every zone.
+  perchfry: {
+    hl: 64, hh: 36, peak: 0.38, blunt: 0.7, peduncle: 0.28, tail: 'fork', tailSize: 0.95,
+    dorsal: { from: 0.22, to: 0.5, height: 0.7, spiny: true }, dorsal2: { from: 0.55, to: 0.74, height: 0.5 },
+    anal: { from: 0.64, to: 0.8, height: 0.45 }, pectoral: 0.5, pelvic: true, scales: true,
+    eye: { t: 0.16, r: 10 }, mouth: 'small', wash: '#3466c2', finWash: '#7fa3e0', ink: '#1f3f8a',
+    extras: (k) => {
+      k.pen.clipped(k.body, () => {
+        for (let b = 0; b < 4; b++) {
+          const t0 = 0.32 + b * 0.14;
+          for (let t = t0; t < t0 + 0.045; t += 0.008) {
+            k.pen.hair([{ x: k.x(t), y: topAt(k.a, t) }, { x: k.x(t) - 2, y: C + k.h(t) * 0.4 }], 0.5, k.ink, 0.6);
+          }
+        }
+      });
+    },
+  },
+  barracuda: {
+    hl: 96, hh: 20, peak: 0.45, blunt: 0.15, peduncle: 0.4, tail: 'fork', tailSize: 1.5,
+    dorsal: { from: 0.4, to: 0.5, height: 0.9, spiny: true }, dorsal2: { from: 0.7, to: 0.8, height: 0.8 },
+    anal: { from: 0.72, to: 0.82, height: 0.7 }, pectoral: 0.45, pelvic: true, scales: true,
+    eye: { t: 0.14, r: 7 }, mouth: 'teeth', wash: '#3466c2', ink: '#1f3f8a',
+    extras: (k) => {
+      // Dark chevrons along the flank.
+      for (let i = 0; i < 9; i++) {
+        const t = 0.3 + i * 0.065;
+        const x = k.x(t);
+        k.pen.hair([{ x: x + 3, y: C - k.h(t) * 0.75 }, { x: x - 2, y: C - k.h(t) * 0.1 }, { x: x + 3, y: C + k.h(t) * 0.3 }], 0.7, k.ink, 0.6);
+      }
+    },
+  },
+  lanternfish: {
+    hl: 66, hh: 26, peak: 0.32, blunt: 0.9, peduncle: 0.3, tail: 'fork', tailSize: 1.15,
+    dorsal: { from: 0.42, to: 0.58, height: 0.8 }, anal: { from: 0.6, to: 0.8, height: 0.55 },
+    pectoral: 0.5, pelvic: true, scales: true, eye: { t: 0.13, r: 12 }, mouth: 'small',
+    wash: '#2a4d9e', ink: '#1f3f8a',
+    extras: (k) => {
+      // Photophores: glowing dots along the belly and one by the eye.
+      const glow = (x: number, y: number, r: number): void => {
+        k.pen.fill(ellipse(x, y, r * 2.2, r * 2.2, 12), '#f0c94a', 0.25);
+        k.pen.fill(ellipse(x, y, r, r, 10), '#f6d76a', 1);
+        k.pen.hair(ellipse(x, y, r, r, 10).concat([{ x: x + r, y }]), 0.45, k.ink, 0.9);
+      };
+      for (let i = 0; i < 10; i++) {
+        const t = 0.2 + i * 0.07;
+        glow(k.x(t), bottomAt(k.a, t) - 4 - (i % 2) * 2, 1.8);
+      }
+      glow(k.x(0.06), C - k.h(0.06) * 0.1, 2.4);
+    },
   },
   minnow: {
     hl: 78, hh: 21, peak: 0.36, blunt: 0.5, peduncle: 0.32, tail: 'fork', tailSize: 1.5,

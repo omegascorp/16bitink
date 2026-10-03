@@ -51,8 +51,8 @@ export const GAMES: readonly CatalogGame[] = [
     theme: { paper: '#f4eddc', ink: '#1b1a1f', accent: '#1f3f8a' },
     fonts: { googleCss: 'family=Caveat:wght@500;700', await: ['32px Caveat'] },
     features: [
-      'Chapter 1 free: 5 levels, no sign-up',
-      'Full game: 3 more chapters, new fish and hazards',
+      'Chapter 1 free: 10 levels, no sign-up',
+      'Full game: 90 more levels across 9 deeper zones',
       'One-time purchase, no ads, no energy timers',
     ],
     controls: ['Mouse / finger: swim', 'Space, right-click or the dash button: dash', 'Esc / P: pause'],

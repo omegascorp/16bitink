@@ -1,5 +1,11 @@
 export type SpeciesId = 'minnow' | 'perch' | 'puffer' | 'pike' | 'angler' | 'eel';
 export type PowerUpId = 'speed' | 'shrink';
+/** Where a chapter takes place; also how deep, since the seabed slopes down. */
+export type ZoneId =
+  | 'tidepool' | 'seagrass' | 'kelp' | 'reef' | 'wreck'
+  | 'dropoff' | 'twilight' | 'midnight' | 'abyss' | 'trench';
+/** The young fish the player swims as in a chapter. */
+export type PlayerFishId = 'inkling' | 'perchfry' | 'barracuda' | 'lanternfish';
 
 export interface SpawnEntry {
   readonly species: SpeciesId;
@@ -25,8 +31,16 @@ export interface LevelDef {
   readonly parTime: number;
 }
 
-export interface Chapter {
+/** What the map needs to draw a chapter, owned or not. */
+export interface ChapterInfo {
   readonly id: number;
   readonly name: string;
+  readonly zone: ZoneId;
+  readonly player: PlayerFishId;
+  /** Depth range in metres, shown on the map. */
+  readonly depth: readonly [number, number];
+}
+
+export interface Chapter extends ChapterInfo {
   readonly levels: readonly LevelDef[];
 }
