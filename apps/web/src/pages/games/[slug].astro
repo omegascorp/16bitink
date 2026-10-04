@@ -1,34 +1,49 @@
 ---
 import Base from '../../layouts/Base.astro';
 import BuyButton from '../../components/BuyButton.astro';
-import { GAMES, type CatalogGame } from '../../data/games';
+import { findGame } from '../../data/games';
+import { currentUser, ownership } from '../../lib/owner';
 
-export function getStaticPaths() {
-  return GAMES.filter((g) => g.status === 'playable').map((game) => ({ params: { slug: game.slug }, props: { game } }));
-}
+// Rendered per request, so owners and signed-in players see their own page
+// from the first paint (no flash of the free version).
+export const prerender = false;
 
-interface Props {
-  game: CatalogGame;
+const game = findGame(Astro.params.slug ?? '');
+if (!game || game.status !== 'playable') return new Response('Not found', { status: 404 });
+
+let owned = false;
+let user: { name: string; email: string } | null = null;
+try {
+  const [claims, session] = await Promise.all([ownership(Astro.cookies, game.slug, Astro.url), currentUser(Astro.cookies)]);
+  owned = claims !== null;
+  user = session && { name: session.name, email: session.email };
+} catch (err) {
+  // The sales page must always load: fall back to the signed-out free version.
+  console.error('[games] ownership check failed', err);
 }
-const { game } = Astro.props;
+Astro.response.headers.set('cache-control', 'private, no-store');
 ---
-<Base title={`${game.title}: ${game.tagline} | 16bit.ink`} description={game.description[0] ?? game.tagline} image={game.cover}>
+<Base title={`${game.title}: ${game.tagline} | 16bit.ink`} description={game.description[0] ?? game.tagline} image={game.cover} user={user}>
   <article class="game">
     <div class="shot paper-card tape">
       <img src={game.cover} alt={`${game.title} gameplay`} width="1200" height="675" />
     </div>
     <div class="info">
-      <p class="pixel-label">Free demo · full game {game.price} one-time</p>
+      <p class="pixel-label">{owned ? 'Full game · unlocked' : `Free demo · full game ${game.price} one-time`}</p>
       <h1>{game.title}</h1>
       <p class="tag">{game.tagline}</p>
       {game.description.map((p) => <p>{p}</p>)}
       <div class="actions">
-        <a class="btn btn-ink" href={`/play/${game.slug}`}>Play free, full-screen</a>
-        <BuyButton game={game.slug} label={`Unlock full game · ${game.price}`} />
+        <a class="btn btn-ink" href={`/play/${game.slug}`}>{owned ? 'Play the full game' : 'Play free, full-screen'}</a>
+        {!owned && <BuyButton game={game.slug} label={`Unlock full game · ${game.price}`} />}
       </div>
-      <p class="one-time"><strong>One-time purchase.</strong> Pay once and the full game is yours to keep: no subscription, no ads, nothing more to buy. Refunds within 14 days, see the <a href="/terms#refunds">terms</a>.</p>
+      {owned ? (
+        <p class="one-time"><strong>You own the full game.</strong> Every level is yours to keep, with nothing more to pay.</p>
+      ) : (
+        <p class="one-time"><strong>One-time purchase.</strong> Pay once and the full game is yours to keep: no subscription, no ads, nothing more to buy. Refunds within 14 days, see the <a href="/terms#refunds">terms</a>.</p>
+      )}
       <p class="cancelled" hidden>Checkout cancelled. No charge was made.</p>
-      <p class="restore">Bought it already? <a href={`/auth/google?return=/games/${game.slug}`}>Sign in with Google</a> with the email on your receipt to unlock it here.</p>
+      {!owned && !user && <p class="restore">Bought it already? <a href={`/auth/google?return=/games/${game.slug}`}>Sign in with Google</a> with the email on your receipt to unlock it here.</p>}
       <div class="cols">
         {game.features && (
           <section>

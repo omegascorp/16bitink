@@ -30,7 +30,7 @@ describe('id token claims', () => {
   const opts = { clientId: CLIENT, nonce: 'n-1', nowSec: NOW };
 
   it('accepts a fresh, verified Google identity and lower-cases the email', () => {
-    expect(checkIdToken(good, opts)).toEqual({ sub: '1234567890', email: 'fish@example.com', name: 'Ink Fish' });
+    expect(checkIdToken(good, opts)).toEqual({ sub: '1234567890', email: 'fish@example.com', name: 'Ink' });
   });
 
   it('accepts the bare issuer too', () => {
@@ -52,6 +52,14 @@ describe('id token claims', () => {
   it('rejects non-objects', () => {
     expect(checkIdToken(null, opts)).toBeNull();
     expect(checkIdToken('x', opts)).toBeNull();
+  });
+
+  it('uses the first name when Google gives one', () => {
+    expect(checkIdToken({ ...good, given_name: ' Mary Ann ', name: 'Mary Ann Fish' }, opts)?.name).toBe('Mary Ann');
+  });
+
+  it('falls back to the first word of the full name', () => {
+    expect(checkIdToken({ ...good, given_name: '' }, opts)?.name).toBe('Ink');
   });
 
   it('falls back to the email when there is no name', () => {

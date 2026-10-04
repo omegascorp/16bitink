@@ -7,8 +7,10 @@ interface Props {
   title: string;
   description: string;
   image?: string;
+  /** Server-rendered pages pass who is signed in (null: nobody); static pages leave it out. */
+  user?: { readonly name: string; readonly email: string } | null;
 }
-const { title, description, image = '/covers/inkfish.png' } = Astro.props;
+const { title, description, image = '/covers/inkfish.png', user } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(image, Astro.site);
 ---
@@ -35,7 +37,7 @@ const ogImage = new URL(image, Astro.site);
   <body>
     <header class="wrap site-header">
       <Logo />
-      <Account />
+      <Account user={user} />
     </header>
     <main class="wrap">
       <slot />

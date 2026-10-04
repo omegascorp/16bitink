@@ -16,8 +16,11 @@ export interface GoogleUser {
   readonly sub: string;
   /** Verified, lower-cased: the key purchases are found by. */
   readonly email: string;
+  /** First name, for the header. */
   readonly name: string;
 }
+
+const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 
 interface AuthUrlParams {
   readonly clientId: string;
@@ -88,7 +91,7 @@ export function checkIdToken(claims: unknown, o: CheckOptions): GoogleUser | nul
     typeof c.email === 'string' && c.email.includes('@');
   if (!valid) return null;
   const email = (c.email as string).toLowerCase();
-  const name = typeof c.name === 'string' && c.name.trim() ? c.name.trim() : email.split('@')[0]!;
+  const name = text(c.given_name) || text(c.name).split(/\s+/)[0] || email.split('@')[0]!;
   return { sub: c.sub as string, email, name };
 }
 

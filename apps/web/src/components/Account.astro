@@ -1,13 +1,21 @@
 ---
 /**
- * Header sign-in. Pages are static, so who is signed in is fetched in the
- * browser; until then (or without JS) a plain sign-in link shows.
+ * Header sign-in. A server-rendered page passes `user` (null when signed
+ * out) and the header is right from the first paint. Static pages leave it
+ * out: who is signed in is then fetched in the browser, and until then (or
+ * without JS) a plain sign-in link shows.
  */
+interface Props {
+  user?: { readonly name: string; readonly email: string } | null;
+}
+const { user } = Astro.props;
+const known = user !== undefined;
+const signInHref = known ? `/auth/google?return=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}` : '/auth/google';
 ---
-<account-menu>
-  <a href="/auth/google" data-signin>Sign in with Google</a>
-  <span class="account-user" hidden>
-    <span class="account-name"></span>
+<account-menu data-known={known ? '' : undefined}>
+  <a href={signInHref} data-signin hidden={Boolean(user)}>Sign in with Google</a>
+  <span class="account-user" hidden={!user}>
+    <span class="account-name" title={user?.email}>{user?.name}</span>
     <button type="button" class="account-signout">Sign out</button>
   </span>
 </account-menu>
@@ -26,8 +34,10 @@
       const name = this.querySelector<HTMLElement>('.account-name');
       const signOut = this.querySelector<HTMLButtonElement>('.account-signout');
       if (!signIn || !user || !name || !signOut) return;
-      signIn.href = `/auth/google?return=${encodeURIComponent(location.pathname + location.search)}`;
       signOut.addEventListener('click', () => void this.signOut(signOut));
+      // The server already rendered who is signed in.
+      if (this.dataset.known !== undefined) return;
+      signIn.href = `/auth/google?return=${encodeURIComponent(location.pathname + location.search)}`;
       const me = await this.fetchMe();
       if (!me?.signedIn) return;
       name.textContent = me.name ?? '';
