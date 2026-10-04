@@ -12,6 +12,8 @@ import { drawProgressBar } from './guide/progress';
 import { BLUE_INK, HAND_FONT, INK_HEX, inkButton, inkText, RED_INK, uiScale } from './ui';
 
 const DRAG_THRESHOLD = 8;
+/** Below this width (portrait phones) the menu stacks its top buttons instead of shrinking them to fit one row. */
+const NARROW_MENU = 640;
 /** Captions on the map: soft ink on sunlit water, pale ink on the deep chapters' night. */
 const SOFT_INK = '#4a463e';
 const PALE_INK = '#e4dccb';
@@ -163,7 +165,8 @@ export class MenuScene extends Phaser.Scene {
   private buildUi(playable: number, save: ReturnType<typeof loadSave>): void {
     const host = getHost(this);
     const { width, height } = this.scale;
-    const s = uiScale(this, 900, 600);
+    const s = this.menuScale();
+    const narrow = width < NARROW_MENU;
     const ui = (o: Phaser.GameObjects.GameObject): void => {
       this.uiLayer.add(o);
     };
@@ -173,10 +176,13 @@ export class MenuScene extends Phaser.Scene {
     this.countText = this.add.text(24, 64 * s, `${done} of ${this.layout.nodes.length} levels`, { fontFamily: HAND_FONT, fontSize: `${22 * s}px`, color: SOFT_INK });
     ui(this.countText);
     ui(inkButton(this, width - 110 * s, 36 * s, '← 16bit.ink', () => host.onExit(), { width: 180 * s, height: 46 * s, size: 24 * s }));
-    ui(inkButton(this, width - 310 * s, 36 * s, 'Fish guide', () => this.scene.start('Guide', { chapter: (this.activeZone >= 0 ? this.activeZone : 0) + 1 }), { width: 160 * s, height: 46 * s, size: 24 * s }));
+    // Portrait: the guide button goes under the exit button, there's no room beside it.
+    const guideX = narrow ? width - 110 * s : width - 310 * s;
+    const guideY = narrow ? 96 * s : 36 * s;
+    ui(inkButton(this, guideX, guideY, 'Fish guide', () => this.scene.start('Guide', { chapter: (this.activeZone >= 0 ? this.activeZone : 0) + 1 }), { width: 160 * s, height: 46 * s, size: 24 * s }));
     // Under the button: how much of this chapter's guide page you've filled in.
-    const bar = this.add.graphics().setPosition(width - 310 * s, 72 * s);
-    const text = this.add.text(width - 310 * s, 90 * s, '', { fontFamily: HAND_FONT, fontSize: `${18 * s}px`, color: SOFT_INK }).setOrigin(0.5);
+    const bar = this.add.graphics().setPosition(guideX, guideY + 36 * s);
+    const text = this.add.text(guideX, guideY + 54 * s, '', { fontFamily: HAND_FONT, fontSize: `${18 * s}px`, color: SOFT_INK }).setOrigin(0.5);
     ui(bar);
     ui(text);
     this.guide = { pages: guidePages(getChapters(this)), seen: new Set(save.seen), bar, text };
@@ -188,7 +194,8 @@ export class MenuScene extends Phaser.Scene {
     this.tabs = this.layout.zones.map((z, i) => {
       const g = this.add.graphics();
       const t = this.add.text(0, 0, String(z.chapter.info.id), { fontFamily: HAND_FONT, fontSize: `${22 * s}px`, color: z.chapter.locked ? '#a69c8a' : '#1b1a1f' }).setOrigin(0.5);
-      const c = this.add.container(width / 2 + (i - (n - 1) / 2) * gap, y, [g, t]).setSize(40 * s, 40 * s).setInteractive({ useHandCursor: true });
+      // The hit area fills the whole gap, so small tabs stay easy to tap.
+      const c = this.add.container(width / 2 + (i - (n - 1) / 2) * gap, y, [g, t]).setSize(Math.max(40 * s, gap), 44).setInteractive({ useHandCursor: true });
       c.setData('locked', z.chapter.locked);
       c.on('pointerup', () => {
         this.targetX = (z.x0 + z.x1) / 2;
@@ -201,9 +208,11 @@ export class MenuScene extends Phaser.Scene {
 
     if (!host.unlocked) {
       const locked = this.layout.nodes.length - playable;
-      ui(inkButton(this, width - 170 * s, height - 90 * s, `Unlock ${locked} more levels`, () => host.onBuy(), { width: 300 * s, height: 52 * s, size: 26 * s, color: RED_INK }));
+      // Portrait: the tabs span the full width, so the offer sits above them and the depth caption.
+      const offerY = height - (narrow ? 150 : 90) * s;
+      ui(inkButton(this, width - 170 * s, offerY, `Unlock ${locked} more levels`, () => host.onBuy(), { width: 300 * s, height: 52 * s, size: 26 * s, color: RED_INK }));
       const once = host.price ? `${host.price}, one-time purchase` : 'One-time purchase';
-      ui(inkText(this, width - 170 * s, height - 50 * s, once, 18 * s, SOFT_INK));
+      ui(inkText(this, width - 170 * s, offerY + 40 * s, once, 18 * s, SOFT_INK));
     }
     const error = getFullError(this);
     if (error) {
@@ -224,13 +233,21 @@ export class MenuScene extends Phaser.Scene {
     for (const t of [this.depthText, this.countText, this.guide?.text]) t?.setColor(caption);
     this.tabs.forEach((tab, i) => {
       const g = tab.list[0] as Phaser.GameObjects.Graphics;
-      const r = 17 * uiScale(this, 900, 600);
+      const r = 17 * this.menuScale();
       g.clear();
       const active = i === index;
       g.fillStyle(active ? 0x1f3f8a : 0xfffaf0, active ? 1 : 0.92).fillCircle(0, 0, r);
       g.lineStyle(active ? 2.4 : 1.4, tab.getData('locked') ? 0xa69c8a : INK_HEX, 1).strokeCircle(0, 0, r);
       (tab.list[1] as Phaser.GameObjects.Text).setColor(active ? '#fbf6ea' : tab.getData('locked') ? '#a69c8a' : '#1b1a1f');
     });
+  }
+
+  /**
+   * UI scale for the fixed captions and buttons. Portrait phones stack the top
+   * buttons, so they are scaled against a narrower design and stay tappable.
+   */
+  private menuScale(): number {
+    return this.scale.width < NARROW_MENU ? Math.min(1, this.scale.width / 520) : uiScale(this, 900, 600);
   }
 
   private showGuideProgress(chapter: number): void {
@@ -240,7 +257,7 @@ export class MenuScene extends Phaser.Scene {
     bar.setVisible(Boolean(page));
     text.setVisible(Boolean(page));
     if (!page) return;
-    const s = uiScale(this, 900, 600);
+    const s = this.menuScale();
     const p = guideProgress(page.ids, seen);
     drawProgressBar(bar, 150 * s, 10 * s, p, 23);
     text.setText(p.percent >= 100 ? `Chapter ${chapter} complete!` : `Chapter ${chapter}: ${p.percent}% met`);

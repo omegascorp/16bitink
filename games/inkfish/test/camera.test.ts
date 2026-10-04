@@ -16,4 +16,14 @@ describe('targetZoom', () => {
     const phone = targetZoom(844, 390, 3200, 1800, 18, 18);
     expect(phone).toBeGreaterThan(1.4);
   });
+
+  it('shows a portrait phone as much sea as the same phone in landscape', () => {
+    const portrait = targetZoom(390, 844, 3200, 1800, 18, 18);
+    const landscape = targetZoom(844, 390, 3200, 1800, 18, 18);
+    expect(portrait).toBeCloseTo(landscape, 5);
+  });
+
+  it('leaves desktop landscape zoom unchanged', () => {
+    expect(targetZoom(1280, 760, 3200, 1800, 18, 18)).toBeCloseTo(760 / 430, 5);
+  });
 });

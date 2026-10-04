@@ -51,15 +51,18 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
 
     <style is:global>
       html, body { margin: 0; height: 100%; overflow: hidden; background: var(--paper); overscroll-behavior: none; }
+      /* Inset by the safe areas so a notch or home bar never covers the HUD; the paper fills behind them. */
       #stage {
-        position: fixed; inset: 0; width: 100vw; height: 100dvh;
+        position: fixed;
+        top: env(safe-area-inset-top); right: env(safe-area-inset-right); left: env(safe-area-inset-left);
+        height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
         touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
         background: var(--paper);
       }
       #stage canvas { display: block; }
       #splash {
         position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-        gap: 8px; padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom); text-align: center;
+        gap: 8px; padding: 0 16px; text-align: center;
         font-family: 'Caveat', cursive; color: var(--ink); z-index: 2;
       }
       #splash h1 { font-size: clamp(4rem, 16vw, 8rem); margin: 0; line-height: 0.9; color: var(--accent); }

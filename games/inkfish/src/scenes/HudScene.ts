@@ -35,6 +35,14 @@ const BAR_W = 260;
 const BAR_H = 18;
 /** Screen width from which the combo multiplier fits beside its meter without reaching the score. */
 const WIDE_HUD = 900;
+/** Below this width (portrait phones) the HUD stacks: bar and score drop under the corner buttons. */
+const NARROW_HUD = 640;
+/** Bar top on wide screens, and on narrow ones where it sits under the corner buttons. */
+const BAR_Y = 50;
+const NARROW_BAR_Y = 76;
+const CORNER_SLOT = 62;
+const LIFE_GAP = 44;
+const NARROW_LIFE_GAP = 34;
 
 export class HudScene extends Phaser.Scene {
   private bars!: Phaser.GameObjects.Graphics;
@@ -51,6 +59,10 @@ export class HudScene extends Phaser.Scene {
   private pauseLayer: Phaser.GameObjects.Container | null = null;
   private last: HudSnapshot | null = null;
   private player: PlayerFishId = 'inkling';
+  private levelText!: Phaser.GameObjects.Text;
+  private narrow = false;
+  private barY = BAR_Y;
+  private barW = BAR_W;
 
   constructor() {
     super('Hud');
@@ -64,7 +76,7 @@ export class HudScene extends Phaser.Scene {
     this.pauseLayer = null;
     this.last = null;
     this.textColor = data.dark ? '#ece4d2' : '#1b1a1f';
-    this.add.text(20, 14, data.levelName, { fontFamily: '"Caveat", cursive', fontSize: '24px', color: this.textColor });
+    this.levelText = this.add.text(20, 14, data.levelName, { fontFamily: '"Caveat", cursive', fontSize: '24px', color: this.textColor });
     this.bars = this.add.graphics();
     this.scoreText = inkText(this, 0, 30, '0', 40, data.dark ? PALE_BLUE : BLUE_INK);
     this.objectiveText = this.add.text(20, 94, '', { fontFamily: '"Caveat", cursive', fontSize: '26px', color: this.textColor });
@@ -194,11 +206,29 @@ export class HudScene extends Phaser.Scene {
 
   private layout(): void {
     const { width, height } = this.scale;
-    this.scoreText.setPosition(width / 2, 34);
-    // Wide screens: the multiplier at the end of its meter. Narrow ones: under the objective, clear of the score.
-    if (width >= WIDE_HUD) this.frenzyText.setPosition(20 + BAR_W + 12, 84).setOrigin(0, 0.5);
-    else this.frenzyText.setPosition(20, 124).setOrigin(0, 0);
-    this.cornerButtons.forEach((b) => b.setPosition(width - 40 - (b.getData('slot') as number) * 62, 36));
+    const buttonsLeft = width - 66 - (this.cornerButtons.length - 1) * CORNER_SLOT;
+    this.narrow = width < NARROW_HUD;
+    // A long level name shrinks rather than running under the corner buttons.
+    this.levelText.setScale(1).setScale(Math.min(1, (buttonsLeft - 32) / this.levelText.width));
+    if (this.narrow) {
+      // Portrait phones: the top row holds only the name and buttons; bar and lives
+      // go on the row below, with the objective and score under them.
+      this.barY = NARROW_BAR_Y;
+      this.barW = Math.min(BAR_W, width - 40 - this.livesWidth());
+      // Rows under the bar leave room for the combo meter drawn 30px below it.
+      this.objectiveText.setPosition(20, NARROW_BAR_Y + 44);
+      this.scoreText.setPosition(width - 20, NARROW_BAR_Y + 58).setOrigin(1, 0.5);
+      this.frenzyText.setPosition(20, NARROW_BAR_Y + 76).setOrigin(0, 0);
+    } else {
+      this.barY = BAR_Y;
+      this.barW = BAR_W;
+      this.scoreText.setPosition(width / 2, 34).setOrigin(0.5);
+      this.objectiveText.setPosition(20, 94);
+      // Wide screens: the multiplier at the end of its meter. Narrower ones: under the objective, clear of the score.
+      if (width >= WIDE_HUD) this.frenzyText.setPosition(20 + BAR_W + 12, 84).setOrigin(0, 0.5);
+      else this.frenzyText.setPosition(20, 124).setOrigin(0, 0);
+    }
+    this.cornerButtons.forEach((b) => b.setPosition(width - 40 - (b.getData('slot') as number) * CORNER_SLOT, 36));
     this.dashBtn?.setPosition(width - DASH_ZONE / 2, height - DASH_ZONE / 2);
     this.pauseLayer?.setPosition(width / 2, height / 2);
     if (this.last) this.draw(this.last);
@@ -212,16 +242,17 @@ export class HudScene extends Phaser.Scene {
   private draw(s: HudSnapshot): void {
     const g = this.bars.clear();
     const x = 20;
-    const y = 50;
-    g.fillStyle(this.accent.track, this.accent.trackAlpha).fillRect(x, y, BAR_W, BAR_H);
-    g.fillStyle(this.accent.growth, this.accent.growthAlpha).fillRect(x, y, BAR_W * s.progress, BAR_H);
-    for (const m of s.tierMarks) g.lineStyle(2, this.lineColor, 0.8).lineBetween(x + BAR_W * m, y - 4, x + BAR_W * m, y + BAR_H + 4);
-    wobblyRect(g, x, y, BAR_W, BAR_H, 3, 2.2, this.lineColor);
+    const y = this.barY;
+    const w = this.barW;
+    g.fillStyle(this.accent.track, this.accent.trackAlpha).fillRect(x, y, w, BAR_H);
+    g.fillStyle(this.accent.growth, this.accent.growthAlpha).fillRect(x, y, w * s.progress, BAR_H);
+    for (const m of s.tierMarks) g.lineStyle(2, this.lineColor, 0.8).lineBetween(x + w * m, y - 4, x + w * m, y + BAR_H + 4);
+    wobblyRect(g, x, y, w, BAR_H, 3, 2.2, this.lineColor);
     // Combo meter: a thinner red bar under the growth bar, filling as you eat in quick
     // succession; only shown while a combo is running.
     if (s.frenzyMeter > 0) {
-      g.fillStyle(this.accent.frenzy, 0.6).fillRect(x, y + 30, BAR_W * s.frenzyMeter, 8);
-      wobblyRect(g, x, y + 30, BAR_W, 8, 9, 1.4, this.lineColor);
+      g.fillStyle(this.accent.frenzy, 0.6).fillRect(x, y + 30, w * s.frenzyMeter, 8);
+      wobblyRect(g, x, y + 30, w, 8, 9, 1.4, this.lineColor);
     }
     this.objectiveText.setText(s.objective).setColor(s.urgent ? this.urgentColor : this.textColor);
     this.frenzyText.setText(s.multiplier > 1 ? `×${s.multiplier} ${s.frenzyLabel}` : '');
@@ -232,12 +263,23 @@ export class HudScene extends Phaser.Scene {
 
   private syncLives(lives: number): void {
     const { width } = this.scale;
-    const offset = this.cornerButtons.length * 62 + 50;
     while (this.lifeIcons.length > Math.max(0, lives)) this.lifeIcons.pop()?.destroy();
     while (this.lifeIcons.length < lives) {
-      this.lifeIcons.push(this.add.image(0, 36, fishKey(this.player, 'light', 0)).setScale(0.16));
+      this.lifeIcons.push(this.add.image(0, 36, fishKey(this.player, 'light', 0)));
     }
-    this.lifeIcons.forEach((icon, i) => icon.setPosition(width - offset - i * 44, 36));
+    if (this.narrow) {
+      // Right-aligned on the bar's row, under the corner buttons.
+      const y = NARROW_BAR_Y + BAR_H / 2;
+      this.lifeIcons.forEach((icon, i) => icon.setScale(0.13).setPosition(width - 36 - i * NARROW_LIFE_GAP, y));
+      return;
+    }
+    const offset = this.cornerButtons.length * CORNER_SLOT + 50;
+    this.lifeIcons.forEach((icon, i) => icon.setScale(0.16).setPosition(width - offset - i * LIFE_GAP, 36));
+  }
+
+  /** Room the life icons need on a narrow screen's bar row. */
+  private livesWidth(): number {
+    return Math.max(this.lifeIcons.length, this.last?.lives ?? 3) * NARROW_LIFE_GAP + 24;
   }
 
   private pauseIfRunning(): void {
