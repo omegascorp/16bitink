@@ -7,8 +7,10 @@ const SPECIES: readonly SpeciesId[] = ALL_SPECIES;
 const TWISTS: readonly TwistId[] = ['grow', 'collect', 'current', 'bounty', 'rush', 'storm', 'dark', 'survive', 'boss'];
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
-const isTriple = (v: unknown): v is [number, number, number] =>
-  Array.isArray(v) && v.length === 3 && v.every(isNum);
+const MIN_STAGES = 2;
+const MAX_STAGES = 8;
+const isStages = (v: unknown): v is number[] =>
+  Array.isArray(v) && v.length >= MIN_STAGES && v.length <= MAX_STAGES && v.every(isNum);
 
 const isPos = (v: unknown): v is number => isNum(v) && v > 0;
 const ascending = (t: readonly number[]): boolean => t.every((x, i) => i === 0 || x > t[i - 1]!);
@@ -58,7 +60,7 @@ function hasShape(v: unknown): v is LevelDef {
   const hazards = l.hazards as Record<string, unknown> | undefined;
   return (
     typeof l.id === 'string' && typeof l.name === 'string' && isNum(l.chapter) && Number.isInteger(l.index) && (l.index as number) >= 0 &&
-    isTriple(l.tiers) && isTriple(l.playerSizes) &&
+    isStages(l.tiers) && isStages(l.playerSizes) && (l.tiers as number[]).length === (l.playerSizes as number[]).length &&
     isNum(world?.width) && isNum(world?.height) &&
     isNum(hazards?.jellyfish) && isNum(hazards?.hookEverySec) &&
     isNum(l.maxFish) && isNum(l.parTime) &&

@@ -54,6 +54,33 @@ export interface ChapterRecipe {
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 const range = (r: readonly [number, number], t: number): number => lerp(r[0], r[1], t);
 
+/** Player radius at the first growth stage, in every level. */
+export const START_SIZE = 18;
+
+/**
+ * Growth stages per chapter. Later fish grow much bigger, so they get more
+ * stages to keep each stage-up a similar ~1.3-1.5x step rather than one
+ * huge jump that turns every predator into prey at once.
+ */
+export function stagesFor(chapter: number): number {
+  if (chapter <= 1) return 3;
+  if (chapter <= 5) return 4;
+  return 5;
+}
+
+/**
+ * Sizes grow by the same factor at every stage-up. Each stage's share of
+ * the goal is proportional to its size, since bigger fish eat bigger
+ * (more valuable) meals, so every stage takes roughly the same time.
+ */
+export function growthStages(goal: number, finalSize: number, stages: number): Pick<LevelDef, 'tiers' | 'playerSizes'> {
+  const step = (finalSize / START_SIZE) ** (1 / (stages - 1));
+  const exact = Array.from({ length: stages }, (_, i) => START_SIZE * step ** i);
+  const total = exact.reduce((sum, v) => sum + v, 0);
+  const tiers = exact.map((_, i) => Math.round((goal * exact.slice(0, i + 1).reduce((sum, v) => sum + v, 0)) / total));
+  return { tiers, playerSizes: exact.map((v, i) => (i === stages - 1 ? finalSize : Math.round(v))) };
+}
+
 export function generateLevel(info: ChapterInfo, recipe: ChapterRecipe, index: number): LevelDef {
   const authored = recipe.levels[index];
   if (!authored) throw new Error(`Chapter ${info.id} has no level ${index + 1}`);
@@ -79,8 +106,7 @@ export function generateLevel(info: ChapterInfo, recipe: ChapterRecipe, index: n
     chapter: info.id,
     index,
     name: authored.name,
-    tiers: [Math.round(goal * 0.22), Math.round(goal * 0.52), goal],
-    playerSizes: [18, Math.round(lerp(18, size, 0.55)), size],
+    ...growthStages(goal, size, stagesFor(info.id)),
     world: recipe.world ?? { width: 3200, height: 1800 },
     spawns,
     maxFish: Math.round(range(recipe.maxFish, t)),

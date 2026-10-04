@@ -49,7 +49,7 @@ describe('level generator', () => {
     const first = generateLevel(info, recipe, 0);
     // The giant's level caps everyone else's size, so compare the level before it.
     const last = generateLevel(info, recipe, LEVELS_PER_CHAPTER - 2);
-    expect(last.tiers[2]).toBeGreaterThan(first.tiers[2]);
+    expect(last.tiers.at(-1)).toBeGreaterThan(first.tiers.at(-1)!);
     expect(last.hazards.jellyfish).toBeGreaterThan(first.hazards.jellyfish);
     expect(last.hazards.hookEverySec).toBeLessThan(first.hazards.hookEverySec);
     expect(last.spawns[1]!.size[1]).toBeGreaterThan(first.spawns[1]!.size[1]);

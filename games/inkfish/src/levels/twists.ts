@@ -40,7 +40,11 @@ const BOSS_HEADROOM = 0.85;
 
 function objectiveFor(goal: TwistId, level: LevelDef, boss: SpeciesId): Objective {
   const ch = level.chapter;
-  const [small, mid, full] = level.playerSizes;
+  const sizes = level.playerSizes;
+  const small = sizes[0]!;
+  // The middle stage: with more stages, marked fish stay a mid-level meal.
+  const mid = sizes[Math.floor(sizes.length / 2)]!;
+  const full = sizes[sizes.length - 1]!;
   switch (goal) {
     case 'collect':
       return { kind: 'collect', count: 8 + Math.floor(ch / 2) };
@@ -60,7 +64,7 @@ export function applyTwists(level: LevelDef, twists: readonly TwistId[], ctx: Tw
   const goal = twists.find((t) => !RULES.has(t)) ?? 'grow';
   const has = (t: TwistId): boolean => twists.includes(t);
   const hooksHere = level.hazards.hookEverySec > 0;
-  const goalPts = level.tiers[2];
+  const goalPts = level.tiers[level.tiers.length - 1]!;
   const modifiers: Modifiers = {
     ...(has('rush') ? { timeLimit: Math.round(goalPts * 1.1 + 30) } : {}),
     ...(has('current') ? { current: (index % 2 === 0 ? 1 : -1) * (70 + level.chapter * 6) } : {}),

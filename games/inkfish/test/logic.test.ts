@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEMO_CHAPTER } from '../src/levels/demo';
 import { parseChapters } from '../src/levels/validate';
 import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy } from '../src/logic/frenzy';
-import { addGrowth, blotsFor, growthProgress, initialGrowth, playerSizeFor } from '../src/logic/growth';
+import { addGrowth, blotsFor, growthGoal, growthProgress, initialGrowth, playerSizeFor } from '../src/logic/growth';
 import { createRng } from '../src/logic/rng';
 import { isLevelOpen, loadSave, markSeen, parseSave, persistSave, recordResult, SAVE_KEY } from '../src/logic/save';
 import { growthPointsFor, pickSpawn, relationTo, scoreFor, touches } from '../src/logic/sizing';
@@ -97,20 +97,33 @@ describe('frenzy', () => {
 });
 
 describe('growth', () => {
-  it('advances tiers and completes the level', () => {
-    let g = addGrowth(level, initialGrowth, level.tiers[0]);
-    expect(g.tier).toBe(1);
-    g = addGrowth(level, g, level.tiers[1] - level.tiers[0]);
-    expect(g.tier).toBe(2);
-    expect(g.complete).toBe(false);
-    g = addGrowth(level, g, 1000);
+  it('advances through every stage and completes the level', () => {
+    const last = level.tiers.length - 1;
+    let g = initialGrowth;
+    for (let stage = 1; stage <= last; stage++) {
+      g = addGrowth(level, g, level.tiers[stage - 1]! - g.points - 1);
+      expect(g.tier).toBe(stage - 1);
+      g = addGrowth(level, g, 1);
+      expect(g.tier).toBe(stage);
+      expect(g.complete).toBe(false);
+    }
+    g = addGrowth(level, g, growthGoal(level));
+    expect(g.tier).toBe(last);
     expect(g.complete).toBe(true);
     expect(growthProgress(level, g)).toBe(1);
   });
 
+  it('handles levels with more stages', () => {
+    const big = { ...level, tiers: [10, 20, 30, 40, 50], playerSizes: [18, 26, 37, 53, 77] };
+    expect(addGrowth(big, initialGrowth, 35).tier).toBe(3);
+    expect(addGrowth(big, initialGrowth, 49).complete).toBe(false);
+    expect(addGrowth(big, initialGrowth, 50)).toEqual({ points: 50, tier: 4, complete: true });
+    expect(playerSizeFor(big, 4)).toBe(77);
+  });
+
   it('maps tiers to sizes and clamps', () => {
     expect(playerSizeFor(level, 0)).toBe(level.playerSizes[0]);
-    expect(playerSizeFor(level, 9)).toBe(level.playerSizes[2]);
+    expect(playerSizeFor(level, 9)).toBe(level.playerSizes.at(-1));
   });
 
   it('rates time against par', () => {
@@ -176,11 +189,17 @@ describe('parseChapters', () => {
 
 describe('parseChapters ranges', () => {
   const good = DEMO_CHAPTER.levels[0]!;
-  const wrap = (level: object): unknown => [{ id: 2, name: 'x', levels: [level] }];
+  const wrap = (level: object): unknown => [{ ...DEMO_CHAPTER, levels: [level] }];
 
   it('rejects non-ascending or zero tiers', () => {
     expect(() => parseChapters(wrap({ ...good, tiers: [10, 5, 20] }))).toThrow();
     expect(() => parseChapters(wrap({ ...good, tiers: [0, 5, 20] }))).toThrow();
+  });
+
+  it('accepts any stage count with matching tiers and sizes', () => {
+    expect(() => parseChapters(wrap({ ...good, tiers: [10, 20, 30, 40, 50], playerSizes: [18, 26, 37, 53, 77] }))).not.toThrow();
+    expect(() => parseChapters(wrap({ ...good, tiers: [10, 20, 30, 40], playerSizes: [18, 26, 37] }))).toThrow();
+    expect(() => parseChapters(wrap({ ...good, tiers: [10], playerSizes: [18] }))).toThrow();
   });
 
   it('rejects bad worlds and spawn weights', () => {

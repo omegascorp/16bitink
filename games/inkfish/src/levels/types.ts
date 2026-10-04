@@ -50,10 +50,13 @@ export interface LevelDef {
   /** 0-based position within its chapter. */
   readonly index: number;
   readonly name: string;
-  /** Growth points needed for tier 2, tier 3 and to finish the level. */
-  readonly tiers: readonly [number, number, number];
-  /** Player radius at tier 1, 2 and 3. */
-  readonly playerSizes: readonly [number, number, number];
+  /**
+   * Growth points needed to reach each stage after the first; the last
+   * entry finishes the level. Same length as playerSizes.
+   */
+  readonly tiers: readonly number[];
+  /** Player radius at each growth stage, smallest first (3 to 5 stages, by chapter). */
+  readonly playerSizes: readonly number[];
   readonly world: { readonly width: number; readonly height: number };
   readonly spawns: readonly SpawnEntry[];
   readonly maxFish: number;

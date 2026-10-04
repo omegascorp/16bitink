@@ -53,8 +53,8 @@ describe('twists', () => {
     for (const ch of chapters) {
       for (const l of ch.levels) {
         if (l.objective.kind !== 'bounty') continue;
-        expect(l.objective.size[0]).toBeGreaterThan(l.playerSizes[0] * 0.9);
-        expect(l.objective.size[1]).toBeLessThan(l.playerSizes[1] * 0.9);
+        expect(l.objective.size[0]).toBeGreaterThan(l.playerSizes[0]! * 0.9);
+        expect(l.objective.size[1]).toBeLessThan(l.playerSizes[Math.floor(l.playerSizes.length / 2)]! * 0.9);
       }
     }
   });
@@ -63,8 +63,8 @@ describe('twists', () => {
     for (const ch of chapters) {
       const l = ch.levels.at(-1)!;
       if (l.objective.kind !== 'boss') throw new Error('expected a boss');
-      expect(l.objective.size).toBeGreaterThan(l.playerSizes[1] * 1.1);
-      expect(l.objective.size).toBeLessThan(l.playerSizes[2] * 0.9);
+      expect(l.objective.size).toBeGreaterThan(l.playerSizes.at(-2)! * 1.1);
+      expect(l.objective.size).toBeLessThan(l.playerSizes.at(-1)! * 0.9);
     }
   });
 

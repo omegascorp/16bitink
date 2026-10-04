@@ -3,7 +3,7 @@ import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, ensureFishTextures, jellyGlowK
 import { getChapters, getHost, getSound } from '../host';
 import type { LevelDef, SpeciesId } from '../levels/types';
 import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy, type FrenzyState } from '../logic/frenzy';
-import { addGrowth, growthProgress, initialGrowth, playerSizeFor, type GrowthState } from '../logic/growth';
+import { addGrowth, growthGoal, growthProgress, initialGrowth, playerSizeFor, type GrowthState } from '../logic/growth';
 import { canHunt, HUNT_COOLDOWN_MS } from '../logic/ecosystem';
 import { causeOfBite, deathText, hitText, type Death, type DeathCause } from '../logic/deaths';
 import { initialProgress, objectiveLine, objectiveOutcome, type ObjectiveProgress } from '../logic/objective';
@@ -218,7 +218,7 @@ export class GameScene extends Phaser.Scene {
 
   private zoomFor(size: number): number {
     const { width, height } = this.scale;
-    return targetZoom(width, height, this.level.world.width, this.level.world.height + (this.sky ? SKY.height : 0), size, this.level.playerSizes[0]);
+    return targetZoom(width, height, this.level.world.width, this.level.world.height + (this.sky ? SKY.height : 0), size, this.level.playerSizes[0]!);
   }
 
   update(_time: number, deltaMs: number): void {
@@ -673,7 +673,7 @@ export class GameScene extends Phaser.Scene {
       },
       loseGrowth: (share) => {
         const floor = this.growth.tier === 0 ? 0 : this.level.tiers[this.growth.tier - 1]!;
-        this.growth = { ...this.growth, points: Math.max(floor, this.growth.points - this.level.tiers[2] * share) };
+        this.growth = { ...this.growth, points: Math.max(floor, this.growth.points - growthGoal(this.level) * share) };
       },
       snag: () => this.hurt('snagged'),
       setDecoy: (d) => {
@@ -737,7 +737,7 @@ export class GameScene extends Phaser.Scene {
     const snapshot: HudSnapshot = {
       levelName: this.level.name,
       progress: growthProgress(this.level, this.growth),
-      tierMarks: [this.level.tiers[0] / this.level.tiers[2], this.level.tiers[1] / this.level.tiers[2]],
+      tierMarks: this.level.tiers.slice(0, -1).map((t) => t / growthGoal(this.level)),
       score: this.score,
       lives: this.lives,
       frenzyMeter: this.frenzy.meter,

@@ -49,7 +49,7 @@ export interface Player extends SwimState {
 export const DASH_ZONE = 170;
 
 export function createPlayer(scene: Phaser.Scene, level: LevelDef, shape: PlayerFishId): Player {
-  const size = level.playerSizes[0];
+  const size = level.playerSizes[0]!;
   const sprite = scene.add
     .image(level.world.width / 2, level.world.height / 2, fishKey(shape, 'light', 0))
     .setDepth(20)

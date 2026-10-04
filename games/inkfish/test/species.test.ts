@@ -30,7 +30,7 @@ describe('species', () => {
     for (const ch of chapters) {
       const l = ch.levels.at(-1)!;
       expect(l.maxCrawlers).toBeGreaterThan(0);
-      expect(l.bottom.some((s) => s.size[0] < l.playerSizes[0])).toBe(true);
+      expect(l.bottom.some((s) => s.size[0] < l.playerSizes[0]!)).toBe(true);
     }
   });
 
