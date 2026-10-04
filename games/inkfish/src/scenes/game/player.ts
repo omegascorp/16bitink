@@ -6,6 +6,7 @@ import type { LevelDef, PlayerFishId } from '../../levels/types';
 import { JUMP, stepSurface, type SurfaceEvent } from '../../logic/jump';
 import { settleFacing } from '../../logic/settle';
 import { aboveSeabed, waterBottom, waterTop } from '../../logic/water';
+import { inStickZone, stickCentre, stickVector } from '../../logic/joystick';
 import { attachTail, setSwimTexture, setTailBeat, stroke, turnToward, type SwimState } from './swim';
 import { TUNING } from './tuning';
 
@@ -61,7 +62,7 @@ export function createPlayer(scene: Phaser.Scene, level: LevelDef, shape: Player
 export interface Controls {
   readonly keys: Record<'up' | 'down' | 'left' | 'right' | 'w' | 'a' | 's' | 'd', Phaser.Input.Keyboard.Key>;
   usingKeys: boolean;
-  /** Device has a touchscreen (shows the dash button). */
+  /** Device has a touchscreen (shows the thumbstick and dash button). */
   readonly touch: boolean;
   /** Last pointer input was a finger: steer only while it's down. Mice steer by hovering. */
   lastWasTouch: boolean;
@@ -93,11 +94,17 @@ function keyDir(c: Controls): { x: number; y: number } {
   return { x, y };
 }
 
+/** The finger on the thumbstick, if any: a touch that went down in the bottom-left corner. */
+export function stickPointer(scene: Phaser.Scene): Phaser.Input.Pointer | null {
+  const { height } = scene.scale;
+  return scene.input.manager.pointers.find((p) => p.isDown && p.wasTouch && inStickZone(p.downX, p.downY, height)) ?? null;
+}
+
 function steeringPointer(scene: Phaser.Scene, c: Controls): Phaser.Input.Pointer | null {
   if (!c.lastWasTouch) return scene.input.mousePointer ?? scene.input.activePointer;
   const { width, height } = scene.scale;
   const ptrs = [scene.input.pointer1, scene.input.pointer2];
-  return ptrs.find((p) => p?.isDown && !(p.x > width - DASH_ZONE && p.y > height - DASH_ZONE)) ?? null;
+  return ptrs.find((p) => p?.isDown && !(p.x > width - DASH_ZONE && p.y > height - DASH_ZONE) && !inStickZone(p.downX, p.downY, height)) ?? null;
 }
 
 /** Direction the player wants to go: unit-ish vector scaled 0..1 by intent. */
@@ -109,6 +116,12 @@ export function desiredDirection(scene: Phaser.Scene, c: Controls, p: Player): {
     return { x: kd.x / len, y: kd.y / len };
   }
   if (c.usingKeys) return { x: 0, y: 0 };
+  // The thumbstick wins over a finger elsewhere on the screen.
+  const stick = c.touch ? stickPointer(scene) : null;
+  if (stick) {
+    const o = stickCentre(scene.scale.height);
+    return stickVector(stick.x - o.x, stick.y - o.y);
+  }
   const ptr = steeringPointer(scene, c);
   if (!ptr) return { x: 0, y: 0 };
   const world = scene.cameras.main.getWorldPoint(ptr.x, ptr.y);

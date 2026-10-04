@@ -4,7 +4,8 @@ import type { PlayerFishId } from '../levels/types';
 import { getHost } from '../host';
 import type { LevelDescription } from '../levels/twists';
 import { itemKey } from './game/items';
-import { DASH_ZONE } from './game/player';
+import { DASH_ZONE, stickPointer } from './game/player';
+import { knobOffset, STICK, stickCentre } from '../logic/joystick';
 import { HUD_EVENT, type GameScene, type HudSnapshot } from './GameScene';
 import { getSound } from '../host';
 import { BLUE_INK, inkButton, inkText, INK_HEX, RED_INK, uiScale, wobblyRect } from './ui';
@@ -56,6 +57,7 @@ export class HudScene extends Phaser.Scene {
   private textColor = '#1b1a1f';
   private lifeIcons: Phaser.GameObjects.Image[] = [];
   private dashBtn: Phaser.GameObjects.Container | null = null;
+  private stick: { readonly base: Phaser.GameObjects.Graphics; readonly knob: Phaser.GameObjects.Graphics } | null = null;
   private pauseLayer: Phaser.GameObjects.Container | null = null;
   private last: HudSnapshot | null = null;
   private player: PlayerFishId = 'inkling';
@@ -91,6 +93,7 @@ export class HudScene extends Phaser.Scene {
     if (fsAvailable) this.addCornerButton(1, '⤢', () => this.toggleFullscreen());
     this.addMuteButton(fsAvailable ? 2 : 1);
     this.dashBtn = data.touch ? this.makeDashButton(game) : null;
+    this.stick = data.touch ? this.makeStick() : null;
 
     game.events.on(HUD_EVENT, this.onSnapshot, this);
     // Pause keys live here: the Game scene's keyboard stops while it is paused.
@@ -204,6 +207,26 @@ export class HudScene extends Phaser.Scene {
     return c;
   }
 
+  /** Bottom-left thumbstick: a faint ring, and a knob that follows the thumb to its rim. */
+  private makeStick(): { base: Phaser.GameObjects.Graphics; knob: Phaser.GameObjects.Graphics } {
+    const base = this.add.graphics();
+    base.fillStyle(0xfffaf0, 0.35).fillCircle(0, 0, STICK.radius + 10);
+    base.lineStyle(2.4, INK_HEX, 0.6).strokeCircle(0, 0, STICK.radius + 10);
+    const knob = this.add.graphics();
+    knob.fillStyle(0xfffaf0, 0.85).fillCircle(0, 0, 28);
+    knob.lineStyle(2.4, INK_HEX, 1).strokeCircle(0, 0, 28);
+    return { base, knob };
+  }
+
+  update(): void {
+    if (!this.stick) return;
+    const o = stickCentre(this.scale.height);
+    const ptr = stickPointer(this);
+    const k = ptr ? knobOffset(ptr.x - o.x, ptr.y - o.y) : { x: 0, y: 0 };
+    this.stick.knob.setPosition(o.x + k.x, o.y + k.y);
+    this.stick.base.setAlpha(ptr ? 1 : 0.6);
+  }
+
   private layout(): void {
     const { width, height } = this.scale;
     const buttonsLeft = width - 66 - (this.cornerButtons.length - 1) * CORNER_SLOT;
@@ -230,6 +253,11 @@ export class HudScene extends Phaser.Scene {
     }
     this.cornerButtons.forEach((b) => b.setPosition(width - 40 - (b.getData('slot') as number) * CORNER_SLOT, 36));
     this.dashBtn?.setPosition(width - DASH_ZONE / 2, height - DASH_ZONE / 2);
+    if (this.stick) {
+      const o = stickCentre(height);
+      this.stick.base.setPosition(o.x, o.y);
+      this.stick.knob.setPosition(o.x, o.y);
+    }
     this.pauseLayer?.setPosition(width / 2, height / 2);
     if (this.last) this.draw(this.last);
   }
