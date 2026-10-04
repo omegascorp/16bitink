@@ -4,8 +4,8 @@ import { ROLES, type Role } from '../admins';
 /** A player's account. Sign-in methods are fields on it, so more can be linked later. */
 export interface UserDoc {
   readonly _id: Types.ObjectId;
-  /** Google's stable account id; never changes, unlike the email. */
-  readonly googleId: string;
+  /** Google's stable account id; never changes, unlike the email. Absent for a user who signs in another way. */
+  readonly googleId?: string;
   /** Verified, lower-cased; updated on each sign-in. */
   readonly email: string;
   readonly name: string;
@@ -17,7 +17,7 @@ export interface UserDoc {
 
 const userSchema = new Schema<UserDoc>(
   {
-    googleId: { type: String, required: true, unique: true },
+    googleId: { type: String },
     email: { type: String, required: true, index: true },
     name: { type: String, required: true },
     lastSignInAt: { type: Date, required: true },
@@ -25,6 +25,8 @@ const userSchema = new Schema<UserDoc>(
   },
   { timestamps: true, collection: 'users' },
 );
+// Unique among users who have one: users without a Google account don't collide.
+userSchema.index({ googleId: 1 }, { unique: true, partialFilterExpression: { googleId: { $type: 'string' } } });
 
 // Reused across dev-server reloads instead of redefined (which Mongoose rejects).
 export const User: Model<UserDoc> =

@@ -1,5 +1,6 @@
 import type { FulfilOptions } from './fulfil';
 import { ownedGames, type PurchaseRecord } from './purchases';
+import type { UserId } from './userId';
 
 /**
  * A user's games, by how they got them. Pure: the caller loads purchases
@@ -17,8 +18,5 @@ export function libraryOf(purchases: readonly PurchaseRecord[], granted: readonl
 /** Every game the user can play, bought or granted. */
 export const playableFrom = (lib: Library): string[] => [...new Set([...lib.bought, ...lib.granted])];
 
-/** Of many users' purchases, the ones that belong to this user (by receipt email or signed-in user). */
-export function purchasesOf(user: { readonly email: string; readonly id: string }, all: readonly PurchaseRecord[]): PurchaseRecord[] {
-  const email = user.email.toLowerCase();
-  return all.filter((p) => p.email === email || p.userId === user.id);
-}
+/** Of many users' purchases, the ones that belong to this user. */
+export const purchasesOf = (userId: UserId, all: readonly PurchaseRecord[]): PurchaseRecord[] => all.filter((p) => p.userId === userId);

@@ -7,9 +7,11 @@
 
 import { readToken, signToken } from './token';
 
+const PURPOSE = 'own';
+
 export interface EntitlementClaims {
   /** Token format/key version, allows graceful secret rotation later. */
-  readonly v: 1;
+  readonly v: 2;
   /** Game slug */
   readonly g: string;
   /** Stripe Checkout Session id that paid for it */
@@ -19,18 +21,18 @@ export interface EntitlementClaims {
 }
 
 export async function signEntitlement(claims: EntitlementClaims, secret: string): Promise<string> {
-  return signToken(claims, secret);
+  return signToken(claims, secret, PURPOSE);
 }
 
 function isClaims(v: unknown): v is EntitlementClaims {
   if (typeof v !== 'object' || v === null) return false;
   const c = v as Record<string, unknown>;
-  return c.v === 1 && typeof c.g === 'string' && typeof c.s === 'string' && typeof c.iat === 'number';
+  return c.v === 2 && typeof c.g === 'string' && typeof c.s === 'string' && typeof c.iat === 'number';
 }
 
 /** Returns the claims when the token is authentic and for `game`, else null. */
 export async function verifyEntitlement(token: string | undefined, game: string, secret: string): Promise<EntitlementClaims | null> {
-  const claims = await readToken(token, secret);
+  const claims = await readToken(token, secret, PURPOSE);
   return isClaims(claims) && claims.g === game ? claims : null;
 }
 

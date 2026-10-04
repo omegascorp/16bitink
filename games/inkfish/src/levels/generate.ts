@@ -15,8 +15,19 @@ export interface RecipeSpawn extends SpawnEntry {
   readonly debut?: number;
 }
 
+/**
+ * One level as authored. Its id is permanent: saves (on the device and in
+ * the player's account) are keyed by it, so never change or reuse an id,
+ * even when the level is renamed, moved or removed.
+ */
+export interface RecipeLevel {
+  readonly id: string;
+  readonly name: string;
+}
+
 export interface ChapterRecipe {
-  readonly names: readonly string[];
+  /** Exactly LEVELS_PER_CHAPTER, in play order. */
+  readonly levels: readonly RecipeLevel[];
   /**
    * Spawn table. The FIRST entry is the chapter's staple prey: it keeps
    * its size and gets boosted in the school-rush level. The second entry
@@ -44,6 +55,8 @@ const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 const range = (r: readonly [number, number], t: number): number => lerp(r[0], r[1], t);
 
 export function generateLevel(info: ChapterInfo, recipe: ChapterRecipe, index: number): LevelDef {
+  const authored = recipe.levels[index];
+  if (!authored) throw new Error(`Chapter ${info.id} has no level ${index + 1}`);
   const t = LEVELS_PER_CHAPTER > 1 ? index / (LEVELS_PER_CHAPTER - 1) : 0;
   const finale = index === LEVELS_PER_CHAPTER - 1;
   const goal = Math.round(range(recipe.goal, t) * (finale ? 1.15 : 1));
@@ -62,9 +75,10 @@ export function generateLevel(info: ChapterInfo, recipe: ChapterRecipe, index: n
   const life = BOTTOM_LIFE[info.zone];
   const bottom = life.crawlers.filter((c) => (c.debut ?? 0) <= index).map(({ debut: _debut, ...entry }) => entry);
   const base: LevelDef = {
-    id: `c${info.id}-l${index + 1}`,
+    id: authored.id,
     chapter: info.id,
-    name: recipe.names[index] ?? `${info.name} ${index + 1}`,
+    index,
+    name: authored.name,
     tiers: [Math.round(goal * 0.22), Math.round(goal * 0.52), goal],
     playerSizes: [18, Math.round(lerp(18, size, 0.55)), size],
     world: recipe.world ?? { width: 3200, height: 1800 },

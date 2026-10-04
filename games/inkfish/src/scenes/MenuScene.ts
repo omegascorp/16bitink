@@ -53,7 +53,8 @@ export class MenuScene extends Phaser.Scene {
       const ch = owned.find((c) => c.id === info.id);
       return ch
         ? { info: ch, levelIds: ch.levels.map((l) => l.id), locked: false }
-        : { info, locked: true, levelIds: Array.from({ length: LEVELS_PER_CHAPTER }, (_, i) => `c${info.id}-l${i + 1}`) };
+        : { info, locked: true, // Placeholder keys: the real ids arrive with the paid content.
+        levelIds: Array.from({ length: LEVELS_PER_CHAPTER }, (_, i) => `locked-c${info.id}-${i + 1}`) };
     });
     this.layout = computeMapLayout(chapters);
 

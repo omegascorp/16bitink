@@ -3,17 +3,17 @@ import { isUserId, type UserId } from './userId';
 
 /**
  * Who is signed in, as an HMAC-signed httpOnly cookie. It also carries the
- * games their purchases unlocked when they signed in, so playing needs no
- * Stripe lookup. Signing in again refreshes that list (and drops refunds).
+ * games they could play when they signed in, so a database outage doesn't
+ * lock them out. Signing in again refreshes that list (and drops refunds).
  */
 export interface UserSession {
-  /** 2: keyed by our user id. Older (Google-id) cookies no longer verify, so those players sign in again. */
+  /** Bumped when the shape changes: older cookies stop verifying and those players sign in again. */
   readonly v: 2;
   /** The signed-in user (`users` collection id). */
   readonly userId: UserId;
   readonly email: string;
   readonly name: string;
-  /** Games owned at sign-in, found by email in Stripe. */
+  /** Games playable at sign-in: used only while the database is unreachable. */
   readonly games: readonly string[];
   /** unix seconds */
   readonly iat: number;

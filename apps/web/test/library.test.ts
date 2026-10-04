@@ -4,7 +4,7 @@ import type { PurchaseRecord } from '../src/lib/purchases';
 
 const USER = '65f0c0ffee0000000000aa01';
 const purchase = (patch: Partial<PurchaseRecord>): PurchaseRecord => ({
-  sessionId: 'cs_1', game: 'inkfish', email: 'fish@example.com', userId: null, paymentIntent: 'pi_1',
+  sessionId: 'cs_1', game: 'inkfish', email: 'fish@example.com', userId: null, customerId: null, paymentIntent: 'pi_1',
   amount: 499, currency: 'usd', livemode: true, status: 'paid', paidAt: new Date(0), ...patch,
 });
 
@@ -21,8 +21,8 @@ describe('a player library', () => {
     expect(lib.bought).toEqual([]);
   });
 
-  it('picks a user\'s purchases out of many, by email or user id', () => {
-    const all = [purchase({ sessionId: 'a' }), purchase({ sessionId: 'b', email: 'x@example.com', userId: USER }), purchase({ sessionId: 'c', email: 'x@example.com' })];
-    expect(purchasesOf({ email: 'FISH@example.com', id: USER }, all).map((p) => p.sessionId)).toEqual(['a', 'b']);
+  it('picks a user\'s purchases out of many, by user id only', () => {
+    const all = [purchase({ sessionId: 'a' }), purchase({ sessionId: 'b', email: 'x@example.com', userId: USER }), purchase({ sessionId: 'c', userId: '65f0c0ffee0000000000aa02' })];
+    expect(purchasesOf(USER, all).map((p) => p.sessionId)).toEqual(['b']);
   });
 });

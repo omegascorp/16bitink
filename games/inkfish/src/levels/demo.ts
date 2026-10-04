@@ -4,9 +4,17 @@ import { LEVELS_PER_CHAPTER, ZONE_INFO } from './zones';
 
 /** Chapter 1, the free one. Bundled with the client; every other recipe lives on the server. */
 const TIDE_POOL: ChapterRecipe = {
-  names: [
-    'First Doodle', 'Margin Notes', 'Crosshatch Current', 'Blotted Reef', 'School Rush',
-    'Smudge Shallows', 'Rockpool Rumble', 'Low Tide', 'Nib Narrows', 'The Inkwell',
+  levels: [
+    { id: 'first-doodle', name: 'First Doodle' },
+    { id: 'margin-notes', name: 'Margin Notes' },
+    { id: 'crosshatch-current', name: 'Crosshatch Current' },
+    { id: 'blotted-reef', name: 'Blotted Reef' },
+    { id: 'school-rush', name: 'School Rush' },
+    { id: 'smudge-shallows', name: 'Smudge Shallows' },
+    { id: 'rockpool-rumble', name: 'Rockpool Rumble' },
+    { id: 'low-tide', name: 'Low Tide' },
+    { id: 'nib-narrows', name: 'Nib Narrows' },
+    { id: 'the-inkwell', name: 'The Inkwell' },
   ],
   // Debuts: a new species every level or two, so the pool keeps surprising you.
   spawns: [

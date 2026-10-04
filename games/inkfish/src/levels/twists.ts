@@ -131,18 +131,15 @@ function goalText(level: LevelDef): string {
   }
 }
 
-/** 1-based position of a level across the whole game, from its id (c3-l4 is level 24). */
-export function levelNumber(level: LevelDef): number {
-  const m = /^c(\d+)-l(\d+)$/.exec(level.id);
-  return m ? (Number(m[1]) - 1) * LEVELS_PER_CHAPTER + Number(m[2]) : 0;
-}
+/** 1-based position of a level across the whole game (chapter 3, level 4 is level 24). */
+export const levelNumber = (level: LevelDef): number => (level.chapter - 1) * LEVELS_PER_CHAPTER + level.index + 1;
 
 /** Hiding places get a line when they first appear, and so does their absence in open water. */
 function coverNote(level: LevelDef, number: number): string | null {
   if (number === COVER_DEBUT) return 'Dense weed to hide in: hunters lose you there for a few seconds, but you can’t eat while hidden.';
   // Said once, on the first level of the first zone without any.
   const hasCover = (chapter: number): boolean => ZONE_COVER[zoneInfo(chapter).zone].kinds.length > 0;
-  if (level.id.endsWith('-l1') && level.chapter > 1 && !hasCover(level.chapter) && hasCover(level.chapter - 1)) {
+  if (level.index === 0 && level.chapter > 1 && !hasCover(level.chapter) && hasCover(level.chapter - 1)) {
     return 'Open water: nowhere to hide down here.';
   }
   return null;

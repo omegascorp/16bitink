@@ -22,17 +22,16 @@ async function hmacKey(secret: string): Promise<CryptoKey> {
   return crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
 }
 
-/** Ownership tokens predate purposes and sign the bare body; keep them valid. */
-const signed = (purpose: string, body: string): Uint8Array<ArrayBuffer> => enc.encode(purpose ? `${purpose}.${body}` : body);
+const signed = (purpose: string, body: string): Uint8Array<ArrayBuffer> => enc.encode(`${purpose}.${body}`);
 
-export async function signToken(payload: unknown, secret: string, purpose = ''): Promise<string> {
+export async function signToken(payload: unknown, secret: string, purpose: string): Promise<string> {
   const body = b64url(enc.encode(JSON.stringify(payload)));
   const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret), signed(purpose, body));
   return `${body}.${b64url(new Uint8Array(sig))}`;
 }
 
 /** The token's payload when its signature is authentic, else null. Callers still check the shape. */
-export async function readToken(token: string | undefined, secret: string, purpose = ''): Promise<unknown> {
+export async function readToken(token: string | undefined, secret: string, purpose: string): Promise<unknown> {
   if (!token) return null;
   const [body, sig, extra] = token.split('.');
   if (!body || !sig || extra !== undefined) return null;

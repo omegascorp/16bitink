@@ -57,7 +57,7 @@ function hasShape(v: unknown): v is LevelDef {
   const world = l.world as Record<string, unknown> | undefined;
   const hazards = l.hazards as Record<string, unknown> | undefined;
   return (
-    typeof l.id === 'string' && typeof l.name === 'string' && isNum(l.chapter) &&
+    typeof l.id === 'string' && typeof l.name === 'string' && isNum(l.chapter) && Number.isInteger(l.index) && (l.index as number) >= 0 &&
     isTriple(l.tiers) && isTriple(l.playerSizes) &&
     isNum(world?.width) && isNum(world?.height) &&
     isNum(hazards?.jellyfish) && isNum(hazards?.hookEverySec) &&

@@ -3,11 +3,11 @@ import { isRevoked, ownedGames, purchaseFromSession, type CheckoutSessionLike, t
 
 const session: CheckoutSessionLike = {
   id: 'cs_live_1', status: 'complete', payment_status: 'paid', amount_total: 499, currency: 'usd', livemode: true, created: 1_800_000_000,
-  metadata: { game: 'inkfish' }, customer_details: { email: 'Fish@Example.com' }, client_reference_id: '65f0c0ffee0000000000aa01', payment_intent: 'pi_1',
+  metadata: { game: 'inkfish' }, customer_details: { email: 'Fish@Example.com' }, client_reference_id: '65f0c0ffee0000000000aa01', customer: 'cus_1', payment_intent: 'pi_1',
 };
 
 const record: PurchaseRecord = {
-  sessionId: 'cs_live_1', game: 'inkfish', email: 'fish@example.com', userId: '65f0c0ffee0000000000aa01', paymentIntent: 'pi_1',
+  sessionId: 'cs_live_1', game: 'inkfish', email: 'fish@example.com', userId: '65f0c0ffee0000000000aa01', customerId: 'cus_1', paymentIntent: 'pi_1',
   amount: 499, currency: 'usd', livemode: true, status: 'paid', paidAt: new Date(1_800_000_000_000),
 };
 
@@ -16,16 +16,16 @@ describe('recording a checkout', () => {
     expect(purchaseFromSession(session)).toEqual(record);
   });
 
-  it('reads an expanded payment intent', () => {
-    expect(purchaseFromSession({ ...session, payment_intent: { id: 'pi_2' } })?.paymentIntent).toBe('pi_2');
+  it('reads an expanded payment intent and customer', () => {
+    expect(purchaseFromSession({ ...session, payment_intent: { id: 'pi_2' }, customer: { id: 'cus_2' } })).toMatchObject({ paymentIntent: 'pi_2', customerId: 'cus_2' });
   });
 
   it('records a checkout without email or signed-in user', () => {
-    const r = purchaseFromSession({ ...session, customer_details: null, client_reference_id: null, payment_intent: null });
-    expect(r).toMatchObject({ email: null, userId: null, paymentIntent: null });
+    const r = purchaseFromSession({ ...session, customer_details: null, client_reference_id: null, customer: null, payment_intent: null });
+    expect(r).toMatchObject({ email: null, userId: null, customerId: null, paymentIntent: null });
   });
 
-  it('ignores a reference that is not a user id (checkouts from before users existed)', () => {
+  it('ignores a reference that is not a user id', () => {
     expect(purchaseFromSession({ ...session, client_reference_id: '109876543210987654321' })?.userId).toBeNull();
   });
 

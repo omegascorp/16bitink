@@ -30,7 +30,7 @@ if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) {
     if (!isFulfillable(session, Date.now(), { allowTestMode: isLocalHost(Astro.url.hostname) }) || !game) {
       error = 'We could not confirm that payment yet. If you were charged, refresh this page in a minute.';
     } else {
-      const token = await signEntitlement({ v: 1, g: game.slug, s: session.id, iat: Math.floor(Date.now() / 1000) }, requireSecret('ENTITLEMENT_SECRET'));
+      const token = await signEntitlement({ v: 2, g: game.slug, s: session.id, iat: Math.floor(Date.now() / 1000) }, requireSecret('ENTITLEMENT_SECRET'));
       Astro.cookies.set(entitlementCookie(game.slug), token, {
         path: '/', httpOnly: true, secure: import.meta.env.PROD, sameSite: 'lax', maxAge: ENTITLEMENT_MAX_AGE,
       });

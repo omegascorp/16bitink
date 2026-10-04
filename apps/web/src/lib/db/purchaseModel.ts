@@ -10,6 +10,7 @@ const purchaseSchema = new Schema<PurchaseDoc>(
     game: { type: String, required: true },
     email: { type: String, default: null, index: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },
+    customerId: { type: String, default: null, index: true },
     paymentIntent: { type: String, default: null, index: true },
     amount: { type: Number, required: true, min: 0 },
     currency: { type: String, required: true },

@@ -27,7 +27,7 @@ describe('user session tokens', () => {
   });
 
   it('cannot be swapped with other signed tokens', async () => {
-    const own = await signEntitlement({ v: 1, g: 'inkfish', s: 'cs_1', iat: NOW }, SECRET);
+    const own = await signEntitlement({ v: 2, g: 'inkfish', s: 'cs_1', iat: NOW }, SECRET);
     expect(await verifySession(own, SECRET, NOW)).toBeNull();
     const flow = await signFlow({ v: 1, state: 's', nonce: 'n', verifier: 'v', ret: '/', exp: NOW + 60 }, SECRET);
     expect(await verifySession(flow, SECRET, NOW)).toBeNull();

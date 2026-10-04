@@ -44,8 +44,11 @@ export interface Modifiers {
 }
 
 export interface LevelDef {
+  /** Permanent: saves are keyed by it (see RecipeLevel). */
   readonly id: string;
   readonly chapter: number;
+  /** 0-based position within its chapter. */
+  readonly index: number;
   readonly name: string;
   /** Growth points needed for tier 2, tier 3 and to finish the level. */
   readonly tiers: readonly [number, number, number];

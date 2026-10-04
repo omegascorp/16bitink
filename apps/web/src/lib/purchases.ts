@@ -13,10 +13,12 @@ export interface PurchaseRecord {
   /** Stripe Checkout Session id: the purchase's identity. */
   readonly sessionId: string;
   readonly game: string;
-  /** Lower-cased receipt email: signing in finds purchases by it. */
+  /** Lower-cased receipt email: a purchase made signed out goes to the user who signs in with it. */
   readonly email: string | null;
-  /** The user signed in at checkout, if any. */
+  /** The user who owns it: signed in at checkout, or who claimed it later (by email or ownership cookie). */
   readonly userId: UserId | null;
+  /** The Stripe customer checkout created. */
+  readonly customerId: string | null;
   /** Refund and dispute events name the payment intent, not the session. */
   readonly paymentIntent: string | null;
   /** Smallest currency unit, after discounts. */
@@ -34,21 +36,23 @@ export interface CheckoutSessionLike extends SessionLike {
   readonly metadata: Record<string, string> | null;
   readonly customer_details: { readonly email: string | null } | null;
   readonly client_reference_id: string | null;
+  readonly customer: string | { readonly id: string } | null;
   readonly payment_intent: string | { readonly id: string } | null;
 }
+
+const idOf = (v: string | { readonly id: string } | null): string | null => (v === null ? null : typeof v === 'string' ? v : v.id);
 
 /** The purchase this checkout made, or null when it bought nothing (unpaid, free, or not a catalog game). */
 export function purchaseFromSession(s: CheckoutSessionLike): PurchaseRecord | null {
   const game = s.metadata?.game;
   if (!isPaidSession(s) || !game || !findGame(game)) return null;
-  const intent = s.payment_intent;
   return {
     sessionId: s.id,
     game,
     email: s.customer_details?.email?.toLowerCase() ?? null,
-    // Checkouts started before users existed carry a Google id here instead; their email still finds them.
     userId: isUserId(s.client_reference_id) ? s.client_reference_id : null,
-    paymentIntent: intent === null ? null : typeof intent === 'string' ? intent : intent.id,
+    customerId: idOf(s.customer),
+    paymentIntent: idOf(s.payment_intent),
     amount: s.amount_total ?? 0,
     currency: s.currency ?? 'usd',
     livemode: s.livemode,

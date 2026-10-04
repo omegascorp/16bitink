@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEMO_CHAPTER, LOCKED_CHAPTER_TEASERS } from '../src/levels/demo';
 import { generateChapter, generateLevel } from '../src/levels/generate';
+import { levelNumber } from '../src/levels/twists';
 import { parseChapters } from '../src/levels/validate';
 import { LEVELS_PER_CHAPTER, ZONE_DARKNESS, ZONE_INFO } from '../src/levels/zones';
 import { computeMapLayout, MAP, zoneIndexAt, type MapChapter } from '../src/scenes/map/layout';
@@ -28,12 +29,18 @@ describe('zones', () => {
     expect(total).toBe(ZONE_INFO.length * LEVELS_PER_CHAPTER);
     expect(DEMO_CHAPTER.levels).toHaveLength(LEVELS_PER_CHAPTER);
   });
+
+  it('gives every level its own id, each chapter numbering its levels in order', () => {
+    const levels = [...DEMO_CHAPTER.levels, ...INKFISH_FULL_CHAPTERS.flatMap((c) => c.levels)];
+    expect(new Set(levels.map((l) => l.id)).size).toBe(ZONE_INFO.length * LEVELS_PER_CHAPTER);
+    expect(levels.map(levelNumber)).toEqual(levels.map((_, i) => i + 1));
+  });
 });
 
 describe('level generator', () => {
   const info = ZONE_INFO[2]!;
   const recipe = {
-    names: ['a'], spawns: [{ species: 'minnow' as const, weight: 4, size: [8, 14] as const }, { species: 'pike' as const, weight: 1, size: [40, 50] as const }],
+    levels: Array.from({ length: LEVELS_PER_CHAPTER }, (_, i) => ({ id: `test-${i}`, name: `Test ${i}` })), spawns: [{ species: 'minnow' as const, weight: 4, size: [8, 14] as const }, { species: 'pike' as const, weight: 1, size: [40, 50] as const }],
     maxFish: [20, 30] as const, jellyfish: [0, 4] as const, hookEverySec: [20, 10] as const,
     goal: [50, 100] as const, finalSize: [40, 50] as const, boss: 'bass' as const,
   };
@@ -49,12 +56,16 @@ describe('level generator', () => {
     expect(last.spawns[0]!.size).toEqual(first.spawns[0]!.size);
   });
 
-  it('produces valid, uniquely named levels with fallbacks and overrides', () => {
+  it('produces valid levels with the authored ids and names, and overrides', () => {
     const ch = generateChapter(info, { ...recipe, overrides: { 1: { maxFish: 99 } } });
     expect(() => parseChapters(JSON.parse(JSON.stringify([ch])))).not.toThrow();
     expect(new Set(ch.levels.map((l) => l.id)).size).toBe(LEVELS_PER_CHAPTER);
     expect(ch.levels[1]!.maxFish).toBe(99);
-    expect(ch.levels[5]!.name).toContain(info.name);
+    expect([ch.levels[5]!.id, ch.levels[5]!.name, ch.levels[5]!.index]).toEqual(['test-5', 'Test 5', 5]);
+  });
+
+  it('refuses a recipe that is missing a level', () => {
+    expect(() => generateChapter(info, { ...recipe, levels: recipe.levels.slice(1) })).toThrow(/no level 10/);
   });
 
   it('disables hooks when the recipe says so', () => {

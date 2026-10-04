@@ -40,6 +40,13 @@ describe.skipIf(!uri)('users (MongoDB)', () => {
     expect(user).toMatchObject({ googleId: google.googleId, email: 'new@example.com', name: 'Fish', lastSignInAt: new Date('2026-10-02T00:00:00Z') });
   });
 
+  it('allows many users without a Google account, but one user per Google account', async () => {
+    const other = { email: 'x@example.com', name: 'X', role: 'user', lastSignInAt: new Date() } as const;
+    await User.create([other, { ...other, email: 'y@example.com' }]);
+    await User.create({ ...other, googleId: google.googleId });
+    await expect(User.create({ ...other, googleId: google.googleId })).rejects.toMatchObject({ code: 11000 });
+  });
+
   it('survives two first sign-ins at once', async () => {
     const [a, b] = await Promise.all([signInGoogleUser(google, 'user', new Date()), signInGoogleUser(google, 'user', new Date())]);
     expect(a).toBe(b);

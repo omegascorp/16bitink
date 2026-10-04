@@ -195,7 +195,7 @@ export class GameScene extends Phaser.Scene {
       levelName: this.level.name, player: chapter.player, touch: this.controls.touch,
       intro: describeLevel(this.level, {
         // A new chapter means a new fish to swim as.
-        newPlayer: chapter.id > 1 && this.level.id.endsWith('-l1') ? PLAYER_FISH_NAMES[chapter.player] : undefined,
+        newPlayer: chapter.id > 1 && this.level.index === 0 ? PLAYER_FISH_NAMES[chapter.player] : undefined,
         newPlayerTrait: PLAYER_STATS[chapter.player].trait,
       }),
       dark: (this.level.modifiers.dark ?? false) || this.deep.active,
