@@ -42,12 +42,19 @@ For checkout locally:
 
 1. **Stripe:** set `STRIPE_SECRET_KEY` in `apps/web/.env` to the **live** key and run `pnpm --filter @16bitink/web stripe:setup`. This creates "InkFish: Full Game", a one-time $4.99 price with lookup key `inkfish_full`. Then put the test key back.
 2. **MongoDB:** create a database (DigitalOcean Managed MongoDB or Atlas) and allow the app to reach it. Its connection string is `MONGODB_URI`.
-3. **App:** set the real GitHub repo in `.do/app.yaml`, then `doctl apps create --spec .do/app.yaml`. In the app's settings, fill in the encrypted variables:
+3. **App:** create it in the App Platform dashboard from the GitHub repo, branch `main`, with a single **Web Service** (region `fra`, the smallest 512 MB instance is enough). If it also detects a "Function" (it mistakes `packages/game-sdk` for one), delete that component. Service settings:
+   - Source directory: `/`
+   - Build command: `pnpm install --frozen-lockfile && pnpm build`
+   - Run command: `node apps/web/dist/server/entry.mjs`
+   - HTTP port: `8080`, health check path `/`
+   - Plain variables: `HOST=0.0.0.0`, `PORT=8080`, `STRIPE_AUTOMATIC_TAX=false`, `GOOGLE_CLIENT_ID`
+
+   Then fill in the encrypted variables:
    - `STRIPE_SECRET_KEY`
    - `STRIPE_WEBHOOK_SECRET`
    - `ENTITLEMENT_SECRET` (`openssl rand -base64 48`; at least 32 characters, or the site refuses to run)
    - `MONGODB_URI`
-   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+   - `GOOGLE_CLIENT_SECRET`
 
    Never set `DEV_UNLOCK` or `DEV_ALL_LEVELS` in production.
 4. **Stripe webhook:** add an endpoint for `https://16bit.ink/api/webhook` with these events:

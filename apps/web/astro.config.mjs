@@ -3,7 +3,7 @@ import { defineConfig } from 'astro/config';
 
 export default defineConfig({
   site: 'https://16bit.ink',
-  // A standalone Node server, run on DigitalOcean App Platform (see .do/app.yaml).
+  // A standalone Node server, run on DigitalOcean App Platform (setup in the README).
   adapter: node({ mode: 'standalone' }),
   security: {
     // App Platform terminates TLS and forwards plain HTTP. Trust its

@@ -8,7 +8,7 @@ Researched October 2026.
 |---|---|---|
 | Game engine | **Phaser 4.2** + TypeScript | v4 stable since Apr 2026. Built-in scenes, input, tweens, scale manager and fullscreen. New WebGL renderer. |
 | Site | **Astro 7** (Node adapter, standalone) | Zero-JS catalog pages (SEO), on-demand endpoints for checkout. |
-| Hosting | **DigitalOcean App Platform** (one Node service, `.do/app.yaml`) | A plain long-running Node server: one shared MongoDB connection, no edge-runtime limits. |
+| Hosting | **DigitalOcean App Platform** (one Node service, set up in the dashboard; settings in the README) | A plain long-running Node server: one shared MongoDB connection, no edge-runtime limits. |
 | Database | **MongoDB + Mongoose** | One `purchases` collection, one record per paid checkout. Written by the Stripe webhook and the success page (idempotent), read by Google sign-in and the refund check. |
 | Payments | **Stripe Checkout** (one-time) | Hosted, PCI-free. Webhook for fulfilment. |
 | Entitlements | HMAC-signed httpOnly cookie, checked against the database + Google sign-in restore | The cookie is the fast path. A refund or chargeback recorded by the webhook locks it again. Signing in finds purchases by the verified Google email or account. If the database is down, valid cookies still play. |
