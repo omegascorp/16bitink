@@ -1,8 +1,6 @@
-import { Types } from 'mongoose';
 import type { Role } from '../admins';
 import type { GoogleUser } from '../google';
 import type { UserId } from '../userId';
-import { Purchase } from './purchaseModel';
 import { User } from './userModel';
 
 const DUPLICATE_KEY = 11000;
@@ -20,23 +18,15 @@ async function upsertGoogleUser(g: GoogleUser, role: Role, now: Date): Promise<U
   return user._id.toHexString();
 }
 
-/**
- * The user for this Google account, created on first sign-in, with `role`
- * as of now. Purchases saved before users existed name the Google account
- * instead of a user; they are linked to the user here.
- */
+/** The user for this Google account, created on first sign-in, with `role` as of now. */
 export async function signInGoogleUser(g: GoogleUser, role: Role, now: Date): Promise<UserId> {
-  let id: UserId;
   try {
-    id = await upsertGoogleUser(g, role, now);
+    return await upsertGoogleUser(g, role, now);
   } catch (err) {
     // Two first sign-ins at once: one created the user, so the retry finds it.
     if (!isDuplicateKey(err)) throw err;
-    id = await upsertGoogleUser(g, role, now);
+    return upsertGoogleUser(g, role, now);
   }
-  // Older purchases stored the Google id as `googleSub`, a field no longer in the schema, hence the raw collection.
-  await Purchase.collection.updateMany({ googleSub: g.googleId, userId: null }, { $set: { userId: new Types.ObjectId(id) } });
-  return id;
 }
 
 /** The user's current role, or null when there is no such user. */

@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { connectDb, disconnectDb } from '../src/lib/db/connection';
 import { Purchase } from '../src/lib/db/purchaseModel';
-import { findPurchasesFor } from '../src/lib/db/purchaseRepo';
 import { User } from '../src/lib/db/userModel';
 import { findRole, listUsers, signInGoogleUser, syncAdminRoles } from '../src/lib/db/userRepo';
 import { Grant } from '../src/lib/db/grantModel';
@@ -45,16 +44,6 @@ describe.skipIf(!uri)('users (MongoDB)', () => {
     const [a, b] = await Promise.all([signInGoogleUser(google, 'user', new Date()), signInGoogleUser(google, 'user', new Date())]);
     expect(a).toBe(b);
     expect(await User.countDocuments()).toBe(1);
-  });
-
-  it('claims purchases saved under the Google id before users existed', async () => {
-    await Purchase.collection.insertOne({
-      sessionId: 'cs_user_old', game: 'inkfish', email: 'other@example.com', googleSub: google.googleId, paymentIntent: 'pi_old',
-      amount: 499, currency: 'usd', livemode: true, status: 'paid', paidAt: new Date(),
-    });
-    const id = await signInGoogleUser(google, 'user', new Date());
-    const found = await findPurchasesFor(google.email, id);
-    expect(found.map((p) => [p.sessionId, p.userId])).toEqual([['cs_user_old', id]]);
   });
 });
 
