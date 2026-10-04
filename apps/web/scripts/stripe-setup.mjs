@@ -4,6 +4,7 @@
 //
 //   cd apps/web
 //   pnpm stripe:setup            # uses STRIPE_SECRET_KEY from .env
+//   pnpm stripe:setup:prod       # ... from .env.production
 //
 // Run it once with the test key, and once with the live key before launch.
 import Stripe from 'stripe';
@@ -19,12 +20,13 @@ const PRODUCTS = [
 ];
 
 const key = process.env.STRIPE_SECRET_KEY;
-if (!key || !/^sk_(test|live)_[A-Za-z0-9]{20,}$/.test(key)) {
-  console.error('Set STRIPE_SECRET_KEY (a real sk_test_… or sk_live_… key) in apps/web/.env first.');
+// A restricted key (rk_…) works too, if it may write Products and Prices.
+if (!key || !/^[sr]k_(test|live)_[A-Za-z0-9]{20,}$/.test(key)) {
+  console.error('Set STRIPE_SECRET_KEY (a real sk_/rk_ test or live key) in apps/web/.env first.');
   process.exit(1);
 }
 const stripe = new Stripe(key);
-const mode = key.startsWith('sk_live_') ? 'LIVE' : 'test';
+const mode = key.includes('_live_') ? 'LIVE' : 'test';
 
 for (const p of PRODUCTS) {
   const existing = (await stripe.prices.list({ lookup_keys: [p.lookupKey], limit: 1, expand: ['data.product'] })).data[0];
