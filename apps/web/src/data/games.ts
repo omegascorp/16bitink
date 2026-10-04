@@ -30,6 +30,10 @@ export interface CatalogGame {
    */
   readonly stripeLookupKey?: string;
   readonly theme?: GameTheme;
+  /** Home-screen icon set in public/icons/ (rendered by scripts/icons.mjs); the brand icon if unset. */
+  readonly icon?: string;
+  /** Screen orientation once installed. */
+  readonly orientation?: 'any' | 'landscape' | 'portrait';
   readonly fonts?: GameFonts;
   readonly features?: readonly string[];
   readonly controls?: readonly string[];
@@ -49,6 +53,8 @@ export const GAMES: readonly CatalogGame[] = [
     price: '$4.99',
     stripeLookupKey: 'inkfish_full',
     theme: { paper: '#f4eddc', ink: '#1b1a1f', accent: '#1f3f8a' },
+    icon: 'inkfish',
+    orientation: 'landscape',
     fonts: { googleCss: 'family=Caveat:wght@500;700', await: ['32px Caveat'] },
     features: [
       'Chapter 1 free: 10 levels, no sign-up',

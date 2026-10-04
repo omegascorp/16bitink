@@ -1,5 +1,6 @@
 ---
 import { playableGames, type CatalogGame } from '../../data/games';
+import { appleTouchIcon } from '../../lib/manifest';
 
 export function getStaticPaths() {
   return playableGames().map((game) => ({ params: { slug: game.slug }, props: { game } }));
@@ -23,7 +24,10 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
     <meta name="theme-color" content={theme.paper} />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-title" content={game.title} />
+    <!-- Installs as its own app: the game's manifest and icon, not the catalog's. -->
+    <link rel="manifest" href={`/play/${game.slug}.webmanifest`} />
+    <link rel="apple-touch-icon" href={appleTouchIcon(game)} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

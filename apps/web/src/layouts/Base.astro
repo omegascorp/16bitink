@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Logo from '../components/Logo.astro';
 import Account from '../components/Account.astro';
+import { appleTouchIcon } from '../lib/manifest';
 
 interface Props {
   title: string;
@@ -23,6 +24,7 @@ const ogImage = new URL(image, Astro.site);
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href={appleTouchIcon()} />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#f4eddc" />
     <meta property="og:title" content={title} />

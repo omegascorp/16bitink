@@ -7,6 +7,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "start": "node dist/server/entry.mjs",
+    "icons": "node scripts/icons.mjs",
     "stripe:setup": "node --env-file=.env scripts/stripe-setup.mjs",
     "test": "vitest run",
     "typecheck": "astro check"
@@ -14,6 +15,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@types/node": "^24.19.1",
+    "sharp": "0.35.4",
     "typescript": "^6.0.3",
     "vitest": "^5.0.3"
   },
