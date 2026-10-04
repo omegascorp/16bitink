@@ -155,7 +155,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, -skyH, world.width, world.height + skyH).setBackgroundColor('#f4eddc');
     this.fleet = new Fleet(this, chapter.zone, this.sky, this.rng);
     this.flock = new Flock(this, chapter.zone, this.rng);
-    this.sightings = new Sightings(getHost(this).storage, [chapter.player]);
+    this.sightings = new Sightings(getHost(this), [chapter.player]);
     const residents = levelSpecies(this.level);
     releaseFishTextures(this, residents);
     ensureFishTextures(this, residents);

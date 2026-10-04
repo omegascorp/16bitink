@@ -1,4 +1,5 @@
 import type Stripe from 'stripe';
+import type { UserId } from './userId';
 
 /** Shown under Stripe's pay button. */
 export const ONE_TIME_NOTE = 'One-time purchase: pay once and the full game is yours to keep. No subscription, no ads.';
@@ -9,8 +10,8 @@ interface CheckoutInput {
   readonly title: string;
   readonly origin: string;
   readonly automaticTax: boolean;
-  /** The signed-in Google account, if any. */
-  readonly user: { readonly email: string; readonly sub: string } | null;
+  /** The signed-in user, if any. */
+  readonly user: { readonly email: string; readonly userId: UserId } | null;
 }
 
 /** A Stripe Checkout Session for a one-time full-game unlock. */
@@ -22,7 +23,7 @@ export function checkoutParams(i: CheckoutInput): Stripe.Checkout.SessionCreateP
     // The email Stripe collects (or the Google one, when signed in) is how
     // the purchase is found again on another device.
     customer_creation: 'always',
-    ...(i.user ? { customer_email: i.user.email, client_reference_id: i.user.sub } : {}),
+    ...(i.user ? { customer_email: i.user.email, client_reference_id: i.user.userId } : {}),
     automatic_tax: { enabled: i.automaticTax },
     allow_promotion_codes: true,
     custom_text: { submit: { message: ONE_TIME_NOTE } },

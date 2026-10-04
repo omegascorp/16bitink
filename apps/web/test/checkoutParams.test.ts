@@ -26,10 +26,10 @@ describe('checkout session parameters', () => {
     expect(p.cancel_url).toBe('https://16bit.ink/games/inkfish?checkout=cancelled');
   });
 
-  it('locks the receipt email to the signed-in Google account', () => {
-    const p = checkoutParams({ ...base, user: { email: 'fish@example.com', sub: 'g-1' } });
+  it('locks the receipt email to the signed-in user and names them on the checkout', () => {
+    const p = checkoutParams({ ...base, user: { email: 'fish@example.com', userId: '65f0c0ffee0000000000aa01' } });
     expect(p.customer_email).toBe('fish@example.com');
-    expect(p.client_reference_id).toBe('g-1');
+    expect(p.client_reference_id).toBe('65f0c0ffee0000000000aa01');
   });
 
   it('lets Stripe collect the email when nobody is signed in', () => {

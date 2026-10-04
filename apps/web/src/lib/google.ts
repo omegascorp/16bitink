@@ -12,8 +12,8 @@ const ISSUERS: ReadonlySet<string> = new Set(['https://accounts.google.com', 'ac
 export const CALLBACK_PATH = '/auth/google/callback';
 
 export interface GoogleUser {
-  /** Google's stable account id. */
-  readonly sub: string;
+  /** Google's stable account id (the ID token's `sub` claim). */
+  readonly googleId: string;
   /** Verified, lower-cased: the key purchases are found by. */
   readonly email: string;
   /** First name, for the header. */
@@ -92,7 +92,7 @@ export function checkIdToken(claims: unknown, o: CheckOptions): GoogleUser | nul
   if (!valid) return null;
   const email = (c.email as string).toLowerCase();
   const name = text(c.given_name) || text(c.name).split(/\s+/)[0] || email.split('@')[0]!;
-  return { sub: c.sub as string, email, name };
+  return { googleId: c.sub as string, email, name };
 }
 
 /** Where to go after signing in: a path on this site, never another origin or the sign-in routes. */

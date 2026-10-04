@@ -31,17 +31,44 @@ function isRecord(value: unknown): value is LevelRecord {
 export function parseSave(raw: string | null): SaveData {
   if (!raw) return EMPTY;
   try {
-    const data: unknown = JSON.parse(raw);
-    if (typeof data !== 'object' || data === null) return EMPTY;
-    const levels = (data as { levels?: unknown }).levels;
-    if (typeof levels !== 'object' || levels === null) return EMPTY;
-    const valid = Object.entries(levels).filter(([, rec]) => isRecord(rec));
-    const seen = (data as { seen?: unknown }).seen;
-    const ids = Array.isArray(seen) ? seen.filter((id): id is string => typeof id === 'string' && id.length <= MAX_ID).slice(0, MAX_SEEN) : [];
-    return { version: 1, levels: Object.fromEntries(valid) as Record<string, LevelRecord>, seen: [...new Set(ids)] };
+    return parseSaveValue(JSON.parse(raw));
   } catch {
     return EMPTY;
   }
+}
+
+/** Validates an untrusted, already-parsed save (local storage or the player's account). */
+export function parseSaveValue(data: unknown): SaveData {
+  if (typeof data !== 'object' || data === null) return EMPTY;
+  const levels = (data as { levels?: unknown }).levels;
+  if (typeof levels !== 'object' || levels === null) return EMPTY;
+  const valid = Object.entries(levels).filter(([, rec]) => isRecord(rec));
+  const seen = (data as { seen?: unknown }).seen;
+  const ids = Array.isArray(seen) ? seen.filter((id): id is string => typeof id === 'string' && id.length <= MAX_ID).slice(0, MAX_SEEN) : [];
+  return { version: 1, levels: Object.fromEntries(valid) as Record<string, LevelRecord>, seen: [...new Set(ids)] };
+}
+
+/**
+ * Two copies of progress combined (this device and another): every level
+ * either finished, with the better score and blots, and every creature
+ * either met. Progress only grows, so merging never loses any.
+ */
+export function mergeSaves(a: SaveData, b: SaveData): SaveData {
+  const levels: Record<string, LevelRecord> = { ...a.levels };
+  for (const [id, rec] of Object.entries(b.levels)) {
+    const prev = levels[id];
+    levels[id] = prev ? { bestScore: Math.max(prev.bestScore, rec.bestScore), blots: Math.max(prev.blots, rec.blots) } : rec;
+  }
+  return { version: 1, levels, seen: [...new Set([...a.seen, ...b.seen])].slice(0, MAX_SEEN) };
+}
+
+/** Whether `a` already holds everything in `b` (so saving `b` over `a` would add nothing). */
+export function covers(a: SaveData, b: SaveData): boolean {
+  const seen = new Set(a.seen);
+  return b.seen.every((id) => seen.has(id)) && Object.entries(b.levels).every(([id, rec]) => {
+    const mine = a.levels[id];
+    return mine !== undefined && mine.bestScore >= rec.bestScore && mine.blots >= rec.blots;
+  });
 }
 
 export function recordResult(save: SaveData, levelId: string, score: number, blots: number): SaveData {

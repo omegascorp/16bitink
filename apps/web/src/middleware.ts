@@ -5,6 +5,9 @@ const MINUTE = 60_000;
 const limiters: Record<LimitedRoute, RateLimiter> = {
   checkout: createRateLimiter({ limit: 10, windowMs: MINUTE }),
   auth: createRateLimiter({ limit: 20, windowMs: MINUTE }),
+  // Games save after each level; this leaves room for merge retries, not for spam.
+  progress: createRateLimiter({ limit: 60, windowMs: MINUTE }),
+  admin: createRateLimiter({ limit: 120, windowMs: MINUTE }),
 };
 
 /** The visitor's IP: App Platform's edge sets do-connecting-ip; locally, the socket address. */

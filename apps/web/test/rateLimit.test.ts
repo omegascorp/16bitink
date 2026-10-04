@@ -36,6 +36,9 @@ describe('which routes are limited', () => {
     expect(limitFor('/auth/google')).toBe('auth');
     expect(limitFor('/auth/google/callback')).toBe('auth');
     expect(limitFor('/auth/signout')).toBe('auth');
+    expect(limitFor('/api/progress/inkfish')).toBe('progress');
+    expect(limitFor('/admin')).toBe('admin');
+    expect(limitFor('/api/admin/grants')).toBe('admin');
   });
 
   it('never limits the Stripe webhook or pages', () => {

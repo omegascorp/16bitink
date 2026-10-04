@@ -1,5 +1,7 @@
 import type Phaser from 'phaser';
-import { loadSave, markSeen, persistSave, type KeyValueStore } from '../../logic/save';
+import type { GameHost } from '@16bitink/game-sdk';
+import { commitSave } from '../../logic/accountSave';
+import { loadSave, markSeen } from '../../logic/save';
 
 /** How often to look around for new creatures, ms. */
 const LOOK_EVERY_MS = 300;
@@ -13,7 +15,7 @@ export class Sightings {
   private readonly fresh = new Set<string>();
   private nextLook = 0;
 
-  constructor(private readonly store: KeyValueStore | undefined, first: readonly string[]) {
+  constructor(private readonly host: Pick<GameHost, 'storage' | 'progress'>, first: readonly string[]) {
     for (const id of first) this.fresh.add(id);
   }
 
@@ -25,7 +27,9 @@ export class Sightings {
 
   save(): void {
     if (this.fresh.size === 0) return;
-    persistSave(this.store, markSeen(loadSave(this.store), this.fresh));
+    const save = loadSave(this.host.storage);
+    const next = markSeen(save, this.fresh);
+    if (next !== save) commitSave(this.host, next);
     this.fresh.clear();
   }
 }

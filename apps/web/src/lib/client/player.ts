@@ -1,6 +1,7 @@
 import { isGameModule, type GameModule } from '@16bitink/game-sdk';
 import { GAME_LOADERS } from '../../games/loaders';
 import { startCheckout } from './checkout';
+import { accountProgress } from './progress';
 
 interface ApiEnvelope<T> {
   readonly success: boolean;
@@ -64,6 +65,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
 
   // Start the ownership check and engine download while the player reads the splash.
   const accessP = checkAccess(game);
+  const progressP = accountProgress(game);
   // Re-created on retry: a failed dynamic import stays rejected forever.
   let engineP = loadGame(game);
   engineP.catch(() => undefined);
@@ -75,12 +77,13 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
     // Must be requested synchronously inside the click for browsers to allow it.
     const fs = goFullscreen(stage);
     try {
-      const [module, { unlocked, allLevelsOpen }] = await Promise.all([engineP, accessP, fontP, fs]);
+      const [module, { unlocked, allLevelsOpen }, progress] = await Promise.all([engineP, accessP, progressP, fontP, fs]);
       splash.remove();
       const handle = module.mount(stage, {
         unlocked,
         allLevelsOpen,
         storage: safeStorage(),
+        progress: progress ?? undefined,
         price: stage.dataset.price || undefined,
         loadContent: () => getJson<unknown>(`/api/content/${encodeURIComponent(game)}`),
         onBuy: () => {

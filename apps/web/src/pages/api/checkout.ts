@@ -30,7 +30,7 @@ export const POST: APIRoute = async ({ request, url, cookies }) => {
     const session = await stripe.checkout.sessions.create(checkoutParams({
       priceId: price.id, game: game.slug, title: game.title, origin: url.origin,
       automaticTax: optionalEnv('STRIPE_AUTOMATIC_TAX') === 'true',
-      user: user ? { email: user.email, sub: user.sub } : null,
+      user: user ? { email: user.email, userId: user.userId } : null,
     }));
     if (!session.url) throw new Error('Stripe returned no checkout URL');
     return json({ success: true, data: { url: session.url } });

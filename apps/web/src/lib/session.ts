@@ -1,4 +1,5 @@
 import { readToken, signToken } from './token';
+import { isUserId, type UserId } from './userId';
 
 /**
  * Who is signed in, as an HMAC-signed httpOnly cookie. It also carries the
@@ -6,9 +7,10 @@ import { readToken, signToken } from './token';
  * Stripe lookup. Signing in again refreshes that list (and drops refunds).
  */
 export interface UserSession {
-  readonly v: 1;
-  /** Google account id */
-  readonly sub: string;
+  /** 2: keyed by our user id. Older (Google-id) cookies no longer verify, so those players sign in again. */
+  readonly v: 2;
+  /** The signed-in user (`users` collection id). */
+  readonly userId: UserId;
   readonly email: string;
   readonly name: string;
   /** Games owned at sign-in, found by email in Stripe. */
@@ -44,7 +46,7 @@ const isStr = (v: unknown): v is string => typeof v === 'string';
 function isSession(v: unknown): v is UserSession {
   if (typeof v !== 'object' || v === null) return false;
   const c = v as Record<string, unknown>;
-  return c.v === 1 && isStr(c.sub) && isStr(c.email) && isStr(c.name) &&
+  return c.v === 2 && isUserId(c.userId) && isStr(c.email) && isStr(c.name) &&
     Array.isArray(c.games) && c.games.every(isStr) && typeof c.iat === 'number' && typeof c.exp === 'number';
 }
 

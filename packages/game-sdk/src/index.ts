@@ -13,6 +13,27 @@ export interface KeyValueStore {
   setItem(key: string, value: string): void;
 }
 
+/**
+ * Progress saved to the signed-in player's account, so it follows them
+ * between devices. The website stores each game's progress as an opaque
+ * JSON value; only the game knows its shape, so the game validates what it
+ * loads and says how two copies combine.
+ */
+export interface ProgressStore {
+  /**
+   * The progress saved to the account, or null when there is none yet.
+   * Untrusted `unknown`: games must validate it. Rejects when offline.
+   */
+  load(): Promise<unknown>;
+  /**
+   * Saves `data` to the account. If another device saved since this one
+   * last loaded or saved, `merge` is called with that newer copy (untrusted)
+   * and its result is saved instead, so neither device's progress is lost.
+   * Rejects when offline; the game's local copy still holds the progress.
+   */
+  save(data: unknown, merge: (theirs: unknown) => unknown): Promise<void>;
+}
+
 /** What the website provides to a running game. */
 export interface GameHost {
   /** True when the server confirmed the player owns the full game. */
@@ -31,6 +52,12 @@ export interface GameHost {
   onExit(): void;
   /** Per-browser persistence; undefined when storage is blocked. */
   readonly storage?: KeyValueStore;
+  /**
+   * The player's account progress; undefined when nobody is signed in.
+   * Games keep their local `storage` copy too, for offline and signed-out
+   * play, and merge the two when both exist.
+   */
+  readonly progress?: ProgressStore;
   /**
    * Local development only (DEV_ALL_LEVELS): every level the player can
    * access is playable without finishing the ones before it. Never opens

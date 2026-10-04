@@ -4,7 +4,7 @@ import { signFlow, signSession, verifyFlow, verifySession, type UserSession } fr
 
 const SECRET = 'x'.repeat(40);
 const NOW = 1_800_000_000;
-const session: UserSession = { v: 1, sub: '123', email: 'fish@example.com', name: 'Ink Fish', games: ['inkfish'], iat: NOW, exp: NOW + 60 };
+const session: UserSession = { v: 2, userId: '65f0c0ffee0000000000aa01', email: 'fish@example.com', name: 'Ink Fish', games: ['inkfish'], iat: NOW, exp: NOW + 60 };
 
 describe('user session tokens', () => {
   it('round-trip while fresh', async () => {
@@ -13,6 +13,11 @@ describe('user session tokens', () => {
 
   it('expire', async () => {
     expect(await verifySession(await signSession(session, SECRET), SECRET, NOW + 61)).toBeNull();
+  });
+
+  it('reject cookies from before user ids (signed in by Google id)', async () => {
+    const old = { v: 1, sub: '123', email: 'fish@example.com', name: 'Ink Fish', games: [], iat: NOW, exp: NOW + 60 };
+    expect(await verifySession(await signSession(old as unknown as UserSession, SECRET), SECRET, NOW)).toBeNull();
   });
 
   it('reject a wrong secret and garbage', async () => {

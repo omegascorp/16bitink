@@ -10,7 +10,8 @@ import type { PlayerFishId, SpeciesId } from '../levels/types';
 import { deathText, type Death } from '../logic/deaths';
 import type { BirdId } from '../logic/birds';
 import { blotsFor } from '../logic/growth';
-import { loadSave, persistSave, recordResult } from '../logic/save';
+import { loadSave, recordResult } from '../logic/save';
+import { commitSave } from '../logic/accountSave';
 import { allLevels } from '../levels/chapters';
 import { BLUE_INK, drawBlot, inkButton, inkText, RED_INK, uiScale } from './ui';
 
@@ -158,7 +159,7 @@ export class ResultScene extends Phaser.Scene {
     }
 
     const blots = blotsFor(level, data.seconds);
-    persistSave(host.storage, recordResult(loadSave(host.storage), level.id, data.score, blots));
+    commitSave(host, recordResult(loadSave(host.storage), level.id, data.score, blots));
     const g = this.add.graphics();
     for (let i = 0; i < 3; i++) drawBlot(g, -60 + i * 60, -40, 22, i < blots, i * 7 + 1);
     // Your fish, well fed, bobbing above the title.

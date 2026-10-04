@@ -3,13 +3,16 @@ import { devUnlockAllowed, isLocalHost } from './devUnlock';
 import { entitlementCookie, verifyEntitlement, type EntitlementClaims } from './entitlement';
 import { optionalEnv, requireSecret } from './env';
 import { db } from './db';
+import { grantedGames } from './db/grantRepo';
 import { findPurchase, findPurchasesFor } from './db/purchaseRepo';
-import { isRevoked, ownedGames } from './purchases';
+import { libraryOf, playableFrom } from './library';
+import { isRevoked } from './purchases';
+import type { UserId } from './userId';
 import { SESSION_COOKIE, verifySession, type UserSession } from './session';
 
 const nowSec = (): number => Math.floor(Date.now() / 1000);
 
-/** The signed-in Google user, if any. */
+/** The signed-in user, if any. */
 export function currentUser(cookies: AstroCookies): Promise<UserSession | null> {
   return verifySession(cookies.get(SESSION_COOKIE)?.value, requireSecret('ENTITLEMENT_SECRET'), nowSec());
 }
@@ -29,11 +32,17 @@ async function refunded(sessionId: string): Promise<boolean> {
   }
 }
 
-/** The signed-in account's purchases, live (so refunds count at once); the list saved at sign-in if the database is down. */
-async function googleOwns(user: UserSession, game: string, url: URL): Promise<boolean> {
+/** Every game a user can play, bought or granted by an admin. Test-mode purchases count only on localhost. */
+export async function accountGames(email: string, userId: UserId, url: URL): Promise<string[]> {
+  const [purchases, granted] = await Promise.all([findPurchasesFor(email, userId), grantedGames(userId)]);
+  return playableFrom(libraryOf(purchases, granted, { allowTestMode: isLocalHost(url.hostname) }));
+}
+
+/** The signed-in account's games, live (so refunds and revoked grants count at once); the list saved at sign-in if the database is down. */
+async function accountOwns(user: UserSession, game: string, url: URL): Promise<boolean> {
   try {
     await db();
-    return ownedGames(await findPurchasesFor(user.email, user.sub), { allowTestMode: isLocalHost(url.hostname) }).includes(game);
+    return (await accountGames(user.email, user.userId, url)).includes(game);
   } catch (err) {
     console.error('[owner] live purchase check skipped: database unavailable', err);
     return user.games.includes(game);
@@ -42,8 +51,8 @@ async function googleOwns(user: UserSession, game: string, url: URL): Promise<bo
 
 /**
  * Whether `game` is owned on this browser: a purchase made here (its own
- * cookie, unless since refunded), or a signed-in Google account whose
- * purchases include it.
+ * cookie, unless since refunded), or a signed-in user who bought it or
+ * was granted it by an admin.
  * Locally, DEV_UNLOCK=true in .env makes every game owned without a
  * purchase (localhost only).
  */
@@ -56,5 +65,5 @@ export async function ownership(cookies: AstroCookies, game: string, url: URL): 
   if (bought) return (await refunded(bought.s)) ? null : bought;
   const user = await currentUser(cookies);
   if (!user) return null;
-  return (await googleOwns(user, game, url)) ? { v: 1, g: game, s: `google:${user.sub}`, iat: user.iat } : null;
+  return (await accountOwns(user, game, url)) ? { v: 1, g: game, s: `user:${user.userId}`, iat: user.iat } : null;
 }

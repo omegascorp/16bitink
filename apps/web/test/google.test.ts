@@ -30,7 +30,7 @@ describe('id token claims', () => {
   const opts = { clientId: CLIENT, nonce: 'n-1', nowSec: NOW };
 
   it('accepts a fresh, verified Google identity and lower-cases the email', () => {
-    expect(checkIdToken(good, opts)).toEqual({ sub: '1234567890', email: 'fish@example.com', name: 'Ink' });
+    expect(checkIdToken(good, opts)).toEqual({ googleId: '1234567890', email: 'fish@example.com', name: 'Ink' });
   });
 
   it('accepts the bare issuer too', () => {

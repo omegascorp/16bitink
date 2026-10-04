@@ -1,5 +1,6 @@
 import { findGame } from '../data/games';
 import { isPaidSession, type FulfilOptions, type SessionLike } from './fulfil';
+import { isUserId, type UserId } from './userId';
 
 /**
  * Purchases as we keep them: one record per paid Stripe Checkout Session.
@@ -12,10 +13,10 @@ export interface PurchaseRecord {
   /** Stripe Checkout Session id: the purchase's identity. */
   readonly sessionId: string;
   readonly game: string;
-  /** Lower-cased receipt email: Google sign-in finds purchases by it. */
+  /** Lower-cased receipt email: signing in finds purchases by it. */
   readonly email: string | null;
-  /** Google account that was signed in at checkout, if any. */
-  readonly googleSub: string | null;
+  /** The user signed in at checkout, if any. */
+  readonly userId: UserId | null;
   /** Refund and dispute events name the payment intent, not the session. */
   readonly paymentIntent: string | null;
   /** Smallest currency unit, after discounts. */
@@ -45,7 +46,8 @@ export function purchaseFromSession(s: CheckoutSessionLike): PurchaseRecord | nu
     sessionId: s.id,
     game,
     email: s.customer_details?.email?.toLowerCase() ?? null,
-    googleSub: s.client_reference_id ?? null,
+    // Checkouts started before users existed carry a Google id here instead; their email still finds them.
+    userId: isUserId(s.client_reference_id) ? s.client_reference_id : null,
     paymentIntent: intent === null ? null : typeof intent === 'string' ? intent : intent.id,
     amount: s.amount_total ?? 0,
     currency: s.currency ?? 'usd',

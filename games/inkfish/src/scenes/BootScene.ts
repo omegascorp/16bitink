@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { generateInkTextures } from '../art/textures';
 import { getHost, REG } from '../host';
 import { DEMO_CHAPTER } from '../levels/demo';
+import { pullFromAccount } from '../logic/accountSave';
 import { parseChapters } from '../levels/validate';
 import { inkText } from './ui';
 
@@ -27,7 +28,7 @@ export class BootScene extends Phaser.Scene {
     generateInkTextures(this);
     this.registry.set(REG.chapters, [DEMO_CHAPTER]);
     this.registry.set(REG.fullError, null);
-    await loadPaidChapters(this);
+    await Promise.all([loadPaidChapters(this), pullFromAccount(getHost(this))]);
     this.scene.start('Menu');
   }
 }

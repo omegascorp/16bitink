@@ -38,11 +38,13 @@ export function createRateLimiter(opts: { readonly limit: number; readonly windo
   };
 }
 
-export type LimitedRoute = 'checkout' | 'auth';
+export type LimitedRoute = 'checkout' | 'auth' | 'progress' | 'admin';
 
-/** Routes that cost money or credentials if hammered. The Stripe webhook is never limited: Stripe retries in bursts. */
+/** Routes that cost money, credentials or database writes if hammered. The Stripe webhook is never limited: Stripe retries in bursts. */
 export function limitFor(pathname: string): LimitedRoute | null {
   if (pathname === '/api/checkout' || pathname === '/purchase/success') return 'checkout';
   if (pathname.startsWith('/auth/')) return 'auth';
+  if (pathname.startsWith('/api/progress/')) return 'progress';
+  if (pathname === '/admin' || pathname.startsWith('/admin/') || pathname.startsWith('/api/admin/')) return 'admin';
   return null;
 }
