@@ -82,11 +82,13 @@ export class MenuScene extends Phaser.Scene {
     const world = buildMapWorld(this, this.layout, states, blots);
     const worldLayer = this.add.layer(world.objects);
     this.boilers = [...world.boilers];
+    const play = (node: MapNode): void => {
+      const index = levels.findIndex((l) => l.id === node.levelId);
+      if (index >= 0) this.scene.start('Game', { levelIndex: index });
+    };
     for (const { node, zone } of world.hits) {
       zone.on('pointerup', () => {
-        if (this.dragged) return;
-        const index = levels.findIndex((l) => l.id === node.levelId);
-        if (index >= 0) this.scene.start('Game', { levelIndex: index });
+        if (!this.dragged) play(node);
       });
     }
 
@@ -96,6 +98,8 @@ export class MenuScene extends Phaser.Scene {
     worldLayer.add(marker);
     this.boilers.push({ sprite: marker, key: (f) => fishKey(zoneOfCurrent.chapter.info.player, 'light', f) });
     this.tweens.add({ targets: marker, y: marker.y - 10, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    const currentState = states.get(current.levelId);
+    if (currentState !== 'locked' && currentState !== 'closed') worldLayer.add(this.startButton(current, currentState === 'done', save, () => play(current)));
 
     // Cameras: the main one swims along the map, a second one draws the fixed UI.
     const cam = this.cameras.main;
@@ -221,6 +225,20 @@ export class MenuScene extends Phaser.Scene {
       ui(inkText(this, width / 2, 100 * s, error, 20 * s, RED_INK));
       ui(inkButton(this, width / 2, 140 * s, 'Retry', () => void loadPaidChapters(this).then(() => this.scene.restart()), { width: 140 * s, height: 42 * s, size: 22 * s }));
     }
+  }
+
+  /**
+   * A plain button under the current level's number: first-time visitors may
+   * not guess that the numbers on the map are buttons.
+   */
+  private startButton(current: MapNode, done: boolean, save: ReturnType<typeof loadSave>, onPlay: () => void): Phaser.GameObjects.Container {
+    const fresh = Object.keys(save.levels).length === 0;
+    // Below the node's ring, and below its ink blots once it's been played.
+    const y = current.y + (done ? 76 : 62);
+    const button = inkButton(this, current.x, y, fresh ? 'Start' : 'Play', onPlay, { width: 112, height: 42, size: 28, color: BLUE_INK, seed: 7 });
+    // A slow breath on the first visit, so the eye finds it.
+    if (fresh) this.tweens.add({ targets: button, scale: 1.08, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    return button;
   }
 
   private setActiveZone(index: number): void {
