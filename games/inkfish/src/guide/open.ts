@@ -86,17 +86,17 @@ export const OPEN_GUIDE = {
     eats: 'algae, small worms, crustaceans, molluscs',
     fact: 'When stressed it oozes a toxin from its skin that can poison other fish in the water around it.',
   },
-  // Representative species: the Atlantic herring.
-  herring: {
-    latin: 'Clupea harengus',
-    length: 'up to 45 cm',
-    weight: 'up to 1.1 kg',
-    lifespan: 'up to 25 years',
-    speed: 'steady shoaling cruiser; fast, tight turns',
-    depth: '0-360 m, mostly 0-200 m',
-    range: 'North Atlantic, North Sea and Baltic',
-    eats: 'copepods, krill, fish larvae',
-    fact: 'Herring talk at night by squeezing air bubbles out of their rear ends, making a high-pitched ticking sound.',
+  // Representative species: the glassy sweeper of Caribbean reefs and wrecks.
+  sweeper: {
+    latin: 'Pempheris schomburgkii',
+    length: 'up to 16 cm',
+    weight: 'not recorded; a few tens of grams',
+    lifespan: 'unknown',
+    speed: 'slow, tight-packed shoal; quick to scatter',
+    depth: '1-30 m',
+    range: 'Western Atlantic: Florida and the Bahamas to Brazil',
+    eats: 'zooplankton, at night',
+    fact: 'By day thousands pack into caves and wrecks; at dusk they pour out to feed in open water and come back before sunrise.',
   },
   // Representative species: the northern red snapper, a famous wreck and reef fish.
   snapper: {
@@ -282,7 +282,7 @@ export const OPEN_GUIDE = {
   | 'triggerfish'
   | 'lionfish'
   | 'boxfish'
-  | 'herring'
+  | 'sweeper'
   | 'snapper'
   | 'jack'
   | 'moray'

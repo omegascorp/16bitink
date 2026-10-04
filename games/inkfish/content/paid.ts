@@ -91,7 +91,7 @@ const RECIPES: Readonly<Record<number, Recipe>> = {
       { id: 'anchors-shadow', name: 'Anchor’s Shadow' },
       { id: 'keel', name: 'Keel' },
     ],
-    spawns: [s('herring', 5, 8, 14, 0), s('snapper', 3, 24, 38, 0), s('cod', 2.5, 30, 46, 1), s('scorpionfish', 1.5, 30, 44, 3), s('jack', 2, 40, 56, 5), s('barracuda', 1.5, 52, 72, 4), s('moray', 1.5, 58, 82, 6)],
+    spawns: [s('sweeper', 5, 8, 14, 0), s('snapper', 3, 24, 38, 0), s('cod', 2.5, 30, 46, 1), s('scorpionfish', 1.5, 30, 44, 3), s('jack', 2, 40, 56, 5), s('barracuda', 1.5, 52, 72, 4), s('moray', 1.5, 58, 82, 6)],
     boss: 'shark', jellyfish: [4, 7], hookEverySec: [14, 8],
   },
   6: {

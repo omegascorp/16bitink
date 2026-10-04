@@ -293,17 +293,32 @@ export const REEF: Partial<Record<SpeciesId, Anatomy>> = {
   },
 
   // ------------------------------------------------ wreck
-  herring: {
-    hl: 80, hh: 22, peak: 0.4, blunt: 0.45, peduncle: 0.3, tail: 'fork', tailSize: 1.6,
-    dorsal: { from: 0.42, to: 0.56, height: 1.0 }, anal: { from: 0.76, to: 0.88, height: 0.5 },
-    pectoral: 0.42, pelvic: true, scales: true, eye: { t: 0.11, r: 6 }, mouth: 'small',
-    wash: '#8ea2b6', finWash: '#b9c4cc',
+  sweeper: {
+    // Glassy sweeper: a short, deep wedge, tallest just behind the big eyes, the belly
+    // sloping in a long straight line to a thin tail stalk along a long anal fin;
+    // one short high dorsal; coppery and see-through, with a dark line at the anal fin base.
+    hl: 56, hh: 34, peak: 0.3, blunt: 0.7, peduncle: 0.14, tail: 'fork', tailSize: 1.05,
+    dorsal: { from: 0.28, to: 0.42, height: 0.8, tri: true }, anal: { from: 0.46, to: 0.92, height: 0.42 },
+    pectoral: 0.5, pelvic: true, scales: true, eye: { t: 0.13, r: 10 }, mouth: 'small',
+    wash: '#c58f55', finWash: '#ddb27a', lateral: false,
+    profile: (t) => {
+      const ease = (u: number): number => Math.pow(Math.sin(u * Math.PI / 2), 0.8);
+      const top = t <= 0.3 ? -0.08 - 0.77 * ease(t / 0.3) : -0.14 - 0.71 * Math.pow(Math.cos(((t - 0.3) / 0.7) * Math.PI / 2), 1.1);
+      const bottom = t <= 0.32 ? 0.08 + 0.92 * ease(t / 0.32) : 0.14 + 0.86 * Math.pow(1 - (t - 0.32) / 0.68, 1.15);
+      return { top, bottom };
+    },
     extras: (k) => {
-      tint(k, '#3f6488', 0.3, 'back', -0.3);
-      backStipple(1.5)(k);
-      // Upturned lower jaw.
-      const nx = k.x(0);
-      k.pen.stroke([{ x: nx + 2, y: C - 1 }, { x: k.x(0.08), y: C + k.h(0.08) * 0.45 }], 0.9, k.ink, 1, false);
+      tint(k, '#8a5a2e', 0.28, 'back', -0.35);
+      tint(k, '#f3dcc4', 0.3, 'belly', 0.45);
+      // Glassy sheen: a few faint highlights across the flank.
+      for (let i = 0; i < 3; i++) {
+        const t = 0.3 + i * 0.14;
+        k.pen.hair([{ x: k.x(t), y: C - k.h(t) * 0.3 }, { x: k.x(t + 0.08), y: C + k.h(t) * 0.1 }], 0.6, PAPER_FILL, 0.7);
+      }
+      // Dark line along the base of the anal fin.
+      const base: Pt[] = [];
+      for (let t = 0.46; t <= 0.921; t += 0.04) base.push({ x: k.x(t), y: bottomAt(k.a, t) - 2 });
+      k.pen.stroke(base, 1.4, '#1d1b24', 0.75, false);
     },
   },
   snapper: {

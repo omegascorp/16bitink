@@ -71,7 +71,7 @@ export const SPECIES_INFO = {
   boxfish: s('boxfish', 'boxfish', 'hover', [25, 40], 'A swimming box with a tiny tail.'),
   // Wreck
   barracuda: s('barracuda', 'barracudas', 'lunge', [50, 80], 'Hangs still by the wreck, then strikes like an arrow.', { hunter: true }),
-  herring: s('herring', 'herring', 'school', [100, 150], 'Shoals of silver around the hull.'),
+  sweeper: s('glassy sweeper', 'glassy sweepers', 'school', [100, 150], 'Coppery clouds that hide in the hull by day.'),
   snapper: s('snapper', 'snapper', 'cruise', [60, 90], 'Snaps up anything small.', { hunter: true }),
   jack: s('jack', 'jacks', 'chase', [90, 130], 'Fast, and hunts in packs.', { hunter: true }),
   moray: s('moray', 'morays', 'wave', [60, 90], 'Lives in the portholes. Mind the teeth.', { hunter: true }),
