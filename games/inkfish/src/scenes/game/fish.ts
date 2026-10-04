@@ -3,6 +3,7 @@ import { FISH_RADIUS } from '../../art/fishArt';
 import { fishKey } from '../../art/textures';
 import { SPECIES_INFO } from '../../levels/species';
 import type { LevelDef, SpeciesId } from '../../levels/types';
+import { DUCK, nearestDecoy, type Decoy } from '../../logic/decoy';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { pickSpawn, relationTo } from '../../logic/sizing';
 import { keepInWater } from '../../logic/water';
@@ -161,11 +162,22 @@ export function isHelpless(f: Fish): boolean {
   return f.state === 'hooked' || f.state === 'stunned' || f.state === 'dead';
 }
 
-/** Per-species behaviour. Mutates the fish in place (hot loop, pooled entities). */
-/** A point hunters chase instead of the player (a rubber duck decoy). */
-export interface Decoy {
-  readonly x: number;
-  readonly y: number;
+export type { Decoy };
+
+/** Hunters that could threaten the player go for a nearby duck instead. */
+function lureOf(f: Fish, player: PlayerView, decoys: readonly Decoy[]): Decoy | null {
+  if (!decoys.length || f.role === 'bounty' || relationTo(player.size, f.size) === 'prey') return null;
+  const b = SPECIES_INFO[f.species].behaviour;
+  if (f.role !== 'boss' && b !== 'chase' && b !== 'lunge' && !isSquid(f.species)) return null;
+  return nearestDecoy(f.sprite.x, f.sprite.y, decoys, DUCK.lure);
+}
+
+/** Mobbing a duck: circling just under it, snapping at it. */
+function mobDecoy(f: Fish, d: Decoy, now: number, dt: number): void {
+  Object.assign(f, { state: 'chase', stateUntil: now + 600 });
+  const tx = d.x + Math.cos(f.phase * 2.2) * (f.size + 30);
+  const ty = d.y + f.size + 20 + Math.sin(f.phase * 3.1) * 18;
+  steerTo(f, tx, ty, SPECIES_INFO[f.species].behaviour === 'lunge' ? 230 : 180, dt);
 }
 
 /** The level as a swimmer sees it: its size and, when known, the seabed under any x. */
@@ -175,7 +187,8 @@ export interface SeaWorld {
   floorAt?(x: number): number;
 }
 
-export function updateFish(f: Fish, player: PlayerView, world: SeaWorld, now: number, dt: number, decoy: Decoy | null = null): void {
+/** Per-species behaviour. Mutates the fish in place (hot loop, pooled entities). */
+export function updateFish(f: Fish, player: PlayerView, world: SeaWorld, now: number, dt: number, decoys: readonly Decoy[] = []): void {
   f.phase += dt;
   // A hooked fish is moved by its hook.
   if (f.state === 'hooked') return;
@@ -186,8 +199,9 @@ export function updateFish(f: Fish, player: PlayerView, world: SeaWorld, now: nu
     f.sprite.y = keepInWater(f.sprite.y - 16 * dt, -16, f.size, world.height, world.floorAt?.(f.sprite.x)).y;
     return;
   }
-  // Hunters go for the decoy when there is one; everyone else reacts to the player.
-  const p: PlayerView = decoy && SPECIES_INFO[f.species].behaviour !== 'school' ? { ...player, ...decoy, hidden: false } : player;
+  // Hunters go for a nearby duck when there is one; everyone else reacts to the player.
+  const lure = f.state === 'stunned' ? null : lureOf(f, player, decoys);
+  const p: PlayerView = lure && isSquid(f.species) ? { ...player, x: lure.x, y: lure.y, hidden: false } : player;
   const dist = Phaser.Math.Distance.Between(f.sprite.x, f.sprite.y, p.x, p.y);
   const puffed = f.state === 'puffed' && now < f.stateUntil;
   f.size = f.baseSize * (puffed ? 1.7 : 1);
@@ -209,6 +223,8 @@ export function updateFish(f: Fish, player: PlayerView, world: SeaWorld, now: nu
   if (f.state === 'stunned') {
     f.vx -= f.vx * Math.min(1, dt * 4);
     f.vy = 22;
+  } else if (lure) {
+    mobDecoy(f, lure, now, dt);
   } else if (updateGoalFish(f, p, dist, rel, now, dt)) {
     // Steered by its role.
   } else {

@@ -36,6 +36,10 @@ export interface Bird {
   ownsPrize: boolean;
   /** How far the prize's nose is from its centre, world px: it's held by the head. */
   prizeNose: number;
+  /** Hangs upright from the beak (a duck) instead of nose-up (a fish). */
+  prizeUpright: boolean;
+  /** What it's diving at when that isn't the player (a floating duck). */
+  mark: Quarry | null;
 }
 
 const AIM_MS = 600;
@@ -69,14 +73,15 @@ export class Flock {
     this.shadows = scene.add.graphics().setDepth(2.5);
   }
 
-  update(now: number, dt: number, quarry: Quarry & { readonly playerSize: number }, view: Phaser.Geom.Rectangle, worldWidth: number, fx: FlockFx): void {
+  /** `quarry` is the player; `others` are anything else worth a dive (floating ducks). */
+  update(now: number, dt: number, quarry: Quarry & { readonly playerSize: number }, view: Phaser.Geom.Rectangle, worldWidth: number, fx: FlockFx, others: readonly Quarry[] = []): void {
     if (this.enabled && now >= this.nextAt && this.birds.length < (ZONE_BIRDS[this.zone]?.max ?? 0)) {
       this.nextAt = now + rangeOf(this.rng, BIRD_EVERY_MS[0], BIRD_EVERY_MS[1]);
       this.spawn(quarry.playerSize, view);
     }
     this.shadows.clear();
     this.birds = this.birds.filter((b) => {
-      this.step(b, now, dt, quarry, fx);
+      this.step(b, now, dt, quarry, others, fx);
       this.drawShadow(b);
       const gone = b.sprite.x < -300 || b.sprite.x > worldWidth + 300 || b.sprite.y < -SKY.height - 200;
       if (gone) this.remove(b);
@@ -97,13 +102,13 @@ export class Flock {
   }
 
   /** The bird caught something: it carries it up and away. A fish is the bird's to destroy; the player's sprite isn't. */
-  carryOff(b: Bird, prize: Phaser.GameObjects.Image, owns: boolean, nose: number): void {
-    Object.assign(b, { state: 'carry', t: 0, prize, ownsPrize: owns, prizeNose: nose });
+  carryOff(b: Bird, prize: Phaser.GameObjects.Image, owns: boolean, nose: number, upright = false): void {
+    Object.assign(b, { state: 'carry', t: 0, prize, ownsPrize: owns, prizeNose: nose, prizeUpright: upright, mark: null });
   }
 
   /** It struck and missed or let go: back up and away for a while. */
   retreat(b: Bird, now: number): void {
-    Object.assign(b, { state: 'rise', t: 0, restUntil: now + REST_MS });
+    Object.assign(b, { state: 'rise', t: 0, restUntil: now + REST_MS, mark: null });
   }
 
   /** Eaten by the player. */
@@ -121,10 +126,10 @@ export class Flock {
     const x = dir > 0 ? view.left - 120 : view.right + 120;
     const sprite = this.scene.add.image(x, cruiseY, birdKey(kind, 0)).setDepth(18)
       .setScale(size / BIRD_RADIUS / ART_RES).setFlipX(dir < 0);
-    this.birds.push({ sprite, kind, size, state: 'cruise', dir, cruiseY, t: 0, age: this.rng() * 1000, restUntil: 0, vx: dir * info.speed, vy: 0, target: { x, y: cruiseY }, prize: null, ownsPrize: false, prizeNose: 0 });
+    this.birds.push({ sprite, kind, size, state: 'cruise', dir, cruiseY, t: 0, age: this.rng() * 1000, restUntil: 0, vx: dir * info.speed, vy: 0, target: { x, y: cruiseY }, prize: null, ownsPrize: false, prizeNose: 0, prizeUpright: false, mark: null });
   }
 
-  private step(b: Bird, now: number, dt: number, q: Quarry, fx: FlockFx): void {
+  private step(b: Bird, now: number, dt: number, q: Quarry, others: readonly Quarry[], fx: FlockFx): void {
     const s = b.sprite;
     const info = BIRD_INFO[b.kind];
     b.t += dt * 1000;
@@ -136,8 +141,11 @@ export class Flock {
       s.x += b.dir * info.speed * dt;
       s.y += (b.cruiseY + bob - s.y) * Math.min(1, dt * 2);
       s.setRotation(0).setFlipX(b.dir < 0);
-      if (wantsDive({ kind: b.kind, size: b.size, x: s.x, restUntil: b.restUntil }, q, SKY.surfaceY, now)) {
-        Object.assign(b, { state: 'aim', t: 0 });
+      const diver = { kind: b.kind, size: b.size, x: s.x, restUntil: b.restUntil };
+      const wantsPlayer = wantsDive(diver, q, SKY.surfaceY, now);
+      const mark = wantsPlayer ? null : others.find((o) => wantsDive(diver, o, SKY.surfaceY, now));
+      if (wantsPlayer || mark) {
+        Object.assign(b, { state: 'aim', t: 0, mark: mark ?? null });
         if (b.kind !== 'dragonfly') fx.squawk(s.x, s.y);
       }
     } else if (b.state === 'aim') {
@@ -145,7 +153,7 @@ export class Flock {
       const tip = Math.min(1, b.t / AIM_MS) * 1.1;
       s.setRotation(b.dir * tip);
       if (b.t >= AIM_MS) {
-        b.target = diveTarget(b.kind, q, SKY.surfaceY);
+        b.target = diveTarget(b.kind, b.mark ?? q, SKY.surfaceY);
         const dx = b.target.x - s.x;
         const dy = Math.max(40, b.target.y - s.y);
         const d = Math.hypot(dx, dy);
@@ -156,7 +164,7 @@ export class Flock {
       s.x += b.vx * drag * dt;
       s.y += b.vy * drag * dt;
       this.face(b, b.vx, b.vy);
-      if (s.y >= b.target.y || b.t > 1600) Object.assign(b, { state: 'rise', t: 0, restUntil: now + REST_MS });
+      if (s.y >= b.target.y || b.t > 1600) Object.assign(b, { state: 'rise', t: 0, restUntil: now + REST_MS, mark: null });
     } else if (b.state === 'rise') {
       // Bob back up to the surface, then take off again.
       s.y -= RISE_SPEED * dt;
@@ -168,7 +176,11 @@ export class Flock {
       s.x += b.dir * info.speed * 1.3 * dt;
       s.y -= 220 * dt;
       this.face(b, b.dir * info.speed, -220);
-      if (b.prize?.active) {
+      if (b.prize?.active && b.prizeUpright) {
+        // Gripped by the back, swinging under the beak.
+        const beak = this.beakOf(b);
+        b.prize.setPosition(beak.x, beak.y + b.prizeNose * 0.6).setRotation(Math.sin(b.t / 160) * 0.25).setDepth(s.depth - 0.5);
+      } else if (b.prize?.active) {
         // Held by the head, nose up in the beak, the body dangling and swinging below.
         const beak = this.beakOf(b);
         const a = -Math.PI / 2 + Math.sin(b.t / 140) * 0.2;

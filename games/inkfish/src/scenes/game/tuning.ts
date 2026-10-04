@@ -26,7 +26,6 @@ export const TUNING = {
   blastRadius: 250,
   blastKillRatio: 2.2,
   deadFloatMs: 8000,
-  decoyMs: 6500,
   glowMs: 20000,
   glowFactor: 1.8,
   chumSchool: 8,

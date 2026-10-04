@@ -13,7 +13,8 @@ import { waterTop } from '../logic/water';
 import { growthPointsFor, relationTo, scoreFor } from '../logic/sizing';
 import { targetZoom } from './game/camera';
 import { playEaten, playSpiked, spikeMarks } from './game/deathFx';
-import { isHelpless, isOffWorld, renderFish, spawnFish, stunFish, updateFish, type Decoy, type Fish } from './game/fish';
+import { isHelpless, isOffWorld, renderFish, spawnFish, stunFish, updateFish, type Fish } from './game/fish';
+import { Ducks } from './game/ducks';
 import { clubsTouch, takeSquidEvents } from './game/squid';
 import { SharkSense } from './game/sharkSense';
 import { isSquid } from '../art/squidArt';
@@ -101,7 +102,7 @@ export class GameScene extends Phaser.Scene {
   private releaseAt = 0;
   private items: FallingItem[] = [];
   private itemHost!: ItemHost;
-  private decoy: Decoy | null = null;
+  private ducks!: Ducks;
   private shieldG!: Phaser.GameObjects.Graphics;
   /** Weed and coral to hide in. */
   private hideout!: Hideout;
@@ -140,7 +141,7 @@ export class GameScene extends Phaser.Scene {
     this.level = level;
     this.rng = createRng(Date.now());
     Object.assign(this, {
-      fish: [], jellies: [], hooks: [], hookedFish: new Map(), playerHook: null, releaseAt: 0, items: [], decoy: null, growth: initialGrowth, frenzy: initialFrenzy,
+      fish: [], jellies: [], hooks: [], hookedFish: new Map(), playerHook: null, releaseAt: 0, items: [], growth: initialGrowth, frenzy: initialFrenzy,
       score: 0, elapsedMs: 0, boilFrame: 0, boilClock: 0, ended: false, death: null, progress: initialProgress,
       lives: level.modifiers.lives ?? TUNING.lives,
     });
@@ -157,6 +158,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, -skyH, world.width, world.height + skyH).setBackgroundColor('#f4eddc');
     this.fleet = new Fleet(this, chapter.zone, this.sky, this.rng);
     this.flock = new Flock(this, chapter.zone, this.rng);
+    this.ducks = new Ducks(this, this.sky, this.rng);
     this.sightings = new Sightings(getHost(this), [chapter.player]);
     const residents = levelSpecies(this.level);
     releaseFishTextures(this, residents);
@@ -305,10 +307,12 @@ export class GameScene extends Phaser.Scene {
       for (let n = crawlers; n < this.level.maxCrawlers; n++) this.fish.push(spawnCrawler(this, this.level, p.size, camView, floorAt, this.rng));
     }
     const sea = { ...this.level.world, floorAt };
+    this.ducks.update(dt, camView, this.level.world.width);
+    const decoys = this.ducks.decoys();
     this.fish = this.fish.filter((f) => {
       const crawler = isCrawler(f.species);
       if (crawler) updateCrawler(f, view, floorAt, now, dt);
-      else updateFish(f, view, sea, now, dt, this.decoy);
+      else updateFish(f, view, sea, now, dt, decoys);
       // Knocked-out fish that nobody ate sink out of the story.
       if (f.state === 'dead' && now > f.stateUntil) {
         f.sprite.destroy();
@@ -487,10 +491,11 @@ export class GameScene extends Phaser.Scene {
       },
       squawk: (x: number, y: number) => this.sfx('squawk', { x, y }),
     };
-    this.flock.update(now, dt, quarry, this.cameras.main.worldView, this.level.world.width, fx);
+    this.flock.update(now, dt, quarry, this.cameras.main.worldView, this.level.world.width, fx, this.ducks.quarries());
     if (this.ended) return;
     for (const b of [...this.flock.birds]) {
       if (b.state === 'carry') continue;
+      if (b.state === 'dive' && this.birdCatchesDuck(b)) continue;
       if (b.state === 'dive') this.birdCatchesFish(b);
       // The body, or the beak that leads it in a dive.
       const me = bodyOf(p.sprite, p.shape);
@@ -505,6 +510,17 @@ export class GameScene extends Phaser.Scene {
         this.hurt('snatched', undefined, b);
       }
     }
+  }
+
+  /** A bird diving at a floating duck grabs it and flies off with it. Returns true if it did. */
+  private birdCatchesDuck(b: Bird): boolean {
+    if (!b.mark) return false;
+    const beak = this.flock.beakOf(b);
+    const duck = this.ducks.snatch(beak.x, beak.y, b.size * 0.35);
+    if (!duck) return false;
+    this.sfx('squawk', { x: beak.x, y: beak.y });
+    this.flock.carryOff(b, duck, true, duck.displayHeight * 0.5, true);
+    return true;
   }
 
   /** A plunging bird grabs the first smaller fish in its path and carries it off. */
@@ -678,9 +694,7 @@ export class GameScene extends Phaser.Scene {
         this.growth = { ...this.growth, points: Math.max(floor, this.growth.points - growthGoal(this.level) * share) };
       },
       snag: () => this.hurt('snagged'),
-      setDecoy: (d) => {
-        this.decoy = d;
-      },
+      releaseDuck: (x, y) => this.ducks.release(x, y),
       floatText: (x, y, text, color, size) => this.floatText(x, y, text, color, size),
       burst: (x, y, n) => this.burst(x, y, n),
     };

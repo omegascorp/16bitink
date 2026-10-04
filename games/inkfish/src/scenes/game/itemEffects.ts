@@ -2,9 +2,8 @@ import Phaser from 'phaser';
 import type { ItemId } from '../../levels/items';
 import type { LevelDef } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
-import { spawnSpecial, stunFish, type Decoy, type Fish } from './fish';
+import { spawnSpecial, stunFish, type Fish } from './fish';
 import type { Player } from './player';
-import { itemKey } from './items';
 import { TUNING } from './tuning';
 
 /** What an item's effect may touch in the game scene. */
@@ -20,7 +19,8 @@ export interface ItemHost {
   loseGrowth(share: number): void;
   /** A lure's hidden hook: costs a life like any other hit. */
   snag(): void;
-  setDecoy(decoy: Decoy | null): void;
+  /** Lets a rubber duck loose here: a decoy hunters chase instead of you. */
+  releaseDuck(x: number, y: number): void;
   floatText(x: number, y: number, text: string, color: string, size?: number): void;
   burst(x: number, y: number, count: number): void;
 }
@@ -51,7 +51,7 @@ export function applyItem(host: ItemHost, kind: ItemId, now: number): void {
       p.shield = true;
       return say('Tin can armour', BLUE, 30);
     case 'duck':
-      decoy(host);
+      host.releaseDuck(x, y);
       return say('Quack!', GOLD, 40);
     case 'firecracker':
       blast(host, now);
@@ -128,17 +128,4 @@ function blast(host: ItemHost, now: number): void {
       stunFish(f, now, TUNING.shockMs);
     }
   }
-}
-
-/** Rubber duck: bobs up from where you ate it; hunters chase it instead of you. */
-function decoy(host: ItemHost): void {
-  const p = host.player().sprite;
-  const duck = host.scene.add.image(p.x, p.y, itemKey('duck', 0)).setDepth(14).setScale(0.45);
-  host.setDecoy(duck);
-  host.scene.tweens.add({ targets: duck, y: p.y - 260, x: p.x + rangeOf(host.rng, -120, 120), duration: TUNING.decoyMs, ease: 'Sine.Out' });
-  host.scene.tweens.add({ targets: duck, angle: 14, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-  host.scene.time.delayedCall(TUNING.decoyMs, () => {
-    host.setDecoy(null);
-    host.scene.tweens.add({ targets: duck, alpha: 0, duration: 400, onComplete: () => duck.destroy() });
-  });
 }
