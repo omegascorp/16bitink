@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { getSound } from '../host';
 import { INK } from '../art/pen';
 import { createRng } from '../logic/rng';
+import { toView, viewSize } from './hidpi';
 
 export const HAND_FONT = '"Caveat", "Patrick Hand", "Comic Sans MS", cursive';
 export const INK_HEX = 0x1b1a1f;
@@ -63,12 +64,13 @@ export function inkButton(
     pressedAt = null;
   });
   c.on('pointerdown', (p: Phaser.Input.Pointer) => {
-    pressedAt = { x: p.x, y: p.y };
+    pressedAt = toView(p.x, p.y);
   });
   c.on('pointerup', (p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
     const start = pressedAt;
     pressedAt = null;
-    if (!start || Phaser.Math.Distance.Between(start.x, start.y, p.x, p.y) > 12) return;
+    const end = toView(p.x, p.y);
+    if (!start || Phaser.Math.Distance.Between(start.x, start.y, end.x, end.y) > 12) return;
     ev.stopPropagation();
     getSound(scene)?.play('click');
     onClick();
@@ -78,7 +80,7 @@ export function inkButton(
 
 /** Paper background that fills the current viewport. */
 export function paperBackdrop(scene: Phaser.Scene): Phaser.GameObjects.TileSprite {
-  const { width, height } = scene.scale;
+  const { width, height } = viewSize(scene);
   return scene.add.tileSprite(0, 0, width, height, 'paper').setOrigin(0).setScrollFactor(0);
 }
 
@@ -102,5 +104,5 @@ export function drawBlot(g: Phaser.GameObjects.Graphics, x: number, y: number, r
 
 /** Uniform UI scale so menus fit small phones in landscape. */
 export function uiScale(scene: Phaser.Scene, designW = 760, designH = 560): number {
-  return Math.min(1, scene.scale.width / designW, scene.scale.height / designH);
+  return Math.min(1, viewSize(scene).width / designW, viewSize(scene).height / designH);
 }

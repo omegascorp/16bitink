@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { screenZoom } from '../hidpi';
 import { DARK_HOLE, DARK_TEX } from '../../art/twistArt';
 import type { LevelDef } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
@@ -91,7 +92,7 @@ export class TwistRunner {
   update(now: number, dt: number, frame: number, player: Player, goals: readonly Fish[]): Point[] {
     const smashed = this.bottles?.update(now, dt, frame, player.sprite.x, this.current) ?? [];
     const view = this.scene.cameras.main.worldView;
-    const zoom = this.scene.cameras.main.zoom;
+    const zoom = screenZoom(this.scene.cameras.main);
     this.marks.clear();
     for (const f of goals) this.ring(f, now);
     const targets: Point[] = [...(this.bottles?.targets ?? []), ...goals.map((f) => f.sprite)];

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { screenScene, toView, viewSize } from './hidpi';
 import { fishKey } from '../art/textures';
 import type { PlayerFishId } from '../levels/types';
 import { getHost } from '../host';
@@ -71,6 +72,7 @@ export class HudScene extends Phaser.Scene {
   }
 
   create(data: HudData): void {
+    screenScene(this);
     const game = this.scene.get('Game') as GameScene;
     this.lifeIcons = [];
     this.player = data.player;
@@ -130,8 +132,8 @@ export class HudScene extends Phaser.Scene {
     const g = this.add.graphics();
     g.fillStyle(0xfffaf0, 0.96).fillRect(-w / 2, top, w, h);
     wobblyRect(g, -w / 2, top, w, h, 31);
-    const card = this.add.container(this.scale.width / 2, this.scale.height / 2 - (h - 260) / 2, [g, ...lines, ...shelf]);
-    card.setScale(Math.min(1, (this.scale.width - 32) / w, uiScale(this, 640, 480))).setAlpha(0);
+    const card = this.add.container(viewSize(this).width / 2, viewSize(this).height / 2 - (h - 260) / 2, [g, ...lines, ...shelf]);
+    card.setScale(Math.min(1, (viewSize(this).width - 32) / w, uiScale(this, 640, 480))).setAlpha(0);
     this.intro = card;
     this.tweens.add({ targets: card, alpha: 1, duration: 220 });
     const timer = this.time.delayedCall(INTRO_MS + d.notes.length * INTRO_NOTE_MS, () => this.dismissIntro());
@@ -220,15 +222,16 @@ export class HudScene extends Phaser.Scene {
 
   update(): void {
     if (!this.stick) return;
-    const o = stickCentre(this.scale.height);
+    const o = stickCentre(viewSize(this).height);
     const ptr = stickPointer(this);
-    const k = ptr ? knobOffset(ptr.x - o.x, ptr.y - o.y) : { x: 0, y: 0 };
+    const at = ptr ? toView(ptr.x, ptr.y) : null;
+    const k = at ? knobOffset(at.x - o.x, at.y - o.y) : { x: 0, y: 0 };
     this.stick.knob.setPosition(o.x + k.x, o.y + k.y);
     this.stick.base.setAlpha(ptr ? 1 : 0.6);
   }
 
   private layout(): void {
-    const { width, height } = this.scale;
+    const { width, height } = viewSize(this);
     const buttonsLeft = width - 66 - (this.cornerButtons.length - 1) * CORNER_SLOT;
     this.narrow = width < NARROW_HUD;
     // A long level name shrinks rather than running under the corner buttons.
@@ -290,7 +293,7 @@ export class HudScene extends Phaser.Scene {
   }
 
   private syncLives(lives: number): void {
-    const { width } = this.scale;
+    const { width } = viewSize(this);
     while (this.lifeIcons.length > Math.max(0, lives)) this.lifeIcons.pop()?.destroy();
     while (this.lifeIcons.length < lives) {
       this.lifeIcons.push(this.add.image(0, 36, fishKey(this.player, 'light', 0)));
@@ -332,7 +335,7 @@ export class HudScene extends Phaser.Scene {
     const host = getHost(this);
     const bg = this.add.graphics();
     bg.fillStyle(0xf4eddc, 0.88).fillRect(-2000, -2000, 4000, 4000);
-    this.pauseLayer = this.add.container(this.scale.width / 2, this.scale.height / 2, [
+    this.pauseLayer = this.add.container(viewSize(this).width / 2, viewSize(this).height / 2, [
       bg,
       inkText(this, 0, -120, 'Paused', 64, BLUE_INK),
       inkButton(this, 0, -30, 'Keep swimming', () => this.togglePause(), { width: 260 }),

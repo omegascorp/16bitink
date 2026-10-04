@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { screenScene, viewSize } from './hidpi';
 import { getChapters, getHost } from '../host';
 import { ART_RES, birdKey, ensureBirdTextures, fishKey } from '../art/textures';
 import { PAN_SIZE } from '../art/deathArt';
@@ -123,15 +124,16 @@ export class ResultScene extends Phaser.Scene {
   }
 
   create(data: ResultData): void {
+    screenScene(this);
     const host = getHost(this);
     const levels = allLevels(getChapters(this));
     const level = levels[data.levelIndex];
     if (!level) throw new Error(`Result for unknown level ${data.levelIndex}`);
-    const { width, height } = this.scale;
+    const { width, height } = viewSize(this);
     const root = this.add.container(width / 2, height / 2).setScale(uiScale(this, 700, 640));
     root.add(paperBackdrop(this));
     const relayout = (): void => {
-      root.setPosition(this.scale.width / 2, this.scale.height / 2).setScale(uiScale(this, 700, 640));
+      root.setPosition(viewSize(this).width / 2, viewSize(this).height / 2).setScale(uiScale(this, 700, 640));
     };
     this.scale.on('resize', relayout);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', relayout));

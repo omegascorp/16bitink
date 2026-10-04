@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { toView, viewSize } from '../hidpi';
 import { FISH_RADIUS } from '../../art/fishArt';
 import { fishKey } from '../../art/textures';
 import { PLAYER_STATS, type SwimStats } from '../../levels/playerStats';
@@ -96,15 +97,23 @@ function keyDir(c: Controls): { x: number; y: number } {
 
 /** The finger on the thumbstick, if any: a touch that went down in the bottom-left corner. */
 export function stickPointer(scene: Phaser.Scene): Phaser.Input.Pointer | null {
-  const { height } = scene.scale;
-  return scene.input.manager.pointers.find((p) => p.isDown && p.wasTouch && inStickZone(p.downX, p.downY, height)) ?? null;
+  const { height } = viewSize(scene);
+  return scene.input.manager.pointers.find((p) => {
+    const down = toView(p.downX, p.downY);
+    return p.isDown && p.wasTouch && inStickZone(down.x, down.y, height);
+  }) ?? null;
 }
 
 function steeringPointer(scene: Phaser.Scene, c: Controls): Phaser.Input.Pointer | null {
   if (!c.lastWasTouch) return scene.input.mousePointer ?? scene.input.activePointer;
-  const { width, height } = scene.scale;
+  const { width, height } = viewSize(scene);
   const ptrs = [scene.input.pointer1, scene.input.pointer2];
-  return ptrs.find((p) => p?.isDown && !(p.x > width - DASH_ZONE && p.y > height - DASH_ZONE) && !inStickZone(p.downX, p.downY, height)) ?? null;
+  return ptrs.find((p) => {
+    if (!p?.isDown) return false;
+    const at = toView(p.x, p.y);
+    const down = toView(p.downX, p.downY);
+    return !(at.x > width - DASH_ZONE && at.y > height - DASH_ZONE) && !inStickZone(down.x, down.y, height);
+  }) ?? null;
 }
 
 /** Direction the player wants to go: unit-ish vector scaled 0..1 by intent. */
@@ -119,8 +128,9 @@ export function desiredDirection(scene: Phaser.Scene, c: Controls, p: Player): {
   // The thumbstick wins over a finger elsewhere on the screen.
   const stick = c.touch ? stickPointer(scene) : null;
   if (stick) {
-    const o = stickCentre(scene.scale.height);
-    return stickVector(stick.x - o.x, stick.y - o.y);
+    const o = stickCentre(viewSize(scene).height);
+    const at = toView(stick.x, stick.y);
+    return stickVector(at.x - o.x, at.y - o.y);
   }
   const ptr = steeringPointer(scene, c);
   if (!ptr) return { x: 0, y: 0 };

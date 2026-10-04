@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { screenScene, toView, viewSize } from './hidpi';
 import { getChapters, getHost } from '../host';
 import { guidePages, guideProgress, type GuideId, type GuidePage } from '../guide';
 import { ZONE_INFO } from '../levels/zones';
@@ -37,6 +38,7 @@ export class GuideScene extends Phaser.Scene {
   }
 
   create(): void {
+    screenScene(this);
     const host = getHost(this);
     this.pages = guidePages(getChapters(this));
     this.seen = new Set(loadSave(host.storage).seen);
@@ -47,9 +49,9 @@ export class GuideScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-LEFT', () => this.turn(-1));
     this.input.keyboard?.on('keydown-RIGHT', () => this.turn(1));
     this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => this.scrollTo(this.scrollY + dy));
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => (this.drag = { y: p.y, scroll: this.scrollY }));
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => (this.drag = { y: toView(p.x, p.y).y, scroll: this.scrollY }));
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-      if (this.drag && p.isDown) this.scrollTo(this.drag.scroll - (p.y - this.drag.y));
+      if (this.drag && p.isDown) this.scrollTo(this.drag.scroll - (toView(p.x, p.y).y - this.drag.y));
     });
     this.input.on('pointerup', () => (this.drag = null));
   }
@@ -65,7 +67,7 @@ export class GuideScene extends Phaser.Scene {
     this.children.removeAll(true);
     this.detail = null;
     const host = getHost(this);
-    const { width, height } = this.scale;
+    const { width, height } = viewSize(this);
     const s = uiScale(this, 900, 600);
     paperBackdrop(this);
     const all = this.pages.flatMap((p) => p.ids);
@@ -90,7 +92,7 @@ export class GuideScene extends Phaser.Scene {
   }
 
   private buildTabs(s: number): void {
-    const { width, height } = this.scale;
+    const { width, height } = viewSize(this);
     const n = ZONE_INFO.length;
     const gap = Math.min(52 * s, (width - 40) / n);
     for (const z of ZONE_INFO) {
@@ -113,7 +115,7 @@ export class GuideScene extends Phaser.Scene {
   }
 
   private buildGrid(ids: readonly GuideId[], s: number): void {
-    const { width, height } = this.scale;
+    const { width, height } = viewSize(this);
     const cw = (CARD.w + GAP) * s;
     const ch = (CARD.h + GAP) * s;
     const cols = Math.max(1, Math.floor((width - 32) / cw));

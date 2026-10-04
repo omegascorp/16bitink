@@ -4,6 +4,7 @@ import { getHost, REG } from '../host';
 import { DEMO_CHAPTER } from '../levels/demo';
 import { pullFromAccount } from '../logic/accountSave';
 import { parseChapters } from '../levels/validate';
+import { screenScene, viewSize } from './hidpi';
 import { inkText } from './ui';
 
 export class BootScene extends Phaser.Scene {
@@ -12,14 +13,15 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
+    screenScene(this);
     this.cameras.main.setBackgroundColor('#f4eddc');
-    inkText(this, this.scale.width / 2, this.scale.height / 2, 'sharpening pens…', 32);
+    inkText(this, viewSize(this).width / 2, viewSize(this).height / 2, 'sharpening pens…', 32);
     // Let the label paint before the (synchronous) texture generation.
     this.time.delayedCall(30, () => {
       this.boot().catch((err: unknown) => {
         console.error('[inkfish] boot failed', err);
         this.children.removeAll(true);
-        inkText(this, this.scale.width / 2, this.scale.height / 2, 'Your browser could not draw the game. Try another browser.', 26);
+        inkText(this, viewSize(this).width / 2, viewSize(this).height / 2, 'Your browser could not draw the game. Try another browser.', 26);
       });
     });
   }

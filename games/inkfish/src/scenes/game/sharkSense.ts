@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { screenZoom } from '../hidpi';
 import { SENSE, sensedPrey } from '../../logic/sense';
 import type { Fish } from './fish';
 import type { Player } from './player';
@@ -53,7 +54,7 @@ export class SharkSense {
       if (!fish.sprite.active) continue;
       const { x, y } = fish.sprite;
       if (view.contains(x, y)) this.sparks(g, x, y, fish.size, now / 140 + phase, fade);
-      else this.edgeSpark(g, view, cam.zoom, x, y, fade);
+      else this.edgeSpark(g, view, screenZoom(cam), x, y, fade);
     }
   }
 

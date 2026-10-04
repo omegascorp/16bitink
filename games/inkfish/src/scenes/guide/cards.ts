@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { viewSize } from '../hidpi';
 import { isCritter } from '../../art/critterArt';
 import { isSquid } from '../../art/squidArt';
 import { bodyProportions, type FishShape } from '../../art/fishArt';
@@ -71,7 +72,7 @@ const ROWS: readonly (readonly [string, keyof GuideEntry])[] = [
  * figures in a two-column table, and one striking fact.
  */
 export function guideDetail(scene: Phaser.Scene, id: GuideId, s: number, onClose: () => void): Phaser.GameObjects.Container {
-  const { width, height } = scene.scale;
+  const { width, height } = viewSize(scene);
   const e = GUIDE[id];
   const w = Math.min(width - 24, 820 * s);
   const h = Math.min(height - 24, 520 * s);

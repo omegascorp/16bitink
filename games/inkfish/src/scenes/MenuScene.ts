@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { crispText, DPR, screenZoom, toView, uiCamera, viewSize } from './hidpi';
 import { BOIL_FPS, BOIL_FRAMES, ensureFishTextures, fishKey } from '../art/textures';
 import { getChapters, getFullError, getHost } from '../host';
 import { guidePages, guideProgress, type GuidePage } from '../guide';
@@ -43,6 +44,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    crispText(this);
     const host = getHost(this);
     const owned = getChapters(this);
     const levels = allLevels(owned);
@@ -98,11 +100,11 @@ export class MenuScene extends Phaser.Scene {
     // Cameras: the main one swims along the map, a second one draws the fixed UI.
     const cam = this.cameras.main;
     cam.setBackgroundColor('#f4eddc').setBounds(0, 0, this.layout.width, this.layout.height);
-    cam.setZoom(Phaser.Math.Clamp(this.scale.height / 760, 0.5, 1.25));
+    cam.setZoom(Phaser.Math.Clamp(viewSize(this).height / 760, 0.5, 1.25) * DPR);
     this.uiLayer = this.add.layer();
     this.buildUi(levels.length, save);
     cam.ignore(this.uiLayer);
-    this.cameras.add(0, 0, this.scale.width, this.scale.height).ignore(worldLayer);
+    uiCamera(this.cameras.add(0, 0, this.scale.width, this.scale.height)).ignore(worldLayer);
 
     this.targetX = current.x;
     this.centerCamera(1);
@@ -141,22 +143,21 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private bindInput(): void {
-    const zoom = (): number => this.cameras.main.zoom;
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      this.dragStart = { x: p.x, target: this.targetX };
+      this.dragStart = { x: toView(p.x, p.y).x, target: this.targetX };
       this.dragged = false;
     });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       if (!p.isDown || !this.dragStart) return;
-      const dx = p.x - this.dragStart.x;
+      const dx = toView(p.x, p.y).x - this.dragStart.x;
       if (Math.abs(dx) > DRAG_THRESHOLD) this.dragged = true;
-      if (this.dragged) this.targetX = this.dragStart.target - dx / zoom();
+      if (this.dragged) this.targetX = this.dragStart.target - dx / screenZoom(this.cameras.main);
     });
     this.input.on('pointerup', () => {
       this.dragStart = null;
     });
     this.input.on('wheel', (_p: unknown, _o: unknown, dx: number, dy: number) => {
-      this.targetX += (dx + dy) / zoom();
+      this.targetX += (dx + dy) / screenZoom(this.cameras.main);
     });
     const kb = this.input.keyboard;
     kb?.on('keydown-RIGHT', () => (this.targetX += 400));
@@ -165,7 +166,7 @@ export class MenuScene extends Phaser.Scene {
 
   private buildUi(playable: number, save: ReturnType<typeof loadSave>): void {
     const host = getHost(this);
-    const { width, height } = this.scale;
+    const { width, height } = viewSize(this);
     const s = this.menuScale();
     const narrow = width < NARROW_MENU;
     const ui = (o: Phaser.GameObjects.GameObject): void => {
@@ -248,7 +249,7 @@ export class MenuScene extends Phaser.Scene {
    * buttons, so they are scaled against a narrower design and stay tappable.
    */
   private menuScale(): number {
-    return this.scale.width < NARROW_MENU ? Math.min(1, this.scale.width / 520) : uiScale(this, 900, 600);
+    return viewSize(this).width < NARROW_MENU ? Math.min(1, viewSize(this).width / 520) : uiScale(this, 900, 600);
   }
 
   private showGuideProgress(chapter: number): void {

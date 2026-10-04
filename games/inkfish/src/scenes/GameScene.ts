@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { crispText, DPR, viewSize } from './hidpi';
 import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, ensureFishTextures, jellyGlowKey, releaseFishTextures, weedKey } from '../art/textures';
 import { getChapters, getHost, getSound } from '../host';
 import type { LevelDef, SpeciesId } from '../levels/types';
@@ -148,6 +149,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
+    crispText(this);
     const { world } = this.level;
     const chapter = chapterOf(this.level);
     this.sky = ZONE_SKY[chapter.zone];
@@ -217,8 +219,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private zoomFor(size: number): number {
-    const { width, height } = this.scale;
-    return targetZoom(width, height, this.level.world.width, this.level.world.height + (this.sky ? SKY.height : 0), size, this.level.playerSizes[0]!);
+    const { width, height } = viewSize(this);
+    return DPR * targetZoom(width, height, this.level.world.width, this.level.world.height + (this.sky ? SKY.height : 0), size, this.level.playerSizes[0]!);
   }
 
   update(_time: number, deltaMs: number): void {
