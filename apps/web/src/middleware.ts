@@ -8,6 +8,8 @@ const limiters: Record<LimitedRoute, RateLimiter> = {
   // Games save after each level; this leaves room for merge retries, not for spam.
   progress: createRateLimiter({ limit: 60, windowMs: MINUTE }),
   admin: createRateLimiter({ limit: 120, windowMs: MINUTE }),
+  // Keys can't be guessed (80 random bits); this just keeps anyone from trying.
+  redeem: createRateLimiter({ limit: 10, windowMs: MINUTE }),
 };
 
 /** The visitor's IP: App Platform's edge sets do-connecting-ip; locally, the socket address. */

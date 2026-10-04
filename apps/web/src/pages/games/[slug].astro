@@ -44,6 +44,7 @@ Astro.response.headers.set('cache-control', 'private, no-store');
       )}
       <p class="cancelled" hidden>Checkout cancelled. No charge was made.</p>
       {!owned && !user && <p class="restore">Bought it already? <a href={`/auth/google?return=/games/${game.slug}`}>Sign in with Google</a> with the email on your receipt to unlock it here.</p>}
+      {!owned && <p class="restore">Got a key? <a href="/redeem">Redeem it here</a>.</p>}
       <div class="cols">
         {game.features && (
           <section>

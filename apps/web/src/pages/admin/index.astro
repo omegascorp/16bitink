@@ -34,6 +34,7 @@ const day = (d: Date): string => d.toISOString().slice(0, 10);
 <Base title="Admin · Users" description="16bit.ink administration" user={admin}>
   <meta name="robots" content="noindex, nofollow" slot="head" />
   <section class="admin">
+    <nav class="admin-nav"><strong>Players</strong><a href="/admin/keys">Keys</a></nav>
     <h1>Players</h1>
     <form class="admin-search" method="get" action="/admin" role="search">
       <label for="q" class="visually-hidden">Search by email or name</label>
@@ -90,6 +91,7 @@ const day = (d: Date): string => d.toISOString().slice(0, 10);
 
 <style>
   .admin { padding-block: 24px 48px; }
+  .admin-nav { display: flex; gap: 18px; margin-bottom: 8px; }
   .admin-search { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
   .admin-search input {
     flex: 1 1 240px; min-width: 0; font: inherit; padding: 10px 12px;

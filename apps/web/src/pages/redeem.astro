@@ -1,0 +1,74 @@
+---
+import Base from '../layouts/Base.astro';
+import { findGame } from '../data/games';
+import { currentUser } from '../lib/owner';
+
+// Per request: who is signed in decides what this page asks for.
+export const prerender = false;
+
+const ERRORS: Record<string, string> = {
+  invalid: 'That doesn\'t look like a key. Keys have 16 letters and digits, like ABCD-EFGH-JKMN-PQRS.',
+  unknown: 'We don\'t know that key. Check it for typos, or ask whoever gave it to you.',
+  used: 'That key has already been used on another account.',
+  signin: 'Sign in first, so the game is unlocked on your account.',
+};
+
+const params = Astro.url.searchParams;
+const key = (params.get('key') ?? '').slice(0, 64);
+const error = ERRORS[params.get('error') ?? ''];
+const unlocked = findGame(params.get('unlocked') ?? '');
+let user: { name: string; email: string } | null = null;
+try {
+  const session = await currentUser(Astro.cookies);
+  user = session && { name: session.name, email: session.email };
+} catch (err) {
+  console.error('[redeem] session check failed', err);
+}
+const signInHref = `/auth/google?return=${encodeURIComponent(`/redeem${key ? `?key=${encodeURIComponent(key)}` : ''}`)}`;
+Astro.response.headers.set('cache-control', 'private, no-store');
+// The key may be in the address: never send it to other sites. Not
+// no-referrer, which also blanks the form's Origin and fails the CSRF check.
+Astro.response.headers.set('referrer-policy', 'same-origin');
+---
+<Base title="Redeem a key | 16bit.ink" description="Unlock a game with an activation key." user={user}>
+  <meta name="robots" content="noindex" slot="head" />
+  <section class="paper-card narrow tape">
+    {unlocked ? (
+      <>
+        <h1>{unlocked.title} unlocked!</h1>
+        <p>The full game is on your account now. Sign in with Google on any device to play it there too.</p>
+        <a class="btn btn-ink" href={`/play/${unlocked.slug}`}>Play the full game</a>
+      </>
+    ) : (
+      <>
+        <h1>Redeem a key</h1>
+        {user ? (
+          <p>Enter your key to unlock the full game on <strong>{user.email}</strong>.</p>
+        ) : (
+          <p>Keys unlock a game on your account, so you'll need to sign in with Google first.</p>
+        )}
+        {error && <p class="redeem-error" role="alert">{error}</p>}
+        {user ? (
+          <form class="redeem-form" method="post" action="/api/redeem">
+            <label for="key" class="visually-hidden">Activation key</label>
+            <input id="key" name="key" value={key} required maxlength="64" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+            <button class="btn btn-ink" type="submit">Unlock</button>
+          </form>
+        ) : (
+          <a class="btn btn-ink" href={signInHref}>Sign in with Google</a>
+        )}
+      </>
+    )}
+  </section>
+</Base>
+
+<style>
+  .redeem-error { color: var(--red-ink); }
+  .redeem-form { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 18px; }
+  .redeem-form input {
+    flex: 1 1 260px; min-width: 0; max-width: 340px; font: inherit; font-family: var(--font-pixel); letter-spacing: 0.08em; text-align: center;
+    padding: 10px 12px; background: var(--paper-2); color: var(--ink); border: 2px solid var(--ink); border-radius: 4px;
+  }
+  .redeem-form input:focus-visible { outline: 2px dashed var(--blue-ink); outline-offset: 3px; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+</style>

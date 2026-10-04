@@ -39,6 +39,8 @@ describe('which routes are limited', () => {
     expect(limitFor('/api/progress/inkfish')).toBe('progress');
     expect(limitFor('/admin')).toBe('admin');
     expect(limitFor('/api/admin/grants')).toBe('admin');
+    expect(limitFor('/api/admin/keys')).toBe('admin');
+    expect(limitFor('/api/redeem')).toBe('redeem');
   });
 
   it('never limits the Stripe webhook or pages', () => {
