@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { crispText, DPR, viewSize } from './hidpi';
-import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, ensureFishTextures, jellyGlowKey, releaseFishTextures, weedKey } from '../art/textures';
+import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, ensureBossTextures, ensureFishTextures, jellyGlowKey, releaseFishTextures, weedKey } from '../art/textures';
 import { getChapters, getHost, getSound } from '../host';
 import type { LevelDef, SpeciesId } from '../levels/types';
 import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy, type FrenzyState } from '../logic/frenzy';
@@ -13,7 +13,7 @@ import { waterTop } from '../logic/water';
 import { growthPointsFor, relationTo, scoreFor } from '../logic/sizing';
 import { targetZoom } from './game/camera';
 import { playEaten, playSpiked, spikeMarks } from './game/deathFx';
-import { isHelpless, isSpent, renderFish, spawnFish, stunFish, updateFish, type Fish } from './game/fish';
+import { isHelpless, isSpent, makeFish, renderFish, spawnFish, stunFish, updateFish, type Fish } from './game/fish';
 import { Ducks } from './game/ducks';
 import { clubsTouch, takeSquidEvents } from './game/squid';
 import { SharkSense } from './game/sharkSense';
@@ -37,7 +37,8 @@ import { RING_REACH, ringViewWidth } from '../logic/ring';
 import { DeepLight, playerGlowTint } from './game/deepLight';
 import { itemSfx, pitchForSize, type SfxId } from '../audio/recipes';
 import { JELLY_INFO } from '../levels/jellies';
-import { buildCover } from './game/coverPatches';
+import { buildCover, type CoverView } from './game/coverPatches';
+import { makeBoss, type Boss, type BossHost } from './game/bosses';
 import { Hideout } from './game/hideout';
 import { planCover } from '../levels/cover';
 import { isCrawler, spawnCrawler, updateCrawler } from './game/crawlers';
@@ -114,6 +115,11 @@ export class GameScene extends Phaser.Scene {
   private shieldG!: Phaser.GameObjects.Graphics;
   /** Weed and coral to hide in. */
   private hideout!: Hideout;
+  private covers: readonly CoverView[] = [];
+  /** The level's giant, when it has skills of its own (see game/bosses). */
+  private boss: Boss | null = null;
+  /** Fish a giant brought in this frame: they join the shoal once this frame's update has rebuilt it. */
+  private summoned: Fish[] = [];
   private weeds: Phaser.GameObjects.Image[] = [];
   /** Hides scenery that's out of view, so it isn't drawn. */
   private culler!: Culler;
@@ -212,6 +218,8 @@ export class GameScene extends Phaser.Scene {
     const residents = levelSpecies(this.level);
     releaseFishTextures(this, residents);
     ensureFishTextures(this, residents);
+    const goal = this.level.objective;
+    if (goal.kind === 'boss') ensureBossTextures(this, goal.species);
     this.seabed = seabedFor(this.level.id, world);
     const scenery = drawWorld(this, this.level, chapter.zone, this.seabed, ring, this.sky);
     this.weeds = scenery.weeds;
@@ -222,6 +230,7 @@ export class GameScene extends Phaser.Scene {
     const covers = buildCover(this, planCover(this.level.id, levelNumber(this.level), chapter.zone, world.width), this.seabed.floorAt, levelNumber(this.level) * 31 + 7);
     this.weeds.push(...covers.flatMap((c) => c.weeds));
     this.culler.add(covers.flatMap((c) => [...new Set([...c.weeds, ...c.front])]));
+    this.covers = covers;
     this.hideout = new Hideout(this, covers, this.seabed.floorAt, world.width);
     this.player = createPlayer(this, this.level, chapter.player);
     this.deep.lightPlayer(this.player.sprite, chapter.player, playerGlowTint(chapter.player));
@@ -230,6 +239,9 @@ export class GameScene extends Phaser.Scene {
     this.itemHost = this.makeItemHost();
     this.shieldG = this.add.graphics().setDepth(21);
     this.fish = [...this.fish, ...this.twist.setup(this.player.sprite)];
+    const giant = this.fish.find((f) => f.role === 'boss');
+    this.boss = giant ? makeBoss(giant, this.makeBossHost()) : null;
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.boss?.destroy());
     this.controls = createControls(this);
     this.jellies = spawnJellies(this, this.level, chapter.zone, this.rng);
     for (const j of this.jellies) {
@@ -350,9 +362,13 @@ export class GameScene extends Phaser.Scene {
   private lightTheDeep(now: number, dt: number): void {
     if (!this.deep.active) return;
     for (const f of this.fish) this.deep.trackFish(f.sprite, f.species);
+    this.deep.update(dt, now, this.player.sprite, this.lightRadius(), this.ticks > 1 ? this.cameras.main.worldView : null);
+  }
+
+  /** How far the player's own light reaches in the deep, px (further with a glow stick). */
+  private lightRadius(): number {
     const p = this.player;
-    const glow = now < p.glowUntil ? TUNING.glowFactor : 1;
-    this.deep.update(dt, now, p.sprite, (170 + p.drawSize * 2.4) * glow, this.ticks > 1 ? this.cameras.main.worldView : null);
+    return (170 + p.drawSize * 2.4) * (this.time.now < p.glowUntil ? TUNING.glowFactor : 1);
   }
 
   private tickBoil(deltaMs: number): void {
@@ -382,6 +398,10 @@ export class GameScene extends Phaser.Scene {
       const crawler = isCrawler(f.species);
       const x0 = f.sprite.x;
       if (crawler) updateCrawler(f, view, floorAt, now, dt);
+      else if (f === this.boss?.fish) this.boss.update(view, now, dt);
+      else if (f.led) {
+        // Steered by the giant that summoned it.
+      }
       else updateFish(f, view, sea, now, dt, decoys);
       // Knocked-out fish that nobody ate sink out of the story.
       if (f.state === 'dead' && now > f.stateUntil) {
@@ -400,12 +420,15 @@ export class GameScene extends Phaser.Scene {
       }
       // A fish on the line belongs to the angler now.
       // Hidden in cover: you can't be bitten, and you can't eat.
-      if (this.ended || p.hooked || p.hidden || p.airborne || f.state === 'hooked') return true;
+      // A giant tucked into its weed is out of reach either way.
+      if (this.ended || p.hooked || p.hidden || p.airborne || f.state === 'hooked' || f.tucked) return true;
       if (!capsulesTouch(bodyOf(p.sprite, p.shape), bodyOf(f.sprite, f.species))) return true;
       const rel = relationTo(p.size, f.size);
       // Knocked out or shocked (and not much bigger than you): dinner, whatever its size.
       const shocked = f.state === 'stunned' && now < f.shockedUntil && f.role !== 'boss' && f.size <= p.size * TUNING.shockEdibleRatio;
       if (rel === 'prey' || f.state === 'dead' || shocked) {
+        // A giant with a trick left (the oarfish shedding its tail) slips away instead.
+        if (f === this.boss?.fish && this.boss.resist?.(now)) return true;
         this.eat(f);
         return false;
       }
@@ -414,6 +437,10 @@ export class GameScene extends Phaser.Scene {
       else this.bump(f);
       return true;
     });
+    if (this.summoned.length) {
+      this.fish = [...this.fish, ...this.summoned];
+      this.summoned = [];
+    }
     this.huntPrey(now);
   }
 
@@ -430,13 +457,14 @@ export class GameScene extends Phaser.Scene {
     this.bodies.clear();
     const eaten = new Set<Fish>();
     for (const hunter of this.fish) {
-      if (isHelpless(hunter) || now < hunter.fullUntil || eaten.has(hunter)) continue;
+      if (isHelpless(hunter) || hunter.tucked || now < hunter.fullUntil || eaten.has(hunter)) continue;
       const prey = this.fish.find((f) =>
         f !== hunter && !eaten.has(f) && f.state !== 'hooked' && f.role === 'normal' && canHunt(hunter.species, hunter.size, f.size) &&
         capsulesTouch(this.fishBody(hunter), this.fishBody(f), 0.8));
       if (!prey) continue;
       eaten.add(prey);
       hunter.fullUntil = now + HUNT_COOLDOWN_MS;
+      this.boss?.smell?.(prey.sprite.x, prey.sprite.y);
       this.burst(prey.sprite.x, prey.sprite.y, 4);
       this.sfx('eat', prey.sprite, pitchForSize(prey.size), 0.45);
       gulp(prey.sprite, mouthOf(hunter.sprite, hunter.size, hunter.turn));
@@ -455,6 +483,7 @@ export class GameScene extends Phaser.Scene {
     const before = this.growth.tier;
     this.growth = addGrowth(this.level, this.growth, growthPointsFor(size));
     this.floatText(sprite.x, sprite.y - size, mult > 1 ? `+${gained} ×${mult}` : `+${gained}`, '#1f3f8a');
+    this.boss?.smell?.(sprite.x, sprite.y);
     this.burst(sprite.x, sprite.y, 6);
     gulp(sprite, mouthOf(this.player.sprite, this.player.size, this.player.turn));
     this.player.chompAt = this.time.now;
@@ -744,6 +773,50 @@ export class GameScene extends Phaser.Scene {
       applyItem(this.itemHost, it.kind, now);
       return false;
     });
+  }
+
+  /** What a giant's skills may reach into; see game/bosses. */
+  private makeBossHost(): BossHost {
+    return {
+      scene: this, world: this.level.world, floorAt: this.seabed.floorAt, covers: this.covers,
+      player: () => this.player,
+      fish: () => this.fish,
+      summon: (species, size, x, y, vx) => {
+        ensureFishTextures(this, [species]);
+        const f = makeFish(this, species, size, 'normal', x, y, vx, this.rng);
+        this.summoned = [...this.summoned, f];
+        return f;
+      },
+      flushPlayer: () => this.hideout.flush(this.player, this.time.now),
+      bite: (by) => {
+        const p = this.player;
+        if (this.ended || p.hooked || p.hidden || p.airborne) return;
+        this.hurt(causeOfBite(by.species), by);
+      },
+      lightRadius: () => this.lightRadius(),
+      drag: (dx, dy) => {
+        const p = this.player;
+        if (this.ended || p.hooked || p.hidden || p.airborne) return;
+        p.sprite.x += dx;
+        p.sprite.y += dy;
+      },
+      stunPlayer: (ms, text) => this.stunPlayer(ms, text),
+      splash: (x, size) => splash(this, x, SKY.surfaceY + 8, size, this.rng),
+      floatText: (x, y, text, color, size) => this.floatText(x, y, text, color, size),
+      sfx: (id, at, pitch, gain) => this.sfx(id, at, pitch, gain),
+      burst: (x, y, n) => this.burst(x, y, n),
+      shake: (ms, k) => this.cameras.main.shake(ms, k),
+    };
+  }
+
+  /** Stunned by a giant's skill: no steering for `ms`. Hiding, leaping and invulnerability keep you clear. */
+  private stunPlayer(ms: number, text: string): boolean {
+    const p = this.player;
+    const now = this.time.now;
+    if (this.ended || p.hooked || p.hidden || p.airborne || now < p.invulnerableUntil) return false;
+    p.stunnedUntil = Math.max(p.stunnedUntil, now + ms);
+    this.floatText(p.sprite.x, p.sprite.y - 36, text, '#6b3f99', 34);
+    return true;
   }
 
   /** What item effects may reach into; see game/itemEffects.ts. */

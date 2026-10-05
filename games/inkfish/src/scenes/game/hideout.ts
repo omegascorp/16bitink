@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { HIDE_START, insidePatch, stepHide, type HideState } from '../../levels/cover';
+import { flushHide, HIDE_START, insidePatch, stepHide, type HideState } from '../../levels/cover';
 import type { CoverView } from './coverPatches';
 import { fadeCover } from './coverPatches';
 import type { Player } from './player';
@@ -34,6 +34,14 @@ export class Hideout {
     if (step.spotted) onSpotted();
     fadeCover(this.covers, inside, dt);
     this.drawRing(p);
+  }
+
+  /** Something swam in and flushed you out: you're spotted at once. Returns true if you were hidden. */
+  flush(p: Player, now: number): boolean {
+    const step = flushHide(this.state, now, RULES);
+    this.state = step.state;
+    p.hidden = step.state.hidden;
+    return step.spotted;
   }
 
   private drawRing(p: Player): void {

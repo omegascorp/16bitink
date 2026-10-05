@@ -311,15 +311,20 @@ function anglerMouth(k: Kit): void {
 /** Bends a finished drawing into a sine wave by shifting 1px columns (eels swim in S-curves). */
 function undulate(ctx: CanvasRenderingContext2D, amplitude: number): void {
   const { canvas } = ctx;
+  // Column by column in canvas px, whatever scale the drawing was made at (giants are drawn at BOSS_RES).
+  const res = ctx.getTransform().a;
   const copy = document.createElement('canvas');
   copy.width = canvas.width;
   copy.height = canvas.height;
   copy.getContext('2d')?.drawImage(canvas, 0, 0);
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let x = 0; x < canvas.width; x++) {
-    const dy = Math.sin((x / canvas.width) * Math.PI * 2.2 + 0.6) * amplitude * Math.min(1, (canvas.width - x) / 60 + 0.25);
+    const dy = Math.sin((x / canvas.width) * Math.PI * 2.2 + 0.6) * amplitude * res * Math.min(1, (canvas.width - x) / (60 * res) + 0.25);
     ctx.drawImage(copy, x, 0, 1, canvas.height, x, dy, 1, canvas.height);
   }
+  ctx.restore();
 }
 
 /** Draws one boil frame of a fish facing right, centred in a FISH_TEX square canvas. */

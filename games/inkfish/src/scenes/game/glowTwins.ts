@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { ensureFishGlow } from '../../art/textures';
 import type { FishShape } from '../../art/fishArt';
 import { keepDepth } from './sync';
+import { artRes } from './swim';
 
 /**
  * Glow twins: a glow layer laid over a drawing with additive blending,
@@ -52,7 +53,8 @@ export class GlowTwins {
   trackFish(sprite: Phaser.GameObjects.Image, shape: FishShape): Phaser.GameObjects.Image | null {
     if (this.tracked.has(sprite)) return null;
     this.tracked.add(sprite);
-    const key = ensureFishGlow(this.scene, shape);
+    // Drawn at the same scale as the fish's own drawing, so it lines up (the giants are finer).
+    const key = ensureFishGlow(this.scene, shape, artRes(sprite));
     return key ? this.attach(sprite, key, { alpha: 0.9, pulse: 0.35, centred: true }) : null;
   }
 

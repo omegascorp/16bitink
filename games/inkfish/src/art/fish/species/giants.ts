@@ -1,8 +1,11 @@
 import type { SpeciesId } from '../../../levels/types';
 import { ellipse, type Pt } from '../../pen';
 import {
-  backStipple, bezier, bill, bottomAt, C, gillSlits, PAPER_FILL, ring, spots, stripes, topAt, xAt, type Anatomy, type Kit,
+  backStipple, bezier, bottomAt, C, gillSlits, PAPER_FILL, ring, spots, topAt, xAt, type Anatomy, type Kit,
 } from '../kit';
+import {
+  biteScars, brokenStripes, healedScar, mirrorScales, oldFly, oldHook, remora, sword, tear,
+} from './giantDetails';
 
 // ---------------------------------------------------------------- local helpers
 
@@ -141,16 +144,45 @@ function bigScales(k: Kit, s: number, from: number, to: number, alpha: number): 
 /** Chapter giants: one boss species per chapter, never seen elsewhere. */
 export const GIANTS: Partial<Record<SpeciesId, Anatomy>> = {
   bass: {
-    // Striped bass: silver, seven or eight dark lines along the scale rows, two separate dorsals.
-    hl: 88, hh: 31, peak: 0.36, blunt: 0.45, peduncle: 0.32, tail: 'fork', tailSize: 1.1,
+    // An old striped bass that has seen some summers: a jutting lower jaw, a
+    // scaled flank ruled by broken stripes, a torn tail, a healed scar, and the
+    // rusty hook of the one angler who nearly had it, still in its lip.
+    hl: 88, hh: 31, peak: 0.36, blunt: 0.45, peduncle: 0.32, tail: 'fork', tailSize: 1.15,
     dorsal: { from: 0.24, to: 0.44, height: 0.85, spiny: true }, dorsal2: { from: 0.5, to: 0.7, height: 0.7 },
-    anal: { from: 0.6, to: 0.76, height: 0.6 }, pectoral: 0.5, pelvic: true, scales: true,
-    eye: { t: 0.12, r: 6.5 }, mouth: 'small', wash: '#7f909c', finWash: '#a6b2b8',
+    anal: { from: 0.6, to: 0.76, height: 0.6 }, pectoral: 0.5, pelvic: true, scales: false,
+    eye: { t: 0.12, r: 7 }, mouth: 'none', wash: '#7f909c', finWash: '#a6b2b8',
     extras: (k) => {
-      backStipple(1.1)(k);
-      stripes(k, [-0.78, -0.56, -0.35, -0.14, 0.08, 0.3, 0.5, 0.68], { from: 0.22, to: 0.96, width: 1.5, alpha: 0.75 });
-      // Big jaw: the bass's mouth reaches back under the eye.
-      k.pen.stroke(bezier({ x: k.x(0), y: C + 1 }, { x: k.x(0.06), y: C + 6 }, { x: k.x(0.13), y: C + 4 }, 8), 1.1, k.ink, 1, false);
+      // Dark olive back fading to a pale belly.
+      k.pen.clipped(k.body, () => {
+        for (let t = 0.02; t < 1; t += 0.04) k.pen.fill(ellipse(k.x(t), topAt(k.a, t) + 2, 9, k.h(t) * 0.55, 8), '#56636a', 0.07);
+        for (let t = 0.1; t < 0.9; t += 0.05) k.pen.fill(ellipse(k.x(t), bottomAt(k.a, t) - k.h(t) * 0.2, 8, k.h(t) * 0.3, 8), PAPER_FILL, 0.18);
+      });
+      backStipple(1.3)(k);
+      bigScales(k, 4.2, 0.18, 0.98, 0.32);
+      brokenStripes(k, [-0.8, -0.58, -0.37, -0.16, 0.06, 0.27, 0.47, 0.65], 0.22, 0.96);
+      healedScar(k, 0.42, -0.1);
+      // Gill cover: a serrated edge in front and a flat spine at the back corner.
+      const gx = k.x(0.22);
+      const edge = bezier({ x: gx + 4, y: C - k.h(0.22) * 0.6 }, { x: gx - 2, y: C + k.h(0.22) * 0.1 }, { x: gx + 7, y: C + k.h(0.22) * 0.72 }, 10);
+      k.pen.hair(edge, 0.7, k.ink, 0.8);
+      for (let i = 2; i < edge.length - 1; i += 2) k.pen.hair([edge[i]!, { x: edge[i]!.x - 2, y: edge[i]!.y + 1 }], 0.45, k.ink, 0.6);
+      // ...on the rearmost point of the cover's curve (see fishArt gills).
+      const corner = { x: k.x(0.27) + 1 - k.h(0.27) * 0.16, y: C + 1 };
+      const spine = [{ x: corner.x + 1, y: corner.y - 2.2 }, { x: corner.x - 4.5, y: corner.y }, { x: corner.x + 1, y: corner.y + 2.2 }];
+      k.pen.fill(spine, k.a.wash, 0.6);
+      k.pen.hair(spine, 0.6, k.ink, 0.9);
+      // A bite out of the soft dorsal and a ragged notch in the tail.
+      tear(k, { x: k.x(0.6), y: topAt(k.a, 0.6) - k.a.hh * 0.68 }, 6);
+      tear(k, { x: k.x(1) - k.a.hh * 0.62, y: C + k.a.hh * 0.62 }, 5);
+    },
+    face: (k) => {
+      // The big jaw: the gape reaches back under the eye and the lower jaw juts past the snout.
+      const nose = { x: k.x(0), y: C + 1 };
+      k.pen.stroke(bezier({ x: nose.x + 2.5, y: C + 3 }, { x: k.x(0.06), y: C + 7.5 }, { x: k.x(0.15), y: C + 4.5 }, 9), 1.3, k.ink, 1, false);
+      k.pen.stroke(bezier({ x: nose.x - 1, y: C - 0.5 }, { x: k.x(0.05), y: C + 2.5 }, { x: k.x(0.14), y: C + 3.5 }, 8), 0.9, k.ink, 0.9, false);
+      // The upper jawbone, a long plate ending under the eye.
+      k.pen.hair(bezier({ x: k.x(0.05), y: C - 1 }, { x: k.x(0.1), y: C + 1.5 }, { x: k.x(0.155), y: C + 2 }, 6), 0.6, k.ink, 0.7);
+      oldHook(k, { x: k.x(0.035), y: C + 4.5 });
     },
   },
   tarpon: {
@@ -182,26 +214,84 @@ export const GIANTS: Partial<Record<SpeciesId, Anatomy>> = {
         for (let t = 0; t <= 1.001; t += 0.04) back.push({ x: k.x(t), y: C - k.h(t) * 0.45 });
         k.pen.fill([...back, ...[...back].reverse().map((p) => ({ x: p.x, y: C - 80 }))], '#4d6a80', 0.35);
       });
-      bigScales(k, 9, 0.24, 1, 0.6);
+      mirrorScales(k, 9, 0.24, 1);
+      // Big silver gill plate, finely striated, edged in a pale rim.
+      const gx = k.x(0.25);
+      const plate = bezier({ x: gx + 3, y: C - k.h(0.25) * 0.7 }, { x: gx - k.h(0.25) * 0.42, y: C + 2 }, { x: gx + 5, y: C + k.h(0.25) * 0.75 }, 12);
+      k.pen.clipped(k.body, () => {
+        for (let i = 1; i < plate.length - 1; i += 1) k.pen.hair([{ x: k.x(0.17), y: C + 1 }, plate[i]!], 0.35, k.ink, 0.35);
+      });
+      k.pen.stroke(plate, 1.1, k.ink, 1, false);
+      k.pen.hair(plate.map((p) => ({ x: p.x - 1.6, y: p.y })), 0.9, PAPER_FILL, 0.9);
+      // The throat plate between the jaws, a bony shield.
+      k.pen.hair(bezier({ x: k.x(0.02), y: C + 6 }, { x: k.x(0.09), y: C + 13 }, { x: k.x(0.17), y: bottomAt(k.a, 0.17) - 3 }, 8), 0.6, k.ink, 0.75);
       // Upturned mouth line from the chin up and back under the eye.
       k.pen.stroke(bezier({ x: k.x(0) + 4, y: C - 8 }, { x: k.x(0.06), y: C - 1 }, { x: k.x(0.12), y: C + 3 }, 8), 1.2, k.ink, 1, false);
       k.pen.hair(bezier({ x: k.x(0.12), y: C + 3 }, { x: k.x(0.08), y: C + 8 }, { x: k.x(0.03), y: C + 5 }, 6), 0.6, k.ink, 0.7);
     },
+    face: (k) => {
+      // A big golden eye, the silver king's.
+      const ex = k.x(k.a.eye.t);
+      const ey = C - k.h(k.a.eye.t) * 0.3;
+      k.pen.stroke(ellipse(ex, ey, k.a.eye.r * 1.1, k.a.eye.r * 1.1, 16), 1.6, '#c9a54a', 0.75, false);
+      oldFly(k, { x: k.x(0.11), y: C + 3 });
+    },
   },
   lingcod: {
-    // Lingcod: a big head and gape full of teeth, mottled kelp-brown and green, one long notched dorsal.
+    // Lingcod: a cavern of a mouth set with fangs, a big head, mottled kelp-brown and green
+    // so it vanishes on the bottom, one long notched dorsal and fan-like fins, all spotted.
     hl: 92, hh: 28, peak: 0.28, blunt: 0.55, peduncle: 0.3, tail: 'round', tailSize: 0.95,
     dorsal: { from: 0.26, to: 0.54, height: 0.6, spiny: true }, dorsal2: { from: 0.55, to: 0.92, height: 0.65 },
-    anal: { from: 0.55, to: 0.92, height: 0.55 }, pectoral: 0.75, pelvic: true, scales: false,
-    eye: { t: 0.11, r: 6 }, mouth: 'teeth', wash: '#6f6c45', finWash: '#8a8a5a',
+    anal: { from: 0.55, to: 0.92, height: 0.55 }, pectoral: 0.85, pelvic: true, scales: false,
+    eye: { t: 0.12, r: 6 }, mouth: 'none', wash: '#5f6a3c', finWash: '#7d7a4e',
     extras: (k) => {
-      mottle(k, 26, [3, 7], '#4a3b25', 0.35);
-      mottle(k, 14, [2, 4], '#c08a4a', 0.35, 0.2, 0.9);
-      backStipple(1.2)(k);
-      // Upper jaw line reaching well behind the eye.
-      k.pen.stroke(bezier({ x: k.x(0.13), y: C + 2 }, { x: k.x(0.17), y: C + 3 }, { x: k.x(0.19), y: C - 1 }, 6), 1, k.ink, 1, false);
-      // Spotted dorsal membrane hint: dark dots along the back edge.
-      for (let t = 0.3; t < 0.9; t += 0.05) k.pen.dot(k.x(t), topAt(k.a, t) + 3, 1.1, k.ink, 0.6);
+      // An olive ground under everything, darker along the back.
+      k.pen.clipped(k.body, () => {
+        k.pen.fill(k.body, '#5a6138', 0.2);
+        for (let t = 0.02; t < 1; t += 0.05) k.pen.fill(ellipse(k.x(t), topAt(k.a, t) + 2, 9, k.h(t) * 0.6, 8), '#3d3a22', 0.08);
+      });
+      // Marbled camouflage: big dark blotches ringed in ink, kelp-green patches, copper flecks.
+      mottle(k, 22, [4, 9], '#3d3220', 0.42);
+      mottle(k, 16, [3, 7], '#6f8a4a', 0.35, 0.05, 0.95);
+      mottle(k, 18, [1.5, 3.5], '#c08a4a', 0.5, 0.2, 0.9);
+      k.pen.clipped(k.body, () => {
+        for (let i = 0; i < 12; i++) {
+          const t = 0.22 + k.pen.rng() * 0.72;
+          const y = C + k.h(t) * (k.pen.rng() * 1.4 - 0.85);
+          const r = 3 + k.pen.rng() * 3.5;
+          k.pen.hair(ellipse(k.x(t), y, r * 1.3, r, 10).map((p) => ({ x: p.x + k.pen.jitter(1), y: p.y + k.pen.jitter(1) })), 0.45, k.ink, 0.5);
+        }
+        // A pale, speckled belly.
+        for (let t = 0.12; t < 0.9; t += 0.05) k.pen.fill(ellipse(k.x(t), bottomAt(k.a, t) - 3, 7, 4, 7), PAPER_FILL, 0.25);
+      });
+      backStipple(1.4)(k);
+      // Dark spots along the fins' bases.
+      for (let t = 0.3; t < 0.9; t += 0.045) k.pen.dot(k.x(t), topAt(k.a, t) - 3, 1.3, k.ink, 0.55);
+      for (let t = 0.58; t < 0.9; t += 0.06) k.pen.dot(k.x(t), bottomAt(k.a, t) + 3, 1.2, k.ink, 0.5);
+    },
+    face: (k) => {
+      // The gape: a long jaw line running back behind the eye, the lower jaw jutting.
+      const nose = k.x(0);
+      const corner = { x: k.x(0.2), y: C + 3 };
+      const upper = bezier({ x: nose + 1, y: C }, { x: k.x(0.09), y: C + 0.5 }, corner, 12);
+      const lower = bezier({ x: nose + 4, y: C + 6 }, { x: k.x(0.09), y: C + 13 }, corner, 12);
+      k.pen.fill([...upper, ...[...lower].reverse()], '#3a1f1a', 0.75);
+      // Fangs: big ones near the front, rows of little ones behind.
+      for (let i = 1; i < upper.length - 2; i++) {
+        const big = i < 4;
+        const p = upper[i]!;
+        k.pen.fill([{ x: p.x - 1.1, y: p.y }, { x: p.x, y: p.y + (big ? 4.2 : 2.2) }, { x: p.x + 1.1, y: p.y }], PAPER_FILL, 1);
+        const q = lower[i]!;
+        k.pen.fill([{ x: q.x - 1, y: q.y }, { x: q.x + 0.3, y: q.y - (big ? 3.6 : 2) }, { x: q.x + 1, y: q.y }], PAPER_FILL, 1);
+      }
+      k.pen.stroke(upper, 1.2, k.ink, 1, false);
+      k.pen.stroke(lower, 1.4, k.ink, 1, false);
+      // A fleshy flap of skin above the eye.
+      const ex = k.x(k.a.eye.t);
+      const ey = C - k.h(k.a.eye.t) * 0.3 - k.a.eye.r;
+      const flap = [{ x: ex - 3, y: ey + 1 }, { x: ex - 1, y: ey - 6 }, { x: ex + 1, y: ey - 3.5 }, { x: ex + 2.5, y: ey - 7.5 }, { x: ex + 4, y: ey + 1 }];
+      k.pen.fill(flap, '#7d7a4e', 0.8);
+      k.pen.hair(flap, 0.6, k.ink, 0.9);
     },
   },
   grouper: {
@@ -228,25 +318,68 @@ export const GIANTS: Partial<Record<SpeciesId, Anatomy>> = {
       k.pen.stroke(bezier({ x: nx - 1, y: C + 3 }, { x: k.x(0.08), y: C + 12 }, { x: k.x(0.2), y: C + 10 }, 10), 1.5, k.ink, 1, false);
       k.pen.hair(bezier({ x: nx - 2, y: C + 8 }, { x: k.x(0.08), y: C + 17 }, { x: k.x(0.18), y: C + 14 }, 8), 0.6, k.ink, 0.7);
       backStipple(0.9)(k);
+      // Fat, pale lips, and three flat spines at the back of the gill cover.
+      k.pen.stroke(bezier({ x: nx - 1, y: C + 4.5 }, { x: k.x(0.08), y: C + 13.5 }, { x: k.x(0.2), y: C + 11.5 }, 10), 1.6, PAPER_FILL, 0.6, false);
+      const gx = k.x(0.3) - k.h(0.3) * 0.12;
+      for (const dy of [-6, 0, 6]) {
+        const spine = [{ x: gx + 2, y: C + dy - 2 }, { x: gx - 4, y: C + dy }, { x: gx + 2, y: C + dy + 2 }];
+        k.pen.fill(spine, '#8f7d58', 0.7);
+        k.pen.hair(spine, 0.6, k.ink, 0.85);
+      }
     },
   },
   shark: {
-    // Grey reef shark: torpedo with a pointed snout, gill slits, a tall stiff dorsal, a black-edged tail.
+    // Grey reef shark: torpedo with a pointed snout, gill slits, a tall stiff dorsal, black-edged
+    // fins. This one is an old hunter: a dark back over a white belly, pale bite scars, a nick in
+    // its dorsal, a mean underslung mouth, and a remora riding under its belly.
     hl: 84, hh: 23, peak: 0.38, blunt: 0.32, peduncle: 0.25, tail: 'shark', tailSize: 1.35,
     dorsal: { from: 0.34, to: 0.48, height: 1.4, tri: true }, dorsal2: { from: 0.76, to: 0.81, height: 0.45, tri: true },
     anal: { from: 0.78, to: 0.83, height: 0.4, tri: true }, pectoral: 0, pelvic: false, scales: false,
-    eye: { t: 0.13, r: 4.5 }, mouth: 'small', wash: '#6e7a84', finWash: '#6e7a84', gills: 'slits', lateral: false,
+    eye: { t: 0.13, r: 4.5 }, mouth: 'none', wash: '#6e7a84', finWash: '#5d6871', gills: 'slits', lateral: false,
     under: (k) => {
       sickle(k, { x: k.x(0.62), y: bottomAt(k.a, 0.62) - 3 }, { x: k.x(0.72), y: bottomAt(k.a, 0.62) + 13 }, 13);
+      remora(k, k.x(0.5), bottomAt(k.a, 0.5) + 2);
     },
     extras: (k) => {
-      backStipple(1.4)(k);
+      // Countershading: slate back, white belly, a soft line between.
+      k.pen.clipped(k.body, () => {
+        const line: Pt[] = [];
+        for (let t = 0; t <= 1.001; t += 0.04) line.push({ x: k.x(t), y: C + k.h(t) * 0.18 });
+        k.pen.fill([...line, ...[...line].reverse().map((p) => ({ x: p.x, y: C - 60 }))], '#46525c', 0.42);
+        k.pen.fill([...line, ...[...line].reverse().map((p) => ({ x: p.x, y: C + 60 }))], PAPER_FILL, 0.55);
+        k.pen.hair(line, 0.5, k.ink, 0.35);
+        // Skin like sandpaper: fine denticle stipple.
+        for (let i = 0; i < 260; i++) {
+          const t = 0.05 + k.pen.rng() * 0.9;
+          k.pen.dot(k.x(t), C - k.h(t) * k.pen.rng(), 0.35, k.ink, 0.35);
+        }
+      });
+      backStipple(1.2)(k);
       gillSlits(k, 0.22);
-      sharkMouth(k, 0.12, 14);
+      biteScars(k, 0.45, -0.1);
       // Black trailing edge on the tail.
       k.pen.stroke(sharkTailEdge(k.a), 3.4, '#2a2d33', 0.85, false);
-      // Long sickle pectoral.
-      sickle(k, { x: k.x(0.3), y: C + k.h(0.3) * 0.5 }, { x: k.x(0.48), y: bottomAt(k.a, 0.3) + 24 }, 15);
+      // Long sickle pectoral with a dark tip.
+      const tip = { x: k.x(0.48), y: bottomAt(k.a, 0.3) + 24 };
+      sickle(k, { x: k.x(0.3), y: C + k.h(0.3) * 0.5 }, tip, 15, '#5d6871');
+      k.pen.fill([tip, { x: tip.x + 6, y: tip.y - 7 }, { x: tip.x + 1, y: tip.y - 9 }], '#2a2d33', 0.85);
+      tear(k, { x: k.x(0.44), y: topAt(k.a, 0.44) - k.a.hh * 0.6 }, 4);
+    },
+    face: (k) => {
+      // A mean underslung mouth with a row of teeth showing, and the flat, dark eye of a shark.
+      const x = k.x(0.12);
+      const y = bottomAt(k.a, 0.12) - 3;
+      const lip = bezier({ x: x + 8, y: y - 2 }, { x, y: y + 3 }, { x: x - 9, y: y - 1 }, 10);
+      for (let i = 1; i < lip.length - 1; i++) {
+        const p = lip[i]!;
+        k.pen.fill([{ x: p.x - 0.9, y: p.y - 0.4 }, { x: p.x, y: p.y + 2 }, { x: p.x + 0.9, y: p.y - 0.4 }], PAPER_FILL, 1);
+      }
+      k.pen.stroke(lip, 1.2, k.ink, 1, false);
+      k.pen.hair([{ x: k.x(0.04), y: C + k.h(0.04) * 0.1 }, { x: k.x(0.06) - 2, y: C + k.h(0.06) * 0.25 }], 0.7, k.ink, 0.9);
+      const ex = k.x(k.a.eye.t);
+      const ey = C - k.h(k.a.eye.t) * 0.3;
+      k.pen.fill(ellipse(ex, ey, k.a.eye.r * 0.85, k.a.eye.r * 0.8, 12), '#15161a', 0.95);
+      k.pen.dot(ex + 1.2, ey - 1.2, 0.9, PAPER_FILL, 0.95);
     },
   },
   swordfish: {
@@ -262,11 +395,27 @@ export const GIANTS: Partial<Record<SpeciesId, Anatomy>> = {
         for (let t = 0; t <= 1.001; t += 0.04) back.push({ x: k.x(t), y: C + k.h(t) * 0.05 });
         k.pen.fill([...back, ...[...back].reverse().map((p) => ({ x: p.x, y: C - 80 }))], '#3a4558', 0.4);
       });
+      // A bronze-purple sheen along the back, in long streaks.
+      k.pen.clipped(k.body, () => {
+        for (let i = 0; i < 9; i++) {
+          const y = C - k.a.hh * (0.15 + i * 0.08);
+          k.pen.hair([{ x: k.x(0.08), y }, { x: k.x(0.95), y: y + 2 }], 1.4, i % 2 ? '#6b4f7a' : '#7a6a4a', 0.18);
+        }
+      });
       backStipple(1.3)(k);
-      bill(k, 46, 4.5);
+      sword(k, 46, 4.5);
       // Keel on the tail stalk.
       k.pen.stroke([{ x: k.x(0.88), y: C }, { x: k.x(1) - 1, y: C }], 1.4, k.ink, 1, false);
-      sickle(k, { x: k.x(0.28), y: C + k.h(0.28) * 0.55 }, { x: k.x(0.5), y: bottomAt(k.a, 0.3) + 20 }, 12);
+      sickle(k, { x: k.x(0.28), y: C + k.h(0.28) * 0.55 }, { x: k.x(0.5), y: bottomAt(k.a, 0.3) + 20 }, 12, '#3a4558', 0.5);
+    },
+    face: (k) => {
+      // The huge eye of a deep hunter: a wide blue iris around a black pupil.
+      const ex = k.x(k.a.eye.t);
+      const ey = C - k.h(k.a.eye.t) * 0.3;
+      k.pen.fill(ellipse(ex, ey, k.a.eye.r * 0.95, k.a.eye.r * 0.95, 14), '#2f6f9a', 0.8);
+      k.pen.fill(ellipse(ex, ey, k.a.eye.r * 0.5, k.a.eye.r * 0.5, 12), '#111216', 1);
+      k.pen.dot(ex + 1.6, ey - 1.6, 1.1, PAPER_FILL, 0.95);
+      k.pen.stroke(ellipse(ex, ey, k.a.eye.r * 1.05, k.a.eye.r * 1.05, 16), 0.9, k.ink, 1, false);
     },
   },
   oarfish: {
@@ -322,24 +471,52 @@ export const GIANTS: Partial<Record<SpeciesId, Anatomy>> = {
     // Pacific sleeper shark: bulky, dark and soft-looking, rounded snout, two small low dorsals, no anal fin.
     hl: 86, hh: 33, peak: 0.42, blunt: 0.85, peduncle: 0.22, tail: 'shark', tailSize: 1.05,
     dorsal: { from: 0.44, to: 0.54, height: 0.32, tri: true }, dorsal2: { from: 0.68, to: 0.76, height: 0.3, tri: true },
-    pectoral: 0, pelvic: false, scales: false, eye: { t: 0.13, r: 4 }, mouth: 'small',
-    wash: '#4c4740', finWash: '#5a544b', gills: 'slits', lateral: false,
+    pectoral: 0, pelvic: false, scales: false, eye: { t: 0.13, r: 4 }, mouth: 'none',
+    wash: '#3f3b36', finWash: '#4c4740', gills: 'slits', lateral: false,
     under: (k) => {
       sickle(k, { x: k.x(0.7), y: bottomAt(k.a, 0.7) - 3 }, { x: k.x(0.78), y: bottomAt(k.a, 0.7) + 9 }, 13);
     },
     extras: (k) => {
+      // A dark, ancient hulk: heavy slate over everything, darker still on the back.
+      k.pen.clipped(k.body, () => {
+        k.pen.fill(k.body, '#2f3236', 0.35);
+        for (let t = 0.02; t < 1; t += 0.05) k.pen.fill(ellipse(k.x(t), topAt(k.a, t) + 3, 9, k.h(t) * 0.6, 8), '#1d1f22', 0.1);
+      });
       k.pen.stipple(k.body, 2600, (_x, y) => (y < C ? 0.55 : 0.3), 0.55, k.ink);
       mottle(k, 22, [3, 6], '#2c2925', 0.25);
+      // Pale old scars from a long, slow life.
+      k.pen.clipped(k.body, () => {
+        for (const [t, v, len] of [[0.48, -0.3, 14], [0.6, 0.2, 10], [0.7, -0.05, 12]] as const) {
+          const x = k.x(t);
+          const y = C + k.h(t) * v;
+          k.pen.stroke([{ x: x + len / 2, y: y - 2 }, { x: x - len / 2, y: y + 3 }], 1.4, '#b9b1a4', 0.75, false);
+        }
+      });
       // Skin creases and parasite-scarred, sleepy look.
       for (let i = 0; i < 6; i++) {
         const t = 0.35 + i * 0.09;
         k.pen.hair(bezier({ x: k.x(t), y: topAt(k.a, t) + 4 }, { x: k.x(t) - 5, y: C }, { x: k.x(t), y: bottomAt(k.a, t) - 4 }, 6), 0.45, k.ink, 0.35);
       }
       gillSlits(k, 0.22);
-      sharkMouth(k, 0.11, 16);
+      // A grim, straight slit of a mouth under the blunt snout.
+      const mx = k.x(0.11);
+      const my = bottomAt(k.a, 0.11) - 4;
+      k.pen.stroke(bezier({ x: mx + 9, y: my - 1 }, { x: mx, y: my + 1.5 }, { x: mx - 10, y: my + 2.5 }, 8), 1.3, k.ink, 1, false);
       // Small rounded pectoral.
       const r = { x: k.x(0.3), y: C + k.h(0.3) * 0.55 };
       sickle(k, r, { x: k.x(0.4), y: bottomAt(k.a, 0.3) + 13 }, 14);
+    },
+    face: (k) => {
+      // A clouded, pale eye with a parasite trailing from it, as old sleeper sharks have.
+      const ex = k.x(k.a.eye.t);
+      const ey = C - k.h(k.a.eye.t) * 0.3;
+      k.pen.fill(ellipse(ex, ey, k.a.eye.r * 0.9, k.a.eye.r * 0.9, 12), '#c9d2d6', 0.85);
+      k.pen.dot(ex, ey, k.a.eye.r * 0.35, '#5d6a70', 0.9);
+      const worm = bezier({ x: ex - 1, y: ey + 2 }, { x: ex - 3, y: ey + 9 }, { x: ex - 1, y: ey + 15 }, 8);
+      k.pen.stroke(worm, 1.6, '#e8ddc8', 0.95, false);
+      k.pen.hair(worm, 0.4, k.ink, 0.8);
+      k.pen.hair([{ x: ex - 2, y: ey + 15 }, { x: ex - 4, y: ey + 18 }], 0.4, k.ink, 0.7);
+      k.pen.hair([{ x: ex, y: ey + 15 }, { x: ex + 1, y: ey + 18 }], 0.4, k.ink, 0.7);
     },
   },
   goblinshark: {
@@ -362,9 +539,20 @@ export const GIANTS: Partial<Record<SpeciesId, Anatomy>> = {
       sickle(k, { x: k.x(0.6), y: bottomAt(k.a, 0.6) - 3 }, { x: k.x(0.68), y: bottomAt(k.a, 0.6) + 10 }, 12);
     },
     extras: (k) => {
-      // Translucent pink skin, blushing darker on the fins and belly.
+      // Translucent pink skin, blushing darker on the fins and belly, the blood vessels showing through.
       k.pen.clipped(k.body, () => {
         k.pen.fill(k.body, '#e2a39d', 0.18);
+        for (let i = 0; i < 9; i++) {
+          let x = k.x(0.25 + k.pen.rng() * 0.6);
+          let y = C + k.h(0.5) * (k.pen.rng() * 1.4 - 0.7);
+          const vein = [{ x, y }];
+          for (let j = 0; j < 6; j++) {
+            x -= 4 + k.pen.rng() * 4;
+            y += (k.pen.rng() - 0.5) * 6;
+            vein.push({ x, y });
+          }
+          k.pen.hair(vein, 0.45, '#9a4a6a', 0.45);
+        }
         for (let i = 0; i < 12; i++) {
           const t = 0.2 + i * 0.065;
           k.pen.hair(bezier({ x: k.x(t), y: topAt(k.a, t) + 3 }, { x: k.x(t) - 4, y: C }, { x: k.x(t), y: bottomAt(k.a, t) - 3 }, 6), 0.4, '#8a3f3a', 0.3);

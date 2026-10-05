@@ -41,9 +41,16 @@ function row(): HTMLElement {
   return r;
 }
 
+// ?res=2 draws at the giants' in-play resolution (BOSS_RES), shown bigger to judge the fine pen work.
+const res = Number(params.get('res') ?? 1) || 1;
 for (const variant of ['light', 'heavy'] as InkVariant[]) {
   const big = row();
-  for (const s of shapes) figure(big, `${s} ${variant}`, FISH_TEX, FISH_TEX, (ctx) => drawFish(ctx, s, variant, 101), 200 / FISH_TEX);
+  for (const s of shapes) {
+    figure(big, `${s} ${variant}`, FISH_TEX * res, FISH_TEX * res, (ctx) => {
+      ctx.scale(res, res);
+      drawFish(ctx, s, variant, 101);
+    }, (200 * res) / (FISH_TEX * res) * (res > 1 ? 2 : 1));
+  }
 }
 // Roughly in-game display size (downscaled by the browser, like the GPU would).
 const small = row();

@@ -87,3 +87,9 @@ export function stepHide(s: HideState, inside: boolean, now: number, dtMs: numbe
   }
   return { state: { ...s, hidden: true, usedMs }, spotted: false };
 }
+
+/** Flushed out of cover (by a moray, say): spotted at once, and must leave before cover works again. */
+export function flushHide(s: HideState, now: number, rules: HideRules): { state: HideState; spotted: boolean } {
+  if (!s.hidden) return { state: s, spotted: false };
+  return { state: { hidden: false, usedMs: 0, blockedUntil: now + rules.cooldownMs, mustLeave: true }, spotted: true };
+}

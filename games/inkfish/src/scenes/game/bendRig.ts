@@ -47,7 +47,8 @@ function rigsOf(scene: Phaser.Scene): Map<Image, BendRig> {
   return rigs;
 }
 
-export function attachBend(sprite: Image, shape: FishShape): void {
+/** `res`: texture px per fish-texture px (see swim.ts setArtRes). */
+export function attachBend(sprite: Image, shape: FishShape, res = 1): void {
   if (isCritter(shape)) return;
   const a = ANATOMY[shape];
   const style = bendStyleOf(a.hl, a.hh, Boolean(a.wave));
@@ -55,8 +56,8 @@ export function attachBend(sprite: Image, shape: FishShape): void {
   const half = sprite.frame.halfWidth;
   const line = Array.from({ length: SEGMENTS }, (_, i) => ({ x: -half + (i * 2 * half) / (SEGMENTS - 1), y: 0 }));
   const rope = sprite.scene.add.rope(sprite.x, sprite.y, sprite.texture.key, sprite.frame.name, line);
-  const along = rope.points.map((p) => alongBody(p.x + C, C, a.hl));
-  const rig: BendRig = { rope, along, sway: along.map((t) => swayAt(t, a.hl, style)), style, amp: 0, phase: 0, tint: 0xffffff };
+  const along = rope.points.map((p) => alongBody(p.x / res + C, C, a.hl));
+  const rig: BendRig = { rope, along, sway: along.map((t) => swayAt(t, a.hl, style) * res), style, amp: 0, phase: 0, tint: 0xffffff };
   // The image keeps its place in the game (collisions, tweens, tints) but the rope is what's seen.
   sprite.willRender = () => false;
   const rigs = rigsOf(sprite.scene);

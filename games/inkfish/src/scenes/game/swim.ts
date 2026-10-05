@@ -28,6 +28,18 @@ const MAX_BEAT = 0.3;
 
 const rigsByScene = new WeakMap<Phaser.Scene, Map<Image, Rig>>();
 
+/** Texture px per fish-texture px for sprites drawn finer than usual (the giants, at BOSS_RES); 1 for everyone else. */
+const artResOf = new WeakMap<Image, number>();
+
+/** Marks a sprite as showing a drawing made at `res` times the usual size. Set it before attachTail. */
+export function setArtRes(sprite: Image, res: number): void {
+  artResOf.set(sprite, res);
+}
+
+export function artRes(sprite: Image): number {
+  return artResOf.get(sprite) ?? 1;
+}
+
 function rigsOf(scene: Phaser.Scene): Map<Image, Rig> {
   const existing = rigsByScene.get(scene);
   if (existing) return existing;
@@ -45,8 +57,9 @@ function rigsOf(scene: Phaser.Scene): Map<Image, Rig> {
 
 /** Gives a fish sprite a swinging tail, or a bending body for fish whose tail tapers to a point (eels; see bendRig.ts). */
 export function attachTail(sprite: Image, shape: FishShape): void {
+  const res = artRes(sprite);
   if (bendsToSwim(shape)) {
-    attachBend(sprite, shape);
+    attachBend(sprite, shape, res);
     return;
   }
   const cut = tailCut(shape);
@@ -54,7 +67,7 @@ export function attachTail(sprite: Image, shape: FishShape): void {
   const rigs = rigsOf(sprite.scene);
   sprite.setFrame('body');
   const tail = sprite.scene.add.image(sprite.x, sprite.y, sprite.texture.key, 'tail');
-  const rig: Rig = { tail, hinge: cut - C, beat: 0 };
+  const rig: Rig = { tail, hinge: (cut - C) * res, beat: 0 };
   rigs.set(sprite, rig);
   follow(rig, sprite);
   sprite.once(Phaser.GameObjects.Events.DESTROY, () => {
@@ -126,7 +139,7 @@ export function mouthOf(sprite: Image, radius: number, turn: number): { x: numbe
 
 /** How far a swimmer's nose is from its centre, world px (where a bird or a hook holds it). */
 export function noseReach(sprite: Image, shape: FishShape): number {
-  return bodyProportions(shape).hl * Math.abs(sprite.scaleY);
+  return bodyProportions(shape).hl * Math.abs(sprite.scaleY) * artRes(sprite);
 }
 
 /** Swallowed: the fish is sucked into the eater's mouth, shrinking, then gone. */
@@ -140,5 +153,5 @@ export function gulp(sprite: Image, into: { x: number; y: number }): void {
 /** The collision capsule of a fish sprite as currently drawn (size, facing, tilt). */
 export function bodyOf(sprite: Image, shape: FishShape): Capsule {
   // scaleY is the true size; scaleX is squashed while turning.
-  return capsuleOf({ x: sprite.x, y: sprite.y, rotation: sprite.rotation, flipped: sprite.flipX, scale: sprite.scaleY }, bodyProportions(shape));
+  return capsuleOf({ x: sprite.x, y: sprite.y, rotation: sprite.rotation, flipped: sprite.flipX, scale: sprite.scaleY * artRes(sprite) }, bodyProportions(shape));
 }

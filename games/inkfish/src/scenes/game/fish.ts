@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { FISH_RADIUS } from '../../art/fishArt';
-import { fishKey } from '../../art/textures';
+import { BOSS_RES, bossKey, fishKey } from '../../art/textures';
 import { SPECIES_INFO } from '../../levels/species';
 import type { LevelDef, SpeciesId } from '../../levels/types';
 import { DUCK, nearestDecoy, type Decoy } from '../../logic/decoy';
@@ -11,7 +11,7 @@ import { outsideShoal, pastView, shoalReach } from '../../logic/ring';
 import { isSquid } from '../../art/squidArt';
 import { renderSquid, updateSquid } from './squid';
 import { attachSquid } from './squidRig';
-import { attachTail, setSwimTexture, setTailBeat, stroke, turnToward, type SwimState } from './swim';
+import { artRes, attachTail, setArtRes, setSwimTexture, setTailBeat, stroke, turnToward, type SwimState } from './swim';
 
 /** Ordinary fish come and go; marked fish and the giant are level goals and never leave. */
 export type FishRole = 'normal' | 'bounty' | 'boss';
@@ -20,7 +20,8 @@ export interface Fish extends SwimState {
   readonly sprite: Phaser.GameObjects.Image;
   readonly species: SpeciesId;
   readonly role: FishRole;
-  readonly baseSize: number;
+  /** Its size at rest; a giant can lose some (the oarfish shedding its tail). */
+  baseSize: number;
   /** Current radius after puffing. */
   size: number;
   vx: number;
@@ -37,6 +38,12 @@ export interface Fish extends SwimState {
   tilt: number;
   /** How far it has gone sideways since it was spawned, px: after a lap of the ring an ordinary fish moves on. */
   swum: number;
+  /** Tucked away out of reach (a giant in its weed): it can't bite or be bitten. */
+  tucked: boolean;
+  /** Camouflaged: its goal ring isn't drawn, so you have to find it. */
+  veiled: boolean;
+  /** Steered by a giant (its moray partner), not by its own mind, until let go. */
+  led: boolean;
   /** dead: knocked out by a firecracker, floating belly-up; anyone can eat it. */
   state: 'cruise' | 'chase' | 'lunge' | 'puffed' | 'tired' | 'stunned' | 'hooked' | 'dead';
 }
@@ -72,12 +79,17 @@ export function spawnSpecial(scene: Phaser.Scene, species: SpeciesId, size: numb
 }
 
 export function makeFish(scene: Phaser.Scene, species: SpeciesId, size: number, role: FishRole, x: number, y: number, vx: number, rng: Rng): Fish {
-  const sprite = scene.add.image(x, y, fishKey(species, 'light', 0)).setDepth(role === 'boss' ? 11 : 10).setScale(size / FISH_RADIUS).setFlipX(vx < 0);
+  // The giant is drawn finer (see ensureBossTextures); the squid has a rig of its own.
+  const fine = role === 'boss' && !isSquid(species);
+  const res = fine ? BOSS_RES : 1;
+  const sprite = scene.add.image(x, y, fine ? bossKey(species, 'light', 0) : fishKey(species, 'light', 0))
+    .setDepth(role === 'boss' ? 11 : 10).setScale(size / FISH_RADIUS / res).setFlipX(vx < 0);
+  setArtRes(sprite, res);
   if (isSquid(species)) attachSquid(sprite);
   else attachTail(sprite, species);
   return {
     sprite, species, role, baseSize: size, size, vx, vy: 0, phase: rng() * Math.PI * 2, swim: rng() * Math.PI * 2, turn: vx < 0 ? -1 : 1,
-    tilt: 0, swum: 0, shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
+    tilt: 0, swum: 0, tucked: false, veiled: false, led: false, shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
   };
 }
 
@@ -146,7 +158,7 @@ export interface PlayerView {
   readonly hidden?: boolean;
 }
 
-function steerTo(f: Fish, tx: number, ty: number, speed: number, dt: number, accel = 3): void {
+export function steerTo(f: Fish, tx: number, ty: number, speed: number, dt: number, accel = 3): void {
   const dx = tx - f.sprite.x;
   const dy = ty - f.sprite.y;
   const d = Math.hypot(dx, dy) || 1;
@@ -251,9 +263,11 @@ export function renderFish(f: Fish, playerSize: number, frame: number, dt: numbe
     renderSquid(f, frame, dt, heavy);
     return;
   }
-  setSwimTexture(f.sprite, fishKey(f.species, heavy ? 'heavy' : 'light', frame));
+  const res = artRes(f.sprite);
+  const ink = heavy ? 'heavy' : 'light';
+  setSwimTexture(f.sprite, res === 1 ? fishKey(f.species, ink, frame) : bossKey(f.species, ink, frame));
   // Ease scale (y holds the true size) so puffing animates instead of popping.
-  const target = f.size / FISH_RADIUS;
+  const target = f.size / FISH_RADIUS / res;
   const scale = f.sprite.scaleY + (target - f.sprite.scaleY) * 0.25;
   if (f.state === 'dead') {
     // Belly-up and limp: the tail just sways with the water.

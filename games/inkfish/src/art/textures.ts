@@ -109,14 +109,42 @@ const frameSeed = (f: number): number => 101 + f * 977;
 
 /** The plain soft dot (see glowArt.ts). */
 export const GLOW_KEY = 'glow';
-export const fishGlowKey = (shape: FishShape): string => `fishglow-${shape}`;
+export const fishGlowKey = (shape: FishShape, res = 1): string => (res === 1 ? `fishglow-${shape}` : `fishglow-${shape}@${res}`);
 
-/** The glow layer for a fish that carries lights; null for fish that don't glow. */
-export function ensureFishGlow(scene: Phaser.Scene, shape: FishShape): string | null {
+/** The glow layer for a fish that carries lights, drawn at `res` like its body; null for fish that don't glow. */
+export function ensureFishGlow(scene: Phaser.Scene, shape: FishShape, res = 1): string | null {
   const lights = fishLights(shape);
   if (lights.length === 0) return null;
-  add(scene, fishGlowKey(shape), FISH_TEX, FISH_TEX, (ctx) => drawFishGlow(ctx, lights));
-  return fishGlowKey(shape);
+  const key = fishGlowKey(shape, res);
+  add(scene, key, FISH_TEX * res, FISH_TEX * res, (ctx) => {
+    ctx.scale(res, res);
+    drawFishGlow(ctx, lights);
+  });
+  return key;
+}
+
+/**
+ * The giants are drawn at BOSS_RES times a fish's texture size, so their fine
+ * pen work holds up at the size they swim at. In play they use bossKey (and
+ * swim.ts's setArtRes); portraits elsewhere keep the usual fishKey drawing.
+ */
+export const BOSS_RES = 2;
+export const bossKey = (shape: FishShape, variant: InkVariant, frame: number): string => `boss-${shape}-${variant}-${frame}`;
+
+/** The giant's boil frames at BOSS_RES, with the swimming tail frames cut at the same scale. */
+export function ensureBossTextures(scene: Phaser.Scene, shape: FishShape, variants: readonly InkVariant[] = ['light', 'heavy']): void {
+  if (isSquid(shape) || isCritter(shape)) return;
+  const side = FISH_TEX * BOSS_RES;
+  for (const variant of variants) {
+    for (let f = 0; f < BOIL_FRAMES; f++) {
+      const key = bossKey(shape, variant, f);
+      add(scene, key, side, side, (ctx) => {
+        ctx.scale(BOSS_RES, BOSS_RES);
+        drawCreature(ctx, shape, variant, f, frameSeed(f));
+      });
+      addSwimFrames(scene, key, shape, BOSS_RES);
+    }
+  }
 }
 
 export const jellyKey = (kind: JellyId, frame: number): string => `jelly-${kind}-${frame}`;
@@ -218,20 +246,23 @@ export function bendsToSwim(shape: FishShape): boolean {
  * on the fish's centre, the tail on the stalk. A custom pivot also makes
  * flipX mirror around that point instead of the frame's middle.
  */
-function addSwimFrames(scene: Phaser.Scene, key: string, shape: FishShape): void {
-  const cut = tailCut(shape);
+function addSwimFrames(scene: Phaser.Scene, key: string, shape: FishShape, res = 1): void {
+  const tailAt = tailCut(shape);
   const tex = scene.textures.get(key);
-  if (cut === null || tex.has('body')) return;
+  if (tailAt === null || bendsToSwim(shape) || tex.has('body')) return;
+  const cut = tailAt * res;
+  const side = FISH_TEX * res;
+  const overlap = TAIL_OVERLAP * res;
   // The drawing may sit anywhere in an atlas page.
   const at = originOf(tex);
-  const body = tex.add('body', 0, at.x + cut, at.y, FISH_TEX - cut, FISH_TEX);
-  const tail = tex.add('tail', 0, at.x, at.y, cut + TAIL_OVERLAP, FISH_TEX);
+  const body = tex.add('body', 0, at.x + cut, at.y, side - cut, side);
+  const tail = tex.add('tail', 0, at.x, at.y, cut + overlap, side);
   // Adding a frame makes it the texture's default; keep the whole fish as the
   // default so plain images (map, intro card, end screens) still show the tail.
   tex.firstFrame = '__BASE';
   if (!body || !tail) return;
-  Object.assign(body, { customPivot: true, pivotX: (FISH_TEX / 2 - cut) / (FISH_TEX - cut), pivotY: 0.5 });
-  Object.assign(tail, { customPivot: true, pivotX: cut / (cut + TAIL_OVERLAP), pivotY: 0.5 });
+  Object.assign(body, { customPivot: true, pivotX: (side / 2 - cut) / (side - cut), pivotY: 0.5 });
+  Object.assign(tail, { customPivot: true, pivotX: cut / (cut + overlap), pivotY: 0.5 });
 }
 
 /** Frees GPU memory held by fish textures not in `keep`. Player fish always stay. */
@@ -239,7 +270,7 @@ export function releaseFishTextures(scene: Phaser.Scene, keep: readonly FishShap
   const kept = new Set<FishShape>([...keep, ...PLAYER_FISH]);
   const atlas = atlasOf(scene.game);
   for (const key of scene.textures.getTextureKeys()) {
-    const shape = /^fish-(\w+)-(light|heavy)-\d+$/.exec(key)?.[1] as FishShape | undefined;
+    const shape = /^(?:fish|boss)-(\w+)-(light|heavy)-\d+$/.exec(key)?.[1] as FishShape | undefined;
     if (!shape || kept.has(shape)) continue;
     if (atlas.has(key)) atlas.remove(key);
     else scene.textures.remove(key);
