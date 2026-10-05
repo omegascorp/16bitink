@@ -194,13 +194,13 @@ export function renderPlayer(p: Player, now: number, frame: number, dt: number, 
   const base = p.drawSize / FISH_RADIUS;
   const chomp = now - p.chompAt < 140 ? 0.85 : 1;
   if (p.hooked) {
-    setTailBeat(s, stroke(p, 0, dt, 3.2));
+    setTailBeat(s, stroke(p, 0, dt, 3.2), p.swim);
     s.setScale(base, base * chomp).setFlipX(false).setRotation(-Math.PI / 2 + Math.sin(now / 40) * 0.35);
   } else {
     const speed = Math.hypot(p.vx, p.vy);
     // Dashing and energy rushes beat harder; idle fins still keep a slow stroke.
     const effort = now < p.speedUntil || speed > TUNING.playerSpeed * 1.2 ? 1.6 : now < p.stunnedUntil ? 0.3 : 1;
-    setTailBeat(s, stroke(p, speed, dt, effort));
+    setTailBeat(s, stroke(p, speed, dt, effort), p.swim);
     const facing = turnToward(p, settling ? settleFacing(p.vx, p.turn) : Math.abs(p.vx) > 8 ? (p.vx < 0 ? -1 : 1) : 0, dt);
     s.setFlipX(p.turn < 0).setScale(base * facing, base * chomp);
     // In the air the body follows its arc: nose up on the way out, down on the way back.

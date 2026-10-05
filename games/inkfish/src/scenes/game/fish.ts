@@ -257,7 +257,7 @@ export function renderFish(f: Fish, playerSize: number, frame: number, dt: numbe
   const scale = f.sprite.scaleY + (target - f.sprite.scaleY) * 0.25;
   if (f.state === 'dead') {
     // Belly-up and limp: the tail just sways with the water.
-    setTailBeat(f.sprite, Math.sin(f.phase * 1.3) * 0.06);
+    setTailBeat(f.sprite, Math.sin(f.phase * 1.3) * 0.06, f.phase * 1.3);
     f.sprite.setScale(scale).setTint(0xb3ab9c).setFlipY(true).setRotation(f.tilt + Math.sin(f.phase * 1.5) * 0.08);
     return;
   }
@@ -266,13 +266,13 @@ export function renderFish(f: Fish, playerSize: number, frame: number, dt: numbe
   else f.sprite.clearTint();
   if (f.state === 'hooked') {
     // Hanging from the barb by the mouth, thrashing.
-    setTailBeat(f.sprite, stroke(f, 0, dt, 3.2));
+    setTailBeat(f.sprite, stroke(f, 0, dt, 3.2), f.swim);
     f.sprite.setScale(scale).setFlipX(false).setRotation(-Math.PI / 2 + Math.sin(f.phase * 22) * 0.3);
     return;
   }
   const speed = Math.hypot(f.vx, f.vy);
   const effort = f.state === 'stunned' ? 0.35 : f.state === 'chase' || f.state === 'lunge' ? 1.5 : 1;
-  setTailBeat(f.sprite, stroke(f, speed, dt, effort));
+  setTailBeat(f.sprite, stroke(f, speed, dt, effort), f.swim);
   // Turning round: squash through edge-on, flipping at the midpoint.
   const facing = turnToward(f, Math.abs(f.vx) > 4 ? (f.vx < 0 ? -1 : 1) : 0, dt);
   f.sprite.setFlipX(f.turn < 0).setScale(scale * facing, scale);

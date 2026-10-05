@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import { C } from '../../art/fish/kit';
 import { bodyProportions, type FishShape } from '../../art/fishArt';
-import { tailCut } from '../../art/textures';
+import { bendsToSwim, tailCut } from '../../art/textures';
 import { capsuleOf, type Capsule } from '../../logic/body';
 import { keepDepth, keepTint } from './sync';
+import { attachBend, setBendBeat, setBendTexture } from './bendRig';
 
 /**
  * Swimming animation for any fish sprite: the tail is a second image hinged
@@ -42,8 +43,12 @@ function rigsOf(scene: Phaser.Scene): Map<Image, Rig> {
   return rigs;
 }
 
-/** Gives a fish sprite a swinging tail. Fish that bend their whole body (eels) are left as one image. */
+/** Gives a fish sprite a swinging tail, or a bending body for fish whose tail tapers to a point (eels; see bendRig.ts). */
 export function attachTail(sprite: Image, shape: FishShape): void {
+  if (bendsToSwim(shape)) {
+    attachBend(sprite, shape);
+    return;
+  }
   const cut = tailCut(shape);
   if (cut === null) return;
   const rigs = rigsOf(sprite.scene);
@@ -60,6 +65,7 @@ export function attachTail(sprite: Image, shape: FishShape): void {
 
 /** Swaps the texture (boil frame, ink weight) on body and tail alike. */
 export function setSwimTexture(sprite: Image, key: string): void {
+  if (setBendTexture(sprite, key)) return;
   const rig = rigsByScene.get(sprite.scene)?.get(sprite);
   if (!rig) {
     sprite.setTexture(key);
@@ -69,8 +75,9 @@ export function setSwimTexture(sprite: Image, key: string): void {
   rig.tail.setTexture(key, 'tail');
 }
 
-/** Sets how far the tail is swung, in radians. */
-export function setTailBeat(sprite: Image, angle: number): void {
+/** Sets how far the tail is swung, in radians, at swim phase `phase` (a bending body ripples with it). */
+export function setTailBeat(sprite: Image, angle: number, phase: number): void {
+  if (setBendBeat(sprite, angle, phase)) return;
   const rig = rigsByScene.get(sprite.scene)?.get(sprite);
   if (rig) rig.beat = angle;
 }

@@ -23,6 +23,7 @@ import type { BirdId } from '../logic/birds';
 import type { ShoreKind } from '../levels/shore';
 import { drawShore, SHORE_SIZE } from './shoreArt';
 import { ART_RES, drawBubble, drawHook, drawPaper, drawRock, drawWeed, type WeedKind } from './propArt';
+import { BEND_FROM_RATIO } from '../logic/bend';
 
 export { ART_RES };
 
@@ -199,6 +200,17 @@ export function tailCut(shape: FishShape): number | null {
   const a = ANATOMY[shape];
   if (a.tail === 'point' || a.wave) return null;
   return Math.round(xAt(a, 1) + Math.max(5, a.hl * 0.08));
+}
+
+/**
+ * Swims by bending its whole body (see scenes/game/bendRig.ts): a fish whose
+ * tail tapers to a point, or one so long and thin that swinging only its tail
+ * fin would leave a rigid stick. Crawlers and the squid have rigs of their own.
+ */
+export function bendsToSwim(shape: FishShape): boolean {
+  if (isCritter(shape) || isSquid(shape)) return false;
+  const a = ANATOMY[shape];
+  return tailCut(shape) === null || a.hl / a.hh >= BEND_FROM_RATIO;
 }
 
 /**
