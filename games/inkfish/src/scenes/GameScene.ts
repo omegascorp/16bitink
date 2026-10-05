@@ -120,6 +120,8 @@ export class GameScene extends Phaser.Scene {
   private boss: Boss | null = null;
   /** Fish a giant brought in this frame: they join the shoal once this frame's update has rebuilt it. */
   private summoned: Fish[] = [];
+  /** Fish a giant swallowed this frame (their sprites go with the gulp), dropped after the fish pass. */
+  private devoured: Fish[] = [];
   private weeds: Phaser.GameObjects.Image[] = [];
   /** Hides scenery that's out of view, so it isn't drawn. */
   private culler!: Culler;
@@ -395,6 +397,8 @@ export class GameScene extends Phaser.Scene {
     this.ducks.update(dt, camView);
     const decoys = this.ducks.decoys();
     this.fish = this.fish.filter((f) => {
+      // Already on its way down a giant's throat.
+      if (this.devoured.includes(f)) return true;
       const crawler = isCrawler(f.species);
       const x0 = f.sprite.x;
       if (crawler) updateCrawler(f, view, floorAt, now, dt);
@@ -437,6 +441,11 @@ export class GameScene extends Phaser.Scene {
       else this.bump(f);
       return true;
     });
+    if (this.devoured.length) {
+      const gone = new Set(this.devoured);
+      this.fish = this.fish.filter((f) => !gone.has(f));
+      this.devoured = [];
+    }
     if (this.summoned.length) {
       this.fish = [...this.fish, ...this.summoned];
       this.summoned = [];
@@ -781,6 +790,12 @@ export class GameScene extends Phaser.Scene {
       scene: this, world: this.level.world, floorAt: this.seabed.floorAt, covers: this.covers,
       player: () => this.player,
       fish: () => this.fish,
+      devour: (prey, into) => {
+        this.devoured = [...this.devoured, prey];
+        this.burst(prey.sprite.x, prey.sprite.y, 4);
+        this.sfx('eat', prey.sprite, pitchForSize(prey.size), 0.5);
+        gulp(prey.sprite, into);
+      },
       summon: (species, size, x, y, vx) => {
         ensureFishTextures(this, [species]);
         const f = makeFish(this, species, size, 'normal', x, y, vx, this.rng);

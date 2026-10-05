@@ -132,6 +132,16 @@ export function turnToward(state: SwimState, dir: -1 | 1 | 0, dt: number): numbe
   return Math.max(0.2, Math.abs(state.turn));
 }
 
+/** Where a point on a fish's drawing (fish-texture px, before any finer resolution) is in the world, as the sprite is drawn now. */
+export function artPoint(sprite: Image, x: number, y: number): { x: number; y: number } {
+  const res = artRes(sprite);
+  const lx = (x - C) * Math.abs(sprite.scaleX) * res * (sprite.flipX ? -1 : 1);
+  const ly = (y - C) * Math.abs(sprite.scaleY) * res;
+  const cos = Math.cos(sprite.rotation);
+  const sin = Math.sin(sprite.rotation);
+  return { x: sprite.x + lx * cos - ly * sin, y: sprite.y + lx * sin + ly * cos };
+}
+
 /** Where a swimmer's mouth is: at the nose, on whichever side it faces. */
 export function mouthOf(sprite: Image, radius: number, turn: number): { x: number; y: number } {
   return { x: sprite.x + Math.sign(turn || 1) * radius * 0.85, y: sprite.y };

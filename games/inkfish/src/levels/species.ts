@@ -127,7 +127,7 @@ export const SPECIES_INFO = {
   swordfish: s('swordfish', 'swordfish', 'chase', [110, 150], 'Slashes with its bill.', { hunter: true, giant: true }),
   oarfish: s('oarfish', 'oarfish', 'wave', [50, 80], 'The longest bony fish in the sea.', { hunter: true, giant: true }),
   sleepershark: s('sleeper shark', 'sleeper sharks', 'chase', [50, 75], 'Slow, silent, enormous.', { hunter: true, giant: true }),
-  goblinshark: s('goblin shark', 'goblin sharks', 'chase', [60, 90], 'Its jaws shoot forward.', { hunter: true, giant: true }),
+  seadevil: s('black seadevil', 'black seadevils', 'lunge', [40, 70], 'Follow the light and you swim into its mouth.', { hunter: true, giant: true }),
   giantsquid: s('giant squid', 'giant squids', 'chase', [40, 70], 'Eyes as big as plates, and two tentacles that strike from far away.', { hunter: true, giant: true }),
 } as const satisfies Record<string, SpeciesInfo>;
 

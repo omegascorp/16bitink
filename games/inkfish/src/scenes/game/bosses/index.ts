@@ -2,10 +2,10 @@ import type { SpeciesId } from '../../../levels/types';
 import type { Fish } from '../fish';
 import { BassBoss } from './bass';
 import type { Boss, BossHost } from './kit';
-import { GoblinBoss } from './goblin';
 import { GrouperBoss } from './grouper';
 import { LingcodBoss } from './lingcod';
 import { OarfishBoss } from './oarfish';
+import { SeadevilBoss } from './seadevil';
 import { SharkBoss } from './shark';
 import { SleeperBoss } from './sleeper';
 import { SwordfishBoss } from './swordfish';
@@ -23,7 +23,7 @@ const BOSSES: Readonly<Partial<Record<SpeciesId, (fish: Fish, host: BossHost) =>
   swordfish: (fish, host) => new SwordfishBoss(fish, host),
   oarfish: (fish, host) => new OarfishBoss(fish, host),
   sleepershark: (fish, host) => new SleeperBoss(fish, host),
-  goblinshark: (fish, host) => new GoblinBoss(fish, host),
+  seadevil: (fish, host) => new SeadevilBoss(fish, host),
 };
 
 export function makeBoss(fish: Fish, host: BossHost): Boss | null {

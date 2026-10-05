@@ -28,6 +28,8 @@ export interface BossHost {
   stunPlayer(ms: number, text: string): boolean;
   /** Drags the player by (dx, dy) px this frame (a current, a suction), unless they're hidden, in the air or hooked. */
   drag(dx: number, dy: number): void;
+  /** The giant swallows `prey` (another fish) into its mouth at `into`; it's gone from the level. */
+  devour(prey: Fish, into: { readonly x: number; readonly y: number }): void;
   /** Brings a new fish into the water (a giant's partner); it's added to the level's fish. */
   summon(species: SpeciesId, size: number, x: number, y: number, vx: number): Fish;
   /** Flushes the player out of cover, as if spotted. Returns true if they were hiding. */
@@ -53,8 +55,6 @@ export interface Boss {
 
 const RED = 0xa3342b;
 
-/** Plain points for Graphics polygons (it only reads x and y). */
-const points = (pts: readonly { x: number; y: number }[]): Phaser.Math.Vector2[] => pts.map((p) => new Phaser.Math.Vector2(p.x, p.y));
 const INK = 0x1b1a1f;
 
 /**
@@ -137,49 +137,13 @@ export class Marks {
     return this;
   }
 
-  /**
-   * Slingshot jaws shot out to (x, y) from a head at (hx, hy), facing `facing`:
-   * a tapering fleshy stalk ending in a gaping mouth, both jaws curving apart
-   * and set with needle teeth pointing in.
-   */
-  jaws(hx: number, hy: number, x: number, y: number, facing: 1 | -1, size: number): this {
-    const g = this.g;
-    const line = Math.max(1, size * 0.035);
-    // The stalk: wide at the head, narrower at the jaws.
-    const w0 = size * 0.17;
-    const w1 = size * 0.1;
-    const stalk = [
-      { x: hx, y: hy - w0 }, { x, y: y - w1 }, { x, y: y + w1 }, { x: hx, y: hy + w0 },
-    ];
-    g.fillStyle(0xd9a3a5, 1).fillPoints(points(stalk), true);
-    g.lineStyle(line, INK, 0.85).lineBetween(stalk[0]!.x, stalk[0]!.y, stalk[1]!.x, stalk[1]!.y).lineBetween(stalk[3]!.x, stalk[3]!.y, stalk[2]!.x, stalk[2]!.y);
-    // Each jaw: a curved blade from the end of the stalk out to a forward tip, the two opening a gape.
-    const len = size * 0.62;
-    const gape = size * 0.42;
-    const curve = (t: number, a: { x: number; y: number }, c: { x: number; y: number }, b: { x: number; y: number }): { x: number; y: number } => ({
-      x: (1 - t) * (1 - t) * a.x + 2 * (1 - t) * t * c.x + t * t * b.x,
-      y: (1 - t) * (1 - t) * a.y + 2 * (1 - t) * t * c.y + t * t * b.y,
-    });
-    for (const side of [-1, 1] as const) {
-      const tip = { x: x + facing * len, y: y + side * gape };
-      const outerA = { x: x - facing * size * 0.05, y: y + side * w1 * 1.6 };
-      const outerC = { x: x + facing * len * 0.45, y: y + side * gape * 1.25 };
-      const innerA = { x: x + facing * size * 0.04, y: y + side * w1 * 0.2 };
-      const innerC = { x: x + facing * len * 0.6, y: y + side * gape * 0.55 };
-      const outer = Array.from({ length: 9 }, (_, k) => curve(k / 8, outerA, outerC, tip));
-      const inner = Array.from({ length: 9 }, (_, k) => curve(k / 8, innerA, innerC, tip));
-      const jaw = [...outer, ...[...inner].reverse()];
-      g.fillStyle(0xe7b7b6, 1).fillPoints(points(jaw), true);
-      g.lineStyle(line, INK, 0.9).strokePoints(points(jaw), true);
-      // Needle teeth along the inner edge, pointing across the gape.
-      g.lineStyle(Math.max(1, size * 0.026), 0xfffaf0, 1);
-      for (let k = 1; k < inner.length - 1; k++) {
-        const p = inner[k]!;
-        g.lineBetween(p.x, p.y, p.x + facing * size * 0.04, p.y - side * size * 0.1);
-      }
-    }
-    // The dark throat between the jaws.
-    g.fillStyle(0x3a1f1a, 0.85).fillCircle(x + facing * size * 0.06, y, w1 * 0.9);
+  /** A living light: a soft halo round a bright core, for a lure in the dark. */
+  lure(x: number, y: number, r: number, alpha: number, color: number): this {
+    const a = Math.max(0, Math.min(1, alpha));
+    this.g.fillStyle(color, a * 0.12).fillCircle(x, y, r * 2.6);
+    this.g.fillStyle(color, a * 0.25).fillCircle(x, y, r * 1.5);
+    this.g.fillStyle(color, a * 0.6).fillCircle(x, y, r * 0.75);
+    this.g.fillStyle(0xffffff, a).fillCircle(x, y, r * 0.38);
     return this;
   }
 

@@ -6,6 +6,7 @@ import {
 import {
   biteScars, brokenStripes, healedScar, mirrorScales, oldFly, oldHook, remora, sword, tear,
 } from './giantDetails';
+import { SEADEVIL_ART } from './seadevil';
 
 // ---------------------------------------------------------------- local helpers
 
@@ -519,89 +520,7 @@ export const GIANTS: Partial<Record<SpeciesId, Anatomy>> = {
       k.pen.hair([{ x: ex, y: ey + 15 }, { x: ex + 1, y: ey + 18 }], 0.4, k.ink, 0.7);
     },
   },
-  goblinshark: {
-    // Goblin shark: pink and flabby, a long flat blade of a snout over jaws that jut out, nail teeth, a long low tail.
-    hl: 76, hh: 21, peak: 0.42, blunt: 0.2, peduncle: 0.32, tail: 'point', tailSize: 0,
-    dorsal: { from: 0.5, to: 0.6, height: 0.6, tri: true }, dorsal2: { from: 0.68, to: 0.76, height: 0.55, tri: true },
-    anal: { from: 0.74, to: 0.84, height: 0.55, tri: true }, pectoral: 0, pelvic: false, scales: false,
-    eye: { t: 0.16, r: 3.5 }, mouth: 'small', wash: '#c98a86', finWash: '#d6a19c', gills: 'slits', lateral: false,
-    under: (k) => {
-      // Long, low caudal fin: almost all upper lobe, barely raised.
-      const x0 = k.x(0.88);
-      const tip = { x: k.x(1) - 44, y: C - 10 };
-      const shape = [
-        { x: x0, y: topAt(k.a, 0.88) + 2 },
-        ...bezier({ x: x0, y: topAt(k.a, 0.88) }, { x: x0 - 30, y: C - 14 }, tip, 10),
-        ...bezier(tip, { x: tip.x + 14, y: C + 2 }, { x: k.x(1) - 18, y: C + 7 }, 8),
-        ...bezier({ x: k.x(1) - 18, y: C + 7 }, { x: k.x(1) - 8, y: C + 14 }, { x: x0, y: bottomAt(k.a, 0.88) }, 8),
-      ];
-      membrane(k, shape, { x: x0, y: C }, 12);
-      sickle(k, { x: k.x(0.6), y: bottomAt(k.a, 0.6) - 3 }, { x: k.x(0.68), y: bottomAt(k.a, 0.6) + 10 }, 12);
-    },
-    extras: (k) => {
-      // Translucent pink skin, blushing darker on the fins and belly, the blood vessels showing through.
-      k.pen.clipped(k.body, () => {
-        k.pen.fill(k.body, '#e2a39d', 0.18);
-        for (let i = 0; i < 9; i++) {
-          let x = k.x(0.25 + k.pen.rng() * 0.6);
-          let y = C + k.h(0.5) * (k.pen.rng() * 1.4 - 0.7);
-          const vein = [{ x, y }];
-          for (let j = 0; j < 6; j++) {
-            x -= 4 + k.pen.rng() * 4;
-            y += (k.pen.rng() - 0.5) * 6;
-            vein.push({ x, y });
-          }
-          k.pen.hair(vein, 0.45, '#9a4a6a', 0.45);
-        }
-        for (let i = 0; i < 12; i++) {
-          const t = 0.2 + i * 0.065;
-          k.pen.hair(bezier({ x: k.x(t), y: topAt(k.a, t) + 3 }, { x: k.x(t) - 4, y: C }, { x: k.x(t), y: bottomAt(k.a, t) - 3 }, 6), 0.4, '#8a3f3a', 0.3);
-        }
-      });
-      gillSlits(k, 0.24);
-      // Protruding jaws slung below the head, packed with nail-like teeth.
-      const back = { x: k.x(0.2), y: bottomAt(k.a, 0.2) - 4 };
-      const upperTip = { x: k.x(0.03), y: C + 8 };
-      const lowerTip = { x: k.x(0.05), y: C + 20 };
-      const jaw = [
-        ...bezier(back, { x: k.x(0.1), y: C + 6 }, upperTip, 10),
-        ...bezier(lowerTip, { x: k.x(0.12), y: C + 30 }, { x: k.x(0.22), y: bottomAt(k.a, 0.22) }, 10),
-      ];
-      k.pen.fill(jaw, '#5a2a2c', 0.75);
-      const upper = bezier({ x: k.x(0.17), y: C + 9 }, { x: k.x(0.09), y: C + 8 }, upperTip, 8);
-      const lower = bezier({ x: k.x(0.18), y: C + 17 }, { x: k.x(0.1), y: C + 23 }, lowerTip, 8);
-      upper.forEach((p, i) => {
-        if (i === 0) return;
-        const tooth = [{ x: p.x - 0.9, y: p.y }, { x: p.x + 0.4, y: p.y + 6 }, { x: p.x + 0.9, y: p.y }];
-        k.pen.fill(tooth, PAPER_FILL, 1);
-        k.pen.hair(tooth, 0.4, k.ink, 0.9);
-      });
-      lower.forEach((p, i) => {
-        if (i === 0) return;
-        const tooth = [{ x: p.x - 0.9, y: p.y }, { x: p.x + 0.4, y: p.y - 6 }, { x: p.x + 0.9, y: p.y }];
-        k.pen.fill(tooth, PAPER_FILL, 1);
-        k.pen.hair(tooth, 0.4, k.ink, 0.9);
-      });
-      const lip = (pts: Pt[]): void => k.pen.stroke(pts, 1.4, k.ink, 1, false);
-      lip(bezier(back, { x: k.x(0.1), y: C + 5 }, upperTip, 10));
-      lip(bezier(lowerTip, { x: k.x(0.12), y: C + 30 }, { x: k.x(0.22), y: bottomAt(k.a, 0.22) }, 10));
-      lip([upperTip, { x: upperTip.x + 1, y: upperTip.y + 3 }]);
-      lip([lowerTip, { x: lowerTip.x + 1, y: lowerTip.y - 3 }]);
-      // The blade: a long, flat, slightly upturned snout.
-      const nose = { x: k.x(0.04), y: C - 3 };
-      const blade: Pt[] = [
-        { x: nose.x - 10, y: nose.y - 6 }, ...bezier({ x: nose.x, y: nose.y - 6 }, { x: nose.x + 24, y: nose.y - 6 }, { x: nose.x + 38, y: nose.y - 4 }, 8),
-        { x: nose.x + 40, y: nose.y - 2 }, ...bezier({ x: nose.x + 38, y: nose.y + 1 }, { x: nose.x + 22, y: nose.y + 3 }, { x: nose.x, y: nose.y + 5 }, 8),
-        { x: nose.x - 10, y: nose.y + 7 },
-      ];
-      k.pen.fill(blade, PAPER_FILL, 1);
-      k.pen.fill(blade, '#c98a86', k.heavy ? 0.5 : 0.35);
-      for (let i = 0; i < 9; i++) k.pen.dot(nose.x + 4 + i * 4.2, nose.y + (i % 2) * 2, 0.6, k.ink, 0.6);
-      k.pen.stroke([...blade, blade[0]!], 1.1, k.ink, 1, false);
-      // Pectoral: small and rounded.
-      sickle(k, { x: k.x(0.3), y: C + k.h(0.3) * 0.5 }, { x: k.x(0.4), y: bottomAt(k.a, 0.3) + 12 }, 11);
-    },
-  },
+  seadevil: SEADEVIL_ART,
   coelacanth: {
     // Coelacanth: steel-blue with white blotches, heavy scales, limb-like lobed fins, a three-lobed tail.
     hl: 76, hh: 34, peak: 0.4, blunt: 0.6, peduncle: 0.5, tail: 'round', tailSize: 0.95,

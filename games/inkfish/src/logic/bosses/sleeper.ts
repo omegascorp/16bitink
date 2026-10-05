@@ -1,3 +1,5 @@
+import { inLight } from './light';
+
 /**
  * The sleeper shark, chapter 8's giant: slow, silent and almost impossible
  * to see in the midnight zone.
@@ -74,7 +76,5 @@ function sleep(s: SleeperState, i: SleeperSense): SleeperState {
  * to be well inside.
  */
 export function sleeperVisibility(d: number, light: number, asleep: boolean): number {
-  const reach = light * (asleep ? SLEEPER.sleepLight : 1);
-  const fade = reach * 0.35;
-  return Math.max(0, Math.min(1, (reach - d) / fade));
+  return inLight(d, light, asleep ? SLEEPER.sleepLight : 1);
 }
