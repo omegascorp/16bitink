@@ -45,6 +45,13 @@ export function speedFactor(shell: ShellSpec | null): number {
   return shell ? SPEED_BY_WEIGHT[shell.weight] : 1;
 }
 
+/**
+ * From a shell's middle to its mouth, as a fraction of its drawn width.
+ * Moving house, the new shell is set mouth to mouth with the old one, so
+ * the crab ends up this far past each middle. The art frame is built on it.
+ */
+export const MOUTH_OFFSET = 0.362;
+
 /** Drawn size, in world px, of a shell (or naked body) for this body size. */
 export function shellPx(size: number): number {
   return 10 + 6 * size;

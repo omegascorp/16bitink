@@ -1,4 +1,4 @@
-import { drawAbdomen, drawCrabBack, drawCrabFront } from '../src/art/crabArt';
+import { drawCrabBack, drawCrabFront } from '../src/art/crabArt';
 import { FRAME, GROUND } from '../src/art/frame';
 import { drawFood, FOOD_FRAME, FOOD_GROUND } from '../src/art/itemArt';
 import { makeDraw, type Draw } from '../src/art/kit';
@@ -46,9 +46,9 @@ SHELL_KINDS.forEach((kind, i) => critter(crabs, kind, [layer(1, 0, (d) => drawCr
 const loose = section('loose shells');
 SHELL_KINDS.forEach((kind, i) => critter(loose, kind, [layer(300 + i, 1, (d) => drawShell(d, kind))]));
 
-const poses = section('walk poses, naked');
+const poses = section('walk poses, exposed mid-swap');
 for (let f = 0; f < 3; f++) critter(poses, `walk f${f}`, [layer(1, f, (d) => drawCrabBack(d)), layer(304, f, (d) => drawShell(d, 'whelk')), layer(2, f, (d) => drawCrabFront(d))]);
-critter(poses, 'naked', [layer(3, 0, (d) => { drawCrabBack(d, true); drawAbdomen(d); }, RED), layer(4, 0, (d) => drawCrabFront(d, true), RED)]);
+critter(poses, 'exposed', [layer(3, 0, (d) => drawCrabBack(d, true), RED), layer(304, 0, (d) => drawShell(d, 'whelk')), layer(4, 0, (d) => drawCrabFront(d, true), RED)]);
 
 const foods = section('food');
 for (const kind of ['crumb', 'hopper', 'clam'] as const) {

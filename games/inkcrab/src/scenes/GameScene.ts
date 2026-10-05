@@ -58,7 +58,7 @@ export class GameScene extends Phaser.Scene {
     const events = this.beach.step(this.input2.read(this.touch, tapTile, tapInteract), dt);
     for (const e of events) this.react(e);
     this.terrainView.flush();
-    this.itemsView.sync(this.beach.items, time);
+    this.itemsView.sync(this.beach.items, time, this.beach.crab.swap?.itemId ?? null);
     this.crabView.update(this.beach, time, dt);
     const cam = this.cameras.main;
     const z = screenZoom(cam);

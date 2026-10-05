@@ -1,16 +1,17 @@
 import type { Pt } from './pen';
-import { add, bezier, capsule, closed, cub, type Draw, edge, eyeDot, lerp, mottle, oval, pt, ribbon, skin, TAU, tube } from './kit';
+import { capsule, closed, cub, type Draw, edge, eyeDot, mottle, oval, pt, skin, TAU, tube } from './kit';
 import { PAPER_FILL } from './palette';
 
 /**
  * The hermit crab, after InkFish's: jointed legs, a big right claw with dark
  * fingertips, eyes on long stalks and two-tone antennae. It is drawn in two
  * layers around the shell: far legs and claw behind it, everything else in
- * front. Facing right, in the shared frame (see frame.ts).
+ * front. Facing right, in the shared frame (see frame.ts). Its soft tail is
+ * never drawn: it always stays inside a shell, even when moving house.
  */
 const BODY = '#d27a3a';
 const TIP = '#7a3a1a';
-/** The naked crab's soft parts, under red ink. */
+/** The exposed crab mid-swap, under red ink. */
 const SOFT = '#eaa79a';
 
 const limbAlpha = (far: boolean): number => (far ? 0.62 : 0.4);
@@ -95,22 +96,4 @@ export function drawCrabFront(d: Draw, naked = false): void {
   pen.stroke(cub(pt(38, 4), pt(62, -8), pt(86, -14), pt(104, -4 - sway), 12), 0.7, d.ink, 0.8, false);
   legs(d, false, wash);
   claw(d, -10, 14, 1.05, wash, OPEN[f] ?? 1, false);
-}
-
-/** The soft abdomen a shell normally hides: a pale coil curling back where the shell would be. */
-export function drawAbdomen(d: Draw): void {
-  // A shrinking spiral from the back of the head, turning down, back and up into a curl.
-  const spine: Pt[] = [];
-  for (let i = 0; i <= 36; i++) {
-    const th = 0.25 + (i / 36) * Math.PI * 2.1;
-    const r = 30 * Math.exp(-0.2 * th);
-    spine.push(pt(-8 + Math.cos(th) * r * 1.3, 8 + Math.sin(th) * r));
-  }
-  const { top, bot, shape } = ribbon(spine, (u) => 24 * (1 - u * 0.72) + 3);
-  skin(d, shape, SOFT, 0.75);
-  d.pen.clipped(shape, () => {
-    d.pen.stipple(shape, 380, () => 0.4, 0.5, d.ink);
-    for (let i = 3; i < 34; i += 4) d.pen.hair(bezier(top[i]!, add(lerp(top[i]!, bot[i]!, 0.5), pt(1.5, 0)), bot[i]!, 6), 0.6, d.ink, 0.55);
-  });
-  edge(d, shape, 1.4);
 }

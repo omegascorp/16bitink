@@ -1,10 +1,10 @@
 import Phaser from 'phaser';
 import { FOOT, FRAME, SHELL_MID, SHELL_UNITS } from '../../art/frame';
 import { BOIL, RED_HEX } from '../../art/palette';
-import { TEX } from '../../art/textures';
+import { PUFF, TEX } from '../../art/textures';
 import { meterGoal } from '../../logic/growth';
 import type { Beach } from '../../logic/sim';
-import { shellPx, SHELLS } from '../../logic/shells';
+import { shellPx, SHELLS, type ShellKind } from '../../logic/shells';
 import { swapProgress } from '../../logic/swap';
 
 /** Frame px from the shell's middle to the opening (FOOT). */
@@ -14,17 +14,26 @@ const WALK_FPS = 10;
 const BOIL_MS = 240;
 /** Crab drawing size relative to a shell of the same body size. */
 const BODY_SCALE = 0.95;
+/** Swap progress where the crab slips from the old shell to the new, hidden by a puff of sand. */
+const SWITCH = 0.5;
+const PUFF_SPAN = 0.16;
 
 /**
  * The player in three layers: far legs, the shell, then the head, near legs
  * and claw. The body is scaled by how much of the shell it fills, so a crab
  * at its cap visibly crowds the opening.
+ *
+ * Moving house, the new shell is set mouth to mouth with the old one: the
+ * crab reaches into it, a puff of sand covers the switch, and it peeks out
+ * of the new mouth facing back. Its tail is never out of a shell.
  */
 export class CrabView {
   readonly root: Phaser.GameObjects.Container;
   private readonly back: Phaser.GameObjects.Image;
   private readonly shell: Phaser.GameObjects.Image;
+  private readonly incoming: Phaser.GameObjects.Image;
   private readonly front: Phaser.GameObjects.Image;
+  private readonly puff: Phaser.GameObjects.Image;
   private readonly ring: Phaser.GameObjects.Graphics;
   private walkClock = 0;
 
@@ -33,8 +42,10 @@ export class CrabView {
     const oy = FOOT.y / FRAME;
     this.back = scene.add.image(0, 0, TEX.crabBack(0)).setOrigin(ox, oy);
     this.shell = scene.add.image(0, 0, TEX.shell('bottlecap', 0)).setOrigin(ox, oy);
+    this.incoming = scene.add.image(0, 0, TEX.shell('bottlecap', 0)).setOrigin(ox, oy).setVisible(false);
     this.front = scene.add.image(0, 0, TEX.crabFront(0)).setOrigin(ox, oy);
-    this.root = scene.add.container(0, 0, [this.back, this.shell, this.front]).setDepth(5);
+    this.puff = scene.add.image(0, 0, TEX.puff(0)).setVisible(false);
+    this.root = scene.add.container(0, 0, [this.back, this.shell, this.incoming, this.front, this.puff]).setDepth(5);
     this.ring = scene.add.graphics().setDepth(6);
   }
 
@@ -52,28 +63,53 @@ export class CrabView {
     this.root.setPosition(c.body.x + c.body.w / 2 + c.facing * FOOT_FROM_MIDDLE * unit, c.body.y + c.body.h);
     this.root.setScale(c.facing, 1);
 
-    if (c.swap) {
-      // Out of the shell: the soft body shows in red while the old shell lies behind.
-      const p = swapProgress(c.swap);
-      this.shell.setVisible(!!c.shell).setAlpha(0.6).setScale(unit).setX(-30 * unit);
-      this.setBody(true, f, body, body, 12 * unit * p);
-      this.drawRing(c.body.x + c.body.w / 2, c.body.y - 10, p);
+    const target = c.swap ? beach.items.get(c.swap.itemId) : undefined;
+    if (c.swap && target?.kind.type === 'shell') {
+      this.shell.setVisible(!!spec).setTexture(TEX.shell(spec?.kind ?? 'bottlecap', f % BOIL));
+      this.drawSwap(swapProgress(c.swap), f, unit, body, target.kind.shell);
+      this.drawRing(c.body.x + c.body.w / 2, c.body.y - 10, swapProgress(c.swap));
       return;
     }
     this.ring.clear();
+    this.incoming.setVisible(false);
+    this.puff.setVisible(false);
     if (!spec) {
       this.shell.setVisible(false);
-      this.setBody(true, f, body, body, 0);
+      this.setBody(true, f, body, body, 1);
       return;
     }
-    this.shell.setVisible(true).setAlpha(1).setX(0).setTexture(TEX.shell(spec.kind, f % BOIL)).setScale(unit);
+    this.shell.setVisible(true).setTexture(TEX.shell(spec.kind, f % BOIL)).setScale(unit);
     const squeeze = beach.capped ? 1 + Math.sin(time / 140) * 0.03 : 1;
-    this.setBody(false, f, body, body * squeeze, 0);
+    this.setBody(false, f, body, body * squeeze, 1);
   }
 
-  private setBody(naked: boolean, f: number, sx: number, sy: number, x: number): void {
-    this.back.setTexture(naked ? TEX.nakedBack(f) : TEX.crabBack(f)).setScale(sx, sy).setX(x);
-    this.front.setTexture(naked ? TEX.nakedFront(f) : TEX.crabFront(f)).setScale(sx, sy).setX(x);
+  /**
+   * Mouth to mouth: the old shell where it is, the new one mirrored just
+   * ahead of it. Before the switch the exposed (red) crab reaches out of the
+   * old mouth; after it, it peeks out of the new one, facing back.
+   */
+  private drawSwap(p: number, f: number, unit: number, body: number, to: ShellKind): void {
+    const toUnit = shellPx(SHELLS[to].maxSize) / SHELL_UNITS;
+    this.shell.setScale(unit);
+    this.incoming.setVisible(true).setTexture(TEX.shell(to, f)).setScale(-toUnit, toUnit);
+    const before = p < SWITCH;
+    // Reaching in grows towards the switch; peeking out grows after it.
+    const reach = before ? Math.min(1, p / (SWITCH - PUFF_SPAN / 2)) : Math.min(1, (p - SWITCH) / (SWITCH - PUFF_SPAN / 2));
+    const s = body * (0.55 + 0.45 * reach);
+    this.setBody(true, f, s, s, before ? 1 : -1);
+    const hidden = Math.abs(p - SWITCH) < PUFF_SPAN / 2;
+    this.back.setVisible(!hidden);
+    this.front.setVisible(!hidden);
+    // The puff swells and settles around the joined mouths.
+    const puff = Math.max(0, 1 - Math.abs(p - SWITCH) / PUFF_SPAN);
+    const size = (Math.max(unit, toUnit) * SHELL_UNITS * 0.75) / PUFF;
+    this.puff.setVisible(puff > 0).setTexture(TEX.puff(f)).setPosition(0, -size * PUFF * 0.3).setScale(size * (0.6 + 0.4 * puff)).setAlpha(puff);
+  }
+
+  /** `side` 1: out of the shell it's in; -1: mirrored, out of the new one facing back. */
+  private setBody(naked: boolean, f: number, sx: number, sy: number, side: 1 | -1): void {
+    this.back.setVisible(true).setTexture(naked ? TEX.nakedBack(f) : TEX.crabBack(f)).setScale(sx * side, sy);
+    this.front.setVisible(true).setTexture(naked ? TEX.nakedFront(f) : TEX.crabFront(f)).setScale(sx * side, sy);
   }
 
   /** The "stuck" shrug when it eats with a full shell. */

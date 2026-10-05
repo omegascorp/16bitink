@@ -4,7 +4,7 @@ import { diggableOf, digTargets, inReach, placeTarget, tileSpan, type TilePos } 
 import { feed, initialGrowth, isCapped, settle, type Growth } from './growth';
 import { centre, food, makeItem, overlaps, type Item } from './items';
 import { createRng, type Rng } from './rng';
-import { canWear, shellPx, SHELLS, speedFactor, type ShellKind } from './shells';
+import { canWear, MOUTH_OFFSET, shellPx, SHELLS, speedFactor, type ShellKind } from './shells';
 import { startSwap, tickSwap, type Swap } from './swap';
 import { dig, isSolid, place, surfaceRow, type Terrain } from './terrain';
 
@@ -239,9 +239,28 @@ export class Beach {
       this.items.set(dropped, { ...old, x: at.x - old.w / 2, y: body.y + body.h - old.h });
     }
     const burst = settle(c.growth, SHELLS[to].maxSize);
-    this.crab = { ...c, body: this.refit(body, burst.growth.size, to, events), growth: burst.growth, shell: to, swap: null };
+    const moved = this.intoNewShell(body, c, to, burst.growth.size);
+    // It crawled in through the mouth, so it now faces back towards the old shell.
+    this.crab = {
+      ...c, body: this.refit(moved, burst.growth.size, to, events), facing: moved === body ? c.facing : c.facing === 1 ? -1 : 1,
+      growth: burst.growth, shell: to, swap: null,
+    };
     events.push({ type: 'swapDone', from: c.shell, to, grew: burst.grew, dropped });
     if (burst.grew) events.push({ type: 'grew', size: burst.growth.size });
+  }
+
+  /**
+   * The new shell lies mouth to mouth with the old one, ahead of the crab;
+   * moving in carries the body over to it. Against a wall, it stays put.
+   */
+  private intoNewShell(body: Body, c: CrabState, to: ShellKind, size: number): Body {
+    const from = shellPx(c.shell ? SHELLS[c.shell].maxSize : c.growth.size);
+    const shift = c.facing * MOUTH_OFFSET * (from + shellPx(SHELLS[to].maxSize));
+    // Test the new shell's footprint there, not the old body's.
+    const { w, h } = crabBox(size, to);
+    const cx = body.x + body.w / 2 + shift;
+    const fits = !boxHitsSolid(this.terrain, { x: cx - w / 2, y: body.y + body.h - h, w, h }, this.tileSize);
+    return fits ? { ...body, x: body.x + shift } : body;
   }
 
   /** Resizes the crab around its feet; a bigger shell shoves aside any sand it now overlaps. */

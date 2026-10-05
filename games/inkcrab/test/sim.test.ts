@@ -4,6 +4,7 @@ import { Beach, IDLE, SAND_CAPACITY, type Input } from '../src/logic/sim';
 import { SWAP_SECONDS } from '../src/logic/swap';
 import { createTerrain, setTile, TILE, tileAt, type Terrain } from '../src/logic/terrain';
 import { makeItem, type Item } from '../src/logic/items';
+import { MOUTH_OFFSET, shellPx, SHELLS } from '../src/logic/shells';
 
 const T = 16;
 
@@ -188,6 +189,38 @@ describe('beach simulation', () => {
     expect(b.crab.growth.size).toBe(4);
     // The old bottle cap is left behind as a loose shell.
     expect([...b.items.values()].some((i) => i.kind.type === 'shell' && i.kind.shell === 'bottlecap')).toBe(true);
+  });
+
+  it('moves house mouth to mouth: ends up in the new shell facing back the way it came', () => {
+    const can = makeItem(2, { type: 'shell', shell: 'can' }, 5 * T, 10 * T - 40, false);
+    const b = flatBeach([foodAt(1, 5 * T, meterGoal(1)), can]);
+    step(b, {}, 0.5);
+    const before = b.crab;
+    expect(before.facing).toBe(1);
+    step(b, { interact: true });
+    step(b, {}, SWAP_SECONDS + 0.1);
+    expect(b.crab.shell).toBe('can');
+    expect(b.crab.facing).toBe(-1);
+    // The new shell sat mouth to mouth ahead of the old one, so the crab is now further along.
+    const was = before.body.x + before.body.w / 2;
+    const now = b.crab.body.x + b.crab.body.w / 2;
+    const reach = MOUTH_OFFSET * (shellPx(SHELLS.bottlecap.maxSize) + shellPx(SHELLS.can.maxSize));
+    expect(now - was).toBeCloseTo(reach, 0);
+    // The old cap is left where the crab was.
+    const cap = [...b.items.values()].find((i) => i.kind.type === 'shell' && i.kind.shell === 'bottlecap')!;
+    expect(cap.x + cap.w / 2).toBeCloseTo(was, 0);
+  });
+
+  it('stays put when a wall is where the new shell would go', () => {
+    const can = makeItem(2, { type: 'shell', shell: 'can' }, 5 * T, 10 * T - 40, false);
+    const b = flatBeach([foodAt(1, 5 * T, meterGoal(1)), can]);
+    step(b, {}, 0.5);
+    for (let y = 0; y < 10; y++) setTile(b.terrain, 7, y, TILE.rock);
+    const was = b.crab.body.x + b.crab.body.w / 2;
+    step(b, { interact: true });
+    step(b, {}, SWAP_SECONDS + 0.1);
+    expect(b.crab.shell).toBe('can');
+    expect(b.crab.body.x + b.crab.body.w / 2).toBeCloseTo(was, 0);
   });
 
   it('refuses shells the crab does not fit', () => {

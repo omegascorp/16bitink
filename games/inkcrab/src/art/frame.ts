@@ -1,3 +1,5 @@
+import { MOUTH_OFFSET } from '../logic/shells';
+
 /**
  * Crab and shell drawings share one square frame (InkFish's critter frame)
  * so they stack: shells rest on the ground line with their opening low on
@@ -12,7 +14,7 @@ export const FRAME = 256;
 export const GROUND = 46;
 /** The anchor, in frame px. */
 export const FOOT = { x: FRAME / 2 + 20, y: FRAME / 2 + GROUND } as const;
-/** Frame x of the middle of a shell, for placing a loose one. */
-export const SHELL_MID = FRAME / 2 - 22;
 /** Frame px across a shell's drawn width; a shell is drawn `shellPx` world px wide. */
 export const SHELL_UNITS = 116;
+/** Frame x of the middle of a shell: MOUTH_OFFSET of its width short of the mouth. */
+export const SHELL_MID = FOOT.x - Math.round(MOUTH_OFFSET * SHELL_UNITS);

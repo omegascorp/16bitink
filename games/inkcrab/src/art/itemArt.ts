@@ -74,3 +74,19 @@ export function drawHighlight(d: Draw, w: number, h: number): void {
   });
   d.pen.fill(pts, HIGHLIGHT, 0.85);
 }
+
+/** A puff of kicked-up sand, hiding the moment a crab slips between shells. Centred on the origin. */
+export function drawPuff(d: Draw, r: number): void {
+  const blobs: [number, number, number][] = [[0, 0, 1], [-0.55, 0.15, 0.7], [0.55, 0.2, 0.75], [-0.2, -0.45, 0.65], [0.3, -0.4, 0.6]];
+  for (const [bx, by, br] of blobs) {
+    const shape = oval(bx * r, by * r, br * r * 0.62, br * r * 0.55, 18);
+    skin(d, shape, '#e8d6a8', 0.75);
+    d.pen.stipple(shape, 60, () => 0.6, 0.45, '#6b5a3c');
+  }
+  // A few curls of motion around it.
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 + d.pen.rng() * 0.5;
+    const c = pt(Math.cos(a) * r * 0.95, Math.sin(a) * r * 0.75);
+    d.pen.stroke(bezier(c, add(c, pt(Math.cos(a + 1.2) * 6, Math.sin(a + 1.2) * 6)), add(c, pt(Math.cos(a) * 8, Math.sin(a) * 6)), 6), 0.9, d.ink, 0.7, false);
+  }
+}

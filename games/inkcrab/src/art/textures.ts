@@ -1,9 +1,9 @@
 import type Phaser from 'phaser';
 import type { FoodKind } from '../logic/items';
 import { SHELL_KINDS } from '../logic/shells';
-import { drawAbdomen, drawCrabBack, drawCrabFront } from './crabArt';
+import { drawCrabBack, drawCrabFront } from './crabArt';
 import { FRAME, GROUND } from './frame';
-import { drawFood, drawHighlight, FOOD_FRAME, FOOD_GROUND, FOOD_RES } from './itemArt';
+import { drawFood, drawHighlight, drawPuff, FOOD_FRAME, FOOD_GROUND, FOOD_RES } from './itemArt';
 import { makeDraw, type Draw } from './kit';
 import { BOIL, PAPER, RED, RULE } from './palette';
 import { makeCanvas } from './pen';
@@ -17,6 +17,7 @@ export const TEX = {
   shell: (kind: string, f: number) => `shell-${kind}-${f}`,
   food: (kind: string, f: number) => `food-${kind}-${f}`,
   highlight: (f: number) => `hl-${f}`,
+  puff: (f: number) => `puff-${f}`,
   paper: 'paper',
 } as const;
 
@@ -24,6 +25,8 @@ const FOODS: readonly FoodKind[] = ['crumb', 'hopper', 'clam'];
 /** World px between ruled lines on the notebook page. */
 export const RULE_GAP = 32;
 const PAPER_TILE = 256;
+/** Frame px of the sand-puff drawing. */
+export const PUFF = 64;
 
 /** Draws into a square canvas of `units`·`res` px with the origin at its centre. */
 function bake(scene: Phaser.Scene, key: string, units: number, res: number, draw: (ctx: CanvasRenderingContext2D) => void): void {
@@ -60,13 +63,11 @@ export function generateTextures(scene: Phaser.Scene): void {
   for (let f = 0; f < BOIL; f++) {
     critter(TEX.crabBack(f), 100 + f, f, (d) => drawCrabBack(d));
     critter(TEX.crabFront(f), 110 + f, f, (d) => drawCrabFront(d));
-    critter(TEX.nakedBack(f), 120 + f, f, (d) => {
-      drawCrabBack(d, true);
-      drawAbdomen(d);
-    }, RED);
+    critter(TEX.nakedBack(f), 120 + f, f, (d) => drawCrabBack(d, true), RED);
     critter(TEX.nakedFront(f), 130 + f, f, (d) => drawCrabFront(d, true), RED);
     SHELL_KINDS.forEach((kind, i) => critter(TEX.shell(kind, f), 300 + i * 10 + f, f, (d) => drawShell(d, kind)));
     FOODS.forEach((kind, i) => bake(scene, TEX.food(kind, f), FOOD_FRAME, FOOD_RES, (ctx) => drawFood(makeDraw(ctx, 500 + i * 10 + f, f, FOOD_GROUND), kind)));
+    bake(scene, TEX.puff(f), PUFF, 2, (ctx) => drawPuff(makeDraw(ctx, 700 + f, f, 0), PUFF * 0.36));
     bake(scene, TEX.highlight(f), 32, 2, (ctx) => {
       ctx.translate(-16, -16);
       drawHighlight(makeDraw(ctx, 600 + f, f, 0), 32, 32);

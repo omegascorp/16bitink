@@ -23,7 +23,8 @@ export class ItemsView {
 
   constructor(private readonly scene: Phaser.Scene) {}
 
-  sync(items: ReadonlyMap<number, Item>, time: number): void {
+  /** `hidden`: an item drawn elsewhere for now (the shell a crab is moving into). */
+  sync(items: ReadonlyMap<number, Item>, time: number, hidden: number | null): void {
     for (const [id, s] of this.sprites) {
       if (items.has(id)) continue;
       s.mark.destroy();
@@ -34,6 +35,8 @@ export class ItemsView {
     for (const item of items.values()) {
       const s = this.sprites.get(item.id) ?? this.create(item);
       this.place(item, s, boil);
+      s.mark.setVisible(item.id !== hidden);
+      if (item.id === hidden) s.art.setVisible(false);
     }
   }
 
