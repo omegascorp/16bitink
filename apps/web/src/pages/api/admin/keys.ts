@@ -2,9 +2,9 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { findGame } from '../../../data/games';
 import { currentAdmin } from '../../../lib/adminAuth';
-import { createKeys, deleteUnusedKey } from '../../../lib/db/keyRepo';
+import { createKey, deleteUnusedKey } from '../../../lib/db/keyRepo';
 import { fail, isSameOrigin } from '../../../lib/http';
-import { MAX_KEYS_PER_BATCH, normalizeKey } from '../../../lib/keys';
+import { MAX_KEY_USES, normalizeKey } from '../../../lib/keys';
 
 export const prerender = false;
 
@@ -12,13 +12,13 @@ const Form = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('create'),
     game: z.string().regex(/^[a-z0-9-]{1,40}$/),
-    count: z.coerce.number().int().min(1).max(MAX_KEYS_PER_BATCH),
+    uses: z.coerce.number().int().min(1).max(MAX_KEY_USES),
     note: z.string().trim().max(80).default(''),
   }),
   z.object({ action: z.literal('delete'), code: z.string().max(64) }),
 ]);
 
-/** An admin creates activation keys, or deletes an unused one. A plain form post: answers with a redirect to the keys page. */
+/** An admin creates an activation key (for one or more accounts), or deletes an unused one. A plain form post: answers with a redirect to the keys page. */
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!isSameOrigin(request)) return fail(403, 'Cross-origin request rejected');
   try {
@@ -28,11 +28,11 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const form = Form.safeParse(Object.fromEntries(await request.formData().catch(() => new FormData())));
     if (!form.success) return fail(400, 'Invalid request');
     if (form.data.action === 'create') {
-      const { game, count, note } = form.data;
+      const { game, uses, note } = form.data;
       if (findGame(game)?.status !== 'playable') return fail(404, 'Unknown game');
-      await createKeys({ game, count, note, createdBy: admin.userId });
-      console.info(`[admin] ${admin.email} created ${count} key(s) for ${game}${note ? ` (${note})` : ''}`);
-      return redirect(`/admin/keys?created=${count}`, 303);
+      await createKey({ game, uses, note, createdBy: admin.userId });
+      console.info(`[admin] ${admin.email} created a ${uses}-use key for ${game}${note ? ` (${note})` : ''}`);
+      return redirect('/admin/keys?created=1', 303);
     }
     const code = normalizeKey(form.data.code);
     if (!code) return fail(400, 'Invalid key');

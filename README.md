@@ -55,7 +55,7 @@ For checkout locally:
    - `ENTITLEMENT_SECRET` (`openssl rand -base64 48`; at least 32 characters, or the site refuses to run)
    - `MONGODB_URI`
    - `GOOGLE_CLIENT_SECRET`
-   - `ADMIN_EMAILS`: comma-separated Google account emails of admins. On each deploy (server start) and at sign-in, these users get role `admin` and everyone else `user`. Admins can open `/admin` to list players and unlock games for them, and `/admin/keys` to create single-use activation keys (e.g. for YouTubers) that unlock a game for whoever redeems them at `/redeem`.
+   - `ADMIN_EMAILS`: comma-separated Google account emails of admins. On each deploy (server start) and at sign-in, these users get role `admin` and everyone else `user`. Admins can open `/admin` to list players and unlock games for them, and `/admin/keys` to create activation keys (e.g. for YouTubers) that unlock a game at `/redeem` for one account, or for up to N accounts sharing the same key.
 
    Never set `DEV_UNLOCK` or `DEV_ALL_LEVELS` in production.
 4. **Stripe webhook:** add an endpoint for `https://16bit.ink/api/webhook` with these events:

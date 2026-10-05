@@ -3,7 +3,7 @@ import Base from '../../layouts/Base.astro';
 import { findGame, playableGames } from '../../data/games';
 import { currentAdmin } from '../../lib/adminAuth';
 import { listKeys } from '../../lib/db/keyRepo';
-import { formatKey, MAX_KEYS_PER_BATCH, redeemUrl } from '../../lib/keys';
+import { formatKey, MAX_KEY_USES, redeemUrl } from '../../lib/keys';
 
 export const prerender = false;
 
@@ -17,53 +17,66 @@ const admin = await currentAdmin(Astro.cookies);
 if (!admin) return new Response('Not found', { status: 404 });
 
 const page = Math.max(0, Math.min(10_000, Number.parseInt(Astro.url.searchParams.get('page') ?? '0', 10) || 0));
-const created = Math.min(MAX_KEYS_PER_BATCH, Number.parseInt(Astro.url.searchParams.get('created') ?? '0', 10) || 0);
+const created = Astro.url.searchParams.get('created') === '1';
 const { keys, total } = await listKeys({ page, perPage: PER_PAGE });
 const games = playableGames();
 const pages = Math.max(1, Math.ceil(total / PER_PAGE));
 const day = (d: Date): string => d.toISOString().slice(0, 10);
-const rows = keys.map((k, i) => ({ ...k, shown: formatKey(k.code), link: redeemUrl(Astro.url.origin, k.code), fresh: page === 0 && i < created }));
+const rows = keys.map((k, i) => ({
+  ...k, shown: formatKey(k.code), link: redeemUrl(Astro.url.origin, k.code), fresh: created && page === 0 && i === 0,
+  used: k.redemptions.length, full: k.redemptions.length >= k.uses,
+}));
 ---
 <Base title="Admin · Keys" description="16bit.ink administration" user={admin}>
   <meta name="robots" content="noindex, nofollow" slot="head" />
   <section class="admin">
     <nav class="admin-nav"><a href="/admin">Players</a><strong>Keys</strong></nav>
     <h1>Activation keys</h1>
-    <p class="admin-hint">Each key unlocks one game for one Google account, once. Send the link (or the key, to enter at <a href="/redeem">/redeem</a>).</p>
+    <p class="admin-hint">Each key unlocks one game for as many Google accounts as you allow, once per account. Send the link (or the key, to enter at <a href="/redeem">/redeem</a>).</p>
 
     <form class="admin-create" method="post" action="/api/admin/keys">
       <input type="hidden" name="action" value="create" />
       <label>Game
         <select name="game" required>{games.map((g) => <option value={g.slug}>{g.title}</option>)}</select>
       </label>
-      <label>How many
-        <input name="count" type="number" min="1" max={MAX_KEYS_PER_BATCH} value="1" required />
+      <label>How many accounts
+        <input name="uses" type="number" min="1" max={MAX_KEY_USES} value="1" required />
       </label>
       <label class="admin-note">For (optional)
         <input name="note" maxlength="80" placeholder="e.g. channel name" autocomplete="off" />
       </label>
-      <button class="btn btn-ink" type="submit">Create keys</button>
+      <button class="btn btn-ink" type="submit">Create key</button>
     </form>
 
-    <p class="admin-count">{total} {total === 1 ? 'key' : 'keys'} · {rows.filter((k) => !k.redeemed).length} unused on this page</p>
+    <p class="admin-count">{total} {total === 1 ? 'key' : 'keys'} · {rows.filter((k) => !k.full).length} with uses left on this page</p>
     <ul class="admin-keys">
       {rows.map((k) => (
-        <li class:list={['admin-key', { fresh: k.fresh, used: k.redeemed }]}>
+        <li class:list={['admin-key', { fresh: k.fresh, used: k.full }]}>
           <code class="admin-code">{k.shown}</code>
           <span class="admin-key-meta">
             {findGame(k.game)?.title ?? k.game}{k.note && <> · <strong>{k.note}</strong></>} · created {day(k.createdAt)}
+            {k.uses > 1 && <> · {k.used} of {k.uses} used</>}
           </span>
-          {k.redeemed ? (
-            <span class="admin-state">redeemed by {k.redeemed.email} on {day(k.redeemed.at)}</span>
-          ) : (
+          {!k.full && (
             <span class="admin-key-actions">
               <button class="btn" type="button" data-copy={k.link}>Copy link</button>
-              <form method="post" action="/api/admin/keys">
-                <input type="hidden" name="action" value="delete" />
-                <input type="hidden" name="code" value={k.code} />
-                <button class="btn btn-red" type="submit">Delete</button>
-              </form>
+              {k.used === 0 && (
+                <form method="post" action="/api/admin/keys">
+                  <input type="hidden" name="action" value="delete" />
+                  <input type="hidden" name="code" value={k.code} />
+                  <button class="btn btn-red" type="submit">Delete</button>
+                </form>
+              )}
             </span>
+          )}
+          {k.uses === 1 && k.redemptions[0] && (
+            <span class="admin-state">redeemed by {k.redemptions[0].email} on {day(k.redemptions[0].at)}</span>
+          )}
+          {k.uses > 1 && k.used > 0 && (
+            <details class="admin-redeemers">
+              <summary>Redeemed by {k.used} {k.used === 1 ? 'account' : 'accounts'}</summary>
+              <ul>{k.redemptions.map((r) => <li>{r.email} on {day(r.at)}</li>)}</ul>
+            </details>
           )}
         </li>
       ))}
@@ -106,7 +119,7 @@ const rows = keys.map((k, i) => ({ ...k, shown: formatKey(k.code), link: redeemU
   .admin-create input, .admin-create select {
     font: inherit; color: var(--ink); padding: 8px 10px; background: var(--paper); border: 2px solid var(--ink); border-radius: 4px; min-width: 0;
   }
-  .admin-create input[type='number'] { width: 6em; }
+  .admin-create input[type='number'] { width: 7em; }
   .admin-note { flex: 1 1 200px; }
   .admin-keys { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
   .admin-key {
@@ -118,6 +131,9 @@ const rows = keys.map((k, i) => ({ ...k, shown: formatKey(k.code), link: redeemU
   .admin-code { font-family: var(--font-pixel); font-size: 0.95rem; letter-spacing: 0.06em; user-select: all; }
   .admin-key-meta { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; font-size: 0.95rem; }
   .admin-state { font-size: 0.9rem; color: var(--blue-ink); overflow-wrap: anywhere; }
+  .admin-redeemers { flex: 1 0 100%; font-size: 0.9rem; color: var(--blue-ink); }
+  .admin-redeemers summary { cursor: pointer; }
+  .admin-redeemers ul { margin: 6px 0 0; padding-left: 20px; overflow-wrap: anywhere; }
   .admin-key-actions { display: flex; gap: 8px; margin-left: auto; }
   .admin-key .btn { padding: 6px 14px; font-size: 0.95rem; }
   .admin-pages { display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 24px; }

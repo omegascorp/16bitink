@@ -1,6 +1,6 @@
 /**
- * Activation keys: single-use codes an admin hands out (to reviewers and
- * creators) that unlock a game for free. Pure rules only; storage is in
+ * Activation keys: codes an admin hands out (to reviewers and creators) that
+ * unlock a game for free, for one account or for up to N accounts each. Pure rules only; storage is in
  * db/keyRepo.ts.
  *
  * A key is 16 Crockford base32 characters (80 random bits), shown in groups
@@ -12,8 +12,8 @@ import { canonicalCode, groupCode, isCode, randomCode } from './base32';
 
 const LENGTH = 16;
 
-/** At most this many keys per admin request. */
-export const MAX_KEYS_PER_BATCH = 50;
+/** At most this many accounts can redeem one key. */
+export const MAX_KEY_USES = 1000;
 
 /** A new random key, stored form (no dashes). `random` returns n random bytes. */
 export const generateKey = (random?: (n: number) => Uint8Array): string => randomCode(LENGTH, random);
