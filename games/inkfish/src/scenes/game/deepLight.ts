@@ -46,7 +46,7 @@ export class DeepLight {
     if (!this.active) return;
     ring.follow(scene.add.rectangle(-200, -200, world.width + 400, world.height + 400, night.color, night.alpha).setOrigin(0).setDepth(NIGHT_DEPTH));
     const rng = createRng(seed);
-    const count = Math.min(1100, Math.round((world.width * world.height) / SNOW_AREA));
+    const count = Math.min(1500, Math.round((world.width * world.height) / SNOW_AREA));
     for (let i = 0; i < count; i++) {
       const size = rangeOf(rng, 0.8, 2.2);
       const sprite = scene.add.image(rng() * world.width, rng() * world.height, GLOW_KEY)

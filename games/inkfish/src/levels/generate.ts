@@ -3,6 +3,7 @@ import { itemsForLevel } from './items';
 import type { Chapter, ChapterInfo, LevelDef, SpawnEntry, SpeciesId } from './types';
 import { applyTwists, twistsFor } from './twists';
 import { LEVELS_PER_CHAPTER } from './zones';
+import { shoalScale, widthScale, worldFor } from './worldSize';
 
 /**
  * A chapter recipe: what lives there and how hard it gets. The generator
@@ -38,7 +39,7 @@ export interface ChapterRecipe {
   readonly spawns: readonly RecipeSpawn[];
   /** The chapter's giant: a species that appears nowhere else, once, in the last level. */
   readonly boss: SpeciesId;
-  /** [first level, last level] values, interpolated. */
+  /** [first level, last level] values, interpolated. Fish and jellyfish are counts for REFERENCE_SEA, scaled to the level's sea. */
   readonly maxFish: readonly [number, number];
   readonly jellyfish: readonly [number, number];
   /** Seconds between hooks; 0 disables hooks (e.g. too deep for fishing lines). */
@@ -47,6 +48,7 @@ export interface ChapterRecipe {
   readonly goal: readonly [number, number];
   /** Player radius at the final tier, first .. last level. */
   readonly finalSize: readonly [number, number];
+  /** Defaults to worldFor(chapter). */
   readonly world?: { readonly width: number; readonly height: number };
   readonly overrides?: Readonly<Record<number, Partial<LevelDef>>>;
 }
@@ -99,6 +101,7 @@ export function generateLevel(info: ChapterInfo, recipe: ChapterRecipe, index: n
     }))
     .filter((s) => (s.debut ?? 0) <= index)
     .map(({ debut: _debut, ...entry }) => entry);
+  const world = recipe.world ?? worldFor(info.id);
   const life = BOTTOM_LIFE[info.zone];
   const bottom = life.crawlers.filter((c) => (c.debut ?? 0) <= index).map(({ debut: _debut, ...entry }) => entry);
   const base: LevelDef = {
@@ -107,13 +110,14 @@ export function generateLevel(info: ChapterInfo, recipe: ChapterRecipe, index: n
     index,
     name: authored.name,
     ...growthStages(goal, size, stagesFor(info.id)),
-    world: recipe.world ?? { width: 3200, height: 1800 },
+    world,
     spawns,
-    maxFish: Math.round(range(recipe.maxFish, t)),
+    maxFish: Math.round(range(recipe.maxFish, t) * shoalScale(world.height)),
     bottom,
     maxCrawlers: Math.round(range(life.count, t)),
     hazards: {
-      jellyfish: Math.round(range(recipe.jellyfish, t)),
+      // Jellyfish drift all round the ring and never leave, so a longer ring needs more of them.
+      jellyfish: Math.round(range(recipe.jellyfish, t) * widthScale(world.width)),
       hookEverySec: recipe.hookEverySec[0] === 0 ? 0 : Math.round(range(recipe.hookEverySec, t)),
     },
     items: [],

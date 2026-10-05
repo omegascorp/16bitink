@@ -8,6 +8,7 @@ import { InkBottles } from './inkBottles';
 import type { Player } from './player';
 import { bodyOf } from './swim';
 import { TUNING } from './tuning';
+import { SHOAL_HALF } from '../../logic/ring';
 
 interface Point {
   readonly x: number;
@@ -67,12 +68,13 @@ export class TwistRunner {
     return [];
   }
 
-  /** Random points across the world, apart from each other and from the start. */
+  /** Random points within the shoal band around the start, apart from each other and from it. */
   private spread(count: number, start: Point, gap: number): Point[] {
     const { width, height } = this.level.world;
+    const half = Math.min(width / 2, SHOAL_HALF) - 160;
     const points: Point[] = [];
     for (let tries = 0; points.length < count && tries < count * 60; tries++) {
-      const p = { x: rangeOf(this.rng, 160, width - 160), y: rangeOf(this.rng, 220, height - 240) };
+      const p = { x: start.x + rangeOf(this.rng, -half, half), y: rangeOf(this.rng, 220, height - 240) };
       const loose = tries > count * 40;
       const farFromStart = Phaser.Math.Distance.BetweenPoints(p, start) > (loose ? GOAL_DISTANCE / 2 : GOAL_DISTANCE);
       if (farFromStart && points.every((q) => Phaser.Math.Distance.BetweenPoints(p, q) > (loose ? gap / 2 : gap))) points.push(p);

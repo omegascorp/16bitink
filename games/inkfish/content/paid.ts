@@ -179,5 +179,5 @@ const RECIPES: Readonly<Record<number, Recipe>> = {
 export const INKFISH_FULL_CHAPTERS: readonly Chapter[] = ZONE_INFO.filter((z) => z.id > 1).map((z) => {
   const recipe = RECIPES[z.id];
   if (!recipe) throw new Error(`Missing recipe for chapter ${z.id}`);
-  return generateChapter(z, { ...recipe, ...ramp(z.id), world: { width: 3600, height: 2000 } });
+  return generateChapter(z, { ...recipe, ...ramp(z.id) });
 });

@@ -14,6 +14,7 @@ import { makeCanvas } from '../../art/pen';
 import { bakeBand, rgba, strokeLine, washTint } from './bake';
 import { ringWavelength } from '../../logic/ring';
 import type { Ring } from './ring';
+import { widthScale } from '../../levels/worldSize';
 
 const INK = 0x1b1a1f;
 const PAPER_HEX = 0xf4eddc;
@@ -55,6 +56,8 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
   const dark = ZONE_DARKNESS[zone];
   const flora = ZONE_WEEDS[zone];
   const { width, height } = level.world;
+  // Counts below are for REFERENCE_SEA's width: a longer ring gets more of everything, as densely.
+  const spread = widthScale(width);
   // Seeded by the whole level id, so every level lays out its own seabed.
   // Its draws must stay in this order: rocks and weeds below come from the same stream.
   const rng = createRng(Math.floor(hashUnit(level.id, 7) * 1e6) + 1);
@@ -88,7 +91,7 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
   }
   // Current strokes: little "~" marks scattered through the water.
   ensureMarkTexture(scene);
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0, n = Math.round(90 * spread); i < n; i++) {
     const x = rng() * width;
     const y = rangeOf(rng, 140, height - 220);
     fixed.push(scene.add.image(x - 1, y - MARK.h / 2, MARK.key).setOrigin(0).setScale(1 / ART_RES).setDepth(2));
@@ -99,7 +102,7 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
   for (let x = 0; x < width; x += 20) outline.push([x, floor(x)]);
   outline.push([width, floor(width)]);
   const floorLine = wobblyPoints(width, floor, rng);
-  const sand = Array.from({ length: 2600 }, () => {
+  const sand = Array.from({ length: Math.round(2600 * spread) }, () => {
     const x = rng() * width;
     const depth = rng();
     return { x, y: floor(x) + 4 + depth * depth * (height - floor(x)), alpha: 0.25 + depth * 0.35, r: rng() * 0.7 + 0.25 };
@@ -129,7 +132,7 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
   fixed.push(...decor.map((d) => d.sprite));
 
   // Rock and weed counts vary level to level around the zone's usual.
-  const rocks = Math.round(flora.rocks * rangeOf(rng, 0.5, 1.4));
+  const rocks = Math.round(flora.rocks * spread * rangeOf(rng, 0.5, 1.4));
   // Boulders stand in front of the landmark, so keep them off a glowing one: its light would shine through them.
   const glowing = plan.filter((d) => d.landmark && isGlowDecor(d.kind));
   const clear = (x: number): boolean => glowing.every((d) => Math.abs(x - d.x) > (DECOR_SIZE[d.kind].w * d.scale) / 2 + 60);
@@ -143,7 +146,7 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
   }
   // Scales are capped so weeds are never magnified past their texture.
   if (flora.kinds.length === 0) return { weeds: [], decor, fixed };
-  const weeds = Array.from({ length: Math.round(flora.count * rangeOf(rng, 0.55, 1.35)) }, () => {
+  const weeds = Array.from({ length: Math.round(flora.count * spread * rangeOf(rng, 0.55, 1.35)) }, () => {
     const x = rangeOf(rng, 0, width);
     const kind = flora.kinds[Math.floor(rng() * flora.kinds.length)]!;
     return scene.add.image(x, floor(x) + 10, weedKey(kind, 0)).setOrigin(0.5, 1).setDepth(4)

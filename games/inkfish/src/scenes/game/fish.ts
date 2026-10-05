@@ -7,7 +7,7 @@ import { DUCK, nearestDecoy, type Decoy } from '../../logic/decoy';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { pickSpawn, relationTo } from '../../logic/sizing';
 import { keepInWater } from '../../logic/water';
-import { pastView } from '../../logic/ring';
+import { outsideShoal, pastView, shoalReach } from '../../logic/ring';
 import { isSquid } from '../../art/squidArt';
 import { renderSquid, updateSquid } from './squid';
 import { attachSquid } from './squidRig';
@@ -44,15 +44,15 @@ export interface Fish extends SwimState {
 const cruiseOf = (species: SpeciesId): readonly [number, number] => SPECIES_INFO[species].cruise;
 
 /**
- * Spawns a fish somewhere round the ring but outside the camera view
- * (so nothing pops into existence on screen), heading across the player's way.
+ * Spawns a fish in the shoal band around the player but outside the camera
+ * view (so nothing pops into existence on screen), heading across the player's way.
  */
 export function spawnFish(scene: Phaser.Scene, level: LevelDef, playerSize: number, view: Phaser.Geom.Rectangle, rng: Rng): Fish {
   const { entry, size } = pickSpawn(level.spawns, playerSize, rng);
   const margin = size * 2 + 40;
   let x = 0;
   let y = 0;
-  const half = level.world.width / 2;
+  const half = shoalReach(view.width, level.world.width);
   for (let attempt = 0; attempt < 12; attempt++) {
     x = rangeOf(rng, view.centerX - half, view.centerX + half);
     y = rangeOf(rng, 140, level.world.height - 170);
@@ -280,11 +280,17 @@ export function renderFish(f: Fish, playerSize: number, frame: number, dt: numbe
   f.sprite.setRotation(f.tilt + Phaser.Math.Clamp(f.vy / 400, -0.35, 0.35) * (f.sprite.flipX ? -1 : 1) + wobble);
 }
 
-/** An ordinary fish done with this level: out of the water, or a lap swum and out of sight. Goal fish never are. */
+/**
+ * An ordinary fish done with this level: out of the water, left behind outside
+ * the shoal band, or out of sight after swimming the band's width (so the shoal
+ * keeps refreshing with fish sized for you now). Goal fish never are.
+ */
 export function isSpent(f: Fish, level: LevelDef, view: Phaser.Geom.Rectangle): boolean {
   if (f.role !== 'normal') return false;
   const m = f.size * 3 + 40;
   const { x, y } = f.sprite;
-  if (y < -m || y > level.world.height + m) return true;
-  return f.swum > level.world.width && pastView(x, view.centerX, view.width, level.world.width, m);
+  const { width, height } = level.world;
+  if (y < -m || y > height + m) return true;
+  if (outsideShoal(x, view.centerX, view.width, width)) return true;
+  return f.swum > shoalReach(view.width, width) * 2 && pastView(x, view.centerX, view.width, width, m);
 }

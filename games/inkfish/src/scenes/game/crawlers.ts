@@ -5,6 +5,7 @@ import { SPECIES_INFO, type SpeciesInfo } from '../../levels/species';
 import type { LevelDef, SpeciesId } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { pickSpawn, relationTo } from '../../logic/sizing';
+import { shoalReach } from '../../logic/ring';
 import { makeFish, type Fish, type PlayerView } from './fish';
 
 /**
@@ -32,7 +33,7 @@ export function spawnCrawler(
 ): Fish {
   const { entry, size } = pickSpawn(level.bottom, playerSize, rng);
   let x = 0;
-  const half = level.world.width / 2;
+  const half = shoalReach(view.width, level.world.width);
   for (let attempt = 0; attempt < 12; attempt++) {
     x = rangeOf(rng, view.centerX - half, view.centerX + half);
     if (x < view.left - size * 2 || x > view.right + size * 2) break;

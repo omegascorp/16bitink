@@ -1,6 +1,7 @@
 import { createRng, rangeOf } from '../logic/rng';
 import { hashUnit } from '../logic/water';
 import type { ZoneId } from './types';
+import { widthScale } from './worldSize';
 
 /**
  * Land on the horizon above sunlit levels: rocks, lighthouses, palm islands.
@@ -38,7 +39,7 @@ export function planShore(levelId: string, zone: ZoneId, width: number): ShorePi
   const rng = createRng(Math.floor(hashUnit(levelId, 33) * 1e6) + 1);
   // The skyline repeats every `width` px of parallax space as you swim round the ring (see Ring.addParallax).
   const span = width;
-  const count = 3 + Math.floor(rng() * 2);
+  const count = Math.max(2, Math.round((3 + Math.floor(rng() * 2)) * widthScale(width)));
   const slice = span / count;
   return Array.from({ length: count }, (_, i): ShorePiece => {
     const far = rng() < 0.4;

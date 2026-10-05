@@ -44,3 +44,22 @@ export function pastView(x: number, viewX: number, viewW: number, width: number,
   const reach = Math.min(viewW / 2 + margin, width / 2 - 50);
   return Math.abs(nearestOnRing(x, viewX, width) - viewX) > reach;
 }
+
+/** Ordinary fish live within this far of the view's centre, either way round the ring, whatever its width. */
+export const SHOAL_HALF = 1800;
+/** How much further out a fish may stray before it's gone: well clear of where new ones appear. */
+const SHOAL_SLACK = 200;
+
+/**
+ * Half the width of the shoal band around a view `viewW` wide on a ring
+ * `width` around: SHOAL_HALF, widened to keep clear of a very wide view, and
+ * never more than half the ring.
+ */
+export function shoalReach(viewW: number, width: number): number {
+  return Math.min(width / 2 - SHOAL_SLACK, Math.max(SHOAL_HALF, viewW / 2 + 400));
+}
+
+/** A fish this far round the ring from the view has left the shoal (see shoalReach). */
+export function outsideShoal(x: number, viewX: number, viewW: number, width: number): boolean {
+  return Math.abs(nearestOnRing(x, viewX, width) - viewX) > shoalReach(viewW, width) + SHOAL_SLACK;
+}
