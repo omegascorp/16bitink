@@ -7,6 +7,7 @@ import { findPurchasesForUsers } from '../../lib/db/purchaseRepo';
 import { listUsers } from '../../lib/db/userRepo';
 import { isLocalHost } from '../../lib/devUnlock';
 import { libraryOf, purchasesOf } from '../../lib/library';
+import { formatPlayerId } from '../../lib/playerId';
 
 export const prerender = false;
 
@@ -37,8 +38,8 @@ const day = (d: Date): string => d.toISOString().slice(0, 10);
     <nav class="admin-nav"><strong>Players</strong><a href="/admin/keys">Keys</a></nav>
     <h1>Players</h1>
     <form class="admin-search" method="get" action="/admin" role="search">
-      <label for="q" class="visually-hidden">Search by email or name</label>
-      <input id="q" name="q" type="search" value={search} placeholder="Search email or name" autocomplete="off" />
+      <label for="q" class="visually-hidden">Search by email, name or player ID</label>
+      <input id="q" name="q" type="search" value={search} placeholder="Search email, name or player ID" autocomplete="off" />
       <button class="btn" type="submit">Search</button>
     </form>
     <p class="admin-count">{total} {total === 1 ? 'player' : 'players'}{search && <> matching “{search}”</>}</p>
@@ -50,6 +51,7 @@ const day = (d: Date): string => d.toISOString().slice(0, 10);
             <strong>{u.name}</strong>
             {u.role === 'admin' && <span class="admin-badge">admin</span>}
             <span class="admin-email">{u.email}</span>
+            {u.playerId && <span class="admin-player-id">{formatPlayerId(u.playerId)}</span>}
             <span class="admin-dates">joined {day(u.createdAt)} · last sign-in {day(u.lastSignInAt)}</span>
           </div>
           <ul class="admin-games">
@@ -106,6 +108,7 @@ const day = (d: Date): string => d.toISOString().slice(0, 10);
   }
   .admin-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-width: 0; }
   .admin-email { width: 100%; overflow-wrap: anywhere; }
+  .admin-player-id { font-family: var(--font-pixel); font-size: 0.8rem; letter-spacing: 0.08em; user-select: all; }
   .admin-dates { width: 100%; font-size: 0.85rem; color: var(--ink-soft); }
   .admin-badge, .admin-state { font-family: var(--font-pixel); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; }
   .admin-badge { color: var(--red-ink); }

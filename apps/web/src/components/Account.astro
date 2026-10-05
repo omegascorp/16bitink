@@ -15,7 +15,7 @@ const signInHref = known ? `/auth/google?return=${encodeURIComponent(Astro.url.p
 <account-menu data-known={known ? '' : undefined}>
   <a href={signInHref} data-signin hidden={Boolean(user)}>Sign in with Google</a>
   <span class="account-user" hidden={!user}>
-    <span class="account-name" title={user?.email}>{user?.name}</span>
+    <a class="account-name" href="/account" title={user?.email}>{user?.name}</a>
     <button type="button" class="account-signout">Sign out</button>
   </span>
 </account-menu>
@@ -77,7 +77,7 @@ const signInHref = known ? `/auth/google?return=${encodeURIComponent(Astro.url.p
   account-menu { display: flex; align-items: center; font-size: 0.95rem; }
   .account-user { display: inline-flex; align-items: baseline; gap: 12px; }
   .account-user[hidden] { display: none; }
-  .account-name { font-family: var(--font-hand); font-size: 1.35rem; color: var(--blue-ink); max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .account-name { text-decoration: none; font-family: var(--font-hand); font-size: 1.35rem; color: var(--blue-ink); max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .account-signout {
     font: inherit; color: var(--ink-soft); background: none; border: 0; padding: 0; cursor: pointer;
     text-decoration: underline dashed var(--ink-faint); text-underline-offset: 4px;

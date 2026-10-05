@@ -9,6 +9,8 @@ export interface UserDoc {
   /** Verified, lower-cased; updated on each sign-in. */
   readonly email: string;
   readonly name: string;
+  /** Public handle the player can share instead of their email (see playerId.ts). Assigned on first need. */
+  readonly playerId?: string;
   readonly lastSignInAt: Date;
   /** Set from ADMIN_EMAILS at sign-in and on each deploy. */
   readonly role: Role;
@@ -20,6 +22,7 @@ const userSchema = new Schema<UserDoc>(
     googleId: { type: String },
     email: { type: String, required: true, index: true },
     name: { type: String, required: true },
+    playerId: { type: String },
     lastSignInAt: { type: Date, required: true },
     role: { type: String, enum: ROLES, required: true, default: 'user' },
   },
@@ -27,6 +30,7 @@ const userSchema = new Schema<UserDoc>(
 );
 // Unique among users who have one: users without a Google account don't collide.
 userSchema.index({ googleId: 1 }, { unique: true, partialFilterExpression: { googleId: { $type: 'string' } } });
+userSchema.index({ playerId: 1 }, { unique: true, partialFilterExpression: { playerId: { $type: 'string' } } });
 
 // Reused across dev-server reloads instead of redefined (which Mongoose rejects).
 export const User: Model<UserDoc> =

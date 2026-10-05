@@ -1,0 +1,75 @@
+---
+import Base from '../layouts/Base.astro';
+import { db } from '../lib/db';
+import { ensurePlayerId } from '../lib/db/userRepo';
+import { currentUser } from '../lib/owner';
+import { formatPlayerId } from '../lib/playerId';
+
+export const prerender = false;
+
+Astro.response.headers.set('cache-control', 'private, no-store');
+
+const session = await currentUser(Astro.cookies);
+if (!session) return Astro.redirect(`/auth/google?return=${encodeURIComponent('/account')}`, 303);
+const user = { name: session.name, email: session.email };
+
+let playerId: string | null = null;
+try {
+  await db();
+  playerId = formatPlayerId(await ensurePlayerId(session.userId));
+} catch (err) {
+  console.error('[account] could not load the player id', err);
+}
+---
+<Base title="Your account | 16bit.ink" description="Your 16bit.ink account." user={user}>
+  <meta name="robots" content="noindex" slot="head" />
+  <section class="paper-card narrow tape">
+    <h1>Your account</h1>
+    <p>Signed in as <strong>{user.email}</strong>.</p>
+    <p class="pixel-label">Player ID</p>
+    {playerId ? (
+      <player-id class="player-id">
+        <code>{playerId}</code>
+        <button class="btn" type="button" data-copy={playerId}>Copy</button>
+      </player-id>
+    ) : (
+      <p class="player-id-error" role="alert">Your player ID couldn't be loaded just now. Please reload the page.</p>
+    )}
+    <p class="player-id-note">
+      Need help with a game? Send us this ID instead of your email.
+      It identifies your account to us but says nothing about who you are.
+    </p>
+  </section>
+</Base>
+
+<script>
+  class PlayerId extends HTMLElement {
+    connectedCallback(): void {
+      const button = this.querySelector<HTMLButtonElement>('button[data-copy]');
+      button?.addEventListener('click', () => void this.copy(button));
+    }
+
+    private async copy(button: HTMLButtonElement): Promise<void> {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy ?? '');
+        button.textContent = 'Copied!';
+      } catch (err) {
+        // No clipboard access (insecure origin, denied): the ID is on screen to copy by hand.
+        console.warn('[16bit.ink] copy failed', err);
+        button.textContent = 'Select and copy it';
+      }
+    }
+  }
+  customElements.define('player-id', PlayerId);
+</script>
+
+<style>
+  .player-id { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin: 4px 0 18px; }
+  .player-id code {
+    font-family: var(--font-pixel); font-size: 1.6rem; letter-spacing: 0.1em; user-select: all;
+    padding: 8px 14px; background: var(--paper-2); border: 2px solid var(--ink); border-radius: 4px;
+  }
+  .player-id .btn { padding: 8px 16px; font-size: 1.2rem; }
+  .player-id-error { color: var(--red-ink); }
+  .player-id-note { color: var(--ink-soft); }
+</style>

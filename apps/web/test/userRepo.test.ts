@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { connectDb, disconnectDb } from '../src/lib/db/connection';
 import { Purchase } from '../src/lib/db/purchaseModel';
 import { User } from '../src/lib/db/userModel';
-import { findRole, listUsers, signInGoogleUser, syncAdminRoles } from '../src/lib/db/userRepo';
+import { ensurePlayerId, findRole, listUsers, signInGoogleUser, syncAdminRoles } from '../src/lib/db/userRepo';
 import { Grant } from '../src/lib/db/grantModel';
 import { grantedGames, grantedGamesFor, grantGame, revokeGame } from '../src/lib/db/grantRepo';
 import { isUserId } from '../src/lib/userId';
@@ -85,6 +85,25 @@ describe.skipIf(!uri)('roles and grants (MongoDB)', () => {
     expect((await listUsers({ search: 'ROLE 1', page: 0, perPage: 10 })).users.map((u) => u.email)).toEqual(['role-1@example.com']);
     // Regex characters in the search are taken literally.
     expect((await listUsers({ search: '.*', page: 0, perPage: 10 })).total).toBe(0);
+  });
+
+  it('gives each user one player id, kept from then on, and finds them by it', async () => {
+    const [a, b] = [await make(1), await make(2)];
+    const id = await ensurePlayerId(a);
+    expect(id).toMatch(/^[0-9A-HJKMNP-TV-Z]{8}$/);
+    expect(await ensurePlayerId(a)).toBe(id);
+    const [x, y] = await Promise.all([ensurePlayerId(b), ensurePlayerId(b)]);
+    expect(x).toBe(y);
+    const typed = `${id.slice(0, 4).toLowerCase()}-${id.slice(4)}`;
+    const found = await listUsers({ search: typed, page: 0, perPage: 10 });
+    expect(found.users.map((u) => [u.email, u.playerId])).toEqual([['role-1@example.com', id]]);
+  });
+
+  it('draws another player id when one is taken', async () => {
+    const [a, b] = [await make(1), await make(2)];
+    await ensurePlayerId(a, () => 'AAAAAAAA');
+    const draws = ['AAAAAAAA', 'BBBBBBBB'];
+    expect(await ensurePlayerId(b, () => draws.shift()!)).toBe('BBBBBBBB');
   });
 
   it('grants and revokes games, once each', async () => {

@@ -1,5 +1,6 @@
 import type { Role } from '../admins';
 import type { GoogleUser } from '../google';
+import { generatePlayerId, normalizePlayerId } from '../playerId';
 import type { UserId } from '../userId';
 import { User } from './userModel';
 
@@ -29,6 +30,25 @@ export async function signInGoogleUser(g: GoogleUser, role: Role, now: Date): Pr
   }
 }
 
+const PLAYER_ID_ATTEMPTS = 5;
+
+/** The user's player id, given one now if they have none yet. `generate` is for tests. */
+export async function ensurePlayerId(userId: UserId, generate: () => string = generatePlayerId): Promise<string> {
+  for (let attempt = 0; attempt < PLAYER_ID_ATTEMPTS; attempt++) {
+    const user = await User.findById(userId, { playerId: 1 }).lean().exec();
+    if (!user) throw new Error(`No user ${userId}`);
+    if (user.playerId) return user.playerId;
+    try {
+      // Only if still unset: a concurrent request may have just given them one, and the re-read finds it.
+      await User.updateOne({ _id: user._id, playerId: { $exists: false } }, { $set: { playerId: generate() } });
+    } catch (err) {
+      // Another player already has that id (rare at 40 bits): draw again.
+      if (!isDuplicateKey(err)) throw err;
+    }
+  }
+  throw new Error(`Could not assign a player id to ${userId}`);
+}
+
 /** The user's current role, or null when there is no such user. */
 export async function findRole(userId: UserId): Promise<Role | null> {
   const user = await User.findById(userId, { role: 1 }).lean().exec();
@@ -49,6 +69,8 @@ export interface UserSummary {
   readonly id: UserId;
   readonly email: string;
   readonly name: string;
+  /** Absent until the player first needs one. */
+  readonly playerId?: string;
   readonly role: Role;
   readonly createdAt: Date;
   readonly lastSignInAt: Date;
@@ -61,16 +83,24 @@ export interface UserPage {
 
 const escapeRegex = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** Users, newest first, optionally only those whose email or name contains `search`. */
-export async function listUsers(opts: { readonly search: string; readonly page: number; readonly perPage: number }): Promise<UserPage> {
-  const q = opts.search.trim();
+function searchFilter(search: string) {
+  const q = search.trim();
+  if (!q) return {};
   const pattern = new RegExp(escapeRegex(q), 'i');
-  const filter = q ? { $or: [{ email: pattern }, { name: pattern }] } : {};
+  const playerId = normalizePlayerId(q);
+  return { $or: [{ email: pattern }, { name: pattern }, ...(playerId ? [{ playerId }] : [])] };
+}
+
+/** Users, newest first, optionally only those whose email or name contains `search`, or whose player id it is. */
+export async function listUsers(opts: { readonly search: string; readonly page: number; readonly perPage: number }): Promise<UserPage> {
+  const filter = searchFilter(opts.search);
   const [docs, total] = await Promise.all([
-    User.find(filter, { email: 1, name: 1, role: 1, createdAt: 1, lastSignInAt: 1 })
+    User.find(filter, { email: 1, name: 1, playerId: 1, role: 1, createdAt: 1, lastSignInAt: 1 })
       .sort({ createdAt: -1 }).skip(opts.page * opts.perPage).limit(opts.perPage).lean().exec(),
     User.countDocuments(filter),
   ]);
-  const users = docs.map((d) => ({ id: d._id.toHexString(), email: d.email, name: d.name, role: d.role, createdAt: d.createdAt, lastSignInAt: d.lastSignInAt }));
+  const users = docs.map((d) => ({
+    id: d._id.toHexString(), email: d.email, name: d.name, playerId: d.playerId, role: d.role, createdAt: d.createdAt, lastSignInAt: d.lastSignInAt,
+  }));
   return { users, total };
 }
