@@ -206,6 +206,28 @@ importers:
         specifier: ^5.0.3
         version: 5.0.3(@types/node@24.19.1)(@vitest/coverage-v8@5.0.3)(vite@8.3.2(@types/node@24.19.1)(esbuild@0.28.1)(yaml@2.9.1))
 
+  games/inkcrab:
+    dependencies:
+      '@16bitink/game-sdk':
+        specifier: workspace:*
+        version: link:../../packages/game-sdk
+      phaser:
+        specifier: ^4.2.1
+        version: 4.2.1
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: ^5.0.3
+        version: 5.0.3(vitest@5.0.3)
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite:
+        specifier: ^8.3.2
+        version: 8.3.2(@types/node@24.19.1)(esbuild@0.28.1)(yaml@2.9.1)
+      vitest:
+        specifier: ^5.0.3
+        version: 5.0.3(@types/node@24.19.1)(@vitest/coverage-v8@5.0.3)(vite@8.3.2(@types/node@24.19.1)(esbuild@0.28.1)(yaml@2.9.1))
+
   games/inkfish:
     dependencies:
       '@16bitink/game-sdk':

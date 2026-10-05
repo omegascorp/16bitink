@@ -1,0 +1,85 @@
+import { isSolid, type Terrain } from './terrain';
+
+/** Physics for crabs and loose items: an axis-aligned box on the tile grid. */
+export interface Box {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+export interface Body extends Box {
+  readonly vx: number;
+  readonly vy: number;
+  readonly onGround: boolean;
+}
+
+export const PHYS = {
+  gravity: 900,
+  maxFall: 420,
+  /** Ledges up to this many tiles (or about half the body) are walked up. */
+  stepTiles: 1,
+} as const;
+
+const EPS = 1e-6;
+
+export function boxHitsSolid(t: Terrain, b: Box, tile: number): boolean {
+  const x0 = Math.floor(b.x / tile);
+  const x1 = Math.floor((b.x + b.w - EPS) / tile);
+  const y0 = Math.floor(b.y / tile);
+  const y1 = Math.floor((b.y + b.h - EPS) / tile);
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (isSolid(t, x, y)) return true;
+  return false;
+}
+
+/** Moves `dist` along one axis in sub-tile steps, stopping flush against the first solid tile. */
+function sweep(t: Terrain, b: Box, axis: 'x' | 'y', dist: number, tile: number): { box: Box; hit: boolean } {
+  const stepLen = tile / 4;
+  let box = b;
+  let left = dist;
+  while (Math.abs(left) > EPS) {
+    const d = Math.sign(left) * Math.min(stepLen, Math.abs(left));
+    const next = { ...box, [axis]: box[axis] + d };
+    if (!boxHitsSolid(t, next, tile)) {
+      box = next;
+      left -= d;
+      continue;
+    }
+    // Snap flush to the tile boundary we ran into.
+    const edge = d > 0
+      ? Math.floor((box[axis] + (axis === 'x' ? box.w : box.h) + d) / tile) * tile - (axis === 'x' ? box.w : box.h)
+      : Math.ceil((box[axis] + d) / tile) * tile;
+    const flush = { ...box, [axis]: edge };
+    return { box: boxHitsSolid(t, flush, tile) ? box : flush, hit: true };
+  }
+  return { box, hit: false };
+}
+
+/** Leaps upward at `speed` px/s; only from the ground. */
+export function jump(b: Body, speed: number): Body {
+  return b.onGround ? { ...b, vy: -speed, onGround: false } : b;
+}
+
+/** One physics step: walk with `intent` (-1..1) at `speed` px/s, fall, step up small ledges. */
+export function moveBody(t: Terrain, b: Body, intent: number, speed: number, dt: number, tile: number): Body {
+  const vx = intent * speed;
+  let box: Box = b;
+  const dx = vx * dt;
+  if (dx !== 0) {
+    const flat = sweep(t, box, 'x', dx, tile);
+    box = flat.box;
+    if (flat.hit && b.onGround) {
+      const maxStep = Math.max(tile * PHYS.stepTiles, b.h * 0.5);
+      for (let lift = 1; lift <= maxStep; lift += 1) {
+        const up = { ...b, y: b.y - lift, x: b.x + dx };
+        if (!boxHitsSolid(t, up, tile) && !boxHitsSolid(t, { ...b, y: b.y - lift }, tile)) {
+          box = up;
+          break;
+        }
+      }
+    }
+  }
+  const vy = Math.min(PHYS.maxFall, b.vy + PHYS.gravity * dt);
+  const fall = sweep(t, box, 'y', vy * dt, tile);
+  return { ...fall.box, vx, vy: fall.hit ? 0 : vy, onGround: fall.hit && vy > 0 };
+}

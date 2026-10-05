@@ -6,6 +6,7 @@ Hand-drawn browser games. Catalog site + games, starting with **InkFish**, a pen
 apps/web            Astro 7 site (Node server on DigitalOcean App Platform): catalog, game pages, full-screen player, Stripe checkout, Google sign-in, MongoDB purchases
 packages/game-sdk   The contract between site and games (GameModule, GameHost)
 games/inkfish       Phaser 4 game package: client game (src/) + server-only paid content (content/)
+games/inkcrab       Second game (prototype): hermit crab trading up through shells; design in docs/inkcrab-design.md
 docs/               Research, tech & monetization decisions, art pipeline
 ```
 
@@ -14,6 +15,7 @@ docs/               Research, tech & monetization decisions, art pipeline
 ```bash
 pnpm install
 pnpm --filter @16bitink/inkfish dev     # game alone at http://localhost:5174 (prefix DEV_UNLOCK=true to play as an owner, DEV_ALL_LEVELS=true to open every level)
+pnpm --filter @16bitink/inkcrab dev     # InkCrab test beach at http://localhost:5175 (not in the catalog yet)
 pnpm dev                                # site at http://localhost:4321
 pnpm test                               # unit tests (game logic, tokens, purchases, catalog)
 MONGODB_TEST_URI=mongodb://localhost:27017/16bitink_test pnpm --filter @16bitink/web test   # + database integration tests

@@ -1,0 +1,25 @@
+{
+  "name": "@16bitink/inkcrab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "dev": "vite dev --port 5175"
+  },
+  "dependencies": {
+    "@16bitink/game-sdk": "workspace:*",
+    "phaser": "^4.2.1"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
+  }
+}
