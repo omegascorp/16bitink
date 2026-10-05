@@ -17,6 +17,16 @@ describe('seabed shape', () => {
     expect(sample('c3-l4')).not.toEqual(sample('c4-l4'));
   });
 
+  it('meets itself round the ring, so there is no seam', () => {
+    for (const id of ['c1-l1', 'c3-l4', 'c10-l10']) {
+      const { floorAt } = seabedFor(id, world);
+      for (const x of [0, 7, 1234, 3199]) {
+        expect(floorAt(x + world.width)).toBeCloseTo(floorAt(x), 6);
+        expect(floorAt(x - 3 * world.width)).toBeCloseTo(floorAt(x), 6);
+      }
+    }
+  });
+
   it('stays inside the bottom band of the world', () => {
     for (const id of ['c1-l1', 'c5-l7', 'c10-l10']) {
       for (const y of sample(id)) {

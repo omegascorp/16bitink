@@ -32,8 +32,9 @@ export function spawnCrawler(
 ): Fish {
   const { entry, size } = pickSpawn(level.bottom, playerSize, rng);
   let x = 0;
+  const half = level.world.width / 2;
   for (let attempt = 0; attempt < 12; attempt++) {
-    x = rangeOf(rng, 40, level.world.width - 40);
+    x = rangeOf(rng, view.centerX - half, view.centerX + half);
     if (x < view.left - size * 2 || x > view.right + size * 2) break;
   }
   const speed = rangeOf(rng, ...SPECIES_INFO[entry.species].cruise);

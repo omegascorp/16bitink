@@ -34,7 +34,7 @@ export function spawnJellies(scene: Phaser.Scene, level: LevelDef, zone: ZoneId,
 
 export function updateJelly(j: Jelly, level: LevelDef, dt: number, frame: number): void {
   j.phase += dt;
-  j.sprite.x = Phaser.Math.Wrap(j.sprite.x + j.vx * dt, -60, level.world.width + 60);
+  j.sprite.x += j.vx * dt;
   const motion = JELLY_INFO[j.kind].motion;
   if (motion === 'glide') {
     // Comb jellies row smoothly on their combs: a slow, even bob.
@@ -85,7 +85,7 @@ const HOOK_EYE = { x: 0, y: 2 } as const;
 /** Where a hook will hang: near the player so it's a real threat. */
 export function pickHookSpot(level: LevelDef, px: number, py: number, rng: Rng): { x: number; depth: number } {
   return {
-    x: Phaser.Math.Clamp(px + rangeOf(rng, -260, 260), 120, level.world.width - 120),
+    x: px + rangeOf(rng, -260, 260),
     depth: Phaser.Math.Clamp(py + rangeOf(rng, -120, 160), 260, level.world.height - 220),
   };
 }

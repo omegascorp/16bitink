@@ -4,6 +4,7 @@ import type { CoverView } from './coverPatches';
 import { fadeCover } from './coverPatches';
 import type { Player } from './player';
 import { TUNING } from './tuning';
+import { nearestOnRing } from '../../logic/ring';
 
 const BLUE = 0x1f3f8a;
 const RULES = { maxMs: TUNING.hideMs, cooldownMs: TUNING.hideCooldownMs } as const;
@@ -16,14 +17,17 @@ export class Hideout {
   private state: HideState = HIDE_START;
   private readonly ring: Phaser.GameObjects.Graphics;
 
-  constructor(scene: Phaser.Scene, private readonly covers: readonly CoverView[], private readonly floorAt: (x: number) => number) {
+  constructor(
+    scene: Phaser.Scene, private readonly covers: readonly CoverView[], private readonly floorAt: (x: number) => number, private readonly ringWidth: number,
+  ) {
     this.ring = scene.add.graphics().setDepth(30);
   }
 
   /** Updates `player.hidden`; calls `onSpotted` the moment cover stops hiding you. */
   update(p: Player, now: number, deltaMs: number, dt: number, onSpotted: () => void): void {
     const { x, y } = p.sprite;
-    const inside = p.hooked ? null : this.covers.find((c) => insidePatch(c.patch, x, y, p.size, this.floorAt(x))) ?? null;
+    // Patches are planned within the first lap; you may be any number of laps round.
+    const inside = p.hooked ? null : this.covers.find((c) => insidePatch(c.patch, nearestOnRing(x, c.patch.x, this.ringWidth), y, p.size, this.floorAt(x))) ?? null;
     const step = stepHide(this.state, inside !== null, now, deltaMs, RULES);
     this.state = step.state;
     p.hidden = step.state.hidden;

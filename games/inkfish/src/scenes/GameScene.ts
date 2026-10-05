@@ -13,7 +13,7 @@ import { waterTop } from '../logic/water';
 import { growthPointsFor, relationTo, scoreFor } from '../logic/sizing';
 import { targetZoom } from './game/camera';
 import { playEaten, playSpiked, spikeMarks } from './game/deathFx';
-import { isHelpless, isOffWorld, renderFish, spawnFish, stunFish, updateFish, type Fish } from './game/fish';
+import { isHelpless, isSpent, renderFish, spawnFish, stunFish, updateFish, type Fish } from './game/fish';
 import { Ducks } from './game/ducks';
 import { clubsTouch, takeSquidEvents } from './game/squid';
 import { SharkSense } from './game/sharkSense';
@@ -32,6 +32,8 @@ import { TUNING } from './game/tuning';
 import { TwistRunner } from './game/twistRunner';
 import { drawWorld, swayWeeds } from './game/world';
 import { Culler } from './game/culler';
+import { Ring } from './game/ring';
+import { RING_REACH, ringViewWidth } from '../logic/ring';
 import { DeepLight, playerGlowTint } from './game/deepLight';
 import { itemSfx, pitchForSize, type SfxId } from '../audio/recipes';
 import { JELLY_INFO } from '../levels/jellies';
@@ -200,7 +202,9 @@ export class GameScene extends Phaser.Scene {
     const chapter = chapterOf(this.level);
     this.sky = ZONE_SKY[chapter.zone];
     const skyH = this.sky ? SKY.height : 0;
-    this.cameras.main.setBounds(0, -skyH, world.width, world.height + skyH).setBackgroundColor('#f4eddc');
+    // No side edges: the level is a ring (see game/ring.ts), so the camera roams freely across.
+    this.cameras.main.setBounds(-RING_REACH, -skyH, RING_REACH * 2, world.height + skyH).setBackgroundColor('#f4eddc');
+    const ring = new Ring(this, world.width);
     this.fleet = new Fleet(this, chapter.zone, this.sky, this.rng);
     this.flock = new Flock(this, chapter.zone, this.rng);
     this.ducks = new Ducks(this, this.sky, this.rng);
@@ -209,16 +213,16 @@ export class GameScene extends Phaser.Scene {
     releaseFishTextures(this, residents);
     ensureFishTextures(this, residents);
     this.seabed = seabedFor(this.level.id, world);
-    const scenery = drawWorld(this, this.level, chapter.zone, this.seabed, this.sky);
+    const scenery = drawWorld(this, this.level, chapter.zone, this.seabed, ring, this.sky);
     this.weeds = scenery.weeds;
     this.culler = new Culler();
     this.culler.add(scenery.fixed);
-    this.deep = new DeepLight(this, chapter.zone, world, levelNumber(this.level) * 53 + 11);
+    this.deep = new DeepLight(this, chapter.zone, world, levelNumber(this.level) * 53 + 11, ring);
     this.deep.lightDecor(scenery.decor);
     const covers = buildCover(this, planCover(this.level.id, levelNumber(this.level), chapter.zone, world.width), this.seabed.floorAt, levelNumber(this.level) * 31 + 7);
     this.weeds.push(...covers.flatMap((c) => c.weeds));
     this.culler.add(covers.flatMap((c) => [...new Set([...c.weeds, ...c.front])]));
-    this.hideout = new Hideout(this, covers, this.seabed.floorAt);
+    this.hideout = new Hideout(this, covers, this.seabed.floorAt, world.width);
     this.player = createPlayer(this, this.level, chapter.player);
     this.deep.lightPlayer(this.player.sprite, chapter.player, playerGlowTint(chapter.player));
     this.sense = PLAYER_STATS[chapter.player].sense ? new SharkSense(this) : null;
@@ -270,7 +274,7 @@ export class GameScene extends Phaser.Scene {
 
   private zoomFor(size: number): number {
     const { width, height } = viewSize(this);
-    return DPR * targetZoom(width, height, this.level.world.width, this.level.world.height + (this.sky ? SKY.height : 0), size, this.level.playerSizes[0]!);
+    return DPR * targetZoom(width, height, ringViewWidth(this.level.world.width), this.level.world.height + (this.sky ? SKY.height : 0), size, this.level.playerSizes[0]!);
   }
 
   update(_time: number, deltaMs: number): void {
@@ -302,7 +306,7 @@ export class GameScene extends Phaser.Scene {
         splash(this, p.sprite.x, SKY.surfaceY + 8, p.size, this.rng);
         this.sfx('splash', undefined, pitchForSize(p.size) * 0.8);
       }
-      if (!p.airborne) this.drift(p.sprite, p.size, 0.85, dt);
+      if (!p.airborne) this.drift(p.sprite, 0.85, dt);
     }
     this.hideout.update(this.player, now, deltaMs, dt, () => {
       this.floatText(this.player.sprite.x, this.player.sprite.y - 40, 'Spotted!', '#a3342b', 36);
@@ -372,10 +376,11 @@ export class GameScene extends Phaser.Scene {
       for (let n = crawlers; n < this.level.maxCrawlers; n++) this.fish.push(spawnCrawler(this, this.level, p.size, camView, floorAt, this.rng));
     }
     const sea = { ...this.level.world, floorAt };
-    this.ducks.update(dt, camView, this.level.world.width);
+    this.ducks.update(dt, camView);
     const decoys = this.ducks.decoys();
     this.fish = this.fish.filter((f) => {
       const crawler = isCrawler(f.species);
+      const x0 = f.sprite.x;
       if (crawler) updateCrawler(f, view, floorAt, now, dt);
       else updateFish(f, view, sea, now, dt, decoys);
       // Knocked-out fish that nobody ate sink out of the story.
@@ -383,12 +388,13 @@ export class GameScene extends Phaser.Scene {
         f.sprite.destroy();
         return false;
       }
-      // Ordinary fish ride the current off the map and get replaced; goal fish stay in play.
       // Crawlers hold on to the seabed against the current.
-      if (f.state !== 'hooked' && !crawler) this.drift(f.sprite, f.size, 0.7, dt, f.role !== 'normal');
+      if (f.state !== 'hooked' && !crawler) this.drift(f.sprite, 0.7, dt);
+      f.swum += Math.abs(f.sprite.x - x0);
       renderFish(f, p.size, this.boilFrame, dt);
       if (isSquid(f.species)) this.squidFx(f);
-      if (f.state !== 'hooked' && isOffWorld(f, this.level)) {
+      // Ordinary fish that have swum a lap move on out of sight and are replaced; goal fish stay in play.
+      if (f.state !== 'hooked' && isSpent(f, this.level, camView)) {
         f.sprite.destroy();
         return false;
       }
@@ -471,12 +477,9 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** The current pushes a swimmer sideways; `contain` keeps it inside the world's edges. */
-  private drift(sprite: Phaser.GameObjects.Image, radius: number, strength: number, dt: number, contain = true): void {
-    const c = this.twist.current;
-    if (!c) return;
-    const x = sprite.x + c * strength * dt;
-    sprite.x = contain ? Phaser.Math.Clamp(x, radius, this.level.world.width - radius) : x;
+  /** The current pushes a swimmer sideways, round and round the ring. */
+  private drift(sprite: Phaser.GameObjects.Image, strength: number, dt: number): void {
+    sprite.x += this.twist.current * strength * dt;
   }
 
   /** Twist bookkeeping: ink bottles, goal markers, the clock, and whether the level is decided. */
@@ -628,7 +631,7 @@ export class GameScene extends Phaser.Scene {
       this.nextHookAt = this.elapsedMs + this.level.hazards.hookEverySec * 1000;
       this.hooks.push(this.fleet.launch(this.level, p.sprite.x, p.sprite.y));
     }
-    this.fleet.update(deltaMs, this.level.world.width);
+    this.fleet.update(deltaMs, this.cameras.main.worldView, this.level.world.width);
     this.hooks = this.hooks.filter((h) => {
       const alive = updateHook(h, deltaMs, this.boilFrame, this.twist.current);
       if (alive) this.biteHook(h, now);

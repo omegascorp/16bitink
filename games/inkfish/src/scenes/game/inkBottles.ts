@@ -40,7 +40,6 @@ export class InkBottles {
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly count: number,
-    private readonly world: { readonly width: number },
     private readonly floorAt: (x: number) => number,
     private readonly rng: Rng,
   ) {
@@ -61,7 +60,7 @@ export class InkBottles {
     for (const b of this.bottles) {
       const s = b.sprite.setTexture(boilKey('inkbottle', frame));
       s.y += SINK * dt;
-      s.x = Phaser.Math.Clamp(s.x + (Math.sin(now / 800 + b.sway) * 16 + current * CURRENT_SHARE) * dt, 40, this.world.width - 40);
+      s.x += (Math.sin(now / 800 + b.sway) * 16 + current * CURRENT_SHARE) * dt;
       s.rotation = Math.sin(now / 1100 + b.sway) * 0.5;
     }
     const broken = this.bottles.filter((b) => b.sprite.y >= this.floorAt(b.sprite.x) - 12);
@@ -88,7 +87,7 @@ export class InkBottles {
   }
 
   private drop(playerX: number): Bottle {
-    const x = bottleDropX(playerX, this.world.width, this.rng);
+    const x = bottleDropX(playerX, this.rng);
     const sprite = this.scene.add.image(x, WATER.surface, boilKey('inkbottle', 0)).setDepth(13).setScale(0.8 / ART_RES);
     return { sprite, sway: this.rng() * Math.PI * 2 };
   }

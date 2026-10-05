@@ -19,7 +19,7 @@ export const ZONE_SHORE: Readonly<Partial<Record<ZoneId, readonly ShoreKind[]>>>
 
 export interface ShorePiece {
   readonly kind: ShoreKind;
-  /** Position along the skyline, in parallax space (see SHORE_PARALLAX). */
+  /** Position along the skyline, in parallax space (see SHORE_PARALLAX); it repeats every world width. */
   readonly x: number;
   readonly scale: number;
   /** Further away: smaller and paler. */
@@ -36,10 +36,9 @@ export function planShore(levelId: string, zone: ZoneId, width: number): ShorePi
   const kinds = ZONE_SHORE[zone];
   if (!kinds?.length) return [];
   const rng = createRng(Math.floor(hashUnit(levelId, 33) * 1e6) + 1);
-  // How much skyline the camera can see when it scrolls slower than the world:
-  // parallax x runs from 0 to SHORE_PARALLAX * (width - view) + view, with a view at least ~750 px wide.
-  const span = width * SHORE_PARALLAX + 300;
-  const count = 2 + Math.floor(rng() * 2);
+  // The skyline repeats every `width` px of parallax space as you swim round the ring (see Ring.addParallax).
+  const span = width;
+  const count = 3 + Math.floor(rng() * 2);
   const slice = span / count;
   return Array.from({ length: count }, (_, i): ShorePiece => {
     const far = rng() < 0.4;

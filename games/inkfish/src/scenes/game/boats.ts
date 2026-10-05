@@ -5,6 +5,7 @@ import type { LevelDef, ZoneId } from '../../levels/types';
 import { pickHookSpot, spawnHook, type Hook } from './hazards';
 import { SKY } from '../../logic/water';
 import type { Rng } from '../../logic/rng';
+import { pastView } from '../../logic/ring';
 
 /**
  * The boats hooks come from. A boat sails in and stops with its rod over the
@@ -67,8 +68,8 @@ export function spawnBoat(scene: Phaser.Scene, kind: BoatKind, rodX: number, rng
   return { sprite, kind, dir, from, to, t: 0, leaving: false, speed: 0 };
 }
 
-/** Returns false once the boat has sailed out of the world. */
-export function updateBoat(b: Boat, dtMs: number, worldWidth: number): boolean {
+/** Returns false once the boat has sailed well out of `view`. */
+export function updateBoat(b: Boat, dtMs: number, view: Phaser.Geom.Rectangle, worldWidth: number): boolean {
   b.t += dtMs;
   const s = b.sprite;
   if (b.leaving) {
@@ -82,7 +83,7 @@ export function updateBoat(b: Boat, dtMs: number, worldWidth: number): boolean {
   s.y = SKY.surfaceY + Math.sin(b.t / 520) * 2;
   s.setRotation(Math.sin(b.t / 700) * 0.025);
   const half = BOAT_SPEC[b.kind].w / 2;
-  return s.x > -half - SAIL_IN_FROM && s.x < worldWidth + half + SAIL_IN_FROM;
+  return !pastView(s.x, view.centerX, view.width, worldWidth, half + SAIL_IN_FROM);
 }
 
 /** The hook is in: sail on the way it was heading. */
@@ -110,10 +111,10 @@ export class Fleet {
     return hook;
   }
 
-  update(dtMs: number, worldWidth: number): void {
-    for (const b of this.boats.values()) updateBoat(b, dtMs, worldWidth);
+  update(dtMs: number, view: Phaser.Geom.Rectangle, worldWidth: number): void {
+    for (const b of this.boats.values()) updateBoat(b, dtMs, view, worldWidth);
     this.leaving = this.leaving.filter((b) => {
-      if (updateBoat(b, dtMs, worldWidth)) return true;
+      if (updateBoat(b, dtMs, view, worldWidth)) return true;
       b.sprite.destroy();
       return false;
     });

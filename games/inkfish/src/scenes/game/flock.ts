@@ -5,6 +5,7 @@ import type { ZoneId } from '../../levels/types';
 import { BIRD_INFO, birdSize, diveTarget, pickBird, wantsDive, ZONE_BIRDS, type BirdId, type Quarry } from '../../logic/birds';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { SKY } from '../../logic/water';
+import { pastView } from '../../logic/ring';
 import { keepDepth } from './sync';
 
 /**
@@ -84,7 +85,7 @@ export class Flock {
     this.birds = this.birds.filter((b) => {
       this.step(b, now, dt, quarry, others, fx);
       this.drawShadow(b);
-      const gone = b.sprite.x < -300 || b.sprite.x > worldWidth + 300 || b.sprite.y < -SKY.height - 200;
+      const gone = pastView(b.sprite.x, view.centerX, view.width, worldWidth, 300) || b.sprite.y < -SKY.height - 200;
       if (gone) this.remove(b);
       return !gone;
     });

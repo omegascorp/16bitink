@@ -55,7 +55,7 @@ export class TwistRunner {
   /** Places the level's goals away from the player. Returns goal fish to add to the shoal. */
   setup(start: Point): Fish[] {
     const o = this.level.objective;
-    if (o.kind === 'collect') this.bottles = new InkBottles(this.scene, o.count, this.level.world, this.floorAt, this.rng);
+    if (o.kind === 'collect') this.bottles = new InkBottles(this.scene, o.count, this.floorAt, this.rng);
     if (o.kind === 'bounty') {
       return this.spread(o.count, start, 500).map((p) =>
         spawnSpecial(this.scene, o.species, Math.round(rangeOf(this.rng, o.size[0], o.size[1])), 'bounty', p.x, p.y, this.rng));

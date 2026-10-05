@@ -9,6 +9,7 @@ import type { ZoneId } from '../../levels/types';
 import { ZONE_NIGHT } from '../../levels/zones';
 import { createRng, rangeOf } from '../../logic/rng';
 import { CULL_MARGIN, inView } from './culler';
+import type { Ring } from './ring';
 
 /**
  * Below the reach of sunlight the only light is living light. In the deep
@@ -39,11 +40,11 @@ export class DeepLight {
   private readonly snow: Flake[] = [];
   private playerLight: Phaser.GameObjects.Image | null = null;
 
-  constructor(private readonly scene: Phaser.Scene, zone: ZoneId, private readonly world: { width: number; height: number }, seed: number) {
+  constructor(private readonly scene: Phaser.Scene, zone: ZoneId, private readonly world: { width: number; height: number }, seed: number, ring: Ring) {
     const night = ZONE_NIGHT[zone];
     this.active = night.alpha > 0;
     if (!this.active) return;
-    scene.add.rectangle(-200, -200, world.width + 400, world.height + 400, night.color, night.alpha).setOrigin(0).setDepth(NIGHT_DEPTH);
+    ring.follow(scene.add.rectangle(-200, -200, world.width + 400, world.height + 400, night.color, night.alpha).setOrigin(0).setDepth(NIGHT_DEPTH));
     const rng = createRng(seed);
     const count = Math.min(1100, Math.round((world.width * world.height) / SNOW_AREA));
     for (let i = 0; i < count; i++) {
@@ -89,6 +90,7 @@ export class DeepLight {
       const s = f.sprite;
       s.y += f.fall * dt;
       s.x += Math.sin(t * 0.6 + f.phase) * f.sway * dt;
+      // Anywhere round the ring: the ring puts it at its copy nearest the camera.
       if (s.y > this.world.height) s.setPosition(Math.random() * this.world.width, -10);
       const seen = !view || inView(view, s.x, s.y, CULL_MARGIN);
       if (s.visible !== seen) s.setVisible(seen);

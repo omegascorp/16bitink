@@ -7,6 +7,7 @@ import { DUCK, nearestDecoy, type Decoy } from '../../logic/decoy';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { pickSpawn, relationTo } from '../../logic/sizing';
 import { keepInWater } from '../../logic/water';
+import { pastView } from '../../logic/ring';
 import { isSquid } from '../../art/squidArt';
 import { renderSquid, updateSquid } from './squid';
 import { attachSquid } from './squidRig';
@@ -34,6 +35,8 @@ export interface Fish extends SwimState {
   fullUntil: number;
   /** Lean to follow the ground under a crawler, radians (0 for swimmers). */
   tilt: number;
+  /** How far it has gone sideways since it was spawned, px: after a lap of the ring an ordinary fish moves on. */
+  swum: number;
   /** dead: knocked out by a firecracker, floating belly-up; anyone can eat it. */
   state: 'cruise' | 'chase' | 'lunge' | 'puffed' | 'tired' | 'stunned' | 'hooked' | 'dead';
 }
@@ -41,23 +44,24 @@ export interface Fish extends SwimState {
 const cruiseOf = (species: SpeciesId): readonly [number, number] => SPECIES_INFO[species].cruise;
 
 /**
- * Spawns a fish somewhere in the world but outside the camera view
- * (so nothing pops into existence on screen), heading across the map.
+ * Spawns a fish somewhere round the ring but outside the camera view
+ * (so nothing pops into existence on screen), heading across the player's way.
  */
 export function spawnFish(scene: Phaser.Scene, level: LevelDef, playerSize: number, view: Phaser.Geom.Rectangle, rng: Rng): Fish {
   const { entry, size } = pickSpawn(level.spawns, playerSize, rng);
   const margin = size * 2 + 40;
   let x = 0;
   let y = 0;
+  const half = level.world.width / 2;
   for (let attempt = 0; attempt < 12; attempt++) {
-    x = rangeOf(rng, -margin, level.world.width + margin);
+    x = rangeOf(rng, view.centerX - half, view.centerX + half);
     y = rangeOf(rng, 140, level.world.height - 170);
     const onScreen = x > view.left - margin && x < view.right + margin && y > view.top - margin && y < view.bottom + margin;
     if (!onScreen) break;
   }
   const speed = rangeOf(rng, ...cruiseOf(entry.species));
-  // Head towards the far side so fish cross the player's area.
-  const goRight = x < level.world.width / 2 ? rng() < 0.8 : rng() < 0.2;
+  // Head towards the view so fish cross the player's area.
+  const goRight = x < view.centerX ? rng() < 0.8 : rng() < 0.2;
   return makeFish(scene, entry.species, size, 'normal', x, y, goRight ? speed : -speed, rng);
 }
 
@@ -73,7 +77,7 @@ export function makeFish(scene: Phaser.Scene, species: SpeciesId, size: number, 
   else attachTail(sprite, species);
   return {
     sprite, species, role, baseSize: size, size, vx, vy: 0, phase: rng() * Math.PI * 2, swim: rng() * Math.PI * 2, turn: vx < 0 ? -1 : 1,
-    tilt: 0, shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
+    tilt: 0, swum: 0, shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
   };
 }
 
@@ -236,17 +240,9 @@ export function updateFish(f: Fish, player: PlayerView, world: SeaWorld, now: nu
     f.vx += (cruise - f.vx) * Math.min(1, dt * 1.5);
   }
   f.sprite.x += f.vx * dt;
-  if (f.role !== 'normal') turnAtWalls(f, world.width);
   const water = keepInWater(f.sprite.y + f.vy * dt, f.vy, f.size, world.height, world.floorAt?.(f.sprite.x));
   f.sprite.y = water.y;
   f.vy = water.vy;
-}
-
-/** Goal fish patrol the level instead of swimming off it. */
-function turnAtWalls(f: Fish, width: number): void {
-  const m = f.size + 40;
-  if (f.sprite.x < m) f.vx = Math.abs(f.vx);
-  else if (f.sprite.x > width - m) f.vx = -Math.abs(f.vx);
 }
 
 export function renderFish(f: Fish, playerSize: number, frame: number, dt: number): void {
@@ -284,9 +280,11 @@ export function renderFish(f: Fish, playerSize: number, frame: number, dt: numbe
   f.sprite.setRotation(f.tilt + Phaser.Math.Clamp(f.vy / 400, -0.35, 0.35) * (f.sprite.flipX ? -1 : 1) + wobble);
 }
 
-export function isOffWorld(f: Fish, level: LevelDef): boolean {
+/** An ordinary fish done with this level: out of the water, or a lap swum and out of sight. Goal fish never are. */
+export function isSpent(f: Fish, level: LevelDef, view: Phaser.Geom.Rectangle): boolean {
   if (f.role !== 'normal') return false;
   const m = f.size * 3 + 40;
   const { x, y } = f.sprite;
-  return x < -m || x > level.world.width + m || y < -m || y > level.world.height + m;
+  if (y < -m || y > level.world.height + m) return true;
+  return f.swum > level.world.width && pastView(x, view.centerX, view.width, level.world.width, m);
 }

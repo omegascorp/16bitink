@@ -53,7 +53,7 @@ export class Ducks {
     return duck.sprite;
   }
 
-  update(dt: number, view: Phaser.Geom.Rectangle, worldWidth: number): void {
+  update(dt: number, view: Phaser.Geom.Rectangle): void {
     this.ducks = this.ducks.filter((d) => {
       d.age += dt * 1000;
       const s = d.sprite;
@@ -63,8 +63,7 @@ export class Ducks {
         s.setPosition(s.x + Math.sin(d.age / 400) * 20 * dt, next.y).setAngle(Math.sin(d.age / 300) * 18);
       } else {
         // Bobbing on the swell, drifting slowly along the surface.
-        const x = Phaser.Math.Clamp(s.x + d.drift * DUCK.driftSpeed * dt, 40, worldWidth - 40);
-        s.setPosition(x, SKY.surfaceY + DUCK.floatDepth + Math.sin(d.age / 450) * 3).setAngle(Math.sin(d.age / 600) * 8);
+        s.setPosition(s.x + d.drift * DUCK.driftSpeed * dt, SKY.surfaceY + DUCK.floatDepth + Math.sin(d.age / 450) * 3).setAngle(Math.sin(d.age / 600) * 8);
       }
       // Only in the deep does a duck leave, by rising out of sight.
       const gone = !this.sky && s.y < view.top - 60;

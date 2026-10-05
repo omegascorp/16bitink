@@ -159,7 +159,8 @@ export function movePlayer(
     p.vy += (ty - p.vy) * k;
   }
   const r = p.size;
-  p.sprite.x = Phaser.Math.Clamp(p.sprite.x + p.vx * dt, r, level.world.width - r);
+  // No side walls: the sea is a ring (see logic/ring.ts).
+  p.sprite.x += p.vx * dt;
   const top = waterTop(r);
   const rushing = now - p.dashedAt < JUMP.rushMs || now < p.speedUntil;
   const { state, event } = stepSurface({ y: p.sprite.y, vy: p.vy, airborne: p.airborne }, top, dt, sky, rushing, p.stats.leap);
