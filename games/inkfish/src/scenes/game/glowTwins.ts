@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ensureFishGlow } from '../../art/textures';
 import type { FishShape } from '../../art/fishArt';
+import { keepDepth } from './sync';
 
 /**
  * Glow twins: a glow layer laid over a drawing with additive blending,
@@ -84,6 +85,6 @@ export class GlowTwins {
     const lit = s.isTinted ? 0.25 : 1;
     twin.glow.setPosition(s.x, s.y).setRotation(s.rotation).setScale(s.scaleX, s.scaleY).setFlip(s.flipX, s.flipY)
       .setOrigin(twin.originX, twin.originY).setVisible(s.visible).setAlpha(s.alpha * twin.alpha * breathe * lit);
-    if (!this.ordered) twin.glow.setDepth(twin.depth ?? s.depth + twin.lift);
+    if (!this.ordered) keepDepth(twin.glow, twin.depth ?? s.depth + twin.lift);
   }
 }

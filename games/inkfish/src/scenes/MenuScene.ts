@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { crispText, DPR, screenZoom, toView, uiCamera, viewSize } from './hidpi';
 import { BOIL_FPS, BOIL_FRAMES, ensureFishTextures, fishKey } from '../art/textures';
+import { dropUnusedArt, trackArt } from '../art/artCache';
 import { getChapters, getFullError, getHost } from '../host';
 import { guidePages, guideProgress, type GuidePage } from '../guide';
 import { allLevels } from '../levels/chapters';
@@ -45,6 +46,8 @@ export class MenuScene extends Phaser.Scene {
 
   create(): void {
     crispText(this);
+    // Notes the drawings the map uses, so the next boot can decode them ahead (art/artCache.ts).
+    const stopArt = trackArt('menu');
     const host = getHost(this);
     const owned = getChapters(this);
     const levels = allLevels(owned);
@@ -120,6 +123,8 @@ export class MenuScene extends Phaser.Scene {
     };
     this.scale.once('resize', relayout);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', relayout));
+    stopArt();
+    dropUnusedArt();
   }
 
   update(_t: number, delta: number): void {

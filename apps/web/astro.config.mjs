@@ -1,5 +1,6 @@
 import node from '@astrojs/node';
 import { defineConfig } from 'astro/config';
+import { inkfishBuildId } from '@16bitink/inkfish/build-id';
 
 export default defineConfig({
   site: 'https://16bit.ink',
@@ -23,6 +24,8 @@ export default defineConfig({
   // The game package ships TypeScript source; let Vite bundle it.
   vite: {
     ssr: { noExternal: ['@16bitink/inkfish'] },
+    // Ties the game's saved drawings (art cache) to its source.
+    define: { __INKFISH_BUILD__: JSON.stringify(inkfishBuildId()) },
     // Phaser is ~1.4 MB and loaded lazily on the play page only.
     build: { chunkSizeWarningLimit: 1600 },
   },

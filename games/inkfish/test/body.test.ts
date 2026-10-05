@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { capsuleOf, capsulesTouch, capsuleTouchesCircle } from '../src/logic/body';
+import { capsuleOf, capsulesTouch, capsuleTouchesCircle, type Capsule } from '../src/logic/body';
+import { createRng } from '../src/logic/rng';
 
 // A slim fish: 4x longer than tall, drawn at scale 1.
 const slim = { hl: 80, hh: 20 };
@@ -45,5 +46,37 @@ describe('fish body capsules', () => {
   it('demands a deeper overlap with a smaller factor', () => {
     expect(capsulesTouch(at(0, 0), at(0, 30), 1)).toBe(true);
     expect(capsulesTouch(at(0, 0), at(0, 30), 0.6)).toBe(false);
+  });
+
+  it('the far-apart early-out never changes an answer', () => {
+    // Brute force: sample both segments densely and take the closest pair.
+    const pointOn = (c: Capsule, t: number) => ({ x: c.ax + (c.bx - c.ax) * t, y: c.ay + (c.by - c.ay) * t });
+    const STEPS = 200;
+    const gap = (a: Capsule, b: Capsule): number => {
+      let best = Infinity;
+      for (let i = 0; i <= STEPS; i++) {
+        const p = pointOn(a, i / STEPS);
+        for (let k = 0; k <= STEPS; k += 4) {
+          const q = pointOn(b, k / STEPS);
+          best = Math.min(best, Math.hypot(p.x - q.x, p.y - q.y));
+        }
+      }
+      return best;
+    };
+    const rng = createRng(7);
+    const random = (): Capsule => capsuleOf(
+      { x: rng() * 400, y: rng() * 400, rotation: rng() * Math.PI * 2, flipped: rng() < 0.5, scale: 0.3 + rng() * 1.5 }, slim);
+    let checked = 0;
+    for (let n = 0; n < 300; n++) {
+      const a = random();
+      const b = random();
+      const d = gap(a, b);
+      const reach = a.r + b.r;
+      // Skip near-boundary pairs, where sampling error could flip the brute-force answer.
+      if (Math.abs(d - reach) < 2) continue;
+      expect(capsulesTouch(a, b)).toBe(d < reach);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(200);
   });
 });

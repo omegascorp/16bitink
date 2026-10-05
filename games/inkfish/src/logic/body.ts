@@ -72,14 +72,31 @@ function segmentSegment2(p: Capsule, q: Capsule): number {
   );
 }
 
+/** Half the segment's length: every point of it is this close to its midpoint. */
+const halfSpan = (c: Capsule): number => Math.hypot(c.bx - c.ax, c.by - c.ay) / 2;
+
+/**
+ * True when the segments' midpoints are so far apart that no point of one
+ * can be within `reach` of the other: an exact early-out for the far pairs,
+ * which are nearly all of them in a level full of fish.
+ */
+function farApart(a: Capsule, mx: number, my: number, spanB: number, reach: number): boolean {
+  const dx = (a.ax + a.bx) / 2 - mx;
+  const dy = (a.ay + a.by) / 2 - my;
+  const limit = halfSpan(a) + spanB + Math.abs(reach);
+  return dx * dx + dy * dy >= limit * limit;
+}
+
 /** Two bodies overlap. `factor` < 1 demands a deeper overlap (a bite, not a brush). */
 export function capsulesTouch(a: Capsule, b: Capsule, factor = 1): boolean {
   const reach = (a.r + b.r) * factor;
+  if (farApart(a, (b.ax + b.bx) / 2, (b.ay + b.by) / 2, halfSpan(b), reach)) return false;
   return segmentSegment2(a, b) < reach * reach;
 }
 
 /** A body overlaps a round thing (jellyfish, hook tip, item, ink bottle). */
 export function capsuleTouchesCircle(a: Capsule, x: number, y: number, r: number, factor = 1): boolean {
   const reach = (a.r + r) * factor;
+  if (farApart(a, x, y, 0, reach)) return false;
   return pointSegment2(x, y, a.ax, a.ay, a.bx, a.by) < reach * reach;
 }

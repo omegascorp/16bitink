@@ -15,6 +15,8 @@ import { drawDecorGlow, isGlowDecor } from './decorGlow';
 import { xAt } from './fish/kit';
 import { ANATOMY } from './fish/registry';
 import { makeCanvas } from './pen';
+import { atlasOf, originOf } from './atlas';
+import { noteArt, rememberArt, takeArt } from './artCache';
 import { BOAT_KINDS, BOAT_SPEC, CLOUD_SIZE, drawBoat, drawCloud } from './skyArt';
 import { BIRD_FRAMES, BIRD_TEX, drawBird } from './birdArt';
 import type { BirdId } from '../logic/birds';
@@ -39,11 +41,35 @@ export const weedKey = (kind: WeedKind, frame: number): string => `weed-${kind}-
 export const WEED_SIZE = { w: 128, h: 256 } as const;
 export const ROCK_SIZE = { w: 256, h: 128 } as const;
 
+/** Drawings that must keep a texture of their own: tiled paper, and the darkness, whose opaque edge is stretched across the screen. */
+const OWN_TEXTURE = new Set(['paper', 'darkness']);
+
+/**
+ * Makes texture `key` (w×h px) unless it exists: from the art cache when the
+ * drawing was saved on an earlier visit, else by running `draw`. Most land in
+ * the shared atlas (see atlas.ts).
+ */
 function add(scene: Phaser.Scene, key: string, w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void): void {
+  noteArt(key);
   if (scene.textures.exists(key)) return;
+  const cached = takeArt(key);
+  const source = cached && cached.width === w && cached.height === h ? cached : drawn(key, w, h, draw);
+  if (OWN_TEXTURE.has(key) || !atlasOf(scene.game).place(key, source, w, h)) {
+    if (source instanceof HTMLCanvasElement) scene.textures.addCanvas(key, source);
+    else {
+      const { canvas, ctx } = makeCanvas(w, h);
+      ctx.drawImage(source, 0, 0);
+      scene.textures.addCanvas(key, canvas);
+    }
+  }
+  cached?.close();
+}
+
+function drawn(key: string, w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void): HTMLCanvasElement {
   const { canvas, ctx } = makeCanvas(w, h);
   draw(ctx);
-  scene.textures.addCanvas(key, canvas);
+  rememberArt(key, canvas);
+  return canvas;
 }
 
 /**
@@ -184,8 +210,10 @@ function addSwimFrames(scene: Phaser.Scene, key: string, shape: FishShape): void
   const cut = tailCut(shape);
   const tex = scene.textures.get(key);
   if (cut === null || tex.has('body')) return;
-  const body = tex.add('body', 0, cut, 0, FISH_TEX - cut, FISH_TEX);
-  const tail = tex.add('tail', 0, 0, 0, cut + TAIL_OVERLAP, FISH_TEX);
+  // The drawing may sit anywhere in an atlas page.
+  const at = originOf(tex);
+  const body = tex.add('body', 0, at.x + cut, at.y, FISH_TEX - cut, FISH_TEX);
+  const tail = tex.add('tail', 0, at.x, at.y, cut + TAIL_OVERLAP, FISH_TEX);
   // Adding a frame makes it the texture's default; keep the whole fish as the
   // default so plain images (map, intro card, end screens) still show the tail.
   tex.firstFrame = '__BASE';
@@ -197,9 +225,12 @@ function addSwimFrames(scene: Phaser.Scene, key: string, shape: FishShape): void
 /** Frees GPU memory held by fish textures not in `keep`. Player fish always stay. */
 export function releaseFishTextures(scene: Phaser.Scene, keep: readonly FishShape[]): void {
   const kept = new Set<FishShape>([...keep, ...PLAYER_FISH]);
+  const atlas = atlasOf(scene.game);
   for (const key of scene.textures.getTextureKeys()) {
     const shape = /^fish-(\w+)-(light|heavy)-\d+$/.exec(key)?.[1] as FishShape | undefined;
-    if (shape && !kept.has(shape)) scene.textures.remove(key);
+    if (!shape || kept.has(shape)) continue;
+    if (atlas.has(key)) atlas.remove(key);
+    else scene.textures.remove(key);
   }
 }
 

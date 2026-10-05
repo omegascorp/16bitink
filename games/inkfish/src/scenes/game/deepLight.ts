@@ -8,6 +8,7 @@ import { fishLights, type FishShape } from '../../art/fishArt';
 import type { ZoneId } from '../../levels/types';
 import { ZONE_NIGHT } from '../../levels/zones';
 import { createRng, rangeOf } from '../../logic/rng';
+import { CULL_MARGIN, inView } from './culler';
 
 /**
  * Below the reach of sunlight the only light is living light. In the deep
@@ -80,8 +81,8 @@ export class DeepLight {
     }
   }
 
-  /** Drifts the marine snow and moves the player's light. */
-  update(dt: number, now: number, player: { x: number; y: number }, radius: number): void {
+  /** Drifts the marine snow (drawing only the flakes in `view`) and moves the player's light. */
+  update(dt: number, now: number, player: { x: number; y: number }, radius: number, view: Phaser.Geom.Rectangle | null): void {
     if (!this.active) return;
     const t = now / 1000;
     for (const f of this.snow) {
@@ -89,6 +90,8 @@ export class DeepLight {
       s.y += f.fall * dt;
       s.x += Math.sin(t * 0.6 + f.phase) * f.sway * dt;
       if (s.y > this.world.height) s.setPosition(Math.random() * this.world.width, -10);
+      const seen = !view || inView(view, s.x, s.y, CULL_MARGIN);
+      if (s.visible !== seen) s.setVisible(seen);
     }
     this.playerLight?.setPosition(player.x, player.y).setScale((radius * 2) / GLOW_TEX);
   }

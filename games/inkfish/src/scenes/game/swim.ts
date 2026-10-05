@@ -3,6 +3,7 @@ import { C } from '../../art/fish/kit';
 import { bodyProportions, type FishShape } from '../../art/fishArt';
 import { tailCut } from '../../art/textures';
 import { capsuleOf, type Capsule } from '../../logic/body';
+import { keepDepth, keepTint } from './sync';
 
 /**
  * Swimming animation for any fish sprite: the tail is a second image hinged
@@ -83,10 +84,9 @@ function follow(rig: Rig, s: Image): void {
     .setScale(s.scaleX, s.scaleY)
     .setFlip(s.flipX, s.flipY)
     .setAlpha(s.alpha)
-    .setVisible(s.visible)
-    .setDepth(s.depth - 0.01)
-    .setTint(s.tintTopLeft)
-    .setTintMode(s.tintMode);
+    .setVisible(s.visible);
+  keepDepth(rig.tail, s.depth - 0.01);
+  keepTint(rig.tail, s);
 }
 
 /** A swimmer's tail clock and facing, advanced by `stroke`. */

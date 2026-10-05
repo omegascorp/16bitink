@@ -5,6 +5,7 @@ import type { ZoneId } from '../../levels/types';
 import { BIRD_INFO, birdSize, diveTarget, pickBird, wantsDive, ZONE_BIRDS, type BirdId, type Quarry } from '../../logic/birds';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { SKY } from '../../logic/water';
+import { keepDepth } from './sync';
 
 /**
  * Birds over the water, frame by frame. They cruise across the sky; hunters
@@ -179,7 +180,8 @@ export class Flock {
       if (b.prize?.active && b.prizeUpright) {
         // Gripped by the back, swinging under the beak.
         const beak = this.beakOf(b);
-        b.prize.setPosition(beak.x, beak.y + b.prizeNose * 0.6).setRotation(Math.sin(b.t / 160) * 0.25).setDepth(s.depth - 0.5);
+        b.prize.setPosition(beak.x, beak.y + b.prizeNose * 0.6).setRotation(Math.sin(b.t / 160) * 0.25);
+        keepDepth(b.prize, s.depth - 0.5);
       } else if (b.prize?.active) {
         // Held by the head, nose up in the beak, the body dangling and swinging below.
         const beak = this.beakOf(b);
@@ -187,7 +189,8 @@ export class Flock {
         const hold = b.prizeNose * 0.8;
         b.prize
           .setPosition(beak.x - Math.cos(a) * hold, beak.y - Math.sin(a) * hold)
-          .setRotation(a).setFlipX(false).setFlipY(false).setDepth(s.depth - 0.5);
+          .setRotation(a).setFlipX(false).setFlipY(false);
+        keepDepth(b.prize, s.depth - 0.5);
       }
     }
     const isWet = s.y > SKY.surfaceY;

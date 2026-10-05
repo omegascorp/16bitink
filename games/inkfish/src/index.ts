@@ -34,7 +34,12 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
       fullscreenTarget: parent,
     },
     // Mipmaps keep hairline pen detail clean when sprites are drawn small.
-    render: { antialias: true, roundPixels: false, mipmapFilter: 'LINEAR_MIPMAP_LINEAR' },
+    // `antialias` is texture smoothing and stays on; `antialiasGL` is MSAA on the
+    // canvas, which only edges raw geometry (the art is all pre-drawn textures) and
+    // costs old mobile GPUs a lot of fill-rate.
+    render: {
+      antialias: true, antialiasGL: false, roundPixels: false, mipmapFilter: 'LINEAR_MIPMAP_LINEAR', powerPreference: 'high-performance',
+    },
     input: { activePointers: 3 },
     // Sound effects are synthesized by our own SoundBoard (audio/sound.ts); Phaser's audio stays off.
     audio: { noAudio: true },

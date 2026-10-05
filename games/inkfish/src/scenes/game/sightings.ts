@@ -19,10 +19,11 @@ export class Sightings {
     for (const id of first) this.fresh.add(id);
   }
 
-  look(now: number, view: Phaser.Geom.Rectangle, things: Iterable<{ readonly x: number; readonly y: number; readonly id: string }>): void {
+  /** `things` is only called when it's time to look, so callers can build the list lazily. */
+  look(now: number, view: Phaser.Geom.Rectangle, things: () => Iterable<{ readonly x: number; readonly y: number; readonly id: string }>): void {
     if (now < this.nextLook) return;
     this.nextLook = now + LOOK_EVERY_MS;
-    for (const t of things) if (view.contains(t.x, t.y)) this.fresh.add(t.id);
+    for (const t of things()) if (view.contains(t.x, t.y)) this.fresh.add(t.id);
   }
 
   save(): void {

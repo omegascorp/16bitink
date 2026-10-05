@@ -27,10 +27,11 @@ import {
 import { applyItem, type ItemHost } from './game/itemEffects';
 import { spawnItem, updateItem, type FallingItem } from './game/items';
 import { bodyOf, gulp, mouthOf, noseReach } from './game/swim';
-import { capsulesTouch, capsuleTouchesCircle } from '../logic/body';
+import { capsulesTouch, capsuleTouchesCircle, type Capsule } from '../logic/body';
 import { TUNING } from './game/tuning';
 import { TwistRunner } from './game/twistRunner';
 import { drawWorld, swayWeeds } from './game/world';
+import { Culler } from './game/culler';
 import { DeepLight, playerGlowTint } from './game/deepLight';
 import { itemSfx, pitchForSize, type SfxId } from '../audio/recipes';
 import { JELLY_INFO } from '../levels/jellies';
@@ -48,6 +49,7 @@ import { PLAYER_FISH_NAMES, ZONE_SKY } from '../levels/zones';
 import { PLAYER_STATS } from '../levels/playerStats';
 import { allLevels, chapterOf } from '../levels/chapters';
 import { HAND_FONT } from './ui';
+import { artCacheEnabled, dropUnusedArt, trackArt, warmArt } from '../art/artCache';
 
 export interface HudSnapshot {
   readonly levelName: string;
@@ -67,6 +69,8 @@ export interface HudSnapshot {
 
 export interface GameSceneData {
   readonly levelIndex: number;
+  /** Set on the restart after the level's saved drawings were decoded (see create). */
+  readonly artWarmed?: boolean;
 }
 
 export const HUD_EVENT = 'hud';
@@ -82,6 +86,8 @@ function levelSpecies(level: LevelDef): SpeciesId[] {
 const SKY_LOOK = 110;
 /** Longest the win card waits for the fish to settle, ms past the usual pause. */
 const SETTLE_MAX_MS = 3000;
+/** The art-cache group of the level built last (see create). */
+let lastBuiltGroup = '';
 
 export class GameScene extends Phaser.Scene {
   private level!: LevelDef;
@@ -107,6 +113,8 @@ export class GameScene extends Phaser.Scene {
   /** Weed and coral to hide in. */
   private hideout!: Hideout;
   private weeds: Phaser.GameObjects.Image[] = [];
+  /** Hides scenery that's out of view, so it isn't drawn. */
+  private culler!: Culler;
   /** This level's sand: crawlers walk on it, swimmers can't go below it. */
   private seabed!: Seabed;
   /** Open air above the water: leaping, and boats behind the hooks. */
@@ -128,6 +136,19 @@ export class GameScene extends Phaser.Scene {
   private death: Death | null = null;
   private twist!: TwistRunner;
   private progress: ObjectiveProgress = initialProgress;
+  /**
+   * Fish bodies for the collision passes that run once every fish has moved
+   * (hunting, stings, hooks, diving birds), so each capsule is built once a
+   * frame instead of once per pair. Emptied at the end of each frame.
+   */
+  private readonly bodies = new Map<Fish, Capsule>();
+  private data0: GameSceneData = { levelIndex: 0 };
+  /** False until create has built the level (it may first wait for the art cache). */
+  private built = false;
+  /** Updates since the level was built: culling waits for the camera's first real view. */
+  private ticks = 0;
+  /** Bumped by every init, so a warm-up from an earlier start can't restart this one. */
+  private startId = 0;
 
   constructor() {
     super('Game');
@@ -139,6 +160,10 @@ export class GameScene extends Phaser.Scene {
     const level = levels[this.levelIndex];
     if (!level) throw new Error(`Level ${data.levelIndex} not found`);
     this.level = level;
+    this.data0 = data;
+    this.built = false;
+    this.ticks = 0;
+    this.startId += 1;
     this.rng = createRng(Date.now());
     Object.assign(this, {
       fish: [], jellies: [], hooks: [], hookedFish: new Map(), playerHook: null, releaseAt: 0, items: [], growth: initialGrowth, frenzy: initialFrenzy,
@@ -150,6 +175,26 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
+    const group = `level:${this.level.id}`;
+    // A retry of the level just played already has its drawings.
+    if (artCacheEnabled && !this.data0.artWarmed && group !== lastBuiltGroup) {
+      // Decode this level's saved drawings (off the main thread), then build it.
+      const start = this.startId;
+      void warmArt(group, (key) => this.textures.exists(key)).then(() => {
+        if (start === this.startId && this.scene.isActive()) this.scene.restart({ ...this.data0, artWarmed: true });
+      });
+      return;
+    }
+    lastBuiltGroup = group;
+    const stopArt = trackArt(group);
+    this.build();
+    // Glow layers and birds are drawn during play too: keep noting until the level ends.
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, stopArt);
+    dropUnusedArt();
+    this.built = true;
+  }
+
+  private build(): void {
     crispText(this);
     const { world } = this.level;
     const chapter = chapterOf(this.level);
@@ -166,10 +211,13 @@ export class GameScene extends Phaser.Scene {
     this.seabed = seabedFor(this.level.id, world);
     const scenery = drawWorld(this, this.level, chapter.zone, this.seabed, this.sky);
     this.weeds = scenery.weeds;
+    this.culler = new Culler();
+    this.culler.add(scenery.fixed);
     this.deep = new DeepLight(this, chapter.zone, world, levelNumber(this.level) * 53 + 11);
     this.deep.lightDecor(scenery.decor);
     const covers = buildCover(this, planCover(this.level.id, levelNumber(this.level), chapter.zone, world.width), this.seabed.floorAt, levelNumber(this.level) * 31 + 7);
     this.weeds.push(...covers.flatMap((c) => c.weeds));
+    this.culler.add(covers.flatMap((c) => [...new Set([...c.weeds, ...c.front])]));
     this.hideout = new Hideout(this, covers, this.seabed.floorAt);
     this.player = createPlayer(this, this.level, chapter.player);
     this.deep.lightPlayer(this.player.sprite, chapter.player, playerGlowTint(chapter.player));
@@ -226,8 +274,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, deltaMs: number): void {
+    if (!this.built) return;
+    this.ticks += 1;
     const dt = Math.min(deltaMs, 50) / 1000;
     const now = this.time.now;
+    // The camera's view is only computed when it renders: leave everything shown until it has.
+    const view = this.ticks > 1 ? this.cameras.main.worldView : null;
+    if (view) this.culler.update(view);
     this.tickBoil(deltaMs);
     swayWeeds(this.weeds, this.twist.current, this.time.now);
     this.lightTheDeep(now, dt);
@@ -237,6 +290,7 @@ export class GameScene extends Phaser.Scene {
       if (!this.death) settlePlayer(this.player, this.level, now, this.boilFrame, dt, this.seabed.floorAt, this.sky);
       this.updateFishes(now, dt);
       this.updateHazards(now, deltaMs, dt);
+      this.bodies.clear();
       return;
     }
     this.elapsedMs += deltaMs;
@@ -266,16 +320,26 @@ export class GameScene extends Phaser.Scene {
     this.frenzy = drainFrenzy(this.frenzy, dt);
     this.updateFishes(now, dt);
     this.updateHazards(now, deltaMs, dt);
+    this.bodies.clear();
     this.updateItems(now, dt);
     this.drawShield();
     this.updateObjective(now, dt);
     this.sense?.update(now, this.player, this.fish);
     this.emitHud();
-    this.sightings.look(now, cam.worldView, [
+    this.sightings.look(now, cam.worldView, () => [
       ...this.fish.map((f) => ({ x: f.sprite.x, y: f.sprite.y, id: f.species })),
       ...this.flock.birds.map((b) => ({ x: b.sprite.x, y: b.sprite.y, id: b.kind })),
       ...this.jellies.map((j) => ({ x: j.sprite.x, y: j.sprite.y, id: j.kind })),
     ]);
+  }
+
+  /** A fish's body this frame, after every fish has moved (see `bodies`). */
+  private fishBody(f: Fish): Capsule {
+    const known = this.bodies.get(f);
+    if (known) return known;
+    const body = bodyOf(f.sprite, f.species);
+    this.bodies.set(f, body);
+    return body;
   }
 
   /** Living light in the deep zones: every fish's lights, marine snow, the player's own glow. */
@@ -284,7 +348,7 @@ export class GameScene extends Phaser.Scene {
     for (const f of this.fish) this.deep.trackFish(f.sprite, f.species);
     const p = this.player;
     const glow = now < p.glowUntil ? TUNING.glowFactor : 1;
-    this.deep.update(dt, now, p.sprite, (170 + p.drawSize * 2.4) * glow);
+    this.deep.update(dt, now, p.sprite, (170 + p.drawSize * 2.4) * glow, this.ticks > 1 ? this.cameras.main.worldView : null);
   }
 
   private tickBoil(deltaMs: number): void {
@@ -292,7 +356,8 @@ export class GameScene extends Phaser.Scene {
     if (this.boilClock < 1000 / BOIL_FPS) return;
     this.boilClock = 0;
     this.boilFrame = (this.boilFrame + 1) % BOIL_FRAMES;
-    for (const w of this.weeds) w.setTexture(weedKey(w.getData('kind') as 0 | 1 | 2, this.boilFrame));
+    // Hidden (culled) weeds pick up the right frame when they come back into view.
+    for (const w of this.weeds) if (w.visible) w.setTexture(weedKey(w.getData('kind') as 0 | 1 | 2, this.boilFrame));
   }
 
   private updateFishes(now: number, dt: number): void {
@@ -356,12 +421,13 @@ export class GameScene extends Phaser.Scene {
 
   /** The food chain doesn't wait for the player: hunters snap up smaller fish they bump into. */
   private huntPrey(now: number): void {
+    this.bodies.clear();
     const eaten = new Set<Fish>();
     for (const hunter of this.fish) {
       if (isHelpless(hunter) || now < hunter.fullUntil || eaten.has(hunter)) continue;
       const prey = this.fish.find((f) =>
         f !== hunter && !eaten.has(f) && f.state !== 'hooked' && f.role === 'normal' && canHunt(hunter.species, hunter.size, f.size) &&
-        capsulesTouch(bodyOf(hunter.sprite, hunter.species), bodyOf(f.sprite, f.species), 0.8));
+        capsulesTouch(this.fishBody(hunter), this.fishBody(f), 0.8));
       if (!prey) continue;
       eaten.add(prey);
       hunter.fullUntil = now + HUNT_COOLDOWN_MS;
@@ -527,7 +593,7 @@ export class GameScene extends Phaser.Scene {
   private birdCatchesFish(b: Bird): void {
     const beak = this.flock.beakOf(b);
     const catchable = (f: Fish): boolean => f.role === 'normal' && f.state !== 'hooked' && !isCrawler(f.species) && f.size < b.size * 0.9;
-    const fish = this.fish.find((f) => catchable(f) && capsuleTouchesCircle(bodyOf(f.sprite, f.species), beak.x, beak.y, b.size * 0.35));
+    const fish = this.fish.find((f) => catchable(f) && capsuleTouchesCircle(this.fishBody(f), beak.x, beak.y, b.size * 0.35));
     if (!fish) return;
     this.fish = this.fish.filter((f) => f !== fish);
     this.flock.carryOff(b, fish.sprite, true, noseReach(fish.sprite, fish.species));
@@ -576,7 +642,7 @@ export class GameScene extends Phaser.Scene {
   private stingFish(j: Jelly, now: number): void {
     const view = this.cameras.main.worldView;
     for (const f of this.fish) {
-      if (isHelpless(f) || !capsuleTouchesCircle(bodyOf(f.sprite, f.species), j.sprite.x, j.sprite.y, j.radius, 0.8)) continue;
+      if (isHelpless(f) || !capsuleTouchesCircle(this.fishBody(f), j.sprite.x, j.sprite.y, j.radius, 0.8)) continue;
       stunFish(f, now, TUNING.fishStunMs);
       if (view.contains(f.sprite.x, f.sprite.y)) this.floatText(f.sprite.x, f.sprite.y - f.size, 'zzap!', '#6b3f99', 22);
       this.sfx('zap', f.sprite, 1.3, 0.5);
@@ -593,7 +659,7 @@ export class GameScene extends Phaser.Scene {
       if (!this.absorbHit(now)) this.hookPlayer(h, now);
       return;
     }
-    const fish = this.fish.find((f) => f.state !== 'hooked' && f.role === 'normal' && capsuleTouchesCircle(bodyOf(f.sprite, f.species), tip.x, tip.y, 12, 0.9));
+    const fish = this.fish.find((f) => f.state !== 'hooked' && f.role === 'normal' && capsuleTouchesCircle(this.fishBody(f), tip.x, tip.y, 12, 0.9));
     if (!fish) return;
     fish.state = 'hooked';
     hookCatch(h, fish.size);

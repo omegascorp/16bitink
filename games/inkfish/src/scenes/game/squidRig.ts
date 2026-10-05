@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { EYE, FIN, mantleHalf } from '../../art/squidArt';
 import { clubPoint, LIMBS, limbPoints, REST_POSE, type Pt, type SquidPose } from '../../art/squidPose';
 import { SQUID_PUPIL_KEY, squidKey } from '../../art/textures';
+import { keepDepth, keepTint } from './sync';
 import type { InkVariant } from '../../art/fishArt';
 
 /**
@@ -143,9 +144,9 @@ function follow(rig: Rig, s: Image): void {
       .setScale(sx, sy)
       .setAlpha(s.alpha)
       .setVisible(s.visible)
-      .setDepth(s.depth + (limb.far ? -0.03 : 0.02))
       .setColors(tinted ? s.tintTopLeft : limb.far ? FAR_SHADE : 0xffffff)
       .setDirty();
+    keepDepth(rig.ropes[i]!, s.depth + (limb.far ? -0.03 : 0.02));
   });
   rig.clubs = clubs;
   // Fins: upper and lower lobes flap together, like wings seen side-on.
@@ -162,9 +163,9 @@ function follow(rig: Rig, s: Image): void {
       .setRotation(s.rotation + slope * Math.sign(sx) * side)
       .setScale(sx, s.scaleY * flap * side)
       .setAlpha(s.alpha)
-      .setVisible(s.visible)
-      .setDepth(s.depth - 0.02)
-      .setTint(s.tintTopLeft);
+      .setVisible(s.visible);
+    keepDepth(fin, s.depth - 0.02);
+    keepTint(fin, { tintTopLeft: s.tintTopLeft, tintMode: fin.tintMode });
   });
   // The pupil rolls towards whatever it watches.
   const eye = { x: EYE.x, y: EYE.y };
@@ -179,6 +180,6 @@ function follow(rig: Rig, s: Image): void {
     .setPosition(p.x, p.y)
     .setScale(Math.abs(sx), Math.abs(sy))
     .setAlpha(s.alpha)
-    .setVisible(s.visible)
-    .setDepth(s.depth + 0.01);
+    .setVisible(s.visible);
+  keepDepth(rig.pupil, s.depth + 0.01);
 }

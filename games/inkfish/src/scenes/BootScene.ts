@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { generateInkTextures } from '../art/textures';
+import { trackArt, warmArt } from '../art/artCache';
 import { getHost, REG } from '../host';
 import { DEMO_CHAPTER } from '../levels/demo';
 import { pullFromAccount } from '../logic/accountSave';
@@ -27,7 +28,12 @@ export class BootScene extends Phaser.Scene {
   }
 
   private async boot(): Promise<void> {
+    // Drawings saved on an earlier visit are decoded instead of redrawn (see art/artCache.ts).
+    const exists = (key: string): boolean => this.textures.exists(key);
+    await Promise.all([warmArt('boot', exists), warmArt('menu', exists)]);
+    const stop = trackArt('boot');
     generateInkTextures(this);
+    stop();
     this.registry.set(REG.chapters, [DEMO_CHAPTER]);
     this.registry.set(REG.fullError, null);
     await Promise.all([loadPaidChapters(this), pullFromAccount(getHost(this))]);

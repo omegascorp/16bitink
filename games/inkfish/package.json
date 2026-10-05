@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./content": "./content/paid.ts"
+    "./content": "./content/paid.ts",
+    "./build-id": "./build-id.mjs"
   },
   "scripts": {
     "test": "vitest run",

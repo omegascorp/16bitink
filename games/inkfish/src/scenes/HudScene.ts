@@ -61,6 +61,8 @@ export class HudScene extends Phaser.Scene {
   private stick: { readonly base: Phaser.GameObjects.Graphics; readonly knob: Phaser.GameObjects.Graphics } | null = null;
   private pauseLayer: Phaser.GameObjects.Container | null = null;
   private last: HudSnapshot | null = null;
+  /** What the bars were last drawn for; see drawBars. */
+  private barsSig = '';
   private player: PlayerFishId = 'inkling';
   private levelText!: Phaser.GameObjects.Text;
   private narrow = false;
@@ -79,6 +81,7 @@ export class HudScene extends Phaser.Scene {
     this.cornerButtons = [];
     this.pauseLayer = null;
     this.last = null;
+    this.barsSig = '';
     this.textColor = data.dark ? '#ece4d2' : '#1b1a1f';
     this.levelText = this.add.text(20, 14, data.levelName, { fontFamily: '"Caveat", cursive', fontSize: '24px', color: this.textColor });
     this.bars = this.add.graphics();
@@ -271,6 +274,22 @@ export class HudScene extends Phaser.Scene {
   }
 
   private draw(s: HudSnapshot): void {
+    this.drawBars(s);
+    // Text re-rasterizes and re-uploads on any style change, so only touch what changed.
+    const color = s.urgent ? this.urgentColor : this.textColor;
+    if (this.objectiveText.style.color !== color) this.objectiveText.setColor(color);
+    this.objectiveText.setText(s.objective);
+    this.frenzyText.setText(s.multiplier > 1 ? `×${s.multiplier} ${s.frenzyLabel}` : '');
+    this.scoreText.setText(String(s.score));
+    this.syncLives(s.lives);
+    this.dashBtn?.setAlpha(s.dashReady ? 1 : 0.4);
+  }
+
+  /** The growth and combo bars, redrawn only when their fill changes. */
+  private drawBars(s: HudSnapshot): void {
+    const sig = `${s.progress}|${s.frenzyMeter}|${s.tierMarks.join(',')}|${this.barY}|${this.barW}`;
+    if (sig === this.barsSig) return;
+    this.barsSig = sig;
     const g = this.bars.clear();
     const x = 20;
     const y = this.barY;
@@ -285,11 +304,6 @@ export class HudScene extends Phaser.Scene {
       g.fillStyle(this.accent.frenzy, 0.6).fillRect(x, y + 30, w * s.frenzyMeter, 8);
       wobblyRect(g, x, y + 30, w, 8, 9, 1.4, this.lineColor);
     }
-    this.objectiveText.setText(s.objective).setColor(s.urgent ? this.urgentColor : this.textColor);
-    this.frenzyText.setText(s.multiplier > 1 ? `×${s.multiplier} ${s.frenzyLabel}` : '');
-    this.scoreText.setText(String(s.score));
-    this.syncLives(s.lives);
-    this.dashBtn?.setAlpha(s.dashReady ? 1 : 0.4);
   }
 
   private syncLives(lives: number): void {
