@@ -68,7 +68,7 @@ function coiled(d: Draw, c: Coil): { top: Pt[]; bot: Pt[]; shape: Pt[]; spine: P
     glint(d, spine.slice(8, 34).map((p, i) => lerp(p, top[i + 8]!, 0.62)), 2.2, 0.55);
   });
   mottle(d, shape, 240, -40, 30, c.band);
-  shade(d, shape, 14);
+  shade(d, shape);
   edge(d, shape);
   return { top, bot: r.bot, shape, spine };
 }
@@ -140,7 +140,7 @@ function round(d: Draw, o: { cx: number; cy: number; r: number; wash: string; ba
     glint(d, bezier(pt(cx - r * 0.75, cy - r * 0.25), pt(cx - r * 0.5, cy - r * 0.8), pt(cx + r * 0.1, cy - r * 0.85), 10), 2.6, 0.6);
   });
   mottle(d, body, 160, cy - r, cy + r * 0.2, o.band, 0.5);
-  shade(d, body, cy + r * 0.3);
+  shade(d, body);
   edge(d, body, 1.7);
   mouth(d, oval(cx + r * 0.78, cy + r * 0.45, r * 0.3, r * 0.42, 18).map((p) => pt(p.x + (p.y - cy) * -0.15, p.y)));
 }
@@ -214,7 +214,7 @@ function can(d: Draw): void {
     tint(d, oval(-36, cy + r * 0.75, 50, r * 0.35), '#3a3a48', 0.2);
     glint(d, [pt(-80, cy - r * 0.6), pt(4, cy - r * 0.62)], 3, 0.6);
   });
-  shade(d, side, cy + 18, 0.4);
+  shade(d, side, 0.4);
   edge(d, side, 1.7);
   skin(d, back, '#8f979e', 0.7);
   edge(d, back, 1.2);
@@ -304,7 +304,7 @@ function coconut(d: Draw): void {
     }
     tint(d, oval(-34, cy + 30, 50, 18), '#3a2210', 0.3);
   });
-  shade(d, husk, cy + 10, 0.4, true);
+  shade(d, husk, 0.45, true);
   edge(d, husk, 1.8);
   // The cut face: a white rim of flesh around the dark hollow.
   const face = oval(4, cy + 1, 13, 42, 30);

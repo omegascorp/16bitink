@@ -53,7 +53,7 @@ function clam(d: Draw): void {
     for (let k = -3; k <= 3; k++) d.pen.hair([pt(-2, -8), pt(k * 5, 12)], 0.6, '#7a4a62', 0.6);
     tint(d, oval(-4, -2, 6, 4), '#f7e6ee', 0.6);
   });
-  shade(d, upper, 4, 0.45);
+  shade(d, upper, 0.45);
   edge(d, upper, 1.2);
   // The gape between the valves.
   d.pen.stroke(bezier(pt(-12, 10), pt(0, 13), pt(12, 10), 8), 1.4, '#2a2228', 0.8, false);

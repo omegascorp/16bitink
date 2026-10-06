@@ -1,5 +1,5 @@
 import type { Pt } from './pen';
-import { capsule, closed, cub, type Draw, edge, eyeDot, mottle, oval, pt, skin, TAU, tube } from './kit';
+import { capsule, closed, cub, type Draw, edge, eyeDot, mottle, oval, pt, setae, shade, skin, TAU, tube } from './kit';
 import { PAPER_FILL } from './palette';
 
 /**
@@ -22,12 +22,28 @@ function gait(d: Draw, i: number, stride: number, lift: number): Pt {
   return pt(Math.cos(ph) * stride, -Math.max(0, Math.sin(ph)) * lift);
 }
 
-/** A jointed limb: one tapered capsule per segment, outlined, proximal segments on top. */
+/**
+ * A jointed limb: one tapered capsule per segment, outlined, proximal
+ * segments on top. Near limbs get a shadow line along their underside and
+ * fine hairs, so they read as real jointed legs.
+ */
 function limb(d: Draw, pts: readonly Pt[], w: readonly number[], wash: string, far: boolean): void {
   for (let i = pts.length - 2; i >= 0; i--) {
-    const seg = capsule(pts[i]!, pts[i + 1]!, w[i]!, w[i + 1]!);
+    const a = pts[i]!;
+    const b = pts[i + 1]!;
+    const seg = capsule(a, b, w[i]!, w[i + 1]!);
     d.pen.fill(seg, PAPER_FILL, 1);
     d.pen.fill(seg, i === pts.length - 2 ? TIP : wash, i === pts.length - 2 ? 0.55 : limbAlpha(far));
+    if (!far && w[i]! > 3) {
+      // Shadow along the underside: a fine line just inside the lower edge.
+      const l = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+      const nx = -(b.y - a.y) / l;
+      const ny = (b.x - a.x) / l;
+      const s = ny > 0 ? 1 : -1;
+      const off = (r: number): number => r * 0.28 * s;
+      d.pen.hair([pt(a.x + nx * off(w[i]!), a.y + ny * off(w[i]!)), pt(b.x + nx * off(w[i + 1]!), b.y + ny * off(w[i + 1]!))], 0.5, d.ink, 0.45);
+      setae(d, a, b, 3, w[i]! * 0.55, s > 0 ? 1 : -1, 0.6);
+    }
     d.pen.stroke(closed(seg), far ? 0.7 : 0.95, d.ink, far ? 0.7 : 1, false);
   }
 }
@@ -47,12 +63,23 @@ function claw(d: Draw, ox: number, oy: number, s: number, wash: string, open: nu
   }
   for (const f of [fixed, moving]) d.pen.clipped(f, () => d.pen.fill(L(oval(104, -6 - open * 0.6, 7, 9, 12)), TIP, far ? 0.45 : 0.75));
   if (!far) {
-    d.pen.hatch(palm, 2.8, 0.1, 0.5, { onlyBelow: oy - 4 * s, color: d.ink, alpha: 0.5 });
-    // Granular bumps on the palm.
-    for (let i = 0; i < 7; i++) {
-      const p = L([pt(66 + d.pen.rng() * 20, -12 + d.pen.rng() * 8)])[0]!;
-      d.pen.dot(p.x, p.y, 0.8 * s, d.ink, 0.6);
+    shade(d, palm, 0.5);
+    // Granular bumps on the palm, each a tiny ring with its own shadow.
+    for (let i = 0; i < 14; i++) {
+      const p = L([pt(64 + d.pen.rng() * 24, -14 + d.pen.rng() * 14)])[0]!;
+      d.pen.dot(p.x + 0.4 * s, p.y + 0.5 * s, 0.75 * s, d.ink, 0.5);
+      d.pen.dot(p.x, p.y, 0.45 * s, PAPER_FILL, 0.8);
     }
+    // Teeth along the cutting edges of both fingers.
+    for (let i = 0; i < 6; i++) {
+      const t = 88 + i * 2.8;
+      const lo = L([pt(t, -2 + i * 0.1), pt(t + 1.2, -4.2)]);
+      const hi = L([pt(t - 1, -11 - open * 0.6 + i * 0.4), pt(t + 0.2, -8.8 - open * 0.6 + i * 0.4)]);
+      d.pen.hair(lo, 0.55, d.ink, 0.8);
+      d.pen.hair(hi, 0.55, d.ink, 0.8);
+    }
+    // Hairs along the top of the palm.
+    setae(d, L([pt(64, -15)])[0]!, L([pt(88, -16)])[0]!, 6, 2.6 * s, -1, 0.6);
   }
   for (const part of [fixed, moving, palm]) d.pen.stroke(closed(part), far ? 0.7 : 1.1, d.ink, far ? 0.7 : 1, false);
 }
@@ -86,9 +113,14 @@ export function drawCrabFront(d: Draw, naked = false): void {
   const shield = oval(30, 8, 11, 9, 16);
   skin(d, shield, wash, 0.6);
   mottle(d, shield, 60, -2, 14, TIP);
+  shade(d, shield, 0.45);
+  // The groove across the shield, and its front edge's little rostrum.
+  pen.hair(cub(pt(22, 6), pt(27, 2), pt(33, 2), pt(38, 6), 10), 0.6, d.ink, 0.7);
   edge(d, shield, 1.1);
   for (const [x, lean] of [[30, -2], [34, 3]] as const) {
     pen.stroke([pt(x, 2), pt(x + lean + 2, -16)], 2.6, d.ink, 1, false);
+    // Pale rings along the stalk.
+    for (const t of [0.35, 0.65]) pen.dot(x + (lean + 2) * t, 2 - 18 * t, 0.7, PAPER_FILL, 0.85);
     eyeDot(d, x + lean + 2, -19, 3.2);
   }
   const sway = [0, 3, -2][f]!;

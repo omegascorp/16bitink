@@ -91,9 +91,22 @@ export function tint(d: Draw, shape: readonly Pt[], color: string, alpha: number
 }
 
 /** Shadow-side hatching under `below`, optionally cross-hatched. */
-export function shade(d: Draw, shape: readonly Pt[], below: number, alpha = 0.5, cross = false): void {
-  d.pen.hatch(shape, 2.6, 0.06, 0.5, { onlyBelow: below, color: d.ink, alpha });
-  if (cross) d.pen.hatch(shape, 3, -0.9, 0.45, { onlyBelow: below + 8, color: d.ink, alpha: alpha * 0.7 });
+/** Where shadows fall: away from a light at the upper left (as the pen's contour weighting). */
+const SHADOW_DIR = { x: 0.55, y: 0.84 };
+
+/**
+ * Form shading, as an illustrator hatches it: a crescent of core shadow on
+ * the side away from the light, hatched on a diagonal, with a narrower band
+ * of cross-hatching at its darkest edge. `cross` deepens it.
+ */
+export function shade(d: Draw, shape: readonly Pt[], alpha = 0.5, cross = false): void {
+  const xs = shape.map((p) => p.x);
+  const ys = shape.map((p) => p.y);
+  const size = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  const band = (k: number): Pt => pt(-SHADOW_DIR.x * size * k, -SHADOW_DIR.y * size * k);
+  const spacing = Math.max(1.8, size / 28);
+  d.pen.crescent(shape, band(0.3), () => d.pen.hatch(shape, spacing, 0.9, 0.5, { color: d.ink, alpha }));
+  d.pen.crescent(shape, band(cross ? 0.18 : 0.12), () => d.pen.hatch(shape, spacing * 1.15, -0.55, 0.42, { color: d.ink, alpha: alpha * 0.8 }));
 }
 
 export function edge(d: Draw, shape: readonly Pt[], w = 1.7, alpha = 1): void {
@@ -103,6 +116,25 @@ export function edge(d: Draw, shape: readonly Pt[], w = 1.7, alpha = 1): void {
 /** Mottling: dots denser towards the top of a shape. */
 export function mottle(d: Draw, shape: readonly Pt[], count: number, top: number, bottom: number, color: string, r = 0.55): void {
   d.pen.stipple(shape, count, (_, y) => Math.max(0, (bottom - y) / (bottom - top)) * 0.8, r, color);
+}
+
+/**
+ * Fine hairs (setae) along a limb segment from a to b, raked towards b,
+ * on one side (`side` 1 or -1): the small marks that make a leg read as a
+ * real arthropod's.
+ */
+export function setae(d: Draw, a: Pt, b: Pt, n: number, len: number, side: 1 | -1 = 1, alpha = 0.75): void {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const l = Math.hypot(dx, dy) || 1;
+  const ux = dx / l;
+  const uy = dy / l;
+  for (let i = 1; i <= n; i++) {
+    const t = i / (n + 1);
+    const p = pt(a.x + dx * t, a.y + dy * t);
+    const tip = pt(p.x + (-uy * side * 0.8 + ux * 0.6) * len, p.y + (ux * side * 0.8 + uy * 0.6) * len);
+    d.pen.hair([p, tip], 0.45, d.ink, alpha);
+  }
 }
 
 /** A glossy eye with a glint. */
