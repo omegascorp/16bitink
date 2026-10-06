@@ -2,8 +2,28 @@
 import Base from '../layouts/Base.astro';
 import GameSpread from '../components/GameSpread.astro';
 import { playableGames } from '../data/games';
+import { currentUser, ownership } from '../lib/owner';
+
+// Rendered per request, so owners see "Play" instead of "Play free".
+export const prerender = false;
+
+const games = playableGames();
+let owned = new Set<string>();
+let user: { name: string; email: string } | null | undefined;
+try {
+  const [claims, session] = await Promise.all([
+    Promise.all(games.map((game) => ownership(Astro.cookies, game.slug, Astro.url))),
+    currentUser(Astro.cookies),
+  ]);
+  owned = new Set(games.filter((_, i) => claims[i] !== null).map((game) => game.slug));
+  user = session && { name: session.name, email: session.email };
+} catch (err) {
+  // The home page must always load: fall back to "Play free" and let the header look up the user in the browser.
+  console.error('[home] ownership check failed', err);
+}
+Astro.response.headers.set('cache-control', 'private, no-store');
 ---
-<Base title="16bit.ink: hand-drawn browser games" description="Small games drawn with a pen. Play them full-screen in your browser.">
+<Base title="16bit.ink: hand-drawn browser games" description="Small games drawn with a pen. Play them full-screen in your browser." user={user}>
   <!-- Displacement filter shared by every cover: redraws the wobble 8 times a second. -->
   <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
     <filter id="boil">
@@ -16,7 +36,7 @@ import { playableGames } from '../data/games';
 
   <p class="intro">Small games, drawn with a pen.</p>
   <div class="games">
-    {playableGames().map((game) => <GameSpread game={game} />)}
+    {games.map((game) => <GameSpread game={game} owned={owned.has(game.slug)} />)}
   </div>
 </Base>
 
