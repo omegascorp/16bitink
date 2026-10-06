@@ -91,5 +91,6 @@ export function buildTestBeach(seed: number): BeachSetup {
     startShell: 'bottlecap',
     seed,
     surfaceFood: 22,
+    critters: 7,
   };
 }

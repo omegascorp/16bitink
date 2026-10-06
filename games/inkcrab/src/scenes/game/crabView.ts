@@ -18,6 +18,7 @@ const NAKED_SCALE = 0.95;
 /** Swap progress where the crab slips from the old shell to the new, hidden by a puff of sand. */
 const SWITCH = 0.5;
 const PUFF_SPAN = 0.16;
+const BLINK_MS = 90;
 
 /**
  * The player in three layers: far legs, the shell, then the head, near legs
@@ -63,6 +64,8 @@ export class CrabView {
     const body = spec ? unit * bodyFill(spec, growth) : (shellPx(growth) / SHELL_UNITS) * NAKED_SCALE;
     this.root.setPosition(c.body.x + c.body.w / 2 + c.facing * FOOT_FROM_MIDDLE * unit, c.body.y + c.body.h);
     this.root.setScale(c.facing, 1);
+    // Blinks through the grace after being caught.
+    this.root.setAlpha(c.safe > 0 && Math.floor(time / BLINK_MS) % 2 === 0 ? 0.35 : 1);
 
     const target = c.swap ? beach.items.get(c.swap.itemId) : undefined;
     if (c.swap && target?.kind.type === 'shell') {
@@ -82,6 +85,9 @@ export class CrabView {
     this.shell.setVisible(true).setTexture(TEX.shell(spec.kind, f % BOIL)).setScale(unit);
     const squeeze = beach.capped ? 1 + Math.sin(time / 140) * 0.03 : 1;
     this.setBody(false, f, body, body * squeeze, 1, crabShift(spec.kind, unit, body));
+    // Hiding: pulled all the way in, only the shell shows.
+    this.back.setVisible(!c.hidden);
+    this.front.setVisible(!c.hidden);
   }
 
   /**

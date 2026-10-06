@@ -20,6 +20,11 @@ function jumpButton(width: number, height: number): { x: number; y: number; r: n
   return { x: width - 80, y: height - 110, r: 44 };
 }
 
+/** Hold to hide in the shell, left of the jump button (touch only). */
+function hideButton(width: number, height: number): { x: number; y: number; r: number } {
+  return { x: width - 180, y: height - 80, r: 34 };
+}
+
 /** The notebook margin: size, growth meter, bank, shell, carried sand, and touch controls. */
 export class HudScene extends Phaser.Scene {
   private g!: Phaser.GameObjects.Graphics;
@@ -30,6 +35,7 @@ export class HudScene extends Phaser.Scene {
   private prompt!: Phaser.GameObjects.Text;
   private help!: Phaser.GameObjects.Text;
   private stickPointer: number | null = null;
+  private hidePointer: number | null = null;
   private stickPull = { x: 0, y: 0 };
   private touchSeen = false;
 
@@ -81,7 +87,7 @@ export class HudScene extends Phaser.Scene {
     // Centred under the heap, but kept inside the panel when the hint makes it long.
     this.sand.setX(Math.min(HEAP_AT.x, PANEL.x + PANEL.w - 8 - this.sand.width / 2));
     const bank = c.growth.bank > 0 ? ` (+${c.growth.bank} banked)` : '';
-    this.note.setText(c.swap ? 'moving house… exposed!' : beach.capped ? `shell full, find a bigger one${bank}` : `growing${bank}`);
+    this.note.setText(c.swap ? 'moving house… exposed!' : c.hidden ? 'hiding in the shell' : beach.capped ? `shell full, find a bigger one${bank}` : `growing${bank}`);
     this.note.setColor(c.swap ? RED : BLUE);
     const spec = c.shell ? SHELLS[c.shell] : null;
     this.shell.setText(spec ? `in a ${spec.name} · fits sizes ${spec.minSize}–${spec.maxSize}` : 'no shell!');
@@ -97,11 +103,12 @@ export class HudScene extends Phaser.Scene {
     } else this.prompt.setVisible(false);
 
     this.help.setPosition(width - 14, height - 10).setText(this.touchSeen
-      ? 'tap sand next to the crab to dig · tap open space to drop sand'
-      : '←→ walk · ↑↓ aim · Space jump · X dig · C place sand · E move in');
+      ? 'tap sand next to the crab to dig · tap open space to drop sand · hold the shell button to hide'
+      : '←→ walk · ↑↓ aim · Space jump · X dig · C place sand · E move in · Z hide');
     if (this.touchSeen) {
       this.drawStick(height);
       this.drawJumpButton(width, height);
+      this.drawHideButton(width, height, c.hidden);
     }
   }
 
@@ -123,6 +130,18 @@ export class HudScene extends Phaser.Scene {
     this.g.lineStyle(3, BLUE_HEX, 0.6).lineBetween(b.x - 12, b.y + 6, b.x, b.y - 8).lineBetween(b.x, b.y - 8, b.x + 12, b.y + 6);
   }
 
+  /** A shell drawn on the button; filled while held. */
+  private drawHideButton(width: number, height: number, held: boolean): void {
+    const b = hideButton(width, height);
+    this.g.lineStyle(2, BLUE_HEX, 0.45).strokeCircle(b.x, b.y, b.r);
+    this.g.fillStyle(BLUE_HEX, held ? 0.3 : 0.12).fillCircle(b.x, b.y, b.r);
+    this.g.lineStyle(3, BLUE_HEX, 0.6);
+    this.g.beginPath();
+    this.g.arc(b.x, b.y + 6, 14, Math.PI, 0);
+    this.g.closePath();
+    this.g.strokePath();
+  }
+
   private onDown(p: Phaser.Input.Pointer): void {
     if (p.wasTouch) this.touchSeen = true;
     const v = toView(p.x, p.y);
@@ -131,6 +150,13 @@ export class HudScene extends Phaser.Scene {
     if (p.wasTouch && Math.hypot(v.x - jb.x, v.y - jb.y) <= jb.r) {
       const t = this.touch();
       if (t) t.jump = true;
+      return;
+    }
+    const hb = hideButton(width, height);
+    if (p.wasTouch && Math.hypot(v.x - hb.x, v.y - hb.y) <= hb.r) {
+      this.hidePointer = p.id;
+      const t = this.touch();
+      if (t) t.hide = true;
       return;
     }
     if (p.wasTouch && this.stickPointer === null && inStickZone(v.x, v.y, height)) {
@@ -155,6 +181,12 @@ export class HudScene extends Phaser.Scene {
   }
 
   private onUp(p: Phaser.Input.Pointer): void {
+    if (p.id === this.hidePointer) {
+      this.hidePointer = null;
+      const t = this.touch();
+      if (t) t.hide = false;
+      return;
+    }
     if (p.id !== this.stickPointer) return;
     this.stickPointer = null;
     this.stickPull = { x: 0, y: 0 };

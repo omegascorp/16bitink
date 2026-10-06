@@ -8,15 +8,17 @@ export interface TouchState {
   stickY: number;
   /** The jump button was pressed since the game last looked. */
   jump: boolean;
+  /** The hide button is held. */
+  hide: boolean;
   /** Screen taps (CSS px) not yet consumed by the game. */
   taps: { x: number; y: number }[];
 }
 
 export function createTouchState(): TouchState {
-  return { stickX: 0, stickY: 0, jump: false, taps: [] };
+  return { stickX: 0, stickY: 0, jump: false, hide: false, taps: [] };
 }
 
-type Keys = Record<'left' | 'right' | 'up' | 'down' | 'a' | 'd' | 'w' | 's' | 'dig' | 'place', Phaser.Input.Keyboard.Key>;
+type Keys = Record<'left' | 'right' | 'up' | 'down' | 'a' | 'd' | 'w' | 's' | 'dig' | 'place' | 'hide', Phaser.Input.Keyboard.Key>;
 type Latch = 'jump' | 'dig' | 'place' | 'act';
 
 const LATCHED: Readonly<Record<string, Latch>> = {
@@ -25,7 +27,8 @@ const LATCHED: Readonly<Record<string, Latch>> = {
 
 /**
  * Keyboard: arrows/WASD to walk and aim, Space to jump, X to dig and C to
- * place sand (both repeat while held), E or Enter to move into a shell.
+ * place sand (both repeat while held), E or Enter to move into a shell,
+ * Z held to hide in the shell.
  */
 export class GameInput {
   private readonly keys: Keys | null;
@@ -37,9 +40,9 @@ export class GameInput {
     const K = Phaser.Input.Keyboard.KeyCodes;
     const kb = scene.input.keyboard;
     this.keys = (kb?.addKeys({
-      left: K.LEFT, right: K.RIGHT, up: K.UP, down: K.DOWN, a: K.A, d: K.D, w: K.W, s: K.S, dig: K.X, place: K.C,
+      left: K.LEFT, right: K.RIGHT, up: K.UP, down: K.DOWN, a: K.A, d: K.D, w: K.W, s: K.S, dig: K.X, place: K.C, hide: K.Z,
     }) as Keys | undefined) ?? null;
-    kb?.addCapture([K.SPACE, K.X, K.C, K.E, K.ENTER]);
+    kb?.addCapture([K.SPACE, K.X, K.C, K.E, K.ENTER, K.Z]);
     kb?.on('keydown', (e: KeyboardEvent) => {
       const latch = LATCHED[e.code];
       if (latch && !e.repeat) this.pressed.add(latch);
@@ -65,9 +68,10 @@ export class GameInput {
             place: k.place.isDown || was('place'),
             interact: was('act') || tapInteract,
             tapTile,
+            hide: k.hide.isDown || touch.hide,
           };
         })()
-      : { ...IDLE, moveX: touch.stickX, aimY: stickY as -1 | 0 | 1, jump: touchJump, interact: tapInteract, tapTile };
+      : { ...IDLE, moveX: touch.stickX, aimY: stickY as -1 | 0 | 1, jump: touchJump, interact: tapInteract, tapTile, hide: touch.hide };
     this.pressed.clear();
     return input;
   }

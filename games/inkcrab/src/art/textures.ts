@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import type { FoodKind } from '../logic/items';
 import { SHELL_KINDS } from '../logic/shells';
 import { drawCrabBack, drawCrabFront } from './crabArt';
+import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, drawCritter } from './critterArt';
 import { FRAME, GROUND } from './frame';
 import { drawFood, drawHighlight, drawPuff, FOOD_FRAME, FOOD_GROUND, FOOD_RES } from './itemArt';
 import { makeDraw, type Draw } from './kit';
@@ -14,6 +15,8 @@ export const TEX = {
   crabFront: (f: number) => `crab-front-${f}`,
   nakedBack: (f: number) => `naked-back-${f}`,
   nakedFront: (f: number) => `naked-front-${f}`,
+  /** `danger`: inked red, for one that can eat you. */
+  critter: (danger: boolean, f: number) => `critter-${danger ? 'red' : 'blue'}-${f}`,
   shell: (kind: string, f: number) => `shell-${kind}-${f}`,
   food: (kind: string, f: number) => `food-${kind}-${f}`,
   highlight: (f: number) => `hl-${f}`,
@@ -65,6 +68,9 @@ export function generateTextures(scene: Phaser.Scene): void {
     critter(TEX.crabFront(f), 110 + f, f, (d) => drawCrabFront(d));
     critter(TEX.nakedBack(f), 120 + f, f, (d) => drawCrabBack(d, true), RED);
     critter(TEX.nakedFront(f), 130 + f, f, (d) => drawCrabFront(d, true), RED);
+    for (const danger of [false, true]) {
+      bake(scene, TEX.critter(danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => drawCritter(makeDraw(ctx, 800 + f, f, CRITTER_GROUND, danger ? RED : undefined)));
+    }
     SHELL_KINDS.forEach((kind, i) => critter(TEX.shell(kind, f), 300 + i * 10 + f, f, (d) => drawShell(d, kind)));
     FOODS.forEach((kind, i) => bake(scene, TEX.food(kind, f), FOOD_FRAME, FOOD_RES, (ctx) => drawFood(makeDraw(ctx, 500 + i * 10 + f, f, FOOD_GROUND), kind)));
     bake(scene, TEX.puff(f), PUFF, 2, (ctx) => drawPuff(makeDraw(ctx, 700 + f, f, 0), PUFF * 0.36));

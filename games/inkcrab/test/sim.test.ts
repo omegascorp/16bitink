@@ -5,6 +5,7 @@ import { SWAP_SECONDS } from '../src/logic/swap';
 import { createTerrain, setTile, TILE, tileAt, type Terrain } from '../src/logic/terrain';
 import { makeItem, type Item } from '../src/logic/items';
 import { MOUTH_OFFSET, sandCapacity, shellPx, SHELLS } from '../src/logic/shells';
+import { makeCritter } from '../src/logic/critters';
 
 const T = 16;
 
@@ -340,5 +341,87 @@ describe('beach simulation', () => {
     const food = [...b.items.values()].filter((i) => i.kind.type === 'food');
     expect(food.length).toBeGreaterThan(0);
     expect(food.length).toBeLessThanOrEqual(4);
+  });
+
+  describe('ghost crabs', () => {
+    /** A ghost crab of `size` standing on the sand just ahead of the crab, facing it. */
+    const ahead = (b: Beach, size: number): void => {
+      const x = b.crab.body.x + b.crab.body.w + critterGap;
+      b.critters.set(99, makeCritter(99, size, x, 10 * T, -1, 10));
+    };
+    const critterGap = 6;
+
+    it('eats a smaller one it touches and grows from it', () => {
+      const b = flatBeach();
+      b.crab = { ...b.crab, growth: { size: 2, meter: 0, bank: 0 } };
+      step(b, {}, 1);
+      ahead(b, 1);
+      const events = step(b, { moveX: 1 }, 0.5);
+      expect(b.critters.has(99)).toBe(false);
+      expect(events.some((e) => e.type === 'ate')).toBe(true);
+      expect(b.crab.growth.meter).toBeGreaterThan(0);
+    });
+
+    it('is caught by a bigger one: drops its shell and a size, then is safe for a moment', () => {
+      const b = flatBeach();
+      b.crab = { ...b.crab, growth: { size: 2, meter: 1, bank: 0 } };
+      step(b, {}, 1);
+      ahead(b, 4);
+      const events = step(b, {}, 1);
+      expect(events.some((e) => e.type === 'caught')).toBe(true);
+      expect(b.crab.shell).toBeNull();
+      expect(b.crab.growth.size).toBe(1);
+      expect([...b.items.values()].some((i) => i.kind.type === 'shell' && i.kind.shell === 'bottlecap')).toBe(true);
+      expect(b.crab.safe).toBeGreaterThan(0);
+      // Still touching it, but safe: no second catch.
+      expect(step(b, {}, 0.5).some((e) => e.type === 'caught')).toBe(false);
+    });
+
+    it('ignores one its own size', () => {
+      const b = flatBeach();
+      step(b, {}, 1);
+      ahead(b, 1);
+      const events = step(b, { moveX: 1 }, 0.5);
+      expect(events.some((e) => e.type === 'caught' || e.type === 'ate')).toBe(false);
+      expect(b.critters.has(99)).toBe(true);
+    });
+
+    it('hiding in the shell is safe, and the hunter loses interest', () => {
+      const b = flatBeach();
+      step(b, {}, 1);
+      ahead(b, 4);
+      const events = step(b, { hide: true }, 1);
+      expect(events.some((e) => e.type === 'caught')).toBe(false);
+      expect(b.crab.shell).toBe('bottlecap');
+      expect(b.critters.get(99)!.bored).toBeGreaterThan(0);
+    });
+
+    it('cannot walk, dig or jump while hiding', () => {
+      const b = flatBeach();
+      step(b, {}, 1);
+      const before = { ...b.crab.body };
+      step(b, { hide: true, moveX: 1, jump: true, dig: true, aimY: 1 }, 0.5);
+      expect(b.crab.hidden).toBe(true);
+      expect(b.crab.body.x).toBe(before.x);
+      expect(b.crab.body.y).toBeCloseTo(before.y, 3);
+      expect(b.crab.sand).toBe(0);
+      step(b, {});
+      expect(b.crab.hidden).toBe(false);
+    });
+
+    it('cannot hide without a shell', () => {
+      const b = flatBeach();
+      b.crab = { ...b.crab, shell: null };
+      step(b, { hide: true });
+      expect(b.crab.hidden).toBe(false);
+    });
+
+    it('keeps the beach stocked with ghost crabs, out of sight of the player', () => {
+      const terrain: Terrain = createTerrain(120, 30);
+      for (let x = 0; x < 120; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
+      const b = new Beach({ terrain, items: [], start: { x: 10 * T, y: 10 * T }, tileSize: T, startShell: 'bottlecap', seed: 1, surfaceFood: 0, critters: 4 });
+      expect(b.critters.size).toBe(4);
+      for (const c of b.critters.values()) expect(Math.abs(c.x - 10 * T)).toBeGreaterThan(12 * T);
+    });
   });
 });

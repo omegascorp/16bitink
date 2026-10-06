@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BLUE } from '../art/palette';
+import { BLUE, RED } from '../art/palette';
 import { TEX } from '../art/textures';
 import { REG } from '../host';
 import { buildTestBeach } from '../level/testBeach';
@@ -8,6 +8,7 @@ import { overlaps } from '../logic/items';
 import { shellPx, SHELLS } from '../logic/shells';
 import { Beach, type SimEvent } from '../logic/sim';
 import { CrabView } from './game/crabView';
+import { CrittersView } from './game/crittersView';
 import { createTouchState, GameInput, type TouchState } from './game/input';
 import { ItemsView } from './game/itemsView';
 import { TerrainView } from './game/terrainView';
@@ -23,6 +24,7 @@ export class GameScene extends Phaser.Scene {
   beach!: Beach;
   private terrainView!: TerrainView;
   private itemsView!: ItemsView;
+  private crittersView!: CrittersView;
   private crabView!: CrabView;
   private input2!: GameInput;
   private touch!: TouchState;
@@ -40,6 +42,7 @@ export class GameScene extends Phaser.Scene {
     this.add.tileSprite(0, 0, worldW, worldH, TEX.paper).setOrigin(0).setDepth(0);
     this.terrainView = new TerrainView(this, setup.terrain, T);
     this.itemsView = new ItemsView(this);
+    this.crittersView = new CrittersView(this);
     this.crabView = new CrabView(this);
     this.input2 = new GameInput(this);
     this.touch = createTouchState();
@@ -59,6 +62,7 @@ export class GameScene extends Phaser.Scene {
     for (const e of events) this.react(e);
     this.terrainView.flush();
     this.itemsView.sync(this.beach.items, time, this.beach.crab.swap?.itemId ?? null);
+    this.crittersView.sync(this.beach.critters, this.beach.crab.growth.size, time);
     this.crabView.update(this.beach, time, dt);
     const cam = this.cameras.main;
     const z = screenZoom(cam);
@@ -93,10 +97,14 @@ export class GameScene extends Phaser.Scene {
       this.floatText(e.x, e.y, e.banked > 0 ? `+${e.banked} banked` : `+${e.points}`);
       if (e.banked > 0) this.crabView.stuck(this);
     } else if (e.type === 'grew') this.crabView.pop(this);
+    else if (e.type === 'caught') {
+      this.floatText(e.x, e.y, e.dropped !== null ? 'caught! lost the shell' : 'caught!', RED);
+      this.cameras.main.shake(180, 0.004);
+    }
   }
 
-  private floatText(x: number, y: number, text: string): void {
-    const t = this.add.text(x, y - 6, text, { fontFamily: HAND_FONT, fontSize: '13px', color: BLUE })
+  private floatText(x: number, y: number, text: string, color: string = BLUE): void {
+    const t = this.add.text(x, y - 6, text, { fontFamily: HAND_FONT, fontSize: '13px', color })
       .setOrigin(0.5).setDepth(8).setResolution(DPR * 3);
     this.tweens.add({ targets: t, y: y - 26, alpha: 0, duration: 900, onComplete: () => t.destroy() });
   }

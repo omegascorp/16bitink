@@ -1,4 +1,5 @@
 import { drawCrabBack, drawCrabFront } from '../src/art/crabArt';
+import { CRITTER_FRAME, CRITTER_GROUND, drawCritter } from '../src/art/critterArt';
 import { FOOT, FRAME, GROUND } from '../src/art/frame';
 import { crabShift } from '../src/art/mouth';
 import { drawFood, FOOD_FRAME, FOOD_GROUND } from '../src/art/itemArt';
@@ -66,6 +67,17 @@ SHELL_KINDS.forEach((kind, i) => critter(loose, kind, [layer(300 + i, 1, (d) => 
 const poses = section('walk poses, exposed mid-swap');
 for (let f = 0; f < 3; f++) critter(poses, `walk f${f}`, [layer(1, f, (d) => drawCrabBack(d)), layer(304, f, (d) => drawShell(d, 'whelk')), layer(2, f, (d) => drawCrabFront(d))]);
 critter(poses, 'exposed', [layer(3, 0, (d) => drawCrabBack(d, true), RED), layer(304, 0, (d) => drawShell(d, 'whelk')), layer(4, 0, (d) => drawCrabFront(d, true), RED)]);
+
+const ghosts = section('ghost crabs: prey (blue) and danger (red), walk poses');
+for (const ink of [undefined, RED]) {
+  for (let f = 0; f < 3; f++) {
+    figure(ghosts, `${ink ? 'danger' : 'prey'} f${f}`, CRITTER_FRAME * 2, CRITTER_FRAME * 1.5, (ctx) => {
+      ctx.scale(2, 2);
+      ctx.translate(CRITTER_FRAME / 2, CRITTER_FRAME / 2);
+      drawCritter(makeDraw(ctx, 800 + f, f, CRITTER_GROUND, ink));
+    });
+  }
+}
 
 const foods = section('food');
 for (const kind of ['crumb', 'hopper', 'clam'] as const) {
