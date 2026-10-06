@@ -418,14 +418,15 @@ export class Beach {
   /**
    * Touching a ghost crab: a smaller one is eaten, a bigger one catches the
    * crab (as does one its own size while it's out of a shell). Hidden in its
-   * shell it's safe, and the ghost crab loses interest.
+   * shell it's safe: the ghost crab walks on past and loses interest.
    */
   private meetCritters(events: SimEvent[]): void {
     for (const k of this.critters.values()) {
       const c = this.crab;
       if (!overlaps(c.body, k)) continue;
       if (c.hidden) {
-        if (k.size > c.growth.size) this.critters.set(k.id, { ...k, bored: CRITTER.boredFor, dir: k.dir === 1 ? -1 : 1 });
+        // It walks on past the shell, and doesn't turn back to hunt for a while.
+        if (k.size > c.growth.size) this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });
         continue;
       }
       const size = c.growth.size;

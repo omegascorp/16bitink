@@ -387,14 +387,18 @@ describe('beach simulation', () => {
       expect(b.critters.has(99)).toBe(true);
     });
 
-    it('hiding in the shell is safe, and the hunter loses interest', () => {
+    it('hiding in the shell is safe: the hunter walks on past without turning back', () => {
       const b = flatBeach();
       step(b, {}, 1);
       ahead(b, 4);
-      const events = step(b, { hide: true }, 1);
+      const crabX = b.crab.body.x + b.crab.body.w / 2;
+      // Two seconds: long enough to pass, short of the beach's edge.
+      const events = step(b, { hide: true }, 2);
       expect(events.some((e) => e.type === 'caught')).toBe(false);
       expect(b.crab.shell).toBe('bottlecap');
-      expect(b.critters.get(99)!.bored).toBeGreaterThan(0);
+      const k = b.critters.get(99)!;
+      expect(k.dir).toBe(-1);
+      expect(k.x + k.w).toBeLessThan(crabX);
     });
 
     it('cannot walk, dig or jump while hiding', () => {

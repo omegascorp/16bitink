@@ -1,14 +1,19 @@
+import { tileSpan } from './dig';
 import { centre, type Item } from './items';
 import { canWear, SHELLS } from './shells';
 import type { Beach, SimEvent } from './sim';
+import { isSolid } from './terrain';
 
 /** Something a level teaches, step by step, with a hint shown only while it's relevant. */
 export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried';
 
+/** What a hint is about: a lesson, or the way out of a hole, offered on every level. */
+export type HintKind = Lesson | 'stuck';
+
 export type Controls = 'keys' | 'touch';
 
 export interface Hint {
-  readonly lesson: Lesson;
+  readonly lesson: HintKind;
   readonly text: string;
   /** A world point to draw an arrow over, when there's somewhere to go. */
   readonly target?: { readonly x: number; readonly y: number };
@@ -18,25 +23,29 @@ export interface Hint {
 const DANGER_TILES = 7;
 /** How far (tiles) a buried shell can be and still be pointed out. */
 const BURIED_TILES = 14;
+/** Walls this many tiles high on both sides mean the crab can't jump out. */
+const STUCK_TILES = 3;
 
 const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   keys: {
     move: 'Walk with ← →, jump with Space. Eat food to grow.',
     swap: 'Your shell is full! Walk to the bigger shell and press E to move in.',
-    dig: 'Press X to dig. Hold ↓ or ↑ to dig down or up.',
+    dig: 'Dig a slope: hold → (or ←) and ↓, then press X. Digging straight down can trap you.',
     drop: 'You\'re carrying sand. Press C to drop it; jump, then ↓ + C to build up under you.',
     full: 'You\'re full of sand. Drop some with C before you dig more.',
     hide: 'A red ghost crab can catch you! Hold Z to hide in your shell.',
-    buried: 'A highlighter smudge in the sand is something buried. Dig down to it: ↓ + X.',
+    buried: 'Highlighted sand hides something buried. Dig a slope down to it: hold → and ↓ with X.',
+    stuck: 'Stuck in a hole? Dig your way out at an angle: hold → (or ←) and ↑, then press X.',
   },
   touch: {
     move: 'Steer with the stick, jump with the button. Eat food to grow.',
     swap: 'Your shell is full! Walk to the bigger shell and tap it to move in.',
-    dig: 'Tap sand next to the crab to dig it.',
+    dig: 'Tap the sand diagonally below the crab to dig a slope. Digging straight down can trap you.',
     drop: 'You\'re carrying sand. Tap open space next to the crab to drop it.',
     full: 'You\'re full of sand. Tap open space to drop some before you dig more.',
     hide: 'A red ghost crab can catch you! Hold the shell button to hide.',
-    buried: 'A highlighter smudge in the sand is something buried. Tap the sand to dig down to it.',
+    buried: 'Highlighted sand hides something buried. Tap the sand diagonally below you to dig a slope down to it.',
+    stuck: 'Stuck in a hole? Tap the sand diagonally above the crab to dig steps out.',
   },
 };
 
@@ -76,6 +85,7 @@ export class Coach {
     const open = (l: Lesson): boolean => this.lessons.includes(l) && !this.done.has(l);
     const c = beach.crab;
     if (open('hide') && this.hunterNear(beach) && !c.hidden) return { lesson: 'hide', text: t.hide! };
+    if (this.stuck(beach)) return { lesson: 'stuck', text: t.stuck! };
     if (open('swap') && beach.capped) {
       const shell = this.biggerShell(beach);
       if (shell) return { lesson: 'swap', text: t.swap!, target: centre(shell) };
@@ -89,6 +99,18 @@ export class Coach {
     if (open('dig')) return { lesson: 'dig', text: t.dig! };
     if (open('drop') && c.sand > 0) return { lesson: 'drop', text: t.drop! };
     return null;
+  }
+
+  /** Down a hole with walls on both sides taller than it can jump. */
+  private stuck(beach: Beach): boolean {
+    const c = beach.crab;
+    if (!c.body.onGround || c.swap) return false;
+    const s = tileSpan(c.body, beach.tileSize);
+    const wall = (x: number): boolean => {
+      for (let y = s.y1; y > s.y1 - STUCK_TILES; y--) if (!isSolid(beach.terrain, x, y)) return false;
+      return true;
+    };
+    return wall(s.x0 - 1) && wall(s.x1 + 1);
   }
 
   private hunterNear(beach: Beach): boolean {

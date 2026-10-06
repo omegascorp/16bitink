@@ -98,6 +98,33 @@ describe('the coach', () => {
     expect(coach.hint(b, 'keys')?.lesson).toBe('buried');
   });
 
+  it('teaches digging at an angle, not straight down', () => {
+    const b = beach();
+    const dig = new Coach(['dig']).hint(b, 'keys')!.text;
+    expect(dig).toMatch(/→/);
+    expect(dig).toMatch(/↓/);
+    expect(dig).toMatch(/straight down/i);
+  });
+
+  it('shows a way out when the crab is stuck down a hole, on any level', () => {
+    const b = beach();
+    const coach = new Coach([]);
+    play(b, coach, {}, 1);
+    expect(coach.hint(b, 'keys')).toBeNull();
+    // Dig a shaft four deep, straight down.
+    for (let i = 0; i < 4; i++) {
+      play(b, coach, { aimY: 1, dig: true });
+      play(b, coach, {}, 0.5);
+    }
+    const h = coach.hint(b, 'keys');
+    expect(h?.lesson).toBe('stuck');
+    expect(h?.text).toMatch(/↑/);
+    // Climbing out (here: set down on open sand away from the hole) ends it.
+    b.crab = { ...b.crab, body: { ...b.crab.body, x: 30 * T, y: 10 * T - b.crab.body.h, vy: 0 } };
+    play(b, coach, {}, 0.2);
+    expect(coach.hint(b, 'keys')).toBeNull();
+  });
+
   it('words hints for touch screens', () => {
     const b = beach();
     expect(new Coach(['dig']).hint(b, 'touch')?.text).toMatch(/Tap/);
