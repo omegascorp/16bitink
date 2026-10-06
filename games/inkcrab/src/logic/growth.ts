@@ -26,8 +26,8 @@ export function initialGrowth(size = 1): Growth {
 
 /** Food points from `size` to `size + 1`. */
 export function meterGoal(size: number): number {
-  // Doubled from 3 + 2·size after playtests: levels filled up too fast.
-  return 6 + size * 4;
+  // Cheap at first so early levels move, steeper later: 7, 10, 14, 19, 25, 32, 40.
+  return 5 + 2 * size + (size * (size - 1)) / 2;
 }
 
 export function isCapped(g: Growth, cap: number): boolean {

@@ -9,7 +9,8 @@ Level plan for InkCrab: how the 100 levels are organized, and the first ten in d
 - **Every level starts at size 1, in a periwinkle.** A small real sea-snail shell, so the first thing players see reads as a hermit crab. Like InkFish, each level is a whole growth run: eat, fill your shell, find the next one, move in.
 - **One goal: grow to the biggest size the level allows.** That is the largest maximum among the level's shells. A growth bar runs from size 1 to the goal with a tick per size, and a dashed mark shows where your current shell stops you.
 - **Goals rise through the beach,** from size 3 in level 1 to size 8, the conch, in level 10.
-- **Growing takes 6 + 4 × size points of food per size** (10 to leave size 1, 34 to leave size 7), doubled from the first prototype because levels filled too fast.
+- **Growing gets steeper with size:** 5 + 2 × size + size × (size − 1) / 2 points of food (7 to leave size 1, 10, 14, 19, 25, 32, 40 to leave size 7), so early levels move quickly and the big sizes take real foraging.
+- **The first levels teach by doing.** A coach shows one hint at a time for the lessons a level lists, only when it's relevant, and an ink arrow points at what the hint is about (at the screen edge when it's off screen). Each lesson ends once the player has done it.
 - **3 lives per level.** Being caught by a bigger ghost crab costs a life; you keep your size and shell and get 2.5 s of grace. Losing the last life ends the level.
 - **One new thing per level.** Every level teaches one verb or hazard. Later levels combine them.
 - **Permanent ids.** Saves are keyed by level id, as in InkFish: never change or reuse one, even when a level is renamed or moved.
@@ -24,10 +25,10 @@ Every beach follows the same ten-slot arc, so new rules arrive one at a time. La
 | Slot | Role |
 | --- | --- |
 | 1 | Opener: the beach's food and terrain, one swap |
-| 2 | A chain of shells across the beach |
-| 3 | A shell buried: dig for it |
-| 4 | A shell up high: build up to it |
-| 5 | The beach's hunter debuts |
+| 2 | A shell up high: dig and build up to it |
+| 3 | The beach's hunter debuts: hide |
+| 4 | A shell buried: dig for it |
+| 5 | A chain of shells across the beach |
 | 6 | The beach's sky or ground threat debuts |
 | 7 | The tide brings a shell in |
 | 8 | Remix of two earlier slots |
@@ -50,11 +51,11 @@ Every level starts at size 1 in a periwinkle (fits sizes 1–2).
 
 | # | Id | Name | Goal | Shells on the way | New |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `pen-test` | Pen Test | Size 3 | Snail | Walk, jump, eat, the growth cap, moving house |
-| 2 | `room-to-grow` | Room to Grow | Size 4 | Snail, light bulb | A chain of shells across the beach |
-| 3 | `underlined` | Underlined | Size 4 | Snail, light bulb (buried 6 deep) | Digging, carrying and unloading sand |
-| 4 | `margin-wall` | Margin Wall | Size 5 | Snail, tin can (on a shelf 5 tiles up) | Building with sand |
-| 5 | `ghost-writers` | Ghost Writers | Size 5 | Snail, tin can | Ghost crabs: red is danger, highlighter is food |
+| 1 | `pen-test` | Pen Test | Size 3 | Snail | Coach: walk and eat, then change shell |
+| 2 | `margin-wall` | Margin Wall | Size 4 | Snail, light bulb (on a shelf 5 tiles up) | Coach: dig, then drop sand to build up |
+| 3 | `ghost-writers` | Ghost Writers | Size 4 | Snail, light bulb | Coach: hide from a red ghost crab |
+| 4 | `underlined` | Underlined | Size 5 | Snail, tin can (buried 5 deep) | Coach: find a buried shell by its highlighter smudge |
+| 5 | `room-to-grow` | Room to Grow | Size 5 | Snail, light bulb, tin can | A chain of shells across the beach, with ghost crabs |
 | 6 | `shadow-sketch` | Shadow Sketch | Size 5 | Snail, tin can | Hiding in the shell from big hunters |
 | 7 | `high-water-mark` | High-Water Mark | Size 6 | Snail, light bulb, whelk, moon snail (by the water) | A long climb down to the waterline |
 | 8 | `safe-burrow` | Safe Burrow | Size 7 | Snail, tin can, moon snail, jam jar (buried) | Digging a burrow to swap safely |

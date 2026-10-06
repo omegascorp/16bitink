@@ -1,4 +1,5 @@
 import type { CritterGroup } from '../logic/sim';
+import type { Lesson } from '../logic/coach';
 import type { ShellKind } from '../logic/shells';
 
 /** A column and a surface row: the level's ground is drawn through these, eased between them. */
@@ -37,4 +38,6 @@ export interface LevelDef {
   readonly critters?: readonly CritterGroup[];
   /** Seconds to earn the time blot. */
   readonly parTime: number;
+  /** Lessons the coach walks the player through here (see logic/coach.ts). */
+  readonly teach?: readonly Lesson[];
 }

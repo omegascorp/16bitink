@@ -443,12 +443,12 @@ describe('beach simulation', () => {
       for (let x = 0; x < 40; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
       return new Beach({
         terrain, items: [], start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: 'bottlecap', seed: 1, surfaceFood: 0,
-        goal, lives, startGrowth: { size: 1, meter: 7, bank: 0 },
+        goal, lives, startGrowth: { size: 1, meter: 4, bank: 0 },
       });
     };
 
     it('starts from the level\'s growth', () => {
-      expect(levelBeach(2).crab.growth).toEqual({ size: 1, meter: 7, bank: 0 });
+      expect(levelBeach(2).crab.growth).toEqual({ size: 1, meter: 4, bank: 0 });
     });
 
     it('is won on reaching the goal size, and then stops', () => {

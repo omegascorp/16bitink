@@ -40,6 +40,8 @@ export class HudScene extends Phaser.Scene {
   private lives: Phaser.GameObjects.Image[] = [];
   private levelsButton!: Phaser.GameObjects.Container;
   private intro: Phaser.GameObjects.Container | null = null;
+  private coachText!: Phaser.GameObjects.Text;
+  private coachBox!: Phaser.GameObjects.Graphics;
   private sand!: Phaser.GameObjects.Text;
   private note!: Phaser.GameObjects.Text;
   private shell!: Phaser.GameObjects.Text;
@@ -69,6 +71,8 @@ export class HudScene extends Phaser.Scene {
     this.sizeText = text(BAR.x + BAR.w + 8, BAR.y - 4, 17);
     this.lives = [];
     this.levelsButton = inkButton(this, 0, LIFE.y, 'levels', () => game.quit(), { width: 92, height: 40, size: 22 });
+    this.coachBox = this.add.graphics();
+    this.coachText = inkText(this, 0, 0, '', 21).setWordWrapWidth(520).setAlign('center');
     this.showIntro(game);
     this.sand = text(HEAP_AT.x, HEAP_AT.bottom + 2, 16).setOrigin(0.5, 0);
     this.note = text(28, 82, 20);
@@ -98,6 +102,7 @@ export class HudScene extends Phaser.Scene {
     this.title.setText(game.level.name);
     this.sizeText.setText(`size ${c.growth.size} of ${goal}`);
     this.syncLives(beach.lives, c.shell ?? START_SHELL, width);
+    this.drawCoach(game, width);
 
     drawSandGauge(g, HEAP_AT.x, HEAP_AT.bottom, c.sand, beach.sandCapacity);
     // Full, it digs nothing until it unloads; past full (a smaller shell) is a warning.
@@ -131,6 +136,21 @@ export class HudScene extends Phaser.Scene {
       this.drawJumpButton(width, height);
       this.drawHideButton(width, height, c.hidden);
     }
+  }
+
+  /** The coach's current hint, in a paper note under the top of the screen. */
+  private drawCoach(game: GameScene, width: number): void {
+    const hint = this.intro?.active ? null : game.coach.hint(game.beach, this.touchSeen ? 'touch' : 'keys');
+    const box = this.coachBox.clear();
+    this.coachText.setVisible(hint !== null);
+    if (!hint) return;
+    const top = PANEL.y + PANEL.h + 18;
+    this.coachText.setWordWrapWidth(Math.min(640, width - 48)).setText(hint.text);
+    const w = this.coachText.width + 28;
+    const h = this.coachText.height + 16;
+    this.coachText.setPosition(width / 2, top + h / 2);
+    box.fillStyle(PAPER_HEX, 0.94).fillRect(width / 2 - w / 2, top, w, h);
+    wobblyRect(box, width / 2 - w / 2, top, w, h, 13, 1.6, BLUE_HEX);
   }
 
   /** Lives as little shells by the levels button, top right. */

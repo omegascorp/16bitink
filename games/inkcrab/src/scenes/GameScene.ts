@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
-import { BLUE, RED } from '../art/palette';
+import { BLUE, BLUE_HEX, RED } from '../art/palette';
 import { TEX } from '../art/textures';
 import { getHost, REG } from '../host';
 import { buildLevel, START_SIZE } from '../level/build';
 import { LEVELS, levelById } from '../level/levels';
 import type { LevelDef } from '../level/types';
+import { Coach } from '../logic/coach';
 import type { TilePos } from '../logic/dig';
 import { overlaps } from '../logic/items';
 import { shellPx, SHELLS } from '../logic/shells';
@@ -34,6 +35,8 @@ export class GameScene extends Phaser.Scene {
   level!: LevelDef;
   /** Starting size, for the HUD's growth bar. */
   readonly startSize = START_SIZE;
+  coach!: Coach;
+  private pointer!: Phaser.GameObjects.Graphics;
   private terrainView!: TerrainView;
   private itemsView!: ItemsView;
   private crittersView!: CrittersView;
@@ -49,6 +52,8 @@ export class GameScene extends Phaser.Scene {
     this.level = levelById(data?.levelId) ?? LEVELS[0]!;
     const setup = buildLevel(this.level);
     this.beach = new Beach(setup);
+    this.coach = new Coach(this.level.teach ?? []);
+    this.pointer = this.add.graphics().setDepth(7);
     const T = setup.tileSize;
     const worldW = setup.terrain.width * T;
     const worldH = setup.terrain.height * T;
@@ -96,6 +101,7 @@ export class GameScene extends Phaser.Scene {
     const { tapTile, tapInteract } = this.consumeTaps();
     const events = this.beach.step(this.input2.read(this.touch, tapTile, tapInteract), dt);
     for (const e of events) this.react(e);
+    this.coach.observe(this.beach, events);
     this.terrainView.flush();
     this.itemsView.sync(this.beach.items, time, this.beach.crab.swap?.itemId ?? null);
     this.crittersView.sync(this.beach.critters, this.beach.crab.growth.size, time);
@@ -103,6 +109,34 @@ export class GameScene extends Phaser.Scene {
     const cam = this.cameras.main;
     const z = screenZoom(cam);
     cam.setZoom(DPR * (z + (this.targetZoom() - z) * Math.min(1, dt * 2)));
+    this.drawPointer(time);
+  }
+
+  /**
+   * The coach's arrow: bobbing over what the hint is about, or at the edge
+   * of the view pointing the way when it's off screen.
+   */
+  private drawPointer(time: number): void {
+    const g = this.pointer.clear();
+    const target = this.coach.hint(this.beach, 'keys')?.target;
+    if (!target) return;
+    const view = this.cameras.main.worldView;
+    const zoom = screenZoom(this.cameras.main);
+    const inset = 34 / zoom;
+    const size = 14 / zoom;
+    const bob = Math.sin(time / 180) * 3 / zoom;
+    const onScreen = view.contains(target.x, target.y);
+    const x = Phaser.Math.Clamp(target.x, view.x + inset, view.right - inset);
+    const y = onScreen ? target.y - 18 / zoom - bob : Phaser.Math.Clamp(target.y, view.y + inset, view.bottom - inset);
+    // Pointing down at the target when it's in view, otherwise towards it.
+    const angle = onScreen ? Math.PI / 2 : Math.atan2(target.y - y, target.x - x);
+    const tip = { x: x + Math.cos(angle) * size, y: y + Math.sin(angle) * size };
+    const back = (a: number): { x: number; y: number } => ({ x: x + Math.cos(angle + a) * size, y: y + Math.sin(angle + a) * size });
+    const l = back(Math.PI * 0.78);
+    const r = back(-Math.PI * 0.78);
+    g.lineStyle(3.2 / zoom, BLUE_HEX, 0.95);
+    g.lineBetween(l.x, l.y, tip.x, tip.y).lineBetween(r.x, r.y, tip.x, tip.y);
+    g.lineBetween(x - Math.cos(angle) * size * 1.6, y - Math.sin(angle) * size * 1.6, tip.x, tip.y);
   }
 
   /** Bigger crabs see more of the beach, but never past its edges. */

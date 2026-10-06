@@ -12,8 +12,11 @@ describe('growth', () => {
     expect(meterGoal(2)).toBeGreaterThan(meterGoal(1));
   });
 
-  it('takes ten points of food to grow out of size 1', () => {
-    expect(meterGoal(1)).toBe(10);
+  it('grows quickly at first and slower as it gets big', () => {
+    expect(meterGoal(1)).toBe(7);
+    expect(meterGoal(7)).toBe(40);
+    // Each size costs more than the last, by more each time.
+    for (let s = 2; s < 7; s++) expect(meterGoal(s + 1) - meterGoal(s)).toBeGreaterThan(meterGoal(s) - meterGoal(s - 1));
   });
 
   it('fills the meter and grows while the shell has room', () => {
