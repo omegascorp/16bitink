@@ -362,15 +362,16 @@ describe('beach simulation', () => {
       expect(b.crab.growth.meter).toBeGreaterThan(0);
     });
 
-    it('is caught by a bigger one: keeps its shell but drops a size, then is safe for a moment', () => {
+    it('is caught by a bigger one: loses a life but keeps its size and shell, then is safe for a moment', () => {
       const b = flatBeach();
       b.crab = { ...b.crab, growth: { size: 2, meter: 1, bank: 0 } };
       step(b, {}, 1);
       ahead(b, 4);
       const events = step(b, {}, 1);
       expect(events.some((e) => e.type === 'caught')).toBe(true);
+      expect(b.lives).toBe(2);
       expect(b.crab.shell).toBe('bottlecap');
-      expect(b.crab.growth.size).toBe(1);
+      expect(b.crab.growth).toEqual({ size: 2, meter: 1, bank: 0 });
       expect([...b.items.values()].some((i) => i.kind.type === 'shell')).toBe(false);
       expect(b.crab.safe).toBeGreaterThan(0);
       // Still touching it, but safe: no second catch.
@@ -419,9 +420,63 @@ describe('beach simulation', () => {
     it('keeps the beach stocked with ghost crabs, out of sight of the player', () => {
       const terrain: Terrain = createTerrain(120, 30);
       for (let x = 0; x < 120; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
-      const b = new Beach({ terrain, items: [], start: { x: 10 * T, y: 10 * T }, tileSize: T, startShell: 'bottlecap', seed: 1, surfaceFood: 0, critters: 4 });
+      const b = new Beach({
+        terrain, items: [], start: { x: 10 * T, y: 10 * T }, tileSize: T, startShell: 'bottlecap', seed: 1, surfaceFood: 0,
+        critters: [{ count: 3, sizes: [1, 2] }, { count: 1, sizes: [6, 6] }],
+      });
       expect(b.critters.size).toBe(4);
       for (const c of b.critters.values()) expect(Math.abs(c.x - 10 * T)).toBeGreaterThan(12 * T);
+      const sizes = [...b.critters.values()].map((c) => c.size).sort();
+      expect(sizes.filter((x) => x <= 2)).toHaveLength(3);
+      expect(sizes.filter((x) => x === 6)).toHaveLength(1);
+      // Eat the big one away: the next to appear replaces it in kind.
+      const big = [...b.critters.values()].find((c) => c.size === 6)!;
+      b.critters.delete(big.id);
+      step(b, {}, 4);
+      expect([...b.critters.values()].some((c) => c.size === 6)).toBe(true);
+    });
+  });
+
+  describe('a level', () => {
+    const levelBeach = (goal: number, lives = 3): Beach => {
+      const terrain: Terrain = createTerrain(40, 30);
+      for (let x = 0; x < 40; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
+      return new Beach({
+        terrain, items: [], start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: 'bottlecap', seed: 1, surfaceFood: 0,
+        goal, lives, startGrowth: { size: 1, meter: 7, bank: 0 },
+      });
+    };
+
+    it('starts from the level\'s growth', () => {
+      expect(levelBeach(2).crab.growth).toEqual({ size: 1, meter: 7, bank: 0 });
+    });
+
+    it('is won on reaching the goal size, and then stops', () => {
+      const b = levelBeach(2);
+      step(b, {}, 1);
+      b.items.set(70, makeItem(70, { type: 'food', food: 'clam', points: 4 }, b.crab.body.x + 20, 10 * T - 9, false));
+      const events = step(b, { moveX: 1 }, 1);
+      expect(events.some((e) => e.type === 'won')).toBe(true);
+      expect(b.outcome).toBe('won');
+      const x = b.crab.body.x;
+      expect(step(b, { moveX: 1 }, 0.5)).toEqual([]);
+      expect(b.crab.body.x).toBe(x);
+    });
+
+    it('is lost when the last life goes', () => {
+      const b = levelBeach(2, 1);
+      step(b, {}, 1);
+      b.critters.set(99, makeCritter(99, 4, b.crab.body.x + b.crab.body.w + 6, 10 * T, -1, 10));
+      const events = step(b, {}, 1);
+      expect(events.some((e) => e.type === 'lost')).toBe(true);
+      expect(b.outcome).toBe('lost');
+      expect(b.lives).toBe(0);
+    });
+
+    it('counts play time for the par', () => {
+      const b = levelBeach(2);
+      step(b, {}, 2);
+      expect(b.elapsed).toBeCloseTo(2, 1);
     });
   });
 });

@@ -13,8 +13,12 @@ interface Chunk {
 }
 
 /** The sand, drawn in chunks that are redrawn only when a dig or a clump changes them. */
+/** Each view's textures get their own prefix, so a restarted level never collides with the last. */
+let views = 0;
+
 export class TerrainView {
   private readonly chunks = new Map<string, Chunk>();
+  private readonly prefix = `sand${++views}`;
   private readonly dirty = new Set<string>();
   private patterns: SandPatterns | null = null;
 
@@ -54,6 +58,12 @@ export class TerrainView {
     this.dirty.clear();
   }
 
+  /** Frees the chunk textures (the texture manager is shared by every scene). */
+  destroy(): void {
+    for (const key of this.chunks.keys()) this.scene.textures.remove(`${this.prefix}-${key}`);
+    this.chunks.clear();
+  }
+
   private patternsFor(ctx: CanvasRenderingContext2D): SandPatterns {
     this.patterns ??= makeSandPatterns(ctx, ART_RES);
     return this.patterns;
@@ -65,8 +75,9 @@ export class TerrainView {
     canvas.width = px;
     canvas.height = px;
     const ctx = canvas.getContext('2d');
-    const texture = this.scene.textures.addCanvas(`sand-${key}`, canvas);
-    if (!ctx || !texture) return null;
+    if (!ctx) return null;
+    const texture = this.scene.textures.addCanvas(`${this.prefix}-${key}`, canvas);
+    if (!texture) return null;
     this.scene.add.image(rect.tx * this.tile - CHUNK_PAD, rect.ty * this.tile - CHUNK_PAD, texture).setOrigin(0).setScale(1 / ART_RES).setDepth(1);
     const chunk = { rect, ctx, texture };
     this.chunks.set(key, chunk);

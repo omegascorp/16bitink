@@ -36,7 +36,9 @@ export type SimEvent =
   | { readonly type: 'revealed'; readonly id: number }
   | { readonly type: 'spawned'; readonly id: number }
   | { readonly type: 'swapStart'; readonly id: number }
-  | { readonly type: 'caught'; readonly x: number; readonly y: number; readonly size: number }
+  | { readonly type: 'caught'; readonly x: number; readonly y: number; readonly lives: number }
+  | { readonly type: 'won' }
+  | { readonly type: 'lost' }
   | { readonly type: 'swapDone'; readonly from: ShellKind | null; readonly to: ShellKind; readonly grew: number; readonly dropped: number | null };
 
 export interface CrabState {
@@ -64,9 +66,23 @@ export interface BeachSetup {
   readonly seed: number;
   /** How many loose food items the surface is kept stocked with. */
   readonly surfaceFood: number;
-  /** How many ghost crabs roam the beach (default none). */
-  readonly critters?: number;
+  /** Ghost crabs that roam the beach, kept stocked group by group (default none). */
+  readonly critters?: readonly CritterGroup[];
+  /** The crab's growth at the start (default size 1, empty). */
+  readonly startGrowth?: Growth;
+  /** Size that wins the level; without one the beach is a sandbox. */
+  readonly goal?: number;
+  /** Lives for the level (default 3). */
+  readonly lives?: number;
 }
+
+/** A kind of ghost crab a level keeps around: how many at once, and their sizes. */
+export interface CritterGroup {
+  readonly count: number;
+  readonly sizes: readonly [number, number];
+}
+
+export type Outcome = 'playing' | 'won' | 'lost';
 
 const DIG_SECONDS = 0.22;
 /** Jump height in a light shell, tiles: 2.5 at size 1, growing with the crab (about 5.3 at size 8). */
@@ -79,8 +95,7 @@ const SAFE_SECONDS = 2.5;
 /** New ghost crabs appear at least this many tiles from the player, so never in view. */
 const SPAWN_AWAY = 14;
 const CRITTER_EVERY = 3;
-/** Sizes of new ghost crabs, relative to the player: a few to eat, a few to flee. */
-const SPAWN_SIZES = { below: 2, above: 3, max: 7 } as const;
+export const LIVES = 3;
 
 function crabBox(size: number, shell: ShellKind | null): { w: number; h: number } {
   const px = shellPx(shell ? SHELLS[shell].maxSize : size);
@@ -97,7 +112,12 @@ export class Beach {
   readonly tileSize: number;
   readonly items = new Map<number, Item>();
   readonly critters = new Map<number, Critter>();
+  readonly goal: number | null;
   crab: CrabState;
+  lives: number;
+  outcome: Outcome = 'playing';
+  /** Seconds played. */
+  elapsed = 0;
   nearbyShell: Item | null = null;
   nearbyFits = false;
   private readonly rng: Rng;
@@ -105,23 +125,29 @@ export class Beach {
   private nextId: number;
   private foodTimer = 0;
   private critterTimer = 0;
-  private readonly population: number;
+  private readonly groups: readonly CritterGroup[];
+  /** Which group each ghost crab belongs to, so an eaten one is replaced in kind. */
+  private readonly groupOf = new Map<number, number>();
 
   constructor(setup: BeachSetup) {
     this.terrain = setup.terrain;
     this.tileSize = setup.tileSize;
     this.rng = createRng(setup.seed);
     this.surfaceFood = setup.surfaceFood;
-    this.population = setup.critters ?? 0;
+    this.groups = setup.critters ?? [];
+    this.goal = setup.goal ?? null;
+    this.lives = setup.lives ?? LIVES;
     for (const item of setup.items) this.items.set(item.id, item);
     this.nextId = Math.max(0, ...setup.items.map((i) => i.id)) + 1;
-    const growth = initialGrowth();
+    const growth = setup.startGrowth ?? initialGrowth();
     const { w, h } = crabBox(growth.size, setup.startShell);
     this.crab = {
       body: { x: setup.start.x - w / 2, y: setup.start.y - h, w, h, vx: 0, vy: 0, onGround: false },
       facing: 1, growth, shell: setup.startShell, sand: 0, swap: null, digCooldown: 0, hidden: false, safe: 0,
     };
-    for (let i = 0; i < this.population; i++) this.spawnCritter();
+    this.groups.forEach((g, i) => {
+      for (let n = 0; n < g.count; n++) this.spawnCritter(i);
+    });
   }
 
   /** Body size the current shell allows; naked crabs don't grow. */
@@ -145,6 +171,8 @@ export class Beach {
 
   step(input: Input, dt: number): SimEvent[] {
     const events: SimEvent[] = [];
+    if (this.outcome !== 'playing') return events;
+    this.elapsed += dt;
     const c = this.crab;
     this.crab = { ...c, safe: Math.max(0, c.safe - dt), hidden: input.hide && c.shell !== null && c.swap === null };
     if (this.crab.swap) this.tickSwap(dt, events);
@@ -157,6 +185,7 @@ export class Beach {
     this.restock(dt, events);
     this.restockCritters(dt);
     this.findNearbyShell();
+    this.checkOutcome(events);
     return events;
   }
 
@@ -368,6 +397,18 @@ export class Beach {
     events.push({ type: 'spawned', id });
   }
 
+  /** Won on growing to the goal size; lost with the last life (see caught). */
+  private checkOutcome(events: SimEvent[]): void {
+    if (this.outcome !== 'playing') return;
+    if (this.lives <= 0) {
+      this.outcome = 'lost';
+      events.push({ type: 'lost' });
+    } else if (this.goal !== null && this.crab.growth.size >= this.goal) {
+      this.outcome = 'won';
+      events.push({ type: 'won' });
+    }
+  }
+
   private moveCritters(dt: number): void {
     const c = this.crab;
     const quarry = { box: c.body, size: c.growth.size, hidden: c.hidden };
@@ -404,44 +445,40 @@ export class Beach {
   }
 
   /**
-   * Soft failure: it keeps its shell but shrinks a size (losing its meter
-   * and bank), then has a moment's grace. Caught moving house, it stays put.
+   * Caught: a life lost, nothing else. It keeps its size and shell and has
+   * a moment's grace; caught moving house, it stays where it was.
    */
   private caught(events: SimEvent[]): void {
     const c = this.crab;
-    const size = Math.max(1, c.growth.size - 1);
-    // In a shell the body box follows the shell, so only a naked crab shrinks.
-    const fitted = this.refit(c.body, size, c.shell, events);
-    this.crab = {
-      ...c, body: fitted.body, growth: { size, meter: 0, bank: 0 }, swap: null, hidden: false,
-      safe: SAFE_SECONDS, sand: c.sand + fitted.shoved,
-    };
-    const at = centre(fitted.body);
-    events.push({ type: 'caught', x: at.x, y: at.y, size });
+    this.lives -= 1;
+    this.crab = { ...c, swap: null, hidden: false, safe: SAFE_SECONDS };
+    const at = centre(c.body);
+    events.push({ type: 'caught', x: at.x, y: at.y, lives: this.lives });
   }
 
   private restockCritters(dt: number): void {
-    if (this.critters.size >= this.population) return;
+    const short = this.groups.findIndex((g, i) => [...this.critters.keys()].filter((id) => this.groupOf.get(id) === i).length < g.count);
+    if (short < 0) return;
     this.critterTimer += dt;
     if (this.critterTimer < CRITTER_EVERY) return;
     this.critterTimer = 0;
-    this.spawnCritter();
+    this.spawnCritter(short);
   }
 
-  /** A new ghost crab on the surface, well away from the player. */
-  private spawnCritter(): void {
+  /** A new ghost crab of group `group`, on the surface well away from the player. */
+  private spawnCritter(group: number): void {
     const T = this.tileSize;
     const crabCol = Math.floor(centre(this.crab.body).x / T);
     const w = this.terrain.width;
     for (let tries = 0; tries < 12; tries++) {
       const tx = 2 + Math.floor(this.rng() * (w - 4));
       if (Math.abs(tx - crabCol) < SPAWN_AWAY) continue;
-      const lo = Math.max(1, this.crab.growth.size - SPAWN_SIZES.below);
-      const hi = Math.min(SPAWN_SIZES.max, this.crab.growth.size + SPAWN_SIZES.above);
+      const [lo, hi] = this.groups[group]!.sizes;
       const size = lo + Math.floor(this.rng() * (hi - lo + 1));
       const id = this.nextId++;
       const dir = this.rng() < 0.5 ? 1 : -1;
       this.critters.set(id, makeCritter(id, size, tx * T + T / 2, surfaceRow(this.terrain, tx) * T, dir, CRITTER.turnMin + this.rng() * 3));
+      this.groupOf.set(id, group);
       return;
     }
   }

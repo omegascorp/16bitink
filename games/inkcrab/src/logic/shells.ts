@@ -3,7 +3,7 @@
  * is the crab's growth cap. Weight slows the crab, durability (used once
  * predators land) is how many hits it takes before it breaks.
  */
-export const SHELL_KINDS = ['bottlecap', 'snail', 'bulb', 'can', 'whelk', 'moonsnail', 'jar', 'coconut', 'conch'] as const;
+export const SHELL_KINDS = ['periwinkle', 'bottlecap', 'snail', 'bulb', 'can', 'whelk', 'moonsnail', 'jar', 'coconut', 'conch'] as const;
 export type ShellKind = (typeof SHELL_KINDS)[number];
 
 export interface ShellSpec {
@@ -23,6 +23,8 @@ const spec = (kind: ShellKind, name: string, minSize: number, maxSize: number, w
 
 // Ranges overlap generously so a crab can bank growth and jump past a size.
 export const SHELLS: Readonly<Record<ShellKind, ShellSpec>> = {
+  // A real sea-snail shell to start in, so the first thing you see reads as a hermit crab.
+  periwinkle: spec('periwinkle', 'periwinkle', 1, 2, 1, 2),
   bottlecap: spec('bottlecap', 'bottle cap', 1, 2, 1, 1, true),
   snail: spec('snail', 'snail shell', 1, 3, 1, 2),
   bulb: spec('bulb', 'light bulb', 2, 4, 1, 1, true),

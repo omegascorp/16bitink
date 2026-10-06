@@ -1,27 +1,39 @@
 import Phaser from 'phaser';
 import { BLUE, RED } from '../art/palette';
 import { TEX } from '../art/textures';
-import { REG } from '../host';
-import { buildTestBeach } from '../level/testBeach';
+import { getHost, REG } from '../host';
+import { buildLevel, START_SIZE } from '../level/build';
+import { LEVELS, levelById } from '../level/levels';
+import type { LevelDef } from '../level/types';
 import type { TilePos } from '../logic/dig';
 import { overlaps } from '../logic/items';
 import { shellPx, SHELLS } from '../logic/shells';
-import { Beach, type SimEvent } from '../logic/sim';
+import { blotsFor, loadProgress, recordResult, saveProgress } from '../logic/save';
+import { Beach, LIVES, type SimEvent } from '../logic/sim';
 import { CrabView } from './game/crabView';
 import { CrittersView } from './game/crittersView';
 import { createTouchState, GameInput, type TouchState } from './game/input';
 import { ItemsView } from './game/itemsView';
 import { TerrainView } from './game/terrainView';
 import { DPR, screenZoom, viewSize } from './hidpi';
+import type { ResultData } from './ResultScene';
 import { HAND_FONT } from './ui';
 
-const SEED = 20261005;
 /** Longest frame the simulation takes in one step (tab switches, hitches). */
 const MAX_DT = 1 / 20;
+/** A beat to see the win (or the last catch) before the result card. */
+const END_DELAY_MS = 1100;
 
-/** The goal-less test beach from build step 1. */
+export interface GameData {
+  readonly levelId: string;
+}
+
+/** One level: the beach, the crab, and what happens when it's won or lost. */
 export class GameScene extends Phaser.Scene {
   beach!: Beach;
+  level!: LevelDef;
+  /** Starting size, for the HUD's growth bar. */
+  readonly startSize = START_SIZE;
   private terrainView!: TerrainView;
   private itemsView!: ItemsView;
   private crittersView!: CrittersView;
@@ -33,8 +45,9 @@ export class GameScene extends Phaser.Scene {
     super('Game');
   }
 
-  create(): void {
-    const setup = buildTestBeach(SEED);
+  create(data: GameData): void {
+    this.level = levelById(data?.levelId) ?? LEVELS[0]!;
+    const setup = buildLevel(this.level);
     this.beach = new Beach(setup);
     const T = setup.tileSize;
     const worldW = setup.terrain.width * T;
@@ -53,6 +66,29 @@ export class GameScene extends Phaser.Scene {
     cam.setZoom(DPR * this.targetZoom());
     cam.startFollow(this.crabView.root, true, 0.12, 0.12);
     this.scene.launch('Hud');
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.terrainView.destroy());
+  }
+
+  /** Back to the level list (from the HUD). */
+  quit(): void {
+    this.scene.stop('Hud');
+    this.scene.start('Menu');
+  }
+
+  /** Saves a win, then shows the result card after a beat. */
+  private finish(won: boolean): void {
+    const b = this.beach;
+    const livesLost = LIVES - b.lives;
+    const blots = won ? blotsFor(b.elapsed, this.level.parTime, livesLost) : 0;
+    if (won) {
+      const host = getHost(this);
+      saveProgress(host.storage, recordResult(loadProgress(host.storage), this.level.id, blots, b.elapsed));
+    }
+    const result: ResultData = { levelId: this.level.id, won, time: b.elapsed, blots, livesLost };
+    this.time.delayedCall(END_DELAY_MS, () => {
+      this.scene.stop('Hud');
+      this.scene.start('Result', result);
+    });
   }
 
   update(time: number, delta: number): void {
@@ -98,9 +134,13 @@ export class GameScene extends Phaser.Scene {
       if (e.banked > 0) this.crabView.stuck(this);
     } else if (e.type === 'grew') this.crabView.pop(this);
     else if (e.type === 'caught') {
-      this.floatText(e.x, e.y, 'caught! −1 size', RED);
+      this.floatText(e.x, e.y, e.lives > 0 ? 'caught! −1 life' : 'caught!', RED);
       this.cameras.main.shake(180, 0.004);
-    }
+    } else if (e.type === 'won') {
+      const c = this.beach.crab.body;
+      this.floatText(c.x + c.w / 2, c.y - 10, 'grown up!');
+      this.finish(true);
+    } else if (e.type === 'lost') this.finish(false);
   }
 
   private floatText(x: number, y: number, text: string, color: string = BLUE): void {

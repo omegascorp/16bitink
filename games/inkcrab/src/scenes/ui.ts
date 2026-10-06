@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { BLUE } from '../art/palette';
+import { BLUE, BLUE_HEX, PAPER_HEX } from '../art/palette';
 import { createRng } from '../logic/rng';
+import { toView } from './hidpi';
 
 export const HAND_FONT = '"Caveat", "Patrick Hand", "Comic Sans MS", cursive';
 
@@ -21,4 +22,59 @@ export function wobblyRect(g: Phaser.GameObjects.Graphics, x: number, y: number,
     const oy = (by - ay) * 0.03;
     g.lineBetween(ax - ox + j(), ay - oy + j(), bx + ox + j(), by + oy + j());
   }
+}
+
+export interface ButtonOpts {
+  readonly width?: number;
+  readonly height?: number;
+  readonly size?: number;
+}
+
+/**
+ * A paper button with a hand-drawn border (after InkFish's). It fires only
+ * for a press that started on it and didn't drag, so lifting a steering
+ * finger never triggers it.
+ */
+export function inkButton(scene: Phaser.Scene, x: number, y: number, label: string, onClick: () => void, opts: ButtonOpts = {}): Phaser.GameObjects.Container {
+  const w = opts.width ?? 200;
+  const h = opts.height ?? 52;
+  const g = scene.add.graphics();
+  g.fillStyle(PAPER_HEX, 0.95).fillRect(-w / 2, -h / 2, w, h);
+  wobblyRect(g, -w / 2, -h / 2, w, h, label.length * 31, 1.8, BLUE_HEX);
+  const t = inkText(scene, 0, 0, label, opts.size ?? 28);
+  const c = scene.add.container(x, y, [g, t]).setSize(w, h);
+  c.setInteractive({ useHandCursor: true });
+  let pressedAt: { x: number; y: number } | null = null;
+  c.on('pointerover', () => c.setScale(1.04));
+  c.on('pointerout', () => {
+    c.setScale(1);
+    pressedAt = null;
+  });
+  c.on('pointerdown', (p: Phaser.Input.Pointer) => {
+    pressedAt = toView(p.x, p.y);
+  });
+  c.on('pointerup', (p: Phaser.Input.Pointer) => {
+    const start = pressedAt;
+    pressedAt = null;
+    const end = toView(p.x, p.y);
+    if (!start || Math.hypot(start.x - end.x, start.y - end.y) > 12) return;
+    onClick();
+  });
+  return c;
+}
+
+/** Ink blots (the stars): `earned` filled, the rest as empty rings. */
+export function drawBlots(g: Phaser.GameObjects.Graphics, cx: number, cy: number, earned: number, r: number, of = 3): void {
+  const gap = r * 2.8;
+  for (let i = 0; i < of; i++) {
+    const x = cx + (i - (of - 1) / 2) * gap;
+    if (i < earned) g.fillStyle(BLUE_HEX, 0.85).fillCircle(x, cy, r);
+    g.lineStyle(Math.max(1.2, r * 0.18), BLUE_HEX, i < earned ? 1 : 0.45).strokeCircle(x, cy, r);
+  }
+}
+
+/** m:ss */
+export function clock(seconds: number): string {
+  const s = Math.max(0, Math.round(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }

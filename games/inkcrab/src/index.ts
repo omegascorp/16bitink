@@ -5,6 +5,8 @@ import { REG } from './host';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 import { HudScene } from './scenes/HudScene';
+import { MenuScene } from './scenes/MenuScene';
+import { ResultScene } from './scenes/ResultScene';
 import { DPR } from './scenes/hidpi';
 
 /** Mounts InkCrab into `parent`, filling it completely and tracking its size. */
@@ -31,7 +33,7 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     },
     input: { activePointers: 3 },
     audio: { noAudio: true },
-    scene: [BootScene, GameScene, HudScene],
+    scene: [BootScene, MenuScene, GameScene, HudScene, ResultScene],
   });
   game.registry.set(REG.host, host);
   const resizer = new ResizeObserver(() => {

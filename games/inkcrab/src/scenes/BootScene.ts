@@ -18,7 +18,7 @@ export class BootScene extends Phaser.Scene {
     this.time.delayedCall(30, () => {
       try {
         generateTextures(this);
-        this.scene.start('Game');
+        this.scene.start('Menu');
       } catch (err) {
         console.error('[inkcrab] boot failed', err);
         this.children.removeAll(true);

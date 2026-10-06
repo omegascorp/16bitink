@@ -7,6 +7,7 @@ import { FOOT, FRAME } from './frame';
  * a bulb's out on its screw base.
  */
 export const MOUTH_X: Readonly<Record<ShellKind, number>> = {
+  periwinkle: -14 + 38 * 0.78,
   bottlecap: 5,
   snail: -14 + 38 * 0.78,
   bulb: 17,

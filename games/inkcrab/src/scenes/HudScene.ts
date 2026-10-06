@@ -1,19 +1,26 @@
 import Phaser from 'phaser';
-import { BLUE, BLUE_HEX, HIGHLIGHT_HEX, PAPER_HEX, RED } from '../art/palette';
+import { BLUE, BLUE_HEX, PAPER_HEX, RED } from '../art/palette';
 import { REG } from '../host';
-import { meterGoal } from '../logic/growth';
 import { inStickZone, knobOffset, stickCentre, stickVector, STICK } from '../logic/joystick';
+import { levelGoal, START_SHELL } from '../level/build';
+import { capMark, levelProgress, sizeMarks } from '../logic/progress';
 import { SHELLS } from '../logic/shells';
+import { TEX } from '../art/textures';
+import { FOOT, FRAME, SHELL_MID } from '../art/frame';
 import type { GameScene } from './GameScene';
 import type { TouchState } from './game/input';
 import { screenScene, toView, viewSize } from './hidpi';
 import { drawSandGauge, HEAP_MAX_W } from './sandGauge';
-import { HAND_FONT, wobblyRect } from './ui';
+import { drawGrowthBar } from './growthBar';
+import { HAND_FONT, inkButton, inkText, wobblyRect } from './ui';
 
 const PANEL = { x: 16, y: 14, w: 380, h: 118 } as const;
 /** The sand heap sits in the panel's right end, its count under it. */
 const HEAP_AT = { x: PANEL.x + PANEL.w - 16 - HEAP_MAX_W / 2, bottom: PANEL.y + PANEL.h - 30 } as const;
-const BAR = { x: 30, y: 60, w: 200, h: 16 } as const;
+const BAR = { x: 30, y: 60, w: 190, h: 16 } as const;
+/** Life icons: a little shell each, right to left from the levels button. */
+const LIFE = { size: 30, gap: 36, y: 36 } as const;
+const INTRO_MS = 3600;
 
 /** The on-screen jump button, bottom right (touch only). */
 function jumpButton(width: number, height: number): { x: number; y: number; r: number } {
@@ -25,10 +32,14 @@ function hideButton(width: number, height: number): { x: number; y: number; r: n
   return { x: width - 180, y: height - 80, r: 34 };
 }
 
-/** The notebook margin: size, growth meter, bank, shell, carried sand, and touch controls. */
+/** The notebook margin: level, growth bar, lives, shell, carried sand, and touch controls. */
 export class HudScene extends Phaser.Scene {
   private g!: Phaser.GameObjects.Graphics;
-  private size!: Phaser.GameObjects.Text;
+  private title!: Phaser.GameObjects.Text;
+  private sizeText!: Phaser.GameObjects.Text;
+  private lives: Phaser.GameObjects.Image[] = [];
+  private levelsButton!: Phaser.GameObjects.Container;
+  private intro: Phaser.GameObjects.Container | null = null;
   private sand!: Phaser.GameObjects.Text;
   private note!: Phaser.GameObjects.Text;
   private shell!: Phaser.GameObjects.Text;
@@ -45,10 +56,20 @@ export class HudScene extends Phaser.Scene {
 
   create(): void {
     screenScene(this);
+    // The scene object is reused across levels: a finger held down as the last one ended never lifted here.
+    this.stickPointer = null;
+    this.hidePointer = null;
+    this.stickPull = { x: 0, y: 0 };
+    this.intro = null;
     this.g = this.add.graphics();
     const text = (x: number, y: number, size: number, color = BLUE): Phaser.GameObjects.Text =>
       this.add.text(x, y, '', { fontFamily: HAND_FONT, fontSize: `${size}px`, color, padding: { x: 4, y: 2 } });
-    this.size = text(28, 20, 30);
+    const game = this.scene.get('Game') as GameScene;
+    this.title = text(28, 20, 26);
+    this.sizeText = text(BAR.x + BAR.w + 8, BAR.y - 4, 17);
+    this.lives = [];
+    this.levelsButton = inkButton(this, 0, LIFE.y, 'levels', () => game.quit(), { width: 92, height: 40, size: 22 });
+    this.showIntro(game);
     this.sand = text(HEAP_AT.x, HEAP_AT.bottom + 2, 16).setOrigin(0.5, 0);
     this.note = text(28, 82, 20);
     this.shell = text(28, 102, 18);
@@ -61,6 +82,7 @@ export class HudScene extends Phaser.Scene {
 
   update(): void {
     const game = this.scene.get('Game') as GameScene;
+    if (!game.level) return;
     const beach = game.beach;
     if (!beach) return;
     const { width, height } = viewSize(this);
@@ -70,15 +92,14 @@ export class HudScene extends Phaser.Scene {
     g.fillStyle(PAPER_HEX, 0.88).fillRect(PANEL.x, PANEL.y, PANEL.w, PANEL.h);
     wobblyRect(g, PANEL.x, PANEL.y, PANEL.w, PANEL.h, 3, 1.6, BLUE_HEX);
 
-    const goal = meterGoal(c.growth.size);
-    const full = Math.min(1, c.growth.meter / goal);
-    // Highlighter under the ink: a full shell is something to act on.
-    if (beach.capped) g.fillStyle(HIGHLIGHT_HEX, 0.85).fillRect(BAR.x - 5, BAR.y - 5, BAR.w + 10, BAR.h + 10);
-    g.fillStyle(BLUE_HEX, 0.75).fillRect(BAR.x, BAR.y, BAR.w * full, BAR.h);
-    wobblyRect(g, BAR.x, BAR.y, BAR.w, BAR.h, 9, 1.4, BLUE_HEX);
+    const start = game.startSize;
+    const goal = levelGoal(game.level);
+    drawGrowthBar(g, BAR, levelProgress(c.growth, start, goal), sizeMarks(start, goal), capMark(beach.cap, start, goal), beach.capped && beach.cap < goal);
+    this.title.setText(game.level.name);
+    this.sizeText.setText(`size ${c.growth.size} of ${goal}`);
+    this.syncLives(beach.lives, c.shell ?? START_SHELL, width);
 
     drawSandGauge(g, HEAP_AT.x, HEAP_AT.bottom, c.sand, beach.sandCapacity);
-    this.size.setText(`size ${c.growth.size}`);
     // Full, it digs nothing until it unloads; past full (a smaller shell) is a warning.
     const loaded = c.sand >= beach.sandCapacity;
     const unload = this.touchSeen ? 'tap to drop' : 'C to drop';
@@ -112,6 +133,30 @@ export class HudScene extends Phaser.Scene {
     }
   }
 
+  /** Lives as little shells by the levels button, top right. */
+  private syncLives(n: number, kind: string, width: number): void {
+    while (this.lives.length > Math.max(0, n)) this.lives.pop()?.destroy();
+    while (this.lives.length < n) this.lives.push(this.add.image(0, 0, TEX.shell(kind, 0)).setOrigin(SHELL_MID / FRAME, FOOT.y / FRAME));
+    this.levelsButton.setPosition(width - 62, LIFE.y);
+    const scale = LIFE.size / 116;
+    this.lives.forEach((img, i) => img.setTexture(TEX.shell(kind, 0)).setScale(scale).setPosition(width - 140 - i * LIFE.gap, LIFE.y + 12));
+  }
+
+  /** The level's name, goal and lesson, centred for a few seconds at the start. */
+  private showIntro(game: GameScene): void {
+    const { width, height } = viewSize(this);
+    const w = Math.min(520, width - 32);
+    const h = 170;
+    const g = this.add.graphics();
+    g.fillStyle(PAPER_HEX, 0.96).fillRect(-w / 2, -h / 2, w, h);
+    wobblyRect(g, -w / 2, -h / 2, w, h, 21, 2, BLUE_HEX);
+    const name = inkText(this, 0, -h / 2 + 34, game.level.name, 34);
+    const goal = inkText(this, 0, -8, `grow to size ${levelGoal(game.level)}`, 26);
+    const hint = inkText(this, 0, 44, game.level.hint, 20).setWordWrapWidth(w - 40).setAlign('center').setAlpha(0.85);
+    this.intro = this.add.container(width / 2, height * 0.42, [g, name, goal, hint]);
+    this.tweens.add({ targets: this.intro, alpha: 0, delay: INTRO_MS, duration: 500, onComplete: () => this.intro?.destroy() });
+  }
+
   private touch(): TouchState | undefined {
     return this.registry.get(REG.touch) as TouchState | undefined;
   }
@@ -142,7 +187,9 @@ export class HudScene extends Phaser.Scene {
     this.g.strokePath();
   }
 
-  private onDown(p: Phaser.Input.Pointer): void {
+  private onDown(p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[] = []): void {
+    // A press on a HUD button isn't a tap on the beach.
+    if (over.length > 0) return;
     if (p.wasTouch) this.touchSeen = true;
     const v = toView(p.x, p.y);
     const { width, height } = viewSize(this);

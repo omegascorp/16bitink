@@ -146,6 +146,8 @@ function round(d: Draw, o: { cx: number; cy: number; r: number; wash: string; ba
 }
 
 const snail = (d: Draw): void => round(d, { cx: -14, cy: 8, r: 38, wash: '#e0b85e', band: '#5a3a20', bands: 2, spire: 0.6 });
+/** The starter: a small, dark, tightly coiled periwinkle, banded grey-green. */
+const periwinkle = (d: Draw): void => round(d, { cx: -14, cy: 8, r: 38, wash: '#9aa38c', band: '#34402f', bands: 3, spire: 0.9 });
 const moonsnail = (d: Draw): void => round(d, { cx: -18, cy: 2, r: 44, wash: '#e8d8b8', band: '#9a7e9a', glaze: '#b9a6c8', bands: 1, spire: 0.25 });
 
 // ---------------------------------------------------------------- trash shells
@@ -312,7 +314,7 @@ function coconut(d: Draw): void {
 }
 
 const DRAW: Readonly<Record<ShellKind, (d: Draw) => void>> = {
-  bottlecap, snail, bulb, can, whelk, moonsnail, jar, coconut, conch,
+  periwinkle, bottlecap, snail, bulb, can, whelk, moonsnail, jar, coconut, conch,
 };
 
 export function drawShell(d: Draw, kind: ShellKind): void {

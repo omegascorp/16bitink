@@ -12,6 +12,10 @@ describe('growth', () => {
     expect(meterGoal(2)).toBeGreaterThan(meterGoal(1));
   });
 
+  it('takes ten points of food to grow out of size 1', () => {
+    expect(meterGoal(1)).toBe(10);
+  });
+
   it('fills the meter and grows while the shell has room', () => {
     const r = feed(g(1), meterGoal(1) + 1, 3);
     expect(r.growth).toEqual(g(2, 1));
