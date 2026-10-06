@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import { C } from '../../art/fish/kit';
 import { bodyProportions, type FishShape } from '../../art/fishArt';
-import { tailCut } from '../../art/textures';
+import { bendsToSwim, tailCut } from '../../art/textures';
 import { capsuleOf, type Capsule } from '../../logic/body';
 import { keepDepth, keepTint } from './sync';
+import { attachBend, setBendBeat, setBendTexture } from './bendRig';
 
 /**
  * Swimming animation for any fish sprite: the tail is a second image hinged
@@ -27,6 +28,18 @@ const MAX_BEAT = 0.3;
 
 const rigsByScene = new WeakMap<Phaser.Scene, Map<Image, Rig>>();
 
+/** Texture px per fish-texture px for sprites drawn finer than usual (the giants, at BOSS_RES); 1 for everyone else. */
+const artResOf = new WeakMap<Image, number>();
+
+/** Marks a sprite as showing a drawing made at `res` times the usual size. Set it before attachTail. */
+export function setArtRes(sprite: Image, res: number): void {
+  artResOf.set(sprite, res);
+}
+
+export function artRes(sprite: Image): number {
+  return artResOf.get(sprite) ?? 1;
+}
+
 function rigsOf(scene: Phaser.Scene): Map<Image, Rig> {
   const existing = rigsByScene.get(scene);
   if (existing) return existing;
@@ -42,14 +55,19 @@ function rigsOf(scene: Phaser.Scene): Map<Image, Rig> {
   return rigs;
 }
 
-/** Gives a fish sprite a swinging tail. Fish that bend their whole body (eels) are left as one image. */
+/** Gives a fish sprite a swinging tail, or a bending body for fish whose tail tapers to a point (eels; see bendRig.ts). */
 export function attachTail(sprite: Image, shape: FishShape): void {
+  const res = artRes(sprite);
+  if (bendsToSwim(shape)) {
+    attachBend(sprite, shape, res);
+    return;
+  }
   const cut = tailCut(shape);
   if (cut === null) return;
   const rigs = rigsOf(sprite.scene);
   sprite.setFrame('body');
   const tail = sprite.scene.add.image(sprite.x, sprite.y, sprite.texture.key, 'tail');
-  const rig: Rig = { tail, hinge: cut - C, beat: 0 };
+  const rig: Rig = { tail, hinge: (cut - C) * res, beat: 0 };
   rigs.set(sprite, rig);
   follow(rig, sprite);
   sprite.once(Phaser.GameObjects.Events.DESTROY, () => {
@@ -60,6 +78,7 @@ export function attachTail(sprite: Image, shape: FishShape): void {
 
 /** Swaps the texture (boil frame, ink weight) on body and tail alike. */
 export function setSwimTexture(sprite: Image, key: string): void {
+  if (setBendTexture(sprite, key)) return;
   const rig = rigsByScene.get(sprite.scene)?.get(sprite);
   if (!rig) {
     sprite.setTexture(key);
@@ -69,8 +88,9 @@ export function setSwimTexture(sprite: Image, key: string): void {
   rig.tail.setTexture(key, 'tail');
 }
 
-/** Sets how far the tail is swung, in radians. */
-export function setTailBeat(sprite: Image, angle: number): void {
+/** Sets how far the tail is swung, in radians, at swim phase `phase` (a bending body ripples with it). */
+export function setTailBeat(sprite: Image, angle: number, phase: number): void {
+  if (setBendBeat(sprite, angle, phase)) return;
   const rig = rigsByScene.get(sprite.scene)?.get(sprite);
   if (rig) rig.beat = angle;
 }
@@ -112,6 +132,16 @@ export function turnToward(state: SwimState, dir: -1 | 1 | 0, dt: number): numbe
   return Math.max(0.2, Math.abs(state.turn));
 }
 
+/** Where a point on a fish's drawing (fish-texture px, before any finer resolution) is in the world, as the sprite is drawn now. */
+export function artPoint(sprite: Image, x: number, y: number): { x: number; y: number } {
+  const res = artRes(sprite);
+  const lx = (x - C) * Math.abs(sprite.scaleX) * res * (sprite.flipX ? -1 : 1);
+  const ly = (y - C) * Math.abs(sprite.scaleY) * res;
+  const cos = Math.cos(sprite.rotation);
+  const sin = Math.sin(sprite.rotation);
+  return { x: sprite.x + lx * cos - ly * sin, y: sprite.y + lx * sin + ly * cos };
+}
+
 /** Where a swimmer's mouth is: at the nose, on whichever side it faces. */
 export function mouthOf(sprite: Image, radius: number, turn: number): { x: number; y: number } {
   return { x: sprite.x + Math.sign(turn || 1) * radius * 0.85, y: sprite.y };
@@ -119,7 +149,7 @@ export function mouthOf(sprite: Image, radius: number, turn: number): { x: numbe
 
 /** How far a swimmer's nose is from its centre, world px (where a bird or a hook holds it). */
 export function noseReach(sprite: Image, shape: FishShape): number {
-  return bodyProportions(shape).hl * Math.abs(sprite.scaleY);
+  return bodyProportions(shape).hl * Math.abs(sprite.scaleY) * artRes(sprite);
 }
 
 /** Swallowed: the fish is sucked into the eater's mouth, shrinking, then gone. */
@@ -133,5 +163,5 @@ export function gulp(sprite: Image, into: { x: number; y: number }): void {
 /** The collision capsule of a fish sprite as currently drawn (size, facing, tilt). */
 export function bodyOf(sprite: Image, shape: FishShape): Capsule {
   // scaleY is the true size; scaleX is squashed while turning.
-  return capsuleOf({ x: sprite.x, y: sprite.y, rotation: sprite.rotation, flipped: sprite.flipX, scale: sprite.scaleY }, bodyProportions(shape));
+  return capsuleOf({ x: sprite.x, y: sprite.y, rotation: sprite.rotation, flipped: sprite.flipX, scale: sprite.scaleY * artRes(sprite) }, bodyProportions(shape));
 }

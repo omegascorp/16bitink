@@ -1,3 +1,5 @@
+import { ringWavelength } from './ring';
+
 /** The swimmable band shared by the player and every fish: nothing leaves the water. */
 export const WATER = {
   /** Just under the drawn surface line. */
@@ -41,7 +43,7 @@ export function keepInWater(y: number, vy: number, radius: number, worldHeight: 
 
 /**
  * The shape of a level's seabed. Every level gets its own: gentle dunes or
- * steep ridges, a slope one way or the other, so no two floors look alike.
+ * steep ridges, a long rise one way or the other, so no two floors look alike.
  */
 export interface Seabed {
   /** Sand surface height (world y) at x. */
@@ -61,14 +63,17 @@ export function hashUnit(text: string, salt = 0): number {
 export function seabedFor(levelId: string, world: { readonly width: number; readonly height: number }): Seabed {
   const r = (salt: number): number => hashUnit(levelId, salt);
   const amp = 8 + r(1) * 22;
-  const wave = 110 + r(2) * 170;
+  // Every wave fits the ring a whole number of times, so the floor meets itself and floorAt works at any x.
+  const wave = ringWavelength(110 + r(2) * 170, world.width);
+  const short = ringWavelength(47, world.width);
+  const long = world.width / (2 * Math.PI);
   const ripple = 2 + r(3) * 6;
   const phase = r(4) * Math.PI * 2;
   const tilt = (r(5) - 0.5) * 50;
   const base = world.height - 72;
   return {
     floorAt: (x) => {
-      const y = base - Math.sin(x / wave + phase) * amp - Math.sin(x / 47 + phase * 2) * ripple + tilt * (x / world.width - 0.5);
+      const y = base - Math.sin(x / wave + phase) * amp - Math.sin(x / short + phase * 2) * ripple - (tilt / 2) * Math.sin(x / long);
       return Math.min(world.height - SEABED_BOTTOM, Math.max(world.height - SEABED_TOP, y));
     },
   };

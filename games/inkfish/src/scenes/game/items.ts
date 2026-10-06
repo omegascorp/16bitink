@@ -33,7 +33,7 @@ function pickKind(level: LevelDef, rng: Rng): ItemId | null {
 export function spawnItem(scene: Phaser.Scene, level: LevelDef, view: Phaser.Geom.Rectangle, rng: Rng): FallingItem | null {
   const kind = pickKind(level, rng);
   if (!kind) return null;
-  const x = Phaser.Math.Clamp(rangeOf(rng, view.left + 100, view.right - 100), 80, level.world.width - 80);
+  const x = rangeOf(rng, view.left + 100, view.right - 100);
   const y = Math.max(WATER.surface, view.top - 60);
   const sprite = scene.add.image(x, y, itemKey(kind, 0)).setDepth(13).setScale(ITEM_SCALE / ART_RES).setRotation(rangeOf(rng, -0.6, 0.6));
   return { sprite, kind, sway: rng() * Math.PI * 2, landedAt: null };

@@ -12,6 +12,9 @@ import type { WeedKind } from '../../art/propArt';
 import { createRng, rangeOf } from '../../logic/rng';
 import { makeCanvas } from '../../art/pen';
 import { bakeBand, rgba, strokeLine, washTint } from './bake';
+import { ringWavelength } from '../../logic/ring';
+import type { Ring } from './ring';
+import { widthScale } from '../../levels/worldSize';
 
 const INK = 0x1b1a1f;
 const PAPER_HEX = 0xf4eddc;
@@ -47,11 +50,14 @@ const SAND_MAX_R = 0.95;
  * `sky`, open air above the surface too. The static pen work (surface lines,
  * sand, floor line, current marks) is baked into textures, and the wash is a
  * tint on the paper, so none of it is re-tessellated or overdrawn every frame.
+ * Everything meets itself where x = width wraps round to 0 (see logic/ring.ts).
  */
-export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, seabed: Seabed, sky = false): DrawnWorld {
+export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, seabed: Seabed, ring: Ring, sky = false): DrawnWorld {
   const dark = ZONE_DARKNESS[zone];
   const flora = ZONE_WEEDS[zone];
   const { width, height } = level.world;
+  // Counts below are for REFERENCE_SEA's width: a longer ring gets more of everything, as densely.
+  const spread = widthScale(width);
   // Seeded by the whole level id, so every level lays out its own seabed.
   // Its draws must stay in this order: rocks and weeds below come from the same stream.
   const rng = createRng(Math.floor(hashUnit(level.id, 7) * 1e6) + 1);
@@ -61,21 +67,22 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
   // Deeper zones get a heavier ink wash, darkening with depth: a vertical gradient
   // laid on the paper as a corner tint instead of a second full-screen layer.
   const waterFrom = sky ? SKY.surfaceY : 0;
-  if (sky) scene.add.tileSprite(0, top, width, waterFrom - top, 'paper').setOrigin(0).setDepth(0);
+  if (sky) ring.follow(scene.add.tileSprite(0, top, width, waterFrom - top, 'paper').setOrigin(0).setDepth(0));
   const color = dark > 0.5 ? 0x1c2a4a : 0x2c4f86;
   const tintTop = washTint(PAPER_HEX, color, Math.min(1, 0.012 * (1 + dark * 5)));
   const tintBottom = washTint(PAPER_HEX, color, Math.min(1, 0.095 * (1 + dark * 5)));
-  scene.add.tileSprite(0, waterFrom, width, height - waterFrom, 'paper').setOrigin(0).setDepth(0)
-    .setTilePosition(0, waterFrom - top).setTint(tintTop, tintTop, tintBottom, tintBottom);
+  ring.follow(scene.add.tileSprite(0, waterFrom, width, height - waterFrom, 'paper').setOrigin(0).setDepth(0)
+    .setTilePosition(0, waterFrom - top).setTint(tintTop, tintTop, tintBottom, tintBottom));
   if (sky) {
     drawSky(scene, width, rng, fixed);
-    drawShoreline(scene, level.id, zone, width);
+    drawShoreline(scene, level.id, zone, width, ring);
   }
 
   // Surface: a wavy double pen line. Deep down there is no surface in sight, just more dark water.
   if (sky) {
-    const upper = wobblyPoints(width, (x) => SKY.surfaceY + Math.sin(x / 70) * 6, rng);
-    const lower = wobblyPoints(width, (x) => SKY.surfaceY + 12 + Math.sin(x / 70 + 1) * 5, rng);
+    const swell = ringWavelength(70, width);
+    const upper = wobblyPoints(width, (x) => SKY.surfaceY + Math.sin(x / swell) * 6, rng);
+    const lower = wobblyPoints(width, (x) => SKY.surfaceY + 12 + Math.sin(x / swell + 1) * 5, rng);
     const band = { x0: 0, x1: width, top: SKY.surfaceY - 10, height: 32 };
     fixed.push(...bakeBand(scene, 'surface', band, ART_RES, 2, (ctx) => {
       strokeLine(ctx, upper, 1.4, INK, 0.75);
@@ -84,7 +91,7 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
   }
   // Current strokes: little "~" marks scattered through the water.
   ensureMarkTexture(scene);
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0, n = Math.round(90 * spread); i < n; i++) {
     const x = rng() * width;
     const y = rangeOf(rng, 140, height - 220);
     fixed.push(scene.add.image(x - 1, y - MARK.h / 2, MARK.key).setOrigin(0).setScale(1 / ART_RES).setDepth(2));
@@ -92,9 +99,10 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
   // Sea floor with stippled sand, denser away from the surface of the floor.
   const floor = seabed.floorAt;
   const outline: (readonly [number, number])[] = [];
-  for (let x = 0; x <= width; x += 20) outline.push([x, floor(x)]);
+  for (let x = 0; x < width; x += 20) outline.push([x, floor(x)]);
+  outline.push([width, floor(width)]);
   const floorLine = wobblyPoints(width, floor, rng);
-  const sand = Array.from({ length: 2600 }, () => {
+  const sand = Array.from({ length: Math.round(2600 * spread) }, () => {
     const x = rng() * width;
     const depth = rng();
     return { x, y: floor(x) + 4 + depth * depth * (height - floor(x)), alpha: 0.25 + depth * 0.35, r: rng() * 0.7 + 0.25 };
@@ -124,7 +132,7 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
   fixed.push(...decor.map((d) => d.sprite));
 
   // Rock and weed counts vary level to level around the zone's usual.
-  const rocks = Math.round(flora.rocks * rangeOf(rng, 0.5, 1.4));
+  const rocks = Math.round(flora.rocks * spread * rangeOf(rng, 0.5, 1.4));
   // Boulders stand in front of the landmark, so keep them off a glowing one: its light would shine through them.
   const glowing = plan.filter((d) => d.landmark && isGlowDecor(d.kind));
   const clear = (x: number): boolean => glowing.every((d) => Math.abs(x - d.x) > (DECOR_SIZE[d.kind].w * d.scale) / 2 + 60);
@@ -138,7 +146,7 @@ export function drawWorld(scene: Phaser.Scene, level: LevelDef, zone: ZoneId, se
   }
   // Scales are capped so weeds are never magnified past their texture.
   if (flora.kinds.length === 0) return { weeds: [], decor, fixed };
-  const weeds = Array.from({ length: Math.round(flora.count * rangeOf(rng, 0.55, 1.35)) }, () => {
+  const weeds = Array.from({ length: Math.round(flora.count * spread * rangeOf(rng, 0.55, 1.35)) }, () => {
     const x = rangeOf(rng, 0, width);
     const kind = flora.kinds[Math.floor(rng() * flora.kinds.length)]!;
     return scene.add.image(x, floor(x) + 10, weedKey(kind, 0)).setOrigin(0.5, 1).setDepth(4)
@@ -169,14 +177,15 @@ function drawSky(scene: Phaser.Scene, width: number, rng: () => number, into: Ph
 }
 
 /** Islands, rocks and lighthouses on the horizon, scrolling slower than the water so they read as far off. */
-function drawShoreline(scene: Phaser.Scene, levelId: string, zone: ZoneId, width: number): void {
+function drawShoreline(scene: Phaser.Scene, levelId: string, zone: ZoneId, width: number, ring: Ring): void {
   const plan = planShore(levelId, zone, width);
   ensureShoreTextures(scene, plan.map((p) => p.kind));
-  for (const p of plan) {
+  const pieces = plan.map((p) => {
     const { h } = SHORE_SIZE[p.kind];
-    scene.add.image(p.x, SKY.surfaceY + 3, shoreKey(p.kind)).setOrigin(0.5, (h - 4) / h)
+    return scene.add.image(p.x, SKY.surfaceY + 3, shoreKey(p.kind)).setOrigin(0.5, (h - 4) / h)
       .setScrollFactor(SHORE_PARALLAX, 1).setScale(p.scale / ART_RES).setAlpha(p.far ? 0.5 : 0.9).setDepth(p.far ? 1.4 : 1.5);
-  }
+  });
+  ring.addParallax(pieces, SHORE_PARALLAX, width);
 }
 
 /**
@@ -199,9 +208,10 @@ export function swayWeeds(weeds: readonly Phaser.GameObjects.Image[], current: n
 
 const WEED_SWAY = { maxLean: 0.32, leanPerCurrent: 0.0028, calmAmp: 0.05, currentAmp: 0.08, calmSpeed: 0.9, currentSpeed: 2.2 } as const;
 
-/** A pen line along `yAt`, every 12 px, with a little hand jitter. */
+/** A pen line along `yAt`, every 12 px, with a little hand jitter; both ends unjittered at x = 0 and `width`, so laps of the ring join up. */
 function wobblyPoints(width: number, yAt: (x: number) => number, rng: () => number): (readonly [number, number])[] {
   const pts: (readonly [number, number])[] = [[0, yAt(0)]];
-  for (let x = 12; x <= width; x += 12) pts.push([x, yAt(x) + (rng() - 0.5) * 1.6]);
+  for (let x = 12; x < width; x += 12) pts.push([x, yAt(x) + (rng() - 0.5) * 1.6]);
+  pts.push([width, yAt(width)]);
   return pts;
 }

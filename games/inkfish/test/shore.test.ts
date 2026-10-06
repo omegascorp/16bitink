@@ -16,6 +16,8 @@ describe('shore scenery', () => {
     for (const id of ['c1-l1', 'c2-l5', 'c5-l9', 'c6-l4']) {
       const xs = planShore(id, 'wreck', 3200).map((p) => p.x).sort((a, b) => a - b);
       for (let i = 1; i < xs.length; i++) expect(xs[i]! - xs[i - 1]!).toBeGreaterThan(SHORE_GAP);
+      // The skyline repeats every world width: the last piece is apart from the next lap's first, too.
+      expect(xs[0]! + 3200 - xs[xs.length - 1]!).toBeGreaterThan(SHORE_GAP);
     }
   });
 });

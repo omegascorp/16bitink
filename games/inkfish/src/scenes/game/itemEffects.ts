@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { ItemId } from '../../levels/items';
 import type { LevelDef } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
+import { chumSpots } from '../../logic/chum';
 import { spawnSpecial, stunFish, type Fish } from './fish';
 import type { Player } from './player';
 import { TUNING } from './tuning';
@@ -76,15 +77,15 @@ export function applyItem(host: ItemHost, kind: ItemId, now: number): void {
   }
 }
 
-/** A school of the level's smallest prey rushes in from all sides. */
+/** A school of the level's smallest prey rushes in from all sides, within sight. */
 function chumSchool(host: ItemHost): Fish[] {
-  const p = host.player().sprite;
+  const p = host.player();
+  const view = host.scene.cameras.main.worldView;
   const staple = host.level.spawns[0]!;
-  return Array.from({ length: TUNING.chumSchool }, (_, i) => {
-    const a = (i / TUNING.chumSchool) * Math.PI * 2;
-    const d = rangeOf(host.rng, 260, 380);
-    const f = spawnSpecial(host.scene, staple.species, staple.size[0], 'normal', p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, host.rng);
-    f.vx = -Math.cos(a) * 90;
+  const spots = chumSpots(p.sprite.x, p.sprite.y, view.width / 2, view.height / 2, TUNING.chumSchool, p.size * 3, host.rng);
+  return spots.map((s) => {
+    const f = spawnSpecial(host.scene, staple.species, staple.size[0], 'normal', s.x, s.y, host.rng);
+    f.vx = -s.dx * 90;
     return f;
   });
 }

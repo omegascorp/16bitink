@@ -4,6 +4,7 @@ import { ART_RES } from '../../art/textures';
 import type { ZoneId } from '../../levels/types';
 import { createRng, rangeOf } from '../../logic/rng';
 import { hashUnit } from '../../logic/water';
+import { widthScale } from '../../levels/worldSize';
 
 /**
  * What lies on each zone's seabed. `common` pieces are scattered; one
@@ -41,7 +42,7 @@ export function planDecor(levelId: string, zone: ZoneId, width: number): DecorPl
   // A handful of this zone's kinds, a different handful each level.
   const kinds = [...common].sort(() => rng() - 0.5).slice(0, Math.min(common.length, 3 + Math.floor(rng() * 2)));
   const scattered = kinds.flatMap((kind) =>
-    Array.from({ length: 2 + Math.floor(rng() * 4) }, (): DecorPlan => ({
+    Array.from({ length: Math.round((2 + Math.floor(rng() * 4)) * widthScale(width)) }, (): DecorPlan => ({
       kind, x: rangeOf(rng, 60, width - 60), scale: rangeOf(rng, 0.75, 1.15), flip: rng() < 0.5, landmark: false,
     })));
   const landmark: DecorPlan = {

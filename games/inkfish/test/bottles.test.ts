@@ -15,17 +15,12 @@ describe('ink bottles', () => {
     expect(bottlesToDrop(10, 12, 0)).toBe(0);
   });
 
-  it('drops bottles within reach of the player, inside the world', () => {
-    for (const r of [0, 0.25, 0.5, 0.999]) {
-      const x = bottleDropX(1600, 3200, () => r);
-      expect(Math.abs(x - 1600)).toBeLessThanOrEqual(900);
-      expect(Math.abs(x - 1600)).toBeGreaterThanOrEqual(150);
-    }
-    for (const playerX of [0, 50, 3150, 3200]) {
-      for (const r of [0, 0.5, 0.999]) {
-        const x = bottleDropX(playerX, 3200, () => r);
-        expect(x).toBeGreaterThanOrEqual(100);
-        expect(x).toBeLessThanOrEqual(3100);
+  it('drops bottles within reach of the player, on either side', () => {
+    for (const playerX of [1600, 0, 3200, -9000, 25000]) {
+      for (const r of [0, 0.25, 0.5, 0.999]) {
+        const x = bottleDropX(playerX, () => r);
+        expect(Math.abs(x - playerX)).toBeLessThanOrEqual(900);
+        expect(Math.abs(x - playerX)).toBeGreaterThanOrEqual(150);
       }
     }
   });

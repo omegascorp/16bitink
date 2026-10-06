@@ -7,6 +7,7 @@ import { CRITTER_BODY, drawCritter, isCritter } from './critterArt';
 import { ellipse, INK, makeCanvas, Pen, type Pt } from './pen';
 import { drawSquidPortrait, isSquid } from './squidArt';
 import { SQUID_BODY } from './squidPose';
+import { inkedRows } from '../logic/bend';
 
 export { FISH_RADIUS, FISH_TEX };
 export type FishShape = SpeciesId | PlayerFishId;
@@ -311,15 +312,20 @@ function anglerMouth(k: Kit): void {
 /** Bends a finished drawing into a sine wave by shifting 1px columns (eels swim in S-curves). */
 function undulate(ctx: CanvasRenderingContext2D, amplitude: number): void {
   const { canvas } = ctx;
+  // Column by column in canvas px, whatever scale the drawing was made at (giants are drawn at BOSS_RES).
+  const res = ctx.getTransform().a;
   const copy = document.createElement('canvas');
   copy.width = canvas.width;
   copy.height = canvas.height;
   copy.getContext('2d')?.drawImage(canvas, 0, 0);
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let x = 0; x < canvas.width; x++) {
-    const dy = Math.sin((x / canvas.width) * Math.PI * 2.2 + 0.6) * amplitude * Math.min(1, (canvas.width - x) / 60 + 0.25);
+    const dy = Math.sin((x / canvas.width) * Math.PI * 2.2 + 0.6) * amplitude * res * Math.min(1, (canvas.width - x) / (60 * res) + 0.25);
     ctx.drawImage(copy, x, 0, 1, canvas.height, x, dy, 1, canvas.height);
   }
+  ctx.restore();
 }
 
 /** Draws one boil frame of a fish facing right, centred in a FISH_TEX square canvas. */
@@ -395,4 +401,25 @@ export function fishLights(shape: FishShape): readonly Light[] {
   if (!isCritter(shape) && !isSquid(shape)) drawFish(makeCanvas(FISH_TEX, FISH_TEX).ctx, shape, 'light', 101, lights);
   lightCache.set(shape, lights);
   return lights;
+}
+
+const bandCache = new Map<FishShape, { readonly top: number; readonly bottom: number }>();
+
+/**
+ * The rows of a fish's drawing that hold any ink, in texture px, with a
+ * little margin (boil frames wobble). Found by drawing it once. Bending fish
+ * stretch only this band along their rope: the full square would shear.
+ */
+export function fishBand(shape: FishShape): { readonly top: number; readonly bottom: number } {
+  const cached = bandCache.get(shape);
+  if (cached) return cached;
+  const { ctx } = makeCanvas(FISH_TEX, FISH_TEX);
+  drawCreature(ctx, shape, 'heavy', 0, 101);
+  const rows = inkedRows(ctx.getImageData(0, 0, FISH_TEX, FISH_TEX).data, FISH_TEX);
+  const margin = 6;
+  const band = rows
+    ? { top: Math.max(0, rows.top - margin), bottom: Math.min(FISH_TEX, rows.bottom + margin) }
+    : { top: 0, bottom: FISH_TEX };
+  bandCache.set(shape, band);
+  return band;
 }

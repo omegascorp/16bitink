@@ -170,6 +170,20 @@ const RECIPES: Readonly<Record<SfxId, (v: Voice) => void>> = {
     tone(v, { type: 'triangle', from: 1047, dur: 0.6, gain: 0.22, delay: 0.36 });
   },
   lose: (v) => notes(v, [392, 330, 262], 0.18, { type: 'triangle', dur: 0.3, gain: 0.2, vibrato: { depth: 4, rate: 6 } }),
+  // Weed shaken from inside: soft, quick bursts of leafy noise.
+  rustle: (v) => {
+    for (let i = 0; i < 4; i++) noise(v, { dur: 0.07, gain: 0.22, filter: 'bandpass', from: 2600 + i * 300, q: 1.6, delay: i * 0.065, attack: 0.01 });
+  },
+  // A big fish bursting forward: a deep rush of water and a thump.
+  lunge: (v) => {
+    noise(v, { dur: 0.3, gain: 0.8, filter: 'lowpass', from: 1800, to: 300, attack: 0.02 });
+    tone(v, { from: 90, to: 45, dur: 0.22, gain: 0.35, delay: 0.05 });
+  },
+  // A huge mouth opening: water rushing in, a deepening hollow roar.
+  suck: (v) => {
+    noise(v, { dur: 0.9, gain: 0.55, filter: 'lowpass', from: 300, to: 1600, attack: 0.25 });
+    tone(v, { from: 70, to: 120, dur: 0.8, gain: 0.25, attack: 0.2 });
+  },
   // A pencil tick.
   click: (v) => noise(v, { dur: 0.03, gain: 0.25, filter: 'bandpass', from: 2800, q: 2 }),
 };

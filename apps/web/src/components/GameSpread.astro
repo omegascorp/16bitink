@@ -3,8 +3,9 @@ import type { CatalogGame } from '../data/games';
 
 interface Props {
   game: CatalogGame;
+  owned?: boolean;
 }
-const { game } = Astro.props;
+const { game, owned = false } = Astro.props;
 const play = `/play/${game.slug}`;
 ---
 <article class="spread">
@@ -14,8 +15,8 @@ const play = `/play/${game.slug}`;
   <div class="caption">
     <h2><a class="title" href={play}>{game.title}</a></h2>
     <p class="tagline">{game.tagline}</p>
-    <a class="btn btn-ink play" href={play}>Play free</a>
-    <p class="terms">First chapter free, full game {game.price} one-time. <a href={`/games/${game.slug}`}>About the game</a></p>
+    <a class="btn btn-ink play" href={play}>{owned ? 'Play' : 'Play free'}</a>
+    <p class="terms">{!owned && `First chapter free, full game ${game.price} one-time. `}<a href={`/games/${game.slug}`}>About the game</a></p>
   </div>
 </article>
 

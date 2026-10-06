@@ -1,6 +1,7 @@
 import { createRng, rangeOf } from '../logic/rng';
 import { hashUnit } from '../logic/water';
 import type { ZoneId } from './types';
+import { widthScale } from './worldSize';
 
 /**
  * Places to hide: dense seagrass beds, kelp thickets and coral heads, where
@@ -40,7 +41,8 @@ export function planCover(levelId: string, levelNumber: number, zone: ZoneId, wi
   const { kinds, count } = ZONE_COVER[zone];
   if (kinds.length === 0 || levelNumber < COVER_DEBUT) return [];
   const rng = createRng(Math.floor(hashUnit(levelId, 21) * 1e6) + 1);
-  const n = count[0] + Math.floor(rng() * (count[1] - count[0] + 1));
+  // Counts are per REFERENCE_SEA width: a longer ring gets more patches, as far apart.
+  const n = Math.max(1, Math.round((count[0] + Math.floor(rng() * (count[1] - count[0] + 1))) * widthScale(width)));
   // Spread out: one patch per slice of the level, jittered inside it.
   const slice = width / n;
   return Array.from({ length: n }, (_, i): CoverPatch => {
@@ -84,4 +86,10 @@ export function stepHide(s: HideState, inside: boolean, now: number, dtMs: numbe
     return { state: { hidden: false, usedMs: 0, blockedUntil: now + rules.cooldownMs, mustLeave: true }, spotted: true };
   }
   return { state: { ...s, hidden: true, usedMs }, spotted: false };
+}
+
+/** Flushed out of cover (by a moray, say): spotted at once, and must leave before cover works again. */
+export function flushHide(s: HideState, now: number, rules: HideRules): { state: HideState; spotted: boolean } {
+  if (!s.hidden) return { state: s, spotted: false };
+  return { state: { hidden: false, usedMs: 0, blockedUntil: now + rules.cooldownMs, mustLeave: true }, spotted: true };
 }

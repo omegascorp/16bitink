@@ -1,16 +1,17 @@
 import Phaser from 'phaser';
 import { FISH_RADIUS } from '../../art/fishArt';
-import { fishKey } from '../../art/textures';
+import { BOSS_RES, bossKey, fishKey } from '../../art/textures';
 import { SPECIES_INFO } from '../../levels/species';
 import type { LevelDef, SpeciesId } from '../../levels/types';
 import { DUCK, nearestDecoy, type Decoy } from '../../logic/decoy';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { pickSpawn, relationTo } from '../../logic/sizing';
 import { keepInWater } from '../../logic/water';
+import { outsideShoal, pastView, shoalReach } from '../../logic/ring';
 import { isSquid } from '../../art/squidArt';
 import { renderSquid, updateSquid } from './squid';
 import { attachSquid } from './squidRig';
-import { attachTail, setSwimTexture, setTailBeat, stroke, turnToward, type SwimState } from './swim';
+import { artRes, attachTail, setArtRes, setSwimTexture, setTailBeat, stroke, turnToward, type SwimState } from './swim';
 
 /** Ordinary fish come and go; marked fish and the giant are level goals and never leave. */
 export type FishRole = 'normal' | 'bounty' | 'boss';
@@ -19,7 +20,8 @@ export interface Fish extends SwimState {
   readonly sprite: Phaser.GameObjects.Image;
   readonly species: SpeciesId;
   readonly role: FishRole;
-  readonly baseSize: number;
+  /** Its size at rest; a giant can lose some (the oarfish shedding its tail). */
+  baseSize: number;
   /** Current radius after puffing. */
   size: number;
   vx: number;
@@ -34,6 +36,16 @@ export interface Fish extends SwimState {
   fullUntil: number;
   /** Lean to follow the ground under a crawler, radians (0 for swimmers). */
   tilt: number;
+  /** How far it has gone sideways since it was spawned, px: after a lap of the ring an ordinary fish moves on. */
+  swum: number;
+  /** Tucked away out of reach (a giant in its weed): it can't bite or be bitten. */
+  tucked: boolean;
+  /** Camouflaged: its goal ring isn't drawn, so you have to find it. */
+  veiled: boolean;
+  /** Hidden for real: no goal ring and no off-screen arrow either, so you have to search for it. */
+  untracked: boolean;
+  /** Steered by a giant (its moray partner), not by its own mind, until let go. */
+  led: boolean;
   /** dead: knocked out by a firecracker, floating belly-up; anyone can eat it. */
   state: 'cruise' | 'chase' | 'lunge' | 'puffed' | 'tired' | 'stunned' | 'hooked' | 'dead';
 }
@@ -41,23 +53,24 @@ export interface Fish extends SwimState {
 const cruiseOf = (species: SpeciesId): readonly [number, number] => SPECIES_INFO[species].cruise;
 
 /**
- * Spawns a fish somewhere in the world but outside the camera view
- * (so nothing pops into existence on screen), heading across the map.
+ * Spawns a fish in the shoal band around the player but outside the camera
+ * view (so nothing pops into existence on screen), heading across the player's way.
  */
 export function spawnFish(scene: Phaser.Scene, level: LevelDef, playerSize: number, view: Phaser.Geom.Rectangle, rng: Rng): Fish {
   const { entry, size } = pickSpawn(level.spawns, playerSize, rng);
   const margin = size * 2 + 40;
   let x = 0;
   let y = 0;
+  const half = shoalReach(view.width, level.world.width);
   for (let attempt = 0; attempt < 12; attempt++) {
-    x = rangeOf(rng, -margin, level.world.width + margin);
+    x = rangeOf(rng, view.centerX - half, view.centerX + half);
     y = rangeOf(rng, 140, level.world.height - 170);
     const onScreen = x > view.left - margin && x < view.right + margin && y > view.top - margin && y < view.bottom + margin;
     if (!onScreen) break;
   }
   const speed = rangeOf(rng, ...cruiseOf(entry.species));
-  // Head towards the far side so fish cross the player's area.
-  const goRight = x < level.world.width / 2 ? rng() < 0.8 : rng() < 0.2;
+  // Head towards the view so fish cross the player's area.
+  const goRight = x < view.centerX ? rng() < 0.8 : rng() < 0.2;
   return makeFish(scene, entry.species, size, 'normal', x, y, goRight ? speed : -speed, rng);
 }
 
@@ -68,12 +81,17 @@ export function spawnSpecial(scene: Phaser.Scene, species: SpeciesId, size: numb
 }
 
 export function makeFish(scene: Phaser.Scene, species: SpeciesId, size: number, role: FishRole, x: number, y: number, vx: number, rng: Rng): Fish {
-  const sprite = scene.add.image(x, y, fishKey(species, 'light', 0)).setDepth(role === 'boss' ? 11 : 10).setScale(size / FISH_RADIUS).setFlipX(vx < 0);
+  // The giant is drawn finer (see ensureBossTextures); the squid has a rig of its own.
+  const fine = role === 'boss' && !isSquid(species);
+  const res = fine ? BOSS_RES : 1;
+  const sprite = scene.add.image(x, y, fine ? bossKey(species, 'light', 0) : fishKey(species, 'light', 0))
+    .setDepth(role === 'boss' ? 11 : 10).setScale(size / FISH_RADIUS / res).setFlipX(vx < 0);
+  setArtRes(sprite, res);
   if (isSquid(species)) attachSquid(sprite);
   else attachTail(sprite, species);
   return {
     sprite, species, role, baseSize: size, size, vx, vy: 0, phase: rng() * Math.PI * 2, swim: rng() * Math.PI * 2, turn: vx < 0 ? -1 : 1,
-    tilt: 0, shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
+    tilt: 0, swum: 0, tucked: false, veiled: false, untracked: false, led: false, shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
   };
 }
 
@@ -142,7 +160,7 @@ export interface PlayerView {
   readonly hidden?: boolean;
 }
 
-function steerTo(f: Fish, tx: number, ty: number, speed: number, dt: number, accel = 3): void {
+export function steerTo(f: Fish, tx: number, ty: number, speed: number, dt: number, accel = 3): void {
   const dx = tx - f.sprite.x;
   const dy = ty - f.sprite.y;
   const d = Math.hypot(dx, dy) || 1;
@@ -236,17 +254,9 @@ export function updateFish(f: Fish, player: PlayerView, world: SeaWorld, now: nu
     f.vx += (cruise - f.vx) * Math.min(1, dt * 1.5);
   }
   f.sprite.x += f.vx * dt;
-  if (f.role !== 'normal') turnAtWalls(f, world.width);
   const water = keepInWater(f.sprite.y + f.vy * dt, f.vy, f.size, world.height, world.floorAt?.(f.sprite.x));
   f.sprite.y = water.y;
   f.vy = water.vy;
-}
-
-/** Goal fish patrol the level instead of swimming off it. */
-function turnAtWalls(f: Fish, width: number): void {
-  const m = f.size + 40;
-  if (f.sprite.x < m) f.vx = Math.abs(f.vx);
-  else if (f.sprite.x > width - m) f.vx = -Math.abs(f.vx);
 }
 
 export function renderFish(f: Fish, playerSize: number, frame: number, dt: number): void {
@@ -255,13 +265,15 @@ export function renderFish(f: Fish, playerSize: number, frame: number, dt: numbe
     renderSquid(f, frame, dt, heavy);
     return;
   }
-  setSwimTexture(f.sprite, fishKey(f.species, heavy ? 'heavy' : 'light', frame));
+  const res = artRes(f.sprite);
+  const ink = heavy ? 'heavy' : 'light';
+  setSwimTexture(f.sprite, res === 1 ? fishKey(f.species, ink, frame) : bossKey(f.species, ink, frame));
   // Ease scale (y holds the true size) so puffing animates instead of popping.
-  const target = f.size / FISH_RADIUS;
+  const target = f.size / FISH_RADIUS / res;
   const scale = f.sprite.scaleY + (target - f.sprite.scaleY) * 0.25;
   if (f.state === 'dead') {
     // Belly-up and limp: the tail just sways with the water.
-    setTailBeat(f.sprite, Math.sin(f.phase * 1.3) * 0.06);
+    setTailBeat(f.sprite, Math.sin(f.phase * 1.3) * 0.06, f.phase * 1.3);
     f.sprite.setScale(scale).setTint(0xb3ab9c).setFlipY(true).setRotation(f.tilt + Math.sin(f.phase * 1.5) * 0.08);
     return;
   }
@@ -270,13 +282,13 @@ export function renderFish(f: Fish, playerSize: number, frame: number, dt: numbe
   else f.sprite.clearTint();
   if (f.state === 'hooked') {
     // Hanging from the barb by the mouth, thrashing.
-    setTailBeat(f.sprite, stroke(f, 0, dt, 3.2));
+    setTailBeat(f.sprite, stroke(f, 0, dt, 3.2), f.swim);
     f.sprite.setScale(scale).setFlipX(false).setRotation(-Math.PI / 2 + Math.sin(f.phase * 22) * 0.3);
     return;
   }
   const speed = Math.hypot(f.vx, f.vy);
   const effort = f.state === 'stunned' ? 0.35 : f.state === 'chase' || f.state === 'lunge' ? 1.5 : 1;
-  setTailBeat(f.sprite, stroke(f, speed, dt, effort));
+  setTailBeat(f.sprite, stroke(f, speed, dt, effort), f.swim);
   // Turning round: squash through edge-on, flipping at the midpoint.
   const facing = turnToward(f, Math.abs(f.vx) > 4 ? (f.vx < 0 ? -1 : 1) : 0, dt);
   f.sprite.setFlipX(f.turn < 0).setScale(scale * facing, scale);
@@ -284,9 +296,17 @@ export function renderFish(f: Fish, playerSize: number, frame: number, dt: numbe
   f.sprite.setRotation(f.tilt + Phaser.Math.Clamp(f.vy / 400, -0.35, 0.35) * (f.sprite.flipX ? -1 : 1) + wobble);
 }
 
-export function isOffWorld(f: Fish, level: LevelDef): boolean {
+/**
+ * An ordinary fish done with this level: out of the water, left behind outside
+ * the shoal band, or out of sight after swimming the band's width (so the shoal
+ * keeps refreshing with fish sized for you now). Goal fish never are.
+ */
+export function isSpent(f: Fish, level: LevelDef, view: Phaser.Geom.Rectangle): boolean {
   if (f.role !== 'normal') return false;
   const m = f.size * 3 + 40;
   const { x, y } = f.sprite;
-  return x < -m || x > level.world.width + m || y < -m || y > level.world.height + m;
+  const { width, height } = level.world;
+  if (y < -m || y > height + m) return true;
+  if (outsideShoal(x, view.centerX, view.width, width)) return true;
+  return f.swum > shoalReach(view.width, width) * 2 && pastView(x, view.centerX, view.width, width, m);
 }

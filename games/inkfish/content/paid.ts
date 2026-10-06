@@ -156,7 +156,7 @@ const RECIPES: Readonly<Record<number, Recipe>> = {
       { id: 'the-edge-of-the-page', name: 'The Edge of the Page' },
     ],
     spawns: [s('bristlemouth', 5, 8, 14), s('rattail', 3, 22, 36, 0), s('tripodfish', 2.5, 28, 40, 1), s('lizardfish', 2, 36, 54, 3), s('halosaur', 2, 40, 60, 5), s('cuskeel', 2, 56, 80, 7)],
-    boss: 'goblinshark', jellyfish: [7, 10], hookEverySec: [0, 0],
+    boss: 'seadevil', jellyfish: [7, 10], hookEverySec: [0, 0],
   },
   10: {
     levels: [
@@ -179,5 +179,5 @@ const RECIPES: Readonly<Record<number, Recipe>> = {
 export const INKFISH_FULL_CHAPTERS: readonly Chapter[] = ZONE_INFO.filter((z) => z.id > 1).map((z) => {
   const recipe = RECIPES[z.id];
   if (!recipe) throw new Error(`Missing recipe for chapter ${z.id}`);
-  return generateChapter(z, { ...recipe, ...ramp(z.id), world: { width: 3600, height: 2000 } });
+  return generateChapter(z, { ...recipe, ...ramp(z.id) });
 });

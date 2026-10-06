@@ -8,6 +8,7 @@ import { InkBottles } from './inkBottles';
 import type { Player } from './player';
 import { bodyOf } from './swim';
 import { TUNING } from './tuning';
+import { SHOAL_HALF } from '../../logic/ring';
 
 interface Point {
   readonly x: number;
@@ -55,7 +56,7 @@ export class TwistRunner {
   /** Places the level's goals away from the player. Returns goal fish to add to the shoal. */
   setup(start: Point): Fish[] {
     const o = this.level.objective;
-    if (o.kind === 'collect') this.bottles = new InkBottles(this.scene, o.count, this.level.world, this.floorAt, this.rng);
+    if (o.kind === 'collect') this.bottles = new InkBottles(this.scene, o.count, this.floorAt, this.rng);
     if (o.kind === 'bounty') {
       return this.spread(o.count, start, 500).map((p) =>
         spawnSpecial(this.scene, o.species, Math.round(rangeOf(this.rng, o.size[0], o.size[1])), 'bounty', p.x, p.y, this.rng));
@@ -67,12 +68,13 @@ export class TwistRunner {
     return [];
   }
 
-  /** Random points across the world, apart from each other and from the start. */
+  /** Random points within the shoal band around the start, apart from each other and from it. */
   private spread(count: number, start: Point, gap: number): Point[] {
     const { width, height } = this.level.world;
+    const half = Math.min(width / 2, SHOAL_HALF) - 160;
     const points: Point[] = [];
     for (let tries = 0; points.length < count && tries < count * 60; tries++) {
-      const p = { x: rangeOf(this.rng, 160, width - 160), y: rangeOf(this.rng, 220, height - 240) };
+      const p = { x: start.x + rangeOf(this.rng, -half, half), y: rangeOf(this.rng, 220, height - 240) };
       const loose = tries > count * 40;
       const farFromStart = Phaser.Math.Distance.BetweenPoints(p, start) > (loose ? GOAL_DISTANCE / 2 : GOAL_DISTANCE);
       if (farFromStart && points.every((q) => Phaser.Math.Distance.BetweenPoints(p, q) > (loose ? gap / 2 : gap))) points.push(p);
@@ -94,8 +96,9 @@ export class TwistRunner {
     const view = this.scene.cameras.main.worldView;
     const zoom = screenZoom(this.scene.cameras.main);
     this.marks.clear();
-    for (const f of goals) this.ring(f, now);
-    const targets: Point[] = [...(this.bottles?.targets ?? []), ...goals.map((f) => f.sprite)];
+    for (const f of goals) if (!f.veiled && !f.untracked) this.ring(f, now);
+    const tracked = goals.filter((f) => !f.untracked).map((f) => f.sprite);
+    const targets: Point[] = [...(this.bottles?.targets ?? []), ...tracked];
     const ps = player.sprite;
     const nearest = targets
       .filter((t) => !view.contains(t.x, t.y))

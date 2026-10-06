@@ -174,19 +174,13 @@ function think(f: Fish, m: Mind, p: PlayerView, dist: number, now: number, dt: n
   }
 }
 
-/** One step of the squid's life: think, move, stay in the water and in the level. */
+/** One step of the squid's life: think, move, stay in the water. */
 export function updateSquid(f: Fish, p: PlayerView, dist: number, world: SeaWorld, now: number, dt: number): void {
   const m = mindOf(f);
   m.t += dt;
   m.watch = { x: p.x, y: p.y };
   think(f, m, p, dist, now, dt);
   f.sprite.x += f.vx * dt;
-  const edge = f.size * 2;
-  if (f.sprite.x < edge || f.sprite.x > world.width - edge) {
-    f.sprite.x = Phaser.Math.Clamp(f.sprite.x, edge, world.width - edge);
-    f.vx = -f.vx * 0.3;
-    if (m.mode === 'drift') m.face = f.sprite.x < world.width / 2 ? 1 : -1;
-  }
   const water = keepInWater(f.sprite.y + f.vy * dt, f.vy, f.size, world.height, world.floorAt?.(f.sprite.x));
   f.sprite.y = water.y;
   f.vy = water.vy;

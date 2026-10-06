@@ -242,16 +242,16 @@ export const DEEP_GUIDE = {
     eats: 'fish, squid, octopus, seals, carrion',
     fact: 'Its cousin the Greenland shark may live about 400 years, the longest of any known vertebrate.',
   },
-  goblinshark: {
-    latin: 'Mitsukurina owstoni',
-    length: 'up to ~3.8 m (maybe 6 m)',
-    weight: 'up to ~210 kg',
+  seadevil: {
+    latin: 'Melanocetus johnsonii',
+    length: 'females up to 18 cm; males under 3 cm',
+    weight: 'tens of grams',
     lifespan: 'unknown',
-    speed: 'slow swimmer; jaws shoot out at 3 m/s',
-    depth: '270-960 m (found 30-1,300 m)',
-    range: 'Patchy worldwide; most often off Japan',
-    eats: 'fish, squid, crustaceans',
-    fact: 'Its jaws catapult forward to grab prey, the fastest and farthest jaw launch of any shark.',
+    speed: 'slow; it waits with its lure rather than chasing',
+    depth: '100-4,500 m',
+    range: 'Tropical and temperate seas worldwide',
+    eats: 'fish, shrimp, squid; prey as big as itself',
+    fact: 'Its lure glows with bacteria living inside it. The first one ever filmed alive was seen in 2014, in Monterey Canyon.',
   },
   coelacanth: {
     latin: 'Latimeria chalumnae',
@@ -296,7 +296,7 @@ export const DEEP_GUIDE = {
   | 'snipeeel'
   | 'oarfish'
   | 'sleepershark'
-  | 'goblinshark'
+  | 'seadevil'
   | 'coelacanth'
   | 'giantsquid',
   GuideEntry

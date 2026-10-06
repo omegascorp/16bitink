@@ -28,6 +28,7 @@ const EATEN_BY: Partial<Record<SpeciesId, string>> = {
   moray: 'A moray shot out of a porthole.',
   shark: 'The reef shark finally stopped circling.',
   swordfish: 'Slashed, then swallowed, by the swordfish.',
+  seadevil: 'The light was a lure, and the giant black seadevil was right behind it.',
   giantsquid: 'The giant squid’s tentacles reeled you in.',
 };
 

@@ -26,7 +26,8 @@ const TIDE_POOL: ChapterRecipe = {
     { species: 'pike', weight: 1.5, size: [44, 58], debut: 6 },
   ],
   boss: 'bass',
-  maxFish: [26, 34],
+  // For REFERENCE_SEA: 29-38 in this chapter's lower water, as dense as it always was.
+  maxFish: [33, 43],
   jellyfish: [0, 5],
   hookEverySec: [20, 12],
   goal: [55, 110],
