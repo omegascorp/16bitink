@@ -16,17 +16,22 @@ export function tileSpan(b: Box, tile: number): { x0: number; x1: number; y0: nu
 /**
  * The strip a dig removes, sized to the crab, so bigger crabs dig bigger
  * tunnels. Down: the row under the body. Ahead: the column in front. Up:
- * the row over the head; or, while walking, the column in front raised a
- * tile, which cuts a step to climb.
+ * the row over the head. While walking, up and down cut a stair instead:
+ * the row over the head (or under the feet) plus the column in front
+ * shifted a tile that way. The crab rises (or drops) into the cleared row,
+ * then walks across, so holding dig tunnels a diagonal at any size.
  */
 export function digTargets(b: Box, facing: 1 | -1, aimY: -1 | 0 | 1, walking: boolean, tile: number): TilePos[] {
   const s = tileSpan(b, tile);
   const out: TilePos[] = [];
   const col = facing > 0 ? s.x1 + 1 : s.x0 - 1;
-  if (aimY === 1) for (let x = s.x0; x <= s.x1; x++) out.push([x, s.y1 + 1]);
-  else if (aimY === -1 && !walking) for (let x = s.x0; x <= s.x1; x++) out.push([x, s.y0 - 1]);
-  else if (aimY === -1) for (let y = s.y0 - 1; y <= s.y1 - 1; y++) out.push([col, y]);
-  else for (let y = s.y0; y <= s.y1; y++) out.push([col, y]);
+  if (aimY === 0) {
+    for (let y = s.y0; y <= s.y1; y++) out.push([col, y]);
+    return out;
+  }
+  const row = aimY === 1 ? s.y1 + 1 : s.y0 - 1;
+  for (let x = s.x0; x <= s.x1; x++) out.push([x, row]);
+  if (walking) for (let y = s.y0 + aimY; y <= s.y1 + aimY; y++) out.push([col, y]);
   return out;
 }
 

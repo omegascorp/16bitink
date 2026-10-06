@@ -95,6 +95,48 @@ describe('beach simulation', () => {
     expect(tileAt(b.terrain, col, top - 1)).toBe(TILE.air);
   });
 
+  it('cuts a climbable step up-ahead from inside a tight tunnel', () => {
+    const b = flatBeach();
+    step(b, {}, 1);
+    const s = { x0: Math.floor(b.crab.body.x / T), x1: Math.floor((b.crab.body.x + b.crab.body.w - 1e-6) / T) };
+    const top = Math.floor(b.crab.body.y / T);
+    // Bury the crab: solid everywhere except the tiles it occupies.
+    for (let x = 0; x < 40; x++) for (let y = 0; y < 10; y++) {
+      if (y < top || x < s.x0 || x > s.x1) setTile(b.terrain, x, y, TILE.sand);
+    }
+    step(b, { moveX: 1, aimY: -1, dig: true });
+    step(b, { moveX: 1 }, 0.5);
+    expect(Math.floor(b.crab.body.y / T)).toBe(top - 1);
+  });
+
+  it('tunnels diagonally down-ahead while walking and digging down', () => {
+    const b = flatBeach();
+    step(b, {}, 1);
+    const bottomRow = (): number => Math.floor((b.crab.body.y + b.crab.body.h - 1e-6) / T);
+    const start = { x: b.crab.body.x, row: bottomRow() };
+    step(b, { moveX: 1, aimY: 1, dig: true }, 1.5);
+    const rows = bottomRow() - start.row;
+    const cols = (b.crab.body.x - start.x) / T;
+    expect(rows).toBeGreaterThanOrEqual(2);
+    // A slope, not a shaft: it moved ahead about as far as it went down.
+    expect(cols).toBeGreaterThanOrEqual(rows - 1);
+  });
+
+  it('tunnels diagonally up-ahead while walking and digging up', () => {
+    const b = flatBeach();
+    step(b, {}, 1);
+    const s = { x0: Math.floor(b.crab.body.x / T), x1: Math.floor((b.crab.body.x + b.crab.body.w - 1e-6) / T) };
+    const top = Math.floor(b.crab.body.y / T);
+    for (let x = 0; x < 40; x++) for (let y = 0; y < 10; y++) {
+      if (y < top || x < s.x0 || x > s.x1) setTile(b.terrain, x, y, TILE.sand);
+    }
+    const startX = b.crab.body.x;
+    step(b, { moveX: 1, aimY: -1, dig: true }, 1.5);
+    const rows = top - Math.floor(b.crab.body.y / T);
+    expect(rows).toBeGreaterThanOrEqual(2);
+    expect((b.crab.body.x - startX) / T).toBeGreaterThanOrEqual(rows - 1);
+  });
+
   it('builds a pillar out of a deep pit by jumping and dropping sand underfoot', () => {
     const b = flatBeach();
     step(b, {}, 1);

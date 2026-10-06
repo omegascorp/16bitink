@@ -20,8 +20,13 @@ describe('digging targets', () => {
     expect(digTargets(box, 1, -1, false, T)).toEqual([[2, 3], [3, 3]]);
   });
 
-  it('cuts a step up-ahead when aiming up while walking', () => {
-    expect(digTargets(box, 1, -1, true, T)).toEqual([[4, 3]]);
+  it('cuts a step up-ahead when aiming up while walking, clearing headroom to rise', () => {
+    expect(digTargets(box, 1, -1, true, T)).toEqual([[2, 3], [3, 3], [4, 3]]);
+  });
+
+  it('cuts a step down-ahead when aiming down while walking', () => {
+    expect(digTargets(box, 1, 1, true, T)).toEqual([[2, 5], [3, 5], [4, 5]]);
+    expect(digTargets(box, -1, 1, true, T)).toEqual([[2, 5], [3, 5], [1, 5]]);
   });
 });
 
