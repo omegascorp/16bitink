@@ -12,7 +12,7 @@ export function levelById(id: string): LevelDef | undefined {
 
 /** The backdrop theme for a level: one per beach. */
 export function themeOf(_id: string): ThemeId {
-  return 'driftline';
+  return 'atoll';
 }
 
 export function nextLevel(id: string): LevelDef | undefined {

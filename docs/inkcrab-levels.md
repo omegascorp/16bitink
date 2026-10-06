@@ -78,7 +78,7 @@ Gulls, the tide and the final molt aren't built yet. Until they are:
 
 All follow the one rule (bigger catches you, smaller is food) and are inked red when they can catch you.
 
-The levels sit in front of a faint, hand-inked parallax beach (theme `driftline`): sky with sun and clouds, the sea with a lighthouse headland and a sailboat, and dunes with marram grass and a snow fence. The level background is plain paper, without the notebook rules. Each later beach brings its own backdrop theme.
+The levels sit in front of a hand-inked parallax beach. Beach 1 ("Atoll Sketchbook", theme `atoll`) is a Maldives coral island: a sky with a sun, heaped cumulus, frigatebirds and a seaplane; the deep blue ocean with far-off palm islands, the white surf line of the reef, and a turquoise lagoon with coral heads, water villas on a jetty and two dhonis; nearest, coconut palms, beach scrub, a hammock, morning glory and fallen coconuts on a bank of white coral sand. The code is in `src/art/backdrop/` (shared helpers in `common.ts`, props in `tropic.ts`, layers in `atoll.ts`). The level background is plain paper, without the notebook rules. Each later beach brings its own backdrop theme.
 
 ## Beaches 2–10
 

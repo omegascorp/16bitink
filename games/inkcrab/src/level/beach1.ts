@@ -9,7 +9,7 @@ import type { LevelDef } from './types';
  * Creatures: harmless sea slaters early, ghost crabs from level 3, tiger
  * beetles (fast, in bursts) from level 5.
  */
-export const BEACH_1_NAME = 'Driftline Sketchbook';
+export const BEACH_1_NAME = 'Atoll Sketchbook';
 
 export const BEACH_1: readonly LevelDef[] = [
   {

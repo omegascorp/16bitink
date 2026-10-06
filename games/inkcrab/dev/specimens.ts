@@ -1,3 +1,4 @@
+import { BACKDROP_SCALE, BACKDROP_W, THEMES, type ThemeId } from '../src/art/backdrop';
 import { drawCrabBack, drawCrabFront } from '../src/art/crabArt';
 import { CRITTER_FRAME, CRITTER_GROUND, drawCritter } from '../src/art/critterArt';
 import { SPECIES, type SpeciesId } from '../src/logic/species';
@@ -5,7 +6,7 @@ import { FOOT, FRAME, GROUND } from '../src/art/frame';
 import { crabShift } from '../src/art/mouth';
 import { drawFood, FOOD_FRAME, FOOD_GROUND } from '../src/art/itemArt';
 import { makeDraw, type Draw } from '../src/art/kit';
-import { RED } from '../src/art/palette';
+import { PAPER, RED } from '../src/art/palette';
 import { makeCanvas } from '../src/art/pen';
 import { drawChunk, makeSandPatterns } from '../src/art/sand';
 import { drawShell } from '../src/art/shellArt';
@@ -82,6 +83,15 @@ for (const species of Object.keys(SPECIES) as SpeciesId[]) {
   }
 }
 
+const bigCritters = section('creatures, large');
+for (const species of Object.keys(SPECIES) as SpeciesId[]) {
+  figure(bigCritters, species, CRITTER_FRAME * 4, CRITTER_FRAME * 3.2, (ctx) => {
+    ctx.scale(4, 4);
+    ctx.translate(CRITTER_FRAME / 2, CRITTER_FRAME / 2);
+    drawCritter(makeDraw(ctx, 800, 0, CRITTER_GROUND), species);
+  });
+}
+
 const foods = section('food');
 for (const kind of ['crumb', 'hopper', 'clam'] as const) {
   figure(foods, kind, FOOD_FRAME * 4, FOOD_FRAME * 3, (ctx) => {
@@ -100,4 +110,25 @@ for (const [tx, ty] of [[32, 16], [96, 32]] as const) {
     const chunk = { tx, ty, tiles: 16 };
     drawChunk(ctx, beach.terrain, chunk, 16, 2, makeSandPatterns(ctx, 2));
   });
+}
+
+const backdrops = section('backdrop layers (each theme, stacked as in game)');
+for (const theme of Object.keys(THEMES) as ThemeId[]) {
+  const layers = THEMES[theme];
+  const H = 520;
+  const { canvas, ctx } = makeCanvas(BACKDROP_W, H);
+  ctx.fillStyle = PAPER;
+  ctx.fillRect(0, 0, BACKDROP_W, H);
+  // Stack from a shared ground line at the bottom, design-scale lifts.
+  const ground = H - 40;
+  layers.forEach((l, i) => {
+    ctx.save();
+    ctx.translate(0, ground - l.lift / BACKDROP_SCALE - l.height);
+    l.draw(makeDraw(ctx, 900 + i, 0, 0));
+    ctx.restore();
+  });
+  canvas.style.width = `${BACKDROP_W}px`;
+  const fig = document.createElement('figure');
+  fig.append(canvas, Object.assign(document.createElement('figcaption'), { textContent: theme }));
+  backdrops.append(fig);
 }
