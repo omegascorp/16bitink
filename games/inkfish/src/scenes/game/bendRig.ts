@@ -2,14 +2,16 @@ import Phaser from 'phaser';
 import { C } from '../../art/fish/kit';
 import { ANATOMY } from '../../art/fish/registry';
 import { isCritter } from '../../art/critterArt';
-import type { FishShape } from '../../art/fishArt';
+import { fishBand, type FishShape } from '../../art/fishArt';
 import { alongBody, bendOffset, bendStyleOf, swayAt, type BendStyle } from '../../logic/bend';
 import { keepDepth } from './sync';
 
 type Image = Phaser.GameObjects.Image;
 
 /** Points along the body: enough for a smooth curve, few enough to cost nothing. */
-const SEGMENTS = 16;
+const SEGMENTS = 24;
+/** The frame on each fish texture that holds just the inked band (see fishBand). */
+const BAND_FRAME = 'bend-band';
 /** How quickly the bend's size follows the beat: smooths out jumps when the effort changes. */
 const AMP_EASE = 0.35;
 
@@ -25,9 +27,27 @@ interface BendRig {
   readonly along: readonly number[];
   readonly sway: readonly number[];
   readonly style: BendStyle;
+  /** The inked rows in fish-texture px, and how far its middle sits below the drawing's centre, texture px. */
+  readonly band: { readonly top: number; readonly bottom: number };
+  readonly res: number;
+  readonly drop: number;
   amp: number;
   phase: number;
   tint: number;
+}
+
+/**
+ * Cuts `key`'s band of rows into a frame of its own (once per texture). A rope
+ * stretches its whole frame across each segment; with the full square, bending
+ * shears tall quads whose two triangles map the drawing differently, and the
+ * fins show steps at every segment.
+ */
+function bandFrame(scene: Phaser.Scene, key: string, band: BendRig['band'], res: number): string {
+  const texture = scene.textures.get(key);
+  if (texture.has(BAND_FRAME)) return BAND_FRAME;
+  const base = texture.get();
+  texture.add(BAND_FRAME, base.sourceIndex, base.cutX, base.cutY + band.top * res, base.cutWidth, (band.bottom - band.top) * res);
+  return BAND_FRAME;
 }
 
 const rigsByScene = new WeakMap<Phaser.Scene, Map<Image, BendRig>>();
@@ -54,10 +74,15 @@ export function attachBend(sprite: Image, shape: FishShape, res = 1): void {
   const style = bendStyleOf(a.hl, a.hh, Boolean(a.wave));
   // Evenly along the drawing's middle, centred on the fish like the image (origin 0.5).
   const half = sprite.frame.halfWidth;
-  const line = Array.from({ length: SEGMENTS }, (_, i) => ({ x: -half + (i * 2 * half) / (SEGMENTS - 1), y: 0 }));
-  const rope = sprite.scene.add.rope(sprite.x, sprite.y, sprite.texture.key, sprite.frame.name, line);
+  const band = fishBand(shape);
+  const drop = ((band.top + band.bottom) / 2 - C) * res;
+  const line = Array.from({ length: SEGMENTS }, (_, i) => ({ x: -half + (i * 2 * half) / (SEGMENTS - 1), y: drop }));
+  const frame = bandFrame(sprite.scene, sprite.texture.key, band, res);
+  const rope = sprite.scene.add.rope(sprite.x, sprite.y, sprite.texture.key, frame, line);
   const along = rope.points.map((p) => alongBody(p.x / res + C, C, a.hl));
-  const rig: BendRig = { rope, along, sway: along.map((t) => swayAt(t, a.hl, style) * res), style, amp: 0, phase: 0, tint: 0xffffff };
+  const rig: BendRig = {
+    rope, along, sway: along.map((t) => swayAt(t, a.hl, style) * res), style, band, res, drop, amp: 0, phase: 0, tint: 0xffffff,
+  };
   // The image keeps its place in the game (collisions, tweens, tints) but the rope is what's seen.
   sprite.willRender = () => false;
   const rigs = rigsOf(sprite.scene);
@@ -74,7 +99,8 @@ export function setBendTexture(sprite: Image, key: string): boolean {
   const rig = rigsByScene.get(sprite.scene)?.get(sprite);
   if (!rig) return false;
   sprite.setTexture(key);
-  if (rig.rope.texture.key !== key) rig.rope.setTexture(key).updateUVs();
+  // A new texture (boil frame, or the same key re-made in another atlas slot) has new UVs.
+  if (rig.rope.texture !== sprite.texture) rig.rope.setTexture(key, bandFrame(sprite.scene, key, rig.band, rig.res)).updateUVs();
   return true;
 }
 
@@ -107,6 +133,6 @@ function follow(rig: BendRig, s: Image): void {
     r.setColors(tint);
   }
   const points = r.points;
-  for (let i = 0; i < points.length; i++) points[i]!.y = bendOffset(rig.along[i]!, rig.sway[i]!, rig.amp, rig.phase, rig.style);
+  for (let i = 0; i < points.length; i++) points[i]!.y = rig.drop + bendOffset(rig.along[i]!, rig.sway[i]!, rig.amp, rig.phase, rig.style);
   r.setDirty();
 }

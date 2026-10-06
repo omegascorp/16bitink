@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alongBody, BEND, bendOffset, bendStyleOf, swayAt } from '../src/logic/bend';
+import { alongBody, BEND, bendOffset, bendStyleOf, swayAt, inkedRows } from '../src/logic/bend';
 import { bendsToSwim } from '../src/art/textures';
 
 describe('bending swimmers', () => {
@@ -56,5 +56,23 @@ describe('bending swimmers', () => {
     // Long and thin with a tail fin: still bends, fin and all.
     for (const stick of ['pipefish', 'sandlance', 'needlefish', 'dragonfish'] as const) expect(bendsToSwim(stick)).toBe(true);
     expect(bendsToSwim('giantsquid')).toBe(false);
+  });
+});
+
+describe('inked rows', () => {
+  const image = (w: number, h: number, inked: readonly [number, number][]): Uint8ClampedArray => {
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (const [x, y] of inked) data[(y * w + x) * 4 + 3] = 255;
+    return data;
+  };
+
+  it('spans the first to the last row with ink', () => {
+    expect(inkedRows(image(4, 10, [[1, 3], [2, 6], [0, 4]]), 4)).toEqual({ top: 3, bottom: 7 });
+  });
+
+  it('ignores faint specks and finds nothing in a blank image', () => {
+    const faint = image(4, 10, []);
+    faint[(5 * 4 + 1) * 4 + 3] = 5;
+    expect(inkedRows(faint, 4)).toBeNull();
   });
 });

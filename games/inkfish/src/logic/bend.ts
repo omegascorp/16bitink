@@ -46,3 +46,22 @@ export function bendOffset(along: number, sway: number, amp: number, phase: numb
 export function bendStyleOf(hl: number, hh: number, wavy: boolean): BendStyle {
   return wavy || hl / hh >= EEL_FROM_RATIO ? BEND.eel : BEND.taper;
 }
+
+/**
+ * The rows of an RGBA image (`w` px wide) that hold any ink: from the first
+ * to the last row with a pixel more opaque than `threshold`. Null if empty.
+ */
+export function inkedRows(rgba: ArrayLike<number>, w: number, threshold = 8): { readonly top: number; readonly bottom: number } | null {
+  const rows = Math.floor(rgba.length / (w * 4));
+  let top = -1;
+  let bottom = -1;
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < w; x++) {
+      if (rgba[(y * w + x) * 4 + 3]! <= threshold) continue;
+      if (top < 0) top = y;
+      bottom = y;
+      break;
+    }
+  }
+  return top < 0 ? null : { top, bottom: bottom + 1 };
+}

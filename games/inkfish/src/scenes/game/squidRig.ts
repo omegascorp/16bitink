@@ -137,8 +137,13 @@ function follow(rig: Rig, s: Image): void {
       target[k]!.y = p.y;
     });
     if (limb.kind === 'tentacle' && pose.strike >= GRAB_FROM) clubs.push(toWorld(s, sx, sy, clubPoint(pts)));
-    rig.ropes[i]!
-      .setTexture(squidKey(limb.kind, look.variant, look.frame))
+    const rope = rig.ropes[i]!;
+    const key = squidKey(limb.kind, look.variant, look.frame);
+    // Each boil frame is its own region of a shared atlas page: a rope keeps the
+    // UVs it was built with, so they must follow the new region or it shows
+    // whatever drawing sits in the old one now.
+    if (rope.texture !== s.scene.textures.get(key)) rope.setTexture(key).updateUVs();
+    rope
       .setPosition(s.x, s.y)
       .setRotation(s.rotation)
       .setScale(sx, sy)
