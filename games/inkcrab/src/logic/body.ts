@@ -19,6 +19,8 @@ export const PHYS = {
   maxFall: 420,
   /** Ledges up to this many tiles (or about half the body) are walked up. */
   stepTiles: 1,
+  /** px/s a body standing with its middle over a drop slides off the edge. */
+  slip: 90,
 } as const;
 
 const EPS = 1e-6;
@@ -81,5 +83,24 @@ export function moveBody(t: Terrain, b: Body, intent: number, speed: number, dt:
   }
   const vy = Math.min(PHYS.maxFall, b.vy + PHYS.gravity * dt);
   const fall = sweep(t, box, 'y', vy * dt, tile);
-  return { ...fall.box, vx, vy: fall.hit ? 0 : vy, onGround: fall.hit && vy > 0 };
+  const onGround = fall.hit && vy > 0;
+  const landed = onGround ? slipOff(t, fall.box, intent, dt, tile) : fall.box;
+  return { ...landed, vx, vy: fall.hit ? 0 : vy, onGround };
+}
+
+/**
+ * A body resting on a corner by a sliver, with its middle over a drop,
+ * slides off the edge rather than hanging in the air (the inked sand
+ * rounds such corners off). Walking back onto the ledge holds it there, so
+ * stepping up still works; bridging a hole narrower than itself is fine.
+ */
+function slipOff(t: Terrain, b: Box, intent: number, dt: number, tile: number): Box {
+  const row = Math.floor((b.y + b.h + EPS) / tile);
+  if (isSolid(t, Math.floor((b.x + b.w / 2) / tile), row)) return b;
+  const left = isSolid(t, Math.floor(b.x / tile), row);
+  const right = isSolid(t, Math.floor((b.x + b.w - EPS) / tile), row);
+  if (left === right) return b;
+  const away = left ? 1 : -1;
+  if (intent * away < 0) return b;
+  return sweep(t, b, 'x', away * PHYS.slip * dt, tile).box;
 }

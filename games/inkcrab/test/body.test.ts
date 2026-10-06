@@ -48,6 +48,39 @@ describe('tile physics', () => {
     expect(b.x).toBe(40);
   });
 
+  it('slips off a ledge it is standing on with its middle over the drop', () => {
+    const t = flat();
+    // A raised block, columns 0..5 at row 7; the box's middle is 2 px past its right edge.
+    for (let x = 0; x < 6; x++) setTile(t, x, 7, TILE.sand);
+    const b = run(t, body(6 * T - 8, 7 * T - 14), 0, 1);
+    expect(b.x).toBeGreaterThanOrEqual(6 * T);
+    expect(b.y + b.h).toBeCloseTo(8 * T, 5);
+  });
+
+  it('slips off the left edge too', () => {
+    const t = flat();
+    for (let x = 10; x < 20; x++) setTile(t, x, 7, TILE.sand);
+    const b = run(t, body(10 * T - 12, 7 * T - 14), 0, 1);
+    expect(b.x + b.w).toBeLessThanOrEqual(10 * T);
+    expect(b.y + b.h).toBeCloseTo(8 * T, 5);
+  });
+
+  it('stays put with its middle over the ledge', () => {
+    const t = flat();
+    for (let x = 0; x < 6; x++) setTile(t, x, 7, TILE.sand);
+    const b = run(t, body(6 * T - 12, 7 * T - 14), 0, 1);
+    expect(b.x).toBe(6 * T - 12);
+    expect(b.y + b.h).toBeCloseTo(7 * T, 5);
+  });
+
+  it('bridges a hole narrower than itself', () => {
+    const t = flat();
+    setTile(t, 5, 8, TILE.air);
+    const b = run(t, body(5 * T - 6, 8 * T - 14, 28), 0, 1);
+    expect(b.x).toBe(5 * T - 6);
+    expect(b.onGround).toBe(true);
+  });
+
   it('steps up a one-tile ledge', () => {
     const t = flat();
     for (let x = 6; x < 20; x++) setTile(t, x, 7, TILE.sand);
