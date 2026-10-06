@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inSuctionCone, LINGCOD, LINGCOD_START, overheadOf, stepLingcod, suctionAt, type LingcodSense } from '../src/logic/bosses/lingcod';
+import { inSuctionCone, LINGCOD, LINGCOD_START, lingcodLurking, overheadOf, stepLingcod, suctionAt, type LingcodSense } from '../src/logic/bosses/lingcod';
 
 const sense = (over: Partial<LingcodSense> = {}): LingcodSense => ({
   now: 1000, rel: 'hunt', dist: 300, inCone: true, overhead: false, seen: true, x: 0, side: 1, ...over,
@@ -79,5 +79,13 @@ describe('lingcod: camouflage', () => {
     const bolt = stepLingcod(camo, sense({ rel: 'hide', dist: 100, x: 500, side: 1 }));
     expect(bolt).toMatchObject({ mode: 'bolt', boltX: 500 - LINGCOD.boltDistance });
     expect(stepLingcod(bolt, sense({ rel: 'hide', dist: 100, now: bolt.until })).mode).toBe('camo');
+  });
+});
+
+describe('lingcod: lurking unmarked', () => {
+  it('hides its marker while lying in wait, and shows it as it strikes', () => {
+    expect(lingcodLurking('stalk')).toBe(true);
+    expect(lingcodLurking('rest')).toBe(true);
+    for (const mode of ['open', 'suck', 'coil', 'launch'] as const) expect(lingcodLurking(mode)).toBe(false);
   });
 });

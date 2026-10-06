@@ -2,7 +2,8 @@
  * The lingcod, chapter 3's giant: a bottom-dwelling ambusher with a cavern of
  * a mouth.
  *
- * While it's bigger than you it lies on the sand, creeping along under you.
+ * While it's bigger than you it lies on the sand, creeping along under you,
+ * unmarked: you only see where it is when it strikes.
  * Swim into the cone in front of its mouth and it opens up (swirls show the
  * water rushing in), then sucks: everything in the cone is dragged towards
  * its jaws. Slip out of the cone sideways. Hang about above it and it coils
@@ -69,6 +70,11 @@ export const LINGCOD = {
 } as const;
 
 export const LINGCOD_START: LingcodState = { mode: 'stalk', until: 0, gulpAt: 0, boltX: 0, overheadSince: 0 };
+
+/** Lying in wait on the sand, off the goal marker: it only shows itself as it strikes. */
+export function lingcodLurking(mode: LingcodMode): boolean {
+  return mode === 'stalk' || mode === 'rest';
+}
 
 /** One step of the lingcod's mind. Pure: the scene moves the fish to match. */
 export function stepLingcod(s: LingcodState, i: LingcodSense): LingcodState {

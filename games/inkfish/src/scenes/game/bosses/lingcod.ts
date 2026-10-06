@@ -1,5 +1,5 @@
 import {
-  inSuctionCone, LINGCOD, LINGCOD_START, overheadOf, stepLingcod, suctionAt, type LingcodMode, type LingcodState,
+  inSuctionCone, LINGCOD, LINGCOD_START, lingcodLurking, overheadOf, stepLingcod, suctionAt, type LingcodMode, type LingcodState,
 } from '../../../logic/bosses/lingcod';
 import { relationTo } from '../../../logic/sizing';
 import { aboveSeabed } from '../../../logic/water';
@@ -11,6 +11,7 @@ import { dazed, easeVelocity, Marks, swimBoss, type Boss, type BossHost } from '
 const CAMO_ALPHA = 0.26;
 /** A puff of sand (its breath) gives it away this often while camouflaged, ms. */
 const PUFF_EVERY_MS = 2100;
+const RED = '#a3342b';
 /** It lies this far ahead of you on the sand when stalking, so you swim into its cone, px. */
 const AHEAD = 240;
 
@@ -21,6 +22,8 @@ export class LingcodBoss implements Boss {
   /** Which way its mouth points while it gulps: held still from the moment it opens. */
   private facing: 1 | -1 = 1;
   private nextPuff = 0;
+  /** Whether you've been told it lurks unseen: once a level, not after every strike. */
+  private warned = false;
 
   constructor(readonly fish: Fish, private readonly host: BossHost) {
     this.marks = new Marks(host.scene);
@@ -31,7 +34,7 @@ export class LingcodBoss implements Boss {
     const s = f.sprite;
     this.marks.clear();
     if (dazed(f, now, dt)) {
-      this.reveal(dt);
+      this.reveal(false, dt);
       swimBoss(f, this.host.world, this.host.floorAt, dt);
       return;
     }
@@ -53,7 +56,11 @@ export class LingcodBoss implements Boss {
     this.steer(p, dt);
     swimBoss(f, this.host.world, this.host.floorAt, dt);
     if (this.state.mode === 'camo') this.hide(now, dt);
-    else this.reveal(dt);
+    else this.reveal(lingcodLurking(this.state.mode), dt);
+    if (f.untracked && !this.warned) {
+      this.warned = true;
+      this.announce('It lurks in the sand…');
+    }
     if (this.state.mode === 'suck') this.suck(dt);
     this.warn(now);
   }
@@ -79,8 +86,12 @@ export class LingcodBoss implements Boss {
     if (mode === 'bolt') {
       h.burst(f.sprite.x, f.sprite.y + f.size * 0.4, 10);
       h.sfx('dash', f.sprite, 0.6);
+      h.floatText(f.sprite.x, f.sprite.y - f.size * 1.4, 'Found it!', RED, 34);
     }
-    if (mode === 'camo') this.nextPuff = now + PUFF_EVERY_MS;
+    if (mode === 'camo') {
+      this.nextPuff = now + PUFF_EVERY_MS;
+      this.announce('It hid in the sand!');
+    }
     if (mode === 'coil') {
       h.burst(f.sprite.x, f.sprite.y + f.size * 0.3, 8);
       h.sfx('rustle', f.sprite, 0.6);
@@ -159,20 +170,34 @@ export class LingcodBoss implements Boss {
     }
   }
 
-  /** Fading into the sand, veiled from the goal marker; a puff of breath now and then gives it away. */
+  /**
+   * Fading into the sand, off the goal ring and arrow; a puff of breath now and
+   * then gives it away, heard (panned towards it) even where it can't be seen.
+   */
   private hide(now: number, dt: number): void {
     const f = this.fish;
     f.veiled = true;
+    f.untracked = true;
     f.sprite.alpha += (CAMO_ALPHA - f.sprite.alpha) * Math.min(1, dt * 1.5);
     if (now >= this.nextPuff) {
       this.nextPuff = now + PUFF_EVERY_MS;
-      this.host.burst(mouthOf(f.sprite, f.size, f.turn).x, f.sprite.y - f.size * 0.3, 3);
+      const puff = { x: mouthOf(f.sprite, f.size, f.turn).x, y: f.sprite.y - f.size * 0.3 };
+      this.host.burst(puff.x, puff.y, 3);
+      this.host.sfx('rustle', puff, 0.5, 0.6);
     }
   }
 
-  private reveal(dt: number): void {
+  /** Its marker is gone: say so where you're looking, or it just seems to vanish. */
+  private announce(text: string): void {
+    const you = this.host.player().sprite;
+    this.host.floatText(you.x, you.y - 50, text, RED, 32);
+  }
+
+  /** In plain sight (unmarked while `lurking`: lying in wait, it shows itself only as it strikes). */
+  private reveal(lurking: boolean, dt: number): void {
     const f = this.fish;
-    f.veiled = false;
+    f.veiled = lurking;
+    f.untracked = lurking;
     f.sprite.alpha += (1 - f.sprite.alpha) * Math.min(1, dt * 6);
   }
 

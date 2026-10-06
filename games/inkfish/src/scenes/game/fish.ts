@@ -42,6 +42,8 @@ export interface Fish extends SwimState {
   tucked: boolean;
   /** Camouflaged: its goal ring isn't drawn, so you have to find it. */
   veiled: boolean;
+  /** Hidden for real: no goal ring and no off-screen arrow either, so you have to search for it. */
+  untracked: boolean;
   /** Steered by a giant (its moray partner), not by its own mind, until let go. */
   led: boolean;
   /** dead: knocked out by a firecracker, floating belly-up; anyone can eat it. */
@@ -89,7 +91,7 @@ export function makeFish(scene: Phaser.Scene, species: SpeciesId, size: number, 
   else attachTail(sprite, species);
   return {
     sprite, species, role, baseSize: size, size, vx, vy: 0, phase: rng() * Math.PI * 2, swim: rng() * Math.PI * 2, turn: vx < 0 ? -1 : 1,
-    tilt: 0, swum: 0, tucked: false, veiled: false, led: false, shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
+    tilt: 0, swum: 0, tucked: false, veiled: false, untracked: false, led: false, shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
   };
 }
 

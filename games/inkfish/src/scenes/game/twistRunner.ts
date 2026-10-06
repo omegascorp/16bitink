@@ -96,8 +96,9 @@ export class TwistRunner {
     const view = this.scene.cameras.main.worldView;
     const zoom = screenZoom(this.scene.cameras.main);
     this.marks.clear();
-    for (const f of goals) if (!f.veiled) this.ring(f, now);
-    const targets: Point[] = [...(this.bottles?.targets ?? []), ...goals.map((f) => f.sprite)];
+    for (const f of goals) if (!f.veiled && !f.untracked) this.ring(f, now);
+    const tracked = goals.filter((f) => !f.untracked).map((f) => f.sprite);
+    const targets: Point[] = [...(this.bottles?.targets ?? []), ...tracked];
     const ps = player.sprite;
     const nearest = targets
       .filter((t) => !view.contains(t.x, t.y))
