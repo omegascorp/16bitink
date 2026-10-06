@@ -71,3 +71,8 @@ export function bodyFill(shell: ShellSpec, growth: number): number {
   const t = span > 0 ? Math.min(1, Math.max(0, (growth - shell.minSize) / span)) : 1;
   return FILL.min + (FILL.max - FILL.min) * t;
 }
+
+/** Clumps of sand a crab can carry: a bigger shell holds more. Without one, only what its claws can hold. */
+export function sandCapacity(shell: ShellSpec | null): number {
+  return shell ? 4 + 3 * shell.maxSize : 4;
+}

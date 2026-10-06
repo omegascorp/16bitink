@@ -4,7 +4,7 @@ import { diggableOf, digTargets, inReach, placeTarget, tileSpan, type TilePos } 
 import { feed, initialGrowth, isCapped, settle, type Growth } from './growth';
 import { centre, food, makeItem, overlaps, type Item } from './items';
 import { createRng, type Rng } from './rng';
-import { canWear, MOUTH_OFFSET, shellPx, SHELLS, speedFactor, type ShellKind } from './shells';
+import { canWear, MOUTH_OFFSET, sandCapacity, shellPx, SHELLS, speedFactor, type ShellKind } from './shells';
 import { startSwap, tickSwap, type Swap } from './swap';
 import { dig, isSolid, place, surfaceRow, type Terrain } from './terrain';
 
@@ -26,9 +26,6 @@ export interface Input {
 
 export const IDLE: Input = { moveX: 0, aimY: 0, jump: false, dig: false, place: false, interact: false, tapTile: null };
 
-/** Clumps of sand a crab can carry; dug sand beyond this spills away. */
-export const SAND_CAPACITY = 10;
-
 export type SimEvent =
   | { readonly type: 'ate'; readonly id: number; readonly points: number; readonly banked: number; readonly x: number; readonly y: number }
   | { readonly type: 'grew'; readonly size: number }
@@ -43,7 +40,7 @@ export interface CrabState {
   readonly facing: 1 | -1;
   readonly growth: Growth;
   readonly shell: ShellKind | null;
-  /** Clumps of sand carried, 0..SAND_CAPACITY. */
+  /** Clumps of sand carried: up to the shell's sandCapacity, or past it after moving into a smaller one. */
   readonly sand: number;
   readonly swap: Swap | null;
   readonly digCooldown: number;
@@ -108,6 +105,11 @@ export class Beach {
   /** Body size the current shell allows; naked crabs don't grow. */
   get cap(): number {
     return this.crab.shell ? SHELLS[this.crab.shell].maxSize : this.crab.growth.size;
+  }
+
+  /** Clumps of sand the current shell holds. */
+  get sandCapacity(): number {
+    return sandCapacity(this.crab.shell ? SHELLS[this.crab.shell] : null);
   }
 
   get capped(): boolean {
@@ -175,12 +177,16 @@ export class Beach {
     else if (!overlaps(this.crab.body, { x: tap[0] * T, y: tap[1] * T, w: T, h: T })) this.addTile(tap, events);
   }
 
+  /**
+   * Each dug tile is a clump, kept in the shell. Sand is never lost: once
+   * the shell is full the crab digs nothing more until it puts some down.
+   */
   private removeTiles(tiles: readonly TilePos[], events: SimEvent[]): void {
-    if (!tiles.length) return;
-    for (const [x, y] of tiles) dig(this.terrain, x, y);
-    // Each tile is a clump; whatever doesn't fit in the claws spills.
-    this.crab = { ...this.crab, sand: Math.min(SAND_CAPACITY, this.crab.sand + tiles.length), digCooldown: this.cooldown };
-    events.push({ type: 'tiles', tiles, dug: true });
+    const taken = tiles.slice(0, Math.max(0, this.sandCapacity - this.crab.sand));
+    if (!taken.length) return;
+    for (const [x, y] of taken) dig(this.terrain, x, y);
+    events.push({ type: 'tiles', tiles: taken, dug: true });
+    this.crab = { ...this.crab, sand: this.crab.sand + taken.length, digCooldown: this.cooldown };
   }
 
   private addTile(at: TilePos, events: SimEvent[]): void {
@@ -191,8 +197,8 @@ export class Beach {
 
   /**
    * Loose sand around the crab falls. Sand only changes within the crab's
-   * reach, and a clump resting on its head drops once it walks away, so the
-   * columns near it are all that need checking.
+   * reach, and a clump resting on its head drops once
+   * it walks away, so the columns near it are all that need checking.
    */
   private settleSand(events: SimEvent[]): void {
     const T = this.tileSize;
@@ -240,11 +246,15 @@ export class Beach {
     }
     const burst = settle(c.growth, SHELLS[to].maxSize);
     const moved = this.intoNewShell(body, c, to, burst.growth.size);
+    const fitted = this.refit(moved, burst.growth.size, to, events);
     // It crawled in through the mouth, so it now faces back towards the old shell.
     this.crab = {
-      ...c, body: this.refit(moved, burst.growth.size, to, events), facing: moved === body ? c.facing : c.facing === 1 ? -1 : 1,
+      ...c, body: fitted.body, facing: moved === body ? c.facing : c.facing === 1 ? -1 : 1,
       growth: burst.growth, shell: to, swap: null,
     };
+    // Sand it shoved aside is carried too, even past what the shell holds: it
+    // digs nothing more until it unloads (see removeTiles).
+    this.crab = { ...this.crab, sand: this.crab.sand + fitted.shoved };
     events.push({ type: 'swapDone', from: c.shell, to, grew: burst.grew, dropped });
     if (burst.grew) events.push({ type: 'grew', size: burst.growth.size });
   }
@@ -264,15 +274,15 @@ export class Beach {
   }
 
   /** Resizes the crab around its feet; a bigger shell shoves aside any sand it now overlaps. */
-  private refit(body: Body, size: number, shellKind: ShellKind, events: SimEvent[]): Body {
+  private refit(body: Body, size: number, shellKind: ShellKind, events: SimEvent[]): { body: Body; shoved: number } {
     const { w, h } = crabBox(size, shellKind);
     const next: Body = { ...body, x: body.x + body.w / 2 - w / 2, y: body.y + body.h - h, w, h };
-    if (!boxHitsSolid(this.terrain, next, this.tileSize)) return next;
+    if (!boxHitsSolid(this.terrain, next, this.tileSize)) return { body: next, shoved: 0 };
     const s = tileSpan(next, this.tileSize);
     const cleared: TilePos[] = [];
     for (let y = s.y0; y <= s.y1; y++) for (let x = s.x0; x <= s.x1; x++) if (dig(this.terrain, x, y)) cleared.push([x, y]);
     if (cleared.length) events.push({ type: 'tiles', tiles: cleared, dug: true });
-    return next;
+    return { body: next, shoved: cleared.length };
   }
 
   private settleItems(dt: number, events: SimEvent[]): void {

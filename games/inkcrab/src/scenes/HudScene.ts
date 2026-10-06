@@ -3,14 +3,16 @@ import { BLUE, BLUE_HEX, HIGHLIGHT_HEX, PAPER_HEX, RED } from '../art/palette';
 import { REG } from '../host';
 import { meterGoal } from '../logic/growth';
 import { inStickZone, knobOffset, stickCentre, stickVector, STICK } from '../logic/joystick';
-import { SAND_CAPACITY } from '../logic/sim';
 import { SHELLS } from '../logic/shells';
 import type { GameScene } from './GameScene';
 import type { TouchState } from './game/input';
 import { screenScene, toView, viewSize } from './hidpi';
+import { drawSandGauge, HEAP_MAX_W } from './sandGauge';
 import { HAND_FONT, wobblyRect } from './ui';
 
-const PANEL = { x: 16, y: 14, w: 300, h: 118 } as const;
+const PANEL = { x: 16, y: 14, w: 380, h: 118 } as const;
+/** The sand heap sits in the panel's right end, its count under it. */
+const HEAP_AT = { x: PANEL.x + PANEL.w - 16 - HEAP_MAX_W / 2, bottom: PANEL.y + PANEL.h - 30 } as const;
 const BAR = { x: 30, y: 60, w: 200, h: 16 } as const;
 
 /** The on-screen jump button, bottom right (touch only). */
@@ -18,10 +20,11 @@ function jumpButton(width: number, height: number): { x: number; y: number; r: n
   return { x: width - 80, y: height - 110, r: 44 };
 }
 
-/** The notebook margin: size, growth meter, bank, shell, and touch controls. */
+/** The notebook margin: size, growth meter, bank, shell, carried sand, and touch controls. */
 export class HudScene extends Phaser.Scene {
   private g!: Phaser.GameObjects.Graphics;
   private size!: Phaser.GameObjects.Text;
+  private sand!: Phaser.GameObjects.Text;
   private note!: Phaser.GameObjects.Text;
   private shell!: Phaser.GameObjects.Text;
   private prompt!: Phaser.GameObjects.Text;
@@ -40,6 +43,7 @@ export class HudScene extends Phaser.Scene {
     const text = (x: number, y: number, size: number, color = BLUE): Phaser.GameObjects.Text =>
       this.add.text(x, y, '', { fontFamily: HAND_FONT, fontSize: `${size}px`, color, padding: { x: 4, y: 2 } });
     this.size = text(28, 20, 30);
+    this.sand = text(HEAP_AT.x, HEAP_AT.bottom + 2, 16).setOrigin(0.5, 0);
     this.note = text(28, 82, 20);
     this.shell = text(28, 102, 18);
     this.prompt = text(0, 0, 24).setOrigin(0.5, 1);
@@ -67,7 +71,15 @@ export class HudScene extends Phaser.Scene {
     g.fillStyle(BLUE_HEX, 0.75).fillRect(BAR.x, BAR.y, BAR.w * full, BAR.h);
     wobblyRect(g, BAR.x, BAR.y, BAR.w, BAR.h, 9, 1.4, BLUE_HEX);
 
-    this.size.setText(`size ${c.growth.size}${c.sand > 0 ? `   · sand ${c.sand}/${SAND_CAPACITY}` : ''}`);
+    drawSandGauge(g, HEAP_AT.x, HEAP_AT.bottom, c.sand, beach.sandCapacity);
+    this.size.setText(`size ${c.growth.size}`);
+    // Full, it digs nothing until it unloads; past full (a smaller shell) is a warning.
+    const loaded = c.sand >= beach.sandCapacity;
+    const unload = this.touchSeen ? 'tap to drop' : 'C to drop';
+    this.sand.setText(loaded ? `${c.sand}/${beach.sandCapacity} · ${unload}` : `${c.sand}/${beach.sandCapacity}`);
+    this.sand.setColor(c.sand > beach.sandCapacity ? RED : BLUE);
+    // Centred under the heap, but kept inside the panel when the hint makes it long.
+    this.sand.setX(Math.min(HEAP_AT.x, PANEL.x + PANEL.w - 8 - this.sand.width / 2));
     const bank = c.growth.bank > 0 ? ` (+${c.growth.bank} banked)` : '';
     this.note.setText(c.swap ? 'moving house… exposed!' : beach.capped ? `shell full, find a bigger one${bank}` : `growing${bank}`);
     this.note.setColor(c.swap ? RED : BLUE);

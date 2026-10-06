@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { meterGoal } from '../src/logic/growth';
-import { Beach, IDLE, SAND_CAPACITY, type Input } from '../src/logic/sim';
+import { Beach, IDLE, type Input } from '../src/logic/sim';
 import { SWAP_SECONDS } from '../src/logic/swap';
 import { createTerrain, setTile, TILE, tileAt, type Terrain } from '../src/logic/terrain';
 import { makeItem, type Item } from '../src/logic/items';
-import { MOUTH_OFFSET, shellPx, SHELLS } from '../src/logic/shells';
+import { MOUTH_OFFSET, sandCapacity, shellPx, SHELLS } from '../src/logic/shells';
 
 const T = 16;
 
@@ -19,6 +19,9 @@ const step = (b: Beach, input: Partial<Input> = {}, seconds = 1 / 60) => {
   for (let i = 0; i < Math.max(1, Math.round(seconds * 60)); i++) events.push(...b.step({ ...IDLE, ...input }, 1 / 60));
   return events;
 };
+
+/** Sand tiles (packed or placed) in the grid. */
+const solidSand = (t: Terrain): number => t.tiles.reduce((n, v) => n + (v === TILE.sand || v === TILE.placed ? 1 : 0), 0);
 
 const foodAt = (id: number, x: number, points: number): Item => makeItem(id, { type: 'food', food: 'crumb', points }, x, 10 * T - 8, false);
 
@@ -77,12 +80,34 @@ describe('beach simulation', () => {
     expect(step(b, { place: true }).some((e) => e.type === 'tiles')).toBe(false);
   });
 
-  it('keeps digging while the button is held, and spills sand once full', () => {
+  it('keeps digging while the button is held, and fills up to its shell\'s capacity', () => {
     const b = flatBeach();
     step(b, {}, 1);
     step(b, { aimY: 1, dig: true }, 3);
-    expect(b.crab.sand).toBe(SAND_CAPACITY);
+    expect(b.crab.sand).toBe(sandCapacity(SHELLS.bottlecap));
+    expect(b.sandCapacity).toBe(sandCapacity(SHELLS.bottlecap));
     expect(b.crab.body.y + b.crab.body.h).toBeGreaterThan(12 * T);
+  });
+
+  it('never loses sand: once full it digs nothing until it unloads', () => {
+    const b = flatBeach();
+    step(b, {}, 1);
+    const total = (): number => solidSand(b.terrain) + b.crab.sand;
+    const before = total();
+    step(b, { aimY: 1, dig: true }, 3);
+    expect(b.crab.sand).toBe(b.sandCapacity);
+    const full = solidSand(b.terrain);
+    expect(step(b, { moveX: 1, dig: true }, 1).some((e) => e.type === 'tiles' && e.dug)).toBe(false);
+    expect(solidSand(b.terrain)).toBe(full);
+    expect(total()).toBe(before);
+    // Put one clump down and it can dig again.
+    step(b, { jump: true });
+    step(b, {}, 0.3);
+    step(b, { aimY: 1, place: true });
+    step(b, {}, 1);
+    expect(b.crab.sand).toBe(b.sandCapacity - 1);
+    expect(step(b, { aimY: 1, dig: true }).some((e) => e.type === 'tiles' && e.dug)).toBe(true);
+    expect(total()).toBe(before);
   });
 
   it('digs straight up through a ceiling', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bodyFill, canWear, shellPx, SHELL_KINDS, SHELLS, speedFactor } from '../src/logic/shells';
+import { bodyFill, canWear, sandCapacity, shellPx, SHELL_KINDS, SHELLS, speedFactor } from '../src/logic/shells';
 
 describe('shells', () => {
   it('has a sane size range and stats for every kind', () => {
@@ -49,5 +49,13 @@ describe('shells', () => {
   it('grows within a shell', () => {
     expect(bodyFill(SHELLS.bulb, 3)).toBeGreaterThan(bodyFill(SHELLS.bulb, 2));
     expect(bodyFill(SHELLS.bulb, 3)).toBeLessThan(bodyFill(SHELLS.bulb, 4));
+  });
+
+  it('carries more sand in a bigger shell, and a little without one', () => {
+    expect(sandCapacity(SHELLS.bottlecap)).toBe(10);
+    expect(sandCapacity(SHELLS.conch)).toBeGreaterThan(sandCapacity(SHELLS.jar));
+    expect(sandCapacity(SHELLS.jar)).toBeGreaterThan(sandCapacity(SHELLS.bulb));
+    expect(sandCapacity(null)).toBeLessThan(sandCapacity(SHELLS.bottlecap));
+    expect(sandCapacity(null)).toBeGreaterThan(0);
   });
 });
