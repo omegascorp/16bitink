@@ -1,4 +1,6 @@
-import { BACKDROP_SCALE, BACKDROP_W, THEMES, type ThemeId } from '../src/art/backdrop';
+import { BACKDROP_SCALE, BACKDROP_W, BOAT_DRAW, THEME_BOATS, THEMES, type ThemeId } from '../src/art/backdrop';
+import { dhoni, speedboat, yacht } from '../src/art/backdrop/boats';
+import { bungalow, villa } from '../src/art/backdrop/homes';
 import { drawCrabBack, drawCrabFront } from '../src/art/crabArt';
 import { CRITTER_FRAME, CRITTER_GROUND, drawCritter } from '../src/art/critterArt';
 import { SPECIES, type SpeciesId } from '../src/logic/species';
@@ -121,14 +123,45 @@ for (const theme of Object.keys(THEMES) as ThemeId[]) {
   ctx.fillRect(0, 0, BACKDROP_W, H);
   // Stack from a shared ground line at the bottom, design-scale lifts.
   const ground = H - 40;
+  const top = (id: string): number => {
+    const l = layers.find((x) => x.id === id)!;
+    return ground - l.lift / BACKDROP_SCALE - l.height;
+  };
   layers.forEach((l, i) => {
     ctx.save();
-    ctx.translate(0, ground - l.lift / BACKDROP_SCALE - l.height);
+    ctx.translate(0, top(l.id));
     l.draw(makeDraw(ctx, 900 + i, 0, 0));
     ctx.restore();
+    // Boats at their starting places, in the order the game stacks them.
+    THEME_BOATS[theme].forEach((b, k) => {
+      const at = layers.findIndex((x) => x.id === b.layer) + (b.front ? 1 : 0);
+      if (at === i) BOAT_DRAW[b.kind](makeDraw(ctx, 950 + k, 0, 0), b.x, top(b.layer) + b.water, b.s);
+    });
   });
   canvas.style.width = `${BACKDROP_W}px`;
   const fig = document.createElement('figure');
   fig.append(canvas, Object.assign(document.createElement('figcaption'), { textContent: theme }));
   backdrops.append(fig);
 }
+
+const boats = section('backdrop boats, at 4×');
+for (const [label, draw] of [['dhoni', dhoni], ['yacht', yacht], ['speedboat', speedboat]] as const) {
+  figure(boats, label, 90 * 4, 90 * 3, (ctx) => {
+    ctx.scale(4, 4);
+    draw(makeDraw(ctx, 5, 0, 0), 45, 65, 1);
+  });
+}
+
+const homes = section('backdrop homes, at 4×');
+figure(homes, 'villa (two tiers, pool)', 60 * 4, 60 * 4, (ctx) => {
+  ctx.scale(4, 4);
+  villa(makeDraw(ctx, 6, 0, 0), 30, 48, 1, 0);
+});
+figure(homes, 'villa (tall hip, ladder)', 60 * 4, 60 * 4, (ctx) => {
+  ctx.scale(4, 4);
+  villa(makeDraw(ctx, 7, 0, 0), 30, 48, 1, 5);
+});
+figure(homes, 'beach bungalow', 100 * 4, 60 * 4, (ctx) => {
+  ctx.scale(4, 4);
+  bungalow(makeDraw(ctx, 8, 0, 0), 40, 52, 1);
+});

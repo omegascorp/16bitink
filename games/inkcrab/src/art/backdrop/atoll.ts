@@ -2,7 +2,11 @@ import { bezier, type Draw, oval, pt } from '../kit';
 import type { Pt } from '../pen';
 import { PAPER_FILL } from '../palette';
 import { BACKDROP_W, band, FAR, fadeBottom, tiled } from './common';
-import { bird, cloud, dhoni, hammock, jetty, motu, palm, scrub, seaplane, SKY_WASH, villa } from './tropic';
+import { canoe, driftwood, pandanus, parasol, sandMarks, shells, sprout } from './beach';
+import { bird, cloud, hammock, jetty, motu, palm, scrub, seaplane, SKY_WASH } from './tropic';
+import { buoy, caustics, cirrus, reflection, swells } from './water';
+import { speedboat } from './boats';
+import { bungalow, villa } from './homes';
 
 /**
  * Beach 1: a coral island in the Maldives. Far off, a seaplane and towering
@@ -35,12 +39,13 @@ export function sky(d: Draw): void {
       const r0 = 27 + (i % 2) * 3;
       pen.hair([pt(800 + Math.cos(a) * r0, 58 + Math.sin(a) * r0), pt(800 + Math.cos(a) * (r0 + 8 - (i % 2) * 3), 58 + Math.sin(a) * (r0 + 8 - (i % 2) * 3))], 0.9, t.ink, FAR);
     }
+    for (const [x, y, w] of [[260, 30, 90], [620, 22, 120], [980, 40, 70]] as const) cirrus(t, x, y, w);
     cloud(t, 150, 120, 190, 6);
     cloud(t, 480, 80, 120, 4);
     cloud(t, 640, 170, 90, 4);
     cloud(t, 960, 140, 150, 5);
     seaplane(t, 330, 60, 1.3);
-    for (const [x, y, s] of [[560, 125, 1], [585, 112, 0.8], [720, 140, 0.7], [70, 60, 0.9]] as const) bird(t, x, y, s);
+    for (const [x, y, s] of [[560, 125, 1], [585, 112, 0.8], [602, 128, 0.6], [720, 140, 0.7], [70, 60, 0.9], [905, 95, 0.6]] as const) bird(t, x, y, s);
   });
 }
 
@@ -88,28 +93,44 @@ function coral(t: Draw, y0: number, y1: number): void {
   }
 }
 
+const HORIZON = 50;
+const REEF_Y = 74;
+
+/** Open ocean, reef and lagoon water, with the far islands and channel markers. */
 export function lagoon(d: Draw): void {
   const H = LAGOON_H;
-  const horizon = 50;
-  const reefY = 74;
-  band(d, horizon, reefY, OCEAN, 0.5, 0.42);
-  band(d, reefY, H, LAGOON, 0.45, 0.22);
-  band(d, reefY + 30, H, SHALLOWS, 0, 0.5);
+  band(d, HORIZON, REEF_Y, OCEAN, 0.5, 0.42);
+  band(d, REEF_Y, H, LAGOON, 0.45, 0.22);
+  band(d, REEF_Y + 30, H, SHALLOWS, 0, 0.5);
   tiled(d, 902, (t) => {
     const { pen } = t;
-    motu(t, 150, horizon, 120);
-    motu(t, 690, horizon, 46);
-    motu(t, 760, horizon, 22);
-    pen.stroke([pt(-20, horizon), pt(BACKDROP_W + 20, horizon)], 1, t.ink, FAR, false);
-    ripples(t, horizon + 4, reefY - 4, 5, FAR * 0.9);
-    reef(t, reefY);
-    coral(t, reefY + 10, H - 20);
-    ripples(t, reefY + 8, H - 10, 7, FAR * 0.7);
-    dhoni(t, 255, reefY + 8, 0.45);
-    // The water villas, out on their jetty.
-    jetty(t, 340, H - 4, 372, 104, 650);
-    for (let i = 0; i < 6; i++) villa(t, 390 + i * 50, 104, 0.95);
-    dhoni(t, 870, 132, 1.05);
+    motu(t, 150, HORIZON, 120);
+    motu(t, 690, HORIZON, 46);
+    motu(t, 760, HORIZON, 22);
+    pen.stroke([pt(-20, HORIZON), pt(BACKDROP_W + 20, HORIZON)], 1, t.ink, FAR, false);
+    swells(t, HORIZON + 3, REEF_Y - 3);
+    ripples(t, HORIZON + 4, REEF_Y - 4, 5, FAR * 0.9);
+    reef(t, REEF_Y);
+    coral(t, REEF_Y + 10, H - 20);
+    caustics(t, REEF_Y + 36, H);
+    ripples(t, REEF_Y + 8, H - 10, 7, FAR * 0.7);
+    // Channel markers through the gap in the reef.
+    for (const [x, red] of [[760, true], [800, false], [775, true], [818, false]] as const) buoy(t, x, REEF_Y + (x % 2 ? 6 : 12), 0.6, red);
+  });
+}
+
+const VILLAS = 6;
+const VILLA_X = 390;
+const VILLA_GAP = 52;
+const VILLA_WATER = 104;
+
+/** The resort, on its own layer so passing boats can slip behind it: water villas on their jetty and a moored launch. */
+export function resort(d: Draw): void {
+  tiled(d, 904, (t) => {
+    for (let i = 0; i < VILLAS; i++) reflection(t, VILLA_X + i * VILLA_GAP, VILLA_WATER, 40, 13, '#b8955e', 0.35);
+    jetty(t, 340, LAGOON_H - 4, 372, VILLA_WATER, VILLA_X + (VILLAS - 1) * VILLA_GAP + 14);
+    for (let i = 0; i < VILLAS; i++) villa(t, VILLA_X + i * VILLA_GAP, VILLA_WATER, 1.08, i);
+    speedboat(t, 318, 128, 0.85);
   });
 }
 
@@ -151,12 +172,21 @@ export function shore(d: Draw): void {
     for (const [x, h, lean] of [[70, 168, 0.16], [232, 196, -0.1], [296, 150, 0.32], [520, 182, 0.06], [705, 158, -0.24], [900, 190, 0.12]] as const) {
       trunks.push(palm(t, x, top(x) - 6, h, lean));
     }
-    for (const [x, w, h] of [[20, 90, 26], [150, 110, 34], [380, 120, 30], [470, 60, 22], [610, 130, 36], [800, 100, 28], [960, 80, 24]] as const) scrub(t, x, top(x) + 2, w, h);
+    pandanus(t, 432, top(432) - 2, 112, -0.12);
+    pandanus(t, 836, top(836) - 2, 96, 0.16);
+    bungalow(t, 600, top(600) + 3, 1);
+    for (const [x, w, h] of [[20, 90, 26], [150, 110, 34], [380, 120, 30], [470, 60, 22], [546, 44, 20], [690, 50, 22], [800, 100, 28], [960, 80, 24]] as const) scrub(t, x, top(x) + 2, w, h);
     // A hammock between the two palms leaning apart.
     const at = (spine: Pt[], y: number): Pt => spine.reduce((best, p) => (Math.abs(p.y - y) < Math.abs(best.y - y) ? p : best));
     hammock(t, at(trunks[1]!, ground - 34), at(trunks[2]!, ground - 30));
     berm(t, top);
-    for (const [x, len] of [[120, 40], [430, 55], [760, 46]] as const) vine(t, x, top(x) + 7, len);
+    for (const [x, len] of [[120, 40], [430, 55], [980, 40]] as const) vine(t, x, top(x) + 7, len);
+    sandMarks(t, 0, BACKDROP_W, top);
+    shells(t, 0, BACKDROP_W, top);
+    driftwood(t, 180, top(180) + 11, 34);
+    parasol(t, 360, top(360) + 9, 0.9);
+    canoe(t, 762, top(762) + 12, 1);
+    sprout(t, 878, top(878) + 8);
     // Fallen coconuts.
     for (const x of [84, 92, 540, 912]) {
       const nut = oval(x, top(x) + 3, 3.2, 2.8, 10);

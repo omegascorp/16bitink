@@ -1,7 +1,7 @@
-import { bezier, closed, type Draw, normals, oval, pt, tube } from '../kit';
+import { bezier, type Draw, normals, oval, pt, tube } from '../kit';
 import type { Pt } from '../pen';
 import { PAPER_FILL } from '../palette';
-import { FAR } from './common';
+import { edges, FAR } from './common';
 
 /**
  * Props for a coral-island beach, drawn the way a field illustrator sketches
@@ -13,7 +13,7 @@ const TRUNK = '#cdb48a';
 const FROND = '#6fa65c';
 const LEAF = '#5e9a55';
 const NUT = '#a8934e';
-const THATCH = '#d9b877';
+const DEAD = '#a8875a';
 const TIMBER = '#b98e62';
 const ISLAND = '#7fb07a';
 
@@ -118,7 +118,7 @@ export function seaplane(d: Draw, x: number, y: number, s: number): void {
     pen.fill(shape, '#dde6ea', 0.6);
   }
   pen.hair([pt(x - 12 * s, y - 1 * s), pt(x + 18 * s, y - 1.2 * s)], 0.9 * s, '#b3322b', 0.45);
-  for (const shape of [fin, body, wing, float(y + 8 * s)]) ink(closed(shape));
+  for (const shape of [fin, body, wing, float(y + 8 * s)]) ink(edges(shape));
   // Struts, cockpit window, propeller disc.
   for (const sx of [-8, 2]) ink([pt(x + sx * s, y + 1 * s), pt(x + (sx - 1) * s, y + 6.5 * s)], 0.6);
   ink([pt(x - 6 * s, y - 6 * s), pt(x - 5 * s, y + 1.5 * s)], 0.5, FAR * 0.7);
@@ -180,11 +180,26 @@ function frond(d: Draw, base: Pt, ang: number, len: number, s: number, front: bo
       ly /= l;
       const tip = pt(p.x + lx * ll, p.y + ly * ll);
       tips.push(tip);
-      pen.hair(bezier(p, pt(p.x + lx * ll * 0.5, p.y + ly * ll * 0.5 - 1), tip, 3), 0.5, d.ink, alpha * 0.85);
+      // Each leaflet a narrow, tapering leaf with its midrib inked.
+      const vein = bezier(p, pt(p.x + lx * ll * 0.5, p.y + ly * ll * 0.5 - 1), tip, 4);
+      pen.fill(tube(vein, 1.9 * s, 0.2), FROND, front ? 0.5 : 0.36);
+      pen.hair(vein, 0.45, d.ink, alpha * 0.8);
     }
-    pen.fill([...rib.slice(2), ...[...tips].reverse()], FROND, front ? 0.34 : 0.24);
+    pen.fill([...rib.slice(2), ...[...tips].reverse()], FROND, front ? 0.1 : 0.07);
   }
   pen.stroke(rib, 1.1 * s, d.ink, alpha, false);
+}
+
+/** An old frond hanging dead against the trunk: brown, ragged, leaflets drooping straight down. */
+function deadFrond(d: Draw, base: Pt, side: number, len: number, s: number): void {
+  const { pen } = d;
+  const rib = bezier(base, pt(base.x + side * len * 0.35, base.y + len * 0.1), pt(base.x + side * len * 0.3, base.y + len), 10);
+  for (let i = 2; i < rib.length; i++) {
+    const p = rib[i]!;
+    const l = len * 0.22 * (1 - i / rib.length) * s + 2;
+    pen.hair([p, pt(p.x + side * (1 + pen.rng() * 2), p.y + l)], 0.5, DEAD, 0.8);
+  }
+  pen.stroke(rib, 0.9 * s, d.ink, FAR * 0.8, false);
 }
 
 /**
@@ -224,12 +239,13 @@ export function palm(d: Draw, x: number, ground: number, h: number, lean: number
   // Crown: back fronds, nuts, then the front fronds over them.
   const len = h * 0.36 + 18 * s;
   const angles = [-2.75, -2.35, -1.95, -1.25, -0.8, -0.35, -0.05];
+  for (const side of [-1, 1]) deadFrond(d, top, side, len * 0.55, s);
   angles.forEach((a, i) => i % 2 === 1 && frond(d, top, a + pen.jitter(0.1), len * (0.75 + pen.rng() * 0.2), s, false));
   for (const [dx, dy] of [[-3, 4], [2, 5], [0, 7.5], [4.5, 2.5]] as const) {
     const nut = oval(top.x + dx * s, top.y + dy * s, 2.8 * s, 2.5 * s, 10);
     pen.fill(nut, PAPER_FILL, 1);
     pen.fill(nut, NUT, 0.65);
-    pen.stroke(closed(nut), 0.7, d.ink, FAR, false);
+    pen.stroke(edges(nut), 0.7, d.ink, FAR, false);
   }
   angles.forEach((a, i) => i % 2 === 0 && frond(d, top, a + pen.jitter(0.1), len * (0.85 + pen.rng() * 0.25), s, true));
   return spine;
@@ -265,57 +281,22 @@ export function scrub(d: Draw, x: number, ground: number, w: number, h: number):
       const ny = Math.cos(a) * L * 0.35;
       const leaf = [pt(lx, ly), pt((lx + tip.x) / 2 + nx, (ly + tip.y) / 2 + ny), tip, pt((lx + tip.x) / 2 - nx, (ly + tip.y) / 2 - ny)];
       pen.fill(leaf, PAPER_FILL, 0.25);
-      pen.hair(closed(leaf), 0.45, d.ink, FAR * 0.55);
+      pen.hair(edges(leaf), 0.45, d.ink, FAR * 0.55);
     }
     pen.hatch([pt(x - w, ground - h * 0.35), pt(x + w, ground - h * 0.35), pt(x + w, ground + 6), pt(x - w, ground + 6)], 2.2, 2.2, 0.5, { color: d.ink, alpha: FAR * 0.5 });
   });
-  pen.stroke(top, 1, d.ink, FAR, false);
-}
-
-/** A water villa on stilts: deck, plank walls, a window and door, under a hipped thatch roof. */
-export function villa(d: Draw, x: number, water: number, s: number): void {
-  const { pen } = d;
-  const deck = water - 9 * s;
-  // Stilts, each with a broken reflection.
-  for (const sx of [-15, -7, 1, 9, 15]) {
-    pen.hair([pt(x + sx * s, deck), pt(x + sx * s, water + 1.5 * s)], 0.8 * s, d.ink, FAR * 0.9);
-    pen.hair([pt(x + sx * s - 1, water + 3 * s), pt(x + sx * s + 1, water + 3.5 * s)], 0.5, d.ink, FAR * 0.5);
-    pen.hair([pt(x + sx * s + 0.5, water + 5.5 * s), pt(x + sx * s + 1.5, water + 6 * s)], 0.5, d.ink, FAR * 0.35);
-  }
-  const wallTop = deck - 11 * s;
-  const walls = [pt(x - 12 * s, deck), pt(x + 12 * s, deck), pt(x + 12 * s, wallTop), pt(x - 12 * s, wallTop)];
-  pen.fill(walls, PAPER_FILL, 1);
-  pen.fill(walls, TIMBER, 0.35);
-  for (let k = 1; k < 4; k++) pen.hair([pt(x - 12 * s, wallTop + k * 2.8 * s), pt(x + 12 * s, wallTop + k * 2.8 * s)], 0.4, d.ink, FAR * 0.45);
-  pen.fill([pt(x - 9 * s, deck), pt(x - 5 * s, deck), pt(x - 5 * s, deck - 7.5 * s), pt(x - 9 * s, deck - 7.5 * s)], d.ink, FAR * 0.55);
-  const win = [pt(x + 1 * s, deck - 3.5 * s), pt(x + 9 * s, deck - 3.5 * s), pt(x + 9 * s, deck - 8 * s), pt(x + 1 * s, deck - 8 * s)];
-  pen.fill(win, '#7fc4cf', 0.45);
-  pen.hair(closed(win), 0.5, d.ink, FAR * 0.8);
-  pen.hair([pt(x + 5 * s, deck - 3.5 * s), pt(x + 5 * s, deck - 8 * s)], 0.45, d.ink, FAR * 0.6);
-  pen.stroke(closed(walls), 0.8 * s, d.ink, FAR, false);
-  // Deck boards and a rail.
-  const boards = [pt(x - 18 * s, deck + 1.5 * s), pt(x + 18 * s, deck + 1.5 * s), pt(x + 18 * s, deck - 0.5 * s), pt(x - 18 * s, deck - 0.5 * s)];
-  pen.fill(boards, TIMBER, 0.6);
-  pen.stroke(closed(boards), 0.7 * s, d.ink, FAR, false);
-  pen.hair([pt(x + 12 * s, deck - 4 * s), pt(x + 18 * s, deck - 4 * s)], 0.5, d.ink, FAR * 0.8);
-  pen.hair([pt(x + 18 * s, deck - 0.5 * s), pt(x + 18 * s, deck - 4.5 * s)], 0.5, d.ink, FAR * 0.8);
-  // The roof: a steep hip of thatch, straw drawn ridge to eave, a ragged fringe.
-  const eave = wallTop + 2 * s;
-  const ridge = wallTop - 11 * s;
-  const roof = [pt(x - 17 * s, eave), pt(x + 17 * s, eave), pt(x + 6 * s, ridge), pt(x - 6 * s, ridge)];
-  pen.fill(roof, PAPER_FILL, 1);
-  pen.fill(roof, THATCH, 0.7);
-  pen.clipped(roof, () => {
-    for (let k = 0; k <= 16; k++) {
-      const t = k / 16;
-      pen.hair([pt(x - 6 * s + 12 * s * t, ridge), pt(x - 17 * s + 34 * s * t + pen.jitter(0.6), eave + 1)], 0.4, d.ink, FAR * 0.5);
+  // Naupaka's white half-flowers, dotted over the top of the clump.
+  for (let i = 0; i < w / 9; i++) {
+    const p = top[1 + Math.floor(pen.rng() * (top.length - 3))]!;
+    const fx = p.x + pen.jitter(2);
+    const fy = p.y + 3 + pen.rng() * h * 0.4;
+    for (let k = 0; k < 5; k++) {
+      const a = -Math.PI + (k / 4) * Math.PI;
+      pen.dot(fx + Math.cos(a) * 1.3, fy + Math.sin(a) * 1.3, 0.75, PAPER_FILL, 0.95);
     }
-    pen.hatch([pt(x + 2 * s, eave), pt(x + 17 * s, eave), pt(x + 6 * s, ridge)], 1.8, 1.1, 0.45, { color: d.ink, alpha: FAR * 0.55 });
-  });
-  pen.stroke(closed(roof), 0.9 * s, d.ink, FAR * 1.1, false);
-  const fringe: Pt[] = [];
-  for (let k = 0; k <= 17; k++) fringe.push(pt(x - 17 * s + 2 * s * k, eave + (k % 2 ? 1.6 : 0.2) * s));
-  pen.hair(fringe, 0.5, d.ink, FAR * 0.8);
+    pen.dot(fx, fy, 0.45, d.ink, 0.5);
+  }
+  pen.stroke(top, 1, d.ink, FAR, false);
 }
 
 /**
@@ -350,43 +331,26 @@ export function jetty(d: Draw, x0: number, y0: number, x1: number, y1: number, x
     const w = near + (far - near) * t;
     pen.hair([pt(px - w, py), pt(px + w, py)], 0.4, d.ink, FAR * 0.5);
   }
-  pen.stroke(closed(walk), 0.8, d.ink, FAR, false);
+  pen.stroke(edges(walk), 0.8, d.ink, FAR, false);
   const along = [pt(x1, y1 + 1.5), pt(x2, y1 + 1.5), pt(x2, y1 - 0.5), pt(x1, y1 - 0.5)];
   pen.fill(along, TIMBER, 0.55);
-  pen.stroke(closed(along), 0.7, d.ink, FAR, false);
-}
-
-/** A dhoni, the Maldivian boat: a curved hull sweeping up to a tall, hooked prow, a canvas awning and a sail. Faces right. */
-export function dhoni(d: Draw, x: number, water: number, s: number): void {
-  const { pen } = d;
-  const gun = water - 6 * s;
-  const hull = [
-    pt(x - 24 * s, gun - 3 * s),
-    ...bezier(pt(x - 24 * s, gun - 3 * s), pt(x, gun + 1 * s), pt(x + 18 * s, gun), 8).slice(1),
-    ...bezier(pt(x + 18 * s, gun), pt(x + 26 * s, gun - 2 * s), pt(x + 27 * s, gun - 20 * s), 8).slice(1),
-    ...bezier(pt(x + 27 * s, gun - 20 * s), pt(x + 25 * s, gun - 23 * s), pt(x + 23.5 * s, gun - 20 * s), 4).slice(1),
-    ...bezier(pt(x + 23.5 * s, gun - 20 * s), pt(x + 24 * s, gun - 4 * s), pt(x + 14 * s, water), 8).slice(1),
-    ...bezier(pt(x + 14 * s, water), pt(x - 8 * s, water + 1.5 * s), pt(x - 22 * s, water - 2 * s), 8).slice(1),
-  ];
-  // Mast and sail first, behind the awning.
-  pen.hair([pt(x - 2 * s, gun), pt(x - 2 * s, gun - 34 * s)], 0.9 * s, d.ink, FAR);
-  const sail = [pt(x - 1 * s, gun - 32 * s), pt(x + 14 * s, gun - 30 * s), ...bezier(pt(x + 14 * s, gun - 30 * s), pt(x + 17 * s, gun - 18 * s), pt(x + 13 * s, gun - 9 * s), 6).slice(1), pt(x - 1 * s, gun - 10 * s)];
-  pen.fill(sail, PAPER_FILL, 1);
-  pen.fill(sail, '#efe2c4', 0.6);
-  pen.hatch(sail, 2, 1.3, 0.4, { color: d.ink, alpha: FAR * 0.35 });
-  for (const t of [0.33, 0.66]) pen.hair([pt(x - 1 * s, gun - 32 * s + 22 * s * t), pt(x + 15 * s, gun - 30 * s + 21 * s * t)], 0.4, d.ink, FAR * 0.5);
-  pen.stroke(closed(sail), 0.8, d.ink, FAR, false);
-  const awning = [pt(x - 20 * s, gun - 2 * s), pt(x - 20 * s, gun - 9 * s), ...bezier(pt(x - 20 * s, gun - 9 * s), pt(x - 13 * s, gun - 11 * s), pt(x - 6 * s, gun - 9 * s), 4).slice(1), pt(x - 6 * s, gun - 1 * s)];
-  pen.fill(awning, PAPER_FILL, 1);
-  pen.fill(awning, '#d7c7a2', 0.55);
-  pen.stroke(closed(awning), 0.7, d.ink, FAR, false);
-  pen.fill(hull, PAPER_FILL, 1);
-  pen.fill(hull, '#c89a66', 0.55);
-  pen.hair(bezier(pt(x - 22 * s, gun - 0.5 * s), pt(x, gun + 3.5 * s), pt(x + 21 * s, gun + 1 * s), 8), 0.8 * s, '#3c7a8c', 0.6);
-  pen.clipped(hull, () => pen.hatch(hull, 1.8, 0.4, 0.4, { color: d.ink, alpha: FAR * 0.45, onlyBelow: gun + 2 * s }));
-  pen.stroke(closed(hull), 0.9 * s, d.ink, FAR * 1.1, false);
-  // Reflection.
-  for (let k = 0; k < 4; k++) pen.hair([pt(x - 16 * s + k * 9 * s, water + (2 + k % 2) * s), pt(x - 11 * s + k * 9 * s, water + (2 + k % 2) * s)], 0.5, d.ink, FAR * 0.4);
+  pen.stroke(edges(along), 0.7, d.ink, FAR, false);
+  // A rope rail on posts along both stretches, and lanterns every few posts.
+  const rail: Pt[] = [];
+  for (let k = 0; k <= 10; k++) {
+    const t = k / 10;
+    const px = x0 + near + (x1 + far - x0 - near) * t;
+    const py = y0 + (y1 - y0) * t;
+    const h = 7 - 4.5 * t;
+    pen.hair([pt(px, py), pt(px, py - h)], 0.5, d.ink, FAR * 0.8);
+    rail.push(pt(px, py - h));
+  }
+  pen.hair(rail, 0.45, d.ink, FAR * 0.7);
+  for (let px = x1 + 8; px < x2; px += 26) {
+    pen.hair([pt(px, y1 - 0.5), pt(px, y1 - 6)], 0.5, d.ink, FAR * 0.9);
+    pen.fill(oval(px, y1 - 6.8, 1, 1.2, 8), '#f0d88a', 0.9);
+    pen.hair(edges(oval(px, y1 - 6.8, 1, 1.2, 8)), 0.35, d.ink, FAR);
+  }
 }
 
 /** A string hammock slung between two trunk points, sagging under its own weight. */

@@ -1,3 +1,4 @@
+import type { Pt } from '../pen';
 import { type Draw, makeDraw } from '../kit';
 
 /** World px across one tile of a layer. */
@@ -49,4 +50,21 @@ export function fadeBottom(d: Draw, height: number, h: number): void {
 function withAlpha(hex: string, a: number): string {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+/**
+ * A closed outline with its straight sides kept straight: each edge is
+ * filled in with points so the pen's smoothing can only round the corners
+ * a little, as a ruled line drawn freehand would.
+ */
+export function edges(pts: readonly Pt[], step = 1.2): Pt[] {
+  const out: Pt[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i]!;
+    const b = pts[(i + 1) % pts.length]!;
+    const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / step));
+    for (let k = 0; k < n; k++) out.push({ x: a.x + ((b.x - a.x) * k) / n, y: a.y + ((b.y - a.y) * k) / n });
+  }
+  out.push(pts[0]!);
+  return out;
 }

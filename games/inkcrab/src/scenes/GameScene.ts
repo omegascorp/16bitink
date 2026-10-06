@@ -4,8 +4,6 @@ import { TEX } from '../art/textures';
 import { getHost, REG } from '../host';
 import { buildLevel, START_SIZE } from '../level/build';
 import { LEVELS, levelById, themeOf } from '../level/levels';
-import { BACKDROP_SCALE, THEMES } from '../art/backdrop';
-import { ART_RES } from '../art/palette';
 import type { LevelDef } from '../level/types';
 import { Coach } from '../logic/coach';
 import type { TilePos } from '../logic/dig';
@@ -14,6 +12,7 @@ import { overlaps } from '../logic/items';
 import { shellPx, SHELLS } from '../logic/shells';
 import { blotsFor, loadProgress, recordResult, saveProgress } from '../logic/save';
 import { Beach, LIVES, type SimEvent } from '../logic/sim';
+import { BackdropView } from './game/backdropView';
 import { CrabView } from './game/crabView';
 import { CrittersView } from './game/crittersView';
 import { createTouchState, GameInput, type TouchState } from './game/input';
@@ -40,6 +39,7 @@ export class GameScene extends Phaser.Scene {
   readonly startSize = START_SIZE;
   coach!: Coach;
   private pointer!: Phaser.GameObjects.Graphics;
+  private backdrop!: BackdropView;
   private terrainView!: TerrainView;
   private itemsView!: ItemsView;
   private crittersView!: CrittersView;
@@ -78,23 +78,11 @@ export class GameScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.terrainView.destroy());
   }
 
-  /**
-   * The faraway beach: parallax layers anchored above the beach's typical
-   * surface height, each sliding slower than the world the further off it is.
-   */
+  /** The faraway beach, anchored above the beach's typical surface height and wide enough for any scroll. */
   private addBackdrop(terrain: Terrain, T: number, worldW: number): void {
     const rows = Array.from({ length: terrain.width }, (_, x) => surfaceRow(terrain, x)).sort((a, b) => a - b);
     const ground = rows[Math.floor(rows.length / 2)]! * T;
-    // Wide enough to cover the view at any scroll, at the furthest zoom out.
-    const span = worldW + 2400;
-    THEMES[themeOf(this.level.id)].forEach((layer, i) => {
-      const h = layer.height * BACKDROP_SCALE;
-      this.add.tileSprite(-1200, ground - layer.lift - h, span, h, TEX.backdrop(themeOf(this.level.id), layer.id))
-        .setOrigin(0)
-        .setTileScale(BACKDROP_SCALE / ART_RES)
-        .setScrollFactor(layer.scroll, 1)
-        .setDepth(0.1 + i * 0.1);
-    });
+    this.backdrop = new BackdropView(this, themeOf(this.level.id), ground, worldW + 2400);
   }
 
   /** Back to the level list (from the HUD). */
@@ -132,6 +120,7 @@ export class GameScene extends Phaser.Scene {
     const cam = this.cameras.main;
     const z = screenZoom(cam);
     cam.setZoom(DPR * (z + (this.targetZoom() - z) * Math.min(1, dt * 2)));
+    this.backdrop.update(time);
     this.drawPointer(time);
   }
 

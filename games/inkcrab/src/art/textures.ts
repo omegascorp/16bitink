@@ -2,7 +2,7 @@ import type Phaser from 'phaser';
 import type { FoodKind } from '../logic/items';
 import { SHELL_KINDS } from '../logic/shells';
 import { SPECIES, type SpeciesId } from '../logic/species';
-import { BACKDROP_W, THEMES, type ThemeId } from './backdrop';
+import { BACKDROP_W, BOAT_BOX, BOAT_DRAW, THEME_BOATS, THEMES, type ThemeId } from './backdrop';
 import { drawCrabBack, drawCrabFront } from './crabArt';
 import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, drawCritter } from './critterArt';
 import { FRAME, GROUND } from './frame';
@@ -27,6 +27,7 @@ export const TEX = {
   /** Paper without the ruled lines, behind the levels. */
   plainPaper: 'paper-plain',
   backdrop: (theme: string, layer: string) => `backdrop-${theme}-${layer}`,
+  boat: (theme: string, i: number) => `boat-${theme}-${i}`,
 } as const;
 
 const FOODS: readonly FoodKind[] = ['crumb', 'hopper', 'clam'];
@@ -80,6 +81,15 @@ function bakeBackdrops(scene: Phaser.Scene): void {
       const { canvas, ctx } = makeCanvas(BACKDROP_W * ART_RES, Math.ceil(layer.height * ART_RES));
       ctx.scale(ART_RES, ART_RES);
       layer.draw(makeDraw(ctx, 900 + i, 0, 0));
+      scene.textures.addCanvas(key, canvas);
+    });
+    THEME_BOATS[theme].forEach((boat, i) => {
+      const key = TEX.boat(theme, i);
+      if (scene.textures.exists(key)) return;
+      const box = BOAT_BOX[boat.kind];
+      const { canvas, ctx } = makeCanvas(Math.ceil((box.right - box.left) * boat.s * ART_RES), Math.ceil((box.bottom - box.top) * boat.s * ART_RES));
+      ctx.scale(ART_RES, ART_RES);
+      BOAT_DRAW[boat.kind](makeDraw(ctx, 950 + i, 0, 0), -box.left * boat.s, -box.top * boat.s, boat.s);
       scene.textures.addCanvas(key, canvas);
     });
   }
