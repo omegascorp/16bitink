@@ -9,8 +9,8 @@ import { MOUTH_OFFSET, sandCapacity, shellPx, SHELLS } from '../src/logic/shells
 const T = 16;
 
 function flatBeach(items: Item[] = []): Beach {
-  const terrain: Terrain = createTerrain(40, 16);
-  for (let x = 0; x < 40; x++) for (let y = 10; y < 16; y++) setTile(terrain, x, y, TILE.sand);
+  const terrain: Terrain = createTerrain(40, 30);
+  for (let x = 0; x < 40; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
   return new Beach({ terrain, items, start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: 'bottlecap', seed: 1, surfaceFood: 0 });
 }
 
@@ -108,6 +108,18 @@ describe('beach simulation', () => {
     expect(b.crab.sand).toBe(b.sandCapacity - 1);
     expect(step(b, { aimY: 1, dig: true }).some((e) => e.type === 'tiles' && e.dug)).toBe(true);
     expect(total()).toBe(before);
+  });
+
+  it('digs one clump per dig at the smallest size, and drops into the hole', () => {
+    const b = flatBeach();
+    step(b, {}, 1);
+    const bottom = b.crab.body.y + b.crab.body.h;
+    const events = step(b, { aimY: 1, dig: true });
+    const dug = events.flatMap((e) => (e.type === 'tiles' && e.dug ? e.tiles : []));
+    expect(dug).toHaveLength(1);
+    expect(b.crab.sand).toBe(1);
+    step(b, {}, 0.5);
+    expect(b.crab.body.y + b.crab.body.h).toBeCloseTo(bottom + T);
   });
 
   it('digs straight up through a ceiling', () => {

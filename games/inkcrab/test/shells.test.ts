@@ -58,4 +58,9 @@ describe('shells', () => {
     expect(sandCapacity(null)).toBeLessThan(sandCapacity(SHELLS.bottlecap));
     expect(sandCapacity(null)).toBeGreaterThan(0);
   });
+
+  it('draws the smallest shell small enough that its crab fits one tile (16 px)', () => {
+    expect(shellPx(SHELLS.bottlecap.maxSize) * 0.85).toBeLessThan(16);
+    expect(shellPx(SHELLS.bottlecap.maxSize) * 0.7).toBeLessThan(16);
+  });
 });

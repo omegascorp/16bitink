@@ -1,6 +1,6 @@
 import { boxHitsSolid, jump, moveBody, type Body, type Box } from './body';
 import { settleColumn } from './sandfall';
-import { diggableOf, digTargets, inReach, placeTarget, tileSpan, type TilePos } from './dig';
+import { digColumns, diggableOf, digTargets, inReach, placeTarget, tileSpan, type TilePos } from './dig';
 import { feed, initialGrowth, isCapped, settle, type Growth } from './growth';
 import { centre, food, makeItem, overlaps, type Item } from './items';
 import { createRng, type Rng } from './rng';
@@ -160,7 +160,8 @@ export class Beach {
   private dig(input: Input, events: SimEvent[]): void {
     const c = this.crab;
     const walking = Math.abs(input.moveX) > WALKING;
-    this.removeTiles(diggableOf(this.terrain, digTargets(c.body, c.facing, input.aimY, walking, this.tileSize)), events);
+    const dug = this.removeTiles(diggableOf(this.terrain, digTargets(c.body, c.facing, input.aimY, walking, this.tileSize)), events);
+    if (dug && input.aimY !== 0 && !walking) this.centreOverDig();
   }
 
   private place(input: Input, events: SimEvent[]): void {
@@ -181,12 +182,25 @@ export class Beach {
    * Each dug tile is a clump, kept in the shell. Sand is never lost: once
    * the shell is full the crab digs nothing more until it puts some down.
    */
-  private removeTiles(tiles: readonly TilePos[], events: SimEvent[]): void {
+  private removeTiles(tiles: readonly TilePos[], events: SimEvent[]): boolean {
     const taken = tiles.slice(0, Math.max(0, this.sandCapacity - this.crab.sand));
-    if (!taken.length) return;
+    if (!taken.length) return false;
     for (const [x, y] of taken) dig(this.terrain, x, y);
     events.push({ type: 'tiles', tiles: taken, dug: true });
     this.crab = { ...this.crab, sand: this.crab.sand + taken.length, digCooldown: this.cooldown };
+    return true;
+  }
+
+  /**
+   * After digging straight down or up, lines the crab up with the hole: a
+   * hole is only as wide as the crab, so without this it would straddle it.
+   */
+  private centreOverDig(): void {
+    const b = this.crab.body;
+    const T = this.tileSize;
+    const c = digColumns(b, T);
+    const x = ((c.x0 + c.x1 + 1) / 2) * T - b.w / 2;
+    if (!boxHitsSolid(this.terrain, { ...b, x }, T)) this.crab = { ...this.crab, body: { ...b, x } };
   }
 
   private addTile(at: TilePos, events: SimEvent[]): void {

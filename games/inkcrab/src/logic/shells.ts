@@ -54,7 +54,8 @@ export const MOUTH_OFFSET = 0.362;
 
 /** Drawn size, in world px, of a shell (or naked body) for this body size. */
 export function shellPx(size: number): number {
-  return 10 + 6 * size;
+  // The bottle cap (size 2) is small enough that its crab fits one tile.
+  return 8 + 5 * size;
 }
 
 /** How much of its shell's drawn width a crab's body spans, from the smallest size it fits to its cap. */

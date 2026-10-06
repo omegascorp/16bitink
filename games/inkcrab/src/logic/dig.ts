@@ -14,6 +14,17 @@ export function tileSpan(b: Box, tile: number): { x0: number; x1: number; y0: nu
 }
 
 /**
+ * The columns a dig down or up takes: the crab's width in whole tiles,
+ * centred under it. Not every column it touches, so a crab one tile wide
+ * standing across two digs one tile (and is nudged over the hole).
+ */
+export function digColumns(b: Box, tile: number): { x0: number; x1: number } {
+  const n = Math.max(1, Math.ceil(b.w / tile - 1e-6));
+  const x0 = Math.round((b.x + b.w / 2) / tile - n / 2);
+  return { x0, x1: x0 + n - 1 };
+}
+
+/**
  * The strip a dig removes, sized to the crab, so bigger crabs dig bigger
  * tunnels. Down: the row under the body. Ahead: the column in front. Up:
  * the row over the head. While walking, up and down cut a stair instead:
@@ -23,6 +34,7 @@ export function tileSpan(b: Box, tile: number): { x0: number; x1: number; y0: nu
  */
 export function digTargets(b: Box, facing: 1 | -1, aimY: -1 | 0 | 1, walking: boolean, tile: number): TilePos[] {
   const s = tileSpan(b, tile);
+  const c = digColumns(b, tile);
   const out: TilePos[] = [];
   const col = facing > 0 ? s.x1 + 1 : s.x0 - 1;
   if (aimY === 0) {
@@ -30,7 +42,7 @@ export function digTargets(b: Box, facing: 1 | -1, aimY: -1 | 0 | 1, walking: bo
     return out;
   }
   const row = aimY === 1 ? s.y1 + 1 : s.y0 - 1;
-  for (let x = s.x0; x <= s.x1; x++) out.push([x, row]);
+  for (let x = c.x0; x <= c.x1; x++) out.push([x, row]);
   if (walking) for (let y = s.y0 + aimY; y <= s.y1 + aimY; y++) out.push([col, y]);
   return out;
 }

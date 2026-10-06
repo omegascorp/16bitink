@@ -30,6 +30,24 @@ describe('digging targets', () => {
   });
 });
 
+describe('digging with a crab one tile wide', () => {
+  // Narrower than a tile but standing across columns 2 and 3, mostly over 3.
+  const small = { x: 2 * T + 10, y: 4 * T + 3, w: T - 2, h: T - 3 };
+
+  it('takes one tile down, under its middle, not every column it touches', () => {
+    expect(digTargets(small, 1, 1, false, T)).toEqual([[3, 5]]);
+  });
+
+  it('takes one tile straight up', () => {
+    expect(digTargets(small, 1, -1, false, T)).toEqual([[3, 3]]);
+  });
+
+  it('takes one tile ahead, past everything it touches', () => {
+    expect(digTargets(small, 1, 0, false, T)).toEqual([[4, 4]]);
+    expect(digTargets(small, -1, 0, false, T)).toEqual([[1, 4]]);
+  });
+});
+
 describe('placing targets', () => {
   const ground = (): ReturnType<typeof createTerrain> => {
     const t = createTerrain(8, 8);
