@@ -3,10 +3,13 @@ import { BLUE, BLUE_HEX, RED } from '../art/palette';
 import { TEX } from '../art/textures';
 import { getHost, REG } from '../host';
 import { buildLevel, START_SIZE } from '../level/build';
-import { LEVELS, levelById } from '../level/levels';
+import { LEVELS, levelById, themeOf } from '../level/levels';
+import { BACKDROP_SCALE, THEMES } from '../art/backdrop';
+import { ART_RES } from '../art/palette';
 import type { LevelDef } from '../level/types';
 import { Coach } from '../logic/coach';
 import type { TilePos } from '../logic/dig';
+import { surfaceRow, type Terrain } from '../logic/terrain';
 import { overlaps } from '../logic/items';
 import { shellPx, SHELLS } from '../logic/shells';
 import { blotsFor, loadProgress, recordResult, saveProgress } from '../logic/save';
@@ -57,7 +60,8 @@ export class GameScene extends Phaser.Scene {
     const T = setup.tileSize;
     const worldW = setup.terrain.width * T;
     const worldH = setup.terrain.height * T;
-    this.add.tileSprite(0, 0, worldW, worldH, TEX.paper).setOrigin(0).setDepth(0);
+    this.add.tileSprite(0, 0, worldW, worldH, TEX.plainPaper).setOrigin(0).setDepth(0);
+    this.addBackdrop(setup.terrain, T, worldW);
     this.terrainView = new TerrainView(this, setup.terrain, T);
     this.itemsView = new ItemsView(this);
     this.crittersView = new CrittersView(this);
@@ -72,6 +76,25 @@ export class GameScene extends Phaser.Scene {
     cam.startFollow(this.crabView.root, true, 0.12, 0.12);
     this.scene.launch('Hud');
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.terrainView.destroy());
+  }
+
+  /**
+   * The faraway beach: parallax layers anchored above the beach's typical
+   * surface height, each sliding slower than the world the further off it is.
+   */
+  private addBackdrop(terrain: Terrain, T: number, worldW: number): void {
+    const rows = Array.from({ length: terrain.width }, (_, x) => surfaceRow(terrain, x)).sort((a, b) => a - b);
+    const ground = rows[Math.floor(rows.length / 2)]! * T;
+    // Wide enough to cover the view at any scroll, at the furthest zoom out.
+    const span = worldW + 2400;
+    THEMES[themeOf(this.level.id)].forEach((layer, i) => {
+      const h = layer.height * BACKDROP_SCALE;
+      this.add.tileSprite(-1200, ground - layer.lift - h, span, h, TEX.backdrop(themeOf(this.level.id), layer.id))
+        .setOrigin(0)
+        .setTileScale(BACKDROP_SCALE / ART_RES)
+        .setScrollFactor(layer.scroll, 1)
+        .setDepth(0.1 + i * 0.1);
+    });
   }
 
   /** Back to the level list (from the HUD). */

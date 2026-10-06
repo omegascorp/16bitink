@@ -56,6 +56,7 @@ describe('sand is conserved', () => {
       // The run has to have actually dug and built for this to mean anything.
       expect(dug).toBeGreaterThan(40);
       expect(changed).toBeGreaterThan(80);
-    });
+      // Five simulated minutes: slower than a unit test, especially beside the rest of the suite.
+    }, 30_000);
   }
 });

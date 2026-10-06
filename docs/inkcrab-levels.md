@@ -70,6 +70,16 @@ Gulls, the tide and the final molt aren't built yet. Until they are:
 - **Levels 7 and 9:** the moon snail and conch already lie where the tide would bring them; there is no water yet.
 - **Level 10:** it is a run through the whole beach to size 8; the molt and the palm climb come later.
 
+### Creatures and backdrop
+
+- **Sea slater:** slow and timid; it never chases, but a bigger one still catches you on touch. The easy prey of the first levels.
+- **Ghost crab:** the all-round walker, from level 3.
+- **Tiger beetle:** a fast hunter that dashes in bursts and sees far, from level 5.
+
+All follow the one rule (bigger catches you, smaller is food) and are inked red when they can catch you.
+
+The levels sit in front of a faint, hand-inked parallax beach (theme `driftline`): sky with sun and clouds, the sea with a lighthouse headland and a sailboat, and dunes with marram grass and a snow fence. The level background is plain paper, without the notebook rules. Each later beach brings its own backdrop theme.
+
 ## Beaches 2–10
 
 Each later beach adds one new idea in slots 5–7, keeps the arc, and brings its own shells. A first sketch, to be decided beach by beach:

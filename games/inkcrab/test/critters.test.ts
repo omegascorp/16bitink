@@ -67,4 +67,40 @@ describe('ghost crabs', () => {
   it('are sized on the hermit crab scale', () => {
     expect(critterBox(4).w).toBeGreaterThan(critterBox(2).w);
   });
+
+  describe('kinds', () => {
+    it('a sea slater never chases, even when it is bigger', () => {
+      const c = makeCritter(1, 4, 20 * T, 10 * T, -1, 10, 'slater');
+      expect(run(flat(), c, quarry(24, 2), 0.5).dir).toBe(-1);
+    });
+
+    it('a sea slater still runs from a bigger crab', () => {
+      const c = makeCritter(1, 1, 20 * T, 10 * T, 1, 10, 'slater');
+      expect(run(flat(), c, quarry(24, 3), 0.5).dir).toBe(-1);
+    });
+
+    it('a tiger beetle spots the crab from further off and dashes in bursts', () => {
+      const t = flat();
+      const beetle = makeCritter(1, 4, 20 * T, 10 * T, -1, 10, 'beetle');
+      const crab = makeCritter(2, 4, 20 * T, 10 * T, -1, 10, 'ghostcrab');
+      // 7 tiles off: past a ghost crab's sight, inside a beetle's.
+      expect(run(t, beetle, quarry(27, 2), 0.3).dir).toBe(1);
+      expect(run(t, crab, quarry(27, 2), 0.3).dir).toBe(-1);
+      // Over a full run-and-rest cycle it covers ground, but stands still part of the time.
+      const rng = createRng(1);
+      let b: Critter = { ...beetle, dir: 1 };
+      let still = 0;
+      for (let i = 0; i < 72; i++) {
+        const next = stepCritter(t, b, quarry(40, 2), 1 / 60, T, rng);
+        if (Math.abs(next.x - b.x) < 1e-6) still++;
+        b = next;
+      }
+      expect(still).toBeGreaterThan(15);
+      expect(b.x).toBeGreaterThan(beetle.x);
+    });
+
+    it('come in their own shapes', () => {
+      expect(critterBox(3, 'slater').h).toBeLessThan(critterBox(3, 'ghostcrab').h);
+    });
+  });
 });

@@ -35,15 +35,15 @@ export class CrittersView {
       const f = Math.floor(time / (walking ? 1000 / WALK_FPS : BOIL_MS) + c.id) % BOIL;
       const cx = c.x + c.w / 2;
       const bottom = c.y + c.h;
-      const k = c.w / CRITTER_SPAN / CRITTER_RES;
-      s.art.setTexture(TEX.critter(c.size > playerSize, f)).setScale(k * c.dir, k).setPosition(cx, bottom);
+      const k = c.w / CRITTER_SPAN[c.species] / CRITTER_RES;
+      s.art.setTexture(TEX.critter(c.species, c.size > playerSize, f)).setScale(k * c.dir, k).setPosition(cx, bottom);
       s.mark.setVisible(c.size < playerSize).setPosition(cx, c.y + c.h * 0.4).setDisplaySize(c.w * 1.6, c.h * 1.5);
     }
   }
 
   private create(c: Critter): CritterSprites {
     const mark = this.scene.add.image(0, 0, TEX.highlight(c.id % BOIL)).setBlendMode(Phaser.BlendModes.MULTIPLY).setAlpha(0.8).setDepth(3);
-    const art = this.scene.add.image(0, 0, TEX.critter(false, 0)).setOrigin(0.5, (CRITTER_FRAME / 2 + CRITTER_GROUND) / CRITTER_FRAME).setDepth(4);
+    const art = this.scene.add.image(0, 0, TEX.critter(c.species, false, 0)).setOrigin(0.5, (CRITTER_FRAME / 2 + CRITTER_GROUND) / CRITTER_FRAME).setDepth(4);
     const s = { mark, art };
     this.sprites.set(c.id, s);
     return s;

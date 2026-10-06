@@ -40,7 +40,7 @@ export class ResultScene extends Phaser.Scene {
       inkText(this, cx, top + 216, data.livesLost === 0 ? 'no lives lost' : `${data.livesLost} ${data.livesLost === 1 ? 'life' : 'lives'} lost`, 20).setAlpha(0.7);
     } else {
       inkText(this, cx, top + 96, 'out of lives', 40, RED);
-      inkText(this, cx, top + 150, 'Keep away from red ghost crabs, or hide (Z).', 20).setAlpha(0.8);
+      inkText(this, cx, top + 150, 'Keep away from anything inked red, or hide (Z).', 20).setAlpha(0.8);
     }
     const next = data.won ? nextLevel(data.levelId) : undefined;
     const by = top + h - 50;

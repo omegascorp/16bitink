@@ -1,5 +1,6 @@
 import { boxHitsSolid, jump, moveBody, PHYS, type Body, type Box } from './body';
 import { CRITTER, critterPoints, makeCritter, stepCritter, type Critter } from './critters';
+import type { SpeciesId } from './species';
 import { settleColumn } from './sandfall';
 import { digColumns, diggableOf, digTargets, inReach, placeTarget, tileSpan, type TilePos } from './dig';
 import { feed, initialGrowth, isCapped, settle, type Growth } from './growth';
@@ -80,6 +81,8 @@ export interface BeachSetup {
 export interface CritterGroup {
   readonly count: number;
   readonly sizes: readonly [number, number];
+  /** Default: ghost crabs. */
+  readonly species?: SpeciesId;
 }
 
 export type Outcome = 'playing' | 'won' | 'lost';
@@ -474,11 +477,11 @@ export class Beach {
     for (let tries = 0; tries < 12; tries++) {
       const tx = 2 + Math.floor(this.rng() * (w - 4));
       if (Math.abs(tx - crabCol) < SPAWN_AWAY) continue;
-      const [lo, hi] = this.groups[group]!.sizes;
+      const { sizes: [lo, hi], species } = this.groups[group]!;
       const size = lo + Math.floor(this.rng() * (hi - lo + 1));
       const id = this.nextId++;
       const dir = this.rng() < 0.5 ? 1 : -1;
-      this.critters.set(id, makeCritter(id, size, tx * T + T / 2, surfaceRow(this.terrain, tx) * T, dir, CRITTER.turnMin + this.rng() * 3));
+      this.critters.set(id, makeCritter(id, size, tx * T + T / 2, surfaceRow(this.terrain, tx) * T, dir, CRITTER.turnMin + this.rng() * 3, species));
       this.groupOf.set(id, group);
       return;
     }
