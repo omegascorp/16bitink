@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canWear, shellPx, SHELL_KINDS, SHELLS, speedFactor } from '../src/logic/shells';
+import { bodyFill, canWear, shellPx, SHELL_KINDS, SHELLS, speedFactor } from '../src/logic/shells';
 
 describe('shells', () => {
   it('has a sane size range and stats for every kind', () => {
@@ -35,5 +35,19 @@ describe('shells', () => {
 
   it('draws bigger shells bigger', () => {
     expect(shellPx(SHELLS.conch.maxSize)).toBeGreaterThan(shellPx(SHELLS.bottlecap.maxSize));
+  });
+
+  it('fills most of the opening even at the smallest size a shell fits', () => {
+    for (const kind of SHELL_KINDS) {
+      const spec = SHELLS[kind];
+      expect(bodyFill(spec, spec.minSize)).toBeCloseTo(0.8);
+      expect(bodyFill(spec, spec.maxSize)).toBeCloseTo(0.95);
+      expect(bodyFill(spec, spec.maxSize + 3)).toBeCloseTo(0.95);
+    }
+  });
+
+  it('grows within a shell', () => {
+    expect(bodyFill(SHELLS.bulb, 3)).toBeGreaterThan(bodyFill(SHELLS.bulb, 2));
+    expect(bodyFill(SHELLS.bulb, 3)).toBeLessThan(bodyFill(SHELLS.bulb, 4));
   });
 });

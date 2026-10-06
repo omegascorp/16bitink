@@ -56,3 +56,18 @@ export const MOUTH_OFFSET = 0.362;
 export function shellPx(size: number): number {
   return 10 + 6 * size;
 }
+
+/** How much of its shell's drawn width a crab's body spans, from the smallest size it fits to its cap. */
+const FILL = { min: 0.8, max: 0.95 } as const;
+
+/**
+ * The crab's drawn size as a fraction of its shell's (`growth` may be
+ * fractional, partway to the next size). Sized relative to the shell, not
+ * absolutely, so even a crab that has only just fit stays in the opening
+ * rather than standing beside it; at the cap it crowds the mouth.
+ */
+export function bodyFill(shell: ShellSpec, growth: number): number {
+  const span = shell.maxSize - shell.minSize;
+  const t = span > 0 ? Math.min(1, Math.max(0, (growth - shell.minSize) / span)) : 1;
+  return FILL.min + (FILL.max - FILL.min) * t;
+}

@@ -1,5 +1,6 @@
 import { drawCrabBack, drawCrabFront } from '../src/art/crabArt';
-import { FRAME, GROUND } from '../src/art/frame';
+import { FOOT, FRAME, GROUND } from '../src/art/frame';
+import { crabShift } from '../src/art/mouth';
 import { drawFood, FOOD_FRAME, FOOD_GROUND } from '../src/art/itemArt';
 import { makeDraw, type Draw } from '../src/art/kit';
 import { RED } from '../src/art/palette';
@@ -7,7 +8,7 @@ import { makeCanvas } from '../src/art/pen';
 import { drawChunk, makeSandPatterns } from '../src/art/sand';
 import { drawShell } from '../src/art/shellArt';
 import { buildTestBeach } from '../src/level/testBeach';
-import { SHELL_KINDS } from '../src/logic/shells';
+import { bodyFill, SHELL_KINDS, SHELLS } from '../src/logic/shells';
 import { dig } from '../src/logic/terrain';
 
 // Dev-only sheet for reviewing InkCrab's procedural art, big.
@@ -42,6 +43,22 @@ const layer = (seed: number, f: number, draw: (d: Draw) => void, ink?: string) =
 
 const crabs = section('crab in each shell');
 SHELL_KINDS.forEach((kind, i) => critter(crabs, kind, [layer(1, 0, (d) => drawCrabBack(d)), layer(300 + i, 0, (d) => drawShell(d, kind)), layer(2, 0, (d) => drawCrabFront(d))]));
+
+// As in game: a crab that has only just fit, sized against its shell.
+const fit = section('smallest crab in each shell (game scale)');
+const aboutFoot = (k: number, shift: number, draw: (ctx: CanvasRenderingContext2D) => void) => (ctx: CanvasRenderingContext2D): void => {
+  ctx.save();
+  ctx.translate(FOOT.x - FRAME / 2 + shift, FOOT.y - FRAME / 2);
+  ctx.scale(k, k);
+  ctx.translate(-(FOOT.x - FRAME / 2), -(FOOT.y - FRAME / 2));
+  draw(ctx);
+  ctx.restore();
+};
+SHELL_KINDS.forEach((kind, i) => {
+  const k = bodyFill(SHELLS[kind], SHELLS[kind].minSize);
+  const dx = crabShift(kind, 1, k);
+  critter(fit, `${kind} ${SHELLS[kind].minSize}/${SHELLS[kind].maxSize}`, [aboutFoot(k, dx, layer(1, 0, (d) => drawCrabBack(d))), layer(300 + i, 0, (d) => drawShell(d, kind)), aboutFoot(k, dx, layer(2, 0, (d) => drawCrabFront(d)))]);
+});
 
 const loose = section('loose shells');
 SHELL_KINDS.forEach((kind, i) => critter(loose, kind, [layer(300 + i, 1, (d) => drawShell(d, kind))]));

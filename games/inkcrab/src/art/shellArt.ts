@@ -1,6 +1,7 @@
 import type { ShellKind } from '../logic/shells';
 import type { Pt } from './pen';
 import { add, bezier, closed, contact, cub, type Draw, edge, glint, lerp, mottle, oval, pt, ribbon, shade, skin, tint } from './kit';
+import { MOUTH_X } from './mouth';
 import { PAPER_FILL } from './palette';
 
 /**
@@ -75,7 +76,7 @@ function coiled(d: Draw, c: Coil): { top: Pt[]; bot: Pt[]; shape: Pt[]; spine: P
 function whelk(d: Draw): void {
   contact(d, -18, 56);
   coiled(d, { wash: '#c69c5c', band: '#7a4a2a', whorls: [0.12, 0.24, 0.38, 0.6], width: 74, from: pt(-78, -30), to: pt(34, 10) });
-  mouth(d, oval(12, 18, 16, 10, 18).map((p) => pt(p.x + (p.y - 18) * -0.4, p.y)));
+  mouth(d, oval(MOUTH_X.whelk, 18, 16, 10, 18).map((p) => pt(p.x + (p.y - 18) * -0.4, p.y)));
 }
 
 function conch(d: Draw): void {
@@ -95,7 +96,7 @@ function conch(d: Draw): void {
   glint(d, cub(pt(8, -30), pt(18, -44), pt(26, -40), pt(28, -20), 10), 1.8, 0.75);
   edge(d, inner, 0.9, 0.7);
   edge(d, lip, 1.6);
-  mouth(d, oval(8, 20, 9, 14, 16).map((p) => pt(p.x + (p.y - 20) * -0.3, p.y)), 1.1);
+  mouth(d, oval(MOUTH_X.conch, 20, 9, 14, 16).map((p) => pt(p.x + (p.y - 20) * -0.3, p.y)), 1.1);
 }
 
 /** A low, round shell seen side-on: a coil around (cx, cy). */
@@ -187,7 +188,7 @@ function bottlecap(d: Draw): void {
   // Inside: the cork liner ring, then the dark hollow.
   skin(d, front, '#e8e0c8', 0.6);
   edge(d, front, 1.4);
-  mouth(d, oval(5, cy, 6.5, r * 0.8, 24), 1);
+  mouth(d, oval(MOUTH_X.bottlecap, cy, 6.5, r * 0.8, 24), 1);
 }
 
 function can(d: Draw): void {
@@ -220,7 +221,7 @@ function can(d: Draw): void {
   // Rolled rim and the dark inside.
   skin(d, front, '#c3c9ce', 0.6);
   edge(d, front, 1.6);
-  mouth(d, oval(9, cy, 8, r * 0.88, 26), 1);
+  mouth(d, oval(MOUTH_X.can, cy, 8, r * 0.88, 26), 1);
 }
 
 function jar(d: Draw): void {
@@ -252,7 +253,7 @@ function jar(d: Draw): void {
   edge(d, body, 1.5);
   for (let y = cy - r + 14; y < cy + r - 12; y += 7) pen.hair([pt(-2, y), pt(10, y + 3)], 0.7, d.ink, 0.6);
   edge(d, neck, 1.3);
-  mouth(d, oval(12, cy, 6, r * 0.62, 22), 1.2);
+  mouth(d, oval(MOUTH_X.jar, cy, 6, r * 0.62, 22), 1.2);
 }
 
 function bulb(d: Draw): void {
@@ -281,7 +282,7 @@ function bulb(d: Draw): void {
     glint(d, [pt(-8, cy - 9), pt(16, cy - 9)], 2.2, 0.7);
   });
   edge(d, base, 1.4);
-  mouth(d, oval(17, cy, 5, 14, 18), 1.1);
+  mouth(d, oval(MOUTH_X.bulb, cy, 5, 14, 18), 1.1);
 }
 
 function coconut(d: Draw): void {
@@ -307,7 +308,7 @@ function coconut(d: Draw): void {
   const face = oval(4, cy + 1, 13, 42, 30);
   skin(d, face, '#f3ecd8', 0.5);
   edge(d, face, 1.5);
-  mouth(d, oval(6, cy + 2, 8, 34, 26), 1.1);
+  mouth(d, oval(MOUTH_X.coconut, cy + 2, 8, 34, 26), 1.1);
 }
 
 const DRAW: Readonly<Record<ShellKind, (d: Draw) => void>> = {

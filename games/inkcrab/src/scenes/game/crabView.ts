@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
 import { FOOT, FRAME, SHELL_MID, SHELL_UNITS } from '../../art/frame';
+import { crabShift } from '../../art/mouth';
 import { BOIL, RED_HEX } from '../../art/palette';
 import { PUFF, TEX } from '../../art/textures';
 import { meterGoal } from '../../logic/growth';
 import type { Beach } from '../../logic/sim';
-import { shellPx, SHELLS, type ShellKind } from '../../logic/shells';
+import { bodyFill, shellPx, SHELLS, type ShellKind } from '../../logic/shells';
 import { swapProgress } from '../../logic/swap';
 
 /** Frame px from the shell's middle to the opening (FOOT). */
@@ -12,8 +13,8 @@ const FOOT_FROM_MIDDLE = FOOT.x - SHELL_MID;
 /** Leg-pose frames per second while walking; idle line boil is slower. */
 const WALK_FPS = 10;
 const BOIL_MS = 240;
-/** Crab drawing size relative to a shell of the same body size. */
-const BODY_SCALE = 0.95;
+/** A naked crab's drawing size relative to a shell of the same body size. */
+const NAKED_SCALE = 0.95;
 /** Swap progress where the crab slips from the old shell to the new, hidden by a puff of sand. */
 const SWITCH = 0.5;
 const PUFF_SPAN = 0.16;
@@ -56,17 +57,17 @@ export class CrabView {
     const f = walking ? Math.floor(this.walkClock * WALK_FPS) % BOIL : Math.floor(time / BOIL_MS) % BOIL;
     const spec = c.shell ? SHELLS[c.shell] : null;
     const unit = shellPx(spec ? spec.maxSize : c.growth.size) / SHELL_UNITS;
-    // The body is sized by the crab's own growth, so it is the same size in any
-    // shell and crowds the opening of one it has outgrown.
+    // In a shell the body is sized against it (see bodyFill), so it always sits
+    // in the opening and grows to crowd it at the cap.
     const growth = c.growth.size + Math.min(1, c.growth.meter / meterGoal(c.growth.size));
-    const body = (shellPx(growth) / SHELL_UNITS) * BODY_SCALE;
+    const body = spec ? unit * bodyFill(spec, growth) : (shellPx(growth) / SHELL_UNITS) * NAKED_SCALE;
     this.root.setPosition(c.body.x + c.body.w / 2 + c.facing * FOOT_FROM_MIDDLE * unit, c.body.y + c.body.h);
     this.root.setScale(c.facing, 1);
 
     const target = c.swap ? beach.items.get(c.swap.itemId) : undefined;
     if (c.swap && target?.kind.type === 'shell') {
       this.shell.setVisible(!!spec).setTexture(TEX.shell(spec?.kind ?? 'bottlecap', f % BOIL));
-      this.drawSwap(swapProgress(c.swap), f, unit, body, target.kind.shell);
+      this.drawSwap(swapProgress(c.swap), f, unit, body, spec?.kind ?? null, target.kind.shell);
       this.drawRing(c.body.x + c.body.w / 2, c.body.y - 10, swapProgress(c.swap));
       return;
     }
@@ -75,12 +76,12 @@ export class CrabView {
     this.puff.setVisible(false);
     if (!spec) {
       this.shell.setVisible(false);
-      this.setBody(true, f, body, body, 1);
+      this.setBody(true, f, body, body, 1, 0);
       return;
     }
     this.shell.setVisible(true).setTexture(TEX.shell(spec.kind, f % BOIL)).setScale(unit);
     const squeeze = beach.capped ? 1 + Math.sin(time / 140) * 0.03 : 1;
-    this.setBody(false, f, body, body * squeeze, 1);
+    this.setBody(false, f, body, body * squeeze, 1, crabShift(spec.kind, unit, body));
   }
 
   /**
@@ -88,7 +89,7 @@ export class CrabView {
    * ahead of it. Before the switch the exposed (red) crab reaches out of the
    * old mouth; after it, it peeks out of the new one, facing back.
    */
-  private drawSwap(p: number, f: number, unit: number, body: number, to: ShellKind): void {
+  private drawSwap(p: number, f: number, unit: number, body: number, from: ShellKind | null, to: ShellKind): void {
     const toUnit = shellPx(SHELLS[to].maxSize) / SHELL_UNITS;
     this.shell.setScale(unit);
     this.incoming.setVisible(true).setTexture(TEX.shell(to, f)).setScale(-toUnit, toUnit);
@@ -96,7 +97,8 @@ export class CrabView {
     // Reaching in grows towards the switch; peeking out grows after it.
     const reach = before ? Math.min(1, p / (SWITCH - PUFF_SPAN / 2)) : Math.min(1, (p - SWITCH) / (SWITCH - PUFF_SPAN / 2));
     const s = body * (0.55 + 0.45 * reach);
-    this.setBody(true, f, s, s, before ? 1 : -1);
+    const shift = before ? (from ? crabShift(from, unit, s) : 0) : -crabShift(to, toUnit, s);
+    this.setBody(true, f, s, s, before ? 1 : -1, shift);
     const hidden = Math.abs(p - SWITCH) < PUFF_SPAN / 2;
     this.back.setVisible(!hidden);
     this.front.setVisible(!hidden);
@@ -106,10 +108,13 @@ export class CrabView {
     this.puff.setVisible(puff > 0).setTexture(TEX.puff(f)).setPosition(0, -size * PUFF * 0.3).setScale(size * (0.6 + 0.4 * puff)).setAlpha(puff);
   }
 
-  /** `side` 1: out of the shell it's in; -1: mirrored, out of the new one facing back. */
-  private setBody(naked: boolean, f: number, sx: number, sy: number, side: 1 | -1): void {
-    this.back.setVisible(true).setTexture(naked ? TEX.nakedBack(f) : TEX.crabBack(f)).setScale(sx * side, sy);
-    this.front.setVisible(true).setTexture(naked ? TEX.nakedFront(f) : TEX.crabFront(f)).setScale(sx * side, sy);
+  /**
+   * `side` 1: out of the shell it's in; -1: mirrored, out of the new one facing
+   * back. `shift` slides it into the opening (see crabShift).
+   */
+  private setBody(naked: boolean, f: number, sx: number, sy: number, side: 1 | -1, shift: number): void {
+    this.back.setVisible(true).setTexture(naked ? TEX.nakedBack(f) : TEX.crabBack(f)).setScale(sx * side, sy).setX(shift);
+    this.front.setVisible(true).setTexture(naked ? TEX.nakedFront(f) : TEX.crabFront(f)).setScale(sx * side, sy).setX(shift);
   }
 
   /** The "stuck" shrug when it eats with a full shell. */
