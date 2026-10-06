@@ -224,6 +224,26 @@ describe('beach simulation', () => {
     expect(b.crab.body.y).toBeCloseTo(ground, 3);
   });
 
+  it('jumps higher as it grows', () => {
+    const peakOf = (size: number): number => {
+      const b = flatBeach();
+      b.crab = { ...b.crab, growth: { size, meter: 0, bank: 0 } };
+      step(b, {}, 1);
+      const ground = b.crab.body.y;
+      step(b, { jump: true });
+      let peak = ground;
+      for (let i = 0; i < 90; i++) {
+        step(b);
+        peak = Math.min(peak, b.crab.body.y);
+      }
+      return (ground - peak) / T;
+    };
+    const small = peakOf(1);
+    const grown = peakOf(2);
+    expect(grown).toBeGreaterThan(small + 0.3);
+    expect(grown).toBeLessThan(small + 0.5);
+  });
+
   it('hops out of a two-tile pit', () => {
     const b = flatBeach();
     step(b, {}, 1);

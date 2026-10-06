@@ -1,4 +1,4 @@
-import { boxHitsSolid, jump, moveBody, type Body, type Box } from './body';
+import { boxHitsSolid, jump, moveBody, PHYS, type Body, type Box } from './body';
 import { settleColumn } from './sandfall';
 import { digColumns, diggableOf, digTargets, inReach, placeTarget, tileSpan, type TilePos } from './dig';
 import { feed, initialGrowth, isCapped, settle, type Growth } from './growth';
@@ -59,8 +59,8 @@ export interface BeachSetup {
 }
 
 const DIG_SECONDS = 0.22;
-/** Take-off speed of a jump in a light shell, px/s: a hop of about 2.5 tiles (1.75 in the heaviest). */
-const JUMP_SPEED = 270;
+/** Jump height in a light shell, tiles: 2.5 at size 1, growing with the crab (about 5.3 at size 8). */
+const JUMP_TILES = { base: 2.1, perSize: 0.4 } as const;
 const WALKING = 0.1;
 const FOOD_EVERY = 2.5;
 const REACH_PAD = 6;
@@ -137,8 +137,7 @@ export class Beach {
     const shellSpec = c.shell ? SHELLS[c.shell] : null;
     const speed = (60 + 5 * c.growth.size) * speedFactor(shellSpec);
     const facing = input.moveX > WALKING ? 1 : input.moveX < -WALKING ? -1 : c.facing;
-    // Heavier shells don't leap as high.
-    const launched = input.jump ? jump(c.body, JUMP_SPEED * Math.sqrt(speedFactor(shellSpec))) : c.body;
+    const launched = input.jump ? jump(c.body, this.jumpSpeed) : c.body;
     const body = moveBody(this.terrain, launched, input.moveX, speed, dt, this.tileSize);
     this.crab = { ...c, body, facing, digCooldown: Math.max(0, c.digCooldown - dt) };
     if (this.crab.digCooldown === 0) {
@@ -151,6 +150,13 @@ export class Beach {
       events.push({ type: 'swapStart', id: this.nearbyShell.id });
     }
     this.eat(events);
+  }
+
+  /** Take-off speed (px/s) for the current height: bigger crabs leap higher, heavier shells hold them down. */
+  private get jumpSpeed(): number {
+    const c = this.crab;
+    const tiles = (JUMP_TILES.base + JUMP_TILES.perSize * c.growth.size) * speedFactor(c.shell ? SHELLS[c.shell] : null);
+    return Math.sqrt(2 * PHYS.gravity * tiles * this.tileSize);
   }
 
   private get cooldown(): number {
