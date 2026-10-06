@@ -36,7 +36,7 @@ export type SimEvent =
   | { readonly type: 'revealed'; readonly id: number }
   | { readonly type: 'spawned'; readonly id: number }
   | { readonly type: 'swapStart'; readonly id: number }
-  | { readonly type: 'caught'; readonly x: number; readonly y: number; readonly size: number; readonly dropped: number | null }
+  | { readonly type: 'caught'; readonly x: number; readonly y: number; readonly size: number }
   | { readonly type: 'swapDone'; readonly from: ShellKind | null; readonly to: ShellKind; readonly grew: number; readonly dropped: number | null };
 
 export interface CrabState {
@@ -403,24 +403,21 @@ export class Beach {
     if (r.grew) events.push({ type: 'grew', size: r.growth.size });
   }
 
-  /** Soft failure: it drops out of its shell (left where it was) and shrinks a size, then has a moment's grace. */
+  /**
+   * Soft failure: it keeps its shell but shrinks a size (losing its meter
+   * and bank), then has a moment's grace. Caught moving house, it stays put.
+   */
   private caught(events: SimEvent[]): void {
     const c = this.crab;
-    let dropped: number | null = null;
-    if (c.shell) {
-      dropped = this.nextId++;
-      const old = makeItem(dropped, { type: 'shell', shell: c.shell }, 0, 0, false);
-      const at = centre(c.body);
-      this.items.set(dropped, { ...old, x: at.x - old.w / 2, y: c.body.y + c.body.h - old.h });
-    }
     const size = Math.max(1, c.growth.size - 1);
-    const fitted = this.refit(c.body, size, null, events);
+    // In a shell the body box follows the shell, so only a naked crab shrinks.
+    const fitted = this.refit(c.body, size, c.shell, events);
     this.crab = {
-      ...c, body: fitted.body, growth: { size, meter: 0, bank: 0 }, shell: null, swap: null, hidden: false,
+      ...c, body: fitted.body, growth: { size, meter: 0, bank: 0 }, swap: null, hidden: false,
       safe: SAFE_SECONDS, sand: c.sand + fitted.shoved,
     };
     const at = centre(fitted.body);
-    events.push({ type: 'caught', x: at.x, y: at.y, size, dropped });
+    events.push({ type: 'caught', x: at.x, y: at.y, size });
   }
 
   private restockCritters(dt: number): void {

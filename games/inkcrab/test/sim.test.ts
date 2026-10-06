@@ -362,16 +362,16 @@ describe('beach simulation', () => {
       expect(b.crab.growth.meter).toBeGreaterThan(0);
     });
 
-    it('is caught by a bigger one: drops its shell and a size, then is safe for a moment', () => {
+    it('is caught by a bigger one: keeps its shell but drops a size, then is safe for a moment', () => {
       const b = flatBeach();
       b.crab = { ...b.crab, growth: { size: 2, meter: 1, bank: 0 } };
       step(b, {}, 1);
       ahead(b, 4);
       const events = step(b, {}, 1);
       expect(events.some((e) => e.type === 'caught')).toBe(true);
-      expect(b.crab.shell).toBeNull();
+      expect(b.crab.shell).toBe('bottlecap');
       expect(b.crab.growth.size).toBe(1);
-      expect([...b.items.values()].some((i) => i.kind.type === 'shell' && i.kind.shell === 'bottlecap')).toBe(true);
+      expect([...b.items.values()].some((i) => i.kind.type === 'shell')).toBe(false);
       expect(b.crab.safe).toBeGreaterThan(0);
       // Still touching it, but safe: no second catch.
       expect(step(b, {}, 0.5).some((e) => e.type === 'caught')).toBe(false);

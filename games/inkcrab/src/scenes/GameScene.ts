@@ -98,7 +98,7 @@ export class GameScene extends Phaser.Scene {
       if (e.banked > 0) this.crabView.stuck(this);
     } else if (e.type === 'grew') this.crabView.pop(this);
     else if (e.type === 'caught') {
-      this.floatText(e.x, e.y, e.dropped !== null ? 'caught! lost the shell' : 'caught!', RED);
+      this.floatText(e.x, e.y, 'caught! −1 size', RED);
       this.cameras.main.shake(180, 0.004);
     }
   }
