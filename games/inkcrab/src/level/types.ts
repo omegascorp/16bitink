@@ -32,6 +32,8 @@ export interface LevelDef {
     readonly surface: number;
     /** Food buried at random, richer deeper. */
     readonly buried: number;
+    /** Food kept buried a dig or two down, planted again at random as it's eaten (like the surface food). */
+    readonly shallow: number;
     /** Clams buried by hand: column and depth. */
     readonly clams?: readonly (readonly [number, number])[];
   };

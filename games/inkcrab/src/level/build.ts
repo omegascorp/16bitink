@@ -87,6 +87,7 @@ export function buildLevel(def: LevelDef): BeachSetup {
     startShell: START_SHELL,
     seed: def.seed,
     surfaceFood: def.food.surface,
+    shallowFood: def.food.shallow,
     critters: def.critters ?? [],
     startGrowth: { size: START_SIZE, meter: 0, bank: 0 },
     goal: levelGoal(def),

@@ -18,6 +18,21 @@ describe('beach 1', () => {
     for (const def of BEACH_1.slice(1)) expect(def.food.buried).toBeGreaterThanOrEqual(def.food.surface * 0.7);
   });
 
+  it('keeps food a dig or two down on every level, topped up as it is eaten', () => {
+    for (const def of BEACH_1) {
+      expect(def.food.shallow).toBeGreaterThanOrEqual(4);
+      const beach = new Beach(buildLevel(def));
+      const shallow = [...beach.items.values()].filter((i) => {
+        if (!i.buried || i.kind.type !== 'food') return false;
+        const col = Math.floor((i.x + i.w / 2) / TILE_PX);
+        let top = 0;
+        while (!isSolid(beach.terrain, col, top)) top++;
+        return Math.floor((i.y + i.h / 2) / TILE_PX) - top <= 1;
+      });
+      expect(shallow.length).toBeGreaterThanOrEqual(def.food.shallow);
+    }
+  });
+
   it('hides every underground kind somewhere on the beach', () => {
     const kinds = new Set<string>(BEACH_1.flatMap((def) => buildLevel(def).items.filter((i) => i.buried && i.kind.type === 'food').map((i) => (i.kind.type === 'food' ? i.kind.food : ''))));
     for (const k of ['worm', 'molecrab', 'clam', 'hopper']) expect(kinds.has(k)).toBe(true);

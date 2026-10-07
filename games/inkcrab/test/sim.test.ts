@@ -343,6 +343,42 @@ describe('beach simulation', () => {
     expect(food.length).toBeLessThanOrEqual(4);
   });
 
+  describe('shallow buried food', () => {
+    const sandy = (): Beach => {
+      const terrain: Terrain = createTerrain(40, 16);
+      for (let x = 0; x < 40; x++) for (let y = 10; y < 16; y++) setTile(terrain, x, y, TILE.sand);
+      return new Beach({ terrain, items: [], start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: 'bottlecap', seed: 3, surfaceFood: 0, shallowFood: 4 });
+    };
+    const buried = (b: Beach): Item[] => [...b.items.values()].filter((i) => i.kind.type === 'food' && i.buried);
+    /** Tile row of an item's centre. */
+    const row = (i: Item): number => Math.floor((i.y + i.h / 2) / T);
+
+    it('starts with food a dig or two under the surface', () => {
+      const b = sandy();
+      const food = buried(b);
+      expect(food).toHaveLength(4);
+      for (const i of food) expect([10, 11]).toContain(row(i));
+    });
+
+    it('never plants it under the crab or two to a tile', () => {
+      const food = buried(sandy());
+      const tiles = new Set(food.map((i) => `${Math.floor((i.x + i.w / 2) / T)},${row(i)}`));
+      expect(tiles.size).toBe(food.length);
+      for (const i of food) expect(Math.abs(i.x + i.w / 2 - 5 * T)).toBeGreaterThan(2 * T);
+    });
+
+    it('plants more at random as it is dug up', () => {
+      const b = sandy();
+      for (const i of buried(b)) b.items.delete(i.id);
+      const events = step(b, {}, 30);
+      expect(events.some((e) => e.type === 'spawned')).toBe(true);
+      const food = buried(b);
+      expect(food.length).toBeGreaterThan(0);
+      expect(food.length).toBeLessThanOrEqual(4);
+      for (const i of food) expect([10, 11]).toContain(row(i));
+    });
+  });
+
   describe('ghost crabs', () => {
     /** A ghost crab of `size` standing on the sand just ahead of the crab, facing it. */
     const ahead = (b: Beach, size: number): void => {

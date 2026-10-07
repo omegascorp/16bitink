@@ -4,11 +4,11 @@ import type { SpeciesId } from './species';
 import { settleColumn } from './sandfall';
 import { digColumns, diggableOf, digTargets, inReach, placeTarget, tileSpan, type TilePos } from './dig';
 import { feed, initialGrowth, isCapped, settle, type Growth } from './growth';
-import { centre, food, makeItem, overlaps, type Item } from './items';
+import { buriedFood, centre, food, makeItem, overlaps, type Item } from './items';
 import { createRng, type Rng } from './rng';
 import { canWear, MOUTH_OFFSET, sandCapacity, shellPx, SHELLS, speedFactor, type ShellKind } from './shells';
 import { startSwap, tickSwap, type Swap } from './swap';
-import { dig, isSolid, place, surfaceRow, type Terrain } from './terrain';
+import { dig, isDiggable, isSolid, place, surfaceRow, type Terrain } from './terrain';
 
 export interface Input {
   /** -1..1 */
@@ -67,6 +67,8 @@ export interface BeachSetup {
   readonly seed: number;
   /** How many loose food items the surface is kept stocked with. */
   readonly surfaceFood: number;
+  /** How many things to eat are kept buried a dig or two under the surface (default none). */
+  readonly shallowFood?: number;
   /** Ghost crabs that roam the beach, kept stocked group by group (default none). */
   readonly critters?: readonly CritterGroup[];
   /** The crab's growth at the start (default size 1, empty). */
@@ -92,6 +94,11 @@ const DIG_SECONDS = 0.22;
 const JUMP_TILES = { base: 2.1, perSize: 0.4 } as const;
 const WALKING = 0.1;
 const FOOD_EVERY = 2.5;
+const SHALLOW_EVERY = 4;
+/** Shallow food goes in the top row of sand or the one under it: one dig or two. */
+const SHALLOW_ROWS = 2;
+/** Tiles either side of the crab where shallow food is never planted, so it doesn't appear under its feet. */
+const SHALLOW_CLEAR = 3;
 const REACH_PAD = 6;
 /** Seconds nothing can catch the crab again after it's been caught. */
 const SAFE_SECONDS = 2.5;
@@ -125,8 +132,12 @@ export class Beach {
   nearbyFits = false;
   private readonly rng: Rng;
   private readonly surfaceFood: number;
+  private readonly shallowFood: number;
+  /** Shallow food planted by restockShallow, counted until it's dug up or eaten. */
+  private readonly shallow = new Set<number>();
   private nextId: number;
   private foodTimer = 0;
+  private shallowTimer = 0;
   private critterTimer = 0;
   private readonly groups: readonly CritterGroup[];
   /** Which group each ghost crab belongs to, so an eaten one is replaced in kind. */
@@ -137,6 +148,7 @@ export class Beach {
     this.tileSize = setup.tileSize;
     this.rng = createRng(setup.seed);
     this.surfaceFood = setup.surfaceFood;
+    this.shallowFood = setup.shallowFood ?? 0;
     this.groups = setup.critters ?? [];
     this.goal = setup.goal ?? null;
     this.lives = setup.lives ?? LIVES;
@@ -151,6 +163,7 @@ export class Beach {
     this.groups.forEach((g, i) => {
       for (let n = 0; n < g.count; n++) this.spawnCritter(i);
     });
+    for (let tries = 0; this.shallow.size < this.shallowFood && tries < this.shallowFood * 8; tries++) this.plantShallow();
   }
 
   /** Body size the current shell allows; naked crabs don't grow. */
@@ -186,6 +199,7 @@ export class Beach {
     this.moveCritters(dt);
     this.meetCritters(events);
     this.restock(dt, events);
+    this.restockShallow(dt, events);
     this.restockCritters(dt);
     this.findNearbyShell();
     this.checkOutcome(events);
@@ -398,6 +412,38 @@ export class Beach {
     const ground = surfaceRow(this.terrain, tx) * T;
     this.items.set(id, { ...proto, x: tx * T + T / 2 - proto.w / 2, y: ground - proto.h });
     events.push({ type: 'spawned', id });
+  }
+
+  /** Tops the shallow food back up now and then, at random, like the surface food. */
+  private restockShallow(dt: number, events: SimEvent[]): void {
+    if (this.shallowFood <= 0) return;
+    this.shallowTimer += dt;
+    if (this.shallowTimer < SHALLOW_EVERY) return;
+    this.shallowTimer = 0;
+    for (const id of this.shallow) if (!this.items.get(id)?.buried) this.shallow.delete(id);
+    if (this.shallow.size >= this.shallowFood) return;
+    const id = this.plantShallow();
+    if (id !== null) events.push({ type: 'spawned', id });
+  }
+
+  /** Buries one thing to eat in solid sand a dig or two down, away from the crab; null if the spot it picked won't do. */
+  private plantShallow(): number | null {
+    const T = this.tileSize;
+    const tx = 2 + Math.floor(this.rng() * (this.terrain.width - 4));
+    const crab = Math.floor(centre(this.crab.body).x / T);
+    if (Math.abs(tx - crab) <= SHALLOW_CLEAR) return null;
+    const depth = Math.floor(this.rng() * SHALLOW_ROWS);
+    const ty = surfaceRow(this.terrain, tx) + depth;
+    if (!isDiggable(this.terrain, tx, ty)) return null;
+    for (const i of this.items.values()) {
+      const at = centre(i);
+      if (i.buried && Math.floor(at.x / T) === tx && Math.floor(at.y / T) === ty) return null;
+    }
+    const id = this.nextId++;
+    const proto = makeItem(id, food(buriedFood(depth, this.rng())), 0, 0, true);
+    this.items.set(id, { ...proto, x: tx * T + T / 2 - proto.w / 2, y: ty * T + T / 2 - proto.h / 2 });
+    this.shallow.add(id);
+    return id;
   }
 
   /** Won on growing to the goal size; lost with the last life (see caught). */
