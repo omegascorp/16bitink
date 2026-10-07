@@ -44,8 +44,14 @@ export interface GameHost {
    * untrusted `unknown`: games must validate it.
    */
   loadContent(): Promise<unknown>;
-  /** Starts the purchase flow for this game. */
+  /**
+   * Starts the purchase flow for this game. The flow is the same for every
+   * game: a signed-out player signs in with Google first, then pays. Call it
+   * when the player finishes the last free level (and from any unlock button).
+   */
   onBuy(): void;
+  /** True when a player is signed in, so the game can say whether buying needs a sign-in first. */
+  readonly signedIn?: boolean;
   /** The full game's one-time price as shown to players, e.g. "$4.99". */
   readonly price?: string;
   /** Leaves the game (back to its catalog page). */

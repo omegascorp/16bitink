@@ -1,3 +1,5 @@
+import { signInToBuyUrl } from '../buyFlow';
+
 interface CheckoutResult {
   readonly error?: string;
 }
@@ -20,4 +22,30 @@ export async function startCheckout(game: string): Promise<CheckoutResult> {
   } catch {
     return { error: 'Network error. Check your connection and try again.' };
   }
+}
+
+/** Whether someone is signed in; null when the check itself failed. */
+export async function isSignedIn(): Promise<boolean | null> {
+  try {
+    const res = await fetch('/api/me', { credentials: 'same-origin' });
+    const body = (await res.json().catch(() => null)) as { success?: boolean; data?: { signedIn?: boolean } } | null;
+    if (!res.ok || !body?.success) return null;
+    return body.data?.signedIn === true;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Buying is the same for every game: sign in with Google, then pay.
+ * Signed out, this leaves for Google; the page then resumes the purchase on return.
+ */
+export async function buyFullGame(game: string): Promise<CheckoutResult> {
+  const signedIn = await isSignedIn();
+  if (signedIn === null) return { error: 'Network error. Check your connection and try again.' };
+  if (!signedIn) {
+    window.location.assign(signInToBuyUrl(window.location.pathname, game));
+    return {};
+  }
+  return startCheckout(game);
 }

@@ -167,16 +167,18 @@ export class ResultScene extends Phaser.Scene {
     // Your fish, well fed, bobbing above the title.
     const me = this.add.image(0, -282, fishKey(data.player ?? 'inkling', 'light', 0)).setScale(fitBox(data.player ?? 'inkling', 140, 80));
     this.tweens.add({ targets: me, y: me.y - 8, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-    root.add([me, inkText(this, 0, -200, 'Full belly!', 76, BLUE_INK), inkText(this, 0, -120, `Score ${data.score} · ${Math.round(data.seconds)}s`, 32), g]);
-
     const next = levels[data.levelIndex + 1];
     const isDemoEnd = !next && !host.unlocked && level.id === DEMO_CHAPTER.levels.at(-1)?.id;
+    // The last free level is a milestone: cheer the whole free chapter, not just this meal.
+    const title = isDemoEnd ? 'Tide pool conquered!' : 'Full belly!';
+    root.add([me, inkText(this, 0, -200, title, isDemoEnd ? 64 : 76, BLUE_INK), inkText(this, 0, -120, `Score ${data.score} · ${Math.round(data.seconds)}s`, 32), g]);
+
     if (isDemoEnd) {
       root.add([
         inkText(this, 0, 30, 'The ocean keeps going… deeper, darker, and drawn by hand.', 26),
         inkText(this, 0, 64, `${LOCKED_CHAPTER_TEASERS.reduce((n, c) => n + c.levelCount, 0)} more levels in ${LOCKED_CHAPTER_TEASERS.length} deeper zones, with new fish to play.`, 22, '#5b5446'),
         inkButton(this, 0, 130, host.price ? `Unlock the full ocean · ${host.price}` : 'Unlock the full ocean', () => host.onBuy(), { width: 400, color: RED_INK }),
-        inkText(this, 0, 182, 'One-time purchase: no subscription, no ads.', 20, '#5b5446'),
+        inkText(this, 0, 182, host.signedIn ? 'One-time purchase: no subscription, no ads.' : 'Sign in with Google, then pay once: no subscription, no ads.', 20, '#5b5446'),
         inkButton(this, 0, 240, 'Level select', menu),
       ]);
       return;
