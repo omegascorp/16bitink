@@ -43,6 +43,12 @@ describe('sizing', () => {
     }
   });
 
+  it('tops up with prey only when asked', () => {
+    const rng = createRng(9);
+    const picks = Array.from({ length: 300 }, () => pickSpawn(level.spawns, 18, rng, true));
+    expect(picks.every((p) => relationTo(18, p.size) === 'prey')).toBe(true);
+  });
+
   it('throws on an empty spawn table', () => {
     expect(() => pickSpawn([], 10, createRng(1))).toThrow();
   });

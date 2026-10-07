@@ -29,6 +29,8 @@ export const TUNING = {
   glowMs: 20000,
   glowFactor: 1.8,
   chumSchool: 8,
+  /** On top of a level's own fish count, this share more, all small enough to eat: open water never feels empty. */
+  extraPreyShare: 0.2,
   treasureScore: 500,
   hookWarnMs: 1500,
   hookHoldMs: 3200,

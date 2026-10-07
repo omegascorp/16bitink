@@ -23,6 +23,13 @@ interface Rig {
 
 type Image = Phaser.GameObjects.Image;
 
+/**
+ * How far under its body a tail is drawn. Smaller than the gap between any two
+ * fish (see fish.ts FISH_DEPTH_STEP), so each fish's tail stays right under
+ * its own body and never slips between another fish's body and tail.
+ */
+export const TAIL_GAP = 5e-6;
+
 /** Widest tail swing (radians) the hinge overlap in art/textures.ts can hide. */
 const MAX_BEAT = 0.3;
 
@@ -105,7 +112,7 @@ function follow(rig: Rig, s: Image): void {
     .setFlip(s.flipX, s.flipY)
     .setAlpha(s.alpha)
     .setVisible(s.visible);
-  keepDepth(rig.tail, s.depth - 0.01);
+  keepDepth(rig.tail, s.depth - TAIL_GAP);
   keepTint(rig.tail, s);
 }
 

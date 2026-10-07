@@ -4,7 +4,7 @@ import { inLight } from '../../../logic/bosses/light';
 import { ambushSpot, lureBrightness, lureTug, SEADEVIL, SEADEVIL_START, stepSeadevil, type SeadevilMode, type SeadevilState } from '../../../logic/bosses/seadevil';
 import { relationTo } from '../../../logic/sizing';
 import { isCrawler } from '../crawlers';
-import type { Fish, PlayerView } from '../fish';
+import { restDepth, type Fish, type PlayerView } from '../fish';
 import { artPoint } from '../swim';
 import { dazed, easeVelocity, Marks, swimBoss, type Boss, type BossHost } from './kit';
 
@@ -26,7 +26,6 @@ const MOUTH: Pt = { x: C + 58, y: C + 12 };
 const LURE_COLOR = 0xd8f4ff;
 /** The darkness of a deep level sits at depth 36 (twistRunner.ts); what the lure lights is drawn just over it. */
 const LIT_DEPTH = 36.3;
-const FISH_DEPTH = 10;
 const BOSS_DEPTH = 11;
 /** Lured fish circle the bulb this far out, px... */
 const ORBIT = 46;
@@ -173,7 +172,7 @@ export class SeadevilBoss implements Boss {
       if (kept.includes(o) || !o.sprite.active) continue;
       // Stunned, hooked or killed: no longer under the spell.
       o.led = false;
-      o.sprite.setDepth(FISH_DEPTH);
+      o.sprite.setDepth(restDepth(o));
     }
     const room = SEADEVIL.lureMax - kept.length;
     const fresh = room <= 0 ? [] : this.host.fish().filter((o) =>
@@ -203,7 +202,7 @@ export class SeadevilBoss implements Boss {
   private release(): void {
     for (const o of this.lured) {
       o.led = false;
-      if (o.sprite.active) o.sprite.setDepth(FISH_DEPTH);
+      if (o.sprite.active) o.sprite.setDepth(restDepth(o));
     }
     this.lured = [];
   }

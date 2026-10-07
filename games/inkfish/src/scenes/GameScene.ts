@@ -436,7 +436,11 @@ export class GameScene extends Phaser.Scene {
     const camView = this.cameras.main.worldView;
     const floorAt = this.seabed.floorAt;
     const crawlers = this.fish.filter((f) => isCrawler(f.species)).length;
-    for (let n = this.fish.length - crawlers; n < this.level.maxFish; n++) this.fish.push(spawnFish(this, this.level, p.size, camView, this.rng));
+    // The level's own mix first, then a top-up of fish small enough to eat (see TUNING.extraPreyShare).
+    const cap = Math.round(this.level.maxFish * (1 + TUNING.extraPreyShare));
+    for (let n = this.fish.length - crawlers; n < cap; n++) {
+      this.fish.push(spawnFish(this, this.level, p.size, camView, this.rng, n >= this.level.maxFish));
+    }
     if (this.level.bottom.length) {
       for (let n = crawlers; n < this.level.maxCrawlers; n++) this.fish.push(spawnCrawler(this, this.level, p.size, camView, floorAt, this.rng));
     }

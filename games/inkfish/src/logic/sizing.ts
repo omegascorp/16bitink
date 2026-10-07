@@ -56,11 +56,12 @@ function weighted(entries: readonly SpawnEntry[], rng: Rng): SpawnEntry {
  * Picks the next fish to spawn. Biased towards prey so the player
  * always has something to eat, without removing the threats.
  */
-export function pickSpawn(entries: readonly SpawnEntry[], playerSize: number, rng: Rng): SpawnPick {
+export function pickSpawn(entries: readonly SpawnEntry[], playerSize: number, rng: Rng, preyOnly = false): SpawnPick {
   if (entries.length === 0) throw new Error('pickSpawn: level has no spawn entries');
   const maxPrey = playerSize * EDIBLE_RATIO;
   const prey = entries.filter((e) => e.size[0] < maxPrey);
-  if (prey.length > 0 && rng() < PREY_SPAWN_BIAS) {
+  // `preyOnly`: always something you can eat, when the level has anything that small.
+  if (prey.length > 0 && (preyOnly || rng() < PREY_SPAWN_BIAS)) {
     const entry = weighted(prey, rng);
     return { entry, size: rangeOf(rng, entry.size[0], Math.min(entry.size[1], maxPrey)) };
   }

@@ -11,7 +11,7 @@ import { outsideShoal, pastView, shoalReach } from '../../logic/ring';
 import { isSquid } from '../../art/squidArt';
 import { renderSquid, updateSquid } from './squid';
 import { attachSquid } from './squidRig';
-import { artRes, attachTail, setArtRes, setSwimTexture, setTailBeat, stroke, turnToward, type SwimState } from './swim';
+import { artRes, attachTail, setArtRes, setSwimTexture, setTailBeat, stroke, turnToward, TAIL_GAP, type SwimState } from './swim';
 
 /** Ordinary fish come and go; marked fish and the giant are level goals and never leave. */
 export type FishRole = 'normal' | 'bounty' | 'boss';
@@ -56,8 +56,8 @@ const cruiseOf = (species: SpeciesId): readonly [number, number] => SPECIES_INFO
  * Spawns a fish in the shoal band around the player but outside the camera
  * view (so nothing pops into existence on screen), heading across the player's way.
  */
-export function spawnFish(scene: Phaser.Scene, level: LevelDef, playerSize: number, view: Phaser.Geom.Rectangle, rng: Rng): Fish {
-  const { entry, size } = pickSpawn(level.spawns, playerSize, rng);
+export function spawnFish(scene: Phaser.Scene, level: LevelDef, playerSize: number, view: Phaser.Geom.Rectangle, rng: Rng, preyOnly = false): Fish {
+  const { entry, size } = pickSpawn(level.spawns, playerSize, rng, preyOnly);
   const margin = size * 2 + 40;
   let x = 0;
   let y = 0;
@@ -80,12 +80,36 @@ export function spawnSpecial(scene: Phaser.Scene, species: SpeciesId, size: numb
   return makeFish(scene, species, size, role, x, y, speed, rng);
 }
 
+/**
+ * Ordinary fish sit at this depth, each one a hair apart, so a fish and its
+ * tail always draw together: with one shared depth, every tail sat in a layer
+ * under every body, and a fish in front could show its tail behind another.
+ */
+export const FISH_DEPTH = 10;
+/** The gap between two fish: twice a tail's gap under its body (see swim.ts). */
+const FISH_DEPTH_STEP = TAIL_GAP * 2;
+/** Distinct depths handed out before they repeat: far more than ever swim at once, and all below the giant at 11. */
+const FISH_DEPTH_SLOTS = 9000;
+let fishDepthSeq = 0;
+
+/** The next ordinary fish's own depth. */
+function nextFishDepth(): number {
+  fishDepthSeq = (fishDepthSeq + 1) % FISH_DEPTH_SLOTS;
+  return FISH_DEPTH + fishDepthSeq * FISH_DEPTH_STEP;
+}
+
+/** Where a fish normally sits, for putting it back after a giant lifted it into its light. */
+export function restDepth(f: Fish): number {
+  return (f.sprite.getData('restDepth') as number | undefined) ?? FISH_DEPTH;
+}
+
 export function makeFish(scene: Phaser.Scene, species: SpeciesId, size: number, role: FishRole, x: number, y: number, vx: number, rng: Rng): Fish {
   // The giant is drawn finer (see ensureBossTextures); the squid has a rig of its own.
   const fine = role === 'boss' && !isSquid(species);
   const res = fine ? BOSS_RES : 1;
+  const depth = role === 'boss' ? 11 : nextFishDepth();
   const sprite = scene.add.image(x, y, fine ? bossKey(species, 'light', 0) : fishKey(species, 'light', 0))
-    .setDepth(role === 'boss' ? 11 : 10).setScale(size / FISH_RADIUS / res).setFlipX(vx < 0);
+    .setDepth(depth).setData('restDepth', depth).setScale(size / FISH_RADIUS / res).setFlipX(vx < 0);
   setArtRes(sprite, res);
   if (isSquid(species)) attachSquid(sprite);
   else attachTail(sprite, species);
