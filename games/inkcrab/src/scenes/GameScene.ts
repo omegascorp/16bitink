@@ -110,7 +110,7 @@ export class GameScene extends Phaser.Scene {
     if (won) saveProgress(host.storage, recordResult(saved, this.level.id, blots, b.elapsed));
     const result: ResultData = {
       levelId: this.level.id, won, time: b.elapsed, blots, livesLost,
-      size: b.crab.growth.size, shell: b.crab.shell, previousBest: saved.levels[this.level.id]?.bestTime,
+      size: b.crab.growth.size, shell: b.crab.shell, previousBest: saved.levels[this.level.id]?.bestTime, caughtBy: b.caughtBy,
     };
     this.time.delayedCall(END_DELAY_MS, () => {
       this.scene.stop('Hud');

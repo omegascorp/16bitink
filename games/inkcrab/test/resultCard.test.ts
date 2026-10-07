@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blotReasons, isNewBest, lossTip, LOSS_TIPS } from '../src/logic/resultCard';
+import { LOSS_TIPS, blotReasons, catchTip, isNewBest, lossTip } from '../src/logic/resultCard';
 import { blotsFor } from '../src/logic/save';
 
 describe('result card', () => {
@@ -29,5 +29,17 @@ describe('result card', () => {
     expect(lossTip(LOSS_TIPS.length)).toBe(LOSS_TIPS[0]);
     expect(lossTip(1)).toBe(LOSS_TIPS[1]);
     expect(lossTip(-1)).toBe(LOSS_TIPS.at(-1));
+  });
+});
+
+describe('the tip after being caught', () => {
+  it('speaks to what did the catching', () => {
+    expect(catchTip('kestrel', 0)).toMatch(/kestrel/);
+    expect(catchTip('octopus', 3)).toMatch(/octopus/);
+  });
+
+  it('falls back to the general tips for a hunter with nothing particular to say', () => {
+    expect(catchTip('ghostcrab', 2)).toBe(lossTip(2));
+    expect(catchTip(null, 1)).toBe(lossTip(1));
   });
 });

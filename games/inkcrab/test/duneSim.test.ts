@@ -94,6 +94,7 @@ describe('kestrels in play', () => {
     near(b);
     run(b, {}, 6);
     expect(b.lives).toBe(2);
+    expect(b.caughtBy).toBe('kestrel');
   });
 
   it('strike a crab hiding in its shell harmlessly, then fly off', () => {

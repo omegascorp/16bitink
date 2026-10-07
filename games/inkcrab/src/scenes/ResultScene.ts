@@ -5,9 +5,11 @@ import { TEX } from '../art/textures';
 import { levelGoal } from '../level/build';
 import { LEVEL_ORDER, levelById, LEVELS, nextLevel, themeOf } from '../level/levels';
 import type { LevelDef } from '../level/types';
-import { blotReasons, isNewBest, lossTip } from '../logic/resultCard';
+import { blotReasons, catchTip, isNewBest } from '../logic/resultCard';
 import { shellPx, SHELLS, type ShellKind } from '../logic/shells';
-import type { SpeciesId } from '../logic/species';
+import type { HunterId } from '../logic/sim';
+import { SPECIES, type SpeciesId } from '../logic/species';
+import { KESTREL_SPAN } from '../art/birds/kestrel';
 import type { BackdropView } from './game/backdropView';
 import { drawGrowthBar } from './growthBar';
 import { crabInShell, POP_DELAY } from './heroCrab';
@@ -28,6 +30,8 @@ export interface ResultData {
   readonly shell: ShellKind | null;
   /** Fastest finish before this one, if the level had been finished. */
   readonly previousBest?: number;
+  /** What caught the crab last, when it was caught. */
+  readonly caughtBy?: HunterId | null;
 }
 
 interface Layout {
@@ -95,7 +99,7 @@ export class ResultScene extends Phaser.Scene {
       this.time.delayedCall(POP_DELAY + 500, () => this.confetti.burst(L.hero, L.ground - width * 0.4, 36, 600));
       this.timeRow(L, data, def);
     } else {
-      this.hunter(def, L.hero + width * 1.15, L.ground + 22, width);
+      this.hunter(data.caughtBy ?? biggestHunter(def), L.hero + width * 1.15, L.ground + 22, width);
       this.reached(L, data.size, levelGoal(def));
     }
     noteCard(this, L.card.x, L.card.y, L.card.w, L.card.h, this.cardParts(L, data, def)).setDepth(30);
@@ -121,7 +125,7 @@ export class ResultScene extends Phaser.Scene {
     if (!data.won) {
       const losses = ((this.registry.get(LOSSES) as number | undefined) ?? -1) + 1;
       this.registry.set(LOSSES, losses);
-      return loseParts(this, w, h, lossTip(losses), def, levelGoal(def), this.withEnter({ primary: { label: 'Try again', go: retry }, secondary: [{ label: '← chart', go: chart }] }));
+      return loseParts(this, w, h, catchTip(data.caughtBy, losses), def, levelGoal(def), this.withEnter({ primary: { label: 'Try again', go: retry }, secondary: [{ label: '← chart', go: chart }] }));
     }
     const next = nextLevel(def.id);
     const buttons: CardButtons = next
@@ -165,14 +169,25 @@ export class ResultScene extends Phaser.Scene {
     }
   }
 
-  /** The red-inked creature that caught it, looming over the shell and pacing. */
-  private hunter(def: LevelDef, x: number, ground: number, width: number): void {
-    const species = biggestHunter(def);
+  /** The red-inked creature that caught it, looming over the shell and pacing (a bird hovering over it). */
+  private hunter(by: HunterId, x: number, ground: number, width: number): void {
+    if (!(by in SPECIES)) {
+      // A bird: hovering over the shell, wings beating.
+      const k = (width * 1.3) / KESTREL_SPAN;
+      const bird = this.add.image(x, ground - width * 1.6, TEX.bird(by, false, true, 0)).setScale(-k, k).setDepth(11).setAlpha(0);
+      this.tweens.add({ targets: bird, alpha: 1, delay: POP_DELAY + 200, duration: 500 });
+      this.tweens.add({ targets: bird, y: bird.y - 10, delay: POP_DELAY + 700, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      let wing = 0;
+      this.time.addEvent({ delay: 100, loop: true, callback: () => bird.setTexture(TEX.bird(by, false, true, (wing = (wing + 1) % BOIL))) });
+      return;
+    }
+    const species = by as SpeciesId;
     const k = width / CRITTER_SPAN[species];
     const art = this.add.image(x + 40, ground, TEX.critter(species, true, 0))
       .setOrigin(0.5, (CRITTER_FRAME / 2 + CRITTER_GROUND) / CRITTER_FRAME).setScale(-k, k).setDepth(11).setAlpha(0);
     this.tweens.add({ targets: art, alpha: 1, x, delay: POP_DELAY + 200, duration: 500, ease: 'Quad.Out' });
-    this.tweens.add({ targets: art, x: x + 18, delay: POP_DELAY + 900, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    // Creatures that stay put (an antlion, an octopus) don't pace.
+    if (!SPECIES[species].move || SPECIES[species].move === 'walk') this.tweens.add({ targets: art, x: x + 18, delay: POP_DELAY + 900, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     let f = 0;
     this.time.addEvent({ delay: 200, loop: true, callback: () => art.setTexture(TEX.critter(species, true, (f = (f + 1) % BOIL))) });
   }

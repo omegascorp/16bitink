@@ -28,6 +28,8 @@ export interface Critter extends Body {
   readonly aimY: number;
   /** Seconds a fish has been out of the water: it dies at CRITTER.strandedFor. */
   readonly dry: number;
+  /** A gull in the air: flying off as the tide comes in, or in to land as it goes out. Harmless up there. */
+  readonly flight?: 'off' | 'in';
 }
 
 /** What a creature knows of the beach besides its sand: where the water is. */
@@ -74,6 +76,10 @@ export const CRITTER = {
   armIn: 0.9,
   /** Seconds a fish lasts out of the water. */
   strandedFor: 4,
+  /** A gull's flight, px/s: across, and up (leaving) or down (coming in to land). */
+  flyAcross: 75,
+  flyUp: 85,
+  flyDown: 70,
 } as const;
 
 export function critterBox(size: number, species: SpeciesId = 'ghostcrab'): { w: number; h: number } {
@@ -126,6 +132,7 @@ export function stepCritter(t: Terrain, c: Critter, q: Quarry | null, dt: number
   if (move === 'burrow') return stepBurrower(t, c, q, dt, tile, rng);
   if (move === 'swim') return stepSwimmer(t, c, q, dt, tile, rng, env);
   if (move === 'den') return stepDen(c, q, dt, tile);
+  if (c.flight) return stepFlight(t, c, dt, tile);
   const spec = SPECIES[c.species];
   // A gull can't get at a crab under water.
   const seen = spec.lowTide && q?.inWater ? 0 : spot(c, q, tile);
@@ -154,6 +161,19 @@ export function stepCritter(t: Terrain, c: Critter, q: Quarry | null, dt: number
   const boxedIn = stuck && boxHitsSolid(t, { ...moved, x: moved.x - dir }, tile);
   if (stuck && !hunting && !boxedIn) dir = dir === 1 ? -1 : 1;
   return { ...c, ...moved, dir, turnIn, clock, bored: Math.max(0, c.bored - dt) };
+}
+
+/**
+ * A gull in the air: leaving, it climbs away across the sky; coming in,
+ * it glides down and lands on the first ground under it.
+ */
+function stepFlight(t: Terrain, c: Critter, dt: number, tile: number): Critter {
+  const clock = c.clock + dt;
+  if (c.flight === 'off') return { ...c, x: c.x + c.dir * CRITTER.flyAcross * dt, y: c.y - CRITTER.flyUp * dt, vx: c.dir * CRITTER.flyAcross, vy: 0, onGround: false, clock };
+  const next = { ...c, x: c.x + c.dir * CRITTER.flyAcross * 0.4 * dt, y: c.y + CRITTER.flyDown * dt };
+  // Touching down: it stands where it is, and walks from here.
+  if (next.y + next.h > 0 && boxHitsSolid(t, next, tile)) return { ...c, flight: undefined, vx: 0, vy: 0, clock };
+  return { ...next, vx: next.x - c.x, vy: CRITTER.flyDown, onGround: false, clock };
 }
 
 /** Whether every tile a box covers is under water (and open). */

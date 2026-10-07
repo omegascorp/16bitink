@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { GULL_FLIGHT_SPAN } from '../../art/birds/gullFlight';
 import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, CRITTER_SPAN } from '../../art/critterArt';
 import { BOIL } from '../../art/palette';
 import { TEX } from '../../art/textures';
@@ -15,6 +16,12 @@ interface CritterSprites {
 /** The octopus's arm: its mottled red-brown, and its pale suckers. */
 const ARM_HEX = 0xb5654a;
 const SUCKER_HEX = 0xf1d9c6;
+/** Wingbeats per second for a gull in flight, its spread wings this many times its body width, and where in its frame they centre (the wings reach further back than forward). */
+const FLAP_FPS = 8;
+/** A walker's drawing stands on its ground line. */
+const GROUND_ORIGIN = (CRITTER_FRAME / 2 + CRITTER_GROUND) / CRITTER_FRAME;
+const FLIGHT_WIDTH = 1.3;
+const GULL_MIDDLE = 0.5 + ((-39.7 + 28.7) / 2) / CRITTER_FRAME;
 /** Leg-pose frames per second at a walk. */
 const WALK_FPS = 9;
 const BOIL_MS = 260;
@@ -50,8 +57,16 @@ export class CrittersView {
       const f = Math.floor(time / (walking ? 1000 / WALK_FPS : BOIL_MS) + c.id) % BOIL;
       const cx = c.x + c.w / 2;
       const bottom = c.y + c.h;
+      if (c.flight) {
+        // A gull in the air: wings beating, centred on its box; harmless, so never red.
+        const wing = Math.floor(time / (1000 / FLAP_FPS) + c.id) % BOIL;
+        const kf = (c.w * FLIGHT_WIDTH) / GULL_FLIGHT_SPAN / CRITTER_RES;
+        s.art.setTexture(TEX.bird(c.species, false, false, wing)).setOrigin(GULL_MIDDLE, 0.5).setScale(kf * c.dir, kf).setPosition(cx, c.y + c.h / 2).setVisible(true);
+        s.mark.setVisible(false);
+        continue;
+      }
       const k = c.w / CRITTER_SPAN[c.species] / CRITTER_RES;
-      s.art.setTexture(TEX.critter(c.species, c.size > playerSize, f)).setScale(k * c.dir, k).setPosition(cx, bottom);
+      s.art.setTexture(TEX.critter(c.species, c.size > playerSize, f)).setOrigin(0.5, GROUND_ORIGIN).setScale(k * c.dir, k).setPosition(cx, bottom);
       s.mark.setVisible(c.size < playerSize).setPosition(cx, c.y + c.h * 0.4).setDisplaySize(c.w * 1.6, c.h * 1.5);
       const hidden = movementOf(c.species) === 'burrow' && !breached(this.terrain, c, this.tile);
       s.art.setVisible(!hidden);
@@ -120,7 +135,7 @@ export class CrittersView {
 
   private create(c: Critter): CritterSprites {
     const mark = this.scene.add.image(0, 0, TEX.highlight(c.id % BOIL)).setBlendMode(Phaser.BlendModes.MULTIPLY).setAlpha(0.8).setDepth(3);
-    const art = this.scene.add.image(0, 0, TEX.critter(c.species, false, 0)).setOrigin(0.5, (CRITTER_FRAME / 2 + CRITTER_GROUND) / CRITTER_FRAME).setDepth(4);
+    const art = this.scene.add.image(0, 0, TEX.critter(c.species, false, 0)).setOrigin(0.5, GROUND_ORIGIN).setDepth(4);
     const s = { mark, art };
     this.sprites.set(c.id, s);
     return s;

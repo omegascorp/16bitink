@@ -127,7 +127,7 @@ A cold granite coast: a few rows of sand over granite (so there's only so far to
 - **Tide clock** in the HUD (top right): a round gauge filling and emptying with the tide, an arrow for which way it's going, and "high in 23s" / "low in 40s". A dashed pencil line across the level marks high water.
 - **Fish:** blennies (small, quick) and sculpins (big-headed, slower) swim only in water: in the pools, and in the sea as it comes in. A bigger one goes for a smaller crab in the water; smaller ones are food. Left high and dry by the tide, a fish flops where it lands, slower and slower; after 4 s out of the water it dies and is food worth as much as catching it (a fish lying on its side, a cross for an eye). One left in sand dies at once and is buried food: dig it up and eat it.
 - **Octopus** (in the rock): lives in a crevice in a pool wall and never leaves it. When a smaller crab comes within about 3 tiles, it stretches an arm out after it (a wriggling, tapering arm with suckers, red when it can catch you); the arm tip catches. Hiding in the shell makes it lose interest. Small octopuses are food at the den.
-- **Gull:** walks the exposed shore at low water and hops up rocks; it keeps out of the water and can't reach a crab under it. As the tide comes in the gulls leave, and they come back when it goes out.
+- **Gull:** walks the exposed shore at low water and hops up rocks; it keeps out of the water and can't reach a crab under it. As the tide comes in the gulls take off and fly away; as it goes out they fly in from the sky and land on dry ground (in the air they can't catch you).
 - **Shore crabs** are the small prey.
 - **Coach lessons:** `tide` (while the first tide comes in, until you've been in the water) and `octopus` (while an arm reaches for you).
 
@@ -195,7 +195,7 @@ Level select is a beachcomber's chart seen from above, scrolling sideways. Each 
 
 ## What exists, what to build
 
-Built: walking, jumping, eating, the growth cap and bank, fourteen real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts`, `beach2.ts` and `beach3.ts`, lives, win and loss, intro and result cards, the level map, saved progress). All thirty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens.
+Built: walking, jumping, eating, the growth cap and bank, twenty real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts`, `beach2.ts` and `beach3.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All thirty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens.
 
 Still to build, replacing the stand-ins:
 

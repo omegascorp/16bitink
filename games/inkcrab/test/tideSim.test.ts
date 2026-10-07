@@ -66,12 +66,23 @@ describe('the tide in play', () => {
 
   it('sends the gulls off when the water comes in, and back when it goes out', () => {
     const b = shore({ critters: [{ count: 1, sizes: [6, 6], species: 'gull' }] });
-    const gulls = (): number => [...b.critters.values()].filter((k) => k.species === 'gull').length;
-    expect(gulls()).toBe(1);
-    run(b, {}, TIDE.period / 2);
-    expect(gulls()).toBe(0);
-    run(b, {}, TIDE.period / 2);
-    expect(gulls()).toBe(1);
+    const gull = () => [...b.critters.values()].find((k) => k.species === 'gull');
+    expect(gull()?.flight).toBeUndefined();
+    // As the water comes in it takes off and climbs away, then it's gone.
+    const flights = new Set<string | undefined>();
+    for (let i = 0; i < 60 * TIDE.period / 2; i++) {
+      b.step(IDLE, 1 / 60);
+      flights.add(gull() ? gull()!.flight ?? 'ground' : 'gone');
+    }
+    expect(flights.has('off')).toBe(true);
+    expect(gull()).toBeUndefined();
+    // As it goes out, one flies in and lands.
+    for (let i = 0; i < 60 * TIDE.period / 2; i++) {
+      b.step(IDLE, 1 / 60);
+      flights.add(gull() ? gull()!.flight ?? 'ground' : 'gone');
+    }
+    expect(flights.has('in')).toBe(true);
+    expect(gull()?.flight).toBeUndefined();
   });
 });
 

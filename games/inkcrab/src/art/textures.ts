@@ -4,6 +4,7 @@ import { SHELL_KINDS } from '../logic/shells';
 import { SPECIES, type SpeciesId } from '../logic/species';
 import { BACKDROP_W, BOAT_BOX, BOAT_DRAW, THEME_BOATS, THEMES, type ThemeId } from './backdrop';
 import { drawCrabBack, drawCrabFront } from './crabArt';
+import { gullFlight } from './birds/gullFlight';
 import { kestrel } from './birds/kestrel';
 import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, drawCritter } from './critterArt';
 import { FRAME, GROUND } from './frame';
@@ -97,6 +98,9 @@ export function generateTextures(scene: Phaser.Scene): void {
       for (const danger of [false, true]) {
         bake(scene, TEX.bird('kestrel', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => kestrel(makeDraw(ctx, 850 + f, f, 0, danger ? RED : undefined), dive));
       }
+    }
+    for (const danger of [false, true]) {
+      bake(scene, TEX.bird('gull', false, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => gullFlight(makeDraw(ctx, 870 + f, f, 0, danger ? RED : undefined)));
     }
     SHELL_KINDS.forEach((kind, i) => critter(TEX.shell(kind, f), 300 + i * 10 + f, f, (d) => drawShell(d, kind)));
     FOOD_KINDS.forEach((kind, i) => bake(scene, TEX.food(kind, f), FOOD_FRAME, FOOD_RES, (ctx) => drawFood(makeDraw(ctx, 500 + i * 10 + f, f, FOOD_GROUND), kind)));

@@ -44,7 +44,7 @@ export type SimEvent =
   | { readonly type: 'revealed'; readonly id: number }
   | { readonly type: 'spawned'; readonly id: number }
   | { readonly type: 'swapStart'; readonly id: number }
-  | { readonly type: 'caught'; readonly x: number; readonly y: number; readonly lives: number }
+  | { readonly type: 'caught'; readonly x: number; readonly y: number; readonly lives: number; readonly by: HunterId }
   /** A bird's stoop glanced off the shell of a hiding crab. */
   | { readonly type: 'struck'; readonly x: number; readonly y: number }
   | { readonly type: 'won' }
@@ -118,6 +118,9 @@ export interface CritterGroup {
 
 export type Outcome = 'playing' | 'won' | 'lost';
 
+/** Whatever catches the crab: a creature, or a bird. */
+export type HunterId = SpeciesId | BirdSpecies;
+
 const DIG_SECONDS = 0.22;
 /** Jump height in a light shell, tiles: 2.5 at size 1, growing with the crab (about 5.3 at size 8). */
 const JUMP_TILES = { base: 2.1, perSize: 0.4 } as const;
@@ -169,6 +172,8 @@ export class Beach {
   crab: CrabState;
   lives: number;
   outcome: Outcome = 'playing';
+  /** What caught the crab last, for the result card. */
+  caughtBy: HunterId | null = null;
   /** Seconds played. */
   elapsed = 0;
   nearbyShell: Item | null = null;
@@ -638,10 +643,12 @@ export class Beach {
   private meetCritters(events: SimEvent[]): void {
     for (const k of this.critters.values()) {
       const c = this.crab;
+      // A gull in the air can't catch the crab (or be eaten).
+      if (k.flight) continue;
       if (this.armReaches(k)) {
         // An octopus's arm caught it.
         if (!c.hidden && c.safe === 0 && k.size > c.growth.size) {
-          this.caught(events);
+          this.caught(events, k.species);
           this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });
         }
         continue;
@@ -655,7 +662,7 @@ export class Beach {
       const size = c.growth.size;
       if (k.size < size && !c.swap) this.eatCritter(k, events);
       else if ((k.size > size || (k.size === size && this.exposed)) && c.safe === 0) {
-        this.caught(events);
+        this.caught(events, k.species);
         // It lets go: time to get away (out of a pit, say) before it strikes again.
         this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });
       }
@@ -694,18 +701,23 @@ export class Beach {
    * Caught: a life lost, nothing else. It keeps its size and shell and has
    * a moment's grace; caught moving house, it stays where it was.
    */
-  private caught(events: SimEvent[]): void {
+  private caught(events: SimEvent[], by: HunterId): void {
+    this.caughtBy = by;
     const c = this.crab;
     this.lives -= 1;
     this.crab = { ...c, swap: null, hidden: false, safe: SAFE_SECONDS };
     const at = centre(c.body);
-    events.push({ type: 'caught', x: at.x, y: at.y, lives: this.lives });
+    events.push({ type: 'caught', x: at.x, y: at.y, lives: this.lives, by });
   }
 
   private restockCritters(dt: number): void {
     const low = this.tide === null || isLowWater(this.tide, this.elapsed);
-    // Gulls leave as the tide comes in, and come back when it goes out.
-    if (!low) for (const k of this.critters.values()) if (SPECIES[k.species].lowTide) this.critters.delete(k.id);
+    // Gulls take off as the tide comes in (away from the crab), and are gone once they're out of sight above.
+    for (const k of this.critters.values()) {
+      if (!SPECIES[k.species].lowTide) continue;
+      if (!low && k.flight !== 'off') this.critters.set(k.id, { ...k, flight: 'off', dir: centre(k).x < centre(this.crab.body).x ? -1 : 1 });
+      else if (k.flight === 'off' && k.y + k.h < -this.tileSize * 2) this.critters.delete(k.id);
+    }
     const short = this.groups.findIndex((g, i) => (low || !SPECIES[g.species ?? 'ghostcrab'].lowTide)
       && [...this.critters.keys()].filter((id) => this.groupOf.get(id) === i).length < g.count);
     if (short < 0) return;
@@ -724,7 +736,10 @@ export class Beach {
       pits: this.pits, dens: this.dens, critters: [...this.critters.values()], surroundings: this.surroundings, start,
     }, this.nextId, species, sizes);
     if (!k) return;
-    this.critters.set(k.id, k);
+    // A gull comes in from the sky to land on dry ground; over water it waits for another time.
+    const landing = SPECIES[species].lowTide && !start;
+    if (landing && this.surroundings.wet(Math.floor(centre(k).x / this.tileSize), surfaceRow(this.terrain, Math.floor(centre(k).x / this.tileSize)) - 1)) return;
+    this.critters.set(k.id, landing ? { ...k, y: -k.h - this.tileSize, flight: 'in' } : k);
     this.groupOf.set(k.id, group);
     this.nextId++;
   }
@@ -776,7 +791,7 @@ export class Beach {
       this.birds.set(b.id, pullUp(next));
       const at = centre(this.crab.body);
       if (this.crab.hidden) events.push({ type: 'struck', x: at.x, y: at.y });
-      else if (this.crab.safe === 0) this.caught(events);
+      else if (this.crab.safe === 0) this.caught(events, b.species);
     }
   }
 
