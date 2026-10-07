@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
-import { BLUE, BLUE_HEX, HIGHLIGHT_HEX, PAPER, RED_HEX } from '../../art/palette';
+import { BLUE, BLUE_HEX, PAPER, RED_HEX } from '../../art/palette';
 import type { Biome } from '../../level/biomes';
 import { createRng } from '../../logic/rng';
-import { HAND_FONT, inkButton, inkText, wobblyRect } from '../ui';
+import { noteCard } from '../noteCard';
+import { HAND_FONT, inkButton, inkText } from '../ui';
 
 const SOFT_INK = '#4a463e';
-const CARD_FILL = 0xfffaf0;
 const NUMBERS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 
 export type Offer =
@@ -58,35 +58,13 @@ export function miniIsland(scene: Phaser.Scene, x: number, y: number, w: number,
   return g;
 }
 
-/** Two strips of highlighter tape pinning the card to the page. */
-function tape(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
-  for (const side of [-1, 1]) {
-    const cx = side * (w / 2 - 34);
-    const cy = -h / 2 + 2;
-    const a = side * 0.6;
-    const pts = [[-34, -11], [34, -11], [34, 11], [-34, 11]].map(([px, py]) =>
-      new Phaser.Math.Vector2(cx + px! * Math.cos(a) - py! * Math.sin(a), cy + px! * Math.sin(a) + py! * Math.cos(a)));
-    g.fillStyle(HIGHLIGHT_HEX, 0.55).fillPoints(pts, true);
-  }
-}
-
 /**
  * The note pinned beside the celebration: the beaches still to come, drawn
  * as their chart islands, and the one-time unlock. For an owner it shows
  * the next beach instead.
  */
 export function offerCard(scene: Phaser.Scene, cx: number, cy: number, w: number, h: number, offer: Offer): Phaser.GameObjects.Container {
-  const g = scene.add.graphics();
-  g.fillStyle(0x000000, 0.08).fillRect(-w / 2 + 6, -h / 2 + 8, w, h);
-  g.fillStyle(CARD_FILL, 1).fillRect(-w / 2, -h / 2, w, h);
-  wobblyRect(g, -w / 2, -h / 2, w, h, 4242, 2, BLUE_HEX);
-  tape(g, w, h);
-  const parts: Phaser.GameObjects.GameObject[] = [g, ...(offer.kind === 'buy' ? buyParts(scene, w, h, offer) : nextParts(scene, w, h, offer))];
-  const card = scene.add.container(cx, cy, parts).setRotation(-0.018);
-  // Slides in from the right a moment after the celebration starts.
-  card.setAlpha(0).setX(cx + 60);
-  scene.tweens.add({ targets: card, x: cx, alpha: 1, delay: 900, duration: 520, ease: 'Cubic.Out' });
-  return card;
+  return noteCard(scene, cx, cy, w, h, offer.kind === 'buy' ? buyParts(scene, w, h, offer) : nextParts(scene, w, h, offer));
 }
 
 function buyParts(scene: Phaser.Scene, w: number, h: number, offer: Extract<Offer, { kind: 'buy' }>): Phaser.GameObjects.GameObject[] {

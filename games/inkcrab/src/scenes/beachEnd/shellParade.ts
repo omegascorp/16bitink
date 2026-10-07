@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import { FOOT, FRAME, SHELL_UNITS } from '../../art/frame';
-import { crabShift } from '../../art/mouth';
-import { BLUE_HEX, BOIL } from '../../art/palette';
+import { BLUE_HEX } from '../../art/palette';
 import { TEX } from '../../art/textures';
-import { MOUTH_OFFSET, bodyFill, shellPx, SHELLS, type ShellKind } from '../../logic/shells';
+import { MOUTH_OFFSET, shellPx, SHELLS, type ShellKind } from '../../logic/shells';
+import { boil, crabIn, hop, POP_DELAY, puff } from '../heroCrab';
 import { inkText } from '../ui';
 
 /** Gap between shells in the row, layout px. */
@@ -13,7 +13,6 @@ const HERO_BOOST = 1.35;
 /** Most a shell may be magnified: tiny ones shouldn't become blurry giants on a wide screen. */
 const MAX_ZOOM = 4.2;
 const POP_MS = 260;
-const BOIL_MS = 240;
 
 export interface Parade {
   /** The crab in its last shell, for confetti to burst from. */
@@ -46,7 +45,7 @@ export function shellParade(scene: Phaser.Scene, ladder: readonly ShellKind[], x
     const foot = mid + MOUTH_OFFSET * w;
     left += w + GAP;
     const last = i === ladder.length - 1;
-    const delay = 350 + i * POP_MS;
+    const delay = POP_DELAY + i * POP_MS;
     const shell = scene.add.image(foot, ground, TEX.shell(kind, 0)).setOrigin(origin.x, origin.y).setScale(0).setDepth(depth + 1);
     shells.push(shell);
     scene.tweens.add({ targets: shell, scale: unit, delay, duration: 380, ease: 'Back.Out' });
@@ -64,64 +63,9 @@ export function shellParade(scene: Phaser.Scene, ladder: readonly ShellKind[], x
   ticks.lineStyle(1.8, BLUE_HEX, 0.75).lineBetween(x0 + (x1 - x0 - total) / 2, ground + 27, x0 + (x1 - x0 + total) / 2, ground + 27);
   inkText(scene, x0 + (x1 - x0 - total) / 2 - 6, ground + 48, 'size', 18).setOrigin(1, 0.5).setAlpha(0.7).setDepth(depth);
 
-  const inAt = 350 + ladder.length * POP_MS + 200;
+  const inAt = POP_DELAY + ladder.length * POP_MS + 200;
   boil(scene, shells, ladder);
   const onDone = new Promise<void>((resolve) => scene.time.delayedCall(inAt, () => resolve()));
   if (heroCrab) hop(scene, heroCrab, inAt);
   return { hero, onDone };
-}
-
-/** The grown crab in its biggest shell (moved into one group with it), crowding the opening as it does at the cap. */
-function crabIn(scene: Phaser.Scene, kind: ShellKind, shell: Phaser.GameObjects.Image, foot: number, ground: number, unit: number, depth: number): Phaser.GameObjects.Container {
-  const origin = { x: FOOT.x / FRAME, y: FOOT.y / FRAME };
-  const spec = SHELLS[kind];
-  const body = unit * bodyFill(spec, spec.maxSize);
-  const shift = crabShift(kind, unit, body);
-  const back = scene.add.image(shift, 0, TEX.crabBack(0)).setOrigin(origin.x, origin.y).setScale(body).setAlpha(0);
-  const front = scene.add.image(shift, 0, TEX.crabFront(0)).setOrigin(origin.x, origin.y).setScale(body).setAlpha(0);
-  shell.setPosition(0, 0);
-  const c = scene.add.container(foot, ground, [back, shell, front]).setDepth(depth);
-  let f = 0;
-  scene.time.addEvent({
-    delay: BOIL_MS, loop: true, callback: () => {
-      f = (f + 1) % BOIL;
-      back.setTexture(TEX.crabBack(f));
-      front.setTexture(TEX.crabFront(f));
-    },
-  });
-  return c;
-}
-
-/** Peeks out once its shell lands, then hops for joy every so often. */
-function hop(scene: Phaser.Scene, crab: Phaser.GameObjects.Container, at: number): void {
-  const [back, , front] = crab.list;
-  scene.tweens.add({ targets: [back, front], alpha: 1, delay: at - 200, duration: 200 });
-  scene.tweens.chain({
-    targets: crab,
-    delay: at,
-    loop: -1,
-    loopDelay: 900,
-    tweens: [
-      { y: crab.y - 26, duration: 180, ease: 'Quad.Out' },
-      { y: crab.y, duration: 200, ease: 'Bounce.Out' },
-      { y: crab.y - 16, duration: 150, ease: 'Quad.Out' },
-      { y: crab.y, duration: 170, ease: 'Bounce.Out' },
-    ],
-  });
-}
-
-function boil(scene: Phaser.Scene, shells: readonly Phaser.GameObjects.Image[], kinds: readonly ShellKind[]): void {
-  let f = 0;
-  scene.time.addEvent({
-    delay: BOIL_MS, loop: true, callback: () => {
-      f = (f + 1) % BOIL;
-      shells.forEach((s, i) => s.setTexture(TEX.shell(kinds[i]!, f)));
-    },
-  });
-}
-
-function puff(scene: Phaser.Scene, x: number, y: number, size: number, delay: number, depth: number): void {
-  const p = scene.add.image(x, y, TEX.puff(0)).setScale(0).setAlpha(0).setDepth(depth);
-  const s = (size * 1.5) / 64;
-  scene.tweens.add({ targets: p, scale: s, alpha: { from: 0.9, to: 0 }, delay, duration: 520, ease: 'Quad.Out', onComplete: () => p.destroy() });
 }

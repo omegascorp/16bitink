@@ -96,11 +96,13 @@ export class GameScene extends Phaser.Scene {
     const b = this.beach;
     const livesLost = LIVES - b.lives;
     const blots = won ? blotsFor(b.elapsed, this.level.parTime, livesLost) : 0;
-    if (won) {
-      const host = getHost(this);
-      saveProgress(host.storage, recordResult(loadProgress(host.storage), this.level.id, blots, b.elapsed));
-    }
-    const result: ResultData = { levelId: this.level.id, won, time: b.elapsed, blots, livesLost };
+    const host = getHost(this);
+    const saved = loadProgress(host.storage);
+    if (won) saveProgress(host.storage, recordResult(saved, this.level.id, blots, b.elapsed));
+    const result: ResultData = {
+      levelId: this.level.id, won, time: b.elapsed, blots, livesLost,
+      size: b.crab.growth.size, shell: b.crab.shell, previousBest: saved.levels[this.level.id]?.bestTime,
+    };
     this.time.delayedCall(END_DELAY_MS, () => {
       this.scene.stop('Hud');
       // The last level of a beach gets the full celebration instead of the result card.
