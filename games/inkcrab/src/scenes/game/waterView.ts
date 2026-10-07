@@ -4,6 +4,13 @@ import type { Beach } from '../../logic/sim';
 import { isSolid } from '../../logic/terrain';
 
 const WATER_HEX = 0x5f9fb8;
+/** The water's wash as laid over paper: the water colour at 38% on the page. */
+const WASH_HEX = mix(PAPER_HEX, WATER_HEX, 0.38);
+
+function mix(a: number, b: number, k: number): number {
+  const ch = (shift: number): number => Math.round(((a >> shift) & 255) * (1 - k) + ((b >> shift) & 255) * k) << shift;
+  return ch(16) | ch(8) | ch(0);
+}
 /** Rows between the faint wavy lines inside the water. */
 const LINE_GAP = 7;
 
@@ -36,6 +43,7 @@ export class WaterView {
     const w = this.beach.water;
     if (!w) return;
     const T = this.beach.tileSize;
+    const t = this.beach.terrain;
     const seaY = this.beach.seaY;
     const x0 = Math.max(0, Math.floor(view.x / T) - 1);
     const x1 = Math.min(w.width - 1, Math.ceil(view.right / T) + 1);
@@ -60,18 +68,17 @@ export class WaterView {
         const bottom = (y + 1) * T;
         if (top >= bottom) continue;
         // Into the sand a tile either side, and a tile down under each floored tile (never over water, which would darken in bands).
-        // Paper first, so the faraway beach doesn't show through the water. The
-        // wash reaches into the sand beside and under it (only where it is sand:
-        // never over an open tile, such as a tunnel dug next to the water).
-        const t = this.beach.terrain;
+        // One solid colour (the wash over paper), so the faraway beach doesn't
+        // show through and overlapping pieces never band. It reaches into the
+        // sand beside and under it (only where it is sand: never over an open
+        // tile, such as a tunnel dug next to the water).
         const l = isSolid(t, start - 1, y) ? left - T : left;
         const r = isSolid(t, x, y) ? right + T : right;
-        for (const [color, alpha] of [[PAPER_HEX, 1], [WATER_HEX, 0.38]] as const) {
-          wash.fillStyle(color, alpha).fillRect(l, top, r - l, bottom - top);
-          for (let cx = start; cx < x; cx++) if (isSolid(t, cx, y + 1)) wash.fillRect(cx * T, bottom, T, T);
-        }
+        wash.fillStyle(WASH_HEX, 1).fillRect(l, top, r - l, bottom - top);
+        for (let cx = start; cx < x; cx++) if (isSolid(t, cx, y + 1)) wash.fillRect(cx * T, bottom, T, T);
         g.fillStyle(WATER_HEX, 0.1).fillRect(left, top, right - left, bottom - top);
-        const surface = y === 0 || !w.wet[(y - 1) * w.width + start] || (sea && top > y * T);
+        // A surface only where the water meets open air: water filling a tunnel up to its sand roof has none.
+        const surface = (sea && top > y * T) || (!isSolid(t, start, y - 1) && !w.wet[(y - 1) * w.width + start]);
         if (surface) this.line(g, left, right, top, 1.5, 0.85, wave);
         for (let ly = Math.ceil(top / LINE_GAP) * LINE_GAP + 3; ly < bottom; ly += LINE_GAP) this.line(g, left, right, ly, 0.9, 0.22, wave);
       }
