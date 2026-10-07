@@ -1,85 +1,232 @@
 import Phaser from 'phaser';
-import { BLUE_HEX, PAPER_HEX } from '../art/palette';
+import { BLUE, BLUE_HEX, PAPER_HEX, RED } from '../art/palette';
 import { TEX } from '../art/textures';
+import { FOOT, FRAME } from '../art/frame';
 import { getHost } from '../host';
-import { BEACH_1_NAME } from '../level/beach1';
+import { BIOMES, LEVELS_PER_BEACH } from '../level/biomes';
 import { levelGoal } from '../level/build';
-import { LEVEL_ORDER, LEVELS } from '../level/levels';
-import type { LevelDef } from '../level/types';
+import { BEACHES, LEVEL_ORDER, LEVELS } from '../level/levels';
 import { isUnlocked, loadProgress, type Progress } from '../logic/save';
-import { screenScene, toView, viewSize } from './hidpi';
-import { drawBlots, inkButton, inkText, wobblyRect } from './ui';
+import { ChartView } from './map/chartView';
+import { computeMapLayout, MAP, regionIndexAt, type MapBeach, type MapLayout, type MapNode } from './map/layout';
+import { buildRoute, type NodeState } from './map/routeView';
+import { crispText, DPR, screenZoom, toView, uiCamera, viewSize } from './hidpi';
+import { HAND_FONT, inkButton, inkText } from './ui';
 
-const CARD = { w: 168, h: 112, gap: 18 } as const;
+const DRAG_THRESHOLD = 8;
+const SOFT_INK = '#4a463e';
+const PENCIL = '#8a8578';
+/** Arrow keys move the chart this far. */
+const KEY_STEP = 420;
 
-/** The beach's level list: name, goal and blots per level; locked ones are faded. */
+/**
+ * Level select as a beachcomber's chart: one island per beach, ten levels
+ * each along its sand, joined by sea routes. Drag, scroll or use the arrow
+ * keys to travel along it; the tabs at the bottom jump between beaches.
+ * Beaches not built yet are pencil drafts.
+ */
 export class MenuScene extends Phaser.Scene {
+  private layout!: MapLayout;
+  private chart!: ChartView;
+  private targetX = 0;
+  private dragStart: { x: number; target: number } | null = null;
+  private dragged = false;
+  private activeRegion = -1;
+  private caption!: Phaser.GameObjects.Text;
+  private tagline!: Phaser.GameObjects.Text;
+  private tabs: Phaser.GameObjects.Container[] = [];
+
   constructor() {
     super('Menu');
   }
 
   create(): void {
-    screenScene(this);
-    const { width, height } = viewSize(this);
+    crispText(this);
     const host = getHost(this);
     const progress = loadProgress(host.storage);
-    this.add.tileSprite(0, 0, width, height, TEX.paper).setOrigin(0).setScrollFactor(0);
-    inkText(this, width / 2, 46, 'InkCrab', 52);
-    inkText(this, width / 2, 92, `Beach 1 · ${BEACH_1_NAME}`, 26);
-    inkButton(this, 70, 40, '← back', () => host.onExit(), { width: 110, height: 44, size: 24 });
+    const beaches: MapBeach[] = BIOMES.map((biome, i) => {
+      const built = BEACHES[i];
+      return built
+        ? { biome, built: true, levelIds: built.map((l) => l.id) }
+        : { biome, built: false, levelIds: Array.from({ length: LEVELS_PER_BEACH }, (_, k) => `draft-${biome.id}-${k + 1}`) };
+    });
+    this.layout = computeMapLayout(beaches);
+    const { states, blots, current } = this.nodeStates(progress);
+    const names = new Map(LEVELS.map((l) => [l.id, l.name]));
 
-    const cols = Math.max(1, Math.min(5, Math.floor((width - 32) / (CARD.w + CARD.gap))));
-    const rows = Math.ceil(LEVELS.length / cols);
-    const gridW = cols * CARD.w + (cols - 1) * CARD.gap;
-    const top = 130;
-    LEVELS.forEach((def, i) => {
-      const x = (width - gridW) / 2 + (i % cols) * (CARD.w + CARD.gap) + CARD.w / 2;
-      const y = top + Math.floor(i / cols) * (CARD.h + CARD.gap) + CARD.h / 2;
-      this.card(def, i, x, y, progress);
-    });
-    // Tall lists scroll with a drag.
-    const contentH = top + rows * (CARD.h + CARD.gap) + 20;
-    if (contentH > height) this.enableScroll(contentH - height);
-  }
-
-  private card(def: LevelDef, i: number, x: number, y: number, progress: Progress): void {
-    const open = isUnlocked(progress, LEVEL_ORDER, def.id);
-    const record = progress.levels[def.id];
-    const g = this.add.graphics();
-    g.fillStyle(PAPER_HEX, 0.95).fillRect(-CARD.w / 2, -CARD.h / 2, CARD.w, CARD.h);
-    wobblyRect(g, -CARD.w / 2, -CARD.h / 2, CARD.w, CARD.h, 40 + i, 1.6, BLUE_HEX);
-    drawBlots(g, 0, CARD.h / 2 - 20, record?.blots ?? 0, 7);
-    const num = inkText(this, 0, -CARD.h / 2 + 22, `${i + 1}`, 30);
-    const name = inkText(this, 0, -6, def.name, 22);
-    const goal = inkText(this, 0, 18, open ? `grow to size ${levelGoal(def)}` : 'locked', 17).setAlpha(0.75);
-    const c = this.add.container(x, y, [g, num, name, goal]).setSize(CARD.w, CARD.h).setAlpha(open ? 1 : 0.4);
-    if (!open) return;
-    c.setInteractive({ useHandCursor: true });
-    let down: { x: number; y: number } | null = null;
-    c.on('pointerover', () => c.setScale(1.04));
-    c.on('pointerout', () => {
-      c.setScale(1);
-      down = null;
-    });
-    c.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      down = toView(p.x, p.y);
-    });
-    c.on('pointerup', (p: Phaser.Input.Pointer) => {
-      const end = toView(p.x, p.y);
-      if (down && Math.hypot(down.x - end.x, down.y - end.y) < 12) this.scene.start('Game', { levelId: def.id });
-      down = null;
-    });
-  }
-
-  private enableScroll(max: number): void {
+    const chartLayer = this.add.layer();
+    const worldLayer = this.add.layer();
+    const uiLayer = this.add.layer();
     const cam = this.cameras.main;
-    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-      if (!p.isDown) return;
-      const dy = (p.y - p.prevPosition.y) / cam.zoom;
-      cam.scrollY = Phaser.Math.Clamp(cam.scrollY - dy, 0, max);
+    const zoom = Phaser.Math.Clamp(viewSize(this).height / MAP.height, 0.55, 1.4);
+    cam.setBackgroundColor('#f5f0e1').setBounds(0, 0, this.layout.width, this.layout.height).setZoom(zoom * DPR);
+    this.chart = new ChartView(this, this.layout, chartLayer, Math.min(2, zoom * DPR));
+
+    const route = buildRoute(this, this.layout, states, blots, names);
+    worldLayer.add(route.objects);
+    for (const { node, zone } of route.hits) {
+      zone.on('pointerup', () => {
+        if (!this.dragged) this.play(node.levelId);
+      });
+    }
+    this.islandLabels(worldLayer);
+    this.marker(worldLayer, current, states.get(current.levelId) === 'done', Object.keys(progress.levels).length === 0);
+
+    this.buildUi(uiLayer, progress);
+    cam.ignore(uiLayer);
+    uiCamera(this.cameras.add(0, 0, this.scale.width, this.scale.height)).ignore([chartLayer, worldLayer]);
+
+    this.targetX = current.x;
+    this.centerCamera(1);
+    this.chart.update(cam.worldView.x, cam.worldView.right, true);
+    this.bindInput();
+    const relayout = (): void => {
+      this.scene.restart();
+    };
+    this.scale.once('resize', relayout);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', relayout));
+  }
+
+  update(_t: number, delta: number): void {
+    this.centerCamera(Math.min(1, (delta / 1000) * 8));
+    const view = this.cameras.main.worldView;
+    this.chart.update(view.x, view.right);
+  }
+
+  /** Each level's state, its blots, and where "you are here" goes: the first open level, or the last played. */
+  private nodeStates(progress: Progress): { states: Map<string, NodeState>; blots: Map<string, number>; current: MapNode } {
+    const states = new Map<string, NodeState>();
+    const blots = new Map<string, number>();
+    let current: MapNode | undefined;
+    for (const n of this.layout.nodes) {
+      const region = this.layout.regions[n.region]!;
+      const rec = progress.levels[n.levelId];
+      if (rec) blots.set(n.levelId, rec.blots);
+      let s: NodeState;
+      if (!region.beach.built) s = 'draft';
+      else if (rec) s = 'done';
+      else if (isUnlocked(progress, LEVEL_ORDER, n.levelId)) s = current ? 'open' : 'current';
+      else s = 'closed';
+      if (s === 'current') current = n;
+      states.set(n.levelId, s);
+    }
+    current ??= [...this.layout.nodes].reverse().find((n) => states.get(n.levelId) === 'done') ?? this.layout.nodes[0]!;
+    return { states, blots, current };
+  }
+
+  private play(levelId: string): void {
+    this.scene.start('Game', { levelId });
+  }
+
+  /** Each island's name and tagline written across its scrub; unbuilt ones are marked uncharted. */
+  private islandLabels(layer: Phaser.GameObjects.Layer): void {
+    for (const r of this.layout.regions) {
+      const cx = (r.x0 + r.x1) / 2;
+      const y = (this.layout.topAt(cx) + this.layout.coastAt(cx) - MAP.sandBand) / 2 - 10;
+      const color = r.beach.built ? BLUE : PENCIL;
+      layer.add(inkText(this, cx, y, `${r.beach.biome.beach}. ${r.beach.biome.name}`, 40, color));
+      layer.add(inkText(this, cx, y + 36, r.beach.built ? r.beach.biome.tagline : 'uncharted · coming soon', 22, r.beach.built ? SOFT_INK : PENCIL));
+    }
+  }
+
+  /** "You are here": the hermit crab in its periwinkle, bobbing over the current level, with a Play button under it. */
+  private marker(layer: Phaser.GameObjects.Layer, node: MapNode, done: boolean, fresh: boolean): void {
+    const ox = FOOT.x / FRAME;
+    const oy = FOOT.y / FRAME;
+    const crab = this.add.container(node.x, node.y - MAP.nodeRadius - 4, [
+      this.add.image(0, 0, TEX.crabBack(0)).setOrigin(ox, oy),
+      this.add.image(0, 0, TEX.shell('periwinkle', 0)).setOrigin(ox, oy),
+      this.add.image(0, 0, TEX.crabFront(0)).setOrigin(ox, oy),
+    ]).setScale(0.4);
+    this.tweens.add({ targets: crab, y: crab.y - 8, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    layer.add(crab);
+    const def = LEVELS.find((l) => l.id === node.levelId);
+    if (!def) return;
+    const y = node.y + MAP.nodeRadius + (done ? 48 : 34);
+    layer.add(inkText(this, node.x, y, def.name, 22));
+    layer.add(inkText(this, node.x, y + 24, `grow to size ${levelGoal(def)}`, 17, SOFT_INK));
+    const button = inkButton(this, node.x, y + 64, done ? 'Play again' : 'Play', () => this.play(def.id), { width: 132, height: 44, size: 26 });
+    // A slow breath on the first visit, so the eye finds it.
+    if (fresh) this.tweens.add({ targets: button, scale: 1.08, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    layer.add(button);
+  }
+
+  /** Eases the camera towards targetX along the chart. */
+  private centerCamera(k: number): void {
+    const cam = this.cameras.main;
+    const halfW = cam.width / cam.zoom / 2;
+    this.targetX = Phaser.Math.Clamp(this.targetX, halfW, Math.max(halfW, this.layout.width - halfW));
+    const x = Phaser.Math.Linear(cam.midPoint.x, this.targetX, k);
+    cam.centerOn(x, this.layout.height / 2);
+    const region = regionIndexAt(this.layout, x);
+    if (region !== this.activeRegion) this.setActiveRegion(region);
+  }
+
+  private bindInput(): void {
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      this.dragStart = { x: toView(p.x, p.y).x, target: this.targetX };
+      this.dragged = false;
     });
-    this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => {
-      cam.scrollY = Phaser.Math.Clamp(cam.scrollY + dy * 0.5, 0, max);
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      if (!p.isDown || !this.dragStart) return;
+      const dx = toView(p.x, p.y).x - this.dragStart.x;
+      if (Math.abs(dx) > DRAG_THRESHOLD) this.dragged = true;
+      if (this.dragged) this.targetX = this.dragStart.target - dx / screenZoom(this.cameras.main);
+    });
+    this.input.on('pointerup', () => {
+      this.dragStart = null;
+    });
+    this.input.on('wheel', (_p: unknown, _o: unknown, dx: number, dy: number) => {
+      this.targetX += (dx + dy) / screenZoom(this.cameras.main);
+    });
+    const kb = this.input.keyboard;
+    kb?.on('keydown-RIGHT', () => (this.targetX += KEY_STEP));
+    kb?.on('keydown-LEFT', () => (this.targetX -= KEY_STEP));
+  }
+
+  private buildUi(layer: Phaser.GameObjects.Layer, progress: Progress): void {
+    const host = getHost(this);
+    const { width, height } = viewSize(this);
+    const done = Object.keys(progress.levels).length;
+    const panel = this.add.graphics();
+    panel.fillStyle(PAPER_HEX, 0.85).fillRect(0, height - 92, width, 92);
+    panel.lineStyle(1.4, BLUE_HEX, 0.7).lineBetween(0, height - 92, width, height - 92);
+    layer.add(panel);
+    layer.add(inkText(this, 110, 36, 'InkCrab', 44));
+    layer.add(this.add.text(30, 64, `${done} of ${this.layout.nodes.length} levels`, { fontFamily: HAND_FONT, fontSize: '20px', color: SOFT_INK }));
+    layer.add(inkButton(this, width - 100, 38, '← 16bit.ink', () => host.onExit(), { width: 170, height: 44, size: 24 }));
+
+    // Beach tabs: jump straight to any island.
+    const n = this.layout.regions.length;
+    const gap = Math.min(52, (width - 40) / n);
+    const y = height - 26;
+    this.tabs = this.layout.regions.map((r, i) => {
+      const g = this.add.graphics();
+      const t = this.add.text(0, 0, String(r.beach.biome.beach), { fontFamily: HAND_FONT, fontSize: '22px', color: r.beach.built ? '#1b1a1f' : '#a69c8a' }).setOrigin(0.5);
+      const c = this.add.container(width / 2 + (i - (n - 1) / 2) * gap, y, [g, t]).setSize(Math.max(40, gap), 40).setInteractive({ useHandCursor: true });
+      c.on('pointerup', () => {
+        const first = this.layout.nodes.find((node) => node.region === i);
+        this.targetX = first ? first.x + MAP.nodeGap * 4.5 : (r.x0 + r.x1) / 2;
+      });
+      layer.add(c);
+      return c;
+    });
+    this.caption = inkText(this, width / 2, height - 72, '', 24);
+    this.tagline = this.add.text(width / 2, height - 52, '', { fontFamily: HAND_FONT, fontSize: '17px', color: SOFT_INK }).setOrigin(0.5);
+    layer.add([this.caption, this.tagline]);
+  }
+
+  private setActiveRegion(index: number): void {
+    this.activeRegion = index;
+    const r = this.layout.regions[index]!;
+    const { biome } = r.beach;
+    this.caption.setText(`Beach ${biome.beach} · ${biome.name}`).setColor(r.beach.built ? BLUE : PENCIL);
+    this.tagline.setText(r.beach.built ? biome.tagline : 'uncharted · coming soon');
+    this.tabs.forEach((tab, i) => {
+      const g = tab.list[0] as Phaser.GameObjects.Graphics;
+      g.clear();
+      if (i !== index) return;
+      g.lineStyle(2, Phaser.Display.Color.HexStringToColor(RED).color, 0.9).strokeCircle(0, 0, 15);
     });
   }
 }

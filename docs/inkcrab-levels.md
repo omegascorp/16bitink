@@ -44,7 +44,7 @@ Three ink blots per level, like InkFish:
 2. Finish under par time.
 3. Lose no lives.
 
-## Beach 1: Driftline Sketchbook
+## Beach 1: Atoll Sketchbook
 
 A temperate sandy beach, dunes on the left and the waterline on the right. Trash shells (bottle cap, light bulb, tin can, jam jar) and the common natural ones (periwinkle, snail, whelk, moon snail, conch).
 
@@ -83,23 +83,33 @@ The levels sit in front of a hand-inked parallax beach. Beach 1 ("Atoll Sketchbo
 
 ## Beaches 2–10
 
-Each later beach adds one new idea in slots 5–7, keeps the arc, and brings its own shells. A first sketch, to be decided beach by beach:
+Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`); the new ideas are a first sketch, to be decided beach by beach:
 
-| Beach | Setting | New |
-| --- | --- | --- |
-| 2 | Dune grass | Rival hermit crabs; stealing from smaller crabs |
-| 3 | Pebble cove | Vacancy chains |
-| 4 | Tidepools | Fish at high tide, octopus in crevices |
-| 5 | Mangrove | Roots to climb, mud that slows you |
-| 6 | Harbor | Trash shells everywhere; human litter as cover |
-| 7 | Black sand | Hot sand at midday; shade to cross |
-| 8 | Storm beach | Frequent storm tides |
-| 9 | Night beach | Darkness, glowing plankton |
-| 10 | Coconut atoll | Palms everywhere; the last final molt |
+| Beach | Biome | Setting | New |
+| --- | --- | --- | --- |
+| 1 | Atoll Sketchbook | Maldives coral island, palms, turquoise lagoon | (the basics; built) |
+| 2 | Mangrove Margins | Mudflats and tangled stilt roots | Roots to climb, mud that slows you |
+| 3 | Tide Pool Notes | Granite shelves and rock pools | Fish at high tide, octopus in crevices |
+| 4 | Ash & Basalt | Black sand under a smoking volcano | Hot sand at midday; shade to cross |
+| 5 | Fog & Kelp | Cold coast, kelp beds, a lighthouse | Fog that hides what's coming; kelp washed up as cover |
+| 6 | Dune Sea | Desert dunes running into the ocean | Rival hermit crabs; stealing from smaller crabs |
+| 7 | Wreck Cove | Driftwood and an old ship on the rocks | Frequent storm tides |
+| 8 | Monsoon Harbour | Stilt houses, nets, fishing boats | Trash shells everywhere; human litter as cover |
+| 9 | Frost Shingle | Pebbles, ice floes, a cold wind | Vacancy chains |
+| 10 | Moonlit Bay | Night beach, glowing tide | Darkness, glowing plankton; the last final molt |
+
+## Level map
+
+Level select is a beachcomber's chart seen from above, scrolling sideways. Each beach is an island in its biome's colours, with landmark sketches (palms and water villas; mangroves; rock pools and a starfish; a volcano and basalt columns; pines, kelp and a lighthouse; dunes and an oasis; a wreck; stilt houses, boats and nets; ice floes and pebbles; a moonlit, glowing shore). Its ten levels sit along the sand as numbered rings joined by crab tracks. A dashed sea route with a small sailboat links each island's last level to the next island's first. A compass rose sits in the water before the first island.
+
+- **Level states:** played levels are tinted with their blots under them; the next level has a red ring, the hermit crab bobbing over it, and its name, goal and a Play button below; levels further on are pencil. Played stretches of track are inked, the way ahead is pencil. Hovering a level shows its name.
+- **Unbuilt beaches** are drawn in full but washed back to a pencil draft, marked "uncharted · coming soon", with pencil rings numbered 11–100.
+- **Getting around:** drag, scroll or use the arrow keys; tabs 1–10 at the bottom jump between islands, and the caption above them names the island in view.
+- **Code:** layout (pure, tested) in `games/inkcrab/src/scenes/map/layout.ts`; the chart is drawn in `src/art/map/` and baked in 1024 px chunks around the camera, freed when far away (`chartView.ts`), so the long chart never sits in memory whole.
 
 ## What exists, what to build
 
-Built: walking, jumping, eating, the growth cap and bank, nine shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts`, lives, win and loss, intro and result cards, level select, saved progress). All ten levels are playable with the stand-ins above.
+Built: walking, jumping, eating, the growth cap and bank, nine shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts`, lives, win and loss, intro and result cards, the level map, saved progress). All ten levels are playable with the stand-ins above.
 
 Still to build, replacing the stand-ins:
 
