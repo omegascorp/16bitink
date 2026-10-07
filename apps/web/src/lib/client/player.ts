@@ -1,6 +1,7 @@
 import { isGameModule, type GameModule } from '@16bitink/game-sdk';
 import { GAME_LOADERS } from '../../games/loaders';
-import { startCheckout } from './checkout';
+import { isPendingBuy, BUY_PARAM } from '../buyFlow';
+import { buyFullGame, isSignedIn, startCheckout } from './checkout';
 import { accountProgress } from './progress';
 
 interface ApiEnvelope<T> {
@@ -66,6 +67,8 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
   // Start the ownership check and engine download while the player reads the splash.
   const accessP = checkAccess(game);
   const progressP = accountProgress(game);
+  const signedInP = isSignedIn();
+  if (isPendingBuy(window.location.search, game)) void resumeBuy(game, status, accessP);
   // Re-created on retry: a failed dynamic import stays rejected forever.
   let engineP = loadGame(game);
   engineP.catch(() => undefined);
@@ -77,18 +80,19 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
     // Must be requested synchronously inside the click for browsers to allow it.
     const fs = goFullscreen(stage);
     try {
-      const [module, { unlocked, allLevelsOpen }, progress] = await Promise.all([engineP, accessP, progressP, fontP, fs]);
+      const [module, { unlocked, allLevelsOpen }, progress, signedIn] = await Promise.all([engineP, accessP, progressP, signedInP, fontP, fs]);
       splash.remove();
       const handle = module.mount(stage, {
         unlocked,
         allLevelsOpen,
         storage: safeStorage(),
         progress: progress ?? undefined,
+        signedIn: signedIn === true,
         price: stage.dataset.price || undefined,
         loadContent: () => getJson<unknown>(`/api/content/${encodeURIComponent(game)}`),
         onBuy: () => {
           if (document.fullscreenElement) void document.exitFullscreen();
-          void startCheckout(game).then((r) => r.error && alert(r.error));
+          void buyFullGame(game).then((r) => r.error && alert(r.error));
         },
         onExit: () => {
           handle.destroy();
@@ -104,6 +108,21 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
       play.textContent = 'Try again';
     }
   });
+}
+
+/**
+ * Back from Google sign-in with a purchase pending: go straight on to checkout.
+ * The marker is dropped first so Back or a reload never re-opens checkout.
+ */
+async function resumeBuy(game: string, status: HTMLElement, accessP: Promise<Access>): Promise<void> {
+  const url = new URL(window.location.href);
+  url.searchParams.delete(BUY_PARAM);
+  history.replaceState(null, '', url);
+  // Signing in can reveal an earlier purchase: never charge twice.
+  if ((await accessP).unlocked) return;
+  status.textContent = 'Taking you to checkout…';
+  const result = await startCheckout(game);
+  status.textContent = result.error ?? '';
 }
 
 function safeStorage(): Storage | undefined {
