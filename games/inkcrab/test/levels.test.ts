@@ -72,6 +72,13 @@ describe('beach 1', () => {
         expect(new Set(tiles).size).toBe(tiles.length);
       });
 
+      it('lets the crab outgrow every kind of creature in it before the goal', () => {
+        const goal = levelGoal(def);
+        const smallest = new Map<string, number>();
+        for (const g of def.critters ?? []) smallest.set(g.species ?? 'ghostcrab', Math.min(smallest.get(g.species ?? 'ghostcrab') ?? 99, g.sizes[0]));
+        for (const size of smallest.values()) expect(size).toBeLessThan(goal);
+      });
+
       it('has critters only of sizes that exist', () => {
         for (const g of def.critters ?? []) {
           expect(g.sizes[0]).toBeGreaterThanOrEqual(1);

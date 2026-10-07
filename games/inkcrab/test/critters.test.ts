@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { shellPx } from '../src/logic/shells';
 import { critterBox, makeCritter, stepCritter, type Critter, type Quarry } from '../src/logic/critters';
 import { createRng } from '../src/logic/rng';
 import { createTerrain, setTile, TILE, type Terrain } from '../src/logic/terrain';
@@ -66,6 +67,10 @@ describe('ghost crabs', () => {
 
   it('are sized on the hermit crab scale', () => {
     expect(critterBox(4).w).toBeGreaterThan(critterBox(2).w);
+  });
+
+  it('draws every kind about as big as a crab in a shell of its size, so bigger looks bigger', () => {
+    for (const species of ['ghostcrab', 'slater', 'beetle'] as const) expect(critterBox(5, species).w).toBeGreaterThanOrEqual(shellPx(5) * 0.95);
   });
 
   describe('kinds', () => {

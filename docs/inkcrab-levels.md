@@ -75,7 +75,7 @@ Gulls, the tide and the final molt aren't built yet. Until they are:
 
 - **Sea slater:** slow and timid; it never chases, but a bigger one still catches you on touch. The easy prey of the first levels.
 - **Ghost crab:** the all-round walker, from level 3.
-- **Tiger beetle:** a fast hunter that dashes in bursts and sees far, from level 5.
+- **Tiger beetle:** fast, dashes in bursts and sees far, from level 5. Each level has beetles in a spread of sizes: small ones to chase down and eat (they run, but rest between dashes), big ones that hunt you.
 
 All follow the one rule (bigger catches you, smaller is food) and are inked red when they can catch you.
 

@@ -7,7 +7,8 @@ import type { LevelDef } from './types';
  * tide and the final molt aren't built yet; until they are, big ghost crabs
  * stand in for the danger and shells lie where the tide would bring them.
  * Creatures: harmless sea slaters early, ghost crabs from level 3, tiger
- * beetles (fast, in bursts) from level 5.
+ * beetles (fast, in bursts) from level 5, in a spread of sizes: small ones
+ * to catch and eat, big ones that hunt you.
  */
 export const BEACH_1: readonly LevelDef[] = [
   {
@@ -57,7 +58,7 @@ export const BEACH_1: readonly LevelDef[] = [
     startCol: 6,
     shells: [['snail', 20, 0], ['bulb', 42, 0], ['can', 68, 0]],
     food: { surface: 14, buried: 14 },
-    critters: [{ count: 3, sizes: [1, 3], species: 'slater' }, { count: 2, sizes: [1, 3] }, { count: 1, sizes: [4, 4], species: 'beetle' }],
+    critters: [{ count: 3, sizes: [1, 3], species: 'slater' }, { count: 2, sizes: [1, 3] }, { count: 2, sizes: [2, 4], species: 'beetle' }],
   },
   {
     id: 'shadow-sketch', name: 'Shadow Sketch', seed: 106, width: 92, height: 34, parTime: 400,
@@ -66,7 +67,7 @@ export const BEACH_1: readonly LevelDef[] = [
     startCol: 8,
     shells: [['snail', 24, 0], ['can', 64, 0]],
     food: { surface: 8, buried: 14 },
-    critters: [{ count: 3, sizes: [1, 3], species: 'slater' }, { count: 2, sizes: [2, 3] }, { count: 1, sizes: [6, 6] }, { count: 1, sizes: [6, 6], species: 'beetle' }],
+    critters: [{ count: 3, sizes: [1, 3], species: 'slater' }, { count: 2, sizes: [2, 3] }, { count: 1, sizes: [6, 6] }, { count: 2, sizes: [2, 6], species: 'beetle' }],
   },
   {
     id: 'high-water-mark', name: 'High-Water Mark', seed: 107, width: 96, height: 36, parTime: 480,
@@ -75,7 +76,7 @@ export const BEACH_1: readonly LevelDef[] = [
     startCol: 8,
     shells: [['snail', 20, 0], ['bulb', 38, 0], ['whelk', 58, 0], ['moonsnail', 88, 0]],
     food: { surface: 10, buried: 16 },
-    critters: [{ count: 2, sizes: [1, 4], species: 'slater' }, { count: 2, sizes: [1, 4] }, { count: 1, sizes: [7, 7], species: 'beetle' }],
+    critters: [{ count: 2, sizes: [1, 4], species: 'slater' }, { count: 2, sizes: [1, 4] }, { count: 3, sizes: [2, 7], species: 'beetle' }],
   },
   {
     id: 'safe-burrow', name: 'Safe Burrow', seed: 108, width: 100, height: 36, parTime: 560,
@@ -84,7 +85,7 @@ export const BEACH_1: readonly LevelDef[] = [
     startCol: 8,
     shells: [['snail', 18, 0], ['can', 36, 0], ['moonsnail', 58, 0], ['jar', 80, 3]],
     food: { surface: 10, buried: 18 },
-    critters: [{ count: 2, sizes: [2, 5], species: 'slater' }, { count: 3, sizes: [1, 5] }, { count: 1, sizes: [7, 8] }, { count: 1, sizes: [7, 7], species: 'beetle' }],
+    critters: [{ count: 2, sizes: [2, 5], species: 'slater' }, { count: 3, sizes: [1, 5] }, { count: 1, sizes: [7, 8] }, { count: 3, sizes: [3, 7], species: 'beetle' }],
   },
   {
     id: 'storm-tide', name: 'Storm Tide', seed: 109, width: 104, height: 40, parTime: 640,
@@ -93,7 +94,7 @@ export const BEACH_1: readonly LevelDef[] = [
     startCol: 96,
     shells: [['snail', 84, 0], ['can', 66, 0], ['moonsnail', 46, 0], ['jar', 30, 0], ['conch', 5, 0]],
     food: { surface: 12, buried: 18 },
-    critters: [{ count: 2, sizes: [3, 6], species: 'slater' }, { count: 3, sizes: [1, 6] }, { count: 1, sizes: [8, 8] }, { count: 1, sizes: [8, 8], species: 'beetle' }],
+    critters: [{ count: 2, sizes: [3, 6], species: 'slater' }, { count: 3, sizes: [1, 6] }, { count: 1, sizes: [8, 8] }, { count: 3, sizes: [3, 8], species: 'beetle' }],
   },
   {
     id: 'the-final-molt', name: 'The Final Molt', seed: 110, width: 120, height: 42, parTime: 800,
@@ -103,6 +104,6 @@ export const BEACH_1: readonly LevelDef[] = [
     startCol: 110,
     shells: [['snail', 100, 0], ['bulb', 88, 0], ['whelk', 74, 0], ['moonsnail', 60, 0], ['coconut', 44, 4], ['conch', 6, 0]],
     food: { surface: 14, buried: 24 },
-    critters: [{ count: 3, sizes: [2, 6], species: 'slater' }, { count: 3, sizes: [1, 6] }, { count: 1, sizes: [7, 8] }, { count: 1, sizes: [7, 8], species: 'beetle' }],
+    critters: [{ count: 3, sizes: [2, 6], species: 'slater' }, { count: 3, sizes: [1, 6] }, { count: 1, sizes: [7, 8] }, { count: 3, sizes: [3, 8], species: 'beetle' }],
   },
 ];
