@@ -14,6 +14,15 @@ describe('beach 1', () => {
     for (const id of ids) expect(id).toMatch(/^[a-z]+(-[a-z]+)*$/);
   });
 
+  it('buries more food than it leaves on the surface from the second level on', () => {
+    for (const def of BEACH_1.slice(1)) expect(def.food.buried).toBeGreaterThanOrEqual(def.food.surface * 0.7);
+  });
+
+  it('hides every underground kind somewhere on the beach', () => {
+    const kinds = new Set<string>(BEACH_1.flatMap((def) => buildLevel(def).items.filter((i) => i.buried && i.kind.type === 'food').map((i) => (i.kind.type === 'food' ? i.kind.food : ''))));
+    for (const k of ['worm', 'molecrab', 'clam', 'hopper']) expect(kinds.has(k)).toBe(true);
+  });
+
   it('asks for more growth as the beach goes on, ending at the biggest size', () => {
     for (let i = 1; i < BEACH_1.length; i++) expect(levelGoal(BEACH_1[i]!)).toBeGreaterThanOrEqual(levelGoal(BEACH_1[i - 1]!));
     expect(levelGoal(BEACH_1[0]!)).toBe(3);
@@ -53,6 +62,14 @@ describe('beach 1', () => {
           expect(col).toBeLessThan(def.width);
           if (item.buried) expect(tileAt(setup.terrain, col, row)).toBe(TILE.sand);
         }
+      });
+
+      it('buries plenty to eat, never two things in one tile', () => {
+        const buried = setup.items.filter((i) => i.buried && i.kind.type === 'food');
+        expect(buried.length).toBeGreaterThanOrEqual(Math.min(def.food.buried, 3));
+        expect(buried.length).toBeLessThanOrEqual(def.food.buried + (def.food.clams?.length ?? 0));
+        const tiles = setup.items.filter((i) => i.buried).map((i) => `${Math.floor((i.x + i.w / 2) / TILE_PX)},${Math.floor((i.y + i.h / 2) / TILE_PX)}`);
+        expect(new Set(tiles).size).toBe(tiles.length);
       });
 
       it('has critters only of sizes that exist', () => {

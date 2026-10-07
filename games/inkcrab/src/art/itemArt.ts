@@ -59,7 +59,75 @@ function clam(d: Draw): void {
   d.pen.stroke(bezier(pt(-12, 10), pt(0, 13), pt(12, 10), 8), 1.4, '#2a2228', 0.8, false);
 }
 
-const FOODS: Readonly<Record<FoodKind, (d: Draw) => void>> = { crumb, hopper, clam };
+/** A lugworm: a plump, ringed body, thicker at the head end, with tufts of bristles along it and a pale, narrow tail. */
+function worm(d: Draw): void {
+  contact(d, 0, 15);
+  const wiggle = [0, 1.5, -1.5][d.f]!;
+  const spine = cub(pt(-17, 12), pt(-9, 2 + wiggle), pt(4, 18 - wiggle), pt(16, 6), 18);
+  const { top, bot, shape } = ribbon(spine, (u) => 3 + 6 * Math.sin(Math.PI * Math.min(1, 0.15 + u * 0.95)));
+  skin(d, shape, '#d9867a', 0.72);
+  d.pen.clipped(shape, () => {
+    // Rings along the body, a darker gut line, and a glint on the upper side.
+    for (let i = 1; i < spine.length - 1; i++) d.pen.hair([top[i]!, bot[i]!], 0.45, d.ink, 0.55);
+    d.pen.hair(spine.slice(3, 15).map((p, i) => lerp(p, bot[i + 3]!, 0.35)), 1.2, '#8e3f3a', 0.35);
+    glint(d, spine.slice(4, 14).map((p, i) => lerp(p, top[i + 4]!, 0.55)), 1, 0.7);
+  });
+  shade(d, shape, 0.35);
+  edge(d, shape, 1);
+  // Bristle tufts on the thick middle segments.
+  for (let i = 6; i < 15; i += 2) {
+    const p = bot[i]!;
+    for (const k of [-1, 0, 1]) d.pen.hair([p, add(p, pt(k * 1.2, 2.2))], 0.4, d.ink, 0.8);
+  }
+  // The blunt head with its proboscis, and the narrow tail.
+  d.pen.fill(oval(16.5, 6, 1.6, 1.3, 10), '#b05e55', 0.8);
+  d.pen.hair([pt(-17, 12), pt(-20, 13.5)], 1, d.ink, 0.8);
+}
+
+/** A mole crab: a smooth, egg-shaped shell tapering to a tucked tail, feathery antennae up front, paddle legs folded under. */
+function molecrab(d: Draw): void {
+  contact(d, 0, 13);
+  const shell = [
+    ...cub(pt(-14, 14), pt(-16, 2), pt(-4, -4), pt(6, -3), 12),
+    ...cub(pt(6, -3), pt(14, -2), pt(16, 8), pt(13, 14), 10).slice(1),
+    ...cub(pt(13, 14), pt(4, 17), pt(-8, 17), pt(-14, 14), 10).slice(1),
+  ];
+  // Paddle legs tucked beneath, and the tail fan folded under the back.
+  for (const x of [-6, -1, 4]) {
+    const paddle = oval(x, 15.5, 2.6, 1.3, 10);
+    skin(d, paddle, '#cbb89a', 0.7);
+    edge(d, paddle, 0.6);
+  }
+  skin(d, shell, '#d8cbb0', 0.7);
+  d.pen.clipped(shell, () => {
+    // Fine transverse ridges and a soft sheen.
+    for (let k = 0; k < 9; k++) {
+      const x = -11 + k * 2.8;
+      d.pen.hair(bezier(pt(x, -4), pt(x - 1.5, 6), pt(x - 0.5, 16), 6), 0.45, d.ink, 0.45);
+    }
+    tint(d, oval(-1, 2, 7, 3.5), '#fbf3e2', 0.6);
+    d.pen.stipple(shell, 60, () => 0.6, 0.4, '#8f7d5e');
+  });
+  shade(d, shell, 0.45);
+  edge(d, shell, 1.1);
+  // Eyes on slender stalks, and the feathery antennae combing the water.
+  for (const [x, lean] of [[12, 2], [14.5, 3.5]] as const) {
+    d.pen.stroke([pt(x, 0), pt(x + lean, -5)], 0.6, d.ink, 0.9, false);
+    eyeDot(d, x + lean, -5.5, 0.9);
+  }
+  const sway = [0, 1.5, -1][d.f]!;
+  for (const [x, len] of [[13, 12], [15, 10]] as const) {
+    const plume = bezier(pt(x, 1), pt(x + 6, -5 + sway), pt(x + 4 + len * 0.4, -len + sway), 8);
+    d.pen.hair(plume, 0.55, d.ink, 0.9);
+    for (let i = 2; i < plume.length; i++) {
+      const p = plume[i]!;
+      d.pen.hair([p, add(p, pt(2.2, 0.6))], 0.35, d.ink, 0.7);
+      d.pen.hair([p, add(p, pt(-1.6, 1.2))], 0.35, d.ink, 0.6);
+    }
+  }
+}
+
+const FOODS: Readonly<Record<FoodKind, (d: Draw) => void>> = { crumb, hopper, worm, molecrab, clam };
 
 export function drawFood(d: Draw, kind: FoodKind): void {
   FOODS[kind](d);

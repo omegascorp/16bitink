@@ -95,7 +95,7 @@ for (const species of Object.keys(SPECIES) as SpeciesId[]) {
 }
 
 const foods = section('food');
-for (const kind of ['crumb', 'hopper', 'clam'] as const) {
+for (const kind of ['crumb', 'hopper', 'worm', 'molecrab', 'clam'] as const) {
   figure(foods, kind, FOOD_FRAME * 4, FOOD_FRAME * 3, (ctx) => {
     ctx.scale(4, 4);
     ctx.translate(FOOD_FRAME / 2, FOOD_FRAME / 2);

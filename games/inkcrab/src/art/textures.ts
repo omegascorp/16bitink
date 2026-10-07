@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import type { FoodKind } from '../logic/items';
+import { FOOD_KINDS } from '../logic/items';
 import { SHELL_KINDS } from '../logic/shells';
 import { SPECIES, type SpeciesId } from '../logic/species';
 import { BACKDROP_W, BOAT_BOX, BOAT_DRAW, THEME_BOATS, THEMES, type ThemeId } from './backdrop';
@@ -30,7 +30,6 @@ export const TEX = {
   boat: (theme: string, i: number) => `boat-${theme}-${i}`,
 } as const;
 
-const FOODS: readonly FoodKind[] = ['crumb', 'hopper', 'clam'];
 /** World px between ruled lines on the notebook page. */
 export const RULE_GAP = 32;
 const PAPER_TILE = 256;
@@ -113,7 +112,7 @@ export function generateTextures(scene: Phaser.Scene): void {
       }
     }
     SHELL_KINDS.forEach((kind, i) => critter(TEX.shell(kind, f), 300 + i * 10 + f, f, (d) => drawShell(d, kind)));
-    FOODS.forEach((kind, i) => bake(scene, TEX.food(kind, f), FOOD_FRAME, FOOD_RES, (ctx) => drawFood(makeDraw(ctx, 500 + i * 10 + f, f, FOOD_GROUND), kind)));
+    FOOD_KINDS.forEach((kind, i) => bake(scene, TEX.food(kind, f), FOOD_FRAME, FOOD_RES, (ctx) => drawFood(makeDraw(ctx, 500 + i * 10 + f, f, FOOD_GROUND), kind)));
     bake(scene, TEX.puff(f), PUFF, 2, (ctx) => drawPuff(makeDraw(ctx, 700 + f, f, 0), PUFF * 0.36));
     bake(scene, TEX.highlight(f), 32, 2, (ctx) => {
       ctx.translate(-16, -16);
