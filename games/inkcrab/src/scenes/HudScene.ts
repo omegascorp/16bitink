@@ -44,6 +44,8 @@ export class HudScene extends Phaser.Scene {
   private lives: Phaser.GameObjects.Image[] = [];
   private levelsButton!: Phaser.GameObjects.Container;
   private intro: Phaser.GameObjects.Container | null = null;
+  /** The intro card is on its way out (the player has started, or its time is up). */
+  private introLeaving = false;
   private coachText!: Phaser.GameObjects.Text;
   private coachBox!: Phaser.GameObjects.Graphics;
   private sand!: Phaser.GameObjects.Text;
@@ -68,6 +70,7 @@ export class HudScene extends Phaser.Scene {
     this.hidePointer = null;
     this.stickPull = { x: 0, y: 0 };
     this.intro = null;
+    this.introLeaving = false;
     this.g = this.add.graphics();
     const text = (x: number, y: number, size: number, color = BLUE): Phaser.GameObjects.Text =>
       this.add.text(x, y, '', { fontFamily: HAND_FONT, fontSize: `${size}px`, color, padding: { x: 4, y: 2 } });
@@ -146,6 +149,17 @@ export class HudScene extends Phaser.Scene {
   }
 
   /** The coach's current hint, in a paper note under the top of the screen. */
+  /** The intro card gets out of the way as soon as the player starts: walking, digging or hiding. */
+  private dismissIntroOnMove(game: GameScene): void {
+    const intro = this.intro;
+    if (!intro?.active || this.introLeaving) return;
+    const c = game.beach.crab;
+    if (Math.abs(c.body.vx) < 1 && c.sand === 0 && !c.hidden && c.swap === null) return;
+    this.introLeaving = true;
+    this.tweens.killTweensOf(intro);
+    this.tweens.add({ targets: intro, alpha: 0, duration: 250, onComplete: () => intro.destroy() });
+  }
+
   /** On a tidal beach: the tide clock and which way the water's going. */
   private drawTide(game: GameScene, width: number): void {
     const tide = game.beach.tide;
@@ -161,6 +175,7 @@ export class HudScene extends Phaser.Scene {
   }
 
   private drawCoach(game: GameScene, width: number): void {
+    this.dismissIntroOnMove(game);
     const hint = this.intro?.active ? null : game.coach.hint(game.beach, this.touchSeen ? 'touch' : 'keys');
     const box = this.coachBox.clear();
     this.coachText.setVisible(hint !== null);
@@ -195,7 +210,7 @@ export class HudScene extends Phaser.Scene {
     const goal = inkText(this, 0, -8, `grow to size ${levelGoal(game.level)}`, 26);
     const hint = inkText(this, 0, 44, game.level.hint, 20).setWordWrapWidth(w - 40).setAlign('center').setAlpha(0.85);
     this.intro = this.add.container(width / 2, height * 0.42, [g, name, goal, hint]);
-    this.tweens.add({ targets: this.intro, alpha: 0, delay: INTRO_MS, duration: 500, onComplete: () => this.intro?.destroy() });
+    this.tweens.add({ targets: this.intro, alpha: 0, delay: INTRO_MS, duration: 500, onStart: () => (this.introLeaving = true), onComplete: () => this.intro?.destroy() });
   }
 
   private touch(): TouchState | undefined {
