@@ -107,3 +107,9 @@ export function buildLevel(def: LevelDef): BeachSetup {
     goal: levelGoal(def),
   };
 }
+
+/** Every shell a level has, starting shell included, smallest first: the climb the beach celebration retells. */
+export function shellLadder(def: LevelDef): ShellKind[] {
+  const kinds = [...new Set<ShellKind>([START_SHELL, ...def.shells.map(([k]) => k)])];
+  return kinds.sort((a, b) => SHELLS[a].maxSize - SHELLS[b].maxSize || SHELLS[a].minSize - SHELLS[b].minSize);
+}

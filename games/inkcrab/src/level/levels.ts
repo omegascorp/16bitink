@@ -22,3 +22,22 @@ export function nextLevel(id: string): LevelDef | undefined {
   const i = LEVEL_ORDER.indexOf(id);
   return i >= 0 ? LEVELS[i + 1] : undefined;
 }
+
+/** Beaches playable without the full game: the first one. */
+export const FREE_BEACHES = 1;
+
+/** 0-based beach of a level, or -1 when it isn't a built level. */
+export function beachIndexOf(id: string): number {
+  return BEACHES.findIndex((b) => b.some((l) => l.id === id));
+}
+
+/** True for the last level of its beach: the finale that earns the beach celebration. */
+export function isBeachFinale(id: string): boolean {
+  const beach = BEACHES[beachIndexOf(id)];
+  return beach?.at(-1)?.id === id;
+}
+
+/** True for the last free level: where a player without the full game is offered it. */
+export function isFreeEnd(id: string): boolean {
+  return isBeachFinale(id) && beachIndexOf(id) === FREE_BEACHES - 1;
+}

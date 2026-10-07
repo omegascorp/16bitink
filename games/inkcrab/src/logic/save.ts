@@ -74,3 +74,21 @@ export function saveProgress(store: KeyValueStore | undefined, p: Progress): voi
     console.warn('[inkcrab] could not save progress', err);
   }
 }
+
+/** A beach's totals: blots earned of those possible, and the sum of best times of its finished levels. */
+export interface BeachTally {
+  readonly blots: number;
+  readonly maxBlots: number;
+  readonly finished: number;
+  readonly time: number;
+}
+
+export function beachTally(p: Progress, ids: readonly string[]): BeachTally {
+  const records = ids.map((id) => p.levels[id]).filter((r): r is LevelRecord => r !== undefined);
+  return {
+    blots: records.reduce((n, r) => n + r.blots, 0),
+    maxBlots: ids.length * MAX_BLOTS,
+    finished: records.length,
+    time: records.reduce((n, r) => n + r.bestTime, 0),
+  };
+}

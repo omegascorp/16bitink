@@ -28,6 +28,9 @@ export interface ButtonOpts {
   readonly width?: number;
   readonly height?: number;
   readonly size?: number;
+  /** Fill behind the label (default paper) and the label's ink (default blue). */
+  readonly fill?: number;
+  readonly color?: string;
 }
 
 /**
@@ -39,9 +42,9 @@ export function inkButton(scene: Phaser.Scene, x: number, y: number, label: stri
   const w = opts.width ?? 200;
   const h = opts.height ?? 52;
   const g = scene.add.graphics();
-  g.fillStyle(PAPER_HEX, 0.95).fillRect(-w / 2, -h / 2, w, h);
+  g.fillStyle(opts.fill ?? PAPER_HEX, 0.95).fillRect(-w / 2, -h / 2, w, h);
   wobblyRect(g, -w / 2, -h / 2, w, h, label.length * 31, 1.8, BLUE_HEX);
-  const t = inkText(scene, 0, 0, label, opts.size ?? 28);
+  const t = inkText(scene, 0, 0, label, opts.size ?? 28, opts.color);
   const c = scene.add.container(x, y, [g, t]).setSize(w, h);
   c.setInteractive({ useHandCursor: true });
   let pressedAt: { x: number; y: number } | null = null;

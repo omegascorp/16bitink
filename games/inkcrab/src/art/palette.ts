@@ -16,8 +16,6 @@ export const RED = '#b3322b';
 export const RED_HEX = 0xb3322b;
 export const HIGHLIGHT = '#f3e04a';
 export const HIGHLIGHT_HEX = 0xf3e04a;
-/** Faint ruled lines of the notebook page. */
-export const RULE = '#9fb2d8';
 
 /** Sand: dry on top, darker and wetter with depth. */
 export const SAND_DRY = '#ecdcb0';

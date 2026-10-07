@@ -2,6 +2,7 @@ import type { GameHandle, GameHost, GameModule } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { PAPER } from './art/palette';
 import { REG } from './host';
+import { BeachEndScene } from './scenes/BeachEndScene';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 import { HudScene } from './scenes/HudScene';
@@ -33,7 +34,7 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     },
     input: { activePointers: 3 },
     audio: { noAudio: true },
-    scene: [BootScene, MenuScene, GameScene, HudScene, ResultScene],
+    scene: [BootScene, MenuScene, GameScene, HudScene, ResultScene, BeachEndScene],
   });
   game.registry.set(REG.host, host);
   const resizer = new ResizeObserver(() => {

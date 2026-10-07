@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BACKDROP_SCALE, BACKDROP_W, BOAT_BOX, type BoatSpec, THEME_BOATS, THEMES, type ThemeId } from '../../art/backdrop';
+import { BACKDROP_SCALE, BACKDROP_W, BOAT_BOX, type BoatSpec, type LayerId, THEME_BOATS, THEMES, type ThemeId } from '../../art/backdrop';
 import { ART_RES } from '../../art/palette';
 import { TEX } from '../../art/textures';
 import { sailAt } from '../../logic/sailing';
@@ -25,12 +25,14 @@ interface Boat {
 export class BackdropView {
   private readonly boats: Boat[] = [];
 
-  constructor(scene: Phaser.Scene, theme: ThemeId, ground: number, span: number) {
+  /** `skip`: layers to leave out (a still scene shows the sky's repeating sun too plainly). */
+  constructor(scene: Phaser.Scene, theme: ThemeId, ground: number, span: number, skip: readonly LayerId[] = []) {
     const layers = THEMES[theme];
     const tops = new Map<string, number>();
     layers.forEach((layer, i) => {
       const h = layer.height * BACKDROP_SCALE;
       tops.set(layer.id, ground - layer.lift - h);
+      if (skip.includes(layer.id)) return;
       scene.add.tileSprite(LEFT, ground - layer.lift - h, span, h, TEX.backdrop(theme, layer.id))
         .setOrigin(0)
         .setTileScale(BACKDROP_SCALE / ART_RES)
@@ -39,6 +41,7 @@ export class BackdropView {
     });
     const tile = BACKDROP_W * BACKDROP_SCALE;
     THEME_BOATS[theme].forEach((spec, i) => {
+      if (skip.includes(spec.layer)) return;
       const at = layers.findIndex((l) => l.id === spec.layer);
       const layer = layers[at]!;
       const box = BOAT_BOX[spec.kind];

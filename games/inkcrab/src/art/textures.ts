@@ -8,7 +8,7 @@ import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, drawCritter } from './critt
 import { FRAME, GROUND } from './frame';
 import { drawFood, drawHighlight, drawPuff, FOOD_FRAME, FOOD_GROUND, FOOD_RES } from './itemArt';
 import { makeDraw, type Draw } from './kit';
-import { ART_RES, BOIL, PAPER, RED, RULE } from './palette';
+import { ART_RES, BOIL, PAPER, RED } from './palette';
 import { makeCanvas } from './pen';
 import { drawShell } from './shellArt';
 
@@ -23,15 +23,12 @@ export const TEX = {
   food: (kind: string, f: number) => `food-${kind}-${f}`,
   highlight: (f: number) => `hl-${f}`,
   puff: (f: number) => `puff-${f}`,
+  /** Plain paper: no ruled lines anywhere in the game. */
   paper: 'paper',
-  /** Paper without the ruled lines, behind the levels. */
-  plainPaper: 'paper-plain',
   backdrop: (theme: string, layer: string) => `backdrop-${theme}-${layer}`,
   boat: (theme: string, i: number) => `boat-${theme}-${i}`,
 } as const;
 
-/** World px between ruled lines on the notebook page. */
-export const RULE_GAP = 32;
 const PAPER_TILE = 256;
 /** Frame px of the sand-puff drawing. */
 export const PUFF = 64;
@@ -46,28 +43,11 @@ function bake(scene: Phaser.Scene, key: string, units: number, res: number, draw
   scene.textures.addCanvas(key, canvas);
 }
 
-function bakePlainPaper(scene: Phaser.Scene): void {
-  if (scene.textures.exists(TEX.plainPaper)) return;
-  const { canvas, ctx } = makeCanvas(PAPER_TILE, PAPER_TILE);
-  ctx.fillStyle = PAPER;
-  ctx.fillRect(0, 0, PAPER_TILE, PAPER_TILE);
-  scene.textures.addCanvas(TEX.plainPaper, canvas);
-}
-
 function bakePaper(scene: Phaser.Scene): void {
   if (scene.textures.exists(TEX.paper)) return;
   const { canvas, ctx } = makeCanvas(PAPER_TILE, PAPER_TILE);
   ctx.fillStyle = PAPER;
   ctx.fillRect(0, 0, PAPER_TILE, PAPER_TILE);
-  ctx.strokeStyle = RULE;
-  ctx.globalAlpha = 0.45;
-  ctx.lineWidth = 1;
-  for (let y = RULE_GAP - 0.5; y < PAPER_TILE; y += RULE_GAP) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(PAPER_TILE, y);
-    ctx.stroke();
-  }
   scene.textures.addCanvas(TEX.paper, canvas);
 }
 
@@ -97,7 +77,6 @@ function bakeBackdrops(scene: Phaser.Scene): void {
 /** Draws every sprite with BOIL slightly different frames (for the crab, also its leg poses). */
 export function generateTextures(scene: Phaser.Scene): void {
   bakePaper(scene);
-  bakePlainPaper(scene);
   bakeBackdrops(scene);
   const critter = (key: string, seed: number, f: number, draw: (d: Draw) => void, ink?: string): void =>
     bake(scene, key, FRAME, 1, (ctx) => draw(makeDraw(ctx, seed, f, GROUND, ink)));

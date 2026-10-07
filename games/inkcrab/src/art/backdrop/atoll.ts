@@ -23,7 +23,11 @@ const WRACK = '#8a7a52';
 
 export const SKY_H = 220;
 export const LAGOON_H = 170;
-export const SHORE_H = 250;
+/** Headroom above the shore's tallest palm crowns, so their fronds are never cut off at the layer's top. */
+const SHORE_HEADROOM = 80;
+export const SHORE_H = 250 + SHORE_HEADROOM;
+/** Where the shore's sand meets the scrub, from the layer's top. */
+const SHORE_GROUND = 200 + SHORE_HEADROOM;
 
 export function sky(d: Draw): void {
   // A soft wash, deepest a third of the way down, fading out at both edges of the layer.
@@ -142,7 +146,7 @@ function berm(t: Draw, top: (x: number) => number): void {
   const shape = [...edge, pt(BACKDROP_W + 20, SHORE_H), pt(-20, SHORE_H)];
   pen.fill(shape, PAPER_FILL, 1);
   pen.fill(shape, SAND_WHITE, 0.9);
-  pen.stipple(shape, 1600, (_, y) => Math.max(0, 1 - (y - 190) / 50) * 0.5, 0.5, '#9c8a62');
+  pen.stipple(shape, 1600, (_, y) => Math.max(0, 1 - (y - (SHORE_GROUND - 10)) / 50) * 0.5, 0.5, '#9c8a62');
   pen.stroke(edge, 1.1, t.ink, FAR, false);
   // The wrack line: dashes of dried seagrass where the last tide reached.
   for (let x = 10; x < BACKDROP_W; x += 9 + pen.rng() * 14) {
@@ -165,7 +169,7 @@ function vine(t: Draw, x: number, y: number, len: number): void {
 }
 
 export function shore(d: Draw): void {
-  const ground = 200;
+  const ground = SHORE_GROUND;
   const top = (x: number): number => ground - 4 * Math.sin((x / BACKDROP_W) * Math.PI * 4 + 0.7) - 2 * Math.sin((x / BACKDROP_W) * Math.PI * 10);
   tiled(d, 903, (t) => {
     const trunks: Pt[][] = [];

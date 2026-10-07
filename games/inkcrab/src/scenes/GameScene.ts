@@ -3,7 +3,7 @@ import { BLUE, BLUE_HEX, RED } from '../art/palette';
 import { TEX } from '../art/textures';
 import { getHost, REG } from '../host';
 import { buildLevel, START_SIZE } from '../level/build';
-import { LEVELS, levelById, themeOf } from '../level/levels';
+import { isBeachFinale, LEVELS, levelById, themeOf } from '../level/levels';
 import type { LevelDef } from '../level/types';
 import { Coach } from '../logic/coach';
 import type { TilePos } from '../logic/dig';
@@ -60,7 +60,7 @@ export class GameScene extends Phaser.Scene {
     const T = setup.tileSize;
     const worldW = setup.terrain.width * T;
     const worldH = setup.terrain.height * T;
-    this.add.tileSprite(0, 0, worldW, worldH, TEX.plainPaper).setOrigin(0).setDepth(0);
+    this.add.tileSprite(0, 0, worldW, worldH, TEX.paper).setOrigin(0).setDepth(0);
     this.addBackdrop(setup.terrain, T, worldW);
     this.terrainView = new TerrainView(this, setup.terrain, T);
     this.itemsView = new ItemsView(this);
@@ -103,7 +103,8 @@ export class GameScene extends Phaser.Scene {
     const result: ResultData = { levelId: this.level.id, won, time: b.elapsed, blots, livesLost };
     this.time.delayedCall(END_DELAY_MS, () => {
       this.scene.stop('Hud');
-      this.scene.start('Result', result);
+      // The last level of a beach gets the full celebration instead of the result card.
+      this.scene.start(won && isBeachFinale(this.level.id) ? 'BeachEnd' : 'Result', result);
     });
   }
 
