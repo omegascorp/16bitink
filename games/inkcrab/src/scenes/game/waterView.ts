@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BLUE_HEX, PAPER_HEX } from '../../art/palette';
 import type { Beach } from '../../logic/sim';
+import { isSolid } from '../../logic/terrain';
 
 const WATER_HEX = 0x5f9fb8;
 /** Rows between the faint wavy lines inside the water. */
@@ -59,10 +60,15 @@ export class WaterView {
         const bottom = (y + 1) * T;
         if (top >= bottom) continue;
         // Into the sand a tile either side, and a tile down under each floored tile (never over water, which would darken in bands).
-        // Paper first, so the faraway beach doesn't show through the water.
+        // Paper first, so the faraway beach doesn't show through the water. The
+        // wash reaches into the sand beside and under it (only where it is sand:
+        // never over an open tile, such as a tunnel dug next to the water).
+        const t = this.beach.terrain;
+        const l = isSolid(t, start - 1, y) ? left - T : left;
+        const r = isSolid(t, x, y) ? right + T : right;
         for (const [color, alpha] of [[PAPER_HEX, 1], [WATER_HEX, 0.38]] as const) {
-          wash.fillStyle(color, alpha).fillRect(left - T, top, right - left + 2 * T, bottom - top);
-          for (let cx = start; cx < x; cx++) if (y + 1 < w.height && !w.wet[(y + 1) * w.width + cx]) wash.fillRect(cx * T, bottom, T, T);
+          wash.fillStyle(color, alpha).fillRect(l, top, r - l, bottom - top);
+          for (let cx = start; cx < x; cx++) if (isSolid(t, cx, y + 1)) wash.fillRect(cx * T, bottom, T, T);
         }
         g.fillStyle(WATER_HEX, 0.1).fillRect(left, top, right - left, bottom - top);
         const surface = y === 0 || !w.wet[(y - 1) * w.width + start] || (sea && top > y * T);
