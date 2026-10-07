@@ -192,6 +192,34 @@ describe('ravens', () => {
   });
 });
 
+describe('a creature walled in', () => {
+  /** Sand from row 6, with a pit three deep around column 10. */
+  const pit = (): Terrain => {
+    const t = createTerrain(20, 12);
+    for (let x = 0; x < 20; x++) for (let y = 6; y < 12; y++) setTile(t, x, y, TILE.sand);
+    for (let x = 7; x <= 13; x++) for (let y = 6; y < 9 - Math.abs(x - 10); y++) setTile(t, x, y, TILE.air);
+    return t;
+  };
+  const facings = (c: Critter): Set<number> => {
+    const t = pit();
+    const rng = createRng(1);
+    const dirs = new Set<number>();
+    for (let i = 0; i < 60; i++) {
+      c = stepCritter(t, c, null, 1 / 60, T, rng);
+      if (i > 10) dirs.add(c.dir);
+    }
+    return dirs;
+  };
+
+  it('stays facing one way at the bottom of a pit (an antlion)', () => {
+    expect(facings(makeCritter(1, 4, 10 * T + 8, 9 * T, 1, 10, 'antlion')).size).toBe(1);
+  });
+
+  it('stands still rather than flickering round when boxed in (a beetle down a hole)', () => {
+    expect(facings(makeCritter(1, 3, 10 * T + 8, 9 * T, 1, 10, 'darkling')).size).toBe(1);
+  });
+});
+
 describe('antlions', () => {
   it('stay put at the bottom of their pit', () => {
     const c = makeCritter(1, 5, 20 * T, 10 * T, 1, 10, 'antlion');

@@ -14,6 +14,7 @@ import { blotsFor, loadProgress, recordResult, saveProgress } from '../logic/sav
 import { Beach, LIVES, type SimEvent } from '../logic/sim';
 import { BackdropView } from './game/backdropView';
 import { BirdsView } from './game/birdsView';
+import { SandFxView } from './game/sandFxView';
 import { CrabView } from './game/crabView';
 import { CrittersView } from './game/crittersView';
 import { createTouchState, GameInput, type TouchState } from './game/input';
@@ -45,6 +46,7 @@ export class GameScene extends Phaser.Scene {
   private itemsView!: ItemsView;
   private crittersView!: CrittersView;
   private birdsView!: BirdsView;
+  private sandFx!: SandFxView;
   private crabView!: CrabView;
   private input2!: GameInput;
   private touch!: TouchState;
@@ -68,6 +70,7 @@ export class GameScene extends Phaser.Scene {
     this.itemsView = new ItemsView(this);
     this.crittersView = new CrittersView(this, setup.terrain, T);
     this.birdsView = new BirdsView(this, setup.terrain, T);
+    this.sandFx = new SandFxView(this, this.beach);
     this.crabView = new CrabView(this);
     this.input2 = new GameInput(this);
     this.touch = createTouchState();
@@ -123,6 +126,7 @@ export class GameScene extends Phaser.Scene {
     this.itemsView.sync(this.beach.items, time, this.beach.crab.swap?.itemId ?? null);
     this.crittersView.sync(this.beach.critters, this.beach.crab.growth.size, time);
     this.birdsView.sync(this.beach.birds, this.beach.crab.growth.size, time);
+    this.sandFx.update(dt, time);
     this.crabView.update(this.beach, time, dt);
     const cam = this.cameras.main;
     const z = screenZoom(cam);
@@ -181,7 +185,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private react(e: SimEvent): void {
-    if (e.type === 'tiles') this.terrainView.invalidate(e.tiles);
+    if (e.type === 'tiles') {
+      this.terrainView.invalidate(e.tiles);
+      if (e.poured) this.sandFx.poured(e.tiles);
+    }
     else if (e.type === 'ate') {
       this.floatText(e.x, e.y, e.banked > 0 ? `+${e.banked} banked` : `+${e.points}`);
       if (e.banked > 0) this.crabView.stuck(this);

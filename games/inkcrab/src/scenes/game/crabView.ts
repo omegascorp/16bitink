@@ -15,6 +15,8 @@ const WALK_FPS = 10;
 const BOIL_MS = 240;
 /** A naked crab's drawing size relative to a shell of the same body size. */
 const NAKED_SCALE = 0.95;
+/** Radians the crab tips down a pit's slope as it slides. */
+const PIT_TILT = 0.35;
 /** Swap progress where the crab slips from the old shell to the new, hidden by a puff of sand. */
 const SWITCH = 0.5;
 const PUFF_SPAN = 0.16;
@@ -64,6 +66,9 @@ export class CrabView {
     const body = spec ? unit * bodyFill(spec, growth) : (shellPx(growth) / SHELL_UNITS) * NAKED_SCALE;
     this.root.setPosition(c.body.x + c.body.w / 2 + c.facing * FOOT_FROM_MIDDLE * unit, c.body.y + c.body.h);
     this.root.setScale(c.facing, 1);
+    // Tipped down the slope while an antlion pit's sand carries it in.
+    const tilt = Math.sign(beach.pitPull(c.body)) * PIT_TILT;
+    this.root.setRotation(this.root.rotation + (tilt - this.root.rotation) * Math.min(1, dt * 10));
     // Blinks through the grace after being caught.
     this.root.setAlpha(c.safe > 0 && Math.floor(time / BLINK_MS) % 2 === 0 ? 0.35 : 1);
 

@@ -35,7 +35,8 @@ export const IDLE: Input = { moveX: 0, aimY: 0, jump: false, dig: false, place: 
 export type SimEvent =
   | { readonly type: 'ate'; readonly id: number; readonly points: number; readonly banked: number; readonly x: number; readonly y: number }
   | { readonly type: 'grew'; readonly size: number }
-  | { readonly type: 'tiles'; readonly tiles: readonly TilePos[]; readonly dug: boolean }
+  /** Tiles that changed. `poured`: dune sand running, as from/to pairs. */
+  | { readonly type: 'tiles'; readonly tiles: readonly TilePos[]; readonly dug: boolean; readonly poured?: boolean }
   | { readonly type: 'revealed'; readonly id: number }
   | { readonly type: 'spawned'; readonly id: number }
   | { readonly type: 'swapStart'; readonly id: number }
@@ -365,7 +366,8 @@ export class Beach {
 
   /**
    * Dune sand near anything that changed pours, a row a tick, around the
-   * crab and the creatures (it rests on them rather than burying them).
+   * crab, the creatures and anything dug up (it rests on them rather than
+   * burying them, so food just uncovered can still be eaten).
    */
   private pour(dt: number, events: SimEvent[]): void {
     if (!this.hasDunes) return;
@@ -376,13 +378,17 @@ export class Beach {
     const T = this.tileSize;
     const cell = (x: number, y: number): Box => ({ x: x * T, y: y * T, w: T, h: T });
     const walkers = [...this.critters.values()].filter((k) => movementOf(k.species) === 'walk');
-    const blocked = (x: number, y: number): boolean => overlaps(this.crab.body, cell(x, y)) || walkers.some((k) => overlaps(k, cell(x, y)));
+    const uncovered = [...this.items.values()].filter((i) => !i.buried);
+    const blocked = (x: number, y: number): boolean => {
+      const c = cell(x, y);
+      return overlaps(this.crab.body, c) || walkers.some((k) => overlaps(k, c)) || uncovered.some((i) => overlaps(i, c));
+    };
     const cols = [...this.pouring];
     this.pouring.clear();
     this.pourFlip = !this.pourFlip;
     const changed = pourStep(this.terrain, cols, blocked, this.pourFlip);
     if (!changed.length) return;
-    events.push({ type: 'tiles', tiles: changed, dug: false });
+    events.push({ type: 'tiles', tiles: changed, dug: false, poured: true });
     for (const x of columnsAround(changed)) this.pouring.add(x);
   }
 
@@ -472,12 +478,6 @@ export class Beach {
         events.push({ type: 'revealed', id: item.id });
         continue;
       }
-      // Sand poured or put over it buries it again.
-      const at = centre(item);
-      if (isSolid(this.terrain, Math.floor(at.x / T), Math.floor(at.y / T))) {
-        this.items.set(item.id, { ...item, buried: true, vx: 0, vy: 0 });
-        continue;
-      }
       // A freshly uncovered item may still be wedged in sand; it drops once there's room.
       if (boxHitsSolid(this.terrain, item, T)) continue;
       const moved = moveBody(this.terrain, item, 0, 0, dt, T);
@@ -561,7 +561,7 @@ export class Beach {
   private meetCritters(events: SimEvent[]): void {
     for (const k of this.critters.values()) {
       const c = this.crab;
-      if (!overlaps(c.body, k)) continue;
+      if (!overlaps(c.body, k, this.reach(k))) continue;
       if (c.hidden) {
         // It walks on past the shell, and doesn't turn back to hunt for a while.
         if (k.size > c.growth.size) this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });
@@ -575,6 +575,16 @@ export class Beach {
         this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });
       }
     }
+  }
+
+  /**
+   * How far past its box a creature meets the crab. An antlion sits at the
+   * one-tile bottom of its funnel, where a crab wider than a tile can't get
+   * down to it; its jaws reach up to wherever the crab comes to rest.
+   */
+  private reach(k: Critter): number {
+    if (movementOf(k.species) !== 'lurk') return 0;
+    return Math.max(this.tileSize / 2, this.crab.body.w / 2);
   }
 
   private eatCritter(k: Critter, events: SimEvent[]): void {

@@ -101,6 +101,11 @@ export function stepCritter(t: Terrain, c: Critter, q: Quarry | null, dt: number
   if (movementOf(c.species) === 'burrow') return stepBurrower(t, c, q, dt, tile, rng);
   const spec = SPECIES[c.species];
   const seen = spot(c, q, tile);
+  // A lurker never wanders or turns on its own: it only faces a crab it sees.
+  if (spec.move === 'lurk') {
+    const moved = moveBody(t, c, 0, 0, dt, tile);
+    return { ...c, ...moved, dir: seen === 0 ? c.dir : seen, clock: c.clock + dt, bored: Math.max(0, c.bored - dt) };
+  }
   const hunting = seen !== 0 && q !== null && (c.size < q.size || (c.size > q.size && spec.hunts));
   let dir = c.dir;
   if (hunting) dir = (c.size > q.size ? seen : -seen) as 1 | -1;
@@ -117,7 +122,9 @@ export function stepCritter(t: Terrain, c: Critter, q: Quarry | null, dt: number
   const stuck = !resting && c.onGround && Math.abs(moved.x - c.x) < 1e-3 && boxHitsSolid(t, { ...moved, x: moved.x + dir }, tile);
   // A hopper clears the wall instead.
   if (stuck && spec.hops) return { ...c, ...jump(moved, Math.sqrt(2 * PHYS.gravity * CRITTER.hop * tile)), dir, turnIn, clock, bored: Math.max(0, c.bored - dt) };
-  if (stuck && !hunting) dir = dir === 1 ? -1 : 1;
+  // Walled in on both sides (down a hole), it stands facing one way rather than flipping every frame.
+  const boxedIn = stuck && boxHitsSolid(t, { ...moved, x: moved.x - dir }, tile);
+  if (stuck && !hunting && !boxedIn) dir = dir === 1 ? -1 : 1;
   return { ...c, ...moved, dir, turnIn, clock, bored: Math.max(0, c.bored - dt) };
 }
 
@@ -187,8 +194,13 @@ function stepBurrower(t: Terrain, c: Critter, q: Quarry | null, dt: number, tile
   if (stranded) vy = speed;
   let box: Box = c;
   const across = { ...box, x: box.x + vx * dt };
+  const back = { ...box, x: box.x - vx * dt };
   if (stranded || swimmable(t, across, tile)) box = across;
-  else if (!hunting) dir = dir === 1 ? -1 : 1;
+  // Blocked (rock, the surface): turn back, unless that way is blocked too.
+  else if (!hunting && swimmable(t, back, tile)) {
+    dir = dir === 1 ? -1 : 1;
+    box = back;
+  }
   const down = { ...box, y: box.y + vy * dt };
   if (stranded ? !touchesRock(t, down, tile) : swimmable(t, down, tile)) box = down;
   return { ...c, x: box.x, y: box.y, vx, vy, onGround: false, dir, turnIn, clock, bored: Math.max(0, c.bored - dt) };

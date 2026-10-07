@@ -4,6 +4,7 @@ import { buildLevel } from '../src/level/build';
 import { carve } from '../src/level/carve';
 import { createRng } from '../src/logic/rng';
 import { Beach, IDLE, PIT_PULL, type BeachSetup, type Input } from '../src/logic/sim';
+import { shellPx, SHELLS } from '../src/logic/shells';
 import { TILE, type Terrain } from '../src/logic/terrain';
 
 const T = 16;
@@ -111,5 +112,50 @@ describe('kestrels in play', () => {
     b.crab = { ...b.crab, growth: { ...b.crab.growth, size: 5 } };
     run(b, {}, 6);
     expect(b.lives).toBe(3);
+  });
+});
+
+describe('digging food out of dune sand', () => {
+  it('leaves it uncovered to eat: the sand pours round it, not over it', () => {
+    const b = new Beach(buildLevel(BEACH_2[0]!));
+    const T16 = b.tileSize;
+    // Uncover every buried thing by clearing its tile, as a dig would.
+    const buried = [...b.items.values()].filter((i) => i.buried && i.kind.type === 'food');
+    expect(buried.length).toBeGreaterThan(0);
+    const tiles = buried.map((i) => [Math.floor((i.x + i.w / 2) / T16), Math.floor((i.y + i.h / 2) / T16)] as const);
+    for (const [x, y] of tiles) b.terrain.tiles[y * b.terrain.width + x] = TILE.air;
+    b.step({ ...IDLE, tapTile: tiles[0]! }, 1 / 60);
+    // Wake the pour everywhere a tile was cleared, then let it run.
+    (b as unknown as { pouring: Set<number> }).pouring.clear();
+    for (const [x] of tiles) for (let d = -1; d <= 1; d++) (b as unknown as { pouring: Set<number> }).pouring.add(x + d);
+    run(b, {}, 2);
+    for (const i of buried) expect(b.items.get(i.id)?.buried ?? false).toBe(false);
+  });
+});
+
+describe('antlions in play', () => {
+  const inPit = (crabSize: number, antlionSize: number): Beach => {
+    const b = dune({ pits: [[20, 4]], critters: [{ count: 1, sizes: [antlionSize, antlionSize], species: 'antlion' }] });
+    const shell = crabSize > 2 ? 'conch' : 'periwinkle';
+    const c = b.crab;
+    // Sized as the sim sizes a crab: from its shell's cap.
+    const px = shellPx(SHELLS[shell].maxSize);
+    b.crab = { ...c, shell, growth: { ...c.growth, size: crabSize }, body: { ...c.body, x: 18 * T, y: 6 * T, w: px * 0.85, h: px * 0.7 } };
+    return b;
+  };
+
+  it('can be eaten by a bigger crab, even one too wide to reach the bottom of the pit', () => {
+    const big = inPit(6, 3);
+    const before = big.crab.growth;
+    run(big, {}, 2);
+    expect([...big.critters.values()].some((k) => k.species === 'antlion')).toBe(false);
+    expect(big.crab.growth).not.toEqual(before);
+    expect(big.lives).toBe(3);
+  });
+
+  it('catch a smaller crab that slides down to them', () => {
+    const b = inPit(1, 4);
+    run(b, {}, 2);
+    expect(b.lives).toBeLessThan(3);
   });
 });
