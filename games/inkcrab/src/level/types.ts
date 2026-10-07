@@ -2,6 +2,7 @@ import type { BirdGroup, CritterGroup } from '../logic/sim';
 import type { SpeciesId } from '../logic/species';
 import type { Lesson } from '../logic/coach';
 import type { ShellKind } from '../logic/shells';
+import type { TideSpec } from '../logic/tide';
 
 /** A column and a surface row: the level's ground is drawn through these, eased between them. */
 export type ProfilePoint = readonly [col: number, row: number];
@@ -26,6 +27,16 @@ export interface LevelDef {
   readonly loose?: number;
   /** Antlion pits: column of the bottom and how far the funnel reaches (see carve.ts). */
   readonly pits?: readonly (readonly [number, number])[];
+  /** Rows of sand over granite (default: sand down to bedrock). */
+  readonly granite?: number;
+  /** Rock pools: first column, width and depth (see carve.ts). They start full. */
+  readonly pools?: readonly (readonly [number, number, number])[];
+  /** Octopus dens: an open tile in the rock, column and row. */
+  readonly dens?: readonly (readonly [number, number])[];
+  /** The tide, in rows (see logic/tide.ts); without one the beach stays dry. */
+  readonly tide?: TideSpec;
+  /** Things each high water washes in: food on the tide line, and shells in order (kind and column), one a tide. */
+  readonly tideBrings?: { readonly food: number; readonly shells?: readonly (readonly [ShellKind, number])[] };
   /** Rock boulders: column, row, radius. */
   readonly rocks?: readonly (readonly [number, number, number])[];
   /** Column the crab starts at. */

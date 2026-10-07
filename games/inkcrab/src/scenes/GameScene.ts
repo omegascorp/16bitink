@@ -15,6 +15,7 @@ import { Beach, LIVES, type SimEvent } from '../logic/sim';
 import { BackdropView } from './game/backdropView';
 import { BirdsView } from './game/birdsView';
 import { SandFxView } from './game/sandFxView';
+import { WaterView } from './game/waterView';
 import { CrabView } from './game/crabView';
 import { CrittersView } from './game/crittersView';
 import { createTouchState, GameInput, type TouchState } from './game/input';
@@ -47,6 +48,7 @@ export class GameScene extends Phaser.Scene {
   private crittersView!: CrittersView;
   private birdsView!: BirdsView;
   private sandFx!: SandFxView;
+  private waterView!: WaterView;
   private crabView!: CrabView;
   private input2!: GameInput;
   private touch!: TouchState;
@@ -71,6 +73,7 @@ export class GameScene extends Phaser.Scene {
     this.crittersView = new CrittersView(this, setup.terrain, T);
     this.birdsView = new BirdsView(this, setup.terrain, T);
     this.sandFx = new SandFxView(this, this.beach);
+    this.waterView = new WaterView(this, this.beach);
     this.crabView = new CrabView(this);
     this.input2 = new GameInput(this);
     this.touch = createTouchState();
@@ -127,6 +130,7 @@ export class GameScene extends Phaser.Scene {
     this.crittersView.sync(this.beach.critters, this.beach.crab.growth.size, time);
     this.birdsView.sync(this.beach.birds, this.beach.crab.growth.size, time);
     this.sandFx.update(dt, time);
+    this.waterView.update(this.cameras.main.worldView, time);
     this.crabView.update(this.beach, time, dt);
     const cam = this.cameras.main;
     const z = screenZoom(cam);

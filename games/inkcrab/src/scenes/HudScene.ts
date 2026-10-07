@@ -13,6 +13,8 @@ import { screenScene, toView, viewSize } from './hidpi';
 import { drawSandGauge, HEAP_MAX_W } from './sandGauge';
 import { drawGrowthBar } from './growthBar';
 import { HAND_FONT, inkButton, inkText, wobblyRect } from './ui';
+import { drawTideClock } from './tideClock';
+import { tidePhase, tideTurn } from '../logic/tide';
 
 const PANEL = { x: 16, y: 14, w: 380, h: 118 } as const;
 /** The sand heap sits in the panel's right end, its count under it. */
@@ -21,6 +23,8 @@ const BAR = { x: 30, y: 60, w: 190, h: 16 } as const;
 /** Life icons: a little shell each, right to left from the levels button. */
 const LIFE = { size: 30, gap: 36, y: 36 } as const;
 const INTRO_MS = 3600;
+/** The tide clock, under the lives at the top right. */
+const TIDE = { r: 20, fromRight: 54, y: 96 } as const;
 
 /** The on-screen jump button, bottom right (touch only). */
 function jumpButton(width: number, height: number): { x: number; y: number; r: number } {
@@ -47,6 +51,7 @@ export class HudScene extends Phaser.Scene {
   private shell!: Phaser.GameObjects.Text;
   private prompt!: Phaser.GameObjects.Text;
   private help!: Phaser.GameObjects.Text;
+  private tideText!: Phaser.GameObjects.Text;
   private stickPointer: number | null = null;
   private hidePointer: number | null = null;
   private stickPull = { x: 0, y: 0 };
@@ -79,6 +84,7 @@ export class HudScene extends Phaser.Scene {
     this.shell = text(28, 102, 18);
     this.prompt = text(0, 0, 24).setOrigin(0.5, 1);
     this.help = text(0, 0, 18).setOrigin(1, 1).setAlpha(0.7);
+    this.tideText = text(0, 0, 18).setOrigin(1, 0.5);
     this.input.on('pointerdown', this.onDown, this);
     this.input.on('pointermove', this.onMove, this);
     this.input.on('pointerup', this.onUp, this);
@@ -104,6 +110,7 @@ export class HudScene extends Phaser.Scene {
     this.syncLives(beach.lives, c.shell ?? START_SHELL, width);
     this.drawCoach(game, width);
 
+    this.drawTide(game, width);
     drawSandGauge(g, HEAP_AT.x, HEAP_AT.bottom, c.sand, beach.sandCapacity);
     // Full, it digs nothing until it unloads; past full (a smaller shell) is a warning.
     const loaded = c.sand >= beach.sandCapacity;
@@ -139,6 +146,20 @@ export class HudScene extends Phaser.Scene {
   }
 
   /** The coach's current hint, in a paper note under the top of the screen. */
+  /** On a tidal beach: the tide clock and which way the water's going. */
+  private drawTide(game: GameScene, width: number): void {
+    const tide = game.beach.tide;
+    this.tideText.setVisible(tide !== null);
+    if (!tide) return;
+    const t = game.beach.elapsed;
+    const turn = tideTurn(tide, t);
+    const level = (1 - Math.cos(tidePhase(tide, t) * Math.PI * 2)) / 2;
+    const x = width - TIDE.fromRight - 10;
+    drawTideClock(this.g, x, TIDE.y, TIDE.r, level, turn.rising);
+    const secs = Math.ceil(turn.seconds);
+    this.tideText.setText(turn.rising ? `tide coming in · high in ${secs}s` : `tide going out · low in ${secs}s`).setPosition(x - TIDE.r - 10, TIDE.y);
+  }
+
   private drawCoach(game: GameScene, width: number): void {
     const hint = this.intro?.active ? null : game.coach.hint(game.beach, this.touchSeen ? 'touch' : 'keys');
     const box = this.coachBox.clear();

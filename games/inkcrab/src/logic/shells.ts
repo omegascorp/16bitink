@@ -6,6 +6,7 @@
 export const SHELL_KINDS = [
   'periwinkle', 'snail', 'nerite', 'topshell', 'whelk', 'moonsnail', 'triton', 'tun', 'conch',
   'desertsnail', 'turban', 'olive', 'murex', 'helmet',
+  'flatwinkle', 'dogwhelk', 'paintedtop', 'necklace', 'frogshell', 'knobbedwhelk',
 ] as const;
 export type ShellKind = (typeof SHELL_KINDS)[number];
 
@@ -42,6 +43,13 @@ export const SHELLS: Readonly<Record<ShellKind, ShellSpec>> = {
   olive: spec('olive', 'olive shell', 3, 6, 1, 2),
   murex: spec('murex', 'murex', 4, 7, 3, 4),
   helmet: spec('helmet', 'helmet shell', 5, 8, 3, 4),
+  // Tide Pool Notes (beach 3): what lives in and around cold rock pools.
+  flatwinkle: spec('flatwinkle', 'flat periwinkle', 1, 3, 1, 2),
+  dogwhelk: spec('dogwhelk', 'dog whelk', 2, 4, 1, 3),
+  paintedtop: spec('paintedtop', 'painted top shell', 2, 5, 1, 2),
+  necklace: spec('necklace', 'necklace shell', 3, 6, 2, 2),
+  frogshell: spec('frogshell', 'frog shell', 4, 7, 3, 4),
+  knobbedwhelk: spec('knobbedwhelk', 'knobbed whelk', 5, 8, 3, 4),
 };
 
 export function canWear(shell: ShellSpec, bodySize: number): boolean {

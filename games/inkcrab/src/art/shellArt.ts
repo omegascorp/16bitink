@@ -1,6 +1,6 @@
 import type { ShellKind } from '../logic/shells';
 import type { Pt } from './pen';
-import { add, bezier, closed, contact, cub, type Draw, edge, glint, lerp, mottle, oval, pt, ribbon, shade, skin, tint, tube } from './kit';
+import { add, bezier, closed, contact, cub, type Draw, edge, glint, lerp, mottle, normals, oval, pt, ribbon, shade, skin, tint, tube } from './kit';
 import { MOUTH_X } from './mouth';
 import { PAPER_FILL } from './palette';
 
@@ -194,8 +194,32 @@ function helmet(d: Draw): void {
   mouth(d, oval(MOUTH_X.helmet, 28, 8, 16, 18).map((p) => pt(p.x + (p.y - 28) * -0.3, p.y)), 1.1);
 }
 
+interface Round {
+  readonly cx: number;
+  readonly cy: number;
+  readonly r: number;
+  readonly wash: string;
+  readonly band: string;
+  readonly glaze?: string;
+  readonly bands: number;
+  readonly spire: number;
+  readonly growth?: number;
+  /** Size of the opening (1 = a periwinkle's), its bottom kept in place. */
+  readonly gape?: number;
+  /** A pale rim round the opening. */
+  readonly lip?: string;
+  /** A row of dots just below the suture (necklace shell). */
+  readonly dots?: string;
+}
+
+/** Where `round` puts its opening, centre and radii, before the lean. */
+function roundMouth(o: Round): { x: number; y: number; rx: number; ry: number } {
+  const k = o.gape ?? 1;
+  return { x: o.cx + o.r * 0.78, y: o.cy + o.r * (0.87 - 0.42 * k), rx: o.r * 0.3 * k, ry: o.r * 0.42 * k };
+}
+
 /** A low, round shell seen side-on: a coil around (cx, cy). */
-function round(d: Draw, o: { cx: number; cy: number; r: number; wash: string; band: string; glaze?: string; bands: number; spire: number; growth?: number }): void {
+function round(d: Draw, o: Round): void {
   const { pen } = d;
   const { cx, cy, r } = o;
   contact(d, cx + 6, r * 1.1);
@@ -227,6 +251,15 @@ function round(d: Draw, o: { cx: number; cy: number; r: number; wash: string; ba
       suture.push(pt(cx - r * 0.2 + Math.cos(a) * rr * 1.05, cy - r * 0.1 + Math.sin(a) * rr * 0.9));
     }
     pen.stroke(suture, 0.9, d.ink, 0.85, false);
+    if (o.dots) {
+      // The necklace: a spiral row of brown spots just outside the suture, growing with the whorl.
+      for (let t = 0.3; t <= 1.0001; t += 0.07) {
+        const a = -Math.PI * 0.9 + t * Math.PI * 2.6;
+        const rr = r * (0.18 + t * 0.62);
+        const s = 1 + t * 2.4;
+        tint(d, oval(cx - r * 0.2 + Math.cos(a) * rr * 1.05, cy - r * 0.1 + Math.sin(a) * rr * 0.9, s * 1.2, s, 8), o.dots, 0.8);
+      }
+    }
     // Growth lines across the last whorl.
     const growth = o.growth ?? 9;
     for (let i = 0; i < growth; i++) {
@@ -238,7 +271,14 @@ function round(d: Draw, o: { cx: number; cy: number; r: number; wash: string; ba
   mottle(d, body, 160, cy - r, cy + r * 0.2, o.band, 0.5);
   shade(d, body);
   edge(d, body, 1.7);
-  mouth(d, oval(cx + r * 0.78, cy + r * 0.45, r * 0.3, r * 0.42, 18).map((p) => pt(p.x + (p.y - cy) * -0.15, p.y)));
+  const m = roundMouth(o);
+  const lean = (p: Pt): Pt => pt(p.x + (p.y - cy) * -0.15, p.y);
+  if (o.lip) {
+    const rim = oval(m.x, m.y, m.rx + 4, m.ry + 4, 22).map(lean);
+    skin(d, rim, o.lip, 0.75);
+    edge(d, rim, 1.1);
+  }
+  mouth(d, oval(m.x, m.y, m.rx, m.ry, 18).map(lean));
 }
 
 const snail = (d: Draw): void => round(d, { cx: -14, cy: 8, r: 38, wash: '#e0b85e', band: '#5a3a20', bands: 2, spire: 0.6 });
@@ -247,6 +287,36 @@ const periwinkle = (d: Draw): void => round(d, { cx: -14, cy: 8, r: 38, wash: '#
 const moonsnail = (d: Draw): void => round(d, { cx: -18, cy: 2, r: 44, wash: '#e8d8b8', band: '#9a7e9a', glaze: '#b9a6c8', bands: 1, spire: 0.25 });
 /** A sun-bleached desert snail: chalk white, almost no spire, close growth lines. */
 const desertsnail = (d: Draw): void => round(d, { cx: -14, cy: 8, r: 38, wash: '#ebe5d2', band: '#b9ad92', bands: 1, spire: 0.3, growth: 20 });
+
+/** A flat periwinkle: a smooth glossy bead of bright yellow, its spire worn flat, with a big round mouth. */
+function flatwinkle(d: Draw): void {
+  const o = { cx: -16, cy: 10, r: 36, wash: '#f4b81c', band: '#c07a10', glaze: '#fff09a', bands: 0, spire: 0, growth: 4, gape: 1.3, lip: '#fbe7a6' };
+  round(d, o);
+  // Wet-looking polish: a long glint over the crown and a bright spot.
+  glint(d, cub(pt(o.cx - 30, o.cy - 4), pt(o.cx - 28, o.cy - 24), pt(o.cx - 12, o.cy - 32), pt(o.cx + 6, o.cy - 32), 12), 3.4, 0.9);
+  d.pen.fill(oval(o.cx - 18, o.cy - 18, 3, 2.2, 8), PAPER_FILL, 0.95);
+}
+
+/** A necklace shell: a glossy fawn globe with a low spire, a row of brown spots under the suture, and a D-shaped mouth beside a deep navel. */
+function necklace(d: Draw): void {
+  const { pen } = d;
+  const o = { cx: -18, cy: 3, r: 43, wash: '#d9a874', band: '#9a6436', glaze: '#f4dcb4', bands: 0, spire: 0.55, growth: 6, gape: 1.25, dots: '#6a3418' };
+  round(d, o);
+  // The inner lip: a cream callus over the mouth's back half, straight along its edge, making the D.
+  const m = roundMouth(o);
+  const lean = (p: Pt): Pt => pt(p.x + (p.y - o.cy) * -0.15, p.y);
+  const x = m.x - m.rx * 0.4;
+  const callus = [pt(x, m.y - m.ry * 0.92), pt(x, m.y + m.ry * 0.92), ...cub(pt(x, m.y + m.ry * 0.92), pt(x - 8, m.y + m.ry + 2), pt(x - 12, m.y + m.ry * 0.4), pt(x - 11, m.y), 8).slice(1),
+    ...cub(pt(x - 11, m.y), pt(x - 11, m.y - m.ry * 0.5), pt(x - 7, m.y - m.ry), pt(x, m.y - m.ry * 0.92), 8).slice(1)].map(lean);
+  skin(d, callus, '#f6ead2', 0.85);
+  glint(d, [pt(x - 4, m.y - m.ry * 0.6), pt(x - 5, m.y + m.ry * 0.3)].map(lean), 1.6, 0.8);
+  edge(d, callus, 1.1);
+  // The umbilicus: a deep slit of a navel tucked under the callus's foot.
+  const navel = bezier(pt(x - 12, m.y + m.ry * 0.35), pt(x - 16, m.y + m.ry * 0.75), pt(x - 8, m.y + m.ry * 1.02), 8).map(lean);
+  pen.stroke(navel, 3.4, DARK, 0.9, false);
+  pen.hair(navel.map((p) => add(p, pt(-2.2, 0))), 0.8, d.ink, 0.8);
+  glint(d, cub(pt(o.cx - 34, o.cy + 8), pt(o.cx - 34, o.cy - 20), pt(o.cx - 18, o.cy - 34), pt(o.cx + 4, o.cy - 38), 12), 3, 0.85);
+}
 
 /** An ellipse turned by `a` radians about its centre. */
 function tilted(x: number, y: number, rx: number, ry: number, a: number, n = 28): Pt[] {
@@ -489,9 +559,202 @@ function olive(d: Draw): void {
   mouth(d, slit, 1.1);
 }
 
+// ---------------------------------------------------------------- cold rock-pool shells
+
+/** A dog whelk: stout, with a short sharp spire, coarse spiral ridges banded cream and brown, a thick toothed lip and a notch below the mouth. */
+function dogwhelk(d: Draw): void {
+  const { pen } = d;
+  contact(d, -14, 52);
+  const { top, bot, shape, spine } = coiled(d, { wash: '#efe4c8', band: '#6e4426', whorls: [0.2, 0.4, 0.62], width: 90, from: pt(-60, -16), to: pt(30, 18) });
+  pen.clipped(shape, () => {
+    // A broad brown spiral band, then the coarse ridges: dark grooves with a pale crest beside each.
+    for (const [side, v] of [[top, 0.5], [bot, 0.45]] as const) pen.stroke(spine.map((p, i) => lerp(p, side[i]!, v)), 10, '#5a3418', 0.5, false);
+    for (const side of [top, bot]) {
+      for (let v = 0.15; v < 1; v += 0.2) {
+        pen.stroke(spine.map((p, i) => lerp(p, side[i]!, v)), 1.1, d.ink, 0.45, false);
+        pen.hair(spine.map((p, i) => lerp(p, side[i]!, v + 0.06)), 1.4, PAPER_FILL, 0.55);
+      }
+    }
+  });
+  edge(d, shape);
+  // The thick white outer lip, the siphonal notch cut in its foot, then the mouth with teeth inside the lip.
+  const lean = (p: Pt): Pt => pt(p.x + (p.y - 24) * -0.3, p.y);
+  const lip = oval(MOUTH_X.dogwhelk + 2, 24, 14, 20, 24).map(lean);
+  skin(d, lip, '#f6efdc', 0.9);
+  pen.clipped(lip, () => tint(d, oval(MOUTH_X.dogwhelk + 13, 18, 5, 16), '#c9a87a', 0.5));
+  edge(d, lip, 1.6);
+  const notch = [lean(pt(MOUTH_X.dogwhelk - 5, 38)), lean(pt(MOUTH_X.dogwhelk + 3, 38)), lean(pt(MOUTH_X.dogwhelk - 3, 45))];
+  pen.fill(notch, DARK, 0.85);
+  pen.stroke(notch, 1, d.ink, 0.9, false);
+  mouth(d, oval(MOUTH_X.dogwhelk, 24, 8, 15, 18).map(lean), 1.1);
+  for (let i = 0; i < 4; i++) {
+    const p = lean(pt(MOUTH_X.dogwhelk + 7, 16 + i * 5.5));
+    pen.fill(oval(p.x, p.y, 1.8, 1.3, 6), '#f6efdc', 1);
+  }
+}
+
+/** A painted top shell: a tall, sharp, straight-sided cone, smooth pink with red-purple flecks along each whorl's edge, standing on its flat base. */
+function paintedtop(d: Draw): void {
+  const { pen } = d;
+  const g = d.g;
+  contact(d, -6, 44);
+  // The axis leans up and back; the cone rests on the low rim of its base, the base facing down and forward.
+  const ax = pt(-0.6, -0.8);
+  const across = pt(0.8, -0.6);
+  const R = 38;
+  const base = pt(16, g - R * 0.6 - 3);
+  const lo = add(base, pt(-across.x * R, -across.y * R));
+  const hi = add(base, pt(across.x * R, across.y * R));
+  const apex = add(base, pt(ax.x * 86, ax.y * 86));
+  const cone = [apex, ...Array.from({ length: 13 }, (_, i) => lerp(lerp(lo, base, 0.08), lerp(hi, base, 0.08), i / 12)), apex];
+  skin(d, cone, '#e9a3ac', 0.75);
+  pen.clipped(cone, () => {
+    // Whorl edges: each suture bowed towards the base, flecked red-purple just above it, with fine spiral cords between.
+    const ring = (u: number): Pt[] => bezier(lerp(apex, lo, u), add(lerp(apex, lerp(lo, hi, 0.5), u), pt(-ax.x * 5 * u, -ax.y * 5 * u)), lerp(apex, hi, u), 16);
+    for (const u of [0.16, 0.3, 0.45, 0.62, 0.81]) {
+      pen.stroke(ring(u), 1, d.ink, 0.85, false);
+      ring(u - 0.035).forEach((p, i) => { if (i % 2) tint(d, oval(p.x, p.y, 2.2 * u + 1, 1.2 * u + 0.8, 6), '#7a2448', 0.75); });
+      for (const v of [0.05, 0.09]) pen.hair(ring(u - v), 0.45, '#9a3a56', 0.4);
+    }
+    tint(d, [apex, lerp(apex, lo, 1.1), lerp(apex, lerp(lo, hi, 0.3), 1.1)], '#f6d0d4', 0.35);
+    glint(d, [lerp(apex, lo, 0.12), lerp(apex, lo, 0.8)].map((p) => add(p, pt(4, -1))), 2.6, 0.8);
+  });
+  shade(d, cone, 0.45);
+  edge(d, cone, 1.7);
+  // The flat base, pearly, with the round mouth near its low rim.
+  const tilt = Math.atan2(across.y, across.x);
+  const face = tilted(base.x, base.y, R, 11, tilt, 36);
+  skin(d, face, '#f1dde0', 0.75);
+  pen.clipped(face, () => {
+    for (const k of [0.45, 0.7]) pen.hair(closed(tilted(base.x + 3, base.y + 2, R * k, 11 * k, tilt, 24)), 0.5, '#9a3a56', 0.5);
+    tint(d, tilted(base.x + 6, base.y - 4, 18, 4, tilt), '#cfe6e0', 0.5);
+  });
+  edge(d, face, 1.3);
+  mouth(d, tilted(MOUTH_X.paintedtop, base.y + 5, 12, 7, tilt, 18), 1.2);
+}
+
+/** Knobs and a frilled flange: one of a frog shell's varices, standing off its outline at `at`, pushing out along `out`. */
+function varix(d: Draw, at: Pt, out: Pt, s: number): void {
+  const along = pt(-out.y, out.x);
+  const lobe = Array.from({ length: 15 }, (_, i) => {
+    const t = (i / 14) * Math.PI;
+    const k = s * (1 + 0.08 * Math.sin(t * 9));
+    return pt(at.x + along.x * Math.cos(t) * k * 0.8 + out.x * (Math.sin(t) - 0.35) * k, at.y + along.y * Math.cos(t) * k * 0.8 + out.y * (Math.sin(t) - 0.35) * k);
+  });
+  skin(d, lobe, '#e6d2ae', 0.75);
+  d.pen.clipped(lobe, () => d.pen.stroke([at, add(at, pt(out.x * s, out.y * s))], s * 0.5, '#7a4a2a', 0.5, false));
+  edge(d, lobe, 1.1);
+}
+
+/** A frog shell: squat and knobbly, rough brown on cream, with a row of varices down each side, a frilled lip, and a channel at the top of its mouth. */
+function frogshell(d: Draw): void {
+  const { pen } = d;
+  contact(d, -22, 60);
+  const { top, bot, shape, spine } = coiled(d, { wash: '#d8c09a', band: '#6e4426', whorls: [0.15, 0.3, 0.5], width: 84, from: pt(-74, -22), to: pt(24, 13) });
+  pen.clipped(shape, () => {
+    // Spiral rows of knobs, lit from the upper left.
+    for (const side of [top, bot]) {
+      for (const v of [0.3, 0.68]) {
+        for (let i = 5; i < 36; i += 3) {
+          const p = lerp(spine[i]!, side[i]!, v);
+          const s = 1.6 + (i / 40) * 2.6;
+          tint(d, oval(p.x + s * 0.5, p.y + s * 0.6, s, s * 0.8, 8), '#4a2a16', 0.55);
+          tint(d, oval(p.x - s * 0.3, p.y - s * 0.3, s * 0.7, s * 0.55, 8), PAPER_FILL, 0.75);
+        }
+      }
+    }
+  });
+  mottle(d, shape, 140, -40, 40, '#4a2a16', 0.7);
+  // The varices, lined up along the top and bottom outline: one per half whorl, on opposite sides.
+  const norms = (from: readonly Pt[], to: readonly Pt[], i: number): Pt => {
+    const dx = to[i]!.x - from[i]!.x;
+    const dy = to[i]!.y - from[i]!.y;
+    const l = Math.hypot(dx, dy) || 1;
+    return pt(dx / l, dy / l);
+  };
+  for (const u of [0.2, 0.38, 0.58]) {
+    const i = Math.round(u * 40);
+    const s = 5 + u * 12;
+    varix(d, top[i]!, norms(spine, top, i), s);
+    if (u < 0.5) varix(d, bot[i]!, norms(spine, bot, i), s * 0.8);
+  }
+  // The frilled lip, crinkled all round, striped where the spiral rows meet it.
+  const lean = (p: Pt): Pt => pt(p.x + (p.y - 16) * -0.3, p.y + 3);
+  const lip = Array.from({ length: 48 }, (_, i) => {
+    const t = (i / 48) * Math.PI * 2;
+    const k = 1 + 0.1 * Math.sin(t * 12);
+    return lean(pt(MOUTH_X.frogshell + 2 + Math.cos(t) * 17 * k, 15 + Math.sin(t) * 25 * k));
+  });
+  skin(d, lip, '#f2e6cc', 0.8);
+  pen.clipped(lip, () => {
+    for (let i = 0; i < 6; i++) pen.stroke([lean(pt(MOUTH_X.frogshell + 10, -6 + i * 9)), lean(pt(MOUTH_X.frogshell + 22, -6 + i * 9))], 2.6, '#7a4a2a', 0.55, false);
+  });
+  edge(d, lip, 1.3);
+  // The posterior channel: a slot running up from the top of the mouth.
+  const slot = [lean(pt(MOUTH_X.frogshell - 2, 2)), lean(pt(MOUTH_X.frogshell + 1, -10)), lean(pt(MOUTH_X.frogshell + 4, -9)), lean(pt(MOUTH_X.frogshell + 4, 2))];
+  pen.fill(slot, DARK, 0.85);
+  mouth(d, oval(MOUTH_X.frogshell, 19, 9, 16, 18).map(lean), 1.1);
+  for (let i = 0; i < 5; i++) {
+    const p = lean(pt(MOUTH_X.frogshell + 8, 9 + i * 5));
+    pen.fill(oval(p.x - 1, p.y, 2, 1.4, 6), '#f2e6cc', 1);
+  }
+}
+
+/** A knobbed whelk: a big pear with a low spire, a crown of strong knobs on its shoulder, a long open canal, pale fawn with faint streaks, orange inside. */
+function knobbedwhelk(d: Draw): void {
+  const { pen } = d;
+  contact(d, -18, 68);
+  const n = 60;
+  const spine = Array.from({ length: n + 1 }, (_, i) => lerp(pt(-100, -8), pt(56, 30), i / n));
+  const W = 90;
+  // A low spire, a sudden shoulder, then the body swelling and tapering into the canal.
+  const w = (u: number): number => {
+    if (u < 0.18) return W * 0.42 * Math.pow(u / 0.18, 0.9);
+    if (u < 0.24) return W * (0.42 + 0.58 * Math.sin(((u - 0.18) / 0.06) * Math.PI / 2));
+    return W * (0.1 + 0.9 * Math.pow(Math.cos(((u - 0.24) / 0.76) * Math.PI / 2), 1.8));
+  };
+  const r = ribbon(spine, w);
+  const nrm = normals(spine);
+  // Knobs: four strong points along the shoulder's outline, little nubs on the spire's whorls.
+  const knob = (u: number): number => {
+    if (u > 0.2 && u < 0.44) return 12 * Math.max(0, Math.sin(((u - 0.2) / 0.24) * Math.PI * 7)) ** 2;
+    if (u > 0.05 && u < 0.17) return 3.5 * Math.max(0, Math.sin(((u - 0.05) / 0.12) * Math.PI * 5)) ** 2;
+    return 0;
+  };
+  const top = r.top.map((p, i) => add(p, pt(nrm[i]!.x * knob(i / n), nrm[i]!.y * knob(i / n))));
+  const shape = [...top, ...[...r.bot].reverse()];
+  skin(d, shape, '#ddd3c0', 0.7);
+  pen.clipped(shape, () => {
+    // Spire sutures and the shoulder's edge.
+    for (const u of [0.07, 0.13, 0.19, 0.25]) {
+      const i = Math.round(u * n);
+      pen.stroke(bezier(top[i]!, add(spine[i]!, pt(6, -2)), r.bot[i]!, 10), u > 0.2 ? 0.7 : 1, d.ink, u > 0.2 ? 0.5 : 0.85, false);
+    }
+    // Faint wavy fawn streaks down the body.
+    for (let i = 16; i < n - 6; i += 3) {
+      const a = top[i]!;
+      const b = r.bot[i]!;
+      pen.stroke(Array.from({ length: 9 }, (_, k) => add(lerp(a, b, k / 8), pt(Math.sin(k * 1.4 + i) * 2, 0))), 1.6, '#8a6a4a', 0.28, false);
+    }
+    for (const v of [0.4, 0.75]) pen.hair(spine.map((p, i) => lerp(p, top[i]!, v)), 0.5, d.ink, 0.25);
+    glint(d, spine.slice(14, 44).map((p, i) => lerp(p, r.top[i + 14]!, 0.6)), 3, 0.65);
+  });
+  mottle(d, shape, 120, -50, 20, '#8a6a4a', 0.5);
+  shade(d, shape, 0.45);
+  edge(d, shape);
+  // The open aperture along the underside: orange inside, running out into the canal's groove.
+  const inner = [...Array.from({ length: 29 }, (_, k) => lerp(spine[30 + k]!, r.bot[30 + k]!, 0.3)), ...Array.from({ length: 29 }, (_, k) => lerp(spine[58 - k]!, r.bot[58 - k]!, 0.92))];
+  skin(d, inner, '#e8823a', 0.85);
+  pen.clipped(inner, () => glint(d, Array.from({ length: 20 }, (_, k) => lerp(spine[32 + k]!, r.bot[32 + k]!, 0.5)), 2.2, 0.55));
+  edge(d, inner, 1.1);
+  pen.stroke(Array.from({ length: 14 }, (_, k) => lerp(spine[44 + k]!, r.bot[44 + k]!, 0.62)), 2.2, DARK, 0.8, false);
+  mouth(d, oval(MOUTH_X.knobbedwhelk, 30, 11, 9, 18).map((p) => pt(p.x + (p.y - 30) * -0.3, p.y)), 1.1);
+}
+
 const DRAW: Readonly<Record<ShellKind, (d: Draw) => void>> = {
   periwinkle, snail, nerite, topshell, whelk, moonsnail, triton, tun, conch,
   desertsnail, turban, olive, murex, helmet,
+  flatwinkle, dogwhelk, paintedtop, necklace, frogshell, knobbedwhelk,
 };
 
 export function drawShell(d: Draw, kind: ShellKind): void {

@@ -115,7 +115,40 @@ Backdrop theme `dunes` (`src/art/backdrop/dunes.ts`, props in `desert.ts`): a ha
 
 Beach 2 comes with the full game: without it, the map's Play button on its levels offers the unlock. For local testing, `DEV_UNLOCK=true` (and `DEV_ALL_LEVELS=true`) work for InkCrab's dev server as they do for InkFish's, from the environment or `apps/web/.env`.
 
-## Beaches 3–10
+## Beach 3: Tide Pool Notes
+
+A cold granite coast: a few rows of sand over granite (so there's only so far to dig), rock shelves, and pools cut into the rock. Its idea is the tide.
+
+**What's new:**
+
+- **The tide** (`games/inkcrab/src/logic/tide.ts`, `water.ts`, `shore.ts`). A steady rhythm, never a deadline: each level sets a low-water row, a high-water row and a period (56–74 s); levels start at low water. The sea comes in from the right-hand edge and floods every open tile below the tide line it can reach, tunnels included. As it goes out, water that can run back down to the sea (never uphill) drains; what a hollow of rock or sand holds stays: a **rock pool**. Water left above the sea trickles into any hole dug beside or under it. Sand put down in the sea slumps flat, a row a tick (never lost). The pools start full.
+- **Water is safe, just slow:** under water the crab walks at 60% speed and sinks gently. Jump is a swim stroke: each press kicks it up about 1.3 tiles, standing or not, so it can paddle up out of any pool; a stroke at the surface carries it up and out (80% of its jump on land) onto the rim. Never drowned, never harmed.
+- **Each high water brings things in:** food along the strandline (where the high water meets the sand), and, on some levels, shells in order, one a tide (`tideBrings`).
+- **Tide clock** in the HUD (top right): a round gauge filling and emptying with the tide, an arrow for which way it's going, and "high in 23s" / "low in 40s". A dashed pencil line across the level marks high water.
+- **Fish:** blennies (small, quick) and sculpins (big-headed, slower) swim only in water: in the pools, and in the sea as it comes in. A bigger one goes for a smaller crab in the water; smaller ones are food. Left high and dry by the tide, a fish flops where it lands, slower and slower; after 4 s out of the water it dies and is food worth as much as catching it (a fish lying on its side, a cross for an eye). One left in sand dies at once and is buried food: dig it up and eat it.
+- **Octopus** (in the rock): lives in a crevice in a pool wall and never leaves it. When a smaller crab comes within about 3 tiles, it stretches an arm out after it (a wriggling, tapering arm with suckers, red when it can catch you); the arm tip catches. Hiding in the shell makes it lose interest. Small octopuses are food at the den.
+- **Gull:** walks the exposed shore at low water and hops up rocks; it keeps out of the water and can't reach a crab under it. As the tide comes in the gulls leave, and they come back when it goes out.
+- **Shore crabs** are the small prey.
+- **Coach lessons:** `tide` (while the first tide comes in, until you've been in the water) and `octopus` (while an arm reaches for you).
+
+Shells: flat periwinkle (1–3), dog whelk (2–4), painted top shell (2–5), necklace shell (3–6), frog shell (4–7), knobbed whelk (5–8).
+
+| # | Id | Name | Goal | Shells | New |
+| --- | --- | --- | --- | --- | --- |
+| 21 | `first-tide` | First Tide | Size 4 | Flat periwinkle, dog whelk | The tide (coach: tide) |
+| 22 | `rock-shelf` | Rock Shelf | Size 5 | Flat periwinkle, painted top (on a granite shelf) | Build up: rock won't dig |
+| 23 | `blenny-pool` | Blenny Pool | Size 5 | Flat periwinkle, painted top | Fish in the pools (coach: hide) |
+| 24 | `strandline` | Strandline | Size 6 | Flat periwinkle, painted top, necklace (buried below the tide line) | Dig at low water |
+| 25 | `pool-chain` | Pool Chain | Size 6 | Flat periwinkle, dog whelk, painted top, necklace | A chain of pools; gulls at low water |
+| 26 | `octopus-garden` | Octopus Garden | Size 6 | Flat periwinkle, painted top, necklace | Octopuses (coach: octopus) |
+| 27 | `the-tide-brings` | The Tide Brings | Size 7 | Flat periwinkle, dog whelk, painted top; the tide brings a necklace, then a frog shell | Shells washed in |
+| 28 | `low-water` | Low Water | Size 7 | …, frog shell (buried by the big pool) | Remix: gulls, sculpins, octopuses |
+| 29 | `spring-tide` | Spring Tide | Size 8 | …, knobbed whelk (on the rocks) | Storm: a higher, faster tide |
+| 30 | `the-last-pool` | The Last Pool | Size 8 | Every rock-pool shell, knobbed whelk on the far headland | The whole beach |
+
+Backdrop theme `rockpool` (`src/art/backdrop/rockpool.ts`; granite, coast and shore-life helpers in `granite.ts`, `coast.ts`, `shoreLife.ts`): a breezy sky with cumulus and gulls; a slate-blue sea with whitecaps, headlands, a lighthouse and a coastguard cottage; jointed granite cliffs and sea stacks with nesting kittiwakes and sea pinks, a fishing village on a hill, a slipway, a moored crabber and a stone quay; nearest, a lichened granite shelf at low tide with bladderwrack, kelp, barnacles, limpets, mussels, anemones, a starfish and a willow crab pot. Pools are walled and floored with rock; their rim is the lower of their two sides. Water is drawn as a wash over paper (so the backdrop doesn't show through), with wavy ink lines and a firmer surface line; the dashed high-water mark shows only across open air.
+
+## Beaches 4–10
 
 Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
 
@@ -123,7 +156,7 @@ Each beach is its own biome: its own creatures, shells, backdrop theme and islan
 | --- | --- | --- | --- |
 | 1 | Atoll Sketchbook | Maldives coral island, palms, turquoise lagoon | (the basics; built) |
 | 2 | Dune Sea | Desert dunes running into the ocean | Sky and burrow hunters, pouring sand (built) |
-| 3 | Tide Pool Notes | Granite shelves and rock pools | The tide: fish at high tide, octopus in crevices |
+| 3 | Tide Pool Notes | Granite shelves and rock pools | The tide, fish, octopuses, gulls (built) |
 | 4 | Mangrove Margins | Mudflats and tangled stilt roots | Climbing the roots; mud that slows you |
 | 5 | Ash & Basalt | Black sand under a smoking volcano | Hot sand at midday; shade to cross |
 | 6 | Fog & Kelp | Cold coast, kelp beds, a lighthouse | Fog that hides what's coming; kelp washed up as cover |
@@ -140,7 +173,7 @@ Only real shells, the kinds hermit crabs actually live in: no litter or other ma
 | --- | --- |
 | 1 Atoll | Periwinkle, snail, nerite, top shell, whelk, moon snail, triton, tun, conch (built) |
 | 2 Dune Sea | Desert snail, turban, olive, murex, helmet (built) |
-| 3 Tide Pools | Flat periwinkle, dog whelk, painted top shell, necklace shell, frog shell |
+| 3 Tide Pools | Flat periwinkle, dog whelk, painted top shell, necklace shell, frog shell, knobbed whelk (built) |
 | 4 Mangrove | Mangrove periwinkle, river nerite, mud creeper, telescope snail, mud whelk |
 | 5 Basalt | Drupe, horn shell, spindle, bonnet, harp |
 | 6 Fog & Kelp | Black turban, kelp snail, Kellet's whelk, Oregon triton, wavy turban |
@@ -162,12 +195,12 @@ Level select is a beachcomber's chart seen from above, scrolling sideways. Each 
 
 ## What exists, what to build
 
-Built: walking, jumping, eating, the growth cap and bank, fourteen real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` and `beach2.ts`, lives, win and loss, intro and result cards, the level map, saved progress). All twenty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens.
+Built: walking, jumping, eating, the growth cap and bank, fourteen real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts`, `beach2.ts` and `beach3.ts`, lives, win and loss, intro and result cards, the level map, saved progress). All thirty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens.
 
 Still to build, replacing the stand-ins:
 
 1. **Gull:** the kestrel's code (`src/logic/birds.ts`) can stand in for it: a bird species for level 6.
-2. **Tide:** water fill, flooding tunnels, washing away placed sand, shells washing in, storm tide. For levels 7 and 9.
+2. **Tide on Beach 1:** the tide is built (Beach 3); Beach 1's levels 7 and 9 could use it in place of their stand-ins.
 3. **Final molt.** For level 10 of each beach. (Climbing belongs to the mangrove beach.)
 4. **Account progress:** progress is saved per browser; syncing it to the player's account (the SDK's `progress` store) is not done yet.
 

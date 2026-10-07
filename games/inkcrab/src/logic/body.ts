@@ -23,6 +23,16 @@ export const PHYS = {
   slip: 90,
 } as const;
 
+/** What a body moves through: air, or water (gentler fall). */
+export interface Medium {
+  readonly gravity: number;
+  readonly maxFall: number;
+}
+
+export const AIR: Medium = { gravity: PHYS.gravity, maxFall: PHYS.maxFall };
+/** Underwater things sink slowly. */
+export const WATER: Medium = { gravity: PHYS.gravity * 0.35, maxFall: PHYS.maxFall * 0.3 };
+
 const EPS = 1e-6;
 
 export function boxHitsSolid(t: Terrain, b: Box, tile: number): boolean {
@@ -63,7 +73,7 @@ export function jump(b: Body, speed: number): Body {
 }
 
 /** One physics step: walk with `intent` (-1..1) at `speed` px/s, fall, step up small ledges. */
-export function moveBody(t: Terrain, b: Body, intent: number, speed: number, dt: number, tile: number): Body {
+export function moveBody(t: Terrain, b: Body, intent: number, speed: number, dt: number, tile: number, medium: Medium = AIR): Body {
   const vx = intent * speed;
   let box: Box = b;
   const dx = vx * dt;
@@ -81,7 +91,7 @@ export function moveBody(t: Terrain, b: Body, intent: number, speed: number, dt:
       }
     }
   }
-  const vy = Math.min(PHYS.maxFall, b.vy + PHYS.gravity * dt);
+  const vy = Math.min(medium.maxFall, b.vy + medium.gravity * dt);
   const fall = sweep(t, box, 'y', vy * dt, tile);
   const onGround = fall.hit && vy > 0;
   const landed = onGround ? slipOff(t, fall.box, intent, dt, tile) : fall.box;

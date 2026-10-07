@@ -1,8 +1,12 @@
-import { boxHitsSolid, jump, moveBody, PHYS, type Body, type Box } from './body';
+import { AIR, boxHitsSolid, jump, moveBody, PHYS, WATER, type Body, type Box } from './body';
 import { makeBird, patrolY, pullUp, stepBird, underSky, type Bird, type BirdSpecies } from './birds';
-import { CRITTER, critterPoints, makeCritter, stepCritter, swimmable, type Critter } from './critters';
+import { armTip, CRITTER, critterPoints, stepCritter, stranded, type Critter, type Surroundings } from './critters';
+import { placeCritter, SPAWN_AWAY } from './spawn';
 import { columnsAround, pourStep } from './dunes';
-import { movementOf, type SpeciesId } from './species';
+import { movementOf, SPECIES, type SpeciesId } from './species';
+import { Shore, type TideBrings } from './shore';
+import { isLowWater, type TideSpec } from './tide';
+import { isWet, type Water } from './water';
 import { settleColumn } from './sandfall';
 import { digColumns, diggableOf, digTargets, inReach, placeTarget, tileSpan, type TilePos } from './dig';
 import { feed, initialGrowth, isCapped, settle, type Growth } from './growth';
@@ -86,6 +90,14 @@ export interface BeachSetup {
   readonly pits?: readonly (readonly [number, number])[];
   /** Birds hunting from the sky (default none). */
   readonly birds?: readonly BirdGroup[];
+  /** The tide (default none: a dry beach). */
+  readonly tide?: TideSpec;
+  /** Rock pools, as carved (first column, width, depth): they start full. */
+  readonly pools?: readonly (readonly [number, number, number])[];
+  /** Octopus dens: open tiles in the rock. */
+  readonly dens?: readonly (readonly [number, number])[];
+  /** What each high water washes in. */
+  readonly tideBrings?: TideBrings;
 }
 
 /** Birds a level keeps overhead: how many, and how big (they hunt crabs smaller than that). */
@@ -119,15 +131,18 @@ const SHALLOW_CLEAR = 3;
 const REACH_PAD = 6;
 /** Seconds nothing can catch the crab again after it's been caught. */
 const SAFE_SECONDS = 2.5;
-/** New ghost crabs appear at least this many tiles from the player, so never in view. */
-const SPAWN_AWAY = 14;
 const CRITTER_EVERY = 3;
 /** Seconds between pours of dune sand: one row a tick, so a slope visibly runs. */
 const POUR_EVERY = 0.05;
 /** px/s a pit's slope slides a crab towards the antlion at the bottom: less than it walks, so it can climb out. */
 export const PIT_PULL = 34;
-/** Sandfish start this many tiles below the surface, and at least this far from the crab. */
-const BURROW_DEPTH = { min: 3, max: 8 } as const;
+/**
+ * Under water the crab walks at `speed` of its pace. Each press of jump is a
+ * swim stroke, standing or not: a kick rising `kick` tiles, so it can paddle
+ * up out of any pool; at the surface the stroke carries it out (`out`, a
+ * share of its jump on land), onto the rim.
+ */
+const SWIM = { speed: 0.6, kick: 1.3, out: 0.8 } as const;
 export const LIVES = 3;
 
 function crabBox(size: number, shell: ShellKind | null): { w: number; h: number } {
@@ -147,6 +162,9 @@ export class Beach {
   readonly critters = new Map<number, Critter>();
   readonly birds = new Map<number, Bird>();
   readonly pits: readonly (readonly [number, number])[];
+  readonly dens: readonly (readonly [number, number])[];
+  /** The sea, on a tidal beach. */
+  readonly shore: Shore | null;
   readonly goal: number | null;
   crab: CrabState;
   lives: number;
@@ -183,7 +201,9 @@ export class Beach {
     this.goal = setup.goal ?? null;
     this.lives = setup.lives ?? LIVES;
     this.pits = setup.pits ?? [];
+    this.dens = setup.dens ?? [];
     this.hasDunes = setup.terrain.tiles.includes(TILE.loose);
+    this.shore = setup.tide ? new Shore(this.terrain, this.tileSize, setup.tide, setup.tideBrings, setup.pools ?? []) : null;
     for (const item of setup.items) this.items.set(item.id, item);
     this.nextId = Math.max(0, ...setup.items.map((i) => i.id)) + 1;
     const growth = setup.startGrowth ?? initialGrowth();
@@ -197,6 +217,32 @@ export class Beach {
     });
     for (const g of setup.birds ?? []) for (let n = 0; n < g.count; n++) this.spawnBird(g);
     for (let tries = 0; this.shallow.size < this.shallowFood && tries < this.shallowFood * 8; tries++) this.plantShallow();
+  }
+
+  /** World y of the sea's surface now (below the world on a dry beach). */
+  get seaY(): number {
+    return this.shore ? this.shore.seaY(this.elapsed) : Infinity;
+  }
+
+  get tide(): TideSpec | null {
+    return this.shore?.tide ?? null;
+  }
+
+  /** Where the water is; null on a dry beach. */
+  get water(): Water | null {
+    return this.shore?.water ?? null;
+  }
+
+  /** Whether a box's middle is under water. */
+  submerged(b: Box): boolean {
+    if (!this.water) return false;
+    const m = centre(b);
+    return isWet(this.water, Math.floor(m.x / this.tileSize), Math.floor(m.y / this.tileSize));
+  }
+
+  private get surroundings(): Surroundings {
+    const w = this.water;
+    return w ? { wet: (x, y) => isWet(w, x, y) } : { wet: () => false };
   }
 
   /** Body size the current shell allows; naked crabs don't grow. */
@@ -229,6 +275,7 @@ export class Beach {
     else this.act(input, dt, events);
     this.settleSand(events);
     this.pour(dt, events);
+    this.flow(dt, events);
     this.settleItems(dt, events);
     this.moveCritters(dt);
     this.meetCritters(events);
@@ -244,9 +291,10 @@ export class Beach {
   private act(input: Input, dt: number, events: SimEvent[]): void {
     const c = this.crab;
     const shellSpec = c.shell ? SHELLS[c.shell] : null;
-    const speed = (60 + 5 * c.growth.size) * speedFactor(shellSpec);
+    const swimming = this.submerged(c.body);
+    const speed = (60 + 5 * c.growth.size) * speedFactor(shellSpec) * (swimming ? SWIM.speed : 1);
     const facing = input.moveX > WALKING ? 1 : input.moveX < -WALKING ? -1 : c.facing;
-    const launched = input.jump ? jump(c.body, this.jumpSpeed) : c.body;
+    const launched = !input.jump ? c.body : swimming ? this.stroke(c.body) : jump(c.body, this.jumpSpeed);
     const body = this.slide(launched, input.moveX, speed, dt);
     this.crab = { ...c, body, facing, digCooldown: Math.max(0, c.digCooldown - dt) };
     if (this.crab.digCooldown === 0) {
@@ -261,10 +309,10 @@ export class Beach {
     this.eat(events);
   }
 
-  /** Walks the crab, adding the pull of any pit slope it stands on. */
+  /** Walks the crab, adding the pull of any pit slope it stands on; under water it sinks gently. */
   private slide(b: Body, intent: number, speed: number, dt: number): Body {
     const vx = intent * speed + this.pitPull(b);
-    return moveBody(this.terrain, b, vx === 0 ? 0 : Math.sign(vx), Math.abs(vx), dt, this.tileSize);
+    return moveBody(this.terrain, b, vx === 0 ? 0 : Math.sign(vx), Math.abs(vx), dt, this.tileSize, this.submerged(b) ? WATER : AIR);
   }
 
   /**
@@ -292,6 +340,15 @@ export class Beach {
     const c = this.crab;
     const tiles = (JUMP_TILES.base + JUMP_TILES.perSize * c.growth.size) * speedFactor(c.shell ? SHELLS[c.shell] : null);
     return Math.sqrt(2 * PHYS.gravity * tiles * this.tileSize);
+  }
+
+  /** A swim stroke: a kick up through the water, or, at the surface, up and out. */
+  private stroke(b: Body): Body {
+    const T = this.tileSize;
+    const above = Math.floor(b.y / T) - 1;
+    const atSurface = !this.water || !isWet(this.water, Math.floor((b.x + b.w / 2) / T), above);
+    const speed = atSurface ? this.jumpSpeed * SWIM.out : Math.sqrt(2 * WATER.gravity * SWIM.kick * T);
+    return { ...b, vy: Math.min(b.vy, -speed), onGround: false };
   }
 
   private get cooldown(): number {
@@ -549,8 +606,28 @@ export class Beach {
 
   private moveCritters(dt: number): void {
     const c = this.crab;
-    const quarry = { box: c.body, size: c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize) };
-    for (const k of this.critters.values()) this.critters.set(k.id, stepCritter(this.terrain, k, quarry, dt, this.tileSize, this.rng));
+    const quarry = { box: c.body, size: c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize), inWater: this.submerged(c.body) };
+    const env = this.surroundings;
+    for (const k of this.critters.values()) this.critters.set(k.id, stepCritter(this.terrain, k, quarry, dt, this.tileSize, this.rng, env));
+    for (const k of this.critters.values()) if (stranded(this.terrain, k, this.tileSize)) this.fishDies(k);
+  }
+
+  /**
+   * A fish left out of the water dies where it lies and is food, worth as
+   * much as catching it. In sand, it's buried food: dig it up.
+   */
+  private fishDies(k: Critter): void {
+    const T = this.tileSize;
+    const at = centre(k);
+    const tx = Math.floor(at.x / T);
+    const ty = Math.floor(at.y / T);
+    const buried = isSolid(this.terrain, tx, ty);
+    const id = this.nextId++;
+    const proto = makeItem(id, { type: 'food', food: 'fish', points: critterPoints(k.size) }, 0, 0, buried);
+    // Buried, it sits in the middle of its tile (as buried food does); on open ground, where the fish lay.
+    const y = buried ? ty * T + T / 2 - proto.h / 2 : k.y + k.h - proto.h;
+    this.items.set(id, { ...proto, x: at.x - proto.w / 2, y });
+    this.critters.delete(k.id);
   }
 
   /**
@@ -561,6 +638,14 @@ export class Beach {
   private meetCritters(events: SimEvent[]): void {
     for (const k of this.critters.values()) {
       const c = this.crab;
+      if (this.armReaches(k)) {
+        // An octopus's arm caught it.
+        if (!c.hidden && c.safe === 0 && k.size > c.growth.size) {
+          this.caught(events);
+          this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });
+        }
+        continue;
+      }
       if (!overlaps(c.body, k, this.reach(k))) continue;
       if (c.hidden) {
         // It walks on past the shell, and doesn't turn back to hunt for a while.
@@ -575,6 +660,14 @@ export class Beach {
         this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });
       }
     }
+  }
+
+  /** Whether an octopus's arm, stretched out, has its tip on the crab. */
+  private armReaches(k: Critter): boolean {
+    if (movementOf(k.species) !== 'den' || k.arm < 0.2) return false;
+    const tip = armTip(k, this.tileSize);
+    const r = this.tileSize * 0.4;
+    return overlaps(this.crab.body, { x: tip.x - r, y: tip.y - r, w: r * 2, h: r * 2 });
   }
 
   /**
@@ -610,7 +703,11 @@ export class Beach {
   }
 
   private restockCritters(dt: number): void {
-    const short = this.groups.findIndex((g, i) => [...this.critters.keys()].filter((id) => this.groupOf.get(id) === i).length < g.count);
+    const low = this.tide === null || isLowWater(this.tide, this.elapsed);
+    // Gulls leave as the tide comes in, and come back when it goes out.
+    if (!low) for (const k of this.critters.values()) if (SPECIES[k.species].lowTide) this.critters.delete(k.id);
+    const short = this.groups.findIndex((g, i) => (low || !SPECIES[g.species ?? 'ghostcrab'].lowTide)
+      && [...this.critters.keys()].filter((id) => this.groupOf.get(id) === i).length < g.count);
     if (short < 0) return;
     this.critterTimer += dt;
     if (this.critterTimer < CRITTER_EVERY) return;
@@ -618,40 +715,33 @@ export class Beach {
     this.spawnCritter(short);
   }
 
-  /**
-   * A new creature of group `group`, well away from the player: walkers on
-   * the surface, sandfish down in the sand, an antlion at the bottom of an
-   * empty pit (any pit at the start: it was there before the crab came).
-   */
+  /** A new creature of group `group`, placed for how it lives (see spawn.ts). Gulls only come at low water. */
   private spawnCritter(group: number, start = false): void {
-    const T = this.tileSize;
-    const crabCol = Math.floor(centre(this.crab.body).x / T);
-    const w = this.terrain.width;
-    const { sizes: [lo, hi], species = 'ghostcrab' } = this.groups[group]!;
-    const move = movementOf(species);
-    for (let tries = 0; tries < 12; tries++) {
-      const tx = move === 'lurk' ? this.emptyPit() : 2 + Math.floor(this.rng() * (w - 4));
-      if (tx === null) return;
-      if (Math.abs(tx - crabCol) < SPAWN_AWAY && !(start && move === 'lurk')) continue;
-      const size = lo + Math.floor(this.rng() * (hi - lo + 1));
-      const dir = this.rng() < 0.5 ? 1 : -1;
-      const depth = move === 'burrow' ? BURROW_DEPTH.min + Math.floor(this.rng() * (BURROW_DEPTH.max - BURROW_DEPTH.min + 1)) : 0;
-      const bottom = (surfaceRow(this.terrain, tx) + depth) * T;
-      const id = this.nextId;
-      const k = makeCritter(id, size, tx * T + T / 2, bottom, dir, CRITTER.turnMin + this.rng() * 3, species);
-      if (move === 'burrow' && !swimmable(this.terrain, k, T)) continue;
-      this.nextId++;
-      this.critters.set(id, k);
-      this.groupOf.set(id, group);
-      return;
-    }
+    const { sizes, species = 'ghostcrab' } = this.groups[group]!;
+    if (SPECIES[species].lowTide && this.tide && !isLowWater(this.tide, this.elapsed)) return;
+    const k = placeCritter({
+      terrain: this.terrain, tile: this.tileSize, rng: this.rng, crabCol: Math.floor(centre(this.crab.body).x / this.tileSize),
+      pits: this.pits, dens: this.dens, critters: [...this.critters.values()], surroundings: this.surroundings, start,
+    }, this.nextId, species, sizes);
+    if (!k) return;
+    this.critters.set(k.id, k);
+    this.groupOf.set(k.id, group);
+    this.nextId++;
   }
 
-  /** A pit with no antlion in it yet, picked at random; null when every pit has one. */
-  private emptyPit(): number | null {
+  /** The tide: water follows the sea up and down, sand put down in the sea washes flat, and each high water brings things in. */
+  private flow(dt: number, events: SimEvent[]): void {
+    if (!this.shore) return;
+    const washed = this.shore.step(dt, this.elapsed, this.rng, (kind, col) => this.dropItem(kind, col, events));
+    if (washed.length) events.push({ type: 'tiles', tiles: washed, dug: false, poured: true });
+  }
+
+  private dropItem(kind: Item['kind'], col: number, events: SimEvent[]): void {
     const T = this.tileSize;
-    const free = this.pits.filter(([col]) => ![...this.critters.values()].some((k) => movementOf(k.species) === 'lurk' && Math.floor(centre(k).x / T) === col));
-    return free.length ? free[Math.floor(this.rng() * free.length)]![0] : null;
+    const id = this.nextId++;
+    const proto = makeItem(id, kind, 0, 0, false);
+    this.items.set(id, { ...proto, x: col * T + T / 2 - proto.w / 2, y: surfaceRow(this.terrain, col) * T - proto.h });
+    events.push({ type: 'spawned', id });
   }
 
   /** A bird coming in at patrol height from somewhere away from the crab. */

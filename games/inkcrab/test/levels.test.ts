@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { BEACH_1 } from '../src/level/beach1';
 import { BEACH_2 } from '../src/level/beach2';
+import { BEACH_3 } from '../src/level/beach3';
 import type { LevelDef } from '../src/level/types';
 import { movementOf } from '../src/logic/species';
-import { buildLevel, levelGoal, smallFry, TILE_PX } from '../src/level/build';
+import { buildLevel, levelGoal, levelShells, smallFry, TILE_PX } from '../src/level/build';
 import { boxHitsSolid } from '../src/logic/body';
 import { pourStep } from '../src/logic/dunes';
 import { Beach } from '../src/logic/sim';
@@ -13,6 +14,7 @@ import { isDiggable, isSolid } from '../src/logic/terrain';
 const BEACHES: readonly { name: string; levels: readonly LevelDef[]; fry: string; firstGoal: number }[] = [
   { name: 'beach 1', levels: BEACH_1, fry: 'slater', firstGoal: 3 },
   { name: 'beach 2', levels: BEACH_2, fry: 'darkling', firstGoal: 4 },
+  { name: 'beach 3', levels: BEACH_3, fry: 'shorecrab', firstGoal: 4 },
 ];
 
 for (const { name, levels: BEACH, fry: FRY, firstGoal } of BEACHES) describe(name, () => {
@@ -64,7 +66,7 @@ for (const { name, levels: BEACH, fry: FRY, firstGoal } of BEACHES) describe(nam
       });
 
       it('has a shell to move into at every size on the way to the goal', () => {
-        const kinds = ['periwinkle' as const, ...def.shells.map(([k]) => k)];
+        const kinds = ['periwinkle' as const, ...levelShells(def)];
         for (let size = 1; size < levelGoal(def); size++) {
           expect(kinds.some((k) => SHELLS[k].minSize <= size && SHELLS[k].maxSize > size), `size ${size}`).toBe(true);
         }
@@ -143,6 +145,29 @@ for (const { name, levels: BEACH, fry: FRY, firstGoal } of BEACHES) describe(nam
           while (!isSolid(setup.terrain, col, bottom)) bottom++;
           expect(bottom - rim, `pit at ${col}`).toBeGreaterThanOrEqual(reach - 1);
         }
+      });
+
+      it('keeps octopuses only in dens, each a crevice opening onto water or air', () => {
+        const octopuses = (def.critters ?? []).filter((g) => g.species && movementOf(g.species) === 'den').reduce((n, g) => n + g.count, 0);
+        expect(octopuses).toBeLessThanOrEqual(def.dens?.length ?? 0);
+        for (const [x, y] of def.dens ?? []) {
+          expect(isSolid(setup.terrain, x, y), `den ${x},${y}`).toBe(false);
+          const openSides = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => !isSolid(setup.terrain, x + dx!, y + dy!)).length;
+          expect(openSides, `den ${x},${y}`).toBeGreaterThanOrEqual(1);
+          // It opens onto a pool, so its arm reaches across the water.
+          if (def.tide) expect(new Beach(setup).water!.wet.some((v, i) => v === 1 && Math.abs((i % def.width) - x) === 1 && Math.floor(i / def.width) === y), `den ${x},${y} by water`).toBe(true);
+        }
+      });
+
+      it('starts with its pools full and the beach above low water dry', () => {
+        if (!def.tide) return;
+        const b = new Beach(setup);
+        for (const [x0, w] of def.pools ?? []) {
+          const wet = [...Array(w).keys()].some((i) => [...Array(def.height).keys()].some((y) => b.water!.wet[y * def.width + x0 + i] === 1));
+          expect(wet, `pool at ${x0}`).toBe(true);
+        }
+        expect(b.crab.body.y + b.crab.body.h).toBeLessThan(def.tide.low * TILE_PX);
+        expect(b.submerged(b.crab.body)).toBe(false);
       });
 
       it('has birds the crab can outgrow', () => {

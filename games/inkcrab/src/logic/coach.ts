@@ -7,7 +7,7 @@ import type { Beach, SimEvent } from './sim';
 import { isSolid } from './terrain';
 
 /** Something a level teaches, step by step, with a hint shown only while it's relevant. */
-export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish';
+export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus';
 
 /** What a hint is about: a lesson, or the way out of a hole, offered on every level. */
 export type HintKind = Lesson | 'stuck';
@@ -41,6 +41,8 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     sky: 'A kestrel is hovering over you! Get under the sand, or hold Z to hide: it strikes your shell and flies off.',
     pit: 'An antlion pit! Its sand slides you down to the jaws: walk out, or jump.',
     sandfish: 'A red ripple in the sand is a sandfish hunting you. Get back up into the open!',
+    tide: 'The tide is coming in! Water is safe, just slow: press Space to swim up. Fish swim in with it; the tide clock shows when it turns.',
+    octopus: 'An octopus is reaching out of its crevice! Get out of reach of its arm, or hold Z to hide.',
   },
   touch: {
     move: 'Steer with the stick, jump with the button. Eat food to grow.',
@@ -54,6 +56,8 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     sky: 'A kestrel is hovering over you! Get under the sand, or hold the shell button: it strikes your shell and flies off.',
     pit: 'An antlion pit! Its sand slides you down to the jaws: walk out, or jump.',
     sandfish: 'A red ripple in the sand is a sandfish hunting you. Get back up into the open!',
+    tide: 'The tide is coming in! Water is safe, just slow: tap jump to swim up. Fish swim in with it; the tide clock shows when it turns.',
+    octopus: 'An octopus is reaching out of its crevice! Get out of reach of its arm, or hold the shell button to hide.',
   },
 };
 
@@ -86,6 +90,9 @@ export class Coach {
     this.escape('sky', this.hovered(beach) && underSky(beach.terrain, c.body, beach.tileSize));
     this.escape('pit', beach.pitPull(c.body) !== 0);
     this.escape('sandfish', this.sandfishNear(beach) && !underSky(beach.terrain, c.body, beach.tileSize));
+    this.escape('octopus', [...beach.critters.values()].some((k) => k.arm > 0.15 && k.size > c.growth.size));
+    // The tide lesson speaks while the first tide comes in, and is learnt once the crab has been in the water.
+    if (beach.submerged(c.body)) this.done.add('tide');
   }
 
   /** Learns a lesson once its danger, having come up, has passed (got under cover, out of the pit, up out of the sand). */
@@ -107,6 +114,8 @@ export class Coach {
     if (open('sky') && this.facing.has('sky')) return { lesson: 'sky', text: t.sky! };
     if (open('pit') && this.facing.has('pit')) return { lesson: 'pit', text: t.pit! };
     if (open('sandfish') && this.facing.has('sandfish')) return { lesson: 'sandfish', text: t.sandfish! };
+    if (open('octopus') && this.facing.has('octopus')) return { lesson: 'octopus', text: t.octopus! };
+    if (open('tide') && beach.tide && beach.elapsed > 4) return { lesson: 'tide', text: t.tide! };
     if (this.stuck(beach)) return { lesson: 'stuck', text: t.stuck! };
     if (open('swap') && beach.capped) {
       const shell = this.biggerShell(beach);

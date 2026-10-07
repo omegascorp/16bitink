@@ -127,7 +127,30 @@ function molecrab(d: Draw): void {
   }
 }
 
-const FOODS: Readonly<Record<FoodKind, (d: Draw) => void>> = { crumb, hopper, worm, molecrab, clam };
+/** A small fish the tide left high and dry: lying on its side, fins limp, a cross for an eye. */
+function fish(d: Draw): void {
+  contact(d, 0, 16);
+  const spine = cub(pt(-18, 10), pt(-8, 6), pt(6, 6), pt(16, 10), 14);
+  const { top, bot, shape } = ribbon(spine, (u) => 2 + 6.5 * Math.sin(Math.PI * Math.min(1, u * 1.15)) ** 0.8);
+  // The tail, a limp fork.
+  const tail = [pt(-17, 10), pt(-25, 4), pt(-23, 10), pt(-25, 16)];
+  skin(d, tail, '#8f9a6a', 0.7);
+  edge(d, tail, 0.8);
+  skin(d, shape, '#a7a77a', 0.8);
+  d.pen.clipped(shape, () => {
+    tint(d, oval(0, 13, 18, 3.5, 16), '#efe6c8', 0.7);
+    for (let i = 2; i < 12; i += 2) d.pen.hair([lerp(top[i]!, bot[i]!, 0.15), lerp(top[i]!, bot[i]!, 0.6)], 0.5, d.ink, 0.45);
+    glint(d, top.slice(3, 10).map((p) => add(p, pt(0, 2))), 1.1, 0.6);
+  });
+  shade(d, shape, 0.35);
+  edge(d, shape, 1);
+  // Gill line, and the eye: a cross.
+  d.pen.stroke(bezier(pt(9, 5), pt(7, 9), pt(9, 13), 6), 0.7, d.ink, 0.85, false);
+  d.pen.stroke([pt(11.5, 6.5), pt(14, 9)], 0.8, d.ink, 1, false);
+  d.pen.stroke([pt(14, 6.5), pt(11.5, 9)], 0.8, d.ink, 1, false);
+}
+
+const FOODS: Readonly<Record<FoodKind, (d: Draw) => void>> = { crumb, hopper, worm, molecrab, clam, fish };
 
 export function drawFood(d: Draw, kind: FoodKind): void {
   FOODS[kind](d);

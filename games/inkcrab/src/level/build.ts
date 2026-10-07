@@ -27,6 +27,8 @@ function placer(t: Terrain, items: Item[]): (kind: ItemKind, col: number, depth:
     const buried = depth > 0;
     const key = `${col},${row}`;
     if (buried && taken.has(key)) return false;
+    // Nothing is buried in rock (granite under thin sand, pool walls).
+    if (buried && tileAt(t, col, row) === TILE.rock && row < t.height - BEDROCK) return false;
     if (buried) taken.add(key);
     // Packed sand around it, unless it's in dune sand (which stays loose).
     if (buried && tileAt(t, col, row) !== TILE.loose) setTile(t, col, row, TILE.sand);
@@ -46,13 +48,17 @@ function buryFood(def: LevelDef, terrain: Terrain, rng: () => number, add: Retur
   let placed = 0;
   for (let tries = 0; placed < def.food.buried && tries < def.food.buried * 8; tries++) {
     const col = 2 + Math.floor(rng() * (def.width - 4));
-    const depth = 2 + Math.floor(rng() * rng() * FOOD_DEPTH);
+    // Over granite there's only so much sand: the same spread, squeezed into it.
+    const reach = def.granite ? Math.max(3, def.granite - 1) : FOOD_DEPTH;
+    const depth = 2 + Math.floor(rng() * rng() * (def.granite ? reach - 1 : FOOD_DEPTH));
     const pocket = Math.min(def.food.buried - placed, 1 + Math.floor(rng() * POCKET));
     for (let k = 0; k < pocket; k++) {
       const c = Math.max(2, Math.min(def.width - 3, col + k - Math.floor(pocket / 2)));
       const d = depth + (k % 2);
       if (surfaceRow(terrain, c) + d >= def.height - BEDROCK) continue;
-      if (add(food(buriedFood(d, rng())), c, d)) placed++;
+      // What lives there goes by how far down the sand it is, not in tiles: thin sand still has clams at the bottom.
+      const like = 2 + Math.round(((d - 2) * (FOOD_DEPTH - 2)) / (reach - 2));
+      if (add(food(buriedFood(like, rng())), c, d)) placed++;
     }
   }
 }
@@ -62,8 +68,13 @@ export const START_SHELL: ShellKind = 'periwinkle';
 export const START_SIZE = 1;
 
 /** The level's goal size: the biggest its shells allow. */
+/** Every shell a level has besides the starting one: those laid out, and those the tide washes in. */
+export function levelShells(def: LevelDef): ShellKind[] {
+  return [...def.shells.map(([k]) => k), ...(def.tideBrings?.shells ?? []).map(([k]) => k)];
+}
+
 export function levelGoal(def: LevelDef): number {
-  return goalSize(START_SHELL, START_SIZE, def.shells.map(([k]) => k));
+  return goalSize(START_SHELL, START_SIZE, levelShells(def));
 }
 
 /** Beach columns per small slater: wider beaches keep more of them about. */
@@ -81,7 +92,7 @@ export function smallFry(def: LevelDef): CritterGroup {
 
 /** Turns a level definition into the simulation's starting state. Pure for a given definition. */
 export function buildLevel(def: LevelDef): BeachSetup {
-  const terrain = carve({ width: def.width, height: def.height, seed: def.seed, profile: def.profile, rocks: def.rocks, wobble: WOBBLE, loose: def.loose, pits: def.pits });
+  const terrain = carve({ width: def.width, height: def.height, seed: def.seed, profile: def.profile, rocks: def.rocks, wobble: WOBBLE, loose: def.loose, pits: def.pits, granite: def.granite, pools: def.pools, dens: def.dens });
   const rng = createRng(def.seed ^ 0x9e3779b9);
   const items: Item[] = [];
   const add = placer(terrain, items);
@@ -106,6 +117,10 @@ export function buildLevel(def: LevelDef): BeachSetup {
     critters: [smallFry(def), ...(def.critters ?? [])],
     pits: def.pits,
     birds: def.birds,
+    tide: def.tide,
+    pools: def.pools,
+    dens: def.dens,
+    tideBrings: def.tideBrings,
     startGrowth: { size: START_SIZE, meter: 0, bank: 0 },
     goal: levelGoal(def),
   };
@@ -113,6 +128,6 @@ export function buildLevel(def: LevelDef): BeachSetup {
 
 /** Every shell a level has, starting shell included, smallest first: the climb the beach celebration retells. */
 export function shellLadder(def: LevelDef): ShellKind[] {
-  const kinds = [...new Set<ShellKind>([START_SHELL, ...def.shells.map(([k]) => k)])];
+  const kinds = [...new Set<ShellKind>([START_SHELL, ...levelShells(def)])];
   return kinds.sort((a, b) => SHELLS[a].maxSize - SHELLS[b].maxSize || SHELLS[a].minSize - SHELLS[b].minSize);
 }

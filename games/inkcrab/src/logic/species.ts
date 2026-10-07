@@ -3,14 +3,15 @@
  * (bigger catches you, smaller is food: if you're bigger, you eat it) and
  * differ in how they move and whether they hunt.
  */
-export type SpeciesId = 'ghostcrab' | 'slater' | 'beetle' | 'darkling' | 'antlion' | 'skink' | 'raven';
+export type SpeciesId = 'ghostcrab' | 'slater' | 'beetle' | 'darkling' | 'antlion' | 'skink' | 'raven' | 'shorecrab' | 'blenny' | 'sculpin' | 'octopus' | 'gull';
 
 /**
  * How it gets about: walkers roam the surface and open tunnels; a lurker
  * stays put at the bottom of its pit; a burrower swims through the sand
- * itself (never rock), anywhere below the surface.
+ * itself (never rock), anywhere below the surface; a swimmer only moves in
+ * water; a den-dweller stays in its rock crevice and reaches out of it.
  */
-export type Movement = 'walk' | 'lurk' | 'burrow';
+export type Movement = 'walk' | 'lurk' | 'burrow' | 'swim' | 'den';
 
 export interface SpeciesSpec {
   readonly id: SpeciesId;
@@ -27,6 +28,8 @@ export interface SpeciesSpec {
   readonly move?: Movement;
   /** Hops up walls a walker would turn back at. */
   readonly hops?: boolean;
+  /** Only about at low tide: flies off when the water comes in (gulls). */
+  readonly lowTide?: boolean;
   /**
    * Body box as a share of the shell size scale (see critterBox). Widths sit
    * near 1, as wide as a crab in a shell of the same size, so on screen a
@@ -49,6 +52,16 @@ export const SPECIES: Readonly<Record<SpeciesId, SpeciesSpec>> = {
   skink: { id: 'skink', name: 'sandfish', speed: 0.6, sight: 7, hunts: true, move: 'burrow', box: { w: 1.25, h: 0.45 } },
   // A raven: walks the dunes and hops up what would stop a crab; too big for a tunnel.
   raven: { id: 'raven', name: 'raven', speed: 1.1, sight: 9, hunts: true, hops: true, box: { w: 1.15, h: 0.95 } },
+  // Tide Pool Notes (beach 3). A young shore crab: the pools' small, timid prey.
+  shorecrab: { id: 'shorecrab', name: 'shore crab', speed: 0.8, sight: 4, hunts: false, box: { w: 0.95, h: 0.6 } },
+  // A blenny: a small, quick pool fish, in water only.
+  blenny: { id: 'blenny', name: 'blenny', speed: 0.9, sight: 6, hunts: true, move: 'swim', box: { w: 1.2, h: 0.5 } },
+  // A sculpin: a big-headed, slower fish that comes in with the tide.
+  sculpin: { id: 'sculpin', name: 'sculpin', speed: 0.7, sight: 7, hunts: true, move: 'swim', box: { w: 1.3, h: 0.6 } },
+  // An octopus: stays in its crevice in the rock and reaches out of it.
+  octopus: { id: 'octopus', name: 'octopus', speed: 0, sight: 4, hunts: true, move: 'den', box: { w: 0.9, h: 0.7 } },
+  // A herring gull: walks the exposed shore at low tide, hops up rocks.
+  gull: { id: 'gull', name: 'gull', speed: 1, sight: 9, hunts: true, hops: true, lowTide: true, box: { w: 1.2, h: 1 } },
 };
 
 export function movementOf(id: SpeciesId): Movement {

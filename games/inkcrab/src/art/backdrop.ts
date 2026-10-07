@@ -2,6 +2,7 @@ import type { Lane } from '../logic/sailing';
 import { lagoon, LAGOON_H, resort, shore, SHORE_H, sky, SKY_H } from './backdrop/atoll';
 import { dhoni, yacht } from './backdrop/boats';
 import { desert, DESERT_H, DUNE_SKY_H, dunes, DUNES_H, sea, SEA_H, sky as duneSky } from './backdrop/dunes';
+import { cliffs, CLIFFS_H, ROCK_SEA_H, ROCK_SKY_H, sea as rockSea, shelf, SHELF_H, sky as rockSky } from './backdrop/rockpool';
 import type { Draw } from './kit';
 
 export { BACKDROP_W } from './backdrop/common';
@@ -11,8 +12,8 @@ export { BACKDROP_W } from './backdrop/common';
  * so the sand and creatures in front always read first. Each beach has its
  * own theme; layers tile horizontally (see `tiled`).
  */
-export type ThemeId = 'atoll' | 'dunes';
-export type LayerId = 'sky' | 'lagoon' | 'resort' | 'shore' | 'sea' | 'dunes';
+export type ThemeId = 'atoll' | 'dunes' | 'rockpool';
+export type LayerId = 'sky' | 'lagoon' | 'resort' | 'shore' | 'sea' | 'dunes' | 'cliffs';
 
 export interface LayerSpec {
   readonly id: LayerId;
@@ -40,6 +41,12 @@ export const THEMES: Readonly<Record<ThemeId, readonly LayerSpec[]>> = {
     { id: 'sea', height: SEA_H, scroll: 0.16, lift: 20, draw: sea },
     { id: 'dunes', height: DUNES_H, scroll: 0.26, lift: 10, draw: dunes },
     { id: 'shore', height: DESERT_H, scroll: 0.4, lift: -14, draw: desert },
+  ],
+  rockpool: [
+    { id: 'sky', height: ROCK_SKY_H, scroll: 0.08, lift: 120, draw: rockSky },
+    { id: 'sea', height: ROCK_SEA_H, scroll: 0.16, lift: 20, draw: rockSea },
+    { id: 'cliffs', height: CLIFFS_H, scroll: 0.26, lift: 10, draw: cliffs },
+    { id: 'shore', height: SHELF_H, scroll: 0.4, lift: -14, draw: shelf },
   ],
 };
 
@@ -80,4 +87,6 @@ export const THEME_BOATS: Readonly<Record<ThemeId, readonly BoatSpec[]>> = {
   dunes: [
     { kind: 'yacht', s: 0.55, layer: 'sea', water: 58, x: 760, speed: -1.6, front: false },
   ],
+  // The crabber lies at her mooring, drawn into the cliffs layer; nothing sails.
+  rockpool: [],
 };
