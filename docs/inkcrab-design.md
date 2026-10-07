@@ -51,7 +51,7 @@ Every shell has four properties; abilities are optional and come later.
 | Durability | Hits crack it; a broken shell drops you out naked |
 | Ability (optional, later) | One passive or active effect, e.g. faster digging or a stronger retract |
 
-Shell sources: natural shells (snail, whelk, conch) and trash shells (bottle cap, can, light bulb, jar, coconut half) for variety and humor. Shells appear buried at depth (deeper is rarer), washed in by high tide, worn by rival crabs, and dropped from vacancy chains. Cracking a coconut that falls from a palm yields a coconut-half shell.
+Shell sources: real shells only, the kinds hermit crabs live in (periwinkle, whelk, conch, and so on; each beach has its own, see inkcrab-levels.md). No litter or other man-made objects. Shells appear buried at depth (deeper is rarer), washed in by high tide, worn by rival crabs, and dropped from vacancy chains.
 
 Cracked shells give a reason to upgrade even when not capped. Shells also roll downhill and sink in water, so a wanted shell can end up somewhere dangerous.
 
@@ -90,7 +90,7 @@ Sand is a tile-based terrain you can dig and place, Terraria-style, but limited 
 
 **Placing sand.** The crab carries one clump at a time. Uses: a short wall during a swap, blocking a tunnel, a trap or pit for smaller crabs. The tide erases placed sand below the water line, so nothing is permanent.
 
-**Climbing.** Palm trees, rock walls, and coral are climbable. Heavy shells climb slower. Height is safe from fish but exposed to gulls. Knocking down coconuts gives food and coconut-half shells.
+**Climbing.** Palm trees, rock walls, and coral are climbable. Heavy shells climb slower. Height is safe from fish but exposed to gulls. Knocking down coconuts gives food.
 
 **Gravity and simulation.** Shells roll down slopes and sink in water. Unsupported sand collapses. Water fills open tunnels at high tide. Keep the simulation simple: tile-based sand and water fill, not particle physics.
 
@@ -128,7 +128,7 @@ No timers in normal levels. Optional star ratings reward speed or extra objectiv
 
 ## Progression and the final molt
 
-Within a beach you go from a tiny crab in a bottle cap to a giant in a conch; across beaches you build a shell collection.
+Within a beach you go from a tiny crab in a periwinkle to a giant in a conch; across beaches you build a shell collection.
 
 **Final molt.** The last level of each beach. Like a real coconut crab, you outgrow shells entirely: your body hardens, you no longer need a shell, and you can climb any palm and smash coconuts. It's the payoff for a game spent worrying about shells. Goal: take the golden coconut from the top of the tallest palm.
 

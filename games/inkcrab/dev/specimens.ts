@@ -1,6 +1,7 @@
 import { BACKDROP_SCALE, BACKDROP_W, BOAT_DRAW, THEME_BOATS, THEMES, type ThemeId } from '../src/art/backdrop';
 import { dhoni, speedboat, yacht } from '../src/art/backdrop/boats';
 import { bungalow, villa } from '../src/art/backdrop/homes';
+import { kestrel } from '../src/art/birds/kestrel';
 import { drawCrabBack, drawCrabFront } from '../src/art/crabArt';
 import { CRITTER_FRAME, CRITTER_GROUND, drawCritter } from '../src/art/critterArt';
 import { SPECIES, type SpeciesId } from '../src/logic/species';
@@ -83,6 +84,22 @@ for (const species of Object.keys(SPECIES) as SpeciesId[]) {
       });
     }
   }
+}
+
+const birds = section('kestrel: hover (wing up, mid, down) and stoop, prey and danger');
+for (const ink of [undefined, RED]) {
+  for (let f = 0; f < 3; f++) {
+    figure(birds, `kestrel ${ink ? 'danger' : 'prey'} hover f${f}`, CRITTER_FRAME * 2, CRITTER_FRAME * 1.2, (ctx) => {
+      ctx.scale(2, 2);
+      ctx.translate(CRITTER_FRAME / 2, CRITTER_FRAME / 2);
+      kestrel(makeDraw(ctx, 820 + f, f, 0, ink), false);
+    });
+  }
+  figure(birds, `kestrel ${ink ? 'danger' : 'prey'} stoop`, CRITTER_FRAME * 2, CRITTER_FRAME * 1.2, (ctx) => {
+    ctx.scale(2, 2);
+    ctx.translate(CRITTER_FRAME / 2, CRITTER_FRAME / 2);
+    kestrel(makeDraw(ctx, 830, 0, 0, ink), true);
+  });
 }
 
 const bigCritters = section('creatures, large');

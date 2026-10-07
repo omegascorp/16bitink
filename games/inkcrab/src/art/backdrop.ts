@@ -1,6 +1,7 @@
 import type { Lane } from '../logic/sailing';
 import { lagoon, LAGOON_H, resort, shore, SHORE_H, sky, SKY_H } from './backdrop/atoll';
 import { dhoni, yacht } from './backdrop/boats';
+import { desert, DESERT_H, DUNE_SKY_H, dunes, DUNES_H, sea, SEA_H, sky as duneSky } from './backdrop/dunes';
 import type { Draw } from './kit';
 
 export { BACKDROP_W } from './backdrop/common';
@@ -10,8 +11,8 @@ export { BACKDROP_W } from './backdrop/common';
  * so the sand and creatures in front always read first. Each beach has its
  * own theme; layers tile horizontally (see `tiled`).
  */
-export type ThemeId = 'atoll';
-export type LayerId = 'sky' | 'lagoon' | 'resort' | 'shore';
+export type ThemeId = 'atoll' | 'dunes';
+export type LayerId = 'sky' | 'lagoon' | 'resort' | 'shore' | 'sea' | 'dunes';
 
 export interface LayerSpec {
   readonly id: LayerId;
@@ -33,6 +34,12 @@ export const THEMES: Readonly<Record<ThemeId, readonly LayerSpec[]>> = {
     { id: 'lagoon', height: LAGOON_H, scroll: 0.2, lift: 10, draw: lagoon },
     { id: 'resort', height: LAGOON_H, scroll: 0.2, lift: 10, draw: resort },
     { id: 'shore', height: SHORE_H, scroll: 0.4, lift: -14, draw: shore },
+  ],
+  dunes: [
+    { id: 'sky', height: DUNE_SKY_H, scroll: 0.08, lift: 120, draw: duneSky },
+    { id: 'sea', height: SEA_H, scroll: 0.16, lift: 20, draw: sea },
+    { id: 'dunes', height: DUNES_H, scroll: 0.26, lift: 10, draw: dunes },
+    { id: 'shore', height: DESERT_H, scroll: 0.4, lift: -14, draw: desert },
   ],
 };
 
@@ -68,5 +75,9 @@ export const THEME_BOATS: Readonly<Record<ThemeId, readonly BoatSpec[]>> = {
     { kind: 'yacht', s: 0.5, layer: 'lagoon', water: 54, x: 905, speed: -1.4, front: false },
     { kind: 'dhoni', s: 0.5, layer: 'lagoon', water: 84, x: 255, speed: 3.5, front: false },
     { kind: 'dhoni', s: 1.05, layer: 'lagoon', water: 136, x: 870, speed: 5, range: [440, 1240], front: true },
+  ],
+  // A lone sailboat far out beyond the surf, slipping behind the dunes.
+  dunes: [
+    { kind: 'yacht', s: 0.55, layer: 'sea', water: 58, x: 760, speed: -1.6, front: false },
   ],
 };

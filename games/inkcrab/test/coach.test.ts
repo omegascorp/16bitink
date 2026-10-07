@@ -92,7 +92,7 @@ describe('the coach', () => {
     const b = beach();
     const coach = new Coach(['buried']);
     play(b, coach, {}, 1);
-    b.items.set(9, makeItem(9, shell('can'), 50 * T, 15 * T, true));
+    b.items.set(9, makeItem(9, shell('topshell'), 50 * T, 15 * T, true));
     expect(coach.hint(b, 'keys')).toBeNull();
     b.crab = { ...b.crab, growth: { size: 2, meter: meterGoal(2), bank: 0 } };
     expect(coach.hint(b, 'keys')?.lesson).toBe('buried');

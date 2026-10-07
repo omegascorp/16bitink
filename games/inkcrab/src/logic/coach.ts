@@ -1,11 +1,13 @@
+import { underSky } from './birds';
 import { tileSpan } from './dig';
 import { centre, type Item } from './items';
 import { canWear, SHELLS } from './shells';
+import { movementOf } from './species';
 import type { Beach, SimEvent } from './sim';
 import { isSolid } from './terrain';
 
 /** Something a level teaches, step by step, with a hint shown only while it's relevant. */
-export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried';
+export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish';
 
 /** What a hint is about: a lesson, or the way out of a hole, offered on every level. */
 export type HintKind = Lesson | 'stuck';
@@ -36,6 +38,9 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     hide: 'Red ink means it can catch you! Hold Z to hide in your shell.',
     buried: 'Highlighted sand hides something buried. Dig a slope down to it: hold → and ↓ with X.',
     stuck: 'Stuck in a hole? Dig your way out at an angle: hold → (or ←) and ↑, then press X.',
+    sky: 'A kestrel is hovering over you! Get under the sand, or hold Z to hide: it strikes your shell and flies off.',
+    pit: 'An antlion pit! Its sand slides you down to the jaws: walk out, or jump.',
+    sandfish: 'A red ripple in the sand is a sandfish hunting you. Get back up into the open!',
   },
   touch: {
     move: 'Steer with the stick, jump with the button. Eat food to grow.',
@@ -46,6 +51,9 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     hide: 'Red ink means it can catch you! Hold the shell button to hide.',
     buried: 'Highlighted sand hides something buried. Tap the sand diagonally below you to dig a slope down to it.',
     stuck: 'Stuck in a hole? Tap the sand diagonally above the crab to dig steps out.',
+    sky: 'A kestrel is hovering over you! Get under the sand, or hold the shell button: it strikes your shell and flies off.',
+    pit: 'An antlion pit! Its sand slides you down to the jaws: walk out, or jump.',
+    sandfish: 'A red ripple in the sand is a sandfish hunting you. Get back up into the open!',
   },
 };
 
@@ -58,6 +66,8 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
 export class Coach {
   private readonly done = new Set<Lesson>();
   private lastSand = 0;
+  /** Lessons whose danger the crab is in now: each is learnt when it gets out of it. */
+  private readonly facing = new Set<Lesson>();
 
   constructor(private readonly lessons: readonly Lesson[]) {}
 
@@ -73,6 +83,15 @@ export class Coach {
     if (c.sand < this.lastSand) this.done.add('drop');
     this.lastSand = c.sand;
     if (c.hidden && this.hunterNear(beach)) this.done.add('hide');
+    this.escape('sky', this.hovered(beach) && underSky(beach.terrain, c.body, beach.tileSize));
+    this.escape('pit', beach.pitPull(c.body) !== 0);
+    this.escape('sandfish', this.sandfishNear(beach) && !underSky(beach.terrain, c.body, beach.tileSize));
+  }
+
+  /** Learns a lesson once its danger, having come up, has passed (got under cover, out of the pit, up out of the sand). */
+  private escape(lesson: Lesson, inDanger: boolean): void {
+    if (inDanger) this.facing.add(lesson);
+    else if (this.facing.delete(lesson)) this.done.add(lesson);
   }
 
   learnt(lesson: Lesson): boolean {
@@ -85,6 +104,9 @@ export class Coach {
     const open = (l: Lesson): boolean => this.lessons.includes(l) && !this.done.has(l);
     const c = beach.crab;
     if (open('hide') && this.hunterNear(beach) && !c.hidden) return { lesson: 'hide', text: t.hide! };
+    if (open('sky') && this.facing.has('sky')) return { lesson: 'sky', text: t.sky! };
+    if (open('pit') && this.facing.has('pit')) return { lesson: 'pit', text: t.pit! };
+    if (open('sandfish') && this.facing.has('sandfish')) return { lesson: 'sandfish', text: t.sandfish! };
     if (this.stuck(beach)) return { lesson: 'stuck', text: t.stuck! };
     if (open('swap') && beach.capped) {
       const shell = this.biggerShell(beach);
@@ -119,6 +141,24 @@ export class Coach {
     const reach = DANGER_TILES * beach.tileSize;
     for (const k of beach.critters.values()) {
       if (k.size <= c.growth.size) continue;
+      const p = centre(k);
+      if (Math.abs(p.x - at.x) < reach && Math.abs(p.y - at.y) < reach) return true;
+    }
+    return false;
+  }
+
+  /** A bird hovering over the crab, about to stoop. */
+  private hovered(beach: Beach): boolean {
+    for (const b of beach.birds.values()) if (b.phase === 'hover' || b.phase === 'dive') return true;
+    return false;
+  }
+
+  private sandfishNear(beach: Beach): boolean {
+    const c = beach.crab;
+    const at = centre(c.body);
+    const reach = DANGER_TILES * beach.tileSize;
+    for (const k of beach.critters.values()) {
+      if (k.size <= c.growth.size || movementOf(k.species) !== 'burrow') continue;
       const p = centre(k);
       if (Math.abs(p.x - at.x) < reach && Math.abs(p.y - at.y) < reach) return true;
     }

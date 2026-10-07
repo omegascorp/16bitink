@@ -20,8 +20,8 @@ const ROCKS: readonly (readonly [number, number, number])[] = [[100, 33, 2.6], [
 
 /** Shells set by hand: two lying on top to find quickly, the rest buried, deeper is better. */
 const SHELL_SPOTS: readonly (readonly [ShellKind, number, number])[] = [
-  ['snail', 20, 0], ['bulb', 62, 0],
-  ['can', 34, 4], ['whelk', 48, 7], ['coconut', 10, 8], ['moonsnail', 78, 10], ['jar', 96, 9], ['conch', 20, 22],
+  ['snail', 20, 0], ['nerite', 62, 0],
+  ['topshell', 34, 4], ['whelk', 48, 7], ['tun', 10, 8], ['moonsnail', 78, 10], ['triton', 96, 9], ['conch', 20, 22],
 ];
 
 /** The goal-less sandbox from build step 1: one beach to mess around on. */

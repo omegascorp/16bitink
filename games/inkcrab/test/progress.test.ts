@@ -4,9 +4,9 @@ import { capMark, goalSize, levelProgress, sizeMarks } from '../src/logic/progre
 
 describe('level progress', () => {
   it('aims for the biggest size any shell in the level allows', () => {
-    expect(goalSize('bottlecap', 1, [])).toBe(2);
-    expect(goalSize('bottlecap', 2, ['snail'])).toBe(3);
-    expect(goalSize('snail', 3, ['bulb', 'can'])).toBe(5);
+    expect(goalSize('periwinkle', 1, [])).toBe(2);
+    expect(goalSize('periwinkle', 2, ['snail'])).toBe(3);
+    expect(goalSize('snail', 3, ['nerite', 'topshell'])).toBe(5);
   });
 
   it('fills from the starting size to the goal, counting the meter', () => {

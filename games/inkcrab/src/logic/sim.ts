@@ -1,6 +1,8 @@
 import { boxHitsSolid, jump, moveBody, PHYS, type Body, type Box } from './body';
-import { CRITTER, critterPoints, makeCritter, stepCritter, type Critter } from './critters';
-import type { SpeciesId } from './species';
+import { makeBird, patrolY, pullUp, stepBird, underSky, type Bird, type BirdSpecies } from './birds';
+import { CRITTER, critterPoints, makeCritter, stepCritter, swimmable, type Critter } from './critters';
+import { columnsAround, pourStep } from './dunes';
+import { movementOf, type SpeciesId } from './species';
 import { settleColumn } from './sandfall';
 import { digColumns, diggableOf, digTargets, inReach, placeTarget, tileSpan, type TilePos } from './dig';
 import { feed, initialGrowth, isCapped, settle, type Growth } from './growth';
@@ -8,7 +10,7 @@ import { buriedFood, centre, food, makeItem, overlaps, type Item } from './items
 import { createRng, type Rng } from './rng';
 import { canWear, MOUTH_OFFSET, sandCapacity, shellPx, SHELLS, speedFactor, type ShellKind } from './shells';
 import { startSwap, tickSwap, type Swap } from './swap';
-import { dig, isDiggable, isSolid, place, surfaceRow, type Terrain } from './terrain';
+import { dig, isDiggable, isSolid, place, surfaceRow, TILE, type Terrain } from './terrain';
 
 export interface Input {
   /** -1..1 */
@@ -38,6 +40,8 @@ export type SimEvent =
   | { readonly type: 'spawned'; readonly id: number }
   | { readonly type: 'swapStart'; readonly id: number }
   | { readonly type: 'caught'; readonly x: number; readonly y: number; readonly lives: number }
+  /** A bird's stoop glanced off the shell of a hiding crab. */
+  | { readonly type: 'struck'; readonly x: number; readonly y: number }
   | { readonly type: 'won' }
   | { readonly type: 'lost' }
   | { readonly type: 'swapDone'; readonly from: ShellKind | null; readonly to: ShellKind; readonly grew: number; readonly dropped: number | null };
@@ -77,6 +81,18 @@ export interface BeachSetup {
   readonly goal?: number;
   /** Lives for the level (default 3). */
   readonly lives?: number;
+  /** Antlion pits: column of the bottom and reach in tiles. A crab on the slope slides in. */
+  readonly pits?: readonly (readonly [number, number])[];
+  /** Birds hunting from the sky (default none). */
+  readonly birds?: readonly BirdGroup[];
+}
+
+/** Birds a level keeps overhead: how many, and how big (they hunt crabs smaller than that). */
+export interface BirdGroup {
+  readonly count: number;
+  readonly size: number;
+  /** Default: kestrels. */
+  readonly species?: BirdSpecies;
 }
 
 /** A kind of ghost crab a level keeps around: how many at once, and their sizes. */
@@ -105,6 +121,12 @@ const SAFE_SECONDS = 2.5;
 /** New ghost crabs appear at least this many tiles from the player, so never in view. */
 const SPAWN_AWAY = 14;
 const CRITTER_EVERY = 3;
+/** Seconds between pours of dune sand: one row a tick, so a slope visibly runs. */
+const POUR_EVERY = 0.05;
+/** px/s a pit's slope slides a crab towards the antlion at the bottom: less than it walks, so it can climb out. */
+export const PIT_PULL = 34;
+/** Sandfish start this many tiles below the surface, and at least this far from the crab. */
+const BURROW_DEPTH = { min: 3, max: 8 } as const;
 export const LIVES = 3;
 
 function crabBox(size: number, shell: ShellKind | null): { w: number; h: number } {
@@ -122,6 +144,8 @@ export class Beach {
   readonly tileSize: number;
   readonly items = new Map<number, Item>();
   readonly critters = new Map<number, Critter>();
+  readonly birds = new Map<number, Bird>();
+  readonly pits: readonly (readonly [number, number])[];
   readonly goal: number | null;
   crab: CrabState;
   lives: number;
@@ -142,6 +166,11 @@ export class Beach {
   private readonly groups: readonly CritterGroup[];
   /** Which group each ghost crab belongs to, so an eaten one is replaced in kind. */
   private readonly groupOf = new Map<number, number>();
+  /** Columns where dune sand may pour next tick; empty when it all rests. */
+  private readonly pouring = new Set<number>();
+  private readonly hasDunes: boolean;
+  private pourTimer = 0;
+  private pourFlip = false;
 
   constructor(setup: BeachSetup) {
     this.terrain = setup.terrain;
@@ -152,6 +181,8 @@ export class Beach {
     this.groups = setup.critters ?? [];
     this.goal = setup.goal ?? null;
     this.lives = setup.lives ?? LIVES;
+    this.pits = setup.pits ?? [];
+    this.hasDunes = setup.terrain.tiles.includes(TILE.loose);
     for (const item of setup.items) this.items.set(item.id, item);
     this.nextId = Math.max(0, ...setup.items.map((i) => i.id)) + 1;
     const growth = setup.startGrowth ?? initialGrowth();
@@ -161,8 +192,9 @@ export class Beach {
       facing: 1, growth, shell: setup.startShell, sand: 0, swap: null, digCooldown: 0, hidden: false, safe: 0,
     };
     this.groups.forEach((g, i) => {
-      for (let n = 0; n < g.count; n++) this.spawnCritter(i);
+      for (let n = 0; n < g.count; n++) this.spawnCritter(i, true);
     });
+    for (const g of setup.birds ?? []) for (let n = 0; n < g.count; n++) this.spawnBird(g);
     for (let tries = 0; this.shallow.size < this.shallowFood && tries < this.shallowFood * 8; tries++) this.plantShallow();
   }
 
@@ -192,12 +224,14 @@ export class Beach {
     const c = this.crab;
     this.crab = { ...c, safe: Math.max(0, c.safe - dt), hidden: input.hide && c.shell !== null && c.swap === null };
     if (this.crab.swap) this.tickSwap(dt, events);
-    else if (this.crab.hidden) this.crab = { ...this.crab, body: moveBody(this.terrain, this.crab.body, 0, 0, dt, this.tileSize) };
+    else if (this.crab.hidden) this.crab = { ...this.crab, body: this.slide(this.crab.body, 0, 0, dt) };
     else this.act(input, dt, events);
     this.settleSand(events);
+    this.pour(dt, events);
     this.settleItems(dt, events);
     this.moveCritters(dt);
     this.meetCritters(events);
+    this.moveBirds(dt, events);
     this.restock(dt, events);
     this.restockShallow(dt, events);
     this.restockCritters(dt);
@@ -212,7 +246,7 @@ export class Beach {
     const speed = (60 + 5 * c.growth.size) * speedFactor(shellSpec);
     const facing = input.moveX > WALKING ? 1 : input.moveX < -WALKING ? -1 : c.facing;
     const launched = input.jump ? jump(c.body, this.jumpSpeed) : c.body;
-    const body = moveBody(this.terrain, launched, input.moveX, speed, dt, this.tileSize);
+    const body = this.slide(launched, input.moveX, speed, dt);
     this.crab = { ...c, body, facing, digCooldown: Math.max(0, c.digCooldown - dt) };
     if (this.crab.digCooldown === 0) {
       if (input.tapTile) this.tapTile(input.tapTile, events);
@@ -224,6 +258,32 @@ export class Beach {
       events.push({ type: 'swapStart', id: this.nearbyShell.id });
     }
     this.eat(events);
+  }
+
+  /** Walks the crab, adding the pull of any pit slope it stands on. */
+  private slide(b: Body, intent: number, speed: number, dt: number): Body {
+    const vx = intent * speed + this.pitPull(b);
+    return moveBody(this.terrain, b, vx === 0 ? 0 : Math.sign(vx), Math.abs(vx), dt, this.tileSize);
+  }
+
+  /**
+   * On the slope of an antlion pit, sand runs out from under the crab
+   * towards the bottom. A pit filled level (or a crab below its bottom)
+   * pulls no more.
+   */
+  pitPull(b: Body): number {
+    if (!b.onGround || !this.pits.length) return 0;
+    const T = this.tileSize;
+    const cx = (b.x + b.w / 2) / T;
+    const col = Math.floor(cx);
+    const feet = Math.round((b.y + b.h) / T);
+    for (const [pitCol, reach] of this.pits) {
+      const off = pitCol + 0.5 - cx;
+      if (Math.abs(off) > reach + 0.5 || Math.abs(off) < 0.25) continue;
+      if (Math.abs(feet - surfaceRow(this.terrain, col)) > 1 || surfaceRow(this.terrain, pitCol) <= feet) continue;
+      return Math.sign(off) * PIT_PULL;
+    }
+    return 0;
   }
 
   /** Take-off speed (px/s) for the current height: bigger crabs leap higher, heavier shells hold them down. */
@@ -303,6 +363,29 @@ export class Beach {
     if (changed.length) events.push({ type: 'tiles', tiles: changed, dug: false });
   }
 
+  /**
+   * Dune sand near anything that changed pours, a row a tick, around the
+   * crab and the creatures (it rests on them rather than burying them).
+   */
+  private pour(dt: number, events: SimEvent[]): void {
+    if (!this.hasDunes) return;
+    for (const e of events) if (e.type === 'tiles') for (const x of columnsAround(e.tiles)) this.pouring.add(x);
+    this.pourTimer += dt;
+    if (this.pourTimer < POUR_EVERY || !this.pouring.size) return;
+    this.pourTimer = 0;
+    const T = this.tileSize;
+    const cell = (x: number, y: number): Box => ({ x: x * T, y: y * T, w: T, h: T });
+    const walkers = [...this.critters.values()].filter((k) => movementOf(k.species) === 'walk');
+    const blocked = (x: number, y: number): boolean => overlaps(this.crab.body, cell(x, y)) || walkers.some((k) => overlaps(k, cell(x, y)));
+    const cols = [...this.pouring];
+    this.pouring.clear();
+    this.pourFlip = !this.pourFlip;
+    const changed = pourStep(this.terrain, cols, blocked, this.pourFlip);
+    if (!changed.length) return;
+    events.push({ type: 'tiles', tiles: changed, dug: false });
+    for (const x of columnsAround(changed)) this.pouring.add(x);
+  }
+
   private eat(events: SimEvent[]): void {
     for (const item of this.items.values()) {
       if (item.buried || item.kind.type !== 'food' || !overlaps(this.crab.body, item, 2)) continue;
@@ -318,8 +401,8 @@ export class Beach {
   private tickSwap(dt: number, events: SimEvent[]): void {
     const c = this.crab;
     const r = tickSwap(c.swap!, dt);
-    // Gravity still applies to a crab caught mid-swap.
-    const body = moveBody(this.terrain, c.body, 0, 0, dt, this.tileSize);
+    // Gravity (and a pit's slope) still apply to a crab caught mid-swap.
+    const body = this.slide(c.body, 0, 0, dt);
     if (!r.done) {
       this.crab = { ...c, body, swap: r.swap };
       return;
@@ -387,6 +470,12 @@ export class Beach {
         if (isSolid(this.terrain, Math.floor(at.x / T), Math.floor(at.y / T))) continue;
         this.items.set(item.id, { ...item, buried: false });
         events.push({ type: 'revealed', id: item.id });
+        continue;
+      }
+      // Sand poured or put over it buries it again.
+      const at = centre(item);
+      if (isSolid(this.terrain, Math.floor(at.x / T), Math.floor(at.y / T))) {
+        this.items.set(item.id, { ...item, buried: true, vx: 0, vy: 0 });
         continue;
       }
       // A freshly uncovered item may still be wedged in sand; it drops once there's room.
@@ -460,7 +549,7 @@ export class Beach {
 
   private moveCritters(dt: number): void {
     const c = this.crab;
-    const quarry = { box: c.body, size: c.growth.size, hidden: c.hidden };
+    const quarry = { box: c.body, size: c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize) };
     for (const k of this.critters.values()) this.critters.set(k.id, stepCritter(this.terrain, k, quarry, dt, this.tileSize, this.rng));
   }
 
@@ -480,7 +569,11 @@ export class Beach {
       }
       const size = c.growth.size;
       if (k.size < size && !c.swap) this.eatCritter(k, events);
-      else if ((k.size > size || (k.size === size && this.exposed)) && c.safe === 0) this.caught(events);
+      else if ((k.size > size || (k.size === size && this.exposed)) && c.safe === 0) {
+        this.caught(events);
+        // It lets go: time to get away (out of a pit, say) before it strikes again.
+        this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });
+      }
     }
   }
 
@@ -515,21 +608,75 @@ export class Beach {
     this.spawnCritter(short);
   }
 
-  /** A new ghost crab of group `group`, on the surface well away from the player. */
-  private spawnCritter(group: number): void {
+  /**
+   * A new creature of group `group`, well away from the player: walkers on
+   * the surface, sandfish down in the sand, an antlion at the bottom of an
+   * empty pit (any pit at the start: it was there before the crab came).
+   */
+  private spawnCritter(group: number, start = false): void {
     const T = this.tileSize;
     const crabCol = Math.floor(centre(this.crab.body).x / T);
     const w = this.terrain.width;
+    const { sizes: [lo, hi], species = 'ghostcrab' } = this.groups[group]!;
+    const move = movementOf(species);
     for (let tries = 0; tries < 12; tries++) {
-      const tx = 2 + Math.floor(this.rng() * (w - 4));
-      if (Math.abs(tx - crabCol) < SPAWN_AWAY) continue;
-      const { sizes: [lo, hi], species } = this.groups[group]!;
+      const tx = move === 'lurk' ? this.emptyPit() : 2 + Math.floor(this.rng() * (w - 4));
+      if (tx === null) return;
+      if (Math.abs(tx - crabCol) < SPAWN_AWAY && !(start && move === 'lurk')) continue;
       const size = lo + Math.floor(this.rng() * (hi - lo + 1));
-      const id = this.nextId++;
       const dir = this.rng() < 0.5 ? 1 : -1;
-      this.critters.set(id, makeCritter(id, size, tx * T + T / 2, surfaceRow(this.terrain, tx) * T, dir, CRITTER.turnMin + this.rng() * 3, species));
+      const depth = move === 'burrow' ? BURROW_DEPTH.min + Math.floor(this.rng() * (BURROW_DEPTH.max - BURROW_DEPTH.min + 1)) : 0;
+      const bottom = (surfaceRow(this.terrain, tx) + depth) * T;
+      const id = this.nextId;
+      const k = makeCritter(id, size, tx * T + T / 2, bottom, dir, CRITTER.turnMin + this.rng() * 3, species);
+      if (move === 'burrow' && !swimmable(this.terrain, k, T)) continue;
+      this.nextId++;
+      this.critters.set(id, k);
       this.groupOf.set(id, group);
       return;
+    }
+  }
+
+  /** A pit with no antlion in it yet, picked at random; null when every pit has one. */
+  private emptyPit(): number | null {
+    const T = this.tileSize;
+    const free = this.pits.filter(([col]) => ![...this.critters.values()].some((k) => movementOf(k.species) === 'lurk' && Math.floor(centre(k).x / T) === col));
+    return free.length ? free[Math.floor(this.rng() * free.length)]![0] : null;
+  }
+
+  /** A bird coming in at patrol height from somewhere away from the crab. */
+  private spawnBird(g: BirdGroup): void {
+    const T = this.tileSize;
+    const W = this.terrain.width * T;
+    const crabX = centre(this.crab.body).x;
+    let x = this.rng() * W;
+    for (let tries = 0; tries < 8 && Math.abs(x - crabX) < SPAWN_AWAY * T; tries++) x = this.rng() * W;
+    const id = this.nextId++;
+    // Heading the crab's way, so it shows up early.
+    const b = makeBird(id, g.size, x, 0, crabX > x ? 1 : -1, g.species);
+    this.birds.set(id, { ...b, y: patrolY(this.terrain, T, b.h) });
+  }
+
+  /**
+   * Birds fly, and a stoop that lands on the crab catches it, unless it's
+   * pulled into its shell: then the bird strikes the shell, harmlessly,
+   * and flies off.
+   */
+  private moveBirds(dt: number, events: SimEvent[]): void {
+    if (!this.birds.size) return;
+    const c = this.crab;
+    const T = this.tileSize;
+    const quarry = { box: c.body, size: c.growth.size, hidden: c.hidden, open: underSky(this.terrain, c.body, T) };
+    for (const b of this.birds.values()) {
+      const next = stepBird(this.terrain, b, quarry, dt, T);
+      if (next.phase !== 'dive' || !overlaps(next, this.crab.body) || this.crab.growth.size >= next.size) {
+        this.birds.set(b.id, next);
+        continue;
+      }
+      this.birds.set(b.id, pullUp(next));
+      const at = centre(this.crab.body);
+      if (this.crab.hidden) events.push({ type: 'struck', x: at.x, y: at.y });
+      else if (this.crab.safe === 0) this.caught(events);
     }
   }
 

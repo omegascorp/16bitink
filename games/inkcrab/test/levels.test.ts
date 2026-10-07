@@ -1,25 +1,34 @@
 import { describe, expect, it } from 'vitest';
 import { BEACH_1 } from '../src/level/beach1';
+import { BEACH_2 } from '../src/level/beach2';
+import type { LevelDef } from '../src/level/types';
+import { movementOf } from '../src/logic/species';
 import { buildLevel, levelGoal, smallFry, TILE_PX } from '../src/level/build';
 import { boxHitsSolid } from '../src/logic/body';
+import { pourStep } from '../src/logic/dunes';
 import { Beach } from '../src/logic/sim';
 import { SHELLS } from '../src/logic/shells';
-import { isSolid, tileAt, TILE } from '../src/logic/terrain';
+import { isDiggable, isSolid } from '../src/logic/terrain';
 
-describe('beach 1', () => {
+const BEACHES: readonly { name: string; levels: readonly LevelDef[]; fry: string; firstGoal: number }[] = [
+  { name: 'beach 1', levels: BEACH_1, fry: 'slater', firstGoal: 3 },
+  { name: 'beach 2', levels: BEACH_2, fry: 'darkling', firstGoal: 4 },
+];
+
+for (const { name, levels: BEACH, fry: FRY, firstGoal } of BEACHES) describe(name, () => {
   it('has ten levels with unique, permanent-looking ids', () => {
-    expect(BEACH_1).toHaveLength(10);
-    const ids = BEACH_1.map((l) => l.id);
+    expect(BEACH).toHaveLength(10);
+    const ids = BEACH.map((l) => l.id);
     expect(new Set(ids).size).toBe(10);
     for (const id of ids) expect(id).toMatch(/^[a-z]+(-[a-z]+)*$/);
   });
 
   it('buries more food than it leaves on the surface from the second level on', () => {
-    for (const def of BEACH_1.slice(1)) expect(def.food.buried).toBeGreaterThanOrEqual(def.food.surface * 0.7);
+    for (const def of BEACH.slice(1)) expect(def.food.buried).toBeGreaterThanOrEqual(def.food.surface * 0.7);
   });
 
   it('keeps food a dig or two down on every level, topped up as it is eaten', () => {
-    for (const def of BEACH_1) {
+    for (const def of BEACH) {
       expect(def.food.shallow).toBeGreaterThanOrEqual(4);
       const beach = new Beach(buildLevel(def));
       const shallow = [...beach.items.values()].filter((i) => {
@@ -34,17 +43,17 @@ describe('beach 1', () => {
   });
 
   it('hides every underground kind somewhere on the beach', () => {
-    const kinds = new Set<string>(BEACH_1.flatMap((def) => buildLevel(def).items.filter((i) => i.buried && i.kind.type === 'food').map((i) => (i.kind.type === 'food' ? i.kind.food : ''))));
+    const kinds = new Set<string>(BEACH.flatMap((def) => buildLevel(def).items.filter((i) => i.buried && i.kind.type === 'food').map((i) => (i.kind.type === 'food' ? i.kind.food : ''))));
     for (const k of ['worm', 'molecrab', 'clam', 'hopper']) expect(kinds.has(k)).toBe(true);
   });
 
   it('asks for more growth as the beach goes on, ending at the biggest size', () => {
-    for (let i = 1; i < BEACH_1.length; i++) expect(levelGoal(BEACH_1[i]!)).toBeGreaterThanOrEqual(levelGoal(BEACH_1[i - 1]!));
-    expect(levelGoal(BEACH_1[0]!)).toBe(3);
-    expect(levelGoal(BEACH_1[BEACH_1.length - 1]!)).toBe(8);
+    for (let i = 1; i < BEACH.length; i++) expect(levelGoal(BEACH[i]!)).toBeGreaterThanOrEqual(levelGoal(BEACH[i - 1]!));
+    expect(levelGoal(BEACH[0]!)).toBe(firstGoal);
+    expect(levelGoal(BEACH[BEACH.length - 1]!)).toBe(8);
   });
 
-  for (const def of BEACH_1) {
+  for (const def of BEACH) {
     describe(def.id, () => {
       const setup = buildLevel(def);
 
@@ -75,7 +84,7 @@ describe('beach 1', () => {
           const row = Math.floor((item.y + item.h / 2) / TILE_PX);
           expect(col).toBeGreaterThanOrEqual(0);
           expect(col).toBeLessThan(def.width);
-          if (item.buried) expect(tileAt(setup.terrain, col, row)).toBe(TILE.sand);
+          if (item.buried) expect(isDiggable(setup.terrain, col, row)).toBe(true);
         }
       });
 
@@ -97,7 +106,7 @@ describe('beach 1', () => {
       it('keeps small, timid prey about that is never a threat at the start', () => {
         const fry = setup.critters![0]!;
         expect(fry).toEqual(smallFry(def));
-        expect(fry.species).toBe('slater');
+        expect(fry.species).toBe(FRY);
         expect(fry.count).toBeGreaterThanOrEqual(3);
         expect(fry.sizes[0]).toBe(1);
         expect(fry.sizes[1]).toBeLessThan(levelGoal(def));
@@ -118,6 +127,34 @@ describe('beach 1', () => {
         expect(b.crab.body.onGround).toBe(true);
         expect(b.outcome).toBe('playing');
       });
+
+      it('starts its dunes at rest, so nothing pours until the crab digs', () => {
+        const t = buildLevel(def).terrain;
+        expect(pourStep(t, Array.from({ length: t.width }, (_, x) => x), () => false, false)).toEqual([]);
+      });
+
+      it('keeps antlions only where there are pits for them', () => {
+        const antlions = (def.critters ?? []).filter((g) => g.species && movementOf(g.species) === 'lurk').reduce((n, g) => n + g.count, 0);
+        expect(antlions).toBeLessThanOrEqual(def.pits?.length ?? 0);
+        for (const [col, reach] of def.pits ?? []) {
+          let rim = 0;
+          while (!isSolid(setup.terrain, col - reach - 1, rim)) rim++;
+          let bottom = 0;
+          while (!isSolid(setup.terrain, col, bottom)) bottom++;
+          expect(bottom - rim, `pit at ${col}`).toBeGreaterThanOrEqual(reach - 1);
+        }
+      });
+
+      it('has birds the crab can outgrow', () => {
+        for (const g of def.birds ?? []) expect(g.size).toBeLessThanOrEqual(levelGoal(def));
+      });
     });
   }
+});
+
+describe('every beach', () => {
+  it('never reuses a level id', () => {
+    const ids = BEACHES.flatMap((b) => b.levels.map((l) => l.id));
+    expect(new Set(ids).size).toBe(ids.length);
+  });
 });

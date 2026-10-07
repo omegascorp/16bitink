@@ -22,19 +22,19 @@ describe('shells', () => {
 
   it('leaves room to bank for a shell that skips sizes', () => {
     // A size-2 crab capped in a bottle cap can move straight into a can that fits up to 5.
-    expect(SHELLS.bottlecap.maxSize).toBe(2);
-    expect(canWear(SHELLS.can, 2)).toBe(true);
-    expect(SHELLS.can.maxSize).toBeGreaterThanOrEqual(5);
+    expect(SHELLS.periwinkle.maxSize).toBe(2);
+    expect(canWear(SHELLS.topshell, 2)).toBe(true);
+    expect(SHELLS.topshell.maxSize).toBeGreaterThanOrEqual(5);
   });
 
   it('slows heavy shells and leaves naked crabs at full speed', () => {
     expect(speedFactor(null)).toBe(1);
-    expect(speedFactor(SHELLS.bottlecap)).toBe(1);
+    expect(speedFactor(SHELLS.periwinkle)).toBe(1);
     expect(speedFactor(SHELLS.conch)).toBeLessThan(speedFactor(SHELLS.whelk));
   });
 
   it('draws bigger shells bigger', () => {
-    expect(shellPx(SHELLS.conch.maxSize)).toBeGreaterThan(shellPx(SHELLS.bottlecap.maxSize));
+    expect(shellPx(SHELLS.conch.maxSize)).toBeGreaterThan(shellPx(SHELLS.periwinkle.maxSize));
   });
 
   it('fills most of the opening even at the smallest size a shell fits', () => {
@@ -47,20 +47,20 @@ describe('shells', () => {
   });
 
   it('grows within a shell', () => {
-    expect(bodyFill(SHELLS.bulb, 3)).toBeGreaterThan(bodyFill(SHELLS.bulb, 2));
-    expect(bodyFill(SHELLS.bulb, 3)).toBeLessThan(bodyFill(SHELLS.bulb, 4));
+    expect(bodyFill(SHELLS.nerite, 3)).toBeGreaterThan(bodyFill(SHELLS.nerite, 2));
+    expect(bodyFill(SHELLS.nerite, 3)).toBeLessThan(bodyFill(SHELLS.nerite, 4));
   });
 
   it('carries more sand in a bigger shell, and a little without one', () => {
-    expect(sandCapacity(SHELLS.bottlecap)).toBe(10);
-    expect(sandCapacity(SHELLS.conch)).toBeGreaterThan(sandCapacity(SHELLS.jar));
-    expect(sandCapacity(SHELLS.jar)).toBeGreaterThan(sandCapacity(SHELLS.bulb));
-    expect(sandCapacity(null)).toBeLessThan(sandCapacity(SHELLS.bottlecap));
+    expect(sandCapacity(SHELLS.periwinkle)).toBe(10);
+    expect(sandCapacity(SHELLS.conch)).toBeGreaterThan(sandCapacity(SHELLS.triton));
+    expect(sandCapacity(SHELLS.triton)).toBeGreaterThan(sandCapacity(SHELLS.nerite));
+    expect(sandCapacity(null)).toBeLessThan(sandCapacity(SHELLS.periwinkle));
     expect(sandCapacity(null)).toBeGreaterThan(0);
   });
 
   it('draws the smallest shell small enough that its crab fits one tile (16 px)', () => {
-    expect(shellPx(SHELLS.bottlecap.maxSize) * 0.85).toBeLessThan(16);
-    expect(shellPx(SHELLS.bottlecap.maxSize) * 0.7).toBeLessThan(16);
+    expect(shellPx(SHELLS.periwinkle.maxSize) * 0.85).toBeLessThan(16);
+    expect(shellPx(SHELLS.periwinkle.maxSize) * 0.7).toBeLessThan(16);
   });
 });

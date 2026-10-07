@@ -4,6 +4,7 @@ import { SHELL_KINDS } from '../logic/shells';
 import { SPECIES, type SpeciesId } from '../logic/species';
 import { BACKDROP_W, BOAT_BOX, BOAT_DRAW, THEME_BOATS, THEMES, type ThemeId } from './backdrop';
 import { drawCrabBack, drawCrabFront } from './crabArt';
+import { kestrel } from './birds/kestrel';
 import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, drawCritter } from './critterArt';
 import { FRAME, GROUND } from './frame';
 import { drawFood, drawHighlight, drawPuff, FOOD_FRAME, FOOD_GROUND, FOOD_RES } from './itemArt';
@@ -19,6 +20,8 @@ export const TEX = {
   nakedFront: (f: number) => `naked-front-${f}`,
   /** `danger`: inked red, for one that can eat you. */
   critter: (species: string, danger: boolean, f: number) => `critter-${species}-${danger ? 'red' : 'blue'}-${f}`,
+  /** A bird hovering (wings by frame) or stooping. */
+  bird: (species: string, dive: boolean, danger: boolean, f: number) => `bird-${species}-${dive ? 'dive' : 'hover'}-${danger ? 'red' : 'blue'}-${f}`,
   shell: (kind: string, f: number) => `shell-${kind}-${f}`,
   food: (kind: string, f: number) => `food-${kind}-${f}`,
   highlight: (f: number) => `hl-${f}`,
@@ -88,6 +91,11 @@ export function generateTextures(scene: Phaser.Scene): void {
     for (const species of Object.keys(SPECIES) as SpeciesId[]) {
       for (const danger of [false, true]) {
         bake(scene, TEX.critter(species, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => drawCritter(makeDraw(ctx, 800 + f, f, CRITTER_GROUND, danger ? RED : undefined), species));
+      }
+    }
+    for (const dive of [false, true]) {
+      for (const danger of [false, true]) {
+        bake(scene, TEX.bird('kestrel', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => kestrel(makeDraw(ctx, 850 + f, f, 0, danger ? RED : undefined), dive));
       }
     }
     SHELL_KINDS.forEach((kind, i) => critter(TEX.shell(kind, f), 300 + i * 10 + f, f, (d) => drawShell(d, kind)));

@@ -1,7 +1,7 @@
 import { cellCase, cellGeometry } from '../logic/contour';
 import { createRng } from '../logic/rng';
 import { surfaceRow, tileAt, TILE, type Terrain } from '../logic/terrain';
-import { INK, PAPER, ROCK, TUNNEL, SAND_DEEP, SAND_DRY, SAND_GRAIN, SAND_WET } from './palette';
+import { DUNE, INK, PAPER, ROCK, TUNNEL, SAND_DEEP, SAND_DRY, SAND_GRAIN, SAND_WET } from './palette';
 
 /**
  * Diggable sand drawn as ballpoint hatching. Seamless hatch tiles are used
@@ -19,6 +19,8 @@ export interface SandPatterns {
   readonly deep: CanvasPattern;
   readonly rock: CanvasPattern;
   readonly grain: CanvasPattern;
+  /** Wind ripples on loose dune sand. */
+  readonly ripple: CanvasPattern;
 }
 
 /** Deterministic 0..1 noise for a lattice point. */
@@ -126,6 +128,7 @@ export function makeSandPatterns(ctx: CanvasRenderingContext2D, res: number): Sa
     deep: pattern(hatchTile(res, 12, Math.PI / 5, 9, 0.3)),
     rock: pattern(rockTile(res)),
     grain: pattern(grainTile(res)),
+    ripple: pattern(hatchTile(res, 13, 0.06, 9, 0.12)),
   };
 }
 
@@ -287,6 +290,15 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRec
   ctx.fill(sandPath);
   ctx.fillStyle = patterns.sand;
   ctx.fill(sandPath);
+  // Loose dune sand: a warm, dry wash with wind ripples, so it reads apart from the packed sand under it.
+  const loose: Mask = (x, y) => tileAt(t, x, y) === TILE.loose;
+  const loosePath = maskPath(loose, c, T);
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = DUNE;
+  ctx.fill(loosePath);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = patterns.ripple;
+  ctx.fill(loosePath);
   ctx.save();
   ctx.clip(sandPath);
   pebbles(ctx, t, c, T);

@@ -23,6 +23,8 @@ export const SAND_WET = '#cdb382';
 export const SAND_DEEP = '#a98f68';
 export const SAND_GRAIN = '#6b5a3c';
 export const ROCK = '#9a9488';
+/** Loose dune sand: drier and warmer than the beach's. */
+export const DUNE = '#f0c98a';
 /** Shadow inside burrows. */
 export const TUNNEL = '#e4d6b4';
 

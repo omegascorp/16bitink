@@ -1,4 +1,5 @@
-import type { CritterGroup } from '../logic/sim';
+import type { BirdGroup, CritterGroup } from '../logic/sim';
+import type { SpeciesId } from '../logic/species';
 import type { Lesson } from '../logic/coach';
 import type { ShellKind } from '../logic/shells';
 
@@ -21,6 +22,10 @@ export interface LevelDef {
   readonly seed: number;
   /** Surface rows at control columns, left to right; two points a column apart make a step. */
   readonly profile: readonly ProfilePoint[];
+  /** Rows of loose dune sand over the packed sand: it pours when dug (default none). */
+  readonly loose?: number;
+  /** Antlion pits: column of the bottom and how far the funnel reaches (see carve.ts). */
+  readonly pits?: readonly (readonly [number, number])[];
   /** Rock boulders: column, row, radius. */
   readonly rocks?: readonly (readonly [number, number, number])[];
   /** Column the crab starts at. */
@@ -38,6 +43,10 @@ export interface LevelDef {
     readonly clams?: readonly (readonly [number, number])[];
   };
   readonly critters?: readonly CritterGroup[];
+  /** Birds hunting from the sky. */
+  readonly birds?: readonly BirdGroup[];
+  /** The small, timid prey every level keeps about (default sea slaters). */
+  readonly fry?: SpeciesId;
   /** Seconds to earn the time blot. */
   readonly parTime: number;
   /** Lessons the coach walks the player through here (see logic/coach.ts). */

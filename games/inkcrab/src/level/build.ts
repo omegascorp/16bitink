@@ -3,7 +3,7 @@ import { goalSize } from '../logic/progress';
 import { createRng } from '../logic/rng';
 import { SHELLS, type ShellKind } from '../logic/shells';
 import type { BeachSetup } from '../logic/sim';
-import { setTile, surfaceRow, TILE, type Terrain } from '../logic/terrain';
+import { setTile, tileAt, surfaceRow, TILE, type Terrain } from '../logic/terrain';
 import type { CritterGroup } from '../logic/sim';
 import { BEDROCK, carve } from './carve';
 import type { LevelDef } from './types';
@@ -28,7 +28,8 @@ function placer(t: Terrain, items: Item[]): (kind: ItemKind, col: number, depth:
     const key = `${col},${row}`;
     if (buried && taken.has(key)) return false;
     if (buried) taken.add(key);
-    if (buried) setTile(t, col, row, TILE.sand);
+    // Packed sand around it, unless it's in dune sand (which stays loose).
+    if (buried && tileAt(t, col, row) !== TILE.loose) setTile(t, col, row, TILE.sand);
     const proto = makeItem(items.length + 1, kind, 0, 0, buried);
     const x = col * TILE_PX + TILE_PX / 2 - proto.w / 2;
     const y = buried ? row * TILE_PX + TILE_PX / 2 - proto.h / 2 : row * TILE_PX - proto.h;
@@ -70,17 +71,17 @@ const COLS_PER_SMALL_FRY = 16;
 
 /**
  * Easy prey in every level, on top of the authored creatures: timid slaters
- * from size 1 up to half the goal, so there's always something small to eat
+ * (the level's own fry: darkling beetles in the dunes) from size 1 up to half the goal, so there's always something small to eat
  * on the way up. Kept no bigger than 1 while the goal is tiny, so a size-1
  * crab learning the ropes never bumps into one that can catch it.
  */
 export function smallFry(def: LevelDef): CritterGroup {
-  return { count: Math.round(def.width / COLS_PER_SMALL_FRY), sizes: [1, Math.max(1, Math.floor(levelGoal(def) / 2))], species: 'slater' };
+  return { count: Math.round(def.width / COLS_PER_SMALL_FRY), sizes: [1, Math.max(1, Math.floor(levelGoal(def) / 2))], species: def.fry ?? 'slater' };
 }
 
 /** Turns a level definition into the simulation's starting state. Pure for a given definition. */
 export function buildLevel(def: LevelDef): BeachSetup {
-  const terrain = carve({ width: def.width, height: def.height, seed: def.seed, profile: def.profile, rocks: def.rocks, wobble: WOBBLE });
+  const terrain = carve({ width: def.width, height: def.height, seed: def.seed, profile: def.profile, rocks: def.rocks, wobble: WOBBLE, loose: def.loose, pits: def.pits });
   const rng = createRng(def.seed ^ 0x9e3779b9);
   const items: Item[] = [];
   const add = placer(terrain, items);
@@ -103,6 +104,8 @@ export function buildLevel(def: LevelDef): BeachSetup {
     surfaceFood: def.food.surface,
     shallowFood: def.food.shallow,
     critters: [smallFry(def), ...(def.critters ?? [])],
+    pits: def.pits,
+    birds: def.birds,
     startGrowth: { size: START_SIZE, meter: 0, bank: 0 },
     goal: levelGoal(def),
   };

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { shellPx } from '../src/logic/shells';
-import { critterBox, makeCritter, stepCritter, type Critter, type Quarry } from '../src/logic/critters';
+import { breached, critterBox, makeCritter, stepCritter, swimmable, type Critter, type Quarry } from '../src/logic/critters';
 import { createRng } from '../src/logic/rng';
 import { createTerrain, setTile, TILE, type Terrain } from '../src/logic/terrain';
 
@@ -107,5 +107,95 @@ describe('ghost crabs', () => {
     it('come in their own shapes', () => {
       expect(critterBox(3, 'slater').h).toBeLessThan(critterBox(3, 'ghostcrab').h);
     });
+  });
+});
+
+/** Flat sand from row 10 to bedrock at rows 14–15, with a tunnel in row 12 from column 30 to 40. */
+function dug(): Terrain {
+  const t = flat();
+  for (let x = 0; x < 60; x++) for (let y = 14; y < 16; y++) setTile(t, x, y, TILE.rock);
+  for (let x = 30; x <= 40; x++) setTile(t, x, 12, TILE.air);
+  return t;
+}
+
+const underground = (col: number, size: number): Quarry => ({ box: { x: col * T, y: 12 * T + 2, w: 14, h: 12 }, size, hidden: false, buried: true });
+
+describe('sandfish', () => {
+  const skink = (size: number, col: number, row: number): Critter => makeCritter(1, size, col * T, row * T + 8, 1, 10, 'skink');
+
+  it('swims through solid sand, never out of it or into rock', () => {
+    const t = dug();
+    let c = skink(3, 10, 11);
+    const rng = createRng(5);
+    for (let i = 0; i < 60 * 20; i++) {
+      c = stepCritter(t, c, null, 1 / 60, T, rng);
+      expect(swimmable(t, c, T)).toBe(true);
+    }
+    expect(Math.abs(c.x - 10 * T)).toBeGreaterThan(T);
+  });
+
+  it('homes in on a smaller crab down in a tunnel', () => {
+    const t = dug();
+    const c = skink(5, 26, 12);
+    const after = run(t, c, underground(34, 2), 1.5);
+    expect(after.x).toBeGreaterThan(c.x + T);
+  });
+
+  it('leaves a crab on the open surface alone', () => {
+    const t = dug();
+    const c = skink(5, 26, 12);
+    const q: Quarry = { ...quarry(28, 2), buried: false };
+    const after = stepCritter(t, c, q, 1 / 60, T, createRng(1));
+    const hunting = stepCritter(t, c, underground(28, 2), 1 / 60, T, createRng(1));
+    expect(Math.abs(after.vy)).toBeLessThan(Math.abs(hunting.vy) + Math.abs(hunting.vx));
+    expect(after.dir).toBe(c.dir);
+  });
+
+  it('doesn\'t flee when it\'s the smaller one, so it can be dug out', () => {
+    const t = dug();
+    const c = skink(1, 28, 12);
+    const after = stepCritter(t, c, underground(30, 4), 1 / 60, T, createRng(1));
+    expect(after.dir).toBe(1);
+  });
+
+  it('shows itself only where it breaks into a tunnel', () => {
+    const t = dug();
+    expect(breached(t, skink(2, 10, 11), T)).toBe(false);
+    expect(breached(t, { ...skink(2, 34, 12), y: 12 * T + 4 }, T)).toBe(true);
+  });
+
+  it('dives back into the sand when a shaft is dug past it', () => {
+    const t = dug();
+    let c = skink(2, 10, 11);
+    for (let y = 10; y <= 12; y++) for (let x = 9; x <= 12; x++) setTile(t, x, y, TILE.air);
+    const rng = createRng(2);
+    for (let i = 0; i < 120 && !swimmable(t, c, T); i++) c = stepCritter(t, c, null, 1 / 60, T, rng);
+    expect(swimmable(t, c, T)).toBe(true);
+  });
+});
+
+describe('ravens', () => {
+  it('hop up a wall a ghost crab would turn back at', () => {
+    const t = flat();
+    for (let y = 8; y < 10; y++) setTile(t, 24, y, TILE.sand);
+    const highest = (c: Critter): number => {
+      const rng = createRng(3);
+      let top = c.y + c.h;
+      for (let i = 0; i < 180; i++) {
+        c = stepCritter(t, c, null, 1 / 60, T, rng);
+        top = Math.min(top, c.y + c.h);
+      }
+      return top;
+    };
+    expect(highest(makeCritter(1, 6, 20 * T, 10 * T, 1, 10, 'raven'))).toBeLessThanOrEqual(8 * T + 1);
+    expect(highest(makeCritter(2, 6, 20 * T, 10 * T, 1, 10))).toBeGreaterThan(9 * T);
+  });
+});
+
+describe('antlions', () => {
+  it('stay put at the bottom of their pit', () => {
+    const c = makeCritter(1, 5, 20 * T, 10 * T, 1, 10, 'antlion');
+    const after = run(flat(), c, quarry(22, 2), 2);
+    expect(after.x).toBeCloseTo(c.x);
   });
 });

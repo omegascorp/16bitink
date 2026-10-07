@@ -1,5 +1,6 @@
+import { settleDunes } from '../logic/dunes';
 import { createRng, rangeOf } from '../logic/rng';
-import { createTerrain, setTile, TILE, type Terrain } from '../logic/terrain';
+import { createTerrain, setTile, surfaceRow, TILE, type Terrain } from '../logic/terrain';
 import type { ProfilePoint } from './types';
 
 /** Rows of unbreakable rock at the bottom of every beach. */
@@ -26,6 +27,10 @@ export interface CarveSpec {
   readonly rocks?: readonly (readonly [number, number, number])[];
   /** Rows of gentle waviness on the surface (0 keeps the profile exact). */
   readonly wobble?: number;
+  /** Rows of loose dune sand on top of the packed sand (default none). */
+  readonly loose?: number;
+  /** Antlion pits: column of the bottom, and how many tiles out (and down) the funnel goes. */
+  readonly pits?: readonly (readonly [number, number])[];
 }
 
 /** Sand down to bedrock under the profile, with rock boulders. */
@@ -38,7 +43,7 @@ export function carve(spec: CarveSpec): Terrain {
   for (let x = 0; x < W; x++) {
     const wave = wobble * (Math.sin(x * 0.31 + phase) * 0.4 + Math.sin(x * 0.11 + phase * 2) * 0.6);
     const top = Math.round(profileAt(spec.profile, x) + wave);
-    for (let y = top; y < H; y++) setTile(t, x, y, y >= H - BEDROCK ? TILE.rock : TILE.sand);
+    for (let y = top; y < H; y++) setTile(t, x, y, y >= H - BEDROCK ? TILE.rock : y < top + (spec.loose ?? 0) ? TILE.loose : TILE.sand);
   }
   for (const [cx, cy, r] of spec.rocks ?? []) {
     for (let y = Math.floor(cy - r); y <= cy + r; y++) {
@@ -47,5 +52,17 @@ export function carve(spec: CarveSpec): Terrain {
       }
     }
   }
+  for (const [col, r] of spec.pits ?? []) pit(t, col, r);
+  // Dunes pour until they rest, so a level starts still.
+  if (spec.loose || spec.pits?.length) settleDunes(t);
   return t;
+}
+
+/** A funnel `r` tiles out and down from its bottom at `col`, sloped at the angle dune sand rests at. */
+function pit(t: Terrain, col: number, r: number): void {
+  const rim = surfaceRow(t, col);
+  for (let x = col - r; x <= col + r; x++) {
+    const floor = rim + r - Math.abs(x - col);
+    for (let y = surfaceRow(t, x); y < floor; y++) setTile(t, x, y, TILE.air);
+  }
 }

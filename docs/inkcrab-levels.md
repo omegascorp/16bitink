@@ -46,22 +46,22 @@ Three ink blots per level, like InkFish:
 
 ## Beach 1: Atoll Sketchbook
 
-A temperate sandy beach, dunes on the left and the waterline on the right. Trash shells (bottle cap, light bulb, tin can, jam jar) and the common natural ones (periwinkle, snail, whelk, moon snail, conch).
+A temperate sandy beach, dunes on the left and the waterline on the right. Its shells are common sea snails: periwinkle, snail, nerite, top shell, whelk, moon snail, triton, tun and conch.
 
 Every level starts at size 1 in a periwinkle (fits sizes 1–2).
 
 | # | Id | Name | Goal | Shells on the way | New |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `pen-test` | Pen Test | Size 3 | Snail | Coach: walk and eat, then change shell |
-| 2 | `margin-wall` | Margin Wall | Size 4 | Snail, light bulb (on a shelf 5 tiles up) | Coach: dig, then drop sand to build up |
-| 3 | `ghost-writers` | Ghost Writers | Size 4 | Snail, light bulb | Coach: hide from a red ghost crab |
-| 4 | `underlined` | Underlined | Size 5 | Snail, tin can (buried 5 deep) | Coach: find a buried shell by its highlighter smudge |
-| 5 | `room-to-grow` | Room to Grow | Size 5 | Snail, light bulb, tin can | A chain of shells across the beach, with ghost crabs |
-| 6 | `shadow-sketch` | Shadow Sketch | Size 5 | Snail, tin can | Hiding in the shell from big hunters |
-| 7 | `high-water-mark` | High-Water Mark | Size 6 | Snail, light bulb, whelk, moon snail (by the water) | A long climb down to the waterline |
-| 8 | `safe-burrow` | Safe Burrow | Size 7 | Snail, tin can, moon snail, jam jar (buried) | Digging a burrow to swap safely |
-| 9 | `storm-tide` | Storm Tide | Size 8 | Snail, tin can, moon snail, jam jar, conch (dune top) | Climbing the beach shell by shell |
-| 10 | `the-final-molt` | The Final Molt | Size 8 | Snail, light bulb, whelk, moon snail, coconut half (buried), conch on the high dune | The whole beach |
+| 2 | `margin-wall` | Margin Wall | Size 4 | Snail, nerite (on a shelf 5 tiles up) | Coach: dig, then drop sand to build up |
+| 3 | `ghost-writers` | Ghost Writers | Size 4 | Snail, nerite | Coach: hide from a red ghost crab |
+| 4 | `underlined` | Underlined | Size 5 | Snail, top shell (buried 5 deep) | Coach: find a buried shell by its highlighter smudge |
+| 5 | `room-to-grow` | Room to Grow | Size 5 | Snail, nerite, top shell | A chain of shells across the beach, with ghost crabs |
+| 6 | `shadow-sketch` | Shadow Sketch | Size 5 | Snail, top shell | Hiding in the shell from big hunters |
+| 7 | `high-water-mark` | High-Water Mark | Size 6 | Snail, nerite, whelk, moon snail (by the water) | A long climb down to the waterline |
+| 8 | `safe-burrow` | Safe Burrow | Size 7 | Snail, top shell, moon snail, triton (buried) | Digging a burrow to swap safely |
+| 9 | `storm-tide` | Storm Tide | Size 8 | Snail, top shell, moon snail, triton, conch (dune top) | Climbing the beach shell by shell |
+| 10 | `the-final-molt` | The Final Molt | Size 8 | Snail, nerite, whelk, moon snail, tun (buried), conch on the high dune | The whole beach |
 
 ### Stand-ins until the systems exist
 
@@ -81,22 +81,74 @@ All follow the one rule (bigger catches you, smaller is food) and are inked red 
 
 The levels sit in front of a hand-inked parallax beach. Beach 1 ("Atoll Sketchbook", theme `atoll`) is a Maldives coral island: a sky with a sun, cirrus wisps, heaped cumulus, frigatebirds and a seaplane; the deep blue ocean with swells, far-off palm islands and yachts, the white surf line of the reef with channel buoys, and a turquoise lagoon with coral heads, light patterns on the shallows, water villas (each a little different: one or two thatch tiers, a plunge pool or a ladder, glass doors, shutters, a lantern; mirrored in the water) on a lantern-lit jetty, a moored launch, and boats under way: yachts on the horizon and a small dhoni behind the villas drift across and wrap round, while a big dhoni works back and forth in front of them, all bobbing on the swell; nearest, coconut palms with dead fronds, screwpines on stilt roots, flowering scrub, a hammock, a palm-leaf parasol with loungers, a beach bungalow with a verandah, a beached outrigger canoe, driftwood, a sprouting coconut, shells, crab holes and ripple marks on a bank of white coral sand. The code is in `src/art/backdrop/` (shared helpers in `common.ts`, palms and villas in `tropic.ts`, boats in `boats.ts` (sailing boats are separate sprites moved by `src/scenes/game/backdropView.ts` along lanes from `src/logic/sailing.ts`; villas and the jetty are their own `resort` layer so boats can pass behind them), homes in `homes.ts`, water detail in `water.ts`, shore props in `beach.ts`, layers in `atoll.ts`). The level background is plain paper, without the notebook rules. Each later beach brings its own backdrop theme.
 
-## Beaches 2–10
+## Beach 2: Dune Sea
 
-Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`); the new ideas are a first sketch, to be decided beach by beach:
+A desert running down into a cold ocean, Namib style. Danger comes from above and below, and only real shells wash up (as on every beach).
+
+**What's new:**
+
+- **Dune sand.** The top rows are loose, warm-washed sand with wind ripples. It pours: a loose tile with open space under it drops a row a tick, and one on a slope steeper than 45 degrees slides down a row. Dig into it and it runs back into the hole; dig a shaft and it caves in over you. The packed sand under it holds, so deep tunnels are safe. A level's dunes are poured to rest when it's built, so nothing moves until the crab digs. Sand is still never made or lost (`games/inkcrab/src/logic/dunes.ts`).
+- **Kestrel** (sky): patrols high over the beach. Seeing a smaller crab out in the open (nothing over it but sky), it hovers over it with a red dashed shadow on the sand that tightens as its aim settles, then stoops on the spot it marked. The warning lasts 1.8 s. Under a roof of sand you're out of reach, and it gives up after 1.5 s. Hidden in your shell, it stoops anyway: the strike glances off the shell ("tok!") and it flies off for a while. Grow past its size and it ignores you. Being caught costs a life, as with every hunter; no shell damage (`src/logic/birds.ts`).
+- **Antlion** (below): waits at the bottom of a 45-degree pit. On the slope, the sand slides you towards the jaws at less than walking speed, so you can walk or jump out. Small antlions are food; fill a big one's pit with sand and it pulls no more.
+- **Sandfish** (below): a skink that swims through sand (never rock), weaving up and down. It shows as ripples in the hatching (red when it can catch you) and in full only where it breaks into a tunnel. A bigger one hunts a crab that's down in the sand; it leaves crabs in the open alone. A smaller one never runs, so it can be dug out and eaten.
+- **Raven:** walks the dunes and hops up walls a ghost crab would turn back at, but it's too big to follow you into a tunnel.
+- **Darkling beetles** are the beach's small prey, in place of sea slaters.
+- **Coach lessons:** `sky`, `pit` and `sandfish` speak up when the danger first comes up and end once you've got out of it.
+
+Shells: desert snail (1–3), turban (2–5), olive (3–6), murex (4–7), helmet (5–8), plus the nerite in the first and last levels.
+
+| # | Id | Name | Goal | Shells | New |
+| --- | --- | --- | --- | --- | --- |
+| 11 | `shifting-sands` | Shifting Sands | Size 4 | Desert snail, nerite (buried) | Dune sand pours |
+| 12 | `dune-crest` | Dune Crest | Size 5 | Desert snail, turban (on a mesa) | Build up: placed sand doesn't pour |
+| 13 | `kestrel-shadow` | Kestrel Shadow | Size 5 | Desert snail, turban | Kestrel debuts (coach: sky) |
+| 14 | `under-the-dune` | Under the Dune | Size 6 | Desert snail, turban, olive (7 deep) | Dig through loose sand to a buried shell |
+| 15 | `antlion-alley` | Antlion Alley | Size 6 | Desert snail, turban, olive | Antlion pits (coach: pit) |
+| 16 | `sandfish-shallows` | Sandfish Shallows | Size 6 | Desert snail, turban (buried), olive | Sandfish debut (coach: sandfish), kestrel above |
+| 17 | `raven-ridge` | Raven Ridge | Size 7 | Desert snail, turban, olive, murex (by the sea) | Ravens, pits, kestrel |
+| 18 | `mirage` | Mirage | Size 7 | Desert snail, turban, olive, murex (buried between pits) | Remix: pits, sandfish, kestrel |
+| 19 | `sandstorm` | Sandstorm | Size 8 | Desert snail, turban, olive, murex, helmet (dune top) | Storm: deep loose sand, two kestrels, everything |
+| 20 | `the-great-dune` | The Great Dune | Size 8 | Every Dune Sea shell, helmet on the Great Dune | The whole beach |
+
+Backdrop theme `dunes` (`src/art/backdrop/dunes.ts`, props in `desert.ts`): a hazy apricot sky with mackerel cloud, kestrels and terns; the cold grey-green Atlantic with a fog bank, long surf lines, a ruined lighthouse and a trawler aground; giant star dunes with knife-edge crests, a camel line and gemsbok; nearest, a wind-rippled bank with camelthorn trees, welwitschia, a signpost, bleached whale ribs and 4x4 tracks.
+
+Beach 2 comes with the full game: without it, the map's Play button on its levels offers the unlock. For local testing, `DEV_UNLOCK=true` (and `DEV_ALL_LEVELS=true`) work for InkCrab's dev server as they do for InkFish's, from the environment or `apps/web/.env`.
+
+## Beaches 3–10
+
+Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
 
 | Beach | Biome | Setting | New |
 | --- | --- | --- | --- |
 | 1 | Atoll Sketchbook | Maldives coral island, palms, turquoise lagoon | (the basics; built) |
-| 2 | Mangrove Margins | Mudflats and tangled stilt roots | Roots to climb, mud that slows you |
-| 3 | Tide Pool Notes | Granite shelves and rock pools | Fish at high tide, octopus in crevices |
-| 4 | Ash & Basalt | Black sand under a smoking volcano | Hot sand at midday; shade to cross |
-| 5 | Fog & Kelp | Cold coast, kelp beds, a lighthouse | Fog that hides what's coming; kelp washed up as cover |
-| 6 | Dune Sea | Desert dunes running into the ocean | Rival hermit crabs; stealing from smaller crabs |
-| 7 | Wreck Cove | Driftwood and an old ship on the rocks | Frequent storm tides |
-| 8 | Monsoon Harbour | Stilt houses, nets, fishing boats | Trash shells everywhere; human litter as cover |
+| 2 | Dune Sea | Desert dunes running into the ocean | Sky and burrow hunters, pouring sand (built) |
+| 3 | Tide Pool Notes | Granite shelves and rock pools | The tide: fish at high tide, octopus in crevices |
+| 4 | Mangrove Margins | Mudflats and tangled stilt roots | Climbing the roots; mud that slows you |
+| 5 | Ash & Basalt | Black sand under a smoking volcano | Hot sand at midday; shade to cross |
+| 6 | Fog & Kelp | Cold coast, kelp beds, a lighthouse | Fog that hides what's coming; kelp washed up as cover |
+| 7 | Wreck Cove | Driftwood and an old ship on the rocks | Rival hermit crabs; stealing from smaller crabs |
+| 8 | Monsoon Harbour | Stilt houses, nets, fishing boats | Nets and boats as cover; monsoon rain |
 | 9 | Frost Shingle | Pebbles, ice floes, a cold wind | Vacancy chains |
 | 10 | Moonlit Bay | Night beach, glowing tide | Darkness, glowing plankton; the last final molt |
+
+## Shells
+
+Only real shells, the kinds hermit crabs actually live in: no litter or other man-made objects, and no coconut halves. Each beach brings about five of its own, chosen so their size ranges climb from 1 to 8 and their outlines differ at a glance. Ten beaches of real sea and land snail shells:
+
+| Beach | Shells (smallest first) |
+| --- | --- |
+| 1 Atoll | Periwinkle, snail, nerite, top shell, whelk, moon snail, triton, tun, conch (built) |
+| 2 Dune Sea | Desert snail, turban, olive, murex, helmet (built) |
+| 3 Tide Pools | Flat periwinkle, dog whelk, painted top shell, necklace shell, frog shell |
+| 4 Mangrove | Mangrove periwinkle, river nerite, mud creeper, telescope snail, mud whelk |
+| 5 Basalt | Drupe, horn shell, spindle, bonnet, harp |
+| 6 Fog & Kelp | Black turban, kelp snail, Kellet's whelk, Oregon triton, wavy turban |
+| 7 Wreck Cove | Nassa, fig shell, tulip shell, lightning whelk, horse conch |
+| 8 Monsoon Harbour | Auger, babylon, cone, spider conch, Indian volute |
+| 9 Frost Shingle | Wentletrap, Arctic moon snail, Neptune whelk, Arctic whelk, Iceland whelk |
+| 10 Moonlit Bay | Tiger moon snail, giant tun, horned helmet, triton's trumpet, baler |
+
+Shells keep a weight (heavier is slower and jumps lower) and a durability value that nothing uses: being caught costs a life and never damages the shell.
 
 ## Level map
 
@@ -109,13 +161,13 @@ Level select is a beachcomber's chart seen from above, scrolling sideways. Each 
 
 ## What exists, what to build
 
-Built: walking, jumping, eating, the growth cap and bank, nine shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts`, lives, win and loss, intro and result cards, the level map, saved progress). All ten levels are playable with the stand-ins above.
+Built: walking, jumping, eating, the growth cap and bank, fourteen real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` and `beach2.ts`, lives, win and loss, intro and result cards, the level map, saved progress). All twenty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens.
 
 Still to build, replacing the stand-ins:
 
-1. **Gull:** shadow warning, dive, respects hiding. For level 6.
+1. **Gull:** the kestrel's code (`src/logic/birds.ts`) can stand in for it: a bird species for level 6.
 2. **Tide:** water fill, flooding tunnels, washing away placed sand, shells washing in, storm tide. For levels 7 and 9.
-3. **Climbing, palms, coconuts, final molt.** For level 10.
+3. **Final molt.** For level 10 of each beach. (Climbing belongs to the mangrove beach.)
 4. **Account progress:** progress is saved per browser; syncing it to the player's account (the SDK's `progress` store) is not done yet.
 
 ## Open questions

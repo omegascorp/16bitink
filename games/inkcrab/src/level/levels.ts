@@ -1,9 +1,11 @@
-import type { ThemeId } from '../art/backdrop';
+import { THEMES, type ThemeId } from '../art/backdrop';
 import { BEACH_1 } from './beach1';
+import { BEACH_2 } from './beach2';
+import { BIOMES } from './biomes';
 import type { LevelDef } from './types';
 
 /** Each built beach's levels, beach 1 first; beaches still to be built are missing from the end. */
-export const BEACHES: readonly (readonly LevelDef[])[] = [BEACH_1];
+export const BEACHES: readonly (readonly LevelDef[])[] = [BEACH_1, BEACH_2];
 
 /** Every playable level, in order. */
 export const LEVELS: readonly LevelDef[] = BEACHES.flat();
@@ -13,9 +15,10 @@ export function levelById(id: string): LevelDef | undefined {
   return LEVELS.find((l) => l.id === id);
 }
 
-/** The backdrop theme for a level: one per beach. */
-export function themeOf(_id: string): ThemeId {
-  return 'atoll';
+/** The backdrop theme for a level: its beach's biome (the atoll's until that biome has one). */
+export function themeOf(id: string): ThemeId {
+  const biome = BIOMES[beachIndexOf(id)]?.id;
+  return biome && biome in THEMES ? (biome as ThemeId) : 'atoll';
 }
 
 export function nextLevel(id: string): LevelDef | undefined {
@@ -35,6 +38,11 @@ export function beachIndexOf(id: string): number {
 export function isBeachFinale(id: string): boolean {
   const beach = BEACHES[beachIndexOf(id)];
   return beach?.at(-1)?.id === id;
+}
+
+/** True for a level of a beach that comes with the full game. */
+export function isPaid(id: string): boolean {
+  return beachIndexOf(id) >= FREE_BEACHES;
 }
 
 /** True for the last free level: where a player without the full game is offered it. */

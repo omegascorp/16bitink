@@ -3,20 +3,24 @@ import { FOOT, FRAME } from './frame';
 
 /**
  * Frame x of the middle of each shell's opening (see shellArt.ts, which
- * draws its mouths here). They differ a lot: a bottle cap's is far back,
- * a bulb's out on its screw base.
+ * draws its mouths here). They differ: a round shell's mouth sits at the
+ * front of its body whorl, a murex's tucks back under its canal.
  */
 export const MOUTH_X: Readonly<Record<ShellKind, number>> = {
   periwinkle: -14 + 38 * 0.78,
-  bottlecap: 5,
   snail: -14 + 38 * 0.78,
-  bulb: 17,
-  can: 9,
+  nerite: 13,
+  topshell: 9,
   whelk: 12,
   moonsnail: -18 + 44 * 0.78,
-  jar: 12,
-  coconut: 6,
+  triton: 12,
+  tun: 12,
   conch: 8,
+  desertsnail: -14 + 38 * 0.78,
+  turban: -16 + 40 * 0.78,
+  olive: 14,
+  murex: 10,
+  helmet: 12,
 };
 
 /** Crab-frame x that sits in the middle of the opening: a little inside the back of its head shield. */

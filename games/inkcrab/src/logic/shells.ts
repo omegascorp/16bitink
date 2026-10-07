@@ -3,7 +3,10 @@
  * is the crab's growth cap. Weight slows the crab, durability (used once
  * predators land) is how many hits it takes before it breaks.
  */
-export const SHELL_KINDS = ['periwinkle', 'bottlecap', 'snail', 'bulb', 'can', 'whelk', 'moonsnail', 'jar', 'coconut', 'conch'] as const;
+export const SHELL_KINDS = [
+  'periwinkle', 'snail', 'nerite', 'topshell', 'whelk', 'moonsnail', 'triton', 'tun', 'conch',
+  'desertsnail', 'turban', 'olive', 'murex', 'helmet',
+] as const;
 export type ShellKind = (typeof SHELL_KINDS)[number];
 
 export interface ShellSpec {
@@ -14,26 +17,31 @@ export interface ShellSpec {
   /** 1 light … 3 heavy. */
   readonly weight: 1 | 2 | 3;
   readonly durability: number;
-  readonly trash: boolean;
 }
 
-const spec = (kind: ShellKind, name: string, minSize: number, maxSize: number, weight: 1 | 2 | 3, durability: number, trash = false): ShellSpec => ({
-  kind, name, minSize, maxSize, weight, durability, trash,
+const spec = (kind: ShellKind, name: string, minSize: number, maxSize: number, weight: 1 | 2 | 3, durability: number): ShellSpec => ({
+  kind, name, minSize, maxSize, weight, durability,
 });
 
 // Ranges overlap generously so a crab can bank growth and jump past a size.
+// Only real sea and land snail shells: no litter, nothing man-made.
 export const SHELLS: Readonly<Record<ShellKind, ShellSpec>> = {
   // A real sea-snail shell to start in, so the first thing you see reads as a hermit crab.
   periwinkle: spec('periwinkle', 'periwinkle', 1, 2, 1, 2),
-  bottlecap: spec('bottlecap', 'bottle cap', 1, 2, 1, 1, true),
   snail: spec('snail', 'snail shell', 1, 3, 1, 2),
-  bulb: spec('bulb', 'light bulb', 2, 4, 1, 1, true),
-  can: spec('can', 'tin can', 2, 5, 1, 1, true),
+  nerite: spec('nerite', 'nerite', 2, 4, 1, 2),
+  topshell: spec('topshell', 'top shell', 2, 5, 1, 2),
   whelk: spec('whelk', 'whelk', 3, 5, 2, 3),
   moonsnail: spec('moonsnail', 'moon snail', 3, 6, 2, 3),
-  jar: spec('jar', 'jam jar', 4, 7, 3, 2, true),
-  coconut: spec('coconut', 'coconut half', 4, 7, 2, 3, true),
+  triton: spec('triton', 'triton', 4, 7, 3, 3),
+  tun: spec('tun', 'tun shell', 4, 7, 2, 2),
   conch: spec('conch', 'conch', 5, 8, 3, 4),
+  // Dune Sea (beach 2): a bleached desert snail blown down from the dunes, and what the ocean side brings in.
+  desertsnail: spec('desertsnail', 'desert snail', 1, 3, 1, 2),
+  turban: spec('turban', 'turban shell', 2, 5, 2, 3),
+  olive: spec('olive', 'olive shell', 3, 6, 1, 2),
+  murex: spec('murex', 'murex', 4, 7, 3, 4),
+  helmet: spec('helmet', 'helmet shell', 5, 8, 3, 4),
 };
 
 export function canWear(shell: ShellSpec, bodySize: number): boolean {
@@ -56,7 +64,7 @@ export const MOUTH_OFFSET = 0.362;
 
 /** Drawn size, in world px, of a shell (or naked body) for this body size. */
 export function shellPx(size: number): number {
-  // The bottle cap (size 2) is small enough that its crab fits one tile.
+  // The periwinkle (size 2) is small enough that its crab fits one tile.
   return 8 + 5 * size;
 }
 

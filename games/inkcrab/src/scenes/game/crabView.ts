@@ -43,8 +43,8 @@ export class CrabView {
     const ox = FOOT.x / FRAME;
     const oy = FOOT.y / FRAME;
     this.back = scene.add.image(0, 0, TEX.crabBack(0)).setOrigin(ox, oy);
-    this.shell = scene.add.image(0, 0, TEX.shell('bottlecap', 0)).setOrigin(ox, oy);
-    this.incoming = scene.add.image(0, 0, TEX.shell('bottlecap', 0)).setOrigin(ox, oy).setVisible(false);
+    this.shell = scene.add.image(0, 0, TEX.shell('periwinkle', 0)).setOrigin(ox, oy);
+    this.incoming = scene.add.image(0, 0, TEX.shell('periwinkle', 0)).setOrigin(ox, oy).setVisible(false);
     this.front = scene.add.image(0, 0, TEX.crabFront(0)).setOrigin(ox, oy);
     this.puff = scene.add.image(0, 0, TEX.puff(0)).setVisible(false);
     this.root = scene.add.container(0, 0, [this.back, this.shell, this.incoming, this.front, this.puff]).setDepth(5);
@@ -69,7 +69,7 @@ export class CrabView {
 
     const target = c.swap ? beach.items.get(c.swap.itemId) : undefined;
     if (c.swap && target?.kind.type === 'shell') {
-      this.shell.setVisible(!!spec).setTexture(TEX.shell(spec?.kind ?? 'bottlecap', f % BOIL));
+      this.shell.setVisible(!!spec).setTexture(TEX.shell(spec?.kind ?? 'periwinkle', f % BOIL));
       this.drawSwap(swapProgress(c.swap), f, unit, body, spec?.kind ?? null, target.kind.shell);
       this.drawRing(c.body.x + c.body.w / 2, c.body.y - 10, swapProgress(c.swap));
       return;

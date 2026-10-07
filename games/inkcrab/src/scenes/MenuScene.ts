@@ -5,7 +5,7 @@ import { FOOT, FRAME } from '../art/frame';
 import { getHost } from '../host';
 import { BIOMES, LEVELS_PER_BEACH } from '../level/biomes';
 import { levelGoal } from '../level/build';
-import { BEACHES, LEVEL_ORDER, LEVELS } from '../level/levels';
+import { BEACHES, isPaid, LEVEL_ORDER, LEVELS } from '../level/levels';
 import { isUnlocked, loadProgress, type Progress } from '../logic/save';
 import { ChartView } from './map/chartView';
 import { computeMapLayout, MAP, regionIndexAt, type MapBeach, type MapLayout, type MapNode } from './map/layout';
@@ -105,7 +105,7 @@ export class MenuScene extends Phaser.Scene {
       let s: NodeState;
       if (!region.beach.built) s = 'draft';
       else if (rec) s = 'done';
-      else if (isUnlocked(progress, LEVEL_ORDER, n.levelId)) s = current ? 'open' : 'current';
+      else if (getHost(this).allLevelsOpen === true || isUnlocked(progress, LEVEL_ORDER, n.levelId)) s = current ? 'open' : 'current';
       else s = 'closed';
       if (s === 'current') current = n;
       states.set(n.levelId, s);
@@ -114,8 +114,11 @@ export class MenuScene extends Phaser.Scene {
     return { states, blots, current };
   }
 
+  /** Plays a level; one of the full game's beaches, without it, offers it instead. */
   private play(levelId: string): void {
-    this.scene.start('Game', { levelId });
+    const host = getHost(this);
+    if (isPaid(levelId) && !host.unlocked) host.onBuy();
+    else this.scene.start('Game', { levelId });
   }
 
   /** Each island's name and tagline written across its scrub; unbuilt ones are marked uncharted. */
@@ -145,7 +148,10 @@ export class MenuScene extends Phaser.Scene {
     const y = node.y + MAP.nodeRadius + (done ? 48 : 34);
     layer.add(inkText(this, node.x, y, def.name, 22));
     layer.add(inkText(this, node.x, y + 24, `grow to size ${levelGoal(def)}`, 17, SOFT_INK));
-    const button = inkButton(this, node.x, y + 64, done ? 'Play again' : 'Play', () => this.play(def.id), { width: 132, height: 44, size: 26 });
+    const host = getHost(this);
+    const locked = isPaid(def.id) && !host.unlocked;
+    const label = locked ? (host.price ? `Unlock · ${host.price}` : 'Unlock') : done ? 'Play again' : 'Play';
+    const button = inkButton(this, node.x, y + 64, label, () => this.play(def.id), { width: locked ? 190 : 132, height: 44, size: 26 });
     // A slow breath on the first visit, so the eye finds it.
     if (fresh) this.tweens.add({ targets: button, scale: 1.08, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     layer.add(button);
