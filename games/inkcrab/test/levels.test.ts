@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BEACH_1 } from '../src/level/beach1';
-import { buildLevel, levelGoal, TILE_PX } from '../src/level/build';
+import { buildLevel, levelGoal, smallFry, TILE_PX } from '../src/level/build';
 import { boxHitsSolid } from '../src/logic/body';
 import { Beach } from '../src/logic/sim';
 import { SHELLS } from '../src/logic/shells';
@@ -92,6 +92,16 @@ describe('beach 1', () => {
         const smallest = new Map<string, number>();
         for (const g of def.critters ?? []) smallest.set(g.species ?? 'ghostcrab', Math.min(smallest.get(g.species ?? 'ghostcrab') ?? 99, g.sizes[0]));
         for (const size of smallest.values()) expect(size).toBeLessThan(goal);
+      });
+
+      it('keeps small, timid prey about that is never a threat at the start', () => {
+        const fry = setup.critters![0]!;
+        expect(fry).toEqual(smallFry(def));
+        expect(fry.species).toBe('slater');
+        expect(fry.count).toBeGreaterThanOrEqual(3);
+        expect(fry.sizes[0]).toBe(1);
+        expect(fry.sizes[1]).toBeLessThan(levelGoal(def));
+        if (levelGoal(def) <= 3) expect(fry.sizes[1]).toBe(1);
       });
 
       it('has critters only of sizes that exist', () => {

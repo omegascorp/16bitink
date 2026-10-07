@@ -4,6 +4,7 @@ import { createRng } from '../logic/rng';
 import { SHELLS, type ShellKind } from '../logic/shells';
 import type { BeachSetup } from '../logic/sim';
 import { setTile, surfaceRow, TILE, type Terrain } from '../logic/terrain';
+import type { CritterGroup } from '../logic/sim';
 import { BEDROCK, carve } from './carve';
 import type { LevelDef } from './types';
 
@@ -64,6 +65,19 @@ export function levelGoal(def: LevelDef): number {
   return goalSize(START_SHELL, START_SIZE, def.shells.map(([k]) => k));
 }
 
+/** Beach columns per small slater: wider beaches keep more of them about. */
+const COLS_PER_SMALL_FRY = 16;
+
+/**
+ * Easy prey in every level, on top of the authored creatures: timid slaters
+ * from size 1 up to half the goal, so there's always something small to eat
+ * on the way up. Kept no bigger than 1 while the goal is tiny, so a size-1
+ * crab learning the ropes never bumps into one that can catch it.
+ */
+export function smallFry(def: LevelDef): CritterGroup {
+  return { count: Math.round(def.width / COLS_PER_SMALL_FRY), sizes: [1, Math.max(1, Math.floor(levelGoal(def) / 2))], species: 'slater' };
+}
+
 /** Turns a level definition into the simulation's starting state. Pure for a given definition. */
 export function buildLevel(def: LevelDef): BeachSetup {
   const terrain = carve({ width: def.width, height: def.height, seed: def.seed, profile: def.profile, rocks: def.rocks, wobble: WOBBLE });
@@ -88,7 +102,7 @@ export function buildLevel(def: LevelDef): BeachSetup {
     seed: def.seed,
     surfaceFood: def.food.surface,
     shallowFood: def.food.shallow,
-    critters: def.critters ?? [],
+    critters: [smallFry(def), ...(def.critters ?? [])],
     startGrowth: { size: START_SIZE, meter: 0, bank: 0 },
     goal: levelGoal(def),
   };
