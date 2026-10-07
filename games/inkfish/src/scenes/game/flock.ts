@@ -5,7 +5,7 @@ import type { ZoneId } from '../../levels/types';
 import { BIRD_INFO, birdSize, diveTarget, pickBird, wantsDive, ZONE_BIRDS, type BirdId, type Quarry } from '../../logic/birds';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { SKY } from '../../logic/water';
-import { pastView } from '../../logic/ring';
+import { nearestOnRing, pastView } from '../../logic/ring';
 import { keepDepth } from './sync';
 
 /**
@@ -20,6 +20,10 @@ export interface Bird {
   readonly sprite: Phaser.GameObjects.Image;
   readonly kind: BirdId;
   readonly size: number;
+  /** Cruising speed as a share of the kind's usual speed (a hatch's dragonflies dawdle). */
+  pace: number;
+  /** Part of the swarm on now: it stays over the swarm's patch of water instead of flying on. */
+  swarming: boolean;
   state: BirdState;
   /** Heading along the sky: 1 right, -1 left. */
   dir: 1 | -1;
@@ -56,6 +60,21 @@ const FLAP_HZ: Readonly<Record<BirdId, number>> = { dragonfly: 22, tern: 6, gull
 /** The flap cycle through the wing frames: up, level, down, level. */
 const FLAP = [0, 1, 2, 1] as const;
 
+/** A swarm for a sea event: one kind only, arriving fast over one patch of water. */
+export interface Swarm {
+  readonly kind: BirdId;
+  readonly max: number;
+  readonly everyMs: readonly [number, number];
+  /** Height above the surface, px. */
+  readonly height: readonly [number, number];
+  /** Cruising speed as a share of the kind's usual speed. */
+  readonly pace: readonly [number, number];
+  /** The patch reaches this far either side of where the swarm started, px. */
+  readonly spread: number;
+  /** Where they come from: hatching out of the water, or flying down out of the sky. */
+  readonly from: 'water' | 'sky';
+}
+
 export interface FlockFx {
   splash(x: number, size: number): void;
   /** A bird has picked its target and is about to dive. */
@@ -65,6 +84,9 @@ export interface FlockFx {
 export class Flock {
   birds: Bird[] = [];
   private nextAt = FIRST_BIRD_MS;
+  /** The swarm on now, if any, with the centre of its patch and when the next one joins. */
+  private swarm: { readonly def: Swarm; readonly home: number; nextAt: number } | null = null;
+  private worldWidth = 0;
   private readonly shadows: Phaser.GameObjects.Graphics;
   private readonly enabled: boolean;
 
@@ -75,17 +97,40 @@ export class Flock {
     this.shadows = scene.add.graphics().setDepth(2.5);
   }
 
+  /** A swarm gathers over the water around `home`; the usual birds hold off until it's over. */
+  startSwarm(def: Swarm, home: number, now: number): void {
+    ensureBirdTextures(this.scene, [def.kind]);
+    this.swarm = { def, home, nextAt: now };
+  }
+
+  /** The swarm breaks up: its birds fly on at their usual speed and leave. */
+  endSwarm(): void {
+    this.swarm = null;
+    for (const b of this.birds) if (b.swarming) Object.assign(b, { swarming: false, pace: 1 });
+  }
+
   /** `quarry` is the player; `others` are anything else worth a dive (floating ducks). */
   update(now: number, dt: number, quarry: Quarry & { readonly playerSize: number }, view: Phaser.Geom.Rectangle, worldWidth: number, fx: FlockFx, others: readonly Quarry[] = []): void {
-    if (this.enabled && now >= this.nextAt && this.birds.length < (ZONE_BIRDS[this.zone]?.max ?? 0)) {
+    this.worldWidth = worldWidth;
+    const sw = this.swarm;
+    if (sw) {
+      if (now >= sw.nextAt && this.birds.filter((b) => b.swarming).length < sw.def.max) {
+        sw.nextAt = now + rangeOf(this.rng, sw.def.everyMs[0], sw.def.everyMs[1]);
+        this.spawn(sw.def.kind, quarry.playerSize, view);
+      }
+    } else if (this.enabled && now >= this.nextAt && this.birds.length < (ZONE_BIRDS[this.zone]?.max ?? 0)) {
       this.nextAt = now + rangeOf(this.rng, BIRD_EVERY_MS[0], BIRD_EVERY_MS[1]);
-      this.spawn(quarry.playerSize, view);
+      const kind = pickBird(this.zone, this.rng);
+      if (kind) this.spawn(kind, quarry.playerSize, view);
     }
     this.shadows.clear();
     this.birds = this.birds.filter((b) => {
       this.step(b, now, dt, quarry, others, fx);
       this.drawShadow(b);
-      const gone = pastView(b.sprite.x, view.centerX, view.width, worldWidth, 300) || b.sprite.y < -SKY.height - 200;
+      // A swarm stays over its patch: keep each one at its copy nearest the camera as the player laps the ring.
+      if (b.swarming) b.sprite.x = nearestOnRing(b.sprite.x, view.centerX, worldWidth);
+      const away = !b.swarming && pastView(b.sprite.x, view.centerX, view.width, worldWidth, 300);
+      const gone = away || b.sprite.y < -SKY.height - 200;
       if (gone) this.remove(b);
       return !gone;
     });
@@ -118,17 +163,20 @@ export class Flock {
     this.birds = this.birds.filter((x) => x !== b);
   }
 
-  private spawn(playerSize: number, view: Phaser.Geom.Rectangle): void {
-    const kind = pickBird(this.zone, this.rng);
-    if (!kind) return;
+  private spawn(kind: BirdId, playerSize: number, view: Phaser.Geom.Rectangle): void {
     const info = BIRD_INFO[kind];
+    const sw = this.swarm?.def.kind === kind ? this.swarm : null;
     const dir: 1 | -1 = this.rng() < 0.5 ? 1 : -1;
     const size = birdSize(kind, playerSize, this.rng);
-    const cruiseY = SKY.surfaceY - rangeOf(this.rng, info.height[0], info.height[1]);
-    const x = dir > 0 ? view.left - 120 : view.right + 120;
-    const sprite = this.scene.add.image(x, cruiseY, birdKey(kind, 0)).setDepth(18)
+    const height = sw?.def.height ?? info.height;
+    const cruiseY = SKY.surfaceY - rangeOf(this.rng, height[0], height[1]);
+    // A swarm turns up over its patch of water, out of the water or down from the sky; other birds fly in from the side.
+    const x = sw ? sw.home + rangeOf(this.rng, -sw.def.spread, sw.def.spread) : dir > 0 ? view.left - 120 : view.right + 120;
+    const y = !sw ? cruiseY : sw.def.from === 'water' ? SKY.surfaceY : -SKY.height;
+    const pace = sw ? rangeOf(this.rng, sw.def.pace[0], sw.def.pace[1]) : 1;
+    const sprite = this.scene.add.image(x, y, birdKey(kind, 0)).setDepth(18)
       .setScale(size / BIRD_RADIUS / ART_RES).setFlipX(dir < 0);
-    this.birds.push({ sprite, kind, size, state: 'cruise', dir, cruiseY, t: 0, age: this.rng() * 1000, restUntil: 0, vx: dir * info.speed, vy: 0, target: { x, y: cruiseY }, prize: null, ownsPrize: false, prizeNose: 0, prizeUpright: false, mark: null });
+    this.birds.push({ sprite, kind, size, pace, swarming: sw !== null, state: 'cruise', dir, cruiseY, t: 0, age: this.rng() * 1000, restUntil: 0, vx: dir * info.speed, vy: 0, target: { x, y: cruiseY }, prize: null, ownsPrize: false, prizeNose: 0, prizeUpright: false, mark: null });
   }
 
   private step(b: Bird, now: number, dt: number, q: Quarry, others: readonly Quarry[], fx: FlockFx): void {
@@ -140,7 +188,12 @@ export class Flock {
     if (b.state === 'cruise') {
       // Ease back to cruising height after a dive, bobbing a little; dragonflies dart up and down.
       const bob = b.kind === 'dragonfly' ? Math.sin(b.age / 260) * 16 + Math.sin(b.age / 90) * 4 : Math.sin(b.age / 500) * 6;
-      s.x += b.dir * info.speed * dt;
+      s.x += b.dir * info.speed * b.pace * dt;
+      if (b.swarming && this.swarm) {
+        // Turn back at the edge of the swarm's patch.
+        const off = s.x - nearestOnRing(this.swarm.home, s.x, this.worldWidth);
+        if (off * b.dir > this.swarm.def.spread) b.dir = b.dir > 0 ? -1 : 1;
+      }
       s.y += (b.cruiseY + bob - s.y) * Math.min(1, dt * 2);
       s.setRotation(0).setFlipX(b.dir < 0);
       const diver = { kind: b.kind, size: b.size, x: s.x, restUntil: b.restUntil };

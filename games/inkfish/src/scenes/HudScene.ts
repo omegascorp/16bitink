@@ -7,7 +7,7 @@ import type { LevelDescription } from '../levels/twists';
 import { itemKey } from './game/items';
 import { DASH_ZONE, stickPointer } from './game/player';
 import { knobOffset, STICK, stickCentre } from '../logic/joystick';
-import { HUD_EVENT, type GameScene, type HudSnapshot } from './GameScene';
+import { HUD_EVENT, SEA_EVENT, type GameScene, type HudSnapshot, type SeaEventBanner } from './GameScene';
 import { getSound } from '../host';
 import { BLUE_INK, inkButton, inkText, INK_HEX, RED_INK, uiScale, wobblyRect } from './ui';
 
@@ -33,6 +33,11 @@ interface HudData {
 const INTRO_MS = 2600;
 const INTRO_NOTE_MS = 900;
 
+/** How long a sea event's banner stays up, ms. */
+const BANNER_MS = 3200;
+/** Banner centre, px from the top of the screen: under the HUD's top rows. */
+const BANNER_Y = 240;
+
 const BAR_W = 260;
 const BAR_H = 18;
 /** Screen width from which the combo multiplier fits beside its meter without reaching the score. */
@@ -55,6 +60,7 @@ export class HudScene extends Phaser.Scene {
   private accent: { readonly track: number; readonly trackAlpha: number; readonly growth: number; readonly growthAlpha: number; readonly frenzy: number } = INK_ACCENT;
   private objectiveText!: Phaser.GameObjects.Text;
   private intro: Phaser.GameObjects.Container | null = null;
+  private banner: Phaser.GameObjects.Container | null = null;
   private textColor = '#1b1a1f';
   private lifeIcons: Phaser.GameObjects.Image[] = [];
   private dashBtn: Phaser.GameObjects.Container | null = null;
@@ -101,11 +107,13 @@ export class HudScene extends Phaser.Scene {
     this.stick = data.touch ? this.makeStick() : null;
 
     game.events.on(HUD_EVENT, this.onSnapshot, this);
+    game.events.on(SEA_EVENT, this.showBanner, this);
     // Pause keys live here: the Game scene's keyboard stops while it is paused.
     this.input.keyboard?.on('keydown-ESC', this.togglePause, this);
     this.input.keyboard?.on('keydown-P', this.togglePause, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       game.events.off(HUD_EVENT, this.onSnapshot, this);
+      game.events.off(SEA_EVENT, this.showBanner, this);
     });
     // Auto-pause when the tab is hidden so nobody gets eaten while away.
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.pauseIfRunning, this);
@@ -115,6 +123,29 @@ export class HudScene extends Phaser.Scene {
     this.layout();
     this.intro = null;
     if (data.intro) this.showIntro(data.levelName, data.intro);
+  }
+
+  /** A sea event's name and what to do, on a strip of paper that fades in and out without pausing play. */
+  private showBanner(b: SeaEventBanner): void {
+    this.banner?.destroy();
+    const title = inkText(this, 0, -16, b.title, 40, b.danger ? RED_INK : BLUE_INK);
+    const line = inkText(this, 0, 22, b.line, 22, '#5b5446');
+    const w = Math.max(title.width, line.width) + 56;
+    const h = 96;
+    const g = this.add.graphics();
+    g.fillStyle(0xfffaf0, 0.94).fillRect(-w / 2, -h / 2, w, h);
+    wobblyRect(g, -w / 2, -h / 2, w, h, 17);
+    const banner = this.add.container(viewSize(this).width / 2, BANNER_Y, [g, title, line]);
+    banner.setScale(Math.min(1, (viewSize(this).width - 32) / w)).setAlpha(0);
+    this.banner = banner;
+    this.tweens.add({ targets: banner, alpha: 1, duration: 220 });
+    this.tweens.add({
+      targets: banner, alpha: 0, delay: BANNER_MS, duration: 600,
+      onComplete: () => {
+        banner.destroy();
+        if (this.banner === banner) this.banner = null;
+      },
+    });
   }
 
   /**

@@ -34,11 +34,13 @@ const hash = (n: number): number => {
  * point at them, current streaks, and the darkness around the player.
  */
 export class TwistRunner {
-  /** Sideways drift in world units per second, 0 when there is no current. */
-  readonly current: number;
+  /** The level's own current, world units per second; 0 when it has none. */
+  private readonly base: number;
+  /** A sea event's riptide on top of it (see game/seaEvents.ts). */
+  private surge = 0;
   private bottles: InkBottles | null = null;
   private readonly marks: Phaser.GameObjects.Graphics;
-  private readonly streaks: Phaser.GameObjects.Graphics | null;
+  private readonly streaks: Phaser.GameObjects.Graphics;
   private readonly dark: Phaser.GameObjects.Image | null;
 
   constructor(
@@ -47,10 +49,21 @@ export class TwistRunner {
     private readonly floorAt: (x: number) => number,
     private readonly rng: Rng,
   ) {
-    this.current = level.modifiers.current ?? 0;
+    this.base = level.modifiers.current ?? 0;
     this.marks = scene.add.graphics().setDepth(37);
-    this.streaks = this.current ? scene.add.graphics().setDepth(3) : null;
+    this.streaks = scene.add.graphics().setDepth(3);
     this.dark = level.modifiers.dark ? scene.add.image(0, 0, 'darkness').setDepth(36) : null;
+  }
+
+  /** Sideways drift in world units per second, 0 when there is no current. */
+  get current(): number {
+    return this.base + this.surge;
+  }
+
+  /** Starts (or, with 0, ends) a riptide. */
+  setSurge(speed: number): void {
+    this.surge = speed;
+    if (!this.current) this.streaks.clear();
   }
 
   /** Places the level's goals away from the player. Returns goal fish to add to the shoal. */
@@ -104,7 +117,7 @@ export class TwistRunner {
       .filter((t) => !view.contains(t.x, t.y))
       .sort((a, b) => Phaser.Math.Distance.BetweenPoints(a, ps) - Phaser.Math.Distance.BetweenPoints(b, ps))[0];
     if (nearest) this.arrow(view, zoom, nearest);
-    if (this.streaks) this.drawStreaks(view, now);
+    if (this.current) this.drawStreaks(view, now);
     if (this.dark) {
       const glow = now < player.glowUntil ? TUNING.glowFactor : 1;
       const radius = (150 + player.drawSize * 2.6) * glow;
@@ -157,7 +170,7 @@ export class TwistRunner {
    * new in its tile, so nothing pops or repeats in step.
    */
   private drawStreaks(view: Phaser.Geom.Rectangle, now: number): void {
-    const g = this.streaks!.clear();
+    const g = this.streaks.clear();
     const t = now / 1000;
     const dir = Math.sign(this.current);
     const speed = Math.abs(this.current) * FLOW.speed;

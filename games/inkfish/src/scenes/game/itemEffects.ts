@@ -43,7 +43,7 @@ export function applyItem(host: ItemHost, kind: ItemId, now: number): void {
       p.speedUntil = now + TUNING.speedBoostMs;
       return say('Energy rush!', GOLD);
     case 'chum':
-      host.addFish(chumSchool(host));
+      host.addFish(schoolAround(host, TUNING.chumSchool));
       return say('Chum! Dinner is coming', BLUE, 30);
     case 'battery':
       shock(host, now);
@@ -77,12 +77,12 @@ export function applyItem(host: ItemHost, kind: ItemId, now: number): void {
   }
 }
 
-/** A school of the level's smallest prey rushes in from all sides, within sight. */
-function chumSchool(host: ItemHost): Fish[] {
+/** A school of `count` of the level's smallest prey rushes in from all sides, within sight (chum, a bait ball). */
+export function schoolAround(host: ItemHost, count: number): Fish[] {
   const p = host.player();
   const view = host.scene.cameras.main.worldView;
   const staple = host.level.spawns[0]!;
-  const spots = chumSpots(p.sprite.x, p.sprite.y, view.width / 2, view.height / 2, TUNING.chumSchool, p.size * 3, host.rng);
+  const spots = chumSpots(p.sprite.x, p.sprite.y, view.width / 2, view.height / 2, count, p.size * 3, host.rng);
   return spots.map((s) => {
     const f = spawnSpecial(host.scene, staple.species, staple.size[0], 'normal', s.x, s.y, host.rng);
     f.vx = -s.dx * 90;

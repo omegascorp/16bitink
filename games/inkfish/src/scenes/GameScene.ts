@@ -53,6 +53,7 @@ import { PLAYER_STATS } from '../levels/playerStats';
 import { allLevels, chapterOf } from '../levels/chapters';
 import { HAND_FONT } from './ui';
 import { artCacheEnabled, dropUnusedArt, trackArt, warmArt } from '../art/artCache';
+import { SeaEvents } from './game/seaEvents';
 
 export interface HudSnapshot {
   readonly levelName: string;
@@ -77,6 +78,14 @@ export interface GameSceneData {
 }
 
 export const HUD_EVENT = 'hud';
+/** A sea event has started: the HUD shows its banner. */
+export const SEA_EVENT = 'seaEvent';
+
+export interface SeaEventBanner {
+  readonly title: string;
+  readonly line: string;
+  readonly danger: boolean;
+}
 
 /** Every species a level can put in the water, goals included. */
 function levelSpecies(level: LevelDef): SpeciesId[] {
@@ -87,6 +96,8 @@ function levelSpecies(level: LevelDef): SpeciesId[] {
 
 /** How far the camera leans up into the sky while you swim near the surface, px. */
 const SKY_LOOK = 110;
+/** Extra points per bird for each one already caught in the same leap. */
+const COMBO_POINTS = 100;
 /** Longest the win card waits for the fish to settle, ms past the usual pause. */
 const SETTLE_MAX_MS = 3000;
 /** The art-cache group of the level built last (see create). */
@@ -146,6 +157,10 @@ export class GameScene extends Phaser.Scene {
   private death: Death | null = null;
   private twist!: TwistRunner;
   private progress: ObjectiveProgress = initialProgress;
+  /** Something happening in the water every half a minute or so. */
+  private seaEvents!: SeaEvents;
+  /** Birds caught since the player last left the water: two or more in one leap make a combo. */
+  private leapCatches = 0;
   /**
    * Fish bodies for the collision passes that run once every fish has moved
    * (hunting, stings, hooks, diving birds), so each capsule is built once a
@@ -177,7 +192,7 @@ export class GameScene extends Phaser.Scene {
     this.rng = createRng(Date.now());
     Object.assign(this, {
       fish: [], jellies: [], hooks: [], hookedFish: new Map(), playerHook: null, releaseAt: 0, items: [], growth: initialGrowth, frenzy: initialFrenzy,
-      score: 0, elapsedMs: 0, boilFrame: 0, boilClock: 0, ended: false, death: null, progress: initialProgress,
+      score: 0, elapsedMs: 0, boilFrame: 0, boilClock: 0, ended: false, death: null, progress: initialProgress, leapCatches: 0,
       lives: level.modifiers.lives ?? TUNING.lives,
     });
     this.nextHookAt = level.hazards.hookEverySec * 1000;
@@ -241,6 +256,36 @@ export class GameScene extends Phaser.Scene {
     this.itemHost = this.makeItemHost();
     this.shieldG = this.add.graphics().setDepth(21);
     this.fish = [...this.fish, ...this.twist.setup(this.player.sprite)];
+    this.seaEvents = new SeaEvents({
+      scene: this, level: this.level, rng: this.rng, flock: this.flock, twist: this.twist, items: this.itemHost, floorAt: this.seabed.floorAt,
+      player: () => this.player,
+      fish: () => this.fish,
+      addFish: (fish) => {
+        this.fish = [...this.fish, ...fish];
+      },
+      dropHook: () => {
+        this.hooks.push(this.fleet.launch(this.level, this.player.sprite.x, this.player.sprite.y));
+      },
+      dropItem: () => {
+        const it = spawnItem(this, this.level, this.cameras.main.worldView, this.rng);
+        if (it) this.items.push(it);
+      },
+      addJellies: (jellies) => {
+        for (const j of jellies) {
+          if (JELLY_INFO[j.kind].glow) this.deep.attach(j.sprite, jellyGlowKey(j.kind), { alpha: 1, pulse: 0.5 });
+        }
+        this.jellies = [...this.jellies, ...jellies];
+      },
+      removeJellies: (jellies) => {
+        const gone = new Set(jellies);
+        this.jellies = this.jellies.filter((j) => !gone.has(j));
+        this.tweens.add({ targets: jellies.map((j) => j.sprite), alpha: 0, duration: 1200, onComplete: () => jellies.forEach((j) => j.sprite.destroy()) });
+      },
+      announce: (title, line, danger) => {
+        this.events.emit(SEA_EVENT, { title, line, danger } satisfies SeaEventBanner);
+        this.sfx(danger ? 'spotted' : 'powerup');
+      },
+    }, this.sky);
     const giant = this.fish.find((f) => f.role === 'boss');
     this.boss = giant ? makeBoss(giant, this.makeBossHost()) : null;
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.boss?.destroy());
@@ -317,6 +362,7 @@ export class GameScene extends Phaser.Scene {
       const p = this.player;
       const surfaced = movePlayer(p, desiredDirection(this, this.controls, p), this.level, now, dt, this.seabed.floorAt, this.sky);
       if (surfaced) {
+        this.leapCatches = 0;
         splash(this, p.sprite.x, SKY.surfaceY + 8, p.size, this.rng);
         this.sfx('splash', undefined, pitchForSize(p.size) * 0.8);
       }
@@ -342,6 +388,7 @@ export class GameScene extends Phaser.Scene {
     this.updateItems(now, dt);
     this.drawShield();
     this.updateObjective(now, dt);
+    this.seaEvents.update(this.elapsedMs / 1000, now, dt);
     this.sense?.update(now, this.player, this.fish);
     this.emitHud();
     this.sightings.look(now, cam.worldView, () => [
@@ -613,10 +660,21 @@ export class GameScene extends Phaser.Scene {
       if (rel === 'prey') {
         this.flock.take(b);
         this.feed(b.size, b.sprite);
+        this.leapCombo(b);
       } else if (rel === 'predator') {
         this.hurt('snatched', undefined, b);
       }
     }
+  }
+
+  /** Two or more birds snapped up in one leap pay a growing bonus. */
+  private leapCombo(b: Bird): void {
+    if (!this.player.airborne) return;
+    this.leapCatches += 1;
+    if (this.leapCatches < 2) return;
+    this.score += COMBO_POINTS * (this.leapCatches - 1);
+    this.floatText(b.sprite.x, b.sprite.y - 50, `Combo ×${this.leapCatches}!`, '#a3342b', 30 + this.leapCatches * 4);
+    this.sfx('frenzy', undefined, 0.9 + this.leapCatches * 0.1);
   }
 
   /** A bird diving at a floating duck grabs it and flies off with it. Returns true if it did. */
@@ -918,7 +976,7 @@ export class GameScene extends Phaser.Scene {
       frenzyLabel: frenzyLabel(mult),
       dashReady: now >= this.player.dashReadyAt,
       speedLeft: Math.max(0, this.player.speedUntil - now),
-      objective: line.text,
+      objective: [line.text, this.seaEvents.status(this.elapsedMs / 1000)].filter(Boolean).join(' · '),
       urgent: line.urgent,
     };
     this.events.emit(HUD_EVENT, snapshot);
