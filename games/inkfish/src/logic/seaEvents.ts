@@ -145,3 +145,23 @@ export function eventStatus(id: SeaEventId, secondsLeft: number): string {
   const s = Math.max(0, Math.ceil(secondsLeft));
   return `${SEA_EVENTS[id].name} 0:${String(s).padStart(2, '0')}`;
 }
+
+interface Spot {
+  readonly x: number;
+  readonly y: number;
+}
+
+/**
+ * Where to point the player during an event that happens somewhere in
+ * particular: the nearest of its `parts` (the hunter, the jellies, the
+ * school, the swarm), but only while none of them is in `view`. Null when
+ * some of it is in sight or it has no place.
+ */
+export function eventPointer<T extends Spot>(
+  parts: readonly T[], view: { readonly left: number; readonly right: number; readonly top: number; readonly bottom: number }, from: Spot,
+): T | null {
+  const seen = (p: Spot): boolean => p.x >= view.left && p.x <= view.right && p.y >= view.top && p.y <= view.bottom;
+  if (!parts.length || parts.some(seen)) return null;
+  const dist = (p: Spot): number => Math.hypot(p.x - from.x, p.y - from.y);
+  return parts.reduce((best, p) => (dist(p) < dist(best) ? p : best));
+}

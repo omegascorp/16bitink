@@ -975,13 +975,11 @@ export class GameScene extends Phaser.Scene {
       addFish: (fish) => {
         this.fish = [...this.fish, ...fish];
       },
-      addScore: (points) => {
-        this.score += points;
-      },
       loseGrowth: (share) => {
         const floor = this.growth.tier === 0 ? 0 : this.level.tiers[this.growth.tier - 1]!;
         this.growth = { ...this.growth, points: Math.max(floor, this.growth.points - growthGoal(this.level) * share) };
       },
+      addGrowth: (share) => this.grow(growthGoal(this.level) * share),
       snag: () => this.hurt('snagged'),
       releaseDuck: (x, y) => this.ducks.release(x, y),
       floatText: (x, y, text, color, size) => this.floatText(x, y, text, color, size),

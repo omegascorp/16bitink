@@ -371,7 +371,7 @@ export const REEF: Partial<Record<SpeciesId, Anatomy>> = {
     },
   },
   moray: {
-    hl: 108, hh: 19, peak: 0.3, blunt: 0.85, peduncle: 0.28, tail: 'point', tailSize: 0,
+    hl: 108, hh: 19, peak: 0.3, blunt: 0.85, peduncle: 0.2, tail: 'round', tailSize: 1,
     dorsal: { from: 0.14, to: 1, height: 0.32 }, anal: { from: 0.45, to: 1, height: 0.3 },
     pectoral: 0, pelvic: false, scales: false, eye: { t: 0.055, r: 4.2 }, mouth: 'small',
     wash: '#6f7434', finWash: '#7d7a40', gills: 'none', lateral: false, wave: 11,

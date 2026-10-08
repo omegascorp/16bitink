@@ -130,7 +130,7 @@ The giant squid, the last giant of the game, is the only one that isn't a fish, 
   | 22 | Rubber duck | Decoy: hunters chase it instead of you |
   | 27 | Firecracker | Knocks out fish around you; they float belly-up and anyone can eat them |
   | 35 | Spinner lure (harmful) | Hides a hook: costs a life ("Snagged!") |
-  | 45 | Message in a bottle | Treasure points |
+  | 45 | Fish food | Instant growth: 15% of the level's growth goal |
   | 67 | Glow stick | Bigger circle of light, only in lights-out levels |
 - 3 lives with invulnerability blinks, a par-time ink-blot rating (1–3), and best scores saved locally.
 

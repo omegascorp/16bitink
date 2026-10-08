@@ -6,6 +6,7 @@ import { rangeOf, type Rng } from '../../logic/rng';
 import { spawnSpecial, type Fish } from './fish';
 import { InkBottles } from './inkBottles';
 import type { Player } from './player';
+import { drawEdgeArrow } from './edgeArrow';
 import { bodyOf } from './swim';
 import { TUNING } from './tuning';
 import { lightBoost } from '../../logic/abilities';
@@ -117,7 +118,7 @@ export class TwistRunner {
     const nearest = targets
       .filter((t) => !view.contains(t.x, t.y))
       .sort((a, b) => Phaser.Math.Distance.BetweenPoints(a, ps) - Phaser.Math.Distance.BetweenPoints(b, ps))[0];
-    if (nearest) this.arrow(view, zoom, nearest);
+    if (nearest) drawEdgeArrow(this.marks, view, zoom, nearest, RED);
     if (this.current) this.drawStreaks(view, now);
     if (this.dark) {
       const glow = (now < player.glowUntil ? TUNING.glowFactor : 1) * lightBoost(player.ability);
@@ -138,30 +139,6 @@ export class TwistRunner {
         this.marks.beginPath().arc(f.sprite.x, f.sprite.y, r + k * 7, a + spin, a + spin + 0.28).strokePath();
       }
     }
-  }
-
-  /** A red arrowhead at the edge of the screen, pointing at the nearest goal off-screen. */
-  private arrow(view: Phaser.Geom.Rectangle, zoom: number, target: Point): void {
-    const cx = view.centerX;
-    const cy = view.centerY;
-    const dx = target.x - cx;
-    const dy = target.y - cy;
-    // Keep clear of the HUD along the top of the screen.
-    const side = 42 / zoom;
-    const top = 120 / zoom;
-    const halfH = (view.height - side - top) / 2;
-    const midY = view.top + top + halfH;
-    const t = Math.min((view.width / 2 - side) / Math.abs(dx || 1e-6), halfH / Math.abs(target.y - midY || 1e-6));
-    const x = cx + dx * t;
-    const y = midY + (target.y - midY) * t;
-    const a = Math.atan2(dy, dx);
-    const s = 16 / zoom;
-    const pt = (ang: number, len: number): Point => ({ x: x + Math.cos(ang) * len, y: y + Math.sin(ang) * len });
-    const tip = pt(a, s);
-    const l = pt(a + 2.5, s);
-    const r = pt(a - 2.5, s);
-    this.marks.fillStyle(RED, 0.9).fillTriangle(tip.x, tip.y, l.x, l.y, r.x, r.y);
-    this.marks.lineStyle(1.4 / zoom, INK, 0.8).strokeTriangle(tip.x, tip.y, l.x, l.y, r.x, r.y);
   }
 
   /**

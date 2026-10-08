@@ -5,7 +5,7 @@
  * never drops more than MAX_ITEMS_PER_LEVEL kinds.
  */
 export type ItemId =
-  | 'can' | 'chum' | 'bag' | 'battery' | 'tin' | 'rings' | 'duck' | 'firecracker' | 'lure' | 'bottle' | 'glowstick';
+  | 'can' | 'chum' | 'bag' | 'battery' | 'tin' | 'rings' | 'duck' | 'firecracker' | 'lure' | 'food' | 'glowstick';
 
 export interface ItemInfo {
   readonly name: string;
@@ -31,7 +31,7 @@ export const ITEM_INFO: Readonly<Record<ItemId, ItemInfo>> = {
   duck: { name: 'rubber duck', good: true, debut: 22, sink: 30, note: 'A decoy. Hunters chase the duck instead of you.' },
   firecracker: { name: 'firecracker', good: true, debut: 27, sink: 90, note: 'A blast that knocks out fish around you. Anyone can eat them.' },
   lure: { name: 'spinner lure', good: false, debut: 35, sink: 60, note: 'Shiny, but it hides a hook. It costs a life.' },
-  bottle: { name: 'message in a bottle', good: true, debut: 45, sink: 40, note: 'Someone’s treasure. Worth a lot of points.' },
+  food: { name: 'fish food', good: true, debut: 45, sink: 40, note: 'A tub of fish-food flakes. Eat it to grow a good chunk at once.' },
   glowstick: { name: 'glow stick', good: true, debut: 69, sink: 50, note: 'Lights up more of the dark around you.', darkOnly: true },
 };
 

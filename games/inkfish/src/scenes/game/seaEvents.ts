@@ -4,10 +4,12 @@ import { SPECIES_INFO } from '../../levels/species';
 import type { LevelDef } from '../../levels/types';
 import { BIRD_INFO, ZONE_BIRDS } from '../../logic/birds';
 import { rangeOf, type Rng } from '../../logic/rng';
+import { screenZoom } from '../hidpi';
 import {
-  eventGap, eventsFor, eventStatus, pickEvent, PROWLER_SCALE, PROWLER_SPEED, prowlerSpecies, SEA_EVENTS, type SeaEventId,
+  eventGap, eventPointer, eventsFor, eventStatus, pickEvent, PROWLER_SCALE, PROWLER_SPEED, prowlerSpecies, SEA_EVENTS, type SeaEventId,
 } from '../../logic/seaEvents';
 import { keepInWater } from '../../logic/water';
+import { drawEdgeArrow } from './edgeArrow';
 import { makeFish, steerTo, type Fish } from './fish';
 import { spawnJellies, type Jelly } from './hazards';
 import type { Flock, Swarm } from './flock';
@@ -52,6 +54,8 @@ const FLEET_EVERY = 3;
 const SPILL = { count: 6, every: 0.8 } as const;
 /** Jellyfish in a drift. */
 const DRIFT_JELLIES = 9;
+/** The edge arrow pointing at an event: red and pulsing for a threat, gold for a treat. */
+const POINTER = { danger: 0xa3342b, treat: 0xb07a1a, size: 1.25, pulse: 0.15, pulseMs: 160 } as const;
 
 interface Active {
   readonly id: SeaEventId;
@@ -60,6 +64,8 @@ interface Active {
   prowler: Fish | null;
   /** The jellyfish a drift brought in. */
   jellies: readonly Jelly[];
+  /** The fish a bait ball brought in. */
+  school: readonly Fish[];
   /** Repeating events (hooks, a spill): when the next one drops, s, and how many are left. */
   tickAt: number;
   ticksLeft: number;
@@ -74,14 +80,21 @@ export class SeaEvents {
   private nextAt: number;
   private active: Active | null = null;
   private last: SeaEventId | null = null;
+  private readonly pointer: Phaser.GameObjects.Graphics;
 
   constructor(private readonly host: SeaEventHost, sky: boolean) {
     this.options = eventsFor(host.level, chapterOf(host.level).zone, sky);
     this.nextAt = eventGap(host.rng, true);
+    this.pointer = host.scene.add.graphics().setDepth(37);
   }
 
   /** `seconds` of play so far; `now` is scene time, for the birds. */
   update(seconds: number, now: number, dt: number): void {
+    this.step(seconds, now, dt);
+    this.point(now);
+  }
+
+  private step(seconds: number, now: number, dt: number): void {
     const a = this.active;
     if (a) {
       if (a.prowler) this.prowl(a, now, dt);
@@ -94,6 +107,41 @@ export class SeaEvents {
     if (id) this.start(id, seconds, now);
   }
 
+  /** An arrow at the screen's edge towards the event, while none of it is in sight. */
+  private point(now: number): void {
+    const g = this.pointer.clear();
+    const a = this.active;
+    if (!a) return;
+    const cam = this.host.scene.cameras.main;
+    const view = cam.worldView;
+    const target = eventPointer(this.partsOf(a), view, this.host.player().sprite);
+    if (!target) return;
+    const danger = SEA_EVENTS[a.id].danger;
+    const size = POINTER.size * (danger ? 1 + POINTER.pulse * Math.sin(now / POINTER.pulseMs) : 1);
+    drawEdgeArrow(g, view, screenZoom(cam), target, danger ? POINTER.danger : POINTER.treat, size);
+  }
+
+  /** Where the event is happening: the things it brought in, while they're still about. */
+  private partsOf(a: Active): readonly Phaser.GameObjects.Image[] {
+    const h = this.host;
+    switch (a.id) {
+      case 'prowler':
+        return a.prowler ? [a.prowler.sprite] : [];
+      case 'jellies':
+        return a.jellies.filter((j) => j.sprite.active).map((j) => j.sprite);
+      case 'baitball': {
+        const alive = new Set(h.fish());
+        return a.school.filter((f) => alive.has(f) && f.state !== 'dead').map((f) => f.sprite);
+      }
+      case 'hatch':
+      case 'seabirds':
+        return h.flock.birds.filter((b) => b.swarming).map((b) => b.sprite);
+      default:
+        // Hooks and spills land within sight; a current or a bloom is everywhere.
+        return [];
+    }
+  }
+
   /** The HUD line while an event lasts, or '' between events. */
   status(seconds: number): string {
     return this.active ? eventStatus(this.active.id, this.active.endsAt - seconds) : '';
@@ -103,7 +151,7 @@ export class SeaEvents {
     const h = this.host;
     const info = SEA_EVENTS[id];
     const p = h.player().sprite;
-    this.active = { id, endsAt: seconds + info.seconds, prowler: null, jellies: [], tickAt: seconds, ticksLeft: 0 };
+    this.active = { id, endsAt: seconds + info.seconds, prowler: null, jellies: [], school: [], tickAt: seconds, ticksLeft: 0 };
     this.last = id;
     let title = info.title;
     switch (id) {
@@ -117,7 +165,8 @@ export class SeaEvents {
         break;
       }
       case 'baitball':
-        h.addFish(schoolAround(h.items, BAIT_BALL));
+        this.active.school = schoolAround(h.items, BAIT_BALL);
+        h.addFish(this.active.school);
         break;
       case 'riptide': {
         const dir = h.rng() < 0.5 ? -1 : 1;

@@ -443,40 +443,47 @@ function drawLure(d: Draw): void {
   pen.hair(L([pt(3.4, 26.5), pt(2.2, 27.6)]), 0.6 * S, INK, 1);
 }
 
-function drawBottle(d: Draw): void {
-  const { pen, L, P } = d;
-  const GREEN = '#2f8a52';
-  const top = [pt(-24, -10), pt(5, -10), ...qb(pt(5, -10), pt(12, -10), pt(13, -4.2), 6), pt(21, -4.2)];
-  const glass = [...top, ...oval(21, 0, 1.4, 4.2, 8, -Math.PI / 2, Math.PI / 2), ...top.map((p) => pt(p.x, -p.y)).reverse(), ...oval(-24, 0, 3.5, 10, 12, Math.PI / 2, Math.PI * 1.5)];
-  // Cork sticking out of the neck.
-  const cork = cylinder(20.5, 26.5, 3.5, 1.3);
-  pen.fill(L(cork), '#c39257', 1);
-  pen.stipple(L(cork), 70, () => 0.8, 0.35 * S, '#5a3a1a');
-  pen.stroke(L([...cork, cork[0]!]), 0.8 * S);
-  pen.fill(L(glass), PAPER_FILL, 0.55);
-  pen.fill(L(glass), GREEN, 0.5);
-  // The rolled note inside, tied with a red thread.
-  const note = cylinder(-17, 3, 4.6, 1.8).map((p) => pt(p.x, p.y + 2.5));
-  pen.fill(L(note), '#f5e9c8', 1);
-  pen.fill(L(note), GREEN, 0.18);
-  pen.hair(L(oval(3, 2.5, 1.8, 4.6, 14)), 0.5 * S, INK, 0.8);
-  pen.hair(L(oval(3.3, 2.5, 0.9, 2.2, 10)), 0.45 * S, INK, 0.7);
-  for (const y of [0, 3, 5]) pen.hair(L([pt(-14, y), pt(0, y)]), 0.35 * S, INK, 0.45);
-  pen.stroke(L([pt(-7, -2), pt(-6.4, 7)]), 1 * S, '#b23a2e', 1, false);
-  pen.hair(L([...note, note[0]!]), 0.55 * S, INK, 0.85);
-  pen.clipped(L(glass), () => {
-    cylinderShade(d, -26, 22, 10, 6, 1.3, '#123d23', 0.6);
-    pen.fill(L(oval(-24, 0, 3.5, 10, 16)), '#1d5a35', 0.35);
+function drawFood(d: Draw): void {
+  const { pen, L, P, rng } = d;
+  const [rx, ry, yt, yb] = [14, 4.8, -10, 20];
+  const ORANGE = '#e0782a';
+  // A screw-top tub of flakes: plastic body, bright lid with grip ridges.
+  const body = [pt(-rx, yt), pt(-rx, yb), ...oval(0, yb, rx, ry, 16, Math.PI, 0), pt(rx, yt), ...oval(0, yt, rx, ry, 16, 0, -Math.PI)];
+  pen.fill(L(body), PAPER_FILL, 1);
+  pen.fill(L(body), '#f2efe6', 0.6);
+  const front = (y: number): Pt[] => oval(0, y, rx, ry, 16, Math.PI, 0);
+  pen.clipped(L(body), () => {
+    // Label: a fish nosing at a pile of flakes.
+    const label = [...front(-2), ...front(14).reverse()];
+    pen.fill(L(label), '#3f9a8a', 0.85);
+    const fish = [...oval(-2, 6, 6, 3.2, 14, Math.PI * 0.15, Math.PI * 1.85), pt(7.5, 3), pt(7.5, 9)];
+    pen.fill(L(fish), ORANGE, 0.95);
+    pen.hair(L([...fish, fish[0]!]), 0.5 * S, INK, 0.9);
+    pen.dot(P(-5.5, 5.3).x, P(-5.5, 5.3).y, 0.55 * S);
+    for (let i = 0; i < 5; i++) pen.dot(P(-12 + i * 1.3, 10 - (i % 2)).x, P(-12 + i * 1.3, 10 - (i % 2)).y, 0.6 * S, '#f5c242', 1);
+    pen.hair(L(front(-2)), 0.55 * S, INK, 0.85);
+    pen.hair(L(front(14)), 0.55 * S, INK, 0.85);
+    // Plastic shading on the right and a bright stripe on the left.
+    for (let x = 8; x < rx + 1; x += 1.3) pen.hair(L([pt(x, yt), pt(x, yb + ry)]), 0.4 * S, INK, 0.4);
+    pen.fill(L([pt(-11, yt), pt(-9, yt), pt(-9, yb + 4), pt(-11, yb + 4)]), PAPER_FILL, 0.6);
   });
-  // Glass highlights.
-  pen.fill(L([pt(-21, -7.6), pt(4, -7.6), pt(4, -6), pt(-21, -6)]), PAPER_FILL, 0.85);
-  pen.fill(L([pt(13, -2.8), pt(19, -2.8), pt(19, -1.9), pt(13, -1.9)]), PAPER_FILL, 0.8);
-  pen.dot(P(-23, 6).x, P(-23, 6).y, 0.8 * S, PAPER_FILL, 0.8);
-  pen.stroke(L([...glass, glass[0]!]), 1.1 * S, '#14301e');
-  // Lip ring at the mouth.
-  const lip = cylinder(18.5, 21, 5, 1.6);
-  pen.fill(L(lip), GREEN, 0.75);
-  pen.stroke(L([...lip, lip[0]!]), 0.8 * S, '#14301e');
+  pen.stroke(L([...body, body[0]!]), 1.1 * S);
+  // The lid: a short, slightly wider cylinder on top.
+  const [lt, lb] = [yt - 7, yt + 1];
+  const lid = [pt(-rx - 1, lt), pt(-rx - 1, lb), ...oval(0, lb, rx + 1, ry, 16, Math.PI, 0), pt(rx + 1, lt), ...oval(0, lt, rx + 1, ry, 16, 0, -Math.PI)];
+  pen.fill(L(lid), ORANGE, 1);
+  pen.clipped(L(lid), () => {
+    for (let x = -rx; x <= rx; x += 2.2) pen.hair(L([pt(x, lt + 1), pt(x, lb + ry * Math.sqrt(Math.max(0, 1 - (x / rx) ** 2)))]), 0.4 * S, '#7a3a10', 0.6);
+  });
+  pen.stroke(L([...lid, lid[0]!]), 1 * S);
+  pen.fill(L(oval(0, lt, rx + 1, ry, 24)), '#f0974a', 1);
+  pen.stroke(L(oval(0, lt, rx + 1, ry, 24)), 0.9 * S);
+  // A few loose flakes drifting off the tub.
+  for (let i = 0; i < 6; i++) {
+    const flake = oval(-20 + rng() * 42, -28 + rng() * 8, 1.6, 1, 6);
+    pen.fill(L(flake), i % 2 ? '#f5c242' : '#d2502e', 0.95);
+    pen.hair(L(flake), 0.35 * S, INK, 0.7);
+  }
 }
 
 function drawGlowstick(d: Draw): void {
@@ -523,7 +530,7 @@ const PAINTERS: Readonly<Record<ItemId, Painter>> = {
   duck: { draw: drawDuck, rot: -0.05, dy: 2 },
   firecracker: { draw: drawFirecracker, rot: -0.5, dx: -3, dy: 4 },
   lure: { draw: drawLure, rot: 0.12, scale: 0.92 },
-  bottle: { draw: drawBottle, rot: -0.35, dx: -1 },
+  food: { draw: drawFood, rot: 0.15, scale: 0.92, dy: 1 },
   glowstick: { draw: drawGlowstick, rot: -0.75 },
 };
 

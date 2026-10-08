@@ -15,9 +15,10 @@ export interface ItemHost {
   player(): Player;
   fish(): readonly Fish[];
   addFish(fish: readonly Fish[]): void;
-  addScore(points: number): void;
   /** Takes away a share of the growth goal, never dropping below the current size tier. */
   loseGrowth(share: number): void;
+  /** Adds a share of the growth goal, stepping up size tiers as usual. */
+  addGrowth(share: number): void;
   /** A lure's hidden hook: costs a life like any other hit. */
   snag(): void;
   /** Lets a rubber duck loose here: a decoy hunters chase instead of you. */
@@ -57,9 +58,9 @@ export function applyItem(host: ItemHost, kind: ItemId, now: number): void {
     case 'firecracker':
       blast(host, now);
       return say('Boom!', RED, 48);
-    case 'bottle':
-      host.addScore(TUNING.treasureScore);
-      return say(`Treasure! +${TUNING.treasureScore}`, GOLD);
+    case 'food':
+      host.addGrowth(TUNING.foodGrowthShare);
+      return say('Fish food! Growing', GOLD);
     case 'glowstick':
       p.glowUntil = now + TUNING.glowMs;
       return say('Glow stick!', '#3f8a3a');

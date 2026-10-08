@@ -31,7 +31,8 @@ export const TUNING = {
   chumSchool: 8,
   /** On top of a level's own fish count, this share more, all small enough to eat: open water never feels empty. */
   extraPreyShare: 0.2,
-  treasureScore: 500,
+  /** Fish food: the share of the level's growth goal one tub is worth. */
+  foodGrowthShare: 0.10,
   hookWarnMs: 1500,
   hookHoldMs: 3200,
   baseVisibleHeight: 430,

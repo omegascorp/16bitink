@@ -6,7 +6,7 @@ import { ZONE_SKY } from '../src/levels/zones';
 import type { LevelDef } from '../src/levels/types';
 import { createRng } from '../src/logic/rng';
 import {
-  EVENT_TIMING, eventGap, eventStatus, eventsFor, pickEvent, prowlerSpecies, SEA_EVENTS, ZONE_EVENTS, type SeaEventId,
+  EVENT_TIMING, eventGap, eventPointer, eventStatus, eventsFor, pickEvent, prowlerSpecies, SEA_EVENTS, ZONE_EVENTS, type SeaEventId,
 } from '../src/logic/seaEvents';
 
 const chapters = [DEMO_CHAPTER, ...INKFISH_FULL_CHAPTERS];
@@ -106,5 +106,26 @@ describe('sea events', () => {
   it('counts down on the HUD', () => {
     expect(eventStatus('baitball', 11.2)).toBe('Bait ball 0:12');
     expect(eventStatus('hatch', -1)).toBe('Dragonfly hatch 0:00');
+  });
+
+  describe('pointing the way', () => {
+    const view = { left: 0, right: 800, top: 0, bottom: 600 };
+    const player = { x: 400, y: 300 };
+
+    it('points at the nearest part of the event when none of it is in sight', () => {
+      const far = { x: 2000, y: 300 };
+      const near = { x: -300, y: 300 };
+      expect(eventPointer([far, near], view, player)).toBe(near);
+    });
+
+    it('needs no pointer once any of it is in sight, or when it is nowhere in particular', () => {
+      expect(eventPointer([{ x: 2000, y: 300 }, { x: 500, y: 200 }], view, player)).toBeNull();
+      expect(eventPointer([], view, player)).toBeNull();
+    });
+
+    it('marks threats apart from treats', () => {
+      expect(SEA_EVENTS.prowler.danger).toBe(true);
+      expect(SEA_EVENTS.baitball.danger).toBe(false);
+    });
   });
 });
