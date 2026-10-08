@@ -214,8 +214,8 @@ export class SeaEvents {
     if (f.state === 'stunned' && now < f.stateUntil) {
       f.vx -= f.vx * Math.min(1, dt * 4);
       f.vy = 22;
-    } else if (p.hidden || p.airborne) {
-      // Lost you: it slows and mills about.
+    } else if (p.hidden || p.airborne || now < f.blindUntil) {
+      // Lost you (hidden, leaping, or in your ink): it slows and mills about.
       f.state = 'tired';
       f.vx += (Math.sign(f.vx || 1) * 80 - f.vx) * Math.min(1, dt * 2);
       f.vy -= f.vy * Math.min(1, dt * 2);

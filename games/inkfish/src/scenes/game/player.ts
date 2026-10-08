@@ -5,6 +5,7 @@ import { fishKey } from '../../art/textures';
 import { PLAYER_STATS, type SwimStats } from '../../levels/playerStats';
 import type { LevelDef, PlayerFishId } from '../../levels/types';
 import { JUMP, stepSurface, type SurfaceEvent } from '../../logic/jump';
+import { ABILITY, freshDashes, PLAYER_ABILITY, spendDash, type AbilityId, type DashState } from '../../logic/abilities';
 import { settleFacing } from '../../logic/settle';
 import { aboveSeabed, waterBottom, waterTop } from '../../logic/water';
 import { inStickZone, stickCentre, stickVector } from '../../logic/joystick';
@@ -27,7 +28,16 @@ export interface Player extends SwimState {
   invulnerableUntil: number;
   stunnedUntil: number;
   speedUntil: number;
-  dashReadyAt: number;
+  /** Dash cooldown and charges (the tuna has two; see logic/abilities.ts). */
+  dash: DashState;
+  /** This fish's own ability (see logic/abilities.ts). */
+  readonly ability: AbilityId;
+  /** When the ability (ink, flash) can be used again, or when spines work again. */
+  abilityReadyAt: number;
+  /** Goby: dash pressed in the air, so it skips off the water on landing. */
+  skipQueued: boolean;
+  /** Lanternfish flash: fish nearby swim to you until this time. */
+  flashUntil: number;
   /** When the last dash started: a fresh dash into the surface leaps. */
   dashedAt: number;
   /** On a hook: controls are off and the hook moves the fish. */
@@ -56,8 +66,16 @@ export function createPlayer(scene: Phaser.Scene, level: LevelDef, shape: Player
     .setDepth(20)
     .setScale(size / FISH_RADIUS);
   attachTail(sprite, shape);
-  return { sprite, shape, stats: PLAYER_STATS[shape], size, swim: 0, turn: 1, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashReadyAt: 0, dashedAt: -10000, hooked: false,
-    slowUntil: 0, tangledUntil: 0, shield: false, glowUntil: 0, hidden: false, airborne: false };
+  return { sprite, shape, stats: PLAYER_STATS[shape], size, swim: 0, turn: 1, drawSize: size, chompAt: -1000, vx: 0, vy: 0, invulnerableUntil: 0, stunnedUntil: 0, speedUntil: 0, dashedAt: -10000, hooked: false,
+    slowUntil: 0, tangledUntil: 0, shield: false, glowUntil: 0, hidden: false, airborne: false,
+    dash: freshDashes(dashCharges(PLAYER_ABILITY[shape])), ability: PLAYER_ABILITY[shape], abilityReadyAt: 0, skipQueued: false, flashUntil: 0 };
+}
+
+const dashCharges = (ability: AbilityId): number => (ability === 'doubleDash' ? ABILITY.dashCharges : 1);
+
+/** Whether a dash is ready now. */
+export function dashReady(p: Player, now: number): boolean {
+  return spendDash(p.dash, now, dashCharges(p.ability), TUNING.dashCooldownMs) !== null;
 }
 
 export interface Controls {
@@ -67,6 +85,8 @@ export interface Controls {
   readonly touch: boolean;
   /** Last pointer input was a finger: steer only while it's down. Mice steer by hovering. */
   lastWasTouch: boolean;
+  /** An ability button sits beside the dash button (left of it, or above it on a portrait phone): touches there don't steer either. */
+  abilityButton: boolean;
 }
 
 export function createControls(scene: Phaser.Scene): Controls {
@@ -78,7 +98,7 @@ export function createControls(scene: Phaser.Scene): Controls {
     w: kb.addKey(K.W), a: kb.addKey(K.A), s: kb.addKey(K.S), d: kb.addKey(K.D),
   };
   scene.input.addPointer(1);
-  const controls: Controls = { keys, usingKeys: false, touch: scene.sys.game.device.input.touch, lastWasTouch: false };
+  const controls: Controls = { keys, usingKeys: false, touch: scene.sys.game.device.input.touch, lastWasTouch: false, abilityButton: false };
   const track = (p: Phaser.Input.Pointer): void => {
     controls.usingKeys = false;
     controls.lastWasTouch = p.wasTouch;
@@ -112,7 +132,9 @@ function steeringPointer(scene: Phaser.Scene, c: Controls): Phaser.Input.Pointer
     if (!p?.isDown) return false;
     const at = toView(p.x, p.y);
     const down = toView(p.downX, p.downY);
-    return !(at.x > width - DASH_ZONE && at.y > height - DASH_ZONE) && !inStickZone(down.x, down.y, height);
+    const reach = c.abilityButton ? 2 : 1;
+    const onButtons = (at.x > width - DASH_ZONE * reach && at.y > height - DASH_ZONE) || (at.x > width - DASH_ZONE && at.y > height - DASH_ZONE * reach);
+    return !onButtons && !inStickZone(down.x, down.y, height);
   }) ?? null;
 }
 
@@ -166,6 +188,14 @@ export function movePlayer(
   const { state, event } = stepSurface({ y: p.sprite.y, vy: p.vy, airborne: p.airborne }, top, dt, sky, rushing, p.stats.leap);
   p.airborne = state.airborne;
   p.vy = state.vy;
+  if (event === 'splash' && p.skipQueued) {
+    // The goby skips off the water like a mudskipper, straight into another leap.
+    p.skipQueued = false;
+    p.airborne = true;
+    p.vy = -JUMP.minLaunch * ABILITY.skipLaunch * Math.sqrt(p.stats.leap);
+    p.sprite.y = state.y;
+    return 'leap';
+  }
   // Down to the sand: crabs and shrimp live there.
   const bottom = floorAt ? aboveSeabed(floorAt(p.sprite.x), r) : waterBottom(level.world.height, r);
   p.sprite.y = state.airborne ? state.y : Phaser.Math.Clamp(state.y, top, bottom);
@@ -173,7 +203,9 @@ export function movePlayer(
 }
 
 export function tryDash(p: Player, dir: { x: number; y: number }, now: number): boolean {
-  if (p.airborne || now < p.dashReadyAt || now < p.stunnedUntil || now < p.tangledUntil) return false;
+  if (p.airborne || now < p.stunnedUntil || now < p.tangledUntil) return false;
+  const spent = spendDash(p.dash, now, dashCharges(p.ability), TUNING.dashCooldownMs);
+  if (!spent) return false;
   let { x, y } = dir;
   if (!x && !y) {
     x = p.sprite.flipX ? -1 : 1;
@@ -182,7 +214,7 @@ export function tryDash(p: Player, dir: { x: number; y: number }, now: number): 
   const d = Math.hypot(x, y) || 1;
   p.vx = (x / d) * TUNING.dashSpeed * p.stats.dash;
   p.vy = (y / d) * TUNING.dashSpeed * p.stats.dash;
-  p.dashReadyAt = now + TUNING.dashCooldownMs;
+  p.dash = spent;
   p.dashedAt = now;
   return true;
 }

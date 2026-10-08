@@ -10,6 +10,7 @@ import { knobOffset, STICK, stickCentre } from '../logic/joystick';
 import { HUD_EVENT, SEA_EVENT, type GameScene, type HudSnapshot, type SeaEventBanner } from './GameScene';
 import { getSound } from '../host';
 import { BLUE_INK, inkButton, inkText, INK_HEX, RED_INK, uiScale, wobblyRect } from './ui';
+import { ABILITY_KEY } from '../logic/abilities';
 
 /** Score and warnings on dark water. */
 const PALE_BLUE = '#a9c4ff';
@@ -27,6 +28,8 @@ interface HudData {
   readonly dark?: boolean;
   /** What's special about this level, shown on a card before play starts. */
   readonly intro?: LevelDescription;
+  /** The fish's key-or-button ability on this level (ink, flash), or null. */
+  readonly ability?: string | null;
 }
 
 /** How long the intro card stays up, plus a little per extra rule. */
@@ -64,6 +67,11 @@ export class HudScene extends Phaser.Scene {
   private textColor = '#1b1a1f';
   private lifeIcons: Phaser.GameObjects.Image[] = [];
   private dashBtn: Phaser.GameObjects.Container | null = null;
+  /** The ability's touch button, left of dash; on desktop, a key hint in the corner instead. */
+  private abilityBtn: { readonly box: Phaser.GameObjects.Container; readonly ring: Phaser.GameObjects.Graphics } | null = null;
+  private abilityHint: Phaser.GameObjects.Text | null = null;
+  /** Readiness the ability's cooldown ring was last drawn at. */
+  private abilityDrawn = -1;
   private stick: { readonly base: Phaser.GameObjects.Graphics; readonly knob: Phaser.GameObjects.Graphics } | null = null;
   private pauseLayer: Phaser.GameObjects.Container | null = null;
   private last: HudSnapshot | null = null;
@@ -104,6 +112,11 @@ export class HudScene extends Phaser.Scene {
     if (fsAvailable) this.addCornerButton(1, '⤢', () => this.toggleFullscreen());
     this.addMuteButton(fsAvailable ? 2 : 1);
     this.dashBtn = data.touch ? this.makeDashButton(game) : null;
+    this.abilityDrawn = -1;
+    this.abilityBtn = data.ability && data.touch ? this.makeAbilityButton(game, data.ability) : null;
+    this.abilityHint = data.ability && !data.touch
+      ? this.add.text(0, 0, `${ABILITY_KEY} · ${data.ability}`, { fontFamily: '"Caveat", cursive', fontSize: '28px', color: this.textColor }).setOrigin(1, 1)
+      : null;
     this.stick = data.touch ? this.makeStick() : null;
 
     game.events.on(HUD_EVENT, this.onSnapshot, this);
@@ -243,6 +256,18 @@ export class HudScene extends Phaser.Scene {
     return c;
   }
 
+  /** The ability's button, beside dash: its name, with a ring that fills back up as it recharges. */
+  private makeAbilityButton(game: GameScene, name: string): { box: Phaser.GameObjects.Container; ring: Phaser.GameObjects.Graphics } {
+    const g = this.add.graphics();
+    g.fillStyle(0xfffaf0, 0.8).fillCircle(0, 0, 44);
+    g.lineStyle(2.4, INK_HEX, 1).strokeCircle(0, 0, 44);
+    const ring = this.add.graphics();
+    const t = inkText(this, 0, 0, name, 26, BLUE_INK);
+    const box = this.add.container(0, 0, [g, ring, t]).setSize(96, 96).setInteractive();
+    box.on('pointerdown', () => game.useAbility());
+    return { box, ring };
+  }
+
   /** Bottom-left thumbstick: a faint ring, and a knob that follows the thumb to its rim. */
   private makeStick(): { base: Phaser.GameObjects.Graphics; knob: Phaser.GameObjects.Graphics } {
     const base = this.add.graphics();
@@ -290,6 +315,11 @@ export class HudScene extends Phaser.Scene {
     }
     this.cornerButtons.forEach((b) => b.setPosition(width - 40 - (b.getData('slot') as number) * CORNER_SLOT, 36));
     this.dashBtn?.setPosition(width - DASH_ZONE / 2, height - DASH_ZONE / 2);
+    // Beside dash, a little higher, so a thumb on one doesn't catch the other; on a portrait
+    // phone that would reach the thumbstick, so it sits above dash instead.
+    if (width < height) this.abilityBtn?.box.setPosition(width - DASH_ZONE * 0.55, height - DASH_ZONE * 1.4);
+    else this.abilityBtn?.box.setPosition(width - DASH_ZONE * 1.4, height - DASH_ZONE * 0.62);
+    this.abilityHint?.setPosition(width - 20, height - 14);
     if (this.stick) {
       const o = stickCentre(height);
       this.stick.base.setPosition(o.x, o.y);
@@ -314,6 +344,21 @@ export class HudScene extends Phaser.Scene {
     this.scoreText.setText(String(s.score));
     this.syncLives(s.lives);
     this.dashBtn?.setAlpha(s.dashReady ? 1 : 0.4);
+    this.drawAbility(s);
+  }
+
+  /** The ability's readiness: the button (or key hint) fades while it recharges, and its ring fills back up. */
+  private drawAbility(s: HudSnapshot): void {
+    if (!s.ability) return;
+    const ready = Math.round(s.ability.ready * 20) / 20;
+    if (ready === this.abilityDrawn) return;
+    this.abilityDrawn = ready;
+    const alpha = ready >= 1 ? 1 : 0.45;
+    this.abilityHint?.setAlpha(alpha);
+    if (!this.abilityBtn) return;
+    this.abilityBtn.box.setAlpha(alpha);
+    const ring = this.abilityBtn.ring.clear();
+    if (ready < 1) ring.lineStyle(5, this.accent.growth, 0.9).beginPath().arc(0, 0, 38, -Math.PI / 2, -Math.PI / 2 + ready * Math.PI * 2).strokePath();
   }
 
   /** The growth and combo bars, redrawn only when their fill changes. */

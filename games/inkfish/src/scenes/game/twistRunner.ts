@@ -8,6 +8,7 @@ import { InkBottles } from './inkBottles';
 import type { Player } from './player';
 import { bodyOf } from './swim';
 import { TUNING } from './tuning';
+import { lightBoost } from '../../logic/abilities';
 import { SHOAL_HALF } from '../../logic/ring';
 
 interface Point {
@@ -119,7 +120,7 @@ export class TwistRunner {
     if (nearest) this.arrow(view, zoom, nearest);
     if (this.current) this.drawStreaks(view, now);
     if (this.dark) {
-      const glow = now < player.glowUntil ? TUNING.glowFactor : 1;
+      const glow = (now < player.glowUntil ? TUNING.glowFactor : 1) * lightBoost(player.ability);
       const radius = (150 + player.drawSize * 2.6) * glow;
       this.dark.setPosition(ps.x, ps.y).setScale(radius / (DARK_TEX * DARK_HOLE));
     }

@@ -46,6 +46,8 @@ export interface Fish extends SwimState {
   untracked: boolean;
   /** Steered by a giant (its moray partner), not by its own mind, until let go. */
   led: boolean;
+  /** Lost in the player's ink cloud: it can't find the player until this time. */
+  blindUntil: number;
   /** dead: knocked out by a firecracker, floating belly-up; anyone can eat it. */
   state: 'cruise' | 'chase' | 'lunge' | 'puffed' | 'tired' | 'stunned' | 'hooked' | 'dead';
 }
@@ -115,7 +117,7 @@ export function makeFish(scene: Phaser.Scene, species: SpeciesId, size: number, 
   else attachTail(sprite, species);
   return {
     sprite, species, role, baseSize: size, size, vx, vy: 0, phase: rng() * Math.PI * 2, swim: rng() * Math.PI * 2, turn: vx < 0 ? -1 : 1,
-    tilt: 0, swum: 0, tucked: false, veiled: false, untracked: false, led: false, shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
+    tilt: 0, swum: 0, tucked: false, veiled: false, untracked: false, led: false, blindUntil: 0, shockedUntil: 0, stateUntil: 0, cooldownUntil: 0, fullUntil: 0, state: 'cruise',
   };
 }
 

@@ -3,6 +3,7 @@ import { giantName, SPECIES_INFO, type SpeciesInfo } from './species';
 import { COVER_DEBUT, ZONE_COVER } from './cover';
 import { LEVELS_PER_CHAPTER, zoneInfo } from './zones';
 import type { LevelDef, Modifiers, Objective, SpawnEntry, SpeciesId, TwistId } from './types';
+import { ABILITY_KEY, INK_DEBUT } from '../logic/abilities';
 
 /**
  * Every chapter runs the same arc so new rules arrive one at a time:
@@ -171,6 +172,8 @@ export function describeLevel(level: LevelDef, opts: DescribeOptions = {}): Leve
   const number = levelNumber(level);
   // Taught once, on the first level after the basics.
   if (number === LEAP_TIP_LEVEL) notes.push('Tip: dash up into the surface to leap out of the water.');
+  // The first fish's own trick, taught once the basics and the leap are in hand.
+  if (number === INK_DEBUT) notes.push(`New: press ${ABILITY_KEY} (or tap ink) to squirt ink. Hunters lose you for a moment.`);
   for (const id of level.items.filter((i) => ITEM_INFO[i].debut === number && number > 1)) {
     const item = ITEM_INFO[id];
     notes.push(item.good ? `New item: ${item.name}. ${item.note}` : `Watch out for the ${item.name}. ${item.note}`);

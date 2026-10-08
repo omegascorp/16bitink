@@ -22,7 +22,7 @@ import {
   destroyHook, hangPoint, hookCatch, hookRelease, hookTip, spawnJellies, updateHook, updateJelly, type Hook, type Jelly,
 } from './game/hazards';
 import {
-  createControls, createPlayer, desiredDirection, movePlayer, renderPlayer, isSettled, settlePlayer, tryDash, type Controls, type Player,
+  createControls, createPlayer, dashReady, desiredDirection, movePlayer, renderPlayer, isSettled, settlePlayer, tryDash, type Controls, type Player,
 } from './game/player';
 import { applyItem, type ItemHost } from './game/itemEffects';
 import { spawnItem, updateItem, type FallingItem } from './game/items';
@@ -54,6 +54,8 @@ import { allLevels, chapterOf } from '../levels/chapters';
 import { HAND_FONT } from './ui';
 import { artCacheEnabled, dropUnusedArt, trackArt, warmArt } from '../art/artCache';
 import { SeaEvents } from './game/seaEvents';
+import { ABILITY, ABILITY_INFO, abilityMeter, abilityUnlocked, canSwallow, lightBoost, shrugsOff } from '../logic/abilities';
+import { blindHunters, drawFlash, drawInkCloud, drawnToFlash, swimToFlash } from './game/abilityFx';
 
 export interface HudSnapshot {
   readonly levelName: string;
@@ -65,6 +67,8 @@ export interface HudSnapshot {
   readonly multiplier: number;
   readonly frenzyLabel: string;
   readonly dashReady: boolean;
+  /** The fish's key-or-button ability on this level (ink, flash), and how ready it is, 0..1; null when it has none. */
+  readonly ability: { readonly name: string; readonly ready: number } | null;
   readonly speedLeft: number;
   /** The level goal's progress line, e.g. "Ink bottles 3/10". */
   readonly objective: string;
@@ -159,6 +163,10 @@ export class GameScene extends Phaser.Scene {
   private progress: ObjectiveProgress = initialProgress;
   /** Something happening in the water every half a minute or so. */
   private seaEvents!: SeaEvents;
+  /** The fish's ability goes on a key and a button here (ink, flash; see logic/abilities.ts). */
+  private activeAbility = false;
+  /** Seconds of grazing since the last puff of bubbles. */
+  private grazeClock = 0;
   /** Birds caught since the player last left the water: two or more in one leap make a combo. */
   private leapCatches = 0;
   /**
@@ -290,6 +298,8 @@ export class GameScene extends Phaser.Scene {
     this.boss = giant ? makeBoss(giant, this.makeBossHost()) : null;
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.boss?.destroy());
     this.controls = createControls(this);
+    this.activeAbility = ABILITY_INFO[this.player.ability].active && abilityUnlocked(chapter.player, levelNumber(this.level));
+    this.controls.abilityButton = this.activeAbility;
     this.jellies = spawnJellies(this, this.level, chapter.zone, this.rng);
     for (const j of this.jellies) {
       if (JELLY_INFO[j.kind].glow) this.deep.attach(j.sprite, jellyGlowKey(j.kind), { alpha: 1, pulse: 0.5 });
@@ -300,6 +310,7 @@ export class GameScene extends Phaser.Scene {
     const kb = this.input.keyboard;
     kb?.on('keydown-SPACE', () => this.dash());
     kb?.on('keydown-SHIFT', () => this.dash());
+    kb?.on('keydown-E', () => this.useAbility());
     // A mouse click dashes, like Space; fingers steer, and dash with the on-screen button.
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (!p.wasTouch && (p.leftButtonDown() || p.rightButtonDown())) this.dash();
@@ -308,6 +319,7 @@ export class GameScene extends Phaser.Scene {
 
     this.scene.launch('Hud', {
       levelName: this.level.name, player: chapter.player, touch: this.controls.touch,
+      ability: this.activeAbility ? ABILITY_INFO[this.player.ability].name : null,
       intro: describeLevel(this.level, {
         // A new chapter means a new fish to swim as.
         newPlayer: chapter.id > 1 && this.level.index === 0 ? PLAYER_FISH_NAMES[chapter.player] : undefined,
@@ -325,10 +337,33 @@ export class GameScene extends Phaser.Scene {
   /** Public so the HUD's touch button can trigger it. */
   dash(): void {
     if (this.ended || this.player.hooked) return;
+    if (this.player.airborne && this.player.ability === 'skip' && !this.player.skipQueued) {
+      // The goby: land, and bounce straight back out.
+      this.player.skipQueued = true;
+      return;
+    }
     const dir = desiredDirection(this, this.controls, this.player);
     if (!tryDash(this.player, dir, this.time.now)) return;
     this.burst(this.player.sprite.x, this.player.sprite.y, 5);
     this.sfx('dash');
+  }
+
+  /** The fish's own key-or-button ability. Public so the HUD's touch button can trigger it. */
+  useAbility(): void {
+    const p = this.player;
+    const now = this.time.now;
+    if (!this.activeAbility || this.ended || p.hooked || now < p.abilityReadyAt) return;
+    p.abilityReadyAt = now + ABILITY_INFO[p.ability].cooldownMs;
+    if (p.ability === 'ink') {
+      drawInkCloud(this, p.sprite.x, p.sprite.y, p.size, this.rng);
+      const lost = blindHunters(this.fish, p, now);
+      if (lost) this.floatText(p.sprite.x, p.sprite.y - 50, 'Lost you!', '#1f3f8a', 30);
+      this.sfx('splash', undefined, 0.6);
+    } else if (p.ability === 'flash') {
+      p.flashUntil = now + ABILITY.flashMs;
+      drawFlash(this, p.sprite.x, p.sprite.y);
+      this.sfx('zap', undefined, 1.6, 0.6);
+    }
   }
 
   private zoomFor(size: number): number {
@@ -372,6 +407,7 @@ export class GameScene extends Phaser.Scene {
       this.floatText(this.player.sprite.x, this.player.sprite.y - 40, 'Spotted!', '#a3342b', 36);
       this.sfx('spotted');
     });
+    this.graze(dt);
     renderPlayer(this.player, now, this.boilFrame, dt);
     const cam = this.cameras.main;
     cam.setZoom(Phaser.Math.Linear(cam.zoom, this.zoomFor(this.player.size), Math.min(1, dt * 2)));
@@ -417,7 +453,7 @@ export class GameScene extends Phaser.Scene {
   /** How far the player's own light reaches in the deep, px (further with a glow stick). */
   private lightRadius(): number {
     const p = this.player;
-    return (170 + p.drawSize * 2.4) * (this.time.now < p.glowUntil ? TUNING.glowFactor : 1);
+    return (170 + p.drawSize * 2.4) * (this.time.now < p.glowUntil ? TUNING.glowFactor : 1) * lightBoost(p.ability);
   }
 
   private tickBoil(deltaMs: number): void {
@@ -457,6 +493,7 @@ export class GameScene extends Phaser.Scene {
       else if (f.led) {
         // Steered by the giant that summoned it.
       }
+      else if (drawnToFlash(f, p, now)) swimToFlash(f, p, this.level.world.height, floorAt, dt);
       else updateFish(f, view, sea, now, dt, decoys);
       // Knocked-out fish that nobody ate sink out of the story.
       if (f.state === 'dead' && now > f.stateUntil) {
@@ -481,14 +518,16 @@ export class GameScene extends Phaser.Scene {
       const rel = relationTo(p.size, f.size);
       // Knocked out or shocked (and not much bigger than you): dinner, whatever its size.
       const shocked = f.state === 'stunned' && now < f.shockedUntil && f.role !== 'boss' && f.size <= p.size * TUNING.shockEdibleRatio;
-      if (rel === 'prey' || f.state === 'dead' || shocked) {
+      if (canSwallow(p.ability, rel) || f.state === 'dead' || shocked) {
         // A giant with a trick left (the oarfish shedding its tail) slips away instead.
         if (f === this.boss?.fish && this.boss.resist?.(now)) return true;
         this.eat(f);
         return false;
       }
       // A stung predator can't bite back.
-      if (rel === 'predator' && !isHelpless(f)) this.hurt(causeOfBite(f.species), f);
+      const cause = causeOfBite(f.species);
+      // A jelly body: spines don't stick.
+      if (rel === 'predator' && !isHelpless(f) && !shrugsOff(p.ability, cause === 'spiked' ? 'spiked' : 'other')) this.hurt(cause, f);
       else this.bump(f);
       return true;
     });
@@ -540,15 +579,31 @@ export class GameScene extends Phaser.Scene {
     this.frenzy = feedFrenzy(this.frenzy);
     const combo = frenzyMultiplier(this.frenzy);
     this.sfx(combo > mult ? 'frenzy' : 'eat', undefined, combo > mult ? 0.9 + combo * 0.1 : pitchForSize(size));
-    const before = this.growth.tier;
-    this.growth = addGrowth(this.level, this.growth, growthPointsFor(size));
+    this.grow(growthPointsFor(size));
     this.floatText(sprite.x, sprite.y - size, mult > 1 ? `+${gained} ×${mult}` : `+${gained}`, '#1f3f8a');
     this.boss?.smell?.(sprite.x, sprite.y);
     this.burst(sprite.x, sprite.y, 6);
     gulp(sprite, mouthOf(this.player.sprite, this.player.size, this.player.turn));
     this.player.chompAt = this.time.now;
+  }
+
+  /** Growth points gained, from a meal or from grazing: a stage-up when they're enough. */
+  private grow(points: number): void {
+    const before = this.growth.tier;
+    this.growth = addGrowth(this.level, this.growth, points);
     if (this.growth.tier > before) this.growUp();
     this.progress = { ...this.progress, grown: this.growth.complete };
+  }
+
+  /** The butterflyfish nibbles the coral it hides in: slow, safe growth, with a puff of bubbles now and then. */
+  private graze(dt: number): void {
+    const p = this.player;
+    if (p.ability !== 'graze' || !p.hidden || p.hooked) return;
+    this.grow(ABILITY.grazePerSec * dt);
+    this.grazeClock += dt;
+    if (this.grazeClock < 0.8) return;
+    this.grazeClock = 0;
+    this.burst(p.sprite.x + (p.sprite.flipX ? -1 : 1) * p.size, p.sprite.y, 2);
   }
 
   private eat(f: Fish): void {
@@ -613,6 +668,7 @@ export class GameScene extends Phaser.Scene {
     const now = this.time.now;
     if (now < p.invulnerableUntil || this.ended) return;
     if (this.absorbHit(now)) return;
+    if (by && this.spines(by, now)) return;
     this.lives -= 1;
     this.frenzy = initialFrenzy;
     this.cameras.main.shake(260, 0.01);
@@ -636,6 +692,20 @@ export class GameScene extends Phaser.Scene {
     } else {
       p.sprite.setPosition(p.sprite.x, Math.max(160, p.sprite.y - 220));
     }
+  }
+
+  /** The perch fry's spiny fin: a biter (not a giant) gets pricked and lets go, once in a while. Returns true if it did. */
+  private spines(by: Fish, now: number): boolean {
+    const p = this.player;
+    if (p.ability !== 'spines' || by.role === 'boss' || now < p.abilityReadyAt) return false;
+    p.abilityReadyAt = now + ABILITY_INFO.spines.cooldownMs;
+    p.invulnerableUntil = now + ABILITY.spineSafeMs;
+    stunFish(by, now, ABILITY.spineStunMs);
+    spikeMarks(this, by.sprite.x, by.sprite.y, by.size * 0.6);
+    this.bump(by);
+    this.floatText(p.sprite.x, p.sprite.y - 40, 'Spines!', '#1f3f8a', 36);
+    this.sfx('clang', undefined, 1.4);
+    return true;
   }
 
   /** Birds overhead: snacks you can leap for, hunters that plunge in after you (and other fish). */
@@ -720,7 +790,7 @@ export class GameScene extends Phaser.Scene {
       updateJelly(j, this.level, dt, this.boilFrame);
       j.sprite.x += this.twist.current * 0.5 * dt;
       if (!this.ended && !p.hooked && !p.airborne && now > p.stunnedUntil + 600 && now > p.invulnerableUntil &&
-        capsuleTouchesCircle(bodyOf(p.sprite, p.shape), j.sprite.x, j.sprite.y, j.radius, 0.8)) {
+        !shrugsOff(p.ability, 'sting') && capsuleTouchesCircle(bodyOf(p.sprite, p.shape), j.sprite.x, j.sprite.y, j.radius, 0.8)) {
         p.stunnedUntil = now + TUNING.stunMs;
         this.floatText(p.sprite.x, p.sprite.y - 30, 'zzap!', '#6b3f99');
         this.sfx('zap');
@@ -978,7 +1048,8 @@ export class GameScene extends Phaser.Scene {
       frenzyMeter: this.frenzy.meter,
       multiplier: mult,
       frenzyLabel: frenzyLabel(mult),
-      dashReady: now >= this.player.dashReadyAt,
+      dashReady: dashReady(this.player, now),
+      ability: this.activeAbility ? abilityMeter(this.player.ability, this.player.abilityReadyAt, now) : null,
       speedLeft: Math.max(0, this.player.speedUntil - now),
       objective: [line.text, this.seaEvents.status(this.elapsedMs / 1000)].filter(Boolean).join(' · '),
       urgent: line.urgent,
