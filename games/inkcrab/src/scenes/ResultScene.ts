@@ -125,12 +125,12 @@ export class ResultScene extends Phaser.Scene {
     if (!data.won) {
       const losses = ((this.registry.get(LOSSES) as number | undefined) ?? -1) + 1;
       this.registry.set(LOSSES, losses);
-      return loseParts(this, w, h, catchTip(data.caughtBy, losses), def, levelGoal(def), this.withEnter({ primary: { label: 'Try again', go: retry }, secondary: [{ label: '← chart', go: chart }] }));
+      return loseParts(this, w, h, catchTip(data.caughtBy, losses), def, levelGoal(def), this.withEnter({ primary: { label: 'Try again', go: retry }, secondary: [{ label: '← map', go: chart }] }));
     }
     const next = nextLevel(def.id);
     const buttons: CardButtons = next
-      ? { primary: { label: 'Next level →', go: this.go('Game', { levelId: next.id }) }, secondary: [{ label: 'replay', go: retry }, { label: '← chart', go: chart }] }
-      : { primary: { label: '← back to the chart', go: chart }, secondary: [{ label: 'replay', go: retry }] };
+      ? { primary: { label: 'Next level →', go: this.go('Game', { levelId: next.id }) }, secondary: [{ label: 'replay', go: retry }, { label: '← map', go: chart }] }
+      : { primary: { label: '← map', go: chart }, secondary: [{ label: 'replay', go: retry }] };
     const preview = next ? { number: LEVEL_ORDER.indexOf(next.id) + 1, def: next, goal: levelGoal(next) } : undefined;
     return winParts(this, w, h, blotReasons(data.time, def.parTime, data.livesLost), preview, this.withEnter(buttons));
   }

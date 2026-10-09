@@ -83,8 +83,8 @@ export class SandFxView {
     b.pits.forEach(([col, reach], i) => {
       const bottom = surfaceRow(b.terrain, col);
       const rim = Math.min(surfaceRow(b.terrain, col - reach), surfaceRow(b.terrain, col + reach));
-      if (bottom <= rim) return;
-      // A steady trickle down both walls, so a pit always reads as running sand.
+      if (bottom <= rim || !b.antlionIn(col)) return;
+      // A steady trickle down both walls while its antlion is in, so a live pit reads as running sand.
       this.trickle[i]! += dt * PIT_TRICKLE;
       for (; this.trickle[i]! >= 1; this.trickle[i]! -= 1) {
         const side = Math.random() < 0.5 ? -1 : 1;

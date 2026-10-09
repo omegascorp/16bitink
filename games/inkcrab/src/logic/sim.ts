@@ -114,6 +114,8 @@ export interface CritterGroup {
   readonly sizes: readonly [number, number];
   /** Default: ghost crabs. */
   readonly species?: SpeciesId;
+  /** Columns, first and last, walkers and burrowers of this group appear between (default anywhere). */
+  readonly cols?: readonly [number, number];
 }
 
 export type Outcome = 'playing' | 'won' | 'lost';
@@ -322,8 +324,8 @@ export class Beach {
 
   /**
    * On the slope of an antlion pit, sand runs out from under the crab
-   * towards the bottom. A pit filled level (or a crab below its bottom)
-   * pulls no more.
+   * towards the bottom: the antlion flicks it from under. A pit with no
+   * antlion in it, one filled level, or a crab below its bottom pulls no more.
    */
   pitPull(b: Body): number {
     if (!b.onGround || !this.pits.length) return 0;
@@ -332,12 +334,21 @@ export class Beach {
     const col = Math.floor(cx);
     const feet = Math.round((b.y + b.h) / T);
     for (const [pitCol, reach] of this.pits) {
+      if (!this.antlionIn(pitCol)) continue;
       const off = pitCol + 0.5 - cx;
       if (Math.abs(off) > reach + 0.5 || Math.abs(off) < 0.25) continue;
       if (Math.abs(feet - surfaceRow(this.terrain, col)) > 1 || surfaceRow(this.terrain, pitCol) <= feet) continue;
       return Math.sign(off) * PIT_PULL;
     }
     return 0;
+  }
+
+  /** Whether an antlion sits at the bottom of the pit at `pitCol`. */
+  antlionIn(pitCol: number): boolean {
+    for (const k of this.critters.values()) {
+      if (movementOf(k.species) === 'lurk' && Math.floor(centre(k).x / this.tileSize) === pitCol) return true;
+    }
+    return false;
   }
 
   /** Take-off speed (px/s) for the current height: bigger crabs leap higher, heavier shells hold them down. */
@@ -729,12 +740,12 @@ export class Beach {
 
   /** A new creature of group `group`, placed for how it lives (see spawn.ts). Gulls only come at low water. */
   private spawnCritter(group: number, start = false): void {
-    const { sizes, species = 'ghostcrab' } = this.groups[group]!;
+    const { sizes, species = 'ghostcrab', cols } = this.groups[group]!;
     if (SPECIES[species].lowTide && this.tide && !isLowWater(this.tide, this.elapsed)) return;
     const k = placeCritter({
       terrain: this.terrain, tile: this.tileSize, rng: this.rng, crabCol: Math.floor(centre(this.crab.body).x / this.tileSize),
       pits: this.pits, dens: this.dens, critters: [...this.critters.values()], surroundings: this.surroundings, start,
-    }, this.nextId, species, sizes);
+    }, this.nextId, species, sizes, cols);
     if (!k) return;
     // A gull comes in from the sky to land on dry ground; over water it waits for another time.
     const landing = SPECIES[species].lowTide && !start;

@@ -121,7 +121,7 @@ export class BeachEndScene extends Phaser.Scene {
       leaving = true;
       this.scene.start(key, payload);
     };
-    inkButton(this, L.buttons.xs[0], L.buttons.y, '← back to the chart', go('Menu'), { width: 250, height: 50, size: 26 }).setDepth(12);
+    inkButton(this, L.buttons.xs[0], L.buttons.y, '← map', go('Menu'), { width: 250, height: 50, size: 26 }).setDepth(12);
     inkButton(this, L.buttons.xs[1], L.buttons.y, 'replay level', go('Game', { levelId }), { width: 200, height: 50, size: 26 }).setDepth(12);
   }
 

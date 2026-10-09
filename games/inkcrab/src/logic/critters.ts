@@ -63,8 +63,12 @@ export const CRITTER = {
   amble: 0.55,
   /** Drop (tiles) a wandering critter won't walk off. */
   ledge: 2,
-  /** Wall height (tiles) a hopper clears. */
-  hop: 2.6,
+  /** Wall height (tiles) a hopper clears, and so how deep a drop it will go down (it can hop back out). */
+  hop: 3.5,
+  /** How far (tiles) past a drop a hopper looks for ground to leap to. */
+  leap: 4,
+  /** A hopper's pace in the air, as a share of its top speed: it flaps across. */
+  glide: 1.6,
   /** How far (tiles) above or below a sandfish notices a crab in the sand. */
   burrowRows: 4,
   /** Sandfish weave up and down as they swim: share of their speed. */
@@ -121,6 +125,26 @@ function cliffAhead(t: Terrain, c: Critter, tile: number, env: Surroundings): bo
   return true;
 }
 
+/** Whether column `x` has ground (solid with air above) between rows `from` and `to`. */
+function groundIn(t: Terrain, x: number, from: number, to: number): boolean {
+  for (let y = Math.max(1, from); y <= to; y++) if (isSolid(t, x, y) && !isSolid(t, x, y - 1)) return true;
+  return false;
+}
+
+/**
+ * What a hopper does at a drop: walk on down if the ground just ahead is
+ * low enough to hop back out of, leap if there's ground to land on a
+ * little further, or (null) turn back.
+ */
+function overDrop(t: Terrain, c: Critter, tile: number): 'walk' | 'leap' | null {
+  const x = Math.floor((c.dir > 0 ? c.x + c.w + 1 : c.x - 1) / tile);
+  const foot = Math.floor((c.y + c.h + 1) / tile);
+  const hop = Math.floor(CRITTER.hop);
+  if (groundIn(t, x, foot, foot + hop)) return 'walk';
+  for (let k = 1; k <= CRITTER.leap; k++) if (groundIn(t, x + c.dir * k, foot - hop, foot + hop)) return 'leap';
+  return null;
+}
+
 /**
  * One step: a bigger critter chases the crab when it sees it (if its kind
  * hunts), a smaller one runs, an equal one ignores it. Otherwise it ambles,
@@ -145,18 +169,24 @@ export function stepCritter(t: Terrain, c: Critter, q: Quarry | null, dt: number
   let dir = c.dir;
   if (hunting) dir = (c.size > q.size ? seen : -seen) as 1 | -1;
   let turnIn = c.turnIn - dt;
-  if (!hunting && c.onGround && (turnIn <= 0 || cliffAhead(t, c, tile, env))) {
+  // A hopper goes down a drop it can hop back out of, or leaps a gap, rather than turning at it.
+  const drop = !hunting && c.onGround && turnIn > 0 && cliffAhead(t, c, tile, env) ? (spec.hops ? overDrop(t, c, tile) ?? 'turn' : 'turn') : null;
+  if (!hunting && c.onGround && (turnIn <= 0 || drop === 'turn')) {
     dir = dir === 1 ? -1 : 1;
     turnIn = CRITTER.turnMin + rng() * (CRITTER.turnMax - CRITTER.turnMin);
   }
   const clock = c.clock + dt;
   const resting = spec.burst !== undefined && clock % (spec.burst.run + spec.burst.rest) > spec.burst.run;
-  const pace = resting ? 0 : critterSpeed(c.size, c.species) * (hunting ? 1 : CRITTER.amble);
+  const top = critterSpeed(c.size, c.species);
+  const pace = resting ? 0 : spec.hops && !c.onGround ? top * CRITTER.glide : top * (hunting ? 1 : CRITTER.amble);
   const moved = moveBody(t, c, dir, pace, dt, tile);
+  const hopSpeed = Math.sqrt(2 * PHYS.gravity * CRITTER.hop * tile);
+  if (drop === 'leap') return { ...c, ...jump(moved, hopSpeed), dir, turnIn, clock, bored: Math.max(0, c.bored - dt) };
   // Blocked by a wall it can't step up: turn round (a hunter waits it out).
   const stuck = !resting && c.onGround && Math.abs(moved.x - c.x) < 1e-3 && boxHitsSolid(t, { ...moved, x: moved.x + dir }, tile);
-  // A hopper clears the wall instead.
-  if (stuck && spec.hops) return { ...c, ...jump(moved, Math.sqrt(2 * PHYS.gravity * CRITTER.hop * tile)), dir, turnIn, clock, bored: Math.max(0, c.bored - dt) };
+  // A hopper clears the wall instead, if there's room over it (not a cliff face, or the edge of the beach).
+  const clears = stuck && spec.hops && !boxHitsSolid(t, { ...moved, x: moved.x + dir * tile / 2, y: moved.y - CRITTER.hop * tile }, tile);
+  if (clears) return { ...c, ...jump(moved, hopSpeed), dir, turnIn, clock, bored: Math.max(0, c.bored - dt) };
   // Walled in on both sides (down a hole), it stands facing one way rather than flipping every frame.
   const boxedIn = stuck && boxHitsSolid(t, { ...moved, x: moved.x - dir }, tile);
   if (stuck && !hunting && !boxedIn) dir = dir === 1 ? -1 : 1;

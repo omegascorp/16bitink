@@ -23,7 +23,6 @@ function leg(d: Draw, hipX: number, ph: number, far: boolean): void {
   const foot = pt(hipX + step, g - lift - (far ? 1.5 : 0));
   const heel = pt(hipX + step * 0.25 - 4, g - 13 - lift * 0.6 - (far ? 1 : 0));
   const hip = pt(hipX, g - 24);
-  const ink = far ? 0.55 : 1;
   // Feathered thigh, then the bare, scaled shank.
   limb(d, [hip, heel], { widths: [far ? 6 : 7, 3.4], wash: '#1c1c22', far, line: 0.9 });
   limb(d, [heel, foot], { widths: [far ? 2.4 : 2.8, far ? 2 : 2.4], wash: LEG, far, line: 0.85 });
@@ -38,13 +37,34 @@ function leg(d: Draw, hipX: number, ph: number, far: boolean): void {
       pen.hair([pt(p.x - 0.6, p.y), pt(p.x + 1, p.y + 0.4)], 0.45, PAPER_FILL, 0.5);
     }
   }
-  // Toes splay along the sand; a curled foot while lifted.
-  const curl = lift > 1.5 ? 2.5 : 0;
-  for (const [dx, dy] of [[7, 0], [5, 0.8], [-4.5, 0]] as const) {
-    const tip = pt(foot.x + dx - (dx > 0 ? curl : -curl * 0.5), foot.y + dy + (lift > 1.5 ? 1.5 : 0) - (dy > 0 ? 0.6 : 0));
-    pen.stroke([foot, tip], far ? 1.3 : 1.7, d.ink, ink, false);
-    if (!far) pen.hair([tip, pt(tip.x + Math.sign(dx) * 1, tip.y + 0.9)], 0.5, d.ink, 0.9);
+  feet(d, foot, lift > 1.5, far);
+}
+
+/** Toes: reach along the sand and how far in front of the line they splay (forward toes long, the hind toe short). */
+const TOES = [[-7, 0], [9.5, 0.9], [12, 0]] as const;
+
+/**
+ * A raven's foot: three long, scaled toes spread forward along the sand and
+ * one behind, each ending in a dark hooked claw. Lifted, they bunch and
+ * curl under.
+ */
+function feet(d: Draw, foot: Pt, lifted: boolean, far: boolean): void {
+  const { pen } = d;
+  for (const [reach, splay] of TOES) {
+    const dir = Math.sign(reach);
+    const len = lifted ? reach * 0.55 : reach;
+    const drop = lifted ? 2.6 : 0;
+    // A knuckled arch: up off the sand mid-toe, down to the tip.
+    const knuckle = pt(foot.x + len * 0.5, foot.y - (lifted ? 0 : 0.9) + splay * 0.5 + drop * 0.4);
+    const tip = pt(foot.x + len, foot.y + splay + drop);
+    limb(d, [foot, knuckle, tip], { widths: far ? [2, 1.6, 1.1] : [2.6, 2, 1.3], wash: LEG, far, line: 0.8 });
+    pen.fill(capsule(foot, tip, far ? 0.9 : 1.1, 0.6), LEG, 0.6);
+    // The claw: a short dark hook bending down into the sand.
+    const claw = lifted ? pt(tip.x - dir * 0.4, tip.y + 1.6) : pt(tip.x + dir * 1.9, tip.y + 0.8);
+    pen.stroke(bezier(tip, pt(tip.x + dir * 1.3, tip.y - 0.1), claw, 4), far ? 0.8 : 1.1, d.ink, far ? 0.55 : 1, false);
   }
+  // Pad under the toes' meeting point.
+  pen.fill(oval(foot.x, foot.y - 0.2, far ? 1.6 : 2, far ? 1.2 : 1.5, 10), LEG, 0.9);
 }
 
 export function raven(d: Draw): void {

@@ -48,8 +48,10 @@ describe('dunes in play', () => {
 });
 
 describe('antlion pits', () => {
+  const manned = (pit: readonly [number, number]): Beach => dune({ pits: [pit], critters: [{ count: 1, sizes: [9, 9], species: 'antlion' }] });
+
   it('slide a crab on the slope towards the bottom', () => {
-    const b = dune({ pits: [[20, 4]] });
+    const b = manned([20, 4]);
     // Drop it onto the left slope and let it stand still.
     b.crab = { ...b.crab, body: { ...b.crab.body, x: 17 * T, y: 8 * T } };
     run(b, {}, 0.3);
@@ -60,7 +62,7 @@ describe('antlion pits', () => {
   });
 
   it('can be walked out of', () => {
-    const b = dune({ pits: [[20, 3]] });
+    const b = manned([20, 3]);
     b.crab = { ...b.crab, body: { ...b.crab.body, x: 19 * T, y: 10 * T } };
     run(b, {}, 0.5);
     run(b, { moveX: -1 }, 3);
@@ -68,11 +70,22 @@ describe('antlion pits', () => {
   });
 
   it('pull no more once filled in', () => {
-    const b = dune({ pits: [[20, 3]] });
+    const b = manned([20, 3]);
     for (let x = 17; x <= 23; x++) for (let y = 12; y < 15; y++) if (b.terrain.tiles[y * 60 + x] === TILE.air) b.terrain.tiles[y * 60 + x] = TILE.placed;
     b.crab = { ...b.crab, body: { ...b.crab.body, x: 18 * T, y: 10 * T } };
     run(b, {}, 0.5);
     expect(b.pitPull(b.crab.body)).toBe(0);
+  });
+
+  it('pull no more once their antlion is gone', () => {
+    const b = manned([20, 4]);
+    b.critters.clear();
+    b.crab = { ...b.crab, body: { ...b.crab.body, x: 17 * T, y: 8 * T } };
+    run(b, {}, 0.3);
+    const x0 = b.crab.body.x;
+    run(b, {}, 0.5);
+    expect(b.pitPull(b.crab.body)).toBe(0);
+    expect(b.crab.body.x).toBe(x0);
   });
 
   it('keep an antlion at the bottom', () => {

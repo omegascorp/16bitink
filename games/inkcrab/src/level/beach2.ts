@@ -91,7 +91,7 @@ export const BEACH_2: readonly LevelDef[] = [
     startCol: 6,
     shells: [['desertsnail', 14, 0], ['turban', 34, 0], ['olive', 52, 4], ['murex', 88, 0]],
     food: { surface: 12, buried: 18, shallow: 7 },
-    critters: [{ count: 2, sizes: [5, 7], species: 'raven' }, { count: 2, sizes: [1, 6], species: 'antlion' }, { count: 2, sizes: [1, 5], species: 'darkling' }],
+    critters: [{ count: 2, sizes: [5, 6], species: 'raven' }, { count: 2, sizes: [1, 6], species: 'antlion' }, { count: 2, sizes: [1, 5], species: 'darkling' }],
     birds: [{ count: 1, size: 5 }],
   },
   {
@@ -116,7 +116,7 @@ export const BEACH_2: readonly LevelDef[] = [
     startCol: 100,
     shells: [['desertsnail', 92, 0], ['turban', 74, 0], ['olive', 58, 3], ['murex', 36, 0], ['helmet', 6, 0]],
     food: { surface: 12, buried: 20, shallow: 8 },
-    critters: [{ count: 2, sizes: [5, 8], species: 'raven' }, { count: 2, sizes: [1, 7], species: 'antlion' }, { count: 3, sizes: [2, 8], species: 'skink' }, { count: 2, sizes: [1, 6], species: 'darkling' }],
+    critters: [{ count: 2, sizes: [5, 7], species: 'raven', cols: [10, 38] }, { count: 2, sizes: [1, 7], species: 'antlion' }, { count: 3, sizes: [2, 8], species: 'skink' }, { count: 2, sizes: [1, 6], species: 'darkling' }],
     birds: [{ count: 1, size: 6 }, { count: 1, size: 7 }],
   },
   {
@@ -129,7 +129,7 @@ export const BEACH_2: readonly LevelDef[] = [
     startCol: 116,
     shells: [['desertsnail', 102, 0], ['turban', 90, 0], ['nerite', 76, 0], ['olive', 64, 4], ['murex', 44, 0], ['helmet', 5, 0]],
     food: { surface: 14, buried: 24, shallow: 8 },
-    critters: [{ count: 2, sizes: [5, 8], species: 'raven' }, { count: 3, sizes: [1, 7], species: 'antlion' }, { count: 3, sizes: [2, 8], species: 'skink' }, { count: 3, sizes: [1, 6], species: 'darkling' }],
+    critters: [{ count: 2, sizes: [5, 7], species: 'raven' }, { count: 3, sizes: [1, 7], species: 'antlion' }, { count: 3, sizes: [2, 8], species: 'skink' }, { count: 3, sizes: [1, 6], species: 'darkling' }],
     birds: [{ count: 2, size: 7 }],
   },
 ];

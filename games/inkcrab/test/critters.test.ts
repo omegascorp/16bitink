@@ -190,6 +190,43 @@ describe('ravens', () => {
     expect(highest(makeCritter(1, 6, 20 * T, 10 * T, 1, 10, 'raven'))).toBeLessThanOrEqual(8 * T + 1);
     expect(highest(makeCritter(2, 6, 20 * T, 10 * T, 1, 10))).toBeGreaterThan(9 * T);
   });
+
+  /** Flat sand from row 10 with a hole cut from `x0` to `x1`, `depth` rows deep. */
+  const holed = (x0: number, x1: number, depth: number): Terrain => {
+    const t = flat();
+    for (let x = x0; x <= x1; x++) for (let y = 10; y < 10 + depth; y++) setTile(t, x, y, TILE.air);
+    return t;
+  };
+  /** A raven at column 20 heading right, not turning on its own for a while. */
+  const raven = (): Critter => makeCritter(1, 6, 20 * T, 10 * T, 1, 30, 'raven');
+
+  it('leap a gap a ghost crab would turn back at', () => {
+    const t = holed(24, 26, 5);
+    expect(run(t, raven(), null, 4).x).toBeGreaterThan(28 * T);
+    expect(run(t, makeCritter(2, 6, 20 * T, 10 * T, 1, 30), null, 4).x).toBeLessThan(24 * T);
+  });
+
+  it('hop down into a pit and back out the far side', () => {
+    const t = flat();
+    // A funnel four deep, like an antlion's, around column 26.
+    for (let x = 22; x <= 30; x++) for (let y = 10; y < 14 - Math.abs(x - 26); y++) setTile(t, x, y, TILE.air);
+    expect(run(t, raven(), null, 6).x).toBeGreaterThan(32 * T);
+  });
+
+  it('turn back at a wall too tall to hop, and at the edge of the beach', () => {
+    const t = flat();
+    for (let y = 2; y < 10; y++) setTile(t, 26, y, TILE.sand);
+    expect(run(t, raven(), null, 4).dir).toBe(-1);
+    const edge = run(t, makeCritter(1, 6, 3 * T, 10 * T, -1, 30, 'raven'), null, 4);
+    expect(edge.dir).toBe(1);
+    expect(edge.x).toBeGreaterThan(4 * T);
+  });
+
+  it('keep out of a hole too deep and wide to get back out of', () => {
+    const t = holed(24, 40, 5);
+    const after = run(t, raven(), null, 4);
+    expect(after.y + after.h).toBeLessThanOrEqual(10 * T + 1);
+  });
 });
 
 describe('a creature walled in', () => {

@@ -183,3 +183,27 @@ describe('every beach', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
+
+describe('ravens', () => {
+  it('never outgrow the crab: a full-grown crab can eat any of them', () => {
+    for (const def of BEACHES.flatMap((b) => b.levels)) {
+      for (const g of def.critters ?? []) if (g.species === 'raven') expect(g.sizes[1], def.id).toBeLessThan(levelGoal(def));
+    }
+  });
+});
+
+describe('sandstorm', () => {
+  const def = BEACH_2.find((d) => d.id === 'sandstorm')!;
+  const b = new Beach(buildLevel(def));
+  const ravens = [...b.critters.values()].filter((k) => k.species === 'raven');
+  const col = (x: number): number => Math.floor(x / TILE_PX);
+
+  it('keeps its ravens on the far side of the dune, clear of the pits on the way in', () => {
+    expect(ravens.length).toBe(2);
+    for (const k of ravens) {
+      const at = col(k.x + k.w / 2);
+      expect(at).toBeLessThanOrEqual(60);
+      for (const [pit, r] of def.pits ?? []) expect(Math.abs(at - pit)).toBeGreaterThan(r + 1);
+    }
+  });
+});

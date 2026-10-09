@@ -28,16 +28,20 @@ export interface SpawnSite {
 /**
  * A new creature of a species and size range, placed for how it lives:
  * walkers on the surface, sandfish down in the sand, fish in the water, an
- * antlion at the bottom of an empty pit, an octopus in an empty den. Null
- * when there's nowhere for it.
+ * antlion at the bottom of an empty pit, an octopus in an empty den. Those
+ * that go anywhere go between columns `from` and `to`. Null when there's
+ * nowhere for it.
  */
-export function placeCritter(site: SpawnSite, id: number, species: SpeciesId, [lo, hi]: readonly [number, number]): Critter | null {
+export function placeCritter(
+  site: SpawnSite, id: number, species: SpeciesId, [lo, hi]: readonly [number, number],
+  [from, to]: readonly [number, number] = [2, site.terrain.width - 3],
+): Critter | null {
   const { terrain: t, tile: T, rng } = site;
   const move = movementOf(species);
   const size = (): number => lo + Math.floor(rng() * (hi - lo + 1));
   if (move === 'den') return inDen(site, id, size());
   for (let tries = 0; tries < 12; tries++) {
-    const tx = move === 'lurk' ? emptyPit(site) : 2 + Math.floor(rng() * (t.width - 4));
+    const tx = move === 'lurk' ? emptyPit(site) : from + Math.floor(rng() * (to - from + 1));
     if (tx === null) return null;
     if (Math.abs(tx - site.crabCol) < SPAWN_AWAY && !(site.start && move === 'lurk')) continue;
     if (move === 'swim') {
