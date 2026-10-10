@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { feed, initialGrowth, isCapped, MAX_SIZE, meterGoal, settle, type Growth } from '../src/logic/growth';
+import { feed, initialGrowth, isCapped, MAX_SIZE, meterGoal, type Growth } from '../src/logic/growth';
 
-const g = (size: number, meter = 0, bank = 0): Growth => ({ size, meter, bank });
+const g = (size: number, meter = 0): Growth => ({ size, meter });
 
 describe('growth', () => {
   it('starts tiny and empty', () => {
@@ -23,41 +23,29 @@ describe('growth', () => {
     const r = feed(g(1), meterGoal(1) + 1, 3);
     expect(r.growth).toEqual(g(2, 1));
     expect(r.grew).toBe(1);
-    expect(r.banked).toBe(0);
+    expect(r.wasted).toBe(0);
   });
 
-  it('stops at the shell cap with a full meter and banks the rest', () => {
-    const r = feed(g(2), meterGoal(2) + 4, 2);
-    expect(r.growth).toEqual(g(2, meterGoal(2), 4));
-    expect(r.grew).toBe(0);
-    expect(r.banked).toBe(4);
+  it('stops growing once it fills its shell: the rest is wasted', () => {
+    const r = feed(g(1), meterGoal(1) + 4, 2);
+    expect(r.growth).toEqual(g(2, 0));
+    expect(r.grew).toBe(1);
+    expect(r.wasted).toBe(4);
     expect(isCapped(r.growth, 2)).toBe(true);
   });
 
-  it('is not capped below the cap or with a part-full meter', () => {
-    expect(isCapped(g(2, 1), 2)).toBe(false);
-    expect(isCapped(g(1, meterGoal(1)), 2)).toBe(false);
+  it('is capped as soon as it is as big as its shell, and not before', () => {
+    expect(isCapped(g(2), 2)).toBe(true);
+    expect(isCapped(g(1, meterGoal(1) - 1), 2)).toBe(false);
   });
 
-  it('banks everything eaten while already capped', () => {
-    const capped = g(2, meterGoal(2), 3);
-    expect(feed(capped, 2, 2)).toEqual({ growth: g(2, meterGoal(2), 5), grew: 0, banked: 2 });
+  it('eats nothing into growth while capped, and nothing is kept for later', () => {
+    expect(feed(g(2), 5, 2)).toEqual({ growth: g(2), grew: 0, wasted: 5 });
   });
 
-  it('converts the meter and bank at once after moving into a bigger shell', () => {
-    const capped = g(2, meterGoal(2), meterGoal(3) + meterGoal(4) + 2);
-    const r = settle(capped, 5);
-    // Full meter -> 3, bank covers 3->4 and 4->5, two points left on the meter.
-    expect(r.growth).toEqual(g(5, 2, 0));
-    expect(r.grew).toBe(3);
-  });
-
-  it('keeps leftover reserve banked when the new shell caps the burst', () => {
-    const capped = g(2, meterGoal(2), 100);
-    const r = settle(capped, 3);
-    expect(r.growth.size).toBe(3);
-    expect(isCapped(r.growth, 3)).toBe(true);
-    expect(r.growth.bank).toBe(meterGoal(2) + 100 - meterGoal(2) - meterGoal(3));
+  it('grows on from where it was in a bigger shell, a meal at a time', () => {
+    expect(feed(g(2), meterGoal(2) - 1, 3).growth).toEqual(g(2, meterGoal(2) - 1));
+    expect(feed(g(2), meterGoal(2), 3).growth).toEqual(g(3, 0));
   });
 
   it('never grows past the largest body size', () => {

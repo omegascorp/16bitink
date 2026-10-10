@@ -37,7 +37,7 @@ const wearing = (b: Beach): Record<number, string | null> =>
 const looseShells = (b: Beach): string[] => [...b.items.values()].flatMap((i) => (i.kind.type === 'shell' ? [`${i.kind.shell.kind} ${i.kind.shell.size}`] : []));
 
 /** A crab of size 5, full in a size-5 tulip shell, at column 20. */
-const full5 = { start: { x: 20 * T, y: GROUND * T }, startShell: shellOf('tulip', 5), startGrowth: { size: 5, meter: 0, bank: 0 } } as const;
+const full5 = { start: { x: 20 * T, y: GROUND * T }, startShell: shellOf('tulip', 5), startGrowth: { size: 5, meter: 0 } } as const;
 
 describe('roomier', () => {
   it('is the next size up, for a rival that has grown to fill its shell', () => {
@@ -91,7 +91,7 @@ describe('a vacancy chain', () => {
   it('lets the crab take its turn: a rival won\'t take a shell the crab is at and would move up into', () => {
     const b = beach({
       items: [loose(10, 'lightningwhelk', 5, 21)], rivals: [['tulip', 4, 25, 4]],
-      start: { x: 20 * T, y: GROUND * T }, startShell: shellOf('tulip', 4), startGrowth: { size: 4, meter: 0, bank: 0 },
+      start: { x: 20 * T, y: GROUND * T }, startShell: shellOf('tulip', 4), startGrowth: { size: 4, meter: 0 },
     });
     run(b, 6);
     expect(wearing(b)).toEqual({ 4: 'tulip 4' });
@@ -140,6 +140,25 @@ describe('a vacancy chain', () => {
     expect(wearing(b)).toEqual({ 4: 'tulip 5', 3: 'figshell 4', 2: 'nassa 3' });
     expect(events.filter((e) => e.type === 'traded')).toHaveLength(3);
     expect(looseShells(b)).toEqual(['periwinkle 2']);
+  });
+
+  it('moves house in its own time, out in the open, its old shell left where it stood', () => {
+    const b = beach({ items: [loose(10, 'lightningwhelk', 5, 26)], rivals: [['tulip', 4, 30, 4]] });
+    let started = -1;
+    let moved = -1;
+    for (let i = 0; i < 60 * 10 && moved < 0; i++) {
+      b.step(IDLE, 1 / 60);
+      const k = [...b.critters.values()][0]!;
+      if (started < 0 && k.swap) started = i;
+      if (k.shell?.kind === 'lightningwhelk') moved = i;
+    }
+    expect(started).toBeGreaterThanOrEqual(0);
+    expect((moved - started) / 60).toBeCloseTo(RIVAL.swap, 1);
+    const k = [...b.critters.values()][0]!;
+    const tulip = [...b.items.values()].find((i) => i.kind.type === 'shell' && i.kind.shell.kind === 'tulip')!;
+    // It stands where the whelk lay; the tulip lies a little way off, where it stood.
+    expect(Math.abs(centre(k).x - (26 * T + T / 2))).toBeLessThan(T);
+    expect(Math.abs(centre(tulip).x - centre(k).x)).toBeGreaterThan(T / 4);
   });
 
   it('pays no heed to a crab whose shell it couldn\'t use', () => {

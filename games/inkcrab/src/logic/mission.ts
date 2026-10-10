@@ -39,6 +39,10 @@ export const PLAIN: Mission = { kinds: ['grow'], bottles: 0, marked: null, giant
 /** How the level's tasks stand. */
 export interface MissionProgress {
   readonly grown: boolean;
+  /** In a shell of the goal size (a shell chain is won from there, see `chained`). */
+  readonly atTop?: boolean;
+  /** A shell chain handed all the way down: the last crab in the line is in its new shell. */
+  readonly chained?: boolean;
   readonly bottles: number;
   readonly marked: number;
   readonly giant: boolean;
@@ -49,8 +53,13 @@ export function tasksDone(m: Mission, p: MissionProgress): boolean {
   return p.bottles >= m.bottles && p.marked >= (m.marked?.count ?? 0) && (!m.giant || p.giant);
 }
 
+/**
+ * Whether the level is won: grown to the goal size, its tasks done. On a
+ * shell chain that includes the chain run to its end, the last crab in the
+ * line in its new shell.
+ */
 export function missionDone(m: Mission, p: MissionProgress): boolean {
-  return p.grown && tasksDone(m, p);
+  return p.grown && tasksDone(m, p) && (!m.chain || !!p.chained);
 }
 
 export const MISSION_LABEL: Readonly<Record<MissionKind, string>> = {
@@ -73,7 +82,7 @@ export function missionGoal(m: Mission, goal: number): string {
   if (m.bottles) parts.push(`dig up ${m.bottles} ink bottles`);
   if (m.marked) parts.push(`eat the ${m.marked.count} ${plural(m.marked)} circled in red`);
   if (m.giant) return `grow to size ${goal}, then eat the giant ${SPECIES[m.giant.species].name}`;
-  if (m.chain) return `grow to size ${goal}, leading a line of ${m.chain} hermit crabs`;
+  if (m.chain) return `grow to size ${goal}, handing every shell you leave down a line of ${m.chain} hermit crabs`;
   return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : parts[0]!;
 }
 
@@ -100,7 +109,8 @@ export function missionLine(m: Mission, p: MissionProgress, chain: ChainStatus |
   if (m.bottles) tasks.push(`ink bottles ${Math.min(p.bottles, m.bottles)}/${m.bottles}`);
   if (m.marked) tasks.push(`marked ${SPECIES[m.marked.species].name}s ${Math.min(p.marked, m.marked.count)}/${m.marked.count}`);
   if (m.giant) tasks.push(p.grown ? `now eat the giant ${SPECIES[m.giant.species].name}!` : `grow, then eat the giant ${SPECIES[m.giant.species].name}`);
-  if (m.chain && chain) tasks.push(chainText(chain));
+  if (m.chain && p.atTop) tasks.push(p.chained ? 'the chain is done! now grow to full size' : 'watch your line move up');
+  else if (m.chain && chain) tasks.push(chainText(chain));
   if (!tasks.length) return m.lives === 1 ? 'one life: don\'t get caught' : '';
   // Tasks done but still growing: point back at the growth bar.
   if (!m.giant && !m.chain && tasksDone(m, p) && !p.grown) return 'all found! now grow to full size';

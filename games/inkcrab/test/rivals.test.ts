@@ -15,7 +15,7 @@ function beach(over: Partial<BeachSetup> = {}): Beach {
   const terrain = carve({ width: W, height: 24, seed: 1, profile: [[0, GROUND], [W - 1, GROUND]] });
   return new Beach({
     terrain, items: [], start: { x: 20 * T, y: GROUND * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0,
-    startGrowth: { size: 3, meter: 0, bank: 0 }, ...over,
+    startGrowth: { size: 3, meter: 0 }, ...over,
   });
 }
 

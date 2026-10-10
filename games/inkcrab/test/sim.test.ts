@@ -42,12 +42,11 @@ describe('beach simulation', () => {
     expect(b.items.has(1)).toBe(false);
   });
 
-  it('banks food once the bottle cap is full and says so', () => {
-    const b = flatBeach([foodAt(1, 5 * T, meterGoal(1) + meterGoal(2) + 3)]);
+  it('stops growing once its shell is full, wasting what it eats, and says so', () => {
+    const b = flatBeach([foodAt(1, 5 * T, meterGoal(1) + 3)]);
     const events = step(b, {}, 0.5);
-    expect(b.crab.growth.size).toBe(2);
-    expect(b.crab.growth.bank).toBe(3);
-    expect(events.some((e) => e.type === 'ate' && e.banked > 0)).toBe(true);
+    expect(b.crab.growth).toEqual({ size: 2, meter: 0 });
+    expect(events.some((e) => e.type === 'ate' && e.wasted === 3)).toBe(true);
     expect(b.capped).toBe(true);
   });
 
@@ -228,7 +227,7 @@ describe('beach simulation', () => {
   it('jumps higher as it grows', () => {
     const peakOf = (size: number): number => {
       const b = flatBeach();
-      b.crab = { ...b.crab, growth: { size, meter: 0, bank: 0 } };
+      b.crab = { ...b.crab, growth: { size, meter: 0 } };
       step(b, {}, 1);
       const ground = b.crab.body.y;
       step(b, { jump: true });
@@ -269,7 +268,7 @@ describe('beach simulation', () => {
     expect(events.some((e) => e.type === 'revealed' && e.id === 1)).toBe(true);
   });
 
-  it('swaps into a bigger shell: exposed for a second, then the banked growth bursts', () => {
+  it('swaps into a bigger shell: exposed for a second, then room to grow, but no bigger yet', () => {
     const conchless = makeItem(2, { type: 'shell', shell: shellOf('topshell', 3) }, 5 * T, 10 * T - 20, false);
     const b = flatBeach([foodAt(1, 5 * T, meterGoal(1) + meterGoal(2) + meterGoal(3) + 1), conchless]);
     step(b, {}, 0.5);
@@ -286,9 +285,9 @@ describe('beach simulation', () => {
     expect(done.some((e) => e.type === 'swapDone')).toBe(true);
     expect(b.exposed).toBe(false);
     expect(b.crab.shell).toEqual(shellOf('topshell', 3));
-    // Only the next size up: the rest stays banked.
-    expect(b.crab.growth.size).toBe(3);
-    expect(b.crab.growth.bank).toBeGreaterThan(0);
+    // What it ate in the full periwinkle is gone: it grows on by eating again.
+    expect(b.crab.growth).toEqual({ size: 2, meter: 0 });
+    expect(b.capped).toBe(false);
     // The old periwinkle is left behind as a loose shell.
     expect([...b.items.values()].some((i) => i.kind.type === 'shell' && i.kind.shell.kind === 'periwinkle')).toBe(true);
   });
@@ -391,7 +390,8 @@ describe('beach simulation', () => {
 
     it('eats a smaller one it touches and grows from it', () => {
       const b = flatBeach();
-      b.crab = { ...b.crab, growth: { size: 2, meter: 0, bank: 0 } };
+      // Size 2 in a size-3 shell: room to grow.
+      b.crab = { ...b.crab, shell: shellOf('topshell', 3), growth: { size: 2, meter: 0 } };
       step(b, {}, 1);
       ahead(b, 1);
       const events = step(b, { moveX: 1 }, 0.5);
@@ -402,14 +402,14 @@ describe('beach simulation', () => {
 
     it('is caught by a bigger one: loses a life but keeps its size and shell, then is safe for a moment', () => {
       const b = flatBeach();
-      b.crab = { ...b.crab, growth: { size: 2, meter: 1, bank: 0 } };
+      b.crab = { ...b.crab, growth: { size: 2, meter: 1 } };
       step(b, {}, 1);
       ahead(b, 4);
       const events = step(b, {}, 1);
       expect(events.some((e) => e.type === 'caught')).toBe(true);
       expect(b.lives).toBe(2);
       expect(b.crab.shell).toEqual(shellOf('periwinkle', 2));
-      expect(b.crab.growth).toEqual({ size: 2, meter: 1, bank: 0 });
+      expect(b.crab.growth).toEqual({ size: 2, meter: 1 });
       expect([...b.items.values()].some((i) => i.kind.type === 'shell')).toBe(false);
       expect(b.crab.safe).toBeGreaterThan(0);
       // Still touching it, but safe: no second catch.
@@ -485,12 +485,12 @@ describe('beach simulation', () => {
       for (let x = 0; x < 40; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
       return new Beach({
         terrain, items: [], start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0,
-        goal, lives, startGrowth: { size: 1, meter: 4, bank: 0 },
+        goal, lives, startGrowth: { size: 1, meter: 4 },
       });
     };
 
     it('starts from the level\'s growth', () => {
-      expect(levelBeach(2).crab.growth).toEqual({ size: 1, meter: 4, bank: 0 });
+      expect(levelBeach(2).crab.growth).toEqual({ size: 1, meter: 4 });
     });
 
     it('is won on reaching the goal size, and then stops', () => {

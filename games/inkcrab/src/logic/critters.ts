@@ -3,6 +3,7 @@ import { sightInFog } from './fog';
 import { centre } from './items';
 import type { Rng } from './rng';
 import { shellPx, type Shell } from './shells';
+import type { Swap } from './swap';
 import { movementOf, SPECIES, type SpeciesId } from './species';
 import { isSolid, surfaceRow, tileAt, TILE, type Terrain } from './terrain';
 
@@ -43,12 +44,18 @@ export interface Critter extends Body {
   readonly tucked?: boolean;
   /** World x a rival lives about, and wanders back to (see rivals.ts). */
   readonly home?: number;
+  /** A rival moving house: out of its shell and over to the loose one it's moving into (see rivals.ts). */
+  readonly swap?: Swap | null;
   /** A rival in line behind the player, after its shell (see vacancy.ts). */
   readonly following?: boolean;
   /** A small hermit crab of a shell chain mission, that joins the player's line (see line.ts). */
   readonly recruit?: boolean;
   /** A recruit in the player's line. */
   readonly joined?: boolean;
+  /** A follower on the player's footsteps: px along them it is (unset while off them; see line.ts). */
+  readonly trail?: number;
+  /** Px along the player's footsteps a follower off them is making its way back to (see line.ts). */
+  readonly spur?: number;
   /** A follower's food points towards its next size (see line.ts). */
   readonly meter?: number;
   /** One of a mission's quarry: circled in red, to eat (see mission.ts). */

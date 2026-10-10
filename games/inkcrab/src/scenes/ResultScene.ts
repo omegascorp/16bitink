@@ -1,4 +1,4 @@
-import { parTimeOf } from '../level/missions';
+import { missionOf, parTimeOf } from '../level/missions';
 import Phaser from 'phaser';
 import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_SPAN } from '../art/critterArt';
 import { BOIL, INK, RED, RED_HEX } from '../art/palette';
@@ -91,7 +91,7 @@ export class ResultScene extends Phaser.Scene {
     this.confetti = new Confetti(this, 25);
 
     const number = LEVEL_ORDER.indexOf(def.id) + 1;
-    headline(this, L.title, data.won ? 'Grown up!' : 'Caught!', data.won ? undefined : RED, data.won ? undefined : LOSS_MARK);
+    headline(this, L.title, data.won ? (missionOf(def).chain ? 'Chain complete!' : 'Grown up!') : 'Caught!', data.won ? undefined : RED, data.won ? undefined : LOSS_MARK);
     this.add.text(L.title.x, L.title.y + L.title.size * 0.8, `Level ${number} · ${def.name}`, { fontFamily: HAND_FONT, fontSize: '30px', color: SOFT_INK }).setOrigin(0.5).setDepth(20);
 
     const home = data.shell ?? START_SHELL;

@@ -150,7 +150,8 @@ describe('digging food out of dune sand', () => {
 describe('antlions in play', () => {
   const inPit = (crabSize: number, antlionSize: number): Beach => {
     const b = dune({ pits: [[20, 4]], critters: [{ count: 1, sizes: [antlionSize, antlionSize], species: 'antlion' }] });
-    const shell = crabSize > 2 ? shellOf('conch', crabSize) : shellOf('periwinkle', 2);
+    // A shell a size roomier than the crab, so it has room to grow.
+    const shell = crabSize > 1 ? shellOf('conch', crabSize + 1) : shellOf('periwinkle', 2);
     const c = b.crab;
     // Sized as the sim sizes a crab: from its shell.
     const px = shellPx(shell.size);

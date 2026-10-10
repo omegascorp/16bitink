@@ -14,6 +14,7 @@ import { blotsFor, loadProgress, recordResult, saveProgress } from '../logic/sav
 import { Beach, type SimEvent } from '../logic/sim';
 import { missionOf, parTimeOf } from '../level/missions';
 import { missionTarget } from './game/missionPointer';
+import { movingInto } from '../logic/rivals';
 import { BackdropView } from './game/backdropView';
 import { BirdsView } from './game/birdsView';
 import { SandFxView } from './game/sandFxView';
@@ -175,9 +176,12 @@ export class GameScene extends Phaser.Scene {
     for (const e of events) this.react(e);
     this.coach.observe(this.beach, events);
     this.terrainView.flush();
-    this.itemsView.sync(this.beach.items, time, this.beach.crab.swap?.itemId ?? null);
+    // Shells being moved into are drawn by the crab's and the rivals' views.
+    const moving = movingInto(this.beach.critters.values());
+    if (this.beach.crab.swap) moving.add(this.beach.crab.swap.itemId);
+    this.itemsView.sync(this.beach.items, time, moving);
     this.crittersView.sync(this.beach.critters, this.beach.crab.growth.size, time);
-    this.rivalsView.sync(this.beach.critters, time);
+    this.rivalsView.sync(this.beach.critters, this.beach.items, [...this.beach.chains, ...this.beach.line], time);
     this.birdsView.sync(this.beach.birds, this.beach.crab.growth.size, time);
     this.sandFx.update(dt, time);
     this.waterView.update(this.cameras.main.worldView, time);
@@ -265,8 +269,9 @@ export class GameScene extends Phaser.Scene {
       if (e.poured) this.sandFx.poured(e.tiles);
     }
     else if (e.type === 'ate') {
-      this.floatText(e.x, e.y, e.banked > 0 ? `+${e.banked} banked` : `+${e.points}`);
-      if (e.banked > 0) this.crabView.stuck(this);
+      // Eaten in a full shell, it's wasted: time to move house.
+      this.floatText(e.x, e.y, e.wasted > 0 ? 'shell full!' : `+${e.points}`, e.wasted > 0 ? RED : BLUE);
+      if (e.wasted > 0) this.crabView.stuck(this);
     } else if (e.type === 'grew') this.crabView.pop(this);
     else if (e.type === 'caught') {
       this.floatText(e.x, e.y, e.lives > 0 ? 'caught! −1 life' : 'caught!', RED);
@@ -288,7 +293,7 @@ export class GameScene extends Phaser.Scene {
       this.cameras.main.shake(90, 0.002);
     } else if (e.type === 'won') {
       const c = this.beach.crab.body;
-      this.floatText(c.x + c.w / 2, c.y - 10, 'grown up!');
+      this.floatText(c.x + c.w / 2, c.y - 10, this.beach.mission.chain ? 'the chain is done!' : 'grown up!');
       this.finish(true);
     } else if (e.type === 'lost') this.finish(false);
   }

@@ -9,7 +9,7 @@ import { isLowWater, type TideSpec } from './tide';
 import { isWet, type Water } from './water';
 import { settleColumn } from './sandfall';
 import { digColumns, diggableOf, digTargets, inReach, placeTarget, tileSpan, type TilePos } from './dig';
-import { feed, initialGrowth, isCapped, settle, type Growth } from './growth';
+import { feed, initialGrowth, isCapped, type Growth } from './growth';
 import { buriedFood, centre, food, makeItem, overlaps, shell, type Item } from './items';
 import { createRng, type Rng } from './rng';
 import { inRoots, isLedge, isRoot, perchRow, type Roots } from './roots';
@@ -18,12 +18,13 @@ import { startSwap, tickSwap, type Swap } from './swap';
 import { blasts, throwSpeed, type Vent } from './vents';
 import { FOG, fogAt, type FogSpec } from './fog';
 import { KELP, underKelp, wrackColumn, type WrackSpec } from './kelp';
-import { canRap, inShell, isRival, makeRival, RIVAL, stepRival, type RivalSpec } from './rivals';
+import { canRap, inShell, isRival, makeRival, movingInto, RIVAL, stepRival, type RivalSpec } from './rivals';
 import { isPouring, RAIN, rainAt, type RainSpec } from './rain';
 import { underDeck, type Deck } from './decks';
 import { planChains, type ChainStep, type Leader } from './vacancy';
-import { PLAIN, tasksDone, type ChainStatus, type Mission, type MissionProgress } from './mission';
-import { chainStatus, joins, lineOf, planLine, stepFollower, type LineWorld } from './line';
+import { missionDone, PLAIN, type ChainStatus, type Mission, type MissionProgress } from './mission';
+import { chainDone, chainStatus, joins, lineOf, planLine, stepFollower, trailPlaces, type LineWorld } from './line';
+import { Trail } from './trail';
 import { dig, isDiggable, isSolid, place, surfaceRow, tileAt, TILE, type Terrain } from './terrain';
 
 export interface Input {
@@ -47,7 +48,7 @@ export interface Input {
 export const IDLE: Input = { moveX: 0, aimY: 0, jump: false, dig: false, place: false, interact: false, tapTile: null, hide: false };
 
 export type SimEvent =
-  | { readonly type: 'ate'; readonly id: number; readonly points: number; readonly banked: number; readonly x: number; readonly y: number }
+  | { readonly type: 'ate'; readonly id: number; readonly points: number; readonly wasted: number; readonly x: number; readonly y: number }
   | { readonly type: 'grew'; readonly size: number }
   /** Tiles that changed. `poured`: dune sand running, as from/to pairs. */
   | { readonly type: 'tiles'; readonly tiles: readonly TilePos[]; readonly dug: boolean; readonly poured?: boolean }
@@ -71,7 +72,7 @@ export type SimEvent =
   | { readonly type: 'quarry'; readonly x: number; readonly y: number; readonly giant: boolean }
   | { readonly type: 'won' }
   | { readonly type: 'lost' }
-  | { readonly type: 'swapDone'; readonly from: Shell | null; readonly to: Shell; readonly grew: number; readonly dropped: number | null };
+  | { readonly type: 'swapDone'; readonly from: Shell | null; readonly to: Shell; readonly dropped: number | null };
 
 export interface CrabState {
   readonly body: Body;
@@ -140,6 +141,8 @@ export interface BeachSetup {
   readonly mission?: Mission;
   /** Small hermit crabs for a shell chain mission to recruit (see line.ts). */
   readonly recruits?: readonly RivalSpec[];
+  /** A shell of each size the level offers, smallest first: if every one of a size the crab still needs is lost, another turns up (default none). */
+  readonly ladder?: readonly Shell[];
   /** A mission's quarry: creatures circled in red, placed about their column at the start. Never restocked. */
   readonly marked?: readonly MarkedSpec[];
 }
@@ -213,12 +216,14 @@ const PERCHED_FOOD = 0.45;
 export const LIVES = 3;
 /** Seconds the crab walks the other way before its line of followers swings round behind it. */
 const TRAIL_SWING = 0.6;
+/** Seconds between checks that every shell size the crab still needs is somewhere on the beach. */
+const SHELL_CHECK = 2;
 /** Columns either side of its spot a mission's quarry may start. */
 const MARKED_SPREAD = 4;
 
 /**
  * The test beach's rules, independent of Phaser: walking, eating, the
- * growth cap and bank, digging and placing sand, and moving house.
+ * growth cap, digging and placing sand, and moving house.
  * Scenes read the state and react to the events `step` returns.
  */
 export class Beach {
@@ -266,6 +271,10 @@ export class Beach {
   line: ReadonlyMap<number, ChainStep> = new Map();
   /** The shell the crab is at fits, but its line isn't ready for it to move up (a shell chain mission). */
   nearbyHeld = false;
+  /** The crab's footsteps, which a shell chain's line follows (null on any other level). */
+  readonly trail: Trail | null;
+  /** Where along the footsteps each follower keeps its place. */
+  private places: ReadonlyMap<number, number> = new Map();
   /** Shells handed down the line: left by the crab or a follower, for the next in line only. */
   private readonly handDowns = new Set<number>();
   /** The side the line of followers trails on: behind the crab, swinging round only once it's been going the other way a while. */
@@ -281,6 +290,8 @@ export class Beach {
   private foodTimer = 0;
   private shallowTimer = 0;
   private critterTimer = 0;
+  private shellTimer = 0;
+  private readonly ladder: readonly Shell[];
   private readonly groups: readonly CritterGroup[];
   /** Which group each ghost crab belongs to, so an eaten one is replaced in kind. */
   private readonly groupOf = new Map<number, number>();
@@ -303,6 +314,7 @@ export class Beach {
     this.groups = setup.critters ?? [];
     this.goal = setup.goal ?? null;
     this.mission = setup.mission ?? PLAIN;
+    this.ladder = setup.ladder ?? [];
     this.lives = setup.lives ?? LIVES;
     this.startLives = this.lives;
     this.pits = setup.pits ?? [];
@@ -339,6 +351,7 @@ export class Beach {
       this.critters.set(k.id, { ...k, recruit: true });
     }
     for (const spec of setup.marked ?? []) this.placeMarked(spec);
+    this.trail = this.mission.chain ? new Trail(setup.start.x, setup.start.y) : null;
     for (let tries = 0; this.shallow.size < this.shallowFood && tries < this.shallowFood * 8; tries++) this.plantShallow();
   }
 
@@ -446,6 +459,7 @@ export class Beach {
     this.restock(dt, events);
     this.restockShallow(dt, events);
     this.restockCritters(dt);
+    this.restockShells(dt, events);
     this.findNearbyShell();
     this.checkOutcome(events);
     return events;
@@ -675,7 +689,7 @@ export class Beach {
       this.crab = { ...this.crab, growth: r.growth };
       this.items.delete(item.id);
       const at = centre(item);
-      events.push({ type: 'ate', id: item.id, points: item.kind.points, banked: r.banked, x: at.x, y: at.y });
+      events.push({ type: 'ate', id: item.id, points: item.kind.points, wasted: r.wasted, x: at.x, y: at.y });
       if (r.grew) events.push({ type: 'grew', size: r.growth.size });
     }
   }
@@ -705,19 +719,18 @@ export class Beach {
       // On a shell chain, it goes to the first in line.
       if (this.mission.chain) this.handDowns.add(dropped);
     }
-    const burst = settle(c.growth, to.size);
-    const moved = this.intoNewShell(body, c, to, burst.growth.size);
-    const fitted = this.refit(moved, burst.growth.size, to, events);
+    // It grows no bigger for moving: the room is there to eat its way into.
+    const moved = this.intoNewShell(body, c, to, c.growth.size);
+    const fitted = this.refit(moved, c.growth.size, to, events);
     // It crawled in through the mouth, so it now faces back towards the old shell.
     this.crab = {
       ...c, body: fitted.body, facing: moved === body ? c.facing : c.facing === 1 ? -1 : 1,
-      growth: burst.growth, shell: to, swap: null,
+      shell: to, swap: null,
     };
     // Sand it shoved aside is carried too, even past what the shell holds: it
     // digs nothing more until it unloads (see removeTiles).
     this.crab = { ...this.crab, sand: this.crab.sand + fitted.shoved };
-    events.push({ type: 'swapDone', from: c.shell, to, grew: burst.grew, dropped });
-    if (burst.grew) events.push({ type: 'grew', size: burst.growth.size });
+    events.push({ type: 'swapDone', from: c.shell, to, dropped });
   }
 
   /**
@@ -823,13 +836,42 @@ export class Beach {
     return id;
   }
 
+  /**
+   * Makes sure the crab can always climb all the way: for each shell size
+   * it still needs, some shell of that size is on the beach (loose, buried,
+   * on a rival it could rap, or still to come in on the tide). One lost to
+   * the tide's sand, or taken, turns up again on the sand away from the crab.
+   */
+  private restockShells(dt: number, events: SimEvent[]): void {
+    if (!this.ladder.length || (this.shellTimer += dt) < SHELL_CHECK) return;
+    this.shellTimer = 0;
+    const have = new Set<number>();
+    for (const i of this.items.values()) if (i.kind.type === 'shell') have.add(i.kind.shell.size);
+    for (const k of this.critters.values()) if (k.shell && isRival(k) && !k.joined) have.add(k.shell.size);
+    // A shell the tide has yet to bring in is on its way.
+    for (const size of this.shore?.comingSizes ?? []) have.add(size);
+    const from = (this.crab.shell?.size ?? 0) + 1;
+    const lost = this.ladder.find((s) => s.size >= from && !have.has(s.size));
+    if (!lost) return;
+    const T = this.tileSize;
+    const crab = Math.floor(centre(this.crab.body).x / T);
+    for (let tries = 0; tries < 20; tries++) {
+      const col = 3 + Math.floor(this.rng() * (this.terrain.width - 6));
+      const row = surfaceRow(this.terrain, col);
+      if (Math.abs(col - crab) < SPAWN_AWAY || tileAt(this.terrain, col, row) === TILE.wood) continue;
+      if (this.water && isWet(this.water, col, row - 1)) continue;
+      this.dropItem(shell(lost), col, events);
+      return;
+    }
+  }
+
   /** Won on growing to the goal size; lost with the last life (see caught). */
   private checkOutcome(events: SimEvent[]): void {
     if (this.outcome !== 'playing') return;
     if (this.lives <= 0) {
       this.outcome = 'lost';
       events.push({ type: 'lost' });
-    } else if (this.goal !== null && this.crab.growth.size >= this.goal && tasksDone(this.mission, this.progress)) {
+    } else if (this.goal !== null && missionDone(this.mission, this.progress)) {
       this.outcome = 'won';
       events.push({ type: 'won' });
     }
@@ -848,6 +890,8 @@ export class Beach {
     // The one it has just left isn't: that goes straight to the first in line.
     const mine = new Set<number>();
     if (c.swap) mine.add(c.swap.itemId);
+    // Nor one a rival is already moving into.
+    for (const id of movingInto(this.critters.values())) mine.add(id);
     const near = this.nearbyShell;
     if (near && this.nearbyFits && near.kind.type === 'shell' && near.kind.shell.size > this.cap) mine.add(near.id);
     if (this.hasRivals) {
@@ -870,12 +914,12 @@ export class Beach {
         continue;
       }
       const plan = this.chains.get(k.id);
-      const { rival, took, left } = stepRival(this.terrain, k, rapper, this.items.values(), dt, this.tileSize, this.rng, env, mine, plan);
+      const { rival, took, left, from } = stepRival(this.terrain, k, rapper, this.items.values(), dt, this.tileSize, this.rng, env, mine, plan);
       // A follower makes wherever it is home, so it stays there when it drops out of line.
       const following = plan?.follow ?? false;
       this.critters.set(k.id, following ? { ...rival, following, home: centre(rival).x } : { ...rival, following });
       if (took) this.items.delete(took.id);
-      if (left) this.leaveShell(rival, left, events);
+      if (left) this.leaveShell(from ?? rival, left, events);
     }
     for (const k of this.critters.values()) if (stranded(this.terrain, k, this.tileSize)) this.fishDies(k);
   }
@@ -885,13 +929,21 @@ export class Beach {
     const c = this.crab;
     const crab = { box: c.body, size: c.growth.size };
     for (const k of this.critters.values()) {
-      if (!joins(k, crab, this.tileSize)) continue;
-      this.critters.set(k.id, { ...k, joined: true, tucked: false });
+      if (!joins(k, crab, this.terrain, this.tileSize)) continue;
+      // It makes for where the crab is now, then follows its footsteps from there.
+      this.critters.set(k.id, { ...k, joined: true, tucked: false, spur: this.trail?.end });
       const at = centre(k);
       events.push({ type: 'joined', x: at.x, y: k.y, line: lineOf(this.critters.values()).length });
     }
     for (const id of this.handDowns) if (!this.items.has(id)) this.handDowns.delete(id);
-    return planLine(lineOf(this.critters.values()), leader, this.items.values(), this.handDowns);
+    const line = lineOf(this.critters.values());
+    const trail = this.trail!;
+    trail.add(c.body.x + c.body.w / 2, c.body.y + c.body.h);
+    this.places = trailPlaces(line, c.body.w, trail);
+    // The path behind the last follower on it is no longer needed.
+    const onIt = line.flatMap((k) => (k.trail === undefined ? [] : [k.trail]));
+    if (onIt.length === line.length && line.length) trail.forget(Math.min(...onIt));
+    return planLine(line, leader, this.items.values(), this.handDowns);
   }
 
   private lineWorld(env: Surroundings): LineWorld {
@@ -899,19 +951,20 @@ export class Beach {
     return {
       terrain: this.terrain, crab: { box: c.body, size: c.growth.size }, items: [...this.items.values()],
       hunters: [...this.critters.values()].filter((k) => !isRival(k)), tile: this.tileSize, rng: this.rng, env,
+      trail: this.trail ?? new Trail(centre(c.body).x, c.body.y + c.body.h),
     };
   }
 
   /** A follower's step: it eats what it reaches, and a shell it moves up out of is handed on down the line. */
   private stepFollower(k: Critter, plan: ChainStep, world: LineWorld, dt: number, events: SimEvent[]): void {
-    const { rival, took, left, ate } = stepFollower(k, plan, world, dt);
+    const { rival, took, left, from, ate } = stepFollower(k, plan, world, this.places.get(k.id) ?? world.trail.end, dt);
     this.critters.set(k.id, { ...rival, following: true, home: centre(rival).x });
     if (ate) this.items.delete(ate.id);
     if (took) {
       this.items.delete(took.id);
       this.handDowns.delete(took.id);
     }
-    if (left) this.handDowns.add(this.leaveShell(rival, left, events));
+    if (left) this.handDowns.add(this.leaveShell(from ?? rival, left, events));
   }
 
   /** How the crab's line stands for its next move up, on a shell chain; null on any other level. */
@@ -922,7 +975,10 @@ export class Beach {
 
   /** How the level's tasks stand. */
   get progress(): MissionProgress {
-    return { grown: this.goal !== null && this.crab.growth.size >= this.goal, bottles: this.bottles, marked: this.markedEaten, giant: this.giantEaten };
+    const goal = this.goal;
+    const atTop = goal !== null && (this.crab.shell?.size ?? 0) >= goal && !this.crab.swap;
+    const chained = goal !== null && this.mission.chain > 0 && atTop && chainDone(lineOf(this.critters.values()), this.crab.shell, goal);
+    return { grown: goal !== null && this.crab.growth.size >= goal, atTop, chained, bottles: this.bottles, marked: this.markedEaten, giant: this.giantEaten };
   }
 
   /** One of the mission's quarry, somewhere about its column (as a creature of its kind would be placed), circled in red. */
@@ -948,7 +1004,7 @@ export class Beach {
     const at = centre(k);
     this.items.set(id, { ...proto, ...this.clearSpot(at.x - proto.w / 2, k.y + k.h - proto.h, proto.w, proto.h) });
     const away: 1 | -1 = at.x >= centre(this.crab.body).x ? 1 : -1;
-    this.critters.set(k.id, { ...inShell(k, null), tucked: false, dir: away, turnIn: RIVAL.fleeFor, bored: RIVAL.fleeFor });
+    this.critters.set(k.id, { ...inShell(k, null), tucked: false, swap: null, dir: away, turnIn: RIVAL.fleeFor, bored: RIVAL.fleeFor });
     events.push({ type: 'rapped', x: at.x, y: k.y, item: id });
   }
 
@@ -965,7 +1021,7 @@ export class Beach {
   }
 
   /** A rival trading up leaves its old shell on the sand where it stands, for the next in line. */
-  private leaveShell(k: Critter, left: Shell, events: SimEvent[]): number {
+  private leaveShell(k: Box, left: Shell, events: SimEvent[]): number {
     const id = this.nextId++;
     const proto = makeItem(id, shell(left), 0, 0, false);
     const at = centre(k);
@@ -1102,7 +1158,7 @@ export class Beach {
     this.crab = { ...this.crab, growth: r.growth };
     this.critters.delete(k.id);
     const at = centre(k);
-    events.push({ type: 'ate', id: k.id, points, banked: r.banked, x: at.x, y: at.y });
+    events.push({ type: 'ate', id: k.id, points, wasted: r.wasted, x: at.x, y: at.y });
     if (r.grew) events.push({ type: 'grew', size: r.growth.size });
     if (!k.marked) return;
     if (k.marked === 'giant') this.giantEaten = true;
@@ -1246,8 +1302,10 @@ export class Beach {
     let best: Item | null = null;
     let bestFits = false;
     if (!c.swap) {
+      // A shell a rival is moving into is taken.
+      const theirs = this.hasRivals ? movingInto(this.critters.values()) : new Set<number>();
       for (const item of this.items.values()) {
-        if (item.buried || item.kind.type !== 'shell' || !overlaps(c.body, item, REACH_PAD)) continue;
+        if (item.buried || item.kind.type !== 'shell' || theirs.has(item.id) || !overlaps(c.body, item, REACH_PAD)) continue;
         const fits = canWear(item.kind.shell, c.growth.size);
         const better = !best || (fits && !bestFits)
           || (fits === bestFits && best.kind.type === 'shell' && item.kind.shell.size > best.kind.shell.size);

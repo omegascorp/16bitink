@@ -203,6 +203,6 @@ describe('stranded fish', () => {
     b.crab = { ...c, body: { ...c.body, x: 10 * T + (T - c.body.w) / 2, y: (row - 2) * T, vy: 0 } };
     run(b, {}, 1);
     expect(b.items.has(meal.id)).toBe(false);
-    expect(b.crab.growth.meter + b.crab.growth.bank).toBeGreaterThan(0);
+    expect(b.crab.growth.meter).toBeGreaterThan(0);
   });
 });

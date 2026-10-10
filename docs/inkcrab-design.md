@@ -31,12 +31,13 @@ Crabs walk sideways, which reads naturally in side view.
 You grow until your shell is full, then you must find a bigger one and risk a swap to keep growing.
 
 1. **Forage.** Eat food on the surface, dig up buried food, eat smaller creatures. A growth meter fills.
-2. **Hit the cap.** Each shell has a maximum body size. When the meter is full, you stop growing. There is no penalty; you just can't progress until you upgrade.
-3. **Bank growth.** Food eaten while capped goes into a reserve instead of being wasted.
-4. **Find a bigger shell.** Dig one up, grab one the tide washed in, steal one from a crab, or catch one from a vacancy chain.
-5. **Swap.** About one second where you're out of your shell and defenseless. You choose the moment: behind cover, inside a sand wall, in a burrow, or in the open.
-6. **Grow burst.** The banked reserve converts at once. A big reserve can skip a size, so it pays to bank for a rare large shell.
-7. Repeat at the new size, against bigger predators and rarer shells.
+2. **Hit the cap.** Each shell has a maximum body size. Once you've grown to fill it, you stop growing: food you eat then is wasted ("shell full!"). There is no other penalty; you just can't progress until you upgrade.
+3. **Find a bigger shell.** Dig one up, grab one the tide washed in, steal one from a crab, or catch one from a vacancy chain.
+4. **Swap.** About one second where you're out of your shell and defenseless. You choose the moment: behind cover, inside a sand wall, in a burrow, or in the open.
+5. **Grow into it.** Moving in doesn't make you bigger: the new shell gives you room, and you eat your way into it. So even the biggest shell on a level leaves a size still to grow before you win.
+6. Repeat at the new size, against bigger predators and rarer shells.
+
+(Until 2026-10-11 food eaten while capped was banked and burst into growth on moving house; the user asked for growth to stop at a full shell, as first designed.)
 
 The cap must be obvious at a glance: full meter, crab visibly filling the shell opening, a small "stuck" animation when it eats while capped.
 
@@ -182,13 +183,13 @@ These were considered and cut because they compete with the shell loop or blow u
 | Large scrolling world | Cut | Single-screen levels keep it an arcade game |
 | Multiplayer / .io | Not planned | Side view doesn't suit it |
 | Shell throwing | Later, maybe | Adds combat complexity before the core is proven |
-| Cramped-shell penalties | Replaced | By the growth cap and banked growth |
+| Cramped-shell penalties | Replaced | By the growth cap |
 
 ## Build order and risks
 
 Prototype the systems in one goal-less test beach first; if messing around isn't fun, missions won't fix it.
 
-1. Movement, eating, growth cap, banked growth, shell swap with the defenseless moment. Plus the hatched-sand rendering.
+1. Movement, eating, growth cap, shell swap with the defenseless moment. Plus the hatched-sand rendering.
 2. Digging and placing sand on a tile grid; buried shells and food.
 3. Tide cycle: water fill, washed-up shells, sand erosion.
 4. Predators with warnings, soft failure, burrow respawn.
@@ -199,7 +200,7 @@ Prototype the systems in one goal-less test beach first; if messing around isn't
 
 | Risk | Mitigation |
 | --- | --- |
-| Growth cap or banked growth unclear to players | Test the cap visuals in step 1 with people who haven't heard the design |
+| Growth cap unclear to players | Test the cap visuals in step 1 with people who haven't heard the design |
 | Hand-drawn style can't render diggable terrain | Solve procedural hatching in step 1, before any asset work |
 | No deadline makes it aimless | Tide-delivered opportunities and level goals; watch for players idling at the cap |
 | Too many systems for one game | Cut anything that playtesters ignore; shells stay central |

@@ -3,7 +3,9 @@ import { buildLevel, levelGoal } from '../src/level/build';
 import { carve } from '../src/level/carve';
 import { BEACHES, LEVELS } from '../src/level/levels';
 import { missionKinds, missionOf, parTimeOf, quarrySpecies } from '../src/level/missions';
+import { boxHitsSolid } from '../src/logic/body';
 import { makeCritter } from '../src/logic/critters';
+import { setTile, TILE } from '../src/logic/terrain';
 import { BOTTLE, centre, food, makeItem, shell, type Item } from '../src/logic/items';
 import { fed, LINE, lineOf } from '../src/logic/line';
 import { missionGoal, missionLine, missionTag, PLAIN, tasksDone, type Mission } from '../src/logic/mission';
@@ -28,7 +30,7 @@ const CHAIN: Mission = { ...PLAIN, kinds: ['chain'], chain: 3 };
 function beach(over: Partial<BeachSetup> = {}): Beach {
   return new Beach({
     terrain: flat(), items: [], start: { x: 10 * T, y: GROUND * T }, tileSize: T, startShell: shellOf('periwinkle', 2), seed: 1, surfaceFood: 0,
-    startGrowth: { size: 2, meter: 0, bank: 0 }, goal: 5, ...over,
+    startGrowth: { size: 2, meter: 0 }, goal: 5, ...over,
   });
 }
 
@@ -64,7 +66,7 @@ describe('the mission arc', () => {
     for (const def of LEVELS) {
       const m = missionOf(def);
       expect(missionTag(m).length, def.id).toBeGreaterThan(0);
-      expect(missionGoal(m, levelGoal(def)), def.id).toContain(`size ${levelGoal(def)}`);
+      expect(missionGoal(m, levelGoal(def)), def.id).toMatch(new RegExp(`size[- ]${levelGoal(def)}`));
       expect(parTimeOf(def)).toBeGreaterThanOrEqual(def.parTime);
     }
   });
@@ -115,7 +117,7 @@ describe('ink bottles', () => {
 
   it('are picked up by walking over them, and the level is won only with all of them and grown', () => {
     const m: Mission = { ...PLAIN, kinds: ['collect'], bottles: 2 };
-    const b = beach({ mission: m, items: [bottle(1, 12), bottle(2, 40)], startGrowth: { size: 5, meter: 0, bank: 0 } });
+    const b = beach({ mission: m, items: [bottle(1, 12), bottle(2, 40)], startGrowth: { size: 5, meter: 0 } });
     const first = run(b, 1, { moveX: 1 });
     expect(first.filter((e) => e.type === 'collected')).toHaveLength(1);
     expect(b.outcome).toBe('playing');
@@ -135,7 +137,7 @@ describe('ink bottles', () => {
 describe('marked hunters and the giant', () => {
   it('count when eaten, and the level waits for them', () => {
     const m: Mission = { ...PLAIN, kinds: ['bounty'], marked: { species: 'ghostcrab', size: 2, count: 1 } };
-    const b = beach({ mission: m, startGrowth: { size: 5, meter: 0, bank: 0 } });
+    const b = beach({ mission: m, startGrowth: { size: 5, meter: 0 } });
     run(b, 0.2);
     expect(b.outcome).toBe('playing');
     const k = makeCritter(900, 2, 12 * T, GROUND * T, -1, 10, 'ghostcrab');
@@ -223,7 +225,7 @@ describe('a shell chain', () => {
   });
 
   it('needs one more crab for each move up, each grown into its shell', () => {
-    const b = beach({ mission: CHAIN, startShell: shellOf('snail', 3), startGrowth: { size: 3, meter: 0, bank: 0 }, recruits: [['periwinkle', 2, 13, 1], recruit(14)] });
+    const b = beach({ mission: CHAIN, startShell: shellOf('snail', 3), startGrowth: { size: 3, meter: 0 }, recruits: [['periwinkle', 2, 13, 1], recruit(14)] });
     run(b, 1);
     expect(followers(b)).toHaveLength(2);
     // The first is still a size short of its periwinkle.
@@ -241,15 +243,20 @@ describe('a shell chain', () => {
     expect(fed(once, LINE.meal * 3).size).toBe(2);
   });
 
-  it('sends a hungry follower for food nearby, and it eats it', () => {
-    const crumb = (id: number, col: number): Item => {
-      const proto = makeItem(id, food('hopper'), 0, 0, false);
-      return { ...proto, x: col * T, y: GROUND * T - proto.h };
-    };
-    const b = beach({ mission: CHAIN, recruits: [['periwinkle', 2, 12, 1]], items: [crumb(60, 7)] });
-    run(b, 6);
+  it('feeds a hungry follower on food it passes on the crab\'s path', () => {
+    const b = beach({ mission: CHAIN, recruits: [['periwinkle', 2, 8, 1]] });
+    run(b, 1);
+    run(b, 2, { moveX: 1 });
+    // Food turns up on the path between the crab and its follower.
+    const k = followers(b)[0]!;
+    const proto = makeItem(60, food('hopper'), 0, 0, false);
+    const x = (centre(k).x + centre(b.crab.body).x) / 2;
+    b.items.set(60, { ...proto, x: x - proto.w / 2, y: GROUND * T - proto.h });
+    const before = followers(b)[0]!.meter ?? 0;
+    run(b, 2, { moveX: 1 });
     expect(b.items.has(60)).toBe(false);
-    expect((followers(b)[0]!.meter ?? 0) + (followers(b)[0]!.size - 1) * LINE.meal).toBeGreaterThan(1);
+    const after = followers(b)[0]!;
+    expect((after.size - 1) * LINE.meal + (after.meter ?? 0)).toBeGreaterThan(before + 1.5);
   });
 
   it('pulls a follower into its shell while a bigger hunter is close, and nothing catches it', () => {
@@ -262,6 +269,113 @@ describe('a shell chain', () => {
     expect(followers(b)[0]!.tucked).toBe(true);
     run(b, 3);
     expect(followers(b)).toHaveLength(1);
+  });
+
+  it('is won only once the last crab in the line is in its new shell, and the crab has grown to fill the biggest', () => {
+    const chainOf2 = (): Beach => beach({
+      mission: { ...PLAIN, kinds: ['chain'], chain: 2 }, goal: 4, startShell: shellOf('snail', 3), startGrowth: { size: 3, meter: 0 },
+      recruits: [['periwinkle', 2, 13, 2], recruit(14)], items: [loose(50, 'nerite', 4, 10)],
+    });
+    // Grown the moment it's in: still the line to go.
+    const quick = chainOf2();
+    run(quick, 1);
+    expect(quick.chain?.wait).toBeNull();
+    moveIn(quick);
+    run(quick, 1.1);
+    expect(quick.crab.shell).toEqual(shellOf('nerite', 4));
+    // Moving in grows it no bigger.
+    expect(quick.crab.growth.size).toBe(3);
+    quick.crab = { ...quick.crab, growth: { size: 4, meter: 0 } };
+    const out: SimEvent[] = [];
+    for (let i = 0; i < 60 * 8 && quick.outcome === 'playing'; i++) {
+      out.push(...quick.step(IDLE, 1 / 60));
+      if (quick.outcome === 'playing') expect(quick.progress.chained).toBe(false);
+    }
+    expect(quick.outcome).toBe('won');
+    expect(out.filter((e) => e.type === 'traded')).toHaveLength(2);
+    expect(followers(quick).map((k) => k.shell?.size)).toEqual([3, 2]);
+    // The line done first: still a size to grow.
+    const slow = chainOf2();
+    run(slow, 1);
+    moveIn(slow);
+    run(slow, 8);
+    expect(slow.progress.chained).toBe(true);
+    expect(slow.outcome).toBe('playing');
+    expect(missionLine(slow.mission, slow.progress, slow.chain)).toContain('now grow');
+  });
+
+  it('follows the crab\'s footsteps down a drop no walker would go down', () => {
+    const terrain = carve({ width: W, height: 24, seed: 1, profile: [[0, 6], [30, 6], [31, 14], [W - 1, 14]] });
+    const b = beach({ terrain, start: { x: 10 * T, y: 6 * T }, mission: CHAIN, recruits: [recruit(13)] });
+    run(b, 1);
+    expect(followers(b)).toHaveLength(1);
+    run(b, 5, { moveX: 1 });
+    run(b, 4);
+    const k = followers(b)[0]!;
+    // Down at the foot of the drop with the crab, not left on top.
+    expect(k.y + k.h).toBeGreaterThan(12 * T);
+    expect(Math.abs(centre(k).x - centre(b.crab.body).x)).toBeLessThan(3 * T);
+  });
+
+  it('hides only from a roaming hunter right by it, not one a few tiles off, a timid creature or an antlion in its pit', () => {
+    const near = (species: 'ghostcrab' | 'darkling' | 'antlion', tiles: number): boolean => {
+      const b = beach({ mission: CHAIN, recruits: [recruit(13)] });
+      run(b, 1);
+      const k = followers(b)[0]!;
+      const other = makeCritter(900, 6, centre(k).x + tiles * T, GROUND * T, -1, 10, species);
+      b.critters.set(900, { ...other, bored: 30 });
+      run(b, 0.2);
+      return followers(b)[0]!.tucked ?? false;
+    };
+    expect(near('ghostcrab', 1.5)).toBe(true);
+    expect(near('ghostcrab', 4)).toBe(false);
+    expect(near('darkling', 1.5)).toBe(false);
+    expect(near('antlion', 1.5)).toBe(false);
+  });
+
+  it('hides only from a hunter it can see: not through a wall of sand', () => {
+    const b = beach({ mission: CHAIN, recruits: [recruit(13)] });
+    run(b, 1);
+    const k = followers(b)[0]!;
+    const col = Math.floor(centre(k).x / T);
+    for (let y = GROUND - 4; y < GROUND; y++) setTile(b.terrain, col - 2, y, TILE.sand);
+    const hunter = makeCritter(900, 6, (col - 3) * T, GROUND * T, -1, 10, 'ghostcrab');
+    b.critters.set(900, { ...hunter, bored: 30 });
+    run(b, 0.2);
+    expect(followers(b)[0]!.tucked).toBe(false);
+  });
+
+  it('steps up over a little sand that has poured onto the crab\'s footsteps', () => {
+    const b = beach({ mission: CHAIN, recruits: [recruit(8)] });
+    run(b, 1);
+    run(b, 3, { moveX: 1 });
+    run(b, 1);
+    const k = followers(b)[0]!;
+    const crabX = centre(b.crab.body).x;
+    setTile(b.terrain, Math.floor((centre(k).x + crabX) / 2 / T), GROUND - 1, TILE.sand);
+    const before = centre(k).x;
+    run(b, 3, { moveX: 1 });
+    expect(centre(followers(b)[0]!).x - before).toBeGreaterThan(4 * T);
+  });
+
+  it('waits behind sand put across the crab\'s footsteps, and goes on once it\'s dug away', () => {
+    const b = beach({ mission: CHAIN, recruits: [recruit(8)] });
+    run(b, 1);
+    run(b, 3, { moveX: 1 });
+    run(b, 2);
+    const k = followers(b)[0]!;
+    const crabX = centre(b.crab.body).x;
+    // A wall across the way between them, too late for the follower to have passed.
+    const wall = Math.floor((centre(k).x + crabX) / 2 / T);
+    for (let y = GROUND - 3; y < GROUND; y++) setTile(b.terrain, wall, y, TILE.sand);
+    b.crab = { ...b.crab, body: { ...b.crab.body, x: b.crab.body.x + 8 * T } };
+    run(b, 0.2);
+    const before = centre(followers(b)[0]!).x;
+    run(b, 2);
+    expect(Math.abs(centre(followers(b)[0]!).x - before)).toBeLessThan(T);
+    for (let y = GROUND - 3; y < GROUND; y++) setTile(b.terrain, wall, y, TILE.air);
+    run(b, 3);
+    expect(Math.abs(centre(followers(b)[0]!).x - before)).toBeGreaterThan(2 * T);
   });
 
   it('shows on the HUD how the line stands', () => {
@@ -282,3 +396,29 @@ describe('a shell chain', () => {
     expect(recruits[0]![2]).toBeLessThan(snail);
   });
 });
+
+describe('shells of every size', () => {
+  it('turn up again, away from the crab, if every one of a size it still needs is lost', () => {
+    const b = beach({ startGrowth: { size: 1, meter: 0 }, ladder: [shellOf('snail', 3), shellOf('nerite', 4)], items: [loose(50, 'snail', 3, 40)] });
+    run(b, 5);
+    const sizes = [...b.items.values()].flatMap((i) => (i.kind.type === 'shell' ? [i.kind.shell.size] : [])).sort();
+    expect(sizes).toEqual([3, 4]);
+    const nerite = [...b.items.values()].find((i) => i.kind.type === 'shell' && i.kind.shell.size === 4)!;
+    expect(Math.abs(centre(nerite).x - centre(b.crab.body).x)).toBeGreaterThan(10 * T);
+  });
+
+  it('wait for a shell the tide has still to bring in', () => {
+    const terrain = carve({ width: W, height: 30, seed: 1, profile: [[0, 10], [W - 1, 18]] });
+    const b = beach({ terrain, start: { x: 6 * T, y: 10 * T }, tide: { low: 22, high: 12, period: 40 }, tideBrings: { food: 0, shells: [['nerite', 4, 40]] }, ladder: [shellOf('nerite', 4)] });
+    run(b, 6);
+    expect([...b.items.values()].some((i) => i.kind.type === 'shell')).toBe(false);
+  });
+
+  it('never start sunk into the sand, on any level', () => {
+    for (const def of LEVELS) {
+      const setup = buildLevel(def);
+      for (const i of setup.items) if (i.kind.type === 'shell' && !i.buried) expect(boxHitsSolid(setup.terrain, i, T), `${def.id} ${i.kind.shell.kind}`).toBe(false);
+    }
+  });
+});
+

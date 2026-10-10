@@ -1,4 +1,5 @@
-import { moveBody, type Box } from './body';
+import { boxHitsSolid, moveBody, type Box } from './body';
+import { startSwap, tickSwap } from './swap';
 import { makeCritter, stepCritter, type Critter, type Surroundings } from './critters';
 import type { Rng } from './rng';
 import { centre, overlaps, type Item } from './items';
@@ -36,6 +37,8 @@ export const RIVAL = {
   giveUp: 3,
   /** Tiles a rival with nothing to do wanders from its home spot before it turns back, so neighbours stay neighbours. */
   roam: 3,
+  /** Seconds a rival takes to move house: out of its shell, across to the new one, and in. */
+  swap: 1.2,
 } as const;
 
 export const isRival = (k: Critter): boolean => k.species === 'hermit';
@@ -88,11 +91,39 @@ export function shellFor(k: Critter, items: Iterable<Item>, tile: number, skip: 
 /** Px from its spot a rival waiting in line counts as there. */
 const IN_PLACE = 2;
 
-/** What happened to a rival this step: `took` a loose shell it moved into, `left` the shell it moved out of (to drop where it stands). */
+/** What happened to a rival this step: `took` a loose shell it moved into, `left` the shell it moved out of, which lies where it stood (`from`). */
 export interface RivalStep {
   readonly rival: Critter;
   readonly took: Item | null;
   readonly left: Shell | null;
+  readonly from?: Box;
+}
+
+/** Loose shells rivals are moving into now: nobody else goes for them. */
+export function movingInto(critters: Iterable<Critter>): Set<number> {
+  const ids = new Set<number>();
+  for (const k of critters) if (k.swap) ids.add(k.swap.itemId);
+  return ids;
+}
+
+/**
+ * Moving house, as the player does but out in the open: it backs out of
+ * its shell, scuttles across to the new one and backs in, standing still
+ * all the while. Once in, it stands where the new shell lay, and its old
+ * shell lies where it stood. If the shell is gone (taken from under it), it
+ * stays as it was.
+ */
+function movingHouse(t: Terrain, k: Critter, items: Iterable<Item>, dt: number, tile: number): RivalStep {
+  const still = { ...k, ...moveBody(t, k, 0, 0, dt, tile), tucked: false };
+  let target: Item | null = null;
+  for (const i of items) if (i.id === k.swap!.itemId) target = i;
+  if (!target || target.kind.type !== 'shell') return { rival: { ...still, swap: null }, took: null, left: null };
+  const r = tickSwap(k.swap!, dt, RIVAL.swap);
+  if (!r.done) return { rival: { ...still, swap: r.swap }, took: null, left: null };
+  const at = centre(target);
+  const there = inShell({ ...still, x: at.x - still.w / 2, y: target.y + target.h - still.h, swap: null }, target.kind.shell);
+  const into = boxHitsSolid(t, there, tile) ? inShell({ ...still, swap: null }, target.kind.shell) : there;
+  return { rival: into, took: target, left: k.shell ?? null, from: k };
 }
 
 /**
@@ -107,6 +138,7 @@ export function stepRival(
   t: Terrain, k: Critter, crab: Rapper, items: Iterable<Item>, dt: number, tile: number, rng: Rng, env: Surroundings, skip: ReadonlySet<number>,
   chain?: ChainStep,
 ): RivalStep {
+  if (k.swap) return movingHouse(t, k, items, dt, tile);
   if (chain) return chainStep(t, k, chain, dt, tile, rng, env);
   if (tucks(k, crab, tile)) return { rival: { ...k, ...moveBody(t, k, 0, 0, dt, tile), tucked: true }, took: null, left: null };
   // Just rapped, it runs before it looks for another shell (`bored` counts down in stepCritter).
@@ -115,7 +147,7 @@ export function stepRival(
   const moved = walkTo(t, k, centre(target).x, dt, tile, rng, env);
   if (!moved) return { rival: { ...k, tucked: false, bored: RIVAL.giveUp }, took: null, left: null };
   if (!overlaps(moved, target) || target.kind.type !== 'shell') return { rival: { ...moved, tucked: false }, took: null, left: null };
-  return { rival: { ...inShell(moved, target.kind.shell), tucked: false }, took: target, left: null };
+  return { rival: { ...moved, tucked: false, swap: startSwap(target.id) }, took: null, left: null };
 }
 
 /** A rival in a vacancy chain: off to trade up into the empty shell, or to wait its turn in line. */
@@ -129,7 +161,7 @@ function chainStep(t: Terrain, k: Critter, chain: ChainStep, dt: number, tile: n
   if (!moved) return { rival: { ...k, tucked: false, bored: RIVAL.giveUp }, took: null, left: null };
   const take = chain.take;
   if (!take || take.kind.type !== 'shell' || !overlaps(moved, take)) return { rival: { ...moved, tucked: false }, took: null, left: null };
-  return { rival: { ...inShell(moved, take.kind.shell), tucked: false }, took: take, left: k.shell ?? null };
+  return { rival: { ...moved, tucked: false, swap: startSwap(take.id) }, took: null, left: null };
 }
 
 /** Ambling about, as any walker does, but never far from home: past RIVAL.roam tiles off, it heads back. */

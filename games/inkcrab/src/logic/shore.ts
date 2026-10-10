@@ -39,6 +39,11 @@ export class Shore {
     this.water = this.flood(pools);
   }
 
+  /** Sizes of the shells still to wash in, at later high waters. */
+  get comingSizes(): Set<number> {
+    return new Set((this.brings?.shells ?? []).slice(this.shellsIn).map(([, size]) => size));
+  }
+
   /** World y of the sea's surface at `time`. */
   seaY(time: number): number {
     return tideY(this.tide, time, this.tile);

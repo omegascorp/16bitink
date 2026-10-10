@@ -1,3 +1,4 @@
+import { boxHitsSolid } from '../logic/body';
 import { KELP, wrackColumn } from '../logic/kelp';
 import { BOTTLE, buriedFood, food, makeItem, shell, type Item, type ItemKind } from '../logic/items';
 import { createRng } from '../logic/rng';
@@ -44,9 +45,27 @@ function placer(t: Terrain, items: Item[], roots: Roots | null): (kind: ItemKind
     const proto = makeItem(items.length + 1, kind, 0, 0, buried);
     const x = col * TILE_PX + TILE_PX / 2 - proto.w / 2;
     const y = buried ? row * TILE_PX + TILE_PX / 2 - proto.h / 2 : row * TILE_PX - proto.h;
-    items.push({ ...proto, x, y });
+    items.push({ ...proto, ...(buried ? { x, y } : clear(t, { ...proto, x, y })) });
     return true;
   };
+}
+
+/** Px a thing on the surface may be nudged aside, or up, to sit clear of a step beside it. */
+const NUDGE = [0, 4, -4, 8, -8, 12, -12] as const;
+
+/**
+ * Where to put something lying on the surface so it isn't sunk into the
+ * sand: where it is, or nudged aside off a step, or (failing that) lifted
+ * onto the step.
+ */
+function clear(t: Terrain, box: Item): { x: number; y: number } {
+  for (let up = 0; up <= TILE_PX * 2; up += TILE_PX / 4) {
+    for (const dx of NUDGE) {
+      const at = { x: box.x + dx, y: box.y - up };
+      if (!boxHitsSolid(t, { ...box, ...at }, TILE_PX)) return at;
+    }
+  }
+  return { x: box.x, y: box.y };
 }
 
 /**
@@ -177,12 +196,13 @@ export function buildLevel(def: LevelDef): BeachSetup {
     rivals: def.rivals,
     rain: def.rain,
     decks,
-    startGrowth: { size: START_SIZE, meter: 0, bank: 0 },
+    startGrowth: { size: START_SIZE, meter: 0 },
     goal: levelGoal(def),
     mission,
     lives: mission.lives,
     recruits: recruitSpecs(def, mission),
     marked: markedSpecs(def, mission),
+    ladder: shellLadder(def),
   };
 }
 

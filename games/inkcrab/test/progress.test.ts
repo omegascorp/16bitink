@@ -11,10 +11,10 @@ describe('level progress', () => {
   });
 
   it('fills from the starting size to the goal, counting the meter', () => {
-    expect(levelProgress({ size: 2, meter: 0, bank: 0 }, 2, 4)).toBe(0);
-    expect(levelProgress({ size: 3, meter: 0, bank: 0 }, 2, 4)).toBeCloseTo(0.5);
-    expect(levelProgress({ size: 3, meter: meterGoal(3) / 2, bank: 0 }, 2, 4)).toBeCloseTo(0.75);
-    expect(levelProgress({ size: 4, meter: 0, bank: 0 }, 2, 4)).toBe(1);
+    expect(levelProgress({ size: 2, meter: 0 }, 2, 4)).toBe(0);
+    expect(levelProgress({ size: 3, meter: 0 }, 2, 4)).toBeCloseTo(0.5);
+    expect(levelProgress({ size: 3, meter: meterGoal(3) / 2 }, 2, 4)).toBeCloseTo(0.75);
+    expect(levelProgress({ size: 4, meter: 0 }, 2, 4)).toBe(1);
   });
 
   it('marks each size in between', () => {

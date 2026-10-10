@@ -75,7 +75,7 @@ for (const { name, levels: BEACH, fry: FRY, firstGoal } of BEACHES) describe(nam
 
       it('starts a size-1 crab in a periwinkle', () => {
         const b = new Beach(setup);
-        expect(b.crab.growth).toEqual({ size: 1, meter: 0, bank: 0 });
+        expect(b.crab.growth).toEqual({ size: 1, meter: 0 });
         expect(b.crab.shell).toEqual(START_SHELL);
       });
 

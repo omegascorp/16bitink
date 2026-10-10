@@ -147,8 +147,7 @@ export class HudScene extends Phaser.Scene {
     this.sand.setColor(c.sand > beach.sandCapacity ? RED : BLUE);
     // Centred under the heap, but kept inside the panel when the hint makes it long.
     this.sand.setX(Math.min(HEAP_AT.x, PANEL.x + PANEL.w - 8 - this.sand.width / 2));
-    const bank = c.growth.bank > 0 ? ` (+${c.growth.bank} banked)` : '';
-    this.note.setText(c.swap ? 'moving house… exposed!' : c.hidden ? 'hiding in the shell' : beach.underKelp(c.body) ? 'under the kelp, out of sight' : beach.underDeck(c.body) ? 'under cover, safe from the sky' : beach.capped ? `shell full, find a bigger one${bank}` : `growing${bank}`);
+    this.note.setText(c.swap ? 'moving house… exposed!' : c.hidden ? 'hiding in the shell' : beach.underKelp(c.body) ? 'under the kelp, out of sight' : beach.underDeck(c.body) ? 'under cover, safe from the sky' : beach.capped ? 'shell full, find a bigger one' : 'growing');
     this.note.setColor(c.swap ? RED : BLUE);
     this.shell.setText(c.shell ? `in a ${shellName(c.shell)}` : 'no shell!');
 
