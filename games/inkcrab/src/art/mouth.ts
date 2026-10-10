@@ -37,6 +37,11 @@ export const MOUTH_X: Readonly<Record<ShellKind, number>> = {
   spindle: 6,
   bonnet: 12,
   harp: 12,
+  blackturban: 14,
+  kelpsnail: 16,
+  kellets: 10,
+  oregontriton: 10,
+  wavyturban: 10,
 };
 
 /** Crab-frame x that sits in the middle of the opening: a little inside the back of its head shield. */

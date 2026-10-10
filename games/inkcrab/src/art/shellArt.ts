@@ -5,6 +5,7 @@ import { MOUTH_X } from './mouth';
 import { PAPER_FILL } from './palette';
 import { DARK, mouth, tilted } from './shells/common';
 import { bonnet, drupe, harp, hornshell, spindle } from './shells/basalt';
+import { blackturban, kellets, kelpsnail, oregontriton, wavyturban } from './shells/kelp';
 import { mangrovewinkle, mudcreeper, mudwhelk, rivernerite, telescope } from './shells/mangrove';
 
 /**
@@ -747,6 +748,7 @@ const DRAW: Readonly<Record<ShellKind, (d: Draw) => void>> = {
   flatwinkle, dogwhelk, paintedtop, necklace, frogshell, knobbedwhelk,
   mangrovewinkle, rivernerite, mudcreeper, telescope, mudwhelk,
   drupe, hornshell, spindle, bonnet, harp,
+  blackturban, kelpsnail, kellets, oregontriton, wavyturban,
 };
 
 export function drawShell(d: Draw, kind: ShellKind): void {

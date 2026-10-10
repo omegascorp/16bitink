@@ -16,3 +16,6 @@ export function tilted(x: number, y: number, rx: number, ry: number, a: number, 
   const s = Math.sin(a);
   return oval(0, 0, rx, ry, n).map((p) => pt(x + p.x * c - p.y * s, y + p.x * s + p.y * c));
 }
+
+/** Shears points about the line y = `cy` by `k`: leans an opening back or forward. */
+export const leaning = (cy: number, k: number) => (p: Pt): Pt => pt(p.x + (p.y - cy) * k, p.y);

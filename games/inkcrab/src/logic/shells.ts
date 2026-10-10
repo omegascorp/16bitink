@@ -9,6 +9,7 @@ export const SHELL_KINDS = [
   'flatwinkle', 'dogwhelk', 'paintedtop', 'necklace', 'frogshell', 'knobbedwhelk',
   'mangrovewinkle', 'rivernerite', 'mudcreeper', 'telescope', 'mudwhelk',
   'drupe', 'hornshell', 'spindle', 'bonnet', 'harp',
+  'blackturban', 'kelpsnail', 'kellets', 'oregontriton', 'wavyturban',
 ] as const;
 export type ShellKind = (typeof SHELL_KINDS)[number];
 
@@ -64,6 +65,12 @@ export const SHELLS: Readonly<Record<ShellKind, ShellSpec>> = {
   spindle: spec('spindle', 'spindle shell', 3, 6, 2, 3),
   bonnet: spec('bonnet', 'bonnet', 4, 7, 2, 3),
   harp: spec('harp', 'harp shell', 5, 8, 3, 4),
+  // Fog & Kelp (beach 6): snails of a cold kelp coast, from the rocks, the kelp forest and the deep water off it.
+  blackturban: spec('blackturban', 'black turban', 1, 3, 1, 2),
+  kelpsnail: spec('kelpsnail', 'kelp snail', 2, 4, 1, 2),
+  kellets: spec('kellets', "Kellet's whelk", 3, 6, 2, 3),
+  oregontriton: spec('oregontriton', 'Oregon triton', 4, 7, 2, 3),
+  wavyturban: spec('wavyturban', 'wavy turban', 5, 8, 3, 4),
 };
 
 export function canWear(shell: ShellSpec, bodySize: number): boolean {

@@ -1,4 +1,5 @@
 import { boxHitsSolid, climbBody, jump, moveBody, PHYS, WATER, type Body, type Box } from './body';
+import { sightInFog } from './fog';
 import { centre } from './items';
 import type { Rng } from './rng';
 import { shellPx } from './shells';
@@ -60,6 +61,10 @@ export interface Quarry {
   readonly inWater?: boolean;
   /** In among the mangrove roots: a heron's bill can't get at it there. */
   readonly inRoots?: boolean;
+  /** How thick the fog is round it, 0..1: what hunts by sight sees it only close up (see fog.ts). */
+  readonly veil?: number;
+  /** Down among washed-up kelp: nothing sees or smells it (see kelp.ts). */
+  readonly covered?: boolean;
 }
 
 export const CRITTER = {
@@ -132,12 +137,13 @@ export function makeCritter(id: number, size: number, x: number, bottom: number,
   return { id, species, size, x: x - w / 2, y: bottom - h, w, h, vx: 0, vy: 0, onGround: false, dir, turnIn, bored: 0, clock: 0, arm: 0, aimX: dir, aimY: 0, dry: 0 };
 }
 
-/** -1/1 towards the quarry when it's in sight; 0 when it isn't. */
+/** -1/1 towards the quarry when it's in sight (nearer in fog, never under kelp); 0 when it isn't. */
 function spot(c: Critter, q: Quarry | null, tile: number): -1 | 0 | 1 {
-  if (!q || q.hidden || c.bored > 0) return 0;
+  if (!q || q.hidden || q.covered || c.bored > 0) return 0;
   const a = centre(c);
   const b = centre(q.box);
-  if (Math.abs(b.x - a.x) > SPECIES[c.species].sight * tile || Math.abs(b.y - a.y) > CRITTER.sightRows * tile) return 0;
+  const spec = SPECIES[c.species];
+  if (Math.abs(b.x - a.x) > sightInFog(spec.sight, q.veil ?? 0, spec.nose) * tile || Math.abs(b.y - a.y) > CRITTER.sightRows * tile) return 0;
   return b.x >= a.x ? 1 : -1;
 }
 

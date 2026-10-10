@@ -1,3 +1,5 @@
+import type { FogSpec } from '../logic/fog';
+import type { WrackSpec } from '../logic/kelp';
 import type { BirdGroup, CritterGroup } from '../logic/sim';
 import type { SpeciesId } from '../logic/species';
 import type { Lesson } from '../logic/coach';
@@ -44,8 +46,12 @@ export interface LevelDef {
   readonly columns?: readonly (readonly [col: number, width: number, height: number])[];
   /** Steam vents: shaft column, tiles it throws a crab up, seconds between blows, and seconds into its rhythm at the start (see logic/vents.ts). */
   readonly vents?: readonly (readonly [col: number, height: number, period: number, offset: number])[];
-  /** Black volcanic sand and basalt, drawn dark (default pale sand). */
-  readonly ground?: 'black';
+  /** Sea fog drifting along the beach (see logic/fog.ts). */
+  readonly fog?: FogSpec;
+  /** Kelp wrack washed up on the sand: first column and width (see logic/kelp.ts). */
+  readonly kelp?: readonly WrackSpec[];
+  /** Black volcanic sand and basalt, drawn dark, or a cold coast's grey sand (default pale sand). */
+  readonly ground?: 'black' | 'grey';
   /** Mangrove trees: trunk column, height over the mud and how far the roots spread (see mangrove.ts). */
   readonly trees?: readonly TreeSpec[];
   /** Rock boulders: column, row, radius. */

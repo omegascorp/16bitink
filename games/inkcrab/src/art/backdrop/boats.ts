@@ -247,3 +247,49 @@ export function speedboat(t: Draw, x: number, water: number, s: number): void {
   }
   pen.hair(bezier(P(-18, -5), P(-24, -1), P(-31, -7), 6), 0.45, t.ink, FAR * 0.8);
 }
+
+/**
+ * A salmon troller working the swell: a white wooden hull with a high,
+ * flared bow and a dark sheer strake, the wheelhouse forward, a stubby
+ * mast behind it, and the two long trolling poles raised in a V, their
+ * stays and lines fine as hair, the lines trailing into the sea astern.
+ */
+export function troller(t: Draw, x: number, water: number, s: number): void {
+  const { pen } = t;
+  const P = (dx: number, dy: number): Pt => pt(x + dx * s, water + dy * s);
+  reflection(t, x, water + 0.5, 30 * s, 6 * s, '#9fb0ad', 0.35);
+  // Poles and mast behind the wheelhouse, with their stays and the lines down to the water.
+  const base = P(-3, -6);
+  for (const tip of [P(-17, -36), P(4, -38)]) {
+    pen.stroke([base, tip], 0.6 * s, t.ink, FAR, false);
+    pen.hair([tip, P(-3, -20)], 0.3, t.ink, FAR * 0.6);
+    pen.hair(bezier(tip, pt(tip.x - 6 * s, water - 14 * s), pt(tip.x - 14 * s, water + 0.5), 6), 0.3, t.ink, FAR * 0.5);
+  }
+  pen.stroke([P(-3, -5), P(-3, -22)], 0.8 * s, t.ink, FAR, false);
+  pen.hair([P(-3, -21), P(14, -8)], 0.3, t.ink, FAR * 0.6);
+  // The wheelhouse forward, a band of windows across its front.
+  const house = [P(0, -5.5), P(9, -6), P(8.6, -13), P(0.4, -13.2)];
+  pen.fill(house, PAPER_FILL, 1);
+  pen.fill(house, HULL_WHITE, 0.8);
+  pen.fill([P(4.6, -10.4), P(8.2, -10.6), P(8, -12.2), P(4.6, -12.2)], t.ink, FAR * 0.75);
+  pen.fill([P(1.2, -10.4), P(3.6, -10.4), P(3.6, -12.2), P(1.2, -12.2)], t.ink, FAR * 0.6);
+  pen.fill([P(-0.4, -13.2), P(9.4, -13), P(9, -14.2), P(0, -14.4)], '#4f6f6a', 0.6);
+  pen.stroke(edges(house), 0.5, t.ink, FAR, false);
+  pen.hair([P(2, -14.4), P(2, -17)], 0.4, t.ink, FAR);
+  // The hull: sheer rising to a high bow, a dark strake under the rail, a red boot-top at the waterline.
+  const sheer = bezier(P(-16, -4.6), P(2, -4.2), P(17, -8.6), 10);
+  const hull = [...sheer, ...bezier(P(17, -8.6), P(15.5, -3), P(11, 0), 5).slice(1), P(-14, 0), P(-16.5, -2.4)];
+  pen.fill(hull, PAPER_FILL, 1);
+  pen.fill(hull, HULL_WHITE, 0.85);
+  pen.clipped(hull, () => {
+    pen.fill([...sheer, ...[...sheer].reverse().map((p) => pt(p.x, p.y + 1.4 * s))], '#3f5f6a', 0.65);
+    pen.fill([P(-18, -1.2), P(18, -1.2), P(18, 1), P(-18, 1)], RED, 0.4);
+    for (const k of [-3, -2]) pen.hair([P(-15, k), P(15, k - 1.6)], 0.3, t.ink, FAR * 0.4);
+    pen.hatch(hull, 1.5, 0.3, 0.35, { color: t.ink, alpha: FAR * 0.4, onlyBelow: water - 2.5 * s });
+  });
+  pen.stroke(edges(hull), 0.7 * s, t.ink, FAR * 1.1, false);
+  // Gurdies at the stern, and a figure at them.
+  pen.hair([P(-12, -4.6), P(-12, -7), P(-10, -7)], 0.5, t.ink, FAR);
+  figure(t, x - 8 * s, water - 4.5 * s, s * 0.8, '#d9a03a', false);
+  wash(t, P(16, 0), P(-15, 0), s * 0.7);
+}

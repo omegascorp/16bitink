@@ -4,6 +4,7 @@ import { BEACH_2 } from '../src/level/beach2';
 import { BEACH_3 } from '../src/level/beach3';
 import { BEACH_4 } from '../src/level/beach4';
 import { BEACH_5 } from '../src/level/beach5';
+import { BEACH_6 } from '../src/level/beach6';
 import type { LevelDef } from '../src/level/types';
 import { movementOf } from '../src/logic/species';
 import { buildLevel, levelGoal, levelShells, smallFry, START_PATCH, TILE_PX } from '../src/level/build';
@@ -20,6 +21,7 @@ const BEACHES: readonly { name: string; levels: readonly LevelDef[]; fry: string
   { name: 'beach 3', levels: BEACH_3, fry: 'shorecrab', firstGoal: 4 },
   { name: 'beach 4', levels: BEACH_4, fry: 'fiddler', firstGoal: 4 },
   { name: 'beach 5', levels: BEACH_5, fry: 'lavalizard', firstGoal: 4 },
+  { name: 'beach 6', levels: BEACH_6, fry: 'kelpcrab', firstGoal: 4 },
 ];
 
 for (const { name, levels: BEACH, fry: FRY, firstGoal } of BEACHES) describe(name, () => {
@@ -296,4 +298,17 @@ describe('starter food', () => {
     const b = buildLevel({ ...def, food: { ...def.food, start: 0 } }).items.map((i) => [i.x, i.y]);
     expect(a).toEqual(b);
   });
+});
+
+describe('fog & kelp', () => {
+  for (const def of BEACH_6) {
+    it(`${def.id}: keeps its kelp on the beach, clear of the start, and its hunters under the goal`, () => {
+      for (const [col, width] of def.kelp ?? []) {
+        expect(col, def.id).toBeGreaterThan(def.startCol + 4);
+        expect(col + width, def.id).toBeLessThan(def.width - 2);
+      }
+      for (const g of def.critters ?? []) expect(g.sizes[1], def.id).toBeLessThan(levelGoal(def));
+      for (const g of def.birds ?? []) expect(g.size, def.id).toBeLessThan(levelGoal(def));
+    });
+  }
 });

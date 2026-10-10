@@ -57,6 +57,12 @@ export const BLACK_SAND: GroundStyle = {
   pebbles: ['#9aa35a', '#c7c0b2', '#7e7a74', '#b07a5a', '#e5dfd2'], joints: true,
 };
 
+/** A cold coast's grey sand, ground from granite and basalt, over grey rock. */
+export const GREY_SAND: GroundStyle = {
+  dry: '#cfc9bb', wet: '#b5b0a4', deep: '#9c978d', grain: '#6f6b64', shade: '#6f6b64', rock: '#868a88', tunnel: '#dcd6c8',
+  pebbles: ['#7d817e', '#a9a597', '#5f6461', '#c2bcac', '#8f9a8c'], joints: false,
+};
+
 /** Texture pixels per world px for terrain; matches the most a phone screen shows. */
 export const ART_RES = 2;
 /** Line-boil frames per drawing. */

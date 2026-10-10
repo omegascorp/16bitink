@@ -5,7 +5,8 @@
  */
 export type SpeciesId = 'ghostcrab' | 'slater' | 'beetle' | 'darkling' | 'antlion' | 'skink' | 'raven' | 'shorecrab' | 'blenny' | 'sculpin' | 'octopus' | 'gull'
   | 'fiddler' | 'mudskipper' | 'heron' | 'treecrab'
-  | 'lavalizard' | 'sallycrab';
+  | 'lavalizard' | 'sallycrab'
+  | 'kelpcrab' | 'dungeness' | 'raccoon';
 
 /**
  * How it gets about: walkers roam the surface and open tunnels; a lurker
@@ -32,6 +33,8 @@ export interface SpeciesSpec {
   readonly move?: Movement;
   /** Hops up walls a walker would turn back at. */
   readonly hops?: boolean;
+  /** Hunts by smell: fog doesn't hide the crab from it, only the reek of kelp wrack does. */
+  readonly nose?: boolean;
   /** Only about at low tide: flies off when the water comes in (gulls). */
   readonly lowTide?: boolean;
   /**
@@ -77,6 +80,12 @@ export const SPECIES: Readonly<Record<SpeciesId, SpeciesSpec>> = {
   lavalizard: { id: 'lavalizard', name: 'lava lizard', speed: 1, sight: 5, hunts: false, box: { w: 1.2, h: 0.5 } },
   // A young Sally Lightfoot crab: fast, sooty black on the lava, it hops up the basalt after smaller crabs.
   sallycrab: { id: 'sallycrab', name: 'Sally Lightfoot crab', speed: 1.15, sight: 6, hunts: true, hops: true, box: { w: 1, h: 0.62 } },
+  // Fog & Kelp (beach 6). A northern kelp crab: a small, timid spider crab, olive as the kelp it lives in.
+  kelpcrab: { id: 'kelpcrab', name: 'kelp crab', speed: 0.85, sight: 4, hunts: false, box: { w: 1, h: 0.6 } },
+  // A Dungeness crab: broad and purple-brown, it walks the sand after smaller crabs. Fog blinds it.
+  dungeness: { id: 'dungeness', name: 'Dungeness crab', speed: 0.9, sight: 5, hunts: true, box: { w: 1.1, h: 0.6 } },
+  // A raccoon: forages the strandline by smell, nose down. Slow, short-sighted, and the fog doesn't hide you from it.
+  raccoon: { id: 'raccoon', name: 'raccoon', speed: 0.75, sight: 4, hunts: true, nose: true, box: { w: 1.35, h: 1 } },
   treecrab: { id: 'treecrab', name: 'tree crab', speed: 0.8, sight: 5, hunts: true, move: 'climb', box: { w: 0.95, h: 0.62 } },
 };
 

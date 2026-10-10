@@ -220,9 +220,42 @@ Vents are drawn by `src/scenes/game/ventsView.ts`: a sulphur crust round each mo
 
 Backdrop theme `basalt` (`src/art/backdrop/basalt.ts`; landforms in `lava.ts`, plants and animals in `galapagos.ts`): a hard, bright equatorial sky with a small fierce sun; drifting fair-weather cumulus and rags of volcanic haze; the deep blue Pacific under a broad Galápagos shield volcano with a smoking summit, lava flows and cinder cones, low islands and an expedition yacht; dark basalt cliffs in columnar joints with cactus and palo santo on top, a sea arch, a steaming lava field and a tuff cone, white surf on the rocks; nearest, black rock and sand with ropy pahoehoe, a heap of big marine iguanas, a sleeping sea lion, sesuvium, a rock pool, a sulphur-crusted vent and driftwood. Movers: frigatebirds wheeling overhead, boobies and brown pelicans flying low over the water, all side-on. The nearest layer has no small creatures.
 
-## Beaches 6–10
+## Beach 6: Fog & Kelp
 
-Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Beaches 1–5 are built (above). Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
+A cold Pacific coast in Oregon or Washington: grey sand, heaps of bull kelp washed up on it, sea stacks and a lighthouse on the headland. Its idea is not being seen, both ways.
+
+**What's new:**
+
+- **Sea fog** (`games/inkcrab/src/logic/fog.ts`; `fog: { banks: [[centre, width]], drift }`). Banks of fog drift along the beach on the wind (`drift` tiles a second, wrapping round), thick in the middle and thinning over their last 4 tiles. Inside a bank the player sees only a clear patch round the crab (5 tiles, a little more for a bigger crab); further off, everything is behind the fog. Hunters that hunt by sight see the crab only 2 tiles off in thick fog, always less than the player sees, so a hunter shows before it can spot you. A bird can't find a crab in fog thicker than half. Drawn by `src/scenes/game/fogView.ts`: soft puffs carried with each bank and stacked up from the sand (never down into the burrows), with faint pen wisps drifting through.
+- **Kelp wrack** (`games/inkcrab/src/logic/kelp.ts`; `kelp: [col, width]`). Heaps of washed-up bull kelp on the sand. A crab down among it can't be seen or smelt by anything, birds included; contact still counts, so a hunter walking straight into you still catches you (hide in your shell for that). Beach hoppers live in it: half the surface food the beach restocks, and some laid out at the start, turns up in the wrack. Drawn by `src/scenes/game/kelpView.ts` (art in `src/art/kelp.ts`): each heap is drawn once and cut into column strips that sit on their own column's sand, so a heap settles into a hole dug under it. It thins out while the crab is in it.
+- **Grey sand** (`ground: 'grey'`, `GREY_SAND` in `src/art/palette.ts`).
+- **Dungeness crabs:** broad purple-brown walkers that hunt by sight, so fog and kelp both hide you from them.
+- **Raccoon:** a slow, short-sighted forager that hunts by smell (`nose` in `src/logic/species.ts`). The fog doesn't hide you from it, but the reek of the kelp does.
+- **Belted kingfisher** (sky): the kestrel's hover and dive, with its own drawing.
+- **Kelp crabs** are the small prey.
+- **Coach lessons:** `kelp` points at nearby wrack until the crab has been down in it; `fog` speaks while the crab is in a thick bank and is learnt on coming out of one; `raccoon` speaks while a bigger raccoon is near and the crab is out in the open, pointing at the nearest kelp.
+- **Gentle from the start:** every hunter is at most size 6, with at most one raccoon and one kingfisher a level, and levels 57–60 have starter food.
+
+Shells: black turban (1–3), kelp snail (2–4), Kellet's whelk (3–6), Oregon triton (4–7), wavy turban (5–8).
+
+| # | Id | Name | Goal | Shells | New |
+| --- | --- | --- | --- | --- | --- |
+| 51 | `kelp-wrack` | Kelp Wrack | Size 4 | Black turban, kelp snail | Kelp wrack (coach: kelp) |
+| 52 | `sea-fog` | Sea Fog | Size 6 | …, Kellet's whelk | Sea fog (coach: fog) |
+| 53 | `dungeness` | Dungeness | Size 6 | …, Kellet's whelk | Dungeness crabs (coach: hide) |
+| 54 | `under-the-wrack` | Under the Wrack | Size 6 | …, Kellet's whelk (buried under the big heap) | Dig from cover (coach: buried) |
+| 55 | `fog-bank` | Fog Bank | Size 7 | …, Oregon triton (at the far end) | Two banks drifting |
+| 56 | `kingfisher` | Kingfisher | Size 7 | …, Oregon triton | The kingfisher (coach: sky) |
+| 57 | `raccoon` | Raccoon Tracks | Size 7 | …, Oregon triton | The raccoon, which fog doesn't stop (coach: raccoon) |
+| 58 | `lighthouse-point` | Lighthouse Point | Size 7 | …, Oregon triton (buried among rocks) | Remix: rocks, fog, kelp, everyone |
+| 59 | `pea-souper` | Pea Souper | Size 8 | …, wavy turban (at the far end) | The thickest fog |
+| 60 | `the-lighthouse` | The Lighthouse | Size 8 | Every kelp-coast shell, wavy turban under the lighthouse | The whole coast |
+
+Backdrop theme `kelp` (`src/art/backdrop/kelp.ts`; landforms and weather in `fogCoast.ts`, plants, animals and the lighthouse in `pnw.ts`, birds in `pnwBirds.ts`): a pale overcast sky with a weak sun in the haze; low stratus and fog banks drifting along the horizon; the grey-green Pacific in long swells, capes of dark forest fading into the fog with sea stacks off their tips, rafts of kelp and a salmon troller; nearer, a headland of Sitka spruce and Douglas fir with a white lighthouse lit on the cliff and the keeper's house below, Haystack Rock and its needles in the surf, a sea otter in a kelp bed and a harbor seal hauled out on the rocks; nearest, grey sand with silver driftwood logs, beachgrass dunes with salal and spruce, and the last tide's wrack line. Movers: western gulls on the wind, brown pelicans gliding in file, cormorants beating low over the water, all side-on. The nearest layers have no small creatures.
+
+## Beaches 7–10
+
+Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Beaches 1–6 are built (above). Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
 
 | Beach | Biome | Setting | New |
 | --- | --- | --- | --- |
@@ -231,7 +264,7 @@ Each beach is its own biome: its own creatures, shells, backdrop theme and islan
 | 3 | Tide Pool Notes | Granite shelves and rock pools | The tide, fish, octopuses, gulls (built) |
 | 4 | Mangrove Margins | Mudflats and tangled stilt roots | Climbing the roots, mud that slows you; mudskippers, herons, tree crabs (built) |
 | 5 | Ash & Basalt | Black sand under a smoking volcano | Steam vents that throw you up onto basalt columns; Sally Lightfoot crabs, a hawk (built) |
-| 6 | Fog & Kelp | Cold coast, kelp beds, a lighthouse | Fog that hides what's coming; kelp washed up as cover |
+| 6 | Fog & Kelp | Cold coast, kelp beds, a lighthouse | Fog that hides what's coming, and you; kelp wrack as cover; Dungeness crabs, a raccoon, a kingfisher (built) |
 | 7 | Wreck Cove | Driftwood and an old ship on the rocks | Rival hermit crabs; stealing from smaller crabs |
 | 8 | Monsoon Harbour | Stilt houses, nets, fishing boats | Nets and boats as cover; monsoon rain |
 | 9 | Frost Shingle | Pebbles, ice floes, a cold wind | Vacancy chains |
@@ -248,7 +281,7 @@ Only real shells, the kinds hermit crabs actually live in: no litter or other ma
 | 3 Tide Pools | Flat periwinkle, dog whelk, painted top shell, necklace shell, frog shell, knobbed whelk (built) |
 | 4 Mangrove | Mangrove periwinkle, river nerite, mud creeper, telescope snail, mud whelk (built) |
 | 5 Basalt | Drupe, horn shell, spindle, bonnet, harp (built) |
-| 6 Fog & Kelp | Black turban, kelp snail, Kellet's whelk, Oregon triton, wavy turban |
+| 6 Fog & Kelp | Black turban, kelp snail, Kellet's whelk, Oregon triton, wavy turban (built) |
 | 7 Wreck Cove | Nassa, fig shell, tulip shell, lightning whelk, horse conch |
 | 8 Monsoon Harbour | Auger, babylon, cone, spider conch, Indian volute |
 | 9 Frost Shingle | Wentletrap, Arctic moon snail, Neptune whelk, Arctic whelk, Iceland whelk |
@@ -267,7 +300,7 @@ Level select is a beachcomber's chart seen from above, scrolling sideways. Each 
 
 ## What exists, what to build
 
-Built: walking, jumping, eating, the growth cap and bank, thirty real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` to `beach5.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All fifty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens; Beach 3 the tide, fish, octopuses and gulls; Beach 4 mangrove roots to climb, mud, mudskippers, herons and tree crabs; Beach 5 steam vents, basalt columns, black sand, Sally Lightfoot crabs and a hawk.
+Built: walking, jumping, eating, the growth cap and bank, thirty-five real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` to `beach6.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All sixty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens; Beach 3 the tide, fish, octopuses and gulls; Beach 4 mangrove roots to climb, mud, mudskippers, herons and tree crabs; Beach 5 steam vents, basalt columns, black sand, Sally Lightfoot crabs and a hawk; Beach 6 sea fog, kelp wrack, grey sand, Dungeness crabs, a raccoon and a kingfisher.
 
 Still to build, replacing the stand-ins:
 

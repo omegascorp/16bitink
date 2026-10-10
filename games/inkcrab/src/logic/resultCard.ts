@@ -55,6 +55,9 @@ const HUNTER_TIPS: Partial<Readonly<Record<HunterId, string>>> = {
   heron: 'A heron freezes before it stabs. Get in among the mangrove roots, or hide in your shell: its bill can\'t reach you there.',
   sallycrab: 'Sally Lightfoot crabs are quick and hop up the rocks. Hide in your shell, or ride a steam vent up out of reach.',
   hawk: 'A red shadow on the sand is a hawk about to stoop. Get under the rock or the sand, or hide in your shell: it strikes the shell and flies off.',
+  dungeness: 'In fog a Dungeness crab sees only what\'s right by it. Keep in the fog, get under the kelp, or hide in your shell.',
+  raccoon: 'A raccoon hunts by smell, fog or no fog. Its nose can\'t find you under washed-up kelp, or hidden in your shell.',
+  kingfisher: 'A red shadow on the sand is a kingfisher about to dive. It can\'t find you in thick fog or under kelp; or hide in your shell.',
   treecrab: 'Tree crabs climb as well as you do. Drop off the roots (jump, or hold down on a branch) and run for it, or hide.',
 };
 

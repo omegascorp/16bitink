@@ -1,13 +1,16 @@
 import { underSky } from './birds';
+import { FOG } from './fog';
 import { tileSpan } from './dig';
 import { centre, type Item } from './items';
 import { canWear, SHELLS } from './shells';
-import { movementOf } from './species';
+import { movementOf, SPECIES } from './species';
 import type { Beach, SimEvent } from './sim';
-import { isSolid } from './terrain';
+import { isSolid, surfaceRow } from './terrain';
+
 
 /** Something a level teaches, step by step, with a hint shown only while it's relevant. */
-export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron' | 'vent';
+export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron' | 'vent'
+  | 'kelp' | 'fog' | 'raccoon';
 
 /** What a hint is about: a lesson, or the way out of a hole, offered on every level. */
 export type HintKind = Lesson | 'stuck';
@@ -32,6 +35,8 @@ const ROOTS_NEAR = 3;
 const CLIMBED = 2;
 /** How close (tiles) a steam vent is before the vent lesson speaks up. */
 const VENT_NEAR = 6;
+/** How close (tiles) kelp wrack is before the kelp lesson speaks up. */
+const KELP_NEAR = 6;
 
 const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   keys: {
@@ -51,6 +56,9 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     climb: 'Mangrove roots! Hold ↑ among them to climb, ← → to clamber across, ↓ to climb down. Space lets go; ↓ drops you off a branch.',
     heron: 'The heron is taking aim at you! Get in among the roots, or hold Z to hide: its bill can\'t reach you there.',
     vent: 'A steam vent! Stand over it when it hisses and it throws you high: steer with ← → in the air. Drop sand in it to plug it.',
+    kelp: 'Washed-up kelp! Down among it nothing can see or smell you, and sand hoppers live in it.',
+    fog: 'Sea fog! You see only what\'s close, but hunters can\'t see you far either. Watch for red ink coming out of it.',
+    raccoon: 'A raccoon hunts by smell: the fog won\'t hide you from it. Get under the kelp, or hold Z to hide.',
   },
   touch: {
     move: 'Steer with the stick, jump with the button. Eat food to grow.',
@@ -69,6 +77,9 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     climb: 'Mangrove roots! Push the stick up among them to climb, sideways to clamber across, down to climb down. Jump lets go.',
     heron: 'The heron is taking aim at you! Get in among the roots, or hold the shell button to hide: its bill can\'t reach you there.',
     vent: 'A steam vent! Stand over it when it hisses and it throws you high: steer with the stick in the air. Drop sand in it to plug it.',
+    kelp: 'Washed-up kelp! Down among it nothing can see or smell you, and sand hoppers live in it.',
+    fog: 'Sea fog! You see only what\'s close, but hunters can\'t see you far either. Watch for red ink coming out of it.',
+    raccoon: 'A raccoon hunts by smell: the fog won\'t hide you from it. Get under the kelp, or hold the shell button to hide.',
   },
 };
 
@@ -112,6 +123,10 @@ export class Coach {
     const feet = c.body.y + c.body.h;
     this.climbFrom = c.climbing ? Math.max(this.climbFrom ?? feet, feet) : null;
     if (this.climbFrom !== null && this.climbFrom - feet >= CLIMBED * beach.tileSize) this.done.add('climb');
+    // Kelp is learnt by getting down among it; fog by coming out the other side of a bank.
+    if (beach.underKelp(c.body)) this.done.add('kelp');
+    this.escape('fog', beach.fogOver(c.body) >= FOG.thick);
+    this.escape('raccoon', this.raccoonNear(beach) && !c.hidden && !beach.underKelp(c.body));
   }
 
   /** Learns a lesson once its danger, having come up, has passed (got under cover, out of the pit, up out of the sand). */
@@ -135,6 +150,8 @@ export class Coach {
     if (open('sandfish') && this.facing.has('sandfish')) return { lesson: 'sandfish', text: t.sandfish! };
     if (open('octopus') && this.facing.has('octopus')) return { lesson: 'octopus', text: t.octopus! };
     if (open('heron') && this.facing.has('heron')) return { lesson: 'heron', text: t.heron! };
+    if (open('raccoon') && this.facing.has('raccoon')) return { lesson: 'raccoon', text: t.raccoon!, target: this.kelpNear(beach) ?? undefined };
+    if (open('fog') && this.facing.has('fog')) return { lesson: 'fog', text: t.fog! };
     if (open('tide') && beach.tide && beach.elapsed > 4) return { lesson: 'tide', text: t.tide! };
     if (this.stuck(beach)) return { lesson: 'stuck', text: t.stuck! };
     if (open('swap') && beach.capped) {
@@ -149,6 +166,10 @@ export class Coach {
     if (open('vent')) {
       const vent = this.ventNear(beach);
       if (vent) return { lesson: 'vent', text: t.vent!, target: vent };
+    }
+    if (open('kelp')) {
+      const kelp = this.kelpNear(beach);
+      if (kelp) return { lesson: 'kelp', text: t.kelp!, target: kelp };
     }
     if (open('climb') && this.rootsNear(beach)) return { lesson: 'climb', text: t.climb!, target: this.perchedShell(beach) ?? undefined };
     if (open('move')) return { lesson: 'move', text: t.move! };
@@ -179,6 +200,33 @@ export class Coach {
       if (Math.abs(p.x - at.x) < VENT_NEAR * T && (!best || Math.abs(p.x - at.x) < Math.abs(best.x - at.x))) best = p;
     }
     return best;
+  }
+
+  /** The middle of the nearest kelp wrack within a few tiles, on the sand, or null. */
+  private kelpNear(beach: Beach): { x: number; y: number } | null {
+    const T = beach.tileSize;
+    const at = centre(beach.crab.body);
+    let best: { x: number; y: number } | null = null;
+    for (const [col, width] of beach.wrack) {
+      const mid = col + width / 2;
+      const p = { x: mid * T, y: surfaceRow(beach.terrain, Math.floor(mid)) * T };
+      const d = Math.max(0, Math.abs(p.x - at.x) - (width / 2) * T);
+      if (d < KELP_NEAR * T && (!best || Math.abs(p.x - at.x) < Math.abs(best.x - at.x))) best = p;
+    }
+    return best;
+  }
+
+  /** A raccoon bigger than the crab, close by. */
+  private raccoonNear(beach: Beach): boolean {
+    const c = beach.crab;
+    const at = centre(c.body);
+    const reach = DANGER_TILES * beach.tileSize;
+    for (const k of beach.critters.values()) {
+      if (k.size <= c.growth.size || !SPECIES[k.species].nose) continue;
+      const p = centre(k);
+      if (Math.abs(p.x - at.x) < reach && Math.abs(p.y - at.y) < reach) return true;
+    }
+    return false;
   }
 
   /** Mangrove roots within a few tiles of the crab. */

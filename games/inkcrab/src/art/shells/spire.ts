@@ -1,4 +1,4 @@
-import { add, bezier, lerp, pt } from '../kit';
+import { add, bezier, lerp, normals, pt, ribbon } from '../kit';
 import type { Pt } from '../pen';
 
 /**
@@ -45,4 +45,34 @@ export function swell(u: number, sutures: readonly number[], bulge: number): num
   if (k < 0) return 1;
   const s0 = k === 0 ? 0 : sutures[k - 1]!;
   return 1 - bulge + bulge * Math.sin((Math.PI * (u - s0)) / (sutures[k]! - s0));
+}
+
+/** The ribbon of a straight-spined shell: `w(u)` is its width, `bump(u)` pushes both outlines out (beads, ribs, knobs). */
+export function body(from: Pt, to: Pt, w: (u: number) => number, n: number, bump?: (u: number) => number): Body {
+  const spine = Array.from({ length: n + 1 }, (_, i) => lerp(from, to, i / n));
+  const r = ribbon(spine, w);
+  const nrm = normals(spine);
+  const out = (p: Pt, i: number, side: number): Pt => (bump ? add(p, pt(nrm[i]!.x * bump(i / n) * side, nrm[i]!.y * bump(i / n) * side)) : p);
+  const top = r.top.map((p, i) => out(p, i, 1));
+  const bot = r.bot.map((p, i) => out(p, i, -1));
+  return { spine, top, bot, shape: [...top, ...[...bot].reverse()], n };
+}
+
+/** Builds a body, then drops it so its lowest point rests on the ground. */
+export function settle(make: (dy: number) => Body, g: number): Body {
+  const low = Math.max(...make(0).shape.map((p) => p.y));
+  return make(g - 1 - low);
+}
+
+/** Which whorl `u` is on (between sutures, or past the last up to `end`), and how far through it. */
+export function whorlAt(u: number, sutures: readonly number[], end: number): { k: number; t: number } {
+  const k = sutures.findIndex((s) => u < s);
+  const s0 = k === 0 ? 0 : k < 0 ? sutures[sutures.length - 1]! : sutures[k - 1]!;
+  const s1 = k < 0 ? end : sutures[k]!;
+  return { k, t: Math.min(1, Math.max(0, (u - s0) / (s1 - s0))) };
+}
+
+/** The bottom outline's y nearest `x`: for setting a mouth on the underside. */
+export function below(b: Body, x: number): number {
+  return b.bot.reduce((best, p) => (Math.abs(p.x - x) < Math.abs(best.x - x) ? p : best)).y;
 }

@@ -16,6 +16,8 @@ import { inRoots, isLedge, isRoot, perchRow, type Roots } from './roots';
 import { canWear, MOUTH_OFFSET, sandCapacity, shellPx, SHELLS, speedFactor, type ShellKind } from './shells';
 import { startSwap, tickSwap, type Swap } from './swap';
 import { blasts, throwSpeed, type Vent } from './vents';
+import { FOG, fogAt, type FogSpec } from './fog';
+import { KELP, underKelp, wrackColumn, type WrackSpec } from './kelp';
 import { dig, isDiggable, isSolid, place, surfaceRow, tileAt, TILE, type Terrain } from './terrain';
 
 export interface Input {
@@ -108,6 +110,10 @@ export interface BeachSetup {
   readonly roots?: Roots;
   /** Steam vents (default none). */
   readonly vents?: readonly Vent[];
+  /** Sea fog (default none). */
+  readonly fog?: FogSpec;
+  /** Kelp wrack on the sand (default none). */
+  readonly wrack?: readonly WrackSpec[];
 }
 
 /** Birds a level keeps overhead: how many, and how big (they hunt crabs smaller than that). */
@@ -194,6 +200,9 @@ export class Beach {
   readonly roots: Roots | null;
   /** Steam vents, on the volcanic beach. */
   readonly vents: readonly Vent[];
+  /** Sea fog and kelp wrack, on the cold kelp coast. */
+  readonly fog: FogSpec | undefined;
+  readonly wrack: readonly WrackSpec[];
   readonly goal: number | null;
   crab: CrabState;
   lives: number;
@@ -243,6 +252,8 @@ export class Beach {
     this.roots = roots;
     this.ledge = roots ? (x, y) => isLedge(roots, x, y) : undefined;
     this.vents = setup.vents ?? [];
+    this.fog = setup.fog;
+    this.wrack = setup.wrack ?? [];
     for (const item of setup.items) this.items.set(item.id, item);
     this.nextId = Math.max(0, ...setup.items.map((i) => i.id)) + 1;
     const growth = setup.startGrowth ?? initialGrowth();
@@ -288,6 +299,16 @@ export class Beach {
   /** Whether the crab (or any box) is among the mangrove roots, where it can climb and a heron can't stab it. */
   inRoots(b: Box): boolean {
     return inRoots(this.roots, b, this.tileSize);
+  }
+
+  /** How thick the fog is over a body now, 0..1. */
+  fogOver(b: Box): number {
+    return fogAt(this.fog, this.terrain.width, (b.x + b.w / 2) / this.tileSize, this.elapsed);
+  }
+
+  /** Whether a body is down among the kelp wrack. */
+  underKelp(b: Box): boolean {
+    return underKelp(this.terrain, this.wrack, b, this.tileSize);
   }
 
   /** Standing on mud (not climbing beside it). */
@@ -653,8 +674,10 @@ export class Beach {
     for (const i of this.items.values()) if (i.kind.type === 'food' && !i.buried) loose++;
     if (loose >= this.surfaceFood) return;
     const T = this.tileSize;
-    const tx = 2 + Math.floor(this.rng() * (this.terrain.width - 4));
-    const kind = food(this.rng() < 0.7 ? 'crumb' : 'hopper');
+    // Beach hoppers live in the kelp wrack: some of it turns up there.
+    const inKelp = this.wrack.length > 0 && this.rng() < KELP.food ? wrackColumn(this.wrack, this.rng()) : null;
+    const tx = inKelp ?? 2 + Math.floor(this.rng() * (this.terrain.width - 4));
+    const kind = food(inKelp !== null || this.rng() >= 0.7 ? 'hopper' : 'crumb');
     const id = this.nextId++;
     const proto = makeItem(id, kind, 0, 0, false);
     // Where mangroves grow, some of it turns up on the roots: worth the climb.
@@ -713,7 +736,7 @@ export class Beach {
     const c = this.crab;
     const quarry = {
       box: c.body, size: c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize),
-      inWater: this.submerged(c.body), inRoots: this.inRoots(c.body),
+      inWater: this.submerged(c.body), inRoots: this.inRoots(c.body), veil: this.fogOver(c.body), covered: this.underKelp(c.body),
     };
     const env = this.surroundings;
     for (const k of this.critters.values()) this.critters.set(k.id, stepCritter(this.terrain, k, quarry, dt, this.tileSize, this.rng, env));
@@ -939,7 +962,9 @@ export class Beach {
     if (!this.birds.size) return;
     const c = this.crab;
     const T = this.tileSize;
-    const quarry = { box: c.body, size: c.growth.size, hidden: c.hidden, open: underSky(this.terrain, c.body, T) };
+    // Under kelp, or lost in thick fog, it's as good as under cover.
+    const open = underSky(this.terrain, c.body, T) && !this.underKelp(c.body) && this.fogOver(c.body) < FOG.thick;
+    const quarry = { box: c.body, size: c.growth.size, hidden: c.hidden, open };
     for (const b of this.birds.values()) {
       const next = stepBird(this.terrain, b, quarry, dt, T);
       if (next.phase !== 'dive' || !overlaps(next, this.crab.body) || this.crab.growth.size >= next.size) {

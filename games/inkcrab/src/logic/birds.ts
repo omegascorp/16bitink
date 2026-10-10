@@ -11,7 +11,7 @@ import { surfaceRow, type Terrain } from './terrain';
  * stoop on its shell unharmed, and the kestrel flies off. Like every hunter it only goes after smaller crabs,
  * so growing past it ends the threat. Birds are never food.
  */
-export type BirdSpecies = 'kestrel' | 'hawk';
+export type BirdSpecies = 'kestrel' | 'hawk' | 'kingfisher';
 export type BirdPhase = 'patrol' | 'hover' | 'dive' | 'climb';
 
 export interface Bird extends Box {

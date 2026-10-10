@@ -1,9 +1,9 @@
-import { add, bezier, closed, contact, type Draw, edge, glint, lerp, mottle, normals, oval, pt, ribbon, shade, skin, TAU, tint, tube } from '../kit';
+import { add, bezier, closed, contact, type Draw, edge, glint, lerp, mottle, oval, pt, shade, skin, TAU, tint, tube } from '../kit';
 import { MOUTH_X } from '../mouth';
 import type { Pt } from '../pen';
 import { PAPER_FILL } from '../palette';
-import { DARK, mouth, tilted } from './common';
-import { across, along, at, type Body, off, swell } from './spire';
+import { DARK, leaning, mouth, tilted } from './common';
+import { across, along, at, below, body, off, settle, swell, whorlAt } from './spire';
 
 /**
  * Ash & Basalt (beach 5): shells thrown up on a black volcanic beach. Like
@@ -13,40 +13,6 @@ import { across, along, at, type Body, off, swell } from './spire';
  * hooked at the front, the spindle pointed at both ends, the bonnet a
  * checkered egg with a pointed cap, the harp a big rose oval strung with ribs.
  */
-
-// ---------------------------------------------------------------- spired bodies (shared helpers in spire.ts)
-
-/** The ribbon of a spired shell: `w(u)` is its width, `bump(u)` pushes both outlines out (beads, ribs). */
-function body(from: Pt, to: Pt, w: (u: number) => number, n: number, bump?: (u: number) => number): Body {
-  const spine = Array.from({ length: n + 1 }, (_, i) => lerp(from, to, i / n));
-  const r = ribbon(spine, w);
-  const nrm = normals(spine);
-  const out = (p: Pt, i: number, side: number): Pt => (bump ? add(p, pt(nrm[i]!.x * bump(i / n) * side, nrm[i]!.y * bump(i / n) * side)) : p);
-  const top = r.top.map((p, i) => out(p, i, 1));
-  const bot = r.bot.map((p, i) => out(p, i, -1));
-  return { spine, top, bot, shape: [...top, ...[...bot].reverse()], n };
-}
-
-/** Builds a body, then drops it so its lowest point rests on the ground. */
-function settle(make: (dy: number) => Body, g: number): Body {
-  const low = Math.max(...make(0).shape.map((p) => p.y));
-  return make(g - 1 - low);
-}
-
-/** Which whorl `u` is on (between sutures, or past the last up to `end`), and how far through it. */
-function whorlAt(u: number, sutures: readonly number[], end: number): { k: number; t: number } {
-  const k = sutures.findIndex((s) => u < s);
-  const s0 = k === 0 ? 0 : k < 0 ? sutures[sutures.length - 1]! : sutures[k - 1]!;
-  const s1 = k < 0 ? end : sutures[k]!;
-  return { k, t: Math.min(1, Math.max(0, (u - s0) / (s1 - s0))) };
-}
-
-/** The bottom outline's y nearest `x`: for setting a mouth on the underside. */
-function below(b: Body, x: number): number {
-  return b.bot.reduce((best, p) => (Math.abs(p.x - x) < Math.abs(best.x - x) ? p : best)).y;
-}
-
-const leaning = (cy: number, k: number) => (p: Pt): Pt => pt(p.x + (p.y - cy) * k, p.y);
 
 // ---------------------------------------------------------------- egg-shaped bodies
 

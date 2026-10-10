@@ -1,3 +1,4 @@
+import { KELP, wrackColumn } from '../logic/kelp';
 import { buriedFood, food, makeItem, shell, type Item, type ItemKind } from '../logic/items';
 import { goalSize } from '../logic/progress';
 import { createRng } from '../logic/rng';
@@ -135,7 +136,11 @@ export function buildLevel(def: LevelDef): BeachSetup {
   for (const [kind, col, depth] of def.shells) add(shell(kind), col, depth);
   for (const [col, depth] of def.food.clams ?? []) add(food('clam'), col, depth);
   buryFood(def, terrain, rng, add);
-  for (let i = 0; i < def.food.surface; i++) add(food(rng() < 0.7 ? 'crumb' : 'hopper'), 3 + Math.floor(rng() * (def.width - 6)), 0);
+  for (let i = 0; i < def.food.surface; i++) {
+    // Beach hoppers live in the kelp wrack: some of the food lies there.
+    const kelp = def.kelp?.length && rng() < KELP.food ? wrackColumn(def.kelp, rng()) : null;
+    add(food(kelp !== null || rng() >= 0.7 ? 'hopper' : 'crumb'), kelp ?? 3 + Math.floor(rng() * (def.width - 6)), 0);
+  }
   starterFood(def, rng, add);
   const col = def.startCol;
   // Dropped in above the highest ground under it, so it never starts stuck in a slope.
@@ -160,6 +165,8 @@ export function buildLevel(def: LevelDef): BeachSetup {
     tideBrings: def.tideBrings,
     roots: roots ?? undefined,
     vents,
+    fog: def.fog,
+    wrack: def.kelp,
     startGrowth: { size: START_SIZE, meter: 0, bank: 0 },
     goal: levelGoal(def),
   };
