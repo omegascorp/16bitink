@@ -71,6 +71,24 @@ function buryFood(def: LevelDef, terrain: Terrain, rng: () => number, add: Retur
   }
 }
 
+/** Columns past the start that a level's starter food is spread over. */
+export const START_PATCH = 14;
+
+/**
+ * The level's starter food (`food.start`), one after another across the
+ * columns just past the start: crumbs and hoppers on the surface, worms and
+ * hoppers a dig or two down. Not stocked again: it's a first meal.
+ */
+function starterFood(def: LevelDef, rng: () => number, add: ReturnType<typeof placer>): void {
+  const n = def.food.start ?? 0;
+  for (let placed = 0, tries = 0; placed < n && tries < n * 8; tries++) {
+    const col = Math.min(def.width - 3, def.startCol + 1 + Math.floor(rng() * START_PATCH));
+    const buried = placed % 2 === 1;
+    const kind = buried ? (rng() < 0.6 ? 'worm' : 'hopper') : rng() < 0.6 ? 'crumb' : 'hopper';
+    if (add(food(kind), col, buried ? 1 + Math.floor(rng() * 2) : 0)) placed++;
+  }
+}
+
 /** Every level starts here. */
 export const START_SHELL: ShellKind = 'periwinkle';
 export const START_SIZE = 1;
@@ -118,6 +136,7 @@ export function buildLevel(def: LevelDef): BeachSetup {
   for (const [col, depth] of def.food.clams ?? []) add(food('clam'), col, depth);
   buryFood(def, terrain, rng, add);
   for (let i = 0; i < def.food.surface; i++) add(food(rng() < 0.7 ? 'crumb' : 'hopper'), 3 + Math.floor(rng() * (def.width - 6)), 0);
+  starterFood(def, rng, add);
   const col = def.startCol;
   // Dropped in above the highest ground under it, so it never starts stuck in a slope.
   const reach = Math.ceil(SHELLS[START_SHELL].maxSize / 3);

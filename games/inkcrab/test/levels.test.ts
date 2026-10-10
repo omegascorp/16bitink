@@ -6,7 +6,7 @@ import { BEACH_4 } from '../src/level/beach4';
 import { BEACH_5 } from '../src/level/beach5';
 import type { LevelDef } from '../src/level/types';
 import { movementOf } from '../src/logic/species';
-import { buildLevel, levelGoal, levelShells, smallFry, TILE_PX } from '../src/level/build';
+import { buildLevel, levelGoal, levelShells, smallFry, START_PATCH, TILE_PX } from '../src/level/build';
 import { boxHitsSolid } from '../src/logic/body';
 import { pourStep } from '../src/logic/dunes';
 import { Beach } from '../src/logic/sim';
@@ -98,7 +98,7 @@ for (const { name, levels: BEACH, fry: FRY, firstGoal } of BEACHES) describe(nam
       it('buries plenty to eat, never two things in one tile', () => {
         const buried = setup.items.filter((i) => i.buried && i.kind.type === 'food');
         expect(buried.length).toBeGreaterThanOrEqual(Math.min(def.food.buried, 3));
-        expect(buried.length).toBeLessThanOrEqual(def.food.buried + (def.food.clams?.length ?? 0));
+        expect(buried.length).toBeLessThanOrEqual(def.food.buried + (def.food.clams?.length ?? 0) + Math.ceil((def.food.start ?? 0) / 2));
         const tiles = setup.items.filter((i) => i.buried).map((i) => `${Math.floor((i.x + i.w / 2) / TILE_PX)},${Math.floor((i.y + i.h / 2) / TILE_PX)}`);
         expect(new Set(tiles).size).toBe(tiles.length);
       });
@@ -272,4 +272,28 @@ describe('mangrove margins', () => {
       });
     });
   }
+});
+
+describe('starter food', () => {
+  const def = BEACH_5.find((d) => d.id === 'the-summit-vent')!;
+  const nearStart = (d: LevelDef): number => {
+    const setup = buildLevel(d);
+    return setup.items.filter((i) => {
+      const col = Math.floor((i.x + i.w / 2) / TILE_PX);
+      return i.kind.type === 'food' && col >= d.startCol && col <= d.startCol + START_PATCH && (!i.buried || i.y < (surfaceRow(setup.terrain, col) + 3) * TILE_PX);
+    }).length;
+  };
+
+  it('lays the start patch on top of the level\'s other food, within reach of the start', () => {
+    const plain = { ...def, food: { ...def.food, start: 0 } };
+    expect(def.food.start).toBeGreaterThan(0);
+    expect(nearStart(def) - nearStart(plain)).toBe(def.food.start);
+  });
+
+  it('leaves a level without one as it was', () => {
+    const plain = { ...def, food: { ...def.food, start: undefined } };
+    const a = buildLevel(plain).items.map((i) => [i.x, i.y]);
+    const b = buildLevel({ ...def, food: { ...def.food, start: 0 } }).items.map((i) => [i.x, i.y]);
+    expect(a).toEqual(b);
+  });
 });

@@ -199,6 +199,7 @@ Black volcanic sand under a smoking volcano, Galápagos style, with basalt colum
 - **Lava lizards** are the small prey.
 - **Coach lesson:** `vent` points at a nearby vent until the crab has been thrown by one. The `sky` lesson no longer names the kestrel, so it fits the hawk too.
 - **Gentler from the start:** after the Beach 4 playtest, hunters here are few and always under the goal size, with at most one hawk.
+- **Easing (2026-10-10, after a playtest found level 50 too hard):** the finale has two Sally Lightfoots instead of three (sizes 2–4 and 6, no size 7), a size-6 hawk instead of 7, a fifth lava lizard, more food (20 surface, 32 buried, 13 shallow) and par 980 s. It also got a starter patch (`food.start: 10`): ten extra things to eat in the 14 columns past the start, half on the surface and half a dig or two down, enough to reach about size 3 before going near the hunters. Any level can use it; it isn't stocked again.
 
 Shells: drupe (1–3), horn shell (2–4), spindle (3–6), bonnet (4–7), harp (5–8).
 

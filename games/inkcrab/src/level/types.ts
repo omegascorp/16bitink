@@ -61,6 +61,8 @@ export interface LevelDef {
     readonly buried: number;
     /** Food kept buried a dig or two down, planted again at random as it's eaten (like the surface food). */
     readonly shallow: number;
+    /** Extra food just past the start, half on the surface and half a dig or two down: a first meal before the hunters (see build.ts). */
+    readonly start?: number;
     /** Clams buried by hand: column and depth. */
     readonly clams?: readonly (readonly [number, number])[];
   };

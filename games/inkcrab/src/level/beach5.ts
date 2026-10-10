@@ -131,7 +131,7 @@ export const BEACH_5: readonly LevelDef[] = [
   },
   {
     ...BASALT,
-    id: 'the-summit-vent', name: 'The Summit Vent', seed: 510, width: 120, height: 42, parTime: 860,
+    id: 'the-summit-vent', name: 'The Summit Vent', seed: 510, width: 120, height: 42, parTime: 980,
     hint: 'Every shell of the black beach, from the drupe on the sand to the harp on the great column under the volcano.',
     profile: [[0, 22], [60, 24], [119, 26]],
     columns: [[22, 3, 5], [44, 3, 7], [66, 3, 9], [96, 5, 14]],
@@ -139,8 +139,8 @@ export const BEACH_5: readonly LevelDef[] = [
     vents: [[19, 8, 6, 0], [41, 10, 6, 2], [63, 12, 6, 4], [93, 17, 6, 1]],
     startCol: 6,
     shells: [['drupe', 12, 0], ['hornshell', 23, 0], ['spindle', 45, 0], ['bonnet', 67, 0], ['harp', 98, 0]],
-    food: { surface: 16, buried: 26, shallow: 10 },
-    critters: [{ count: 2, sizes: [2, 6], species: 'sallycrab' }, { count: 1, sizes: [7, 7], species: 'sallycrab' }, { count: 4, sizes: [1, 6], species: 'lavalizard' }],
-    birds: [{ count: 1, size: 7, species: 'hawk' }],
+    food: { surface: 20, buried: 32, shallow: 13, start: 10 },
+    critters: [{ count: 1, sizes: [2, 4], species: 'sallycrab' }, { count: 1, sizes: [6, 6], species: 'sallycrab' }, { count: 5, sizes: [1, 6], species: 'lavalizard' }],
+    birds: [{ count: 1, size: 6, species: 'hawk' }],
   },
 ];
