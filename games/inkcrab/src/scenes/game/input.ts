@@ -49,6 +49,12 @@ export class GameInput {
     });
   }
 
+  /** Forgets keys held or pressed before a pause: they may have been let go meanwhile. */
+  reset(scene: Phaser.Scene): void {
+    scene.input.keyboard?.resetKeys();
+    this.pressed.clear();
+  }
+
   /** Builds this frame's input; `tapTile` is a touch tap already converted to a tile. */
   read(touch: TouchState, tapTile: TilePos | null, tapInteract: boolean): Input {
     const was = (l: Latch): boolean => this.pressed.has(l);

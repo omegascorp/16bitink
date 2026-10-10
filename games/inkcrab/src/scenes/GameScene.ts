@@ -102,6 +102,18 @@ export class GameScene extends Phaser.Scene {
     this.backdrop = new BackdropView(this, themeOf(this.level.id), ground, worldW + 2400);
   }
 
+  /** Freezes the beach under the HUD's pause card: the clock, the hunters and the tide all wait. */
+  pausePlay(): void {
+    this.scene.pause();
+  }
+
+  /** Back to the beach, with no key or finger left "down" from before the pause. */
+  resumePlay(): void {
+    this.input2.reset(this);
+    Object.assign(this.touch, createTouchState());
+    this.scene.resume();
+  }
+
   /** Back to the level list (from the HUD). */
   quit(): void {
     this.scene.stop('Hud');

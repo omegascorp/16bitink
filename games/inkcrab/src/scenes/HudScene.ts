@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { BLUE, BLUE_HEX, PAPER_HEX, RED } from '../art/palette';
-import { REG } from '../host';
+import { getHost, REG } from '../host';
 import { inStickZone, knobOffset, stickCentre, stickVector, STICK } from '../logic/joystick';
 import { levelGoal, START_SHELL } from '../level/build';
 import { capMark, levelProgress, sizeMarks } from '../logic/progress';
@@ -20,9 +20,12 @@ const PANEL = { x: 16, y: 14, w: 380, h: 118 } as const;
 /** The sand heap sits in the panel's right end, its count under it. */
 const HEAP_AT = { x: PANEL.x + PANEL.w - 16 - HEAP_MAX_W / 2, bottom: PANEL.y + PANEL.h - 30 } as const;
 const BAR = { x: 30, y: 60, w: 190, h: 16 } as const;
-/** Life icons: a little shell each, right to left from the levels button. */
+/** Life icons: a little shell each, right to left from the pause button. */
 const LIFE = { size: 30, gap: 36, y: 36 } as const;
 const INTRO_MS = 3600;
+/** The pause button, top right; the lives start left of it. */
+const PAUSE = { w: 52, h: 44, fromRight: 42 } as const;
+const LIVES_FROM_RIGHT = 104;
 /** The tide clock, under the lives at the top right. */
 const TIDE = { r: 20, fromRight: 54, y: 96 } as const;
 
@@ -42,7 +45,9 @@ export class HudScene extends Phaser.Scene {
   private title!: Phaser.GameObjects.Text;
   private sizeText!: Phaser.GameObjects.Text;
   private lives: Phaser.GameObjects.Image[] = [];
-  private levelsButton!: Phaser.GameObjects.Container;
+  private pauseButton!: Phaser.GameObjects.Container;
+  /** The pause card, while the game is paused. */
+  private pauseLayer: Phaser.GameObjects.Container | null = null;
   private intro: Phaser.GameObjects.Container | null = null;
   /** The intro card is on its way out (the player has started, or its time is up). */
   private introLeaving = false;
@@ -71,6 +76,7 @@ export class HudScene extends Phaser.Scene {
     this.stickPull = { x: 0, y: 0 };
     this.intro = null;
     this.introLeaving = false;
+    this.pauseLayer = null;
     this.g = this.add.graphics();
     const text = (x: number, y: number, size: number, color = BLUE): Phaser.GameObjects.Text =>
       this.add.text(x, y, '', { fontFamily: HAND_FONT, fontSize: `${size}px`, color, padding: { x: 4, y: 2 } });
@@ -78,7 +84,7 @@ export class HudScene extends Phaser.Scene {
     this.title = text(28, 20, 26);
     this.sizeText = text(BAR.x + BAR.w + 8, BAR.y - 4, 17);
     this.lives = [];
-    this.levelsButton = inkButton(this, 0, LIFE.y, 'levels', () => game.quit(), { width: 92, height: 40, size: 22 });
+    this.pauseButton = inkButton(this, 0, LIFE.y, '❚❚', () => this.togglePause(), { width: PAUSE.w, height: PAUSE.h, size: 24 });
     this.coachBox = this.add.graphics();
     this.coachText = inkText(this, 0, 0, '', 21).setWordWrapWidth(520).setAlign('center');
     this.showIntro(game);
@@ -91,6 +97,12 @@ export class HudScene extends Phaser.Scene {
     this.input.on('pointerdown', this.onDown, this);
     this.input.on('pointermove', this.onMove, this);
     this.input.on('pointerup', this.onUp, this);
+    // Pause keys live here: the Game scene's keyboard stops while it's paused.
+    this.input.keyboard?.on('keydown-ESC', this.togglePause, this);
+    this.input.keyboard?.on('keydown-P', this.togglePause, this);
+    // Pause when the tab is hidden, so nobody gets caught while away.
+    this.game.events.on(Phaser.Core.Events.HIDDEN, this.pauseIfRunning, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.game.events.off(Phaser.Core.Events.HIDDEN, this.pauseIfRunning, this));
   }
 
   update(): void {
@@ -112,6 +124,7 @@ export class HudScene extends Phaser.Scene {
     this.sizeText.setText(`size ${c.growth.size} of ${goal}`);
     this.syncLives(beach.lives, c.shell ?? START_SHELL, width);
     this.drawCoach(game, width);
+    this.pauseLayer?.setPosition(width / 2, height / 2);
 
     this.drawTide(game, width);
     drawSandGauge(g, HEAP_AT.x, HEAP_AT.bottom, c.sand, beach.sandCapacity);
@@ -189,13 +202,13 @@ export class HudScene extends Phaser.Scene {
     wobblyRect(box, width / 2 - w / 2, top, w, h, 13, 1.6, BLUE_HEX);
   }
 
-  /** Lives as little shells by the levels button, top right. */
+  /** Lives as little shells by the pause button, top right. */
   private syncLives(n: number, kind: string, width: number): void {
     while (this.lives.length > Math.max(0, n)) this.lives.pop()?.destroy();
     while (this.lives.length < n) this.lives.push(this.add.image(0, 0, TEX.shell(kind, 0)).setOrigin(SHELL_MID / FRAME, FOOT.y / FRAME));
-    this.levelsButton.setPosition(width - 62, LIFE.y);
+    this.pauseButton.setPosition(width - PAUSE.fromRight, LIFE.y);
     const scale = LIFE.size / 116;
-    this.lives.forEach((img, i) => img.setTexture(TEX.shell(kind, 0)).setScale(scale).setPosition(width - 140 - i * LIFE.gap, LIFE.y + 12));
+    this.lives.forEach((img, i) => img.setTexture(TEX.shell(kind, 0)).setScale(scale).setPosition(width - LIVES_FROM_RIGHT - i * LIFE.gap, LIFE.y + 12));
   }
 
   /** The level's name, goal and lesson, centred for a few seconds at the start. */
@@ -211,6 +224,49 @@ export class HudScene extends Phaser.Scene {
     const hint = inkText(this, 0, 44, game.level.hint, 20).setWordWrapWidth(w - 40).setAlign('center').setAlpha(0.85);
     this.intro = this.add.container(width / 2, height * 0.42, [g, name, goal, hint]);
     this.tweens.add({ targets: this.intro, alpha: 0, delay: INTRO_MS, duration: 500, onStart: () => (this.introLeaving = true), onComplete: () => this.intro?.destroy() });
+  }
+
+  private pauseIfRunning(): void {
+    if (!this.pauseLayer && this.scene.isActive('Game')) this.togglePause();
+  }
+
+  /** Pauses the game under a paper card, or takes the card away and plays on. */
+  private togglePause(): void {
+    const game = this.scene.get('Game') as GameScene;
+    if (this.pauseLayer) {
+      this.pauseLayer.destroy();
+      this.pauseLayer = null;
+      game.resumePlay();
+      return;
+    }
+    if (!this.scene.isActive('Game')) return;
+    game.pausePlay();
+    this.letGo();
+    // The intro card would only sit under the pause card.
+    if (this.intro?.active) {
+      this.tweens.killTweensOf(this.intro);
+      this.intro.destroy();
+    }
+    const { width, height } = viewSize(this);
+    const host = getHost(this);
+    const wash = this.add.graphics();
+    wash.fillStyle(PAPER_HEX, 0.88).fillRect(-2000, -2000, 4000, 4000);
+    const hint = inkText(this, 0, -64, game.level.hint, 20).setWordWrapWidth(Math.min(520, width - 48)).setAlign('center').setAlpha(0.85);
+    this.pauseLayer = this.add.container(width / 2, height / 2, [
+      wash,
+      inkText(this, 0, -150, 'Paused', 64),
+      hint,
+      inkButton(this, 0, 20, 'Keep scuttling', () => this.togglePause(), { width: 260 }),
+      inkButton(this, 0, 90, 'Level select', () => game.quit(), { width: 260 }),
+      inkButton(this, 0, 160, 'Exit to 16bit.ink', () => host.onExit(), { width: 260, size: 26 }),
+    ]).setDepth(10);
+  }
+
+  /** Lets go of the on-screen stick and hide button (fingers lifted while paused never reach them). */
+  private letGo(): void {
+    this.stickPointer = null;
+    this.hidePointer = null;
+    this.stickPull = { x: 0, y: 0 };
   }
 
   private touch(): TouchState | undefined {
@@ -244,8 +300,8 @@ export class HudScene extends Phaser.Scene {
   }
 
   private onDown(p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[] = []): void {
-    // A press on a HUD button isn't a tap on the beach.
-    if (over.length > 0) return;
+    // A press on a HUD button isn't a tap on the beach, and nothing reaches the beach while paused.
+    if (over.length > 0 || this.pauseLayer) return;
     if (p.wasTouch) this.touchSeen = true;
     const v = toView(p.x, p.y);
     const { width, height } = viewSize(this);
