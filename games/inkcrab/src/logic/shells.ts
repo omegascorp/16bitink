@@ -8,6 +8,7 @@ export const SHELL_KINDS = [
   'desertsnail', 'turban', 'olive', 'murex', 'helmet',
   'flatwinkle', 'dogwhelk', 'paintedtop', 'necklace', 'frogshell', 'knobbedwhelk',
   'mangrovewinkle', 'rivernerite', 'mudcreeper', 'telescope', 'mudwhelk',
+  'drupe', 'hornshell', 'spindle', 'bonnet', 'harp',
 ] as const;
 export type ShellKind = (typeof SHELL_KINDS)[number];
 
@@ -57,6 +58,12 @@ export const SHELLS: Readonly<Record<ShellKind, ShellSpec>> = {
   mudcreeper: spec('mudcreeper', 'mud creeper', 3, 6, 2, 3),
   telescope: spec('telescope', 'telescope snail', 4, 7, 2, 3),
   mudwhelk: spec('mudwhelk', 'mud whelk', 5, 8, 3, 4),
+  // Ash & Basalt (beach 5): shells of a volcanic shore, thrown up onto the black sand.
+  drupe: spec('drupe', 'drupe', 1, 3, 1, 2),
+  hornshell: spec('hornshell', 'horn shell', 2, 4, 1, 2),
+  spindle: spec('spindle', 'spindle shell', 3, 6, 2, 3),
+  bonnet: spec('bonnet', 'bonnet', 4, 7, 2, 3),
+  harp: spec('harp', 'harp shell', 5, 8, 3, 4),
 };
 
 export function canWear(shell: ShellSpec, bodySize: number): boolean {

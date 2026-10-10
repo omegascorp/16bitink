@@ -2,6 +2,7 @@ import type { Lane } from '../../logic/sailing';
 import type { LayerId, ThemeId } from '../backdrop';
 import type { Draw } from '../kit';
 import { gull } from './coast';
+import { booby, frigatebird, pelican } from './galapagos';
 import { kestrel, tern } from './desert';
 import { sampan } from './estuary';
 import { egretFlying, ibis, kite } from './mudLife';
@@ -67,6 +68,9 @@ const egretBird: Bird = (d, x, y, s, f) => egretFlying(d, x, y, s, f);
 const gullBird: Bird = (d, x, y, s, f) => gull(d, x, y, s, f);
 const ternBird: Bird = (d, x, y, s, f) => tern(d, x, y, s, f);
 const frigateBird: Bird = (d, x, y, s, f) => bird(d, x, y, s, f);
+const frigateSide: Bird = (d, x, y, s, f) => frigatebird(d, x, y, s, f);
+const boobyBird: Bird = (d, x, y, s, f) => booby(d, x, y, s, f);
+const pelicanBird: Bird = (d, x, y, s, f) => pelican(d, x, y, s, f);
 
 export const THEME_MOVERS: Readonly<Record<ThemeId, readonly MoverSpec[]>> = {
   // Frigatebirds gliding over the lagoon, and the seaplane droning across.
@@ -113,5 +117,14 @@ export const THEME_MOVERS: Readonly<Record<ThemeId, readonly MoverSpec[]>> = {
       layer: 'river', y: 82, x: 640, speed: 1.2, range: [600, 700], frames: 4, fps: 0.8, bob: 0.4, turns: true,
       box: { left: -20, right: 20, top: -16, bottom: 6 }, draw: (d, x, y, f) => sampan(d, x, y, 0.9, Math.sin((f / 4) * Math.PI * 2)),
     },
+  ],  // Frigatebirds hanging on the wind over the volcano, boobies beating along low over the sea, pelicans gliding in file.
+  basalt: [
+    { layer: 'sky', y: 70, x: 380, speed: 2, bob: 1.5, fps: 1.5, circle: { r: 36, period: 22 }, turns: true, ...flock([[0, 0, 1.2]], frigateSide, 0.35) },
+    { layer: 'sky', y: 120, x: 900, speed: -4, bob: 2, fps: 1.5, circle: { r: 24, period: 17 }, turns: true, ...flock([[0, 0, 0.9]], frigateSide, 0.35) },
+    { layer: 'sky', y: 40, x: 120, speed: 5, bob: 1.5, fps: 1.5, turns: true, ...flock([[0, 0, 0.75], [30, 10, 0.65]], frigateSide, 0.35) },
+    { layer: 'sea', y: 70, x: 640, speed: -3, bob: 2, fps: 1.5, circle: { r: 30, period: 19 }, turns: true, ...flock([[0, 0, 1]], frigateSide, 0.35) },
+    { layer: 'sea', y: 150, x: 200, speed: 11, bob: 1.5, fps: 6, turns: true, ...flock([[0, 0, 0.6], [20, 4, 0.55], [38, 1, 0.55]], boobyBird) },
+    { layer: 'cliffs', y: 214, x: 560, speed: 15, bob: 2, fps: 7, turns: true, ...flock([[0, 0, 0.95], [26, 5, 0.9], [50, -2, 0.85], [74, 4, 0.9]], boobyBird) },
+    { layer: 'cliffs', y: 150, x: 900, speed: -8, bob: 2.5, fps: 2.5, turns: true, ...flock([[0, 0, 1.1], [34, 4, 1.05], [68, 8, 1]], pelicanBird, 0.7) },
   ],
 };

@@ -31,6 +31,32 @@ export const MUD_SHEEN = '#c9d3d2';
 /** Shadow inside burrows. */
 export const TUNNEL = '#e4d6b4';
 
+/** How a beach's ground is coloured: its sand from dry to deep, the grains in it, rock, burrow shade, pebbles. */
+export interface GroundStyle {
+  readonly dry: string;
+  readonly wet: string;
+  readonly deep: string;
+  readonly grain: string;
+  /** Shadow just inside a dug wall. */
+  readonly shade: string;
+  readonly rock: string;
+  readonly tunnel: string;
+  readonly pebbles: readonly string[];
+  /** Rock jointed into columns, as basalt cools. */
+  readonly joints: boolean;
+}
+
+export const PALE_SAND: GroundStyle = {
+  dry: SAND_DRY, wet: SAND_WET, deep: SAND_DEEP, grain: SAND_GRAIN, shade: SAND_GRAIN, rock: ROCK, tunnel: TUNNEL,
+  pebbles: ['#8a8478', '#a39276', '#6f7268', '#b5a58a', '#e7c7ae', '#d9a7a0'], joints: false,
+};
+
+/** Volcanic black sand with pale grains of olivine and shell in it, over dark basalt. */
+export const BLACK_SAND: GroundStyle = {
+  dry: '#77726c', wet: '#5b5753', deep: '#45423f', grain: '#d9d2c4', shade: '#2e2c2a', rock: '#4a4c52', tunnel: '#a39d95',
+  pebbles: ['#9aa35a', '#c7c0b2', '#7e7a74', '#b07a5a', '#e5dfd2'], joints: true,
+};
+
 /** Texture pixels per world px for terrain; matches the most a phone screen shows. */
 export const ART_RES = 2;
 /** Line-boil frames per drawing. */

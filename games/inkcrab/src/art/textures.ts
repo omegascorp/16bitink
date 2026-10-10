@@ -5,6 +5,7 @@ import { SPECIES, type SpeciesId } from '../logic/species';
 import { BACKDROP_W, BOAT_BOX, BOAT_DRAW, THEME_BOATS, THEME_MOVERS, THEMES, type ThemeId } from './backdrop';
 import { drawCrabBack, drawCrabFront } from './crabArt';
 import { gullFlight } from './birds/gullFlight';
+import { hawk } from './birds/hawk';
 import { kestrel } from './birds/kestrel';
 import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, drawCritter, drawHeronStrike } from './critterArt';
 import { FRAME, GROUND } from './frame';
@@ -115,6 +116,7 @@ export function generateTextures(scene: Phaser.Scene): void {
     for (const dive of [false, true]) {
       for (const danger of [false, true]) {
         bake(scene, TEX.bird('kestrel', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => kestrel(makeDraw(ctx, 850 + f, f, 0, danger ? RED : undefined), dive));
+        bake(scene, TEX.bird('hawk', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => hawk(makeDraw(ctx, 860 + f, f, 0, danger ? RED : undefined), dive));
       }
     }
     for (const danger of [false, true]) {

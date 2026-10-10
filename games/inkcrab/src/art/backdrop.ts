@@ -1,5 +1,6 @@
 import type { Lane } from '../logic/sailing';
 import { clouds, lagoon, LAGOON_H, resort, shore, SHORE_H, sky, SKY_H } from './backdrop/atoll';
+import { BASALT_SEA_H, BASALT_SKY_H, cliffs as lavaCliffs, clouds as basaltClouds, LAVA_CLIFFS_H, LAVA_SHORE_H, sea as basaltSea, shore as lavaShore, sky as basaltSky } from './backdrop/basalt';
 import { dhoni, yacht } from './backdrop/boats';
 import { longtail } from './backdrop/estuary';
 import { clouds as duneClouds, desert, DESERT_H, DUNE_SKY_H, dunes, DUNES_H, sea, SEA_H, sky as duneSky } from './backdrop/dunes';
@@ -15,7 +16,7 @@ export { THEME_MOVERS, type MoverSpec } from './backdrop/movers';
  * so the sand and creatures in front always read first. Each beach has its
  * own theme; layers tile horizontally (see `tiled`).
  */
-export type ThemeId = 'atoll' | 'dunes' | 'rockpool' | 'mangrove';
+export type ThemeId = 'atoll' | 'dunes' | 'rockpool' | 'mangrove' | 'basalt';
 export type LayerId = 'sky' | 'clouds' | 'lagoon' | 'resort' | 'shore' | 'sea' | 'dunes' | 'cliffs' | 'river' | 'forest';
 
 export interface LayerSpec {
@@ -63,6 +64,13 @@ export const THEMES: Readonly<Record<ThemeId, readonly LayerSpec[]>> = {
     { id: 'forest', height: FOREST_H, scroll: 0.26, lift: 10, draw: forest },
     { id: 'shore', height: MUDFLAT_H, scroll: 0.4, lift: -14, draw: mudflat },
   ],
+  basalt: [
+    { id: 'sky', height: BASALT_SKY_H, scroll: 0.08, lift: 120, draw: basaltSky },
+    { id: 'clouds', height: BASALT_SKY_H, scroll: 0.08, lift: 120, drift: 4, draw: basaltClouds },
+    { id: 'sea', height: BASALT_SEA_H, scroll: 0.16, lift: 20, draw: basaltSea },
+    { id: 'cliffs', height: LAVA_CLIFFS_H, scroll: 0.26, lift: 10, draw: lavaCliffs },
+    { id: 'shore', height: LAVA_SHORE_H, scroll: 0.4, lift: -14, draw: lavaShore },
+  ],
 };
 
 export type BoatKind = 'dhoni' | 'yacht' | 'longtail';
@@ -109,5 +117,9 @@ export const THEME_BOATS: Readonly<Record<ThemeId, readonly BoatSpec[]>> = {
   mangrove: [
     { kind: 'longtail', s: 0.8, layer: 'river', water: 104, x: 300, speed: 6, front: false },
     { kind: 'longtail', s: 0.5, layer: 'river', water: 66, x: 820, speed: -3, front: false },
+  ],
+  // An expedition yacht cruising slowly along under the volcano.
+  basalt: [
+    { kind: 'yacht', s: 0.6, layer: 'sea', water: 192, x: 300, speed: 1.8, front: false },
   ],
 };

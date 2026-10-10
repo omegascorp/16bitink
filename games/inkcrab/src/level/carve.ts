@@ -1,6 +1,7 @@
 import { settleDunes } from '../logic/dunes';
 import { createRng, rangeOf } from '../logic/rng';
 import { createTerrain, setTile, surfaceRow, tileAt, TILE, type Terrain } from '../logic/terrain';
+import { VENT } from '../logic/vents';
 import type { ProfilePoint } from './types';
 
 /** Rows of unbreakable rock at the bottom of every beach. */
@@ -39,6 +40,10 @@ export interface CarveSpec {
   readonly dens?: readonly (readonly [number, number])[];
   /** Mud on top of the sand: first and last column, and rows deep. */
   readonly mud?: readonly (readonly [number, number, number])[];
+  /** Basalt columns: first column, width, and height over the sand, in tiles. */
+  readonly columns?: readonly (readonly [number, number, number])[];
+  /** Steam vents: the column of each shaft (see vent). */
+  readonly vents?: readonly number[];
 }
 
 /** Sand down to bedrock under the profile, with rock boulders. */
@@ -61,6 +66,8 @@ export function carve(spec: CarveSpec): Terrain {
       }
     }
   }
+  for (const [x0, w, h] of spec.columns ?? []) column(t, x0, w, h);
+  for (const col of spec.vents ?? []) vent(t, col);
   for (const [col, r] of spec.pits ?? []) pit(t, col, r);
   for (const [x0, w, depth] of spec.pools ?? []) pool(t, x0, w, depth);
   for (const [x, y] of spec.dens ?? []) setTile(t, x, y, TILE.air);
@@ -91,6 +98,24 @@ function pool(t: Terrain, x0: number, w: number, depth: number): void {
     for (let y = inside ? rim + depth : Math.max(rim, surfaceRow(t, x)); y <= rim + depth; y++) setTile(t, x, y, TILE.rock);
     if (inside) for (let y = 0; y < rim + depth; y++) setTile(t, x, y, TILE.air);
   }
+}
+
+/** A basalt column: rock `h` tiles up from the sand, `w` wide, its foot sunk a couple of rows into the beach. */
+function column(t: Terrain, x0: number, w: number, h: number): void {
+  for (let x = x0; x < x0 + w; x++) {
+    const ground = surfaceRow(t, x);
+    for (let y = ground - h; y < ground + 2; y++) setTile(t, x, y, TILE.rock);
+  }
+}
+
+/**
+ * A steam vent: a shaft a tile wide and VENT.shaft deep, walled and
+ * floored with rock, opening at the surface of column `col`.
+ */
+function vent(t: Terrain, col: number): void {
+  const rim = surfaceRow(t, col);
+  for (let x = col - 1; x <= col + 1; x++) for (let y = rim; y <= rim + VENT.shaft; y++) setTile(t, x, y, TILE.rock);
+  for (let y = rim; y < rim + VENT.shaft; y++) setTile(t, col, y, TILE.air);
 }
 
 /** A funnel `r` tiles out and down from its bottom at `col`, sloped at the angle dune sand rests at. */

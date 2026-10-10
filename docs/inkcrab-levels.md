@@ -185,9 +185,43 @@ Roots are drawn along the curves they were grown on (`src/art/roots.ts`, in stat
 
 Backdrop theme `mangrove` (`src/art/backdrop/mangrove.ts`; trees in `mangroveTrees.ts`, the far shore and boats in `estuary.ts`, birds and mud in `mudLife.ts`): a hazy, humid sky with towering cumulus, ibis, egrets and a brahminy kite; a still olive river mouth under misty hills, a village on stilts, a kelong and a sampan, with longtail boats running up and down; a wall of red mangroves on prop roots with nipa palms, a grey heron and an egret at the creek mouth and a boardwalk winding into the trees; nearest, a glistening mudflat cut by creeks, with pencil roots, crab burrows, fallen leaves, propagules, a half-sunk dugout and a bamboo crab trap. The nearest layer has no small creatures, so the level's own fiddlers and mudskippers are never mistaken for scenery.
 
-## Beaches 5–10
+## Beach 5: Ash & Basalt
 
-Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Beaches 1–4 are built (above). Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
+Black volcanic sand under a smoking volcano, Galápagos style, with basalt columns standing out of it. Its idea is steam. (The first sketch was hot sand you'd have to cross in the shade; that's a timer that hurts, which the game avoids, so steam vents replaced it.)
+
+**What's new:**
+
+- **Steam vents** (`games/inkcrab/src/logic/vents.ts`; `vents: [col, height, period, offset]`). A shaft a tile wide and two deep, walled and floored with rock, blowing on a steady rhythm. It hisses for 1.3 s (the warning: quick spurts of steam), then blows for 0.7 s: a column of steam that throws everything over it (the crab, walking creatures, loose food) up to `height` tiles over its rim, once a blow. A small crab that has dropped into the shaft goes just as high. Steam never harms, hidden in the shell or not; in the air the crab steers as usual. It's the way up onto the basalt columns, where the shells are, and a way out from under a hunter. Sand dropped into the shaft plugs it, and it stays quiet until it's dug out.
+- **Basalt columns** (`columns: [col, width, height]`): rock standing out of the sand, drawn jointed into columns.
+- **Black sand** (`ground: 'black'`): the beach's sand, rock and grains are drawn dark (`BLACK_SAND` in `src/art/palette.ts`, threaded through `src/art/sand.ts`).
+- **Sally Lightfoot crabs:** fast young ones, mottled sooty black on the lava (never red, so the red danger ink stands out), that hop up the rock after smaller crabs.
+- **Galápagos hawk** (sky): the kestrel's behaviour with its own drawing. It hovers with a red shadow tightening on the sand, then stoops; get under rock or sand, or hide (the stoop glances off).
+- **Lava lizards** are the small prey.
+- **Coach lesson:** `vent` points at a nearby vent until the crab has been thrown by one. The `sky` lesson no longer names the kestrel, so it fits the hawk too.
+- **Gentler from the start:** after the Beach 4 playtest, hunters here are few and always under the goal size, with at most one hawk.
+
+Shells: drupe (1–3), horn shell (2–4), spindle (3–6), bonnet (4–7), harp (5–8).
+
+| # | Id | Name | Goal | Shells | New |
+| --- | --- | --- | --- | --- | --- |
+| 41 | `black-sand` | Black Sand | Size 4 | Drupe, horn shell (on a column) | Steam vents (coach: vent) |
+| 42 | `organ-pipes` | Organ Pipes | Size 6 | Drupe, horn shell, spindle (on the tall column) | Vents of different strengths |
+| 43 | `sally-lightfoot` | Sally Lightfoot | Size 6 | Drupe, horn shell, spindle | Sally Lightfoot crabs (coach: hide) |
+| 44 | `under-the-ash` | Under the Ash | Size 6 | …, spindle (buried 4 deep) | Dig; plug a vent in the way (coach: buried) |
+| 45 | `vent-field` | Vent Field | Size 7 | …, bonnet (on the last column) | A chain of vents and columns |
+| 46 | `hawk-island` | Hawk Island | Size 7 | …, bonnet (on a column) | The hawk (coach: sky) |
+| 47 | `fumarole-ridge` | Fumarole Ridge | Size 7 | …, bonnet (on the high column) | Remix: vents, Sally Lightfoots, hawk |
+| 48 | `lava-tubes` | Lava Tubes | Size 7 | …, bonnet (buried among lava boulders) | Remix: digging among rocks and vents |
+| 49 | `eruption` | Eruption | Size 8 | …, harp (on the tallest column) | Storm: the vents blow fast and high |
+| 50 | `the-summit-vent` | The Summit Vent | Size 8 | Every basalt shell, harp on the great column | The whole beach |
+
+Vents are drawn by `src/scenes/game/ventsView.ts`: a sulphur crust round each mouth, a lazy wisp when quiet, spurts while it hisses, a billowing column as it blows; nothing while plugged. "whoosh!" floats up when the crab is thrown.
+
+Backdrop theme `basalt` (`src/art/backdrop/basalt.ts`; landforms in `lava.ts`, plants and animals in `galapagos.ts`): a hard, bright equatorial sky with a small fierce sun; drifting fair-weather cumulus and rags of volcanic haze; the deep blue Pacific under a broad Galápagos shield volcano with a smoking summit, lava flows and cinder cones, low islands and an expedition yacht; dark basalt cliffs in columnar joints with cactus and palo santo on top, a sea arch, a steaming lava field and a tuff cone, white surf on the rocks; nearest, black rock and sand with ropy pahoehoe, a heap of big marine iguanas, a sleeping sea lion, sesuvium, a rock pool, a sulphur-crusted vent and driftwood. Movers: frigatebirds wheeling overhead, boobies and brown pelicans flying low over the water, all side-on. The nearest layer has no small creatures.
+
+## Beaches 6–10
+
+Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Beaches 1–5 are built (above). Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
 
 | Beach | Biome | Setting | New |
 | --- | --- | --- | --- |
@@ -195,7 +229,7 @@ Each beach is its own biome: its own creatures, shells, backdrop theme and islan
 | 2 | Dune Sea | Desert dunes running into the ocean | Sky and burrow hunters, pouring sand (built) |
 | 3 | Tide Pool Notes | Granite shelves and rock pools | The tide, fish, octopuses, gulls (built) |
 | 4 | Mangrove Margins | Mudflats and tangled stilt roots | Climbing the roots, mud that slows you; mudskippers, herons, tree crabs (built) |
-| 5 | Ash & Basalt | Black sand under a smoking volcano | Hot sand at midday; shade to cross |
+| 5 | Ash & Basalt | Black sand under a smoking volcano | Steam vents that throw you up onto basalt columns; Sally Lightfoot crabs, a hawk (built) |
 | 6 | Fog & Kelp | Cold coast, kelp beds, a lighthouse | Fog that hides what's coming; kelp washed up as cover |
 | 7 | Wreck Cove | Driftwood and an old ship on the rocks | Rival hermit crabs; stealing from smaller crabs |
 | 8 | Monsoon Harbour | Stilt houses, nets, fishing boats | Nets and boats as cover; monsoon rain |
@@ -212,7 +246,7 @@ Only real shells, the kinds hermit crabs actually live in: no litter or other ma
 | 2 Dune Sea | Desert snail, turban, olive, murex, helmet (built) |
 | 3 Tide Pools | Flat periwinkle, dog whelk, painted top shell, necklace shell, frog shell, knobbed whelk (built) |
 | 4 Mangrove | Mangrove periwinkle, river nerite, mud creeper, telescope snail, mud whelk (built) |
-| 5 Basalt | Drupe, horn shell, spindle, bonnet, harp |
+| 5 Basalt | Drupe, horn shell, spindle, bonnet, harp (built) |
 | 6 Fog & Kelp | Black turban, kelp snail, Kellet's whelk, Oregon triton, wavy turban |
 | 7 Wreck Cove | Nassa, fig shell, tulip shell, lightning whelk, horse conch |
 | 8 Monsoon Harbour | Auger, babylon, cone, spider conch, Indian volute |
@@ -232,7 +266,7 @@ Level select is a beachcomber's chart seen from above, scrolling sideways. Each 
 
 ## What exists, what to build
 
-Built: walking, jumping, eating, the growth cap and bank, twenty real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` to `beach4.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All forty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens; Beach 3 the tide, fish, octopuses and gulls; Beach 4 mangrove roots to climb, mud, mudskippers, herons and tree crabs.
+Built: walking, jumping, eating, the growth cap and bank, thirty real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` to `beach5.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All fifty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens; Beach 3 the tide, fish, octopuses and gulls; Beach 4 mangrove roots to climb, mud, mudskippers, herons and tree crabs; Beach 5 steam vents, basalt columns, black sand, Sally Lightfoot crabs and a hawk.
 
 Still to build, replacing the stand-ins:
 

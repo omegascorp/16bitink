@@ -40,6 +40,12 @@ export interface LevelDef {
   readonly tideBrings?: { readonly food: number; readonly shells?: readonly (readonly [ShellKind, number])[] };
   /** Mud over the sand between two columns, so many rows deep: slow to walk on, quick to dig (see sim.ts). */
   readonly mud?: readonly (readonly [from: number, to: number, rows: number])[];
+  /** Basalt columns: first column, width and height over the sand (tiles). */
+  readonly columns?: readonly (readonly [col: number, width: number, height: number])[];
+  /** Steam vents: shaft column, tiles it throws a crab up, seconds between blows, and seconds into its rhythm at the start (see logic/vents.ts). */
+  readonly vents?: readonly (readonly [col: number, height: number, period: number, offset: number])[];
+  /** Black volcanic sand and basalt, drawn dark (default pale sand). */
+  readonly ground?: 'black';
   /** Mangrove trees: trunk column, height over the mud and how far the roots spread (see mangrove.ts). */
   readonly trees?: readonly TreeSpec[];
   /** Rock boulders: column, row, radius. */

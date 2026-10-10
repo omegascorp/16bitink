@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { KESTREL_SPAN } from '../../art/birds/kestrel';
+import { BIRD_SPAN } from '../../art/birds/spans';
 import { CRITTER_RES } from '../../art/critterArt';
 import { BOIL, RED_HEX } from '../../art/palette';
 import { TEX } from '../../art/textures';
@@ -39,7 +39,7 @@ export class BirdsView {
       const hovering = b.phase === 'hover';
       const f = Math.floor(time / (hovering ? 1000 / FLAP_FPS : GLIDE_MS) + b.id) % BOIL;
       const s = this.sprites.get(b.id) ?? this.create(b);
-      const k = b.w / KESTREL_SPAN / CRITTER_RES;
+      const k = b.w / BIRD_SPAN[b.species] / CRITTER_RES;
       s.setTexture(TEX.bird(b.species, dive, danger, f)).setScale(k * b.dir, k).setPosition(b.x + b.w / 2, b.y + b.h / 2);
       if (danger && (hovering || dive)) this.shadow(g, b, time);
     }

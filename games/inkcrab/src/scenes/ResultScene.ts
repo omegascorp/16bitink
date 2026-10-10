@@ -9,7 +9,8 @@ import { blotReasons, catchTip, isNewBest } from '../logic/resultCard';
 import { shellPx, SHELLS, type ShellKind } from '../logic/shells';
 import type { HunterId } from '../logic/sim';
 import { SPECIES, type SpeciesId } from '../logic/species';
-import { KESTREL_SPAN } from '../art/birds/kestrel';
+import { BIRD_SPAN } from '../art/birds/spans';
+import type { BirdSpecies } from '../logic/birds';
 import type { BackdropView } from './game/backdropView';
 import { drawGrowthBar } from './growthBar';
 import { crabInShell, POP_DELAY } from './heroCrab';
@@ -173,7 +174,7 @@ export class ResultScene extends Phaser.Scene {
   private hunter(by: HunterId, x: number, ground: number, width: number): void {
     if (!(by in SPECIES)) {
       // A bird: hovering over the shell, wings beating.
-      const k = (width * 1.3) / KESTREL_SPAN;
+      const k = (width * 1.3) / BIRD_SPAN[by as BirdSpecies];
       const bird = this.add.image(x, ground - width * 1.6, TEX.bird(by, false, true, 0)).setScale(-k, k).setDepth(11).setAlpha(0);
       this.tweens.add({ targets: bird, alpha: 1, delay: POP_DELAY + 200, duration: 500 });
       this.tweens.add({ targets: bird, y: bird.y - 10, delay: POP_DELAY + 700, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' });

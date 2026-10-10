@@ -7,9 +7,11 @@ import { fiddler } from './critters/fiddler';
 import { ghostCrab } from './critters/ghostCrab';
 import { gull } from './critters/gull';
 import { heron, heronBody } from './critters/heron';
+import { lavaLizard } from './critters/lavaLizard';
 import { mudskipper } from './critters/mudskipper';
 import { octopus } from './critters/octopus';
 import { raven } from './critters/raven';
+import { sallyCrab } from './critters/sallyCrab';
 import { sculpin } from './critters/sculpin';
 import { shoreCrab } from './critters/shoreCrab';
 import { skink } from './critters/skink';
@@ -26,13 +28,14 @@ export const CRITTER_GROUND = 34;
 /** Texture px per frame unit. */
 export const CRITTER_RES = 1.5;
 /** Frame units across each kind's body, for scaling the drawing to its box. */
-export const CRITTER_SPAN: Readonly<Record<SpeciesId, number>> = { ghostcrab: 70, slater: 72, beetle: 66, darkling: 64, antlion: 70, skink: 84, raven: 80, shorecrab: 66, blenny: 74, sculpin: 80, octopus: 72, gull: 80, fiddler: 60, mudskipper: 70, heron: 60, treecrab: 64 };
+export const CRITTER_SPAN: Readonly<Record<SpeciesId, number>> = { ghostcrab: 70, slater: 72, beetle: 66, darkling: 64, antlion: 70, skink: 84, raven: 80, shorecrab: 66, blenny: 74, sculpin: 80, octopus: 72, gull: 80, fiddler: 60, mudskipper: 70, heron: 60, treecrab: 64, lavalizard: 84, sallycrab: 66 };
 
 const DRAW: Readonly<Record<SpeciesId, (d: Draw) => void>> = {
   ghostcrab: ghostCrab, slater, beetle,
   darkling, antlion, skink, raven,
   shorecrab: shoreCrab, blenny, sculpin, octopus, gull,
   fiddler, mudskipper, heron, treecrab: treeCrab,
+  lavalizard: lavaLizard, sallycrab: sallyCrab,
 };
 
 export function drawCritter(d: Draw, species: SpeciesId = 'ghostcrab'): void {

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ART_RES } from '../../art/palette';
+import { ART_RES, type GroundStyle, PALE_SAND } from '../../art/palette';
 import { CHUNK_PAD, chunkHasGround, drawChunk, makeSandPatterns, type ChunkRect, type SandPatterns } from '../../art/sand';
 import type { TilePos } from '../../logic/dig';
 import type { Terrain } from '../../logic/terrain';
@@ -22,7 +22,7 @@ export class TerrainView {
   private readonly dirty = new Set<string>();
   private patterns: SandPatterns | null = null;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly terrain: Terrain, private readonly tile: number) {
+  constructor(private readonly scene: Phaser.Scene, private readonly terrain: Terrain, private readonly tile: number, private readonly style: GroundStyle = PALE_SAND) {
     for (let cy = 0; cy * CHUNK_TILES < terrain.height; cy++) {
       for (let cx = 0; cx * CHUNK_TILES < terrain.width; cx++) this.dirty.add(`${cx},${cy}`);
     }
@@ -52,7 +52,7 @@ export class TerrainView {
       const rect: ChunkRect = { tx: cx * CHUNK_TILES, ty: cy * CHUNK_TILES, tiles: CHUNK_TILES };
       const chunk = this.chunks.get(key) ?? (chunkHasGround(this.terrain, rect) ? this.create(key, rect) : null);
       if (!chunk) continue;
-      drawChunk(chunk.ctx, this.terrain, rect, this.tile, ART_RES, this.patternsFor(chunk.ctx));
+      drawChunk(chunk.ctx, this.terrain, rect, this.tile, ART_RES, this.patternsFor(chunk.ctx), this.style);
       chunk.texture.refresh();
     }
     this.dirty.clear();
@@ -65,7 +65,7 @@ export class TerrainView {
   }
 
   private patternsFor(ctx: CanvasRenderingContext2D): SandPatterns {
-    this.patterns ??= makeSandPatterns(ctx, ART_RES);
+    this.patterns ??= makeSandPatterns(ctx, ART_RES, this.style);
     return this.patterns;
   }
 

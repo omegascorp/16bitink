@@ -15,6 +15,7 @@ import { createRng, type Rng } from './rng';
 import { inRoots, isLedge, isRoot, perchRow, type Roots } from './roots';
 import { canWear, MOUTH_OFFSET, sandCapacity, shellPx, SHELLS, speedFactor, type ShellKind } from './shells';
 import { startSwap, tickSwap, type Swap } from './swap';
+import { blasts, throwSpeed, type Vent } from './vents';
 import { dig, isDiggable, isSolid, place, surfaceRow, tileAt, TILE, type Terrain } from './terrain';
 
 export interface Input {
@@ -48,6 +49,8 @@ export type SimEvent =
   | { readonly type: 'caught'; readonly x: number; readonly y: number; readonly lives: number; readonly by: HunterId }
   /** A bird's stoop glanced off the shell of a hiding crab. */
   | { readonly type: 'struck'; readonly x: number; readonly y: number }
+  /** A steam vent threw the crab into the air. */
+  | { readonly type: 'thrown'; readonly x: number; readonly y: number }
   | { readonly type: 'won' }
   | { readonly type: 'lost' }
   | { readonly type: 'swapDone'; readonly from: ShellKind | null; readonly to: ShellKind; readonly grew: number; readonly dropped: number | null };
@@ -103,6 +106,8 @@ export interface BeachSetup {
   readonly tideBrings?: TideBrings;
   /** Mangrove roots to climb (default none). */
   readonly roots?: Roots;
+  /** Steam vents (default none). */
+  readonly vents?: readonly Vent[];
 }
 
 /** Birds a level keeps overhead: how many, and how big (they hunt crabs smaller than that). */
@@ -187,6 +192,8 @@ export class Beach {
   readonly shore: Shore | null;
   /** Mangrove roots, on the mangrove beach. */
   readonly roots: Roots | null;
+  /** Steam vents, on the volcanic beach. */
+  readonly vents: readonly Vent[];
   readonly goal: number | null;
   crab: CrabState;
   lives: number;
@@ -216,6 +223,8 @@ export class Beach {
   private pourFlip = false;
   /** Root tops as ledges to stand on; undefined without roots. */
   private readonly ledge: Ledge | undefined;
+  /** The last blow of each vent that threw each body ("vent:id", the crab being -1): once a blow. */
+  private readonly thrown = new Map<string, number>();
 
   constructor(setup: BeachSetup) {
     this.terrain = setup.terrain;
@@ -233,6 +242,7 @@ export class Beach {
     const roots = setup.roots ?? null;
     this.roots = roots;
     this.ledge = roots ? (x, y) => isLedge(roots, x, y) : undefined;
+    this.vents = setup.vents ?? [];
     for (const item of setup.items) this.items.set(item.id, item);
     this.nextId = Math.max(0, ...setup.items.map((i) => i.id)) + 1;
     const growth = setup.startGrowth ?? initialGrowth();
@@ -316,6 +326,7 @@ export class Beach {
     if (this.crab.swap) this.tickSwap(dt, events);
     else if (this.crab.hidden) this.crab = { ...this.crab, body: this.slide(this.crab.body, 0, 0, dt) };
     else this.act(input, dt, events);
+    this.blow(events);
     this.settleSand(events);
     this.pour(dt, events);
     this.flow(dt, events);
@@ -859,6 +870,36 @@ export class Beach {
     this.critters.set(k.id, landing ? { ...k, y: -k.h - this.tileSize, flight: 'in' } : k);
     this.groupOf.set(k.id, group);
     this.nextId++;
+  }
+
+  /**
+   * Steam vents blowing now throw what's over them up into the air, once a
+   * blow each: the crab (hidden in its shell or not), walking creatures,
+   * and loose food. Steam never harms.
+   */
+  private blow(events: SimEvent[]): void {
+    if (!this.vents.length) return;
+    const fresh = (vent: number, id: number, puff: number): boolean => {
+      const key = `${vent}:${id}`;
+      if (this.thrown.get(key) === puff) return false;
+      this.thrown.set(key, puff);
+      return true;
+    };
+    for (const { vent, puff, plume, apex } of blasts(this.vents, this.terrain, this.elapsed, this.tileSize)) {
+      const up = <B extends Body>(b: B): B => ({ ...b, vy: -throwSpeed(b.y + b.h, apex), onGround: false });
+      const c = this.crab;
+      if (overlaps(c.body, plume) && fresh(vent, -1, puff)) {
+        this.crab = { ...c, climbing: false, body: up(c.body) };
+        const at = centre(c.body);
+        events.push({ type: 'thrown', x: at.x, y: at.y });
+      }
+      for (const k of this.critters.values()) {
+        const move = movementOf(k.species);
+        if (k.flight || (move !== 'walk' && move !== 'wade' && move !== 'climb')) continue;
+        if (overlaps(k, plume) && fresh(vent, k.id, puff)) this.critters.set(k.id, up(k));
+      }
+      for (const i of this.items.values()) if (!i.buried && overlaps(i, plume) && fresh(vent, i.id, puff)) this.items.set(i.id, up(i));
+    }
   }
 
   /** The tide: water follows the sea up and down, sand put down in the sea washes flat, and each high water brings things in. */

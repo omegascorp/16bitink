@@ -4,7 +4,8 @@
  * differ in how they move and whether they hunt.
  */
 export type SpeciesId = 'ghostcrab' | 'slater' | 'beetle' | 'darkling' | 'antlion' | 'skink' | 'raven' | 'shorecrab' | 'blenny' | 'sculpin' | 'octopus' | 'gull'
-  | 'fiddler' | 'mudskipper' | 'heron' | 'treecrab';
+  | 'fiddler' | 'mudskipper' | 'heron' | 'treecrab'
+  | 'lavalizard' | 'sallycrab';
 
 /**
  * How it gets about: walkers roam the surface and open tunnels; a lurker
@@ -72,6 +73,10 @@ export const SPECIES: Readonly<Record<SpeciesId, SpeciesSpec>> = {
   // A striated heron: stalks the open mud and stabs with its bill. The root tangle keeps the bill out.
   heron: { id: 'heron', name: 'heron', speed: 0.45, sight: 6, hunts: true, move: 'wade', box: { w: 1, h: 1.5 } },
   // A mangrove tree crab: walks the mud and climbs the roots after crabs up there.
+  // Ash & Basalt (beach 5). A lava lizard: the black beach's small, quick, timid prey.
+  lavalizard: { id: 'lavalizard', name: 'lava lizard', speed: 1, sight: 5, hunts: false, box: { w: 1.2, h: 0.5 } },
+  // A young Sally Lightfoot crab: fast, sooty black on the lava, it hops up the basalt after smaller crabs.
+  sallycrab: { id: 'sallycrab', name: 'Sally Lightfoot crab', speed: 1.15, sight: 6, hunts: true, hops: true, box: { w: 1, h: 0.62 } },
   treecrab: { id: 'treecrab', name: 'tree crab', speed: 0.8, sight: 5, hunts: true, move: 'climb', box: { w: 0.95, h: 0.62 } },
 };
 

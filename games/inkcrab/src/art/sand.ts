@@ -1,7 +1,7 @@
 import { cellCase, cellGeometry } from '../logic/contour';
 import { createRng } from '../logic/rng';
 import { surfaceRow, tileAt, TILE, type Terrain } from '../logic/terrain';
-import { DUNE, INK, MUD, MUD_SHEEN, PAPER, ROCK, TUNNEL, SAND_DEEP, SAND_DRY, SAND_GRAIN, SAND_WET } from './palette';
+import { DUNE, type GroundStyle, INK, MUD, MUD_SHEEN, PALE_SAND, PAPER } from './palette';
 
 /**
  * Diggable sand drawn as ballpoint hatching. Seamless hatch tiles are used
@@ -79,7 +79,7 @@ function hatchTile(res: number, seed: number, angle: number, grid: number, alpha
 }
 
 /** Sand grains, wrapped like the hatching. */
-function grainTile(res: number): HTMLCanvasElement {
+function grainTile(res: number, color: string): HTMLCanvasElement {
   const size = PATTERN_PX * res;
   const canvas = document.createElement('canvas');
   canvas.width = size;
@@ -98,7 +98,7 @@ function grainTile(res: number): HTMLCanvasElement {
     const a = 0.25 + rng() * 0.45;
     wrapped((ox, oy) => {
       ctx.globalAlpha = a;
-      ctx.fillStyle = SAND_GRAIN;
+      ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(x + ox, y + oy, r, 0, Math.PI * 2);
       ctx.fill();
@@ -115,7 +115,7 @@ function rockTile(res: number): HTMLCanvasElement {
   return canvas;
 }
 
-export function makeSandPatterns(ctx: CanvasRenderingContext2D, res: number): SandPatterns {
+export function makeSandPatterns(ctx: CanvasRenderingContext2D, res: number, style: GroundStyle = PALE_SAND): SandPatterns {
   const pattern = (c: HTMLCanvasElement): CanvasPattern => {
     const p = ctx.createPattern(c, 'repeat');
     if (!p) throw new Error('Canvas patterns are not available');
@@ -127,7 +127,7 @@ export function makeSandPatterns(ctx: CanvasRenderingContext2D, res: number): Sa
     sand: pattern(hatchTile(res, 11, -Math.PI / 3, 10, 0.26)),
     deep: pattern(hatchTile(res, 12, Math.PI / 5, 9, 0.3)),
     rock: pattern(rockTile(res)),
-    grain: pattern(grainTile(res)),
+    grain: pattern(grainTile(res, style.grain)),
     ripple: pattern(hatchTile(res, 13, 0.06, 9, 0.12)),
   };
 }
@@ -206,8 +206,8 @@ function edgeSegments(mask: Mask, c: ChunkRect, T: number): [number, number, num
 }
 
 /** Shadow just inside every surface, so tunnels read as hollowed out of the sand. */
-function wallShadow(ctx: CanvasRenderingContext2D, segs: readonly [number, number, number, number][], T: number): void {
-  ctx.strokeStyle = SAND_GRAIN;
+function wallShadow(ctx: CanvasRenderingContext2D, segs: readonly [number, number, number, number][], T: number, style: GroundStyle): void {
+  ctx.strokeStyle = style.shade;
   ctx.lineCap = 'round';
   for (const [w, a] of [[T * 0.9, 0.08], [T * 0.45, 0.12]] as const) {
     ctx.globalAlpha = a;
@@ -252,13 +252,12 @@ function mud(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: number)
   ctx.globalAlpha = 1;
 }
 
-const PEBBLES = ['#8a8478', '#a39276', '#6f7268', '#b5a58a', '#e7c7ae', '#d9a7a0'] as const;
 
 /**
  * The odd pebble or shell chip, scattered per tile by a world-position hash
  * (no pattern repeat, identical across chunk borders).
  */
-function pebbles(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: number): void {
+function pebbles(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: number, style: GroundStyle): void {
   for (let y = c.ty - 1; y <= c.ty + c.tiles; y++) {
     for (let x = c.tx - 1; x <= c.tx + c.tiles; x++) {
       if (tileAt(t, x, y) !== TILE.sand || hash(x, y, 7) > 0.07) continue;
@@ -269,7 +268,7 @@ function pebbles(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: num
       ctx.beginPath();
       ctx.ellipse((x + hash(x, y, 10)) * T, (y + hash(x, y, 11)) * T, rx, ry, hash(x, y, 12) * Math.PI, 0, Math.PI * 2);
       ctx.globalAlpha = 0.85;
-      ctx.fillStyle = PEBBLES[Math.floor(hash(x, y, 13) * PEBBLES.length)]!;
+      ctx.fillStyle = style.pebbles[Math.floor(hash(x, y, 13) * style.pebbles.length)]!;
       ctx.fill();
       ctx.globalAlpha = 0.7;
       ctx.lineWidth = 0.45;
@@ -286,7 +285,7 @@ function deepAlpha(row: number, height: number): number {
 }
 
 /** Redraws one chunk of terrain into `ctx`: a canvas of (tiles·T + 2·CHUNK_PAD)·res pixels. */
-export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: number, res: number, patterns: SandPatterns): void {
+export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: number, res: number, patterns: SandPatterns, style: GroundStyle = PALE_SAND): void {
   const size = c.tiles * T;
   ctx.setTransform(res, 0, 0, res, (CHUNK_PAD - c.tx * T) * res, (CHUNK_PAD - c.ty * T) * res);
   ctx.clearRect(c.tx * T - CHUNK_PAD, c.ty * T - CHUNK_PAD, size + CHUNK_PAD * 2, size + CHUNK_PAD * 2);
@@ -301,7 +300,7 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRec
   };
   const tunnelPath = maskPath(covered, c, T);
   ctx.globalAlpha = 0.55;
-  ctx.fillStyle = TUNNEL;
+  ctx.fillStyle = style.tunnel;
   ctx.fill(tunnelPath);
   ctx.globalAlpha = 1;
   const sandPath = maskPath(solid, c, T);
@@ -309,9 +308,9 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRec
   ctx.fill(sandPath);
   // Watercolour: dry pale sand near the top of the beach, wet and dark below.
   const wash = ctx.createLinearGradient(0, 0, 0, t.height * T);
-  wash.addColorStop(0.15, SAND_DRY);
-  wash.addColorStop(0.55, SAND_WET);
-  wash.addColorStop(1, SAND_DEEP);
+  wash.addColorStop(0.15, style.dry);
+  wash.addColorStop(0.55, style.wet);
+  wash.addColorStop(1, style.deep);
   ctx.globalAlpha = 0.8;
   ctx.fillStyle = wash;
   ctx.fill(sandPath);
@@ -332,8 +331,8 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRec
   mud(ctx, t, c, T);
   ctx.save();
   ctx.clip(sandPath);
-  pebbles(ctx, t, c, T);
-  wallShadow(ctx, edgeSegments(solid, c, T), T);
+  pebbles(ctx, t, c, T, style);
+  wallShadow(ctx, edgeSegments(solid, c, T), T, style);
   ctx.fillStyle = patterns.deep;
   for (let row = c.ty - 1; row <= c.ty + c.tiles; row++) {
     const a = deepAlpha(row, t.height);
@@ -346,16 +345,54 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRec
   ctx.fillStyle = PAPER;
   ctx.fill(rockPath);
   ctx.globalAlpha = 0.75;
-  ctx.fillStyle = ROCK;
+  ctx.fillStyle = style.rock;
   ctx.fill(rockPath);
   ctx.globalAlpha = 1;
   ctx.fillStyle = patterns.grain;
   ctx.fill(rockPath);
   ctx.fillStyle = patterns.rock;
   ctx.fill(rockPath);
+  if (style.joints) joints(ctx, t, rockPath, c, T);
   inkEdges(ctx, solid, c, T, 1.7, 0);
   inkEdges(ctx, rock, c, T, 2.1, 100);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+/**
+ * Basalt cooled into columns: a vertical joint between neighbouring rock
+ * columns every tile or two, and the odd cross-crack, wobbling by world
+ * position so chunks meet without seams.
+ */
+function joints(ctx: CanvasRenderingContext2D, t: Terrain, rockPath: Path2D, c: ChunkRect, T: number): void {
+  ctx.save();
+  ctx.clip(rockPath);
+  ctx.strokeStyle = INK;
+  ctx.lineCap = 'round';
+  for (let x = c.tx - 1; x <= c.tx + c.tiles; x++) {
+    for (let y = c.ty - 1; y <= c.ty + c.tiles; y++) {
+      if (tileAt(t, x, y) !== TILE.rock) continue;
+      const jx = (x + 0.5 + (hash(x, 0, 81) - 0.5) * 0.3) * T;
+      if (hash(x, 0, 80) < 0.7) {
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.moveTo(jx + (hash(x, y, 82) - 0.5) * 1.2, y * T);
+        ctx.lineTo(jx + (hash(x, y + 1, 82) - 0.5) * 1.2, (y + 1) * T);
+        ctx.stroke();
+      }
+      if (hash(x, y, 83) < 0.18) {
+        const cy = (y + hash(x, y, 84)) * T;
+        ctx.globalAlpha = 0.35;
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(x * T, cy);
+        ctx.lineTo((x + 0.5) * T, cy + (hash(x, y, 85) - 0.5) * 3);
+        ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
 }
 
 /** Whether any tile in or bordering the chunk is solid (all-air chunks need no texture). */

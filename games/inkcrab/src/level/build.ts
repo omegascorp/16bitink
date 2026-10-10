@@ -8,6 +8,7 @@ import type { CritterGroup } from '../logic/sim';
 import { BEDROCK, carve } from './carve';
 import { growRoots } from './mangrove';
 import { perchRow, type Roots } from '../logic/roots';
+import { VENT, type Vent } from '../logic/vents';
 import type { LevelDef } from './types';
 
 /** World px per tile, on every beach. */
@@ -102,6 +103,12 @@ export function buildLevel(def: LevelDef): BeachSetup {
   const terrain = carve({
     width: def.width, height: def.height, seed: def.seed, profile: def.profile, rocks: def.rocks, wobble: WOBBLE,
     loose: def.loose, pits: def.pits, granite: def.granite, pools: def.pools, dens: def.dens, mud: def.mud,
+    columns: def.columns, vents: def.vents?.map(([col]) => col),
+  });
+  // Each vent's shaft runs down from its rim to the rock floor the carving left under it.
+  const vents: Vent[] = (def.vents ?? []).map(([col, height, period, offset]) => {
+    const floor = surfaceRow(terrain, col);
+    return { col, height, period, offset, top: floor - VENT.shaft, floor };
   });
   const roots = def.trees?.length ? growRoots(terrain, def.trees, def.seed) : null;
   const rng = createRng(def.seed ^ 0x9e3779b9);
@@ -133,6 +140,7 @@ export function buildLevel(def: LevelDef): BeachSetup {
     dens: def.dens,
     tideBrings: def.tideBrings,
     roots: roots ?? undefined,
+    vents,
     startGrowth: { size: START_SIZE, meter: 0, bank: 0 },
     goal: levelGoal(def),
   };

@@ -3,6 +3,7 @@ import { BEACH_1 } from '../src/level/beach1';
 import { BEACH_2 } from '../src/level/beach2';
 import { BEACH_3 } from '../src/level/beach3';
 import { BEACH_4 } from '../src/level/beach4';
+import { BEACH_5 } from '../src/level/beach5';
 import type { LevelDef } from '../src/level/types';
 import { movementOf } from '../src/logic/species';
 import { buildLevel, levelGoal, levelShells, smallFry, TILE_PX } from '../src/level/build';
@@ -18,6 +19,7 @@ const BEACHES: readonly { name: string; levels: readonly LevelDef[]; fry: string
   { name: 'beach 2', levels: BEACH_2, fry: 'darkling', firstGoal: 4 },
   { name: 'beach 3', levels: BEACH_3, fry: 'shorecrab', firstGoal: 4 },
   { name: 'beach 4', levels: BEACH_4, fry: 'fiddler', firstGoal: 4 },
+  { name: 'beach 5', levels: BEACH_5, fry: 'lavalizard', firstGoal: 4 },
 ];
 
 for (const { name, levels: BEACH, fry: FRY, firstGoal } of BEACHES) describe(name, () => {

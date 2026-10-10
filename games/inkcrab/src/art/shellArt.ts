@@ -4,6 +4,7 @@ import { add, bezier, closed, contact, cub, type Draw, edge, glint, lerp, mottle
 import { MOUTH_X } from './mouth';
 import { PAPER_FILL } from './palette';
 import { DARK, mouth, tilted } from './shells/common';
+import { bonnet, drupe, harp, hornshell, spindle } from './shells/basalt';
 import { mangrovewinkle, mudcreeper, mudwhelk, rivernerite, telescope } from './shells/mangrove';
 
 /**
@@ -745,6 +746,7 @@ const DRAW: Readonly<Record<ShellKind, (d: Draw) => void>> = {
   desertsnail, turban, olive, murex, helmet,
   flatwinkle, dogwhelk, paintedtop, necklace, frogshell, knobbedwhelk,
   mangrovewinkle, rivernerite, mudcreeper, telescope, mudwhelk,
+  drupe, hornshell, spindle, bonnet, harp,
 };
 
 export function drawShell(d: Draw, kind: ShellKind): void {

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BLUE, BLUE_HEX, RED } from '../art/palette';
+import { BLACK_SAND, BLUE, BLUE_HEX, PALE_SAND, RED } from '../art/palette';
 import { TEX } from '../art/textures';
 import { getHost, REG } from '../host';
 import { buildLevel, START_SIZE } from '../level/build';
@@ -22,6 +22,7 @@ import { createTouchState, GameInput, type TouchState } from './game/input';
 import { ItemsView } from './game/itemsView';
 import { TerrainView } from './game/terrainView';
 import { RootsView } from './game/rootsView';
+import { VentsView } from './game/ventsView';
 import { DPR, screenZoom, viewSize } from './hidpi';
 import type { ResultData } from './ResultScene';
 import { HAND_FONT } from './ui';
@@ -51,6 +52,7 @@ export class GameScene extends Phaser.Scene {
   private sandFx!: SandFxView;
   private waterView!: WaterView;
   private crabView!: CrabView;
+  private ventsView!: VentsView;
   private input2!: GameInput;
   private touch!: TouchState;
 
@@ -69,8 +71,9 @@ export class GameScene extends Phaser.Scene {
     const worldH = setup.terrain.height * T;
     this.add.tileSprite(0, 0, worldW, worldH, TEX.paper).setOrigin(0).setDepth(0);
     this.addBackdrop(setup.terrain, T, worldW);
-    this.terrainView = new TerrainView(this, setup.terrain, T);
+    this.terrainView = new TerrainView(this, setup.terrain, T, this.level.ground === 'black' ? BLACK_SAND : PALE_SAND);
     const roots = setup.roots ? new RootsView(this, setup.terrain, setup.roots, T) : null;
+    this.ventsView = new VentsView(this, setup.vents ?? [], setup.terrain, T);
     this.itemsView = new ItemsView(this);
     this.crittersView = new CrittersView(this, setup.terrain, T);
     this.birdsView = new BirdsView(this, setup.terrain, T);
@@ -136,6 +139,7 @@ export class GameScene extends Phaser.Scene {
     this.birdsView.sync(this.beach.birds, this.beach.crab.growth.size, time);
     this.sandFx.update(dt, time);
     this.waterView.update(this.cameras.main.worldView, time);
+    this.ventsView.update(this.beach.elapsed * 1000);
     this.crabView.update(this.beach, time, dt);
     const cam = this.cameras.main;
     const z = screenZoom(cam);
@@ -205,6 +209,8 @@ export class GameScene extends Phaser.Scene {
     else if (e.type === 'caught') {
       this.floatText(e.x, e.y, e.lives > 0 ? 'caught! −1 life' : 'caught!', RED);
       this.cameras.main.shake(180, 0.004);
+    } else if (e.type === 'thrown') {
+      this.floatText(e.x, e.y, 'whoosh!');
     } else if (e.type === 'struck') {
       this.floatText(e.x, e.y, 'tok! safe in the shell');
       this.cameras.main.shake(90, 0.002);

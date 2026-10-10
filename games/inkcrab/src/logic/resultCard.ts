@@ -53,6 +53,8 @@ const HUNTER_TIPS: Partial<Readonly<Record<HunterId, string>>> = {
   beetle: 'Tiger beetles dash in bursts and stop to rest. Move while they rest, or hide.',
   mudskipper: 'Mudskippers can\'t climb. Get up into the mangrove roots and they\'re left on the mud below.',
   heron: 'A heron freezes before it stabs. Get in among the mangrove roots, or hide in your shell: its bill can\'t reach you there.',
+  sallycrab: 'Sally Lightfoot crabs are quick and hop up the rocks. Hide in your shell, or ride a steam vent up out of reach.',
+  hawk: 'A red shadow on the sand is a hawk about to stoop. Get under the rock or the sand, or hide in your shell: it strikes the shell and flies off.',
   treecrab: 'Tree crabs climb as well as you do. Drop off the roots (jump, or hold down on a branch) and run for it, or hide.',
 };
 

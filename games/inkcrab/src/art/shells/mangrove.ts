@@ -3,6 +3,7 @@ import { MOUTH_X } from '../mouth';
 import type { Pt } from '../pen';
 import { PAPER_FILL } from '../palette';
 import { DARK, mouth, tilted } from './common';
+import { across, along, at, type Body, off, swell, tangent } from './spire';
 
 /**
  * Mangrove Margins (beach 4): snails of the roots and the mud. Like the
@@ -11,15 +12,6 @@ import { DARK, mouth, tilted } from './common';
  * told apart by their lean and finish: the periwinkle small and bulging,
  * the mud creeper long, low and corded, the telescope a straight spike.
  */
-
-/** A shell's body seen side-on: a ribbon round a spine from the apex (u 0) to the front (u 1). */
-interface Body {
-  readonly spine: Pt[];
-  readonly top: Pt[];
-  readonly bot: Pt[];
-  readonly shape: Pt[];
-  readonly n: number;
-}
 
 /**
  * The ribbon of a spired shell: `w(u)` is its width, `bend` bows the spine
@@ -33,39 +25,6 @@ function body(from: Pt, to: Pt, w: (u: number) => number, bend = 0, n = 48, bump
   const nrm = normals(spine);
   const top = bump ? r.top.map((p, i) => add(p, pt(nrm[i]!.x * bump(i / n), nrm[i]!.y * bump(i / n)))) : r.top;
   return { spine, top, bot: r.bot, shape: [...top, ...[...r.bot].reverse()], n };
-}
-
-const at = (b: Body, u: number): number => Math.round(Math.min(1, Math.max(0, u)) * b.n);
-
-/** The point `v` of the way from the spine out to the top outline (v > 0) or the bottom one (v < 0). */
-const off = (b: Body, i: number, v: number): Pt => lerp(b.spine[i]!, v >= 0 ? b.top[i]! : b.bot[i]!, Math.abs(v));
-
-/** A spiral line along the shell at `v`, from u0 to u1. */
-function along(b: Body, v: number, u0 = 0, u1 = 1): Pt[] {
-  const i0 = at(b, u0);
-  return Array.from({ length: at(b, u1) - i0 + 1 }, (_, k) => off(b, i0 + k, v));
-}
-
-/** Unit direction of the spine at `i`, towards the front. */
-function tangent(b: Body, i: number): Pt {
-  const p = b.spine[Math.max(0, i - 1)]!;
-  const q = b.spine[Math.min(b.n, i + 1)]!;
-  const l = Math.hypot(q.x - p.x, q.y - p.y) || 1;
-  return pt((q.x - p.x) / l, (q.y - p.y) / l);
-}
-
-/** A line across the shell at `i` (a suture or rib), bowed `bow` towards the front. */
-function across(b: Body, i: number, bow: number): Pt[] {
-  const t = tangent(b, i);
-  return bezier(b.top[i]!, add(b.spine[i]!, pt(t.x * bow, t.y * bow)), b.bot[i]!, 8);
-}
-
-/** Convex whorls: each swells between its sutures by `bulge` of the width; the body whorl, after the last, does not dip. */
-function swell(u: number, sutures: readonly number[], bulge: number): number {
-  const k = sutures.findIndex((s) => u < s);
-  if (k < 0) return 1;
-  const s0 = k === 0 ? 0 : sutures[k - 1]!;
-  return 1 - bulge + bulge * Math.sin((Math.PI * (u - s0)) / (sutures[k]! - s0));
 }
 
 /** A cone widening to its broadest at `peak`, then rounding off to `end` of that at the front. */

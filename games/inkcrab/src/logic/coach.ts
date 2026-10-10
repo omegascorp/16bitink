@@ -7,7 +7,7 @@ import type { Beach, SimEvent } from './sim';
 import { isSolid } from './terrain';
 
 /** Something a level teaches, step by step, with a hint shown only while it's relevant. */
-export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron';
+export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron' | 'vent';
 
 /** What a hint is about: a lesson, or the way out of a hole, offered on every level. */
 export type HintKind = Lesson | 'stuck';
@@ -30,6 +30,8 @@ const STUCK_TILES = 3;
 /** How close (tiles) the roots are before the climb lesson speaks up, and how high (tiles) it must climb to learn it. */
 const ROOTS_NEAR = 3;
 const CLIMBED = 2;
+/** How close (tiles) a steam vent is before the vent lesson speaks up. */
+const VENT_NEAR = 6;
 
 const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   keys: {
@@ -41,13 +43,14 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     hide: 'Red ink means it can catch you! Hold Z to hide in your shell.',
     buried: 'Highlighted sand hides something buried. Dig a slope down to it: hold → and ↓ with X.',
     stuck: 'Stuck in a hole? Dig your way out at an angle: hold → (or ←) and ↑, then press X.',
-    sky: 'A kestrel is hovering over you! Get under the sand, or hold Z to hide: it strikes your shell and flies off.',
+    sky: 'A bird of prey is hovering over you! Get under the sand, or hold Z to hide: it strikes your shell and flies off.',
     pit: 'An antlion pit! Its sand slides you down to the jaws: walk out, or jump.',
     sandfish: 'A red ripple in the sand is a sandfish hunting you. Get back up into the open!',
     tide: 'The tide is coming in! Water is safe, just slow: press Space to swim up. Fish swim in with it; the tide clock shows when it turns.',
     octopus: 'An octopus is reaching out of its crevice! Get out of reach of its arm, or hold Z to hide.',
     climb: 'Mangrove roots! Hold ↑ among them to climb, ← → to clamber across, ↓ to climb down. Space lets go; ↓ drops you off a branch.',
     heron: 'The heron is taking aim at you! Get in among the roots, or hold Z to hide: its bill can\'t reach you there.',
+    vent: 'A steam vent! Stand over it when it hisses and it throws you high: steer with ← → in the air. Drop sand in it to plug it.',
   },
   touch: {
     move: 'Steer with the stick, jump with the button. Eat food to grow.',
@@ -58,13 +61,14 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     hide: 'Red ink means it can catch you! Hold the shell button to hide.',
     buried: 'Highlighted sand hides something buried. Tap the sand diagonally below you to dig a slope down to it.',
     stuck: 'Stuck in a hole? Tap the sand diagonally above the crab to dig steps out.',
-    sky: 'A kestrel is hovering over you! Get under the sand, or hold the shell button: it strikes your shell and flies off.',
+    sky: 'A bird of prey is hovering over you! Get under the sand, or hold the shell button: it strikes your shell and flies off.',
     pit: 'An antlion pit! Its sand slides you down to the jaws: walk out, or jump.',
     sandfish: 'A red ripple in the sand is a sandfish hunting you. Get back up into the open!',
     tide: 'The tide is coming in! Water is safe, just slow: tap jump to swim up. Fish swim in with it; the tide clock shows when it turns.',
     octopus: 'An octopus is reaching out of its crevice! Get out of reach of its arm, or hold the shell button to hide.',
     climb: 'Mangrove roots! Push the stick up among them to climb, sideways to clamber across, down to climb down. Jump lets go.',
     heron: 'The heron is taking aim at you! Get in among the roots, or hold the shell button to hide: its bill can\'t reach you there.',
+    vent: 'A steam vent! Stand over it when it hisses and it throws you high: steer with the stick in the air. Drop sand in it to plug it.',
   },
 };
 
@@ -92,6 +96,7 @@ export class Coach {
       else if (e.type === 'swapDone') this.done.add('swap');
       else if (e.type === 'tiles' && e.dug) this.done.add('dig');
       else if (e.type === 'revealed' && beach.items.get(e.id)?.kind.type === 'shell') this.done.add('buried');
+      else if (e.type === 'thrown') this.done.add('vent');
     }
     if (c.sand < this.lastSand) this.done.add('drop');
     this.lastSand = c.sand;
@@ -141,6 +146,10 @@ export class Coach {
       const shell = this.buriedShell(beach);
       if (shell) return { lesson: 'buried', text: t.buried!, target: centre(shell) };
     }
+    if (open('vent')) {
+      const vent = this.ventNear(beach);
+      if (vent) return { lesson: 'vent', text: t.vent!, target: vent };
+    }
     if (open('climb') && this.rootsNear(beach)) return { lesson: 'climb', text: t.climb!, target: this.perchedShell(beach) ?? undefined };
     if (open('move')) return { lesson: 'move', text: t.move! };
     if (open('dig')) return { lesson: 'dig', text: t.dig! };
@@ -158,6 +167,18 @@ export class Coach {
       return true;
     };
     return wall(s.x0 - 1) && wall(s.x1 + 1);
+  }
+
+  /** The mouth of the nearest steam vent within a few tiles, or null. */
+  private ventNear(beach: Beach): { x: number; y: number } | null {
+    const T = beach.tileSize;
+    const at = centre(beach.crab.body);
+    let best: { x: number; y: number } | null = null;
+    for (const v of beach.vents) {
+      const p = { x: (v.col + 0.5) * T, y: v.top * T };
+      if (Math.abs(p.x - at.x) < VENT_NEAR * T && (!best || Math.abs(p.x - at.x) < Math.abs(best.x - at.x))) best = p;
+    }
+    return best;
   }
 
   /** Mangrove roots within a few tiles of the crab. */
