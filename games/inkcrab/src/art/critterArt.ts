@@ -3,6 +3,7 @@ import { antlion } from './critters/antlion';
 import { beetle } from './critters/beetle';
 import { blenny } from './critters/blenny';
 import { blueCrab } from './critters/blueCrab';
+import { bubbler } from './critters/bubbler';
 import { darkling } from './critters/darkling';
 import { dungeness } from './critters/dungeness';
 import { fiddler } from './critters/fiddler';
@@ -11,6 +12,8 @@ import { gull } from './critters/gull';
 import { heron, heronBody } from './critters/heron';
 import { kelpCrab } from './critters/kelpCrab';
 import { lavaLizard } from './critters/lavaLizard';
+import { monitor } from './critters/monitor';
+import { mudCrab } from './critters/mudCrab';
 import { mudskipper } from './critters/mudskipper';
 import { octopus } from './critters/octopus';
 import { porcelainCrab } from './critters/porcelainCrab';
@@ -34,7 +37,7 @@ export const CRITTER_GROUND = 34;
 /** Texture px per frame unit. */
 export const CRITTER_RES = 1.5;
 /** Frame units across each kind's body, for scaling the drawing to its box. */
-export const CRITTER_SPAN: Readonly<Record<SpeciesId, number>> = { ghostcrab: 70, slater: 72, beetle: 66, darkling: 64, antlion: 70, skink: 84, raven: 80, shorecrab: 66, blenny: 74, sculpin: 80, octopus: 72, gull: 80, fiddler: 60, mudskipper: 70, heron: 60, treecrab: 64, lavalizard: 84, sallycrab: 66, kelpcrab: 58, dungeness: 72, raccoon: 76, porcelaincrab: 64, stonecrab: 72, bluecrab: 84, hermit: 70 };
+export const CRITTER_SPAN: Readonly<Record<SpeciesId, number>> = { ghostcrab: 70, slater: 72, beetle: 66, darkling: 64, antlion: 70, skink: 84, raven: 80, shorecrab: 66, blenny: 74, sculpin: 80, octopus: 72, gull: 80, fiddler: 60, mudskipper: 70, heron: 60, treecrab: 64, lavalizard: 84, sallycrab: 66, kelpcrab: 58, dungeness: 72, raccoon: 76, porcelaincrab: 64, stonecrab: 72, bluecrab: 84, hermit: 70, bubbler: 60, mudcrab: 76, monitor: 104 };
 
 const DRAW: Readonly<Record<SpeciesId, (d: Draw) => void>> = {
   ghostcrab: ghostCrab, slater, beetle,
@@ -45,6 +48,7 @@ const DRAW: Readonly<Record<SpeciesId, (d: Draw) => void>> = {
   kelpcrab: kelpCrab, dungeness, raccoon,
   // The rival hermit is drawn at runtime from the player crab's art and its shell; this is only a stand-in.
   porcelaincrab: porcelainCrab, stonecrab: stoneCrab, bluecrab: blueCrab, hermit: porcelainCrab,
+  bubbler, mudcrab: mudCrab, monitor,
 };
 
 export function drawCritter(d: Draw, species: SpeciesId = 'ghostcrab'): void {

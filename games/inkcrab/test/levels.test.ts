@@ -6,6 +6,7 @@ import { BEACH_4 } from '../src/level/beach4';
 import { BEACH_5 } from '../src/level/beach5';
 import { BEACH_6 } from '../src/level/beach6';
 import { BEACH_7 } from '../src/level/beach7';
+import { BEACH_8 } from '../src/level/beach8';
 import type { LevelDef } from '../src/level/types';
 import { movementOf } from '../src/logic/species';
 import { buildLevel, levelGoal, levelShells, smallFry, START_PATCH, START_SHELL, TILE_PX } from '../src/level/build';
@@ -13,7 +14,9 @@ import { boxHitsSolid } from '../src/logic/body';
 import { pourStep } from '../src/logic/dunes';
 import { Beach } from '../src/logic/sim';
 import { SHELLS } from '../src/logic/shells';
-import { isDiggable, isSolid, surfaceRow } from '../src/logic/terrain';
+import { groundRow, isDiggable, isSolid, surfaceRow } from '../src/logic/terrain';
+import { RAIN } from '../src/logic/rain';
+import { deckAt } from '../src/logic/decks';
 import { isLedge, isRoot, type Roots } from '../src/logic/roots';
 
 const BEACHES: readonly { name: string; levels: readonly LevelDef[]; fry: string; firstGoal: number }[] = [
@@ -24,6 +27,7 @@ const BEACHES: readonly { name: string; levels: readonly LevelDef[]; fry: string
   { name: 'beach 5', levels: BEACH_5, fry: 'lavalizard', firstGoal: 4 },
   { name: 'beach 6', levels: BEACH_6, fry: 'kelpcrab', firstGoal: 4 },
   { name: 'beach 7', levels: BEACH_7, fry: 'porcelaincrab', firstGoal: 4 },
+  { name: 'beach 8', levels: BEACH_8, fry: 'bubbler', firstGoal: 4 },
 ];
 
 for (const { name, levels: BEACH, fry: FRY, firstGoal } of BEACHES) describe(name, () => {
@@ -349,6 +353,59 @@ describe('wreck cove', () => {
     it(`${def.id}: keeps its hunters under the goal`, () => {
       for (const g of def.critters ?? []) expect(g.sizes[1], def.id).toBeLessThan(levelGoal(def));
       for (const g of def.birds ?? []) expect(g.size, def.id).toBeLessThan(levelGoal(def));
+    });
+  }
+});
+
+describe('monsoon harbour', () => {
+  it('brings the rain from the second level on, never more wet than dry, the first squall soon', () => {
+    expect(BEACH_8[0]!.rain).toBeUndefined();
+    for (const def of BEACH_8.slice(1)) {
+      const rain = def.rain!;
+      expect(rain, def.id).toBeDefined();
+      expect(rain.pour, def.id).toBeGreaterThan(RAIN.ease);
+      expect(rain.pour + RAIN.build, def.id).toBeLessThan(rain.period - rain.pour);
+      // Seconds until the first downpour starts.
+      const first = (rain.period - rain.pour - (rain.offset ?? 0) + rain.period) % rain.period;
+      expect(first, def.id).toBeLessThanOrEqual(30);
+    }
+  });
+
+  for (const def of BEACH_8) {
+    describe(def.id, () => {
+      const setup = buildLevel(def);
+      const decks = setup.decks ?? [];
+
+      it('has boats or stilt houses on the beach, clear of the start and of each other, open underneath', () => {
+        expect(decks.length).toBeGreaterThan(0);
+        const cols = new Set<number>();
+        for (const d of decks) {
+          expect(d.col).toBeGreaterThan(def.startCol + 6);
+          expect(d.col + d.width).toBeLessThan(def.width - 2);
+          for (let x = d.col; x < d.col + d.width; x++) {
+            expect(cols.has(x), `${d.col}`).toBe(false);
+            cols.add(x);
+            for (let y = d.row + 1; y < groundRow(setup.terrain, x); y++) expect(isSolid(setup.terrain, x, y)).toBe(false);
+            expect(groundRow(setup.terrain, x) - d.row - 1).toBeGreaterThanOrEqual(1);
+          }
+        }
+      });
+
+      it('lays the shells meant for a deck up on top of it', () => {
+        for (const [kind, col, depth] of def.shells) {
+          const deck = deckAt(decks, col);
+          if (!deck || depth !== 0) continue;
+          const item = setup.items.find((i) => i.kind.type === 'shell' && i.kind.shell === kind)!;
+          expect(item.y + item.h, kind).toBeCloseTo(deck.row * TILE_PX, 5);
+        }
+      });
+
+      it('keeps its hunters under the goal, with one monitor and one kite at most', () => {
+        for (const g of def.critters ?? []) expect(g.sizes[1], def.id).toBeLessThan(levelGoal(def));
+        for (const g of def.birds ?? []) expect(g.size, def.id).toBeLessThan(levelGoal(def));
+        expect((def.critters ?? []).filter((g) => g.species === 'monitor').reduce((n, g) => n + g.count, 0)).toBeLessThanOrEqual(1);
+        expect((def.birds ?? []).reduce((n, g) => n + g.count, 0)).toBeLessThanOrEqual(1);
+      });
     });
   }
 });

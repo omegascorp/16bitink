@@ -19,6 +19,8 @@ import { blasts, throwSpeed, type Vent } from './vents';
 import { FOG, fogAt, type FogSpec } from './fog';
 import { KELP, underKelp, wrackColumn, type WrackSpec } from './kelp';
 import { canRap, inShell, isRival, makeRival, RIVAL, stepRival, type RivalSpec } from './rivals';
+import { isPouring, RAIN, rainAt, type RainSpec } from './rain';
+import { underDeck, type Deck } from './decks';
 import { dig, isDiggable, isSolid, place, surfaceRow, tileAt, TILE, type Terrain } from './terrain';
 
 export interface Input {
@@ -119,6 +121,10 @@ export interface BeachSetup {
   readonly wrack?: readonly WrackSpec[];
   /** Rival hermit crabs, each in its shell (default none). Never restocked. */
   readonly rivals?: readonly RivalSpec[];
+  /** Monsoon squalls (default none: it never rains). */
+  readonly rain?: RainSpec;
+  /** Boats and stilt houses standing over the sand, their floors already laid in the terrain (default none). */
+  readonly decks?: readonly Deck[];
 }
 
 /** Birds a level keeps overhead: how many, and how big (they hunt crabs smaller than that). */
@@ -203,6 +209,9 @@ export class Beach {
   /** Sea fog and kelp wrack, on the cold kelp coast. */
   readonly fog: FogSpec | undefined;
   readonly wrack: readonly WrackSpec[];
+  /** Monsoon squalls, and the boats and stilt houses to shelter under, in the harbour. */
+  readonly rain: RainSpec | undefined;
+  readonly decks: readonly Deck[];
   readonly goal: number | null;
   crab: CrabState;
   lives: number;
@@ -257,6 +266,8 @@ export class Beach {
     this.vents = setup.vents ?? [];
     this.fog = setup.fog;
     this.wrack = setup.wrack ?? [];
+    this.rain = setup.rain;
+    this.decks = setup.decks ?? [];
     for (const item of setup.items) this.items.set(item.id, item);
     this.nextId = Math.max(0, ...setup.items.map((i) => i.id)) + 1;
     const growth = setup.startGrowth ?? initialGrowth();
@@ -317,6 +328,21 @@ export class Beach {
   /** Whether a body is down among the kelp wrack. */
   underKelp(b: Box): boolean {
     return underKelp(this.terrain, this.wrack, b, this.tileSize);
+  }
+
+  /** How hard it's raining now, 0..1 (see rain.ts). */
+  get rainNow(): number {
+    return rainAt(this.rain, this.elapsed);
+  }
+
+  /** A downpour is on: birds won't stoop, food washes out, wet sand digs quickly. */
+  get downpour(): boolean {
+    return isPouring(this.rain, this.elapsed);
+  }
+
+  /** Whether a body is under a boat or stilt house. */
+  underDeck(b: Box): boolean {
+    return underDeck(this.decks, b, this.tileSize);
   }
 
   /** Standing on mud (not climbing beside it). */
@@ -512,11 +538,12 @@ export class Beach {
   private removeTiles(tiles: readonly TilePos[], events: SimEvent[]): boolean {
     const taken = tiles.slice(0, Math.max(0, this.sandCapacity - this.crab.sand));
     if (!taken.length) return false;
-    // Soft mud digs quicker than sand.
+    // Soft mud digs quicker than sand, and so does sand soaked by a downpour.
     const soft = taken.every(([x, y]) => tileAt(this.terrain, x, y) === TILE.mud);
     for (const [x, y] of taken) dig(this.terrain, x, y);
     events.push({ type: 'tiles', tiles: taken, dug: true });
-    this.crab = { ...this.crab, sand: this.crab.sand + taken.length, digCooldown: this.cooldown * (soft ? MUD.dig : 1) };
+    const quick = soft ? MUD.dig : this.downpour ? RAIN.dig : 1;
+    this.crab = { ...this.crab, sand: this.crab.sand + taken.length, digCooldown: this.cooldown * quick };
     return true;
   }
 
@@ -673,19 +700,24 @@ export class Beach {
     }
   }
 
+  /**
+   * Keeps loose food on the surface topped up, a piece every few seconds. A
+   * downpour washes worms and hoppers out, quicker and more of them.
+   */
   private restock(dt: number, events: SimEvent[]): void {
     if (this.surfaceFood <= 0) return;
+    const pouring = this.downpour;
     this.foodTimer += dt;
-    if (this.foodTimer < FOOD_EVERY) return;
+    if (this.foodTimer < FOOD_EVERY * (pouring ? RAIN.foodEvery : 1)) return;
     this.foodTimer = 0;
     let loose = 0;
     for (const i of this.items.values()) if (i.kind.type === 'food' && !i.buried) loose++;
-    if (loose >= this.surfaceFood) return;
+    if (loose >= (pouring ? Math.ceil(this.surfaceFood * (1 + RAIN.extra)) : this.surfaceFood)) return;
     const T = this.tileSize;
     // Beach hoppers live in the kelp wrack: some of it turns up there.
     const inKelp = this.wrack.length > 0 && this.rng() < KELP.food ? wrackColumn(this.wrack, this.rng()) : null;
     const tx = inKelp ?? 2 + Math.floor(this.rng() * (this.terrain.width - 4));
-    const kind = food(inKelp !== null || this.rng() >= 0.7 ? 'hopper' : 'crumb');
+    const kind = food(pouring ? (this.rng() < 0.5 ? 'worm' : 'hopper') : inKelp !== null || this.rng() >= 0.7 ? 'hopper' : 'crumb');
     const id = this.nextId++;
     const proto = makeItem(id, kind, 0, 0, false);
     // Where mangroves grow, some of it turns up on the roots: worth the climb.
@@ -744,7 +776,8 @@ export class Beach {
     const c = this.crab;
     const quarry = {
       box: c.body, size: c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize),
-      inWater: this.submerged(c.body), inRoots: this.inRoots(c.body), veil: this.fogOver(c.body), covered: this.underKelp(c.body),
+      // Fog round the crab, or rain anywhere, hides it from what hunts by sight.
+      inWater: this.submerged(c.body), inRoots: this.inRoots(c.body), veil: Math.max(this.fogOver(c.body), this.rainNow), covered: this.underKelp(c.body),
     };
     const env = this.surroundings;
     const rapper = { box: c.body, size: c.growth.size };
@@ -1022,8 +1055,8 @@ export class Beach {
     if (!this.birds.size) return;
     const c = this.crab;
     const T = this.tileSize;
-    // Under kelp, or lost in thick fog, it's as good as under cover.
-    const open = underSky(this.terrain, c.body, T) && !this.underKelp(c.body) && this.fogOver(c.body) < FOG.thick;
+    // Under kelp, or lost in thick fog, it's as good as under cover; in a downpour no bird stoops.
+    const open = underSky(this.terrain, c.body, T) && !this.underKelp(c.body) && this.fogOver(c.body) < FOG.thick && !this.downpour;
     const quarry = { box: c.body, size: c.growth.size, hidden: c.hidden, open };
     for (const b of this.birds.values()) {
       const next = stepBird(this.terrain, b, quarry, dt, T);

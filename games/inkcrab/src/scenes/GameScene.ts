@@ -26,6 +26,8 @@ import { VentsView } from './game/ventsView';
 import { FogView } from './game/fogView';
 import { KelpView } from './game/kelpView';
 import { RivalsView } from './game/rivalsView';
+import { RainView } from './game/rainView';
+import { DecksView } from './game/decksView';
 import { wrackAt } from '../logic/kelp';
 import { DPR, screenZoom, viewSize } from './hidpi';
 import type { ResultData } from './ResultScene';
@@ -62,6 +64,8 @@ export class GameScene extends Phaser.Scene {
   private fogView: FogView | null = null;
   private kelpView: KelpView | null = null;
   private rivalsView!: RivalsView;
+  private rainView: RainView | null = null;
+  private decksView: DecksView | null = null;
   private input2!: GameInput;
   private touch!: TouchState;
 
@@ -87,6 +91,9 @@ export class GameScene extends Phaser.Scene {
     const fog = setup.fog?.banks.length ? new FogView(this, setup.fog, setup.terrain, T) : null;
     this.kelpView = kelp;
     this.fogView = fog;
+    const decks = setup.decks?.length ? new DecksView(this, setup.terrain, setup.decks, T) : null;
+    this.decksView = decks;
+    this.rainView = setup.rain ? new RainView(this, setup.terrain, T) : null;
     this.itemsView = new ItemsView(this);
     this.crittersView = new CrittersView(this, setup.terrain, T);
     this.rivalsView = new RivalsView(this);
@@ -108,6 +115,8 @@ export class GameScene extends Phaser.Scene {
       roots?.destroy();
       kelp?.destroy(this);
       fog?.destroy();
+      decks?.destroy(this);
+      this.rainView?.destroy();
     });
   }
 
@@ -170,6 +179,8 @@ export class GameScene extends Phaser.Scene {
     this.waterView.update(this.cameras.main.worldView, time);
     this.ventsView.update(this.beach.elapsed * 1000);
     this.updateFogAndKelp();
+    this.decksView?.update();
+    this.rainView?.update(this.beach.rainNow, this.cameras.main.worldView, this.beach.elapsed);
     this.crabView.update(this.beach, time, dt);
     const cam = this.cameras.main;
     const z = screenZoom(cam);

@@ -11,6 +11,7 @@ export const SHELL_KINDS = [
   'drupe', 'hornshell', 'spindle', 'bonnet', 'harp',
   'blackturban', 'kelpsnail', 'kellets', 'oregontriton', 'wavyturban',
   'nassa', 'figshell', 'tulip', 'lightningwhelk', 'horseconch',
+  'auger', 'babylon', 'cone', 'spiderconch', 'volute',
 ] as const;
 export type ShellKind = (typeof SHELL_KINDS)[number];
 
@@ -78,6 +79,12 @@ export const SHELLS: Readonly<Record<ShellKind, ShellSpec>> = {
   tulip: spec('tulip', 'tulip shell', 3, 6, 2, 3),
   lightningwhelk: spec('lightningwhelk', 'lightning whelk', 4, 7, 2, 3),
   horseconch: spec('horseconch', 'horse conch', 5, 8, 3, 4),
+  // Monsoon Harbour (beach 8): Indian Ocean shells, the kind sold in heaps on the harbour wall.
+  auger: spec('auger', 'auger shell', 1, 3, 1, 2),
+  babylon: spec('babylon', 'babylon', 2, 4, 1, 2),
+  cone: spec('cone', 'cone shell', 3, 6, 2, 3),
+  spiderconch: spec('spiderconch', 'spider conch', 4, 7, 2, 3),
+  volute: spec('volute', 'Indian volute', 5, 8, 3, 4),
 };
 
 /** A hermit crab's body box: the size of its shell (the biggest body that shell takes), or of its own body when it's out of one. */

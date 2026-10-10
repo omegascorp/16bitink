@@ -15,6 +15,8 @@ import { drawGrowthBar } from './growthBar';
 import { HAND_FONT, inkButton, inkText, wobblyRect } from './ui';
 import { drawTideClock } from './tideClock';
 import { tidePhase, tideTurn } from '../logic/tide';
+import { drawRainClock } from './rainClock';
+import { rainTurn } from '../logic/rain';
 
 const PANEL = { x: 16, y: 14, w: 380, h: 118 } as const;
 /** The sand heap sits in the panel's right end, its count under it. */
@@ -26,7 +28,7 @@ const INTRO_MS = 3600;
 /** The pause button, top right; the lives start left of it. */
 const PAUSE = { w: 52, h: 44, fromRight: 42 } as const;
 const LIVES_FROM_RIGHT = 104;
-/** The tide clock, under the lives at the top right. */
+/** The tide clock (or the rain clock), under the lives at the top right. */
 const TIDE = { r: 20, fromRight: 54, y: 96 } as const;
 
 /** The on-screen jump button, bottom right (touch only). */
@@ -127,6 +129,7 @@ export class HudScene extends Phaser.Scene {
     this.pauseLayer?.setPosition(width / 2, height / 2);
 
     this.drawTide(game, width);
+    this.drawRain(game, width);
     drawSandGauge(g, HEAP_AT.x, HEAP_AT.bottom, c.sand, beach.sandCapacity);
     // Full, it digs nothing until it unloads; past full (a smaller shell) is a warning.
     const loaded = c.sand >= beach.sandCapacity;
@@ -136,7 +139,7 @@ export class HudScene extends Phaser.Scene {
     // Centred under the heap, but kept inside the panel when the hint makes it long.
     this.sand.setX(Math.min(HEAP_AT.x, PANEL.x + PANEL.w - 8 - this.sand.width / 2));
     const bank = c.growth.bank > 0 ? ` (+${c.growth.bank} banked)` : '';
-    this.note.setText(c.swap ? 'moving house… exposed!' : c.hidden ? 'hiding in the shell' : beach.underKelp(c.body) ? 'under the kelp, out of sight' : beach.capped ? `shell full, find a bigger one${bank}` : `growing${bank}`);
+    this.note.setText(c.swap ? 'moving house… exposed!' : c.hidden ? 'hiding in the shell' : beach.underKelp(c.body) ? 'under the kelp, out of sight' : beach.underDeck(c.body) ? 'under cover, safe from the sky' : beach.capped ? `shell full, find a bigger one${bank}` : `growing${bank}`);
     this.note.setColor(c.swap ? RED : BLUE);
     const spec = c.shell ? SHELLS[c.shell] : null;
     this.shell.setText(spec ? `in a ${spec.name} · fits sizes ${spec.minSize}–${spec.maxSize}` : 'no shell!');
@@ -189,6 +192,19 @@ export class HudScene extends Phaser.Scene {
     drawTideClock(this.g, x, TIDE.y, TIDE.r, level, turn.rising);
     const secs = Math.ceil(turn.seconds);
     this.tideText.setText(turn.rising ? `tide coming in · high in ${secs}s` : `tide going out · low in ${secs}s`).setPosition(x - TIDE.r - 10, TIDE.y);
+  }
+
+  /** On a monsoon beach: the rain clock, and how long until it pours or clears. */
+  private drawRain(game: GameScene, width: number): void {
+    const rain = game.beach.rain;
+    if (!rain) return;
+    this.tideText.setVisible(true);
+    const turn = rainTurn(rain, game.beach.elapsed);
+    const spell = turn.pouring ? rain.pour : rain.period - rain.pour;
+    const x = width - TIDE.fromRight - 10;
+    drawRainClock(this.g, x, TIDE.y, TIDE.r, 1 - turn.seconds / spell, turn.pouring);
+    const secs = Math.ceil(turn.seconds);
+    this.tideText.setText(turn.pouring ? `pouring · hunters half-blind · clears in ${secs}s` : `dry spell · rain in ${secs}s`).setPosition(x - TIDE.r - 10, TIDE.y);
   }
 
   private drawCoach(game: GameScene, width: number): void {

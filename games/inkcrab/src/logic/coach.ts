@@ -3,6 +3,7 @@ import { FOG } from './fog';
 import { tileSpan } from './dig';
 import { centre, type Item } from './items';
 import { isRival } from './rivals';
+import { onDeck } from './decks';
 import { canWear, SHELLS } from './shells';
 import { movementOf, SPECIES } from './species';
 import type { Beach, SimEvent } from './sim';
@@ -12,7 +13,8 @@ import { isSolid, surfaceRow } from './terrain';
 /** Something a level teaches, step by step, with a hint shown only while it's relevant. */
 export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron' | 'vent'
   | 'kelp' | 'fog' | 'raccoon'
-  | 'rival';
+  | 'rival'
+  | 'rain' | 'deck' | 'monitor';
 
 /** What a hint is about: a lesson, or the way out of a hole, offered on every level. */
 export type HintKind = Lesson | 'stuck';
@@ -41,6 +43,8 @@ const VENT_NEAR = 6;
 const KELP_NEAR = 6;
 /** How close (tiles) a rival hermit crab you could rap is before the rival lesson speaks up. */
 const RIVAL_NEAR = 8;
+/** How close (tiles) a boat or stilt house is before the deck lesson speaks up. */
+const DECK_NEAR = 8;
 
 const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   keys: {
@@ -64,6 +68,9 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     fog: 'Sea fog! You see only what\'s close, but hunters can\'t see you far either. Watch for red ink coming out of it.',
     raccoon: 'A raccoon hunts by smell: the fog won\'t hide you from it. Get under the kelp, or hold Z to hide.',
     rival: 'A hermit crab no bigger than you! Walk up and press E to rap on its shell: it lets go, and you can move in if it fits.',
+    rain: 'Monsoon rain! While it pours, hunters can\'t see far, birds won\'t stoop, worms wash out and wet sand digs fast. Go foraging!',
+    deck: 'A boat up on trestles! Under it no bird can stoop on you. Shells and food lie up on top: build a ramp of sand to climb on.',
+    monitor: 'A water monitor tastes the air: the rain won\'t hide you from it. Hold Z to hide, or get up out of its reach.',
   },
   touch: {
     move: 'Steer with the stick, jump with the button. Eat food to grow.',
@@ -86,6 +93,9 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     fog: 'Sea fog! You see only what\'s close, but hunters can\'t see you far either. Watch for red ink coming out of it.',
     raccoon: 'A raccoon hunts by smell: the fog won\'t hide you from it. Get under the kelp, or hold the shell button to hide.',
     rival: 'A hermit crab no bigger than you! Walk up and tap it to rap on its shell: it lets go, and you can move in if it fits.',
+    rain: 'Monsoon rain! While it pours, hunters can\'t see far, birds won\'t stoop, worms wash out and wet sand digs fast. Go foraging!',
+    deck: 'A boat up on trestles! Under it no bird can stoop on you. Shells and food lie up on top: build a ramp of sand to climb on.',
+    monitor: 'A water monitor tastes the air: the rain won\'t hide you from it. Hold the shell button to hide, or get up out of its reach.',
   },
 };
 
@@ -133,7 +143,11 @@ export class Coach {
     // Kelp is learnt by getting down among it; fog by coming out the other side of a bank.
     if (beach.underKelp(c.body)) this.done.add('kelp');
     this.escape('fog', beach.fogOver(c.body) >= FOG.thick);
-    this.escape('raccoon', this.raccoonNear(beach) && !c.hidden && !beach.underKelp(c.body));
+    this.escape('raccoon', this.noseNear(beach) && !c.hidden && !beach.underKelp(c.body));
+    // The rain is learnt by seeing a downpour through; a deck by getting under one or up on it.
+    this.escape('rain', beach.downpour);
+    if (beach.underDeck(c.body) || onDeck(beach.decks, c.body, beach.tileSize)) this.done.add('deck');
+    this.escape('monitor', this.noseNear(beach) && !c.hidden && !onDeck(beach.decks, c.body, beach.tileSize));
   }
 
   /** Learns a lesson once its danger, having come up, has passed (got under cover, out of the pit, up out of the sand). */
@@ -158,6 +172,8 @@ export class Coach {
     if (open('octopus') && this.facing.has('octopus')) return { lesson: 'octopus', text: t.octopus! };
     if (open('heron') && this.facing.has('heron')) return { lesson: 'heron', text: t.heron! };
     if (open('raccoon') && this.facing.has('raccoon')) return { lesson: 'raccoon', text: t.raccoon!, target: this.kelpNear(beach) ?? undefined };
+    if (open('monitor') && this.facing.has('monitor')) return { lesson: 'monitor', text: t.monitor!, target: this.deckNear(beach) ?? undefined };
+    if (open('rain') && beach.rainNow > 0) return { lesson: 'rain', text: t.rain! };
     if (open('fog') && this.facing.has('fog')) return { lesson: 'fog', text: t.fog! };
     if (open('tide') && beach.tide && beach.elapsed > 4) return { lesson: 'tide', text: t.tide! };
     if (this.stuck(beach)) return { lesson: 'stuck', text: t.stuck! };
@@ -177,6 +193,10 @@ export class Coach {
     if (open('rival')) {
       const rival = this.rivalNear(beach);
       if (rival) return { lesson: 'rival', text: t.rival!, target: rival };
+    }
+    if (open('deck')) {
+      const deck = this.deckNear(beach);
+      if (deck) return { lesson: 'deck', text: t.deck!, target: deck };
     }
     if (open('kelp')) {
       const kelp = this.kelpNear(beach);
@@ -240,8 +260,21 @@ export class Coach {
     return best;
   }
 
-  /** A raccoon bigger than the crab, close by. */
-  private raccoonNear(beach: Beach): boolean {
+  /** The top middle of the nearest boat or stilt house within a few tiles, or null. */
+  private deckNear(beach: Beach): { x: number; y: number } | null {
+    const T = beach.tileSize;
+    const at = centre(beach.crab.body);
+    let best: { x: number; y: number } | null = null;
+    for (const d of beach.decks) {
+      const p = { x: (d.col + d.width / 2) * T, y: d.row * T };
+      const off = Math.max(0, Math.abs(p.x - at.x) - (d.width / 2) * T);
+      if (off < DECK_NEAR * T && (!best || Math.abs(p.x - at.x) < Math.abs(best.x - at.x))) best = p;
+    }
+    return best;
+  }
+
+  /** A hunter by smell (a raccoon, a monitor) bigger than the crab, close by. */
+  private noseNear(beach: Beach): boolean {
     const c = beach.crab;
     const at = centre(c.body);
     const reach = DANGER_TILES * beach.tileSize;

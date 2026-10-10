@@ -289,9 +289,47 @@ Shells: nassa (1–3), fig shell (2–4), tulip shell (3–6), lightning whelk (
 
 Backdrop theme `wreck` (`src/art/backdrop/wreck.ts`; landforms and water in `gulfCoast.ts`, the wreck, pilings and timbers in `shipwreck.ts`, plants in `gulfLife.ts`, animals in `gulfAnimals.ts`): warm late-afternoon Gulf light, towering cumulus far out and fair-weather clouds drifting; the calm green-turquoise Gulf with a low barrier island, Sanibel's iron-frame lighthouse and the keepers' cottages on stilts, channel markers, a shrimp boat with its outriggers up and a far sailboat; just offshore, an old two-masted wooden ship broken-backed on the limestone, ribs showing, foremast snapped, surf bursting against her, with the stumps of an old pier nearby; nearest, white sand under sea oats, sea grape and cabbage palms, bleached driftwood, a ship's timber with rusting bolts, and a wrack line of sargassum studded with tiny pale shells. Movers: an osprey circling high, laughing gulls, brown pelicans in file low over the water, and dolphins rolling through the swell, all side-on. The nearest layer has no small creatures.
 
-## Beaches 8–10
+## Beach 8: Monsoon Harbour
 
-Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Beaches 1–7 are built (above). Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
+A fishing village on the Malabar coast of Kerala in the south-west monsoon: wet golden sand, painted wooden boats drawn up on it, stilt houses, drying racks, and the Chinese fishing nets along the shore. Its idea is the monsoon: squalls come and go, and between them you shelter.
+
+**What's new:**
+
+- **Monsoon squalls** (`games/inkcrab/src/logic/rain.ts`; `rain: { period, pour, offset }`). A steady rhythm like the tide, never a deadline: a dry spell, then a squall builds for 3 s (the warning: the light goes slate grey, the first drops fall), pours for `pour` seconds and eases off over its last 2. While it pours:
+  - hunters that hunt by sight see only 2 tiles (the fog's rule, `sightInFog`, with the rain's strength as the veil); a monitor's tongue isn't fooled;
+  - no bird stoops: one hovering loses the crab and climbs away;
+  - the rain washes worms and hoppers out: surface food is restocked every 0.75 s instead of 2.5, up to half as much again as the usual stock;
+  - wet sand digs in half the time, like mud.
+
+  The rain never harms. The HUD shows a rain clock where the tide clock goes: a cloud in a gauge with a sweep for the current spell, and "rain in 12s" or "pouring · clears in 8s". Drawn by `src/scenes/game/rainView.ts`: a slate wash over the view and slanting pen streaks that stop at the first thing they hit (so never under a boat), with splashes on the sand.
+- **Boats, stilt houses and drying racks** (`games/inkcrab/src/logic/decks.ts`; `decks: [col, width, clearance, kind]`). A wooden floor a tile thick (`TILE.wood`: solid, never dug) laid `clearance` open rows over the highest sand under it; its posts are only drawn, so anything that fits walks under. Under one, nothing can stoop on you; up on top lie shells and food (restocked food lands there too). Get up with a jump or a ramp of sand. Kinds: `boat` (a vallam upturned on trestles), `house` (a stilt house's floor, its hut standing on it), `rack` (a fish-drying rack under a net). Creatures never appear on a deck or under one. Buried food and shells count down from the sand itself (`groundRow`), so a shell can be buried under a boat. Drawn by `src/scenes/game/decksView.ts` (art in `src/art/decks.ts`), redrawn when the sand under one changes.
+- **Mud crabs:** heavy, big-clawed hunters by sight, so a downpour half-blinds them.
+- **Water monitor:** a slow, short-sighted lizard that hunts by taste (`nose`), so rain doesn't hide you from it. Outrun it, climb onto a deck it can't reach, or hide.
+- **Brahminy kite** (sky): the kestrel's hover and stoop, with its own drawing. It won't hunt in the rain.
+- **Sand bubbler crabs** are the small prey.
+- **Coach lessons:** `deck` points at a boat nearby until the crab has been under one or up on one; `rain` speaks as the first squall comes and is learnt once that downpour has passed; `monitor` speaks while a bigger monitor is near and the crab is out in the open, pointing at the nearest deck.
+- **Gentle from the start:** hunters are at most size 6, one monitor and one kite at most, the first squall comes within 30 s, and levels 77–80 have starter food.
+
+Shells: auger (1–3), babylon (2–4), cone (3–6), spider conch (4–7), Indian volute (5–8).
+
+| # | Id | Name | Goal | Shells | New |
+| --- | --- | --- | --- | --- | --- |
+| 71 | `monsoon-shore` | Monsoon Shore | Size 4 | Auger, babylon (up on a boat) | Boats as cover and platforms (coach: deck) |
+| 72 | `first-rain` | First Rain | Size 6 | …, cone | Monsoon squalls (coach: rain) |
+| 73 | `mud-crabs` | Mud Crabs | Size 6 | …, cone | Mud crabs, blinded by the rain (coach: hide) |
+| 74 | `under-the-boat` | Under the Boat | Size 6 | …, cone (buried under the big boat) | Dig in the shade, quick in the rain (coach: buried) |
+| 75 | `stilt-village` | Stilt Village | Size 7 | A shell up on each stilt house, spider conch on the far one | A chain of stilt houses |
+| 76 | `brahminy-kite` | Brahminy Kite | Size 7 | …, spider conch (up on a boat) | The kite, grounded by the rain (coach: sky) |
+| 77 | `water-monitor` | Water Monitor | Size 7 | …, spider conch (up on a stilt house) | The monitor, which rain doesn't stop (coach: monitor) |
+| 78 | `drying-racks` | Drying Racks | Size 7 | …, spider conch (buried among rocks) | Remix: racks, rocks, everyone |
+| 79 | `monsoon-break` | Monsoon Break | Size 8 | …, Indian volute (up on the far stilt house) | Storm: short squalls, long dry spells |
+| 80 | `monsoon-harbour` | Monsoon Harbour | Size 8 | Every harbour shell, spider conch buried under a boat, Indian volute on the big stilt house | The whole harbour |
+
+BACKDROP_PLACEHOLDER
+
+## Beaches 9–10
+
+Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Beaches 1–8 are built (above). Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
 
 | Beach | Biome | Setting | New |
 | --- | --- | --- | --- |
@@ -302,7 +340,7 @@ Each beach is its own biome: its own creatures, shells, backdrop theme and islan
 | 5 | Ash & Basalt | Black sand under a smoking volcano | Steam vents that throw you up onto basalt columns; Sally Lightfoot crabs, a hawk (built) |
 | 6 | Fog & Kelp | Cold coast, kelp beds, a lighthouse | Fog that hides what's coming, and you; kelp wrack as cover; Dungeness crabs, a raccoon, a kingfisher (built) |
 | 7 | Wreck Cove | Driftwood and an old ship on the rocks | Rival hermit crabs: rap on a smaller one's shell to take it; stone crabs, blue crabs, an osprey (built) |
-| 8 | Monsoon Harbour | Stilt houses, nets, fishing boats | Nets and boats as cover; monsoon rain |
+| 8 | Monsoon Harbour | Stilt houses, nets, fishing boats | Monsoon squalls that blind the hunters; boats and stilt houses as cover; mud crabs, a water monitor, a Brahminy kite (built) |
 | 9 | Frost Shingle | Pebbles, ice floes, a cold wind | Vacancy chains |
 | 10 | Moonlit Bay | Night beach, glowing tide | Darkness, glowing plankton; the last final molt |
 
@@ -319,7 +357,7 @@ Only real shells, the kinds hermit crabs actually live in: no litter or other ma
 | 5 Basalt | Drupe, horn shell, spindle, bonnet, harp (built) |
 | 6 Fog & Kelp | Black turban, kelp snail, Kellet's whelk, Oregon triton, wavy turban (built) |
 | 7 Wreck Cove | Nassa, fig shell, tulip shell, lightning whelk, horse conch (built) |
-| 8 Monsoon Harbour | Auger, babylon, cone, spider conch, Indian volute |
+| 8 Monsoon Harbour | Auger, babylon, cone, spider conch, Indian volute (built) |
 | 9 Frost Shingle | Wentletrap, Arctic moon snail, Neptune whelk, Arctic whelk, Iceland whelk |
 | 10 Moonlit Bay | Tiger moon snail, giant tun, horned helmet, triton's trumpet, baler |
 
@@ -336,7 +374,7 @@ Level select is a beachcomber's chart seen from above, scrolling sideways. Each 
 
 ## What exists, what to build
 
-Built: walking, jumping, eating, the growth cap and bank, forty real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` to `beach7.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All seventy levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens; Beach 3 the tide, fish, octopuses and gulls; Beach 4 mangrove roots to climb, mud, mudskippers, herons and tree crabs; Beach 5 steam vents, basalt columns, black sand, Sally Lightfoot crabs and a hawk; Beach 6 sea fog, kelp wrack, grey sand, Dungeness crabs, a raccoon and a kingfisher; Beach 7 rival hermit crabs, stone crabs, blue crabs and an osprey.
+Built: walking, jumping, eating, the growth cap and bank, forty-five real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` to `beach8.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All eighty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens; Beach 3 the tide, fish, octopuses and gulls; Beach 4 mangrove roots to climb, mud, mudskippers, herons and tree crabs; Beach 5 steam vents, basalt columns, black sand, Sally Lightfoot crabs and a hawk; Beach 6 sea fog, kelp wrack, grey sand, Dungeness crabs, a raccoon and a kingfisher; Beach 7 rival hermit crabs, stone crabs, blue crabs and an osprey; Beach 8 monsoon squalls, boats, stilt houses and drying racks, mud crabs, a water monitor and a Brahminy kite.
 
 Still to build, replacing the stand-ins:
 

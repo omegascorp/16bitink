@@ -3,6 +3,8 @@ import { clouds, lagoon, LAGOON_H, resort, shore, SHORE_H, sky, SKY_H } from './
 import { BASALT_SEA_H, BASALT_SKY_H, cliffs as lavaCliffs, clouds as basaltClouds, LAVA_CLIFFS_H, LAVA_SHORE_H, sea as basaltSea, shore as lavaShore, sky as basaltSky } from './backdrop/basalt';
 import { dhoni, shrimper, troller, yacht } from './backdrop/boats';
 import { longtail } from './backdrop/estuary';
+import { clouds as harbourClouds, cliffs as harbourCliffs, HARBOUR_CLIFFS_H, HARBOUR_SEA_H, HARBOUR_SHORE_H, HARBOUR_SKY_H, sea as harbourSea, shore as harbourShore, sky as harbourSky } from './backdrop/harbour';
+import { keralaTrawler, vallam } from './backdrop/keralaBoats';
 import { clouds as duneClouds, desert, DESERT_H, DUNE_SKY_H, dunes, DUNES_H, sea, SEA_H, sky as duneSky } from './backdrop/dunes';
 import { cliffs as kelpCliffs, clouds as kelpClouds, KELP_CLIFFS_H, KELP_CLOUDS_H, KELP_SEA_H, KELP_SHORE_H, KELP_SKY_H, sea as kelpSea, shore as kelpShore, sky as kelpSky } from './backdrop/kelp';
 import { clouds as mangroveClouds, forest, FOREST_H, MANGROVE_SKY_H, mudflat, MUDFLAT_H, river, RIVER_H, sky as mangroveSky } from './backdrop/mangrove';
@@ -18,7 +20,7 @@ export { THEME_MOVERS, type MoverSpec } from './backdrop/movers';
  * so the sand and creatures in front always read first. Each beach has its
  * own theme; layers tile horizontally (see `tiled`).
  */
-export type ThemeId = 'atoll' | 'dunes' | 'rockpool' | 'mangrove' | 'basalt' | 'kelp' | 'wreck';
+export type ThemeId = 'atoll' | 'dunes' | 'rockpool' | 'mangrove' | 'basalt' | 'kelp' | 'wreck' | 'harbour';
 export type LayerId = 'sky' | 'clouds' | 'lagoon' | 'resort' | 'shore' | 'sea' | 'dunes' | 'cliffs' | 'river' | 'forest';
 
 export interface LayerSpec {
@@ -89,9 +91,17 @@ export const THEMES: Readonly<Record<ThemeId, readonly LayerSpec[]>> = {
     { id: 'cliffs', height: WRECK_CLIFFS_H, scroll: 0.26, lift: 10, draw: wreckCliffs },
     { id: 'shore', height: WRECK_SHORE_H, scroll: 0.4, lift: -14, draw: wreckShore },
   ],
+  harbour: [
+    // Tall and set low, as the wreck's are, so the thunderheads and their rain stand on the sea's horizon.
+    { id: 'sky', height: HARBOUR_SKY_H, scroll: 0.08, lift: 80, draw: harbourSky },
+    { id: 'clouds', height: HARBOUR_SKY_H, scroll: 0.08, lift: 80, drift: 3.5, draw: harbourClouds },
+    { id: 'sea', height: HARBOUR_SEA_H, scroll: 0.16, lift: 20, draw: harbourSea },
+    { id: 'cliffs', height: HARBOUR_CLIFFS_H, scroll: 0.26, lift: 10, draw: harbourCliffs },
+    { id: 'shore', height: HARBOUR_SHORE_H, scroll: 0.4, lift: -14, draw: harbourShore },
+  ],
 };
 
-export type BoatKind = 'dhoni' | 'yacht' | 'longtail' | 'troller' | 'shrimper';
+export type BoatKind = 'dhoni' | 'yacht' | 'longtail' | 'troller' | 'shrimper' | 'vallam' | 'keralaTrawler';
 
 /** A boat sailing on a layer, drawn as its own sprite so it can move. */
 export interface BoatSpec extends Lane {
@@ -111,9 +121,11 @@ export const BOAT_BOX: Readonly<Record<BoatKind, { readonly left: number; readon
   longtail: { left: -72, right: 30, top: -22, bottom: 9 },
   troller: { left: -32, right: 20, top: -40, bottom: 8 },
   shrimper: { left: -27, right: 25, top: -40, bottom: 8 },
+  vallam: { left: -46, right: 38, top: -24, bottom: 12 },
+  keralaTrawler: { left: -34, right: 28, top: -40, bottom: 9 },
 };
 
-export const BOAT_DRAW: Readonly<Record<BoatKind, (d: Draw, x: number, water: number, s: number) => void>> = { dhoni, yacht, longtail, troller, shrimper };
+export const BOAT_DRAW: Readonly<Record<BoatKind, (d: Draw, x: number, water: number, s: number) => void>> = { dhoni, yacht, longtail, troller, shrimper, vallam, keralaTrawler };
 
 /**
  * The boats out on the water. Yachts drift along the horizon and a small
@@ -150,5 +162,11 @@ export const THEME_BOATS: Readonly<Record<ThemeId, readonly BoatSpec[]>> = {
   wreck: [
     { kind: 'yacht', s: 0.42, layer: 'sea', water: 88, x: 860, speed: -1.2, front: false },
     { kind: 'shrimper', s: 1, layer: 'sea', water: 128, x: 300, speed: 2, front: false },
+  ],
+  // A vallam running in through the chop with her crew and her net, a trawler working along far out, a second vallam heading out.
+  harbour: [
+    { kind: 'keralaTrawler', s: 0.55, layer: 'sea', water: 92, x: 820, speed: -1.4, front: false },
+    { kind: 'vallam', s: 0.6, layer: 'sea', water: 108, x: 120, speed: -2.2, front: false },
+    { kind: 'vallam', s: 1, layer: 'sea', water: 142, x: 420, speed: 3, front: false },
   ],
 };

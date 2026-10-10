@@ -18,7 +18,7 @@ const HULL_WHITE = '#f4f1ea';
 const GLASS = '#7fc4cf';
 
 /** A small figure seen side-on: head, a shirt of colour, sitting or standing. */
-function figure(t: Draw, x: number, base: number, s: number, shirt: string, sitting: boolean): void {
+export function figure(t: Draw, x: number, base: number, s: number, shirt: string, sitting: boolean): void {
   const { pen } = t;
   const h = (sitting ? 6 : 9) * s;
   const body = [pt(x - 1.3 * s, base), pt(x + 1.3 * s, base), pt(x + 1.1 * s, base - h + 2 * s), pt(x - 1.1 * s, base - h + 2 * s)];
@@ -39,7 +39,7 @@ function flag(t: Draw, at: Pt, s: number): void {
 }
 
 /** Foam curling off a bow, and a few streaks of wake. */
-function wash(t: Draw, bow: Pt, stern: Pt, s: number): void {
+export function wash(t: Draw, bow: Pt, stern: Pt, s: number): void {
   const { pen } = t;
   pen.hair(bezier(pt(bow.x - 4 * s, bow.y), pt(bow.x + 1 * s, bow.y - 2 * s), pt(bow.x + 4 * s, bow.y + 0.5 * s), 5), 0.9 * s, PAPER_FILL, 0.9);
   pen.hair(bezier(pt(bow.x - 2 * s, bow.y + 1 * s), pt(bow.x + 2 * s, bow.y - 0.5 * s), pt(bow.x + 5 * s, bow.y + 1.2 * s), 4), 0.45, t.ink, FAR * 0.6);

@@ -1,6 +1,7 @@
 import { BACKDROP_SCALE, BACKDROP_W, BOAT_DRAW, THEME_BOATS, THEME_MOVERS, THEMES, type ThemeId } from '../src/art/backdrop';
 import { dhoni, speedboat, yacht } from '../src/art/backdrop/boats';
 import { bungalow, villa } from '../src/art/backdrop/homes';
+import { brahminy } from '../src/art/birds/brahminy';
 import { kestrel } from '../src/art/birds/kestrel';
 import { drawCrabBack, drawCrabFront } from '../src/art/crabArt';
 import { CRITTER_FRAME, CRITTER_GROUND, drawCritter } from '../src/art/critterArt';
@@ -102,6 +103,22 @@ for (const ink of [undefined, RED]) {
   });
 }
 
+const kites = section('brahminy kite: hover (wing up, mid, down) and stoop, prey and danger');
+for (const ink of [undefined, RED]) {
+  for (let f = 0; f < 3; f++) {
+    figure(kites, `brahminy ${ink ? 'danger' : 'prey'} hover f${f}`, CRITTER_FRAME * 2, CRITTER_FRAME * 1.2, (ctx) => {
+      ctx.scale(2, 2);
+      ctx.translate(CRITTER_FRAME / 2, CRITTER_FRAME / 2);
+      brahminy(makeDraw(ctx, 900 + f, f, 0, ink), false);
+    });
+  }
+  figure(kites, `brahminy ${ink ? 'danger' : 'prey'} stoop`, CRITTER_FRAME * 2, CRITTER_FRAME * 1.2, (ctx) => {
+    ctx.scale(2, 2);
+    ctx.translate(CRITTER_FRAME / 2, CRITTER_FRAME / 2);
+    brahminy(makeDraw(ctx, 910, 0, 0, ink), true);
+  });
+}
+
 const bigCritters = section('creatures, large');
 for (const species of Object.keys(SPECIES) as SpeciesId[]) {
   figure(bigCritters, species, CRITTER_FRAME * 4, CRITTER_FRAME * 3.2, (ctx) => {
@@ -185,4 +202,35 @@ figure(homes, 'villa (tall hip, ladder)', 60 * 4, 60 * 4, (ctx) => {
 figure(homes, 'beach bungalow', 100 * 4, 60 * 4, (ctx) => {
   ctx.scale(4, 4);
   bungalow(makeDraw(ctx, 8, 0, 0), 40, 52, 1);
+});
+
+const decks = section('decks (boat, house, rack), at 2×');
+const DECK_SAND = '#ecdcb0';
+// Imported here so this section stays appended to the sheet.
+void import('../src/art/decks').then(({ DECK_HEADROOM, DECK_OVERHANG, drawDeck }) => {
+  for (const [kind, width, clearance] of [['boat', 4, 1], ['boat', 8, 2], ['house', 3, 2], ['house', 7, 3], ['rack', 3, 1], ['rack', 6, 2], ['house', 10, 4], ['rack', 10, 4], ['boat', 10, 3]] as const) {
+    const T = 16;
+    const w = (width + DECK_OVERHANG * 2) * T;
+    const h = (DECK_HEADROOM + 1 + clearance + 2) * T;
+    const deckTop = DECK_HEADROOM * T;
+    // Level sand under the deck, a tile lower under its right overhang to show a step.
+    const ground = (x: number): number => deckTop + (1 + clearance) * T + (x > w - DECK_OVERHANG * T + T * 0.5 ? T : 0);
+    figure(decks, `${kind} ${width}×, clearance ${clearance}`, Math.max(w, h) * 2, Math.max(w, h) * 2, (ctx) => {
+      ctx.scale(2, 2);
+      ctx.fillStyle = PAPER;
+      ctx.fillRect(0, 0, Math.max(w, h), Math.max(w, h));
+      ctx.fillStyle = DECK_SAND;
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      for (let x = 0; x <= w; x += 2) ctx.lineTo(x, ground(x));
+      ctx.lineTo(w, h);
+      ctx.fill();
+      ctx.strokeStyle = '#26316a';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += 2) ctx.lineTo(x, ground(x));
+      ctx.stroke();
+      drawDeck(ctx, kind, width, T, deckTop, ground, width * 31 + clearance);
+    });
+  }
 });

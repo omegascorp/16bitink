@@ -1,6 +1,8 @@
 import type { FogSpec } from '../logic/fog';
 import type { WrackSpec } from '../logic/kelp';
 import type { RivalSpec } from '../logic/rivals';
+import type { DeckSpec } from '../logic/decks';
+import type { RainSpec } from '../logic/rain';
 import type { BirdGroup, CritterGroup } from '../logic/sim';
 import type { SpeciesId } from '../logic/species';
 import type { Lesson } from '../logic/coach';
@@ -53,6 +55,10 @@ export interface LevelDef {
   readonly kelp?: readonly WrackSpec[];
   /** Rival hermit crabs: the shell each is in, its size and its column (see logic/rivals.ts). */
   readonly rivals?: readonly RivalSpec[];
+  /** Monsoon squalls coming and going (see logic/rain.ts). */
+  readonly rain?: RainSpec;
+  /** Boats and stilt houses over the sand: first column, width, open rows under it, and kind (see logic/decks.ts). */
+  readonly decks?: readonly DeckSpec[];
   /** Black volcanic sand and basalt, drawn dark, or a cold coast's grey sand (default pale sand). */
   readonly ground?: 'black' | 'grey';
   /** Mangrove trees: trunk column, height over the mud and how far the roots spread (see mangrove.ts). */

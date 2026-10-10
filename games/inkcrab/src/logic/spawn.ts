@@ -2,7 +2,7 @@ import { CRITTER, inWater, makeCritter, swimmable, type Critter, type Surroundin
 import { centre } from './items';
 import type { Rng } from './rng';
 import { movementOf, type SpeciesId } from './species';
-import { surfaceRow, type Terrain } from './terrain';
+import { surfaceRow, tileAt, TILE, type Terrain } from './terrain';
 
 /** New creatures appear at least this many tiles from the player, so never in view. */
 export const SPAWN_AWAY = 14;
@@ -46,6 +46,8 @@ export function placeCritter(
     const tx = move === 'lurk' ? emptyPit(site) : from + Math.floor(rng() * (to - from + 1));
     if (tx === null) return null;
     if (Math.abs(tx - site.crabCol) < SPAWN_AWAY && !(site.start && move === 'lurk')) continue;
+    // Never up on a boat or stilt house, or in the shade under one: they come along the sand.
+    if (tileAt(t, tx, surfaceRow(t, tx)) === TILE.wood) continue;
     if (move === 'swim') {
       const fish = inWaterAt(site, id, species, size(), tx);
       if (fish) return fish;

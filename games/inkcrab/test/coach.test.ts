@@ -130,3 +130,51 @@ describe('the coach', () => {
     expect(new Coach(['dig']).hint(b, 'touch')?.text).toMatch(/Tap/);
   });
 });
+
+describe('the harbour lessons', () => {
+  /** A flat beach, the crab at column 5, with rain and decks as asked. */
+  function harbour(over: Partial<ConstructorParameters<typeof Beach>[0]> = {}): Beach {
+    const terrain: Terrain = createTerrain(60, 30);
+    for (let x = 0; x < 60; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
+    const decks = (over.decks ?? []).map((d) => {
+      for (let x = d.col; x < d.col + d.width; x++) setTile(terrain, x, d.row, TILE.wood);
+      return d;
+    });
+    return new Beach({ terrain, items: [], start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: 'periwinkle', seed: 1, surfaceFood: 0, ...over, decks });
+  }
+
+  it('speaks up as the first squall comes, and is learnt once the downpour has passed', () => {
+    const b = harbour({ rain: { period: 20, pour: 6 } });
+    const coach = new Coach(['rain']);
+    play(b, coach, {}, 5);
+    expect(coach.hint(b, 'keys')).toBeNull();
+    play(b, coach, {}, 9);
+    expect(coach.hint(b, 'keys')?.lesson).toBe('rain');
+    play(b, coach, {}, 7);
+    expect(coach.learnt('rain')).toBe(true);
+    expect(coach.hint(b, 'keys')).toBeNull();
+  });
+
+  it('points at a boat nearby until the crab has sheltered under it', () => {
+    const b = harbour({ decks: [{ col: 10, width: 6, row: 7, kind: 'boat' }] });
+    const coach = new Coach(['deck']);
+    play(b, coach, {}, 0.5);
+    const hint = coach.hint(b, 'keys');
+    expect(hint?.lesson).toBe('deck');
+    expect(hint?.target).toEqual({ x: 13 * T, y: 7 * T });
+    play(b, coach, { moveX: 1 }, 2);
+    expect(b.underDeck(b.crab.body)).toBe(true);
+    expect(coach.learnt('deck')).toBe(true);
+  });
+
+  it('warns about a bigger monitor close by, and is learnt once the crab hides from it', () => {
+    const b = harbour();
+    const coach = new Coach(['monitor']);
+    const k = makeCritter(900, 6, 9 * T, 10 * T, -1, 99, 'monitor');
+    b.critters.set(k.id, k);
+    play(b, coach);
+    expect(coach.hint(b, 'keys')?.lesson).toBe('monitor');
+    play(b, coach, { hide: true });
+    expect(coach.learnt('monitor')).toBe(true);
+  });
+});

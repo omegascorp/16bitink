@@ -4,12 +4,13 @@ import { goalSize } from '../logic/progress';
 import { createRng } from '../logic/rng';
 import { SHELLS, type ShellKind } from '../logic/shells';
 import type { BeachSetup } from '../logic/sim';
-import { setTile, tileAt, surfaceRow, TILE, type Terrain } from '../logic/terrain';
+import { groundRow, setTile, tileAt, surfaceRow, TILE, type Terrain } from '../logic/terrain';
 import type { CritterGroup } from '../logic/sim';
 import { BEDROCK, carve } from './carve';
 import { growRoots } from './mangrove';
 import { perchRow, type Roots } from '../logic/roots';
 import { VENT, type Vent } from '../logic/vents';
+import { layDeck } from '../logic/decks';
 import type { LevelDef } from './types';
 
 /** World px per tile, on every beach. */
@@ -23,17 +24,17 @@ const FOOD_DEPTH = 12;
 const POCKET = 3;
 
 /**
- * Places items centred on a tile: on the surface, buried in the sand (made
- * solid around it), or (depth -1) up on the highest root in the column.
- * Returns false if that tile is taken.
+ * Places items centred on a tile: on the surface (up on a boat or stilt
+ * house where there's one), buried in the sand (made solid around it,
+ * counting down from the sand itself, under any deck), or (depth -1) up on
+ * the highest root in the column. Returns false if that tile is taken.
  */
 function placer(t: Terrain, items: Item[], roots: Roots | null): (kind: ItemKind, col: number, depth: number) => boolean {
   const taken = new Set<string>();
   return (kind, col, depth) => {
     const perch = depth < 0 ? perchRow(roots, col) : null;
-    const surface = surfaceRow(t, col);
-    const row = perch ?? surface + Math.max(0, depth);
     const buried = depth > 0;
+    const row = perch ?? (buried ? groundRow(t, col) + depth : surfaceRow(t, col));
     const key = `${col},${row}`;
     if (buried && taken.has(key)) return false;
     // Nothing is buried in rock (granite under thin sand, pool walls).
@@ -64,7 +65,7 @@ function buryFood(def: LevelDef, terrain: Terrain, rng: () => number, add: Retur
     for (let k = 0; k < pocket; k++) {
       const c = Math.max(2, Math.min(def.width - 3, col + k - Math.floor(pocket / 2)));
       const d = depth + (k % 2);
-      if (surfaceRow(terrain, c) + d >= def.height - BEDROCK) continue;
+      if (groundRow(terrain, c) + d >= def.height - BEDROCK) continue;
       // What lives there goes by how far down the sand it is, not in tiles: thin sand still has clams at the bottom.
       const like = 2 + Math.round(((d - 2) * (FOOD_DEPTH - 2)) / (reach - 2));
       if (add(food(buriedFood(like, rng())), c, d)) placed++;
@@ -129,6 +130,8 @@ export function buildLevel(def: LevelDef): BeachSetup {
     const floor = surfaceRow(terrain, col);
     return { col, height, period, offset, top: floor - VENT.shaft, floor };
   });
+  // Boats and stilt houses go up over the finished sand, before anything is laid on it.
+  const decks = (def.decks ?? []).map((spec) => layDeck(terrain, spec));
   const roots = def.trees?.length ? growRoots(terrain, def.trees, def.seed) : null;
   const rng = createRng(def.seed ^ 0x9e3779b9);
   const items: Item[] = [];
@@ -168,6 +171,8 @@ export function buildLevel(def: LevelDef): BeachSetup {
     fog: def.fog,
     wrack: def.kelp,
     rivals: def.rivals,
+    rain: def.rain,
+    decks,
     startGrowth: { size: START_SIZE, meter: 0, bank: 0 },
     goal: levelGoal(def),
   };

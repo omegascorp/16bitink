@@ -7,7 +7,8 @@ export type SpeciesId = 'ghostcrab' | 'slater' | 'beetle' | 'darkling' | 'antlio
   | 'fiddler' | 'mudskipper' | 'heron' | 'treecrab'
   | 'lavalizard' | 'sallycrab'
   | 'kelpcrab' | 'dungeness' | 'raccoon'
-  | 'porcelaincrab' | 'stonecrab' | 'bluecrab' | 'hermit';
+  | 'porcelaincrab' | 'stonecrab' | 'bluecrab' | 'hermit'
+  | 'bubbler' | 'mudcrab' | 'monitor';
 
 /**
  * How it gets about: walkers roam the surface and open tunnels; a lurker
@@ -95,6 +96,12 @@ export const SPECIES: Readonly<Record<SpeciesId, SpeciesSpec>> = {
   bluecrab: { id: 'bluecrab', name: 'blue crab', speed: 1.3, sight: 6, hunts: true, burst: { run: 0.6, rest: 0.7 }, box: { w: 1.2, h: 0.55 } },
   // A rival hermit crab: harmless, after the same shells you are (see logic/rivals.ts). Never food, never a hunter.
   hermit: { id: 'hermit', name: 'hermit crab', speed: 0.9, sight: 5, hunts: false, box: { w: 0.95, h: 0.7 } },
+  // Monsoon Harbour (beach 8). A sand bubbler crab: tiny and timid, it sifts the wet sand into little balls.
+  bubbler: { id: 'bubbler', name: 'sand bubbler crab', speed: 0.9, sight: 4, hunts: false, box: { w: 0.95, h: 0.55 } },
+  // A mud crab: a heavy, big-clawed hunter of the harbour mud. It hunts by sight, so the rain half-blinds it.
+  mudcrab: { id: 'mudcrab', name: 'mud crab', speed: 0.85, sight: 6, hunts: true, box: { w: 1.15, h: 0.65 } },
+  // A water monitor: a long lizard that hunts by tasting the air with its tongue, so the rain doesn't hide you from it. Slow, short-sighted.
+  monitor: { id: 'monitor', name: 'water monitor', speed: 0.7, sight: 4, hunts: true, nose: true, box: { w: 1.5, h: 0.7 } },
   treecrab: { id: 'treecrab', name: 'tree crab', speed: 0.8, sight: 5, hunts: true, move: 'climb', box: { w: 0.95, h: 0.62 } },
 };
 

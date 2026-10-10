@@ -61,6 +61,9 @@ const HUNTER_TIPS: Partial<Readonly<Record<HunterId, string>>> = {
   stonecrab: 'Stone crabs are slow, but their claws are strong. Keep moving, or hide in your shell till it loses interest.',
   bluecrab: 'Blue crabs dash in bursts and stop to rest. Move while they rest, or hide in your shell.',
   osprey: 'A red shadow on the sand is an osprey about to dive. Get under the sand, or hide in your shell: it strikes the shell and flies off.',
+  mudcrab: 'Mud crabs hunt by sight, and in a downpour they can\'t see far. Wait for the rain, or hide in your shell.',
+  monitor: 'A water monitor tastes the air: rain doesn\'t hide you from it. It\'s slow: outrun it, climb onto a boat, or hide in your shell.',
+  brahminy: 'A red shadow on the sand is a Brahminy kite about to stoop. Shelter under a boat or a stilt house, or hide in your shell. It won\'t hunt in the rain.',
   treecrab: 'Tree crabs climb as well as you do. Drop off the roots (jump, or hold down on a branch) and run for it, or hide.',
 };
 

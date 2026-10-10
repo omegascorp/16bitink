@@ -1,6 +1,6 @@
 import { cellCase, cellGeometry } from '../logic/contour';
 import { createRng } from '../logic/rng';
-import { surfaceRow, tileAt, TILE, type Terrain } from '../logic/terrain';
+import { groundRow, tileAt, TILE, type Terrain } from '../logic/terrain';
 import { DUNE, type GroundStyle, INK, MUD, MUD_SHEEN, PALE_SAND, PAPER } from './palette';
 
 /**
@@ -289,13 +289,17 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRec
   const size = c.tiles * T;
   ctx.setTransform(res, 0, 0, res, (CHUNK_PAD - c.tx * T) * res, (CHUNK_PAD - c.ty * T) * res);
   ctx.clearRect(c.tx * T - CHUNK_PAD, c.ty * T - CHUNK_PAD, size + CHUNK_PAD * 2, size + CHUNK_PAD * 2);
-  const solid: Mask = (x, y) => tileAt(t, x, y) !== TILE.air;
+  // A boat's or stilt house's wooden floor is drawn with the deck (see DecksView), not as sand.
+  const solid: Mask = (x, y) => {
+    const tile = tileAt(t, x, y);
+    return tile !== TILE.air && tile !== TILE.wood;
+  };
   const rock: Mask = (x, y) => tileAt(t, x, y) === TILE.rock;
-  // Burrows: open tiles with sand still overhead. They get a shadowy wash so a tunnel never reads as sky.
+  // Burrows: open tiles with sand still overhead (not just a deck). They get a shadowy wash so a tunnel never reads as sky.
   const roof = new Map<number, number>();
   const covered: Mask = (x, y) => {
     if (tileAt(t, x, y) !== TILE.air) return false;
-    if (!roof.has(x)) roof.set(x, surfaceRow(t, x));
+    if (!roof.has(x)) roof.set(x, groundRow(t, x));
     return y > roof.get(x)!;
   };
   const tunnelPath = maskPath(covered, c, T);

@@ -6,11 +6,12 @@ import { BEACH_4 } from './beach4';
 import { BEACH_5 } from './beach5';
 import { BEACH_6 } from './beach6';
 import { BEACH_7 } from './beach7';
+import { BEACH_8 } from './beach8';
 import { BIOMES } from './biomes';
 import type { LevelDef } from './types';
 
 /** Each built beach's levels, beach 1 first; beaches still to be built are missing from the end. */
-export const BEACHES: readonly (readonly LevelDef[])[] = [BEACH_1, BEACH_2, BEACH_3, BEACH_4, BEACH_5, BEACH_6, BEACH_7];
+export const BEACHES: readonly (readonly LevelDef[])[] = [BEACH_1, BEACH_2, BEACH_3, BEACH_4, BEACH_5, BEACH_6, BEACH_7, BEACH_8];
 
 /** Every playable level, in order. */
 export const LEVELS: readonly LevelDef[] = BEACHES.flat();

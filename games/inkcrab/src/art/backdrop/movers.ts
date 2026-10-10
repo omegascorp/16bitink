@@ -6,6 +6,7 @@ import { booby, frigatebird, pelican } from './galapagos';
 import { kestrel, tern } from './desert';
 import { dolphin, laughingGull, osprey } from './gulfAnimals';
 import { sampan } from './estuary';
+import { houseCrow, littleCormorant } from './keralaBirds';
 import { egretFlying, ibis, kite } from './mudLife';
 import { cormorant, westernGull } from './pnwBirds';
 import { bird, seaplane } from './tropic';
@@ -77,6 +78,8 @@ const westernGullBird: Bird = (d, x, y, s, f) => westernGull(d, x, y, s, f);
 const cormorantBird: Bird = (d, x, y, s, f) => cormorant(d, x, y, s, f);
 const laughingGullBird: Bird = (d, x, y, s, f) => laughingGull(d, x, y, s, f);
 const ospreyBird: Bird = (d, x, y, s, f) => osprey(d, x, y, s, f);
+const crowBird: Bird = (d, x, y, s, f) => houseCrow(d, x, y, s, f);
+const littleCormorantBird: Bird = (d, x, y, s, f) => littleCormorant(d, x, y, s, f);
 
 /** Frames in a dolphin's cycle: rolling up through the surface and down for the first ROLL of them, then under. */
 const ROLL_FRAMES = 14;
@@ -168,5 +171,22 @@ export const THEME_MOVERS: Readonly<Record<ThemeId, readonly MoverSpec[]>> = {
     },
     { layer: 'cliffs', y: 168, x: 820, speed: -9, bob: 2, fps: 2.5, turns: true, ...flock([[0, 0, 1.1], [34, 4, 1.05], [68, 7, 1], [102, 9, 1]], pelicanBird, 0.7) },
     { layer: 'cliffs', y: 126, x: 640, speed: 1, bob: 2, fps: 3, circle: { r: 40, period: 16 }, turns: true, ...flock([[0, 0, 1.1]], laughingGullBird, 0.6) },
+  ],
+  // Brahminy kites wheeling under the cloud, house crows flapping across, little egrets in a line and cormorants low over the chop.
+  harbour: [
+    {
+      layer: 'sky', y: 74, x: 640, speed: 1.2, frames: BEAT, fps: 1.5, circle: { r: 46, period: 24 }, turns: true,
+      box: { left: -24, right: 14, top: -22, bottom: 6 }, draw: (d, x, y, f) => kite(d, x, y, 1.15, flap(f, 0)),
+    },
+    {
+      layer: 'sky', y: 130, x: 180, speed: -1.6, frames: BEAT, fps: 1.5, circle: { r: 30, period: 19 }, turns: true,
+      box: { left: -24, right: 14, top: -22, bottom: 6 }, draw: (d, x, y, f) => kite(d, x, y, 0.85, flap(f, 2)),
+    },
+    { layer: 'sky', y: 150, x: 860, speed: 10, bob: 2.5, fps: 5, turns: true, ...flock([[0, 0, 1], [24, -9, 0.9], [44, 4, 0.85]], crowBird) },
+    { layer: 'sky', y: 96, x: 420, speed: -8, bob: 2, fps: 5, turns: true, ...flock([[0, 0, 0.75]], crowBird) },
+    { layer: 'sea', y: 112, x: 520, speed: 6, bob: 1.5, fps: 3.5, turns: true, ...flock([[0, 0, 0.55], [18, 3, 0.52], [36, 5, 0.5], [54, 8, 0.48]], egretBird) },
+    { layer: 'sea', y: 156, x: 900, speed: -11, bob: 0.8, fps: 8, turns: true, ...flock([[0, 0, 0.55], [17, 1, 0.52], [33, 2, 0.5]], littleCormorantBird) },
+    { layer: 'cliffs', y: 150, x: 360, speed: 8, bob: 2.5, fps: 3, turns: true, ...flock([[0, -6, 1.15], [34, 6, 1.05], [64, 0, 1]], egretBird) },
+    { layer: 'cliffs', y: 196, x: 860, speed: -12, bob: 2, fps: 5.5, turns: true, ...flock([[0, 0, 1.15], [26, -8, 1.05]], crowBird) },
   ],
 };
