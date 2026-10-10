@@ -1,3 +1,5 @@
+import { missionOf } from '../../level/missions';
+import { missionTag } from '../../logic/mission';
 import Phaser from 'phaser';
 import { BLUE_HEX, PAPER } from '../../art/palette';
 import type { LevelDef } from '../../level/types';
@@ -66,13 +68,19 @@ function buttonRows(scene: Phaser.Scene, w: number, h: number, b: CardButtons): 
   return [primary, ...small];
 }
 
+/** A level's mission, after the label over its name (nothing for a plain one). */
+function tagOf(def: LevelDef): string {
+  const m = missionOf(def);
+  return m.kinds.includes('grow') ? '' : ` · ${missionTag(m)}`;
+}
+
 /** After a win: the blots and why, then a look at the next level. */
 export function winParts(scene: Phaser.Scene, w: number, h: number, reasons: readonly BlotReason[], next: { readonly number: number; readonly def: LevelDef; readonly goal: number } | undefined, buttons: CardButtons): Phaser.GameObjects.GameObject[] {
   const top = -h / 2;
   const parts: Phaser.GameObjects.GameObject[] = [inkText(scene, 0, top + 44, 'Ink blots', 34), ...blotRow(scene, top + 116, w, reasons)];
   if (next) {
     parts.push(
-      scene.add.text(0, top + 222, `Next · Level ${next.number}`, { fontFamily: HAND_FONT, fontSize: '20px', color: SOFT_INK }).setOrigin(0.5),
+      scene.add.text(0, top + 222, `Next · Level ${next.number}${tagOf(next.def)}`, { fontFamily: HAND_FONT, fontSize: '20px', color: SOFT_INK }).setOrigin(0.5),
       inkText(scene, 0, top + 254, `${next.def.name}: grow to size ${next.goal}`, 28),
       scene.add.text(0, top + 292, next.def.hint, { fontFamily: HAND_FONT, fontSize: '21px', color: SOFT_INK, align: 'center', wordWrap: { width: w - 70 } }).setOrigin(0.5, 0),
     );
@@ -86,7 +94,7 @@ export function loseParts(scene: Phaser.Scene, w: number, h: number, tip: string
   return [
     inkText(scene, 0, top + 50, 'Tip for next time', 34),
     scene.add.text(0, top + 92, tip, { fontFamily: HAND_FONT, fontSize: '26px', color: '#1b1a1f', align: 'center', lineSpacing: 4, wordWrap: { width: w - 70 } }).setOrigin(0.5, 0),
-    scene.add.text(0, top + 222, 'This level', { fontFamily: HAND_FONT, fontSize: '20px', color: SOFT_INK }).setOrigin(0.5),
+    scene.add.text(0, top + 222, `This level${tagOf(def)}`, { fontFamily: HAND_FONT, fontSize: '20px', color: SOFT_INK }).setOrigin(0.5),
     inkText(scene, 0, top + 254, `${def.name}: grow to size ${goal}`, 28),
     scene.add.text(0, top + 290, def.hint, { fontFamily: HAND_FONT, fontSize: '21px', color: SOFT_INK, align: 'center', wordWrap: { width: w - 70 } }).setOrigin(0.5, 0),
     ...buttonRows(scene, w, h, buttons),

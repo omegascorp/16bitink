@@ -3,7 +3,7 @@ import { FOOT, FRAME, SHELL_UNITS } from '../art/frame';
 import { crabShift } from '../art/mouth';
 import { BOIL } from '../art/palette';
 import { TEX } from '../art/textures';
-import { MOUTH_OFFSET, bodyFill, SHELLS, type ShellKind } from '../logic/shells';
+import { MOUTH_OFFSET, bodyFill, type Shell } from '../logic/shells';
 
 /**
  * The player's crab drawn big for the end-of-level screens: popping in
@@ -16,14 +16,14 @@ export const POP_DELAY = 350;
 
 export type Mood = 'happy' | 'hiding';
 
-/** One crab in `kind`, `width` px wide, its shell centred on `mid` and resting on `ground`. */
-export function crabInShell(scene: Phaser.Scene, kind: ShellKind, mid: number, ground: number, width: number, depth: number, mood: Mood): Phaser.GameObjects.Container {
+/** One crab in `home`, `width` px wide, its shell centred on `mid` and resting on `ground`. */
+export function crabInShell(scene: Phaser.Scene, home: Shell, mid: number, ground: number, width: number, depth: number, mood: Mood): Phaser.GameObjects.Container {
   const unit = width / SHELL_UNITS;
-  const shell = scene.add.image(0, 0, TEX.shell(kind, 0)).setOrigin(FOOT.x / FRAME, FOOT.y / FRAME).setScale(0);
+  const shell = scene.add.image(0, 0, TEX.shell(home.kind, 0)).setOrigin(FOOT.x / FRAME, FOOT.y / FRAME).setScale(0);
   scene.tweens.add({ targets: shell, scale: unit, delay: POP_DELAY, duration: 380, ease: 'Back.Out' });
   puff(scene, mid, ground - width * 0.3, width, POP_DELAY, depth + 1);
-  boil(scene, [shell], [kind]);
-  const crab = crabIn(scene, kind, shell, mid + MOUTH_OFFSET * width, ground, unit, depth);
+  boil(scene, [shell], [home]);
+  const crab = crabIn(scene, home, shell, mid + MOUTH_OFFSET * width, ground, unit, depth);
   const at = POP_DELAY + 450;
   if (mood === 'happy') hop(scene, crab, at);
   else cower(scene, crab, at);
@@ -36,12 +36,11 @@ function cower(scene: Phaser.Scene, crab: Phaser.GameObjects.Container, at: numb
   scene.tweens.chain({ targets: crab, delay: at, loop: -1, loopDelay: 1400, tweens: shake });
 }
 
-/** The grown crab in its biggest shell (moved into one group with it), crowding the opening as it does at the cap. */
-export function crabIn(scene: Phaser.Scene, kind: ShellKind, shell: Phaser.GameObjects.Image, foot: number, ground: number, unit: number, depth: number): Phaser.GameObjects.Container {
+/** The grown crab in its shell (moved into one group with it), crowding the opening as it does when it's full. */
+export function crabIn(scene: Phaser.Scene, home: Shell, shell: Phaser.GameObjects.Image, foot: number, ground: number, unit: number, depth: number): Phaser.GameObjects.Container {
   const origin = { x: FOOT.x / FRAME, y: FOOT.y / FRAME };
-  const spec = SHELLS[kind];
-  const body = unit * bodyFill(spec, spec.maxSize);
-  const shift = crabShift(kind, unit, body);
+  const body = unit * bodyFill(home, home.size);
+  const shift = crabShift(home.kind, unit, body);
   const back = scene.add.image(shift, 0, TEX.crabBack(0)).setOrigin(origin.x, origin.y).setScale(body).setAlpha(0);
   const front = scene.add.image(shift, 0, TEX.crabFront(0)).setOrigin(origin.x, origin.y).setScale(body).setAlpha(0);
   shell.setPosition(0, 0);
@@ -75,12 +74,12 @@ export function hop(scene: Phaser.Scene, crab: Phaser.GameObjects.Container, at:
   });
 }
 
-export function boil(scene: Phaser.Scene, shells: readonly Phaser.GameObjects.Image[], kinds: readonly ShellKind[]): void {
+export function boil(scene: Phaser.Scene, shells: readonly Phaser.GameObjects.Image[], homes: readonly Shell[]): void {
   let f = 0;
   scene.time.addEvent({
     delay: BOIL_MS, loop: true, callback: () => {
       f = (f + 1) % BOIL;
-      shells.forEach((s, i) => s.setTexture(TEX.shell(kinds[i]!, f)));
+      shells.forEach((s, i) => s.setTexture(TEX.shell(homes[i]!.kind, f)));
     },
   });
 }

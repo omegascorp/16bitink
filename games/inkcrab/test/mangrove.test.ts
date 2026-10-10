@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { shellOf } from '../src/logic/shells';
 import { growRoots } from '../src/level/mangrove';
 import { moveBody, type Body } from '../src/logic/body';
 import { CRITTER, makeCritter, stepCritter, type Critter, type Quarry, type Surroundings } from '../src/logic/critters';
@@ -27,7 +28,7 @@ function tree(): Roots {
 }
 
 function beach(over: Partial<BeachSetup> = {}): Beach {
-  return new Beach({ terrain: flat(), items: [], start: { x: 10 * T, y: GROUND * T }, tileSize: T, startShell: 'periwinkle', seed: 1, surfaceFood: 0, roots: tree(), ...over });
+  return new Beach({ terrain: flat(), items: [], start: { x: 10 * T, y: GROUND * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0, roots: tree(), ...over });
 }
 
 const run = (b: Beach, input: Partial<Input>, seconds: number) => {

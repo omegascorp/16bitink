@@ -1,12 +1,13 @@
+import { parTimeOf } from '../level/missions';
 import Phaser from 'phaser';
 import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_SPAN } from '../art/critterArt';
 import { BOIL, INK, RED, RED_HEX } from '../art/palette';
 import { TEX } from '../art/textures';
-import { levelGoal } from '../level/build';
+import { levelGoal, START_SHELL } from '../level/build';
 import { LEVEL_ORDER, levelById, LEVELS, nextLevel, themeOf } from '../level/levels';
 import type { LevelDef } from '../level/types';
 import { blotReasons, catchTip, isNewBest } from '../logic/resultCard';
-import { shellPx, SHELLS, type ShellKind } from '../logic/shells';
+import { shellPx, type Shell } from '../logic/shells';
 import type { HunterId } from '../logic/sim';
 import { SPECIES, type SpeciesId } from '../logic/species';
 import { BIRD_SPAN } from '../art/birds/spans';
@@ -28,7 +29,7 @@ export interface ResultData {
   readonly livesLost: number;
   /** The crab's size and shell when the level ended. */
   readonly size: number;
-  readonly shell: ShellKind | null;
+  readonly shell: Shell | null;
   /** Fastest finish before this one, if the level had been finished. */
   readonly previousBest?: number;
   /** What caught the crab last, when it was caught. */
@@ -93,9 +94,9 @@ export class ResultScene extends Phaser.Scene {
     headline(this, L.title, data.won ? 'Grown up!' : 'Caught!', data.won ? undefined : RED, data.won ? undefined : LOSS_MARK);
     this.add.text(L.title.x, L.title.y + L.title.size * 0.8, `Level ${number} · ${def.name}`, { fontFamily: HAND_FONT, fontSize: '30px', color: SOFT_INK }).setOrigin(0.5).setDepth(20);
 
-    const kind = data.shell ?? 'periwinkle';
-    const width = Phaser.Math.Clamp(shellPx(SHELLS[kind].maxSize) * HERO_ZOOM, HERO_W[0], HERO_W[1]);
-    crabInShell(this, kind, L.hero, L.ground + 22, width, 10, data.won ? 'happy' : 'hiding');
+    const home = data.shell ?? START_SHELL;
+    const width = Phaser.Math.Clamp(shellPx(home.size) * HERO_ZOOM, HERO_W[0], HERO_W[1]);
+    crabInShell(this, home, L.hero, L.ground + 22, width, 10, data.won ? 'happy' : 'hiding');
     if (data.won) {
       this.time.delayedCall(POP_DELAY + 500, () => this.confetti.burst(L.hero, L.ground - width * 0.4, 36, 600));
       this.timeRow(L, data, def);
@@ -133,7 +134,7 @@ export class ResultScene extends Phaser.Scene {
       ? { primary: { label: 'Next level →', go: this.go('Game', { levelId: next.id }) }, secondary: [{ label: 'replay', go: retry }, { label: '← map', go: chart }] }
       : { primary: { label: '← map', go: chart }, secondary: [{ label: 'replay', go: retry }] };
     const preview = next ? { number: LEVEL_ORDER.indexOf(next.id) + 1, def: next, goal: levelGoal(next) } : undefined;
-    return winParts(this, w, h, blotReasons(data.time, def.parTime, data.livesLost), preview, this.withEnter(buttons));
+    return winParts(this, w, h, blotReasons(data.time, parTimeOf(def), data.livesLost), preview, this.withEnter(buttons));
   }
 
   /** Enter or Space presses the big button. */
@@ -146,7 +147,7 @@ export class ResultScene extends Phaser.Scene {
 
   /** The time against par, stamped NEW BEST when it beats the last one. */
   private timeRow(L: Layout, data: ResultData, def: LevelDef): void {
-    const text = this.add.text(L.hero, L.stats, `${clock(data.time)}  ·  par ${clock(def.parTime)}`, { fontFamily: HAND_FONT, fontSize: '34px', color: INK })
+    const text = this.add.text(L.hero, L.stats, `${clock(data.time)}  ·  par ${clock(parTimeOf(def))}`, { fontFamily: HAND_FONT, fontSize: '34px', color: INK })
       .setOrigin(0.5).setDepth(12).setAlpha(0);
     this.tweens.add({ targets: text, alpha: 1, delay: 1100, duration: 400 });
     if (!isNewBest(data.previousBest, data.time)) return;

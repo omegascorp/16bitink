@@ -6,8 +6,9 @@ Level plan for InkCrab: how the 100 levels are organized, and the first ten in d
 
 100 levels: 10 beaches of 10 levels, like InkFish's 10 chapters. Beach 1 is the free chapter.
 
-- **Every level starts at size 1, in a periwinkle.** A small real sea-snail shell, so the first thing players see reads as a hermit crab. Like InkFish, each level is a whole growth run: eat, fill your shell, find the next one, move in.
-- **One goal: grow to the biggest size the level allows.** That is the largest maximum among the level's shells. A growth bar runs from size 1 to the goal with a tick per size, and a dashed mark shows where your current shell stops you.
+- **Every level starts at size 1, in a size-2 periwinkle.** A small real sea-snail shell, so the first thing players see reads as a hermit crab. Like InkFish, each level is a whole growth run: eat, fill your shell, find the next one, move in.
+- **Shells come in every size, and you move house at every size** (changed 2026-10-10, at the user's request, to make it harder). Every kind of shell comes in each size it's found in, as real shells do, and is drawn to its size. A size-N shell holds a crab of size N (full) or N−1 (growing into it), so a full crab needs the next size up exactly: two sizes up is still too big. Every level has a shell of every size from 3 to its goal (`levelShells`; a level test checks it). Rivals live in a shell one size roomier than themselves, so rapping on one your size gives you your next shell; a level can give a rival its own size (`[kind, shellSize, col, body]`), as Shell Swap does for its line of full crabs.
+- **One goal: grow to the biggest size the level allows.** That is the size of the level's biggest shell. A growth bar runs from size 1 to the goal with a tick per size, and a dashed mark shows where your current shell stops you.
 - **Goals rise through the beach,** from size 3 in level 1 to size 8, the conch, in level 10.
 - **Growing gets steeper with size:** 5 + 2 × size + size × (size − 1) / 2 points of food (7 to leave size 1, 10, 14, 19, 25, 32, 40 to leave size 7), so early levels move quickly and the big sizes take real foraging.
 - **Food on top, more food below.** Crumbs and sand hoppers sit on the surface and are kept stocked. Underground, food is buried in pockets of one to three, worth more the deeper you dig: lugworms and hoppers near the top (2 points), mole crabs a few tiles down (3), clams deepest (4). Every level buries some (4 in level 1, 10 in level 2, rising to 24 in level 10), and from the middle of the beach on there is more below than on top; each pocket shows as a faint highlighter smudge in the sand. On top of that, every level keeps a few things buried just one or two digs down (4 in level 1, rising to 8 in level 10), never right under the crab; as they're dug up, new ones are planted at random every few seconds, the way surface food reappears.
@@ -35,6 +36,27 @@ Every beach follows the same ten-slot arc, so new rules arrive one at a time. La
 | 8 | Remix of two earlier slots |
 | 9 | Storm: the hardest level |
 | 10 | Final molt |
+
+## Missions
+
+Added 2026-10-10, at the user's request, to work like InkFish's level twists. Every level has a mission besides growing; growing to the goal size is always part of winning. The mission's name sits over the level's name on the intro card (with its goal and a line of rules), as a red line in the HUD panel, as a red pencil icon by the level on the map, and on the result cards. When no coach hint is showing, a red arrow at the screen edge points the way to the mission's next find. The arc is the same on every beach (`src/level/missions.ts`), and the mission's content is laid out from the level's own (`buildLevel`), so the hand-built levels didn't change.
+
+| Slot | Mission |
+| --- | --- |
+| 1 | Plain: grow |
+| 2 | Ink bottles: dig up 3 buried ink bottles (one more every two beaches, 6 on beach 8), each a few digs down, spread past the start |
+| 3 | Plain (the beach's hunter debuts) |
+| 4 | Marked hunters: eat the 3 circled in red. They're the level's biggest walking hunter, two sizes under the goal, so they hunt you until you've grown past them |
+| 5 | Shell chain (below) |
+| 6 | Plain (the beach's sky or ground threat debuts) |
+| 7 | One life |
+| 8 | Remix of two, a different pair each beach in turn: ink bottles + marked hunters, marked hunters + one life, ink bottles + one life |
+| 9 | Plain (the storm) |
+| 10 | The giant: grow to full size, then eat the giant, the level's biggest walking hunter one size under the goal |
+
+Missions add par time: 8 s an ink bottle, 30 s for marked hunters, 40 s for the giant, 15 s a crab in a shell chain. Being caught on a one-life level still loses the "no lives lost" blot.
+
+**Shell chain** (`src/logic/line.ts`). Small hermit crabs, full in size-1 shells of the beach's smallest kind, wait about the beach, each a few columns short of the shell it will let you move into. Walk up to one (no smaller than it) and it joins your line and follows you, biggest shell first. Every move up to a bigger shell needs one more follower: the first takes the shell you leave, the next takes that one's, all down the line, and the newest leaves its tiny shell behind. Each must have grown to fill its own shell and be close by, or the shell prompt says why you can't move in yet ("find a small crab to take your shell first", "your line must grow into their shells first", "wait for your line to catch up"). Followers nibble as they go and walk over to loose food nearby while they have room to grow (4 points a size). They clamber up and down steps a ghost crab turns back at. Nothing catches them, and they pull into their shells while a bigger hunter is close; one that stays put (or a wall too high) holds them up until you dig them a way round or build them steps. You can't rap on a recruit. On a chain level the beach-7 follow line is off, other rivals leave handed-down shells alone, and shells that would sit up on mangrove roots lie on the mud instead, where the line can reach them. The coach explains the line the first time round on each chain level.
 
 ## Stars
 
@@ -266,7 +288,7 @@ A Gulf shelling beach in Florida, Sanibel style: white sand, driftwood, and an o
   - E moves you into a fitting shell first; it raps only when there's no shell to move into. The HUD names the rival's shell when you're close enough to rap.
   - Rivals' shells count towards the level's shells (its goal and the beach celebration's shell ladder). A level test checks that every level can be grown to its goal, with every rival rappable in time.
   - A rival with nothing to do ambles about within 3 tiles of its home spot, so neighbours placed together stay together.
-- **Vacancy chains** (`games/inkcrab/src/logic/vacancy.ts`), as real hermit crabs make them. A rival in a shell trades up into any loose, uncovered shell within 12 tiles that fits it and gives it more room. Where several want the same empty shell, the biggest that fits takes it, and the smaller ones line up behind it by size, each waiting for the shell the one ahead will leave; when it moves in, its old shell drops right in front of the next ("trade up!"), and so on down the line. Changing shell sets one off: the shell you leave is a step up for a smaller crab nearby. A shell the crab is standing at and could move into is its turn: no rival takes it until it walks off, so you can grab one mid-chain. Rivals in a chain are too busy to tuck in. Coach lesson `chain` speaks while a line has formed, pointing at the empty shell at its head.
+- **Vacancy chains** (`games/inkcrab/src/logic/vacancy.ts`), as real hermit crabs make them. Smaller crabs that would like your shell (full in theirs, and yours the next size up) follow you in a line by size, each after the shell of the one ahead, out of rap range; when you move house the whole line trades up at once. A rival in a shell also trades up into any loose, uncovered shell within 12 tiles that's the next size up for it. Where several want the same empty shell, the biggest that fits takes it, and the smaller ones line up behind it by size, each waiting for the shell the one ahead will leave; when it moves in, its old shell drops right in front of the next ("trade up!"), and so on down the line. Changing shell sets one off: the shell you leave is a step up for a smaller crab nearby. A shell the crab is standing at and could move into is its turn: no rival takes it until it walks off, so you can grab one mid-chain. Rivals in a chain are too busy to tuck in. Coach lesson `chain` speaks while a line has formed, pointing at the empty shell at its head.
 - **Stone crabs:** slow, heavy hunters with great black-tipped claws.
 - **Blue crabs:** fast hunters that dash in bursts.
 - **Osprey** (sky): the kestrel's hover and dive, with its own drawing.
@@ -348,7 +370,7 @@ Each beach is its own biome: its own creatures, shells, backdrop theme and islan
 
 ## Shells
 
-Only real shells, the kinds hermit crabs actually live in: no litter or other man-made objects, and no coconut halves. Each beach brings about five of its own, chosen so their size ranges climb from 1 to 8 and their outlines differ at a glance. Ten beaches of real sea and land snail shells:
+Only real shells, the kinds hermit crabs actually live in: no litter or other man-made objects, and no coconut halves. Each beach brings about five of its own, chosen so the sizes they're found in climb from 1 to 8 and their outlines differ at a glance; a level places each kind in any size within its range (`SHELLS[kind].minSize`–`maxSize`). Ten beaches of real sea and land snail shells:
 
 | Beach | Shells (smallest first) |
 | --- | --- |

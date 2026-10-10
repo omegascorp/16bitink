@@ -5,7 +5,7 @@ import { BOIL, RED_HEX } from '../../art/palette';
 import { PUFF, TEX } from '../../art/textures';
 import { meterGoal } from '../../logic/growth';
 import type { Beach } from '../../logic/sim';
-import { bodyFill, shellPx, SHELLS, type ShellKind } from '../../logic/shells';
+import { bodyFill, shellPx, type Shell } from '../../logic/shells';
 import { swapProgress } from '../../logic/swap';
 
 /** Frame px from the shell's middle to the opening (FOOT). */
@@ -61,8 +61,8 @@ export class CrabView {
     const walking = Math.abs(c.body.vx) > 1 && c.body.onGround && !c.swap;
     this.walkClock = walking ? this.walkClock + dt : 0;
     const f = walking ? Math.floor(this.walkClock * WALK_FPS) % BOIL : Math.floor(time / BOIL_MS) % BOIL;
-    const spec = c.shell ? SHELLS[c.shell] : null;
-    const unit = shellPx(spec ? spec.maxSize : c.growth.size) / SHELL_UNITS;
+    const spec = c.shell;
+    const unit = shellPx(spec ? spec.size : c.growth.size) / SHELL_UNITS;
     // In a shell the body is sized against it (see bodyFill), so it always sits
     // in the opening and grows to crowd it at the cap.
     const growth = c.growth.size + Math.min(1, c.growth.meter / meterGoal(c.growth.size));
@@ -81,7 +81,7 @@ export class CrabView {
     const target = c.swap ? beach.items.get(c.swap.itemId) : undefined;
     if (c.swap && target?.kind.type === 'shell') {
       this.shell.setVisible(!!spec).setTexture(TEX.shell(spec?.kind ?? 'periwinkle', f % BOIL));
-      this.drawSwap(swapProgress(c.swap), f, unit, body, spec?.kind ?? null, target.kind.shell);
+      this.drawSwap(swapProgress(c.swap), f, unit, body, spec, target.kind.shell);
       this.drawRing(c.body.x + c.body.w / 2, c.body.y - 10, swapProgress(c.swap));
       return;
     }
@@ -106,15 +106,15 @@ export class CrabView {
    * ahead of it. Before the switch the exposed (red) crab reaches out of the
    * old mouth; after it, it peeks out of the new one, facing back.
    */
-  private drawSwap(p: number, f: number, unit: number, body: number, from: ShellKind | null, to: ShellKind): void {
-    const toUnit = shellPx(SHELLS[to].maxSize) / SHELL_UNITS;
+  private drawSwap(p: number, f: number, unit: number, body: number, from: Shell | null, to: Shell): void {
+    const toUnit = shellPx(to.size) / SHELL_UNITS;
     this.shell.setScale(unit);
-    this.incoming.setVisible(true).setTexture(TEX.shell(to, f)).setScale(-toUnit, toUnit);
+    this.incoming.setVisible(true).setTexture(TEX.shell(to.kind, f)).setScale(-toUnit, toUnit);
     const before = p < SWITCH;
     // Reaching in grows towards the switch; peeking out grows after it.
     const reach = before ? Math.min(1, p / (SWITCH - PUFF_SPAN / 2)) : Math.min(1, (p - SWITCH) / (SWITCH - PUFF_SPAN / 2));
     const s = body * (0.55 + 0.45 * reach);
-    const shift = before ? (from ? crabShift(from, unit, s) : 0) : -crabShift(to, toUnit, s);
+    const shift = before ? (from ? crabShift(from.kind, unit, s) : 0) : -crabShift(to.kind, toUnit, s);
     this.setBody(true, f, s, s, before ? 1 : -1, shift);
     const hidden = Math.abs(p - SWITCH) < PUFF_SPAN / 2;
     this.back.setVisible(!hidden);

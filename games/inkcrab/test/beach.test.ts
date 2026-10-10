@@ -46,7 +46,7 @@ describe('test beach', () => {
       return Math.floor((i.y + i.h / 2) / BEACH_TILE) - surfaceRow(beach.terrain, col);
     };
     const shells = beach.items.filter((i) => i.kind.type === 'shell');
-    const conch = shells.find((i) => i.kind.type === 'shell' && i.kind.shell === 'conch');
+    const conch = shells.find((i) => i.kind.type === 'shell' && i.kind.shell.kind === 'conch');
     expect(conch).toBeDefined();
     expect(depth(conch!)).toBe(Math.max(...shells.map(depth)));
   });

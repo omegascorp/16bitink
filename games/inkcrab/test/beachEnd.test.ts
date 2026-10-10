@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BEACH_1 } from '../src/level/beach1';
 import { levelGoal, shellLadder, START_SHELL } from '../src/level/build';
-import { SHELLS } from '../src/logic/shells';
 import { beachIndexOf, FREE_BEACHES, isBeachFinale, isFreeEnd } from '../src/level/levels';
 import { beachTally, EMPTY_PROGRESS, MAX_BLOTS, recordResult } from '../src/logic/save';
 
@@ -34,9 +33,9 @@ describe('end of a beach', () => {
   it('retells the climb from the first shell to the biggest, smallest first', () => {
     const finale = BEACH_1.at(-1)!;
     const ladder = shellLadder(finale);
-    expect(ladder[0]).toBe(START_SHELL);
-    expect(SHELLS[ladder.at(-1)!].maxSize).toBe(levelGoal(finale));
-    expect(new Set(ladder).size).toBe(ladder.length);
-    for (let i = 1; i < ladder.length; i++) expect(SHELLS[ladder[i]!].maxSize).toBeGreaterThanOrEqual(SHELLS[ladder[i - 1]!].maxSize);
+    expect(ladder[0]).toEqual(START_SHELL);
+    expect(ladder.at(-1)!.size).toBe(levelGoal(finale));
+    // One shell a size, every size from the start to the goal.
+    expect(ladder.map((s) => s.size)).toEqual(Array.from({ length: levelGoal(finale) - START_SHELL.size + 1 }, (_, i) => START_SHELL.size + i));
   });
 });

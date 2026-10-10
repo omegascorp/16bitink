@@ -4,7 +4,7 @@ import { getHost, REG } from '../host';
 import { inStickZone, knobOffset, stickCentre, stickVector, STICK } from '../logic/joystick';
 import { levelGoal, START_SHELL } from '../level/build';
 import { capMark, levelProgress, sizeMarks } from '../logic/progress';
-import { SHELLS } from '../logic/shells';
+import { shellName } from '../logic/shells';
 import { TEX } from '../art/textures';
 import { FOOT, FRAME, SHELL_MID } from '../art/frame';
 import type { GameScene } from './GameScene';
@@ -17,14 +17,18 @@ import { drawTideClock } from './tideClock';
 import { tidePhase, tideTurn } from '../logic/tide';
 import { drawRainClock } from './rainClock';
 import { rainTurn } from '../logic/rain';
+import { chainPrompt, missionGoal, missionLine, missionNotes, missionTag } from '../logic/mission';
 
 const PANEL = { x: 16, y: 14, w: 380, h: 118 } as const;
+/** A mission's line, in red pencil under the panel's last row; the panel grows to hold it. */
+const MISSION = { y: 124, h: 24 } as const;
 /** The sand heap sits in the panel's right end, its count under it. */
 const HEAP_AT = { x: PANEL.x + PANEL.w - 16 - HEAP_MAX_W / 2, bottom: PANEL.y + PANEL.h - 30 } as const;
 const BAR = { x: 30, y: 60, w: 190, h: 16 } as const;
 /** Life icons: a little shell each, right to left from the pause button. */
 const LIFE = { size: 30, gap: 36, y: 36 } as const;
 const INTRO_MS = 3600;
+const INTRO_NOTE_MS = 1500;
 /** The pause button, top right; the lives start left of it. */
 const PAUSE = { w: 52, h: 44, fromRight: 42 } as const;
 const LIVES_FROM_RIGHT = 104;
@@ -61,6 +65,7 @@ export class HudScene extends Phaser.Scene {
   private prompt!: Phaser.GameObjects.Text;
   private help!: Phaser.GameObjects.Text;
   private tideText!: Phaser.GameObjects.Text;
+  private missionText!: Phaser.GameObjects.Text;
   private stickPointer: number | null = null;
   private hidePointer: number | null = null;
   private stickPull = { x: 0, y: 0 };
@@ -96,6 +101,7 @@ export class HudScene extends Phaser.Scene {
     this.prompt = text(0, 0, 24).setOrigin(0.5, 1);
     this.help = text(0, 0, 18).setOrigin(1, 1).setAlpha(0.7);
     this.tideText = text(0, 0, 18).setOrigin(1, 0.5);
+    this.missionText = text(28, MISSION.y, 18, RED);
     this.input.on('pointerdown', this.onDown, this);
     this.input.on('pointermove', this.onMove, this);
     this.input.on('pointerup', this.onUp, this);
@@ -116,15 +122,18 @@ export class HudScene extends Phaser.Scene {
     const c = beach.crab;
     const g = this.g;
     g.clear();
-    g.fillStyle(PAPER_HEX, 0.88).fillRect(PANEL.x, PANEL.y, PANEL.w, PANEL.h);
-    wobblyRect(g, PANEL.x, PANEL.y, PANEL.w, PANEL.h, 3, 1.6, BLUE_HEX);
+    const mission = missionLine(beach.mission, beach.progress, beach.chain);
+    this.missionText.setText(mission).setVisible(mission !== '');
+    const panelH = this.panelHeight(mission);
+    g.fillStyle(PAPER_HEX, 0.88).fillRect(PANEL.x, PANEL.y, PANEL.w, panelH);
+    wobblyRect(g, PANEL.x, PANEL.y, PANEL.w, panelH, 3, 1.6, BLUE_HEX);
 
     const start = game.startSize;
     const goal = levelGoal(game.level);
     drawGrowthBar(g, BAR, levelProgress(c.growth, start, goal), sizeMarks(start, goal), capMark(beach.cap, start, goal), beach.capped && beach.cap < goal);
     this.title.setText(game.level.name);
     this.sizeText.setText(`size ${c.growth.size} of ${goal}`);
-    this.syncLives(beach.lives, c.shell ?? START_SHELL, width);
+    this.syncLives(beach.lives, (c.shell ?? START_SHELL).kind, width);
     this.drawCoach(game, width);
     this.pauseLayer?.setPosition(width / 2, height / 2);
 
@@ -141,21 +150,23 @@ export class HudScene extends Phaser.Scene {
     const bank = c.growth.bank > 0 ? ` (+${c.growth.bank} banked)` : '';
     this.note.setText(c.swap ? 'moving house… exposed!' : c.hidden ? 'hiding in the shell' : beach.underKelp(c.body) ? 'under the kelp, out of sight' : beach.underDeck(c.body) ? 'under cover, safe from the sky' : beach.capped ? `shell full, find a bigger one${bank}` : `growing${bank}`);
     this.note.setColor(c.swap ? RED : BLUE);
-    const spec = c.shell ? SHELLS[c.shell] : null;
-    this.shell.setText(spec ? `in a ${spec.name} · fits sizes ${spec.minSize}–${spec.maxSize}` : 'no shell!');
+    this.shell.setText(c.shell ? `in a ${shellName(c.shell)}` : 'no shell!');
 
     const near = beach.nearbyShell;
     const rival = beach.nearbyRival;
-    if (rival?.shell && !c.swap && !beach.nearbyFits) {
+    const chain = beach.chain;
+    if (near && near.kind.type === 'shell' && !c.swap && beach.nearbyHeld && chain) {
+      this.prompt.setText(`${shellName(near.kind.shell)} · ${chainPrompt(chain)}`).setPosition(width / 2, height - 24).setVisible(true);
+    } else if (rival?.shell && !c.swap && !beach.nearbyFits) {
       const how = this.touchSeen ? 'tap it' : 'press E';
-      this.prompt.setText(`hermit crab in a ${SHELLS[rival.shell].name} · ${how} to rap on its shell`).setPosition(width / 2, height - 24).setVisible(true);
+      this.prompt.setText(`hermit crab in a ${shellName(rival.shell)} · ${how} to rap on its shell`).setPosition(width / 2, height - 24).setVisible(true);
     } else if (near && near.kind.type === 'shell' && !c.swap) {
-      const s = SHELLS[near.kind.shell];
+      const s = near.kind.shell;
       const how = this.touchSeen ? 'tap it' : 'press E';
       const verdict = beach.nearbyFits
         ? `${how} to move in`
-        : c.growth.size < s.minSize ? 'too big for you yet' : 'too small for you now';
-      this.prompt.setText(`${s.name} · fits ${s.minSize}–${s.maxSize} · ${verdict}`).setPosition(width / 2, height - 24).setVisible(true);
+        : c.growth.size < s.size - 1 ? 'too big for you yet' : 'too small for you now';
+      this.prompt.setText(`${shellName(s)} · ${verdict}`).setPosition(width / 2, height - 24).setVisible(true);
     } else this.prompt.setVisible(false);
 
     this.help.setPosition(width - 14, height - 10).setText(this.touchSeen
@@ -168,7 +179,11 @@ export class HudScene extends Phaser.Scene {
     }
   }
 
-  /** The coach's current hint, in a paper note under the top of the screen. */
+  /** The panel's height: taller with a mission line in it. */
+  private panelHeight(mission: string): number {
+    return mission ? PANEL.h + MISSION.h : PANEL.h;
+  }
+
   /** The intro card gets out of the way as soon as the player starts: walking, digging or hiding. */
   private dismissIntroOnMove(game: GameScene): void {
     const intro = this.intro;
@@ -213,7 +228,7 @@ export class HudScene extends Phaser.Scene {
     const box = this.coachBox.clear();
     this.coachText.setVisible(hint !== null);
     if (!hint) return;
-    const top = PANEL.y + PANEL.h + 18;
+    const top = PANEL.y + this.panelHeight(this.missionText.text) + 18;
     this.coachText.setWordWrapWidth(Math.min(640, width - 48)).setText(hint.text);
     const w = this.coachText.width + 28;
     const h = this.coachText.height + 16;
@@ -234,16 +249,28 @@ export class HudScene extends Phaser.Scene {
   /** The level's name, goal and lesson, centred for a few seconds at the start. */
   private showIntro(game: GameScene): void {
     const { width, height } = viewSize(this);
-    const w = Math.min(520, width - 32);
-    const h = 170;
+    const w = Math.min(560, width - 32);
+    const m = game.beach.mission;
+    const tag = inkText(this, 0, 0, missionTag(m), 20, RED);
+    const name = inkText(this, 0, 0, game.level.name, 34);
+    const goal = inkText(this, 0, 0, missionGoal(m, levelGoal(game.level)), 24).setWordWrapWidth(w - 40).setAlign('center');
+    const lines = [game.level.hint, ...missionNotes(m)];
+    const hint = inkText(this, 0, 0, lines.join('\n'), 19).setWordWrapWidth(w - 40).setAlign('center').setAlpha(0.85);
+    // Stacked top to bottom, the card sized to fit.
+    const parts = [tag, name, goal, hint];
+    const gap = 10;
+    const h = parts.reduce((sum, t) => sum + t.height, 0) + gap * (parts.length - 1) + 36;
+    let y = -h / 2 + 18;
+    for (const t of parts) {
+      t.setY(y + t.height / 2);
+      y += t.height + gap;
+    }
     const g = this.add.graphics();
     g.fillStyle(PAPER_HEX, 0.96).fillRect(-w / 2, -h / 2, w, h);
     wobblyRect(g, -w / 2, -h / 2, w, h, 21, 2, BLUE_HEX);
-    const name = inkText(this, 0, -h / 2 + 34, game.level.name, 34);
-    const goal = inkText(this, 0, -8, `grow to size ${levelGoal(game.level)}`, 26);
-    const hint = inkText(this, 0, 44, game.level.hint, 20).setWordWrapWidth(w - 40).setAlign('center').setAlpha(0.85);
-    this.intro = this.add.container(width / 2, height * 0.42, [g, name, goal, hint]);
-    this.tweens.add({ targets: this.intro, alpha: 0, delay: INTRO_MS, duration: 500, onStart: () => (this.introLeaving = true), onComplete: () => this.intro?.destroy() });
+    this.intro = this.add.container(width / 2, height * 0.45, [g, ...parts]);
+    // Each note of the mission gets a little longer to read.
+    this.tweens.add({ targets: this.intro, alpha: 0, delay: INTRO_MS + missionNotes(m).length * INTRO_NOTE_MS, duration: 500, onStart: () => (this.introLeaving = true), onComplete: () => this.intro?.destroy() });
   }
 
   private pauseIfRunning(): void {

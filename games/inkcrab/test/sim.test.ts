@@ -4,7 +4,7 @@ import { Beach, IDLE, type Input } from '../src/logic/sim';
 import { SWAP_SECONDS } from '../src/logic/swap';
 import { createTerrain, setTile, TILE, tileAt, type Terrain } from '../src/logic/terrain';
 import { makeItem, type Item } from '../src/logic/items';
-import { MOUTH_OFFSET, sandCapacity, shellPx, SHELLS } from '../src/logic/shells';
+import { MOUTH_OFFSET, sandCapacity, shellPx, SHELLS, shellOf } from '../src/logic/shells';
 import { makeCritter } from '../src/logic/critters';
 
 const T = 16;
@@ -12,7 +12,7 @@ const T = 16;
 function flatBeach(items: Item[] = []): Beach {
   const terrain: Terrain = createTerrain(40, 30);
   for (let x = 0; x < 40; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
-  return new Beach({ terrain, items, start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: 'periwinkle', seed: 1, surfaceFood: 0 });
+  return new Beach({ terrain, items, start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0 });
 }
 
 const step = (b: Beach, input: Partial<Input> = {}, seconds = 1 / 60) => {
@@ -85,8 +85,8 @@ describe('beach simulation', () => {
     const b = flatBeach();
     step(b, {}, 1);
     step(b, { aimY: 1, dig: true }, 3);
-    expect(b.crab.sand).toBe(sandCapacity(SHELLS.periwinkle));
-    expect(b.sandCapacity).toBe(sandCapacity(SHELLS.periwinkle));
+    expect(b.crab.sand).toBe(sandCapacity(shellOf('periwinkle', 2)));
+    expect(b.sandCapacity).toBe(sandCapacity(shellOf('periwinkle', 2)));
     expect(b.crab.body.y + b.crab.body.h).toBeGreaterThan(12 * T);
   });
 
@@ -270,7 +270,7 @@ describe('beach simulation', () => {
   });
 
   it('swaps into a bigger shell: exposed for a second, then the banked growth bursts', () => {
-    const conchless = makeItem(2, { type: 'shell', shell: 'topshell' }, 5 * T, 10 * T - 20, false);
+    const conchless = makeItem(2, { type: 'shell', shell: shellOf('topshell', 3) }, 5 * T, 10 * T - 20, false);
     const b = flatBeach([foodAt(1, 5 * T, meterGoal(1) + meterGoal(2) + meterGoal(3) + 1), conchless]);
     step(b, {}, 0.5);
     expect(b.crab.growth.size).toBe(2);
@@ -285,46 +285,48 @@ describe('beach simulation', () => {
     const done = step(b, {}, SWAP_SECONDS);
     expect(done.some((e) => e.type === 'swapDone')).toBe(true);
     expect(b.exposed).toBe(false);
-    expect(b.crab.shell).toBe('topshell');
-    expect(b.crab.growth.size).toBe(4);
-    // The old bottle cap is left behind as a loose shell.
-    expect([...b.items.values()].some((i) => i.kind.type === 'shell' && i.kind.shell === 'periwinkle')).toBe(true);
+    expect(b.crab.shell).toEqual(shellOf('topshell', 3));
+    // Only the next size up: the rest stays banked.
+    expect(b.crab.growth.size).toBe(3);
+    expect(b.crab.growth.bank).toBeGreaterThan(0);
+    // The old periwinkle is left behind as a loose shell.
+    expect([...b.items.values()].some((i) => i.kind.type === 'shell' && i.kind.shell.kind === 'periwinkle')).toBe(true);
   });
 
   it('moves house mouth to mouth: ends up in the new shell facing back the way it came', () => {
-    const can = makeItem(2, { type: 'shell', shell: 'topshell' }, 5 * T, 10 * T - 40, false);
+    const can = makeItem(2, { type: 'shell', shell: shellOf('topshell', 3) }, 5 * T, 10 * T - 40, false);
     const b = flatBeach([foodAt(1, 5 * T, meterGoal(1)), can]);
     step(b, {}, 0.5);
     const before = b.crab;
     expect(before.facing).toBe(1);
     step(b, { interact: true });
     step(b, {}, SWAP_SECONDS + 0.1);
-    expect(b.crab.shell).toBe('topshell');
+    expect(b.crab.shell).toEqual(shellOf('topshell', 3));
     expect(b.crab.facing).toBe(-1);
     // The new shell sat mouth to mouth ahead of the old one, so the crab is now further along.
     const was = before.body.x + before.body.w / 2;
     const now = b.crab.body.x + b.crab.body.w / 2;
-    const reach = MOUTH_OFFSET * (shellPx(SHELLS.periwinkle.maxSize) + shellPx(SHELLS.topshell.maxSize));
+    const reach = MOUTH_OFFSET * (shellPx(2) + shellPx(3));
     expect(now - was).toBeCloseTo(reach, 0);
     // The old cap is left where the crab was.
-    const cap = [...b.items.values()].find((i) => i.kind.type === 'shell' && i.kind.shell === 'periwinkle')!;
+    const cap = [...b.items.values()].find((i) => i.kind.type === 'shell' && i.kind.shell.kind === 'periwinkle')!;
     expect(cap.x + cap.w / 2).toBeCloseTo(was, 0);
   });
 
   it('stays put when a wall is where the new shell would go', () => {
-    const can = makeItem(2, { type: 'shell', shell: 'topshell' }, 5 * T, 10 * T - 40, false);
+    const can = makeItem(2, { type: 'shell', shell: shellOf('topshell', 3) }, 5 * T, 10 * T - 40, false);
     const b = flatBeach([foodAt(1, 5 * T, meterGoal(1)), can]);
     step(b, {}, 0.5);
-    for (let y = 0; y < 10; y++) setTile(b.terrain, 7, y, TILE.rock);
+    for (let y = 0; y < 10; y++) setTile(b.terrain, 6, y, TILE.rock);
     const was = b.crab.body.x + b.crab.body.w / 2;
     step(b, { interact: true });
     step(b, {}, SWAP_SECONDS + 0.1);
-    expect(b.crab.shell).toBe('topshell');
+    expect(b.crab.shell).toEqual(shellOf('topshell', 3));
     expect(b.crab.body.x + b.crab.body.w / 2).toBeCloseTo(was, 0);
   });
 
   it('refuses shells the crab does not fit', () => {
-    const conch = makeItem(2, { type: 'shell', shell: 'conch' }, 5 * T, 10 * T - 40, false);
+    const conch = makeItem(2, { type: 'shell', shell: shellOf('conch') }, 5 * T, 10 * T - 40, false);
     const b = flatBeach([conch]);
     step(b, {}, 0.5);
     expect(b.nearbyShell?.id).toBe(2);
@@ -336,7 +338,7 @@ describe('beach simulation', () => {
   it('keeps the surface stocked with food', () => {
     const terrain: Terrain = createTerrain(40, 16);
     for (let x = 0; x < 40; x++) for (let y = 10; y < 16; y++) setTile(terrain, x, y, TILE.sand);
-    const b = new Beach({ terrain, items: [], start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: 'periwinkle', seed: 3, surfaceFood: 4 });
+    const b = new Beach({ terrain, items: [], start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 3, surfaceFood: 4 });
     step(b, {}, 30);
     const food = [...b.items.values()].filter((i) => i.kind.type === 'food');
     expect(food.length).toBeGreaterThan(0);
@@ -347,7 +349,7 @@ describe('beach simulation', () => {
     const sandy = (): Beach => {
       const terrain: Terrain = createTerrain(40, 16);
       for (let x = 0; x < 40; x++) for (let y = 10; y < 16; y++) setTile(terrain, x, y, TILE.sand);
-      return new Beach({ terrain, items: [], start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: 'periwinkle', seed: 3, surfaceFood: 0, shallowFood: 4 });
+      return new Beach({ terrain, items: [], start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 3, surfaceFood: 0, shallowFood: 4 });
     };
     const buried = (b: Beach): Item[] => [...b.items.values()].filter((i) => i.kind.type === 'food' && i.buried);
     /** Tile row of an item's centre. */
@@ -406,7 +408,7 @@ describe('beach simulation', () => {
       const events = step(b, {}, 1);
       expect(events.some((e) => e.type === 'caught')).toBe(true);
       expect(b.lives).toBe(2);
-      expect(b.crab.shell).toBe('periwinkle');
+      expect(b.crab.shell).toEqual(shellOf('periwinkle', 2));
       expect(b.crab.growth).toEqual({ size: 2, meter: 1, bank: 0 });
       expect([...b.items.values()].some((i) => i.kind.type === 'shell')).toBe(false);
       expect(b.crab.safe).toBeGreaterThan(0);
@@ -431,7 +433,7 @@ describe('beach simulation', () => {
       // Two seconds: long enough to pass, short of the beach's edge.
       const events = step(b, { hide: true }, 2);
       expect(events.some((e) => e.type === 'caught')).toBe(false);
-      expect(b.crab.shell).toBe('periwinkle');
+      expect(b.crab.shell).toEqual(shellOf('periwinkle', 2));
       const k = b.critters.get(99)!;
       expect(k.dir).toBe(-1);
       expect(k.x + k.w).toBeLessThan(crabX);
@@ -461,7 +463,7 @@ describe('beach simulation', () => {
       const terrain: Terrain = createTerrain(120, 30);
       for (let x = 0; x < 120; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
       const b = new Beach({
-        terrain, items: [], start: { x: 10 * T, y: 10 * T }, tileSize: T, startShell: 'periwinkle', seed: 1, surfaceFood: 0,
+        terrain, items: [], start: { x: 10 * T, y: 10 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0,
         critters: [{ count: 3, sizes: [1, 2] }, { count: 1, sizes: [6, 6] }],
       });
       expect(b.critters.size).toBe(4);
@@ -482,7 +484,7 @@ describe('beach simulation', () => {
       const terrain: Terrain = createTerrain(40, 30);
       for (let x = 0; x < 40; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
       return new Beach({
-        terrain, items: [], start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: 'periwinkle', seed: 1, surfaceFood: 0,
+        terrain, items: [], start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0,
         goal, lives, startGrowth: { size: 1, meter: 4, bank: 0 },
       });
     };

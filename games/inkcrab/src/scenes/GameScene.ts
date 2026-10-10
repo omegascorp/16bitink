@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BLACK_SAND, BLUE, BLUE_HEX, GREY_SAND, PALE_SAND, RED, type GroundStyle } from '../art/palette';
+import { BLACK_SAND, BLUE, BLUE_HEX, GREY_SAND, PALE_SAND, RED, RED_HEX, type GroundStyle } from '../art/palette';
 import { TEX } from '../art/textures';
 import { getHost, REG } from '../host';
 import { buildLevel, START_SIZE } from '../level/build';
@@ -11,7 +11,9 @@ import { surfaceRow, type Terrain } from '../logic/terrain';
 import { centre, overlaps } from '../logic/items';
 import { shellPx, SHELLS } from '../logic/shells';
 import { blotsFor, loadProgress, recordResult, saveProgress } from '../logic/save';
-import { Beach, LIVES, type SimEvent } from '../logic/sim';
+import { Beach, type SimEvent } from '../logic/sim';
+import { missionOf, parTimeOf } from '../level/missions';
+import { missionTarget } from './game/missionPointer';
 import { BackdropView } from './game/backdropView';
 import { BirdsView } from './game/birdsView';
 import { SandFxView } from './game/sandFxView';
@@ -77,7 +79,9 @@ export class GameScene extends Phaser.Scene {
     this.level = levelById(data?.levelId) ?? LEVELS[0]!;
     const setup = buildLevel(this.level);
     this.beach = new Beach(setup);
-    this.coach = new Coach(this.level.teach ?? []);
+    // A shell chain's line is explained by the coach the first time round.
+    const chain = missionOf(this.level).chain > 0 && !(this.level.teach ?? []).includes('line') ? ['line' as const] : [];
+    this.coach = new Coach([...(this.level.teach ?? []), ...chain]);
     this.pointer = this.add.graphics().setDepth(7);
     const T = setup.tileSize;
     const worldW = setup.terrain.width * T;
@@ -148,8 +152,8 @@ export class GameScene extends Phaser.Scene {
   /** Saves a win, then shows the result card after a beat. */
   private finish(won: boolean): void {
     const b = this.beach;
-    const livesLost = LIVES - b.lives;
-    const blots = won ? blotsFor(b.elapsed, this.level.parTime, livesLost) : 0;
+    const livesLost = b.startLives - b.lives;
+    const blots = won ? blotsFor(b.elapsed, parTimeOf(this.level), livesLost) : 0;
     const host = getHost(this);
     const saved = loadProgress(host.storage);
     if (won) saveProgress(host.storage, recordResult(saved, this.level.id, blots, b.elapsed));
@@ -206,9 +210,12 @@ export class GameScene extends Phaser.Scene {
    */
   private drawPointer(time: number): void {
     const g = this.pointer.clear();
-    const target = this.coach.hint(this.beach, 'keys')?.target;
-    if (!target) return;
+    const coached = this.coach.hint(this.beach, 'keys')?.target;
+    // Without a hint, a red arrow at the edge points the way to the mission's next find.
     const view = this.cameras.main.worldView;
+    const mission = coached ? null : missionTarget(this.beach);
+    const target = coached ?? (mission && !view.contains(mission.x, mission.y) ? mission : null);
+    if (!target) return;
     const zoom = screenZoom(this.cameras.main);
     const inset = 34 / zoom;
     const size = 14 / zoom;
@@ -222,7 +229,7 @@ export class GameScene extends Phaser.Scene {
     const back = (a: number): { x: number; y: number } => ({ x: x + Math.cos(angle + a) * size, y: y + Math.sin(angle + a) * size });
     const l = back(Math.PI * 0.78);
     const r = back(-Math.PI * 0.78);
-    g.lineStyle(3.2 / zoom, BLUE_HEX, 0.95);
+    g.lineStyle(3.2 / zoom, coached ? BLUE_HEX : RED_HEX, 0.95);
     g.lineBetween(l.x, l.y, tip.x, tip.y).lineBetween(r.x, r.y, tip.x, tip.y);
     g.lineBetween(x - Math.cos(angle) * size * 1.6, y - Math.sin(angle) * size * 1.6, tip.x, tip.y);
   }
@@ -231,7 +238,7 @@ export class GameScene extends Phaser.Scene {
   private targetZoom(): number {
     const { width, height } = viewSize(this);
     const c = this.beach.crab;
-    const px = shellPx(c.shell ? SHELLS[c.shell].maxSize : c.growth.size);
+    const px = shellPx(c.shell ? c.shell.size : c.growth.size);
     const T = this.beach.tileSize;
     const wanted = height / (px * 4.2 + T * 10);
     const fit = Math.max(height / (this.beach.terrain.height * T), width / (this.beach.terrain.width * T));
@@ -270,6 +277,12 @@ export class GameScene extends Phaser.Scene {
       this.floatText(e.x, e.y, 'knock knock!');
     } else if (e.type === 'traded') {
       this.floatText(e.x, e.y, 'trade up!');
+    } else if (e.type === 'joined') {
+      this.floatText(e.x, e.y, e.line === 1 ? 'a follower!' : `${e.line} following`);
+    } else if (e.type === 'collected') {
+      this.floatText(e.x, e.y, 'ink bottle!', RED);
+    } else if (e.type === 'quarry') {
+      this.floatText(e.x, e.y, e.giant ? 'the giant!' : 'marked!', RED);
     } else if (e.type === 'struck') {
       this.floatText(e.x, e.y, 'tok! safe in the shell');
       this.cameras.main.shake(90, 0.002);

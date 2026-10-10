@@ -2,7 +2,7 @@ import { boxHitsSolid, climbBody, jump, moveBody, PHYS, WATER, type Body, type B
 import { sightInFog } from './fog';
 import { centre } from './items';
 import type { Rng } from './rng';
-import { shellPx, type ShellKind } from './shells';
+import { shellPx, type Shell } from './shells';
 import { movementOf, SPECIES, type SpeciesId } from './species';
 import { isSolid, surfaceRow, tileAt, TILE, type Terrain } from './terrain';
 
@@ -38,11 +38,21 @@ export interface Critter extends Body {
   /** Seconds a climber won't take hold of the roots (it let go to drop on something). */
   readonly letGo?: number;
   /** A rival hermit crab's shell; null while it's out of one (see rivals.ts). */
-  readonly shell?: ShellKind | null;
+  readonly shell?: Shell | null;
   /** A rival pulled into its shell, keeping still. */
   readonly tucked?: boolean;
   /** World x a rival lives about, and wanders back to (see rivals.ts). */
   readonly home?: number;
+  /** A rival in line behind the player, after its shell (see vacancy.ts). */
+  readonly following?: boolean;
+  /** A small hermit crab of a shell chain mission, that joins the player's line (see line.ts). */
+  readonly recruit?: boolean;
+  /** A recruit in the player's line. */
+  readonly joined?: boolean;
+  /** A follower's food points towards its next size (see line.ts). */
+  readonly meter?: number;
+  /** One of a mission's quarry: circled in red, to eat (see mission.ts). */
+  readonly marked?: 'bounty' | 'giant';
 }
 
 /** What a creature knows of the beach besides its sand: where the water and the mangrove roots are. */
@@ -188,7 +198,8 @@ function overDrop(t: Terrain, c: Critter, tile: number): 'walk' | 'leap' | null 
  * turning at walls and drop-offs and now and then for no reason. Some kinds
  * move in bursts, standing still between dashes.
  */
-export function stepCritter(t: Terrain, c: Critter, q: Quarry | null, dt: number, tile: number, rng: Rng, env: Surroundings = DRY): Critter {
+/** `hurry`: going somewhere on purpose (a rival after a shell), at full pace rather than ambling. */
+export function stepCritter(t: Terrain, c: Critter, q: Quarry | null, dt: number, tile: number, rng: Rng, env: Surroundings = DRY, hurry = false): Critter {
   const move = movementOf(c.species);
   if (move === 'burrow') return stepBurrower(t, c, q, dt, tile, rng);
   if (move === 'swim') return stepSwimmer(t, c, q, dt, tile, rng, env);
@@ -196,11 +207,11 @@ export function stepCritter(t: Terrain, c: Critter, q: Quarry | null, dt: number
   if (move === 'wade') return stepWader(t, c, q, dt, tile, rng, env);
   if (move === 'climb') return stepClimber(t, c, q, dt, tile, rng, env);
   if (c.flight) return stepFlight(t, c, dt, tile);
-  return stepWalker(t, c, q, dt, tile, rng, env);
+  return stepWalker(t, c, q, dt, tile, rng, env, hurry);
 }
 
 /** Walkers (and lurkers): along the surface and through open tunnels, as stepCritter describes. */
-function stepWalker(t: Terrain, c: Critter, q: Quarry | null, dt: number, tile: number, rng: Rng, env: Surroundings): Critter {
+function stepWalker(t: Terrain, c: Critter, q: Quarry | null, dt: number, tile: number, rng: Rng, env: Surroundings, hurry = false): Critter {
   const spec = SPECIES[c.species];
   // A gull can't get at a crab under water.
   const seen = spec.lowTide && q?.inWater ? 0 : spot(c, q, tile);
@@ -222,7 +233,7 @@ function stepWalker(t: Terrain, c: Critter, q: Quarry | null, dt: number, tile: 
   const clock = c.clock + dt;
   const resting = spec.burst !== undefined && clock % (spec.burst.run + spec.burst.rest) > spec.burst.run;
   const top = critterSpeed(c.size, c.species);
-  const pace = resting ? 0 : spec.hops && !c.onGround ? top * CRITTER.glide : top * (hunting ? 1 : CRITTER.amble);
+  const pace = resting ? 0 : spec.hops && !c.onGround ? top * CRITTER.glide : top * (hunting || hurry ? 1 : CRITTER.amble);
   const moved = moveBody(t, c, dir, pace, dt, tile);
   const hopSpeed = Math.sqrt(2 * PHYS.gravity * CRITTER.hop * tile);
   if (drop === 'leap') return { ...c, ...jump(moved, hopSpeed), dir, turnIn, clock, bored: Math.max(0, c.bored - dt) };

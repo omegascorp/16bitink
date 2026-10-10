@@ -3,6 +3,8 @@ import { BLUE, BLUE_HEX, PAPER_HEX, RED_HEX } from '../../art/palette';
 import { createRng } from '../../logic/rng';
 import { drawBlots, inkText } from '../ui';
 import { MAP, type MapLayout, type MapNode } from './layout';
+import { drawMissionIcons } from './missionIcons';
+import type { MissionKind } from '../../logic/mission';
 
 /** done: played; current: the next to play; open: playable; closed: not reached yet; draft: its beach isn't built. */
 export type NodeState = 'done' | 'current' | 'open' | 'closed' | 'draft';
@@ -49,10 +51,13 @@ function tracks(g: Phaser.GameObjects.Graphics, a: MapNode, b: MapNode, color: n
 
 /**
  * The level route over the chart: tracks between levels, a ring per level
- * with its number, ink blots under played ones. Played stretches are inked,
+ * with its number, ink blots under played ones, its mission's icons over it. Played stretches are inked,
  * the way ahead is pencil.
  */
-export function buildRoute(scene: Phaser.Scene, layout: MapLayout, states: ReadonlyMap<string, NodeState>, blots: ReadonlyMap<string, number>, names: ReadonlyMap<string, string>): { objects: Phaser.GameObjects.GameObject[]; hits: RouteHit[] } {
+export function buildRoute(
+  scene: Phaser.Scene, layout: MapLayout, states: ReadonlyMap<string, NodeState>, blots: ReadonlyMap<string, number>, names: ReadonlyMap<string, string>,
+  missions: ReadonlyMap<string, readonly MissionKind[]> = new Map(),
+): { objects: Phaser.GameObjects.GameObject[]; hits: RouteHit[] } {
   const objects: Phaser.GameObjects.GameObject[] = [];
   const g = scene.add.graphics();
   objects.push(g);
@@ -78,6 +83,9 @@ export function buildRoute(scene: Phaser.Scene, layout: MapLayout, states: Reado
       ring(g, n.x, n.y, r + 5, 900 + n.index);
     }
     if (s === 'done') drawBlots(g, n.x, n.y + r + 13, blots.get(n.levelId) ?? 0, 5);
+    // The level's mission, in red pencil by its ring (clear of the crab marker over the current one).
+    const kinds = missions.get(n.levelId);
+    if (kinds && !draft) drawMissionIcons(g, n.x + r + 16, n.y - r + 4, kinds, s === 'closed' ? 0.45 : 0.9);
     const label = inkText(scene, n.x, n.y, String(n.index + 1), 24, draft || s === 'closed' ? PENCIL : BLUE).setAlpha(draft ? 0.7 : 1);
     objects.push(label);
     if (draft || s === 'closed') continue;

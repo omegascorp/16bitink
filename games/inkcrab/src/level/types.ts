@@ -41,8 +41,8 @@ export interface LevelDef {
   readonly dens?: readonly (readonly [number, number])[];
   /** The tide, in rows (see logic/tide.ts); without one the beach stays dry. */
   readonly tide?: TideSpec;
-  /** Things each high water washes in: food on the tide line, and shells in order (kind and column), one a tide. */
-  readonly tideBrings?: { readonly food: number; readonly shells?: readonly (readonly [ShellKind, number])[] };
+  /** Things each high water washes in: food on the tide line, and shells in order (kind, size and column), one a tide. */
+  readonly tideBrings?: { readonly food: number; readonly shells?: readonly (readonly [ShellKind, number, number])[] };
   /** Mud over the sand between two columns, so many rows deep: slow to walk on, quick to dig (see sim.ts). */
   readonly mud?: readonly (readonly [from: number, to: number, rows: number])[];
   /** Basalt columns: first column, width and height over the sand (tiles). */
@@ -67,8 +67,8 @@ export interface LevelDef {
   readonly rocks?: readonly (readonly [number, number, number])[];
   /** Column the crab starts at. */
   readonly startCol: number;
-  /** Shells to find, beyond the periwinkle it starts in: column, and how deep it's buried (0 = on the surface, -1 = up on the highest root there). */
-  readonly shells: readonly (readonly [ShellKind, number, number])[];
+  /** Shells to find, beyond the periwinkle it starts in: kind, size, column, and how deep it's buried (0 = on the surface, -1 = up on the highest root there). */
+  readonly shells: readonly (readonly [ShellKind, number, number, number])[];
   readonly food: {
     /** Loose food on the surface, kept stocked. */
     readonly surface: number;

@@ -8,7 +8,7 @@ import { makeCanvas } from '../../art/pen';
 import { TEX } from '../../art/textures';
 import type { Critter } from '../../logic/critters';
 import { isRival } from '../../logic/rivals';
-import { bodyFill, shellPx, SHELLS } from '../../logic/shells';
+import { bodyFill, shellPx } from '../../logic/shells';
 
 /** Just behind the player, in front of the other creatures. */
 const DEPTH = 4.2;
@@ -69,8 +69,8 @@ export class RivalsView {
       const s = this.sprites.get(k.id) ?? this.create(k.id);
       const walking = Math.abs(k.vx) > 1 && k.onGround;
       const f = Math.floor(time / (walking ? 1000 / WALK_FPS : BOIL_MS) + k.id) % BOIL;
-      const spec = k.shell ? SHELLS[k.shell] : null;
-      const unit = shellPx(spec ? spec.maxSize : k.size) / SHELL_UNITS;
+      const spec = k.shell ?? null;
+      const unit = shellPx(spec ? spec.size : k.size) / SHELL_UNITS;
       const body = spec ? unit * bodyFill(spec, k.size) : (shellPx(k.size) / SHELL_UNITS) * NAKED_SCALE;
       s.root.setPosition(k.x + k.w / 2 + k.dir * FOOT_FROM_MIDDLE * unit, k.y + k.h).setScale(k.dir, 1);
       const naked = !spec;

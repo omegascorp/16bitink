@@ -15,9 +15,15 @@ export const SHELL_KINDS = [
 ] as const;
 export type ShellKind = (typeof SHELL_KINDS)[number];
 
+/**
+ * A kind of shell: its name, the sizes it's found in on the beach (a
+ * young one is small, an old one big; see Shell), its weight and its
+ * durability (unused: being caught never damages a shell).
+ */
 export interface ShellSpec {
   readonly kind: ShellKind;
   readonly name: string;
+  /** Smallest and biggest sizes this kind is found in. */
   readonly minSize: number;
   readonly maxSize: number;
   /** 1 light … 3 heavy. */
@@ -29,7 +35,7 @@ const spec = (kind: ShellKind, name: string, minSize: number, maxSize: number, w
   kind, name, minSize, maxSize, weight, durability,
 });
 
-// Ranges overlap generously so a crab can bank growth and jump past a size.
+// The sizes each kind is found in climb through a beach, and overlap.
 // Only real sea and land snail shells: no litter, nothing man-made.
 export const SHELLS: Readonly<Record<ShellKind, ShellSpec>> = {
   // A real sea-snail shell to start in, so the first thing you see reads as a hermit crab.
@@ -87,21 +93,43 @@ export const SHELLS: Readonly<Record<ShellKind, ShellSpec>> = {
   volute: spec('volute', 'Indian volute', 5, 8, 3, 4),
 };
 
-/** A hermit crab's body box: the size of its shell (the biggest body that shell takes), or of its own body when it's out of one. */
-export function crabBox(size: number, shell: ShellKind | null): { w: number; h: number } {
-  const px = shellPx(shell ? SHELLS[shell].maxSize : size);
+/**
+ * One shell: its kind and its size. Every kind comes in every size it's
+ * found in, as real shells do; a size-N shell holds a crab of size N (it's
+ * full then), or one a size smaller that will grow into it. So a crab
+ * moves house at every size: a shell two sizes up is still too big.
+ */
+export interface Shell {
+  readonly kind: ShellKind;
+  readonly size: number;
+}
+
+/** A shell of a kind and size (default: the biggest that kind comes in). */
+export function shellOf(kind: ShellKind, size: number = SHELLS[kind].maxSize): Shell {
+  return { kind, size };
+}
+
+/** "a size-4 tulip shell", for the HUD. */
+export function shellName(shell: Shell): string {
+  return `size-${shell.size} ${SHELLS[shell.kind].name}`;
+}
+
+/** A hermit crab's body box: the size of its shell, or of its own body when it's out of one. */
+export function crabBox(size: number, shell: Shell | null): { w: number; h: number } {
+  const px = shellPx(shell ? shell.size : size);
   return { w: px * 0.85, h: px * 0.7 };
 }
 
-export function canWear(shell: ShellSpec, bodySize: number): boolean {
-  return bodySize >= shell.minSize && bodySize <= shell.maxSize;
+/** Whether a crab of `bodySize` can live in `shell`: one its size, or one size up to grow into. */
+export function canWear(shell: Shell, bodySize: number): boolean {
+  return bodySize === shell.size || bodySize === shell.size - 1;
 }
 
 const SPEED_BY_WEIGHT = { 1: 1, 2: 0.85, 3: 0.7 } as const;
 
 /** Walk and dig speed multiplier; a naked crab is quick (and exposed). */
-export function speedFactor(shell: ShellSpec | null): number {
-  return shell ? SPEED_BY_WEIGHT[shell.weight] : 1;
+export function speedFactor(shell: Shell | null): number {
+  return shell ? SPEED_BY_WEIGHT[SHELLS[shell.kind].weight] : 1;
 }
 
 /**
@@ -117,22 +145,21 @@ export function shellPx(size: number): number {
   return 8 + 5 * size;
 }
 
-/** How much of its shell's drawn width a crab's body spans, from the smallest size it fits to its cap. */
+/** How much of its shell's drawn width a crab's body spans, from a size smaller than the shell to its size. */
 const FILL = { min: 0.8, max: 0.95 } as const;
 
 /**
  * The crab's drawn size as a fraction of its shell's (`growth` may be
  * fractional, partway to the next size). Sized relative to the shell, not
- * absolutely, so even a crab that has only just fit stays in the opening
- * rather than standing beside it; at the cap it crowds the mouth.
+ * absolutely, so even a crab that has only just moved in stays in the
+ * opening rather than standing beside it; when it's full it crowds the mouth.
  */
-export function bodyFill(shell: ShellSpec, growth: number): number {
-  const span = shell.maxSize - shell.minSize;
-  const t = span > 0 ? Math.min(1, Math.max(0, (growth - shell.minSize) / span)) : 1;
+export function bodyFill(shell: Shell, growth: number): number {
+  const t = Math.min(1, Math.max(0, growth - (shell.size - 1)));
   return FILL.min + (FILL.max - FILL.min) * t;
 }
 
 /** Clumps of sand a crab can carry: a bigger shell holds more. Without one, only what its claws can hold. */
-export function sandCapacity(shell: ShellSpec | null): number {
-  return shell ? 4 + 3 * shell.maxSize : 4;
+export function sandCapacity(shell: Shell | null): number {
+  return shell ? 4 + 3 * shell.size : 4;
 }

@@ -152,6 +152,35 @@ function fish(d: Draw): void {
 
 const FOODS: Readonly<Record<FoodKind, (d: Draw) => void>> = { crumb, hopper, worm, molecrab, clam, fish };
 
+/**
+ * An old ink bottle, washed up and buried (a mission's find): a squat glass
+ * inkwell half full of ink, a paper label, a cork. Drawn in the food frame.
+ */
+export function drawBottle(d: Draw): void {
+  contact(d, 0, 14);
+  const glass: Pt[] = [
+    pt(-12, 17), pt(-13, 6), pt(-11, -2), pt(-6, -6), pt(-5, -11), pt(5, -11), pt(6, -6), pt(11, -2), pt(13, 6), pt(12, 17),
+  ];
+  skin(d, glass, '#cfe0dc', 0.55);
+  d.pen.clipped(glass, () => {
+    // Ink to a little over half way, its surface tilted a touch.
+    const ink: Pt[] = [pt(-14, 4), pt(14, 2), pt(14, 19), pt(-14, 19)];
+    d.pen.fill(ink, '#1d2a52', 0.9);
+    d.pen.hair([pt(-13, 4), pt(13, 2)], 0.6, '#5d6fa8', 0.8);
+    // A torn paper label, its lettering a few scribbles.
+    const label: Pt[] = [pt(-8, 6), pt(8, 5.5), pt(8.5, 13), pt(-7.5, 13.5)];
+    d.pen.fill(label, '#efe4c4', 0.95);
+    for (const y of [8, 10.5]) d.pen.hair([pt(-5, y), pt(-1, y - 0.4), pt(2, y + 0.3), pt(5, y - 0.2)], 0.45, d.ink, 0.7);
+    glint(d, [pt(-9, -1), pt(-10.5, 5), pt(-10, 12)], 1.4, 0.75);
+  });
+  shade(d, glass, 0.35);
+  edge(d, glass, 1.1);
+  const cork: Pt[] = [pt(-4.5, -11), pt(-4, -18), pt(4, -18.5), pt(4.5, -11)];
+  skin(d, cork, '#b88a55', 0.8);
+  d.pen.stipple(cork, 14, () => 0.6, 0.5, '#6b4a2a');
+  edge(d, cork, 0.9);
+}
+
 export function drawFood(d: Draw, kind: FoodKind): void {
   FOODS[kind](d);
 }

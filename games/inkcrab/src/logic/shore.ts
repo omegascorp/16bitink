@@ -1,5 +1,5 @@
 import type { TilePos } from './dig';
-import { food, type ItemKind } from './items';
+import { food, shell, type ItemKind } from './items';
 import type { Rng } from './rng';
 import type { ShellKind } from './shells';
 import { isSolid, surfaceRow, type Terrain } from './terrain';
@@ -9,10 +9,10 @@ import { createWater, updateWater, washStep, type Water } from './water';
 /** Seconds between updates of the water (the tide moves slowly; a tile a tick is plenty). */
 const WATER_EVERY = 0.1;
 
-/** What each high water washes in: food along the strandline, and shells in order (kind and column), one a tide. */
+/** What each high water washes in: food along the strandline, and shells in order (kind, size and column), one a tide. */
 export interface TideBrings {
   readonly food: number;
-  readonly shells?: readonly (readonly [ShellKind, number])[];
+  readonly shells?: readonly (readonly [ShellKind, number, number])[];
 }
 
 /** A rock pool as carved: first column, width, depth. */
@@ -94,7 +94,7 @@ export class Shore {
     const next = this.brings.shells?.[this.shellsIn];
     if (next) {
       this.shellsIn++;
-      drop({ type: 'shell', shell: next[0] }, next[1]);
+      drop(shell(next[0], next[1]), next[2]);
     }
   }
 }

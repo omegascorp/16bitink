@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { shellOf } from '../src/logic/shells';
 import { carve } from '../src/level/carve';
 import { makeBird } from '../src/logic/birds';
 import { makeCritter, stepCritter, type Critter, type Quarry } from '../src/logic/critters';
@@ -106,7 +107,7 @@ describe('kelp wrack', () => {
 
 describe('fog and kelp on the beach', () => {
   function beach(over: Partial<BeachSetup> = {}): Beach {
-    return new Beach({ terrain: flat(), items: [], start: { x: 20 * T, y: GROUND * T }, tileSize: T, startShell: 'periwinkle', seed: 1, surfaceFood: 0, ...over });
+    return new Beach({ terrain: flat(), items: [], start: { x: 20 * T, y: GROUND * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0, ...over });
   }
   const run = (b: Beach, seconds: number) => {
     for (let i = 0; i < seconds * 60; i++) b.step(IDLE, 1 / 60);

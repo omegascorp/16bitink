@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { shellOf } from '../src/logic/shells';
 import { carve } from '../src/level/carve';
 import { BEACH_5 } from '../src/level/beach5';
 import { buildLevel, TILE_PX } from '../src/level/build';
@@ -17,7 +18,7 @@ function beach(over: Partial<BeachSetup> = {}): Beach {
   const terrain = carve({ width: 48, height: 24, seed: 1, profile: [[0, 12], [47, 12]], vents: [COL] });
   const floor = surfaceRow(terrain, COL);
   const vent: Vent = { ...SPEC, top: floor - VENT.shaft, floor };
-  return new Beach({ terrain, items: [], start: { x: 6 * T, y: 12 * T }, tileSize: T, startShell: 'periwinkle', seed: 1, surfaceFood: 0, vents: [vent], ...over });
+  return new Beach({ terrain, items: [], start: { x: 6 * T, y: 12 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0, vents: [vent], ...over });
 }
 
 const run = (b: Beach, input: Partial<Input>, seconds: number) => {

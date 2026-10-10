@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { shellOf } from '../src/logic/shells';
 import { carve } from '../src/level/carve';
 import { makeBird } from '../src/logic/birds';
 import { makeCritter, stepCritter, type Critter, type Quarry } from '../src/logic/critters';
@@ -110,7 +111,7 @@ describe('decks', () => {
 function harbour(over: Partial<BeachSetup> = {}): Beach {
   const terrain = flat();
   return new Beach({
-    terrain, items: [], start: { x: 8 * T + T / 2, y: GROUND * T }, tileSize: T, startShell: 'periwinkle', seed: 3, surfaceFood: 0, ...over,
+    terrain, items: [], start: { x: 8 * T + T / 2, y: GROUND * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 3, surfaceFood: 0, ...over,
   });
 }
 
@@ -186,7 +187,7 @@ describe('decks on the beach', () => {
     const terrain = flat();
     const deck = layDeck(terrain, [4, 9, 2, 'boat']);
     const b = new Beach({
-      terrain, items: [], start: { x: 8 * T + T / 2, y: GROUND * T }, tileSize: T, startShell: 'periwinkle', seed: 3, surfaceFood: 0, decks: [deck],
+      terrain, items: [], start: { x: 8 * T + T / 2, y: GROUND * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 3, surfaceFood: 0, decks: [deck],
     });
     b.birds.set(999, makeBird(999, 6, centre(b.crab.body).x, 2 * T, 1, 'brahminy'));
     expect(b.underDeck(b.crab.body)).toBe(true);
@@ -199,7 +200,7 @@ describe('decks on the beach', () => {
     const deck = layDeck(terrain, [20, 6, 2, 'rack']);
     const proto = makeItem(1, food('crumb'), 0, 0, false);
     const b = new Beach({
-      terrain, items: [{ ...proto, x: 22 * T, y: (deck.row - 4) * T }], start: { x: 8 * T + T / 2, y: GROUND * T }, tileSize: T, startShell: 'periwinkle', seed: 3, surfaceFood: 0, decks: [deck],
+      terrain, items: [{ ...proto, x: 22 * T, y: (deck.row - 4) * T }], start: { x: 8 * T + T / 2, y: GROUND * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 3, surfaceFood: 0, decks: [deck],
     });
     run(b, 2);
     const item = b.items.get(1)!;

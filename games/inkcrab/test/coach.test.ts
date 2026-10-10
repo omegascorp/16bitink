@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { shellOf } from '../src/logic/shells';
 import { Coach } from '../src/logic/coach';
 import { makeCritter } from '../src/logic/critters';
 import { digColumns } from '../src/logic/dig';
@@ -12,7 +13,7 @@ const T = 16;
 function beach(items = [] as ReturnType<typeof makeItem>[]): Beach {
   const terrain: Terrain = createTerrain(60, 30);
   for (let x = 0; x < 60; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
-  return new Beach({ terrain, items, start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: 'periwinkle', seed: 1, surfaceFood: 0 });
+  return new Beach({ terrain, items, start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0 });
 }
 
 /** Steps the beach and lets the coach watch. */
@@ -140,7 +141,7 @@ describe('the harbour lessons', () => {
       for (let x = d.col; x < d.col + d.width; x++) setTile(terrain, x, d.row, TILE.wood);
       return d;
     });
-    return new Beach({ terrain, items: [], start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: 'periwinkle', seed: 1, surfaceFood: 0, ...over, decks });
+    return new Beach({ terrain, items: [], start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0, ...over, decks });
   }
 
   it('speaks up as the first squall comes, and is learnt once the downpour has passed', () => {

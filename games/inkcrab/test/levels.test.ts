@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { missionOf } from '../src/level/missions';
 import { BEACH_1 } from '../src/level/beach1';
 import { BEACH_2 } from '../src/level/beach2';
 import { BEACH_3 } from '../src/level/beach3';
@@ -75,13 +76,15 @@ for (const { name, levels: BEACH, fry: FRY, firstGoal } of BEACHES) describe(nam
       it('starts a size-1 crab in a periwinkle', () => {
         const b = new Beach(setup);
         expect(b.crab.growth).toEqual({ size: 1, meter: 0, bank: 0 });
-        expect(b.crab.shell).toBe('periwinkle');
+        expect(b.crab.shell).toEqual(START_SHELL);
       });
 
-      it('has a shell to move into at every size on the way to the goal', () => {
-        const kinds = ['periwinkle' as const, ...levelShells(def)];
-        for (let size = 1; size < levelGoal(def); size++) {
-          expect(kinds.some((k) => SHELLS[k].minSize <= size && SHELLS[k].maxSize > size), `size ${size}`).toBe(true);
+      it('has a shell of every size on the way to the goal, each a kind found in that size', () => {
+        const sizes = new Set([START_SHELL.size, ...levelShells(def).map((s) => s.size)]);
+        for (let size = START_SHELL.size; size <= levelGoal(def); size++) expect(sizes.has(size), `size ${size}`).toBe(true);
+        for (const s of levelShells(def)) {
+          expect(s.size, s.kind).toBeGreaterThanOrEqual(SHELLS[s.kind].minSize);
+          expect(s.size, s.kind).toBeLessThanOrEqual(SHELLS[s.kind].maxSize);
         }
       });
 
@@ -258,11 +261,17 @@ describe('mangrove margins', () => {
         expect(setup.terrain.tiles.includes(5)).toBe(true);
       });
 
-      it('perches its shells on root tops the crab can climb to from the mud', () => {
+      it('perches its shells on root tops the crab can climb to from the mud (on the mud, for a shell chain\'s line)', () => {
         const reach = climbable(roots, (x) => surfaceRow(setup.terrain, x));
-        for (const [kind, col, depth] of def.shells) {
+        const chain = missionOf(def).chain > 0;
+        for (const [kind, size, col, depth] of def.shells) {
           if (depth >= 0) continue;
-          const item = setup.items.find((i) => i.kind.type === 'shell' && i.kind.shell === kind)!;
+          if (chain) {
+            const item = setup.items.find((i) => i.kind.type === 'shell' && i.kind.shell.kind === kind && i.kind.shell.size === size)!;
+            expect(Math.round((item.y + item.h) / TILE_PX), kind).toBe(surfaceRow(setup.terrain, col));
+            continue;
+          }
+          const item = setup.items.find((i) => i.kind.type === 'shell' && i.kind.shell.kind === kind && i.kind.shell.size === size)!;
           const row = Math.round((item.y + item.h) / TILE_PX);
           expect(isLedge(roots, col, row), `${kind} on a ledge`).toBe(true);
           expect(reach.has(`${col},${row}`), `${kind} reachable`).toBe(true);
@@ -321,26 +330,26 @@ describe('fog & kelp', () => {
 
 describe('wreck cove', () => {
   /**
-   * The sizes a crab can reach: from the periwinkle, any shell lying about
-   * that it fits takes it up to that shell's cap, and a rival no bigger than
-   * it can be rapped for its shell. Rivals tucked in their shells never move
-   * into another (only rapped ones do, and those are no bigger than the crab).
+   * The sizes a crab can reach: from the periwinkle, a shell lying about one
+   * size up takes it up a size, and a rival no bigger than it can be rapped
+   * for its shell.
    */
   function reach(def: LevelDef): { size: number; rapped: number } {
-    let size = SHELLS[START_SHELL].maxSize;
-    const loose = def.shells.map(([k]) => k);
-    const left = [...(def.rivals ?? [])];
+    let size = START_SHELL.size;
+    const loose = def.shells.map(([, s]) => s);
+    const left = (def.rivals ?? []).map(([, s, , body]) => ({ shell: s, body: body ?? Math.max(1, s - 1) }));
+    const all = left.length;
     for (let changed = true; changed;) {
       changed = false;
-      for (const k of loose) if (SHELLS[k].minSize <= size && SHELLS[k].maxSize > size) [size, changed] = [SHELLS[k].maxSize, true];
+      if (loose.includes(size + 1)) [size, changed] = [size + 1, true];
       for (let i = left.length - 1; i >= 0; i--) {
-        if (left[i]![1] > size) continue;
-        loose.push(left[i]![0]);
+        if (left[i]!.body > size) continue;
+        loose.push(left[i]!.shell);
         left.splice(i, 1);
         changed = true;
       }
     }
-    return { size, rapped: (def.rivals?.length ?? 0) - left.length };
+    return { size, rapped: all - left.length };
   }
 
   for (const def of BEACH_7) {
@@ -392,10 +401,10 @@ describe('monsoon harbour', () => {
       });
 
       it('lays the shells meant for a deck up on top of it', () => {
-        for (const [kind, col, depth] of def.shells) {
+        for (const [kind, size, col, depth] of def.shells) {
           const deck = deckAt(decks, col);
           if (!deck || depth !== 0) continue;
-          const item = setup.items.find((i) => i.kind.type === 'shell' && i.kind.shell === kind)!;
+          const item = setup.items.find((i) => i.kind.type === 'shell' && i.kind.shell.kind === kind && i.kind.shell.size === size)!;
           expect(item.y + item.h, kind).toBeCloseTo(deck.row * TILE_PX, 5);
         }
       });

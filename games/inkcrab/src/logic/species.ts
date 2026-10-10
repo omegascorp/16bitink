@@ -95,7 +95,8 @@ export const SPECIES: Readonly<Record<SpeciesId, SpeciesSpec>> = {
   // A blue crab: a fast swimmer on the sand too, dashing in bursts.
   bluecrab: { id: 'bluecrab', name: 'blue crab', speed: 1.3, sight: 6, hunts: true, burst: { run: 0.6, rest: 0.7 }, box: { w: 1.2, h: 0.55 } },
   // A rival hermit crab: harmless, after the same shells you are (see logic/rivals.ts). Never food, never a hunter.
-  hermit: { id: 'hermit', name: 'hermit crab', speed: 0.9, sight: 5, hunts: false, box: { w: 0.95, h: 0.7 } },
+  // It clambers up and down steps a ghost crab turns back at, so a line of followers keeps up.
+  hermit: { id: 'hermit', name: 'hermit crab', speed: 0.9, sight: 5, hunts: false, hops: true, box: { w: 0.95, h: 0.7 } },
   // Monsoon Harbour (beach 8). A sand bubbler crab: tiny and timid, it sifts the wet sand into little balls.
   bubbler: { id: 'bubbler', name: 'sand bubbler crab', speed: 0.9, sight: 4, hunts: false, box: { w: 0.95, h: 0.55 } },
   // A mud crab: a heavy, big-clawed hunter of the harbour mud. It hunts by sight, so the rain half-blinds it.

@@ -1,12 +1,12 @@
 import { meterGoal, type Growth } from './growth';
-import { SHELLS, type ShellKind } from './shells';
+import type { Shell } from './shells';
 
 /**
- * A level is won by growing to the biggest size it allows: the largest
- * maximum among the shell you start in and the shells lying in the level.
+ * A level is won by growing to the biggest size it allows: the biggest
+ * of the shell you start in and the shells in the level.
  */
-export function goalSize(startShell: ShellKind | null, startSize: number, shells: readonly ShellKind[]): number {
-  return Math.max(startSize, startShell ? SHELLS[startShell].maxSize : startSize, ...shells.map((k) => SHELLS[k].maxSize));
+export function goalSize(startShell: Shell | null, startSize: number, shells: readonly Shell[]): number {
+  return Math.max(startSize, startShell?.size ?? startSize, ...shells.map((s) => s.size));
 }
 
 /** How far along the level's growth bar the crab is, 0..1: whole sizes plus its meter towards the next. */

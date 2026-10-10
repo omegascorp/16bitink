@@ -42,15 +42,46 @@ export class CrittersView {
   private readonly sprites = new Map<number, CritterSprites>();
   private readonly ripples: Phaser.GameObjects.Graphics;
   private readonly arms: Phaser.GameObjects.Graphics;
+  /** Red pencil rings round a mission's quarry. */
+  private readonly rings: Phaser.GameObjects.Graphics;
 
   constructor(private readonly scene: Phaser.Scene, private readonly terrain: Terrain, private readonly tile: number) {
     this.ripples = scene.add.graphics().setDepth(3.5);
     this.arms = scene.add.graphics().setDepth(4.5);
+    this.rings = scene.add.graphics().setDepth(4.6);
+  }
+
+  /**
+   * A mission's quarry, circled in red pencil as InkFish marks its bounty:
+   * a loose hand-drawn ring, drawn twice round, that boils a little.
+   */
+  private ring(c: Critter, time: number): void {
+    const g = this.rings;
+    const cx = c.x + c.w / 2;
+    const cy = c.y + c.h / 2;
+    const rx = c.w * 0.75 + 3;
+    const ry = c.h * 0.8 + 4;
+    const boil = Math.floor(time / BOIL_MS) % BOIL;
+    g.lineStyle(c.marked === 'giant' ? 2.2 : 1.6, RED_HEX, 0.85);
+    g.beginPath();
+    const turns = 1.15;
+    const steps = 40;
+    for (let i = 0; i <= steps; i++) {
+      const a = (i / steps) * Math.PI * 2 * turns - 0.6;
+      const wob = 1 + Math.sin(a * 3 + boil * 1.7 + c.id) * 0.05 + (i / steps) * 0.08;
+      const x = cx + Math.cos(a) * rx * wob;
+      const y = cy + Math.sin(a) * ry * wob;
+      if (i === 0) g.moveTo(x, y);
+      else g.lineTo(x, y);
+    }
+    g.strokePath();
   }
 
   sync(critters: ReadonlyMap<number, Critter>, playerSize: number, time: number): void {
     const g = this.ripples.clear();
     this.arms.clear();
+    this.rings.clear();
+    for (const c of critters.values()) if (c.marked && !c.flight) this.ring(c, time);
     for (const [id, s] of this.sprites) {
       if (critters.has(id)) continue;
       s.mark.destroy();

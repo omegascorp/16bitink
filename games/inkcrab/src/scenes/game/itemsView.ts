@@ -15,7 +15,7 @@ interface ItemSprites {
 const FOOD_UNIT = 0.32;
 
 /**
- * Food and loose shells, each over a highlighter swipe. Buried ones show
+ * Food, loose shells and ink bottles, each over a highlighter swipe. Buried ones show
  * only a faint swipe through the sand: something's down there.
  */
 export class ItemsView {
@@ -56,10 +56,11 @@ export class ItemsView {
     s.art.setVisible(!item.buried).setDepth(4);
     if (item.buried) return;
     if (item.kind.type === 'shell') {
-      const unit = shellPx(SHELLS[item.kind.shell].maxSize) / SHELL_UNITS;
-      s.art.setTexture(TEX.shell(item.kind.shell, boil)).setOrigin(SHELL_MID / FRAME, FOOT.y / FRAME).setScale(unit).setPosition(cx, bottom);
+      const unit = shellPx(item.kind.shell.size) / SHELL_UNITS;
+      s.art.setTexture(TEX.shell(item.kind.shell.kind, boil)).setOrigin(SHELL_MID / FRAME, FOOT.y / FRAME).setScale(unit).setPosition(cx, bottom);
     } else {
-      s.art.setTexture(TEX.food(item.kind.food, boil)).setOrigin(0.5, (FOOD_FRAME / 2 + FOOD_GROUND) / FOOD_FRAME).setScale(FOOD_UNIT / FOOD_RES).setPosition(cx, bottom);
+      const key = item.kind.type === 'bottle' ? TEX.bottle(boil) : TEX.food(item.kind.food, boil);
+      s.art.setTexture(key).setOrigin(0.5, (FOOD_FRAME / 2 + FOOD_GROUND) / FOOD_FRAME).setScale(FOOD_UNIT / FOOD_RES).setPosition(cx, bottom);
     }
   }
 }

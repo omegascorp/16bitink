@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { shellOf } from '../src/logic/shells';
 import { carve } from '../src/level/carve';
 import { makeItem, shell } from '../src/logic/items';
 import { RIVAL } from '../src/logic/rivals';
@@ -13,7 +14,7 @@ const W = 64;
 function beach(over: Partial<BeachSetup> = {}): Beach {
   const terrain = carve({ width: W, height: 24, seed: 1, profile: [[0, GROUND], [W - 1, GROUND]] });
   return new Beach({
-    terrain, items: [], start: { x: 20 * T, y: GROUND * T }, tileSize: T, startShell: 'periwinkle', seed: 1, surfaceFood: 0,
+    terrain, items: [], start: { x: 20 * T, y: GROUND * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0,
     startGrowth: { size: 3, meter: 0, bank: 0 }, ...over,
   });
 }
@@ -28,9 +29,9 @@ const rivalOf = (b: Beach) => [...b.critters.values()].find((k) => k.species ===
 
 /** Every shell on the beach: loose, worn by the crab, or worn by a rival. */
 const shells = (b: Beach): string[] => [
-  ...[...b.items.values()].flatMap((i) => (i.kind.type === 'shell' ? [i.kind.shell] : [])),
-  ...(b.crab.shell ? [b.crab.shell] : []),
-  ...[...b.critters.values()].flatMap((k) => (k.shell ? [k.shell] : [])),
+  ...[...b.items.values()].flatMap((i) => (i.kind.type === 'shell' ? [i.kind.shell.kind] : [])),
+  ...(b.crab.shell ? [b.crab.shell.kind] : []),
+  ...[...b.critters.values()].flatMap((k) => (k.shell ? [k.shell.kind] : [])),
 ].sort();
 
 describe('rival hermit crabs', () => {
@@ -47,7 +48,7 @@ describe('rival hermit crabs', () => {
     const b = beach({ rivals: [['tulip', 5, 21]] });
     const events = run(b, { interact: true }, 0.3);
     expect(rivalOf(b).tucked).toBe(false);
-    expect(rivalOf(b).shell).toBe('tulip');
+    expect(rivalOf(b).shell).toEqual(shellOf('tulip', 5));
     expect(events.some((e) => e.type === 'rapped')).toBe(false);
   });
 
@@ -60,7 +61,7 @@ describe('rival hermit crabs', () => {
     expect(rapped).toBeDefined();
     expect(rivalOf(b).shell).toBeNull();
     const loose = [...b.items.values()].find((i) => i.kind.type === 'shell');
-    expect(loose?.kind).toEqual(shell('figshell'));
+    expect(loose?.kind).toEqual(shell('figshell', 2));
     expect(shells(b)).toEqual(before);
     const x = rivalOf(b).x;
     run(b, {}, RIVAL.fleeFor * 0.8);
@@ -82,11 +83,11 @@ describe('rival hermit crabs', () => {
     const b = beach({ rivals: [['figshell', 2, 40]] });
     const k = rivalOf(b);
     b.critters.set(k.id, { ...k, shell: null });
-    const nassa = makeItem(500, shell('nassa'), 46 * T, surfaceRow(b.terrain, 46) * T - 10, false);
+    const nassa = makeItem(500, shell('nassa', 2), 46 * T, surfaceRow(b.terrain, 46) * T - 10, false);
     b.items.set(500, { ...nassa, y: surfaceRow(b.terrain, 46) * T - nassa.h });
     const before = shells(b);
     run(b, {}, 6);
-    expect(rivalOf(b).shell).toBe('nassa');
+    expect(rivalOf(b).shell).toEqual(shellOf('nassa', 2));
     expect(b.items.has(500)).toBe(false);
     expect(shells(b)).toEqual(before);
   });
@@ -103,7 +104,7 @@ describe('rival hermit crabs', () => {
 
   it('come second to a shell that fits: E moves the crab in rather than rapping', () => {
     const b = beach({ rivals: [['figshell', 2, 21]] });
-    const tulip = makeItem(600, shell('tulip'), 20 * T, 0, false);
+    const tulip = makeItem(600, shell('tulip', 4), 20 * T, 0, false);
     b.items.set(600, { ...tulip, y: surfaceRow(b.terrain, 20) * T - tulip.h });
     run(b, {}, 0.2);
     const events = run(b, { interact: true }, 1 / 60);

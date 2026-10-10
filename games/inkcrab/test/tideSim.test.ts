@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { shellOf } from '../src/logic/shells';
 import { carve } from '../src/level/carve';
 import { makeCritter } from '../src/logic/critters';
 import { Beach, IDLE, type BeachSetup, type Input } from '../src/logic/sim';
@@ -10,7 +11,7 @@ const TIDE: TideSpec = { low: 22, high: 12, period: 40 };
 
 function shore(over: Partial<BeachSetup> = {}): Beach {
   const terrain = carve({ width: 60, height: 30, seed: 1, profile: [[0, 10], [59, 18]], granite: 6, dens: over.dens, pools: over.pools });
-  return new Beach({ terrain, items: [], start: { x: 6 * T, y: 10 * T }, tileSize: T, startShell: 'periwinkle', seed: 1, surfaceFood: 0, tide: TIDE, ...over });
+  return new Beach({ terrain, items: [], start: { x: 6 * T, y: 10 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0, tide: TIDE, ...over });
 }
 
 const run = (b: Beach, input: Partial<Input>, seconds: number) => {
@@ -55,9 +56,9 @@ describe('the tide in play', () => {
   });
 
   it('washes in the level\'s shells, one each high water, on the strandline', () => {
-    const b = shore({ tideBrings: { food: 2, shells: [['necklace', 40], ['frogshell', 41]] } });
+    const b = shore({ tideBrings: { food: 2, shells: [['necklace', 5, 40], ['frogshell', 6, 41]] } });
     run(b, {}, TIDE.period / 2 + 0.2);
-    const shells = (): string[] => [...b.items.values()].flatMap((i) => (i.kind.type === 'shell' ? [i.kind.shell] : []));
+    const shells = (): string[] => [...b.items.values()].flatMap((i) => (i.kind.type === 'shell' ? [i.kind.shell.kind] : []));
     expect(shells()).toEqual(['necklace']);
     expect([...b.items.values()].filter((i) => i.kind.type === 'food').length).toBeGreaterThanOrEqual(2);
     run(b, {}, TIDE.period);

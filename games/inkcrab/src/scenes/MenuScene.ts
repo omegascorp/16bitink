@@ -1,3 +1,5 @@
+import { missionOf } from '../level/missions';
+import { shortGoal } from '../logic/mission';
 import Phaser from 'phaser';
 import { BLUE, BLUE_HEX, PAPER_HEX, RED } from '../art/palette';
 import { TEX } from '../art/textures';
@@ -62,7 +64,8 @@ export class MenuScene extends Phaser.Scene {
     cam.setBackgroundColor('#f5f0e1').setBounds(0, 0, this.layout.width, this.layout.height).setZoom(zoom * DPR);
     this.chart = new ChartView(this, this.layout, chartLayer, Math.min(2, zoom * DPR));
 
-    const route = buildRoute(this, this.layout, states, blots, names);
+    const missions = new Map(LEVELS.map((l) => [l.id, missionOf(l).kinds]));
+    const route = buildRoute(this, this.layout, states, blots, names, missions);
     worldLayer.add(route.objects);
     for (const { node, zone } of route.hits) {
       zone.on('pointerup', () => {
@@ -147,7 +150,7 @@ export class MenuScene extends Phaser.Scene {
     if (!def) return;
     const y = node.y + MAP.nodeRadius + (done ? 48 : 34);
     layer.add(inkText(this, node.x, y, def.name, 22));
-    layer.add(inkText(this, node.x, y + 24, `grow to size ${levelGoal(def)}`, 17, SOFT_INK));
+    layer.add(inkText(this, node.x, y + 24, shortGoal(missionOf(def), levelGoal(def)), 17, SOFT_INK));
     const host = getHost(this);
     const locked = isPaid(def.id) && !host.unlocked;
     const label = locked ? (host.price ? `Unlock · ${host.price}` : 'Unlock') : done ? 'Play again' : 'Play';

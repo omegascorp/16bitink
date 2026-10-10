@@ -81,7 +81,7 @@ export class BeachEndScene extends Phaser.Scene {
     const ladder = shellLadder(def);
     const first = ladder[0]!;
     const last = ladder.at(-1)!;
-    this.add.text(L.title.x, L.title.y + L.title.size * 0.85, `From a ${SHELLS[first].name} to a ${SHELLS[last].name}: all grown up.`, { fontFamily: HAND_FONT, fontSize: '28px', color: SOFT_INK })
+    this.add.text(L.title.x, L.title.y + L.title.size * 0.85, `From a ${SHELLS[first.kind].name} to a ${SHELLS[last.kind].name}: all grown up.`, { fontFamily: HAND_FONT, fontSize: '28px', color: SOFT_INK })
       .setOrigin(0.5).setDepth(20);
 
     // Shells sit down in the sand, a little in front of its inked edge.

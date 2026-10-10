@@ -1,8 +1,7 @@
 import { KELP, wrackColumn } from '../logic/kelp';
-import { buriedFood, food, makeItem, shell, type Item, type ItemKind } from '../logic/items';
-import { goalSize } from '../logic/progress';
+import { BOTTLE, buriedFood, food, makeItem, shell, type Item, type ItemKind } from '../logic/items';
 import { createRng } from '../logic/rng';
-import { SHELLS, type ShellKind } from '../logic/shells';
+import { shellOf, type Shell } from '../logic/shells';
 import type { BeachSetup } from '../logic/sim';
 import { groundRow, setTile, tileAt, surfaceRow, TILE, type Terrain } from '../logic/terrain';
 import type { CritterGroup } from '../logic/sim';
@@ -73,6 +72,17 @@ function buryFood(def: LevelDef, terrain: Terrain, rng: () => number, add: Retur
   }
 }
 
+/**
+ * A mission's ink bottles, each at its spot or, where that's rock or
+ * taken, as near to it as will do: shallower, then a column either side.
+ */
+function buryBottles(def: LevelDef, spots: readonly (readonly [number, number])[], add: ReturnType<typeof placer>): void {
+  for (const [col, depth] of spots) {
+    const tries = [0, 1, -1, 2, -2, 3, -3].flatMap((dx) => Array.from({ length: depth }, (_, d) => [col + dx, depth - d] as const));
+    tries.some(([c, d]) => c >= 2 && c < def.width - 2 && add(BOTTLE, c, d));
+  }
+}
+
 /** Columns past the start that a level's starter food is spread over. */
 export const START_PATCH = 14;
 
@@ -91,19 +101,10 @@ function starterFood(def: LevelDef, rng: () => number, add: ReturnType<typeof pl
   }
 }
 
-/** Every level starts here. */
-export const START_SHELL: ShellKind = 'periwinkle';
-export const START_SIZE = 1;
+import { levelGoal, levelShells, START_SHELL, START_SIZE } from './goal';
+import { bottleSpots, markedSpecs, missionOf, recruitSpecs } from './missions';
 
-/** The level's goal size: the biggest its shells allow. */
-/** Every shell a level has besides the starting one: those laid out, those the tide washes in, and those rival hermit crabs are in. */
-export function levelShells(def: LevelDef): ShellKind[] {
-  return [...def.shells.map(([k]) => k), ...(def.tideBrings?.shells ?? []).map(([k]) => k), ...(def.rivals ?? []).map(([k]) => k)];
-}
-
-export function levelGoal(def: LevelDef): number {
-  return goalSize(START_SHELL, START_SIZE, levelShells(def));
-}
+export { levelGoal, levelShells, START_SHELL, START_SIZE };
 
 /** Beach columns per small slater: wider beaches keep more of them about. */
 const COLS_PER_SMALL_FRY = 16;
@@ -136,7 +137,10 @@ export function buildLevel(def: LevelDef): BeachSetup {
   const rng = createRng(def.seed ^ 0x9e3779b9);
   const items: Item[] = [];
   const add = placer(terrain, items, roots);
-  for (const [kind, col, depth] of def.shells) add(shell(kind), col, depth);
+  const mission = missionOf(def);
+  // A shell chain's line can't climb roots: its shells lie on the mud, where the line can get at the one you leave.
+  for (const [kind, size, col, depth] of def.shells) add(shell(kind, size), col, mission.chain && depth < 0 ? 0 : depth);
+  buryBottles(def, bottleSpots(def, mission), add);
   for (const [col, depth] of def.food.clams ?? []) add(food('clam'), col, depth);
   buryFood(def, terrain, rng, add);
   for (let i = 0; i < def.food.surface; i++) {
@@ -147,7 +151,7 @@ export function buildLevel(def: LevelDef): BeachSetup {
   starterFood(def, rng, add);
   const col = def.startCol;
   // Dropped in above the highest ground under it, so it never starts stuck in a slope.
-  const reach = Math.ceil(SHELLS[START_SHELL].maxSize / 3);
+  const reach = Math.ceil(START_SHELL.size / 3);
   let top = surfaceRow(terrain, col);
   for (let x = col - reach; x <= col + reach; x++) top = Math.min(top, surfaceRow(terrain, x));
   return {
@@ -175,11 +179,16 @@ export function buildLevel(def: LevelDef): BeachSetup {
     decks,
     startGrowth: { size: START_SIZE, meter: 0, bank: 0 },
     goal: levelGoal(def),
+    mission,
+    lives: mission.lives,
+    recruits: recruitSpecs(def, mission),
+    marked: markedSpecs(def, mission),
   };
 }
 
-/** Every shell a level has, starting shell included, smallest first: the climb the beach celebration retells. */
-export function shellLadder(def: LevelDef): ShellKind[] {
-  const kinds = [...new Set<ShellKind>([START_SHELL, ...levelShells(def)])];
-  return kinds.sort((a, b) => SHELLS[a].maxSize - SHELLS[b].maxSize || SHELLS[a].minSize - SHELLS[b].minSize);
+/** The shell a level has at each size, starting shell included, smallest first: the climb the beach celebration retells. */
+export function shellLadder(def: LevelDef): Shell[] {
+  const bySize = new Map<number, Shell>();
+  for (const s of [START_SHELL, ...levelShells(def)]) if (!bySize.has(s.size)) bySize.set(s.size, s);
+  return [...bySize.values()].sort((a, b) => a.size - b.size);
 }

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { FOOT, FRAME, SHELL_UNITS } from '../../art/frame';
 import { BLUE_HEX } from '../../art/palette';
 import { TEX } from '../../art/textures';
-import { MOUTH_OFFSET, shellPx, SHELLS, type ShellKind } from '../../logic/shells';
+import { MOUTH_OFFSET, shellPx, type Shell } from '../../logic/shells';
 import { boil, crabIn, hop, POP_DELAY, puff } from '../heroCrab';
 import { inkText } from '../ui';
 
@@ -26,8 +26,8 @@ export interface Parade {
  * each popping in with a puff; the last one holds the crab, fully grown,
  * hopping. Size ticks underneath read like the growth bar's.
  */
-export function shellParade(scene: Phaser.Scene, ladder: readonly ShellKind[], x0: number, x1: number, ground: number, depth: number): Parade {
-  const widths = ladder.map((k, i) => shellPx(SHELLS[k].maxSize) * (i === ladder.length - 1 ? HERO_BOOST : 1));
+export function shellParade(scene: Phaser.Scene, ladder: readonly Shell[], x0: number, x1: number, ground: number, depth: number): Parade {
+  const widths = ladder.map((s, i) => shellPx(s.size) * (i === ladder.length - 1 ? HERO_BOOST : 1));
   const zoom = Math.min(MAX_ZOOM, (x1 - x0 - GAP * (ladder.length - 1)) / widths.reduce((a, b) => a + b, 0));
   const total = widths.reduce((a, b) => a + b * zoom, 0) + GAP * (ladder.length - 1);
   let left = x0 + (x1 - x0 - total) / 2;
@@ -37,7 +37,7 @@ export function shellParade(scene: Phaser.Scene, ladder: readonly ShellKind[], x
   let heroCrab: Phaser.GameObjects.Container | null = null;
   const ticks = scene.add.graphics().setDepth(depth);
 
-  ladder.forEach((kind, i) => {
+  ladder.forEach((home, i) => {
     const w = widths[i]! * zoom;
     const unit = w / SHELL_UNITS;
     // Sprites anchor at the opening, MOUTH_OFFSET of the width right of the middle.
@@ -46,16 +46,16 @@ export function shellParade(scene: Phaser.Scene, ladder: readonly ShellKind[], x
     left += w + GAP;
     const last = i === ladder.length - 1;
     const delay = POP_DELAY + i * POP_MS;
-    const shell = scene.add.image(foot, ground, TEX.shell(kind, 0)).setOrigin(origin.x, origin.y).setScale(0).setDepth(depth + 1);
+    const shell = scene.add.image(foot, ground, TEX.shell(home.kind, 0)).setOrigin(origin.x, origin.y).setScale(0).setDepth(depth + 1);
     shells.push(shell);
     scene.tweens.add({ targets: shell, scale: unit, delay, duration: 380, ease: 'Back.Out' });
     puff(scene, mid, ground - w * 0.3, w, delay, depth + 2);
-    // Size tick: the biggest size this shell lets the crab reach.
+    // Size tick: the size of this shell, the size it lets the crab reach.
     ticks.lineStyle(1.6, BLUE_HEX, 0.75).lineBetween(mid, ground + 22, mid, ground + 32);
-    const label = inkText(scene, mid, ground + 48, String(SHELLS[kind].maxSize), 22).setAlpha(0).setDepth(depth);
+    const label = inkText(scene, mid, ground + 48, String(home.size), 22).setAlpha(0).setDepth(depth);
     scene.tweens.add({ targets: label, alpha: 0.85, delay, duration: 300 });
     if (last) {
-      heroCrab = crabIn(scene, kind, shell, foot, ground, unit, depth + 1);
+      heroCrab = crabIn(scene, home, shell, foot, ground, unit, depth + 1);
       hero = { x: mid, y: ground - w * 0.5 };
     }
   });

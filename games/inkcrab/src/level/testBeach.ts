@@ -1,7 +1,7 @@
 import { food, makeItem, shell, type Item, type ItemKind } from '../logic/items';
 import { createRng } from '../logic/rng';
 import type { BeachSetup } from '../logic/sim';
-import type { ShellKind } from '../logic/shells';
+import { shellOf, type ShellKind } from '../logic/shells';
 import { setTile, surfaceRow, TILE } from '../logic/terrain';
 import { carve } from './carve';
 import type { ProfilePoint } from './types';
@@ -18,10 +18,10 @@ const PROFILE: readonly ProfilePoint[] = [
 /** Tidepool rocks poking out on the right, and a few boulders underground. */
 const ROCKS: readonly (readonly [number, number, number])[] = [[100, 33, 2.6], [112, 31, 3.2], [121, 34, 2.2], [56, 40, 3.5], [32, 30, 3], [86, 44, 4]];
 
-/** Shells set by hand: two lying on top to find quickly, the rest buried, deeper is better. */
-const SHELL_SPOTS: readonly (readonly [ShellKind, number, number])[] = [
-  ['snail', 20, 0], ['nerite', 62, 0],
-  ['topshell', 34, 4], ['whelk', 48, 7], ['tun', 10, 8], ['moonsnail', 78, 10], ['triton', 96, 9], ['conch', 20, 22],
+/** Shells set by hand, one of each size: two lying on top to find quickly, the rest buried, deeper is better. */
+const SHELL_SPOTS: readonly (readonly [ShellKind, number, number, number])[] = [
+  ['snail', 3, 20, 0], ['nerite', 4, 62, 0],
+  ['topshell', 5, 34, 4], ['whelk', 5, 48, 7], ['moonsnail', 6, 78, 10], ['triton', 7, 96, 9], ['tun', 7, 10, 8], ['conch', 8, 20, 22],
 ];
 
 /** The goal-less sandbox from build step 1: one beach to mess around on. */
@@ -36,10 +36,10 @@ export function buildTestBeach(seed: number): BeachSetup {
     const y = buried ? row * T + T / 2 - proto.h / 2 : row * T - proto.h;
     items.push({ ...proto, x, y });
   };
-  for (const [kind, tx, depth] of SHELL_SPOTS) {
+  for (const [kind, size, tx, depth] of SHELL_SPOTS) {
     const row = surfaceRow(terrain, tx) + depth;
     if (depth > 0) setTile(terrain, tx, row, TILE.sand);
-    add(shell(kind), tx, row, depth > 0);
+    add(shell(kind, size), tx, row, depth > 0);
   }
   // Buried food gets richer with depth.
   for (let i = 0; i < 46; i++) {
@@ -60,7 +60,7 @@ export function buildTestBeach(seed: number): BeachSetup {
     items,
     start: { x: startCol * T + T / 2, y: surfaceRow(terrain, startCol) * T },
     tileSize: T,
-    startShell: 'periwinkle',
+    startShell: shellOf('periwinkle', 2),
     seed,
     surfaceFood: 22,
     critters: [{ count: 4, sizes: [1, 2] }, { count: 3, sizes: [3, 5] }],

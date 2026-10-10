@@ -4,7 +4,7 @@ import { tileSpan } from './dig';
 import { centre, type Item } from './items';
 import { isRival } from './rivals';
 import { onDeck } from './decks';
-import { canWear, SHELLS } from './shells';
+import { canWear } from './shells';
 import { movementOf, SPECIES } from './species';
 import type { Beach, SimEvent } from './sim';
 import { isSolid, surfaceRow } from './terrain';
@@ -15,7 +15,7 @@ export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky
   | 'kelp' | 'fog' | 'raccoon'
   | 'rival'
   | 'rain' | 'deck' | 'monitor'
-  | 'chain';
+  | 'chain' | 'line';
 
 /** What a hint is about: a lesson, or the way out of a hole, offered on every level. */
 export type HintKind = Lesson | 'stuck';
@@ -73,6 +73,8 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     deck: 'A boat up on trestles! Under it no bird can stoop on you. Shells and food lie up on top: build a ramp of sand to climb on.',
     monitor: 'A water monitor tastes the air: the rain won\'t hide you from it. Hold Z to hide, or get up out of its reach.',
     chain: 'A vacancy chain! The hermit crabs line up by size, and each moves into the shell the one ahead leaves behind.',
+    line: 'A small hermit crab! Walk up to it and it follows you: it wants the shell you\'ll leave behind.',
+    lineUp: 'When you move up, your line moves up too. Every move needs one more crab, grown to fill its shell: they eat as they go.',
   },
   touch: {
     move: 'Steer with the stick, jump with the button. Eat food to grow.',
@@ -99,6 +101,8 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     deck: 'A boat up on trestles! Under it no bird can stoop on you. Shells and food lie up on top: build a ramp of sand to climb on.',
     monitor: 'A water monitor tastes the air: the rain won\'t hide you from it. Hold the shell button to hide, or get up out of its reach.',
     chain: 'A vacancy chain! The hermit crabs line up by size, and each moves into the shell the one ahead leaves behind.',
+    line: 'A small hermit crab! Walk up to it and it follows you: it wants the shell you\'ll leave behind.',
+    lineUp: 'When you move up, your line moves up too. Every move needs one more crab, grown to fill its shell: they eat as they go.',
   },
 };
 
@@ -128,6 +132,8 @@ export class Coach {
       else if (e.type === 'revealed' && beach.items.get(e.id)?.kind.type === 'shell') this.done.add('buried');
       else if (e.type === 'thrown') this.done.add('vent');
       else if (e.type === 'rapped') this.done.add('rival');
+      // A shell chain is learnt when the line first trades up behind the crab.
+      else if (e.type === 'traded' && beach.mission.chain) this.done.add('line');
     }
     if (c.sand < this.lastSand) this.done.add('drop');
     this.lastSand = c.sand;
@@ -182,6 +188,12 @@ export class Coach {
     if (open('chain') && this.facing.has('chain')) return { lesson: 'chain', text: t.chain!, target: this.chainShell(beach) ?? undefined };
     if (open('fog') && this.facing.has('fog')) return { lesson: 'fog', text: t.fog! };
     if (open('tide') && beach.tide && beach.elapsed > 4) return { lesson: 'tide', text: t.tide! };
+    if (open('line')) {
+      const status = beach.chain;
+      const recruit = this.recruitNear(beach);
+      if (status?.line === 0 && recruit) return { lesson: 'line', text: t.line!, target: recruit };
+      if (status && status.line > 0 && beach.capped) return { lesson: 'line', text: t.lineUp! };
+    }
     if (this.stuck(beach)) return { lesson: 'stuck', text: t.stuck! };
     if (open('swap') && beach.capped) {
       const shell = this.biggerShell(beach);
@@ -279,6 +291,18 @@ export class Coach {
     return best;
   }
 
+  /** The nearest small crab still to join the line, within RIVAL_NEAR tiles, or null. */
+  private recruitNear(beach: Beach): { x: number; y: number } | null {
+    const at = centre(beach.crab.body).x;
+    let best: { x: number; y: number } | null = null;
+    for (const k of beach.critters.values()) {
+      if (!k.recruit || k.joined) continue;
+      const p = centre(k);
+      if (Math.abs(p.x - at) <= RIVAL_NEAR * beach.tileSize && (!best || Math.abs(p.x - at) < Math.abs(best.x - at))) best = p;
+    }
+    return best;
+  }
+
   /** The empty shell at the head of a vacancy chain, or null. */
   private chainShell(beach: Beach): { x: number; y: number } | null {
     for (const step of beach.chains.values()) if (step.take) return centre(step.take);
@@ -344,7 +368,7 @@ export class Coach {
   /** The nearest loose shell that fits and lets the crab grow past its current cap. */
   private biggerShell(beach: Beach): Item | null {
     const c = beach.crab;
-    return this.nearest(beach, (i) => i.kind.type === 'shell' && !i.buried && canWear(SHELLS[i.kind.shell], c.growth.size) && SHELLS[i.kind.shell].maxSize > beach.cap);
+    return this.nearest(beach, (i) => i.kind.type === 'shell' && !i.buried && canWear(i.kind.shell, c.growth.size) && i.kind.shell.size > beach.cap);
   }
 
   /** A buried shell worth pointing out: close by, or the next one needed once the shell is full and nothing bigger lies in the open. */

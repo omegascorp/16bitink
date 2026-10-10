@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { meterGoal } from '../src/logic/growth';
 import { capMark, goalSize, levelProgress, sizeMarks } from '../src/logic/progress';
+import { shellOf } from '../src/logic/shells';
 
 describe('level progress', () => {
-  it('aims for the biggest size any shell in the level allows', () => {
-    expect(goalSize('periwinkle', 1, [])).toBe(2);
-    expect(goalSize('periwinkle', 2, ['snail'])).toBe(3);
-    expect(goalSize('snail', 3, ['nerite', 'topshell'])).toBe(5);
+  it('aims for the size of the biggest shell in the level', () => {
+    expect(goalSize(shellOf('periwinkle', 2), 1, [])).toBe(2);
+    expect(goalSize(shellOf('periwinkle', 2), 2, [shellOf('snail', 3)])).toBe(3);
+    expect(goalSize(shellOf('snail', 3), 3, [shellOf('nerite', 4), shellOf('topshell', 5)])).toBe(5);
   });
 
   it('fills from the starting size to the goal, counting the meter', () => {

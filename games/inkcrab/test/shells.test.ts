@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { bodyFill, canWear, sandCapacity, shellPx, SHELL_KINDS, SHELLS, speedFactor } from '../src/logic/shells';
+import { bodyFill, canWear, sandCapacity, shellName, shellOf, shellPx, SHELL_KINDS, SHELLS, speedFactor } from '../src/logic/shells';
 
 describe('shells', () => {
-  it('has a sane size range and stats for every kind', () => {
+  it('has a sane range of sizes it comes in, and stats, for every kind', () => {
     for (const kind of SHELL_KINDS) {
       const s = SHELLS[kind];
       expect(s.kind).toBe(kind);
@@ -13,54 +13,49 @@ describe('shells', () => {
     }
   });
 
-  it('fits bodies inside its range only', () => {
-    expect(canWear(SHELLS.snail, 1)).toBe(true);
-    expect(canWear(SHELLS.snail, 3)).toBe(true);
-    expect(canWear(SHELLS.snail, 4)).toBe(false);
-    expect(canWear(SHELLS.conch, 4)).toBe(false);
+  it('comes in any size, the biggest its kind is found in by default', () => {
+    expect(shellOf('tulip')).toEqual({ kind: 'tulip', size: 6 });
+    expect(shellOf('tulip', 4)).toEqual({ kind: 'tulip', size: 4 });
+    expect(shellName(shellOf('tulip', 4))).toBe('size-4 tulip shell');
   });
 
-  it('leaves room to bank for a shell that skips sizes', () => {
-    // A size-2 crab capped in a bottle cap can move straight into a can that fits up to 5.
-    expect(SHELLS.periwinkle.maxSize).toBe(2);
-    expect(canWear(SHELLS.topshell, 2)).toBe(true);
-    expect(SHELLS.topshell.maxSize).toBeGreaterThanOrEqual(5);
+  it('fits a crab its size, or one a size smaller that will grow into it: so a crab moves house at every size', () => {
+    const s = shellOf('whelk', 4);
+    expect(canWear(s, 4)).toBe(true);
+    expect(canWear(s, 3)).toBe(true);
+    expect(canWear(s, 2)).toBe(false);
+    expect(canWear(s, 5)).toBe(false);
   });
 
   it('slows heavy shells and leaves naked crabs at full speed', () => {
     expect(speedFactor(null)).toBe(1);
-    expect(speedFactor(SHELLS.periwinkle)).toBe(1);
-    expect(speedFactor(SHELLS.conch)).toBeLessThan(speedFactor(SHELLS.whelk));
+    expect(speedFactor(shellOf('periwinkle'))).toBe(1);
+    expect(speedFactor(shellOf('conch', 5))).toBeLessThan(speedFactor(shellOf('whelk', 5)));
   });
 
-  it('draws bigger shells bigger', () => {
-    expect(shellPx(SHELLS.conch.maxSize)).toBeGreaterThan(shellPx(SHELLS.periwinkle.maxSize));
+  it('draws bigger shells bigger, whatever their kind', () => {
+    expect(shellPx(shellOf('conch', 8).size)).toBeGreaterThan(shellPx(shellOf('conch', 5).size));
   });
 
-  it('fills most of the opening even at the smallest size a shell fits', () => {
-    for (const kind of SHELL_KINDS) {
-      const spec = SHELLS[kind];
-      expect(bodyFill(spec, spec.minSize)).toBeCloseTo(0.8);
-      expect(bodyFill(spec, spec.maxSize)).toBeCloseTo(0.95);
-      expect(bodyFill(spec, spec.maxSize + 3)).toBeCloseTo(0.95);
+  it('fills most of the opening even when it has only just moved in', () => {
+    for (const size of [2, 4, 8]) {
+      const s = shellOf('tun', size);
+      expect(bodyFill(s, size - 1)).toBeCloseTo(0.8);
+      expect(bodyFill(s, size)).toBeCloseTo(0.95);
+      expect(bodyFill(s, size + 3)).toBeCloseTo(0.95);
+      expect(bodyFill(s, size - 0.5)).toBeGreaterThan(0.8);
     }
   });
 
-  it('grows within a shell', () => {
-    expect(bodyFill(SHELLS.nerite, 3)).toBeGreaterThan(bodyFill(SHELLS.nerite, 2));
-    expect(bodyFill(SHELLS.nerite, 3)).toBeLessThan(bodyFill(SHELLS.nerite, 4));
-  });
-
   it('carries more sand in a bigger shell, and a little without one', () => {
-    expect(sandCapacity(SHELLS.periwinkle)).toBe(10);
-    expect(sandCapacity(SHELLS.conch)).toBeGreaterThan(sandCapacity(SHELLS.triton));
-    expect(sandCapacity(SHELLS.triton)).toBeGreaterThan(sandCapacity(SHELLS.nerite));
-    expect(sandCapacity(null)).toBeLessThan(sandCapacity(SHELLS.periwinkle));
+    expect(sandCapacity(shellOf('periwinkle', 2))).toBe(10);
+    expect(sandCapacity(shellOf('conch', 8))).toBeGreaterThan(sandCapacity(shellOf('triton', 7)));
+    expect(sandCapacity(null)).toBeLessThan(sandCapacity(shellOf('periwinkle', 2)));
     expect(sandCapacity(null)).toBeGreaterThan(0);
   });
 
-  it('draws the smallest shell small enough that its crab fits one tile (16 px)', () => {
-    expect(shellPx(SHELLS.periwinkle.maxSize) * 0.85).toBeLessThan(16);
-    expect(shellPx(SHELLS.periwinkle.maxSize) * 0.7).toBeLessThan(16);
+  it('draws the starting shell small enough that its crab fits one tile (16 px)', () => {
+    expect(shellPx(2) * 0.85).toBeLessThan(16);
+    expect(shellPx(2) * 0.7).toBeLessThan(16);
   });
 });

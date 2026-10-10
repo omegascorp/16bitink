@@ -15,7 +15,7 @@ import { makeCanvas } from '../src/art/pen';
 import { drawChunk, makeSandPatterns } from '../src/art/sand';
 import { drawShell } from '../src/art/shellArt';
 import { buildTestBeach } from '../src/level/testBeach';
-import { bodyFill, SHELL_KINDS, SHELLS } from '../src/logic/shells';
+import { bodyFill, shellOf, SHELL_KINDS, SHELLS } from '../src/logic/shells';
 import { dig } from '../src/logic/terrain';
 
 // Dev-only sheet for reviewing InkCrab's procedural art, big.
@@ -62,9 +62,9 @@ const aboutFoot = (k: number, shift: number, draw: (ctx: CanvasRenderingContext2
   ctx.restore();
 };
 SHELL_KINDS.forEach((kind, i) => {
-  const k = bodyFill(SHELLS[kind], SHELLS[kind].minSize);
+  const k = bodyFill(shellOf(kind), SHELLS[kind].maxSize - 1);
   const dx = crabShift(kind, 1, k);
-  critter(fit, `${kind} ${SHELLS[kind].minSize}/${SHELLS[kind].maxSize}`, [aboutFoot(k, dx, layer(1, 0, (d) => drawCrabBack(d))), layer(300 + i, 0, (d) => drawShell(d, kind)), aboutFoot(k, dx, layer(2, 0, (d) => drawCrabFront(d)))]);
+  critter(fit, `${kind} ${SHELLS[kind].minSize}–${SHELLS[kind].maxSize}`, [aboutFoot(k, dx, layer(1, 0, (d) => drawCrabBack(d))), layer(300 + i, 0, (d) => drawShell(d, kind)), aboutFoot(k, dx, layer(2, 0, (d) => drawCrabFront(d)))]);
 });
 
 const loose = section('loose shells');

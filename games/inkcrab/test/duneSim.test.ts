@@ -4,7 +4,7 @@ import { buildLevel } from '../src/level/build';
 import { carve } from '../src/level/carve';
 import { createRng } from '../src/logic/rng';
 import { Beach, IDLE, PIT_PULL, type BeachSetup, type Input } from '../src/logic/sim';
-import { shellPx, SHELLS } from '../src/logic/shells';
+import { shellPx, shellOf } from '../src/logic/shells';
 import { TILE, type Terrain } from '../src/logic/terrain';
 
 const T = 16;
@@ -12,7 +12,7 @@ const T = 16;
 /** A flat dune beach, 60 wide: loose sand over packed, with whatever pits and birds. */
 function dune(over: Partial<BeachSetup> & { pits?: readonly (readonly [number, number])[] } = {}): Beach {
   const terrain = carve({ width: 60, height: 30, seed: 1, profile: [[0, 12], [59, 12]], loose: 3, pits: over.pits });
-  return new Beach({ terrain, items: [], start: { x: 6 * T, y: 12 * T }, tileSize: T, startShell: 'periwinkle', seed: 1, surfaceFood: 0, ...over });
+  return new Beach({ terrain, items: [], start: { x: 6 * T, y: 12 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0, ...over });
 }
 
 const run = (b: Beach, input: Partial<Input>, seconds: number) => {
@@ -150,10 +150,10 @@ describe('digging food out of dune sand', () => {
 describe('antlions in play', () => {
   const inPit = (crabSize: number, antlionSize: number): Beach => {
     const b = dune({ pits: [[20, 4]], critters: [{ count: 1, sizes: [antlionSize, antlionSize], species: 'antlion' }] });
-    const shell = crabSize > 2 ? 'conch' : 'periwinkle';
+    const shell = crabSize > 2 ? shellOf('conch', crabSize) : shellOf('periwinkle', 2);
     const c = b.crab;
-    // Sized as the sim sizes a crab: from its shell's cap.
-    const px = shellPx(SHELLS[shell].maxSize);
+    // Sized as the sim sizes a crab: from its shell.
+    const px = shellPx(shell.size);
     b.crab = { ...c, shell, growth: { ...c.growth, size: crabSize }, body: { ...c.body, x: 18 * T, y: 6 * T, w: px * 0.85, h: px * 0.7 } };
     return b;
   };
