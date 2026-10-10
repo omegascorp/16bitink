@@ -59,18 +59,18 @@ const BREAK_X = 600;
 export function sky(d: Draw): void {
   const H = HARBOUR_SKY_H;
   // Heavy slate overhead, greying to violet, then the washed light along the horizon; gone before the layer's foot.
-  band(d, 0, H * 0.35, SLATE, 0.46, 0.42);
-  band(d, H * 0.35, H * 0.8, SLATE, 0.42, 0.1);
-  band(d, H * 0.3, H * 0.75, VIOLET, 0, 0.28);
-  band(d, H * 0.75, H, VIOLET, 0.28, 0);
+  band(d, 0, H * 0.35, SLATE, 0.5, 0.42);
+  band(d, H * 0.35, H * 0.8, SLATE, 0.42, 0.08);
+  band(d, H * 0.3, H * 0.75, VIOLET, 0, 0.3);
+  band(d, H * 0.75, H, VIOLET, 0.3, 0);
   band(d, H * 0.76, H * 0.93, WASHED, 0, 0.62);
   band(d, H * 0.93, H, WASHED, 0.62, 0);
   tiled(d, 981, (t) => {
-    sunbreak(t, BREAK_X, SKY_HORIZON, 210, 7);
+    sunbreak(t, BREAK_X, SKY_HORIZON, 210, 5);
     // Thunderheads far out over the sea, rain trailing from them.
-    cumulonimbus(t, 190, 196, 120, 150, SKY_HORIZON, 16);
-    cumulonimbus(t, 860, 214, 92, 112, SKY_HORIZON, 12);
-    cumulonimbus(t, 430, 262, 44, 52, SKY_HORIZON, 5);
+    cumulonimbus(t, 200, 226, 140, 118, SKY_HORIZON, 16);
+    cumulonimbus(t, 860, 232, 104, 92, SKY_HORIZON, 12);
+    cumulonimbus(t, 440, 268, 50, 44, SKY_HORIZON, 5);
     rainCurtain(t, 1000, 170, SKY_HORIZON, 70, 14, 0.3);
     rainCurtain(t, 700, 200, SKY_HORIZON - 2, 40, 10, 0.18);
     // Haze lying along the horizon.
@@ -80,7 +80,7 @@ export function sky(d: Draw): void {
 
 /** The low monsoon ceiling, ragged scud driven under it and grey veils of rain hanging: their own layer, drifting. */
 export function clouds(d: Draw): void {
-  band(d, 0, 50, SLATE, 0.2, 0);
+  band(d, 0, 60, SLATE, 0.22, 0);
   tiled(d, 985, (t) => {
     cloudDeck(t, 0, 56);
     virga(t, 410, 60, 70, 70, 10);
@@ -95,8 +95,8 @@ const HORIZON = 70;
 /** The Arabian Sea: a low coast of palms, the harbour's breakwater and its light, far boats, short choppy seas and whitecaps. */
 export function sea(d: Draw): void {
   const H = HARBOUR_SEA_H;
-  band(d, HORIZON, H * 0.6, SEA_FAR, 0.42, 0.45);
-  band(d, H * 0.6, H, SEA, 0.45, 0.42);
+  band(d, HORIZON, H * 0.6, SEA_FAR, 0.5, 0.52);
+  band(d, H * 0.6, H, SEA, 0.52, 0.48);
   band(d, HORIZON, HORIZON + 22, WASHED, 0.45, 0);
   tiled(d, 982, (t) => {
     const { pen } = t;
@@ -105,13 +105,13 @@ export function sea(d: Draw): void {
     pen.stroke([pt(-20, HORIZON), pt(W + 20, HORIZON)], 0.9, t.ink, FAR * 0.7, false);
     // Light from the break, lying on the water under it.
     glow(t, BREAK_X, HORIZON + 8, 180, 14, WASHED, 0.6);
-    glitter(t, BREAK_X - 140, BREAK_X + 140, HORIZON + 2, H - 30, 110, BREAK_X, WASHED);
+    glitter(t, BREAK_X - 140, BREAK_X + 140, HORIZON + 2, H - 40, 60, BREAK_X, WASHED);
     keralaTrawler(t, 330, HORIZON + 3, 0.28);
     keralaTrawler(t, 690, HORIZON + 5, 0.34);
     vallam(t, 236, HORIZON + 16, 0.36);
     breakwater(t, 420, 560, HORIZON + 24, 4.5, 0.8, true);
     longSwells(t, HORIZON + 8, H - 10, 6);
-    chop(t, HORIZON + 3, H - 6, 900);
+    chop(t, HORIZON + 3, H - 6, 650);
     whitecaps(t, HORIZON + 10, H - 6, 120);
   });
 }
@@ -134,8 +134,8 @@ function headland(t: Draw): void {
     const rise = Math.min(1, (x + 150) / 80) ** 0.8;
     return rise * (82 + 18 * Math.sin((x + 60) * 0.012) + 4 * Math.sin(x * 0.07));
   };
-  for (const [x, h, lean] of [[-110, 60, 0.14], [-50, 74, 0.22], [30, 66, -0.12], [170, 80, 0.3], [196, 58, 0.36]] as const) palm(t, x, WATER - height(x) + 4, h, lean, 0.45);
-  stripedLighthouse(t, 100, WATER - height(100) + 1, 1.15);
+  for (const [x, h, lean] of [[-110, 34, 0.14], [-60, 44, 0.24], [-36, 36, -0.1], [14, 40, -0.16], [176, 46, 0.22], [200, 40, 0.42]] as const) palm(t, x, WATER - height(x) + 3, h, lean, 0.32);
+  stripedLighthouse(t, 96, WATER - height(96) + 1, 1.5);
   lateriteCliff(t, -150, 214, WATER, height);
   for (const [x, rx, ry] of [[218, 12, 9], [232, 7, 5], [-30, 9, 5], [120, 10, 6], [200, 8, 6]] as const) boulder(t, x, WATER - ry * 0.4, rx, ry);
   surf(t, -150, 245, WATER);
@@ -145,12 +145,12 @@ function headland(t: Draw): void {
 function village(t: Draw, x0: number, x1: number): void {
   const { pen } = t;
   const land = (x: number): number => WATER - 12 * Math.max(0, Math.min(1, (x - x0) / 30, (x1 - x) / 30));
-  for (const [x, h, lean] of [[340, 96, 0.1], [430, 116, -0.08], [520, 100, 0.16], [640, 124, -0.06], [700, 92, 0.2]] as const) palm(t, x, land(x) + 2, h, lean, 0.5);
+  for (const [x, h, lean] of [[350, 58, 0.1], [372, 50, -0.14], [452, 66, -0.08], [520, 60, 0.16], [628, 70, -0.06], [700, 56, 0.2], [722, 48, -0.18]] as const) palm(t, x, land(x) + 2, h, lean, 0.34);
   churchFront(t, 575, land(575) + 1, 1);
   tiledHouse(t, 395, land(395) + 1, 0.9, '#e9d8b8');
   tiledHouse(t, 485, land(485) + 1, 0.85, '#b9cfd6', 1.2);
   tiledHouse(t, 665, land(665) + 1, 0.9, '#dcb7aa');
-  for (const [x, h, lean] of [[455, 80, 0.24], [612, 70, -0.2]] as const) palm(t, x, land(x) + 3, h, lean, 0.45);
+  for (const [x, h, lean] of [[470, 44, 0.24], [606, 40, -0.2]] as const) palm(t, x, land(x) + 3, h, lean, 0.3);
   const edge: Pt[] = [];
   for (let x = x0; x <= x1; x += 4) edge.push(pt(x, land(x)));
   const bank = [...edge, pt(x1, WATER + 2), pt(x0, WATER + 2)];
@@ -173,7 +173,7 @@ export function cliffs(d: Draw): void {
     headland(t);
     village(t, 290, 760);
     moored(t, 258, WATER + 4, 0.7, VALLAM_RED);
-    for (const [x, lift, s] of [[332, 1, 0.8], [425, 0.65, 0.9], [515, 0.1, 0.85], [606, 0.95, 0.9], [700, 0.4, 0.8]] as const) chineseNet(t, x, WATER, s, lift);
+    for (const [x, lift, s] of [[318, 1, 1.15], [430, 0.55, 1.3], [548, 0.05, 1.2], [652, 0.9, 1.3]] as const) chineseNet(t, x, WATER, s, lift);
     surf(t, 290, 760, WATER);
     moored(t, 800, WATER + 10, 0.8, VALLAM_GREEN);
     moored(t, 846, WATER + 3, 0.6, VALLAM_BLUE);
@@ -218,7 +218,9 @@ export function shore(d: Draw): void {
   tiled(d, 984, (t) => {
     for (const [x, h, lean] of [[30, 160, 0.2], [120, 128, -0.12], [-50, 120, 0.3], [230, 110, 0.34]] as const) palm(t, x, top(x) - 26, h, lean, 0.9);
     const bank = grassBank(t, -60, 300, top, 34);
-    for (const x of [170, 270, -20]) screwPine(t, x, bank(x) + 3, 34);
+    // A fishermen's shed on the bank: palm thatch over posts, nets hung to dry along its side.
+    stiltHut(t, 196, bank(196) + 9, 1.6);
+    for (const x of [270, -20, 120]) screwPine(t, x, bank(x) + 3, 34);
     palm(t, 900, top(900) - 22, 150, -0.3, 0.9);
     palm(t, 970, top(970) - 20, 118, -0.16, 0.85);
     seaWall(t, 780, 1010, top, 28);
@@ -231,10 +233,11 @@ export function shore(d: Draw): void {
     pen.stroke(edge, 1.1, t.ink, FAR, false);
     for (const [x, rx, ry] of [[770, 10, 7], [1006, 12, 8], [990, 7, 5]] as const) boulder(t, x, top(x) + 6, rx, ry);
     fallenFrond(t, pt(60, top(60) + 20), pt(170, top(170) + 16));
-    beachedVallam(t, 440, top(440) + 18, 1.5, VALLAM_BLUE, -0.03);
-    netHeap(t, 575, top(575) + 22, 42, 9, '#3f7f9a');
-    beachedVallam(t, 705, top(705) + 24, 1.25, VALLAM_RED, 0.04);
-    netHeap(t, 860, top(860) + 30, 36, 8, '#4f8f5a');
+    beachedVallam(t, 300, top(300) + 6, 1.05, VALLAM_RED, 0.02);
+    beachedVallam(t, 440, top(440) + 20, 1.9, VALLAM_BLUE, -0.03);
+    netHeap(t, 590, top(590) + 24, 48, 11, '#3f7f9a');
+    beachedVallam(t, 730, top(730) + 26, 1.55, VALLAM_GREEN, 0.04);
+    netHeap(t, 870, top(870) + 32, 40, 9, '#4f8f5a');
     floatLine(t, bezier(pt(250, top(250) + 34), pt(300, top(300) + 30), pt(340, top(340) + 38), 10));
     for (const [x, y, rx, ry] of [[300, 44, 26, 3.5], [610, 46, 34, 4], [940, 44, 22, 3], [120, 46, 18, 2.5]] as const) puddle(t, x, top(x) + y, rx, ry, SLATE);
     for (const [x, dy] of [[220, 26], [520, 40], [790, 36], [990, 30], [340, 20]] as const) husk(t, x, top(x) + dy, 1.1);

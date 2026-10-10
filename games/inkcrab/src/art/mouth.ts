@@ -50,8 +50,8 @@ export const MOUTH_X: Readonly<Record<ShellKind, number>> = {
   auger: 14,
   babylon: 12,
   cone: 10,
-  spiderconch: 8,
-  volute: 14,
+  spiderconch: 11,
+  volute: 16,
 };
 
 /** Crab-frame x that sits in the middle of the opening: a little inside the back of its head shield. */

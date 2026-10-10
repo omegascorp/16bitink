@@ -234,3 +234,33 @@ void import('../src/art/decks').then(({ DECK_HEADROOM, DECK_OVERHANG, drawDeck }
     });
   }
 });
+
+// The same decks at game scale (1 world px to 1 css px), with crabs on top and sheltering under, for readability.
+const decksGame = section('decks at game scale, with crabs');
+void Promise.all([import('../src/art/decks'), import('../src/art/frame'), import('../src/logic/shells')]).then(([{ DECK_HEADROOM, DECK_OVERHANG, drawDeck }, { SHELL_UNITS }, { shellPx }]) => {
+  const crab = (ctx: CanvasRenderingContext2D, x: number, y: number): void => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(shellPx(3) / SHELL_UNITS, shellPx(3) / SHELL_UNITS);
+    ctx.translate(0, -GROUND);
+    for (const l of [layer(1, 0, (d) => drawCrabBack(d)), layer(304, 0, (d) => drawShell(d, 'whelk')), layer(2, 0, (d) => drawCrabFront(d))]) l(ctx);
+    ctx.restore();
+  };
+  for (const [kind, width, clearance] of [['boat', 5, 1], ['house', 5, 2], ['rack', 5, 1]] as const) {
+    const T = 16;
+    const w = (width + DECK_OVERHANG * 2) * T;
+    const h = (DECK_HEADROOM + 1 + clearance + 2) * T;
+    const deckTop = DECK_HEADROOM * T;
+    const sand = deckTop + (1 + clearance) * T;
+    figure(decksGame, `${kind} ${width}×, clearance ${clearance}`, Math.max(w, h) * 2, Math.max(w, h), (ctx) => {
+      ctx.scale(2, 2);
+      ctx.fillStyle = PAPER;
+      ctx.fillRect(0, 0, Math.max(w, h), Math.max(w, h));
+      ctx.fillStyle = '#ecdcb0';
+      ctx.fillRect(0, sand, w, h - sand);
+      drawDeck(ctx, kind, width, T, deckTop, () => sand, width * 31 + clearance);
+      crab(ctx, (DECK_OVERHANG + 1.5) * T, deckTop);
+      crab(ctx, (DECK_OVERHANG + 3.2) * T, sand);
+    });
+  }
+});

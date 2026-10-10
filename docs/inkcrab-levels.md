@@ -325,7 +325,7 @@ Shells: auger (1–3), babylon (2–4), cone (3–6), spider conch (4–7), Indi
 | 79 | `monsoon-break` | Monsoon Break | Size 8 | …, Indian volute (up on the far stilt house) | Storm: short squalls, long dry spells |
 | 80 | `monsoon-harbour` | Monsoon Harbour | Size 8 | Every harbour shell, spider conch buried under a boat, Indian volute on the big stilt house | The whole harbour |
 
-BACKDROP_PLACEHOLDER
+Backdrop theme `harbour` (`src/art/backdrop/harbour.ts`; the monsoon sky in `monsoonSky.ts`, landforms and water in `malabar.ts`, the Chinese fishing nets and the village in `chineseNets.ts`, boats in `keralaBoats.ts`, palms, nets and floats on the sand in `keralaLife.ts`, birds in `keralaBirds.ts`): a heavy slate and violet-grey monsoon sky with a washed bright break low on the horizon, thunderheads far out at sea trailing curtains of rain, ragged scud driving under a sagging cloud ceiling; the choppy grey-green Arabian Sea with whitecaps, a low palm coast, a breakwater with its light, trawlers and vallams; a Varkala-style red laterite cliff with leaning palms and a red-and-white lighthouse, stilt huts, tiled houses, a whitewashed church front and a row of Chinese fishing nets on the shore; nearest, wet golden sand with painted vallams drawn up on log rollers, heaps of nets with orange floats, puddles holding the sky, a sea wall and palms leaning out over the beach. Boats: a vallam (crew, outboard) and a wooden Kerala trawler. Movers: Brahminy kites circling, house crows, little egrets in lines and cormorants low over the chop, all side-on. The nearest layer has no small creatures.
 
 ## Beaches 9–10
 

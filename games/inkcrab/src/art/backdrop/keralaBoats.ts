@@ -99,10 +99,10 @@ export function vallam(t: Draw, x: number, water: number, s: number): void {
   t.pen.stroke([P(-23, -8), P(-29, 2)], 0.8 * s, t.ink, FAR, false);
   washed(t, [P(-26.5, -9), P(-21.5, -9.4), P(-21, -13.2), P(-25.4, -13.6)], ENGINE, 0.6, 0.45);
   netPile(t, x + 2 * s, water - 4.6 * s, 18 * s, 5 * s);
-  figure(t, x - 17 * s, water - 5 * s, s, '#e9dcc0', false);
-  figure(t, x - 6 * s, water - 4.5 * s, s, '#d9876b', true);
-  figure(t, x + 9 * s, water - 4.5 * s, s, '#7fa4c4', false);
-  figure(t, x + 16 * s, water - 5 * s, s, '#e3b23c', true);
+  figure(t, x - 17 * s, water - 5 * s, s * 1.2, '#e9dcc0', false);
+  figure(t, x - 6 * s, water - 4.5 * s, s * 1.2, '#d9876b', true);
+  figure(t, x + 9 * s, water - 4.5 * s, s * 1.2, '#7fa4c4', false);
+  figure(t, x + 17 * s, water - 5.5 * s, s * 1.2, '#e3b23c', true);
   vallamHull(t, P, VALLAM_BLUE, s);
   wash(t, P(23, 0), P(-22, 0), s);
 }

@@ -22,7 +22,7 @@ const UNDER = '#a99f6c';
 const FINGER = '#221d18';
 
 /** Frame units the crab is set back, so the shell and the great claw sit about the frame centre. */
-const SHIFT = -9;
+const SHIFT = -7;
 /** How far the claws are raised from level, radians: held up and open, ready. */
 const CLAW_TILT = -0.32;
 /** Teeth on the front edge, per side. */

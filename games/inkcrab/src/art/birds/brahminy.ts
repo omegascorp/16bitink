@@ -16,7 +16,7 @@ import { PAPER_FILL } from '../palette';
  * back and raised over the back, the legs and talons thrust forward.
  */
 /** Frame units across the hovering bird, wings included, at its widest frame. */
-export const BRAHMINY_SPAN = 74;
+export const BRAHMINY_SPAN = 71;
 
 const CHESTNUT = '#8e5230';
 const DEEP = '#5a3220';

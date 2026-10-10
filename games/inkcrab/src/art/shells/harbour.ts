@@ -51,7 +51,7 @@ export function auger(d: Draw): void {
     if (u < 0.8) return W * 0.86 * Math.pow(u / 0.8, 0.98) * swell(u, sutures, 0.05);
     const t = (u - 0.8) / 0.2;
     if (t < 0.35) return W * (0.86 + 0.14 * Math.sin(((t / 0.35) * Math.PI) / 2));
-    return W * (0.32 + 0.68 * Math.pow(Math.cos((((t - 0.35) / 0.65) * Math.PI) / 2), 0.8));
+    return W * (0.32 + 0.68 * Math.pow(Math.max(0, Math.cos((((t - 0.35) / 0.65) * Math.PI) / 2)), 0.8));
   };
   const b = settle((dy) => body(pt(-130, -34 + dy), pt(34, 12 + dy), w, 150), d.g);
   skin(d, b.shape, '#efe2c4', 0.75);
@@ -128,16 +128,18 @@ export function babylon(d: Draw): void {
   mottle(d, b.shape, 40, -50, 30, '#8a3c18', 0.4);
   shade(d, b.shape, 0.4);
   edge(d, b.shape, 1.7);
-  // The navel: a deep slit behind the mouth, edged by an orange-brown keel; then the white mouth.
-  const x = MOUTH_X.babylon;
-  const ny = below(b, x - 22) - 9;
-  const navel = bezier(pt(x - 30, ny - 4), pt(x - 24, ny + 4), pt(x - 14, ny + 4), 8);
-  pen.stroke(navel.map((p) => add(p, pt(0, -2.6))), 2.4, '#b0582a', 0.8, false);
-  pen.stroke(navel, 3.2, DARK, 0.9, false);
+  // The white mouth, the short notch of its canal, the navel at its back.
   const inner = aperture(d, b, [0.56, 0.97], 0.45, '#fbf6ec');
   pen.clipped(inner, () => glint(d, along(b, -0.6, 0.56, 0.8), 2, 0.7));
   edge(d, inner, 1.1);
-  pen.stroke(along(b, -0.55, 0.92, 1), 2, DARK, 0.75, false);
+  pen.stroke(along(b, -0.55, 0.95, 1), 1.8, DARK, 0.7, false);
+  // The navel: a deep slit at the back of the mouth, edged by an orange-brown keel.
+  const x = MOUTH_X.babylon;
+  const ny = below(b, x - 22) - 9;
+  tint(d, tilted(x - 24, ny + 1, 9, 4, -0.2, 14), '#c8703a', 0.45);
+  const navel = bezier(pt(x - 31, ny - 1), pt(x - 25, ny + 4), pt(x - 17, ny + 2), 8);
+  pen.stroke(navel, 2.6, DARK, 0.85, false);
+  pen.hair(navel.map((p) => add(p, pt(0, -2))), 0.7, d.ink, 0.6);
   hole(d, b, x, 11, 8);
 }
 
@@ -156,23 +158,26 @@ export function cone(d: Draw): void {
   skin(d, b.shape, '#f4ead4', 0.8);
   pen.clipped(b.shape, () => {
     // The brown net under everything, three darker bands across it.
-    tint(d, b.shape, '#8a5428', 0.5);
+    tint(d, b.shape, '#7a4420', 0.5);
     const BANDS = [[0.28, 0.36], [0.52, 0.6], [0.76, 0.84]] as const;
     for (const [u0, u1] of BANDS) {
       tint(d, along(b, 1, u0, u1).concat(along(b, -1, u0, u1).reverse()), '#4a2412', 0.45);
       for (let v = -0.9; v < 0.95; v += 0.12) pen.hair(along(b, v + pen.jitter(0.03), u0 + 0.01, u1 - 0.01), 0.9, '#e0b040', 0.6);
     }
-    // The tents: white triangles packed over the net, pointing back towards the spire, sparse in the bands.
-    const inBand = (u: number): boolean => BANDS.some(([u0, u1]) => u > u0 && u < u1);
-    for (let k = 0; k < 560; k++) {
-      const u = 0.02 + pen.rng() * 0.93;
-      if (inBand(u) && pen.rng() < 0.85) continue;
-      const v = -0.95 + pen.rng() * 1.9;
-      const du = (0.007 + pen.rng() * 0.02) * (u < SHOULDER ? 0.5 : 1);
-      const dv = 0.035 + pen.rng() * 0.06;
-      const tent = [off(b, at(b, u), v), off(b, at(b, u + du * 2), v - dv), off(b, at(b, u + du * 2), v + dv)];
-      tint(d, tent, '#fbf4e2', 0.95);
-      pen.hair(closed(tent), 0.5, '#4a2412', 0.45);
+    // The tents: white triangles tiled over the net, pointing back towards the spire, a few big ones among the small, sparse in the bands.
+    const inBand = (u: number): boolean => BANDS.some(([u0, u1]) => u > u0 - 0.01 && u < u1 + 0.01);
+    for (let u = 0.03; u < 0.88; u += 0.03) {
+      for (let v = -0.92; v < 0.92; v += 0.13) {
+        if ((inBand(u) && pen.rng() < 0.85) || pen.rng() < 0.12) continue;
+        const big = pen.rng() < 0.15 ? 1.8 : 1;
+        const du = 0.015 * big * (0.8 + pen.rng() * 0.5) * (u < SHOULDER ? 0.5 : 1);
+        const dv = 0.075 * big * (0.8 + pen.rng() * 0.4);
+        const uu = u + pen.jitter(0.006);
+        const vv = v + pen.jitter(0.03);
+        const tent = [off(b, at(b, uu), vv), off(b, at(b, uu + du * 2), vv - dv), off(b, at(b, uu + du * 2), vv + dv)];
+        tint(d, tent, '#fdf6e6', 0.95);
+        pen.hair(closed(tent), 0.5, '#3a1c0c', 0.5);
+      }
     }
     // The flat spire: its sutures close together, and the sharp shoulder.
     for (const s of [0.04, 0.08, 0.12]) pen.stroke(across(b, at(b, s), 1), 1, d.ink, 0.8, false);
@@ -214,12 +219,12 @@ export function spiderconch(d: Draw): void {
   const w = (u: number): number => {
     if (u < 0.3) return W * 0.46 * Math.pow(u / 0.3, 0.9) * swell(u, sutures, 0.12);
     if (u < 0.42) return W * (0.46 + 0.54 * Math.sin((((u - 0.3) / 0.12) * Math.PI) / 2));
-    return W * (0.2 + 0.8 * Math.pow(Math.cos((((u - 0.42) / 0.58) * Math.PI) / 2), 1.1));
+    return W * (0.2 + 0.8 * Math.pow(Math.max(0, Math.cos((((u - 0.42) / 0.58) * Math.PI) / 2)), 1.1));
   };
   // A few blunt knobs on the spire, three big ones on the hump of the shoulder.
   const knob = (u: number): number => {
     if (u < 0.3) return (0.3 + 6 * u) * Math.exp(-(((whorlAt(u, sutures, 0.3).t - 0.6) / 0.18) ** 2));
-    return u < 0.66 ? 10 * Math.max(0, Math.sin(((u - 0.34) / 0.32) * Math.PI * 3)) ** 3 : 0;
+    return u < 0.66 ? 8 * Math.max(0, Math.sin(((u - 0.34) / 0.32) * Math.PI * 3)) ** 4 : 0;
   };
   const b = settle((dy) => body(pt(-112, -40 + dy), pt(40, 20 + dy), w, 120, knob), d.g);
   // The fingers, rooted inside the body so its outline cuts across them: one back along the spire, four off the lip, the long canal in front.
@@ -227,7 +232,10 @@ export function spiderconch(d: Draw): void {
   for (const [u, ang, len, curl, fw] of FINGERS) finger(d, off(b, at(b, u), u < 1 ? 0.7 : 0), ang, len, curl, fw);
   skin(d, b.shape, '#e2d0ae', 0.75);
   pen.clipped(b.shape, () => {
-    for (let k = 0; k < 22; k++) tint(d, patch(b, 0.05 + pen.rng() * 0.9, pen.rng() * 1.6 - 0.8, 0.02 + pen.rng() * 0.05, 0.06 + pen.rng() * 0.1), '#7a4a2a', 0.45);
+    for (let k = 0; k < 26; k++) {
+      const p = off(b, at(b, 0.05 + pen.rng() * 0.9), pen.rng() * 1.6 - 0.8);
+      tint(d, tilted(p.x, p.y, 3 + pen.rng() * 6, 2 + pen.rng() * 3, pen.rng() * 3, 12), '#7a4a2a', 0.5);
+    }
     for (let v = -0.8; v < 0.85; v += 0.2) pen.hair(along(b, v, 0.02, 0.97), 0.6, '#5a3a20', 0.35);
     for (const s of sutures) pen.stroke(across(b, at(b, s), 3), 1.2, d.ink, 0.9, false);
     glint(d, along(b, 0.6, 0.32, 0.7), 2.2, 0.5);
@@ -292,8 +300,8 @@ export function volute(d: Draw): void {
   crownOf(d, crown, Math.atan2(side.y, side.x), ax);
   // The huge mouth runs down the whole front: the glossy inside showing between the thin outer lip (the ball's edge) and the pillar.
   const rim = (a: number): Pt => pt(cx + Math.cos(a) * rx, cy + Math.sin(a) * ry);
-  const outer = Array.from({ length: 25 }, (_, i) => rim(-1.05 + (2.55 * i) / 24));
-  const pillar = bezier(rim(1.5), pt(cx + rx * 0.3, cy + ry * 0.1), rim(-1.05), 16);
+  const outer = Array.from({ length: 25 }, (_, i) => rim(-1.05 + (2.35 * i) / 24));
+  const pillar = bezier(rim(1.3), pt(cx + rx * 0.85, cy + ry * 0.15), rim(-1.05), 16);
   const throat = [...outer, ...pillar.slice(1, -1)];
   skin(d, throat, '#f8d4a0', 0.85);
   pen.clipped(throat, () => {
@@ -304,7 +312,7 @@ export function volute(d: Draw): void {
   pen.stroke(outer, 2, d.ink, 1, false);
   const x = MOUTH_X.volute;
   const my = cy + ry * 0.42;
-  mouth(d, oval(x, my, 12, 21, 22).map(leaning(my, -0.2)), 1.1);
+  mouth(d, oval(x, my, 10, 20, 22).map(leaning(my, -0.2)), 1.1);
   // Three folds on the pillar, low down at the back of the mouth.
   for (const k of [0, 1, 2]) {
     const p = pillar[3 + k * 2]!;

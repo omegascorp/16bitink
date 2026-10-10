@@ -63,9 +63,9 @@ function tongue(d: Draw, m: Pt): void {
   if (len === 0) return;
   const wave = d.f === 0 ? 1 : -1;
   const fork = pt(m.x + len, m.y + 1.2 + wave * 0.6);
-  d.pen.stroke(bezier(m, pt(m.x + len * 0.5, m.y + 1.6 - wave * 0.8), fork, 6), 0.95, TONGUE, 0.95, false);
+  d.pen.stroke(bezier(m, pt(m.x + len * 0.5, m.y + 1.6 - wave * 0.8), fork, 6), 1.3, TONGUE, 0.95, false);
   d.pen.hair(bezier(m, pt(m.x + len * 0.5, m.y + 1.6 - wave * 0.8), fork, 6), 0.45, d.ink, 0.9);
-  for (const sgn of [-1, 1]) d.pen.stroke([fork, pt(fork.x + 2.8, fork.y + sgn * 1.4)], 0.6, d.ink, 0.95, false);
+  for (const sgn of [-1, 1]) d.pen.stroke([fork, pt(fork.x + 2.8, fork.y + sgn * 1.5)], 0.8, d.ink, 0.95, false);
 }
 
 /**
@@ -80,7 +80,7 @@ function head(d: Draw, n: Pt, ang: number): void {
   const P = (x: number, y: number): Pt => pt(n.x + x * c - y * s, n.y + x * s + y * c);
   const map = (pts: readonly Pt[]): Pt[] => pts.map((q) => P(q.x, q.y));
   const outline = map([
-    ...cub(pt(-4, -5.4), pt(3, -6.6), pt(12, -5.6), pt(19, -3.4), 10),
+    ...cub(pt(-4, -4.6), pt(3, -6.4), pt(12, -5.6), pt(19, -3.4), 10),
     ...cub(pt(19, -3.4), pt(21.6, -2.6), pt(22, 0.2), pt(20, 0.8), 4).slice(1),
     ...cub(pt(20, 0.8), pt(14, 2), pt(6, 4.6), pt(-1, 5.4), 8).slice(1),
   ]);
@@ -143,7 +143,7 @@ export function monitor(d: Draw): void {
   const spine = [
     ...cub(pt(-63, g - 3 + sway), pt(-48, g - 2), pt(-32, g - 9), pt(-18, g - 16), 28),
     ...cub(pt(-18, g - 16), pt(-4, g - 19), pt(10, g - 19), pt(20, g - 20), 18).slice(1),
-    ...cub(pt(20, g - 20), pt(25, g - 21), pt(28, g - 24), pt(30, g - 27), 8).slice(1),
+    ...cub(pt(20, g - 20), pt(24, g - 21), pt(26, g - 26), pt(31, g - 27), 8).slice(1),
   ];
   const body = ribbon(spine, girth);
   const nape = spine[spine.length - 1]!;

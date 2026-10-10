@@ -61,10 +61,16 @@ function board(s: Site, shape: readonly Pt[], wash: string, alpha = 0.75, w = 0.
   s.d.pen.stroke(edges(shape), w, s.d.ink, 0.9, false);
 }
 
+/** Paper and a wash printed in register: for poles too thin, and edges too important, to show a misprint. */
+function solid(s: Site, shape: readonly Pt[], wash: string, alpha: number): void {
+  s.d.pen.fill(shape, PAPER_FILL, 1);
+  s.d.pen.fill(shape, wash, alpha);
+}
+
 /** A round pole from a to b: bamboo with nodes, or a coconut-wood post with growth rings. */
 function pole(s: Site, a: Pt, b: Pt, w: number, wash: string, ring: number): void {
   const shape = tube([a, lerp(a, b, 0.5), b], w, w * 1.1);
-  skin(s.d, shape, wash, 0.8);
+  solid(s, shape, wash, 0.85);
   const len = Math.hypot(b.x - a.x, b.y - a.y);
   // Its shadow side: the side turned down and right, away from the light.
   const flip = (a.y - b.y) * 0.55 + (b.x - a.x) * 0.84 < 0 ? -1 : 1;
@@ -102,22 +108,34 @@ function gapUnder(s: Site): number {
 function trestle(s: Site, cx: number, gun: number): void {
   const { T } = s;
   const foot = (dx: number): Pt => pt(cx + dx, s.ground(cx + dx) + 1);
-  for (const side of [-1, 1]) pole(s, pt(cx + side * 0.3 * T, gun), foot(side * 0.62 * T), 0.15 * T, WOOD, 99);
+  for (const side of [-1, 1]) pole(s, pt(cx + side * 0.3 * T, gun), foot(side * 0.62 * T), 0.15 * T, COCO, 99);
   const mid = (gun + s.ground(cx)) / 2;
   board(s, rect(cx - 0.45 * T, mid - 0.06 * T, cx + 0.45 * T, mid + 0.06 * T), WOOD_DARK, 0.7, 0.45);
   board(s, rect(cx - 0.6 * T, gun - 0.06 * T, cx + 0.6 * T, gun + 0.16 * T), WOOD, 0.8, 0.6);
 }
 
-/** The hull's top (keel side) and bottom (gunwale) lines, sweeping up to a point past each end. */
-function hullLines(s: Site, gun: number): { top: Pt[]; bot: Pt[] } {
+/**
+ * The hull's keel line along the top and its gunwale along the bottom, as matched
+ * polylines: flat over the deck, then both drooping down and out past each end to
+ * the stem heads, which stop halfway down to the sand. Strakes lerp between them.
+ */
+function hullLines(s: Site, gun: number): { keel: Pt[]; rim: Pt[] } {
   const { T, x0, x1, top } = s;
-  const L = DECK_OVERHANG * T * 0.9;
-  const tip = top - 1.2 * T;
-  const past = (x: number, inset: number): number => Math.min(1, Math.max(0, x0 + inset - x, x - (x1 - inset)) / (L + inset));
-  const xs = across(x0 - L, x1 + L, Math.round((x1 - x0 + 2 * L) / 2));
+  const L = DECK_OVERHANG * T * 0.85;
+  const tipY = Math.max(gun + 0.1 * T, s.bot + Math.min(0.5 * gapUnder(s), 1.4 * T));
+  const end = (side: 1 | -1, keel: boolean): Pt[] => {
+    const at = side < 0 ? x0 : x1;
+    const tip = pt(at + side * L, tipY);
+    const drop = tipY - top;
+    const curve = keel
+      ? cub(pt(at, top), pt(at + side * 0.55 * L, top), pt(at + side * 0.95 * L, top + drop * 0.45), tip, 10)
+      : cub(pt(at - side * 0.15 * T, gun), pt(at + side * 0.3 * L, gun), pt(at + side * 0.75 * L, tipY - 0.15 * T), tip, 10);
+    return side < 0 ? [...curve].reverse() : curve;
+  };
+  const middle = (y: number, inset: number): Pt[] => across(x0 + inset, x1 - inset, Math.max(2, Math.round((x1 - x0) / 3))).map((x) => pt(x, y));
   return {
-    top: xs.map((x) => pt(x, top - (top - tip) * past(x, 0) ** 2.2)),
-    bot: xs.map((x) => pt(x, gun - (gun - tip) * past(x, 0.15 * T) ** 1.2)),
+    keel: [...end(-1, true), ...middle(top, 0).slice(1, -1), ...end(1, true)],
+    rim: [...end(-1, false), ...middle(gun, 0.15 * T).slice(1, -1), ...end(1, false)],
   };
 }
 
@@ -131,47 +149,69 @@ function boatEye(s: Site, at: Pt): void {
   pen.stroke(eye, 0.45, s.d.ink, 0.9, false);
 }
 
+/** A glimpse up into the open hull between the trestles: dark bilge and the ends of the thwarts. */
+function interior(s: Site, gun: number): void {
+  const { d, T, x0, x1 } = s;
+  const xs = across(x0 + 0.5 * T, x1 - 0.5 * T, 16);
+  const dark = [...xs.map((x) => pt(x, gun - 0.05 * T)), ...[...xs].reverse().map((x, i) => pt(x, gun + 0.2 * T * Math.sin((Math.PI * (16 - i)) / 16) ** 0.4))];
+  d.pen.fill(dark, DOORWAY, 0.8);
+  for (let x = x0 + 1.1 * T; x < x1 - 0.8 * T; x += 1.4 * T) {
+    const thwart = rect(x, gun - 0.02 * T, x + 0.18 * T, gun + 0.16 * T);
+    solid(s, thwart, WOOD_DARK, 0.9);
+    d.pen.stroke(edges(thwart, 1), 0.4, d.ink, 0.8, false);
+  }
+}
+
 function drawBoat(s: Site): void {
   const { d, T, x1, top, bot } = s;
   const gun = bot + Math.min(0.45 * T, gapUnder(s) * 0.4);
   shelter(s);
   const span = x1 - s.x0;
   for (const u of [0.22, 0.78]) trestle(s, s.x0 + span * u, gun);
-  // A mooring line from the bow down to a stake in the sand.
-  const stake = pt(x1 + 1.35 * T, s.ground(x1 + 1.35 * T));
-  d.pen.stroke([stake, pt(stake.x + 0.08 * T, stake.y - 0.45 * T)], 1.4, d.ink, 0.85, false);
-  const { top: keel, bot: rim } = hullLines(s, gun);
+  const { keel, rim } = hullLines(s, gun);
   const hull = [...keel, ...[...rim].reverse()];
-  d.pen.hair(bezier(pt(x1 + 1.2 * T, top - 0.9 * T), pt(x1 + 1.45 * T, top), pt(stake.x + 0.06 * T, stake.y - 0.35 * T), 8), 0.5, d.ink, 0.75);
-  skin(d, hull, TAR, 0.85);
+  interior(s, gun);
+  // A mooring line from the bow's stem head down to a stake in the sand.
+  const bow = keel[keel.length - 1]!;
+  const stake = pt(x1 + 1.38 * T, s.ground(x1 + 1.38 * T));
+  d.pen.stroke([stake, pt(stake.x + 0.08 * T, stake.y - 0.45 * T)], 1.4, d.ink, 0.85, false);
+  d.pen.hair(bezier(bow, pt((bow.x + stake.x) / 2, Math.max(bow.y, stake.y - 0.2 * T)), pt(stake.x + 0.06 * T, stake.y - 0.35 * T), 8), 0.5, d.ink, 0.75);
+  solid(s, hull, TAR, 0.85);
   const strake = (k: number): Pt[] => keel.map((p, i) => lerp(p, rim[i]!, k));
   const paints = PAINTS[Math.floor(s.rng() * PAINTS.length)]!;
-  const stops = [0.3, 0.36, 0.64, 0.7, 0.84, 1];
+  const stops = [0.42, 0.48, 0.72, 0.78, 0.88, 1];
   d.pen.clipped(hull, () => {
     paints.forEach((c, k) => d.pen.fill([...strake(stops[k]!), ...strake(stops[k + 1]!).reverse()], c, 0.82));
-    // Weathered planking on the tarred bottom: seams, and pale streaks where the tar has worn.
-    for (const k of [0.1, 0.2]) d.pen.hair(strake(k), 0.4, PAPER_FILL, 0.35);
-    for (const k of [0.3, 0.84]) d.pen.hair(strake(k), 0.45, d.ink, 0.6);
-    for (let x = s.x0 + s.rng() * T; x < x1; x += (0.8 + s.rng()) * T) d.pen.hair([pt(x, top + 0.05 * T), pt(x + 0.02 * T, top + 0.27 * T)], 0.4, d.ink, 0.55);
-    d.pen.hatch(hull, 1.5, 0.9, 0.35, { color: d.ink, alpha: 0.28, onlyBelow: bot + 0.05 * T });
+    // The keel along the top, and the weathered bottom planking under it: tarred, its seams showing pale.
+    d.pen.fill([...strake(0), ...strake(0.1).reverse()], WOOD_DARK, 0.8);
+    d.pen.hair(strake(0.1), 0.45, d.ink, 0.7);
+    for (const k of [0.2, 0.31]) d.pen.hair(strake(k), 0.4, PAPER_FILL, 0.35);
+    for (const k of [0.42, 0.88]) d.pen.hair(strake(k), 0.45, d.ink, 0.6);
+    for (let x = s.x0 + s.rng() * T; x < x1; x += (0.8 + s.rng()) * T) d.pen.hair([pt(x, top + 0.12 * T), pt(x + 0.02 * T, top + 0.38 * T)], 0.4, d.ink, 0.55);
+    d.pen.hatch(hull, 1.5, 0.9, 0.35, { color: d.ink, alpha: 0.28, onlyBelow: bot });
   });
-  for (const side of [-1, 1] as const) stemPost(s, side < 0 ? keel[0]! : keel[keel.length - 1]!, side);
-  boatName(s, (s.x0 + x1) / 2, top + 0.5 * T, span);
-  boatEye(s, pt(x1 + 0.15 * T, top + 0.36 * T));
+  const band = strake(0.6);
+  for (const side of [-1, 1] as const) stemPost(s, side < 0 ? keel.slice(0, 3).reverse() : keel.slice(-3));
+  boatName(s, (s.x0 + x1) / 2, band[Math.floor(band.length / 2)]!.y, span);
+  const eye = band[band.length - 8]!;
+  boatEye(s, eye);
   d.pen.stroke(edges(hull, 1.5), 0.9, d.ink, 1, false);
   // The keel side is the floor: a heavy plank line along it.
   d.pen.stroke(keel.filter((p) => p.x > s.x0 - 0.3 * T && p.x < x1 + 0.3 * T), 1.5, d.ink, 1, false);
 }
 
-/** A stem post finishing an end of the hull: a stout raked timber, its head capped. */
-function stemPost(s: Site, tip: Pt, side: 1 | -1): void {
+/** A stem post carrying the keel on past an end, pointing down and out: a stout timber, its head capped. */
+function stemPost(s: Site, run: readonly Pt[]): void {
   const { T } = s;
-  const foot = pt(tip.x - side * 0.55 * T, tip.y + 0.75 * T);
-  const head = pt(tip.x + side * 0.08 * T, tip.y - 0.3 * T);
-  const post = tube(bezier(foot, pt(tip.x - side * 0.1 * T, tip.y + 0.15 * T), head, 8), 0.16 * T, 0.2 * T);
-  skin(s.d, post, WOOD_DARK, 0.85);
+  const tip = run[run.length - 1]!;
+  const prev = run[0]!;
+  const len = Math.hypot(tip.x - prev.x, tip.y - prev.y) || 1;
+  const dir = pt((tip.x - prev.x) / len, (tip.y - prev.y) / len);
+  const head = pt(tip.x + dir.x * 0.22 * T, tip.y + dir.y * 0.22 * T);
+  const post = tube([pt(tip.x - dir.x * 0.5 * T, tip.y - dir.y * 0.5 * T), tip, head], 0.2 * T, 0.16 * T);
+  solid(s, post, WOOD_DARK, 0.85);
   s.d.pen.stroke([...post, post[0]!], 0.7, s.d.ink, 1, false);
-  s.d.pen.fill(oval(head.x, head.y, 0.11 * T, 0.07 * T, 10), '#3f8f5a', 0.9);
+  s.d.pen.fill(oval(head.x, head.y, 0.09 * T, 0.09 * T, 10), '#3f8f5a', 0.9);
 }
 
 /** The boat's name in white loops along its band, more a flourish than letters. */
@@ -371,7 +411,7 @@ function net(s: Site, color: string, front: boolean): void {
   for (const k of [0.04, 0.55 + s.rng() * 0.2, 0.97]) {
     const p = hem[Math.floor(k * (hem.length - 1))]!;
     const float = oval(p.x, p.y + 0.06 * T, 0.16 * T, 0.12 * T, 12);
-    skin(d, float, FLOAT, 0.9);
+    solid(s, float, FLOAT, 0.9);
     d.pen.stroke([...float, float[0]!], 0.5, d.ink, 0.9, false);
   }
 }
@@ -386,7 +426,7 @@ function fish(s: Site): void {
     const body = oval(x, y, 0.2 * T, 0.075 * T, 14);
     const tail = [pt(x - dir * 0.15 * T, y), pt(x - dir * 0.32 * T, y - 0.11 * T), pt(x - dir * 0.28 * T, y), pt(x - dir * 0.32 * T, y + 0.1 * T)];
     for (const shape of [tail, body]) {
-      skin(d, shape, FISH, 0.85);
+      solid(s, shape, FISH, 0.85);
       d.pen.stroke([...shape, shape[0]!], 0.4, d.ink, 0.85, false);
     }
     d.pen.clipped(body, () => d.pen.fill(oval(x, y - 0.07 * T, 0.22 * T, 0.05 * T, 12), '#3f5a6a', 0.6));
