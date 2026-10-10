@@ -41,6 +41,8 @@ export interface Critter extends Body {
   readonly shell?: ShellKind | null;
   /** A rival pulled into its shell, keeping still. */
   readonly tucked?: boolean;
+  /** World x a rival lives about, and wanders back to (see rivals.ts). */
+  readonly home?: number;
 }
 
 /** What a creature knows of the beach besides its sand: where the water and the mangrove roots are. */

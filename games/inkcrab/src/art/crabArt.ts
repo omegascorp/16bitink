@@ -106,32 +106,42 @@ function legs(d: Draw, far: boolean, wash: string, tip: string): void {
 }
 
 /**
- * The soft abdomen of a hermit crab out of its shell: a pale, swollen,
- * spirally curled tail behind the head shield, faintly ringed, ending in
- * the little hooked tail fan it grips the inside of a shell with.
+ * The soft abdomen of a hermit crab out of its shell: coiled into the
+ * spiral of the shell it lived in, a round, fleshy whorl about as big as
+ * the rest of it, resting on the sand behind its legs. A groove winds in
+ * from the outer turn to a raised knob at the middle; the skin is finely
+ * granular, the same colour as its soft legs.
  */
-function abdomen(d: Draw, wash: string): void {
-  const sag = [0, 1, -0.5][d.f]!;
-  // Back from under the shield, swelling, then coiling down and under itself.
-  const spine = cub(pt(24, 9), pt(4, -6), pt(-26, 2 + sag), pt(-12, 24 + sag), 18);
-  const { top, shape } = ribbon(spine, (u) => 17 + 10 * Math.sin(Math.PI * u) - 11 * u);
-  skin(d, shape, wash, 0.55);
-  shade(d, shape, 0.4);
-  // Faint rings across the soft skin, and the curl's inner crease.
-  for (const u of [0.22, 0.4, 0.58, 0.74]) {
-    const i = Math.round(u * (spine.length - 1));
-    const a = top[i]!;
-    const c = spine[i]!;
-    d.pen.hair([a, pt(c.x + (c.x - a.x) * 0.6, c.y + (c.y - a.y) * 0.6)], 0.5, d.ink, 0.45);
-  }
-  edge(d, shape, 1.1);
-  // The tail fan: two small hooked plates at the tip.
-  const end = spine[spine.length - 1]!;
-  for (const [dx, dy] of [[-3, 3], [2, 4.5]] as const) {
-    const plate = oval(end.x + dx, end.y + dy, 3.4, 2.4, 12);
-    skin(d, plate, wash, 0.7);
-    edge(d, plate, 0.8);
-  }
+const COIL = { x: -1, y: 27, r: 19 } as const;
+
+function abdomen(d: Draw, colors: CrabColors): void {
+  const bob = [0, 0.6, -0.4][d.f]!;
+  const c = pt(COIL.x, COIL.y + bob);
+  const R = COIL.r;
+  // Where it leaves the back of the head shield and runs into the top of the coil.
+  const neck = ribbon(cub(pt(24, 8), pt(19, 6), pt(15, 9), pt(c.x + R * 0.45, c.y - R * 0.72), 10), (u) => 15 + u * 3).shape;
+  skin(d, neck, colors.soft, 0.75);
+  mottle(d, neck, 30, 2, 18, colors.tip);
+  edge(d, neck, 1);
+  const whorl = oval(c.x, c.y, R, R * 0.96, 28);
+  skin(d, whorl, colors.soft, 0.75);
+  mottle(d, whorl, 150, c.y - R, c.y + R, colors.tip);
+  shade(d, whorl, 0.45, true);
+  // The groove between the outer turn and the inner one, winding in anticlockwise from the top right.
+  const groove = Array.from({ length: 33 }, (_, i) => {
+    const t = i / 32;
+    const a = -Math.PI / 3 - t * Math.PI * 2.1;
+    const r = R * (0.86 - 0.5 * t);
+    return pt(c.x + Math.cos(a) * r, c.y + Math.sin(a) * r * 0.96);
+  });
+  d.pen.stroke(groove, 1.1, d.ink, 0.85, false);
+  // A soft shadow just inside the groove, so the outer turn reads as rolling over the inner.
+  d.pen.stroke(groove.map((p) => pt(c.x + (p.x - c.x) * 0.9, c.y + (p.y - c.y) * 0.9)), 2.2, d.ink, 0.12, false);
+  const knob = oval(c.x - R * 0.12, c.y - R * 0.04, R * 0.3, R * 0.27, 16);
+  skin(d, knob, colors.soft, 0.85);
+  shade(d, knob, 0.35);
+  edge(d, knob, 0.9);
+  edge(d, whorl, 1.2);
 }
 
 const OPEN = [1, 4, 2] as const;
@@ -141,7 +151,7 @@ export function drawCrabBack(d: Draw, naked = false, colors: CrabColors = PLAYER
   const wash = naked ? colors.soft : colors.body;
   legs(d, true, wash, colors.tip);
   claw(d, 4, 2, 0.65, wash, (OPEN[d.f] ?? 1) * 0.6, true, colors.tip);
-  if (tail) abdomen(d, colors.soft);
+  if (tail) abdomen(d, colors);
 }
 
 /** Head, eyes, antennae, near legs and the big claw: drawn over the shell. */

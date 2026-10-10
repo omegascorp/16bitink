@@ -268,6 +268,8 @@ export class GameScene extends Phaser.Scene {
       this.floatText(e.x, e.y, 'whoosh!');
     } else if (e.type === 'rapped') {
       this.floatText(e.x, e.y, 'knock knock!');
+    } else if (e.type === 'traded') {
+      this.floatText(e.x, e.y, 'trade up!');
     } else if (e.type === 'struck') {
       this.floatText(e.x, e.y, 'tok! safe in the shell');
       this.cameras.main.shake(90, 0.002);

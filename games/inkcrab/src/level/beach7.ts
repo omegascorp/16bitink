@@ -5,9 +5,10 @@ import type { LevelDef } from './types';
  * (see docs/inkcrab-levels.md). Its idea is rivals: purple-pincher hermit
  * crabs after the same shells, carrying some of the ones you need. Rap on a
  * rival no bigger than you and it lets go of its shell; it then scuttles
- * off to move into a loose one, often the one you left. Stone crabs and
- * blue crabs hunt on the sand, an osprey from the sky. Small prey:
- * porcelain crabs.
+ * off to move into a loose one, often the one you left. Rivals in a shell
+ * trade up into any roomier one nearby, the smaller ones lining up behind
+ * in a vacancy chain, so changing shell sets one off. Stone crabs and blue
+ * crabs hunt on the sand, an osprey from the sky. Small prey: porcelain crabs.
  */
 const WRECK: Pick<LevelDef, 'fry'> = { fry: 'porcelaincrab' };
 
@@ -86,13 +87,14 @@ export const BEACH_7: readonly LevelDef[] = [
   {
     ...WRECK,
     id: 'shell-swap', name: 'Shell Swap', seed: 707, width: 96, height: 38, parTime: 500,
-    hint: 'Every shell here is taken. Rap on the hermit crabs one by one, each a little bigger than the last, and move up.',
+    hint: 'Small hermit crabs wait by the lightning whelk. Move in, walk on, and watch them trade up: each takes the shell the next one bigger left behind.',
     profile: [[0, 21], [40, 22], [95, 23]],
     startCol: 6,
-    shells: [],
-    rivals: [['nassa', 1, 18], ['figshell', 2, 34], ['tulip', 3, 52], ['lightningwhelk', 5, 78]],
+    shells: [['nassa', 14, 0], ['figshell', 30, 0], ['tulip', 46, 0], ['lightningwhelk', 64, 0]],
+    rivals: [['figshell', 3, 69], ['nassa', 2, 72], ['periwinkle', 1, 75]],
     food: { surface: 15, buried: 18, shallow: 8, start: 6 },
     critters: [{ count: 2, sizes: [1, 4], species: 'bluecrab' }, { count: 1, sizes: [5, 5], species: 'stonecrab' }],
+    teach: ['chain'],
   },
   {
     ...WRECK,

@@ -14,7 +14,8 @@ import { isSolid, surfaceRow } from './terrain';
 export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron' | 'vent'
   | 'kelp' | 'fog' | 'raccoon'
   | 'rival'
-  | 'rain' | 'deck' | 'monitor';
+  | 'rain' | 'deck' | 'monitor'
+  | 'chain';
 
 /** What a hint is about: a lesson, or the way out of a hole, offered on every level. */
 export type HintKind = Lesson | 'stuck';
@@ -71,6 +72,7 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     rain: 'Monsoon rain! While it pours, hunters can\'t see far, birds won\'t stoop, worms wash out and wet sand digs fast. Go foraging!',
     deck: 'A boat up on trestles! Under it no bird can stoop on you. Shells and food lie up on top: build a ramp of sand to climb on.',
     monitor: 'A water monitor tastes the air: the rain won\'t hide you from it. Hold Z to hide, or get up out of its reach.',
+    chain: 'A vacancy chain! The hermit crabs line up by size, and each moves into the shell the one ahead leaves behind.',
   },
   touch: {
     move: 'Steer with the stick, jump with the button. Eat food to grow.',
@@ -96,6 +98,7 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     rain: 'Monsoon rain! While it pours, hunters can\'t see far, birds won\'t stoop, worms wash out and wet sand digs fast. Go foraging!',
     deck: 'A boat up on trestles! Under it no bird can stoop on you. Shells and food lie up on top: build a ramp of sand to climb on.',
     monitor: 'A water monitor tastes the air: the rain won\'t hide you from it. Hold the shell button to hide, or get up out of its reach.',
+    chain: 'A vacancy chain! The hermit crabs line up by size, and each moves into the shell the one ahead leaves behind.',
   },
 };
 
@@ -148,6 +151,8 @@ export class Coach {
     this.escape('rain', beach.downpour);
     if (beach.underDeck(c.body) || onDeck(beach.decks, c.body, beach.tileSize)) this.done.add('deck');
     this.escape('monitor', this.noseNear(beach) && !c.hidden && !onDeck(beach.decks, c.body, beach.tileSize));
+    // A vacancy chain is learnt by watching one run to its end.
+    this.escape('chain', beach.chains.size >= 2);
   }
 
   /** Learns a lesson once its danger, having come up, has passed (got under cover, out of the pit, up out of the sand). */
@@ -174,6 +179,7 @@ export class Coach {
     if (open('raccoon') && this.facing.has('raccoon')) return { lesson: 'raccoon', text: t.raccoon!, target: this.kelpNear(beach) ?? undefined };
     if (open('monitor') && this.facing.has('monitor')) return { lesson: 'monitor', text: t.monitor!, target: this.deckNear(beach) ?? undefined };
     if (open('rain') && beach.rainNow > 0) return { lesson: 'rain', text: t.rain! };
+    if (open('chain') && this.facing.has('chain')) return { lesson: 'chain', text: t.chain!, target: this.chainShell(beach) ?? undefined };
     if (open('fog') && this.facing.has('fog')) return { lesson: 'fog', text: t.fog! };
     if (open('tide') && beach.tide && beach.elapsed > 4) return { lesson: 'tide', text: t.tide! };
     if (this.stuck(beach)) return { lesson: 'stuck', text: t.stuck! };
@@ -271,6 +277,12 @@ export class Coach {
       if (off < DECK_NEAR * T && (!best || Math.abs(p.x - at.x) < Math.abs(best.x - at.x))) best = p;
     }
     return best;
+  }
+
+  /** The empty shell at the head of a vacancy chain, or null. */
+  private chainShell(beach: Beach): { x: number; y: number } | null {
+    for (const step of beach.chains.values()) if (step.take) return centre(step.take);
+    return null;
   }
 
   /** A hunter by smell (a raccoon, a monitor) bigger than the crab, close by. */

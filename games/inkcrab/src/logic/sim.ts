@@ -21,6 +21,7 @@ import { KELP, underKelp, wrackColumn, type WrackSpec } from './kelp';
 import { canRap, inShell, isRival, makeRival, RIVAL, stepRival, type RivalSpec } from './rivals';
 import { isPouring, RAIN, rainAt, type RainSpec } from './rain';
 import { underDeck, type Deck } from './decks';
+import { planChains, type ChainStep } from './vacancy';
 import { dig, isDiggable, isSolid, place, surfaceRow, tileAt, TILE, type Terrain } from './terrain';
 
 export interface Input {
@@ -58,6 +59,8 @@ export type SimEvent =
   | { readonly type: 'thrown'; readonly x: number; readonly y: number }
   /** The crab rapped on a rival's shell and it let go: `item` is the shell, now loose. */
   | { readonly type: 'rapped'; readonly x: number; readonly y: number; readonly item: number }
+  /** A rival traded up into a roomier shell, leaving its old one loose (`item`) for the next in a vacancy chain. */
+  | { readonly type: 'traded'; readonly x: number; readonly y: number; readonly item: number }
   | { readonly type: 'won' }
   | { readonly type: 'lost' }
   | { readonly type: 'swapDone'; readonly from: ShellKind | null; readonly to: ShellKind; readonly grew: number; readonly dropped: number | null };
@@ -224,6 +227,8 @@ export class Beach {
   nearbyFits = false;
   /** The nearest rival close enough, and small enough, to rap on its shell. E moves into a fitting shell first. */
   nearbyRival: Critter | null = null;
+  /** The vacancy chains running now: where each rival in one is going (see vacancy.ts). */
+  chains: ReadonlyMap<number, ChainStep> = new Map();
   private readonly hasRivals: boolean;
   private readonly rng: Rng;
   private readonly surfaceFood: number;
@@ -386,7 +391,7 @@ export class Beach {
     this.pour(dt, events);
     this.flow(dt, events);
     this.settleItems(dt, events);
-    this.moveCritters(dt);
+    this.moveCritters(dt, events);
     this.meetCritters(events);
     this.moveBirds(dt, events);
     this.restock(dt, events);
@@ -772,7 +777,7 @@ export class Beach {
     }
   }
 
-  private moveCritters(dt: number): void {
+  private moveCritters(dt: number, events: SimEvent[]): void {
     const c = this.crab;
     const quarry = {
       box: c.body, size: c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize),
@@ -781,14 +786,20 @@ export class Beach {
     };
     const env = this.surroundings;
     const rapper = { box: c.body, size: c.growth.size };
+    // The shell the crab is moving into, or standing at and could move into, is its turn: no rival takes it.
+    const mine = new Set<number>();
+    if (c.swap) mine.add(c.swap.itemId);
+    if (this.nearbyShell && this.nearbyFits) mine.add(this.nearbyShell.id);
+    if (this.hasRivals) this.chains = planChains([...this.critters.values()].filter(isRival), this.items.values(), this.tileSize, mine);
     for (const k of this.critters.values()) {
       if (!isRival(k)) {
         this.critters.set(k.id, stepCritter(this.terrain, k, quarry, dt, this.tileSize, this.rng, env));
         continue;
       }
-      const { rival, took } = stepRival(this.terrain, k, rapper, this.items.values(), dt, this.tileSize, this.rng, env, c.swap?.itemId ?? null);
+      const { rival, took, left } = stepRival(this.terrain, k, rapper, this.items.values(), dt, this.tileSize, this.rng, env, mine, this.chains.get(k.id));
       this.critters.set(k.id, rival);
       if (took) this.items.delete(took.id);
+      if (left) this.leaveShell(rival, left, events);
     }
     for (const k of this.critters.values()) if (stranded(this.terrain, k, this.tileSize)) this.fishDies(k);
   }
@@ -806,6 +817,15 @@ export class Beach {
     const away: 1 | -1 = at.x >= centre(this.crab.body).x ? 1 : -1;
     this.critters.set(k.id, { ...inShell(k, null), tucked: false, dir: away, turnIn: RIVAL.fleeFor, bored: RIVAL.fleeFor });
     events.push({ type: 'rapped', x: at.x, y: k.y, item: id });
+  }
+
+  /** A rival trading up leaves its old shell on the sand where it stands, for the next in line. */
+  private leaveShell(k: Critter, kind: ShellKind, events: SimEvent[]): void {
+    const id = this.nextId++;
+    const proto = makeItem(id, shell(kind), 0, 0, false);
+    const at = centre(k);
+    this.items.set(id, { ...proto, ...this.clearSpot(at.x - proto.w / 2, k.y + k.h - proto.h, proto.w, proto.h) });
+    events.push({ type: 'traded', x: at.x, y: k.y, item: id });
   }
 
   /** The nearest rival close enough, and small enough, for the crab to rap on its shell. */
