@@ -68,11 +68,11 @@ export const SPECIES: Readonly<Record<SpeciesId, SpeciesSpec>> = {
   // Mangrove Margins (beach 4). A fiddler crab: the mudflat's small, timid prey, one claw far bigger than the other.
   fiddler: { id: 'fiddler', name: 'fiddler crab', speed: 0.85, sight: 4, hunts: false, box: { w: 0.95, h: 0.6 } },
   // A mudskipper: a fish that skips across the mud in quick bursts. It can't climb.
-  mudskipper: { id: 'mudskipper', name: 'mudskipper', speed: 1.4, sight: 7, hunts: true, burst: { run: 0.45, rest: 0.6 }, box: { w: 1.25, h: 0.5 } },
+  mudskipper: { id: 'mudskipper', name: 'mudskipper', speed: 1.15, sight: 6, hunts: true, burst: { run: 0.4, rest: 0.8 }, box: { w: 1.25, h: 0.5 } },
   // A striated heron: stalks the open mud and stabs with its bill. The root tangle keeps the bill out.
-  heron: { id: 'heron', name: 'heron', speed: 0.5, sight: 8, hunts: true, move: 'wade', box: { w: 1, h: 1.5 } },
+  heron: { id: 'heron', name: 'heron', speed: 0.45, sight: 6, hunts: true, move: 'wade', box: { w: 1, h: 1.5 } },
   // A mangrove tree crab: walks the mud and climbs the roots after crabs up there.
-  treecrab: { id: 'treecrab', name: 'tree crab', speed: 0.9, sight: 6, hunts: true, move: 'climb', box: { w: 0.95, h: 0.62 } },
+  treecrab: { id: 'treecrab', name: 'tree crab', speed: 0.8, sight: 5, hunts: true, move: 'climb', box: { w: 0.95, h: 0.62 } },
 };
 
 export function movementOf(id: SpeciesId): Movement {

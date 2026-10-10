@@ -158,9 +158,9 @@ const SWIM = { speed: 0.6, kick: 1.3, out: 0.8 } as const;
  * shell slows it as on the ground); jumping lets go with a hop, `hop` of a
  * jump from the ground.
  */
-const CLIMB = { speed: 0.7, hop: 0.75 } as const;
+const CLIMB = { speed: 0.85, hop: 0.75 } as const;
 /** Mud: slow going on top (`speed` of its pace, `jump` of its leap), but quick to dig (`dig` of the time). */
-const MUD = { speed: 0.6, jump: 0.75, dig: 0.5 } as const;
+const MUD = { speed: 0.75, jump: 0.85, dig: 0.5 } as const;
 /** Share of surface food that turns up on a root top, where a column has roots. */
 const PERCHED_FOOD = 0.45;
 export const LIVES = 3;
@@ -750,6 +750,8 @@ export class Beach {
         continue;
       }
       if (!overlaps(c.body, k, this.reach(k))) continue;
+      // A heron catches only with its bill: walking under it, among its legs, is safe (a smaller one is still food).
+      if (movementOf(k.species) === 'wade' && k.size > c.growth.size) continue;
       if (c.hidden) {
         // It walks on past the shell, and doesn't turn back to hunt for a while.
         if (k.size > c.growth.size) this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });

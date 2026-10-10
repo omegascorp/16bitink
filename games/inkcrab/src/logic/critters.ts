@@ -95,18 +95,18 @@ export const CRITTER = {
   flyUp: 85,
   flyDown: 70,
   /** How far (tiles) a heron's bill reaches from the base of its neck. */
-  billTiles: 4.5,
+  billTiles: 3.5,
   /** A heron's strike, seconds: frozen taking aim (the warning), the stab, holding out, drawing back. */
-  aimFor: 0.75,
+  aimFor: 1,
   stabFor: 0.1,
   holdFor: 0.2,
   backFor: 0.35,
   /** Seconds a heron stalks on before it can strike again. */
-  recoverFor: 1.2,
+  recoverFor: 2.5,
   /** How far (tiles) above or below its feet a heron notices a crab. */
   tallRows: 4,
   /** A climber's pace in the roots, as a share of its top speed, and how far it reaches along a root to keep hold. */
-  climb: 0.75,
+  climb: 0.6,
   /** Seconds a climber falls free after letting go. */
   letGoFor: 0.8,
 } as const;

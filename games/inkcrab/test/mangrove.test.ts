@@ -169,7 +169,7 @@ describe('mud', () => {
       run(b, { moveX: 1 }, 0.5);
       return b.crab.body.x - x0;
     };
-    expect(pace(34)).toBeLessThan(pace(4) * 0.7);
+    expect(pace(34)).toBeLessThan(pace(4) * 0.85);
   });
 
   it('digs quicker than sand', () => {
@@ -250,7 +250,7 @@ describe('tree crabs', () => {
   it('take hold of the roots and climb after a smaller crab up there', () => {
     const r = tree();
     const k = makeCritter(1, 5, 20 * T + T / 2, GROUND * T, 1, 10, 'treecrab');
-    const after = step(flat(), k, crabAt(20, 6), 3, env(r));
+    const after = step(flat(), k, crabAt(20, 7), 3, env(r));
     expect(after.y + after.h).toBeLessThan(GROUND * T - 3 * T);
   });
 
@@ -350,5 +350,16 @@ describe('letting go of the roots', () => {
     const y1 = b.crab.body.y;
     run(b, { aimY: -1 }, 0.25);
     expect(low).toBeCloseTo(y1 - b.crab.body.y, 0);
+  });
+});
+
+describe('herons, up close', () => {
+  it('never catch a crab that walks in among their legs: only the bill catches', () => {
+    const b = beach({ roots: undefined, critters: [] });
+    put(b, 14, GROUND);
+    const h = makeCritter(99, 6, 14 * T + T / 2, GROUND * T, 1, 10, 'heron');
+    // Bored, so it won't stab: only its body touches the crab.
+    b.critters.set(99, { ...h, bored: 60 });
+    expect(run(b, {}, 1).some((e) => e.type === 'caught')).toBe(false);
   });
 });
