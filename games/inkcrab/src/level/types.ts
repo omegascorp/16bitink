@@ -3,6 +3,7 @@ import type { SpeciesId } from '../logic/species';
 import type { Lesson } from '../logic/coach';
 import type { ShellKind } from '../logic/shells';
 import type { TideSpec } from '../logic/tide';
+import type { TreeSpec } from './mangrove';
 
 /** A column and a surface row: the level's ground is drawn through these, eased between them. */
 export type ProfilePoint = readonly [col: number, row: number];
@@ -37,11 +38,15 @@ export interface LevelDef {
   readonly tide?: TideSpec;
   /** Things each high water washes in: food on the tide line, and shells in order (kind and column), one a tide. */
   readonly tideBrings?: { readonly food: number; readonly shells?: readonly (readonly [ShellKind, number])[] };
+  /** Mud over the sand between two columns, so many rows deep: slow to walk on, quick to dig (see sim.ts). */
+  readonly mud?: readonly (readonly [from: number, to: number, rows: number])[];
+  /** Mangrove trees: trunk column, height over the mud and how far the roots spread (see mangrove.ts). */
+  readonly trees?: readonly TreeSpec[];
   /** Rock boulders: column, row, radius. */
   readonly rocks?: readonly (readonly [number, number, number])[];
   /** Column the crab starts at. */
   readonly startCol: number;
-  /** Shells to find, beyond the periwinkle it starts in: column, and how deep it's buried (0 = on the surface). */
+  /** Shells to find, beyond the periwinkle it starts in: column, and how deep it's buried (0 = on the surface, -1 = up on the highest root there). */
   readonly shells: readonly (readonly [ShellKind, number, number])[];
   readonly food: {
     /** Loose food on the surface, kept stocked. */

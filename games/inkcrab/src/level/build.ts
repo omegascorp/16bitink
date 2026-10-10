@@ -6,6 +6,8 @@ import type { BeachSetup } from '../logic/sim';
 import { setTile, tileAt, surfaceRow, TILE, type Terrain } from '../logic/terrain';
 import type { CritterGroup } from '../logic/sim';
 import { BEDROCK, carve } from './carve';
+import { growRoots } from './mangrove';
+import { perchRow, type Roots } from '../logic/roots';
 import type { LevelDef } from './types';
 
 /** World px per tile, on every beach. */
@@ -18,20 +20,25 @@ const FOOD_DEPTH = 12;
 /** Most buried food found together in one pocket. */
 const POCKET = 3;
 
-/** Places items centred on a tile: on the surface, or buried in the sand (made solid around it). Returns false if that tile is taken. */
-function placer(t: Terrain, items: Item[]): (kind: ItemKind, col: number, depth: number) => boolean {
+/**
+ * Places items centred on a tile: on the surface, buried in the sand (made
+ * solid around it), or (depth -1) up on the highest root in the column.
+ * Returns false if that tile is taken.
+ */
+function placer(t: Terrain, items: Item[], roots: Roots | null): (kind: ItemKind, col: number, depth: number) => boolean {
   const taken = new Set<string>();
   return (kind, col, depth) => {
+    const perch = depth < 0 ? perchRow(roots, col) : null;
     const surface = surfaceRow(t, col);
-    const row = surface + depth;
+    const row = perch ?? surface + Math.max(0, depth);
     const buried = depth > 0;
     const key = `${col},${row}`;
     if (buried && taken.has(key)) return false;
     // Nothing is buried in rock (granite under thin sand, pool walls).
     if (buried && tileAt(t, col, row) === TILE.rock && row < t.height - BEDROCK) return false;
     if (buried) taken.add(key);
-    // Packed sand around it, unless it's in dune sand (which stays loose).
-    if (buried && tileAt(t, col, row) !== TILE.loose) setTile(t, col, row, TILE.sand);
+    // Packed sand around it, unless it's in dune sand or mud (which stay as they are).
+    if (buried && tileAt(t, col, row) !== TILE.loose && tileAt(t, col, row) !== TILE.mud) setTile(t, col, row, TILE.sand);
     const proto = makeItem(items.length + 1, kind, 0, 0, buried);
     const x = col * TILE_PX + TILE_PX / 2 - proto.w / 2;
     const y = buried ? row * TILE_PX + TILE_PX / 2 - proto.h / 2 : row * TILE_PX - proto.h;
@@ -92,10 +99,14 @@ export function smallFry(def: LevelDef): CritterGroup {
 
 /** Turns a level definition into the simulation's starting state. Pure for a given definition. */
 export function buildLevel(def: LevelDef): BeachSetup {
-  const terrain = carve({ width: def.width, height: def.height, seed: def.seed, profile: def.profile, rocks: def.rocks, wobble: WOBBLE, loose: def.loose, pits: def.pits, granite: def.granite, pools: def.pools, dens: def.dens });
+  const terrain = carve({
+    width: def.width, height: def.height, seed: def.seed, profile: def.profile, rocks: def.rocks, wobble: WOBBLE,
+    loose: def.loose, pits: def.pits, granite: def.granite, pools: def.pools, dens: def.dens, mud: def.mud,
+  });
+  const roots = def.trees?.length ? growRoots(terrain, def.trees, def.seed) : null;
   const rng = createRng(def.seed ^ 0x9e3779b9);
   const items: Item[] = [];
-  const add = placer(terrain, items);
+  const add = placer(terrain, items, roots);
   for (const [kind, col, depth] of def.shells) add(shell(kind), col, depth);
   for (const [col, depth] of def.food.clams ?? []) add(food('clam'), col, depth);
   buryFood(def, terrain, rng, add);
@@ -121,6 +132,7 @@ export function buildLevel(def: LevelDef): BeachSetup {
     pools: def.pools,
     dens: def.dens,
     tideBrings: def.tideBrings,
+    roots: roots ?? undefined,
     startGrowth: { size: START_SIZE, meter: 0, bank: 0 },
     goal: levelGoal(def),
   };

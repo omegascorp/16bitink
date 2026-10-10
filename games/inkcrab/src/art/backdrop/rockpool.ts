@@ -39,6 +39,10 @@ export function sky(d: Draw): void {
   band(d, 0, H * 0.45, SKY, 0.08, 0.36);
   band(d, H * 0.45, H, SKY, 0.36, 0);
   band(d, H * 0.55, H, SKY_PALE, 0, 0.35);
+}
+
+/** Cumulus scudding in streets before the wind, and the wind's streaks: their own layer, drifting (the gulls are movers). */
+export function clouds(d: Draw): void {
   tiled(d, 921, (t) => {
     const { pen } = t;
     // Fair-weather cumulus in streets along the wind, smaller and flatter towards the horizon.
@@ -51,9 +55,6 @@ export function sky(d: Draw): void {
     // The wind itself: long thin streaks.
     for (const [x, y, w] of [[250, 40, 150], [560, 120, 120], [40, 180, 110], [760, 30, 140], [600, 200, 160]] as const) {
       pen.hair(bezier(pt(x, y), pt(x + w / 2, y - 1.5), pt(x + w, y + 0.5), 10), 0.45, t.ink, FAR * 0.22);
-    }
-    for (const [x, y, s, flap, dir] of [[600, 88, 1.25, 0.2, 1], [646, 104, 0.9, 0.8, 1], [690, 80, 0.7, 0, -1], [300, 34, 0.8, 0.6, 1], [990, 156, 0.85, 0.1, -1], [40, 112, 0.6, 0.9, 1], [770, 40, 0.55, 0.3, 1]] as const) {
-      gull(t, x, y, s, flap, dir);
     }
   });
 }
@@ -223,8 +224,6 @@ export function cliffs(d: Draw): void {
     potStack(t, 800, WATER - 14, 5, 3, 1);
     potStack(t, 860, WATER - 14, 3, 2, 1);
     whitecaps(t, WATER + 10, CLIFFS_H - 10, 4);
-    gull(t, 470, WATER - 130, 0.6, 0.4);
-    gull(t, 520, WATER - 96, 0.5, 0.9, -1);
   });
   fadeBottom(d, CLIFFS_H, 30);
 }

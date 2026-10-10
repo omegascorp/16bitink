@@ -27,6 +27,11 @@ export const MOUTH_X: Readonly<Record<ShellKind, number>> = {
   necklace: -18 + 43 * 0.78,
   frogshell: 11,
   knobbedwhelk: 10,
+  mangrovewinkle: 12,
+  rivernerite: 13,
+  mudcreeper: 14,
+  telescope: 10,
+  mudwhelk: 10,
 };
 
 /** Crab-frame x that sits in the middle of the opening: a little inside the back of its head shield. */

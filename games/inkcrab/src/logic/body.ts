@@ -72,8 +72,17 @@ export function jump(b: Body, speed: number): Body {
   return b.onGround ? { ...b, vy: -speed, onGround: false } : b;
 }
 
-/** One physics step: walk with `intent` (-1..1) at `speed` px/s, fall, step up small ledges. */
-export function moveBody(t: Terrain, b: Body, intent: number, speed: number, dt: number, tile: number, medium: Medium = AIR): Body {
+/**
+ * One-way tiles a body can stand on from above but passes through from
+ * below and the sides: the tops of mangrove roots (see roots.ts).
+ */
+export type Ledge = (x: number, y: number) => boolean;
+
+/**
+ * One physics step: walk with `intent` (-1..1) at `speed` px/s, fall, step up
+ * small ledges. With `ledge`, a falling body lands on the tops of those tiles too.
+ */
+export function moveBody(t: Terrain, b: Body, intent: number, speed: number, dt: number, tile: number, medium: Medium = AIR, ledge?: Ledge): Body {
   const vx = intent * speed;
   let box: Box = b;
   const dx = vx * dt;
@@ -90,12 +99,54 @@ export function moveBody(t: Terrain, b: Body, intent: number, speed: number, dt:
         }
       }
     }
+    if (ledge && b.onGround) box = stepOntoLedge(t, box, ledge, tile);
   }
   const vy = Math.min(medium.maxFall, b.vy + medium.gravity * dt);
   const fall = sweep(t, box, 'y', vy * dt, tile);
+  const top = ledge && vy > 0 ? ledgeCrossed(box, fall.box, ledge, tile) : null;
+  if (top !== null) return { ...fall.box, y: top - b.h, vx, vy: 0, onGround: true };
   const onGround = fall.hit && vy > 0;
   const landed = onGround ? slipOff(t, fall.box, intent, dt, tile) : fall.box;
   return { ...landed, vx, vy: fall.hit ? 0 : vy, onGround };
+}
+
+/**
+ * Climbing: moves in any direction at `speed` px/s with no gravity (holding
+ * on), never into solid ground. It stands once it climbs down onto some.
+ */
+export function climbBody(t: Terrain, b: Body, ix: number, iy: number, speed: number, dt: number, tile: number): Body {
+  const across = sweep(t, b, 'x', ix * speed * dt, tile).box;
+  const down = sweep(t, across, 'y', iy * speed * dt, tile);
+  return { ...b, ...down.box, vx: ix * speed, vy: 0, onGround: down.hit && iy > 0 };
+}
+
+/** Columns a body stands on a ledge with: its middle half, so it never hangs off a root by a sliver. */
+function ledgeColumns(b: Box, tile: number): { x0: number; x1: number } {
+  return { x0: Math.floor((b.x + b.w / 4) / tile), x1: Math.floor((b.x + (b.w * 3) / 4 - EPS) / tile) };
+}
+
+/** The highest ledge top (world y) the body's feet pass on the way from `from` down to `to`, or null. */
+function ledgeCrossed(from: Box, to: Box, ledge: Ledge, tile: number): number | null {
+  const before = from.y + from.h;
+  const after = to.y + to.h;
+  const { x0, x1 } = ledgeColumns(to, tile);
+  for (let y = Math.ceil((before - EPS) / tile); y * tile <= after; y++) {
+    for (let x = x0; x <= x1; x++) if (ledge(x, y)) return y * tile;
+  }
+  return null;
+}
+
+/** Walking onto a ledge a little above the feet (up to half the body's height): up onto it, as onto a low step. */
+function stepOntoLedge(t: Terrain, b: Box, ledge: Ledge, tile: number): Box {
+  const feet = b.y + b.h;
+  const { x0, x1 } = ledgeColumns(b, tile);
+  for (let y = Math.ceil((feet - Math.min(tile, b.h * 0.5)) / tile); y * tile < feet - EPS; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const up = { ...b, y: y * tile - b.h };
+      if (ledge(x, y) && !boxHitsSolid(t, up, tile)) return up;
+    }
+  }
+  return b;
 }
 
 /**

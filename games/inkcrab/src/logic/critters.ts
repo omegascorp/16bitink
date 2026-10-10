@@ -1,4 +1,4 @@
-import { boxHitsSolid, jump, moveBody, PHYS, WATER, type Body, type Box } from './body';
+import { boxHitsSolid, climbBody, jump, moveBody, PHYS, WATER, type Body, type Box } from './body';
 import { centre } from './items';
 import type { Rng } from './rng';
 import { shellPx } from './shells';
@@ -30,12 +30,20 @@ export interface Critter extends Body {
   readonly dry: number;
   /** A gull in the air: flying off as the tide comes in, or in to land as it goes out. Harmless up there. */
   readonly flight?: 'off' | 'in';
+  /** A heron's strike: seconds since it froze to take aim; unset when it isn't striking. */
+  readonly strike?: number;
+  /** How far out the strike goes (share of its bill's full reach), set as it takes aim. */
+  readonly reach?: number;
+  /** Seconds a climber won't take hold of the roots (it let go to drop on something). */
+  readonly letGo?: number;
 }
 
-/** What a creature knows of the beach besides its sand: where the water is. */
+/** What a creature knows of the beach besides its sand: where the water and the mangrove roots are. */
 export interface Surroundings {
   /** Whether a tile is under water (none on a dry beach). */
   readonly wet: (x: number, y: number) => boolean;
+  /** Whether a tile is mangrove root (none off the mangrove beach). */
+  readonly root?: (x: number, y: number) => boolean;
 }
 
 export const DRY: Surroundings = { wet: () => false };
@@ -50,6 +58,8 @@ export interface Quarry {
   readonly buried?: boolean;
   /** Under water: where fish hunt, and where gulls can't reach. */
   readonly inWater?: boolean;
+  /** In among the mangrove roots: a heron's bill can't get at it there. */
+  readonly inRoots?: boolean;
 }
 
 export const CRITTER = {
@@ -84,6 +94,21 @@ export const CRITTER = {
   flyAcross: 75,
   flyUp: 85,
   flyDown: 70,
+  /** How far (tiles) a heron's bill reaches from the base of its neck. */
+  billTiles: 4.5,
+  /** A heron's strike, seconds: frozen taking aim (the warning), the stab, holding out, drawing back. */
+  aimFor: 0.75,
+  stabFor: 0.1,
+  holdFor: 0.2,
+  backFor: 0.35,
+  /** Seconds a heron stalks on before it can strike again. */
+  recoverFor: 1.2,
+  /** How far (tiles) above or below its feet a heron notices a crab. */
+  tallRows: 4,
+  /** A climber's pace in the roots, as a share of its top speed, and how far it reaches along a root to keep hold. */
+  climb: 0.75,
+  /** Seconds a climber falls free after letting go. */
+  letGoFor: 0.8,
 } as const;
 
 export function critterBox(size: number, species: SpeciesId = 'ghostcrab'): { w: number; h: number } {
@@ -156,7 +181,14 @@ export function stepCritter(t: Terrain, c: Critter, q: Quarry | null, dt: number
   if (move === 'burrow') return stepBurrower(t, c, q, dt, tile, rng);
   if (move === 'swim') return stepSwimmer(t, c, q, dt, tile, rng, env);
   if (move === 'den') return stepDen(c, q, dt, tile);
+  if (move === 'wade') return stepWader(t, c, q, dt, tile, rng, env);
+  if (move === 'climb') return stepClimber(t, c, q, dt, tile, rng, env);
   if (c.flight) return stepFlight(t, c, dt, tile);
+  return stepWalker(t, c, q, dt, tile, rng, env);
+}
+
+/** Walkers (and lurkers): along the surface and through open tunnels, as stepCritter describes. */
+function stepWalker(t: Terrain, c: Critter, q: Quarry | null, dt: number, tile: number, rng: Rng, env: Surroundings): Critter {
   const spec = SPECIES[c.species];
   // A gull can't get at a crab under water.
   const seen = spec.lowTide && q?.inWater ? 0 : spot(c, q, tile);
@@ -300,11 +332,126 @@ function stepDen(c: Critter, q: Quarry | null, dt: number, tile: number): Critte
   return { ...c, arm, aimX, aimY, dir, clock: c.clock + dt, bored };
 }
 
-/** Where an octopus's arm tip is now. */
+/** Where an octopus's arm, or a heron's neck, comes from: the octopus's middle, the base of the heron's neck. */
+export function armBase(c: Critter): { x: number; y: number } {
+  if (movementOf(c.species) !== 'wade') return centre(c);
+  return { x: c.x + c.w / 2 + c.dir * c.w * 0.28, y: c.y + c.h * 0.29 };
+}
+
+/** Where an octopus's arm tip (or a heron's bill tip) is now. */
 export function armTip(c: Critter, tile: number): { x: number; y: number } {
-  const a = centre(c);
-  const len = c.arm * CRITTER.armTiles * tile;
+  const a = armBase(c);
+  const len = c.arm * (movementOf(c.species) === 'wade' ? CRITTER.billTiles : CRITTER.armTiles) * tile;
   return { x: a.x + c.aimX * len, y: a.y + c.aimY * len };
+}
+
+/** The point a heron would stab at: a smaller crab out in the open within its sight, or null. */
+function herons(c: Critter, q: Quarry | null, tile: number): { x: number; y: number } | null {
+  if (!q || q.hidden || q.inRoots || c.bored > 0 || c.size <= q.size) return null;
+  const a = centre(c);
+  const p = centre(q.box);
+  if (Math.abs(p.x - a.x) > SPECIES[c.species].sight * tile || Math.abs(p.y - (c.y + c.h)) > CRITTER.tallRows * tile) return null;
+  return p;
+}
+
+/**
+ * A heron: stalks the open mud at a slow walk, towards a smaller crab it
+ * can see out in the open. Within reach of its bill it freezes to take aim
+ * (the warning: it follows the crab with its eye), then stabs at where the
+ * crab was and draws back. In among the roots the crab is out of its reach.
+ */
+function stepWader(t: Terrain, c: Critter, q: Quarry | null, dt: number, tile: number, rng: Rng, env: Surroundings): Critter {
+  const prey = herons(c, q, tile);
+  const base = armBase(c);
+  const bill = CRITTER.billTiles * tile;
+  if (c.strike === undefined) {
+    const dist = prey ? Math.hypot(prey.x - base.x, prey.y - base.y) : Infinity;
+    // Out of reach, or nothing to stab: stalk (or amble) on, never after a crab in the roots.
+    if (dist > bill * 0.95) return stepWalker(t, c, prey ? q : null, dt, tile, rng, env);
+  }
+  const s = (c.strike ?? -dt) + dt;
+  const stab = CRITTER.aimFor + CRITTER.stabFor;
+  const hold = stab + CRITTER.holdFor;
+  const done = hold + CRITTER.backFor;
+  const moved = moveBody(t, c, 0, 0, dt, tile);
+  const clock = c.clock + dt;
+  const bored = Math.max(0, c.bored - dt);
+  if (s >= done) return { ...c, ...moved, strike: undefined, arm: 0, clock, bored: CRITTER.recoverFor };
+  let { aimX, aimY } = c;
+  let reach = c.reach ?? 1;
+  // Taking aim, it follows the crab while it can see it; the stab goes where it last saw it.
+  if (s < CRITTER.aimFor && prey) {
+    const dx = prey.x - base.x;
+    const dy = prey.y - base.y;
+    const d = Math.hypot(dx, dy) || 1;
+    aimX = dx / d;
+    aimY = dy / d;
+    reach = Math.min(1, d / bill);
+  }
+  const arm = s < CRITTER.aimFor ? 0 : s < stab ? reach * ((s - CRITTER.aimFor) / CRITTER.stabFor) : s < hold ? reach : reach * (1 - (s - hold) / CRITTER.backFor);
+  const dir: 1 | -1 = aimX >= 0 ? 1 : -1;
+  return { ...c, ...moved, vx: 0, strike: s, arm, aimX, aimY, reach, dir, clock, bored };
+}
+
+/** Whether a box touches a root tile. */
+function gripping(b: Box, root: (x: number, y: number) => boolean, tile: number): boolean {
+  for (let y = Math.floor(b.y / tile); y <= Math.floor((b.y + b.h - 1e-6) / tile); y++) {
+    for (let x = Math.floor(b.x / tile); x <= Math.floor((b.x + b.w - 1e-6) / tile); x++) if (root(x, y)) return true;
+  }
+  return false;
+}
+
+/**
+ * A mangrove tree crab: on the mud, a walker. Touching a root it takes
+ * hold and climbs about the tangle in any direction, wandering up and down
+ * it, or going after a smaller crab (and away from a bigger one) it sees.
+ * It never lets go of the roots on its own, except to drop on a crab below.
+ */
+function stepClimber(t: Terrain, c: Critter, q: Quarry | null, dt: number, tile: number, rng: Rng, env: Surroundings): Critter {
+  const letGo = Math.max(0, (c.letGo ?? 0) - dt);
+  const root = env.root;
+  if (!root || letGo > 0 || !gripping(c, root, tile)) return { ...stepWalker(t, c, q, dt, tile, rng, env), letGo };
+  const spec = SPECIES[c.species];
+  const speed = critterSpeed(c.size, c.species) * CRITTER.climb;
+  const a = centre(c);
+  const p = q && !q.hidden && c.bored <= 0 ? centre(q.box) : null;
+  // Up in the tangle it looks up and down as far as along.
+  const seen = p !== null && Math.abs(p.x - a.x) <= spec.sight * tile && Math.abs(p.y - a.y) <= spec.sight * tile;
+  const hunting = seen && c.size > q!.size && spec.hunts;
+  const fleeing = seen && c.size < q!.size;
+  const clock = c.clock + dt;
+  const bored = Math.max(0, c.bored - dt);
+  let dir = c.dir;
+  let turnIn = c.turnIn - dt;
+  let ix: number;
+  let iy: number;
+  if (hunting || fleeing) {
+    const dx = (p!.x - a.x) * (hunting ? 1 : -1);
+    const dy = (p!.y - a.y) * (hunting ? 1 : -1);
+    const d = Math.hypot(dx, dy) || 1;
+    ix = dx / d;
+    iy = dy / d;
+    if (Math.abs(dx) > 1) dir = dx > 0 ? 1 : -1;
+  } else {
+    if (turnIn <= 0) {
+      dir = dir === 1 ? -1 : 1;
+      turnIn = CRITTER.turnMin + rng() * (CRITTER.turnMax - CRITTER.turnMin);
+    }
+    ix = dir * CRITTER.amble;
+    iy = Math.sin(clock * 0.9 + c.id) * 0.8;
+  }
+  const across = climbBody(t, c, ix, 0, speed, dt, tile);
+  let box: Body = gripping(across, root, tile) ? across : c;
+  if (box === c && !hunting && !fleeing) {
+    dir = dir === 1 ? -1 : 1;
+    turnIn = CRITTER.turnMin + rng() * (CRITTER.turnMax - CRITTER.turnMin);
+  }
+  const down = climbBody(t, box, 0, iy, speed, dt, tile);
+  const holds = gripping(down, root, tile);
+  if (holds) box = down;
+  // A crab below it, out of the tangle: it lets go and drops on it.
+  const drops = hunting && !holds && iy > 0.5 && Math.abs(p!.x - a.x) < tile * 2;
+  return { ...c, x: box.x, y: box.y, vx: ix * speed, vy: drops ? 0 : iy * speed, onGround: false, dir, turnIn, clock, bored, letGo: drops ? CRITTER.letGoFor : 0 };
 }
 
 /**

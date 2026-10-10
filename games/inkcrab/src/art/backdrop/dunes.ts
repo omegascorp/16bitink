@@ -88,6 +88,13 @@ export function sky(d: Draw): void {
     pen.fill(oval(250, 70, 17, 17, 24), PAPER_FILL, 0.95);
     const rim = oval(250, 70, 18, 18, 36);
     for (let i = 0; i < 36; i += 6) pen.hair(rim.slice(i, i + 4), 0.8, t.ink, FAR * 0.55);
+  });
+}
+
+/** The mackerel sky and bands of haze, on their own layer so they drift with the wind (the kestrel and terns are movers). */
+export function clouds(d: Draw): void {
+  tiled(d, 915, (t) => {
+    const { pen } = t;
     mackerel(t, 560, 52, 300, 46, 6);
     mackerel(t, 880, 34, 170, 26, 4);
     mackerel(t, 60, 110, 120, 18, 3);
@@ -96,8 +103,6 @@ export function sky(d: Draw): void {
       pen.hair(bezier(pt(x, y), pt(x + w / 2, y - 2), pt(x + w, y + 1), 12), 1.2, PAPER_FILL, 0.8);
       pen.hair(bezier(pt(x + 12, y + 2.5), pt(x + w / 2, y + 1), pt(x + w - 20, y + 3), 12), 0.45, t.ink, FAR * 0.3);
     }
-    kestrel(t, 700, 120, 0.9);
-    for (const [x, y, s] of [[440, 120, 0.8], [462, 110, 0.65], [478, 126, 0.55], [930, 140, 0.7], [120, 58, 0.7]] as const) tern(t, x, y, s);
   });
 }
 

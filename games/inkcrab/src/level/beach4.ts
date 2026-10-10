@@ -1,0 +1,148 @@
+import type { LevelDef } from './types';
+
+/**
+ * Beach 4, Mangrove Margins: a mangrove creek at low water (see
+ * docs/inkcrab-levels.md). Its idea is climbing: red mangroves stand on
+ * arching prop roots over the mudflat, and the crab climbs about in the
+ * tangle and walks their branches. The mud is slow going and quick to dig;
+ * the roots are the fast way across, and the safe one from mudskippers
+ * (which can't climb) and herons (whose bills can't get into the tangle).
+ * Tree crabs climb as well as you do. Small prey: fiddler crabs.
+ */
+const MANGROVE: Pick<LevelDef, 'fry'> = { fry: 'fiddler' };
+
+export const BEACH_4: readonly LevelDef[] = [
+  {
+    ...MANGROVE,
+    id: 'knee-deep', name: 'Knee Deep', seed: 401, width: 64, height: 32, parTime: 150,
+    hint: 'Mud is slow going. Mangrove roots are quicker: steer up among them to climb. A mangrove periwinkle sits up on the roots.',
+    profile: [[0, 17], [18, 19], [63, 21]],
+    mud: [[14, 63, 3]],
+    trees: [[30, 9, 6]],
+    startCol: 6,
+    shells: [['mangrovewinkle', 27, -1], ['rivernerite', 52, 0]],
+    food: { surface: 12, buried: 8, shallow: 5 },
+    critters: [{ count: 2, sizes: [1, 2], species: 'fiddler' }],
+    teach: ['climb'],
+  },
+  {
+    ...MANGROVE,
+    id: 'the-canopy', name: 'The Canopy', seed: 402, width: 68, height: 34, parTime: 190,
+    hint: 'The river nerite is right up in the canopy. Climb to the top and walk out along a branch.',
+    profile: [[0, 19], [20, 21], [67, 22]],
+    mud: [[12, 67, 3]],
+    trees: [[16, 8, 5], [40, 13, 7]],
+    startCol: 5,
+    shells: [['mangrovewinkle', 18, 0], ['rivernerite', 46, -1]],
+    food: { surface: 12, buried: 10, shallow: 5 },
+    critters: [{ count: 2, sizes: [1, 3], species: 'fiddler' }],
+  },
+  {
+    ...MANGROVE,
+    id: 'mudskipper-flats', name: 'Mudskipper Flats', seed: 403, width: 72, height: 34, parTime: 240,
+    hint: 'Red mudskippers skip across the mud after small crabs. They can\'t climb: get up into the roots, or hide.',
+    profile: [[0, 18], [22, 20], [71, 22]],
+    mud: [[10, 71, 3]],
+    trees: [[24, 9, 6], [50, 10, 6]],
+    startCol: 5,
+    shells: [['mangrovewinkle', 14, 0], ['rivernerite', 26, -1], ['mudcreeper', 62, 0]],
+    food: { surface: 12, buried: 12, shallow: 6 },
+    critters: [{ count: 2, sizes: [1, 2], species: 'mudskipper' }, { count: 2, sizes: [5, 6], species: 'mudskipper' }, { count: 2, sizes: [1, 3], species: 'fiddler' }],
+    teach: ['hide'],
+  },
+  {
+    ...MANGROVE,
+    id: 'sunk-in-mud', name: 'Sunk in the Mud', seed: 404, width: 76, height: 36, parTime: 300,
+    hint: 'A mud creeper lies buried under the mudflat. Mud digs quickly, but watch for mudskippers while you\'re down there.',
+    profile: [[0, 18], [24, 20], [75, 22]],
+    mud: [[10, 75, 4]],
+    trees: [[20, 9, 6], [46, 10, 6]],
+    startCol: 5,
+    shells: [['mangrovewinkle', 14, 0], ['rivernerite', 44, -1], ['mudcreeper', 60, 4]],
+    food: { surface: 12, buried: 14, shallow: 6 },
+    critters: [{ count: 2, sizes: [1, 3], species: 'mudskipper' }, { count: 1, sizes: [6, 6], species: 'mudskipper' }, { count: 2, sizes: [1, 4], species: 'fiddler' }],
+    teach: ['buried'],
+  },
+  {
+    ...MANGROVE,
+    id: 'root-to-root', name: 'Root to Root', seed: 405, width: 92, height: 36, parTime: 360,
+    hint: 'A row of mangroves across the creek, with shells in their roots. Cross by the branches, high over the mudskippers.',
+    profile: [[0, 19], [16, 21], [91, 22]],
+    mud: [[8, 91, 3]],
+    trees: [[18, 9, 5], [34, 10, 6], [52, 11, 6], [72, 10, 6]],
+    startCol: 5,
+    shells: [['mangrovewinkle', 15, -1], ['rivernerite', 31, -1], ['mudcreeper', 55, -1]],
+    food: { surface: 13, buried: 14, shallow: 6 },
+    critters: [{ count: 3, sizes: [1, 4], species: 'mudskipper' }, { count: 2, sizes: [6, 6], species: 'mudskipper' }, { count: 2, sizes: [1, 4], species: 'fiddler' }],
+  },
+  {
+    ...MANGROVE,
+    id: 'heron-watch', name: 'Heron Watch', seed: 406, width: 84, height: 36, parTime: 420,
+    hint: 'A heron stalks the mud. When it freezes and takes aim, get in among the roots, or hide: its bill can\'t reach you there.',
+    profile: [[0, 18], [20, 20], [83, 22]],
+    mud: [[10, 83, 3]],
+    trees: [[22, 9, 6], [44, 10, 5], [66, 10, 6]],
+    startCol: 5,
+    shells: [['mangrovewinkle', 14, 0], ['rivernerite', 41, -1], ['mudcreeper', 74, 0]],
+    food: { surface: 12, buried: 14, shallow: 6 },
+    critters: [{ count: 1, sizes: [5, 5], species: 'heron', cols: [30, 80] }, { count: 2, sizes: [1, 3], species: 'mudskipper' }, { count: 2, sizes: [1, 4], species: 'fiddler' }],
+    teach: ['heron'],
+  },
+  {
+    ...MANGROVE,
+    id: 'tree-crabs', name: 'Tree Crabs', seed: 407, width: 92, height: 38, parTime: 520,
+    hint: 'Tree crabs climb as well as you do. The telescope snail is high in the old tree: keep an eye on who\'s climbing after you.',
+    profile: [[0, 20], [22, 22], [91, 24]],
+    mud: [[10, 91, 3]],
+    trees: [[20, 9, 6], [44, 14, 7], [70, 10, 6]],
+    startCol: 5,
+    shells: [['mangrovewinkle', 12, 0], ['rivernerite', 22, -1], ['mudcreeper', 62, 0], ['telescope', 49, -1]],
+    food: { surface: 13, buried: 16, shallow: 7 },
+    critters: [{ count: 3, sizes: [2, 6], species: 'treecrab' }, { count: 2, sizes: [1, 4], species: 'mudskipper' }, { count: 2, sizes: [1, 5], species: 'fiddler' }],
+  },
+  {
+    ...MANGROVE,
+    id: 'the-tangle', name: 'The Tangle', seed: 408, width: 96, height: 38, parTime: 600,
+    hint: 'Herons on the mud, mudskippers in the creek, tree crabs in the roots. The telescope snail is buried between two trees.',
+    profile: [[0, 19], [20, 21], [95, 23]],
+    mud: [[8, 95, 4]],
+    trees: [[18, 10, 6], [40, 11, 6], [64, 11, 7], [84, 9, 5]],
+    startCol: 5,
+    shells: [['mangrovewinkle', 12, 0], ['rivernerite', 37, -1], ['mudcreeper', 67, -1], ['telescope', 52, 4]],
+    food: { surface: 13, buried: 18, shallow: 7 },
+    critters: [
+      { count: 1, sizes: [6, 6], species: 'heron', cols: [24, 92] }, { count: 2, sizes: [2, 6], species: 'treecrab' },
+      { count: 3, sizes: [2, 6], species: 'mudskipper' }, { count: 2, sizes: [1, 5], species: 'fiddler' },
+    ],
+  },
+  {
+    ...MANGROVE,
+    id: 'mangrove-maze', name: 'Mangrove Maze', seed: 409, width: 104, height: 40, parTime: 700,
+    hint: 'The hardest creek: deep mud, two herons, and the mud whelk on top of the tallest tree.',
+    profile: [[0, 21], [18, 23], [103, 25]],
+    mud: [[6, 103, 5]],
+    trees: [[14, 10, 6], [32, 12, 6], [52, 15, 7], [74, 11, 6], [92, 10, 6]],
+    startCol: 5,
+    shells: [['mangrovewinkle', 11, -1], ['rivernerite', 26, 0], ['mudcreeper', 36, -1], ['telescope', 78, -1], ['mudwhelk', 57, -1]],
+    food: { surface: 14, buried: 18, shallow: 8 },
+    critters: [
+      { count: 2, sizes: [7, 7], species: 'heron', cols: [20, 100] }, { count: 3, sizes: [2, 7], species: 'treecrab' },
+      { count: 3, sizes: [2, 7], species: 'mudskipper' }, { count: 2, sizes: [1, 5], species: 'fiddler' },
+    ],
+  },
+  {
+    ...MANGROVE,
+    id: 'the-old-mangrove', name: 'The Old Mangrove', seed: 410, width: 120, height: 42, parTime: 820,
+    hint: 'Every shell of the mangroves, from the periwinkle on the roots to the mud whelk at the top of the old mangrove.',
+    profile: [[0, 21], [18, 23], [119, 26]],
+    mud: [[8, 119, 4]],
+    trees: [[16, 9, 6], [34, 11, 6], [54, 10, 6], [76, 16, 8], [100, 11, 6]],
+    startCol: 5,
+    shells: [['mangrovewinkle', 13, -1], ['rivernerite', 30, -1], ['mudcreeper', 50, 3], ['telescope', 57, -1], ['mudwhelk', 81, -1]],
+    food: { surface: 14, buried: 22, shallow: 8 },
+    critters: [
+      { count: 2, sizes: [6, 7], species: 'heron', cols: [22, 116] }, { count: 3, sizes: [2, 7], species: 'treecrab' },
+      { count: 3, sizes: [2, 7], species: 'mudskipper' }, { count: 3, sizes: [1, 6], species: 'fiddler' },
+    ],
+  },
+];

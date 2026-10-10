@@ -21,6 +21,7 @@ import { CrittersView } from './game/crittersView';
 import { createTouchState, GameInput, type TouchState } from './game/input';
 import { ItemsView } from './game/itemsView';
 import { TerrainView } from './game/terrainView';
+import { RootsView } from './game/rootsView';
 import { DPR, screenZoom, viewSize } from './hidpi';
 import type { ResultData } from './ResultScene';
 import { HAND_FONT } from './ui';
@@ -69,6 +70,7 @@ export class GameScene extends Phaser.Scene {
     this.add.tileSprite(0, 0, worldW, worldH, TEX.paper).setOrigin(0).setDepth(0);
     this.addBackdrop(setup.terrain, T, worldW);
     this.terrainView = new TerrainView(this, setup.terrain, T);
+    const roots = setup.roots ? new RootsView(this, setup.terrain, setup.roots, T) : null;
     this.itemsView = new ItemsView(this);
     this.crittersView = new CrittersView(this, setup.terrain, T);
     this.birdsView = new BirdsView(this, setup.terrain, T);
@@ -84,7 +86,10 @@ export class GameScene extends Phaser.Scene {
     cam.setZoom(DPR * this.targetZoom());
     cam.startFollow(this.crabView.root, true, 0.12, 0.12);
     this.scene.launch('Hud');
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.terrainView.destroy());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.terrainView.destroy();
+      roots?.destroy();
+    });
   }
 
   /** The faraway beach, anchored above the beach's typical surface height and wide enough for any scroll. */

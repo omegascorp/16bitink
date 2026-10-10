@@ -43,13 +43,17 @@ export function sky(d: Draw): void {
       const r0 = 27 + (i % 2) * 3;
       pen.hair([pt(800 + Math.cos(a) * r0, 58 + Math.sin(a) * r0), pt(800 + Math.cos(a) * (r0 + 8 - (i % 2) * 3), 58 + Math.sin(a) * (r0 + 8 - (i % 2) * 3))], 0.9, t.ink, FAR);
     }
+  });
+}
+
+/** The sky's cirrus wisps and heaped cumulus, on their own layer so they drift with the wind (the seaplane and frigatebirds are movers). */
+export function clouds(d: Draw): void {
+  tiled(d, 905, (t) => {
     for (const [x, y, w] of [[260, 30, 90], [620, 22, 120], [980, 40, 70]] as const) cirrus(t, x, y, w);
     cloud(t, 150, 120, 190, 6);
     cloud(t, 480, 80, 120, 4);
     cloud(t, 640, 170, 90, 4);
     cloud(t, 960, 140, 150, 5);
-    seaplane(t, 330, 60, 1.3);
-    for (const [x, y, s] of [[560, 125, 1], [585, 112, 0.8], [602, 128, 0.6], [720, 140, 0.7], [70, 60, 0.9], [905, 95, 0.6]] as const) bird(t, x, y, s);
   });
 }
 

@@ -1,13 +1,14 @@
 /**
  * The beach as a tile grid (Terraria-style). Sand digs, placed sand digs
  * (and the tide will wash it away), dune sand digs and pours (see
- * dunes.ts), rock never does. Outside the grid the
+ * dunes.ts), mud digs easily but is slow going on top, rock never digs.
+ * Mangrove roots aren't tiles (see roots.ts). Outside the grid the
  * sides and floor are solid rock and the sky is open.
  *
  * The grid is mutated in place: it is per-frame world state shared by the
  * simulation and the chunked sand renderer.
  */
-export const TILE = { air: 0, sand: 1, placed: 2, rock: 3, loose: 4 } as const;
+export const TILE = { air: 0, sand: 1, placed: 2, rock: 3, loose: 4, mud: 5 } as const;
 export type Tile = (typeof TILE)[keyof typeof TILE];
 
 export interface Terrain {
@@ -33,7 +34,7 @@ export function isSolid(t: Terrain, x: number, y: number): boolean {
 
 export function isDiggable(t: Terrain, x: number, y: number): boolean {
   const tile = tileAt(t, x, y);
-  return inside(t, x, y) && (tile === TILE.sand || tile === TILE.placed || tile === TILE.loose);
+  return inside(t, x, y) && (tile === TILE.sand || tile === TILE.placed || tile === TILE.loose || tile === TILE.mud);
 }
 
 export function setTile(t: Terrain, x: number, y: number, tile: Tile): boolean {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BEACH_1 } from '../src/level/beach1';
 import { BEACH_2 } from '../src/level/beach2';
 import { BEACH_3 } from '../src/level/beach3';
+import { BEACH_4 } from '../src/level/beach4';
 import type { LevelDef } from '../src/level/types';
 import { movementOf } from '../src/logic/species';
 import { buildLevel, levelGoal, levelShells, smallFry, TILE_PX } from '../src/level/build';
@@ -9,12 +10,14 @@ import { boxHitsSolid } from '../src/logic/body';
 import { pourStep } from '../src/logic/dunes';
 import { Beach } from '../src/logic/sim';
 import { SHELLS } from '../src/logic/shells';
-import { isDiggable, isSolid } from '../src/logic/terrain';
+import { isDiggable, isSolid, surfaceRow } from '../src/logic/terrain';
+import { isLedge, isRoot, type Roots } from '../src/logic/roots';
 
 const BEACHES: readonly { name: string; levels: readonly LevelDef[]; fry: string; firstGoal: number }[] = [
   { name: 'beach 1', levels: BEACH_1, fry: 'slater', firstGoal: 3 },
   { name: 'beach 2', levels: BEACH_2, fry: 'darkling', firstGoal: 4 },
   { name: 'beach 3', levels: BEACH_3, fry: 'shorecrab', firstGoal: 4 },
+  { name: 'beach 4', levels: BEACH_4, fry: 'fiddler', firstGoal: 4 },
 ];
 
 for (const { name, levels: BEACH, fry: FRY, firstGoal } of BEACHES) describe(name, () => {
@@ -206,4 +209,65 @@ describe('sandstorm', () => {
       for (const [pit, r] of def.pits ?? []) expect(Math.abs(at - pit)).toBeGreaterThan(r + 1);
     }
   });
+});
+
+describe('herons', () => {
+  it('never outgrow the crab: a full-grown crab can eat any of them', () => {
+    for (const def of BEACHES.flatMap((b) => b.levels)) {
+      for (const g of def.critters ?? []) if (g.species === 'heron') expect(g.sizes[1], def.id).toBeLessThan(levelGoal(def));
+    }
+  });
+});
+
+/** Root tiles reachable by climbing from the mud: the tangle joined (diagonals too) to a root touching the ground. */
+function climbable(roots: Roots, ground: (x: number) => number): Set<string> {
+  const seen = new Set<string>();
+  const queue: [number, number][] = [];
+  for (let x = 0; x < roots.width; x++) {
+    for (let y = ground(x) - 1; y <= ground(x); y++) if (isRoot(roots, x, y)) queue.push([x, y]);
+  }
+  while (queue.length) {
+    const [x, y] = queue.pop()!;
+    const key = `${x},${y}`;
+    if (seen.has(key) || !isRoot(roots, x, y)) continue;
+    seen.add(key);
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) queue.push([x + dx, y + dy]);
+  }
+  return seen;
+}
+
+describe('mangrove margins', () => {
+  for (const def of BEACH_4) {
+    describe(def.id, () => {
+      const setup = buildLevel(def);
+      const roots = setup.roots!;
+
+      it('grows its mangroves and lays mud over the flats', () => {
+        expect(roots).toBeDefined();
+        expect(roots.cells.includes(1)).toBe(true);
+        expect(setup.terrain.tiles.includes(5)).toBe(true);
+      });
+
+      it('perches its shells on root tops the crab can climb to from the mud', () => {
+        const reach = climbable(roots, (x) => surfaceRow(setup.terrain, x));
+        for (const [kind, col, depth] of def.shells) {
+          if (depth >= 0) continue;
+          const item = setup.items.find((i) => i.kind.type === 'shell' && i.kind.shell === kind)!;
+          const row = Math.round((item.y + item.h) / TILE_PX);
+          expect(isLedge(roots, col, row), `${kind} on a ledge`).toBe(true);
+          expect(reach.has(`${col},${row}`), `${kind} reachable`).toBe(true);
+          // Up off the ground: it takes a climb.
+          expect(row, kind).toBeLessThan(surfaceRow(setup.terrain, col) - 2);
+        }
+      });
+
+      it('keeps its trees, crowns included, inside the level', () => {
+        for (const [x, y, r] of roots.leaves) {
+          expect(x - r).toBeGreaterThan(0);
+          expect(x + r).toBeLessThan(def.width);
+          expect(y - r).toBeGreaterThan(-1);
+        }
+      });
+    });
+  }
 });

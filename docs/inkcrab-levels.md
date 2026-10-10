@@ -81,6 +81,8 @@ All follow the one rule (bigger catches you, smaller is food) and are inked red 
 
 The levels sit in front of a hand-inked parallax beach. Beach 1 ("Atoll Sketchbook", theme `atoll`) is a Maldives coral island: a sky with a sun, cirrus wisps, heaped cumulus, frigatebirds and a seaplane; the deep blue ocean with swells, far-off palm islands and yachts, the white surf line of the reef with channel buoys, and a turquoise lagoon with coral heads, light patterns on the shallows, water villas (each a little different: one or two thatch tiers, a plunge pool or a ladder, glass doors, shutters, a lantern; mirrored in the water) on a lantern-lit jetty, a moored launch, and boats under way: yachts on the horizon and a small dhoni behind the villas drift across and wrap round, while a big dhoni works back and forth in front of them, all bobbing on the swell; nearest, coconut palms with dead fronds, screwpines on stilt roots, flowering scrub, a hammock, a palm-leaf parasol with loungers, a beach bungalow with a verandah, a beached outrigger canoe, driftwood, a sprouting coconut, shells, crab holes and ripple marks on a bank of white coral sand. The code is in `src/art/backdrop/` (shared helpers in `common.ts`, palms and villas in `tropic.ts`, boats in `boats.ts` (sailing boats are separate sprites moved by `src/scenes/game/backdropView.ts` along lanes from `src/logic/sailing.ts`; villas and the jetty are their own `resort` layer so boats can pass behind them), homes in `homes.ts`, water detail in `water.ts`, shore props in `beach.ts`, layers in `atoll.ts`). The level background is plain paper, without the notebook rules. Each later beach brings its own backdrop theme.
 
+**What moves in the backdrops** (every beach): each sky's clouds are their own `clouds` layer, drifting on the wind (gently over the atoll, dunes and mangroves, briskly over the rock pools), while the sun stays put. Birds, the seaplane and the mangrove fisherman are movers (`src/art/backdrop/movers.ts`): sprites on their layer moving along lanes like the boats, repeating every tile. Birds beat their wings out of step with each other in a flock (frigatebirds barely, gliding), rise and fall a little as they fly, and turn to face the way they go. The atoll has its frigatebirds and the seaplane; the dunes their terns and a kestrel hanging on the wind; the rock pools their gulls, some beating against the wind; the mangroves a skein of ibis, three egrets, a brahminy kite and the fisherman. The kite, side-on like the rest, wheels in wide circles with a lazy wingbeat, turning to face the way it's going round. The fisherman drifts a little in his sampan, bobbing, and lifts and dips his rod. The result and celebration screens leave out the sky and its clouds.
+
 ## Beach 2: Dune Sea
 
 A desert running down into a cold ocean, Namib style. Danger comes from above and below, and only real shells wash up (as on every beach).
@@ -148,16 +150,50 @@ Shells: flat periwinkle (1–3), dog whelk (2–4), painted top shell (2–5), n
 
 Backdrop theme `rockpool` (`src/art/backdrop/rockpool.ts`; granite, coast and shore-life helpers in `granite.ts`, `coast.ts`, `shoreLife.ts`): a breezy sky with cumulus and gulls; a slate-blue sea with whitecaps, headlands, a lighthouse and a coastguard cottage; jointed granite cliffs and sea stacks with nesting kittiwakes and sea pinks, a fishing village on a hill, a slipway, a moored crabber and a stone quay; nearest, a lichened granite shelf at low tide with bladderwrack, kelp, barnacles, limpets, mussels, anemones, a starfish and a willow crab pot. Pools are walled and floored with rock; their rim is the lower of their two sides. Water is drawn as a wash over paper (so the backdrop doesn't show through), with wavy ink lines and a firmer surface line; the dashed high-water mark shows only across open air.
 
-## Beaches 4–10
+## Beach 4: Mangrove Margins
 
-Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
+A mangrove creek at low water: red mangroves standing on arching prop roots over a grey mudflat. Its idea is climbing.
+
+**What's new:**
+
+- **Mangrove roots** (`games/inkcrab/src/logic/roots.ts`, grown in `src/level/mangrove.ts`). Each tree (`trees: [col, height, spread]`) is a two-tile trunk standing on stilt roots, with prop roots arching down to the mud on both sides, near-level branches at the top and halfway up, and leafy crowns. Roots aren't sand tiles: they sit in their own layer, never change and never hold sand. Nothing is stopped by them. The crab, and anything that can't climb, walks straight through under a tree.
+- **Climbing:** among the roots (or within a quarter tile of one), holding up takes hold. Then the crab climbs whichever way it's steered at 70% of its walking pace (a heavy shell slows it here too), and hangs on with no gravity when let be. Jump lets go with a hop; hiding in the shell or moving house lets go and drops it. Climbing out of the top of the tangle sets it on the root it climbed. The tops of roots are ledges: anything falling lands on them, the crab walks along branches, and holding down drops through. Shells and some food (45% of surface food, where a column has roots) sit up on the roots. A level puts a shell up a tree with depth `-1` (on the highest root in that column).
+- **Mud** (`mud: [from, to, rows]`, thinning out at either end). Slow going on top (60% of walking pace, three-quarters of the jump height) but quick to dig (half the time). Dug mud is carried like sand and put down as sand. Sand (mud included) is still never made or lost. So the roots are the fast way across, and the safe one from the mud's hunters.
+- **Mudskippers** skip across the mud in quick bursts after small crabs. They can't climb.
+- **Heron** (a striated heron, moving `wade`): stalks the open mud at a slow walk towards a smaller crab it can see. Within reach of its bill (4.5 tiles from the base of its neck) it freezes to take aim for 0.75 s, following the crab with its eye, then stabs at where it last saw it. The stab holds out a moment, then draws back, and the heron stalks on. Among the roots the crab is out of its reach. A stab on a crab hidden in its shell glances off ("tok!"). The view draws its neck, head and bill stretched out over a headless body drawing (`src/scenes/game/crittersView.ts`).
+- **Tree crabs** (moving `climb`): walkers on the mud. Touching a root they take hold and climb about the tangle in any direction, after a smaller crab they see (and away from a bigger one). They let go only to drop on a crab right below them, out of the tangle.
+- **Fiddler crabs** are the small prey.
+- **Coach lessons:** `climb` speaks near the roots, pointing at a shell up in them, until the crab has climbed two tiles. `heron` speaks while a heron takes aim at you.
+
+Shells: mangrove periwinkle (1–3; it lives up on the roots), river nerite (2–4), mud creeper (3–6), telescope snail (4–7), mud whelk (5–8).
+
+| # | Id | Name | Goal | Shells | New |
+| --- | --- | --- | --- | --- | --- |
+| 31 | `knee-deep` | Knee Deep | Size 4 | Mangrove periwinkle (on the roots), river nerite | Mud and climbing (coach: climb) |
+| 32 | `the-canopy` | The Canopy | Size 4 | Mangrove periwinkle, river nerite (up a tall tree) | Climb to the top and along a branch |
+| 33 | `mudskipper-flats` | Mudskipper Flats | Size 6 | Mangrove periwinkle, river nerite (on the roots), mud creeper | Mudskippers (coach: hide) |
+| 34 | `sunk-in-mud` | Sunk in the Mud | Size 6 | …, mud creeper (buried 4 deep in mud) | Dig the mud (coach: buried) |
+| 35 | `root-to-root` | Root to Root | Size 6 | Mangrove periwinkle, river nerite, mud creeper, all on the roots | A row of trees to cross by the branches |
+| 36 | `heron-watch` | Heron Watch | Size 6 | Mangrove periwinkle, river nerite (on the roots), mud creeper | The heron (coach: heron) |
+| 37 | `tree-crabs` | Tree Crabs | Size 7 | …, telescope snail (high in an old tree) | Tree crabs climb after you |
+| 38 | `the-tangle` | The Tangle | Size 7 | …, telescope snail (buried between two trees) | Remix: heron, mudskippers, tree crabs |
+| 39 | `mangrove-maze` | Mangrove Maze | Size 8 | …, mud whelk (on the tallest tree) | Storm: deep mud, two herons, everything |
+| 40 | `the-old-mangrove` | The Old Mangrove | Size 8 | Every mangrove shell, mud whelk on top of the old mangrove | The whole beach |
+
+Roots are drawn along the curves they were grown on (`src/art/roots.ts`, in static chunks by `src/scenes/game/rootsView.ts`, behind the sand so they run down into the mud). They are tapering ribbons of bark, crusted with oysters near the mud, under dense crowns of glossy leaves. Mud is a dark wash over the sand with glints of sky along its top (`src/art/sand.ts`).
+
+Backdrop theme `mangrove` (`src/art/backdrop/mangrove.ts`; trees in `mangroveTrees.ts`, the far shore and boats in `estuary.ts`, birds and mud in `mudLife.ts`): a hazy, humid sky with towering cumulus, ibis, egrets and a brahminy kite; a still olive river mouth under misty hills, a village on stilts, a kelong and a sampan, with longtail boats running up and down; a wall of red mangroves on prop roots with nipa palms, a grey heron and an egret at the creek mouth and a boardwalk winding into the trees; nearest, a glistening mudflat cut by creeks, with pencil roots, crab burrows, fallen leaves, propagules, a half-sunk dugout and a bamboo crab trap. The nearest layer has no small creatures, so the level's own fiddlers and mudskippers are never mistaken for scenery.
+
+## Beaches 5–10
+
+Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Beaches 1–4 are built (above). Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
 
 | Beach | Biome | Setting | New |
 | --- | --- | --- | --- |
 | 1 | Atoll Sketchbook | Maldives coral island, palms, turquoise lagoon | (the basics; built) |
 | 2 | Dune Sea | Desert dunes running into the ocean | Sky and burrow hunters, pouring sand (built) |
 | 3 | Tide Pool Notes | Granite shelves and rock pools | The tide, fish, octopuses, gulls (built) |
-| 4 | Mangrove Margins | Mudflats and tangled stilt roots | Climbing the roots; mud that slows you |
+| 4 | Mangrove Margins | Mudflats and tangled stilt roots | Climbing the roots, mud that slows you; mudskippers, herons, tree crabs (built) |
 | 5 | Ash & Basalt | Black sand under a smoking volcano | Hot sand at midday; shade to cross |
 | 6 | Fog & Kelp | Cold coast, kelp beds, a lighthouse | Fog that hides what's coming; kelp washed up as cover |
 | 7 | Wreck Cove | Driftwood and an old ship on the rocks | Rival hermit crabs; stealing from smaller crabs |
@@ -174,7 +210,7 @@ Only real shells, the kinds hermit crabs actually live in: no litter or other ma
 | 1 Atoll | Periwinkle, snail, nerite, top shell, whelk, moon snail, triton, tun, conch (built) |
 | 2 Dune Sea | Desert snail, turban, olive, murex, helmet (built) |
 | 3 Tide Pools | Flat periwinkle, dog whelk, painted top shell, necklace shell, frog shell, knobbed whelk (built) |
-| 4 Mangrove | Mangrove periwinkle, river nerite, mud creeper, telescope snail, mud whelk |
+| 4 Mangrove | Mangrove periwinkle, river nerite, mud creeper, telescope snail, mud whelk (built) |
 | 5 Basalt | Drupe, horn shell, spindle, bonnet, harp |
 | 6 Fog & Kelp | Black turban, kelp snail, Kellet's whelk, Oregon triton, wavy turban |
 | 7 Wreck Cove | Nassa, fig shell, tulip shell, lightning whelk, horse conch |
@@ -195,7 +231,7 @@ Level select is a beachcomber's chart seen from above, scrolling sideways. Each 
 
 ## What exists, what to build
 
-Built: walking, jumping, eating, the growth cap and bank, twenty real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts`, `beach2.ts` and `beach3.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All thirty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens.
+Built: walking, jumping, eating, the growth cap and bank, twenty real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` to `beach4.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All forty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens; Beach 3 the tide, fish, octopuses and gulls; Beach 4 mangrove roots to climb, mud, mudskippers, herons and tree crabs.
 
 Still to build, replacing the stand-ins:
 

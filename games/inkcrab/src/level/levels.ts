@@ -2,11 +2,12 @@ import { THEMES, type ThemeId } from '../art/backdrop';
 import { BEACH_1 } from './beach1';
 import { BEACH_2 } from './beach2';
 import { BEACH_3 } from './beach3';
+import { BEACH_4 } from './beach4';
 import { BIOMES } from './biomes';
 import type { LevelDef } from './types';
 
 /** Each built beach's levels, beach 1 first; beaches still to be built are missing from the end. */
-export const BEACHES: readonly (readonly LevelDef[])[] = [BEACH_1, BEACH_2, BEACH_3];
+export const BEACHES: readonly (readonly LevelDef[])[] = [BEACH_1, BEACH_2, BEACH_3, BEACH_4];
 
 /** Every playable level, in order. */
 export const LEVELS: readonly LevelDef[] = BEACHES.flat();

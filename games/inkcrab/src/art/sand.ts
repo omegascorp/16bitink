@@ -1,7 +1,7 @@
 import { cellCase, cellGeometry } from '../logic/contour';
 import { createRng } from '../logic/rng';
 import { surfaceRow, tileAt, TILE, type Terrain } from '../logic/terrain';
-import { DUNE, INK, PAPER, ROCK, TUNNEL, SAND_DEEP, SAND_DRY, SAND_GRAIN, SAND_WET } from './palette';
+import { DUNE, INK, MUD, MUD_SHEEN, PAPER, ROCK, TUNNEL, SAND_DEEP, SAND_DRY, SAND_GRAIN, SAND_WET } from './palette';
 
 /**
  * Diggable sand drawn as ballpoint hatching. Seamless hatch tiles are used
@@ -222,6 +222,36 @@ function wallShadow(ctx: CanvasRenderingContext2D, segs: readonly [number, numbe
   ctx.globalAlpha = 1;
 }
 
+/**
+ * Mangrove mud: a dark, wet wash over the sand, and a sheen of sky on its
+ * top surface (short pale glints along the edge it shows to the air).
+ */
+function mud(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: number): void {
+  const mask: Mask = (x, y) => tileAt(t, x, y) === TILE.mud;
+  const path = maskPath(mask, c, T);
+  ctx.globalAlpha = 0.62;
+  ctx.fillStyle = MUD;
+  ctx.fill(path);
+  ctx.strokeStyle = MUD_SHEEN;
+  ctx.lineCap = 'round';
+  for (let y = c.ty - 1; y <= c.ty + c.tiles; y++) {
+    for (let x = c.tx - 1; x <= c.tx + c.tiles; x++) {
+      if (!mask(x, y) || tileAt(t, x, y - 1) !== TILE.air) continue;
+      for (let k = 0; k < 2; k++) {
+        const x0 = (x + hash(x, y, 60 + k) * 0.7) * T;
+        const y0 = (y + 0.25 + hash(x, y, 62 + k) * 0.35) * T;
+        ctx.globalAlpha = 0.55 + hash(x, y, 64 + k) * 0.3;
+        ctx.lineWidth = 0.8 + hash(x, y, 66 + k) * 0.6;
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x0 + T * (0.2 + hash(x, y, 68 + k) * 0.25), y0 + 0.3);
+        ctx.stroke();
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
 const PEBBLES = ['#8a8478', '#a39276', '#6f7268', '#b5a58a', '#e7c7ae', '#d9a7a0'] as const;
 
 /**
@@ -299,6 +329,7 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRec
   ctx.globalAlpha = 1;
   ctx.fillStyle = patterns.ripple;
   ctx.fill(loosePath);
+  mud(ctx, t, c, T);
   ctx.save();
   ctx.clip(sandPath);
   pebbles(ctx, t, c, T);

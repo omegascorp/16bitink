@@ -7,7 +7,7 @@ import type { Beach, SimEvent } from './sim';
 import { isSolid } from './terrain';
 
 /** Something a level teaches, step by step, with a hint shown only while it's relevant. */
-export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus';
+export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron';
 
 /** What a hint is about: a lesson, or the way out of a hole, offered on every level. */
 export type HintKind = Lesson | 'stuck';
@@ -27,6 +27,9 @@ const DANGER_TILES = 7;
 const BURIED_TILES = 14;
 /** Walls this many tiles high on both sides mean the crab can't jump out. */
 const STUCK_TILES = 3;
+/** How close (tiles) the roots are before the climb lesson speaks up, and how high (tiles) it must climb to learn it. */
+const ROOTS_NEAR = 3;
+const CLIMBED = 2;
 
 const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   keys: {
@@ -43,6 +46,8 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     sandfish: 'A red ripple in the sand is a sandfish hunting you. Get back up into the open!',
     tide: 'The tide is coming in! Water is safe, just slow: press Space to swim up. Fish swim in with it; the tide clock shows when it turns.',
     octopus: 'An octopus is reaching out of its crevice! Get out of reach of its arm, or hold Z to hide.',
+    climb: 'Mangrove roots! Hold ↑ among them to climb, ← → to clamber across, ↓ to climb down. Space lets go; ↓ drops you off a branch.',
+    heron: 'The heron is taking aim at you! Get in among the roots, or hold Z to hide: its bill can\'t reach you there.',
   },
   touch: {
     move: 'Steer with the stick, jump with the button. Eat food to grow.',
@@ -58,6 +63,8 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     sandfish: 'A red ripple in the sand is a sandfish hunting you. Get back up into the open!',
     tide: 'The tide is coming in! Water is safe, just slow: tap jump to swim up. Fish swim in with it; the tide clock shows when it turns.',
     octopus: 'An octopus is reaching out of its crevice! Get out of reach of its arm, or hold the shell button to hide.',
+    climb: 'Mangrove roots! Push the stick up among them to climb, sideways to clamber across, down to climb down. Jump lets go.',
+    heron: 'The heron is taking aim at you! Get in among the roots, or hold the shell button to hide: its bill can\'t reach you there.',
   },
 };
 
@@ -72,6 +79,8 @@ export class Coach {
   private lastSand = 0;
   /** Lessons whose danger the crab is in now: each is learnt when it gets out of it. */
   private readonly facing = new Set<Lesson>();
+  /** Where (world y of its feet) the crab took hold of the roots, while it's climbing. */
+  private climbFrom: number | null = null;
 
   constructor(private readonly lessons: readonly Lesson[]) {}
 
@@ -93,6 +102,11 @@ export class Coach {
     this.escape('octopus', [...beach.critters.values()].some((k) => k.arm > 0.15 && k.size > c.growth.size));
     // The tide lesson speaks while the first tide comes in, and is learnt once the crab has been in the water.
     if (beach.submerged(c.body)) this.done.add('tide');
+    this.escape('heron', [...beach.critters.values()].some((k) => k.strike !== undefined && k.arm === 0 && k.size > c.growth.size));
+    // Climbing is learnt by climbing a little way up.
+    const feet = c.body.y + c.body.h;
+    this.climbFrom = c.climbing ? Math.max(this.climbFrom ?? feet, feet) : null;
+    if (this.climbFrom !== null && this.climbFrom - feet >= CLIMBED * beach.tileSize) this.done.add('climb');
   }
 
   /** Learns a lesson once its danger, having come up, has passed (got under cover, out of the pit, up out of the sand). */
@@ -115,6 +129,7 @@ export class Coach {
     if (open('pit') && this.facing.has('pit')) return { lesson: 'pit', text: t.pit! };
     if (open('sandfish') && this.facing.has('sandfish')) return { lesson: 'sandfish', text: t.sandfish! };
     if (open('octopus') && this.facing.has('octopus')) return { lesson: 'octopus', text: t.octopus! };
+    if (open('heron') && this.facing.has('heron')) return { lesson: 'heron', text: t.heron! };
     if (open('tide') && beach.tide && beach.elapsed > 4) return { lesson: 'tide', text: t.tide! };
     if (this.stuck(beach)) return { lesson: 'stuck', text: t.stuck! };
     if (open('swap') && beach.capped) {
@@ -126,6 +141,7 @@ export class Coach {
       const shell = this.buriedShell(beach);
       if (shell) return { lesson: 'buried', text: t.buried!, target: centre(shell) };
     }
+    if (open('climb') && this.rootsNear(beach)) return { lesson: 'climb', text: t.climb!, target: this.perchedShell(beach) ?? undefined };
     if (open('move')) return { lesson: 'move', text: t.move! };
     if (open('dig')) return { lesson: 'dig', text: t.dig! };
     if (open('drop') && c.sand > 0) return { lesson: 'drop', text: t.drop! };
@@ -142,6 +158,19 @@ export class Coach {
       return true;
     };
     return wall(s.x0 - 1) && wall(s.x1 + 1);
+  }
+
+  /** Mangrove roots within a few tiles of the crab. */
+  private rootsNear(beach: Beach): boolean {
+    const b = beach.crab.body;
+    const pad = ROOTS_NEAR * beach.tileSize;
+    return beach.inRoots({ x: b.x - pad, y: b.y - pad, w: b.w + pad * 2, h: b.h + pad * 2 });
+  }
+
+  /** The nearest shell up in the roots, off the ground. */
+  private perchedShell(beach: Beach): { x: number; y: number } | null {
+    const shell = this.nearest(beach, (i) => i.kind.type === 'shell' && !i.buried && beach.inRoots({ ...i, y: i.y + i.h, h: 2 }));
+    return shell ? centre(shell) : null;
   }
 
   private hunterNear(beach: Beach): boolean {

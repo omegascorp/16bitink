@@ -3,15 +3,18 @@
  * (bigger catches you, smaller is food: if you're bigger, you eat it) and
  * differ in how they move and whether they hunt.
  */
-export type SpeciesId = 'ghostcrab' | 'slater' | 'beetle' | 'darkling' | 'antlion' | 'skink' | 'raven' | 'shorecrab' | 'blenny' | 'sculpin' | 'octopus' | 'gull';
+export type SpeciesId = 'ghostcrab' | 'slater' | 'beetle' | 'darkling' | 'antlion' | 'skink' | 'raven' | 'shorecrab' | 'blenny' | 'sculpin' | 'octopus' | 'gull'
+  | 'fiddler' | 'mudskipper' | 'heron' | 'treecrab';
 
 /**
  * How it gets about: walkers roam the surface and open tunnels; a lurker
  * stays put at the bottom of its pit; a burrower swims through the sand
  * itself (never rock), anywhere below the surface; a swimmer only moves in
- * water; a den-dweller stays in its rock crevice and reaches out of it.
+ * water; a den-dweller stays in its rock crevice and reaches out of it; a
+ * wader stalks the open mud and stabs with its bill; a climber walks the
+ * mud and climbs about in the mangrove roots.
  */
-export type Movement = 'walk' | 'lurk' | 'burrow' | 'swim' | 'den';
+export type Movement = 'walk' | 'lurk' | 'burrow' | 'swim' | 'den' | 'wade' | 'climb';
 
 export interface SpeciesSpec {
   readonly id: SpeciesId;
@@ -62,6 +65,14 @@ export const SPECIES: Readonly<Record<SpeciesId, SpeciesSpec>> = {
   octopus: { id: 'octopus', name: 'octopus', speed: 0, sight: 4, hunts: true, move: 'den', box: { w: 0.9, h: 0.7 } },
   // A herring gull: walks the exposed shore at low tide, hops up rocks.
   gull: { id: 'gull', name: 'gull', speed: 1, sight: 9, hunts: true, hops: true, lowTide: true, box: { w: 1.2, h: 1 } },
+  // Mangrove Margins (beach 4). A fiddler crab: the mudflat's small, timid prey, one claw far bigger than the other.
+  fiddler: { id: 'fiddler', name: 'fiddler crab', speed: 0.85, sight: 4, hunts: false, box: { w: 0.95, h: 0.6 } },
+  // A mudskipper: a fish that skips across the mud in quick bursts. It can't climb.
+  mudskipper: { id: 'mudskipper', name: 'mudskipper', speed: 1.4, sight: 7, hunts: true, burst: { run: 0.45, rest: 0.6 }, box: { w: 1.25, h: 0.5 } },
+  // A striated heron: stalks the open mud and stabs with its bill. The root tangle keeps the bill out.
+  heron: { id: 'heron', name: 'heron', speed: 0.5, sight: 8, hunts: true, move: 'wade', box: { w: 1, h: 1.5 } },
+  // A mangrove tree crab: walks the mud and climbs the roots after crabs up there.
+  treecrab: { id: 'treecrab', name: 'tree crab', speed: 0.9, sight: 6, hunts: true, move: 'climb', box: { w: 0.95, h: 0.62 } },
 };
 
 export function movementOf(id: SpeciesId): Movement {

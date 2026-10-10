@@ -3,19 +3,15 @@ import type { Pt } from './pen';
 import { add, bezier, closed, contact, cub, type Draw, edge, glint, lerp, mottle, normals, oval, pt, ribbon, shade, skin, tint, tube } from './kit';
 import { MOUTH_X } from './mouth';
 import { PAPER_FILL } from './palette';
+import { DARK, mouth, tilted } from './shells/common';
+import { mangrovewinkle, mudcreeper, mudwhelk, rivernerite, telescope } from './shells/mangrove';
 
 /**
  * Sea and land snail shells, each with its own silhouette and colours. All
  * rest on the ground line with the opening low on the right (around
- * x 0..25), where the crab's head comes out (see crabArt.ts).
+ * x 0..25), where the crab's head comes out (see crabArt.ts). Each beach
+ * from Mangrove Margins on keeps its shells in its own file under shells/.
  */
-const DARK = '#2a2228';
-
-/** The dark hole the crab lives in, with a lip. */
-function mouth(d: Draw, shape: readonly Pt[], lip = 1.3): void {
-  d.pen.fill(shape, DARK, 0.82);
-  d.pen.stroke(closed(shape), lip, d.ink, 1, false);
-}
 
 // ---------------------------------------------------------------- spiral shells
 
@@ -316,13 +312,6 @@ function necklace(d: Draw): void {
   pen.stroke(navel, 3.4, DARK, 0.9, false);
   pen.hair(navel.map((p) => add(p, pt(-2.2, 0))), 0.8, d.ink, 0.8);
   glint(d, cub(pt(o.cx - 34, o.cy + 8), pt(o.cx - 34, o.cy - 20), pt(o.cx - 18, o.cy - 34), pt(o.cx + 4, o.cy - 38), 12), 3, 0.85);
-}
-
-/** An ellipse turned by `a` radians about its centre. */
-function tilted(x: number, y: number, rx: number, ry: number, a: number, n = 28): Pt[] {
-  const c = Math.cos(a);
-  const s = Math.sin(a);
-  return oval(0, 0, rx, ry, n).map((p) => pt(x + p.x * c - p.y * s, y + p.x * s + p.y * c));
 }
 
 /** A turban: squat, stepped round whorls ringed with beaded spiral cords, mottled green-brown on cream. */
@@ -755,6 +744,7 @@ const DRAW: Readonly<Record<ShellKind, (d: Draw) => void>> = {
   periwinkle, snail, nerite, topshell, whelk, moonsnail, triton, tun, conch,
   desertsnail, turban, olive, murex, helmet,
   flatwinkle, dogwhelk, paintedtop, necklace, frogshell, knobbedwhelk,
+  mangrovewinkle, rivernerite, mudcreeper, telescope, mudwhelk,
 };
 
 export function drawShell(d: Draw, kind: ShellKind): void {

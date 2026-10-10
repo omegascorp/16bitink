@@ -271,10 +271,11 @@ export function kestrel(t: Draw, x: number, y: number, s: number): void {
   pen.fill([P(-0.8, 3), P(0.8, 3), P(2.2, 7), P(-2.2, 7)], t.ink, FAR * 0.7);
 }
 
-/** A tern: slender, sharply bent wings and a forked tail. */
-export function tern(t: Draw, x: number, y: number, s: number): void {
+/** A tern: slender, sharply bent wings and a forked tail. `flap` (-1..1) lifts or lowers the wings. */
+export function tern(t: Draw, x: number, y: number, s: number, flap = 0): void {
   const P = (dx: number, dy: number): Pt => pt(x + dx * s, y + dy * s);
-  t.pen.stroke([P(-8, -3), P(-4, -2.5), P(-1, 0.5), P(2, -3), P(8, -1.5)], 0.75, t.ink, FAR * 1.05, false);
+  const up = flap * 3;
+  t.pen.stroke([P(-8, -3 - up), P(-4, -2.5 - up * 0.6), P(-1, 0.5), P(2, -3 - up * 0.6), P(8, -1.5 - up)], 0.75, t.ink, FAR * 1.05, false);
   t.pen.hair([P(-1, 0.5), P(-3, 2.5)], 0.4, t.ink, FAR);
   t.pen.hair([P(-1, 0.5), P(-1.5, 3)], 0.4, t.ink, FAR);
 }

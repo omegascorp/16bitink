@@ -100,9 +100,14 @@ export function cloud(d: Draw, x: number, y: number, w: number, n: number): void
   pen.hair([pt(x + w * 0.05, y + 0.3), pt(x + w / 2 + 2, y)], 0.7, d.ink, FAR * 0.5);
 }
 
-/** A frigatebird gliding: a long, crooked M. */
-export function bird(d: Draw, x: number, y: number, s: number): void {
-  d.pen.stroke([...bezier(pt(x - 9 * s, y - 1 * s), pt(x - 5 * s, y - 4 * s), pt(x - 1 * s, y + 1 * s), 5), ...bezier(pt(x - 1 * s, y + 1 * s), pt(x + 4 * s, y - 4 * s), pt(x + 9 * s, y - 2 * s), 5).slice(1)], 0.9, d.ink, FAR * 1.1, false);
+/** A frigatebird gliding: a long, crooked M. `flap` (-1..1) lifts or lowers the wings. */
+export function bird(d: Draw, x: number, y: number, s: number, flap = 0): void {
+  const tip = flap * 2.5;
+  const arch = flap * 1.5;
+  d.pen.stroke([
+    ...bezier(pt(x - 9 * s, y - (1 + tip) * s), pt(x - 5 * s, y - (4 + arch) * s), pt(x - 1 * s, y + 1 * s), 5),
+    ...bezier(pt(x - 1 * s, y + 1 * s), pt(x + 4 * s, y - (4 + arch) * s), pt(x + 9 * s, y - (2 + tip) * s), 5).slice(1),
+  ], 0.9, d.ink, FAR * 1.1, false);
 }
 
 /** A little seaplane: high wing, twin floats, a blurred propeller. Faces left. */

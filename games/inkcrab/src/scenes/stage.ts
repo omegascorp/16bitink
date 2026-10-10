@@ -39,12 +39,12 @@ export function fitStage(scene: Phaser.Scene, size: StageSize): void {
 }
 
 /**
- * Paper well past every edge, the faraway beach (without its sky, whose sun
- * repeats too plainly on a still screen) and the sand with an inked edge.
+ * Paper well past every edge, the faraway beach (without its sky and clouds:
+ * the sun repeats too plainly on a still screen) and the sand with an inked edge.
  */
 export function beachStage(scene: Phaser.Scene, size: StageSize, theme: ThemeId, ground: number): BackdropView {
   scene.add.rectangle(-size.w, -size.h, size.w * 3, size.h * 3, PAPER_HEX).setOrigin(0);
-  const backdrop = new BackdropView(scene, theme, ground, size.w * 4, ['sky']);
+  const backdrop = new BackdropView(scene, theme, ground, size.w * 4, ['sky', 'clouds']);
   const g = scene.add.graphics().setDepth(5);
   const rng = createRng(31);
   const pts: Phaser.Math.Vector2[] = [];

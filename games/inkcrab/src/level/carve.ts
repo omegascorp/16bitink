@@ -1,6 +1,6 @@
 import { settleDunes } from '../logic/dunes';
 import { createRng, rangeOf } from '../logic/rng';
-import { createTerrain, setTile, surfaceRow, TILE, type Terrain } from '../logic/terrain';
+import { createTerrain, setTile, surfaceRow, tileAt, TILE, type Terrain } from '../logic/terrain';
 import type { ProfilePoint } from './types';
 
 /** Rows of unbreakable rock at the bottom of every beach. */
@@ -37,6 +37,8 @@ export interface CarveSpec {
   readonly pools?: readonly (readonly [number, number, number])[];
   /** Crevices in the rock (octopus dens): column and row of an open tile. */
   readonly dens?: readonly (readonly [number, number])[];
+  /** Mud on top of the sand: first and last column, and rows deep. */
+  readonly mud?: readonly (readonly [number, number, number])[];
 }
 
 /** Sand down to bedrock under the profile, with rock boulders. */
@@ -62,6 +64,14 @@ export function carve(spec: CarveSpec): Terrain {
   for (const [col, r] of spec.pits ?? []) pit(t, col, r);
   for (const [x0, w, depth] of spec.pools ?? []) pool(t, x0, w, depth);
   for (const [x, y] of spec.dens ?? []) setTile(t, x, y, TILE.air);
+  for (const [from, to, rows] of spec.mud ?? []) {
+    for (let x = Math.max(0, from); x <= Math.min(W - 1, to); x++) {
+      const top = surfaceRow(t, x);
+      // Thinning out to a single row at either end, rather than stopping at a wall.
+      const deep = Math.min(rows, 1 + Math.floor((x - from) / 2), 1 + Math.floor((to - x) / 2));
+      for (let y = top; y < Math.min(top + deep, H - BEDROCK); y++) if (tileAt(t, x, y) === TILE.sand) setTile(t, x, y, TILE.mud);
+    }
+  }
   // Dunes pour until they rest, so a level starts still.
   if (spec.loose || spec.pits?.length) settleDunes(t);
   return t;

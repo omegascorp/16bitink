@@ -186,8 +186,9 @@ export class ResultScene extends Phaser.Scene {
     const art = this.add.image(x + 40, ground, TEX.critter(species, true, 0))
       .setOrigin(0.5, (CRITTER_FRAME / 2 + CRITTER_GROUND) / CRITTER_FRAME).setScale(-k, k).setDepth(11).setAlpha(0);
     this.tweens.add({ targets: art, alpha: 1, x, delay: POP_DELAY + 200, duration: 500, ease: 'Quad.Out' });
-    // Creatures that stay put (an antlion, an octopus) don't pace.
-    if (!SPECIES[species].move || SPECIES[species].move === 'walk') this.tweens.add({ targets: art, x: x + 18, delay: POP_DELAY + 900, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    // Creatures that stay put (an antlion, an octopus) don't pace; fish don't walk.
+    const move = SPECIES[species].move ?? 'walk';
+    if (move === 'walk' || move === 'wade' || move === 'climb') this.tweens.add({ targets: art, x: x + 18, delay: POP_DELAY + 900, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     let f = 0;
     this.time.addEvent({ delay: 200, loop: true, callback: () => art.setTexture(TEX.critter(species, true, (f = (f + 1) % BOIL))) });
   }

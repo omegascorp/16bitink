@@ -23,11 +23,13 @@ export interface SpawnSite {
   readonly surroundings: Surroundings;
   /** The level's first creatures: lurkers take any pit, the player close by or not (they were there first). */
   readonly start: boolean;
+  /** The highest root top in a column, where a climber can start (null where none grows). */
+  readonly perch?: (x: number) => number | null;
 }
 
 /**
  * A new creature of a species and size range, placed for how it lives:
- * walkers on the surface, sandfish down in the sand, fish in the water, an
+ * walkers on the surface, climbers up in the roots, sandfish down in the sand, fish in the water, an
  * antlion at the bottom of an empty pit, an octopus in an empty den. Those
  * that go anywhere go between columns `from` and `to`. Null when there's
  * nowhere for it.
@@ -51,7 +53,10 @@ export function placeCritter(
     }
     const dir = rng() < 0.5 ? 1 : -1;
     const depth = move === 'burrow' ? BURROW_DEPTH.min + Math.floor(rng() * (BURROW_DEPTH.max - BURROW_DEPTH.min + 1)) : 0;
-    const k = makeCritter(id, size(), tx * T + T / 2, (surfaceRow(t, tx) + depth) * T, dir, CRITTER.turnMin + rng() * 3, species);
+    // A climber starts up in the roots where there are some.
+    const perch = move === 'climb' ? site.perch?.(tx) ?? null : null;
+    const row = perch ?? surfaceRow(t, tx) + depth;
+    const k = makeCritter(id, size(), tx * T + T / 2, row * T, dir, CRITTER.turnMin + rng() * 3, species);
     if (move === 'burrow' && !swimmable(t, k, T)) continue;
     return k;
   }

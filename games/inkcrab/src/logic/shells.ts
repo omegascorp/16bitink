@@ -7,6 +7,7 @@ export const SHELL_KINDS = [
   'periwinkle', 'snail', 'nerite', 'topshell', 'whelk', 'moonsnail', 'triton', 'tun', 'conch',
   'desertsnail', 'turban', 'olive', 'murex', 'helmet',
   'flatwinkle', 'dogwhelk', 'paintedtop', 'necklace', 'frogshell', 'knobbedwhelk',
+  'mangrovewinkle', 'rivernerite', 'mudcreeper', 'telescope', 'mudwhelk',
 ] as const;
 export type ShellKind = (typeof SHELL_KINDS)[number];
 
@@ -50,6 +51,12 @@ export const SHELLS: Readonly<Record<ShellKind, ShellSpec>> = {
   necklace: spec('necklace', 'necklace shell', 3, 6, 2, 2),
   frogshell: spec('frogshell', 'frog shell', 4, 7, 3, 4),
   knobbedwhelk: spec('knobbedwhelk', 'knobbed whelk', 5, 8, 3, 4),
+  // Mangrove Margins (beach 4): snails of the roots and the mud. Mangrove periwinkles live up on the roots.
+  mangrovewinkle: spec('mangrovewinkle', 'mangrove periwinkle', 1, 3, 1, 2),
+  rivernerite: spec('rivernerite', 'river nerite', 2, 4, 1, 2),
+  mudcreeper: spec('mudcreeper', 'mud creeper', 3, 6, 2, 3),
+  telescope: spec('telescope', 'telescope snail', 4, 7, 2, 3),
+  mudwhelk: spec('mudwhelk', 'mud whelk', 5, 8, 3, 4),
 };
 
 export function canWear(shell: ShellSpec, bodySize: number): boolean {

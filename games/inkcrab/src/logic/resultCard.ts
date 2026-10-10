@@ -51,6 +51,9 @@ const HUNTER_TIPS: Partial<Readonly<Record<HunterId, string>>> = {
   skink: 'A red ripple in the sand is a sandfish. Get back up into the open: it never hunts on the surface.',
   raven: 'Ravens hop up walls, but they\'re too big to follow you into a tunnel.',
   beetle: 'Tiger beetles dash in bursts and stop to rest. Move while they rest, or hide.',
+  mudskipper: 'Mudskippers can\'t climb. Get up into the mangrove roots and they\'re left on the mud below.',
+  heron: 'A heron freezes before it stabs. Get in among the mangrove roots, or hide in your shell: its bill can\'t reach you there.',
+  treecrab: 'Tree crabs climb as well as you do. Drop off the roots (jump, or hold down on a branch) and run for it, or hide.',
 };
 
 /** The tip after a loss: about what caught the crab when there's a particular one, otherwise the next general tip. */

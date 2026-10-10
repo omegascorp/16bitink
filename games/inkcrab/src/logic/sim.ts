@@ -1,4 +1,4 @@
-import { AIR, boxHitsSolid, jump, moveBody, PHYS, WATER, type Body, type Box } from './body';
+import { AIR, boxHitsSolid, climbBody, jump, moveBody, PHYS, WATER, type Body, type Box, type Ledge } from './body';
 import { makeBird, patrolY, pullUp, stepBird, underSky, type Bird, type BirdSpecies } from './birds';
 import { armTip, CRITTER, critterPoints, stepCritter, stranded, type Critter, type Surroundings } from './critters';
 import { placeCritter, SPAWN_AWAY } from './spawn';
@@ -12,9 +12,10 @@ import { digColumns, diggableOf, digTargets, inReach, placeTarget, tileSpan, typ
 import { feed, initialGrowth, isCapped, settle, type Growth } from './growth';
 import { buriedFood, centre, food, makeItem, overlaps, type Item } from './items';
 import { createRng, type Rng } from './rng';
+import { inRoots, isLedge, isRoot, perchRow, type Roots } from './roots';
 import { canWear, MOUTH_OFFSET, sandCapacity, shellPx, SHELLS, speedFactor, type ShellKind } from './shells';
 import { startSwap, tickSwap, type Swap } from './swap';
-import { dig, isDiggable, isSolid, place, surfaceRow, TILE, type Terrain } from './terrain';
+import { dig, isDiggable, isSolid, place, surfaceRow, tileAt, TILE, type Terrain } from './terrain';
 
 export interface Input {
   /** -1..1 */
@@ -64,6 +65,8 @@ export interface CrabState {
   readonly hidden: boolean;
   /** Seconds left of the grace after being caught, when nothing can catch it again. */
   readonly safe: number;
+  /** Holding on in the mangrove roots: no gravity, it climbs whichever way it's steered. */
+  readonly climbing: boolean;
 }
 
 export interface BeachSetup {
@@ -98,6 +101,8 @@ export interface BeachSetup {
   readonly dens?: readonly (readonly [number, number])[];
   /** What each high water washes in. */
   readonly tideBrings?: TideBrings;
+  /** Mangrove roots to climb (default none). */
+  readonly roots?: Roots;
 }
 
 /** Birds a level keeps overhead: how many, and how big (they hunt crabs smaller than that). */
@@ -148,6 +153,16 @@ export const PIT_PULL = 34;
  * share of its jump on land), onto the rim.
  */
 const SWIM = { speed: 0.6, kick: 1.3, out: 0.8 } as const;
+/**
+ * In the roots the crab climbs at `speed` of its walking pace (a heavy
+ * shell slows it as on the ground); jumping lets go with a hop, `hop` of a
+ * jump from the ground.
+ */
+const CLIMB = { speed: 0.7, hop: 0.75 } as const;
+/** Mud: slow going on top (`speed` of its pace, `jump` of its leap), but quick to dig (`dig` of the time). */
+const MUD = { speed: 0.6, jump: 0.75, dig: 0.5 } as const;
+/** Share of surface food that turns up on a root top, where a column has roots. */
+const PERCHED_FOOD = 0.45;
 export const LIVES = 3;
 
 function crabBox(size: number, shell: ShellKind | null): { w: number; h: number } {
@@ -170,6 +185,8 @@ export class Beach {
   readonly dens: readonly (readonly [number, number])[];
   /** The sea, on a tidal beach. */
   readonly shore: Shore | null;
+  /** Mangrove roots, on the mangrove beach. */
+  readonly roots: Roots | null;
   readonly goal: number | null;
   crab: CrabState;
   lives: number;
@@ -197,6 +214,8 @@ export class Beach {
   private readonly hasDunes: boolean;
   private pourTimer = 0;
   private pourFlip = false;
+  /** Root tops as ledges to stand on; undefined without roots. */
+  private readonly ledge: Ledge | undefined;
 
   constructor(setup: BeachSetup) {
     this.terrain = setup.terrain;
@@ -211,13 +230,16 @@ export class Beach {
     this.dens = setup.dens ?? [];
     this.hasDunes = setup.terrain.tiles.includes(TILE.loose);
     this.shore = setup.tide ? new Shore(this.terrain, this.tileSize, setup.tide, setup.tideBrings, setup.pools ?? []) : null;
+    const roots = setup.roots ?? null;
+    this.roots = roots;
+    this.ledge = roots ? (x, y) => isLedge(roots, x, y) : undefined;
     for (const item of setup.items) this.items.set(item.id, item);
     this.nextId = Math.max(0, ...setup.items.map((i) => i.id)) + 1;
     const growth = setup.startGrowth ?? initialGrowth();
     const { w, h } = crabBox(growth.size, setup.startShell);
     this.crab = {
       body: { x: setup.start.x - w / 2, y: setup.start.y - h, w, h, vx: 0, vy: 0, onGround: false },
-      facing: 1, growth, shell: setup.startShell, sand: 0, swap: null, digCooldown: 0, hidden: false, safe: 0,
+      facing: 1, growth, shell: setup.startShell, sand: 0, swap: null, digCooldown: 0, hidden: false, safe: 0, climbing: false,
     };
     this.groups.forEach((g, i) => {
       for (let n = 0; n < g.count; n++) this.spawnCritter(i, true);
@@ -249,7 +271,19 @@ export class Beach {
 
   private get surroundings(): Surroundings {
     const w = this.water;
-    return w ? { wet: (x, y) => isWet(w, x, y) } : { wet: () => false };
+    const r = this.roots;
+    return { wet: w ? (x, y) => isWet(w, x, y) : () => false, root: r ? (x, y) => isRoot(r, x, y) : undefined };
+  }
+
+  /** Whether the crab (or any box) is among the mangrove roots, where it can climb and a heron can't stab it. */
+  inRoots(b: Box): boolean {
+    return inRoots(this.roots, b, this.tileSize);
+  }
+
+  /** Standing on mud (not climbing beside it). */
+  onMud(b: Body): boolean {
+    const T = this.tileSize;
+    return b.onGround && !this.crab.climbing && tileAt(this.terrain, Math.floor((b.x + b.w / 2) / T), Math.floor((b.y + b.h + 1) / T)) === TILE.mud;
   }
 
   /** Body size the current shell allows; naked crabs don't grow. */
@@ -276,7 +310,9 @@ export class Beach {
     if (this.outcome !== 'playing') return events;
     this.elapsed += dt;
     const c = this.crab;
-    this.crab = { ...c, safe: Math.max(0, c.safe - dt), hidden: input.hide && c.shell !== null && c.swap === null };
+    const hidden = input.hide && c.shell !== null && c.swap === null;
+    // Pulling into the shell (or moving house) lets go of the roots.
+    this.crab = { ...c, safe: Math.max(0, c.safe - dt), hidden, climbing: c.climbing && !hidden && c.swap === null };
     if (this.crab.swap) this.tickSwap(dt, events);
     else if (this.crab.hidden) this.crab = { ...this.crab, body: this.slide(this.crab.body, 0, 0, dt) };
     else this.act(input, dt, events);
@@ -299,11 +335,11 @@ export class Beach {
     const c = this.crab;
     const shellSpec = c.shell ? SHELLS[c.shell] : null;
     const swimming = this.submerged(c.body);
-    const speed = (60 + 5 * c.growth.size) * speedFactor(shellSpec) * (swimming ? SWIM.speed : 1);
+    const mud = this.onMud(c.body);
+    const speed = (60 + 5 * c.growth.size) * speedFactor(shellSpec) * (swimming ? SWIM.speed : 1) * (mud ? MUD.speed : 1);
     const facing = input.moveX > WALKING ? 1 : input.moveX < -WALKING ? -1 : c.facing;
-    const launched = !input.jump ? c.body : swimming ? this.stroke(c.body) : jump(c.body, this.jumpSpeed);
-    const body = this.slide(launched, input.moveX, speed, dt);
-    this.crab = { ...c, body, facing, digCooldown: Math.max(0, c.digCooldown - dt) };
+    const moved = this.move(input, speed, swimming, mud, dt);
+    this.crab = { ...c, body: moved.body, climbing: moved.climbing, facing, digCooldown: Math.max(0, c.digCooldown - dt) };
     if (this.crab.digCooldown === 0) {
       if (input.tapTile) this.tapTile(input.tapTile, events);
       else if (input.dig) this.dig(input, events);
@@ -316,10 +352,47 @@ export class Beach {
     this.eat(events);
   }
 
-  /** Walks the crab, adding the pull of any pit slope it stands on; under water it sinks gently. */
-  private slide(b: Body, intent: number, speed: number, dt: number): Body {
+  /**
+   * The crab's own movement. In the mangrove roots, holding up takes hold:
+   * then it climbs whichever way it's steered and hangs there when let be,
+   * until it jumps off, pulls into its shell or climbs out of the tangle.
+   * Otherwise it walks, jumps and swims, standing on root tops as ledges
+   * unless it's holding down (dropping through).
+   */
+  private move(input: Input, speed: number, swimming: boolean, mud: boolean, dt: number): { body: Body; climbing: boolean } {
+    const b = this.crab.body;
+    const grip = this.inRoots(b);
+    // A fresh hold needs up without dig (that's digging up) and not on the way up from a jump or a hop off the roots.
+    const grab = input.aimY === -1 && !input.jump && !input.dig && b.vy >= 0;
+    const climbing = grip && (this.crab.climbing || grab);
+    if (climbing && input.jump) {
+      return { body: this.slide({ ...b, vy: -this.jumpSpeed * CLIMB.hop, onGround: false }, input.moveX, speed, dt), climbing: false };
+    }
+    if (climbing) return this.climb(b, input, speed * CLIMB.speed, dt);
+    const launched = !input.jump ? b : swimming ? this.stroke(b) : jump(b, this.jumpSpeed * (mud ? Math.sqrt(MUD.jump) : 1));
+    return { body: this.slide(launched, input.moveX, speed, dt, input.aimY === 1), climbing: false };
+  }
+
+  /**
+   * One step of climbing. Climbing out of the tangle lets go: off the top
+   * it lands on the root it climbed, out of the side or bottom it drops.
+   * Climbing down onto the ground, it stands.
+   */
+  private climb(b: Body, input: Input, speed: number, dt: number): { body: Body; climbing: boolean } {
+    const ix = Math.abs(input.moveX) > WALKING ? Math.sign(input.moveX) : 0;
+    const next = climbBody(this.terrain, b, ix, input.aimY, speed, dt, this.tileSize);
+    if (!this.inRoots(next)) return { body: { ...next, vy: 0, onGround: false }, climbing: false };
+    // Moving keeps the legs going (see the crab view); hanging still, it's off the ground.
+    return { body: { ...next, onGround: next.onGround || ix !== 0 || input.aimY !== 0 }, climbing: !next.onGround || input.aimY !== 1 };
+  }
+
+  /**
+   * Walks the crab, adding the pull of any pit slope it stands on; under
+   * water it sinks gently. It stands on root tops unless `drop` (holding down).
+   */
+  private slide(b: Body, intent: number, speed: number, dt: number, drop = false): Body {
     const vx = intent * speed + this.pitPull(b);
-    return moveBody(this.terrain, b, vx === 0 ? 0 : Math.sign(vx), Math.abs(vx), dt, this.tileSize, this.submerged(b) ? WATER : AIR);
+    return moveBody(this.terrain, b, vx === 0 ? 0 : Math.sign(vx), Math.abs(vx), dt, this.tileSize, this.submerged(b) ? WATER : AIR, drop ? undefined : this.ledge);
   }
 
   /**
@@ -399,9 +472,11 @@ export class Beach {
   private removeTiles(tiles: readonly TilePos[], events: SimEvent[]): boolean {
     const taken = tiles.slice(0, Math.max(0, this.sandCapacity - this.crab.sand));
     if (!taken.length) return false;
+    // Soft mud digs quicker than sand.
+    const soft = taken.every(([x, y]) => tileAt(this.terrain, x, y) === TILE.mud);
     for (const [x, y] of taken) dig(this.terrain, x, y);
     events.push({ type: 'tiles', tiles: taken, dug: true });
-    this.crab = { ...this.crab, sand: this.crab.sand + taken.length, digCooldown: this.cooldown };
+    this.crab = { ...this.crab, sand: this.crab.sand + taken.length, digCooldown: this.cooldown * (soft ? MUD.dig : 1) };
     return true;
   }
 
@@ -553,7 +628,7 @@ export class Beach {
       }
       // A freshly uncovered item may still be wedged in sand; it drops once there's room.
       if (boxHitsSolid(this.terrain, item, T)) continue;
-      const moved = moveBody(this.terrain, item, 0, 0, dt, T);
+      const moved = moveBody(this.terrain, item, 0, 0, dt, T, AIR, this.ledge);
       this.items.set(item.id, { ...item, ...moved });
     }
   }
@@ -571,7 +646,10 @@ export class Beach {
     const kind = food(this.rng() < 0.7 ? 'crumb' : 'hopper');
     const id = this.nextId++;
     const proto = makeItem(id, kind, 0, 0, false);
-    const ground = surfaceRow(this.terrain, tx) * T;
+    // Where mangroves grow, some of it turns up on the roots: worth the climb.
+    const perch = perchRow(this.roots, tx);
+    const surface = surfaceRow(this.terrain, tx);
+    const ground = (perch !== null && perch < surface - 1 && this.rng() < PERCHED_FOOD ? perch : surface) * T;
     this.items.set(id, { ...proto, x: tx * T + T / 2 - proto.w / 2, y: ground - proto.h });
     events.push({ type: 'spawned', id });
   }
@@ -622,7 +700,10 @@ export class Beach {
 
   private moveCritters(dt: number): void {
     const c = this.crab;
-    const quarry = { box: c.body, size: c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize), inWater: this.submerged(c.body) };
+    const quarry = {
+      box: c.body, size: c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize),
+      inWater: this.submerged(c.body), inRoots: this.inRoots(c.body),
+    };
     const env = this.surroundings;
     for (const k of this.critters.values()) this.critters.set(k.id, stepCritter(this.terrain, k, quarry, dt, this.tileSize, this.rng, env));
     for (const k of this.critters.values()) if (stranded(this.terrain, k, this.tileSize)) this.fishDies(k);
@@ -657,6 +738,10 @@ export class Beach {
       // A gull in the air can't catch the crab (or be eaten).
       if (k.flight) continue;
       if (this.armReaches(k)) {
+        if (movementOf(k.species) === 'wade') {
+          this.stabbed(k, events);
+          continue;
+        }
         // An octopus's arm caught it.
         if (!c.hidden && c.safe === 0 && k.size > c.growth.size) {
           this.caught(events, k.species);
@@ -680,9 +765,27 @@ export class Beach {
     }
   }
 
-  /** Whether an octopus's arm, stretched out, has its tip on the crab. */
+  /**
+   * A heron's bill reached the crab. In among the roots the tangle turns it
+   * aside; on a crab hidden in its shell it glances off ("tok!"). Either way
+   * the stab stops there, held out a moment before it draws back.
+   */
+  private stabbed(k: Critter, events: SimEvent[]): void {
+    const c = this.crab;
+    if (this.inRoots(c.body) || k.size <= c.growth.size) return;
+    const at = centre(c.body);
+    if (c.hidden) events.push({ type: 'struck', x: at.x, y: at.y });
+    else if (c.safe === 0) this.caught(events, k.species);
+    else return;
+    this.critters.set(k.id, { ...k, strike: CRITTER.aimFor + CRITTER.stabFor, reach: k.arm });
+  }
+
+  /** Whether an octopus's arm (or a heron's bill), stretched out, has its tip on the crab. */
   private armReaches(k: Critter): boolean {
-    if (movementOf(k.species) !== 'den' || k.arm < 0.2) return false;
+    const move = movementOf(k.species);
+    if ((move !== 'den' && move !== 'wade') || k.arm < 0.2) return false;
+    // A heron's bill only strikes on the way out: held out, or drawing back, it's done.
+    if (move === 'wade' && (k.strike ?? 0) >= CRITTER.aimFor + CRITTER.stabFor) return false;
     const tip = armTip(k, this.tileSize);
     const r = this.tileSize * 0.4;
     return overlaps(this.crab.body, { x: tip.x - r, y: tip.y - r, w: r * 2, h: r * 2 });
@@ -745,6 +848,7 @@ export class Beach {
     const k = placeCritter({
       terrain: this.terrain, tile: this.tileSize, rng: this.rng, crabCol: Math.floor(centre(this.crab.body).x / this.tileSize),
       pits: this.pits, dens: this.dens, critters: [...this.critters.values()], surroundings: this.surroundings, start,
+      perch: (x) => perchRow(this.roots, x),
     }, this.nextId, species, sizes, cols);
     if (!k) return;
     // A gull comes in from the sky to land on dry ground; over water it waits for another time.

@@ -2,11 +2,11 @@ import type Phaser from 'phaser';
 import { FOOD_KINDS } from '../logic/items';
 import { SHELL_KINDS } from '../logic/shells';
 import { SPECIES, type SpeciesId } from '../logic/species';
-import { BACKDROP_W, BOAT_BOX, BOAT_DRAW, THEME_BOATS, THEMES, type ThemeId } from './backdrop';
+import { BACKDROP_W, BOAT_BOX, BOAT_DRAW, THEME_BOATS, THEME_MOVERS, THEMES, type ThemeId } from './backdrop';
 import { drawCrabBack, drawCrabFront } from './crabArt';
 import { gullFlight } from './birds/gullFlight';
 import { kestrel } from './birds/kestrel';
-import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, drawCritter } from './critterArt';
+import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, drawCritter, drawHeronStrike } from './critterArt';
 import { FRAME, GROUND } from './frame';
 import { drawFood, drawHighlight, drawPuff, FOOD_FRAME, FOOD_GROUND, FOOD_RES } from './itemArt';
 import { makeDraw, type Draw } from './kit';
@@ -21,6 +21,8 @@ export const TEX = {
   nakedFront: (f: number) => `naked-front-${f}`,
   /** `danger`: inked red, for one that can eat you. */
   critter: (species: string, danger: boolean, f: number) => `critter-${species}-${danger ? 'red' : 'blue'}-${f}`,
+  /** A heron with no neck or head, for the strike (the view draws the neck stretched out). */
+  heronStrike: (danger: boolean, f: number) => `critter-heron-strike-${danger ? 'red' : 'blue'}-${f}`,
   /** A bird hovering (wings by frame) or stooping. */
   bird: (species: string, dive: boolean, danger: boolean, f: number) => `bird-${species}-${dive ? 'dive' : 'hover'}-${danger ? 'red' : 'blue'}-${f}`,
   shell: (kind: string, f: number) => `shell-${kind}-${f}`,
@@ -31,6 +33,8 @@ export const TEX = {
   paper: 'paper',
   backdrop: (theme: string, layer: string) => `backdrop-${theme}-${layer}`,
   boat: (theme: string, i: number) => `boat-${theme}-${i}`,
+  /** A frame of something moving in a backdrop: a flock, the seaplane, the fisherman. */
+  mover: (theme: string, i: number, f: number) => `mover-${theme}-${i}-${f}`,
 } as const;
 
 const PAPER_TILE = 256;
@@ -75,6 +79,17 @@ function bakeBackdrops(scene: Phaser.Scene): void {
       BOAT_DRAW[boat.kind](makeDraw(ctx, 950 + i, 0, 0), -box.left * boat.s, -box.top * boat.s, boat.s);
       scene.textures.addCanvas(key, canvas);
     });
+    THEME_MOVERS[theme].forEach((m, i) => {
+      for (let f = 0; f < m.frames; f++) {
+        const key = TEX.mover(theme, i, f);
+        if (scene.textures.exists(key)) continue;
+        const { canvas, ctx } = makeCanvas(Math.ceil((m.box.right - m.box.left) * ART_RES), Math.ceil((m.box.bottom - m.box.top) * ART_RES));
+        ctx.scale(ART_RES, ART_RES);
+        // The same seed every frame, so only what moves (wings, a rod) changes between them.
+        m.draw(makeDraw(ctx, 970 + i, 0, 0), -m.box.left, -m.box.top, f);
+        scene.textures.addCanvas(key, canvas);
+      }
+    });
   }
 }
 
@@ -93,6 +108,9 @@ export function generateTextures(scene: Phaser.Scene): void {
       for (const danger of [false, true]) {
         bake(scene, TEX.critter(species, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => drawCritter(makeDraw(ctx, 800 + f, f, CRITTER_GROUND, danger ? RED : undefined), species));
       }
+    }
+    for (const danger of [false, true]) {
+      bake(scene, TEX.heronStrike(danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => drawHeronStrike(makeDraw(ctx, 800 + f, f, CRITTER_GROUND, danger ? RED : undefined)));
     }
     for (const dive of [false, true]) {
       for (const danger of [false, true]) {

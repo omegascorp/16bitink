@@ -25,6 +25,9 @@ export const SAND_GRAIN = '#6b5a3c';
 export const ROCK = '#9a9488';
 /** Loose dune sand: drier and warmer than the beach's. */
 export const DUNE = '#f0c98a';
+/** Mangrove mud: grey-brown and wet, with a sheen. */
+export const MUD = '#6f6556';
+export const MUD_SHEEN = '#c9d3d2';
 /** Shadow inside burrows. */
 export const TUNNEL = '#e4d6b4';
 

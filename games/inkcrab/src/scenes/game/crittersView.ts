@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GULL_FLIGHT_SPAN } from '../../art/birds/gullFlight';
 import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, CRITTER_SPAN } from '../../art/critterArt';
+import { HERON_BILL_HEX, HERON_CAP_HEX, HERON_IRIS_HEX, HERON_JAW_HEX, HERON_NECK, HERON_NECK_HEX, HERON_NECK_WIDTH, HERON_THROAT_HEX } from '../../art/critters/heron';
 import { BOIL } from '../../art/palette';
 import { TEX } from '../../art/textures';
 import { armTip, breached, type Critter } from '../../logic/critters';
@@ -22,6 +23,10 @@ const FLAP_FPS = 8;
 const GROUND_ORIGIN = (CRITTER_FRAME / 2 + CRITTER_GROUND) / CRITTER_FRAME;
 const FLIGHT_WIDTH = 1.3;
 const GULL_MIDDLE = 0.5 + ((-39.7 + 28.7) / 2) / CRITTER_FRAME;
+/** Radians a tree crab tips as it climbs straight up or down a root. */
+const CLIMB_TILT = 0.6;
+/** A heron's head and bill, in frame units: how far its head draws back above the neck as it takes aim, the head's size, the bill's length. */
+const HERON_HEAD = { cocked: 16, back: 5, r: 7, bill: 30 } as const;
 /** Leg-pose frames per second at a walk. */
 const WALK_FPS = 9;
 const BOIL_MS = 260;
@@ -53,7 +58,10 @@ export class CrittersView {
     }
     for (const c of critters.values()) {
       const s = this.sprites.get(c.id) ?? this.create(c);
-      const walking = Math.abs(c.vx) > 1 && (c.onGround || movementOf(c.species) === 'swim');
+      const move = movementOf(c.species);
+      // A tree crab up in the roots (letting go, it falls with vx and vy from the walker).
+      const climbing = move === 'climb' && !c.onGround && (c.letGo ?? 0) === 0;
+      const walking = Math.hypot(c.vx, climbing ? c.vy : 0) > 1 && (c.onGround || move === 'swim' || climbing);
       const f = Math.floor(time / (walking ? 1000 / WALK_FPS : BOIL_MS) + c.id) % BOIL;
       const cx = c.x + c.w / 2;
       const bottom = c.y + c.h;
@@ -66,12 +74,18 @@ export class CrittersView {
         continue;
       }
       const k = c.w / CRITTER_SPAN[c.species] / CRITTER_RES;
-      s.art.setTexture(TEX.critter(c.species, c.size > playerSize, f)).setOrigin(0.5, GROUND_ORIGIN).setScale(k * c.dir, k).setPosition(cx, bottom);
+      const danger = c.size > playerSize;
+      const striking = move === 'wade' && c.strike !== undefined;
+      s.art.setTexture(striking ? TEX.heronStrike(danger, f) : TEX.critter(c.species, danger, f)).setOrigin(0.5, GROUND_ORIGIN).setScale(k * c.dir, k).setPosition(cx, bottom);
+      // A tree crab in the roots tips nose up (or down) climbing.
+      const tilt = climbing ? Math.max(-1, Math.min(1, -c.vy / (Math.hypot(c.vx, c.vy) || 1))) * CLIMB_TILT * c.dir : 0;
+      s.art.setRotation(-tilt);
+      if (striking) this.heronNeck(c, danger);
       s.mark.setVisible(c.size < playerSize).setPosition(cx, c.y + c.h * 0.4).setDisplaySize(c.w * 1.6, c.h * 1.5);
       const hidden = movementOf(c.species) === 'burrow' && !breached(this.terrain, c, this.tile);
       s.art.setVisible(!hidden);
       if (hidden) this.ripple(g, c, c.size > playerSize, time);
-      if (c.arm > 0.02) this.arm(c, c.size > playerSize, time);
+      if (move === 'den' && c.arm > 0.02) this.arm(c, c.size > playerSize, time);
     }
   }
 
@@ -113,6 +127,48 @@ export class CrittersView {
       const r = Math.max(0.7, thick * 0.22 * (1 - u * 0.7));
       g.fillCircle(p.x - nx * thick * 0.25 * (1 - u), p.y - ny * thick * 0.25 * (1 - u) + r * 0.5, r);
     }
+  }
+
+  /**
+   * A striking heron's neck, head and bill (its body is the headless
+   * drawing). Taking aim it draws its head back and up, bill on the crab;
+   * stabbing, the neck shoots out and the bill tip goes where the logic says.
+   */
+  private heronNeck(c: Critter, danger: boolean): void {
+    const g = this.arms;
+    const u = c.w / CRITTER_SPAN.heron;
+    const base = { x: c.x + c.w / 2 + c.dir * HERON_NECK.x * u, y: c.y + c.h + (HERON_NECK.y - CRITTER_GROUND) * u };
+    const bill = HERON_HEAD.bill * u;
+    const aim = { x: c.aimX, y: c.aimY };
+    const tip = armTip(c, this.tile);
+    const stretched = Math.hypot(tip.x - base.x, tip.y - base.y) > HERON_HEAD.cocked * u + bill;
+    const head = stretched
+      ? { x: tip.x - aim.x * bill, y: tip.y - aim.y * bill }
+      : { x: base.x - c.dir * HERON_HEAD.back * u, y: base.y - HERON_HEAD.cocked * u };
+    const end = stretched ? tip : { x: head.x + aim.x * bill, y: head.y + aim.y * bill };
+    const ink = danger ? RED_HEX : BLUE_HEX;
+    const neck = HERON_NECK_WIDTH * u;
+    // Neck: an inked edge, then the grey wash with the pale throat stripe down its front.
+    g.lineStyle(neck + 2.2 * u, ink, 0.95).lineBetween(base.x, base.y, head.x, head.y);
+    g.lineStyle(neck, HERON_NECK_HEX, 1).lineBetween(base.x, base.y, head.x, head.y);
+    g.lineStyle(neck * 0.3, HERON_THROAT_HEX, 1).lineBetween(base.x + c.dir * neck * 0.25, base.y, head.x + aim.x * neck * 0.2, head.y + neck * 0.15);
+    // The dagger bill: dark above, yellow below, to a point.
+    const nx = -aim.y;
+    const ny = aim.x;
+    const root = HERON_HEAD.r * 0.55 * u;
+    const up = ny < 0 ? 1 : -1;
+    const jaw = [head.x - nx * root * up, head.y - ny * root * up, end.x, end.y, head.x, head.y];
+    const top = [head.x + nx * root * up, head.y + ny * root * up, end.x, end.y, head.x, head.y];
+    g.fillStyle(HERON_JAW_HEX, 1).fillTriangle(jaw[0]!, jaw[1]!, jaw[2]!, jaw[3]!, jaw[4]!, jaw[5]!);
+    g.fillStyle(HERON_BILL_HEX, 1).fillTriangle(top[0]!, top[1]!, top[2]!, top[3]!, top[4]!, top[5]!);
+    g.lineStyle(1.1 * u + 0.4, ink, 0.95).strokeTriangle(head.x - nx * root, head.y - ny * root, end.x, end.y, head.x + nx * root, head.y + ny * root);
+    // Head: the black cap, and the yellow eye looking down the bill.
+    const r = HERON_HEAD.r * u;
+    g.fillStyle(HERON_NECK_HEX, 1).fillCircle(head.x, head.y, r);
+    g.fillStyle(HERON_CAP_HEX, 1).fillEllipse(head.x - aim.x * r * 0.2, head.y - r * 0.45, r * 2.1, r * 1.1);
+    g.lineStyle(1.1 * u + 0.4, ink, 0.95).strokeCircle(head.x, head.y, r);
+    g.fillStyle(HERON_IRIS_HEX, 1).fillCircle(head.x + aim.x * r * 0.35, head.y + aim.y * r * 0.35 - r * 0.1, r * 0.3);
+    g.fillStyle(ink, 1).fillCircle(head.x + aim.x * r * 0.4, head.y + aim.y * r * 0.4 - r * 0.1, r * 0.13);
   }
 
   /** Bow waves in the sand ahead of a swimming sandfish, and a wake behind it. */

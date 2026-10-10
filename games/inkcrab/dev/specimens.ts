@@ -1,4 +1,4 @@
-import { BACKDROP_SCALE, BACKDROP_W, BOAT_DRAW, THEME_BOATS, THEMES, type ThemeId } from '../src/art/backdrop';
+import { BACKDROP_SCALE, BACKDROP_W, BOAT_DRAW, THEME_BOATS, THEME_MOVERS, THEMES, type ThemeId } from '../src/art/backdrop';
 import { dhoni, speedboat, yacht } from '../src/art/backdrop/boats';
 import { bungalow, villa } from '../src/art/backdrop/homes';
 import { kestrel } from '../src/art/birds/kestrel';
@@ -153,6 +153,10 @@ for (const theme of Object.keys(THEMES) as ThemeId[]) {
     THEME_BOATS[theme].forEach((b, k) => {
       const at = layers.findIndex((x) => x.id === b.layer) + (b.front ? 1 : 0);
       if (at === i) BOAT_DRAW[b.kind](makeDraw(ctx, 950 + k, 0, 0), b.x, top(b.layer) + b.water, b.s);
+    });
+    // Birds, the seaplane, the fisherman: where they set out, on their first frame.
+    THEME_MOVERS[theme].forEach((m, k) => {
+      if (layers.findIndex((x) => x.id === m.layer) === i) m.draw(makeDraw(ctx, 970 + k, 0, 0), m.x, top(m.layer) + m.y, 0);
     });
   });
   canvas.style.width = `${BACKDROP_W}px`;
