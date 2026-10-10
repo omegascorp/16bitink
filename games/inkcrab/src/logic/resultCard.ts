@@ -64,6 +64,9 @@ const HUNTER_TIPS: Partial<Readonly<Record<HunterId, string>>> = {
   mudcrab: 'Mud crabs hunt by sight, and in a downpour they can\'t see far. Wait for the rain, or hide in your shell.',
   monitor: 'A water monitor tastes the air: rain doesn\'t hide you from it. It\'s slow: outrun it, climb onto a boat, or hide in your shell.',
   brahminy: 'A red shadow on the sand is a Brahminy kite about to stoop. Shelter under a boat or a stilt house, or hide in your shell. It won\'t hunt in the rain.',
+  snowcrab: 'Snow crabs hunt by sight and they\'re quick on the pebbles. Hide in your shell, or get the wind behind you and outrun them.',
+  arcticfox: 'An Arctic fox hunts by smell. In a gust it smells you from far downwind, but not upwind: keep upwind of it, or hide in your shell.',
+  snowyowl: 'A red shadow on the sand is a snowy owl about to stoop. Get under the sand or hide in your shell. It can\'t hover in a gust.',
   treecrab: 'Tree crabs climb as well as you do. Drop off the roots (jump, or hold down on a branch) and run for it, or hide.',
 };
 

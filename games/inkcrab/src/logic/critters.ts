@@ -1,5 +1,6 @@
 import { boxHitsSolid, climbBody, jump, moveBody, PHYS, WATER, type Body, type Box } from './body';
 import { sightInFog } from './fog';
+import { scentRange } from './wind';
 import { centre } from './items';
 import type { Rng } from './rng';
 import { shellPx, type Shell } from './shells';
@@ -88,6 +89,8 @@ export interface Quarry {
   readonly veil?: number;
   /** Down among washed-up kelp: nothing sees or smells it (see kelp.ts). */
   readonly covered?: boolean;
+  /** The wind blowing over it, signed by the way it blows: in a gust its scent carries downwind (see wind.ts). */
+  readonly wind?: number;
 }
 
 export const CRITTER = {
@@ -160,13 +163,14 @@ export function makeCritter(id: number, size: number, x: number, bottom: number,
   return { id, species, size, x: x - w / 2, y: bottom - h, w, h, vx: 0, vy: 0, onGround: false, dir, turnIn, bored: 0, clock: 0, arm: 0, aimX: dir, aimY: 0, dry: 0 };
 }
 
-/** -1/1 towards the quarry when it's in sight (nearer in fog, never under kelp); 0 when it isn't. */
+/** -1/1 towards the quarry when it's in sight (nearer in fog, never under kelp) or, for a nose, in scent (see wind.ts); 0 when it isn't. */
 function spot(c: Critter, q: Quarry | null, tile: number): -1 | 0 | 1 {
   if (!q || q.hidden || q.covered || c.bored > 0) return 0;
   const a = centre(c);
   const b = centre(q.box);
   const spec = SPECIES[c.species];
-  if (Math.abs(b.x - a.x) > sightInFog(spec.sight, q.veil ?? 0, spec.nose) * tile || Math.abs(b.y - a.y) > CRITTER.sightRows * tile) return 0;
+  const range = spec.nose ? scentRange(spec.sight, q.wind ?? 0, a.x, b.x) : sightInFog(spec.sight, q.veil ?? 0);
+  if (Math.abs(b.x - a.x) > range * tile || Math.abs(b.y - a.y) > CRITTER.sightRows * tile) return 0;
   return b.x >= a.x ? 1 : -1;
 }
 
@@ -484,9 +488,12 @@ function stepClimber(t: Terrain, c: Critter, q: Quarry | null, dt: number, tile:
   return { ...c, x: box.x, y: box.y, vx: ix * speed, vy: drops ? 0 : iy * speed, onGround: false, dir, turnIn, clock, bored, letGo: drops ? CRITTER.letGoFor : 0 };
 }
 
+/** Rock and ice: nothing swims through them. */
+const hard = (tile: number): boolean => tile === TILE.rock || tile === TILE.ice;
+
 /**
  * Whether a sandfish can be here: wholly below the surface line (in sand,
- * or in a tunnel under a roof), never in rock, never out of the world.
+ * or in a tunnel under a roof), never in rock or ice, never out of the world.
  */
 export function swimmable(t: Terrain, b: Box, tile: number): boolean {
   const y0 = Math.floor(b.y / tile);
@@ -496,14 +503,14 @@ export function swimmable(t: Terrain, b: Box, tile: number): boolean {
   if (x0 < 0 || x1 >= t.width || y1 >= t.height) return false;
   for (let x = x0; x <= x1; x++) {
     if (y0 < surfaceRow(t, x)) return false;
-    for (let y = y0; y <= y1; y++) if (tileAt(t, x, y) === TILE.rock) return false;
+    for (let y = y0; y <= y1; y++) if (hard(tileAt(t, x, y))) return false;
   }
   return true;
 }
 
 function touchesRock(t: Terrain, b: Box, tile: number): boolean {
   for (let y = Math.floor(b.y / tile); y <= Math.floor((b.y + b.h - 1e-6) / tile); y++) {
-    for (let x = Math.floor(b.x / tile); x <= Math.floor((b.x + b.w - 1e-6) / tile); x++) if (tileAt(t, x, y) === TILE.rock) return true;
+    for (let x = Math.floor(b.x / tile); x <= Math.floor((b.x + b.w - 1e-6) / tile); x++) if (hard(tileAt(t, x, y))) return true;
   }
   return false;
 }

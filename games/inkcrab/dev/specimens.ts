@@ -3,6 +3,7 @@ import { dhoni, speedboat, yacht } from '../src/art/backdrop/boats';
 import { bungalow, villa } from '../src/art/backdrop/homes';
 import { brahminy } from '../src/art/birds/brahminy';
 import { kestrel } from '../src/art/birds/kestrel';
+import { snowyOwl } from '../src/art/birds/snowyOwl';
 import { drawCrabBack, drawCrabFront } from '../src/art/crabArt';
 import { CRITTER_FRAME, CRITTER_GROUND, drawCritter } from '../src/art/critterArt';
 import { SPECIES, type SpeciesId } from '../src/logic/species';
@@ -116,6 +117,22 @@ for (const ink of [undefined, RED]) {
     ctx.scale(2, 2);
     ctx.translate(CRITTER_FRAME / 2, CRITTER_FRAME / 2);
     brahminy(makeDraw(ctx, 910, 0, 0, ink), true);
+  });
+}
+
+const owls = section('snowy owl: hover (wing up, mid, down) and stoop, prey and danger');
+for (const ink of [undefined, RED]) {
+  for (let f = 0; f < 3; f++) {
+    figure(owls, `snowy owl ${ink ? 'danger' : 'prey'} hover f${f}`, CRITTER_FRAME * 2, CRITTER_FRAME * 1.2, (ctx) => {
+      ctx.scale(2, 2);
+      ctx.translate(CRITTER_FRAME / 2, CRITTER_FRAME / 2);
+      snowyOwl(makeDraw(ctx, 920 + f, f, 0, ink), false);
+    });
+  }
+  figure(owls, `snowy owl ${ink ? 'danger' : 'prey'} stoop`, CRITTER_FRAME * 2, CRITTER_FRAME * 1.2, (ctx) => {
+    ctx.scale(2, 2);
+    ctx.translate(CRITTER_FRAME / 2, CRITTER_FRAME / 2);
+    snowyOwl(makeDraw(ctx, 930, 0, 0, ink), true);
   });
 }
 

@@ -12,6 +12,7 @@ export const SHELL_KINDS = [
   'blackturban', 'kelpsnail', 'kellets', 'oregontriton', 'wavyturban',
   'nassa', 'figshell', 'tulip', 'lightningwhelk', 'horseconch',
   'auger', 'babylon', 'cone', 'spiderconch', 'volute',
+  'wentletrap', 'arcticmoon', 'neptunewhelk', 'arcticwhelk', 'icelandwhelk',
 ] as const;
 export type ShellKind = (typeof SHELL_KINDS)[number];
 
@@ -91,6 +92,12 @@ export const SHELLS: Readonly<Record<ShellKind, ShellSpec>> = {
   cone: spec('cone', 'cone shell', 3, 6, 2, 3),
   spiderconch: spec('spiderconch', 'spider conch', 4, 7, 2, 3),
   volute: spec('volute', 'Indian volute', 5, 8, 3, 4),
+  // Frost Shingle (beach 9): cold-water snails of the Labrador coast. The wind makes their weight count: a light shell blows about.
+  wentletrap: spec('wentletrap', 'wentletrap', 1, 3, 1, 2),
+  arcticmoon: spec('arcticmoon', 'Arctic moon snail', 2, 4, 1, 2),
+  neptunewhelk: spec('neptunewhelk', 'Neptune whelk', 3, 6, 2, 3),
+  arcticwhelk: spec('arcticwhelk', 'Arctic whelk', 4, 7, 2, 3),
+  icelandwhelk: spec('icelandwhelk', 'Iceland whelk', 5, 8, 3, 4),
 };
 
 /**

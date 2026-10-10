@@ -45,7 +45,7 @@ Added 2026-10-10, at the user's request, to work like InkFish's level twists. Ev
 | Slot | Mission |
 | --- | --- |
 | 1 | Plain: grow |
-| 2 | Ink bottles: dig up 3 buried ink bottles (one more every two beaches, 6 on beach 8), each a few digs down, spread past the start |
+| 2 | Ink bottles: dig up 3 buried ink bottles (one more every two beaches, 6 on beach 8, 7 on beach 9), each a few digs down, spread past the start |
 | 3 | Plain (the beach's hunter debuts) |
 | 4 | Marked hunters: eat the 3 circled in red. They're the level's biggest walking hunter, two sizes under the goal, so they hunt you until you've grown past them |
 | 5 | Shell chain (below) |
@@ -354,9 +354,49 @@ Shells: auger (1–3), babylon (2–4), cone (3–6), spider conch (4–7), Indi
 
 Backdrop theme `harbour` (`src/art/backdrop/harbour.ts`; the monsoon sky in `monsoonSky.ts`, landforms and water in `malabar.ts`, the Chinese fishing nets and the village in `chineseNets.ts`, boats in `keralaBoats.ts`, palms, nets and floats on the sand in `keralaLife.ts`, birds in `keralaBirds.ts`): a heavy slate and violet-grey monsoon sky with a washed bright break low on the horizon, thunderheads far out at sea trailing curtains of rain, ragged scud driving under a sagging cloud ceiling; the choppy grey-green Arabian Sea with whitecaps, a low palm coast, a breakwater with its light, trawlers and vallams; a Varkala-style red laterite cliff with leaning palms and a red-and-white lighthouse, stilt huts, tiled houses, a whitewashed church front and a row of Chinese fishing nets on the shore; nearest, wet golden sand with painted vallams drawn up on log rollers, heaps of nets with orange floats, puddles holding the sky, a sea wall and palms leaning out over the beach. Boats: a vallam (crew, outboard) and a wooden Kerala trawler. Movers: Brahminy kites circling, house crows, little egrets in lines and cormorants low over the chop, all side-on. The nearest layer has no small creatures.
 
+## Beach 9: Frost Shingle
+
+A pebble beach on the Labrador coast in early spring: grey shingle heaped into storm ridges, boulders, frozen pools, and pack ice offshore. Its idea is the wind: gusts come and go, and between them you find the lee. The user chose wind gusts on 2026-10-11 and asked for ice to slide on as well.
+
+**What's new:**
+
+- **Wind gusts** (`games/inkcrab/src/logic/wind.ts`; `wind: { period, gust, dir, turns, offset }`). They come on a steady rhythm like the rain, never a deadline. Each cycle is a calm spell, then a gust gets up over 2 s (the warning: streaks and spindrift start), blows for `gust` seconds and dies away over its last 1.5. `dir` is the way it blows (1 to the right, the default; -1 to the left). With `turns`, each gust blows the other way from the last (the storm). While it blows:
+  - it shoves the crab the way it blows, up to 50 px/s in the lightest shell. A medium shell gets 0.6 of that, a heavy one 0.35, and a crab with no shell 1.2. In the air it's 1.6 times as much, so a jump with the wind behind you carries far; on ice it's 1.8 times;
+  - the lee keeps it off: ground (a shingle ridge, a boulder, a step) that rises above the crab's middle within 4 tiles upwind. Being down in the sand or under water does too. Clinging to roots or moving house, the crab holds its ground, and hidden in its shell it clamps down, except on ice;
+  - no bird can hold a hover, so none stoops;
+  - food blows in: surface food is restocked every second instead of every 2.5, as hoppers, in the lee;
+  - hunters that smell their prey smell the crab 1.5 times as far when they're downwind of it, and only within 2 tiles when they're upwind (`scentRange`).
+
+  The HUD shows a wind clock where the tide clock goes: a windsock in a gauge, with a sweep for the current spell. The sock hangs limp in a calm, streams out in a gust, and points the way the next gust blows. Its label reads "calm · gust → in 12s" or "gusting → · dies down in 5s". The HUD note says "blown along by the gust!" or "in the lee, out of the wind". The wind is drawn by `src/scenes/game/windView.ts`: long wavering pen streaks racing the way it blows (never into the sand), and spindrift skimming the surface.
+- **Ice** (`TILE.ice`; `ice: [col, width, rows]`, frozen pools carved in `src/level/carve.ts`). A frozen pool is a flat sheet `rows` thick, set at the lowest ground across its width, with the sand above cut away. Ice is solid, never dug, and nothing is buried in it. On ice the crab's feet barely grip: each second its pace closes `ICE.grip` (1.8) of the gap to what it's steering. So it slides on when it stops or turns, and a wall stops it dead. A gust sweeps it across, hidden or not. Sand dropped on the ice gives it grip again. Creatures walk on ice as on sand. Ice is drawn in `src/art/sand.ts`: a cold blue-white wash, bluer deeper down, with glints of sky along the top and the odd crack.
+- **Shingle** (`ground: 'shingle'`, `SHINGLE` in `src/art/palette.ts`): cold grey-brown sand packed with pebbles.
+- **Snow crabs:** long-legged and quick, they hunt by sight.
+- **Arctic fox:** it hunts by smell (`nose`), so cover doesn't hide you from it, the wind does: keep upwind of it.
+- **Snowy owl** (sky): the kestrel's hover and stoop, with its own drawing. It can't hover in a gust.
+- **Sea spiders** are the small prey.
+- **Coach lessons:** `ice` points at ice nearby until the crab has crossed some. `wind` speaks as the first gust gets up and is learnt once it has died away. `fox` speaks while a fox bigger than the crab is near and the crab isn't hidden.
+- **Gentle from the start:** hunters are at most size 6, with one fox and one owl at most. The first gust comes within 30 s, gusts are never longer than the calm between them, and levels 87–90 have starter food.
+
+Shells: wentletrap (1–3), Arctic moon snail (2–4), Neptune whelk (3–6), Arctic whelk (4–7), Iceland whelk (5–8). Light shells blow about, so the whelks' weight counts here.
+
+| # | Id | Name | Goal | Shells | New |
+| --- | --- | --- | --- | --- | --- |
+| 81 | `shingle-shore` | Shingle Shore | Size 4 | Wentletrap, Arctic moon snail (past a frozen pool) | Ice (coach: ice) |
+| 82 | `first-gust` | First Gust | Size 6 | …, Neptune whelk (up on a ridge) | Wind gusts (coach: wind) |
+| 83 | `snow-crabs` | Snow Crabs | Size 6 | …, Neptune whelk | Snow crabs, with the wind against you (coach: hide) |
+| 84 | `under-the-ice` | Under the Ice | Size 6 | …, Neptune whelk (buried under a frozen pool) | Dig in from the edge and tunnel under the ice (coach: buried) |
+| 85 | `storm-ridges` | Storm Ridges | Size 7 | A shell past each shingle ridge, Arctic whelk past the last | A chain of ridges, each with its lee |
+| 86 | `snowy-owl` | Snowy Owl | Size 7 | …, Arctic whelk | The owl, grounded by the gusts (coach: sky) |
+| 87 | `arctic-fox` | Arctic Fox | Size 7 | …, Arctic whelk | The fox, which smells you from downwind (coach: fox) |
+| 88 | `pack-ice` | Pack Ice | Size 7 | …, Arctic whelk (buried among rocks) | Remix: frozen pools, rocks, everyone |
+| 89 | `blizzard` | Blizzard | Size 8 | …, Iceland whelk (up on the high ridge) | Storm: long, hard gusts that turn about |
+| 90 | `frost-shingle` | Frost Shingle | Size 8 | Every frost shell, Arctic whelk under a frozen pool, Iceland whelk on the last storm ridge | The whole shingle |
+
+Backdrop theme `frost` (`src/art/backdrop/frost.ts`; the sky in `labradorSky.ts`, the pack ice, icebergs and seals in `packIce.ts`, the headland and the outport in `labradorCoast.ts`, the storm ridge in `labradorShore.ts`, boats in `labradorBoats.ts`, birds in `labradorBirds.ts`): a bright, bitter spring day in a gale, the wind blowing left to right in every layer. A pale high sky holds a low sun with its halo and sun dogs, and mares' tails. Cloud streets race across with their ends torn into streamers, the fastest clouds of any beach, and lenticulars stand over the hills. The grey-blue Labrador Sea is crowded with broken pack ice (flat white pans with turquoise edges, melt ponds, slush), with a pinnacle berg, a dry-dock berg and a tabular berg on the horizon. A barren headland of dark rock and brown tundra has snow on its ledges, spindrift smoking off the top, an inuksuk and the ice foot still along its shore. The outport has saltbox houses in red, yellow, white, blue and green with smoke streaming flat from their chimneys, a little white church, washing and the Labrador flag standing out straight, fishing stages on stilts, and harp seals with a whitecoat pup on a pan. Nearest is a shingle storm ridge with driftwood, boulders with snow drifted into their lee, lyme grass bent flat, a stack of lobster pots with a dan buoy, a red dory turned over for the winter, and blocks of stranded sea ice. Boats: a red Newfoundland longliner (one near, one far out) and a punt butting out against the wind. Movers: common eiders low over the water, kittiwakes riding the wind and ravens tumbling on it, all side-on. The nearest layer has no small creatures.
+
 ## Beaches 9–10
 
-Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Beaches 1–8 are built (above). Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
+Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Beaches 1–9 are built (above). Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
 
 | Beach | Biome | Setting | New |
 | --- | --- | --- | --- |
@@ -368,7 +408,7 @@ Each beach is its own biome: its own creatures, shells, backdrop theme and islan
 | 6 | Fog & Kelp | Cold coast, kelp beds, a lighthouse | Fog that hides what's coming, and you; kelp wrack as cover; Dungeness crabs, a raccoon, a kingfisher (built) |
 | 7 | Wreck Cove | Driftwood and an old ship on the rocks | Rival hermit crabs: rap on a smaller one's shell to take it, and vacancy chains; stone crabs, blue crabs, an osprey (built) |
 | 8 | Monsoon Harbour | Stilt houses, nets, fishing boats | Monsoon squalls that blind the hunters; boats and stilt houses as cover; mud crabs, a water monitor, a Brahminy kite (built) |
-| 9 | Frost Shingle | Pebbles, ice floes, a cold wind | To be decided (vacancy chains, first planned here, went to Beach 7) |
+| 9 | Frost Shingle | Pebbles, ice floes, a cold wind | Wind gusts that blow a light shell about, and ice to slide on; snow crabs, an Arctic fox, a snowy owl (built) |
 | 10 | Moonlit Bay | Night beach, glowing tide | Darkness, glowing plankton; the last final molt |
 
 ## Shells
@@ -385,7 +425,7 @@ Only real shells, the kinds hermit crabs actually live in: no litter or other ma
 | 6 Fog & Kelp | Black turban, kelp snail, Kellet's whelk, Oregon triton, wavy turban (built) |
 | 7 Wreck Cove | Nassa, fig shell, tulip shell, lightning whelk, horse conch (built) |
 | 8 Monsoon Harbour | Auger, babylon, cone, spider conch, Indian volute (built) |
-| 9 Frost Shingle | Wentletrap, Arctic moon snail, Neptune whelk, Arctic whelk, Iceland whelk |
+| 9 Frost Shingle | Wentletrap, Arctic moon snail, Neptune whelk, Arctic whelk, Iceland whelk (built) |
 | 10 Moonlit Bay | Tiger moon snail, giant tun, horned helmet, triton's trumpet, baler |
 
 Shells keep a weight (heavier is slower and jumps lower) and a durability value that nothing uses: being caught costs a life and never damages the shell.
@@ -401,7 +441,7 @@ Level select is a beachcomber's chart seen from above, scrolling sideways. Each 
 
 ## What exists, what to build
 
-Built: walking, jumping, eating, the growth cap, forty-five real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` to `beach8.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All eighty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens; Beach 3 the tide, fish, octopuses and gulls; Beach 4 mangrove roots to climb, mud, mudskippers, herons and tree crabs; Beach 5 steam vents, basalt columns, black sand, Sally Lightfoot crabs and a hawk; Beach 6 sea fog, kelp wrack, grey sand, Dungeness crabs, a raccoon and a kingfisher; Beach 7 rival hermit crabs and vacancy chains, stone crabs, blue crabs and an osprey; Beach 8 monsoon squalls, boats, stilt houses and drying racks, mud crabs, a water monitor and a Brahminy kite.
+Built: walking, jumping, eating, the growth cap, fifty real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` to `beach9.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All ninety levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens; Beach 3 the tide, fish, octopuses and gulls; Beach 4 mangrove roots to climb, mud, mudskippers, herons and tree crabs; Beach 5 steam vents, basalt columns, black sand, Sally Lightfoot crabs and a hawk; Beach 6 sea fog, kelp wrack, grey sand, Dungeness crabs, a raccoon and a kingfisher; Beach 7 rival hermit crabs and vacancy chains, stone crabs, blue crabs and an osprey; Beach 8 monsoon squalls, boats, stilt houses and drying racks, mud crabs, a water monitor and a Brahminy kite; Beach 9 wind gusts, ice, shingle, snow crabs, an Arctic fox and a snowy owl.
 
 Still to build, replacing the stand-ins:
 

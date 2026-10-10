@@ -44,6 +44,8 @@ export interface CarveSpec {
   readonly columns?: readonly (readonly [number, number, number])[];
   /** Steam vents: the column of each shaft (see vent). */
   readonly vents?: readonly number[];
+  /** Frozen pools: first column, width, and rows of ice (see frozenPool). */
+  readonly ice?: readonly (readonly [number, number, number])[];
 }
 
 /** Sand down to bedrock under the profile, with rock boulders. */
@@ -71,6 +73,7 @@ export function carve(spec: CarveSpec): Terrain {
   for (const [col, r] of spec.pits ?? []) pit(t, col, r);
   for (const [x0, w, depth] of spec.pools ?? []) pool(t, x0, w, depth);
   for (const [x, y] of spec.dens ?? []) setTile(t, x, y, TILE.air);
+  for (const [x0, w, rows] of spec.ice ?? []) frozenPool(t, x0, w, rows);
   for (const [from, to, rows] of spec.mud ?? []) {
     for (let x = Math.max(0, from); x <= Math.min(W - 1, to); x++) {
       const top = surfaceRow(t, x);
@@ -97,6 +100,20 @@ function pool(t: Terrain, x0: number, w: number, depth: number): void {
     // Walls from their own surface down (no rock standing above the beach), the floor under the basin.
     for (let y = inside ? rim + depth : Math.max(rim, surfaceRow(t, x)); y <= rim + depth; y++) setTile(t, x, y, TILE.rock);
     if (inside) for (let y = 0; y < rim + depth; y++) setTile(t, x, y, TILE.air);
+  }
+}
+
+/**
+ * A frozen pool: a flat sheet of ice `rows` thick, `w` wide, set at the
+ * lowest ground across it, with the sand above cut away, so its ends are
+ * steps of sand down onto it (or, on a slope, one step).
+ */
+function frozenPool(t: Terrain, x0: number, w: number, rows: number): void {
+  let floor = 0;
+  for (let x = x0; x < x0 + w; x++) floor = Math.max(floor, surfaceRow(t, x));
+  for (let x = x0; x < x0 + w; x++) {
+    for (let y = 0; y < floor; y++) setTile(t, x, y, TILE.air);
+    for (let y = floor; y < Math.min(floor + rows, t.height - BEDROCK); y++) setTile(t, x, y, TILE.ice);
   }
 }
 

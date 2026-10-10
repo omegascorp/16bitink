@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BLACK_SAND, BLUE, BLUE_HEX, GREY_SAND, PALE_SAND, RED, RED_HEX, type GroundStyle } from '../art/palette';
+import { BLACK_SAND, BLUE, BLUE_HEX, GREY_SAND, PALE_SAND, RED, RED_HEX, SHINGLE, type GroundStyle } from '../art/palette';
 import { TEX } from '../art/textures';
 import { getHost, REG } from '../host';
 import { buildLevel, START_SIZE } from '../level/build';
@@ -31,6 +31,7 @@ import { KelpView } from './game/kelpView';
 import { RivalsView } from './game/rivalsView';
 import { RainView } from './game/rainView';
 import { DecksView } from './game/decksView';
+import { WindView } from './game/windView';
 import { wrackAt } from '../logic/kelp';
 import { DPR, screenZoom, viewSize } from './hidpi';
 import type { ResultData } from './ResultScene';
@@ -39,7 +40,7 @@ import { HAND_FONT } from './ui';
 /** Longest frame the simulation takes in one step (tab switches, hitches). */
 const MAX_DT = 1 / 20;
 /** How each kind of ground is drawn. */
-const GROUND: Readonly<Record<NonNullable<LevelDef['ground']> | 'pale', GroundStyle>> = { pale: PALE_SAND, black: BLACK_SAND, grey: GREY_SAND };
+const GROUND: Readonly<Record<NonNullable<LevelDef['ground']> | 'pale', GroundStyle>> = { pale: PALE_SAND, black: BLACK_SAND, grey: GREY_SAND, shingle: SHINGLE };
 /** A beat to see the win (or the last catch) before the result card. */
 const END_DELAY_MS = 1100;
 
@@ -69,6 +70,7 @@ export class GameScene extends Phaser.Scene {
   private rivalsView!: RivalsView;
   private rainView: RainView | null = null;
   private decksView: DecksView | null = null;
+  private windView: WindView | null = null;
   private input2!: GameInput;
   private touch!: TouchState;
 
@@ -99,6 +101,7 @@ export class GameScene extends Phaser.Scene {
     const decks = setup.decks?.length ? new DecksView(this, setup.terrain, setup.decks, T) : null;
     this.decksView = decks;
     this.rainView = setup.rain ? new RainView(this, setup.terrain, T) : null;
+    this.windView = setup.wind ? new WindView(this, setup.terrain, T) : null;
     this.itemsView = new ItemsView(this);
     this.crittersView = new CrittersView(this, setup.terrain, T);
     this.rivalsView = new RivalsView(this);
@@ -122,6 +125,7 @@ export class GameScene extends Phaser.Scene {
       fog?.destroy();
       decks?.destroy(this);
       this.rainView?.destroy();
+      this.windView?.destroy();
     });
   }
 
@@ -189,6 +193,7 @@ export class GameScene extends Phaser.Scene {
     this.updateFogAndKelp();
     this.decksView?.update();
     this.rainView?.update(this.beach.rainNow, this.cameras.main.worldView, this.beach.elapsed);
+    this.windView?.update(this.beach.windNow, this.cameras.main.worldView, this.beach.elapsed);
     this.crabView.update(this.beach, time, dt);
     const cam = this.cameras.main;
     const z = screenZoom(cam);

@@ -13,7 +13,7 @@ import { feed, initialGrowth, isCapped, type Growth } from './growth';
 import { buriedFood, centre, food, makeItem, overlaps, shell, type Item } from './items';
 import { createRng, type Rng } from './rng';
 import { inRoots, isLedge, isRoot, perchRow, type Roots } from './roots';
-import { canWear, crabBox, MOUTH_OFFSET, sandCapacity, shellPx, speedFactor, type Shell } from './shells';
+import { canWear, crabBox, MOUTH_OFFSET, sandCapacity, shellPx, SHELLS, speedFactor, type Shell } from './shells';
 import { startSwap, tickSwap, type Swap } from './swap';
 import { blasts, throwSpeed, type Vent } from './vents';
 import { FOG, fogAt, type FogSpec } from './fog';
@@ -21,6 +21,7 @@ import { KELP, underKelp, wrackColumn, type WrackSpec } from './kelp';
 import { canRap, inShell, isRival, makeRival, movingInto, RIVAL, stepRival, type RivalSpec } from './rivals';
 import { isPouring, RAIN, rainAt, type RainSpec } from './rain';
 import { underDeck, type Deck } from './decks';
+import { inLee, isGusting, WIND, windAt, windShare, type WindSpec } from './wind';
 import { planChains, type ChainStep, type Leader } from './vacancy';
 import { missionDone, PLAIN, type ChainStatus, type Mission, type MissionProgress } from './mission';
 import { chainDone, chainStatus, joins, lineOf, planLine, stepFollower, trailPlaces, type LineWorld } from './line';
@@ -137,6 +138,8 @@ export interface BeachSetup {
   readonly rain?: RainSpec;
   /** Boats and stilt houses standing over the sand, their floors already laid in the terrain (default none). */
   readonly decks?: readonly Deck[];
+  /** Wind gusts (default none: it's always calm). */
+  readonly wind?: WindSpec;
   /** What the level asks besides growing (default: nothing, see mission.ts). */
   readonly mission?: Mission;
   /** Small hermit crabs for a shell chain mission to recruit (see line.ts). */
@@ -211,6 +214,13 @@ const SWIM = { speed: 0.6, kick: 1.3, out: 0.8 } as const;
 const CLIMB = { speed: 0.85, hop: 0.75 } as const;
 /** Mud: slow going on top (`speed` of its pace, `jump` of its leap), but quick to dig (`dig` of the time). */
 const MUD = { speed: 0.75, jump: 0.85, dig: 0.5 } as const;
+/**
+ * Ice: feet barely grip. The crab's pace eases towards what it's steering
+ * (and what the wind shoves) by `grip` of the difference a second, so it
+ * slides on when it stops or turns, and on through the air when it leaves
+ * the ice. Below `still` px/s it has stopped.
+ */
+export const ICE = { grip: 1.8, still: 0.5 } as const;
 /** Share of surface food that turns up on a root top, where a column has roots. */
 const PERCHED_FOOD = 0.45;
 export const LIVES = 3;
@@ -246,6 +256,8 @@ export class Beach {
   /** Monsoon squalls, and the boats and stilt houses to shelter under, in the harbour. */
   readonly rain: RainSpec | undefined;
   readonly decks: readonly Deck[];
+  /** Wind gusts, on the frost shingle. */
+  readonly wind: WindSpec | undefined;
   readonly goal: number | null;
   readonly mission: Mission;
   /** Lives the level started with. */
@@ -279,6 +291,8 @@ export class Beach {
   private readonly handDowns = new Set<number>();
   /** The side the line of followers trails on: behind the crab, swinging round only once it's been going the other way a while. */
   private followSide: 1 | -1 = -1;
+  /** The crab last stood on ice: in the air, it's still sliding. */
+  private slid = false;
   private turning = 0;
   private readonly hasRivals: boolean;
   private readonly rng: Rng;
@@ -329,6 +343,7 @@ export class Beach {
     this.wrack = setup.wrack ?? [];
     this.rain = setup.rain;
     this.decks = setup.decks ?? [];
+    this.wind = setup.wind;
     for (const item of setup.items) this.items.set(item.id, item);
     this.nextId = Math.max(0, ...setup.items.map((i) => i.id)) + 1;
     const growth = setup.startGrowth ?? initialGrowth();
@@ -410,6 +425,41 @@ export class Beach {
   /** Whether a body is under a boat or stilt house. */
   underDeck(b: Box): boolean {
     return underDeck(this.decks, b, this.tileSize);
+  }
+
+  /** The wind now, signed by the way it blows: 0 calm … ±1 a full gust (see wind.ts). */
+  get windNow(): number {
+    return windAt(this.wind, this.elapsed);
+  }
+
+  /** A gust is blowing hard: no bird can hover, food blows into the lee, scent carries downwind. */
+  get gusting(): boolean {
+    return isGusting(this.wind, this.elapsed);
+  }
+
+  /** Whether the wind can't get at a body: down in the sand, under water, or in the lee of something upwind. */
+  sheltered(b: Box): boolean {
+    const w = this.windNow;
+    if (w === 0) return true;
+    return !underSky(this.terrain, b, this.tileSize) || this.submerged(b) || inLee(this.terrain, b, w > 0 ? -1 : 1, this.tileSize);
+  }
+
+  /** Standing on ice. */
+  onIce(b: Body): boolean {
+    const T = this.tileSize;
+    return b.onGround && tileAt(this.terrain, Math.floor((b.x + b.w / 2) / T), Math.floor((b.y + b.h + 1) / T)) === TILE.ice;
+  }
+
+  /**
+   * px/s the wind shoves the crab along now: by its shell's weight, more in
+   * the air and on ice. Clinging to the roots, moving house, or hidden in its
+   * shell (clamped down, unless on ice), it holds its ground.
+   */
+  windOn(b: Body): number {
+    const c = this.crab;
+    if (this.sheltered(b) || c.climbing || c.swap || (c.hidden && !this.onIce(b))) return 0;
+    const where = !b.onGround ? WIND.air : this.onIce(b) ? WIND.ice : 1;
+    return this.windNow * WIND.push * windShare(c.shell ? SHELLS[c.shell.kind].weight : null) * where;
   }
 
   /** Standing on mud (not climbing beside it). */
@@ -524,8 +574,15 @@ export class Beach {
    * water it sinks gently. It stands on root tops unless `drop` (holding down).
    */
   private slide(b: Body, intent: number, speed: number, dt: number, drop = false): Body {
-    const vx = intent * speed + this.pitPull(b);
-    return moveBody(this.terrain, b, vx === 0 ? 0 : Math.sign(vx), Math.abs(vx), dt, this.tileSize, this.submerged(b) ? WATER : AIR, drop ? undefined : this.ledge);
+    const want = intent * speed + this.pitPull(b) + this.windOn(b);
+    // On ice the feet barely grip: the pace eases towards what's wanted, and a wall stops it dead.
+    // Leaping (or sliding) off the ice, it carries the slide on through the air.
+    const ice = this.onIce(b) || (!b.onGround && this.slid);
+    const eased = b.vx + (want - b.vx) * Math.min(1, ICE.grip * dt);
+    const vx = !ice ? want : Math.abs(eased) < ICE.still ? 0 : eased;
+    const moved = moveBody(this.terrain, b, vx === 0 ? 0 : Math.sign(vx), Math.abs(vx), dt, this.tileSize, this.submerged(b) ? WATER : AIR, drop ? undefined : this.ledge);
+    if (moved.onGround) this.slid = this.onIce(moved);
+    return ice && moved.x === b.x ? { ...moved, vx: 0 } : moved;
   }
 
   /**
@@ -697,8 +754,8 @@ export class Beach {
   private tickSwap(dt: number, events: SimEvent[]): void {
     const c = this.crab;
     const r = tickSwap(c.swap!, dt);
-    // Gravity (and a pit's slope) still apply to a crab caught mid-swap.
-    const body = this.slide(c.body, 0, 0, dt);
+    // Gravity (and a pit's slope) still apply to a crab caught mid-swap; it stops sliding on ice.
+    const body = this.slide({ ...c.body, vx: 0 }, 0, 0, dt);
     if (!r.done) {
       this.crab = { ...c, body, swap: r.swap };
       return;
@@ -778,13 +835,15 @@ export class Beach {
 
   /**
    * Keeps loose food on the surface topped up, a piece every few seconds. A
-   * downpour washes worms and hoppers out, quicker and more of them.
+   * downpour washes worms and hoppers out, quicker and more of them; a gust
+   * blows hoppers in, quicker, to settle in the lee.
    */
   private restock(dt: number, events: SimEvent[]): void {
     if (this.surfaceFood <= 0) return;
     const pouring = this.downpour;
+    const gusting = this.gusting;
     this.foodTimer += dt;
-    if (this.foodTimer < FOOD_EVERY * (pouring ? RAIN.foodEvery : 1)) return;
+    if (this.foodTimer < FOOD_EVERY * (pouring ? RAIN.foodEvery : gusting ? WIND.foodEvery : 1)) return;
     this.foodTimer = 0;
     let loose = 0;
     for (const i of this.items.values()) if (i.kind.type === 'food' && !i.buried) loose++;
@@ -792,8 +851,8 @@ export class Beach {
     const T = this.tileSize;
     // Beach hoppers live in the kelp wrack: some of it turns up there.
     const inKelp = this.wrack.length > 0 && this.rng() < KELP.food ? wrackColumn(this.wrack, this.rng()) : null;
-    const tx = inKelp ?? 2 + Math.floor(this.rng() * (this.terrain.width - 4));
-    const kind = food(pouring ? (this.rng() < 0.5 ? 'worm' : 'hopper') : inKelp !== null || this.rng() >= 0.7 ? 'hopper' : 'crumb');
+    const tx = inKelp ?? (gusting ? this.leeColumn() : null) ?? 2 + Math.floor(this.rng() * (this.terrain.width - 4));
+    const kind = food(pouring ? (this.rng() < 0.5 ? 'worm' : 'hopper') : gusting || inKelp !== null || this.rng() >= 0.7 ? 'hopper' : 'crumb');
     const id = this.nextId++;
     const proto = makeItem(id, kind, 0, 0, false);
     // Where mangroves grow, some of it turns up on the roots: worth the climb.
@@ -802,6 +861,18 @@ export class Beach {
     const ground = (perch !== null && perch < surface - 1 && this.rng() < PERCHED_FOOD ? perch : surface) * T;
     this.items.set(id, { ...proto, x: tx * T + T / 2 - proto.w / 2, y: ground - proto.h });
     events.push({ type: 'spawned', id });
+  }
+
+  /** A column, picked at random, where the surface is in the lee of the wind now; null if a few tries find none. */
+  private leeColumn(): number | null {
+    const T = this.tileSize;
+    const from = this.windNow > 0 ? -1 : 1;
+    for (let tries = 0; tries < 8; tries++) {
+      const tx = 2 + Math.floor(this.rng() * (this.terrain.width - 4));
+      const top = surfaceRow(this.terrain, tx) * T;
+      if (inLee(this.terrain, { x: tx * T, y: top - T / 2, w: T, h: T / 2 }, from, T)) return tx;
+    }
+    return null;
   }
 
   /** Tops the shallow food back up now and then, at random, like the surface food. */
@@ -883,6 +954,8 @@ export class Beach {
       box: c.body, size: c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize),
       // Fog round the crab, or rain anywhere, hides it from what hunts by sight.
       inWater: this.submerged(c.body), inRoots: this.inRoots(c.body), veil: Math.max(this.fogOver(c.body), this.rainNow), covered: this.underKelp(c.body),
+      // A gust carries its scent downwind.
+      wind: this.windNow,
     };
     const env = this.surroundings;
     const rapper = { box: c.body, size: c.growth.size };
@@ -1281,8 +1354,8 @@ export class Beach {
     if (!this.birds.size) return;
     const c = this.crab;
     const T = this.tileSize;
-    // Under kelp, or lost in thick fog, it's as good as under cover; in a downpour no bird stoops.
-    const open = underSky(this.terrain, c.body, T) && !this.underKelp(c.body) && this.fogOver(c.body) < FOG.thick && !this.downpour;
+    // Under kelp, or lost in thick fog, it's as good as under cover; in a downpour no bird stoops, nor in a gust.
+    const open = underSky(this.terrain, c.body, T) && !this.underKelp(c.body) && this.fogOver(c.body) < FOG.thick && !this.downpour && !this.gusting;
     const quarry = { box: c.body, size: c.growth.size, hidden: c.hidden, open };
     for (const b of this.birds.values()) {
       const next = stepBird(this.terrain, b, quarry, dt, T);

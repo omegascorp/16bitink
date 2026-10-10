@@ -28,6 +28,10 @@ export const DUNE = '#f0c98a';
 /** Mangrove mud: grey-brown and wet, with a sheen. */
 export const MUD = '#6f6556';
 export const MUD_SHEEN = '#c9d3d2';
+/** Ice: a cold blue-white wash, with glints of sky on it. */
+export const ICE = '#cfe5ee';
+export const ICE_GLINT = '#ffffff';
+export const ICE_DEEP = '#8fbccc';
 /** Shadow inside burrows. */
 export const TUNNEL = '#e4d6b4';
 
@@ -44,6 +48,8 @@ export interface GroundStyle {
   readonly pebbles: readonly string[];
   /** Rock jointed into columns, as basalt cools. */
   readonly joints: boolean;
+  /** Share of sand tiles with a pebble in them (default a few): a shingle beach is mostly pebbles. */
+  readonly pebbleRate?: number;
 }
 
 export const PALE_SAND: GroundStyle = {
@@ -61,6 +67,12 @@ export const BLACK_SAND: GroundStyle = {
 export const GREY_SAND: GroundStyle = {
   dry: '#cfc9bb', wet: '#b5b0a4', deep: '#9c978d', grain: '#6f6b64', shade: '#6f6b64', rock: '#868a88', tunnel: '#dcd6c8',
   pebbles: ['#7d817e', '#a9a597', '#5f6461', '#c2bcac', '#8f9a8c'], joints: false,
+};
+
+/** A frosty shingle beach: cold grey-brown sand packed with rounded pebbles of slate, granite and quartz, over grey rock. */
+export const SHINGLE: GroundStyle = {
+  dry: '#d3cdc0', wet: '#b6ae9f', deep: '#958e82', grain: '#6a655d', shade: '#5f5a53', rock: '#7f8486', tunnel: '#ddd7ca',
+  pebbles: ['#8b8f8c', '#a99f8c', '#62686a', '#c9c1ae', '#b58f74', '#e2ddd2', '#77808a'], joints: false, pebbleRate: 0.42,
 };
 
 /** Texture pixels per world px for terrain; matches the most a phone screen shows. */

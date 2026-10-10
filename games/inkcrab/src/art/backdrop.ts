@@ -3,8 +3,10 @@ import { clouds, lagoon, LAGOON_H, resort, shore, SHORE_H, sky, SKY_H } from './
 import { BASALT_SEA_H, BASALT_SKY_H, cliffs as lavaCliffs, clouds as basaltClouds, LAVA_CLIFFS_H, LAVA_SHORE_H, sea as basaltSea, shore as lavaShore, sky as basaltSky } from './backdrop/basalt';
 import { dhoni, shrimper, troller, yacht } from './backdrop/boats';
 import { longtail } from './backdrop/estuary';
+import { cliffs as frostCliffs, clouds as frostClouds, FROST_CLIFFS_H, FROST_SEA_H, FROST_SHORE_H, FROST_SKY_H, sea as frostSea, shore as frostShore, sky as frostSky } from './backdrop/frost';
 import { clouds as harbourClouds, cliffs as harbourCliffs, HARBOUR_CLIFFS_H, HARBOUR_SEA_H, HARBOUR_SHORE_H, HARBOUR_SKY_H, sea as harbourSea, shore as harbourShore, sky as harbourSky } from './backdrop/harbour';
 import { keralaTrawler, vallam } from './backdrop/keralaBoats';
+import { longliner, punt } from './backdrop/labradorBoats';
 import { clouds as duneClouds, desert, DESERT_H, DUNE_SKY_H, dunes, DUNES_H, sea, SEA_H, sky as duneSky } from './backdrop/dunes';
 import { cliffs as kelpCliffs, clouds as kelpClouds, KELP_CLIFFS_H, KELP_CLOUDS_H, KELP_SEA_H, KELP_SHORE_H, KELP_SKY_H, sea as kelpSea, shore as kelpShore, sky as kelpSky } from './backdrop/kelp';
 import { clouds as mangroveClouds, forest, FOREST_H, MANGROVE_SKY_H, mudflat, MUDFLAT_H, river, RIVER_H, sky as mangroveSky } from './backdrop/mangrove';
@@ -20,7 +22,7 @@ export { THEME_MOVERS, type MoverSpec } from './backdrop/movers';
  * so the sand and creatures in front always read first. Each beach has its
  * own theme; layers tile horizontally (see `tiled`).
  */
-export type ThemeId = 'atoll' | 'dunes' | 'rockpool' | 'mangrove' | 'basalt' | 'kelp' | 'wreck' | 'harbour';
+export type ThemeId = 'atoll' | 'dunes' | 'rockpool' | 'mangrove' | 'basalt' | 'kelp' | 'wreck' | 'harbour' | 'frost';
 export type LayerId = 'sky' | 'clouds' | 'lagoon' | 'resort' | 'shore' | 'sea' | 'dunes' | 'cliffs' | 'river' | 'forest';
 
 export interface LayerSpec {
@@ -99,9 +101,17 @@ export const THEMES: Readonly<Record<ThemeId, readonly LayerSpec[]>> = {
     { id: 'cliffs', height: HARBOUR_CLIFFS_H, scroll: 0.26, lift: 10, draw: harbourCliffs },
     { id: 'shore', height: HARBOUR_SHORE_H, scroll: 0.4, lift: -14, draw: harbourShore },
   ],
+  frost: [
+    // Tall and set low, as the harbour's are, so the far cloud streets and lenticulars stand on the sea's horizon; the clouds run fast on the gale.
+    { id: 'sky', height: FROST_SKY_H, scroll: 0.08, lift: 80, draw: frostSky },
+    { id: 'clouds', height: FROST_SKY_H, scroll: 0.08, lift: 80, drift: 7, draw: frostClouds },
+    { id: 'sea', height: FROST_SEA_H, scroll: 0.16, lift: 20, draw: frostSea },
+    { id: 'cliffs', height: FROST_CLIFFS_H, scroll: 0.26, lift: 10, draw: frostCliffs },
+    { id: 'shore', height: FROST_SHORE_H, scroll: 0.4, lift: -14, draw: frostShore },
+  ],
 };
 
-export type BoatKind = 'dhoni' | 'yacht' | 'longtail' | 'troller' | 'shrimper' | 'vallam' | 'keralaTrawler';
+export type BoatKind = 'dhoni' | 'yacht' | 'longtail' | 'troller' | 'shrimper' | 'vallam' | 'keralaTrawler' | 'longliner' | 'punt';
 
 /** A boat sailing on a layer, drawn as its own sprite so it can move. */
 export interface BoatSpec extends Lane {
@@ -123,9 +133,11 @@ export const BOAT_BOX: Readonly<Record<BoatKind, { readonly left: number; readon
   shrimper: { left: -27, right: 25, top: -40, bottom: 8 },
   vallam: { left: -46, right: 38, top: -24, bottom: 12 },
   keralaTrawler: { left: -34, right: 28, top: -40, bottom: 9 },
+  longliner: { left: -42, right: 32, top: -44, bottom: 9 },
+  punt: { left: -30, right: 22, top: -20, bottom: 8 },
 };
 
-export const BOAT_DRAW: Readonly<Record<BoatKind, (d: Draw, x: number, water: number, s: number) => void>> = { dhoni, yacht, longtail, troller, shrimper, vallam, keralaTrawler };
+export const BOAT_DRAW: Readonly<Record<BoatKind, (d: Draw, x: number, water: number, s: number) => void>> = { dhoni, yacht, longtail, troller, shrimper, vallam, keralaTrawler, longliner, punt };
 
 /**
  * The boats out on the water. Yachts drift along the horizon and a small
@@ -168,5 +180,11 @@ export const THEME_BOATS: Readonly<Record<ThemeId, readonly BoatSpec[]>> = {
     { kind: 'keralaTrawler', s: 0.55, layer: 'sea', water: 92, x: 820, speed: -1.4, front: false },
     { kind: 'vallam', s: 0.6, layer: 'sea', water: 108, x: 120, speed: -2.2, front: false },
     { kind: 'vallam', s: 1, layer: 'sea', water: 142, x: 420, speed: 3, front: false },
+  ],
+  // A longliner running in before the gale through the ice, a punt butting out against it, another longliner far out.
+  frost: [
+    { kind: 'longliner', s: 0.38, layer: 'sea', water: 88, x: 880, speed: -0.9, front: false },
+    { kind: 'longliner', s: 0.75, layer: 'sea', water: 118, x: 140, speed: 2.4, front: false },
+    { kind: 'punt', s: 0.95, layer: 'sea', water: 152, x: 520, speed: -2.6, front: false },
   ],
 };

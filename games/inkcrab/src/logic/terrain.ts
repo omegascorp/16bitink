@@ -3,13 +3,14 @@
  * (and the tide will wash it away), dune sand digs and pours (see
  * dunes.ts), mud digs easily but is slow going on top, rock never digs.
  * Wood is the floor of a boat or stilt house over the sand (see decks.ts):
- * solid to stand on, never dug. Mangrove roots aren't tiles (see roots.ts). Outside the grid the
+ * solid to stand on, never dug. Ice (a frozen pool, Frost Shingle) is
+ * solid and never dug, and slippery underfoot (see sim.ts). Mangrove roots aren't tiles (see roots.ts). Outside the grid the
  * sides and floor are solid rock and the sky is open.
  *
  * The grid is mutated in place: it is per-frame world state shared by the
  * simulation and the chunked sand renderer.
  */
-export const TILE = { air: 0, sand: 1, placed: 2, rock: 3, loose: 4, mud: 5, wood: 6 } as const;
+export const TILE = { air: 0, sand: 1, placed: 2, rock: 3, loose: 4, mud: 5, wood: 6, ice: 7 } as const;
 export type Tile = (typeof TILE)[keyof typeof TILE];
 
 export interface Terrain {

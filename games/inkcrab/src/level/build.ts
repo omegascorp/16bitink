@@ -37,8 +37,9 @@ function placer(t: Terrain, items: Item[], roots: Roots | null): (kind: ItemKind
     const row = perch ?? (buried ? groundRow(t, col) + depth : surfaceRow(t, col));
     const key = `${col},${row}`;
     if (buried && taken.has(key)) return false;
-    // Nothing is buried in rock (granite under thin sand, pool walls).
+    // Nothing is buried in rock (granite under thin sand, pool walls) or in ice.
     if (buried && tileAt(t, col, row) === TILE.rock && row < t.height - BEDROCK) return false;
+    if (buried && tileAt(t, col, row) === TILE.ice) return false;
     if (buried) taken.add(key);
     // Packed sand around it, unless it's in dune sand or mud (which stay as they are).
     if (buried && tileAt(t, col, row) !== TILE.loose && tileAt(t, col, row) !== TILE.mud) setTile(t, col, row, TILE.sand);
@@ -143,7 +144,7 @@ export function buildLevel(def: LevelDef): BeachSetup {
   const terrain = carve({
     width: def.width, height: def.height, seed: def.seed, profile: def.profile, rocks: def.rocks, wobble: WOBBLE,
     loose: def.loose, pits: def.pits, granite: def.granite, pools: def.pools, dens: def.dens, mud: def.mud,
-    columns: def.columns, vents: def.vents?.map(([col]) => col),
+    columns: def.columns, vents: def.vents?.map(([col]) => col), ice: def.ice,
   });
   // Each vent's shaft runs down from its rim to the rock floor the carving left under it.
   const vents: Vent[] = (def.vents ?? []).map(([col, height, period, offset]) => {
@@ -196,6 +197,7 @@ export function buildLevel(def: LevelDef): BeachSetup {
     rivals: def.rivals,
     rain: def.rain,
     decks,
+    wind: def.wind,
     startGrowth: { size: START_SIZE, meter: 0 },
     goal: levelGoal(def),
     mission,

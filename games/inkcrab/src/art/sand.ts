@@ -1,7 +1,7 @@
 import { cellCase, cellGeometry } from '../logic/contour';
 import { createRng } from '../logic/rng';
 import { groundRow, tileAt, TILE, type Terrain } from '../logic/terrain';
-import { DUNE, type GroundStyle, INK, MUD, MUD_SHEEN, PALE_SAND, PAPER } from './palette';
+import { DUNE, type GroundStyle, ICE, ICE_DEEP, ICE_GLINT, INK, MUD, MUD_SHEEN, PALE_SAND, PAPER } from './palette';
 
 /**
  * Diggable sand drawn as ballpoint hatching. Seamless hatch tiles are used
@@ -260,7 +260,7 @@ function mud(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: number)
 function pebbles(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: number, style: GroundStyle): void {
   for (let y = c.ty - 1; y <= c.ty + c.tiles; y++) {
     for (let x = c.tx - 1; x <= c.tx + c.tiles; x++) {
-      if (tileAt(t, x, y) !== TILE.sand || hash(x, y, 7) > 0.07) continue;
+      if (tileAt(t, x, y) !== TILE.sand || hash(x, y, 7) > (style.pebbleRate ?? 0.07)) continue;
       // Only where the pebble sits wholly inside sand.
       if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => tileAt(t, x + dx!, y + dy!) === TILE.air)) continue;
       const rx = 1.4 + hash(x, y, 8) * 2.6;
@@ -277,6 +277,63 @@ function pebbles(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: num
     }
   }
   ctx.globalAlpha = 1;
+}
+
+/**
+ * Ice (a frozen pool): a cold wash, darker deeper down, with long glints of
+ * sky across its top and the odd crack, inked round like rock.
+ */
+function ice(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: number): Path2D {
+  const mask: Mask = (x, y) => tileAt(t, x, y) === TILE.ice;
+  const path = maskPath(mask, c, T);
+  ctx.fillStyle = PAPER;
+  ctx.fill(path);
+  ctx.globalAlpha = 0.85;
+  ctx.fillStyle = ICE;
+  ctx.fill(path);
+  ctx.save();
+  ctx.clip(path);
+  ctx.lineCap = 'round';
+  for (let y = c.ty - 1; y <= c.ty + c.tiles; y++) {
+    for (let x = c.tx - 1; x <= c.tx + c.tiles; x++) {
+      if (!mask(x, y)) continue;
+      const top = tileAt(t, x, y - 1) !== TILE.ice;
+      // Deeper ice is bluer.
+      if (!top) {
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = ICE_DEEP;
+        ctx.fillRect(x * T, y * T, T, T);
+      }
+      // Glints of sky along the top, slanting.
+      if (top) {
+        ctx.strokeStyle = ICE_GLINT;
+        for (let k = 0; k < 2; k++) {
+          const x0 = (x + hash(x, y, 90 + k) * 0.8) * T;
+          const y0 = (y + 0.2 + hash(x, y, 92 + k) * 0.4) * T;
+          ctx.globalAlpha = 0.9;
+          ctx.lineWidth = 1 + hash(x, y, 94 + k) * 0.8;
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x0 + T * (0.3 + hash(x, y, 96 + k) * 0.4), y0 - T * 0.12);
+          ctx.stroke();
+        }
+      }
+      if (hash(x, y, 98) < 0.25) {
+        ctx.strokeStyle = INK;
+        ctx.globalAlpha = 0.35;
+        ctx.lineWidth = 0.6;
+        const cx = (x + hash(x, y, 99)) * T;
+        ctx.beginPath();
+        ctx.moveTo(cx, y * T + 2);
+        ctx.lineTo(cx + (hash(x, y, 100) - 0.5) * T * 0.6, (y + 0.6) * T);
+        ctx.lineTo(cx + (hash(x, y, 101) - 0.5) * T * 0.8, (y + 1) * T);
+        ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  return path;
 }
 
 /** How dark the cross-hatching of deep sand is on this row: none near the top, more with depth. */
@@ -357,8 +414,10 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRec
   ctx.fillStyle = patterns.rock;
   ctx.fill(rockPath);
   if (style.joints) joints(ctx, t, rockPath, c, T);
+  ice(ctx, t, c, T);
   inkEdges(ctx, solid, c, T, 1.7, 0);
   inkEdges(ctx, rock, c, T, 2.1, 100);
+  inkEdges(ctx, (x, y) => tileAt(t, x, y) === TILE.ice, c, T, 1.5, 200);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 

@@ -16,7 +16,9 @@ import { HAND_FONT, inkButton, inkText, wobblyRect } from './ui';
 import { drawTideClock } from './tideClock';
 import { tidePhase, tideTurn } from '../logic/tide';
 import { drawRainClock } from './rainClock';
+import { drawWindClock } from './windClock';
 import { rainTurn } from '../logic/rain';
+import { windTurn } from '../logic/wind';
 import { chainPrompt, missionGoal, missionLine, missionNotes, missionTag } from '../logic/mission';
 
 const PANEL = { x: 16, y: 14, w: 380, h: 118 } as const;
@@ -139,6 +141,7 @@ export class HudScene extends Phaser.Scene {
 
     this.drawTide(game, width);
     this.drawRain(game, width);
+    this.drawWind(game, width);
     drawSandGauge(g, HEAP_AT.x, HEAP_AT.bottom, c.sand, beach.sandCapacity);
     // Full, it digs nothing until it unloads; past full (a smaller shell) is a warning.
     const loaded = c.sand >= beach.sandCapacity;
@@ -147,7 +150,7 @@ export class HudScene extends Phaser.Scene {
     this.sand.setColor(c.sand > beach.sandCapacity ? RED : BLUE);
     // Centred under the heap, but kept inside the panel when the hint makes it long.
     this.sand.setX(Math.min(HEAP_AT.x, PANEL.x + PANEL.w - 8 - this.sand.width / 2));
-    this.note.setText(c.swap ? 'moving house… exposed!' : c.hidden ? 'hiding in the shell' : beach.underKelp(c.body) ? 'under the kelp, out of sight' : beach.underDeck(c.body) ? 'under cover, safe from the sky' : beach.capped ? 'shell full, find a bigger one' : 'growing');
+    this.note.setText(c.swap ? 'moving house… exposed!' : c.hidden ? 'hiding in the shell' : beach.underKelp(c.body) ? 'under the kelp, out of sight' : beach.underDeck(c.body) ? 'under cover, safe from the sky' : beach.windOn(c.body) !== 0 && beach.gusting ? 'blown along by the gust!' : beach.gusting && beach.sheltered(c.body) ? 'in the lee, out of the wind' : beach.capped ? 'shell full, find a bigger one' : 'growing');
     this.note.setColor(c.swap ? RED : BLUE);
     this.shell.setText(c.shell ? `in a ${shellName(c.shell)}` : 'no shell!');
 
@@ -219,6 +222,20 @@ export class HudScene extends Phaser.Scene {
     drawRainClock(this.g, x, TIDE.y, TIDE.r, 1 - turn.seconds / spell, turn.pouring);
     const secs = Math.ceil(turn.seconds);
     this.tideText.setText(turn.pouring ? `pouring · hunters half-blind · clears in ${secs}s` : `dry spell · rain in ${secs}s`).setPosition(x - TIDE.r - 10, TIDE.y);
+  }
+
+  /** On a windy beach: the wind clock, which way the gust blows, and how long until it gets up or dies away. */
+  private drawWind(game: GameScene, width: number): void {
+    const wind = game.beach.wind;
+    if (!wind) return;
+    this.tideText.setVisible(true);
+    const turn = windTurn(wind, game.beach.elapsed);
+    const spell = turn.gusting ? wind.gust : wind.period - wind.gust;
+    const x = width - TIDE.fromRight - 10;
+    drawWindClock(this.g, x, TIDE.y, TIDE.r, 1 - turn.seconds / spell, turn.gusting, turn.dir);
+    const secs = Math.ceil(turn.seconds);
+    const way = turn.dir > 0 ? '→' : '←';
+    this.tideText.setText(turn.gusting ? `gusting ${way} · dies down in ${secs}s` : `calm · gust ${way} in ${secs}s`).setPosition(x - TIDE.r - 10, TIDE.y);
   }
 
   private drawCoach(game: GameScene, width: number): void {

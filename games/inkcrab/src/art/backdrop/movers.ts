@@ -7,6 +7,7 @@ import { kestrel, tern } from './desert';
 import { dolphin, laughingGull, osprey } from './gulfAnimals';
 import { sampan } from './estuary';
 import { houseCrow, littleCormorant } from './keralaBirds';
+import { eider, kittiwake, raven } from './labradorBirds';
 import { egretFlying, ibis, kite } from './mudLife';
 import { cormorant, westernGull } from './pnwBirds';
 import { bird, seaplane } from './tropic';
@@ -80,6 +81,38 @@ const laughingGullBird: Bird = (d, x, y, s, f) => laughingGull(d, x, y, s, f);
 const ospreyBird: Bird = (d, x, y, s, f) => osprey(d, x, y, s, f);
 const crowBird: Bird = (d, x, y, s, f) => houseCrow(d, x, y, s, f);
 const littleCormorantBird: Bird = (d, x, y, s, f) => littleCormorant(d, x, y, s, f);
+const drakeBird: Bird = (d, x, y, s, f) => eider(d, x, y, s, f, true);
+const henBird: Bird = (d, x, y, s, f) => eider(d, x, y, s, f, false);
+const kittiwakeBird: Bird = (d, x, y, s, f) => kittiwake(d, x, y, s, f);
+
+/** Two flocks flown as one mover (eider drakes and ducks in the same line). */
+function together(a: Pick<MoverSpec, 'box' | 'frames' | 'draw'>, b: Pick<MoverSpec, 'box' | 'frames' | 'draw'>): Pick<MoverSpec, 'box' | 'frames' | 'draw'> {
+  return {
+    box: { left: Math.min(a.box.left, b.box.left), right: Math.max(a.box.right, b.box.right), top: Math.min(a.box.top, b.box.top), bottom: Math.max(a.box.bottom, b.box.bottom) },
+    frames: BEAT,
+    draw: (d, x, y, f) => {
+      a.draw(d, x, y, f);
+      b.draw(d, x, y, f);
+    },
+  };
+}
+
+/** Frames in a raven's cycle: a few wingbeats, then a roll right over onto its back and up again. */
+const TUMBLE_FRAMES = 12;
+const TUMBLE_FROM = 4;
+
+/** A raven on the wind at scale `s`, `phase` frames into its cycle, so a pair don't tumble together. */
+function tumbling(s: number, phase: number): Pick<MoverSpec, 'box' | 'frames' | 'draw'> {
+  return {
+    box: { left: -17 * s, right: 10 * s, top: -9 * s, bottom: 9 * s },
+    frames: TUMBLE_FRAMES,
+    draw: (d, x, y, f) => {
+      const k = (f + phase) % TUMBLE_FRAMES;
+      const roll = k < TUMBLE_FROM ? 1 : Math.cos((Math.PI * 2 * (k - TUMBLE_FROM)) / (TUMBLE_FRAMES - TUMBLE_FROM));
+      raven(d, x, y, s, k < TUMBLE_FROM ? flap(k, 0) : 0.2, roll);
+    },
+  };
+}
 
 /** Frames in a dolphin's cycle: rolling up through the surface and down for the first ROLL of them, then under. */
 const ROLL_FRAMES = 14;
@@ -188,5 +221,18 @@ export const THEME_MOVERS: Readonly<Record<ThemeId, readonly MoverSpec[]>> = {
     { layer: 'sea', y: 156, x: 900, speed: -11, bob: 0.8, fps: 8, turns: true, ...flock([[0, 0, 0.55], [17, 1, 0.52], [33, 2, 0.5]], littleCormorantBird) },
     { layer: 'cliffs', y: 150, x: 360, speed: 8, bob: 2.5, fps: 3, turns: true, ...flock([[0, -6, 1.15], [34, 6, 1.05], [64, 0, 1]], egretBird) },
     { layer: 'cliffs', y: 196, x: 860, speed: -12, bob: 2, fps: 5.5, turns: true, ...flock([[0, 0, 1.15], [26, -8, 1.05]], crowBird) },
+  ],
+  // Kittiwakes riding the gale, ravens tumbling on it, eiders beating low over the sea in lines, drakes and ducks together.
+  frost: [
+    { layer: 'sky', y: 112, x: 260, speed: 12, bob: 3, fps: 3.5, turns: true, ...flock([[0, -6, 1.15], [30, 6, 1], [58, -2, 0.9]], kittiwakeBird) },
+    { layer: 'sky', y: 70, x: 840, speed: -5, bob: 3, fps: 4, turns: true, ...flock([[0, 0, 0.85]], kittiwakeBird) },
+    { layer: 'sky', y: 150, x: 600, speed: 9, bob: 2, fps: 4, turns: true, ...flock([[0, 0, 0.7]], kittiwakeBird) },
+    { layer: 'sky', y: 84, x: 460, speed: 3, fps: 4, circle: { r: 34, period: 15 }, turns: true, ...tumbling(1.3, 0) },
+    { layer: 'sky', y: 100, x: 520, speed: 3, fps: 4, circle: { r: 26, period: 13 }, turns: true, ...tumbling(1.1, 6) },
+    { layer: 'sea', y: 102, x: 300, speed: 15, bob: 0.6, fps: 8, turns: true, ...together(flock([[0, 0, 0.5], [32, 2, 0.48], [64, 3, 0.46]], drakeBird), flock([[16, 1, 0.48], [48, 2, 0.47], [80, 4, 0.45]], henBird)) },
+    { layer: 'sea', y: 140, x: 820, speed: -12, bob: 0.6, fps: 8, turns: true, ...together(flock([[0, 0, 0.6], [36, 3, 0.58]], drakeBird), flock([[18, 1, 0.6]], henBird)) },
+    { layer: 'cliffs', y: 120, x: 150, speed: 2, fps: 4, circle: { r: 40, period: 17 }, turns: true, ...tumbling(1.5, 3) },
+    { layer: 'cliffs', y: 168, x: 560, speed: 10, bob: 3, fps: 3.5, turns: true, ...flock([[0, -5, 1.2], [36, 6, 1.1]], kittiwakeBird) },
+    { layer: 'cliffs', y: 244, x: 880, speed: 17, bob: 0.8, fps: 8, turns: true, ...together(flock([[0, 0, 0.95], [44, 2, 0.9]], drakeBird), flock([[22, 1, 0.92], [66, 3, 0.88]], henBird)) },
   ],
 };

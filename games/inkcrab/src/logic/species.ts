@@ -8,7 +8,8 @@ export type SpeciesId = 'ghostcrab' | 'slater' | 'beetle' | 'darkling' | 'antlio
   | 'lavalizard' | 'sallycrab'
   | 'kelpcrab' | 'dungeness' | 'raccoon'
   | 'porcelaincrab' | 'stonecrab' | 'bluecrab' | 'hermit'
-  | 'bubbler' | 'mudcrab' | 'monitor';
+  | 'bubbler' | 'mudcrab' | 'monitor'
+  | 'seaspider' | 'snowcrab' | 'arcticfox';
 
 /**
  * How it gets about: walkers roam the surface and open tunnels; a lurker
@@ -103,6 +104,12 @@ export const SPECIES: Readonly<Record<SpeciesId, SpeciesSpec>> = {
   mudcrab: { id: 'mudcrab', name: 'mud crab', speed: 0.85, sight: 6, hunts: true, box: { w: 1.15, h: 0.65 } },
   // A water monitor: a long lizard that hunts by tasting the air with its tongue, so the rain doesn't hide you from it. Slow, short-sighted.
   monitor: { id: 'monitor', name: 'water monitor', speed: 0.7, sight: 4, hunts: true, nose: true, box: { w: 1.5, h: 0.7 } },
+  // Frost Shingle (beach 9). A sea spider: a slow, timid, spindly-legged creature of the cold shore, all legs and no body.
+  seaspider: { id: 'seaspider', name: 'sea spider', speed: 0.6, sight: 4, hunts: false, box: { w: 1, h: 0.5 } },
+  // A snow crab: long-legged and quick on the pebbles, it hunts by sight.
+  snowcrab: { id: 'snowcrab', name: 'snow crab', speed: 1, sight: 6, hunts: true, box: { w: 1.25, h: 0.6 } },
+  // An Arctic fox: noses along the strandline. It hunts by smell, so in a gust it smells you only from downwind.
+  arcticfox: { id: 'arcticfox', name: 'Arctic fox', speed: 0.8, sight: 5, hunts: true, nose: true, box: { w: 1.4, h: 1 } },
   treecrab: { id: 'treecrab', name: 'tree crab', speed: 0.8, sight: 5, hunts: true, move: 'climb', box: { w: 0.95, h: 0.62 } },
 };
 
