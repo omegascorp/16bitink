@@ -2,6 +2,7 @@ import { underSky } from './birds';
 import { FOG } from './fog';
 import { tileSpan } from './dig';
 import { centre, type Item } from './items';
+import { isRival } from './rivals';
 import { canWear, SHELLS } from './shells';
 import { movementOf, SPECIES } from './species';
 import type { Beach, SimEvent } from './sim';
@@ -10,7 +11,8 @@ import { isSolid, surfaceRow } from './terrain';
 
 /** Something a level teaches, step by step, with a hint shown only while it's relevant. */
 export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron' | 'vent'
-  | 'kelp' | 'fog' | 'raccoon';
+  | 'kelp' | 'fog' | 'raccoon'
+  | 'rival';
 
 /** What a hint is about: a lesson, or the way out of a hole, offered on every level. */
 export type HintKind = Lesson | 'stuck';
@@ -37,6 +39,8 @@ const CLIMBED = 2;
 const VENT_NEAR = 6;
 /** How close (tiles) kelp wrack is before the kelp lesson speaks up. */
 const KELP_NEAR = 6;
+/** How close (tiles) a rival hermit crab you could rap is before the rival lesson speaks up. */
+const RIVAL_NEAR = 8;
 
 const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   keys: {
@@ -59,6 +63,7 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     kelp: 'Washed-up kelp! Down among it nothing can see or smell you, and sand hoppers live in it.',
     fog: 'Sea fog! You see only what\'s close, but hunters can\'t see you far either. Watch for red ink coming out of it.',
     raccoon: 'A raccoon hunts by smell: the fog won\'t hide you from it. Get under the kelp, or hold Z to hide.',
+    rival: 'A hermit crab no bigger than you! Walk up and press E to rap on its shell: it lets go, and you can move in if it fits.',
   },
   touch: {
     move: 'Steer with the stick, jump with the button. Eat food to grow.',
@@ -80,6 +85,7 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     kelp: 'Washed-up kelp! Down among it nothing can see or smell you, and sand hoppers live in it.',
     fog: 'Sea fog! You see only what\'s close, but hunters can\'t see you far either. Watch for red ink coming out of it.',
     raccoon: 'A raccoon hunts by smell: the fog won\'t hide you from it. Get under the kelp, or hold the shell button to hide.',
+    rival: 'A hermit crab no bigger than you! Walk up and tap it to rap on its shell: it lets go, and you can move in if it fits.',
   },
 };
 
@@ -108,6 +114,7 @@ export class Coach {
       else if (e.type === 'tiles' && e.dug) this.done.add('dig');
       else if (e.type === 'revealed' && beach.items.get(e.id)?.kind.type === 'shell') this.done.add('buried');
       else if (e.type === 'thrown') this.done.add('vent');
+      else if (e.type === 'rapped') this.done.add('rival');
     }
     if (c.sand < this.lastSand) this.done.add('drop');
     this.lastSand = c.sand;
@@ -167,6 +174,10 @@ export class Coach {
       const vent = this.ventNear(beach);
       if (vent) return { lesson: 'vent', text: t.vent!, target: vent };
     }
+    if (open('rival')) {
+      const rival = this.rivalNear(beach);
+      if (rival) return { lesson: 'rival', text: t.rival!, target: rival };
+    }
     if (open('kelp')) {
       const kelp = this.kelpNear(beach);
       if (kelp) return { lesson: 'kelp', text: t.kelp!, target: kelp };
@@ -212,6 +223,19 @@ export class Coach {
       const p = { x: mid * T, y: surfaceRow(beach.terrain, Math.floor(mid)) * T };
       const d = Math.max(0, Math.abs(p.x - at.x) - (width / 2) * T);
       if (d < KELP_NEAR * T && (!best || Math.abs(p.x - at.x) < Math.abs(best.x - at.x))) best = p;
+    }
+    return best;
+  }
+
+  /** The middle of the nearest rival in a shell and no bigger than the crab, within a few tiles, or null. */
+  private rivalNear(beach: Beach): { x: number; y: number } | null {
+    const c = beach.crab;
+    const at = centre(c.body);
+    let best: { x: number; y: number } | null = null;
+    for (const k of beach.critters.values()) {
+      if (!isRival(k) || !k.shell || k.size > c.growth.size) continue;
+      const p = centre(k);
+      if (Math.abs(p.x - at.x) < RIVAL_NEAR * beach.tileSize && (!best || Math.abs(p.x - at.x) < Math.abs(best.x - at.x))) best = { x: p.x, y: k.y };
     }
     return best;
   }

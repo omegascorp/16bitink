@@ -5,6 +5,7 @@ import { HERON_BILL_HEX, HERON_CAP_HEX, HERON_IRIS_HEX, HERON_JAW_HEX, HERON_NEC
 import { BOIL } from '../../art/palette';
 import { TEX } from '../../art/textures';
 import { armTip, breached, type Critter } from '../../logic/critters';
+import { isRival } from '../../logic/rivals';
 import { movementOf } from '../../logic/species';
 import type { Terrain } from '../../logic/terrain';
 import { BLUE_HEX, RED_HEX } from '../../art/palette';
@@ -57,6 +58,8 @@ export class CrittersView {
       this.sprites.delete(id);
     }
     for (const c of critters.values()) {
+      // Rival hermit crabs are drawn as hermit crabs, by RivalsView.
+      if (isRival(c)) continue;
       const s = this.sprites.get(c.id) ?? this.create(c);
       const move = movementOf(c.species);
       // A tree crab up in the roots (letting go, it falls with vx and vy from the walker).

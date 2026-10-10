@@ -1,12 +1,13 @@
 import type { Lane } from '../logic/sailing';
 import { clouds, lagoon, LAGOON_H, resort, shore, SHORE_H, sky, SKY_H } from './backdrop/atoll';
 import { BASALT_SEA_H, BASALT_SKY_H, cliffs as lavaCliffs, clouds as basaltClouds, LAVA_CLIFFS_H, LAVA_SHORE_H, sea as basaltSea, shore as lavaShore, sky as basaltSky } from './backdrop/basalt';
-import { dhoni, troller, yacht } from './backdrop/boats';
+import { dhoni, shrimper, troller, yacht } from './backdrop/boats';
 import { longtail } from './backdrop/estuary';
 import { clouds as duneClouds, desert, DESERT_H, DUNE_SKY_H, dunes, DUNES_H, sea, SEA_H, sky as duneSky } from './backdrop/dunes';
 import { cliffs as kelpCliffs, clouds as kelpClouds, KELP_CLIFFS_H, KELP_CLOUDS_H, KELP_SEA_H, KELP_SHORE_H, KELP_SKY_H, sea as kelpSea, shore as kelpShore, sky as kelpSky } from './backdrop/kelp';
 import { clouds as mangroveClouds, forest, FOREST_H, MANGROVE_SKY_H, mudflat, MUDFLAT_H, river, RIVER_H, sky as mangroveSky } from './backdrop/mangrove';
 import { cliffs, CLIFFS_H, clouds as rockClouds, ROCK_SEA_H, ROCK_SKY_H, sea as rockSea, shelf, SHELF_H, sky as rockSky } from './backdrop/rockpool';
+import { cliffs as wreckCliffs, clouds as wreckClouds, sea as wreckSea, shore as wreckShore, sky as wreckSky, WRECK_CLIFFS_H, WRECK_SEA_H, WRECK_SHORE_H, WRECK_SKY_H } from './backdrop/wreck';
 import type { Draw } from './kit';
 
 export { BACKDROP_W } from './backdrop/common';
@@ -17,7 +18,7 @@ export { THEME_MOVERS, type MoverSpec } from './backdrop/movers';
  * so the sand and creatures in front always read first. Each beach has its
  * own theme; layers tile horizontally (see `tiled`).
  */
-export type ThemeId = 'atoll' | 'dunes' | 'rockpool' | 'mangrove' | 'basalt' | 'kelp';
+export type ThemeId = 'atoll' | 'dunes' | 'rockpool' | 'mangrove' | 'basalt' | 'kelp' | 'wreck';
 export type LayerId = 'sky' | 'clouds' | 'lagoon' | 'resort' | 'shore' | 'sea' | 'dunes' | 'cliffs' | 'river' | 'forest';
 
 export interface LayerSpec {
@@ -80,9 +81,17 @@ export const THEMES: Readonly<Record<ThemeId, readonly LayerSpec[]>> = {
     { id: 'cliffs', height: KELP_CLIFFS_H, scroll: 0.26, lift: 10, draw: kelpCliffs },
     { id: 'shore', height: KELP_SHORE_H, scroll: 0.4, lift: -14, draw: kelpShore },
   ],
+  wreck: [
+    // The sky and clouds are tall and set low, as kelp's clouds are, so the cumulus tower up off the sea's horizon.
+    { id: 'sky', height: WRECK_SKY_H, scroll: 0.08, lift: 80, draw: wreckSky },
+    { id: 'clouds', height: WRECK_SKY_H, scroll: 0.08, lift: 80, drift: 2.5, draw: wreckClouds },
+    { id: 'sea', height: WRECK_SEA_H, scroll: 0.16, lift: 20, draw: wreckSea },
+    { id: 'cliffs', height: WRECK_CLIFFS_H, scroll: 0.26, lift: 10, draw: wreckCliffs },
+    { id: 'shore', height: WRECK_SHORE_H, scroll: 0.4, lift: -14, draw: wreckShore },
+  ],
 };
 
-export type BoatKind = 'dhoni' | 'yacht' | 'longtail' | 'troller';
+export type BoatKind = 'dhoni' | 'yacht' | 'longtail' | 'troller' | 'shrimper';
 
 /** A boat sailing on a layer, drawn as its own sprite so it can move. */
 export interface BoatSpec extends Lane {
@@ -101,9 +110,10 @@ export const BOAT_BOX: Readonly<Record<BoatKind, { readonly left: number; readon
   yacht: { left: -18, right: 18, top: -34, bottom: 8 },
   longtail: { left: -72, right: 30, top: -22, bottom: 9 },
   troller: { left: -32, right: 20, top: -40, bottom: 8 },
+  shrimper: { left: -27, right: 25, top: -40, bottom: 8 },
 };
 
-export const BOAT_DRAW: Readonly<Record<BoatKind, (d: Draw, x: number, water: number, s: number) => void>> = { dhoni, yacht, longtail, troller };
+export const BOAT_DRAW: Readonly<Record<BoatKind, (d: Draw, x: number, water: number, s: number) => void>> = { dhoni, yacht, longtail, troller, shrimper };
 
 /**
  * The boats out on the water. Yachts drift along the horizon and a small
@@ -135,5 +145,10 @@ export const THEME_BOATS: Readonly<Record<ThemeId, readonly BoatSpec[]>> = {
   // A salmon troller working slowly along the swell, poles up, lines out.
   kelp: [
     { kind: 'troller', s: 0.7, layer: 'sea', water: 124, x: 420, speed: 1.5, front: false },
+  ],
+  // A shrimp boat running home across the Gulf with her nets hoisted, and a sailboat far out.
+  wreck: [
+    { kind: 'yacht', s: 0.42, layer: 'sea', water: 88, x: 860, speed: -1.2, front: false },
+    { kind: 'shrimper', s: 1, layer: 'sea', water: 128, x: 300, speed: 2, front: false },
   ],
 };

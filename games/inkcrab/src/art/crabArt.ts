@@ -9,10 +9,17 @@ import { PAPER_FILL } from './palette';
  * front. Facing right, in the shared frame (see frame.ts). Its soft tail is
  * never drawn: it always stays inside a shell, even when moving house.
  */
-const BODY = '#d27a3a';
-const TIP = '#7a3a1a';
-/** The exposed crab mid-swap, under red ink. */
-const SOFT = '#eaa79a';
+/** A hermit crab's colours: its body, the dark tips of its legs and claws, and its soft parts when it's out of a shell. */
+export interface CrabColors {
+  readonly body: string;
+  readonly tip: string;
+  readonly soft: string;
+}
+
+/** The player: orange, soft pink when exposed mid-swap (under red ink). */
+export const PLAYER_COLORS: CrabColors = { body: '#d27a3a', tip: '#7a3a1a', soft: '#eaa79a' };
+/** Rival hermit crabs: Florida's purple pinchers, so they never read as you. */
+export const RIVAL_COLORS: CrabColors = { body: '#8a5a9e', tip: '#3d2347', soft: '#cdb0d8' };
 
 const limbAlpha = (far: boolean): number => (far ? 0.62 : 0.4);
 
@@ -27,13 +34,13 @@ function gait(d: Draw, i: number, stride: number, lift: number): Pt {
  * segments on top. Near limbs get a shadow line along their underside and
  * fine hairs, so they read as real jointed legs.
  */
-function limb(d: Draw, pts: readonly Pt[], w: readonly number[], wash: string, far: boolean): void {
+function limb(d: Draw, pts: readonly Pt[], w: readonly number[], wash: string, far: boolean, tip: string): void {
   for (let i = pts.length - 2; i >= 0; i--) {
     const a = pts[i]!;
     const b = pts[i + 1]!;
     const seg = capsule(a, b, w[i]!, w[i + 1]!);
     d.pen.fill(seg, PAPER_FILL, 1);
-    d.pen.fill(seg, i === pts.length - 2 ? TIP : wash, i === pts.length - 2 ? 0.55 : limbAlpha(far));
+    d.pen.fill(seg, i === pts.length - 2 ? tip : wash, i === pts.length - 2 ? 0.55 : limbAlpha(far));
     if (!far && w[i]! > 3) {
       // Shadow along the underside: a fine line just inside the lower edge.
       const l = Math.hypot(b.x - a.x, b.y - a.y) || 1;
@@ -51,9 +58,9 @@ function limb(d: Draw, pts: readonly Pt[], w: readonly number[], wash: string, f
 const xf = (pts: readonly Pt[], ox: number, oy: number, s: number): Pt[] => pts.map((p) => pt(ox + p.x * s, oy + p.y * s));
 
 /** A claw (cheliped) from the body forward; `open` lifts the moving finger. */
-function claw(d: Draw, ox: number, oy: number, s: number, wash: string, open: number, far: boolean): void {
+function claw(d: Draw, ox: number, oy: number, s: number, wash: string, open: number, far: boolean, tip: string): void {
   const L = (pts: readonly Pt[]): Pt[] => xf(pts.map((p) => pt(p.x - 34, p.y)), ox + 34 * s, oy, s);
-  limb(d, L([pt(34, 8), pt(50, 6), pt(60, -2)]), [9 * s, 8 * s, 8 * s], wash, far);
+  limb(d, L([pt(34, 8), pt(50, 6), pt(60, -2)]), [9 * s, 8 * s, 8 * s], wash, far, tip);
   const palm = L(oval(76, -6, 16, 10.5, 20));
   const fixed = tube(L(cub(pt(86, -1), pt(94, 1), pt(100, 0), pt(106, -5), 8)), 7 * s, 1.2 * s);
   const moving = tube(L(cub(pt(84, -13), pt(94, -16 - open), pt(101, -12 - open), pt(105, -7 - open * 1.4), 8)), 7 * s, 1.2 * s);
@@ -61,7 +68,7 @@ function claw(d: Draw, ox: number, oy: number, s: number, wash: string, open: nu
     d.pen.fill(part, PAPER_FILL, 1);
     d.pen.fill(part, wash, limbAlpha(far) + 0.08);
   }
-  for (const f of [fixed, moving]) d.pen.clipped(f, () => d.pen.fill(L(oval(104, -6 - open * 0.6, 7, 9, 12)), TIP, far ? 0.45 : 0.75));
+  for (const f of [fixed, moving]) d.pen.clipped(f, () => d.pen.fill(L(oval(104, -6 - open * 0.6, 7, 9, 12)), tip, far ? 0.45 : 0.75));
   if (!far) {
     shade(d, palm, 0.5);
     // Granular bumps on the palm, each a tiny ring with its own shadow.
@@ -84,14 +91,14 @@ function claw(d: Draw, ox: number, oy: number, s: number, wash: string, open: nu
   for (const part of [fixed, moving, palm]) d.pen.stroke(closed(part), far ? 0.7 : 1.1, d.ink, far ? 0.7 : 1, false);
 }
 
-function legs(d: Draw, far: boolean, wash: string): void {
+function legs(d: Draw, far: boolean, wash: string, tip: string): void {
   [0, 1].forEach((i) => {
     const s = gait(d, i + (far ? 1 : 0), 5, 5);
     const hip = far ? pt(22 + i * 6, 14) : pt(24 + i * 6, 20);
     const foot = pt((far ? 68 : 84) - i * 26 + s.x, d.g - (far ? 3 : 0) + s.y);
     const knee = pt(hip.x + (foot.x - hip.x) * 0.55, hip.y - 12);
     const ankle = pt(hip.x + (foot.x - hip.x) * 0.9, hip.y + (d.g - hip.y) * 0.5);
-    limb(d, [hip, knee, ankle, foot], [7, 6, 4.4, 1], wash, far);
+    limb(d, [hip, knee, ankle, foot], [7, 6, 4.4, 1], wash, far, tip);
     // Pale joint bands.
     if (!far) for (const p of [knee, ankle]) d.pen.dot(p.x, p.y, 1.4, PAPER_FILL, 0.8);
   });
@@ -100,19 +107,19 @@ function legs(d: Draw, far: boolean, wash: string): void {
 const OPEN = [1, 4, 2] as const;
 
 /** Far legs and the small claw: drawn before the shell. */
-export function drawCrabBack(d: Draw, naked = false): void {
-  const wash = naked ? SOFT : BODY;
-  legs(d, true, wash);
-  claw(d, 4, 2, 0.65, wash, (OPEN[d.f] ?? 1) * 0.6, true);
+export function drawCrabBack(d: Draw, naked = false, colors: CrabColors = PLAYER_COLORS): void {
+  const wash = naked ? colors.soft : colors.body;
+  legs(d, true, wash, colors.tip);
+  claw(d, 4, 2, 0.65, wash, (OPEN[d.f] ?? 1) * 0.6, true, colors.tip);
 }
 
 /** Head, eyes, antennae, near legs and the big claw: drawn over the shell. */
-export function drawCrabFront(d: Draw, naked = false): void {
+export function drawCrabFront(d: Draw, naked = false, colors: CrabColors = PLAYER_COLORS): void {
   const { pen, f } = d;
-  const wash = naked ? SOFT : BODY;
+  const wash = naked ? colors.soft : colors.body;
   const shield = oval(30, 8, 11, 9, 16);
   skin(d, shield, wash, 0.6);
-  mottle(d, shield, 60, -2, 14, TIP);
+  mottle(d, shield, 60, -2, 14, colors.tip);
   shade(d, shield, 0.45);
   // The groove across the shield, and its front edge's little rostrum.
   pen.hair(cub(pt(22, 6), pt(27, 2), pt(33, 2), pt(38, 6), 10), 0.6, d.ink, 0.7);
@@ -124,8 +131,8 @@ export function drawCrabFront(d: Draw, naked = false): void {
     eyeDot(d, x + lean + 2, -19, 3.2);
   }
   const sway = [0, 3, -2][f]!;
-  pen.stroke(cub(pt(38, 4), pt(64, -18), pt(84, -38 + sway), pt(100, -28 + sway), 12), 0.9, naked ? d.ink : BODY, 1, false);
+  pen.stroke(cub(pt(38, 4), pt(64, -18), pt(84, -38 + sway), pt(100, -28 + sway), 12), 0.9, naked ? d.ink : colors.body, 1, false);
   pen.stroke(cub(pt(38, 4), pt(62, -8), pt(86, -14), pt(104, -4 - sway), 12), 0.7, d.ink, 0.8, false);
-  legs(d, false, wash);
-  claw(d, -10, 14, 1.05, wash, OPEN[f] ?? 1, false);
+  legs(d, false, wash, colors.tip);
+  claw(d, -10, 14, 1.05, wash, OPEN[f] ?? 1, false, colors.tip);
 }

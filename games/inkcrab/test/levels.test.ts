@@ -5,9 +5,10 @@ import { BEACH_3 } from '../src/level/beach3';
 import { BEACH_4 } from '../src/level/beach4';
 import { BEACH_5 } from '../src/level/beach5';
 import { BEACH_6 } from '../src/level/beach6';
+import { BEACH_7 } from '../src/level/beach7';
 import type { LevelDef } from '../src/level/types';
 import { movementOf } from '../src/logic/species';
-import { buildLevel, levelGoal, levelShells, smallFry, START_PATCH, TILE_PX } from '../src/level/build';
+import { buildLevel, levelGoal, levelShells, smallFry, START_PATCH, START_SHELL, TILE_PX } from '../src/level/build';
 import { boxHitsSolid } from '../src/logic/body';
 import { pourStep } from '../src/logic/dunes';
 import { Beach } from '../src/logic/sim';
@@ -22,6 +23,7 @@ const BEACHES: readonly { name: string; levels: readonly LevelDef[]; fry: string
   { name: 'beach 4', levels: BEACH_4, fry: 'fiddler', firstGoal: 4 },
   { name: 'beach 5', levels: BEACH_5, fry: 'lavalizard', firstGoal: 4 },
   { name: 'beach 6', levels: BEACH_6, fry: 'kelpcrab', firstGoal: 4 },
+  { name: 'beach 7', levels: BEACH_7, fry: 'porcelaincrab', firstGoal: 4 },
 ];
 
 for (const { name, levels: BEACH, fry: FRY, firstGoal } of BEACHES) describe(name, () => {
@@ -307,6 +309,44 @@ describe('fog & kelp', () => {
         expect(col, def.id).toBeGreaterThan(def.startCol + 4);
         expect(col + width, def.id).toBeLessThan(def.width - 2);
       }
+      for (const g of def.critters ?? []) expect(g.sizes[1], def.id).toBeLessThan(levelGoal(def));
+      for (const g of def.birds ?? []) expect(g.size, def.id).toBeLessThan(levelGoal(def));
+    });
+  }
+});
+
+describe('wreck cove', () => {
+  /**
+   * The sizes a crab can reach: from the periwinkle, any shell lying about
+   * that it fits takes it up to that shell's cap, and a rival no bigger than
+   * it can be rapped for its shell. Rivals tucked in their shells never move
+   * into another (only rapped ones do, and those are no bigger than the crab).
+   */
+  function reach(def: LevelDef): { size: number; rapped: number } {
+    let size = SHELLS[START_SHELL].maxSize;
+    const loose = def.shells.map(([k]) => k);
+    const left = [...(def.rivals ?? [])];
+    for (let changed = true; changed;) {
+      changed = false;
+      for (const k of loose) if (SHELLS[k].minSize <= size && SHELLS[k].maxSize > size) [size, changed] = [SHELLS[k].maxSize, true];
+      for (let i = left.length - 1; i >= 0; i--) {
+        if (left[i]![1] > size) continue;
+        loose.push(left[i]![0]);
+        left.splice(i, 1);
+        changed = true;
+      }
+    }
+    return { size, rapped: (def.rivals?.length ?? 0) - left.length };
+  }
+
+  for (const def of BEACH_7) {
+    it(`${def.id}: can be grown to its goal through its rivals, each one rappable in time`, () => {
+      const r = reach(def);
+      expect(r.size, def.id).toBeGreaterThanOrEqual(levelGoal(def));
+      expect(r.rapped, def.id).toBe(def.rivals?.length ?? 0);
+    });
+
+    it(`${def.id}: keeps its hunters under the goal`, () => {
       for (const g of def.critters ?? []) expect(g.sizes[1], def.id).toBeLessThan(levelGoal(def));
       for (const g of def.birds ?? []) expect(g.size, def.id).toBeLessThan(levelGoal(def));
     });

@@ -253,9 +253,45 @@ Shells: black turban (1–3), kelp snail (2–4), Kellet's whelk (3–6), Oregon
 
 Backdrop theme `kelp` (`src/art/backdrop/kelp.ts`; landforms and weather in `fogCoast.ts`, plants, animals and the lighthouse in `pnw.ts`, birds in `pnwBirds.ts`): a pale overcast sky with a weak sun in the haze; low stratus and fog banks drifting along the horizon; the grey-green Pacific in long swells, capes of dark forest fading into the fog with sea stacks off their tips, rafts of kelp and a salmon troller; nearer, a headland of Sitka spruce and Douglas fir with a white lighthouse lit on the cliff and the keeper's house below, Haystack Rock and its needles in the surf, a sea otter in a kelp bed and a harbor seal hauled out on the rocks; nearest, grey sand with silver driftwood logs, beachgrass dunes with salal and spruce, and the last tide's wrack line. Movers: western gulls on the wind, brown pelicans gliding in file, cormorants beating low over the water, all side-on. The nearest layers have no small creatures.
 
-## Beaches 7–10
+## Beach 7: Wreck Cove
 
-Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Beaches 1–6 are built (above). Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
+A Gulf shelling beach in Florida, Sanibel style: white sand, driftwood, and an old wooden ship wrecked on the rocks offshore. Its idea is rivals: other hermit crabs after the same shells.
+
+**What's new:**
+
+- **Rival hermit crabs** (`games/inkcrab/src/logic/rivals.ts`; `rivals: [shell, size, col]`): purple pinchers, the native Florida hermit crab, drawn like the player but purple (`RIVAL_COLORS` in `src/art/crabArt.ts`, view in `src/scenes/game/rivalsView.ts`). They never catch you and are never food, and they're never restocked.
+  - A rival no bigger than you tucks into its shell when you come within 4 tiles. Walk up and press E (or tap it) to rap on its shell: it lets go, the shell drops loose where it stood, and the rival scuttles off ("knock knock!").
+  - Out of a shell, after a moment running, a rival makes for the nearest loose shell that fits it within 10 tiles and moves in: often the one you just left. A shell you're moving into is off limits.
+  - A rival bigger than you ignores you and never takes your shell.
+  - E moves you into a fitting shell first; it raps only when there's no shell to move into. The HUD names the rival's shell when you're close enough to rap.
+  - Rivals' shells count towards the level's shells (its goal and the beach celebration's shell ladder). A level test checks that every level can be grown to its goal, with every rival rappable in time.
+- **Stone crabs:** slow, heavy hunters with great black-tipped claws.
+- **Blue crabs:** fast hunters that dash in bursts.
+- **Osprey** (sky): the kestrel's hover and dive, with its own drawing.
+- **Porcelain crabs** are the small prey.
+- **Coach lesson:** `rival` points at the nearest rival you could rap, until you've rapped one.
+- **Gentle from the start:** hunters are at most size 6, one osprey at most, and levels 67–70 have starter food.
+
+Shells: nassa (1–3), fig shell (2–4), tulip shell (3–6), lightning whelk (4–7), horse conch (5–8).
+
+| # | Id | Name | Goal | Shells | New |
+| --- | --- | --- | --- | --- | --- |
+| 61 | `shelling-beach` | Shelling Beach | Size 4 | Nassa; fig shell (on a rival) | Rival hermit crabs (coach: rival) |
+| 62 | `purple-pinchers` | Purple Pinchers | Size 6 | …; fig and tulip (on rivals) | Rap your way up |
+| 63 | `stone-crabs` | Stone Crabs | Size 6 | …, fig; tulip (on a rival) | Stone crabs (coach: hide) |
+| 64 | `buried-treasure` | Buried Treasure | Size 6 | …, tulip (buried by the rocks) | Dig before a rival finds it (coach: buried) |
+| 65 | `lightning-whelk` | Lightning Whelk | Size 7 | …; lightning whelk (on a rival) | Blue crabs |
+| 66 | `osprey` | Osprey | Size 7 | …, lightning whelk; tulip (on a rival) | The osprey (coach: sky) |
+| 67 | `shell-swap` | Shell Swap | Size 7 | Every shell on a rival | A chain of rivals, each a little bigger |
+| 68 | `the-wreck` | The Wreck | Size 7 | …, lightning whelk (buried among rocks) | Remix: rocks, rivals, everyone |
+| 69 | `horse-conch` | Horse Conch | Size 8 | …; horse conch (on a size-6 rival) | The biggest rival |
+| 70 | `wreck-cove` | Wreck Cove | Size 8 | Every Gulf shell, horse conch on the biggest rival | The whole cove |
+
+Backdrop theme `wreck` (`src/art/backdrop/wreck.ts`; landforms and water in `gulfCoast.ts`, the wreck, pilings and timbers in `shipwreck.ts`, plants in `gulfLife.ts`, animals in `gulfAnimals.ts`): warm late-afternoon Gulf light, towering cumulus far out and fair-weather clouds drifting; the calm green-turquoise Gulf with a low barrier island, Sanibel's iron-frame lighthouse and the keepers' cottages on stilts, channel markers, a shrimp boat with its outriggers up and a far sailboat; just offshore, an old two-masted wooden ship broken-backed on the limestone, ribs showing, foremast snapped, surf bursting against her, with the stumps of an old pier nearby; nearest, white sand under sea oats, sea grape and cabbage palms, bleached driftwood, a ship's timber with rusting bolts, and a wrack line of sargassum studded with tiny pale shells. Movers: an osprey circling high, laughing gulls, brown pelicans in file low over the water, and dolphins rolling through the swell, all side-on. The nearest layer has no small creatures.
+
+## Beaches 8–10
+
+Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Beaches 1–7 are built (above). Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
 
 | Beach | Biome | Setting | New |
 | --- | --- | --- | --- |
@@ -265,7 +301,7 @@ Each beach is its own biome: its own creatures, shells, backdrop theme and islan
 | 4 | Mangrove Margins | Mudflats and tangled stilt roots | Climbing the roots, mud that slows you; mudskippers, herons, tree crabs (built) |
 | 5 | Ash & Basalt | Black sand under a smoking volcano | Steam vents that throw you up onto basalt columns; Sally Lightfoot crabs, a hawk (built) |
 | 6 | Fog & Kelp | Cold coast, kelp beds, a lighthouse | Fog that hides what's coming, and you; kelp wrack as cover; Dungeness crabs, a raccoon, a kingfisher (built) |
-| 7 | Wreck Cove | Driftwood and an old ship on the rocks | Rival hermit crabs; stealing from smaller crabs |
+| 7 | Wreck Cove | Driftwood and an old ship on the rocks | Rival hermit crabs: rap on a smaller one's shell to take it; stone crabs, blue crabs, an osprey (built) |
 | 8 | Monsoon Harbour | Stilt houses, nets, fishing boats | Nets and boats as cover; monsoon rain |
 | 9 | Frost Shingle | Pebbles, ice floes, a cold wind | Vacancy chains |
 | 10 | Moonlit Bay | Night beach, glowing tide | Darkness, glowing plankton; the last final molt |
@@ -282,7 +318,7 @@ Only real shells, the kinds hermit crabs actually live in: no litter or other ma
 | 4 Mangrove | Mangrove periwinkle, river nerite, mud creeper, telescope snail, mud whelk (built) |
 | 5 Basalt | Drupe, horn shell, spindle, bonnet, harp (built) |
 | 6 Fog & Kelp | Black turban, kelp snail, Kellet's whelk, Oregon triton, wavy turban (built) |
-| 7 Wreck Cove | Nassa, fig shell, tulip shell, lightning whelk, horse conch |
+| 7 Wreck Cove | Nassa, fig shell, tulip shell, lightning whelk, horse conch (built) |
 | 8 Monsoon Harbour | Auger, babylon, cone, spider conch, Indian volute |
 | 9 Frost Shingle | Wentletrap, Arctic moon snail, Neptune whelk, Arctic whelk, Iceland whelk |
 | 10 Moonlit Bay | Tiger moon snail, giant tun, horned helmet, triton's trumpet, baler |
@@ -300,7 +336,7 @@ Level select is a beachcomber's chart seen from above, scrolling sideways. Each 
 
 ## What exists, what to build
 
-Built: walking, jumping, eating, the growth cap and bank, thirty-five real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` to `beach6.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All sixty levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens; Beach 3 the tide, fish, octopuses and gulls; Beach 4 mangrove roots to climb, mud, mudskippers, herons and tree crabs; Beach 5 steam vents, basalt columns, black sand, Sally Lightfoot crabs and a hawk; Beach 6 sea fog, kelp wrack, grey sand, Dungeness crabs, a raccoon and a kingfisher.
+Built: walking, jumping, eating, the growth cap and bank, forty real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` to `beach7.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All seventy levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens; Beach 3 the tide, fish, octopuses and gulls; Beach 4 mangrove roots to climb, mud, mudskippers, herons and tree crabs; Beach 5 steam vents, basalt columns, black sand, Sally Lightfoot crabs and a hawk; Beach 6 sea fog, kelp wrack, grey sand, Dungeness crabs, a raccoon and a kingfisher; Beach 7 rival hermit crabs, stone crabs, blue crabs and an osprey.
 
 Still to build, replacing the stand-ins:
 

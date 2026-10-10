@@ -6,7 +6,8 @@
 export type SpeciesId = 'ghostcrab' | 'slater' | 'beetle' | 'darkling' | 'antlion' | 'skink' | 'raven' | 'shorecrab' | 'blenny' | 'sculpin' | 'octopus' | 'gull'
   | 'fiddler' | 'mudskipper' | 'heron' | 'treecrab'
   | 'lavalizard' | 'sallycrab'
-  | 'kelpcrab' | 'dungeness' | 'raccoon';
+  | 'kelpcrab' | 'dungeness' | 'raccoon'
+  | 'porcelaincrab' | 'stonecrab' | 'bluecrab' | 'hermit';
 
 /**
  * How it gets about: walkers roam the surface and open tunnels; a lurker
@@ -86,6 +87,14 @@ export const SPECIES: Readonly<Record<SpeciesId, SpeciesSpec>> = {
   dungeness: { id: 'dungeness', name: 'Dungeness crab', speed: 0.9, sight: 5, hunts: true, box: { w: 1.1, h: 0.6 } },
   // A raccoon: forages the strandline by smell, nose down. Slow, short-sighted, and the fog doesn't hide you from it.
   raccoon: { id: 'raccoon', name: 'raccoon', speed: 0.75, sight: 4, hunts: true, nose: true, box: { w: 1.35, h: 1 } },
+  // Wreck Cove (beach 7). A porcelain crab: tiny, flat and timid, from under the rocks and the wreck's timbers.
+  porcelaincrab: { id: 'porcelaincrab', name: 'porcelain crab', speed: 0.85, sight: 4, hunts: false, box: { w: 0.95, h: 0.55 } },
+  // A Florida stone crab: slow, heavy, with great black-tipped crushing claws.
+  stonecrab: { id: 'stonecrab', name: 'stone crab', speed: 0.7, sight: 5, hunts: true, box: { w: 1.1, h: 0.65 } },
+  // A blue crab: a fast swimmer on the sand too, dashing in bursts.
+  bluecrab: { id: 'bluecrab', name: 'blue crab', speed: 1.3, sight: 6, hunts: true, burst: { run: 0.6, rest: 0.7 }, box: { w: 1.2, h: 0.55 } },
+  // A rival hermit crab: harmless, after the same shells you are (see logic/rivals.ts). Never food, never a hunter.
+  hermit: { id: 'hermit', name: 'hermit crab', speed: 0.9, sight: 5, hunts: false, box: { w: 0.95, h: 0.7 } },
   treecrab: { id: 'treecrab', name: 'tree crab', speed: 0.8, sight: 5, hunts: true, move: 'climb', box: { w: 0.95, h: 0.62 } },
 };
 

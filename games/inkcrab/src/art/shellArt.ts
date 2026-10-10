@@ -7,6 +7,7 @@ import { DARK, mouth, tilted } from './shells/common';
 import { bonnet, drupe, harp, hornshell, spindle } from './shells/basalt';
 import { blackturban, kellets, kelpsnail, oregontriton, wavyturban } from './shells/kelp';
 import { mangrovewinkle, mudcreeper, mudwhelk, rivernerite, telescope } from './shells/mangrove';
+import { figshell, horseconch, lightningwhelk, nassa, tulip } from './shells/wreck';
 
 /**
  * Sea and land snail shells, each with its own silhouette and colours. All
@@ -749,6 +750,7 @@ const DRAW: Readonly<Record<ShellKind, (d: Draw) => void>> = {
   mangrovewinkle, rivernerite, mudcreeper, telescope, mudwhelk,
   drupe, hornshell, spindle, bonnet, harp,
   blackturban, kelpsnail, kellets, oregontriton, wavyturban,
+  nassa, figshell, tulip, lightningwhelk, horseconch,
 };
 
 export function drawShell(d: Draw, kind: ShellKind): void {

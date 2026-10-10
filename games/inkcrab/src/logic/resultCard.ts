@@ -58,6 +58,9 @@ const HUNTER_TIPS: Partial<Readonly<Record<HunterId, string>>> = {
   dungeness: 'In fog a Dungeness crab sees only what\'s right by it. Keep in the fog, get under the kelp, or hide in your shell.',
   raccoon: 'A raccoon hunts by smell, fog or no fog. Its nose can\'t find you under washed-up kelp, or hidden in your shell.',
   kingfisher: 'A red shadow on the sand is a kingfisher about to dive. It can\'t find you in thick fog or under kelp; or hide in your shell.',
+  stonecrab: 'Stone crabs are slow, but their claws are strong. Keep moving, or hide in your shell till it loses interest.',
+  bluecrab: 'Blue crabs dash in bursts and stop to rest. Move while they rest, or hide in your shell.',
+  osprey: 'A red shadow on the sand is an osprey about to dive. Get under the sand, or hide in your shell: it strikes the shell and flies off.',
   treecrab: 'Tree crabs climb as well as you do. Drop off the roots (jump, or hold down on a branch) and run for it, or hide.',
 };
 

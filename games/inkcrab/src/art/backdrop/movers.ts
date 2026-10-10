@@ -4,6 +4,7 @@ import type { Draw } from '../kit';
 import { gull } from './coast';
 import { booby, frigatebird, pelican } from './galapagos';
 import { kestrel, tern } from './desert';
+import { dolphin, laughingGull, osprey } from './gulfAnimals';
 import { sampan } from './estuary';
 import { egretFlying, ibis, kite } from './mudLife';
 import { cormorant, westernGull } from './pnwBirds';
@@ -74,6 +75,19 @@ const boobyBird: Bird = (d, x, y, s, f) => booby(d, x, y, s, f);
 const pelicanBird: Bird = (d, x, y, s, f) => pelican(d, x, y, s, f);
 const westernGullBird: Bird = (d, x, y, s, f) => westernGull(d, x, y, s, f);
 const cormorantBird: Bird = (d, x, y, s, f) => cormorant(d, x, y, s, f);
+const laughingGullBird: Bird = (d, x, y, s, f) => laughingGull(d, x, y, s, f);
+const ospreyBird: Bird = (d, x, y, s, f) => osprey(d, x, y, s, f);
+
+/** Frames in a dolphin's cycle: rolling up through the surface and down for the first ROLL of them, then under. */
+const ROLL_FRAMES = 14;
+const ROLL = 8;
+
+/** A pair of dolphins rolling through the swell, the second a little behind and out of step. */
+function dolphins(d: Draw, x: number, y: number, f: number): void {
+  const roll = (k: number): number => (((f - k) % ROLL_FRAMES) + ROLL_FRAMES) % ROLL_FRAMES / ROLL;
+  dolphin(d, x - 26, y + 3, 0.85, roll(3));
+  dolphin(d, x, y, 1, roll(0));
+}
 
 export const THEME_MOVERS: Readonly<Record<ThemeId, readonly MoverSpec[]>> = {
   // Frigatebirds gliding over the lagoon, and the seaplane droning across.
@@ -140,5 +154,19 @@ export const THEME_MOVERS: Readonly<Record<ThemeId, readonly MoverSpec[]>> = {
     { layer: 'sea', y: 150, x: 860, speed: -9, bob: 0.8, fps: 7, turns: true, ...flock([[0, 0, 0.5], [16, 1, 0.48]], cormorantBird) },
     { layer: 'cliffs', y: 196, x: 700, speed: -10, bob: 2, fps: 2.5, turns: true, ...flock([[0, 0, 1.1], [34, 4, 1.05], [68, 6, 1], [102, 9, 1]], pelicanBird, 0.7) },
     { layer: 'cliffs', y: 236, x: 300, speed: 18, bob: 1, fps: 8, turns: true, ...flock([[0, 0, 0.9], [22, 2, 0.85], [42, -1, 0.85]], cormorantBird) },
+  ],
+  // An osprey circling high, laughing gulls on the wind, brown pelicans in file low over the water, dolphins rolling.
+  wreck: [
+    { layer: 'sky', y: 60, x: 760, speed: 1.5, bob: 1.5, fps: 1.5, circle: { r: 46, period: 26 }, turns: true, ...flock([[0, 0, 1.15]], ospreyBird, 0.35) },
+    { layer: 'sky', y: 112, x: 260, speed: 11, bob: 2.5, fps: 4, turns: true, ...flock([[0, -5, 1.05], [30, 6, 0.9]], laughingGullBird) },
+    { layer: 'sky', y: 150, x: 900, speed: -8, bob: 2, fps: 4.5, turns: true, ...flock([[0, 0, 0.8]], laughingGullBird) },
+    { layer: 'sky', y: 42, x: 80, speed: 9, bob: 2, fps: 4, turns: true, ...flock([[0, 0, 0.65]], laughingGullBird) },
+    { layer: 'sea', y: 100, x: 120, speed: 6, bob: 1.2, fps: 2, turns: true, ...flock([[0, 0, 0.42], [16, 2, 0.41], [32, 3, 0.4], [48, 5, 0.39], [64, 6, 0.38], [80, 8, 0.37]], pelicanBird, 0.6) },
+    {
+      layer: 'sea', y: 152, x: 560, speed: 4, frames: ROLL_FRAMES, fps: 4, turns: true,
+      box: { left: -44, right: 22, top: -20, bottom: 6 }, draw: dolphins,
+    },
+    { layer: 'cliffs', y: 168, x: 820, speed: -9, bob: 2, fps: 2.5, turns: true, ...flock([[0, 0, 1.1], [34, 4, 1.05], [68, 7, 1], [102, 9, 1]], pelicanBird, 0.7) },
+    { layer: 'cliffs', y: 126, x: 640, speed: 1, bob: 2, fps: 3, circle: { r: 40, period: 16 }, turns: true, ...flock([[0, 0, 1.1]], laughingGullBird, 0.6) },
   ],
 };

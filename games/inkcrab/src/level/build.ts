@@ -95,9 +95,9 @@ export const START_SHELL: ShellKind = 'periwinkle';
 export const START_SIZE = 1;
 
 /** The level's goal size: the biggest its shells allow. */
-/** Every shell a level has besides the starting one: those laid out, and those the tide washes in. */
+/** Every shell a level has besides the starting one: those laid out, those the tide washes in, and those rival hermit crabs are in. */
 export function levelShells(def: LevelDef): ShellKind[] {
-  return [...def.shells.map(([k]) => k), ...(def.tideBrings?.shells ?? []).map(([k]) => k)];
+  return [...def.shells.map(([k]) => k), ...(def.tideBrings?.shells ?? []).map(([k]) => k), ...(def.rivals ?? []).map(([k]) => k)];
 }
 
 export function levelGoal(def: LevelDef): number {
@@ -167,6 +167,7 @@ export function buildLevel(def: LevelDef): BeachSetup {
     vents,
     fog: def.fog,
     wrack: def.kelp,
+    rivals: def.rivals,
     startGrowth: { size: START_SIZE, meter: 0, bank: 0 },
     goal: levelGoal(def),
   };

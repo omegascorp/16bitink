@@ -10,6 +10,7 @@ export const SHELL_KINDS = [
   'mangrovewinkle', 'rivernerite', 'mudcreeper', 'telescope', 'mudwhelk',
   'drupe', 'hornshell', 'spindle', 'bonnet', 'harp',
   'blackturban', 'kelpsnail', 'kellets', 'oregontriton', 'wavyturban',
+  'nassa', 'figshell', 'tulip', 'lightningwhelk', 'horseconch',
 ] as const;
 export type ShellKind = (typeof SHELL_KINDS)[number];
 
@@ -71,7 +72,19 @@ export const SHELLS: Readonly<Record<ShellKind, ShellSpec>> = {
   kellets: spec('kellets', "Kellet's whelk", 3, 6, 2, 3),
   oregontriton: spec('oregontriton', 'Oregon triton', 4, 7, 2, 3),
   wavyturban: spec('wavyturban', 'wavy turban', 5, 8, 3, 4),
+  // Wreck Cove (beach 7): a Gulf shelling beach, where the whelks and conchs wash up by the wreck.
+  nassa: spec('nassa', 'nassa', 1, 3, 1, 2),
+  figshell: spec('figshell', 'fig shell', 2, 4, 1, 2),
+  tulip: spec('tulip', 'tulip shell', 3, 6, 2, 3),
+  lightningwhelk: spec('lightningwhelk', 'lightning whelk', 4, 7, 2, 3),
+  horseconch: spec('horseconch', 'horse conch', 5, 8, 3, 4),
 };
+
+/** A hermit crab's body box: the size of its shell (the biggest body that shell takes), or of its own body when it's out of one. */
+export function crabBox(size: number, shell: ShellKind | null): { w: number; h: number } {
+  const px = shellPx(shell ? SHELLS[shell].maxSize : size);
+  return { w: px * 0.85, h: px * 0.7 };
+}
 
 export function canWear(shell: ShellSpec, bodySize: number): boolean {
   return bodySize >= shell.minSize && bodySize <= shell.maxSize;

@@ -10,14 +10,15 @@ import { isWet, type Water } from './water';
 import { settleColumn } from './sandfall';
 import { digColumns, diggableOf, digTargets, inReach, placeTarget, tileSpan, type TilePos } from './dig';
 import { feed, initialGrowth, isCapped, settle, type Growth } from './growth';
-import { buriedFood, centre, food, makeItem, overlaps, type Item } from './items';
+import { buriedFood, centre, food, makeItem, overlaps, shell, type Item } from './items';
 import { createRng, type Rng } from './rng';
 import { inRoots, isLedge, isRoot, perchRow, type Roots } from './roots';
-import { canWear, MOUTH_OFFSET, sandCapacity, shellPx, SHELLS, speedFactor, type ShellKind } from './shells';
+import { canWear, crabBox, MOUTH_OFFSET, sandCapacity, shellPx, SHELLS, speedFactor, type ShellKind } from './shells';
 import { startSwap, tickSwap, type Swap } from './swap';
 import { blasts, throwSpeed, type Vent } from './vents';
 import { FOG, fogAt, type FogSpec } from './fog';
 import { KELP, underKelp, wrackColumn, type WrackSpec } from './kelp';
+import { canRap, inShell, isRival, makeRival, RIVAL, stepRival, type RivalSpec } from './rivals';
 import { dig, isDiggable, isSolid, place, surfaceRow, tileAt, TILE, type Terrain } from './terrain';
 
 export interface Input {
@@ -53,6 +54,8 @@ export type SimEvent =
   | { readonly type: 'struck'; readonly x: number; readonly y: number }
   /** A steam vent threw the crab into the air. */
   | { readonly type: 'thrown'; readonly x: number; readonly y: number }
+  /** The crab rapped on a rival's shell and it let go: `item` is the shell, now loose. */
+  | { readonly type: 'rapped'; readonly x: number; readonly y: number; readonly item: number }
   | { readonly type: 'won' }
   | { readonly type: 'lost' }
   | { readonly type: 'swapDone'; readonly from: ShellKind | null; readonly to: ShellKind; readonly grew: number; readonly dropped: number | null };
@@ -114,6 +117,8 @@ export interface BeachSetup {
   readonly fog?: FogSpec;
   /** Kelp wrack on the sand (default none). */
   readonly wrack?: readonly WrackSpec[];
+  /** Rival hermit crabs, each in its shell (default none). Never restocked. */
+  readonly rivals?: readonly RivalSpec[];
 }
 
 /** Birds a level keeps overhead: how many, and how big (they hunt crabs smaller than that). */
@@ -176,11 +181,6 @@ const MUD = { speed: 0.75, jump: 0.85, dig: 0.5 } as const;
 const PERCHED_FOOD = 0.45;
 export const LIVES = 3;
 
-function crabBox(size: number, shell: ShellKind | null): { w: number; h: number } {
-  const px = shellPx(shell ? SHELLS[shell].maxSize : size);
-  return { w: px * 0.85, h: px * 0.7 };
-}
-
 /**
  * The test beach's rules, independent of Phaser: walking, eating, the
  * growth cap and bank, digging and placing sand, and moving house.
@@ -213,6 +213,9 @@ export class Beach {
   elapsed = 0;
   nearbyShell: Item | null = null;
   nearbyFits = false;
+  /** The nearest rival close enough, and small enough, to rap on its shell. E moves into a fitting shell first. */
+  nearbyRival: Critter | null = null;
+  private readonly hasRivals: boolean;
   private readonly rng: Rng;
   private readonly surfaceFood: number;
   private readonly shallowFood: number;
@@ -266,6 +269,11 @@ export class Beach {
       for (let n = 0; n < g.count; n++) this.spawnCritter(i, true);
     });
     for (const g of setup.birds ?? []) for (let n = 0; n < g.count; n++) this.spawnBird(g);
+    this.hasRivals = (setup.rivals?.length ?? 0) > 0;
+    for (const spec of setup.rivals ?? []) {
+      const k = makeRival(this.terrain, this.nextId++, spec, this.tileSize);
+      this.critters.set(k.id, k);
+    }
     for (let tries = 0; this.shallow.size < this.shallowFood && tries < this.shallowFood * 8; tries++) this.plantShallow();
   }
 
@@ -380,7 +388,7 @@ export class Beach {
     if (input.interact && this.nearbyShell && this.nearbyFits) {
       this.crab = { ...this.crab, swap: startSwap(this.nearbyShell.id) };
       events.push({ type: 'swapStart', id: this.nearbyShell.id });
-    }
+    } else if (input.interact && this.nearbyRival) this.rap(this.nearbyRival, events);
     this.eat(events);
   }
 
@@ -739,8 +747,60 @@ export class Beach {
       inWater: this.submerged(c.body), inRoots: this.inRoots(c.body), veil: this.fogOver(c.body), covered: this.underKelp(c.body),
     };
     const env = this.surroundings;
-    for (const k of this.critters.values()) this.critters.set(k.id, stepCritter(this.terrain, k, quarry, dt, this.tileSize, this.rng, env));
+    const rapper = { box: c.body, size: c.growth.size };
+    for (const k of this.critters.values()) {
+      if (!isRival(k)) {
+        this.critters.set(k.id, stepCritter(this.terrain, k, quarry, dt, this.tileSize, this.rng, env));
+        continue;
+      }
+      const { rival, took } = stepRival(this.terrain, k, rapper, this.items.values(), dt, this.tileSize, this.rng, env, c.swap?.itemId ?? null);
+      this.critters.set(k.id, rival);
+      if (took) this.items.delete(took.id);
+    }
     for (const k of this.critters.values()) if (stranded(this.terrain, k, this.tileSize)) this.fishDies(k);
+  }
+
+  /**
+   * Rapping on a rival's shell: it lets go of it, the shell drops loose on
+   * the sand where it stood, and the rival scuttles away from the crab.
+   */
+  private rap(k: Critter, events: SimEvent[]): void {
+    if (!k.shell) return;
+    const id = this.nextId++;
+    const proto = makeItem(id, shell(k.shell), 0, 0, false);
+    const at = centre(k);
+    this.items.set(id, { ...proto, ...this.clearSpot(at.x - proto.w / 2, k.y + k.h - proto.h, proto.w, proto.h) });
+    const away: 1 | -1 = at.x >= centre(this.crab.body).x ? 1 : -1;
+    this.critters.set(k.id, { ...inShell(k, null), tucked: false, dir: away, turnIn: RIVAL.fleeFor, bored: RIVAL.fleeFor });
+    events.push({ type: 'rapped', x: at.x, y: k.y, item: id });
+  }
+
+  /** The nearest rival close enough, and small enough, for the crab to rap on its shell. */
+  private rivalToRap(): Critter | null {
+    const c = this.crab;
+    const rapper = { box: c.body, size: c.growth.size };
+    const at = centre(c.body).x;
+    let best: Critter | null = null;
+    for (const k of this.critters.values()) {
+      if (canRap(k, rapper) && (!best || Math.abs(centre(k).x - at) < Math.abs(centre(best).x - at))) best = k;
+    }
+    return best;
+  }
+
+  /**
+   * The nearest place to put a box (a dropped shell) at or around x, y that
+   * isn't in the sand: a little to either side, or up a little, so it's never
+   * left wedged where nothing can reach it.
+   */
+  private clearSpot(x: number, y: number, w: number, h: number): { x: number; y: number } {
+    const T = this.tileSize;
+    for (let up = 0; up <= T * 2; up += T / 4) {
+      for (const side of [0, 1, -1, 2, -2, 3, -3, 4, -4]) {
+        const at = { x: x + side * (T / 4), y: y - up };
+        if (!boxHitsSolid(this.terrain, { ...at, w, h }, T)) return at;
+      }
+    }
+    return { x, y: y - T * 2 };
   }
 
   /**
@@ -769,8 +829,8 @@ export class Beach {
   private meetCritters(events: SimEvent[]): void {
     for (const k of this.critters.values()) {
       const c = this.crab;
-      // A gull in the air can't catch the crab (or be eaten).
-      if (k.flight) continue;
+      // A gull in the air can't catch the crab (or be eaten); a rival hermit crab is neither hunter nor food.
+      if (k.flight || isRival(k)) continue;
       if (this.armReaches(k)) {
         if (movementOf(k.species) === 'wade') {
           this.stabbed(k, events);
@@ -996,6 +1056,7 @@ export class Beach {
     }
     this.nearbyShell = best;
     this.nearbyFits = bestFits;
+    this.nearbyRival = this.hasRivals && !c.swap && !c.hidden ? this.rivalToRap() : null;
   }
 }
 

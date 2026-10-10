@@ -8,6 +8,7 @@ import { gullFlight } from './birds/gullFlight';
 import { hawk } from './birds/hawk';
 import { kestrel } from './birds/kestrel';
 import { kingfisher } from './birds/kingfisher';
+import { osprey } from './birds/osprey';
 import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, drawCritter, drawHeronStrike } from './critterArt';
 import { FRAME, GROUND } from './frame';
 import { drawFood, drawHighlight, drawPuff, FOOD_FRAME, FOOD_GROUND, FOOD_RES } from './itemArt';
@@ -119,6 +120,7 @@ export function generateTextures(scene: Phaser.Scene): void {
         bake(scene, TEX.bird('kestrel', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => kestrel(makeDraw(ctx, 850 + f, f, 0, danger ? RED : undefined), dive));
         bake(scene, TEX.bird('hawk', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => hawk(makeDraw(ctx, 860 + f, f, 0, danger ? RED : undefined), dive));
         bake(scene, TEX.bird('kingfisher', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => kingfisher(makeDraw(ctx, 880 + f, f, 0, danger ? RED : undefined), dive));
+        bake(scene, TEX.bird('osprey', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => osprey(makeDraw(ctx, 890 + f, f, 0, danger ? RED : undefined), dive));
       }
     }
     for (const danger of [false, true]) {

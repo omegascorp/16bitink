@@ -25,6 +25,7 @@ import { RootsView } from './game/rootsView';
 import { VentsView } from './game/ventsView';
 import { FogView } from './game/fogView';
 import { KelpView } from './game/kelpView';
+import { RivalsView } from './game/rivalsView';
 import { wrackAt } from '../logic/kelp';
 import { DPR, screenZoom, viewSize } from './hidpi';
 import type { ResultData } from './ResultScene';
@@ -60,6 +61,7 @@ export class GameScene extends Phaser.Scene {
   private ventsView!: VentsView;
   private fogView: FogView | null = null;
   private kelpView: KelpView | null = null;
+  private rivalsView!: RivalsView;
   private input2!: GameInput;
   private touch!: TouchState;
 
@@ -87,6 +89,7 @@ export class GameScene extends Phaser.Scene {
     this.fogView = fog;
     this.itemsView = new ItemsView(this);
     this.crittersView = new CrittersView(this, setup.terrain, T);
+    this.rivalsView = new RivalsView(this);
     this.birdsView = new BirdsView(this, setup.terrain, T);
     this.sandFx = new SandFxView(this, this.beach);
     this.waterView = new WaterView(this, this.beach);
@@ -161,6 +164,7 @@ export class GameScene extends Phaser.Scene {
     this.terrainView.flush();
     this.itemsView.sync(this.beach.items, time, this.beach.crab.swap?.itemId ?? null);
     this.crittersView.sync(this.beach.critters, this.beach.crab.growth.size, time);
+    this.rivalsView.sync(this.beach.critters, time);
     this.birdsView.sync(this.beach.birds, this.beach.crab.growth.size, time);
     this.sandFx.update(dt, time);
     this.waterView.update(this.cameras.main.worldView, time);
@@ -230,6 +234,9 @@ export class GameScene extends Phaser.Scene {
     const p = this.cameras.main.getWorldPoint(tap.x * DPR, tap.y * DPR);
     const shell = this.beach.nearbyShell;
     if (shell && overlaps({ x: p.x, y: p.y, w: 1, h: 1 }, shell, 6)) return { tapTile: null, tapInteract: true };
+    // Tapping a rival close enough to rap on raps on it.
+    const rival = this.beach.nearbyRival;
+    if (rival && overlaps({ x: p.x, y: p.y, w: 1, h: 1 }, rival, 6)) return { tapTile: null, tapInteract: true };
     const T = this.beach.tileSize;
     return { tapTile: [Math.floor(p.x / T), Math.floor(p.y / T)], tapInteract: false };
   }
@@ -248,6 +255,8 @@ export class GameScene extends Phaser.Scene {
       this.cameras.main.shake(180, 0.004);
     } else if (e.type === 'thrown') {
       this.floatText(e.x, e.y, 'whoosh!');
+    } else if (e.type === 'rapped') {
+      this.floatText(e.x, e.y, 'knock knock!');
     } else if (e.type === 'struck') {
       this.floatText(e.x, e.y, 'tok! safe in the shell');
       this.cameras.main.shake(90, 0.002);

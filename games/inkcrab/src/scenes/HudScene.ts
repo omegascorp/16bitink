@@ -142,7 +142,11 @@ export class HudScene extends Phaser.Scene {
     this.shell.setText(spec ? `in a ${spec.name} · fits sizes ${spec.minSize}–${spec.maxSize}` : 'no shell!');
 
     const near = beach.nearbyShell;
-    if (near && near.kind.type === 'shell' && !c.swap) {
+    const rival = beach.nearbyRival;
+    if (rival?.shell && !c.swap && !beach.nearbyFits) {
+      const how = this.touchSeen ? 'tap it' : 'press E';
+      this.prompt.setText(`hermit crab in a ${SHELLS[rival.shell].name} · ${how} to rap on its shell`).setPosition(width / 2, height - 24).setVisible(true);
+    } else if (near && near.kind.type === 'shell' && !c.swap) {
       const s = SHELLS[near.kind.shell];
       const how = this.touchSeen ? 'tap it' : 'press E';
       const verdict = beach.nearbyFits

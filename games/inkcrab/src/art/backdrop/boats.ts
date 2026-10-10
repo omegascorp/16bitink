@@ -293,3 +293,63 @@ export function troller(t: Draw, x: number, water: number, s: number): void {
   figure(t, x - 8 * s, water - 4.5 * s, s * 0.8, '#d9a03a', false);
   wash(t, P(16, 0), P(-15, 0), s * 0.7);
 }
+
+/**
+ * A Gulf shrimp boat running home: a white wooden hull with a high, flared
+ * bow, the wheelhouse forward, a stout mast behind it, and the two long
+ * outrigger booms raised in a wide V with the green nets hoisted to their
+ * tips in bunches and the trawl doors hanging beside them.
+ */
+export function shrimper(t: Draw, x: number, water: number, s: number): void {
+  const { pen } = t;
+  const P = (dx: number, dy: number): Pt => pt(x + dx * s, water + dy * s);
+  reflection(t, x, water + 0.5, 34 * s, 6 * s, '#a9c9c0', 0.35);
+  const foot = P(-2, -6);
+  const top = P(-2, -38);
+  for (const tip of [P(-24, -30), P(18, -33)]) {
+    pen.stroke([foot, tip], 0.7 * s, t.ink, FAR, false);
+    pen.hair([top, tip], 0.3, t.ink, FAR * 0.6);
+    // The net: a long mesh bag hoisted by its head to the boom's tip, bunched, its cod end hanging lowest.
+    const bag = [tip, pt(tip.x + 2.2 * s, tip.y + 3 * s), pt(tip.x + 1.6 * s, tip.y + 13 * s), pt(tip.x - 0.4 * s, tip.y + 16.5 * s), pt(tip.x - 2 * s, tip.y + 12 * s), pt(tip.x - 1.4 * s, tip.y + 3 * s)];
+    pen.fill(bag, PAPER_FILL, 0.8);
+    pen.fill(bag, '#6f8f62', 0.5);
+    pen.clipped(bag, () => {
+      pen.hatch(bag, 0.9 * s, 1.15, 0.25, { color: t.ink, alpha: FAR * 0.5 });
+      pen.hatch(bag, 0.9 * s, Math.PI - 1.15, 0.25, { color: t.ink, alpha: FAR * 0.5 });
+    });
+    pen.hair(edges(bag), 0.35, t.ink, FAR * 0.8);
+    const door = [pt(tip.x + 2.6 * s, tip.y + 4 * s), pt(tip.x + 4.8 * s, tip.y + 4.4 * s), pt(tip.x + 4.8 * s, tip.y + 9.4 * s), pt(tip.x + 2.6 * s, tip.y + 9 * s)];
+    pen.hair([pt(tip.x + 0.4 * s, tip.y + 0.6 * s), pt(tip.x + 3.6 * s, tip.y + 4.2 * s)], 0.3, t.ink, FAR * 0.7);
+    pen.fill(door, PAPER_FILL, 1);
+    pen.fill(door, TEAK, 0.7);
+    pen.hair(edges(door), 0.35, t.ink, FAR);
+  }
+  pen.stroke([foot, top], 0.9 * s, t.ink, FAR, false);
+  pen.hair([P(-5, -30), P(1, -30)], 0.5, t.ink, FAR);
+  pen.hair([top, P(16, -8)], 0.3, t.ink, FAR * 0.6);
+  pen.hair([top, P(-17, -5)], 0.3, t.ink, FAR * 0.6);
+  // The wheelhouse forward, a band of windows across it, a radar mast on its roof.
+  const house = [P(2.5, -5.5), P(11.5, -6), P(11, -13.6), P(3, -13.8)];
+  pen.fill(house, PAPER_FILL, 1);
+  pen.fill(house, HULL_WHITE, 0.8);
+  pen.fill([P(6.6, -10.8), P(10.6, -11), P(10.4, -12.6), P(6.6, -12.6)], t.ink, FAR * 0.75);
+  pen.fill([P(3.8, -10.8), P(5.8, -10.8), P(5.8, -12.6), P(3.8, -12.6)], t.ink, FAR * 0.6);
+  pen.fill([P(2, -13.8), P(12, -13.6), P(11.6, -14.8), P(2.4, -15)], '#3f6f6a', 0.6);
+  pen.stroke(edges(house), 0.5, t.ink, FAR, false);
+  pen.hair([P(6, -15), P(6, -18.5)], 0.4, t.ink, FAR);
+  pen.hair([P(4.6, -18.4), P(7.4, -18.4)], 0.5, t.ink, FAR);
+  // The hull: the sheer sweeping up to a high flared bow, a dark rubbing strake, a red bottom, rust under the scuppers.
+  const sheer = bezier(P(-18, -4.6), P(2, -4.2), P(19, -10), 10);
+  const hull = [...sheer, ...bezier(P(19, -10), P(17.5, -3), P(12, 0), 5).slice(1), P(-15, 0), P(-18.4, -2.4)];
+  pen.fill(hull, PAPER_FILL, 1);
+  pen.fill(hull, HULL_WHITE, 0.85);
+  pen.clipped(hull, () => {
+    pen.fill([...sheer, ...[...sheer].reverse().map((p) => pt(p.x, p.y + 1.3 * s))], '#2f5f5a', 0.6);
+    pen.fill([P(-20, -1.1), P(20, -1.1), P(20, 1), P(-20, 1)], RED, 0.4);
+    for (const dx of [-12, -6, 0, 6]) pen.hair([P(dx, -3), P(dx + 0.3, -1.2)], 0.5, '#a0583a', 0.45);
+    pen.hatch(hull, 1.5, 0.3, 0.35, { color: t.ink, alpha: FAR * 0.4, onlyBelow: water - 2.5 * s });
+  });
+  pen.stroke(edges(hull), 0.7 * s, t.ink, FAR * 1.1, false);
+  figure(t, x - 9 * s, water - 4.4 * s, s * 0.8, '#e0b84a', false);
+  wash(t, P(18, 0), P(-17, 0), s * 0.7);
+}

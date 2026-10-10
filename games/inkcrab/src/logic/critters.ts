@@ -2,7 +2,7 @@ import { boxHitsSolid, climbBody, jump, moveBody, PHYS, WATER, type Body, type B
 import { sightInFog } from './fog';
 import { centre } from './items';
 import type { Rng } from './rng';
-import { shellPx } from './shells';
+import { shellPx, type ShellKind } from './shells';
 import { movementOf, SPECIES, type SpeciesId } from './species';
 import { isSolid, surfaceRow, tileAt, TILE, type Terrain } from './terrain';
 
@@ -37,6 +37,10 @@ export interface Critter extends Body {
   readonly reach?: number;
   /** Seconds a climber won't take hold of the roots (it let go to drop on something). */
   readonly letGo?: number;
+  /** A rival hermit crab's shell; null while it's out of one (see rivals.ts). */
+  readonly shell?: ShellKind | null;
+  /** A rival pulled into its shell, keeping still. */
+  readonly tucked?: boolean;
 }
 
 /** What a creature knows of the beach besides its sand: where the water and the mangrove roots are. */
