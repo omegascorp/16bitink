@@ -24,16 +24,28 @@ export async function startCheckout(game: string): Promise<CheckoutResult> {
   }
 }
 
-/** Whether someone is signed in; null when the check itself failed. */
-export async function isSignedIn(): Promise<boolean | null> {
+/** Who is signed in: `id` is set only when someone is. */
+export interface Me {
+  readonly signedIn: boolean;
+  readonly id?: string;
+}
+
+/** Who is signed in; null when the check itself failed. */
+export async function fetchMe(): Promise<Me | null> {
   try {
     const res = await fetch('/api/me', { credentials: 'same-origin' });
-    const body = (await res.json().catch(() => null)) as { success?: boolean; data?: { signedIn?: boolean } } | null;
+    const body = (await res.json().catch(() => null)) as { success?: boolean; data?: { signedIn?: boolean; id?: unknown } } | null;
     if (!res.ok || !body?.success) return null;
-    return body.data?.signedIn === true;
+    const id = body.data?.id;
+    return body.data?.signedIn === true && typeof id === 'string' && id ? { signedIn: true, id } : { signedIn: false };
   } catch {
     return null;
   }
+}
+
+/** Whether someone is signed in; null when the check itself failed. */
+export async function isSignedIn(): Promise<boolean | null> {
+  return (await fetchMe())?.signedIn ?? null;
 }
 
 /**

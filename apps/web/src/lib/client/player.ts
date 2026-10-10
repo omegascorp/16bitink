@@ -1,8 +1,9 @@
-import { isGameModule, type GameModule } from '@16bitink/game-sdk';
+import { isGameModule, type GameModule, type KeyValueStore } from '@16bitink/game-sdk';
 import { GAME_LOADERS } from '../../games/loaders';
 import { isPendingBuy, BUY_PARAM } from '../buyFlow';
-import { buyFullGame, isSignedIn, startCheckout } from './checkout';
+import { buyFullGame, fetchMe, startCheckout } from './checkout';
 import { accountProgress } from './progress';
+import { scopedStorage } from './scopedStorage';
 
 interface ApiEnvelope<T> {
   readonly success: boolean;
@@ -67,7 +68,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
   // Start the ownership check and engine download while the player reads the splash.
   const accessP = checkAccess(game);
   const progressP = accountProgress(game);
-  const signedInP = isSignedIn();
+  const meP = fetchMe();
   if (isPendingBuy(window.location.search, game)) void resumeBuy(game, status, accessP);
   // Re-created on retry: a failed dynamic import stays rejected forever.
   let engineP = loadGame(game);
@@ -80,14 +81,17 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
     // Must be requested synchronously inside the click for browsers to allow it.
     const fs = goFullscreen(stage);
     try {
-      const [module, { unlocked, allLevelsOpen }, progress, signedIn] = await Promise.all([engineP, accessP, progressP, signedInP, fontP, fs]);
+      const [module, { unlocked, allLevelsOpen }, accountSaves, me] = await Promise.all([engineP, accessP, progressP, meP, fontP, fs]);
+      // Without knowing who is signed in, local saves can't be told apart: play on this browser's alone.
+      const userId = me?.id ?? null;
+      const progress = userId ? accountSaves : null;
       splash.remove();
       const handle = module.mount(stage, {
         unlocked,
         allLevelsOpen,
-        storage: safeStorage(),
+        storage: safeStorage(userId),
         progress: progress ?? undefined,
-        signedIn: signedIn === true,
+        signedIn: me?.signedIn === true,
         price: stage.dataset.price || undefined,
         loadContent: () => getJson<unknown>(`/api/content/${encodeURIComponent(game)}`),
         onBuy: () => {
@@ -125,9 +129,10 @@ async function resumeBuy(game: string, status: HTMLElement, accessP: Promise<Acc
   status.textContent = result.error ?? '';
 }
 
-function safeStorage(): Storage | undefined {
+/** This browser's storage, keyed to the signed-in account (see scopedStorage). */
+function safeStorage(userId: string | null): KeyValueStore | undefined {
   try {
-    return window.localStorage;
+    return scopedStorage(window.localStorage, userId);
   } catch {
     return undefined;
   }
