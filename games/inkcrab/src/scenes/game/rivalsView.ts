@@ -18,7 +18,7 @@ const WALK_FPS = 9;
 const BOIL_MS = 260;
 
 const KEY = {
-  back: (naked: boolean, f: number) => `rival-${naked ? 'naked-' : ''}back-${f}`,
+  back: (naked: boolean, f: number) => `rival-${naked ? 'naked-tail-' : ''}back-${f}`,
   front: (naked: boolean, f: number) => `rival-${naked ? 'naked-' : ''}front-${f}`,
 } as const;
 
@@ -29,7 +29,7 @@ interface RivalSprites {
   readonly front: Phaser.GameObjects.Image;
 }
 
-/** The rival's own drawings: the player's crab in purple-pincher colours, in blue ink (it's never a danger). */
+/** The rival's own drawings: the player's crab in purple-pincher colours, in blue ink (it's never a danger); out of a shell, with its soft tail. */
 function bakeRivals(scene: Phaser.Scene): void {
   for (let f = 0; f < BOIL; f++) {
     for (const naked of [false, true]) {
@@ -40,7 +40,7 @@ function bakeRivals(scene: Phaser.Scene): void {
         draw(makeDraw(ctx, seed, f, GROUND));
         scene.textures.addCanvas(key, canvas);
       };
-      bake(KEY.back(naked, f), 140 + f, (d) => drawCrabBack(d, naked, RIVAL_COLORS));
+      bake(KEY.back(naked, f), 140 + f, (d) => drawCrabBack(d, naked, RIVAL_COLORS, naked));
       bake(KEY.front(naked, f), 150 + f, (d) => drawCrabFront(d, naked, RIVAL_COLORS));
     }
   }

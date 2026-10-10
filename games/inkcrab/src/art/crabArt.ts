@@ -1,13 +1,14 @@
 import type { Pt } from './pen';
-import { capsule, closed, cub, type Draw, edge, eyeDot, mottle, oval, pt, setae, shade, skin, TAU, tube } from './kit';
+import { capsule, closed, cub, type Draw, edge, eyeDot, mottle, oval, pt, ribbon, setae, shade, skin, TAU, tube } from './kit';
 import { PAPER_FILL } from './palette';
 
 /**
  * The hermit crab, after InkFish's: jointed legs, a big right claw with dark
  * fingertips, eyes on long stalks and two-tone antennae. It is drawn in two
  * layers around the shell: far legs and claw behind it, everything else in
- * front. Facing right, in the shared frame (see frame.ts). Its soft tail is
- * never drawn: it always stays inside a shell, even when moving house.
+ * front. Facing right, in the shared frame (see frame.ts). The player's
+ * soft tail is never drawn: it always stays inside a shell, even when moving
+ * house. A rival turned out of its shell shows it (see drawCrabBack).
  */
 /** A hermit crab's colours: its body, the dark tips of its legs and claws, and its soft parts when it's out of a shell. */
 export interface CrabColors {
@@ -104,13 +105,43 @@ function legs(d: Draw, far: boolean, wash: string, tip: string): void {
   });
 }
 
+/**
+ * The soft abdomen of a hermit crab out of its shell: a pale, swollen,
+ * spirally curled tail behind the head shield, faintly ringed, ending in
+ * the little hooked tail fan it grips the inside of a shell with.
+ */
+function abdomen(d: Draw, wash: string): void {
+  const sag = [0, 1, -0.5][d.f]!;
+  // Back from under the shield, swelling, then coiling down and under itself.
+  const spine = cub(pt(24, 9), pt(4, -6), pt(-26, 2 + sag), pt(-12, 24 + sag), 18);
+  const { top, shape } = ribbon(spine, (u) => 17 + 10 * Math.sin(Math.PI * u) - 11 * u);
+  skin(d, shape, wash, 0.55);
+  shade(d, shape, 0.4);
+  // Faint rings across the soft skin, and the curl's inner crease.
+  for (const u of [0.22, 0.4, 0.58, 0.74]) {
+    const i = Math.round(u * (spine.length - 1));
+    const a = top[i]!;
+    const c = spine[i]!;
+    d.pen.hair([a, pt(c.x + (c.x - a.x) * 0.6, c.y + (c.y - a.y) * 0.6)], 0.5, d.ink, 0.45);
+  }
+  edge(d, shape, 1.1);
+  // The tail fan: two small hooked plates at the tip.
+  const end = spine[spine.length - 1]!;
+  for (const [dx, dy] of [[-3, 3], [2, 4.5]] as const) {
+    const plate = oval(end.x + dx, end.y + dy, 3.4, 2.4, 12);
+    skin(d, plate, wash, 0.7);
+    edge(d, plate, 0.8);
+  }
+}
+
 const OPEN = [1, 4, 2] as const;
 
-/** Far legs and the small claw: drawn before the shell. */
-export function drawCrabBack(d: Draw, naked = false, colors: CrabColors = PLAYER_COLORS): void {
+/** Far legs and the small claw: drawn before the shell. `tail`: out of a shell for good, its soft abdomen shows too. */
+export function drawCrabBack(d: Draw, naked = false, colors: CrabColors = PLAYER_COLORS, tail = false): void {
   const wash = naked ? colors.soft : colors.body;
   legs(d, true, wash, colors.tip);
   claw(d, 4, 2, 0.65, wash, (OPEN[d.f] ?? 1) * 0.6, true, colors.tip);
+  if (tail) abdomen(d, colors.soft);
 }
 
 /** Head, eyes, antennae, near legs and the big claw: drawn over the shell. */
