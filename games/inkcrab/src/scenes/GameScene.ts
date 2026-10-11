@@ -53,6 +53,10 @@ export interface GameData {
   readonly levelId: string;
 }
 
+/** Short side (CSS px) the zoom is tuned for; smaller screens zoom in a little, down to ZOOM_MIN_FACTOR of the view. */
+const ZOOM_REFERENCE = 680;
+const ZOOM_MIN_FACTOR = 0.75;
+
 /** One level: the beach, the crab, and what happens when it's won or lost. */
 export class GameScene extends Phaser.Scene {
   beach!: Beach;
@@ -265,7 +269,11 @@ export class GameScene extends Phaser.Scene {
     const c = this.beach.crab;
     const px = shellPx(c.shell ? c.shell.size : c.growth.size);
     const T = this.beach.tileSize;
-    const wanted = height / (px * 4.2 + T * 10);
+    // By the screen's short side, as InkFish does, so a phone turned upright keeps the same zoom;
+    // and a little closer on a small screen, so the crab stays big enough to read.
+    const short = Math.min(width, height);
+    const closer = Phaser.Math.Clamp(short / ZOOM_REFERENCE, ZOOM_MIN_FACTOR, 1);
+    const wanted = short / ((px * 4.2 + T * 10) * closer);
     const fit = Math.max(height / (this.beach.terrain.height * T), width / (this.beach.terrain.width * T));
     return Math.max(fit, Math.min(3, wanted));
   }

@@ -10,7 +10,7 @@ import { TEX } from '../art/textures';
 import { FOOT, FRAME, SHELL_MID } from '../art/frame';
 import type { GameScene } from './GameScene';
 import type { TouchState } from './game/input';
-import { screenScene, toView, viewSize } from './hidpi';
+import { screenScene, screenSize, toView, uiScaleOf, viewSize } from './hidpi';
 import { drawSandGauge, HEAP_MAX_W } from './sandGauge';
 import { drawGrowthBar } from './growthBar';
 import { HAND_FONT, inkButton, inkText, wobblyRect } from './ui';
@@ -36,6 +36,13 @@ const INTRO_MS = 3600;
 const INTRO_NOTE_MS = 1500;
 /** The pause button, top right; the lives start left of it. */
 const PAUSE = { w: 52, h: 44, fromRight: 42 } as const;
+/** The smallest a button may be on screen (CSS px), for a fingertip, however small the margin draws. */
+const MIN_TAP = 44;
+/** The pause button's top edge, units. */
+const PAUSE_TOP = 14;
+/** The pause card's buttons: their height, and the card's width. */
+const CARD_BUTTON_H = 52;
+const PAUSE_CARD_W = 300;
 const LIVES_FROM_RIGHT = 104;
 /** Paper behind the HUD's loose lines of text on a night beach. */
 const NIGHT_PAPER = 'rgba(245, 240, 225, 0.88)';
@@ -55,6 +62,8 @@ function hideButton(width: number, height: number): { x: number; y: number; r: n
 /** The notebook margin: level, growth bar, lives, shell, carried sand, and touch controls. */
 export class HudScene extends Phaser.Scene {
   private g!: Phaser.GameObjects.Graphics;
+  /** The touch controls, drawn in screen CSS pixels (see create). */
+  private controls!: Phaser.GameObjects.Graphics;
   private title!: Phaser.GameObjects.Text;
   private sizeText!: Phaser.GameObjects.Text;
   private lives: Phaser.GameObjects.Image[] = [];
@@ -77,13 +86,20 @@ export class HudScene extends Phaser.Scene {
   private hidePointer: number | null = null;
   private stickPull = { x: 0, y: 0 };
   private touchSeen = false;
+  private modeKnown = false;
 
   constructor() {
     super('Hud');
   }
 
   create(): void {
-    screenScene(this);
+    // Smaller on a phone, so the margin doesn't cover the beach.
+    screenScene(this, true);
+    // Touch controls and touch hints from the start on a touch screen (as InkFish), until a key is pressed.
+    if (!this.modeKnown) {
+      this.touchSeen = this.sys.game.device.input.touch;
+      this.modeKnown = true;
+    }
     // The scene object is reused across levels: a finger held down as the last one ended never lifted here.
     this.stickPointer = null;
     this.hidePointer = null;
@@ -92,6 +108,8 @@ export class HudScene extends Phaser.Scene {
     this.introLeaving = false;
     this.pauseLayer = null;
     this.g = this.add.graphics();
+    // The stick and buttons stay thumb-sized however small the margin draws: drawn in screen pixels, scaled back up.
+    this.controls = this.add.graphics();
     const text = (x: number, y: number, size: number, color = BLUE): Phaser.GameObjects.Text =>
       this.add.text(x, y, '', { fontFamily: HAND_FONT, fontSize: `${size}px`, color, padding: { x: 4, y: 2 } });
     const game = this.scene.get('Game') as GameScene;
@@ -116,6 +134,7 @@ export class HudScene extends Phaser.Scene {
     this.input.on('pointerup', this.onUp, this);
     // Pause keys live here: the Game scene's keyboard stops while it's paused.
     this.input.keyboard?.on('keydown-ESC', this.togglePause, this);
+    this.input.keyboard?.on('keydown', () => (this.touchSeen = false));
     this.input.keyboard?.on('keydown-P', this.togglePause, this);
     // Pause when the tab is hidden, so nobody gets caught while away.
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.pauseIfRunning, this);
@@ -182,10 +201,12 @@ export class HudScene extends Phaser.Scene {
     this.help.setPosition(width - 14, height - 10).setText(this.touchSeen
       ? 'tap sand next to the crab to dig · tap open space to drop sand · hold the shell button to hide'
       : '←→ walk · ↑↓ aim · Space jump · X dig · C place sand · E move in · Z hide');
+    this.controls.clear().setScale(1 / uiScaleOf(this));
     if (this.touchSeen) {
-      this.drawStick(height);
-      this.drawJumpButton(width, height);
-      this.drawHideButton(width, height, c.hidden);
+      const screen = screenSize(this);
+      this.drawStick(screen.height);
+      this.drawJumpButton(screen.width, screen.height);
+      this.drawHideButton(screen.width, screen.height, c.hidden);
     }
   }
 
@@ -213,10 +234,10 @@ export class HudScene extends Phaser.Scene {
     const t = game.beach.elapsed;
     const turn = tideTurn(tide, t);
     const level = (1 - Math.cos(tidePhase(tide, t) * Math.PI * 2)) / 2;
-    const x = width - TIDE.fromRight - 10;
-    drawTideClock(this.g, x, TIDE.y, TIDE.r, level, turn.rising);
+    const x = width - TIDE.fromRight - this.pauseGrowth() * 2 - 10;
+    drawTideClock(this.g, x, this.tideY(), TIDE.r, level, turn.rising);
     const secs = Math.ceil(turn.seconds);
-    this.tideText.setText(turn.rising ? `tide coming in · high in ${secs}s` : `tide going out · low in ${secs}s`).setPosition(x - TIDE.r - 10, TIDE.y);
+    this.tideText.setText(turn.rising ? `tide coming in · high in ${secs}s` : `tide going out · low in ${secs}s`).setPosition(x - TIDE.r - 10, this.tideY());
   }
 
   /** On a monsoon beach: the rain clock, and how long until it pours or clears. */
@@ -226,10 +247,10 @@ export class HudScene extends Phaser.Scene {
     this.tideText.setVisible(true);
     const turn = rainTurn(rain, game.beach.elapsed);
     const spell = turn.pouring ? rain.pour : rain.period - rain.pour;
-    const x = width - TIDE.fromRight - 10;
-    drawRainClock(this.g, x, TIDE.y, TIDE.r, 1 - turn.seconds / spell, turn.pouring);
+    const x = width - TIDE.fromRight - this.pauseGrowth() * 2 - 10;
+    drawRainClock(this.g, x, this.tideY(), TIDE.r, 1 - turn.seconds / spell, turn.pouring);
     const secs = Math.ceil(turn.seconds);
-    this.tideText.setText(turn.pouring ? `pouring · hunters half-blind · clears in ${secs}s` : `dry spell · rain in ${secs}s`).setPosition(x - TIDE.r - 10, TIDE.y);
+    this.tideText.setText(turn.pouring ? `pouring · hunters half-blind · clears in ${secs}s` : `dry spell · rain in ${secs}s`).setPosition(x - TIDE.r - 10, this.tideY());
   }
 
   /** On a windy beach: the wind clock, which way the gust blows, and how long until it gets up or dies away. */
@@ -239,11 +260,11 @@ export class HudScene extends Phaser.Scene {
     this.tideText.setVisible(true);
     const turn = windTurn(wind, game.beach.elapsed);
     const spell = turn.gusting ? wind.gust : wind.period - wind.gust;
-    const x = width - TIDE.fromRight - 10;
-    drawWindClock(this.g, x, TIDE.y, TIDE.r, 1 - turn.seconds / spell, turn.gusting, turn.dir);
+    const x = width - TIDE.fromRight - this.pauseGrowth() * 2 - 10;
+    drawWindClock(this.g, x, this.tideY(), TIDE.r, 1 - turn.seconds / spell, turn.gusting, turn.dir);
     const secs = Math.ceil(turn.seconds);
     const way = turn.dir > 0 ? '→' : '←';
-    this.tideText.setText(turn.gusting ? `gusting ${way} · dies down in ${secs}s` : `calm · gust ${way} in ${secs}s`).setPosition(x - TIDE.r - 10, TIDE.y);
+    this.tideText.setText(turn.gusting ? `gusting ${way} · dies down in ${secs}s` : `calm · gust ${way} in ${secs}s`).setPosition(x - TIDE.r - 10, this.tideY());
   }
 
   /** On a moonlit beach: the moon clock, and how long until a cloud covers it or it comes out. */
@@ -253,10 +274,10 @@ export class HudScene extends Phaser.Scene {
     this.tideText.setVisible(true);
     const turn = moonTurn(moon, game.beach.elapsed);
     const spell = turn.dark ? moon.dark : moon.period - moon.dark;
-    const x = width - TIDE.fromRight - 10;
-    drawMoonClock(this.g, x, TIDE.y, TIDE.r, 1 - turn.seconds / spell, turn.dark);
+    const x = width - TIDE.fromRight - this.pauseGrowth() * 2 - 10;
+    drawMoonClock(this.g, x, this.tideY(), TIDE.r, 1 - turn.seconds / spell, turn.dark);
     const secs = Math.ceil(turn.seconds);
-    this.tideText.setText(turn.dark ? `dark · hunters half-blind · moon out in ${secs}s` : `moonlight · cloud in ${secs}s`).setPosition(x - TIDE.r - 10, TIDE.y);
+    this.tideText.setText(turn.dark ? `dark · hunters half-blind · moon out in ${secs}s` : `moonlight · cloud in ${secs}s`).setPosition(x - TIDE.r - 10, this.tideY());
   }
 
   private drawCoach(game: GameScene, width: number): void {
@@ -278,9 +299,11 @@ export class HudScene extends Phaser.Scene {
   private syncLives(n: number, kind: string, width: number): void {
     while (this.lives.length > Math.max(0, n)) this.lives.pop()?.destroy();
     while (this.lives.length < n) this.lives.push(this.add.image(0, 0, TEX.shell(kind, 0)).setOrigin(SHELL_MID / FRAME, FOOT.y / FRAME));
-    this.pauseButton.setPosition(width - PAUSE.fromRight, LIFE.y);
+    // A pause button enlarged for a fingertip stays in the corner, and the lives make room for it.
+    const k = this.tapScale(PAUSE.h);
+    this.pauseButton.setScale(k).setPosition(width - PAUSE.fromRight - this.pauseGrowth(), PAUSE_TOP + (PAUSE.h * k) / 2);
     const scale = (LIFE.size / 116) * shellFit(kind as ShellKind);
-    this.lives.forEach((img, i) => img.setTexture(TEX.shell(kind, 0)).setScale(scale).setPosition(width - LIVES_FROM_RIGHT - i * LIFE.gap, LIFE.y + 12));
+    this.lives.forEach((img, i) => img.setTexture(TEX.shell(kind, 0)).setScale(scale).setPosition(width - LIVES_FROM_RIGHT - this.pauseGrowth() * 2 - i * LIFE.gap, LIFE.y + 12));
   }
 
   /** The level's name, goal and lesson, centred for a few seconds at the start. */
@@ -344,6 +367,23 @@ export class HudScene extends Phaser.Scene {
       inkButton(this, 0, 90, 'Level select', () => game.quit(), { width: 260 }),
       inkButton(this, 0, 160, 'Exit to 16bit.ink', () => host.onExit(), { width: 260, size: 26 }),
     ]).setDepth(10);
+    // Big enough to tap on a phone, but never wider than the screen.
+    this.pauseLayer.setScale(Math.min(this.tapScale(CARD_BUTTON_H), (width - 24) / PAUSE_CARD_W));
+  }
+
+  /** The tide (or weather) clock's row: under the lives, and clear of an enlarged pause button. */
+  private tideY(): number {
+    return Math.max(TIDE.y, PAUSE_TOP + PAUSE.h * this.tapScale(PAUSE.h) + TIDE.r + 6);
+  }
+
+  /** How much wider than drawn the pause button is, on each side, once enlarged for a fingertip. */
+  private pauseGrowth(): number {
+    return (PAUSE.w * (this.tapScale(PAUSE.h) - 1)) / 2;
+  }
+
+  /** How much to enlarge a button `h` units tall so it's at least MIN_TAP on screen. */
+  private tapScale(h: number): number {
+    return Math.max(1, MIN_TAP / (h * uiScaleOf(this)));
   }
 
   /** Lets go of the on-screen stick and hide button (fingers lifted while paused never reach them). */
@@ -360,35 +400,36 @@ export class HudScene extends Phaser.Scene {
   private drawStick(height: number): void {
     const c = stickCentre(height);
     const k = knobOffset(this.stickPull.x, this.stickPull.y);
-    this.g.lineStyle(2, BLUE_HEX, 0.35).strokeCircle(c.x, c.y, STICK.radius);
-    this.g.fillStyle(BLUE_HEX, 0.25).fillCircle(c.x + k.x, c.y + k.y, 22);
+    this.controls.lineStyle(2, BLUE_HEX, 0.35).strokeCircle(c.x, c.y, STICK.radius);
+    this.controls.fillStyle(BLUE_HEX, 0.25).fillCircle(c.x + k.x, c.y + k.y, 22);
   }
 
   private drawJumpButton(width: number, height: number): void {
     const b = jumpButton(width, height);
-    this.g.lineStyle(2, BLUE_HEX, 0.45).strokeCircle(b.x, b.y, b.r);
-    this.g.fillStyle(BLUE_HEX, 0.12).fillCircle(b.x, b.y, b.r);
-    this.g.lineStyle(3, BLUE_HEX, 0.6).lineBetween(b.x - 12, b.y + 6, b.x, b.y - 8).lineBetween(b.x, b.y - 8, b.x + 12, b.y + 6);
+    this.controls.lineStyle(2, BLUE_HEX, 0.45).strokeCircle(b.x, b.y, b.r);
+    this.controls.fillStyle(BLUE_HEX, 0.12).fillCircle(b.x, b.y, b.r);
+    this.controls.lineStyle(3, BLUE_HEX, 0.6).lineBetween(b.x - 12, b.y + 6, b.x, b.y - 8).lineBetween(b.x, b.y - 8, b.x + 12, b.y + 6);
   }
 
   /** A shell drawn on the button; filled while held. */
   private drawHideButton(width: number, height: number, held: boolean): void {
     const b = hideButton(width, height);
-    this.g.lineStyle(2, BLUE_HEX, 0.45).strokeCircle(b.x, b.y, b.r);
-    this.g.fillStyle(BLUE_HEX, held ? 0.3 : 0.12).fillCircle(b.x, b.y, b.r);
-    this.g.lineStyle(3, BLUE_HEX, 0.6);
-    this.g.beginPath();
-    this.g.arc(b.x, b.y + 6, 14, Math.PI, 0);
-    this.g.closePath();
-    this.g.strokePath();
+    this.controls.lineStyle(2, BLUE_HEX, 0.45).strokeCircle(b.x, b.y, b.r);
+    this.controls.fillStyle(BLUE_HEX, held ? 0.3 : 0.12).fillCircle(b.x, b.y, b.r);
+    this.controls.lineStyle(3, BLUE_HEX, 0.6);
+    this.controls.beginPath();
+    this.controls.arc(b.x, b.y + 6, 14, Math.PI, 0);
+    this.controls.closePath();
+    this.controls.strokePath();
   }
 
   private onDown(p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[] = []): void {
     // A press on a HUD button isn't a tap on the beach, and nothing reaches the beach while paused.
     if (over.length > 0 || this.pauseLayer) return;
     if (p.wasTouch) this.touchSeen = true;
+    // The controls live in screen pixels (see create), and so do the beach's taps.
     const v = toView(p.x, p.y);
-    const { width, height } = viewSize(this);
+    const { width, height } = screenSize(this);
     const jb = jumpButton(width, height);
     if (p.wasTouch && Math.hypot(v.x - jb.x, v.y - jb.y) <= jb.r) {
       const t = this.touch();
@@ -413,7 +454,7 @@ export class HudScene extends Phaser.Scene {
   private onMove(p: Phaser.Input.Pointer): void {
     if (p.id !== this.stickPointer) return;
     const v = toView(p.x, p.y);
-    const c = stickCentre(viewSize(this).height);
+    const c = stickCentre(screenSize(this).height);
     this.stickPull = { x: v.x - c.x, y: v.y - c.y };
     const s = stickVector(this.stickPull.x, this.stickPull.y);
     const t = this.touch();

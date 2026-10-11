@@ -16,7 +16,7 @@ import { islandPlans } from './map/plan';
 import { computeMapLayout, MAP, regionIndexAt, type MapBeach, type MapLayout, type MapNode } from './map/layout';
 import { buildRoute, type NodeState } from './map/routeView';
 import { loadPaidBeaches } from './BootScene';
-import { crispText, DPR, screenZoom, toView, uiCamera, viewSize } from './hidpi';
+import { crispText, DPR, screenZoom, toView, uiCamera, uiScaleFor, viewSize } from './hidpi';
 import { HAND_FONT, inkButton, inkText } from './ui';
 
 const DRAG_THRESHOLD = 8;
@@ -76,7 +76,8 @@ export class MenuScene extends Phaser.Scene {
     const worldLayer = this.add.layer();
     const uiLayer = this.add.layer();
     const cam = this.cameras.main;
-    const zoom = Phaser.Math.Clamp(viewSize(this).height / MAP.height, 0.55, 1.4);
+    // The whole map's height on screen, down to a phone held sideways (~340 CSS px tall).
+    const zoom = Phaser.Math.Clamp(viewSize(this).height / MAP.height, 0.45, 1.4);
     cam.setBackgroundColor('#f5f0e1').setBounds(0, 0, this.layout.width, this.layout.height).setZoom(zoom * DPR);
     this.chart = new ChartView(this, this.layout, chartLayer, Math.min(2, zoom * DPR));
 
@@ -93,7 +94,8 @@ export class MenuScene extends Phaser.Scene {
 
     this.buildUi(uiLayer, progress);
     cam.ignore(uiLayer);
-    uiCamera(this.cameras.add(0, 0, this.scale.width, this.scale.height)).ignore([chartLayer, worldLayer]);
+    // The interface draws smaller on a phone (as the HUD does), so the map keeps the screen.
+    uiCamera(this.cameras.add(0, 0, this.scale.width, this.scale.height)).setZoom(DPR * this.uiScale()).ignore([chartLayer, worldLayer]);
 
     this.targetX = current.x;
     this.centerCamera(1);
@@ -223,9 +225,18 @@ export class MenuScene extends Phaser.Scene {
     kb?.on('keydown-LEFT', () => (this.targetX -= KEY_STEP));
   }
 
+  /** The interface's scale on this screen (see uiScaleFor). */
+  private uiScale(): number {
+    const { width, height } = viewSize(this);
+    return uiScaleFor(width, height);
+  }
+
   private buildUi(layer: Phaser.GameObjects.Layer, progress: Progress): void {
     const host = getHost(this);
-    const { width, height } = viewSize(this);
+    // Laid out in the interface camera's units: the screen at its interface scale.
+    const s = this.uiScale();
+    const width = viewSize(this).width / s;
+    const height = viewSize(this).height / s;
     const done = Object.keys(progress.levels).length;
     const panel = this.add.graphics();
     panel.fillStyle(PAPER_HEX, 0.85).fillRect(0, height - 92, width, 92);
