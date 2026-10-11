@@ -175,5 +175,5 @@ export function bodyFill(shell: Shell, growth: number): number {
 
 /** Clumps of sand a crab can carry: a bigger shell holds more. Without one, only what its claws can hold. */
 export function sandCapacity(shell: Shell | null): number {
-  return shell ? 4 + 3 * shell.size : 4;
+  return shell ? 8 + 6 * shell.size : 8;
 }

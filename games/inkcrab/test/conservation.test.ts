@@ -8,7 +8,7 @@ const sandTiles = (t: Terrain): number => t.tiles.reduce((n, v) => n + (v === TI
 
 /**
  * Random play: held inputs that change every few frames, as a player's do,
- * alternating between digging until full and unloading until empty so a
+ * alternating between digging a load and unloading until empty so a
  * lot of sand moves.
  */
 function randomInput(rng: () => number, b: Beach, digging: boolean): Input {
@@ -30,6 +30,13 @@ function randomInput(rng: () => number, b: Beach, digging: boolean): Input {
   };
 }
 
+/**
+ * Load at which the random player turns to unloading. Digging straight down to
+ * a full shell leaves a pit deeper than flailing gets out of, so it stops short
+ * (sim.test covers a full shell).
+ */
+const LOAD = 10;
+
 describe('sand is conserved', () => {
   for (const seed of [1, 2, 3, 4, 5]) {
     it(`never makes or loses a clump in random play (seed ${seed})`, () => {
@@ -42,7 +49,7 @@ describe('sand is conserved', () => {
       let dug = 0;
       let changed = 0;
       for (let frame = 0; frame < 60 * 300; frame++) {
-        if (digging && b.crab.sand >= b.sandCapacity) digging = false;
+        if (digging && b.crab.sand >= Math.min(LOAD, b.sandCapacity)) digging = false;
         else if (!digging && b.crab.sand === 0) digging = true;
         if (frame % 8 === 0) input = randomInput(rng, b, digging);
         for (const e of b.step(input, 1 / 60)) {

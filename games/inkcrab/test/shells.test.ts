@@ -48,7 +48,7 @@ describe('shells', () => {
   });
 
   it('carries more sand in a bigger shell, and a little without one', () => {
-    expect(sandCapacity(shellOf('periwinkle', 2))).toBe(10);
+    expect(sandCapacity(shellOf('periwinkle', 2))).toBe(20);
     expect(sandCapacity(shellOf('conch', 8))).toBeGreaterThan(sandCapacity(shellOf('triton', 7)));
     expect(sandCapacity(null)).toBeLessThan(sandCapacity(shellOf('periwinkle', 2)));
     expect(sandCapacity(null)).toBeGreaterThan(0);

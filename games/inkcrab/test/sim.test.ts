@@ -83,7 +83,7 @@ describe('beach simulation', () => {
   it('keeps digging while the button is held, and fills up to its shell\'s capacity', () => {
     const b = flatBeach();
     step(b, {}, 1);
-    step(b, { aimY: 1, dig: true }, 3);
+    step(b, { aimY: 1, dig: true }, 6);
     expect(b.crab.sand).toBe(sandCapacity(shellOf('periwinkle', 2)));
     expect(b.sandCapacity).toBe(sandCapacity(shellOf('periwinkle', 2)));
     expect(b.crab.body.y + b.crab.body.h).toBeGreaterThan(12 * T);
@@ -94,7 +94,7 @@ describe('beach simulation', () => {
     step(b, {}, 1);
     const total = (): number => solidSand(b.terrain) + b.crab.sand;
     const before = total();
-    step(b, { aimY: 1, dig: true }, 3);
+    step(b, { aimY: 1, dig: true }, 6);
     expect(b.crab.sand).toBe(b.sandCapacity);
     const full = solidSand(b.terrain);
     expect(step(b, { moveX: 1, dig: true }, 1).some((e) => e.type === 'tiles' && e.dug)).toBe(false);

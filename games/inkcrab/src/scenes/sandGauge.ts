@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BLUE_HEX, HIGHLIGHT_HEX, SAND_DRY, SAND_GRAIN, SAND_WET } from '../art/palette';
 import { createRng } from '../logic/rng';
+import { sandCapacity, SHELLS, shellOf, type ShellKind } from '../logic/shells';
 
 const hex = (c: string): number => Phaser.Display.Color.HexStringToColor(c).color;
 const DRY = hex(SAND_DRY);
@@ -8,12 +9,15 @@ const WET = hex(SAND_WET);
 const GRAIN = hex(SAND_GRAIN);
 
 /** Heap size in HUD px: the most a shell holds is drawn as a dashed heap that grows with it. */
-const HEAP = { minW: 34, perClump: 1.1, aspect: 0.55 } as const;
+const HEAP = { minW: 34, perClump: 0.55, aspect: 0.55 } as const;
 const GRAINS = 70;
 const DASH = 4;
 
-/** Widest heap any shell gets (the conch holds 28), so the HUD can leave room for it. */
-export const HEAP_MAX_W = HEAP.minW + 28 * HEAP.perClump;
+/** Most sand any shell holds: the biggest shell of any kind. */
+const MOST = Math.max(...(Object.keys(SHELLS) as ShellKind[]).map((k) => sandCapacity(shellOf(k))));
+
+/** Widest heap any shell gets, so the HUD can leave room for it. */
+export const HEAP_MAX_W = HEAP.minW + MOST * HEAP.perClump;
 
 /** A heap's outline from left foot to right foot, `w` wide and `h` tall, sitting on `bottom`. */
 function mound(cx: number, bottom: number, w: number, h: number): Phaser.Math.Vector2[] {
