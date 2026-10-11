@@ -52,8 +52,8 @@ export const IDLE: Input = { moveX: 0, aimY: 0, jump: false, dig: false, place: 
 export type SimEvent =
   | { readonly type: 'ate'; readonly id: number; readonly points: number; readonly wasted: number; readonly x: number; readonly y: number }
   | { readonly type: 'grew'; readonly size: number }
-  /** Tiles that changed. `poured`: dune sand running, as from/to pairs. */
-  | { readonly type: 'tiles'; readonly tiles: readonly TilePos[]; readonly dug: boolean; readonly poured?: boolean }
+  /** Tiles that changed. `poured`: dune sand running, as from/to pairs; `placed`: sand the crab put down; `washed`: the tide smoothing it. */
+  | { readonly type: 'tiles'; readonly tiles: readonly TilePos[]; readonly dug: boolean; readonly poured?: boolean; readonly placed?: boolean; readonly washed?: boolean }
   | { readonly type: 'revealed'; readonly id: number }
   | { readonly type: 'spawned'; readonly id: number }
   | { readonly type: 'swapStart'; readonly id: number }
@@ -712,7 +712,7 @@ export class Beach {
   private addTile(at: TilePos, events: SimEvent[]): void {
     if (this.crab.sand <= 0 || !place(this.terrain, at[0], at[1])) return;
     this.crab = { ...this.crab, sand: this.crab.sand - 1, digCooldown: this.cooldown };
-    events.push({ type: 'tiles', tiles: [at], dug: false });
+    events.push({ type: 'tiles', tiles: [at], dug: false, placed: true });
   }
 
   /**
@@ -1359,7 +1359,7 @@ export class Beach {
   private flow(dt: number, events: SimEvent[]): void {
     if (!this.shore) return;
     const washed = this.shore.step(dt, this.elapsed, this.rng, (kind, col) => this.dropItem(kind, col, events));
-    if (washed.length) events.push({ type: 'tiles', tiles: washed, dug: false, poured: true });
+    if (washed.length) events.push({ type: 'tiles', tiles: washed, dug: false, poured: true, washed: true });
   }
 
   private dropItem(kind: Item['kind'], col: number, events: SimEvent[]): void {

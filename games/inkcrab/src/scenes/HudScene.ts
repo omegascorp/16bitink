@@ -1,7 +1,7 @@
 import { shellFit } from '../art/shellFit';
 import Phaser from 'phaser';
-import { BLUE, BLUE_HEX, PAPER_HEX, RED } from '../art/palette';
-import { getHost, REG } from '../host';
+import { BLUE, BLUE_HEX, PAPER_HEX, RED, RED_HEX } from '../art/palette';
+import { getHost, getSound, REG } from '../host';
 import { inStickZone, knobOffset, stickCentre, stickVector, STICK } from '../logic/joystick';
 import { levelGoal, START_SHELL } from '../level/build';
 import { capMark, levelProgress, sizeMarks } from '../logic/progress';
@@ -40,10 +40,14 @@ const PAUSE = { w: 52, h: 44, fromRight: 42 } as const;
 const MIN_TAP = 44;
 /** The pause button's top edge, units. */
 const PAUSE_TOP = 14;
+/** Space between the sound and pause buttons, units. */
+const CORNER_GAP = 8;
 /** The pause card's buttons: their height, and the card's width. */
 const CARD_BUTTON_H = 52;
 const PAUSE_CARD_W = 300;
 const LIVES_FROM_RIGHT = 104;
+/** Lives the layout makes room for (a level starts with three). */
+const MAX_LIVES_SHOWN = 3;
 /** Paper behind the HUD's loose lines of text on a night beach. */
 const NIGHT_PAPER = 'rgba(245, 240, 225, 0.88)';
 /** The tide clock (or the rain clock), under the lives at the top right. */
@@ -68,6 +72,8 @@ export class HudScene extends Phaser.Scene {
   private sizeText!: Phaser.GameObjects.Text;
   private lives: Phaser.GameObjects.Image[] = [];
   private pauseButton!: Phaser.GameObjects.Container;
+  /** Sound on/off, left of the pause button (a note, struck through while muted). */
+  private muteButton!: Phaser.GameObjects.Container;
   /** The pause card, while the game is paused. */
   private pauseLayer: Phaser.GameObjects.Container | null = null;
   private intro: Phaser.GameObjects.Container | null = null;
@@ -117,6 +123,7 @@ export class HudScene extends Phaser.Scene {
     this.sizeText = text(BAR.x + BAR.w + 8, BAR.y - 4, 17);
     this.lives = [];
     this.pauseButton = inkButton(this, 0, LIFE.y, '❚❚', () => this.togglePause(), { width: PAUSE.w, height: PAUSE.h, size: 24 });
+    this.muteButton = this.makeMuteButton();
     this.coachBox = this.add.graphics();
     this.coachText = inkText(this, 0, 0, '', 21).setWordWrapWidth(520).setAlign('center');
     this.showIntro(game);
@@ -234,10 +241,10 @@ export class HudScene extends Phaser.Scene {
     const t = game.beach.elapsed;
     const turn = tideTurn(tide, t);
     const level = (1 - Math.cos(tidePhase(tide, t) * Math.PI * 2)) / 2;
-    const x = width - TIDE.fromRight - this.pauseGrowth() * 2 - 10;
-    drawTideClock(this.g, x, this.tideY(), TIDE.r, level, turn.rising);
+    const x = width - TIDE.fromRight - this.cornerInset() - 10;
+    drawTideClock(this.g, x, this.tideY(width), TIDE.r, level, turn.rising);
     const secs = Math.ceil(turn.seconds);
-    this.tideText.setText(turn.rising ? `tide coming in · high in ${secs}s` : `tide going out · low in ${secs}s`).setPosition(x - TIDE.r - 10, this.tideY());
+    this.tideText.setText(turn.rising ? `tide coming in · high in ${secs}s` : `tide going out · low in ${secs}s`).setPosition(x - TIDE.r - 10, this.tideY(width));
   }
 
   /** On a monsoon beach: the rain clock, and how long until it pours or clears. */
@@ -247,10 +254,10 @@ export class HudScene extends Phaser.Scene {
     this.tideText.setVisible(true);
     const turn = rainTurn(rain, game.beach.elapsed);
     const spell = turn.pouring ? rain.pour : rain.period - rain.pour;
-    const x = width - TIDE.fromRight - this.pauseGrowth() * 2 - 10;
-    drawRainClock(this.g, x, this.tideY(), TIDE.r, 1 - turn.seconds / spell, turn.pouring);
+    const x = width - TIDE.fromRight - this.cornerInset() - 10;
+    drawRainClock(this.g, x, this.tideY(width), TIDE.r, 1 - turn.seconds / spell, turn.pouring);
     const secs = Math.ceil(turn.seconds);
-    this.tideText.setText(turn.pouring ? `pouring · hunters half-blind · clears in ${secs}s` : `dry spell · rain in ${secs}s`).setPosition(x - TIDE.r - 10, this.tideY());
+    this.tideText.setText(turn.pouring ? `pouring · hunters half-blind · clears in ${secs}s` : `dry spell · rain in ${secs}s`).setPosition(x - TIDE.r - 10, this.tideY(width));
   }
 
   /** On a windy beach: the wind clock, which way the gust blows, and how long until it gets up or dies away. */
@@ -260,11 +267,11 @@ export class HudScene extends Phaser.Scene {
     this.tideText.setVisible(true);
     const turn = windTurn(wind, game.beach.elapsed);
     const spell = turn.gusting ? wind.gust : wind.period - wind.gust;
-    const x = width - TIDE.fromRight - this.pauseGrowth() * 2 - 10;
-    drawWindClock(this.g, x, this.tideY(), TIDE.r, 1 - turn.seconds / spell, turn.gusting, turn.dir);
+    const x = width - TIDE.fromRight - this.cornerInset() - 10;
+    drawWindClock(this.g, x, this.tideY(width), TIDE.r, 1 - turn.seconds / spell, turn.gusting, turn.dir);
     const secs = Math.ceil(turn.seconds);
     const way = turn.dir > 0 ? '→' : '←';
-    this.tideText.setText(turn.gusting ? `gusting ${way} · dies down in ${secs}s` : `calm · gust ${way} in ${secs}s`).setPosition(x - TIDE.r - 10, this.tideY());
+    this.tideText.setText(turn.gusting ? `gusting ${way} · dies down in ${secs}s` : `calm · gust ${way} in ${secs}s`).setPosition(x - TIDE.r - 10, this.tideY(width));
   }
 
   /** On a moonlit beach: the moon clock, and how long until a cloud covers it or it comes out. */
@@ -274,10 +281,10 @@ export class HudScene extends Phaser.Scene {
     this.tideText.setVisible(true);
     const turn = moonTurn(moon, game.beach.elapsed);
     const spell = turn.dark ? moon.dark : moon.period - moon.dark;
-    const x = width - TIDE.fromRight - this.pauseGrowth() * 2 - 10;
-    drawMoonClock(this.g, x, this.tideY(), TIDE.r, 1 - turn.seconds / spell, turn.dark);
+    const x = width - TIDE.fromRight - this.cornerInset() - 10;
+    drawMoonClock(this.g, x, this.tideY(width), TIDE.r, 1 - turn.seconds / spell, turn.dark);
     const secs = Math.ceil(turn.seconds);
-    this.tideText.setText(turn.dark ? `dark · hunters half-blind · moon out in ${secs}s` : `moonlight · cloud in ${secs}s`).setPosition(x - TIDE.r - 10, this.tideY());
+    this.tideText.setText(turn.dark ? `dark · hunters half-blind · moon out in ${secs}s` : `moonlight · cloud in ${secs}s`).setPosition(x - TIDE.r - 10, this.tideY(width));
   }
 
   private drawCoach(game: GameScene, width: number): void {
@@ -301,9 +308,13 @@ export class HudScene extends Phaser.Scene {
     while (this.lives.length < n) this.lives.push(this.add.image(0, 0, TEX.shell(kind, 0)).setOrigin(SHELL_MID / FRAME, FOOT.y / FRAME));
     // A pause button enlarged for a fingertip stays in the corner, and the lives make room for it.
     const k = this.tapScale(PAUSE.h);
-    this.pauseButton.setScale(k).setPosition(width - PAUSE.fromRight - this.pauseGrowth(), PAUSE_TOP + (PAUSE.h * k) / 2);
+    const pauseX = width - PAUSE.fromRight - this.pauseGrowth();
+    const cornerY = PAUSE_TOP + (PAUSE.h * k) / 2;
+    this.pauseButton.setScale(k).setPosition(pauseX, cornerY);
+    this.muteButton.setScale(k).setPosition(pauseX - PAUSE.w * k - CORNER_GAP, cornerY);
     const scale = (LIFE.size / 116) * shellFit(kind as ShellKind);
-    this.lives.forEach((img, i) => img.setTexture(TEX.shell(kind, 0)).setScale(scale).setPosition(width - LIVES_FROM_RIGHT - this.pauseGrowth() * 2 - i * LIFE.gap, LIFE.y + 12));
+    const row = this.livesRow(width);
+    this.lives.forEach((img, i) => img.setTexture(TEX.shell(kind, 0)).setScale(scale).setPosition(row.x - i * LIFE.gap, row.y));
   }
 
   /** The level's name, goal and lesson, centred for a few seconds at the start. */
@@ -372,8 +383,47 @@ export class HudScene extends Phaser.Scene {
   }
 
   /** The tide (or weather) clock's row: under the lives, and clear of an enlarged pause button. */
-  private tideY(): number {
-    return Math.max(TIDE.y, PAUSE_TOP + PAUSE.h * this.tapScale(PAUSE.h) + TIDE.r + 6);
+  private tideY(width: number): number {
+    const row = this.livesRow(width);
+    const below = row.stacked ? row.y + TIDE.r + 8 : PAUSE_TOP + PAUSE.h * this.tapScale(PAUSE.h) + TIDE.r + 6;
+    return Math.max(TIDE.y, below);
+  }
+
+  /**
+   * Where the lives go (the rightmost one's foot): beside the corner buttons,
+   * or, on a screen too narrow for that without running into the panel, in a
+   * row under them.
+   */
+  private livesRow(width: number): { readonly x: number; readonly y: number; readonly stacked: boolean } {
+    const beside = width - LIVES_FROM_RIGHT - this.cornerInset();
+    const leftmost = beside - (Math.max(this.lives.length, MAX_LIVES_SHOWN) - 1) * LIFE.gap - LIFE.size / 2;
+    if (leftmost > PANEL.x + PANEL.w + 8) return { x: beside, y: LIFE.y + 12, stacked: false };
+    return { x: width - 16 - LIFE.size / 2, y: PAUSE_TOP + PAUSE.h * this.tapScale(PAUSE.h) + LIFE.size + 6, stacked: true };
+  }
+
+  /** Sound on/off: a note, struck through in red while muted. M toggles it too (as in InkFish). */
+  private makeMuteButton(): Phaser.GameObjects.Container {
+    const sound = getSound(this);
+    const strike = this.add.graphics();
+    strike.lineStyle(3, RED_HEX, 0.9).lineBetween(-14, 12, 14, -12);
+    const sync = (): void => {
+      strike.setVisible(sound?.muted === true);
+    };
+    const toggle = (): void => {
+      sound?.setMuted(!sound.muted);
+      sync();
+    };
+    const button = inkButton(this, 0, LIFE.y, '♪', toggle, { width: PAUSE.w, height: PAUSE.h, size: 26 });
+    button.add(strike);
+    button.setVisible(sound !== undefined);
+    this.input.keyboard?.on('keydown-M', toggle);
+    sync();
+    return button;
+  }
+
+  /** How far left of their old place the lives and clocks sit: past the sound button, and an enlarged pause button. */
+  private cornerInset(): number {
+    return this.pauseGrowth() * 2 + PAUSE.w * this.tapScale(PAUSE.h) + CORNER_GAP;
   }
 
   /** How much wider than drawn the pause button is, on each side, once enlarged for a fingertip. */

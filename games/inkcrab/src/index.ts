@@ -1,6 +1,7 @@
 import type { GameHandle, GameHost, GameModule } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { PAPER } from './art/palette';
+import { SoundBoard } from './audio/sound';
 import { REG } from './host';
 import { BeachEndScene } from './scenes/BeachEndScene';
 import { BootScene } from './scenes/BootScene';
@@ -38,6 +39,9 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     scene: [BootScene, MenuScene, GameScene, HudScene, ResultScene, BeachEndScene, GuideScene],
   });
   game.registry.set(REG.host, host);
+  // Sound effects are synthesized by our own SoundBoard (audio/), as in InkFish; Phaser's audio stays off.
+  const sound = new SoundBoard(host.storage);
+  game.registry.set(REG.sound, sound);
   const resizer = new ResizeObserver(() => {
     const next = cssSize();
     const w = Math.round(next.width * DPR);
@@ -49,6 +53,7 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     phaser: game,
     destroy: () => {
       resizer.disconnect();
+      sound.destroy();
       game.destroy(true);
     },
   };

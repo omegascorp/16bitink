@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BLUE, BLUE_HEX, PAPER_HEX } from '../art/palette';
 import { createRng } from '../logic/rng';
+import { getSound } from '../host';
 import { toView } from './hidpi';
 
 export const HAND_FONT = '"Caveat", "Patrick Hand", "Comic Sans MS", cursive';
@@ -61,6 +62,7 @@ export function inkButton(scene: Phaser.Scene, x: number, y: number, label: stri
     pressedAt = null;
     const end = toView(p.x, p.y);
     if (!start || Math.hypot(start.x - end.x, start.y - end.y) > 12) return;
+    getSound(scene)?.play('click');
     onClick();
   });
   return c;

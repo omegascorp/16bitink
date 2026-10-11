@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BLACK_SAND, BLUE, BLUE_HEX, GREY_SAND, MOON_SAND, PALE_SAND, RED, RED_HEX, SHINGLE, type GroundStyle } from '../art/palette';
 import { TEX } from '../art/textures';
-import { getHost, REG } from '../host';
+import { getHost, getSound, REG } from '../host';
 import { buildLevel, START_SIZE } from '../level/build';
 import { isBeachFinale, levelById, loadedLevels, themeOf } from '../level/levels';
 import type { LevelDef } from '../level/types';
@@ -35,6 +35,7 @@ import { WindView } from './game/windView';
 import { FINDS } from '../logic/finds';
 import { NightView } from './game/nightView';
 import { Sightings } from './game/sightings';
+import { Soundscape } from './game/soundscape';
 import { shellSeenId } from '../guide/catalog';
 import { START_SHELL } from '../level/goal';
 import { wrackAt } from '../logic/kelp';
@@ -84,6 +85,7 @@ export class GameScene extends Phaser.Scene {
   private input2!: GameInput;
   private touch!: TouchState;
   private sightings!: Sightings;
+  private soundscape!: Soundscape;
 
   constructor() {
     super('Game');
@@ -126,6 +128,7 @@ export class GameScene extends Phaser.Scene {
     this.registry.set(REG.touch, this.touch);
     // You are a hermit crab in a periwinkle from the start: both are in the field guide already.
     this.sightings = new Sightings(getHost(this).storage, ['hermit', shellSeenId(START_SHELL.kind)]);
+    this.soundscape = new Soundscape(getSound(this), this.beach);
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, worldW, worldH);
@@ -195,6 +198,7 @@ export class GameScene extends Phaser.Scene {
     const { tapTile, tapInteract } = this.consumeTaps();
     const events = this.beach.step(this.input2.read(this.touch, tapTile, tapInteract), dt);
     for (const e of events) this.react(e);
+    this.soundscape.listen(this.beach, this.cameras.main.worldView);
     this.coach.observe(this.beach, events);
     this.terrainView.flush();
     // Shells being moved into are drawn by the crab's and the rivals' views.
@@ -293,6 +297,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private react(e: SimEvent): void {
+    this.soundscape.react(e, this.beach, this.cameras.main.worldView);
     if (e.type === 'tiles') {
       this.terrainView.invalidate(e.tiles);
       if (e.poured) this.sandFx.poured(e.tiles);
