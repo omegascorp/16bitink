@@ -3,7 +3,7 @@ import { bottomAt, C, heightAt, xAt } from '../../src/art/fish/kit';
 import { ANATOMY } from '../../src/art/fish/registry';
 import { INK } from '../../src/art/pen';
 import type { Pose } from './chain';
-import { SPRITE_RES, type Sprite } from './sprites';
+import type { Sprite } from './sprites';
 
 /**
  * Draws a chain fish as it swims and eats, from the game's drawing cut into
@@ -101,25 +101,26 @@ function mouthOutline(spec: MouthSpec, hh: number, open: number): { readonly upp
   return { upper, lower };
 }
 
-const toSprite = (p: Pt): Pt => ({ x: (p.x - FISH_TEX / 2) * SPRITE_RES, y: (p.y - FISH_TEX / 2) * SPRITE_RES });
+/** Texture px to sprite px at resolution R, centred. */
+const toSprite = (p: Pt, R: number): Pt => ({ x: (p.x - FISH_TEX / 2) * R, y: (p.y - FISH_TEX / 2) * R });
 
-function tracePath(ctx: CanvasRenderingContext2D, pts: readonly Pt[], moveFirst = true): void {
+function tracePath(ctx: CanvasRenderingContext2D, pts: readonly Pt[], R: number, moveFirst = true): void {
   pts.forEach((p, i) => {
-    const q = toSprite(p);
+    const q = toSprite(p, R);
     if (i === 0 && moveFirst) ctx.moveTo(q.x, q.y);
     else ctx.lineTo(q.x, q.y);
   });
 }
 
 /** The open mouth: along the upper lip, round the front in a curve that dips inwards (the opening), and back along the lower lip. */
-function mouthPath(ctx: CanvasRenderingContext2D, upper: readonly Pt[], lower: readonly Pt[]): void {
-  const top = toSprite(upper[upper.length - 1]!);
-  const bottom = toSprite(lower[lower.length - 1]!);
+function mouthPath(ctx: CanvasRenderingContext2D, upper: readonly Pt[], lower: readonly Pt[], R: number): void {
+  const top = toSprite(upper[upper.length - 1]!, R);
+  const bottom = toSprite(lower[lower.length - 1]!, R);
   const inward = (bottom.y - top.y) * 0.35;
   ctx.beginPath();
-  tracePath(ctx, upper);
+  tracePath(ctx, upper, R);
   ctx.quadraticCurveTo(top.x - inward, (top.y + bottom.y) / 2, bottom.x, bottom.y);
-  tracePath(ctx, [...lower].reverse(), false);
+  tracePath(ctx, [...lower].reverse(), R, false);
   ctx.closePath();
 }
 
@@ -127,7 +128,7 @@ export function drawSwimmer(ctx: CanvasRenderingContext2D, sprite: Sprite, pose:
   const canvas = sprite.frames[boil % sprite.frames.length]!;
   const side = canvas.width;
   const half = side / 2;
-  const R = SPRITE_RES;
+  const R = sprite.res;
   const scale = pose.length / sprite.bodyPx;
   const { hl, hh } = bodyProportions(pose.shape);
   const head = (FISH_TEX / 2 + hl) * R;
@@ -148,12 +149,12 @@ export function drawSwimmer(ctx: CanvasRenderingContext2D, sprite: Sprite, pose:
   ctx.rotate(-pose.tilt);
   ctx.scale(scale * (look.stretch ?? 1), scale * (look.squash ?? 1));
 
-  if (mouth && part !== 'body') drawMouthInside(ctx, spec, mouth.upper, mouth.lower, hh);
+  if (mouth && part !== 'body') drawMouthInside(ctx, spec, mouth.upper, mouth.lower, hh, R);
   if (part === 'mouth') {
     ctx.restore();
     return;
   }
-  if (mouth) drawThroatShadow(ctx, spec, mouth.upper, mouth.lower);
+  if (mouth) drawThroatShadow(ctx, spec, mouth.upper, mouth.lower, R);
 
   for (let sx = 0; sx < side; sx += step) {
     const along = (head - (sx + step / 2)) / span;
@@ -176,7 +177,7 @@ export function drawSwimmer(ctx: CanvasRenderingContext2D, sprite: Sprite, pose:
     piece(cut, side, gape.down * R);
   }
 
-  if (mouth) drawLips(ctx, spec, mouth.upper, mouth.lower);
+  if (mouth) drawLips(ctx, spec, mouth.upper, mouth.lower, R);
   if (look.eyes) drawClosedEye(ctx, sprite, pose.shape, spec, hh, open, look.eyes);
   ctx.restore();
 }
@@ -192,7 +193,7 @@ function lidColour(sprite: Sprite, shape: FishShape): string {
   const y = C - heightAt(a, a.eye.t) * 0.3;
   const r = a.eye.r;
   const ctx = sprite.frames[0]!.getContext('2d')!;
-  const samples = [y - r * 1.9, y + r * 1.9, y + r * 2.4].map((sy) => ctx.getImageData(Math.round(x * SPRITE_RES), Math.round(sy * SPRITE_RES), 1, 1).data);
+  const samples = [y - r * 1.9, y + r * 1.9, y + r * 2.4].map((sy) => ctx.getImageData(Math.round(x * sprite.res), Math.round(sy * sprite.res), 1, 1).data);
   // Median per channel: one sample may land on an ink line.
   const channel = (i: number): number => samples.map((d) => d[i]!).sort((p, q) => p - q)[1]!;
   const colour = `rgb(${channel(0)},${channel(1)},${channel(2)})`;
@@ -203,12 +204,12 @@ function lidColour(sprite: Sprite, shape: FishShape): string {
 /** Paints a lid in the body's colour over the eye and inks it shut: a tight crease, or a happy upturned arc. */
 function drawClosedEye(ctx: CanvasRenderingContext2D, sprite: Sprite, shape: FishShape, spec: MouthSpec, hh: number, open: number, how: 'squeeze' | 'happy'): void {
   const a = ANATOMY[shape];
-  const R = SPRITE_RES;
+  const R = sprite.res;
   const ex = xAt(a, a.eye.t);
   // The eye rides up with the upper jaw when the mouth is open.
   const ey = C - heightAt(a, a.eye.t) * 0.3 - (gapeAt(spec, hh, open, ex)?.up ?? 0);
   const r = a.eye.r * (shape === 'shark' ? 0.95 : 1.12);
-  const c = toSprite({ x: ex, y: ey });
+  const c = toSprite({ x: ex, y: ey }, R);
   ctx.save();
   ctx.beginPath();
   ctx.arc(c.x, c.y, r * R, 0, Math.PI * 2);
@@ -236,16 +237,15 @@ function drawClosedEye(ctx: CanvasRenderingContext2D, sprite: Sprite, shape: Fis
 }
 
 /** The inside of the open mouth: dark, a little tongue, and shark teeth. */
-function drawMouthInside(ctx: CanvasRenderingContext2D, spec: MouthSpec, upper: readonly Pt[], lower: readonly Pt[], hh: number): void {
-  const R = SPRITE_RES;
+function drawMouthInside(ctx: CanvasRenderingContext2D, spec: MouthSpec, upper: readonly Pt[], lower: readonly Pt[], hh: number, R: number): void {
   ctx.save();
-  mouthPath(ctx, upper, lower);
+  mouthPath(ctx, upper, lower, R);
   ctx.fillStyle = '#2a1418';
   ctx.fill();
   ctx.clip();
   // The tongue: a soft red mound on the floor of the mouth.
   const mid = lower[Math.round(lower.length * 0.45)]!;
-  const tongue = toSprite({ x: mid.x, y: mid.y - hh * 0.08 });
+  const tongue = toSprite({ x: mid.x, y: mid.y - hh * 0.08 }, R);
   ctx.fillStyle = '#8a3b44';
   ctx.globalAlpha = 0.85;
   ctx.beginPath();
@@ -255,7 +255,7 @@ function drawMouthInside(ctx: CanvasRenderingContext2D, spec: MouthSpec, upper: 
   if (spec.teeth) {
     for (const [lip, dir] of [[upper, 1], [lower, -1]] as const) {
       for (let i = 2; i < lip.length - 1; i += 2) {
-        const p = toSprite(lip[i]!);
+        const p = toSprite(lip[i]!, R);
         const size = (2.2 + (i / lip.length) * 1.8) * R;
         ctx.beginPath();
         ctx.moveTo(p.x - size * 0.45, p.y);
@@ -274,13 +274,13 @@ function drawMouthInside(ctx: CanvasRenderingContext2D, spec: MouthSpec, upper: 
 }
 
 /** Darkness deepening towards the corner of the mouth, over whatever is being swallowed. */
-function drawThroatShadow(ctx: CanvasRenderingContext2D, spec: MouthSpec, upper: readonly Pt[], lower: readonly Pt[]): void {
-  const back = toSprite(spec.hinge);
+function drawThroatShadow(ctx: CanvasRenderingContext2D, spec: MouthSpec, upper: readonly Pt[], lower: readonly Pt[], R: number): void {
+  const back = toSprite(spec.hinge, R);
   const lipUp = upper[upper.length - 1]!;
   const lipDown = lower[lower.length - 1]!;
-  const front = toSprite({ x: (lipUp.x + lipDown.x) / 2, y: (lipUp.y + lipDown.y) / 2 });
+  const front = toSprite({ x: (lipUp.x + lipDown.x) / 2, y: (lipUp.y + lipDown.y) / 2 }, R);
   ctx.save();
-  mouthPath(ctx, upper, lower);
+  mouthPath(ctx, upper, lower, R);
   const shade = ctx.createLinearGradient(back.x, back.y, front.x, front.y);
   shade.addColorStop(0, 'rgba(20,8,10,1)');
   shade.addColorStop(0.45, 'rgba(30,12,16,0.85)');
@@ -291,20 +291,20 @@ function drawThroatShadow(ctx: CanvasRenderingContext2D, spec: MouthSpec, upper:
 }
 
 /** Inked lips over the cut edges, in the fish's own ink. */
-function drawLips(ctx: CanvasRenderingContext2D, spec: MouthSpec, upper: readonly Pt[], lower: readonly Pt[]): void {
+function drawLips(ctx: CanvasRenderingContext2D, spec: MouthSpec, upper: readonly Pt[], lower: readonly Pt[], R: number): void {
   ctx.save();
   ctx.strokeStyle = spec.ink;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.lineWidth = 2.1 * SPRITE_RES;
+  ctx.lineWidth = 2.1 * R;
   for (const lip of [upper, lower]) {
     ctx.beginPath();
-    tracePath(ctx, lip);
+    tracePath(ctx, lip, R);
     ctx.stroke();
     // A plump, rounded lip end.
-    const end = toSprite(lip[lip.length - 1]!);
+    const end = toSprite(lip[lip.length - 1]!, R);
     ctx.beginPath();
-    ctx.arc(end.x, end.y, 1.7 * SPRITE_RES, 0, Math.PI * 2);
+    ctx.arc(end.x, end.y, 1.7 * R, 0, Math.PI * 2);
     ctx.fillStyle = spec.ink;
     ctx.fill();
   }

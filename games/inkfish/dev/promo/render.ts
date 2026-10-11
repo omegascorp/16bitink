@@ -1,5 +1,4 @@
 import { INK } from '../../src/art/pen';
-import { drawPaper } from '../../src/art/propArt';
 import { BOIL_FPS } from '../../src/art/textures';
 import { createRng } from '../../src/logic/rng';
 import type { FishShape } from '../../src/art/fishArt';
@@ -10,8 +9,13 @@ import type { Sprite } from './sprites';
 import { drawSwimmer } from './swimmer';
 import { alarm, eyesShut, jawOpen, lump, lumpAt, panic, shake, snap, STARTLE_AGE, suction, SWALLOW } from './eating';
 import { storyTime } from './timing';
+import { makeBackdrop } from './backdrop';
+import { VIDEO } from './short';
+import { drawChomp, drawExclaim, drawSuction, suckedIn } from './effects';
 
-export const VIDEO = { width: 1080, height: 1920 } as const;
+export { drawExclaim };
+
+export { VIDEO };
 
 /** Zoom centre a little above the middle: Reels and Stories cover the bottom with captions and buttons. */
 const FRAME: Frame = { cx: VIDEO.width / 2, cy: VIDEO.height * 0.44, unit: 1150 };
@@ -21,26 +25,7 @@ const clamp01 = (u: number): number => Math.max(0, Math.min(1, u));
 // ---------------------------------------------------------------- background
 
 /** Paper with the game's shallow-water wash: a faint blue tint, deeper towards the bottom. */
-function makeBackground(): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  canvas.width = VIDEO.width;
-  canvas.height = VIDEO.height;
-  const ctx = canvas.getContext('2d')!;
-  const tile = document.createElement('canvas');
-  tile.width = tile.height = 512;
-  drawPaper(tile.getContext('2d')!, 512);
-  ctx.save();
-  ctx.scale(2, 2);
-  ctx.fillStyle = ctx.createPattern(tile, 'repeat')!;
-  ctx.fillRect(0, 0, VIDEO.width / 2, VIDEO.height / 2);
-  ctx.restore();
-  const wash = ctx.createLinearGradient(0, 0, 0, VIDEO.height);
-  wash.addColorStop(0, 'rgba(44,79,134,0.03)');
-  wash.addColorStop(1, 'rgba(44,79,134,0.16)');
-  ctx.fillStyle = wash;
-  ctx.fillRect(0, 0, VIDEO.width, VIDEO.height);
-  return canvas;
-}
+const makeBackground = (): HTMLCanvasElement => makeBackdrop({ top: 'rgba(44,79,134,0.03)', bottom: 'rgba(44,79,134,0.16)' });
 
 /**
  * Current marks ("~", as in the game's water) and specks of marine snow,
@@ -99,94 +84,6 @@ function drawMarks(ctx: CanvasRenderingContext2D, marks: readonly Mark[], zoom: 
 }
 
 // ---------------------------------------------------------------- fish
-
-/** The snap: fat ink wedges bursting from the shut mouth, comic-style, gone in a blink. */
-function drawChomp(ctx: CanvasRenderingContext2D, pose: Pose): void {
-  const u = (pose.age - GULP_AGE) / 0.07;
-  if (u < 0 || u > 1) return;
-  const m = mouthOf(pose);
-  const grow = 1 - (1 - u) ** 3;
-  const r0 = pose.length * (0.05 + 0.08 * grow);
-  const r1 = pose.length * (0.12 + 0.13 * grow);
-  ctx.save();
-  ctx.fillStyle = INK;
-  ctx.globalAlpha = u < 0.6 ? 1 : (1 - u) / 0.4;
-  for (let k = 0; k < 7; k++) {
-    // Spray forwards from the mouth, not back through the head.
-    const a = (k / 6 - 0.5) * Math.PI * 1.15;
-    const w = pose.length * 0.012 * (1 - u * 0.7) * (k % 2 ? 0.7 : 1);
-    const len = k % 2 ? 0.75 : 1;
-    const cos = Math.cos(a) * pose.facing;
-    const sin = Math.sin(a);
-    const at = (r: number, side: number): [number, number] => [m.x + cos * r - sin * side * pose.facing, m.y + sin * r + cos * side];
-    ctx.beginPath();
-    ctx.moveTo(...at(r0, 0));
-    ctx.lineTo(...at(r0 + (r1 - r0) * len * 0.35, w));
-    ctx.lineTo(...at(r0 + (r1 - r0) * len, 0));
-    ctx.lineTo(...at(r0 + (r1 - r0) * len * 0.35, -w));
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.restore();
-}
-
-/** Water streaming into an open mouth: the game's "~" current marks and specks, drawn in towards the lips, shrinking as they go. */
-const STREAKS = (() => {
-  const rng = createRng(53);
-  return Array.from({ length: 11 }, (_, k) => ({
-    angle: ((k + 0.2 + rng() * 0.6) / 11 - 0.5) * 1.5,
-    phase: rng(),
-    reach: 0.7 + rng() * 0.45,
-    speck: k % 3 === 2,
-  }));
-})();
-
-function drawSuction(ctx: CanvasRenderingContext2D, pose: Pose): void {
-  const pull = suction(pose.age);
-  if (pull <= 0) return;
-  const m = mouthOf(pose);
-  const far = pose.length * 0.5;
-  ctx.save();
-  ctx.strokeStyle = INK;
-  ctx.fillStyle = INK;
-  ctx.lineCap = 'round';
-  for (const s of STREAKS) {
-    // Each mark flows in, accelerating, and starts again further out.
-    const flow = (s.phase + pose.age * 7) % 1;
-    const d = far * s.reach * (1 - flow) ** 1.6;
-    const near = d / far;
-    const fade = Math.min(1, near * 6) * Math.min(1, (1 - flow) * 5);
-    if (fade <= 0.02) continue;
-    // Bent gently towards the mouth's axis as it closes in.
-    const angle = s.angle * (0.55 + 0.45 * near);
-    const dx = pose.facing * Math.cos(angle);
-    const dy = Math.sin(angle);
-    ctx.globalAlpha = 0.5 * pull * fade;
-    const x0 = m.x + dx * d;
-    const y0 = m.y + dy * d;
-    if (s.speck) {
-      ctx.beginPath();
-      ctx.arc(x0, y0, Math.max(1.2, pose.length * 0.006 * (0.4 + near)), 0, Math.PI * 2);
-      ctx.fill();
-      continue;
-    }
-    // A short wavy stroke lying along the flow, stretched as it speeds up.
-    const len = pose.length * (0.035 + 0.07 * near) * (1 + flow);
-    const wave = pose.length * 0.006 * (0.5 + near);
-    ctx.lineWidth = Math.max(1, pose.length * 0.0035 * (0.5 + near));
-    ctx.beginPath();
-    for (let i = 0; i <= 6; i++) {
-      const along = d + (len * i) / 6;
-      const side = Math.sin(i * 1.4 + s.phase * 6) * wave;
-      const x = m.x + dx * along - dy * side * pose.facing;
-      const y = m.y + dy * along + Math.cos(angle) * side;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  }
-  ctx.restore();
-}
 
 /** The gulp's bubbles: start delay (ages), radius and sideways offset (eater body lengths). */
 const BUBBLES = (() => {
@@ -263,40 +160,15 @@ export function createRenderer(ctx: CanvasRenderingContext2D, sprites: ReadonlyM
         const squash = 1 - 0.1 * snap(pose.age);
         const eater = { ...scared, tilt: scared.tilt + 0.07 * jaw - 0.06 * snap(pose.age) };
         drawSwimmer(ctx, sprite, eater, boil, { squash, stretch: 1 + 0.05 * snap(pose.age), jaw, lump: { size: lump(pose.age), at: lumpAt(pose.age) }, eyes: eyesShut(pose.age), part: 'body' });
-        drawSuction(ctx, pose);
+        drawSuction(ctx, pose, suction(pose.age), pose.age);
         drawAlarm(ctx, pose);
         drawBubbles(ctx, pose);
         drawCrumbs(ctx, pose);
-        drawChomp(ctx, pose);
+        drawChomp(ctx, pose, (pose.age - GULP_AGE) / 0.07);
       }
       ctx.restore();
     },
   };
-}
-
-/**
- * The prey's last moments: dragged head-first to the eater's lips, then down
- * the throat, stretching long and thin as it goes (the throat's shadow,
- * drawn over it, swallows it into the dark).
- */
-function suckedIn(prey: Pose, eater: Pose, u: number): [Pose, { stretch: number; squash: number }] {
-  const lips = mouthOf(eater);
-  const throat = {
-    x: eater.x + eater.facing * eater.length * 0.12,
-    y: eater.y + eater.length * 0.05,
-  };
-  const e = u ** 1.7;
-  // A curve from where it was, through the lips, into the throat.
-  const a = (1 - e) ** 2;
-  const b = 2 * e * (1 - e);
-  const c = e * e;
-  const x = a * prey.x + b * lips.x + c * throat.x;
-  const y = a * prey.y + b * lips.y + c * throat.y;
-  const pull = Math.sin(Math.PI * Math.min(1, u * 1.15));
-  return [
-    { ...prey, x, y, length: prey.length * (1 - 0.45 * e), tilt: prey.tilt * (1 - e) },
-    { stretch: 1 + 0.5 * pull, squash: 1 - 0.3 * pull },
-  ];
 }
 
 /** A prey that has seen its eater coming thrashes its tail and shudders. */
@@ -317,26 +189,6 @@ function drawAlarm(ctx: CanvasRenderingContext2D, pose: Pose): void {
   const size = alarm(pose.age);
   if (size <= 0) return;
   drawExclaim(ctx, pose.x + pose.facing * pose.length * 0.18, pose.y - pose.length * 0.55, pose.length * 0.42 * size, pose.facing * 0.12);
-}
-
-/** A hand-inked "!" centred at (x, y), `h` tall, tilted by `rotation`. */
-export function drawExclaim(ctx: CanvasRenderingContext2D, x: number, y: number, h: number, rotation: number): void {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(rotation);
-  ctx.fillStyle = INK;
-  ctx.beginPath();
-  // A tapering stroke: fat at the top, a point at the bottom.
-  ctx.moveTo(-h * 0.11, -h * 0.5);
-  ctx.quadraticCurveTo(0, -h * 0.62, h * 0.11, -h * 0.5);
-  ctx.lineTo(h * 0.025, h * 0.18);
-  ctx.lineTo(-h * 0.025, h * 0.18);
-  ctx.closePath();
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(0, h * 0.38, h * 0.075, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
 }
 
 /** Scraps of the meal (fin and scale flakes) sprayed from the bite, sinking; they belong to the eater's scale. */

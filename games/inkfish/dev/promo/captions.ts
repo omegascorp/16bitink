@@ -51,21 +51,32 @@ export type CaptionSet = { readonly kind: 'ad' } | { readonly kind: 'hook'; read
 
 export function drawCaptions(ctx: CanvasRenderingContext2D, set: CaptionSet): void {
   const lines = set.kind === 'ad' ? AD : hookLines(ctx, set.text);
+  for (const line of lines) drawTextLine(ctx, line.text, VIDEO.width / 2, line.y, line.size, line.weight, line.alpha ?? 1);
+}
+
+/** Ink on a paper halo; the deep-water shorts flip it to paper on an ink halo. */
+export interface TextInk {
+  readonly fill: string;
+  readonly halo: string;
+}
+export const INK_ON_PAPER: TextInk = { fill: INK, halo: PAPER };
+
+/** One centred line in the handwriting font, with a halo that keeps it readable over a passing fin. */
+export function drawTextLine(
+  ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, weight: 500 | 700, alpha = 1, colours: TextInk = INK_ON_PAPER,
+): void {
+  if (alpha <= 0) return;
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   ctx.lineJoin = 'round';
-  for (const line of lines) {
-    ctx.font = `${line.weight} ${line.size}px ${CAPTION_FONT}`;
-    const alpha = line.alpha ?? 1;
-    // A paper halo keeps the words readable over a passing fin.
-    ctx.strokeStyle = PAPER;
-    ctx.lineWidth = line.size * 0.16;
-    ctx.globalAlpha = 0.85 * alpha;
-    ctx.strokeText(line.text, VIDEO.width / 2, line.y);
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = INK;
-    ctx.fillText(line.text, VIDEO.width / 2, line.y);
-  }
+  ctx.font = `${weight} ${size}px ${CAPTION_FONT}`;
+  ctx.strokeStyle = colours.halo;
+  ctx.lineWidth = size * 0.16;
+  ctx.globalAlpha = 0.85 * alpha;
+  ctx.strokeText(text, x, y);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = colours.fill;
+  ctx.fillText(text, x, y);
   ctx.restore();
 }
