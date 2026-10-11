@@ -64,3 +64,13 @@ export function groundRow(t: Terrain, x: number): number {
   for (let y = 0; y < t.height; y++) if (isSolid(t, x, y) && tileAt(t, x, y) !== TILE.wood) return y;
   return t.height;
 }
+
+/** Whether nothing solid lies on the straight line between two points: a crab sees, and is seen, only through open air or water. */
+export function inSight(t: Terrain, a: { x: number; y: number }, b: { x: number; y: number }, tile: number): boolean {
+  const steps = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (tile / 3));
+  for (let i = 1; i < steps; i++) {
+    const u = i / steps;
+    if (isSolid(t, Math.floor((a.x + (b.x - a.x) * u) / tile), Math.floor((a.y + (b.y - a.y) * u) / tile))) return false;
+  }
+  return true;
+}

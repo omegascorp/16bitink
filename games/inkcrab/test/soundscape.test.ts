@@ -37,6 +37,12 @@ describe('level sounds', () => {
     expect(heard).toEqual(['eat', 'full']);
   });
 
+  it('bonks a move up the line isn\'t ready for', () => {
+    const { heard, scape, beach } = setup();
+    scape.react({ type: 'held', x: 10, y: 10, wait: 'behind' }, beach, view);
+    expect(heard).toEqual(['full']);
+  });
+
   it('gives every shell move and mission moment its own sound', () => {
     const { heard, scape, beach } = setup();
     const events: SimEvent[] = [

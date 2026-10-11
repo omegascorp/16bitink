@@ -9,8 +9,8 @@ import { makeCritter } from '../src/logic/critters';
 import { setTile, TILE } from '../src/logic/terrain';
 import { centre, findItem, food, makeItem, shell, type Item } from '../src/logic/items';
 import { BEACH_FINDS, FINDS } from '../src/logic/finds';
-import { fed, LINE, lineOf } from '../src/logic/line';
-import { missionGoal, missionLine, missionNotes, missionTag, PLAIN, tasksDone, type Mission } from '../src/logic/mission';
+import { chainStatus, fed, LINE, lineOf } from '../src/logic/line';
+import { chainPrompt, missionGoal, missionLine, missionNotes, missionTag, PLAIN, tasksDone, type Mission } from '../src/logic/mission';
 import { shellOf, type ShellKind } from '../src/logic/shells';
 import { Beach, IDLE, type BeachSetup, type Input, type SimEvent } from '../src/logic/sim';
 import { movementOf, SPECIES } from '../src/logic/species';
@@ -224,6 +224,29 @@ describe('a shell chain', () => {
     expect(b.crab.swap).toBeNull();
   });
 
+  it('tells you why, once, when you try to move up without your line', () => {
+    const b = beach({ mission: CHAIN, items: [loose(50, 'snail', 3, 10)] });
+    run(b, 0.2);
+    const events: SimEvent[] = [];
+    for (let i = 0; i < 6; i++) events.push(...b.step({ ...IDLE, interact: true }, 1 / 60));
+    expect(events.filter((e) => e.type === 'held')).toEqual([expect.objectContaining({ type: 'held', wait: 'recruit' })]);
+    expect(b.heldNotice).toBeGreaterThan(0);
+    run(b, 5);
+    expect(b.heldNotice).toBe(0);
+  });
+
+  it('says how many crabs a move up still needs, or how many are left behind', () => {
+    const crab = { x: 10 * T, y: GROUND * T - 12, w: 14, h: 12 };
+    const follower = (id: number, col: number, size: number) => ({ ...makeCritter(id, size, col * T, GROUND * T, 1, 1, 'hermit'), recruit: true, joined: true, shell: shellOf('periwinkle', size) });
+    const nerite = shellOf('nerite', 4);
+    const short = chainStatus([follower(1, 11, 2)], nerite, crab, T);
+    expect(short.wait).toBe('recruit');
+    expect(chainPrompt(short)).toContain('2 more small crabs');
+    const strays = chainStatus([{ ...follower(1, 11, 3), shell: shellOf('snail', 3) }, follower(2, 40, 2), follower(3, 45, 1)], nerite, crab, T);
+    expect(strays).toMatchObject({ wait: 'behind', far: 2 });
+    expect(chainPrompt(strays)).toContain('2 of your line are too far behind');
+  });
+
   it('hands the shell left behind to the first in line, whose tiny one is left over', () => {
     const b = beach({ mission: CHAIN, recruits: [recruit(13)], items: [loose(50, 'snail', 3, 10)] });
     run(b, 1);
@@ -395,9 +418,9 @@ describe('a shell chain', () => {
 
   it('shows on the HUD how the line stands', () => {
     const p = { grown: false, finds: 0, marked: 0, giant: false };
-    expect(missionLine(CHAIN, p, { line: 0, needed: 1, wait: 'recruit' })).toContain('find one more small crab');
-    expect(missionLine(CHAIN, p, { line: 2, needed: 2, wait: 'growing' })).toContain('grow');
-    expect(missionLine(CHAIN, p, { line: 2, needed: 2, wait: null })).toContain('ready');
+    expect(missionLine(CHAIN, p, { line: 0, needed: 1, far: 0, wait: 'recruit' })).toContain('find one more small crab');
+    expect(missionLine(CHAIN, p, { line: 2, needed: 2, far: 0, wait: 'growing' })).toContain('grow');
+    expect(missionLine(CHAIN, p, { line: 2, needed: 2, far: 0, wait: null })).toContain('ready');
   });
 
   it('works through the first chain level: the first recruit lets the crab into the size-3 shell', () => {

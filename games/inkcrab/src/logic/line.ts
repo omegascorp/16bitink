@@ -6,7 +6,7 @@ import type { ChainStatus } from './mission';
 import type { Rng } from './rng';
 import { inShell, stepRival, type Rapper, type RivalStep } from './rivals';
 import type { Shell } from './shells';
-import { isSolid, type Terrain } from './terrain';
+import { inSight, isSolid, type Terrain } from './terrain';
 import { startSwap } from './swap';
 import type { Trail } from './trail';
 import { CHAIN, FOLLOW, roomier, type ChainStep, type Leader } from './vacancy';
@@ -108,16 +108,21 @@ export function planLine(line: readonly Critter[], leader: Leader, items: Iterab
  */
 export function chainStatus(line: readonly Critter[], shell: Shell | null, crab: Box, tile: number): ChainStatus {
   const needed = shell ? Math.max(0, shell.size - 1) : 0;
-  const status = (wait: ChainStatus['wait']): ChainStatus => ({ line: line.length, needed, wait });
+  const strays = farBehind(line.slice(0, needed), crab, tile);
+  const status = (wait: ChainStatus['wait']): ChainStatus => ({ line: line.length, needed, far: strays.length, wait });
   if (line.length < needed) return status('recruit');
   let ahead = shell;
   for (const k of line.slice(0, needed)) {
     if (!ahead || !roomier(k, ahead)) return status('growing');
     ahead = k.shell ?? null;
   }
+  return status(strays.length === 0 ? null : 'behind');
+}
+
+/** Those of `line` too far from the crab to count for a move up (more than LINE.near across or LINE.nearRows up or down). */
+export function farBehind(line: readonly Critter[], crab: Box, tile: number): Critter[] {
   const at = centre(crab);
-  const near = (k: Critter): boolean => Math.abs(centre(k).x - at.x) <= LINE.near * tile && Math.abs(centre(k).y - at.y) <= LINE.nearRows * tile;
-  return status(line.slice(0, needed).every(near) ? null : 'behind');
+  return line.filter((k) => Math.abs(centre(k).x - at.x) > LINE.near * tile || Math.abs(centre(k).y - at.y) > LINE.nearRows * tile);
 }
 
 /**
@@ -156,16 +161,6 @@ export interface LineWorld {
 export interface FollowerStep extends RivalStep {
   /** Food it ate this step, gone from the sand. */
   readonly ate: Item | null;
-}
-
-/** Whether nothing solid lies on the straight line between two points: a crab sees, and is seen, only through open air or water. */
-export function inSight(t: Terrain, a: { x: number; y: number }, b: { x: number; y: number }, tile: number): boolean {
-  const steps = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (tile / 3));
-  for (let i = 1; i < steps; i++) {
-    const u = i / steps;
-    if (isSolid(t, Math.floor((a.x + (b.x - a.x) * u) / tile), Math.floor((a.y + (b.y - a.y) * u) / tile))) return false;
-  }
-  return true;
 }
 
 /** What sits still where it lives (an antlion in its pit, a sandfish in the sand, an octopus in its den): a follower just goes by. */

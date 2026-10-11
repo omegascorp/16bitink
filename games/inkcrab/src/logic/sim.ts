@@ -49,6 +49,9 @@ export interface Input {
 
 export const IDLE: Input = { moveX: 0, aimY: 0, jump: false, dig: false, place: false, interact: false, tapTile: null, hide: false };
 
+/** Trying to move up before a shell chain's line is ready: seconds the notice shows, and before it's said again. */
+export const HELD = { notice: 4, again: 0.6 } as const;
+
 export type SimEvent =
   | { readonly type: 'ate'; readonly id: number; readonly points: number; readonly wasted: number; readonly x: number; readonly y: number }
   | { readonly type: 'grew'; readonly size: number }
@@ -68,6 +71,8 @@ export type SimEvent =
   | { readonly type: 'traded'; readonly x: number; readonly y: number; readonly item: number }
   /** A small hermit crab joined the crab's line (a shell chain mission). */
   | { readonly type: 'joined'; readonly x: number; readonly y: number; readonly line: number }
+  /** Tried to move up a shell chain before the line was ready: `wait` says why. */
+  | { readonly type: 'held'; readonly x: number; readonly y: number; readonly wait: NonNullable<ChainStatus['wait']> }
   /** A beach's find dug up and picked up (a mission's task): `count` so far. */
   | { readonly type: 'collected'; readonly x: number; readonly y: number; readonly count: number }
   /** A marked hunter (or the giant) eaten. */
@@ -291,6 +296,8 @@ export class Beach {
   line: ReadonlyMap<number, ChainStep> = new Map();
   /** The shell the crab is at fits, but its line isn't ready for it to move up (a shell chain mission). */
   nearbyHeld = false;
+  /** Seconds left of the notice after trying to move up before the line was ready: the HUD says why and points to who's missing. */
+  heldNotice = 0;
   /** The crab's footsteps, which a shell chain's line follows (null on any other level). */
   readonly trail: Trail | null;
   /** Where along the footsteps each follower keeps its place. */
@@ -516,6 +523,7 @@ export class Beach {
     const events: SimEvent[] = [];
     if (this.outcome !== 'playing') return events;
     this.elapsed += dt;
+    this.heldNotice = Math.max(0, this.heldNotice - dt);
     const c = this.crab;
     const hidden = input.hide && c.shell !== null && c.swap === null;
     // Pulling into the shell (or moving house) lets go of the roots.
@@ -557,7 +565,8 @@ export class Beach {
     if (input.interact && this.nearbyShell && this.nearbyFits && !this.nearbyHeld) {
       this.crab = { ...this.crab, swap: startSwap(this.nearbyShell.id) };
       events.push({ type: 'swapStart', id: this.nearbyShell.id });
-    } else if (input.interact && this.nearbyRival) this.rap(this.nearbyRival, events);
+    } else if (input.interact && this.nearbyHeld) this.held(events);
+    else if (input.interact && this.nearbyRival) this.rap(this.nearbyRival, events);
     this.eat(events);
   }
 
@@ -1076,6 +1085,17 @@ export class Beach {
       this.handDowns.delete(took.id);
     }
     if (left) this.handDowns.add(this.leaveShell(from ?? rival, left, events));
+  }
+
+  /** Tried to move up before the line was ready: says so (once, not every frame the key is held) and starts the notice. */
+  private held(events: SimEvent[]): void {
+    const wait = this.chain?.wait;
+    if (!wait) return;
+    if (this.heldNotice <= HELD.notice - HELD.again) {
+      const at = centre(this.crab.body);
+      events.push({ type: 'held', x: at.x, y: this.crab.body.y, wait });
+    }
+    this.heldNotice = HELD.notice;
   }
 
   /** How the crab's line stands for its next move up, on a shell chain; null on any other level. */

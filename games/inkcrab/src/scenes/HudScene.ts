@@ -29,6 +29,8 @@ const PANEL = { x: 16, y: 14, w: 380, h: 118 } as const;
 const MISSION = { y: 124, h: 24 } as const;
 /** The sand heap sits in the panel's right end, its count under it. */
 const HEAP_AT = { x: PANEL.x + PANEL.w - 16 - HEAP_MAX_W / 2, bottom: PANEL.y + PANEL.h - 30 } as const;
+/** How far up from the bottom the shell prompt sits: clear of the controls help line under it. */
+const PROMPT_RISE = 36;
 const BAR = { x: 30, y: 60, w: 190, h: 16 } as const;
 /** Life icons: a little shell each, right to left from the pause button. */
 const LIFE = { size: 30, gap: 36, y: 36 } as const;
@@ -191,18 +193,23 @@ export class HudScene extends Phaser.Scene {
     const near = beach.nearbyShell;
     const rival = beach.nearbyRival;
     const chain = beach.chain;
+    // Just tried to move up before the line was ready: in red until the notice runs out, at the shell or not.
+    const held = beach.heldNotice > 0 && chain?.wait ? chain : null;
+    this.prompt.setColor(held ? RED : BLUE);
     if (near && near.kind.type === 'shell' && !c.swap && beach.nearbyHeld && chain) {
-      this.prompt.setText(`${shellName(near.kind.shell)} · ${chainPrompt(chain)}`).setPosition(width / 2, height - 24).setVisible(true);
+      this.prompt.setText(`${shellName(near.kind.shell)} · ${chainPrompt(chain)}`).setPosition(width / 2, height - PROMPT_RISE).setVisible(true);
+    } else if (held && !c.swap) {
+      this.prompt.setText(chainPrompt(held)).setPosition(width / 2, height - PROMPT_RISE).setVisible(true);
     } else if (rival?.shell && !c.swap && !beach.nearbyFits) {
       const how = this.touchSeen ? 'tap it' : 'press E';
-      this.prompt.setText(`hermit crab in a ${shellName(rival.shell)} · ${how} to rap on its shell`).setPosition(width / 2, height - 24).setVisible(true);
+      this.prompt.setText(`hermit crab in a ${shellName(rival.shell)} · ${how} to rap on its shell`).setPosition(width / 2, height - PROMPT_RISE).setVisible(true);
     } else if (near && near.kind.type === 'shell' && !c.swap) {
       const s = near.kind.shell;
       const how = this.touchSeen ? 'tap it' : 'press E';
       const verdict = beach.nearbyFits
         ? `${how} to move in`
         : c.growth.size < s.size - 1 ? 'too big for you yet' : 'too small for you now';
-      this.prompt.setText(`${shellName(s)} · ${verdict}`).setPosition(width / 2, height - 24).setVisible(true);
+      this.prompt.setText(`${shellName(s)} · ${verdict}`).setPosition(width / 2, height - PROMPT_RISE).setVisible(true);
     } else this.prompt.setVisible(false);
 
     this.help.setPosition(width - 14, height - 10).setText(this.touchSeen

@@ -12,8 +12,9 @@ import { centre, overlaps } from '../logic/items';
 import { shellPx, SHELLS } from '../logic/shells';
 import { blotsFor, loadProgress, recordResult, saveProgress } from '../logic/save';
 import { Beach, type SimEvent } from '../logic/sim';
+import type { ChainStatus } from '../logic/mission';
 import { missionOf, parTimeOf } from '../level/missions';
-import { missionTarget } from './game/missionPointer';
+import { chainTarget, missionTarget } from './game/missionPointer';
 import { movingInto } from '../logic/rivals';
 import { BackdropView } from './game/backdropView';
 import { BirdsView } from './game/birdsView';
@@ -59,6 +60,13 @@ const ZOOM_REFERENCE = 680;
 const ZOOM_MIN_FACTOR = 0.75;
 
 /** One level: the beach, the crab, and what happens when it's won or lost. */
+/** Said over the crab when it tries to move up a shell chain before its line is ready. */
+const HELD_SAYS: Readonly<Record<NonNullable<ChainStatus['wait']>, string>> = {
+  recruit: 'your line is too short!',
+  growing: 'your line must grow first!',
+  behind: 'your line is too far behind!',
+};
+
 export class GameScene extends Phaser.Scene {
   beach!: Beach;
   level!: LevelDef;
@@ -243,11 +251,13 @@ export class GameScene extends Phaser.Scene {
    */
   private drawPointer(time: number): void {
     const g = this.pointer.clear();
-    const coached = this.coach.hint(this.beach, 'keys')?.target;
+    // At a shell its line isn't ready for (or just after trying it), a red arrow points out who's missing, even in view.
+    const missing = this.beach.heldNotice > 0 || this.beach.nearbyHeld ? chainTarget(this.beach) : null;
+    const coached = missing ? undefined : this.coach.hint(this.beach, 'keys')?.target;
     // Without a hint, a red arrow at the edge points the way to the mission's next find.
     const view = this.cameras.main.worldView;
-    const mission = coached ? null : missionTarget(this.beach);
-    const target = coached ?? (mission && !view.contains(mission.x, mission.y) ? mission : null);
+    const mission = coached || missing ? null : missionTarget(this.beach);
+    const target = missing ?? coached ?? (mission && !view.contains(mission.x, mission.y) ? mission : null);
     if (!target) return;
     const zoom = screenZoom(this.cameras.main);
     const inset = 34 / zoom;
@@ -318,6 +328,9 @@ export class GameScene extends Phaser.Scene {
       this.floatText(e.x, e.y, 'trade up!');
     } else if (e.type === 'joined') {
       this.floatText(e.x, e.y, e.line === 1 ? 'a follower!' : `${e.line} following`);
+    } else if (e.type === 'held') {
+      this.floatText(e.x, e.y, HELD_SAYS[e.wait], RED);
+      this.crabView.stuck(this);
     } else if (e.type === 'collected') {
       this.floatText(e.x, e.y, `${FINDS[this.beach.mission.find].one}!`, RED);
     } else if (e.type === 'quarry') {

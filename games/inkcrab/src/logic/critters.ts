@@ -6,7 +6,7 @@ import type { Rng } from './rng';
 import { shellPx, type Shell } from './shells';
 import type { Swap } from './swap';
 import { movementOf, SPECIES, type SpeciesId } from './species';
-import { isSolid, surfaceRow, tileAt, TILE, type Terrain } from './terrain';
+import { inSight, isSolid, surfaceRow, tileAt, TILE, type Terrain } from './terrain';
 
 /**
  * Creatures that roam the beach and its tunnels (see species.ts). Size uses
@@ -21,8 +21,10 @@ export interface Critter extends Body {
   readonly dir: 1 | -1;
   /** Seconds until a wandering critter may turn round on its own. */
   readonly turnIn: number;
-  /** Seconds it ignores the crab (after bumping into it hiding in its shell). */
+  /** Seconds it ignores the crab (after bumping into it hiding in its shell, catching it, or giving up a chase). */
   readonly bored: number;
+  /** Seconds it has been chasing the crab without catching it. */
+  readonly chase?: number;
   /** Seconds into its run-and-rest cycle, for species that move in bursts. */
   readonly clock: number;
   /** An octopus's arm: how far out it reaches (0 in the den .. 1 at full stretch), and which way. */
@@ -96,8 +98,10 @@ export interface Quarry {
 export const CRITTER = {
   /** How far (tiles) above or below it notices the crab; how far ahead depends on the species. */
   sightRows: 2,
-  /** Seconds a critter leaves a hiding crab alone. */
-  boredFor: 3,
+  /** Seconds a critter leaves the crab alone, walking on, once it has lost interest. */
+  boredFor: 5,
+  /** Seconds a hunter chases without catching the crab before it gives up (so it can't pace over a burrow for ever). */
+  giveUp: 5,
   turnMin: 2,
   turnMax: 5,
   /** Wandering pace as a share of its chasing (or fleeing) speed. */
@@ -163,14 +167,19 @@ export function makeCritter(id: number, size: number, x: number, bottom: number,
   return { id, species, size, x: x - w / 2, y: bottom - h, w, h, vx: 0, vy: 0, onGround: false, dir, turnIn, bored: 0, clock: 0, arm: 0, aimX: dir, aimY: 0, dry: 0 };
 }
 
-/** -1/1 towards the quarry when it's in sight (nearer in fog, never under kelp) or, for a nose, in scent (see wind.ts); 0 when it isn't. */
-function spot(c: Critter, q: Quarry | null, tile: number): -1 | 0 | 1 {
+/**
+ * -1/1 towards the quarry when it's in sight (nearer in fog, never under kelp,
+ * never through rock or sand) or, for a nose, in scent (see wind.ts), which
+ * does carry through sand; 0 when it isn't.
+ */
+function spot(t: Terrain, c: Critter, q: Quarry | null, tile: number): -1 | 0 | 1 {
   if (!q || q.hidden || q.covered || c.bored > 0) return 0;
   const a = centre(c);
   const b = centre(q.box);
   const spec = SPECIES[c.species];
   const range = spec.nose ? scentRange(spec.sight, q.wind ?? 0, a.x, b.x) : sightInFog(spec.sight, q.veil ?? 0);
   if (Math.abs(b.x - a.x) > range * tile || Math.abs(b.y - a.y) > CRITTER.sightRows * tile) return 0;
+  if (!spec.nose && !inSight(t, a, b, tile)) return 0;
   return b.x >= a.x ? 1 : -1;
 }
 
@@ -225,7 +234,7 @@ export function stepCritter(t: Terrain, c: Critter, q: Quarry | null, dt: number
 function stepWalker(t: Terrain, c: Critter, q: Quarry | null, dt: number, tile: number, rng: Rng, env: Surroundings, hurry = false): Critter {
   const spec = SPECIES[c.species];
   // A gull can't get at a crab under water.
-  const seen = spec.lowTide && q?.inWater ? 0 : spot(c, q, tile);
+  const seen = spec.lowTide && q?.inWater ? 0 : spot(t, c, q, tile);
   // A lurker never wanders or turns on its own: it only faces a crab it sees.
   if (spec.move === 'lurk') {
     const moved = moveBody(t, c, 0, 0, dt, tile);
@@ -234,29 +243,37 @@ function stepWalker(t: Terrain, c: Critter, q: Quarry | null, dt: number, tile: 
   const hunting = seen !== 0 && q !== null && (c.size < q.size || (c.size > q.size && spec.hunts));
   let dir = c.dir;
   if (hunting) dir = (c.size > q.size ? seen : -seen) as 1 | -1;
+  // A chase that goes on without a catch (the crab out of reach, down a burrow it can smell) ends: it turns and walks off.
+  const chase = hunting && c.size > q.size ? (c.chase ?? 0) + dt : 0;
+  const gaveUp = chase >= CRITTER.giveUp;
+  if (gaveUp) dir = -seen as 1 | -1;
+  const bored = gaveUp ? CRITTER.boredFor : Math.max(0, c.bored - dt);
+  const chasing = hunting && !gaveUp;
   let turnIn = c.turnIn - dt;
   // A hopper goes down a drop it can hop back out of, or leaps a gap, rather than turning at it.
-  const drop = !hunting && c.onGround && turnIn > 0 && cliffAhead(t, c, tile, env) ? (spec.hops ? overDrop(t, c, tile) ?? 'turn' : 'turn') : null;
-  if (!hunting && c.onGround && (turnIn <= 0 || drop === 'turn')) {
-    dir = dir === 1 ? -1 : 1;
+  const drop = !chasing && c.onGround && turnIn > 0 && cliffAhead(t, c, tile, env) ? (spec.hops ? overDrop(t, c, tile) ?? 'turn' : 'turn') : null;
+  if (!chasing && c.onGround && (turnIn <= 0 || drop === 'turn')) {
+    // Walking away from a crab it has lost interest in, it turns back only at a drop, not on a whim.
+    if (drop === 'turn' || c.bored <= 0) dir = dir === 1 ? -1 : 1;
     turnIn = CRITTER.turnMin + rng() * (CRITTER.turnMax - CRITTER.turnMin);
   }
   const clock = c.clock + dt;
   const resting = spec.burst !== undefined && clock % (spec.burst.run + spec.burst.rest) > spec.burst.run;
   const top = critterSpeed(c.size, c.species);
-  const pace = resting ? 0 : spec.hops && !c.onGround ? top * CRITTER.glide : top * (hunting || hurry ? 1 : CRITTER.amble);
+  const pace = resting ? 0 : spec.hops && !c.onGround ? top * CRITTER.glide : top * (chasing || hurry ? 1 : CRITTER.amble);
   const moved = moveBody(t, c, dir, pace, dt, tile);
   const hopSpeed = Math.sqrt(2 * PHYS.gravity * CRITTER.hop * tile);
-  if (drop === 'leap') return { ...c, ...jump(moved, hopSpeed), dir, turnIn, clock, bored: Math.max(0, c.bored - dt) };
-  // Blocked by a wall it can't step up: turn round (a hunter waits it out).
+  const kept = { turnIn, clock, bored, chase: gaveUp ? 0 : chase };
+  if (drop === 'leap') return { ...c, ...jump(moved, hopSpeed), dir, ...kept };
+  // Blocked by a wall it can't step up: turn round (a hunter waits it out, until it gives up).
   const stuck = !resting && c.onGround && Math.abs(moved.x - c.x) < 1e-3 && boxHitsSolid(t, { ...moved, x: moved.x + dir }, tile);
   // A hopper clears the wall instead, if there's room over it (not a cliff face, or the edge of the beach).
   const clears = stuck && spec.hops && !boxHitsSolid(t, { ...moved, x: moved.x + dir * tile / 2, y: moved.y - CRITTER.hop * tile }, tile);
-  if (clears) return { ...c, ...jump(moved, hopSpeed), dir, turnIn, clock, bored: Math.max(0, c.bored - dt) };
+  if (clears) return { ...c, ...jump(moved, hopSpeed), dir, ...kept };
   // Walled in on both sides (down a hole), it stands facing one way rather than flipping every frame.
   const boxedIn = stuck && boxHitsSolid(t, { ...moved, x: moved.x - dir }, tile);
-  if (stuck && !hunting && !boxedIn) dir = dir === 1 ? -1 : 1;
-  return { ...c, ...moved, dir, turnIn, clock, bored: Math.max(0, c.bored - dt) };
+  if (stuck && !chasing && !boxedIn) dir = dir === 1 ? -1 : 1;
+  return { ...c, ...moved, dir, ...kept };
 }
 
 /**

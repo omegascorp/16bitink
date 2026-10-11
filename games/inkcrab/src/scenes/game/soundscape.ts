@@ -61,6 +61,7 @@ export class Soundscape {
       case 'rapped': return play('knock', { x: e.x, y: e.y });
       case 'traded': return play('trade', { x: e.x, y: e.y });
       case 'joined': return play('join', { x: e.x, y: e.y });
+      case 'held': return play('full', crab);
       case 'collected': return play('find', { x: e.x, y: e.y });
       case 'quarry': return play('quarry', { x: e.x, y: e.y });
       case 'won': return play('win');

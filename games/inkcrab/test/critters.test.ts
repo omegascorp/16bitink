@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { shellPx } from '../src/logic/shells';
-import { breached, critterBox, makeCritter, stepCritter, swimmable, type Critter, type Quarry } from '../src/logic/critters';
+import { breached, critterBox, CRITTER, makeCritter, stepCritter, swimmable, type Critter, type Quarry } from '../src/logic/critters';
 import { createRng } from '../src/logic/rng';
 import { createTerrain, setTile, TILE, type Terrain } from '../src/logic/terrain';
 
@@ -21,6 +21,9 @@ const run = (t: Terrain, c: Critter, q: Quarry | null, seconds: number): Critter
 
 /** A quarry standing on the sand at tile column `col`. */
 const quarry = (col: number, size: number, hidden = false): Quarry => ({ box: { x: col * T, y: 10 * T - 12, w: 14, h: 12 }, size, hidden });
+
+/** A quarry down a one-tile hole in the sand at column `col`, a row under the surface. */
+const burrowed = (col: number, size: number): Quarry => ({ box: { x: col * T + 1, y: 11 * T, w: 14, h: 8 }, size, hidden: false });
 
 describe('ghost crabs', () => {
   it('chase a smaller crab they can see', () => {
@@ -46,6 +49,37 @@ describe('ghost crabs', () => {
   it('ignore one out of sight', () => {
     const c = makeCritter(1, 4, 10 * T, 10 * T, -1, 10);
     expect(run(flat(), c, quarry(40, 2), 0.5).dir).toBe(-1);
+  });
+
+  it('can\'t see a crab down in its burrow, through the sand', () => {
+    const t = flat();
+    setTile(t, 22, 11, TILE.air);
+    const c = makeCritter(1, 3, 20 * T, 10 * T, -1, 10);
+    expect(run(t, c, burrowed(22, 2), 0.5).dir).toBe(-1);
+  });
+
+  it('still smell it there, if they hunt by smell', () => {
+    const t = flat();
+    setTile(t, 22, 11, TILE.air);
+    const c = makeCritter(1, 3, 20 * T, 10 * T, -1, 10, 'raccoon');
+    expect(run(t, c, burrowed(22, 2), 0.5).dir).toBe(1);
+  });
+
+  it('give up a chase they can\'t finish, and walk off', () => {
+    const t = flat();
+    setTile(t, 22, 11, TILE.air);
+    const c = makeCritter(1, 3, 20 * T, 10 * T, -1, 10, 'raccoon');
+    const after = run(t, c, burrowed(22, 2), CRITTER.giveUp + 0.1);
+    expect(after.bored).toBeGreaterThan(0);
+    const later = run(t, after, burrowed(22, 2), 2);
+    expect(Math.abs(later.x - 22 * T)).toBeGreaterThan(Math.abs(after.x - 22 * T));
+  });
+
+  it('walk on past a crab they lost interest in, not turning back on a whim', () => {
+    const c = { ...makeCritter(1, 4, 20 * T, 10 * T, 1, 0.1), bored: CRITTER.boredFor };
+    const after = run(flat(), c, quarry(18, 2, true), 2);
+    expect(after.dir).toBe(1);
+    expect(after.x).toBeGreaterThan(c.x);
   });
 
   it('turn round at a wall they cannot step up', () => {

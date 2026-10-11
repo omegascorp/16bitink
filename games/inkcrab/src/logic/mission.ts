@@ -121,18 +121,22 @@ export function missionLine(m: Mission, p: MissionProgress, chain: ChainStatus |
 
 /**
  * How a shell chain stands for the next move up: `line` crabs following,
- * `needed` for that move; `wait`: why the move can't happen yet.
+ * `needed` for that move, `far` of those too far off to count; `wait`: why
+ * the move can't happen yet.
  */
 export interface ChainStatus {
   readonly line: number;
   readonly needed: number;
+  readonly far: number;
   readonly wait: 'recruit' | 'growing' | 'behind' | null;
 }
+
+const crabs = (n: number): string => (n === 1 ? 'one more small crab' : `${n} more small crabs`);
 
 function chainText(s: ChainStatus): string {
   const n = `${s.line} following`;
   switch (s.wait) {
-    case 'recruit': return `${n} · find ${s.needed - s.line === 1 ? 'one more small crab' : `${s.needed - s.line} more small crabs`}`;
+    case 'recruit': return `${n} · find ${crabs(s.needed - s.line)}`;
     case 'growing': return `${n} · let your line eat and grow`;
     case 'behind': return `${n} · wait for your line to catch up`;
     default: return `${n} · your line is ready to move up`;
@@ -142,9 +146,9 @@ function chainText(s: ChainStatus): string {
 /** Why a move up is held back, for the shell prompt. */
 export function chainPrompt(s: ChainStatus): string {
   switch (s.wait) {
-    case 'recruit': return 'find a small crab to take your shell first';
-    case 'growing': return 'your line must grow into their shells first';
-    case 'behind': return 'wait for your line to catch up';
+    case 'recruit': return `find ${crabs(s.needed - s.line)} to take your shell first`;
+    case 'growing': return 'your line must eat and grow into their shells first';
+    case 'behind': return `${s.far === 1 ? 'one of your line is' : `${s.far} of your line are`} too far behind: bring them close first`;
     default: return '';
   }
 }
