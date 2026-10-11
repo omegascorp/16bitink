@@ -32,6 +32,7 @@ import { RivalsView } from './game/rivalsView';
 import { RainView } from './game/rainView';
 import { DecksView } from './game/decksView';
 import { WindView } from './game/windView';
+import { FINDS } from '../logic/finds';
 import { NightView } from './game/nightView';
 import { wrackAt } from '../logic/kelp';
 import { DPR, screenZoom, viewSize } from './hidpi';
@@ -296,7 +297,7 @@ export class GameScene extends Phaser.Scene {
     } else if (e.type === 'joined') {
       this.floatText(e.x, e.y, e.line === 1 ? 'a follower!' : `${e.line} following`);
     } else if (e.type === 'collected') {
-      this.floatText(e.x, e.y, 'ink bottle!', RED);
+      this.floatText(e.x, e.y, `${FINDS[this.beach.mission.find].one}!`, RED);
     } else if (e.type === 'quarry') {
       this.floatText(e.x, e.y, e.giant ? 'the giant!' : 'marked!', RED);
     } else if (e.type === 'struck') {

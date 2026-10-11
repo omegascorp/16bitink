@@ -1,3 +1,4 @@
+import { shellFit } from '../../art/shellFit';
 import Phaser from 'phaser';
 import { FOOT, FRAME, SHELL_MID, SHELL_UNITS } from '../../art/frame';
 import { FOOD_FRAME, FOOD_GROUND, FOOD_RES } from '../../art/itemArt';
@@ -15,7 +16,7 @@ interface ItemSprites {
 const FOOD_UNIT = 0.32;
 
 /**
- * Food, loose shells and ink bottles, each over a highlighter swipe. Buried ones show
+ * Food, loose shells and a mission's finds, each over a highlighter swipe. Buried ones show
  * only a faint swipe through the sand: something's down there.
  */
 export class ItemsView {
@@ -56,10 +57,10 @@ export class ItemsView {
     s.art.setVisible(!item.buried).setDepth(4);
     if (item.buried) return;
     if (item.kind.type === 'shell') {
-      const unit = shellPx(item.kind.shell.size) / SHELL_UNITS;
+      const unit = (shellPx(item.kind.shell.size) / SHELL_UNITS) * shellFit(item.kind.shell.kind);
       s.art.setTexture(TEX.shell(item.kind.shell.kind, boil)).setOrigin(SHELL_MID / FRAME, FOOT.y / FRAME).setScale(unit).setPosition(cx, bottom);
     } else {
-      const key = item.kind.type === 'bottle' ? TEX.bottle(boil) : TEX.food(item.kind.food, boil);
+      const key = item.kind.type === 'find' ? TEX.find(item.kind.find, boil) : TEX.food(item.kind.food, boil);
       s.art.setTexture(key).setOrigin(0.5, (FOOD_FRAME / 2 + FOOD_GROUND) / FOOD_FRAME).setScale(FOOD_UNIT / FOOD_RES).setPosition(cx, bottom);
     }
   }

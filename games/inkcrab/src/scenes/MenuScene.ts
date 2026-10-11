@@ -66,7 +66,7 @@ export class MenuScene extends Phaser.Scene {
     cam.setBackgroundColor('#f5f0e1').setBounds(0, 0, this.layout.width, this.layout.height).setZoom(zoom * DPR);
     this.chart = new ChartView(this, this.layout, chartLayer, Math.min(2, zoom * DPR));
 
-    const missions = new Map(LEVELS.map((l) => [l.id, missionOf(l).kinds]));
+    const missions = new Map(LEVELS.map((l) => [l.id, missionOf(l)]));
     const route = buildRoute(this, this.layout, states, blots, names, missions);
     worldLayer.add(route.objects);
     for (const { node, zone } of route.hits) {

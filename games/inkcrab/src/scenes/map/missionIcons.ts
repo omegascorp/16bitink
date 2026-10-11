@@ -1,19 +1,14 @@
 import type Phaser from 'phaser';
 import { RED_HEX } from '../../art/palette';
+import type { FindId } from '../../logic/finds';
 import type { MissionKind } from '../../logic/mission';
+import { FIND_ICONS } from './findIcons';
 
 /** Px across one icon, and between two side by side. */
 const ICON = 14;
 const GAP = 5;
 /** Icons are drawn at this scale from their sketch units. */
 const SCALE = 1.5;
-
-/** An ink bottle: a squat body, a neck and a cork. */
-function bottle(g: Phaser.GameObjects.Graphics, x: number, y: number): void {
-  g.strokeRoundedRect(x - 4, y - 1, 8, 7, 2);
-  g.strokeRect(x - 2, y - 4, 4, 3);
-  g.fillRect(x - 4, y + 2, 8, 4);
-}
 
 /** A hunter circled in red: a ring round a dot. */
 function marked(g: Phaser.GameObjects.Graphics, x: number, y: number): void {
@@ -43,12 +38,12 @@ function giant(g: Phaser.GameObjects.Graphics, x: number, y: number): void {
   });
 }
 
-const DRAW: Readonly<Record<Exclude<MissionKind, 'grow'>, (g: Phaser.GameObjects.Graphics, x: number, y: number) => void>> = {
-  collect: bottle, bounty: marked, chain, survive: life, giant,
+const DRAW: Readonly<Record<Exclude<MissionKind, 'grow' | 'collect'>, (g: Phaser.GameObjects.Graphics, x: number, y: number) => void>> = {
+  bounty: marked, chain, survive: life, giant,
 };
 
-/** A level's missions as little red pencil icons, side by side, centred on x (none for a plain level). */
-export function drawMissionIcons(g: Phaser.GameObjects.Graphics, x: number, y: number, kinds: readonly MissionKind[], alpha: number): void {
+/** A level's missions as little red pencil icons, side by side, centred on x (none for a plain level); a dig-up shows the beach's find. */
+export function drawMissionIcons(g: Phaser.GameObjects.Graphics, x: number, y: number, kinds: readonly MissionKind[], find: FindId, alpha: number): void {
   const icons = kinds.filter((k): k is Exclude<MissionKind, 'grow'> => k !== 'grow');
   const w = icons.length * ICON + (icons.length - 1) * GAP;
   g.lineStyle(1.4 / SCALE, RED_HEX, alpha).fillStyle(RED_HEX, alpha);
@@ -57,7 +52,8 @@ export function drawMissionIcons(g: Phaser.GameObjects.Graphics, x: number, y: n
     g.save();
     g.translateCanvas(cx, y);
     g.scaleCanvas(SCALE, SCALE);
-    DRAW[k](g, 0, 0);
+    if (k === 'collect') FIND_ICONS[find](g, 0, 0);
+    else DRAW[k](g, 0, 0);
     g.restore();
   });
 }

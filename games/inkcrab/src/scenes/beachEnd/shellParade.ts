@@ -1,3 +1,4 @@
+import { shellFit } from '../../art/shellFit';
 import Phaser from 'phaser';
 import { FOOT, FRAME, SHELL_UNITS } from '../../art/frame';
 import { BLUE_HEX } from '../../art/palette';
@@ -48,7 +49,7 @@ export function shellParade(scene: Phaser.Scene, ladder: readonly Shell[], x0: n
     const delay = POP_DELAY + i * POP_MS;
     const shell = scene.add.image(foot, ground, TEX.shell(home.kind, 0)).setOrigin(origin.x, origin.y).setScale(0).setDepth(depth + 1);
     shells.push(shell);
-    scene.tweens.add({ targets: shell, scale: unit, delay, duration: 380, ease: 'Back.Out' });
+    scene.tweens.add({ targets: shell, scale: unit * shellFit(home.kind), delay, duration: 380, ease: 'Back.Out' });
     puff(scene, mid, ground - w * 0.3, w, delay, depth + 2);
     // Size tick: the size of this shell, the size it lets the crab reach.
     ticks.lineStyle(1.6, BLUE_HEX, 0.75).lineBetween(mid, ground + 22, mid, ground + 32);

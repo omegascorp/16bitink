@@ -7,8 +7,10 @@ import { snowyOwl } from '../src/art/birds/snowyOwl';
 import { drawCrabBack, drawCrabFront } from '../src/art/crabArt';
 import { CRITTER_FRAME, CRITTER_GROUND, drawCritter } from '../src/art/critterArt';
 import { SPECIES, type SpeciesId } from '../src/logic/species';
+import { FINDS, type FindId } from '../src/logic/finds';
 import { FOOT, FRAME, GROUND } from '../src/art/frame';
 import { crabShift } from '../src/art/mouth';
+import { drawFind } from '../src/art/findArt';
 import { drawFood, FOOD_FRAME, FOOD_GROUND } from '../src/art/itemArt';
 import { makeDraw, type Draw } from '../src/art/kit';
 import { PAPER, RED } from '../src/art/palette';
@@ -280,4 +282,13 @@ void Promise.all([import('../src/art/decks'), import('../src/art/frame'), import
       crab(ctx, (DECK_OVERHANG + 3.2) * T, sand);
     });
   }
+});
+
+const finds = section("beachcomber's finds, at 4×");
+(Object.keys(FINDS) as FindId[]).forEach((find, i) => {
+  figure(finds, FINDS[find].one, FOOD_FRAME * 4, FOOD_FRAME * 3, (ctx) => {
+    ctx.scale(4, 4);
+    ctx.translate(FOOD_FRAME / 2, FOOD_FRAME / 2);
+    drawFind(makeDraw(ctx, 610 + i, 0, FOOD_GROUND), find);
+  });
 });

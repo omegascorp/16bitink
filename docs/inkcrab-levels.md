@@ -45,19 +45,34 @@ Added 2026-10-10, at the user's request, to work like InkFish's level twists. Ev
 | Slot | Mission |
 | --- | --- |
 | 1 | Plain: grow |
-| 2 | Ink bottles: dig up 3 buried ink bottles (one more every two beaches, 6 on beach 8, 7 on beach 9), each a few digs down, spread past the start |
+| 2 | Beachcombing: dig up 3 of the beach's finds (one more every two beaches, 6 on beach 8, 7 on beaches 9 and 10), each a few digs down, spread past the start (see below) |
 | 3 | Plain (the beach's hunter debuts) |
 | 4 | Marked hunters: eat the 3 circled in red. They're the level's biggest walking hunter, two sizes under the goal, so they hunt you until you've grown past them |
 | 5 | Shell chain (below) |
 | 6 | Plain (the beach's sky or ground threat debuts) |
 | 7 | One life |
-| 8 | Remix of two, a different pair each beach in turn: ink bottles + marked hunters, marked hunters + one life, ink bottles + one life |
+| 8 | Remix of two, a different pair each beach in turn: beachcombing + marked hunters, marked hunters + one life, beachcombing + one life |
 | 9 | Plain (the storm) |
 | 10 | The giant: grow to full size, then eat the giant, the level's biggest walking hunter one size under the goal |
 
+**Beachcomber's finds** (`src/logic/finds.ts`, changed 2026-10-11 at the user's request: they replace the old ink bottles). Each beach buries its own real find, named in the mission ("dig up 3 cowries"), with a line about it on the intro card, its own drawing in the sand (`src/art/findArt.ts`) and its own red pencil icon on the map (`src/scenes/map/findIcons.ts`):
+
+| Beach | Find |
+| --- | --- |
+| 1 Atoll | cowries, once money across the Indian Ocean |
+| 2 Dune Sea | desert roses, gypsum crystals grown into petals |
+| 3 Tide Pools | sea urchin tests |
+| 4 Mangrove | sea beans, drift seeds carried out by the rivers |
+| 5 Ash & Basalt | olivine, the green crystals of green-sand beaches |
+| 6 Fog & Kelp | agates |
+| 7 Wreck Cove | gold doubloons from the wreck |
+| 8 Monsoon Harbour | pearls from the oyster beds |
+| 9 Frost Shingle | labradorite, named for that coast |
+| 10 Moonlit Bay | opals, brightest by moonlight |
+
 A shell chain is won when the last crab in your line has backed into its new shell and you've grown to fill the biggest shell, whichever comes last.
 
-Missions add par time: 8 s an ink bottle, 30 s for marked hunters, 40 s for the giant, 15 s a crab in a shell chain. Being caught on a one-life level still loses the "no lives lost" blot.
+Missions add par time: 8 s a find, 30 s for marked hunters, 40 s for the giant, 15 s a crab in a shell chain. Being caught on a one-life level still loses the "no lives lost" blot.
 
 **Shell chain** (`src/logic/line.ts`). Small hermit crabs, full in size-1 shells of the beach's smallest kind, wait about the beach, each a few columns short of the shell it will let you move into. Walk up to one (no smaller than it) and it joins your line and follows you, biggest shell first. Every move up to a bigger shell needs one more follower: the first takes the shell you leave, the next takes that one's, all down the line, and the newest leaves its tiny shell behind. Each must have grown to fill its own shell and be close by, or the shell prompt says why you can't move in yet ("find a small crab to take your shell first", "your line must grow into their shells first", "wait for your line to catch up"). Your line follows your footsteps (`src/logic/trail.ts`): the sim records the path your feet take, and each follower goes along it to its place behind you, catching up a little faster when it's behind (never much faster than you walk), so it gets wherever you got (over a pool, up a step you jumped, through your tunnels, swimming). A recruit joins only when it can see you, and scrambles straight to where you are to pick up your trail. Followers never leave your path: they nibble as they go (4 points a size, a quarter of a point a second) and eat food they pass on or right by it while they have room to grow. Nothing catches them. They pull into their shells only when a bigger hunter that roams comes right by them (within a tile and a half, edge to edge, on their level, in sight: never through rock or sand), and wait for it to pass; timid creatures, and antlions, sandfish and octopuses that stay where they live, they ignore; a little sand that pours or slides onto your footsteps they step over (up to a tile), but a wall of sand across them holds them up until you dig it away. You can't rap on a recruit. Rivals and followers move house in their own time (1.2 s, `RIVAL.swap`), out in the open: the crab backs out of its shell, scuttles across bare, tail and all, and backs into the new one under a puff of sand, drawn in front of the player since the shell it takes is often at the player's feet. Its old shell is left lying empty where it stood, for the next in line, so a chain plays out link by link; a dashed pencil arrow runs from each crab to the shell it's going for. On a chain level the beach-7 follow line is off, other rivals leave handed-down shells alone, and shells that would sit up on mangrove roots lie on the mud instead, where the line can reach them. The coach explains the line the first time round on each chain level.
 
@@ -466,7 +481,7 @@ Only real shells, the kinds hermit crabs actually live in: no litter or other ma
 | 9 Frost Shingle | Wentletrap, Arctic moon snail, Neptune whelk, Arctic whelk, Iceland whelk (built) |
 | 10 Moonlit Bay | Tiger moon snail, giant tun, horned helmet, triton's trumpet, baler (built) |
 
-Shells keep a weight (heavier is slower and jumps lower) and a durability value that nothing uses: being caught costs a life and never damages the shell.
+Every kind is drawn to its size: the drawings themselves differ in size (a periwinkle is drawn about 80 frame px across, a horse conch nearly 230), so each kind's drawing is measured when it's baked and scaled to the same bulk as the rest, slender spires capped in length (`src/art/shellFit.ts`, fixed 2026-10-11 after big kinds were drawn about twice their size). Shells keep a weight (heavier is slower and jumps lower) and a durability value that nothing uses: being caught costs a life and never damages the shell.
 
 ## Level map
 

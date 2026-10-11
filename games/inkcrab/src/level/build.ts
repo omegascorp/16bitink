@@ -1,6 +1,7 @@
 import { boxHitsSolid } from '../logic/body';
 import { KELP, wrackColumn } from '../logic/kelp';
-import { BOTTLE, buriedFood, food, makeItem, shell, type Item, type ItemKind } from '../logic/items';
+import { buriedFood, findItem, food, makeItem, shell, type Item, type ItemKind } from '../logic/items';
+import type { FindId } from '../logic/finds';
 import { createRng } from '../logic/rng';
 import { shellOf, type Shell } from '../logic/shells';
 import type { BeachSetup } from '../logic/sim';
@@ -93,13 +94,13 @@ function buryFood(def: LevelDef, terrain: Terrain, rng: () => number, add: Retur
 }
 
 /**
- * A mission's ink bottles, each at its spot or, where that's rock or
+ * A mission's finds, each at its spot or, where that's rock or
  * taken, as near to it as will do: shallower, then a column either side.
  */
-function buryBottles(def: LevelDef, spots: readonly (readonly [number, number])[], add: ReturnType<typeof placer>): void {
+function buryFinds(def: LevelDef, find: FindId, spots: readonly (readonly [number, number])[], add: ReturnType<typeof placer>): void {
   for (const [col, depth] of spots) {
     const tries = [0, 1, -1, 2, -2, 3, -3].flatMap((dx) => Array.from({ length: depth }, (_, d) => [col + dx, depth - d] as const));
-    tries.some(([c, d]) => c >= 2 && c < def.width - 2 && add(BOTTLE, c, d));
+    tries.some(([c, d]) => c >= 2 && c < def.width - 2 && add(findItem(find), c, d));
   }
 }
 
@@ -122,7 +123,7 @@ function starterFood(def: LevelDef, rng: () => number, add: ReturnType<typeof pl
 }
 
 import { levelGoal, levelShells, START_SHELL, START_SIZE } from './goal';
-import { bottleSpots, markedSpecs, missionOf, recruitSpecs } from './missions';
+import { findSpots, markedSpecs, missionOf, recruitSpecs } from './missions';
 
 export { levelGoal, levelShells, START_SHELL, START_SIZE };
 
@@ -160,7 +161,7 @@ export function buildLevel(def: LevelDef): BeachSetup {
   const mission = missionOf(def);
   // A shell chain's line can't climb roots: its shells lie on the mud, where the line can get at the one you leave.
   for (const [kind, size, col, depth] of def.shells) add(shell(kind, size), col, mission.chain && depth < 0 ? 0 : depth);
-  buryBottles(def, bottleSpots(def, mission), add);
+  buryFinds(def, mission.find, findSpots(def, mission), add);
   for (const [col, depth] of def.food.clams ?? []) add(food('clam'), col, depth);
   buryFood(def, terrain, rng, add);
   for (let i = 0; i < def.food.surface; i++) {

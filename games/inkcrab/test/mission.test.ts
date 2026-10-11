@@ -6,9 +6,10 @@ import { missionKinds, missionOf, parTimeOf, quarrySpecies } from '../src/level/
 import { boxHitsSolid } from '../src/logic/body';
 import { makeCritter } from '../src/logic/critters';
 import { setTile, TILE } from '../src/logic/terrain';
-import { BOTTLE, centre, food, makeItem, shell, type Item } from '../src/logic/items';
+import { centre, findItem, food, makeItem, shell, type Item } from '../src/logic/items';
+import { BEACH_FINDS, FINDS } from '../src/logic/finds';
 import { fed, LINE, lineOf } from '../src/logic/line';
-import { missionGoal, missionLine, missionTag, PLAIN, tasksDone, type Mission } from '../src/logic/mission';
+import { missionGoal, missionLine, missionNotes, missionTag, PLAIN, tasksDone, type Mission } from '../src/logic/mission';
 import { shellOf, type ShellKind } from '../src/logic/shells';
 import { Beach, IDLE, type BeachSetup, type Input, type SimEvent } from '../src/logic/sim';
 import { movementOf, SPECIES } from '../src/logic/species';
@@ -88,7 +89,10 @@ describe('every mission level', () => {
       it(`${b * 10 + beachLevels.indexOf(def) + 1} ${def.id} lays out its ${missionTag(m)}`, () => {
         const setup = buildLevel(def);
         const sim = new Beach(setup);
-        expect(setup.items.filter((i) => i.kind.type === 'bottle' && i.buried)).toHaveLength(m.bottles);
+        const finds = setup.items.filter((i) => i.kind.type === 'find' && i.buried);
+        expect(finds).toHaveLength(m.finds);
+        // The beach's own find.
+        for (const i of finds) expect(i.kind.type === 'find' && i.kind.find).toBe(BEACH_FINDS[b]);
         const marked = [...sim.critters.values()].filter((k) => k.marked);
         expect(marked).toHaveLength((m.marked?.count ?? 0) + (m.giant ? 1 : 0));
         // Away from the start, where nothing finds the crab straight off.
@@ -109,28 +113,35 @@ describe('every mission level', () => {
   });
 });
 
-describe('ink bottles', () => {
+describe('beachcomber\'s finds', () => {
   const bottle = (id: number, col: number): Item => {
-    const proto = makeItem(id, BOTTLE, 0, 0, false);
+    const proto = makeItem(id, findItem('doubloon'), 0, 0, false);
     return { ...proto, x: col * T, y: GROUND * T - proto.h };
   };
 
   it('are picked up by walking over them, and the level is won only with all of them and grown', () => {
-    const m: Mission = { ...PLAIN, kinds: ['collect'], bottles: 2 };
+    const m: Mission = { ...PLAIN, kinds: ['collect'], finds: 2, find: 'doubloon' };
     const b = beach({ mission: m, items: [bottle(1, 12), bottle(2, 40)], startGrowth: { size: 5, meter: 0 } });
     const first = run(b, 1, { moveX: 1 });
     expect(first.filter((e) => e.type === 'collected')).toHaveLength(1);
     expect(b.outcome).toBe('playing');
     const rest = run(b, 8, { moveX: 1 });
     expect(rest.some((e) => e.type === 'collected')).toBe(true);
-    expect(b.bottles).toBe(2);
+    expect(b.finds).toBe(2);
     expect(b.outcome).toBe('won');
   });
 
   it('show on the HUD, then point back at the growth bar once all are found', () => {
-    const m: Mission = { ...PLAIN, kinds: ['collect'], bottles: 3 };
-    expect(missionLine(m, { grown: false, bottles: 1, marked: 0, giant: false })).toBe('ink bottles 1/3');
-    expect(missionLine(m, { grown: false, bottles: 3, marked: 0, giant: false })).toContain('grow');
+    const m: Mission = { ...PLAIN, kinds: ['collect'], finds: 3, find: 'doubloon' };
+    expect(missionLine(m, { grown: false, finds: 1, marked: 0, giant: false })).toBe('gold doubloons 1/3');
+    expect(missionLine(m, { grown: false, finds: 3, marked: 0, giant: false })).toContain('grow');
+  });
+
+  it('are each beach\'s own, every one different, named on the intro card', () => {
+    expect(new Set(BEACH_FINDS).size).toBe(10);
+    const m: Mission = { ...PLAIN, kinds: ['collect'], finds: 4, find: 'opal' };
+    expect(missionGoal(m, 6)).toBe('grow to size 6 and dig up 4 opals');
+    expect(missionNotes(m)[0]).toContain(FINDS.opal.lore);
   });
 });
 
@@ -162,8 +173,8 @@ describe('marked hunters and the giant', () => {
 
   it('a giant is the last task: grown up, the level still waits for it', () => {
     const m: Mission = { ...PLAIN, kinds: ['giant'], giant: { species: 'ghostcrab', size: 4, count: 1 } };
-    expect(tasksDone(m, { grown: true, bottles: 0, marked: 0, giant: false })).toBe(false);
-    expect(missionLine(m, { grown: true, bottles: 0, marked: 0, giant: false })).toBe('now eat the giant ghost crab!');
+    expect(tasksDone(m, { grown: true, finds: 0, marked: 0, giant: false })).toBe(false);
+    expect(missionLine(m, { grown: true, finds: 0, marked: 0, giant: false })).toBe('now eat the giant ghost crab!');
   });
 });
 
@@ -379,7 +390,7 @@ describe('a shell chain', () => {
   });
 
   it('shows on the HUD how the line stands', () => {
-    const p = { grown: false, bottles: 0, marked: 0, giant: false };
+    const p = { grown: false, finds: 0, marked: 0, giant: false };
     expect(missionLine(CHAIN, p, { line: 0, needed: 1, wait: 'recruit' })).toContain('find one more small crab');
     expect(missionLine(CHAIN, p, { line: 2, needed: 2, wait: 'growing' })).toContain('grow');
     expect(missionLine(CHAIN, p, { line: 2, needed: 2, wait: null })).toContain('ready');

@@ -1,7 +1,8 @@
 import type { Body, Box } from './body';
+import type { FindId } from './finds';
 import { shellOf, shellPx, type Shell, type ShellKind } from './shells';
 
-/** Anything the crab can pick up: food to eat, shells to move into, a mission's ink bottles. */
+/** Anything the crab can pick up: food to eat, shells to move into, a mission's finds. */
 export type FoodKind = 'crumb' | 'hopper' | 'worm' | 'molecrab' | 'clam' | 'fish';
 
 export const FOOD_KINDS: readonly FoodKind[] = ['crumb', 'hopper', 'worm', 'molecrab', 'clam', 'fish'];
@@ -9,10 +10,13 @@ export const FOOD_KINDS: readonly FoodKind[] = ['crumb', 'hopper', 'worm', 'mole
 export type ItemKind =
   | { readonly type: 'food'; readonly food: FoodKind; readonly points: number }
   | { readonly type: 'shell'; readonly shell: Shell }
-  /** An ink bottle, buried for a mission to dig up (see mission.ts). */
-  | { readonly type: 'bottle' };
+  /** A beachcomber's find, buried for a mission to dig up (see mission.ts, finds.ts). */
+  | { readonly type: 'find'; readonly find: FindId };
 
-export const BOTTLE: ItemKind = { type: 'bottle' };
+/** A beach's find, to bury for a dig-up mission. */
+export function findItem(find: FindId): ItemKind {
+  return { type: 'find', find };
+}
 
 export interface Item extends Body {
   readonly id: number;
@@ -53,7 +57,7 @@ export function itemSize(kind: ItemKind): { w: number; h: number } {
     const px = shellPx(kind.shell.size);
     return { w: px * 0.8, h: px * 0.6 };
   }
-  if (kind.type === 'bottle') return { w: 9, h: 13 };
+  if (kind.type === 'find') return { w: 11, h: 10 };
   return { crumb: { w: 8, h: 6 }, hopper: { w: 11, h: 7 }, worm: { w: 12, h: 6 }, molecrab: { w: 10, h: 8 }, clam: { w: 12, h: 9 }, fish: { w: 14, h: 7 } }[kind.food];
 }
 

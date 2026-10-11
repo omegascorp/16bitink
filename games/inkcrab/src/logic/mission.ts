@@ -1,10 +1,11 @@
+import { FINDS, type FindId } from './finds';
 import { SPECIES, type SpeciesId } from './species';
 
 /**
  * Missions: what a level asks on top of growing, InkFish style. Growing to
  * the goal size is always part of it; a mission adds a task or a rule.
  *
- * - collect: dig up the ink bottles buried about the beach.
+ * - collect: dig up the beach's finds (cowries, doubloons, opals…) buried about it.
  * - bounty: eat the hunters circled in red (grow big enough first).
  * - chain: lead a line of small hermit crabs; every move up to a bigger
  *   shell needs one more of them, grown to fill its shell, to take the one
@@ -23,8 +24,9 @@ export interface Quarry {
 
 export interface Mission {
   readonly kinds: readonly MissionKind[];
-  /** Ink bottles buried about the beach (0: none). */
-  readonly bottles: number;
+  /** Finds buried about the beach (0: none), and what they are: the beach's own (see finds.ts). */
+  readonly finds: number;
+  readonly find: FindId;
   /** Hunters circled in red, to eat. */
   readonly marked: Quarry | null;
   /** The giant, to eat once full grown. */
@@ -34,7 +36,7 @@ export interface Mission {
   readonly lives: number;
 }
 
-export const PLAIN: Mission = { kinds: ['grow'], bottles: 0, marked: null, giant: null, chain: 0, lives: 3 };
+export const PLAIN: Mission = { kinds: ['grow'], finds: 0, find: 'cowrie', marked: null, giant: null, chain: 0, lives: 3 };
 
 /** How the level's tasks stand. */
 export interface MissionProgress {
@@ -43,14 +45,14 @@ export interface MissionProgress {
   readonly atTop?: boolean;
   /** A shell chain handed all the way down: the last crab in the line is in its new shell. */
   readonly chained?: boolean;
-  readonly bottles: number;
+  readonly finds: number;
   readonly marked: number;
   readonly giant: boolean;
 }
 
 /** Whether the tasks besides growing are done (a chain is done by growing: every move up needs its crab). */
 export function tasksDone(m: Mission, p: MissionProgress): boolean {
-  return p.bottles >= m.bottles && p.marked >= (m.marked?.count ?? 0) && (!m.giant || p.giant);
+  return p.finds >= m.finds && p.marked >= (m.marked?.count ?? 0) && (!m.giant || p.giant);
 }
 
 /**
@@ -63,7 +65,7 @@ export function missionDone(m: Mission, p: MissionProgress): boolean {
 }
 
 export const MISSION_LABEL: Readonly<Record<MissionKind, string>> = {
-  grow: 'Feeding time', collect: 'Ink bottles', bounty: 'Marked hunters', chain: 'Shell chain', survive: 'One life', giant: 'The giant',
+  grow: 'Feeding time', collect: 'Beachcombing', bounty: 'Marked hunters', chain: 'Shell chain', survive: 'One life', giant: 'The giant',
 };
 
 /** Short name of the level's mission(s), shown over its name. */
@@ -79,7 +81,7 @@ const plural = (q: Quarry): string => {
 /** What to do to win, for the intro card and the level previews. */
 export function missionGoal(m: Mission, goal: number): string {
   const parts = [`grow to size ${goal}`];
-  if (m.bottles) parts.push(`dig up ${m.bottles} ink bottles`);
+  if (m.finds) parts.push(`dig up ${m.finds} ${FINDS[m.find].many}`);
   if (m.marked) parts.push(`eat the ${m.marked.count} ${plural(m.marked)} circled in red`);
   if (m.giant) return `grow to size ${goal}, then eat the giant ${SPECIES[m.giant.species].name}`;
   if (m.chain) return `grow to size ${goal}, handing every shell you leave down a line of ${m.chain} hermit crabs`;
@@ -96,7 +98,7 @@ export function shortGoal(m: Mission, goal: number): string {
 export function missionNotes(m: Mission): string[] {
   const notes: string[] = [];
   if (m.chain) notes.push('Small hermit crabs follow you. Each move to a bigger shell needs one more of them, grown to fill its shell, to take the one you leave.');
-  if (m.bottles) notes.push('The ink bottles are buried: look for highlighted sand.');
+  if (m.finds) notes.push(`${FINDS[m.find].lore} They're buried: look for highlighted sand.`);
   if (m.marked) notes.push(`They're size ${m.marked.size}: they hunt you until you've grown past them.`);
   if (m.giant) notes.push(`The giant is size ${m.giant.size}: it hunts you until you're full grown.`);
   if (m.lives === 1) notes.push('Only one life: one catch ends the level.');
@@ -106,7 +108,7 @@ export function missionNotes(m: Mission): string[] {
 /** The HUD's mission line, or '' on a plain level. `chain` is how the line of followers stands (see line.ts). */
 export function missionLine(m: Mission, p: MissionProgress, chain: ChainStatus | null = null): string {
   const tasks: string[] = [];
-  if (m.bottles) tasks.push(`ink bottles ${Math.min(p.bottles, m.bottles)}/${m.bottles}`);
+  if (m.finds) tasks.push(`${FINDS[m.find].many} ${Math.min(p.finds, m.finds)}/${m.finds}`);
   if (m.marked) tasks.push(`marked ${SPECIES[m.marked.species].name}s ${Math.min(p.marked, m.marked.count)}/${m.marked.count}`);
   if (m.giant) tasks.push(p.grown ? `now eat the giant ${SPECIES[m.giant.species].name}!` : `grow, then eat the giant ${SPECIES[m.giant.species].name}`);
   if (m.chain && p.atTop) tasks.push(p.chained ? 'the chain is done! now grow to full size' : 'watch your line move up');
@@ -149,5 +151,5 @@ export function chainPrompt(s: ChainStatus): string {
 
 /** Seconds of par time a mission adds: its task takes time on top of growing. */
 export function missionPar(m: Mission): number {
-  return m.bottles * 8 + (m.marked ? 30 : 0) + (m.giant ? 40 : 0) + m.chain * 15;
+  return m.finds * 8 + (m.marked ? 30 : 0) + (m.giant ? 40 : 0) + m.chain * 15;
 }

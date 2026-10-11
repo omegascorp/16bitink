@@ -68,7 +68,7 @@ export type SimEvent =
   | { readonly type: 'traded'; readonly x: number; readonly y: number; readonly item: number }
   /** A small hermit crab joined the crab's line (a shell chain mission). */
   | { readonly type: 'joined'; readonly x: number; readonly y: number; readonly line: number }
-  /** An ink bottle dug up and picked up (a mission's task): `count` so far. */
+  /** A beach's find dug up and picked up (a mission's task): `count` so far. */
   | { readonly type: 'collected'; readonly x: number; readonly y: number; readonly count: number }
   /** A marked hunter (or the giant) eaten. */
   | { readonly type: 'quarry'; readonly x: number; readonly y: number; readonly giant: boolean }
@@ -272,8 +272,8 @@ export class Beach {
   readonly startLives: number;
   crab: CrabState;
   lives: number;
-  /** A mission's tasks so far: ink bottles picked up, marked hunters eaten, the giant eaten. */
-  bottles = 0;
+  /** A mission's tasks so far: finds picked up, marked hunters eaten, the giant eaten. */
+  finds = 0;
   markedEaten = 0;
   giantEaten = false;
   outcome: Outcome = 'playing';
@@ -760,11 +760,11 @@ export class Beach {
   private eat(events: SimEvent[]): void {
     for (const item of this.items.values()) {
       if (item.buried || !overlaps(this.crab.body, item, 2)) continue;
-      if (item.kind.type === 'bottle') {
+      if (item.kind.type === 'find') {
         this.items.delete(item.id);
-        this.bottles += 1;
+        this.finds += 1;
         const at = centre(item);
-        events.push({ type: 'collected', x: at.x, y: at.y, count: this.bottles });
+        events.push({ type: 'collected', x: at.x, y: at.y, count: this.finds });
         continue;
       }
       if (item.kind.type !== 'food') continue;
@@ -1089,7 +1089,7 @@ export class Beach {
     const goal = this.goal;
     const atTop = goal !== null && (this.crab.shell?.size ?? 0) >= goal && !this.crab.swap;
     const chained = goal !== null && this.mission.chain > 0 && atTop && chainDone(lineOf(this.critters.values()), this.crab.shell, goal);
-    return { grown: goal !== null && this.crab.growth.size >= goal, atTop, chained, bottles: this.bottles, marked: this.markedEaten, giant: this.giantEaten };
+    return { grown: goal !== null && this.crab.growth.size >= goal, atTop, chained, finds: this.finds, marked: this.markedEaten, giant: this.giantEaten };
   }
 
   /** One of the mission's quarry, somewhere about its column (as a creature of its kind would be placed), circled in red. */

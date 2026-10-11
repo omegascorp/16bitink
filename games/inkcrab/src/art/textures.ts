@@ -13,7 +13,10 @@ import { osprey } from './birds/osprey';
 import { snowyOwl } from './birds/snowyOwl';
 import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, drawCritter, drawHeronStrike } from './critterArt';
 import { FRAME, GROUND } from './frame';
-import { drawBottle, drawFood, drawHighlight, drawPuff, FOOD_FRAME, FOOD_GROUND, FOOD_RES } from './itemArt';
+import { drawFood, drawHighlight, drawPuff, FOOD_FRAME, FOOD_GROUND, FOOD_RES } from './itemArt';
+import { drawFind } from './findArt';
+import { measureShell } from './shellFit';
+import { BEACH_FINDS, type FindId } from '../logic/finds';
 import { makeDraw, type Draw } from './kit';
 import { ART_RES, BOIL, PAPER, RED } from './palette';
 import { makeCanvas } from './pen';
@@ -32,8 +35,8 @@ export const TEX = {
   bird: (species: string, dive: boolean, danger: boolean, f: number) => `bird-${species}-${dive ? 'dive' : 'hover'}-${danger ? 'red' : 'blue'}-${f}`,
   shell: (kind: string, f: number) => `shell-${kind}-${f}`,
   food: (kind: string, f: number) => `food-${kind}-${f}`,
-  /** A mission's ink bottle. */
-  bottle: (f: number) => `bottle-${f}`,
+  /** A beach's find, for a dig-up mission. */
+  find: (find: FindId, f: number) => `find-${find}-${f}`,
   highlight: (f: number) => `hl-${f}`,
   puff: (f: number) => `puff-${f}`,
   /** Plain paper: no ruled lines anywhere in the game. */
@@ -133,8 +136,10 @@ export function generateTextures(scene: Phaser.Scene): void {
       bake(scene, TEX.bird('gull', false, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => gullFlight(makeDraw(ctx, 870 + f, f, 0, danger ? RED : undefined)));
     }
     SHELL_KINDS.forEach((kind, i) => critter(TEX.shell(kind, f), 300 + i * 10 + f, f, (d) => drawShell(d, kind)));
+    // Each kind's drawing is measured once, so every kind is drawn to its size (see shellFit.ts).
+    if (f === 0) for (const kind of SHELL_KINDS) measureShell(kind, scene.textures.get(TEX.shell(kind, 0)).getSourceImage() as HTMLCanvasElement);
     FOOD_KINDS.forEach((kind, i) => bake(scene, TEX.food(kind, f), FOOD_FRAME, FOOD_RES, (ctx) => drawFood(makeDraw(ctx, 500 + i * 10 + f, f, FOOD_GROUND), kind)));
-    bake(scene, TEX.bottle(f), FOOD_FRAME, FOOD_RES, (ctx) => drawBottle(makeDraw(ctx, 590 + f, f, FOOD_GROUND)));
+    BEACH_FINDS.forEach((find, i) => bake(scene, TEX.find(find, f), FOOD_FRAME, FOOD_RES, (ctx) => drawFind(makeDraw(ctx, 590 + i * 10 + f, f, FOOD_GROUND), find)));
     bake(scene, TEX.puff(f), PUFF, 2, (ctx) => drawPuff(makeDraw(ctx, 700 + f, f, 0), PUFF * 0.36));
     bake(scene, TEX.highlight(f), 32, 2, (ctx) => {
       ctx.translate(-16, -16);

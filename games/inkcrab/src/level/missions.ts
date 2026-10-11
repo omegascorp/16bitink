@@ -1,3 +1,4 @@
+import { findOf } from '../logic/finds';
 import { PLAIN, missionPar, type Mission, type MissionKind } from '../logic/mission';
 import type { RivalSpec } from '../logic/rivals';
 import { SHELLS, type ShellKind } from '../logic/shells';
@@ -67,7 +68,8 @@ export function missionOf(def: LevelDef): Mission {
   return {
     kinds,
     // A few more each beach: three on the first two, six by the eighth.
-    bottles: has('collect') ? 3 + Math.floor(slot.beach / 2) : 0,
+    finds: has('collect') ? 3 + Math.floor(slot.beach / 2) : 0,
+    find: findOf(slot.beach),
     // Edible once grown past them: a size under the goal's, so the hunt comes late.
     marked: has('bounty') ? { species, size: Math.max(2, goal - 2), count: MARKED } : null,
     giant: has('giant') ? { species, size: goal - 1, count: 1 } : null,
@@ -93,11 +95,11 @@ function along(def: LevelDef, u: number, from = AWAY): number {
   return Math.round(first + (last - first) * u);
 }
 
-/** Ink bottles: spread along the beach past the start, each a few digs down (deeper on later beaches). */
-export function bottleSpots(def: LevelDef, m: Mission): (readonly [col: number, depth: number])[] {
+/** The beach's finds: spread along the beach past the start, each a few digs down (deeper on later beaches). */
+export function findSpots(def: LevelDef, m: Mission): (readonly [col: number, depth: number])[] {
   const beach = slotOf(def)?.beach ?? 0;
   const deepest = 2 + Math.floor(beach / 2);
-  return Array.from({ length: m.bottles }, (_, i) => [along(def, (i + 0.5) / m.bottles, AWAY / 2), 2 + ((i * 2 + beach) % deepest)] as const);
+  return Array.from({ length: m.finds }, (_, i) => [along(def, (i + 0.5) / m.finds, AWAY / 2), 2 + ((i * 2 + beach) % deepest)] as const);
 }
 
 /** Marked hunters spread along the beach; the giant far off towards the end. */

@@ -1,3 +1,4 @@
+import { shellFit } from '../art/shellFit';
 import Phaser from 'phaser';
 import { FOOT, FRAME, SHELL_UNITS } from '../art/frame';
 import { crabShift } from '../art/mouth';
@@ -20,7 +21,7 @@ export type Mood = 'happy' | 'hiding';
 export function crabInShell(scene: Phaser.Scene, home: Shell, mid: number, ground: number, width: number, depth: number, mood: Mood): Phaser.GameObjects.Container {
   const unit = width / SHELL_UNITS;
   const shell = scene.add.image(0, 0, TEX.shell(home.kind, 0)).setOrigin(FOOT.x / FRAME, FOOT.y / FRAME).setScale(0);
-  scene.tweens.add({ targets: shell, scale: unit, delay: POP_DELAY, duration: 380, ease: 'Back.Out' });
+  scene.tweens.add({ targets: shell, scale: unit * shellFit(home.kind), delay: POP_DELAY, duration: 380, ease: 'Back.Out' });
   puff(scene, mid, ground - width * 0.3, width, POP_DELAY, depth + 1);
   boil(scene, [shell], [home]);
   const crab = crabIn(scene, home, shell, mid + MOUTH_OFFSET * width, ground, unit, depth);
@@ -40,7 +41,7 @@ function cower(scene: Phaser.Scene, crab: Phaser.GameObjects.Container, at: numb
 export function crabIn(scene: Phaser.Scene, home: Shell, shell: Phaser.GameObjects.Image, foot: number, ground: number, unit: number, depth: number): Phaser.GameObjects.Container {
   const origin = { x: FOOT.x / FRAME, y: FOOT.y / FRAME };
   const body = unit * bodyFill(home, home.size);
-  const shift = crabShift(home.kind, unit, body);
+  const shift = crabShift(home.kind, unit * shellFit(home.kind), body);
   const back = scene.add.image(shift, 0, TEX.crabBack(0)).setOrigin(origin.x, origin.y).setScale(body).setAlpha(0);
   const front = scene.add.image(shift, 0, TEX.crabFront(0)).setOrigin(origin.x, origin.y).setScale(body).setAlpha(0);
   shell.setPosition(0, 0);

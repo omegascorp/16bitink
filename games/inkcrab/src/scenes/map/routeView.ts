@@ -4,7 +4,7 @@ import { createRng } from '../../logic/rng';
 import { drawBlots, inkText } from '../ui';
 import { MAP, type MapLayout, type MapNode } from './layout';
 import { drawMissionIcons } from './missionIcons';
-import type { MissionKind } from '../../logic/mission';
+import type { Mission } from '../../logic/mission';
 
 /** done: played; current: the next to play; open: playable; closed: not reached yet; draft: its beach isn't built. */
 export type NodeState = 'done' | 'current' | 'open' | 'closed' | 'draft';
@@ -56,7 +56,7 @@ function tracks(g: Phaser.GameObjects.Graphics, a: MapNode, b: MapNode, color: n
  */
 export function buildRoute(
   scene: Phaser.Scene, layout: MapLayout, states: ReadonlyMap<string, NodeState>, blots: ReadonlyMap<string, number>, names: ReadonlyMap<string, string>,
-  missions: ReadonlyMap<string, readonly MissionKind[]> = new Map(),
+  missions: ReadonlyMap<string, Pick<Mission, 'kinds' | 'find'>> = new Map(),
 ): { objects: Phaser.GameObjects.GameObject[]; hits: RouteHit[] } {
   const objects: Phaser.GameObjects.GameObject[] = [];
   const g = scene.add.graphics();
@@ -84,8 +84,8 @@ export function buildRoute(
     }
     if (s === 'done') drawBlots(g, n.x, n.y + r + 13, blots.get(n.levelId) ?? 0, 5);
     // The level's mission, in red pencil by its ring (clear of the crab marker over the current one).
-    const kinds = missions.get(n.levelId);
-    if (kinds && !draft) drawMissionIcons(g, n.x + r + 16, n.y - r + 4, kinds, s === 'closed' ? 0.45 : 0.9);
+    const mission = missions.get(n.levelId);
+    if (mission && !draft) drawMissionIcons(g, n.x + r + 16, n.y - r + 4, mission.kinds, mission.find, s === 'closed' ? 0.45 : 0.9);
     const label = inkText(scene, n.x, n.y, String(n.index + 1), 24, draft || s === 'closed' ? PENCIL : BLUE).setAlpha(draft ? 0.7 : 1);
     objects.push(label);
     if (draft || s === 'closed') continue;

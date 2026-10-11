@@ -1,10 +1,11 @@
+import { shellFit } from '../art/shellFit';
 import Phaser from 'phaser';
 import { BLUE, BLUE_HEX, PAPER_HEX, RED } from '../art/palette';
 import { getHost, REG } from '../host';
 import { inStickZone, knobOffset, stickCentre, stickVector, STICK } from '../logic/joystick';
 import { levelGoal, START_SHELL } from '../level/build';
 import { capMark, levelProgress, sizeMarks } from '../logic/progress';
-import { shellName } from '../logic/shells';
+import { shellName, type ShellKind } from '../logic/shells';
 import { TEX } from '../art/textures';
 import { FOOT, FRAME, SHELL_MID } from '../art/frame';
 import type { GameScene } from './GameScene';
@@ -278,7 +279,7 @@ export class HudScene extends Phaser.Scene {
     while (this.lives.length > Math.max(0, n)) this.lives.pop()?.destroy();
     while (this.lives.length < n) this.lives.push(this.add.image(0, 0, TEX.shell(kind, 0)).setOrigin(SHELL_MID / FRAME, FOOT.y / FRAME));
     this.pauseButton.setPosition(width - PAUSE.fromRight, LIFE.y);
-    const scale = LIFE.size / 116;
+    const scale = (LIFE.size / 116) * shellFit(kind as ShellKind);
     this.lives.forEach((img, i) => img.setTexture(TEX.shell(kind, 0)).setScale(scale).setPosition(width - LIVES_FROM_RIGHT - i * LIFE.gap, LIFE.y + 12));
   }
 

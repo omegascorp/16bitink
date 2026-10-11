@@ -1,3 +1,4 @@
+import { shellFit } from '../../art/shellFit';
 import Phaser from 'phaser';
 import { drawCrabBack, drawCrabFront, RIVAL_COLORS } from '../../art/crabArt';
 import { FOOT, FRAME, GROUND, SHELL_MID, SHELL_UNITS } from '../../art/frame';
@@ -117,11 +118,13 @@ export class RivalsView {
   private drawCrab(rig: Rig, x: number, bottom: number, dir: 1 | -1, shell: Shell | null, size: number, f: number, showBody: boolean, settle = 1): void {
     const unit = shellPx(shell ? shell.size : size) / SHELL_UNITS;
     const body = (shell ? unit * bodyFill(shell, size) : (shellPx(size) / SHELL_UNITS) * NAKED_SCALE) * settle;
-    rig.root.setVisible(true).setPosition(x + dir * FOOT_FROM_MIDDLE * unit, bottom).setScale(dir, 1);
+    // The shell's drawing, scaled to look its size whatever its kind (see shellFit.ts).
+    const drawn = shell ? unit * shellFit(shell.kind) : unit;
+    rig.root.setVisible(true).setPosition(x + dir * FOOT_FROM_MIDDLE * drawn, bottom).setScale(dir, 1);
     const naked = !shell;
-    const shift = shell ? crabShift(shell.kind, unit, body) : 0;
+    const shift = shell ? crabShift(shell.kind, drawn, body) : 0;
     rig.shell.setVisible(!naked).setOrigin(FOOT.x / FRAME, FOOT.y / FRAME).setPosition(0, 0);
-    if (shell) rig.shell.setTexture(TEX.shell(shell.kind, f)).setScale(unit);
+    if (shell) rig.shell.setTexture(TEX.shell(shell.kind, f)).setScale(drawn);
     for (const [img, key] of [[rig.back, KEY.back(naked, f)], [rig.front, KEY.front(naked, f)]] as const) {
       img.setTexture(key).setScale(body).setX(shift).setVisible(showBody);
     }
@@ -144,8 +147,8 @@ export class RivalsView {
     // The old shell, its crab coming out of it, then lying empty.
     if (from) this.drawCrab(s, x0, bottom0, k.dir, from, k.size, f, false);
     else s.root.setVisible(false);
-    const unit0 = shellPx(from ? from.size : k.size) / SHELL_UNITS;
-    const toUnit = shellPx(to.size) / SHELL_UNITS;
+    const unit0 = (shellPx(from ? from.size : k.size) / SHELL_UNITS) * (from ? shellFit(from.kind) : 1);
+    const toUnit = (shellPx(to.size) / SHELL_UNITS) * shellFit(to.kind);
     const m = s.mover;
     m.root.setDepth(MOVING_DEPTH);
     s.root.setDepth(MOVING_DEPTH - 0.01);
@@ -172,7 +175,7 @@ export class RivalsView {
 
   /** The mover's shell image as a loose shell lying on the sand: unflipped, its middle at x (the mover's crab is drawn apart from it). */
   private lying(m: Rig, x: number, bottom: number, shell: Shell, f: number): void {
-    const unit = shellPx(shell.size) / SHELL_UNITS;
+    const unit = (shellPx(shell.size) / SHELL_UNITS) * shellFit(shell.kind);
     // Undo the rig's own placement so the shell sits where the item lies.
     const rx = m.root.x;
     const flip = m.root.scaleX;

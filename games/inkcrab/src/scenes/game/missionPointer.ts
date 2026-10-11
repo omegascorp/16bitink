@@ -14,7 +14,7 @@ function nearest(points: readonly Point[], from: Point): Point | null {
 /**
  * Where the mission's red arrow points when no hint is showing: a
  * follower left behind, else a small crab still to recruit while the line
- * is short, else the nearest ink bottle, marked hunter, or (full grown)
+ * is short, else the nearest find, marked hunter, or (full grown)
  * the giant. Null when there's nothing left to find.
  */
 export function missionTarget(beach: Beach): Point | null {
@@ -30,8 +30,8 @@ export function missionTarget(beach: Beach): Point | null {
     const p = nearest(critters.filter((k) => isRecruit(k) && !k.joined).map(centre), at);
     if (p) return p;
   }
-  if (m.bottles > beach.bottles) {
-    const p = nearest([...beach.items.values()].filter((i) => i.kind.type === 'bottle').map(centre), at);
+  if (m.finds > beach.finds) {
+    const p = nearest([...beach.items.values()].filter((i) => i.kind.type === 'find').map(centre), at);
     if (p) return p;
   }
   const marked = critters.filter((k) => k.marked === 'bounty' || (k.marked === 'giant' && beach.progress.grown));
