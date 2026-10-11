@@ -143,7 +143,7 @@ export function titleCartouche(d: Draw, x0: number, y0: number, w: number, h: nu
     d.pen.dot(cx, cy, 2, RED, 0.85);
   }
   const cx = x0 + w / 2;
-  letter(ctx, 'A Beachcomber’s Chart', cx, y0 + 46, { size: 40, color: BLUE, alpha: 0.95, italic: false });
+  letter(ctx, 'A Beachcomber’s Map', cx, y0 + 46, { size: 40, color: BLUE, alpha: 0.95, italic: false });
   letter(ctx, 'of the Ten Beaches', cx, y0 + 86, { size: 30, color: BLUE, alpha: 0.95, italic: false });
   swash(d, cx, y0 + 112, w * 0.62);
   letter(ctx, 'surveyed on foot by a hermit crab,', cx + 30, y0 + 142, { size: 19, color: INK, alpha: 0.8 });
@@ -166,11 +166,11 @@ export function scaleBar(d: Draw, x: number, y: number, w: number): void {
   for (let k = 0; k <= 4; k++) letter(ctx, String(k * 25), x + (w * k) / 4, y + 20, { size: 14, color: INK, alpha: 0.75, italic: false });
 }
 
-/** After the last island: the hermit crab as a sea monster, "here be crabs", and the end of the chart. */
+/** After the last island: the hermit crab as a sea monster, "here be crabs", and the end of the map. */
 export function hereBeCrabs(d: Draw, x: number, y: number): void {
   const { ctx } = d.pen;
   for (let k = 0; k < 4; k++) d.pen.hair(bezier(pt(x - 120 + k * 16, y + 70 + k * 8), pt(x, y + 58 + k * 10), pt(x + 120 - k * 16, y + 70 + k * 8), 12), 0.7, d.ink, 0.45 - k * 0.08);
   crabDoodle(d, x + 10, y + 30, 2.6);
   letter(ctx, 'Here be Crabs', x, y + 128, { size: 38, color: BLUE, alpha: 0.95 });
-  letter(ctx, '— the chart ends where the sand does —', x, y + 160, { size: 17, color: INK, alpha: 0.7 });
+  letter(ctx, '— the map ends where the sand does —', x, y + 160, { size: 17, color: INK, alpha: 0.7 });
 }

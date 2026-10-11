@@ -11,9 +11,14 @@ export interface LevelRecord {
 /** Saved progress, keyed by level id (ids are permanent). */
 export interface Progress {
   readonly levels: Readonly<Record<string, LevelRecord>>;
+  /** What the field guide has met: creature ids, and shell kinds as `shell:<kind>` (see guide/catalog.ts). */
+  readonly seen: readonly string[];
 }
 
-export const EMPTY_PROGRESS: Progress = { levels: {} };
+export const EMPTY_PROGRESS: Progress = { levels: {}, seen: [] };
+/** Caps on what an untrusted save can hold. */
+const MAX_SEEN = 500;
+const SEEN_ID = /^[a-z0-9:-]{1,64}$/;
 const KEY = 'inkcrab.progress.v1';
 export const MAX_BLOTS = 3;
 
@@ -38,7 +43,9 @@ export function parseProgress(raw: unknown): Progress {
   const levels = (raw as { levels?: unknown }).levels;
   if (typeof levels !== 'object' || levels === null) return EMPTY_PROGRESS;
   const kept = Object.entries(levels as Record<string, unknown>).filter(([id, r]) => /^[a-z0-9-]{1,64}$/.test(id) && isRecord(r));
-  return { levels: Object.fromEntries(kept) as Record<string, LevelRecord> };
+  const seen = (raw as { seen?: unknown }).seen;
+  const ids = Array.isArray(seen) ? seen.filter((id): id is string => typeof id === 'string' && SEEN_ID.test(id)).slice(0, MAX_SEEN) : [];
+  return { levels: Object.fromEntries(kept) as Record<string, LevelRecord>, seen: [...new Set(ids)] };
 }
 
 /** Keeps the better of the old and new results for a level. */
@@ -47,7 +54,14 @@ export function recordResult(p: Progress, id: string, blots: number, time: numbe
   const next: LevelRecord = old
     ? { blots: Math.max(old.blots, blots), bestTime: Math.min(old.bestTime, time) }
     : { blots, bestTime: time };
-  return { levels: { ...p.levels, [id]: next } };
+  return { ...p, levels: { ...p.levels, [id]: next } };
+}
+
+/** Adds newly met creatures and shells; returns the same progress when nothing is new. */
+export function markSeen(p: Progress, ids: Iterable<string>): Progress {
+  const known = new Set(p.seen);
+  const fresh = [...new Set(ids)].filter((id) => !known.has(id));
+  return fresh.length ? { ...p, seen: [...p.seen, ...fresh] } : p;
 }
 
 /** The first level is always open; each next one opens once the one before it is finished. */

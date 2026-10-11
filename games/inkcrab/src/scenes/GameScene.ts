@@ -34,6 +34,9 @@ import { DecksView } from './game/decksView';
 import { WindView } from './game/windView';
 import { FINDS } from '../logic/finds';
 import { NightView } from './game/nightView';
+import { Sightings } from './game/sightings';
+import { shellSeenId } from '../guide/catalog';
+import { START_SHELL } from '../level/goal';
 import { wrackAt } from '../logic/kelp';
 import { DPR, screenZoom, viewSize } from './hidpi';
 import type { ResultData } from './ResultScene';
@@ -76,6 +79,7 @@ export class GameScene extends Phaser.Scene {
   private nightView: NightView | null = null;
   private input2!: GameInput;
   private touch!: TouchState;
+  private sightings!: Sightings;
 
   constructor() {
     super('Game');
@@ -116,6 +120,8 @@ export class GameScene extends Phaser.Scene {
     this.input2 = new GameInput(this);
     this.touch = createTouchState();
     this.registry.set(REG.touch, this.touch);
+    // You are a hermit crab in a periwinkle from the start: both are in the field guide already.
+    this.sightings = new Sightings(getHost(this).storage, ['hermit', shellSeenId(START_SHELL.kind)]);
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, worldW, worldH);
@@ -123,6 +129,7 @@ export class GameScene extends Phaser.Scene {
     cam.startFollow(this.crabView.root, true, 0.12, 0.12);
     this.scene.launch('Hud');
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.sightings.save();
       this.terrainView.destroy();
       roots?.destroy();
       kelp?.destroy(this);
@@ -165,6 +172,7 @@ export class GameScene extends Phaser.Scene {
     const livesLost = b.startLives - b.lives;
     const blots = won ? blotsFor(b.elapsed, parTimeOf(this.level), livesLost) : 0;
     const host = getHost(this);
+    this.sightings.save();
     const saved = loadProgress(host.storage);
     if (won) saveProgress(host.storage, recordResult(saved, this.level.id, blots, b.elapsed));
     const result: ResultData = {
@@ -202,6 +210,7 @@ export class GameScene extends Phaser.Scene {
     const crabBody = this.beach.crab.body;
     this.nightView?.update(this.beach.darkness, this.cameras.main.worldView, { x: crabBody.x + crabBody.w / 2, y: crabBody.y + crabBody.h / 2 }, this.beach.crab.growth.size, this.beach.elapsed);
     this.crabView.update(this.beach, time, dt);
+    this.sightings.look(time, this.cameras.main.worldView, this.beach);
     const cam = this.cameras.main;
     const z = screenZoom(cam);
     cam.setZoom(DPR * (z + (this.targetZoom() - z) * Math.min(1, dt * 2)));

@@ -5,6 +5,7 @@ import { REG } from './host';
 import { BeachEndScene } from './scenes/BeachEndScene';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
+import { GuideScene } from './scenes/GuideScene';
 import { HudScene } from './scenes/HudScene';
 import { MenuScene } from './scenes/MenuScene';
 import { ResultScene } from './scenes/ResultScene';
@@ -34,7 +35,7 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     },
     input: { activePointers: 3 },
     audio: { noAudio: true },
-    scene: [BootScene, MenuScene, GameScene, HudScene, ResultScene, BeachEndScene],
+    scene: [BootScene, MenuScene, GameScene, HudScene, ResultScene, BeachEndScene, GuideScene],
   });
   game.registry.set(REG.host, host);
   const resizer = new ResizeObserver(() => {

@@ -70,6 +70,25 @@ function channel(rng: Rng, a: Pt, b: Pt, w0: number, w1: number, wander = 0.5): 
   return { shape: ribbon(spine, (u) => w0 + (w1 - w0) * u).shape, spine };
 }
 
+/**
+ * A river: a spine that meanders in gentle bends between `a` (the mouth) and
+ * `b` (its head), straight at both ends, and banks that narrow quickly near
+ * the mouth and slowly towards the head, as a tidal creek does.
+ */
+function river(rng: Rng, a: Pt, b: Pt, w0: number, w1: number, bends = 1.5, amp = 0.1): { shape: Pt[]; spine: Pt[] } {
+  const n = 36;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const phase = rng() * Math.PI * 2;
+  const spine = Array.from({ length: n + 1 }, (_, i) => {
+    const u = i / n;
+    const off = Math.sin(u * bends * Math.PI * 2 + phase) * amp * len * Math.sin(Math.PI * u);
+    return pt(a.x + dx * u - (dy / len) * off, a.y + dy * u + (dx / len) * off);
+  });
+  return { shape: ribbon(spine, (u) => w1 + (w0 - w1) * (1 - u) ** 1.6).shape, spine };
+}
+
 const water = (kind: WaterKind, c: { shape: Pt[]; spine: Pt[] }): Water => ({ kind, ...c });
 const pool = (kind: WaterKind, shape: Pt[]): Water => ({ kind, shape, spine: [] });
 const islet = (kind: IsletKind, shape: Pt[], spine: Pt[] = []): Islet => ({ kind, shape, spine });
@@ -133,12 +152,12 @@ function mangrove(c: Ctx): Omit<IslandPlan, 'label'> {
     const x = c.at(u);
     const mouth = pt(x, l.topAt(x) - 28);
     const head = pt(x + (rng() - 0.5) * 70, l.scrubAt(x) - 18);
-    const main = channel(rng, mouth, head, 30, 5, 0.6);
+    const main = river(rng, mouth, head, 30, 1.5);
     waters.push(water('creek', main));
-    // A side creek branching off partway up.
-    const from = main.spine[7]!;
+    // A side creek joining it partway up, its mouth inside the main creek so the two run together.
+    const from = main.spine[Math.round(main.spine.length * 0.42)]!;
     const dir = rng() < 0.5 ? -1 : 1;
-    waters.push(water('creek', channel(rng, from, pt(from.x + dir * 70, from.y + 50), 12, 3, 0.5)));
+    waters.push(water('creek', river(rng, from, pt(from.x + dir * 80, from.y + 56), 12, 1, 1, 0.08)));
   }
   const islets = scatter(c, 'mangrove', [[0.07, 82], [0.94, 76], [0.2, 610], [0.41, 626], [0.63, 606], [0.8, 622]], 16, 28, 0.25);
   return { waters, islets };

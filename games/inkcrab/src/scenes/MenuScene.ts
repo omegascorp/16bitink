@@ -6,6 +6,7 @@ import { TEX } from '../art/textures';
 import { FOOT, FRAME } from '../art/frame';
 import { getFullError, getHost } from '../host';
 import { BIOMES, LEVELS_PER_BEACH } from '../level/biomes';
+import { guidePages, guideProgress, shellSeenId, type GuidePage } from '../guide/catalog';
 import { levelGoal } from '../level/build';
 import { BUILT_BEACHES, isPaid, levelById, levelOrder, loadedBeaches, loadedLevels } from '../level/levels';
 import { isUnlocked, loadProgress, type Progress } from '../logic/save';
@@ -23,6 +24,8 @@ const SOFT_INK = '#4a463e';
 const PENCIL = '#8a8578';
 /** Arrow keys move the chart this far. */
 const KEY_STEP = 420;
+const GUIDE_BUTTON = { width: 190, height: 54 } as const;
+const GUIDE_BAR = { width: 130, height: 6 } as const;
 
 /**
  * Level select as a beachcomber's chart: one island per beach, ten levels
@@ -41,6 +44,10 @@ export class MenuScene extends Phaser.Scene {
   private caption!: Phaser.GameObjects.Text;
   private tagline!: Phaser.GameObjects.Text;
   private tabs: Phaser.GameObjects.Container[] = [];
+  /** The field guide button: how many of the shown beach's creatures you've met, with a bar filling as you meet them. */
+  private guide!: { readonly label: Phaser.GameObjects.Text; readonly bar: Phaser.GameObjects.Graphics };
+  private guidePages: GuidePage[] = [];
+  private seen = new Set<string>();
   /** Stand-in ids for the levels of the full game's beaches this player doesn't have. */
   private locked = new Set<string>();
 
@@ -49,6 +56,8 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    // A restart (on resize) reuses this scene: forget the last beach shown, so the captions and guide button are filled in again.
+    this.activeRegion = -1;
     crispText(this);
     const host = getHost(this);
     const progress = loadProgress(host.storage);
@@ -238,6 +247,19 @@ export class MenuScene extends Phaser.Scene {
     // Beach tabs: jump straight to any island.
     const n = this.layout.regions.length;
     const gap = Math.min(52, (width - 40) / n);
+    // The field guide, open at the beach the chart is showing: left of the tabs, or under the title card when they fill the panel.
+    const roomy = width / 2 - ((n - 1) / 2) * gap - 20 > GUIDE_BUTTON.width + 40;
+    const openGuide = (): void => {
+      this.scene.start('Guide', { beach: Math.max(0, this.activeRegion) + 1 });
+    };
+    this.guidePages = guidePages(loadedBeaches());
+    this.seen = new Set(progress.seen);
+    const button = inkButton(this, 20 + GUIDE_BUTTON.width / 2, roomy ? height - 50 : 126, '', openGuide, { ...GUIDE_BUTTON, size: 22 });
+    const label = (button.list[1] as Phaser.GameObjects.Text).setY(-8);
+    const bar = this.add.graphics();
+    button.add(bar);
+    this.guide = { label, bar };
+    layer.add(button);
     const y = height - 26;
     this.tabs = this.layout.regions.map((r, i) => {
       const g = this.add.graphics();
@@ -255,12 +277,26 @@ export class MenuScene extends Phaser.Scene {
     layer.add([this.caption, this.tagline]);
   }
 
+  /** The guide button for a beach: its creatures and shells met so far (all "species"), or a lock when the beach isn't the player's yet. */
+  private showGuideProgress(beach: number): void {
+    const page = this.guidePages.find((p) => p.beach === beach);
+    const { label, bar } = this.guide;
+    const p = page ? guideProgress([...page.creatures, ...page.shells.map(shellSeenId)], this.seen) : null;
+    label.setText(p ? `${p.met} of ${p.total} species` : 'species: full game').setColor(p ? BLUE : PENCIL);
+    const x = -GUIDE_BAR.width / 2;
+    const y = 12;
+    bar.clear().fillStyle(BLUE_HEX, 0.12).fillRect(x, y, GUIDE_BAR.width, GUIDE_BAR.height);
+    if (p && p.total > 0) bar.fillStyle(BLUE_HEX, 0.8).fillRect(x, y, (GUIDE_BAR.width * p.met) / p.total, GUIDE_BAR.height);
+    bar.lineStyle(1, BLUE_HEX, 0.6).strokeRect(x, y, GUIDE_BAR.width, GUIDE_BAR.height);
+  }
+
   private setActiveRegion(index: number): void {
     this.activeRegion = index;
     const r = this.layout.regions[index]!;
     const { biome } = r.beach;
     this.caption.setText(`Beach ${biome.beach} · ${biome.name}`).setColor(r.beach.built ? BLUE : PENCIL);
     this.tagline.setText(r.beach.built ? biome.tagline : 'uncharted · coming soon');
+    this.showGuideProgress(biome.beach);
     this.tabs.forEach((tab, i) => {
       const g = tab.list[0] as Phaser.GameObjects.Graphics;
       g.clear();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blotsFor, EMPTY_PROGRESS, isUnlocked, loadProgress, parseProgress, recordResult, saveProgress } from '../src/logic/save';
+import { blotsFor, EMPTY_PROGRESS, isUnlocked, loadProgress, markSeen, parseProgress, recordResult, saveProgress } from '../src/logic/save';
 
 const order = ['pen-test', 'room-to-grow', 'underlined'];
 
@@ -41,5 +41,18 @@ describe('saved progress', () => {
     mem.set('inkcrab.progress.v1', '{not json');
     expect(loadProgress(store)).toEqual(EMPTY_PROGRESS);
     expect(loadProgress(undefined)).toEqual(EMPTY_PROGRESS);
+  });
+
+  it('remembers the creatures and shells met, for the field guide', () => {
+    const p = markSeen(EMPTY_PROGRESS, ['ghostcrab', 'shell:periwinkle', 'ghostcrab']);
+    expect(p.seen).toEqual(['ghostcrab', 'shell:periwinkle']);
+    expect(markSeen(p, ['ghostcrab'])).toBe(p);
+    expect(recordResult(p, 'pen-test', 1, 60).seen).toEqual(p.seen);
+  });
+
+  it('keeps only well-formed met ids from untrusted saves, and reads old saves without any', () => {
+    expect(parseProgress({ levels: {} }).seen).toEqual([]);
+    const p = parseProgress({ levels: {}, seen: ['gull', 7, 'shell:conch', 'x'.repeat(80), 'gull'] });
+    expect(p.seen).toEqual(['gull', 'shell:conch']);
   });
 });

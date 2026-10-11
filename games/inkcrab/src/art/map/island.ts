@@ -155,21 +155,48 @@ function washes(a: IslandArt, far: readonly Pt[], near: readonly Pt[], art: Biom
 
 const WATER: Readonly<Record<Water['kind'], number>> = { lagoon: 0.55, pass: 0.5, creek: 0.55, fjord: 0.6, pool: 0.6, canal: 0.55, lake: 0.55 };
 
+/** Clips drawing to outside every one of `shapes` (nested, so shapes overlapping each other all stay cut out). */
+function outsideAll(ctx: CanvasRenderingContext2D, shapes: readonly (readonly Pt[])[], draw: () => void): void {
+  const [first, ...rest] = shapes;
+  if (!first) draw();
+  else outside(ctx, [first], () => outsideAll(ctx, rest, draw));
+}
+
+/** Rough bounding-box test: whether two shapes could overlap. */
+function overlaps(a: readonly Pt[], b: readonly Pt[]): boolean {
+  const box = (s: readonly Pt[]): [number, number, number, number] => [
+    Math.min(...s.map((p) => p.x)), Math.min(...s.map((p) => p.y)), Math.max(...s.map((p) => p.x)), Math.max(...s.map((p) => p.y)),
+  ];
+  const [ax0, ay0, ax1, ay1] = box(a);
+  const [bx0, by0, bx1, by1] = box(b);
+  return ax0 <= bx1 && bx0 <= ax1 && ay0 <= by1 && by0 <= ay1;
+}
+
+/**
+ * The island's lagoons, creeks and pools. Waters that run into each other
+ * (a side creek off a main one) read as one body: the wash goes on once,
+ * and no outline or inner waterline crosses another water.
+ */
 function innerWaters(a: IslandArt, art: BiomeArt): void {
   const { biome } = a.region.beach;
   const shore = offsetShape(a.land, 3);
-  for (const [i, w] of a.plan.waters.entries()) {
+  const waters = a.plan.waters;
+  for (const [i, w] of waters.entries()) {
     if (!touches(w.shape, a.span, 20)) continue;
     const d = a.pen(200 + i);
-    const color = w.kind === 'pool' || w.kind === 'lake' ? '#7fb7c9' : w.kind === 'lagoon' || w.kind === 'pass' ? art.inner ?? biome.sea : art.inner ?? biome.sea;
+    const color = w.kind === 'pool' || w.kind === 'lake' ? '#7fb7c9' : art.inner ?? biome.sea;
+    const others = waters.filter((o) => o !== w && overlaps(o.shape, w.shape)).map((o) => o.shape);
+    const earlier = waters.slice(0, i).filter((o) => overlaps(o.shape, w.shape)).map((o) => o.shape);
     within(a.ctx, shore, () => {
-      d.pen.fill(w.shape, PAPER_FILL, 1);
-      d.pen.fill(w.shape, color, WATER[w.kind] * (a.draft ? 0.5 : 1));
-      within(a.ctx, w.shape, () => {
-        for (const [off, alpha] of [[-4, 0.4], [-9, 0.22]] as const) d.pen.hair([...offsetShape(w.shape, off, 2), offsetShape(w.shape, off, 2)[0]!], 0.5, a.ink, alpha);
+      outsideAll(a.ctx, earlier, () => {
+        d.pen.fill(w.shape, PAPER_FILL, 1);
+        d.pen.fill(w.shape, color, WATER[w.kind] * (a.draft ? 0.5 : 1));
       });
+      within(a.ctx, w.shape, () => outsideAll(a.ctx, others, () => {
+        for (const [off, alpha] of [[-4, 0.4], [-9, 0.22]] as const) d.pen.hair([...offsetShape(w.shape, off, 2), offsetShape(w.shape, off, 2)[0]!], 0.5, a.ink, alpha);
+      }));
     });
-    within(a.ctx, a.land, () => d.pen.stroke([...w.shape, w.shape[0]!], 1, a.ink, 0.85, false));
+    within(a.ctx, a.land, () => outsideAll(a.ctx, others, () => d.pen.stroke([...w.shape, w.shape[0]!], 1, a.ink, 0.85, false)));
   }
 }
 

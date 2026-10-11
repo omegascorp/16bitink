@@ -1,6 +1,6 @@
 import { bezier, pt } from '../../kit';
 import type { Pt } from '../../pen';
-import { edgeDistance } from '../../../scenes/map/plan';
+import { edgeDistance, inside } from '../../../scenes/map/plan';
 import { type IslandArt, offsetShape } from '../context';
 import type { BiomeArt } from '../island';
 import { boatTop, crown, roof } from '../symbols';
@@ -72,13 +72,15 @@ function land(a: IslandArt): void {
     if (x < a.span.x0 - 10 || x > a.span.x1 + 10) continue;
     d.pen.hair(bezier(pt(x - 3, y - 3), pt(x, y - 9), pt(x + 3, y + 2), 5), 0.5, a.ink, 0.6);
   }
-  // Root fringes along every creek bank too.
-  for (const w of watersOf(a, 'creek')) {
+  // Root fringes along every creek bank too, but not where one creek runs into another.
+  const creeks = watersOf(a, 'creek');
+  for (const w of creeks) {
     const bank = offsetShape(w.shape, 2, 1);
+    const others = creeks.filter((o) => o !== w);
     a.el(centre(w.shape).x, centre(w.shape).y, 160, (e) => {
       for (let i = 0; i < bank.length; i += 2) {
         const p = bank[i]!;
-        if (!a.interior(p.x, p.y, 0)) continue;
+        if (!a.interior(p.x, p.y, 0) || others.some((o) => inside(o.shape, p))) continue;
         e.pen.hair([pt(p.x - 2, p.y), pt(p.x, p.y - 3), pt(p.x + 2, p.y)], 0.4, a.ink, 0.5);
       }
     });
@@ -103,7 +105,7 @@ function land(a: IslandArt): void {
       for (const lx of [-1, 1]) e.pen.hair([pt(head.x + lx, head.y - 3), pt(head.x + lx * 2, head.y + 4)], 0.5, a.ink, 0.9);
     });
   }
-  for (const w of watersOf(a, 'creek').filter((_, i) => i % 2 === 0).slice(1, 3)) name(a, 'creek', w.spine[6]!.x + 20, w.spine[6]!.y, 13, 1.2);
+  for (const w of watersOf(a, 'creek').filter((_, i) => i % 2 === 0).slice(1, 3)) name(a, 'creek', w.spine[Math.floor(w.spine.length / 3)]!.x + 20, w.spine[Math.floor(w.spine.length / 3)]!.y, 13, 1.2);
   // Crab holes on the mud of the beach, clear of the route.
   for (const p of place(a, 80, () => anywhere(a), (q) => q.y > a.scrub(q.x) + 6 && a.onLand(q.x, q.y, 4) && a.clear(q.x, q.y, 4), 10)) a.el(p.x, p.y, 3, (e) => e.pen.dot(p.x, p.y, 1.1, a.ink, 0.6));
   for (const p of place(a, 20, () => anywhere(a), (q) => !a.onLand(q.x, q.y, -6) && q.y > a.coast(q.x) + 8 && q.y < a.coast(q.x) + 50, 30)) a.el(p.x, p.y, 3, (e) => e.pen.dot(p.x, p.y, 1, a.ink, 0.5));
