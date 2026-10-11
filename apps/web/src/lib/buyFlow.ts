@@ -1,7 +1,7 @@
 /**
  * Buying the full game is: sign in with Google, then pay. A signed-out
  * player leaves for Google with a return path that carries `?buy=<game>`,
- * and the play page picks the purchase back up when they come home.
+ * and the page they left picks the purchase back up when they come home.
  */
 export const BUY_PARAM = 'buy';
 

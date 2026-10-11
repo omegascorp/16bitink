@@ -11,7 +11,11 @@ export const prerender = false;
 
 const Body = z.object({ game: z.string().regex(/^[a-z0-9-]{1,40}$/) });
 
-/** Creates a Stripe Checkout Session for a one-time full-game unlock. */
+/**
+ * Creates a Stripe Checkout Session for a one-time full-game unlock.
+ * Only for a signed-in user: the purchase is tied to their account from the
+ * start, so it can't be stranded on a browser or under a different email.
+ */
 export const POST: APIRoute = async ({ request, url, cookies }) => {
   if (!isSameOrigin(request)) return fail(403, 'Cross-origin request rejected');
   const parsed = Body.safeParse(await request.json().catch(() => null));
@@ -20,17 +24,18 @@ export const POST: APIRoute = async ({ request, url, cookies }) => {
   if (!isPurchasable(game)) return fail(404, 'This game is not for sale');
 
   try {
+    const user = await currentUser(cookies);
+    if (!user) return fail(401, 'Sign in with Google to buy the full game.');
     const stripe = stripeClient();
     const prices = await stripe.prices.list({ lookup_keys: [game.stripeLookupKey], active: true, limit: 1 });
     const price = prices.data[0];
     if (!price) throw new Error(`No active Stripe price with lookup key "${game.stripeLookupKey}"`);
     // A recurring price would turn the unlock into a subscription: refuse it.
     if (price.type !== 'one_time') throw new Error(`Price "${game.stripeLookupKey}" must be one-time, not ${price.type}`);
-    const user = await currentUser(cookies);
     const session = await stripe.checkout.sessions.create(checkoutParams({
       priceId: price.id, game: game.slug, title: game.title, origin: url.origin,
       automaticTax: optionalEnv('STRIPE_AUTOMATIC_TAX') === 'true',
-      user: user ? { email: user.email, userId: user.userId } : null,
+      user: { email: user.email, userId: user.userId },
     }));
     if (!session.url) throw new Error('Stripe returned no checkout URL');
     return json({ success: true, data: { url: session.url } });

@@ -11,23 +11,38 @@ const { game, label } = Astro.props;
 </buy-button>
 
 <script>
-  import { startCheckout } from '../lib/client/checkout';
+  import { BUY_PARAM, isPendingBuy } from '../lib/buyFlow';
+  import { buyFullGame, startCheckout } from '../lib/client/checkout';
 
+  /**
+   * Sign in with Google, then pay. The button only renders while the game is
+   * not owned, so coming back from sign-in to a purchase the account already
+   * holds never reaches checkout again.
+   */
   class BuyButton extends HTMLElement {
     connectedCallback(): void {
       const button = this.querySelector('button');
       const error = this.querySelector<HTMLElement>('.buy-error');
       const game = this.dataset.game ?? '';
-      button?.addEventListener('click', async () => {
+      if (!button) return;
+      const run = async (buy: (game: string) => Promise<{ error?: string }>): Promise<void> => {
         button.disabled = true;
         error?.setAttribute('hidden', '');
-        const result = await startCheckout(game);
+        const result = await buy(game);
         if (result.error && error) {
           error.textContent = result.error;
           error.removeAttribute('hidden');
         }
         button.disabled = false;
-      });
+      };
+      button.addEventListener('click', () => void run(buyFullGame));
+      if (isPendingBuy(window.location.search, game)) {
+        // Dropped first so Back or a reload never re-opens checkout.
+        const url = new URL(window.location.href);
+        url.searchParams.delete(BUY_PARAM);
+        history.replaceState(null, '', url);
+        void run(startCheckout);
+      }
     }
   }
   customElements.define('buy-button', BuyButton);

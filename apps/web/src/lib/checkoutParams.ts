@@ -10,8 +10,8 @@ interface CheckoutInput {
   readonly title: string;
   readonly origin: string;
   readonly automaticTax: boolean;
-  /** The signed-in user, if any. */
-  readonly user: { readonly email: string; readonly userId: UserId } | null;
+  /** The signed-in buyer: checkout requires one. */
+  readonly user: { readonly email: string; readonly userId: UserId };
 }
 
 /** A Stripe Checkout Session for a one-time full-game unlock. */
@@ -20,10 +20,10 @@ export function checkoutParams(i: CheckoutInput): Stripe.Checkout.SessionCreateP
     mode: 'payment',
     submit_type: 'pay',
     line_items: [{ price: i.priceId, quantity: 1 }],
-    // The email Stripe collects (or the Google one, when signed in) is how
-    // the purchase is found again on another device.
     customer_creation: 'always',
-    ...(i.user ? { customer_email: i.user.email, client_reference_id: i.user.userId } : {}),
+    // The receipt goes to the Google email, and the purchase to the account.
+    customer_email: i.user.email,
+    client_reference_id: i.user.userId,
     automatic_tax: { enabled: i.automaticTax },
     allow_promotion_codes: true,
     custom_text: { submit: { message: ONE_TIME_NOTE } },
