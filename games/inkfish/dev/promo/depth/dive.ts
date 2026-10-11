@@ -3,8 +3,9 @@ import { lerp, ramp, smooth, VIDEO, window01 } from '../short';
 
 /**
  * "How deep do fish actually live?": the camera sinks from the surface,
- * through the ocean's zones, to a snailfish at 8,336 m, the deepest fish
- * ever filmed (Izu-Ogasawara Trench, 2022). Then a bubble from the
+ * stopping at six depths to show the real fish that live there (the counter
+ * still, the names readable), down to a snailfish at 8,336 m, the deepest
+ * fish ever filmed (Izu-Ogasawara Trench, 2022). Then a bubble from the
  * snailfish rushes back up to the surface, which is where the loop began.
  *
  * The world is one tall strip: world y in px, 0 at the sea surface, mapped
@@ -12,16 +13,24 @@ import { lerp, ramp, smooth, VIDEO, window01 } from '../short';
  * video would be all black water). Every beat is a function of time, in
  * seconds, over a loop of LOOP_S.
  */
-export const LOOP_S = 18;
-/** The descent ends here, the camera holds on the snailfish, then rushes back up. */
-export const ARRIVE_AT = 14.6;
-export const REWIND_FROM = 16.5;
+export const LOOP_S = 24;
+/** Resting at the surface under the hook line before the dive. */
+const INTRO_S = 1.2;
+/** Holding on the snailfish, and rushing back up. */
+const PAYOFF_S = 3;
+const REWIND_S = 1.8;
+export const REWIND_FROM = LOOP_S - REWIND_S;
 
 export const SNAILFISH_M = 8336;
 
-/** World y (px) → depth (m). Steep where little happens, so the counter races through the deep. */
+/**
+ * World y (px) → depth (m). A knot at each stop (STOP_METRES below), evenly
+ * spaced so a stop shows only its own fish, and the snailfish further down.
+ */
+const STOP_GAP = 1600;
 const KNOTS: readonly (readonly [number, number])[] = [
-  [0, 0], [700, 10], [1400, 50], [2200, 200], [3500, 1000], [5200, 4000], [6300, 6000], [7800, SNAILFISH_M], [9800, 11000],
+  [0, 0], [900, 10], [900 + STOP_GAP, 100], [900 + 2 * STOP_GAP, 500], [900 + 3 * STOP_GAP, 1500], [900 + 4 * STOP_GAP, 3000],
+  [900 + 5 * STOP_GAP, 5000], [900 + 5 * STOP_GAP + 2000, SNAILFISH_M], [900 + 5 * STOP_GAP + 3400, 11000],
 ];
 
 /** Depth in metres at world y (negative above the surface). */
@@ -59,35 +68,65 @@ const START = CENTRE - READ_Y;
 /** The descent stops with the snailfish's depth at READ_Y. */
 const END = yAt(SNAILFISH_M) + CENTRE - READ_Y;
 
-/** Descent speed profile (unscaled): eases in from rest, cruises, eases out to rest on the snailfish. */
-const pace = (t: number): number => smooth(t / 1.6) * (1 - smooth((t - (ARRIVE_AT - 2.8)) / 2.8));
-
-/** Cumulative descent, sampled: the camera's distance is the integral of its pace. */
-const STEPS = 4000;
-const CUMULATIVE = (() => {
-  const out = new Float64Array(STEPS + 1);
-  const dt = ARRIVE_AT / STEPS;
-  for (let i = 1; i <= STEPS; i++) out[i] = out[i - 1]! + ((pace((i - 1) * dt) + pace(i * dt)) / 2) * dt;
-  return out;
-})();
-
 /** Smootherstep: starts and ends at rest, gentler than smoothstep. */
 const smoother = (u: number): number => {
   const c = Math.max(0, Math.min(1, u));
   return c * c * c * (c * (c * 6 - 15) + 10);
 };
 
+/** Camera (screen-middle world y) that puts a depth at READ_Y. */
+const cameraFor = (metres: number): number => yAt(metres) + CENTRE - READ_Y;
+/** A glide between stops takes longer the further it goes. */
+const glideTime = (from: number, to: number): number => 0.5 + Math.abs(to - from) / 2600;
+
+/** Where the camera stops on the way down, in metres (the fish at each are listed below; each is a knot above). */
+export const STOP_METRES: readonly number[] = KNOTS.slice(1, 7).map(([, m]) => m);
+
+/** Camera keyframes: it holds still between consecutive keys at the same height and glides (smootherstep) between different ones. */
+interface Key { readonly t: number; readonly y: number }
+
+const PLAN = (() => {
+  const heights = [...STOP_METRES.map(cameraFor), END];
+  let at = START;
+  const glides = heights.map((y) => {
+    const d = glideTime(at, y);
+    at = y;
+    return d;
+  });
+  const hold = (REWIND_FROM - PAYOFF_S - INTRO_S - glides.reduce((a, b) => a + b, 0)) / STOP_METRES.length;
+  const keys: Key[] = [{ t: 0, y: START }, { t: INTRO_S, y: START }];
+  const holds: { readonly from: number; readonly to: number }[] = [];
+  let t = INTRO_S;
+  heights.forEach((y, i) => {
+    t += glides[i]!;
+    keys.push({ t, y });
+    if (i < STOP_METRES.length) {
+      holds.push({ from: t, to: t + hold });
+      t += hold;
+      keys.push({ t, y });
+    }
+  });
+  keys.push({ t: REWIND_FROM, y: END }, { t: LOOP_S, y: START });
+  return { keys, holds, hold, arrive: keys[keys.length - 3]!.t };
+})();
+
+/** The camera comes to rest on the snailfish here. */
+export const ARRIVE_AT = PLAN.arrive;
+/** How long the camera holds still at each stop, s. */
+export const HOLD_S = PLAN.hold;
+/** When the camera is still at each stop. */
+export const STOP_HOLDS: readonly { readonly from: number; readonly to: number }[] = PLAN.holds;
+
 /** World y at the middle of the screen. */
 export function cameraAt(t: number): number {
+  const keys = PLAN.keys;
   if (t <= 0) return START;
-  if (t < ARRIVE_AT) {
-    const f = (t / ARRIVE_AT) * STEPS;
-    const i = Math.min(STEPS - 1, Math.floor(f));
-    const done = lerp(CUMULATIVE[i]!, CUMULATIVE[i + 1]!, f - i) / CUMULATIVE[STEPS]!;
-    return lerp(START, END, done);
+  for (let i = 1; i < keys.length; i++) {
+    const a = keys[i - 1]!;
+    const b = keys[i]!;
+    if (t < b.t) return lerp(a.y, b.y, smoother((t - a.t) / (b.t - a.t)));
   }
-  if (t < REWIND_FROM) return END;
-  return lerp(END, START, smoother((t - REWIND_FROM) / (LOOP_S - REWIND_FROM)));
+  return START;
 }
 
 /** Screen y of world y at time t. */
@@ -95,18 +134,6 @@ export const toScreen = (y: number, t: number): number => y - cameraAt(t) + CENT
 
 /** The depth shown on the counter: at READ_Y, never above the surface. */
 export const counterMetres = (t: number): number => Math.max(0, Math.round(metresAt(cameraAt(t) - CENTRE + READ_Y)));
-
-/** First time the middle of the screen reaches world y on the way down. */
-export function passTime(y: number): number {
-  let lo = 0;
-  let hi = ARRIVE_AT;
-  for (let i = 0; i < 60; i++) {
-    const mid = (lo + hi) / 2;
-    if (cameraAt(mid) < y) lo = mid;
-    else hi = mid;
-  }
-  return (lo + hi) / 2;
-}
 
 // ---------------------------------------------------------------- zones
 
@@ -142,33 +169,38 @@ export const PLAIN_M = 6000;
 export interface Swimmer {
   readonly shape: FishShape;
   readonly name: string;
-  readonly metres: number;
+  /** Which stop it is shown at (STOP_METRES). */
+  readonly stop: number;
   /** Body length, px. */
   readonly length: number;
   /** 1 swims right, -1 left. */
   readonly dir: 1 | -1;
-  /** Where it is across the screen as the camera passes it, px. */
+  /** Where it is on screen in the middle of its stop, px. */
   readonly x: number;
-  /** Swimming speed, px/s. */
+  readonly y: number;
+  /** Swimming speed, px/s: slow, so it stays put enough to read. */
   readonly speed: number;
 }
 
-/** Real fish at depths they really live at, top to bottom. */
+/** Real fish, two or three to a depth they really live at, top to bottom. */
 export const SWIMMERS: readonly Swimmer[] = [
-  { shape: 'clownfish', name: 'clownfish', metres: 6, length: 190, dir: 1, x: 380, speed: 70 },
-  { shape: 'garibaldi', name: 'garibaldi', metres: 20, length: 230, dir: -1, x: 680, speed: 80 },
-  { shape: 'parrotfish', name: 'parrotfish', metres: 35, length: 280, dir: 1, x: 420, speed: 80 },
-  { shape: 'barracuda', name: 'barracuda', metres: 80, length: 420, dir: -1, x: 600, speed: 120 },
-  { shape: 'shark', name: 'reef shark', metres: 150, length: 480, dir: 1, x: 500, speed: 140 },
-  { shape: 'lanternfish', name: 'lanternfish', metres: 450, length: 210, dir: -1, x: 640, speed: 110 },
-  { shape: 'barreleye', name: 'barreleye', metres: 750, length: 250, dir: 1, x: 420, speed: 50 },
-  { shape: 'dragonfish', name: 'dragonfish', metres: 1300, length: 330, dir: -1, x: 620, speed: 90 },
-  { shape: 'fangtooth', name: 'fangtooth', metres: 1900, length: 250, dir: 1, x: 420, speed: 70 },
-  { shape: 'seadevil', name: 'anglerfish', metres: 2700, length: 300, dir: -1, x: 640, speed: 50 },
-  { shape: 'gulper', name: 'gulper eel', metres: 3400, length: 460, dir: 1, x: 460, speed: 90 },
-  { shape: 'cuskeel', name: 'cusk-eel', metres: 4800, length: 380, dir: -1, x: 620, speed: 80 },
-  { shape: 'rattail', name: 'rattail', metres: 5500, length: 340, dir: 1, x: 440, speed: 70 },
+  { shape: 'clownfish', name: 'clownfish', stop: 0, length: 190, dir: 1, x: 330, y: 620, speed: 30 },
+  { shape: 'garibaldi', name: 'garibaldi', stop: 0, length: 230, dir: -1, x: 760, y: 840, speed: 30 },
+  { shape: 'parrotfish', name: 'parrotfish', stop: 0, length: 280, dir: 1, x: 380, y: 1080, speed: 35 },
+  { shape: 'barracuda', name: 'barracuda', stop: 1, length: 400, dir: -1, x: 620, y: 650, speed: 45 },
+  { shape: 'shark', name: 'reef shark', stop: 1, length: 470, dir: 1, x: 460, y: 1030, speed: 45 },
+  { shape: 'lanternfish', name: 'lanternfish', stop: 2, length: 210, dir: 1, x: 360, y: 650, speed: 40 },
+  { shape: 'barreleye', name: 'barreleye', stop: 2, length: 250, dir: -1, x: 720, y: 1010, speed: 25 },
+  { shape: 'dragonfish', name: 'dragonfish', stop: 3, length: 330, dir: -1, x: 620, y: 650, speed: 35 },
+  { shape: 'fangtooth', name: 'fangtooth', stop: 3, length: 250, dir: 1, x: 400, y: 1020, speed: 30 },
+  { shape: 'seadevil', name: 'anglerfish', stop: 4, length: 300, dir: 1, x: 380, y: 660, speed: 25 },
+  { shape: 'gulper', name: 'gulper eel', stop: 4, length: 460, dir: -1, x: 620, y: 1040, speed: 40 },
+  { shape: 'cuskeel', name: 'cusk-eel', stop: 5, length: 380, dir: -1, x: 620, y: 650, speed: 35 },
+  { shape: 'rattail', name: 'rattail', stop: 5, length: 340, dir: 1, x: 420, y: 1020, speed: 30 },
 ];
+
+/** The depth a swimmer is shown at, m. */
+export const swimmerMetres = (s: Swimmer): number => STOP_METRES[s.stop]!;
 
 /**
  * When the swimmers' clocks wrap: as the rush back up starts, with the
@@ -178,20 +210,21 @@ export const SWIMMERS: readonly Swimmer[] = [
 export const WRAP_AT = REWIND_FROM;
 const swimClock = (t: number): number => (t >= WRAP_AT ? t - LOOP_S : t);
 
-/** A swimmer's position on screen at time t; it crosses `x` as the camera passes its depth. */
+/** A swimmer's position on screen at time t: at (x, y) in the middle of its stop, drifting slowly along. */
 export function swimmerAt(s: Swimmer, t: number): { readonly x: number; readonly y: number; readonly beat: number } {
-  const y = yAt(s.metres);
+  const hold = STOP_HOLDS[s.stop]!;
+  const world = cameraFor(swimmerMetres(s)) + s.y - CENTRE;
   const clock = swimClock(t);
-  const dt = clock - passTime(y);
-  return { x: s.x + s.dir * s.speed * dt, y: toScreen(y, t) + 14 * Math.sin(clock * 1.3 + s.metres), beat: 2 * Math.PI * 1.6 * clock };
+  const dt = clock - (hold.from + hold.to) / 2;
+  return { x: s.x + s.dir * s.speed * dt, y: toScreen(world, t) + 10 * Math.sin(clock * 1.3 + s.stop * 2 + s.x), beat: 2 * Math.PI * 1.4 * clock };
 }
 
 export const SNAIL_LENGTH = 400;
-const SNAIL_IN_FROM = ARRIVE_AT - 3.2;
+const SNAIL_IN_FROM = ARRIVE_AT - 1.6;
 
 /** The star: it glides in from the left as the camera slows, and hangs in the middle of the screen. */
 export function snailfishAt(t: number): { readonly x: number; readonly y: number; readonly beat: number; readonly tilt: number } {
-  const come = smooth((t - SNAIL_IN_FROM) / 3);
+  const come = smooth((t - SNAIL_IN_FROM) / 2.4);
   const y = yAt(SNAILFISH_M) + 10 * Math.sin(t * 1.4);
   return { x: lerp(-260, VIDEO.width / 2 + 20, come), y: toScreen(y, t), beat: 2 * Math.PI * (0.9 * t), tilt: 0.05 * Math.sin(t * 1.4 + 1) };
 }
@@ -228,13 +261,13 @@ export interface Caption {
 
 /** The hook, over the sky at the start; it fades in again as the bubble reaches the surface, so it spans the loop point. */
 export const HOOK_CAPTIONS: readonly Caption[] = [
-  { text: 'how deep do fish', y: 330, size: 112, weight: 700, from: -0.6, to: 2.4 },
-  { text: 'actually live?', y: 445, size: 112, weight: 700, from: -0.6, to: 2.4 },
+  { text: 'how deep do fish', y: 330, size: 112, weight: 700, from: -0.6, to: INTRO_S + 0.4 },
+  { text: 'actually live?', y: 445, size: 112, weight: 700, from: -0.6, to: INTRO_S + 0.4 },
 ];
 
 /** The payoff, under the snailfish. */
 export const PAYOFF_CAPTIONS: readonly Caption[] = [
-  { text: 'the deepest fish ever filmed', y: 960, size: 84, weight: 700, from: ARRIVE_AT - 0.6, to: REWIND_FROM + 0.2 },
+  { text: 'the deepest fish ever filmed', y: 960, size: 84, weight: 700, from: ARRIVE_AT - 0.3, to: REWIND_FROM + 0.2 },
   { text: 'snailfish · Izu-Ogasawara Trench, 2022', y: 1032, size: 52, weight: 500, from: ARRIVE_AT - 0.2, to: REWIND_FROM + 0.2 },
 ];
 

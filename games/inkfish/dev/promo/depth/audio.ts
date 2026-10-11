@@ -1,9 +1,9 @@
 import { foldLoop, offlineMix, RATE, rotatedWav } from '../audioKit';
-import { ARRIVE_AT, counterMetres, darknessAt, LOOP_S, POP_AT, REWIND_FROM, ZONES } from './dive';
+import { ARRIVE_AT, counterMetres, darknessAt, LOOP_S, POP_AT, REWIND_FROM, STOP_HOLDS, ZONES } from './dive';
 
 /**
  * The dive's soundtrack: the game's effects (a splash in, the counter's
- * pencil ticks, a chime on the snailfish, a rush of water back up, the
+ * pencil ticks, a soft bubble at each stop, a chime on the snailfish, a rush of water back up, the
  * bubble's pop), a sonar ping at each new zone, and a hum that sinks lower
  * and darker the deeper the camera goes. Loops like the picture.
  */
@@ -78,6 +78,8 @@ export async function renderDepthAudio(start = 0): Promise<Blob> {
   play('splash', 0.25, 0.8, 0.55);
   ticks.forEach((t, i) => play('click', t, 1, 0.14, i % 2 ? 0.15 : -0.15));
   zones.forEach((t) => ping(ctx, master, t));
+  // A soft bubble as the camera settles at each stop.
+  STOP_HOLDS.forEach((h, i) => play('drop', h.from - 0.05, 0.75 - i * 0.05, 0.22));
   play('grow', ARRIVE_AT - 0.4, 0.75, 0.5);
   play('suck', REWIND_FROM - 0.1, 1.6, 0.55);
   play('dash', REWIND_FROM, 0.55, 0.8);

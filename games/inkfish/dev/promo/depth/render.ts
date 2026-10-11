@@ -13,7 +13,7 @@ import { drawSwimmer } from '../swimmer';
 import { renderDepthAudio } from './audio';
 import {
   bubbleAt, cameraAt, captionAlpha, counterAlpha, counterMetres, darknessAt, formatMetres, HOOK_CAPTIONS, LOOP_S, metresAt, PAYOFF_CAPTIONS,
-  PLAIN_M, SNAIL_LENGTH, snailfishAt, SNAILFISH_M, SWIMMERS, swimmerAt, toScreen, yAt, zoneAt, ZONES,
+  PLAIN_M, SNAIL_LENGTH, snailfishAt, SNAILFISH_M, SWIMMERS, swimmerAt, swimmerMetres, toScreen, yAt, zoneAt, ZONES,
 } from './dive';
 
 /** Draws the "how deep do fish live?" short (dive.ts has the choreography). */
@@ -148,13 +148,13 @@ interface Mote { readonly x: number; readonly y: number; readonly r: number; rea
 
 function makeSnow(): readonly Mote[] {
   const rng = createRng(808);
-  return Array.from({ length: 900 }, () => ({ x: rng() * VIDEO.width, y: 60 + rng() * 9800, r: 1 + rng() * 2.2, phase: rng() * Math.PI * 2 }));
+  return Array.from({ length: 1100 }, () => ({ x: rng() * VIDEO.width, y: 60 + rng() * 11600, r: 1 + rng() * 2.2, phase: rng() * Math.PI * 2 }));
 }
 
 function drawSnow(ctx: CanvasRenderingContext2D, snow: readonly Mote[], t: number): void {
   const speed = (cameraAt(t + 1 / 60) - cameraAt(t - 1 / 60)) * 30;
-  // Only the rush back up is fast enough to smear the motes.
-  const streak = Math.max(0, Math.min(220, (Math.abs(speed) - 1500) / 20));
+  // Only the rush back up is fast enough to smear the motes; the glides between stops stay crisp.
+  const streak = Math.max(0, Math.min(220, (Math.abs(speed) - 3500) / 20));
   ctx.save();
   ctx.lineCap = 'round';
   for (const m of snow) {
@@ -350,8 +350,8 @@ export function createDepth(ctx: CanvasRenderingContext2D): Short {
       const sprite = sprites.get(s.shape)!;
       const pose = poseFor(s.shape, p.x, p.y, s.length, s.dir, 0.04 * Math.sin(p.beat * 0.25), p.beat);
       drawSwimmer(ctx, sprite, pose, boil);
-      const dark = darknessAt(s.metres);
-      drawGlow(ctx, sprite, pose, dark * (0.85 + 0.15 * Math.sin(t * 3 + s.metres)));
+      const dark = darknessAt(swimmerMetres(s));
+      drawGlow(ctx, sprite, pose, dark * (0.85 + 0.15 * Math.sin(t * 3 + s.x)));
       drawLabel(ctx, s.name, p.x, p.y + s.length * 0.3 + 46, 54, 0.9, dark);
     }
 
