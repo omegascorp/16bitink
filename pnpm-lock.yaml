@@ -171,6 +171,9 @@ importers:
       '@16bitink/game-sdk':
         specifier: workspace:*
         version: link:../../packages/game-sdk
+      '@16bitink/inkcrab':
+        specifier: workspace:*
+        version: link:../../games/inkcrab
       '@16bitink/inkfish':
         specifier: workspace:*
         version: link:../../games/inkfish

@@ -17,6 +17,13 @@ const PRODUCTS = [
     unitAmount: 499,
     currency: 'usd',
   },
+  {
+    lookupKey: 'inkcrab_full',
+    name: 'InkCrab: Full Game',
+    description: 'The full InkCrab game on 16bit.ink: all 100 levels across 10 beaches. One-time purchase, no subscription.',
+    unitAmount: 499,
+    currency: 'usd',
+  },
 ];
 
 const key = process.env.STRIPE_SECRET_KEY;

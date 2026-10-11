@@ -13,6 +13,7 @@ describe('catalog', () => {
 
   it('only sells playable games with a Stripe lookup key', () => {
     expect(isPurchasable(findGame('inkfish'))).toBe(true);
+    expect(isPurchasable(findGame('inkcrab'))).toBe(true);
     expect(isPurchasable(findGame('blot'))).toBe(false);
     expect(isPurchasable(undefined)).toBe(false);
   });
@@ -29,8 +30,14 @@ describe('game registries stay in sync with the catalog', () => {
     for (const slug of Object.keys(PAID_CONTENT)) expect(playable.has(slug), slug).toBe(true);
   });
 
+  // InkCrab ships every beach in its bundle and gates the paid ones on
+  // `host.unlocked` alone; it has no server content (yet).
+  const BUNDLED_PAID_LEVELS = new Set(['inkcrab']);
+
   it('every purchasable game has paid content to deliver', () => {
-    for (const g of playableGames().filter(isPurchasable)) expect(PAID_CONTENT[g.slug], g.slug).toBeDefined();
+    for (const g of playableGames().filter(isPurchasable)) {
+      if (!BUNDLED_PAID_LEVELS.has(g.slug)) expect(PAID_CONTENT[g.slug], g.slug).toBeDefined();
+    }
   });
 });
 
