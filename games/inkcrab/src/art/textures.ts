@@ -1,0 +1,149 @@
+import type Phaser from 'phaser';
+import { FOOD_KINDS } from '../logic/items';
+import { SHELL_KINDS } from '../logic/shells';
+import { SPECIES, type SpeciesId } from '../logic/species';
+import { BACKDROP_W, BOAT_BOX, BOAT_DRAW, THEME_BOATS, THEME_MOVERS, THEMES, type ThemeId } from './backdrop';
+import { drawCrabBack, drawCrabFront } from './crabArt';
+import { brahminy } from './birds/brahminy';
+import { gullFlight } from './birds/gullFlight';
+import { hawk } from './birds/hawk';
+import { kestrel } from './birds/kestrel';
+import { kingfisher } from './birds/kingfisher';
+import { osprey } from './birds/osprey';
+import { snowyOwl } from './birds/snowyOwl';
+import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, drawCritter, drawHeronStrike } from './critterArt';
+import { FRAME, GROUND } from './frame';
+import { drawFood, drawHighlight, drawPuff, FOOD_FRAME, FOOD_GROUND, FOOD_RES } from './itemArt';
+import { drawFind } from './findArt';
+import { measureShell } from './shellFit';
+import { BEACH_FINDS, type FindId } from '../logic/finds';
+import { makeDraw, type Draw } from './kit';
+import { ART_RES, BOIL, PAPER, RED } from './palette';
+import { makeCanvas } from './pen';
+import { drawShell } from './shellArt';
+
+export const TEX = {
+  crabBack: (f: number) => `crab-back-${f}`,
+  crabFront: (f: number) => `crab-front-${f}`,
+  nakedBack: (f: number) => `naked-back-${f}`,
+  nakedFront: (f: number) => `naked-front-${f}`,
+  /** `danger`: inked red, for one that can eat you. */
+  critter: (species: string, danger: boolean, f: number) => `critter-${species}-${danger ? 'red' : 'blue'}-${f}`,
+  /** A heron with no neck or head, for the strike (the view draws the neck stretched out). */
+  heronStrike: (danger: boolean, f: number) => `critter-heron-strike-${danger ? 'red' : 'blue'}-${f}`,
+  /** A bird hovering (wings by frame) or stooping. */
+  bird: (species: string, dive: boolean, danger: boolean, f: number) => `bird-${species}-${dive ? 'dive' : 'hover'}-${danger ? 'red' : 'blue'}-${f}`,
+  shell: (kind: string, f: number) => `shell-${kind}-${f}`,
+  food: (kind: string, f: number) => `food-${kind}-${f}`,
+  /** A beach's find, for a dig-up mission. */
+  find: (find: FindId, f: number) => `find-${find}-${f}`,
+  highlight: (f: number) => `hl-${f}`,
+  puff: (f: number) => `puff-${f}`,
+  /** Plain paper: no ruled lines anywhere in the game. */
+  paper: 'paper',
+  backdrop: (theme: string, layer: string) => `backdrop-${theme}-${layer}`,
+  boat: (theme: string, i: number) => `boat-${theme}-${i}`,
+  /** A frame of something moving in a backdrop: a flock, the seaplane, the fisherman. */
+  mover: (theme: string, i: number, f: number) => `mover-${theme}-${i}-${f}`,
+} as const;
+
+const PAPER_TILE = 256;
+/** Frame px of the sand-puff drawing. */
+export const PUFF = 64;
+
+/** Draws into a square canvas of `units`·`res` px with the origin at its centre. */
+function bake(scene: Phaser.Scene, key: string, units: number, res: number, draw: (ctx: CanvasRenderingContext2D) => void): void {
+  if (scene.textures.exists(key)) return;
+  const { canvas, ctx } = makeCanvas(units * res, units * res);
+  ctx.scale(res, res);
+  ctx.translate(units / 2, units / 2);
+  draw(ctx);
+  scene.textures.addCanvas(key, canvas);
+}
+
+function bakePaper(scene: Phaser.Scene): void {
+  if (scene.textures.exists(TEX.paper)) return;
+  const { canvas, ctx } = makeCanvas(PAPER_TILE, PAPER_TILE);
+  ctx.fillStyle = PAPER;
+  ctx.fillRect(0, 0, PAPER_TILE, PAPER_TILE);
+  scene.textures.addCanvas(TEX.paper, canvas);
+}
+
+/** Each theme's parallax layers, at texture resolution, origin top-left. */
+function bakeBackdrops(scene: Phaser.Scene): void {
+  for (const theme of Object.keys(THEMES) as ThemeId[]) {
+    THEMES[theme].forEach((layer, i) => {
+      const key = TEX.backdrop(theme, layer.id);
+      if (scene.textures.exists(key)) return;
+      const { canvas, ctx } = makeCanvas(BACKDROP_W * ART_RES, Math.ceil(layer.height * ART_RES));
+      ctx.scale(ART_RES, ART_RES);
+      layer.draw(makeDraw(ctx, 900 + i, 0, 0));
+      scene.textures.addCanvas(key, canvas);
+    });
+    THEME_BOATS[theme].forEach((boat, i) => {
+      const key = TEX.boat(theme, i);
+      if (scene.textures.exists(key)) return;
+      const box = BOAT_BOX[boat.kind];
+      const { canvas, ctx } = makeCanvas(Math.ceil((box.right - box.left) * boat.s * ART_RES), Math.ceil((box.bottom - box.top) * boat.s * ART_RES));
+      ctx.scale(ART_RES, ART_RES);
+      BOAT_DRAW[boat.kind](makeDraw(ctx, 950 + i, 0, 0), -box.left * boat.s, -box.top * boat.s, boat.s);
+      scene.textures.addCanvas(key, canvas);
+    });
+    THEME_MOVERS[theme].forEach((m, i) => {
+      for (let f = 0; f < m.frames; f++) {
+        const key = TEX.mover(theme, i, f);
+        if (scene.textures.exists(key)) continue;
+        const { canvas, ctx } = makeCanvas(Math.ceil((m.box.right - m.box.left) * ART_RES), Math.ceil((m.box.bottom - m.box.top) * ART_RES));
+        ctx.scale(ART_RES, ART_RES);
+        // The same seed every frame, so only what moves (wings, a rod) changes between them.
+        m.draw(makeDraw(ctx, 970 + i, 0, 0), -m.box.left, -m.box.top, f);
+        scene.textures.addCanvas(key, canvas);
+      }
+    });
+  }
+}
+
+/** Draws every sprite with BOIL slightly different frames (for the crab, also its leg poses). */
+export function generateTextures(scene: Phaser.Scene): void {
+  bakePaper(scene);
+  bakeBackdrops(scene);
+  const critter = (key: string, seed: number, f: number, draw: (d: Draw) => void, ink?: string): void =>
+    bake(scene, key, FRAME, 1, (ctx) => draw(makeDraw(ctx, seed, f, GROUND, ink)));
+  for (let f = 0; f < BOIL; f++) {
+    critter(TEX.crabBack(f), 100 + f, f, (d) => drawCrabBack(d));
+    critter(TEX.crabFront(f), 110 + f, f, (d) => drawCrabFront(d));
+    critter(TEX.nakedBack(f), 120 + f, f, (d) => drawCrabBack(d, true), RED);
+    critter(TEX.nakedFront(f), 130 + f, f, (d) => drawCrabFront(d, true), RED);
+    for (const species of Object.keys(SPECIES) as SpeciesId[]) {
+      for (const danger of [false, true]) {
+        bake(scene, TEX.critter(species, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => drawCritter(makeDraw(ctx, 800 + f, f, CRITTER_GROUND, danger ? RED : undefined), species));
+      }
+    }
+    for (const danger of [false, true]) {
+      bake(scene, TEX.heronStrike(danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => drawHeronStrike(makeDraw(ctx, 800 + f, f, CRITTER_GROUND, danger ? RED : undefined)));
+    }
+    for (const dive of [false, true]) {
+      for (const danger of [false, true]) {
+        bake(scene, TEX.bird('kestrel', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => kestrel(makeDraw(ctx, 850 + f, f, 0, danger ? RED : undefined), dive));
+        bake(scene, TEX.bird('hawk', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => hawk(makeDraw(ctx, 860 + f, f, 0, danger ? RED : undefined), dive));
+        bake(scene, TEX.bird('kingfisher', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => kingfisher(makeDraw(ctx, 880 + f, f, 0, danger ? RED : undefined), dive));
+        bake(scene, TEX.bird('osprey', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => osprey(makeDraw(ctx, 890 + f, f, 0, danger ? RED : undefined), dive));
+        bake(scene, TEX.bird('brahminy', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => brahminy(makeDraw(ctx, 900 + f, f, 0, danger ? RED : undefined), dive));
+        bake(scene, TEX.bird('snowyowl', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => snowyOwl(makeDraw(ctx, 920 + f, f, 0, danger ? RED : undefined), dive));
+      }
+    }
+    for (const danger of [false, true]) {
+      bake(scene, TEX.bird('gull', false, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => gullFlight(makeDraw(ctx, 870 + f, f, 0, danger ? RED : undefined)));
+    }
+    SHELL_KINDS.forEach((kind, i) => critter(TEX.shell(kind, f), 300 + i * 10 + f, f, (d) => drawShell(d, kind)));
+    // Each kind's drawing is measured once, so every kind is drawn to its size (see shellFit.ts).
+    if (f === 0) for (const kind of SHELL_KINDS) measureShell(kind, scene.textures.get(TEX.shell(kind, 0)).getSourceImage() as HTMLCanvasElement);
+    FOOD_KINDS.forEach((kind, i) => bake(scene, TEX.food(kind, f), FOOD_FRAME, FOOD_RES, (ctx) => drawFood(makeDraw(ctx, 500 + i * 10 + f, f, FOOD_GROUND), kind)));
+    BEACH_FINDS.forEach((find, i) => bake(scene, TEX.find(find, f), FOOD_FRAME, FOOD_RES, (ctx) => drawFind(makeDraw(ctx, 590 + i * 10 + f, f, FOOD_GROUND), find)));
+    bake(scene, TEX.puff(f), PUFF, 2, (ctx) => drawPuff(makeDraw(ctx, 700 + f, f, 0), PUFF * 0.36));
+    bake(scene, TEX.highlight(f), 32, 2, (ctx) => {
+      ctx.translate(-16, -16);
+      drawHighlight(makeDraw(ctx, 600 + f, f, 0), 32, 32);
+    });
+  }
+}

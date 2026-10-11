@@ -11,6 +11,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { inkcrabArt } from './icons/inkcrab.mjs';
 import { inkfishArt } from './icons/inkfish.mjs';
 import { INK, PAPER, SIZE, brandDrop, paper } from './icons/paper.mjs';
 
@@ -23,6 +24,7 @@ const MASKABLE_SCALE = 0.8;
 const ICONS = {
   '16bitink': () => brandDrop({ top: 45, scale: 1.1 }),
   inkfish: (opts) => inkfishArt(opts),
+  inkcrab: (opts) => inkcrabArt(opts),
 };
 
 function svg(art, { maskable = false } = {}) {

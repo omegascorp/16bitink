@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { INKCRAB_PAID_BEACHES } from '@16bitink/inkcrab/content';
 import { INKFISH_FULL_CHAPTERS } from '@16bitink/inkfish/content';
+import { parseBeaches } from '../../../games/inkcrab/src/level/validate';
 import { parseChapters } from '../../../games/inkfish/src/levels/validate';
 import { findGame, GAMES, isPurchasable, playableGames } from '../src/data/games';
 import { PAID_CONTENT } from '../src/games/content.server';
@@ -11,8 +13,13 @@ describe('catalog', () => {
     for (const g of GAMES) expect(g.slug).toMatch(/^[a-z0-9-]{1,40}$/);
   });
 
+  it('lists every game for sale, so the admin panel can unlock it and make keys for it', () => {
+    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab']);
+  });
+
   it('only sells playable games with a Stripe lookup key', () => {
     expect(isPurchasable(findGame('inkfish'))).toBe(true);
+    expect(isPurchasable(findGame('inkcrab'))).toBe(true);
     expect(isPurchasable(findGame('blot'))).toBe(false);
     expect(isPurchasable(undefined)).toBe(false);
   });
@@ -44,5 +51,13 @@ describe('paid inkfish chapters', () => {
     const ids = INKFISH_FULL_CHAPTERS.flatMap((c) => c.levels.map((l) => l.id));
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids.some((id) => id.startsWith('c1-'))).toBe(false);
+  });
+});
+
+describe('paid inkcrab beaches', () => {
+  it('pass the game client validator', () => {
+    const beaches = parseBeaches(JSON.parse(JSON.stringify(INKCRAB_PAID_BEACHES)));
+    expect(beaches).toHaveLength(9);
+    expect(beaches.flat()).toHaveLength(90);
   });
 });

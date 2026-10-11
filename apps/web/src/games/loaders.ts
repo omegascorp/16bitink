@@ -11,4 +11,5 @@ import type { GameModule } from '@16bitink/game-sdk';
  */
 export const GAME_LOADERS: Readonly<Record<string, () => Promise<{ default: GameModule }>>> = {
   inkfish: () => import('@16bitink/inkfish'),
+  inkcrab: () => import('@16bitink/inkcrab'),
 };

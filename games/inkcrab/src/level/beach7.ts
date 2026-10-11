@@ -1,0 +1,137 @@
+import type { LevelDef } from './types';
+
+/**
+ * Beach 7, Wreck Cove: a Gulf shelling beach by an old wreck on the rocks
+ * (see docs/inkcrab-levels.md). Its idea is rivals: purple-pincher hermit
+ * crabs after the same shells, carrying some of the ones you need. Rap on a
+ * rival no bigger than you and it lets go of its shell; it then scuttles
+ * off to move into a loose one, often the one you left. Rivals in a shell
+ * trade up into any roomier one nearby, the smaller ones lining up behind
+ * in a vacancy chain, so changing shell sets one off. Stone crabs and blue
+ * crabs hunt on the sand, an osprey from the sky. Small prey: porcelain crabs.
+ */
+const WRECK: Pick<LevelDef, 'fry'> = { fry: 'porcelaincrab' };
+
+export const BEACH_7: readonly LevelDef[] = [
+  {
+    ...WRECK,
+    id: 'shelling-beach', name: 'Shelling Beach', seed: 701, width: 64, height: 32, parTime: 150,
+    hint: 'Purple-pincher hermit crabs want shells too. Grow to the size of the one in the fig shell, then rap on its shell and it lets go.',
+    profile: [[0, 18], [63, 20]],
+    startCol: 6,
+    shells: [['nassa', 3, 14, 0]],
+    rivals: [['figshell', 4, 34]],
+    food: { surface: 13, buried: 8, shallow: 5 },
+    teach: ['rival'],
+  },
+  {
+    ...WRECK,
+    id: 'purple-pinchers', name: 'Purple Pinchers', seed: 702, width: 72, height: 34, parTime: 200,
+    hint: 'Two hermit crabs, in a fig shell and a tulip shell. Rap on each once you\'re as big as it is, and move in.',
+    profile: [[0, 19], [71, 21]],
+    startCol: 6,
+    shells: [['nassa', 3, 14, 0], ['tulip', 5, 42, 0]],
+    rivals: [['figshell', 4, 30], ['tulip', 6, 54]],
+    food: { surface: 13, buried: 12, shallow: 6 },
+    critters: [{ count: 1, sizes: [3, 3], species: 'stonecrab' }],
+  },
+  {
+    ...WRECK,
+    id: 'stone-crabs', name: 'Stone Crabs', seed: 703, width: 76, height: 34, parTime: 250,
+    hint: 'Stone crabs are slow, but their claws are strong. Inked red, they can catch you: hide in your shell till they lose interest.',
+    profile: [[0, 19], [75, 21]],
+    startCol: 6,
+    shells: [['nassa', 3, 12, 0], ['figshell', 4, 30, 0], ['tulip', 5, 43, 0]],
+    rivals: [['tulip', 6, 56]],
+    food: { surface: 13, buried: 13, shallow: 6 },
+    critters: [{ count: 2, sizes: [1, 3], species: 'stonecrab' }, { count: 1, sizes: [5, 5], species: 'stonecrab' }],
+    teach: ['hide'],
+  },
+  {
+    ...WRECK,
+    id: 'buried-treasure', name: 'Buried Treasure', seed: 704, width: 76, height: 36, parTime: 300,
+    hint: 'A tulip shell lies buried under the sand by the rocks. Dig down to it before a hermit crab finds it.',
+    profile: [[0, 19], [75, 21]],
+    rocks: [[56, 20, 2.2]],
+    startCol: 6,
+    shells: [['nassa', 3, 12, 0], ['tulip', 5, 38, 0], ['tulip', 6, 48, 4]],
+    rivals: [['figshell', 4, 28]],
+    food: { surface: 13, buried: 15, shallow: 6 },
+    critters: [{ count: 2, sizes: [1, 3], species: 'stonecrab' }, { count: 1, sizes: [5, 5], species: 'stonecrab' }],
+    teach: ['buried'],
+  },
+  {
+    ...WRECK,
+    id: 'lightning-whelk', name: 'Lightning Whelk', seed: 705, width: 92, height: 36, parTime: 380,
+    hint: 'A hermit crab carries the lightning whelk about the beach. Blue crabs dash in bursts: move while they rest.',
+    profile: [[0, 20], [91, 22]],
+    startCol: 6,
+    shells: [['nassa', 3, 12, 0], ['figshell', 4, 26, 0], ['tulip', 5, 37, 0], ['tulip', 6, 48, 0]],
+    rivals: [['lightningwhelk', 7, 76]],
+    food: { surface: 14, buried: 16, shallow: 7 },
+    critters: [{ count: 2, sizes: [1, 4], species: 'bluecrab' }, { count: 1, sizes: [5, 5], species: 'stonecrab' }],
+  },
+  {
+    ...WRECK,
+    id: 'osprey', name: 'Osprey', seed: 706, width: 88, height: 36, parTime: 420,
+    hint: 'An osprey hunts over the cove. When its red shadow tightens on you, dig in under the sand or hide in your shell.',
+    profile: [[0, 20], [87, 22]],
+    startCol: 6,
+    shells: [['nassa', 3, 14, 0], ['figshell', 4, 30, 0], ['tulip', 5, 39, 0], ['lightningwhelk', 7, 72, 0]],
+    rivals: [['tulip', 6, 48]],
+    food: { surface: 14, buried: 16, shallow: 7 },
+    critters: [{ count: 2, sizes: [1, 4], species: 'stonecrab' }],
+    birds: [{ count: 1, size: 6, species: 'osprey' }],
+    teach: ['sky'],
+  },
+  {
+    ...WRECK,
+    id: 'shell-swap', name: 'Shell Swap', seed: 707, width: 96, height: 38, parTime: 500,
+    hint: 'Small hermit crabs past the big tulip shell would love it. Carry it by and they line up behind you; move into the lightning whelk and they all trade up at once.',
+    profile: [[0, 21], [40, 22], [95, 23]],
+    startCol: 6,
+    shells: [['nassa', 3, 14, 0], ['figshell', 4, 30, 0], ['tulip', 5, 38, 0], ['tulip', 6, 46, 0], ['lightningwhelk', 7, 80, 0]],
+    rivals: [['tulip', 5, 62, 5], ['figshell', 4, 65, 4], ['nassa', 3, 68, 3]],
+    food: { surface: 15, buried: 18, shallow: 8, start: 6 },
+    critters: [{ count: 2, sizes: [1, 4], species: 'bluecrab' }, { count: 1, sizes: [5, 5], species: 'stonecrab' }],
+    teach: ['chain'],
+  },
+  {
+    ...WRECK,
+    id: 'the-wreck', name: 'The Wreck', seed: 708, width: 96, height: 38, parTime: 560,
+    hint: 'Rocks below the old wreck, with the lightning whelk buried among them. Hermit crabs, stone crabs, blue crabs and the osprey.',
+    profile: [[0, 20], [95, 23]],
+    rocks: [[44, 21, 2.2], [56, 22, 2.6]],
+    startCol: 6,
+    shells: [['nassa', 3, 12, 0], ['tulip', 5, 47, 0], ['lightningwhelk', 7, 50, 4]],
+    rivals: [['figshell', 4, 24], ['tulip', 6, 70]],
+    food: { surface: 15, buried: 20, shallow: 8, start: 6 },
+    critters: [{ count: 2, sizes: [2, 5], species: 'stonecrab' }, { count: 1, sizes: [4, 4], species: 'bluecrab' }],
+    birds: [{ count: 1, size: 6, species: 'osprey' }],
+  },
+  {
+    ...WRECK,
+    id: 'horse-conch', name: 'Horse Conch', seed: 709, width: 104, height: 40, parTime: 680,
+    hint: 'A big hermit crab has the horse conch. Grow as big as it is in the lightning whelk, then rap on its shell.',
+    profile: [[0, 22], [103, 25]],
+    startCol: 6,
+    shells: [['nassa', 3, 12, 0], ['figshell', 4, 24, 0], ['tulip', 5, 33, 0], ['tulip', 6, 42, 0], ['lightningwhelk', 7, 64, 0]],
+    rivals: [['horseconch', 8, 90]],
+    food: { surface: 16, buried: 22, shallow: 9, start: 8 },
+    critters: [{ count: 2, sizes: [2, 5], species: 'bluecrab' }, { count: 1, sizes: [6, 6], species: 'stonecrab' }],
+    birds: [{ count: 1, size: 6, species: 'osprey' }],
+  },
+  {
+    ...WRECK,
+    id: 'wreck-cove', name: 'Wreck Cove', seed: 710, width: 120, height: 42, parTime: 900,
+    hint: 'Every shell of the cove, from the nassa by the start to the horse conch on the biggest hermit crab.',
+    profile: [[0, 22], [60, 24], [119, 26]],
+    rocks: [[84, 25, 2.4]],
+    startCol: 6,
+    shells: [['nassa', 3, 12, 0], ['figshell', 4, 28, 0], ['tulip', 5, 37, 0], ['lightningwhelk', 7, 74, 4]],
+    rivals: [['tulip', 6, 46], ['figshell', 4, 60], ['horseconch', 8, 106]],
+    food: { surface: 18, buried: 28, shallow: 11, start: 10 },
+    critters: [{ count: 2, sizes: [2, 5], species: 'stonecrab' }, { count: 1, sizes: [6, 6], species: 'bluecrab' }],
+    birds: [{ count: 1, size: 6, species: 'osprey' }],
+  },
+];
