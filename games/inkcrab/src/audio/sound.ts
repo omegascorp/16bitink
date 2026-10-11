@@ -2,6 +2,9 @@ import type { KeyValueStore } from '@16bitink/game-sdk';
 import { canPlay, parseSoundSettings, SOUND_KEY, spatial, type SfxId, type View } from './recipes';
 import { synthesize } from './synth';
 
+/** Gestures that may start audio (browsers block it before one). */
+const UNLOCK_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'] as const;
+
 /** Overall loudness: effects sit under whatever else the player is listening to. */
 const MASTER = 0.5;
 
@@ -33,8 +36,8 @@ export class SoundBoard {
 
   constructor(private readonly store: KeyValueStore | undefined) {
     this.mutedNow = parseSoundSettings(safeGet(store)).muted;
-    window.addEventListener('pointerdown', this.unlock, { capture: true });
-    window.addEventListener('keydown', this.unlock, { capture: true });
+    // Safari only lets audio start on some gestures (touchend, click), others on pointerdown or a key: listen for all.
+    for (const ev of UNLOCK_EVENTS) window.addEventListener(ev, this.unlock, { capture: true });
     document.addEventListener('visibilitychange', this.onVisibility);
   }
 
@@ -69,8 +72,7 @@ export class SoundBoard {
   }
 
   destroy(): void {
-    window.removeEventListener('pointerdown', this.unlock, { capture: true });
-    window.removeEventListener('keydown', this.unlock, { capture: true });
+    for (const ev of UNLOCK_EVENTS) window.removeEventListener(ev, this.unlock, { capture: true });
     document.removeEventListener('visibilitychange', this.onVisibility);
     void this.ctx?.close().catch(() => undefined);
     this.ctx = null;

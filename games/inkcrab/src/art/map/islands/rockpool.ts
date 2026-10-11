@@ -1,9 +1,9 @@
-import { bezier, type Draw, oval, pt } from '../../kit';
+import { bezier, type Draw, oval, pt, ribbon } from '../../kit';
 import type { Pt } from '../../pen';
 import { PAPER_FILL } from '../../palette';
 import { type IslandArt, offsetShape, straight } from '../context';
 import type { BiomeArt } from '../island';
-import { awash, breakers, cliffTicks, cottage, hachures, rock } from '../symbols';
+import { awash, breakers, cliffTicks, cottage, rock, shadow } from '../symbols';
 import { anywhere, centre, name, place, watersOf } from './common';
 
 /**
@@ -47,16 +47,37 @@ function shelf(d: Draw, x: number, y: number, r: number): void {
   d.pen.hair(straight(pts, 2), 0.6, d.ink, 0.65);
 }
 
-/** A tor: a pile of rounded granite boulders on a hachured rise. */
+/** A rounded slab of granite, w × h, its lit top and shaded underside. */
+function slab(d: Draw, x: number, y: number, w: number, h: number): void {
+  const r = h * 0.45;
+  const box: Pt[] = [
+    ...bezier(pt(x - w / 2, y), pt(x - w / 2, y - h), pt(x - w / 2 + r, y - h), 4),
+    ...bezier(pt(x + w / 2 - r, y - h), pt(x + w / 2, y - h), pt(x + w / 2, y), 4),
+    ...bezier(pt(x + w / 2, y), pt(x + w / 2, y + h * 0.15), pt(x + w / 2 - r, y + h * 0.15), 3),
+    ...bezier(pt(x - w / 2 + r, y + h * 0.15), pt(x - w / 2, y + h * 0.15), pt(x - w / 2, y), 3),
+  ];
+  d.pen.fill(box, PAPER_FILL, 1);
+  d.pen.fill(box, GRANITE, 0.8);
+  d.pen.crescent(box, pt(-w * 0.12, -h * 0.35), () => d.pen.hatch(box, 1.2, 0.9, 0.3, { color: d.ink, alpha: 0.5 }));
+  d.pen.hair([pt(x - w / 2 + r, y - h + 1.2), pt(x + w / 2 - r, y - h + 1.2)], 0.5, PAPER_FILL, 0.8);
+  d.pen.hair([...box, box[0]!], 0.6, d.ink, 0.85);
+}
+
+/**
+ * A tor: weathered granite slabs stacked on a low rise, as Dartmoor's are,
+ * with a cast shadow and short slope strokes on the shaded side only.
+ */
 function tor(d: Draw, x: number, y: number, s: number): void {
-  hachures(d, x, y + 4, 12 * s, 26 * s, 34, 0.55, 0.45);
-  for (const [dx, dy, r] of [[-6, 2, 6], [5, 3, 5], [0, -4, 5.5], [9, -2, 3.5]] as const) d.pen.fill(oval(x + dx * s, y + dy * s, r * s, r * s * 0.7, 10), PAPER_FILL, 1);
-  for (const [dx, dy, r] of [[-6, 2, 6], [5, 3, 5], [0, -4, 5.5], [9, -2, 3.5]] as const) {
-    const sh = oval(x + dx * s, y + dy * s, r * s, r * s * 0.7, 10);
-    d.pen.fill(sh, GRANITE, 0.75);
-    d.pen.crescent(sh, pt(-2 * s, -2 * s), () => d.pen.hatch(sh, 1.4, 0.9, 0.35, { color: d.ink, alpha: 0.5 }));
-    d.pen.hair([...sh, sh[0]!], 0.6, d.ink, 0.85);
+  for (let i = 0; i < 16; i++) {
+    const a = -0.3 + (i / 15) * 1.9;
+    const r0 = 13 * s;
+    const r1 = r0 + (5 + 6 * Math.sin((i / 15) * Math.PI)) * s;
+    d.pen.hair([pt(x + Math.cos(a) * r0, y + 3 * s + Math.sin(a) * r0 * 0.5), pt(x + Math.cos(a) * r1, y + 3 * s + Math.sin(a) * r1 * 0.5)], 0.4, d.ink, 0.4);
   }
+  shadow(d, x, y + 2 * s, 13 * s, 4 * s);
+  slab(d, x - 2 * s, y + 2 * s, 20 * s, 5 * s);
+  slab(d, x + 1 * s, y - 3 * s, 15 * s, 4.5 * s);
+  slab(d, x - 1 * s, y - 7.5 * s, 9 * s, 4 * s);
 }
 
 function sea(a: IslandArt): void {
@@ -81,11 +102,27 @@ function fields(a: IslandArt): void {
     for (let x = x0; x < x1; x += 14) line.push(pt(x, a.inland(x) + (k ? 36 : -30) + 6 * Math.sin(x / 40)));
     walls.push(line);
   }
+  // Each wall a fine line studded with stones, broken where it leaves the moor.
   for (const w of walls) {
-    for (const p of w) {
-      if (!a.interior(p.x, p.y, 8)) continue;
-      for (let k = 0; k < 3; k++) d.pen.dot(p.x + k * 4 + d.pen.jitter(0.8), p.y + d.pen.jitter(0.8), 1.1, '#77746a', 0.8);
+    let run: Pt[] = [];
+    const finish = (): void => {
+      if (run.length > 1) d.pen.hair(run, 0.6, '#6b6860', 0.7);
+      run = [];
+    };
+    for (const [i, p] of w.entries()) {
+      if (!a.interior(p.x, p.y, 8)) {
+        finish();
+        continue;
+      }
+      run.push(p);
+      const q = w[i + 1];
+      if (!q) continue;
+      for (let k = 0; k < 3; k++) {
+        const t = (k + 0.5) / 3;
+        d.pen.dot(p.x + (q.x - p.x) * t + d.pen.jitter(0.8), p.y + (q.y - p.y) * t + d.pen.jitter(0.8), 0.8, '#77746a', 0.7);
+      }
     }
+    finish();
   }
 }
 
@@ -158,8 +195,18 @@ function land(a: IslandArt): void {
   const tarn = watersOf(a, 'pool')[0];
   if (tarn) {
     const c = centre(tarn.shape);
-    const stream = bezier(pt(c.x, c.y - 8), pt(c.x + 40, (c.y + a.top(c.x)) / 2), pt(c.x + 20, a.top(c.x + 20) + 2), 16);
-    a.el(c.x + 20, (c.y + a.top(c.x)) / 2, 100, (e) => e.pen.stroke(stream, 1.4, '#5f9fb8', 0.85, false));
+    // It winds in small bends and widens as it nears the sea.
+    const course = bezier(pt(c.x, c.y - 8), pt(c.x + 40, (c.y + a.top(c.x)) / 2), pt(c.x + 20, a.top(c.x + 20) + 2), 24);
+    const stream = course.map((p, i) => {
+      const u = i / (course.length - 1);
+      return pt(p.x + Math.sin(u * Math.PI * 5) * 5 * Math.sin(Math.PI * u), p.y);
+    });
+    const bed = ribbon(stream, (u) => 1.4 + u * 2.2);
+    a.el(c.x + 20, (c.y + a.top(c.x)) / 2, 100, (e) => {
+      e.pen.fill(bed.shape, '#7fb7c9', 0.9);
+      e.pen.hair(bed.top, 0.45, a.ink, 0.6);
+      e.pen.hair(bed.bot, 0.45, a.ink, 0.6);
+    });
     name(a, 'tarn', c.x - 34, c.y + 2, 13);
   }
   // The shore: granite shelves with pools and starfish, kept off the route.

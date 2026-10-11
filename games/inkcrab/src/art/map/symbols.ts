@@ -1,4 +1,4 @@
-import { bezier, type Draw, oval, pt } from '../kit';
+import { bezier, cub, type Draw, oval, pt } from '../kit';
 import type { Pt } from '../pen';
 import { PAPER_FILL, RED } from '../palette';
 import { straight } from './context';
@@ -207,5 +207,29 @@ export function cliffTicks(d: Draw, line: readonly Pt[], len: number, every = 2,
     const p = line[i]!;
     const k = len * (0.6 + d.pen.rng() * 0.6);
     d.pen.hair([p, pt(p.x + nx * k, p.y + ny * k)], 0.45, d.ink, alpha);
+  }
+}
+
+/**
+ * A wading bird standing in the shallows, side on: a washed body, its neck in
+ * an S, stilt legs (one tucked up) and a ripple round its foot. `bill`: a
+ * flamingo's, bent down in the middle, or a spoonbill's flat spatula.
+ */
+export function wader(d: Draw, x: number, y: number, s: number, dir: 1 | -1, wash: string, bill: 'bent' | 'spoon'): void {
+  const P = (dx: number, dy: number): Pt => pt(x + dx * s * dir, y + dy * s);
+  d.pen.hair(oval(x, y + 0.4 * s, 3.4 * s, 0.8 * s, 12), 0.4, d.ink, 0.35);
+  d.pen.hair([P(0.4, -4.6), P(0.5, 0)], 0.45, d.ink, 0.85);
+  d.pen.hair([P(-0.4, -4.6), P(-1.2, -2.6), P(0, -2.9)], 0.4, d.ink, 0.75);
+  const body = [P(-3.6, -6.4), ...bezier(P(-2.6, -8.2), P(1, -8.6), P(3, -6.8), 8), ...bezier(P(3, -6.8), P(1.4, -4.4), P(-2.2, -5.2), 8)];
+  d.pen.fill(body, wash, 0.95);
+  d.pen.hair([...body, body[0]!], 0.4, d.ink, 0.8);
+  const neck = cub(P(2.2, -7.2), P(4.6, -9.4), P(0.2, -11.4), P(2, -13.6), 10);
+  d.pen.stroke(neck, 1.1 * s, wash, 0.95, false);
+  d.pen.hair(neck, 0.35, d.ink, 0.6);
+  d.pen.dot(x + 2.2 * s * dir, y - 13.8 * s, 0.9 * s, wash, 1);
+  if (bill === 'bent') d.pen.hair([P(2.8, -14), P(3.9, -13.6), P(4.2, -12.3)], 0.55, d.ink, 0.9);
+  else {
+    d.pen.hair([P(2.8, -13.8), P(4.8, -13.3)], 0.5, d.ink, 0.9);
+    d.pen.dot(x + 5 * s * dir, y - 13.3 * s, 0.6 * s, d.ink, 0.85);
   }
 }

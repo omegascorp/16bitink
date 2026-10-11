@@ -72,7 +72,8 @@ function land(a: IslandArt): void {
   for (const [i, w] of fjords.entries()) {
     const head = w.spine.at(-1)!;
     a.el(head.x, head.y, 24, (e) => cottage(e, head.x + 14, head.y + 8, 0.75, '#c9b28a', '#6d5a4a'));
-    if (i === 1) name(a, 'fjord', w.spine[5]!.x + 22, w.spine[5]!.y, 13, 1.3);
+    const at = w.spine[Math.floor(w.spine.length * 0.28)]!;
+    if (i === 1) name(a, 'fjord', at.x + 22, at.y, 13, 1.3);
   }
   // The lighthouse on the eastern point.
   const lx = a.at(1.0);

@@ -1,4 +1,4 @@
-import { bezier, cub, type Draw, oval, pt, ribbon } from '../../kit';
+import { bezier, cub, type Draw, oval, pt } from '../../kit';
 import type { Pt } from '../../pen';
 import { PAPER_FILL, RED } from '../../palette';
 import { type IslandArt, within } from '../context';
@@ -45,34 +45,68 @@ function cactus(d: Draw, x: number, y: number, s: number): void {
   }
 }
 
-/** A lava flow from p0 to p1: a meandering tongue, ropy across, lobed where it stopped. */
+/** Soft white puffs of steam rising from (x, y) and drifting east, each bigger and fainter than the last. */
+function steamPuffs(d: Draw, x: number, y: number, n: number, s: number): void {
+  for (let k = 0; k < n; k++) {
+    const px = x + k * 4 * s + d.pen.jitter(1.5);
+    const py = y - k * 7 * s;
+    const r = (3 + k * 1.8) * s;
+    const puff = oval(px, py, r, r * 0.8, 12).map((p) => pt(p.x + d.pen.jitter(r * 0.12), p.y + d.pen.jitter(r * 0.12)));
+    d.pen.fill(puff, PAPER_FILL, 0.75 - k * 0.12);
+    d.pen.hair([...puff, puff[0]!], 0.4, d.ink, 0.35 - k * 0.06);
+  }
+}
+
+/**
+ * A lava flow from the vent p0 down to p1: narrow where it left the crater,
+ * spreading downhill into a broad tongue with ragged edges, crossed by ropy
+ * ridges, and stopped in a scalloped front of lobes.
+ */
 function lavaFlow(a: IslandArt, p0: Pt, c0: Pt, c1: Pt, p1: Pt, fresh: boolean): void {
-  const base = cub(p0, c0, c1, p1, 26);
-  const spine = base.map((p, i) => {
+  const base = cub(p0, c0, c1, p1, 30);
+  const normal = (i: number): Pt => {
     const q = base[Math.min(base.length - 1, i + 1)]!;
     const r = base[Math.max(0, i - 1)]!;
     const l = Math.hypot(q.x - r.x, q.y - r.y) || 1;
-    const k = (Math.sin(i * 0.37 + p0.x) * 0.6 + Math.sin(i * 0.83 + p0.y) * 0.4) * 6 * Math.min(1, i / 5);
-    return pt(p.x - ((q.y - r.y) / l) * k, p.y + ((q.x - r.x) / l) * k);
+    return pt(-(q.y - r.y) / l, (q.x - r.x) / l);
+  };
+  const width = (u: number): number => 5 + 30 * u ** 1.5 + 3 * Math.sin(u * 13 + p0.x) * u;
+  const edge = (side: 1 | -1): Pt[] => base.map((p, i) => {
+    const u = i / (base.length - 1);
+    const n = normal(i);
+    const w = (width(u) / 2) * (1 + 0.18 * Math.sin(i * 1.7 + side * 2 + p0.y));
+    return pt(p.x + n.x * w * side, p.y + n.y * w * side);
   });
-  const mid = spine[13]!;
-  a.el(mid.x, mid.y, 200, (e) => within(a.ctx, a.land, () => {
-    const tongue = ribbon(spine, (u) => 6 + 9 * Math.sin(Math.PI * Math.min(1, 0.15 + u * 0.95)) + 2.5 * Math.sin(u * 11 + p0.x));
-    e.pen.fill(tongue.shape, LAVA, 0.66);
-    const end = spine.at(-1)!;
-    for (const [dx, dy, r] of [[-6, 4, 6], [5, 5, 5], [0, 9, 4]] as const) e.pen.fill(oval(end.x + dx, end.y + dy, r, r * 0.8, 10), LAVA, 0.78);
-    for (let k = 3; k < spine.length - 1; k += 3) {
-      const q = spine[k]!;
-      const n = spine[k + 1]!;
-      const ang = Math.atan2(n.y - q.y, n.x - q.x) + Math.PI / 2;
-      const w = 5;
-      e.pen.hair(bezier(pt(q.x + Math.cos(ang) * w, q.y + Math.sin(ang) * w), pt(q.x + (n.x - q.x) * 1.4, q.y + (n.y - q.y) * 1.4), pt(q.x - Math.cos(ang) * w, q.y - Math.sin(ang) * w), 5), 0.4, '#9a9286', 0.55);
+  const left = edge(1);
+  const right = edge(-1);
+  // The front: a half-round of lobes from one edge to the other round the end.
+  const end = base.at(-1)!;
+  const along = Math.atan2(end.y - base.at(-2)!.y, end.x - base.at(-2)!.x);
+  const half = width(1) / 2;
+  const front: Pt[] = [];
+  for (let k = 0; k <= 16; k++) {
+    const t = along + Math.PI / 2 - (k / 16) * Math.PI;
+    const r = half * (0.95 + 0.22 * Math.abs(Math.sin(k * 1.6)));
+    front.push(pt(end.x + Math.cos(t) * r, end.y + Math.sin(t) * r));
+  }
+  const shape = [...left, ...front, ...[...right].reverse()];
+  const mid = base[15]!;
+  a.el(mid.x, mid.y, 220, (e) => within(a.ctx, a.land, () => {
+    e.pen.fill(shape, LAVA, 0.55);
+    e.pen.stipple(shape, 220, () => 0.6, 0.6, '#1c1a18');
+    // Ropy ridges arched downhill across the flow, as pahoehoe crusts.
+    for (let i = 5; i < base.length - 2; i += 3) {
+      const l = left[i]!;
+      const r = right[i]!;
+      const n = base[i + 1]!;
+      const c = base[i]!;
+      e.pen.hair(bezier(l, pt(c.x + (n.x - c.x) * 1.6, c.y + (n.y - c.y) * 1.6), r, 6), 0.4, '#a39b8f', 0.5);
     }
     if (fresh) {
-      e.pen.stroke(spine.slice(6), 1.4, '#e0703a', 0.75, false);
-      for (const [dx, dy] of [[-6, 4], [5, 5]] as const) e.pen.fill(oval(end.x + dx, end.y + dy, 3, 2.4, 8), RED, 0.7);
+      e.pen.stroke(base.slice(8), 1.2, '#e0703a', 0.7, false);
+      for (const p of front.filter((_, k) => k % 4 === 2)) e.pen.fill(oval(p.x, p.y, 2.6, 2, 8), RED, 0.7);
     }
-    e.pen.hair([...tongue.shape, tongue.shape[0]!], 0.5, a.ink, 0.75);
+    e.pen.hair([...shape, shape[0]!], 0.45, a.ink, 0.6);
   }));
 }
 
@@ -108,7 +142,7 @@ function volcano(a: IslandArt): void {
   lavaFlow(a, pt(kx + 20, ky + 8), pt(cx + 40, cy + 10), pt(cx + 100, cy + 60), pt(cx + 140, a.scrub(cx + 140) - 26), true);
   lavaFlow(a, pt(kx - 20, ky + 8), pt(cx - 90, cy + 10), pt(cx - 150, cy + 40), pt(cx - 190, a.inland(cx - 190) + 30), false);
   const steam = pt(cx - 86, a.top(cx - 86) - 4);
-  for (let k = 0; k < 4; k++) a.el(steam.x, steam.y, 40, (e) => e.pen.circle(steam.x - 6 + k * 6, steam.y - 8 - k * 8, 4 + k * 2.4, 0.6, a.ink));
+  a.el(steam.x, steam.y - 16, 40, (e) => steamPuffs(e, steam.x - 4, steam.y - 6, 4, 1.2));
   // The crater, glowing.
   a.el(kx, ky, 40, (e) => {
     const rim = oval(kx, ky, 27, 16, 20).map((p) => pt(p.x + e.pen.jitter(2), p.y + e.pen.jitter(1.5)));
@@ -185,7 +219,7 @@ function land(a: IslandArt): void {
       hachures(e, c.x, c.y, 6, 26, 50, 0.65, 0.5);
       e.pen.fill(oval(c.x, c.y, 6, 4, 10), RED, 0.6);
       e.pen.circle(c.x, c.y, 6, 0.7, a.ink);
-      for (let k = 0; k < 3; k++) e.pen.circle(c.x + 6 + k * 5, c.y - 10 - k * 7, 3 + k, 0.5, a.ink);
+      steamPuffs(e, c.x + 4, c.y - 9, 3, 0.9);
     });
     for (const s of a.plan.islets.filter((v) => v.kind === 'stack')) {
       const v = centre(s.shape);

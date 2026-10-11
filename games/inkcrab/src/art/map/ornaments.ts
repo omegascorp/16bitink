@@ -1,4 +1,10 @@
-import { bezier, type Draw, oval, pt, ribbon } from '../kit';
+import { crabShift } from '../mouth';
+import { drawCrabBack, drawCrabFront } from '../crabArt';
+import { FOOT, FRAME, GROUND, SHELL_UNITS } from '../frame';
+import { bezier, type Draw, makeDraw, oval, pt } from '../kit';
+import { drawShell } from '../shellArt';
+import { shellFit } from '../shellFit';
+import { bodyFill, type ShellKind } from '../../logic/shells';
 import type { Pt } from '../pen';
 import { BLUE, INK, PAPER_FILL, RED } from '../palette';
 import { letter, straight } from './context';
@@ -69,56 +75,40 @@ function swash(d: Draw, x: number, y: number, w: number): void {
   d.pen.dot(x, y, 2.2, RED, 0.8);
 }
 
-/** One jointed limb: segments through the given points, washed and inked. */
-function limb(d: Draw, pts: readonly Pt[], w: number, wash: string): void {
-  for (let i = 0; i < pts.length - 1; i++) {
-    const seg = ribbon([pts[i]!, pts[i + 1]!], (u) => w * (1 - i * 0.18) * (1 - u * 0.15)).shape;
-    d.pen.fill(seg, wash, 0.9);
-    d.pen.hair([...seg, seg[0]!], 0.6, d.ink, 0.9);
-  }
+/**
+ * The player's hermit crab exactly as the game draws it (crabArt.ts), full in a
+ * `kind` shell: feet at (x, y), the shell `width` map px across, facing `dir`.
+ * Laid out as the end screens lay it out (see heroCrab.ts): the shell fitted to
+ * its size, the crab filling the opening and sitting in its mouth.
+ */
+export function gameCrab(d: Draw, x: number, y: number, width: number, kind: ShellKind, dir: 1 | -1 = 1): void {
+  const { ctx } = d.pen;
+  const unit = width / SHELL_UNITS;
+  const shellScale = unit * shellFit(kind);
+  const home = { kind, size: CRAB_SHELL_SIZE };
+  const body = unit * bodyFill(home, home.size);
+  const pen = makeDraw(ctx, 4100, 0, GROUND, d.ink);
+  // Frame drawings are centred on the frame; this puts their foot at the origin.
+  const atFoot = (scale: number, dx: number, draw: () => void): void => {
+    ctx.save();
+    ctx.translate(dx, 0);
+    ctx.scale(scale, scale);
+    ctx.translate(-(FOOT.x - FRAME / 2), -(FOOT.y - FRAME / 2));
+    draw();
+    ctx.restore();
+  };
+  const shift = crabShift(kind, shellScale, body);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(dir, 1);
+  atFoot(body, shift, () => drawCrabBack(pen));
+  atFoot(shellScale, 0, () => drawShell(pen, kind));
+  atFoot(body, shift, () => drawCrabFront(pen));
+  ctx.restore();
 }
 
-/**
- * A hermit crab in a whelk, as a doodle: the shell's whorls coiling up to
- * its spire, the crab leaning out of the aperture on its walking legs, the
- * big right claw raised, eyes up on their stalks.
- */
-export function crabDoodle(d: Draw, x: number, y: number, s: number, wash = '#d9774f'): void {
-  const P = (dx: number, dy: number): Pt => pt(x + dx * s, y + dy * s);
-  // The whelk: body whorl, then smaller whorls stepping up and back to the spire.
-  const whorls: [number, number, number][] = [[12, -8, 15], [24, -20, 10], [32, -29, 6.5], [37, -35, 4]];
-  for (const [i, [dx, dy, r]] of [...whorls].reverse().entries()) {
-    const w = oval(x + dx * s, y + dy * s, r * s * 1.25, r * s, 22);
-    d.pen.fill(w, PAPER_FILL, 1);
-    d.pen.fill(w, i % 2 ? '#e6cfa2' : '#dcbf8a', 0.9);
-    d.pen.crescent(w, pt(-r * s * 0.4, -r * s * 0.4), () => d.pen.hatch(w, 1.6, 0.9, 0.4, { color: d.ink, alpha: 0.5 }));
-    d.pen.stroke([...w, w[0]!], 0.9, d.ink, 0.9, false);
-  }
-  for (let k = 0; k < 4; k++) d.pen.hair(bezier(P(2 + k * 4, -18 + k), P(12 + k * 3, -10 + k * 2), P(8 + k * 4, 4), 8), 0.6, '#8a6a48', 0.7);
-  // The aperture, dark, the crab coming out of it.
-  d.pen.fill(oval(x + 1 * s, y + 0 * s, 7 * s, 9 * s, 16), '#3a2a22', 0.8);
-  for (const k of [0, 1, 2]) limb(d, [P(-2, 4 + k * 2), P(-12 - k * 4, 2 + k * 3), P(-18 - k * 5, 12 + k * 2), P(-20 - k * 5, 16 + k * 2)], 3.2 * s, wash);
-  // The small left claw, then the big right one, raised.
-  limb(d, [P(-4, -2), P(-12, -6), P(-18, -4)], 3.4 * s, wash);
-  limb(d, [P(-4, -5), P(-14, -16), P(-22, -18)], 4.6 * s, wash);
-  const claw = [P(-22, -24), P(-34, -28), P(-40, -22), P(-34, -18), P(-24, -14)];
-  const finger = [P(-26, -14), P(-38, -12), P(-36, -9), P(-25, -10)];
-  for (const c of [claw, finger]) {
-    d.pen.fill(c, PAPER_FILL, 1);
-    d.pen.fill(c, wash, 0.9);
-    d.pen.crescent(c, pt(-2 * s, -2 * s), () => d.pen.hatch(c, 1.4, 0.9, 0.35, { color: d.ink, alpha: 0.45 }));
-    d.pen.stroke([...c, c[0]!], 0.9, d.ink, 0.95, false);
-  }
-  for (let k = 0; k < 5; k++) d.pen.dot(x + (-34 + k * 2.4) * s, y + (-25 + k * 0.8) * s, 0.5 * s, d.ink, 0.7);
-  // Eyes on stalks, and long antennae sweeping back.
-  for (const [ex, tilt] of [[-6, -1], [-1, 1]] as const) {
-    d.pen.stroke([P(ex, -6), P(ex - 2 + tilt, -16)], 1.1 * s, wash, 0.95, false);
-    d.pen.dot(x + (ex - 2 + tilt) * s, y - 17 * s, 1.8 * s, d.ink, 0.95);
-    d.pen.dot(x + (ex - 1.6 + tilt) * s, y - 17.6 * s, 0.5 * s, PAPER_FILL, 1);
-  }
-  d.pen.hair(bezier(P(-6, -10), P(-20, -36), P(-4, -44), 10), 0.5, d.ink, 0.8);
-  d.pen.hair(bezier(P(-4, -10), P(-8, -40), P(10, -46), 10), 0.5, d.ink, 0.8);
-}
+/** A shell size for the map's crabs: any will do, the crab is drawn full in it. */
+const CRAB_SHELL_SIZE = 3;
 
 /** The title cartouche: a framed panel with the chart's title, its maker and a crab. */
 export function titleCartouche(d: Draw, x0: number, y0: number, w: number, h: number): void {
@@ -149,7 +139,7 @@ export function titleCartouche(d: Draw, x0: number, y0: number, w: number, h: nu
   letter(ctx, 'surveyed on foot by a hermit crab,', cx + 30, y0 + 142, { size: 19, color: INK, alpha: 0.8 });
   letter(ctx, 'with every shell worth moving into', cx + 30, y0 + 164, { size: 19, color: INK, alpha: 0.8 });
   letter(ctx, 'soundings in crab-lengths', cx + 30, y0 + 194, { size: 15, color: INK, alpha: 0.65 });
-  crabDoodle(d, x0 + 78, y0 + h - 40, 1.2);
+  gameCrab(d, x0 + 104, y0 + h - 20, 92, 'whelk');
 }
 
 /** A scale bar: alternate blocks along a ruled bar, numbered in crab steps. */
@@ -170,7 +160,7 @@ export function scaleBar(d: Draw, x: number, y: number, w: number): void {
 export function hereBeCrabs(d: Draw, x: number, y: number): void {
   const { ctx } = d.pen;
   for (let k = 0; k < 4; k++) d.pen.hair(bezier(pt(x - 120 + k * 16, y + 70 + k * 8), pt(x, y + 58 + k * 10), pt(x + 120 - k * 16, y + 70 + k * 8), 12), 0.7, d.ink, 0.45 - k * 0.08);
-  crabDoodle(d, x + 10, y + 30, 2.6);
+  gameCrab(d, x - 6, y + 74, 120, 'conch', -1);
   letter(ctx, 'Here be Crabs', x, y + 128, { size: 38, color: BLUE, alpha: 0.95 });
   letter(ctx, '— the map ends where the sand does —', x, y + 160, { size: 17, color: INK, alpha: 0.7 });
 }

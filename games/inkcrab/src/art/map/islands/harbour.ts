@@ -78,7 +78,8 @@ function town(a: IslandArt): void {
     a.el(p.x, y, w, (e) => roof(e, p.x, y, w, 7 + e.pen.rng() * 3, e.pen.jitter(0.25), e.pen.rng() < 0.8 ? TILE : '#d8cdb8'));
   }
   // The church: a cross-shaped roof with a tower at its west end.
-  const cx = a.at(0.7);
+  // East of where the backwaters end, on dry land.
+  const cx = a.at(0.78);
   const cy = a.inland(cx) + 6;
   a.el(cx, cy, 30, (e) => {
     roof(e, cx, cy, 34, 10, 0, '#e6dfcf');

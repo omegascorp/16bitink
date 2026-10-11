@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { canPlay, MIN_GAP_MS, parseSoundSettings, pitchForSize, SFX_IDS, spatial } from '../src/audio/recipes';
-import { hasRecipe } from '../src/audio/synth';
+import { hasRecipe, LEVEL } from '../src/audio/synth';
 
 describe('sound recipes', () => {
   it('has a recipe and a throttle for every sound', () => {
     for (const id of SFX_IDS) {
       expect(hasRecipe(id), id).toBe(true);
       expect(MIN_GAP_MS[id], id).toBeGreaterThan(0);
+      expect(LEVEL[id], id).toBeGreaterThan(0);
     }
   });
 

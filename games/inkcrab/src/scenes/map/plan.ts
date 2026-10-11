@@ -57,6 +57,30 @@ function blob(rng: Rng, cx: number, cy: number, rx: number, ry: number, n = 14, 
   });
 }
 
+/**
+ * A channel's outline along `spine`, `width(u)` wide, with round ends: where
+ * one water runs into another its end tucks inside it, so the two join in a
+ * smooth bend rather than square corners poking past each other.
+ */
+function stream(spine: readonly Pt[], width: (u: number) => number): Pt[] {
+  const { top, bot } = ribbon(spine, width);
+  /** Half a turn round `centre` from the bank at `from`, bulging away from `inward` (the next spine point in). */
+  const cap = (centre: Pt, from: Pt, inward: Pt): Pt[] => {
+    const r = Math.hypot(from.x - centre.x, from.y - centre.y);
+    const a0 = Math.atan2(from.y - centre.y, from.x - centre.x);
+    const out = Math.atan2(centre.y - inward.y, centre.x - inward.x);
+    const sweep = Math.cos(a0 + Math.PI / 2 - out) > 0 ? Math.PI : -Math.PI;
+    return Array.from({ length: 7 }, (_, k) => {
+      const t = a0 + (sweep * (k + 1)) / 8;
+      return pt(centre.x + Math.cos(t) * r, centre.y + Math.sin(t) * r);
+    });
+  };
+  const n = spine.length;
+  const head = n > 1 ? cap(spine[n - 1]!, top[n - 1]!, spine[n - 2]!) : [];
+  const mouth = n > 1 ? cap(spine[0]!, bot[0]!, spine[1]!) : [];
+  return [...top, ...head, ...[...bot].reverse(), ...mouth];
+}
+
 /** A winding channel from `a` to `b`, `w0` wide at a and `w1` at b. */
 function channel(rng: Rng, a: Pt, b: Pt, w0: number, w1: number, wander = 0.5): { shape: Pt[]; spine: Pt[] } {
   const dx = b.x - a.x;
@@ -67,7 +91,7 @@ function channel(rng: Rng, a: Pt, b: Pt, w0: number, w1: number, wander = 0.5): 
   const c0 = pt(a.x + dx * 0.33 + side(k1).x, a.y + dy * 0.33 + side(k1).y);
   const c1 = pt(a.x + dx * 0.66 + side(k2).x, a.y + dy * 0.66 + side(k2).y);
   const spine = cub(a, c0, c1, b, 18);
-  return { shape: ribbon(spine, (u) => w0 + (w1 - w0) * u).shape, spine };
+  return { shape: stream(spine, (u) => w0 + (w1 - w0) * u), spine };
 }
 
 /**
@@ -86,7 +110,7 @@ function river(rng: Rng, a: Pt, b: Pt, w0: number, w1: number, bends = 1.5, amp 
     const off = Math.sin(u * bends * Math.PI * 2 + phase) * amp * len * Math.sin(Math.PI * u);
     return pt(a.x + dx * u - (dy / len) * off, a.y + dy * u + (dx / len) * off);
   });
-  return { shape: ribbon(spine, (u) => w1 + (w0 - w1) * (1 - u) ** 1.6).shape, spine };
+  return { shape: stream(spine, (u) => w1 + (w0 - w1) * (1 - u) ** 1.6), spine };
 }
 
 const water = (kind: WaterKind, c: { shape: Pt[]; spine: Pt[] }): Water => ({ kind, ...c });
@@ -113,7 +137,9 @@ function atoll(c: Ctx): Omit<IslandPlan, 'label'> {
   // Passes through the northern rim, leaving it a string of islets (motus).
   for (const u of [0.24, 0.64, 0.86]) {
     const x = c.at(u);
-    waters.push(water('pass', channel(rng, pt(x + 12, l.topAt(x) - 30), pt(x, l.topAt(x) + 46), 28, 16, 0.2)));
+    // Through the rim and well into the lagoon, so the pass opens into it.
+    const rim = upper.reduce((best, p) => (Math.abs(p.x - x) < Math.abs(best.x - x) ? p : best), upper[0]!);
+    waters.push(water('pass', channel(rng, pt(x + 12, l.topAt(x) - 30), pt(x, rim.y + 18), 28, 16, 0.2)));
   }
   const islets = [0.33, 0.67].map((u) => islet('cay', blob(rng, c.at(u), 618, 22, 8, 12, 0.2)));
   return { waters, islets };
@@ -181,11 +207,12 @@ function kelp(c: Ctx): Omit<IslandPlan, 'label'> {
   const waters: Water[] = [];
   for (const u of [0.18, 0.47, 0.77]) {
     const x = c.at(u);
-    const main = channel(rng, pt(x, l.topAt(x) - 44), pt(x + (rng() - 0.5) * 90, l.scrubAt(x) - 34), 36, 5, 0.45);
+    // Fjords bend less than creeks: long, deep arms of the sea between steep sides.
+    const main = river(rng, pt(x, l.topAt(x) - 44), pt(x + (rng() - 0.5) * 90, l.scrubAt(x) - 34), 36, 1.5, 1.2, 0.07);
     waters.push(water('fjord', main));
-    const from = main.spine[8]!;
+    const from = main.spine[Math.round(main.spine.length * 0.44)]!;
     const dir = rng() < 0.5 ? -1 : 1;
-    waters.push(water('fjord', channel(rng, from, pt(from.x + dir * 80, from.y + 26), 14, 3, 0.3)));
+    waters.push(water('fjord', river(rng, from, pt(from.x + dir * 80, from.y + 26), 14, 1, 1, 0.06)));
   }
   const islets = scatter(c, 'stack', [[-0.04, 420], [-0.02, 470], [1.04, 400], [1.06, 452], [0.24, 606], [0.69, 620]], 5, 10, 0.3);
   return { waters, islets };
@@ -195,7 +222,7 @@ function wreck(c: Ctx): Omit<IslandPlan, 'label'> {
   const { l, rng } = c;
   const px = c.at(0.8);
   const pond = blob(rng, px, c.inland(px) + 10, 46, 17, 16, 0.2);
-  const creek = channel(rng, pt(px - 12, l.topAt(px) - 26), pt(px - 6, c.inland(px)), 16, 8, 0.4);
+  const creek = river(rng, pt(px - 12, l.topAt(px) - 26), pt(px - 6, c.inland(px)), 16, 8);
   return { waters: [pool('lake', pond), water('creek', creek)], islets: [islet('cay', blob(rng, c.at(0.5), 612, 26, 8, 12, 0.2))] };
 }
 
@@ -203,13 +230,15 @@ function harbour(c: Ctx): Omit<IslandPlan, 'label'> {
   const { l, rng } = c;
   // Backwaters running east-west behind the shore, opening to the sea in the west.
   const west = c.at(0.07);
-  const inlet = channel(rng, pt(west, l.topAt(west) - 30), pt(c.at(0.13), c.inland(c.at(0.13))), 26, 22, 0.2);
+  const start = c.at(0.13);
+  // The inlet bends round into the backwaters' west end, its round end inside it.
+  const inlet = channel(rng, pt(west, l.topAt(west) - 30), pt(start, c.inland(start) + 14 * Math.sin(0.13 * 19)), 26, 22, 0.2);
   const path: Pt[] = [];
   for (let u = 0.13; u <= 0.72; u += 0.02) {
     const x = c.at(u);
     path.push(pt(x, c.inland(x) + 14 * Math.sin(u * 19)));
   }
-  const back = ribbon(path, (u) => 24 - 10 * u).shape;
+  const back = stream(path, (u) => 24 - 10 * u);
   const cx = c.at(0.42);
   const canal = channel(rng, pt(cx, c.inland(cx) + 4), pt(cx + 20, l.topAt(cx + 20) - 30), 9, 12, 0.1);
   // A stone breakwater hooking east off the shore, sheltering the harbour inside it.
@@ -225,7 +254,7 @@ function frost(c: Ctx): Omit<IslandPlan, 'label'> {
   const { l, rng } = c;
   const waters: Water[] = [0.22, 0.56, 0.84].map((u) => pool('lake', blob(rng, c.at(u), c.inland(c.at(u)) + (rng() - 0.5) * 30, 30, 13, 14, 0.25)));
   const ix = c.at(0.38);
-  waters.push(water('fjord', channel(rng, pt(ix, l.topAt(ix) - 36), pt(ix + 30, c.inland(ix) + 10), 30, 6, 0.4)));
+  waters.push(water('fjord', river(rng, pt(ix, l.topAt(ix) - 36), pt(ix + 30, c.inland(ix) + 10), 30, 1.5, 1.2, 0.07)));
   const islets = scatter(c, 'rock', [[0.05, 82], [0.13, 66], [0.88, 80], [0.96, 60], [0.1, 604], [0.24, 628], [0.37, 610], [0.52, 632], [0.66, 604], [0.79, 626], [-0.06, 380], [1.07, 420]], 9, 22, 0.4);
   return { waters, islets };
 }
@@ -233,7 +262,7 @@ function frost(c: Ctx): Omit<IslandPlan, 'label'> {
 function moonlit(c: Ctx): Omit<IslandPlan, 'label'> {
   const { l, rng } = c;
   const cx = c.at(0.28);
-  const creek = channel(rng, pt(cx, l.topAt(cx) - 30), pt(cx + 40, c.inland(cx) + 8), 20, 5, 0.5);
+  const creek = river(rng, pt(cx, l.topAt(cx) - 30), pt(cx + 40, c.inland(cx) + 8), 20, 1.5);
   const lx = c.at(0.72);
   return {
     waters: [water('creek', creek), pool('lake', blob(rng, lx, c.inland(lx), 30, 12, 14, 0.2))],

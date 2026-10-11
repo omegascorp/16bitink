@@ -205,6 +205,21 @@ export function hasRecipe(id: string): boolean {
   return Object.hasOwn(RECIPES, id);
 }
 
+/**
+ * Each sound's loudness, measured against InkFish's (rendered offline: InkFish's
+ * eat is ~0.10 RMS). The recipes above are shaped by ear; this brings the
+ * everyday ones (nibbling, digging, jumping) up to that level and keeps the big
+ * moments (caught, steam, a quarry) where they are.
+ */
+export const LEVEL: Readonly<Record<SfxId, number>> = {
+  eat: 2, full: 1.4, grow: 1, dig: 3.5, place: 2, pour: 2.5, jump: 2, hide: 1.8, out: 2.2, movein: 2.2, knock: 2, tok: 2.5,
+  caught: 1, steam: 0.8, stoop: 3, trade: 2.2, join: 2, find: 2.8, quarry: 1,
+  tide: 2, rain: 1, gust: 2.5, dark: 1.4, win: 1, lose: 1, click: 1.1,
+};
+
 export function synthesize(id: SfxId, v: Voice): void {
-  RECIPES[id](v);
+  const level = v.ctx.createGain();
+  level.gain.value = LEVEL[id];
+  level.connect(v.out);
+  RECIPES[id]({ ...v, out: level });
 }

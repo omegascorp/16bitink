@@ -3,7 +3,7 @@ import type { Pt } from '../../pen';
 import { PAPER_FILL, RED } from '../../palette';
 import { type IslandArt, straight } from '../context';
 import type { BiomeArt } from '../island';
-import { awash, breakers, cottage, crown, palmStar, rock, tuft } from '../symbols';
+import { awash, breakers, cottage, crown, palmStar, rock, tuft, wader } from '../symbols';
 import { anywhere, centre, name, place, watersOf } from './common';
 import { ripples } from '../creatures';
 
@@ -126,7 +126,11 @@ function land(a: IslandArt): void {
   const pond = watersOf(a, 'lake')[0];
   if (pond) {
     const c = centre(pond.shape);
-    for (let k = 0; k < 6; k++) a.el(c.x - 20 + k * 8, c.y + (k % 2) * 4, 4, (e) => e.pen.dot(c.x - 20 + k * 8, c.y + (k % 2) * 4, 1.5, '#e58a9a', 0.95));
+    // Spoonbills wading in a loose line, sweeping their bills.
+    for (const [k, dx] of [-22, -10, 1, 12, 22].entries()) {
+      const wy = c.y + 6 + (k % 2) * 4;
+      a.el(c.x + dx, wy, 14, (e) => wader(e, c.x + dx, wy, 0.7, k % 2 ? -1 : 1, '#eba8b2', 'spoon'));
+    }
     name(a, 'spoonbill pond', c.x, c.y + 28, 13);
   }
   // Shell drifts along the tideline, clear of the route.

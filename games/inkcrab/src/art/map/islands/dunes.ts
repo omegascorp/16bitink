@@ -4,7 +4,7 @@ import { PAPER_FILL } from '../../palette';
 import { inside } from '../../../scenes/map/plan';
 import { type IslandArt, offsetShape } from '../context';
 import type { BiomeArt } from '../island';
-import { crown, palmStar, roof, tuft } from '../symbols';
+import { crown, palmStar, roof, tuft, wader } from '../symbols';
 import { anywhere, centre, grid, name, place, watersOf } from './common';
 
 /**
@@ -14,24 +14,32 @@ import { anywhere, centre, grid, name, place, watersOf } from './common';
  * spit hooking round a lagoon of flamingos.
  */
 const DUNE = '#e3bf7f';
+/** Where each flamingo stands, from the lagoon's label spot, and which way it faces. */
+const FLOCK: readonly (readonly [number, number, 1 | -1])[] = [[-22, 8, 1], [-10, 4, -1], [2, 10, 1], [12, 3, 1], [22, 9, -1], [-4, 18, -1], [16, 19, 1]];
 
-/** A barchan from above: a crescent with its horns trailing downwind (east), its slip face hatched in shadow. */
-function barchan(d: Draw, x: number, y: number, r: number): void {
-  const outer: Pt[] = [pt(x + r * 1.05, y - r * 0.9)];
-  for (let i = 0; i <= 16; i++) {
-    const t = Math.PI * (0.38 + (1.24 * i) / 16);
-    outer.push(pt(x + Math.cos(t) * r, y - Math.sin(t) * r * 0.8));
+/**
+ * A dune from above, as an illustrated map draws one: a sweeping crest line,
+ * the steep lee face below it (downwind, to the east and south) washed in
+ * shade and combed with short strokes that run down the slope.
+ */
+function duneRidge(d: Draw, x: number, y: number, len: number, lean: number): void {
+  const h = len * 0.16;
+  const crest = bezier(pt(x - len / 2, y + h * (0.6 + lean)), pt(x - len * 0.05, y - h * 1.2), pt(x + len / 2, y + h * (0.3 - lean)), 18);
+  // The lee face: the crest and a softer line below it, deepest in the middle.
+  const foot = crest.map((p, i) => {
+    const u = i / (crest.length - 1);
+    const drop = Math.sin(Math.PI * u) * len * 0.11;
+    return pt(p.x + drop * 0.45, p.y + drop);
+  });
+  const face = [...crest, ...[...foot].reverse()];
+  d.pen.fill(face, '#b88a4e', 0.32);
+  for (let i = 1; i < crest.length - 1; i++) {
+    const p = crest[i]!;
+    const f = foot[i]!;
+    if (Math.hypot(f.x - p.x, f.y - p.y) < 1.5) continue;
+    d.pen.hair([p, pt(p.x + (f.x - p.x) * 0.9, p.y + (f.y - p.y) * 0.9)], 0.35, d.ink, 0.45);
   }
-  outer.push(pt(x + r * 1.05, y + r * 0.9));
-  const inner = bezier(pt(x + r * 1.05, y + r * 0.9), pt(x - r * 0.05, y + r * 0.1), pt(x + r * 1.05, y - r * 0.9), 14);
-  const shape = [...outer, ...inner.slice(1, -1)];
-  d.pen.fill(shape, PAPER_FILL, 0.6);
-  d.pen.fill(shape, DUNE, 0.8);
-  const slip = [...inner, ...bezier(pt(x + r * 1.05, y - r * 0.9), pt(x + r * 0.32, y), pt(x + r * 1.05, y + r * 0.9), 10).slice(1, -1)];
-  d.pen.fill(slip, '#b98a4c', 0.35);
-  d.pen.hatch(slip, 1.6, 0.25, 0.4, { color: d.ink, alpha: 0.5 });
-  d.pen.hair(outer, 0.55, d.ink, 0.5);
-  d.pen.stroke(inner, 0.9, d.ink, 0.85, false);
+  d.pen.stroke(crest, 0.8, d.ink, 0.8, false);
 }
 
 /** A tiny camel in elevation, walking: a humped silhouette on stilt legs. */
@@ -113,7 +121,7 @@ function land(a: IslandArt): void {
     const pool = watersOf(a, 'pool')[0];
     if (pool && Math.hypot(p.x - centre(pool.shape).x, p.y - centre(pool.shape).y) < 90) continue;
     if (Math.abs(p.x - wx) < 40) continue;
-    a.el(p.x, p.y, r * 1.4, (e) => barchan(e, p.x, p.y, r));
+    a.el(p.x, p.y, r * 2.2, (e) => duneRidge(e, p.x, p.y, r * 2.6, (e.pen.rng() - 0.5) * 0.8));
   }
   // Marram along the beach crest and over the spit.
   for (const p of place(a, 60, () => anywhere(a, -0.05, 1.2), (q) => a.onLand(q.x, q.y, 2) && Math.abs(q.y - a.scrub(q.x)) < 16 && a.clear(q.x, q.y, 6), 16)) a.el(p.x, p.y, 6, (e) => tuft(e, p.x, p.y, 7));
@@ -125,11 +133,8 @@ function land(a: IslandArt): void {
     name(a, 'the Spit', spit.spine[14]!.x + 30, spit.spine[14]!.y, 14, -1.2);
     const lag = pt(a.at(0.9), 200);
     name(a, 'flamingo lagoon', lag.x, lag.y - 26, 14);
-    for (let k = 0; k < 9; k++) {
-      const fx = lag.x - 10 + (k % 3) * 9;
-      const fy = lag.y + Math.floor(k / 3) * 8;
-      a.el(fx, fy, 4, (e) => e.pen.dot(fx, fy, 1.4, '#e58a9a', 0.95));
-    }
+    // A small flock wading, some facing each way.
+    for (const [dx, dy, dir] of FLOCK) a.el(lag.x + dx, lag.y + dy, 14, (e) => wader(e, lag.x + dx, lag.y + dy, 0.8, dir, '#ec8fa0', 'bent'));
   }
 }
 
