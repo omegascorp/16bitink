@@ -316,12 +316,14 @@ function panicked(pose: Pose): Pose {
 function drawAlarm(ctx: CanvasRenderingContext2D, pose: Pose): void {
   const size = alarm(pose.age);
   if (size <= 0) return;
-  const h = pose.length * 0.42 * size;
-  const x = pose.x + pose.facing * pose.length * 0.18;
-  const y = pose.y - pose.length * 0.55;
+  drawExclaim(ctx, pose.x + pose.facing * pose.length * 0.18, pose.y - pose.length * 0.55, pose.length * 0.42 * size, pose.facing * 0.12);
+}
+
+/** A hand-inked "!" centred at (x, y), `h` tall, tilted by `rotation`. */
+export function drawExclaim(ctx: CanvasRenderingContext2D, x: number, y: number, h: number, rotation: number): void {
   ctx.save();
   ctx.translate(x, y);
-  ctx.rotate(pose.facing * 0.12);
+  ctx.rotate(rotation);
   ctx.fillStyle = INK;
   ctx.beginPath();
   // A tapering stroke: fat at the top, a point at the bottom.
