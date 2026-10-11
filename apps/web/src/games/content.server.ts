@@ -5,8 +5,10 @@
  * Keep entries small (level data, config). Heavy paid assets belong in
  * R2 behind short-lived signed URLs, not in the Worker bundle.
  */
+import { INKCRAB_PAID_BEACHES } from '@16bitink/inkcrab/content';
 import { INKFISH_FULL_CHAPTERS } from '@16bitink/inkfish/content';
 
 export const PAID_CONTENT: Readonly<Record<string, unknown>> = {
   inkfish: INKFISH_FULL_CHAPTERS,
+  inkcrab: INKCRAB_PAID_BEACHES,
 };

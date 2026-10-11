@@ -3,7 +3,7 @@ import { BLACK_SAND, BLUE, BLUE_HEX, GREY_SAND, MOON_SAND, PALE_SAND, RED, RED_H
 import { TEX } from '../art/textures';
 import { getHost, REG } from '../host';
 import { buildLevel, START_SIZE } from '../level/build';
-import { isBeachFinale, LEVELS, levelById, themeOf } from '../level/levels';
+import { isBeachFinale, levelById, loadedLevels, themeOf } from '../level/levels';
 import type { LevelDef } from '../level/types';
 import { Coach } from '../logic/coach';
 import type { TilePos } from '../logic/dig';
@@ -82,7 +82,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(data: GameData): void {
-    this.level = levelById(data?.levelId) ?? LEVELS[0]!;
+    this.level = levelById(data?.levelId) ?? loadedLevels()[0]!;
     const setup = buildLevel(this.level);
     this.beach = new Beach(setup);
     // A shell chain's line is explained by the coach the first time round.

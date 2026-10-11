@@ -76,6 +76,7 @@ export const GAMES: readonly CatalogGame[] = [
     price: '$4.99',
     stripeLookupKey: 'inkcrab_full',
     theme: { paper: '#f5f0e1', ink: '#26316a', accent: '#b3322b' },
+    icon: 'inkcrab',
     orientation: 'landscape',
     fonts: { googleCss: 'family=Caveat:wght@500;700', await: ['32px Caveat'] },
     features: [

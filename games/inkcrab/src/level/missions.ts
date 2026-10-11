@@ -5,7 +5,7 @@ import { SHELLS, type ShellKind } from '../logic/shells';
 import type { MarkedSpec } from '../logic/sim';
 import { movementOf, SPECIES, type SpeciesId } from '../logic/species';
 import { levelGoal } from './goal';
-import { BEACHES } from './levels';
+import { loadedBeaches } from './levels';
 import type { LevelDef } from './types';
 
 /**
@@ -26,8 +26,8 @@ const AWAY = 12;
 
 /** Where a level sits: its beach (0-based) and its place in the beach (0-based); null for a level in no beach. */
 export function slotOf(def: LevelDef): { readonly beach: number; readonly index: number } | null {
-  for (let beach = 0; beach < BEACHES.length; beach++) {
-    const index = BEACHES[beach]!.findIndex((l) => l.id === def.id);
+  for (let beach = 0; beach < loadedBeaches().length; beach++) {
+    const index = loadedBeaches()[beach]!.findIndex((l) => l.id === def.id);
     if (index >= 0) return { beach, index };
   }
   return null;

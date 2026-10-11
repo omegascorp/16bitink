@@ -12,9 +12,8 @@ const handle = mount(parent, {
   unlocked: __DEV_UNLOCK__,
   allLevelsOpen: __DEV_ALL_LEVELS__,
   storage: window.localStorage,
-  loadContent: async () => {
-    throw new Error('InkCrab has no paid content yet');
-  },
+  // As the website serves it to owners: JSON over the wire.
+  loadContent: async () => JSON.parse(JSON.stringify((await import('../content/paid')).INKCRAB_PAID_BEACHES)) as unknown,
   onBuy: () => alert('Checkout would open here'),
   price: '$4.99',
   onExit: () => alert('Exit to catalog'),

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { buildLevel, levelGoal } from '../src/level/build';
 import { carve } from '../src/level/carve';
-import { BEACHES, LEVELS } from '../src/level/levels';
+import { INKCRAB_PAID_BEACHES } from '../content/paid';
+import { installPaidBeaches, loadedBeaches, loadedLevels } from '../src/level/levels';
 import { missionKinds, missionOf, parTimeOf, quarrySpecies } from '../src/level/missions';
 import { boxHitsSolid } from '../src/logic/body';
 import { makeCritter } from '../src/logic/critters';
@@ -13,6 +14,9 @@ import { missionGoal, missionLine, missionNotes, missionTag, PLAIN, tasksDone, t
 import { shellOf, type ShellKind } from '../src/logic/shells';
 import { Beach, IDLE, type BeachSetup, type Input, type SimEvent } from '../src/logic/sim';
 import { movementOf, SPECIES } from '../src/logic/species';
+
+// Every beach, as an owner has them.
+installPaidBeaches(INKCRAB_PAID_BEACHES);
 
 const T = 16;
 const GROUND = 12;
@@ -64,7 +68,7 @@ describe('the mission arc', () => {
   });
 
   it('gives every level a mission, shown on its intro card', () => {
-    for (const def of LEVELS) {
+    for (const def of loadedLevels()) {
       const m = missionOf(def);
       expect(missionTag(m).length, def.id).toBeGreaterThan(0);
       expect(missionGoal(m, levelGoal(def)), def.id).toMatch(new RegExp(`size[- ]${levelGoal(def)}`));
@@ -73,7 +77,7 @@ describe('the mission arc', () => {
   });
 
   it('puts a price only on creatures that walk and can be walked down and eaten', () => {
-    for (const def of LEVELS) {
+    for (const def of loadedLevels()) {
       const s = quarrySpecies(def);
       expect(['walk', 'climb']).toContain(movementOf(s));
       expect(SPECIES[s].lowTide ?? false).toBe(false);
@@ -82,7 +86,7 @@ describe('the mission arc', () => {
 });
 
 describe('every mission level', () => {
-  for (const [b, beachLevels] of BEACHES.entries()) {
+  for (const [b, beachLevels] of loadedBeaches().entries()) {
     for (const def of beachLevels) {
       const m = missionOf(def);
       if (m.kinds.includes('grow')) continue;
@@ -106,7 +110,7 @@ describe('every mission level', () => {
   }
 
   it('asks for one more follower than the shells past the periwinkle, on a chain', () => {
-    for (const def of LEVELS) {
+    for (const def of loadedLevels()) {
       const m = missionOf(def);
       if (m.chain) expect(m.chain).toBe(levelGoal(def) - 2);
     }
@@ -160,12 +164,12 @@ describe('marked hunters and the giant', () => {
   });
 
   it('are placed for the level: three marked hunters on a bounty, the giant on the finale', () => {
-    const def = BEACHES[0]![3]!;
+    const def = loadedBeaches()[0]![3]!;
     const sim = new Beach(buildLevel(def));
     const marked = [...sim.critters.values()].filter((k) => k.marked === 'bounty');
     expect(marked).toHaveLength(3);
     for (const k of marked) expect(k.size).toBe(levelGoal(def) - 2);
-    const finale = BEACHES[0]![9]!;
+    const finale = loadedBeaches()[0]![9]!;
     const giant = [...new Beach(buildLevel(finale)).critters.values()].filter((k) => k.marked === 'giant');
     expect(giant).toHaveLength(1);
     expect(giant[0]!.size).toBe(levelGoal(finale) - 1);
@@ -180,7 +184,7 @@ describe('marked hunters and the giant', () => {
 
 describe('one life', () => {
   it('ends the level at the first catch', () => {
-    const def = BEACHES[0]![6]!;
+    const def = loadedBeaches()[0]![6]!;
     expect(missionOf(def).lives).toBe(1);
     const b = new Beach(buildLevel(def));
     expect(b.lives).toBe(1);
@@ -397,7 +401,7 @@ describe('a shell chain', () => {
   });
 
   it('works through the first chain level: the first recruit lets the crab into the size-3 shell', () => {
-    const def = BEACHES[0]![4]!;
+    const def = loadedBeaches()[0]![4]!;
     const setup = buildLevel(def);
     const m = missionOf(def);
     expect(m.chain).toBe(levelGoal(def) - 2);
@@ -426,7 +430,7 @@ describe('shells of every size', () => {
   });
 
   it('never start sunk into the sand, on any level', () => {
-    for (const def of LEVELS) {
+    for (const def of loadedLevels()) {
       const setup = buildLevel(def);
       for (const i of setup.items) if (i.kind.type === 'shell' && !i.buried) expect(boxHitsSolid(setup.terrain, i, T), `${def.id} ${i.kind.shell.kind}`).toBe(false);
     }

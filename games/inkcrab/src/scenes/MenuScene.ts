@@ -4,16 +4,17 @@ import Phaser from 'phaser';
 import { BLUE, BLUE_HEX, PAPER_HEX, RED } from '../art/palette';
 import { TEX } from '../art/textures';
 import { FOOT, FRAME } from '../art/frame';
-import { getHost } from '../host';
+import { getFullError, getHost } from '../host';
 import { BIOMES, LEVELS_PER_BEACH } from '../level/biomes';
 import { levelGoal } from '../level/build';
-import { BEACHES, isPaid, LEVEL_ORDER, LEVELS } from '../level/levels';
+import { BUILT_BEACHES, isPaid, levelById, levelOrder, loadedBeaches, loadedLevels } from '../level/levels';
 import { isUnlocked, loadProgress, type Progress } from '../logic/save';
 import { BANNER_TEXT } from '../art/map/banner';
 import { ChartView } from './map/chartView';
 import { islandPlans } from './map/plan';
 import { computeMapLayout, MAP, regionIndexAt, type MapBeach, type MapLayout, type MapNode } from './map/layout';
 import { buildRoute, type NodeState } from './map/routeView';
+import { loadPaidBeaches } from './BootScene';
 import { crispText, DPR, screenZoom, toView, uiCamera, viewSize } from './hidpi';
 import { HAND_FONT, inkButton, inkText } from './ui';
 
@@ -27,7 +28,8 @@ const KEY_STEP = 420;
  * Level select as a beachcomber's chart: one island per beach, ten levels
  * each along its sand, joined by sea routes. Drag, scroll or use the arrow
  * keys to travel along it; the tabs at the bottom jump between beaches.
- * Beaches not built yet are pencil drafts.
+ * Beaches not built yet are pencil drafts. The full game's beaches are
+ * drawn in ink but locked until their levels arrive (see BootScene).
  */
 export class MenuScene extends Phaser.Scene {
   private layout!: MapLayout;
@@ -39,6 +41,8 @@ export class MenuScene extends Phaser.Scene {
   private caption!: Phaser.GameObjects.Text;
   private tagline!: Phaser.GameObjects.Text;
   private tabs: Phaser.GameObjects.Container[] = [];
+  /** Stand-in ids for the levels of the full game's beaches this player doesn't have. */
+  private locked = new Set<string>();
 
   constructor() {
     super('Menu');
@@ -48,15 +52,16 @@ export class MenuScene extends Phaser.Scene {
     crispText(this);
     const host = getHost(this);
     const progress = loadProgress(host.storage);
+    const stand = (kind: string, id: string): string[] => Array.from({ length: LEVELS_PER_BEACH }, (_, k) => `${kind}-${id}-${k + 1}`);
     const beaches: MapBeach[] = BIOMES.map((biome, i) => {
-      const built = BEACHES[i];
-      return built
-        ? { biome, built: true, levelIds: built.map((l) => l.id) }
-        : { biome, built: false, levelIds: Array.from({ length: LEVELS_PER_BEACH }, (_, k) => `draft-${biome.id}-${k + 1}`) };
+      const loaded = loadedBeaches()[i];
+      if (loaded) return { biome, built: true, levelIds: loaded.map((l) => l.id) };
+      return i < BUILT_BEACHES ? { biome, built: true, levelIds: stand('locked', biome.id) } : { biome, built: false, levelIds: stand('draft', biome.id) };
     });
+    this.locked = new Set(beaches.flatMap((b) => b.levelIds.filter((id) => id.startsWith('locked-'))));
     this.layout = computeMapLayout(beaches);
     const { states, blots, current } = this.nodeStates(progress);
-    const names = new Map(LEVELS.map((l) => [l.id, l.name]));
+    const names = new Map(loadedLevels().map((l) => [l.id, l.name]));
 
     const chartLayer = this.add.layer();
     const worldLayer = this.add.layer();
@@ -66,7 +71,7 @@ export class MenuScene extends Phaser.Scene {
     cam.setBackgroundColor('#f5f0e1').setBounds(0, 0, this.layout.width, this.layout.height).setZoom(zoom * DPR);
     this.chart = new ChartView(this, this.layout, chartLayer, Math.min(2, zoom * DPR));
 
-    const missions = new Map(LEVELS.map((l) => [l.id, missionOf(l)]));
+    const missions = new Map(loadedLevels().map((l) => [l.id, missionOf(l)]));
     const route = buildRoute(this, this.layout, states, blots, names, missions);
     worldLayer.add(route.objects);
     for (const { node, zone } of route.hits) {
@@ -103,27 +108,36 @@ export class MenuScene extends Phaser.Scene {
     const states = new Map<string, NodeState>();
     const blots = new Map<string, number>();
     let current: MapNode | undefined;
+    let previous: NodeState | undefined;
     for (const n of this.layout.nodes) {
       const region = this.layout.regions[n.region]!;
       const rec = progress.levels[n.levelId];
       if (rec) blots.set(n.levelId, rec.blots);
       let s: NodeState;
       if (!region.beach.built) s = 'draft';
+      // A locked level is never playable; the first, once reached, carries the offer of the full game.
+      else if (this.locked.has(n.levelId)) s = !current && previous === 'done' ? 'current' : 'closed';
       else if (rec) s = 'done';
-      else if (getHost(this).allLevelsOpen === true || isUnlocked(progress, LEVEL_ORDER, n.levelId)) s = current ? 'open' : 'current';
+      else if (getHost(this).allLevelsOpen === true || isUnlocked(progress, levelOrder(), n.levelId)) s = current ? 'open' : 'current';
       else s = 'closed';
       if (s === 'current') current = n;
       states.set(n.levelId, s);
+      previous = s;
     }
     current ??= [...this.layout.nodes].reverse().find((n) => states.get(n.levelId) === 'done') ?? this.layout.nodes[0]!;
     return { states, blots, current };
   }
 
-  /** Plays a level; one of the full game's beaches, without it, offers it instead. */
+  /** Plays a level; one of the full game's beaches, without it, offers it instead, and an owner's that failed to load is fetched again. */
   private play(levelId: string): void {
     const host = getHost(this);
     if (isPaid(levelId) && !host.unlocked) host.onBuy();
-    else this.scene.start('Game', { levelId });
+    else if (levelById(levelId)) this.scene.start('Game', { levelId });
+    else this.retryFullGame();
+  }
+
+  private retryFullGame(): void {
+    void loadPaidBeaches(this).then(() => this.scene.restart());
   }
 
   /** Each island's name and tagline, lettered into its cartouche on the chart; unbuilt ones are marked uncharted. */
@@ -148,20 +162,20 @@ export class MenuScene extends Phaser.Scene {
     ]).setScale(0.4);
     this.tweens.add({ targets: crab, y: crab.y - 8, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     layer.add(crab);
-    const def = LEVELS.find((l) => l.id === node.levelId);
-    if (!def) return;
+    const def = levelById(node.levelId);
+    if (!def && !this.locked.has(node.levelId)) return;
+    const host = getHost(this);
     const y = node.y + MAP.nodeRadius + (done ? 48 : 34);
-    const title = inkText(this, node.x, y, def.name, 22);
-    const goal = inkText(this, node.x, y + 24, shortGoal(missionOf(def), levelGoal(def)), 17, SOFT_INK);
+    const title = inkText(this, node.x, y, def?.name ?? this.layout.regions[node.region]!.beach.biome.name, 22);
+    const goal = inkText(this, node.x, y + 24, def ? shortGoal(missionOf(def), levelGoal(def)) : 'nine more beaches in the full game', 17, SOFT_INK);
     // A scrap of paper under the words, so they read over reefs and ice.
     const w = Math.max(title.width, goal.width) + 16;
     const card = this.add.graphics();
     card.fillStyle(PAPER_HEX, 0.82).fillRoundedRect(node.x - w / 2, y - 16, w, 54, 8);
     layer.add([card, title, goal]);
-    const host = getHost(this);
-    const locked = isPaid(def.id) && !host.unlocked;
-    const label = locked ? (host.price ? `Unlock · ${host.price}` : 'Unlock') : done ? 'Play again' : 'Play';
-    const button = inkButton(this, node.x, y + 64, label, () => this.play(def.id), { width: locked ? 190 : 132, height: 44, size: 26 });
+    const locked = isPaid(node.levelId) && !host.unlocked;
+    const label = locked ? (host.price ? `Unlock · ${host.price}` : 'Unlock') : !def ? 'Retry' : done ? 'Play again' : 'Play';
+    const button = inkButton(this, node.x, y + 64, label, () => this.play(node.levelId), { width: locked ? 190 : 132, height: 44, size: 26 });
     // A slow breath on the first visit, so the eye finds it.
     if (fresh) this.tweens.add({ targets: button, scale: 1.08, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     layer.add(button);
@@ -215,6 +229,11 @@ export class MenuScene extends Phaser.Scene {
     layer.add(inkText(this, 110, 36, 'InkCrab', 44));
     layer.add(this.add.text(30, 64, `${done} of ${this.layout.nodes.length} levels`, { fontFamily: HAND_FONT, fontSize: '20px', color: SOFT_INK }));
     layer.add(inkButton(this, width - 100, 38, '← 16bit.ink', () => host.onExit(), { width: 170, height: 44, size: 24 }));
+    const fullError = getFullError(this);
+    if (fullError) {
+      layer.add(inkText(this, width / 2, 110, fullError, 22, RED));
+      layer.add(inkButton(this, width / 2, 150, 'Retry', () => this.retryFullGame(), { width: 132, height: 40, size: 24 }));
+    }
 
     // Beach tabs: jump straight to any island.
     const n = this.layout.regions.length;

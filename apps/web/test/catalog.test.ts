@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { INKCRAB_PAID_BEACHES } from '@16bitink/inkcrab/content';
 import { INKFISH_FULL_CHAPTERS } from '@16bitink/inkfish/content';
+import { parseBeaches } from '../../../games/inkcrab/src/level/validate';
 import { parseChapters } from '../../../games/inkfish/src/levels/validate';
 import { findGame, GAMES, isPurchasable, playableGames } from '../src/data/games';
 import { PAID_CONTENT } from '../src/games/content.server';
@@ -9,6 +11,10 @@ describe('catalog', () => {
   it('has unique, URL-safe slugs', () => {
     expect(new Set(GAMES.map((g) => g.slug)).size).toBe(GAMES.length);
     for (const g of GAMES) expect(g.slug).toMatch(/^[a-z0-9-]{1,40}$/);
+  });
+
+  it('lists every game for sale, so the admin panel can unlock it and make keys for it', () => {
+    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab']);
   });
 
   it('only sells playable games with a Stripe lookup key', () => {
@@ -30,14 +36,8 @@ describe('game registries stay in sync with the catalog', () => {
     for (const slug of Object.keys(PAID_CONTENT)) expect(playable.has(slug), slug).toBe(true);
   });
 
-  // InkCrab ships every beach in its bundle and gates the paid ones on
-  // `host.unlocked` alone; it has no server content (yet).
-  const BUNDLED_PAID_LEVELS = new Set(['inkcrab']);
-
   it('every purchasable game has paid content to deliver', () => {
-    for (const g of playableGames().filter(isPurchasable)) {
-      if (!BUNDLED_PAID_LEVELS.has(g.slug)) expect(PAID_CONTENT[g.slug], g.slug).toBeDefined();
-    }
+    for (const g of playableGames().filter(isPurchasable)) expect(PAID_CONTENT[g.slug], g.slug).toBeDefined();
   });
 });
 
@@ -51,5 +51,13 @@ describe('paid inkfish chapters', () => {
     const ids = INKFISH_FULL_CHAPTERS.flatMap((c) => c.levels.map((l) => l.id));
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids.some((id) => id.startsWith('c1-'))).toBe(false);
+  });
+});
+
+describe('paid inkcrab beaches', () => {
+  it('pass the game client validator', () => {
+    const beaches = parseBeaches(JSON.parse(JSON.stringify(INKCRAB_PAID_BEACHES)));
+    expect(beaches).toHaveLength(9);
+    expect(beaches.flat()).toHaveLength(90);
   });
 });

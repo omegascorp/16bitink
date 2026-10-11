@@ -3,7 +3,7 @@ import { INK } from '../art/palette';
 import { getHost } from '../host';
 import { BIOMES, LEVELS_PER_BEACH } from '../level/biomes';
 import { shellLadder } from '../level/build';
-import { BEACHES, beachIndexOf, FREE_BEACHES, isFreeEnd, levelById, themeOf } from '../level/levels';
+import { beachIndexOf, FREE_BEACHES, isFreeEnd, levelById, loadedBeaches, themeOf } from '../level/levels';
 import { beachTally, loadProgress } from '../logic/save';
 import { SHELLS } from '../logic/shells';
 import type { BackdropView } from './game/backdropView';
@@ -69,7 +69,7 @@ export class BeachEndScene extends Phaser.Scene {
 
   create(data: ResultData): void {
     const host = getHost(this);
-    const def = levelById(data.levelId) ?? BEACHES[0]!.at(-1)!;
+    const def = levelById(data.levelId) ?? loadedBeaches()[0]!.at(-1)!;
     const beach = Math.max(0, beachIndexOf(def.id));
     const biome = BIOMES[beach]!;
     const L = isTall(this) ? TALL : WIDE;
@@ -86,7 +86,7 @@ export class BeachEndScene extends Phaser.Scene {
 
     // Shells sit down in the sand, a little in front of its inked edge.
     const parade = shellParade(this, ladder, L.parade[0], L.parade[1], L.ground + SET_IN, 10);
-    this.stats(L, BEACHES[beach]!.map((l) => l.id));
+    this.stats(L, loadedBeaches()[beach]!.map((l) => l.id));
     this.buttons(L, def.id);
     offerCard(this, L.card.x, L.card.y, L.card.w, L.card.h, this.offer(beach, data.levelId)).setDepth(30);
 
@@ -131,7 +131,7 @@ export class BeachEndScene extends Phaser.Scene {
       const rest = BIOMES.slice(FREE_BEACHES);
       return { kind: 'buy', beaches: rest, levels: rest.length * LEVELS_PER_BEACH, price: host.price, signedIn: host.signedIn === true, onBuy: () => host.onBuy() };
     }
-    const next = BEACHES[beach + 1];
+    const next = loadedBeaches()[beach + 1];
     return { kind: 'next', beach: BIOMES[beach + 1], onSail: next?.[0] ? () => this.scene.start('Game', { levelId: next[0]!.id }) : undefined };
   }
 

@@ -4,7 +4,7 @@ import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_SPAN } from '../art/critterArt';
 import { BOIL, INK, RED, RED_HEX } from '../art/palette';
 import { TEX } from '../art/textures';
 import { levelGoal, START_SHELL } from '../level/build';
-import { LEVEL_ORDER, levelById, LEVELS, nextLevel, themeOf } from '../level/levels';
+import { levelById, levelOrder, loadedLevels, nextLevel, themeOf } from '../level/levels';
 import type { LevelDef } from '../level/types';
 import { blotReasons, catchTip, isNewBest } from '../logic/resultCard';
 import { shellPx, type Shell } from '../logic/shells';
@@ -84,13 +84,13 @@ export class ResultScene extends Phaser.Scene {
 
   create(data: ResultData): void {
     this.leaving = false;
-    const def = levelById(data.levelId) ?? LEVELS[0]!;
+    const def = levelById(data.levelId) ?? loadedLevels()[0]!;
     const L = isTall(this) ? TALL : WIDE;
     fitStage(this, L);
     this.backdrop = beachStage(this, L, themeOf(def.id), L.ground);
     this.confetti = new Confetti(this, 25);
 
-    const number = LEVEL_ORDER.indexOf(def.id) + 1;
+    const number = levelOrder().indexOf(def.id) + 1;
     headline(this, L.title, data.won ? (missionOf(def).chain ? 'Chain complete!' : 'Grown up!') : 'Caught!', data.won ? undefined : RED, data.won ? undefined : LOSS_MARK);
     this.add.text(L.title.x, L.title.y + L.title.size * 0.8, `Level ${number} · ${def.name}`, { fontFamily: HAND_FONT, fontSize: '30px', color: SOFT_INK }).setOrigin(0.5).setDepth(20);
 
@@ -133,7 +133,7 @@ export class ResultScene extends Phaser.Scene {
     const buttons: CardButtons = next
       ? { primary: { label: 'Next level →', go: this.go('Game', { levelId: next.id }) }, secondary: [{ label: 'replay', go: retry }, { label: '← map', go: chart }] }
       : { primary: { label: '← map', go: chart }, secondary: [{ label: 'replay', go: retry }] };
-    const preview = next ? { number: LEVEL_ORDER.indexOf(next.id) + 1, def: next, goal: levelGoal(next) } : undefined;
+    const preview = next ? { number: levelOrder().indexOf(next.id) + 1, def: next, goal: levelGoal(next) } : undefined;
     return winParts(this, w, h, blotReasons(data.time, parTimeOf(def), data.livesLost), preview, this.withEnter(buttons));
   }
 
