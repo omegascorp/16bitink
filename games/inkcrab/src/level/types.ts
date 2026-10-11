@@ -4,6 +4,7 @@ import type { RivalSpec } from '../logic/rivals';
 import type { DeckSpec } from '../logic/decks';
 import type { RainSpec } from '../logic/rain';
 import type { WindSpec } from '../logic/wind';
+import type { GlowSpec, MoonSpec } from '../logic/moon';
 import type { BirdGroup, CritterGroup } from '../logic/sim';
 import type { SpeciesId } from '../logic/species';
 import type { Lesson } from '../logic/coach';
@@ -64,8 +65,12 @@ export interface LevelDef {
   readonly wind?: WindSpec;
   /** Frozen pools: first column, width and rows of ice, a flat sheet at the lowest ground across it (see carve.ts). Slippery, never dug. */
   readonly ice?: readonly (readonly [col: number, width: number, rows: number])[];
-  /** Black volcanic sand and basalt, drawn dark, a cold coast's grey sand, or a frosty shingle of pebbles (default pale sand). */
-  readonly ground?: 'black' | 'grey' | 'shingle';
+  /** Clouds passing over the moon (see logic/moon.ts). */
+  readonly moon?: MoonSpec;
+  /** Stretches of strand with glowing plankton in them: first and last column (see logic/moon.ts). */
+  readonly glow?: readonly GlowSpec[];
+  /** Black volcanic sand and basalt, drawn dark, a cold coast's grey sand, a frosty shingle of pebbles, or coral sand by moonlight (default pale sand). */
+  readonly ground?: 'black' | 'grey' | 'shingle' | 'moonlit';
   /** Mangrove trees: trunk column, height over the mud and how far the roots spread (see mangrove.ts). */
   readonly trees?: readonly TreeSpec[];
   /** Rock boulders: column, row, radius. */

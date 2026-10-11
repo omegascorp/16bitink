@@ -13,6 +13,7 @@ export const SHELL_KINDS = [
   'nassa', 'figshell', 'tulip', 'lightningwhelk', 'horseconch',
   'auger', 'babylon', 'cone', 'spiderconch', 'volute',
   'wentletrap', 'arcticmoon', 'neptunewhelk', 'arcticwhelk', 'icelandwhelk',
+  'tigermoon', 'gianttun', 'hornedhelmet', 'tritonstrumpet', 'baler',
 ] as const;
 export type ShellKind = (typeof SHELL_KINDS)[number];
 
@@ -98,6 +99,12 @@ export const SHELLS: Readonly<Record<ShellKind, ShellSpec>> = {
   neptunewhelk: spec('neptunewhelk', 'Neptune whelk', 3, 6, 2, 3),
   arcticwhelk: spec('arcticwhelk', 'Arctic whelk', 4, 7, 2, 3),
   icelandwhelk: spec('icelandwhelk', 'Iceland whelk', 5, 8, 3, 4),
+  // Moonlit Bay (beach 10): the great shells of a tropical reef bay, the last and grandest of the game.
+  tigermoon: spec('tigermoon', 'tiger moon snail', 1, 3, 1, 2),
+  gianttun: spec('gianttun', 'giant tun', 2, 4, 1, 2),
+  hornedhelmet: spec('hornedhelmet', 'horned helmet', 3, 6, 2, 3),
+  tritonstrumpet: spec('tritonstrumpet', "triton's trumpet", 4, 7, 2, 3),
+  baler: spec('baler', 'baler shell', 5, 8, 3, 4),
 };
 
 /**

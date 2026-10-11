@@ -16,6 +16,7 @@ export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky
   | 'rival'
   | 'rain' | 'deck' | 'monitor'
   | 'wind' | 'ice' | 'fox'
+  | 'moon' | 'glow'
   | 'chain' | 'line';
 
 /** What a hint is about: a lesson, or the way out of a hole, offered on every level. */
@@ -49,6 +50,8 @@ const RIVAL_NEAR = 8;
 const DECK_NEAR = 8;
 /** How close (tiles) ice is before the ice lesson speaks up. */
 const ICE_NEAR = 8;
+/** How close (tiles) glowing plankton is before the glow lesson speaks up. */
+const GLOW_NEAR = 8;
 
 const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   keys: {
@@ -78,6 +81,8 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     wind: 'A gust! It blows a light shell along, most in the air and on ice. Shelter behind a bank or a rock, or jump with it to go far.',
     ice: 'Ice! You slide on it, and a gust sweeps you across. Drop sand on it with C to get a grip.',
     fox: 'An Arctic fox hunts by smell! In a gust it smells you from far downwind, but not upwind. Hold Z to hide.',
+    moon: 'A cloud over the moon! In the dark hunters can\'t see you far, and you can\'t see far either. Sand hoppers come out to feed.',
+    glow: 'Glowing plankton! It lights up wherever anything walks: you\'ll see hunters coming, and in the dark they\'ll see you on it.',
     chain: 'A vacancy chain! The hermit crabs line up by size, and each moves into the shell the one ahead leaves behind.',
     line: 'A small hermit crab! Walk up to it and it follows you: it wants the shell you\'ll leave behind.',
     lineUp: 'When you move up, your line moves up too. Every move needs one more crab, grown to fill its shell: they eat as they go.',
@@ -109,6 +114,8 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     wind: 'A gust! It blows a light shell along, most in the air and on ice. Shelter behind a bank or a rock, or jump with it to go far.',
     ice: 'Ice! You slide on it, and a gust sweeps you across. Tap to drop sand on it and get a grip.',
     fox: 'An Arctic fox hunts by smell! In a gust it smells you from far downwind, but not upwind. Hold the shell button to hide.',
+    moon: 'A cloud over the moon! In the dark hunters can\'t see you far, and you can\'t see far either. Sand hoppers come out to feed.',
+    glow: 'Glowing plankton! It lights up wherever anything walks: you\'ll see hunters coming, and in the dark they\'ll see you on it.',
     chain: 'A vacancy chain! The hermit crabs line up by size, and each moves into the shell the one ahead leaves behind.',
     line: 'A small hermit crab! Walk up to it and it follows you: it wants the shell you\'ll leave behind.',
     lineUp: 'When you move up, your line moves up too. Every move needs one more crab, grown to fill its shell: they eat as they go.',
@@ -170,6 +177,9 @@ export class Coach {
     this.escape('wind', beach.gusting);
     this.escape('ice', beach.onIce(c.body));
     this.escape('fox', this.noseNear(beach) && !c.hidden);
+    // The dark is learnt by seeing it through; the plankton by walking in it.
+    this.escape('moon', beach.dark);
+    if (beach.lit) this.done.add('glow');
     // A vacancy chain is learnt by watching one run to its end.
     this.escape('chain', beach.chains.size >= 2);
   }
@@ -200,6 +210,7 @@ export class Coach {
     if (open('fox') && this.facing.has('fox')) return { lesson: 'fox', text: t.fox! };
     if (open('rain') && beach.rainNow > 0) return { lesson: 'rain', text: t.rain! };
     if (open('wind') && beach.windNow !== 0) return { lesson: 'wind', text: t.wind! };
+    if (open('moon') && beach.darkness > 0) return { lesson: 'moon', text: t.moon! };
     if (open('chain') && this.facing.has('chain')) return { lesson: 'chain', text: t.chain!, target: this.chainShell(beach) ?? undefined };
     if (open('fog') && this.facing.has('fog')) return { lesson: 'fog', text: t.fog! };
     if (open('tide') && beach.tide && beach.elapsed > 4) return { lesson: 'tide', text: t.tide! };
@@ -230,6 +241,10 @@ export class Coach {
     if (open('deck')) {
       const deck = this.deckNear(beach);
       if (deck) return { lesson: 'deck', text: t.deck!, target: deck };
+    }
+    if (open('glow')) {
+      const glow = this.glowNear(beach);
+      if (glow) return { lesson: 'glow', text: t.glow!, target: glow };
     }
     if (open('ice')) {
       const ice = this.iceNear(beach);
@@ -295,6 +310,18 @@ export class Coach {
       if (Math.abs(p.x - at.x) < RIVAL_NEAR * beach.tileSize && (!best || Math.abs(p.x - at.x) < Math.abs(best.x - at.x))) best = { x: p.x, y: k.y };
     }
     return best;
+  }
+
+  /** The surface of the nearest glowing strand within a few tiles, or null. */
+  private glowNear(beach: Beach): { x: number; y: number } | null {
+    const p = beach.plankton;
+    if (!p) return null;
+    const T = beach.tileSize;
+    const col = Math.floor(centre(beach.crab.body).x / T);
+    for (let d = 0; d <= GLOW_NEAR; d++) {
+      for (const x of d ? [col - d, col + d] : [col]) if (p.has(x)) return { x: (x + 0.5) * T, y: surfaceRow(beach.terrain, x) * T };
+    }
+    return null;
   }
 
   /** The top of the nearest ice on the surface within a few tiles, or null. */

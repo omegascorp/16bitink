@@ -198,6 +198,8 @@ export function buildLevel(def: LevelDef): BeachSetup {
     rain: def.rain,
     decks,
     wind: def.wind,
+    moon: def.moon,
+    glow: def.glow,
     startGrowth: { size: START_SIZE, meter: 0 },
     goal: levelGoal(def),
     mission,

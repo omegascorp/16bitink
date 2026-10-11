@@ -75,6 +75,12 @@ export const SHINGLE: GroundStyle = {
   pebbles: ['#8b8f8c', '#a99f8c', '#62686a', '#c9c1ae', '#b58f74', '#e2ddd2', '#77808a'], joints: false, pebbleRate: 0.42,
 };
 
+/** Pale coral sand by moonlight: silvered and cool, over dark reef rock. */
+export const MOON_SAND: GroundStyle = {
+  dry: '#d9d8d4', wet: '#b7b9bf', deep: '#8e93a0', grain: '#5d6274', shade: '#4a4f62', rock: '#6c7080', tunnel: '#cfd0d4',
+  pebbles: ['#e8e2d6', '#c9b9a8', '#9aa0ad', '#f0d9c8', '#b8c4cc'], joints: false,
+};
+
 /** Texture pixels per world px for terrain; matches the most a phone screen shows. */
 export const ART_RES = 2;
 /** Line-boil frames per drawing. */

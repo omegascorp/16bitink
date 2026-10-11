@@ -9,7 +9,8 @@ export type SpeciesId = 'ghostcrab' | 'slater' | 'beetle' | 'darkling' | 'antlio
   | 'kelpcrab' | 'dungeness' | 'raccoon'
   | 'porcelaincrab' | 'stonecrab' | 'bluecrab' | 'hermit'
   | 'bubbler' | 'mudcrab' | 'monitor'
-  | 'seaspider' | 'snowcrab' | 'arcticfox';
+  | 'seaspider' | 'snowcrab' | 'arcticfox'
+  | 'brittlestar' | 'horneyed' | 'coconutcrab';
 
 /**
  * How it gets about: walkers roam the surface and open tunnels; a lurker
@@ -110,6 +111,12 @@ export const SPECIES: Readonly<Record<SpeciesId, SpeciesSpec>> = {
   snowcrab: { id: 'snowcrab', name: 'snow crab', speed: 1, sight: 6, hunts: true, box: { w: 1.25, h: 0.6 } },
   // An Arctic fox: noses along the strandline. It hunts by smell, so in a gust it smells you only from downwind.
   arcticfox: { id: 'arcticfox', name: 'Arctic fox', speed: 0.8, sight: 5, hunts: true, nose: true, box: { w: 1.4, h: 1 } },
+  // Moonlit Bay (beach 10). A brittle star: out on the sand at night, slow and timid, five thin arms rowing it along.
+  brittlestar: { id: 'brittlestar', name: 'brittle star', speed: 0.6, sight: 4, hunts: false, box: { w: 1, h: 0.4 } },
+  // A horn-eyed ghost crab: the night beach's sprinter, dashing in bursts and hunting by sight, so the dark half-blinds it.
+  horneyed: { id: 'horneyed', name: 'horn-eyed ghost crab', speed: 1.3, sight: 7, hunts: true, burst: { run: 0.7, rest: 0.6 }, box: { w: 1, h: 0.65 } },
+  // A coconut crab: a huge, slow land hermit that hunts by smell, so the dark doesn't hide you from it. It clambers up steps.
+  coconutcrab: { id: 'coconutcrab', name: 'coconut crab', speed: 0.7, sight: 5, hunts: true, nose: true, hops: true, box: { w: 1.35, h: 0.8 } },
   treecrab: { id: 'treecrab', name: 'tree crab', speed: 0.8, sight: 5, hunts: true, move: 'climb', box: { w: 0.95, h: 0.62 } },
 };
 

@@ -57,6 +57,11 @@ export const MOUTH_X: Readonly<Record<ShellKind, number>> = {
   neptunewhelk: 10,
   arcticwhelk: 12,
   icelandwhelk: 14,
+  tigermoon: -16 + 40 * 0.78,
+  gianttun: 14,
+  hornedhelmet: 13,
+  tritonstrumpet: 12,
+  baler: 14,
 };
 
 /** Crab-frame x that sits in the middle of the opening: a little inside the back of its head shield. */

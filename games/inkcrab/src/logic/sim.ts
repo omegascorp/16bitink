@@ -22,6 +22,7 @@ import { canRap, inShell, isRival, makeRival, movingInto, RIVAL, stepRival, type
 import { isPouring, RAIN, rainAt, type RainSpec } from './rain';
 import { underDeck, type Deck } from './decks';
 import { inLee, isGusting, WIND, windAt, windShare, type WindSpec } from './wind';
+import { darknessAt, isDark, MOON, Plankton, type GlowSpec, type MoonSpec } from './moon';
 import { planChains, type ChainStep, type Leader } from './vacancy';
 import { missionDone, PLAIN, type ChainStatus, type Mission, type MissionProgress } from './mission';
 import { chainDone, chainStatus, joins, lineOf, planLine, stepFollower, trailPlaces, type LineWorld } from './line';
@@ -140,6 +141,10 @@ export interface BeachSetup {
   readonly decks?: readonly Deck[];
   /** Wind gusts (default none: it's always calm). */
   readonly wind?: WindSpec;
+  /** Clouds passing over the moon (default none: never dark). */
+  readonly moon?: MoonSpec;
+  /** Stretches of strand with glowing plankton in them (default none). */
+  readonly glow?: readonly GlowSpec[];
   /** What the level asks besides growing (default: nothing, see mission.ts). */
   readonly mission?: Mission;
   /** Small hermit crabs for a shell chain mission to recruit (see line.ts). */
@@ -258,6 +263,9 @@ export class Beach {
   readonly decks: readonly Deck[];
   /** Wind gusts, on the frost shingle. */
   readonly wind: WindSpec | undefined;
+  /** The moon and its clouds, and the glowing plankton in the strand, on the moonlit bay. */
+  readonly moon: MoonSpec | undefined;
+  readonly plankton: Plankton | null;
   readonly goal: number | null;
   readonly mission: Mission;
   /** Lives the level started with. */
@@ -344,6 +352,8 @@ export class Beach {
     this.rain = setup.rain;
     this.decks = setup.decks ?? [];
     this.wind = setup.wind;
+    this.moon = setup.moon;
+    this.plankton = setup.glow?.length ? new Plankton(setup.glow, setup.tileSize) : null;
     for (const item of setup.items) this.items.set(item.id, item);
     this.nextId = Math.max(0, ...setup.items.map((i) => i.id)) + 1;
     const growth = setup.startGrowth ?? initialGrowth();
@@ -444,6 +454,21 @@ export class Beach {
     return !underSky(this.terrain, b, this.tileSize) || this.submerged(b) || inLee(this.terrain, b, w > 0 ? -1 : 1, this.tileSize);
   }
 
+  /** How dark it is now, 0 moonlight … 1 the moon hidden (see moon.ts). */
+  get darkness(): number {
+    return darknessAt(this.moon, this.elapsed);
+  }
+
+  /** The moon is hidden: hunters by sight see only close, and sand hoppers come out. */
+  get dark(): boolean {
+    return isDark(this.moon, this.elapsed);
+  }
+
+  /** Whether the crab is lit by plankton it has just stirred, so hunters see it even in the dark. */
+  get lit(): boolean {
+    return this.plankton !== null && !this.crab.hidden && this.plankton.lit(this.crab.body, this.elapsed);
+  }
+
   /** Standing on ice. */
   onIce(b: Body): boolean {
     const T = this.tileSize;
@@ -504,6 +529,7 @@ export class Beach {
     this.flow(dt, events);
     this.settleItems(dt, events);
     this.moveCritters(dt, events);
+    this.stirPlankton();
     this.meetCritters(events);
     this.moveBirds(dt, events);
     this.restock(dt, events);
@@ -843,7 +869,7 @@ export class Beach {
     const pouring = this.downpour;
     const gusting = this.gusting;
     this.foodTimer += dt;
-    if (this.foodTimer < FOOD_EVERY * (pouring ? RAIN.foodEvery : gusting ? WIND.foodEvery : 1)) return;
+    if (this.foodTimer < FOOD_EVERY * (pouring ? RAIN.foodEvery : gusting ? WIND.foodEvery : this.dark ? MOON.foodEvery : 1)) return;
     this.foodTimer = 0;
     let loose = 0;
     for (const i of this.items.values()) if (i.kind.type === 'food' && !i.buried) loose++;
@@ -950,10 +976,11 @@ export class Beach {
 
   private moveCritters(dt: number, events: SimEvent[]): void {
     const c = this.crab;
+    // Fog round the crab, rain anywhere, or the dark (unless the plankton lights it up) hides it from what hunts by sight.
+    const veil = Math.max(this.fogOver(c.body), this.rainNow, this.lit ? 0 : this.darkness);
     const quarry = {
       box: c.body, size: c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize),
-      // Fog round the crab, or rain anywhere, hides it from what hunts by sight.
-      inWater: this.submerged(c.body), inRoots: this.inRoots(c.body), veil: Math.max(this.fogOver(c.body), this.rainNow), covered: this.underKelp(c.body),
+      inWater: this.submerged(c.body), inRoots: this.inRoots(c.body), veil, covered: this.underKelp(c.body),
       // A gust carries its scent downwind.
       wind: this.windNow,
     };
@@ -995,6 +1022,17 @@ export class Beach {
       if (left) this.leaveShell(from ?? rival, left, events);
     }
     for (const k of this.critters.values()) if (stranded(this.terrain, k, this.tileSize)) this.fishDies(k);
+  }
+
+  /** The crab and the creatures walking the strand light up the plankton under their feet. */
+  private stirPlankton(): void {
+    const p = this.plankton;
+    if (!p) return;
+    const T = this.tileSize;
+    const out = (b: Body): boolean => b.onGround && underSky(this.terrain, b, T);
+    const c = this.crab;
+    if (!c.hidden && out(c.body)) p.stir(c.body, c.body.vx, this.elapsed);
+    for (const k of this.critters.values()) if (!k.flight && out(k)) p.stir(k, k.vx, this.elapsed);
   }
 
   /** Recruits the crab has come up to join its line; then where each in the line is going (see line.ts). */

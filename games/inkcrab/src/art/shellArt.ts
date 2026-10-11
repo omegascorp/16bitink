@@ -8,6 +8,7 @@ import { bonnet, drupe, harp, hornshell, spindle } from './shells/basalt';
 import { auger, babylon, cone, spiderconch, volute } from './shells/harbour';
 import { blackturban, kellets, kelpsnail, oregontriton, wavyturban } from './shells/kelp';
 import { mangrovewinkle, mudcreeper, mudwhelk, rivernerite, telescope } from './shells/mangrove';
+import { baler, gianttun, hornedhelmet, tigermoon, tritonstrumpet } from './shells/moonlit';
 import { arcticmoon, arcticwhelk, icelandwhelk, neptunewhelk, wentletrap } from './shells/frost';
 import { figshell, horseconch, lightningwhelk, nassa, tulip } from './shells/wreck';
 
@@ -755,6 +756,7 @@ const DRAW: Readonly<Record<ShellKind, (d: Draw) => void>> = {
   nassa, figshell, tulip, lightningwhelk, horseconch,
   auger, babylon, cone, spiderconch, volute,
   wentletrap, arcticmoon, neptunewhelk, arcticwhelk, icelandwhelk,
+  tigermoon, gianttun, hornedhelmet, tritonstrumpet, baler,
 };
 
 export function drawShell(d: Draw, kind: ShellKind): void {

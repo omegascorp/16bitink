@@ -394,9 +394,47 @@ Shells: wentletrap (1–3), Arctic moon snail (2–4), Neptune whelk (3–6), Ar
 
 Backdrop theme `frost` (`src/art/backdrop/frost.ts`; the sky in `labradorSky.ts`, the pack ice, icebergs and seals in `packIce.ts`, the headland and the outport in `labradorCoast.ts`, the storm ridge in `labradorShore.ts`, boats in `labradorBoats.ts`, birds in `labradorBirds.ts`): a bright, bitter spring day in a gale, the wind blowing left to right in every layer. A pale high sky holds a low sun with its halo and sun dogs, and mares' tails. Cloud streets race across with their ends torn into streamers, the fastest clouds of any beach, and lenticulars stand over the hills. The grey-blue Labrador Sea is crowded with broken pack ice (flat white pans with turquoise edges, melt ponds, slush), with a pinnacle berg, a dry-dock berg and a tabular berg on the horizon. A barren headland of dark rock and brown tundra has snow on its ledges, spindrift smoking off the top, an inuksuk and the ice foot still along its shore. The outport has saltbox houses in red, yellow, white, blue and green with smoke streaming flat from their chimneys, a little white church, washing and the Labrador flag standing out straight, fishing stages on stilts, and harp seals with a whitecoat pup on a pan. Nearest is a shingle storm ridge with driftwood, boulders with snow drifted into their lee, lyme grass bent flat, a stack of lobster pots with a dan buoy, a red dory turned over for the winter, and blocks of stranded sea ice. Boats: a red Newfoundland longliner (one near, one far out) and a punt butting out against the wind. Movers: common eiders low over the water, kittiwakes riding the wind and ravens tumbling on it, all side-on. The nearest layer has no small creatures.
 
-## Beaches 9–10
+## Beach 10: Moonlit Bay
 
-Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. Beaches 1–9 are built (above). Each later beach adds one new idea in slots 5–7 and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4). The new ideas are a first sketch, to be decided beach by beach:
+A tropical reef bay on the Queensland coast on a summer night, the last beach: pale coral sand under a full moon, a glowing tide, turtles nesting on the beach. Its idea is the night: clouds pass over the moon, and glowing plankton gives away whatever walks the strand. Built 2026-10-11 from this doc's sketch ("darkness, glowing plankton"); the final molt is still to come.
+
+**What's new:**
+
+- **Clouds over the moon** (`games/inkcrab/src/logic/moon.ts`; `moon: { period, dark, offset }`). They come on a steady rhythm like the rain, never a deadline. Each cycle is moonlight, then a cloud comes over (the warning: the light fades over 2.5 s) and the beach is dark for `dark` seconds, the moon coming out over the last 2.5. While it's dark:
+  - hunters that hunt by sight see only 2 tiles (the fog's rule, with the darkness as the veil), unless the crab is lit up by the plankton (below). A coconut crab hunts by smell, so the dark doesn't hide you from it;
+  - the crab sees only a pool round itself (the fog's clear radius): the rest of the view goes dark;
+  - sand hoppers come out: surface food is restocked every 1.25 s instead of every 2.5.
+
+  The HUD shows a moon clock where the tide clock goes: the moon in a gauge of night sky, with a sweep for the current spell and a cloud over the moon while it's dark, and "moonlight · cloud in 12s" or "dark · hunters half-blind · moon out in 8s". By moonlight the view has a light tint of night-blue (`src/scenes/game/nightView.ts`).
+- **Glowing plankton** (`Plankton` in `moon.ts`; `glow: [from, to]`, stretches of strand). Wherever the crab or a creature walks on it (on the surface, moving), it lights up and fades over 3 s, drawn over the dark as a cold blue-green glow with sparks idling in the rest of the strand. So in the dark you see hunters coming by their glowing tracks, and a crab that has walked in it in the last 0.8 s is lit: hunters see it as far as by moonlight. Hidden in its shell, or standing still, it stirs nothing. The HUD note says "lit up by the plankton: seen!".
+- **Moonlit sand** (`ground: 'moonlit'`, `MOON_SAND` in `src/art/palette.ts`): pale coral sand silvered by the moon, over dark reef rock.
+- **Horn-eyed ghost crabs:** the night beach's sprinters, dashing in bursts and hunting by sight.
+- **Coconut crab:** a huge, slow land hermit that hunts by smell and clambers up steps. The dark doesn't hide you from it: outrun it, or hide.
+- **Brittle stars** are the small prey.
+- **The tide** comes back for level 97 (a clear night, no clouds): each high water washes a shell in along the glowing strand.
+- **Coach lessons:** `glow` points at the plankton nearby until the crab has walked in it; `moon` speaks as the first cloud comes over and is learnt once the moon is out again.
+- **Gentle from the start:** hunters are at most size 6, one coconut crab at most, the first cloud comes within 30 s, the dark never lasts longer than the moonlight, and levels 97–100 have starter food.
+
+Shells: tiger moon snail (1–3), giant tun (2–4), horned helmet (3–6), triton's trumpet (4–7), baler (5–8): the grandest of the game, the baler last.
+
+| # | Id | Name | Goal | Shells | New |
+| --- | --- | --- | --- | --- | --- |
+| 91 | `moonrise` | Moonrise | Size 4 | Tiger moon snail, giant tun (past the glowing strand) | Glowing plankton (coach: glow) |
+| 92 | `cloud-cover` | Cloud Cover | Size 6 | …, horned helmet (up on the coral rock) | Clouds over the moon (coach: moon) |
+| 93 | `horn-eyes` | Horn Eyes | Size 6 | …, horned helmet | Horn-eyed ghost crabs (coach: hide) |
+| 94 | `turtle-nest` | Turtle Nest | Size 6 | …, horned helmet (buried by a turtle's nest) | Dig in the dark (coach: buried) |
+| 95 | `reef-flat` | Reef Flat | Size 7 | A shell along the reef flat, triton's trumpet at the far end | A chain of shells |
+| 96 | `coconut-crab` | Coconut Crab | Size 7 | …, triton's trumpet | The coconut crab, which the dark doesn't fool |
+| 97 | `glowing-tide` | Glowing Tide | Size 7 | …; triton's trumpet (brought in by the tide) | The tide brings a shell in, on a clear night |
+| 98 | `coral-rubble` | Coral Rubble | Size 7 | …, triton's trumpet (buried among the coral) | Remix: rubble, plankton, everyone |
+| 99 | `new-moon` | New Moon | Size 8 | …, baler (up on the high dune) | Storm: long dark spells, short moonlight |
+| 100 | `moonlit-bay` | Moonlit Bay | Size 8 | Every bay shell, triton's trumpet buried, baler on the highest dune | The last beach |
+
+Backdrop theme `moonlit` (`src/art/backdrop/moonlit.ts`; the night sky and clouds in `nightSky.ts`, whose `moonlit()` glazes day-coloured drawings such as the palms and driftwood in night-blue; the sea in `glowSea.ts`, the headland and cove in `nightCoast.ts`, the sand in `nightShore.ts`, boats in `nightBoats.ts`, birds in `nightBirds.ts`): a summer night on a Queensland bay in watercolour on paper. A deep indigo sky has the full moon low over the sea, left as bare paper (its face upside down, as seen from Australia), with a soft halo. Stars fill the sky, and the Milky Way runs across it with its dark dust lanes, the Southern Cross and the Pointers. Clouds with silver linings drift slowly across the moon on their own layer. On the dark sea the moon's path glitters, and the reef's breakers glow electric cyan with plankton. Black islands sit on the horizon, one with a lighthouse whose flash blinks, with the lights of far boats out to sea. Nearer, a headland of rainforest and hoop pines ends in a rocky bluff with glowing surf at its foot. In the cove are she-oaks, screw pines and coconut palms, a fibro shack on stumps with a lamp in its window, and two people at a flickering campfire. Nearest is pale moonlit sand with a glowing tideline, a loggerhead's fresh track up to where she digs her nest, an older track back to the sea, coconuts, driftwood, spinifex and goat's-foot. Boats: a prawn trawler with her booms raised and deck floodlights (one near, one far out) and a tinnie inside the reef with a man fishing by a hurricane lantern. Movers: flying foxes rowing across the moon, a pair of nankeen night herons and black noddies; the lighthouse flash and the campfire flames move in place. The nearest layer has no small creatures.
+
+## All ten beaches
+
+Each beach is its own biome: its own creatures, shells, backdrop theme and island on the map. All ten are built (above). Each brings its own idea and keeps the arc. The biomes are set (`games/inkcrab/src/level/biomes.ts`). The order changed when Beach 2 was built: climbing and the tide each belong to one beach, not all of them, so the Dune Sea (which needs neither) moved up to 2, the tide to the rock pools (3) and climbing to the mangrove forest (4).
 
 | Beach | Biome | Setting | New |
 | --- | --- | --- | --- |
@@ -409,7 +447,7 @@ Each beach is its own biome: its own creatures, shells, backdrop theme and islan
 | 7 | Wreck Cove | Driftwood and an old ship on the rocks | Rival hermit crabs: rap on a smaller one's shell to take it, and vacancy chains; stone crabs, blue crabs, an osprey (built) |
 | 8 | Monsoon Harbour | Stilt houses, nets, fishing boats | Monsoon squalls that blind the hunters; boats and stilt houses as cover; mud crabs, a water monitor, a Brahminy kite (built) |
 | 9 | Frost Shingle | Pebbles, ice floes, a cold wind | Wind gusts that blow a light shell about, and ice to slide on; snow crabs, an Arctic fox, a snowy owl (built) |
-| 10 | Moonlit Bay | Night beach, glowing tide | Darkness, glowing plankton; the last final molt |
+| 10 | Moonlit Bay | Night beach, glowing tide | Clouds over the moon that blind hunters and you; glowing plankton that gives away whatever walks on it; horn-eyed ghost crabs, a coconut crab (built; the final molt is still to come) |
 
 ## Shells
 
@@ -426,22 +464,39 @@ Only real shells, the kinds hermit crabs actually live in: no litter or other ma
 | 7 Wreck Cove | Nassa, fig shell, tulip shell, lightning whelk, horse conch (built) |
 | 8 Monsoon Harbour | Auger, babylon, cone, spider conch, Indian volute (built) |
 | 9 Frost Shingle | Wentletrap, Arctic moon snail, Neptune whelk, Arctic whelk, Iceland whelk (built) |
-| 10 Moonlit Bay | Tiger moon snail, giant tun, horned helmet, triton's trumpet, baler |
+| 10 Moonlit Bay | Tiger moon snail, giant tun, horned helmet, triton's trumpet, baler (built) |
 
 Shells keep a weight (heavier is slower and jumps lower) and a durability value that nothing uses: being caught costs a life and never damages the shell.
 
 ## Level map
 
-Level select is a beachcomber's chart seen from above, scrolling sideways. Each beach is an island in its biome's colours, with landmark sketches (palms and water villas; mangroves; rock pools and a starfish; a volcano and basalt columns; pines, kelp and a lighthouse; dunes and an oasis; a wreck; stilt houses, boats and nets; ice floes and pebbles; a moonlit, glowing shore). Its ten levels sit along the sand as numbered rings joined by crab tracks. A dashed sea route with a small sailboat links each island's last level to the next island's first. A compass rose sits in the water before the first island.
+Level select is a beachcomber's chart seen from above, scrolling sideways: pen and watercolour, drawn the way an old surveyor would. Each beach is its own island with its own silhouette, coast and waters, not one shape recoloured:
 
-- **Level states:** played levels are tinted with their blots under them; the next level has a red ring, the hermit crab bobbing over it, and its name, goal and a Play button below; levels further on are pencil. Played stretches of track are inked, the way ahead is pencil. Hovering a level shows its name.
-- **Unbuilt beaches** are drawn in full but washed back to a pencil draft, marked "uncharted · coming soon", with pencil rings numbered 11–100.
+| Beach | Island |
+| --- | --- |
+| 1 Atoll Sketchbook | A coral ring round a turquoise lagoon (deep water at its centre, coral heads, sand shoals). Passes break the northern rim into motus; palms crowd the rim; a walkway of water villas runs out over the lagoon; a reef with surf all the way round. |
+| 2 Dune Sea | Desert running off the top of the chart, a field of crescent dunes marching east, an oasis with palms and a caravan trail, a salt pan and a dry wadi. In the east it narrows to a sand spit hooking round a lagoon of flamingos; sandbars and long swells offshore. |
+| 3 Tide Pool Notes | Granite with broken, cornered shores and a headland in the north: moor of heather, gorse and bracken, tors, stone-walled fields, standing stones, an old tin mine, a tarn. The beach is rock shelves, tide pools and starfish; skerries with surf on them all round; a coastguard lookout. |
+| 4 Mangrove Margins | A maze of creeks winding in from the north through a solid mangrove canopy, stilt roots on every bank, a stilt village and a heron; mudflats off the south shore with tidal channels and fish traps; mangrove islets. |
+| 5 Ash & Basalt | A volcano in contours and hachures with a glowing crater, a smoke plume and lava flows (one steaming into the sea); black sand, honeycomb basalt columns at the points and along the northern cliffs, fumaroles, cactus scrub on the old eastern lavas, a young cone offshore. |
+| 6 Fog & Kelp | Fjords cut into a coast dark with conifers, two snowy peaks, cabins at the fjord heads, a lighthouse on the eastern point, kelp beds and sea stacks offshore, fog banks rolling over sea and woods. |
+| 7 Wreck Cove | A cove bitten out of the south shore between two points (the levels follow its curve), a reef across its mouth with a broken two-master on it, shell drifts along the tideline, sea oats, a spoonbill pond and the iron skeleton lighthouse on the east point. |
+| 8 Monsoon Harbour | Backwaters with houseboats behind the shore, paddy fields, coconut groves, a town of tiled roofs with its church, Chinese fishing nets on the north shore, a stone breakwater with moored boats and a light, a monsoon squall at sea. |
+| 9 Frost Shingle | Bare snowy hills of grey rock with tuckamore in the hollows, frozen ponds, an inuksuk, an outport of saltbox houses with a fishing stage; pack ice crowding the shore with a lead through it, fast ice in the north, icebergs, a seal on a floe; shingle on the beach. |
+| 10 Moonlit Bay | A crescent bent round a bay at night: the full moon and its glade on the water, surf glowing blue-green along every shore, a glowing reef across the bay's mouth, turtles swimming in and their tracks up the sand, rainforest with fireflies. |
+
+Around the islands the chart has water lines following every shore, shallows and shoal dots, depth soundings (deeper away from land, with the bottom's shorthand: co, s, rk, m, wd, sh, g), wave marks, and the ruled rhumb lines of a portolan radiating from wind roses. Each island's name hangs in a scroll cartouche over its northern sea, with small hand-lettered place names on the island. Sea creatures and ships fill the straits (a turtle and flying fish, a whale, a brig, a manta, a sea serpent "here be serpents", orcas, dolphins, a humpback's fluke, an octopus). Before the first island are the title cartouche, the compass rose and a scale of crab steps; after the last, a giant hermit crab: "Here be Crabs".
+
+Its ten levels sit along the sand as numbered rings joined by crab tracks; nothing on the chart is drawn under the route. A dashed sea route with a small sailboat links each island's last level to the next island's first, swinging out through the strait.
+
+- **Level states:** played levels are tinted with their blots under them; the next level has a red ring, the hermit crab bobbing over it, and its name and goal (on a scrap of paper, so they read over reefs and ice) and a Play button below; levels further on are pencil. Played stretches of track are inked, the way ahead is pencil. Hovering a level shows its name.
+- **Unbuilt beaches** are drawn in full but washed back to a pencil draft, marked "uncharted · coming soon", with pencil rings. (All ten beaches are built now, so this only shows if a beach is taken out.)
 - **Getting around:** drag, scroll or use the arrow keys; tabs 1–10 at the bottom jump between islands, and the caption above them names the island in view.
-- **Code:** layout (pure, tested) in `games/inkcrab/src/scenes/map/layout.ts`; the chart is drawn in `src/art/map/` and baked in 1024 px chunks around the camera, freed when far away (`chartView.ts`), so the long chart never sits in memory whole.
+- **Code:** layout (pure, tested) in `games/inkcrab/src/scenes/map/layout.ts`, each island's shore profile in `profiles.ts` and its plan (lagoon, creeks, fjords, islets, spit, breakwater, cartouche, sea routes) in `plan.ts`. The chart is drawn in `src/art/map/`: the sea and soundings in `sea.ts`, the shared island drawing in `island.ts`, one file per island in `islands/`, symbols, creatures, cartouches and ornaments alongside. It's baked in 1024 px chunks around the camera, freed when far away (`chartView.ts`), so the long chart never sits in memory whole; everything is placed from world-fixed seeds so chunk seams never show, and drawings outside a chunk are skipped. A chunk bakes in about 15 ms (40 ms at worst), the same as the old, plainer chart.
 
 ## What exists, what to build
 
-Built: walking, jumping, eating, the growth cap, fifty real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` to `beach9.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All ninety levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens; Beach 3 the tide, fish, octopuses and gulls; Beach 4 mangrove roots to climb, mud, mudskippers, herons and tree crabs; Beach 5 steam vents, basalt columns, black sand, Sally Lightfoot crabs and a hawk; Beach 6 sea fog, kelp wrack, grey sand, Dungeness crabs, a raccoon and a kingfisher; Beach 7 rival hermit crabs and vacancy chains, stone crabs, blue crabs and an osprey; Beach 8 monsoon squalls, boats, stilt houses and drying racks, mud crabs, a water monitor and a Brahminy kite; Beach 9 wind gusts, ice, shingle, snow crabs, an Arctic fox and a snowy owl.
+Built: walking, jumping, eating, the growth cap, fifty-five real shells, moving house, digging and placing sand with a carry limit, buried items, ghost crabs, hiding, and the level system (level data in `games/inkcrab/src/level/beach1.ts` to `beach10.ts`, lives, win and loss, intro and result cards, the level map, saved progress). After a loss, the result card shows what actually caught the crab (a bird hovering over the shell) with a tip about getting away from it. All hundred levels are playable; Beach 1 still uses the stand-ins above. Beach 2 added dune sand, the kestrel, antlion pits, sandfish and ravens; Beach 3 the tide, fish, octopuses and gulls; Beach 4 mangrove roots to climb, mud, mudskippers, herons and tree crabs; Beach 5 steam vents, basalt columns, black sand, Sally Lightfoot crabs and a hawk; Beach 6 sea fog, kelp wrack, grey sand, Dungeness crabs, a raccoon and a kingfisher; Beach 7 rival hermit crabs and vacancy chains, stone crabs, blue crabs and an osprey; Beach 8 monsoon squalls, boats, stilt houses and drying racks, mud crabs, a water monitor and a Brahminy kite; Beach 9 wind gusts, ice, shingle, snow crabs, an Arctic fox and a snowy owl; Beach 10 clouds over the moon, glowing plankton, moonlit sand, horn-eyed ghost crabs and a coconut crab.
 
 Still to build, replacing the stand-ins:
 

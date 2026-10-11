@@ -8,7 +8,11 @@ import { dolphin, laughingGull, osprey } from './gulfAnimals';
 import { sampan } from './estuary';
 import { houseCrow, littleCormorant } from './keralaBirds';
 import { eider, kittiwake, raven } from './labradorBirds';
+import { lighthouseFlash } from './glowSea';
 import { egretFlying, ibis, kite } from './mudLife';
+import { FIRE_X, FIRE_Y, LIGHT_X, LIGHT_Y } from './moonlit';
+import { flyingFox, nightHeron, noddy } from './nightBirds';
+import { flames } from './nightCoast';
 import { cormorant, westernGull } from './pnwBirds';
 import { bird, seaplane } from './tropic';
 
@@ -84,6 +88,19 @@ const littleCormorantBird: Bird = (d, x, y, s, f) => littleCormorant(d, x, y, s,
 const drakeBird: Bird = (d, x, y, s, f) => eider(d, x, y, s, f, true);
 const henBird: Bird = (d, x, y, s, f) => eider(d, x, y, s, f, false);
 const kittiwakeBird: Bird = (d, x, y, s, f) => kittiwake(d, x, y, s, f);
+const foxBat: Bird = (d, x, y, s, f) => flyingFox(d, x, y, s, f);
+const nightHeronBird: Bird = (d, x, y, s, f) => nightHeron(d, x, y, s, f);
+const noddyBird: Bird = (d, x, y, s, f) => noddy(d, x, y, s, f);
+
+/** Flying foxes in a straggling line: a flock whose box takes in their big wings' full stroke, up and down. */
+function colony(members: readonly (readonly [number, number, number])[]): Pick<MoverSpec, 'box' | 'frames' | 'draw'> {
+  const xs = members.map(([dx, , s]) => [dx - 19 * s, dx + 11 * s]).flat();
+  const ys = members.map(([, dy, s]) => [dy - 22 * s, dy + 20 * s]).flat();
+  return { ...flock(members, foxBat), box: { left: Math.min(...xs), right: Math.max(...xs), top: Math.min(...ys), bottom: Math.max(...ys) } };
+}
+
+/** Frames in the lighthouse's cycle: a flash and its fading, then dark. */
+const FLASH_FRAMES = 8;
 
 /** Two flocks flown as one mover (eider drakes and ducks in the same line). */
 function together(a: Pick<MoverSpec, 'box' | 'frames' | 'draw'>, b: Pick<MoverSpec, 'box' | 'frames' | 'draw'>): Pick<MoverSpec, 'box' | 'frames' | 'draw'> {
@@ -234,5 +251,25 @@ export const THEME_MOVERS: Readonly<Record<ThemeId, readonly MoverSpec[]>> = {
     { layer: 'cliffs', y: 120, x: 150, speed: 2, fps: 4, circle: { r: 40, period: 17 }, turns: true, ...tumbling(1.5, 3) },
     { layer: 'cliffs', y: 168, x: 560, speed: 10, bob: 3, fps: 3.5, turns: true, ...flock([[0, -5, 1.2], [36, 6, 1.1]], kittiwakeBird) },
     { layer: 'cliffs', y: 244, x: 880, speed: 17, bob: 0.8, fps: 8, turns: true, ...together(flock([[0, 0, 0.95], [44, 2, 0.9]], drakeBird), flock([[22, 1, 0.92], [66, 3, 0.88]], henBird)) },
+  ],
+  // Flying foxes rowing across the moon in a straggling line and in ones and twos, night herons and noddies;
+  // the far lighthouse flashing and the campfire's flames flickering, standing still.
+  moonlit: [
+    { layer: 'sky', y: 176, x: 120, speed: 6, bob: 1.5, fps: 2.5, turns: true, ...colony([[0, 0, 1.2], [30, -9, 1.05], [64, 3, 1.1], [100, -12, 0.95], [146, -2, 1], [190, -10, 0.9], [236, 2, 0.85]]) },
+    { layer: 'sky', y: 112, x: 700, speed: 5, bob: 2, fps: 2.2, turns: true, ...colony([[0, 0, 0.9], [34, 7, 0.8], [80, -4, 0.75]]) },
+    { layer: 'sky', y: 236, x: 900, speed: -9, bob: 1, fps: 7, turns: true, ...flock([[0, 0, 0.6], [20, 3, 0.55], [38, -2, 0.55]], noddyBird) },
+    { layer: 'sky', y: 70, x: 480, speed: -4, bob: 1.5, fps: 2.4, turns: true, ...colony([[0, 0, 0.7]]) },
+    {
+      layer: 'sea', y: LIGHT_Y, x: LIGHT_X, speed: 0, frames: FLASH_FRAMES, fps: 2.5,
+      box: { left: -92, right: 92, top: -12, bottom: 12 }, draw: (d, x, y, f) => lighthouseFlash(d, x, y, f === 0 ? 1 : f === 1 ? 0.45 : 0),
+    },
+    { layer: 'sea', y: 96, x: 300, speed: 8, bob: 1.5, fps: 3, turns: true, ...flock([[0, 0, 0.8], [26, -6, 0.75]], nightHeronBird) },
+    { layer: 'sea', y: 40, x: 860, speed: 7, bob: 1.5, fps: 2.4, turns: true, ...colony([[0, 0, 0.75], [28, -6, 0.7]]) },
+    {
+      layer: 'cliffs', y: FIRE_Y - 1.5, x: FIRE_X, speed: 0, frames: 4, fps: 7,
+      box: { left: -8, right: 8, top: -14, bottom: 3 }, draw: (d, x, y, f) => flames(d, x, y, 1.1, f),
+    },
+    { layer: 'cliffs', y: 150, x: 820, speed: 11, bob: 2.5, fps: 2.6, turns: true, ...colony([[0, 0, 1.3], [40, -10, 1.2]]) },
+    { layer: 'cliffs', y: 214, x: 200, speed: -10, bob: 1.5, fps: 3.2, turns: true, ...flock([[0, 0, 1.1], [32, -5, 1.05]], nightHeronBird) },
   ],
 };

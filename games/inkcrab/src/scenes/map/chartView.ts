@@ -61,7 +61,8 @@ export class ChartView {
     drawChartChunk(ctx, this.layout, x0, w, i);
     const key = this.key(i);
     if (this.scene.textures.exists(key)) this.scene.textures.remove(key);
-    this.scene.textures.addCanvas(key, canvas);
+    // A plain image texture from the canvas: addCanvas would make a CanvasTexture, which reads every pixel back.
+    this.scene.textures.addImage(key, canvas as unknown as HTMLImageElement);
     const img = this.scene.add.image(x0, 0, key).setOrigin(0).setDisplaySize(w, this.layout.height);
     this.layer.add(img);
     this.chunks.set(i, img);

@@ -67,6 +67,8 @@ const HUNTER_TIPS: Partial<Readonly<Record<HunterId, string>>> = {
   snowcrab: 'Snow crabs hunt by sight and they\'re quick on the pebbles. Hide in your shell, or get the wind behind you and outrun them.',
   arcticfox: 'An Arctic fox hunts by smell. In a gust it smells you from far downwind, but not upwind: keep upwind of it, or hide in your shell.',
   snowyowl: 'A red shadow on the sand is a snowy owl about to stoop. Get under the sand or hide in your shell. It can\'t hover in a gust.',
+  horneyed: 'Horn-eyed ghost crabs dash in bursts and hunt by sight. Wait for a cloud over the moon, keep off the glowing sand, or hide in your shell.',
+  coconutcrab: 'A coconut crab hunts by smell: the dark won\'t hide you from it. It\'s slow: outrun it, or hide in your shell till it loses interest.',
   treecrab: 'Tree crabs climb as well as you do. Drop off the roots (jump, or hold down on a branch) and run for it, or hide.',
 };
 

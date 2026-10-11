@@ -17,8 +17,10 @@ import { drawTideClock } from './tideClock';
 import { tidePhase, tideTurn } from '../logic/tide';
 import { drawRainClock } from './rainClock';
 import { drawWindClock } from './windClock';
+import { drawMoonClock } from './moonClock';
 import { rainTurn } from '../logic/rain';
 import { windTurn } from '../logic/wind';
+import { moonTurn } from '../logic/moon';
 import { chainPrompt, missionGoal, missionLine, missionNotes, missionTag } from '../logic/mission';
 
 const PANEL = { x: 16, y: 14, w: 380, h: 118 } as const;
@@ -34,6 +36,8 @@ const INTRO_NOTE_MS = 1500;
 /** The pause button, top right; the lives start left of it. */
 const PAUSE = { w: 52, h: 44, fromRight: 42 } as const;
 const LIVES_FROM_RIGHT = 104;
+/** Paper behind the HUD's loose lines of text on a night beach. */
+const NIGHT_PAPER = 'rgba(245, 240, 225, 0.88)';
 /** The tide clock (or the rain clock), under the lives at the top right. */
 const TIDE = { r: 20, fromRight: 54, y: 96 } as const;
 
@@ -104,6 +108,8 @@ export class HudScene extends Phaser.Scene {
     this.help = text(0, 0, 18).setOrigin(1, 1).setAlpha(0.7);
     this.tideText = text(0, 0, 18).setOrigin(1, 0.5);
     this.missionText = text(28, MISSION.y, 18, RED);
+    // On a night beach the sky and sand behind the loose lines are dark: they get a scrap of paper behind them.
+    if (game.beach.moon || game.beach.plankton) for (const t of [this.help, this.tideText, this.prompt]) t.setBackgroundColor(NIGHT_PAPER);
     this.input.on('pointerdown', this.onDown, this);
     this.input.on('pointermove', this.onMove, this);
     this.input.on('pointerup', this.onUp, this);
@@ -142,6 +148,7 @@ export class HudScene extends Phaser.Scene {
     this.drawTide(game, width);
     this.drawRain(game, width);
     this.drawWind(game, width);
+    this.drawMoon(game, width);
     drawSandGauge(g, HEAP_AT.x, HEAP_AT.bottom, c.sand, beach.sandCapacity);
     // Full, it digs nothing until it unloads; past full (a smaller shell) is a warning.
     const loaded = c.sand >= beach.sandCapacity;
@@ -150,7 +157,7 @@ export class HudScene extends Phaser.Scene {
     this.sand.setColor(c.sand > beach.sandCapacity ? RED : BLUE);
     // Centred under the heap, but kept inside the panel when the hint makes it long.
     this.sand.setX(Math.min(HEAP_AT.x, PANEL.x + PANEL.w - 8 - this.sand.width / 2));
-    this.note.setText(c.swap ? 'moving house… exposed!' : c.hidden ? 'hiding in the shell' : beach.underKelp(c.body) ? 'under the kelp, out of sight' : beach.underDeck(c.body) ? 'under cover, safe from the sky' : beach.windOn(c.body) !== 0 && beach.gusting ? 'blown along by the gust!' : beach.gusting && beach.sheltered(c.body) ? 'in the lee, out of the wind' : beach.capped ? 'shell full, find a bigger one' : 'growing');
+    this.note.setText(c.swap ? 'moving house… exposed!' : c.hidden ? 'hiding in the shell' : beach.underKelp(c.body) ? 'under the kelp, out of sight' : beach.underDeck(c.body) ? 'under cover, safe from the sky' : beach.windOn(c.body) !== 0 && beach.gusting ? 'blown along by the gust!' : beach.gusting && beach.sheltered(c.body) ? 'in the lee, out of the wind' : beach.lit && beach.darkness > 0.5 ? 'lit up by the plankton: seen!' : beach.capped ? 'shell full, find a bigger one' : 'growing');
     this.note.setColor(c.swap ? RED : BLUE);
     this.shell.setText(c.shell ? `in a ${shellName(c.shell)}` : 'no shell!');
 
@@ -236,6 +243,19 @@ export class HudScene extends Phaser.Scene {
     const secs = Math.ceil(turn.seconds);
     const way = turn.dir > 0 ? '→' : '←';
     this.tideText.setText(turn.gusting ? `gusting ${way} · dies down in ${secs}s` : `calm · gust ${way} in ${secs}s`).setPosition(x - TIDE.r - 10, TIDE.y);
+  }
+
+  /** On a moonlit beach: the moon clock, and how long until a cloud covers it or it comes out. */
+  private drawMoon(game: GameScene, width: number): void {
+    const moon = game.beach.moon;
+    if (!moon) return;
+    this.tideText.setVisible(true);
+    const turn = moonTurn(moon, game.beach.elapsed);
+    const spell = turn.dark ? moon.dark : moon.period - moon.dark;
+    const x = width - TIDE.fromRight - 10;
+    drawMoonClock(this.g, x, TIDE.y, TIDE.r, 1 - turn.seconds / spell, turn.dark);
+    const secs = Math.ceil(turn.seconds);
+    this.tideText.setText(turn.dark ? `dark · hunters half-blind · moon out in ${secs}s` : `moonlight · cloud in ${secs}s`).setPosition(x - TIDE.r - 10, TIDE.y);
   }
 
   private drawCoach(game: GameScene, width: number): void {

@@ -10,6 +10,8 @@ import { longliner, punt } from './backdrop/labradorBoats';
 import { clouds as duneClouds, desert, DESERT_H, DUNE_SKY_H, dunes, DUNES_H, sea, SEA_H, sky as duneSky } from './backdrop/dunes';
 import { cliffs as kelpCliffs, clouds as kelpClouds, KELP_CLIFFS_H, KELP_CLOUDS_H, KELP_SEA_H, KELP_SHORE_H, KELP_SKY_H, sea as kelpSea, shore as kelpShore, sky as kelpSky } from './backdrop/kelp';
 import { clouds as mangroveClouds, forest, FOREST_H, MANGROVE_SKY_H, mudflat, MUDFLAT_H, river, RIVER_H, sky as mangroveSky } from './backdrop/mangrove';
+import { cliffs as moonlitCliffs, clouds as moonlitClouds, MOONLIT_CLIFFS_H, MOONLIT_SEA_H, MOONLIT_SHORE_H, MOONLIT_SKY_H, sea as moonlitSea, shore as moonlitShore, sky as moonlitSky } from './backdrop/moonlit';
+import { prawnTrawler, tinnie } from './backdrop/nightBoats';
 import { cliffs, CLIFFS_H, clouds as rockClouds, ROCK_SEA_H, ROCK_SKY_H, sea as rockSea, shelf, SHELF_H, sky as rockSky } from './backdrop/rockpool';
 import { cliffs as wreckCliffs, clouds as wreckClouds, sea as wreckSea, shore as wreckShore, sky as wreckSky, WRECK_CLIFFS_H, WRECK_SEA_H, WRECK_SHORE_H, WRECK_SKY_H } from './backdrop/wreck';
 import type { Draw } from './kit';
@@ -22,7 +24,7 @@ export { THEME_MOVERS, type MoverSpec } from './backdrop/movers';
  * so the sand and creatures in front always read first. Each beach has its
  * own theme; layers tile horizontally (see `tiled`).
  */
-export type ThemeId = 'atoll' | 'dunes' | 'rockpool' | 'mangrove' | 'basalt' | 'kelp' | 'wreck' | 'harbour' | 'frost';
+export type ThemeId = 'atoll' | 'dunes' | 'rockpool' | 'mangrove' | 'basalt' | 'kelp' | 'wreck' | 'harbour' | 'frost' | 'moonlit';
 export type LayerId = 'sky' | 'clouds' | 'lagoon' | 'resort' | 'shore' | 'sea' | 'dunes' | 'cliffs' | 'river' | 'forest';
 
 export interface LayerSpec {
@@ -109,9 +111,17 @@ export const THEMES: Readonly<Record<ThemeId, readonly LayerSpec[]>> = {
     { id: 'cliffs', height: FROST_CLIFFS_H, scroll: 0.26, lift: 10, draw: frostCliffs },
     { id: 'shore', height: FROST_SHORE_H, scroll: 0.4, lift: -14, draw: frostShore },
   ],
+  moonlit: [
+    // Tall and set low, as the frost's are, so the moon hangs low over the sea's horizon; the clouds drift slowly across it.
+    { id: 'sky', height: MOONLIT_SKY_H, scroll: 0.08, lift: 80, draw: moonlitSky },
+    { id: 'clouds', height: MOONLIT_SKY_H, scroll: 0.08, lift: 80, drift: 2, draw: moonlitClouds },
+    { id: 'sea', height: MOONLIT_SEA_H, scroll: 0.16, lift: 20, draw: moonlitSea },
+    { id: 'cliffs', height: MOONLIT_CLIFFS_H, scroll: 0.26, lift: 10, draw: moonlitCliffs },
+    { id: 'shore', height: MOONLIT_SHORE_H, scroll: 0.4, lift: -14, draw: moonlitShore },
+  ],
 };
 
-export type BoatKind = 'dhoni' | 'yacht' | 'longtail' | 'troller' | 'shrimper' | 'vallam' | 'keralaTrawler' | 'longliner' | 'punt';
+export type BoatKind = 'dhoni' | 'yacht' | 'longtail' | 'troller' | 'shrimper' | 'vallam' | 'keralaTrawler' | 'longliner' | 'punt' | 'prawnTrawler' | 'tinnie';
 
 /** A boat sailing on a layer, drawn as its own sprite so it can move. */
 export interface BoatSpec extends Lane {
@@ -135,9 +145,11 @@ export const BOAT_BOX: Readonly<Record<BoatKind, { readonly left: number; readon
   keralaTrawler: { left: -34, right: 28, top: -40, bottom: 9 },
   longliner: { left: -42, right: 32, top: -44, bottom: 9 },
   punt: { left: -30, right: 22, top: -20, bottom: 8 },
+  prawnTrawler: { left: -42, right: 31, top: -56, bottom: 16 },
+  tinnie: { left: -20, right: 25, top: -22, bottom: 16 },
 };
 
-export const BOAT_DRAW: Readonly<Record<BoatKind, (d: Draw, x: number, water: number, s: number) => void>> = { dhoni, yacht, longtail, troller, shrimper, vallam, keralaTrawler, longliner, punt };
+export const BOAT_DRAW: Readonly<Record<BoatKind, (d: Draw, x: number, water: number, s: number) => void>> = { dhoni, yacht, longtail, troller, shrimper, vallam, keralaTrawler, longliner, punt, prawnTrawler, tinnie };
 
 /**
  * The boats out on the water. Yachts drift along the horizon and a small
@@ -186,5 +198,11 @@ export const THEME_BOATS: Readonly<Record<ThemeId, readonly BoatSpec[]>> = {
     { kind: 'longliner', s: 0.38, layer: 'sea', water: 88, x: 880, speed: -0.9, front: false },
     { kind: 'longliner', s: 0.75, layer: 'sea', water: 118, x: 140, speed: 2.4, front: false },
     { kind: 'punt', s: 0.95, layer: 'sea', water: 152, x: 520, speed: -2.6, front: false },
+  ],
+  // A prawn trawler working along outside the reef under her floodlights, another far out, a tinnie drifting inside the reef.
+  moonlit: [
+    { kind: 'prawnTrawler', s: 0.42, layer: 'sea', water: 86, x: 860, speed: -0.8, front: false },
+    { kind: 'prawnTrawler', s: 0.72, layer: 'sea', water: 112, x: 220, speed: 1.4, front: false },
+    { kind: 'tinnie', s: 0.95, layer: 'sea', water: 168, x: 560, speed: 1, range: [430, 720], front: false },
   ],
 };

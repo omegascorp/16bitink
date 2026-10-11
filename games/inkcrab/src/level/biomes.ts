@@ -30,5 +30,5 @@ export const BIOMES: readonly Biome[] = [
   { id: 'wreck', beach: 7, name: 'Wreck Cove', tagline: 'driftwood and an old ship on the rocks', land: '#97a07a', sand: '#dccaa2', sea: '#467f9c' },
   { id: 'harbour', beach: 8, name: 'Monsoon Harbour', tagline: 'stilt houses, nets and fishing boats', land: '#79a86a', sand: '#d9c59a', sea: '#4d93a0' },
   { id: 'frost', beach: 9, name: 'Frost Shingle', tagline: 'pebbles, ice floes and a cold wind', land: '#c9d4d6', sand: '#d7d3c8', sea: '#6c9cb8' },
-  { id: 'moonlit', beach: 10, name: 'Moonlit Bay', tagline: 'a glowing tide under the moon: the final molt', land: '#5d6a86', sand: '#b8b4c4', sea: '#2f4d7a' },
+  { id: 'moonlit', beach: 10, name: 'Moonlit Bay', tagline: 'a glowing tide under the full moon', land: '#5d6a86', sand: '#b8b4c4', sea: '#2f4d7a' },
 ];

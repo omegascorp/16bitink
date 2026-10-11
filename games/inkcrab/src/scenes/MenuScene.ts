@@ -9,7 +9,9 @@ import { BIOMES, LEVELS_PER_BEACH } from '../level/biomes';
 import { levelGoal } from '../level/build';
 import { BEACHES, isPaid, LEVEL_ORDER, LEVELS } from '../level/levels';
 import { isUnlocked, loadProgress, type Progress } from '../logic/save';
+import { BANNER_TEXT } from '../art/map/banner';
 import { ChartView } from './map/chartView';
+import { islandPlans } from './map/plan';
 import { computeMapLayout, MAP, regionIndexAt, type MapBeach, type MapLayout, type MapNode } from './map/layout';
 import { buildRoute, type NodeState } from './map/routeView';
 import { crispText, DPR, screenZoom, toView, uiCamera, viewSize } from './hidpi';
@@ -124,15 +126,15 @@ export class MenuScene extends Phaser.Scene {
     else this.scene.start('Game', { levelId });
   }
 
-  /** Each island's name and tagline written across its scrub; unbuilt ones are marked uncharted. */
+  /** Each island's name and tagline, lettered into its cartouche on the chart; unbuilt ones are marked uncharted. */
   private islandLabels(layer: Phaser.GameObjects.Layer): void {
-    for (const r of this.layout.regions) {
-      const cx = (r.x0 + r.x1) / 2;
-      const y = (this.layout.topAt(cx) + this.layout.coastAt(cx) - MAP.sandBand) / 2 - 10;
+    const plans = islandPlans(this.layout);
+    this.layout.regions.forEach((r, i) => {
+      const { x, y } = plans[i]!.label;
       const color = r.beach.built ? BLUE : PENCIL;
-      layer.add(inkText(this, cx, y, `${r.beach.biome.beach}. ${r.beach.biome.name}`, 40, color));
-      layer.add(inkText(this, cx, y + 36, r.beach.built ? r.beach.biome.tagline : 'uncharted · coming soon', 22, r.beach.built ? SOFT_INK : PENCIL));
-    }
+      layer.add(inkText(this, x, y + BANNER_TEXT.nameDy, `${r.beach.biome.beach}. ${r.beach.biome.name}`, BANNER_TEXT.nameSize, color));
+      layer.add(inkText(this, x, y + BANNER_TEXT.taglineDy, r.beach.built ? r.beach.biome.tagline : 'uncharted · coming soon', BANNER_TEXT.taglineSize, r.beach.built ? SOFT_INK : PENCIL));
+    });
   }
 
   /** "You are here": the hermit crab in its periwinkle, bobbing over the current level, with a Play button under it. */
@@ -149,8 +151,13 @@ export class MenuScene extends Phaser.Scene {
     const def = LEVELS.find((l) => l.id === node.levelId);
     if (!def) return;
     const y = node.y + MAP.nodeRadius + (done ? 48 : 34);
-    layer.add(inkText(this, node.x, y, def.name, 22));
-    layer.add(inkText(this, node.x, y + 24, shortGoal(missionOf(def), levelGoal(def)), 17, SOFT_INK));
+    const title = inkText(this, node.x, y, def.name, 22);
+    const goal = inkText(this, node.x, y + 24, shortGoal(missionOf(def), levelGoal(def)), 17, SOFT_INK);
+    // A scrap of paper under the words, so they read over reefs and ice.
+    const w = Math.max(title.width, goal.width) + 16;
+    const card = this.add.graphics();
+    card.fillStyle(PAPER_HEX, 0.82).fillRoundedRect(node.x - w / 2, y - 16, w, 54, 8);
+    layer.add([card, title, goal]);
     const host = getHost(this);
     const locked = isPaid(def.id) && !host.unlocked;
     const label = locked ? (host.price ? `Unlock · ${host.price}` : 'Unlock') : done ? 'Play again' : 'Play';
@@ -201,6 +208,10 @@ export class MenuScene extends Phaser.Scene {
     panel.fillStyle(PAPER_HEX, 0.85).fillRect(0, height - 92, width, 92);
     panel.lineStyle(1.4, BLUE_HEX, 0.7).lineBetween(0, height - 92, width, height - 92);
     layer.add(panel);
+    const head = this.add.graphics();
+    head.fillStyle(PAPER_HEX, 0.82).fillRoundedRect(12, 8, 196, 82, 10);
+    head.lineStyle(1.2, BLUE_HEX, 0.5).strokeRoundedRect(12, 8, 196, 82, 10);
+    layer.add(head);
     layer.add(inkText(this, 110, 36, 'InkCrab', 44));
     layer.add(this.add.text(30, 64, `${done} of ${this.layout.nodes.length} levels`, { fontFamily: HAND_FONT, fontSize: '20px', color: SOFT_INK }));
     layer.add(inkButton(this, width - 100, 38, '← 16bit.ink', () => host.onExit(), { width: 170, height: 44, size: 24 }));
