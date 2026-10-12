@@ -1,7 +1,7 @@
 import type { SfxId } from '../../../src/audio/recipes';
 import { createRng } from '../../../src/logic/rng';
 import { mouthOf, NOSE, type Pose } from '../chain';
-import { clamp01, lerp, ramp, window01 } from '../short';
+import { clamp01, curveAt, lerp, ramp, window01 } from '../short';
 
 /**
  * "Some fish eat birds": in the Seychelles, giant trevally leap clean out of
@@ -108,8 +108,8 @@ export function alarm(t: number): number {
 
 /**
  * Where the trevally's body is at key moments, and optionally which way and
- * how fast it is going there (px/s); it swims a smooth curve through them,
- * heading the way it goes.
+ * how fast it is going there (px/s); it swims a smooth curve through them
+ * (see curveAt), heading the way it goes.
  */
 interface Key { readonly t: number; readonly x: number; readonly y: number; readonly v?: Pt }
 
@@ -134,37 +134,14 @@ const KEYS: readonly Key[] = [
   { t: GONE_AT, x: 1300, y: 2250 },
 ];
 
-/** Catmull-Rom tangents for keys unevenly spaced in time (one-sided at the ends), unless a key sets its own. */
-const TANGENTS: readonly Pt[] = KEYS.map((k, i) => {
-  if (k.v) return k.v;
-  const a = KEYS[Math.max(0, i - 1)]!;
-  const b = KEYS[Math.min(KEYS.length - 1, i + 1)]!;
-  return { x: (b.x - a.x) / (b.t - a.t), y: (b.y - a.y) / (b.t - a.t) };
-});
+const X_KEYS = KEYS.map((k) => ({ t: k.t, at: k.x, rate: k.v?.x }));
+const Y_KEYS = KEYS.map((k) => ({ t: k.t, at: k.y, rate: k.v?.y }));
 
 /** The body's position and velocity (px/s) at time t, held at the ends. */
 export function track(t: number): { readonly at: Pt; readonly v: Pt } {
-  const time = Math.min(Math.max(t, KEYS[0]!.t), KEYS[KEYS.length - 1]!.t);
-  let i = 0;
-  while (i < KEYS.length - 2 && time > KEYS[i + 1]!.t) i++;
-  const k0 = KEYS[i]!;
-  const k1 = KEYS[i + 1]!;
-  const m0 = TANGENTS[i]!;
-  const m1 = TANGENTS[i + 1]!;
-  const h = k1.t - k0.t;
-  const s = (time - k0.t) / h;
-  const s2 = s * s;
-  const s3 = s2 * s;
-  // Cubic Hermite basis and its derivative.
-  const [h00, h10, h01, h11] = [2 * s3 - 3 * s2 + 1, s3 - 2 * s2 + s, -2 * s3 + 3 * s2, s3 - s2];
-  const [d00, d10, d01, d11] = [6 * s2 - 6 * s, 3 * s2 - 4 * s + 1, -6 * s2 + 6 * s, 3 * s2 - 2 * s];
-  const along = (p0: number, p1: number, t0: number, t1: number): [number, number] => [
-    h00 * p0 + h10 * h * t0 + h01 * p1 + h11 * h * t1,
-    (d00 * p0 + d01 * p1) / h + d10 * t0 + d11 * t1,
-  ];
-  const [x, vx] = along(k0.x, k1.x, m0.x, m1.x);
-  const [y, vy] = along(k0.y, k1.y, m0.y, m1.y);
-  return { at: { x, y }, v: { x: vx, y: vy } };
+  const x = curveAt(X_KEYS, t);
+  const y = curveAt(Y_KEYS, t);
+  return { at: { x: x.at, y: y.at }, v: { x: x.rate, y: y.rate } };
 }
 
 /** The trevally is in the picture over [RISE_FROM, GONE_AT]: off the edge at both ends. */

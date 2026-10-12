@@ -56,20 +56,7 @@ export const SEADEVIL_ART: Anatomy = {
   pectoral: 0.45, pelvic: false, scales: false, eye: { t: 0.22, r: 2.6 }, mouth: 'gape',
   wash: '#2a2630', finWash: '#3b3642', finAlpha: 0.55, gills: 'none', lateral: false,
   extras: (k) => {
-    // Velvet-black skin, blacker over the back, with soft folds.
-    k.pen.clipped(k.body, () => {
-      k.pen.fill(k.body, BLACK, 0.55);
-      for (let t = 0.05; t < 1; t += 0.06) k.pen.fill(ellipse(k.x(t), topAt(k.a, t) + 6, 10, k.h(t) * 0.7, 8), BLACK, 0.12);
-      for (let i = 0; i < 7; i++) {
-        const t = 0.3 + i * 0.08;
-        k.pen.hair(bezier({ x: k.x(t), y: topAt(k.a, t) + 6 }, { x: k.x(t) - 6, y: C + 4 }, { x: k.x(t) + 1, y: bottomAt(k.a, t) - 6 }, 8), 0.5, '#5c5664', 0.55);
-      }
-    });
-    k.pen.stipple(k.body, 3200, (_x, y) => (y < C ? 0.6 : 0.4), 0.55, k.ink);
-    // Pale sense pores in lines over the head and down the flank.
-    for (const [from, to, v] of [[0.12, 0.5, -0.45], [0.2, 0.75, 0.05], [0.15, 0.55, 0.5]] as const) {
-      for (let t = from; t < to; t += 0.045) k.pen.dot(k.x(t), C + k.h(t) * v + Math.sin(t * 20) * 1.5, 0.9, '#cfc8d6', 0.75);
-    }
+    skin(k);
     mate(k);
   },
   face: (k) => {
@@ -77,3 +64,23 @@ export const SEADEVIL_ART: Anatomy = {
     bulb(k);
   },
 };
+
+/** The same female without her mate, for the promo video where the males join her one by one. */
+export const SEADEVIL_UNMATED: Anatomy = { ...SEADEVIL_ART, extras: (k) => skin(k) };
+
+/** Velvet-black skin, blacker over the back, with soft folds, and pale sense pores. */
+function skin(k: Kit): void {
+  k.pen.clipped(k.body, () => {
+    k.pen.fill(k.body, BLACK, 0.55);
+    for (let t = 0.05; t < 1; t += 0.06) k.pen.fill(ellipse(k.x(t), topAt(k.a, t) + 6, 10, k.h(t) * 0.7, 8), BLACK, 0.12);
+    for (let i = 0; i < 7; i++) {
+      const t = 0.3 + i * 0.08;
+      k.pen.hair(bezier({ x: k.x(t), y: topAt(k.a, t) + 6 }, { x: k.x(t) - 6, y: C + 4 }, { x: k.x(t) + 1, y: bottomAt(k.a, t) - 6 }, 8), 0.5, '#5c5664', 0.55);
+    }
+  });
+  k.pen.stipple(k.body, 3200, (_x, y) => (y < C ? 0.6 : 0.4), 0.55, k.ink);
+  // Pale sense pores in lines over the head and down the flank.
+  for (const [from, to, v] of [[0.12, 0.5, -0.45], [0.2, 0.75, 0.05], [0.15, 0.55, 0.5]] as const) {
+    for (let t = from; t < to; t += 0.045) k.pen.dot(k.x(t), C + k.h(t) * v + Math.sin(t * 20) * 1.5, 0.9, '#cfc8d6', 0.75);
+  }
+}

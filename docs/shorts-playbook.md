@@ -12,6 +12,7 @@ All four videos below were posted 2026-10-11 and checked 2026-10-12, so about on
 | "Wait for the shark... 🦈👀" (`inkfish-viral-shark.mp4`) | 13s | 42% | **125%** | 1,376 | 459 | 8 | 0 |
 | "How deep do fish actually live? 🌊" (`inkfish-how-deep.mp4`) | 25s | 33% | 85% | 1,304 | 387 | 11 | +1 |
 | "InkFish Level 1" (long-form gameplay) | 61s | – | 34% | 2 | 1 | 1 | – |
+| "Fish that eat birds?! 🐟🐦" (`inkfish-fish-eat-birds.mp4`), posted 2026-10-12, **checked ~1 hour in** | 12s | **16%** | ~70% (0:09 avg) | – | 31 | – | – |
 
 Not exported yet: traffic sources, retention curves, and clicks through to 16bit.ink.
 
@@ -23,15 +24,17 @@ Not exported yet: traffic sources, retention curves, and clicks through to 16bit
 4. **Explainers lose the swipe.** "How deep…" opened with a question and a slow descent: two-thirds of viewers swiped away, and it didn't loop (85% viewed). The people who stayed liked it (best likes per engaged view), so the idea is fine; the opening isn't.
 5. **"This really happened" plus a role reversal is our strongest format.** A real event where the predator becomes prey, recreated in the game's ink style. It's the format behind "bigger fish".
 6. **Long-form gets nothing without subscribers.** Stick to Shorts for now.
+7. **A calm opening loses the swipe, even when the payoff is strong** (early, needs confirming). "Fish that eat birds" opened on an empty sea, the tern half off-screen and documentary captions ("Seychelles. A young tern skims the sea…"). The threat didn't appear until ~2s and the payoff at 4.6s. Only 16% stayed, half the other shorts' rate. Viewers who stayed left after ~9s, before the loop came round. Compare "bigger fish", which opens with the shark already on the hook.
 
 ## Rules for the next short
 
 - **10–13 seconds**, one seamless loop: the last frame flows into the first (see the loop tests in `games/inkfish/test/promo*.test.ts`).
-- **Action from the first frame.** No question or explainer before something moves.
+- **Action from the first frame.** No question or explainer before something moves. The threat should already be on screen in frame 1. Since every short loops, choose the file's start point (`start` in `record.mjs`) to land just before the payoff, not at the story's beginning.
+- **The opening caption is a hook, not a setting.** "Seychelles. A young tern skims the sea…" reads like a documentary. Save the place name for after the payoff.
 - **One build-up, one payoff.** A threat appears, the prey reacts ("!"), then a single big moment around 40% of the way in.
 - **A real event when possible**, with *"This really happened."* after the payoff. Fact-check it before posting.
 - **A meme-style line at the end** that also works as the title, e.g. "there's always a bigger fish", "some fish eat birds".
-- **On-screen text and the game's own sound effects.** No voiceover; it makes the loop seam obvious.
+- **On-screen text and the game's own sound effects** for story shorts. *Being tested (from 2026-10-13):* an educational short with a voiceover, after the "This really happened" shorts didn't work well. A voiceover makes the loop seam obvious, so end the script mid-sentence and let the opening line finish it.
 - **Text stays between y ≈ 270 and 1250** of the 1080×1920 frame. Shorts and Reels cover the top ~14% and bottom ~35% with buttons.
 - **Show something you actually do in the game** (eat, grow, leap for birds, dodge hooks), so the short sells the game, not just a fact.
 - **Title:** a short hook plus emoji plus `#shorts`, e.g. *"Fish that eat birds?! 🐟🐦 #shorts"*.
@@ -41,9 +44,21 @@ Not exported yet: traffic sources, retention curves, and clicks through to 16bit
 
 | Video | Testing | Status |
 |---|---|---|
-| `inkfish-fish-eat-birds.mp4`: giant trevally snatching a tern (Seychelles, *Blue Planet II*) | Combines the bigger-fish formula (real event, role reversal, meme line) with the shark short's build-up and payoff | Made 2026-10-12, not yet posted |
+| `inkfish-fish-eat-birds.mp4`: giant trevally snatching a tern (Seychelles, *Blue Planet II*) | Combines the bigger-fish formula (real event, role reversal, meme line) with the shark short's build-up and payoff | Posted 2026-10-12: 16% stayed to watch after ~1 hour (worst so far); a re-cut that opens on the threat is the next test |
+| `inkfish-anglerfish-light.mp4`: the black seadevil rising into the sunlight (Tenerife, 2025), opening on her glowing lure with *"there is a light, anglerfish"* | Does a known meme plus action in frame 1 fix the opening that sank "fish eat birds"? | Made 2026-10-12, for posting 2026-10-13 |
+| `inkfish-anglerfish-mates.mp4` (21s): **narrated** explainer, how male anglerfish fuse to females ("This tiny fish is about to become part of her body…"), with word-by-word captions | First educational short with a voiceover, after the "This really happened" shorts didn't work well | Made 2026-10-12, not yet posted |
 | `inkfish-viral-never-ends.mp4`: same footage as the shark short, hook "the food chain never ends" | Does the hook text alone move stayed-to-watch? | Ready, not yet posted |
 | `inkfish-loop.mp4` vs `inkfish-loop-captions.mp4` | Do captions help? | Ready, not yet posted |
+
+## Idea bank
+
+Researched 2026-10-12 for proof that a topic already went viral. Prefer topics with a proven audience: the viewer recognises them in the first second.
+
+| Idea | Proof it travels | Game assets | Status |
+|---|---|---|---|
+| **The anglerfish that swam to the light**: a black seadevil filmed rising to the surface off Tenerife, Feb 2025; it died hours later | Huge meme: one TikTok repost got 119M views in ~10 days, fan art 19.2M, a Pixar-style animation 2.1M in a day, a follow-up short film in Nov 2025. Known phrases: *"there is a light, anglerfish"*, *"she just wanted to see the light"* | `seadevil` (the game's black seadevil boss, with a lit lure); the depth short's water, light rays and glow helpers | Made: `inkfish-anglerfish-light.mp4` |
+| **Flying fish between the devil and the deep blue sea**: chased by mahi-mahi from below, snatched by frigatebirds above | BBC *The Hunt* (2015) clip, narrated by Attenborough; 2025 news coverage of "first-ever footage" of seabirds catching flying fish mid-air. No view counts found | `mahi`, `flyingfish`, `gannet`; the birds short's surface scenery | Next in line |
+| **Pufferfish inflates inside a predator** | Real clips (moray vs puffer, Red Sea 2017, NatGeo; Cook Islands 2020); no view counts found | `puffer` (puffing is a game mechanic), `moray` | Backup |
 
 ## Collecting the data
 
@@ -65,3 +80,11 @@ The pipeline is in `games/inkfish/dev/promo/`. Each short has its own folder (`b
 - `audio.ts`: the soundtrack, mixed from the game's sound effects.
 
 To add one, register it in `main.ts` (as `?short=<name>`) and in `record.mjs`'s variant list. Preview at `/promo.html?short=<name>` (`&t=4.2` freezes a moment) and record with `pnpm --filter @16bitink/inkfish promo -- --only <name>`. Loop length must be a whole number of video frames and of line-boil cycles; 12s works.
+
+**Narrated shorts** (`mates/` is the example):
+
+1. Write the script so it ends mid-sentence and the first line finishes it. Fact-check every claim first.
+2. Generate it with the ElevenLabs connector: one flow, four takes, voice *Cedric M – Engaging Documentary Narrator*. Pick the tightest take by its pauses (`ffmpeg … silencedetect`).
+3. Speed it up a little with `ffmpeg -af atempo=…` (pitch is kept). Choose the tempo so the voice ends about 0.3s before the loop point. Loops must be multiples of 0.375s (21s works).
+4. Transcribe the take with ElevenLabs Scribe for word timings, and keep them in `words.ts`. Every beat and the captions are timed from the words.
+5. In `audio.ts`, the voice goes straight to the output; game sound effects stay quiet under it.

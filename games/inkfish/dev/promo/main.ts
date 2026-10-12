@@ -7,12 +7,15 @@ import type { Short } from './short';
 import { createBiggerFish } from './bigger/render';
 import { createDepth } from './depth/render';
 import { createBirds } from './birds/render';
+import { createLight } from './light/render';
+import { createMates } from './mates/render';
 
 /**
  * Dev-only promo video page, 1080x1920. Every short is a seamless loop.
  * ?short= picks one: chain (the food-chain loop, the default), bigger
- * ("there's always a bigger fish"), depth ("how deep do fish live?") or
- * birds ("some fish eat birds").
+ * ("there's always a bigger fish"), depth ("how deep do fish live?"), birds
+ * ("some fish eat birds"), light ("there is a light, anglerfish") or mates
+ * (narrated: how male anglerfish fuse to females).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -60,6 +63,14 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   birds: async () => {
     await loadCaptionFont();
     return createBirds(ctx);
+  },
+  light: async () => {
+    await loadCaptionFont();
+    return createLight(ctx);
+  },
+  mates: async () => {
+    await loadCaptionFont();
+    return createMates(ctx);
   },
 };
 

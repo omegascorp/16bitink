@@ -328,9 +328,15 @@ function undulate(ctx: CanvasRenderingContext2D, amplitude: number): void {
   ctx.restore();
 }
 
-/** Draws one boil frame of a fish facing right, centred in a FISH_TEX square canvas. */
-export function drawFish(ctx: CanvasRenderingContext2D, shape: FishShape, variant: InkVariant, seed: number, lights?: Light[]): void {
-  const a: Anatomy = ANATOMY[shape];
+/**
+ * Draws one boil frame of a fish facing right, centred in a FISH_TEX square
+ * canvas. `anatomy` draws a variant of the shape (the promo videos' seadevil
+ * without her mate); it defaults to the shape's own.
+ */
+export function drawFish(
+  ctx: CanvasRenderingContext2D, shape: FishShape, variant: InkVariant, seed: number, lights?: Light[], anatomy: Anatomy = ANATOMY[shape],
+): void {
+  const a = anatomy;
   const pen = new Pen(ctx, seed, 0.55);
   const heavy = variant === 'heavy';
   const ink = a.ink ?? INK;

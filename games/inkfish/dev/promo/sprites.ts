@@ -1,4 +1,5 @@
 import { bodyProportions, drawFish, FISH_TEX, type FishShape, type InkVariant } from '../../src/art/fishArt';
+import type { Anatomy } from '../../src/art/fish/kit';
 import { makeCanvas } from '../../src/art/pen';
 import { BOIL_FRAMES } from '../../src/art/textures';
 
@@ -22,14 +23,14 @@ const frameSeed = (f: number): number => 101 + f * 977;
 
 /**
  * `res` sprite px per texture px: the default suits a fish as wide as the video; smaller fish can save memory with less.
- * `variant` 'heavy' is the game's predator look.
+ * `variant` 'heavy' is the game's predator look; `anatomy` draws a variant of the shape (see drawFish).
  */
-export function makeSprite(shape: FishShape, res = SPRITE_RES, variant: InkVariant = 'light'): Sprite {
+export function makeSprite(shape: FishShape, res = SPRITE_RES, variant: InkVariant = 'light', anatomy?: Anatomy): Sprite {
   const side = FISH_TEX * res;
   const frames = Array.from({ length: BOIL_FRAMES }, (_, f) => {
     const { canvas, ctx } = makeCanvas(side, side);
     ctx.scale(res, res);
-    drawFish(ctx, shape, variant, frameSeed(f));
+    drawFish(ctx, shape, variant, frameSeed(f), undefined, anatomy);
     return canvas;
   });
   return { frames, bodyPx: bodyProportions(shape).hl * 2 * res, res };
