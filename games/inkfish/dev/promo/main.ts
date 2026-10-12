@@ -6,11 +6,13 @@ import { renderAudio } from './audio';
 import type { Short } from './short';
 import { createBiggerFish } from './bigger/render';
 import { createDepth } from './depth/render';
+import { createBirds } from './birds/render';
 
 /**
  * Dev-only promo video page, 1080x1920. Every short is a seamless loop.
  * ?short= picks one: chain (the food-chain loop, the default), bigger
- * ("there's always a bigger fish") or depth ("how deep do fish live?").
+ * ("there's always a bigger fish"), depth ("how deep do fish live?") or
+ * birds ("some fish eat birds").
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -54,6 +56,10 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   depth: async () => {
     await loadCaptionFont();
     return createDepth(ctx);
+  },
+  birds: async () => {
+    await loadCaptionFont();
+    return createBirds(ctx);
   },
 };
 
