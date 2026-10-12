@@ -60,7 +60,7 @@ function wavy(ctx: CanvasRenderingContext2D, y: (x: number) => number, width: nu
 }
 
 /** Draws a piece of game art made at ART_RES onto the banner at `size` times its game size. */
-function stamp(ctx: CanvasRenderingContext2D, w: number, h: number, draw: (c: CanvasRenderingContext2D) => void, x: number, y: number, size: number, flip = false): void {
+export function stamp(ctx: CanvasRenderingContext2D, w: number, h: number, draw: (c: CanvasRenderingContext2D) => void, x: number, y: number, size: number, flip = false): void {
   const art = document.createElement('canvas');
   art.width = w * ART_RES;
   art.height = h * ART_RES;

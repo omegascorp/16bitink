@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "dev": "vite dev --port 5174",
     "promo": "node dev/promo/record.mjs",
-    "banner": "node dev/promo/saveBanner.mjs"
+    "banner": "node dev/promo/saveBanner.mjs",
+    "thumbnail": "node dev/promo/saveThumbnail.mjs"
   },
   "dependencies": {
     "@16bitink/game-sdk": "workspace:*",
