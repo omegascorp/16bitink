@@ -494,30 +494,32 @@ export const DEEP: Partial<Record<SpeciesId, Anatomy>> = {
   },
 
   // ---------------------------------------------------------------- trench
-  blobfish: {
-    hl: 76, hh: 40, peak: 0.25, blunt: 1, peduncle: 0.14, tail: 'round', tailSize: 0.6,
-    dorsal: { from: 0.45, to: 0.7, height: 0.3 }, anal: { from: 0.6, to: 0.8, height: 0.25 },
-    pectoral: 0.6, pelvic: false, scales: false, eye: { t: 0.17, r: 5.5 }, mouth: 'small',
-    wash: '#c89894', finWash: '#d4aaa6', gills: 'none', lateral: false,
-    under: (k) => {
-      // The soft droopy nose.
-      const n = { x: k.x(0) + 1, y: C + 11 };
-      const nose = ellipse(n.x, n.y, 12, 11, 20);
-      k.pen.fill(nose, PAPER_FILL, 1);
-      k.pen.fill(nose, k.a.wash, k.heavy ? 0.45 : 0.3);
-      k.pen.stroke([...nose, nose[0]!], 1.8, k.ink, 1, false);
+  facelesscusk: {
+    // Typhlonus nasus: blind, with a bulbous snout hanging over a small mouth
+    // and big loose scales. Large adults show no trace of eyes; small ones a
+    // faint one under the skin.
+    hl: 96, hh: 25, peak: 0.13, blunt: 1, peduncle: 0.03, tail: 'point', tailSize: 0,
+    dorsal: { from: 0.22, to: 0.95, height: 0.4 }, anal: { from: 0.42, to: 0.95, height: 0.38 },
+    pectoral: 0.4, pelvic: false, scales: false, eye: { t: 0.1, r: 4, buried: true }, mouth: 'none',
+    wash: '#c49c8c', finWash: '#d0b0a4', gills: 'bony', lateral: false, wave: 3,
+    under: (k) => leafTail(k, 0.8, 14, 1.4),
+    face: (k) => {
+      // The snout bulges forward over a small, underslung mouth.
+      const nose = k.x(0);
+      const lobe = [
+        ...bezier({ x: k.x(0.08), y: C - k.h(0.08) * 0.6 }, { x: nose + 11, y: C - k.h(0.03) * 0.8 }, { x: nose + 8, y: C + 6 }, 12),
+        ...bezier({ x: nose + 8, y: C + 6 }, { x: nose + 1, y: C + 12 }, { x: k.x(0.06), y: C + 10 }, 10),
+      ];
+      k.pen.fill(lobe, PAPER_FILL, 1);
+      k.pen.fill(lobe, k.a.wash, k.heavy ? 0.4 : 0.26);
+      k.pen.stroke(lobe, 1.5, k.ink, 1, false);
+      k.pen.stroke(bezier({ x: k.x(0.05), y: C + 12 }, { x: k.x(0.08), y: C + 15 }, { x: k.x(0.12), y: C + 13 }, 8), 1.1, k.ink, 1, false);
+      // Two pairs of big nostrils on the snout.
+      for (const [dx, dy] of [[1, -1], [7, -4]] as const) k.pen.stroke(ellipse(nose + 4 - dx, C + dy, 1.8, 1.3, 10), 0.75, k.ink, 1, true);
     },
     extras: (k) => {
-      // Loose gelatinous skin: soft folds and a faint sheen.
-      k.pen.stipple(k.body, 700, () => 0.25, 0.45, k.ink);
-      for (let i = 0; i < 6; i++) {
-        const t = 0.3 + i * 0.1;
-        k.pen.hair(bezier({ x: k.x(t), y: C - k.h(t) * 0.7 }, { x: k.x(t) - 5, y: C }, { x: k.x(t) + 1, y: C + k.h(t) * 0.75 }, 8), 0.5, k.ink, 0.45);
-      }
-      k.pen.hair(bezier({ x: k.x(0.2), y: C - k.h(0.2) * 0.75 }, { x: k.x(0.4), y: C - k.h(0.4) * 0.95 }, { x: k.x(0.6), y: C - k.h(0.6) * 0.7 }, 10), 2, PAPER_FILL, 0.7);
-      // Droopy frown under the nose.
-      const m0 = { x: k.x(0.06), y: C + 21 };
-      k.pen.stroke(bezier(m0, { x: k.x(0.12), y: C + 17 }, { x: k.x(0.2), y: C + 25 }, 8), 1.3, k.ink, 1, false);
+      bigScales(k, 7);
+      k.pen.stipple(k.body, 300, () => 0.2, 0.3, k.ink);
     },
   },
   ghostshark: {

@@ -51,7 +51,8 @@ export interface Anatomy {
   readonly pectoral: number;
   readonly pelvic: boolean;
   readonly scales: boolean;
-  readonly eye: { readonly t: number; readonly r: number };
+  /** `buried`: a blind fish's eye, only a faint trace under the skin. */
+  readonly eye: { readonly t: number; readonly r: number; readonly buried?: boolean };
   /** 'none': the species draws its own jaws. */
   readonly mouth: 'small' | 'teeth' | 'gape' | 'beak' | 'none';
   readonly wash: string;

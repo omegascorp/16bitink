@@ -171,7 +171,7 @@ const RECIPES: Readonly<Record<number, Recipe>> = {
       { id: 'deepest-blot', name: 'Deepest Blot' },
       { id: 'challenger-deep', name: 'Challenger Deep' },
     ],
-    spawns: [s('bristlemouth', 5, 8, 14), s('blobfish', 3, 22, 34, 0), s('snipeeel', 2.5, 26, 40, 1), s('ghostshark', 2, 44, 64, 3), s('angler', 2, 42, 66, 5), s('rattail', 2, 40, 56), s('tripodfish', 1.5, 30, 44), s('cuskeel', 2, 60, 84)],
+    spawns: [s('bristlemouth', 5, 8, 14), s('facelesscusk', 3, 22, 34, 0), s('snipeeel', 2.5, 26, 40, 1), s('ghostshark', 2, 44, 64, 3), s('angler', 2, 42, 66, 5), s('rattail', 2, 40, 56), s('tripodfish', 1.5, 30, 44), s('cuskeel', 2, 60, 84)],
     boss: 'giantsquid', jellyfish: [8, 11], hookEverySec: [0, 0],
   },
 };

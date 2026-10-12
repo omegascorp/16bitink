@@ -105,7 +105,7 @@ export const SPECIES_INFO = {
   lizardfish: s('lizardfish', 'lizardfish', 'lunge', [25, 45], 'A toothy grin from the mud.', { hunter: true }),
   halosaur: s('halosaur', 'halosaurs', 'wave', [40, 60], 'A long snout and a longer tail.'),
   // Trench
-  blobfish: s('blobfish', 'blobfish', 'hover', [10, 20], 'Not so blobby at home.'),
+  facelesscusk: s('faceless cusk', 'faceless cusks', 'wave', [25, 45], 'No eyes, no face. It feels its way.'),
   ghostshark: s('ghost shark', 'ghost sharks', 'cruise', [40, 60], 'Not a shark. A pale ancient wanderer.', { spiky: true }),
   snipeeel: s('snipe eel', 'snipe eels', 'wave', [50, 75], 'Thin as a thread, beak like a bird.'),
   // Seabed crawlers: they walk the sand; dive down to eat them.

@@ -4,7 +4,7 @@ import type { SpeciesId, ZoneId } from '../../levels/types';
 export const ZONE_FAUNA: Readonly<Record<ZoneId, readonly SpeciesId[]>> = {
   tidepool: ['minnow', 'blenny'], seagrass: ['wrasse', 'pipefish'], kelp: ['garibaldi', 'sheephead'], reef: ['clownfish', 'angelfish'],
   wreck: ['snapper', 'moray'], dropoff: ['mackerel', 'mahi'], twilight: ['pearleye', 'dragonfish'], midnight: ['fangtooth', 'whalefish'],
-  abyss: ['rattail', 'tripodfish'], trench: ['angler', 'blobfish'],
+  abyss: ['rattail', 'tripodfish'], trench: ['angler', 'facelesscusk'],
 };
 
 /** Map fauna textures (light only): call before building the map. */

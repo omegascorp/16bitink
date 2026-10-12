@@ -183,16 +183,16 @@ export const DEEP_GUIDE = {
     fact: 'Halosaurs are distant cousins of eels and start life as flat, see-through eel-like larvae.',
   },
   // ---------------------------------------------------------------- trench
-  blobfish: {
-    latin: 'Psychrolutes marcidus',
-    length: 'up to 30 cm',
+  facelesscusk: {
+    latin: 'Typhlonus nasus',
+    length: 'up to 57 cm',
     weight: 'not well recorded',
     lifespan: 'unknown',
-    speed: 'floats just above the seafloor',
-    depth: '600-1,200 m',
-    range: 'Off southeast Australia and New Zealand',
-    eats: 'crabs, sea urchins, molluscs, anything drifting by',
-    fact: 'It only looks like a blob out of water; at depth, pressure holds it in a normal fish shape.',
+    speed: 'a slow swimmer over the seafloor',
+    depth: '3,100-5,100 m',
+    range: 'Indian and Pacific oceans, from the Arabian Sea to Hawaii',
+    eats: 'crustaceans',
+    fact: 'First dredged up by HMS Challenger in 1874, it was found again off Australia in 2017. Big adults show no eyes at all.',
   },
   // Representative species: Hydrolagus affinis, a deep ghost shark (chimaeras do not reach the hadal zone).
   ghostshark: {
@@ -291,7 +291,7 @@ export const DEEP_GUIDE = {
   | 'cuskeel'
   | 'lizardfish'
   | 'halosaur'
-  | 'blobfish'
+  | 'facelesscusk'
   | 'ghostshark'
   | 'snipeeel'
   | 'oarfish'

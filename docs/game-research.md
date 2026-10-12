@@ -89,7 +89,7 @@ Each zone has its own residents, and new ones arrive mid-chapter: the intro card
 | 7 Twilight | bristlemouth, pearleye, barreleye, sabertooth, dragonfish, coelacanth (rare) | oarfish |
 | 8 Midnight | bigscale, whalefish, fangtooth, black dragonfish, gulper eel | sleeper shark |
 | 9 Abyss | rattail, tripodfish, lizardfish, halosaur, cusk-eel | goblin shark |
-| 10 Trench | blobfish, snipe eel, ghost shark, anglerfish | giant squid |
+| 10 Trench | faceless cusk, snipe eel, ghost shark, anglerfish | giant squid |
 
 Giants are their own species, appear only once (as the chapter's final boss), and are the biggest fish on that level: every other spawn is capped below them.
 

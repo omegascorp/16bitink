@@ -210,6 +210,10 @@ function eye(k: Kit): void {
   const x = xAt(a, a.eye.t);
   const y = C - heightAt(a, a.eye.t) * 0.3;
   const r = a.eye.r;
+  if (a.eye.buried) {
+    pen.hair(ellipse(x, y, r, r, 16).concat([{ x: x + r, y }]), 0.45, ink, 0.35);
+    return;
+  }
   pen.fill(ellipse(x, y, r, r, 18), PAPER_FILL, 1);
   pen.stroke(ellipse(x, y, r, r, 18).concat([{ x: x + r, y }]), 0.9, ink, 1, false);
   pen.hair(ellipse(x, y, r * 0.68, r * 0.68, 16).concat([{ x: x + r * 0.68, y }]), 0.45, ink, 0.7);
@@ -375,7 +379,7 @@ export function drawFish(
   mouth(k);
   a.face?.(k);
   eye(k);
-  if (heavy) {
+  if (heavy && !a.eye.buried) {
     // Furrowed brow: predators read as predators at a glance.
     const ex = xAt(a, a.eye.t);
     const ey = C - heightAt(a, a.eye.t) * 0.3;
