@@ -38,6 +38,7 @@ Not exported yet: traffic sources, retention curves, and clicks through to 16bit
 - **Text stays between y ≈ 270 and 1250** of the 1080×1920 frame. Shorts and Reels cover the top ~14% and bottom ~35% with buttons.
 - **Show something you actually do in the game** (eat, grow, leap for birds, dodge hooks), so the short sells the game, not just a fact.
 - **Title:** a short hook plus emoji plus `#shorts`, e.g. *"Fish that eat birds?! 🐟🐦 #shorts"*.
+- **Descriptions are for search, not for reading.** Line 1 is the phrase people type ("blobfish underwater", "greenland shark age"), line 2 is search variants, then 3 hashtags (YouTube shows them above the title). Don't mention the game or the site in descriptions or tags; it's all about the content's discoverability. Nobody reads them. Tags work the same way: the most-searched phrase first, then question searches and misspellings ("blob fish", "oar fish"). Examples are in `games/inkfish/promo/schedule/titles.md`.
 - **No links in the description.** One short with a link sat at ~20 views until the link was removed. Name the site ("16bit.ink") without a URL.
 
 ## Tests in flight
@@ -47,6 +48,7 @@ Not exported yet: traffic sources, retention curves, and clicks through to 16bit
 | `inkfish-fish-eat-birds.mp4`: giant trevally snatching a tern (Seychelles, *Blue Planet II*) | Combines the bigger-fish formula (real event, role reversal, meme line) with the shark short's build-up and payoff | Posted 2026-10-12: 16% stayed to watch after ~1 hour (worst so far); a re-cut that opens on the threat is the next test |
 | `inkfish-anglerfish-light.mp4`: the black seadevil rising into the sunlight (Tenerife, 2025), opening on her glowing lure with *"there is a light, anglerfish"* | Does a known meme plus action in frame 1 fix the opening that sank "fish eat birds"? | Made 2026-10-12, for posting 2026-10-13 |
 | `inkfish-anglerfish-mates.mp4` (21s): **narrated** explainer, how male anglerfish fuse to females ("This tiny fish is about to become part of her body…"), with word-by-word captions | First educational short with a voiceover, after the "This really happened" shorts didn't work well | Made 2026-10-12, not yet posted |
+| Narrated week, scheduled 15–20 Oct: `inkfish-blobfish.mp4` (20s), `inkfish-greenland-shark.mp4` (18s), `inkfish-barreleye.mp4` (21s), `inkfish-oarfish.mp4` (21s), `inkfish-coelacanth.mp4` (22.5s), `inkfish-fangtooth.mp4` (21s) | Same narrated format as mates, each on a deep-sea fact with a proven audience (blobfish meme, "400-year-old shark", MBARI's see-through head, the "doomsday fish", the "living fossil", fangtooth). Compare stayed-to-watch across topics to see which hooks work | Made 2026-10-12; numbered copies in `promo/schedule/` |
 | `inkfish-viral-never-ends.mp4`: same footage as the shark short, hook "the food chain never ends" | Does the hook text alone move stayed-to-watch? | Ready, not yet posted |
 | `inkfish-loop.mp4` vs `inkfish-loop-captions.mp4` | Do captions help? | Ready, not yet posted |
 
@@ -79,12 +81,12 @@ The pipeline is in `games/inkfish/dev/promo/`. Each short has its own folder (`b
 - `render.ts`: draws a frame;
 - `audio.ts`: the soundtrack, mixed from the game's sound effects.
 
-To add one, register it in `main.ts` (as `?short=<name>`) and in `record.mjs`'s variant list. Preview at `/promo.html?short=<name>` (`&t=4.2` freezes a moment) and record with `pnpm --filter @16bitink/inkfish promo -- --only <name>`. Loop length must be a whole number of video frames and of line-boil cycles; 12s works.
+To add one, register it in `main.ts` (as `?short=<name>`) and in `record.mjs`'s variant list. Preview at `/promo.html?short=<name>` (`&t=4.2` freezes a moment) and record with `pnpm --filter @16bitink/inkfish promo -- --only <name>`. Loop length must be a whole number of video frames (30 fps) and of line-boil cycles (0.375s), which means a **multiple of 1.5s** (12s, 18s, 21s, 22.5s…).
 
 **Narrated shorts** (`mates/` is the example):
 
 1. Write the script so it ends mid-sentence and the first line finishes it. Fact-check every claim first.
 2. Generate it with the ElevenLabs connector: one flow, four takes, voice *Cedric M – Engaging Documentary Narrator*. Pick the tightest take by its pauses (`ffmpeg … silencedetect`).
-3. Speed it up a little with `ffmpeg -af atempo=…` (pitch is kept). Choose the tempo so the voice ends about 0.3s before the loop point. Loops must be multiples of 0.375s (21s works).
+3. Speed it up a little with `ffmpeg -af atempo=…` (pitch is kept). Choose the tempo so the voice ends about 0.3s before the loop point. Pick the loop first (a multiple of 1.5s, see above), then the tempo: `tempo = last word's end ÷ (loop − 0.3)`. About 1.07–1.13 sounds natural.
 4. Transcribe the take with ElevenLabs Scribe for word timings, and keep them in `words.ts`. Every beat and the captions are timed from the words.
 5. In `audio.ts`, the voice goes straight to the output; game sound effects stay quiet under it.

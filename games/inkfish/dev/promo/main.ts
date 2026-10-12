@@ -9,13 +9,22 @@ import { createDepth } from './depth/render';
 import { createBirds } from './birds/render';
 import { createLight } from './light/render';
 import { createMates } from './mates/render';
+import { createBlobfish } from './blobfish/render';
+import { createGreenland } from './greenland/render';
+import { createBarreleye } from './barreleye/render';
+import { createOarfish } from './oarfish/render';
+import { createCoelacanth } from './coelacanth/render';
+import { createFangtooth } from './fangtooth/render';
 
 /**
  * Dev-only promo video page, 1080x1920. Every short is a seamless loop.
  * ?short= picks one: chain (the food-chain loop, the default), bigger
  * ("there's always a bigger fish"), depth ("how deep do fish live?"), birds
- * ("some fish eat birds"), light ("there is a light, anglerfish") or mates
- * (narrated: how male anglerfish fuse to females).
+ * ("some fish eat birds"), light ("there is a light, anglerfish"), or one of
+ * the narrated explainers: mates (male anglerfish fuse to females), blobfish
+ * (what it really looks like), greenland (the 400-year-old shark), barreleye
+ * (the see-through head), oarfish (the "doomsday fish"), coelacanth (back
+ * from extinction) or fangtooth (the biggest teeth for its size).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -71,6 +80,30 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   mates: async () => {
     await loadCaptionFont();
     return createMates(ctx);
+  },
+  blobfish: async () => {
+    await loadCaptionFont();
+    return createBlobfish(ctx);
+  },
+  greenland: async () => {
+    await loadCaptionFont();
+    return createGreenland(ctx);
+  },
+  barreleye: async () => {
+    await loadCaptionFont();
+    return createBarreleye(ctx);
+  },
+  oarfish: async () => {
+    await loadCaptionFont();
+    return createOarfish(ctx);
+  },
+  coelacanth: async () => {
+    await loadCaptionFont();
+    return createCoelacanth(ctx);
+  },
+  fangtooth: async () => {
+    await loadCaptionFont();
+    return createFangtooth(ctx);
   },
 };
 

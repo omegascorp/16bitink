@@ -30,7 +30,7 @@ if (onlyAt >= 0 && !only) throw new Error('--only takes part of a variant name')
  * What gets recorded. `start` is where in the loop the file begins (seconds):
  * the ad cuts open on a bite; the viral cuts open on the calm little inkling
  * and end on it eating the shark, the twist, just as the video loops.
- * The other shorts (dev/promo/bigger, dev/promo/depth, dev/promo/birds, dev/promo/light, dev/promo/mates) open on their hook.
+ * The other shorts (one folder each in dev/promo) open on their hook.
  */
 const VIRAL_START = 1.5;
 const VARIANTS = [
@@ -44,6 +44,12 @@ const VARIANTS = [
   { name: 'inkfish-fish-eat-birds', query: '&short=birds', start: 0 },
   { name: 'inkfish-anglerfish-light', query: '&short=light', start: 0 },
   { name: 'inkfish-anglerfish-mates', query: '&short=mates', start: 0 },
+  { name: 'inkfish-blobfish', query: '&short=blobfish', start: 0 },
+  { name: 'inkfish-greenland-shark', query: '&short=greenland', start: 0 },
+  { name: 'inkfish-barreleye', query: '&short=barreleye', start: 0 },
+  { name: 'inkfish-oarfish', query: '&short=oarfish', start: 0 },
+  { name: 'inkfish-coelacanth', query: '&short=coelacanth', start: 0 },
+  { name: 'inkfish-fangtooth', query: '&short=fangtooth', start: 0 },
 ];
 const chosen = only ? VARIANTS.filter((v) => v.name.includes(only)) : VARIANTS;
 if (chosen.length === 0) throw new Error(`No variant name contains "${only}": ${VARIANTS.map((v) => v.name).join(', ')}`);
