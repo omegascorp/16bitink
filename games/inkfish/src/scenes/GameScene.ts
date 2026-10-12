@@ -56,6 +56,8 @@ import { artCacheEnabled, dropUnusedArt, trackArt, warmArt } from '../art/artCac
 import { SeaEvents } from './game/seaEvents';
 import { ABILITY, ABILITY_INFO, abilityMeter, abilityUnlocked, canSwallow, lightBoost, shrugsOff } from '../logic/abilities';
 import { blindHunters, drawFlash, drawInkCloud, drawnToFlash, swimToFlash } from './game/abilityFx';
+import { ClipDirector } from './game/clipDirector';
+import { clipFileName } from '../logic/clips/card';
 
 export interface HudSnapshot {
   readonly levelName: string;
@@ -169,6 +171,10 @@ export class GameScene extends Phaser.Scene {
   private grazeClock = 0;
   /** Birds caught since the player last left the water: two or more in one leap make a combo. */
   private leapCatches = 0;
+  /** Fish and birds eaten this level, for the clip's card. */
+  private meals = 0;
+  /** Records the level for the clip shown on the result screen. */
+  private clips: ClipDirector | null = null;
   /**
    * Fish bodies for the collision passes that run once every fish has moved
    * (hunting, stings, hooks, diving birds), so each capsule is built once a
@@ -200,7 +206,7 @@ export class GameScene extends Phaser.Scene {
     this.rng = createRng(Date.now());
     Object.assign(this, {
       fish: [], jellies: [], hooks: [], hookedFish: new Map(), playerHook: null, releaseAt: 0, items: [], growth: initialGrowth, frenzy: initialFrenzy,
-      score: 0, elapsedMs: 0, boilFrame: 0, boilClock: 0, ended: false, death: null, progress: initialProgress, leapCatches: 0,
+      score: 0, elapsedMs: 0, boilFrame: 0, boilClock: 0, ended: false, death: null, progress: initialProgress, leapCatches: 0, meals: 0, clips: null,
       lives: level.modifiers.lives ?? TUNING.lives,
     });
     this.nextHookAt = level.hazards.hookEverySec * 1000;
@@ -331,6 +337,10 @@ export class GameScene extends Phaser.Scene {
       this.sightings.save();
       this.scene.stop('Hud');
     });
+    const clips = new ClipDirector(this, () => this.player.sprite);
+    this.clips = clips;
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => clips.destroy());
+    this.events.once(Phaser.Scenes.Events.DESTROY, () => clips.destroy());
     this.emitHud();
   }
 
@@ -421,6 +431,7 @@ export class GameScene extends Phaser.Scene {
     this.updateFishes(now, dt);
     this.updateHazards(now, deltaMs, dt);
     this.bodies.clear();
+    this.clips?.watch(this.player, this.fish, this.lives);
     this.updateItems(now, dt);
     this.drawShield();
     this.updateObjective(now, dt);
@@ -578,6 +589,8 @@ export class GameScene extends Phaser.Scene {
     this.score += gained;
     this.frenzy = feedFrenzy(this.frenzy);
     const combo = frenzyMultiplier(this.frenzy);
+    this.meals += 1;
+    if (combo > mult) this.clips?.mark('frenzy', combo);
     this.sfx(combo > mult ? 'frenzy' : 'eat', undefined, combo > mult ? 0.9 + combo * 0.1 : pitchForSize(size));
     this.grow(growthPointsFor(size));
     this.floatText(sprite.x, sprite.y - size, mult > 1 ? `+${gained} ×${mult}` : `+${gained}`, '#1f3f8a');
@@ -614,7 +627,10 @@ export class GameScene extends Phaser.Scene {
       bounties: this.progress.bounties + (f.role === 'bounty' ? 1 : 0),
       bossEaten: this.progress.bossEaten || f.role === 'boss',
     };
-    if (f.role === 'boss' || f.role === 'bounty') this.sfx('eatBig');
+    if (f.role === 'boss' || f.role === 'bounty') {
+      this.sfx('eatBig');
+      this.clips?.mark(f.role === 'boss' ? 'giant' : 'bounty');
+    }
     if (f.role === 'boss') this.floatText(f.sprite.x, f.sprite.y - f.size * 1.6, 'Giant eaten!', '#a3342b', 48);
     if (f.role === 'bounty' && this.level.objective.kind === 'bounty') {
       this.floatText(f.sprite.x, f.sprite.y - f.size * 1.6, `Marked ${this.progress.bounties}/${this.level.objective.count}`, '#a3342b', 36);
@@ -650,6 +666,7 @@ export class GameScene extends Phaser.Scene {
     const size = playerSizeFor(this.level, this.growth.tier);
     this.player.size = size;
     this.floatText(this.player.sprite.x, this.player.sprite.y - size * 2, 'Bigger!', '#a3342b', 44);
+    this.clips?.mark('grow');
     this.sfx('grow');
     this.cameras.main.shake(180, 0.004);
   }
@@ -734,6 +751,7 @@ export class GameScene extends Phaser.Scene {
       if (rel === 'prey') {
         this.flock.take(b);
         this.feed(b.size, b.sprite);
+        this.clips?.mark('bird');
         this.leapCombo(b);
       } else if (rel === 'predator') {
         this.hurt('snatched', undefined, b);
@@ -747,6 +765,7 @@ export class GameScene extends Phaser.Scene {
     this.leapCatches += 1;
     if (this.leapCatches < 2) return;
     this.score += COMBO_POINTS * (this.leapCatches - 1);
+    this.clips?.mark('birdCombo', this.leapCatches);
     this.floatText(b.sprite.x, b.sprite.y - 50, `Combo ×${this.leapCatches}!`, '#a3342b', 30 + this.leapCatches * 4);
     this.sfx('frenzy', undefined, 0.9 + this.leapCatches * 0.1);
   }
@@ -877,6 +896,7 @@ export class GameScene extends Phaser.Scene {
     Object.assign(p, { hooked: false, vx: 0, vy: 180, invulnerableUntil: now + TUNING.invulnerableMs });
     this.burst(p.sprite.x, p.sprite.y - p.size, 6);
     this.floatText(p.sprite.x, p.sprite.y - 40, 'Wriggled free!', '#1f3f8a', 32);
+    this.clips?.mark('wriggle');
     this.sfx('free');
   }
 
@@ -1012,6 +1032,7 @@ export class GameScene extends Phaser.Scene {
   private finish(kind: 'win' | 'lose'): void {
     if (this.ended) return;
     this.ended = true;
+    this.clips?.end();
     // Before the result screen reads the save.
     this.sightings.save();
     this.emitHud();
@@ -1020,7 +1041,7 @@ export class GameScene extends Phaser.Scene {
       this.scene.pause();
       this.scene.launch('Result', {
         kind, levelIndex: this.levelIndex, score: this.score, seconds: this.elapsedMs / 1000,
-        death: this.death ?? undefined, player: this.player.shape,
+        death: this.death ?? undefined, player: this.player.shape, clip: this.makeClip(kind),
       });
     };
     // A winner is shown only once it has settled (landed from a leap, level,
@@ -1031,6 +1052,15 @@ export class GameScene extends Phaser.Scene {
       else this.time.delayedCall(100, whenSettled);
     };
     this.time.delayedCall(kind === 'win' ? 900 : 1900, kind === 'win' ? whenSettled : showResult);
+  }
+
+  /** Stops the recording and starts making the level's clip. */
+  private makeClip(kind: 'win' | 'lose'): ReturnType<ClipDirector['finish']> | undefined {
+    const death = this.death ?? undefined;
+    return this.clips?.finish({
+      kind, death, fishName: PLAYER_FISH_NAMES[chapterOf(this.level).player], levelName: this.level.name,
+      seconds: this.elapsedMs / 1000, eaten: this.meals, progress: growthProgress(this.level, this.growth),
+    }, clipFileName(this.level.name, kind === 'lose' ? death ?? { cause: 'eaten' } : undefined));
   }
 
   private emitHud(): void {
@@ -1057,6 +1087,7 @@ export class GameScene extends Phaser.Scene {
 
   /** A sound effect; with `at`, panned and faded by where it is on (or off) screen. */
   private sfx(id: SfxId, at?: { readonly x: number; readonly y: number }, pitch = 1, gain = 1): void {
+    this.clips?.sound(id, at, pitch, gain);
     getSound(this)?.play(id, { at, view: at ? this.cameras.main.worldView : undefined, pitch, gain });
   }
 

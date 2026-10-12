@@ -1,34 +1,11 @@
-import { synthesize } from '../../src/audio/synth';
-import type { SfxId } from '../../src/audio/recipes';
+import { RATE } from '../../src/audio/offline';
 
 /**
  * Soundtrack tools shared by the promo shorts: the game's synthesized
  * effects rendered offline, folded so the end flows into the start (every
  * short loops), a faint underwater hum, and WAV encoding.
  */
-export const RATE = 48000;
-
-/** A context `seconds` long with a master gain into the destination, and a player for the game's effects. */
-export function offlineMix(seconds: number, masterGain: number): {
-  readonly ctx: OfflineAudioContext;
-  readonly master: GainNode;
-  readonly play: (id: SfxId, t: number, pitch: number, gain?: number, pan?: number) => void;
-} {
-  const ctx = new OfflineAudioContext(2, Math.ceil(seconds * RATE), RATE);
-  const master = ctx.createGain();
-  master.gain.value = masterGain;
-  master.connect(ctx.destination);
-  const play = (id: SfxId, t: number, pitch: number, gain = 1, pan = 0): void => {
-    const level = ctx.createGain();
-    level.gain.value = gain;
-    const panner = ctx.createStereoPanner();
-    panner.pan.value = pan;
-    level.connect(panner).connect(master);
-    // The offline context has every node factory the synth uses.
-    synthesize(id, { ctx: ctx as unknown as AudioContext, out: level, t, pitch });
-  };
-  return { ctx, master, play };
-}
+export { foldLoop, offlineMix, RATE } from '../../src/audio/offline';
 
 /** Channels rotated to begin `start` seconds in (to match a video that starts there), as WAV. */
 export function rotatedWav(channels: readonly Float32Array[], loopS: number, start: number): Blob {
@@ -62,17 +39,6 @@ export function ambience(frames: number, swells: number): Float32Array[] {
     // `swells` swells, a whole number per loop.
     const twoPi = (2 * Math.PI) / frames;
     return out.map((v, i) => v * 0.35 * (0.75 + 0.25 * Math.sin(i * twoPi * swells + c)));
-  });
-}
-
-/** Adds everything past the loop's end (`loopS` seconds) back onto its start. */
-export function foldLoop(buffer: AudioBuffer, loopS: number): Float32Array[] {
-  const loop = Math.round(loopS * RATE);
-  return Array.from({ length: buffer.numberOfChannels }, (_, c) => {
-    const src = buffer.getChannelData(c);
-    const out = src.slice(0, loop);
-    for (let i = loop; i < src.length; i++) out[i - loop]! += src[i]!;
-    return out;
   });
 }
 

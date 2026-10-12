@@ -15,6 +15,8 @@ import { loadSave, recordResult } from '../logic/save';
 import { commitSave } from '../logic/accountSave';
 import { allLevels } from '../levels/chapters';
 import { BLUE_INK, drawBlot, inkButton, inkText, RED_INK, uiScale } from './ui';
+import { ClipPanel } from '../clips/panel';
+import type { ClipJob } from '../clips/types';
 
 export interface ResultData {
   readonly kind: 'win' | 'lose';
@@ -24,6 +26,8 @@ export interface ResultData {
   /** How the player died, for a lost level. */
   readonly death?: Death;
   readonly player?: PlayerFishId;
+  /** The level's clip, being made while this screen shows. */
+  readonly clip?: ClipJob;
 }
 
 const DEAD_TINT = 0xb3ab9c;
@@ -143,6 +147,7 @@ export class ResultScene extends Phaser.Scene {
       this.scene.stop('Hud');
       this.scene.start(sceneKey, payload);
     };
+    this.showClip(data.clip);
     const retry = (): void => goto('Game', { levelIndex: data.levelIndex });
     const menu = (): void => goto('Menu');
 
@@ -188,5 +193,18 @@ export class ResultScene extends Phaser.Scene {
       inkButton(this, 0, 120, 'Replay', retry),
       inkButton(this, 0, 190, 'Level select', menu),
     ]);
+  }
+
+  /** The clip beside the card (an HTML overlay: it's a video), gone with this screen. */
+  private showClip(job: ClipJob | undefined): void {
+    const parent = this.game.canvas.parentElement;
+    if (!job || !parent) {
+      job?.cancel();
+      return;
+    }
+    const panel = new ClipPanel(parent, job);
+    // The game being torn down from this screen doesn't shut the scene down first.
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => panel.destroy());
+    this.events.once(Phaser.Scenes.Events.DESTROY, () => panel.destroy());
   }
 }
