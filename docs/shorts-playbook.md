@@ -46,9 +46,10 @@ Not exported yet: traffic sources, retention curves, and clicks through to 16bit
 | Video | Testing | Status |
 |---|---|---|
 | `inkfish-fish-eat-birds.mp4`: giant trevally snatching a tern (Seychelles, *Blue Planet II*) | Combines the bigger-fish formula (real event, role reversal, meme line) with the shark short's build-up and payoff | Posted 2026-10-12: 16% stayed to watch after ~1 hour (worst so far); a re-cut that opens on the threat is the next test |
-| `inkfish-anglerfish-light.mp4`: the black seadevil rising into the sunlight (Tenerife, 2025), opening on her glowing lure with *"there is a light, anglerfish"* | Does a known meme plus action in frame 1 fix the opening that sank "fish eat birds"? | Made 2026-10-12, for posting 2026-10-13 |
+| `inkfish-anglerfish-light.mp4`: the black seadevil rising into the sunlight (Tenerife, 2025), opening on her glowing lure with *"there is a light, anglerfish"* | Does a known meme plus action in frame 1 fix the opening that sank "fish eat birds"? | Made 2026-10-12, queue #1 |
 | `inkfish-anglerfish-mates.mp4` (21s): **narrated** explainer, how male anglerfish fuse to females ("This tiny fish is about to become part of her body…"), with word-by-word captions | First educational short with a voiceover, after the "This really happened" shorts didn't work well | Made 2026-10-12, not yet posted |
-| Narrated week, scheduled 15–20 Oct: `inkfish-blobfish.mp4` (20s), `inkfish-greenland-shark.mp4` (18s), `inkfish-barreleye.mp4` (21s), `inkfish-oarfish.mp4` (21s), `inkfish-coelacanth.mp4` (22.5s), `inkfish-fangtooth.mp4` (21s) | Same narrated format as mates, each on a deep-sea fact with a proven audience (blobfish meme, "400-year-old shark", MBARI's see-through head, the "doomsday fish", the "living fossil", fangtooth). Compare stayed-to-watch across topics to see which hooks work | Made 2026-10-12; numbered copies in `promo/schedule/` |
+| Narrated batch (queue 3–8): `inkfish-blobfish.mp4` (20s), `inkfish-greenland-shark.mp4` (18s), `inkfish-barreleye.mp4` (21s), `inkfish-oarfish.mp4` (21s), `inkfish-coelacanth.mp4` (22.5s), `inkfish-fangtooth.mp4` (21s) | Same narrated format as mates, each on a deep-sea fact with a proven audience (blobfish meme, "400-year-old shark", MBARI's see-through head, the "doomsday fish", the "living fossil", fangtooth). Compare stayed-to-watch across topics to see which hooks work | Made 2026-10-12; numbered copies in `promo/schedule/` |
+| `inkfish-clownfish.mp4` (19.5s): narrated, "Nemo's dad should have become his mom", one anemone family ranked by size, opening mid-gulp on the barracuda | Does a reference everyone knows (a Pixar film) beat the deep-sea topics on stayed-to-watch? | Made 2026-10-13, queue #9 |
 | `inkfish-viral-never-ends.mp4`: same footage as the shark short, hook "the food chain never ends" | Does the hook text alone move stayed-to-watch? | Ready, not yet posted |
 | `inkfish-loop.mp4` vs `inkfish-loop-captions.mp4` | Do captions help? | Ready, not yet posted |
 
@@ -60,7 +61,21 @@ Researched 2026-10-12 for proof that a topic already went viral. Prefer topics w
 |---|---|---|---|
 | **The anglerfish that swam to the light**: a black seadevil filmed rising to the surface off Tenerife, Feb 2025; it died hours later | Huge meme: one TikTok repost got 119M views in ~10 days, fan art 19.2M, a Pixar-style animation 2.1M in a day, a follow-up short film in Nov 2025. Known phrases: *"there is a light, anglerfish"*, *"she just wanted to see the light"* | `seadevil` (the game's black seadevil boss, with a lit lure); the depth short's water, light rays and glow helpers | Made: `inkfish-anglerfish-light.mp4` |
 | **Flying fish between the devil and the deep blue sea**: chased by mahi-mahi from below, snatched by frigatebirds above | BBC *The Hunt* (2015) clip, narrated by Attenborough; 2025 news coverage of "first-ever footage" of seabirds catching flying fish mid-air. No view counts found | `mahi`, `flyingfish`, `gannet`; the birds short's surface scenery | Next in line |
-| **Pufferfish inflates inside a predator** | Real clips (moray vs puffer, Red Sea 2017, NatGeo; Cook Islands 2020); no view counts found | `puffer` (puffing is a game mechanic), `moray` | Backup |
+| **Pufferfish inflates inside a predator** | Real clips (moray vs puffer, Red Sea 2017, NatGeo; Cook Islands 2020); no view counts found | `puffer` (puffing is a game mechanic), `moray` | Folded into #4 below |
+
+### Next seven (chosen 2026-10-13, narrated format, queue #9–15)
+
+Batch 3–8 is all deep sea. This one mixes in reef fish whose facts are already famous, to see if a known reference (a film, a beach) beats a strange animal on stayed-to-watch. Each uses a species the game already draws.
+
+| # | Hook (first line) | The fact | Proof it travels | Game assets | Status |
+|---|---|---|---|---|---|
+| 1 | *"Nemo's dad should have become his mom."* | Clownfish are all born male and rank by size; when the female dies her mate turns female (Fricke 1977; Buston's work at BU) | The "scientifically accurate Finding Nemo" fact runs every year (Reader's Digest, ScienceBlog, Science News); Nemo is known to everyone | `clownfish`, `barracuda` (it ate Coral in the film) | **Made 2026-10-13**: `inkfish-clownfish.mp4` (19.5s), queue #9 |
+| 2 | *"White sand beaches are fish poop."* | Parrotfish bite coral, grind it and excrete sand; a big one makes hundreds of kilos a year (Maldives study: most of an island's sand) | One of the most-shared ocean facts; sleeps in a mucus bubble as a bonus beat | `parrotfish` | Next |
+| 3 | *"This fish has no face."* | The faceless cusk, rediscovered 4 km down off Australia in 2017, first and last seen in 1873 (HMS *Challenger*) | Worldwide news in 2017 (CSIRO voyage) | `facelesscusk` (new art) | |
+| 4 | *"One pufferfish can kill 30 people."* | Tetrodotoxin, no antidote; fugu chefs train for years; it puffs by gulping water, even inside a predator | Fugu and "puffer inside a moray" clips are evergreen | `puffer` (puffing is a mechanic), `moray` | |
+| 5 | *"Its mouth is bigger than its body."* | The gulper (pelican) eel inflates its jaw like a balloon to swallow prey | E/V *Nautilus* livestream clip (2018) went viral | `gulper` | |
+| 6 | *"This fish flew for 45 seconds."* | Flying fish glide up to ~400 m to escape mahi-mahi below, then birds pick them off above (NHK filmed a 45 s flight, 2008) | BBC *The Hunt* clip; 2025 "first footage" news | `flyingfish`, `mahi`, `gannet` | |
+| 7 | *"The blackest fish in the ocean."* | Ultra-black dragonfish skin swallows 99.5% of light; some dragonfish hunt with red light other fish can't see | Smithsonian ultra-black fish study (2020) was everywhere | `blackdragon`, `dragonfish` | |
 
 ## Collecting the data
 

@@ -15,6 +15,7 @@ import { createBarreleye } from './barreleye/render';
 import { createOarfish } from './oarfish/render';
 import { createCoelacanth } from './coelacanth/render';
 import { createFangtooth } from './fangtooth/render';
+import { createClownfish } from './clownfish/render';
 
 /**
  * Dev-only promo video page, 1080x1920. Every short is a seamless loop.
@@ -24,7 +25,8 @@ import { createFangtooth } from './fangtooth/render';
  * the narrated explainers: mates (male anglerfish fuse to females), blobfish
  * (what it really looks like), greenland (the 400-year-old shark), barreleye
  * (the see-through head), oarfish (the "doomsday fish"), coelacanth (back
- * from extinction) or fangtooth (the biggest teeth for its size).
+ * from extinction), fangtooth (the biggest teeth for its size) or clownfish
+ * (Nemo's dad should have become his mom).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -104,6 +106,10 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   fangtooth: async () => {
     await loadCaptionFont();
     return createFangtooth(ctx);
+  },
+  clownfish: async () => {
+    await loadCaptionFont();
+    return createClownfish(ctx);
   },
 };
 
