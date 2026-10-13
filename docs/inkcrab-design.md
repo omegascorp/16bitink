@@ -166,9 +166,9 @@ Keep actions few and context-sensitive; side view has more verbs than top-down, 
 | Action | Keyboard / gamepad | Touch |
 | --- | --- | --- |
 | Move, climb | Arrows or stick (climb when against a climbable surface) | Virtual stick |
-| Dig / place sand | One button, aimed by direction held | Tap a tile next to the crab |
+| Dig / place sand | One button, aimed by direction held | Dig button, aimed by the stick: digs if there's sand there and room in the shell, else drops sand (settled per press) |
 | Retract into shell | Hold one button | Hold a button |
-| Interact (swap, steal, eat) | One context button | Tap the target |
+| Interact (swap, steal, eat) | One context button | Grab button |
 
 Open question: target platform (PC, web, mobile) is not decided. Mobile changes how dig aiming works.
 

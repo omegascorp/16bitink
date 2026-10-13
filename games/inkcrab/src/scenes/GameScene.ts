@@ -6,9 +6,8 @@ import { buildLevel, START_SIZE } from '../level/build';
 import { isBeachFinale, levelById, loadedLevels, themeOf } from '../level/levels';
 import type { LevelDef } from '../level/types';
 import { Coach } from '../logic/coach';
-import type { TilePos } from '../logic/dig';
 import { surfaceRow, type Terrain } from '../logic/terrain';
-import { centre, overlaps } from '../logic/items';
+import { centre } from '../logic/items';
 import { shellPx, SHELLS } from '../logic/shells';
 import { blotsFor, loadProgress, recordResult, saveProgress } from '../logic/save';
 import { Beach, type SimEvent } from '../logic/sim';
@@ -204,8 +203,7 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const dt = Math.min(delta / 1000, MAX_DT);
-    const { tapTile, tapInteract } = this.consumeTaps();
-    const events = this.beach.step(this.input2.read(this.touch, tapTile, tapInteract), dt);
+    const events = this.beach.step(this.input2.read(this.touch), dt);
     for (const e of events) this.react(e);
     this.soundscape.listen(this.beach, this.cameras.main.worldView);
     this.coach.observe(this.beach, events);
@@ -299,20 +297,6 @@ export class GameScene extends Phaser.Scene {
     const wanted = short / ((px * 4.2 + T * 10) * closer);
     const fit = Math.max(height / (this.beach.terrain.height * T), width / (this.beach.terrain.width * T));
     return Math.max(fit, Math.min(3, wanted));
-  }
-
-  /** Turns HUD taps into a shell to move into or a tile to dig/fill. */
-  private consumeTaps(): { tapTile: TilePos | null; tapInteract: boolean } {
-    const tap = this.touch.taps.shift();
-    if (!tap) return { tapTile: null, tapInteract: false };
-    const p = this.cameras.main.getWorldPoint(tap.x * DPR, tap.y * DPR);
-    const shell = this.beach.nearbyShell;
-    if (shell && overlaps({ x: p.x, y: p.y, w: 1, h: 1 }, shell, 6)) return { tapTile: null, tapInteract: true };
-    // Tapping a rival close enough to rap on raps on it.
-    const rival = this.beach.nearbyRival;
-    if (rival && overlaps({ x: p.x, y: p.y, w: 1, h: 1 }, rival, 6)) return { tapTile: null, tapInteract: true };
-    const T = this.beach.tileSize;
-    return { tapTile: [Math.floor(p.x / T), Math.floor(p.y / T)], tapInteract: false };
   }
 
   private react(e: SimEvent): void {

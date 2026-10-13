@@ -58,8 +58,8 @@ function limb(d: Draw, pts: readonly Pt[], w: readonly number[], wash: string, f
 
 const xf = (pts: readonly Pt[], ox: number, oy: number, s: number): Pt[] => pts.map((p) => pt(ox + p.x * s, oy + p.y * s));
 
-/** A claw (cheliped) from the body forward; `open` lifts the moving finger. */
-function claw(d: Draw, ox: number, oy: number, s: number, wash: string, open: number, far: boolean, tip: string): void {
+/** A claw (cheliped) from the body forward; `open` lifts the moving finger. Also the touch grab button's sign. */
+export function claw(d: Draw, ox: number, oy: number, s: number, wash: string, open: number, far: boolean, tip: string): void {
   const L = (pts: readonly Pt[]): Pt[] => xf(pts.map((p) => pt(p.x - 34, p.y)), ox + 34 * s, oy, s);
   limb(d, L([pt(34, 8), pt(50, 6), pt(60, -2)]), [9 * s, 8 * s, 8 * s], wash, far, tip);
   const palm = L(oval(76, -6, 16, 10.5, 20));

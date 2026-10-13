@@ -110,6 +110,53 @@ describe('beach simulation', () => {
     expect(total()).toBe(before);
   });
 
+  describe('the touch dig button', () => {
+    it('digs where it aims while there is sand there', () => {
+      const b = flatBeach();
+      step(b, {}, 1);
+      const events = step(b, { aimY: 1, work: true });
+      expect(events.some((e) => e.type === 'tiles' && e.dug)).toBe(true);
+      expect(b.crab.sand).toBe(1);
+    });
+
+    it('drops carried sand when aimed at open space', () => {
+      const b = flatBeach();
+      step(b, {}, 1);
+      b.crab = { ...b.crab, sand: 2 };
+      const events = step(b, { work: true });
+      expect(events.some((e) => e.type === 'tiles' && !e.dug && e.placed)).toBe(true);
+      expect(b.crab.sand).toBe(1);
+    });
+
+    it('drops sand once the shell is full, wherever it aims', () => {
+      const b = flatBeach();
+      step(b, {}, 1);
+      b.crab = { ...b.crab, sand: b.sandCapacity };
+      // Aimed down at sand it has no room for: it builds ahead instead.
+      const events = step(b, { aimY: 1, work: true });
+      expect(events.some((e) => e.type === 'tiles' && !e.dug)).toBe(true);
+      expect(b.crab.sand).toBe(b.sandCapacity - 1);
+    });
+
+    it('keeps to digging while held: breaking into open space does not start building', () => {
+      const b = flatBeach();
+      step(b, {}, 1);
+      b.crab = { ...b.crab, sand: 2 };
+      // A wall one tile thick ahead, open space behind it.
+      const col = Math.floor((b.crab.body.x + b.crab.body.w - 1e-6) / T) + 1;
+      for (let y = 0; y < 10; y++) setTile(b.terrain, col, y, TILE.sand);
+      const events = step(b, { work: true }, 1.5);
+      expect(events.some((e) => e.type === 'tiles' && e.dug)).toBe(true);
+      expect(events.some((e) => e.type === 'tiles' && !e.dug && e.placed)).toBe(false);
+    });
+
+    it('does nothing with empty claws and nothing to dig', () => {
+      const b = flatBeach();
+      step(b, {}, 1);
+      expect(step(b, { work: true }).some((e) => e.type === 'tiles')).toBe(false);
+    });
+  });
+
   it('digs one clump per dig at the smallest size, and drops into the hole', () => {
     const b = flatBeach();
     step(b, {}, 1);

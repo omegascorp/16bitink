@@ -128,7 +128,7 @@ describe('the coach', () => {
 
   it('words hints for touch screens', () => {
     const b = beach();
-    expect(new Coach(['dig']).hint(b, 'touch')?.text).toMatch(/Tap/);
+    expect(new Coach(['dig']).hint(b, 'touch')?.text).toMatch(/hold dig/);
   });
 });
 

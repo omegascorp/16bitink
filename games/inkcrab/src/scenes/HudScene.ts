@@ -10,6 +10,7 @@ import { TEX } from '../art/textures';
 import { FOOT, FRAME, SHELL_MID } from '../art/frame';
 import type { GameScene } from './GameScene';
 import type { TouchState } from './game/input';
+import { buttonAt, TouchButtons } from './hud/touchButtons';
 import { screenScene, screenSize, toView, uiScaleOf, viewSize } from './hidpi';
 import { drawSandGauge, HEAP_MAX_W } from './sandGauge';
 import { drawGrowthBar } from './growthBar';
@@ -60,21 +61,12 @@ const COACH_CLEARANCE = 16;
 /** The tide clock (or the rain clock), under the lives at the top right. */
 const TIDE = { r: 20, fromRight: 54, y: 96 } as const;
 
-/** The on-screen jump button, bottom right (touch only). */
-function jumpButton(width: number, height: number): { x: number; y: number; r: number } {
-  return { x: width - 80, y: height - 110, r: 44 };
-}
-
-/** Hold to hide in the shell, left of the jump button (touch only). */
-function hideButton(width: number, height: number): { x: number; y: number; r: number } {
-  return { x: width - 180, y: height - 80, r: 34 };
-}
-
 /** The notebook margin: level, growth bar, lives, shell, carried sand, and touch controls. */
 export class HudScene extends Phaser.Scene {
   private g!: Phaser.GameObjects.Graphics;
   /** The touch controls, drawn in screen CSS pixels (see create). */
   private controls!: Phaser.GameObjects.Graphics;
+  private buttons!: TouchButtons;
   private title!: Phaser.GameObjects.Text;
   private sizeText!: Phaser.GameObjects.Text;
   private lives: Phaser.GameObjects.Image[] = [];
@@ -99,6 +91,7 @@ export class HudScene extends Phaser.Scene {
   private missionText!: Phaser.GameObjects.Text;
   private stickPointer: number | null = null;
   private hidePointer: number | null = null;
+  private digPointer: number | null = null;
   private stickPull = { x: 0, y: 0 };
   private touchSeen = false;
   private modeKnown = false;
@@ -118,6 +111,7 @@ export class HudScene extends Phaser.Scene {
     // The scene object is reused across levels: a finger held down as the last one ended never lifted here.
     this.stickPointer = null;
     this.hidePointer = null;
+    this.digPointer = null;
     this.stickPull = { x: 0, y: 0 };
     this.intro = null;
     this.introLeaving = false;
@@ -126,6 +120,7 @@ export class HudScene extends Phaser.Scene {
     this.g = this.add.graphics();
     // The stick and buttons stay thumb-sized however small the margin draws: drawn in screen pixels, scaled back up.
     this.controls = this.add.graphics();
+    this.buttons = new TouchButtons(this, this.controls);
     const text = (x: number, y: number, size: number, color = BLUE): Phaser.GameObjects.Text =>
       this.add.text(x, y, '', { fontFamily: HAND_FONT, fontSize: `${size}px`, color, padding: { x: 4, y: 2 } });
     const game = this.scene.get('Game') as GameScene;
@@ -189,7 +184,7 @@ export class HudScene extends Phaser.Scene {
     drawSandGauge(g, HEAP_AT.x, HEAP_AT.bottom, c.sand, beach.sandCapacity);
     // Full, it digs nothing until it unloads; past full (a smaller shell) is a warning.
     const loaded = c.sand >= beach.sandCapacity;
-    const unload = this.touchSeen ? 'tap to drop' : 'C to drop';
+    const unload = this.touchSeen ? 'dig to drop' : 'C to drop';
     this.sand.setText(loaded ? `${c.sand}/${beach.sandCapacity} · ${unload}` : `${c.sand}/${beach.sandCapacity}`);
     this.sand.setColor(c.sand > beach.sandCapacity ? RED : BLUE);
     // Centred under the heap, but kept inside the panel when the hint makes it long.
@@ -209,11 +204,11 @@ export class HudScene extends Phaser.Scene {
     } else if (held && !c.swap) {
       this.prompt.setText(chainPrompt(held)).setPosition(width / 2, height - PROMPT_RISE).setVisible(true);
     } else if (rival?.shell && !c.swap && !beach.nearbyFits) {
-      const how = this.touchSeen ? 'tap it' : 'press E';
+      const how = this.touchSeen ? 'grab' : 'press E';
       this.prompt.setText(`hermit crab in a ${shellName(rival.shell)} · ${how} to rap on its shell`).setPosition(width / 2, height - PROMPT_RISE).setVisible(true);
     } else if (near && near.kind.type === 'shell' && !c.swap) {
       const s = near.kind.shell;
-      const how = this.touchSeen ? 'tap it' : 'press E';
+      const how = this.touchSeen ? 'grab it' : 'press E';
       const verdict = beach.nearbyFits
         ? `${how} to move in`
         : c.growth.size < s.size - 1 ? 'too big for you yet' : 'too small for you now';
@@ -221,15 +216,16 @@ export class HudScene extends Phaser.Scene {
     } else this.prompt.setVisible(false);
 
     this.help.setPosition(width - 14, height - 10).setText(this.touchSeen
-      ? 'tap sand next to the crab to dig · tap open space to drop sand · hold the shell button to hide'
+      ? 'stick walks and aims · dig digs, or drops sand in the open · grab moves in · hold the shell to hide'
       : '←→ walk · ↑↓ aim · Space jump · X dig · C place sand · E move in · Z hide');
     this.controls.clear().setScale(1 / uiScaleOf(this));
     if (this.touchSeen) {
       const screen = screenSize(this);
       this.drawStick(screen.height);
-      this.drawJumpButton(screen.width, screen.height);
-      this.drawHideButton(screen.width, screen.height, c.hidden);
-    }
+      const grabbable = (near !== null && beach.nearbyFits) || rival !== null;
+      const lit = { dig: this.digPointer !== null, grab: grabbable && !c.swap, hide: c.hidden, shell: (c.shell ?? START_SHELL).kind };
+      this.buttons.draw(screen.width, screen.height, uiScaleOf(this), lit);
+    } else this.buttons.hide();
   }
 
   /** The panel's height: taller with a mission line in it. */
@@ -467,10 +463,11 @@ export class HudScene extends Phaser.Scene {
     return Math.max(1, MIN_TAP / (h * uiScaleOf(this)));
   }
 
-  /** Lets go of the on-screen stick and hide button (fingers lifted while paused never reach them). */
+  /** Lets go of the on-screen stick and held buttons (fingers lifted while paused never reach them). */
   private letGo(): void {
     this.stickPointer = null;
     this.hidePointer = null;
+    this.digPointer = null;
     this.stickPull = { x: 0, y: 0 };
   }
 
@@ -485,51 +482,36 @@ export class HudScene extends Phaser.Scene {
     this.controls.fillStyle(BLUE_HEX, 0.25).fillCircle(c.x + k.x, c.y + k.y, 22);
   }
 
-  private drawJumpButton(width: number, height: number): void {
-    const b = jumpButton(width, height);
-    this.controls.lineStyle(2, BLUE_HEX, 0.45).strokeCircle(b.x, b.y, b.r);
-    this.controls.fillStyle(BLUE_HEX, 0.12).fillCircle(b.x, b.y, b.r);
-    this.controls.lineStyle(3, BLUE_HEX, 0.6).lineBetween(b.x - 12, b.y + 6, b.x, b.y - 8).lineBetween(b.x, b.y - 8, b.x + 12, b.y + 6);
-  }
-
-  /** A shell drawn on the button; filled while held. */
-  private drawHideButton(width: number, height: number, held: boolean): void {
-    const b = hideButton(width, height);
-    this.controls.lineStyle(2, BLUE_HEX, 0.45).strokeCircle(b.x, b.y, b.r);
-    this.controls.fillStyle(BLUE_HEX, held ? 0.3 : 0.12).fillCircle(b.x, b.y, b.r);
-    this.controls.lineStyle(3, BLUE_HEX, 0.6);
-    this.controls.beginPath();
-    this.controls.arc(b.x, b.y + 6, 14, Math.PI, 0);
-    this.controls.closePath();
-    this.controls.strokePath();
-  }
-
   private onDown(p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[] = []): void {
-    // A press on a HUD button isn't a tap on the beach, and nothing reaches the beach while paused.
-    if (over.length > 0 || this.pauseLayer) return;
-    if (p.wasTouch) this.touchSeen = true;
-    // The controls live in screen pixels (see create), and so do the beach's taps.
+    // A press on a HUD button isn't for the controls, and nothing reaches the beach while paused.
+    if (over.length > 0 || this.pauseLayer || !p.wasTouch) return;
+    this.touchSeen = true;
+    // The controls live in screen pixels (see create).
     const v = toView(p.x, p.y);
     const { width, height } = screenSize(this);
-    const jb = jumpButton(width, height);
-    if (p.wasTouch && Math.hypot(v.x - jb.x, v.y - jb.y) <= jb.r) {
-      const t = this.touch();
-      if (t) t.jump = true;
-      return;
+    const t = this.touch();
+    switch (buttonAt(v.x, v.y, width, height)) {
+      case 'jump':
+        if (t) t.jump = true;
+        return;
+      case 'grab':
+        if (t) t.grab = true;
+        return;
+      case 'dig':
+        this.digPointer = p.id;
+        if (t) t.dig = true;
+        return;
+      case 'hide':
+        this.hidePointer = p.id;
+        if (t) t.hide = true;
+        return;
+      case null:
+        break;
     }
-    const hb = hideButton(width, height);
-    if (p.wasTouch && Math.hypot(v.x - hb.x, v.y - hb.y) <= hb.r) {
-      this.hidePointer = p.id;
-      const t = this.touch();
-      if (t) t.hide = true;
-      return;
-    }
-    if (p.wasTouch && this.stickPointer === null && inStickZone(v.x, v.y, height)) {
+    if (this.stickPointer === null && inStickZone(v.x, v.y, height)) {
       this.stickPointer = p.id;
       this.onMove(p);
-      return;
     }
-    this.touch()?.taps.push(v);
   }
 
   private onMove(p: Phaser.Input.Pointer): void {
@@ -546,6 +528,12 @@ export class HudScene extends Phaser.Scene {
   }
 
   private onUp(p: Phaser.Input.Pointer): void {
+    if (p.id === this.digPointer) {
+      this.digPointer = null;
+      const t = this.touch();
+      if (t) t.dig = false;
+      return;
+    }
     if (p.id === this.hidePointer) {
       this.hidePointer = null;
       const t = this.touch();

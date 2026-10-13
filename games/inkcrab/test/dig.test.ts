@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { digTargets, inReach, placeTarget } from '../src/logic/dig';
+import { digTargets, placeTarget } from '../src/logic/dig';
 import { createTerrain, setTile, TILE } from '../src/logic/terrain';
 
 const T = 16;
@@ -82,10 +82,5 @@ describe('placing targets', () => {
   it('aiming up places ahead, like aiming level', () => {
     const t = ground();
     expect(placeTarget(t, box, 1, -1, T)).toEqual(placeTarget(t, box, 1, 0, T));
-  });
-
-  it('reaches only tiles next to the crab', () => {
-    expect(inReach(box, [4, 4], T)).toBe(true);
-    expect(inReach(box, [6, 4], T)).toBe(false);
   });
 });

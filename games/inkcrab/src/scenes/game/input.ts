@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-import type { TilePos } from '../../logic/dig';
 import { IDLE, type Input } from '../../logic/sim';
 
 /** Touch state shared from the HUD (which owns the screen) to the game scene. */
@@ -8,14 +7,16 @@ export interface TouchState {
   stickY: number;
   /** The jump button was pressed since the game last looked. */
   jump: boolean;
+  /** The dig button is held: dig where the stick aims, or drop sand in the open. */
+  dig: boolean;
+  /** The grab button was pressed since the game last looked: move into a shell, or rap on a rival's. */
+  grab: boolean;
   /** The hide button is held. */
   hide: boolean;
-  /** Screen taps (CSS px) not yet consumed by the game. */
-  taps: { x: number; y: number }[];
 }
 
 export function createTouchState(): TouchState {
-  return { stickX: 0, stickY: 0, jump: false, hide: false, taps: [] };
+  return { stickX: 0, stickY: 0, jump: false, dig: false, grab: false, hide: false };
 }
 
 type Keys = Record<'left' | 'right' | 'up' | 'down' | 'a' | 'd' | 'w' | 's' | 'dig' | 'place' | 'hide', Phaser.Input.Keyboard.Key>;
@@ -28,7 +29,8 @@ const LATCHED: Readonly<Record<string, Latch>> = {
 /**
  * Keyboard: arrows/WASD to walk and aim, Space to jump, X to dig and C to
  * place sand (both repeat while held), E or Enter to move into a shell,
- * Z held to hide in the shell.
+ * Z held to hide in the shell. Touch (the HUD's buttons): the stick walks
+ * and aims, dig digs or drops sand (see Input.work), grab moves in or raps.
  */
 export class GameInput {
   private readonly keys: Keys | null;
@@ -55,11 +57,13 @@ export class GameInput {
     this.pressed.clear();
   }
 
-  /** Builds this frame's input; `tapTile` is a touch tap already converted to a tile. */
-  read(touch: TouchState, tapTile: TilePos | null, tapInteract: boolean): Input {
+  /** Builds this frame's input from the keys and the on-screen controls. */
+  read(touch: TouchState): Input {
     const was = (l: Latch): boolean => this.pressed.has(l);
     const touchJump = touch.jump;
+    const touchGrab = touch.grab;
     touch.jump = false;
+    touch.grab = false;
     const k = this.keys;
     const stickY = touch.stickY > 0.5 ? 1 : touch.stickY < -0.5 ? -1 : 0;
     const input: Input = k
@@ -72,12 +76,12 @@ export class GameInput {
             jump: was('jump') || touchJump,
             dig: k.dig.isDown || was('dig'),
             place: k.place.isDown || was('place'),
-            interact: was('act') || tapInteract,
-            tapTile,
+            interact: was('act') || touchGrab,
+            work: touch.dig,
             hide: k.hide.isDown || touch.hide,
           };
         })()
-      : { ...IDLE, moveX: touch.stickX, aimY: stickY as -1 | 0 | 1, jump: touchJump, interact: tapInteract, tapTile, hide: touch.hide };
+      : { ...IDLE, moveX: touch.stickX, aimY: stickY as -1 | 0 | 1, jump: touchJump, interact: touchGrab, work: touch.dig, hide: touch.hide };
     this.pressed.clear();
     return input;
   }

@@ -3,6 +3,7 @@ import { FOOD_KINDS } from '../logic/items';
 import { SHELL_KINDS } from '../logic/shells';
 import { SPECIES, type SpeciesId } from '../logic/species';
 import { BACKDROP_W, BOAT_BOX, BOAT_DRAW, THEME_BOATS, THEME_MOVERS, THEMES, type ThemeId } from './backdrop';
+import { BUTTON_ICONS, drawButtonIcon, ICON, ICON_RES } from './buttonArt';
 import { drawCrabBack, drawCrabFront } from './crabArt';
 import { brahminy } from './birds/brahminy';
 import { gullFlight } from './birds/gullFlight';
@@ -39,6 +40,8 @@ export const TEX = {
   find: (find: FindId, f: number) => `find-${find}-${f}`,
   highlight: (f: number) => `hl-${f}`,
   puff: (f: number) => `puff-${f}`,
+  /** A touch button's sign (see buttonArt.ts). */
+  button: (icon: string) => `button-${icon}`,
   /** Plain paper: no ruled lines anywhere in the game. */
   paper: 'paper',
   backdrop: (theme: string, layer: string) => `backdrop-${theme}-${layer}`,
@@ -107,6 +110,7 @@ function bakeBackdrops(scene: Phaser.Scene): void {
 export function generateTextures(scene: Phaser.Scene): void {
   bakePaper(scene);
   bakeBackdrops(scene);
+  BUTTON_ICONS.forEach((icon, i) => bake(scene, TEX.button(icon), ICON, ICON_RES, (ctx) => drawButtonIcon(makeDraw(ctx, 990 + i, 0, 0), icon)));
   const critter = (key: string, seed: number, f: number, draw: (d: Draw) => void, ink?: string): void =>
     bake(scene, key, FRAME, 1, (ctx) => draw(makeDraw(ctx, seed, f, GROUND, ink)));
   for (let f = 0; f < BOIL; f++) {

@@ -138,7 +138,7 @@ describe('digging food out of dune sand', () => {
     expect(buried.length).toBeGreaterThan(0);
     const tiles = buried.map((i) => [Math.floor((i.x + i.w / 2) / T16), Math.floor((i.y + i.h / 2) / T16)] as const);
     for (const [x, y] of tiles) b.terrain.tiles[y * b.terrain.width + x] = TILE.air;
-    b.step({ ...IDLE, tapTile: tiles[0]! }, 1 / 60);
+    b.step(IDLE, 1 / 60);
     // Wake the pour everywhere a tile was cleared, then let it run.
     (b as unknown as { pouring: Set<number> }).pouring.clear();
     for (const [x] of tiles) for (let d = -1; d <= 1; d++) (b as unknown as { pouring: Set<number> }).pouring.add(x + d);

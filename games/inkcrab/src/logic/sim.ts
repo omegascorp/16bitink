@@ -8,7 +8,7 @@ import { Shore, type TideBrings } from './shore';
 import { isLowWater, type TideSpec } from './tide';
 import { isWet, type Water } from './water';
 import { settleColumn } from './sandfall';
-import { digColumns, diggableOf, digTargets, inReach, placeTarget, tileSpan, type TilePos } from './dig';
+import { digColumns, diggableOf, digTargets, placeTarget, tileSpan, type TilePos } from './dig';
 import { feed, initialGrowth, isCapped, type Growth } from './growth';
 import { buriedFood, centre, food, makeItem, overlaps, shell, type Item } from './items';
 import { createRng, type Rng } from './rng';
@@ -41,13 +41,18 @@ export interface Input {
   readonly place: boolean;
   /** Pressed this frame: move into the shell underfoot. */
   readonly interact: boolean;
-  /** A tapped tile (touch): dig it, or fill it with carried sand. */
-  readonly tapTile: TilePos | null;
+  /**
+   * Held (touch's one dig button): dig where aimed; with nothing there to dig,
+   * or the shell full, put down carried sand instead. Which it does is settled
+   * when the button goes down, so digging through into open space doesn't
+   * start building.
+   */
+  readonly work: boolean;
   /** Held: pull into the shell. Safe from anything, but it can't move. */
   readonly hide: boolean;
 }
 
-export const IDLE: Input = { moveX: 0, aimY: 0, jump: false, dig: false, place: false, interact: false, tapTile: null, hide: false };
+export const IDLE: Input = { moveX: 0, aimY: 0, jump: false, dig: false, place: false, interact: false, work: false, hide: false };
 
 /** Trying to move up before a shell chain's line is ready: seconds the notice shows, and before it's said again. */
 export const HELD = { notice: 4, again: 0.6 } as const;
@@ -308,6 +313,8 @@ export class Beach {
   private followSide: 1 | -1 = -1;
   /** The crab last stood on ice: in the air, it's still sliding. */
   private slid = false;
+  /** What the held touch dig button is doing this press, once settled (see workMode). */
+  private working: 'dig' | 'place' | null = null;
   private turning = 0;
   private readonly hasRivals: boolean;
   private readonly rng: Rng;
@@ -557,10 +564,11 @@ export class Beach {
     const facing = input.moveX > WALKING ? 1 : input.moveX < -WALKING ? -1 : c.facing;
     const moved = this.move(input, speed, swimming, mud, dt);
     this.crab = { ...c, body: moved.body, climbing: moved.climbing, facing, digCooldown: Math.max(0, c.digCooldown - dt) };
+    if (!input.work) this.working = null;
     if (this.crab.digCooldown === 0) {
-      if (input.tapTile) this.tapTile(input.tapTile, events);
-      else if (input.dig) this.dig(input, events);
-      else if (input.place) this.place(input, events);
+      const work = input.work ? this.workMode(input) : null;
+      if (input.dig || work === 'dig') this.dig(input, events);
+      else if (input.place || work === 'place') this.place(input, events);
     }
     if (input.interact && this.nearbyShell && this.nearbyFits && !this.nearbyHeld) {
       this.crab = { ...this.crab, swap: startSwap(this.nearbyShell.id) };
@@ -581,7 +589,7 @@ export class Beach {
     const b = this.crab.body;
     const grip = this.inRoots(b);
     // A fresh hold needs up without dig (that's digging up) and not on the way up from a jump or a hop off the roots.
-    const grab = input.aimY === -1 && !input.jump && !input.dig && b.vy >= 0;
+    const grab = input.aimY === -1 && !input.jump && !input.dig && !input.work && b.vy >= 0;
     const climbing = grip && (this.crab.climbing || grab);
     if (climbing && input.jump) {
       return { body: this.slide({ ...b, vy: -this.jumpSpeed * CLIMB.hop, onGround: false }, input.moveX, speed, dt), climbing: false };
@@ -682,12 +690,19 @@ export class Beach {
     if (at) this.addTile(at, events);
   }
 
-  /** Touch: a tapped tile next to the crab is dug if it's sand, filled if it's open. */
-  private tapTile(tap: TilePos, events: SimEvent[]): void {
-    const T = this.tileSize;
-    if (!inReach(this.crab.body, tap, T)) return;
-    if (diggableOf(this.terrain, [tap]).length) this.removeTiles([tap], events);
-    else if (!overlaps(this.crab.body, { x: tap[0] * T, y: tap[1] * T, w: T, h: T })) this.addTile(tap, events);
+  /**
+   * What the touch dig button does for this press: dig if there's sand where
+   * it aims and room in the shell, else put sand down if it carries any.
+   * Settled once per press; until then (nothing to do yet) it looks again.
+   */
+  private workMode(input: Input): 'dig' | 'place' | null {
+    if (this.working) return this.working;
+    const c = this.crab;
+    const walking = Math.abs(input.moveX) > WALKING;
+    const room = c.sand < this.sandCapacity;
+    if (room && diggableOf(this.terrain, digTargets(c.body, c.facing, input.aimY, walking, this.tileSize)).length) this.working = 'dig';
+    else if (c.sand > 0 && placeTarget(this.terrain, c.body, c.facing, input.aimY, this.tileSize)) this.working = 'place';
+    return this.working;
   }
 
   /**
