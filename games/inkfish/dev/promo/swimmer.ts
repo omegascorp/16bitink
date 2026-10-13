@@ -73,6 +73,14 @@ export interface SwimLook {
    * between them is seen going in, darkening as it goes down the throat.
    */
   readonly part?: 'all' | 'mouth' | 'body';
+  /** Overrides for the inside of the mouth (thumbnails want it brighter); the game's dark look by default. */
+  readonly mouth?: MouthLook;
+}
+
+export interface MouthLook {
+  readonly inside?: string;
+  readonly tongue?: string;
+  readonly teeth?: boolean;
 }
 
 /** The mouth line's height at texture x, and how far the upper and lower jaw move there (texture px). */
@@ -135,7 +143,8 @@ export function drawSwimmer(ctx: CanvasRenderingContext2D, sprite: Sprite, pose:
   const span = 2 * hl * R;
   const amp = hh * R * (0.12 + 0.14 * pose.effort);
   const open = Math.max(0, look.jaw ?? 0);
-  const spec = specOf(pose.shape);
+  const base = specOf(pose.shape);
+  const spec = look.mouth?.teeth === undefined ? base : { ...base, teeth: look.mouth.teeth };
   const part = look.part ?? 'all';
   const lump = look.lump;
   // About two screen px per column; never fewer than needed for a smooth bend.
@@ -149,7 +158,7 @@ export function drawSwimmer(ctx: CanvasRenderingContext2D, sprite: Sprite, pose:
   ctx.rotate(-pose.tilt);
   ctx.scale(scale * (look.stretch ?? 1), scale * (look.squash ?? 1));
 
-  if (mouth && part !== 'body') drawMouthInside(ctx, spec, mouth.upper, mouth.lower, hh, R);
+  if (mouth && part !== 'body') drawMouthInside(ctx, spec, mouth.upper, mouth.lower, hh, R, look.mouth);
   if (part === 'mouth') {
     ctx.restore();
     return;
@@ -237,16 +246,16 @@ function drawClosedEye(ctx: CanvasRenderingContext2D, sprite: Sprite, shape: Fis
 }
 
 /** The inside of the open mouth: dark, a little tongue, and shark teeth. */
-function drawMouthInside(ctx: CanvasRenderingContext2D, spec: MouthSpec, upper: readonly Pt[], lower: readonly Pt[], hh: number, R: number): void {
+function drawMouthInside(ctx: CanvasRenderingContext2D, spec: MouthSpec, upper: readonly Pt[], lower: readonly Pt[], hh: number, R: number, look: MouthLook = {}): void {
   ctx.save();
   mouthPath(ctx, upper, lower, R);
-  ctx.fillStyle = '#2a1418';
+  ctx.fillStyle = look.inside ?? '#2a1418';
   ctx.fill();
   ctx.clip();
   // The tongue: a soft red mound on the floor of the mouth.
   const mid = lower[Math.round(lower.length * 0.45)]!;
   const tongue = toSprite({ x: mid.x, y: mid.y - hh * 0.08 }, R);
-  ctx.fillStyle = '#8a3b44';
+  ctx.fillStyle = look.tongue ?? '#8a3b44';
   ctx.globalAlpha = 0.85;
   ctx.beginPath();
   ctx.ellipse(tongue.x, tongue.y, hh * 0.5 * R, hh * 0.16 * R, -0.08, 0, Math.PI * 2);

@@ -77,6 +77,19 @@ Batch 3–8 is all deep sea. This one mixes in reef fish whose facts are already
 | 14 | *"This fish flew for forty-five seconds."* | NHK filmed a 45 s flight off Yakushima in 2008 (Guinness); glides up to ~400 m; mahi-mahi below, seabirds above | BBC *The Hunt* clip; 2025 "first footage" news | `inkfish-flying-fish.mp4` (19.5s) |
 | 15 | *"This fish is blacker than black."* | Pacific blackdragon skin reflects as little as 0.05% of light, thanks to packed pigment granules (Davis et al. 2020). It is the study's second-blackest fish, so the short never says "blackest" | Smithsonian ultra-black fish study (2020) was everywhere | `inkfish-blackdragon.mp4` (18s) |
 
+## Long-form thumbnails
+
+The first level 1 thumbnail (pale paper, three lines of text, "LEVEL 1" tag) got **1.1% CTR on 1.6K impressions** in its first two days (2026-10-11 to 10-13). On 2026-10-13 we compared it with the most-viewed fish-eat-fish videos on YouTube (Feed and Grow 26M/16M, ProjectJamesify "SIZE 1 vs SIZE 99999" 4.5M, "FROM THIS... TO THIS..." 7.9M) and the low-view Feeding Frenzy walkthroughs. The winners all do the same few things:
+
+1. **One giant open mouth**, red inside, cropped by the frame edge so it feels too big to fit.
+2. **Prey with a big eye**, small next to it: size contrast is the story.
+3. **Bright saturated blue water with warm fish on it** (orange, red, green). Never pale fish on pale water.
+4. **Before/after splits**: a hard red divider, a fat yellow arrow, numbers or "FROM THIS... TO THIS...".
+5. **0–3 words**, white or yellow, with a fat black outline. The title carries the rest. No level tags or logos.
+6. Walkthrough-style thumbnails (logo + "FULL GAME" + clutter) get thousands of views, not millions.
+
+`pnpm --filter @16bitink/inkfish thumbnail` draws three on these rules (`hunter`, `glowup`, `run`) and a check sheet at YouTube's display sizes. Upload all three to Studio's **Test & Compare** and log the winner here.
+
 ## Collecting the data
 
 Export from YouTube Studio once each video is ~72 hours old, and again at 7 days:
