@@ -1,15 +1,15 @@
-import { CRATES, type CrateKey } from '../logic/crates';
 import { hash, valueNoise } from '../logic/noise';
 import { ORES, type OreKey } from '../logic/ore';
 import { createRng, type Rng } from '../logic/rng';
-import { contentAt, createTerrain, inside, setTile, TILE, tileAt, type Terrain } from '../logic/terrain';
+import { contentAt, createTerrain, inside, setTile, TILE, tileAt, volatileAt, type Terrain } from '../logic/terrain';
+import { VOLATILES } from '../logic/volatiles';
 
 /**
  * Carves a dig site from a short spec and a seed, the way InkCrab's
  * carve.ts builds a beach from its level definition: the spec says what
  * matters (size, where the grades change, how many caves, veins and
- * crates), the seed fills in the rest, so the same level is the same map
- * for everyone.
+ * firedamp pockets, where the old charges are), the seed fills in the
+ * rest, so the same level is the same map for everyone.
  */
 export interface OreRule {
   readonly ore: OreKey;
@@ -34,7 +34,10 @@ export interface CarveSpec {
   readonly caves: number;
   readonly caveFrom: number;
   readonly ores: readonly OreRule[];
-  readonly crates: Readonly<Partial<Record<CrateKey, number>>>;
+  /** Firedamp pockets (natural): little clusters, most of them by a graphite seam, as methane gathers by coal. */
+  readonly firedamp: number;
+  /** Old charges an earlier crew left, placed by hand where the level needs them: column and depth below the surface. */
+  readonly charges?: readonly { readonly kind: 'charge' | 'lineCharge'; readonly at: readonly [number, number] }[];
   /** The lander's column: the ground is flat and clear around it. */
   readonly landerCol: number;
 }
@@ -43,7 +46,7 @@ export interface CarveSpec {
 export const BEDROCK_ROWS = 2;
 /** Columns either side of the lander kept flat. */
 const PAD = 3;
-/** Crates and caves keep this many rows below the surface. */
+/** Volatiles and caves keep this many rows below the surface. */
 const TOPSOIL = 3;
 
 export function surfaceAt(spec: CarveSpec, x: number): number {
@@ -60,8 +63,10 @@ export function carve(spec: CarveSpec): Terrain {
   layGround(t, spec, surface);
   for (let i = 0; i < spec.caves; i++) worm(t, spec, surface, rng);
   for (const rule of spec.ores) for (let i = 0; i < rule.veins; i++) vein(t, spec, surface, rule, rng);
-  for (const [kind, count] of Object.entries(spec.crates) as [CrateKey, number][]) {
-    for (let i = 0; i < count; i++) placeCrate(t, spec, surface, kind, rng);
+  for (let i = 0; i < spec.firedamp; i++) firedamp(t, spec, surface, rng);
+  for (const { kind, at: [x, depth] } of spec.charges ?? []) {
+    const y = surface[x]! + depth;
+    if (inside(t, x, y) && tileAt(t, x, y) !== TILE.air && tileAt(t, x, y) !== TILE.bedrock) t.volatile[y * t.width + x] = VOLATILES[kind].id;
   }
   return t;
 }
@@ -130,12 +135,35 @@ function holdsOre(t: Terrain, x: number, y: number): boolean {
   return inside(t, x, y) && (tile === TILE.soil || tile === TILE.stone || tile === TILE.deep) && contentAt(t, x, y) === 0;
 }
 
-function placeCrate(t: Terrain, spec: CarveSpec, surface: readonly number[], kind: CrateKey, rng: Rng): void {
+/** A cluster of one to three firedamp pockets in soil or stone, half the time beside a graphite seam. */
+function firedamp(t: Terrain, spec: CarveSpec, surface: readonly number[], rng: Rng): void {
+  const seams = rng() < 0.5 ? seamTiles(t) : [];
   for (let tries = 0; tries < 40; tries++) {
-    const x = 1 + Math.floor(rng() * (spec.width - 2));
-    const y = surface[x]! + TOPSOIL + Math.floor(rng() * (spec.height - surface[x]! - TOPSOIL - BEDROCK_ROWS - 1));
-    if (Math.abs(x - spec.landerCol) <= PAD || !holdsOre(t, x, y) || tileAt(t, x, y) === TILE.deep) continue;
-    setTile(t, x, y, TILE.crate, CRATES[kind].id);
+    const seam = seams.length ? seams[Math.floor(rng() * seams.length)]! : null;
+    const x = seam ? seam[0] + (rng() < 0.5 ? -1 : 1) : 1 + Math.floor(rng() * (spec.width - 2));
+    const y = seam ? seam[1] + Math.floor(rng() * 3) - 1 : surface[x]! + TOPSOIL + Math.floor(rng() * (spec.height - surface[x]! - TOPSOIL - BEDROCK_ROWS - 1));
+    if (!pocketable(t, spec, surface, x, y)) continue;
+    const size = 1 + Math.floor(rng() * 3);
+    let [cx, cy] = [x, y];
+    for (let k = 0; k < size && pocketable(t, spec, surface, cx, cy); k++) {
+      t.volatile[cy * t.width + cx] = VOLATILES.firedamp.id;
+      if (rng() < 0.5) cx += rng() < 0.5 ? -1 : 1;
+      else cy += rng() < 0.5 ? -1 : 1;
+    }
     return;
   }
+}
+
+/** Every graphite tile, for firedamp to gather by. */
+function seamTiles(t: Terrain): [number, number][] {
+  const out: [number, number][] = [];
+  for (let i = 0; i < t.content.length; i++) if (t.content[i] === ORES.graphite.id) out.push([i % t.width, Math.floor(i / t.width)]);
+  return out;
+}
+
+/** Soil or stone with nothing in it, below the topsoil and away from the lander. */
+function pocketable(t: Terrain, spec: CarveSpec, surface: readonly number[], x: number, y: number): boolean {
+  if (!inside(t, x, y) || y < surface[x]! + TOPSOIL || Math.abs(x - spec.landerCol) <= PAD) return false;
+  const tile = tileAt(t, x, y);
+  return (tile === TILE.soil || tile === TILE.stone) && contentAt(t, x, y) === 0 && volatileAt(t, x, y) === 0;
 }

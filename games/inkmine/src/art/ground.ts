@@ -1,10 +1,11 @@
 import { cellCase, cellGeometry } from '../logic/contour';
 import { hash } from '../logic/noise';
 import { createRng } from '../logic/rng';
-import { gradeOf, TILE, tileAt, type Grade, type Terrain } from '../logic/terrain';
+import { gradeOf, TILE, tileAt, volatileAt, type Grade, type Terrain } from '../logic/terrain';
+import { VOLATILES } from '../logic/volatiles';
 import { oreById } from '../logic/ore';
 import { drawOreGlyph } from './oreArt';
-import { INK, PAPER, type GroundStyle } from './palette';
+import { INK, PAPER, RED, type GroundStyle } from './palette';
 
 /**
  * A dig site's ground in ballpoint, after InkCrab's sand renderer: seamless
@@ -281,7 +282,7 @@ function ores(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: number
   for (let y = c.ty - 1; y <= c.ty + c.tiles; y++) {
     for (let x = c.tx - 1; x <= c.tx + c.tiles; x++) {
       const tile = tileAt(t, x, y);
-      if (tile === TILE.air || tile === TILE.crate || tile === TILE.bedrock || x < 0 || y < 0 || x >= t.width || y >= t.height) continue;
+      if (tile === TILE.air || tile === TILE.bedrock || x < 0 || y < 0 || x >= t.width || y >= t.height) continue;
       const ore = oreById(t.content[y * t.width + x]!);
       if (!ore) continue;
       ctx.save();
@@ -290,6 +291,90 @@ function ores(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: number
       ctx.restore();
     }
   }
+}
+
+/** Pale wash of trapped gas. */
+const GAS = '#e4e3b6';
+
+/**
+ * Firedamp: a pocket of gas trapped in the rock, drawn into the ground
+ * itself (not a sprite): an irregular hollow washed pale with a shadow
+ * under its upper lip, a couple of faint red wisps for the gas (it can hurt
+ * you), and hairline pressure cracks running off into the rock.
+ */
+function firedamp(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: number): void {
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (let y = c.ty - 1; y <= c.ty + c.tiles; y++) {
+    for (let x = c.tx - 1; x <= c.tx + c.tiles; x++) {
+      if (volatileAt(t, x, y) !== VOLATILES.firedamp.id) continue;
+      const h = (k: number): number => hash(x, y, 500 + k);
+      const rx = T * (0.3 + h(0) * 0.1);
+      const ry = T * (0.17 + h(1) * 0.08);
+      const rim = Array.from({ length: 11 }, (_, i) => {
+        const a = (i / 11) * Math.PI * 2;
+        const k = 0.75 + h(10 + i) * 0.45;
+        return [Math.cos(a) * rx * k, Math.sin(a) * ry * k] as const;
+      });
+      const path = (): void => {
+        ctx.beginPath();
+        rim.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)));
+        ctx.closePath();
+      };
+      ctx.save();
+      ctx.translate((x + 0.5 + (h(2) - 0.5) * 0.2) * T, (y + 0.5 + (h(3) - 0.5) * 0.2) * T);
+      ctx.rotate((h(4) - 0.5) * 0.7);
+      // Pressure cracks into the rock.
+      ctx.strokeStyle = INK;
+      for (let k = 0; k < 4; k++) {
+        const [sx, sy] = rim[Math.floor(h(30 + k) * rim.length)]!;
+        const a = Math.atan2(sy, sx) + (h(40 + k) - 0.5) * 0.8;
+        const len = T * (0.12 + h(50 + k) * 0.18);
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 0.55;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx + Math.cos(a) * len * 0.5 + (h(60 + k) - 0.5) * 2, sy + Math.sin(a) * len * 0.5);
+        ctx.lineTo(sx + Math.cos(a) * len, sy + Math.sin(a) * len);
+        ctx.stroke();
+      }
+      path();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = PAPER;
+      ctx.fill();
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = GAS;
+      ctx.fill();
+      ctx.save();
+      ctx.clip();
+      // The hollow's upper lip throws a shadow into it.
+      ctx.globalAlpha = 0.28;
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = ry * 0.9;
+      ctx.beginPath();
+      ctx.ellipse(0, -ry * 0.85, rx * 1.05, ry * 0.7, 0, 0, Math.PI);
+      ctx.stroke();
+      // Wisps of gas, faint and red.
+      ctx.strokeStyle = RED;
+      ctx.lineWidth = 0.7;
+      for (let k = 0; k < 2; k++) {
+        const oy = (k - 0.3) * ry * 0.6;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(-rx * 0.6, oy);
+        ctx.bezierCurveTo(-rx * 0.2, oy - ry * 0.5, rx * 0.1, oy + ry * 0.5, rx * (0.45 + h(70 + k) * 0.2), oy - ry * 0.15);
+        ctx.stroke();
+      }
+      ctx.restore();
+      path();
+      ctx.globalAlpha = 0.85;
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  ctx.globalAlpha = 1;
 }
 
 /** How dark the back wall is at this row: near-blank paper at the top, a little greyer the deeper you go. */
@@ -302,12 +387,9 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
   const size = c.tiles * T;
   ctx.setTransform(res, 0, 0, res, (CHUNK_PAD - c.tx * T) * res, (CHUNK_PAD - c.ty * T) * res);
   ctx.clearRect(c.tx * T - CHUNK_PAD, c.ty * T - CHUNK_PAD, size + CHUNK_PAD * 2, size + CHUNK_PAD * 2);
-  const ground: Mask = (x, y) => {
-    const tile = tileAt(t, x, y);
-    return tile !== TILE.air && tile !== TILE.crate;
-  };
+  const ground: Mask = (x, y) => tileAt(t, x, y) !== TILE.air;
   const of = (tile: number): Mask => (x, y) => tileAt(t, x, y) === tile;
-  // Hollows inside the planet (open tiles under its surface, crate tiles too): the back wall.
+  // Hollows inside the planet (open tiles under its first surface): the back wall.
   const inner: Mask = (x, y) => !ground(x, y) && x >= 0 && x < t.width && y >= (roof[Math.max(0, Math.min(t.width - 1, x))] ?? 0);
   const innerPath = maskPath(inner, c, T);
   // Paper first, so the sky layers behind never show through a hole in the ground.
@@ -362,6 +444,7 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
   wallShadow(ctx, edgeSegments(ground, c, T), T, style.shade);
   ctx.restore();
   ores(ctx, t, c, T);
+  firedamp(ctx, t, c, T);
   // Faint lines where one grade gives way to the next; heavy ink where you can't drill.
   inkEdges(ctx, of(TILE.stone), c, T, 0.9, 100, 0.45);
   inkEdges(ctx, of(TILE.deep), c, T, 0.9, 200, 0.45);

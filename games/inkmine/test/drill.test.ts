@@ -29,11 +29,10 @@ describe('drill costs (the spec table)', () => {
     expect([gradeCost(d, 0), gradeCost(d, 1)]).toEqual([1, null]);
   });
 
-  it('bedrock never breaks; crates cost a tap', () => {
+  it('bedrock never breaks', () => {
     const d = { mk: 10, planet: 1 };
     expect(tileCost(d, TILE.bedrock)).toBeNull();
     expect(tileCost(d, TILE.air)).toBeNull();
-    expect(tileCost(d, TILE.crate)).toBe(1);
     expect(tooHard({ mk: 1, planet: 1 }, 2)).toBe(true);
   });
 });

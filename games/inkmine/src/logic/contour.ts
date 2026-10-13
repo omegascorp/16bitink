@@ -29,19 +29,20 @@ const R: Pt = { x: 1, y: 0.5 };
 const B: Pt = { x: 0.5, y: 1 };
 const L: Pt = { x: 0, y: 0.5 };
 
-// Saddles (5, 10) keep the two solid corners joined so diagonal sand stays one mass.
+// Saddles (5, 10) join the two open corners, not the solid ones: a hole dug diagonally reads as one
+// passage, never as two holes touching at a point (changed Oct 13, 2026; it used to join the solid).
 const TABLE: readonly CellGeometry[] = [
   { fill: [], edges: [] },
   { fill: [[L, B, BL]], edges: [[L, B]] },
   { fill: [[B, R, BR]], edges: [[B, R]] },
   { fill: [[L, R, BR, BL]], edges: [[L, R]] },
   { fill: [[T, TR, R]], edges: [[T, R]] },
-  { fill: [[T, TR, R, B, BL, L]], edges: [[L, T], [B, R]] },
+  { fill: [[T, TR, R], [L, B, BL]], edges: [[T, R], [L, B]] },
   { fill: [[T, TR, BR, B]], edges: [[T, B]] },
   { fill: [[T, TR, BR, BL, L]], edges: [[L, T]] },
   { fill: [[TL, T, L]], edges: [[T, L]] },
   { fill: [[TL, T, B, BL]], edges: [[T, B]] },
-  { fill: [[TL, T, R, BR, B, L]], edges: [[T, R], [B, L]] },
+  { fill: [[TL, T, L], [B, R, BR]], edges: [[T, L], [B, R]] },
   { fill: [[TL, T, R, BR, BL]], edges: [[T, R]] },
   { fill: [[TL, TR, R, L]], edges: [[L, R]] },
   { fill: [[TL, TR, R, B, BL]], edges: [[R, B]] },

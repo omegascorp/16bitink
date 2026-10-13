@@ -1,15 +1,17 @@
-import { CRATES } from '../src/logic/crates';
+import { STARTER_LOADOUT } from '../src/logic/gear';
 import { Mine, NO_INPUT, type MineInput, type MineEvent, type MineSetup } from '../src/logic/mine';
 import { ORES } from '../src/logic/ore';
 import { STARTER } from '../src/logic/suit';
 import { createTerrain, setTile, TILE, type Terrain } from '../src/logic/terrain';
+import { VOLATILES } from '../src/logic/volatiles';
 
 export const T = 32;
 
 /**
  * A terrain from rows of characters: `.` air, `s` soil, `t` stone, `d` deep
- * rock, `#` bedrock, `b` bomb crate, `y` dynamite crate, `c` copper in soil,
- * `g` graphite in soil, `q` quartz in stone.
+ * rock, `#` bedrock, `f` firedamp in soil, `F` firedamp in stone, `b` an old
+ * charge in soil, `y` a line charge in soil, `c` copper in soil, `g`
+ * graphite in soil, `q` quartz in stone.
  */
 export function grid(rows: readonly string[]): Terrain {
   const t = createTerrain(rows[0]!.length, rows.length);
@@ -19,8 +21,10 @@ export function grid(rows: readonly string[]): Terrain {
       if (ch === 't') setTile(t, x, y, TILE.stone);
       if (ch === 'd') setTile(t, x, y, TILE.deep);
       if (ch === '#') setTile(t, x, y, TILE.bedrock);
-      if (ch === 'b') setTile(t, x, y, TILE.crate, CRATES.bomb.id);
-      if (ch === 'y') setTile(t, x, y, TILE.crate, CRATES.dynamite.id);
+      if (ch === 'f') setTile(t, x, y, TILE.soil, 0, VOLATILES.firedamp.id);
+      if (ch === 'F') setTile(t, x, y, TILE.stone, 0, VOLATILES.firedamp.id);
+      if (ch === 'b') setTile(t, x, y, TILE.soil, 0, VOLATILES.charge.id);
+      if (ch === 'y') setTile(t, x, y, TILE.soil, 0, VOLATILES.lineCharge.id);
       if (ch === 'c') setTile(t, x, y, TILE.soil, ORES.copper.id);
       if (ch === 'g') setTile(t, x, y, TILE.soil, ORES.graphite.id);
       if (ch === 'q') setTile(t, x, y, TILE.stone, ORES.quartz.id);
@@ -34,6 +38,7 @@ export function mine(rows: readonly string[], over: Partial<MineSetup> = {}): Mi
     terrain: grid(rows),
     tileSize: T,
     drill: { mk: 1, planet: 1 },
+    loadout: STARTER_LOADOUT,
     suit: STARTER,
     ladders: 3,
     lander: { col: 1, row: 2 },

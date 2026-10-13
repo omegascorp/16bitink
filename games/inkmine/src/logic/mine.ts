@@ -1,17 +1,20 @@
 import { boxHitsSolid, climbBody, jump, moveBody, type Body, type Box } from './body';
-import { CrateSim, type Blast } from './crateSim';
-import { DRILL_SECONDS_PER_ENERGY, tileCost, type DrillSpec } from './drill';
+import { BlastSim, type Blast } from './blastSim';
+import type { Loadout } from './gear';
+import { DRILL_SECONDS_PER_ENERGY, tileCost, VOLATILE_COST, type DrillSpec } from './drill';
 import { ladderRungs, Ladders } from './ladders';
 import { caught, newPiece, PIECE, stepPiece, type Piece } from './pieces';
 import { bagFull, bagValue, burn, emptyBag, hurt, newSuit, recharge, refuel, spend, stow, type Suit, type SuitSpec } from './suit';
 import { bodyCell, centredX, drillTarget } from './target';
-import { contentAt, setTile, TILE, tileAt, type Terrain, type TilePos } from './terrain';
+import { contentAt, setTile, TILE, tileAt, volatileAt, type Terrain, type TilePos } from './terrain';
 
 /** Everything a dig site starts from. */
 export interface MineSetup {
   readonly terrain: Terrain;
   readonly tileSize: number;
   readonly drill: DrillSpec;
+  /** The marks of every gear piece, for how the prospector looks. */
+  readonly loadout: Loadout;
   readonly suit: SuitSpec;
   /** Ladder gadgets carried. */
   readonly ladders: number;
@@ -58,10 +61,10 @@ export const PROSPECTOR = { w: 20, h: 28, walk: 125, climb: 105, jump: 330 } as 
  * second from a tank of its own, refilled at the lander.
  */
 export const JET = { thrust: 1650, maxRise: 240, burn: 10 } as const;
-/** Px/s the prospector drops into a block they just drilled out from under themselves, so going down doesn't wait on gravity. */
+/** Px/s the prospector drops into a block they just drilled out from under themselves (or steps off a stair onto), so going down doesn't wait on gravity. */
 const DROP_KICK = 260;
-/** Seconds to set off a crate with the drill. */
-const CRATE_TAP = 0.08;
+/** Seconds for the drill to open a firedamp pocket or knock an old charge's detonator. */
+const VOLATILE_TAP = 0.08;
 /** The same notice ("too hard", "cell flat", "bag full") is said at most this often. */
 const NOTICE_GAP = 1.2;
 /** The lander's footprint in tiles either side of its middle, and its height. */
@@ -70,11 +73,13 @@ export const LANDER = { half: 1, rows: 3 } as const;
 interface Drilling {
   readonly tile: TilePos;
   readonly progress: number;
+  /** Seconds the whole dig takes (both blocks of a diagonal). */
+  readonly need: number;
 }
 
 /**
  * One dig site in play: the prospector, their suit, the ground they drill,
- * crates, loose ore and the lander they bank at. Pure simulation (no
+ * what can blow in it, loose ore and the lander they bank at. Pure simulation (no
  * Phaser); `step` returns what happened so the scene can draw and play it.
  */
 export class Mine {
@@ -82,7 +87,7 @@ export class Mine {
   readonly tile: number;
   readonly drill: DrillSpec;
   readonly ladders: Ladders;
-  readonly crates: CrateSim;
+  readonly blasts: BlastSim;
   readonly landerBox: Box;
   player: Body;
   facing: 1 | -1 = 1;
@@ -103,7 +108,7 @@ export class Mine {
     this.tile = setup.tileSize;
     this.drill = setup.drill;
     this.ladders = new Ladders(setup.terrain);
-    this.crates = new CrateSim(setup.terrain);
+    this.blasts = new BlastSim(setup.terrain);
     this.suit = newSuit(setup.suit);
     this.laddersLeft = setup.ladders;
     const T = this.tile;
@@ -120,8 +125,7 @@ export class Mine {
   /** How far through the current block the drill is, 0..1. */
   get drillProgress(): number {
     if (!this.drilling) return 0;
-    const need = this.drillSeconds(this.drilling.tile);
-    return need ? Math.min(1, this.drilling.progress / need) : 0;
+    return this.drilling.need ? Math.min(1, this.drilling.progress / this.drilling.need) : 0;
   }
 
   step(dt: number, input: MineInput): MineEvent[] {
@@ -132,7 +136,7 @@ export class Mine {
     if (input.ladder) this.placeLadder(events);
     const blocked = this.move(dt, input, events);
     this.drillStep(dt, input, blocked, events);
-    this.crateStep(dt, events);
+    this.blastStep(dt, events);
     this.pieceStep(dt, events);
     this.landerStep(events);
     if (this.suit.hearts <= 0) {
@@ -176,7 +180,9 @@ export class Mine {
           launched = { ...launched, vy: Math.max(-JET.maxRise, launched.vy - JET.thrust * dt) };
         } else this.notice('noFuel', events, { kind: 'noFuel' });
       }
-      this.player = moveBody(this.terrain, launched, input.ix, PROSPECTOR.walk, dt, T);
+      this.player = moveBody(this.terrain, launched, input.ix, PROSPECTOR.walk, dt, T, input.iy <= 0);
+      // Stepping off a ledge while heading down drops straight onto the next stair.
+      if (input.iy > 0 && before.onGround && !this.player.onGround && this.player.vy >= 0) this.player = { ...this.player, vy: Math.max(this.player.vy, DROP_KICK) };
     }
     const footing = this.player.onGround || this.climbing || this.jetting;
     return input.ix !== 0 && footing && Math.abs(this.player.x - before.x) < 0.01;
@@ -185,47 +191,62 @@ export class Mine {
   private drillStep(dt: number, input: MineInput, blocked: boolean, events: MineEvent[]): void {
     // Hovering on the jetpack counts as footing: you can drill up through a roof or into a wall mid-air.
     const footing = this.player.onGround || this.climbing || this.jetting;
-    const target = drillTarget(this.terrain, this.player, this.tile, input, footing, blocked);
-    if (!target || this.crates.isLit(target.tile[0], target.tile[1])) {
+    const aimed = drillTarget(this.terrain, this.player, this.tile, input, footing, blocked);
+    // Something volatile in a two-block dig is set off on its own first.
+    const target = aimed?.with && (volatileAt(this.terrain, ...aimed.with) || volatileAt(this.terrain, ...aimed.tile))
+      ? { tile: volatileAt(this.terrain, ...aimed.with) ? aimed.with : aimed.tile, centre: false }
+      : aimed;
+    if (!target || this.blasts.isLit(target.tile[0], target.tile[1])) {
       this.drilling = null;
       return;
     }
-    const [x, y] = target.tile;
-    const cost = tileCost(this.drill, tileAt(this.terrain, x, y));
-    if (cost === null) {
+    const tiles: TilePos[] = target.with ? [target.tile, target.with] : [target.tile];
+    const costs = tiles.map(([x, y]) => this.costOf(x, y));
+    if (costs.some((c) => c === null)) {
       this.drilling = null;
-      this.notice('tooHard', events, { kind: 'tooHard', tile: target.tile });
+      this.notice('tooHard', events, { kind: 'tooHard', tile: tiles[costs.indexOf(null)]! });
       return;
     }
+    const cost = (costs as number[]).reduce((a, b) => a + b, 0);
     if (this.suit.energy < cost) {
       this.drilling = null;
       this.notice('flat', events, { kind: 'flat' });
       return;
     }
+    const [x, y] = target.tile;
     const same = this.drilling && this.drilling.tile[0] === x && this.drilling.tile[1] === y;
     if (!same && target.centre) this.centreOver(x);
     const progress = (same ? this.drilling!.progress : 0) + dt;
-    if (progress < this.drillSeconds(target.tile)) {
-      this.drilling = { tile: target.tile, progress };
+    const need = tiles.reduce((sum, t) => sum + this.drillSeconds(t), 0);
+    if (progress < need) {
+      this.drilling = { tile: target.tile, progress, need };
       return;
     }
     this.drilling = null;
     this.suit = spend(this.suit, cost) ?? this.suit;
-    if (tileAt(this.terrain, x, y) === TILE.crate) {
-      this.crates.light(x, y);
+    if (volatileAt(this.terrain, x, y)) {
+      this.blasts.light(x, y);
       events.push({ kind: 'lit', tile: target.tile });
       return;
     }
-    const ore = contentAt(this.terrain, x, y);
-    setTile(this.terrain, x, y, TILE.air);
+    tiles.forEach(([tx, ty], i) => {
+      const ore = contentAt(this.terrain, tx, ty);
+      setTile(this.terrain, tx, ty, TILE.air);
+      if (ore) this.pieces.push(newPiece(ore, (tx + 0.5) * this.tile, (ty + 0.5) * this.tile));
+      events.push({ kind: 'drilled', tile: [tx, ty], cost: costs[i]!, ore });
+    });
     if (target.centre && y > bodyCell(this.player, this.tile).row) this.player = { ...this.player, vy: DROP_KICK, onGround: false };
-    if (ore) this.pieces.push(newPiece(ore, (x + 0.5) * this.tile, (y + 0.5) * this.tile));
-    events.push({ kind: 'drilled', tile: target.tile, cost, ore }, { kind: 'tiles', tiles: [target.tile] });
+    events.push({ kind: 'tiles', tiles });
+  }
+
+  /** Energy to drill (x, y): a tap for something volatile, otherwise by grade; null when too hard. */
+  private costOf(x: number, y: number): number | null {
+    return volatileAt(this.terrain, x, y) ? VOLATILE_COST : tileCost(this.drill, tileAt(this.terrain, x, y));
   }
 
   private drillSeconds(tile: TilePos): number {
     const t = tileAt(this.terrain, tile[0], tile[1]);
-    if (t === TILE.crate) return CRATE_TAP;
+    if (volatileAt(this.terrain, tile[0], tile[1])) return VOLATILE_TAP;
     return (tileCost(this.drill, t) ?? 0) * DRILL_SECONDS_PER_ENERGY;
   }
 
@@ -235,8 +256,8 @@ export class Mine {
     if (!boxHitsSolid(this.terrain, moved, this.tile)) this.player = moved;
   }
 
-  private crateStep(dt: number, events: MineEvent[]): void {
-    const { changed, blasts } = this.crates.step(dt, (x, y) => this.occupies(x, y));
+  private blastStep(dt: number, events: MineEvent[]): void {
+    const { changed, blasts } = this.blasts.step(dt);
     if (changed.length) events.push({ kind: 'tiles', tiles: changed });
     for (const blast of blasts) {
       events.push({ kind: 'blast', blast });

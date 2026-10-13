@@ -1,4 +1,4 @@
-import { gradeOf, TILE, type Grade, type Tile } from './terrain';
+import { gradeOf, type Grade, type Tile } from './terrain';
 
 /**
  * What a block costs to drill (docs/inkmine-design.md, "Digging and
@@ -23,8 +23,8 @@ const COST: Readonly<Record<DrillStanding, readonly (number | null)[]>> = {
   ahead: [1, 1, 2],
 };
 
-/** Energy to drill a crate: a tap sets it off. */
-export const CRATE_COST = 1;
+/** Energy to drill into something volatile (volatiles.ts): a tap sets it off, whatever rock it's in. */
+export const VOLATILE_COST = 1;
 /** Seconds a block of each energy cost takes to drill through. */
 export const DRILL_SECONDS_PER_ENERGY = 0.16;
 
@@ -49,7 +49,6 @@ export function gradeCost(d: DrillSpec, grade: Grade): number | null {
 
 /** Energy a tile costs to drill, or null when it can't be drilled (air, bedrock, too hard). */
 export function tileCost(d: DrillSpec, tile: Tile): number | null {
-  if (tile === TILE.crate) return CRATE_COST;
   const grade = gradeOf(tile);
   return grade === null ? null : gradeCost(d, grade);
 }

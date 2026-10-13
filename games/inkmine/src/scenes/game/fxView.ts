@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { BLUE, INK, RED, RED_HEX } from '../../art/palette';
-import { NOZZLE, PROSPECTOR_GROUND } from '../../art/prospectorArt';
-import type { Blast } from '../../logic/crateSim';
+import { nozzleOf, PROSPECTOR_GROUND } from '../../art/prospector';
+import type { Look } from '../../logic/gear';
+import type { Blast } from '../../logic/blastSim';
 import type { Mine } from '../../logic/mine';
 import { createRng } from '../../logic/rng';
 import { HAND_FONT } from '../ui';
@@ -21,7 +22,7 @@ export class FxView {
   private readonly flame: Phaser.GameObjects.Graphics;
   private readonly rng = createRng(5);
 
-  constructor(private readonly scene: Phaser.Scene, private readonly tile: number) {
+  constructor(private readonly scene: Phaser.Scene, private readonly tile: number, private readonly jetLook: Look) {
     this.cracks = scene.add.graphics().setDepth(4);
     this.flame = scene.add.graphics().setDepth(4.5);
   }
@@ -31,8 +32,9 @@ export class FxView {
     const g = this.flame.clear();
     if (!mine.jetting) return;
     const p = mine.player;
-    const x = p.x + p.w / 2 + NOZZLE.x * SCALE * mine.facing;
-    const y = p.y + p.h + (NOZZLE.y - PROSPECTOR_GROUND) * SCALE;
+    const nozzle = nozzleOf(this.jetLook);
+    const x = p.x + p.w / 2 + nozzle.x * SCALE * mine.facing;
+    const y = p.y + p.h + (nozzle.y - PROSPECTOR_GROUND) * SCALE;
     const len = 9 + this.rng() * 7;
     const w = 3.2 + this.rng() * 1.2;
     const tongue = [
@@ -98,8 +100,8 @@ export class FxView {
     g.lineStyle(2.2, RED_HEX, 0.9);
     const cx = (b.at[0] + 0.5) * T;
     const cy = (b.at[1] + 0.5) * T;
-    const reach = b.kind === 'dynamite' ? T * 4.5 : T * 1.6;
-    const tall = b.kind === 'dynamite' ? T * 0.9 : T * 1.6;
+    const reach = b.kind === 'lineCharge' ? T * 4.5 : T * 1.6;
+    const tall = b.kind === 'lineCharge' ? T * 0.9 : T * 1.6;
     g.beginPath();
     for (let i = 0; i <= 28; i++) {
       const a = (i / 28) * Math.PI * 2;

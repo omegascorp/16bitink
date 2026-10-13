@@ -10,7 +10,7 @@ The third 16bit.ink game, after InkFish and InkCrab. It keeps their shape: 100 l
 
 Design pillars:
 
-1. **Pocket Mine simple.** Every block you drill costs energy, and crates in the rock turn a few smart hits into a chain reaction. A few numbers to watch (energy, fuel, bag, hearts); dig by pushing into the ground. Anything that needs a manual gets cut.
+1. **Pocket Mine simple.** Every block you drill costs energy, and firedamp in the rock turns a few smart hits into a chain reaction. A few numbers to watch (energy, fuel, bag, hearts); dig by pushing into the ground. Anything that needs a manual gets cut.
 2. **Every trip pays, every planet levels you up.** Ore you bring back is yours, even on a failed level. New gear is unlocked, not bought: you find its blueprint and dig up the planet's materials to build it, and it always opens something new.
 3. **Big ground, readable ground.** Maps are many screens deep. How hard a block is, what's worth digging and what will hurt you all read at a glance from the ink.
 4. **Each planet is a new idea.** Every planet has its own biome, native creatures, signature material and one mechanic that changes how you dig.
@@ -21,7 +21,7 @@ Full notes in [inkmine-research.md](inkmine-research.md). What InkMine takes:
 
 | Game | Taken into InkMine |
 | --- | --- |
-| **Pocket Mine 1–3** | One meter spent per hit as the only run limit (here the drill's energy), so every hit is a decision; crates that fall and chain-react; a clear goal per mine |
+| **Pocket Mine 1–3** | One meter spent per hit as the only run limit (here the drill's energy), so every hit is a decision; explosions that chain (here firedamp and old charges, each there for a reason); a clear goal per mine |
 | **SteamWorld Dig 2** | Areas gated by tools (each planet's gear); hand-made treasure vaults inside a bigger map; death costs carried ore, never cash |
 | **Motherload / Super Motherload** | Cargo-limited round trips and the "turn back now?" call; underground outposts (relay posts); a bonus for mining a whole vein |
 | **Mr. Driller** | Air with refill capsules (Brine); falling blocks as threat and tool (Talus); colour-linked groups (Prism) |
@@ -83,20 +83,24 @@ The prospector carries an **energy drill**: a futuristic mining tool powered by 
 - **Too hard** blocks make the drill skid with a whine and a "too hard" note, and cost nothing. Blocks your drill can't break yet are drawn with a heavier outline, so you can see it before you try.
 - **A flat cell** can't drill until it's recharged at the lander or a relay. Walk back up your own tunnels, or recall: the lander winches you up, but the bag is dropped and lost. You can never get stuck for good.
 - **No fall damage.**
+- **Diagonals cut staircases:** each step is one dig of two blocks, the diagonal one and the one joining it to you (overhead going up, ahead going down), costing both. Stop anywhere and the tunnel is still joined up, never a hole touching it only at a corner. Walking and the one-tile step-up carry you along it, and a drop onto the next stair is quick. Where open tiles do touch only at a corner (caves, blasts), the ground is drawn with the two openings joined, so it reads as one passage; InkCrab draws its sand the same way.
 - **Ore sits in the rock** as a highlighter-marked vein. Breaking an ore block drops one piece of ore that flies into your bag. Breaking a whole vein in one go pays a **vein bonus** when banked.
 
-### Crates
+### Firedamp and old charges
 
-Crates sit in the rock. They fall when the block under them is dug out, and a hit (or a blast) sets them off. Blasts break blocks without spending energy and set off other crates, so a few well-placed hits can clear half a cave. That's where most of the fun of Pocket Mine is.
+Anything that blows is in the rock for a reason; there are no crates lying about. (Changed after the first playtest, Oct 13, 2026: bomb crates in the ground made no sense.) Blasts break soil and stone without spending energy and set off whatever else they reach, so a few well-placed hits can still clear half a cave.
 
-| Crate | From | Effect |
+| What | Where it comes from | Effect |
 | --- | --- | --- |
-| Bomb | Planet 1 | Breaks a 3 × 3 area |
-| Dynamite | Planet 1 | Breaks its whole row, a few tiles each way |
-| Drill | Planet 2 | Bores straight down until it hits deep rock or bedrock |
-| Each planet's own | Planet 3 on | A gas crate on Mycel, a foam crate on Ember and so on, tied to the planet's mechanic |
+| Firedamp | Natural: pockets of methane trapped in the rock, the old hazard of coal and graphite mines. The level builder scatters them in little clusters, mostly by graphite seams | Drilling one opens it: it hisses and bursts 0.7 s later, breaking a 3 × 3 area |
+| Old charge | An earlier crew drilled it into the rock and never fired it. Only where a level places one, for a reason (below) | A tap on its detonator arms it; 1.4 s later it breaks a 3 × 3 area |
+| Line charge | Charges on detonating cord along a seam, left the same way | Breaks its whole row, four tiles each way |
+| Each planet's own | Planet 3 on | Tied to the planet: spore pockets on Mycel, magma blisters on Ember, fire ice on Rime, and so on |
 
-Blasts break soil and stone (never deep rock or bedrock) and hurt creatures, and you too if you stand in the red outline that flashes before they go.
+- **Drawn into the rock, not on it.** Firedamp is part of the ground drawing: an irregular hollow washed pale, with faint red wisps of gas and pressure cracks running off it. Old charges are steel canisters lying in drilled bore holes, with hazard bands, a detonator lamp and a lead wire off along the seam. Neither falls; both keep the rock's grade around them.
+- **Red where it can hurt you:** the wisps, the hazard bands, the lamp (it blinks slowly while armed, fast once lit), and the outline of the blast area while anything is lit.
+- **Missions and contracts use the charges.** *Demolition:* fire the old charges to blast open a cave-in and reach what's behind it. *Careful hands* (contract): get the ore out without setting off any charge, because the old relay or a fossil sits in the blast.
+- **Your own charges:** the gadget is a blasting charge you place, then step clear.
 
 ## The suit: energy, fuel, bag, hearts
 
@@ -153,12 +157,13 @@ Every ore type has its own highlighter colour and its own glyph shape in the roc
 | Salvage | Find something lost (a probe, a cargo pod, an old miner's pick) and bring it up |
 | Survey | Plant survey stakes at marked spots spread across the map |
 | Clear | Destroy the creature nests |
+| Demolition | Fire an earlier crew's charges to blast open a cave-in and reach what's behind it |
 | The giant | Defeat the planet's giant (level 10 of every planet) |
 
 **Contracts** are optional side jobs from other clients, shown on the intro card under the mission. They pay credits, sometimes materials, and are what makes a level worth replaying.
 
 - **Planet 1:** each level has two fixed contracts, so new players learn what they are.
-- **From planet 2:** the contracts board offers three and you pick two before landing. From planet 5 it offers four. Each level's board is fixed, so everyone sees the same offers. Picking is a real choice: a bounty suits a crate-heavy map, a deep record suits a good cell.
+- **From planet 2:** the contracts board offers three and you pick two before landing. From planet 5 it offers four. Each level's board is fixed, so everyone sees the same offers. Picking is a real choice: a bounty suits a map rich in firedamp, a deep record suits a good cell.
 - **Each contract pays once.** Replaying a level to take the ones you skipped pays them too.
 
 | Contract | Example |
@@ -168,6 +173,7 @@ Every ore type has its own highlighter colour and its own glyph shape in the roc
 | Bounty | Defeat 5 dust ticks |
 | Deep record | Reach 180 m |
 | Clean job | Lose no hearts |
+| Careful hands | Set off none of the old charges (something you need sits in their blast) |
 | Rush | Lift off under par time |
 
 **Ink blots (stars):** one for the mission and one for each of the two contracts you took, so three per level. This replaces InkFish and InkCrab's par-time blot. A mining game is about exploring a big map, and a clock would fight that; "Rush" is there as a contract for players who want it.
@@ -217,7 +223,7 @@ Up to three gadget slots, filled on the ship before landing and bought with cred
 | Gadget | From | Use |
 | --- | --- | --- |
 | Ladder | Planet 1 | Place a climbable ladder |
-| Bomb | Planet 2 | A bomb crate you carry: place it, then step clear |
+| Blasting charge | Planet 2 | A charge you set in the rock: place it, then step clear |
 | Relay | Planet 3 | Build your own relay post |
 | Flare | Planet 9 | A light you throw that burns for a while |
 
@@ -238,7 +244,7 @@ Every planet has its own native aliens, invented but built from a few behaviours
 
 - **Few and readable.** Pocket Mine 3's fans complained that monsters crowded out the mining, so a map has only a handful, and none at all in Graphite's first two levels. A creature notices you within about 4 tiles and shows it with a red "!" before it moves.
 - **Red ink means it can hurt you.** Harmless grazers are drawn in blue.
-- **The drill fights.** Drilling into a creature hits it (and costs energy, like any block); small ones take one hit, bigger ones two to four. A better drill hits harder. Crates, falling boulders and the planet's hazards hurt creatures too, so the terrain is a weapon.
+- **The drill fights.** Drilling into a creature hits it (and costs energy, like any block); small ones take one hit, bigger ones two to four. A better drill hits harder. Blasts, falling boulders and the planet's hazards hurt creatures too, so the terrain is a weapon.
 - **Bounties:** creatures drop nothing to sell. Their only reward is a bounty contract.
 - **The giant** of each planet is its level 10 boss: one big native creature with a readable attack pattern, fought in an arena cave.
 
@@ -248,10 +254,10 @@ Each planet adds one mechanic and keeps everything before it.
 
 | # | Planet | Biome | New mechanic | Given gear | Creatures | Giant | Signature material |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Graphite | Grey cratered moon | The basics: drilling, energy, ore, crates, lander, relays, blueprints | Starter set, ladders | Dust ticks (walker), lead worms (burrower) | The Grinder, a giant rock worm | Graphite, pencil lead |
-| 2 | Talus | Red mesas and dry gullies | Gravity: loose rock and boulders fall when you dig under them, and crush creatures | Bombs | Boulder beetles (mimic), sand skates (burrower) | The Rockslide, which sheds boulders as it walks | Hematite, "blood ore" |
+| 1 | Graphite | Grey cratered moon | The basics: drilling, energy, ore, firedamp, lander, relays, blueprints | Starter set, ladders | Dust ticks (walker), lead worms (burrower) | The Grinder, a giant rock worm | Graphite, pencil lead |
+| 2 | Talus | Red mesas and dry gullies | Gravity: loose rock and boulders fall when you dig under them, and crush creatures | Blasting charges | Boulder beetles (mimic), sand skates (burrower) | The Rockslide, which sheds boulders as it walks | Hematite, "blood ore" |
 | 3 | Brine | Island crust over a flooded underworld | Water and air: breaking into an aquifer floods the tunnels; you swim, and underwater an air meter drains, refilled by bubble capsules in the rock (Mr. Driller) | Rebreather, relays | Cave lampreys (swimmer), bubble jellies (flyer) | The Leviathan, in an underground sea | Brine pearls |
-| 4 | Mycel | Fungal jungle | Growth: fungus slowly grows back over tunnels you dug; cap mushrooms bounce you; gas crates fill a cave with spores that catch fire from a blast | Spore filter | Puffballs (spitter), snap tendrils (dropper) | The Mother Mycel, a heart you mine your way around | Amber with alien insects in it |
+| 4 | Mycel | Fungal jungle | Growth: fungus slowly grows back over tunnels you dug; cap mushrooms bounce you; spore pockets fill a cave with spores that catch fire from a blast | Spore filter | Puffballs (spitter), snap tendrils (dropper) | The Mother Mycel, a heart you mine your way around | Amber with alien insects in it |
 | 5 | Pumice | Light, porous moon | Low gravity: long floaty jumps, slow falls, drifting rubble; a tank of fuel goes much further | To decide (it was the jetpack) | Drift moths (flyer), regolith hoppers (walker) | The Grazer, a floating giant | Helium-3 |
 | 6 | Rime | Ice world | Ice: slippery floors, frozen blocks that only the lance melts, meltwater that freezes again behind you | Thermal lance | Frost mites (swarm walker), ice wyrms (burrower) | The Hoarfrost, a giant ice spider | Fire ice (methane clathrate) |
 | 7 | Ember | Volcanic world | Lava: flows like water, burns; lava meeting water turns to obsidian | Coolant foam | Magma slugs (leave burning trails), cinder bats (flyer) | The Salamander | Diamonds, in kimberlite pipes |
@@ -285,7 +291,7 @@ A grey moon of soft dark rock, pocked with craters, with a ringed planet hanging
 | # | Id | Name | Mission | New |
 | --- | --- | --- | --- | --- |
 | 1 | `first-strike` | First Strike | Haul 5 copper | Coach: drill by pushing, pick up ore, bank at the lander |
-| 2 | `lead-lines` | Lead Lines | Hunt 3 graphite | Energy per block; stone too hard for the starter drill; the bag filling up; the first bomb crate. Blueprint: Cell Mk 1 (graphite really is used in battery anodes) |
+| 2 | `lead-lines` | Lead Lines | Hunt 3 graphite | Energy per block; stone too hard for the starter drill; the bag filling up; the first firedamp, by a graphite seam. Blueprint: Cell Mk 1 (graphite really is used in battery anodes) |
 | 3 | `tick-marks` | Tick Marks | Haul 150 credits | Dust ticks; hitting with the drill; hearts; the first vault (Pack Mk 1) |
 | 4 | `core-sample` | Core Sample | Core from 60 m | The cell running low; the first relay post; recall. Blueprint: Drill Mk 1 |
 | 5 | `lost-probe` | Lost Probe | Salvage the survey probe | Stone opens up with the new drill; caves; ladders; vault (Helmet Mk 1) |
@@ -329,7 +335,7 @@ Ballpoint pen on paper, with the same three-ink rule as InkFish and InkCrab.
 - **Each planet has its own watercolour washes** under the ink (InkCrab's per-beach ground styles): Graphite grey, Talus rust, Brine teal, Mycel violet, Ember black and orange, Rime pale blue.
 - **Depth darkens slowly** under a grey wash, so the lamp matters more the deeper you go; on Umbra it's the only light.
 - **Boiling lines** on everything (three redrawn frames), as in the other games.
-- **The prospector:** a small figure in a round-helmeted suit with a chunky energy drill, in blue; each new drill mark looks a little more advanced, so progress shows on the character. The lander is a tin-can ship on spindly legs.
+- **The prospector and the lander** are below.
 
 HUD, on paper scraps at the screen edges:
 
@@ -337,6 +343,33 @@ HUD, on paper scraps at the screen edges:
  ♥ ♥ ♥        ENERGY ▓▓▓▓▓▓░░░ 52        BAG 7/10        −84 m
  Mission: hunt 3 graphite (1/3)            ☐ Order: 8 silver   ☐ Deep record: 120 m
 ```
+
+## The prospector's look
+
+A small person in a suit, helmet and pack with a drill in hand, in blue like every "you" in the catalog. You can see them inside the helmet: a round face, a tuft of hair, eyes that look where the drill points. The art is in `games/inkmine/src/art/prospector/`, one file per part, and every look in every pose is on the dev page `/specimens.html`.
+
+**The character changes with the gear.** Each piece shows on the character in three looks, by its mark, and each changes on its own, so a half-upgraded prospector looks it (`logic/gear.ts`):
+
+| Piece | Mk 0–3: prospector | Mk 4–7: guild contractor | Mk 8–10: deep-space |
+| --- | --- | --- | --- |
+| Suit | Patched work suit: stitched patches, a zip and chest pocket, a tool pouch, lace-up boots | A chest plate with the guild's stamp (a pick over a star), a domed shoulder plate, knee pads, steel toecaps | Overlapping armour plates, jointed knees, a forearm guard, sealed boots |
+| Helmet | Glass fishbowl on a bolted collar, a clip-on lamp, a stub antenna | The fishbowl in a protective cage, twin lamps, a radio with a whip antenna and an ear-piece | A hard shell with a wide tinted visor (the face shows through, just), a lamp strip and a sensor fin |
+| Jetpack | A battery cell and a dented fuel can strapped together, one nozzle | A framed pack with twin tanks, two nozzles, a pressure dial and a fin | A sealed pod with vents and a gimballed nozzle |
+| Drill | A hand drill: pistol grip, vented housing, fluted cone bit, power cable from the cell | A heavy drill: finned housing, fore-grip, coolant canister, a bigger bit with carbide teeth | A plasma lance: heat-sink rings and three prongs round an emitter, arcing as it cuts; no cable |
+
+Poses: idle, walk, drilling sideways, down and up, on a ladder, and flying (legs trailing, the flame at the nozzle).
+
+## The lander
+
+The prospector's ship, refitted as the game goes on, with the same three looks as the gear:
+
+| Planets | Look | What's on it |
+| --- | --- | --- |
+| 1–3 | The tin can | A dented can on spindly legs with shock absorbers, a row of heat-shield tiles, one engine with a scorch mark under it, a riveted porthole, a hatch with a window and a ladder down, an RCS quad, a dish and a pennant, a spare fuel tank strapped to a leg, a weld patch |
+| 4–7 | Refitted | Braced legs, a cargo pod clamped on, a solar wing on a hinged arm, a floodlight mast, a bigger dish, the guild's painted band |
+| 8–10 | The deep hauler | A wider hull with a cockpit window, twin engines, a radiator rack and a loading crane |
+
+Every look has the **ore hopper** on its right side, where the prospector tips the bag in to bank it, a few lumps of the last load on its lip in highlighter.
 
 ## Controls
 
@@ -368,7 +401,7 @@ Same model as InkFish and InkCrab:
 
 Each planet's levels live in one file (`planet1.ts` … `planet10.ts`), one short definition per level, the way InkCrab's `beach1.ts` … `beach10.ts` work: a few lines each that say what matters, and a builder that carves the full map from them with a fixed seed (InkCrab's `carve.ts`).
 
-- **A level definition** gives its id, name, seed and size; the surface profile and the lander's spot; where the strata change; the hand-placed parts: caves, relays, crates, the vault, mission objects, contract specimens, the boss arena; and how many of each ore and creature to scatter.
+- **A level definition** gives its id, name, seed and size; the surface profile and the lander's spot; where the strata change; the hand-placed parts: caves, relays, old charges, the vault, mission objects, contract specimens, the boss arena; and how many of each ore and creature to scatter.
 - **The builder** fills the rest from the planet's style: soil, stone and deep rock bands, ore veins by depth, small caves and loose rock, the planet's features (aquifers, fungus, lava, crystal clusters).
 - **A level test** checks every map: the mission is reachable with the gear the player is expected to have by then, relays are within one cell's charge of each other, and no mission object or blueprint sits in deep rock or bedrock.
 - **Permanent ids**, as in the other games: never change or reuse one.
@@ -417,13 +450,14 @@ Prototype the loop in one goal-less test mine first: if digging and coming back 
 - Five ores as highlighter glyphs; loose pieces fly into the bag.
 - The lander, which banks the bag and recharges the cell.
 - Recall, ladders, hearts.
-- Bomb and dynamite crates that fall, chain and show their blast area in red.
+- Firedamp pockets by the graphite seams and an earlier crew's unfired charges, chaining and showing their blast area in red.
+- The prospector in three looks per gear piece and the lander in three refits (dev page `/specimens.html`).
 - The Graphite sky.
 
 Not yet: touch controls, sound, creatures.
 
 1. Walk, jump, drill by pushing, energy per block, the three grades and drill marks, the hatched ground renderer at the big map size, the camera.
-2. Ore in the bag, the lander, banking, recall, hearts; bomb and dynamite crates.
+2. Ore in the bag, the lander, banking, recall, hearts; firedamp and old charges.
 3. The level builder from a level definition and seed, with the reachability test; Graphite's style.
 4. Two creatures (walker, burrower) and fighting with the drill.
 5. Credits, the hold, blueprints and the fabricator sheet (Cell and Drill first), result cards, relays, vaults.

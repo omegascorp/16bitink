@@ -1,21 +1,21 @@
 import Phaser from 'phaser';
 import { BOIL, BLUE_HEX, RED_HEX } from '../../art/palette';
-import { CRATE_FRAME } from '../../art/crateArt';
+import { CHARGE_FRAME } from '../../art/chargeArt';
 import { PIECE_FRAME, TEX } from '../../art/textures';
-import { blastArea, crateKeyOf } from '../../logic/crates';
+import { blastArea } from '../../logic/volatiles';
 import type { Mine } from '../../logic/mine';
 import { oreById } from '../../logic/ore';
-import { contentAt } from '../../logic/terrain';
 
 const BOIL_FPS = 8;
 
 /**
- * Everything small that moves about the ground: crates (with the red
- * outline of a lit crate's blast), loose pieces of ore, and ladders.
+ * Everything small on the ground: an old crew's charges (and the red
+ * outline of where anything lit will blast, firedamp too), loose pieces of
+ * ore, and ladders.
  * Sprites are pooled and matched to the sim each frame.
  */
 export class ThingsView {
-  private readonly crates: Phaser.GameObjects.Image[] = [];
+  private readonly charges: Phaser.GameObjects.Image[] = [];
   private readonly pieces = new Map<number, Phaser.GameObjects.Image>();
   private readonly warn: Phaser.GameObjects.Graphics;
   private readonly ladders: Phaser.GameObjects.Graphics;
@@ -28,24 +28,24 @@ export class ThingsView {
 
   update(mine: Mine, now: number): void {
     const f = Math.floor((now / 1000) * BOIL_FPS) % BOIL;
-    this.drawCrates(mine, f, now);
+    this.drawCharges(mine, f, now);
     this.drawPieces(mine);
     this.drawLadders(mine);
   }
 
-  private drawCrates(mine: Mine, f: number, now: number): void {
+  private drawCharges(mine: Mine, f: number, now: number): void {
     const T = this.tile;
-    const all = mine.crates.all();
-    const lit = new Map(mine.crates.lit().map((c) => [`${c.tile[0]},${c.tile[1]}`, c]));
-    all.forEach(([x, y], i) => {
-      const kind = crateKeyOf(contentAt(mine.terrain, x, y)) ?? 'bomb';
+    const placed = mine.blasts.placed();
+    const lit = new Map(mine.blasts.lit().map((c) => [`${c.tile[0]},${c.tile[1]}`, c]));
+    placed.forEach(({ tile: [x, y], kind }, i) => {
       const isLit = lit.has(`${x},${y}`);
-      const img = this.crates[i] ?? this.crates[this.crates.push(this.scene.add.image(0, 0, TEX.crate(kind, false, 0)).setDepth(2)) - 1]!;
-      img.setTexture(TEX.crate(kind, isLit, f)).setPosition((x + 0.5) * T, (y + 0.5) * T).setScale(T / CRATE_FRAME / 2 * 1.06).setVisible(true);
-      img.setTint(isLit && Math.floor(now / 120) % 2 === 0 ? RED_HEX : 0xffffff);
+      const img = this.charges[i] ?? this.charges[this.charges.push(this.scene.add.image(0, 0, TEX.charge(kind, false, 0)).setDepth(2)) - 1]!;
+      // An armed lamp blinks slowly; a lit one fast.
+      const blink = isLit ? Math.floor(now / 110) % 2 === 0 : Math.floor(now / 900) % 3 === 0;
+      img.setTexture(TEX.charge(kind, blink, f)).setPosition((x + 0.5) * T, (y + 0.5) * T).setScale((T / CHARGE_FRAME / 3) * 1.35).setVisible(true);
     });
-    for (let i = all.length; i < this.crates.length; i++) this.crates[i]!.setVisible(false);
-    // Each lit crate shows where its blast will reach, in red, faster as it nears.
+    for (let i = placed.length; i < this.charges.length; i++) this.charges[i]!.setVisible(false);
+    // Anything lit shows where its blast will reach, in red, faster as it nears.
     this.warn.clear();
     for (const c of lit.values()) {
       const pulse = 0.35 + 0.35 * Math.abs(Math.sin(now / (c.left < 0.5 ? 60 : 160)));

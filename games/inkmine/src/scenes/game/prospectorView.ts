@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { BOIL } from '../../art/palette';
-import { PROSPECTOR_GROUND, type Pose } from '../../art/prospectorArt';
-import { TEX } from '../../art/textures';
+import { PROSPECTOR_GROUND, type Pose } from '../../art/prospector';
+import { PROSPECTOR_RES, TEX } from '../../art/textures';
+import type { ProspectorLook } from '../../logic/gear';
 import type { Mine } from '../../logic/mine';
 
 /** World px per drawing unit: the drawing stands a little over a tile tall. */
@@ -15,8 +16,8 @@ const DRILL_FPS = 20;
 export class ProspectorView {
   private readonly sprite: Phaser.GameObjects.Image;
 
-  constructor(scene: Phaser.Scene) {
-    this.sprite = scene.add.image(0, 0, TEX.prospector('idle', 0)).setScale(SCALE / 2).setDepth(5);
+  constructor(scene: Phaser.Scene, private readonly look: ProspectorLook) {
+    this.sprite = scene.add.image(0, 0, TEX.prospector('idle', look, 0)).setScale(SCALE / PROSPECTOR_RES).setDepth(5);
   }
 
   get object(): Phaser.GameObjects.Image {
@@ -28,7 +29,7 @@ export class ProspectorView {
     const pose = this.pose(mine, iy);
     const fps = pose.startsWith('drill') ? DRILL_FPS : pose === 'walk' || (pose === 'climb' && (p.vx !== 0 || iy !== 0)) ? WALK_FPS : BOIL_FPS;
     const f = Math.floor((now / 1000) * fps) % BOIL;
-    this.sprite.setTexture(TEX.prospector(pose, f));
+    this.sprite.setTexture(TEX.prospector(pose, this.look, f));
     this.sprite.setFlipX(mine.facing < 0);
     this.sprite.setPosition(p.x + p.w / 2, p.y + p.h - PROSPECTOR_GROUND * SCALE);
     // Blink through the grace after a hit.
@@ -43,6 +44,7 @@ export class ProspectorView {
       return ty > row ? 'drillDown' : ty < row ? 'drillUp' : 'drillSide';
     }
     if (mine.climbing) return 'climb';
+    if (mine.jetting) return 'fly';
     if (iy > 0 && mine.player.onGround) return 'drillDown';
     return mine.player.onGround && Math.abs(mine.player.vx) > 1 ? 'walk' : 'idle';
   }

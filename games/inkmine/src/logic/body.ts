@@ -60,16 +60,17 @@ export function jump(b: Body, speed: number): Body {
 
 /**
  * One physics step: walk with `intent` (-1..1) at `speed` px/s, fall, and
- * step up a one-tile ledge when walking into it on the ground.
+ * step up a one-tile ledge when walking into it on the ground (unless
+ * `stepUp` is off: someone heading down shouldn't climb out of their slope).
  */
-export function moveBody(t: Terrain, b: Body, intent: number, speed: number, dt: number, tile: number): Body {
+export function moveBody(t: Terrain, b: Body, intent: number, speed: number, dt: number, tile: number, stepUp = true): Body {
   const vx = intent * speed;
   let box: Box = b;
   const dx = vx * dt;
   if (dx !== 0) {
     const flat = sweep(t, box, 'x', dx, tile);
     box = flat.box;
-    if (flat.hit && b.onGround) {
+    if (flat.hit && b.onGround && stepUp) {
       for (let lift = 1; lift <= tile; lift += 1) {
         const up = { ...b, y: b.y - lift, x: b.x + dx };
         if (!boxHitsSolid(t, up, tile) && !boxHitsSolid(t, { ...b, y: b.y - lift }, tile)) {

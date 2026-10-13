@@ -78,8 +78,8 @@ describe('a dig site', () => {
     expect(m.depth).toBe(0);
   });
 
-  it('a crate is set off by the drill and its blast costs a heart if you stand in it', () => {
-    const m = mine(['..........', '..........', 'ssssssssss', 'ssbsssssss', '##########']);
+  it('the drill sets off a firedamp pocket, and its blast costs a heart if you stand in it', () => {
+    const m = mine(['..........', '..........', 'ssssssssss', 'ssfsssssss', '##########']);
     standAt(m, 2, 2);
     const events = run(m, 2, { iy: 1 });
     expect(events.some((e) => e.kind === 'lit')).toBe(true);
@@ -89,7 +89,7 @@ describe('a dig site', () => {
   });
 
   it('losing the last heart fails the level', () => {
-    const m = mine(['..........', '..........', 'ssssssssss', 'ssbsssssss', '##########']);
+    const m = mine(['..........', '..........', 'ssssssssss', 'ssfsssssss', '##########']);
     m.suit = { ...m.suit, hearts: 1 };
     standAt(m, 2, 2);
     const events = run(m, 2, { iy: 1 });
@@ -103,5 +103,51 @@ describe('drilling down', () => {
     const m = mine(SITE);
     run(m, 1.2, { iy: 1 });
     expect(m.depth).toBe(4);
+  });
+});
+
+describe('digging diagonally', () => {
+  const ROCK = ['....................', '....................', ...Array.from({ length: 8 }, () => 'ssssssssssssssssssss'), '####################'];
+  const open = (m: ReturnType<typeof mine>, x: number, y: number): boolean => m.terrain.tiles[y * m.terrain.width + x] === 0;
+
+  it('down and sideways cuts a joined-up slope: each step the diagonal and the block ahead of it', () => {
+    const m = mine(ROCK);
+    run(m, 2.5, { ix: 1, iy: 1 });
+    expect(m.depth).toBeGreaterThanOrEqual(4);
+    expect([open(m, 5, 2), open(m, 6, 3), open(m, 7, 4), open(m, 8, 5)]).toEqual([true, true, true, true]);
+    // Joined up: the elbow between each step is open too, never two holes touching at a corner.
+    expect([open(m, 6, 2), open(m, 7, 3), open(m, 8, 4)]).toEqual([true, true, true]);
+    // A slope, not a shaft: the treads under each step are still there.
+    expect([open(m, 5, 3), open(m, 6, 4)]).toEqual([false, false]);
+  });
+
+  it('up and sideways cuts stairs back up', () => {
+    const m = mine(ROCK);
+    run(m, 2.5, { ix: 1, iy: 1 });
+    const deep = m.depth;
+    run(m, 3, { ix: 1, iy: -1 });
+    expect(m.depth).toBeLessThanOrEqual(deep - 3);
+  });
+
+  it('never leaves a hole touching the tunnel only at a corner, wherever you stop', () => {
+    const saddle = (m: ReturnType<typeof mine>): boolean => {
+      const t = m.terrain;
+      for (let y = 0; y + 1 < t.height; y++) {
+        for (let x = 0; x + 1 < t.width; x++) {
+          const [a, b, c, d] = [open(m, x, y), open(m, x + 1, y), open(m, x, y + 1), open(m, x + 1, y + 1)];
+          if ((a && d && !b && !c) || (b && c && !a && !d)) return true;
+        }
+      }
+      return false;
+    };
+    for (let stop = 0.05; stop < 2.5; stop += 0.07) {
+      const down = mine(ROCK);
+      run(down, stop, { ix: 1, iy: 1 });
+      expect(saddle(down), `down, stopped at ${stop.toFixed(2)} s`).toBe(false);
+      const up = mine(ROCK);
+      run(up, 2.5, { ix: 1, iy: 1 });
+      run(up, stop, { ix: -1, iy: -1 });
+      expect(saddle(up), `up, stopped at ${stop.toFixed(2)} s`).toBe(false);
+    }
   });
 });

@@ -17,16 +17,16 @@ describe('which block a push drills', () => {
     expect(drillTarget(ground, body, T, { ix: 0, iy: -1 }, true, false)).toEqual({ tile: [1, 0], centre: true });
   });
 
-  it('up and sideways cuts stairs: overhead first, then above the block ahead', () => {
-    expect(drillTarget(ground, body, T, { ix: 1, iy: -1 }, true, false)?.tile).toEqual([1, 0]);
-    const opened = grid(['s.s', 's.s', 'sss']);
-    expect(drillTarget(opened, body, T, { ix: 1, iy: -1 }, true, false)?.tile).toEqual([2, 0]);
+  it('a diagonal is one dig of two blocks: the diagonal and the block that joins it to you', () => {
+    expect(drillTarget(ground, body, T, { ix: 1, iy: -1 }, true, false)).toEqual({ tile: [2, 0], centre: false, with: [1, 0] });
+    expect(drillTarget(ground, body, T, { ix: -1, iy: 1 }, true, false)).toEqual({ tile: [0, 2], centre: false, with: [0, 1] });
   });
 
-  it('down and sideways cuts a slope: the block ahead, then the one below it', () => {
-    expect(drillTarget(ground, body, T, { ix: -1, iy: 1 }, true, false)?.tile).toEqual([0, 1]);
-    const opened = grid(['sss', '..s', 'sss']);
-    expect(drillTarget(opened, body, T, { ix: -1, iy: 1 }, true, false)?.tile).toEqual([0, 2]);
+  it('when one of the two is already open, just the other', () => {
+    const overheadOpen = grid(['s.s', 's.s', 'sss']);
+    expect(drillTarget(overheadOpen, body, T, { ix: 1, iy: -1 }, true, false)).toEqual({ tile: [2, 0], centre: false });
+    const aheadOpen = grid(['sss', '..s', 'sss']);
+    expect(drillTarget(aheadOpen, body, T, { ix: -1, iy: 1 }, true, false)).toEqual({ tile: [0, 2], centre: false });
   });
 
   it('never in mid-air', () => {

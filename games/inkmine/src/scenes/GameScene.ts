@@ -3,8 +3,12 @@ import { ART_RES, BOIL, GRAPHITE, PAPER } from '../art/palette';
 import { TEX, generateTextures } from '../art/textures';
 import { testMineSetup } from '../level/testMine';
 import { tooHard } from '../logic/drill';
+import { prospectorLook, type Look } from '../logic/gear';
+import { landerLook } from '../art/landerArt';
 import { Mine, type MineEvent } from '../logic/mine';
 import { oreById } from '../logic/ore';
+import { volatileAt } from '../logic/terrain';
+import { volatileKeyOf } from '../logic/volatiles';
 import { FxView } from './game/fxView';
 import { GroundView } from './game/groundView';
 import { GameInput } from './game/input';
@@ -20,7 +24,7 @@ const ZOOM = { min: 0.75, max: 2 } as const;
 /** A beat to see the suit give out before the site resets. */
 const FAILED_RESTART_MS = 2600;
 
-/** The test mine (build order steps 1–2): drill, haul ore back, bank it, mind the crates. */
+/** The test mine (build order steps 1–2): drill, haul ore back, bank it, mind the firedamp and the old charges. */
 export class GameScene extends Phaser.Scene {
   mine!: Mine;
   private ground!: GroundView;
@@ -29,6 +33,7 @@ export class GameScene extends Phaser.Scene {
   private fx!: FxView;
   private keys!: GameInput;
   private lander!: Phaser.GameObjects.Image;
+  private ship: Look = 0;
   private iy = 0;
 
   constructor() {
@@ -43,16 +48,19 @@ export class GameScene extends Phaser.Scene {
     const worldH = setup.terrain.height * T;
     const skyH = setup.lander.row * T;
     crispText(this);
-    generateTextures(this, GRAPHITE, skyH);
+    const look = prospectorLook(setup.loadout);
+    const ship = landerLook(setup.drill.planet);
+    this.ship = ship;
+    generateTextures(this, GRAPHITE, skyH, look, ship);
     this.cameras.main.setBackgroundColor(PAPER);
     // Far sky and crater rims scroll slower than the ground, so they read as far off.
     this.add.image(0, 0, TEX.sky).setOrigin(0).setScrollFactor(0.15, 1).setDepth(0);
     this.add.image(0, skyH * 0.5 + T * 0.5, TEX.ridges).setOrigin(0).setScrollFactor(0.45, 1).setDepth(0.5);
     this.ground = new GroundView(this, setup.terrain, T, GRAPHITE, (g) => tooHard(setup.drill, g));
-    this.lander = this.add.image((setup.lander.col + 0.5) * T, setup.lander.row * T, TEX.lander(0)).setOrigin(0.5, 1).setScale(1 / ART_RES).setDepth(2);
+    this.lander = this.add.image((setup.lander.col + 0.5) * T, setup.lander.row * T, TEX.lander(ship, 0)).setOrigin(0.5, 1).setScale(1 / ART_RES).setDepth(2);
     this.things = new ThingsView(this, T);
-    this.prospector = new ProspectorView(this);
-    this.fx = new FxView(this, T);
+    this.prospector = new ProspectorView(this, look);
+    this.fx = new FxView(this, T, look.jetpack);
     this.keys = new GameInput(this);
     const cam = this.cameras.main;
     cam.setBounds(0, 0, worldW, worldH);
@@ -76,7 +84,7 @@ export class GameScene extends Phaser.Scene {
     this.things.update(this.mine, time);
     this.fx.update(this.mine);
     this.fx.jet(this.mine);
-    this.lander.setTexture(TEX.lander(Math.floor(time / 125) % BOIL));
+    this.lander.setTexture(TEX.lander(this.ship, Math.floor(time / 125) % BOIL));
   }
 
   private react(e: MineEvent): void {
@@ -126,8 +134,12 @@ export class GameScene extends Phaser.Scene {
         this.cameras.main.fade(FAILED_RESTART_MS, 245, 240, 225);
         this.time.delayedCall(FAILED_RESTART_MS, () => this.scene.restart());
         break;
+      case 'lit': {
+        const kind = volatileKeyOf(volatileAt(this.mine.terrain, e.tile[0], e.tile[1]));
+        this.fx.note((e.tile[0] + 0.5) * this.mine.tile, e.tile[1] * this.mine.tile - 6, kind === 'firedamp' ? 'firedamp! get clear' : 'charge armed! get clear', true);
+        break;
+      }
       case 'drilled':
-      case 'lit':
       case 'ladder':
         break;
     }
