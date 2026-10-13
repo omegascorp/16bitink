@@ -57,6 +57,7 @@ const VARIANTS = [
   { name: 'inkfish-gulper-eel', query: '&short=gulper', start: 0 },
   { name: 'inkfish-flying-fish', query: '&short=flyingfish', start: 0 },
   { name: 'inkfish-blackdragon', query: '&short=blackdragon', start: 0 },
+  { name: 'inkfish-remember-this-perch', query: '&short=revenge', start: 0 },
 ];
 const chosen = only ? VARIANTS.filter((v) => v.name.includes(only)) : VARIANTS;
 if (chosen.length === 0) throw new Error(`No variant name contains "${only}": ${VARIANTS.map((v) => v.name).join(', ')}`);

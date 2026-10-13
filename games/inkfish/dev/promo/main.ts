@@ -22,6 +22,7 @@ import { createPuffer } from './puffer/render';
 import { createGulper } from './gulper/render';
 import { createFlyingFish } from './flyingfish/render';
 import { createBlackdragon } from './blackdragon/render';
+import { createRevenge } from './revenge/render';
 
 /**
  * Dev-only promo video page, 1080x1920. Every short is a seamless loop.
@@ -35,7 +36,8 @@ import { createBlackdragon } from './blackdragon/render';
  * (Nemo's dad should have become his mom), parrotfish (white sand is fish
  * poop), cusk (the faceless fish), puffer (it can kill thirty people), gulper
  * (a mouth bigger than its body), flyingfish (the 45-second flight) or
- * blackdragon (blacker than black).
+ * blackdragon (blacker than black). revenge ("remember this perch") is a
+ * gameplay highlight: level 1's growth ladder, ending on the perch that hunted you.
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -143,6 +145,10 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   blackdragon: async () => {
     await loadCaptionFont();
     return createBlackdragon(ctx);
+  },
+  revenge: async () => {
+    await loadCaptionFont();
+    return createRevenge(ctx);
   },
 };
 
