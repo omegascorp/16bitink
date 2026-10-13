@@ -23,6 +23,7 @@ import { rainTurn } from '../logic/rain';
 import { windTurn } from '../logic/wind';
 import { moonTurn } from '../logic/moon';
 import { chainPrompt, missionGoal, missionLine, missionNotes, missionTag } from '../logic/mission';
+import { behind, hintAlpha } from '../logic/hintFade';
 
 const PANEL = { x: 16, y: 14, w: 380, h: 118 } as const;
 /** A mission's line, in red pencil under the panel's last row; the panel grows to hold it. */
@@ -52,6 +53,10 @@ const LIVES_FROM_RIGHT = 104;
 const MAX_LIVES_SHOWN = 3;
 /** Paper behind the HUD's loose lines of text on a night beach. */
 const NIGHT_PAPER = 'rgba(245, 240, 225, 0.88)';
+/** Below this many units tall (a phone on its side), the coach's note keeps to the panel's width, out of the beach's middle. */
+const SHORT_VIEW = 700;
+/** How near (units) the crab comes to the coach's note before the note fades to let it show through. */
+const COACH_CLEARANCE = 16;
 /** The tide clock (or the rain clock), under the lives at the top right. */
 const TIDE = { r: 20, fromRight: 54, y: 96 } as const;
 
@@ -83,6 +88,8 @@ export class HudScene extends Phaser.Scene {
   private introLeaving = false;
   private coachText!: Phaser.GameObjects.Text;
   private coachBox!: Phaser.GameObjects.Graphics;
+  /** The coach's note fades while the crab is behind it. */
+  private coachAlpha = 1;
   private sand!: Phaser.GameObjects.Text;
   private note!: Phaser.GameObjects.Text;
   private shell!: Phaser.GameObjects.Text;
@@ -115,6 +122,7 @@ export class HudScene extends Phaser.Scene {
     this.intro = null;
     this.introLeaving = false;
     this.pauseLayer = null;
+    this.coachAlpha = 1;
     this.g = this.add.graphics();
     // The stick and buttons stay thumb-sized however small the margin draws: drawn in screen pixels, scaled back up.
     this.controls = this.add.graphics();
@@ -150,7 +158,7 @@ export class HudScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.game.events.off(Phaser.Core.Events.HIDDEN, this.pauseIfRunning, this));
   }
 
-  update(): void {
+  update(_time: number, delta: number): void {
     const game = this.scene.get('Game') as GameScene;
     if (!game.level) return;
     const beach = game.beach;
@@ -171,7 +179,7 @@ export class HudScene extends Phaser.Scene {
     this.title.setText(game.level.name);
     this.sizeText.setText(`size ${c.growth.size} of ${goal}`);
     this.syncLives(beach.lives, (c.shell ?? START_SHELL).kind, width);
-    this.drawCoach(game, width);
+    this.drawCoach(game, width, height, delta);
     this.pauseLayer?.setPosition(width / 2, height / 2);
 
     this.drawTide(game, width);
@@ -294,19 +302,35 @@ export class HudScene extends Phaser.Scene {
     this.tideText.setText(turn.dark ? `dark · hunters half-blind · moon out in ${secs}s` : `moonlight · cloud in ${secs}s`).setPosition(x - TIDE.r - 10, this.tideY(width));
   }
 
-  private drawCoach(game: GameScene, width: number): void {
+  /**
+   * The coach's hint on a note under the panel: centred on a tall screen; on a
+   * short one, the panel's width at the left, out of the beach's middle. It
+   * fades while the crab is behind it.
+   */
+  private drawCoach(game: GameScene, width: number, height: number, dt: number): void {
     this.dismissIntroOnMove(game);
     const hint = this.intro?.active ? null : game.coach.hint(game.beach, this.touchSeen ? 'touch' : 'keys');
     const box = this.coachBox.clear();
     this.coachText.setVisible(hint !== null);
-    if (!hint) return;
+    if (!hint) {
+      this.coachAlpha = 1;
+      return;
+    }
+    const short = height < SHORT_VIEW;
     const top = PANEL.y + this.panelHeight(this.missionText.text) + 18;
-    this.coachText.setWordWrapWidth(Math.min(640, width - 48)).setText(hint.text);
-    const w = this.coachText.width + 28;
+    this.coachText.setWordWrapWidth(short ? PANEL.w - 28 : Math.min(640, width - 48)).setText(hint.text);
+    const w = short ? PANEL.w : this.coachText.width + 28;
     const h = this.coachText.height + 16;
-    this.coachText.setPosition(width / 2, top + h / 2);
-    box.fillStyle(PAPER_HEX, 0.94).fillRect(width / 2 - w / 2, top, w, h);
-    wobblyRect(box, width / 2 - w / 2, top, w, h, 13, 1.6, BLUE_HEX);
+    const x = short ? PANEL.x : width / 2 - w / 2;
+    this.coachText.setPosition(x + w / 2, top + h / 2);
+    const k = uiScaleOf(this);
+    const crab = game.crabOnScreen();
+    const crabBox = { x: crab.x / k, y: crab.y / k, w: crab.w / k, h: crab.h / k };
+    this.coachAlpha = hintAlpha(this.coachAlpha, behind({ x, y: top, w, h }, crabBox, COACH_CLEARANCE), dt);
+    this.coachText.setAlpha(this.coachAlpha);
+    box.setAlpha(this.coachAlpha);
+    box.fillStyle(PAPER_HEX, 0.94).fillRect(x, top, w, h);
+    wobblyRect(box, x, top, w, h, 13, 1.6, BLUE_HEX);
   }
 
   /** Lives as little shells by the pause button, top right. */

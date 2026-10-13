@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { crispText, DPR, viewSize } from './hidpi';
+import { crispText, DPR, screenZoom, viewSize } from './hidpi';
 import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, ensureBossTextures, ensureFishTextures, jellyGlowKey, releaseFishTextures, weedKey } from '../art/textures';
 import { getChapters, getHost, getSound } from '../host';
 import type { LevelDef, SpeciesId } from '../levels/types';
@@ -58,6 +58,7 @@ import { ABILITY, ABILITY_INFO, abilityMeter, abilityUnlocked, canSwallow, light
 import { blindHunters, drawFlash, drawInkCloud, drawnToFlash, swimToFlash } from './game/abilityFx';
 import { ClipDirector } from './game/clipDirector';
 import { clipFileName } from '../logic/clips/card';
+import type { Box } from '../logic/hintFade';
 
 export interface HudSnapshot {
   readonly levelName: string;
@@ -374,6 +375,14 @@ export class GameScene extends Phaser.Scene {
       drawFlash(this, p.sprite.x, p.sprite.y);
       this.sfx('zap', undefined, 1.6, 0.6);
     }
+  }
+
+  /** Where the player's fish is on screen, in CSS pixels: for the HUD to keep its banners from hiding it. */
+  playerOnScreen(): Box {
+    const cam = this.cameras.main;
+    const z = screenZoom(cam);
+    const b = this.player.sprite.getBounds();
+    return { x: (b.x - cam.worldView.x) * z, y: (b.y - cam.worldView.y) * z, w: b.width * z, h: b.height * z };
   }
 
   private zoomFor(size: number): number {
