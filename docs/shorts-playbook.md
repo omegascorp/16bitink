@@ -65,17 +65,17 @@ Researched 2026-10-12 for proof that a topic already went viral. Prefer topics w
 
 ### Next seven (chosen 2026-10-13, narrated format, queue #9–15)
 
-Batch 3–8 is all deep sea. This one mixes in reef fish whose facts are already famous, to see if a known reference (a film, a beach) beats a strange animal on stayed-to-watch. Each uses a species the game already draws.
+Batch 3–8 is all deep sea. This one mixes in reef fish whose facts are already famous, to see if a known reference (a film, a beach) beats a strange animal on stayed-to-watch. Each uses a species the game already draws. All seven were made on 2026-10-13 and copied into `promo/schedule/` as #9–15.
 
-| # | Hook (first line) | The fact | Proof it travels | Game assets | Status |
-|---|---|---|---|---|---|
-| 1 | *"Nemo's dad should have become his mom."* | Clownfish are all born male and rank by size; when the female dies her mate turns female (Fricke 1977; Buston's work at BU) | The "scientifically accurate Finding Nemo" fact runs every year (Reader's Digest, ScienceBlog, Science News); Nemo is known to everyone | `clownfish`, `barracuda` (it ate Coral in the film) | **Made 2026-10-13**: `inkfish-clownfish.mp4` (19.5s), queue #9 |
-| 2 | *"White sand beaches are fish poop."* | Parrotfish bite coral, grind it and excrete sand; a big one makes hundreds of kilos a year (Maldives study: most of an island's sand) | One of the most-shared ocean facts; sleeps in a mucus bubble as a bonus beat | `parrotfish` | Next |
-| 3 | *"This fish has no face."* | The faceless cusk, rediscovered 4 km down off Australia in 2017, first and last seen in 1873 (HMS *Challenger*) | Worldwide news in 2017 (CSIRO voyage) | `facelesscusk` (new art) | |
-| 4 | *"One pufferfish can kill 30 people."* | Tetrodotoxin, no antidote; fugu chefs train for years; it puffs by gulping water, even inside a predator | Fugu and "puffer inside a moray" clips are evergreen | `puffer` (puffing is a mechanic), `moray` | |
-| 5 | *"Its mouth is bigger than its body."* | The gulper (pelican) eel inflates its jaw like a balloon to swallow prey | E/V *Nautilus* livestream clip (2018) went viral | `gulper` | |
-| 6 | *"This fish flew for 45 seconds."* | Flying fish glide up to ~400 m to escape mahi-mahi below, then birds pick them off above (NHK filmed a 45 s flight, 2008) | BBC *The Hunt* clip; 2025 "first footage" news | `flyingfish`, `mahi`, `gannet` | |
-| 7 | *"The blackest fish in the ocean."* | Ultra-black dragonfish skin swallows 99.5% of light; some dragonfish hunt with red light other fish can't see | Smithsonian ultra-black fish study (2020) was everywhere | `blackdragon`, `dragonfish` | |
+| # | Hook (first line) | The fact (as narrated, fact-checked) | Proof it travels | File (loop) |
+|---|---|---|---|---|
+| 9 | *"Nemo's dad should have become his mom."* | Clownfish are all born male and rank by size; when the female dies her mate turns female (Fricke 1977; Buston, BU) | The "scientifically accurate Finding Nemo" fact runs every year; everyone knows Nemo | `inkfish-clownfish.mp4` (19.5s) |
+| 10 | *"White sand beaches are fish poop."* | Parrotfish grind coral into sand; a big one makes hundreds of kilos a year; one Maldives island is mostly made of it (Perry et al. 2015, Vakkaru) | One of the most-shared ocean facts | `inkfish-parrotfish.mp4` (16.5s) |
+| 11 | *"This fish has no face."* | Faceless cusk, ~4 km down; eyes buried under the skin, mouth underneath; first collected by HMS *Challenger* in the 1870s (sources say 1873 or 1874), hauled up again by RV *Investigator* in 2017 | Worldwide news in 2017 | `inkfish-faceless-cusk.mp4` (19.5s) |
+| 12 | *"One pufferfish can kill thirty people."* | Tetrodotoxin, deadlier than cyanide (multipliers vary 100–1,200×, so none is shown), no antidote; licensed fugu chefs; puffs up by gulping water | Fugu and "puffer vs moray" clips are evergreen | `inkfish-pufferfish.mp4` (19.5s) |
+| 13 | *"Its mouth is bigger than its body."* | Gulper (pelican) eel, down to ~3 km; balloons its mouth, squeezes water out of its gills; mostly eats small crustaceans | E/V *Nautilus* clip (2018) went viral | `inkfish-gulper-eel.mp4` (19.5s) |
+| 14 | *"This fish flew for forty-five seconds."* | NHK filmed a 45 s flight off Yakushima in 2008 (Guinness); glides up to ~400 m; mahi-mahi below, seabirds above | BBC *The Hunt* clip; 2025 "first footage" news | `inkfish-flying-fish.mp4` (19.5s) |
+| 15 | *"This fish is blacker than black."* | Pacific blackdragon skin reflects as little as 0.05% of light, thanks to packed pigment granules (Davis et al. 2020). It is the study's second-blackest fish, so the short never says "blackest" | Smithsonian ultra-black fish study (2020) was everywhere | `inkfish-blackdragon.mp4` (18s) |
 
 ## Collecting the data
 
@@ -96,7 +96,7 @@ The pipeline is in `games/inkfish/dev/promo/`. Each short has its own folder (`b
 - `render.ts`: draws a frame;
 - `audio.ts`: the soundtrack, mixed from the game's sound effects.
 
-To add one, register it in `main.ts` (as `?short=<name>`) and in `record.mjs`'s variant list. Preview at `/promo.html?short=<name>` (`&t=4.2` freezes a moment) and record with `pnpm --filter @16bitink/inkfish promo -- --only <name>`. Loop length must be a whole number of video frames (30 fps) and of line-boil cycles (0.375s), which means a **multiple of 1.5s** (12s, 18s, 21s, 22.5s…).
+To add one, register it in `main.ts` (as `?short=<name>`) and in `record.mjs`'s variant list. Preview at `/promo.html?short=<name>` (`&t=4.2` freezes a moment) and record with `pnpm --filter @16bitink/inkfish promo -- --only <name>`. Record when nothing else is editing files under `dev/`: Vite hot-reloads the page on any edit, and a reload mid-recording fails with "Execution context was destroyed". Loop length must be a whole number of video frames (30 fps) and of line-boil cycles (0.375s), which means a **multiple of 1.5s** (12s, 18s, 21s, 22.5s…).
 
 **Narrated shorts** (`mates/` is the example):
 

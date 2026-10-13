@@ -51,6 +51,12 @@ const VARIANTS = [
   { name: 'inkfish-coelacanth', query: '&short=coelacanth', start: 0 },
   { name: 'inkfish-fangtooth', query: '&short=fangtooth', start: 0 },
   { name: 'inkfish-clownfish', query: '&short=clownfish', start: 0 },
+  { name: 'inkfish-parrotfish', query: '&short=parrotfish', start: 0 },
+  { name: 'inkfish-faceless-cusk', query: '&short=cusk', start: 0 },
+  { name: 'inkfish-pufferfish', query: '&short=puffer', start: 0 },
+  { name: 'inkfish-gulper-eel', query: '&short=gulper', start: 0 },
+  { name: 'inkfish-flying-fish', query: '&short=flyingfish', start: 0 },
+  { name: 'inkfish-blackdragon', query: '&short=blackdragon', start: 0 },
 ];
 const chosen = only ? VARIANTS.filter((v) => v.name.includes(only)) : VARIANTS;
 if (chosen.length === 0) throw new Error(`No variant name contains "${only}": ${VARIANTS.map((v) => v.name).join(', ')}`);

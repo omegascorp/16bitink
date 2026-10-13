@@ -16,6 +16,12 @@ import { createOarfish } from './oarfish/render';
 import { createCoelacanth } from './coelacanth/render';
 import { createFangtooth } from './fangtooth/render';
 import { createClownfish } from './clownfish/render';
+import { createParrotfish } from './parrotfish/render';
+import { createCusk } from './cusk/render';
+import { createPuffer } from './puffer/render';
+import { createGulper } from './gulper/render';
+import { createFlyingFish } from './flyingfish/render';
+import { createBlackdragon } from './blackdragon/render';
 
 /**
  * Dev-only promo video page, 1080x1920. Every short is a seamless loop.
@@ -26,7 +32,10 @@ import { createClownfish } from './clownfish/render';
  * (what it really looks like), greenland (the 400-year-old shark), barreleye
  * (the see-through head), oarfish (the "doomsday fish"), coelacanth (back
  * from extinction), fangtooth (the biggest teeth for its size) or clownfish
- * (Nemo's dad should have become his mom).
+ * (Nemo's dad should have become his mom), parrotfish (white sand is fish
+ * poop), cusk (the faceless fish), puffer (it can kill thirty people), gulper
+ * (a mouth bigger than its body), flyingfish (the 45-second flight) or
+ * blackdragon (blacker than black).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -110,6 +119,30 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   clownfish: async () => {
     await loadCaptionFont();
     return createClownfish(ctx);
+  },
+  parrotfish: async () => {
+    await loadCaptionFont();
+    return createParrotfish(ctx);
+  },
+  cusk: async () => {
+    await loadCaptionFont();
+    return createCusk(ctx);
+  },
+  puffer: async () => {
+    await loadCaptionFont();
+    return createPuffer(ctx);
+  },
+  gulper: async () => {
+    await loadCaptionFont();
+    return createGulper(ctx);
+  },
+  flyingfish: async () => {
+    await loadCaptionFont();
+    return createFlyingFish(ctx);
+  },
+  blackdragon: async () => {
+    await loadCaptionFont();
+    return createBlackdragon(ctx);
   },
 };
 
