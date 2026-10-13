@@ -1,0 +1,59 @@
+import { CRATES } from '../src/logic/crates';
+import { Mine, NO_INPUT, type MineInput, type MineEvent, type MineSetup } from '../src/logic/mine';
+import { ORES } from '../src/logic/ore';
+import { STARTER } from '../src/logic/suit';
+import { createTerrain, setTile, TILE, type Terrain } from '../src/logic/terrain';
+
+export const T = 32;
+
+/**
+ * A terrain from rows of characters: `.` air, `s` soil, `t` stone, `d` deep
+ * rock, `#` bedrock, `b` bomb crate, `y` dynamite crate, `c` copper in soil,
+ * `g` graphite in soil, `q` quartz in stone.
+ */
+export function grid(rows: readonly string[]): Terrain {
+  const t = createTerrain(rows[0]!.length, rows.length);
+  rows.forEach((row, y) => {
+    [...row].forEach((ch, x) => {
+      if (ch === 's') setTile(t, x, y, TILE.soil);
+      if (ch === 't') setTile(t, x, y, TILE.stone);
+      if (ch === 'd') setTile(t, x, y, TILE.deep);
+      if (ch === '#') setTile(t, x, y, TILE.bedrock);
+      if (ch === 'b') setTile(t, x, y, TILE.crate, CRATES.bomb.id);
+      if (ch === 'y') setTile(t, x, y, TILE.crate, CRATES.dynamite.id);
+      if (ch === 'c') setTile(t, x, y, TILE.soil, ORES.copper.id);
+      if (ch === 'g') setTile(t, x, y, TILE.soil, ORES.graphite.id);
+      if (ch === 'q') setTile(t, x, y, TILE.stone, ORES.quartz.id);
+    });
+  });
+  return t;
+}
+
+export function mine(rows: readonly string[], over: Partial<MineSetup> = {}): Mine {
+  return new Mine({
+    terrain: grid(rows),
+    tileSize: T,
+    drill: { mk: 1, planet: 1 },
+    suit: STARTER,
+    ladders: 3,
+    lander: { col: 1, row: 2 },
+    ...over,
+  });
+}
+
+/** Runs `seconds` of 60 fps steps with `input` held (directions and thrust; buttons only on the first step); returns every event. */
+export function run(m: Mine, seconds: number, input: Partial<MineInput> = {}): MineEvent[] {
+  const events: MineEvent[] = [];
+  const steps = Math.round(seconds * 60);
+  for (let i = 0; i < steps; i++) {
+    const held = { ...NO_INPUT, ix: input.ix ?? 0, iy: input.iy ?? 0, thrust: input.thrust ?? false };
+    const pressed = i === 0 ? { jump: input.jump ?? false, ladder: input.ladder ?? false, recall: input.recall ?? false } : {};
+    events.push(...m.step(1 / 60, { ...held, ...pressed }));
+  }
+  return events;
+}
+
+/** Moves the prospector to stand on the ground in column `col`, feet on row `row`. */
+export function standAt(m: Mine, col: number, row: number): void {
+  m.player = { ...m.player, x: col * T + (T - m.player.w) / 2, y: row * T - m.player.h, vx: 0, vy: 0, onGround: true };
+}

@@ -7,6 +7,7 @@ apps/web            Astro 7 site (Node server on DigitalOcean App Platform): cat
 packages/game-sdk   The contract between site and games (GameModule, GameHost)
 games/inkfish       Phaser 4 game package: client game (src/) + server-only paid content (content/)
 games/inkcrab       Second game (prototype): hermit crab trading up through shells; design in docs/inkcrab-design.md
+games/inkmine       Third game (prototype): planet-hopping miner; design in docs/inkmine-design.md
 docs/               Research, tech & monetization decisions, art pipeline
 ```
 
@@ -16,6 +17,7 @@ docs/               Research, tech & monetization decisions, art pipeline
 pnpm install
 pnpm --filter @16bitink/inkfish dev     # game alone at http://localhost:5174 (prefix DEV_UNLOCK=true to play as an owner, DEV_ALL_LEVELS=true to open every level)
 pnpm --filter @16bitink/inkcrab dev     # InkCrab test beach at http://localhost:5175 (not in the catalog yet)
+pnpm --filter @16bitink/inkmine dev     # InkMine test mine at http://localhost:5176 (not in the catalog yet)
 pnpm dev                                # site at http://localhost:4321
 pnpm test                               # unit tests (game logic, tokens, purchases, catalog)
 MONGODB_TEST_URI=mongodb://localhost:27017/16bitink_test pnpm --filter @16bitink/web test   # + database integration tests
