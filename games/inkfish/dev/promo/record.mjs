@@ -4,6 +4,8 @@
 //   pnpm --filter @16bitink/inkfish promo                    -> every variant below, as promo/<name>.mp4
 //   pnpm --filter @16bitink/inkfish promo -- --loops 2       -> the loop played twice in each file
 //   pnpm --filter @16bitink/inkfish promo -- --only bigger   -> just the variants whose name contains "bigger"
+//   pnpm --filter @16bitink/inkfish promo -- --only long --from 95 --to 130
+//                                                            -> part of a video, as promo/<name>-95-130.mp4 (a preview)
 //
 // Needs ffmpeg on PATH and Google Chrome installed (driven by playwright-core).
 import { spawn } from 'node:child_process';
@@ -25,6 +27,16 @@ if (!Number.isInteger(loops) || loops < 1) throw new Error('--loops takes a whol
 const onlyAt = args.indexOf('--only');
 const only = onlyAt >= 0 ? args[onlyAt + 1] : null;
 if (onlyAt >= 0 && !only) throw new Error('--only takes part of a variant name');
+const secondsArg = (flag) => {
+  const at = args.indexOf(flag);
+  if (at < 0) return null;
+  const value = Number(args[at + 1]);
+  if (!Number.isFinite(value) || value < 0) throw new Error(`${flag} takes a time in seconds`);
+  return value;
+};
+const from = secondsArg('--from');
+const to = secondsArg('--to');
+if (from !== null && to !== null && to <= from) throw new Error('--to must come after --from');
 
 /**
  * What gets recorded. `start` is where in the loop the file begins (seconds):
@@ -64,8 +76,11 @@ const VARIANTS = [
   { name: 'inkfish-ink-frenzy', query: '&short=frenzy', start: 0 },
   { name: 'inkfish-how-did-that-fit', query: '&short=gape', start: 0 },
   { name: 'inkfish-fly-too-low', query: '&short=leap', start: 0 },
+  // Long-form (16:9, not looping): recorded once from 0 to the end, its sound brought up to YouTube's -14 LUFS.
+  // Only with --only (it takes ~25 minutes): a plain `pnpm promo` re-records the shorts.
+  { name: 'inkfish-long-descent', page: 'longform.html', query: '&video=descent', start: 0, audioFilter: 'loudnorm=I=-14:TP=-1.5:LRA=11', onlyByName: true },
 ];
-const chosen = only ? VARIANTS.filter((v) => v.name.includes(only)) : VARIANTS;
+const chosen = only ? VARIANTS.filter((v) => v.name.includes(only)) : VARIANTS.filter((v) => !v.onlyByName);
 if (chosen.length === 0) throw new Error(`No variant name contains "${only}": ${VARIANTS.map((v) => v.name).join(', ')}`);
 
 /** Starts a process fed through stdin. `write` waits for the pipe to drain, and fails instead of hanging if the process dies. */
@@ -98,15 +113,21 @@ function promoReady(page) {
 }
 
 async function record(page, base, variant) {
-  await page.goto(`${base}/promo.html?record${variant.query.replace(/ /g, '+')}`);
+  await page.goto(`${base}/${variant.page ?? 'promo.html'}?record${variant.query.replace(/ /g, '+')}`);
   await promoReady(page);
   const loopSeconds = await page.evaluate(() => window.promo.loopSeconds);
   const frames = Math.round(loopSeconds * FPS);
   if (Math.abs(frames - loopSeconds * FPS) > 1e-6) throw new Error(`Loop of ${loopSeconds}s is not a whole number of frames at ${FPS} fps`);
+  // A part of the video (--from/--to), for previews: whole frames, inside the video.
+  const first = from === null ? 0 : Math.min(frames, Math.round(from * FPS));
+  const last = to === null ? frames : Math.min(frames, Math.round(to * FPS));
+  if (last <= first) throw new Error(`--from/--to leave no frames: the video is ${loopSeconds}s long`);
+  const part = first > 0 || last < frames;
+  if (part && loops > 1) throw new Error('--from/--to record part of one pass: leave out --loops');
 
   const tmp = path.join(outDir, `.${variant.name}`);
   await mkdir(tmp, { recursive: true });
-  const out = path.join(outDir, `${variant.name}.mp4`);
+  const out = path.join(outDir, part ? `${variant.name}-${+(first / FPS).toFixed(2)}-${+(last / FPS).toFixed(2)}.mp4` : `${variant.name}.mp4`);
   let ffmpeg;
   try {
     const wav = path.join(tmp, 'audio.wav');
@@ -114,19 +135,23 @@ async function record(page, base, variant) {
     ffmpeg = run('ffmpeg', [
       '-y', '-loglevel', 'error',
       '-f', 'image2pipe', '-framerate', String(FPS), '-i', '-',
+      ...(part ? ['-ss', String(first / FPS)] : []),
       '-stream_loop', String(loops - 1), '-i', wav,
       '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-pix_fmt', 'yuv420p', '-profile:v', 'high',
+      // loudnorm works at 192 kHz inside: bring it back to 48 kHz for AAC.
+      ...(variant.audioFilter ? ['-af', variant.audioFilter, '-ar', '48000'] : []),
       '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart',
       out,
     ]);
+    const count = last - first;
     for (let loop = 0; loop < loops; loop++) {
-      for (let i = 0; i < frames; i++) {
+      for (let i = first; i < last; i++) {
         const png = await page.evaluate((s) => {
           window.promo.draw(s);
           return document.getElementById('promo').toDataURL('image/png').split(',')[1];
         }, (variant.start + i / FPS) % loopSeconds);
         await ffmpeg.write(Buffer.from(png, 'base64'));
-        if (i % FPS === 0) process.stdout.write(`\r${variant.name}: ${loop * frames + i}/${loops * frames} frames`);
+        if (i % FPS === 0) process.stdout.write(`\r${variant.name}: ${loop * count + i - first}/${loops * count} frames`);
       }
     }
     ffmpeg.end();

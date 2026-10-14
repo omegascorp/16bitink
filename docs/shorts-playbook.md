@@ -1,17 +1,16 @@
 # Shorts playbook
 
-What we've learned from posting InkFish promo shorts (YouTube Shorts first), and how to use it for the next video. Add each new export to the results log, then revise the rules if the data says otherwise.
+What we've learned from posting InkFish promo shorts (YouTube Shorts first), and how to use it for the next video. Long-form videos have their own playbook: `docs/longform-playbook.md`. Add each new export to the results log, then revise the rules if the data says otherwise.
 
 ## Results log
 
-All four videos below were posted 2026-10-11 and checked 2026-10-12, so about one day old. Each got ~1,300 views, which is YouTube's first test batch; none has broken out yet. Re-check at 7 days.
+The first three shorts below were posted 2026-10-11 and checked 2026-10-12, so about one day old. Each got ~1,300 views, which is YouTube's first test batch; none has broken out yet. Re-check at 7 days.
 
 | Video (file in `games/inkfish/promo/`) | Length | Stayed to watch | Avg % viewed | Views | Engaged views | Likes | Subs |
 |---|---|---|---|---|---|---|---|
 | "There's always a bigger fish 🦈" (`inkfish-bigger-fish.mp4`) | 13s | **48%** | 110% | 1,282 | **519** | **13** | +1 |
 | "Wait for the shark... 🦈👀" (`inkfish-viral-shark.mp4`) | 13s | 42% | **125%** | 1,376 | 459 | 8 | 0 |
 | "How deep do fish actually live? 🌊" (`inkfish-how-deep.mp4`) | 25s | 33% | 85% | 1,304 | 387 | 11 | +1 |
-| "InkFish Level 1" (long-form gameplay) | 61s | – | 34% | 2 | 1 | 1 | – |
 | "Fish that eat birds?! 🐟🐦" (`inkfish-fish-eat-birds.mp4`), posted 2026-10-12, **checked ~1 hour in** | 12s | **16%** | ~70% (0:09 avg) | – | 31 | – | – |
 
 Not exported yet: traffic sources, retention curves, and clicks through to 16bit.ink.
@@ -23,8 +22,7 @@ Not exported yet: traffic sources, retention curves, and clicks through to 16bit
 3. **Short beats long.** Both 13s shorts beat the 25s one on stayed-to-watch and % viewed.
 4. **Explainers lose the swipe.** "How deep…" opened with a question and a slow descent: two-thirds of viewers swiped away, and it didn't loop (85% viewed). The people who stayed liked it (best likes per engaged view), so the idea is fine; the opening isn't.
 5. **"This really happened" plus a role reversal is our strongest format.** A real event where the predator becomes prey, recreated in the game's ink style. It's the format behind "bigger fish".
-6. **Long-form gets nothing without subscribers.** Stick to Shorts for now.
-7. **A calm opening loses the swipe, even when the payoff is strong** (early, needs confirming). "Fish that eat birds" opened on an empty sea, the tern half off-screen and documentary captions ("Seychelles. A young tern skims the sea…"). The threat didn't appear until ~2s and the payoff at 4.6s. Only 16% stayed, half the other shorts' rate. Viewers who stayed left after ~9s, before the loop came round. Compare "bigger fish", which opens with the shark already on the hook.
+6. **A calm opening loses the swipe, even when the payoff is strong** (early, needs confirming). "Fish that eat birds" opened on an empty sea, the tern half off-screen and documentary captions ("Seychelles. A young tern skims the sea…"). The threat didn't appear until ~2s and the payoff at 4.6s. Only 16% stayed, half the other shorts' rate. Viewers who stayed left after ~9s, before the loop came round. Compare "bigger fish", which opens with the shark already on the hook.
 
 ## Rules for the next short
 
@@ -78,19 +76,6 @@ Batch 3–8 is all deep sea. This one mixes in reef fish whose facts are already
 | 13 | *"Its mouth is bigger than its body."* | Gulper (pelican) eel, down to ~3 km; balloons its mouth, squeezes water out of its gills; mostly eats small crustaceans | E/V *Nautilus* clip (2018) went viral | `inkfish-gulper-eel.mp4` (19.5s) |
 | 14 | *"This fish flew for forty-five seconds."* | NHK filmed a 45 s flight off Yakushima in 2008 (Guinness); glides up to ~400 m; mahi-mahi below, seabirds above | BBC *The Hunt* clip; 2025 "first footage" news | `inkfish-flying-fish.mp4` (19.5s) |
 | 15 | *"This fish is blacker than black."* | Pacific blackdragon skin reflects as little as 0.05% of light, thanks to packed pigment granules (Davis et al. 2020). It is the study's second-blackest fish, so the short never says "blackest" | Smithsonian ultra-black fish study (2020) was everywhere | `inkfish-blackdragon.mp4` (18s) |
-
-## Long-form thumbnails
-
-The first level 1 thumbnail (pale paper, three lines of text, "LEVEL 1" tag) got **1.1% CTR on 1.6K impressions** in its first two days (2026-10-11 to 10-13). On 2026-10-13 we compared it with the most-viewed fish-eat-fish videos on YouTube (Feed and Grow 26M/16M, ProjectJamesify "SIZE 1 vs SIZE 99999" 4.5M, "FROM THIS... TO THIS..." 7.9M) and the low-view Feeding Frenzy walkthroughs. The winners all do the same few things:
-
-1. **One giant open mouth**, red inside, cropped by the frame edge so it feels too big to fit.
-2. **Prey with a big eye**, small next to it: size contrast is the story.
-3. **Bright saturated blue water with warm fish on it** (orange, red, green). Never pale fish on pale water.
-4. **Before/after splits**: a hard red divider, a fat yellow arrow, numbers or "FROM THIS... TO THIS...".
-5. **0–3 words**, white or yellow, with a fat black outline. The title carries the rest. No level tags or logos.
-6. Walkthrough-style thumbnails (logo + "FULL GAME" + clutter) get thousands of views, not millions.
-
-`pnpm --filter @16bitink/inkfish thumbnail` draws three on these rules (`hunter`, `glowup`, `run`) and a check sheet at YouTube's display sizes. Upload all three to Studio's **Test & Compare** and log the winner here.
 
 ## Collecting the data
 
