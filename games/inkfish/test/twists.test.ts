@@ -74,7 +74,7 @@ describe('twists', () => {
       expect(d.goal.length).toBeGreaterThan(5);
       expect(d.tag.length).toBeGreaterThan(2);
     }
-    expect(describeLevel(DEMO_CHAPTER.levels[1]!).goal).toMatch(/ink bottles/);
+    expect(describeLevel(DEMO_CHAPTER.levels[1]!).goal).toMatch(/eat \d+ bread crumbs before the shore crabs/);
   });
 
   it('survives the trip through JSON and validation', () => {

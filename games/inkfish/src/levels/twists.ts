@@ -1,4 +1,5 @@
 import { ITEM_INFO, type ItemId } from './items';
+import { foodOf } from './foodFalls';
 import { giantName, SPECIES_INFO, type SpeciesInfo } from './species';
 import { COVER_DEBUT, ZONE_COVER } from './cover';
 import { LEVELS_PER_CHAPTER, zoneInfo } from './zones';
@@ -108,7 +109,7 @@ function parTimeFor(objective: Objective, modifiers: Modifiers, base: number, go
 
 
 const LABEL: Readonly<Record<TwistId, string>> = {
-  grow: 'Feeding time', collect: 'Ink bottles', current: 'Strong current', bounty: 'Marked fish', rush: 'School rush',
+  grow: 'Feeding time', collect: 'Food fall', current: 'Strong current', bounty: 'Marked fish', rush: 'School rush',
   storm: 'Hook storm', dark: 'Lights out', survive: 'One life', boss: 'The giant',
 };
 
@@ -126,7 +127,10 @@ export interface LevelDescription {
 function goalText(level: LevelDef): string {
   const o = level.objective;
   switch (o.kind) {
-    case 'collect': return `Grow to full size and catch ${o.count} ink bottles.`;
+    case 'collect': {
+      const food = foodOf(zoneInfo(level.chapter).zone);
+      return `Grow to full size and eat ${o.count} ${food.many} before the ${food.scavenger.many} get them.`;
+    }
     case 'bounty': return `Grow to full size and eat the ${o.count} ${SPECIES_INFO[o.species].plural} circled in red.`;
     case 'boss': return `Grow to full size, then eat the ${giantName(o.species)}.`;
     default:
@@ -183,7 +187,7 @@ export function describeLevel(level: LevelDef, opts: DescribeOptions = {}): Leve
   const c = level.modifiers.current;
   if (c) notes.push(`A strong current pulls everything to the ${c > 0 ? 'right' : 'left'}.`);
   if (level.modifiers.lives === 1) notes.push('Only one life: a single hit ends the level.');
-  if (level.objective.kind === 'collect') notes.push('Ink bottles sink from above: catch them before they smash on the seabed.');
+  if (level.objective.kind === 'collect') notes.push(`${foodOf(zoneInfo(level.chapter).zone).lore} Eat them before they reach the seabed.`);
   if (level.modifiers.dark) notes.push('It’s dark: you only see what’s close to you.');
   if (level.twists.includes('storm')) notes.push(jellyBloom ? 'The water is thick with jellyfish.' : 'Hooks keep dropping. Watch for the dotted lines.');
   const tag = labels.map((l, i) => (i === 0 ? l : l.charAt(0).toLowerCase() + l.slice(1))).join(', ');

@@ -54,7 +54,7 @@ Every level is won by growing to full size. Most twists add a task or a rule on 
 | Level | Twist | What changes |
 |---|---|---|
 | 1 | Feeding time | Plain: just grow |
-| 2 | Ink bottles | Also catch ink bottles sinking from the surface, two at a time; one that reaches the seabed smashes and another follows |
+| 2 | Food fall | Also eat the zone's food as it sinks from above, two pieces at a time (see below); one that reaches the seabed goes to the scavengers and another follows |
 | 3 | Strong current | Everything drifts left or right |
 | 4 | Marked fish | Also eat 3 fish circled in red; they flee and are only edible after your first growth |
 | 5 | School rush | Grow before the clock runs out, with a dense school of prey |
@@ -65,6 +65,22 @@ Every level is won by growing to full size. Most twists add a task or a rule on 
 | 10 | The giant, lights out | A boss version of the chapter's biggest predator hunts you in the dark; grow, then eat it. Its red ring shows through the dark |
 
 The dark is the hardest twist, so it closes every chapter: on its own, then for the giant. Off-screen goals get a red arrow at the screen edge. Each level opens with an intro card, and the map shows a small icon per twist (the giant is a crosshair, marked fish a cluster of small circles).
+
+**Food falls** (`src/levels/foodFalls.ts`, changed 2026-10-14 at the user's request: they replace the old ink bottles, since no fish would hunt bottles). Each zone has its own food, something that really drifts down through that water. The rule: never bugs and never dead animals, so it always feels like a treat (a first pass with beetles, flying ants, dead fish and dead squid was dropped for that reason). The mission names the food and its scavenger ("eat 8 bread crumbs before the shore crabs get them"), the intro card says where it comes from, each one has its own drawing (`src/art/foodArt.ts`, reviewed at `/specimens.html`), and each piece eaten gives 2% of the level's growth. One that reaches the seabed is tugged into the silt, and the pop-up says who took it ("Shore crab got it"). The map icon is the same for every zone: a sinking morsel.
+
+| Chapter | Food | Scavenger | Where it comes from |
+|---|---|---|---|
+| 1 Tide pool | bread crumbs | shore crabs | a child on the rocks feeding the fish |
+| 2 Seagrass | sea grapes | blue crabs | fruit from seagrape trees leaning over the beach |
+| 3 Kelp | kelp tips | sea urchins | torn loose by the swell; urchins really live on drift kelp |
+| 4 Reef | sponge crumbs | hermit crabs | a hawksbill turtle tearing into sponges |
+| 5 Wreck | clumps of sargassum | spider crabs | a floating raft of sargassum breaking up |
+| 6 Drop-off | sea butterflies | squat lobsters | tiny swimming snails that fold their wings and sink |
+| 7 Twilight | flakes of marine snow | brittle stars | the deep sea's main food, falling from the sunlit water |
+| 8 Midnight | sea pickles | sea stars | glowing pyrosomes sinking into the dark |
+| 9 Abyss | clumps of green fluff | sea pigs | a spring bloom settling on the plain months later |
+| 10 Trench | seagrass leaves | amphipods | swept out of the shallows by a storm, months to sink |
+
   - Hand-tune any level with `overrides`.
 - **Fishing hooks stop below the drop-off**, since fishing lines don't reach that deep.
 

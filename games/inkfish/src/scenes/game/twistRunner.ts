@@ -4,7 +4,9 @@ import { DARK_HOLE, DARK_TEX } from '../../art/twistArt';
 import type { LevelDef } from '../../levels/types';
 import { rangeOf, type Rng } from '../../logic/rng';
 import { spawnSpecial, type Fish } from './fish';
-import { InkBottles } from './inkBottles';
+import { FoodFall } from './foodFall';
+import { ZONE_FOOD } from '../../levels/foodFalls';
+import { zoneInfo } from '../../levels/zones';
 import type { Player } from './player';
 import { drawEdgeArrow } from './edgeArrow';
 import { bodyOf } from './swim';
@@ -31,7 +33,7 @@ const hash = (n: number): number => {
 };
 
 /**
- * Runs the parts of a level's twists that live in the world: ink bottles,
+ * Runs the parts of a level's twists that live in the world: food falls,
  * marked fish and the giant, the red pencil markers and edge arrows that
  * point at them, current streaks, and the darkness around the player.
  */
@@ -40,7 +42,7 @@ export class TwistRunner {
   private readonly base: number;
   /** A sea event's riptide on top of it (see game/seaEvents.ts). */
   private surge = 0;
-  private bottles: InkBottles | null = null;
+  private food: FoodFall | null = null;
   private readonly marks: Phaser.GameObjects.Graphics;
   private readonly streaks: Phaser.GameObjects.Graphics;
   private readonly dark: Phaser.GameObjects.Image | null;
@@ -71,7 +73,7 @@ export class TwistRunner {
   /** Places the level's goals away from the player. Returns goal fish to add to the shoal. */
   setup(start: Point): Fish[] {
     const o = this.level.objective;
-    if (o.kind === 'collect') this.bottles = new InkBottles(this.scene, o.count, this.floorAt, this.rng);
+    if (o.kind === 'collect') this.food = new FoodFall(this.scene, ZONE_FOOD[zoneInfo(this.level.chapter).zone], o.count, this.floorAt, this.rng);
     if (o.kind === 'bounty') {
       return this.spread(o.count, start, 500).map((p) =>
         spawnSpecial(this.scene, o.species, Math.round(rangeOf(this.rng, o.size[0], o.size[1])), 'bounty', p.x, p.y, this.rng));
@@ -97,23 +99,23 @@ export class TwistRunner {
     return points;
   }
 
-  /** Catches the ink bottles the player touches; returns where each one was. */
-  collect(player: Player): Point[] {
-    return this.bottles?.collect(bodyOf(player.sprite, player.shape)) ?? [];
+  /** Eats the falling food the player touches; returns where each piece was. */
+  eatFood(player: Player): Point[] {
+    return this.food?.eat(bodyOf(player.sprite, player.shape)) ?? [];
   }
 
   /**
-   * Per-frame: bottles sink, goals get rings and arrows, current streaks drift,
-   * darkness follows. Returns where any bottle smashed on the seabed.
+   * Per-frame: food sinks, goals get rings and arrows, current streaks drift,
+   * darkness follows. Returns where the scavengers took any food off the seabed.
    */
   update(now: number, dt: number, frame: number, player: Player, goals: readonly Fish[]): Point[] {
-    const smashed = this.bottles?.update(now, dt, frame, player.sprite.x, this.current) ?? [];
+    const lost = this.food?.update(now, dt, frame, player.sprite.x, this.current) ?? [];
     const view = this.scene.cameras.main.worldView;
     const zoom = screenZoom(this.scene.cameras.main);
     this.marks.clear();
     for (const f of goals) if (!f.veiled && !f.untracked) this.ring(f, now);
     const tracked = goals.filter((f) => !f.untracked).map((f) => f.sprite);
-    const targets: Point[] = [...(this.bottles?.targets ?? []), ...tracked];
+    const targets: Point[] = [...(this.food?.targets ?? []), ...tracked];
     const ps = player.sprite;
     const nearest = targets
       .filter((t) => !view.contains(t.x, t.y))
@@ -125,7 +127,7 @@ export class TwistRunner {
       const radius = (150 + player.drawSize * 2.6) * glow;
       this.dark.setPosition(ps.x, ps.y).setScale(radius / (DARK_TEX * DARK_HOLE));
     }
-    return smashed;
+    return lost;
   }
 
   /** A red pencil circle, dashes slowly turning, around a goal fish. */

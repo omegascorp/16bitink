@@ -153,7 +153,7 @@ const RECIPES: Readonly<Record<SfxId, (v: Voice) => void>> = {
   drop: (v) => tone(v, { from: 900, to: 1600, dur: 0.08, gain: 0.22 }),
   frenzy: (v) => notes(v, [784, 1047, 1319], 0.05, { type: 'triangle', dur: 0.14, gain: 0.14 }),
   spotted: (v) => notes(v, [880, 660], 0.12, { type: 'square', dur: 0.1, gain: 0.16 }),
-  // A bottle breaks on the seabed: a crunch of glass, then tinkling bits.
+  // Something breaks: a crunch, then tinkling bits (the promos' crunches and quakes).
   smash: (v) => {
     noise(v, { dur: 0.16, gain: 0.45, filter: 'highpass', from: 2500, attack: 0.002 });
     noise(v, { dur: 0.25, gain: 0.25, filter: 'lowpass', from: 700, to: 200 });

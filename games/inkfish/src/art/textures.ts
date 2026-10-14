@@ -3,7 +3,9 @@ import type Phaser from 'phaser';
 import { PLAYER_FISH } from '../levels/zones';
 import { BONES_SIZE, drawBones, drawPan, PAN_SIZE } from './deathArt';
 import { drawItem, ITEM_SIZE } from './itemArt';
-import { DARK_TEX, drawDarkness, drawInkBottle, BOTTLE_SIZE } from './twistArt';
+import { DARK_TEX, drawDarkness } from './twistArt';
+import { drawFood, FOOD_SIZE } from './foodArt';
+import { FOOD_IDS } from '../levels/foodFalls';
 import { ITEM_IDS } from '../levels/items';
 import { drawCreature, FISH_TEX, fishLights, type FishShape, type InkVariant } from './fishArt';
 import { drawFishGlow, drawSoftGlow, GLOW_TEX } from './glowArt';
@@ -89,7 +91,7 @@ export function inkTextureJobs(scene: Phaser.Scene): SliceJob[] {
     const R = ART_RES;
     job(boilKey('hook', f), 48 * R, 76 * R, (ctx) => drawHook(ctx, seed));
     for (const kind of ITEM_IDS) job(boilKey(`item-${kind}`, f), ITEM_SIZE * R, ITEM_SIZE * R, (ctx) => drawItem(ctx, kind, seed));
-    job(boilKey('inkbottle', f), BOTTLE_SIZE * R, BOTTLE_SIZE * R, (ctx) => drawInkBottle(ctx, seed));
+    for (const kind of FOOD_IDS) job(boilKey(`food-${kind}`, f), FOOD_SIZE * R, FOOD_SIZE * R, (ctx) => drawFood(ctx, kind, seed));
     for (const kind of WEED_KINDS) {
       const { w, h } = WEED_SIZE;
       job(weedKey(kind, f), w * R, h * R, (ctx) => drawWeed(ctx, 7 + kind * 13, kind, f, w * R, h * R));

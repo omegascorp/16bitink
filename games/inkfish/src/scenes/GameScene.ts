@@ -48,7 +48,8 @@ import { Flock, type Bird } from './game/flock';
 import { Sightings } from './game/sightings';
 import { splash } from './game/splash';
 import { describeLevel, levelNumber } from '../levels/twists';
-import { PLAYER_FISH_NAMES, ZONE_SKY } from '../levels/zones';
+import { PLAYER_FISH_NAMES, ZONE_SKY, zoneInfo } from '../levels/zones';
+import { capital, foodOf } from '../levels/foodFalls';
 import { PLAYER_STATS } from '../levels/playerStats';
 import { allLevels, chapterOf } from '../levels/chapters';
 import { HAND_FONT } from './ui';
@@ -73,7 +74,7 @@ export interface HudSnapshot {
   /** The fish's key-or-button ability on this level (ink, flash), and how ready it is, 0..1; null when it has none. */
   readonly ability: { readonly name: string; readonly ready: number } | null;
   readonly speedLeft: number;
-  /** The level goal's progress line, e.g. "Ink bottles 3/10". */
+  /** The level goal's progress line, e.g. "Beetles 3/10". */
   readonly objective: string;
   readonly urgent: boolean;
 }
@@ -107,6 +108,8 @@ function levelSpecies(level: LevelDef): SpeciesId[] {
 const SKY_LOOK = 110;
 /** Extra points per bird for each one already caught in the same leap. */
 const COMBO_POINTS = 100;
+/** Share of the level's growth each piece of a food fall gives: the task feeds the main goal, but can't replace it. */
+const FOOD_GROWTH_SHARE = 0.02;
 /** Longest the win card waits for the fish to settle, ms past the usual pause. */
 const SETTLE_MAX_MS = 3000;
 /** The art-cache group of the level built last (see create). */
@@ -655,15 +658,21 @@ export class GameScene extends Phaser.Scene {
     sprite.x += this.twist.current * strength * dt;
   }
 
-  /** Twist bookkeeping: ink bottles, goal markers, the clock, and whether the level is decided. */
+  /** Twist bookkeeping: falling food, goal markers, the clock, and whether the level is decided. */
   private updateObjective(now: number, dt: number): void {
     const goals = this.fish.filter((f) => f.role !== 'normal');
-    for (const at of this.twist.update(now, dt, this.boilFrame, this.player, goals)) this.sfx('smash', at);
-    const picked = this.player.hooked ? [] : this.twist.collect(this.player);
-    for (const at of picked) {
+    const food = foodOf(zoneInfo(this.level.chapter).zone);
+    for (const at of this.twist.update(now, dt, this.boilFrame, this.player, goals)) {
+      this.sfx('rustle', at);
+      this.floatText(at.x, at.y - 30, `${capital(food.scavenger.one)} got it`, '#a3342b', 26);
+    }
+    const eaten = this.player.hooked ? [] : this.twist.eatFood(this.player);
+    for (const at of eaten) {
       this.score += 150;
       this.burst(at.x, at.y, 6);
-      this.sfx('drop');
+      this.sfx('eat', at, 1.3);
+      this.player.chompAt = this.time.now;
+      this.grow(growthGoal(this.level) * FOOD_GROWTH_SHARE);
       if (this.level.objective.kind === 'collect') {
         this.floatText(at.x, at.y - 30, `${this.progress.collected + 1}/${this.level.objective.count}`, '#1f3f8a', 34);
       }
