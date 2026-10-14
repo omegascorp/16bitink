@@ -1,16 +1,18 @@
 import type { KeyValueStore } from '@16bitink/game-sdk';
 import { recipeOf } from './blueprints';
-import type { LevelRecord, Profile } from './economy';
-import { NEW_PROFILE } from './economy';
+import { fitInventories, NEW_PROFILE, type LevelRecord, type Profile } from './economy';
 import { PIECES, type Loadout } from './gear';
 import type { Hold } from './hold';
+import type { Inventory, Stack } from './inventory';
 import type { ContractKind } from './mission';
 import { ORES } from './ore';
 import { MODULE_KEYS, maxLevel, type ShipModules } from './ship';
 
-const KEY = 'inkmine.profile.v1';
+/** v2: resources in slot inventories, no credits (v1 saves are from before release and are dropped). */
+const KEY = 'inkmine.profile.v2';
 /** Caps on what an untrusted save can hold. */
-const MAX_CREDITS = 10_000_000;
+const MAX_SLOTS = 128;
+const MAX_STACK = 1000;
 const MAX_COUNT = 100_000;
 const MAX_MARK = 10;
 const MAX_LEVELS = 200;
@@ -24,6 +26,17 @@ const intIn = (v: unknown, lo: number, hi: number): v is number => Number.isInte
 function parseHold(v: unknown): Hold {
   if (!isObj(v)) return {};
   return Object.fromEntries(Object.entries(v).filter(([k, n]) => Object.hasOwn(ORES, k) && intIn(n, 1, MAX_COUNT)));
+}
+
+/** An inventory: up to MAX_SLOTS slots, each empty or a stack of a known ore within the stack size. */
+function parseInventory(v: unknown, fallback: Inventory): Inventory {
+  if (!isObj(v) || !intIn(v.stack, 1, MAX_STACK) || !Array.isArray(v.slots)) return fallback;
+  const stack = v.stack;
+  const slots = v.slots.slice(0, MAX_SLOTS).map((x): Stack | null => {
+    if (!isObj(x) || typeof x.ore !== 'string' || !Object.hasOwn(ORES, x.ore) || !intIn(x.n, 1, stack)) return null;
+    return { ore: x.ore as Stack['ore'], n: x.n };
+  });
+  return { slots, stack };
 }
 
 function parseGear(v: unknown): Loadout {
@@ -52,14 +65,16 @@ export function parseProfile(raw: unknown): Profile {
     })
     : [];
   const found = Array.isArray(raw.found) ? [...new Set(raw.found.filter((id): id is string => typeof id === 'string' && !!recipeOf(id)))] : [];
-  return {
-    credits: intIn(raw.credits, 0, MAX_CREDITS) ? raw.credits : 0,
-    hold: parseHold(raw.hold),
+  // Sized to what the gear and ship give, whatever the save said.
+  return fitInventories({
+    suit: parseInventory(raw.suit, NEW_PROFILE.suit),
+    cargo: parseInventory(raw.cargo, NEW_PROFILE.cargo),
+    pending: parseHold(raw.pending),
     gear: parseGear(raw.gear),
     found,
     ship: parseShip(raw.ship),
     levels: Object.fromEntries(levels),
-  };
+  });
 }
 
 export function loadProfile(store: KeyValueStore | undefined): Profile {

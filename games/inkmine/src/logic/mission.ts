@@ -1,5 +1,5 @@
 import { recipeOf } from './blueprints';
-import { addHold, countOf, EMPTY_HOLD, holdValue, type Hold } from './hold';
+import { addHold, countOf, EMPTY_HOLD, holdEntries, holdSize, type Hold } from './hold';
 import { ORES, type OreKey } from './ore';
 
 /**
@@ -7,14 +7,16 @@ import { ORES, type OreKey } from './ore';
  * mission is the level's goal: done and lifted off, the level is won. Its
  * goals count once banked at the lander. Contracts are optional side jobs
  * for other clients; each pays once, ever, and all pay only on a won lift-off.
+ * Pay is resources (there's no money): the rare stuff that's hard to dig
+ * yet, so a job is worth taking for what you can print with it.
  */
 export type ItemKind = 'core' | 'probe' | 'fossil' | 'blueprint';
 
 export type Goal =
   /** Bank so many of one ore (a haul) or of the planet's signature material (a hunt). The guild takes them. */
   | { readonly kind: 'ore'; readonly ore: OreKey; readonly count: number }
-  /** Bank ore worth so many credits at the guild rate. */
-  | { readonly kind: 'credits'; readonly credits: number }
+  /** Bank so many pieces of any ore (counted, not taken). */
+  | { readonly kind: 'pieces'; readonly count: number }
   /** Drill out the core sample from a marked depth and bank it. */
   | { readonly kind: 'core'; readonly depth: number }
   /** Find a lost thing and bank it. */
@@ -22,25 +24,25 @@ export type Goal =
 
 export interface MissionDef {
   readonly goals: readonly Goal[];
-  /** Credits the guild pays on a won lift-off. */
-  readonly fee: number;
-  /** A blueprint handed over with the fee. */
+  /** Resources the guild pays on a won lift-off. */
+  readonly pays: Hold;
+  /** A blueprint handed over with the pay. */
   readonly blueprint?: string;
 }
 
 export type ContractDef =
   /** Bank so many of an ore for a client, who takes them. */
-  | { readonly kind: 'order'; readonly ore: OreKey; readonly count: number; readonly pay: number }
+  | { readonly kind: 'order'; readonly ore: OreKey; readonly count: number; readonly pay: Hold }
   /** Bring back the fossil hidden on the map. */
-  | { readonly kind: 'specimen'; readonly pay: number }
+  | { readonly kind: 'specimen'; readonly pay: Hold }
   /** Reach a depth. */
-  | { readonly kind: 'deep'; readonly depth: number; readonly pay: number }
+  | { readonly kind: 'deep'; readonly depth: number; readonly pay: Hold }
   /** Lose no hearts. */
-  | { readonly kind: 'clean'; readonly pay: number }
+  | { readonly kind: 'clean'; readonly pay: Hold }
   /** Set off none of the old charges. */
-  | { readonly kind: 'careful'; readonly pay: number }
+  | { readonly kind: 'careful'; readonly pay: Hold }
   /** Lift off within so many seconds. */
-  | { readonly kind: 'rush'; readonly seconds: number; readonly pay: number };
+  | { readonly kind: 'rush'; readonly seconds: number; readonly pay: Hold };
 
 export type ContractKind = ContractDef['kind'];
 
@@ -63,7 +65,7 @@ export const EMPTY_TALLY: Tally = { banked: EMPTY_HOLD, items: [], deepest: 0, h
 export function goalDone(g: Goal, t: Tally): boolean {
   switch (g.kind) {
     case 'ore': return countOf(t.banked, g.ore) >= g.count;
-    case 'credits': return holdValue(t.banked) >= g.credits;
+    case 'pieces': return holdSize(t.banked) >= g.count;
     case 'core': return t.items.includes('core');
     case 'salvage': return t.items.includes(g.item);
   }
@@ -115,7 +117,7 @@ const oreName = (ore: OreKey): string => ORES[ore].name;
 export function goalText(g: Goal): string {
   switch (g.kind) {
     case 'ore': return `bank ${g.count} ${oreName(g.ore)}`;
-    case 'credits': return `bank ore worth ${g.credits} credits`;
+    case 'pieces': return `bank ${g.count} pieces of ore, any kind`;
     case 'core': return `drill the core at ${g.depth} m and bring it up`;
     case 'salvage': return 'find the lost survey probe and bring it up';
   }
@@ -125,7 +127,7 @@ export function goalText(g: Goal): string {
 export function goalLine(g: Goal, t: Tally): string {
   switch (g.kind) {
     case 'ore': return `${oreName(g.ore)} ${Math.min(countOf(t.banked, g.ore), g.count)}/${g.count}`;
-    case 'credits': return `haul ${Math.min(holdValue(t.banked), g.credits)}/${g.credits} credits`;
+    case 'pieces': return `ore banked ${Math.min(holdSize(t.banked), g.count)}/${g.count}`;
     case 'core': return t.items.includes('core') ? 'core banked' : `core at ${g.depth} m`;
     case 'salvage': return t.items.includes(g.item) ? 'probe banked' : 'find the probe';
   }
@@ -142,12 +144,17 @@ export function contractText(c: ContractDef): string {
   }
 }
 
-/** The mission's reward line, naming the blueprint and what building it takes. */
+/** Resources as a short list: "2 quartz, 3 native silver". */
+export function payText(h: Hold): string {
+  return holdEntries(h).map(([ore, n]) => `${n} ${oreName(ore)}`).join(', ');
+}
+
+/** The mission's reward line, naming the blueprint and what printing it takes. */
 export function rewardText(m: MissionDef): string {
   const r = m.blueprint ? recipeOf(m.blueprint) : undefined;
-  if (!r) return `${m.fee} credits`;
-  const needs = Object.entries(r.materials).map(([ore, n]) => `${n} ${oreName(ore as OreKey)}`).join(', ');
-  return `${m.fee} credits + the ${r.piece} Mk ${r.mk} blueprint (needs ${needs})`;
+  const pay = payText(m.pays) || 'nothing';
+  if (!r) return pay;
+  return `${pay} + the ${r.piece} Mk ${r.mk} blueprint (needs ${payText(r.materials)})`;
 }
 
 /** Ink blots: one for the mission, one for each contract met. */

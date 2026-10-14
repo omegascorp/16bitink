@@ -33,5 +33,7 @@ export function levelSetup(def: LevelDef, planet: PlanetDef, p: Profile): MineSe
     winchKeeps: winchKeeps(p.ship),
     lander: { col: def.site.landerCol, row: def.site.surface },
     items: def.items,
+    cargo: p.cargo,
+    bag: p.suit,
   };
 }

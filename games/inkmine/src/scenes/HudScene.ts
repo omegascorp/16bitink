@@ -4,14 +4,18 @@ import { slotOf } from '../level/levels';
 import type { LevelDef } from '../level/types';
 import { inPouch } from '../logic/items';
 import type { Mine } from '../logic/mine';
-import { contractBroken, contractDone, contractText, goalDone, goalLine, goalText, missionDone, rewardText } from '../logic/mission';
+import { contractBroken, contractDone, contractText, goalDone, goalLine, goalText, missionDone, payText, rewardText } from '../logic/mission';
 import type { GameScene } from './GameScene';
 import { screenScene, viewSize } from './hidpi';
+import { drawSlotGrid, gridHeight } from './slots';
+import { bagFull } from '../logic/suit';
 import { HAND_FONT, inkButton, inkText, noteCard, noteText, wobblyRect } from './ui';
 
 /** The cell reads as low (red) under this share of its charge. */
 const LOW = 0.25;
 const PANEL = { x: 14, y: 12, w: 330, h: 100 } as const;
+/** The bag's slots under the gauges. */
+const BAG = { cell: 38, cols: 7, top: 98 } as const;
 /** Where the cell's and the jetpack's gauges sit in the panel. */
 const GAUGE = { x: 156, w: 100, h: 18, cell: 20, fuel: 48 } as const;
 /** The mission scrap, top right. */
@@ -39,9 +43,9 @@ export class HudScene extends Phaser.Scene {
   private g!: Phaser.GameObjects.Graphics;
   private energy!: Phaser.GameObjects.Text;
   private fuel!: Phaser.GameObjects.Text;
-  private bag!: Phaser.GameObjects.Text;
   private depth!: Phaser.GameObjects.Text;
-  private credits!: Phaser.GameObjects.Text;
+  private banked!: Phaser.GameObjects.Text;
+  private bagCells: Phaser.GameObjects.GameObject[] = [];
   private missionG!: Phaser.GameObjects.Graphics;
   private missionLines: Phaser.GameObjects.Text[] = [];
   private prompt!: Phaser.GameObjects.Text;
@@ -62,6 +66,7 @@ export class HudScene extends Phaser.Scene {
     screenScene(this, true);
     this.shown = '';
     this.missionLines = [];
+    this.bagCells = [];
     this.g = this.add.graphics();
     this.missionG = this.add.graphics();
     const text = (x: number, y: number, size: number): Phaser.GameObjects.Text => inkText(this, x, y, '', size).setOrigin(0, 0.5);
@@ -70,9 +75,8 @@ export class HudScene extends Phaser.Scene {
     text(PANEL.x + GAUGE.x - 48, PANEL.y + GAUGE.fuel, 20).setText('fuel');
     this.energy = text(gaugeEnd, PANEL.y + GAUGE.cell, 22);
     this.fuel = text(gaugeEnd, PANEL.y + GAUGE.fuel, 22);
-    this.bag = text(PANEL.x + 14, PANEL.y + 80, 22);
-    this.depth = text(PANEL.x + 120, PANEL.y + 80, 22);
-    this.credits = text(PANEL.x + 210, PANEL.y + 80, 22);
+    this.depth = text(PANEL.x + 14, PANEL.y + 80, 22);
+    this.banked = text(PANEL.x + 130, PANEL.y + 80, 22);
     this.prompt = inkText(this, 0, 0, '', 28).setVisible(false);
     this.hint = this.add
       .text(0, 0, '← → walk   ↓ ↑ drill (push into rock)   space jump, hold to fly   E ladder   R recall   L lift off', { fontFamily: HAND_FONT, fontSize: '19px', color: BLUE })
@@ -94,7 +98,8 @@ export class HudScene extends Phaser.Scene {
     const t = mine.tally();
     const pouch = inPouch(mine.items).length;
     const ready = mine.atLander && missionDone(game.level.mission, t);
-    const sig = [s.hearts, s.maxHearts, s.energy, Math.ceil(s.fuel), s.bag.length, s.bagSize, mine.depth, mine.credits, mine.state,
+    const bag = s.bag.slots.map((x) => (x ? `${x.ore}${x.n}` : '-')).join(',');
+    const sig = [s.hearts, s.maxHearts, s.energy, Math.ceil(s.fuel), bag, mine.depth, mine.bankedPieces, mine.state,
       t.items.length, pouch, t.heartsLost, t.charges, Math.floor(t.deepest), ready, Math.floor(t.time / 5)].join('|');
     if (sig === this.shown) return;
     this.shown = sig;
@@ -134,7 +139,7 @@ export class HudScene extends Phaser.Scene {
     line(`Pays ${rewardText(level.mission)}.`, 22);
     y += 6;
     line('Contracts (optional, each pays once):', 22);
-    for (const c of level.contracts) line(`☐ ${contractText(c)} · ${c.pay} cr`, 22);
+    for (const c of level.contracts) line(`☐ ${contractText(c)} · pays ${payText(c.pay)}`, 22);
     // The card fits what's on it: the text laid out from its top, then the button under it.
     const h = y + 90;
     for (const part of parts) (part as unknown as { y: number }).y -= h / 2;
@@ -165,7 +170,8 @@ export class HudScene extends Phaser.Scene {
   private draw(mine: Mine): void {
     const s = mine.suit;
     const g = this.g.clear();
-    const { x, y, w, h } = PANEL;
+    const { x, y, w } = PANEL;
+    const h = BAG.top + gridHeight(s.bag.slots.length, BAG) + 6;
     g.fillStyle(PAPER_HEX, 0.93).fillRect(x, y, w, h);
     wobblyRect(g, x, y, w, h, 17, 1.6, BLUE_HEX);
     for (let i = 0; i < s.maxHearts; i++) {
@@ -180,9 +186,12 @@ export class HudScene extends Phaser.Scene {
     const lowFuel = s.fuel / s.maxFuel < LOW;
     this.energy.setText(`${s.energy}`).setColor(lowCell ? RED : BLUE);
     this.fuel.setText(`${Math.ceil(s.fuel)}`).setColor(lowFuel ? RED : BLUE);
-    this.bag.setText(`bag ${s.bag.length}/${s.bagSize}`).setColor(s.bag.length >= s.bagSize ? RED : BLUE);
     this.depth.setText(mine.depth ? `−${mine.depth} m` : 'surface');
-    this.credits.setText(`haul ${mine.credits} cr`);
+    this.banked.setText(`banked ${mine.bankedPieces}`);
+    // The bag: its slots, red-rimmed when nothing more fits.
+    for (const old of this.bagCells) old.destroy();
+    this.bagCells = drawSlotGrid(this, x + 12, y + BAG.top, s.bag, { ...BAG, seed: 61 });
+    if (bagFull(s)) wobblyRect(g, x + 8, y + BAG.top - 4, w - 16, gridHeight(s.bag.slots.length, BAG) + 4, 67, 1.6, RED_HEX);
     this.failed.setVisible(mine.state === 'failed');
   }
 

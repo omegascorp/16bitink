@@ -3,6 +3,7 @@ import { BLUE, BLUE_HEX, PAPER, RED, RED_HEX } from '../art/palette';
 import { getProfile } from '../host';
 import { levelOrder, PLANETS } from '../level/levels';
 import { isOpen, type Profile } from '../logic/economy';
+import { usedSlots } from '../logic/inventory';
 import { relayoutOnResize, screenScene, viewSize } from './hidpi';
 import { drawBlots, inkButton, inkText, PENCIL, PENCIL_HEX } from './ui';
 
@@ -31,7 +32,7 @@ export class ChartScene extends Phaser.Scene {
     const { width, height } = viewSize(this);
     inkText(this, width / 2, 54, `Planet ${planet.number} · ${planet.name}`, 54);
     inkText(this, width / 2, 100, planet.blurb, 24, SOFT_INK);
-    inkText(this, width - 20, 30, `${profile.credits} credits`, 26).setOrigin(1, 0.5);
+    inkText(this, width - 20, 30, `cargo ${usedSlots(profile.cargo)}/${profile.cargo.slots.length} slots`, 24).setOrigin(1, 0.5);
 
     const sites: { name: string; id?: string; state: SiteState }[] = [
       ...planet.levels.map((l) => ({ name: l.name, id: l.id, state: siteState(profile, l.id) })),

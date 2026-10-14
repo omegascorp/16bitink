@@ -1,9 +1,10 @@
-import { oreById } from './ore';
+import { addOre, emptyInventory, isEmpty, roomFor, type Inventory } from './inventory';
+import { oreKeyOf } from './ore';
 
 /**
  * The numbers on the HUD (docs/inkmine-design.md, "The suit"): the
- * drill's energy cell, the jetpack's fuel, the ore bag, and hearts. Each
- * change returns a new suit.
+ * drill's energy cell, the jetpack's fuel, the ore bag (a slot inventory,
+ * inventory.ts), and hearts. Each change returns a new suit.
  */
 export interface Suit {
   readonly energy: number;
@@ -11,9 +12,7 @@ export interface Suit {
   /** Jetpack fuel. */
   readonly fuel: number;
   readonly maxFuel: number;
-  /** Ore ids, one per piece. */
-  readonly bag: readonly number[];
-  readonly bagSize: number;
+  readonly bag: Inventory;
   readonly hearts: number;
   readonly maxHearts: number;
   /** Sim time until which hits are shrugged off (after a hit). */
@@ -23,17 +22,22 @@ export interface Suit {
 export interface SuitSpec {
   readonly energy: number;
   readonly fuel: number;
-  readonly bag: number;
+  /** Bag slots. */
+  readonly slots: number;
   readonly hearts: number;
 }
 
+/** Pieces of one ore a suit bag slot stacks. */
+export const SUIT_STACK = 10;
+
 /** The Mk 0 starter set. */
-export const STARTER: SuitSpec = { energy: 100, fuel: 60, bag: 10, hearts: 3 };
+export const STARTER: SuitSpec = { energy: 100, fuel: 60, slots: 4, hearts: 3 };
 /** Seconds of grace after losing a heart. */
 export const GRACE = 2;
 
-export function newSuit(spec: SuitSpec): Suit {
-  return { energy: spec.energy, maxEnergy: spec.energy, fuel: spec.fuel, maxFuel: spec.fuel, bag: [], bagSize: spec.bag, hearts: spec.hearts, maxHearts: spec.hearts, graceUntil: 0 };
+/** A suit fresh from the ship: full cell and tank, and the bag as it was left (empty by default). */
+export function newSuit(spec: SuitSpec, bag: Inventory = emptyInventory(spec.slots, SUIT_STACK)): Suit {
+  return { energy: spec.energy, maxEnergy: spec.energy, fuel: spec.fuel, maxFuel: spec.fuel, bag, hearts: spec.hearts, maxHearts: spec.hearts, graceUntil: 0 };
 }
 
 /** Spends `cost` energy, or null when the cell hasn't that much left. */
@@ -55,21 +59,30 @@ export function refuel(s: Suit): Suit {
   return s.fuel === s.maxFuel ? s : { ...s, fuel: s.maxFuel };
 }
 
-export const bagFull = (s: Suit): boolean => s.bag.length >= s.bagSize;
-
-/** Puts a piece of ore in the bag, or null when it's full. */
-export function stow(s: Suit, ore: number): Suit | null {
-  return bagFull(s) ? null : { ...s, bag: [...s.bag, ore] };
+/** Whether a piece of this ore (by id) has room in the bag: a stack of it with room, or an empty slot. */
+export function fits(s: Suit, oreId: number): boolean {
+  const ore = oreKeyOf(oreId);
+  return !!ore && roomFor(s.bag, ore) > 0;
 }
 
-/** What the bag sells for. */
-export function bagValue(bag: readonly number[]): number {
-  return bag.reduce((sum, id) => sum + (oreById(id)?.value ?? 0), 0);
+/** Whether nothing more fits: every slot holds a full stack. */
+export const bagFull = (s: Suit): boolean => s.bag.slots.every((x) => x !== null && x.n >= s.bag.stack);
+
+/** Puts a piece of ore (by id) in the bag, or null when there's no room for it. */
+export function stow(s: Suit, oreId: number): Suit | null {
+  const ore = oreKeyOf(oreId);
+  if (!ore) return null;
+  const r = addOre(s.bag, ore, 1);
+  return r.added ? { ...s, bag: r.inv } : null;
 }
 
-/** Empties the bag (banked or lost). */
+/** Empties the bag (lost). */
 export function emptyBag(s: Suit): Suit {
-  return s.bag.length === 0 ? s : { ...s, bag: [] };
+  return isEmpty(s.bag) ? s : { ...s, bag: emptyInventory(s.bag.slots.length, s.bag.stack) };
+}
+
+export function withBag(s: Suit, bag: Inventory): Suit {
+  return { ...s, bag };
 }
 
 /** Loses a heart unless in grace; `hit` says whether it counted. */

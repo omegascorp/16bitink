@@ -11,8 +11,8 @@ import type { SuitSpec } from './suit';
 export const MARK_STEP = {
   /** Cell: energy per trip. */
   energy: { base: 100, per: 40 },
-  /** Pack: bag slots. */
-  bag: { base: 10, per: 4 },
+  /** Pack: bag slots (each stacks SUIT_STACK of one ore). */
+  slots: { base: 4, per: 2 },
   /** Jetpack: seconds-of-thrust fuel (burns 10 a second). */
   fuel: { base: 60, per: 30 },
   /** Jetpack: top climb speed, px/s. */
@@ -25,7 +25,7 @@ const at = (s: { readonly base: number; readonly per: number }, mk: number): num
 
 /** The suit's numbers for a loadout: the cell's energy, the jetpack's tank, the pack's slots and the suit's hearts (one more on every odd mark). */
 export function suitSpecFor(l: Loadout): SuitSpec {
-  return { energy: at(MARK_STEP.energy, l.cell), fuel: at(MARK_STEP.fuel, l.jetpack), bag: at(MARK_STEP.bag, l.pack), hearts: 3 + Math.ceil(l.suit / 2) };
+  return { energy: at(MARK_STEP.energy, l.cell), fuel: at(MARK_STEP.fuel, l.jetpack), slots: at(MARK_STEP.slots, l.pack), hearts: 3 + Math.ceil(l.suit / 2) };
 }
 
 export interface JetSpec {
@@ -56,7 +56,7 @@ export function markGain(piece: Piece, mk: number): string {
   switch (piece) {
     case 'drill': return mk === 1 ? "breaks Graphite's stone" : `breaks planet ${mk}'s stone`;
     case 'cell': return `energy ${at(MARK_STEP.energy, was)} → ${at(MARK_STEP.energy, mk)}`;
-    case 'pack': return `bag ${at(MARK_STEP.bag, was)} → ${at(MARK_STEP.bag, mk)} slots`;
+    case 'pack': return `bag ${at(MARK_STEP.slots, was)} → ${at(MARK_STEP.slots, mk)} slots`;
     case 'suit': {
       const a = 3 + Math.ceil(was / 2);
       const b = 3 + Math.ceil(mk / 2);
@@ -72,7 +72,7 @@ export function markStat(piece: Piece, mk: number): string {
   switch (piece) {
     case 'drill': return mk === 0 ? 'starter drill: soil only' : `breaks planet ${mk}'s stone`;
     case 'cell': return `${at(MARK_STEP.energy, mk)} energy`;
-    case 'pack': return `${at(MARK_STEP.bag, mk)} bag slots`;
+    case 'pack': return `${at(MARK_STEP.slots, mk)} bag slots`;
     case 'suit': return `${3 + Math.ceil(mk / 2)} hearts`;
     case 'helmet': return `lamp ${lampFor(mk)} tiles`;
     case 'jetpack': return `${at(MARK_STEP.fuel, mk) / 10} s of fuel`;

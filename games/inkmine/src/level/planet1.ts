@@ -34,10 +34,10 @@ export const PLANET_1: PlanetDef = {
         rooms: [{ at: [34, 10], w: 8, h: 3 }],
       },
       items: [],
-      mission: { goals: [{ kind: 'ore', ore: 'copper', count: 5 }], fee: 60 },
+      mission: { goals: [{ kind: 'ore', ore: 'copper', count: 5 }], pays: { galena: 4, graphite: 2 } },
       contracts: [
-        { kind: 'order', ore: 'galena', count: 4, pay: 40 },
-        { kind: 'deep', depth: 16, pay: 30 },
+        { kind: 'order', ore: 'galena', count: 4, pay: { quartz: 1 } },
+        { kind: 'deep', depth: 16, pay: { copper: 6 } },
       ],
     },
     {
@@ -56,10 +56,10 @@ export const PLANET_1: PlanetDef = {
         rooms: [{ at: [40, 12], w: 9, h: 3 }],
       },
       items: [],
-      mission: { goals: [{ kind: 'ore', ore: 'graphite', count: 3 }], fee: 70, blueprint: 'cell-1' },
+      mission: { goals: [{ kind: 'ore', ore: 'graphite', count: 3 }], pays: { quartz: 2 }, blueprint: 'cell-1' },
       contracts: [
-        { kind: 'deep', depth: 15, pay: 40 },
-        { kind: 'clean', pay: 40 },
+        { kind: 'deep', depth: 15, pay: { galena: 4 } },
+        { kind: 'clean', pay: { silver: 1 } },
       ],
     },
     {
@@ -83,10 +83,10 @@ export const PLANET_1: PlanetDef = {
         { kind: 'blueprint', at: [47, 11], blueprint: 'pack-1' },
         { kind: 'fossil', at: [24, 13], grade: 'soil' },
       ],
-      mission: { goals: [{ kind: 'credits', credits: 150 }], fee: 80 },
+      mission: { goals: [{ kind: 'pieces', count: 25 }], pays: { silver: 2, quartz: 1 } },
       contracts: [
-        { kind: 'specimen', pay: 60 },
-        { kind: 'order', ore: 'galena', count: 6, pay: 50 },
+        { kind: 'specimen', pay: { quartz: 2 } },
+        { kind: 'order', ore: 'galena', count: 6, pay: { silver: 2 } },
       ],
     },
     {
@@ -108,10 +108,10 @@ export const PLANET_1: PlanetDef = {
         rooms: [{ at: [40, 58], w: 9, h: 3 }],
       },
       items: [{ kind: 'core', at: [40, 60], grade: 'soil' }],
-      mission: { goals: [{ kind: 'core', depth: 60 }], fee: 100, blueprint: 'drill-1' },
+      mission: { goals: [{ kind: 'core', depth: 60 }], pays: { silver: 2, quartz: 2 }, blueprint: 'drill-1' },
       contracts: [
-        { kind: 'order', ore: 'copper', count: 8, pay: 50 },
-        { kind: 'clean', pay: 50 },
+        { kind: 'order', ore: 'copper', count: 8, pay: { galena: 4 } },
+        { kind: 'clean', pay: { quartz: 1, silver: 1 } },
       ],
     },
     {
@@ -141,10 +141,10 @@ export const PLANET_1: PlanetDef = {
         { kind: 'probe', at: [63, 43] },
         { kind: 'blueprint', at: [21, 36], blueprint: 'helmet-1' },
       ],
-      mission: { goals: [{ kind: 'salvage', item: 'probe' }], fee: 120 },
+      mission: { goals: [{ kind: 'salvage', item: 'probe' }], pays: { silver: 4, quartz: 2 } },
       contracts: [
-        { kind: 'order', ore: 'quartz', count: 3, pay: 80 },
-        { kind: 'careful', pay: 60 },
+        { kind: 'order', ore: 'quartz', count: 3, pay: { silver: 3 } },
+        { kind: 'careful', pay: { quartz: 2 } },
       ],
     },
   ],

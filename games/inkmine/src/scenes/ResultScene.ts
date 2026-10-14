@@ -6,7 +6,7 @@ import { levelById, nextLevel, planetOf, slotOf } from '../level/levels';
 import { recipeOf } from '../logic/blueprints';
 import type { Payout } from '../logic/economy';
 import { holdEntries, holdSize, type Hold } from '../logic/hold';
-import { contractText } from '../logic/mission';
+import { contractText, payText } from '../logic/mission';
 import { ORES } from '../logic/ore';
 import { relayoutOnResize, screenScene, viewSize } from './hidpi';
 import { drawBlots, inkButton, inkText, noteCard, noteText, PENCIL } from './ui';
@@ -22,9 +22,9 @@ const SOFT_INK = '#4a463e';
 export const holdText = (h: Hold): string => holdEntries(h).map(([ore, n]) => `${n} ${ORES[ore].name}`).join(', ');
 
 /**
- * After a landing: what came up and where it went (to the guild, sold, kept
- * in the hold for gear), the fee, each contract, any blueprint found, and the
- * blots. Then on to the ship, or land again.
+ * After a landing: what came up into the cargo, what the guild took, what
+ * it and the clients paid (in resources), what was lost with the suit, any
+ * blueprint found, and the blots. Then on to the ship, or land again.
  */
 export class ResultScene extends Phaser.Scene {
   private leaving = false;
@@ -63,16 +63,16 @@ export class ResultScene extends Phaser.Scene {
       parts.push(g);
       y += 44;
     }
-    line(holdSize(p.banked) ? `Banked: ${holdText(p.banked)}` : 'Nothing banked this time.');
-    if (holdSize(p.taken)) line(`To the guild and clients: ${holdText(p.taken)}`, 20, SOFT_INK);
-    if (holdSize(p.sold)) line(`Sold: ${holdText(p.sold)} · ${p.soldFor} cr`);
-    if (holdSize(p.kept)) line(`In the hold, for gear: ${holdText(p.kept)}`, 20, SOFT_INK);
-    if (won) line(`Mission fee · ${p.fee} cr`);
+    line(holdSize(p.banked) ? `Into the cargo: ${holdText(p.banked)}` : 'Nothing banked this time.');
+    if (holdSize(p.taken)) line(`Taken by the guild and clients: ${holdText(p.taken)}`, 20, SOFT_INK);
+    if (holdSize(p.lost)) line(`Lost with the suit's bag: ${holdText(p.lost)}`, 20, RED);
     for (const c of p.contracts) {
       const mark = c.met ? '☑' : '☐';
-      const pay = c.paid ? `${c.contract.pay} cr` : c.paidBefore ? 'paid before' : won ? 'not met' : '';
+      const pay = c.paid ? `paid ${payText(c.contract.pay)}` : c.paidBefore ? 'paid before' : won ? 'not met' : '';
       line(`${mark} ${contractText(c.contract)}${pay ? ` · ${pay}` : ''}`, 20, c.paid ? BLUE : PENCIL);
     }
+    if (holdSize(p.rewards)) line(`Paid: ${holdText(p.rewards)}`, 24);
+    if (holdSize(p.pending)) line(`No room in the cargo: the guild holds ${holdText(p.pending)} until there is.`, 20, RED);
     y += 4;
     for (const id of p.blueprints) {
       const r = recipeOf(id);
@@ -80,12 +80,10 @@ export class ResultScene extends Phaser.Scene {
       const img = this.add.image(left + 24, y + 22, TEX.item('blueprint', 0)).setScale(56 / ITEM_FRAME / 3);
       parts.push(img);
       const needs = holdText(r.materials);
-      const t = noteText(this, left + 60, y, `New blueprint: ${r.piece} Mk ${r.mk}! Build it on the ship with ${needs} and ${r.fee} cr.`, 22, tw - 60, BLUE);
+      const t = noteText(this, left + 60, y, `New blueprint: ${r.piece} Mk ${r.mk}! Print it on the ship from ${needs}.`, 22, tw - 60, BLUE);
       parts.push(t);
       y += Math.max(48, t.height + 6);
     }
-    y += 6;
-    line(`+${p.credits} credits · you have ${p.profile.credits}`, 26);
     const h = y + 150;
     // Lay the parts out from the card's top.
     for (const part of parts) (part as unknown as { y: number }).y += -h / 2 + 40;

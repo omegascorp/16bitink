@@ -1,7 +1,10 @@
 import { STARTER_LOADOUT } from '../src/logic/gear';
 import { Mine, NO_INPUT, type MineInput, type MineEvent, type MineSetup } from '../src/logic/mine';
 import { ORES } from '../src/logic/ore';
-import { STARTER } from '../src/logic/suit';
+import { addOre, contents, emptyInventory, type Inventory } from '../src/logic/inventory';
+import { oreKeyOf } from '../src/logic/ore';
+import type { Hold } from '../src/logic/hold';
+import { STARTER, SUIT_STACK } from '../src/logic/suit';
 import { createTerrain, setTile, TILE, type Terrain } from '../src/logic/terrain';
 import { VOLATILES } from '../src/logic/volatiles';
 
@@ -62,3 +65,11 @@ export function run(m: Mine, seconds: number, input: Partial<MineInput> = {}): M
 export function standAt(m: Mine, col: number, row: number): void {
   m.player = { ...m.player, x: col * T + (T - m.player.w) / 2, y: row * T - m.player.h, vx: 0, vy: 0, onGround: true };
 }
+
+/** A starter bag holding these pieces (by ore id). */
+export function bagOf(...ids: number[]): Inventory {
+  return ids.reduce((inv, id) => addOre(inv, oreKeyOf(id)!, 1).inv, emptyInventory(STARTER.slots, SUIT_STACK));
+}
+
+/** What a bag holds, by ore. */
+export const bagHas = (inv: Inventory): Hold => contents(inv);

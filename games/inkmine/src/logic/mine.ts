@@ -2,14 +2,14 @@ import { boxHitsSolid, climbBody, jump, moveBody, type Body, type Box } from './
 import { BlastSim, type Blast } from './blastSim';
 import type { Loadout } from './gear';
 import { DRILL_SECONDS_PER_ENERGY, tileCost, VOLATILE_COST, type DrillSpec } from './drill';
-import { addHold, holdOfBag, holdValue, EMPTY_HOLD, type Hold } from './hold';
+import { addHold, EMPTY_HOLD, holdSize, type Hold } from './hold';
+import { contents as contentsOf, emptyInventory, isEmpty, keepShare, transferAll, type Inventory } from './inventory';
 import { bankItems, freeItems, inPouch, placeItems, stepItems, type ItemDef, type MineItem } from './items';
 import { ladderRungs, Ladders } from './ladders';
 import { jetFor, type JetSpec } from './marks';
 import type { ItemKind, Tally } from './mission';
-import { oreById } from './ore';
 import { caught, newPiece, PIECE, stepPiece, type Piece } from './pieces';
-import { bagFull, bagValue, burn, emptyBag, hurt, newSuit, recharge, refuel, spend, stow, type Suit, type SuitSpec } from './suit';
+import { burn, fits, hurt, newSuit, recharge, refuel, spend, stow, withBag, type Suit, type SuitSpec } from './suit';
 import { bodyCell, centredX, drillTarget } from './target';
 import { contentAt, setTile, TILE, tileAt, volatileAt, type Terrain, type TilePos } from './terrain';
 
@@ -31,7 +31,14 @@ export interface MineSetup {
   readonly items?: readonly ItemDef[];
   /** Share of the bag a recall keeps: the ship's winch (default none). */
   readonly winchKeeps?: number;
+  /** The ship's cargo, which the bag empties into at the lander (default an empty starter hold). */
+  readonly cargo?: Inventory;
+  /** What the suit's bag still holds from the last landing (default empty). */
+  readonly bag?: Inventory;
 }
+
+/** The starter ship's cargo: slots, and pieces a slot stacks. */
+export const CARGO = { slots: 16, stack: 50 } as const;
 
 /** One step's controls: held directions (-1..1), the jump button held (thrust), and buttons pressed this step. */
 export interface MineInput {
@@ -55,7 +62,8 @@ export type MineEvent =
   | { readonly kind: 'flat' }
   | { readonly kind: 'ore'; readonly ore: number }
   | { readonly kind: 'bagFull' }
-  | { readonly kind: 'bank'; readonly credits: number; readonly pieces: number }
+  | { readonly kind: 'bank'; readonly moved: Hold; readonly pieces: number }
+  | { readonly kind: 'cargoFull' }
   | { readonly kind: 'recharge' }
   | { readonly kind: 'refuel' }
   | { readonly kind: 'noFuel' }
@@ -112,6 +120,8 @@ export class Mine {
   suit: Suit;
   /** Ore banked at the lander this landing. */
   banked: Hold = EMPTY_HOLD;
+  /** The ship's cargo, filled at the lander. */
+  cargo: Inventory;
   items: MineItem[];
   deepest = 0;
   heartsLost = 0;
@@ -133,7 +143,8 @@ export class Mine {
     this.drill = setup.drill;
     this.ladders = new Ladders(setup.terrain);
     this.blasts = new BlastSim(setup.terrain);
-    this.suit = newSuit(setup.suit);
+    this.suit = setup.bag ? newSuit(setup.suit, setup.bag) : newSuit(setup.suit);
+    this.cargo = setup.cargo ?? emptyInventory(CARGO.slots, CARGO.stack);
     this.laddersLeft = setup.ladders;
     this.jet = setup.jet ?? JET;
     const T = this.tile;
@@ -148,9 +159,9 @@ export class Mine {
     return Math.max(0, Math.floor((this.player.y + this.player.h) / this.tile) - this.setup.lander.row);
   }
 
-  /** What the banked ore is worth at the guild rate. */
-  get credits(): number {
-    return holdValue(this.banked);
+  /** Pieces of ore banked this landing. */
+  get bankedPieces(): number {
+    return holdSize(this.banked);
   }
 
   /** Whether the prospector is at the lander (where they bank, and can lift off). */
@@ -329,16 +340,17 @@ export class Mine {
   }
 
   private pieceStep(dt: number, events: MineEvent[]): void {
-    const full = bagFull(this.suit);
     const kept: Piece[] = [];
     for (const piece of this.pieces) {
-      const next = stepPiece(this.terrain, piece, full ? null : this.player, dt, this.tile);
-      if (!full && caught(next, this.player)) {
+      // A piece flies to the bag only if there's a stack of its ore with room, or an empty slot.
+      const room = fits(this.suit, piece.ore);
+      const next = stepPiece(this.terrain, piece, room ? this.player : null, dt, this.tile);
+      if (room && caught(next, this.player)) {
         this.suit = stow(this.suit, next.ore) ?? this.suit;
         events.push({ kind: 'ore', ore: next.ore });
         continue;
       }
-      if (full && this.near(next)) this.notice('bagFull', events, { kind: 'bagFull' });
+      if (!room && this.near(next)) this.notice('bagFull', events, { kind: 'bagFull' });
       kept.push(next);
     }
     this.pieces = kept;
@@ -357,11 +369,16 @@ export class Mine {
 
   private landerStep(events: MineEvent[]): void {
     if (!this.atLander) return;
-    if (this.suit.bag.length) {
-      const credits = bagValue(this.suit.bag);
-      events.push({ kind: 'bank', credits, pieces: this.suit.bag.length });
-      this.banked = addHold(this.banked, holdOfBag(this.suit.bag));
-      this.suit = emptyBag(this.suit);
+    if (!isEmpty(this.suit.bag)) {
+      const r = transferAll(this.suit.bag, this.cargo);
+      const pieces = holdSize(r.moved);
+      if (pieces) {
+        events.push({ kind: 'bank', moved: r.moved, pieces });
+        this.banked = addHold(this.banked, r.moved);
+        this.cargo = r.to;
+        this.suit = withBag(this.suit, r.from);
+      }
+      if (!isEmpty(r.from)) this.notice('cargoFull', events, { kind: 'cargoFull' });
     }
     if (inPouch(this.items).length) {
       const { items, banked } = bankItems(this.items);
@@ -394,15 +411,14 @@ export class Mine {
 
   /**
    * The lander winches the prospector up. Whatever's in the bag is dropped
-   * and lost, except the share the ship's winch keeps (the most valuable
-   * pieces). The pouch comes up with them.
+   * and lost, except the share of each stack the ship's winch keeps. The
+   * pouch comes up with them.
    */
   private recall(events: MineEvent[]): void {
-    const bag = this.suit.bag;
-    const keep = Math.floor(bag.length * (this.setup.winchKeeps ?? 0));
-    const kept = [...bag].sort((a, b) => (oreById(b)?.value ?? 0) - (oreById(a)?.value ?? 0)).slice(0, keep);
-    const lost = bag.length - kept.length;
-    this.suit = { ...emptyBag(this.suit), bag: kept };
+    const before = holdSize(contentsOf(this.suit.bag));
+    const kept = keepShare(this.suit.bag, this.setup.winchKeeps ?? 0);
+    const lost = before - holdSize(contentsOf(kept));
+    this.suit = withBag(this.suit, kept);
     this.player = this.startBody();
     this.drilling = null;
     events.push({ kind: 'recall', lost });

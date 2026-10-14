@@ -4,14 +4,14 @@ Oct 13, 2026 · @Hayk
 
 ## Overview
 
-A 2D side-view mining game drawn in ballpoint pen. You're a lone prospector with an energy drill, a lander and a patched-up suit. You fly from planet to planet for a mining guild and dig deep cross-sections of alien ground for the materials each job asks for. Every trip down is push-your-luck: how deep you go and how full a bag you carry before the drill's energy cell runs dry. Every trip back pays, and each new planet's materials build the gear that carries you further.
+A 2D side-view mining game drawn in ballpoint pen. You're a lone prospector with an energy drill, a lander and a patched-up suit. You fly from planet to planet for a mining guild and dig deep cross-sections of alien ground for the materials each job asks for. Every trip down is push-your-luck: how deep you go and how full a bag you carry before the drill's energy cell runs dry. Every trip back fills the ship's cargo, and each new planet's materials are printed into the gear that carries you further. There's no money: what you dig is what you build with.
 
 The third 16bit.ink game, after InkFish and InkCrab. It keeps their shape: 100 levels on 10 worlds of 10, the first world free, a $4.99 one-time unlock, blue ink for the world, red for danger and highlighter for pickups.
 
 Design pillars:
 
-1. **Pocket Mine simple.** Every block you drill costs energy, and firedamp in the rock turns a few smart hits into a chain reaction. A few numbers to watch (energy, fuel, bag, hearts); dig by pushing into the ground. Anything that needs a manual gets cut.
-2. **Every trip pays, every planet levels you up.** Ore you bring back is yours, even on a failed level. New gear is unlocked, not bought: you find its blueprint and dig up the planet's materials to build it, and it always opens something new.
+1. **Pocket Mine simple.** Every block you drill costs energy, and firedamp in the rock turns a few smart hits into a chain reaction. A few numbers to watch (energy, fuel, hearts) and a small bag of slots; dig by pushing into the ground. Anything that needs a manual gets cut.
+2. **Every trip counts, every planet levels you up.** Ore you bring back is yours, even on a failed level. Everything is printed from resources, never bought: you find a part's blueprint and dig up the planet's materials to print it, and it always opens something new.
 3. **Big ground, readable ground.** Maps are many screens deep. How hard a block is, what's worth digging and what will hurt you all read at a glance from the ink.
 4. **Each planet is a new idea.** Every planet has its own biome, native creatures, signature material and one mechanic that changes how you dig.
 
@@ -25,7 +25,8 @@ Full notes in [inkmine-research.md](inkmine-research.md). What InkMine takes:
 | **SteamWorld Dig 2** | Areas gated by tools (each planet's gear); hand-made treasure vaults inside a bigger map; death costs carried ore, never cash |
 | **Motherload / Super Motherload** | Cargo-limited round trips and the "turn back now?" call; underground outposts (relay posts); a bonus for mining a whole vein |
 | **Mr. Driller** | Air with refill capsules (Brine); falling blocks as threat and tool (Talus); colour-linked groups (Prism) |
-| **Deep Rock Galactic** | A main objective plus optional side objectives for bonus credits (contracts) |
+| **Deep Rock Galactic** | A main objective plus optional side objectives for bonus rewards (contracts) |
+| **No Man's Sky** | Slot inventories on the suit and the ship, stacks of one resource per slot, and every part crafted from resources |
 | **Terraria** | Tool tier as a readable gate: "you need a better drill for this rock" |
 | **Spelunky** | A guaranteed main path, with optional treasure walled off behind harder rock |
 | **Gold Miner** | A clear pass/fail goal per level; a shop between levels paid with earned cash |
@@ -56,9 +57,9 @@ A level is a series of trips from the lander down and back.
 2. **Dig down.** Push into the ground to dig. Pick up ore as you break it out.
 3. **Watch the gauges.** Every block costs energy; flying costs jetpack fuel; the bag fills; creatures and hazards cost hearts.
 4. **Turn back.** When the bag is full, the cell is nearly flat or the fuel to fly home is running low, head back to the lander or a relay post.
-5. **Bank.** Ore is sold on the spot (or kept for gear, below), the cell recharged and the tank refuelled. Banked credits are safe whatever happens next.
-6. **Finish the mission,** then lift off from the lander. The result card pays out: ore sold, mission fee, contract bonuses, and any blueprint you found.
-7. **Build gear** on the ship, then pick the next landing site.
+5. **Bank.** The bag empties into the ship's cargo (as much as fits), the cell is recharged and the tank refuelled. Ore in the cargo is safe whatever happens next.
+6. **Finish the mission,** then lift off from the lander. The result card shows what went into the cargo, what the guild took, what it and the clients paid (in resources), and any blueprint you found.
+7. **Print gear and lander modules** on the ship, sort the cargo, then pick the next landing site.
 
 Trips get longer as the maps grow, which is what relay posts and the mobility upgrades are for.
 
@@ -110,12 +111,26 @@ Four numbers, all on the HUD.
 | --- | --- | --- | --- |
 | **Energy** | 100 | Drilling spends it. At zero you can't drill | Lander, relay posts |
 | **Fuel** | 6 s of flight | The jetpack burns it while you hold jump in the air. At zero you can only jump | Lander, relay posts |
-| **Bag** | 10 pieces | Each piece of ore takes one slot. When full, more ore stays where it dropped | Banking empties it |
+| **Bag** | 4 slots, stacks of 10 | A slot inventory (below). A piece flies in only if its ore has a stack with room or there's an empty slot; otherwise it stays where it dropped | The lander moves it into the cargo |
 | **Hearts** | 3 | A creature, a falling boulder or a hazard costs one, then 2 s of grace | Only by finishing the level |
 
 Mission items (a core sample, a probe's black box, a blueprint, a specimen) go in a separate pouch and never take bag space.
 
-**Losing the last heart fails the level.** You keep every credit and material you banked and lose what's in the bag. That keeps a bad run from feeling wasted, the way a Pocket Mine run always pays out.
+**Losing the last heart fails the level.** You keep everything in the cargo and lose what's in the bag. That keeps a bad run from feeling wasted, the way a Pocket Mine run always pays out.
+
+### Inventories: the bag and the cargo
+
+Ore is kept as resources in two slot inventories, No Man's Sky style (decided with @Hayk on Oct 14, 2026; it replaces the earlier "the bag is a count" and selling ore for credits). Each slot holds a stack of one ore, so a varied haul fills the bag faster than a single vein (`logic/inventory.ts`).
+
+| | Slots | Stack | Grows with |
+| --- | --- | --- | --- |
+| Suit bag | 4 | 10 | The Pack: 2 more slots a mark |
+| Ship cargo | 16 | 50 | The Cargo hold module: 6 more slots a level |
+
+- **At the lander** the bag empties into the cargo automatically, the rarest ore first; whatever doesn't fit stays in the bag ("cargo hold full").
+- **On the ship** both grids are shown. Tap a stack to pick it up, tap a slot in either grid to put it there: into an empty slot, onto the same ore (as much as fits), or swapping with a different ore. A picked-up stack can be split in half or jettisoned (tap twice). "Stow the bag" moves everything that fits into the cargo.
+- **The bag carries over** between landings: what didn't fit comes back down with you.
+- **The recall winch** keeps a share of every stack (half, then all).
 
 No air meter in normal play. Air appears only on Brine, as that planet's mechanic.
 
@@ -140,8 +155,8 @@ Ore is real minerals, so the field guide can teach real facts, as the fish and s
 - **Common ore** is shared across planets and climbs in value with depth: native copper, galena (lead), hematite (iron), silver, gold, platinum.
 - **Gems** are rare, single blocks: quartz, garnet, beryl, ruby, sapphire, diamond.
 - **Each planet has a signature material,** the one the guild sent you for. It shows up in that planet's missions and nowhere else, and it's the main ingredient of that planet's gear.
-- **Sold or kept.** Banked ore goes into the ship's hold. When you lift off, whatever your found, unbuilt blueprints need stays in the hold, and so does the planet's signature material, up to what all its unbuilt gear needs (blueprints turn up one by one, and graphite banked before the drill's blueprint shouldn't have been sold for 8 credits apiece). Everything else is sold. The guild takes only what a mission asks for; extra signature material is yours.
-- **Junk that looks like treasure:** pyrite (fool's gold) on Talus sells for almost nothing. A small joke and an early lesson about reading veins.
+- **Kept, never sold.** Banked ore stays in the ship's cargo as a resource to print with. The guild takes only what a mission asks for; extra signature material is yours.
+- **Junk that looks like treasure:** pyrite (fool's gold) on Talus is in no recipe; it only fills slots until you jettison it. A small joke and an early lesson about reading veins.
 
 Every ore type has its own highlighter colour and its own glyph shape in the rock (nuggets, crystals, bands), so it reads without colour.
 
@@ -151,7 +166,7 @@ Every ore type has its own highlighter colour and its own glyph shape in the roc
 
 | Mission | Goal |
 | --- | --- |
-| Haul | Bank ore worth a set number of credits, or a set number of one ore |
+| Haul | Bank a set number of pieces of ore, or a set number of one ore |
 | Hunt | Bank N pieces of the planet's signature material |
 | Core sample | Reach a marked depth, drill the core and bring it up |
 | Salvage | Find something lost (a probe, a cargo pod, an old miner's pick) and bring it up |
@@ -160,7 +175,7 @@ Every ore type has its own highlighter colour and its own glyph shape in the roc
 | Demolition | Fire an earlier crew's charges to blast open a cave-in and reach what's behind it |
 | The giant | Defeat the planet's giant (level 10 of every planet) |
 
-**Contracts** are optional side jobs from other clients, shown on the intro card under the mission. They pay credits, sometimes materials, and are what makes a level worth replaying.
+**Contracts** are optional side jobs from other clients, shown on the intro card under the mission. They pay resources, often the rare ones that are hard to dig yet (deep quartz and silver on Graphite), and are what makes a level worth replaying.
 
 - **Planet 1:** each level has two fixed contracts, so new players learn what they are.
 - **From planet 2:** the contracts board offers three and you pick two before landing. From planet 5 it offers four. Each level's board is fixed, so everyone sees the same offers. Picking is a real choice: a bounty suits a map rich in firedamp, a deep record suits a good cell.
@@ -178,7 +193,7 @@ Every ore type has its own highlighter colour and its own glyph shape in the roc
 
 **Ink blots (stars):** one for the mission and one for each of the two contracts you took, so three per level. A level's blots are the mission plus every contract ever paid there, so replaying for a skipped contract adds its blot.
 
-**What pays when.** Banked ore always pays, even on a failed landing. The fee, the contracts and a mission's blueprint pay only on a won lift-off. A blueprint banked from the pouch is yours whatever happens next. Lifting off before the mission is done ("leave early", press lift-off twice) counts as a landing that wasn't won. Contracts about how a landing went (clean job, careful hands, rush) are judged at lift-off and show struck through in red the moment they're lost. This replaces InkFish and InkCrab's par-time blot. A mining game is about exploring a big map, and a clock would fight that; "Rush" is there as a contract for players who want it.
+**What pays when.** Banked ore is always yours, even on a failed landing. The mission's pay, the contracts and a mission's blueprint come only with a won lift-off. A reward that doesn't fit in the cargo waits with the guild and arrives once there's room. A blueprint banked from the pouch is yours whatever happens next. Lifting off before the mission is done ("leave early", press lift-off twice) counts as a landing that wasn't won. Contracts about how a landing went (clean job, careful hands, rush) are judged at lift-off and show struck through in red the moment they're lost. This replaces InkFish and InkCrab's par-time blot. A mining game is about exploring a big map, and a clock would fight that; "Rush" is there as a contract for players who want it.
 
 ## Gear: blueprints, materials, the fabricator
 
@@ -190,29 +205,28 @@ Every planet has its own set of gear, the best you can have there, and you build
 | --- | --- |
 | Drill | Breaks the planet's stone (table above), costs less on everything, hits creatures harder |
 | Cell | More energy per trip |
-| Pack | More bag slots |
+| Pack | Two more bag slots |
 | Suit | One more heart on alternate marks; fewer hearts lost to the planet's hazard |
 | Helmet | Wider lamp light; from Mk 2, a scanner ping that shows ore through rock |
 | Jetpack | A bigger fuel tank and a faster climb |
 
-**Building a piece takes three things:**
+**Printing a piece takes two things** (resources come from the cargo first, then the bag):
 
 1. **Its blueprint.** Found or earned on the planet, never bought. When you pick one up, the HUD flashes and the result card shows it as a pencil drawing with its recipe.
 2. **The planet's materials:** its signature material plus one of its ores or gems, for example *Cell Mk 1: 4 graphite, 3 quartz*. Hunting the planet for them is the point of being there.
-3. **A fabrication fee in credits**, so missions and contracts still matter.
 
 Graphite's Mk 1 recipes (`logic/blueprints.ts`), each graphite plus an ore the levels that hand out the blueprint are rich in:
 
-| Piece | Materials | Fee | Gives (`logic/marks.ts`) |
-| --- | --- | --- | --- |
-| Cell | 4 graphite, 6 copper | 60 | Energy 100 → 140 |
-| Pack | 3 graphite, 8 copper | 60 | Bag 10 → 14 |
-| Drill | 6 graphite, 4 galena | 100 | Breaks Graphite's stone |
-| Helmet | 4 graphite, 2 quartz | 90 | Lamp 4.5 → 6 tiles |
-| Jetpack | 5 graphite, 3 silver | 120 | Fuel 6 → 9 s, faster climb |
-| Suit | 8 graphite, 3 quartz | 150 | Hearts 3 → 4 |
+| Piece | Materials | Gives (`logic/marks.ts`) |
+| --- | --- | --- |
+| Cell | 4 graphite, 6 copper | Energy 100 → 140 |
+| Pack | 3 graphite, 8 copper | Bag 4 → 6 slots |
+| Drill | 6 graphite, 4 galena | Breaks Graphite's stone |
+| Helmet | 4 graphite, 2 quartz | Lamp 4.5 → 6 tiles |
+| Jetpack | 5 graphite, 3 silver | Fuel 6 → 9 s, faster climb |
+| Suit | 8 graphite, 3 quartz | Hearts 3 → 4 |
 
-Every mark is an even step (energy +40, bag +4, fuel +3 s, lamp +1.5 tiles, a heart every odd mark), never an exponential curve.
+Every mark is an even step (energy +40, bag +2 slots, fuel +3 s, lamp +1.5 tiles, a heart every odd mark), never an exponential curve.
 
 A mission that hands out a blueprint names it and its recipe on the intro card, so its materials get banked on the same landing: level 4's card says the drill needs 6 graphite and 4 galena, and its map is rich in both along the way down.
 
@@ -231,11 +245,11 @@ A mission that hands out a blueprint names it and its recipe on the intro card, 
 - **The main path never needs more than its missions give.** The drill's blueprint and enough of its materials come from levels before the ones that need it, and mission maps carry spare signature material.
 - **Gear never gets worse.** A new mark beats the old one at everything; there are no trade-offs to puzzle over.
 - **Planet gear is given, not built.** The thing a planet's mechanic needs (rebreather, thermal lance, coolant foam) is handed over in its first level.
-- **Credits are earned in play and never sold.** They pay fabrication fees and gadgets. Replaying a level pays for its ore again, but contracts pay only once.
+- **No money at all.** Everything is printed from resources. Replaying a level yields its ore again, but contracts pay only once.
 
 ## Gadgets
 
-Up to three gadget slots, filled on the ship before landing and bought with credits. One button uses the selected gadget.
+Up to three gadget slots, filled on the ship before landing and printed from resources. One button uses the selected gadget.
 
 | Gadget | From | Use |
 | --- | --- | --- |
@@ -299,7 +313,7 @@ Every planet follows the same ten-slot arc, like InkCrab's beaches, so each idea
 | 7 | Survey | The widest map: stakes spread far apart | One in the vault |
 | 8 | Remix | Two earlier missions at once | — |
 | 9 | Deep strike | The biggest map; hunt + core sample | One in the vault |
-| 10 | The giant | Boss arena at the bottom of the map | — (the giant pays the planet's biggest fee) |
+| 10 | The giant | Boss arena at the bottom of the map | — (the giant pays the planet's biggest reward) |
 
 ## Planet 1: Graphite (free)
 
@@ -309,7 +323,7 @@ A grey moon of soft dark rock, pocked with craters, with a ringed planet hanging
 | --- | --- | --- | --- | --- |
 | 1 | `first-strike` | First Strike | Haul 5 copper | Coach: drill by pushing, pick up ore, bank at the lander |
 | 2 | `lead-lines` | Lead Lines | Hunt 3 graphite | Energy per block; stone too hard for the starter drill; the bag filling up; the first firedamp, by a graphite seam. Blueprint: Cell Mk 1 (graphite really is used in battery anodes) |
-| 3 | `tick-marks` | Tick Marks | Haul 150 credits | Dust ticks; hitting with the drill; hearts; the first vault (Pack Mk 1) |
+| 3 | `tick-marks` | Tick Marks | Haul 25 pieces of ore | Dust ticks; hitting with the drill; hearts; the first vault (Pack Mk 1) |
 | 4 | `core-sample` | Core Sample | Core from 60 m | The cell running low; the first relay post; recall. Blueprint: Drill Mk 1 |
 | 5 | `lost-probe` | Lost Probe | Salvage the survey probe | Stone opens up with the new drill; caves; ladders; vault (Helmet Mk 1) |
 | 6 | `wormholes` | Wormholes | Clear 2 lead worm nests | Burrowers |
@@ -318,7 +332,7 @@ A grey moon of soft dark rock, pocked with craters, with a ringed planet hanging
 | 9 | `deep-draft` | Deep Draft | Hunt 6 graphite + core from 140 m | The biggest map so far; vault (Suit Mk 1) |
 | 10 | `the-grinder` | The Grinder | Defeat the Grinder | Boss: it tunnels, surfaces, and you dodge and hit its head |
 
-Graphite is easier than the rest: you land with the starter drill, but its soil costs the normal 1 energy, so the first levels teach drilling before they teach saving energy. Numbers to tune in playtests: level 1 pays about 150 credits all in; a Mk 1 fee is about 100 credits plus a handful of materials.
+Graphite is easier than the rest: you land with the starter drill, but its soil costs the normal 1 energy, so the first levels teach drilling before they teach saving energy. Numbers to tune in playtests: the bag's 4 slots and the recipes' sizes.
 
 ## Level map: the star chart
 
@@ -333,7 +347,7 @@ The level select is an astronomer's chart scrolling sideways, pen and watercolou
 
 Between levels, a notebook page rather than a place you walk around:
 
-- **The fabricator sheet:** an exploded technical drawing of the prospector and the drill, each part labelled with its mark. A blueprint you've found is drawn in pencil beside its part, with its recipe ticked off as the hold fills; building it inks it in. Pencil for what you could have, ink for what you've made: the same language as the level map.
+- **The fabricator sheet:** an exploded technical drawing of the prospector and the drill, each part labelled with its mark. A blueprint you've found is drawn in pencil beside its part, with its recipe ticked off as the cargo fills; printing it inks it in. Pencil for what you could have, ink for what you've made: the same language as the level map.
 - **Gadget slots:** three pockets to fill before landing.
 - **Contracts board:** the next level's offers, pinned up; from planet 2, pick two.
 
@@ -357,7 +371,7 @@ Ballpoint pen on paper, with the same three-ink rule as InkFish and InkCrab.
 HUD, on paper scraps at the screen edges:
 
 ```
- ♥ ♥ ♥        ENERGY ▓▓▓▓▓▓░░░ 52        BAG 7/10        −84 m
+ ♥ ♥ ♥        ENERGY ▓▓▓▓▓▓░░░ 52        [Cu 7][Gr 3][  ][  ]        −84 m
  Mission: hunt 3 graphite (1/3)            ☐ Order: 8 silver   ☐ Deep record: 120 m
 ```
 
@@ -390,14 +404,14 @@ Every look has the **ore hopper** on its right side, where the prospector tips t
 
 ### Lander modules
 
-The ship's own upgrades, bought with **credits only** (decided with @Hayk on Oct 14, 2026). Gear takes blueprints and materials; the ship takes money, so credits always have somewhere to go. Prices are fixed and the steps gentle. The hull refit caps the rest: each module takes one level more than the hull's refit, so a refit opens the next row (`logic/ship.ts`).
+The ship's own upgrades, printed from resources like everything else (decided with @Hayk on Oct 14, 2026; at first they were bought with credits). Recipes are fixed and the steps gentle. The hull refit caps the rest: each module takes one level more than the hull's refit, so a refit opens the next row (`logic/ship.ts`).
 
-| Module | Levels | Costs (credits) | What each level gives |
+| Module | Levels | Materials per level | What each level gives |
 | --- | --- | --- | --- |
-| Winch | 2 | 120, 300 | Recall keeps half the bag, then the whole bag (the most valuable pieces first) |
-| Assay hopper | 3 | 150, 400, 900 | Ore sells for 10%, 20%, 30% more |
-| Ladder rack | 3 | 80, 200, 450 | 4 ladders each landing, then 6, 8, 10 |
-| Hull refit | 2 | 400, 1500 | The lander's look (refitted, the deep hauler) and the next row of upgrades |
+| Cargo hold | 3 | 12 copper + 6 galena; 20 copper + 10 galena + 4 silver; 24 galena + 10 silver + 4 quartz | 22, 28, 34 cargo slots |
+| Winch | 2 | 8 galena + 6 copper; 16 galena + 4 silver | Recall keeps half of each stack, then the whole bag |
+| Ladder rack | 3 | 8 copper; 14 copper + 4 galena; 20 copper + 4 silver | 4 ladders each landing, then 6, 8, 10 |
+| Hull refit | 2 | 30 copper + 20 galena + 10 graphite + 4 quartz; 40 galena + 20 silver + 12 quartz + 20 graphite | The lander's look (refitted, the deep hauler) and the next row of upgrades |
 
 ## Controls
 
@@ -423,7 +437,7 @@ Same model as InkFish and InkCrab:
 
 - Planet 1 (10 levels) is free; planets 2–10 are a $4.99 one-time purchase.
 - Paid planets are server-only content served after the entitlement check (`content/` entry, `/api/content/inkmine`).
-- Credits, the hold and built gear are saved with progress. Nothing is ever sold for real money except the unlock: no currency packs, no energy, no boosts.
+- The bag, the cargo and built gear are saved with progress. There's no in-game money, and nothing is ever sold for real money except the unlock: no currency packs, no energy, no boosts.
 
 ## Levels: laid out like the other games
 
@@ -463,7 +477,7 @@ Three games now share a pen kit (strokes, paper, boil), synth audio and the leve
 | Real-time energy timers, paid boosts, currency packs | Never | Clashes with the premium, one-purchase model |
 | Base-building | Cut | Relays are the only thing you build |
 | Fall damage, timers in normal levels | Cut | Energy is the only limit; Rush contracts are opt-in |
-| Inventory management | Cut | The bag is a count, not a grid |
+| Inventory management beyond two grids | Cut | The bag and the cargo are slot grids (No Man's Sky style); no weight, no item durability, no crafting sub-parts |
 | Endless shaft | After launch | A daily-seed endless dig reusing the builder |
 | Multiplayer | Not planned | |
 
@@ -474,7 +488,7 @@ Prototype the loop in one goal-less test mine first: if digging and coming back 
 **Built so far (Oct 14, 2026):** Graphite levels 1–5 are playable from the landing-site chart, with steps 3, 5 and 6 built for them:
 - Level definitions (`level/planet1.ts`) carved by the builder, with hand-placed rooms, fissures, vaults (walled in harder rock, a soil plug or firedamp as the way in) and items; a reachability test (`level/reach.ts`) checks every item with the drill the main path expects, and that levels 3 and 5 need their firedamp and new drill.
 - Missions (haul, hunt, core sample, salvage) and the contracts that don't need creatures (order, specimen, deep record, clean job, careful hands, rush); mission items in the rock or lying loose, a pouch that never fills, banked at the lander; lift-off.
-- Credits, the hold, the six Mk 1 blueprints and the fabricator, lander modules, result cards, saves (local only so far).
+- The bag and the cargo as slot inventories, the six Mk 1 blueprints and the printer, lander modules printed from resources, result cards, saves (local only so far).
 - The helmet lamp: the ground darkens with depth, and the lamp's reach grows with the helmet's mark.
 - A plain landing-site chart standing in for the star chart.
 
@@ -497,7 +511,7 @@ Not yet: touch controls, sound, creatures.
 2. Ore in the bag, the lander, banking, recall, hearts; firedamp and old charges.
 3. The level builder from a level definition and seed, with the reachability test; Graphite's style.
 4. Two creatures (walker, burrower) and fighting with the drill.
-5. Credits, the hold, blueprints and the fabricator sheet (Cell and Drill first), result cards, relays, vaults.
+5. The bag and cargo inventories, blueprints and the printer (Cell and Drill first), result cards, relays, vaults.
 6. Missions, contracts (then the contract board), blots, the coach; Graphite's 10 levels and the Grinder.
 7. The star chart; add InkMine to the catalog with the free planet.
 8. Planets 2–10, one at a time, each with its mechanic, gear, creatures, giant and guide entries.
@@ -515,7 +529,8 @@ Settled with @Hayk on Oct 13, 2026:
 
 Settled with @Hayk on Oct 14, 2026:
 
-- **The ship** is upgraded with lander modules bought with credits (above); the hull refit sets its look.
+- **The ship** is upgraded with lander modules (above); the hull refit sets its look.
+- **No money:** ore is kept as resources, and gear and modules are printed from them. The suit and ship carry No Man's Sky style slot inventories: stacks, the ship's bigger; auto-transfer at the lander and sorting on the ship; missions and contracts pay resources plus blueprints; slots grow with printed upgrades (the Pack, the Cargo hold).
 - **Build order:** Graphite 1–5 and the economy first; creatures and levels 6–10 next.
 
 ## Open questions

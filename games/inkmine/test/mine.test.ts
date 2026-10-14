@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ORES } from '../src/logic/ore';
 import { TILE, tileAt } from '../src/logic/terrain';
-import { mine, run, standAt, T } from './helpers';
+import { bagHas, bagOf, mine, run, standAt, T } from './helpers';
 
 // Lander over column 1 on row 2; the prospector starts in column 3.
 const SITE = [
@@ -33,18 +33,18 @@ describe('a dig site', () => {
     expect(events.some((e) => e.kind === 'tooHard')).toBe(true);
   });
 
-  it('drilled ore flies into the bag and sells at the lander, which recharges the cell', () => {
+  it('drilled ore flies into the bag and goes into the cargo at the lander, which recharges the cell', () => {
     const m = mine(SITE);
     standAt(m, 8, 3);
     m.terrain.tiles[2 * m.terrain.width + 8] = TILE.air;
     run(m, 1, { iy: 1 });
-    expect(m.suit.bag).toEqual([ORES.copper.id]);
+    expect(bagHas(m.suit.bag)).toEqual({ copper: 1 });
     // Back to the lander.
     m.player = { ...m.player, x: 1 * T + 6, y: 2 * T - m.player.h, vy: 0 };
     const events = run(m, 0.1);
-    expect(events).toContainEqual({ kind: 'bank', credits: ORES.copper.value, pieces: 1 });
-    expect(m.credits).toBe(ORES.copper.value);
-    expect(m.suit.bag).toEqual([]);
+    expect(events).toContainEqual({ kind: 'bank', moved: { copper: 1 }, pieces: 1 });
+    expect(bagHas(m.cargo)).toEqual({ copper: 1 });
+    expect(bagHas(m.suit.bag)).toEqual({});
     expect(m.suit.energy).toBe(m.suit.maxEnergy);
   });
 
@@ -59,12 +59,12 @@ describe('a dig site', () => {
   it('recall winches the prospector up to the lander and loses the bag', () => {
     const m = mine(SITE);
     run(m, 2, { iy: 1 });
-    m.suit = { ...m.suit, bag: [ORES.quartz.id, ORES.copper.id] };
+    m.suit = { ...m.suit, bag: bagOf(ORES.quartz.id, ORES.copper.id) };
     const events = run(m, 0.1, { recall: true });
     expect(events).toContainEqual({ kind: 'recall', lost: 2 });
     expect(m.depth).toBe(0);
-    expect(m.suit.bag).toEqual([]);
-    expect(m.credits).toBe(0);
+    expect(bagHas(m.suit.bag)).toEqual({});
+    expect(m.bankedPieces).toBe(0);
   });
 
   it('a ladder gets you back out of a shaft', () => {

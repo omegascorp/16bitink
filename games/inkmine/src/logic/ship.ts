@@ -1,9 +1,10 @@
 import type { Look } from './gear';
+import type { Hold } from './hold';
 
 /**
- * The lander's modules: the ship's own upgrades, bought with credits only
- * (gear takes blueprints and materials; the ship takes money, so credits
- * always have somewhere to go). Every price is fixed and the steps are
+ * The lander's modules: the ship's own upgrades, printed from resources
+ * like every other part (no money in the game: what you dig is what you
+ * build with). Every level has its own fixed recipe and the steps are
  * gentle, never exponential.
  *
  * The hull refit is the ship's look (the tin can, refitted, the deep
@@ -12,7 +13,7 @@ import type { Look } from './gear';
  *
  * Keys are saved: never rename one.
  */
-export const MODULE_KEYS = ['winch', 'hopper', 'rack', 'hull'] as const;
+export const MODULE_KEYS = ['cargo', 'winch', 'rack', 'hull'] as const;
 export type ModuleKey = (typeof MODULE_KEYS)[number];
 export type ShipModules = Readonly<Record<ModuleKey, number>>;
 
@@ -20,49 +21,52 @@ export interface ModuleKind {
   readonly name: string;
   /** What it does, in a few words. */
   readonly about: string;
-  /** Credits for each level, from level 1 up. */
-  readonly costs: readonly number[];
+  /** Materials for each level, from level 1 up. */
+  readonly recipes: readonly Hold[];
   /** What each level gives (index 0: none built). */
   readonly gives: readonly string[];
 }
 
+/** The ship's cargo: slots at the start and per Cargo hold level, and pieces a slot stacks. */
+export const CARGO_SLOTS = { base: 16, per: 6 } as const;
+export const CARGO_STACK = 50;
+
 export const MODULES: Readonly<Record<ModuleKey, ModuleKind>> = {
+  cargo: {
+    name: 'Cargo hold',
+    about: 'More slots in the ship',
+    recipes: [{ copper: 12, galena: 6 }, { copper: 20, galena: 10, silver: 4 }, { galena: 24, silver: 10, quartz: 4 }],
+    gives: ['16 slots', '22 slots', '28 slots', '34 slots'],
+  },
   winch: {
     name: 'Winch',
     about: 'Recall keeps part of the bag',
-    costs: [120, 300],
-    gives: ['recall drops the bag', 'recall keeps half the bag', 'recall keeps the whole bag'],
-  },
-  hopper: {
-    name: 'Assay hopper',
-    about: 'Ore sells for more',
-    costs: [150, 400, 900],
-    gives: ['ore sells at the guild rate', 'ore sells for 10% more', 'ore sells for 20% more', 'ore sells for 30% more'],
+    recipes: [{ galena: 8, copper: 6 }, { galena: 16, silver: 4 }],
+    gives: ['recall drops the bag', 'recall keeps half of each stack', 'recall keeps the whole bag'],
   },
   rack: {
     name: 'Ladder rack',
     about: 'More ladders each landing',
-    costs: [80, 200, 450],
+    recipes: [{ copper: 8 }, { copper: 14, galena: 4 }, { copper: 20, silver: 4 }],
     gives: ['4 ladders', '6 ladders', '8 ladders', '10 ladders'],
   },
   hull: {
     name: 'Hull refit',
     about: 'A bigger lander: opens the next row of upgrades',
-    costs: [400, 1500],
+    recipes: [{ copper: 30, galena: 20, graphite: 10, quartz: 4 }, { galena: 40, silver: 20, quartz: 12, graphite: 20 }],
     gives: ['the tin can', 'refitted', 'the deep hauler'],
   },
 };
 
-export const STARTER_SHIP: ShipModules = { winch: 0, hopper: 0, rack: 0, hull: 0 };
+export const STARTER_SHIP: ShipModules = { cargo: 0, winch: 0, rack: 0, hull: 0 };
 
-/** Share of the bag a recall keeps. */
-export function winchKeeps(s: ShipModules): number {
-  return [0, 0.5, 1][s.winch] ?? 1;
+export function cargoSlots(s: ShipModules): number {
+  return CARGO_SLOTS.base + CARGO_SLOTS.per * s.cargo;
 }
 
-/** What banked ore sells for, as a multiple of the guild rate. */
-export function saleRate(s: ShipModules): number {
-  return 1 + 0.1 * s.hopper;
+/** Share of each stack a recall keeps. */
+export function winchKeeps(s: ShipModules): number {
+  return [0, 0.5, 1][s.winch] ?? 1;
 }
 
 export function laddersFor(s: ShipModules): number {
@@ -73,25 +77,26 @@ export function landerLookOf(s: ShipModules): Look {
   return Math.min(2, s.hull) as Look;
 }
 
-export const maxLevel = (k: ModuleKey): number => MODULES[k].costs.length;
+export const maxLevel = (k: ModuleKey): number => MODULES[k].recipes.length;
 
 /** The highest level a module can reach with this hull. */
 export function capOf(s: ShipModules, k: ModuleKey): number {
   return k === 'hull' ? maxLevel(k) : Math.min(maxLevel(k), s.hull + 1);
 }
 
-export type UpgradeCheck = 'ok' | 'max' | 'hull' | 'credits';
-
-/** Credits for the next level of a module, or null at its top. */
-export function nextCost(s: ShipModules, k: ModuleKey): number | null {
-  return MODULES[k].costs[s[k]] ?? null;
+/** Materials for the next level of a module, or null at its top. */
+export function nextRecipe(s: ShipModules, k: ModuleKey): Hold | null {
+  return MODULES[k].recipes[s[k]] ?? null;
 }
 
-export function canUpgrade(s: ShipModules, k: ModuleKey, credits: number): UpgradeCheck {
-  const cost = nextCost(s, k);
-  if (cost === null) return 'max';
+export type UpgradeCheck = 'ok' | 'max' | 'hull' | 'materials';
+
+/** Whether the next level can be printed, given what's on hand. */
+export function canUpgrade(s: ShipModules, k: ModuleKey, has: (need: Hold) => boolean): UpgradeCheck {
+  const recipe = nextRecipe(s, k);
+  if (recipe === null) return 'max';
   if (s[k] >= capOf(s, k)) return 'hull';
-  return credits >= cost ? 'ok' : 'credits';
+  return has(recipe) ? 'ok' : 'materials';
 }
 
 export function upgrade(s: ShipModules, k: ModuleKey): ShipModules {

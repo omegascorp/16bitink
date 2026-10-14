@@ -34,3 +34,8 @@ export function oreById(id: number): OreKind | null {
 }
 
 export const ORE_KINDS: readonly OreKind[] = [...BY_ID.values()];
+
+/** The key of an ore id (as stored in the terrain), or null for none. */
+export function oreKeyOf(id: number): OreKey | null {
+  return (oreById(id)?.key as OreKey | undefined) ?? null;
+}

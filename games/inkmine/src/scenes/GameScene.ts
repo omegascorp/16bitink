@@ -168,7 +168,10 @@ export class GameScene extends Phaser.Scene {
         this.fx.note(p.x + p.w / 2, p.y - 32, e.item.kind === 'blueprint' ? 'blueprint stowed' : `${e.item.kind === 'core' ? 'core sample' : e.item.kind} stowed`);
         break;
       case 'bank':
-        over(`banked ${e.pieces} (${e.credits} cr)`);
+        over(`${e.pieces} into the cargo`);
+        break;
+      case 'cargoFull':
+        this.fx.note(p.x + p.w / 2, p.y - 32, 'cargo hold full!', true);
         break;
       case 'recharge':
         over('cell charged');
@@ -220,8 +223,9 @@ export class GameScene extends Phaser.Scene {
       tally: this.mine.tally(),
       mission: this.level.mission,
       contracts: this.level.contracts,
-      signature: this.planet.signature,
       blueprints: this.mine.bankedBlueprints(),
+      cargo: this.mine.cargo,
+      bag: this.mine.suit.bag,
     });
     setProfile(this, payout.profile);
     const wait = ending === 'failed' ? FAILED_MS : LIFTOFF_MS;
