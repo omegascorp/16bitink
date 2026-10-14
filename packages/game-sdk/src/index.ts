@@ -76,6 +76,23 @@ export interface GameHost {
    * harnesses and tests.
    */
   readonly track?: (event: GameEvent) => void;
+  /**
+   * The site's loading screen, which covers the game until it calls `ready`.
+   * Absent in dev harnesses and tests: games then show their own boot screen.
+   */
+  readonly loading?: LoadingReporter;
+}
+
+/**
+ * How far a game's boot has got. The site shows it as a progress bar over
+ * the game, so a game must call `ready` once its first screen is drawn,
+ * also when booting fails, so the player sees the game's error message.
+ */
+export interface LoadingReporter {
+  /** `fraction` of the boot done (0..1); `label` names the step, in the game's voice. */
+  progress(fraction: number, label?: string): void;
+  /** The first screen is drawn: hide the loading screen. Calling it again does nothing. */
+  ready(): void;
 }
 
 /** Which level an event is about. `n` is its 1-based place in the game's level order (free levels first). */
@@ -114,3 +131,5 @@ export interface GameModule {
 export function isGameModule(value: unknown): value is GameModule {
   return typeof value === 'object' && value !== null && typeof (value as GameModule).mount === 'function';
 }
+
+export { runInSlices, yieldToBrowser, type SliceJob, type SliceOptions } from './slices';

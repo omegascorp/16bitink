@@ -1,3 +1,4 @@
+import type { SliceJob } from '@16bitink/game-sdk';
 import type Phaser from 'phaser';
 import { PLAYER_FISH } from '../levels/zones';
 import { BONES_SIZE, drawBones, drawPan, PAN_SIZE } from './deathArt';
@@ -74,35 +75,41 @@ function drawn(key: string, w: number, h: number, draw: (ctx: CanvasRenderingCon
 }
 
 /**
- * Generates every placeholder ink texture. When scanned pen drawings
- * arrive, load an atlas with the same keys instead and drop this call.
+ * Every placeholder ink texture drawn at boot, one job per drawing, so the
+ * boot can run them a slice at a time and show its progress (see BootScene).
+ * When scanned pen drawings arrive, load an atlas with the same keys instead.
  */
-export function generateInkTextures(scene: Phaser.Scene): void {
+export function inkTextureJobs(scene: Phaser.Scene): SliceJob[] {
+  const jobs: SliceJob[] = [];
+  const job = (key: string, w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void): void => {
+    jobs.push(() => add(scene, key, w, h, draw));
+  };
   for (let f = 0; f < BOIL_FRAMES; f++) {
     const seed = 101 + f * 977;
     const R = ART_RES;
-    add(scene, boilKey('hook', f), 48 * R, 76 * R, (ctx) => drawHook(ctx, seed));
-    for (const kind of ITEM_IDS) add(scene, boilKey(`item-${kind}`, f), ITEM_SIZE * R, ITEM_SIZE * R, (ctx) => drawItem(ctx, kind, seed));
-    add(scene, boilKey('inkbottle', f), BOTTLE_SIZE * R, BOTTLE_SIZE * R, (ctx) => drawInkBottle(ctx, seed));
+    job(boilKey('hook', f), 48 * R, 76 * R, (ctx) => drawHook(ctx, seed));
+    for (const kind of ITEM_IDS) job(boilKey(`item-${kind}`, f), ITEM_SIZE * R, ITEM_SIZE * R, (ctx) => drawItem(ctx, kind, seed));
+    job(boilKey('inkbottle', f), BOTTLE_SIZE * R, BOTTLE_SIZE * R, (ctx) => drawInkBottle(ctx, seed));
     for (const kind of WEED_KINDS) {
       const { w, h } = WEED_SIZE;
-      add(scene, weedKey(kind, f), w * R, h * R, (ctx) => drawWeed(ctx, 7 + kind * 13, kind, f, w * R, h * R));
+      job(weedKey(kind, f), w * R, h * R, (ctx) => drawWeed(ctx, 7 + kind * 13, kind, f, w * R, h * R));
     }
   }
   // The player is never a predator to itself: light variant only. Other fish are drawn per level.
-  ensureFishTextures(scene, PLAYER_FISH, ['light']);
-  add(scene, 'bubble', 16 * ART_RES, 16 * ART_RES, (ctx) => drawBubble(ctx, 3));
+  for (const shape of PLAYER_FISH) jobs.push(() => ensureFishTextures(scene, [shape], ['light']));
+  job('bubble', 16 * ART_RES, 16 * ART_RES, (ctx) => drawBubble(ctx, 3));
   for (let i = 0; i < 3; i++) {
     const { w, h } = ROCK_SIZE;
-    add(scene, `rock-${i}`, w * ART_RES, h * ART_RES, (ctx) => drawRock(ctx, 40 + i, w * ART_RES, h * ART_RES));
+    job(`rock-${i}`, w * ART_RES, h * ART_RES, (ctx) => drawRock(ctx, 40 + i, w * ART_RES, h * ART_RES));
   }
-  add(scene, 'bones', BONES_SIZE.w * ART_RES, BONES_SIZE.h * ART_RES, (ctx) => drawBones(ctx, 9));
-  add(scene, 'pan', PAN_SIZE.w * ART_RES, PAN_SIZE.h * ART_RES, (ctx) => drawPan(ctx, 12));
-  add(scene, 'darkness', DARK_TEX, DARK_TEX, drawDarkness);
-  add(scene, GLOW_KEY, GLOW_TEX, GLOW_TEX, drawSoftGlow);
-  add(scene, 'paper', 512, 512, (ctx) => drawPaper(ctx, 512));
-  for (const kind of BOAT_KINDS) add(scene, `boat-${kind}`, BOAT_SPEC[kind].w * ART_RES, BOAT_SPEC[kind].h * ART_RES, (ctx) => drawBoat(ctx, kind, 31));
-  for (let i = 0; i < CLOUD_COUNT; i++) add(scene, cloudKey(i), CLOUD_SIZE.w * ART_RES, CLOUD_SIZE.h * ART_RES, (ctx) => drawCloud(ctx, 61 + i * 17));
+  job('bones', BONES_SIZE.w * ART_RES, BONES_SIZE.h * ART_RES, (ctx) => drawBones(ctx, 9));
+  job('pan', PAN_SIZE.w * ART_RES, PAN_SIZE.h * ART_RES, (ctx) => drawPan(ctx, 12));
+  job('darkness', DARK_TEX, DARK_TEX, drawDarkness);
+  job(GLOW_KEY, GLOW_TEX, GLOW_TEX, drawSoftGlow);
+  job('paper', 512, 512, (ctx) => drawPaper(ctx, 512));
+  for (const kind of BOAT_KINDS) job(`boat-${kind}`, BOAT_SPEC[kind].w * ART_RES, BOAT_SPEC[kind].h * ART_RES, (ctx) => drawBoat(ctx, kind, 31));
+  for (let i = 0; i < CLOUD_COUNT; i++) job(cloudKey(i), CLOUD_SIZE.w * ART_RES, CLOUD_SIZE.h * ART_RES, (ctx) => drawCloud(ctx, 61 + i * 17));
+  return jobs;
 }
 
 const frameSeed = (f: number): number => 101 + f * 977;

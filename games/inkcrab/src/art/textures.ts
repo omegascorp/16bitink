@@ -1,3 +1,4 @@
+import type { SliceJob } from '@16bitink/game-sdk';
 import type Phaser from 'phaser';
 import { FOOD_KINDS } from '../logic/items';
 import { SHELL_KINDS } from '../logic/shells';
@@ -55,7 +56,7 @@ const PAPER_TILE = 256;
 export const PUFF = 64;
 
 /** Draws into a square canvas of `units`·`res` px with the origin at its centre. */
-function bake(scene: Phaser.Scene, key: string, units: number, res: number, draw: (ctx: CanvasRenderingContext2D) => void): void {
+function bakeNow(scene: Phaser.Scene, key: string, units: number, res: number, draw: (ctx: CanvasRenderingContext2D) => void): void {
   if (scene.textures.exists(key)) return;
   const { canvas, ctx } = makeCanvas(units * res, units * res);
   ctx.scale(res, res);
@@ -72,18 +73,19 @@ function bakePaper(scene: Phaser.Scene): void {
   scene.textures.addCanvas(TEX.paper, canvas);
 }
 
-/** Each theme's parallax layers, at texture resolution, origin top-left. */
-function bakeBackdrops(scene: Phaser.Scene): void {
+/** Each theme's parallax layers, at texture resolution, origin top-left: one job per drawing. */
+function backdropJobs(scene: Phaser.Scene): SliceJob[] {
+  const jobs: SliceJob[] = [];
   for (const theme of Object.keys(THEMES) as ThemeId[]) {
-    THEMES[theme].forEach((layer, i) => {
+    THEMES[theme].forEach((layer, i) => jobs.push(() => {
       const key = TEX.backdrop(theme, layer.id);
       if (scene.textures.exists(key)) return;
       const { canvas, ctx } = makeCanvas(BACKDROP_W * ART_RES, Math.ceil(layer.height * ART_RES));
       ctx.scale(ART_RES, ART_RES);
       layer.draw(makeDraw(ctx, 900 + i, 0, 0));
       scene.textures.addCanvas(key, canvas);
-    });
-    THEME_BOATS[theme].forEach((boat, i) => {
+    }));
+    THEME_BOATS[theme].forEach((boat, i) => jobs.push(() => {
       const key = TEX.boat(theme, i);
       if (scene.textures.exists(key)) return;
       const box = BOAT_BOX[boat.kind];
@@ -91,28 +93,37 @@ function bakeBackdrops(scene: Phaser.Scene): void {
       ctx.scale(ART_RES, ART_RES);
       BOAT_DRAW[boat.kind](makeDraw(ctx, 950 + i, 0, 0), -box.left * boat.s, -box.top * boat.s, boat.s);
       scene.textures.addCanvas(key, canvas);
-    });
+    }));
     THEME_MOVERS[theme].forEach((m, i) => {
       for (let f = 0; f < m.frames; f++) {
-        const key = TEX.mover(theme, i, f);
-        if (scene.textures.exists(key)) continue;
-        const { canvas, ctx } = makeCanvas(Math.ceil((m.box.right - m.box.left) * ART_RES), Math.ceil((m.box.bottom - m.box.top) * ART_RES));
-        ctx.scale(ART_RES, ART_RES);
-        // The same seed every frame, so only what moves (wings, a rod) changes between them.
-        m.draw(makeDraw(ctx, 970 + i, 0, 0), -m.box.left, -m.box.top, f);
-        scene.textures.addCanvas(key, canvas);
+        jobs.push(() => {
+          const key = TEX.mover(theme, i, f);
+          if (scene.textures.exists(key)) return;
+          const { canvas, ctx } = makeCanvas(Math.ceil((m.box.right - m.box.left) * ART_RES), Math.ceil((m.box.bottom - m.box.top) * ART_RES));
+          ctx.scale(ART_RES, ART_RES);
+          // The same seed every frame, so only what moves (wings, a rod) changes between them.
+          m.draw(makeDraw(ctx, 970 + i, 0, 0), -m.box.left, -m.box.top, f);
+          scene.textures.addCanvas(key, canvas);
+        });
       }
     });
   }
+  return jobs;
 }
 
-/** Draws every sprite with BOIL slightly different frames (for the crab, also its leg poses). */
-export function generateTextures(scene: Phaser.Scene): void {
-  bakePaper(scene);
-  bakeBackdrops(scene);
-  BUTTON_ICONS.forEach((icon, i) => bake(scene, TEX.button(icon), ICON, ICON_RES, (ctx) => drawButtonIcon(makeDraw(ctx, 990 + i, 0, 0), icon)));
+/**
+ * Every texture the game draws at boot, one job per drawing, so the boot can
+ * run them a slice at a time and show its progress (see BootScene). Every
+ * sprite has BOIL slightly different frames (for the crab, also its leg poses).
+ */
+export function textureJobs(scene: Phaser.Scene): SliceJob[] {
+  const jobs: SliceJob[] = [() => bakePaper(scene), ...backdropJobs(scene)];
+  const bake = (key: string, units: number, res: number, draw: (ctx: CanvasRenderingContext2D) => void): void => {
+    jobs.push(() => bakeNow(scene, key, units, res, draw));
+  };
+  BUTTON_ICONS.forEach((icon, i) => bake(TEX.button(icon), ICON, ICON_RES, (ctx) => drawButtonIcon(makeDraw(ctx, 990 + i, 0, 0), icon)));
   const critter = (key: string, seed: number, f: number, draw: (d: Draw) => void, ink?: string): void =>
-    bake(scene, key, FRAME, 1, (ctx) => draw(makeDraw(ctx, seed, f, GROUND, ink)));
+    bake(key, FRAME, 1, (ctx) => draw(makeDraw(ctx, seed, f, GROUND, ink)));
   for (let f = 0; f < BOIL; f++) {
     critter(TEX.crabBack(f), 100 + f, f, (d) => drawCrabBack(d));
     critter(TEX.crabFront(f), 110 + f, f, (d) => drawCrabFront(d));
@@ -120,34 +131,35 @@ export function generateTextures(scene: Phaser.Scene): void {
     critter(TEX.nakedFront(f), 130 + f, f, (d) => drawCrabFront(d, true), RED);
     for (const species of Object.keys(SPECIES) as SpeciesId[]) {
       for (const danger of [false, true]) {
-        bake(scene, TEX.critter(species, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => drawCritter(makeDraw(ctx, 800 + f, f, CRITTER_GROUND, danger ? RED : undefined), species));
+        bake(TEX.critter(species, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => drawCritter(makeDraw(ctx, 800 + f, f, CRITTER_GROUND, danger ? RED : undefined), species));
       }
     }
     for (const danger of [false, true]) {
-      bake(scene, TEX.heronStrike(danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => drawHeronStrike(makeDraw(ctx, 800 + f, f, CRITTER_GROUND, danger ? RED : undefined)));
+      bake(TEX.heronStrike(danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => drawHeronStrike(makeDraw(ctx, 800 + f, f, CRITTER_GROUND, danger ? RED : undefined)));
     }
     for (const dive of [false, true]) {
       for (const danger of [false, true]) {
-        bake(scene, TEX.bird('kestrel', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => kestrel(makeDraw(ctx, 850 + f, f, 0, danger ? RED : undefined), dive));
-        bake(scene, TEX.bird('hawk', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => hawk(makeDraw(ctx, 860 + f, f, 0, danger ? RED : undefined), dive));
-        bake(scene, TEX.bird('kingfisher', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => kingfisher(makeDraw(ctx, 880 + f, f, 0, danger ? RED : undefined), dive));
-        bake(scene, TEX.bird('osprey', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => osprey(makeDraw(ctx, 890 + f, f, 0, danger ? RED : undefined), dive));
-        bake(scene, TEX.bird('brahminy', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => brahminy(makeDraw(ctx, 900 + f, f, 0, danger ? RED : undefined), dive));
-        bake(scene, TEX.bird('snowyowl', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => snowyOwl(makeDraw(ctx, 920 + f, f, 0, danger ? RED : undefined), dive));
+        bake(TEX.bird('kestrel', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => kestrel(makeDraw(ctx, 850 + f, f, 0, danger ? RED : undefined), dive));
+        bake(TEX.bird('hawk', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => hawk(makeDraw(ctx, 860 + f, f, 0, danger ? RED : undefined), dive));
+        bake(TEX.bird('kingfisher', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => kingfisher(makeDraw(ctx, 880 + f, f, 0, danger ? RED : undefined), dive));
+        bake(TEX.bird('osprey', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => osprey(makeDraw(ctx, 890 + f, f, 0, danger ? RED : undefined), dive));
+        bake(TEX.bird('brahminy', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => brahminy(makeDraw(ctx, 900 + f, f, 0, danger ? RED : undefined), dive));
+        bake(TEX.bird('snowyowl', dive, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => snowyOwl(makeDraw(ctx, 920 + f, f, 0, danger ? RED : undefined), dive));
       }
     }
     for (const danger of [false, true]) {
-      bake(scene, TEX.bird('gull', false, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => gullFlight(makeDraw(ctx, 870 + f, f, 0, danger ? RED : undefined)));
+      bake(TEX.bird('gull', false, danger, f), CRITTER_FRAME, CRITTER_RES, (ctx) => gullFlight(makeDraw(ctx, 870 + f, f, 0, danger ? RED : undefined)));
     }
     SHELL_KINDS.forEach((kind, i) => critter(TEX.shell(kind, f), 300 + i * 10 + f, f, (d) => drawShell(d, kind)));
     // Each kind's drawing is measured once, so every kind is drawn to its size (see shellFit.ts).
-    if (f === 0) for (const kind of SHELL_KINDS) measureShell(kind, scene.textures.get(TEX.shell(kind, 0)).getSourceImage() as HTMLCanvasElement);
-    FOOD_KINDS.forEach((kind, i) => bake(scene, TEX.food(kind, f), FOOD_FRAME, FOOD_RES, (ctx) => drawFood(makeDraw(ctx, 500 + i * 10 + f, f, FOOD_GROUND), kind)));
-    BEACH_FINDS.forEach((find, i) => bake(scene, TEX.find(find, f), FOOD_FRAME, FOOD_RES, (ctx) => drawFind(makeDraw(ctx, 590 + i * 10 + f, f, FOOD_GROUND), find)));
-    bake(scene, TEX.puff(f), PUFF, 2, (ctx) => drawPuff(makeDraw(ctx, 700 + f, f, 0), PUFF * 0.36));
-    bake(scene, TEX.highlight(f), 32, 2, (ctx) => {
+    if (f === 0) jobs.push(() => SHELL_KINDS.forEach((kind) => measureShell(kind, scene.textures.get(TEX.shell(kind, 0)).getSourceImage() as HTMLCanvasElement)));
+    FOOD_KINDS.forEach((kind, i) => bake(TEX.food(kind, f), FOOD_FRAME, FOOD_RES, (ctx) => drawFood(makeDraw(ctx, 500 + i * 10 + f, f, FOOD_GROUND), kind)));
+    BEACH_FINDS.forEach((find, i) => bake(TEX.find(find, f), FOOD_FRAME, FOOD_RES, (ctx) => drawFind(makeDraw(ctx, 590 + i * 10 + f, f, FOOD_GROUND), find)));
+    bake(TEX.puff(f), PUFF, 2, (ctx) => drawPuff(makeDraw(ctx, 700 + f, f, 0), PUFF * 0.36));
+    bake(TEX.highlight(f), 32, 2, (ctx) => {
       ctx.translate(-16, -16);
       drawHighlight(makeDraw(ctx, 600 + f, f, 0), 32, 32);
     });
   }
+  return jobs;
 }

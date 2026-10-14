@@ -3,6 +3,7 @@ import { GAME_LOADERS } from '../../games/loaders';
 import { isPendingBuy, BUY_PARAM } from '../buyFlow';
 import { track, trackLevel, trackPlayTime } from './analytics';
 import { buyFullGame, fetchMe, startCheckout } from './checkout';
+import { createLoadingBar } from './loadingBar';
 import { accountProgress } from './progress';
 import { scopedStorage } from './scopedStorage';
 
@@ -71,6 +72,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
   const progressP = accountProgress(game);
   const meP = fetchMe();
   if (isPendingBuy(window.location.search, game)) void resumeBuy(game, status, accessP);
+  const bar = createLoadingBar(splash, play, performance.now());
   // Re-created on retry: a failed dynamic import stays rejected forever.
   let engineP = loadGame(game);
   engineP.catch(() => undefined);
@@ -78,19 +80,22 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
 
   play.addEventListener('click', async () => {
     play.disabled = true;
-    play.textContent = 'Loading…';
+    status.textContent = '';
+    bar.show();
     // Must be requested synchronously inside the click for browsers to allow it.
     const fs = goFullscreen(stage);
     try {
       const [module, { unlocked, allLevelsOpen }, accountSaves, me] = await Promise.all([engineP, accessP, progressP, meP, fontP, fs]);
+      bar.downloaded();
       // Without knowing who is signed in, local saves can't be told apart: play on this browser's alone.
       const userId = me?.id ?? null;
       const progress = userId ? accountSaves : null;
-      splash.remove();
+      // The splash stays over the game, showing its boot progress, until the game calls loading.ready().
       const handle = module.mount(stage, {
         unlocked,
         allLevelsOpen,
         track: (event) => trackLevel(game, event),
+        loading: bar.reporter,
         storage: safeStorage(userId),
         progress: progress ?? undefined,
         signedIn: me?.signedIn === true,
@@ -105,11 +110,13 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
           window.location.assign(`/games/${game}`);
         },
       });
+      bar.mounted();
       track({ type: 'game_start', game });
       trackPlayTime(game);
     } catch (err) {
       console.error('[16bit.ink] failed to start game', err);
       status.textContent = 'The game failed to load. Check your connection and try again.';
+      bar.fail();
       engineP = loadGame(game);
       engineP.catch(() => undefined);
       play.disabled = false;

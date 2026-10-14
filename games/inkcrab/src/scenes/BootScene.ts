@@ -1,11 +1,16 @@
+import { runInSlices, type LoadingReporter } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { PAPER } from '../art/palette';
-import { generateTextures } from '../art/textures';
+import { textureJobs } from '../art/textures';
 import { getHost, REG } from '../host';
 import { installPaidBeaches } from '../level/levels';
 import { parseBeaches } from '../level/validate';
 import { screenScene, viewSize } from './hidpi';
 import { inkText } from './ui';
+
+/** Shares of the site's loading bar: drawing the art, then fetching the full game's beaches, then the map. */
+const DRAWN_AT = 0.9;
+const FETCHED_AT = 0.96;
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -16,21 +21,38 @@ export class BootScene extends Phaser.Scene {
     screenScene(this);
     this.cameras.main.setBackgroundColor(PAPER);
     const { width, height } = viewSize(this);
-    inkText(this, width / 2, height / 2, 'clicking the ballpoint…', 32);
-    // Let the label paint before the (synchronous) texture drawing.
-    this.time.delayedCall(30, () => {
-      try {
-        generateTextures(this);
-      } catch (err) {
-        console.error('[inkcrab] boot failed', err);
-        this.children.removeAll(true);
-        inkText(this, width / 2, height / 2, 'Your browser could not draw the game. Try another browser.', 26);
-        return;
-      }
-      this.registry.set(REG.fullError, null);
-      void loadPaidBeaches(this).then(() => this.scene.start('Menu'));
+    const label = 'clicking the ballpoint…';
+    // Shown in the dev harness; on the site its loading screen covers the game until ready().
+    inkText(this, width / 2, height / 2, label, 32);
+    const loading = getHost(this).loading;
+    loading?.progress(0, label);
+    void this.boot(label).catch((err: unknown) => {
+      console.error('[inkcrab] boot failed', err);
+      this.children.removeAll(true);
+      inkText(this, width / 2, height / 2, 'Your browser could not draw the game. Try another browser.', 26);
+      // Lift the loading screen onto the drawn message, not a blank frame.
+      this.game.events.once(Phaser.Core.Events.POST_RENDER, () => loading?.ready());
     });
   }
+
+  private async boot(label: string): Promise<void> {
+    const loading = getHost(this).loading;
+    // Drawn a slice at a time, so the loading bar moves and the page never freezes.
+    await runInSlices(textureJobs(this), { onProgress: (f) => loading?.progress(f * DRAWN_AT, label) });
+    this.registry.set(REG.fullError, null);
+    if (getHost(this).unlocked) loading?.progress(DRAWN_AT, 'fetching the full game…');
+    await loadPaidBeaches(this);
+    loading?.progress(FETCHED_AT, 'unfolding the map…');
+    if (loading) readyOnFirstFrame(this, 'Menu', loading);
+    this.scene.start('Menu');
+  }
+}
+
+/** Calls `loading.ready()` once scene `key` has been created and drawn, so the loading screen lifts onto a finished picture. */
+function readyOnFirstFrame(scene: Phaser.Scene, key: string, loading: LoadingReporter): void {
+  scene.scene.get(key).events.once(Phaser.Scenes.Events.CREATE, () => {
+    scene.game.events.once(Phaser.Core.Events.POST_RENDER, () => loading.ready());
+  });
 }
 
 /** Fetches the full game's beaches when the host says the player owns it. Never rejects: a failure is kept in REG.fullError. */
