@@ -1,0 +1,180 @@
+---
+import Base from '../../layouts/Base.astro';
+import { findGame, playableGames } from '../../data/games';
+import { currentAdmin } from '../../lib/adminAuth';
+import { countryName, formatDuration, funnelRows, parsePeriod, percent, PERIODS, rangeFor } from '../../lib/adminStats';
+import { breakdown, daily, gameStats, levelFunnel, overview, recentSessions, type Dimension } from '../../lib/db/eventRepo';
+
+export const prerender = false;
+
+Astro.response.headers.set('cache-control', 'private, no-store');
+Astro.response.headers.set('x-robots-tag', 'noindex, nofollow');
+
+const admin = await currentAdmin(Astro.cookies);
+// Not found rather than forbidden: the admin area doesn't advertise itself.
+if (!admin) return new Response('Not found', { status: 404 });
+
+const days = parsePeriod(Astro.url.searchParams.get('days'));
+const range = rangeFor(days, new Date());
+const games = playableGames();
+const DIMENSIONS: readonly (readonly [Dimension, string])[] = [['country', 'Country'], ['os', 'OS'], ['browser', 'Browser'], ['device', 'Device']];
+
+const [totals, perDay, perGame, funnels, shares, recent] = await Promise.all([
+  overview(range),
+  daily(range),
+  gameStats(range),
+  Promise.all(games.map(async (g) => ({ game: g, rows: funnelRows(await levelFunnel(g.slug, range)) }))),
+  Promise.all(DIMENSIONS.map(async ([key, label]) => ({ key, label, rows: await breakdown(key, range) }))),
+  recentSessions(range),
+]);
+
+const title = (slug: string): string => findGame(slug)?.title ?? slug;
+const peakDay = Math.max(1, ...perDay.map((d) => d.visitors));
+const label = (key: Dimension, value: string): string => (key === 'country' ? countryName(value === 'Unknown' ? null : value) : value);
+const when = (d: Date): string => d.toISOString().slice(0, 16).replace('T', ' ');
+---
+<Base title="Admin · Analytics" description="16bit.ink administration" user={admin}>
+  <meta name="robots" content="noindex, nofollow" slot="head" />
+  <section class="admin">
+    <nav class="admin-nav"><a href="/admin">Players</a><a href="/admin/keys">Keys</a><strong>Analytics</strong></nav>
+    <h1>Analytics</h1>
+    <nav class="periods" aria-label="Period">
+      {PERIODS.map((p) => (p === days ? <strong>{p} days</strong> : <a href={`/admin/analytics?days=${p}`}>{p} days</a>))}
+    </nav>
+    <p class="note">Visitors are browsers (a random id kept for 13 months). This browser isn't counted. Times are UTC.</p>
+
+    <dl class="tiles">
+      <div><dt>Visitors</dt><dd>{totals.visitors}</dd></div>
+      <div><dt>Players</dt><dd>{totals.players}</dd></div>
+      <div><dt>Games started</dt><dd>{totals.plays}</dd></div>
+      <div><dt>Time played</dt><dd>{formatDuration(totals.playSeconds)}</dd></div>
+      <div><dt>Page views</dt><dd>{totals.pageviews}</dd></div>
+    </dl>
+
+    <h2>Level funnels</h2>
+    <p class="note">How many players got to each level (started it at least once), and how many beat it.</p>
+    {funnels.map(({ game, rows }) => (
+      <article class="card">
+        <h3>{game.title}</h3>
+        {rows.length === 0 ? <p class="empty">No levels played yet.</p> : (
+          <div class="scroll">
+            <table class="funnel">
+              <thead>
+                <tr><th>#</th><th>Level</th><th class="bar-col">Reached</th><th>Players</th><th>From prev.</th><th>Beat it</th><th>Tries</th><th>Avg win</th></tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr>
+                    <td>{r.n}</td>
+                    <td>{r.name ?? r.level}</td>
+                    <td class="bar-col"><span class="bar" style={`--w:${r.ofStart}%`}></span><span class="pct">{r.ofStart}%</span></td>
+                    <td>{r.reached}</td>
+                    <td>{r.fromPrevious === null ? '–' : `${r.fromPrevious}%`}</td>
+                    <td>{r.finished} <span class="soft">({r.winRate}%)</span></td>
+                    <td>{r.attempts}</td>
+                    <td>{r.winSeconds === null ? '–' : formatDuration(r.winSeconds)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </article>
+    ))}
+
+    <h2>Games</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Game</th><th>Players</th><th>Started</th><th>Time played</th><th>Per player</th></tr></thead>
+        <tbody>
+          {perGame.map((g) => (
+            <tr><td>{title(g.game)}</td><td>{g.players}</td><td>{g.plays}</td><td>{formatDuration(g.playSeconds)}</td><td>{formatDuration(g.players ? g.playSeconds / g.players : 0)}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    {perGame.length === 0 && <p class="empty">No games played yet.</p>}
+
+    <h2>Visitors per day</h2>
+    {perDay.length === 0 ? <p class="empty">No visits yet.</p> : (
+      <ol class="days">
+        {perDay.map((d) => (
+          <li>
+            <span class="day">{d.day}</span>
+            <span class="bar" style={`--w:${percent(d.visitors, peakDay)}%`}></span>
+            <span class="soft">{d.visitors} visitors · {d.players} players</span>
+          </li>
+        ))}
+      </ol>
+    )}
+
+    <h2>Who visits</h2>
+    <div class="shares">
+      {shares.map(({ key, label: heading, rows }) => {
+        const total = rows.reduce((sum, r) => sum + r.visitors, 0);
+        return (
+          <article class="card">
+            <h3>{heading}</h3>
+            {rows.length === 0 ? <p class="empty">No data yet.</p> : (
+              <ul>
+                {rows.map((r) => (
+                  <li><span>{label(key, r.value)}</span><span class="bar" style={`--w:${percent(r.visitors, total)}%`}></span><span class="soft">{r.visitors}</span></li>
+                ))}
+              </ul>
+            )}
+          </article>
+        );
+      })}
+    </div>
+
+    <h2>Latest visits</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Started</th><th>Country</th><th>OS / browser</th><th>Device</th><th>Pages</th><th>Games</th><th>Levels</th><th>Played</th></tr></thead>
+        <tbody>
+          {recent.map((s) => (
+            <tr>
+              <td>{when(s.start)}</td>
+              <td>{countryName(s.country)}</td>
+              <td>{s.os} · {s.browser}</td>
+              <td>{s.device}</td>
+              <td>{s.pageviews}</td>
+              <td>{s.games.map(title).join(', ') || '–'}</td>
+              <td>{s.levels.length || '–'}</td>
+              <td>{s.playSeconds > 0 ? formatDuration(s.playSeconds) : '–'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    {recent.length === 0 && <p class="empty">No visits yet.</p>}
+  </section>
+</Base>
+
+<style>
+  .admin { padding-block: 24px 48px; }
+  .admin-nav, .periods { display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 8px; }
+  h2 { margin-top: 36px; }
+  .note, .soft, .empty { color: var(--ink-soft); }
+  .note { margin: 0 0 12px; font-size: 0.95rem; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0 0; }
+  .tiles div, .card { padding: 12px 16px; background: var(--paper-2); border: 2px solid var(--ink); border-radius: 4px; }
+  .tiles dt { font-family: var(--font-pixel); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+  .tiles dd { margin: 4px 0 0; font-size: 1.8rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .card { margin-bottom: 14px; min-width: 0; }
+  .card h3 { margin: 0 0 8px; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--ink-faint); white-space: nowrap; }
+  th { font-family: var(--font-pixel); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+  .bar { display: inline-block; height: 10px; width: var(--w); min-width: 2px; background: var(--blue-ink); border-radius: 2px; vertical-align: middle; }
+  .bar-col { width: 40%; min-width: 160px; }
+  .bar-col .bar { max-width: calc(100% - 48px); }
+  .pct { margin-left: 8px; color: var(--ink-soft); }
+  .days { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .days li, .shares li { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+  .day { font-variant-numeric: tabular-nums; }
+  .shares { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .shares ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .shares li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>

@@ -47,7 +47,10 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
     </div>
 
     <script>
+      import { trackPageview } from '../../lib/client/analytics';
       import { bootPlayer } from '../../lib/client/player';
+
+      trackPageview();
 
       const stage = document.getElementById('stage');
       if (stage?.dataset.game) bootPlayer(stage.dataset.game, JSON.parse(stage.dataset.fonts ?? '[]') as string[]);

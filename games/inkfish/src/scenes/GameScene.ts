@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { crispText, DPR, screenZoom, viewSize } from './hidpi';
 import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, ensureBossTextures, ensureFishTextures, jellyGlowKey, releaseFishTextures, weedKey } from '../art/textures';
-import { getChapters, getHost, getSound } from '../host';
+import { getChapters, getHost, getSound, trackGame } from '../host';
 import type { LevelDef, SpeciesId } from '../levels/types';
 import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy, type FrenzyState } from '../logic/frenzy';
 import { addGrowth, growthGoal, growthProgress, initialGrowth, playerSizeFor, type GrowthState } from '../logic/growth';
@@ -338,6 +338,7 @@ export class GameScene extends Phaser.Scene {
       this.sightings.save();
       this.scene.stop('Hud');
     });
+    this.trackStart();
     const clips = new ClipDirector(this, () => this.player.sprite);
     this.clips = clips;
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => clips.destroy());
@@ -1041,6 +1042,7 @@ export class GameScene extends Phaser.Scene {
   private finish(kind: 'win' | 'lose'): void {
     if (this.ended) return;
     this.ended = true;
+    trackGame(this, { type: 'level_end', ...this.levelRef(), result: kind, seconds: this.seconds(), score: this.score, ...(this.death ? { cause: this.death.cause } : {}) });
     this.clips?.end();
     // Before the result screen reads the save.
     this.sightings.save();
@@ -1061,6 +1063,29 @@ export class GameScene extends Phaser.Scene {
       else this.time.delayedCall(100, whenSettled);
     };
     this.time.delayedCall(kind === 'win' ? 900 : 1900, kind === 'win' ? whenSettled : showResult);
+  }
+
+  private levelRef(): { level: string; n: number; name: string } {
+    return { level: this.level.id, n: this.levelIndex + 1, name: this.level.name };
+  }
+
+  private seconds(): number {
+    return Math.round(this.elapsedMs / 100) / 10;
+  }
+
+  /** Reports the level's start, and a quit if the player leaves before it ends (level select, retry, exit). */
+  private trackStart(): void {
+    trackGame(this, { type: 'level_start', ...this.levelRef() });
+    const quit = (): void => {
+      if (this.ended) return;
+      this.ended = true;
+      trackGame(this, { type: 'level_end', ...this.levelRef(), result: 'quit', seconds: this.seconds() });
+    };
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off(Phaser.Scenes.Events.DESTROY, quit);
+      quit();
+    });
+    this.events.once(Phaser.Scenes.Events.DESTROY, quit);
   }
 
   /** Stops the recording and starts making the level's clip. */

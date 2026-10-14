@@ -35,7 +35,7 @@ const day = (d: Date): string => d.toISOString().slice(0, 10);
 <Base title="Admin · Users" description="16bit.ink administration" user={admin}>
   <meta name="robots" content="noindex, nofollow" slot="head" />
   <section class="admin">
-    <nav class="admin-nav"><strong>Players</strong><a href="/admin/keys">Keys</a></nav>
+    <nav class="admin-nav"><strong>Players</strong><a href="/admin/keys">Keys</a><a href="/admin/analytics">Analytics</a></nav>
     <h1>Players</h1>
     <form class="admin-search" method="get" action="/admin" role="search">
       <label for="q" class="visually-hidden">Search by email, name or player ID</label>

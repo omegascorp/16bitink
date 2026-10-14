@@ -40,6 +40,10 @@ For checkout locally:
    ```
 4. `pnpm dev`, then buy with the test card `4242 4242 4242 4242`.
 
+## Analytics
+
+First-party and cookie-free: pages and games send events to `POST /api/events`, stored in the MongoDB time-series collection `events` (created on the first write, raw events expire after about 25 months). Admins see them at `/admin/analytics`: visitors, play time, per-game level funnels, OS/browser/device/country, latest visits. Visiting any `/admin` page stops that browser from counting itself. Country comes from the bundled GeoLite2 database (`geoip-country`, updated by bumping the package); the IP is never stored. Browsers that send Global Privacy Control or Do Not Track send nothing.
+
 ## Deploy (DigitalOcean App Platform)
 
 1. **Stripe:** set `STRIPE_SECRET_KEY` in `apps/web/.env` to the **live** key and run `pnpm --filter @16bitink/web stripe:setup`. This creates "InkFish: Full Game", a one-time $4.99 price with lookup key `inkfish_full`. Then put the test key back.
@@ -82,6 +86,7 @@ All games share one deployment, one checkout and one webhook.
    - Add a catalog entry in `src/data/games.ts`: title, `theme`, `fonts`, `stripeLookupKey`.
    - Add one line to `src/games/loaders.ts` (client) and, if it sells content, one to `src/games/content.server.ts`.
 4. In Stripe, create the one-time price with that lookup key.
+5. For the level funnel in `/admin/analytics`, call `host.track?.({ type: 'level_start', level, n, name })` when a level begins and `{ type: 'level_end', …, result, seconds }` when it is won, lost or left (`n` = the level's 1-based place in the game's order).
 
 `/play/<slug>`, `/games/<slug>`, checkout, ownership and `/api/content/<slug>` then work without further changes. `pnpm test` fails if the catalog and the registries disagree.
 

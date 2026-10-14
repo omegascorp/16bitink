@@ -5,7 +5,7 @@ import { COMPANY } from '../data/company';
 const mail = `mailto:${COMPANY.email}`;
 ---
 <LegalPage title="Privacy Policy" description="What personal data 16bit.ink collects, why, and the choices you have.">
-  <p>This policy explains what personal data 16bit.ink collects when you play or buy our games, why we collect it, who we share it with, and the choices you have. The short version: you can play the free part of a game without giving us anything. When you buy a game, we keep only what we need to deliver it, restore it on your other devices, and keep our accounts. We don't show ads, use analytics or tracking cookies, or sell your data.</p>
+  <p>This policy explains what personal data 16bit.ink collects when you play or buy our games, why we collect it, who we share it with, and the choices you have. The short version: you can play the free part of a game without giving us anything. When you buy a game, we keep only what we need to deliver it, restore it on your other devices, and keep our accounts. We don't show ads, use tracking cookies or third-party analytics, or sell your data. We count visits and plays with our own simple statistics, which aren't linked to your name, email or account.</p>
 
   <h2>Who is responsible for your data</h2>
   <p>{COMPANY.name}, registered in {COMPANY.registered}, runs 16bit.ink and is responsible for your personal data (the "controller"). Contact us about privacy at <a href={mail}>{COMPANY.email}</a>.</p>
@@ -32,11 +32,28 @@ const mail = `mailto:${COMPANY.email}`;
   <p>Like any website, our servers receive your IP address, browser type and the pages you request. Our hosting provider keeps this information briefly in server logs, which we use only to keep the site running and secure: for example, to fix errors and to stop abuse. To protect checkout and sign-in from abuse, we count requests per IP address for up to one minute.</p>
   <p>Our pages load fonts from Google Fonts. Your browser fetches them from Google's servers, so Google receives your IP address. See <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>.</p>
 
+  <h3>How we count visits and plays</h3>
+  <p>To learn which games people enjoy and where a level is too hard, our own server records simple statistics. Nothing is sent to an analytics company. For each visit we record:</p>
+  <ul>
+    <li>the pages you open, and the website that linked you here (its name only, such as youtube.com);</li>
+    <li>the games you start, the levels you start and how each one ended (won, lost or left), how long it took, and the score;</li>
+    <li>how long you play, counting only time while the game is on screen;</li>
+    <li>your operating system, browser and type of device (computer, phone or tablet), read from what your browser sends;</li>
+    <li>your country, looked up from your IP address. We don't store the IP address itself.</li>
+  </ul>
+  <p>To count a returning player once, your browser keeps a random ID in local storage. It isn't a cookie, it isn't made from anything about you or your device, and it isn't linked to your Google account or your purchases. It is replaced with a new one after 13 months. A second random ID, kept only until you close the tab, groups the pages of one visit. We never use these statistics for advertising or share them with anyone.</p>
+  <p>You can turn the statistics off. We don't record anything if your browser sends a Global Privacy Control or Do Not Track signal, or if you use the switch below. You can also clear the IDs at any time by clearing this site's storage in your browser.</p>
+  <p class="stats-switch">
+    <button type="button" id="stats-toggle" class="btn" hidden>Turn off statistics in this browser</button>
+    <span id="stats-state" role="status"></span>
+  </p>
+  <p>Country lookups use GeoLite2 data created by MaxMind, available from <a href="https://www.maxmind.com">maxmind.com</a>.</p>
+
   <h3>When you email us</h3>
   <p>We use your email and whatever you tell us to answer you, for example to look up a purchase or give a refund.</p>
 
   <h2>Cookies and local storage</h2>
-  <p>We use only cookies that the site needs to work, so we don't ask for cookie consent. We use no advertising or analytics cookies.</p>
+  <p>We use only cookies that the site needs to work, and no advertising or analytics cookies. Our statistics use random IDs in your browser's storage, only for counting visits on this site (see above), so we don't ask for cookie consent.</p>
   <table>
     <thead>
       <tr><th>Name</th><th>What it does</th><th>How long it lasts</th></tr>
@@ -46,6 +63,9 @@ const mail = `mailto:${COMPANY.email}`;
       <tr><td><code>ink_user</code></td><td>Keeps you signed in with Google. It holds your Google account ID, name and email, signed so it can't be altered.</td><td>30 days, or until you sign out</td></tr>
       <tr><td><code>ink_signin</code></td><td>Protects a Google sign-in while it is in progress.</td><td>10 minutes</td></tr>
       <tr><td>Local storage</td><td>Game progress, settings and discoveries, on your device only.</td><td>Until you clear your browser's site data</td></tr>
+      <tr><td><code>16bitink:visitor</code> (local storage)</td><td>A random ID, so our statistics count a returning visitor once.</td><td>13 months, or until you clear your browser's site data</td></tr>
+      <tr><td><code>16bitink:no-analytics</code> (local storage)</td><td>Remembers that you turned statistics off.</td><td>Until you turn them back on or clear your browser's site data</td></tr>
+      <tr><td><code>16bitink:visit</code> (session storage)</td><td>A random ID that groups the pages you open in one visit.</td><td>Until you close the tab</td></tr>
     </tbody>
   </table>
 
@@ -55,7 +75,7 @@ const mail = `mailto:${COMPANY.email}`;
     <li><strong>Stripe</strong> processes payments, sends your receipt, and screens payments for fraud. See the <a href="https://stripe.com/privacy">Stripe Privacy Policy</a>.</li>
     <li><strong>Google</strong> provides sign-in and web fonts. See the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.</li>
     <li><strong>DigitalOcean</strong> hosts the website and its servers.</li>
-    <li><strong>Our database provider</strong> stores purchase records on our behalf.</li>
+    <li><strong>Our database provider</strong> stores purchase records and our visit statistics on our behalf.</li>
   </ul>
   <p>We may also share data where the law requires it, or to protect our rights or someone's safety, for example in a payment fraud investigation.</p>
 
@@ -64,7 +84,7 @@ const mail = `mailto:${COMPANY.email}`;
   <ul>
     <li><strong>To perform our contract with you:</strong> unlocking and restoring a game you bought, sign-in, and refunds.</li>
     <li><strong>To meet legal obligations:</strong> keeping records of sales for tax and accounting.</li>
-    <li><strong>For our legitimate interests:</strong> keeping the website secure, preventing fraud and abuse, and answering your messages. We make sure these interests don't override your rights.</li>
+    <li><strong>For our legitimate interests:</strong> keeping the website secure, preventing fraud and abuse, answering your messages, and counting visits and plays so we can improve our games. We make sure these interests don't override your rights.</li>
   </ul>
 
   <h2>How long we keep data</h2>
@@ -72,6 +92,7 @@ const mail = `mailto:${COMPANY.email}`;
     <li><strong>Purchase records:</strong> while you own the game, so we can restore it for you, and for as long as tax and accounting law requires us to keep sales records.</li>
     <li><strong>Sign-in details:</strong> only in the cookie in your browser, for up to 30 days.</li>
     <li><strong>Server logs:</strong> briefly, as kept by our hosting provider.</li>
+    <li><strong>Visit statistics:</strong> about two years, then deleted automatically.</li>
     <li><strong>Support emails:</strong> as long as needed to resolve your request.</li>
   </ul>
 
@@ -105,3 +126,23 @@ const mail = `mailto:${COMPANY.email}`;
   <p>{COMPANY.name}, {COMPANY.registered}<br /><a href={mail}>{COMPANY.email}</a></p>
   <p>Please also read our <a href="/terms">Terms of Service</a>.</p>
 </LegalPage>
+
+<script>
+  import { isAnalyticsOptedOut, setAnalyticsOptOut } from '../lib/client/analytics';
+
+  const button = document.getElementById('stats-toggle');
+  const state = document.getElementById('stats-state');
+  const show = (): void => {
+    const off = isAnalyticsOptedOut();
+    if (button) button.textContent = off ? 'Turn statistics back on' : 'Turn off statistics in this browser';
+    if (state) state.textContent = off ? 'Statistics are off in this browser.' : '';
+  };
+  if (button) {
+    button.hidden = false;
+    button.addEventListener('click', () => {
+      setAnalyticsOptOut(!isAnalyticsOptedOut());
+      show();
+    });
+    show();
+  }
+</script>

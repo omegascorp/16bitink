@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import { BLACK_SAND, BLUE, BLUE_HEX, GREY_SAND, MOON_SAND, PALE_SAND, RED, RED_HEX, SHINGLE, type GroundStyle } from '../art/palette';
 import { TEX } from '../art/textures';
-import { getHost, getSound, REG } from '../host';
+import { getHost, getSound, REG, trackGame } from '../host';
 import { buildLevel, START_SIZE } from '../level/build';
-import { isBeachFinale, levelById, loadedLevels, themeOf } from '../level/levels';
+import { isBeachFinale, levelById, levelOrder, loadedLevels, themeOf } from '../level/levels';
 import type { LevelDef } from '../level/types';
 import { Coach } from '../logic/coach';
 import { surfaceRow, type Terrain } from '../logic/terrain';
@@ -89,6 +89,8 @@ export class GameScene extends Phaser.Scene {
   private rainView: RainView | null = null;
   private decksView: DecksView | null = null;
   private windView: WindView | null = null;
+  /** The level has been won or lost (or left), so it's been reported. */
+  private over = false;
   private nightView: NightView | null = null;
   private input2!: GameInput;
   private touch!: TouchState;
@@ -154,6 +156,31 @@ export class GameScene extends Phaser.Scene {
       this.windView?.destroy();
       this.nightView?.destroy();
     });
+    this.trackStart();
+  }
+
+  private levelRef(): { level: string; n: number; name: string } {
+    return { level: this.level.id, n: levelOrder().indexOf(this.level.id) + 1, name: this.level.name };
+  }
+
+  private seconds(): number {
+    return Math.round(this.beach.elapsed * 10) / 10;
+  }
+
+  /** Reports the level's start, and a quit if the player leaves before it ends (map, exit). */
+  private trackStart(): void {
+    this.over = false;
+    trackGame(this, { type: 'level_start', ...this.levelRef() });
+    const quit = (): void => {
+      if (this.over) return;
+      this.over = true;
+      trackGame(this, { type: 'level_end', ...this.levelRef(), result: 'quit', seconds: this.seconds() });
+    };
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off(Phaser.Scenes.Events.DESTROY, quit);
+      quit();
+    });
+    this.events.once(Phaser.Scenes.Events.DESTROY, quit);
   }
 
   /** The faraway beach, anchored above the beach's typical surface height and wide enough for any scroll. */
@@ -187,6 +214,10 @@ export class GameScene extends Phaser.Scene {
     const livesLost = b.startLives - b.lives;
     const blots = won ? blotsFor(b.elapsed, parTimeOf(this.level), livesLost) : 0;
     const host = getHost(this);
+    if (!this.over) {
+      this.over = true;
+      trackGame(this, { type: 'level_end', ...this.levelRef(), result: won ? 'win' : 'lose', seconds: this.seconds(), ...(b.caughtBy ? { cause: b.caughtBy } : {}) });
+    }
     this.sightings.save();
     const saved = loadProgress(host.storage);
     if (won) saveProgress(host.storage, recordResult(saved, this.level.id, blots, b.elapsed));

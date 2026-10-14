@@ -1,6 +1,7 @@
 import { isGameModule, type GameModule, type KeyValueStore } from '@16bitink/game-sdk';
 import { GAME_LOADERS } from '../../games/loaders';
 import { isPendingBuy, BUY_PARAM } from '../buyFlow';
+import { track, trackLevel, trackPlayTime } from './analytics';
 import { buyFullGame, fetchMe, startCheckout } from './checkout';
 import { accountProgress } from './progress';
 import { scopedStorage } from './scopedStorage';
@@ -89,6 +90,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
       const handle = module.mount(stage, {
         unlocked,
         allLevelsOpen,
+        track: (event) => trackLevel(game, event),
         storage: safeStorage(userId),
         progress: progress ?? undefined,
         signedIn: me?.signedIn === true,
@@ -103,6 +105,8 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
           window.location.assign(`/games/${game}`);
         },
       });
+      track({ type: 'game_start', game });
+      trackPlayTime(game);
     } catch (err) {
       console.error('[16bit.ink] failed to start game', err);
       status.textContent = 'The game failed to load. Check your connection and try again.';

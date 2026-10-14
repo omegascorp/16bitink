@@ -70,7 +70,35 @@ export interface GameHost {
    * paid content; that still needs `unlocked`.
    */
   readonly allLevelsOpen?: boolean;
+  /**
+   * Records a gameplay moment for the site's own analytics. Fire and
+   * forget: it never throws and never blocks the game. Absent in dev
+   * harnesses and tests.
+   */
+  readonly track?: (event: GameEvent) => void;
 }
+
+/** Which level an event is about. `n` is its 1-based place in the game's level order (free levels first). */
+export interface LevelRef {
+  readonly level: string;
+  readonly n: number;
+  readonly name?: string;
+}
+
+export type LevelResult = 'win' | 'lose' | 'quit';
+
+/** What a game reports: each level it starts, and how that level ended. */
+export type GameEvent =
+  | (LevelRef & { readonly type: 'level_start' })
+  | (LevelRef & {
+      readonly type: 'level_end';
+      readonly result: LevelResult;
+      /** Time spent in the level. */
+      readonly seconds: number;
+      readonly score?: number;
+      /** Why the level was lost, e.g. "eaten". */
+      readonly cause?: string;
+    });
 
 /** Returned by `mount` so the host can tear a game down cleanly. */
 export interface GameHandle {
