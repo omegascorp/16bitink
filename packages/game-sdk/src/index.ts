@@ -93,6 +93,12 @@ export interface LoadingReporter {
   progress(fraction: number, label?: string): void;
   /** The first screen is drawn: hide the loading screen. Calling it again does nothing. */
   ready(): void;
+  /**
+   * Booting failed (e.g. the browser couldn't draw the art): the site records
+   * `reason` in its stats. Call `ready` after it, so the player sees the
+   * game's own error message. Optional, for hosts that don't record it.
+   */
+  failed?(reason: string): void;
 }
 
 /** Which level an event is about. `n` is its 1-based place in the game's level order (free levels first). */

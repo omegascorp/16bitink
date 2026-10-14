@@ -77,6 +77,40 @@ describe('parseBatch', () => {
     expect(parseBatch(batch([{ type: 'play_time', at: 1, game: 'inkfish', seconds: MAX_PLAY_TIME_SECONDS + 1 }]))).toBeNull();
   });
 
+  it('accepts the loading and page diagnostics', () => {
+    const parsed = parseBatch(batch([
+      { type: 'page_leave', at: 1, path: '/', ms: 4200, scroll: 35, loadMs: 3100 },
+      { type: 'page_leave', at: 2, path: '/play/inkfish', ms: 900, scroll: 100 },
+      { type: 'play_tap', at: 3, game: 'inkfish', ms: 5300 },
+      { type: 'game_ready', at: 4, game: 'inkfish', ms: 8100, stage: 'ready', version: '1.0.0' },
+      { type: 'game_ready', at: 5, game: 'inkcrab', ms: 15000, stage: 'stall' },
+      { type: 'load_fail', at: 6, game: 'inkfish', ms: 2000, stage: 'download', error: 'Failed to fetch dynamically imported module' },
+      { type: 'load_fail', at: 7, game: 'inkcrab', ms: 2000, stage: 'boot', error: 'WebGL unavailable' },
+      { type: 'load_abandon', at: 8, game: 'inkfish', ms: 12000, pct: 41 },
+      { type: 'js_error', at: 9, path: '/', error: 'TypeError: x is undefined', source: '/_astro/a.js:1:200' },
+    ], { net: '3g' }));
+    expect(parsed?.events).toHaveLength(9);
+    expect(parsed?.net).toBe('3g');
+  });
+
+  it.each([
+    ['a scroll over 100%', { type: 'page_leave', at: 1, path: '/', ms: 1, scroll: 101 }],
+    ['a negative time on page', { type: 'page_leave', at: 1, path: '/', ms: -1, scroll: 0 }],
+    ['a load progress over 100%', { type: 'load_abandon', at: 1, game: 'inkfish', ms: 1, pct: 140 }],
+    ['an unknown load stage', { type: 'load_fail', at: 1, game: 'inkfish', ms: 1, stage: 'nap', error: 'x' }],
+    ['an empty error', { type: 'js_error', at: 1, path: '/', error: '' }],
+    ['an overlong error', { type: 'js_error', at: 1, path: '/', error: 'x'.repeat(201) }],
+    ['a ready event with no stage', { type: 'game_ready', at: 1, game: 'inkfish', ms: 1 }],
+  ])('rejects %s', (_label, event) => {
+    expect(parseBatch(batch([event]))).toBeNull();
+  });
+
+  it('leaves out a connection type it does not know, keeping the batch', () => {
+    const parsed = parseBatch(batch([{ type: 'game_start', at: 1, game: 'inkfish' }], { net: '6g' }));
+    expect(parsed).not.toBeNull();
+    expect(parsed?.net).toBeUndefined();
+  });
+
   it('drops unknown fields instead of storing them', () => {
     const parsed = parseBatch(batch([{ type: 'game_start', at: 1, game: 'inkfish', $set: { role: 'admin' } }]));
     expect(parsed?.events[0]).toEqual({ type: 'game_start', at: 1, game: 'inkfish' });
@@ -125,6 +159,16 @@ describe('toStoredEvents', () => {
       ...VISIT, ts: new Date(NOW), meta: { event: 'level_end', game: 'inkcrab' }, visitor: 'visitor-0001', session: 'session-0001',
       level: 'b1-3', n: 3, result: 'win', seconds: 61.2,
     }]);
+  });
+
+  it('stores the connection type on every event of the batch', () => {
+    const parsed = parseBatch(batch([
+      { type: 'pageview', at: 1_000_000, path: '/' },
+      { type: 'load_fail', at: 1_000_000, game: 'inkfish', ms: 900, stage: 'mount', error: 'boom' },
+    ], { net: '2g' }))!;
+    const stored = toStoredEvents(parsed, VISIT, NOW, isGame);
+    expect(stored.map((e) => e.net)).toEqual(['2g', '2g']);
+    expect(stored[1]).toMatchObject({ meta: { event: 'load_fail', game: 'inkfish' }, ms: 900, stage: 'mount', error: 'boom' });
   });
 
   it('keeps page views (no game) and drops events for games that are not playable', () => {

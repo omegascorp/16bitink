@@ -154,7 +154,7 @@ export async function levelFunnel(game: string, range: Range): Promise<FunnelSte
   ]);
 }
 
-export type Dimension = 'os' | 'browser' | 'device' | 'country';
+export type Dimension = 'os' | 'browser' | 'device' | 'country' | 'net';
 
 export interface Share {
   readonly value: string;
@@ -186,26 +186,50 @@ export interface SessionSummary {
   /** Levels started, as "game #n", in no particular order. */
   readonly levels: string[];
   readonly playSeconds: number;
+  /** The pages viewed, in order; the first is where the visit landed. */
+  readonly paths: string[];
+  readonly landing: string | null;
+  /** The linking site's host; null when there was none. */
+  readonly ref: string | null;
+  /** The connection type the browser reported. */
+  readonly net: string | null;
+  /** How long the landing page was on screen, when it reported it. */
+  readonly landingSeconds: number | null;
+  readonly tapped: boolean;
+  readonly failed: boolean;
+  readonly abandoned: boolean;
 }
 
 /** The latest visits, newest first. */
 export async function recentSessions(range: Range, limit = 50): Promise<SessionSummary[]> {
   return aggregate<SessionSummary>([
     { $match: inRange(range) },
+    { $sort: { ts: 1 } },
     {
       $group: {
         _id: '$session', start: { $min: '$ts' }, end: { $max: '$ts' },
         country: { $first: '$country' }, os: { $first: '$os' }, browser: { $first: '$browser' }, device: { $first: '$device' },
-        pageviews: countOf('pageview'), games: { $addToSet: '$meta.game' }, playSeconds,
+        pageviews: countOf('pageview'), games: { $addToSet: { $cond: [isEvent('game_start'), '$meta.game', '$$REMOVE'] } }, playSeconds,
         levels: { $addToSet: { $cond: [isEvent('level_start'), { $concat: ['$meta.game', ' #', { $toString: '$n' }] }, '$$REMOVE'] } },
+        paths: { $push: { $cond: [isEvent('pageview'), '$path', '$$REMOVE'] } },
+        leaves: { $push: { $cond: [isEvent('page_leave'), { path: '$path', ms: '$ms' }, '$$REMOVE'] } },
+        ref: { $max: '$ref' }, net: { $max: '$net' },
+        tapped: { $max: isEvent('play_tap') }, failed: { $max: isEvent('load_fail') }, abandoned: { $max: isEvent('load_abandon') },
       },
     },
     { $sort: { start: -1 } },
     { $limit: limit },
+    { $addFields: { landing: { $ifNull: [{ $arrayElemAt: ['$paths', 0] }, null] } } },
     {
       $project: {
-        _id: 0, session: '$_id', start: 1, end: 1, country: 1, os: 1, browser: 1, device: 1, pageviews: 1, playSeconds: 1, levels: 1,
-        games: { $filter: { input: '$games', cond: { $ne: ['$$this', null] } } },
+        _id: 0, session: '$_id', start: 1, end: 1, country: 1, os: 1, browser: 1, device: 1, pageviews: 1, playSeconds: 1, levels: 1, games: 1,
+        paths: 1, landing: 1, ref: { $ifNull: ['$ref', null] }, net: { $ifNull: ['$net', null] }, tapped: 1, failed: 1, abandoned: 1,
+        landingSeconds: {
+          $let: {
+            vars: { ms: { $max: { $map: { input: { $filter: { input: '$leaves', cond: { $eq: ['$$this.path', '$landing'] } } }, in: '$$this.ms' } } } },
+            in: { $cond: [{ $eq: ['$$ms', null] }, null, { $divide: ['$$ms', 1000] }] },
+          },
+        },
       },
     },
   ]);

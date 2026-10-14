@@ -5,6 +5,7 @@ import { textureJobs } from '../art/textures';
 import { getHost, REG } from '../host';
 import { installPaidBeaches } from '../level/levels';
 import { parseBeaches } from '../level/validate';
+import { firstScreen, loadProgress } from '../logic/save';
 import { screenScene, viewSize } from './hidpi';
 import { inkText } from './ui';
 
@@ -28,6 +29,7 @@ export class BootScene extends Phaser.Scene {
     loading?.progress(0, label);
     void this.boot(label).catch((err: unknown) => {
       console.error('[inkcrab] boot failed', err);
+      loading?.failed?.(err instanceof Error ? err.message : String(err));
       this.children.removeAll(true);
       inkText(this, width / 2, height / 2, 'Your browser could not draw the game. Try another browser.', 26);
       // Lift the loading screen onto the drawn message, not a blank frame.
@@ -42,9 +44,11 @@ export class BootScene extends Phaser.Scene {
     this.registry.set(REG.fullError, null);
     if (getHost(this).unlocked) loading?.progress(DRAWN_AT, 'fetching the full game…');
     await loadPaidBeaches(this);
-    loading?.progress(FETCHED_AT, 'unfolding the map…');
-    if (loading) readyOnFirstFrame(this, 'Menu', loading);
-    this.scene.start('Menu');
+    const first = firstScreen(loadProgress(getHost(this).storage));
+    loading?.progress(FETCHED_AT, first.scene === 'Game' ? 'raking the beach…' : 'unfolding the map…');
+    if (loading) readyOnFirstFrame(this, first.scene, loading);
+    if (first.scene === 'Game') this.scene.start('Game', first.data);
+    else this.scene.start('Menu');
   }
 }
 

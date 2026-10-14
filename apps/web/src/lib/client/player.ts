@@ -1,7 +1,7 @@
 import { isGameModule, type GameModule, type KeyValueStore } from '@16bitink/game-sdk';
 import { GAME_LOADERS } from '../../games/loaders';
 import { isPendingBuy, BUY_PARAM } from '../buyFlow';
-import { gameTag, track, trackLevel, trackPlayTime } from './analytics';
+import { flushAnalytics, gameTag, track, trackLevel, trackPlayTime, type LoadStage } from './analytics';
 import { buyFullGame, fetchMe, startCheckout } from './checkout';
 import { createLoadingBar } from './loadingBar';
 import { accountProgress } from './progress';
@@ -57,6 +57,19 @@ async function loadGame(game: string): Promise<GameModule> {
   return mod;
 }
 
+/** An error as the stats take it: its message, trimmed. */
+function errorText(err: unknown): string {
+  const text = err instanceof Error ? err.message : String(err);
+  return (text.trim() || 'Unknown error').slice(0, 200);
+}
+
+/** One press of "Tap to play" until the game shows or fails. */
+interface Attempt {
+  readonly start: number;
+  /** The page was hidden while it loaded (reported once). */
+  readonly hidden: boolean;
+}
+
 const isIos = (): boolean => /iPhone|iPod/.test(navigator.userAgent) && !('standalone' in navigator && navigator.standalone);
 
 export function bootPlayer(game: string, fonts: readonly string[]): void {
@@ -72,7 +85,29 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
   const progressP = accountProgress(game);
   const meP = fetchMe();
   if (isPendingBuy(window.location.search, game)) void resumeBuy(game, status, accessP);
-  const bar = createLoadingBar(splash, play, performance.now());
+  // The stats follow each press of play: how long until it showed, or how it failed or was left.
+  let tag = gameTag(game, undefined);
+  let attempt: Attempt | null = null;
+  const sinceTap = (a: Attempt): number => Math.round(performance.now() - a.start);
+  const bar = createLoadingBar(splash, play, performance.now(), {
+    onLifted: (stalled) => {
+      if (attempt) track({ type: 'game_ready', ...tag, ms: sinceTap(attempt), stage: stalled ? 'stall' : 'ready' });
+      attempt = null;
+    },
+    onBootFailed: (reason) => {
+      if (attempt) track({ type: 'load_fail', ...tag, ms: sinceTap(attempt), stage: 'boot', error: errorText(reason) });
+      // The game lifts the screen onto its error message next: that isn't the game showing.
+      attempt = null;
+    },
+  });
+  const hiddenWhileLoading = (): void => {
+    if (!attempt || attempt.hidden) return;
+    track({ type: 'load_abandon', ...tag, ms: sinceTap(attempt), pct: bar.percent() });
+    attempt = { ...attempt, hidden: true };
+    flushAnalytics(true);
+  };
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && hiddenWhileLoading());
+  window.addEventListener('pagehide', hiddenWhileLoading);
   // Re-created on retry: a failed dynamic import stays rejected forever.
   let engineP = loadGame(game);
   engineP.catch(() => undefined);
@@ -82,15 +117,19 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
     play.disabled = true;
     status.textContent = '';
     bar.show();
+    attempt = { start: performance.now(), hidden: false };
+    track({ type: 'play_tap', ...tag, ms: Math.round(attempt.start) });
+    let step: LoadStage = 'download';
     // Must be requested synchronously inside the click for browsers to allow it.
     const fs = goFullscreen(stage);
     try {
       const [module, { unlocked, allLevelsOpen }, accountSaves, me] = await Promise.all([engineP, accessP, progressP, meP, fontP, fs]);
       bar.downloaded();
+      step = 'mount';
       // Without knowing who is signed in, local saves can't be told apart: play on this browser's alone.
       const userId = me?.id ?? null;
       const progress = userId ? accountSaves : null;
-      const tag = gameTag(game, module.version);
+      tag = gameTag(game, module.version);
       // The splash stays over the game, showing its boot progress, until the game calls loading.ready().
       const handle = module.mount(stage, {
         unlocked,
@@ -116,6 +155,8 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
       trackPlayTime(tag);
     } catch (err) {
       console.error('[16bit.ink] failed to start game', err);
+      if (attempt) track({ type: 'load_fail', ...tag, ms: sinceTap(attempt), stage: step, error: errorText(err) });
+      attempt = null;
       status.textContent = 'The game failed to load. Check your connection and try again.';
       bar.fail();
       engineP = loadGame(game);

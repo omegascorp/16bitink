@@ -42,6 +42,8 @@ Astro.response.headers.set('cache-control', 'private, no-store');
 
 <style>
   .intro { margin: 8px 0 44px; font-family: var(--font-hand); font-size: clamp(1.6rem, 3.5vw, 2.1rem); color: var(--ink-soft); }
+  /* Phones: the first game's cover and play button as high on the screen as the tape allows. */
+  @media (max-width: 620px) { .intro { margin: 0 0 24px; line-height: 1.2; } }
   /* Side by side on wide screens, one under another on phones. */
   .games { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 72px 48px; }
 </style>

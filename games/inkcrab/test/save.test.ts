@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blotsFor, EMPTY_PROGRESS, isUnlocked, loadProgress, markSeen, parseProgress, recordResult, saveProgress } from '../src/logic/save';
+import { blotsFor, EMPTY_PROGRESS, firstScreen, isUnlocked, loadProgress, markSeen, parseProgress, recordResult, saveProgress } from '../src/logic/save';
 
 const order = ['pen-test', 'room-to-grow', 'underlined'];
 
@@ -54,5 +54,16 @@ describe('saved progress', () => {
     expect(parseProgress({ levels: {} }).seen).toEqual([]);
     const p = parseProgress({ levels: {}, seen: ['gull', 7, 'shell:conch', 'x'.repeat(80), 'gull'] });
     expect(p.seen).toEqual(['gull', 'shell:conch']);
+  });
+});
+
+describe('firstScreen', () => {
+  it('drops a new player straight onto the first beach', () => {
+    expect(firstScreen(EMPTY_PROGRESS)).toEqual({ scene: 'Game', data: {} });
+    expect(firstScreen(markSeen(EMPTY_PROGRESS, ['gull'])).scene).toBe('Game');
+  });
+
+  it('shows the map once a level is finished', () => {
+    expect(firstScreen(recordResult(EMPTY_PROGRESS, 'pen-test', 1, 30))).toEqual({ scene: 'Menu' });
   });
 });

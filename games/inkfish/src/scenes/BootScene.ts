@@ -4,6 +4,8 @@ import { ensureFishTextures, inkTextureJobs } from '../art/textures';
 import { trackArt, warmArt } from '../art/artCache';
 import { getHost, REG } from '../host';
 import { DEMO_CHAPTER } from '../levels/demo';
+import { firstScreen, loadSave } from '../logic/save';
+import { LEVEL_BUILT } from './GameScene';
 import { pullFromAccount } from '../logic/accountSave';
 import { parseChapters } from '../levels/validate';
 import { screenScene, viewSize } from './hidpi';
@@ -30,6 +32,7 @@ export class BootScene extends Phaser.Scene {
     loading?.progress(0, label);
     this.boot(label).catch((err: unknown) => {
       console.error('[inkfish] boot failed', err);
+      loading?.failed?.(err instanceof Error ? err.message : String(err));
       this.children.removeAll(true);
       inkText(this, viewSize(this).width / 2, viewSize(this).height / 2, 'Your browser could not draw the game. Try another browser.', 26);
       // Lift the loading screen onto the drawn message, not a blank frame.
@@ -55,15 +58,22 @@ export class BootScene extends Phaser.Scene {
     this.registry.set(REG.fullError, null);
     loading?.progress(DRAWN_AT, host.unlocked ? 'fetching the full game…' : 'finding your saves…');
     await Promise.all([loadPaidChapters(this), pullFromAccount(host)]);
-    loading?.progress(FETCHED_AT, 'unfolding the map…');
-    if (loading) readyOnFirstFrame(this, 'Menu', loading);
-    this.scene.start('Menu');
+    // Read after the account's saves are pulled in, so a player new to this device but not to the game gets the map.
+    const first = firstScreen(loadSave(host.storage));
+    loading?.progress(FETCHED_AT, first.scene === 'Game' ? 'filling the tide pool…' : 'unfolding the map…');
+    if (loading) readyOnFirstFrame(this, first.scene, loading);
+    if (first.scene === 'Game') this.scene.start('Game', first.data);
+    else this.scene.start('Menu');
   }
 }
 
-/** Calls `loading.ready()` once scene `key` has been created and drawn, so the loading screen lifts onto a finished picture. */
-function readyOnFirstFrame(scene: Phaser.Scene, key: string, loading: LoadingReporter): void {
-  scene.scene.get(key).events.once(Phaser.Scenes.Events.CREATE, () => {
+/**
+ * Calls `loading.ready()` once scene `key` is drawn, so the loading screen
+ * lifts onto a finished picture: the map once created, a level once built.
+ */
+function readyOnFirstFrame(scene: Phaser.Scene, key: 'Menu' | 'Game', loading: LoadingReporter): void {
+  const shown = key === 'Game' ? LEVEL_BUILT : Phaser.Scenes.Events.CREATE;
+  scene.scene.get(key).events.once(shown, () => {
     scene.game.events.once(Phaser.Core.Events.POST_RENDER, () => loading.ready());
   });
 }

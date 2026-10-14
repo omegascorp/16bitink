@@ -27,9 +27,18 @@ interface GameTag {
 
 type Event =
   | { readonly type: 'pageview'; readonly path: string; readonly ref?: string }
+  | { readonly type: 'page_leave'; readonly path: string; readonly ms: number; readonly scroll: number; readonly loadMs?: number }
+  | { readonly type: 'js_error'; readonly path: string; readonly error: string; readonly source?: string }
   | ({ readonly type: 'game_start' } & GameTag)
   | ({ readonly type: 'play_time'; readonly seconds: number } & GameTag)
+  | ({ readonly type: 'play_tap'; readonly ms: number } & GameTag)
+  | ({ readonly type: 'game_ready'; readonly ms: number; readonly stage: 'ready' | 'stall' } & GameTag)
+  | ({ readonly type: 'load_fail'; readonly ms: number; readonly stage: LoadStage; readonly error: string } & GameTag)
+  | ({ readonly type: 'load_abandon'; readonly ms: number; readonly pct: number } & GameTag)
   | (GameEvent & GameTag);
+
+/** Where a game's load failed: fetching its code, starting it, or its own boot. */
+export type LoadStage = 'download' | 'mount' | 'boot';
 
 /** The server refuses an event whose version isn't like this, so leave an odd one out rather than lose the event. */
 const VERSION = /^[0-9A-Za-z.+-]{1,40}$/;
@@ -40,6 +49,14 @@ export function gameTag(game: string, version: string | undefined): GameTag {
 }
 
 type Queued = Event & { readonly at: number };
+
+const NET_TYPES: ReadonlySet<string> = new Set(['slow-2g', '2g', '3g', '4g']);
+
+/** The browser's connection type, when it's one the server knows. */
+export function networkType(connection: { readonly effectiveType?: unknown } | undefined): string | undefined {
+  const type = connection?.effectiveType;
+  return typeof type === 'string' && NET_TYPES.has(type) ? type : undefined;
+}
 
 const randomId = (): string =>
   typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
@@ -107,7 +124,8 @@ export function flushAnalytics(leaving = false): void {
   timer = null;
   if (queue.length === 0) return;
   const now = Date.now();
-  const body = JSON.stringify({ visitor: visitorId(now), session: visitId(now), sentAt: now, touch: navigator.maxTouchPoints > 1, events: queue });
+  const net = networkType((navigator as Navigator & { connection?: { effectiveType?: unknown } }).connection);
+  const body = JSON.stringify({ visitor: visitorId(now), session: visitId(now), sentAt: now, touch: navigator.maxTouchPoints > 1, ...(net ? { net } : {}), events: queue });
   queue = [];
   try {
     if (leaving && navigator.sendBeacon?.(ENDPOINT, body)) return;

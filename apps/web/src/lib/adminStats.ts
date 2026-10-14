@@ -65,3 +65,30 @@ export function countryName(code: string | null): string {
     return code;
   }
 }
+
+/** What a visit's outcome is worked out from (a SessionSummary has all of it). */
+export interface OutcomeInput {
+  readonly pageviews: number;
+  readonly paths: readonly string[];
+  readonly games: readonly string[];
+  readonly levels: readonly string[];
+  readonly tapped: boolean;
+  readonly failed: boolean;
+  readonly abandoned: boolean;
+}
+
+export type VisitOutcome = 'played' | 'no level' | 'load failed' | 'left loading' | 'tapped' | 'no tap' | 'bounced' | 'browsed';
+
+/**
+ * How far a visit got towards playing, in one word for the visits table:
+ * the furthest step reached wins, so a retry that worked counts as a start.
+ */
+export function visitOutcome(v: OutcomeInput): VisitOutcome {
+  if (v.levels.length > 0) return 'played';
+  if (v.games.length > 0) return 'no level';
+  if (v.failed) return 'load failed';
+  if (v.abandoned) return 'left loading';
+  if (v.tapped) return 'tapped';
+  if (v.paths.some((p) => p.startsWith('/play/'))) return 'no tap';
+  return v.pageviews <= 1 ? 'bounced' : 'browsed';
+}

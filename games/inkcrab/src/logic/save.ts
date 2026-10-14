@@ -71,6 +71,18 @@ export function isUnlocked(p: Progress, order: readonly string[], id: string): b
   return i === 0 || p.levels[order[i - 1]!] !== undefined;
 }
 
+/** Where the game opens: a new player goes straight onto the first beach (no level id: the Game scene's first), everyone else to the map. */
+export type FirstScreen = { readonly scene: 'Game'; readonly data: { readonly levelId?: string } } | { readonly scene: 'Menu' };
+
+/**
+ * A player who hasn't finished a level yet has nothing to choose on the map
+ * but the first one, and first-time players who met the map instead often
+ * left there, so they start in the level.
+ */
+export function firstScreen(p: Progress): FirstScreen {
+  return Object.keys(p.levels).length === 0 ? { scene: 'Game', data: {} } : { scene: 'Menu' };
+}
+
 export function loadProgress(store: KeyValueStore | undefined): Progress {
   try {
     const raw = store?.getItem(KEY);

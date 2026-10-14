@@ -22,6 +22,18 @@ export interface LoadingBar {
   mounted(): void;
   /** Loading failed: back to the button. */
   fail(): void;
+  /** How far the bar has got, 0–100. */
+  percent(): number;
+}
+
+/** Told when the loading screen lifts: `stalled` when the game went quiet and the stall timer lifted it. */
+export type OnLifted = (stalled: boolean) => void;
+/** Told when the game reports that its boot failed. */
+export type OnBootFailed = (reason: string) => void;
+
+export interface LoadingBarEvents {
+  readonly onLifted?: OnLifted;
+  readonly onBootFailed?: OnBootFailed;
 }
 
 interface Elements {
@@ -48,7 +60,7 @@ function findElements(splash: HTMLElement, play: HTMLButtonElement): Elements {
  * (the page starts it on load), so a player who reads the splash for a
  * while finds the bar already part filled.
  */
-export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, downloadStart: number): LoadingBar {
+export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, downloadStart: number, events: LoadingBarEvents = {}): LoadingBar {
   const el = findElements(splash, play);
   let startedAt = downloadStart;
   let downloaded = false;
@@ -76,9 +88,10 @@ export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, d
     frame = 0;
   };
 
-  const reveal = (): void => {
+  const reveal = (stalled = false): void => {
     if (finished) return;
     finished = true;
+    events.onLifted?.(stalled);
     clearTimeout(stallTimer);
     stopTicking();
     boot = 1;
@@ -89,7 +102,7 @@ export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, d
 
   const watchStall = (): void => {
     clearTimeout(stallTimer);
-    stallTimer = setTimeout(reveal, STALL_MS);
+    stallTimer = setTimeout(() => reveal(true), STALL_MS);
   };
 
   const reporter: LoadingReporter = {
@@ -100,7 +113,10 @@ export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, d
       if (label) el.step.textContent = label;
       render();
     },
-    ready: reveal,
+    ready: () => reveal(),
+    failed(reason) {
+      if (!finished) events.onBootFailed?.(String(reason));
+    },
   };
 
   return {
@@ -132,5 +148,6 @@ export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, d
       el.loader.hidden = true;
       el.play.hidden = false;
     },
+    percent: () => Math.floor(shown * 100),
   };
 }

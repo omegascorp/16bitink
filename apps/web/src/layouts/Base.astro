@@ -50,10 +50,15 @@ const ogImage = new URL(image, Astro.site);
     </footer>
     <script>
       import { setAnalyticsOptOut, trackPageview } from '../lib/client/analytics';
+      import { watchErrors, watchPage } from '../lib/client/pageWatch';
 
       // Only admins ever see an /admin page: their browser stops counting itself in the stats.
       if (location.pathname.startsWith('/admin')) setAnalyticsOptOut(true);
-      else trackPageview();
+      else {
+        trackPageview();
+        watchPage();
+        watchErrors();
+      }
     </script>
   </body>
 </html>

@@ -84,6 +84,8 @@ export interface GameSceneData {
   readonly artWarmed?: boolean;
 }
 
+/** Emitted on the Game scene once its level is built: create can return early to decode saved drawings first. */
+export const LEVEL_BUILT = 'levelBuilt';
 export const HUD_EVENT = 'hud';
 /** A sea event has started: the HUD shows its banner. */
 export const SEA_EVENT = 'seaEvent';
@@ -232,6 +234,7 @@ export class GameScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, stopArt);
     dropUnusedArt();
     this.built = true;
+    this.events.emit(LEVEL_BUILT);
   }
 
   private build(): void {
