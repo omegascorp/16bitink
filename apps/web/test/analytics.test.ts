@@ -37,6 +37,26 @@ describe('parseBatch', () => {
     expect(parseBatch(raw)).toBeNull();
   });
 
+  it('keeps the game version on game events', () => {
+    const parsed = parseBatch(batch([
+      { type: 'game_start', at: 1, game: 'inkcrab', version: '1.2.0' },
+      { type: 'play_time', at: 2, game: 'inkcrab', seconds: 5, version: '1.2.0' },
+      { type: 'level_start', at: 3, game: 'inkcrab', level: 'b1-1', n: 1, version: '1.2.0-beta.1' },
+      { type: 'level_end', at: 4, game: 'inkcrab', level: 'b1-1', n: 1, result: 'win', seconds: 30, version: '1.2.0' },
+    ]));
+    expect(parsed?.events.map((e) => ('version' in e ? e.version : undefined))).toEqual(['1.2.0', '1.2.0', '1.2.0-beta.1', '1.2.0']);
+    const [stored] = toStoredEvents(parsed!, VISIT, NOW, isGame);
+    expect(stored?.version).toBe('1.2.0');
+  });
+
+  it.each([
+    ['too long', '1'.repeat(41)],
+    ['with spaces', '1.0 beta'],
+    ['with markup', '<b>1</b>'],
+  ])('rejects a game version %s', (_label, version) => {
+    expect(parseBatch(batch([{ type: 'game_start', at: 1, game: 'inkcrab', version }]))).toBeNull();
+  });
+
   it('rejects oversized batches', () => {
     const events = Array.from({ length: MAX_BATCH_EVENTS + 1 }, (_, i) => ({ type: 'game_start', at: i, game: 'inkfish' }));
     expect(parseBatch(batch(events))).toBeNull();

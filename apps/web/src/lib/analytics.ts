@@ -16,14 +16,16 @@ export const MAX_PLAY_TIME_SECONDS = 600;
 const Seconds = z.number().finite().min(0).max(4 * 3600);
 const Level = { level: z.string().min(1).max(40), n: z.number().int().min(1).max(500), name: z.string().max(80).optional() };
 const At = z.number().finite();
+/** The game's own version (its package.json), so stats can be told apart by release. */
+const Version = { version: z.string().regex(/^[0-9A-Za-z.+-]{1,40}$/).optional() };
 
 const Event = z.discriminatedUnion('type', [
   z.object({ type: z.literal('pageview'), at: At, path: z.string().regex(/^\/[^\s]{0,199}$/), ref: z.string().max(100).optional() }),
-  z.object({ type: z.literal('game_start'), at: At, game: Game }),
-  z.object({ type: z.literal('play_time'), at: At, game: Game, seconds: z.number().finite().min(0).max(MAX_PLAY_TIME_SECONDS) }),
-  z.object({ type: z.literal('level_start'), at: At, game: Game, ...Level }),
+  z.object({ type: z.literal('game_start'), at: At, game: Game, ...Version }),
+  z.object({ type: z.literal('play_time'), at: At, game: Game, seconds: z.number().finite().min(0).max(MAX_PLAY_TIME_SECONDS), ...Version }),
+  z.object({ type: z.literal('level_start'), at: At, game: Game, ...Level, ...Version }),
   z.object({
-    type: z.literal('level_end'), at: At, game: Game, ...Level,
+    type: z.literal('level_end'), at: At, game: Game, ...Level, ...Version,
     result: z.enum(['win', 'lose', 'quit']), seconds: Seconds,
     score: z.number().int().min(0).max(1e9).optional(), cause: z.string().max(40).optional(),
   }),
@@ -120,6 +122,8 @@ export interface StoredEvent extends Visit {
   readonly seconds?: number;
   readonly score?: number;
   readonly cause?: string;
+  /** The game's version, on game events. */
+  readonly version?: string;
 }
 
 /** Older events than this in one batch are clamped: a tab asleep for days shouldn't rewrite history. */

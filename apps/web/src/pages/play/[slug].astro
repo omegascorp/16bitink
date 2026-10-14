@@ -1,6 +1,7 @@
 ---
 import { playableGames, type CatalogGame } from '../../data/games';
 import { appleTouchIcon } from '../../lib/manifest';
+import { GAME_VERSIONS } from '../../games/versions';
 
 export function getStaticPaths() {
   return playableGames().map((game) => ({ params: { slug: game.slug }, props: { game } }));
@@ -11,6 +12,7 @@ interface Props {
 }
 const { game } = Astro.props;
 const theme = game.theme ?? { paper: '#f4eddc', ink: '#1b1a1f', accent: '#1f3f8a' };
+const version = GAME_VERSIONS[game.slug];
 const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean).join('&');
 ---
 <!doctype html>
@@ -49,6 +51,7 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
         <p id="ios-hint" hidden>Tip: Share → <strong>Add to Home Screen</strong> for true full-screen on iPhone.</p>
         <p id="status" role="status"></p>
         <a class="back" href={`/games/${game.slug}`}>← back</a>
+        {version && <p class="version">v{version}</p>}
       </div>
     </div>
 
@@ -120,6 +123,10 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
       #ios-hint, #status { font-family: Georgia, serif; font-size: 0.95rem; max-width: 34ch; margin: 8px 0 0; }
       #status { color: #a3342b; }
       .back { font-size: 1.5rem; color: var(--ink); margin-top: 14px; }
+      .version {
+        position: absolute; right: 14px; bottom: 10px; margin: 0;
+        font-family: 'Silkscreen', monospace; font-size: 0.7rem; color: var(--ink); opacity: 0.55;
+      }
     </style>
   </body>
 </html>

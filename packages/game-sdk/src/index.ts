@@ -123,6 +123,8 @@ export interface GameHandle {
 }
 
 export interface GameModule {
+  /** The game's release, e.g. "1.2.0" (its package.json version): shown to players and sent with its stats. */
+  readonly version?: string;
   /** Mounts the game into `parent`, filling it and tracking its size. */
   mount(parent: HTMLElement, host: GameHost): GameHandle;
 }

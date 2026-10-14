@@ -19,11 +19,25 @@ const VISIT_IDLE_MS = 30 * 60 * 1000;
 const FLUSH_DELAY_MS = 5000;
 const MAX_QUEUE = 20;
 
+/** Which game an event is about, and which release of it. */
+interface GameTag {
+  readonly game: string;
+  readonly version?: string;
+}
+
 type Event =
   | { readonly type: 'pageview'; readonly path: string; readonly ref?: string }
-  | { readonly type: 'game_start'; readonly game: string }
-  | { readonly type: 'play_time'; readonly game: string; readonly seconds: number }
-  | (GameEvent & { readonly game: string });
+  | ({ readonly type: 'game_start' } & GameTag)
+  | ({ readonly type: 'play_time'; readonly seconds: number } & GameTag)
+  | (GameEvent & GameTag);
+
+/** The server refuses an event whose version isn't like this, so leave an odd one out rather than lose the event. */
+const VERSION = /^[0-9A-Za-z.+-]{1,40}$/;
+
+/** Tags an event with its game and, when it's well formed, the game's version. */
+export function gameTag(game: string, version: string | undefined): GameTag {
+  return version && VERSION.test(version) ? { game, version } : { game };
+}
 
 type Queued = Event & { readonly at: number };
 
@@ -123,9 +137,9 @@ export function trackPageview(): void {
 }
 
 /** A level event from a game, trimmed to what the server accepts. */
-export function trackLevel(game: string, e: GameEvent): void {
+export function trackLevel(tag: GameTag, e: GameEvent): void {
   if (!Number.isInteger(e.n) || e.n < 1) return;
-  track({ ...e, game, level: e.level.slice(0, 40), ...(e.name ? { name: e.name.slice(0, 80) } : {}) });
+  track({ ...e, ...tag, level: e.level.slice(0, 40), ...(e.name ? { name: e.name.slice(0, 80) } : {}) });
 }
 
 /** Play time is reported at least this often, so a tab that dies unannounced loses at most this much. */
@@ -138,7 +152,7 @@ const MAX_PLAY_REPORT_SECONDS = 600;
  * Reports every minute and whenever the page hides; the server adds the
  * pieces up.
  */
-export function trackPlayTime(game: string): void {
+export function trackPlayTime(tag: GameTag): void {
   let since: number | null = document.visibilityState === 'visible' ? Date.now() : null;
   /** Reports the time since `since`, then keeps counting only if the game is still on screen. */
   const report = (stillPlaying: boolean): void => {
@@ -146,7 +160,7 @@ export function trackPlayTime(game: string): void {
     const now = Date.now();
     const seconds = Math.round((now - since) / 100) / 10;
     since = stillPlaying ? now : null;
-    if (seconds > 0) track({ type: 'play_time', game, seconds: Math.min(seconds, MAX_PLAY_REPORT_SECONDS) });
+    if (seconds > 0) track({ type: 'play_time', ...tag, seconds: Math.min(seconds, MAX_PLAY_REPORT_SECONDS) });
   };
   const leave = (): void => {
     report(false);

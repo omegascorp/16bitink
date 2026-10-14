@@ -9,6 +9,7 @@ import { HudScene } from './scenes/HudScene';
 import { MenuScene } from './scenes/MenuScene';
 import { ResultScene } from './scenes/ResultScene';
 import { DPR } from './scenes/hidpi';
+import { GAME_VERSION } from './version';
 
 export { DEMO_CHAPTER } from './levels/demo';
 export type { Chapter, LevelDef } from './levels/types';
@@ -66,5 +67,5 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
   };
 }
 
-const inkfish: GameModule = { mount };
+const inkfish: GameModule = { mount, version: GAME_VERSION };
 export default inkfish;

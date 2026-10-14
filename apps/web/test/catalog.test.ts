@@ -6,6 +6,7 @@ import { parseChapters } from '../../../games/inkfish/src/levels/validate';
 import { findGame, GAMES, isPurchasable, playableGames } from '../src/data/games';
 import { PAID_CONTENT } from '../src/games/content.server';
 import { GAME_LOADERS } from '../src/games/loaders';
+import { GAME_VERSIONS } from '../src/games/versions';
 
 describe('catalog', () => {
   it('has unique, URL-safe slugs', () => {
@@ -26,6 +27,10 @@ describe('catalog', () => {
 });
 
 describe('game registries stay in sync with the catalog', () => {
+  it('every playable game has a release version (semver, from its package.json)', () => {
+    for (const g of playableGames()) expect(GAME_VERSIONS[g.slug], g.slug).toMatch(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$/);
+  });
+
   it('every playable game has a client loader', () => {
     for (const g of playableGames()) expect(GAME_LOADERS[g.slug], g.slug).toBeTypeOf('function');
   });

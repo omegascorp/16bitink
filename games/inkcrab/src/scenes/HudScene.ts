@@ -15,6 +15,7 @@ import { screenScene, screenSize, toView, uiScaleOf, viewSize } from './hidpi';
 import { drawSandGauge, HEAP_MAX_W } from './sandGauge';
 import { drawGrowthBar } from './growthBar';
 import { HAND_FONT, inkButton, inkText, wobblyRect } from './ui';
+import { GAME_VERSION } from '../version';
 import { drawTideClock } from './tideClock';
 import { tidePhase, tideTurn } from '../logic/tide';
 import { drawRainClock } from './rainClock';
@@ -425,6 +426,8 @@ export class HudScene extends Phaser.Scene {
     this.pauseLayer = this.add.container(width / 2, height / 2, [
       wash,
       inkText(this, 0, -150, 'Paused', 64),
+      // Which release this is, for a screenshot or bug report: by the title, as the card fills a phone's height.
+      inkText(this, 100, -128, `v${GAME_VERSION}`, 18).setOrigin(0, 1).setAlpha(0.6),
       hint,
       inkButton(this, 0, 20, 'Keep scuttling', () => this.togglePause(), { width: 260 }),
       inkButton(this, 0, 90, 'Level select', () => game.quit(), { width: 260 }),

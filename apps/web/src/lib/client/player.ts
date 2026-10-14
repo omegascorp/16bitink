@@ -1,7 +1,7 @@
 import { isGameModule, type GameModule, type KeyValueStore } from '@16bitink/game-sdk';
 import { GAME_LOADERS } from '../../games/loaders';
 import { isPendingBuy, BUY_PARAM } from '../buyFlow';
-import { track, trackLevel, trackPlayTime } from './analytics';
+import { gameTag, track, trackLevel, trackPlayTime } from './analytics';
 import { buyFullGame, fetchMe, startCheckout } from './checkout';
 import { createLoadingBar } from './loadingBar';
 import { accountProgress } from './progress';
@@ -90,11 +90,12 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
       // Without knowing who is signed in, local saves can't be told apart: play on this browser's alone.
       const userId = me?.id ?? null;
       const progress = userId ? accountSaves : null;
+      const tag = gameTag(game, module.version);
       // The splash stays over the game, showing its boot progress, until the game calls loading.ready().
       const handle = module.mount(stage, {
         unlocked,
         allLevelsOpen,
-        track: (event) => trackLevel(game, event),
+        track: (event) => trackLevel(tag, event),
         loading: bar.reporter,
         storage: safeStorage(userId),
         progress: progress ?? undefined,
@@ -111,8 +112,8 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
         },
       });
       bar.mounted();
-      track({ type: 'game_start', game });
-      trackPlayTime(game);
+      track({ type: 'game_start', ...tag });
+      trackPlayTime(tag);
     } catch (err) {
       console.error('[16bit.ink] failed to start game', err);
       status.textContent = 'The game failed to load. Check your connection and try again.';

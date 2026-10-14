@@ -10,6 +10,7 @@ import { knobOffset, STICK, stickCentre } from '../logic/joystick';
 import { HUD_EVENT, SEA_EVENT, type GameScene, type HudSnapshot, type SeaEventBanner } from './GameScene';
 import { getSound } from '../host';
 import { BLUE_INK, inkButton, inkText, INK_HEX, RED_INK, uiScale, wobblyRect } from './ui';
+import { GAME_VERSION } from '../version';
 import { ABILITY_KEY } from '../logic/abilities';
 import { behind, hintAlpha, type Box } from '../logic/hintFade';
 
@@ -504,6 +505,8 @@ export class HudScene extends Phaser.Scene {
     this.pauseLayer = this.add.container(viewSize(this).width / 2, viewSize(this).height / 2, [
       bg,
       inkText(this, 0, -120, 'Paused', 64, BLUE_INK),
+      // Which release this is, for a screenshot or bug report: by the title, where a short screen still shows it.
+      inkText(this, 100, -98, `v${GAME_VERSION}`, 18).setOrigin(0, 1).setAlpha(0.6),
       inkButton(this, 0, -30, 'Keep swimming', () => this.togglePause(), { width: 260 }),
       inkButton(this, 0, 40, 'Level select', () => this.toMenu(), { width: 260 }),
       inkButton(this, 0, 110, 'Exit to 16bit.ink', () => host.onExit(), { width: 260, size: 26 }),

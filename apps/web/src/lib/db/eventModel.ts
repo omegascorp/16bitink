@@ -36,6 +36,7 @@ const eventSchema = new Schema<StoredEvent>(
     seconds: Number,
     score: Number,
     cause: String,
+    version: String,
   },
   {
     collection: 'events',
