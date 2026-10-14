@@ -1,6 +1,6 @@
 import { AIR, boxHitsSolid, climbBody, jump, moveBody, PHYS, WATER, type Body, type Box, type Ledge } from './body';
 import { makeBird, patrolY, pullUp, stepBird, underSky, type Bird, type BirdSpecies } from './birds';
-import { armTip, CRITTER, critterPoints, stepCritter, stranded, type Critter, type Surroundings } from './critters';
+import { armTip, CRITTER, critterPoints, stepCritter, stranded, threatens, type Critter, type Surroundings } from './critters';
 import { placeCritter, SPAWN_AWAY } from './spawn';
 import { columnsAround, pourStep } from './dunes';
 import { movementOf, SPECIES, type SpeciesId } from './species';
@@ -56,6 +56,8 @@ export const IDLE: Input = { moveX: 0, aimY: 0, jump: false, dig: false, place: 
 
 /** Trying to move up before a shell chain's line is ready: seconds the notice shows, and before it's said again. */
 export const HELD = { notice: 4, again: 0.6 } as const;
+/** Seconds before trying to dig while full of sand says so again (not every frame the key is held). */
+const FULL_AGAIN = 1.5;
 
 export type SimEvent =
   | { readonly type: 'ate'; readonly id: number; readonly points: number; readonly wasted: number; readonly x: number; readonly y: number }
@@ -78,6 +80,10 @@ export type SimEvent =
   | { readonly type: 'joined'; readonly x: number; readonly y: number; readonly line: number }
   /** Tried to move up a shell chain before the line was ready: `wait` says why. */
   | { readonly type: 'held'; readonly x: number; readonly y: number; readonly wait: NonNullable<ChainStatus['wait']> }
+  /** Tried to move into a shell that doesn't fit: too big (`need` is the size to grow to) or outgrown. */
+  /** Tried to dig with no room left for the sand: it has to put some down first. */
+  | { readonly type: 'sandFull'; readonly x: number; readonly y: number }
+  | { readonly type: 'misfit'; readonly x: number; readonly y: number; readonly why: 'big' | 'small'; readonly need: number }
   /** A beach's find dug up and picked up (a mission's task): `count` so far. */
   | { readonly type: 'collected'; readonly x: number; readonly y: number; readonly count: number }
   /** A marked hunter (or the giant) eaten. */
@@ -303,6 +309,8 @@ export class Beach {
   nearbyHeld = false;
   /** Seconds left of the notice after trying to move up before the line was ready: the HUD says why and points to who's missing. */
   heldNotice = 0;
+  /** Seconds until trying to dig while full says so again. */
+  private fullNotice = 0;
   /** The crab's footsteps, which a shell chain's line follows (null on any other level). */
   readonly trail: Trail | null;
   /** Where along the footsteps each follower keeps its place. */
@@ -531,6 +539,7 @@ export class Beach {
     if (this.outcome !== 'playing') return events;
     this.elapsed += dt;
     this.heldNotice = Math.max(0, this.heldNotice - dt);
+    this.fullNotice = Math.max(0, this.fullNotice - dt);
     const c = this.crab;
     const hidden = input.hide && c.shell !== null && c.swap === null;
     // Pulling into the shell (or moving house) lets go of the roots.
@@ -569,12 +578,14 @@ export class Beach {
       const work = input.work ? this.workMode(input) : null;
       if (input.dig || work === 'dig') this.dig(input, events);
       else if (input.place || work === 'place') this.place(input, events);
+      else if (input.work && this.crab.sand >= this.sandCapacity) this.sandFull(events);
     }
     if (input.interact && this.nearbyShell && this.nearbyFits && !this.nearbyHeld) {
       this.crab = { ...this.crab, swap: startSwap(this.nearbyShell.id) };
       events.push({ type: 'swapStart', id: this.nearbyShell.id });
     } else if (input.interact && this.nearbyHeld) this.held(events);
     else if (input.interact && this.nearbyRival) this.rap(this.nearbyRival, events);
+    else if (input.interact && this.nearbyShell?.kind.type === 'shell' && !this.nearbyFits) this.misfit(this.nearbyShell.kind.shell, events);
     this.eat(events);
   }
 
@@ -680,8 +691,18 @@ export class Beach {
   private dig(input: Input, events: SimEvent[]): void {
     const c = this.crab;
     const walking = Math.abs(input.moveX) > WALKING;
-    const dug = this.removeTiles(diggableOf(this.terrain, digTargets(c.body, c.facing, input.aimY, walking, this.tileSize)), events);
+    const targets = diggableOf(this.terrain, digTargets(c.body, c.facing, input.aimY, walking, this.tileSize));
+    const dug = this.removeTiles(targets, events);
     if (dug && input.aimY !== 0 && !walking) this.centreOverDig();
+    else if (!dug && targets.length && c.sand >= this.sandCapacity) this.sandFull(events);
+  }
+
+  /** Tried to dig with no room for the sand: says so (now and then, not every frame the key is held). */
+  private sandFull(events: SimEvent[]): void {
+    if (this.fullNotice > 0) return;
+    const at = centre(this.crab.body);
+    events.push({ type: 'sandFull', x: at.x, y: this.crab.body.y });
+    this.fullNotice = FULL_AGAIN;
   }
 
   private place(input: Input, events: SimEvent[]): void {
@@ -1002,8 +1023,9 @@ export class Beach {
     const c = this.crab;
     // Fog round the crab, rain anywhere, or the dark (unless the plankton lights it up) hides it from what hunts by sight.
     const veil = Math.max(this.fogOver(c.body), this.rainNow, this.lit ? 0 : this.darkness);
+    // Out of its shell, moving house, it's prey to anything that hunts, however small: none of them flee it then.
     const quarry = {
-      box: c.body, size: c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize),
+      box: c.body, size: this.exposed ? 0 : c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize),
       inWater: this.submerged(c.body), inRoots: this.inRoots(c.body), veil, covered: this.underKelp(c.body),
       // A gust carries its scent downwind.
       wind: this.windNow,
@@ -1100,6 +1122,13 @@ export class Beach {
       this.handDowns.delete(took.id);
     }
     if (left) this.handDowns.add(this.leaveShell(from ?? rival, left, events));
+  }
+
+  /** Tried to move into a shell that doesn't fit: says whether it's still too big or already outgrown. */
+  private misfit(shell: Shell, events: SimEvent[]): void {
+    const at = centre(this.crab.body);
+    const big = this.crab.growth.size < shell.size - 1;
+    events.push({ type: 'misfit', x: at.x, y: this.crab.body.y, why: big ? 'big' : 'small', need: shell.size - 1 });
   }
 
   /** Tried to move up before the line was ready: says so (once, not every frame the key is held) and starts the notice. */
@@ -1224,7 +1253,7 @@ export class Beach {
 
   /**
    * Touching a ghost crab: a smaller one is eaten, a bigger one catches the
-   * crab (as does one its own size while it's out of a shell). Hidden in its
+   * crab (as does any one at all while it's out of a shell, moving house). Hidden in its
    * shell it's safe: the ghost crab walks on past and loses interest.
    */
   private meetCritters(events: SimEvent[]): void {
@@ -1238,7 +1267,7 @@ export class Beach {
           continue;
         }
         // An octopus's arm caught it.
-        if (!c.hidden && c.safe === 0 && k.size > c.growth.size) {
+        if (!c.hidden && c.safe === 0 && threatens(k, c.growth.size, this.exposed)) {
           this.caught(events, k.species);
           this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });
         }
@@ -1252,9 +1281,12 @@ export class Beach {
         if (k.size > c.growth.size) this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });
         continue;
       }
+      // Out of its shell it eats nothing, and anything that touches it catches it; just caught, it's busy getting away.
       const size = c.growth.size;
-      if (k.size < size && !c.swap) this.eatCritter(k, events);
-      else if ((k.size > size || (k.size === size && this.exposed)) && c.safe === 0) {
+      if (k.size < size && !this.exposed) {
+        if (c.safe === 0) this.eatCritter(k, events);
+      }
+      else if (threatens(k, size, this.exposed) && c.safe === 0) {
         this.caught(events, k.species);
         // It lets go: time to get away (out of a pit, say) before it strikes again.
         this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });

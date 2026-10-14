@@ -34,10 +34,11 @@ export function touchButtons(width: number, height: number): Readonly<Record<Tou
   };
 }
 
-/** The button under (x, y), if any. */
-export function buttonAt(x: number, y: number, width: number, height: number): TouchButton | null {
+/** The button under (x, y), if any; a hidden grab button isn't there to press. */
+export function buttonAt(x: number, y: number, width: number, height: number, grabShown = true): TouchButton | null {
   const spots = touchButtons(width, height);
   for (const name of Object.keys(spots) as TouchButton[]) {
+    if (name === 'grab' && !grabShown) continue;
     const b = spots[name];
     if (Math.hypot(x - b.x, y - b.y) <= b.r) return name;
   }
@@ -48,6 +49,8 @@ export function buttonAt(x: number, y: number, width: number, height: number): T
 export interface ButtonsState {
   readonly dig: boolean;
   readonly grab: boolean;
+  /** Grab shows only with a shell (or a rival to rap) in reach: there's nothing else to press it for. */
+  readonly grabShown: boolean;
   readonly hide: boolean;
   /** The shell the crab wears, drawn on the hide button. */
   readonly shell: ShellKind;
@@ -79,6 +82,10 @@ export class TouchButtons {
     };
     for (const name of Object.keys(spots) as TouchButton[]) {
       const b = spots[name];
+      if (name === 'grab' && !state.grabShown) {
+        this.icons.grab.setVisible(false);
+        continue;
+      }
       this.disc(b, lit[name]);
       const img = this.icons[name].setVisible(true);
       if (name === 'hide') {

@@ -110,6 +110,22 @@ describe('beach simulation', () => {
     expect(total()).toBe(before);
   });
 
+  it('says it is full of sand when it tries to dig with no room, once, not every frame the key is held', () => {
+    const b = flatBeach();
+    step(b, {}, 1);
+    b.crab = { ...b.crab, sand: b.sandCapacity };
+    const events = step(b, { aimY: 1, dig: true }, 0.5);
+    expect(events.filter((e) => e.type === 'sandFull')).toHaveLength(1);
+  });
+
+  it('says nothing about being full while it has room, or isn\'t digging', () => {
+    const b = flatBeach();
+    step(b, {}, 1);
+    expect(step(b, { aimY: 1, dig: true }, 0.3).some((e) => e.type === 'sandFull')).toBe(false);
+    b.crab = { ...b.crab, sand: b.sandCapacity };
+    expect(step(b, {}, 0.3).some((e) => e.type === 'sandFull')).toBe(false);
+  });
+
   describe('the touch dig button', () => {
     it('digs where it aims while there is sand there', () => {
       const b = flatBeach();
@@ -371,6 +387,32 @@ describe('beach simulation', () => {
     expect(b.crab.body.x + b.crab.body.w / 2).toBeCloseTo(was, 0);
   });
 
+  describe('a one-tile gap under an overhang', () => {
+    /** Flat sand at row 10, and an overhang over columns 10..20 leaving one tile of room above the floor. */
+    const gapBeach = (size: number): Beach => {
+      const terrain: Terrain = createTerrain(40, 30);
+      for (let x = 0; x < 40; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
+      for (let x = 10; x <= 20; x++) for (let y = 6; y <= 8; y++) setTile(terrain, x, y, TILE.sand);
+      return new Beach({ terrain, items: [], start: { x: 4 * T, y: 10 * T }, tileSize: T, startShell: shellOf('snail', size), seed: 1, surfaceFood: 0 });
+    };
+    const walkRight = (b: Beach, size: number): number => {
+      b.crab = { ...b.crab, growth: { size, meter: 0 } };
+      step(b, {}, 0.5);
+      step(b, { moveX: 1 }, 3);
+      return b.crab.body.x;
+    };
+
+    it('lets a crab in a size-3 shell through: it draws about a tile high, so it must fit', () => {
+      const b = gapBeach(3);
+      expect(b.crab.body.h).toBeLessThan(T);
+      expect(walkRight(b, 3)).toBeGreaterThan(12 * T);
+    });
+
+    it('stops a crab in a size-4 shell: it draws clearly bigger than the gap', () => {
+      expect(walkRight(gapBeach(4), 4)).toBeLessThan(10 * T);
+    });
+  });
+
   it('refuses shells the crab does not fit', () => {
     const conch = makeItem(2, { type: 'shell', shell: shellOf('conch') }, 5 * T, 10 * T - 40, false);
     const b = flatBeach([conch]);
@@ -379,6 +421,33 @@ describe('beach simulation', () => {
     expect(b.nearbyFits).toBe(false);
     const events = step(b, { interact: true });
     expect(events.some((e) => e.type === 'swapStart')).toBe(false);
+  });
+
+  it('says a shell is too big when the crab tries to move into one it hasn\'t grown into', () => {
+    const conch = makeItem(2, { type: 'shell', shell: shellOf('conch') }, 5 * T, 10 * T - 40, false);
+    const b = flatBeach([conch]);
+    step(b, {}, 0.5);
+    const events = step(b, { interact: true });
+    expect(events).toContainEqual(expect.objectContaining({ type: 'misfit', why: 'big', need: shellOf('conch').size - 1 }));
+  });
+
+  it('says a shell is too small when the crab tries to move into one it has outgrown', () => {
+    const tiny = makeItem(2, { type: 'shell', shell: shellOf('periwinkle', 1) }, 5 * T, 10 * T - 40, false);
+    const b = flatBeach([tiny]);
+    b.crab = { ...b.crab, growth: { size: 3, meter: 0 } };
+    step(b, {}, 0.5);
+    expect(b.nearbyShell?.id).toBe(2);
+    const events = step(b, { interact: true });
+    expect(events).toContainEqual(expect.objectContaining({ type: 'misfit', why: 'small' }));
+  });
+
+  it('says nothing about a misfit without a press, or with no shell in reach', () => {
+    const conch = makeItem(2, { type: 'shell', shell: shellOf('conch') }, 5 * T, 10 * T - 40, false);
+    const near = flatBeach([conch]);
+    expect(step(near, {}, 0.5).some((e) => e.type === 'misfit')).toBe(false);
+    const bare = flatBeach();
+    step(bare, {}, 0.5);
+    expect(step(bare, { interact: true }).some((e) => e.type === 'misfit')).toBe(false);
   });
 
   it('keeps the surface stocked with food', () => {
@@ -469,6 +538,20 @@ describe('beach simulation', () => {
       ahead(b, 1);
       const events = step(b, { moveX: 1 }, 0.5);
       expect(events.some((e) => e.type === 'caught' || e.type === 'ate')).toBe(false);
+      expect(b.critters.has(99)).toBe(true);
+    });
+
+    it('is caught even by a smaller one while it is out of its shell, moving house', () => {
+      const can = makeItem(2, { type: 'shell', shell: shellOf('topshell', 3) }, 5 * T, 10 * T - 40, false);
+      const b = flatBeach([can]);
+      b.crab = { ...b.crab, growth: { size: 2, meter: meterGoal(2) } };
+      step(b, {}, 0.5);
+      expect(b.nearbyFits).toBe(true);
+      step(b, { interact: true });
+      expect(b.exposed).toBe(true);
+      ahead(b, 1);
+      const events = step(b, {}, 0.5);
+      expect(events.some((e) => e.type === 'caught')).toBe(true);
       expect(b.critters.has(99)).toBe(true);
     });
 

@@ -128,10 +128,18 @@ export function shellName(shell: Shell): string {
   return `size-${shell.size} ${SHELLS[shell.kind].name}`;
 }
 
+/**
+ * How much of its shell's drawn size a crab's body box spans. A size-3 shell
+ * draws just about a tile high, so its box must come in under a tile, or a
+ * one-tile gap it looks to fit would stop it dead (at 0.7 it was 16.1 px to a
+ * 16 px tile).
+ */
+const BOX = { w: 0.85, h: 0.66 } as const;
+
 /** A hermit crab's body box: the size of its shell, or of its own body when it's out of one. */
 export function crabBox(size: number, shell: Shell | null): { w: number; h: number } {
   const px = shellPx(shell ? shell.size : size);
-  return { w: px * 0.85, h: px * 0.7 };
+  return { w: px * BOX.w, h: px * BOX.h };
 }
 
 /** Whether a crab of `bodySize` can live in `shell`: one its size, or one size up to grow into. */

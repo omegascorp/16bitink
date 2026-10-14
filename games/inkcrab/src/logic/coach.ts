@@ -56,7 +56,7 @@ const GLOW_NEAR = 8;
 const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   keys: {
     move: 'Walk with ← →, jump with Space. Eat food to grow.',
-    swap: 'Your shell is full! Walk to the bigger shell and press E to move in.',
+    swap: 'Your shell is full! Walk to the bigger shell and press E to move in. Out of your shell anything can catch you, so move when no one\'s about.',
     dig: 'Dig a slope: hold → (or ←) and ↓, then press X. Digging straight down can trap you.',
     drop: 'You\'re carrying sand. Press C to drop it; jump, then ↓ + C to build up under you.',
     full: 'You\'re full of sand. Drop some with C before you dig more.',
@@ -89,7 +89,7 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   },
   touch: {
     move: 'Steer with the stick, jump with the button. Eat food to grow.',
-    swap: 'Your shell is full! Walk to the bigger shell and press grab to move in.',
+    swap: 'Your shell is full! Walk to the bigger shell and press grab to move in. Out of your shell anything can catch you, so move when no one\'s about.',
     dig: 'Dig a slope: push the stick down and sideways, and hold dig. Digging straight down can trap you.',
     drop: 'You\'re carrying sand. Press dig facing open space to drop it; jump, then stick down + dig to build up under you.',
     full: 'You\'re full of sand. Press dig to drop some before you dig more.',
@@ -122,6 +122,44 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   },
 };
 
+/** A hunter bigger than the crab within a few tiles of it. */
+export function hunterNear(beach: Beach): boolean {
+  const c = beach.crab;
+  const at = centre(c.body);
+  const reach = DANGER_TILES * beach.tileSize;
+  for (const k of beach.critters.values()) {
+    if (k.size <= c.growth.size) continue;
+    const p = centre(k);
+    if (Math.abs(p.x - at.x) < reach && Math.abs(p.y - at.y) < reach) return true;
+  }
+  return false;
+}
+
+/** How close (tiles) any creature can be before moving house is risky. */
+const CREATURE_NEAR = 8;
+
+/**
+ * Any creature on the ground close by, whatever its size: out of its shell,
+ * moving house, any of them could catch the crab. Rival hermit crabs and
+ * gulls in the air don't count.
+ */
+export function creatureNear(beach: Beach): boolean {
+  const at = centre(beach.crab.body);
+  const reach = CREATURE_NEAR * beach.tileSize;
+  for (const k of beach.critters.values()) {
+    if (k.flight || isRival(k)) continue;
+    const p = centre(k);
+    if (Math.abs(p.x - at.x) < reach && Math.abs(p.y - at.y) < reach) return true;
+  }
+  return false;
+}
+
+/** A bird hovering over the crab, about to stoop. */
+export function birdOverhead(beach: Beach): boolean {
+  for (const b of beach.birds.values()) if (b.phase === 'hover' || b.phase === 'dive') return true;
+  return false;
+}
+
 /**
  * The tutorial: watches play and offers one hint at a time for the lessons
  * a level teaches. Each lesson ends once the player has done it (eaten,
@@ -153,8 +191,8 @@ export class Coach {
     }
     if (c.sand < this.lastSand) this.done.add('drop');
     this.lastSand = c.sand;
-    if (c.hidden && this.hunterNear(beach)) this.done.add('hide');
-    this.escape('sky', this.hovered(beach) && underSky(beach.terrain, c.body, beach.tileSize));
+    if (c.hidden && hunterNear(beach)) this.done.add('hide');
+    this.escape('sky', birdOverhead(beach) && underSky(beach.terrain, c.body, beach.tileSize));
     this.escape('pit', beach.pitPull(c.body) !== 0);
     this.escape('sandfish', this.sandfishNear(beach) && !underSky(beach.terrain, c.body, beach.tileSize));
     this.escape('octopus', [...beach.critters.values()].some((k) => k.arm > 0.15 && k.size > c.growth.size));
@@ -199,7 +237,7 @@ export class Coach {
     const t = TEXT[controls];
     const open = (l: Lesson): boolean => this.lessons.includes(l) && !this.done.has(l);
     const c = beach.crab;
-    if (open('hide') && this.hunterNear(beach) && !c.hidden) return { lesson: 'hide', text: t.hide! };
+    if (open('hide') && hunterNear(beach) && !c.hidden) return { lesson: 'hide', text: t.hide! };
     if (open('sky') && this.facing.has('sky')) return { lesson: 'sky', text: t.sky! };
     if (open('pit') && this.facing.has('pit')) return { lesson: 'pit', text: t.pit! };
     if (open('sandfish') && this.facing.has('sandfish')) return { lesson: 'sandfish', text: t.sandfish! };
@@ -225,7 +263,8 @@ export class Coach {
       const shell = this.biggerShell(beach);
       if (shell) return { lesson: 'swap', text: t.swap!, target: centre(shell) };
     }
-    if (this.lessons.includes('drop') && c.sand >= beach.sandCapacity) return { lesson: 'drop', text: t.full! };
+    // Full of sand it can dig no more: said on every level until it has put some down, always where dropping is taught.
+    if (c.sand >= beach.sandCapacity && (this.lessons.includes('drop') || !this.done.has('drop'))) return { lesson: 'drop', text: t.full! };
     if (open('buried')) {
       const shell = this.buriedShell(beach);
       if (shell) return { lesson: 'buried', text: t.buried!, target: centre(shell) };
@@ -392,24 +431,6 @@ export class Coach {
   private perchedShell(beach: Beach): { x: number; y: number } | null {
     const shell = this.nearest(beach, (i) => i.kind.type === 'shell' && !i.buried && beach.inRoots({ ...i, y: i.y + i.h, h: 2 }));
     return shell ? centre(shell) : null;
-  }
-
-  private hunterNear(beach: Beach): boolean {
-    const c = beach.crab;
-    const at = centre(c.body);
-    const reach = DANGER_TILES * beach.tileSize;
-    for (const k of beach.critters.values()) {
-      if (k.size <= c.growth.size) continue;
-      const p = centre(k);
-      if (Math.abs(p.x - at.x) < reach && Math.abs(p.y - at.y) < reach) return true;
-    }
-    return false;
-  }
-
-  /** A bird hovering over the crab, about to stoop. */
-  private hovered(beach: Beach): boolean {
-    for (const b of beach.birds.values()) if (b.phase === 'hover' || b.phase === 'dive') return true;
-    return false;
   }
 
   private sandfishNear(beach: Beach): boolean {

@@ -162,6 +162,14 @@ export function critterPoints(size: number): number {
   return size + 1;
 }
 
+/**
+ * Whether a creature can catch the crab: a bigger one always; out of its
+ * shell (moving house), any one at all, however small.
+ */
+export function threatens(k: Critter, crabSize: number, exposed: boolean): boolean {
+  return exposed || k.size > crabSize;
+}
+
 export function makeCritter(id: number, size: number, x: number, bottom: number, dir: 1 | -1, turnIn: number, species: SpeciesId = 'ghostcrab'): Critter {
   const { w, h } = critterBox(size, species);
   return { id, species, size, x: x - w / 2, y: bottom - h, w, h, vx: 0, vy: 0, onGround: false, dir, turnIn, bored: 0, clock: 0, arm: 0, aimX: dir, aimY: 0, dry: 0 };

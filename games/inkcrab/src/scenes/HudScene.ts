@@ -24,7 +24,10 @@ import { rainTurn } from '../logic/rain';
 import { windTurn } from '../logic/wind';
 import { moonTurn } from '../logic/moon';
 import { chainPrompt, missionGoal, missionLine, missionNotes, missionTag } from '../logic/mission';
-import { behind, hintAlpha } from '../logic/hintFade';
+import { behind, hintAlpha, type Box } from '../logic/hintFade';
+import { creatureNear, type Controls, type Hint } from '../logic/coach';
+import { FirstPress } from '../logic/firstPress';
+import { PressCue } from './hud/pressCue';
 
 const PANEL = { x: 16, y: 14, w: 380, h: 118 } as const;
 /** A mission's line, in red pencil under the panel's last row; the panel grows to hold it. */
@@ -95,6 +98,11 @@ export class HudScene extends Phaser.Scene {
   private stickPull = { x: 0, y: 0 };
   private touchSeen = false;
   private modeKnown = false;
+  /** The grab button is showing: a shell or a rival is in reach. */
+  private grabShown = false;
+  /** Which presses the player has made, so each is singled out only the first time it's needed. */
+  private firstPress!: FirstPress;
+  private pressCue!: PressCue;
 
   constructor() {
     super('Hud');
@@ -131,6 +139,8 @@ export class HudScene extends Phaser.Scene {
     this.muteButton = this.makeMuteButton();
     this.coachBox = this.add.graphics();
     this.coachText = inkText(this, 0, 0, '', 21).setWordWrapWidth(520).setAlign('center');
+    this.firstPress = new FirstPress(getHost(this).storage);
+    this.pressCue = new PressCue(this);
     this.showIntro(game);
     this.sand = text(HEAP_AT.x, HEAP_AT.bottom + 2, 16).setOrigin(0.5, 0);
     this.note = text(28, 82, 20);
@@ -174,7 +184,12 @@ export class HudScene extends Phaser.Scene {
     this.title.setText(game.level.name);
     this.sizeText.setText(`size ${c.growth.size} of ${goal}`);
     this.syncLives(beach.lives, (c.shell ?? START_SHELL).kind, width);
-    this.drawCoach(game, width, height, delta);
+    this.dismissIntroOnMove(game);
+    const controls: Controls = this.touchSeen ? 'touch' : 'keys';
+    const hint = this.intro?.active ? null : game.coach.hint(beach, controls);
+    this.drawCoach(game, hint, width, height, delta);
+    this.firstPress.observe(beach, controls);
+    const cue = this.intro?.active || this.pauseLayer ? null : this.firstPress.cue(beach, hint?.lesson ?? null, controls);
     this.pauseLayer?.setPosition(width / 2, height / 2);
 
     this.drawTide(game, width);
@@ -209,10 +224,12 @@ export class HudScene extends Phaser.Scene {
     } else if (near && near.kind.type === 'shell' && !c.swap) {
       const s = near.kind.shell;
       const how = this.touchSeen ? 'grab it' : 'press E';
+      // Out of its shell any creature can catch it: moving in with one about is a risk, said in red.
+      const risky = beach.nearbyFits && creatureNear(beach);
       const verdict = beach.nearbyFits
-        ? `${how} to move in`
+        ? `${how} to move in${risky ? ' · careful, out of your shell anything can catch you!' : ''}`
         : c.growth.size < s.size - 1 ? 'too big for you yet' : 'too small for you now';
-      this.prompt.setText(`${shellName(s)} · ${verdict}`).setPosition(width / 2, height - PROMPT_RISE).setVisible(true);
+      this.prompt.setText(`${shellName(s)} · ${verdict}`).setColor(risky ? RED : BLUE).setPosition(width / 2, height - PROMPT_RISE).setVisible(true);
     } else this.prompt.setVisible(false);
 
     this.help.setPosition(width - 14, height - 10).setText(this.touchSeen
@@ -223,9 +240,22 @@ export class HudScene extends Phaser.Scene {
       const screen = screenSize(this);
       this.drawStick(screen.height);
       const grabbable = (near !== null && beach.nearbyFits) || rival !== null;
-      const lit = { dig: this.digPointer !== null, grab: grabbable && !c.swap, hide: c.hidden, shell: (c.shell ?? START_SHELL).kind };
+      this.grabShown = !c.swap && (near !== null || rival !== null);
+      const lit = { dig: this.digPointer !== null, grab: grabbable && !c.swap, grabShown: this.grabShown, hide: c.hidden, shell: (c.shell ?? START_SHELL).kind };
       this.buttons.draw(screen.width, screen.height, uiScaleOf(this), lit);
-    } else this.buttons.hide();
+      if (cue) this.pressCue.drawButton(cue, this.controls, screen.width, screen.height, uiScaleOf(this), this.time.now);
+    } else {
+      this.buttons.hide();
+      if (cue) this.pressCue.drawKey(cue, this.crabBox(game), c.facing, width, height, this.time.now);
+    }
+    if (!cue) this.pressCue.hide();
+  }
+
+  /** The crab's box on screen, in HUD units. */
+  private crabBox(game: GameScene): Box {
+    const k = uiScaleOf(this);
+    const crab = game.crabOnScreen();
+    return { x: crab.x / k, y: crab.y / k, w: crab.w / k, h: crab.h / k };
   }
 
   /** The panel's height: taller with a mission line in it. */
@@ -303,9 +333,7 @@ export class HudScene extends Phaser.Scene {
    * short one, the panel's width at the left, out of the beach's middle. It
    * fades while the crab is behind it.
    */
-  private drawCoach(game: GameScene, width: number, height: number, dt: number): void {
-    this.dismissIntroOnMove(game);
-    const hint = this.intro?.active ? null : game.coach.hint(game.beach, this.touchSeen ? 'touch' : 'keys');
+  private drawCoach(game: GameScene, hint: Hint | null, width: number, height: number, dt: number): void {
     const box = this.coachBox.clear();
     this.coachText.setVisible(hint !== null);
     if (!hint) {
@@ -319,10 +347,7 @@ export class HudScene extends Phaser.Scene {
     const h = this.coachText.height + 16;
     const x = short ? PANEL.x : width / 2 - w / 2;
     this.coachText.setPosition(x + w / 2, top + h / 2);
-    const k = uiScaleOf(this);
-    const crab = game.crabOnScreen();
-    const crabBox = { x: crab.x / k, y: crab.y / k, w: crab.w / k, h: crab.h / k };
-    this.coachAlpha = hintAlpha(this.coachAlpha, behind({ x, y: top, w, h }, crabBox, COACH_CLEARANCE), dt);
+    this.coachAlpha = hintAlpha(this.coachAlpha, behind({ x, y: top, w, h }, this.crabBox(game), COACH_CLEARANCE), dt);
     this.coachText.setAlpha(this.coachAlpha);
     box.setAlpha(this.coachAlpha);
     box.fillStyle(PAPER_HEX, 0.94).fillRect(x, top, w, h);
@@ -490,7 +515,7 @@ export class HudScene extends Phaser.Scene {
     const v = toView(p.x, p.y);
     const { width, height } = screenSize(this);
     const t = this.touch();
-    switch (buttonAt(v.x, v.y, width, height)) {
+    switch (buttonAt(v.x, v.y, width, height, this.grabShown)) {
       case 'jump':
         if (t) t.jump = true;
         return;

@@ -49,6 +49,18 @@ describe('the coach', () => {
     expect(coach.hint(b, 'keys')).toBeNull();
   });
 
+  it('says to drop sand once the crab is full of it, on any level, until it has dropped some', () => {
+    const b = beach();
+    const coach = new Coach([]);
+    play(b, coach, {}, 1);
+    b.crab = { ...b.crab, sand: b.sandCapacity };
+    expect(coach.hint(b, 'keys')?.text).toMatch(/full of sand/i);
+    expect(coach.hint(b, 'touch')?.text).toMatch(/dig/i);
+    play(b, coach, { place: true }, 1);
+    b.crab = { ...b.crab, sand: b.sandCapacity };
+    expect(coach.hint(b, 'keys')).toBeNull();
+  });
+
   it('points at a bigger shell once the shell is full, until the crab moves in', () => {
     const snail = makeItem(9, shell('snail'), 20 * T, 10 * T - 10, false);
     const b = beach([snail]);

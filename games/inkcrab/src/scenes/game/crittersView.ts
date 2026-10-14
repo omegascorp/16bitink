@@ -4,7 +4,7 @@ import { CRITTER_FRAME, CRITTER_GROUND, CRITTER_RES, CRITTER_SPAN } from '../../
 import { HERON_BILL_HEX, HERON_CAP_HEX, HERON_IRIS_HEX, HERON_JAW_HEX, HERON_NECK, HERON_NECK_HEX, HERON_NECK_WIDTH, HERON_THROAT_HEX } from '../../art/critters/heron';
 import { BOIL } from '../../art/palette';
 import { TEX } from '../../art/textures';
-import { armTip, breached, type Critter } from '../../logic/critters';
+import { armTip, breached, threatens, type Critter } from '../../logic/critters';
 import { isRival } from '../../logic/rivals';
 import { movementOf } from '../../logic/species';
 import type { Terrain } from '../../logic/terrain';
@@ -77,7 +77,8 @@ export class CrittersView {
     g.strokePath();
   }
 
-  sync(critters: ReadonlyMap<number, Critter>, playerSize: number, time: number): void {
+  /** Draws the creatures; while the crab is `exposed` (out of its shell) every one is red: any of them can catch it then. */
+  sync(critters: ReadonlyMap<number, Critter>, playerSize: number, exposed: boolean, time: number): void {
     const g = this.ripples.clear();
     this.arms.clear();
     this.rings.clear();
@@ -108,18 +109,18 @@ export class CrittersView {
         continue;
       }
       const k = c.w / CRITTER_SPAN[c.species] / CRITTER_RES;
-      const danger = c.size > playerSize;
+      const danger = threatens(c, playerSize, exposed);
       const striking = move === 'wade' && c.strike !== undefined;
       s.art.setTexture(striking ? TEX.heronStrike(danger, f) : TEX.critter(c.species, danger, f)).setOrigin(0.5, GROUND_ORIGIN).setScale(k * c.dir, k).setPosition(cx, bottom);
       // A tree crab in the roots tips nose up (or down) climbing.
       const tilt = climbing ? Math.max(-1, Math.min(1, -c.vy / (Math.hypot(c.vx, c.vy) || 1))) * CLIMB_TILT * c.dir : 0;
       s.art.setRotation(-tilt);
       if (striking) this.heronNeck(c, danger);
-      s.mark.setVisible(c.size < playerSize).setPosition(cx, c.y + c.h * 0.4).setDisplaySize(c.w * 1.6, c.h * 1.5);
+      s.mark.setVisible(c.size < playerSize && !exposed).setPosition(cx, c.y + c.h * 0.4).setDisplaySize(c.w * 1.6, c.h * 1.5);
       const hidden = movementOf(c.species) === 'burrow' && !breached(this.terrain, c, this.tile);
       s.art.setVisible(!hidden);
-      if (hidden) this.ripple(g, c, c.size > playerSize, time);
-      if (move === 'den' && c.arm > 0.02) this.arm(c, c.size > playerSize, time);
+      if (hidden) this.ripple(g, c, danger, time);
+      if (move === 'den' && c.arm > 0.02) this.arm(c, danger, time);
     }
   }
 
