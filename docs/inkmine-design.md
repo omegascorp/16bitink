@@ -140,7 +140,7 @@ Ore is real minerals, so the field guide can teach real facts, as the fish and s
 - **Common ore** is shared across planets and climbs in value with depth: native copper, galena (lead), hematite (iron), silver, gold, platinum.
 - **Gems** are rare, single blocks: quartz, garnet, beryl, ruby, sapphire, diamond.
 - **Each planet has a signature material,** the one the guild sent you for. It shows up in that planet's missions and nowhere else, and it's the main ingredient of that planet's gear.
-- **Sold or kept.** Banked ore goes into the ship's hold. When you lift off, whatever your unbuilt blueprints need stays in the hold; everything else is sold. The guild takes only what a mission asks for; extra signature material is yours.
+- **Sold or kept.** Banked ore goes into the ship's hold. When you lift off, whatever your found, unbuilt blueprints need stays in the hold, and so does the planet's signature material, up to what all its unbuilt gear needs (blueprints turn up one by one, and graphite banked before the drill's blueprint shouldn't have been sold for 8 credits apiece). Everything else is sold. The guild takes only what a mission asks for; extra signature material is yours.
 - **Junk that looks like treasure:** pyrite (fool's gold) on Talus sells for almost nothing. A small joke and an early lesson about reading veins.
 
 Every ore type has its own highlighter colour and its own glyph shape in the rock (nuggets, crystals, bands), so it reads without colour.
@@ -176,7 +176,9 @@ Every ore type has its own highlighter colour and its own glyph shape in the roc
 | Careful hands | Set off none of the old charges (something you need sits in their blast) |
 | Rush | Lift off under par time |
 
-**Ink blots (stars):** one for the mission and one for each of the two contracts you took, so three per level. This replaces InkFish and InkCrab's par-time blot. A mining game is about exploring a big map, and a clock would fight that; "Rush" is there as a contract for players who want it.
+**Ink blots (stars):** one for the mission and one for each of the two contracts you took, so three per level. A level's blots are the mission plus every contract ever paid there, so replaying for a skipped contract adds its blot.
+
+**What pays when.** Banked ore always pays, even on a failed landing. The fee, the contracts and a mission's blueprint pay only on a won lift-off. A blueprint banked from the pouch is yours whatever happens next. Lifting off before the mission is done ("leave early", press lift-off twice) counts as a landing that wasn't won. Contracts about how a landing went (clean job, careful hands, rush) are judged at lift-off and show struck through in red the moment they're lost. This replaces InkFish and InkCrab's par-time blot. A mining game is about exploring a big map, and a clock would fight that; "Rush" is there as a contract for players who want it.
 
 ## Gear: blueprints, materials, the fabricator
 
@@ -198,6 +200,21 @@ Every planet has its own set of gear, the best you can have there, and you build
 1. **Its blueprint.** Found or earned on the planet, never bought. When you pick one up, the HUD flashes and the result card shows it as a pencil drawing with its recipe.
 2. **The planet's materials:** its signature material plus one of its ores or gems, for example *Cell Mk 1: 4 graphite, 3 quartz*. Hunting the planet for them is the point of being there.
 3. **A fabrication fee in credits**, so missions and contracts still matter.
+
+Graphite's Mk 1 recipes (`logic/blueprints.ts`), each graphite plus an ore the levels that hand out the blueprint are rich in:
+
+| Piece | Materials | Fee | Gives (`logic/marks.ts`) |
+| --- | --- | --- | --- |
+| Cell | 4 graphite, 6 copper | 60 | Energy 100 → 140 |
+| Pack | 3 graphite, 8 copper | 60 | Bag 10 → 14 |
+| Drill | 6 graphite, 4 galena | 100 | Breaks Graphite's stone |
+| Helmet | 4 graphite, 2 quartz | 90 | Lamp 4.5 → 6 tiles |
+| Jetpack | 5 graphite, 3 silver | 120 | Fuel 6 → 9 s, faster climb |
+| Suit | 8 graphite, 3 quartz | 150 | Hearts 3 → 4 |
+
+Every mark is an even step (energy +40, bag +4, fuel +3 s, lamp +1.5 tiles, a heart every odd mark), never an exponential curve.
+
+A mission that hands out a blueprint names it and its recipe on the intro card, so its materials get banked on the same landing: level 4's card says the drill needs 6 graphite and 4 galena, and its map is rich in both along the way down.
 
 **Where blueprints come from** on every planet:
 
@@ -361,15 +378,26 @@ Poses: idle, walk, drilling sideways, down and up, on a ladder, and flying (legs
 
 ## The lander
 
-The prospector's ship, refitted as the game goes on, with the same three looks as the gear:
+The prospector's ship, refitted as the game goes on, with the same three looks as the gear. The look follows the hull refit you've bought (below), not the planet:
 
-| Planets | Look | What's on it |
+| Hull refit | Look | What's on it |
 | --- | --- | --- |
-| 1–3 | The tin can | A dented can on spindly legs with shock absorbers, a row of heat-shield tiles, one engine with a scorch mark under it, a riveted porthole, a hatch with a window and a ladder down, an RCS quad, a dish and a pennant, a spare fuel tank strapped to a leg, a weld patch |
-| 4–7 | Refitted | Braced legs, a cargo pod clamped on, a solar wing on a hinged arm, a floodlight mast, a bigger dish, the guild's painted band |
-| 8–10 | The deep hauler | A wider hull with a cockpit window, twin engines, a radiator rack and a loading crane |
+| None | The tin can | A dented can on spindly legs with shock absorbers, a row of heat-shield tiles, one engine with a scorch mark under it, a riveted porthole, a hatch with a window and a ladder down, an RCS quad, a dish and a pennant, a spare fuel tank strapped to a leg, a weld patch |
+| 1 | Refitted | Braced legs, a cargo pod clamped on, a solar wing on a hinged arm, a floodlight mast, a bigger dish, the guild's painted band |
+| 2 | The deep hauler | A wider hull with a cockpit window, twin engines, a radiator rack and a loading crane |
 
 Every look has the **ore hopper** on its right side, where the prospector tips the bag in to bank it, a few lumps of the last load on its lip in highlighter.
+
+### Lander modules
+
+The ship's own upgrades, bought with **credits only** (decided with @Hayk on Oct 14, 2026). Gear takes blueprints and materials; the ship takes money, so credits always have somewhere to go. Prices are fixed and the steps gentle. The hull refit caps the rest: each module takes one level more than the hull's refit, so a refit opens the next row (`logic/ship.ts`).
+
+| Module | Levels | Costs (credits) | What each level gives |
+| --- | --- | --- | --- |
+| Winch | 2 | 120, 300 | Recall keeps half the bag, then the whole bag (the most valuable pieces first) |
+| Assay hopper | 3 | 150, 400, 900 | Ore sells for 10%, 20%, 30% more |
+| Ladder rack | 3 | 80, 200, 450 | 4 ladders each landing, then 6, 8, 10 |
+| Hull refit | 2 | 400, 1500 | The lander's look (refitted, the deep hauler) and the next row of upgrades |
 
 ## Controls
 
@@ -443,7 +471,16 @@ Three games now share a pen kit (strokes, paper, boil), synth audio and the leve
 
 Prototype the loop in one goal-less test mine first: if digging and coming back isn't fun on its own, missions won't fix it.
 
-**Built so far (Oct 13, 2026):** steps 1 and 2 as a test mine on Graphite (`games/inkmine`, `pnpm --filter @16bitink/inkmine dev`):
+**Built so far (Oct 14, 2026):** Graphite levels 1–5 are playable from the landing-site chart, with steps 3, 5 and 6 built for them:
+- Level definitions (`level/planet1.ts`) carved by the builder, with hand-placed rooms, fissures, vaults (walled in harder rock, a soil plug or firedamp as the way in) and items; a reachability test (`level/reach.ts`) checks every item with the drill the main path expects, and that levels 3 and 5 need their firedamp and new drill.
+- Missions (haul, hunt, core sample, salvage) and the contracts that don't need creatures (order, specimen, deep record, clean job, careful hands, rush); mission items in the rock or lying loose, a pouch that never fills, banked at the lander; lift-off.
+- Credits, the hold, the six Mk 1 blueprints and the fabricator, lander modules, result cards, saves (local only so far).
+- The helmet lamp: the ground darkens with depth, and the lamp's reach grows with the helmet's mark.
+- A plain landing-site chart standing in for the star chart.
+
+Not yet: creatures (levels 6 and 10, bounties), relays, the contracts board for planet 2 on, the coach, sound, touch controls, account sync of the profile.
+
+Built earlier (Oct 13, 2026), steps 1 and 2 as a test mine on Graphite (`games/inkmine`, `pnpm --filter @16bitink/inkmine dev`):
 - Walking, jumping and drilling by pushing, with diagonal stairs and slopes; the jetpack and its fuel.
 - Energy per block by grade and drill mark.
 - The ground drawn in three grades, with heavier outlines on rock the drill can't break. Only chunks near the camera exist.
@@ -474,10 +511,13 @@ Settled with @Hayk on Oct 13, 2026:
 - **Gear** is per planet: find the blueprint, hunt the planet's materials, build it.
 - **The planets** stay as listed.
 - **Levels** are laid out like InkCrab's: a short definition per level, carved by a builder.
+- **Blots:** the mission plus two contracts (three blots). **Six gear pieces** per planet. **Shared code:** copy from InkCrab now, extract a package later.
+
+Settled with @Hayk on Oct 14, 2026:
+
+- **The ship** is upgraded with lander modules bought with credits (above); the hull refit sets its look.
+- **Build order:** Graphite 1–5 and the economy first; creatures and levels 6–10 next.
 
 ## Open questions
 
-- **How many contracts count?** This spec has the mission plus two contracts (three blots, like the other games). One contract would make two blots per level.
-- **Six pieces per planet** is 60 blueprints across the game. Fewer (Drill, Cell and two others per planet) would be less to balance and draw.
 - **Pumice's gear.** The jetpack was planet 5's given gear; it's now in the starter set, so low gravity needs another piece (or none).
-- **Shared code.** Copy from InkCrab now and extract a shared package later (this spec), or extract first?

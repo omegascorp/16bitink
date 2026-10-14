@@ -1,7 +1,8 @@
 import { mount } from '../src/index';
 
-// Dev harness: the goal-less test mine. There is no paid content yet.
+// Dev harness: Graphite's landing sites. There is no paid content yet. `?reset` starts a new profile.
 await document.fonts.load('32px Caveat').catch(() => undefined);
+if (new URLSearchParams(location.search).has('reset')) window.localStorage.removeItem('inkmine.profile.v1');
 const parent = document.getElementById('game');
 if (!parent) throw new Error('#game missing');
 const handle = mount(parent, {

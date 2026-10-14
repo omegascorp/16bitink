@@ -3,8 +3,11 @@ import Phaser from 'phaser';
 import { PAPER } from './art/palette';
 import { REG } from './host';
 import { BootScene } from './scenes/BootScene';
+import { ChartScene } from './scenes/ChartScene';
 import { GameScene } from './scenes/GameScene';
 import { HudScene } from './scenes/HudScene';
+import { ResultScene } from './scenes/ResultScene';
+import { ShipScene } from './scenes/ShipScene';
 import { DPR } from './scenes/hidpi';
 
 /** Mounts InkMine into `parent`, filling it completely and tracking its size. */
@@ -31,7 +34,7 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     },
     input: { activePointers: 3 },
     audio: { noAudio: true },
-    scene: [BootScene, GameScene, HudScene],
+    scene: [BootScene, ChartScene, ShipScene, GameScene, HudScene, ResultScene],
   });
   game.registry.set(REG.host, host);
   const resizer = new ResizeObserver(() => {

@@ -40,7 +40,34 @@ export interface CarveSpec {
   readonly charges?: readonly { readonly kind: 'charge' | 'lineCharge'; readonly at: readonly [number, number] }[];
   /** The lander's column: the ground is flat and clear around it. */
   readonly landerCol: number;
+  /** Hand-placed caves round a column and depth, so wide and tall. */
+  readonly rooms?: readonly Room[];
+  /** Hand-placed fissures: open passages two tiles across, through these points (column, depth) in order. They go through any rock. */
+  readonly tunnels?: readonly (readonly (readonly [number, number])[])[];
+  /** Vaults: small treasure rooms walled in harder rock, with one door plugged with softer stuff. */
+  readonly vaults?: readonly Vault[];
+  /** Firedamp pockets placed by hand (column, depth), as a way through a vault wall. */
+  readonly pockets?: readonly (readonly [number, number])[];
 }
+
+export interface Room {
+  readonly at: readonly [number, number];
+  readonly w: number;
+  readonly h: number;
+}
+
+/** A vault: an open room `w` × `h` from its top-left (column, depth), walled two tiles thick. */
+export interface Vault {
+  readonly at: readonly [number, number];
+  readonly w: number;
+  readonly h: number;
+  readonly wall: 'stone' | 'deep';
+  /** A side whose wall is plugged with soil instead (none: walled all round). */
+  readonly door?: 'left' | 'right' | 'top';
+}
+
+/** A vault's wall thickness, tiles. */
+export const VAULT_WALL = 2;
 
 /** Rows of bedrock at the bottom of every site. */
 export const BEDROCK_ROWS = 2;
@@ -62,8 +89,15 @@ export function carve(spec: CarveSpec): Terrain {
   const surface = Array.from({ length: spec.width }, (_, x) => surfaceAt(spec, x));
   layGround(t, spec, surface);
   for (let i = 0; i < spec.caves; i++) worm(t, spec, surface, rng);
+  for (const room of spec.rooms ?? []) openRoom(t, spec, room);
+  for (const line of spec.tunnels ?? []) tunnel(t, spec, line);
   for (const rule of spec.ores) for (let i = 0; i < rule.veins; i++) vein(t, spec, surface, rule, rng);
   for (let i = 0; i < spec.firedamp; i++) firedamp(t, spec, surface, rng);
+  for (const vault of spec.vaults ?? []) wallVault(t, spec, vault);
+  for (const [x, depth] of spec.pockets ?? []) {
+    const y = spec.surface + depth;
+    if (inside(t, x, y) && tileAt(t, x, y) !== TILE.air && tileAt(t, x, y) !== TILE.bedrock) setTile(t, x, y, tileAt(t, x, y), 0, VOLATILES.firedamp.id);
+  }
   for (const { kind, at: [x, depth] } of spec.charges ?? []) {
     const y = surface[x]! + depth;
     if (inside(t, x, y) && tileAt(t, x, y) !== TILE.air && tileAt(t, x, y) !== TILE.bedrock) t.volatile[y * t.width + x] = VOLATILES[kind].id;
@@ -108,6 +142,58 @@ function worm(t: Terrain, spec: CarveSpec, surface: readonly number[], rng: Rng)
         const tile = tileAt(t, cx, cy);
         if (tile === TILE.soil || tile === TILE.stone || tile === TILE.deep) setTile(t, cx, cy, TILE.air);
       }
+    }
+  }
+}
+
+/** Opens tile (x, y) unless it's bedrock or out of the grid. */
+function open(t: Terrain, x: number, y: number): void {
+  const tile = tileAt(t, x, y);
+  if (inside(t, x, y) && tile !== TILE.air && tile !== TILE.bedrock) setTile(t, x, y, TILE.air);
+}
+
+/** A hand-placed cave, `w` × `h` tiles round its centre tile: a flat floor to walk on under an arched roof. */
+function openRoom(t: Terrain, spec: CarveSpec, room: Room): void {
+  const [col, depth] = room.at;
+  const x0 = col - Math.floor(room.w / 2);
+  const y0 = spec.surface + depth - Math.floor(room.h / 2);
+  for (let j = 0; j < room.h; j++) {
+    const dy = ((j + 0.5) / room.h) * 2 - 1;
+    for (let i = 0; i < room.w; i++) {
+      const dx = ((i + 0.5) / room.w) * 2 - 1;
+      if (dx * dx + (dy < 0 ? dy * dy : dy ** 8) <= 1) open(t, x0 + i, y0 + j);
+    }
+  }
+}
+
+/** A fissure: a passage two tiles across along a line of points. */
+function tunnel(t: Terrain, spec: CarveSpec, line: readonly (readonly [number, number])[]): void {
+  for (let i = 1; i < line.length; i++) {
+    const [ax, ad] = line[i - 1]!;
+    const [bx, bd] = line[i]!;
+    const steps = Math.max(Math.abs(bx - ax), Math.abs(bd - ad)) * 2;
+    for (let k = 0; k <= steps; k++) {
+      const x = Math.round(ax + ((bx - ax) * k) / steps);
+      const y = spec.surface + Math.round(ad + ((bd - ad) * k) / steps);
+      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]] as const) open(t, x + dx, y + dy);
+    }
+  }
+}
+
+/** A vault: an empty room walled in harder rock, with nothing in the wall but what's put there by hand. */
+function wallVault(t: Terrain, spec: CarveSpec, v: Vault): void {
+  const [vx, depth] = v.at;
+  const vy = spec.surface + depth;
+  const W = VAULT_WALL;
+  const wall = v.wall === 'deep' ? TILE.deep : TILE.stone;
+  for (let y = vy - W; y < vy + v.h + W; y++) {
+    for (let x = vx - W; x < vx + v.w + W; x++) {
+      if (!inside(t, x, y)) continue;
+      const inRoom = x >= vx && x < vx + v.w && y >= vy && y < vy + v.h;
+      const door = (v.door === 'left' && x < vx && y >= vy && y < vy + v.h)
+        || (v.door === 'right' && x >= vx + v.w && y >= vy && y < vy + v.h)
+        || (v.door === 'top' && y < vy && x >= vx && x < vx + v.w);
+      setTile(t, x, y, inRoom ? TILE.air : door ? TILE.soil : wall);
     }
   }
 }

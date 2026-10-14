@@ -2,7 +2,12 @@ import { boxHitsSolid, climbBody, jump, moveBody, type Body, type Box } from './
 import { BlastSim, type Blast } from './blastSim';
 import type { Loadout } from './gear';
 import { DRILL_SECONDS_PER_ENERGY, tileCost, VOLATILE_COST, type DrillSpec } from './drill';
+import { addHold, holdOfBag, holdValue, EMPTY_HOLD, type Hold } from './hold';
+import { bankItems, freeItems, inPouch, placeItems, stepItems, type ItemDef, type MineItem } from './items';
 import { ladderRungs, Ladders } from './ladders';
+import { jetFor, type JetSpec } from './marks';
+import type { ItemKind, Tally } from './mission';
+import { oreById } from './ore';
 import { caught, newPiece, PIECE, stepPiece, type Piece } from './pieces';
 import { bagFull, bagValue, burn, emptyBag, hurt, newSuit, recharge, refuel, spend, stow, type Suit, type SuitSpec } from './suit';
 import { bodyCell, centredX, drillTarget } from './target';
@@ -20,6 +25,12 @@ export interface MineSetup {
   readonly ladders: number;
   /** The lander's middle column and the surface row it stands on. */
   readonly lander: { readonly col: number; readonly row: number };
+  /** The jetpack's mark (default the starter's). */
+  readonly jet?: JetSpec;
+  /** Mission items: cores, probes, fossils, blueprints (default none). */
+  readonly items?: readonly ItemDef[];
+  /** Share of the bag a recall keeps: the ship's winch (default none). */
+  readonly winchKeeps?: number;
 }
 
 /** One step's controls: held directions (-1..1), the jump button held (thrust), and buttons pressed this step. */
@@ -31,9 +42,11 @@ export interface MineInput {
   readonly thrust: boolean;
   readonly ladder: boolean;
   readonly recall: boolean;
+  /** Lift off, if at the lander. */
+  readonly liftoff?: boolean;
 }
 
-export const NO_INPUT: MineInput = { ix: 0, iy: 0, jump: false, thrust: false, ladder: false, recall: false };
+export const NO_INPUT: MineInput = { ix: 0, iy: 0, jump: false, thrust: false, ladder: false, recall: false, liftoff: false };
 
 export type MineEvent =
   | { readonly kind: 'tiles'; readonly tiles: readonly TilePos[] }
@@ -52,15 +65,19 @@ export type MineEvent =
   | { readonly kind: 'ladder'; readonly rungs: readonly TilePos[] }
   | { readonly kind: 'noLadders' }
   | { readonly kind: 'recall'; readonly lost: number }
+  | { readonly kind: 'item'; readonly item: MineItem }
+  | { readonly kind: 'bankItem'; readonly item: MineItem }
+  | { readonly kind: 'liftoff' }
   | { readonly kind: 'failed' };
 
 export const PROSPECTOR = { w: 20, h: 28, walk: 125, climb: 105, jump: 330 } as const;
 /**
- * The jetpack: hold jump in the air to fly. `thrust` (px/s²) beats gravity
- * (900), the climb tops out at `maxRise` px/s, and it burns `burn` fuel a
- * second from a tank of its own, refilled at the lander.
+ * The starter jetpack: hold jump in the air to fly. `thrust` (px/s²) beats
+ * gravity (900), the climb tops out at `maxRise` px/s, and it burns `burn`
+ * fuel a second from a tank of its own, refilled at the lander. Better
+ * marks climb faster (marks.ts).
  */
-export const JET = { thrust: 1650, maxRise: 240, burn: 10 } as const;
+export const JET: JetSpec = jetFor(0);
 /** Px/s the prospector drops into a block they just drilled out from under themselves (or steps off a stair onto), so going down doesn't wait on gravity. */
 const DROP_KICK = 260;
 /** Seconds for the drill to open a firedamp pocket or knock an old charge's detonator. */
@@ -89,10 +106,17 @@ export class Mine {
   readonly ladders: Ladders;
   readonly blasts: BlastSim;
   readonly landerBox: Box;
+  readonly jet: JetSpec;
   player: Body;
   facing: 1 | -1 = 1;
   suit: Suit;
-  credits = 0;
+  /** Ore banked at the lander this landing. */
+  banked: Hold = EMPTY_HOLD;
+  items: MineItem[];
+  deepest = 0;
+  heartsLost = 0;
+  /** Old charges (not firedamp) that have gone off. */
+  chargesFired = 0;
   laddersLeft: number;
   pieces: Piece[] = [];
   drilling: Drilling | null = null;
@@ -100,7 +124,7 @@ export class Mine {
   /** The jetpack fired this step. */
   jetting = false;
   time = 0;
-  state: 'playing' | 'failed' = 'playing';
+  state: 'playing' | 'failed' | 'lifted' = 'playing';
   private readonly said = new Map<string, number>();
 
   constructor(private readonly setup: MineSetup) {
@@ -111,15 +135,40 @@ export class Mine {
     this.blasts = new BlastSim(setup.terrain);
     this.suit = newSuit(setup.suit);
     this.laddersLeft = setup.ladders;
+    this.jet = setup.jet ?? JET;
     const T = this.tile;
     const { col, row } = setup.lander;
     this.landerBox = { x: (col - LANDER.half) * T, y: (row - LANDER.rows) * T, w: (LANDER.half * 2 + 1) * T, h: LANDER.rows * T };
+    this.items = placeItems(setup.terrain, setup.items ?? [], row, T);
     this.player = this.startBody();
   }
 
   /** Metres below the lander's ground. */
   get depth(): number {
     return Math.max(0, Math.floor((this.player.y + this.player.h) / this.tile) - this.setup.lander.row);
+  }
+
+  /** What the banked ore is worth at the guild rate. */
+  get credits(): number {
+    return holdValue(this.banked);
+  }
+
+  /** Whether the prospector is at the lander (where they bank, and can lift off). */
+  get atLander(): boolean {
+    const p = this.player;
+    const l = this.landerBox;
+    return !(p.x + p.w < l.x || p.x > l.x + l.w || p.y + p.h < l.y || p.y > l.y + l.h);
+  }
+
+  /** How the landing stands, for the mission and contracts. */
+  tally(): Tally {
+    const items: ItemKind[] = this.items.filter((it) => it.state === 'banked').map((it) => it.kind);
+    return { banked: this.banked, items, deepest: this.deepest, heartsLost: this.heartsLost, charges: this.chargesFired, time: this.time };
+  }
+
+  /** Blueprint ids banked this landing. */
+  bankedBlueprints(): string[] {
+    return this.items.filter((it) => it.state === 'banked' && it.blueprint).map((it) => it.blueprint!);
   }
 
   /** How far through the current block the drill is, 0..1. */
@@ -132,13 +181,21 @@ export class Mine {
     if (this.state !== 'playing') return [];
     this.time += dt;
     const events: MineEvent[] = [];
+    if (input.liftoff && this.atLander) {
+      this.landerStep(events);
+      this.state = 'lifted';
+      events.push({ kind: 'liftoff' });
+      return events;
+    }
     if (input.recall) this.recall(events);
     if (input.ladder) this.placeLadder(events);
     const blocked = this.move(dt, input, events);
     this.drillStep(dt, input, blocked, events);
     this.blastStep(dt, events);
     this.pieceStep(dt, events);
+    this.itemStep(dt, events);
     this.landerStep(events);
+    this.deepest = Math.max(this.deepest, this.depth);
     if (this.suit.hearts <= 0) {
       this.state = 'failed';
       events.push({ kind: 'failed' });
@@ -176,8 +233,8 @@ export class Mine {
       if (input.thrust && !launched.onGround) {
         if (this.suit.fuel > 0) {
           this.jetting = true;
-          this.suit = burn(this.suit, JET.burn * dt);
-          launched = { ...launched, vy: Math.max(-JET.maxRise, launched.vy - JET.thrust * dt) };
+          this.suit = burn(this.suit, this.jet.burn * dt);
+          launched = { ...launched, vy: Math.max(-this.jet.maxRise, launched.vy - this.jet.thrust * dt) };
         } else this.notice('noFuel', events, { kind: 'noFuel' });
       }
       this.player = moveBody(this.terrain, launched, input.ix, PROSPECTOR.walk, dt, T, input.iy <= 0);
@@ -236,6 +293,7 @@ export class Mine {
       events.push({ kind: 'drilled', tile: [tx, ty], cost: costs[i]!, ore });
     });
     if (target.centre && y > bodyCell(this.player, this.tile).row) this.player = { ...this.player, vy: DROP_KICK, onGround: false };
+    this.items = freeItems(this.items, tiles);
     events.push({ kind: 'tiles', tiles });
   }
 
@@ -258,8 +316,12 @@ export class Mine {
 
   private blastStep(dt: number, events: MineEvent[]): void {
     const { changed, blasts } = this.blasts.step(dt);
-    if (changed.length) events.push({ kind: 'tiles', tiles: changed });
+    if (changed.length) {
+      this.items = freeItems(this.items, changed);
+      events.push({ kind: 'tiles', tiles: changed });
+    }
     for (const blast of blasts) {
+      if (blast.kind !== 'firedamp') this.chargesFired++;
       events.push({ kind: 'blast', blast });
       for (const { ore, tile } of blast.ores) this.pieces.push(newPiece(ore, (tile[0] + 0.5) * this.tile, (tile[1] + 0.5) * this.tile));
       if (blast.area.some(([x, y]) => this.occupies(x, y))) this.hurt(events);
@@ -282,20 +344,29 @@ export class Mine {
     this.pieces = kept;
   }
 
+  private itemStep(dt: number, events: MineEvent[]): void {
+    const { items, caught } = stepItems(this.terrain, this.items, this.player, dt, this.tile);
+    this.items = items;
+    for (const item of caught) events.push({ kind: 'item', item });
+  }
+
   private near(p: Box): boolean {
     const a = this.player;
     return Math.hypot(a.x + a.w / 2 - (p.x + p.w / 2), a.y + a.h / 2 - (p.y + p.h / 2)) < PIECE.magnet;
   }
 
   private landerStep(events: MineEvent[]): void {
-    const p = this.player;
-    const l = this.landerBox;
-    if (p.x + p.w < l.x || p.x > l.x + l.w || p.y + p.h < l.y || p.y > l.y + l.h) return;
+    if (!this.atLander) return;
     if (this.suit.bag.length) {
       const credits = bagValue(this.suit.bag);
       events.push({ kind: 'bank', credits, pieces: this.suit.bag.length });
-      this.credits += credits;
+      this.banked = addHold(this.banked, holdOfBag(this.suit.bag));
       this.suit = emptyBag(this.suit);
+    }
+    if (inPouch(this.items).length) {
+      const { items, banked } = bankItems(this.items);
+      this.items = items;
+      for (const item of banked) events.push({ kind: 'bankItem', item });
     }
     if (this.suit.energy < this.suit.maxEnergy) {
       this.suit = recharge(this.suit);
@@ -321,10 +392,17 @@ export class Mine {
     events.push({ kind: 'ladder', rungs });
   }
 
-  /** The lander winches the prospector up; whatever's in the bag is dropped and lost. */
+  /**
+   * The lander winches the prospector up. Whatever's in the bag is dropped
+   * and lost, except the share the ship's winch keeps (the most valuable
+   * pieces). The pouch comes up with them.
+   */
   private recall(events: MineEvent[]): void {
-    const lost = this.suit.bag.length;
-    this.suit = emptyBag(this.suit);
+    const bag = this.suit.bag;
+    const keep = Math.floor(bag.length * (this.setup.winchKeeps ?? 0));
+    const kept = [...bag].sort((a, b) => (oreById(b)?.value ?? 0) - (oreById(a)?.value ?? 0)).slice(0, keep);
+    const lost = bag.length - kept.length;
+    this.suit = { ...emptyBag(this.suit), bag: kept };
     this.player = this.startBody();
     this.drilling = null;
     events.push({ kind: 'recall', lost });
@@ -333,7 +411,9 @@ export class Mine {
   private hurt(events: MineEvent[]): void {
     const r = hurt(this.suit, this.time);
     this.suit = r.suit;
-    if (r.hit) events.push({ kind: 'hurt', hearts: this.suit.hearts });
+    if (!r.hit) return;
+    this.heartsLost++;
+    events.push({ kind: 'hurt', hearts: this.suit.hearts });
   }
 
   private notice(key: string, events: MineEvent[], event: MineEvent): void {

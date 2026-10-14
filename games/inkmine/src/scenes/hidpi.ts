@@ -66,6 +66,23 @@ export function crispText(scene: Phaser.Scene): void {
   scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.events.off(Phaser.Scenes.Events.ADDED_TO_SCENE, onAdded));
 }
 
+/** Lays a page out again when the screen resizes or turns: restarts the scene with the same data, once the resizing settles. */
+export function relayoutOnResize(scene: Phaser.Scene, data: object): void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const { width, height } = scene.scale;
+  const onResize = (): void => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (scene.scale.width !== width || scene.scale.height !== height) scene.scene.restart(data);
+    }, 150);
+  };
+  scene.scale.on('resize', onResize);
+  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+    if (timer) clearTimeout(timer);
+    scene.scale.off('resize', onResize);
+  });
+}
+
 /**
  * Sets up a scene whose main camera is a plain fixed screen (menus, HUD, cards).
  * `scaled` draws it smaller on small screens (see uiScaleFor), following the
