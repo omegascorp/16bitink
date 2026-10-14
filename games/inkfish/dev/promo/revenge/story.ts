@@ -1,9 +1,12 @@
 import type { SfxId } from '../../../src/audio/recipes';
 import type { FishShape } from '../../../src/art/fishArt';
-import { mouthOf, NOSE, type Pose } from '../chain';
+import { mouthOf, NOSE } from '../chain';
 import { suckedIn } from '../effects';
 import { clamp01, curveAt, lerp, ramp, smooth, window01, type Key } from '../short';
-import { zoomLoopPath, type PathKey, type PathPoint } from './zoomPath';
+import { asPose as asWorldPose, facingAt, fishAt, seamTime, type View, type WorldFish } from '../gameplay/fish';
+import { zoomLoopPath, type PathKey } from '../gameplay/zoomPath';
+
+export type { View, WorldFish };
 
 /**
  * "Remember this perch": level 1 of the game, played as a highlight. A perch
@@ -46,43 +49,9 @@ const SPOT_LEAD = 0.55;
 export const SPOT_AT = LOOP_S - SPOT_LEAD;
 
 /** Seam time: a moment near the loop point as seconds from it (negative just before). */
-export const seam = (t: number): number => (t >= LOOP_S / 2 ? t - LOOP_S : t);
+export const seam = (t: number): number => seamTime(t, LOOP_S);
 
-/** A fish in the world, before the camera: centre and length in world px, the rest as in Pose. */
-export interface WorldFish {
-  readonly shape: FishShape;
-  readonly x: number;
-  readonly y: number;
-  readonly length: number;
-  readonly facing: 1 | -1;
-  readonly tilt: number;
-  readonly beat: number;
-  readonly effort: number;
-}
-
-/** Facing from a list of turns: [time, facing] in time order, the first from 0. */
-function facingAt(turns: readonly (readonly [number, 1 | -1])[], t: number): 1 | -1 {
-  let f = turns[0]![1];
-  for (const [at, to] of turns) if (t >= at) f = to;
-  return f;
-}
-
-/** Nose up or down with the swim, from velocity; damped by the fish's size so slow drifts stay level (and so it scales with the world). */
-function tiltFrom(p: PathPoint, length: number): number {
-  return Math.max(-0.85, Math.min(0.85, Math.atan2(-p.vy, Math.abs(p.vx) + 0.6 * length)));
-}
-
-function fishAt(shape: FishShape, p: PathPoint, length: number, facing: 1 | -1, beatHz: number, t: number): WorldFish {
-  return {
-    shape, x: p.x, y: p.y, length, facing,
-    tilt: tiltFrom(p, length),
-    // A whole number of beats per loop, so the tail is where it was at the seam.
-    beat: 2 * Math.PI * beatHz * t,
-    effort: clamp01(Math.hypot(p.vx, p.vy) / (2.2 * length)),
-  };
-}
-
-const asPose = (f: WorldFish): Pose => ({ j: 0, age: 0, ...f });
+const asPose = (f: WorldFish) => asWorldPose(f);
 
 // ---------------------------------------------------------------- the camera
 
@@ -111,13 +80,6 @@ const cameraPath = zoomLoopPath([
   { t: 7.8, x: 700, y: 300 },
   { t: 9.6, x: 760, y: 420 },
 ], LOOP_S, SCALE);
-
-export interface View {
-  /** World point at the screen's focus, and screen px per world px. */
-  readonly x: number;
-  readonly y: number;
-  readonly zoom: number;
-}
 
 /** Screen px per world px before the camera pulls back. */
 const BASE_ZOOM = 1.3;

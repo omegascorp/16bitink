@@ -7,7 +7,8 @@ import { makeSprite } from './sprites';
 import { drawSwimmer, type SwimLook } from './swimmer';
 
 /**
- * Shared pieces of the YouTube thumbnails (1280x720), modelled on what the
+ * Shared pieces of the YouTube thumbnails (1280x720) and the ad images (any
+ * size: everything is drawn at its canvas's size), modelled on what the
  * fish-eat-fish videos with millions of views do (Feed and Grow, the
  * "SIZE 1 vs SIZE 99999" and "FROM THIS... TO THIS..." formats):
  * - bright saturated water with warm-coloured fish on it;
@@ -36,7 +37,7 @@ export function water(ctx: CanvasRenderingContext2D, area: Rect, light: { readon
   ctx.beginPath();
   ctx.rect(area.x, area.y, area.width, area.height);
   ctx.clip();
-  const wash = ctx.createLinearGradient(0, 0, 0, THUMB.height);
+  const wash = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
   wash.addColorStop(0, '#3cc8f2');
   wash.addColorStop(0.55, '#1593db');
   wash.addColorStop(1, '#0a55a8');
@@ -64,37 +65,38 @@ export function water(ctx: CanvasRenderingContext2D, area: Rect, light: { readon
 /** Sunlight slanting down from the surface. */
 function rays(ctx: CanvasRenderingContext2D, area: Rect): void {
   const rng = createRng(17);
+  const depth = ctx.canvas.height * 0.85;
   for (let x = area.x + 60; x < area.x + area.width + 200; x += 180 + rng() * 80) {
     const w = 40 + rng() * 60;
-    const fade = ctx.createLinearGradient(0, 0, 0, THUMB.height * 0.85);
+    const fade = ctx.createLinearGradient(0, 0, 0, depth);
     fade.addColorStop(0, `rgba(190,245,255,${0.18 + rng() * 0.12})`);
     fade.addColorStop(1, 'rgba(190,245,255,0)');
     ctx.fillStyle = fade;
     ctx.beginPath();
     ctx.moveTo(x, 0);
     ctx.lineTo(x + w, 0);
-    ctx.lineTo(x + w - 240, THUMB.height * 0.85);
-    ctx.lineTo(x - 280, THUMB.height * 0.85);
+    ctx.lineTo(x + w - 240, depth);
+    ctx.lineTo(x - 280, depth);
     ctx.closePath();
     ctx.fill();
   }
 }
 
-function layerOf(draw: (c: CanvasRenderingContext2D) => void): HTMLCanvasElement {
+function layerOf(width: number, height: number, draw: (c: CanvasRenderingContext2D) => void): HTMLCanvasElement {
   const layer = document.createElement('canvas');
-  layer.width = THUMB.width;
-  layer.height = THUMB.height;
+  layer.width = width;
+  layer.height = height;
   draw(layer.getContext('2d')!);
   return layer;
 }
 
 /** `layer`'s silhouette, filled with `color`. */
 function silhouette(layer: HTMLCanvasElement, color: string): HTMLCanvasElement {
-  return layerOf((c) => {
+  return layerOf(layer.width, layer.height, (c) => {
     c.drawImage(layer, 0, 0);
     c.globalCompositeOperation = 'source-in';
     c.fillStyle = color;
-    c.fillRect(0, 0, THUMB.width, THUMB.height);
+    c.fillRect(0, 0, layer.width, layer.height);
   });
 }
 
@@ -112,7 +114,7 @@ function ring(ctx: CanvasRenderingContext2D, shape: HTMLCanvasElement, width: nu
  */
 function warm(layer: HTMLCanvasElement, tint: string): void {
   const c = layer.getContext('2d')!;
-  const probe = layerOf((p) => { p.fillStyle = tint; p.fillRect(0, 0, 1, 1); }).getContext('2d')!.getImageData(0, 0, 1, 1).data;
+  const probe = layerOf(1, 1, (p) => { p.fillStyle = tint; p.fillRect(0, 0, 1, 1); }).getContext('2d')!.getImageData(0, 0, 1, 1).data;
   const image = c.getImageData(0, 0, layer.width, layer.height);
   const px = image.data;
   for (let i = 0; i < px.length; i += 4) {
@@ -139,7 +141,7 @@ export interface StickerStyle {
  */
 export function sticker(ctx: CanvasRenderingContext2D, draw: (c: CanvasRenderingContext2D) => void, style: StickerStyle = {}): void {
   const { outline = 8, tint, clip } = style;
-  const layer = layerOf(draw);
+  const layer = layerOf(ctx.canvas.width, ctx.canvas.height, draw);
   if (tint) warm(layer, tint);
   ctx.save();
   if (clip) {
@@ -208,9 +210,9 @@ export function caption(ctx: CanvasRenderingContext2D, text: string, x: number, 
 export function divider(ctx: CanvasRenderingContext2D, x: number): void {
   ctx.save();
   ctx.fillStyle = BLACK;
-  ctx.fillRect(x - 9, 0, 18, THUMB.height);
+  ctx.fillRect(x - 9, 0, 18, ctx.canvas.height);
   ctx.fillStyle = RED;
-  ctx.fillRect(x - 5, 0, 10, THUMB.height);
+  ctx.fillRect(x - 5, 0, 10, ctx.canvas.height);
   ctx.restore();
 }
 

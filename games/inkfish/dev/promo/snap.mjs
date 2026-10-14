@@ -10,7 +10,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const pkg = path.resolve(here, '../..');
 const [outDir, query, ...times] = process.argv.slice(2);
 await mkdir(outDir, { recursive: true });
-const server = await createServer({ configFile: path.join(pkg, 'vite.config.ts'), root: path.join(pkg, 'dev'), server: { port: 0 }, logLevel: 'error' });
+const server = await createServer({ configFile: path.join(pkg, 'vite.config.ts'), root: path.join(pkg, 'dev'), server: { port: 0, hmr: false, watch: null }, logLevel: 'error' });
 await server.listen();
 const browser = await chromium.launch({ channel: 'chrome' });
 try {

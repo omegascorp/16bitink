@@ -58,6 +58,12 @@ const VARIANTS = [
   { name: 'inkfish-flying-fish', query: '&short=flyingfish', start: 0 },
   { name: 'inkfish-blackdragon', query: '&short=blackdragon', start: 0 },
   { name: 'inkfish-remember-this-perch', query: '&short=revenge', start: 0 },
+  { name: 'inkfish-spat-me-out', query: '&short=spat', start: 0 },
+  { name: 'inkfish-ink-escape', query: '&short=inkcloud', start: 0 },
+  { name: 'inkfish-free-food', query: '&short=bait', start: 0 },
+  { name: 'inkfish-ink-frenzy', query: '&short=frenzy', start: 0 },
+  { name: 'inkfish-how-did-that-fit', query: '&short=gape', start: 0 },
+  { name: 'inkfish-fly-too-low', query: '&short=leap', start: 0 },
 ];
 const chosen = only ? VARIANTS.filter((v) => v.name.includes(only)) : VARIANTS;
 if (chosen.length === 0) throw new Error(`No variant name contains "${only}": ${VARIANTS.map((v) => v.name).join(', ')}`);
@@ -136,7 +142,7 @@ async function record(page, base, variant) {
 }
 
 await mkdir(outDir, { recursive: true });
-const server = await createServer({ configFile: path.join(pkg, 'vite.config.ts'), root: path.join(pkg, 'dev'), server: { port: 0 }, logLevel: 'error' });
+const server = await createServer({ configFile: path.join(pkg, 'vite.config.ts'), root: path.join(pkg, 'dev'), server: { port: 0, hmr: false, watch: null }, logLevel: 'error' });
 await server.listen();
 const browser = await chromium.launch({ channel: 'chrome' });
 try {

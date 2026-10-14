@@ -1,8 +1,9 @@
-import { INK } from '../../../src/art/pen';
 import { BOIL_FPS } from '../../../src/art/textures';
-import { createRng } from '../../../src/logic/rng';
 import type { Pose } from '../chain';
-import { drawTextLine, INK_ON_PAPER, type TextInk } from '../captions';
+import { drawTextLine } from '../captions';
+import { onScreen as onScreenAt } from '../gameplay/fish';
+import { drawCredit, drawFloatText, drawGrowthBar, GROWTH_INK } from '../gameplay/hud';
+import { drawZoomMarks, type MarkField } from '../gameplay/marks';
 import { drawChomp, drawExclaim, drawSuction } from '../effects';
 import { makeBackdrop } from '../backdrop';
 import { VIDEO, type Short } from '../short';
@@ -18,116 +19,9 @@ import {
 
 /** The screen point the camera centres on: a little above the middle, clear of the captions and the bottom buttons. */
 const FOCUS = { x: VIDEO.width / 2, y: 820 } as const;
-const BIGGER_RED = '#a3342b';
-const BIGGER_INK: TextInk = { fill: BIGGER_RED, halo: INK_ON_PAPER.halo };
 
-function onScreen(f: WorldFish, v: View): Pose {
-  return {
-    j: 0, age: 0, ...f,
-    x: FOCUS.x + v.zoom * (f.x - v.x),
-    y: FOCUS.y + v.zoom * (f.y - v.y),
-    length: v.zoom * f.length,
-  };
-}
-
-// ---------------------------------------------------------------- the water
-
-interface Mark { readonly x: number; readonly y: number; readonly size: number; readonly wave: boolean; readonly phase: number }
-
-/** Marks on one tile of the world, in tile widths; each zoom layer repeats the tile SCALE times bigger. */
-const MARKS: readonly Mark[] = (() => {
-  const rng = createRng(1717);
-  return Array.from({ length: 34 }, () => ({ x: rng(), y: rng(), size: 0.6 + rng() * 0.8, wave: rng() < 0.6, phase: rng() * Math.PI * 2 }));
-})();
-const TILE = { w: 1500, h: 2600 } as const;
-
-const wrapTo = (v: number, size: number): number => v - size * Math.floor(v / size + 0.5);
-
-/**
- * The game's "~" current marks and specks of marine snow at every scale:
- * as the camera pulls back they shrink and fade, and bigger ones fade in,
- * so after a whole loop (SCALE times further back) the field is the same.
- * They are fixed in the world, so they slide by as the camera pans.
- */
-function drawMarks(ctx: CanvasRenderingContext2D, v: View, pull: number, t: number): void {
-  ctx.save();
-  ctx.strokeStyle = INK;
-  ctx.fillStyle = INK;
-  ctx.lineCap = 'round';
-  for (let layer = -1; layer <= 2; layer++) {
-    const size = SCALE ** layer;
-    const onScreenScale = SCALE ** (layer - pull);
-    for (const m of MARKS) {
-      const len = 70 * m.size * onScreenScale;
-      // Fade in while small, out while big: no mark pops.
-      const fade = Math.max(0, Math.min(1, (len - 10) / 30)) * Math.max(0, Math.min(1, (300 - len) / 140));
-      if (fade <= 0) continue;
-      const sway = 10 * onScreenScale * Math.sin((2 * Math.PI * t) / LOOP_S * 2 + m.phase);
-      const x = FOCUS.x + v.zoom * wrapTo(m.x * TILE.w * size - v.x, TILE.w * size) + sway;
-      const y = FOCUS.y + v.zoom * wrapTo(m.y * TILE.h * size - v.y, TILE.h * size);
-      if (x < -len || x > VIDEO.width + len || y < -len || y > VIDEO.height + len) continue;
-      ctx.globalAlpha = fade * (m.wave ? 0.2 : 0.24);
-      if (!m.wave) {
-        ctx.beginPath();
-        ctx.arc(x, y, Math.max(1, len * 0.035), 0, Math.PI * 2);
-        ctx.fill();
-        continue;
-      }
-      ctx.lineWidth = Math.max(1, len * 0.03);
-      ctx.beginPath();
-      for (let k = 0; k <= 6; k++) {
-        const px = x - len / 2 + (k / 6) * len;
-        const py = y + Math.sin(k * 1.4 + m.phase) * len * 0.06;
-        if (k === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      }
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
-}
-
-// ---------------------------------------------------------------- the HUD
-
-/** A hand-inked box: each side a little wobbly, the same every frame. */
-function wobblyBox(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
-  const rng = createRng(31);
-  const j = (): number => (rng() - 0.5) * 3;
-  ctx.beginPath();
-  ctx.moveTo(x + j(), y + j());
-  ctx.quadraticCurveTo(x + w / 2, y + j(), x + w + j(), y + j());
-  ctx.quadraticCurveTo(x + w + j(), y + h / 2, x + w + j(), y + h + j());
-  ctx.quadraticCurveTo(x + w / 2, y + h + j(), x + j(), y + h + j());
-  ctx.quadraticCurveTo(x + j(), y + h / 2, x + j(), y + j());
-  ctx.stroke();
-}
-
-const BAR = { x: 300, y: 1170, w: 600, h: 26 } as const;
-
-/** The game's growth bar, with your fish beside it. */
-function drawGrowthBar(ctx: CanvasRenderingContext2D, icon: Sprite, t: number): void {
-  const { fill, alpha } = growthBar(t);
-  if (alpha <= 0) return;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = 'rgba(255,250,240,0.9)';
-  ctx.fillRect(BAR.x, BAR.y, BAR.w, BAR.h);
-  ctx.fillStyle = 'rgba(52,102,194,0.6)';
-  ctx.fillRect(BAR.x, BAR.y, BAR.w * fill, BAR.h);
-  ctx.strokeStyle = INK;
-  ctx.lineWidth = 2.5;
-  for (const m of BAR_MARKS) {
-    ctx.beginPath();
-    ctx.moveTo(BAR.x + BAR.w * m, BAR.y - 6);
-    ctx.lineTo(BAR.x + BAR.w * m, BAR.y + BAR.h + 6);
-    ctx.stroke();
-  }
-  ctx.lineWidth = 3;
-  wobblyBox(ctx, BAR.x, BAR.y, BAR.w, BAR.h);
-  ctx.restore();
-  const pose: Pose = { j: 0, age: 0, shape: 'inkling', x: BAR.x - 70, y: BAR.y + BAR.h / 2, length: 100, facing: 1, tilt: 0, beat: 0, effort: 0 };
-  drawSwimmer(ctx, icon, pose, Math.floor(t * BOIL_FPS + 1e-6), { alpha });
-}
+const FIELD: MarkField = { focus: FOCUS, scale: SCALE, loopS: LOOP_S };
+const onScreen = (f: WorldFish, v: View): Pose => onScreenAt(f, v, FOCUS);
 
 // ---------------------------------------------------------------- the fish
 
@@ -175,7 +69,7 @@ export function createRevenge(ctx: CanvasRenderingContext2D): Short {
     const boil = Math.floor(t * BOIL_FPS + 1e-6);
     const v = viewAt(t);
     ctx.drawImage(backdrop, 0, 0);
-    drawMarks(ctx, v, pullAt(t), t);
+    drawZoomMarks(ctx, FIELD, v, pullAt(t), t);
     const jolt = shake(t);
     ctx.save();
     ctx.translate(jolt.x, jolt.y);
@@ -217,9 +111,11 @@ export function createRevenge(ctx: CanvasRenderingContext2D): Short {
     ctx.restore();
 
     const bigger = biggerText(t);
-    if (bigger) drawTextLine(ctx, 'Bigger!', you.x, you.y - you.length * 0.35 - 40 - 90 * bigger.rise, 88, 700, bigger.alpha, BIGGER_INK);
-    drawGrowthBar(ctx, icon, t);
+    if (bigger) drawFloatText(ctx, 'Bigger!', you.x, you.y - you.length * 0.35 - 40 - 90 * bigger.rise, 88, bigger.alpha, GROWTH_INK);
+    const bar = growthBar(t);
+    drawGrowthBar(ctx, icon, 'inkling', { ...bar, marks: BAR_MARKS }, t);
     for (const c of CAPTIONS) drawTextLine(ctx, c.text, VIDEO.width / 2, c.y, c.size, 700, captionAlpha(c, t));
+    drawCredit(ctx);
   };
 
   return { loopSeconds: LOOP_S, draw, audio: renderRevengeAudio };
