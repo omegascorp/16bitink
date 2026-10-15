@@ -2,7 +2,6 @@ import { BLUE, RED } from '../../art/palette';
 import { holdSize } from '../../logic/hold';
 import { jettison, moveStack, splitStack, transferAll, usedSlots, type Inventory, type SlotRef } from '../../logic/inventory';
 import { ORES } from '../../logic/ore';
-import { holdText } from '../ResultScene';
 import { drawSlotGrid, gridHeight } from '../slots';
 import { inkButton, inkText, noteText, PENCIL } from '../ui';
 import { section, SOFT_INK, type ShipPage } from './panel';
@@ -45,10 +44,6 @@ export function inventoryPanel(page: ShipPage, x: number, y: number, w: number):
     const stow = transferAll(p.suit, p.cargo);
     inkButton(scene, x + w / 2, ry + 20, 'Stow the bag in the cargo', () => page.commit({ ...p, suit: stow.from, cargo: stow.to }), { width: Math.min(300, w - 32), height: 40, size: 20, disabled: !holdSize(stow.moved) });
     ry += 52;
-  }
-  if (holdSize(p.pending)) {
-    const t = noteText(scene, x + 16, ry, `The guild holds ${holdText(p.pending)} for you until the cargo has room.`, 19, w - 32, RED);
-    ry += t.height + 8;
   }
   const h = ry - y + 8;
   section(scene, x, y, w, h, 'Inventory', 41);

@@ -1,5 +1,5 @@
 import type { Box } from './body';
-import { isSolid, type Terrain, type TilePos } from './terrain';
+import { isSolid, wrapX, type Terrain, type TilePos } from './terrain';
 
 /**
  * Which block pushing drills (no dig button: you push into the ground).
@@ -13,6 +13,8 @@ import { isSolid, type Terrain, type TilePos } from './terrain';
  *   the prospector along it.
  *
  * Only with footing (the ground, a ladder, or hovering on the jetpack).
+ * Tiles come back folded into the grid, so a dig across a wrapping world's
+ * join names the same tile as everything else does.
  */
 export interface Push {
   /** -1, 0 or 1. */
@@ -34,6 +36,13 @@ export function bodyCell(b: Box, tile: number): { col: number; row: number } {
 
 /** The block a push drills, or null. `blocked` says the sideways walk this step was stopped by a wall. */
 export function drillTarget(t: Terrain, b: Box, tile: number, push: Push, footing: boolean, blocked: boolean): DrillTarget | null {
+  const aimed = aim(t, b, tile, push, footing, blocked);
+  if (!aimed) return null;
+  const fold = ([x, y]: TilePos): TilePos => [wrapX(t, x), y];
+  return aimed.with ? { ...aimed, tile: fold(aimed.tile), with: fold(aimed.with) } : { ...aimed, tile: fold(aimed.tile) };
+}
+
+function aim(t: Terrain, b: Box, tile: number, push: Push, footing: boolean, blocked: boolean): DrillTarget | null {
   if (!footing || (push.ix === 0 && push.iy === 0)) return null;
   const { col, row } = bodyCell(b, tile);
   const solid = (x: number, y: number): boolean => isSolid(t, x, y);

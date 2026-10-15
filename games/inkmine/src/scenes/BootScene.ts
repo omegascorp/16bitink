@@ -15,6 +15,6 @@ export class BootScene extends Phaser.Scene {
     const { width, height } = viewSize(this);
     inkText(this, width / 2, height / 2, 'charging the drill…', 32);
     // Let the label paint before the (synchronous) texture drawing.
-    this.time.delayedCall(30, () => this.scene.start('Chart'));
+    this.time.delayedCall(30, () => this.scene.start('Game'));
   }
 }

@@ -1,7 +1,7 @@
 import { cellCase, cellGeometry } from '../logic/contour';
 import { hash } from '../logic/noise';
 import { createRng } from '../logic/rng';
-import { gradeOf, TILE, tileAt, volatileAt, type Grade, type Terrain } from '../logic/terrain';
+import { contentAt, gradeOf, inside, TILE, tileAt, volatileAt, wrapX, type Grade, type Terrain } from '../logic/terrain';
 import { VOLATILES } from '../logic/volatiles';
 import { oreById } from '../logic/ore';
 import { drawOreGlyph } from './oreArt';
@@ -260,7 +260,7 @@ function flecks(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: numb
   for (let y = c.ty - 1; y <= c.ty + c.tiles; y++) {
     for (let x = c.tx - 1; x <= c.tx + c.tiles; x++) {
       const tile = tileAt(t, x, y);
-      if ((tile !== TILE.soil && tile !== TILE.stone) || t.content[y * t.width + x] || hash(x, y, 7) > 0.18) continue;
+      if ((tile !== TILE.soil && tile !== TILE.stone) || contentAt(t, x, y) || hash(x, y, 7) > 0.18) continue;
       const rx = 1.6 + hash(x, y, 8) * 2.8;
       const ry = rx * (0.55 + hash(x, y, 9) * 0.3);
       ctx.beginPath();
@@ -282,8 +282,8 @@ function ores(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: number
   for (let y = c.ty - 1; y <= c.ty + c.tiles; y++) {
     for (let x = c.tx - 1; x <= c.tx + c.tiles; x++) {
       const tile = tileAt(t, x, y);
-      if (tile === TILE.air || tile === TILE.bedrock || x < 0 || y < 0 || x >= t.width || y >= t.height) continue;
-      const ore = oreById(t.content[y * t.width + x]!);
+      if (tile === TILE.air || tile === TILE.bedrock || !inside(t, x, y)) continue;
+      const ore = oreById(contentAt(t, x, y));
       if (!ore) continue;
       ctx.save();
       ctx.translate((x + 0.5) * T, (y + 0.5) * T);
@@ -390,7 +390,7 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
   const ground: Mask = (x, y) => tileAt(t, x, y) !== TILE.air;
   const of = (tile: number): Mask => (x, y) => tileAt(t, x, y) === tile;
   // Hollows inside the planet (open tiles under its first surface): the back wall.
-  const inner: Mask = (x, y) => !ground(x, y) && x >= 0 && x < t.width && y >= (roof[Math.max(0, Math.min(t.width - 1, x))] ?? 0);
+  const inner: Mask = (x, y) => !ground(x, y) && inside(t, x, 0) && y >= (roof[wrapX(t, x)] ?? 0);
   const innerPath = maskPath(inner, c, T);
   // Paper first, so the sky layers behind never show through a hole in the ground.
   ctx.fillStyle = PAPER;
@@ -460,6 +460,8 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
 
 /** Whether a chunk has anything to draw (open sky needs no texture). */
 export function chunkHasGround(t: Terrain, roof: Int32Array, c: ChunkRect): boolean {
-  for (let x = Math.max(0, c.tx - 1); x <= Math.min(t.width - 1, c.tx + c.tiles); x++) if (roof[x]! <= c.ty + c.tiles) return true;
+  const x0 = t.wrap ? c.tx - 1 : Math.max(0, c.tx - 1);
+  const x1 = t.wrap ? c.tx + c.tiles : Math.min(t.width - 1, c.tx + c.tiles);
+  for (let x = x0; x <= x1; x++) if (roof[wrapX(t, x)]! <= c.ty + c.tiles) return true;
   return false;
 }

@@ -4,6 +4,7 @@ import { PROSPECTOR_GROUND, type Pose } from '../../art/prospector';
 import { PROSPECTOR_RES, TEX } from '../../art/textures';
 import type { ProspectorLook } from '../../logic/gear';
 import type { Mine } from '../../logic/mine';
+import type { Ring } from './ring';
 
 /** World px per drawing unit: the drawing stands a little over a tile tall. */
 export const SCALE = 0.82;
@@ -24,14 +25,14 @@ export class ProspectorView {
     return this.sprite;
   }
 
-  update(mine: Mine, iy: number, now: number): void {
+  update(mine: Mine, iy: number, now: number, ring: Ring): void {
     const p = mine.player;
     const pose = this.pose(mine, iy);
     const fps = pose.startsWith('drill') ? DRILL_FPS : pose === 'walk' || (pose === 'climb' && (p.vx !== 0 || iy !== 0)) ? WALK_FPS : BOIL_FPS;
     const f = Math.floor((now / 1000) * fps) % BOIL;
     this.sprite.setTexture(TEX.prospector(pose, this.look, f));
     this.sprite.setFlipX(mine.facing < 0);
-    this.sprite.setPosition(p.x + p.w / 2, p.y + p.h - PROSPECTOR_GROUND * SCALE);
+    this.sprite.setPosition(ring.near(p.x + p.w / 2), p.y + p.h - PROSPECTOR_GROUND * SCALE);
     // Blink through the grace after a hit.
     const grace = mine.time < mine.suit.graceUntil;
     this.sprite.setAlpha(grace && Math.floor(now / 90) % 2 === 0 ? 0.35 : 1);

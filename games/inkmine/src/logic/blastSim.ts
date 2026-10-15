@@ -1,4 +1,4 @@
-import { contentAt, setTile, TILE, volatileAt, type Terrain, type TilePos } from './terrain';
+import { contentAt, indexOf, setTile, TILE, volatileAt, type Terrain, type TilePos } from './terrain';
 import { BLAST, blastArea, blastBreaks, VOLATILES, volatileKeyOf, type VolatileKey } from './volatiles';
 
 /** Something that went off: what its blast covered, what it broke and the ore it broke loose. */
@@ -114,7 +114,7 @@ export class BlastSim {
   }
 
   private index(x: number, y: number): number {
-    return y * this.terrain.width + x;
+    return indexOf(this.terrain, x, y);
   }
 
   private tileOf(i: number): TilePos {

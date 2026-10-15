@@ -1,8 +1,10 @@
 import { mount } from '../src/index';
 
-// Dev harness: Graphite's landing sites. There is no paid content yet. `?reset` starts a new profile.
+// Dev harness: Graphite's world. There is no paid content yet. `?reset` starts over: a new profile and an undug world.
 await document.fonts.load('32px Caveat').catch(() => undefined);
-if (new URLSearchParams(location.search).has('reset')) window.localStorage.removeItem('inkmine.profile.v1');
+if (new URLSearchParams(location.search).has('reset')) {
+  for (const key of Object.keys(window.localStorage)) if (key.startsWith('inkmine.')) window.localStorage.removeItem(key);
+}
 const parent = document.getElementById('game');
 if (!parent) throw new Error('#game missing');
 const handle = mount(parent, {

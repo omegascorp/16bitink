@@ -1,4 +1,4 @@
-import type { ItemKind } from '../logic/mission';
+import type { ItemKind } from '../logic/items';
 import { edge, oval, pt, shade, skin, tint, type Draw } from './kit';
 import { HIGHLIGHT, PAPER_FILL } from './palette';
 import type { Pt } from './pen';

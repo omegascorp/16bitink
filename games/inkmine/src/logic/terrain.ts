@@ -5,7 +5,10 @@
  * can blow (a firedamp pocket, an old charge; see volatiles.ts), which sits
  * inside the rock and keeps the rock's grade round it.
  *
- * Outside the grid the sides and floor are bedrock and the sky is open.
+ * Outside the grid the sides and floor are bedrock and the sky is open,
+ * unless the grid wraps: a world you can walk all the way round (spec,
+ * "The world"), where column `width` is column 0 again and there are no
+ * sides. Tile lookups fold x round the ring, so callers never have to.
  * The grid is mutated in place: it is per-frame world state shared by the
  * simulation and the chunked ground renderer (as InkCrab's beach is).
  */
@@ -18,6 +21,8 @@ export type Grade = 0 | 1 | 2;
 export interface Terrain {
   readonly width: number;
   readonly height: number;
+  /** Walk off the east edge and you come back from the west. */
+  readonly wrap: boolean;
   readonly tiles: Uint8Array;
   /** Ore id in a rock tile, 0 for none. */
   readonly content: Uint8Array;
@@ -27,32 +32,70 @@ export interface Terrain {
 
 export type TilePos = readonly [number, number];
 
-export function createTerrain(width: number, height: number): Terrain {
+export function createTerrain(width: number, height: number, wrap = false): Terrain {
   const n = width * height;
-  return { width, height, tiles: new Uint8Array(n), content: new Uint8Array(n), volatile: new Uint8Array(n) };
+  return { width, height, wrap, tiles: new Uint8Array(n), content: new Uint8Array(n), volatile: new Uint8Array(n) };
 }
 
-export const inside = (t: Terrain, x: number, y: number): boolean => x >= 0 && y >= 0 && x < t.width && y < t.height;
+/** Column `x` folded into the grid on a wrapping world; unchanged otherwise. */
+export function wrapX(t: Terrain, x: number): number {
+  return t.wrap ? x - t.width * Math.floor(x / t.width) : x;
+}
+
+export const inside = (t: Terrain, x: number, y: number): boolean => y >= 0 && y < t.height && (t.wrap || (x >= 0 && x < t.width));
+
+/** The array index of tile (x, y); only meaningful when it's inside. */
+export const indexOf = (t: Terrain, x: number, y: number): number => y * t.width + wrapX(t, x);
+
+/**
+ * The shortest way from `from` to `to` along x, in units of `unit` per
+ * tile (1 for columns, the tile size for px): on a wrapping world the
+ * nearer way round, so things either side of the join are close.
+ */
+export function ringDelta(t: Terrain, from: number, to: number, unit = 1): number {
+  const d = to - from;
+  if (!t.wrap) return d;
+  const span = t.width * unit;
+  return d - span * Math.round(d / span);
+}
+
+/** An x in `unit`s (1 for columns, the tile size for px) folded into the grid on a wrapping world. */
+export function foldX(t: Terrain, x: number, unit = 1): number {
+  if (!t.wrap) return x;
+  const span = t.width * unit;
+  return x - span * Math.floor(x / span);
+}
 
 export function tileAt(t: Terrain, x: number, y: number): Tile {
-  if (inside(t, x, y)) return t.tiles[y * t.width + x] as Tile;
+  if (inside(t, x, y)) return t.tiles[indexOf(t, x, y)] as Tile;
   return y < 0 ? TILE.air : TILE.bedrock;
 }
 
 export function contentAt(t: Terrain, x: number, y: number): number {
-  return inside(t, x, y) ? t.content[y * t.width + x]! : 0;
+  return inside(t, x, y) ? t.content[indexOf(t, x, y)]! : 0;
 }
 
 export function volatileAt(t: Terrain, x: number, y: number): number {
-  return inside(t, x, y) ? t.volatile[y * t.width + x]! : 0;
+  return inside(t, x, y) ? t.volatile[indexOf(t, x, y)]! : 0;
 }
 
 /** Sets a tile; whatever it held (ore, a volatile) goes unless given again. */
 export function setTile(t: Terrain, x: number, y: number, tile: Tile, content = 0, volatile = 0): void {
   if (!inside(t, x, y)) return;
-  t.tiles[y * t.width + x] = tile;
-  t.content[y * t.width + x] = content;
-  t.volatile[y * t.width + x] = volatile;
+  const i = indexOf(t, x, y);
+  t.tiles[i] = tile;
+  t.content[i] = content;
+  t.volatile[i] = volatile;
+}
+
+/** Puts ore into a rock tile, leaving the rock as it is. */
+export function setContent(t: Terrain, x: number, y: number, content: number): void {
+  if (inside(t, x, y)) t.content[indexOf(t, x, y)] = content;
+}
+
+/** Puts something volatile into a rock tile, leaving the rock and its ore as they are. */
+export function setVolatile(t: Terrain, x: number, y: number, volatile: number): void {
+  if (inside(t, x, y)) t.volatile[indexOf(t, x, y)] = volatile;
 }
 
 export function isSolid(t: Terrain, x: number, y: number): boolean {

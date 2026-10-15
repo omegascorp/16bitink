@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { makeCanvas } from '../../art/pen';
 import type { Mine } from '../../logic/mine';
+import type { Ring } from './ring';
 
 /** The wash the deep goes under: a dark ink grey, never black. */
 const DARK = 0x1f2230;
@@ -27,13 +28,13 @@ export class LampView {
     this.frame = scene.add.graphics().setDepth(7);
   }
 
-  update(mine: Mine, view: Phaser.Geom.Rectangle): void {
+  update(mine: Mine, view: Phaser.Geom.Rectangle, ring: Ring): void {
     const k = Phaser.Math.Clamp((mine.depth - DARK_FROM) / (DARK_FULL - DARK_FROM), 0, 1) * DARK_MAX;
     this.glow.setVisible(k > 0);
     this.frame.clear();
     if (k <= 0) return;
     const p = mine.player;
-    const cx = p.x + p.w / 2;
+    const cx = ring.near(p.x + p.w / 2);
     const cy = p.y + p.h / 2;
     // The glow texture fades from clear at its middle to solid at its rim; scaled so the clear part is the lamp's reach.
     const size = this.reach * this.tile * 2.6;

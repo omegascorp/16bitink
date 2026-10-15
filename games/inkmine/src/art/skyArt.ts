@@ -9,7 +9,8 @@ import type { Pt } from './pen';
  * speeds: the far sky (`drawSky`) and the crater ridges (`drawRidges`),
  * each drawn from the top-left of its canvas with the horizon at
  * `horizon`; below it they carry on down to the canvas's bottom edge, so no
- * paper shows where the ground dips.
+ * paper shows where the ground dips. Both repeat side to side without a
+ * seam, so they can tile behind a world that wraps.
  */
 export const SKY_W = 2600;
 export const RIDGE_W = 3200;
@@ -20,13 +21,17 @@ export function drawSky(d: Draw, w: number, h: number, horizon: number, style: G
   const rng = createRng(77);
   // Stars: dots and small ink crosses, thinning towards the horizon.
   for (let i = 0; i < 140; i++) {
-    const x = rng() * w;
+    const x0 = rng() * w;
     const y = rng() * rng() * horizon * 0.9;
     const r = 0.5 + rng() * 0.9;
-    if (rng() < 0.2) {
-      pen.hair([pt(x - r * 3, y), pt(x + r * 3, y)], 0.6, d.ink, 0.8);
-      pen.hair([pt(x, y - r * 3), pt(x, y + r * 3)], 0.6, d.ink, 0.8);
-    } else pen.dot(x, y, r, d.ink, 0.65);
+    const cross = rng() < 0.2;
+    // A star by an edge is drawn again over the other edge, so the sky tiles without a cut star.
+    for (const x of [x0, x0 - w, x0 + w].filter((sx) => sx > -r * 4 && sx < w + r * 4)) {
+      if (cross) {
+        pen.hair([pt(x - r * 3, y), pt(x + r * 3, y)], 0.6, d.ink, 0.8);
+        pen.hair([pt(x, y - r * 3), pt(x, y + r * 3)], 0.6, d.ink, 0.8);
+      } else pen.dot(x, y, r, d.ink, 0.65);
+    }
   }
   ringedPlanet(d, pt(w * 0.42, horizon * 0.58), Math.min(70, horizon * 0.2));
   const moon = oval(w * 0.12, horizon * 0.45, 13, 13, 22);
@@ -62,15 +67,18 @@ function ringedPlanet(d: Draw, c: Pt, r: number): void {
   for (const k of [1.55, 1.85, 2.05]) d.pen.stroke(ring(k, 'front'), 1.3, d.ink, 0.9, false);
 }
 
-/** Far crater rims along the horizon: two hatched ranges, the nearer darker. */
+/** Far crater rims along the horizon: two hatched ranges, the nearer darker. Each starts and ends at the same height, so it tiles. */
 export function drawRidges(d: Draw, w: number, h: number, horizon: number, style: GroundStyle): void {
   const rng = createRng(91);
   for (const [base, height, wash, alpha] of [[horizon - 6, horizon * 0.55, style.soil, 0.45], [horizon, horizon * 0.35, style.stone, 0.6]] as const) {
-    const pts: Pt[] = [pt(0, h)];
+    const start = base - height * 0.15 * rng();
+    const pts: Pt[] = [pt(0, h), pt(0, start)];
     let x = 0;
-    while (x <= w) {
+    for (;;) {
       const crater = rng() < 0.35;
       const span = 60 + rng() * 140;
+      // Room left for one more range before the edge, then back down to where it started.
+      if (x + span > w - 40) break;
       const top = base - height * (0.3 + rng() * 0.7);
       if (crater) {
         // A crater rim: up, a dip for the bowl, down.
@@ -79,7 +87,7 @@ export function drawRidges(d: Draw, w: number, h: number, horizon: number, style
       x += span;
       pts.push(pt(x, base - height * 0.15 * rng()));
     }
-    pts.push(pt(w, h));
+    pts.push(pt(w, start), pt(w, h));
     skin(d, pts, wash, alpha);
     d.pen.hatch(pts, 4.5, 2.2, 0.5, { color: d.ink, alpha: 0.35 });
     d.pen.stroke(pts.slice(1, -1), 1.3, d.ink, 0.85, false);

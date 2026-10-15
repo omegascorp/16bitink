@@ -1,12 +1,13 @@
 import type { GameHost } from '@16bitink/game-sdk';
 import type { Profile } from './logic/economy';
 import { loadProfile, saveProfile } from './logic/save';
+import type { WorldSave } from './logic/worldSave';
 
 interface RegistryReader {
   readonly registry: { get(key: string): unknown; set(key: string, value: unknown): unknown };
 }
 
-export const REG = { host: 'host', profile: 'profile' } as const;
+export const REG = { host: 'host', profile: 'profile', worlds: 'worlds' } as const;
 
 export const getHost = (s: RegistryReader): GameHost => s.registry.get(REG.host) as GameHost;
 
@@ -17,6 +18,20 @@ export function getProfile(s: RegistryReader): Profile {
   const loaded = loadProfile(getHost(s).storage);
   s.registry.set(REG.profile, loaded);
   return loaded;
+}
+
+/**
+ * The latest changes to a world this session, held in memory: newer than
+ * (or, with storage blocked, instead of) what's in storage, so going aboard
+ * and back down never loses digging.
+ */
+export function heldWorld(s: RegistryReader, worldId: string): WorldSave | undefined {
+  return (s.registry.get(REG.worlds) as Readonly<Record<string, WorldSave>> | undefined)?.[worldId];
+}
+
+export function holdWorld(s: RegistryReader, worldId: string, save: WorldSave): void {
+  const held = (s.registry.get(REG.worlds) as Readonly<Record<string, WorldSave>> | undefined) ?? {};
+  s.registry.set(REG.worlds, { ...held, [worldId]: save });
 }
 
 /** Replaces the profile and saves it. */

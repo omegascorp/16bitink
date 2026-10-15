@@ -1,5 +1,5 @@
 import { moveBody, type Body, type Box } from './body';
-import type { Terrain } from './terrain';
+import { foldX, ringDelta, type Terrain } from './terrain';
 
 /**
  * Loose pieces of ore, broken out of the rock by the drill or a blast. They
@@ -30,23 +30,33 @@ export function newPiece(ore: number, cx: number, cy: number): Piece {
 
 const centre = (b: Box): { x: number; y: number } => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
 
-/** One step for a piece: flying to `catcher` when it's near and has room, otherwise falling. */
+/** From `a`'s middle to `b`'s, the short way round a wrapping world. */
+export function between(t: Terrain, a: Box, b: Box, tile: number): { dx: number; dy: number; d: number } {
+  const ca = centre(a);
+  const cb = centre(b);
+  const dx = ringDelta(t, ca.x, cb.x, tile);
+  const dy = cb.y - ca.y;
+  return { dx, dy, d: Math.hypot(dx, dy) };
+}
+
+/** One step for a piece: flying to `catcher` when it's near and has room, otherwise falling. Kept folded into a wrapping world. */
 export function stepPiece(t: Terrain, p: Piece, catcher: Box | null, dt: number, tile: number): Piece {
+  const next = flyOrFall(t, p, catcher, dt, tile);
+  return { ...next, x: foldX(t, next.x, tile) };
+}
+
+function flyOrFall(t: Terrain, p: Piece, catcher: Box | null, dt: number, tile: number): Piece {
   if (catcher) {
-    const a = centre(p);
-    const b = centre(catcher);
-    const d = Math.hypot(b.x - a.x, b.y - a.y);
+    const { dx, dy, d } = between(t, p, catcher, tile);
     if (d < PIECE.magnet) {
       const k = Math.min(1, (PIECE.flySpeed * dt) / Math.max(d, 1e-6));
-      return { ...p, x: p.x + (b.x - a.x) * k, y: p.y + (b.y - a.y) * k, vx: 0, vy: 0, onGround: false };
+      return { ...p, x: p.x + dx * k, y: p.y + dy * k, vx: 0, vy: 0, onGround: false };
     }
   }
   return { ...moveBody(t, p, 0, 0, dt, tile), id: p.id, ore: p.ore };
 }
 
 /** Whether `catcher` has caught the piece. */
-export function caught(p: Piece, catcher: Box): boolean {
-  const a = centre(p);
-  const b = centre(catcher);
-  return Math.hypot(b.x - a.x, b.y - a.y) < PIECE.catch;
+export function caught(t: Terrain, p: Piece, catcher: Box, tile: number): boolean {
+  return between(t, p, catcher, tile).d < PIECE.catch;
 }

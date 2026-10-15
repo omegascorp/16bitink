@@ -27,14 +27,21 @@ let views = 0;
  * to scale to maps many screens deep): only chunks near the view exist,
  * far ones are freed and their canvases reused, and a dig redraws only the
  * chunks it touches.
+ *
+ * On a wrapping world chunks are placed wherever the camera is, any number
+ * of times round, and each is drawn from the folded columns it stands for.
+ * The world is a whole number of chunks round, so they repeat cleanly.
+ * Chunks are keyed by where they stand; what's dirty, by what they show.
  */
 export class GroundView {
   private readonly chunks = new Map<string, Chunk>();
   private readonly pool: Chunk[] = [];
   private readonly dirty = new Set<string>();
   private readonly prefix = `ground${++views}`;
-  /** The ground's surface as the level began: anything dug below it is inside the planet, even a shaft open to the sky. */
+  /** The ground's surface as the builder carved it: anything dug below it is inside the planet, even a shaft open to the sky. */
   private readonly roof: Int32Array;
+  /** Chunks round a wrapping world (Infinity otherwise). */
+  private readonly around: number;
   private patterns: GroundPatterns | null = null;
   private made = 0;
 
@@ -44,22 +51,37 @@ export class GroundView {
     private readonly tile: number,
     private readonly style: GroundStyle,
     private readonly tooHard: TooHard,
+    /** The roof rows (art/ground.ts) of the ground as carved, before a save's digging; by default the ground as given. */
+    roof?: Int32Array,
   ) {
-    this.roof = roofRows(terrain);
+    this.roof = roof ?? roofRows(terrain);
+    if (terrain.wrap && terrain.width % CHUNK_TILES) throw new Error(`A wrapping world must be a whole number of ${CHUNK_TILES}-tile chunks round`);
+    this.around = terrain.wrap ? terrain.width / CHUNK_TILES : Infinity;
+  }
+
+  /** The chunk column `cx` shows: folded round a wrapping world. */
+  private fold(cx: number): number {
+    return Number.isFinite(this.around) ? cx - this.around * Math.floor(cx / this.around) : cx;
   }
 
   /** Marks the chunks around changed tiles (a tile shapes the cells on all four corners). */
   invalidate(tiles: readonly TilePos[]): void {
     for (const [x, y] of tiles) {
       for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0]] as const) {
-        this.dirty.add(`${Math.floor((x + dx) / CHUNK_TILES)},${Math.floor((y + dy) / CHUNK_TILES)}`);
+        this.dirty.add(`${this.fold(Math.floor((x + dx) / CHUNK_TILES))},${Math.floor((y + dy) / CHUNK_TILES)}`);
       }
     }
   }
 
   /** Redraws everything (after the drill changes, which changes what's too hard). */
   invalidateAll(): void {
-    for (const key of this.chunks.keys()) this.dirty.add(key);
+    for (const chunk of this.chunks.values()) this.dirty.add(this.shows(chunk.key));
+  }
+
+  /** The dirty key for a chunk standing at `key`: the folded chunk it shows. */
+  private shows(key: string): string {
+    const [cx, cy] = key.split(',').map(Number) as [number, number];
+    return `${this.fold(cx)},${cy}`;
   }
 
   /** Brings the chunks around `view` (world px) up to date. */
@@ -77,23 +99,27 @@ export class GroundView {
     // Visible chunks first, nearest the view's middle first.
     const midX = (cx0 + cx1) / 2;
     const midY = (cy0 + cy1) / 2;
+    const wrap = Number.isFinite(this.around);
     const wanted: [number, number][] = [];
     for (let cy = Math.max(0, cy0); cy <= cy1 && cy * CHUNK_TILES < this.terrain.height; cy++) {
-      for (let cx = Math.max(0, cx0); cx <= cx1 && cx * CHUNK_TILES < this.terrain.width; cx++) wanted.push([cx, cy]);
+      for (let cx = wrap ? cx0 : Math.max(0, cx0); cx <= cx1 && (wrap || cx * CHUNK_TILES < this.terrain.width); cx++) wanted.push([cx, cy]);
     }
     wanted.sort((a, b) => Math.hypot(a[0] - midX, a[1] - midY) - Math.hypot(b[0] - midX, b[1] - midY));
+    const redrawn = new Set<string>();
     for (const [cx, cy] of wanted) {
       const key = `${cx},${cy}`;
+      const shows = `${this.fold(cx)},${cy}`;
       const have = this.chunks.get(key);
-      if (have && !this.dirty.has(key)) continue;
-      const rect: ChunkRect = { tx: cx * CHUNK_TILES, ty: cy * CHUNK_TILES, tiles: CHUNK_TILES };
+      if (have && !this.dirty.has(shows)) continue;
+      const rect: ChunkRect = { tx: this.fold(cx) * CHUNK_TILES, ty: cy * CHUNK_TILES, tiles: CHUNK_TILES };
       if (!have && !chunkHasGround(this.terrain, this.roof, rect)) continue;
       // A dug tile in view is always redrawn at once; new ground arrives a couple of chunks a frame.
       if (!have && budget-- <= 0) continue;
-      const chunk = have ?? this.take(key, rect);
+      const chunk = have ?? this.take(key, rect, cx * CHUNK_TILES * this.tile);
       this.draw(chunk);
-      this.dirty.delete(key);
+      redrawn.add(shows);
     }
+    for (const shows of redrawn) this.dirty.delete(shows);
   }
 
   destroy(): void {
@@ -111,8 +137,9 @@ export class GroundView {
     chunk.texture.refresh();
   }
 
-  private take(key: string, rect: ChunkRect): Chunk {
-    const x = rect.tx * this.tile - CHUNK_PAD;
+  /** A chunk showing `rect`, standing at world x `at` (its left edge, px). */
+  private take(key: string, rect: ChunkRect, at: number): Chunk {
+    const x = at - CHUNK_PAD;
     const y = rect.ty * this.tile - CHUNK_PAD;
     const reused = this.pool.pop();
     if (reused) {

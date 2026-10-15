@@ -7,6 +7,7 @@ import type { Mine } from '../../logic/mine';
 import { createRng } from '../../logic/rng';
 import { HAND_FONT } from '../ui';
 import { SCALE } from './prospectorView';
+import type { Ring } from './ring';
 
 const INK_HEX = Phaser.Display.Color.HexStringToColor(INK).color;
 /** The jet flame's watercolour wash. */
@@ -28,12 +29,12 @@ export class FxView {
   }
 
   /** The jet's flame under the nozzle: a flickering inked tongue with a warm wash, and a puff now and then. */
-  jet(mine: Mine): void {
+  jet(mine: Mine, ring: Ring): void {
     const g = this.flame.clear();
     if (!mine.jetting) return;
     const p = mine.player;
     const nozzle = nozzleOf(this.jetLook);
-    const x = p.x + p.w / 2 + nozzle.x * SCALE * mine.facing;
+    const x = ring.near(p.x + p.w / 2) + nozzle.x * SCALE * mine.facing;
     const y = p.y + p.h + (nozzle.y - PROSPECTOR_GROUND) * SCALE;
     const len = 9 + this.rng() * 7;
     const w = 3.2 + this.rng() * 1.2;
@@ -54,13 +55,15 @@ export class FxView {
   }
 
   /** Cracks across the block being drilled, more as the bit gets through, and a speck or two flying off. */
-  update(mine: Mine): void {
+  update(mine: Mine, ring: Ring): void {
     const g = this.cracks.clear();
     if (!mine.drilling) return;
-    const [x, y] = mine.drilling.tile;
     const T = this.tile;
+    const [col, y] = mine.drilling.tile;
+    // Drawn at the copy nearest the camera; the crack pattern is still seeded by the tile.
+    const x = ring.near((col + 0.5) * T) / T - 0.5;
     const p = mine.drillProgress;
-    const r = createRng(x * 7919 + y * 104729);
+    const r = createRng(col * 7919 + y * 104729);
     g.lineStyle(1.3, INK_HEX, 0.85);
     const lines = Math.ceil(p * 6);
     for (let i = 0; i < lines; i++) {
@@ -76,7 +79,7 @@ export class FxView {
       }
       g.strokePath();
     }
-    if (this.rng() < 0.45) this.speck((x + 0.5) * T, (y + 0.5) * T, mine.player.x + mine.player.w / 2);
+    if (this.rng() < 0.45) this.speck((x + 0.5) * T, (y + 0.5) * T, ring.near(mine.player.x + mine.player.w / 2));
   }
 
   private speck(x: number, y: number, fromX: number): void {
@@ -94,11 +97,11 @@ export class FxView {
   }
 
   /** A scribbled red burst over the blast, and a shake. */
-  blast(b: Blast): void {
+  blast(b: Blast, ring: Ring): void {
     const T = this.tile;
     const g = this.scene.add.graphics().setDepth(7);
     g.lineStyle(2.2, RED_HEX, 0.9);
-    const cx = (b.at[0] + 0.5) * T;
+    const cx = ring.near((b.at[0] + 0.5) * T);
     const cy = (b.at[1] + 0.5) * T;
     const reach = b.kind === 'lineCharge' ? T * 4.5 : T * 1.6;
     const tall = b.kind === 'lineCharge' ? T * 0.9 : T * 1.6;

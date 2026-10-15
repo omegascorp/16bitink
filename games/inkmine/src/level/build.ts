@@ -1,15 +1,17 @@
 import type { Profile } from '../logic/economy';
+import { Ladders } from '../logic/ladders';
 import type { MineSetup } from '../logic/mine';
 import { drillFor, jetFor, suitSpecFor } from '../logic/marks';
 import { laddersFor, winchKeeps } from '../logic/ship';
 import { inside, setTile, TILE, type Terrain } from '../logic/terrain';
+import { applyWorld, type WorldSave } from '../logic/worldSave';
 import { carve } from './carve';
-import type { LevelDef, PlanetDef } from './types';
+import type { PlanetDef, WorldDef } from './types';
 
 export const TILE_SIZE = 32;
 
-/** A level's map: carved from its site, with each item in rock set into its grade, nothing else in its tile. */
-export function buildSite(def: LevelDef): Terrain {
+/** A world's ground as the builder carves it: from its site, with each item in rock set into its grade, nothing else in its tile. */
+export function buildGround(def: WorldDef): Terrain {
   const t = carve(def.site);
   for (const item of def.items) {
     const [x, depth] = item.at;
@@ -20,20 +22,41 @@ export function buildSite(def: LevelDef): Terrain {
   return t;
 }
 
-/** Everything a landing starts from: the map, and the player's gear and ship. */
-export function levelSetup(def: LevelDef, planet: PlanetDef, p: Profile): MineSetup {
+/** A world ready to play: the ground with the save's changes on it, and what it was before them. */
+export interface BuiltWorld {
+  readonly setup: MineSetup;
+  /** The ground's tiles as carved, before any digging: what the save is measured against. */
+  readonly base: Uint8Array;
+}
+
+/**
+ * Everything a session on a planet starts from: its world, carved and then
+ * changed by the save (dug ground, ladders, items taken), and the player's
+ * gear and ship. The prospector starts at the lander.
+ */
+export function buildWorld(planet: PlanetDef, p: Profile, save: WorldSave | null): BuiltWorld {
+  const def = planet.world;
+  const terrain = buildGround(def);
+  const base = terrain.tiles.slice();
+  const ladders = new Ladders(terrain);
+  if (save) applyWorld(terrain, ladders, save);
+  const taken = new Set(save?.taken ?? []);
   return {
-    terrain: buildSite(def),
-    tileSize: TILE_SIZE,
-    drill: drillFor(p.gear, planet.number),
-    loadout: p.gear,
-    suit: suitSpecFor(p.gear),
-    jet: jetFor(p.gear.jetpack),
-    ladders: laddersFor(p.ship),
-    winchKeeps: winchKeeps(p.ship),
-    lander: { col: def.site.landerCol, row: def.site.surface },
-    items: def.items,
-    cargo: p.cargo,
-    bag: p.suit,
+    base,
+    setup: {
+      terrain,
+      tileSize: TILE_SIZE,
+      drill: drillFor(p.gear, planet.number),
+      loadout: p.gear,
+      suit: suitSpecFor(p.gear),
+      jet: jetFor(p.gear.jetpack),
+      ladders: laddersFor(p.ship),
+      placedLadders: ladders,
+      winchKeeps: winchKeeps(p.ship),
+      lander: { col: def.site.landerCol, row: def.site.surface },
+      items: def.items.filter((it) => !taken.has(it.id)),
+      cargo: p.cargo,
+      bag: p.suit,
+    },
   };
 }

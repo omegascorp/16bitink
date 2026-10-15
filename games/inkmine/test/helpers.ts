@@ -16,8 +16,8 @@ export const T = 32;
  * charge in soil, `y` a line charge in soil, `c` copper in soil, `g`
  * graphite in soil, `q` quartz in stone.
  */
-export function grid(rows: readonly string[]): Terrain {
-  const t = createTerrain(rows[0]!.length, rows.length);
+export function grid(rows: readonly string[], wrap = false): Terrain {
+  const t = createTerrain(rows[0]!.length, rows.length, wrap);
   rows.forEach((row, y) => {
     [...row].forEach((ch, x) => {
       if (ch === 's') setTile(t, x, y, TILE.soil);

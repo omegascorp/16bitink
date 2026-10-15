@@ -1,27 +1,27 @@
 import type { GroundStyle } from '../art/palette';
 import type { ItemDef } from '../logic/items';
-import type { ContractDef, MissionDef } from '../logic/mission';
 import type { OreKey } from '../logic/ore';
 import type { CarveSpec } from './carve';
 
 /**
- * One landing site, InkCrab style: a short definition that says what
- * matters, carved into the full map by the builder with a fixed seed.
+ * A planet's world, InkCrab style: a short definition that says what
+ * matters (its size, its regions' hand-placed caves, vaults and things to
+ * find), carved into the full ground by the builder with a fixed seed. Each
+ * planet is one small open world you can walk all the way round (spec,
+ * "The world").
  */
-export interface LevelDef {
-  /** Permanent: saves are keyed by it. Never change or reuse one, even when renaming. */
+export interface WorldDef {
+  /** Permanent: the world's save is keyed by it. Never change or reuse one. */
   readonly id: string;
-  readonly name: string;
-  /** What the level teaches, shown on its intro card. */
-  readonly hint: string;
+  /**
+   * Bumped whenever a released world's layout changes. Saves record it;
+   * a save from another version still loads (its tunnels stay open in the
+   * new rock), so change shipped worlds by adding, not moving.
+   */
+  readonly version: number;
   readonly site: CarveSpec;
-  /** Mission items, contract specimens and blueprints, by column and depth below the lander's ground. */
+  /** Blueprints (and later what people ask for), by column and depth below the lander's ground. */
   readonly items: readonly ItemDef[];
-  readonly mission: MissionDef;
-  /** The two contracts on planet 1 (fixed); from planet 2 a board to pick two from. */
-  readonly contracts: readonly ContractDef[];
-  /** The drill mark the main path is built for: the reachability test checks the mission with it. */
-  readonly drill: number;
 }
 
 export interface PlanetDef {
@@ -30,9 +30,7 @@ export interface PlanetDef {
   readonly name: string;
   readonly blurb: string;
   readonly style: GroundStyle;
-  /** The material the guild sent you for; the main ingredient of the planet's gear. */
+  /** The planet's signature material; the main ingredient of its gear. */
   readonly signature: OreKey;
-  readonly levels: readonly LevelDef[];
-  /** Levels drawn as pencil drafts after the built ones, by name. */
-  readonly drafts: readonly string[];
+  readonly world: WorldDef;
 }

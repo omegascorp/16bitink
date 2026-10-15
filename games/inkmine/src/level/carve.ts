@@ -1,7 +1,7 @@
 import { hash, valueNoise } from '../logic/noise';
 import { ORES, type OreKey } from '../logic/ore';
 import { createRng, type Rng } from '../logic/rng';
-import { contentAt, createTerrain, inside, setTile, TILE, tileAt, volatileAt, type Terrain } from '../logic/terrain';
+import { contentAt, createTerrain, inside, setContent, setTile, setVolatile, TILE, tileAt, volatileAt, type Terrain } from '../logic/terrain';
 import { VOLATILES } from '../logic/volatiles';
 
 /**
@@ -10,6 +10,10 @@ import { VOLATILES } from '../logic/volatiles';
  * matters (size, where the grades change, how many caves, veins and
  * firedamp pockets, where the old charges are), the seed fills in the
  * rest, so the same level is the same map for everyone.
+ *
+ * A wrapping site (a whole world you can walk round) is carved so it meets
+ * itself: its noise repeats round the ring, and caves, veins and rooms that
+ * run off one side carry on from the other.
  */
 export interface OreRule {
   readonly ore: OreKey;
@@ -19,11 +23,15 @@ export interface OreRule {
   readonly veins: number;
   /** Blocks per vein. */
   readonly size: readonly [number, number];
+  /** Only between these columns, going east from the first (round the join on a wrapping world); default everywhere. */
+  readonly cols?: readonly [number, number];
 }
 
 export interface CarveSpec {
   readonly width: number;
   readonly height: number;
+  /** A whole world: walk off one side and you come back from the other. */
+  readonly wrap?: boolean;
   readonly seed: number;
   /** The surface row at the lander; the ground rolls a little either side. */
   readonly surface: number;
@@ -76,15 +84,28 @@ const PAD = 3;
 /** Volatiles and caves keep this many rows below the surface. */
 const TOPSOIL = 3;
 
+/** Columns from `a` to `b` the short way (round the join on a wrapping site). */
+function gap(spec: CarveSpec, a: number, b: number): number {
+  const d = Math.abs(b - a);
+  return spec.wrap ? Math.min(d % spec.width, spec.width - (d % spec.width)) : d;
+}
+
+/** The noise's repeat on a wrapping site, so the ground meets itself. */
+const period = (spec: CarveSpec): number | undefined => (spec.wrap ? spec.width : undefined);
+
+const col = (spec: CarveSpec, x: number): number => (spec.wrap ? x - spec.width * Math.floor(x / spec.width) : x);
+
 export function surfaceAt(spec: CarveSpec, x: number): number {
-  if (Math.abs(x - spec.landerCol) <= PAD) return spec.surface;
-  const roll = valueNoise(x, 0, 9, spec.seed) * 2.2 + valueNoise(x, 0, 3, spec.seed + 1) * 0.6;
-  const ease = Math.min(1, (Math.abs(x - spec.landerCol) - PAD) / 4);
+  const fromLander = gap(spec, x, spec.landerCol);
+  if (fromLander <= PAD) return spec.surface;
+  const c = col(spec, x);
+  const roll = valueNoise(c, 0, 9, spec.seed, period(spec)) * 2.2 + valueNoise(c, 0, 3, spec.seed + 1, period(spec)) * 0.6;
+  const ease = Math.min(1, (fromLander - PAD) / 4);
   return spec.surface + Math.round(roll * ease);
 }
 
 export function carve(spec: CarveSpec): Terrain {
-  const t = createTerrain(spec.width, spec.height);
+  const t = createTerrain(spec.width, spec.height, spec.wrap ?? false);
   const rng = createRng(spec.seed);
   const surface = Array.from({ length: spec.width }, (_, x) => surfaceAt(spec, x));
   layGround(t, spec, surface);
@@ -99,8 +120,8 @@ export function carve(spec: CarveSpec): Terrain {
     if (inside(t, x, y) && tileAt(t, x, y) !== TILE.air && tileAt(t, x, y) !== TILE.bedrock) setTile(t, x, y, tileAt(t, x, y), 0, VOLATILES.firedamp.id);
   }
   for (const { kind, at: [x, depth] } of spec.charges ?? []) {
-    const y = surface[x]! + depth;
-    if (inside(t, x, y) && tileAt(t, x, y) !== TILE.air && tileAt(t, x, y) !== TILE.bedrock) t.volatile[y * t.width + x] = VOLATILES[kind].id;
+    const y = surface[col(spec, x)]! + depth;
+    if (inside(t, x, y) && tileAt(t, x, y) !== TILE.air && tileAt(t, x, y) !== TILE.bedrock) setVolatile(t, x, y, VOLATILES[kind].id);
   }
   return t;
 }
@@ -114,7 +135,7 @@ function layGround(t: Terrain, spec: CarveSpec, surface: readonly number[]): voi
         setTile(t, x, y, TILE.bedrock);
         continue;
       }
-      const d = y - surface[x]! + valueNoise(x, y, 6, spec.seed + 3) * 3.5;
+      const d = y - surface[x]! + valueNoise(x, y, 6, spec.seed + 3, period(spec)) * 3.5;
       setTile(t, x, y, d < spec.stone ? TILE.soil : d < spec.deep ? TILE.stone : TILE.deep);
     }
   }
@@ -137,8 +158,8 @@ function worm(t: Terrain, spec: CarveSpec, surface: readonly number[], rng: Rng)
         if (dx * dx + dy * dy > r * r) continue;
         const cx = Math.round(x + dx);
         const cy = Math.round(y + dy);
-        if (!inside(t, cx, cy) || cy < surface[cx]! + TOPSOIL) continue;
-        if (Math.abs(cx - spec.landerCol) <= PAD) continue;
+        if (!inside(t, cx, cy) || cy < surface[col(spec, cx)]! + TOPSOIL) continue;
+        if (gap(spec, cx, spec.landerCol) <= PAD) continue;
         const tile = tileAt(t, cx, cy);
         if (tile === TILE.soil || tile === TILE.stone || tile === TILE.deep) setTile(t, cx, cy, TILE.air);
       }
@@ -199,19 +220,27 @@ function wallVault(t: Terrain, spec: CarveSpec, v: Vault): void {
 }
 
 /** A vein: a clump of ore grown block by block through solid rock. */
+/** A column for a vein to start in: anywhere, or within its rule's band of columns. */
+function veinColumn(spec: CarveSpec, rule: OreRule, rng: Rng): number {
+  if (!rule.cols) return Math.floor(rng() * spec.width);
+  const [from, to] = rule.cols;
+  const span = col(spec, to - from) + 1;
+  return col(spec, from + Math.floor(rng() * span));
+}
+
 function vein(t: Terrain, spec: CarveSpec, surface: readonly number[], rule: OreRule, rng: Rng): void {
-  const x = Math.floor(rng() * spec.width);
+  const x = veinColumn(spec, rule, rng);
   const y = surface[x]! + rule.from + Math.floor(rng() * Math.max(1, rule.to - rule.from));
   if (!holdsOre(t, x, y)) return;
   const size = rule.size[0] + Math.floor(rng() * (rule.size[1] - rule.size[0] + 1));
   const id = ORES[rule.ore].id;
   const grown: [number, number][] = [[x, y]];
-  t.content[y * t.width + x] = id;
+  setContent(t, x, y, id);
   for (let tries = 0; grown.length < size && tries < size * 8; tries++) {
     const [bx, by] = grown[Math.floor(rng() * grown.length)]!;
     const [dx, dy] = [[1, 0], [-1, 0], [0, 1], [0, -1]][Math.floor(rng() * 4)]!;
     if (!holdsOre(t, bx + dx!, by + dy!)) continue;
-    t.content[(by + dy!) * t.width + bx + dx!] = id;
+    setContent(t, bx + dx!, by + dy!, id);
     grown.push([bx + dx!, by + dy!]);
   }
 }
@@ -226,13 +255,13 @@ function firedamp(t: Terrain, spec: CarveSpec, surface: readonly number[], rng: 
   const seams = rng() < 0.5 ? seamTiles(t) : [];
   for (let tries = 0; tries < 40; tries++) {
     const seam = seams.length ? seams[Math.floor(rng() * seams.length)]! : null;
-    const x = seam ? seam[0] + (rng() < 0.5 ? -1 : 1) : 1 + Math.floor(rng() * (spec.width - 2));
+    const x = col(spec, seam ? seam[0] + (rng() < 0.5 ? -1 : 1) : 1 + Math.floor(rng() * (spec.width - 2)));
     const y = seam ? seam[1] + Math.floor(rng() * 3) - 1 : surface[x]! + TOPSOIL + Math.floor(rng() * (spec.height - surface[x]! - TOPSOIL - BEDROCK_ROWS - 1));
     if (!pocketable(t, spec, surface, x, y)) continue;
     const size = 1 + Math.floor(rng() * 3);
     let [cx, cy] = [x, y];
     for (let k = 0; k < size && pocketable(t, spec, surface, cx, cy); k++) {
-      t.volatile[cy * t.width + cx] = VOLATILES.firedamp.id;
+      setVolatile(t, cx, cy, VOLATILES.firedamp.id);
       if (rng() < 0.5) cx += rng() < 0.5 ? -1 : 1;
       else cy += rng() < 0.5 ? -1 : 1;
     }
@@ -249,7 +278,7 @@ function seamTiles(t: Terrain): [number, number][] {
 
 /** Soil or stone with nothing in it, below the topsoil and away from the lander. */
 function pocketable(t: Terrain, spec: CarveSpec, surface: readonly number[], x: number, y: number): boolean {
-  if (!inside(t, x, y) || y < surface[x]! + TOPSOIL || Math.abs(x - spec.landerCol) <= PAD) return false;
+  if (!inside(t, x, y) || y < surface[col(spec, x)]! + TOPSOIL || gap(spec, x, spec.landerCol) <= PAD) return false;
   const tile = tileAt(t, x, y);
   return (tile === TILE.soil || tile === TILE.stone) && contentAt(t, x, y) === 0 && volatileAt(t, x, y) === 0;
 }

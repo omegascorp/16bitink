@@ -1,6 +1,6 @@
 import { ART_RES, BLUE } from '../../art/palette';
 import { PROSPECTOR_RES, TEX } from '../../art/textures';
-import { PLANETS, slotOf } from '../../level/levels';
+import { PLANETS } from '../../level/planets';
 import { blueprintId, canBuild, recipeOf, type BuildCheck } from '../../logic/blueprints';
 import { hasOnHand, onHand, printModule, printPart } from '../../logic/economy';
 import { PIECES, prospectorLook, type Piece } from '../../logic/gear';
@@ -16,15 +16,10 @@ const PIECE_NAMES: Readonly<Record<Piece, string>> = { drill: 'Drill', cell: 'Ce
 const BUILD_WHY: Readonly<Record<BuildCheck, string>> = { ok: 'Print', built: 'built', notFound: 'no blueprint', materials: 'needs ore', order: 'locked' };
 const FIG_H = 170;
 
-/** Where each blueprint is found, from the built levels: a mission's reward or a vault. */
+/** Where each blueprint is found: which planet's world it lies somewhere in. */
 function blueprintSources(): ReadonlyMap<string, string> {
   const out = new Map<string, string>();
-  for (const planet of PLANETS) {
-    for (const l of planet.levels) {
-      if (l.mission.blueprint) out.set(l.mission.blueprint, `reward for ${l.name} (${planet.name} ${slotOf(l.id)})`);
-      for (const it of l.items) if (it.blueprint) out.set(it.blueprint, `in a vault on ${l.name} (${planet.name} ${slotOf(l.id)})`);
-    }
-  }
+  for (const planet of PLANETS) for (const it of planet.world.items) if (it.blueprint) out.set(it.blueprint, `it's somewhere on ${planet.name}`);
   return out;
 }
 const SOURCES = blueprintSources();
@@ -58,7 +53,7 @@ function pieceRow(page: ShipPage, piece: Piece, x: number, ry: number, w: number
   const note = (text: string): number => noteText(scene, x + 16, ry + 30, text, 19, w - 32, PENCIL).height + 42;
   if (!r) return note('the best there is on this planet');
   const why = canBuild(r, p.found, p.gear, hasOnHand(p));
-  if (why === 'notFound') return note(`Mk ${r.mk} blueprint not found: ${SOURCES.get(r.id) ?? 'on a later landing'}`);
+  if (why === 'notFound') return note(`Mk ${r.mk} blueprint not found: ${SOURCES.get(r.id) ?? 'not on this planet'}`);
   const gain = noteText(scene, x + 16, ry + 30, `Mk ${r.mk}: ${markGain(piece, r.mk)}`, 19, w - 150, BLUE);
   const recipe = noteText(scene, x + 16, gain.y + gain.height + 2, recipeLine(r.materials, onHand(p)), 18, w - 150, why === 'ok' ? BLUE : SOFT_INK);
   inkButton(scene, x + w - 70, ry + 58, BUILD_WHY[why], () => {

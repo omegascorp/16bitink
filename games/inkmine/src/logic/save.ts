@@ -1,32 +1,25 @@
 import type { KeyValueStore } from '@16bitink/game-sdk';
 import { recipeOf } from './blueprints';
-import { fitInventories, NEW_PROFILE, type LevelRecord, type Profile } from './economy';
+import { fitInventories, NEW_PROFILE, type Profile } from './economy';
 import { PIECES, type Loadout } from './gear';
-import type { Hold } from './hold';
 import type { Inventory, Stack } from './inventory';
-import type { ContractKind } from './mission';
 import { ORES } from './ore';
 import { MODULE_KEYS, maxLevel, type ShipModules } from './ship';
 
-/** v2: resources in slot inventories, no credits (v1 saves are from before release and are dropped). */
-const KEY = 'inkmine.profile.v2';
+/**
+ * v3: one open world, no levels (v2's level records and pending rewards are
+ * from before release and are dropped, as v1's credits were). The world's own
+ * changes are saved apart (worldSave.ts).
+ */
+const KEY = 'inkmine.profile.v3';
 /** Caps on what an untrusted save can hold. */
 const MAX_SLOTS = 128;
 const MAX_STACK = 1000;
-const MAX_COUNT = 100_000;
 const MAX_MARK = 10;
-const MAX_LEVELS = 200;
-const LEVEL_ID = /^[a-z0-9-]{1,64}$/;
-const CONTRACTS: Readonly<Record<ContractKind, true>> = { order: true, specimen: true, deep: true, clean: true, careful: true, rush: true };
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 const intIn = (v: unknown, lo: number, hi: number): v is number => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
-
-function parseHold(v: unknown): Hold {
-  if (!isObj(v)) return {};
-  return Object.fromEntries(Object.entries(v).filter(([k, n]) => Object.hasOwn(ORES, k) && intIn(n, 1, MAX_COUNT)));
-}
 
 /** An inventory: up to MAX_SLOTS slots, each empty or a stack of a known ore within the stack size. */
 function parseInventory(v: unknown, fallback: Inventory): Inventory {
@@ -49,31 +42,17 @@ function parseShip(v: unknown): ShipModules {
   return Object.fromEntries(MODULE_KEYS.map((k) => [k, intIn(o[k], 0, maxLevel(k)) ? o[k] : 0])) as unknown as ShipModules;
 }
 
-function parseRecord(v: unknown): LevelRecord | null {
-  if (!isObj(v) || typeof v.won !== 'boolean' || !intIn(v.blots, 0, 3)) return null;
-  const paid = Array.isArray(v.paid) ? [...new Set(v.paid.filter((k): k is ContractKind => typeof k === 'string' && Object.hasOwn(CONTRACTS, k)))] : [];
-  return { won: v.won, blots: v.blots, paid };
-}
-
 /** Untrusted saved data to a profile: anything malformed is dropped, never thrown. */
 export function parseProfile(raw: unknown): Profile {
   if (!isObj(raw)) return NEW_PROFILE;
-  const levels = isObj(raw.levels)
-    ? Object.entries(raw.levels).slice(0, MAX_LEVELS).flatMap(([id, r]) => {
-      const rec = LEVEL_ID.test(id) ? parseRecord(r) : null;
-      return rec ? [[id, rec] as const] : [];
-    })
-    : [];
   const found = Array.isArray(raw.found) ? [...new Set(raw.found.filter((id): id is string => typeof id === 'string' && !!recipeOf(id)))] : [];
   // Sized to what the gear and ship give, whatever the save said.
   return fitInventories({
     suit: parseInventory(raw.suit, NEW_PROFILE.suit),
     cargo: parseInventory(raw.cargo, NEW_PROFILE.cargo),
-    pending: parseHold(raw.pending),
     gear: parseGear(raw.gear),
     found,
     ship: parseShip(raw.ship),
-    levels: Object.fromEntries(levels),
   });
 }
 

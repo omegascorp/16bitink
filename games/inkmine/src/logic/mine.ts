@@ -2,16 +2,15 @@ import { boxHitsSolid, climbBody, jump, moveBody, type Body, type Box } from './
 import { BlastSim, type Blast } from './blastSim';
 import type { Loadout } from './gear';
 import { DRILL_SECONDS_PER_ENERGY, tileCost, VOLATILE_COST, type DrillSpec } from './drill';
-import { addHold, EMPTY_HOLD, holdSize, type Hold } from './hold';
+import { holdSize, type Hold } from './hold';
 import { contents as contentsOf, emptyInventory, isEmpty, keepShare, transferAll, type Inventory } from './inventory';
 import { bankItems, freeItems, inPouch, placeItems, stepItems, type ItemDef, type MineItem } from './items';
 import { ladderRungs, Ladders } from './ladders';
 import { jetFor, type JetSpec } from './marks';
-import type { ItemKind, Tally } from './mission';
-import { caught, newPiece, PIECE, stepPiece, type Piece } from './pieces';
+import { between, caught, newPiece, PIECE, stepPiece, type Piece } from './pieces';
 import { burn, fits, hurt, newSuit, recharge, refuel, spend, stow, withBag, type Suit, type SuitSpec } from './suit';
 import { bodyCell, centredX, drillTarget } from './target';
-import { contentAt, setTile, TILE, tileAt, volatileAt, type Terrain, type TilePos } from './terrain';
+import { contentAt, foldX, ringDelta, setTile, TILE, tileAt, volatileAt, wrapX, type Terrain, type TilePos } from './terrain';
 
 /** Everything a dig site starts from. */
 export interface MineSetup {
@@ -23,11 +22,13 @@ export interface MineSetup {
   readonly suit: SuitSpec;
   /** Ladder gadgets carried. */
   readonly ladders: number;
+  /** Ladders already hanging in the world (from a save), over `terrain` (default none). */
+  readonly placedLadders?: Ladders;
   /** The lander's middle column and the surface row it stands on. */
   readonly lander: { readonly col: number; readonly row: number };
   /** The jetpack's mark (default the starter's). */
   readonly jet?: JetSpec;
-  /** Mission items: cores, probes, fossils, blueprints (default none). */
+  /** Things to find: blueprints, and later what people ask for (default none). */
   readonly items?: readonly ItemDef[];
   /** Share of the bag a recall keeps: the ship's winch (default none). */
   readonly winchKeeps?: number;
@@ -49,11 +50,9 @@ export interface MineInput {
   readonly thrust: boolean;
   readonly ladder: boolean;
   readonly recall: boolean;
-  /** Lift off, if at the lander. */
-  readonly liftoff?: boolean;
 }
 
-export const NO_INPUT: MineInput = { ix: 0, iy: 0, jump: false, thrust: false, ladder: false, recall: false, liftoff: false };
+export const NO_INPUT: MineInput = { ix: 0, iy: 0, jump: false, thrust: false, ladder: false, recall: false };
 
 export type MineEvent =
   | { readonly kind: 'tiles'; readonly tiles: readonly TilePos[] }
@@ -75,7 +74,6 @@ export type MineEvent =
   | { readonly kind: 'recall'; readonly lost: number }
   | { readonly kind: 'item'; readonly item: MineItem }
   | { readonly kind: 'bankItem'; readonly item: MineItem }
-  | { readonly kind: 'liftoff' }
   | { readonly kind: 'failed' };
 
 export const PROSPECTOR = { w: 20, h: 28, walk: 125, climb: 105, jump: 330 } as const;
@@ -106,6 +104,11 @@ interface Drilling {
  * One dig site in play: the prospector, their suit, the ground they drill,
  * what can blow in it, loose ore and the lander they bank at. Pure simulation (no
  * Phaser); `step` returns what happened so the scene can draw and play it.
+ *
+ * On a wrapping world everything is kept folded into the grid (x from 0 to
+ * its width), and anything that compares two places measures the short way
+ * round, so the join is never felt. Drawing them near the camera is the
+ * scene's job.
  */
 export class Mine {
   readonly terrain: Terrain;
@@ -118,15 +121,9 @@ export class Mine {
   player: Body;
   facing: 1 | -1 = 1;
   suit: Suit;
-  /** Ore banked at the lander this landing. */
-  banked: Hold = EMPTY_HOLD;
   /** The ship's cargo, filled at the lander. */
   cargo: Inventory;
   items: MineItem[];
-  deepest = 0;
-  heartsLost = 0;
-  /** Old charges (not firedamp) that have gone off. */
-  chargesFired = 0;
   laddersLeft: number;
   pieces: Piece[] = [];
   drilling: Drilling | null = null;
@@ -134,14 +131,14 @@ export class Mine {
   /** The jetpack fired this step. */
   jetting = false;
   time = 0;
-  state: 'playing' | 'failed' | 'lifted' = 'playing';
+  state: 'playing' | 'failed' = 'playing';
   private readonly said = new Map<string, number>();
 
   constructor(private readonly setup: MineSetup) {
     this.terrain = setup.terrain;
     this.tile = setup.tileSize;
     this.drill = setup.drill;
-    this.ladders = new Ladders(setup.terrain);
+    this.ladders = setup.placedLadders ?? new Ladders(setup.terrain);
     this.blasts = new BlastSim(setup.terrain);
     this.suit = setup.bag ? newSuit(setup.suit, setup.bag) : newSuit(setup.suit);
     this.cargo = setup.cargo ?? emptyInventory(CARGO.slots, CARGO.stack);
@@ -159,27 +156,12 @@ export class Mine {
     return Math.max(0, Math.floor((this.player.y + this.player.h) / this.tile) - this.setup.lander.row);
   }
 
-  /** Pieces of ore banked this landing. */
-  get bankedPieces(): number {
-    return holdSize(this.banked);
-  }
-
-  /** Whether the prospector is at the lander (where they bank, and can lift off). */
+  /** Whether the prospector is at the lander (where they bank, and can step aboard). */
   get atLander(): boolean {
     const p = this.player;
     const l = this.landerBox;
-    return !(p.x + p.w < l.x || p.x > l.x + l.w || p.y + p.h < l.y || p.y > l.y + l.h);
-  }
-
-  /** How the landing stands, for the mission and contracts. */
-  tally(): Tally {
-    const items: ItemKind[] = this.items.filter((it) => it.state === 'banked').map((it) => it.kind);
-    return { banked: this.banked, items, deepest: this.deepest, heartsLost: this.heartsLost, charges: this.chargesFired, time: this.time };
-  }
-
-  /** Blueprint ids banked this landing. */
-  bankedBlueprints(): string[] {
-    return this.items.filter((it) => it.state === 'banked' && it.blueprint).map((it) => it.blueprint!);
+    const lx = p.x + ringDelta(this.terrain, p.x, l.x, this.tile);
+    return !(p.x + p.w < lx || p.x > lx + l.w || p.y + p.h < l.y || p.y > l.y + l.h);
   }
 
   /** How far through the current block the drill is, 0..1. */
@@ -192,12 +174,6 @@ export class Mine {
     if (this.state !== 'playing') return [];
     this.time += dt;
     const events: MineEvent[] = [];
-    if (input.liftoff && this.atLander) {
-      this.landerStep(events);
-      this.state = 'lifted';
-      events.push({ kind: 'liftoff' });
-      return events;
-    }
     if (input.recall) this.recall(events);
     if (input.ladder) this.placeLadder(events);
     const blocked = this.move(dt, input, events);
@@ -206,7 +182,6 @@ export class Mine {
     this.pieceStep(dt, events);
     this.itemStep(dt, events);
     this.landerStep(events);
-    this.deepest = Math.max(this.deepest, this.depth);
     if (this.suit.hearts <= 0) {
       this.state = 'failed';
       events.push({ kind: 'failed' });
@@ -218,12 +193,13 @@ export class Mine {
   occupies(x: number, y: number): boolean {
     const T = this.tile;
     const p = this.player;
-    return p.x < (x + 1) * T && p.x + p.w > x * T && p.y < (y + 1) * T && p.y + p.h > y * T;
+    const left = p.x + ringDelta(this.terrain, p.x, x * T, T);
+    return p.x < left + T && p.x + p.w > left && p.y < (y + 1) * T && p.y + p.h > y * T;
   }
 
   private startBody(): Body {
     const { col, row } = this.setup.lander;
-    const x = centredX(col + LANDER.half + 1, PROSPECTOR.w, this.tile);
+    const x = foldX(this.terrain, centredX(col + LANDER.half + 1, PROSPECTOR.w, this.tile), this.tile);
     return { x, y: row * this.tile - PROSPECTOR.h, w: PROSPECTOR.w, h: PROSPECTOR.h, vx: 0, vy: 0, onGround: true };
   }
 
@@ -252,6 +228,7 @@ export class Mine {
       // Stepping off a ledge while heading down drops straight onto the next stair.
       if (input.iy > 0 && before.onGround && !this.player.onGround && this.player.vy >= 0) this.player = { ...this.player, vy: Math.max(this.player.vy, DROP_KICK) };
     }
+    this.player = { ...this.player, x: foldX(this.terrain, this.player.x, T) };
     const footing = this.player.onGround || this.climbing || this.jetting;
     return input.ix !== 0 && footing && Math.abs(this.player.x - before.x) < 0.01;
   }
@@ -332,7 +309,6 @@ export class Mine {
       events.push({ kind: 'tiles', tiles: changed });
     }
     for (const blast of blasts) {
-      if (blast.kind !== 'firedamp') this.chargesFired++;
       events.push({ kind: 'blast', blast });
       for (const { ore, tile } of blast.ores) this.pieces.push(newPiece(ore, (tile[0] + 0.5) * this.tile, (tile[1] + 0.5) * this.tile));
       if (blast.area.some(([x, y]) => this.occupies(x, y))) this.hurt(events);
@@ -345,7 +321,7 @@ export class Mine {
       // A piece flies to the bag only if there's a stack of its ore with room, or an empty slot.
       const room = fits(this.suit, piece.ore);
       const next = stepPiece(this.terrain, piece, room ? this.player : null, dt, this.tile);
-      if (room && caught(next, this.player)) {
+      if (room && caught(this.terrain, next, this.player, this.tile)) {
         this.suit = stow(this.suit, next.ore) ?? this.suit;
         events.push({ kind: 'ore', ore: next.ore });
         continue;
@@ -363,8 +339,7 @@ export class Mine {
   }
 
   private near(p: Box): boolean {
-    const a = this.player;
-    return Math.hypot(a.x + a.w / 2 - (p.x + p.w / 2), a.y + a.h / 2 - (p.y + p.h / 2)) < PIECE.magnet;
+    return between(this.terrain, this.player, p, this.tile).d < PIECE.magnet;
   }
 
   private landerStep(events: MineEvent[]): void {
@@ -374,7 +349,6 @@ export class Mine {
       const pieces = holdSize(r.moved);
       if (pieces) {
         events.push({ kind: 'bank', moved: r.moved, pieces });
-        this.banked = addHold(this.banked, r.moved);
         this.cargo = r.to;
         this.suit = withBag(this.suit, r.from);
       }
@@ -400,7 +374,8 @@ export class Mine {
       events.push({ kind: 'noLadders' });
       return;
     }
-    const { col, row } = bodyCell(this.player, this.tile);
+    const cell = bodyCell(this.player, this.tile);
+    const [col, row] = [wrapX(this.terrain, cell.col), cell.row];
     const rungs = ladderRungs(this.terrain, col, row);
     if (rungs.length < 2) return;
     this.ladders.add(rungs);
@@ -428,7 +403,6 @@ export class Mine {
     const r = hurt(this.suit, this.time);
     this.suit = r.suit;
     if (!r.hit) return;
-    this.heartsLost++;
     events.push({ kind: 'hurt', hearts: this.suit.hearts });
   }
 

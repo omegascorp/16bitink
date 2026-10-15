@@ -1,4 +1,4 @@
-import { inside, TILE, tileAt, type Terrain, type TilePos } from './terrain';
+import { inside, TILE, tileAt, wrapX, type Terrain, type TilePos } from './terrain';
 
 /**
  * Things in the rock that blow, each there for a reason (spec, "Firedamp
@@ -36,7 +36,7 @@ export function volatileKeyOf(id: number): VolatileKey | null {
   return BY_ID.get(id) ?? null;
 }
 
-/** The tiles a blast covers (in the grid), whatever is in them. */
+/** The tiles a blast covers (in the grid, folded round a wrapping world's join), whatever is in them. */
 export function blastArea(t: Terrain, kind: VolatileKey, x: number, y: number): TilePos[] {
   const out: TilePos[] = [];
   if (VOLATILES[kind].area === 'burst') {
@@ -44,7 +44,7 @@ export function blastArea(t: Terrain, kind: VolatileKey, x: number, y: number): 
   } else {
     for (let dx = -BLAST.rowReach; dx <= BLAST.rowReach; dx++) out.push([x + dx, y]);
   }
-  return out.filter(([bx, by]) => inside(t, bx, by));
+  return out.filter(([bx, by]) => inside(t, bx, by)).map(([bx, by]) => [wrapX(t, bx), by] as const);
 }
 
 /** Whether a blast breaks this tile: soil and stone, never deep rock or bedrock. */

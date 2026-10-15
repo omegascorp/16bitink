@@ -1,5 +1,5 @@
 import { tileCost, VOLATILE_COST, type DrillSpec } from '../logic/drill';
-import { inside, TILE, tileAt, volatileAt, type Terrain } from '../logic/terrain';
+import { indexOf, inside, TILE, tileAt, volatileAt, type Terrain } from '../logic/terrain';
 import { blastBreaks } from '../logic/volatiles';
 
 /**
@@ -22,19 +22,19 @@ export function energyMap(t: Terrain, drill: DrillSpec, start: readonly [number,
     const vx = i % t.width;
     const vy = Math.floor(i / t.width);
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-      if (inside(t, vx + dx, vy + dy) && blastBreaks(t, vx + dx, vy + dy)) blown[(vy + dy) * t.width + vx + dx] = 1;
+      if (inside(t, vx + dx, vy + dy) && blastBreaks(t, vx + dx, vy + dy)) blown[indexOf(t, vx + dx, vy + dy)] = 1;
     }
   }
   const step = (x: number, y: number): number | null => {
     if (volatileAt(t, x, y)) return VOLATILE_COST;
     const tile = tileAt(t, x, y);
     if (tile === TILE.air) return 0;
-    if (blown[y * t.width + x] && blastBreaks(t, x, y)) return 0;
+    if (blown[indexOf(t, x, y)] && blastBreaks(t, x, y)) return 0;
     return tileCost(drill, tile);
   };
   const [sx, sy] = start;
-  const heap: [number, number][] = [[0, sy * t.width + sx]];
-  cost[sy * t.width + sx] = 0;
+  const heap: [number, number][] = [[0, indexOf(t, sx, sy)]];
+  cost[indexOf(t, sx, sy)] = 0;
   while (heap.length) {
     const [c, i] = pop(heap);
     if (c > cost[i]!) continue;
@@ -46,7 +46,7 @@ export function energyMap(t: Terrain, drill: DrillSpec, start: readonly [number,
       if (!inside(t, nx, ny)) continue;
       const s = step(nx, ny);
       if (s === null) continue;
-      const j = ny * t.width + nx;
+      const j = indexOf(t, nx, ny);
       if (c + s < cost[j]!) {
         cost[j] = c + s;
         push(heap, [c + s, j]);

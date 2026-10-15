@@ -64,7 +64,7 @@ describe('a dig site', () => {
     expect(events).toContainEqual({ kind: 'recall', lost: 2 });
     expect(m.depth).toBe(0);
     expect(bagHas(m.suit.bag)).toEqual({});
-    expect(m.bankedPieces).toBe(0);
+    expect(bagHas(m.cargo)).toEqual({});
   });
 
   it('a ladder gets you back out of a shaft', () => {

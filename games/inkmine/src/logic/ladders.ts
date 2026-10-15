@@ -1,4 +1,4 @@
-import { inside, isSolid, type Terrain, type TilePos } from './terrain';
+import { indexOf, inside, isSolid, type Terrain, type TilePos } from './terrain';
 
 /**
  * The ladder gadget: it unrolls up from where you stand until it reaches a
@@ -29,11 +29,16 @@ export class Ladders {
   constructor(private readonly terrain: Terrain) {}
 
   has(x: number, y: number): boolean {
-    return inside(this.terrain, x, y) && this.rungs.has(y * this.terrain.width + x);
+    return inside(this.terrain, x, y) && this.rungs.has(indexOf(this.terrain, x, y));
   }
 
   add(tiles: readonly TilePos[]): void {
-    for (const [x, y] of tiles) this.rungs.add(y * this.terrain.width + x);
+    for (const [x, y] of tiles) if (inside(this.terrain, x, y)) this.rungs.add(indexOf(this.terrain, x, y));
+  }
+
+  /** How many rungs hang. */
+  get count(): number {
+    return this.rungs.size;
   }
 
   /** Every rung, for drawing. */
