@@ -6,9 +6,11 @@ import { currentPlanet } from '../level/planets';
 import type { Profile } from '../logic/economy';
 import { prospectorLook } from '../logic/gear';
 import { usedSlots } from '../logic/inventory';
+import { wreckOf } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
 import { relayoutOnResize, screenScene, toView, viewSize } from './hidpi';
 import { inventoryPanel } from './ship/inventoryPanel';
+import { repairPanel } from './ship/repairPanel';
 import { section, SOFT_INK, type ShipPage, type ShipUi } from './ship/panel';
 import { gearPanel, landerPanel } from './ship/printerPanel';
 import { inkButton, inkText, noteText } from './ui';
@@ -38,7 +40,7 @@ export class ShipScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(PAPER);
     const profile = getProfile(this);
     const planet = currentPlanet();
-    bakeCharacters(this, prospectorLook(profile.gear), landerLookOf(profile.ship));
+    bakeCharacters(this, prospectorLook(profile.gear), landerLookOf(profile.ship), wreckOf(profile));
     bakePickups(this, planet.style.stone);
 
     const { width } = viewSize(this);
@@ -62,10 +64,12 @@ export class ShipScene extends Phaser.Scene {
       const h1 = inventoryPanel(page, x(0), top, colW);
       const h2 = this.backDown(x(0), top + h1 + GAP, colW);
       const h3 = gearPanel(page, x(1), top, colW);
-      const h4 = landerPanel(page, x(2), top, colW);
-      bottom = top + Math.max(h1 + GAP + h2, h3, h4);
+      const h4 = repairPanel(page, x(2), top, colW);
+      const h5 = landerPanel(page, x(2), top + h4 + GAP, colW);
+      bottom = top + Math.max(h1 + GAP + h2, h3, h4 + GAP + h5);
     } else {
       const panels: ((y: number) => number)[] = [
+        (y) => repairPanel(page, x(0), y, colW),
         (y) => inventoryPanel(page, x(0), y, colW),
         (y) => this.backDown(x(0), y, colW),
         (y) => gearPanel(page, x(0), y, colW),

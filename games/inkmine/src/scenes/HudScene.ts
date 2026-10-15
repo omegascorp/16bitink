@@ -3,17 +3,28 @@ import { BLUE, BLUE_HEX, PAPER_HEX, RED, RED_HEX } from '../art/palette';
 import { usedSlots } from '../logic/inventory';
 import { inPouch } from '../logic/items';
 import type { Mine } from '../logic/mine';
+import { goalLine } from '../logic/repairs';
 import type { GameScene } from './GameScene';
 import { screenScene, viewSize } from './hidpi';
 import { drawSlotGrid, gridHeight } from './slots';
 import { bagFull } from '../logic/suit';
-import { HAND_FONT, inkText, wobblyRect } from './ui';
+import { HAND_FONT, inkButton, inkText, noteCard, noteText, wobblyRect } from './ui';
 
 /** The cell reads as low (red) under this share of its charge. */
 const LOW = 0.25;
 const PANEL = { x: 14, y: 12, w: 330, h: 100 } as const;
 /** The bag's slots under the gauges. */
 const BAG = { cell: 38, cols: 7, top: 98 } as const;
+/** The objective scrap, top right. */
+const GOAL = { w: 360, pad: 12 } as const;
+const INTRO_W = 620;
+/** The opening card (spec, "Story: chapter 1"). */
+const INTRO = [
+  'The jump went wrong. A wormhole tore open, and the lander fell through it, out among stars no chart has.',
+  'It came down hard on a small grey moon. The link to the guild is gone, and the suit is still listing the damage.',
+  "Nothing can be mended without the printer, and the printer wants copper. There's copper in the crater walls.",
+] as const;
+
 /** Where the cell's and the jetpack's gauges sit in the panel. */
 const GAUGE = { x: 156, w: 100, h: 18, cell: 20, fuel: 48 } as const;
 
@@ -29,8 +40,11 @@ function heart(cx: number, cy: number, s: number): Phaser.Math.Vector2[] {
 
 /**
  * The HUD on paper scraps: hearts, the drill's energy cell, the jetpack's
- * fuel, the bag, the depth and how full the cargo is; a prompt at the
- * lander; the controls along the bottom. Redrawn only when a number changes.
+ * fuel, the bag, the depth and how full the cargo is; the one thing to do
+ * next at the top right (never none: No Man's Sky's start is criticised for
+ * the stretch with no prompt); a prompt at the lander; the controls along
+ * the bottom; and the opening card, the first time. Redrawn only when
+ * something on it changes.
  */
 export class HudScene extends Phaser.Scene {
   private g!: Phaser.GameObjects.Graphics;
@@ -42,6 +56,10 @@ export class HudScene extends Phaser.Scene {
   private prompt!: Phaser.GameObjects.Text;
   private hint!: Phaser.GameObjects.Text;
   private failed!: Phaser.GameObjects.Text;
+  private goalG!: Phaser.GameObjects.Graphics;
+  private goalText!: Phaser.GameObjects.Text;
+  private goalTitle!: Phaser.GameObjects.Text;
+  private intro: Phaser.GameObjects.Container | null = null;
   private shown = '';
 
   constructor() {
@@ -57,6 +75,10 @@ export class HudScene extends Phaser.Scene {
     this.shown = '';
     this.bagCells = [];
     this.g = this.add.graphics();
+    this.goalG = this.add.graphics();
+    this.goalText = noteText(this, 0, 0, '', 20, GOAL.w - GOAL.pad * 2, BLUE);
+    this.goalTitle = inkText(this, 0, 0, 'Next', 22).setOrigin(0, 0.5);
+    this.intro = null;
     const text = (x: number, y: number, size: number): Phaser.GameObjects.Text => inkText(this, x, y, '', size).setOrigin(0, 0.5);
     const gaugeEnd = PANEL.x + GAUGE.x + GAUGE.w + 6;
     text(PANEL.x + GAUGE.x - 48, PANEL.y + GAUGE.cell, 20).setText('cell');
@@ -74,19 +96,23 @@ export class HudScene extends Phaser.Scene {
     this.layout();
     this.scale.on('resize', this.layout, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', this.layout, this));
+    if (this.play?.intro) this.showIntro();
   }
 
   update(): void {
-    const mine = this.play?.mine;
-    if (!mine) return;
+    const game = this.play;
+    const mine = game?.mine;
+    if (!game || !mine) return;
     const s = mine.suit;
     const pouch = inPouch(mine.items).length;
     const aboard = mine.atLander && mine.state === 'playing';
     const bag = s.bag.slots.map((x) => (x ? `${x.ore}${x.n}` : '-')).join(',');
-    const sig = [s.hearts, s.maxHearts, s.energy, Math.ceil(s.fuel), bag, mine.depth, usedSlots(mine.cargo), mine.state, pouch, aboard].join('|');
+    const goal = goalLine(game.liveProfile(), game.goal());
+    const sig = [s.hearts, s.maxHearts, s.energy, Math.ceil(s.fuel), bag, mine.depth, usedSlots(mine.cargo), mine.state, pouch, aboard, goal].join('|');
     if (sig === this.shown) return;
     this.shown = sig;
     this.draw(mine);
+    this.drawGoal(goal);
     this.prompt.setVisible(aboard).setText('at the lander: press L to go aboard');
   }
 
@@ -95,6 +121,7 @@ export class HudScene extends Phaser.Scene {
     this.hint.setPosition(width / 2, height - 8);
     this.failed.setPosition(width / 2, height / 2);
     this.prompt.setPosition(width / 2, height - 52);
+    this.intro?.setPosition(width / 2, height / 2);
     this.shown = '';
   }
 
@@ -133,5 +160,45 @@ export class HudScene extends Phaser.Scene {
     this.bagCells = drawSlotGrid(this, x + 12, y + BAG.top, s.bag, { ...BAG, seed: 61 });
     if (bagFull(s)) wobblyRect(g, x + 8, y + BAG.top - 4, w - 16, gridHeight(s.bag.slots.length, BAG) + 4, 67, 1.6, RED_HEX);
     this.failed.setVisible(mine.state === 'failed');
+  }
+
+  /** The objective scrap: what to do next, with what's on hand counted. */
+  private drawGoal(line: string): void {
+    const { width } = viewSize(this);
+    const x = width - GOAL.w - 14;
+    const y = 12;
+    this.goalText.setText(line).setPosition(x + GOAL.pad, y + GOAL.pad + 30);
+    const h = GOAL.pad * 2 + 34 + this.goalText.height;
+    const g = this.goalG.clear();
+    g.fillStyle(PAPER_HEX, 0.93).fillRect(x, y, GOAL.w, h);
+    wobblyRect(g, x, y, GOAL.w, h, 31, 1.6, BLUE_HEX);
+    this.goalTitle.setPosition(x + GOAL.pad, y + GOAL.pad + 10);
+  }
+
+  /** The opening card: how you got here, and the first thing to do. Any key or a tap starts. */
+  private showIntro(): void {
+    const { width, height } = viewSize(this);
+    const left = -INTRO_W / 2 + 34;
+    const parts: Phaser.GameObjects.GameObject[] = [inkText(this, 0, 44, 'Graphite', 44)];
+    let y = 84;
+    for (const para of INTRO) {
+      const t = noteText(this, left, y, para, 23, INTRO_W - 68, '#4a463e');
+      parts.push(t);
+      y += t.height + 10;
+    }
+    const h = y + 84;
+    for (const part of parts) (part as unknown as { y: number }).y -= h / 2;
+    const close = (): void => this.closeIntro();
+    parts.push(inkButton(this, 0, h / 2 - 44, 'Get up ▸', close, { width: 180, height: 50 }));
+    this.intro = noteCard(this, width / 2, height / 2, INTRO_W, h, parts, 77).setDepth(50);
+    this.input.keyboard?.once('keydown-SPACE', close);
+    this.input.keyboard?.once('keydown-ENTER', close);
+  }
+
+  private closeIntro(): void {
+    if (!this.intro) return;
+    this.intro.destroy();
+    this.intro = null;
+    this.play?.closeIntro();
   }
 }

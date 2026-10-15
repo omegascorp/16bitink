@@ -4,6 +4,7 @@ import { addHold, holds, type Hold } from './hold';
 import { contents, emptyInventory, resize, takeHoldFrom, type Inventory } from './inventory';
 import { suitSpecFor } from './marks';
 import { canUpgrade, CARGO_STACK, cargoSlots, nextRecipe, STARTER_SHIP, upgrade, type ModuleKey, type ShipModules, type UpgradeCheck } from './ship';
+import type { RepairId } from './repairs';
 import { SUIT_STACK } from './suit';
 
 /**
@@ -20,14 +21,23 @@ export interface Profile {
   /** Blueprint ids found (built ones stay listed). */
   readonly found: readonly string[];
   readonly ship: ShipModules;
+  /** The lander's systems put right since the crash (repairs.ts). */
+  readonly repaired: readonly RepairId[];
+  /** The opening card has been read. */
+  readonly started: boolean;
 }
+
+/** Cargo slots out of use while the hull is breached (repairs.ts). */
+const BREACHED = 6;
 
 export const NEW_PROFILE: Profile = {
   suit: emptyInventory(suitSpecFor(STARTER_LOADOUT).slots, SUIT_STACK),
-  cargo: emptyInventory(cargoSlots(STARTER_SHIP), CARGO_STACK),
+  cargo: emptyInventory(cargoSlots(STARTER_SHIP) - BREACHED, CARGO_STACK),
   gear: STARTER_LOADOUT,
   found: [],
   ship: STARTER_SHIP,
+  repaired: [],
+  started: false,
 };
 
 /** Every resource on hand: the cargo and the suit's bag. */
@@ -38,16 +48,24 @@ export function onHand(p: Profile): Hold {
 export const hasOnHand = (p: Profile) => (need: Hold): boolean => holds(onHand(p), need);
 
 /** Takes `need` out, from the cargo first, then the suit's bag. Assumes it's all on hand (see hasOnHand). */
-function spend(p: Profile, need: Hold): Profile {
+export function spend(p: Profile, need: Hold): Profile {
   const fromCargo = takeHoldFrom(p.cargo, need);
   const fromSuit = takeHoldFrom(p.suit, fromCargo.short);
   return { ...p, cargo: fromCargo.inv, suit: fromSuit.inv };
 }
 
-/** Grows both inventories to what the gear and ship now give (after printing a Pack or a Cargo hold). */
-export function fitInventories(p: Profile): Profile {
-  return { ...p, suit: resize(p.suit, suitSpecFor(p.gear).slots, SUIT_STACK), cargo: resize(p.cargo, cargoSlots(p.ship), CARGO_STACK) };
+/** Cargo slots in use: what the ship gives, less those open to the dust while the hull is breached. */
+export function cargoSlotsOf(p: Pick<Profile, 'ship' | 'repaired'>): number {
+  return cargoSlots(p.ship) - (p.repaired.includes('hull') ? 0 : BREACHED);
 }
+
+/** Grows both inventories to what the gear, ship and repairs now give (after printing a Pack or a Cargo hold, or sealing the hull). */
+export function fitInventories(p: Profile): Profile {
+  return { ...p, suit: resize(p.suit, suitSpecFor(p.gear).slots, SUIT_STACK), cargo: resize(p.cargo, cargoSlotsOf(p), CARGO_STACK) };
+}
+
+/** Whether the printer works: it's the first thing the crash broke. */
+export const printerWorks = (p: Profile): boolean => p.repaired.includes('printer');
 
 /** A blueprint found and banked: listed once, if it's a real one. */
 export function findBlueprint(p: Profile, id: string): Profile {
@@ -57,7 +75,8 @@ export function findBlueprint(p: Profile, id: string): Profile {
 export type PrintResult<Why> = { readonly ok: true; readonly profile: Profile } | { readonly ok: false; readonly why: Why };
 
 /** Prints a blueprint's part: materials out of the cargo (then the bag), the piece up a mark. */
-export function printPart(p: Profile, id: string): PrintResult<BuildCheck> {
+export function printPart(p: Profile, id: string): PrintResult<BuildCheck | 'offline'> {
+  if (!printerWorks(p)) return { ok: false, why: 'offline' };
   const r = recipeOf(id);
   if (!r) return { ok: false, why: 'notFound' };
   const why = canBuild(r, p.found, p.gear, hasOnHand(p));
@@ -67,7 +86,8 @@ export function printPart(p: Profile, id: string): PrintResult<BuildCheck> {
 }
 
 /** Prints the next level of a lander module. */
-export function printModule(p: Profile, k: ModuleKey): PrintResult<UpgradeCheck> {
+export function printModule(p: Profile, k: ModuleKey): PrintResult<UpgradeCheck | 'offline'> {
+  if (!printerWorks(p)) return { ok: false, why: 'offline' };
   const why = canUpgrade(p.ship, k, hasOnHand(p));
   if (why !== 'ok') return { ok: false, why };
   const spent = spend(p, nextRecipe(p.ship, k)!);

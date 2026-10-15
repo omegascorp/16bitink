@@ -74,3 +74,10 @@ describe('a slot inventory', () => {
     expect(emptyInventory(2, 10).slots).toEqual([null, null]);
   });
 });
+
+describe('shrinking an inventory', () => {
+  it('moves stacks from the cut slots into empty ones before anything is lost', () => {
+    const inv = { stack: 10, slots: [{ ore: 'copper' as const, n: 3 }, null, null, { ore: 'galena' as const, n: 5 }] };
+    expect(resize(inv, 2).slots).toEqual([{ ore: 'copper', n: 3 }, { ore: 'galena', n: 5 }]);
+  });
+});

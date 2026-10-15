@@ -185,17 +185,22 @@ Every ore type has its own highlighter colour and its own glyph shape in the roc
 
 There's no mission list and no job board. Things to do come from two places:
 
-**1. The suit's repair list.** Your suit lost its link to the guild, so it does the asking. The repair list (on the HUD's paper scrap and in the pause menu) shows the lander's broken parts, what each needs and a hint where to find it. You choose which to work on: the HUD tracks the one you pin.
+**1. The suit's repair list** (built Oct 16, 2026; `logic/repairs.ts`). Your suit lost its link to the guild, so it does the asking. The HUD's "Next" scrap always shows exactly one thing to do, with what's on hand counted ("Repair the printer: native copper 3/6"), and once you have everything, "go aboard". Repairs are done in the lander's damage report: each system the crash broke, what's wrong, its ore ticked off, and a Repair button.
 
 | Repair | Needs | Opens | Real fact for the guide |
 | --- | --- | --- | --- |
-| Printer | Copper | Printing; being reprinted when you die | Copper wiring |
-| Comms | Copper, quartz | Hearing the Lamplighters; the lexicon | Quartz crystals keep radios on frequency |
-| Hull | Galena, graphite | The cargo hold seals (more cargo slots); the lander's look | Lead shields against radiation |
-| Thrusters | Silver, quartz | The lander can lift off, once it has a core | Silver is the best conductor of electricity |
-| Drive core | Given by the Lamplighters | Lift-off: the end of chapter 1 | — |
+| Printer | 6 copper | Printing: gear from blueprints, lander modules. Until then the printer sheets say "offline" | Copper is the best cheap conductor |
+| Comms | 4 copper, 2 quartz | Hearing the Lamplighters; the lexicon | Quartz crystals keep radios on frequency |
+| Hull plating | 10 galena, 6 graphite | The six cargo slots the breach put out of use (10 → 16) | Lead shields against radiation |
+| Thrusters | 6 silver, 4 quartz | The engines fire; only the core is missing | Silver is the best conductor of electricity |
+| Drive core | Can't be printed: the Lamplighters make it | Lift-off: the end of chapter 1 | — |
 
-The printer always comes first and the comms second (the start teaches the game); the hull and thrusters in either order. Amounts to tune in playtests.
+- **The order:** the printer first, the comms second (the start teaches the game), the hull and thrusters in either order, the core last. A repair whose turn hasn't come says what it's waiting for.
+- **The drill in between.** The comms need quartz, which lies in stone, and the starter drill can't break stone. So after the printer, the goal is the Drill's blueprint, which lies at the foot of the fissure where an earlier crew lost it. A beacon arrow by the prospector points the short way round the world to it, with the distance in metres (No Man's Sky's marker, inked). Then: print the Drill, then the comms.
+- **No crafting chain.** No Man's Sky's repairs go through crafted parts (metal plating, a refiner, di-hydrogen jelly); InkMine's take raw ore straight from the cargo, then the bag.
+- **The lander shows it.** Each broken system has a wrecked look of its own: a dark, cracked porthole until the printer runs (then its warm glow), the dish hanging by its cable until the comms work, a gash and torn heat-shield tiles until the hull is plated (then a welded patch), and a crumpled, scorched engine bell, smoking, until the thrusters are fixed (dev page `/specimens.html`, "After the crash").
+- **The opening card,** shown once: the jump went wrong, the wormhole, the crash, and that the printer wants copper from the crater walls.
+- **Taken from No Man's Sky's opening ("Awakenings"):** you start crash-landed, repairs open what the next repair needs, the ship's damage is read from inside it, one part needs a blueprint found somewhere marked, and there's always one objective on screen. Players' main complaint about it, stretches with no prompt, is why the goal is never empty.
 
 **2. Jobs handed to you.** The Lamplighters give you jobs in person: they walk up, or you find them at their outpost. Before you share any words, a job is a picture they draw in the dust (an ore glyph and a downward arrow, a broken probe and a pointing hand). As you understand more, the same jobs come in words. Jobs pay in what you can't easily dig yet: blueprints, rare ore, Lamplighter writings full of new words, and finally the core.
 
@@ -367,7 +372,7 @@ Graphite's existing levels 1–5 (`level/planet1.ts`) become the first regions: 
 
 There's no result screen and no level select in chapter 1.
 
-- **Inside the lander** (walk into its hatch): the repair list with each part drawn in pencil until repaired, the printer's sheet (gear, gadgets, lander modules), and both inventories. The current ShipScene grows into this.
+- **Inside the lander** (L at the lander): the damage report over the lander as broken as it is, the printer's sheets (gear, lander modules), both inventories, and the way back down (ShipScene).
 - **The pause screen:** the survey sheet, the repair list, the field guide (with the lexicon and the logs), and recall.
 - **After chapter 1:** the star chart becomes the galaxy map you fly between planets on (paid version).
 
@@ -547,7 +552,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 
 1. **One world:** ~~merge levels 1–5 into a single wrapping Graphite world; the open-world save~~ (done); the survey sheet centred on the lander.
 2. **The life system:** shield, hearts, life support, feeding gauges from the bag, the self-charging jetpack, dying, the dropped bag, recall.
-3. **The repair list** in place of missions; the wrecked lander and its repair stages; inside the lander in place of the result screen and chart.
+3. ~~**The repair list** in place of missions; the wrecked lander and its repair stages; inside the lander in place of the result screen and chart~~ (done Oct 16, 2026, before step 2). Not yet: lift-off at the end (it waits for the Lamplighters and the core).
 4. **The Lamplighters:** the outpost, jobs by picture, the comms repair, speech with word-by-word translation, the lexicon, texts and Aster logs.
 5. **Creatures** (dust ticks, lead worms) and fighting with the drill.
 6. **The rest of Graphite:** the Aster base, the grey band, the deep, the Grinder; the drive core and lift-off; the opening and the ending.

@@ -18,8 +18,11 @@ describe('finding blueprints', () => {
   });
 });
 
+/** A profile whose printer works and whose hold is sealed, as after the first repairs. */
+const FIXED: Profile = { ...NEW_PROFILE, repaired: ['printer', 'comms', 'hull'], cargo: emptyInventory(16, 50) };
+
 describe('the printer', () => {
-  const ready: Profile = { ...NEW_PROFILE, found: ['cell-1', 'pack-1'], cargo: cargoWith({ graphite: 5, copper: 4 }), suit: bagWith({ copper: 10 }) };
+  const ready: Profile = { ...FIXED, found: ['cell-1', 'pack-1'], cargo: cargoWith({ graphite: 5, copper: 4 }), suit: bagWith({ copper: 10 }) };
 
   it('prints a found blueprint from the cargo first, then the bag', () => {
     const r = printPart(ready, 'cell-1');
@@ -37,14 +40,14 @@ describe('the printer', () => {
   });
 
   it('says what is missing', () => {
-    expect(printPart(NEW_PROFILE, 'cell-1')).toEqual({ ok: false, why: 'notFound' });
+    expect(printPart(FIXED, 'cell-1')).toEqual({ ok: false, why: 'notFound' });
     expect(printPart({ ...ready, suit: emptyInventory(4, 10) }, 'cell-1')).toEqual({ ok: false, why: 'materials' });
     expect(Object.values(RECIPES).every((r) => !('fee' in r))).toBe(true);
   });
 });
 
 describe('the ship', () => {
-  const stocked: Profile = { ...NEW_PROFILE, cargo: cargoWith({ copper: 50, galena: 50, graphite: 50, quartz: 20, silver: 30 }) };
+  const stocked: Profile = { ...FIXED, cargo: cargoWith({ copper: 50, galena: 50, graphite: 50, quartz: 20, silver: 30 }) };
 
   it('modules are printed from resources, capped by the hull refit', () => {
     const one = printModule(stocked, 'winch');
@@ -57,12 +60,12 @@ describe('the ship', () => {
     if (!refit.ok) return;
     expect(landerLookOf(refit.profile.ship)).toBe(1);
     expect(capOf(refit.profile.ship, 'winch')).toBe(2);
-    expect(printModule(NEW_PROFILE, 'winch')).toEqual({ ok: false, why: 'materials' });
+    expect(printModule(FIXED, 'winch')).toEqual({ ok: false, why: 'materials' });
   });
 
   it('a Cargo hold adds slots', () => {
     const r = printModule(stocked, 'cargo');
-    expect(r.ok && r.profile.cargo.slots.length).toBe(cargoSlots({ ...NEW_PROFILE.ship, cargo: 1 }));
+    expect(r.ok && r.profile.cargo.slots.length).toBe(cargoSlots({ ...FIXED.ship, cargo: 1 }));
   });
 
   it('each module does what it says', () => {
@@ -86,12 +89,16 @@ describe('the saved profile', () => {
       levels: { 'first-strike': { won: true, blots: 2, paid: ['order'] } }, pending: { silver: 2 },
     });
     expect(contents(p.cargo)).toEqual({ graphite: 3 });
-    expect(p.cargo.slots.length).toBe(16);
+    // The hull is still breached in this save: six slots out of use.
+    expect(p.cargo.slots.length).toBe(10);
     expect(p.suit.slots.length).toBe(6);
     expect(p.gear).toEqual({ drill: 0, cell: 0, pack: 1, suit: 0, helmet: 0, jetpack: 0 });
     expect(p.found).toEqual(['cell-1']);
     expect(p.ship).toEqual({ cargo: 0, winch: 1, rack: 0, hull: 0 });
-    expect(Object.keys(p).sort()).toEqual(['cargo', 'found', 'gear', 'ship', 'suit']);
+    expect(Object.keys(p).sort()).toEqual(['cargo', 'found', 'gear', 'repaired', 'ship', 'started', 'suit']);
+    expect(p.started).toBe(false);
+    expect(parseProfile({ started: true }).started).toBe(true);
+    expect(parseProfile({ started: 'yes' }).started).toBe(false);
   });
 
   it('round-trips through JSON', () => {

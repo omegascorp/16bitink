@@ -25,10 +25,17 @@ export function emptyInventory(slots: number, stack: number): Inventory {
 
 /** The same contents in a grid of `slots` (more after an upgrade); stacks past the end, or over the stack size, are cut, so only ever grow it. */
 export function resize(inv: Inventory, slots: number, stack = inv.stack): Inventory {
-  return { slots: Array.from({ length: Math.max(slots, 0) }, (_, i) => {
-    const s = inv.slots[i];
-    return s ? { ore: s.ore, n: Math.min(s.n, stack) } : null;
-  }), stack };
+  const n = Math.max(slots, 0);
+  const cap = (s: Stack): Stack => ({ ore: s.ore, n: Math.min(s.n, stack) });
+  // Shrinking: stacks in the cut slots move into empty ones first; only what still doesn't fit is lost.
+  const cut = inv.slots.slice(n).filter((s): s is Stack => s !== null);
+  return {
+    slots: Array.from({ length: n }, (_, i) => {
+      const s = inv.slots[i] ?? cut.shift();
+      return s ? cap(s) : null;
+    }),
+    stack,
+  };
 }
 
 export function countIn(inv: Inventory, ore: OreKey): number {

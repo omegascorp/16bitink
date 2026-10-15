@@ -8,16 +8,18 @@ import { buildWorld } from '../level/build';
 import { currentPlanet } from '../level/planets';
 import type { PlanetDef } from '../level/types';
 import { tooHard } from '../logic/drill';
-import { findBlueprint } from '../logic/economy';
+import { findBlueprint, type Profile } from '../logic/economy';
 import { prospectorLook, type Look } from '../logic/gear';
 import { emptyInventory } from '../logic/inventory';
 import { lampFor } from '../logic/marks';
 import { Mine, NO_INPUT, type MineEvent } from '../logic/mine';
 import { oreById } from '../logic/ore';
+import { currentGoal, wreckOf, type Goal, type Wreck } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
 import { volatileAt } from '../logic/terrain';
 import { volatileKeyOf } from '../logic/volatiles';
 import { captureWorld, loadWorld, saveWorld } from '../logic/worldSave';
+import { BeaconView } from './game/beaconView';
 import { FxView } from './game/fxView';
 import { GroundView } from './game/groundView';
 import { GameInput } from './game/input';
@@ -41,6 +43,10 @@ const AUTOSAVE_S = 30;
 const RING_REACH = 1e7;
 /** How fast the far sky and the crater ridges scroll against the ground. */
 const PARALLAX = { sky: 0.15, ridges: 0.45 } as const;
+/** Ms between puffs of smoke from a broken engine. */
+const SMOKE_MS = 380;
+/** Where the engine bell sits on the lander's drawing, px up from its feet. */
+const BELL_Y = 22;
 
 /**
  * Play on a planet: its whole world, carved from its seed with the save's
@@ -70,9 +76,14 @@ export class GameScene extends Phaser.Scene {
   private lander!: Phaser.GameObjects.Image;
   private sky!: Phaser.GameObjects.TileSprite;
   private ridges!: Phaser.GameObjects.TileSprite;
+  private beacon!: BeaconView;
   private ship: Look = 0;
+  private wreck!: Wreck;
   private iy = 0;
   private ended = false;
+  /** The opening card is up: the world waits until it's read. */
+  intro = false;
+  private smokeAt = 0;
 
   constructor() {
     super('Game');
@@ -82,6 +93,7 @@ export class GameScene extends Phaser.Scene {
     this.planet = currentPlanet();
     this.ended = false;
     this.changed = false;
+    this.smokeAt = 0;
     const world = this.planet.world;
     const profile = getProfile(this);
     const save = heldWorld(this, world.id) ?? loadWorld(getHost(this).storage, world.id, world.site.width * world.site.height, new Set(world.items.map((it) => it.id)));
@@ -100,7 +112,9 @@ export class GameScene extends Phaser.Scene {
     crispText(this);
     const look = prospectorLook(setup.loadout);
     this.ship = landerLookOf(profile.ship);
-    generateTextures(this, style, skyH, look, this.ship);
+    this.wreck = wreckOf(profile);
+    this.intro = !profile.started;
+    generateTextures(this, style, skyH, look, this.ship, this.wreck);
     this.cameras.main.setBackgroundColor(PAPER);
     // Far sky and crater rims scroll slower than the ground, so they read as far off; both tile round the world.
     this.sky = this.add.tileSprite(0, 0, SKY_W, this.textures.get(TEX.sky(skyH)).getSourceImage().height, TEX.sky(skyH)).setOrigin(0).setScrollFactor(PARALLAX.sky, 1).setDepth(0);
@@ -108,12 +122,13 @@ export class GameScene extends Phaser.Scene {
     // The ground's roof is taken from the carved ground, so a shaft dug in an earlier session still reads as inside the planet.
     const roof = roofRows({ ...t, tiles: built.base });
     this.ground = new GroundView(this, t, T, style, (g) => tooHard(setup.drill, g), roof);
-    this.lander = this.add.image((setup.lander.col + 0.5) * T, setup.lander.row * T, TEX.lander(this.ship, 0)).setOrigin(0.5, 1).setScale(1 / ART_RES).setDepth(2);
+    this.lander = this.add.image((setup.lander.col + 0.5) * T, setup.lander.row * T, TEX.lander(this.ship, 0, this.wreck)).setOrigin(0.5, 1).setScale(1 / ART_RES).setDepth(2);
     this.things = new ThingsView(this, T);
     this.items = new ItemsView(this, T);
     this.prospector = new ProspectorView(this, look);
     this.fx = new FxView(this, T, look.jetpack);
     this.lamp = new LampView(this, lampFor(profile.gear.helmet), T);
+    this.beacon = new BeaconView(this);
     this.keys = new GameInput(this);
     const cam = this.cameras.main;
     if (t.wrap) cam.setBounds(-RING_REACH, 0, RING_REACH * 2, worldH);
@@ -160,13 +175,13 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const dt = Math.min(delta / 1000, MAX_DT);
-    const input = this.ended ? NO_INPUT : this.keys.read();
+    const input = this.ended || this.intro ? NO_INPUT : this.keys.read();
     this.iy = input.iy;
-    if (!this.ended && this.keys.aboard() && this.mine.atLander) {
+    if (!this.ended && !this.intro && this.keys.aboard() && this.mine.atLander) {
       this.goAboard();
       return;
     }
-    for (const e of this.mine.step(this.ended ? 0 : dt, input)) this.react(e);
+    for (const e of this.mine.step(this.ended || this.intro ? 0 : dt, input)) this.react(e);
     const cam = this.cameras.main;
     this.ring.centre = cam.midPoint.x;
     this.ground.update(cam.worldView);
@@ -176,9 +191,45 @@ export class GameScene extends Phaser.Scene {
     this.fx.update(this.mine, this.ring);
     this.fx.jet(this.mine, this.ring);
     this.lamp.update(this.mine, cam.worldView, this.ring);
-    this.lander.setTexture(TEX.lander(this.ship, Math.floor(time / 125) % BOIL)).setX(this.ring.near((this.mine.landerBox.x + this.mine.landerBox.w / 2)));
+    this.lander.setTexture(TEX.lander(this.ship, Math.floor(time / 125) % BOIL, this.wreck)).setX(this.ring.near((this.mine.landerBox.x + this.mine.landerBox.w / 2)));
+    this.beacon.update(this.mine, this.ring, this.beaconTarget(), 'beacon', time);
+    if (this.wreck.thrusters && time > this.smokeAt) this.smoke(time);
     this.followSky();
     if (this.changed && this.mine.time - this.savedAt > AUTOSAVE_S) this.save();
+  }
+
+  /** The profile with the cargo and the bag as they are this moment (they live in the sim while playing). */
+  liveProfile(): Profile {
+    return { ...getProfile(this), cargo: this.mine.cargo, suit: this.mine.suit.bag };
+  }
+
+  /** The one thing to do next, for the HUD. */
+  goal(): Goal {
+    return currentGoal(this.liveProfile());
+  }
+
+  /** Closes the opening card: the world starts, and it's never shown again. */
+  closeIntro(): void {
+    if (!this.intro) return;
+    this.intro = false;
+    setProfile(this, { ...this.liveProfile(), started: true });
+  }
+
+  /** Where the beacon points: the blueprint a 'find' goal is after, while it's still lying in the world. */
+  private beaconTarget(): { x: number; y: number } | null {
+    const g = this.goal();
+    if (g.kind !== 'find') return null;
+    const it = this.mine.items.find((i) => i.blueprint === g.blueprint && (i.state === 'rock' || i.state === 'loose'));
+    return it ? { x: it.x + it.w / 2, y: it.y + it.h / 2 } : null;
+  }
+
+  /** A puff of smoke from the broken engine, inked, rising and fading. */
+  private smoke(now: number): void {
+    this.smokeAt = now + SMOKE_MS * (0.7 + Math.random() * 0.6);
+    const x = this.lander.x + (Math.random() - 0.5) * 10;
+    const y = this.lander.y - BELL_Y;
+    const puff = this.add.circle(x, y, 3 + Math.random() * 2, 0x8a8790, 0.18).setStrokeStyle(0.9, 0x2b2f45, 0.5).setDepth(1.9);
+    this.tweens.add({ targets: puff, y: y - 40 - Math.random() * 20, x: x + (Math.random() - 0.3) * 14, scale: 2.6, alpha: 0, duration: 1800, ease: 'Sine.easeOut', onComplete: () => puff.destroy() });
   }
 
   /**
@@ -189,7 +240,7 @@ export class GameScene extends Phaser.Scene {
   save(): void {
     if (!this.mine) return;
     const world = this.planet.world;
-    setProfile(this, { ...getProfile(this), cargo: this.mine.cargo, suit: this.mine.suit.bag });
+    setProfile(this, this.liveProfile());
     const changes = captureWorld(this.base, this.mine.terrain, this.mine.ladders, world.version, this.taken);
     holdWorld(this, world.id, changes);
     this.changed = !saveWorld(getHost(this).storage, world.id, changes);

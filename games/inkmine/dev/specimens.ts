@@ -2,7 +2,8 @@ import { makeDraw } from '../src/art/kit';
 import { drawLander, LANDER_H, LANDER_W } from '../src/art/landerArt';
 import { drawProspector, POSES, PROSPECTOR_FRAME, PROSPECTOR_GROUND } from '../src/art/prospector';
 import { makeCanvas } from '../src/art/pen';
-import { evenLoadout, LOOK_NAMES, lookOf, prospectorLook, type ProspectorLook } from '../src/logic/gear';
+import { evenLoadout, LOOK_NAMES, lookOf, prospectorLook, type Look, type ProspectorLook } from '../src/logic/gear';
+import type { Wreck } from '../src/logic/repairs';
 
 // Dev page: the prospector in every look and pose, big enough to judge the drawing.
 const root = document.getElementById('root');
@@ -49,12 +50,22 @@ figure(mixed, 'drill 5, jetpack 5', prospector({ drill: 1, suit: 0, helmet: 0, j
 figure(mixed, 'helmet 9, the rest 5', prospector({ drill: 1, suit: 1, helmet: 2, jetpack: 1 }, 'idle'));
 
 const ships = section('The lander', 'Refitted as the game goes on: the tin can (planets 1–3), refitted with a cargo pod, a solar wing and a floodlight (planets 4–7), the deep hauler with twin engines and a crane (planets 8–10). The hopper on the right is where the bag is tipped in.');
-for (const [look, name] of [[0, 'tin can'], [1, 'refitted'], [2, 'deep hauler']] as const) {
+const landerCanvas = (look: Look, wreck?: Wreck): HTMLCanvasElement => {
   const S = 3;
   const { canvas, ctx } = makeCanvas(LANDER_W * S, LANDER_H * S);
   ctx.scale(S, S);
   ctx.translate(LANDER_W / 2, LANDER_H);
-  drawLander(makeDraw(ctx, 200, 0, 0), look);
+  drawLander(makeDraw(ctx, 200, 0, 0), look, wreck);
   canvas.style.width = `${LANDER_W * 2.2}px`;
-  figure(ships, name, canvas);
-}
+  return canvas;
+};
+for (const [look, name] of [[0, 'tin can'], [1, 'refitted'], [2, 'deep hauler']] as const) figure(ships, name, landerCanvas(look));
+
+const wrecks = section('After the crash', 'The tin can as chapter 1 mends it, one system at a time: a dark cracked porthole until the printer runs, the dish snapped until the comms work, a gash and torn heat-shield tiles until the hull is plated, a crumpled bell until the thrusters are fixed.');
+const BROKEN: Wreck = { printer: true, comms: true, hull: true, thrusters: true };
+for (const [name, wreck] of [
+  ['the wreck', BROKEN],
+  ['printer running', { ...BROKEN, printer: false }],
+  ['comms up', { ...BROKEN, printer: false, comms: false }],
+  ['hull plated', { printer: false, comms: false, hull: false, thrusters: true }],
+] as const) figure(wrecks, name, landerCanvas(0, wreck));

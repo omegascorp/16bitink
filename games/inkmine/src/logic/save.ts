@@ -4,6 +4,7 @@ import { fitInventories, NEW_PROFILE, type Profile } from './economy';
 import { PIECES, type Loadout } from './gear';
 import type { Inventory, Stack } from './inventory';
 import { ORES } from './ore';
+import { REPAIR_IDS, type RepairId } from './repairs';
 import { MODULE_KEYS, maxLevel, type ShipModules } from './ship';
 
 /**
@@ -42,6 +43,12 @@ function parseShip(v: unknown): ShipModules {
   return Object.fromEntries(MODULE_KEYS.map((k) => [k, intIn(o[k], 0, maxLevel(k)) ? o[k] : 0])) as unknown as ShipModules;
 }
 
+/** Known repairs, once each. */
+function parseRepaired(v: unknown): RepairId[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.filter((id): id is RepairId => typeof id === 'string' && (REPAIR_IDS as readonly string[]).includes(id)))];
+}
+
 /** Untrusted saved data to a profile: anything malformed is dropped, never thrown. */
 export function parseProfile(raw: unknown): Profile {
   if (!isObj(raw)) return NEW_PROFILE;
@@ -53,6 +60,8 @@ export function parseProfile(raw: unknown): Profile {
     gear: parseGear(raw.gear),
     found,
     ship: parseShip(raw.ship),
+    repaired: parseRepaired(raw.repaired),
+    started: raw.started === true,
   });
 }
 

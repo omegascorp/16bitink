@@ -2,18 +2,19 @@ import type Phaser from 'phaser';
 import { ORE_KINDS } from '../logic/ore';
 import { CHARGE_FRAME, drawCharge, drawLineCharge, LINE_FRAME_W } from './chargeArt';
 import { makeDraw } from './kit';
-import { drawLander, LANDER_H, LANDER_W } from './landerArt';
+import { drawLander, LANDER_H, LANDER_W, SOUND, wreckCode } from './landerArt';
 import { drawItem, ITEM_FRAME, ITEM_KINDS } from './itemArt';
 import { drawOrePiece } from './oreArt';
 import { ART_RES, BOIL, type GroundStyle } from './palette';
 import { makeCanvas } from './pen';
 import { lookKey, type Look, type ProspectorLook } from '../logic/gear';
+import type { Wreck } from '../logic/repairs';
 import { drawProspector, POSES, PROSPECTOR_FRAME, PROSPECTOR_GROUND, type Pose } from './prospector';
 import { drawRidges, drawSky, RIDGE_W, SKY_W } from './skyArt';
 
 export const TEX = {
   prospector: (pose: Pose, look: ProspectorLook, f: number) => `prospector-${lookKey(look)}-${pose}-${f}`,
-  lander: (look: Look, f: number) => `lander-${look}-${f}`,
+  lander: (look: Look, f: number, wreck: Wreck = SOUND) => `lander-${look}-${wreckCode(wreck)}-${f}`,
   charge: (kind: 'charge' | 'lineCharge', lit: boolean, f: number) => `charge-${kind}-${lit ? 'lit' : 'idle'}-${f}`,
   piece: (ore: string) => `piece-${ore}`,
   item: (kind: string, f: number) => `item-${kind}-${f}`,
@@ -39,12 +40,12 @@ function bake(scene: Phaser.Scene, key: string, w: number, h: number, ox: number
 /** How far the sky layers carry on below the horizon, under the ground's dips. */
 export const SKY_SKIRT = 240;
 
-/** The prospector in every pose and the lander, for a look: in play and on the ship's page. */
-export function bakeCharacters(scene: Phaser.Scene, look: ProspectorLook, landerLook: Look): void {
+/** The prospector in every pose and the lander (as broken as it still is), for a look: in play and on the ship's page. */
+export function bakeCharacters(scene: Phaser.Scene, look: ProspectorLook, landerLook: Look, wreck: Wreck = SOUND): void {
   const P = PROSPECTOR_FRAME;
   for (let f = 0; f < BOIL; f++) {
     POSES.forEach((pose, i) => bake(scene, TEX.prospector(pose, look, f), P, P, P / 2, P / 2, PROSPECTOR_RES, (ctx) => drawProspector(makeDraw(ctx, 100 + i * 10 + f, f, PROSPECTOR_GROUND), pose, look)));
-    bake(scene, TEX.lander(landerLook, f), LANDER_W, LANDER_H, LANDER_W / 2, LANDER_H, ART_RES, (ctx) => drawLander(makeDraw(ctx, 200 + f, f, 0), landerLook));
+    bake(scene, TEX.lander(landerLook, f, wreck), LANDER_W, LANDER_H, LANDER_W / 2, LANDER_H, ART_RES, (ctx) => drawLander(makeDraw(ctx, 200 + f, f, 0), landerLook, wreck));
   }
 }
 
@@ -57,8 +58,8 @@ export function bakePickups(scene: Phaser.Scene, rock: string): void {
 }
 
 /** Every sprite, each drawn BOIL times slightly differently for the line boil. `skyHeight` is the sky down to the horizon. */
-export function generateTextures(scene: Phaser.Scene, style: GroundStyle, skyHeight: number, look: ProspectorLook, landerLook: Look): void {
-  bakeCharacters(scene, look, landerLook);
+export function generateTextures(scene: Phaser.Scene, style: GroundStyle, skyHeight: number, look: ProspectorLook, landerLook: Look, wreck: Wreck = SOUND): void {
+  bakeCharacters(scene, look, landerLook, wreck);
   bakePickups(scene, style.stone);
   for (let f = 0; f < BOIL; f++) {
     for (const lit of [false, true]) {

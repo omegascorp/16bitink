@@ -1,4 +1,5 @@
 import type { Look } from '../logic/gear';
+import type { Wreck } from '../logic/repairs';
 import { capsule, edge, oval, pt, skin, tint, type Draw } from './kit';
 import type { Pt } from './pen';
 import { part, rivets, roundRect, sheen, WASH } from './prospector/parts';
@@ -16,7 +17,20 @@ import { part, rivets, roundRect, sheen, WASH } from './prospector/parts';
  * Every look has the ore hopper the prospector tips the bag into when
  * banking. Origin at the feet's middle, drawn up from y = 0 within
  * LANDER_W × LANDER_H units.
+ *
+ * After the crash the tin can shows what's still broken (spec, "The
+ * lander"), each system mended on its own: a dark, cracked porthole until
+ * the printer runs (then its glow), the dish snapped off until the comms
+ * work, a gash in the hull and missing heat-shield tiles until it's plated
+ * (then a welded patch), and a crumpled, scorched engine bell until the
+ * thrusters are fixed.
  */
+export const SOUND: Wreck = { printer: false, comms: false, hull: false, thrusters: false };
+
+/** A wreck as a small number, for texture keys: one bit per broken system. */
+export function wreckCode(w: Wreck): number {
+  return (w.printer ? 1 : 0) | (w.comms ? 2 : 0) | (w.hull ? 4 : 0) | (w.thrusters ? 8 : 0);
+}
 export const LANDER_W = 170;
 export const LANDER_H = 150;
 
@@ -36,6 +50,18 @@ function leg(d: Draw, side: 1 | -1, braced: boolean): void {
   if (braced) d.pen.stroke([pt(side * 24, -32), pt(side * 40, -8)], 1.4, d.ink, 0.85, false);
   const pad = oval(foot.x, -1.6, 8, 2.4, 16);
   part(d, pad, WASH.metal, { shadow: 0, line: 1.1, alpha: 0.65 });
+}
+
+/** The engine bell, crumpled after the crash: one rim pushed in, the wall dented. */
+function crumpledBell(d: Draw, x: number, w: number): void {
+  const b = [pt(x - w * 0.6, -30), pt(x + w * 0.55, -30), pt(x + w * 0.7, -22), pt(x + w * 0.95, -15), pt(x + w * 0.1, -18.5), pt(x - w * 0.9, -14)];
+  part(d, b, WASH.darkMetal, { shadow: 0.5, cross: true, line: 1.2, alpha: 0.6 });
+  // Burnt black round the throat, and the crease of the dent.
+  tint(d, [pt(x - w * 0.6, -30), pt(x + w * 0.55, -30), pt(x + w * 0.3, -24), pt(x - w * 0.5, -23)], SCORCH, 0.55);
+  d.pen.stroke([pt(x + w * 0.7, -22), pt(x + w * 0.2, -20), pt(x + w * 0.1, -18.5)], 0.8, d.ink, 0.85, false);
+  // A burnt wire hanging loose.
+  d.pen.stroke([pt(x - w * 0.3, -30), pt(x - w * 0.6, -24), pt(x - w * 0.4, -19)], 0.7, d.ink, 0.8, false);
+  d.pen.fill(oval(x, -0.6, w * 2.2, 2.2, 18), SCORCH, 0.3);
 }
 
 function bell(d: Draw, x: number, w: number): void {
@@ -59,12 +85,18 @@ function heatShield(d: Draw, x0: number, x1: number, y: number): void {
   edge(d, band, 1);
 }
 
-function porthole(d: Draw, c: Pt, r: number): void {
+/** The porthole. `lit`: the printer is running behind it; `dark`: dead and cracked. */
+function porthole(d: Draw, c: Pt, r: number, state: 'plain' | 'lit' | 'dark' = 'plain'): void {
   const frame = oval(c.x, c.y, r + 2.6, r + 2.6, 24);
   part(d, frame, WASH.metal, { shadow: 0.3, line: 1.2 });
   const glass = oval(c.x, c.y, r, r, 24);
-  skin(d, glass, '#bcd6e4', 0.65);
+  skin(d, glass, state === 'dark' ? '#6d7480' : '#bcd6e4', 0.65);
+  if (state === 'lit') tint(d, oval(c.x, c.y + r * 0.2, r * 0.75, r * 0.6, 18), '#ffd27a', 0.55);
   edge(d, glass, 1.2);
+  if (state === 'dark') {
+    d.pen.hair([pt(c.x - r * 0.7, c.y - r * 0.3), pt(c.x - r * 0.1, c.y + r * 0.1), pt(c.x + r * 0.5, c.y - r * 0.5)], 0.6, d.ink, 0.85);
+    d.pen.hair([pt(c.x - r * 0.1, c.y + r * 0.1), pt(c.x + r * 0.2, c.y + r * 0.75)], 0.6, d.ink, 0.85);
+  }
   sheen(d, [pt(c.x - r * 0.6, c.y - r * 0.2), pt(c.x - r * 0.3, c.y - r * 0.65), pt(c.x + r * 0.1, c.y - r * 0.8)], 1);
   rivets(d, Array.from({ length: 8 }, (_, i) => pt(c.x + Math.cos((i / 8) * Math.PI * 2) * (r + 1.4), c.y + Math.sin((i / 8) * Math.PI * 2) * (r + 1.4))), 0.4);
 }
@@ -96,6 +128,38 @@ function dish(d: Draw, at: Pt, r: number): void {
   d.pen.dot(at.x + 5.2, at.y - r * 2.5, 0.8, d.ink);
 }
 
+/** The dish after the crash: its mast snapped, the bowl hanging off the hull by its cable. */
+function snappedDish(d: Draw, at: Pt, r: number): void {
+  d.pen.stroke([pt(at.x, at.y), pt(at.x + 1, at.y - r * 0.5)], 1, d.ink, 0.95, false);
+  d.pen.stroke([pt(at.x + 0.2, at.y - r * 0.5), pt(at.x + 1.6, at.y - r * 0.62), pt(at.x + 1, at.y - r * 0.45)], 0.7, d.ink, 0.9, false);
+  const x = at.x - r * 1.6;
+  const y = at.y + r * 0.9;
+  const bowl = [pt(x - r * 0.4, y - r * 0.9), pt(x + r * 0.2, y + r * 0.9), pt(x + r * 0.9, y + r * 0.5), pt(x + r * 0.7, y - r * 0.2)];
+  part(d, bowl, '#e3e6ea', { shadow: 0.35, line: 1 });
+  // The cable it hangs by.
+  d.pen.stroke([pt(at.x + 0.6, at.y - r * 0.4), pt(at.x - r * 0.6, at.y + r * 0.2), pt(x + r * 0.7, y - r * 0.2)], 0.6, d.ink, 0.8, false);
+}
+
+/** The hull's gash after the crash, low on the left: torn metal round a dark hole. */
+function gash(d: Draw): void {
+  const hole = [pt(-26, -41), pt(-21, -44.5), pt(-16, -42.5), pt(-13, -38), pt(-18, -36.5), pt(-22, -39), pt(-25, -37)];
+  tint(d, hole, '#3a3a44', 0.75);
+  edge(d, hole, 1);
+  // Peeled edges and a crack running off it.
+  d.pen.stroke([pt(-21, -44.5), pt(-19, -47.5), pt(-17, -45.5)], 0.7, d.ink, 0.85, false);
+  d.pen.hair([pt(-26, -41), pt(-28, -43.5)], 0.55, d.ink, 0.8);
+  d.pen.hair([pt(-13, -38), pt(-10, -40), pt(-7, -39)], 0.55, d.ink, 0.8);
+}
+
+/** The welded plate over where the gash was. */
+function weldPlate(d: Draw): void {
+  const plate = roundRect(-28, -45.6, -11, -35.6, 1.2);
+  part(d, plate, '#c4cad3', { shadow: 0.25, line: 1 });
+  rivets(d, [pt(-26, -44), pt(-13, -44), pt(-26, -37.4), pt(-13, -37.4)], 0.45);
+  // Weld bead along the top.
+  for (let x = -27; x < -11; x += 2.2) d.pen.dot(x, -45.9, 0.55, d.ink, 0.7);
+}
+
 /** The ore hopper: a funnel on a bracket where the bag is tipped in. */
 function hopper(d: Draw, x: number, look: Look): void {
   const funnel = [pt(x, -46), pt(x + 16, -46), pt(x + 10, -34), pt(x + 6, -34)];
@@ -111,12 +175,20 @@ function hopper(d: Draw, x: number, look: Look): void {
   }
 }
 
-function tinCan(d: Draw): void {
+function tinCan(d: Draw, wreck: Wreck): void {
   for (const side of [-1, 1] as const) leg(d, side, false);
-  bell(d, 0, 12);
+  if (wreck.thrusters) crumpledBell(d, 0, 12);
+  else bell(d, 0, 12);
   const hull = [pt(-29, -30), pt(29, -30), pt(30, -68), pt(25, -82), pt(14, -91), pt(0, -94), pt(-14, -91), pt(-25, -82), pt(-30, -68)];
   part(d, hull, HULL[0]!, { shadow: 0.42, line: 1.8 });
   heatShield(d, -29, 29, -30);
+  if (wreck.hull) {
+    // Heat-shield tiles torn away on the right.
+    const torn = [pt(8, -35.6), pt(22, -35.6), pt(20, -30), pt(10, -30)];
+    skin(d, torn, HULL[0]!, 1);
+    d.pen.stroke([pt(8, -35.6), pt(10, -32), pt(10, -30)], 0.8, d.ink, 0.85, false);
+    d.pen.stroke([pt(22, -35.6), pt(20.5, -33), pt(20, -30)], 0.8, d.ink, 0.85, false);
+  }
   for (const y of [-46, -70]) {
     d.pen.hair([pt(-29.6, y), pt(29.6, y)], 0.8, d.ink, 0.75);
     rivets(d, Array.from({ length: 9 }, (_, i) => pt(-24 + i * 6, y + 2.2)), 0.45);
@@ -125,14 +197,17 @@ function tinCan(d: Draw): void {
   d.pen.stroke([pt(-24, -56), pt(-20, -54), pt(-17, -57)], 0.7, d.ink, 0.7, false);
   tint(d, roundRect(16, -78, 24, -72, 1), '#a8683f', 0.25);
   edge(d, roundRect(16, -78, 24, -72, 1), 0.6, 0.8);
-  porthole(d, pt(-8, -58), 7);
+  porthole(d, pt(-8, -58), 7, wreck.printer ? 'dark' : 'lit');
   hatch(d, 10);
+  if (wreck.hull) gash(d);
+  else weldPlate(d);
   rcs(d, -30, -76, -1);
   // The spare fuel tank strapped to the left leg.
   const tank = capsule(pt(-34, -24), pt(-34, -10), 4.6, 4.6);
   part(d, tank, WASH.can, { shadow: 0.4, line: 1 });
   for (const y of [-20, -13]) d.pen.hair([pt(-38.6, y), pt(-29.4, y)], 0.9, d.ink, 0.85);
-  dish(d, pt(-6, -93), 7);
+  if (wreck.comms) snappedDish(d, pt(-6, -93), 7);
+  else dish(d, pt(-6, -93), 7);
   d.pen.stroke([pt(6, -93), pt(8, -110)], 1, d.ink, 1, false);
   const pennant = [pt(8, -110), pt(19, -107), pt(8, -104)];
   part(d, pennant, '#e8d9a8', { shadow: 0, line: 0.9 });
@@ -208,8 +283,9 @@ function hauler(d: Draw): void {
   hopper(d, 43, 2);
 }
 
-export function drawLander(d: Draw, look: Look): void {
-  if (look === 0) tinCan(d);
+/** The lander in a look; the tin can also shows what the crash broke, if anything. */
+export function drawLander(d: Draw, look: Look, wreck: Wreck = SOUND): void {
+  if (look === 0) tinCan(d, wreck);
   else if (look === 1) refitted(d);
   else hauler(d);
 }
