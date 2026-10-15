@@ -125,7 +125,8 @@ export class HudScene extends Phaser.Scene {
     // The combo multiplier sits at the end of its meter, so the meter explains itself.
     this.frenzyText = this.add.text(0, 0, '', { fontFamily: '"Caveat", cursive', fontSize: '26px', color: this.urgentColor }).setOrigin(0, 0.5);
 
-    const fsAvailable = this.scale.fullscreen.available;
+    // Phaser only checks the method exists; in-app browsers (WebViews) have it but refuse every request.
+    const fsAvailable = this.scale.fullscreen.available && document.fullscreenEnabled;
     this.addCornerButton(0, '❚❚', () => this.togglePause());
     if (fsAvailable) this.addCornerButton(1, '⤢', () => this.toggleFullscreen());
     this.addMuteButton(fsAvailable ? 2 : 1);
@@ -520,6 +521,8 @@ export class HudScene extends Phaser.Scene {
 
   private toggleFullscreen(): void {
     if (this.scale.isFullscreen) this.scale.stopFullscreen();
-    else this.scale.startFullscreen();
+    // Not scale.startFullscreen(): it drops the request's promise, so a refusal becomes an uncaught error.
+    // Phaser still follows the change through its fullscreenchange listener.
+    else (this.scale.getFullscreenTarget() as HTMLElement).requestFullscreen({ navigationUI: 'hide' }).catch(() => undefined);
   }
 }

@@ -63,6 +63,18 @@ function errorText(err: unknown): string {
   return (text.trim() || 'Unknown error').slice(0, 200);
 }
 
+/** The games draw with WebGL: the same probe Phaser makes before it gives up. */
+function hasWebGL(): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    return Boolean(canvas.getContext('webgl') ?? canvas.getContext('experimental-webgl'));
+  } catch {
+    return false;
+  }
+}
+
+const NO_WEBGL_TEXT = "This browser can't draw the game: its graphics acceleration (WebGL) is off or unsupported. Try updating it, or open the page in Chrome or Firefox.";
+
 /** One press of "Tap to play" until the game shows or fails. */
 interface Attempt {
   readonly start: number;
@@ -157,8 +169,14 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
       console.error('[16bit.ink] failed to start game', err);
       if (attempt) track({ type: 'load_fail', ...tag, ms: sinceTap(attempt), stage: step, error: errorText(err) });
       attempt = null;
-      status.textContent = 'The game failed to load. Check your connection and try again.';
       bar.fail();
+      // Without WebGL every retry fails the same way (one phone logged 9 in a row): say why and stop there.
+      if (step === 'mount' && !hasWebGL()) {
+        status.textContent = NO_WEBGL_TEXT;
+        play.textContent = "Can't play in this browser";
+        return;
+      }
+      status.textContent = 'The game failed to load. Check your connection and try again.';
       engineP = loadGame(game);
       engineP.catch(() => undefined);
       play.disabled = false;
