@@ -7,5 +7,6 @@ dist
 !.env.example
 coverage
 .DS_Store
-# Promo videos rendered by games/inkfish dev/promo/record.mjs
+# Promo videos rendered by each game's dev/promo/record.mjs
 games/inkfish/promo
+games/inkcrab/promo
