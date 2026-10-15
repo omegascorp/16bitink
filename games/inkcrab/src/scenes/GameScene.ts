@@ -1,20 +1,21 @@
 import Phaser from 'phaser';
 import { BLACK_SAND, BLUE, BLUE_HEX, GREY_SAND, MOON_SAND, PALE_SAND, RED, RED_HEX, SHINGLE, type GroundStyle } from '../art/palette';
 import { TEX } from '../art/textures';
-import { getHost, getSound, REG } from '../host';
+import { getHost, getSound, REG, trackGame } from '../host';
 import { buildLevel, START_SIZE } from '../level/build';
-import { isBeachFinale, levelById, loadedLevels, themeOf } from '../level/levels';
+import { isBeachFinale, levelById, levelOrder, loadedLevels, themeOf } from '../level/levels';
 import type { LevelDef } from '../level/types';
 import { Coach } from '../logic/coach';
-import type { TilePos } from '../logic/dig';
 import { surfaceRow, type Terrain } from '../logic/terrain';
-import { centre, overlaps } from '../logic/items';
+import { centre } from '../logic/items';
 import { shellPx, SHELLS } from '../logic/shells';
-import { blotsFor, loadProgress, recordResult, saveProgress } from '../logic/save';
+import { commitProgress } from '../logic/accountSave';
+import { blotsFor, loadProgress, recordResult } from '../logic/save';
 import { Beach, type SimEvent } from '../logic/sim';
 import type { ChainStatus } from '../logic/mission';
 import { missionOf, parTimeOf } from '../level/missions';
 import { chainTarget, missionTarget } from './game/missionPointer';
+import { MissionNudge } from '../logic/nudge';
 import { movingInto } from '../logic/rivals';
 import { BackdropView } from './game/backdropView';
 import { BirdsView } from './game/birdsView';
@@ -40,6 +41,7 @@ import { Soundscape } from './game/soundscape';
 import { shellSeenId } from '../guide/catalog';
 import { START_SHELL } from '../level/goal';
 import { wrackAt } from '../logic/kelp';
+import type { Box } from '../logic/hintFade';
 import { DPR, screenZoom, viewSize } from './hidpi';
 import type { ResultData } from './ResultScene';
 import { HAND_FONT } from './ui';
@@ -67,6 +69,9 @@ const HELD_SAYS: Readonly<Record<NonNullable<ChainStatus['wait']>, string>> = {
   behind: 'your line is too far behind!',
 };
 
+/** How far (world px) the red arrow stands above a mission target in view, clear of its red-pencil ring. */
+const MARK_CLEARANCE = 18;
+
 export class GameScene extends Phaser.Scene {
   beach!: Beach;
   level!: LevelDef;
@@ -74,6 +79,8 @@ export class GameScene extends Phaser.Scene {
   readonly startSize = START_SIZE;
   coach!: Coach;
   private pointer!: Phaser.GameObjects.Graphics;
+  /** How long since a mission task was done: the red arrow points even at a find in view once the player seems lost. */
+  private nudge!: MissionNudge;
   private backdrop!: BackdropView;
   private terrainView!: TerrainView;
   private itemsView!: ItemsView;
@@ -89,6 +96,8 @@ export class GameScene extends Phaser.Scene {
   private rainView: RainView | null = null;
   private decksView: DecksView | null = null;
   private windView: WindView | null = null;
+  /** The level has been won or lost (or left), so it's been reported. */
+  private over = false;
   private nightView: NightView | null = null;
   private input2!: GameInput;
   private touch!: TouchState;
@@ -107,6 +116,7 @@ export class GameScene extends Phaser.Scene {
     const chain = missionOf(this.level).chain > 0 && !(this.level.teach ?? []).includes('line') ? ['line' as const] : [];
     this.coach = new Coach([...(this.level.teach ?? []), ...chain]);
     this.pointer = this.add.graphics().setDepth(7);
+    this.nudge = new MissionNudge();
     const T = setup.tileSize;
     const worldW = setup.terrain.width * T;
     const worldH = setup.terrain.height * T;
@@ -135,7 +145,7 @@ export class GameScene extends Phaser.Scene {
     this.touch = createTouchState();
     this.registry.set(REG.touch, this.touch);
     // You are a hermit crab in a periwinkle from the start: both are in the field guide already.
-    this.sightings = new Sightings(getHost(this).storage, ['hermit', shellSeenId(START_SHELL.kind)]);
+    this.sightings = new Sightings(getHost(this), ['hermit', shellSeenId(START_SHELL.kind)]);
     this.soundscape = new Soundscape(getSound(this), this.beach);
 
     const cam = this.cameras.main;
@@ -154,6 +164,31 @@ export class GameScene extends Phaser.Scene {
       this.windView?.destroy();
       this.nightView?.destroy();
     });
+    this.trackStart();
+  }
+
+  private levelRef(): { level: string; n: number; name: string } {
+    return { level: this.level.id, n: levelOrder().indexOf(this.level.id) + 1, name: this.level.name };
+  }
+
+  private seconds(): number {
+    return Math.round(this.beach.elapsed * 10) / 10;
+  }
+
+  /** Reports the level's start, and a quit if the player leaves before it ends (map, exit). */
+  private trackStart(): void {
+    this.over = false;
+    trackGame(this, { type: 'level_start', ...this.levelRef() });
+    const quit = (): void => {
+      if (this.over) return;
+      this.over = true;
+      trackGame(this, { type: 'level_end', ...this.levelRef(), result: 'quit', seconds: this.seconds() });
+    };
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off(Phaser.Scenes.Events.DESTROY, quit);
+      quit();
+    });
+    this.events.once(Phaser.Scenes.Events.DESTROY, quit);
   }
 
   /** The faraway beach, anchored above the beach's typical surface height and wide enough for any scroll. */
@@ -187,9 +222,13 @@ export class GameScene extends Phaser.Scene {
     const livesLost = b.startLives - b.lives;
     const blots = won ? blotsFor(b.elapsed, parTimeOf(this.level), livesLost) : 0;
     const host = getHost(this);
+    if (!this.over) {
+      this.over = true;
+      trackGame(this, { type: 'level_end', ...this.levelRef(), result: won ? 'win' : 'lose', seconds: this.seconds(), ...(b.caughtBy ? { cause: b.caughtBy } : {}) });
+    }
     this.sightings.save();
     const saved = loadProgress(host.storage);
-    if (won) saveProgress(host.storage, recordResult(saved, this.level.id, blots, b.elapsed));
+    if (won) commitProgress(host, recordResult(saved, this.level.id, blots, b.elapsed));
     const result: ResultData = {
       levelId: this.level.id, won, time: b.elapsed, blots, livesLost,
       size: b.crab.growth.size, shell: b.crab.shell, previousBest: saved.levels[this.level.id]?.bestTime, caughtBy: b.caughtBy,
@@ -203,8 +242,7 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const dt = Math.min(delta / 1000, MAX_DT);
-    const { tapTile, tapInteract } = this.consumeTaps();
-    const events = this.beach.step(this.input2.read(this.touch, tapTile, tapInteract), dt);
+    const events = this.beach.step(this.input2.read(this.touch), dt);
     for (const e of events) this.react(e);
     this.soundscape.listen(this.beach, this.cameras.main.worldView);
     this.coach.observe(this.beach, events);
@@ -213,7 +251,7 @@ export class GameScene extends Phaser.Scene {
     const moving = movingInto(this.beach.critters.values());
     if (this.beach.crab.swap) moving.add(this.beach.crab.swap.itemId);
     this.itemsView.sync(this.beach.items, time, moving);
-    this.crittersView.sync(this.beach.critters, this.beach.crab.growth.size, time);
+    this.crittersView.sync(this.beach.critters, this.beach.crab.growth.size, this.beach.exposed, time);
     this.rivalsView.sync(this.beach.critters, this.beach.items, [...this.beach.chains, ...this.beach.line], time);
     this.birdsView.sync(this.beach.birds, this.beach.crab.growth.size, time);
     this.sandFx.update(dt, time);
@@ -232,6 +270,14 @@ export class GameScene extends Phaser.Scene {
     cam.setZoom(DPR * (z + (this.targetZoom() - z) * Math.min(1, dt * 2)));
     this.backdrop.update(time);
     this.drawPointer(time);
+  }
+
+  /** Where the crab is on screen, in CSS pixels: for the HUD to keep its notes from hiding it. */
+  crabOnScreen(): Box {
+    const cam = this.cameras.main;
+    const z = screenZoom(cam);
+    const b = this.beach.crab.body;
+    return { x: (b.x - cam.worldView.x) * z, y: (b.y - cam.worldView.y) * z, w: b.w * z, h: b.h * z };
   }
 
   /** The kelp heap the crab is down in thins out; the fog clears round the crab. */
@@ -254,10 +300,14 @@ export class GameScene extends Phaser.Scene {
     // At a shell its line isn't ready for (or just after trying it), a red arrow points out who's missing, even in view.
     const missing = this.beach.heldNotice > 0 || this.beach.nearbyHeld ? chainTarget(this.beach) : null;
     const coached = missing ? undefined : this.coach.hint(this.beach, 'keys')?.target;
-    // Without a hint, a red arrow at the edge points the way to the mission's next find.
+    // Without a hint, a red arrow at the edge points the way to the mission's next find;
+    // once the player seems lost, it bobs over the find even in view.
     const view = this.cameras.main.worldView;
+    const p = this.beach.progress;
+    this.nudge.update(p.finds + p.marked + (p.giant ? 1 : 0), this.beach.elapsed);
     const mission = coached || missing ? null : missionTarget(this.beach);
-    const target = missing ?? coached ?? (mission && !view.contains(mission.x, mission.y) ? mission : null);
+    const lost = this.nudge.lost(this.beach.elapsed);
+    const target = missing ?? coached ?? (mission && (lost || !view.contains(mission.x, mission.y)) ? mission : null);
     if (!target) return;
     const zoom = screenZoom(this.cameras.main);
     const inset = 34 / zoom;
@@ -265,7 +315,9 @@ export class GameScene extends Phaser.Scene {
     const bob = Math.sin(time / 180) * 3 / zoom;
     const onScreen = view.contains(target.x, target.y);
     const x = Phaser.Math.Clamp(target.x, view.x + inset, view.right - inset);
-    const y = onScreen ? target.y - 18 / zoom - bob : Phaser.Math.Clamp(target.y, view.y + inset, view.bottom - inset);
+    // Over a mission's target, the arrow stands clear of its red-pencil ring.
+    const clearance = coached || missing ? 0 : MARK_CLEARANCE;
+    const y = onScreen ? target.y - 18 / zoom - clearance - bob : Phaser.Math.Clamp(target.y, view.y + inset, view.bottom - inset);
     // Pointing down at the target when it's in view, otherwise towards it.
     const angle = onScreen ? Math.PI / 2 : Math.atan2(target.y - y, target.x - x);
     const tip = { x: x + Math.cos(angle) * size, y: y + Math.sin(angle) * size };
@@ -292,20 +344,6 @@ export class GameScene extends Phaser.Scene {
     return Math.max(fit, Math.min(3, wanted));
   }
 
-  /** Turns HUD taps into a shell to move into or a tile to dig/fill. */
-  private consumeTaps(): { tapTile: TilePos | null; tapInteract: boolean } {
-    const tap = this.touch.taps.shift();
-    if (!tap) return { tapTile: null, tapInteract: false };
-    const p = this.cameras.main.getWorldPoint(tap.x * DPR, tap.y * DPR);
-    const shell = this.beach.nearbyShell;
-    if (shell && overlaps({ x: p.x, y: p.y, w: 1, h: 1 }, shell, 6)) return { tapTile: null, tapInteract: true };
-    // Tapping a rival close enough to rap on raps on it.
-    const rival = this.beach.nearbyRival;
-    if (rival && overlaps({ x: p.x, y: p.y, w: 1, h: 1 }, rival, 6)) return { tapTile: null, tapInteract: true };
-    const T = this.beach.tileSize;
-    return { tapTile: [Math.floor(p.x / T), Math.floor(p.y / T)], tapInteract: false };
-  }
-
   private react(e: SimEvent): void {
     this.soundscape.react(e, this.beach, this.cameras.main.worldView);
     if (e.type === 'tiles') {
@@ -330,6 +368,12 @@ export class GameScene extends Phaser.Scene {
       this.floatText(e.x, e.y, e.line === 1 ? 'a follower!' : `${e.line} following`);
     } else if (e.type === 'held') {
       this.floatText(e.x, e.y, HELD_SAYS[e.wait], RED);
+      this.crabView.stuck(this);
+    } else if (e.type === 'sandFull') {
+      this.floatText(e.x, e.y, 'full of sand! drop some first', RED);
+      this.crabView.stuck(this);
+    } else if (e.type === 'misfit') {
+      this.floatText(e.x, e.y, e.why === 'big' ? `too big! grow to size ${e.need}` : 'too small for you now!', RED);
       this.crabView.stuck(this);
     } else if (e.type === 'collected') {
       this.floatText(e.x, e.y, `${FINDS[this.beach.mission.find].one}!`, RED);

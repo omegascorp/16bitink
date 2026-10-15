@@ -8,6 +8,7 @@
     "build": "astro build",
     "start": "node dist/server/entry.mjs",
     "icons": "node scripts/icons.mjs",
+    "social": "node scripts/social.mjs",
     "stripe:setup": "node --env-file=.env scripts/stripe-setup.mjs",
     "stripe:setup:prod": "node --env-file=.env.production scripts/stripe-setup.mjs",
     "test": "vitest run",
@@ -26,6 +27,7 @@
     "@16bitink/inkfish": "workspace:*",
     "@astrojs/node": "^11.1.6",
     "astro": "^7.3.5",
+    "geoip-country": "^5.0.202610100242",
     "mongoose": "^9.10.3",
     "stripe": "^23.0.0",
     "zod": "^4.6.5"

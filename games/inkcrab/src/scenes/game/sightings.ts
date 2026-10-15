@@ -1,8 +1,9 @@
 import type Phaser from 'phaser';
-import type { KeyValueStore } from '@16bitink/game-sdk';
+import type { GameHost } from '@16bitink/game-sdk';
 import { shellSeenId } from '../../guide/catalog';
 import type { Beach } from '../../logic/sim';
-import { loadProgress, markSeen, saveProgress } from '../../logic/save';
+import { commitProgress } from '../../logic/accountSave';
+import { loadProgress, markSeen } from '../../logic/save';
 
 /** How often to look around for new creatures and shells, ms. */
 const LOOK_EVERY_MS = 300;
@@ -16,7 +17,7 @@ export class Sightings {
   private readonly fresh = new Set<string>();
   private nextLook = 0;
 
-  constructor(private readonly store: KeyValueStore | undefined, first: readonly string[]) {
+  constructor(private readonly host: Pick<GameHost, 'storage' | 'progress'>, first: readonly string[]) {
     for (const id of first) this.fresh.add(id);
   }
 
@@ -39,9 +40,9 @@ export class Sightings {
 
   save(): void {
     if (this.fresh.size === 0) return;
-    const progress = loadProgress(this.store);
+    const progress = loadProgress(this.host.storage);
     const next = markSeen(progress, this.fresh);
-    if (next !== progress) saveProgress(this.store, next);
+    if (next !== progress) commitProgress(this.host, next);
     this.fresh.clear();
   }
 }

@@ -1,7 +1,7 @@
-// Saves the YouTube thumbnails for the level 1 video (dev/thumbnail.html) as PNGs:
-//   pnpm --filter @16bitink/inkfish thumbnail
-//   -> promo/youtube-thumb-level1-<id>.png   (upload all three to YouTube's Test & Compare)
-//   -> promo/youtube-thumb-level1-check.png  (them at YouTube's display sizes, light and dark, with a duration badge)
+// Saves YouTube thumbnails (dev/thumbnail.html) as PNGs, with a check sheet of them at YouTube's display sizes:
+//   pnpm --filter @16bitink/inkfish thumbnail            -> promo/youtube-thumb-level1-<id>.png (+ -check.png)
+//   pnpm --filter @16bitink/inkfish thumbnail descent    -> promo/longform/1 - thumb-<id>.png (+ 1 - thumb-check.png)
+// Upload all three of a set to YouTube's Test & Compare.
 import { mkdir, stat, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -10,10 +10,17 @@ import { chromium } from 'playwright-core';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkg = path.resolve(here, '../..');
-const outDir = path.join(pkg, 'promo');
-const PREFIX = 'youtube-thumb-level1';
-/** Keep in step with THUMBNAIL_IDS in thumbnail.ts. */
-const IDS = ['hunter', 'glowup', 'run'];
+/** Keep the ids in step with THUMBNAIL_IDS (thumbnail.ts) and DESCENT_THUMBNAILS (descent/thumbnails.ts). */
+const SETS = {
+  level1: { ids: ['hunter', 'glowup', 'run'], dir: 'promo', prefix: 'youtube-thumb-level1-', badge: '1:01' },
+  descent: { ids: ['split', 'line', 'layers'], dir: 'promo/longform', prefix: '1 - thumb-', badge: '5:44' },
+};
+const setName = process.argv[2] ?? 'level1';
+const SET = SETS[setName];
+if (!SET) throw new Error(`Unknown set "${setName}": use one of ${Object.keys(SETS).join(', ')}`);
+// The repo's top-level promo/, shared by every game and the site.
+const outDir = path.resolve(pkg, '../..', SET.dir);
+const IDS = SET.ids;
 /** YouTube's upload limit for thumbnails. */
 const MAX_BYTES = 2 * 1024 * 1024;
 /** Widths YouTube shows thumbnails at: home grid, search, phone feed, sidebar. */
@@ -23,7 +30,7 @@ async function render(page, base, id) {
   let pageError;
   const onError = (e) => { pageError = e; };
   page.on('pageerror', onError);
-  await page.goto(`${base}/thumbnail.html?v=${id}`);
+  await page.goto(`${base}/thumbnail.html?set=${setName}&v=${id}`);
   await page.waitForFunction(() => window.thumbnailReady === true, null, { timeout: 120_000 }).catch((e) => { throw pageError ?? e; });
   page.off('pageerror', onError);
   return page.evaluate(() => document.getElementById('thumbnail').toDataURL('image/png').split(',')[1]);
@@ -35,7 +42,7 @@ async function checkSheet(page, pngs) {
     <figure style="margin:0;width:${w}px;font:12px Roboto,Arial,sans-serif">
       <div style="position:relative;width:${w}px;border-radius:${w > 200 ? 12 : 8}px;overflow:hidden">
         <img src="data:image/png;base64,${png}" style="display:block;width:${w}px;aspect-ratio:16/9">
-        <span style="position:absolute;right:4px;bottom:4px;background:rgba(0,0,0,.8);color:#fff;font:500 12px Roboto,Arial,sans-serif;padding:1px 4px;border-radius:4px">1:01</span>
+        <span style="position:absolute;right:4px;bottom:4px;background:rgba(0,0,0,.8);color:#fff;font:500 12px Roboto,Arial,sans-serif;padding:1px 4px;border-radius:4px">${SET.badge}</span>
       </div>
       <figcaption style="margin-top:6px">${label}, ${w}px wide</figcaption>
     </figure>`).join('')}</div>`;
@@ -56,7 +63,7 @@ try {
   const pngs = [];
   for (const id of IDS) {
     const png = await render(page, base, id);
-    const file = `${PREFIX}-${id}.png`;
+    const file = `${SET.prefix}${id}.png`;
     const out = path.join(outDir, file);
     await writeFile(out, Buffer.from(png, 'base64'));
     const { size } = await stat(out);
@@ -64,7 +71,7 @@ try {
     if (size > MAX_BYTES) throw new Error(`${file} is over YouTube's 2 MB thumbnail limit`);
     pngs.push(png);
   }
-  const check = path.join(outDir, `${PREFIX}-check.png`);
+  const check = path.join(outDir, `${SET.prefix}check.png`);
   await writeFile(check, await checkSheet(page, pngs));
   console.log(`wrote ${path.relative(process.cwd(), check)}`);
 } finally {

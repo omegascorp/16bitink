@@ -52,6 +52,12 @@ export interface GameHost {
   onBuy(): void;
   /** True when a player is signed in, so the game can say whether buying needs a sign-in first. */
   readonly signedIn?: boolean;
+  /**
+   * Signs in with Google so progress is saved to an account, then comes back
+   * to the game; saves made signed out move to that account. Leaves the page,
+   * so save first. Only offer it when `signedIn` is false, and never require it.
+   */
+  onSignIn?(): void;
   /** The full game's one-time price as shown to players, e.g. "$4.99". */
   readonly price?: string;
   /** Leaves the game (back to its catalog page). */
@@ -70,7 +76,58 @@ export interface GameHost {
    * paid content; that still needs `unlocked`.
    */
   readonly allLevelsOpen?: boolean;
+  /**
+   * Records a gameplay moment for the site's own analytics. Fire and
+   * forget: it never throws and never blocks the game. Absent in dev
+   * harnesses and tests.
+   */
+  readonly track?: (event: GameEvent) => void;
+  /**
+   * The site's loading screen, which covers the game until it calls `ready`.
+   * Absent in dev harnesses and tests: games then show their own boot screen.
+   */
+  readonly loading?: LoadingReporter;
 }
+
+/**
+ * How far a game's boot has got. The site shows it as a progress bar over
+ * the game, so a game must call `ready` once its first screen is drawn,
+ * also when booting fails, so the player sees the game's error message.
+ */
+export interface LoadingReporter {
+  /** `fraction` of the boot done (0..1); `label` names the step, in the game's voice. */
+  progress(fraction: number, label?: string): void;
+  /** The first screen is drawn: hide the loading screen. Calling it again does nothing. */
+  ready(): void;
+  /**
+   * Booting failed (e.g. the browser couldn't draw the art): the site records
+   * `reason` in its stats. Call `ready` after it, so the player sees the
+   * game's own error message. Optional, for hosts that don't record it.
+   */
+  failed?(reason: string): void;
+}
+
+/** Which level an event is about. `n` is its 1-based place in the game's level order (free levels first). */
+export interface LevelRef {
+  readonly level: string;
+  readonly n: number;
+  readonly name?: string;
+}
+
+export type LevelResult = 'win' | 'lose' | 'quit';
+
+/** What a game reports: each level it starts, and how that level ended. */
+export type GameEvent =
+  | (LevelRef & { readonly type: 'level_start' })
+  | (LevelRef & {
+      readonly type: 'level_end';
+      readonly result: LevelResult;
+      /** Time spent in the level. */
+      readonly seconds: number;
+      readonly score?: number;
+      /** Why the level was lost, e.g. "eaten". */
+      readonly cause?: string;
+    });
 
 /** Returned by `mount` so the host can tear a game down cleanly. */
 export interface GameHandle {
@@ -78,6 +135,8 @@ export interface GameHandle {
 }
 
 export interface GameModule {
+  /** The game's release, e.g. "1.2.0" (its package.json version): shown to players and sent with its stats. */
+  readonly version?: string;
   /** Mounts the game into `parent`, filling it and tracking its size. */
   mount(parent: HTMLElement, host: GameHost): GameHandle;
 }
@@ -86,3 +145,5 @@ export interface GameModule {
 export function isGameModule(value: unknown): value is GameModule {
   return typeof value === 'object' && value !== null && typeof (value as GameModule).mount === 'function';
 }
+
+export { runInSlices, yieldToBrowser, type SliceJob, type SliceOptions } from './slices';

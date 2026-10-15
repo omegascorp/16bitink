@@ -1,17 +1,19 @@
 {
   "name": "@16bitink/inkcrab",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./content": "./content/paid.ts"
+    "./content": "./content/paid.ts",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "dev": "vite dev --port 5175"
+    "dev": "vite dev --port 5175",
+    "promo": "node dev/promo/record.mjs"
   },
   "dependencies": {
     "@16bitink/game-sdk": "workspace:*",
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^5.0.3",
+    "playwright-core": "1.56.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
     "vitest": "^5.0.3"

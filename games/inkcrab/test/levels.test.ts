@@ -145,7 +145,7 @@ for (const { name, levels: BEACH, fry: FRY, firstGoal } of BEACHES) describe(nam
 
       it('settles without the crab falling out of the world', () => {
         const b = new Beach(setup);
-        for (let i = 0; i < 120; i++) b.step({ moveX: 0, aimY: 0, jump: false, dig: false, place: false, interact: false, tapTile: null, hide: false }, 1 / 60);
+        for (let i = 0; i < 120; i++) b.step({ moveX: 0, aimY: 0, jump: false, dig: false, place: false, interact: false, work: false, hide: false }, 1 / 60);
         expect(b.crab.body.onGround).toBe(true);
         expect(b.outcome).toBe('playing');
       });

@@ -7,11 +7,12 @@ import { onDeck } from './decks';
 import { canWear } from './shells';
 import { movementOf, SPECIES } from './species';
 import type { Beach, SimEvent } from './sim';
+import { PHYS } from './body';
 import { isSolid, surfaceRow, tileAt, TILE } from './terrain';
 
 
 /** Something a level teaches, step by step, with a hint shown only while it's relevant. */
-export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron' | 'vent'
+export type Lesson = 'move' | 'jump' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron' | 'vent'
   | 'kelp' | 'fog' | 'raccoon'
   | 'rival'
   | 'rain' | 'deck' | 'monitor'
@@ -56,7 +57,8 @@ const GLOW_NEAR = 8;
 const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   keys: {
     move: 'Walk with ← →, jump with Space. Eat food to grow.',
-    swap: 'Your shell is full! Walk to the bigger shell and press E to move in.',
+    jump: 'Too high to walk up? Press Space to jump onto it.',
+    swap: 'Your shell is full! Walk to the bigger shell and press E to move in. Out of your shell anything can catch you, so move when no one\'s about.',
     dig: 'Dig a slope: hold → (or ←) and ↓, then press X. Digging straight down can trap you.',
     drop: 'You\'re carrying sand. Press C to drop it; jump, then ↓ + C to build up under you.',
     full: 'You\'re full of sand. Drop some with C before you dig more.',
@@ -89,17 +91,18 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   },
   touch: {
     move: 'Steer with the stick, jump with the button. Eat food to grow.',
-    swap: 'Your shell is full! Walk to the bigger shell and tap it to move in.',
-    dig: 'Tap the sand diagonally below the crab to dig a slope. Digging straight down can trap you.',
-    drop: 'You\'re carrying sand. Tap open space next to the crab to drop it.',
-    full: 'You\'re full of sand. Tap open space to drop some before you dig more.',
+    jump: 'Too high to walk up? Tap jump to hop onto it.',
+    swap: 'Your shell is full! Walk to the bigger shell and press grab to move in. Out of your shell anything can catch you, so move when no one\'s about.',
+    dig: 'Dig a slope: push the stick down and sideways, and hold dig. Digging straight down can trap you.',
+    drop: 'You\'re carrying sand. Press dig facing open space to drop it; jump, then stick down + dig to build up under you.',
+    full: 'You\'re full of sand. Press dig to drop some before you dig more.',
     hide: 'Red ink means it can catch you! Hold the shell button to hide.',
-    buried: 'Highlighted sand hides something buried. Tap the sand diagonally below you to dig a slope down to it.',
-    stuck: 'Stuck in a hole? Tap the sand diagonally above the crab to dig steps out.',
+    buried: 'Highlighted sand hides something buried. Dig a slope down to it: push the stick down and sideways, and hold dig.',
+    stuck: 'Stuck in a hole? Dig your way out at an angle: push the stick up and sideways, and hold dig.',
     sky: 'A bird of prey is hovering over you! Get under the sand, or hold the shell button: it strikes your shell and flies off.',
     pit: 'An antlion pit! Its sand slides you down to the jaws: walk out, or jump.',
     sandfish: 'A red ripple in the sand is a sandfish hunting you. Get back up into the open!',
-    tide: 'The tide is coming in! Water is safe, just slow: tap jump to swim up. Fish swim in with it; the tide clock shows when it turns.',
+    tide: 'The tide is coming in! Water is safe, just slow: press jump to swim up. Fish swim in with it; the tide clock shows when it turns.',
     octopus: 'An octopus is reaching out of its crevice! Get out of reach of its arm, or hold the shell button to hide.',
     climb: 'Mangrove roots! Push the stick up among them to climb, sideways to clamber across, down to climb down. Jump lets go.',
     heron: 'The heron is taking aim at you! Get in among the roots, or hold the shell button to hide: its bill can\'t reach you there.',
@@ -107,12 +110,12 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     kelp: 'Washed-up kelp! Down among it nothing can see or smell you, and sand hoppers live in it.',
     fog: 'Sea fog! You see only what\'s close, but hunters can\'t see you far either. Watch for red ink coming out of it.',
     raccoon: 'A raccoon hunts by smell: the fog won\'t hide you from it. Get under the kelp, or hold the shell button to hide.',
-    rival: 'A hermit crab no bigger than you! Walk up and tap it to rap on its shell: it lets go, and you can move in if it fits.',
+    rival: 'A hermit crab no bigger than you! Walk up and press grab to rap on its shell: it lets go, and you can move in if it fits.',
     rain: 'Monsoon rain! While it pours, hunters can\'t see far, birds won\'t stoop, worms wash out and wet sand digs fast. Go foraging!',
     deck: 'A boat up on trestles! Under it no bird can stoop on you. Shells and food lie up on top: build a ramp of sand to climb on.',
     monitor: 'A water monitor tastes the air: the rain won\'t hide you from it. Hold the shell button to hide, or get up out of its reach.',
     wind: 'A gust! It blows a light shell along, most in the air and on ice. Shelter behind a bank or a rock, or jump with it to go far.',
-    ice: 'Ice! You slide on it, and a gust sweeps you across. Tap to drop sand on it and get a grip.',
+    ice: 'Ice! You slide on it, and a gust sweeps you across. Press dig to drop sand on it and get a grip.',
     fox: 'An Arctic fox hunts by smell! In a gust it smells you from far downwind, but not upwind. Hold the shell button to hide.',
     moon: 'A cloud over the moon! In the dark hunters can\'t see you far, and you can\'t see far either. Sand hoppers come out to feed.',
     glow: 'Glowing plankton! It lights up wherever anything walks: you\'ll see hunters coming, and in the dark they\'ll see you on it.',
@@ -121,6 +124,64 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     lineUp: 'When you move up, your line moves up too. Every move needs one more crab, grown to fill its shell: they eat as they go.',
   },
 };
+
+/** A hunter bigger than the crab within a few tiles of it. */
+export function hunterNear(beach: Beach): boolean {
+  const c = beach.crab;
+  const at = centre(c.body);
+  const reach = DANGER_TILES * beach.tileSize;
+  for (const k of beach.critters.values()) {
+    if (k.size <= c.growth.size) continue;
+    const p = centre(k);
+    if (Math.abs(p.x - at.x) < reach && Math.abs(p.y - at.y) < reach) return true;
+  }
+  return false;
+}
+
+/** How close (tiles) any creature can be before moving house is risky. */
+const CREATURE_NEAR = 8;
+
+/**
+ * Any creature on the ground close by, whatever its size: out of its shell,
+ * moving house, any of them could catch the crab. Rival hermit crabs and
+ * gulls in the air don't count.
+ */
+export function creatureNear(beach: Beach): boolean {
+  const at = centre(beach.crab.body);
+  const reach = CREATURE_NEAR * beach.tileSize;
+  for (const k of beach.critters.values()) {
+    if (k.flight || isRival(k)) continue;
+    const p = centre(k);
+    if (Math.abs(p.x - at.x) < reach && Math.abs(p.y - at.y) < reach) return true;
+  }
+  return false;
+}
+
+/**
+ * The top of the bank right in front of the crab when it's too high to walk
+ * up but low enough to jump onto, or null. `dir` is the way it's pushing
+ * (or facing); the crab must be up against the bank on firm ground.
+ */
+export function ledgeAhead(beach: Beach, dir: number): { x: number; y: number } | null {
+  const c = beach.crab;
+  const b = c.body;
+  const T = beach.tileSize;
+  if (!b.onGround || c.climbing || c.swap || c.hidden || dir === 0 || beach.submerged(b)) return null;
+  const col = Math.floor((dir > 0 ? b.x + b.w + 1 : b.x - 1) / T);
+  const feet = b.y + b.h;
+  let top = Math.floor((feet - 1) / T);
+  if (!isSolid(beach.terrain, col, top)) return null;
+  while (top > 0 && isSolid(beach.terrain, col, top - 1)) top--;
+  const rise = feet - top * T;
+  const step = Math.max(T * PHYS.stepTiles, b.h * 0.5);
+  return rise > step && rise <= beach.jumpTiles * T ? { x: (col + 0.5) * T, y: top * T } : null;
+}
+
+/** A bird hovering over the crab, about to stoop. */
+export function birdOverhead(beach: Beach): boolean {
+  for (const b of beach.birds.values()) if (b.phase === 'hover' || b.phase === 'dive') return true;
+  return false;
+}
 
 /**
  * The tutorial: watches play and offers one hint at a time for the lessons
@@ -143,6 +204,7 @@ export class Coach {
     const c = beach.crab;
     for (const e of events) {
       if (e.type === 'ate') this.done.add('move');
+      else if (e.type === 'jumped') this.done.add('jump');
       else if (e.type === 'swapDone') this.done.add('swap');
       else if (e.type === 'tiles' && e.dug) this.done.add('dig');
       else if (e.type === 'revealed' && beach.items.get(e.id)?.kind.type === 'shell') this.done.add('buried');
@@ -153,8 +215,8 @@ export class Coach {
     }
     if (c.sand < this.lastSand) this.done.add('drop');
     this.lastSand = c.sand;
-    if (c.hidden && this.hunterNear(beach)) this.done.add('hide');
-    this.escape('sky', this.hovered(beach) && underSky(beach.terrain, c.body, beach.tileSize));
+    if (c.hidden && hunterNear(beach)) this.done.add('hide');
+    this.escape('sky', birdOverhead(beach) && underSky(beach.terrain, c.body, beach.tileSize));
     this.escape('pit', beach.pitPull(c.body) !== 0);
     this.escape('sandfish', this.sandfishNear(beach) && !underSky(beach.terrain, c.body, beach.tileSize));
     this.escape('octopus', [...beach.critters.values()].some((k) => k.arm > 0.15 && k.size > c.growth.size));
@@ -199,7 +261,7 @@ export class Coach {
     const t = TEXT[controls];
     const open = (l: Lesson): boolean => this.lessons.includes(l) && !this.done.has(l);
     const c = beach.crab;
-    if (open('hide') && this.hunterNear(beach) && !c.hidden) return { lesson: 'hide', text: t.hide! };
+    if (open('hide') && hunterNear(beach) && !c.hidden) return { lesson: 'hide', text: t.hide! };
     if (open('sky') && this.facing.has('sky')) return { lesson: 'sky', text: t.sky! };
     if (open('pit') && this.facing.has('pit')) return { lesson: 'pit', text: t.pit! };
     if (open('sandfish') && this.facing.has('sandfish')) return { lesson: 'sandfish', text: t.sandfish! };
@@ -221,11 +283,16 @@ export class Coach {
       if (status && status.line > 0 && beach.capped) return { lesson: 'line', text: t.lineUp! };
     }
     if (this.stuck(beach)) return { lesson: 'stuck', text: t.stuck! };
+    if (open('jump')) {
+      const ledge = ledgeAhead(beach, Math.sign(c.body.vx));
+      if (ledge) return { lesson: 'jump', text: t.jump!, target: ledge };
+    }
     if (open('swap') && beach.capped) {
       const shell = this.biggerShell(beach);
       if (shell) return { lesson: 'swap', text: t.swap!, target: centre(shell) };
     }
-    if (this.lessons.includes('drop') && c.sand >= beach.sandCapacity) return { lesson: 'drop', text: t.full! };
+    // Full of sand it can dig no more: said on every level until it has put some down, always where dropping is taught.
+    if (c.sand >= beach.sandCapacity && (this.lessons.includes('drop') || !this.done.has('drop'))) return { lesson: 'drop', text: t.full! };
     if (open('buried')) {
       const shell = this.buriedShell(beach);
       if (shell) return { lesson: 'buried', text: t.buried!, target: centre(shell) };
@@ -392,24 +459,6 @@ export class Coach {
   private perchedShell(beach: Beach): { x: number; y: number } | null {
     const shell = this.nearest(beach, (i) => i.kind.type === 'shell' && !i.buried && beach.inRoots({ ...i, y: i.y + i.h, h: 2 }));
     return shell ? centre(shell) : null;
-  }
-
-  private hunterNear(beach: Beach): boolean {
-    const c = beach.crab;
-    const at = centre(c.body);
-    const reach = DANGER_TILES * beach.tileSize;
-    for (const k of beach.critters.values()) {
-      if (k.size <= c.growth.size) continue;
-      const p = centre(k);
-      if (Math.abs(p.x - at.x) < reach && Math.abs(p.y - at.y) < reach) return true;
-    }
-    return false;
-  }
-
-  /** A bird hovering over the crab, about to stoop. */
-  private hovered(beach: Beach): boolean {
-    for (const b of beach.birds.values()) if (b.phase === 'hover' || b.phase === 'dive') return true;
-    return false;
   }
 
   private sandfishNear(beach: Beach): boolean {

@@ -18,6 +18,7 @@ import { buildRoute, type NodeState } from './map/routeView';
 import { loadPaidBeaches } from './BootScene';
 import { crispText, DPR, screenZoom, toView, uiCamera, uiScaleFor, viewSize } from './hidpi';
 import { HAND_FONT, inkButton, inkText } from './ui';
+import { GAME_VERSION } from '../version';
 
 const DRAG_THRESHOLD = 8;
 const SOFT_INK = '#4a463e';
@@ -283,6 +284,8 @@ export class MenuScene extends Phaser.Scene {
       layer.add(c);
       return c;
     });
+    // The release in the corner, so a screenshot or bug report says which one it was.
+    layer.add(this.add.text(10, height - 4, `v${GAME_VERSION}`, { fontFamily: HAND_FONT, fontSize: '17px', color: SOFT_INK }).setOrigin(0, 1));
     this.caption = inkText(this, width / 2, height - 72, '', 24);
     this.tagline = this.add.text(width / 2, height - 52, '', { fontFamily: HAND_FONT, fontSize: '17px', color: SOFT_INK }).setOrigin(0.5);
     layer.add([this.caption, this.tagline]);

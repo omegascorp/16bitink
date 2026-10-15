@@ -27,6 +27,8 @@ describe('objectives', () => {
     expect(objectiveOutcome(collect, { ...initialProgress, grown: true, collected: 2 })).toBe('playing');
     expect(objectiveOutcome(collect, { ...initialProgress, grown: true, collected: 3 })).toBe('won');
     expect(objectiveLine(collect, { ...initialProgress, collected: 3 }).text).toBe('Now grow to full size!');
+    expect(objectiveLine(collect, { ...initialProgress, collected: 1 }).text).toBe('Bread crumbs 1/3');
+    expect(objectiveLine({ ...collect, chapter: 9 }, { ...initialProgress, collected: 1 }).text).toBe('Clumps of green fluff 1/3');
     const bounty = with_({ objective: { kind: 'bounty', count: 3, species: 'perch', size: [18, 25] } });
     expect(objectiveOutcome(bounty, { ...initialProgress, grown: true, bounties: 3 })).toBe('won');
     expect(objectiveLine(bounty, { ...initialProgress, bounties: 1 }).text).toBe('Marked perch 1/3');

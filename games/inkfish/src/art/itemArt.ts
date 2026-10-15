@@ -31,14 +31,14 @@ function frame(pen: Pen, seed: number, rot = 0, scale = 1, dx = 0, dy = 0): Draw
 // ---------------------------------------------------------------- local-space shape helpers
 
 /** Points on an elliptical arc (local units); a full turn repeats the first point so it closes. */
-function oval(cx: number, cy: number, rx: number, ry: number, n = 20, a0 = 0, a1 = TAU): Pt[] {
+export function oval(cx: number, cy: number, rx: number, ry: number, n = 20, a0 = 0, a1 = TAU): Pt[] {
   return Array.from({ length: n + 1 }, (_, i) => {
     const a = a0 + ((a1 - a0) * i) / n;
     return { x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry };
   });
 }
 
-function qb(p0: Pt, c: Pt, p1: Pt, n = 10): Pt[] {
+export function qb(p0: Pt, c: Pt, p1: Pt, n = 10): Pt[] {
   return Array.from({ length: n + 1 }, (_, i) => {
     const t = i / n;
     const u = 1 - t;

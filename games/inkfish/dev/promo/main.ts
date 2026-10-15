@@ -22,6 +22,21 @@ import { createPuffer } from './puffer/render';
 import { createGulper } from './gulper/render';
 import { createFlyingFish } from './flyingfish/render';
 import { createBlackdragon } from './blackdragon/render';
+import { createRevenge } from './revenge/render';
+import { createSpat } from './spat/render';
+import { createInkCloud } from './inkcloud/render';
+import { createBait } from './bait/render';
+import { createFrenzy } from './frenzy/render';
+import { createGape } from './gape/render';
+import { createLeap } from './leap/render';
+import { createWrasse } from './wrasse/render';
+import { createTuna } from './tuna/render';
+import { createPipefish } from './pipefish/render';
+import { createLionfish } from './lionfish/render';
+import { createMoray } from './moray/render';
+import { createTripod } from './tripod/render';
+import { createTrees } from './trees/render';
+import { PAPER_ON_DARK, withCredit } from './credit';
 
 /**
  * Dev-only promo video page, 1080x1920. Every short is a seamless loop.
@@ -35,7 +50,15 @@ import { createBlackdragon } from './blackdragon/render';
  * (Nemo's dad should have become his mom), parrotfish (white sand is fish
  * poop), cusk (the faceless fish), puffer (it can kill thirty people), gulper
  * (a mouth bigger than its body), flyingfish (the 45-second flight) or
- * blackdragon (blacker than black).
+ * blackdragon (blacker than black). revenge ("remember this perch") is a
+ * gameplay highlight: level 1's growth ladder, ending on the perch that hunted you.
+ * More gameplay highlights, one moment of the game each: spat, inkcloud, bait,
+ * frenzy, gape and leap (their story.ts files say which).
+ * Narrated with a directed voice and a quiet "InkFish · 16bit.ink" credit
+ * after the payoff (credit.ts): wrasse (passes the mirror test), tuna (the
+ * $3.1M bluefin), pipefish (dads get pregnant), lionfish (eat it to save the
+ * reef), moray (its second jaw), tripod (stands on stilts) and trees (sharks
+ * are older than trees).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -143,6 +166,62 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   blackdragon: async () => {
     await loadCaptionFont();
     return createBlackdragon(ctx);
+  },
+  revenge: async () => {
+    await loadCaptionFont();
+    return createRevenge(ctx);
+  },
+  spat: async () => {
+    await loadCaptionFont();
+    return createSpat(ctx);
+  },
+  inkcloud: async () => {
+    await loadCaptionFont();
+    return createInkCloud(ctx);
+  },
+  bait: async () => {
+    await loadCaptionFont();
+    return createBait(ctx);
+  },
+  frenzy: async () => {
+    await loadCaptionFont();
+    return createFrenzy(ctx);
+  },
+  gape: async () => {
+    await loadCaptionFont();
+    return createGape(ctx);
+  },
+  leap: async () => {
+    await loadCaptionFont();
+    return createLeap(ctx);
+  },
+  wrasse: async () => {
+    await loadCaptionFont();
+    return withCredit(createWrasse(ctx), ctx);
+  },
+  tuna: async () => {
+    await loadCaptionFont();
+    return withCredit(createTuna(ctx), ctx);
+  },
+  pipefish: async () => {
+    await loadCaptionFont();
+    return withCredit(createPipefish(ctx), ctx);
+  },
+  lionfish: async () => {
+    await loadCaptionFont();
+    return withCredit(createLionfish(ctx), ctx);
+  },
+  moray: async () => {
+    await loadCaptionFont();
+    return withCredit(createMoray(ctx), ctx);
+  },
+  tripod: async () => {
+    await loadCaptionFont();
+    return withCredit(createTripod(ctx), ctx, PAPER_ON_DARK);
+  },
+  trees: async () => {
+    await loadCaptionFont();
+    return withCredit(createTrees(ctx), ctx);
   },
 };
 

@@ -12,6 +12,7 @@ import { computeMapLayout, zoneIndexAt, type MapChapter, type MapLayout, type Ma
 import { buildMapWorld, depthLabel, mapFauna, type Boiler, type NodeState } from './map/mapWorld';
 import { drawProgressBar } from './guide/progress';
 import { BLUE_INK, HAND_FONT, INK_HEX, inkButton, inkText, RED_INK, uiScale } from './ui';
+import { GAME_VERSION } from '../version';
 
 const DRAG_THRESHOLD = 8;
 /** Below this width (portrait phones) the menu stacks its top buttons instead of shrinking them to fit one row. */
@@ -216,6 +217,8 @@ export class MenuScene extends Phaser.Scene {
     });
     this.depthText = this.add.text(width / 2, y - 34 * s, '', { fontFamily: HAND_FONT, fontSize: `${22 * s}px`, color: SOFT_INK }).setOrigin(0.5);
     ui(this.depthText);
+    // The release in the corner, so a screenshot or bug report says which one it was.
+    ui(this.add.text(10, height - 4, `v${GAME_VERSION}`, { fontFamily: HAND_FONT, fontSize: `${17 * s}px`, color: SOFT_INK }).setOrigin(0, 1));
 
     if (!host.unlocked) {
       const locked = this.layout.nodes.length - playable;

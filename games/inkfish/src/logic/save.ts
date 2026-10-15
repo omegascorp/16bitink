@@ -95,6 +95,18 @@ export function isLevelOpen(save: SaveData, orderedIds: readonly string[], level
   return save.levels[orderedIds[index - 1]!] !== undefined;
 }
 
+/** Where the game opens: a new player goes straight into level 1, everyone else to the map. */
+export type FirstScreen = { readonly scene: 'Game'; readonly data: { readonly levelIndex: 0 } } | { readonly scene: 'Menu' };
+
+/**
+ * A player who hasn't finished a level yet has nothing to choose on the map
+ * but level 1, and first-time players who met the map instead often left
+ * there, so they start in the level.
+ */
+export function firstScreen(save: SaveData): FirstScreen {
+  return Object.keys(save.levels).length === 0 ? { scene: 'Game', data: { levelIndex: 0 } } : { scene: 'Menu' };
+}
+
 export function loadSave(store: KeyValueStore | undefined): SaveData {
   try {
     return parseSave(store?.getItem(SAVE_KEY) ?? null);

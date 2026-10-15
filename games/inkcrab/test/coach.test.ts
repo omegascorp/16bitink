@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { shellOf } from '../src/logic/shells';
-import { Coach } from '../src/logic/coach';
+import { Coach, ledgeAhead } from '../src/logic/coach';
 import { makeCritter } from '../src/logic/critters';
 import { digColumns } from '../src/logic/dig';
 import { meterGoal } from '../src/logic/growth';
@@ -46,6 +46,18 @@ describe('the coach', () => {
     play(b, coach, {}, 0.5);
     play(b, coach, { place: true });
     expect(coach.learnt('drop')).toBe(true);
+    expect(coach.hint(b, 'keys')).toBeNull();
+  });
+
+  it('says to drop sand once the crab is full of it, on any level, until it has dropped some', () => {
+    const b = beach();
+    const coach = new Coach([]);
+    play(b, coach, {}, 1);
+    b.crab = { ...b.crab, sand: b.sandCapacity };
+    expect(coach.hint(b, 'keys')?.text).toMatch(/full of sand/i);
+    expect(coach.hint(b, 'touch')?.text).toMatch(/dig/i);
+    play(b, coach, { place: true }, 1);
+    b.crab = { ...b.crab, sand: b.sandCapacity };
     expect(coach.hint(b, 'keys')).toBeNull();
   });
 
@@ -128,7 +140,7 @@ describe('the coach', () => {
 
   it('words hints for touch screens', () => {
     const b = beach();
-    expect(new Coach(['dig']).hint(b, 'touch')?.text).toMatch(/Tap/);
+    expect(new Coach(['dig']).hint(b, 'touch')?.text).toMatch(/hold dig/);
   });
 });
 
@@ -177,5 +189,54 @@ describe('the harbour lessons', () => {
     expect(coach.hint(b, 'keys')?.lesson).toBe('monitor');
     play(b, coach, { hide: true });
     expect(coach.learnt('monitor')).toBe(true);
+  });
+});
+
+describe('the jump lesson', () => {
+  /** A bank two tiles high from column 10 on: too high to walk up, low enough to jump. */
+  const banked = (): Beach => {
+    const b = beach();
+    for (let x = 10; x < 60; x++) for (let y = 8; y < 10; y++) setTile(b.terrain, x, y, TILE.sand);
+    return b;
+  };
+
+  it('speaks up when the crab pushes into a bank it could jump, pointing at its top', () => {
+    const b = banked();
+    const coach = new Coach(['jump']);
+    play(b, coach, { moveX: 1 }, 2);
+    const hint = coach.hint(b, 'keys');
+    expect(hint?.lesson).toBe('jump');
+    expect(hint?.text).toContain('Space');
+    expect(hint?.target).toEqual({ x: 10.5 * T, y: 8 * T });
+    expect(coach.hint(b, 'touch')?.text).toContain('jump');
+  });
+
+  it('is quiet when the crab isn\'t pushing into the bank', () => {
+    const b = banked();
+    const coach = new Coach(['jump']);
+    play(b, coach, { moveX: 1 }, 2);
+    play(b, coach, {}, 0.2);
+    expect(coach.hint(b, 'keys')).toBeNull();
+  });
+
+  it('is learnt by jumping', () => {
+    const b = banked();
+    const coach = new Coach(['jump']);
+    play(b, coach, { moveX: 1 }, 2);
+    const events = play(b, coach, { moveX: 1, jump: true });
+    expect(events.some((e) => e.type === 'jumped')).toBe(true);
+    play(b, coach, { moveX: -1 }, 0.5);
+    play(b, coach, { moveX: 1 }, 2);
+    expect(coach.hint(b, 'keys')).toBeNull();
+  });
+
+  it('jumping clears the bank', () => {
+    const b = banked();
+    const coach = new Coach(['jump']);
+    play(b, coach, { moveX: 1 }, 2);
+    play(b, coach, { moveX: 1, jump: true });
+    play(b, coach, { moveX: 1 }, 1);
+    expect(b.crab.body.x).toBeGreaterThan(11 * T);
+    expect(ledgeAhead(b, 1)).toBeNull();
   });
 });

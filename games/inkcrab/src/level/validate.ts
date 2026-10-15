@@ -15,7 +15,7 @@ const BIRDS: Readonly<Record<BirdSpecies, true>> = { kestrel: true, hawk: true, 
 const DECKS: Readonly<Record<DeckKind, true>> = { boat: true, house: true, rack: true };
 const GROUNDS: Readonly<Record<NonNullable<LevelDef['ground']>, true>> = { black: true, grey: true, shingle: true, moonlit: true };
 const LESSONS: Readonly<Record<Lesson, true>> = {
-  move: true, swap: true, dig: true, drop: true, hide: true, buried: true, sky: true, pit: true, sandfish: true, tide: true, octopus: true,
+  move: true, jump: true, swap: true, dig: true, drop: true, hide: true, buried: true, sky: true, pit: true, sandfish: true, tide: true, octopus: true,
   climb: true, heron: true, vent: true, kelp: true, fog: true, raccoon: true, rival: true, rain: true, deck: true, monitor: true,
   wind: true, ice: true, fox: true, moon: true, glow: true, chain: true, line: true,
 };

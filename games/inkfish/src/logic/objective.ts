@@ -1,4 +1,6 @@
+import { capital, foodOf } from '../levels/foodFalls';
 import { giantName, SPECIES_INFO } from '../levels/species';
+import { zoneInfo } from '../levels/zones';
 import type { LevelDef } from '../levels/types';
 
 /** Everything the goals care about, gathered by the game scene. */
@@ -52,7 +54,10 @@ export function objectiveLine(level: LevelDef, p: ObjectiveProgress): { readonly
   // Task finished but still growing: point the player back at the growth bar.
   const grow = 'Now grow to full size!';
   switch (o.kind) {
-    case 'collect': return { text: withClock(taskDone(level, p) ? grow : `Ink bottles ${p.collected}/${o.count}`, left), urgent };
+    case 'collect': {
+      const food = capital(foodOf(zoneInfo(level.chapter).zone).many);
+      return { text: withClock(taskDone(level, p) ? grow : `${food} ${p.collected}/${o.count}`, left), urgent };
+    }
     case 'bounty': return { text: withClock(taskDone(level, p) ? grow : `Marked ${SPECIES_INFO[o.species].name} ${p.bounties}/${o.count}`, left), urgent };
     case 'boss': return { text: p.grown ? `Now eat the ${giantName(o.species)}!` : `Grow, then eat the ${giantName(o.species)}`, urgent: p.grown };
     default: return { text: withClock(left === null ? '' : 'Grow to full size', left), urgent };

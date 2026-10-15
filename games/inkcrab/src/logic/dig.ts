@@ -69,9 +69,3 @@ export function placeTarget(t: Terrain, b: Box, facing: 1 | -1, aimY: -1 | 0 | 1
 export function diggableOf(t: Terrain, tiles: readonly TilePos[]): TilePos[] {
   return tiles.filter(([x, y]) => isDiggable(t, x, y));
 }
-
-/** Whether a tapped tile is close enough to the crab to dig or fill. */
-export function inReach(b: Box, [x, y]: TilePos, tile: number): boolean {
-  const s = tileSpan(b, tile);
-  return x >= s.x0 - 1 && x <= s.x1 + 1 && y >= s.y0 - 1 && y <= s.y1 + 1;
-}

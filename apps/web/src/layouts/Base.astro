@@ -48,5 +48,17 @@ const ogImage = new URL(image, Astro.site);
       <span>© {new Date().getFullYear()} 16bit.ink</span>
       <span class="links"><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a></span>
     </footer>
+    <script>
+      import { setAnalyticsOptOut, trackPageview } from '../lib/client/analytics';
+      import { watchErrors, watchPage } from '../lib/client/pageWatch';
+
+      // Only admins ever see an /admin page: their browser stops counting itself in the stats.
+      if (location.pathname.startsWith('/admin')) setAnalyticsOptOut(true);
+      else {
+        trackPageview();
+        watchPage();
+        watchErrors();
+      }
+    </script>
   </body>
 </html>

@@ -11,12 +11,7 @@ const sandTiles = (t: Terrain): number => t.tiles.reduce((n, v) => n + (v === TI
  * alternating between digging a load and unloading until empty so a
  * lot of sand moves.
  */
-function randomInput(rng: () => number, b: Beach, digging: boolean): Input {
-  const T = b.tileSize;
-  const c = b.crab.body;
-  const tap = rng() < 0.15
-    ? ([Math.floor((c.x + c.w / 2) / T) + Math.floor(rng() * 3) - 1, Math.floor((c.y + c.h / 2) / T) + Math.floor(rng() * 3) - 1] as const)
-    : null;
+function randomInput(rng: () => number, digging: boolean): Input {
   return {
     ...IDLE,
     moveX: [-1, 0, 0, 1][Math.floor(rng() * 4)]!,
@@ -26,7 +21,7 @@ function randomInput(rng: () => number, b: Beach, digging: boolean): Input {
     place: !digging,
     interact: rng() < 0.05,
     hide: rng() < 0.05,
-    tapTile: tap,
+    work: rng() < 0.15,
   };
 }
 
@@ -51,7 +46,7 @@ describe('sand is conserved', () => {
       for (let frame = 0; frame < 60 * 300; frame++) {
         if (digging && b.crab.sand >= Math.min(LOAD, b.sandCapacity)) digging = false;
         else if (!digging && b.crab.sand === 0) digging = true;
-        if (frame % 8 === 0) input = randomInput(rng, b, digging);
+        if (frame % 8 === 0) input = randomInput(rng, digging);
         for (const e of b.step(input, 1 / 60)) {
           if (e.type === 'tiles' && e.dug) dug += e.tiles.length;
           else if (e.type === 'tiles') changed += e.tiles.length;

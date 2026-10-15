@@ -1,5 +1,6 @@
 // Dev helper: saves single promo frames as PNG for checking by eye.
 //   node dev/promo/snap.mjs <outDir> "<query>" t1 t2 ... [audio]   e.g. "short=bigger" 0 5.5 audio
+//   node dev/promo/snap.mjs --page longform.html <outDir> "video=descent" 31 95   -> the long-form page
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -8,9 +9,12 @@ import { chromium } from 'playwright-core';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkg = path.resolve(here, '../..');
-const [outDir, query, ...times] = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const pageAt = argv.indexOf('--page');
+const pageName = pageAt >= 0 ? argv.splice(pageAt, 2)[1] : 'promo.html';
+const [outDir, query, ...times] = argv;
 await mkdir(outDir, { recursive: true });
-const server = await createServer({ configFile: path.join(pkg, 'vite.config.ts'), root: path.join(pkg, 'dev'), server: { port: 0 }, logLevel: 'error' });
+const server = await createServer({ configFile: path.join(pkg, 'vite.config.ts'), root: path.join(pkg, 'dev'), server: { port: 0, hmr: false, watch: null }, logLevel: 'error' });
 await server.listen();
 const browser = await chromium.launch({ channel: 'chrome' });
 try {
@@ -18,8 +22,8 @@ try {
   const page = await browser.newPage({ viewport: { width: 600, height: 1000 } });
   let pageError;
   page.on('pageerror', (e) => { pageError = e; });
-  await page.goto(`${base}/promo.html?record&${query}`);
-  await page.waitForFunction(() => window.promo !== undefined, null, { timeout: 120_000 }).catch((e) => { throw pageError ?? e; });
+  await page.goto(`${base}/${pageName}?record&${query}`);
+  await page.waitForFunction(() => typeof window.promo?.draw === 'function', null, { timeout: 120_000 }).catch((e) => { throw pageError ?? e; });
   for (const t of times) {
     if (t === 'audio') {
       const wav = await page.evaluate(() => window.promo.audioBase64(0));

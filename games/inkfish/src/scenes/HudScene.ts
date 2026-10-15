@@ -10,7 +10,9 @@ import { knobOffset, STICK, stickCentre } from '../logic/joystick';
 import { HUD_EVENT, SEA_EVENT, type GameScene, type HudSnapshot, type SeaEventBanner } from './GameScene';
 import { getSound } from '../host';
 import { BLUE_INK, inkButton, inkText, INK_HEX, RED_INK, uiScale, wobblyRect } from './ui';
+import { GAME_VERSION } from '../version';
 import { ABILITY_KEY } from '../logic/abilities';
+import { behind, hintAlpha, type Box } from '../logic/hintFade';
 
 /** Score and warnings on dark water. */
 const PALE_BLUE = '#a9c4ff';
@@ -38,8 +40,16 @@ const INTRO_NOTE_MS = 900;
 
 /** How long a sea event's banner stays up, ms. */
 const BANNER_MS = 3200;
-/** Banner centre, px from the top of the screen: under the HUD's top rows. */
+/** Banner centre, px from the top, when it goes across the screen under the HUD's rows (portrait phones). */
 const BANNER_Y = 240;
+/** The banner's top when it sits beside the HUD's left column: under the corner buttons and lives. */
+const BANNER_TOP = 72;
+/** The least room (px) beside the HUD's left column worth putting the banner in. */
+const BANNER_MIN_ROOM = 260;
+/** Room the combo multiplier takes beside its meter on a wide screen. */
+const FRENZY_ROOM = 150;
+/** How near (px) the fish comes to the banner before it fades to let the fish show through. */
+const BANNER_CLEARANCE = 16;
 
 const BAR_W = 260;
 const BAR_H = 18;
@@ -64,6 +74,11 @@ export class HudScene extends Phaser.Scene {
   private objectiveText!: Phaser.GameObjects.Text;
   private intro: Phaser.GameObjects.Container | null = null;
   private banner: Phaser.GameObjects.Container | null = null;
+  /** The banner's paper and words, which fade while the fish is behind them, and where they are on screen. */
+  private bannerBody: { readonly parts: Phaser.GameObjects.Container; readonly box: Box } | null = null;
+  private bannerAlpha = 1;
+  /** A sea event just announced, shown with the next snapshot (see queueBanner). */
+  private pendingBanner: SeaEventBanner | null = null;
   private textColor = '#1b1a1f';
   private lifeIcons: Phaser.GameObjects.Image[] = [];
   private dashBtn: Phaser.GameObjects.Container | null = null;
@@ -96,6 +111,9 @@ export class HudScene extends Phaser.Scene {
     this.pauseLayer = null;
     this.last = null;
     this.barsSig = '';
+    this.banner = null;
+    this.bannerBody = null;
+    this.pendingBanner = null;
     this.textColor = data.dark ? '#ece4d2' : '#1b1a1f';
     this.levelText = this.add.text(20, 14, data.levelName, { fontFamily: '"Caveat", cursive', fontSize: '24px', color: this.textColor });
     this.bars = this.add.graphics();
@@ -107,7 +125,8 @@ export class HudScene extends Phaser.Scene {
     // The combo multiplier sits at the end of its meter, so the meter explains itself.
     this.frenzyText = this.add.text(0, 0, '', { fontFamily: '"Caveat", cursive', fontSize: '26px', color: this.urgentColor }).setOrigin(0, 0.5);
 
-    const fsAvailable = this.scale.fullscreen.available;
+    // Phaser only checks the method exists; in-app browsers (WebViews) have it but refuse every request.
+    const fsAvailable = this.scale.fullscreen.available && document.fullscreenEnabled;
     this.addCornerButton(0, '❚❚', () => this.togglePause());
     if (fsAvailable) this.addCornerButton(1, '⤢', () => this.toggleFullscreen());
     this.addMuteButton(fsAvailable ? 2 : 1);
@@ -120,13 +139,13 @@ export class HudScene extends Phaser.Scene {
     this.stick = data.touch ? this.makeStick() : null;
 
     game.events.on(HUD_EVENT, this.onSnapshot, this);
-    game.events.on(SEA_EVENT, this.showBanner, this);
+    game.events.on(SEA_EVENT, this.queueBanner, this);
     // Pause keys live here: the Game scene's keyboard stops while it is paused.
     this.input.keyboard?.on('keydown-ESC', this.togglePause, this);
     this.input.keyboard?.on('keydown-P', this.togglePause, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       game.events.off(HUD_EVENT, this.onSnapshot, this);
-      game.events.off(SEA_EVENT, this.showBanner, this);
+      game.events.off(SEA_EVENT, this.queueBanner, this);
     });
     // Auto-pause when the tab is hidden so nobody gets eaten while away.
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.pauseIfRunning, this);
@@ -138,27 +157,82 @@ export class HudScene extends Phaser.Scene {
     if (data.intro) this.showIntro(data.levelName, data.intro);
   }
 
-  /** A sea event's name and what to do, on a strip of paper that fades in and out without pausing play. */
+  /**
+   * The objective line takes the event's countdown with the snapshot that
+   * follows its announcement ("… · Bait ball 0:30"): the banner waits for it,
+   * so it's placed clear of the longer line.
+   */
+  private queueBanner(b: SeaEventBanner): void {
+    this.pendingBanner = b;
+  }
+
+  /**
+   * A sea event's name and what to do, on a strip of paper that fades in and
+   * out without pausing play. It keeps to the HUD's edges (see bannerSpot),
+   * smaller on a phone, and fades while the fish is behind it.
+   */
   private showBanner(b: SeaEventBanner): void {
     this.banner?.destroy();
-    const title = inkText(this, 0, -16, b.title, 40, b.danger ? RED_INK : BLUE_INK);
-    const line = inkText(this, 0, 22, b.line, 22, '#5b5446');
+    const spot = this.bannerSpot();
+    const room = spot.right - spot.left;
+    const title = inkText(this, 0, 0, b.title, 40, b.danger ? RED_INK : BLUE_INK);
+    const line = inkText(this, 0, 0, b.line, 22, '#5b5446').setAlign('center');
+    // Beside the left column (a short screen): phone-sized, as the intro card is, the line
+    // wrapping to fit rather than shrinking further. Across a portrait phone: shrunk to its width.
+    const besideHud = spot.top !== null;
+    const k = besideHud ? Math.min(1, uiScale(this), room / (title.width + 56)) : Math.min(1, room / (Math.max(title.width, line.width) + 56));
+    if (besideHud) line.setWordWrapWidth(room / k - 56);
     const w = Math.max(title.width, line.width) + 56;
-    const h = 96;
+    const h = title.height + line.height + 16;
+    title.setY(-h / 2 + 8 + title.height / 2);
+    line.setY(h / 2 - 8 - line.height / 2);
     const g = this.add.graphics();
     g.fillStyle(0xfffaf0, 0.94).fillRect(-w / 2, -h / 2, w, h);
     wobblyRect(g, -w / 2, -h / 2, w, h, 17);
-    const banner = this.add.container(viewSize(this).width / 2, BANNER_Y, [g, title, line]);
-    banner.setScale(Math.min(1, (viewSize(this).width - 32) / w)).setAlpha(0);
+    const parts = this.add.container(0, 0, [g, title, line]);
+    // Beside the left column it tucks under the corner buttons, as far from the middle as it can be.
+    const x = spot.top === null ? (spot.left + spot.right) / 2 : spot.right - (w * k) / 2;
+    const y = spot.top === null ? BANNER_Y : spot.top + (h * k) / 2;
+    const banner = this.add.container(x, y, [parts]).setScale(k).setAlpha(0);
     this.banner = banner;
+    this.bannerBody = { parts, box: { x: x - (w * k) / 2, y: y - (h * k) / 2, w: w * k, h: h * k } };
+    this.bannerAlpha = 1;
     this.tweens.add({ targets: banner, alpha: 1, duration: 220 });
     this.tweens.add({
       targets: banner, alpha: 0, delay: BANNER_MS, duration: 600,
       onComplete: () => {
         banner.destroy();
-        if (this.banner === banner) this.banner = null;
+        if (this.banner === banner) {
+          this.banner = null;
+          this.bannerBody = null;
+        }
       },
     });
+  }
+
+  /**
+   * Where a sea event's banner goes: beside the HUD's left column (name, bars,
+   * objective) and under the corner buttons when there's room, clear of the
+   * middle of the screen where the fish swims; on a portrait phone, across the
+   * screen under the HUD's rows, where the screen is tall enough to spare it.
+   */
+  private bannerSpot(): { readonly left: number; readonly right: number; readonly top: number | null } {
+    const { width } = viewSize(this);
+    const objectiveRight = this.objectiveText.x + this.objectiveText.width;
+    const column = Math.max(objectiveRight, 20 + this.barW + (width >= WIDE_HUD ? FRENZY_ROOM : 0));
+    const left = column + 24;
+    const right = width - 16;
+    if (this.narrow || right - left < BANNER_MIN_ROOM) return { left: 16, right, top: null };
+    return { left, right, top: BANNER_TOP };
+  }
+
+  /** The banner fades while the fish swims behind it, and comes back once it's clear. */
+  private fadeBanner(dt: number): void {
+    const body = this.bannerBody;
+    if (!body) return;
+    const game = this.scene.get('Game') as GameScene;
+    this.bannerAlpha = hintAlpha(this.bannerAlpha, behind(body.box, game.playerOnScreen(), BANNER_CLEARANCE), dt);
+    body.parts.setAlpha(this.bannerAlpha);
   }
 
   /**
@@ -279,7 +353,8 @@ export class HudScene extends Phaser.Scene {
     return { base, knob };
   }
 
-  update(): void {
+  update(_time: number, delta: number): void {
+    this.fadeBanner(delta);
     if (!this.stick) return;
     const o = stickCentre(viewSize(this).height);
     const ptr = stickPointer(this);
@@ -332,6 +407,9 @@ export class HudScene extends Phaser.Scene {
   private onSnapshot(s: HudSnapshot): void {
     this.last = s;
     this.draw(s);
+    const banner = this.pendingBanner;
+    this.pendingBanner = null;
+    if (banner) this.showBanner(banner);
   }
 
   private draw(s: HudSnapshot): void {
@@ -428,6 +506,8 @@ export class HudScene extends Phaser.Scene {
     this.pauseLayer = this.add.container(viewSize(this).width / 2, viewSize(this).height / 2, [
       bg,
       inkText(this, 0, -120, 'Paused', 64, BLUE_INK),
+      // Which release this is, for a screenshot or bug report: by the title, where a short screen still shows it.
+      inkText(this, 100, -98, `v${GAME_VERSION}`, 18).setOrigin(0, 1).setAlpha(0.6),
       inkButton(this, 0, -30, 'Keep swimming', () => this.togglePause(), { width: 260 }),
       inkButton(this, 0, 40, 'Level select', () => this.toMenu(), { width: 260 }),
       inkButton(this, 0, 110, 'Exit to 16bit.ink', () => host.onExit(), { width: 260, size: 26 }),
@@ -441,6 +521,8 @@ export class HudScene extends Phaser.Scene {
 
   private toggleFullscreen(): void {
     if (this.scale.isFullscreen) this.scale.stopFullscreen();
-    else this.scale.startFullscreen();
+    // Not scale.startFullscreen(): it drops the request's promise, so a refusal becomes an uncaught error.
+    // Phaser still follows the change through its fullscreenchange listener.
+    else (this.scale.getFullscreenTarget() as HTMLElement).requestFullscreen({ navigationUI: 'hide' }).catch(() => undefined);
   }
 }

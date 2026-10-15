@@ -4,7 +4,7 @@ import {
   backStipple, bezier, bottomAt, C, gillSlits, PAPER_FILL, ring, spots, topAt, xAt, type Anatomy, type Kit,
 } from '../kit';
 import {
-  biteScars, brokenStripes, healedScar, mirrorScales, oldFly, oldHook, remora, sword, tear,
+  biteScars, brokenStripes, healedScar, mirrorScales, oldFly, oldHook, sword, tear,
 } from './giantDetails';
 import { SEADEVIL_ART } from './seadevil';
 
@@ -332,14 +332,13 @@ export const GIANTS: Partial<Record<SpeciesId, Anatomy>> = {
   shark: {
     // Grey reef shark: torpedo with a pointed snout, gill slits, a tall stiff dorsal, black-edged
     // fins. This one is an old hunter: a dark back over a white belly, pale bite scars, a nick in
-    // its dorsal, a mean underslung mouth, and a remora riding under its belly.
+    // its dorsal, and a mean underslung mouth.
     hl: 84, hh: 23, peak: 0.38, blunt: 0.32, peduncle: 0.25, tail: 'shark', tailSize: 1.35,
     dorsal: { from: 0.34, to: 0.48, height: 1.4, tri: true }, dorsal2: { from: 0.76, to: 0.81, height: 0.45, tri: true },
     anal: { from: 0.78, to: 0.83, height: 0.4, tri: true }, pectoral: 0, pelvic: false, scales: false,
     eye: { t: 0.13, r: 4.5 }, mouth: 'none', wash: '#6e7a84', finWash: '#5d6871', gills: 'slits', lateral: false,
     under: (k) => {
       sickle(k, { x: k.x(0.62), y: bottomAt(k.a, 0.62) - 3 }, { x: k.x(0.72), y: bottomAt(k.a, 0.62) + 13 }, 13);
-      remora(k, k.x(0.5), bottomAt(k.a, 0.5) + 2);
     },
     extras: (k) => {
       // Countershading: slate back, white belly, a soft line between.

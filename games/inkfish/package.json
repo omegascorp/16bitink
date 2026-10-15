@@ -1,12 +1,13 @@
 {
   "name": "@16bitink/inkfish",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./content": "./content/paid.ts",
-    "./build-id": "./build-id.mjs"
+    "./build-id": "./build-id.mjs",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "test": "vitest run",
@@ -15,7 +16,8 @@
     "dev": "vite dev --port 5174",
     "promo": "node dev/promo/record.mjs",
     "banner": "node dev/promo/saveBanner.mjs",
-    "thumbnail": "node dev/promo/saveThumbnail.mjs"
+    "thumbnail": "node dev/promo/saveThumbnail.mjs",
+    "ads": "node dev/promo/saveAds.mjs"
   },
   "dependencies": {
     "@16bitink/game-sdk": "workspace:*",

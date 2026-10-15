@@ -1,6 +1,7 @@
 ---
 import { playableGames, type CatalogGame } from '../../data/games';
 import { appleTouchIcon } from '../../lib/manifest';
+import { GAME_VERSIONS } from '../../games/versions';
 
 export function getStaticPaths() {
   return playableGames().map((game) => ({ params: { slug: game.slug }, props: { game } }));
@@ -11,6 +12,7 @@ interface Props {
 }
 const { game } = Astro.props;
 const theme = game.theme ?? { paper: '#f4eddc', ink: '#1b1a1f', accent: '#1f3f8a' };
+const version = GAME_VERSIONS[game.slug];
 const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean).join('&');
 ---
 <!doctype html>
@@ -40,14 +42,27 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
         <h1>{game.title}</h1>
         <p class="tag">{game.tagline}</p>
         <button id="play" type="button">Tap to play</button>
+        <div id="loader" hidden>
+          <div id="loader-bar" class="bar" role="progressbar" aria-label={`Loading ${game.title}`} aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div id="loader-fill" class="fill"><span class="hatch"></span></div>
+          </div>
+          <p class="loader-label"><span id="loader-step"></span><span id="loader-pct">0%</span></p>
+        </div>
         <p id="ios-hint" hidden>Tip: Share → <strong>Add to Home Screen</strong> for true full-screen on iPhone.</p>
         <p id="status" role="status"></p>
         <a class="back" href={`/games/${game.slug}`}>← back</a>
+        {version && <p class="version">v{version}</p>}
       </div>
     </div>
 
     <script>
+      import { trackPageview } from '../../lib/client/analytics';
+      import { watchErrors, watchPage } from '../../lib/client/pageWatch';
       import { bootPlayer } from '../../lib/client/player';
+
+      trackPageview();
+      watchPage();
+      watchErrors();
 
       const stage = document.getElementById('stage');
       if (stage?.dataset.game) bootPlayer(stage.dataset.game, JSON.parse(stage.dataset.fonts ?? '[]') as string[]);
@@ -68,7 +83,10 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
         position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
         gap: 8px; padding: 0 16px; text-align: center;
         font-family: 'Caveat', cursive; color: var(--ink); z-index: 2;
+        /* Covers the game's canvas while it boots underneath, then fades out. */
+        background: var(--paper); transition: opacity 0.32s ease-out;
       }
+      #splash.leaving { opacity: 0; pointer-events: none; }
       #splash h1 { font-size: clamp(4rem, 16vw, 8rem); margin: 0; line-height: 0.9; color: var(--accent); }
       .tag { font-size: 1.8rem; margin: 0 0 18px; }
       .brand { font-size: 1.6rem; margin: 0; }
@@ -81,9 +99,37 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
       }
       #play:active { transform: translate(2px, 3px); box-shadow: none; }
       #play:focus-visible { outline: 3px dashed var(--accent); outline-offset: 5px; }
+      #loader { display: flex; flex-direction: column; align-items: center; width: min(340px, 78vw); min-height: 60px; }
+      #loader[hidden] { display: none; }
+      .bar {
+        position: relative; width: 100%; height: 24px; box-sizing: border-box; overflow: hidden;
+        background: var(--paper); border: 3px solid var(--ink);
+        border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; box-shadow: 3px 4px 0 var(--ink);
+      }
+      .fill {
+        position: absolute; inset: 0 auto 0 0; width: 0; overflow: hidden;
+        background: color-mix(in srgb, var(--accent) 22%, var(--paper));
+        border-right: 2px solid var(--ink); box-sizing: border-box;
+        transition: width 0.25s ease-out;
+      }
+      /* Pen hatching that keeps crawling, also while the game is busy drawing (a transform runs off the main thread). */
+      .hatch {
+        position: absolute; top: 0; bottom: 0; left: -14px; width: calc(100vw + 28px);
+        background-image: linear-gradient(45deg, var(--accent) 22%, transparent 22%, transparent 50%, var(--accent) 50%, var(--accent) 72%, transparent 72%);
+        background-size: 14px 14px;
+        animation: hatch 0.7s linear infinite;
+      }
+      @keyframes hatch { to { transform: translateX(14px); } }
+      @media (prefers-reduced-motion: reduce) { .hatch { animation: none; } }
+      .loader-label { display: flex; justify-content: space-between; gap: 12px; width: 100%; margin: 8px 0 0; font-size: 1.5rem; line-height: 1; }
+      #loader-pct { font-family: 'Silkscreen', monospace; font-size: 0.95rem; align-self: center; }
       #ios-hint, #status { font-family: Georgia, serif; font-size: 0.95rem; max-width: 34ch; margin: 8px 0 0; }
       #status { color: #a3342b; }
       .back { font-size: 1.5rem; color: var(--ink); margin-top: 14px; }
+      .version {
+        position: absolute; right: 14px; bottom: 10px; margin: 0;
+        font-family: 'Silkscreen', monospace; font-size: 0.7rem; color: var(--ink); opacity: 0.55;
+      }
     </style>
   </body>
 </html>

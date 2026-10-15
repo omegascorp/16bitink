@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import { crispText, DPR, viewSize } from './hidpi';
+import { crispText, DPR, screenZoom, viewSize } from './hidpi';
 import { ART_RES, BOIL_FPS, BOIL_FRAMES, boilKey, ensureBossTextures, ensureFishTextures, jellyGlowKey, releaseFishTextures, weedKey } from '../art/textures';
-import { getChapters, getHost, getSound } from '../host';
+import { getChapters, getHost, getSound, trackGame } from '../host';
 import type { LevelDef, SpeciesId } from '../levels/types';
 import { drainFrenzy, feedFrenzy, frenzyLabel, frenzyMultiplier, initialFrenzy, type FrenzyState } from '../logic/frenzy';
 import { addGrowth, growthGoal, growthProgress, initialGrowth, playerSizeFor, type GrowthState } from '../logic/growth';
@@ -48,7 +48,8 @@ import { Flock, type Bird } from './game/flock';
 import { Sightings } from './game/sightings';
 import { splash } from './game/splash';
 import { describeLevel, levelNumber } from '../levels/twists';
-import { PLAYER_FISH_NAMES, ZONE_SKY } from '../levels/zones';
+import { PLAYER_FISH_NAMES, ZONE_SKY, zoneInfo } from '../levels/zones';
+import { capital, foodOf } from '../levels/foodFalls';
 import { PLAYER_STATS } from '../levels/playerStats';
 import { allLevels, chapterOf } from '../levels/chapters';
 import { HAND_FONT } from './ui';
@@ -58,6 +59,7 @@ import { ABILITY, ABILITY_INFO, abilityMeter, abilityUnlocked, canSwallow, light
 import { blindHunters, drawFlash, drawInkCloud, drawnToFlash, swimToFlash } from './game/abilityFx';
 import { ClipDirector } from './game/clipDirector';
 import { clipFileName } from '../logic/clips/card';
+import type { Box } from '../logic/hintFade';
 
 export interface HudSnapshot {
   readonly levelName: string;
@@ -72,7 +74,7 @@ export interface HudSnapshot {
   /** The fish's key-or-button ability on this level (ink, flash), and how ready it is, 0..1; null when it has none. */
   readonly ability: { readonly name: string; readonly ready: number } | null;
   readonly speedLeft: number;
-  /** The level goal's progress line, e.g. "Ink bottles 3/10". */
+  /** The level goal's progress line, e.g. "Beetles 3/10". */
   readonly objective: string;
   readonly urgent: boolean;
 }
@@ -83,6 +85,8 @@ export interface GameSceneData {
   readonly artWarmed?: boolean;
 }
 
+/** Emitted on the Game scene once its level is built: create can return early to decode saved drawings first. */
+export const LEVEL_BUILT = 'levelBuilt';
 export const HUD_EVENT = 'hud';
 /** A sea event has started: the HUD shows its banner. */
 export const SEA_EVENT = 'seaEvent';
@@ -104,6 +108,8 @@ function levelSpecies(level: LevelDef): SpeciesId[] {
 const SKY_LOOK = 110;
 /** Extra points per bird for each one already caught in the same leap. */
 const COMBO_POINTS = 100;
+/** Share of the level's growth each piece of a food fall gives: the task feeds the main goal, but can't replace it. */
+const FOOD_GROWTH_SHARE = 0.02;
 /** Longest the win card waits for the fish to settle, ms past the usual pause. */
 const SETTLE_MAX_MS = 3000;
 /** The art-cache group of the level built last (see create). */
@@ -231,6 +237,7 @@ export class GameScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, stopArt);
     dropUnusedArt();
     this.built = true;
+    this.events.emit(LEVEL_BUILT);
   }
 
   private build(): void {
@@ -337,6 +344,7 @@ export class GameScene extends Phaser.Scene {
       this.sightings.save();
       this.scene.stop('Hud');
     });
+    this.trackStart();
     const clips = new ClipDirector(this, () => this.player.sprite);
     this.clips = clips;
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => clips.destroy());
@@ -374,6 +382,14 @@ export class GameScene extends Phaser.Scene {
       drawFlash(this, p.sprite.x, p.sprite.y);
       this.sfx('zap', undefined, 1.6, 0.6);
     }
+  }
+
+  /** Where the player's fish is on screen, in CSS pixels: for the HUD to keep its banners from hiding it. */
+  playerOnScreen(): Box {
+    const cam = this.cameras.main;
+    const z = screenZoom(cam);
+    const b = this.player.sprite.getBounds();
+    return { x: (b.x - cam.worldView.x) * z, y: (b.y - cam.worldView.y) * z, w: b.width * z, h: b.height * z };
   }
 
   private zoomFor(size: number): number {
@@ -642,15 +658,21 @@ export class GameScene extends Phaser.Scene {
     sprite.x += this.twist.current * strength * dt;
   }
 
-  /** Twist bookkeeping: ink bottles, goal markers, the clock, and whether the level is decided. */
+  /** Twist bookkeeping: falling food, goal markers, the clock, and whether the level is decided. */
   private updateObjective(now: number, dt: number): void {
     const goals = this.fish.filter((f) => f.role !== 'normal');
-    for (const at of this.twist.update(now, dt, this.boilFrame, this.player, goals)) this.sfx('smash', at);
-    const picked = this.player.hooked ? [] : this.twist.collect(this.player);
-    for (const at of picked) {
+    const food = foodOf(zoneInfo(this.level.chapter).zone);
+    for (const at of this.twist.update(now, dt, this.boilFrame, this.player, goals)) {
+      this.sfx('rustle', at);
+      this.floatText(at.x, at.y - 30, `${capital(food.scavenger.one)} got it`, '#a3342b', 26);
+    }
+    const eaten = this.player.hooked ? [] : this.twist.eatFood(this.player);
+    for (const at of eaten) {
       this.score += 150;
       this.burst(at.x, at.y, 6);
-      this.sfx('drop');
+      this.sfx('eat', at, 1.3);
+      this.player.chompAt = this.time.now;
+      this.grow(growthGoal(this.level) * FOOD_GROWTH_SHARE);
       if (this.level.objective.kind === 'collect') {
         this.floatText(at.x, at.y - 30, `${this.progress.collected + 1}/${this.level.objective.count}`, '#1f3f8a', 34);
       }
@@ -1032,6 +1054,7 @@ export class GameScene extends Phaser.Scene {
   private finish(kind: 'win' | 'lose'): void {
     if (this.ended) return;
     this.ended = true;
+    trackGame(this, { type: 'level_end', ...this.levelRef(), result: kind, seconds: this.seconds(), score: this.score, ...(this.death ? { cause: this.death.cause } : {}) });
     this.clips?.end();
     // Before the result screen reads the save.
     this.sightings.save();
@@ -1052,6 +1075,29 @@ export class GameScene extends Phaser.Scene {
       else this.time.delayedCall(100, whenSettled);
     };
     this.time.delayedCall(kind === 'win' ? 900 : 1900, kind === 'win' ? whenSettled : showResult);
+  }
+
+  private levelRef(): { level: string; n: number; name: string } {
+    return { level: this.level.id, n: this.levelIndex + 1, name: this.level.name };
+  }
+
+  private seconds(): number {
+    return Math.round(this.elapsedMs / 100) / 10;
+  }
+
+  /** Reports the level's start, and a quit if the player leaves before it ends (level select, retry, exit). */
+  private trackStart(): void {
+    trackGame(this, { type: 'level_start', ...this.levelRef() });
+    const quit = (): void => {
+      if (this.ended) return;
+      this.ended = true;
+      trackGame(this, { type: 'level_end', ...this.levelRef(), result: 'quit', seconds: this.seconds() });
+    };
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off(Phaser.Scenes.Events.DESTROY, quit);
+      quit();
+    });
+    this.events.once(Phaser.Scenes.Events.DESTROY, quit);
   }
 
   /** Stops the recording and starts making the level's clip. */

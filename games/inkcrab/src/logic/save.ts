@@ -57,6 +57,28 @@ export function recordResult(p: Progress, id: string, blots: number, time: numbe
   return { ...p, levels: { ...p.levels, [id]: next } };
 }
 
+/**
+ * Two copies of progress combined (this device and another): every level
+ * either finished, with the most blots and the fastest time, and everything
+ * either met. Progress only grows, so merging never loses any.
+ */
+export function mergeProgress(a: Progress, b: Progress): Progress {
+  const levels = Object.entries(b.levels).reduce((acc, [id, r]) => {
+    const prev = acc[id];
+    return { ...acc, [id]: prev ? { blots: Math.max(prev.blots, r.blots), bestTime: Math.min(prev.bestTime, r.bestTime) } : r };
+  }, a.levels);
+  return { levels, seen: [...new Set([...a.seen, ...b.seen])].slice(0, MAX_SEEN) };
+}
+
+/** Whether `a` already holds everything in `b` (so saving `b` over `a` would add nothing). */
+export function coversProgress(a: Progress, b: Progress): boolean {
+  const seen = new Set(a.seen);
+  return b.seen.every((id) => seen.has(id)) && Object.entries(b.levels).every(([id, r]) => {
+    const mine = a.levels[id];
+    return mine !== undefined && mine.blots >= r.blots && mine.bestTime <= r.bestTime;
+  });
+}
+
 /** Adds newly met creatures and shells; returns the same progress when nothing is new. */
 export function markSeen(p: Progress, ids: Iterable<string>): Progress {
   const known = new Set(p.seen);
@@ -69,6 +91,18 @@ export function isUnlocked(p: Progress, order: readonly string[], id: string): b
   const i = order.indexOf(id);
   if (i < 0) return false;
   return i === 0 || p.levels[order[i - 1]!] !== undefined;
+}
+
+/** Where the game opens: a new player goes straight onto the first beach (no level id: the Game scene's first), everyone else to the map. */
+export type FirstScreen = { readonly scene: 'Game'; readonly data: { readonly levelId?: string } } | { readonly scene: 'Menu' };
+
+/**
+ * A player who hasn't finished a level yet has nothing to choose on the map
+ * but the first one, and first-time players who met the map instead often
+ * left there, so they start in the level.
+ */
+export function firstScreen(p: Progress): FirstScreen {
+  return Object.keys(p.levels).length === 0 ? { scene: 'Game', data: {} } : { scene: 'Menu' };
 }
 
 export function loadProgress(store: KeyValueStore | undefined): Progress {

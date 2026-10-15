@@ -19,7 +19,7 @@ export const BEACH_1: readonly LevelDef[] = [
     shells: [['snail', 3, 40, 0]],
     food: { surface: 14, buried: 4, shallow: 4 },
     critters: [{ count: 3, sizes: [1, 1], species: 'slater' }],
-    teach: ['move', 'swap'],
+    teach: ['move', 'jump', 'swap'],
   },
   {
     id: 'margin-wall', name: 'Margin Wall', seed: 104, width: 60, height: 32, parTime: 120,

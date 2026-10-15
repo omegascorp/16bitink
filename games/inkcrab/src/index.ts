@@ -11,6 +11,7 @@ import { HudScene } from './scenes/HudScene';
 import { MenuScene } from './scenes/MenuScene';
 import { ResultScene } from './scenes/ResultScene';
 import { DPR } from './scenes/hidpi';
+import { GAME_VERSION } from './version';
 
 /** Mounts InkCrab into `parent`, filling it completely and tracking its size. */
 export function mount(parent: HTMLElement, host: GameHost): GameHandle & { readonly phaser: Phaser.Game } {
@@ -59,5 +60,5 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
   };
 }
 
-const inkcrab: GameModule = { mount };
+const inkcrab: GameModule = { mount, version: GAME_VERSION };
 export default inkcrab;

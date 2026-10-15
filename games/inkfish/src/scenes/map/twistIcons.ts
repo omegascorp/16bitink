@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { TwistId } from '../../levels/types';
 
 const RED = 0xa3342b;
-const BLUE = 0x1f3f8a;
+const FOOD = 0xc0624a;
 
 /**
  * A tiny pen glyph for a level twist, drawn above its node on the map so
@@ -11,10 +11,12 @@ const BLUE = 0x1f3f8a;
 export function drawTwistIcon(g: Phaser.GameObjects.Graphics, twist: TwistId, x: number, y: number, ink: number, alpha: number): void {
   switch (twist) {
     case 'collect':
-      // An ink bottle: a squat body full of blue, a short neck, a cork.
-      g.fillStyle(BLUE, alpha).fillRoundedRect(x - 5.5, y - 2, 11, 9, 2);
-      g.lineStyle(1.2, ink, alpha).strokeRoundedRect(x - 5.5, y - 2, 11, 9, 2).strokeRect(x - 2, y - 5, 4, 3);
-      g.fillStyle(0xb98a55, alpha).fillRect(x - 2.2, y - 8.5, 4.4, 3.5);
+      // A food fall: a morsel sinking, a dashed trail above it, and the seabed it must not reach.
+      g.lineStyle(1.2, ink, alpha);
+      for (const dy of [-9, -5.5]) g.lineBetween(x - 2.5, y + dy, x - 2.5, y + dy + 2).lineBetween(x + 2.5, y + dy + 1, x + 2.5, y + dy + 3);
+      g.fillStyle(FOOD, alpha).fillEllipse(x, y + 1, 9, 6.5);
+      g.lineStyle(1.2, ink, alpha).strokeEllipse(x, y + 1, 9, 6.5);
+      g.lineStyle(1.4, ink, alpha).lineBetween(x - 7, y + 8, x + 7, y + 8);
       return;
     case 'current':
       g.lineStyle(1.8, ink, alpha);

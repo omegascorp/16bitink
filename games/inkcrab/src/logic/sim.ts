@@ -1,6 +1,6 @@
 import { AIR, boxHitsSolid, climbBody, jump, moveBody, PHYS, WATER, type Body, type Box, type Ledge } from './body';
 import { makeBird, patrolY, pullUp, stepBird, underSky, type Bird, type BirdSpecies } from './birds';
-import { armTip, CRITTER, critterPoints, stepCritter, stranded, type Critter, type Surroundings } from './critters';
+import { armTip, CRITTER, critterPoints, stepCritter, stranded, threatens, type Critter, type Surroundings } from './critters';
 import { placeCritter, SPAWN_AWAY } from './spawn';
 import { columnsAround, pourStep } from './dunes';
 import { movementOf, SPECIES, type SpeciesId } from './species';
@@ -8,7 +8,7 @@ import { Shore, type TideBrings } from './shore';
 import { isLowWater, type TideSpec } from './tide';
 import { isWet, type Water } from './water';
 import { settleColumn } from './sandfall';
-import { digColumns, diggableOf, digTargets, inReach, placeTarget, tileSpan, type TilePos } from './dig';
+import { digColumns, diggableOf, digTargets, placeTarget, tileSpan, type TilePos } from './dig';
 import { feed, initialGrowth, isCapped, type Growth } from './growth';
 import { buriedFood, centre, food, makeItem, overlaps, shell, type Item } from './items';
 import { createRng, type Rng } from './rng';
@@ -41,20 +41,29 @@ export interface Input {
   readonly place: boolean;
   /** Pressed this frame: move into the shell underfoot. */
   readonly interact: boolean;
-  /** A tapped tile (touch): dig it, or fill it with carried sand. */
-  readonly tapTile: TilePos | null;
+  /**
+   * Held (touch's one dig button): dig where aimed; with nothing there to dig,
+   * or the shell full, put down carried sand instead. Which it does is settled
+   * when the button goes down, so digging through into open space doesn't
+   * start building.
+   */
+  readonly work: boolean;
   /** Held: pull into the shell. Safe from anything, but it can't move. */
   readonly hide: boolean;
 }
 
-export const IDLE: Input = { moveX: 0, aimY: 0, jump: false, dig: false, place: false, interact: false, tapTile: null, hide: false };
+export const IDLE: Input = { moveX: 0, aimY: 0, jump: false, dig: false, place: false, interact: false, work: false, hide: false };
 
 /** Trying to move up before a shell chain's line is ready: seconds the notice shows, and before it's said again. */
 export const HELD = { notice: 4, again: 0.6 } as const;
+/** Seconds before trying to dig while full of sand says so again (not every frame the key is held). */
+const FULL_AGAIN = 1.5;
 
 export type SimEvent =
   | { readonly type: 'ate'; readonly id: number; readonly points: number; readonly wasted: number; readonly x: number; readonly y: number }
   | { readonly type: 'grew'; readonly size: number }
+  /** The crab leapt off the ground. */
+  | { readonly type: 'jumped' }
   /** Tiles that changed. `poured`: dune sand running, as from/to pairs; `placed`: sand the crab put down; `washed`: the tide smoothing it. */
   | { readonly type: 'tiles'; readonly tiles: readonly TilePos[]; readonly dug: boolean; readonly poured?: boolean; readonly placed?: boolean; readonly washed?: boolean }
   | { readonly type: 'revealed'; readonly id: number }
@@ -73,6 +82,10 @@ export type SimEvent =
   | { readonly type: 'joined'; readonly x: number; readonly y: number; readonly line: number }
   /** Tried to move up a shell chain before the line was ready: `wait` says why. */
   | { readonly type: 'held'; readonly x: number; readonly y: number; readonly wait: NonNullable<ChainStatus['wait']> }
+  /** Tried to move into a shell that doesn't fit: too big (`need` is the size to grow to) or outgrown. */
+  /** Tried to dig with no room left for the sand: it has to put some down first. */
+  | { readonly type: 'sandFull'; readonly x: number; readonly y: number }
+  | { readonly type: 'misfit'; readonly x: number; readonly y: number; readonly why: 'big' | 'small'; readonly need: number }
   /** A beach's find dug up and picked up (a mission's task): `count` so far. */
   | { readonly type: 'collected'; readonly x: number; readonly y: number; readonly count: number }
   /** A marked hunter (or the giant) eaten. */
@@ -298,6 +311,8 @@ export class Beach {
   nearbyHeld = false;
   /** Seconds left of the notice after trying to move up before the line was ready: the HUD says why and points to who's missing. */
   heldNotice = 0;
+  /** Seconds until trying to dig while full says so again. */
+  private fullNotice = 0;
   /** The crab's footsteps, which a shell chain's line follows (null on any other level). */
   readonly trail: Trail | null;
   /** Where along the footsteps each follower keeps its place. */
@@ -308,6 +323,8 @@ export class Beach {
   private followSide: 1 | -1 = -1;
   /** The crab last stood on ice: in the air, it's still sliding. */
   private slid = false;
+  /** What the held touch dig button is doing this press, once settled (see workMode). */
+  private working: 'dig' | 'place' | null = null;
   private turning = 0;
   private readonly hasRivals: boolean;
   private readonly rng: Rng;
@@ -524,6 +541,7 @@ export class Beach {
     if (this.outcome !== 'playing') return events;
     this.elapsed += dt;
     this.heldNotice = Math.max(0, this.heldNotice - dt);
+    this.fullNotice = Math.max(0, this.fullNotice - dt);
     const c = this.crab;
     const hidden = input.hide && c.shell !== null && c.swap === null;
     // Pulling into the shell (or moving house) lets go of the roots.
@@ -556,17 +574,21 @@ export class Beach {
     const speed = (60 + 5 * c.growth.size) * speedFactor(c.shell) * (swimming ? SWIM.speed : 1) * (mud ? MUD.speed : 1);
     const facing = input.moveX > WALKING ? 1 : input.moveX < -WALKING ? -1 : c.facing;
     const moved = this.move(input, speed, swimming, mud, dt);
+    if (input.jump && c.body.onGround && !c.climbing && !swimming && moved.body.vy < 0) events.push({ type: 'jumped' });
     this.crab = { ...c, body: moved.body, climbing: moved.climbing, facing, digCooldown: Math.max(0, c.digCooldown - dt) };
+    if (!input.work) this.working = null;
     if (this.crab.digCooldown === 0) {
-      if (input.tapTile) this.tapTile(input.tapTile, events);
-      else if (input.dig) this.dig(input, events);
-      else if (input.place) this.place(input, events);
+      const work = input.work ? this.workMode(input) : null;
+      if (input.dig || work === 'dig') this.dig(input, events);
+      else if (input.place || work === 'place') this.place(input, events);
+      else if (input.work && this.crab.sand >= this.sandCapacity) this.sandFull(events);
     }
     if (input.interact && this.nearbyShell && this.nearbyFits && !this.nearbyHeld) {
       this.crab = { ...this.crab, swap: startSwap(this.nearbyShell.id) };
       events.push({ type: 'swapStart', id: this.nearbyShell.id });
     } else if (input.interact && this.nearbyHeld) this.held(events);
     else if (input.interact && this.nearbyRival) this.rap(this.nearbyRival, events);
+    else if (input.interact && this.nearbyShell?.kind.type === 'shell' && !this.nearbyFits) this.misfit(this.nearbyShell.kind.shell, events);
     this.eat(events);
   }
 
@@ -581,7 +603,7 @@ export class Beach {
     const b = this.crab.body;
     const grip = this.inRoots(b);
     // A fresh hold needs up without dig (that's digging up) and not on the way up from a jump or a hop off the roots.
-    const grab = input.aimY === -1 && !input.jump && !input.dig && b.vy >= 0;
+    const grab = input.aimY === -1 && !input.jump && !input.dig && !input.work && b.vy >= 0;
     const climbing = grip && (this.crab.climbing || grab);
     if (climbing && input.jump) {
       return { body: this.slide({ ...b, vy: -this.jumpSpeed * CLIMB.hop, onGround: false }, input.moveX, speed, dt), climbing: false };
@@ -649,11 +671,15 @@ export class Beach {
     return false;
   }
 
-  /** Take-off speed (px/s) for the current height: bigger crabs leap higher, heavier shells hold them down. */
-  private get jumpSpeed(): number {
+  /** How high (tiles) the crab leaps from firm ground now: bigger crabs leap higher, heavier shells hold them down. */
+  get jumpTiles(): number {
     const c = this.crab;
-    const tiles = (JUMP_TILES.base + JUMP_TILES.perSize * c.growth.size) * speedFactor(c.shell);
-    return Math.sqrt(2 * PHYS.gravity * tiles * this.tileSize);
+    return (JUMP_TILES.base + JUMP_TILES.perSize * c.growth.size) * speedFactor(c.shell);
+  }
+
+  /** Take-off speed (px/s) for the current height. */
+  private get jumpSpeed(): number {
+    return Math.sqrt(2 * PHYS.gravity * this.jumpTiles * this.tileSize);
   }
 
   /** A swim stroke: a kick up through the water, or, at the surface, up and out. */
@@ -672,8 +698,18 @@ export class Beach {
   private dig(input: Input, events: SimEvent[]): void {
     const c = this.crab;
     const walking = Math.abs(input.moveX) > WALKING;
-    const dug = this.removeTiles(diggableOf(this.terrain, digTargets(c.body, c.facing, input.aimY, walking, this.tileSize)), events);
+    const targets = diggableOf(this.terrain, digTargets(c.body, c.facing, input.aimY, walking, this.tileSize));
+    const dug = this.removeTiles(targets, events);
     if (dug && input.aimY !== 0 && !walking) this.centreOverDig();
+    else if (!dug && targets.length && c.sand >= this.sandCapacity) this.sandFull(events);
+  }
+
+  /** Tried to dig with no room for the sand: says so (now and then, not every frame the key is held). */
+  private sandFull(events: SimEvent[]): void {
+    if (this.fullNotice > 0) return;
+    const at = centre(this.crab.body);
+    events.push({ type: 'sandFull', x: at.x, y: this.crab.body.y });
+    this.fullNotice = FULL_AGAIN;
   }
 
   private place(input: Input, events: SimEvent[]): void {
@@ -682,12 +718,19 @@ export class Beach {
     if (at) this.addTile(at, events);
   }
 
-  /** Touch: a tapped tile next to the crab is dug if it's sand, filled if it's open. */
-  private tapTile(tap: TilePos, events: SimEvent[]): void {
-    const T = this.tileSize;
-    if (!inReach(this.crab.body, tap, T)) return;
-    if (diggableOf(this.terrain, [tap]).length) this.removeTiles([tap], events);
-    else if (!overlaps(this.crab.body, { x: tap[0] * T, y: tap[1] * T, w: T, h: T })) this.addTile(tap, events);
+  /**
+   * What the touch dig button does for this press: dig if there's sand where
+   * it aims and room in the shell, else put sand down if it carries any.
+   * Settled once per press; until then (nothing to do yet) it looks again.
+   */
+  private workMode(input: Input): 'dig' | 'place' | null {
+    if (this.working) return this.working;
+    const c = this.crab;
+    const walking = Math.abs(input.moveX) > WALKING;
+    const room = c.sand < this.sandCapacity;
+    if (room && diggableOf(this.terrain, digTargets(c.body, c.facing, input.aimY, walking, this.tileSize)).length) this.working = 'dig';
+    else if (c.sand > 0 && placeTarget(this.terrain, c.body, c.facing, input.aimY, this.tileSize)) this.working = 'place';
+    return this.working;
   }
 
   /**
@@ -987,8 +1030,9 @@ export class Beach {
     const c = this.crab;
     // Fog round the crab, rain anywhere, or the dark (unless the plankton lights it up) hides it from what hunts by sight.
     const veil = Math.max(this.fogOver(c.body), this.rainNow, this.lit ? 0 : this.darkness);
+    // Out of its shell, moving house, it's prey to anything that hunts, however small: none of them flee it then.
     const quarry = {
-      box: c.body, size: c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize),
+      box: c.body, size: this.exposed ? 0 : c.growth.size, hidden: c.hidden, buried: !underSky(this.terrain, c.body, this.tileSize),
       inWater: this.submerged(c.body), inRoots: this.inRoots(c.body), veil, covered: this.underKelp(c.body),
       // A gust carries its scent downwind.
       wind: this.windNow,
@@ -1085,6 +1129,13 @@ export class Beach {
       this.handDowns.delete(took.id);
     }
     if (left) this.handDowns.add(this.leaveShell(from ?? rival, left, events));
+  }
+
+  /** Tried to move into a shell that doesn't fit: says whether it's still too big or already outgrown. */
+  private misfit(shell: Shell, events: SimEvent[]): void {
+    const at = centre(this.crab.body);
+    const big = this.crab.growth.size < shell.size - 1;
+    events.push({ type: 'misfit', x: at.x, y: this.crab.body.y, why: big ? 'big' : 'small', need: shell.size - 1 });
   }
 
   /** Tried to move up before the line was ready: says so (once, not every frame the key is held) and starts the notice. */
@@ -1209,7 +1260,7 @@ export class Beach {
 
   /**
    * Touching a ghost crab: a smaller one is eaten, a bigger one catches the
-   * crab (as does one its own size while it's out of a shell). Hidden in its
+   * crab (as does any one at all while it's out of a shell, moving house). Hidden in its
    * shell it's safe: the ghost crab walks on past and loses interest.
    */
   private meetCritters(events: SimEvent[]): void {
@@ -1223,7 +1274,7 @@ export class Beach {
           continue;
         }
         // An octopus's arm caught it.
-        if (!c.hidden && c.safe === 0 && k.size > c.growth.size) {
+        if (!c.hidden && c.safe === 0 && threatens(k, c.growth.size, this.exposed)) {
           this.caught(events, k.species);
           this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });
         }
@@ -1237,9 +1288,12 @@ export class Beach {
         if (k.size > c.growth.size) this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });
         continue;
       }
+      // Out of its shell it eats nothing, and anything that touches it catches it; just caught, it's busy getting away.
       const size = c.growth.size;
-      if (k.size < size && !c.swap) this.eatCritter(k, events);
-      else if ((k.size > size || (k.size === size && this.exposed)) && c.safe === 0) {
+      if (k.size < size && !this.exposed) {
+        if (c.safe === 0) this.eatCritter(k, events);
+      }
+      else if (threatens(k, size, this.exposed) && c.safe === 0) {
         this.caught(events, k.species);
         // It lets go: time to get away (out of a pit, say) before it strikes again.
         this.critters.set(k.id, { ...k, bored: CRITTER.boredFor });

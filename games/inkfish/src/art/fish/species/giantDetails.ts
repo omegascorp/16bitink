@@ -4,7 +4,7 @@ import { bezier, C, PAPER_FILL, xAt, type Kit } from '../kit';
 /**
  * The fine, character-giving detail on the chapter giants (see giants.ts):
  * the marks of a long life (scars, torn fins, an old hook or fly in the lip)
- * and the gear that makes each one itself (mirror scales, a sword, a remora).
+ * and the gear that makes each one itself (mirror scales, a sword).
  * Drawn at the giants' finer resolution, so thin lines hold up.
  */
 
@@ -71,24 +71,6 @@ export function sword(k: Kit, length: number, thickness: number): void {
     for (let i = 0; i < 40; i++) pen.dot(nose.x + pen.rng() * length, nose.y + (pen.rng() - 0.5) * thickness * 1.6, 0.3, ink, 0.45);
   });
   pen.stroke([...shape, shape[0]!], 0.9, ink, 1, false);
-}
-
-/** A remora clinging to the belly by the sucker on its head, riding along. */
-export function remora(k: Kit, x: number, y: number): void {
-  const { pen, ink } = k;
-  const body = [
-    ...bezier({ x: x + 14, y: y + 1 }, { x: x + 4, y: y - 1 }, { x: x - 14, y: y + 3 }, 10),
-    ...bezier({ x: x - 14, y: y + 3 }, { x: x - 2, y: y + 8 }, { x: x + 14, y: y + 1 }, 10),
-  ];
-  pen.fill(body, PAPER_FILL, 1);
-  pen.fill(body, '#4a525a', 0.45);
-  // The striped sucking disc on top of its head, pressed to the shark.
-  for (let i = 0; i < 5; i++) pen.hair([{ x: x + 4 + i * 2, y: y - 0.2 }, { x: x + 4 + i * 2, y: y + 2 }], 0.4, ink, 0.8);
-  pen.hair([{ x: x - 2, y: y + 4.5 }, { x: x - 13, y: y + 4.5 }], 0.4, PAPER_FILL, 0.8);
-  pen.stroke([...body, body[0]!], 0.8, ink, 1, false);
-  pen.dot(x + 11, y + 2.4, 0.8, ink, 1);
-  // Its little forked tail.
-  pen.stroke([{ x: x - 13, y: y + 3 }, { x: x - 18, y: y }, { x: x - 16, y: y + 3.5 }, { x: x - 18, y: y + 7 }, { x: x - 13, y: y + 4 }], 0.7, ink, 1, false);
 }
 
 /** Old bite scars: pale crescents of tooth marks, healed over. */

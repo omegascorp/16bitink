@@ -7,6 +7,8 @@ import { PLAYERS } from '../src/art/fish/species/players';
 import { REEF } from '../src/art/fish/species/reef';
 import { SHALLOWS } from '../src/art/fish/species/shallows';
 import { ITEM_IDS } from '../src/levels/items';
+import { drawFood, FOOD_SIZE } from '../src/art/foodArt';
+import { FOOD_IDS } from '../src/levels/foodFalls';
 import { ART_RES, drawHook, drawRock, drawWeed } from '../src/art/propArt';
 import { drawJellyGlow, drawJellyKind, JELLY_TEX } from '../src/art/jellyArt';
 import { BOAT_KINDS, BOAT_SPEC, drawBoat } from '../src/art/skyArt';
@@ -80,6 +82,11 @@ const items = row();
 for (const id of ITEM_IDS) figure(items, id, ITEM_SIZE * R, ITEM_SIZE * R, (ctx) => drawItem(ctx, id, 101), 1 / R);
 const itemsSmall = row();
 for (const id of ITEM_IDS) figure(itemsSmall, id, ITEM_SIZE * R, ITEM_SIZE * R, (ctx) => drawItem(ctx, id, 101), 48 / (ITEM_SIZE * R));
+// Food falls, one per zone: big, then at the size they sink in game.
+const foods = row();
+for (const id of FOOD_IDS) figure(foods, id, FOOD_SIZE * R, FOOD_SIZE * R, (ctx) => drawFood(ctx, id, 101), 3 / R);
+const foodsSmall = row();
+for (const id of FOOD_IDS) figure(foodsSmall, id, FOOD_SIZE * R, FOOD_SIZE * R, (ctx) => drawFood(ctx, id, 101), 0.8 / R);
 // Seabed: crawlers (?critters=1 shows only these) and decor (?decor=1).
 const critterRow = row();
 for (const id of CRITTER_IDS) {

@@ -1,4 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
+import { clientIp } from './lib/clientIp';
 import { createRateLimiter, limitFor, type LimitedRoute, type RateLimiter } from './lib/rateLimit';
 
 const MINUTE = 60_000;
@@ -10,18 +11,9 @@ const limiters: Record<LimitedRoute, RateLimiter> = {
   admin: createRateLimiter({ limit: 120, windowMs: MINUTE }),
   // Keys can't be guessed (80 random bits); this just keeps anyone from trying.
   redeem: createRateLimiter({ limit: 10, windowMs: MINUTE }),
+  // A page sends a batch every few seconds at most; this covers several open tabs.
+  events: createRateLimiter({ limit: 60, windowMs: MINUTE }),
 };
-
-/** The visitor's IP: App Platform's edge sets do-connecting-ip; locally, the socket address. */
-function clientIp(request: Request, fallback: () => string): string {
-  const fromEdge = request.headers.get('do-connecting-ip');
-  if (fromEdge) return fromEdge;
-  try {
-    return fallback();
-  } catch {
-    return 'unknown';
-  }
-}
 
 export const onRequest = defineMiddleware((context, next) => {
   const route = limitFor(context.url.pathname);

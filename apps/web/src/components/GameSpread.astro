@@ -11,6 +11,8 @@ const play = `/play/${game.slug}`;
 <article class="spread">
   <a href={play} class="cover" aria-label={`Play ${game.title}`}>
     <img src={game.cover} alt="" width="1200" height="675" fetchpriority="high" />
+    <!-- Phones only: the play button below the cover can sit under the fold, so the cover says it plays too. -->
+    <span class="badge btn btn-ink" aria-hidden="true">▶ {owned ? 'Play' : 'Play free'}</span>
   </a>
   <div class="caption">
     <h2><a class="title" href={play}>{game.title}</a></h2>
@@ -56,6 +58,14 @@ const play = `/play/${game.slug}`;
   .tagline { grid-column: 1; margin: 4px 0 0; font-family: var(--font-hand); font-size: 1.5rem; line-height: 1.2; }
   .play { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 1.6rem; min-height: 52px; padding-inline: 26px; }
   .terms { grid-column: 1 / -1; margin: 14px 0 0; color: var(--ink-soft); font-size: 0.9rem; }
+
+  .badge { display: none; }
+  @media (max-width: 620px) {
+    .badge {
+      display: inline-flex; position: absolute; right: 18px; bottom: 18px;
+      min-height: 44px; padding: 6px 18px; font-size: 1.45rem; transform: rotate(1.5deg);
+    }
+  }
 
   @media (max-width: 420px) {
     .caption { grid-template-columns: 1fr; }
