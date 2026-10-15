@@ -76,6 +76,13 @@ const VARIANTS = [
   { name: 'inkfish-ink-frenzy', query: '&short=frenzy', start: 0 },
   { name: 'inkfish-how-did-that-fit', query: '&short=gape', start: 0 },
   { name: 'inkfish-fly-too-low', query: '&short=leap', start: 0 },
+  { name: 'inkfish-cleaner-wrasse', query: '&short=wrasse', start: 0 },
+  { name: 'inkfish-bluefin-tuna', query: '&short=tuna', start: 0 },
+  { name: 'inkfish-pipefish', query: '&short=pipefish', start: 0 },
+  { name: 'inkfish-lionfish', query: '&short=lionfish', start: 0 },
+  { name: 'inkfish-moray-jaws', query: '&short=moray', start: 0 },
+  { name: 'inkfish-tripodfish', query: '&short=tripod', start: 0 },
+  { name: 'inkfish-sharks-trees', query: '&short=trees', start: 0 },
   // Long-form (16:9, not looping): recorded once from 0 to the end, its sound brought up to YouTube's -14 LUFS.
   // Only with --only (it takes ~25 minutes): a plain `pnpm promo` re-records the shorts.
   { name: 'inkfish-long-descent', page: 'longform.html', query: '&video=descent', start: 0, audioFilter: 'loudnorm=I=-14:TP=-1.5:LRA=11', onlyByName: true },
@@ -108,7 +115,7 @@ function promoReady(page) {
     onError = (e) => reject(new Error(`promo page failed: ${e.message}`));
     page.on('pageerror', onError);
   });
-  const ready = page.waitForFunction(() => window.promo !== undefined, null, { timeout: 120_000 });
+  const ready = page.waitForFunction(() => typeof window.promo?.draw === 'function', null, { timeout: 120_000 });
   return Promise.race([ready, failed]).finally(() => page.off('pageerror', onError));
 }
 

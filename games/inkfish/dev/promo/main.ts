@@ -29,6 +29,14 @@ import { createBait } from './bait/render';
 import { createFrenzy } from './frenzy/render';
 import { createGape } from './gape/render';
 import { createLeap } from './leap/render';
+import { createWrasse } from './wrasse/render';
+import { createTuna } from './tuna/render';
+import { createPipefish } from './pipefish/render';
+import { createLionfish } from './lionfish/render';
+import { createMoray } from './moray/render';
+import { createTripod } from './tripod/render';
+import { createTrees } from './trees/render';
+import { PAPER_ON_DARK, withCredit } from './credit';
 
 /**
  * Dev-only promo video page, 1080x1920. Every short is a seamless loop.
@@ -46,6 +54,11 @@ import { createLeap } from './leap/render';
  * gameplay highlight: level 1's growth ladder, ending on the perch that hunted you.
  * More gameplay highlights, one moment of the game each: spat, inkcloud, bait,
  * frenzy, gape and leap (their story.ts files say which).
+ * Narrated with a directed voice and a quiet "InkFish · 16bit.ink" credit
+ * after the payoff (credit.ts): wrasse (passes the mirror test), tuna (the
+ * $3.1M bluefin), pipefish (dads get pregnant), lionfish (eat it to save the
+ * reef), moray (its second jaw), tripod (stands on stilts) and trees (sharks
+ * are older than trees).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -181,6 +194,34 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   leap: async () => {
     await loadCaptionFont();
     return createLeap(ctx);
+  },
+  wrasse: async () => {
+    await loadCaptionFont();
+    return withCredit(createWrasse(ctx), ctx);
+  },
+  tuna: async () => {
+    await loadCaptionFont();
+    return withCredit(createTuna(ctx), ctx);
+  },
+  pipefish: async () => {
+    await loadCaptionFont();
+    return withCredit(createPipefish(ctx), ctx);
+  },
+  lionfish: async () => {
+    await loadCaptionFont();
+    return withCredit(createLionfish(ctx), ctx);
+  },
+  moray: async () => {
+    await loadCaptionFont();
+    return withCredit(createMoray(ctx), ctx);
+  },
+  tripod: async () => {
+    await loadCaptionFont();
+    return withCredit(createTripod(ctx), ctx, PAPER_ON_DARK);
+  },
+  trees: async () => {
+    await loadCaptionFont();
+    return withCredit(createTrees(ctx), ctx);
   },
 };
 

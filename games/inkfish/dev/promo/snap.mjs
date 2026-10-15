@@ -23,7 +23,7 @@ try {
   let pageError;
   page.on('pageerror', (e) => { pageError = e; });
   await page.goto(`${base}/${pageName}?record&${query}`);
-  await page.waitForFunction(() => window.promo !== undefined, null, { timeout: 120_000 }).catch((e) => { throw pageError ?? e; });
+  await page.waitForFunction(() => typeof window.promo?.draw === 'function', null, { timeout: 120_000 }).catch((e) => { throw pageError ?? e; });
   for (const t of times) {
     if (t === 'audio') {
       const wav = await page.evaluate(() => window.promo.audioBase64(0));
