@@ -52,6 +52,12 @@ export interface GameHost {
   onBuy(): void;
   /** True when a player is signed in, so the game can say whether buying needs a sign-in first. */
   readonly signedIn?: boolean;
+  /**
+   * Signs in with Google so progress is saved to an account, then comes back
+   * to the game; saves made signed out move to that account. Leaves the page,
+   * so save first. Only offer it when `signedIn` is false, and never require it.
+   */
+  onSignIn?(): void;
   /** The full game's one-time price as shown to players, e.g. "$4.99". */
   readonly price?: string;
   /** Leaves the game (back to its catalog page). */

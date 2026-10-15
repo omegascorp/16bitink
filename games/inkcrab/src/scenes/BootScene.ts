@@ -5,6 +5,7 @@ import { textureJobs } from '../art/textures';
 import { getHost, REG } from '../host';
 import { installPaidBeaches } from '../level/levels';
 import { parseBeaches } from '../level/validate';
+import { pullFromAccount } from '../logic/accountSave';
 import { firstScreen, loadProgress } from '../logic/save';
 import { screenScene, viewSize } from './hidpi';
 import { inkText } from './ui';
@@ -43,7 +44,8 @@ export class BootScene extends Phaser.Scene {
     await runInSlices(textureJobs(this), { onProgress: (f) => loading?.progress(f * DRAWN_AT, label) });
     this.registry.set(REG.fullError, null);
     if (getHost(this).unlocked) loading?.progress(DRAWN_AT, 'fetching the full game…');
-    await loadPaidBeaches(this);
+    await Promise.all([loadPaidBeaches(this), pullFromAccount(getHost(this))]);
+    // Read after the account's progress is pulled in, so a player new to this device but not to the game gets the map.
     const first = firstScreen(loadProgress(getHost(this).storage));
     loading?.progress(FETCHED_AT, first.scene === 'Game' ? 'raking the beach…' : 'unfolding the map…');
     if (loading) readyOnFirstFrame(this, first.scene, loading);

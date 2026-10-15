@@ -193,6 +193,11 @@ export class ResultScene extends Phaser.Scene {
       inkButton(this, 0, 120, 'Replay', retry),
       inkButton(this, 0, 190, 'Level select', menu),
     ]);
+    const signIn = host.onSignIn;
+    if (!host.signedIn && signIn) {
+      // Signed out, every win offers to keep the progress: a small button, never in the way of the next level.
+      root.add(inkButton(this, 0, 256, 'Sign in to save your progress', () => signIn(), { width: 300, height: 44, size: 22, color: BLUE_INK }));
+    }
   }
 
   /** The clip beside the card (an HTML overlay: it's a video), gone with this screen. */

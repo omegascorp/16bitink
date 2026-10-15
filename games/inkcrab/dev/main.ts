@@ -15,6 +15,7 @@ const handle = mount(parent, {
   // As the website serves it to owners: JSON over the wire.
   loadContent: async () => JSON.parse(JSON.stringify((await import('../content/paid')).INKCRAB_PAID_BEACHES)) as unknown,
   onBuy: () => alert('Checkout would open here'),
+  onSignIn: () => alert('Google sign-in would open here'),
   price: '$4.99',
   onExit: () => alert('Exit to catalog'),
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPendingBuy, signInToBuyUrl } from '../src/lib/buyFlow';
+import { isPendingBuy, signInToBuyUrl, signInUrl } from '../src/lib/buyFlow';
 import { safeReturnPath } from '../src/lib/google';
 
 describe('buy flow', () => {
@@ -8,6 +8,14 @@ describe('buy flow', () => {
     expect(url).toBe('/auth/google?return=%2Fplay%2Finkfish%3Fbuy%3Dinkfish');
     const ret = new URL(url, 'https://16bit.ink').searchParams.get('return');
     expect(safeReturnPath(ret)).toBe('/play/inkfish?buy=inkfish');
+  });
+
+  it('sends a player who signs in to save progress back to the game, with nothing pending', () => {
+    const url = signInUrl('/play/inkfish');
+    expect(url).toBe('/auth/google?return=%2Fplay%2Finkfish');
+    const ret = new URL(url, 'https://16bit.ink').searchParams.get('return');
+    expect(safeReturnPath(ret)).toBe('/play/inkfish');
+    expect(isPendingBuy(new URL(ret!, 'https://16bit.ink').search, 'inkfish')).toBe(false);
   });
 
   it('resumes only the purchase for this game', () => {

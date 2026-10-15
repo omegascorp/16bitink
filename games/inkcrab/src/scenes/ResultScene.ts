@@ -19,7 +19,8 @@ import { noteCard } from './noteCard';
 import { loseParts, winParts, type CardButtons } from './result/cards';
 import { Confetti } from './beachEnd/confetti';
 import { beachStage, fitStage, headline, isTall, type Headline } from './stage';
-import { clock, HAND_FONT, wobblyRect } from './ui';
+import { clock, HAND_FONT, inkButton, wobblyRect } from './ui';
+import { getHost } from '../host';
 
 export interface ResultData {
   readonly levelId: string;
@@ -44,20 +45,22 @@ interface Layout {
   /** Where the crab's shell stands, and where the stats sit under it. */
   readonly hero: number;
   readonly stats: number;
+  /** Where the optional sign-in button sits, under the stats. */
+  readonly signIn: number;
   readonly card: { readonly x: number; readonly y: number; readonly w: number; readonly h: number };
 }
 
 const WIDE: Layout = {
   w: 1280, h: 720,
   title: { x: 360, y: 118, size: 76, maxW: 660 },
-  ground: 380, hero: 330, stats: 520,
+  ground: 380, hero: 330, stats: 520, signIn: 610,
   card: { x: 1000, y: 368, w: 470, h: 540 },
 };
 
 const TALL: Layout = {
   w: 720, h: 1280,
   title: { x: 360, y: 96, size: 72, maxW: 660 },
-  ground: 470, hero: 330, stats: 600,
+  ground: 470, hero: 330, stats: 560, signIn: 632,
   card: { x: 360, y: 950, w: 620, h: 540 },
 };
 
@@ -100,6 +103,7 @@ export class ResultScene extends Phaser.Scene {
     if (data.won) {
       this.time.delayedCall(POP_DELAY + 500, () => this.confetti.burst(L.hero, L.ground - width * 0.4, 36, 600));
       this.timeRow(L, data, def);
+      this.signInOffer(L);
     } else {
       this.hunter(data.caughtBy ?? biggestHunter(def), L.hero + width * 1.15, L.ground + 22, width);
       this.reached(L, data.size, levelGoal(def));
@@ -156,6 +160,15 @@ export class ResultScene extends Phaser.Scene {
     wobblyRect(g, -label.width / 2 - 12, -22, label.width + 24, 44, 909, 2.2, RED_HEX);
     const stamp = this.add.container(L.hero + text.width / 2 + 100, L.stats, [g, label]).setRotation(-0.16).setDepth(13).setScale(2.2).setAlpha(0);
     this.tweens.add({ targets: stamp, scale: 1, alpha: 1, delay: 1700, duration: 260, ease: 'Quad.In' });
+  }
+
+  /** Signed out, every win offers to keep the progress: a small button, never in the way of the next level. */
+  private signInOffer(L: Layout): void {
+    const host = getHost(this);
+    const signIn = host.onSignIn;
+    if (host.signedIn || !signIn) return;
+    const button = inkButton(this, L.hero, L.signIn, 'Sign in to save your progress', () => signIn(), { width: 360, height: 44, size: 22 }).setDepth(12).setAlpha(0);
+    this.tweens.add({ targets: button, alpha: 1, delay: 1100, duration: 400 });
   }
 
   /** How far the crab got: the growth bar, filled to the size it reached. */

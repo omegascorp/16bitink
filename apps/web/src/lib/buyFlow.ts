@@ -5,10 +5,14 @@
  */
 export const BUY_PARAM = 'buy';
 
+/** Google sign-in that comes back to `returnPath` (a same-site path) afterwards. */
+export function signInUrl(returnPath: string): string {
+  return `/auth/google?return=${encodeURIComponent(returnPath)}`;
+}
+
 /** Where to send a signed-out player who asked to buy `game` from `pathname`. */
 export function signInToBuyUrl(pathname: string, game: string): string {
-  const ret = `${pathname}?${BUY_PARAM}=${encodeURIComponent(game)}`;
-  return `/auth/google?return=${encodeURIComponent(ret)}`;
+  return signInUrl(`${pathname}?${BUY_PARAM}=${encodeURIComponent(game)}`);
 }
 
 /** True when the page was opened to resume buying `game` after sign-in. */

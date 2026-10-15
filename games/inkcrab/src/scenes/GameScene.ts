@@ -9,7 +9,8 @@ import { Coach } from '../logic/coach';
 import { surfaceRow, type Terrain } from '../logic/terrain';
 import { centre } from '../logic/items';
 import { shellPx, SHELLS } from '../logic/shells';
-import { blotsFor, loadProgress, recordResult, saveProgress } from '../logic/save';
+import { commitProgress } from '../logic/accountSave';
+import { blotsFor, loadProgress, recordResult } from '../logic/save';
 import { Beach, type SimEvent } from '../logic/sim';
 import type { ChainStatus } from '../logic/mission';
 import { missionOf, parTimeOf } from '../level/missions';
@@ -144,7 +145,7 @@ export class GameScene extends Phaser.Scene {
     this.touch = createTouchState();
     this.registry.set(REG.touch, this.touch);
     // You are a hermit crab in a periwinkle from the start: both are in the field guide already.
-    this.sightings = new Sightings(getHost(this).storage, ['hermit', shellSeenId(START_SHELL.kind)]);
+    this.sightings = new Sightings(getHost(this), ['hermit', shellSeenId(START_SHELL.kind)]);
     this.soundscape = new Soundscape(getSound(this), this.beach);
 
     const cam = this.cameras.main;
@@ -227,7 +228,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.sightings.save();
     const saved = loadProgress(host.storage);
-    if (won) saveProgress(host.storage, recordResult(saved, this.level.id, blots, b.elapsed));
+    if (won) commitProgress(host, recordResult(saved, this.level.id, blots, b.elapsed));
     const result: ResultData = {
       levelId: this.level.id, won, time: b.elapsed, blots, livesLost,
       size: b.crab.growth.size, shell: b.crab.shell, previousBest: saved.levels[this.level.id]?.bestTime, caughtBy: b.caughtBy,

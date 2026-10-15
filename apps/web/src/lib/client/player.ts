@@ -1,6 +1,6 @@
 import { isGameModule, type GameModule, type KeyValueStore } from '@16bitink/game-sdk';
 import { GAME_LOADERS } from '../../games/loaders';
-import { isPendingBuy, BUY_PARAM } from '../buyFlow';
+import { isPendingBuy, BUY_PARAM, signInUrl } from '../buyFlow';
 import { flushAnalytics, gameTag, track, trackLevel, trackPlayTime, type LoadStage } from './analytics';
 import { buyFullGame, fetchMe, startCheckout } from './checkout';
 import { createLoadingBar } from './loadingBar';
@@ -156,6 +156,10 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
         onBuy: () => {
           if (document.fullscreenElement) void document.exitFullscreen();
           void buyFullGame(game).then((r) => r.error && alert(r.error));
+        },
+        onSignIn: () => {
+          if (document.fullscreenElement) void document.exitFullscreen();
+          window.location.assign(signInUrl(window.location.pathname));
         },
         onExit: () => {
           handle.destroy();
