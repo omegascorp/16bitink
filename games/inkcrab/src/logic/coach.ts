@@ -7,11 +7,12 @@ import { onDeck } from './decks';
 import { canWear } from './shells';
 import { movementOf, SPECIES } from './species';
 import type { Beach, SimEvent } from './sim';
+import { PHYS } from './body';
 import { isSolid, surfaceRow, tileAt, TILE } from './terrain';
 
 
 /** Something a level teaches, step by step, with a hint shown only while it's relevant. */
-export type Lesson = 'move' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron' | 'vent'
+export type Lesson = 'move' | 'jump' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron' | 'vent'
   | 'kelp' | 'fog' | 'raccoon'
   | 'rival'
   | 'rain' | 'deck' | 'monitor'
@@ -56,6 +57,7 @@ const GLOW_NEAR = 8;
 const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   keys: {
     move: 'Walk with ← →, jump with Space. Eat food to grow.',
+    jump: 'Too high to walk up? Press Space to jump onto it.',
     swap: 'Your shell is full! Walk to the bigger shell and press E to move in. Out of your shell anything can catch you, so move when no one\'s about.',
     dig: 'Dig a slope: hold → (or ←) and ↓, then press X. Digging straight down can trap you.',
     drop: 'You\'re carrying sand. Press C to drop it; jump, then ↓ + C to build up under you.',
@@ -89,6 +91,7 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   },
   touch: {
     move: 'Steer with the stick, jump with the button. Eat food to grow.',
+    jump: 'Too high to walk up? Tap jump to hop onto it.',
     swap: 'Your shell is full! Walk to the bigger shell and press grab to move in. Out of your shell anything can catch you, so move when no one\'s about.',
     dig: 'Dig a slope: push the stick down and sideways, and hold dig. Digging straight down can trap you.',
     drop: 'You\'re carrying sand. Press dig facing open space to drop it; jump, then stick down + dig to build up under you.',
@@ -154,6 +157,26 @@ export function creatureNear(beach: Beach): boolean {
   return false;
 }
 
+/**
+ * The top of the bank right in front of the crab when it's too high to walk
+ * up but low enough to jump onto, or null. `dir` is the way it's pushing
+ * (or facing); the crab must be up against the bank on firm ground.
+ */
+export function ledgeAhead(beach: Beach, dir: number): { x: number; y: number } | null {
+  const c = beach.crab;
+  const b = c.body;
+  const T = beach.tileSize;
+  if (!b.onGround || c.climbing || c.swap || c.hidden || dir === 0 || beach.submerged(b)) return null;
+  const col = Math.floor((dir > 0 ? b.x + b.w + 1 : b.x - 1) / T);
+  const feet = b.y + b.h;
+  let top = Math.floor((feet - 1) / T);
+  if (!isSolid(beach.terrain, col, top)) return null;
+  while (top > 0 && isSolid(beach.terrain, col, top - 1)) top--;
+  const rise = feet - top * T;
+  const step = Math.max(T * PHYS.stepTiles, b.h * 0.5);
+  return rise > step && rise <= beach.jumpTiles * T ? { x: (col + 0.5) * T, y: top * T } : null;
+}
+
 /** A bird hovering over the crab, about to stoop. */
 export function birdOverhead(beach: Beach): boolean {
   for (const b of beach.birds.values()) if (b.phase === 'hover' || b.phase === 'dive') return true;
@@ -181,6 +204,7 @@ export class Coach {
     const c = beach.crab;
     for (const e of events) {
       if (e.type === 'ate') this.done.add('move');
+      else if (e.type === 'jumped') this.done.add('jump');
       else if (e.type === 'swapDone') this.done.add('swap');
       else if (e.type === 'tiles' && e.dug) this.done.add('dig');
       else if (e.type === 'revealed' && beach.items.get(e.id)?.kind.type === 'shell') this.done.add('buried');
@@ -259,6 +283,10 @@ export class Coach {
       if (status && status.line > 0 && beach.capped) return { lesson: 'line', text: t.lineUp! };
     }
     if (this.stuck(beach)) return { lesson: 'stuck', text: t.stuck! };
+    if (open('jump')) {
+      const ledge = ledgeAhead(beach, Math.sign(c.body.vx));
+      if (ledge) return { lesson: 'jump', text: t.jump!, target: ledge };
+    }
     if (open('swap') && beach.capped) {
       const shell = this.biggerShell(beach);
       if (shell) return { lesson: 'swap', text: t.swap!, target: centre(shell) };

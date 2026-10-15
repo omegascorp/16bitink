@@ -97,7 +97,7 @@ Every level starts at size 1 in a periwinkle (fits sizes 1–2).
 
 | # | Id | Name | Goal | Shells on the way | New |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `pen-test` | Pen Test | Size 3 | Snail | Coach: walk and eat, then change shell |
+| 1 | `pen-test` | Pen Test | Size 3 | Snail | Coach: walk and eat, jump the bank (a 2-tile ledge only a jump clears), then change shell |
 | 2 | `margin-wall` | Margin Wall | Size 4 | Snail, nerite (on a shelf 5 tiles up) | Coach: dig, then drop sand to build up |
 | 3 | `ghost-writers` | Ghost Writers | Size 4 | Snail, nerite | Coach: hide from a red ghost crab |
 | 4 | `underlined` | Underlined | Size 5 | Snail, top shell (buried 5 deep) | Coach: find a buried shell by its highlighter smudge |

@@ -62,6 +62,8 @@ const FULL_AGAIN = 1.5;
 export type SimEvent =
   | { readonly type: 'ate'; readonly id: number; readonly points: number; readonly wasted: number; readonly x: number; readonly y: number }
   | { readonly type: 'grew'; readonly size: number }
+  /** The crab leapt off the ground. */
+  | { readonly type: 'jumped' }
   /** Tiles that changed. `poured`: dune sand running, as from/to pairs; `placed`: sand the crab put down; `washed`: the tide smoothing it. */
   | { readonly type: 'tiles'; readonly tiles: readonly TilePos[]; readonly dug: boolean; readonly poured?: boolean; readonly placed?: boolean; readonly washed?: boolean }
   | { readonly type: 'revealed'; readonly id: number }
@@ -572,6 +574,7 @@ export class Beach {
     const speed = (60 + 5 * c.growth.size) * speedFactor(c.shell) * (swimming ? SWIM.speed : 1) * (mud ? MUD.speed : 1);
     const facing = input.moveX > WALKING ? 1 : input.moveX < -WALKING ? -1 : c.facing;
     const moved = this.move(input, speed, swimming, mud, dt);
+    if (input.jump && c.body.onGround && !c.climbing && !swimming && moved.body.vy < 0) events.push({ type: 'jumped' });
     this.crab = { ...c, body: moved.body, climbing: moved.climbing, facing, digCooldown: Math.max(0, c.digCooldown - dt) };
     if (!input.work) this.working = null;
     if (this.crab.digCooldown === 0) {
@@ -668,11 +671,15 @@ export class Beach {
     return false;
   }
 
-  /** Take-off speed (px/s) for the current height: bigger crabs leap higher, heavier shells hold them down. */
-  private get jumpSpeed(): number {
+  /** How high (tiles) the crab leaps from firm ground now: bigger crabs leap higher, heavier shells hold them down. */
+  get jumpTiles(): number {
     const c = this.crab;
-    const tiles = (JUMP_TILES.base + JUMP_TILES.perSize * c.growth.size) * speedFactor(c.shell);
-    return Math.sqrt(2 * PHYS.gravity * tiles * this.tileSize);
+    return (JUMP_TILES.base + JUMP_TILES.perSize * c.growth.size) * speedFactor(c.shell);
+  }
+
+  /** Take-off speed (px/s) for the current height. */
+  private get jumpSpeed(): number {
+    return Math.sqrt(2 * PHYS.gravity * this.jumpTiles * this.tileSize);
   }
 
   /** A swim stroke: a kick up through the water, or, at the surface, up and out. */
