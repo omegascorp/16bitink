@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const out = path.resolve(here, '../../../promo/longform/1 - fish get weirder the deeper you go.srt');
+const out = path.resolve(here, '../../../../../promo/longform/1 - fish get weirder the deeper you go.srt');
 const MAX_CHARS = 42;
 const MAX_S = 5;
 const GAP_S = 0.9;

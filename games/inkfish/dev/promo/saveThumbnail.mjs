@@ -18,7 +18,8 @@ const SETS = {
 const setName = process.argv[2] ?? 'level1';
 const SET = SETS[setName];
 if (!SET) throw new Error(`Unknown set "${setName}": use one of ${Object.keys(SETS).join(', ')}`);
-const outDir = path.join(pkg, SET.dir);
+// The repo's top-level promo/, shared by every game and the site.
+const outDir = path.resolve(pkg, '../..', SET.dir);
 const IDS = SET.ids;
 /** YouTube's upload limit for thumbnails. */
 const MAX_BYTES = 2 * 1024 * 1024;

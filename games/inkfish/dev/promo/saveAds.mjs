@@ -17,7 +17,8 @@ import { chromium } from 'playwright-core';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkg = path.resolve(here, '../..');
-const promoDir = path.join(pkg, 'promo');
+// The repo's top-level promo/, shared by every game and the site.
+const promoDir = path.resolve(pkg, '../../promo');
 const outDir = path.join(promoDir, 'reddit');
 
 const args = process.argv.slice(2);

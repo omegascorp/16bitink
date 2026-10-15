@@ -106,4 +106,4 @@ Steps, as done for `descent/`:
 4. **Build the picture** with every beat read off the words. Check frames with `node dev/promo/snap.mjs --page longform.html <dir> "video=descent" 31 95 …`, and preview stretches with `pnpm --filter @16bitink/inkfish promo -- --only long-descent --from 95 --to 130`.
 5. **Record** with `pnpm --filter @16bitink/inkfish promo -- --only long-descent`: about 25–30 minutes for 6 minutes of video. The recorder brings the sound up to −14 LUFS (YouTube turns louder videos down but never turns quiet ones up).
 6. **Captions:** an `.srt` from `words.ts` (lines of up to ~42 characters, broken at punctuation), uploaded as English subtitles rather than burned in.
-7. Put the video, captions, thumbnails and the upload text in `games/inkfish/promo/longform/` (`upload.md` holds titles, descriptions, tags and chapters), numbered like the shorts.
+7. Put the video, captions, thumbnails and the upload text in `promo/longform/` (`upload.md` holds titles, descriptions, tags and chapters), numbered like the shorts.
