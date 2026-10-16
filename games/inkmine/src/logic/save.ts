@@ -23,7 +23,7 @@ const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !
 const intIn = (v: unknown, lo: number, hi: number): v is number => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
 
 /** An inventory: up to MAX_SLOTS slots, each empty or a stack of a known ore within the stack size. */
-function parseInventory(v: unknown, fallback: Inventory): Inventory {
+export function parseInventory<F extends Inventory | null>(v: unknown, fallback: F): Inventory | F {
   if (!isObj(v) || !intIn(v.stack, 1, MAX_STACK) || !Array.isArray(v.slots)) return fallback;
   const stack = v.stack;
   const slots = v.slots.slice(0, MAX_SLOTS).map((x): Stack | null => {

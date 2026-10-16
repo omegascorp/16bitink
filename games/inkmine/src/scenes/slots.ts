@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
-import { BLUE_HEX, HIGHLIGHT_HEX, PAPER_HEX } from '../art/palette';
 import { PIECE_FRAME, TEX } from '../art/textures';
 import type { Inventory } from '../logic/inventory';
 import { ORES } from '../logic/ore';
-import { inkText, PENCIL_HEX, wobblyRect } from './ui';
+import { bakeUi, roundRect, rule, RULE, uiImage, wash } from './kit/paint';
+import { label } from './kit/type';
 
 export interface SlotGridOpts {
   /** Cell size, px. */
@@ -17,36 +17,68 @@ export interface SlotGridOpts {
   readonly depth?: number;
 }
 
+/** Px between cells. */
+const GAP = 5;
+
 /** Height a grid of `slots` takes. */
 export function gridHeight(slots: number, o: Pick<SlotGridOpts, 'cell' | 'cols'>): number {
-  return Math.ceil(slots / o.cols) * (o.cell + 4);
+  return Math.ceil(slots / o.cols) * (o.cell + GAP);
+}
+
+/** An empty slot: a well pressed into the paper, shaded under its top edge. */
+function wellKey(scene: Phaser.Scene, size: number, state: 'empty' | 'full' | 'picked'): string {
+  return bakeUi(scene, `ui-well-${state}-${size}`, size, size, (ctx) => {
+    roundRect(ctx, 0.5, 0.5, size - 1, size - 1, 4);
+    ctx.fillStyle = state === 'picked' ? '#f6e7a6' : '#ebe1c7';
+    ctx.fill();
+    ctx.save();
+    roundRect(ctx, 0.5, 0.5, size - 1, size - 1, 4);
+    ctx.clip();
+    const g = ctx.createLinearGradient(0, 0, 0, size);
+    g.addColorStop(0, 'rgba(80, 60, 30, 0.2)');
+    g.addColorStop(0.3, 'rgba(80, 60, 30, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+    ctx.restore();
+    if (state === 'picked') {
+      roundRect(ctx, 2, 2, size - 4, size - 4, 3);
+      wash(ctx, 0, 0, size, size, '#f0d55a', size, { alpha: 0.5, rim: 0.6 });
+    }
+    roundRect(ctx, 0.5, 0.5, size - 1, size - 1, 4);
+    rule(ctx, state === 'empty' ? 0.7 : 1.1, RULE, state === 'empty' ? 0.45 : 0.9);
+  });
+}
+
+/** The wash behind a stack: its ore's highlighter, laid on like watercolour. */
+function stainKey(scene: Phaser.Scene, size: number, ore: keyof typeof ORES): string {
+  return bakeUi(scene, `ui-stain-${ore}-${size}`, size, size, (ctx) => {
+    roundRect(ctx, 3, 3, size - 6, size - 6, 3);
+    wash(ctx, 0, 0, size, size, ORES[ore].color, ORES[ore].id * 17 + size, { alpha: 0.45, pool: 0.6, rim: 0.5 });
+  });
 }
 
 /**
- * A slot inventory as a grid of hand-drawn boxes, No Man's Sky style: each
- * stack shows its ore (the piece drawing, on a wash of its highlighter) and
- * a count; empty slots are pencil. Returns everything it made, so a HUD can
- * clear and redraw it.
+ * A slot inventory as a grid of wells pressed into the paper, No Man's Sky
+ * style: each stack shows its ore (the piece drawing, on a wash of its
+ * highlighter) and a count; empty wells are faint. Returns everything it
+ * made, so a HUD can clear and redraw it.
  */
 export function drawSlotGrid(scene: Phaser.Scene, x: number, y: number, inv: Inventory, o: SlotGridOpts): Phaser.GameObjects.GameObject[] {
   const made: Phaser.GameObjects.GameObject[] = [];
-  const g = scene.add.graphics().setDepth(o.depth ?? 0);
-  made.push(g);
-  const gap = 4;
+  const depth = o.depth ?? 0;
   inv.slots.forEach((s, i) => {
-    const cx = x + (i % o.cols) * (o.cell + gap);
-    const cy = y + Math.floor(i / o.cols) * (o.cell + gap);
-    g.fillStyle(PAPER_HEX, 0.95).fillRect(cx, cy, o.cell, o.cell);
-    if (s) g.fillStyle(Phaser.Display.Color.HexStringToColor(ORES[s.ore].color).color, 0.28).fillRect(cx + 2, cy + 2, o.cell - 4, o.cell - 4);
-    if (i === o.selected) g.fillStyle(HIGHLIGHT_HEX, 0.6).fillRect(cx, cy, o.cell, o.cell);
-    wobblyRect(g, cx, cy, o.cell, o.cell, (o.seed ?? 5) + i * 7, s ? 1.4 : 1, s ? BLUE_HEX : PENCIL_HEX);
+    const cx = x + (i % o.cols) * (o.cell + GAP);
+    const cy = y + Math.floor(i / o.cols) * (o.cell + GAP);
+    const state = i === o.selected ? 'picked' : s ? 'full' : 'empty';
+    made.push(uiImage(scene, cx, cy, wellKey(scene, o.cell, state)).setDepth(depth));
     if (s) {
-      made.push(scene.add.image(cx + o.cell / 2, cy + o.cell * 0.44, TEX.piece(s.ore)).setScale((o.cell * 0.62) / PIECE_FRAME / 3).setDepth(o.depth ?? 0));
-      made.push(inkText(scene, cx + o.cell - 2, cy + o.cell - 2, `${s.n}`, Math.max(15, Math.round(o.cell * 0.4))).setOrigin(1, 1).setDepth(o.depth ?? 0));
+      made.push(uiImage(scene, cx, cy, stainKey(scene, o.cell, s.ore)).setDepth(depth));
+      made.push(scene.add.image(cx + o.cell / 2, cy + o.cell * 0.45, TEX.piece(s.ore)).setScale((o.cell * 0.6) / PIECE_FRAME / 3).setDepth(depth));
+      made.push(label(scene, cx + o.cell - 3, cy + o.cell - 1, `${s.n}`, Math.max(13, Math.round(o.cell * 0.34)), '#1f2a55', '600').setOrigin(1, 1).setDepth(depth));
     }
     if (o.onTap) {
       const tap = o.onTap;
-      const zone = scene.add.zone(cx + o.cell / 2, cy + o.cell / 2, o.cell, o.cell).setInteractive({ useHandCursor: true }).setDepth(o.depth ?? 0);
+      const zone = scene.add.zone(cx + o.cell / 2, cy + o.cell / 2, o.cell, o.cell).setInteractive({ useHandCursor: true }).setDepth(depth);
       // A tap, not the end of a drag (the ship page scrolls by dragging).
       let down: { x: number; y: number } | null = null;
       zone.on('pointerdown', (p: Phaser.Input.Pointer) => {

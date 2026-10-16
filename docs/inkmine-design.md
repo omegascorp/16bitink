@@ -137,9 +137,17 @@ Life works the No Man's Sky way, adapted to a pen-drawn phone screen. Five gauge
 - **Hazard protection** is a sixth gauge that exists only on planets that need it: heat on Ember, cold on Rime. Graphite has none, to keep the free planet simple.
 - **The jetpack gauge shows only while you fly**, beside the prospector, so the HUD stays small.
 
-**Dying.** At zero hearts the screen inks over and you wake at the lander, printed again (see Story). Your bag stays where you fell, marked on the survey sheet and in the world with a little inked flag. Walk back and touch it to get everything back. There is one flag at a time: die again before you reach it and the old one is gone. The cargo hold is always safe.
+**Dying.** At zero hearts the screen inks over and you wake at the lander, printed again (see Story). Your bag stays where you fell, marked on the survey sheet and in the world with a little inked flag. Walk back and touch it to get everything back. There is one flag at a time: die again before you reach it and the flag moves to where you fell, carrying the old bag with the new (decided Oct 16, 2026, after review: losing the first bag on the way back to it felt cruel). The cargo hold is always safe.
 
-**Recall.** If you're stuck (no energy, no ladders, no way up), the pause menu's recall winches you up to the lander. It works like dying, without the printing: the bag stays where you were, flagged.
+**Recall.** If you're stuck (no energy, no ladders, no way up), the pause menu's recall winches you up to the lander. It works like dying, without the printing: the bag stays where you were, flagged. The Winch module keeps part of each stack in the bag; only the rest is left under the flag.
+
+**Built (Oct 16, 2026)** (`logic/suit.ts`, `logic/flag.ts`):
+- The numbers: the shield refills at half a bar a second, starting 4 s after the last hit. A hit takes a whole bar or, with less than one, a heart; then 2 s of grace. Life support is 100 and lasts 6 minutes outside; empty, a heart goes every 6 s (shield or no shield). One graphite gives the cell 20, one ice gives life support 25. The jetpack charges 30 a second (a starter tank in 2 s) on the ground or a ladder.
+- The suit's marks: a heart on odd marks, a shield bar on even ones (Mk 2 has two bars).
+- The lander puts everything right the moment you touch it: hearts, shield, air, the cell.
+- R feeds the lower gauge there's fuel for; tapping a gauge on the HUD feeds that one.
+- Waking: "The printer made you again, from the scan it took the last time you were aboard." Before the printer is mended the suit drags you back instead ("Mend the printer: it can do better than that"). A red beacon arrow points to the bag.
+- Not yet: medkits, the survey sheet's flag.
 
 ### Inventories: the bag and the cargo
 
@@ -378,27 +386,34 @@ There's no result screen and no level select in chapter 1.
 
 ## Art direction
 
-Ballpoint pen on paper, with the same three-ink rule as InkFish and InkCrab.
+**The bar (Oct 16, 2026, from @Hayk):** pen-drawn, but finished like a professional painting, never a doodle. That means an ink-and-watercolour illustration: deliberate line weight, washes that pool and granulate, light and depth. It applies to the interface too.
+
+Ink and colour keep the three-ink rule from InkFish and InkCrab:
 
 | Ink | Used for | Never used for |
 | --- | --- | --- |
-| Blue ballpoint | The world, the prospector, the lander, the Lamplighters, harmless creatures, words you've learned (in your handwriting) | — |
-| Red ballpoint | Danger only: hostile creatures, hazards that hurt, a blast radius | Ore or anything friendly |
+| Blue-black ink | The world, the prospector, the lander, the Lamplighters, harmless creatures, the interface's rules and headings | — |
+| Madder red | Danger and loss only: hostile creatures, hazards that hurt, a blast radius, hearts, a low gauge | Ore or anything friendly |
 | Highlighter | Things you can take: ore, gems, time capsules, logs, job items | Rock, creatures or people |
 
-- **Hatching shows hardness**, the way ink weight shows threat in InkFish.
-- **Dug space is blank paper** with a faint back-wall hatch, so tunnels read as tunnels and not sky.
-- **Each planet has its own watercolour washes** under the ink: Graphite grey, Talus rust, Brine teal, Mycel violet, Ember black and orange, Rime pale blue.
-- **Depth darkens slowly** under a grey wash, so the lamp matters more the deeper you go.
+**The world** (`art/ground.ts`, `art/groundPaint.ts`, `art/skyArt.ts`):
+- **Each grade is a watercolour wash** (`washTile`): seamless 256 px tiles that vary like real pigment, with granulation and faint blooms. Hatching in the open rock is light, and grows denser with hardness.
+- **Light comes from above.** Every face open to the sky has a lit lip. Every ceiling's underside sits in a hatched core shadow with a heavier ink line, and casts a soft shadow on the back wall of the hollow under it. Washes are blurred at their edges; hatching stays crisp.
+- **Depth:** the first metres under the surface are warm and sunlit; the deep is cooler and darker, so the lamp matters more further down.
+- **Dug space is pale paper** with a faint back-wall wash, so tunnels read as tunnels, not sky.
+- **The sky** is a night wash: an airless moon's sky is black even by day. It is indigo above and a warm glow at the horizon, with stars left as bare paper. A ringed planet and two small moons are painted as washed spheres with hatched night sides. Crater rims sit in aerial perspective: the far range pale and cool, the near one lit on the left with hatched shadow on the right.
+- **Sprites get the scene's light:** warm from the upper left, cool to the lower right, painted only over the sprite (`textures.ts`).
+- **Each planet has its own washes:** Graphite grey, Talus rust, Brine teal, Mycel violet, Ember black and orange, Rime pale blue.
 - **Alien writing** is drawn in a darker, steadier ink than your handwriting, so the two never mix up.
-- **Boiling lines** on everything (three redrawn frames), as in the other games.
+- **Boiling lines** on the sprites (three redrawn frames), as in the other games.
 
-HUD, on paper scraps at the screen edges:
-
-```
- ◠ ♥ ♥ ♥      AIR ▓▓▓▓▓▓░░    DRILL ▓▓▓▓▓░░░ 52      [Cu 7][Gr 3][  ][  ]      −84 m
- Repair: Comms — quartz 1/2
-```
+**The interface** is a naturalist's field journal (`scenes/kit/`):
+- **Plates:** laid paper with fibres and foxed edges, a firm outer rule and a fine inner one with its corners cut round a printer's lozenge, and a soft shadow. Each heading is in spaced capitals with a rule running off it.
+- **Type:** EB Garamond for everything printed (headings, labels, running text, italic asides). Caveat is kept for what the prospector writes: notes in the world, news, the beacon.
+- **Gauges:** sunk channels filled with a wash to their level (cerulean for air, gamboge for the cell, madder when low), ticked in tenths under a glassy rule, each with an engraved emblem.
+- **Hearts** are washed in madder and **shield bars** are heater shields in steel blue; a part-charged bar fills from the bottom.
+- **Buttons** are plaques: the main action washed in ink with paper-coloured capitals, a lesser one on paper, a loss in madder, and nothing-to-do faded.
+- **Inventory slots** are wells pressed into the paper, each stack on a wash of its ore's colour.
 
 ## The prospector's look
 
@@ -447,8 +462,8 @@ The ladder rack and the recall winch are gone: ladders are printed and stay wher
 | Move, dig, talk, read | Arrows / stick; push into a block to dig it, into a person or a text to talk or read | Virtual stick |
 | Jump, jetpack | Space / A (hold in the air to fly) | Jump button (hold to fly) |
 | Gadget | E / X; Q / LB to switch | Gadget button; tap the icon to switch |
-| Feed a gauge | R / Y feeds whichever of drill and air is lower | Tap the gauge |
-| Pause | Tab / Start | Map button |
+| Feed a gauge | R / Y feeds whichever of drill and air is lower (and has fuel in the bag) | Tap the gauge |
+| Pause | Esc or P / Start | Map button |
 
 Pushing to dig, talk and read keeps touch play to one stick and two buttons.
 
@@ -490,7 +505,7 @@ A world is never stored. Loading carves it again from its seed and lays the save
 | Profile | `inkmine.profile.v3` | The bag, the cargo, gear marks, blueprints found, lander modules (`logic/save.ts`) |
 | One per world | `inkmine.world.<id>.v1` | The world's version; dug tiles and ladders, each one bit a tile; ids of items banked for good (`logic/worldSave.ts`) |
 
-Later: the dropped bag, texts read, words known, jobs and repairs done.
+The world save also keeps the bag left under its flag (a tile index and the inventory). Later: texts read, words known, jobs.
 
 - **Only what changed.** A tile counts as dug when the builder made it ground and it's open now, whether drilled or blown out. The bit masks are packed as run lengths (LEB128 varints, base64): a few hours of tunnels on Graphite take a few KB, far inside the account limit of 64 KB per game. Big paid worlds will need that limit raised.
 - **When it saves:** on banking at the lander, on banking something found, every 30 s of play while anything changed, going aboard, the suit giving out, and when the tab is hidden or the page closes. Packing is synchronous, so the last save gets written even while the page is closing.
@@ -551,7 +566,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 **Next, for chapter 1:**
 
 1. **One world:** ~~merge levels 1–5 into a single wrapping Graphite world; the open-world save~~ (done); the survey sheet centred on the lander.
-2. **The life system:** shield, hearts, life support, feeding gauges from the bag, the self-charging jetpack, dying, the dropped bag, recall.
+2. ~~**The life system:** shield, hearts, life support, feeding gauges from the bag, the self-charging jetpack, dying, the dropped bag, recall~~ (done Oct 16, 2026; water ice added to Graphite, world version 2). The pause card is the start of the pause screen: Resume and Recall.
 3. ~~**The repair list** in place of missions; the wrecked lander and its repair stages; inside the lander in place of the result screen and chart~~ (done Oct 16, 2026, before step 2). Not yet: lift-off at the end (it waits for the Lamplighters and the core).
 4. **The Lamplighters:** the outpost, jobs by picture, the comms repair, speech with word-by-word translation, the lexicon, texts and Aster logs.
 5. **Creatures** (dust ticks, lead worms) and fighting with the drill.

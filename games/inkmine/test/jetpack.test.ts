@@ -31,15 +31,6 @@ describe('the jetpack', () => {
     expect(m.suit.fuel).toBe(0);
   });
 
-  it('the lander refuels it', () => {
-    const m = mine(SITE);
-    m.suit = { ...m.suit, fuel: 0 };
-    m.player = { ...m.player, x: 1 * T + 6 };
-    const events = run(m, 0.1);
-    expect(m.suit.fuel).toBe(m.suit.maxFuel);
-    expect(events.some((e) => e.kind === 'refuel')).toBe(true);
-  });
-
   it('drills while hovering: up through a roof', () => {
     const m = mine(['..........', 'ssssssssss', '..........', '..........', 'ssssssssss', '##########'], { lander: { col: 1, row: 4 } });
     standAt(m, 6, 4);

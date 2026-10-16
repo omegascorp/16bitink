@@ -1,7 +1,7 @@
 import { mount } from '../src/index';
 
 // Dev harness: Graphite's world. There is no paid content yet. `?reset` starts over: a new profile and an undug world.
-await document.fonts.load('32px Caveat').catch(() => undefined);
+await Promise.all(['32px Caveat', '32px "EB Garamond"', '600 32px "EB Garamond"', 'italic 32px "EB Garamond"'].map((f) => document.fonts.load(f).catch(() => undefined)));
 if (new URLSearchParams(location.search).has('reset')) {
   for (const key of Object.keys(window.localStorage)) if (key.startsWith('inkmine.')) window.localStorage.removeItem(key);
 }

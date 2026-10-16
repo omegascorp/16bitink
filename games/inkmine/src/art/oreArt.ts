@@ -183,7 +183,39 @@ function wires(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng
   ctx.globalAlpha = 1;
 }
 
-const GLYPHS = { nugget, cube: cubes, flake: flakes, prism: prisms, wire: wires } as const;
+/** Water ice: glassy lumps with a frost star scratched on each, and a glint. */
+function rime(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
+  for (let k = 0; k < 2; k++) {
+    const cx = (k === 0 ? -0.22 : 0.28) * r + (rng() - 0.5) * r * 0.3;
+    const cy = (k === 0 ? 0.12 : -0.2) * r + (rng() - 0.5) * r * 0.3;
+    const s = r * (k === 0 ? 0.62 : 0.42);
+    const pts: P[] = Array.from({ length: 7 }, (_, i) => {
+      const a = (i / 7) * Math.PI * 2 + rng() * 0.3;
+      const q = s * (0.7 + rng() * 0.35);
+      return [cx + Math.cos(a) * q, cy + Math.sin(a) * q * 0.8];
+    });
+    inked(ctx, pts, color, 1);
+    // The frost star: three crossing strokes, with little barbs.
+    ctx.globalAlpha = 0.75;
+    ctx.lineWidth = 0.7;
+    ctx.strokeStyle = INK;
+    ctx.beginPath();
+    for (let j = 0; j < 3; j++) {
+      const a = (j / 3) * Math.PI + 0.3;
+      const [dx, dy] = [Math.cos(a) * s * 0.42, Math.sin(a) * s * 0.42];
+      ctx.moveTo(cx - dx, cy - dy);
+      ctx.lineTo(cx + dx, cy + dy);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = PAPER_FILL;
+    ctx.beginPath();
+    ctx.ellipse(cx - s * 0.32, cy - s * 0.3, s * 0.14, s * 0.07, -0.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+const GLYPHS = { nugget, cube: cubes, flake: flakes, prism: prisms, wire: wires, rime } as const;
 
 export function drawOreGlyph(ctx: CanvasRenderingContext2D, ore: OreKind, T: number, seed: number): void {
   const rng = createRng(seed);

@@ -35,7 +35,7 @@ export interface GroundStyle {
 
 /** Graphite: a grey moon of soft dark rock, pencil lead in its seams. */
 export const GRAPHITE: GroundStyle = {
-  soil: '#bdb8ae', stone: '#8f8d8a', deep: '#6b6a70', bedrock: '#3a3940', grain: '#4d4b52', shade: '#3e3d45', tunnel: '#ddd7ca', sky: '#e9e4d6',
+  soil: '#ada79c', stone: '#878582', deep: '#64636c', bedrock: '#3a3940', grain: '#4d4b52', shade: '#3e3d45', tunnel: '#ddd7ca', sky: '#e9e4d6',
 };
 
 /** Texture pixels per world px; matches the most a phone screen shows. */

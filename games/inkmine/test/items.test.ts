@@ -62,17 +62,6 @@ describe('banking', () => {
   });
 });
 
-describe('the winch', () => {
-  it('keeps half of each stack on a recall', () => {
-    const m = mine(SITE, { winchKeeps: 0.5 });
-    m.suit = { ...m.suit, bag: bagOf(ORES.copper.id, ORES.copper.id, ORES.copper.id, ORES.copper.id, ORES.quartz.id, ORES.galena.id, ORES.galena.id) };
-    const events = run(m, 0.05, { recall: true });
-    // Copper 4 keeps 2, galena 2 keeps 1, a lone quartz is lost.
-    expect(events).toContainEqual({ kind: 'recall', lost: 4 });
-    expect(bagHas(m.suit.bag)).toEqual({ copper: 2, galena: 1 });
-  });
-});
-
 describe('the cargo', () => {
   it('takes what fits at the lander; the rest stays in the bag', () => {
     const m = mine(SITE, { cargo: { stack: 50, slots: [{ ore: 'copper', n: 49 }] } });

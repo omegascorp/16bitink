@@ -152,6 +152,24 @@ describe('saving a world', () => {
     expect(store.data.get('inkmine.world.graphite.v1.bak')).toBe(old);
   });
 
+  it('keeps the bag left under its flag', () => {
+    const store = memoryStore();
+    const bag = { stack: 10, slots: [{ ore: 'quartz' as const, n: 3 }, null] };
+    const withBag: WorldSave = { ...save, bag: { at: 70, bag } };
+    saveWorld(store, 'graphite', withBag);
+    expect(loadWorld(store, 'graphite', N, known)).toEqual(withBag);
+  });
+
+  it('drops a left bag it cannot trust, and keeps the rest of the save', () => {
+    const store = memoryStore();
+    for (const bag of [{ at: N, bag: { stack: 10, slots: [] } }, { at: -1, bag: { stack: 10, slots: [] } }, { at: 3, bag: 'nope' }, 'nope']) {
+      store.setItem('inkmine.world.graphite.v1', JSON.stringify({ version: 1, dug: packMask(tunnels(N)), ladders: packMask(new Uint8Array(N)), taken: [], bag }));
+      const got = loadWorld(store, 'graphite', N, known);
+      expect(got?.dug).toEqual(tunnels(N));
+      expect(got?.bag).toBeUndefined();
+    }
+  });
+
   it('says when it could not save', () => {
     const full: KeyValueStore = { getItem: () => null, setItem: () => { throw new Error('quota'); } };
     expect(saveWorld(full, 'graphite', save)).toBe(false);

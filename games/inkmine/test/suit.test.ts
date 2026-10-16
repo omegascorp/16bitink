@@ -4,7 +4,7 @@ import { contents } from '../src/logic/inventory';
 import { bagFull, burn, fits, GRACE, hurt, newSuit, spend, stow } from '../src/logic/suit';
 
 describe('the suit', () => {
-  const suit = newSuit({ energy: 5, fuel: 10, slots: 2, hearts: 2 });
+  const suit = newSuit({ energy: 5, fuel: 10, slots: 2, hearts: 2, shield: 0, air: 100 });
 
   it('spends energy only when there is enough', () => {
     expect(spend(suit, 5)?.energy).toBe(0);
@@ -25,7 +25,7 @@ describe('the suit', () => {
   it('loses a heart, then shrugs off hits for a grace period', () => {
     const once = hurt(suit, 10);
     expect(once.suit.hearts).toBe(1);
-    expect(hurt(once.suit, 10 + GRACE / 2).hit).toBe(false);
+    expect(hurt(once.suit, 10 + GRACE / 2).hit).toBeNull();
     expect(hurt(once.suit, 10 + GRACE).suit.hearts).toBe(0);
   });
 

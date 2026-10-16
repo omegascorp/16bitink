@@ -1,6 +1,6 @@
 import type { DrillSpec } from './drill';
 import type { Loadout, Piece } from './gear';
-import type { SuitSpec } from './suit';
+import { AIR, type SuitSpec } from './suit';
 
 /**
  * What each gear piece's mark gives (spec, "Gear"). A new mark beats the
@@ -23,9 +23,17 @@ export const MARK_STEP = {
 
 const at = (s: { readonly base: number; readonly per: number }, mk: number): number => s.base + s.per * mk;
 
-/** The suit's numbers for a loadout: the cell's energy, the jetpack's tank, the pack's slots and the suit's hearts (one more on every odd mark). */
+/** Hearts a suit of mark `mk` has: one more on every odd mark. */
+const heartsAt = (mk: number): number => 3 + Math.ceil(mk / 2);
+/** Shield bars a suit of mark `mk` has: one more on every even mark. */
+const shieldAt = (mk: number): number => 1 + Math.floor(mk / 2);
+
+/** The suit's numbers for a loadout: the cell's energy, the jetpack's tank, the pack's slots, the suit's hearts and shield, and life support. */
 export function suitSpecFor(l: Loadout): SuitSpec {
-  return { energy: at(MARK_STEP.energy, l.cell), fuel: at(MARK_STEP.fuel, l.jetpack), slots: at(MARK_STEP.slots, l.pack), hearts: 3 + Math.ceil(l.suit / 2) };
+  return {
+    energy: at(MARK_STEP.energy, l.cell), fuel: at(MARK_STEP.fuel, l.jetpack), slots: at(MARK_STEP.slots, l.pack),
+    hearts: heartsAt(l.suit), shield: shieldAt(l.suit), air: AIR.full,
+  };
 }
 
 export interface JetSpec {
@@ -57,11 +65,8 @@ export function markGain(piece: Piece, mk: number): string {
     case 'drill': return mk === 1 ? "breaks Graphite's stone" : `breaks planet ${mk}'s stone`;
     case 'cell': return `energy ${at(MARK_STEP.energy, was)} → ${at(MARK_STEP.energy, mk)}`;
     case 'pack': return `bag ${at(MARK_STEP.slots, was)} → ${at(MARK_STEP.slots, mk)} slots`;
-    case 'suit': {
-      const a = 3 + Math.ceil(was / 2);
-      const b = 3 + Math.ceil(mk / 2);
-      return b > a ? `hearts ${a} → ${b}` : 'tougher against the planet';
-    }
+    case 'suit':
+      return heartsAt(mk) > heartsAt(was) ? `hearts ${heartsAt(was)} → ${heartsAt(mk)}` : `shield ${shieldAt(was)} → ${shieldAt(mk)} bars`;
     case 'helmet': return `lamp ${lampFor(was)} → ${lampFor(mk)} tiles`;
     case 'jetpack': return `fuel ${at(MARK_STEP.fuel, was) / 10} → ${at(MARK_STEP.fuel, mk) / 10} s, faster climb`;
   }
@@ -73,7 +78,7 @@ export function markStat(piece: Piece, mk: number): string {
     case 'drill': return mk === 0 ? 'starter drill: soil only' : `breaks planet ${mk}'s stone`;
     case 'cell': return `${at(MARK_STEP.energy, mk)} energy`;
     case 'pack': return `${at(MARK_STEP.slots, mk)} bag slots`;
-    case 'suit': return `${3 + Math.ceil(mk / 2)} hearts`;
+    case 'suit': return `${heartsAt(mk)} hearts, ${shieldAt(mk)} shield bar${shieldAt(mk) > 1 ? 's' : ''}`;
     case 'helmet': return `lamp ${lampFor(mk)} tiles`;
     case 'jetpack': return `${at(MARK_STEP.fuel, mk) / 10} s of fuel`;
   }

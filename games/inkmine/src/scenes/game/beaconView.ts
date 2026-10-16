@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BLUE, BLUE_HEX } from '../../art/palette';
+import { BLUE } from '../../art/palette';
 import type { Mine } from '../../logic/mine';
 import { ringDelta } from '../../logic/terrain';
 import { HAND_FONT } from '../ui';
@@ -13,16 +13,20 @@ const NEAR = 4;
 /**
  * The suit's beacon arrow (No Man's Sky's marker, inked): a little pen
  * arrow beside the prospector pointing the short way round the world to
- * where a goal lies, with how far it is in metres. Blue: it's yours.
+ * where a goal lies (or where your bag was left), with how far it is in
+ * metres. Blue for the way on, red for your bag.
  */
 export class BeaconView {
   private readonly arrow: Phaser.GameObjects.Graphics;
   private readonly label: Phaser.GameObjects.Text;
 
-  constructor(scene: Phaser.Scene) {
+  private readonly ink: number;
+
+  constructor(scene: Phaser.Scene, color: string = BLUE) {
+    this.ink = Phaser.Display.Color.HexStringToColor(color).color;
     this.arrow = scene.add.graphics().setDepth(8);
     this.label = scene.add
-      .text(0, 0, '', { fontFamily: HAND_FONT, fontSize: '17px', color: BLUE, stroke: '#f5f0e1', strokeThickness: 4 })
+      .text(0, 0, '', { fontFamily: HAND_FONT, fontSize: '17px', color, stroke: '#f5f0e1', strokeThickness: 4 })
       .setOrigin(0.5)
       .setDepth(8);
   }
@@ -42,7 +46,7 @@ export class BeaconView {
     const cx = ring.near(p.x + p.w / 2) + Math.cos(a) * (OFFSET + bob);
     const cy = p.y + p.h / 2 + Math.sin(a) * (OFFSET + bob);
     const tip = (k: number, side: number): [number, number] => [cx + Math.cos(a) * k - Math.sin(a) * side, cy + Math.sin(a) * k + Math.cos(a) * side];
-    g.lineStyle(2.2, BLUE_HEX, 0.95);
+    g.lineStyle(2.2, this.ink, 0.95);
     g.lineBetween(...tip(-9, 0), ...tip(8, 0));
     g.lineBetween(...tip(8, 0), ...tip(1, -6));
     g.lineBetween(...tip(8, 0), ...tip(1, 6));

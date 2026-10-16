@@ -1,5 +1,8 @@
 import type { KeyValueStore } from '@16bitink/game-sdk';
+import type { DroppedBag } from './flag';
+import type { Inventory } from './inventory';
 import type { Ladders } from './ladders';
+import { parseInventory } from './save';
 import { TILE, type Terrain, type TilePos } from './terrain';
 
 /**
@@ -25,6 +28,24 @@ export interface WorldSave {
   readonly ladders: Uint8Array;
   /** Items banked for good, by id; they're not put back in the world. */
   readonly taken: readonly string[];
+  /** The bag left under its flag (flag.ts), at a tile index, if there is one. */
+  readonly bag?: SavedBag;
+}
+
+export interface SavedBag {
+  /** Tile index: row × width + column. */
+  readonly at: number;
+  readonly bag: Inventory;
+}
+
+/** A dropped bag as the save keeps it. */
+export function saveBag(t: Terrain, d: DroppedBag | null): SavedBag | undefined {
+  return d ? { at: d.row * t.width + d.col, bag: d.bag } : undefined;
+}
+
+/** A saved bag back in the world. */
+export function droppedBag(width: number, b: SavedBag | undefined): DroppedBag | null {
+  return b ? { col: b.at % width, row: Math.floor(b.at / width), bag: b.bag } : null;
 }
 
 const KEY = (worldId: string): string => `inkmine.world.${worldId}.v1`;
@@ -33,13 +54,14 @@ const MAX_PACKED = 1_000_000;
 const MAX_TAKEN = 512;
 
 /** What changed from the carved ground (`base`, its tiles as carved) to the world as it is. */
-export function captureWorld(base: Uint8Array, t: Terrain, ladders: Ladders, version: number, taken: readonly string[]): WorldSave {
+export function captureWorld(base: Uint8Array, t: Terrain, ladders: Ladders, version: number, taken: readonly string[], dropped: DroppedBag | null = null): WorldSave {
   const n = t.width * t.height;
   const dug = new Uint8Array(n);
   for (let i = 0; i < n; i++) if (base[i] !== TILE.air && t.tiles[i] === TILE.air) dug[i] = 1;
   const rungs = new Uint8Array(n);
   for (const [x, y] of ladders.all()) rungs[y * t.width + x] = 1;
-  return { version, dug, ladders: rungs, taken: [...new Set(taken)] };
+  const bag = saveBag(t, dropped);
+  return { version, dug, ladders: rungs, taken: [...new Set(taken)], ...(bag ? { bag } : {}) };
 }
 
 /**
@@ -130,6 +152,7 @@ export function saveWorld(store: KeyValueStore | undefined, worldId: string, sav
       dug: packMask(save.dug),
       ladders: packMask(save.ladders),
       taken: save.taken,
+      bag: save.bag,
     }));
     return true;
   } catch (err) {
@@ -176,5 +199,15 @@ function parseWorld(raw: unknown, n: number, known: ReadonlySet<string>): WorldS
   if (!dug || !ladders) return null;
   const ids = Array.isArray(o.taken) ? o.taken.slice(0, MAX_TAKEN) : [];
   const taken = [...new Set(ids.filter((id): id is string => typeof id === 'string' && known.has(id)))];
-  return { version: o.version as number, dug, ladders, taken };
+  const bag = parseBag(o.bag, n);
+  return { version: o.version as number, dug, ladders, taken, ...(bag ? { bag } : {}) };
+}
+
+/** A left bag, if it's on the world and holds something real. */
+function parseBag(raw: unknown, n: number): SavedBag | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const o = raw as Record<string, unknown>;
+  if (!Number.isInteger(o.at) || (o.at as number) < 0 || (o.at as number) >= n) return null;
+  const bag = parseInventory(o.bag, null);
+  return bag && bag.slots.some((s) => s !== null) ? { at: o.at as number, bag } : null;
 }

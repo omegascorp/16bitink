@@ -56,17 +56,6 @@ describe('a dig site', () => {
     expect(m.depth).toBe(0);
   });
 
-  it('recall winches the prospector up to the lander and loses the bag', () => {
-    const m = mine(SITE);
-    run(m, 2, { iy: 1 });
-    m.suit = { ...m.suit, bag: bagOf(ORES.quartz.id, ORES.copper.id) };
-    const events = run(m, 0.1, { recall: true });
-    expect(events).toContainEqual({ kind: 'recall', lost: 2 });
-    expect(m.depth).toBe(0);
-    expect(bagHas(m.suit.bag)).toEqual({});
-    expect(bagHas(m.cargo)).toEqual({});
-  });
-
   it('a ladder gets you back out of a shaft', () => {
     const m = mine(SITE);
     run(m, 2, { iy: 1 });
@@ -78,8 +67,10 @@ describe('a dig site', () => {
     expect(m.depth).toBe(0);
   });
 
-  it('the drill sets off a firedamp pocket, and its blast costs a heart if you stand in it', () => {
-    const m = mine(['..........', '..........', 'ssssssssss', 'ssfsssssss', '##########']);
+  it('the drill sets off a firedamp pocket, and its blast costs a heart if you stand in it with the shield down', () => {
+    // Away from the lander, which would put the shield right.
+    const m = mine(['..........', '..........', 'ssssssssss', 'ssfsssssss', '##########'], { lander: { col: 8, row: 2 } });
+    m.suit = { ...m.suit, shield: 0, hitAt: 0 };
     standAt(m, 2, 2);
     const events = run(m, 2, { iy: 1 });
     expect(events.some((e) => e.kind === 'lit')).toBe(true);
@@ -88,9 +79,9 @@ describe('a dig site', () => {
     expect(tileAt(m.terrain, 3, 3)).toBe(TILE.air);
   });
 
-  it('losing the last heart fails the level', () => {
-    const m = mine(['..........', '..........', 'ssssssssss', 'ssfsssssss', '##########']);
-    m.suit = { ...m.suit, hearts: 1 };
+  it('losing the last heart: the suit gives out', () => {
+    const m = mine(['..........', '..........', 'ssssssssss', 'ssfsssssss', '##########'], { lander: { col: 8, row: 2 } });
+    m.suit = { ...m.suit, hearts: 1, shield: 0, hitAt: 0 };
     standAt(m, 2, 2);
     const events = run(m, 2, { iy: 1 });
     expect(events.some((e) => e.kind === 'failed')).toBe(true);

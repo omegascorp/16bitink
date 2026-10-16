@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ART_RES, BOIL, PAPER } from '../art/palette';
+import { ART_RES, BOIL, PAPER, RED } from '../art/palette';
 import { roofRows } from '../art/ground';
 import { RIDGE_W, SKY_W } from '../art/skyArt';
 import { TEX, generateTextures } from '../art/textures';
@@ -8,22 +8,24 @@ import { buildWorld } from '../level/build';
 import { currentPlanet } from '../level/planets';
 import type { PlanetDef } from '../level/types';
 import { tooHard } from '../logic/drill';
-import { findBlueprint, type Profile } from '../logic/economy';
+import { findBlueprint, printerWorks, type Profile } from '../logic/economy';
 import { prospectorLook, type Look } from '../logic/gear';
-import { emptyInventory } from '../logic/inventory';
 import { lampFor } from '../logic/marks';
-import { Mine, NO_INPUT, type MineEvent } from '../logic/mine';
-import { oreById } from '../logic/ore';
+import { Mine, NO_INPUT, type MineEvent, type MineInput } from '../logic/mine';
+import { oreById, ORES } from '../logic/ore';
+import type { Gauge } from '../logic/suit';
 import { currentGoal, wreckOf, type Goal, type Wreck } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
 import { volatileAt } from '../logic/terrain';
 import { volatileKeyOf } from '../logic/volatiles';
 import { captureWorld, loadWorld, saveWorld } from '../logic/worldSave';
 import { BeaconView } from './game/beaconView';
+import { FlagView } from './game/flagView';
 import { FxView } from './game/fxView';
 import { GroundView } from './game/groundView';
 import { GameInput } from './game/input';
 import { ItemsView } from './game/itemsView';
+import { JetGaugeView } from './game/jetGaugeView';
 import { LampView } from './game/lampView';
 import { ProspectorView } from './game/prospectorView';
 import { Ring } from './game/ring';
@@ -47,6 +49,14 @@ const PARALLAX = { sky: 0.15, ridges: 0.45 } as const;
 const SMOKE_MS = 380;
 /** Where the engine bell sits on the lander's drawing, px up from its feet. */
 const BELL_Y = 22;
+
+/** How you came back after the suit gave out, for the note on waking (spec, "Why you wake at the lander"). */
+export interface Woke {
+  /** Reprinted from the last scan, or (with the printer still broken) dragged back by the suit. */
+  readonly how: 'printed' | 'dragged';
+  /** A bag was left where you fell. */
+  readonly bag: boolean;
+}
 
 /**
  * Play on a planet: its whole world, carved from its seed with the save's
@@ -77,21 +87,33 @@ export class GameScene extends Phaser.Scene {
   private sky!: Phaser.GameObjects.TileSprite;
   private ridges!: Phaser.GameObjects.TileSprite;
   private beacon!: BeaconView;
+  private bagBeacon!: BeaconView;
+  private flag!: FlagView;
+  private jetGauge!: JetGaugeView;
   private ship: Look = 0;
   private wreck!: Wreck;
   private iy = 0;
   private ended = false;
   /** The opening card is up: the world waits until it's read. */
   intro = false;
+  /** The pause card is up: the world waits. */
+  paused = false;
+  /** How you came back, if the suit gave out just before this session (the HUD says so once). */
+  woke: Woke | null = null;
+  /** Asked for from the HUD (a tapped gauge, recall on the pause card), done on the next step. */
+  private asked: Partial<Pick<MineInput, 'feed' | 'recall'>> = {};
   private smokeAt = 0;
 
   constructor() {
     super('Game');
   }
 
-  create(): void {
+  create(data?: { woke?: Woke }): void {
     this.planet = currentPlanet();
     this.ended = false;
+    this.paused = false;
+    this.asked = {};
+    this.woke = data?.woke ?? null;
     this.changed = false;
     this.smokeAt = 0;
     const world = this.planet.world;
@@ -128,7 +150,10 @@ export class GameScene extends Phaser.Scene {
     this.prospector = new ProspectorView(this, look);
     this.fx = new FxView(this, T, look.jetpack);
     this.lamp = new LampView(this, lampFor(profile.gear.helmet), T);
+    this.flag = new FlagView(this, T);
+    this.jetGauge = new JetGaugeView(this);
     this.beacon = new BeaconView(this);
+    this.bagBeacon = new BeaconView(this, RED);
     this.keys = new GameInput(this);
     const cam = this.cameras.main;
     if (t.wrap) cam.setBounds(-RING_REACH, 0, RING_REACH * 2, worldH);
@@ -175,13 +200,23 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const dt = Math.min(delta / 1000, MAX_DT);
-    const input = this.ended || this.intro ? NO_INPUT : this.keys.read();
+    if (!this.ended && !this.intro && this.keys.pause()) {
+      this.paused = !this.paused;
+      // A gauge tapped just before pausing isn't fed after it.
+      this.asked = {};
+    }
+    const still = this.ended || this.intro || this.paused;
+    // Keys are read every frame, so one pressed while the world waits doesn't fire when it starts again.
+    const keys = this.keys.read();
+    const aboard = this.keys.aboard();
+    const input = still ? NO_INPUT : { ...keys, ...this.asked };
+    if (!still) this.asked = {};
     this.iy = input.iy;
-    if (!this.ended && !this.intro && this.keys.aboard() && this.mine.atLander) {
+    if (!still && aboard && this.mine.atLander) {
       this.goAboard();
       return;
     }
-    for (const e of this.mine.step(this.ended || this.intro ? 0 : dt, input)) this.react(e);
+    for (const e of this.mine.step(still ? 0 : dt, input)) this.react(e);
     const cam = this.cameras.main;
     this.ring.centre = cam.midPoint.x;
     this.ground.update(cam.worldView);
@@ -193,6 +228,10 @@ export class GameScene extends Phaser.Scene {
     this.lamp.update(this.mine, cam.worldView, this.ring);
     this.lander.setTexture(TEX.lander(this.ship, Math.floor(time / 125) % BOIL, this.wreck)).setX(this.ring.near((this.mine.landerBox.x + this.mine.landerBox.w / 2)));
     this.beacon.update(this.mine, this.ring, this.beaconTarget(), 'beacon', time);
+    const d = this.mine.dropped;
+    this.bagBeacon.update(this.mine, this.ring, d ? { x: (d.col + 0.5) * this.mine.tile, y: (d.row + 0.5) * this.mine.tile } : null, 'your bag', time);
+    this.flag.update(this.mine, time, this.ring);
+    this.jetGauge.update(this.mine, this.ring);
     if (this.wreck.thrusters && time > this.smokeAt) this.smoke(time);
     this.followSky();
     if (this.changed && this.mine.time - this.savedAt > AUTOSAVE_S) this.save();
@@ -206,6 +245,23 @@ export class GameScene extends Phaser.Scene {
   /** The one thing to do next, for the HUD. */
   goal(): Goal {
     return currentGoal(this.liveProfile());
+  }
+
+  /** A gauge tapped on the HUD: feed it from the bag on the next step. */
+  feedGauge(g: Gauge): void {
+    if (!this.ended && !this.intro && !this.paused) this.asked = { ...this.asked, feed: g };
+  }
+
+  /** Recall, from the pause card: the winch hauls you up on the next step. */
+  recall(): void {
+    if (this.ended || this.intro) return;
+    this.paused = false;
+    this.asked = { ...this.asked, recall: true };
+  }
+
+  /** Back from the pause card. */
+  resume(): void {
+    this.paused = false;
   }
 
   /** Closes the opening card: the world starts, and it's never shown again. */
@@ -241,7 +297,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.mine) return;
     const world = this.planet.world;
     setProfile(this, this.liveProfile());
-    const changes = captureWorld(this.base, this.mine.terrain, this.mine.ladders, world.version, this.taken);
+    const changes = captureWorld(this.base, this.mine.terrain, this.mine.ladders, world.version, this.taken, this.mine.dropped);
     holdWorld(this, world.id, changes);
     this.changed = !saveWorld(getHost(this).storage, world.id, changes);
     this.savedAt = this.mine.time;
@@ -263,7 +319,7 @@ export class GameScene extends Phaser.Scene {
         over('too hard!', true);
         break;
       case 'flat':
-        over('cell flat: back to the lander', true);
+        over(`cell flat: R feeds it ${ORES[this.mine.fuels.cell].name}`, true);
         break;
       case 'bagFull':
         over('bag full', true);
@@ -288,11 +344,29 @@ export class GameScene extends Phaser.Scene {
       case 'cargoFull':
         this.fx.note(px, p.y - 32, 'cargo hold full!', true);
         break;
-      case 'recharge':
-        over('cell charged');
+      case 'restock':
+        over('suit topped up');
         break;
-      case 'refuel':
-        this.fx.note(px, p.y - 32, 'tank full');
+      case 'fed':
+        over(`${e.gauge === 'air' ? 'air' : 'cell'} + ${ORES[e.ore].name}`);
+        this.changed = true;
+        break;
+      case 'cantFeed':
+        over(e.why === 'full' ? `${e.gauge === 'air' ? 'life support' : 'the cell'} is full` : `no ${ORES[e.ore].name} in the bag`, true);
+        break;
+      case 'airLow':
+        this.fx.note(px, p.y - 32, `air low: R feeds it ${ORES[this.mine.fuels.air].name}`, true);
+        break;
+      case 'airOut':
+        this.fx.note(px, p.y - 32, 'out of air!', true);
+        break;
+      case 'shielded':
+        this.cameras.main.flash(140, 120, 150, 215);
+        over('shield!');
+        break;
+      case 'bagBack':
+        over(`bag back: ${e.pieces}`);
+        this.changed = true;
         break;
       case 'noFuel':
         over('out of fuel', true);
@@ -304,14 +378,15 @@ export class GameScene extends Phaser.Scene {
         this.changed = true;
         break;
       case 'recall':
-        if (e.lost) over(`winched up; lost ${e.lost} in the bag`, true);
+        over(e.left ? `winched up; ${e.left} left under the flag` : 'winched up');
         this.changed = true;
         break;
       case 'hurt':
         this.cameras.main.flash(160, 179, 50, 43);
+        if (e.cause === 'air') over("can't breathe!", true);
         break;
       case 'failed':
-        this.giveOut();
+        this.giveOut(e.dropped > 0);
         break;
       case 'lit': {
         const kind = volatileKeyOf(volatileAt(this.mine.terrain, e.tile[0], e.tile[1]));
@@ -324,18 +399,18 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * The suit gave out: the bag is lost, the cargo and the world's changes
-   * are kept, and the prospector wakes at the lander. (The bag left where
-   * you fell, and the printer's story, come with the life system.)
+   * The suit gave out: the bag stays where you fell under its flag (the
+   * sim has put it there), the cargo and the world's changes are kept, and
+   * the prospector wakes at the lander: reprinted from the printer's last
+   * scan, or, before the printer is mended, dragged back by the suit.
    */
-  private giveOut(): void {
+  private giveOut(bag: boolean): void {
     if (this.ended) return;
     this.ended = true;
-    const bag = this.mine.suit.bag;
-    this.mine.suit = { ...this.mine.suit, bag: emptyInventory(bag.slots.length, bag.stack) };
     this.save();
+    const woke: Woke = { how: printerWorks(getProfile(this)) ? 'printed' : 'dragged', bag };
     this.cameras.main.fade(FAILED_MS, 245, 240, 225);
-    this.time.delayedCall(FAILED_MS, () => this.scene.restart());
+    this.time.delayedCall(FAILED_MS, () => this.scene.restart({ woke }));
   }
 
   /** Into the lander: save, and open the ship's page (printing, the cargo). Back down starts from the lander. */

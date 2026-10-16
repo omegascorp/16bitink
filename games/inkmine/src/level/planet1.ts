@@ -22,6 +22,9 @@ import type { PlanetDef } from './types';
  *   cave holding the Cell's blueprint.
  * - The jetpack vault, deep under the middle: stone walls, a soil door.
  *
+ * Water ice for life support lies in pockets all round, thickest in the
+ * crater's shadow just west of the lander.
+ *
  * The ground: soil to about 20 m, stone to about 90 m, deep rock below that
  * for a later drill (Graphite is worth a visit with better gear).
  */
@@ -31,9 +34,12 @@ export const PLANET_1: PlanetDef = {
   blurb: 'A grey moon of soft dark rock, pencil lead in its seams.',
   style: GRAPHITE,
   signature: 'graphite',
+  // Graphite is in battery anodes; water ice is what real moon bases plan to make air from.
+  fuels: { cell: 'graphite', air: 'ice' },
   world: {
     id: 'graphite',
-    version: 1,
+    // 2: water ice added (it moved the random firedamp a little).
+    version: 2,
     site: {
       // 256 columns round: a whole number of ground chunks (16) and hatch tiles (4), so both repeat cleanly at the join.
       width: 256, height: 160, wrap: true, seed: 1001, surface: 12, landerCol: 64,
@@ -48,6 +54,10 @@ export const PLANET_1: PlanetDef = {
         { ore: 'galena', from: 6, to: 40, veins: 44, size: [2, 4] },
         { ore: 'quartz', from: 20, to: 80, veins: 34, size: [1, 2] },
         { ore: 'silver', from: 38, to: 88, veins: 26, size: [2, 4] },
+        // Water ice, for life support: pockets near the surface all round, thicker in the crater's shadow west of the lander, and some deep down where trips are long.
+        { ore: 'ice', from: 2, to: 18, veins: 34, size: [2, 4] },
+        { ore: 'ice', from: 1, to: 12, veins: 14, size: [3, 5], cols: [40, 62] },
+        { ore: 'ice', from: 25, to: 95, veins: 30, size: [2, 3] },
       ],
       firedamp: 34,
       rooms: [

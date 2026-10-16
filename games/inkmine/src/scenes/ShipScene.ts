@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BLUE, PAPER } from '../art/palette';
+import { PAPER } from '../art/palette';
 import { bakeCharacters, bakePickups } from '../art/textures';
 import { getProfile, setProfile } from '../host';
 import { currentPlanet } from '../level/planets';
@@ -11,9 +11,10 @@ import { landerLookOf } from '../logic/ship';
 import { relayoutOnResize, screenScene, toView, viewSize } from './hidpi';
 import { inventoryPanel } from './ship/inventoryPanel';
 import { repairPanel } from './ship/repairPanel';
-import { section, SOFT_INK, type ShipPage, type ShipUi } from './ship/panel';
+import { plaque } from './kit/plaque';
+import { aside, heading, INK_TEXT, prose, scrawl, SEPIA } from './kit/type';
+import { desk, PAD, section, SECTION_BODY, type ShipPage, type ShipUi } from './ship/panel';
 import { gearPanel, landerPanel } from './ship/printerPanel';
-import { inkButton, inkText, noteText } from './ui';
 
 export interface ShipData extends ShipUi {
   /** Where the page was scrolled to, kept across a redraw. */
@@ -45,10 +46,12 @@ export class ShipScene extends Phaser.Scene {
 
     const { width } = viewSize(this);
     const wide = width >= WIDE;
-    const colW = wide ? (width - GAP * 4) / 3 : Math.min(620, width - GAP * 2);
-    inkText(this, GAP, 34, 'The lander', 48).setOrigin(0, 0.5);
-    inkText(this, width - GAP, 34, `cargo ${usedSlots(profile.cargo)}/${profile.cargo.slots.length} slots`, 24, SOFT_INK).setOrigin(1, 0.5);
-    if (data.news) inkText(this, wide ? width / 2 : GAP, wide ? 34 : 74, data.news, 30, BLUE).setOrigin(wide ? 0.5 : 0, 0.5);
+    // Rounded, so resizing the window doesn't bake a new set of plates for every width.
+    const colW = Math.floor((wide ? (width - GAP * 4) / 3 : Math.min(620, width - GAP * 2)) / 8) * 8;
+    heading(this, GAP + 4, 18, 'The lander', 30).setOrigin(0, 0);
+    aside(this, GAP + 6, 54, `crash site, ${planet.name}`, 17, 400, SEPIA).setOrigin(0, 0);
+    aside(this, width - GAP, 30, `cargo ${usedSlots(profile.cargo)} of ${profile.cargo.slots.length} slots`, 18, 400, SEPIA).setOrigin(1, 0.5);
+    if (data.news) scrawl(this, wide ? width / 2 : GAP, wide ? 40 : 96, data.news, 30, INK_TEXT).setOrigin(wide ? 0.5 : 0, 0.5);
 
     const page: ShipPage = {
       scene: this,
@@ -57,7 +60,7 @@ export class ShipScene extends Phaser.Scene {
       commit: (p, ui = {}) => this.redraw(p, ui),
       setUi: (ui) => this.redraw(null, ui),
     };
-    const top = wide ? 72 : 96;
+    const top = wide ? 96 : 124;
     const x = (i: number): number => (wide ? GAP + i * (colW + GAP) : (width - colW) / 2);
     let bottom: number;
     if (wide) {
@@ -77,6 +80,7 @@ export class ShipScene extends Phaser.Scene {
       ];
       bottom = panels.reduce((y, panel) => y + panel(y) + GAP, top) - GAP;
     }
+    desk(this, width, Math.max(viewSize(this).height, bottom + GAP * 2));
     this.scroll(bottom + GAP, data.scrollY ?? 0);
   }
 
@@ -90,11 +94,11 @@ export class ShipScene extends Phaser.Scene {
   /** The way back out: down the ladder to the planet, from the lander. */
   private backDown(x: number, y: number, w: number): number {
     const planet = currentPlanet();
-    const ty = y + 56;
-    const t = noteText(this, x + 16, ty, `${planet.name}. ${planet.blurb} Print what you can, sort the cargo, then head back down.`, 20, w - 32, SOFT_INK);
-    const h = ty - y + t.height + 90;
+    const ty = y + SECTION_BODY;
+    const t = prose(this, x + PAD, ty, `${planet.name}. ${planet.blurb} Print what you can, sort the cargo, then head back down.`, 17, w - PAD * 2, SEPIA);
+    const h = ty - y + t.height + 86;
     section(this, x, y, w, h, 'Aboard', 37);
-    inkButton(this, x + w / 2, y + h - 44, 'Back down ▸', () => this.scene.start('Game'), { width: 200, height: 50 });
+    plaque(this, x + w / 2, y + h - 42, 'Back down', () => this.scene.start('Game'), { width: 200, height: 46, kind: 'primary' });
     return h;
   }
 

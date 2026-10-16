@@ -1,6 +1,7 @@
 import type { GroundStyle } from '../art/palette';
 import type { ItemDef } from '../logic/items';
 import type { OreKey } from '../logic/ore';
+import type { Fuels } from '../logic/suit';
 import type { CarveSpec } from './carve';
 
 /**
@@ -32,5 +33,7 @@ export interface PlanetDef {
   readonly style: GroundStyle;
   /** The planet's signature material; the main ingredient of its gear. */
   readonly signature: OreKey;
+  /** What feeds the drill's cell and life support here: each planet has its own fuels. */
+  readonly fuels: Fuels;
   readonly world: WorldDef;
 }

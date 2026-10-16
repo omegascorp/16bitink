@@ -132,6 +132,16 @@ export function transferAll(from: Inventory, to: Inventory): { from: Inventory; 
   return { from: src, to: dst, moved };
 }
 
+/** Splits every stack: `share` (0..1) of it, rounded down, is kept (what a winch saves on a recall); the rest is left. */
+export function splitShare(inv: Inventory, share: number): { kept: Inventory; left: Inventory } {
+  const kept = keepShare(inv, share);
+  const left = { ...inv, slots: inv.slots.map((s, i) => {
+    const n = s ? s.n - (kept.slots[i]?.n ?? 0) : 0;
+    return s && n > 0 ? { ore: s.ore, n } : null;
+  }) };
+  return { kept, left };
+}
+
 /** Keeps `share` (0..1) of every stack, rounded down: what a winch saves on a recall. */
 export function keepShare(inv: Inventory, share: number): Inventory {
   return { ...inv, slots: inv.slots.map((s) => {

@@ -4,7 +4,7 @@ import type { MineSetup } from '../logic/mine';
 import { drillFor, jetFor, suitSpecFor } from '../logic/marks';
 import { laddersFor, winchKeeps } from '../logic/ship';
 import { inside, setTile, TILE, type Terrain } from '../logic/terrain';
-import { applyWorld, type WorldSave } from '../logic/worldSave';
+import { applyWorld, droppedBag, type WorldSave } from '../logic/worldSave';
 import { carve } from './carve';
 import type { PlanetDef, WorldDef } from './types';
 
@@ -57,6 +57,8 @@ export function buildWorld(planet: PlanetDef, p: Profile, save: WorldSave | null
       items: def.items.filter((it) => !taken.has(it.id)),
       cargo: p.cargo,
       bag: p.suit,
+      fuels: planet.fuels,
+      dropped: droppedBag(terrain.width, save?.bag),
     },
   };
 }

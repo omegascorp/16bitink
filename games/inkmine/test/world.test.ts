@@ -29,6 +29,16 @@ function reachableOre(planet: PlanetDef, mk: number, ore: OreKey): number {
 describe.each(worlds)('the world of %s', (_id, planet) => {
   const def = planet.world;
 
+  it('has fuel for life support and the cell within the starter drill\'s reach, and near the lander', () => {
+    for (const ore of [planet.fuels.air, planet.fuels.cell]) {
+      expect(reachableOre(planet, 0, ore)).toBeGreaterThan(40);
+    }
+    // Ice within 30 columns of the crash, for the first trips.
+    const t = buildGround(def);
+    const near = [...t.content.keys()].filter((i) => t.content[i] === ORES[planet.fuels.air].id && Math.abs((i % t.width) - def.site.landerCol) < 30);
+    expect(near.length).toBeGreaterThan(10);
+  });
+
   it('has permanent ids, its items each unique', () => {
     expect(def.id).toMatch(/^[a-z0-9-]+$/);
     const ids = def.items.map((it) => it.id);

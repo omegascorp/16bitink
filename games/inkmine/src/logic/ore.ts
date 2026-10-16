@@ -3,7 +3,7 @@
  * glyph in the rock, so it reads without colour. Ids are stored in the
  * terrain's content layer, so never renumber one.
  */
-export type OreGlyph = 'nugget' | 'cube' | 'flake' | 'prism' | 'wire';
+export type OreGlyph = 'nugget' | 'cube' | 'flake' | 'prism' | 'wire' | 'rime';
 
 export interface OreKind {
   readonly id: number;
@@ -13,7 +13,7 @@ export interface OreKind {
   readonly value: number;
   /** Highlighter colour. */
   readonly color: string;
-  /** How it's drawn in the rock: native copper in nuggets, galena in cubes, graphite in flakes, quartz in prisms, silver in wires, as they grow. */
+  /** How it's drawn in the rock: native copper in nuggets, galena in cubes, graphite in flakes, quartz in prisms, silver in wires, as they grow; ice in frosted lumps. */
   readonly glyph: OreGlyph;
 }
 
@@ -23,6 +23,8 @@ export const ORES = {
   graphite: { id: 3, key: 'graphite', name: 'graphite', value: 8, color: '#f3e04a', glyph: 'flake' },
   quartz: { id: 4, key: 'quartz', name: 'quartz', value: 15, color: '#ff8fc4', glyph: 'prism' },
   silver: { id: 5, key: 'silver', name: 'native silver', value: 12, color: '#8fe388', glyph: 'wire' },
+  /** Water ice: what life support is fed (real moon bases plan to make air from it). */
+  ice: { id: 6, key: 'ice', name: 'water ice', value: 2, color: '#b9ecf5', glyph: 'rime' },
 } as const satisfies Record<string, OreKind>;
 
 export type OreKey = keyof typeof ORES;

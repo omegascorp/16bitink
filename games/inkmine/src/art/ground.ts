@@ -4,6 +4,7 @@ import { createRng } from '../logic/rng';
 import { contentAt, gradeOf, inside, TILE, tileAt, volatileAt, wrapX, type Grade, type Terrain } from '../logic/terrain';
 import { VOLATILES } from '../logic/volatiles';
 import { oreById } from '../logic/ore';
+import { depthTone, facesOf, lightHollows, lightRock, pebble, washTile, type Face } from './groundPaint';
 import { drawOreGlyph } from './oreArt';
 import { INK, PAPER, RED, type GroundStyle } from './palette';
 
@@ -28,6 +29,10 @@ export interface GroundPatterns {
   readonly deep: CanvasPattern;
   /** The faint back wall seen through tunnels. */
   readonly wall: CanvasPattern;
+  /** Dense cross-hatching for core shadows under overhangs. */
+  readonly shadow: CanvasPattern;
+  /** Watercolour washes: each grade's, and the back wall's. */
+  readonly washes: { readonly soil: CanvasPattern; readonly stone: CanvasPattern; readonly deep: CanvasPattern; readonly back: CanvasPattern };
 }
 
 export interface ChunkRect {
@@ -132,11 +137,19 @@ export function makeGroundPatterns(ctx: CanvasRenderingContext2D, res: number, s
     return p;
   };
   return {
-    grain: pattern(grainTile(res, style.grain, 700, 31)),
-    soil: pattern(hatchTile(res, 11, -Math.PI / 3, 8, 0.2)),
-    stone: pattern(layered([hatchTile(res, 21, -Math.PI / 4, 11, 0.36), hatchTile(res, 22, Math.PI / 4, 10, 0.26)])),
-    deep: pattern(layered([hatchTile(res, 31, -Math.PI / 4, 14, 0.46), hatchTile(res, 32, Math.PI / 4, 13, 0.4), hatchTile(res, 33, 0.05, 12, 0.22)])),
-    wall: pattern(hatchTile(res, 41, Math.PI / 5, 7, 0.1)),
+    grain: pattern(grainTile(res, style.grain, 420, 31)),
+    // Hatching stays light in the open rock: the shadows carry it.
+    soil: pattern(hatchTile(res, 11, -Math.PI / 3, 6, 0.1)),
+    stone: pattern(layered([hatchTile(res, 21, -Math.PI / 4, 9, 0.2), hatchTile(res, 22, Math.PI / 4, 8, 0.1)])),
+    deep: pattern(layered([hatchTile(res, 31, -Math.PI / 4, 12, 0.3), hatchTile(res, 32, Math.PI / 4, 11, 0.22), hatchTile(res, 33, 0.05, 10, 0.12)])),
+    wall: pattern(hatchTile(res, 41, Math.PI / 5, 6, 0.07)),
+    shadow: pattern(layered([hatchTile(res, 51, -Math.PI / 4, 16, 0.55), hatchTile(res, 52, Math.PI / 4, 14, 0.4)])),
+    washes: {
+      soil: pattern(washTile(res, style.soil, 61)),
+      stone: pattern(washTile(res, style.stone, 62)),
+      deep: pattern(washTile(res, style.deep, 63)),
+      back: pattern(washTile(res, style.tunnel, 64, 0.7)),
+    },
   };
 }
 
@@ -191,11 +204,11 @@ function inkEdges(ctx: CanvasRenderingContext2D, mask: Mask, c: ChunkRect, T: nu
   ctx.globalAlpha = 1;
 }
 
-/** Every outline segment of a mask over the chunk, in world px. */
-function edgeSegments(mask: Mask, c: ChunkRect, T: number): [number, number, number, number][] {
+/** Every outline segment of a mask over the chunk and `margin` tiles round it, in world px. */
+function edgeSegments(mask: Mask, c: ChunkRect, T: number, margin = 1): [number, number, number, number][] {
   const out: [number, number, number, number][] = [];
-  for (let j = c.ty - 1; j < c.ty + c.tiles; j++) {
-    for (let i = c.tx - 1; i < c.tx + c.tiles; i++) {
+  for (let j = c.ty - margin; j < c.ty + c.tiles + margin - 1; j++) {
+    for (let i = c.tx - margin; i < c.tx + c.tiles + margin - 1; i++) {
       const code = cellCase(mask(i, j), mask(i + 1, j), mask(i + 1, j + 1), mask(i, j + 1));
       for (const [a, b] of cellGeometry(code).edges) out.push([(i + 0.5 + a.x) * T, (j + 0.5 + a.y) * T, (i + 0.5 + b.x) * T, (j + 0.5 + b.y) * T]);
     }
@@ -203,20 +216,19 @@ function edgeSegments(mask: Mask, c: ChunkRect, T: number): [number, number, num
   return out;
 }
 
-/** Shadow just inside every dug surface, so tunnels read as hollowed out of the rock. */
-function wallShadow(ctx: CanvasRenderingContext2D, segs: readonly [number, number, number, number][], T: number, color: string): void {
-  ctx.strokeStyle = color;
+/** A second, heavier line along every ceiling: line weight follows the shadow. */
+function shadowLine(ctx: CanvasRenderingContext2D, faces: readonly Face[]): void {
+  ctx.strokeStyle = INK;
   ctx.lineCap = 'round';
-  for (const [w, a] of [[T * 0.9, 0.1], [T * 0.4, 0.14]] as const) {
-    ctx.globalAlpha = a;
-    ctx.lineWidth = w;
-    ctx.beginPath();
-    for (const [x0, y0, x1, y1] of segs) {
-      ctx.moveTo(x0, y0);
-      ctx.lineTo(x1, y1);
-    }
-    ctx.stroke();
+  ctx.globalAlpha = 0.75;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  for (const f of faces) {
+    if (f.facing !== 'down') continue;
+    ctx.moveTo(f.x0, f.y0 + 1);
+    ctx.lineTo(f.x1, f.y1 + 1);
   }
+  ctx.stroke();
   ctx.globalAlpha = 1;
 }
 
@@ -261,20 +273,11 @@ function flecks(ctx: CanvasRenderingContext2D, t: Terrain, c: ChunkRect, T: numb
     for (let x = c.tx - 1; x <= c.tx + c.tiles; x++) {
       const tile = tileAt(t, x, y);
       if ((tile !== TILE.soil && tile !== TILE.stone) || contentAt(t, x, y) || hash(x, y, 7) > 0.18) continue;
-      const rx = 1.6 + hash(x, y, 8) * 2.8;
+      const rx = 1.8 + hash(x, y, 8) * 3;
       const ry = rx * (0.55 + hash(x, y, 9) * 0.3);
-      ctx.beginPath();
-      ctx.ellipse((x + 0.15 + hash(x, y, 10) * 0.7) * T, (y + 0.15 + hash(x, y, 11) * 0.7) * T, rx, ry, hash(x, y, 12) * Math.PI, 0, Math.PI * 2);
-      ctx.globalAlpha = 0.7;
-      ctx.fillStyle = tile === TILE.soil ? style.stone : style.deep;
-      ctx.fill();
-      ctx.globalAlpha = 0.65;
-      ctx.lineWidth = 0.5;
-      ctx.strokeStyle = INK;
-      ctx.stroke();
+      pebble(ctx, (x + 0.15 + hash(x, y, 10) * 0.7) * T, (y + 0.15 + hash(x, y, 11) * 0.7) * T, rx, ry, (hash(x, y, 12) - 0.5) * 0.8, tile === TILE.soil ? style.stone : style.deep);
     }
   }
-  ctx.globalAlpha = 1;
 }
 
 /** Ore in the rock: each kind's glyph in its highlighter colour. */
@@ -395,12 +398,15 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
   // Paper first, so the sky layers behind never show through a hole in the ground.
   ctx.fillStyle = PAPER;
   ctx.fill(innerPath);
-  ctx.fillStyle = style.tunnel;
-  ctx.globalAlpha = 0.45;
+  ctx.fillStyle = patterns.washes.back;
+  ctx.globalAlpha = 0.75;
   ctx.fill(innerPath);
   ctx.globalAlpha = 1;
   ctx.fillStyle = patterns.wall;
   ctx.fill(innerPath);
+  // Faces a few tiles past the chunk too: their shading reaches into it, and neighbouring chunks must agree.
+  const groundSegs = edgeSegments(ground, c, T, 3);
+  const faces = facesOf(groundSegs, (wx, wy) => ground(Math.floor(wx / T), Math.floor(wy / T)), T);
   ctx.save();
   ctx.clip(innerPath);
   for (let row = c.ty - 1; row <= c.ty + c.tiles; row++) {
@@ -408,24 +414,25 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
     ctx.fillStyle = style.shade;
     ctx.fillRect(c.tx * T - CHUNK_PAD, row * T, size + CHUNK_PAD * 2, T);
   }
-  ctx.restore();
   ctx.globalAlpha = 1;
+  lightHollows(ctx, faces, T, style.shade);
+  ctx.restore();
   // The ground: paper, the soil wash and stipple everywhere, then each harder grade over it.
   const groundPath = maskPath(ground, c, T);
   ctx.fillStyle = PAPER;
   ctx.fill(groundPath);
-  ctx.globalAlpha = 0.8;
-  ctx.fillStyle = style.soil;
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = patterns.washes.soil;
   ctx.fill(groundPath);
   ctx.globalAlpha = 1;
   ctx.fillStyle = patterns.grain;
   ctx.fill(groundPath);
   ctx.fillStyle = patterns.soil;
   ctx.fill(groundPath);
-  const grades: readonly [number, string, CanvasPattern][] = [[TILE.stone, style.stone, patterns.stone], [TILE.deep, style.deep, patterns.deep]];
+  const grades: readonly [number, CanvasPattern, CanvasPattern][] = [[TILE.stone, patterns.washes.stone, patterns.stone], [TILE.deep, patterns.washes.deep, patterns.deep]];
   for (const [tile, wash, pattern] of grades) {
     const path = maskPath(of(tile), c, T);
-    ctx.globalAlpha = 0.85;
+    ctx.globalAlpha = 0.9;
     ctx.fillStyle = wash;
     ctx.fill(path);
     ctx.globalAlpha = 1;
@@ -440,15 +447,20 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
   bedrockCracks(ctx, t, c, T);
   ctx.save();
   ctx.clip(groundPath);
+  const [y0, h0] = [c.ty * T - CHUNK_PAD, size + CHUNK_PAD * 2];
+  // Column by column, so the sunlit band under the surface follows it (and chunks agree at their edges).
+  for (let col = c.tx - 1; col <= c.tx + c.tiles; col++) depthTone(ctx, col * T, y0, T, h0, (roof[wrapX(t, col)] ?? 0) * T, t.height * T);
   flecks(ctx, t, c, T, style);
-  wallShadow(ctx, edgeSegments(ground, c, T), T, style.shade);
+  lightRock(ctx, faces, T, style.shade, patterns.shadow);
   ctx.restore();
   ores(ctx, t, c, T);
   firedamp(ctx, t, c, T);
   // Faint lines where one grade gives way to the next; heavy ink where you can't drill.
   inkEdges(ctx, of(TILE.stone), c, T, 0.9, 100, 0.45);
   inkEdges(ctx, of(TILE.deep), c, T, 0.9, 200, 0.45);
-  inkEdges(ctx, ground, c, T, 1.8, 0);
+  inkEdges(ctx, ground, c, T, 1.5, 0);
+  // Heavier ink under every overhang, where the shadow is.
+  shadowLine(ctx, faces);
   const hard: Mask = (x, y) => {
     const tile = tileAt(t, x, y);
     const grade = gradeOf(tile);
