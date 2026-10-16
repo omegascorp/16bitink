@@ -18,11 +18,22 @@ function poly(ctx: CanvasRenderingContext2D, pts: readonly P[]): void {
   ctx.closePath();
 }
 
-/** Highlighter fill, then a pen outline. */
+/** Highlighter fill modelled like a stone (lit on the upper left, shaded on the lower right), then a pen outline. */
 function inked(ctx: CanvasRenderingContext2D, pts: readonly P[], color: string, width = 1.1): void {
   poly(ctx, pts);
-  ctx.globalAlpha = 0.92;
+  ctx.globalAlpha = 0.95;
   ctx.fillStyle = color;
+  ctx.fill();
+  const xs = pts.map(([x]) => x);
+  const ys = pts.map(([, y]) => y);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const g = ctx.createLinearGradient(x0, y0, x1, y1);
+  g.addColorStop(0, 'rgba(255, 252, 235, 0.6)');
+  g.addColorStop(0.35, 'rgba(255, 252, 235, 0)');
+  g.addColorStop(0.7, 'rgba(60, 30, 40, 0.12)');
+  g.addColorStop(1, 'rgba(40, 24, 60, 0.38)');
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = g;
   ctx.fill();
   ctx.globalAlpha = 0.95;
   ctx.lineWidth = width;
@@ -32,16 +43,35 @@ function inked(ctx: CanvasRenderingContext2D, pts: readonly P[], color: string, 
   ctx.globalAlpha = 1;
 }
 
-/** A broad highlighter swipe behind the glyph, as if someone marked the find. */
+/**
+ * A highlighter swipe behind the glyph, as if someone marked the find: one
+ * curved stroke of a broad nib at a slant, doubled where it was pressed
+ * harder, with the rock's shadow in the pocket under it.
+ */
 function swipe(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
+  // The pocket the ore sits in: rock darkened round it.
+  const pocket = ctx.createRadialGradient(r * 0.1, r * 0.15, r * 0.2, r * 0.1, r * 0.15, r * 1.25);
+  pocket.addColorStop(0, 'rgba(30, 28, 50, 0.22)');
+  pocket.addColorStop(1, 'rgba(30, 28, 50, 0)');
+  ctx.fillStyle = pocket;
+  ctx.fillRect(-r * 1.4, -r * 1.4, r * 2.8, r * 2.8);
   const a = -0.35 + (rng() - 0.5) * 0.3;
+  const len = r * (0.75 + rng() * 0.2);
+  const bow = (rng() - 0.5) * r * 0.5;
   ctx.save();
   ctx.rotate(a);
-  ctx.globalAlpha = 0.38;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.ellipse((rng() - 0.5) * 2, (rng() - 0.5) * 2, r * 1.05, r * 0.7, 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.translate((rng() - 0.5) * 2, (rng() - 0.5) * 2);
+  ctx.strokeStyle = color;
+  ctx.lineCap = 'round';
+  // One stroke of the nib, curved a little, then a narrower second pass where it was pressed harder.
+  for (const [w, al] of [[r * 1.15, 0.3], [r * 0.6, 0.14]] as const) {
+    ctx.globalAlpha = al;
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    ctx.moveTo(-len, bow * 0.3);
+    ctx.quadraticCurveTo(0, bow, len, -bow * 0.2);
+    ctx.stroke();
+  }
   ctx.restore();
   ctx.globalAlpha = 1;
 }

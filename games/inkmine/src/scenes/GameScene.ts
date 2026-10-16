@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { ART_RES, BOIL, PAPER, RED } from '../art/palette';
 import { roofRows } from '../art/ground';
-import { RIDGE_W, SKY_W } from '../art/skyArt';
+import { RIDGE_W } from '../art/ridgeArt';
+import { SKY_W } from '../art/skyArt';
 import { TEX, generateTextures } from '../art/textures';
 import { getHost, getProfile, heldWorld, holdWorld, setProfile } from '../host';
 import { buildWorld } from '../level/build';

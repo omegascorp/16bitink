@@ -401,8 +401,10 @@ Ink and colour keep the three-ink rule from InkFish and InkCrab:
 - **Light comes from above.** Every face open to the sky has a lit lip. Every ceiling's underside sits in a hatched core shadow with a heavier ink line, and casts a soft shadow on the back wall of the hollow under it. Washes are blurred at their edges; hatching stays crisp.
 - **Depth:** the first metres under the surface are warm and sunlit; the deep is cooler and darker, so the lamp matters more further down.
 - **Dug space is pale paper** with a faint back-wall wash, so tunnels read as tunnels, not sky.
-- **The sky** is a night wash: an airless moon's sky is black even by day. It is indigo above and a warm glow at the horizon, with stars left as bare paper. A ringed planet and two small moons are painted as washed spheres with hatched night sides. Crater rims sit in aerial perspective: the far range pale and cool, the near one lit on the left with hatched shadow on the right.
-- **Sprites get the scene's light:** warm from the upper left, cool to the lower right, painted only over the sprite (`textures.ts`).
+- **The sky** is a night wash: an airless moon's sky is black even by day. It is indigo above and a warm glow at the horizon, with stars left as bare paper. A ringed planet and two small moons are painted as washed spheres with hatched night sides. Crater rims (`art/ridgeArt.ts`) sit in three ranges of aerial perspective, each nearer one darker, warmer and more firmly inked. Every peak is blocked in as a landscape painter would: the lit slope warm, the far side in cool indigo shadow cut by a spur from the summit, gullies scored into the lit faces, faint strata, a bright lip on the crest and dust hazing the foot.
+- **The ground's dressing** (`art/surfaceArt.ts`): soft strata bands that wrap with the world, faint cobbles set in the rock (never firm enough to read as rock you can't drill), and stones half sunk in the dust along the open surface, each with its shadow. Ore sits in a darkened pocket, its crystals modelled in light and shade, marked with one curved highlighter stroke.
+- **Sprites are painted, not filled** (`art/paint.ts`): each part gets a body colour, light rolling in from the upper left, a soft core shadow with light bounced back into its edge, pigment pooled at the wash's rim, a little hatching in the shadow, and a fine pen line. Metal and glass get a crisper terminator and a gleam.
+- **Sprites get the scene's light and one silhouette** (`textures.ts`): warm from the upper left, cool to the lower right, a rim of light on the lit edges, then a single ink outline round the whole figure that swells on the shadow side. Interior lines stay fine, so the line weight has a hierarchy instead of every part being outlined the same. What's round a figure (the lander's shadow, smoke, a floodlight's glow) is painted after, so it isn't outlined.
 - **Each planet has its own washes:** Graphite grey, Talus rust, Brine teal, Mycel violet, Ember black and orange, Rime pale blue.
 - **Alien writing** is drawn in a darker, steadier ink than your handwriting, so the two never mix up.
 - **Boiling lines** on the sprites (three redrawn frames), as in the other games.
@@ -417,7 +419,7 @@ Ink and colour keep the three-ink rule from InkFish and InkCrab:
 
 ## The prospector's look
 
-A small alien in a suit, helmet and pack with a drill in hand, in blue like every "you" in the catalog. You can see them inside the helmet, with eyes that look where the drill points. The current drawing (a round face, a tuft of hair) reads as human and needs an alien face. The art is in `games/inkmine/src/art/prospector/`, one file per part, and every look in every pose is on the dev page `/specimens.html`.
+A small alien in a suit, helmet and pack with a drill in hand, in blue like every "you" in the catalog. You can see them inside the helmet, with eyes that look where the drill points. They are no human: a broad, smooth head in cool mint, darker markings dappled over the crown (the ones the printer gets wrong), big dark eyes set forward, no nose, a small mouth, and lilac frills sweeping back from behind the jaw. The work suit is cobalt cloth with ochre leather (boots, gloves, belt, pouch) and an ochre fuel can and drill, so the figure reads at a glance against the grey rock. The art is in `games/inkmine/src/art/prospector/`, one file per part, and every look in every pose is on the dev page `/specimens.html`.
 
 **The character changes with the gear.** Each piece shows on the character in three looks, by its mark, and each changes on its own (`logic/gear.ts`):
 
@@ -436,9 +438,9 @@ The prospector's ship. In chapter 1 you watch it come back together: every repai
 
 | Stage | Look |
 | --- | --- |
-| The wreck | The tin can tilted on a buckled leg, a torn heat shield, smoke from the engine, the dish snapped, the hatch hanging open |
+| The wreck | The tin can with a torn heat shield and a jagged gash (the hatch hanging open until the hull is plated), a crumpled bell still smoking, the dish snapped and hanging by its cable, the porthole dark and cracked. Not yet drawn: the tilt on a buckled leg |
 | Repaired, one part at a time | The printer's glow in the porthole; the dish back up (comms); welded hull plates (hull); a clean engine bell (thrusters) |
-| The tin can | Fully repaired, ready to fly: a dented can on spindly legs, heat-shield tiles, one engine, a riveted porthole, a hatch with a ladder, a dish and a pennant |
+| The tin can | Fully repaired, ready to fly: an enamelled, weathered can with a domed top on a descent stage wrapped in crinkled gold foil, four spindly legs, heat-shield tiles, one heat-tinted engine bell, a riveted porthole, a hatch with a ladder, RCS quads, a dish and a cobalt pennant |
 | Refitted, the deep hauler | Later hull refits, as before: braced legs and a cargo pod, then a wider hull with twin engines and a crane |
 
 Every look has the **ore hopper** on its right side, where the prospector tips the bag in to bank it.

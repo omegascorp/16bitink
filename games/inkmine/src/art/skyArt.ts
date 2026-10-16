@@ -10,13 +10,12 @@ import type { Pt } from './pen';
  * ringed planet washed and shaded hanging over the horizon, and the rims of
  * far craters in aerial perspective. Two layers so they can scroll at
  * different speeds: the far sky (`drawSky`) and the crater ridges
- * (`drawRidges`), each drawn from the top-left of its canvas with the
+ * (`drawRidges`, ridgeArt.ts), each drawn from the top-left of its canvas with the
  * horizon at `horizon`; below it they carry on down to the canvas's bottom
  * edge, so nothing shows where the ground dips. Both repeat side to side
  * without a seam, so they can tile behind a world that wraps.
  */
 export const SKY_W = 2600;
-export const RIDGE_W = 3200;
 
 const NIGHT = '#232a52';
 const DUSK = '#4b5583';
@@ -185,71 +184,4 @@ function smallMoon(d: Draw, c: Pt, r: number): void {
   const moon = oval(c.x, c.y, r, r, 24);
   sphere(d, c, r, moon, '#ece6d6', '#8e8a96');
   edge(d, moon, 1);
-}
-
-/**
- * Far crater rims along the horizon, in aerial perspective: the far range
- * pale and cool, barely inked; the near one darker, lit on its left slopes
- * and hatched in shadow on its right. Each starts and ends at the same
- * height, so it tiles.
- */
-export function drawRidges(d: Draw, w: number, h: number, horizon: number, style: GroundStyle): void {
-  const rng = createRng(91);
-  const ranges = [
-    { base: horizon - 6, height: horizon * 0.55, wash: '#9ea0b8', alpha: 0.75, ink: 0.35, hatch: 0.15 },
-    { base: horizon, height: horizon * 0.35, wash: style.stone, alpha: 0.95, ink: 0.85, hatch: 0.4 },
-  ] as const;
-  for (const r of ranges) {
-    const start = r.base - r.height * 0.15 * rng();
-    const pts: Pt[] = [pt(0, h), pt(0, start)];
-    const peaks: Pt[] = [];
-    let x = 0;
-    for (;;) {
-      const crater = rng() < 0.35;
-      const span = 60 + rng() * 140;
-      // Room left for one more range before the edge, then back down to where it started.
-      if (x + span > w - 40) break;
-      const top = r.base - r.height * (0.3 + rng() * 0.7);
-      if (crater) {
-        // A crater rim: up, a dip for the bowl, down.
-        pts.push(pt(x + span * 0.25, top), pt(x + span * 0.4, top + r.height * 0.12), pt(x + span * 0.6, top + r.height * 0.1), pt(x + span * 0.75, top));
-        peaks.push(pt(x + span * 0.25, top), pt(x + span * 0.75, top));
-      } else {
-        pts.push(pt(x + span * 0.5, top));
-        peaks.push(pt(x + span * 0.5, top));
-      }
-      x += span;
-      pts.push(pt(x, r.base - r.height * 0.15 * rng()));
-    }
-    pts.push(pt(w, start), pt(w, h));
-    const ctx = d.pen.ctx;
-    // The range's wash, lighter toward its top where the glow catches it.
-    d.pen.clipped(pts, () => {
-      const g = ctx.createLinearGradient(0, r.base - r.height, 0, h);
-      g.addColorStop(0, r.wash);
-      g.addColorStop(1, '#5d5c68');
-      ctx.globalAlpha = r.alpha;
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, w, h);
-      ctx.globalAlpha = 1;
-      // Each peak's shadow side: from the peak down to the right, hatched over a darker wash.
-      for (const p of peaks) {
-        // One running off the right edge is drawn again at the left, so the layer still tiles.
-        for (const ox of p.x + r.height * 0.9 > w ? [0, -w] : [0]) {
-          const shadow = [pt(p.x + ox, p.y), pt(p.x + ox + r.height * 0.9, h), pt(p.x + ox + r.height * 0.15, h)];
-          d.pen.fill(shadow, '#2a2b45', 0.16);
-          d.pen.hatch(shadow, 3.2, 2.2, 0.45, { color: d.ink, alpha: r.hatch });
-        }
-      }
-      // The sunlit lip along the top.
-      ctx.globalAlpha = 0.35;
-      ctx.strokeStyle = '#fff3d6';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      pts.slice(1, -1).forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y + 1.5) : ctx.lineTo(p.x, p.y + 1.5)));
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    });
-    d.pen.stroke(pts.slice(1, -1), 1.2, d.ink, r.ink, false);
-  }
 }

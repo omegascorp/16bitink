@@ -6,6 +6,7 @@ import { VOLATILES } from '../logic/volatiles';
 import { oreById } from '../logic/ore';
 import { depthTone, facesOf, lightHollows, lightRock, pebble, washTile, type Face } from './groundPaint';
 import { drawOreGlyph } from './oreArt';
+import { cobbles, strata, surfaceRocks } from './surfaceArt';
 import { INK, PAPER, RED, type GroundStyle } from './palette';
 
 /**
@@ -449,7 +450,9 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
   ctx.clip(groundPath);
   const [y0, h0] = [c.ty * T - CHUNK_PAD, size + CHUNK_PAD * 2];
   // Column by column, so the sunlit band under the surface follows it (and chunks agree at their edges).
+  strata(ctx, t, c.tx * T - CHUNK_PAD, (c.tx + c.tiles) * T + CHUNK_PAD, y0, y0 + h0, T);
   for (let col = c.tx - 1; col <= c.tx + c.tiles; col++) depthTone(ctx, col * T, y0, T, h0, (roof[wrapX(t, col)] ?? 0) * T, t.height * T);
+  cobbles(ctx, t, roof, c.tx, c.ty, c.tiles, T, style);
   flecks(ctx, t, c, T, style);
   lightRock(ctx, faces, T, style.shade, patterns.shadow);
   ctx.restore();
@@ -467,6 +470,7 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
     return tile === TILE.bedrock || (grade !== null && tooHard(grade));
   };
   inkEdges(ctx, hard, c, T, 2.8, 300);
+  surfaceRocks(ctx, t, roof, c.tx, c.ty, c.tiles, T, style);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
