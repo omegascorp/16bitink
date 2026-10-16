@@ -1,5 +1,5 @@
 import { ellipse, type Pt } from '../../pen';
-import { bezier, C, PAPER_FILL, xAt, type Kit } from '../kit';
+import { bezier, bottomAt, C, PAPER_FILL, topAt, xAt, type Kit } from '../kit';
 
 /**
  * The fine, character-giving detail on the chapter giants (see giants.ts):
@@ -54,23 +54,45 @@ export function oldFly(k: Kit, at: Pt): void {
   pen.hair(bezier({ x: at.x + 1, y: at.y }, { x: at.x + 4, y: at.y + 5 }, { x: at.x + 1, y: at.y + 7 }, 6), 0.8, '#7d7f84', 1);
 }
 
-/** The swordfish's sword: flat and rough, grooved along its length, with a chip out of the tip from some old fight. */
-export function sword(k: Kit, length: number, thickness: number): void {
-  const { pen, ink } = k;
-  const nose = { x: k.x(0), y: C - 1 };
-  const tip = nose.x + length;
-  const shape: Pt[] = [
-    { x: nose.x - 6, y: nose.y - thickness }, { x: tip - 6, y: nose.y - 1.1 }, { x: tip - 4, y: nose.y - 0.2 },
-    { x: tip - 7, y: nose.y + 0.2 }, { x: tip, y: nose.y + 0.6 }, { x: nose.x - 6, y: nose.y + thickness },
-  ];
-  pen.fill(shape, PAPER_FILL, 1);
-  pen.fill(shape, '#5d6b80', 0.4);
-  pen.clipped(shape, () => {
+/**
+ * The swordfish's sword: the upper jaw itself, grown long and flat. It starts
+ * as the whole front of the head (the anatomy leaves its nose open, see
+ * `openNose`), its top edge carries the forehead's line on out to the tip, and
+ * it's dark above like the back, pale below, grooved and rough, with a chip out
+ * of the underside near the tip from some old fight. A short lower jaw sits
+ * under its root. Drawn after the outline, so no line crosses where it joins.
+ */
+export function sword(k: Kit, length: number): void {
+  const { a, pen, ink } = k;
+  const x0 = xAt(a, 0);
+  const top0 = { x: x0, y: topAt(a, 0) };
+  const bottom0 = { x: x0, y: bottomAt(a, 0) };
+  const tip = { x: x0 + length, y: C + 0.4 };
+  // Leave the head along the forehead's own slope, then straighten out to the tip.
+  const slope = (topAt(a, 0) - topAt(a, 0.03)) / (xAt(a, 0) - xAt(a, 0.03));
+  const reach = length * 0.32;
+  const upper = bezier(top0, { x: x0 + reach, y: Math.min(top0.y + slope * reach, tip.y - 0.8) }, tip, 14);
+  const chip = [{ x: tip.x - 9, y: C + 1.1 }, { x: tip.x - 7, y: C + 0.2 }, { x: tip.x - 5, y: C + 0.9 }];
+  const lower = [...bezier(bottom0, { x: x0 + length * 0.45, y: C + 1.8 }, { x: tip.x - 10, y: C + 1.2 }, 10), ...chip, tip];
+  // The same paper and washes as the head, overlapping it by a hair so no seam shows.
+  const blade = [{ x: x0 - 0.6, y: top0.y }, ...upper, ...[...lower].reverse(), { x: x0 - 0.6, y: bottom0.y }];
+  pen.fill(blade, PAPER_FILL, 1);
+  pen.fill(blade, a.wash, 0.22);
+  pen.clipped(blade, () => {
+    // Dark above, like the back it grows from; a pale edge underneath.
+    const dark = [{ x: x0 - 0.6, y: top0.y }, ...upper, { x: tip.x, y: C + 0.2 }, { x: x0 - 0.6, y: C + 0.2 }];
+    pen.fill(dark, '#3a4558', 0.4);
     // Grooves along the blade and a sandpaper roughness.
-    for (const dy of [-1.6, 0, 1.6]) pen.hair([{ x: nose.x - 4, y: nose.y + dy }, { x: tip - 4, y: nose.y + dy * 0.2 }], 0.35, ink, 0.55);
-    for (let i = 0; i < 40; i++) pen.dot(nose.x + pen.rng() * length, nose.y + (pen.rng() - 0.5) * thickness * 1.6, 0.3, ink, 0.45);
+    for (const f of [0.35, 0.6]) {
+      pen.hair([{ x: x0 + 2, y: top0.y + (bottom0.y - top0.y) * f }, { x: tip.x - 6, y: C + 0.3 }], 0.35, ink, 0.5);
+    }
+    for (let i = 0; i < 46; i++) pen.dot(x0 + pen.rng() * length, C + (pen.rng() - 0.6) * 7, 0.3, ink, 0.4);
   });
-  pen.stroke([...shape, shape[0]!], 0.9, ink, 1, false);
+  pen.stroke(upper, 1.7, ink, 1, false);
+  pen.stroke(lower, 1.4, ink, 1, false);
+  // The short lower jaw: a pointed chin under the sword's root and the line of the mouth.
+  const chin = { x: x0 + 3, y: bottom0.y - 0.2 };
+  pen.hair(bezier(chin, { x: x0 - 4, y: bottom0.y + 1.2 }, { x: xAt(a, 0.085), y: bottom0.y + 2.6 }, 6), 0.8, ink, 0.9);
 }
 
 /** Old bite scars: pale crescents of tooth marks, healed over. */

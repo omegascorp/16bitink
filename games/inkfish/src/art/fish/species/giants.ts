@@ -383,11 +383,21 @@ export const GIANTS: Partial<Record<SpeciesId, Anatomy>> = {
     },
   },
   swordfish: {
-    // Swordfish: a long flat sword, tall crescent dorsal, scaleless dark back, stiff lunate tail.
-    hl: 74, hh: 26, peak: 0.36, blunt: 0.25, peduncle: 0.14, tail: 'lunate', tailSize: 1.8,
+    // Swordfish: a long torpedo whose forehead slopes in one line down into the sword
+    // (the sword is its upper jaw, not a spike on the nose), tall crescent dorsal,
+    // scaleless dark back, stiff lunate tail on a keeled stalk.
+    hl: 74, hh: 26, peak: 0.32, blunt: 0.25, peduncle: 0.13, tail: 'lunate', tailSize: 1.8,
     dorsal: { from: 0.22, to: 0.36, height: 1.7, tri: true }, dorsal2: { from: 0.86, to: 0.9, height: 0.35, tri: true },
     anal: { from: 0.8, to: 0.86, height: 0.45, tri: true }, pectoral: 0, pelvic: false, scales: false,
-    eye: { t: 0.11, r: 6 }, mouth: 'small', wash: '#4c5a70', finWash: '#5d6b80', lateral: false,
+    eye: { t: 0.11, r: 6 }, mouth: 'none', wash: '#4c5a70', finWash: '#5d6b80', lateral: false, openNose: true,
+    profile: (t) => {
+      // The nose is the sword's root, a little above the centre line; the head swells
+      // back from it to the dorsal fin, then the body tapers long to the tail stalk.
+      const ease = (u: number): number => 0.55 * u + 0.45 * u * u * (3 - 2 * u);
+      const top = t <= 0.32 ? -0.17 - 0.75 * ease(t / 0.32) : -0.13 - 0.79 * Math.pow(Math.cos(((t - 0.32) / 0.68) * Math.PI / 2), 1.2);
+      const bottom = t <= 0.36 ? 0.12 + 0.68 * Math.pow(Math.sin((t / 0.36) * Math.PI / 2), 0.9) : 0.13 + 0.67 * Math.pow(Math.cos(((t - 0.36) / 0.64) * Math.PI / 2), 1.1);
+      return { top, bottom };
+    },
     extras: (k) => {
       // Dark bronze back, pale belly.
       k.pen.clipped(k.body, () => {
@@ -403,12 +413,12 @@ export const GIANTS: Partial<Record<SpeciesId, Anatomy>> = {
         }
       });
       backStipple(1.3)(k);
-      sword(k, 46, 4.5);
       // Keel on the tail stalk.
       k.pen.stroke([{ x: k.x(0.88), y: C }, { x: k.x(1) - 1, y: C }], 1.4, k.ink, 1, false);
       sickle(k, { x: k.x(0.28), y: C + k.h(0.28) * 0.55 }, { x: k.x(0.5), y: bottomAt(k.a, 0.3) + 20 }, 12, '#3a4558', 0.5);
     },
     face: (k) => {
+      sword(k, 46);
       // The huge eye of a deep hunter: a wide blue iris around a black pupil.
       const ex = k.x(k.a.eye.t);
       const ey = C - k.h(k.a.eye.t) * 0.3;

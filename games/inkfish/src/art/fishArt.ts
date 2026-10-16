@@ -375,7 +375,7 @@ export function drawFish(
   // Back and belly as two open strokes: no line across the tail stalk.
   const half = body.length / 2;
   pen.stroke(body.slice(0, half), heavy ? 2.6 : 2.1, ink);
-  pen.stroke([...body.slice(half), body[0]!], heavy ? 2.6 : 2.1, ink);
+  pen.stroke(a.openNose ? body.slice(half) : [...body.slice(half), body[0]!], heavy ? 2.6 : 2.1, ink);
   mouth(k);
   a.face?.(k);
   eye(k);

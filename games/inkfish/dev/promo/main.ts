@@ -36,6 +36,13 @@ import { createLionfish } from './lionfish/render';
 import { createMoray } from './moray/render';
 import { createTripod } from './tripod/render';
 import { createTrees } from './trees/render';
+import { createGoldfish } from './goldfish/render';
+import { createSurfer } from './surfer/render';
+import { createDrown } from './drown/render';
+import { createEels } from './eels/render';
+import { createSwordfish } from './swordfish/render';
+import { createGrouper } from './grouper/render';
+import { createSharkSkin } from './sharkskin/render';
 import { PAPER_ON_DARK, withCredit } from './credit';
 
 /**
@@ -58,7 +65,10 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * after the payoff (credit.ts): wrasse (passes the mirror test), tuna (the
  * $3.1M bluefin), pipefish (dads get pregnant), lionfish (eat it to save the
  * reef), moray (its second jaw), tripod (stands on stilts) and trees (sharks
- * are older than trees).
+ * are older than trees). The batch of 2026-10-16, myth-busters and known
+ * references: goldfish (no three-second memory), surfer (you look like a
+ * seal), drown (fish can drown), eels (Freud and the eel riddle), swordfish
+ * (heated eyes), grouper (fish can point) and sharkskin (covered in teeth).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -222,6 +232,34 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   trees: async () => {
     await loadCaptionFont();
     return withCredit(createTrees(ctx), ctx);
+  },
+  goldfish: async () => {
+    await loadCaptionFont();
+    return withCredit(createGoldfish(ctx), ctx);
+  },
+  surfer: async () => {
+    await loadCaptionFont();
+    return withCredit(createSurfer(ctx), ctx);
+  },
+  drown: async () => {
+    await loadCaptionFont();
+    return withCredit(createDrown(ctx), ctx);
+  },
+  eels: async () => {
+    await loadCaptionFont();
+    return withCredit(createEels(ctx), ctx);
+  },
+  swordfish: async () => {
+    await loadCaptionFont();
+    return withCredit(createSwordfish(ctx), ctx);
+  },
+  grouper: async () => {
+    await loadCaptionFont();
+    return withCredit(createGrouper(ctx), ctx);
+  },
+  sharkskin: async () => {
+    await loadCaptionFont();
+    return withCredit(createSharkSkin(ctx), ctx);
   },
 };
 

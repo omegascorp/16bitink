@@ -81,6 +81,8 @@ export interface Anatomy {
    * arched back over a flat belly.
    */
   readonly profile?: (t: number) => { readonly top: number; readonly bottom: number };
+  /** Leave the outline open across the nose, for a head that runs on into a bill the species draws (swordfish). */
+  readonly openNose?: boolean;
 }
 
 /** Everything a species' detail hook needs. */
