@@ -87,6 +87,21 @@ export interface GameHost {
    * Absent in dev harnesses and tests: games then show their own boot screen.
    */
   readonly loading?: LoadingReporter;
+  /**
+   * The game is published on a third-party portal (e.g. CrazyGames): it is
+   * complete as delivered. Games show only the content they were given (no
+   * locked teasers of more), and no store, sign-in or links out of the game.
+   */
+  readonly portal?: boolean;
+  /** The platform's own mute switch (e.g. a portal's sound setting), on top of the game's own. */
+  readonly audio?: PlatformAudio;
+}
+
+/** A sound switch the platform controls. The game stays silent while it is muted, whatever the player's own setting. */
+export interface PlatformAudio {
+  readonly muted: boolean;
+  /** Calls `listener` whenever the platform mutes or unmutes; returns an unsubscribe function. */
+  onChange(listener: (muted: boolean) => void): () => void;
 }
 
 /**

@@ -1,6 +1,7 @@
 import type { GameEvent, GameHost } from '@16bitink/game-sdk';
 import type { SoundBoard } from './audio/sound';
-import type { Chapter } from './levels/types';
+import type { Chapter, ChapterInfo } from './levels/types';
+import { ZONE_INFO } from './levels/zones';
 
 interface RegistryReader {
   readonly registry: { get(key: string): unknown };
@@ -27,3 +28,17 @@ export const getChapters = (s: RegistryReader): Chapter[] => (s.registry.get(REG
 export const getFullError = (s: RegistryReader): string | null => (s.registry.get(REG.fullError) as string | null) ?? null;
 /** The game's sound board; absent only in tests that build scenes without mounting the game. */
 export const getSound = (s: RegistryReader): SoundBoard | undefined => s.registry.get(REG.sound) as SoundBoard | undefined;
+
+/** On a portal the game is complete as delivered: no store, no sign-in, no links out. */
+export const isPortal = (s: RegistryReader): boolean => getHost(s).portal === true;
+
+/**
+ * The zones the map and the guide show. On the site, every zone (the ones
+ * not owned are teasers); on a portal, only the chapters the game was given,
+ * so the ocean ends where its content does.
+ */
+export function visibleZones(s: RegistryReader): readonly ChapterInfo[] {
+  if (!isPortal(s)) return ZONE_INFO;
+  const owned = new Set(getChapters(s).map((c) => c.id));
+  return ZONE_INFO.filter((z) => owned.has(z.id));
+}

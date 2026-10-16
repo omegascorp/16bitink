@@ -1105,7 +1105,7 @@ export class GameScene extends Phaser.Scene {
     const death = this.death ?? undefined;
     return this.clips?.finish({
       kind, death, fishName: PLAYER_FISH_NAMES[chapterOf(this.level).player], levelName: this.level.name,
-      seconds: this.elapsedMs / 1000, eaten: this.meals, progress: growthProgress(this.level, this.growth),
+      seconds: this.elapsedMs / 1000, eaten: this.meals, progress: growthProgress(this.level, this.growth), portal: getHost(this).portal === true,
     }, clipFileName(this.level.name, kind === 'lose' ? death ?? { cause: 'eaten' } : undefined));
   }
 

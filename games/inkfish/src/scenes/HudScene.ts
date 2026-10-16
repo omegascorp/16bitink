@@ -510,7 +510,8 @@ export class HudScene extends Phaser.Scene {
       inkText(this, 100, -98, `v${GAME_VERSION}`, 18).setOrigin(0, 1).setAlpha(0.6),
       inkButton(this, 0, -30, 'Keep swimming', () => this.togglePause(), { width: 260 }),
       inkButton(this, 0, 40, 'Level select', () => this.toMenu(), { width: 260 }),
-      inkButton(this, 0, 110, 'Exit to 16bit.ink', () => host.onExit(), { width: 260, size: 26 }),
+      // A portal has no site to go back to.
+      ...(host.portal ? [] : [inkButton(this, 0, 110, 'Exit to 16bit.ink', () => host.onExit(), { width: 260, size: 26 })]),
     ]);
   }
 

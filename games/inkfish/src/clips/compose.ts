@@ -33,12 +33,13 @@ interface Frame {
   readonly still: Ctx;
   readonly source: CanvasSource;
   readonly signal: AbortSignal;
+  readonly footer: string;
 }
 
 /** Hands one drawn frame to the encoder; the address goes on last, over everything. */
 async function emit(f: Frame, index: number): Promise<void> {
   if (f.signal.aborted) throw aborted();
-  drawFooter(f.ctx, CLIP_W, CLIP_H);
+  drawFooter(f.ctx, f.footer, CLIP_W, CLIP_H);
   await f.source.add(index / CLIP_FPS, 1 / CLIP_FPS);
 }
 
@@ -110,7 +111,7 @@ export async function composeClip(run: RecordedRun, card: ClipCard, won: boolean
       await audio.add(await renderSoundtrack(shots, run.sounds, seconds));
       audio.close();
     }
-    const f: Frame = { ctx, still, source, signal };
+    const f: Frame = { ctx, still, source, signal, footer: card.footer };
     let index = 0;
     for (const shot of shots) {
       if (shot.kind === 'hold') index = await playStill(f, shot, index, (p) => drawCard(ctx, card, won, p, CLIP_W, CLIP_H));

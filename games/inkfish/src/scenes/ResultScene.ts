@@ -207,7 +207,7 @@ export class ResultScene extends Phaser.Scene {
       job?.cancel();
       return;
     }
-    const panel = new ClipPanel(parent, job);
+    const panel = new ClipPanel(parent, job, getHost(this).portal === true);
     // The game being torn down from this screen doesn't shut the scene down first.
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => panel.destroy());
     this.events.once(Phaser.Scenes.Events.DESTROY, () => panel.destroy());

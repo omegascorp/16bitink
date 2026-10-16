@@ -1,4 +1,4 @@
-import { CLIP_FOOTER, type ClipCard } from '../logic/clips/card';
+import type { ClipCard } from '../logic/clips/card';
 import { BLUE_INK, HAND_FONT, RED_INK } from '../scenes/ui';
 
 type Ctx = OffscreenCanvasRenderingContext2D;
@@ -34,12 +34,12 @@ function inkText(ctx: Ctx, text: string, x: number, y: number, size: number, col
   ctx.fillText(text, x, y);
 }
 
-/** The game's address along the bottom of every frame. */
-export function drawFooter(ctx: Ctx, w: number, h: number): void {
+/** The game's name (and address, off portals) along the bottom of every frame. */
+export function drawFooter(ctx: Ctx, footer: string, w: number, h: number): void {
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  inkText(ctx, CLIP_FOOTER, w / 2, h - 54, 46, BLUE_INK);
+  inkText(ctx, footer, w / 2, h - 54, 46, BLUE_INK);
   ctx.restore();
 }
 

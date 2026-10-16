@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { screenScene, toView, viewSize } from './hidpi';
-import { getChapters, getHost } from '../host';
+import { getChapters, getHost, visibleZones } from '../host';
 import { guidePages, guideProgress, type GuideId, type GuidePage } from '../guide';
-import { ZONE_INFO } from '../levels/zones';
+import type { ChapterInfo } from '../levels/types';
 import { loadSave } from '../logic/save';
 import { CARD, guideCard, guideDetail } from './guide/cards';
 import { drawProgressRing, progressBar } from './guide/progress';
@@ -22,6 +22,7 @@ export class GuideScene extends Phaser.Scene {
   private pages: GuidePage[] = [];
   private seen = new Set<string>();
   private chapter = 1;
+  private zones: readonly ChapterInfo[] = [];
   private grid: Phaser.GameObjects.Container | null = null;
   private header: Phaser.GameObjects.GameObject[] = [];
   private detail: Phaser.GameObjects.Container | null = null;
@@ -41,6 +42,8 @@ export class GuideScene extends Phaser.Scene {
     screenScene(this);
     const host = getHost(this);
     this.pages = guidePages(getChapters(this));
+    this.zones = visibleZones(this);
+    this.chapter = Phaser.Math.Clamp(this.chapter, 1, this.zones.length);
     this.seen = new Set(loadSave(host.storage).seen);
     this.render();
     this.scale.on('resize', this.render, this);
@@ -58,7 +61,7 @@ export class GuideScene extends Phaser.Scene {
 
   private turn(step: number): void {
     if (this.detail) return;
-    this.chapter = Phaser.Math.Clamp(this.chapter + step, 1, ZONE_INFO.length);
+    this.chapter = Phaser.Math.Clamp(this.chapter + step, 1, this.zones.length);
     this.scrollY = 0;
     this.render();
   }
@@ -72,7 +75,7 @@ export class GuideScene extends Phaser.Scene {
     paperBackdrop(this);
     const all = this.pages.flatMap((p) => p.ids);
     const met = all.filter((id) => this.seen.has(id)).length;
-    const info = ZONE_INFO[this.chapter - 1]!;
+    const info = this.zones[this.chapter - 1]!;
     this.header = [
       inkText(this, 20 + 110 * s, 36 * s, 'Fish guide', 46 * s, BLUE_INK),
       this.add.text(24, 64 * s, `${met} of ${all.length} creatures met`, { fontFamily: HAND_FONT, fontSize: `${22 * s}px`, color: '#4a463e' }),
@@ -93,9 +96,9 @@ export class GuideScene extends Phaser.Scene {
 
   private buildTabs(s: number): void {
     const { width, height } = viewSize(this);
-    const n = ZONE_INFO.length;
+    const n = this.zones.length;
     const gap = Math.min(52 * s, (width - 40) / n);
-    for (const z of ZONE_INFO) {
+    for (const z of this.zones) {
       const active = z.id === this.chapter;
       const page = this.pages.find((p) => p.chapter === z.id);
       const owned = Boolean(page);

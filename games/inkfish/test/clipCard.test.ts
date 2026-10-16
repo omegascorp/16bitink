@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clipCard, clipFileName, CLIP_FOOTER } from '../src/logic/clips/card';
+import { clipCard, clipFileName, CLIP_FOOTER, PORTAL_CLIP_FOOTER } from '../src/logic/clips/card';
 
 const stats = { seconds: 102, eaten: 23, progress: 0.4 };
 
@@ -33,6 +33,15 @@ describe('clip card', () => {
 
   it('points viewers at the game', () => {
     expect(CLIP_FOOTER).toMatch(/16bit\.ink/);
+    expect(clipCard({ kind: 'win', fishName: 'goby', levelName: 'x', seconds: 9, eaten: 1, progress: 1 }).footer).toBe(CLIP_FOOTER);
+  });
+
+  it('links nowhere else from a portal', () => {
+    const win = clipCard({ kind: 'win', fishName: 'goby', levelName: 'x', seconds: 9, eaten: 1, progress: 1, portal: true });
+    const lose = clipCard({ kind: 'lose', fishName: 'goby', levelName: 'x', seconds: 9, eaten: 1, progress: 0.2, portal: true });
+    expect(win.footer).toBe(PORTAL_CLIP_FOOTER);
+    expect(lose.footer).toBe(PORTAL_CLIP_FOOTER);
+    expect(PORTAL_CLIP_FOOTER).not.toMatch(/16bit|http/);
   });
 
   it('names the file after the level and how it ended', () => {

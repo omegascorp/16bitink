@@ -25,6 +25,8 @@ export class SoundBoard {
   private master: GainNode | null = null;
   private readonly last = new Map<string, number>();
   private mutedNow: boolean;
+  /** Muted by the platform (e.g. the portal's sound setting); not saved, and not the player's own switch. */
+  private platformMuted = false;
   private readonly unlock = (): void => this.start();
   private readonly onVisibility = (): void => {
     if (!this.ctx) return;
@@ -38,13 +40,14 @@ export class SoundBoard {
     document.addEventListener('visibilitychange', this.onVisibility);
   }
 
+  /** The player's own switch (the HUD's note button), remembered in storage. */
   get muted(): boolean {
     return this.mutedNow;
   }
 
   setMuted(muted: boolean): void {
     this.mutedNow = muted;
-    this.master?.gain.setTargetAtTime(muted ? 0 : MASTER, this.ctx?.currentTime ?? 0, 0.02);
+    this.applyGain();
     try {
       this.store?.setItem(SOUND_KEY, JSON.stringify({ muted }));
     } catch {
@@ -52,9 +55,23 @@ export class SoundBoard {
     }
   }
 
+  /** The platform's mute, on top of the player's: either one silences the game. */
+  setPlatformMuted(muted: boolean): void {
+    this.platformMuted = muted;
+    this.applyGain();
+  }
+
+  private get silent(): boolean {
+    return this.mutedNow || this.platformMuted;
+  }
+
+  private applyGain(): void {
+    this.master?.gain.setTargetAtTime(this.silent ? 0 : MASTER, this.ctx?.currentTime ?? 0, 0.02);
+  }
+
   play(id: SfxId, opts: PlayOpts = {}): void {
     const ctx = this.ctx;
-    if (!ctx || !this.master || this.mutedNow || ctx.state !== 'running') return;
+    if (!ctx || !this.master || this.silent || ctx.state !== 'running') return;
     const place = opts.at && opts.view ? spatial(opts.at, opts.view) : { pan: 0, gain: 1 };
     const gain = place.gain * (opts.gain ?? 1);
     if (gain <= 0.02 || !canPlay(id, performance.now(), this.last)) return;
@@ -86,7 +103,7 @@ export class SoundBoard {
     if (!Ctor) return;
     this.ctx = new Ctor();
     this.master = this.ctx.createGain();
-    this.master.gain.value = this.mutedNow ? 0 : MASTER;
+    this.master.gain.value = this.silent ? 0 : MASTER;
     this.master.connect(this.ctx.destination);
   }
 }

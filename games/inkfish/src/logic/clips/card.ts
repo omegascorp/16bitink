@@ -6,6 +6,8 @@ import { deathText, type Death } from '../deaths';
 export interface ClipCard {
   readonly title: string;
   readonly lines: readonly string[];
+  /** Written along the bottom of every frame. */
+  readonly footer: string;
 }
 
 export interface CardInput {
@@ -19,10 +21,14 @@ export interface CardInput {
   readonly eaten: number;
   /** How grown the fish got, 0..1. */
   readonly progress: number;
+  /** Made on a portal (CrazyGames): the footer names the game without sending viewers elsewhere. */
+  readonly portal?: boolean;
 }
 
 /** Written along the bottom of every clip. */
 export const CLIP_FOOTER = 'InkFish · play free at 16bit.ink';
+/** A portal's clips link nowhere else. */
+export const PORTAL_CLIP_FOOTER = 'InkFish';
 
 /** Grown at least this much, a lost clip says how close it was. */
 const SO_CLOSE = 0.75;
@@ -34,9 +40,11 @@ const clock = (seconds: number): string => {
 
 export function clipCard(input: CardInput): ClipCard {
   const ate = `Ate ${input.eaten} fish`;
-  if (input.kind === 'win') return { title: 'Full belly!', lines: [input.levelName, `${ate} in ${clock(input.seconds)}`] };
+  const footer = input.portal ? PORTAL_CLIP_FOOTER : CLIP_FOOTER;
+  if (input.kind === 'win') return { title: 'Full belly!', lines: [input.levelName, `${ate} in ${clock(input.seconds)}`], footer };
   const pct = Math.round(input.progress * 100);
   return {
+    footer,
     title: `R.I.P., little ${input.fishName}`,
     lines: [
       deathText(input.death ?? { cause: 'eaten' }).line,

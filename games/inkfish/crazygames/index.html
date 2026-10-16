@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>InkFish</title>
+  <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+  <style>
+    /* Self-hosted: the portal build makes no requests but the SDK's. */
+    @font-face {
+      font-family: 'Caveat'; font-style: normal; font-weight: 400 700; font-display: block;
+      src: url(./fonts/caveat-latin-ext.woff2) format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Caveat'; font-style: normal; font-weight: 400 700; font-display: block;
+      src: url(./fonts/caveat-latin.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    html, body { margin: 0; height: 100%; background: #f4eddc; overflow: hidden; }
+    #game { position: fixed; inset: 0; touch-action: none; }
+    #loading {
+      position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      background: #f4eddc; color: #1b1a1f; font: 600 32px 'Caveat', cursive; transition: opacity 0.3s;
+    }
+    #loading.gone { opacity: 0; pointer-events: none; }
+    #loading .bar { width: min(320px, 70vw); height: 12px; border: 2px solid #1b1a1f; border-radius: 8px; overflow: hidden; }
+    #loading .fill { height: 100%; width: 0; background: #1f3f8a; transition: width 0.2s; }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="loading"><div class="title">InkFish</div><div class="bar"><div class="fill"></div></div><div class="label">sharpening pens…</div></div>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

@@ -49,6 +49,10 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
   game.registry.set(REG.host, host);
   const sound = new SoundBoard(host.storage);
   game.registry.set(REG.sound, sound);
+  // A portal's own sound setting silences the game on top of the player's switch.
+  const platformAudio = host.audio;
+  if (platformAudio) sound.setPlatformMuted(platformAudio.muted);
+  const stopAudioSync = platformAudio?.onChange((muted) => sound.setPlatformMuted(muted));
   // Track the parent ourselves (window resize, rotation, fullscreen), as RESIZE mode would.
   const resizer = new ResizeObserver(() => {
     const next = cssSize();
@@ -61,6 +65,7 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     phaser: game,
     destroy: () => {
       resizer.disconnect();
+      stopAudioSync?.();
       sound.destroy();
       game.destroy(true);
     },

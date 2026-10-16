@@ -2,10 +2,10 @@ import Phaser from 'phaser';
 import { crispText, DPR, screenZoom, toView, uiCamera, viewSize } from './hidpi';
 import { BOIL_FPS, BOIL_FRAMES, ensureFishTextures, fishKey } from '../art/textures';
 import { dropUnusedArt, trackArt } from '../art/artCache';
-import { getChapters, getFullError, getHost } from '../host';
+import { getChapters, getFullError, getHost, isPortal, visibleZones } from '../host';
 import { guidePages, guideProgress, type GuidePage } from '../guide';
 import { allLevels } from '../levels/chapters';
-import { LEVELS_PER_CHAPTER, ZONE_INFO, ZONE_NIGHT } from '../levels/zones';
+import { LEVELS_PER_CHAPTER, ZONE_NIGHT } from '../levels/zones';
 import { isLevelOpen, loadSave } from '../logic/save';
 import { loadPaidChapters } from './BootScene';
 import { computeMapLayout, zoneIndexAt, type MapChapter, type MapLayout, type MapNode } from './map/layout';
@@ -55,7 +55,7 @@ export class MenuScene extends Phaser.Scene {
     const ids = levels.map((l) => l.id);
     const save = loadSave(host.storage);
 
-    const chapters: MapChapter[] = ZONE_INFO.map((info) => {
+    const chapters: MapChapter[] = visibleZones(this).map((info) => {
       const ch = owned.find((c) => c.id === info.id);
       return ch
         ? { info: ch, levelIds: ch.levels.map((l) => l.id), locked: false }
@@ -187,10 +187,12 @@ export class MenuScene extends Phaser.Scene {
     ui(this.titleText);
     this.countText = this.add.text(24, 64 * s, `${done} of ${this.layout.nodes.length} levels`, { fontFamily: HAND_FONT, fontSize: `${22 * s}px`, color: SOFT_INK });
     ui(this.countText);
-    ui(inkButton(this, width - 110 * s, 36 * s, '← 16bit.ink', () => host.onExit(), { width: 180 * s, height: 46 * s, size: 24 * s }));
+    // A portal has no site to go back to: the guide button takes the exit button's corner.
+    const exit = !isPortal(this);
+    if (exit) ui(inkButton(this, width - 110 * s, 36 * s, '← 16bit.ink', () => host.onExit(), { width: 180 * s, height: 46 * s, size: 24 * s }));
     // Portrait: the guide button goes under the exit button, there's no room beside it.
-    const guideX = narrow ? width - 110 * s : width - 310 * s;
-    const guideY = narrow ? 96 * s : 36 * s;
+    const guideX = !exit ? width - 100 * s : narrow ? width - 110 * s : width - 310 * s;
+    const guideY = narrow && exit ? 96 * s : 36 * s;
     ui(inkButton(this, guideX, guideY, 'Fish guide', () => this.scene.start('Guide', { chapter: (this.activeZone >= 0 ? this.activeZone : 0) + 1 }), { width: 160 * s, height: 46 * s, size: 24 * s }));
     // Under the button: how much of this chapter's guide page you've filled in.
     const bar = this.add.graphics().setPosition(guideX, guideY + 36 * s);

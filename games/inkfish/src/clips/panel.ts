@@ -3,6 +3,8 @@ import type { ClipFile, ClipJob } from './types';
 
 const STYLE_ID = 'inkfish-clip-style';
 const SHARE_TEXT = 'InkFish: play free at https://16bit.ink/games/inkfish';
+/** On a portal the game links nowhere else. */
+const PORTAL_SHARE_TEXT = 'InkFish';
 
 /**
  * The look of the clip panel: paper, pen lines and handwriting, like the
@@ -63,7 +65,7 @@ export class ClipPanel {
   private url: string | null = null;
   private gone = false;
 
-  constructor(parent: HTMLElement, private readonly job: ClipJob) {
+  constructor(parent: HTMLElement, private readonly job: ClipJob, private readonly portal = false) {
     ensureStyle();
     this.root.dataset.state = 'making';
     const preview = el('button', 'ifclip-preview');
@@ -96,7 +98,7 @@ export class ClipPanel {
       const share = el('button', 'ifclip-btn', 'Share');
       share.type = 'button';
       share.addEventListener('click', () => {
-        navigator.share({ files: [file], title: 'InkFish', text: SHARE_TEXT }).catch((err: unknown) => {
+        navigator.share({ files: [file], title: 'InkFish', text: this.portal ? PORTAL_SHARE_TEXT : SHARE_TEXT }).catch((err: unknown) => {
           // Closing the share sheet isn't an error.
           if (!(err instanceof DOMException && err.name === 'AbortError')) console.warn('[inkfish] could not share the clip', err);
         });
