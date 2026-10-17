@@ -94,6 +94,38 @@ export const GAMES: readonly CatalogGame[] = [
     ],
   },
   {
+    slug: 'inkmine',
+    title: 'InkMine',
+    tagline: 'Dig. Repair. Find your way home.',
+    description: [
+      'A mining game drawn in ballpoint pen. A wild wormhole tore your ship apart and threw you down onto a small grey moon, among stars no chart has. Dig for copper, graphite, silver and ice, and print what the wreck of your lander needs to fly again.',
+      'Every block costs drill energy and every trip costs air. Follow a strange call over the horizon to the Lamplighters, who speak no language you know, trade them silver from deep down for a drive core, and climb back up to your starship, waiting dark in orbit.',
+    ],
+    status: 'playable',
+    cover: '/covers/inkmine.png',
+    // No price or Stripe lookup key yet: the demo is free, and the full game (planets 2-10) is still to come.
+    theme: { paper: '#f4eddc', ink: '#1f2a55', accent: '#4a2f7a' },
+    icon: 'inkmine',
+    orientation: 'landscape',
+    fonts: {
+      googleCss: 'family=Caveat:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500',
+      await: ['32px Caveat', '32px "EB Garamond"', '600 32px "EB Garamond"', 'italic 32px "EB Garamond"'],
+    },
+    features: [
+      'Chapter 1 free: Graphite, your lander and your starship, no sign-up',
+      'Mine, print gear, mend two ships and learn to talk with the Lamplighters',
+      'The full game, nine more worlds round the orange star, is coming soon',
+    ],
+    controls: [
+      'Arrows / WASD or the stick: walk; push into rock to drill (up and down too)',
+      'Space or the jump button: jump; hold it for the jetpack',
+      'L or the bag button at the lander: go aboard; away from it: inventory',
+      'Inventory or tap a gauge: feed the drill or the air',
+      'Esc / P: inventory and pause',
+      'M / ♪: sound on/off',
+    ],
+  },
+  {
     slug: 'pixel-quill',
     title: 'Untitled #2',
     tagline: 'Still in the sketchbook.',

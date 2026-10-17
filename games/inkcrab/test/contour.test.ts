@@ -33,9 +33,9 @@ describe('marching squares', () => {
     expect(filled(12)).toBeCloseTo(0.5);
   });
 
-  it('keeps diagonal sand connected at saddles', () => {
-    expect(filled(5)).toBeCloseTo(0.75);
-    expect(filled(10)).toBeCloseTo(0.75);
+  it('joins diagonal openings at saddles, so a hole dug diagonally reads as one passage', () => {
+    expect(filled(5)).toBeCloseTo(0.25);
+    expect(filled(10)).toBeCloseTo(0.25);
     expect(cellGeometry(5).edges).toHaveLength(2);
     expect(cellGeometry(10).edges).toHaveLength(2);
   });

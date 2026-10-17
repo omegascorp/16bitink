@@ -1,7 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import BuyButton from '../../components/BuyButton.astro';
-import { findGame } from '../../data/games';
+import { findGame, isPurchasable } from '../../data/games';
 import { currentUser, ownership } from '../../lib/owner';
 
 // Rendered per request, so owners and signed-in players see their own page
@@ -10,6 +10,8 @@ export const prerender = false;
 
 const game = findGame(Astro.params.slug ?? '');
 if (!game || game.status !== 'playable') return new Response('Not found', { status: 404 });
+// A game whose full version isn't out yet: a free demo, nothing to buy.
+const forSale = isPurchasable(game);
 
 let owned = false;
 let user: { name: string; email: string } | null = null;
@@ -29,22 +31,24 @@ Astro.response.headers.set('cache-control', 'private, no-store');
       <img src={game.cover} alt={`${game.title} gameplay`} width="1200" height="675" />
     </div>
     <div class="info">
-      <p class="pixel-label">{owned ? 'Full game · unlocked' : `Free demo · full game ${game.price} one-time`}</p>
+      <p class="pixel-label">{owned ? 'Full game · unlocked' : forSale ? `Free demo · full game ${game.price} one-time` : 'Free demo · the full game is coming soon'}</p>
       <h1>{game.title}</h1>
       <p class="tag">{game.tagline}</p>
       {game.description.map((p) => <p>{p}</p>)}
       <div class="actions">
         <a class="btn btn-ink" href={`/play/${game.slug}`}>{owned ? 'Play the full game' : 'Play free, full-screen'}</a>
-        {!owned && <BuyButton game={game.slug} label={`Unlock full game · ${game.price}`} />}
+        {!owned && forSale && <BuyButton game={game.slug} label={`Unlock full game · ${game.price}`} />}
       </div>
-      {owned ? (
+      {!forSale ? (
+        <p class="one-time"><strong>Free to play.</strong> The demo is the whole first chapter, free and with no sign-up. The rest of the game is coming soon.</p>
+      ) : owned ? (
         <p class="one-time"><strong>You own the full game.</strong> Every level is yours to keep, with nothing more to pay.</p>
       ) : (
         <p class="one-time"><strong>One-time purchase.</strong> Pay once and the full game is yours to keep: no subscription, no ads, nothing more to buy. Refunds within 14 days, see the <a href="/terms#refunds">terms</a>.</p>
       )}
       <p class="cancelled" hidden>Checkout cancelled. No charge was made.</p>
-      {!owned && !user && <p class="restore">Bought it already? <a href={`/auth/google?return=/games/${game.slug}`}>Sign in with Google</a> with the email on your receipt to unlock it here.</p>}
-      {!owned && <p class="restore">Got a key? <a href="/redeem">Redeem it here</a>.</p>}
+      {forSale && !owned && !user && <p class="restore">Bought it already? <a href={`/auth/google?return=/games/${game.slug}`}>Sign in with Google</a> with the email on your receipt to unlock it here.</p>}
+      {forSale && !owned && <p class="restore">Got a key? <a href="/redeem">Redeem it here</a>.</p>}
       <div class="cols">
         {game.features && (
           <section>
