@@ -4,9 +4,9 @@ import type { MineInput } from '../../logic/mine';
 /**
  * Keyboard controls: arrows or WASD move and drill (push into the ground),
  * Space jumps and, held in the air, fires the jetpack,
- * R feeds the lower of the cell and life support from the bag, L (or Enter)
- * goes aboard at the lander and opens the suit anywhere else, Esc (or P) pauses (recall is on the pause
- * card). Touch comes with the HUD's stick and buttons (build order, later).
+ * R feeds the lower of the cell and life support from the bag; L, Esc, P
+ * or Enter goes aboard at the lander and opens the inventory anywhere else
+ * (the world waits while it's open, and recall is there). Touch comes with the HUD's stick and buttons (build order, later).
  */
 export class GameInput {
   /** Each button's last key-down time seen, so a press counts once, however short. */
@@ -46,22 +46,14 @@ export class GameInput {
     return key.timeDown > last;
   }
 
-  /** Pressed this frame: pause, or back from it. */
-  pause(): boolean {
-    const a = this.pressed(this.keys.pause);
-    const b = this.pressed(this.keys.p);
-    return a || b;
-  }
-
-  /** Forgets every press so far: keys pressed while the game waited behind the suit page don't fire when it resumes. */
+  /** Forgets every press so far: keys pressed while the game waited behind the inventory don't fire when it resumes. */
   forget(): void {
     for (const key of Object.values(this.keys)) this.seen.set(key, key.timeDown);
   }
 
-  /** Pressed this frame: go aboard at the lander, or open the suit anywhere else. */
-  aboard(): boolean {
-    const a = this.pressed(this.keys.aboard);
-    const b = this.pressed(this.keys.enter);
-    return a || b;
+  /** Pressed this frame: the menu key (L, Esc, P or Enter), aboard at the lander or the inventory anywhere else. */
+  menu(): boolean {
+    // Every key is read, so a press on one that isn't used this frame doesn't fire later.
+    return [this.keys.aboard, this.keys.enter, this.keys.pause, this.keys.p].map((k) => this.pressed(k)).some(Boolean);
   }
 }

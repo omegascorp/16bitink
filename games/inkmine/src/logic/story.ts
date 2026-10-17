@@ -5,7 +5,7 @@ import type { OreKey } from './ore';
 
 /**
  * Chapter 1's story past the radio (spec, "Story: chapter 1"): the moment
- * the radio works, a call comes in, a slow voice in knots nobody can read.
+ * the radio works, a call comes in, a slow voice nobody understands.
  * The lander's dish can't tell where it's from; a handheld receiver
  * (tools.ts) follows it by its strength, hot and cold, to the Lamplighters'
  * outpost on the crater's far rim. You can't understand each other, so they say what

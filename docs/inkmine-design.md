@@ -42,7 +42,7 @@ Graphite is chapter 1, and the free version. It ends the moment the lander flies
 
 1. **The wormhole.** A short ink-drawn opening: the jump, the wild wormhole, the tear, the fall, the crash. You climb out of a smoking, tilted lander on the rim of a crater, and the memory of the way back is gone.
 2. **The suit takes stock.** Its systems list what's broken. The printer is the first repair: it takes only copper from the crater walls, and nothing in the first area can hurt you.
-3. **The radio.** The lander's radio and dish were broken in the crash. Repaired, it still can't reach the guild, but a call comes in at once (built Oct 17, 2026): a slow voice in knots nobody can read. The radio records it; the dish can't say where it's from, only that it's somewhere over the horizon.
+3. **The radio.** The lander's radio and dish were broken in the crash. Repaired, it still can't reach the guild, but a call comes in at once (built Oct 17, 2026): a slow voice nobody understands. The radio records it; the dish can't say where it's from, only that it's somewhere over the horizon.
 4. **The receiver and the alien.** You print a handheld **receiver** (a suit tool: copper and quartz, no blueprint) and follow the call hot and cold: the HUD's "Next" plate shows its bars, and the suit notes "signal stronger" / "signal weaker" as you walk. There's no arrow while you search, nor while you dig for their silver; it points back to them once the core is waiting. At the outpost on the crater's far rim a Lamplighter meets you. You can't understand a word; they draw in the dust what they want: ten lumps of silver, from deep down, for a drive core.
 5. **The hull and the thrusters.** Your suit asks for the parts as you need them. You can repair them in any order, and each one takes ore from deeper down.
 6. **The drive core.** It cracked in the wormhole, and nothing you can print will fix it. The Lamplighters make one. As built: you bring them the silver in your bag (they take it from the bag), and once the hull and thrusters are mended they hand the core over; you fit it aboard. Later, when the language is built, the core waits for fluency and their last job as well.
@@ -148,7 +148,7 @@ Life works the No Man's Sky way, adapted to a pen-drawn phone screen. Five gauge
 
 **Dying.** At zero hearts the screen inks over and you wake at the lander, printed again (see Story). Your bag stays where you fell, marked on the survey sheet and in the world with a little inked flag. Walk back and touch it to get everything back. There is one flag at a time: die again before you reach it and the flag moves to where you fell, carrying the old bag with the new (decided Oct 16, 2026, after review: losing the first bag on the way back to it felt cruel). The cargo hold is always safe.
 
-**Recall.** If you're stuck (no energy, no way up), the pause menu's recall winches you up to the lander. It works like dying, without the printing: the bag stays where you were, flagged. The Winch module keeps part of each stack in the bag; only the rest is left under the flag.
+**Recall.** If you're stuck (no energy, no way up), Recall on the inventory page (L or Esc) winches you up to the lander. It works like dying, without the printing: the bag stays where you were, flagged. The Winch module keeps part of each stack in the bag; only the rest is left under the flag.
 
 **Built (Oct 16, 2026)** (`logic/suit.ts`, `logic/flag.ts`):
 - The numbers: the shield refills at half a bar a second, starting 4 s after the last hit. A hit takes a whole bar or, with less than one, a heart; then 2 s of grace. Life support is 100 and lasts 6 minutes outside; empty, a heart goes every 6 s (shield or no shield). One graphite gives the cell 20, one ice gives life support 25. The jetpack charges 30 a second (a starter tank in 2 s) on the ground or a ladder.
@@ -168,7 +168,7 @@ Ore is kept as resources in two slot inventories (decided with @Hayk on Oct 14, 
 | Cargo hold | 16 | 50 | The Cargo hold module: 6 more slots a level |
 
 - **At the lander** the bag empties into the cargo automatically, the rarest ore first; whatever doesn't fit stays in the bag ("cargo hold full").
-- **Locked slots** (Oct 17, 2026): aboard, pick up a stack in the suit bag and press Lock; a locked slot (a padlock on it, in the menu and on the HUD) is never emptied into the cargo. While the Lamplighters wait for their silver, silver in the bag stays there the same way, without locking, until they have it. Moving stacks between the bag and the cargo is aboard: pick one up, then "To cargo" / "To suit bag", or tap a slot on the other tab. A picked-up stack takes the detail card's place on the right (Oct 17, 2026): the ore drawn big, how many are in the stack and on hand, where it sits (locked, or kept for the Lamplighters), real facts about the mineral, what it fuels, and what it's still needed for, each ticked once enough is on hand (`logic/needs.ts`). Only one thing is selected at a time: tapping a technology slot puts the stack down and shows that slot's card, picking up a stack lets the slot go, and tapping the selected slot or stack again leaves the right side empty (there's no Put down button). Far from the lander, L opens the same page over the paused world (Oct 17, 2026): the suit bag can still be sorted, split, locked and dropped, but the cargo and the lander are look-only (a cargo stack shows its card, nothing moves into or out of the cargo) and Print / Repair read "At the lander", since printing takes the lander's printer. The page is titled Inventory there, and on the Ship tab a note over the lander says you're far from it and must come back to print, repair or move the cargo. Back, L or Esc closes it, and play carries on where it stopped (the world is paused while it's open).
+- **Locked slots** (Oct 17, 2026): aboard, pick up a stack in the suit bag and press Lock; a locked slot (a padlock on it, in the menu and on the HUD) is never emptied into the cargo. While the Lamplighters wait for their silver, silver in the bag stays there the same way, without locking, until they have it. Moving stacks between the bag and the cargo is aboard: pick one up, then "To cargo" / "To suit bag", or tap a slot on the other tab. A picked-up stack takes the detail card's place on the right (Oct 17, 2026): the ore drawn big, how many are in the stack and on hand, where it sits (locked, or kept for the Lamplighters), real facts about the mineral, what it fuels, and what it's still needed for, each ticked once enough is on hand (`logic/needs.ts`). Only one thing is selected at a time: tapping a technology slot puts the stack down and shows that slot's card, picking up a stack lets the slot go, and tapping the selected slot or stack again leaves the right side empty (there's no Put down button). Far from the lander, L or Esc opens the same page over the paused world (Oct 17, 2026), and it doubles as the pause menu with Recall on it: the suit bag can still be sorted, split, locked and dropped, but the cargo and the lander are look-only (a cargo stack shows its card, nothing moves into or out of the cargo) and Print / Repair read "At the lander", since printing takes the lander's printer. The page is titled Inventory there, and on the Ship tab a note over the lander says you're far from it and must come back to print, repair or move the cargo. Back, L or Esc closes it, and play carries on where it stopped (the world is paused while it's open).
 - **Inside the lander** both grids are shown. Tap a stack to pick it up, tap a slot to put it there: into an empty slot, onto the same ore (as much as fits), or swapping. A picked-up stack can be split in half or dropped (tap twice).
 - **Things you're given or find** (a blueprint, a time capsule, an Aster log, a job item) go in a separate pouch and never take bag space.
 
@@ -208,8 +208,8 @@ There's no mission list and no job board. Things to do come from two places:
 | --- | --- | --- | --- |
 | Printer | 6 copper | Printing: gear from blueprints, lander modules. Until then the printer sheets say "offline" | Copper is the best cheap conductor |
 | Radio (saved id `comms`) | 4 copper, 2 quartz | The call; then the receiver, the Lamplighters, the lexicon | Quartz crystals keep radios on frequency |
-| Hull plating | 10 galena, 6 graphite | The six cargo slots the breach put out of use (10 → 16) | Lead shields against radiation |
-| Thrusters | 6 silver, 4 quartz | The engines fire; only the core is missing | Silver is the best conductor of electricity |
+| Hull plating | 10 graphite, 3 galena | The six cargo slots the breach put out of use (10 → 16) | Graphite fibres make light, stiff panels; lead only seals the seams. A lead hull would be heavy, and cosmic rays hitting it spray more radiation |
+| Thrusters | 6 copper, 6 silver, 2 graphite | The engines fire; only the core is missing | Rocket chambers are lined with copper and a little silver, which pulls the heat away before the wall melts; the nozzle throat is graphite |
 | Drive core | Can't be printed: the Lamplighters give it for 10 silver once the hull and thrusters are mended | Lift-off: the end of chapter 1 | — |
 
 - **The order:** the printer first, the radio second (the start teaches the game), the hull and thrusters in either order, the core last. A repair whose turn hasn't come says what it's waiting for.
@@ -244,7 +244,7 @@ Graphite's only people, and the first race you meet. A working name: it's what t
 
 ## Learning the language
 
-Lamplighter speech appears as knot glyphs in a speech bubble. Every word you know is written over its glyph in your own handwriting, so a sentence fills in as you learn: first "… **ore** … **deep** …", much later the whole line.
+Lamplighter speech appears as the suit's recording of their voice (Oct 17, 2026): an inked sound trace, one swelling burst per word with quiet between, long low waves for a slow, low voice (`scenes/kit/voice.ts`). You hear speech, you don't read it, so speech is never drawn as writing. Every word you know is written over its burst in your own handwriting, so a sentence fills in as you learn: first "… **ore** … **deep** …", much later the whole line. The knot glyphs are their writing only: inscriptions, writings, the lexicon.
 
 | Level | Words known | What it gives |
 | --- | --- | --- |
@@ -285,13 +285,13 @@ Every planet has its own set of gear, the best you can have there, built from th
 | Helmet | Wider lamp light; from Mk 2, a scanner ping that shows ore through rock |
 | Jetpack | A bigger tank and a faster climb |
 
-**Printing a piece takes its blueprint and the planet's materials** (cargo first, then the bag). Graphite's Mk 1 recipes (`logic/blueprints.ts`):
+**Printing a piece takes its blueprint and the planet's materials** (cargo first, then the bag). Every recipe uses what the part would really be made of (realism pass, Oct 17, 2026, in [inkmine-research.md](inkmine-research.md)): the cell is a graphite anode on copper foil, the pack a carbon frame with copper fittings, the drill copper windings with graphite brushes and diamond grit, the helmet a fused-quartz visor, the jetpack a graphite nozzle with silver joints, the suit glass-fibre cloth. Graphite's Mk 1 recipes (`logic/blueprints.ts`):
 
 | Piece | Materials | Gives (`logic/marks.ts`) | Blueprint from |
 | --- | --- | --- | --- |
 | Cell | 4 graphite, 6 copper | Energy 100 → 140 | The Lamplighters' first job |
-| Drill | 6 graphite, 4 galena | Breaks Graphite's stone | The Aster base |
-| Pack | 3 graphite, 8 copper | Bag 4 → 6 slots | A vault near the crash site |
+| Drill | 6 graphite, 4 copper | Breaks Graphite's stone | The Aster base |
+| Pack | 6 graphite, 2 copper | Bag 4 → 6 slots | A vault near the crash site |
 | Helmet | 4 graphite, 2 quartz | Lamp 4.5 → 6 tiles | A Lamplighter job |
 | Jetpack | 5 graphite, 3 silver | Fuel 6 → 9 s, faster climb | A deep vault |
 | Suit | 8 graphite, 3 quartz | Shield up, hearts 3 → 4 | A Lamplighter job at level 3 |
@@ -372,6 +372,8 @@ Order follows difficulty and dependency: water (3) before lava (7) so lava-meets
 
 A grey moon of soft dark rock, pocked with craters, with a ringed planet hanging in its sky.
 
+**Why its ore lies where it does** (realism pass, Oct 17, 2026, in [inkmine-research.md](inkmine-research.md)). Graphite is a small Mercury: when it was young and molten, graphite was the only mineral light enough to float, so it set as a crust at the top, which is why its seams lie near the surface. Its crust is dark and low in silica, so clear quartz grows only in veins in the stone. It once had groundwater, warmed by the ringed planet's tides: native copper formed near that old water table, galena below it, and the water that's left is ice in the shadowed crater and the cold ground. Native silver is most common near the surface in real ore bodies, but deep veins exist; here it's kept deep, as the ore that pulls you down. The depths are compressed (real ore zones span hundreds of metres to kilometres; Graphite is 160 m deep), but the order is real.
+
 | Region | Where | What's there | Opens with |
 | --- | --- | --- | --- |
 | The crash site | Surface and soil under the lander | Copper, ice; no creatures; a vault (Pack) | Start |
@@ -389,7 +391,7 @@ Graphite's existing levels 1–5 (`level/planet1.ts`) become the first regions: 
 There's no result screen and no level select in chapter 1.
 
 - **Inside the lander** (L at the lander), laid out like No Man's Sky's inventory (ShipScene, Oct 17, 2026): a **Suit** and a **Ship** tab (tap, or Q / E). Each tab has a Technology plate of big slots with a drawn picture of what's fitted (`art/techArt.ts`), its Mk or level, and a corner flag (verdigris: an upgrade ready to print; madder: broken), then a separate Storage plate (the suit bag; the cargo). The suit's slots are the six gear pieces; the ship's are its Systems (the crash repairs, drawn broken until mended) and its Modules. Beside them stand the prospector or the lander, over a detail card for the slot in focus with its next step, its ore ticked off, and Print / Repair. A stack picked up on one tab can be put down on the other, or sent across with "To cargo" / "To suit bag". Back down is at the top right.
-- **The pause screen:** the survey sheet, the repair list, the field guide (with the lexicon and the logs), and recall.
+- **The pause screen is the inventory** (Oct 17, 2026): L, Esc or P away from the lander opens the Inventory page over the paused world, and the same keys close it. Recall is on it, top centre, with a note on what it costs. There's no separate pause card any more. Still to come on it: the survey sheet, the repair list and the field guide (with the lexicon and the logs).
 - **After chapter 1:** the star chart becomes the galaxy map you fly between planets on (paid version).
 
 ## Art direction
@@ -473,7 +475,7 @@ The ladder rack is gone (ladders can't be placed), and recall is free (it costs 
 | Jump, jetpack | Space / A (hold in the air to fly) | Jump button (hold to fly) |
 | Gadget | E / X; Q / LB to switch | Gadget button; tap the icon to switch |
 | Feed a gauge | R / Y feeds whichever of drill and air is lower (and has fuel in the bag) | Tap the gauge |
-| Pause | Esc or P / Start | Map button |
+| Inventory and pause (aboard at the lander) | L, Esc or P / Start; the same keys close it | Map button |
 
 Pushing to dig, talk and read keeps touch play to one stick and two buttons.
 
@@ -576,7 +578,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 **Next, for chapter 1:**
 
 1. **One world:** ~~merge levels 1–5 into a single wrapping Graphite world; the open-world save~~ (done); the survey sheet centred on the lander.
-2. ~~**The life system:** shield, hearts, life support, feeding gauges from the bag, the self-charging jetpack, dying, the dropped bag, recall~~ (done Oct 16, 2026; water ice added to Graphite, world version 2). The pause card is the start of the pause screen: Resume and Recall.
+2. ~~**The life system:** shield, hearts, life support, feeding gauges from the bag, the self-charging jetpack, dying, the dropped bag, recall~~ (done Oct 16, 2026; water ice added to Graphite, world version 2). The pause card was the start of the pause screen (Resume and Recall); since Oct 17, 2026 the inventory is the pause screen, with Recall on it.
 3. ~~**The repair list** in place of missions; the wrecked lander and its repair stages; inside the lander in place of the result screen and chart~~ (done Oct 16, 2026, before step 2). Not yet: lift-off at the end (it waits for the Lamplighters and the core).
 4. **The Lamplighters:** ~~the call, the receiver, the outpost, the first job by picture, the core for silver~~ (done Oct 17, 2026); still to come: speech with word-by-word translation, the lexicon, texts and Aster logs.
 5. **Creatures** (grit crabs, lead worms) and fighting with the drill.

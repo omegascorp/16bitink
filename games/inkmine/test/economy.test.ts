@@ -35,7 +35,7 @@ describe('the printer', () => {
   });
 
   it('a new Pack grows the bag', () => {
-    const r = printPart(ready, 'pack-1');
+    const r = printPart({ ...ready, cargo: cargoWith({ graphite: 6, copper: 4 }) }, 'pack-1');
     expect(r.ok && r.profile.suit.slots.length).toBe(6);
   });
 

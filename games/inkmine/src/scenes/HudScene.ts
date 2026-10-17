@@ -28,7 +28,6 @@ const SHIELD = 22;
 /** The objective plate, top right. */
 const GOAL = { w: 352, pad: 22 } as const;
 const INTRO_W = 600;
-const PAUSE_W = 520;
 /** Ms the note on waking stays up. */
 const WOKE_MS = 9000;
 /** Paper-coloured halo round text laid straight over the game. */
@@ -62,7 +61,7 @@ function wokeText(w: Woke): string {
  * the one thing to do next top right (never none: No Man's Sky's start is
  * criticised for the stretch with no prompt); a prompt at the lander; the
  * controls along the bottom; and the cards: the opening, the note on
- * waking, and the pause card. Rows are redrawn only when something on them
+ * waking. Rows are redrawn only when something on them
  * changes; the gauges just move.
  */
 export class HudScene extends Phaser.Scene {
@@ -81,7 +80,6 @@ export class HudScene extends Phaser.Scene {
   private hint!: Phaser.GameObjects.Text;
   private failed!: Phaser.GameObjects.Text;
   private intro: Phaser.GameObjects.Container | null = null;
-  private pause: Phaser.GameObjects.Container | null = null;
   private woke: Phaser.GameObjects.Container | null = null;
   /** A Lamplighter's card, while one is talking. */
   private talk: Phaser.GameObjects.GameObject[] | null = null;
@@ -105,7 +103,6 @@ export class HudScene extends Phaser.Scene {
     this.rows = [];
     this.goalParts = [];
     this.intro = null;
-    this.pause = null;
     this.woke = null;
     this.talk = null;
     const gx = PANEL.x + GAUGE.x;
@@ -121,7 +118,7 @@ export class HudScene extends Phaser.Scene {
         .on('pointerdown', () => this.play?.feedGauge(gauge as GaugeName));
     }
     this.prompt = aside(this, 0, 0, 'At the lander: press L to go aboard', 22, 600, INK_TEXT).setStyle(HALO).setOrigin(0.5).setVisible(false);
-    this.hint = label(this, 0, 0, '← →  walk     ↓ ↑  drill     SPACE  jump, hold to fly     R  feed air or cell     L  suit, or aboard at the lander     ESC  pause', 15, SEPIA, '500')
+    this.hint = label(this, 0, 0, '← →  walk     ↓ ↑  drill     SPACE  jump, hold to fly     R  feed air or cell     L or ESC  inventory, or aboard at the lander', 15, SEPIA, '500')
       .setStyle(HALO).setOrigin(0.5, 1).setAlpha(0.9);
     this.failed = heading(this, 0, 0, 'Your suit gave out', 34, MADDER).setStyle(HALO).setOrigin(0.5).setVisible(false);
     this.layout();
@@ -136,7 +133,6 @@ export class HudScene extends Phaser.Scene {
     const game = this.play;
     const mine = game?.mine;
     if (!game || !mine) return;
-    if (!!this.pause !== game.paused) this.togglePause(game.paused);
     const s = mine.suit;
     this.air.set(s.air / s.maxAir, AIR.low);
     this.cell.set(s.energy / s.maxEnergy, LOW);
@@ -167,7 +163,6 @@ export class HudScene extends Phaser.Scene {
     this.failed.setPosition(width / 2, height / 2);
     this.prompt.setPosition(width / 2, height - 56);
     this.intro?.setPosition(width / 2, height / 2);
-    this.pause?.setPosition(width / 2, height / 2);
     this.woke?.setPosition(width / 2, height * 0.3);
     this.shown = '';
     this.goalShown = '';
@@ -251,7 +246,9 @@ export class HudScene extends Phaser.Scene {
         g.lineStyle(0.8, 0x1f2a55, 0.7).strokeRect(bx, by + 10 - bh, 9, bh);
       }
       parts.push(g);
-      parts.push(aside(this, x + GOAL.pad + 176, by, bars === 0 ? 'static' : bars >= 5 ? 'right here' : 'warmer, colder', 16, 140, SEPIA).setOrigin(0, 0.5).setDepth(1));
+      // Words only where the bars alone don't say it: no signal at all, or arrived. In between, the bars are the reading.
+      const note = bars === 0 ? 'static' : bars >= 5 ? 'right here' : null;
+      if (note) parts.push(aside(this, x + GOAL.pad + 176, by, note, 16, 140, SEPIA).setOrigin(0, 0.5).setDepth(1));
       h += 44;
     }
     this.goalParts = [...plate(this, x, y, GOAL.w, h, { seed: 31, depth: 0 }), ...plateHeading(this, x, y, GOAL.w, 'Next', 0.5), ...parts];
@@ -293,23 +290,6 @@ export class HudScene extends Phaser.Scene {
       this.woke?.destroy();
       this.woke = null;
     } });
-  }
-
-  /** The pause card: the world waits; recall from here (the winch hauls you up, the bag stays flagged). */
-  private togglePause(on: boolean): void {
-    this.pause?.destroy();
-    this.pause = null;
-    if (!on) return;
-    const { width, height } = viewSize(this);
-    const note = prose(this, -PAUSE_W / 2 + 40, -58, 'Stuck? The winch hauls you up to the lander. What its share leaves of the bag stays where you are, under a flag.', 19, PAUSE_W - 80);
-    const by = note.y + note.height + 42;
-    const parts: Phaser.GameObjects.GameObject[] = [
-      heading(this, 0, -104, 'Paused', 28).setOrigin(0.5, 0),
-      note,
-      plaque(this, -110, by, 'Resume', () => this.play?.resume(), { width: 180, height: 46, kind: 'primary' }),
-      plaque(this, 110, by, 'Recall', () => this.play?.recall(), { width: 180, height: 46 }),
-    ];
-    this.pause = plateCard(this, width / 2, height / 2, PAUSE_W, 270, parts, 57).setDepth(60);
   }
 
   private closeIntro(): void {

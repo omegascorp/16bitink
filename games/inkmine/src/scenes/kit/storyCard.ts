@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { viewSize } from '../hidpi';
 import { knotLine } from './knots';
+import { voiceLine } from './voice';
 import { RES } from './paint';
 import { plateCard } from './plate';
 import { plaque } from './plaque';
@@ -18,7 +19,9 @@ export interface StoryCardSpec {
   readonly subtitle?: string;
   /** Who's talking, drawn at the left of their words. */
   readonly portrait?: CardPicture;
-  /** Their words, in knots nobody can read yet: how many, and the seed that ties them. */
+  /** What they say, as the suit records it: a sound trace, a burst per word (how many, and the seed of its sound). */
+  readonly voice?: { readonly words: number; readonly seed: number };
+  /** What they've written, in knots: how many words, and the seed that ties them. */
   readonly knots?: { readonly words: number; readonly seed: number };
   /** Pictures in a row, with an arrow between each (drawn in the dust, or what the radio shows). */
   readonly pictures?: readonly CardPicture[];
@@ -32,7 +35,8 @@ const PAD = 44;
 
 /**
  * A card over the page for a moment in the story (the call, meeting the
- * Lamplighters, lift-off): who's talking and their knotted words, pictures
+ * Lamplighters, lift-off): who's talking and their voice (or their knotted
+ * writing), pictures
  * in a row, what the prospector makes of it, and one button. A sheet under
  * it takes every tap meant for the page. Space or Enter closes it too.
  */
@@ -44,7 +48,8 @@ export function storyCard(scene: Phaser.Scene, spec: StoryCardSpec, onClose: () 
     parts.push(aside(scene, 0, y, spec.subtitle, 18, W - PAD * 2, SEPIA).setOrigin(0.5, 0));
     y += 34;
   }
-  if (spec.portrait || spec.knots) {
+  const words = spec.voice ? voiceLine(scene, spec.voice.words, spec.voice.seed) : spec.knots ? knotLine(scene, spec.knots.words, spec.knots.seed) : null;
+  if (spec.portrait || words) {
     const ph = spec.portrait?.h ?? 0;
     let kx = -W / 2 + PAD;
     if (spec.portrait) {
@@ -53,8 +58,8 @@ export function storyCard(scene: Phaser.Scene, spec: StoryCardSpec, onClose: () 
       parts.push(img);
       kx += img.displayWidth + 18;
     }
-    if (spec.knots) {
-      const k = scene.add.image(kx, y + Math.max(ph, 40) / 2, knotLine(scene, spec.knots.words, spec.knots.seed)).setOrigin(0, 0.5);
+    if (words) {
+      const k = scene.add.image(kx, y + Math.max(ph, 40) / 2, words).setOrigin(0, 0.5);
       // Baked at RES: shown at its own size, or smaller to fit what's left of the row.
       k.setScale(Math.min(1, (W / 2 - PAD - kx) / (k.width / RES)) / RES);
       parts.push(k);

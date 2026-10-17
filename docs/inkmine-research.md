@@ -107,6 +107,51 @@ The favourite, so its mechanics are kept apart per version.
 - Pay for skill, not repetition: streak and chain bonuses, first-clear contract pay. Replays are optional and pay less.
 - Sale prices rise with depth and planet, so progress shows as income.
 
+## Materials and depths: a realism pass (Oct 17, 2026)
+
+A check of what each repair and gear piece is made of, and how deep each ore sits on Graphite, against real geology and engineering. **Applied Oct 17, 2026:** the four proposed recipes are in the game (`logic/repairs.ts`, `logic/blueprints.ts`), and the lore is in the spec's Graphite section. The rule: **keep the real order of things, compress the distances.** Real ore zones span hundreds of metres to kilometres; Graphite's whole world is 160 m deep, so the game squeezes depth by 10 to 50 times but keeps what lies above what. Facts marked *(unverified)* are from memory, not a source read for this pass.
+
+### Depths
+
+| Ore | Where now | Real world | Verdict |
+| --- | --- | --- | --- |
+| **Graphite** | 4–60 m, rich seams near the surface | Mercury's dark surface is carbon: graphite was the only mineral light enough to float on its early magma ocean, so it formed a crust at the top (Peplowski et al., 2016) | ✅ Realistic, and it gives Graphite a real model: a small Mercury |
+| **Water ice** | 1–18 m, thickest in the crater's shadow; 25–95 m deeper | Airless worlds keep ice in craters the sun never reaches, as on the Moon's and Mercury's poles *(unverified)*; ground ice can run deep, like Earth's permafrost *(unverified)* | ✅ Realistic |
+| **Native copper** | 1–20 m | Native copper forms near the old water table, in the zone where groundwater enriched the ore (supergene enrichment) | ✅ Realistic, if Graphite once had groundwater. One line of lore covers it, and it fits the ice and the warm deep |
+| **Galena** | 6–40 m | A primary sulfide, mostly below the old water table | ✅ Realistic |
+| **Quartz** | 20–80 m, small crystals | The commonest mineral on Earth's continents, but dark, low-silica crusts like Mercury's or the Moon's have little free quartz *(unverified)*: clear crystals grow in veins | ✅ Realistic, with the lore that Graphite's crust is dark and low in silica |
+| **Native silver** | 38–88 m | Native silver is most common near the surface, in the oxidised zone. It also forms in deep primary veins *(unverified: Kongsberg, Norway, mined to over 1 km)* | ⚠️ A gameplay choice. Keep it deep: it's the ore that pulls you down, and deep silver veins do exist |
+
+### What the parts are made of
+
+| Part | Now | Real world | Verdict | Proposed |
+| --- | --- | --- | --- | --- |
+| **Printer** | copper 6 | Printer hot-ends and wiring are copper or brass *(unverified)* | ✅ | Keep |
+| **Radio** | copper 4, quartz 2 | Quartz crystals set radio frequencies; copper wires the set and the dish | ✅ | Keep |
+| **Hull plating** | galena 10, graphite 6, "lead shields against radiation" | Lead is heavy, and when cosmic rays hit it, it sprays secondary radiation. Light, hydrogen- and carbon-rich materials shield better (NASA uses polyethylene as its reference). Carbon-fibre composites are real hull and structure material *(unverified)* | ❌ Lead hull is wrong | **graphite 10, galena 3**: carbon-composite panels, lead only to seal the seams. New fact: "Lead makes a poor hull: heavy, and hit by cosmic rays it sprays more radiation. Light carbon does better." |
+| **Thrusters** | silver 6, quartz 4 | Engine chambers are lined with copper alloyed with a little silver (NARloy-Z, used in the RS-25 and RS-68), which carries heat away fast enough not to melt. Nozzle throats are often graphite *(unverified)*. Quartz has no part in a thruster | ⚠️ Silver right, quartz wrong | **copper 6, silver 6, graphite 2**. New fact: "Real rocket chambers are lined with copper and a little silver: it pulls the heat away before the wall can melt." |
+| **Drive core** | 10 silver, from the Lamplighters | Invented technology | ✅ Fiction is fine here | Keep |
+| **Cell** | graphite 4, copper 6 | Lithium-ion batteries: graphite anode coated on copper foil *(unverified)* | ✅ Spot on | Keep |
+| **Pack** | graphite 3, copper 8 | A frame and fittings: mostly structure | ⚠️ Too much copper | **graphite 6, copper 2**: a carbon-fibre frame, copper fittings |
+| **Drill** | graphite 6, galena 4 | Lead is far too soft for a drill. Electric motors use copper windings and graphite brushes; industrial diamond is made by pressing graphite *(unverified)* | ❌ Lead in a drill | **graphite 6, copper 4**: copper windings, graphite brushes and diamond grit for the bit |
+| **Helmet** | graphite 4, quartz 2 | Spacecraft windows are fused silica, which is melted quartz *(unverified)* | ✅ | Keep |
+| **Jetpack** | graphite 5, silver 3 | Graphite nozzle throat, silver in brazed joints *(unverified)* | ✅ Plausible | Keep |
+| **Suit** | graphite 8, quartz 3 | Apollo suits had an outer layer of glass-fibre cloth ("Beta cloth") *(unverified)* | ✅ | Keep |
+
+### What the changes do to play
+
+- **The chapter still flows.** The Drill moves from galena to copper; both lie in the soil, so it can still be printed as soon as its blueprint is found. Thrusters still need silver from deep down, so the deep trip stays.
+- **Graphite gets a tension.** It's the drill's fuel, and now the hull's main material too: burn it or build with it. That suits the planet named after it.
+- **Galena and quartz are needed less.** Galena keeps the hull seals and the modules (winch, cargo hold, hull refit); quartz keeps the radio, helmet and suit. Both are plentiful, so nothing runs short, but a few veins of each could move to graphite.
+- **Modules, briefly:** the winch's lead counterweight and copper motor are plausible. The cargo hold and the hull refit lean on lead; carbon panels would fit better there too.
+
+### Sources
+
+- Graphite on Mercury: Peplowski et al., *Nature Geoscience* (2016), [Nature](https://www.nature.com/articles/ngeo2669), [Space.com](https://space.com/32179-mercury-carbon-rich-crust-surprisingly-ancient.html)
+- Lead versus light shielding: [The Engineer](https://www.theengineer.co.uk/content/in-depth/plastic-spaceships), [Berkeley Lab / NASA testing paper](https://digital.library.unt.edu/ark:/67531/metadc884885/m2/1/high_res_d/918614.pdf), [PMC review](https://pmc.ncbi.nlm.nih.gov/articles/PMC5432003)
+- Copper-silver chamber liners: [Regenerative cooling (Wikipedia)](https://en.wikipedia.org/wiki/Regenerative_cooling_(rocketry)), [NASA NTRS](https://ntrs.nasa.gov/api/citations/20180005537/downloads/20180005537.pdf)
+- Ore zones: [Supergene (geology)](https://en.wikipedia.org/wiki/Supergene_(geology)), [University of Exeter](https://projects.exeter.ac.uk/geomincentre/min6.htm)
+
 ## Sources
 
 - Roofdog Games wiki: [Pocket Mine 3](https://roofdoggames.wiki.gg/wiki/Pocket_Mine_3), [Blocks](https://roofdoggames.wiki.gg/wiki/Blocks_(Pocket_Mine_3)), [Gameplay](https://roofdoggames.wiki.gg/wiki/Gameplay_(Pocket_Mine_3)), [Monsters](https://roofdoggames.wiki.gg/wiki/Monsters_(Pocket_Mine_3)), [Cards](https://roofdoggames.wiki.gg/wiki/Cards_(Pocket_Mine_3)), [Diggers](https://roofdoggames.wiki.gg/wiki/Diggers_(Pocket_Mine_3)), [Worlds](https://roofdoggames.wiki.gg/wiki/Worlds_(Pocket_Mine_3))

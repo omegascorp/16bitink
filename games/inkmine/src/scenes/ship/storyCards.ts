@@ -19,8 +19,8 @@ export function shipStoryCard(page: ShipPage): boolean {
       title: 'Incoming call',
       subtitle: 'on the radio, the moment it warmed up',
       portrait: { key: techTexture(scene, { kind: 'repair', id: 'comms' }, 'mended'), h: 90 },
-      knots: { words: 9, seed: 11 },
-      text: "Not the guild. A voice, slow and low, in no language the suit knows: the same knotted sounds over and over, then quiet, then again. The radio records it. The dish can't say where it's coming from, only that it's somewhere over the horizon. A handheld receiver could follow it: the stronger it gets, the closer you are.",
+      voice: { words: 9, seed: 11 },
+      text: "Not the guild. A voice, slow and low, in no language the suit knows: the same slow sounds over and over, then quiet, then again. The radio records it. The dish can't say where it's coming from, only that it's somewhere over the horizon. A handheld receiver could follow it: the stronger it gets, the closer you are.",
       button: 'Keep the recording',
     }, () => page.commit(withBeat(page.profile, 'called'), { news: 'Call recorded' }));
     return true;

@@ -99,8 +99,6 @@ export class GameScene extends Phaser.Scene {
   private ended = false;
   /** The opening card is up: the world waits until it's read. */
   intro = false;
-  /** The pause card is up: the world waits. */
-  paused = false;
   /** How you came back, if the suit gave out just before this session (the HUD says so once). */
   woke: Woke | null = null;
   /** A Lamplighter is talking (a card is up): the world waits until it's read. */
@@ -111,7 +109,7 @@ export class GameScene extends Phaser.Scene {
   private lastBars: number | null = null;
   private outpost: Phaser.GameObjects.Image | null = null;
   private lamplighter: Phaser.GameObjects.Image | null = null;
-  /** Asked for from the HUD (a tapped gauge, recall on the pause card), done on the next step. */
+  /** Asked for from outside the world (a tapped gauge on the HUD, recall in the inventory), done on the next step. */
   private asked: Partial<Pick<MineInput, 'feed' | 'recall'>> = {};
   private smokeAt = 0;
 
@@ -122,7 +120,6 @@ export class GameScene extends Phaser.Scene {
   create(data?: { woke?: Woke }): void {
     this.planet = currentPlanet();
     this.ended = false;
-    this.paused = false;
     this.asked = {};
     this.woke = data?.woke ?? null;
     this.talk = null;
@@ -219,19 +216,14 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const dt = Math.min(delta / 1000, MAX_DT);
-    if (!this.ended && !this.intro && !this.talk && this.keys.pause()) {
-      this.paused = !this.paused;
-      // A gauge tapped just before pausing isn't fed after it.
-      this.asked = {};
-    }
-    const still = this.ended || this.intro || this.paused || this.talk !== null;
+    const still = this.ended || this.intro || this.talk !== null;
     // Keys are read every frame, so one pressed while the world waits doesn't fire when it starts again.
     const keys = this.keys.read();
-    const aboard = this.keys.aboard();
+    const menu = this.keys.menu();
     const input = still ? NO_INPUT : { ...keys, ...this.asked };
     if (!still) this.asked = {};
     this.iy = input.iy;
-    if (!still && aboard) {
+    if (!still && menu) {
       if (this.mine.atLander) this.goAboard();
       else this.openSuit();
       return;
@@ -274,19 +266,13 @@ export class GameScene extends Phaser.Scene {
 
   /** A gauge tapped on the HUD: feed it from the bag on the next step. */
   feedGauge(g: Gauge): void {
-    if (!this.ended && !this.intro && !this.paused) this.asked = { ...this.asked, feed: g };
+    if (!this.ended && !this.intro) this.asked = { ...this.asked, feed: g };
   }
 
-  /** Recall, from the pause card: the winch hauls you up on the next step. */
+  /** Recall, from the inventory: the winch hauls you up on the next step. */
   recall(): void {
     if (this.ended || this.intro) return;
-    this.paused = false;
     this.asked = { ...this.asked, recall: true };
-  }
-
-  /** Back from the pause card. */
-  resume(): void {
-    this.paused = false;
   }
 
   /** Closes the opening card: the world starts, and it's never shown again. */
@@ -501,9 +487,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Far from the lander: the same page, opened over the paused world. The
-   * suit bag can be sorted and locked there; the cargo and the lander can
-   * only be looked at, and nothing prints without the lander's printer.
+   * Far from the lander: the same page, opened over the paused world (it's
+   * the pause menu too, with recall on it). The suit bag can be sorted and
+   * locked there; the cargo and the lander can only be looked at, and
+   * nothing prints without the lander's printer.
    * The page closes back into the world just where it was (see `fromSuit`).
    */
   private openSuit(): void {
@@ -525,7 +512,8 @@ export class GameScene extends Phaser.Scene {
     this.ended = true;
     this.save();
     this.scene.stop('Hud');
-    this.scene.start('Ship');
+    // Data passed every time: a scene started without any keeps its last (here, the far-away inventory's `remote`).
+    this.scene.start('Ship', { remote: false });
   }
 
   /**

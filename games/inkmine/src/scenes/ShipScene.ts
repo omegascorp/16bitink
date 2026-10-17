@@ -8,6 +8,7 @@ import { prospectorLook } from '../logic/gear';
 import { wreckOf } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
 import { defaultTab, focusOf, TABS, type Tab } from '../logic/tech';
+import type { GameScene } from './GameScene';
 import { relayoutOnResize, screenScene, toView, viewSize } from './hidpi';
 import { plaque } from './kit/plaque';
 import { aside, heading, INK_TEXT, scrawl, SEPIA } from './kit/type';
@@ -34,6 +35,9 @@ const HEAD = { wide: 92, narrow: 150 } as const;
 /** Room for the figure over the detail card (wide), or above the slots (narrow). */
 const FIG = { wide: 320, narrow: 210 } as const;
 const BACK = { w: 180, h: 46 } as const;
+const RECALL = { w: 160, h: 40 } as const;
+/** Keys that leave the page: the same ones that open it (L, Esc, P). */
+const MENU_KEYS = ['keydown-L', 'keydown-ESC', 'keydown-P'] as const;
 
 /**
  * Aboard the lander, laid out as No Man's Sky's inventory: a Suit tab and a
@@ -43,7 +47,8 @@ const BACK = { w: 180, h: 46 } as const;
  * detail card, to print or repair it; a stack picked up from the storage
  * shows on that card instead. Tap the slot again, or put the stack down,
  * and the card goes. Far from the lander, L opens the same page over the
- * paused world, read-only but for sorting and locking the suit bag.
+ * paused world, read-only but for sorting and locking the suit bag; it's
+ * the pause menu too, with Recall. L, Esc or P leaves either page.
  */
 export class ShipScene extends Phaser.Scene {
   private ui: ShipUi = {};
@@ -128,15 +133,28 @@ export class ShipScene extends Phaser.Scene {
     aside(this, GAP + 6, 54, where, 17, 400, SEPIA).setOrigin(0, 0);
     const back = (): void => {
       if (this.remote) this.close();
-      else this.scene.start('Game');
+      else this.backDown();
     };
     plaque(this, width - GAP - BACK.w / 2, 40, this.remote ? 'Back' : 'Back down', back, { width: BACK.w, height: BACK.h, kind: 'primary' });
     const pick = (t: Tab): void => this.redraw(null, { selected: this.ui.selected, tab: t });
     if (wide) drawTabs(this, width - GAP - BACK.w - 40, 38, tab, pick);
     else drawTabs(this, width - GAP, 104, tab, pick);
+    if (this.remote) this.recallButton(wide ? width / 2 : GAP + RECALL.w / 2, wide ? 34 : 104, wide);
     if (!news) return;
     if (wide) scrawl(this, width / 2, 40, news, 30, INK_TEXT).setOrigin(0.5, 0.5);
     else scrawl(this, GAP, 104, news, 26, INK_TEXT).setOrigin(0, 0.5);
+  }
+
+  /** Recall, as the old pause card had it: the winch hauls you up to the lander, and what its share leaves of the bag stays flagged where you were. */
+  private recallButton(cx: number, cy: number, wide: boolean): void {
+    plaque(this, cx, cy, 'Recall', () => this.recall(), { width: RECALL.w, height: RECALL.h, size: 15 });
+    if (wide) aside(this, cx, cy + RECALL.h / 2 + 6, 'Stuck? The winch hauls you up; the bag stays here, flagged.', 14, 420, SEPIA).setOrigin(0.5, 0).setAlign('center');
+  }
+
+  /** Closes the page and asks the world for a recall, done on its next step. */
+  private recall(): void {
+    this.close();
+    (this.scene.get('Game') as GameScene).recall();
   }
 
   /** Over the lander, when it's looked at from far away: why nothing here can be touched. */
@@ -167,11 +185,21 @@ export class ShipScene extends Phaser.Scene {
     };
     this.input.keyboard?.on('keydown-Q', () => step(-1));
     this.input.keyboard?.on('keydown-E', () => step(1));
-    // Far from the lander, L (which opened it) or Esc closes it again.
-    if (this.remote) for (const k of ['keydown-L', 'keydown-ESC']) this.input.keyboard?.once(k, () => this.close());
+    // The keys that open the page close it: back into the world far away, back down aboard. A held key's repeats don't count.
+    const leave = (e: KeyboardEvent): void => {
+      if (e.repeat) return;
+      if (this.remote) this.close();
+      else this.backDown();
+    };
+    for (const k of MENU_KEYS) this.input.keyboard?.on(k, leave);
   }
 
-  /** The suit page closes back into the world, which takes the bag as it was left here. */
+  /** Out of the lander: the world starts again from it. Empty data, so a waking note from an earlier start isn't shown again. */
+  private backDown(): void {
+    this.scene.start('Game', {});
+  }
+
+  /** The inventory closes back into the world, which takes the bag as it was left here. */
   private close(): void {
     this.scene.stop();
     this.scene.resume('Game');

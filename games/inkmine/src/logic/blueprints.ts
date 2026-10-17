@@ -23,13 +23,16 @@ export const blueprintId = (piece: Piece, mk: number): string => `${piece}-${mk}
 
 /**
  * Graphite's Mk 1 set. Graphite is in all of them (it's what the guild sent
- * you for), each paired with an ore the levels that hand out its blueprint
- * are rich in: copper and galena near the top, quartz and silver deeper.
+ * you for), each paired with what the part is really made of (spec, "Gear"):
+ * the cell's graphite anode on copper foil, the pack's carbon frame with
+ * copper fittings, the drill's copper windings with graphite brushes and
+ * diamond grit, a fused-quartz visor, a graphite nozzle with silver joints,
+ * glass-fibre cloth for the suit.
  */
 export const RECIPES: Readonly<Record<string, Recipe>> = Object.fromEntries([
   recipe('cell', 1, { graphite: 4, copper: 6 }),
-  recipe('pack', 1, { graphite: 3, copper: 8 }),
-  recipe('drill', 1, { graphite: 6, galena: 4 }),
+  recipe('pack', 1, { graphite: 6, copper: 2 }),
+  recipe('drill', 1, { graphite: 6, copper: 4 }),
   recipe('helmet', 1, { graphite: 4, quartz: 2 }),
   recipe('jetpack', 1, { graphite: 5, silver: 3 }),
   recipe('suit', 1, { graphite: 8, quartz: 3 }),

@@ -13,7 +13,7 @@ describe('what an ore is still needed for', () => {
   });
 
   it('drops a repair once it is done', () => {
-    const needs = oreNeeds(at({ repaired: ['printer', 'comms'] }), 'copper');
+    const needs = oreNeeds(at({ repaired: ['printer', 'comms', 'thrusters'] }), 'copper');
     expect(needs.some((n) => n.kind === 'tech' && n.tech.kind === 'repair')).toBe(false);
   });
 

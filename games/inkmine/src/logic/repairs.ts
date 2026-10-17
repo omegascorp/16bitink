@@ -49,16 +49,16 @@ export const REPAIRS: Readonly<Record<RepairId, Repair>> = {
     fact: 'Quartz crystals keep radios on frequency: they ring at a rate that never drifts.',
   },
   hull: {
-    id: 'hull', name: 'Hull plating', needs: { galena: 10, graphite: 6 }, after: ['comms'],
+    id: 'hull', name: 'Hull plating', needs: { graphite: 10, galena: 3 }, after: ['comms'],
     broken: 'The hull is breached: six cargo slots are open to the dust.',
     opens: 'The hull is sealed: the whole cargo hold is usable again.',
-    fact: "Lead, smelted from galena, shields against radiation.",
+    fact: "Graphite fibres make light, stiff panels; lead only seals the seams. A lead hull would be heavy, and cosmic rays hitting it spray more radiation.",
   },
   thrusters: {
-    id: 'thrusters', name: 'Thrusters', needs: { silver: 6, quartz: 4 }, after: ['comms'],
+    id: 'thrusters', name: 'Thrusters', needs: { copper: 6, silver: 6, graphite: 2 }, after: ['comms'],
     broken: 'The thrusters took the landing: the engine bell is crumpled and the wiring burnt.',
     opens: "The thrusters fire. With a drive core, she'd fly.",
-    fact: 'Silver conducts electricity better than any other metal.',
+    fact: 'Rocket chambers are lined with copper and a little silver: it pulls the heat away before the wall can melt. The nozzle throat is graphite.',
   },
   core: {
     id: 'core', name: 'Drive core', needs: null, after: ['hull', 'thrusters'],
