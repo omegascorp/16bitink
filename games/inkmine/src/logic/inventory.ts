@@ -17,6 +17,16 @@ export interface Inventory {
   readonly slots: readonly (Stack | null)[];
   /** Most pieces a slot stacks. */
   readonly stack: number;
+  /** Slots locked by the player: never emptied into the cargo at the lander (sorted; default none). */
+  readonly locked?: readonly number[];
+}
+
+export const isLocked = (inv: Inventory, slot: number): boolean => !!inv.locked?.includes(slot);
+
+/** Locks a slot, or unlocks a locked one. */
+export function toggleLock(inv: Inventory, slot: number): Inventory {
+  const locked = isLocked(inv, slot) ? (inv.locked ?? []).filter((i) => i !== slot) : [...(inv.locked ?? []), slot].sort((a, b) => a - b);
+  return { ...inv, locked };
 }
 
 export function emptyInventory(slots: number, stack: number): Inventory {
@@ -35,6 +45,7 @@ export function resize(inv: Inventory, slots: number, stack = inv.stack): Invent
       return s ? cap(s) : null;
     }),
     stack,
+    ...(inv.locked?.length ? { locked: inv.locked.filter((i) => i < n) } : {}),
   };
 }
 
@@ -114,12 +125,16 @@ export function takeHoldFrom(inv: Inventory, h: Hold): { inv: Inventory; short: 
 
 /**
  * Moves everything from `from` into `to` that fits, stack by stack, the
- * rarest ore first (it's worth the room). Returns both inventories and the
- * counts that moved.
+ * rarest ore first (it's worth the room). Stacks `keep` says to keep (a
+ * locked slot, the ore someone's waiting for) stay where they are. Returns
+ * both inventories and the counts that moved.
  */
-export function transferAll(from: Inventory, to: Inventory): { from: Inventory; to: Inventory; moved: Hold } {
-  const ores = holdEntries(contents(from)).map(([ore]) => ore).sort((a, b) => ORES[b].value - ORES[a].value);
-  let src = from;
+export function transferAll(from: Inventory, to: Inventory, keep: (s: Stack, slot: number) => boolean = () => false): { from: Inventory; to: Inventory; moved: Hold } {
+  const kept = from.slots.map((s, i) => (s && keep(s, i) ? s : null));
+  // Kept stacks are set aside, so nothing is taken from them; their slots stay theirs (taking never fills a slot).
+  const movable = { ...from, slots: from.slots.map((s, i) => (kept[i] ? null : s)) };
+  const ores = holdEntries(contents(movable)).map(([ore]) => ore).sort((a, b) => ORES[b].value - ORES[a].value);
+  let src: Inventory = movable;
   let dst = to;
   let moved: Hold = EMPTY_HOLD;
   for (const ore of ores) {
@@ -129,7 +144,7 @@ export function transferAll(from: Inventory, to: Inventory): { from: Inventory; 
     src = takeOre(src, ore, r.added).inv;
     moved = addHold(moved, { [ore]: r.added });
   }
-  return { from: src, to: dst, moved };
+  return { from: { ...src, slots: src.slots.map((s, i) => kept[i] ?? s) }, to: dst, moved };
 }
 
 /** Splits every stack: `share` (0..1) of it, rounded down, is kept (what a winch saves on a recall); the rest is left. */

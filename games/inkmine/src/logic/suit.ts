@@ -161,7 +161,8 @@ export function stow(s: Suit, oreId: number): Suit | null {
 
 /** Empties the bag. */
 export function emptyBag(s: Suit): Suit {
-  return isEmpty(s.bag) ? s : { ...s, bag: emptyInventory(s.bag.slots.length, s.bag.stack) };
+  // The bag's locks are the player's, not its contents: they stay.
+  return isEmpty(s.bag) ? s : { ...s, bag: { ...s.bag, slots: s.bag.slots.map(() => null) } };
 }
 
 export function withBag(s: Suit, bag: Inventory): Suit {

@@ -1,6 +1,7 @@
 import type { Profile } from './economy';
 import { countOf, holdEntries, type Hold } from './hold';
 import { contents, takeHoldFrom, type Inventory } from './inventory';
+import type { OreKey } from './ore';
 
 /**
  * Chapter 1's story past the radio (spec, "Story: chapter 1"): the moment
@@ -30,6 +31,11 @@ export const hasBeat = (p: Pick<Profile, 'beats'>, b: Beat): boolean => p.beats.
 
 export function withBeat(p: Profile, b: Beat): Profile {
   return hasBeat(p, b) ? p : { ...p, beats: [...p.beats, b] };
+}
+
+/** Ores kept in the bag at the lander: the Lamplighters' silver, from when they ask for it until they have it. */
+export function keptOres(p: Pick<Profile, 'beats'>): OreKey[] {
+  return hasBeat(p, 'met') && !hasBeat(p, 'paid') ? holdEntries(TRADE).map(([ore]) => ore) : [];
 }
 
 /** The call is waiting: the radio works and it hasn't been taken yet. */

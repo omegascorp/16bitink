@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { usedSlots } from '../logic/inventory';
+import { isLocked, usedSlots } from '../logic/inventory';
 import { inPouch } from '../logic/items';
 import type { Mine } from '../logic/mine';
 import { goalLine } from '../logic/repairs';
@@ -144,7 +144,7 @@ export class HudScene extends Phaser.Scene {
     reading(this.cellText, `${s.energy}`, s.energy / s.maxEnergy < LOW);
     const pouch = inPouch(mine.items).length;
     const aboard = mine.atLander && mine.state === 'playing';
-    const bag = s.bag.slots.map((x) => (x ? `${x.ore}${x.n}` : '-')).join(',');
+    const bag = s.bag.slots.map((x, i) => (x ? `${x.ore}${x.n}` : '-') + (isLocked(s.bag, i) ? 'L' : '')).join(',') + mine.keep.join(',');
     const sig = [s.hearts, s.maxHearts, Math.round(s.shield * 20), s.maxShield, bag, mine.depth, usedSlots(mine.cargo), mine.state, pouch].join('|');
     if (sig !== this.shown) {
       this.shown = sig;
@@ -215,7 +215,8 @@ export class HudScene extends Phaser.Scene {
     g.lineStyle(0.7, 0x1f2a55, 0.4).lineBetween(x + 16, y + ROW.rule, x + w - 16, y + ROW.rule);
     if (bagFull(s)) g.lineStyle(1.4, 0xa3352c, 0.9).strokeRoundedRect(x + 11, y + ROW.bag - 5, w - 22, gridHeight(s.bag.slots.length, BAG) + 4, 5);
     rows.push(g);
-    rows.push(...drawSlotGrid(this, x + 16, y + ROW.bag, s.bag, { ...BAG, depth: 1 }));
+    const locked = (i: number): boolean => isLocked(s.bag, i) || (!!s.bag.slots[i] && mine.keep.includes(s.bag.slots[i]!.ore));
+    rows.push(...drawSlotGrid(this, x + 16, y + ROW.bag, s.bag, { ...BAG, depth: 1, locked }));
     this.rows = rows;
     this.failed.setVisible(mine.state === 'failed');
   }

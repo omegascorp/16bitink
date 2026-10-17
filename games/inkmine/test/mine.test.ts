@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NO_INPUT } from '../src/logic/mine';
 import { ORES } from '../src/logic/ore';
+import { toggleLock } from '../src/logic/inventory';
 import { TILE, tileAt } from '../src/logic/terrain';
 import { bagHas, bagOf, mine, run, standAt, T } from './helpers';
 
@@ -135,5 +136,16 @@ describe('digging diagonally', () => {
       run(up, stop, { ix: -1, iy: -1 });
       expect(saddle(up), `up, stopped at ${stop.toFixed(2)} s`).toBe(false);
     }
+  });
+
+  it('keeps locked slots, and the ores it is asked to keep, in the bag at the lander', () => {
+    const s = (ore: 'silver' | 'copper' | 'graphite', n: number) => ({ ore, n });
+    const bag = toggleLock({ stack: 10, slots: [s('silver', 4), s('copper', 3), s('graphite', 2), null] }, 1);
+    const m = mine(SITE, { bag });
+    m.keep = ['silver'];
+    m.player = { ...m.player, x: 1 * T + 6, y: 2 * T - m.player.h, vy: 0 };
+    run(m, 0.1);
+    expect(bagHas(m.suit.bag)).toEqual({ silver: 4, copper: 3 });
+    expect(bagHas(m.cargo)).toEqual({ graphite: 2 });
   });
 });

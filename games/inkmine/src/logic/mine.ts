@@ -3,7 +3,7 @@ import { BlastSim, type Blast } from './blastSim';
 import type { Loadout } from './gear';
 import { DRILL_SECONDS_PER_ENERGY, tileCost, VOLATILE_COST, type DrillSpec } from './drill';
 import { holdSize, type Hold } from './hold';
-import { contents as contentsOf, emptyInventory, isEmpty, splitShare, transferAll, type Inventory } from './inventory';
+import { contents as contentsOf, emptyInventory, isEmpty, isLocked, splitShare, transferAll, type Inventory, type Stack } from './inventory';
 import { joinBags, settle, type DroppedBag } from './flag';
 import { bankItems, freeItems, inPouch, placeItems, stepItems, type ItemDef, type MineItem } from './items';
 import { Ladders } from './ladders';
@@ -150,6 +150,8 @@ export class Mine {
   /** The bag left in the world, under its flag. */
   dropped: DroppedBag | null;
   readonly fuels: Fuels;
+  /** Ores that stay in the bag at the lander (what someone's waiting for), on top of its locked slots. */
+  keep: readonly OreKey[] = [];
   pieces: Piece[] = [];
   drilling: Drilling | null = null;
   climbing = false;
@@ -386,14 +388,17 @@ export class Mine {
   private landerStep(events: MineEvent[]): void {
     if (!this.atLander) return;
     if (!isEmpty(this.suit.bag)) {
-      const r = transferAll(this.suit.bag, this.cargo);
+      const bag = this.suit.bag;
+      const keep = (s: Stack, i: number): boolean => isLocked(bag, i) || this.keep.includes(s.ore);
+      const r = transferAll(bag, this.cargo, keep);
       const pieces = holdSize(r.moved);
       if (pieces) {
         events.push({ kind: 'bank', moved: r.moved, pieces });
         this.cargo = r.to;
         this.suit = withBag(this.suit, r.from);
       }
-      if (!isEmpty(r.from)) this.notice('cargoFull', events, { kind: 'cargoFull' });
+      // Only what should have gone in and didn't means the hold is full: kept stacks stay on purpose.
+      if (r.from.slots.some((s, i) => s && !keep(s, i))) this.notice('cargoFull', events, { kind: 'cargoFull' });
     }
     if (inPouch(this.items).length) {
       const { items, banked } = bankItems(this.items);

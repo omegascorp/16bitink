@@ -6,7 +6,7 @@ import { bakeUi, RULE, wash, type Ctx } from './paint';
  * shield's bars as heater shields in steel blue, and an emblem beside each
  * gauge (air bubbles, the cell's bolt). Each baked once at `size` px.
  */
-export type IconKind = 'heart' | 'heartEmpty' | 'shield' | 'shieldEmpty' | 'air' | 'cell' | 'depth' | 'cargo';
+export type IconKind = 'heart' | 'heartEmpty' | 'shield' | 'shieldEmpty' | 'air' | 'cell' | 'depth' | 'cargo' | 'lock';
 
 const MADDER = '#b23a33';
 const STEEL = '#5b7fae';
@@ -147,6 +147,26 @@ const DRAW: Readonly<Record<IconKind, (ctx: Ctx, s: number) => void>> = {
     ctx.lineTo(s * 0.5, s * 0.88);
     ctx.lineTo(s * 0.68, s * 0.68);
     stroke(ctx, 1.4);
+  },
+  lock: (ctx, s) => {
+    // A small brass padlock: the shackle, then the body over it, a keyhole.
+    ctx.beginPath();
+    ctx.arc(s * 0.5, s * 0.42, s * 0.2, Math.PI, 0);
+    ctx.lineTo(s * 0.7, s * 0.5);
+    ctx.moveTo(s * 0.3, s * 0.5);
+    ctx.lineTo(s * 0.3, s * 0.42);
+    stroke(ctx, Math.max(1.2, s * 0.09));
+    ctx.beginPath();
+    ctx.rect(s * 0.2, s * 0.48, s * 0.6, s * 0.42);
+    wash(ctx, 0, 0, s, s, '#c99a45', 9, { alpha: 0.95, pool: 0.4, rim: 0.5 });
+    ctx.beginPath();
+    ctx.rect(s * 0.2, s * 0.48, s * 0.6, s * 0.42);
+    stroke(ctx, 1.1);
+    ctx.beginPath();
+    ctx.arc(s * 0.5, s * 0.64, s * 0.06, 0, Math.PI * 2);
+    ctx.moveTo(s * 0.5, s * 0.66);
+    ctx.lineTo(s * 0.5, s * 0.78);
+    stroke(ctx, 1);
   },
   cargo: (ctx, s) => {
     ctx.beginPath();

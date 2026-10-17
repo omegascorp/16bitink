@@ -32,7 +32,9 @@ export function parseInventory<F extends Inventory | null>(v: unknown, fallback:
     if (!isObj(x) || typeof x.ore !== 'string' || !Object.hasOwn(ORES, x.ore) || !intIn(x.n, 1, stack)) return null;
     return { ore: x.ore as Stack['ore'], n: x.n };
   });
-  return { slots, stack };
+  // Locks only on real slots, once each, in order.
+  const locked = Array.isArray(v.locked) ? [...new Set(v.locked.filter((i): i is number => intIn(i, 0, slots.length - 1)))].sort((a, b) => a - b) : [];
+  return locked.length ? { slots, stack, locked } : { slots, stack };
 }
 
 function parseGear(v: unknown): Loadout {

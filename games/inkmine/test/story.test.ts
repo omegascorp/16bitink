@@ -3,7 +3,7 @@ import { fitInventories, NEW_PROFILE, type Profile } from '../src/logic/economy'
 import { addHoldTo, countIn, emptyInventory, type Inventory } from '../src/logic/inventory';
 import { canRepair, currentGoal, goalLine, repair } from '../src/logic/repairs';
 import { parseProfile } from '../src/logic/save';
-import { callDue, hasBeat, signalBars, TRADE, visit, withBeat } from '../src/logic/story';
+import { callDue, hasBeat, keptOres, signalBars, TRADE, visit, withBeat } from '../src/logic/story';
 import { canPrintTool, printTool, TOOLS } from '../src/logic/tools';
 
 const repaired = (...ids: Profile['repaired']): Profile => fitInventories({ ...NEW_PROFILE, repaired: ids });
@@ -140,5 +140,20 @@ describe('the receiver', () => {
 
   it('is saved, once', () => {
     expect(parseProfile({ tools: ['receiver', 'receiver', 'laser'] }).tools).toEqual(['receiver']);
+  });
+});
+
+describe('the silver in the bag', () => {
+  it('stays in the bag at the lander from when the Lamplighters ask for it until they have it', () => {
+    const whole = met('printer', 'comms', 'hull', 'thrusters');
+    expect(keptOres(whole)).toEqual(['silver']);
+    expect(keptOres(met('printer', 'comms'))).toEqual(['silver']);
+    expect(keptOres(drilled(repaired('printer')))).toEqual([]);
+    expect(keptOres(withBeat(whole, 'paid'))).toEqual([]);
+  });
+
+  it('keeps the bag\'s locks in the save, dropping any out of range', () => {
+    const p = parseProfile({ suit: { stack: 10, slots: [{ ore: 'silver', n: 3 }, null, null, null], locked: [0, 2, 0, 99, -1, 'x'] } });
+    expect(p.suit.locked).toEqual([0, 2]);
   });
 });

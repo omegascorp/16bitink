@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { PIECE_FRAME, TEX } from '../art/textures';
 import type { Inventory } from '../logic/inventory';
 import { ORES } from '../logic/ore';
+import { iconKey } from './kit/icons';
 import { bakeUi, roundRect, rule, RULE, uiImage, wash } from './kit/paint';
 import { label } from './kit/type';
 
@@ -12,6 +13,8 @@ export interface SlotGridOpts {
   /** A slot ringed in highlighter (the one picked up). */
   readonly selected?: number;
   readonly seed?: number;
+  /** Slots that stay in the bag at the lander: a padlock in their corner. */
+  readonly locked?: (slot: number) => boolean;
   /** Called with the slot index when a cell is tapped (makes the grid interactive). */
   readonly onTap?: (slot: number) => void;
   readonly depth?: number;
@@ -75,6 +78,10 @@ export function drawSlotGrid(scene: Phaser.Scene, x: number, y: number, inv: Inv
       made.push(uiImage(scene, cx, cy, stainKey(scene, o.cell, s.ore)).setDepth(depth));
       made.push(scene.add.image(cx + o.cell / 2, cy + o.cell * 0.45, TEX.piece(s.ore)).setScale((o.cell * 0.6) / PIECE_FRAME / 3).setDepth(depth));
       made.push(label(scene, cx + o.cell - 3, cy + o.cell - 1, `${s.n}`, Math.max(13, Math.round(o.cell * 0.34)), '#1f2a55', '600').setOrigin(1, 1).setDepth(depth));
+    }
+    if (o.locked?.(i)) {
+      const size = Math.max(12, Math.round(o.cell * 0.34));
+      made.push(uiImage(scene, cx + 1, cy + 1, iconKey(scene, 'lock', size)).setDepth(depth));
     }
     if (o.onTap) {
       const tap = o.onTap;

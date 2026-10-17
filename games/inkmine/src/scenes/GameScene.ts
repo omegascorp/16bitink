@@ -15,7 +15,7 @@ import { prospectorLook, type Look } from '../logic/gear';
 import { lampFor } from '../logic/marks';
 import { Mine, NO_INPUT, type MineEvent, type MineInput } from '../logic/mine';
 import { oreById, ORES } from '../logic/ore';
-import { OUTPOST, signalBars, visit, type Says } from '../logic/story';
+import { keptOres, OUTPOST, signalBars, visit, type Says } from '../logic/story';
 import { withBag, type Gauge } from '../logic/suit';
 import { currentGoal, wreckOf, type Goal, type Wreck } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
@@ -137,6 +137,8 @@ export class GameScene extends Phaser.Scene {
     const setup = built.setup;
     this.base = built.base;
     this.mine = new Mine(setup);
+    // The Lamplighters' silver stays in the bag at the lander while they wait for it.
+    this.mine.keep = keptOres(profile);
     this.savedAt = 0;
     const T = setup.tileSize;
     const t = setup.terrain;
@@ -320,6 +322,7 @@ export class GameScene extends Phaser.Scene {
     if (!v.says) return;
     this.mine.suit = withBag(this.mine.suit, v.bag);
     setProfile(this, { ...v.profile, suit: v.bag, cargo: this.mine.cargo });
+    this.mine.keep = keptOres(v.profile);
     this.save();
     if (v.says === 'thanks') {
       const p = this.mine.player;
@@ -355,11 +358,12 @@ export class GameScene extends Phaser.Scene {
     this.outpost.setTexture(TEX.outpost(f)).setX(this.ring.near(x + OUTPOST.domes * this.mine.tile));
   }
 
-  /** Where the beacon points: the blueprint a 'find' goal is after, while it's still lying in the world; the outpost once you've met them. */
+  /** Where the beacon points: the blueprint a 'find' goal is after, while it's still lying in the world; the outpost once they have your silver and the core is waiting. */
   private beaconTarget(): { x: number; y: number } | null {
     const g = this.goal();
     const o = this.mine.outpostBox;
-    if (o && (g.kind === 'trade' || g.kind === 'collect')) return { x: o.x + o.w / 2, y: o.y + o.h / 2 };
+    // Not while you're after their silver: it's deep down, not at the outpost. Once it's paid, it points the way back for the core.
+    if (o && g.kind === 'collect') return { x: o.x + o.w / 2, y: o.y + o.h / 2 };
     if (g.kind !== 'find') return null;
     const it = this.mine.items.find((i) => i.blueprint === g.blueprint && (i.state === 'rock' || i.state === 'loose'));
     return it ? { x: it.x + it.w / 2, y: it.y + it.h / 2 } : null;

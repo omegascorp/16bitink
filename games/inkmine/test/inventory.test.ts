@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addOre, contents, countIn, emptyInventory, jettison, keepShare, moveStack, resize, roomFor, sendStack, splitStack, takeOre, transferAll, type Inventory } from '../src/logic/inventory';
+import { addOre, contents, countIn, emptyInventory, isLocked, jettison, keepShare, moveStack, resize, roomFor, sendStack, splitStack, takeOre, toggleLock, transferAll, type Inventory } from '../src/logic/inventory';
 
 const filled = (stack: number, ...stacks: ([string, number] | null)[]): Inventory =>
   ({ stack, slots: stacks.map((s) => (s ? { ore: s[0] as 'copper', n: s[1] } : null)) });
@@ -94,5 +94,23 @@ describe('shrinking an inventory', () => {
     const [b3, c3] = sendStack([filled(10, ['copper', 3]), filled(50, ['copper', 49])], { bag: 1, slot: 0 });
     expect(b3.slots).toEqual([{ ore: 'copper', n: 10 }]);
     expect(c3.slots).toEqual([{ ore: 'copper', n: 42 }]);
+  });
+
+  it('locks and unlocks a slot, and keeps its locks as it changes and grows', () => {
+    const inv = toggleLock(filled(10, ['silver', 4], null, ['copper', 2]), 0);
+    expect(isLocked(inv, 0)).toBe(true);
+    expect(isLocked(inv, 1)).toBe(false);
+    expect(isLocked(addOre(inv, 'silver', 3).inv, 0)).toBe(true);
+    expect(isLocked(takeOre(inv, 'copper', 2).inv, 0)).toBe(true);
+    expect(resize(toggleLock(inv, 2), 2).locked).toEqual([0]);
+    expect(isLocked(toggleLock(inv, 0), 0)).toBe(false);
+  });
+
+  it('leaves locked slots, and anything asked to stay, where they are when everything else moves', () => {
+    const bag = toggleLock(filled(10, ['silver', 4], ['copper', 3], ['graphite', 5]), 0);
+    const r = transferAll(bag, filled(50, null, null, null), (s, i) => isLocked(bag, i) || s.ore === 'graphite');
+    expect(r.from.slots).toEqual([{ ore: 'silver', n: 4 }, null, { ore: 'graphite', n: 5 }]);
+    expect(r.moved).toEqual({ copper: 3 });
+    expect(isLocked(r.from, 0)).toBe(true);
   });
 });

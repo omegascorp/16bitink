@@ -1,6 +1,7 @@
 import { holdSize } from '../../logic/hold';
-import { jettison, moveStack, sendStack, splitStack, transferAll, usedSlots, type Inventory, type SlotRef } from '../../logic/inventory';
+import { isLocked, jettison, moveStack, sendStack, splitStack, toggleLock, transferAll, usedSlots, type Inventory, type SlotRef, type Stack } from '../../logic/inventory';
 import { ORES } from '../../logic/ore';
+import { keptOres } from '../../logic/story';
 import type { Tab } from '../../logic/tech';
 import { drawSlotGrid, gridHeight } from '../slots';
 import { plaque } from '../kit/plaque';
@@ -17,7 +18,8 @@ const BTN_H = 40;
  * a slot to move it there (into an empty slot, onto the same ore, or
  * swapping); a stack picked up on one tab can be put down on the other.
  * A picked-up stack can be sent to the other store, split in half or
- * jettisoned (tap twice). Returns the panel's height.
+ * jettisoned (tap twice); a slot in the suit bag can be locked, so the
+ * lander never takes what's in it. Returns the panel's height.
  */
 export function storagePanel(page: ShipPage, tab: Tab, x: number, y: number, w: number): number {
   const { scene, profile: p, ui } = page;
@@ -30,7 +32,9 @@ export function storagePanel(page: ShipPage, tab: Tab, x: number, y: number, w: 
   label(scene, x + PAD, ry + 10, tab === 'suit' ? 'Suit bag' : 'Hold', 18, INK_TEXT, '600').setOrigin(0, 0.5);
   aside(scene, x + w - PAD, ry + 10, `${usedSlots(inv)} of ${inv.slots.length} slots · stacks of ${inv.stack}`, 15, 300, SEPIA).setOrigin(1, 0.5);
   ry += 28;
-  const opts = { cell: CELL, cols, seed: 70 + bag * 50, selected: sel?.bag === bag ? sel.slot : undefined, onTap: (slot: number) => tap(page, { bag, slot }) };
+  const kept = keeps(p);
+  const locked = bag === 0 ? (slot: number): boolean => { const s = inv.slots[slot]; return s ? kept(s, slot) : isLocked(inv, slot); } : undefined;
+  const opts = { cell: CELL, cols, seed: 70 + bag * 50, selected: sel?.bag === bag ? sel.slot : undefined, locked, onTap: (slot: number) => tap(page, { bag, slot }) };
   drawSlotGrid(scene, x + PAD, ry, inv, opts);
   ry += gridHeight(inv.slots.length, opts) + 10;
   const picked = sel ? pair[sel.bag].slots[sel.slot] : null;
@@ -52,10 +56,11 @@ export function storagePanel(page: ShipPage, tab: Tab, x: number, y: number, w: 
         text: ui.confirm ? 'Sure?' : 'Jettison', kind: ui.confirm ? 'danger' : 'secondary',
         press: () => (ui.confirm ? commitPair(page, withInv(pair, sel.bag, jettison(pair[sel.bag], sel.slot))) : page.setUi({ selected: sel, confirm: true })),
       },
+      ...(sel.bag === 0 ? [{ text: isLocked(p.suit, sel.slot) ? 'Unlock' : 'Lock', kind: 'secondary' as const, press: () => page.commit({ ...p, suit: toggleLock(p.suit, sel.slot) }, { selected: sel }) }] : []),
       { text: 'Put down', kind: 'secondary', press: () => page.setUi({}) },
     ];
-    // Four across when there's room, else two rows of two.
-    const across = inner >= 520 ? 4 : 2;
+    // All in a row when there's room, else rows of two.
+    const across = inner >= buttons.length * 120 ? buttons.length : 2;
     const bw = (inner - 8 * (across - 1)) / across;
     buttons.forEach((b, i) => {
       const bx = x + PAD + (i % across) * (bw + 8) + bw / 2;
@@ -64,15 +69,22 @@ export function storagePanel(page: ShipPage, tab: Tab, x: number, y: number, w: 
     });
     ry += Math.ceil(buttons.length / across) * (BTN_H + 8) + 6;
   } else {
-    aside(scene, x + PAD, ry, 'Tap a stack to pick it up and move it.', 16, inner, FADED);
-    ry += 30;
-    const stow = transferAll(p.suit, p.cargo);
+    const tip = bag === 0 ? 'Tap a stack to pick it up and move it. Locked slots stay in the bag at the lander.' : 'Tap a stack to pick it up and move it.';
+    const t = aside(scene, x + PAD, ry, tip, 16, inner, FADED);
+    ry += t.height + 10;
+    const stow = transferAll(p.suit, p.cargo, kept);
     plaque(scene, x + w / 2, ry + BTN_H / 2, 'Stow the bag in the cargo', () => page.commit({ ...p, suit: stow.from, cargo: stow.to }), { width: Math.min(300, inner), height: BTN_H, size: 14, kind: holdSize(stow.moved) ? 'secondary' : 'off' });
     ry += BTN_H + 14;
   }
   const h = ry - y + 8;
   section(scene, x, y, w, h, 'Storage', 41 + bag);
   return h;
+}
+
+/** What stays in the bag at the lander: locked slots, and the ore the Lamplighters are waiting for. */
+function keeps(p: ShipPage['profile']): (s: Stack, slot: number) => boolean {
+  const ores = keptOres(p);
+  return (s, slot) => isLocked(p.suit, slot) || ores.includes(s.ore);
 }
 
 function withInv(pair: readonly [Inventory, Inventory], bag: 0 | 1, inv: Inventory): [Inventory, Inventory] {
