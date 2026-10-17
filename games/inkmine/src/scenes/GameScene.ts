@@ -17,15 +17,20 @@ import type { MineItem } from '../logic/items';
 import { lampFor } from '../logic/marks';
 import { Mine, NO_INPUT, SPORE_AIR, type MineEvent, type MineInput } from '../logic/mine';
 import { oreById, ORES } from '../logic/ore';
-import { ARRIVAL_BEAT, campVisit, hasBeat, keptOres, OUTPOST, signalBars, visit, withBeat, type CampSays, type Says } from '../logic/story';
+import { ARRIVAL_BEAT, campVisit, craftVisit, HEART, hasBeat, keptOres, OUTPOST, RAISE, REEF_TRADE, reefVisit, signalBars, visit, withBeat, type CampSays, type CraftSays, type ReefSays, type Says } from '../logic/story';
+import { holds } from '../logic/hold';
+import { contents } from '../logic/inventory';
 import { feed, fuelIn, withBag, type FeedResult, type Fuels, type Gauge, type Suit } from '../logic/suit';
-import { currentGoal, MYCEL_SET, wreckOf, type Goal, type Wreck } from '../logic/repairs';
+import { BRINE_SET, brineSetFound, currentGoal, MYCEL_SET, wreckOf, type Goal, type Wreck } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
 import { ringDelta, volatileAt } from '../logic/terrain';
 import { volatileKeyOf } from '../logic/volatiles';
 import { captureWorld, loadWorld, savePieces, saveWorld } from '../logic/worldSave';
 import { BeaconView } from './game/beaconView';
 import { CampSite } from './game/campSite';
+import { CraftSite, ReefSite } from './game/brineSites';
+import { BRINE_WATER, WaterView } from './game/waterView';
+import { surfaceAt } from '../level/carve';
 import { CrashView } from './game/crashView';
 import { FaunaView } from './game/faunaView';
 import { FlagView } from './game/flagView';
@@ -129,6 +134,17 @@ export class GameScene extends Phaser.Scene {
   private campSite: CampSite | null = null;
   /** The prospector was at the camp last step: a visit starts on walking in, not every step there. */
   private wasAtCamp = false;
+  /** Where the local people live under the water, and their picture (Brine's Tidesingers, with the Aster crew in their air bell). */
+  private reefSite: ReefSite | null = null;
+  /** A lost crew's craft, sunk, raised or mended (Brine's Aster craft). */
+  private craftSite: CraftSite | null = null;
+  private wasAtReef = false;
+  private wasAtCraft = false;
+  /** Something's happening at the Tidesingers' reef, or at the Aster craft (a card is up): the world waits until it's read. */
+  reef: ReefSays | null = null;
+  craft: CraftSays | null = null;
+  /** The world's water, painted; none on a dry world. */
+  private waterView: WaterView | null = null;
   /** The creatures and the pulse's shots; none on a world with neither (Graphite, unarmed). */
   private fauna: FaunaView | null = null;
   /** Asked for from outside the world (a tapped gauge on the HUD, recall in the inventory), done on the next step. */
@@ -148,6 +164,8 @@ export class GameScene extends Phaser.Scene {
     this.talk = null;
     this.found = false;
     this.camp = null;
+    this.reef = null;
+    this.craft = null;
     this.lastBars = null;
     this.changed = false;
     this.smokeAt = 0;
@@ -190,6 +208,12 @@ export class GameScene extends Phaser.Scene {
     this.crashAt = world.crash === undefined ? null : { col: world.crash, row: world.site.surface };
     this.crash = this.crashAt ? new CrashView(this, this.crashAt, T) : null;
     this.campSite = world.camp ? new CampSite(this, { col: world.camp.at[0], row: world.site.surface + world.camp.at[1] }, T) : null;
+    const bell = world.site.bells?.[0];
+    const bellAt = bell ? { col: bell.at[0], row: world.site.surface + bell.at[1] + Math.ceil(bell.h / 2) - 1 } : null;
+    this.reefSite = world.reef ? new ReefSite(this, { col: world.reef.at[0], row: world.site.surface + world.reef.at[1] }, T, bellAt) : null;
+    const seaRow = world.site.surface + (world.site.sea?.level ?? 0);
+    this.craftSite = world.craft === undefined ? null : new CraftSite(this, { col: world.craft, row: surfaceAt(world.site, world.craft) }, T, seaRow);
+    this.waterView = this.mine.water ? new WaterView(this, this.mine.water, t, T, BRINE_WATER) : null;
     this.fauna = this.mine.fauna.creatures.length || this.mine.fauna.armed ? new FaunaView(this, T) : null;
     this.things = new ThingsView(this, T);
     this.items = new ItemsView(this, T);
@@ -207,6 +231,8 @@ export class GameScene extends Phaser.Scene {
     else cam.setBounds(0, 0, t.width * T, worldH);
     this.wasAtOutpost = this.mine.atOutpost;
     this.wasAtCamp = this.atCamp();
+    this.wasAtReef = !!this.reefSite?.holds(this.mine);
+    this.wasAtCraft = !!this.craftSite?.near(this.mine);
     const p = this.mine.player;
     this.ring.centre = p.x + p.w / 2;
     this.prospector.update(this.mine, 0, 0, this.ring);
@@ -251,7 +277,7 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const dt = Math.min(delta / 1000, MAX_DT);
-    const still = this.ended || this.intro || this.talk !== null || this.found || this.camp !== null;
+    const still = this.ended || this.intro || this.talk !== null || this.found || this.camp !== null || this.reef !== null || this.craft !== null;
     // Keys are read every frame, so one pressed while the world waits doesn't fire when it starts again.
     const hud = this.scene.get('Hud') as HudScene | null;
     const touch = hud?.touch && this.scene.isActive('Hud') ? hud.touch.read() : undefined;
@@ -273,6 +299,12 @@ export class GameScene extends Phaser.Scene {
     const atCamp = this.atCamp();
     if (atCamp && !this.wasAtCamp && !still) this.visitCamp();
     this.wasAtCamp = atCamp;
+    const atReef = !!this.reefSite?.holds(this.mine);
+    if (atReef && !this.wasAtReef && !still) this.visitReef();
+    this.wasAtReef = atReef;
+    const atCraft = !!this.craftSite?.near(this.mine);
+    if (atCraft && !this.wasAtCraft && !still) this.visitCraft();
+    this.wasAtCraft = atCraft;
     if (!still) this.listen();
     this.sounds.listen(this.mine, still);
     const cam = this.cameras.main;
@@ -288,6 +320,10 @@ export class GameScene extends Phaser.Scene {
     this.drawOutpost(time);
     this.crash?.update(this.ring, time);
     this.campSite?.update(this.ring, time, hasBeat(getProfile(this), 'asterWoken'));
+    const prof = getProfile(this);
+    this.reefSite?.update(this.ring, time, hasBeat(prof, 'crewMet'));
+    this.craftSite?.update(this.ring, time, hasBeat(prof, 'craftMended') ? 'mended' : hasBeat(prof, 'craftRaised') ? 'raised' : 'sunk');
+    this.waterView?.update(cam.worldView, this.ring, time);
     this.fauna?.update(this.mine, time, this.ring);
     this.beacon.update(this.mine, this.ring, this.beaconTarget(), 'beacon', time);
     const d = this.mine.dropped;
@@ -363,6 +399,8 @@ export class GameScene extends Phaser.Scene {
   signal(): number | null {
     const from = this.callFrom();
     if (from === null) return null;
+    // The Tidesingers' song is sound, not radio: the suit hears it only with the helmet under water.
+    if (this.listeningFor() === 'song' && this.mine.headDepth === 0) return 0;
     const p = this.mine.player;
     const tiles = Math.abs(ringDelta(this.mine.terrain, p.x + p.w / 2, from, this.mine.tile)) / this.mine.tile;
     return signalBars(tiles);
@@ -375,7 +413,13 @@ export class GameScene extends Phaser.Scene {
     if (g === 'signal' && o) return o.x + o.w / 2;
     if (g === 'distress' && this.crashAt) return (this.crashAt.col + 0.5) * this.mine.tile;
     if (g === 'trail' && this.campSite) return this.campSite.x;
+    if (g === 'song' && this.reefSite) return this.reefSite.x;
     return null;
+  }
+
+  /** What the signal plate is reading: the receiver (radio), or the suit hearing a song through the water. */
+  listeningFor(): 'receiver' | 'song' {
+    return this.goal().kind === 'song' ? 'song' : 'receiver';
   }
 
   /** Walking up to the Aster lander by its beacon, on the ground beside it: its card shows what's left, and its log. */
@@ -428,6 +472,54 @@ export class GameScene extends Phaser.Scene {
     this.camp = null;
     this.keys.forget();
     if (was === 'camp' && this.goal().kind === 'wake' && campVisit(this.liveProfile(), this.mine.suit.bag).says === 'woken') this.visitCamp();
+  }
+
+  /**
+   * Swimming in to the Tidesingers' reef: they meet you the first time,
+   * wait for their copper, take it and let you in to the Aster crew, and
+   * later take the crew's hull patch and float the craft up (story.ts).
+   * A card shows it; the world waits until it's read. Saved at once.
+   */
+  private visitReef(): void {
+    const v = reefVisit(this.liveProfile(), this.mine.suit.bag, brineSetFound);
+    this.mine.suit = withBag(this.mine.suit, v.bag);
+    setProfile(this, { ...v.profile, suit: v.bag, cargo: this.mine.cargo });
+    this.mine.keep = keptOres(v.profile);
+    this.save();
+    if (v.says === 'wait') {
+      const p = this.mine.player;
+      this.fx.note(this.ring.near(p.x + p.w / 2), p.y - 32, hasBeat(v.profile, 'crewMet') ? 'the crew flash their crowns at you' : 'they sing, low and long');
+      return;
+    }
+    this.reef = v.says;
+  }
+
+  /** A reef card was read. Paying shows the crew next; meeting them with the copper already in the bag, they take it at once. */
+  closeReef(): void {
+    const was = this.reef;
+    this.reef = null;
+    this.keys.forget();
+    if (was === 'paid') {
+      this.reef = 'crew';
+      return;
+    }
+    if (was === 'meet' && this.goal().kind === 'reefTrade' && reefVisit(this.liveProfile(), this.mine.suit.bag, brineSetFound).says === 'paid') this.visitReef();
+  }
+
+  /** Swimming up to the Aster craft: found the first time; once it's up, it takes its new heart from the bag. */
+  private visitCraft(): void {
+    const v = craftVisit(this.liveProfile(), this.mine.suit.bag);
+    if (!v.says) return;
+    this.mine.suit = withBag(this.mine.suit, v.bag);
+    setProfile(this, { ...v.profile, suit: v.bag, cargo: this.mine.cargo });
+    this.mine.keep = keptOres(v.profile);
+    this.save();
+    this.craft = v.says;
+  }
+
+  closeCraft(): void {
+    this.craft = null;
+    this.keys.forget();
   }
 
   /** The receiver crackling stronger or weaker as you walk: hot and cold, never a direction. */
@@ -521,8 +613,13 @@ export class GameScene extends Phaser.Scene {
     if (this.campSite && (g.kind === 'wake' || (g.kind === 'trail' && this.signal() === 5))) return this.campSite.point;
     if (g.kind === 'explore') {
       const found = getProfile(this).found;
-      return this.nearestPart((bp) => MYCEL_SET.includes(bp) && !found.includes(bp));
+      const set = g.mk === 3 ? BRINE_SET : MYCEL_SET;
+      return this.nearestPart((bp) => set.includes(bp) && !found.includes(bp));
     }
+    // On Brine: the craft the telescope saw, and back to the reef or the craft once the bag holds what they wait for.
+    const bag = contents(this.mine.suit.bag);
+    if (this.craftSite && (g.kind === 'craft' || (g.kind === 'heart' && holds(bag, HEART)))) return this.craftSite.point;
+    if (this.reefSite && ((g.kind === 'reefTrade' && holds(bag, REEF_TRADE)) || (g.kind === 'raise' && holds(bag, RAISE)))) return this.reefSite.point;
     return null;
   }
 
@@ -554,7 +651,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.mine) return;
     const world = this.planet.world;
     setProfile(this, this.liveProfile());
-    const changes = captureWorld(this.base, this.mine.terrain, this.mine.ladders, world.version, this.taken, this.mine.dropped, savePieces(this.mine.terrain, this.mine.pieces, this.mine.tile));
+    const changes = captureWorld(this.base, this.mine.terrain, this.mine.ladders, world.version, this.taken, this.mine.dropped, savePieces(this.mine.terrain, this.mine.pieces, this.mine.tile), this.mine.water?.settledWet());
     holdWorld(this, world.id, changes);
     this.changed = !saveWorld(getHost(this).storage, world.id, changes);
     this.savedAt = this.mine.time;
@@ -653,6 +750,19 @@ export class GameScene extends Phaser.Scene {
       case 'spores':
         this.fx.note(this.ring.near((e.tile[0] + 0.5) * this.mine.tile), e.tile[1] * this.mine.tile - 6, `spores! air − ${SPORE_AIR}`, true);
         break;
+      case 'flood':
+        if (e.near) {
+          this.cameras.main.shake(260, 0.0025);
+          this.fx.note(px, p.y - 32, e.sea ? 'the sea is coming in!' : 'water! it’s pouring in', true);
+        }
+        break;
+      case 'deep':
+        this.fx.note(px, p.y - 32, `deep water: air ×${e.rate.toFixed(1)}`, true);
+        break;
+      case 'water':
+        this.changed = true;
+        break;
+      case 'splash':
       case 'drilled':
       case 'bounce':
         break;

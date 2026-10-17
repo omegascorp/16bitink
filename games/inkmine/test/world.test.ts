@@ -10,7 +10,7 @@ import { RECIPES } from '../src/logic/blueprints';
 import { isDesign } from '../src/logic/designs';
 import { REPAIRS } from '../src/logic/repairs';
 import { STARSHIP, STARSHIP_IDS } from '../src/logic/starship';
-import { TRADE, WAKE } from '../src/logic/story';
+import { HEART, RAISE, REEF_TRADE, TRADE, WAKE } from '../src/logic/story';
 import { addHold, holdEntries, type Hold } from '../src/logic/hold';
 import { ORES, type OreKey } from '../src/logic/ore';
 import { STARTER } from '../src/logic/suit';
@@ -179,5 +179,33 @@ describe('Mycel', () => {
     expect(count('graphite')).toBe(0);
     expect(count('water')).toBeGreaterThan(100);
     expect(count('lignite')).toBeGreaterThan(100);
+  });
+});
+
+describe('Brine', () => {
+  const brine = INKMINE_PAID_PLANETS[1]!;
+  const item = (id: string) => brine.world.items.find((it) => it.id === id)!;
+
+  it("its drill's materials and the Tidesingers' copper lie within reach of Mycel's drill, a step behind: in the sediment", () => {
+    const need = addHold(RECIPES['drill-3']!.materials, REEF_TRADE);
+    for (const [ore, n] of holdEntries(need)) expect(reachableOre(brine, 2, ore), ore).toBeGreaterThanOrEqual(n * 3);
+    for (const id of ['village-cell', 'village-pack', 'village-helmet']) expect(reach(brine, 2).at(item(id).at[0], item(id).at[1]), id).toBeLessThan(Infinity);
+  });
+
+  it("its basalt won't break for Mycel's drill: the Jetpack and the Suit wait for Brine's", () => {
+    const { at } = reach(brine, 2);
+    for (const id of ['basalt-jetpack', 'basalt-suit']) expect(at(item(id).at[0], item(id).at[1]), id).toBe(Infinity);
+  });
+
+  it("holds the crew's hull patch and the craft's heart three times over, with Brine's drill", () => {
+    for (const [ore, n] of holdEntries(addHold(RAISE, HEART))) expect(reachableOre(brine, 3, ore), ore).toBeGreaterThanOrEqual(n * 3);
+  });
+
+  it('keeps the reef within the song\'s range of the craft, and the drowned village near the craft', () => {
+    const width = brine.world.site.width;
+    const gap = (a: number, b: number) => Math.min(Math.abs(a - b), width - Math.abs(a - b));
+    const craft = brine.world.craft!;
+    expect(gap(brine.world.reef!.at[0], craft)).toBeLessThanOrEqual(100);
+    for (const id of ['village-cell', 'village-pack', 'village-helmet', 'basalt-jetpack', 'basalt-suit']) expect(gap(item(id).at[0], craft), id).toBeLessThanOrEqual(60);
   });
 });

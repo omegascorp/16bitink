@@ -35,6 +35,8 @@ export interface WorldSave {
   readonly bag?: SavedBag;
   /** Pieces of ore left lying loose (pieces.ts), each at the tile index it lay in. */
   readonly pieces?: readonly SavedPiece[];
+  /** One per tile: 1 where water stands (water.ts), on a world with water. */
+  readonly wet?: Uint8Array;
 }
 
 export interface SavedPiece {
@@ -68,7 +70,7 @@ const MAX_TAKEN = 512;
 const MAX_PIECES = 400;
 
 /** What changed from the carved ground (`base`, its tiles as carved) to the world as it is. */
-export function captureWorld(base: Uint8Array, t: Terrain, ladders: Ladders, version: number, taken: readonly string[], dropped: DroppedBag | null = null, loose: readonly SavedPiece[] = []): WorldSave {
+export function captureWorld(base: Uint8Array, t: Terrain, ladders: Ladders, version: number, taken: readonly string[], dropped: DroppedBag | null = null, loose: readonly SavedPiece[] = [], wet?: Uint8Array): WorldSave {
   const n = t.width * t.height;
   const dug = new Uint8Array(n);
   for (let i = 0; i < n; i++) if (base[i] !== TILE.air && t.tiles[i] === TILE.air) dug[i] = 1;
@@ -76,7 +78,7 @@ export function captureWorld(base: Uint8Array, t: Terrain, ladders: Ladders, ver
   for (const [x, y] of ladders.all()) rungs[y * t.width + x] = 1;
   const bag = saveBag(t, dropped);
   const pieces = loose.slice(0, MAX_PIECES);
-  return { version, dug, ladders: rungs, taken: [...new Set(taken)], ...(bag ? { bag } : {}), ...(pieces.length ? { pieces } : {}) };
+  return { version, dug, ladders: rungs, taken: [...new Set(taken)], ...(bag ? { bag } : {}), ...(pieces.length ? { pieces } : {}), ...(wet ? { wet: wet.slice() } : {}) };
 }
 
 /** Loose pieces as the save keeps them: the tile each one's middle is in (`tile` px a tile). */
@@ -179,6 +181,7 @@ export function saveWorld(store: KeyValueStore | undefined, worldId: string, sav
       taken: save.taken,
       bag: save.bag,
       pieces: save.pieces,
+      ...(save.wet ? { wet: packMask(save.wet) } : {}),
     }));
     return true;
   } catch (err) {
@@ -227,7 +230,9 @@ function parseWorld(raw: unknown, n: number, known: ReadonlySet<string>): WorldS
   const taken = [...new Set(ids.filter((id): id is string => typeof id === 'string' && known.has(id)))];
   const bag = parseBag(o.bag, n);
   const pieces = parsePieces(o.pieces, n);
-  return { version: o.version as number, dug, ladders, taken, ...(bag ? { bag } : {}), ...(pieces.length ? { pieces } : {}) };
+  // Water that can't be read is left out: the world's water is carved afresh instead.
+  const wet = o.wet === undefined ? null : unpackMask(o.wet, n);
+  return { version: o.version as number, dug, ladders, taken, ...(bag ? { bag } : {}), ...(pieces.length ? { pieces } : {}), ...(wet ? { wet } : {}) };
 }
 
 /** Loose pieces on the world, of ores that exist; anything else is dropped. */

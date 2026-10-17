@@ -5,7 +5,8 @@ import { countOf } from '../../logic/hold';
 import { isLocked, type SlotRef, type Stack } from '../../logic/inventory';
 import { oreNeeds, type OreNeed } from '../../logic/needs';
 import { ORES } from '../../logic/ore';
-import { keptOres } from '../../logic/story';
+import { hasBeat, keptOres } from '../../logic/story';
+import type { Profile } from '../../logic/economy';
 import { FEED } from '../../logic/suit';
 import { aside, FADED, INK_TEXT, label, prose, SEPIA } from '../kit/type';
 import { divider, PAD, section, SECTION_BODY, type ShipPage } from './panel';
@@ -29,7 +30,7 @@ function whereLine(page: ShipPage, at: SlotRef, s: Stack): string {
   const p = page.profile;
   if (at.bag === 1) return 'in the cargo';
   if (at.bag === 2) return p.docked ? "in the starship's hold" : "in the starship's hold, up in orbit";
-  if (keptOres(p).includes(s.ore)) return `in the suit bag · kept for ${p.at === 'mycel' ? "the Aster's pod" : 'the Lamplighters'}`;
+  if (keptOres(p).includes(s.ore)) return `in the suit bag · kept for ${keptFor(p)}`;
   return isLocked(p.suit, at.slot) ? 'in the suit bag · locked' : 'in the suit bag';
 }
 
@@ -69,4 +70,12 @@ export function stackCard(page: ShipPage, at: SlotRef, s: Stack, x: number, y: n
   const h = ry - y + 10;
   section(scene, x, y, w, h, 'Cargo', 62);
   return h;
+}
+
+/** Who the ore kept in the bag is for: whoever's waiting on it now (story.ts keptOres). */
+function keptFor(p: Profile): string {
+  if (p.at === 'mycel') return "the Aster's pod";
+  if (p.at !== 'brine') return 'the Lamplighters';
+  if (!hasBeat(p, 'reefPaid')) return 'the Tidesingers';
+  return hasBeat(p, 'craftRaised') ? "the Aster craft's heart" : "the Aster crew's hull patch";
 }

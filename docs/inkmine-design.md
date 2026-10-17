@@ -544,7 +544,7 @@ Decided with @Hayk on Oct 17, 2026: one of the crew is alive, asleep, and waking
 2. **The camp** (beat `asterCamp`, the card "The Aster camp"). At the bottom is a cave they sealed against the spores with amber resin. Three woven-cord bedrolls lie in it, empty. Pictures scratched in their plum ink on the wall show what happened: they built a small craft from the lander's petals, three of them flew off in it towards a blue world, and one lay down in a pod to wait. That pod is in the corner, its glass glowing a weak teal, and the suit reads its cell as nearly flat. This is why the beacon kept calling.
 3. **The charge** (goal `wake`, `WAKE` in `logic/story.ts`). The pod's cell is a glass prism on a pyrite cathode, as all of theirs are. It needs 6 pyrite and 4 calcite, carried in the bag. Those ores stay in the bag at the lander until the pod has them, as the Lamplighters' silver did. Walking in with them, the pod takes them.
 4. **The last of the Aster** (beat `asterWoken`, the card "The last of the Aster"). The pod's petals open and its sleeper unfolds: the first alien you meet who is a castaway like you. It speaks in flashes of light from the glass on its crown, the same pulses as the distress call. It scratches the story again in the peat: three of its crew, the craft, the blue world. It's **Brine**, the sea world on the star map. They promised to call back and never did. It taps your suit, then the blue world.
-5. **The end of chapter 2** (goal `brine`). The HUD says the crew flew to Brine years ago and never called back, and that Brine is coming soon. The star map's Brine card says the Aster crew flew there. The Aster stays at its camp, by its open pod, keeping the beacon going in case they come back. Walking in again, its crown flashes at you.
+5. **The end of chapter 2** (goal `brine`). The HUD says the crew flew to Brine years ago and never called back, and asks you to fit the tank the Aster drew, which is how chapter 3 begins (see "Brine"). The star map's Brine card says the Aster crew flew there. The Aster stays at its camp, by its open pod, keeping the beacon going in case they come back. Walking in again, its crown flashes at you.
 
 The camp's cave is at column 214, depth 12–16, with the shaft at column 209 (`content/planet2.ts`, world version 2). `scenes/game/campSite.ts` draws the camp, the pod and the Aster; the cards are in `scenes/hud/campCards.ts`; the pictures are in `art/aster/camp.ts`.
 
@@ -557,6 +557,78 @@ Another people who fell through the wormhole, years before you, and the first al
 **Their design language** (`art/aster/style.ts`), nothing like the guild's: things look grown more than built. Glazed ceramic, bone-white with lilac glaze pooled low, ribbed like a shell and arranged round a centre; joints lashed with dark red cord where ours are riveted; hexagonal glass with a cool teal glow where power runs; their star on everything. No rivets, no straight panel seams, none of the guild's cobalt and enamel.
 
 **Their gear** (`art/aster/gear.ts`), as it lies broken on Mycel: a coring drill that cuts a ring with a crown of eight teeth; a cell that's a hexagonal glass prism with charge glowing in it; a pack like a lashed clam shell; a helmet of faceted glass on a ribbed collar with their star for a crest; a jetpack that's a fan of four petal nozzles round a glass heart; a suit of overlapping shell bands over woven cord. Studying one gives a Mk 2 blueprint, but the printer builds it your way, in your shape, borrowing their ideas (see "The prospector's look", Mk 2). Every species met later builds in its own way like this, and its technology can be studied the same way.
+
+## Brine (chapter 3, the full game)
+
+Decided with @Hayk on Oct 17, 2026: the three Aster crew who flew to Brine are alive. Their craft sank in the sea, and Brine's own people, an ocean people, pulled them out. They live with them now and can't leave. The ocean people can't make fire, so they can't get metal: they ask you for it and pay in knowledge. The starship's bigger tank, the one Brine needs, comes from the woken Aster. This first step builds the spine: the tank and the trip, Brine's world, ores and water, swimming, the Mk 3 gear and the story up to the crew's craft flying again. Brine's creatures, the Leviathan and the ocean people's language come next. @Hayk asked for a longer story and a bigger world than Mycel's.
+
+Built Oct 18, 2026 (`content/planet3.ts`, `logic/water.ts`, the reef and craft in `scenes/game/brineSites.ts`, their cards in `scenes/hud/brineCards.ts`, the art in `art/tidesinger/`, `art/asterCraftArt.ts` and `art/brineSky.ts`); `test/brine.test.ts`, `test/water.test.ts` and the Brine part of `test/world.test.ts` check it.
+
+A sea world in the habitable zone, a little bigger than the prospector's own (1.1 masses), with air of nitrogen and carbon dioxide. Its sea is purple: the microbes floating in it catch light with retinal, as Earth's first ones may have, and make no oxygen ("Purple Earth", DasSarma and Schwieterman, 2018). Islands of salt-crusted basalt stand out of it; under them and under the seabed the rock is full of water.
+
+### The story
+
+**On Mycel: the Aster's tank.** Woken, the last of the Aster scratches one more picture in the peat: its crew's craft, and the tank they built for it from the lander's petals, a long jar wound in fibre. Your ship's tank holds 10, enough for a sister moon; Brine needs 14. The suit records the drawing as a design (`aster-tank`), and the Starship tab gets an **Aster tank** slot: 10 lignite (pitch carbon fibre), 4 amber (the resin) and 4 calcite (a ceramic liner), fitted aboard. It doubles the tank to 20. Real big rocket tanks are carbon fibre wound over a thin liner. Then fill it, and set course for Brine on the star map.
+
+1. **Fit the Aster's tank** (goal `brine`, the step that was "the end" of chapter 2).
+2. **Fill the ship's tank** for Brine (14 units of water).
+3. **Set course for Brine.** The trip burns 14 either way, from Mycel or Graphite. The orbit card: a purple sea, islands; on the reef east of the biggest island the telescope picks out something bright, glazed lilac, half under water.
+4. **Land** on the Landing Isle. The first-landing card: the lander can only come down on rock; everything else is sea.
+5. **The craft** (goal `craft`). The beacon arrow points to the bright thing on the reef: you swim out to it. Reaching it opens "The Aster craft" card (beat `craftFound`): empty, flooded to the roof, its radio drowned. Radio waves die within a metre or two of seawater (real: submarines can only hear the slowest radio waves), which is why the crew never called back. Scratched inside: the craft sinking, three small figures swimming, and great wide shapes rising under them and carrying them down.
+6. **The song** (goal `song`). Radio is dead in the sea, but sound isn't: it carries for hundreds of kilometres in water (real: whale song crosses ocean basins in the deep sound channel). With your helmet under water the suit hears a song, slow and huge, and gives it as bars, hot and cold, like the receiver; out of the water it hears nothing. It leads east and down, through a cave in the seabed, to the reef where the ocean people live.
+7. **The Tidesingers** (beat `reefMet`). Your name for them, for the song. They meet you at the mouth of their reef and won't let you past. One draws in the sand what they want: copper, from inside the rock they can't break. Behind them, through the water, a pale dome glows with three small shapes in it.
+8. **Copper for the Tidesingers** (goal `reefTrade`): 8 native copper, carried in the bag and kept there at the lander until they have it. Native copper needs no fire: people on Earth hammered it cold into tools 7,000 years ago. Paying (beat `reefPaid`), they show you how they bore stone: a copper tube spun on wet sand, which is how the Egyptians drilled granite. That is the **Drill Mk 3** design. Then they lead you in (beat `crewMet`, "The Aster crew"): an air bell under the reef, held up by the Tidesingers, who carry air down to it in bladders as a diving bell spider does. The three Aster are in it, thin and tired. They learnt from the Tidesingers to scrub breath with salt, and draw it for you: the **rebreather** design.
+9. **Print the Drill Mk 3** (goal `print:drill-3`). Brine's basalt won't break for Mycel's drill.
+10. **Print the rebreather** (goal `rebreather`, a tool: 4 halite, 3 copper). Real rebreathers scrub the carbon dioxide from your breath with soda lime, made from salt, and recycle the rest, so how deep you are stops mattering (see "Water and air").
+11. **The drowned village** (goal `explore:3`). The Tidesingers' old village lies under the shelf west of the reef, flooded and given up long ago. Their broken tools lie in it, each a Mk 3 design ("Mk 3 designs 2/6"): stone, shell and glass, no metal anywhere.
+12. **Raise the craft** (goal `raise`). The crew want to go home, or at least to go on. Their craft has to come up first: its hull is cracked. Bring the crew 10 magnetite from the basalt for the patch (kept in the bag), and the Tidesingers fill bladders under it and float it up (beat `craftRaised`, the card "Up from the reef"). Real salvors raise wrecks with lift bags.
+13. **A new heart for the craft** (goal `heart`). Its cell drowned. Their cells are glass prisms on a cathode; on Brine that means 6 manganese nodule and 4 brine pearl, carried to the craft, now floating over the reef (beat `craftMended`, "The craft's heart").
+14. **The end, for now** (goal `brineEnd`). The craft hums; the crew thank the Tidesingers in light and song. Where they fly, and what lives in Brine's flooded underworld, comes next.
+
+### Water and air
+
+Brine's new mechanic is water (`logic/water.ts`).
+
+- **The sea** fills every open tile below sea level that it can reach. It never runs out, so a tunnel dug up into the seabed floods for good, as far as it runs below sea level.
+- **Water in the rock** lies in sealed pockets and big flooded caves (aquifers). Break into one and its water runs out into whatever is lower, until both stand at one level, as water does in joined pipes. It never climbs over a rise: a pocket opened from above stays put. Real water behaves like this; the flood takes a few seconds, so you can get out of its way. Air trapped at the top of a cave stays as air.
+- **Saved:** where the water stands is saved with the world, one bit a tile.
+- **Swimming.** In water you sink slowly; jump swims up, and at the surface it lifts you out onto a ledge. You can drill while swimming. The jetpack doesn't fire under water.
+- **Air under water.** The deeper you are, the faster the suit uses air: one more time over for every 10 m of water above your head, up to four times. That's real: a diver's air goes twice as fast at 10 m and three times as fast at 20 m, as the water's weight squeezes each breath. The **rebreather** recycles your breath, so with it depth doesn't matter. Air trapped in caves is somewhere to breathe normally.
+
+### The world
+
+Brine is 384 tiles round and 200 deep (Graphite 256 × 160, Mycel 240 × 144). Islands stand two metres out of the sea; between them the seabed lies 6 to 20 m down. Sediment (soil) runs to about 22 m under the seabed, basalt (stone) to about 110 m, then deep rock.
+
+| Region | Where | What's there | Opens with |
+| --- | --- | --- | --- |
+| The Landing Isle | Columns 24–76, the lander at 48 | Fresh water under the island (an island's rain floats on the sea water under it as a lens), halite beds, native copper washed into the sediment | Start |
+| The drowned village | The shelf, 90–132 | The Tidesingers' old homes under the seabed, flooded; their broken tools (Mk 3 designs): three in the homes, two in cellars walled in basalt | Swimming; the Mk 3 drill for the cellars |
+| The reef | 140–162 | The Aster craft, sunk on its top | Swimming |
+| The Tidesingers' reef | 196–222, 30–40 m down | Their home, flooded, reached through a cave in the seabed; the air bell with the crew | The song |
+| The pearl banks | 240–300 | Old shell beds deep in the sediment and in the basalt: brine pearls | Mk 3 drill for most |
+| Salt Isle | 300–340 | A second island: halite and fresh water | Swimming |
+| The underworld | Deep, all round | Big flooded caves in the basalt | Later: the Leviathan |
+
+**Its fuels:** fresh water for the air and both tanks, and manganese nodules for the cell. Real alkaline batteries have a manganese dioxide cathode, and manganese nodules cover real abyssal seabeds.
+
+**Its ores** (ids 14–17), with native copper and water: manganese nodules (black, lumpy, in the sediment of the seabed), halite (rock salt in pink cubes, beds under the islands), magnetite (black iron oxide, magnetic, through the basalt) and brine pearls (the signature: nacre from old shell beds).
+
+**The Mk 3 set:**
+
+| Piece | Materials | What it's made of |
+| --- | --- | --- |
+| Cell | 5 halite, 3 nodule | A sodium-ion cell (sodium from salt) with a manganese oxide cathode, as real ones are built |
+| Pack | 4 copper, 2 pearl | A copper-wire net, which real fish farms use as it stays clean in the sea, with nacre toggles |
+| Drill | 5 copper, 4 nodule | A copper tube crown fed with sand, on manganese steel, the steel real rock crushers are made of |
+| Helmet | 4 halite, 2 pearl | A rock-salt visor: salt crystal lets heat light through, so real infrared instruments use it |
+| Jetpack | 5 magnetite, 3 copper | An iron pump with copper windings |
+| Suit | 4 magnetite, 3 pearl | Nacre plates, the toughest natural ceramic, over an iron mesh |
+
+The drill and its materials lie in the sediment, within reach of Mycel's drill.
+
+### The Tidesingers
+
+A sea people, clever, who never had fire: under water nothing burns, so they never smelted metal. What they make is stone, shell, glass and woven fibre. They need copper, and they can't dig it out of the basalt. They're ray-shaped: a broad, flat body that flies through the water on two wide wings, with two long lobes in front that unroll into hands (real manta rays unroll lobes like these to feed, and have the biggest brains of any fish). Their eyes sit on the wing's leading edge. They talk in long, low songs, the same song the suit follows. Drawn in blue: never a danger. Their language is for later.
 
 ## Inside the lander and the pause screen
 
@@ -687,7 +759,7 @@ As in the other games, entries unlock the first time you meet them:
 Same model as InkFish and InkCrab:
 
 - Chapter 1 (Graphite) is free and ends at lift-off; planets 2–10 are a $4.99 one-time purchase.
-- Paid planets are server-only content served after the entitlement check (`content/` entry, `/api/content/inkmine`). Built Oct 17, 2026, as InkCrab's: Mycel's world is `content/planet2.ts`, registered in the site's `content.server.ts`; an owner's game fetches it at boot and checks it (`level/validate.ts`) before installing it (`level/planets.ts`). Only the ground and where things lie in it are server-side: Mycel's art, ores, Mk 2 recipes and story text ship with the game, as saves keep only ores and blueprints they know. `test/paywall.test.ts` checks no client code imports the paid planets. The dev page plays as an owner with `DEV_UNLOCK=true`. InkMine has no Stripe price yet, so the site can't sell it.
+- Paid planets are server-only content served after the entitlement check (`content/` entry, `/api/content/inkmine`). Built Oct 17, 2026, as InkCrab's: Mycel's world is `content/planet2.ts` and Brine's `content/planet3.ts` (Oct 18, 2026), registered in the site's `content.server.ts`; an owner's game fetches it at boot and checks it (`level/validate.ts`) before installing it (`level/planets.ts`). Only the ground and where things lie in it are server-side: Mycel's art, ores, Mk 2 recipes and story text ship with the game, as saves keep only ores and blueprints they know. `test/paywall.test.ts` checks no client code imports the paid planets. The dev page plays as an owner with `DEV_UNLOCK=true`. InkMine has no Stripe price yet, so the site can't sell it.
 - Nothing is ever sold for real money except the unlock: no currency packs, no energy, no boosts.
 
 ## Worlds: how they're made
@@ -723,7 +795,7 @@ The world save also keeps the bag left under its flag (a tile index and the inve
 
 ## Stats: goals as levels
 
-InkMine has no levels, so the site's level funnel follows the goal chain instead (`logic/progress.ts`). Each goal is one step, numbered in the order a player meets it, from "Repair the printer" (1) to "The end (Brine is coming)" (30). The funnel needs no changes on the site.
+InkMine has no levels, so the site's level funnel follows the goal chain instead (`logic/progress.ts`). Each goal is one step, numbered in the order a player meets it, from "Repair the printer" (1) to "The end (more of Brine is coming)" (42). Brine's twelve steps (31–42) were added after chapter 2's; step 30, `brine`, was chapter 2's end and is now "Fit the Aster's tank". The funnel needs no changes on the site.
 
 - **A step starts** when it becomes the goal, and again at the start of each session, so "Tries" counts the sittings a goal took.
 - **A step is beaten** when the goal moves past it. Its time is play time, counted only while the game is on screen and kept in the profile (`stats.played`), so a goal spread over three evenings counts all three.
@@ -789,7 +861,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 5. ~~**Creatures**~~: none on Graphite (Oct 17, 2026). Built on Mycel instead, with the Aster's pulse (see Creatures, Weapons).
 6. **The rest of Graphite:** the old crew's base, the grey band, the deep; the drive core and lift-off; the opening and the ending.
 7. Coach hints, sound, touch controls, account sync; add InkMine to the catalog with chapter 1 free. Sound and touch built Oct 17, 2026: calm synthesized ambience after No Man's Sky (a drone that darkens with depth, a warmer hum aboard, a sparse starry one on the map) and soft event sounds, all Web Audio with no files (`src/audio/`); M or the ♪ button mutes, saved.
-8. ~~The first star system and its map~~ (done Oct 17, 2026: fuel, lift-off, docking, the starship's repairs and hold, first light, the first trip, the end of the demo). Mycel's first step built the same day (see "Mycel"); next, the game clock, moving orbits and trip costs by launch window; then planets 2–10, one at a time, each with its people, and the galaxy map past this system.
+8. ~~The first star system and its map~~ (done Oct 17, 2026: fuel, lift-off, docking, the starship's repairs and hold, first light, the first trip, the end of the demo). Mycel's first step built the same day (see "Mycel"), and Brine's spine on Oct 18, 2026 (see "Brine": its creatures, the Leviathan and the Tidesingers' language still to come); next, the game clock, moving orbits and trip costs by launch window; then planets 2–10, one at a time, each with its people, and the galaxy map past this system.
 
 ## Decisions
 

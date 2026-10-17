@@ -10,7 +10,7 @@ import { canTravel, travel, tripFuel, type TravelCheck } from '../logic/travel';
 import { isWorldId, type WorldId } from '../logic/worlds';
 import { loadPaidPlanets } from './BootScene';
 import type { Profile } from '../logic/economy';
-import { FIRST_COURSE, setCourse } from '../logic/starship';
+import { FIRST_COURSE, isFixed, setCourse } from '../logic/starship';
 import { hasBeat } from '../logic/story';
 import { relayoutOnResize, screenScene, viewSize } from './hidpi';
 import { muteButton } from './kit/muteButton';
@@ -217,7 +217,8 @@ export class SystemScene extends Phaser.Scene {
     label(this, tx, top, w.name, 24, INK_TEXT, '600');
     // Room on the right for the Set course button on a world the ship can fly to.
     const p = getProfile(this);
-    const trip = isWorldId(w.id) && tripFuel(p.at, w.id) !== null ? w.id : null;
+    // Brine's trip is offered once the Aster has shown you why to go.
+    const trip = isWorldId(w.id) && tripFuel(p.at, w.id) !== null && (w.id !== 'brine' || hasBeat(p, 'asterWoken')) ? w.id : null;
     const tw2 = trip ? tw - 220 : tw;
     const where = w.parent ? `moon of ${worldById(w.parent)!.name}` : `${ordinal(planetsOf().indexOf(w) + 1)} world from the star`;
     const kind = aside(this, tx, top + 34, `${KIND_LINE[w.kind]} · ${where}`, 16, tw2, w.kind === 'living' ? VERDIGRIS : INK_TEXT);
@@ -271,16 +272,22 @@ export class SystemScene extends Phaser.Scene {
   private fly(to: WorldId): void {
     const was = getProfile(this);
     const first = !hasBeat(was, 'course');
+    const sea = to === 'brine' && !was.visited.includes('brine');
     setProfile(this, travel(was, to));
     const name = worldById(to)!.name;
     const from = worldById(was.at)!.name;
+    const text = first
+      ? `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${name} grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.`
+      : sea
+        ? `The Aster tank takes the strain, and for the first time the ship leaves the ringed giant behind. ${from} shrinks to a green dot beside it, then is lost in its glare. Days on, a blue-violet world fills the window: sea from edge to edge, scattered with islands, and somewhere down there, three of the Aster.`
+        : to === 'brine' || was.at === 'brine'
+          ? `The engine hums and ${from} slides away below. The long crossing between the ringed giant and the sea world, and ${name} fills the window.`
+          : `The engine hums and ${from} slides away below. A short hop round the ringed giant, and ${name} fills the window.`;
     storyCard(this, {
       title: `Course set for ${name}`,
-      subtitle: first ? 'the end of chapter 1' : `${from} to ${name}`,
+      subtitle: first ? 'the end of chapter 1' : sea ? 'the start of chapter 3' : `${from} to ${name}`,
       pictures: [{ key: shipTexture(this, shipLookOf(getProfile(this)), 'small'), h: 70 }, { key: TEX.world(to), h: 70 }],
-      text: first
-        ? `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${name} grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.`
-        : `The engine hums and ${from} slides away below. A short hop round the ringed giant, and ${name} fills the window.`,
+      text,
       button: `On to ${name}`,
     }, () => this.scene.start('Ship', { remote: false, tab: 'starship' }));
   }
@@ -337,6 +344,7 @@ const demoOver = (p: Profile): boolean => hasBeat(p, 'course') && !hasWorld('myc
 function travelWhy(why: TravelCheck, fuel: number): string | null {
   if (why === 'docked') return 'Trips are set aboard your ship.';
   if (why === 'ship') return 'The ship needs its power, telescope, tank and engine mended first.';
+  if (why === 'tank') return `The trip burns ${fuel} units, more than the ship's tank holds: it needs a bigger one.`;
   if (why === 'fuel') return `The ship's tank needs ${fuel} units for the trip.`;
   if (why === 'locked') return 'It\'s in the full game.';
   return null;
@@ -347,7 +355,12 @@ function statusOf(w: World, p: Profile): string {
   if (w.id === p.at) return p.docked ? 'Your ship circles it.' : 'You are here. Your ship circles it.';
   if (isWorldId(w.id) && p.visited.includes(w.id)) return 'You were here.';
   if (w.chapter === null) return 'No ground to land on. Its moons are what matter.';
-  if (isWorldId(w.id) && tripFuel(p.at, w.id) !== null) {
+  if (w.id === 'brine' && isWorldId(w.id) && tripFuel(p.at, w.id) !== null && hasBeat(p, 'asterWoken')) {
+    return isFixed(p, 'asterTank')
+      ? "The Aster's crew flew here from Mycel years ago and never called back. The Aster tank holds enough to reach it."
+      : "The Aster's crew flew here from Mycel years ago and never called back. Out of the first tank's reach: the Aster drew you a bigger one.";
+  }
+  if (isWorldId(w.id) && tripFuel(p.at, w.id) !== null && w.id !== 'brine') {
     if (demoOver(p) && w.id === FIRST_COURSE.to) return 'Course set: the full game goes there.';
     return w.id === FIRST_COURSE.to && hasBeat(p, 'distress') ? "The Aster's distress call comes from here. A sister moon, within reach of the ship's first tank." : "A sister moon: the nearest trip, within reach of the ship's first tank.";
   }

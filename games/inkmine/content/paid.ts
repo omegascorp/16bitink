@@ -5,5 +5,6 @@
  * the ground itself and where things lie in it.
  */
 import { PLANET_2 } from './planet2';
+import { PLANET_3 } from './planet3';
 
-export const INKMINE_PAID_PLANETS = [PLANET_2];
+export const INKMINE_PAID_PLANETS = [PLANET_2, PLANET_3];

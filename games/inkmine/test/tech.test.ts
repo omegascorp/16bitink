@@ -10,7 +10,7 @@ const RICH: Hold = { copper: 40, galena: 40, graphite: 30, quartz: 20, silver: 2
 
 describe('the technology slots', () => {
   it('lays out the suit as the six gear pieces and its tools, the ship as its systems and its modules', () => {
-    expect(SUIT_TECH.map(techKey)).toEqual(['gear:drill', 'gear:cell', 'gear:pack', 'gear:suit', 'gear:helmet', 'gear:jetpack', 'tool:receiver', 'tool:pulse']);
+    expect(SUIT_TECH.map(techKey)).toEqual(['gear:drill', 'gear:cell', 'gear:pack', 'gear:suit', 'gear:helmet', 'gear:jetpack', 'tool:receiver', 'tool:pulse', 'tool:rebreather']);
     expect(SHIP_SYSTEMS.map(techKey)).toEqual(['repair:printer', 'repair:hull', 'repair:thrusters', 'repair:comms', 'repair:core']);
     expect(SHIP_MODULES.map(techKey)).toEqual(['module:cargo', 'module:winch', 'module:stores', 'module:hull']);
   });

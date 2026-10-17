@@ -43,8 +43,21 @@ const STEP_LIST: readonly Step[] = [
   { key: 'explore', name: 'Study the Mk 2 designs' },
   { key: 'trail', name: "Find the Aster's camp" },
   { key: 'wake', name: 'Wake the last Aster' },
+  // Was the end of chapter 2 until Brine (chapter 3) came: its key stays.
+  { key: 'brine', name: "Fit the Aster's tank" },
+  { key: 'tripFuel:brine', name: "Fill the ship's tank for Brine" },
+  { key: 'course:brine', name: 'Set course for Brine' },
+  { key: 'land:brine', name: 'Land on Brine' },
+  { key: 'craft', name: 'Find the Aster craft' },
+  { key: 'song', name: 'Follow the song' },
+  { key: 'reefTrade', name: 'Bring the Tidesingers copper' },
+  { key: 'print:drill-3', name: 'Print the Mk 3 drill' },
+  { key: 'rebreather', name: 'Print the rebreather' },
+  { key: 'explore:3', name: 'Study the Mk 3 designs' },
+  { key: 'raise', name: "Raise the crew's craft" },
+  { key: 'heart', name: "Give the craft a new heart" },
   // The end of the story so far: reaching it is beating it.
-  { key: 'brine', name: 'The end (Brine is coming)' },
+  { key: 'brineEnd', name: 'The end (more of Brine is coming)' },
 ];
 export const STEPS: readonly Step[] = STEP_LIST;
 
@@ -54,6 +67,11 @@ const LAST = STEPS.length - 1;
 export function goalKey(g: Goal): string {
   if (g.kind === 'repair' || g.kind === 'starship') return `${g.kind}:${g.id}`;
   if (g.kind === 'find' || g.kind === 'print') return `${g.kind}:${g.blueprint}`;
+  // Mycel's came first and kept the bare names: later worlds' are told apart by world or mark.
+  if (g.kind === 'land') return g.world && g.world !== 'mycel' ? `land:${g.world}` : 'land';
+  if (g.kind === 'explore') return g.mk && g.mk !== 2 ? `explore:${g.mk}` : 'explore';
+  if (g.kind === 'tripFuel') return `tripFuel:${g.to}`;
+  if (g.kind === 'setCourse') return `course:${g.to}`;
   return g.kind;
 }
 

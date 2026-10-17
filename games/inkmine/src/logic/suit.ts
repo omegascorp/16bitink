@@ -69,6 +69,20 @@ export const SHIELD = { delay: 4, rate: 0.5 } as const;
  * goes every `choke` s. Under `low` of it, the suit warns.
  */
 export const AIR = { full: 100, seconds: 360, choke: 6, low: 0.25 } as const;
+/**
+ * Air under water (spec, "Brine: Water and air"): each `per` metres of
+ * water over your head adds one more time over, up to `max` times, as a
+ * diver's air goes twice as fast at 10 m and three times at 20 m. A
+ * rebreather recycles your breath, so depth stops mattering.
+ */
+export const DEEP_AIR = { per: 10, max: 4 } as const;
+
+/** How many times faster life support drains `depth` metres under water. */
+export function airRate(depth: number, rebreather: boolean): number {
+  if (depth <= 0 || rebreather) return 1;
+  return Math.min(DEEP_AIR.max, 1 + depth / DEEP_AIR.per);
+}
+
 /** Fuel a second the jetpack gets back while you stand on something (a full starter tank in 2 s). */
 export const JET_RECHARGE = 30;
 /** What one piece of fuel puts in each gauge. */
@@ -106,9 +120,9 @@ export function regen(s: Suit, dt: number, now: number): Suit {
   return { ...s, shield: Math.min(s.maxShield, s.shield + SHIELD.rate * dt) };
 }
 
-/** Life support draining for `dt` s outside; `choked` when a heart went for want of air. */
-export function breathe(s: Suit, dt: number): { suit: Suit; choked: boolean } {
-  const air = Math.max(0, s.air - (AIR.full / AIR.seconds) * dt);
+/** Life support draining for `dt` s outside, `rate` times as fast as on dry ground (deep water); `choked` when a heart went for want of air. */
+export function breathe(s: Suit, dt: number, rate = 1): { suit: Suit; choked: boolean } {
+  const air = Math.max(0, s.air - (AIR.full / AIR.seconds) * rate * dt);
   if (air > 1e-9) return { suit: { ...s, air, choking: 0 }, choked: false };
   const choking = s.choking + dt;
   if (choking < AIR.choke - 1e-9 || s.hearts <= 0) return { suit: { ...s, air: 0, choking }, choked: false };

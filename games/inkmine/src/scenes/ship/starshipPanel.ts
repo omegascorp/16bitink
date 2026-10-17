@@ -1,5 +1,5 @@
 import { ORES } from '../../logic/ore';
-import { canRefillShip, canSetCourse, FIRST_COURSE, isFixed, mapOpen, refillShip, SHIP_TANK, shipFuelOre, shipRefillCost } from '../../logic/starship';
+import { canRefillShip, canSetCourse, FIRST_COURSE, isFixed, mapOpen, refillShip, shipFuelOre, shipRefillCost, shipTankCapacity } from '../../logic/starship';
 import { TRIPS } from '../../logic/travel';
 import { worldById } from '../../logic/starSystem';
 import { plaque } from '../kit/plaque';
@@ -16,6 +16,9 @@ const COURSE_NOTE = {
   set: `A trip between the ringed giant's moons burns ${TRIPS[0]!.fuel} units: set it on the star map.`,
 } as const;
 
+/** Once the Aster tank's fitted, the note says what reaching Brine takes too. */
+const BRINE_NOTE = `Trips burn ${TRIPS[0]!.fuel} units between the ringed giant's moons, and ${TRIPS[1]!.fuel} to Brine: set them on the star map.`;
+
 /**
  * The starship's fuel on the Starship tab (spec, "Your starship and
  * travel"): its tank's bar once it's mended, Refill from the water on hand
@@ -24,7 +27,7 @@ const COURSE_NOTE = {
 export function starshipPanel(page: ShipPage, x: number, y: number, w: number): number {
   const { scene, profile: p } = page;
   let ry = y + SECTION_BODY;
-  if (isFixed(p, 'tank')) ry = tankRow(page, x, ry, w, p.shipFuel, SHIP_TANK.capacity, FIRST_COURSE.fuel / SHIP_TANK.capacity);
+  if (isFixed(p, 'tank')) ry = tankRow(page, x, ry, w, p.shipFuel, shipTankCapacity(p), FIRST_COURSE.fuel / shipTankCapacity(p));
   else {
     const t = aside(scene, x + PAD, ry, 'The tank is split: it holds nothing until it is mended.', 16, w - PAD * 2, SEPIA);
     ry += t.height + 12;
@@ -45,7 +48,8 @@ export function starshipPanel(page: ShipPage, x: number, y: number, w: number): 
     if (mapOpen(p)) scene.scene.start('System', {});
   }, opts(mapOpen(p), true));
   if (isFixed(p, 'tank') || p.docked) ry += FUEL_BTN.h + 10;
-  const t = aside(scene, x + PAD, ry, COURSE_NOTE[canSetCourse(p)], 15, w - PAD * 2, SEPIA);
+  const course = canSetCourse(p);
+  const t = aside(scene, x + PAD, ry, course === 'set' && isFixed(p, 'asterTank') ? BRINE_NOTE : COURSE_NOTE[course], 15, w - PAD * 2, SEPIA);
   ry += t.height + 6;
   const h = ry - y + 8;
   section(scene, x, y, w, h, 'Starship fuel', 53);

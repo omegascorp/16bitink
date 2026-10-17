@@ -4,8 +4,10 @@ import { fitInventories, hasOnHand, onHand, spend, type PrintResult, type Profil
 import { fuelOre, ROUND_TRIP } from './fuel';
 import { countOf, holdEntries, type Hold } from './hold';
 import { ORES } from './ore';
-import { hasBeat, tradeLine, WAKE } from './story';
+import { HEART, hasBeat, RAISE, REEF_TRADE, tradeLine, WAKE } from './story';
 import { FIRST_COURSE, isFixed, shipFuelOre, STARSHIP, STARSHIP_IDS, type StarshipId } from './starship';
+import { tripFuel } from './travel';
+import type { WorldId } from './worlds';
 import { hasTool, TOOL_KINDS } from './tools';
 
 /**
@@ -135,20 +137,38 @@ export type Goal =
   | { readonly kind: 'course' }
   /** Course set: chapter 1 is over. */
   | { readonly kind: 'done' }
-  /** In orbit over a world not yet landed on: go down. */
-  | { readonly kind: 'land' }
+  /** In orbit over a world not yet landed on: go down (Mycel when `world` isn't given). */
+  | { readonly kind: 'land'; readonly world?: WorldId }
   /** On Mycel: follow the Aster lander's distress beacon with the receiver, by its strength, to the wreck. */
   | { readonly kind: 'distress' }
   /** The Aster's resonator studied: print the pulse, your first weapon (tools.ts). */
   | { readonly kind: 'pulse' }
-  /** Mycel's drill printed: study the rest of the Aster crew's gear there for its designs. */
-  | { readonly kind: 'explore'; readonly found: number; readonly of: number }
+  /** A world's drill printed: study the rest of its set's designs (Mk 2 on Mycel, the Aster crew's gear; Mk 3 on Brine, the Tidesingers' old tools). */
+  | { readonly kind: 'explore'; readonly found: number; readonly of: number; readonly mk?: number }
   /** Every Mk 2 design found: follow the faint signal under the beacon's, east, to where the crew went (the Aster's camp). */
   | { readonly kind: 'trail' }
   /** At the camp: bring the sleep pod its charge, in the bag (story.ts WAKE). */
   | { readonly kind: 'wake' }
-  /** The last of the Aster awake: its crew flew to Brine. Chapter 2 is over; Brine comes later. */
-  | { readonly kind: 'brine' };
+  /** The last of the Aster awake: its crew flew to Brine. Fit the tank it drew for you (starship.ts asterTank). */
+  | { readonly kind: 'brine' }
+  /** The Aster tank fitted: fill the ship's tank for a trip to `to`. */
+  | { readonly kind: 'tripFuel'; readonly to: WorldId }
+  /** Fuelled: set course for `to` on the star map. */
+  | { readonly kind: 'setCourse'; readonly to: WorldId }
+  /** On Brine: swim out to the Aster craft the telescope saw on the reef. */
+  | { readonly kind: 'craft' }
+  /** Dive and follow the Tidesingers' song, heard only under water, to their reef. */
+  | { readonly kind: 'song' }
+  /** Bring the Tidesingers the copper they asked for, in the bag. */
+  | { readonly kind: 'reefTrade' }
+  /** The crew drew the rebreather: print it. */
+  | { readonly kind: 'rebreather' }
+  /** Bring the Aster crew iron for their craft's hull, in the bag, at the reef. */
+  | { readonly kind: 'raise' }
+  /** The craft is up: bring its new heart's ore to it, in the bag. */
+  | { readonly kind: 'heart' }
+  /** The craft hums again. Chapter 3 goes on later. */
+  | { readonly kind: 'brineEnd' };
 
 /** The drill that breaks Graphite's stone: the thrusters' silver and the radio's quartz lie in it. */
 const STONE_DRILL = 'drill-1';
@@ -156,6 +176,13 @@ const STONE_DRILL = 'drill-1';
 const MYCEL_DRILL = 'drill-2';
 /** Mycel's set of designs to study, Mk 2 (the beacon leads to the nearest one not yet learnt). */
 export const MYCEL_SET = PIECES.map((piece) => blueprintId(piece, 2));
+/** Brine's drill, given by the Tidesingers for their copper. */
+const BRINE_DRILL = 'drill-3';
+/** Brine's set of designs, Mk 3: the drill from the Tidesingers, the rest from their drowned village. */
+export const BRINE_SET = PIECES.map((piece) => blueprintId(piece, 3));
+
+/** Whether every Mk 3 design is learnt: then the crew ask for the hull patch (story.ts reefVisit). */
+export const brineSetFound = (p: Pick<Profile, 'found'>): boolean => BRINE_SET.every((id) => p.found.includes(id));
 
 /**
  * Chapter 2, on Mycel: land, follow the distress beacon to the Aster lander's
@@ -177,7 +204,35 @@ function mycelGoal(p: Profile): Goal {
   const found = MYCEL_SET.filter((id) => p.found.includes(id)).length;
   if (found < MYCEL_SET.length) return { kind: 'explore', found, of: MYCEL_SET.length };
   if (!hasBeat(p, 'asterCamp')) return { kind: 'trail' };
-  return hasBeat(p, 'asterWoken') ? { kind: 'brine' } : { kind: 'wake' };
+  if (!hasBeat(p, 'asterWoken')) return { kind: 'wake' };
+  // On to Brine: fit the tank the Aster drew, fill it and set course.
+  if (!isFixed(p, 'asterTank')) return { kind: 'brine' };
+  return p.shipFuel >= brineTrip(p) ? { kind: 'setCourse', to: 'brine' } : { kind: 'tripFuel', to: 'brine' };
+}
+
+/** What the trip to Brine burns from where you are (from Mycel, or Graphite if you went back). */
+const brineTrip = (p: Profile): number => tripFuel(p.at === 'brine' ? 'mycel' : p.at, 'brine') ?? 0;
+
+/**
+ * Chapter 3, on Brine (spec, "Brine: The story"): land, swim out to the
+ * crew's sunk craft, follow the Tidesingers' song down to their reef, bring
+ * them copper (they give the Mk 3 drill's design, and let you in to the
+ * crew, who give the rebreather's), print both, study the Tidesingers' old
+ * tools in their drowned village, then raise the crew's craft (iron for its
+ * hull) and give it a new heart.
+ */
+function brineGoal(p: Profile): Goal {
+  if (!p.visited.includes('brine')) return { kind: 'land', world: 'brine' };
+  if (!hasBeat(p, 'craftFound')) return { kind: 'craft' };
+  if (!hasBeat(p, 'reefMet')) return { kind: 'song' };
+  if (!hasBeat(p, 'reefPaid')) return { kind: 'reefTrade' };
+  if (p.gear.drill < recipeOf(BRINE_DRILL)!.mk) return { kind: 'print', blueprint: BRINE_DRILL };
+  if (!hasTool(p, 'rebreather')) return { kind: 'rebreather' };
+  const found = BRINE_SET.filter((id) => p.found.includes(id)).length;
+  if (found < BRINE_SET.length) return { kind: 'explore', found, of: BRINE_SET.length, mk: 3 };
+  if (!hasBeat(p, 'craftRaised')) return { kind: 'raise' };
+  if (!hasBeat(p, 'craftMended')) return { kind: 'heart' };
+  return { kind: 'brineEnd' };
 }
 
 /**
@@ -189,6 +244,7 @@ function mycelGoal(p: Profile): Goal {
  * complaint about No Man's Sky's start is the stretch with no prompt.
  */
 export function currentGoal(p: Profile): Goal {
+  if (p.at === 'brine' || p.visited.includes('brine')) return brineGoal(p);
   if (p.at === 'mycel' || p.visited.includes('mycel')) return mycelGoal(p);
   if (!isRepaired(p, 'printer')) return { kind: 'repair', id: 'printer' };
   if (!isRepaired(p, 'hull')) return { kind: 'repair', id: 'hull' };
@@ -219,12 +275,34 @@ export function goalLine(p: Profile, g: Goal): string {
     return `Print the pulse, the Aster's weapon rebuilt your way: ${hasOnHand(p)(need) ? 'go aboard (L at the lander)' : needsLine(need, onHand(p))}`;
   }
   if (g.kind === 'find') return g.blueprint === MYCEL_DRILL ? "Mycel's stone is too hard for Graphite's drill. Study the Aster crew's broken drill near their wreck: follow the beacon" : 'Stone is too hard for the starter drill. Find a broken drill to study: follow the beacon';
-  if (g.kind === 'land') return 'Land on Mycel: Land, top right';
+  if (g.kind === 'land') return `Land on ${g.world === 'brine' ? 'Brine' : 'Mycel'}: Land, top right`;
   if (g.kind === 'distress') return "Follow the Aster's distress call with the receiver: the more bars, the closer you are";
+  if (g.kind === 'explore' && g.mk === 3) return `The Tidesingers' old village lies drowned under the shelf west of the reef: study their broken tools for designs. Mk 3 designs ${g.found}/${g.of}`;
   if (g.kind === 'explore') return `The Aster crew's gear lies round their wreck: study each broken piece for its design. Mk 2 designs ${g.found}/${g.of}`;
   if (g.kind === 'trail') return "The crew's pictures showed them walking east. Under the beacon's pulses the receiver picks out a fainter one, slow as a heartbeat: follow it";
   if (g.kind === 'wake') return `The last of the Aster sleeps in a pod whose power is failing. Bring it a charge in your bag: ${tradeLine(p.suit, (ore) => ORES[ore as keyof typeof ORES].name, WAKE)}`;
-  if (g.kind === 'brine') return "The Aster's crew flew to Brine, the sea world, years ago and never called back. Find them: Brine is coming soon";
+  if (g.kind === 'brine') {
+    const need = STARSHIP.asterTank.needs!;
+    const how = hasOnHand(p)(need) ? (p.docked ? 'fit it on the Starship tab' : 'fly up to your ship (L at the lander)') : `${needsLine(need, onHand(p))}, carried up in the lander`;
+    return `The Aster's crew flew to Brine and never called back. Fit the tank the Aster drew for you, to reach it: ${how}`;
+  }
+  if (g.kind === 'tripFuel') {
+    const want = brineTrip(p);
+    const water = Math.min(countOf(onHand(p), shipFuelOre(p)), want - p.shipFuel);
+    const how = p.shipFuel + water >= want ? (p.docked ? 'refill it on the Starship tab' : 'fly up to it (L at the lander)') : `${ORES[shipFuelOre(p)].name} ${p.shipFuel + water}/${want}, carried up in the lander`;
+    return `Fill your ship's tank for the trip to Brine: ${how}`;
+  }
+  if (g.kind === 'setCourse') return p.docked ? 'Set course for Brine: the star map, on the Starship tab' : 'Set course for Brine: fly up to your ship (L at the lander)';
+  if (g.kind === 'craft') return "The telescope saw something bright on the reef east of the island: swim out to it. Follow the beacon";
+  if (g.kind === 'song') return 'Radio dies in seawater, but sound carries: put your helmet under water and follow the song. The more bars, the closer';
+  if (g.kind === 'reefTrade') return `The Tidesingers want copper from inside the rock. Bring it in your bag: ${tradeLine(p.suit, (ore) => ORES[ore as keyof typeof ORES].name, REEF_TRADE)}`;
+  if (g.kind === 'rebreather') {
+    const need = TOOL_KINDS.rebreather.recipe;
+    return `Print the rebreather the crew drew for you: ${hasOnHand(p)(need) ? 'go aboard (L at the lander)' : needsLine(need, onHand(p))}`;
+  }
+  if (g.kind === 'raise') return `The crew's craft has a cracked hull. Bring them iron to patch it, at the reef: ${tradeLine(p.suit, (ore) => ORES[ore as keyof typeof ORES].name, RAISE)}`;
+  if (g.kind === 'heart') return `The craft is up, but its cell drowned. Bring it a new heart: ${tradeLine(p.suit, (ore) => ORES[ore as keyof typeof ORES].name, HEART)}`;
+  if (g.kind === 'brineEnd') return 'The craft hums again. What the crew do next, and what lives in the flooded underworld, is coming soon';
   if (g.kind === 'print') return `Print the ${recipeOf(g.blueprint)!.piece} Mk ${recipeOf(g.blueprint)!.mk}: go aboard (L at the lander)`;
   if (g.kind === 'receiver') {
     const need = TOOL_KINDS.receiver.recipe;

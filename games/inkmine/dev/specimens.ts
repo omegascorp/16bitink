@@ -15,6 +15,9 @@ import { TECH_RES } from '../src/art/textures';
 import { BROKEN_SHIP, drawStarship, drawStarshipAir, STARSHIP_ART, type ShipLook } from '../src/art/starship';
 import { SHIP_FINISH, SHIP_MAP_FINISH, SHIP_MAP_RES, SHIP_RES } from '../src/art/textures';
 import { creatureSections } from './creatures';
+import { brineSections } from './brineLand';
+import { brineGearSections } from './brineGear';
+import { brineFolkSections } from './brineFolk';
 import { ASTER_CAMP, ASTER_CRAFT_PICTURE, ASTER_PERSON, drawAsterBrinePicture, drawAsterCamp, drawAsterCraftPicture, drawAsterPerson, drawAsterPersonAir, drawSleepPod, drawSleepPodAir, SLEEP_POD } from '../src/art/aster/camp';
 import { ASTER_FINISH, ASTER_PICTURE_RES, type Finish } from '../src/art/textures';
 
@@ -223,3 +226,6 @@ for (const t of SHIP_SYSTEMS) for (const v of ['broken', 'mended'] as const) fig
 for (const t of SHIP_MODULES) figure(shipRow, techKey(t), tech(t, 'mended'));
 const starRow = section('Technology: starship', 'The starship\'s systems as the wormhole left them, then mended; the jump drive is past mending here.');
 for (const t of STARSHIP_TECH) for (const v of ['broken', 'mended'] as const) figure(starRow, `${techKey(t)} ${v}`, tech(t, v));
+brineSections(section, figure);
+brineGearSections(section, figure);
+brineFolkSections(section, figure);

@@ -3,7 +3,7 @@ import type { GameEvent } from '@16bitink/game-sdk';
 import { NEW_PROFILE, type Profile } from '../src/logic/economy';
 import { ROUND_TRIP } from '../src/logic/fuel';
 import { advance, sessionStart, stepIndex, STEPS } from '../src/logic/progress';
-import { MYCEL_SET } from '../src/logic/repairs';
+import { BRINE_SET, MYCEL_SET } from '../src/logic/repairs';
 import { parseProfile } from '../src/logic/save';
 import { FIRST_COURSE, STARSHIP_IDS } from '../src/logic/starship';
 import { withBeat } from '../src/logic/story';
@@ -42,6 +42,19 @@ function walk(): Profile[] {
   next((p) => ({ ...p, found: [...new Set([...p.found, ...MYCEL_SET])] }));
   next((p) => beats(p, 'asterCamp'));
   next((p) => beats(p, 'asterWoken'));
+  // Chapter 3: the Aster tank, the trip, and Brine.
+  next((p) => ({ ...p, starship: [...p.starship, 'asterTank'] }));
+  next((p) => ({ ...p, shipFuel: 14 }));
+  next((p) => ({ ...p, at: 'brine', docked: true }));
+  next((p) => ({ ...p, visited: [...p.visited, 'brine'], docked: false }));
+  next((p) => beats(p, 'craftFound'));
+  next((p) => beats(p, 'reefMet'));
+  next((p) => ({ ...beats(p, 'reefPaid', 'crewMet'), found: [...p.found, 'drill-3', 'rebreather'] }));
+  next((p) => ({ ...p, gear: { ...p.gear, drill: 3 } }));
+  next((p) => ({ ...p, tools: [...p.tools, 'rebreather'] }));
+  next((p) => ({ ...p, found: [...new Set([...p.found, ...BRINE_SET])] }));
+  next((p) => beats(p, 'craftRaised'));
+  next((p) => beats(p, 'craftMended'));
   return out;
 }
 
@@ -83,8 +96,8 @@ describe('the goal funnel', () => {
 
   it('beats the last step as soon as it is reached', () => {
     const story = walk();
-    const woken = story[story.length - 1]!;
-    const r = advance(at(woken, 'wake', 500, 400), 520);
+    const last = story[story.length - 1]!;
+    const r = advance(at(last, STEPS[STEPS.length - 2]!.key, 500, 400), 520);
     expect(kinds(r.events)).toEqual([`win ${STEPS.length - 1} 120s`, `start ${STEPS.length}`, `win ${STEPS.length} 0s`]);
     expect(sessionStart(r.profile).events).toEqual([]);
   });

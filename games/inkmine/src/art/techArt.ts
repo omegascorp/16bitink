@@ -1,6 +1,6 @@
 import { lookOf } from '../logic/gear';
 import type { Tech } from '../logic/tech';
-import { capsule, edge, oval, pt, type Draw } from './kit';
+import { capsule, cub, edge, oval, pt, ribbon, type Draw } from './kit';
 import { bell, crumpledBell, dish, gash, hullPlate, weldPlate } from './landerParts';
 import { dab, gleam, glow, mix, paint, SHADOW } from './paint';
 import { cell } from './prospector/cell';
@@ -8,6 +8,9 @@ import { drill } from './prospector/drill';
 import { HEAD, helmet } from './prospector/helmet';
 import { jetpack, nozzles } from './prospector/jetpack';
 import { pack } from './prospector/pack';
+import { PAPER_FILL } from './palette';
+import type { Pt } from './pen';
+import { markOf } from './prospector/marks';
 import { part, rivets, roundRect, seam, sheen, WASH } from './prospector/parts';
 import { arm, leg, torso } from './prospector/suit';
 import { drawStarshipSystem } from './starship/systems';
@@ -214,9 +217,105 @@ function receiver(d: Draw): void {
   sheen(d, [pt(-7.6, -7), pt(-7.6, 12)], 0.8);
 }
 
+const BRINE = markOf(3);
+const COPPER = '#c27a45';
+const HALITE = '#f3dcdc';
+/** The counterlungs' oilskin: Brine's teal cloth, darkened. */
+const LUNG = mix(BRINE.cloth, BRINE.trim, 0.5);
+
+/** A corrugated hose along `spine`: dark rubber, ringed, a gleam down its lit side. */
+function hose(d: Draw, spine: readonly Pt[], w: number): void {
+  const r = ribbon(spine, () => w);
+  part(d, r.shape, BRINE.nozzle, { shadow: 0.5, line: 0.55, gloss: true, hatch: 0 });
+  for (let i = 1; i < spine.length - 1; i++) d.pen.hair([r.top[i]!, r.bot[i]!], 0.32, mix(BRINE.nozzle, SHADOW, 0.6), 0.85);
+  sheen(d, r.top.slice(1, -1).map((p, i) => pt((p.x * 2 + r.bot[i + 1]!.x) / 3, (p.y * 2 + r.bot[i + 1]!.y) / 3)), 0.45);
+}
+
+/** A counterlung: a soft oilskin bag, half full, creased, stitched round its edge, a strap tab with a pearl button. */
+function counterlung(d: Draw, s: 1 | -1): void {
+  const x0 = s * 7;
+  const x1 = s * 16;
+  const bag = [pt(x0, -5), ...cub(pt(x0, -5), pt((x0 + x1) / 2, -7.2), pt(x1 + s * 0.6, -6), pt(x1, -2), 6).slice(1), ...cub(pt(x1, -2), pt(x1 + s * 1.2, 4), pt(x1 + s * 0.4, 10), pt(x1 - s * 1.4, 12), 6).slice(1), ...cub(pt(x1 - s * 1.4, 12), pt((x0 + x1) / 2, 13.4), pt(x0 + s * 0.6, 12.4), pt(x0, 10), 6).slice(1)];
+  part(d, bag, LUNG, { shadow: 0.55, line: 0.75, hatch: 0.18 });
+  const mx = (x0 + x1) / 2;
+  for (const [a, b] of [[pt(mx - s * 2, -3), pt(mx - s * 0.6, 3)], [pt(mx + s * 1.6, 2), pt(mx + s * 2.6, 9)], [pt(mx - s * 2.6, 6), pt(mx - s * 1, 10.4)]] as const) {
+    d.pen.hair([a, pt((a.x + b.x) / 2 + s * 0.6, (a.y + b.y) / 2), b], 0.35, mix(LUNG, SHADOW, 0.6), 0.8);
+    d.pen.hair([pt(a.x - 0.4, a.y), pt((a.x + b.x) / 2 + s * 0.2, (a.y + b.y) / 2), pt(b.x - 0.4, b.y)], 0.3, mix(LUNG, '#ffffff', 0.4), 0.55);
+  }
+  const inset = bag.map((p) => pt(mx + (p.x - mx) * 0.84, 3.4 + (p.y - 3.4) * 0.88));
+  for (let i = 0; i < inset.length - 1; i += 2) d.pen.hair([inset[i]!, inset[i + 1]!], 0.25, mix(BRINE.trim, '#ffffff', 0.45), 0.7);
+  const tab = roundRect(mx - 1.6, -8.4, mx + 1.6, -4.4, 0.6);
+  part(d, tab, BRINE.trim, { shadow: 0.4, line: 0.5, hatch: 0 });
+  d.pen.dot(mx, -6.4, 0.85, BRINE.fitting, 1);
+  d.pen.dot(mx - 0.25, -6.7, 0.3, '#ffffff', 0.9);
+}
+
+/**
+ * The rebreather: the prospector's own, printed from halite and copper to
+ * the Aster crew's drawing of the Tidesingers' trick. A chest canister,
+ * the salt scrubber, in Brine's teal enamel with a window showing its pink
+ * salt granules, capped and banded in copper; a counterlung each side; two
+ * ringed hoses up to a copper mouthpiece valve.
+ */
+function rebreather(d: Draw): void {
+  // The hoses first, behind the mouthpiece: from each counterlung's top up to the valve.
+  hose(d, cub(pt(-12.6, -5.4), pt(-13.4, -12.6), pt(-9, -15.4), pt(-4.6, -14.4), 12), 2);
+  hose(d, cub(pt(12.6, -5.4), pt(13.4, -12.6), pt(9, -15.4), pt(4.6, -14.4), 12), 2);
+  counterlung(d, -1);
+  counterlung(d, 1);
+  // The elbows from the canister into each counterlung.
+  for (const s of [-1, 1]) {
+    part(d, roundRect(Math.min(s * 5.6, s * 8.4), -2.2, Math.max(s * 5.6, s * 8.4), 0.6, 0.5), COPPER, { shadow: 0.4, line: 0.5, gloss: true, hatch: 0 });
+    part(d, roundRect(s * 8.4 - 0.9, -3, s * 8.4 + 0.9, 1.4, 0.4), mix(COPPER, SHADOW, 0.15), { shadow: 0.35, line: 0.45, gloss: true, hatch: 0 });
+  }
+  // The canister: teal enamel, its window onto the salt.
+  const can = roundRect(-6.2, -7, 6.2, 12.4, 2.2);
+  part(d, can, BRINE.shell, { shadow: 0.55, line: 0.8, gloss: true, hatch: 0.16 });
+  const win = roundRect(-2.8, -3.4, 2.8, 8.2, 1.4);
+  part(d, win, HALITE, { shadow: 0.3, line: 0.55, gloss: true, hatch: 0, alpha: 1 });
+  d.pen.clipped(win, () => {
+    // The granules: little pink-white cubes of salt, packed.
+    for (let k = 0; k < 70; k++) {
+      const x = -2.8 + d.pen.rng() * 5.6;
+      const y = -2.6 + d.pen.rng() * 10.8;
+      const r = 0.35 + d.pen.rng() * 0.35;
+      const tone = ['#e8b6bf', '#fff6f3', '#d897a5', '#f6d6d6'][k % 4]!;
+      const a = d.pen.rng() * 0.8;
+      const cube = [0, 1, 2, 3].map((i) => pt(x + Math.cos(a + (i * Math.PI) / 2) * r, y + Math.sin(a + (i * Math.PI) / 2) * r));
+      d.pen.fill(cube, tone, 0.95);
+      if (k % 3 === 0) d.pen.hair([cube[1]!, cube[2]!, cube[3]!], 0.15, mix('#d897a5', SHADOW, 0.5), 0.7);
+    }
+    // Spent salt at the bottom goes greyer, as the scrubber works upwards.
+    dab(d, roundRect(-3, 5.4, 3, 8.4, 0.6), '#9aa2a8', 0.32, 0.6);
+    dab(d, roundRect(-3, -3.4, 3, -2.2, 0.4), PAPER_FILL, 0.4, 0.4);
+    sheen(d, [pt(-1.8, -2.6), pt(-1.8, 7)], 0.6);
+  });
+  for (let k = 0; k < 4; k++) d.pen.hair([pt(3.2, -1.6 + k * 2.8), pt(4.2, -1.6 + k * 2.8)], 0.35, mix(COPPER, SHADOW, 0.35), 0.9);
+  // Copper caps and a band, riveted, the guild's way.
+  const top = roundRect(-6.8, -9, 6.8, -5.8, 1);
+  part(d, top, COPPER, { shadow: 0.45, line: 0.6, gloss: true, hatch: 0 });
+  const foot = roundRect(-6.8, 10.6, 6.8, 13.6, 1);
+  part(d, foot, COPPER, { shadow: 0.45, line: 0.6, gloss: true, hatch: 0 });
+  rivets(d, [pt(-5.2, -7.4), pt(5.2, -7.4), pt(-5.2, 12.1), pt(5.2, 12.1)], 0.45, mix(COPPER, '#ffffff', 0.25));
+  seam(d, [pt(-6.2, 9.2), pt(6.2, 9.2)], 0.35);
+  // The feed from the canister up to the valve.
+  part(d, roundRect(-0.9, -12.6, 0.9, -8.8, 0.4), COPPER, { shadow: 0.4, line: 0.5, gloss: true, hatch: 0 });
+  // The mouthpiece: a copper valve barrel, the rubber bite piece facing you, a pearl-tipped lever.
+  const barrel = capsule(pt(-5, -14.4), pt(5, -14.4), 3.8, 3.8);
+  part(d, barrel, COPPER, { shadow: 0.5, line: 0.7, gloss: true, hatch: 0 });
+  for (const x of [-3.2, 3.2]) seam(d, [pt(x, -16.1), pt(x, -12.7)], 0.3);
+  d.pen.stroke([pt(1.6, -16.2), pt(3.6, -18.6)], 0.8, mix(COPPER, SHADOW, 0.3), 1, false);
+  d.pen.dot(3.8, -18.8, 0.75, BRINE.fitting, 1);
+  const bite = oval(0, -12.4, 2.6, 1.7, 16);
+  part(d, bite, '#2f3a3f', { shadow: 0.3, line: 0.55, gloss: true, hatch: 0, alpha: 1 });
+  d.pen.fill(oval(0, -12.2, 1.4, 0.6, 12), '#14191c', 0.95);
+  sheen(d, [pt(-4, -15.6), pt(3, -15.6)], 0.5);
+  sheen(d, [pt(-4.8, -5), pt(-4.8, 10)], 0.8);
+}
+
 export function drawTech(d: Draw, t: Tech, variant: TechVariant): void {
   if (t.kind === 'gear') gear(d, t, typeof variant === 'number' ? variant : 0);
-  else if (t.kind === 'tool') (t.id === 'pulse' ? drawPulseTool : receiver)(d);
+  else if (t.kind === 'tool') (t.id === 'pulse' ? drawPulseTool : t.id === 'rebreather' ? rebreather : receiver)(d);
   else if (t.kind === 'repair') system(d, t, variant === 'broken');
   else if (t.kind === 'starship') drawStarshipSystem(d, t.id, variant === 'broken');
   else if (t.key === 'cargo') cargo(d);

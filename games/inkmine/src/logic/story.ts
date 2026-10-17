@@ -15,7 +15,11 @@ import type { OreKey } from './ore';
  *
  * The beats are saved as reached: never rename one.
  */
-export const BEATS = ['called', 'met', 'paid', 'core', 'flown', 'course', 'aboard', 'firstLight', 'mycelOrbit', 'mycelLanded', 'distress', 'asterFound', 'asterCamp', 'asterWoken'] as const;
+export const BEATS = [
+  'called', 'met', 'paid', 'core', 'flown', 'course', 'aboard', 'firstLight', 'mycelOrbit', 'mycelLanded', 'distress', 'asterFound', 'asterCamp', 'asterWoken',
+  // Chapter 3, Brine (spec, "Brine: The story").
+  'brineOrbit', 'brineLanded', 'craftFound', 'reefMet', 'reefPaid', 'crewMet', 'craftRaised', 'craftMended',
+] as const;
 export type Beat = (typeof BEATS)[number];
 
 /**
@@ -28,7 +32,7 @@ export const OUTPOST = { col: 180, worldCols: 256, domes: 5 } as const;
 export const TRADE: Hold = { silver: 10 };
 
 /** The beat that says a world's first-landing card was read (Graphite's opening is `started`). */
-export const ARRIVAL_BEAT: Readonly<Partial<Record<string, Beat>>> = { mycel: 'mycelLanded' };
+export const ARRIVAL_BEAT: Readonly<Partial<Record<string, Beat>>> = { mycel: 'mycelLanded', brine: 'brineLanded' };
 
 export const hasBeat = (p: Pick<Profile, 'beats'>, b: Beat): boolean => p.beats.includes(b);
 
@@ -43,13 +47,28 @@ export function withBeat(p: Profile, b: Beat): Profile {
  */
 export const WAKE: Hold = { pyrite: 6, calcite: 4 };
 
+/** What the Tidesingers want (spec, "Brine"): copper from inside the basalt they can't break. Native copper needs no fire. */
+export const REEF_TRADE: Hold = { copper: 8 };
+/** What the Aster crew need to patch their craft's cracked hull before it can be floated up: iron from the basalt. */
+export const RAISE: Hold = { magnetite: 10 };
+/** The craft's new heart: their cells are glass prisms on a cathode; on Brine, manganese for the cathode and nacre for the prism's case. */
+export const HEART: Hold = { nodule: 6, pearl: 4 };
+
 /**
  * Ores kept in the bag at the lander, from when they're asked for until
- * they're handed over: the Lamplighters' silver, and the sleep pod's charge.
+ * they're handed over: the Lamplighters' silver, the sleep pod's charge,
+ * the Tidesingers' copper, the craft's hull patch and its heart.
  */
 export function keptOres(p: Pick<Profile, 'beats'>): OreKey[] {
-  const asked = [...(hasBeat(p, 'met') && !hasBeat(p, 'paid') ? holdEntries(TRADE) : []), ...(hasBeat(p, 'asterCamp') && !hasBeat(p, 'asterWoken') ? holdEntries(WAKE) : [])];
-  return [...new Set(asked.map(([ore]) => ore))];
+  const asked = (from: Beat, until: Beat, h: Hold) => (hasBeat(p, from) && !hasBeat(p, until) ? holdEntries(h) : []);
+  const all = [
+    ...asked('met', 'paid', TRADE),
+    ...asked('asterCamp', 'asterWoken', WAKE),
+    ...asked('reefMet', 'reefPaid', REEF_TRADE),
+    ...asked('crewMet', 'craftRaised', RAISE),
+    ...asked('craftRaised', 'craftMended', HEART),
+  ];
+  return [...new Set(all.map(([ore]) => ore))];
 }
 
 /** The call is waiting: the radio works and it hasn't been taken yet. */
@@ -145,4 +164,66 @@ export function campVisit(p: Profile, bag: Inventory): CampVisit {
   const took = takeHoldFrom(bag, WAKE);
   if (holdEntries(took.short).length) return { profile: p, bag, says: 'pod' };
   return { profile: withBeat(p, 'asterWoken'), bag: took.inv, says: 'woken' };
+}
+
+/**
+ * What happens at the Tidesingers' reef on Brine (spec, "Brine: The story"):
+ * - 'meet': the first time: they won't let you past, and draw what they want, copper;
+ * - 'want': still waiting for it (the bag hasn't all of it);
+ * - 'paid': they took it from the bag and showed you how they bore stone
+ *   (the Mk 3 drill's design); then they let you in to the Aster crew in
+ *   their air bell, who give you the rebreather's (the scene shows 'crew' next);
+ * - 'patch': the crew want iron for their craft's hull, and the bag hasn't all of it;
+ * - 'raised': the iron taken, the Tidesingers float the craft up;
+ * - 'wait': nothing asked of you just now: the crew wave.
+ */
+export type ReefSays = 'meet' | 'want' | 'paid' | 'crew' | 'patch' | 'raised' | 'wait';
+
+export interface ReefVisit {
+  readonly profile: Profile;
+  readonly bag: Inventory;
+  readonly says: ReefSays;
+}
+
+/** The designs the reef gives: the Tidesingers' stone drill (Mk 3) and the crew's rebreather. */
+export const REEF_DESIGNS: readonly string[] = ['drill-3', 'rebreather'];
+
+/** Whether the crew are ready to ask for the hull patch: you've studied all of the drowned village's designs. */
+export type PatchReady = (p: Profile) => boolean;
+
+export function reefVisit(p: Profile, bag: Inventory, patchReady: PatchReady): ReefVisit {
+  if (!hasBeat(p, 'reefMet')) return { profile: withBeat(p, 'reefMet'), bag, says: 'meet' };
+  if (!hasBeat(p, 'reefPaid')) {
+    const took = takeHoldFrom(bag, REEF_TRADE);
+    if (holdEntries(took.short).length) return { profile: p, bag, says: 'want' };
+    const found = [...new Set([...p.found, ...REEF_DESIGNS])];
+    return { profile: withBeat(withBeat({ ...p, found }, 'reefPaid'), 'crewMet'), bag: took.inv, says: 'paid' };
+  }
+  if (hasBeat(p, 'craftRaised') || !patchReady(p)) return { profile: p, bag, says: 'wait' };
+  const took = takeHoldFrom(bag, RAISE);
+  if (holdEntries(took.short).length) return { profile: p, bag, says: 'patch' };
+  return { profile: withBeat(p, 'craftRaised'), bag: took.inv, says: 'raised' };
+}
+
+/**
+ * What happens at the Aster craft on Brine:
+ * - 'found': the first time: sunk on the reef, empty, its radio drowned, and the crew's scratched pictures;
+ * - 'heart': raised, it waits for a new cell (the bag hasn't all of it);
+ * - 'mended': the cell's ore taken, it hums again;
+ * - null: nothing to do there now.
+ */
+export type CraftSays = 'found' | 'heart' | 'mended';
+
+export interface CraftVisit {
+  readonly profile: Profile;
+  readonly bag: Inventory;
+  readonly says: CraftSays | null;
+}
+
+export function craftVisit(p: Profile, bag: Inventory): CraftVisit {
+  if (!hasBeat(p, 'craftFound')) return { profile: withBeat(p, 'craftFound'), bag, says: 'found' };
+  if (!hasBeat(p, 'craftRaised') || hasBeat(p, 'craftMended')) return { profile: p, bag, says: null };
+  const took = takeHoldFrom(bag, HEART);
+  if (holdEntries(took.short).length) return { profile: p, bag, says: 'heart' };
+  return { profile: withBeat(p, 'craftMended'), bag: took.inv, says: 'mended' };
 }

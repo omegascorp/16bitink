@@ -4,7 +4,7 @@ import { PIECES, type Loadout } from './gear';
 import type { Inventory, Stack } from './inventory';
 import { ORES } from './ore';
 import { FUEL } from './fuel';
-import { SHIP_TANK, STARSHIP_IDS, type StarshipId } from './starship';
+import { SHIP_TANK, STARSHIP_FITS, type StarshipFit } from './starship';
 import { REPAIR_IDS, type RepairId } from './repairs';
 import { MODULE_KEYS, maxLevel, storeCapacity, type ShipModules } from './ship';
 import { BEATS, type Beat } from './story';
@@ -83,9 +83,9 @@ function parseStores(v: unknown, cap: number): { air: number; power: number } {
 }
 
 /** Known starship systems mended, once each. */
-function parseStarship(v: unknown): StarshipId[] {
+function parseStarship(v: unknown): StarshipFit[] {
   if (!Array.isArray(v)) return [];
-  return [...new Set(v.filter((id): id is StarshipId => typeof id === 'string' && (STARSHIP_IDS as readonly string[]).includes(id)))];
+  return [...new Set(v.filter((id): id is StarshipFit => typeof id === 'string' && (STARSHIP_FITS as readonly string[]).includes(id)))];
 }
 
 /** Known worlds landed on, once each and in order, Graphite always (it's where the game starts). */
@@ -124,7 +124,7 @@ export function parseProfile(raw: unknown): Profile {
     fuel: parseFuel(raw.fuel, FUEL.max),
     docked: raw.docked === true,
     starship: parseStarship(raw.starship),
-    shipFuel: parseFuel(raw.shipFuel, SHIP_TANK.capacity),
+    shipFuel: parseFuel(raw.shipFuel, SHIP_TANK.aster),
     hold: parseInventory(raw.hold, NEW_PROFILE.hold),
     stores: parseStores(raw.stores, storeCapacity(parseShip(raw.ship))),
     at: isWorldId(raw.at) ? raw.at : 'graphite',

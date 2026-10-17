@@ -16,6 +16,7 @@ import { drawSlotGrid, gridHeight } from './slots';
 import { storyCard } from './kit/storyCard';
 import { ASTER_CARD } from './hud/asterCard';
 import { campSpec } from './hud/campCards';
+import { craftSpec, reefSpec } from './hud/brineCards';
 import { talkSpec } from './hud/talkCards';
 import { TouchPad } from './hud/touchPad';
 import { muteButton } from './kit/muteButton';
@@ -169,10 +170,12 @@ export class HudScene extends Phaser.Scene {
     this.showTalk(game);
     const goal = goalLine(game.liveProfile(), game.goal());
     const bars = game.signal();
-    const key = `${goal}|${bars}`;
+    const song = game.listeningFor() === 'song';
+    const under = song && game.mine.headDepth > 0;
+    const key = `${goal}|${bars}|${song}|${under}`;
     if (key !== this.goalShown) {
       this.goalShown = key;
-      this.drawGoal(goal, bars);
+      this.drawGoal(goal, bars, song ? (under ? 'song' : 'dry') : 'radio');
     }
     this.prompt.setVisible(aboard);
     this.touch.setAboard(aboard);
@@ -270,10 +273,22 @@ export class HudScene extends Phaser.Scene {
         game.closeCamp();
       }, 70);
     }
+    if (game.reef && game.reef !== 'wait' && !this.talk) {
+      this.talk = storyCard(this, reefSpec(this, game.reef), () => {
+        this.talk = null;
+        game.closeReef();
+      }, 70);
+    }
+    if (game.craft && !this.talk) {
+      this.talk = storyCard(this, craftSpec(this, game.craft), () => {
+        this.talk = null;
+        game.closeCraft();
+      }, 70);
+    }
   }
 
   /** The objective plate: what to do next, with what's on hand counted; while following the call, the receiver's bars. */
-  private drawGoal(line: string, bars: number | null): void {
+  private drawGoal(line: string, bars: number | null, hearing: 'radio' | 'song' | 'dry' = 'radio'): void {
     for (const o of this.goalParts) o.destroy();
     const { width } = viewSize(this);
     const x = width - GOAL.w - 14;
@@ -283,7 +298,7 @@ export class HudScene extends Phaser.Scene {
     const parts: Phaser.GameObjects.GameObject[] = [text];
     if (bars !== null) {
       const by = y + h + 22;
-      parts.push(label(this, x + GOAL.pad, by, 'Receiver', 17, SEPIA, '600').setOrigin(0, 0.5).setDepth(1));
+      parts.push(label(this, x + GOAL.pad, by, hearing === 'radio' ? 'Receiver' : 'Song', 17, SEPIA, '600').setOrigin(0, 0.5).setDepth(1));
       const g = this.add.graphics().setDepth(1);
       for (let k = 0; k < 5; k++) {
         const bh = 6 + k * 4;
@@ -293,7 +308,7 @@ export class HudScene extends Phaser.Scene {
       }
       parts.push(g);
       // Words only where the bars alone don't say it: no signal at all, or arrived. In between, the bars are the reading.
-      const note = bars === 0 ? 'static' : bars >= 5 ? 'right here' : null;
+      const note = hearing === 'dry' ? 'head under water' : bars === 0 ? (hearing === 'song' ? 'silence' : 'static') : bars >= 5 ? 'right here' : null;
       if (note) parts.push(aside(this, x + GOAL.pad + 176, by, note, 16, 140, SEPIA).setOrigin(0, 0.5).setDepth(1));
       h += 44;
     }

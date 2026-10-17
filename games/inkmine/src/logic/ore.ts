@@ -8,10 +8,12 @@
  * Graphite's six come first; Mycel's (chapter 2) follow: malachite, pyrite,
  * calcite, amber, lignite and water, then carbon, which never lies in the
  * rock: it comes off Mycel's cap mushrooms (with their water) when they're
- * drilled. They ship with the game even though Mycel itself comes from the
- * server, as saves keep only ores they know.
+ * drilled. Brine's (chapter 3) come after: manganese nodules, halite,
+ * magnetite and brine pearls (it shares native copper and water). They
+ * ship with the game even though the paid worlds come from the server, as
+ * saves keep only ores they know.
  */
-export type OreGlyph = 'nugget' | 'cube' | 'flake' | 'prism' | 'wire' | 'rime' | 'botryoid' | 'rhomb' | 'resin' | 'chunk' | 'bead' | 'char';
+export type OreGlyph = 'nugget' | 'cube' | 'flake' | 'prism' | 'wire' | 'rime' | 'botryoid' | 'rhomb' | 'resin' | 'chunk' | 'bead' | 'char' | 'nodule' | 'salt' | 'octahedron' | 'pearl';
 
 export interface OreKind {
   readonly id: number;
@@ -46,6 +48,14 @@ export const ORES = {
   water: { id: 12, key: 'water', name: 'water', value: 2, color: '#8cc6e6', mark: '#a6e0f7', glyph: 'bead', about: 'Liquid water, pooled in sealed pockets in the soil and seeping from cave walls. Split, it gives air to breathe and fuel to fly, as ice does on a dead moon.' },
   /** Carbon: a cap's flesh, dried and charred by the drill's heat as it comes off: no vein of it lies in the rock. */
   carbon: { id: 13, key: 'carbon', name: 'carbon', value: 2, color: '#34303b', mark: '#b7a6cf', glyph: 'char', about: "A cap's flesh, charred by the drill's heat as it comes off: porous, light and almost pure carbon, the gills still showing in it. A cap is nine parts water; the rest is chitin, which chars to carbon, and a carbon fuel cell burns that as it burns coal. So every cap drilled gives carbon for the cell and water for the air." },
+  /** Manganese nodules: Brine's cell fuel (manganese dioxide is a real battery's cathode). */
+  nodule: { id: 14, key: 'nodule', name: 'manganese nodule', value: 6, color: '#3d3a40', mark: '#a59bd0', glyph: 'nodule', about: "Black lumps of manganese and iron oxide, grown a few millimetres in a million years round a shell or a shark's tooth on the seabed. Real abyssal plains are paved with them. Manganese dioxide is the cathode of an alkaline battery, so here the cell runs on them." },
+  /** Halite: rock salt, from seas that dried up long ago. */
+  halite: { id: 15, key: 'halite', name: 'halite', value: 4, color: '#f0c7c9', mark: '#ffb9c0', glyph: 'salt', about: "Rock salt in pink cubes, left where a shallow sea dried out and was buried. Sodium from salt makes a sodium-ion cell, and caustic soda made from it scrubs carbon dioxide out of a rebreather's air. Its clear crystals let heat light through, so infrared instruments have salt windows." },
+  /** Magnetite: black iron oxide in the basalt, magnetic enough to pull a needle. */
+  magnetite: { id: 16, key: 'magnetite', name: 'magnetite', value: 9, color: '#2e3036', mark: '#8fa3c4', glyph: 'octahedron', about: "Iron oxide in black eight-sided crystals, the most magnetic mineral there is: a lump of it swings a compass. Sea-floor lava is full of it, and as each flow cooled its crystals froze pointing at the poles of the day. Smelted, it's iron." },
+  /** Brine pearls: nacre from old shell beds, Brine's signature. */
+  pearl: { id: 17, key: 'pearl', name: 'brine pearl', value: 20, color: '#efe6f2', mark: '#e2c6f5', glyph: 'pearl', about: "Nacre, laid down layer on layer round a grain of grit inside a shell, and buried with the shell beds when the sea moved on. Nacre is chalk and a little protein stacked like bricks and mortar, and it's thousands of times tougher than the chalk alone: the toughest ceramic in nature." },
 } as const satisfies Record<string, OreKind>;
 
 export type OreKey = keyof typeof ORES;

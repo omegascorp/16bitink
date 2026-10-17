@@ -64,6 +64,43 @@ export interface CarveSpec {
   readonly vaults?: readonly Vault[];
   /** Firedamp pockets placed by hand (column, depth), as a way through a vault wall. */
   readonly pockets?: readonly (readonly [number, number])[];
+  /** A sea (Brine): islands stand out of it; everywhere else the ground drops to a seabed under water. */
+  readonly sea?: SeaSpec;
+  /** Hand-placed caves full of water, sealed in the rock (spec, "Brine: Water and air"). */
+  readonly aquifers?: readonly Room[];
+  /** Small sealed pockets of water scattered through the rock: so many, between these depths, so big. */
+  readonly waterPockets?: { readonly count: number; readonly from: number; readonly to: number; readonly size: readonly [number, number] };
+  /** Hand-placed caves kept full of air, that water never fills (an air bell). */
+  readonly bells?: readonly Room[];
+}
+
+/**
+ * A sea round islands: the islands (column bands, going east from the
+ * first) keep the rolling ground at `surface`; between them the ground
+ * slopes down off a beach to a seabed `bed` rows below it, and the sea
+ * stands `level` rows below the islands' ground.
+ */
+export interface SeaSpec {
+  /** Rows below `surface` the sea's surface lies: its first wet row is `surface + level`. */
+  readonly level: number;
+  readonly islands: readonly (readonly [number, number])[];
+  /** The seabed's depth below `surface`, shallowest to deepest, out away from the islands. */
+  readonly bed: readonly [number, number];
+  /** Columns a beach takes to slope from an island down to the seabed. */
+  readonly shore?: number;
+  /** Shallows: bands of columns where the bed rises to this depth below `surface` (a reef). */
+  readonly shoals?: readonly { readonly cols: readonly [number, number]; readonly depth: number }[];
+}
+
+/** A carved world: its ground, and its water (none without a sea or water in the rock). */
+export interface CarvedSite {
+  readonly terrain: Terrain;
+  /** 1 where carved water stands in the rock (the sea is let in later, from the sky: water.ts). */
+  readonly water: Uint8Array;
+  /** 1 where water never goes (air bells). */
+  readonly dry: Uint8Array;
+  /** The sea's first wet row, or null. */
+  readonly seaRow: number | null;
 }
 
 /** Clusters of cap mushrooms: on the open surface or on cave floors, optionally only between two columns. */
@@ -123,10 +160,120 @@ export function surfaceAt(spec: CarveSpec, x: number): number {
   const c = col(spec, x);
   const roll = valueNoise(c, 0, 9, spec.seed, period(spec)) * 2.2 + valueNoise(c, 0, 3, spec.seed + 1, period(spec)) * 0.6;
   const ease = Math.min(1, (fromLander - PAD) / 4);
-  return spec.surface + Math.round(roll * ease);
+  const land = spec.surface + Math.round(roll * ease);
+  return spec.sea ? seaFloor(spec, spec.sea, c, land) : land;
+}
+
+/** Columns from `x` to the nearest island, 0 on one (the short way round a wrapping site). */
+function offshore(spec: CarveSpec, sea: SeaSpec, x: number): number {
+  let best = Infinity;
+  for (const [a, b] of sea.islands) {
+    const span = col(spec, b - a);
+    const into = col(spec, x - a);
+    if (into <= span) return 0;
+    best = Math.min(best, into - span, col(spec, a - x));
+  }
+  return best;
+}
+
+/**
+ * The ground under a sea: an island's own rolling ground, or off it, a
+ * beach sloping down to the seabed, which rolls slowly between its depths
+ * (rising to a shoal's depth over a reef).
+ */
+function seaFloor(spec: CarveSpec, sea: SeaSpec, x: number, land: number): number {
+  const off = offshore(spec, sea, x);
+  if (off === 0) return land;
+  const [shallow, deep] = sea.bed;
+  const swell = (valueNoise(x, 0, 17, spec.seed + 41, period(spec)) + 1) / 2;
+  let bed = shallow + (deep - shallow) * Math.min(1, swell * 0.6 + Math.min(1, off / 40) * 0.6);
+  for (const s of sea.shoals ?? []) {
+    const span = col(spec, s.cols[1] - s.cols[0]);
+    const into = col(spec, x - s.cols[0]);
+    if (into > span) continue;
+    // Rounded over the reef: shallowest in the middle.
+    const k = Math.sin((Math.PI * (into + 0.5)) / (span + 1));
+    bed = bed + (s.depth - bed) * Math.min(1, k * 1.6);
+  }
+  const shore = sea.shore ?? 6;
+  const t = Math.min(1, off / shore);
+  // A beach: down from the island's ground to the bed, steepest halfway.
+  const ease = t * t * (3 - 2 * t);
+  return Math.round(land + (spec.surface + bed - land) * ease);
 }
 
 export function carve(spec: CarveSpec): Terrain {
+  return carveSite(spec).terrain;
+}
+
+/** Carves the site and its water: the ground, then the water standing in it (water.ts lets the sea in). */
+export function carveSite(spec: CarveSpec): CarvedSite {
+  const t = carveGround(spec);
+  const n = spec.width * spec.height;
+  const water = new Uint8Array(n);
+  const dry = new Uint8Array(n);
+  const rng = createRng(spec.seed + 977);
+  const surface = Array.from({ length: spec.width }, (_, x) => surfaceAt(spec, x));
+  for (const room of spec.aquifers ?? []) {
+    openRoom(t, spec, room);
+    forRoom(t, spec, room, (i) => (water[i] = 1));
+  }
+  const wp = spec.waterPockets;
+  for (let i = 0; wp && i < wp.count; i++) waterPocket(t, spec, surface, wp, rng, water);
+  for (const bell of spec.bells ?? []) {
+    openRoom(t, spec, bell);
+    forRoom(t, spec, bell, (i) => {
+      dry[i] = 1;
+      water[i] = 0;
+    });
+  }
+  return { terrain: t, water, dry, seaRow: spec.sea ? spec.surface + spec.sea.level : null };
+}
+
+/** Every open tile of a hand-placed room, by index. */
+function forRoom(t: Terrain, spec: CarveSpec, room: Room, f: (i: number) => void): void {
+  const [c, depth] = room.at;
+  const x0 = c - Math.floor(room.w / 2);
+  const y0 = spec.surface + depth - Math.floor(room.h / 2);
+  for (let j = 0; j < room.h; j++) {
+    for (let i = 0; i < room.w; i++) {
+      const x = col(spec, x0 + i);
+      const y = y0 + j;
+      if (inside(t, x, y) && tileAt(t, x, y) === TILE.air) f(y * spec.width + x);
+    }
+  }
+}
+
+/** A sealed pocket of water: a little blob opened in solid rock, well away from any opening, and filled. */
+function waterPocket(t: Terrain, spec: CarveSpec, surface: readonly number[], wp: NonNullable<CarveSpec['waterPockets']>, rng: Rng, water: Uint8Array): void {
+  for (let tries = 0; tries < 30; tries++) {
+    const x = Math.floor(rng() * spec.width);
+    const y = surface[x]! + wp.from + Math.floor(rng() * Math.max(1, wp.to - wp.from));
+    const w = wp.size[0] + Math.floor(rng() * (wp.size[1] - wp.size[0] + 1));
+    const h = Math.max(1, Math.round(w * (0.4 + rng() * 0.3)));
+    // Sealed: solid rock a tile round it on every side, and nothing volatile in it.
+    let sealed = gap(spec, x, spec.landerCol) > PAD + 2;
+    for (let j = -1; j <= h && sealed; j++) {
+      for (let i = -1; i <= w && sealed; i++) {
+        const tx = col(spec, x + i);
+        const ty = y + j;
+        const tile = tileAt(t, tx, ty);
+        if (!inside(t, tx, ty) || tile === TILE.air || tile === TILE.bedrock || tile === TILE.cap || volatileAt(t, tx, ty)) sealed = false;
+      }
+    }
+    if (!sealed) continue;
+    for (let j = 0; j < h; j++) {
+      for (let i = 0; i < w; i++) {
+        const tx = col(spec, x + i);
+        setTile(t, tx, y + j, TILE.air);
+        water[(y + j) * spec.width + tx] = 1;
+      }
+    }
+    return;
+  }
+}
+
+function carveGround(spec: CarveSpec): Terrain {
   const t = createTerrain(spec.width, spec.height, spec.wrap ?? false);
   const rng = createRng(spec.seed);
   const surface = Array.from({ length: spec.width }, (_, x) => surfaceAt(spec, x));

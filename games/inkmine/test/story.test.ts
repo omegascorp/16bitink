@@ -147,7 +147,7 @@ describe('the receiver', () => {
   const stocked = { ...heard, cargo: addHoldTo(heard.cargo, { copper: 4, quartz: 2 }).inv };
 
   it('is printed aboard once there is a call to follow, from copper and quartz', () => {
-    expect(TOOLS).toEqual(['receiver', 'pulse']);
+    expect(TOOLS).toEqual(['receiver', 'pulse', 'rebreather']);
     expect(canPrintTool(drilled(repaired('printer', 'comms')), 'receiver')).toBe('nothing');
     expect(canPrintTool(heard, 'receiver')).toBe('materials');
     expect(canPrintTool({ ...stocked, repaired: ['comms'] }, 'receiver')).toBe('offline');

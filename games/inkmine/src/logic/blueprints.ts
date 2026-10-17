@@ -59,7 +59,26 @@ const MK2: readonly Recipe[] = [
   recipe('suit', 2, { calcite: 6, amber: 3 }),
 ];
 
-export const RECIPES: Readonly<Record<string, Recipe>> = Object.fromEntries([...MK1, ...MK2].map((r) => [r.id, r]));
+/**
+ * Brine's Mk 3 set, from a sea world's rock and its old shell beds (spec,
+ * "Brine"): a sodium-ion cell (sodium from halite) on a manganese oxide
+ * cathode; a pack of copper-wire net, as real fish farms use, with nacre
+ * toggles; a copper tube crown fed with sand, as the Egyptians bored
+ * granite, on manganese steel; a rock-salt visor, which lets heat light
+ * through; an iron pump wound with copper; and nacre plates, the toughest
+ * natural ceramic, over iron mesh. The drill and its materials lie in the
+ * sediment, within reach of Mycel's drill.
+ */
+const MK3: readonly Recipe[] = [
+  recipe('cell', 3, { halite: 5, nodule: 3 }),
+  recipe('pack', 3, { copper: 4, pearl: 2 }),
+  recipe('drill', 3, { copper: 5, nodule: 4 }),
+  recipe('helmet', 3, { halite: 4, pearl: 2 }),
+  recipe('jetpack', 3, { magnetite: 5, copper: 3 }),
+  recipe('suit', 3, { magnetite: 4, pearl: 3 }),
+];
+
+export const RECIPES: Readonly<Record<string, Recipe>> = Object.fromEntries([...MK1, ...MK2, ...MK3].map((r) => [r.id, r]));
 
 /**
  * What taking an old part apart gives back: half of each material it

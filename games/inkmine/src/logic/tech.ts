@@ -58,6 +58,7 @@ export function techState(p: Profile, t: Tech): TechState {
   }
   if (t.kind === 'starship') {
     const why = canFix(p, t.id);
+    if (t.id === 'asterTank' && why !== 'done' && why !== 'ok') return 'empty';
     return why === 'done' ? 'fitted' : why === 'ok' ? 'ready' : 'broken';
   }
   if (t.kind === 'tool') {

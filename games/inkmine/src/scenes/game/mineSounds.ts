@@ -82,6 +82,10 @@ export class MineSounds {
       case 'grabbed': return s.play('hurt', { pitch: 0.8 });
       case 'freed': return s.play('land', { pitch: 1.2 });
       case 'beat': return s.play('blast', { pitch: e.near ? 0.5 : 0.35 });
+      // Water: a soft plop going in or out, a low rush when a flood starts near, a dull note as deep water bites.
+      case 'splash': return s.play('crumbleSoft', { pitch: e.into ? 0.6 : 0.8 });
+      case 'flood': return e.near ? s.play('blast', { pitch: 0.3 }) : undefined;
+      case 'deep': return s.play('airLow', { pitch: 0.8 });
       default: return;
     }
   }

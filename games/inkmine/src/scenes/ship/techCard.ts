@@ -4,7 +4,7 @@ import { hasOnHand, onHand, printerWorks, printModule, printPart } from '../../l
 import { markGain, markStat } from '../../logic/marks';
 import { canRepair, needsLine, REPAIRS, repair, type RepairCheck } from '../../logic/repairs';
 import { canUpgrade, capOf, maxLevel, MODULES, nextRecipe } from '../../logic/ship';
-import { canFix, fix, STARSHIP, type FixCheck, type StarshipId } from '../../logic/starship';
+import { canFix, fix, STARSHIP, type FixCheck, type StarshipFit } from '../../logic/starship';
 import { hasBeat } from '../../logic/story';
 import type { Tech } from '../../logic/tech';
 import { canPrintTool, printTool, TOOL_KINDS, type ToolCheck } from '../../logic/tools';
@@ -133,24 +133,27 @@ function repairText(page: ShipPage, t: Extract<Tech, { kind: 'repair' }>): CardT
 }
 
 /** The mend button's label when it can't mend yet. */
-const FIX_WHY: Readonly<Record<FixCheck, string>> = { ok: 'Mend', done: 'Working', order: 'Later', materials: 'Needs ore', away: 'Aboard only', never: 'Not here' };
+const FIX_WHY: Readonly<Record<FixCheck, string>> = { ok: 'Mend', done: 'Working', order: 'Later', materials: 'Needs ore', away: 'Aboard only', never: 'Not here', design: 'No design' };
 
 function starshipText(page: ShipPage, t: Extract<Tech, { kind: 'starship' }>): CardText {
   const p = page.profile;
   const s = STARSHIP[t.id];
   const why = canFix(p, t.id);
   if (t.id === 'jump') return { status: 'burnt out', statusColor: MADDER, now: s.broken };
-  if (why === 'done') return { status: 'mended', statusColor: VERDIGRIS, now: s.opens };
+  if (why === 'done') return { status: t.id === 'asterTank' ? 'fitted' : 'mended', statusColor: VERDIGRIS, now: s.opens };
+  // An upgrade nobody has shown you yet: an empty slot.
+  if (why === 'design') return { status: 'empty', statusColor: FADED, now: 'An empty mounting beside the tank. Someone who has built a bigger one could show you how.' };
+  const fitting = t.id === 'asterTank';
   const first = s.after.filter((a) => !p.starship.includes(a)).map((a) => STARSHIP[a].name.toLowerCase()).join(' and the ');
   const next = why === 'order' ? `Mend it after the ${first}.` : why === 'away' ? 'Mended aboard the ship only: carry the ore up in the lander.' : s.fact ?? '';
   return {
-    status: 'broken', statusColor: MADDER, now: s.broken,
+    status: fitting ? 'to fit' : 'broken', statusColor: fitting ? SEPIA : MADDER, now: s.broken,
     next: next ? { text: next, color: why === 'order' || why === 'away' ? FADED : SEPIA } : undefined,
     recipe: { text: needsLine(s.needs!, onHand(p)), ok: why === 'ok' },
     button: {
-      label: FIX_WHY[why], ok: why === 'ok', press: () => {
-        const out = fix(page.profile, t.id as StarshipId);
-        if (out.ok) page.commit(out.profile, { news: `${s.name} mended!` });
+      label: fitting && why === 'ok' ? 'Fit' : FIX_WHY[why], ok: why === 'ok', press: () => {
+        const out = fix(page.profile, t.id as StarshipFit);
+        if (out.ok) page.commit(out.profile, { news: `${s.name} ${fitting ? 'fitted' : 'mended'}!` });
       },
     },
   };

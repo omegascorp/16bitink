@@ -6,7 +6,7 @@ import { contents, emptyInventory, resize, takeHoldFrom, type Inventory } from '
 import { suitSpecFor } from './marks';
 import { canUpgrade, CARGO_STACK, cargoSlots, nextRecipe, STARTER_SHIP, storeCapacity, upgrade, type ModuleKey, type ShipModules, type UpgradeCheck } from './ship';
 import type { RepairId } from './repairs';
-import type { StarshipId } from './starship';
+import type { StarshipFit } from './starship';
 import type { Beat } from './story';
 import type { Tool } from './tools';
 import { SUIT_STACK } from './suit';
@@ -38,8 +38,8 @@ export interface Profile {
   readonly fuel: number;
   /** In orbit, aboard the starship, with the lander docked (fuel.ts); else on the ground. */
   readonly docked: boolean;
-  /** The starship's systems mended (starship.ts). */
-  readonly starship: readonly StarshipId[];
+  /** The starship's systems mended, and upgrades fitted (starship.ts). */
+  readonly starship: readonly StarshipFit[];
   /** The starship's fuel tank, in units (starship.ts). */
   readonly shipFuel: number;
   /** The starship's hold: ore carried up and kept aboard it, reachable only while docked. */

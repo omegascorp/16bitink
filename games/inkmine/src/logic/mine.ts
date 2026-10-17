@@ -1,4 +1,4 @@
-import { boxHitsSolid, climbBody, jump, moveBody, PHYS, type Body, type Box } from './body';
+import { boxHitsSolid, climbBody, jump, moveBody, PHYS, type Body, type Box, type Fall } from './body';
 import { BlastSim, type Blast } from './blastSim';
 import type { Creature, CreatureKind } from './creatures';
 import { Fauna } from './fauna';
@@ -14,13 +14,14 @@ import { Ladders } from './ladders';
 import { jetFor, type JetSpec } from './marks';
 import { between, caught, newPiece, PIECE, restingPiece, stepPiece, type Piece } from './pieces';
 import type { SavedPiece } from './worldSave';
-import { AIR, breathe, burn, emptyBag, feed, fits, fuelIn, hasRoomFor, hurt, newSuit, pickFeed, rechargeJet, regen, spend, stow, withBag, worn, type Fuels, type Gauge, type Suit, type SuitSpec } from './suit';
+import { AIR, airRate, breathe, burn, emptyBag, feed, fits, fuelIn, hasRoomFor, hurt, newSuit, pickFeed, rechargeJet, regen, spend, stow, withBag, worn, type Fuels, type Gauge, type Suit, type SuitSpec } from './suit';
 import { restockFrom, solarCharge, type StoreKind, type Stores } from './stores';
 import { STORE_CAPACITY } from './ship';
 import type { OreKey } from './ore';
 import { bodyCell, centredX, drillTarget } from './target';
 import { contentAt, foldX, ringDelta, setTile, TILE, tileAt, volatileAt, type Terrain, type TilePos } from './terrain';
 import { lightsWhenDrilled, volatileKeyOf } from './volatiles';
+import type { Water } from './water';
 
 /** Everything a dig site starts from. */
 export interface MineSetup {
@@ -59,6 +60,10 @@ export interface MineSetup {
   readonly creatures?: readonly Creature[];
   /** Whether the prospector carries the pulse (pulse.ts; default not). */
   readonly armed?: boolean;
+  /** The world's water (water.ts; default none). */
+  readonly water?: Water | null;
+  /** Whether the suit has the rebreather, so depth doesn't matter to the air (default not). */
+  readonly rebreather?: boolean;
 }
 
 /** Graphite's fuels: graphite for the drill (it's in battery anodes), water ice for the air. */
@@ -120,6 +125,14 @@ export type MineEvent =
   | { readonly kind: 'freed' }
   /** The Mother Mycel beat; `near` when its wave reached the prospector. */
   | { readonly kind: 'beat'; readonly near: boolean }
+  /** Water moved (a flood running): these tiles' water changed. */
+  | { readonly kind: 'water'; readonly tiles: readonly TilePos[] }
+  /** Ground opened into water, and it's pouring in; `near` when it's close to the prospector. */
+  | { readonly kind: 'flood'; readonly near: boolean; readonly sea: boolean }
+  /** Went into the water, or came out. */
+  | { readonly kind: 'splash'; readonly into: boolean }
+  /** Deep enough under water that the air drains `rate` times as fast (said as it gets worse). */
+  | { readonly kind: 'deep'; readonly rate: number }
   /** Winched up; `left` pieces stayed in the world under the flag. */
   | { readonly kind: 'recall'; readonly left: number }
   /** Touched the flag: pieces back in the bag. */
@@ -154,6 +167,22 @@ export const CAP_SPRING = { jump: 560, min: 220, keep: 0.5 } as const;
 export const SPORE_AIR = 12;
 /** What a drilled cap mushroom breaks into: its flesh charred to carbon by the drill (cell fuel), and the water it was mostly made of. */
 export const CAP_YIELD: readonly OreKey[] = ['carbon', 'water'];
+/**
+ * Swimming: you sink slowly (`fall`), faster holding down (`dive`); jump
+ * strokes you up to `rise` px/s; walking along the bottom or swimming
+ * across goes at `walk` of the pace on land. At the surface, jump lifts you
+ * out with a `hop`.
+ */
+export const SWIM = {
+  fall: { gravity: 260, maxFall: 80 } satisfies Fall,
+  dive: { gravity: 260, maxFall: 170 } satisfies Fall,
+  rise: 150,
+  stroke: 1100,
+  walk: 0.75,
+  hop: 330,
+} as const;
+/** Tiles from the prospector within which a flood is said to be "near". */
+const FLOOD_NEAR = 14;
 /** The same notice ("too hard", "cell flat", "bag full") is said at most this often. */
 const NOTICE_GAP = 1.2;
 /** The suit says the air is low at most this often. */
@@ -215,6 +244,12 @@ export class Mine {
   climbing = false;
   /** The jetpack fired this step. */
   jetting = false;
+  /** In water this step (swimming, or walking the bottom). */
+  swimming = false;
+  /** The world's water; null on a dry world. */
+  readonly water: Water | null;
+  /** How fast the air last drained, for saying when deep water makes it worse. */
+  private airPace = 1;
   time = 0;
   state: 'playing' | 'failed' = 'playing';
   private readonly said = new Map<string, number>();
@@ -239,7 +274,9 @@ export class Mine {
     this.outpostBox = o ? { x: (o.col - OUTPOST_REACH.half) * T, y: (o.row - OUTPOST_REACH.rows) * T, w: (OUTPOST_REACH.half * 2 + 1) * T, h: OUTPOST_REACH.rows * T } : null;
     this.items = placeItems(setup.terrain, setup.items ?? [], row, T);
     this.fauna = new Fauna(setup.creatures ?? [], setup.armed ?? false);
+    this.water = setup.water ?? null;
     this.player = this.startBody();
+    this.swimming = this.inWater(this.player);
     const W = setup.terrain.width;
     this.pieces = (setup.pieces ?? []).map((sp) => restingPiece(sp.ore, sp.at % W, Math.floor(sp.at / W), T, W));
   }
@@ -285,6 +322,7 @@ export class Mine {
     this.drillStep(dt, moving, blocked, events);
     this.faunaStep(dt, input, events);
     this.blastStep(dt, events);
+    this.waterStep(dt, events);
     this.pieceStep(dt, events);
     this.itemStep(dt, events);
     // Not on a recall: the bag just left would be picked straight back up at the lander.
@@ -323,9 +361,15 @@ export class Mine {
     if (input.ix !== 0) this.facing = input.ix > 0 ? 1 : -1;
     this.jetting = false;
     const knocked = this.knock && this.time < this.knock.until ? this.knock : null;
+    const wasSwimming = this.swimming;
+    this.swimming = this.inWater(before);
+    if (this.swimming !== wasSwimming) events.push({ kind: 'splash', into: this.swimming });
     if (onLadder && !input.jump) {
       this.climbing = true;
       this.player = climbBody(this.terrain, before, input.ix, input.iy, PROSPECTOR.climb, dt, T);
+    } else if (this.swimming) {
+      this.climbing = false;
+      this.player = this.swim(before, input, dt, knocked);
     } else {
       this.climbing = false;
       const springy = before.onGround && this.onCap(before);
@@ -349,8 +393,41 @@ export class Mine {
       if (input.iy > 0 && before.onGround && !this.player.onGround && this.player.vy >= 0) this.player = { ...this.player, vy: Math.max(this.player.vy, DROP_KICK) };
     }
     this.player = { ...this.player, x: foldX(this.terrain, this.player.x, T) };
-    const footing = this.player.onGround || this.climbing || this.jetting;
+    const footing = this.player.onGround || this.climbing || this.jetting || this.swimming;
     return input.ix !== 0 && footing && Math.abs(this.player.x - before.x) < 0.01;
+  }
+
+  /** Whether a body is in water: its middle is. */
+  private inWater(b: Box): boolean {
+    if (!this.water) return false;
+    const T = this.tile;
+    return this.water.isWet(Math.floor((b.x + b.w / 2) / T), Math.floor((b.y + b.h / 2) / T));
+  }
+
+  /** Metres of water over the prospector's head (0 with it out of the water). */
+  get headDepth(): number {
+    if (!this.water) return 0;
+    const T = this.tile;
+    const p = this.player;
+    return this.water.depthAt(Math.floor((p.x + p.w / 2) / T), Math.floor((p.y + 3) / T));
+  }
+
+  /**
+   * One step in the water: sink slowly (faster holding down), stroke up on
+   * jump, and with your head out at the surface, jump hops you out onto
+   * the bank. The jetpack doesn't fire under water.
+   */
+  private swim(before: Body, input: MineInput, dt: number, knocked: { readonly dir: number; readonly speed: number } | null): Body {
+    const up = input.jump || input.thrust;
+    let vy = before.vy;
+    if (input.jump && this.headDepth === 0) vy = -SWIM.hop;
+    else if (up) vy = Math.max(-SWIM.rise, vy - SWIM.stroke * dt);
+    const fall = input.iy > 0 ? SWIM.dive : SWIM.fall;
+    // Slow down to the water's pace, whatever speed you came in at.
+    if (vy > fall.maxFall) vy = Math.max(fall.maxFall, vy - SWIM.stroke * dt);
+    const b = { ...before, vy, onGround: before.onGround && !up };
+    if (knocked) return moveBody(this.terrain, b, knocked.dir, knocked.speed, dt, this.tile, true, fall);
+    return moveBody(this.terrain, b, input.ix, PROSPECTOR.walk * SWIM.walk, dt, this.tile, input.iy <= 0, fall);
   }
 
   /** Whether a body stands on a cap mushroom: one under either foot. */
@@ -362,8 +439,8 @@ export class Mine {
   }
 
   private drillStep(dt: number, input: MineInput, blocked: boolean, events: MineEvent[]): void {
-    // Hovering on the jetpack counts as footing: you can drill up through a roof or into a wall mid-air.
-    const footing = this.player.onGround || this.climbing || this.jetting;
+    // Hovering on the jetpack, or swimming, counts as footing: you can drill up through a roof or into a wall mid-air.
+    const footing = this.player.onGround || this.climbing || this.jetting || this.swimming;
     const aimed = drillTarget(this.terrain, this.player, this.tile, input, footing, blocked);
     // Something volatile in a two-block dig is set off on its own first.
     const target = aimed?.with && (volatileAt(this.terrain, ...aimed.with) || volatileAt(this.terrain, ...aimed.tile))
@@ -456,6 +533,25 @@ export class Mine {
     }
   }
 
+  /**
+   * Ground opened this step (drilled, blown out) lets any water beside it in,
+   * and floods under way move on (water.ts).
+   */
+  private waterStep(dt: number, events: MineEvent[]): void {
+    const w = this.water;
+    if (!w) return;
+    const opened = events.flatMap((e) => (e.kind === 'tiles' ? e.tiles : []));
+    const p = this.player;
+    const col = Math.floor((p.x + p.w / 2) / this.tile);
+    const row = Math.floor((p.y + p.h / 2) / this.tile);
+    for (const f of w.opened(opened)) {
+      const near = Math.abs(ringDelta(this.terrain, col, f.at[0])) <= FLOOD_NEAR && Math.abs(row - f.at[1]) <= FLOOD_NEAR;
+      events.push({ kind: 'flood', near, sea: f.sea });
+    }
+    const changed = w.step(dt);
+    if (changed.length) events.push({ kind: 'water', tiles: changed });
+  }
+
   private pieceStep(dt: number, events: MineEvent[]): void {
     const kept: Piece[] = [];
     for (const piece of this.pieces) {
@@ -534,7 +630,11 @@ export class Mine {
     let s = regen(this.suit, dt, this.time);
     if ((this.player.onGround || this.climbing) && !this.jetting) s = rechargeJet(s, dt);
     if (!this.atLander) {
-      const r = breathe(s, dt);
+      const rate = airRate(this.headDepth, this.setup.rebreather ?? false);
+      // Said each time deep water makes it a half again worse.
+      if (Math.floor(rate * 2) > Math.floor(this.airPace * 2)) events.push({ kind: 'deep', rate });
+      this.airPace = rate;
+      const r = breathe(s, dt, rate);
       s = r.suit;
       if (r.choked) events.push({ kind: 'hurt', hearts: s.hearts, cause: 'air' });
       if (s.air <= 0) this.notice('airOut', events, { kind: 'airOut' }, AIR.choke);

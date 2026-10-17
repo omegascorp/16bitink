@@ -35,6 +35,10 @@ export interface WorldDef {
   readonly giant?: { readonly at: TilePos };
   /** Where a lost crew made camp, by column and depth: the last open row of its cave (a room should be carved there). Mycel's Aster camp, at the end of their trail. */
   readonly camp?: { readonly at: TilePos };
+  /** The column a lost crew's craft lies sunk at, on the seabed (Brine's Aster craft). */
+  readonly craft?: number;
+  /** Where the local people live under the water, by column and depth: the floor of their cave (Brine's Tidesingers). */
+  readonly reef?: { readonly at: TilePos };
 }
 
 /** The card shown the first time you land on a world: its name, a line under it, a few paragraphs and the button. */

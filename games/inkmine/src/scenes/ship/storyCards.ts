@@ -41,6 +41,16 @@ export function shipStoryCard(page: ShipPage): boolean {
     }, () => page.commit(withBeat(page.profile, 'mycelOrbit'), { tab: 'starship' }));
     return true;
   }
+  if (p.docked && p.at === 'brine' && !hasBeat(p, 'brineOrbit')) {
+    storyCard(scene, {
+      title: 'In orbit over Brine',
+      subtitle: 'the sea world',
+      pictures: [{ key: shipTexture(scene, shipLookOf(p), 'small'), h: 70 }, { key: TEX.world('brine'), h: 70 }],
+      text: "Sea, from one edge of the window to the other, violet where the light goes into it. Islands of black rock lie scattered on it, crusted white. The radio hears nothing: no beacon, no pulses. But the telescope, turned on the reef east of the biggest island, picks out something bright just under the water: petals, glazed lilac, the shape of the craft in the Aster's pictures. The lander can only come down on rock: the big island it is.",
+      button: 'Take it in',
+    }, () => page.commit(withBeat(page.profile, 'brineOrbit'), { tab: 'starship' }));
+    return true;
+  }
   if (p.docked && p.at === 'graphite' && !hasBeat(p, 'aboard')) {
     storyCard(scene, {
       title: 'Docked',

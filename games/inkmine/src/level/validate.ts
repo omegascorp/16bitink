@@ -51,6 +51,10 @@ const isSite = shape({
   tunnels: listOf(listOf(at, 64), 64),
   vaults: listOf(shape({ at, w: intIn(1, 32), h: intIn(1, 32), wall: oneOf('stone', 'deep') }, { door: oneOf('left', 'right', 'top') }), 64),
   pockets: listOf(at, 200),
+  sea: shape({ level: depth, islands: listOf(tuple(col, col), 32), bed: tuple(depth, depth) }, { shore: intIn(1, 64), shoals: listOf(shape({ cols: tuple(col, col), depth }), 32) }),
+  aquifers: listOf(shape({ at, w: intIn(1, 64), h: intIn(1, 64) }), 64),
+  waterPockets: shape({ count: isCount, from: depth, to: depth, size: tuple(intIn(1, 16), intIn(1, 16)) }),
+  bells: listOf(shape({ at, w: intIn(1, 32), h: intIn(1, 32) }), 16),
 });
 const isItem = shape({ id: isSlug, kind: oneOf('core', 'probe', 'fossil', 'wreck'), at }, {
   blueprint: (v) => typeof v === 'string' && isDesign(v), grade: oneOf('soil', 'stone'), drill: intIn(0, 10),
@@ -67,6 +71,8 @@ const isPlanet = shape({
     creatures: listOf(shape({ kind: oneOf(...CREATURE_KINDS), count: intIn(0, 64), from: depth, to: depth }, { cols: tuple(col, col) }), 16),
     giant: shape({ at }),
     camp: shape({ at }),
+    craft: col,
+    reef: shape({ at }),
   }),
 }, {
   arrival: shape({ subtitle: isText(120), paragraphs: listOf(isText(2000), 8), button: isText(40) }),

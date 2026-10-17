@@ -21,6 +21,12 @@ export const PHYS = {
   slip: 90,
 } as const;
 
+/** How a body falls: in air (PHYS), or slower in water. */
+export interface Fall {
+  readonly gravity: number;
+  readonly maxFall: number;
+}
+
 const EPS = 1e-6;
 
 export function boxHitsSolid(t: Terrain, b: Box, tile: number): boolean {
@@ -63,7 +69,7 @@ export function jump(b: Body, speed: number): Body {
  * step up a one-tile ledge when walking into it on the ground (unless
  * `stepUp` is off: someone heading down shouldn't climb out of their slope).
  */
-export function moveBody(t: Terrain, b: Body, intent: number, speed: number, dt: number, tile: number, stepUp = true): Body {
+export function moveBody(t: Terrain, b: Body, intent: number, speed: number, dt: number, tile: number, stepUp = true, falls: Fall = PHYS): Body {
   const vx = intent * speed;
   let box: Box = b;
   const dx = vx * dt;
@@ -80,7 +86,7 @@ export function moveBody(t: Terrain, b: Body, intent: number, speed: number, dt:
       }
     }
   }
-  const vy = Math.min(PHYS.maxFall, b.vy + PHYS.gravity * dt);
+  const vy = Math.min(falls.maxFall, b.vy + falls.gravity * dt);
   const fall = sweep(t, box, 'y', vy * dt, tile);
   const onGround = fall.hit && vy > 0;
   const landed = onGround ? slipOff(t, fall.box, intent, dt, tile) : fall.box;

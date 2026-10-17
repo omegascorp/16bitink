@@ -1,5 +1,6 @@
 import type { OreKind } from '../logic/ore';
 import { createRng, type Rng } from '../logic/rng';
+import { mix, rgba } from './paint';
 import { INK, PAPER_FILL } from './palette';
 
 /**
@@ -9,7 +10,9 @@ import { INK, PAPER_FILL } from './palette';
  * graphite in flat hexagonal flakes, quartz in pointed hexagonal prisms and
  * native silver in wires; on Mycel, malachite in banded bubbles, pyrite in
  * cubes, calcite in rhombs, amber in drops with a flier inside, lignite in
- * grained lumps and water in beads. Drawn centred on the origin, fitting a tile of
+ * grained lumps and water in beads; on Brine, manganese in knobbed nodules,
+ * halite in hollow-faced cubes, magnetite in glossy octahedra and pearls,
+ * one still in its shell. Drawn centred on the origin, fitting a tile of
  * `T` px. Plain canvas paths (not the Pen), since a chunk may hold dozens.
  */
 type P = readonly [number, number];
@@ -451,7 +454,355 @@ function char(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng)
   }
 }
 
-const GLYPHS = { nugget, cube: cubes, flake: flakes, prism: prisms, wire: wires, rime, botryoid, rhomb: rhombs, resin, chunk: chunks, bead: beads, char } as const;
+// Brine's ores (chapter 3), painted with more layers than the plain fills above: each has its own light, sheen and reflected colour.
+
+const TAU = Math.PI * 2;
+
+function disc(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry = rx): void {
+  ctx.beginPath();
+  ctx.ellipse(x, y, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, TAU);
+}
+
+/** A soft radial dab of colour, fading out from its middle. */
+function dab(ctx: CanvasRenderingContext2D, x: number, y: number, rad: number, color: string, alpha: number): void {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+  g.addColorStop(0, rgba(color, alpha));
+  g.addColorStop(1, rgba(color, 0));
+  ctx.fillStyle = g;
+  ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+}
+
+/** Runs `draw` clipped to a closed outline. */
+function inside(ctx: CanvasRenderingContext2D, pts: readonly P[], draw: () => void): void {
+  ctx.save();
+  poly(ctx, pts);
+  ctx.clip();
+  draw();
+  ctx.restore();
+}
+
+function line(ctx: CanvasRenderingContext2D, pts: readonly P[], color: string, width: number, alpha: number): void {
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  pts.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+/** A lumpy outline: a circle of florets, each bulging out between cusps, as a cauliflower or a botryoidal crust. */
+function lumpy(cx: number, cy: number, s: number, lobes: number, rng: Rng, squash = 0.86): P[] {
+  const amps = Array.from({ length: lobes }, () => 0.6 + rng() * 0.6);
+  const per = 5;
+  const turn = rng() * TAU;
+  return Array.from({ length: lobes * per }, (_, i) => {
+    const a = (i / (lobes * per)) * TAU + turn;
+    const q = s * (0.84 + 0.16 * Math.sin(((i % per) / per) * Math.PI) * amps[Math.floor(i / per)]!);
+    return [cx + Math.cos(a) * q, cy + Math.sin(a) * q * squash];
+  });
+}
+
+/** A soft shadow where a rounded thing rests on the rock. */
+function restShadow(ctx: CanvasRenderingContext2D, x: number, y: number, s: number): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1, 0.4);
+  dab(ctx, 0, 0, s, '#1a1626', 0.35);
+  ctx.restore();
+}
+
+/** Manganese nodules: black-brown concretions, knobbed all over like a cauliflower, a dull sheen on their tops, seabed grit settled on them. */
+function nodules(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
+  const lumps = [
+    { x: 0.42 * r, y: -0.3 * r, s: 0.34 * r },
+    { x: -0.16 * r, y: 0.1 * r, s: 0.6 * r },
+  ];
+  for (const n of lumps) {
+    restShadow(ctx, n.x + n.s * 0.15, n.y + n.s * 0.75, n.s * 1.1);
+    const pts = lumpy(n.x, n.y, n.s, 7, rng);
+    inked(ctx, pts, color, 1);
+    inside(ctx, pts, () => {
+      // Warm iron brown in the body, cooler where it turns away.
+      dab(ctx, n.x - n.s * 0.1, n.y + n.s * 0.1, n.s * 0.9, '#6b4b36', 0.45);
+      dab(ctx, n.x + n.s * 0.5, n.y + n.s * 0.5, n.s * 0.7, '#120f18', 0.5);
+      // The knobs: small domes, each lit on its upper left and shadowed under its lower right.
+      for (let k = 0; k < 9; k++) {
+        const a = rng() * TAU;
+        const q = Math.sqrt(rng()) * n.s * 0.72;
+        const kx = n.x + Math.cos(a) * q;
+        const ky = n.y + Math.sin(a) * q * 0.86;
+        const kr = n.s * (0.14 + rng() * 0.12);
+        const top = 1 - (ky - n.y + n.s) / (n.s * 2);
+        // The crease under each knob is a soft pool of shade, not a line; only a few get a fine pen touch.
+        dab(ctx, kx + kr * 0.45, ky + kr * 0.55, kr * 0.8, '#0c0a10', 0.45);
+        dab(ctx, kx - kr * 0.3, ky - kr * 0.35, kr * 0.75, '#cbbfd6', 0.1 + 0.28 * top);
+        if (k < 3) {
+          ctx.globalAlpha = 0.4;
+          ctx.strokeStyle = INK;
+          ctx.lineWidth = 0.35;
+          ctx.beginPath();
+          ctx.arc(kx, ky, kr, 0.05 * Math.PI, 0.6 * Math.PI);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+      // A dull sheen over the crown, wide and soft (it is earthy, not glassy).
+      dab(ctx, n.x - n.s * 0.3, n.y - n.s * 0.42, n.s * 0.55, '#ddd3e6', 0.3);
+      // Grit settled on top.
+      ctx.fillStyle = '#e4d7bd';
+      for (let k = 0; k < 9; k++) {
+        const gx = n.x + (rng() - 0.5) * n.s * 1.4;
+        const gy = n.y - n.s * (0.25 + rng() * 0.6);
+        ctx.globalAlpha = 0.5 + rng() * 0.4;
+        disc(ctx, gx, gy, n.s * (0.025 + rng() * 0.035));
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    });
+    // The outline again, heavier under the lower right where it sits.
+    const s2 = n.s * 2;
+    inside(ctx, [[n.x + s2, n.y - s2 + n.s * 0.15], [n.x + s2, n.y + s2], [n.x - s2 + n.s * 0.15, n.y + s2]], () => line(ctx, [...pts, pts[0]!], INK, 1.1, 0.6));
+  }
+  // Loose grit on the rock round the base.
+  ctx.fillStyle = '#d9cdb2';
+  for (let k = 0; k < 7; k++) {
+    ctx.globalAlpha = 0.6;
+    disc(ctx, (rng() - 0.5) * r * 1.6, r * (0.55 + rng() * 0.3), r * (0.02 + rng() * 0.03));
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** One translucent face of a salt cube: a thin wash with its light, the crystal behind it showing through. */
+function saltFace(ctx: CanvasRenderingContext2D, pts: readonly P[], color: string, tone: number): void {
+  poly(ctx, pts);
+  ctx.globalAlpha = 0.62;
+  ctx.fillStyle = tone >= 0 ? mix(color, '#fffaf5', tone) : mix(color, '#7e4a62', -tone);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+/** Steps cut into a face, shrinking to its centre: the hollow, terraced "hopper" face salt grows as it crystallises fast. */
+function hopper(ctx: CanvasRenderingContext2D, face: readonly P[], steps: number, color: string): void {
+  const cx = face.reduce((s, [x]) => s + x, 0) / face.length;
+  const cy = face.reduce((s, [, y]) => s + y, 0) / face.length;
+  for (let k = 1; k <= steps; k++) {
+    const t = 1 - k / (steps + 1.2);
+    const ring: P[] = face.map(([x, y]) => [cx + (x - cx) * t, cy + (y - cy) * t]);
+    poly(ctx, ring);
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = mix(color, '#9a5d76', 0.6);
+    ctx.fill();
+    // Each step's riser: in shade on its upper-left walls (they face away), catching light on the lower right.
+    line(ctx, [ring[3]!, ring[0]!, ring[1]!], mix(color, '#5a2c45', 0.7), 0.5, 0.55);
+    line(ctx, [ring[1]!, ring[2]!, ring[3]!], '#fffaf0', 0.6, 0.55);
+  }
+}
+
+/** Halite: pale pink cubes, half clear, their faces stepped into hollow terraces, the back edges seen faintly through them. */
+function salt(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
+  const crystals = [
+    { x: 0.42 * r, y: -0.42 * r, s: 0.3 * r },
+    { x: -0.12 * r, y: -0.1 * r, s: 0.5 * r },
+  ];
+  for (const c of crystals) {
+    const { x: cx, y: cy, s } = c;
+    const h = s * 0.55;
+    const tilt = (rng() - 0.5) * 0.1 * s;
+    const top: P[] = [[cx + tilt, cy - h], [cx + s, cy - h * 0.2 + tilt], [cx - tilt, cy + h * 0.6], [cx - s, cy - h * 0.2 - tilt]];
+    const left: P[] = [top[3]!, top[2]!, [top[2]![0], top[2]![1] + s], [top[3]![0], top[3]![1] + s]];
+    const right: P[] = [top[1]!, top[2]!, [top[2]![0], top[2]![1] + s], [top[1]![0], top[1]![1] + s]];
+    restShadow(ctx, cx + s * 0.2, cy + h * 0.6 + s, s * 1.2);
+    // The hidden back corner, seen through the clear crystal.
+    const back: P = [top[0]![0], top[0]![1] + s];
+    saltFace(ctx, left, color, 0.25);
+    saltFace(ctx, right, color, -0.35);
+    line(ctx, [left[3]!, back, right[3]!], INK, 0.45, 0.3);
+    line(ctx, [back, top[0]!], INK, 0.45, 0.3);
+    // Light through the body: a warm glow low in it, as clear salt carries light.
+    inside(ctx, [...left, ...right], () => dab(ctx, cx - s * 0.2, cy + s * 0.6, s * 0.8, '#fff3e8', 0.35));
+    hopper(ctx, left, 1, color);
+    inside(ctx, right, () => {
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = '#6b3a52';
+      ctx.lineWidth = 0.45;
+      for (let o = -s; o < s * 2; o += Math.max(1.4, s * 0.16)) {
+        ctx.beginPath();
+        ctx.moveTo(cx + o, cy - h);
+        ctx.lineTo(cx + o - s, cy + s * 1.5);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    });
+    saltFace(ctx, top, color, 0.55);
+    hopper(ctx, top, 2, color);
+    // Light caught inside the clear crystal: a few bright flecks.
+    for (let k = 0; k < 3; k++) dab(ctx, cx + (rng() - 0.6) * s, cy + s * (0.2 + rng() * 0.6), s * 0.12, '#ffffff', 0.7);
+    for (const f of [left, right, top]) line(ctx, [...f, f[0]!], INK, 0.9, 0.85);
+    // The glint along the lit top edge, and a spark at its corner.
+    line(ctx, [[top[3]![0] + s * 0.12, top[3]![1] - h * 0.02], [top[0]![0] - s * 0.1, top[0]![1] + h * 0.12]], '#ffffff', Math.max(0.6, s * 0.08), 0.9);
+    dab(ctx, top[3]![0] + s * 0.1, top[3]![1], s * 0.3, '#ffffff', 0.6);
+  }
+}
+
+/** Magnetite: black glossy octahedra, each face catching the light differently, the lit ones sheened steel blue, edges glinting. */
+function octahedra(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
+  const crystals = [
+    { x: 0.5 * r, y: 0.38 * r, s: 0.3 * r, rot: 0.5 },
+    { x: 0.5 * r, y: -0.45 * r, s: 0.24 * r, rot: -0.35 },
+    { x: -0.14 * r, y: 0, s: 0.68 * r, rot: -0.12 },
+  ];
+  const steel = '#8fa3c4';
+  for (const c of crystals) {
+    const rot = c.rot + (rng() - 0.5) * 0.2;
+    const at = (x: number, y: number): P => [c.x + (x * Math.cos(rot) - y * Math.sin(rot)) * c.s, c.y + (x * Math.sin(rot) + y * Math.cos(rot)) * c.s];
+    const T = at(0, -1);
+    const B = at(0.04, 0.98);
+    const L = at(-0.8, 0.04);
+    const F = at(-0.1, 0.2);
+    const R = at(0.74, -0.04);
+    restShadow(ctx, c.x + c.s * 0.1, c.y + c.s * 0.9, c.s * 1.1);
+    const faces: readonly (readonly [readonly P[], string])[] = [
+      [[T, L, F], mix(color, steel, 0.6)],
+      [[T, F, R], mix(color, steel, 0.28)],
+      [[B, L, F], mix(color, '#5a6480', 0.32)],
+      [[B, F, R], mix(color, '#0b0c10', 0.55)],
+    ];
+    for (const [pts, col] of faces) {
+      poly(ctx, pts);
+      ctx.globalAlpha = 0.97;
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    // The sheen: a band of cold light sliding across the lit face, and the sky reflected in the upper right one.
+    inside(ctx, [T, L, F], () => {
+      const g = ctx.createLinearGradient(L[0], L[1], F[0], T[1]);
+      g.addColorStop(0, rgba('#e8f0ff', 0));
+      g.addColorStop(0.45, rgba('#e8f0ff', 0.55));
+      g.addColorStop(0.6, rgba('#e8f0ff', 0.08));
+      g.addColorStop(1, rgba('#e8f0ff', 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(c.x - c.s * 1.2, c.y - c.s * 1.2, c.s * 2.4, c.s * 2.4);
+      // Growth striations, parallel to the face's lower edge.
+      for (const k of [0.3, 0.55]) line(ctx, [[L[0] + (T[0] - L[0]) * k, L[1] + (T[1] - L[1]) * k], [F[0] + (T[0] - F[0]) * k, F[1] + (T[1] - F[1]) * k]], '#1d2230', 0.35, 0.25);
+    });
+    inside(ctx, [T, F, R], () => dab(ctx, (T[0] + R[0]) / 2, (T[1] + R[1]) / 2, c.s * 0.5, '#b9c8e4', 0.35));
+    inside(ctx, [B, L, F], () => dab(ctx, L[0] + (B[0] - L[0]) * 0.5, L[1] + (B[1] - L[1]) * 0.6, c.s * 0.4, '#7d8db0', 0.3));
+    // Edges between the faces, then the outline.
+    line(ctx, [L, F, R], INK, 0.55, 0.7);
+    line(ctx, [T, F, B], INK, 0.55, 0.7);
+    line(ctx, [T, L, B, R, T], INK, 1.1, 0.95);
+    // Glints on the lit edges and a star at the apex: it's glassy, where the nodule is dull.
+    line(ctx, [at(-0.08, -0.86), at(-0.68, 0)], '#ffffff', Math.max(0.6, c.s * 0.07), 0.85);
+    line(ctx, [at(0.02, -0.8), at(-0.08, 0.08)], '#eaf2ff', Math.max(0.4, c.s * 0.04), 0.6);
+    dab(ctx, T[0], T[1] + c.s * 0.08, c.s * 0.28, '#ffffff', 0.75);
+  }
+}
+
+/** A pearl's sphere: lilac-white, lit from the upper left, an orient of pink, green and blue round its shadow side, a sharp highlight and light bounced up into its foot. */
+function pearlBall(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, color: string): void {
+  const ball: P[] = Array.from({ length: 24 }, (_, i) => [x + Math.cos((i / 24) * TAU) * s, y + Math.sin((i / 24) * TAU) * s]);
+  inside(ctx, ball, () => {
+    const g = ctx.createRadialGradient(x - s * 0.35, y - s * 0.4, s * 0.05, x, y, s * 1.1);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.35, color);
+    g.addColorStop(0.8, mix(color, '#9c88b4', 0.55));
+    g.addColorStop(1, mix(color, '#6d5a8c', 0.6));
+    ctx.fillStyle = g;
+    ctx.fillRect(x - s, y - s, s * 2, s * 2);
+    // The orient: iridescence in a crescent round the far side.
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, s, 0, TAU);
+    ctx.arc(x - s * 0.28, y - s * 0.3, s * 0.92, 0, TAU, true);
+    ctx.clip('evenodd');
+    const o = ctx.createLinearGradient(x + s, y - s * 0.6, x - s * 0.5, y + s);
+    o.addColorStop(0, 'rgba(250, 196, 222, 0.75)');
+    o.addColorStop(0.45, 'rgba(196, 238, 222, 0.7)');
+    o.addColorStop(1, 'rgba(186, 204, 250, 0.75)');
+    ctx.fillStyle = o;
+    ctx.fillRect(x - s, y - s, s * 2, s * 2);
+    ctx.restore();
+    // Light bounced up from the rock into its foot.
+    ctx.globalAlpha = 0.6;
+    ctx.strokeStyle = '#fbf3ff';
+    ctx.lineWidth = Math.max(0.5, s * 0.1);
+    ctx.beginPath();
+    ctx.arc(x, y, s * 0.82, 0.2 * Math.PI, 0.8 * Math.PI);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  });
+  // A window of light, sharp, then its softer bloom.
+  dab(ctx, x - s * 0.36, y - s * 0.4, s * 0.55, '#ffffff', 0.55);
+  ctx.save();
+  ctx.translate(x - s * 0.38, y - s * 0.42);
+  ctx.rotate(-0.7);
+  ctx.fillStyle = '#ffffff';
+  ctx.globalAlpha = 0.95;
+  disc(ctx, 0, 0, s * 0.22, s * 0.12);
+  ctx.fill();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  line(ctx, [...ball, ball[0]!], INK, 0.9, 0.85);
+}
+
+/** Brine pearls: one nestled in a broken shell, its nacre shining inside, and two loose beside it. */
+function pearls(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
+  const sx = -0.16 * r;
+  const sy = 0.22 * r;
+  const rx = 0.7 * r;
+  const lip = 0.2 * r;
+  // The shell's mouth, seen from a little above: nacre, its far rim broken away in a jagged bite.
+  const mouth: P[] = Array.from({ length: 22 }, (_, i) => {
+    const a = (i / 22) * TAU;
+    const bite = Math.sin(a) < 0 && Math.cos(a) > 0.1 ? 0.75 + rng() * 0.3 : 1;
+    return [sx + Math.cos(a) * rx, sy + Math.sin(a) * lip * bite];
+  });
+  restShadow(ctx, sx + r * 0.1, sy + r * 0.45, rx * 1.15);
+  inked(ctx, mouth, mix(color, '#d8c9e6', 0.5), 0.7);
+  inside(ctx, mouth, () => {
+    const g = ctx.createLinearGradient(sx - rx, sy, sx + rx, sy);
+    g.addColorStop(0, 'rgba(250, 210, 230, 0.55)');
+    g.addColorStop(0.5, 'rgba(210, 240, 230, 0.45)');
+    g.addColorStop(1, 'rgba(200, 210, 250, 0.55)');
+    ctx.fillStyle = g;
+    ctx.fillRect(sx - rx, sy - lip, rx * 2, lip * 2);
+  });
+  pearlBall(ctx, sx + r * 0.02, sy - r * 0.2, r * 0.36, color);
+  // The front wall of the shell, over the pearl's foot: grey-brown outside, ridged with growth lines.
+  const wall: P[] = [];
+  for (let i = 0; i <= 12; i++) {
+    const a = (i / 12) * Math.PI;
+    wall.push([sx + Math.cos(a) * rx, sy + Math.sin(a) * lip]);
+  }
+  for (let i = 12; i >= 0; i--) {
+    const a = (i / 12) * Math.PI;
+    wall.push([sx + Math.cos(a) * rx * 0.96, sy + Math.sin(a) * lip * 2.1 + r * 0.02]);
+  }
+  inked(ctx, wall, '#8d7f86', 0.9);
+  inside(ctx, wall, () => {
+    for (let k = 1; k <= 3; k++) {
+      const pts: P[] = [];
+      for (let i = 1; i < 12; i++) {
+        const a = (i / 12) * Math.PI;
+        pts.push([sx + Math.cos(a) * rx * (0.98 - k * 0.01), sy + Math.sin(a) * lip * (1 + k * 0.32) + r * 0.01]);
+      }
+      line(ctx, pts, '#3b2f3a', 0.45, 0.45);
+    }
+  });
+  // The nacre's bright lip along the rim.
+  line(ctx, wall.slice(1, 12), '#fdf6ff', Math.max(0.6, r * 0.05), 0.8);
+  restShadow(ctx, 0.52 * r, -0.12 * r, r * 0.3);
+  pearlBall(ctx, 0.52 * r, -0.36 * r, r * 0.25, color);
+  restShadow(ctx, 0.62 * r, 0.6 * r, r * 0.18);
+  pearlBall(ctx, 0.62 * r, 0.48 * r, r * 0.14, color);
+}
+
+const GLYPHS = { nugget, cube: cubes, flake: flakes, prism: prisms, wire: wires, rime, botryoid, rhomb: rhombs, resin, chunk: chunks, bead: beads, char, nodule: nodules, salt, octahedron: octahedra, pearl: pearls } as const;
 
 export function drawOreGlyph(ctx: CanvasRenderingContext2D, ore: OreKind, T: number, seed: number): void {
   const rng = createRng(seed);
