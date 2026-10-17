@@ -104,7 +104,7 @@ export const GAMES: readonly CatalogGame[] = [
     status: 'playable',
     cover: '/covers/inkmine.png',
     // No price or Stripe lookup key yet: the demo is free, and the full game (planets 2-10) is still to come.
-    theme: { paper: '#f4eddc', ink: '#1f2a55', accent: '#3f8c7a' },
+    theme: { paper: '#f4eddc', ink: '#1f2a55', accent: '#4a2f7a' },
     icon: 'inkmine',
     orientation: 'landscape',
     fonts: {
