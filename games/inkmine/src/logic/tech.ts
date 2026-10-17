@@ -4,6 +4,7 @@ import { PIECES, type Piece } from './gear';
 import { canRepair, currentGoal, REPAIR_IDS, type RepairId } from './repairs';
 import { canUpgrade, MODULE_KEYS, type ModuleKey } from './ship';
 import { canFix, STARSHIP_SLOTS, type StarshipSlot } from './starship';
+import { hasBeat } from './story';
 import { canPrintTool, TOOLS, type Tool } from './tools';
 
 /**
@@ -17,8 +18,8 @@ import { canPrintTool, TOOLS, type Tool } from './tools';
 export type Tab = 'suit' | 'ship' | 'starship';
 export const TABS: readonly Tab[] = ['suit', 'ship', 'starship'];
 
-/** The tabs there are now: the starship's once the lander's radio picks up her telemetry. */
-export const tabsFor = (p: Pick<Profile, 'repaired'>): readonly Tab[] => (p.repaired.includes('comms') ? TABS : TABS.filter((t) => t !== 'starship'));
+/** The tabs there are now: the starship's once you've flown up to her the first time. */
+export const tabsFor = (p: Pick<Profile, 'beats'>): readonly Tab[] => (hasBeat(p, 'flown') ? TABS : TABS.filter((t) => t !== 'starship'));
 
 export type Tech =
   | { readonly kind: 'gear'; readonly piece: Piece }

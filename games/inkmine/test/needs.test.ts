@@ -8,7 +8,7 @@ describe('what an ore is still needed for', () => {
   it('lists the repairs still waiting on it first, the locked ones too', () => {
     expect(oreNeeds(at({}), 'copper').slice(0, 2)).toEqual([
       { kind: 'tech', tech: { kind: 'repair', id: 'printer' }, n: 6 },
-      { kind: 'tech', tech: { kind: 'repair', id: 'comms' }, n: 4 },
+      { kind: 'tech', tech: { kind: 'repair', id: 'thrusters' }, n: 6 },
     ]);
   });
 

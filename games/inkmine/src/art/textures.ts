@@ -15,7 +15,8 @@ import type { Wreck } from '../logic/repairs';
 import { drawProspector, POSES, PROSPECTOR_FRAME, PROSPECTOR_GROUND, type Pose } from './prospector';
 import { drawRidges, RIDGE_W } from './ridgeArt';
 import { drawSky, SKY_W } from './skyArt';
-import { drawShip, drawStar, drawWorld, SHIP_ART, STAR_ART, worldFrame } from './systemArt';
+import { drawShip, SHIP_ART } from './shipArt';
+import { drawStar, drawWorld, STAR_ART, worldFrame } from './systemArt';
 import { WORLDS } from '../logic/starSystem';
 import { drawTech, TECH_FRAME, type TechVariant } from './techArt';
 import { techKey, type Tech } from '../logic/tech';
@@ -152,7 +153,7 @@ export function bakeSystem(scene: Phaser.Scene): void {
   for (const lit of [false, true]) {
     bake(scene, TEX.ship(lit), SHIP_ART.w, SHIP_ART.h, SHIP_ART.w / 2, SHIP_ART.h / 2, 4, (ctx) => drawShip(makeDraw(ctx, 795, 0, 0), lit), LANDER_FINISH);
     // The Starship tab's figure: the same ship, drawn big.
-    bake(scene, TEX.shipBig(lit), SHIP_ART.w, SHIP_ART.h, SHIP_ART.w / 2, SHIP_ART.h / 2, 16, (ctx) => drawShip(makeDraw(ctx, 796, 0, 0), lit), LANDER_FINISH);
+    bake(scene, TEX.shipBig(lit), SHIP_ART.w, SHIP_ART.h, SHIP_ART.w / 2, SHIP_ART.h / 2, 16, (ctx) => drawShip(makeDraw(ctx, 796, 0, 0), lit, true), LANDER_FINISH);
   }
 }
 

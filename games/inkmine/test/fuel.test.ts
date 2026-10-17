@@ -55,9 +55,17 @@ describe('the fuel tank', () => {
     expect(down.profile.fuel).toBe(FUEL.max - ROUND_TRIP);
   });
 
-  it('can refill aboard the starship too, from the ice carried up', () => {
-    const r = refill(withIce({ ...base, docked: true, fuel: 0 }, 6));
+  it('can refill aboard the starship too, from the ice carried up, once her tank is mended', () => {
+    const r = refill(withIce({ ...base, docked: true, fuel: 0, starship: ['power', 'tank'] }, 6));
     expect(r.ok && r.profile.fuel).toBe(6);
+  });
+
+  it("can't refill aboard while her tank is split: the lander fills through it", () => {
+    const p = withIce({ ...base, docked: true, fuel: 0, starship: ['power'] }, 6);
+    expect(canRefill(p)).toBe('tank');
+    expect(refill(p).ok).toBe(false);
+    // On the ground the lander splits its own ice, whatever state she's in.
+    expect(canRefill({ ...p, docked: false })).toBe('ok');
   });
 
   it('is saved, and a bad saved level is kept within the tank', () => {

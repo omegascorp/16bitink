@@ -1,4 +1,5 @@
 import type { GameHost } from '@16bitink/game-sdk';
+import type { SoundBoard } from './audio/sound';
 import type { Profile } from './logic/economy';
 import { loadProfile, saveProfile } from './logic/save';
 import type { WorldSave } from './logic/worldSave';
@@ -7,9 +8,12 @@ interface RegistryReader {
   readonly registry: { get(key: string): unknown; set(key: string, value: unknown): unknown };
 }
 
-export const REG = { host: 'host', profile: 'profile', worlds: 'worlds' } as const;
+export const REG = { host: 'host', profile: 'profile', worlds: 'worlds', sound: 'sound' } as const;
 
 export const getHost = (s: RegistryReader): GameHost => s.registry.get(REG.host) as GameHost;
+
+/** The game's sound (audio/sound.ts), if it was set up: absent in tests and tools that build scenes without mounting. */
+export const getSound = (s: RegistryReader): SoundBoard | undefined => s.registry.get(REG.sound) as SoundBoard | undefined;
 
 /** The player's profile, read from storage the first time it's asked for. */
 export function getProfile(s: RegistryReader): Profile {

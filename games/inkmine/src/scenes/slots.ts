@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { PIECE_FRAME, TEX } from '../art/textures';
+import { getSound } from '../host';
 import type { Inventory } from '../logic/inventory';
 import { ORES } from '../logic/ore';
 import { iconKey } from './kit/icons';
@@ -56,7 +57,7 @@ function wellKey(scene: Phaser.Scene, size: number, state: 'empty' | 'full' | 'p
 function stainKey(scene: Phaser.Scene, size: number, ore: keyof typeof ORES): string {
   return bakeUi(scene, `ui-stain-${ore}-${size}`, size, size, (ctx) => {
     roundRect(ctx, 3, 3, size - 6, size - 6, 3);
-    wash(ctx, 0, 0, size, size, ORES[ore].color, ORES[ore].id * 17 + size, { alpha: 0.45, pool: 0.6, rim: 0.5 });
+    wash(ctx, 0, 0, size, size, ORES[ore].mark, ORES[ore].id * 17 + size, { alpha: 0.45, pool: 0.6, rim: 0.5 });
   });
 }
 
@@ -92,7 +93,10 @@ export function drawSlotGrid(scene: Phaser.Scene, x: number, y: number, inv: Inv
         down = { x: p.x, y: p.y };
       });
       zone.on('pointerup', (p: Phaser.Input.Pointer) => {
-        if (down && Math.hypot(p.x - down.x, p.y - down.y) < 16) tap(i);
+        if (down && Math.hypot(p.x - down.x, p.y - down.y) < 16) {
+          getSound(scene)?.play('tick');
+          tap(i);
+        }
         down = null;
       });
       made.push(zone);

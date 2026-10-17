@@ -92,16 +92,14 @@ describe('the drive core', () => {
 });
 
 describe('the goals after the comms', () => {
-  it('print a receiver, follow the signal, mend the hull and thrusters, trade for the core, fit it, then fly', () => {
-    const heard = withBeat(drilled(repaired('printer', 'comms')), 'called');
+  it('print a receiver, follow the signal, trade for the core, fit it, then fly', () => {
+    const heard = withBeat(drilled(repaired('printer', 'hull', 'thrusters', 'comms')), 'called');
     expect(currentGoal(heard)).toEqual({ kind: 'receiver' });
     const comms = { ...heard, tools: ['receiver'] as Profile['tools'] };
     expect(currentGoal(comms)).toEqual({ kind: 'signal' });
-    const m = withBeat(comms, 'met');
-    expect(currentGoal(m)).toEqual({ kind: 'repair', id: 'hull' });
-    const whole = { ...m, repaired: [...m.repaired, 'hull', 'thrusters'] as Profile['repaired'] };
+    const whole = withBeat(comms, 'met');
     expect(currentGoal(whole)).toEqual({ kind: 'trade' });
-    expect(currentGoal(withBeat(m, 'paid'))).toEqual({ kind: 'repair', id: 'hull' });
+    // An old save that paid before its ship was whole still goes back for the core.
     expect(currentGoal(withBeat(whole, 'paid'))).toEqual({ kind: 'collect' });
     const given = withBeat(withBeat(whole, 'paid'), 'core');
     expect(currentGoal(given)).toEqual({ kind: 'repair', id: 'core' });

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getSound } from '../../host';
 import { viewSize } from '../hidpi';
 import { knotLine } from './knots';
 import { voiceLine } from './voice';
@@ -110,9 +111,14 @@ export function storyCard(scene: Phaser.Scene, spec: StoryCardSpec, onClose: () 
   parts.push(plaque(scene, 0, h / 2 - 46, spec.button, close, { width: Math.max(220, spec.button.length * 17 + 48), height: 46, kind: 'primary' }));
   // Taps meant for the page under the card go nowhere.
   const sheet = scene.add.rectangle(0, 0, width, height, 0x1f2a55, 0.18).setOrigin(0).setScrollFactor(0).setDepth(depth - 1).setInteractive();
-  const card = plateCard(scene, width / 2, height / 2, W, h, parts, 113).setScrollFactor(0).setDepth(depth);
+  // Pinned with its children: Phaser hit-tests each child by its own scroll factor, so on a scrolled page the button's tap area would slide off it.
+  const card = plateCard(scene, width / 2, height / 2, W, h, parts, 113).setScrollFactor(0, 0, true).setDepth(depth);
   made.push(sheet, card);
   scene.input.keyboard?.on('keydown-SPACE', onKey);
   scene.input.keyboard?.on('keydown-ENTER', onKey);
+  // A soft swell as it opens, and the speaker's voice as its trace shows it.
+  const sound = getSound(scene);
+  sound?.play('swell');
+  if (spec.voice) sound?.speak(spec.voice.words, spec.voice.seed);
   return made;
 }

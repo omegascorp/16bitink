@@ -15,6 +15,8 @@ import { aside, heading, INK_TEXT, label, MADDER, prose, SEPIA } from './kit/typ
 import { drawSlotGrid, gridHeight } from './slots';
 import { storyCard } from './kit/storyCard';
 import { talkSpec } from './hud/talkCards';
+import { TouchPad } from './hud/touchPad';
+import { muteButton } from './kit/muteButton';
 
 /** The cell reads as low (madder) under this share of its charge. */
 const LOW = 0.25;
@@ -30,6 +32,11 @@ const GOAL = { w: 352, pad: 22 } as const;
 const INTRO_W = 600;
 /** Ms the note on waking stays up. */
 const WOKE_MS = 9000;
+/** The controls along the bottom, for keys and for touch. */
+const HINT = {
+  keys: '← →  walk     ↓ ↑  drill     SPACE  jump, hold to fly     L or ESC  inventory (feed the suit there), or aboard at the lander     M  sound',
+  touch: 'left thumb: walk and drill · Jump: hold to fly · Bag: inventory',
+} as const;
 /** Paper-coloured halo round text laid straight over the game. */
 const HALO = { stroke: '#f5efdf', strokeThickness: 5 } as const;
 /** The opening card (spec, "Story: chapter 1"). */
@@ -85,6 +92,8 @@ export class HudScene extends Phaser.Scene {
   private talk: Phaser.GameObjects.GameObject[] | null = null;
   private shown = '';
   private goalShown = '';
+  /** The touch controls: shown on a touch screen, hidden once a key is pressed. */
+  touch!: TouchPad;
 
   constructor() {
     super('Hud');
@@ -117,9 +126,15 @@ export class HudScene extends Phaser.Scene {
       this.add.zone(PANEL.x + 8, PANEL.y + row - 13, PANEL.w - 16, 26).setOrigin(0).setDepth(2).setInteractive({ useHandCursor: true })
         .on('pointerdown', () => this.play?.feedGauge(gauge as GaugeName));
     }
-    this.prompt = aside(this, 0, 0, 'At the lander: press L to go aboard', 22, 600, INK_TEXT).setStyle(HALO).setOrigin(0.5).setVisible(false);
-    this.hint = label(this, 0, 0, '← →  walk     ↓ ↑  drill     SPACE  jump, hold to fly     R  feed air or cell     L or ESC  inventory, or aboard at the lander', 15, SEPIA, '500')
-      .setStyle(HALO).setOrigin(0.5, 1).setAlpha(0.9);
+    this.prompt = aside(this, 0, 0, '', 22, 600, INK_TEXT).setStyle(HALO).setOrigin(0.5).setVisible(false);
+    this.hint = label(this, 0, 0, HINT.keys, 15, SEPIA, '500').setStyle(HALO).setOrigin(0.5, 1).setAlpha(0.9);
+    // Sound on or off, at the end of the suit plate's hearts row: the planet's way to mute on a phone.
+    muteButton(this, PANEL.x + PANEL.w - 26, PANEL.y + ROW.hearts)?.setDepth(3);
+    this.touch = new TouchPad(this);
+    this.touch.setShown(this.sys.game.device.input.touch);
+    this.input.keyboard?.on('keydown', () => this.touch.setShown(false));
+    // Fingers lifted while the inventory was open never reached the pad.
+    this.events.on(Phaser.Scenes.Events.WAKE, () => this.touch.release());
     this.failed = heading(this, 0, 0, 'Your suit gave out', 34, MADDER).setStyle(HALO).setOrigin(0.5).setVisible(false);
     this.layout();
     this.scale.on('resize', this.layout, this);
@@ -155,6 +170,17 @@ export class HudScene extends Phaser.Scene {
       this.drawGoal(goal, bars);
     }
     this.prompt.setVisible(aboard);
+    this.touch.setAboard(aboard);
+    this.controlsText();
+  }
+
+  /** The prompt at the lander and the controls along the bottom, for keys or for touch. */
+  private controlsText(): void {
+    const touch = this.touch.visible;
+    const prompt = touch ? 'At the lander: tap Aboard' : 'At the lander: press L to go aboard';
+    if (this.prompt.text !== prompt) this.prompt.setText(prompt);
+    const hint = touch ? HINT.touch : HINT.keys;
+    if (this.hint.text !== hint) this.hint.setText(hint);
   }
 
   private layout(): void {
@@ -164,6 +190,7 @@ export class HudScene extends Phaser.Scene {
     this.prompt.setPosition(width / 2, height - 56);
     this.intro?.setPosition(width / 2, height / 2);
     this.woke?.setPosition(width / 2, height * 0.3);
+    this.touch?.layout();
     this.shown = '';
     this.goalShown = '';
   }

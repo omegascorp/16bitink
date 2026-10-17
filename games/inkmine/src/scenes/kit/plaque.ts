@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getSound } from '../../host';
 import { bakeUi, castShadow, PAPER_DEEP, RES, roundRect, rule, RULE, wash } from './paint';
 import { FADED, INK_TEXT, SERIF } from './type';
 
@@ -80,6 +81,7 @@ export function plaque(scene: Phaser.Scene, x: number, y: number, text: string, 
     pressedAt = null;
     c.setScale(1.03);
     if (!start || Math.hypot(start.x - p.x, start.y - p.y) > 16) return;
+    getSound(scene)?.play('tick');
     onClick();
   });
   return c;

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getSound } from '../../host';
 import type { Tab } from '../../logic/tech';
 import { FADED, heading, INK_TEXT } from '../kit/type';
 
@@ -25,7 +26,10 @@ export function drawTabs(scene: Phaser.Scene, right: number, y: number, tabs: re
       g.lineStyle(1.6, ink, 0.9).lineBetween(x, y + 18, x + t.width - SIZE * 0.16, y + 18);
       g.lineStyle(0.7, ink, 0.6).lineBetween(x, y + 22, x + t.width - SIZE * 0.16, y + 22);
     } else {
-      t.setInteractive({ useHandCursor: true }).on('pointerup', () => onPick(tab));
+      t.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+        getSound(scene)?.play('tick');
+        onPick(tab);
+      });
       t.on('pointerover', () => t.setColor(INK_TEXT));
       t.on('pointerout', () => t.setColor(FADED));
     }

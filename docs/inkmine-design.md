@@ -42,10 +42,10 @@ Graphite is chapter 1, and the free version. It ends the moment the lander flies
 
 1. **The wormhole.** A short ink-drawn opening: the jump, the wild wormhole, the tear; the ship braking into orbit, dark, and sending you down in the lander; the fall, the crash. You climb out of a smoking, tilted lander on the rim of a crater, and the memory of the way back is gone. Your ship is up there somewhere, and the lander has to fly to reach her (Oct 17, 2026).
 2. **The suit takes stock.** Its systems list what's broken. The printer is the first repair: it takes only copper from the crater walls, and nothing in the first area can hurt you.
-3. **The radio.** The lander's radio and dish were broken in the crash. Repaired, it still can't reach the guild, but a call comes in at once (built Oct 17, 2026): a slow voice nobody understands. The radio records it; the dish can't say where it's from, only that it's somewhere over the horizon.
-4. **The receiver and the alien.** You print a handheld **receiver** (a suit tool: copper and quartz, no blueprint) and follow the call hot and cold: the HUD's "Next" plate shows its bars, and the suit notes "signal stronger" / "signal weaker" as you walk. There's no arrow while you search, nor while you dig for their silver; it points back to them once the core is waiting. At the outpost on the crater's far rim a Lamplighter meets you. You can't understand a word; they draw in the dust what they want: ten lumps of silver, from deep down, for a drive core.
-5. **The hull and the thrusters.** Your suit asks for the parts as you need them. You can repair them in any order, and each one takes ore from deeper down.
-6. **The drive core.** It cracked in the wormhole, and nothing you can print will fix it. The Lamplighters make one. As built: you bring them the silver in your bag (they take it from the bag), and once the hull and thrusters are mended they hand the core over; you fit it aboard. Later, when the language is built, the core waits for fluency and their last job as well.
+3. **The hull and the thrusters.** Your suit asks for the parts as you need them. You can repair them in any order, and each one takes ore from deeper down: the hull's from the soil, the thrusters' silver from the stone, past the stone drill.
+4. **The radio, last before the core** (order changed Oct 17, 2026). The lander's radio and dish were broken in the crash. Repaired, it still can't reach the guild, but a call comes in at once: a slow voice nobody understands. The radio records it; the dish can't say where it's from, only that it's somewhere over the horizon.
+5. **The receiver and the alien.** You print a handheld **receiver** (a suit tool: copper and quartz, no blueprint) and follow the call hot and cold: the HUD's "Next" plate shows its bars, and the suit notes "signal stronger" / "signal weaker" as you walk. There's no arrow while you search, nor while you dig for their silver; it points back to them once the core is waiting. At the outpost on the crater's far rim a Lamplighter meets you. You can't understand a word; they draw in the dust what they want: ten lumps of silver, from deep down, for a drive core.
+6. **The drive core.** It cracked in the wormhole, and nothing you can print will fix it. The Lamplighters make one. As built: you bring them the silver in your bag (they take it from the bag) and, your lander whole by then, they hand the core over; you fit it aboard. (A save from before the reorder that paid with the lander still broken waits for the hull and thrusters, as before.) Later, when the language is built, the core waits for fluency and their last job as well.
 7. **Fuel.** The lander's tank split in the crash. Fuel is hydrogen and oxygen split from water ice, as real moon bases plan to fuel their rockets: the Lander tab's fuel panel has the tank's bar and a Refill button that turns the ice on hand into fuel, one lump a unit (built Oct 17, 2026; `logic/fuel.ts`). The tank holds 12. Graphite has no air to brake in, so landing burns as much as the climb: 6 up, 6 down, and Lift off waits for both, so you can't strand yourself in orbit. Ice also feeds life support, so the two pull on the same ore.
 8. **Lift-off, and your starship** (built Oct 17, 2026). With the core in and a full tank, **Lift off** climbs to the starship in orbit and docks. She's cold and dark: the wormhole burnt out her power, cracked her telescope's mirror, split her tank and killed her engine, and her jump drive is burnt black. Without the telescope there's no star map yet.
 9. **Back down for her parts.** Her repairs take Graphite's ore, mended aboard her only, so you land (Land, top right, burns 6), dig, fill the lander's cargo, refuel and climb again. Ore can be stowed in her own hold. The HUD's "Next" leads the way ("Mend your ship's power: native copper 3/10 · native silver 0/4, carried up in the lander").
@@ -158,7 +158,7 @@ Life works the No Man's Sky way, adapted to a pen-drawn phone screen. Five gauge
 - The numbers: the shield refills at half a bar a second, starting 4 s after the last hit. A hit takes a whole bar or, with less than one, a heart; then 2 s of grace. Life support is 100 and lasts 6 minutes outside; empty, a heart goes every 6 s (shield or no shield). One graphite gives the cell 20, one ice gives life support 25. The jetpack charges 30 a second (a starter tank in 2 s) on the ground or a ladder.
 - The suit's marks: a heart on odd marks, a shield bar on even ones (Mk 2 has two bars).
 - The lander puts everything right the moment you touch it: hearts, shield, air, the cell.
-- R feeds the lower gauge there's fuel for; tapping a gauge on the HUD feeds that one.
+- The inventory's Life support panel (L or Esc away from the lander, or the Bag button) feeds either gauge from the bag; tapping a gauge on the HUD feeds that one. There's no feed key (R was dropped Oct 17, 2026: it wasn't clear what it did).
 - Waking: "The printer made you again, from the scan it took the last time you were aboard." Before the printer is mended the suit drags you back instead ("Mend the printer: it can do better than that"). A red beacon arrow points to the bag.
 - Not yet: medkits, the survey sheet's flag.
 
@@ -198,7 +198,7 @@ Ore is real minerals, so the field guide can teach real facts, as the fish and s
 - **Each planet has its own fuels** for the drill and life support, so feeding them is part of learning the planet.
 - **Junk that looks like treasure:** pyrite (fool's gold) on Talus is in no recipe; it only fills slots until you drop it.
 
-Every ore type has its own highlighter colour and its own glyph shape in the rock (nuggets, crystals, bands), so it reads without colour.
+Every ore is painted in its real colour (copper's orange, galena's lead grey, graphite's black, rose quartz's pink, silver's white metal, ice's pale blue), with a highlighter swipe of a matching tint behind it to spot it on grey ground, and its own glyph shape in the rock (nuggets, cubes, flakes, prisms, wires), so it reads without colour. (Until Oct 17, 2026 the glyphs were painted in arbitrary highlighter hues, which made silver green.)
 
 **Graphite's materials:** graphite (signature, and drill fuel), ice (life support, in pockets near the surface and in the crater's shadow), native copper, galena, quartz, and a little silver deep down. The world holds at least three times what chapter 1's repairs and gear need, so the planet is never mined out before the story ends.
 
@@ -216,7 +216,7 @@ There's no mission list and no job board. Things to do come from two places:
 | Thrusters | 6 copper, 6 silver, 2 graphite | The engines fire; only the core is missing | Rocket chambers are lined with copper and a little silver, which pulls the heat away before the wall melts; the nozzle throat is graphite |
 | Drive core | Can't be printed: the Lamplighters give it for 10 silver once the hull and thrusters are mended | With a full enough tank, lift-off to the ship: the end of chapter 1 | — |
 
-- **The order:** the printer first, the radio second (the start teaches the game), the hull and thrusters in either order, the core last, then fuel for the climb (not a repair: a tank you refill, see "Story: chapter 1"). A repair whose turn hasn't come says what it's waiting for.
+- **The order:** the printer first, the hull and thrusters in either order, the radio last before the core (its call leads to the Lamplighters, who make the core), the core last, then fuel for the climb (not a repair: a tank you refill, see "Story: chapter 1"). A repair whose turn hasn't come says what it's waiting for.
 - **The drill in between.** The radio needs quartz, which lies in stone, and the starter drill can't break stone. So after the printer, the goal is a broken drill to study, which lies at the foot of the fissure where an earlier crew lost it. A beacon arrow by the prospector points the short way round the world to it, with the distance in metres (No Man's Sky's marker, inked). Then: print the Drill, then the comms.
 - **No crafting chain.** No Man's Sky's repairs go through crafted parts (metal plating, a refiner, di-hydrogen jelly); InkMine's take raw ore straight from the cargo, then the bag.
 - **The lander shows it.** Each broken system has a wrecked look of its own: a dark, cracked porthole until the printer runs (then its warm glow), the dish hanging by its cable until the radio work, a gash and torn heat-shield tiles until the hull is plated (then a welded patch), and a crumpled, scorched engine bell, smoking, until the thrusters are fixed (dev page `/specimens.html`, "After the crash").
@@ -473,8 +473,8 @@ There's no result screen and no level select in chapter 1.
 
 - **Inside the lander** (L at the lander), laid out like No Man's Sky's inventory (ShipScene, Oct 17, 2026): a **Suit** and a **Ship** tab (tap, or Q / E). Each tab has a Technology plate of big slots with a drawn picture of what's fitted (`art/techArt.ts`), its Mk or level, and a corner flag (verdigris: an upgrade ready to print; madder: broken), then a separate Storage plate (the suit bag; the cargo). The suit's slots are the six gear pieces; the ship's are its Systems (the crash repairs, drawn broken until mended) and its Modules. Beside them stand the prospector or the lander, over a detail card for the slot in focus with its next step, its ore ticked off, and Print / Repair. A stack picked up on one tab can be put down on the other, or sent across with "To cargo" / "To suit bag". Back down is at the top right.
 - **The pause screen is the inventory** (Oct 17, 2026): L, Esc or P away from the lander opens the Inventory page over the paused world, and the same keys close it. Recall is on it, top centre, with a note on what it costs. There's no separate pause card any more. Still to come on it: the survey sheet, the repair list and the field guide (with the lexicon and the logs).
-- **Three tabs: Suit, Lander, Starship** (Oct 17, 2026). The Starship tab appears once the lander's radio works (her telemetry comes over it): her systems, her hold, and her fuel panel. Aboard her, the page is titled "Your starship" and its way out is **Land**.
-- **The fuel panels:** the Lander tab's (the lander's tank, Refill, Lift off) and the Starship tab's (her tank, Refill, Star map). Far from the lander they're look-only.
+- **Three tabs: Suit, Lander, Starship** (Oct 17, 2026). The Starship tab appears the first time you fly up to her: her systems, her hold, and her fuel panel. Aboard her, the page is titled "Your starship" and its way out is **Land**.
+- **The fuel panels:** the Lander tab's (the lander's tank, Refill, Lift off), under the cargo, and the Starship tab's (her tank, Refill, Star map), under her picture. Far from the lander they're look-only. Docked, the lander fills through her tank, so its Refill waits until her tank is mended (on the ground it splits its own ice).
 - **After chapter 1:** the star map ("The first star system") is where you choose the next world, and later the galaxy map past it (paid version).
 
 ## Art direction
@@ -557,10 +557,10 @@ The ladder rack is gone (ladders can't be placed), and recall is free (it costs 
 | Move, dig, talk, read | Arrows / stick; push into a block to dig it, into a person or a text to talk or read | Virtual stick |
 | Jump, jetpack | Space / A (hold in the air to fly) | Jump button (hold to fly) |
 | Gadget | E / X; Q / LB to switch | Gadget button; tap the icon to switch |
-| Feed a gauge | R / Y feeds whichever of drill and air is lower (and has fuel in the bag) | Tap the gauge |
-| Inventory and pause (aboard at the lander) | L, Esc or P / Start; the same keys close it | Map button |
+| Feed a gauge | The inventory's Feed buttons, or click the gauge | The inventory's Feed buttons, or tap the gauge |
+| Inventory and pause (aboard at the lander) | L, Esc or P / Start; the same keys close it | Bag button (says Aboard at the lander) |
 
-Pushing to dig, talk and read keeps touch play to one stick and two buttons.
+Pushing to dig, talk and read keeps touch play to one stick and two buttons (built Oct 17, 2026, `scenes/hud/touchPad.ts`): the stick appears wherever the left thumb lands in the lower left; Jump and Bag sit bottom right. They show on a touch screen and hide once a key is pressed.
 
 ## Field guide
 
@@ -666,7 +666,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 4. **The Lamplighters:** ~~the call, the receiver, the outpost, the first job by picture, the core for silver~~ (done Oct 17, 2026); still to come: speech with word-by-word translation, the lexicon, texts and Aster logs.
 5. **Creatures** (grit crabs, lead worms) and fighting with the drill.
 6. **The rest of Graphite:** the Aster base, the grey band, the deep, the Grinder; the drive core and lift-off; the opening and the ending.
-7. Coach hints, sound, touch controls, account sync; add InkMine to the catalog with chapter 1 free.
+7. Coach hints, sound, touch controls, account sync; add InkMine to the catalog with chapter 1 free. Sound and touch built Oct 17, 2026: calm synthesized ambience after No Man's Sky (a drone that darkens with depth, a warmer hum aboard, a sparse starry one on the map) and soft event sounds, all Web Audio with no files (`src/audio/`); M or the ♪ button mutes, saved.
 8. ~~The first star system and its map~~ (done Oct 17, 2026: fuel, lift-off, docking, the starship's repairs and hold, first light, the first trip, the end of the demo); next, the game clock, moving orbits and trip costs by launch window; then planets 2–10, one at a time, each with its people, and the galaxy map past this system.
 
 ## Decisions

@@ -16,6 +16,7 @@ const NOTES = {
   core: 'Lift-off needs the drive core fitted.',
   fuel: `The climb to your ship burns ${FUEL.toOrbit} units and landing again ${FUEL.toGround}: lift-off waits for both.`,
   docked: `Landing on Graphite burns ${FUEL.toGround} units.`,
+  tank: "Aboard, the lander fills through her tank, and it's split: mend it on the Starship tab first.",
 } as const;
 
 /** A tank's bar, its level in words, and what it's split from: the top of both fuel panels. Returns the y under it. */
@@ -46,7 +47,7 @@ export function fuelPanel(page: ShipPage, x: number, y: number, w: number): numb
   if (page.remote) {
     plaque(scene, x + PAD + FUEL_BTN.w / 2, cy, 'At the lander', () => {}, opts(false));
   } else {
-    const fillText = fill === 'ok' ? `Refill · ${refillCost(p)} ice` : fill === 'full' ? 'Full' : 'No ice on hand';
+    const fillText = { ok: `Refill · ${refillCost(p)} ice`, full: 'Full', materials: 'No ice on hand', tank: 'Her tank is split' }[fill];
     plaque(scene, x + PAD + FUEL_BTN.w / 2, cy, fillText, () => {
       const r = refill(p);
       if (r.ok) page.commit(r.profile, { news: 'Tank filled' });
@@ -56,8 +57,9 @@ export function fuelPanel(page: ShipPage, x: number, y: number, w: number): numb
     }, opts(lift === 'ok', true));
   }
   ry += FUEL_BTN.h + 10;
-  if (!page.remote && lift !== 'ok') {
-    const t = aside(scene, x + PAD, ry, NOTES[lift], 15, w - PAD * 2, SEPIA);
+  const note = fill === 'tank' ? NOTES.tank : lift !== 'ok' ? NOTES[lift] : null;
+  if (!page.remote && note) {
+    const t = aside(scene, x + PAD, ry, note, 15, w - PAD * 2, SEPIA);
     ry += t.height + 6;
   }
   const h = ry - y + 8;

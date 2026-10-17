@@ -1,6 +1,7 @@
 import type { GameHandle, GameHost, GameModule } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { PAPER } from './art/palette';
+import { SoundBoard } from './audio/sound';
 import { REG } from './host';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
@@ -37,6 +38,9 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     scene: [BootScene, GameScene, ShipScene, SystemScene, HudScene],
   });
   game.registry.set(REG.host, host);
+  // Sound is synthesized by our own SoundBoard (audio/), as in InkCrab; Phaser's audio stays off.
+  const sound = new SoundBoard(host.storage);
+  game.registry.set(REG.sound, sound);
   const resizer = new ResizeObserver(() => {
     const next = cssSize();
     const w = Math.round(next.width * DPR);
@@ -48,6 +52,7 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     phaser: game,
     destroy: () => {
       resizer.disconnect();
+      sound.destroy();
       game.destroy(true);
     },
   };

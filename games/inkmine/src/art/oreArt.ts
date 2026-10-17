@@ -4,7 +4,7 @@ import { INK, PAPER_FILL } from './palette';
 
 /**
  * Ore glyphs: each mineral drawn the way it really grows, in its
- * highlighter colour with a ballpoint outline, so kinds read apart by shape
+ * true colour with a ballpoint outline, on a highlighter swipe, so kinds read apart by shape
  * as well as colour. Native copper comes in nuggets, galena in cubes,
  * graphite in flat hexagonal flakes, quartz in pointed hexagonal prisms and
  * native silver in wires. Drawn centred on the origin, fitting a tile of
@@ -250,7 +250,7 @@ const GLYPHS = { nugget, cube: cubes, flake: flakes, prism: prisms, wire: wires,
 export function drawOreGlyph(ctx: CanvasRenderingContext2D, ore: OreKind, T: number, seed: number): void {
   const rng = createRng(seed);
   const r = T * 0.36;
-  swipe(ctx, ore.color, r, rng);
+  swipe(ctx, ore.mark, r, rng);
   GLYPHS[ore.glyph](ctx, ore.color, r, rng);
 }
 

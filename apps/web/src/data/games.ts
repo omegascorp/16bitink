@@ -117,11 +117,12 @@ export const GAMES: readonly CatalogGame[] = [
       'The full game, nine more worlds round the orange star, is coming soon',
     ],
     controls: [
-      'Arrows / WASD: walk; push into rock to drill (up and down too)',
-      'Space: jump; hold it for the jetpack',
-      'R or tap a gauge: feed the drill or the air',
-      'L at the lander: go aboard; away from it: inventory',
+      'Arrows / WASD or the stick: walk; push into rock to drill (up and down too)',
+      'Space or the jump button: jump; hold it for the jetpack',
+      'L or the bag button at the lander: go aboard; away from it: inventory',
+      'Inventory or tap a gauge: feed the drill or the air',
       'Esc / P: inventory and pause',
+      'M / ♪: sound on/off',
     ],
   },
   {

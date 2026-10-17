@@ -12,14 +12,15 @@ import { hasTool, TOOL_KINDS } from './tools';
  * came down hard after the wormhole, and the suit lists what's broken. Each
  * repair takes ore straight from the cargo (then the bag), no parts to
  * craft first, and opens something you use at once, the way No Man's Sky's
- * crash-and-repair opening does. The printer is first, the radio second,
- * then the hull and the thrusters in either order. The drive core can't be
+ * crash-and-repair opening does. The printer is first, then the hull and
+ * the thrusters in either order, and the radio last: the moment it works,
+ * the call comes in that leads to the drive core. The core can't be
  * printed: the local aliens make it. With it in and the tank filled
  * (fuel.ts), the lander flies up to the ship in orbit and chapter 1 ends.
  *
  * Ids are saved: never change one.
  */
-export const REPAIR_IDS = ['printer', 'comms', 'hull', 'thrusters', 'core'] as const;
+export const REPAIR_IDS = ['printer', 'hull', 'thrusters', 'comms', 'core'] as const;
 export type RepairId = (typeof REPAIR_IDS)[number];
 
 export interface Repair {
@@ -45,25 +46,25 @@ export const REPAIRS: Readonly<Record<RepairId, Repair>> = {
     fact: "Copper carries the printer's power: it's the best cheap conductor there is.",
   },
   comms: {
-    id: 'comms', name: 'Radio', needs: { copper: 4, quartz: 2 }, after: ['printer'],
+    id: 'comms', name: 'Radio', needs: { copper: 4, quartz: 2 }, after: ['hull', 'thrusters'],
     broken: "The radio cracked in the landing, and the dish hangs by its cable. There's no link to the guild.",
     opens: "The radio works. No guild, this far out; but something out there is calling.",
     fact: 'Quartz crystals keep radios on frequency: they ring at a rate that never drifts.',
   },
   hull: {
-    id: 'hull', name: 'Hull plating', needs: { graphite: 10, galena: 3 }, after: ['comms'],
+    id: 'hull', name: 'Hull plating', needs: { graphite: 10, galena: 3 }, after: ['printer'],
     broken: 'The hull is breached: six cargo slots are open to the dust.',
     opens: 'The hull is sealed: the whole cargo hold is usable again.',
     fact: "Graphite fibres make light, stiff panels; lead only seals the seams. A lead hull would be heavy, and cosmic rays hitting it spray more radiation.",
   },
   thrusters: {
-    id: 'thrusters', name: 'Thrusters', needs: { copper: 6, silver: 6, graphite: 2 }, after: ['comms'],
+    id: 'thrusters', name: 'Thrusters', needs: { copper: 6, silver: 6, graphite: 2 }, after: ['printer'],
     broken: 'The thrusters took the landing: the engine bell is crumpled and the wiring burnt.',
-    opens: "The thrusters fire. With a drive core, she'd fly.",
+    opens: "The thrusters fire. With a drive core, she'd fly; and with the radio working, you might find out where to get one.",
     fact: 'Rocket chambers are lined with copper and a little silver: it pulls the heat away before the wall can melt. The nozzle throat is graphite.',
   },
   core: {
-    id: 'core', name: 'Drive core', needs: null, after: ['hull', 'thrusters'],
+    id: 'core', name: 'Drive core', needs: null, after: ['comms'],
     broken: 'Cracked in the wormhole. Nothing you can print will fix it.',
     opens: 'The drive works. Fill the tank, and she can climb to the ship.',
   },
@@ -134,25 +135,25 @@ export type Goal =
   /** Course set: chapter 1 is over. */
   | { readonly kind: 'done' };
 
-/** The drill that breaks Graphite's stone: the radio needs quartz, which lies in it. */
+/** The drill that breaks Graphite's stone: the thrusters' silver and the radio's quartz lie in it. */
 const STONE_DRILL = 'drill-1';
 
 /**
- * What to do next: the printer, then (as quartz lies in stone) finding and
- * printing the drill, then the radio; then following the call to the
- * Lamplighters, the hull and the thrusters, bringing the Lamplighters their
- * silver, fitting the drive core they give you, and last filling the tank. One goal at a
- * time, never none: the complaint about No Man's Sky's start is the stretch
- * with no prompt.
+ * What to do next: the printer, the hull (its ore lies in the soil), then
+ * (as silver and quartz lie in stone) finding and printing the drill, the
+ * thrusters, and the radio last; then following the call to the
+ * Lamplighters, bringing them their silver, fitting the drive core they
+ * give you, and filling the tank. One goal at a time, never none: the
+ * complaint about No Man's Sky's start is the stretch with no prompt.
  */
 export function currentGoal(p: Profile): Goal {
   if (!isRepaired(p, 'printer')) return { kind: 'repair', id: 'printer' };
+  if (!isRepaired(p, 'hull')) return { kind: 'repair', id: 'hull' };
   const drill = recipeOf(STONE_DRILL)!;
   if (p.gear.drill < drill.mk) return p.found.includes(STONE_DRILL) ? { kind: 'print', blueprint: STONE_DRILL } : { kind: 'find', blueprint: STONE_DRILL };
-  if (!isRepaired(p, 'comms')) return { kind: 'repair', id: 'comms' };
-  if (!hasBeat(p, 'met')) return hasTool(p, 'receiver') ? { kind: 'signal' } : { kind: 'receiver' };
   const next = REPAIR_IDS.find((id) => id !== 'core' && !isRepaired(p, id));
   if (next) return { kind: 'repair', id: next };
+  if (!hasBeat(p, 'met')) return hasTool(p, 'receiver') ? { kind: 'signal' } : { kind: 'receiver' };
   if (!hasBeat(p, 'core')) return hasBeat(p, 'paid') ? { kind: 'collect' } : { kind: 'trade' };
   if (!isRepaired(p, 'core')) return { kind: 'repair', id: 'core' };
   if (!hasBeat(p, 'flown')) return p.fuel >= ROUND_TRIP ? { kind: 'liftoff' } : { kind: 'fuel' };

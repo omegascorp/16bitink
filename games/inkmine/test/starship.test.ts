@@ -67,8 +67,9 @@ describe('the starship', () => {
     if (r.ok) expect(canSetCourse(r.profile)).toBe('set');
   });
 
-  it("shows her tab once the lander's radio picks her up", () => {
+  it('shows her tab once you have flown up to her, not before', () => {
     expect(tabsFor(NEW_PROFILE)).toEqual(['suit', 'ship']);
-    expect(tabsFor({ repaired: ['printer', 'comms'] })).toEqual(['suit', 'ship', 'starship']);
+    expect(tabsFor({ beats: ['called', 'met', 'paid', 'core'] })).toEqual(['suit', 'ship']);
+    expect(tabsFor(withBeat(NEW_PROFILE, 'flown'))).toEqual(['suit', 'ship', 'starship']);
   });
 });

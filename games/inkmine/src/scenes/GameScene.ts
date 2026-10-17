@@ -5,7 +5,7 @@ import { RIDGE_W } from '../art/ridgeArt';
 import { SKY_W } from '../art/skyArt';
 import { LAMPLIGHTER, OUTPOST_ART } from '../art/lamplighterArt';
 import { TEX, generateTextures } from '../art/textures';
-import { getHost, getProfile, heldWorld, holdWorld, setProfile } from '../host';
+import { getHost, getProfile, getSound, heldWorld, holdWorld, setProfile } from '../host';
 import { buildWorld } from '../level/build';
 import { currentPlanet } from '../level/planets';
 import type { PlanetDef } from '../level/types';
@@ -18,7 +18,7 @@ import { lampFor } from '../logic/marks';
 import { Mine, NO_INPUT, type MineEvent, type MineInput } from '../logic/mine';
 import { oreById, ORES } from '../logic/ore';
 import { keptOres, OUTPOST, signalBars, visit, type Says } from '../logic/story';
-import { withBag, type Gauge } from '../logic/suit';
+import { feed, withBag, type FeedResult, type Fuels, type Gauge, type Suit } from '../logic/suit';
 import { currentGoal, wreckOf, type Goal, type Wreck } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
 import { ringDelta, volatileAt } from '../logic/terrain';
@@ -29,9 +29,11 @@ import { FlagView } from './game/flagView';
 import { FxView } from './game/fxView';
 import { GroundView } from './game/groundView';
 import { GameInput } from './game/input';
+import type { HudScene } from './HudScene';
 import { ItemsView } from './game/itemsView';
 import { JetGaugeView } from './game/jetGaugeView';
 import { LampView } from './game/lampView';
+import { MineSounds } from './game/mineSounds';
 import { ProspectorView } from './game/prospectorView';
 import { Ring } from './game/ring';
 import { ThingsView } from './game/thingsView';
@@ -114,6 +116,7 @@ export class GameScene extends Phaser.Scene {
   /** Asked for from outside the world (a tapped gauge on the HUD, recall in the inventory), done on the next step. */
   private asked: Partial<Pick<MineInput, 'feed' | 'recall'>> = {};
   private smokeAt = 0;
+  private sounds!: MineSounds;
 
   constructor() {
     super('Game');
@@ -170,6 +173,7 @@ export class GameScene extends Phaser.Scene {
     this.beacon = new BeaconView(this);
     this.bagBeacon = new BeaconView(this, RED);
     this.keys = new GameInput(this);
+    this.sounds = new MineSounds(this, getSound(this), this.mine);
     const cam = this.cameras.main;
     if (t.wrap) cam.setBounds(-RING_REACH, 0, RING_REACH * 2, worldH);
     else cam.setBounds(0, 0, t.width * T, worldH);
@@ -220,8 +224,10 @@ export class GameScene extends Phaser.Scene {
     const dt = Math.min(delta / 1000, MAX_DT);
     const still = this.ended || this.intro || this.talk !== null;
     // Keys are read every frame, so one pressed while the world waits doesn't fire when it starts again.
-    const keys = this.keys.read();
-    const menu = this.keys.menu();
+    const hud = this.scene.get('Hud') as HudScene | null;
+    const touch = hud?.touch && this.scene.isActive('Hud') ? hud.touch.read() : undefined;
+    const keys = this.keys.read(touch);
+    const menu = this.keys.menu(touch);
     const input = still ? NO_INPUT : { ...keys, ...this.asked };
     if (!still) this.asked = {};
     this.iy = input.iy;
@@ -235,6 +241,7 @@ export class GameScene extends Phaser.Scene {
     if (atOutpost && !this.wasAtOutpost && !still) this.converse();
     this.wasAtOutpost = atOutpost;
     if (!still) this.listen();
+    this.sounds.listen(this.mine, still);
     const cam = this.cameras.main;
     this.ring.centre = cam.midPoint.x;
     this.ground.update(cam.worldView);
@@ -269,6 +276,21 @@ export class GameScene extends Phaser.Scene {
   /** A gauge tapped on the HUD: feed it from the bag on the next step. */
   feedGauge(g: Gauge): void {
     if (!this.ended && !this.intro) this.asked = { ...this.asked, feed: g };
+  }
+
+  /** The suit as it stands, with the bag as the inventory has it, and what feeds its gauges: for the inventory's life-support panel. */
+  suitState(): { suit: Suit; fuels: Fuels } {
+    return { suit: withBag(this.mine.suit, getProfile(this).suit), fuels: this.mine.fuels };
+  }
+
+  /** A Feed button in the inventory (the world waits behind it): one piece from the bag into the gauge, now, and the bag saved as it's left. */
+  feedNow(g: Gauge): FeedResult {
+    const r = feed(withBag(this.mine.suit, getProfile(this).suit), g, this.mine.fuels[g]);
+    if (r.ok) {
+      this.mine.suit = r.suit;
+      setProfile(this, { ...getProfile(this), suit: r.suit.bag });
+    }
+    return r;
   }
 
   /** Recall, from the inventory: the winch hauls you up on the next step. */
@@ -403,6 +425,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private react(e: MineEvent): void {
+    this.sounds.react(e, this.mine);
     const p = this.mine.player;
     const px = this.ring.near(p.x + p.w / 2);
     const over = (text: string, danger = false): void => this.fx.note(px, p.y - 10, text, danger);
@@ -418,7 +441,7 @@ export class GameScene extends Phaser.Scene {
         over('too hard!', true);
         break;
       case 'flat':
-        over(`cell flat: R feeds it ${ORES[this.mine.fuels.cell].name}`, true);
+        over(`cell flat: feed it ${ORES[this.mine.fuels.cell].name} in the inventory (L)`, true);
         break;
       case 'bagFull':
         over('bag full', true);
@@ -456,7 +479,7 @@ export class GameScene extends Phaser.Scene {
         over(e.why === 'full' ? `${e.gauge === 'air' ? 'life support' : 'the cell'} is full` : `no ${ORES[e.ore].name} in the bag`, true);
         break;
       case 'airLow':
-        this.fx.note(px, p.y - 32, `air low: R feeds it ${ORES[this.mine.fuels.air].name}`, true);
+        this.fx.note(px, p.y - 32, `air low: feed it ${ORES[this.mine.fuels.air].name} in the inventory (L)`, true);
         break;
       case 'airOut':
         this.fx.note(px, p.y - 32, 'out of air!', true);

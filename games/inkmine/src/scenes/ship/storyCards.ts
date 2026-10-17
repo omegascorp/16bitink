@@ -1,5 +1,5 @@
 import { bakeSystem, techTexture, TEX } from '../../art/textures';
-import { setProfile } from '../../host';
+import { getSound, setProfile } from '../../host';
 import { liftOff } from '../../logic/fuel';
 import { wreckOf } from '../../logic/repairs';
 import { landerLookOf } from '../../logic/ship';
@@ -64,6 +64,7 @@ export function liftOffCard(page: ShipPage): void {
   const { scene, profile: p } = page;
   const r = liftOff(p);
   if (!r.ok) return;
+  getSound(scene)?.play('liftOff');
   storyCard(scene, {
     title: 'Lift-off',
     subtitle: 'up to your ship',

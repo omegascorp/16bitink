@@ -3,11 +3,12 @@ import { PAPER } from '../art/palette';
 import { bakeSystem, TEX } from '../art/textures';
 import { worldRadius } from '../art/systemArt';
 import { habitableZone, KIND_LINE, moonsOf, planetsOf, snowLine, STAR, worldById, WORLDS, type World } from '../logic/starSystem';
-import { getProfile, setProfile } from '../host';
+import { getProfile, getSound, setProfile } from '../host';
 import type { Profile } from '../logic/economy';
 import { canSetCourse, FIRST_COURSE, isFixed, setCourse } from '../logic/starship';
 import { hasBeat } from '../logic/story';
 import { relayoutOnResize, screenScene, viewSize } from './hidpi';
+import { muteButton } from './kit/muteButton';
 import { plaque } from './kit/plaque';
 import { dragScroll } from './kit/scroll';
 import { storyCard } from './kit/storyCard';
@@ -65,6 +66,8 @@ export class SystemScene extends Phaser.Scene {
     relayoutOnResize(this, (): SystemData => ({ selected: data.selected }));
     this.cameras.main.setBackgroundColor(PAPER);
     bakeSystem(this);
+    // Out among the stars: high, sparse and spacious.
+    getSound(this)?.setMood('space');
     const { width, height } = viewSize(this);
     const selected = worldById(data.selected ?? 'graphite') ?? WORLDS[0]!;
     this.header(width);
@@ -83,7 +86,8 @@ export class SystemScene extends Phaser.Scene {
   }
 
   private header(width: number): void {
-    heading(this, GAP + 4, 18, 'The orange star', 30).setOrigin(0, 0).setDepth(2);
+    const title = heading(this, GAP + 4, 18, 'The orange star', 30).setOrigin(0, 0).setDepth(2);
+    muteButton(this, title.x + title.width + 30, 36)?.setDepth(2);
     // Once the first trip is set, the demo is over, and the map says so.
     const over = hasBeat(getProfile(this), 'course');
     const sub = over ? 'the end of the demo: the rest of the journey is coming soon' : "through your ship's telescope: in no chart you remember";

@@ -1,13 +1,15 @@
 import { onHand, spend, type PrintResult, type Profile } from './economy';
 import { countOf } from './hold';
 import type { OreKey } from './ore';
+import { isFixed } from './starship';
 import { hasBeat, withBeat } from './story';
 
 /**
  * The lander's fuel tank (spec, "Your starship and travel"): hydrogen and
  * oxygen, split from water ice by the lander's power, as real moon bases
  * plan to fuel their rockets. Refilled from the ice on hand (the cargo,
- * then the bag), one unit a lump, on the ground or docked. Graphite has no
+ * then the bag), one unit a lump, on the ground or docked; docked, it fills
+ * through the starship's tank, so not while that's split. Graphite has no
  * air to brake in, so landing burns as much as climbing: lift-off waits for
  * enough to come back down too, and you're never stranded in orbit. Ice is
  * also what the suit makes air from, so a refill and a long trip pull on
@@ -32,9 +34,11 @@ export function refillCost(p: Profile): number {
   return Math.min(FUEL.max - p.fuel, countOf(onHand(p), FUEL.ore));
 }
 
-export type RefillCheck = 'ok' | 'full' | 'materials';
+/** Why a refill can't happen: 'tank' when docked and the starship's tank is still split. */
+export type RefillCheck = 'ok' | 'full' | 'materials' | 'tank';
 
 export function canRefill(p: Profile): RefillCheck {
+  if (p.docked && !isFixed(p, 'tank')) return 'tank';
   if (p.fuel >= FUEL.max) return 'full';
   return refillCost(p) > 0 ? 'ok' : 'materials';
 }

@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { ART_RES, PAPER } from '../art/palette';
 import { bakeCharacters, bakePickups, bakeSystem, PROSPECTOR_RES, TEX } from '../art/textures';
-import { getProfile, setProfile } from '../host';
+import { newsSound } from '../audio/news';
+import { getProfile, getSound, setProfile } from '../host';
 import { currentPlanet } from '../level/planets';
 import type { Profile } from '../logic/economy';
 import { prospectorLook } from '../logic/gear';
@@ -12,12 +13,14 @@ import { isFixed } from '../logic/starship';
 import { defaultTab, focusOf, tabsFor, type Tab } from '../logic/tech';
 import type { GameScene } from './GameScene';
 import { relayoutOnResize, screenScene, viewSize } from './hidpi';
+import { muteButton } from './kit/muteButton';
 import { plaque } from './kit/plaque';
 import { dragScroll } from './kit/scroll';
 import { aside, heading, INK_TEXT, scrawl, SEPIA } from './kit/type';
 import { desk, NO_FOCUS, type ShipPage, type ShipUi } from './ship/panel';
 import { storagePanel } from './ship/storagePanel';
 import { fuelPanel } from './ship/fuelPanel';
+import { lifePanel } from './ship/lifePanel';
 import { starshipPanel } from './ship/starshipPanel';
 import { drawTabs } from './ship/tabs';
 import { stackCard } from './ship/stackCard';
@@ -109,23 +112,28 @@ export class ShipScene extends Phaser.Scene {
       const top = HEAD.wide;
       const h1 = techPanel(page, tab, focus, x0, top, leftW);
       const h2 = storagePanel(page, tab, x0, top + h1 + GAP, leftW);
+      const left = top + h1 + (h2 ? GAP + h2 : 0);
       this.figure(tab, profile, x1 + rightW / 2, top + FIG.wide - 10, false);
       this.farNote(tab, x1 + rightW / 2, top + 4, rightW, 28);
-      // The Lander and Starship tabs have a fuel tank under the figure, then the card.
-      const fuelH = this.fuel(page, tab, x1, top + FIG.wide, rightW);
+      // The lander's fuel goes under its cargo; the starship's tank, with her course, under her picture, then the card.
+      const landerFuel = tab === 'ship' ? this.fuel(page, tab, x0, left + GAP, leftW) - GAP : 0;
+      const fuelH = tab === 'ship' ? 0 : this.fuel(page, tab, x1, top + FIG.wide, rightW);
       const h3 = card(x1, top + FIG.wide + fuelH, rightW);
-      bottom = Math.max(top + h1 + (h2 ? GAP + h2 : 0), top + FIG.wide + fuelH + (h3 || -GAP));
+      bottom = Math.max(left + (landerFuel ? GAP + landerFuel : 0), top + FIG.wide + fuelH + (h3 || -GAP));
     } else {
       const colW = Math.floor(Math.min(620, width - GAP * 2) / 8) * 8;
       const x = Math.round((width - colW) / 2);
       const top = HEAD.narrow;
       this.figure(tab, profile, width / 2, top + FIG.narrow - 10, true);
       this.farNote(tab, width / 2, top - 6, colW, 22);
+      const fuel = (y: number): number => Math.max(0, this.fuel(page, tab, x, y, colW) - GAP);
+      // The starship's tank (and her course) leads; the lander's fuel follows its cargo.
       const panels: ((y: number) => number)[] = [
-        (y) => Math.max(0, this.fuel(page, tab, x, y, colW) - GAP),
+        (y) => (tab === 'ship' ? 0 : fuel(y)),
         (y) => techPanel(page, tab, focus, x, y, colW),
         (y) => card(x, y, colW),
         (y) => storagePanel(page, tab, x, y, colW),
+        (y) => (tab === 'ship' ? fuel(y) : 0),
       ];
       // An empty card takes no room, nor a gap.
       bottom = panels.reduce((y, panel) => { const h = panel(y); return h ? y + h + GAP : y; }, top + FIG.narrow) - GAP;
@@ -133,13 +141,14 @@ export class ShipScene extends Phaser.Scene {
     desk(this, width, Math.max(viewSize(this).height, bottom + GAP * 2));
     dragScroll(this, bottom + GAP, data.scrollY ?? 0);
     this.keys(tab);
+    this.soundFor(data.news);
     // Story beats happen aboard, not on the suit page far away.
     if (!this.remote) shipStoryCard(page);
   }
 
-  /** The tab's fuel tank under its figure (the lander's, or the starship's), with the gap after it; 0 on the suit's. */
+  /** The panel under the tab's figure, with the gap after it: the lander's or the starship's fuel, or, in the inventory far from the lander, the suit's life support. */
   private fuel(page: ShipPage, tab: Tab, x: number, y: number, w: number): number {
-    if (tab === 'suit') return 0;
+    if (tab === 'suit') return this.remote ? lifePanel(page, x, y, w) + GAP : 0;
     return (tab === 'ship' ? fuelPanel(page, x, y, w) : starshipPanel(page, x, y, w)) + GAP;
   }
 
@@ -147,7 +156,8 @@ export class ShipScene extends Phaser.Scene {
   private header(width: number, wide: boolean, tab: Tab, news?: string): void {
     const planet = currentPlanet();
     const docked = getProfile(this).docked;
-    heading(this, GAP + 4, 18, this.remote ? 'Inventory' : docked ? 'Your starship' : 'The lander', 30).setOrigin(0, 0);
+    const title = heading(this, GAP + 4, 18, this.remote ? 'Inventory' : docked ? 'Your starship' : 'The lander', 30).setOrigin(0, 0);
+    muteButton(this, title.x + title.width + 30, 36);
     const where = this.remote ? 'far from the lander: the cargo is look-only' : docked ? `docked, in orbit over ${planet.name}` : `crash site, ${planet.name}`;
     aside(this, GAP + 6, 54, where, 17, 400, SEPIA).setOrigin(0, 0);
     const back = (): void => {
@@ -161,8 +171,10 @@ export class ShipScene extends Phaser.Scene {
     else drawTabs(this, width - GAP, 104, this.tabs, tab, pick);
     if (this.remote) this.recallButton(wide ? width / 2 : GAP + RECALL.w / 2, wide ? 34 : 104, wide);
     if (!news) return;
-    if (wide) scrawl(this, width / 2, 40, news, 30, INK_TEXT).setOrigin(0.5, 0.5);
-    else scrawl(this, GAP, 104, news, 26, INK_TEXT).setOrigin(0, 0.5);
+    // Far from the lander Recall has the middle of the header: the news goes over the figure instead.
+    if (wide && this.remote) scrawl(this, width * 0.76, HEAD.wide + 30, news, 30, INK_TEXT).setOrigin(0.5, 0.5);
+    else if (wide) scrawl(this, width / 2, 40, news, 30, INK_TEXT).setOrigin(0.5, 0.5);
+    else scrawl(this, GAP + (this.remote ? RECALL.w + 18 : 0), 104, news, this.remote ? 22 : 26, INK_TEXT).setOrigin(0, 0.5);
   }
 
   /** Recall, as the old pause card had it: the winch hauls you up to the lander, and what its share leaves of the bag stays flagged where you were. */
@@ -202,6 +214,14 @@ export class ShipScene extends Phaser.Scene {
     }
     const s = (small ? 1.15 : 1.75) / ART_RES;
     this.add.image(cx, groundY, TEX.lander(landerLookOf(p.ship), 0, wreckOf(p))).setOrigin(0.5, 1).setScale(s);
+  }
+
+  /** Aboard, the lander's warm hum (far away, the planet's sound goes on under the page); and a sound for any news. */
+  private soundFor(news?: string): void {
+    const sound = getSound(this);
+    if (!this.remote) sound?.setMood('ship');
+    const id = newsSound(news);
+    if (id) sound?.play(id);
   }
 
   /** Q and E switch tabs, as the shoulder buttons do in No Man's Sky. */

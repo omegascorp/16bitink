@@ -11,7 +11,7 @@ const RICH: Hold = { copper: 40, galena: 40, graphite: 30, quartz: 20, silver: 2
 describe('the technology slots', () => {
   it('lays out the suit as the six gear pieces and its tools, the ship as its systems and its modules', () => {
     expect(SUIT_TECH.map(techKey)).toEqual(['gear:drill', 'gear:cell', 'gear:pack', 'gear:suit', 'gear:helmet', 'gear:jetpack', 'tool:receiver']);
-    expect(SHIP_SYSTEMS.map(techKey)).toEqual(['repair:printer', 'repair:comms', 'repair:hull', 'repair:thrusters', 'repair:core']);
+    expect(SHIP_SYSTEMS.map(techKey)).toEqual(['repair:printer', 'repair:hull', 'repair:thrusters', 'repair:comms', 'repair:core']);
     expect(SHIP_MODULES.map(techKey)).toEqual(['module:cargo', 'module:winch', 'module:hull']);
   });
 
@@ -52,7 +52,7 @@ describe('the technology slots', () => {
 
   it('opens on the ship while it needs repairs, and on the suit when there is gear to print', () => {
     expect(defaultTab(NEW_PROFILE)).toBe('ship');
-    expect(defaultTab({ ...repaired('printer'), found: ['drill-1'] })).toBe('suit');
+    expect(defaultTab({ ...repaired('printer', 'hull'), found: ['drill-1'] })).toBe('suit');
   });
 
   it('focuses the slot asked for when it is on the tab, else the first ready one, else the first broken one', () => {
