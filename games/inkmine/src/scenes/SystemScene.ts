@@ -100,7 +100,7 @@ export class SystemScene extends Phaser.Scene {
     muteButton(this, title.x + title.width + 30, 36)?.setDepth(2);
     // Once the first trip is set without the full game, the demo is over, and the map says so.
     const over = demoOver(getProfile(this));
-    const sub = over ? 'the end of the demo: the rest of the journey is coming soon' : "through your ship's telescope: in no chart you remember";
+    const sub = over ? 'the end of the demo: the journey goes on in the full game' : "through your ship's telescope: in no chart you remember";
     aside(this, GAP + 6, 54, sub, 17, Math.max(240, width - BACK.w - GAP * 4), over ? MADDER : SEPIA).setOrigin(0, 0).setDepth(2);
     plaque(this, width - GAP - BACK.w / 2, 40, 'Back to the ship', () => this.back(), { width: BACK.w, height: BACK.h, kind: 'primary', size: 16 }).setDepth(2);
   }
@@ -318,7 +318,7 @@ export class SystemScene extends Phaser.Scene {
     }, () => this.scene.restart({ selected: FIRST_COURSE.to, demoEnd: true } satisfies SystemData));
   }
 
-  /** Where the demo stops: on the star map, with the full game offered (Mycel is in it; the rest of the journey is still coming). */
+  /** Where the demo stops: on the star map, with the full game offered (Mycel and Brine, and the worlds still to come). */
   private demoEnd(): void {
     const host = getHost(this);
     const price = host.price ? ` · ${host.price}` : '';
@@ -326,7 +326,7 @@ export class SystemScene extends Phaser.Scene {
       title: 'The end of the demo',
       subtitle: 'thank you for playing',
       pictures: [{ key: TEX.world(FIRST_COURSE.to), h: 80 }],
-      text: `That's as far as the demo goes. ${worldById(FIRST_COURSE.to)!.name}, the green moon, is in the full game: follow an alien distress call down into a fungal jungle, find the wreck of the Aster's lander, and learn from their strange gear to print your own from the moon's ores. The worlds after it, each with its own people, language and dangers, and the long search for the way home, are coming.`,
+      text: `That's as far as the demo goes. ${worldById(FIRST_COURSE.to)!.name}, the green moon, is in the full game: follow an alien distress call down into a fungal jungle, find the wreck of the Aster's lander, and learn from their strange gear to print your own from the moon's ores. Then on to Brine, a purple sea world, to swim its reefs and find the Aster's lost crew. The worlds after it, and the long search for the way home, come as free updates.`,
       button: `Unlock the full game${price}`,
       secondary: { label: 'Look at the map', press: () => {} },
     }, () => host.onBuy());

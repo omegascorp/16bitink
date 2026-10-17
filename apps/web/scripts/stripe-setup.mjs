@@ -25,10 +25,9 @@ const PRODUCTS = [
     currency: 'usd',
   },
   {
-    // Not on sale yet: the catalog gives InkMine no lookup key until its full game (planets 2-10) is out.
     lookupKey: 'inkmine_full',
     name: 'InkMine: Full Game',
-    description: 'The full InkMine game on 16bit.ink: all ten worlds round the orange star. One-time purchase, no subscription.',
+    description: 'The full InkMine game on 16bit.ink: Mycel and Brine after the free first world, and every new world as a free update. One-time purchase, no subscription.',
     unitAmount: 499,
     currency: 'usd',
   },

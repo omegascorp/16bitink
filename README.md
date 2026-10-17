@@ -7,7 +7,7 @@ apps/web            Astro 7 site (Node server on DigitalOcean App Platform): cat
 packages/game-sdk   The contract between site and games (GameModule, GameHost)
 games/inkfish       Phaser 4 game package: client game (src/) + server-only paid content (content/)
 games/inkcrab       Second game (prototype): hermit crab trading up through shells; design in docs/inkcrab-design.md
-games/inkmine       Third game: planet-hopping miner, in the catalog as a free demo (chapter 1); design in docs/inkmine-design.md
+games/inkmine       Third game: planet-hopping miner, chapter 1 free, chapters 2-3 (Mycel, Brine) in the $4.99 full game; design in docs/inkmine-design.md
 docs/               Research, tech & monetization decisions, art pipeline
 ```
 
@@ -87,7 +87,7 @@ All games share one deployment, one checkout and one webhook.
    - Add the package as a dependency (`pnpm add '@16bitink/<slug>@workspace:*'`).
    - Add a catalog entry in `src/data/games.ts`: title, `theme`, `fonts`, `stripeLookupKey`.
    - Add one line to `src/games/loaders.ts` (client) and, if it sells content, one to `src/games/content.server.ts`.
-   - A free demo with nothing for sale yet (InkMine) leaves out `price` and `stripeLookupKey`: its pages say the full game is coming soon.
+   - A free demo with nothing for sale yet leaves out `price` and `stripeLookupKey`: its pages say the full game is coming soon.
 4. In Stripe, create the one-time price with that lookup key.
 5. For the level funnel in `/admin/analytics`, call `host.track?.({ type: 'level_start', level, n, name })` when a level begins and `{ type: 'level_end', …, result, seconds }` when it is won, lost or left (`n` = the level's 1-based place in the game's order).
 

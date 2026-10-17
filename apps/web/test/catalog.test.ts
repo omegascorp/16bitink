@@ -21,9 +21,8 @@ describe('catalog', () => {
   it('only sells playable games with a Stripe lookup key', () => {
     expect(isPurchasable(findGame('inkfish'))).toBe(true);
     expect(isPurchasable(findGame('inkcrab'))).toBe(true);
+    expect(isPurchasable(findGame('inkmine'))).toBe(true);
     expect(isPurchasable(findGame('blot'))).toBe(false);
-    // A free demo until its full game is out.
-    expect(isPurchasable(findGame('inkmine'))).toBe(false);
     expect(isPurchasable(undefined)).toBe(false);
   });
 });

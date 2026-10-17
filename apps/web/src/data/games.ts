@@ -103,7 +103,8 @@ export const GAMES: readonly CatalogGame[] = [
     ],
     status: 'playable',
     cover: '/covers/inkmine.png',
-    // No price or Stripe lookup key yet: the demo is free, and the full game (planets 2-10) is still to come.
+    price: '$4.99',
+    stripeLookupKey: 'inkmine_full',
     theme: { paper: '#f4eddc', ink: '#1f2a55', accent: '#4a2f7a' },
     icon: 'inkmine',
     orientation: 'landscape',
@@ -113,8 +114,9 @@ export const GAMES: readonly CatalogGame[] = [
     },
     features: [
       'Chapter 1 free: Graphite, your lander and your starship, no sign-up',
-      'Mine, print gear, mend two ships and learn to talk with the Lamplighters',
-      'The full game, nine more worlds round the orange star, is coming soon',
+      'Full game: Mycel, a fungal moon with an alien wreck, and Brine, a purple sea world to swim and flood',
+      'New worlds round the orange star arrive as free updates',
+      'One-time purchase: no subscription, no ads, no energy timers',
     ],
     controls: [
       'Arrows / WASD or the stick: walk; push into rock to drill (up and down too)',
