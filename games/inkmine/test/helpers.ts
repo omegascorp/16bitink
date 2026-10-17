@@ -14,7 +14,8 @@ export const T = 32;
  * A terrain from rows of characters: `.` air, `s` soil, `t` stone, `d` deep
  * rock, `#` bedrock, `f` firedamp in soil, `F` firedamp in stone, `b` an old
  * charge in soil, `y` a line charge in soil, `c` copper in soil, `g`
- * graphite in soil, `q` quartz in stone.
+ * graphite in soil, `q` quartz in stone, `m` a cap mushroom, `p` a spore
+ * pocket in soil.
  */
 export function grid(rows: readonly string[], wrap = false): Terrain {
   const t = createTerrain(rows[0]!.length, rows.length, wrap);
@@ -31,6 +32,8 @@ export function grid(rows: readonly string[], wrap = false): Terrain {
       if (ch === 'c') setTile(t, x, y, TILE.soil, ORES.copper.id);
       if (ch === 'g') setTile(t, x, y, TILE.soil, ORES.graphite.id);
       if (ch === 'q') setTile(t, x, y, TILE.stone, ORES.quartz.id);
+      if (ch === 'm') setTile(t, x, y, TILE.cap);
+      if (ch === 'p') setTile(t, x, y, TILE.soil, 0, VOLATILES.spores.id);
     });
   });
   return t;

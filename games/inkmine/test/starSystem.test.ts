@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PLANETS } from '../src/level/planets';
+import { loadedPlanets } from '../src/level/planets';
 import { AIR_MASS, habitableZone, inZone, moonsOf, snowLine, worldById, worldOfChapter, WORLDS } from '../src/logic/starSystem';
 
 describe('the first star system', () => {
@@ -11,7 +11,7 @@ describe('the first star system', () => {
   });
 
   it('names its worlds as the built planets are named', () => {
-    for (const p of PLANETS) expect(worldOfChapter(p.number)?.name).toBe(p.name);
+    for (const p of loadedPlanets()) expect(worldOfChapter(p.number)?.name).toBe(p.name);
   });
 
   it('puts Graphite on a moon of the ringed giant', () => {

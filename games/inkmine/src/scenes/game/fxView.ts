@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { BLUE, INK, RED, RED_HEX } from '../../art/palette';
 import { nozzleOf, PROSPECTOR_GROUND } from '../../art/prospector';
-import type { Look } from '../../logic/gear';
 import type { Blast } from '../../logic/blastSim';
 import type { Mine } from '../../logic/mine';
 import { createRng } from '../../logic/rng';
@@ -12,6 +11,11 @@ import type { Ring } from './ring';
 const INK_HEX = Phaser.Display.Color.HexStringToColor(INK).color;
 /** The jet flame's watercolour wash. */
 const FLAME_WASH = 0xf6c770;
+/** Notes written this close together (ms) stack a line apart instead of over each other: a cap's carbon and water arrive at once. */
+const NOTE_STACK_MS = 450;
+const NOTE_LINE = 22;
+/** A run of them (a blast's worth of pieces) climbs this many lines, then starts again at the bottom. */
+const NOTE_STACK_MAX = 4;
 
 /**
  * Small effects in the world: cracks spreading through the block being
@@ -22,8 +26,10 @@ export class FxView {
   private readonly cracks: Phaser.GameObjects.Graphics;
   private readonly flame: Phaser.GameObjects.Graphics;
   private readonly rng = createRng(5);
+  private lastNote = -Infinity;
+  private stacked = 0;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly tile: number, private readonly jetLook: Look) {
+  constructor(private readonly scene: Phaser.Scene, private readonly tile: number, private readonly jetMk: number) {
     this.cracks = scene.add.graphics().setDepth(4);
     this.flame = scene.add.graphics().setDepth(4.5);
   }
@@ -33,7 +39,7 @@ export class FxView {
     const g = this.flame.clear();
     if (!mine.jetting) return;
     const p = mine.player;
-    const nozzle = nozzleOf(this.jetLook);
+    const nozzle = nozzleOf(this.jetMk);
     const x = ring.near(p.x + p.w / 2) + nozzle.x * SCALE * mine.facing;
     const y = p.y + p.h + (nozzle.y - PROSPECTOR_GROUND) * SCALE;
     const len = 9 + this.rng() * 7;
@@ -121,10 +127,14 @@ export class FxView {
 
   /** A note written beside a point, rising and fading. */
   note(x: number, y: number, text: string, danger = false): void {
+    const now = this.scene.time.now;
+    this.stacked = now - this.lastNote < NOTE_STACK_MS ? (this.stacked + 1) % NOTE_STACK_MAX : 0;
+    this.lastNote = now;
+    const at = y - this.stacked * NOTE_LINE;
     const t = this.scene.add
-      .text(x, y, text, { fontFamily: HAND_FONT, fontSize: '20px', color: danger ? RED : BLUE, stroke: '#f5f0e1', strokeThickness: 4 })
+      .text(x, at, text, { fontFamily: HAND_FONT, fontSize: '20px', color: danger ? RED : BLUE, stroke: '#f5f0e1', strokeThickness: 4 })
       .setOrigin(0.5)
       .setDepth(8);
-    this.scene.tweens.add({ targets: t, y: y - 26, alpha: 0, duration: 1300, ease: 'Quad.easeOut', onComplete: () => t.destroy() });
+    this.scene.tweens.add({ targets: t, y: at - 26, alpha: 0, duration: 1300, ease: 'Quad.easeOut', onComplete: () => t.destroy() });
   }
 }

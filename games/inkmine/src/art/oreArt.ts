@@ -7,7 +7,9 @@ import { INK, PAPER_FILL } from './palette';
  * true colour with a ballpoint outline, on a highlighter swipe, so kinds read apart by shape
  * as well as colour. Native copper comes in nuggets, galena in cubes,
  * graphite in flat hexagonal flakes, quartz in pointed hexagonal prisms and
- * native silver in wires. Drawn centred on the origin, fitting a tile of
+ * native silver in wires; on Mycel, malachite in banded bubbles, pyrite in
+ * cubes, calcite in rhombs, amber in drops with a flier inside, lignite in
+ * grained lumps and water in beads. Drawn centred on the origin, fitting a tile of
  * `T` px. Plain canvas paths (not the Pen), since a chunk may hold dozens.
  */
 type P = readonly [number, number];
@@ -245,7 +247,211 @@ function rime(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng)
   }
 }
 
-const GLYPHS = { nugget, cube: cubes, flake: flakes, prism: prisms, wire: wires, rime } as const;
+/** Malachite: a cluster of rounded bubbles, banded in darker and lighter green like cut agate. */
+function botryoid(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
+  const blobs = Array.from({ length: 4 }, (_, k) => ({ x: (rng() - 0.5) * r * 0.9, y: (rng() - 0.5) * r * 0.7 + (k % 2) * r * 0.1, s: r * (0.3 + rng() * 0.18) }));
+  for (const b of blobs) {
+    const pts: P[] = Array.from({ length: 12 }, (_, i) => {
+      const a = (i / 12) * Math.PI * 2;
+      return [b.x + Math.cos(a) * b.s, b.y + Math.sin(a) * b.s * 0.92];
+    });
+    inked(ctx, pts, color, 0.9);
+    // The growth bands: rings inside, dark and pale by turns.
+    for (let k = 1; k <= 2; k++) {
+      ctx.globalAlpha = k === 1 ? 0.5 : 0.35;
+      ctx.lineWidth = 0.6;
+      ctx.strokeStyle = k === 1 ? '#1b4d33' : PAPER_FILL;
+      ctx.beginPath();
+      ctx.arc(b.x + b.s * 0.08, b.y + b.s * 0.1, b.s * (1 - k * 0.3), Math.PI * 0.9, Math.PI * 2.2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = PAPER_FILL;
+    ctx.beginPath();
+    ctx.arc(b.x - b.s * 0.35, b.y - b.s * 0.35, Math.max(0.6, b.s * 0.15), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** Calcite: leaning rhombs, the way it cleaves, with a doubled edge seen through the clear crystal. */
+function rhombs(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
+  for (let k = 0; k < 2; k++) {
+    const cx = (k === 0 ? -0.2 : 0.3) * r + (rng() - 0.5) * r * 0.25;
+    const cy = (k === 0 ? 0.15 : -0.2) * r + (rng() - 0.5) * r * 0.25;
+    const s = r * (k === 0 ? 0.62 : 0.44);
+    const lean = s * 0.45;
+    const pts: P[] = [[cx - s + lean, cy - s * 0.6], [cx + s + lean * 0.4, cy - s * 0.6], [cx + s - lean, cy + s * 0.6], [cx - s - lean * 0.4, cy + s * 0.6]];
+    inked(ctx, pts, color, 1);
+    // The doubled image: one edge seen twice through the crystal.
+    ctx.globalAlpha = 0.45;
+    ctx.lineWidth = 0.6;
+    ctx.strokeStyle = INK;
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.5 + lean * 0.6, cy - s * 0.25);
+    ctx.lineTo(cx + s * 0.4, cy - s * 0.25);
+    ctx.moveTo(cx - s * 0.55 + lean * 0.5, cy + s * 0.05);
+    ctx.lineTo(cx + s * 0.35, cy + s * 0.05);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** Amber: a rounded drop of resin, glowing at its heart, a tiny six-legged flier caught inside. */
+function resin(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
+  const s = r * 0.78;
+  const tilt = (rng() - 0.5) * 0.6;
+  const pts: P[] = Array.from({ length: 14 }, (_, i) => {
+    const a = (i / 14) * Math.PI * 2;
+    const q = s * (0.85 + rng() * 0.2) * (Math.sin(a) < 0 ? 0.92 : 1.05);
+    const x = Math.cos(a) * q;
+    const y = Math.sin(a) * q * 0.82;
+    return [x * Math.cos(tilt) - y * Math.sin(tilt), x * Math.sin(tilt) + y * Math.cos(tilt)];
+  });
+  inked(ctx, pts, color, 1);
+  // Light through it: a warm glow at the heart.
+  const g = ctx.createRadialGradient(-s * 0.1, -s * 0.05, 0, 0, 0, s);
+  g.addColorStop(0, 'rgba(255, 236, 160, 0.75)');
+  g.addColorStop(1, 'rgba(255, 236, 160, 0)');
+  poly(ctx, pts);
+  ctx.fillStyle = g;
+  ctx.fill();
+  // The flier: a body, two wings, six legs, in ink.
+  ctx.save();
+  ctx.rotate(tilt + (rng() - 0.5) * 0.8);
+  ctx.strokeStyle = '#4a2a12';
+  ctx.fillStyle = '#4a2a12';
+  ctx.globalAlpha = 0.85;
+  ctx.beginPath();
+  ctx.ellipse(s * 0.05, s * 0.05, s * 0.2, s * 0.08, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = 0.45;
+  ctx.beginPath();
+  for (const k of [-1, 0, 1]) {
+    ctx.moveTo(s * (0.05 + k * 0.1), s * 0.1);
+    ctx.lineTo(s * (0.02 + k * 0.14), s * 0.26);
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 0.4;
+  ctx.beginPath();
+  ctx.ellipse(-s * 0.02, -s * 0.08, s * 0.16, s * 0.07, -0.5, 0, Math.PI * 2);
+  ctx.ellipse(s * 0.14, -s * 0.08, s * 0.16, s * 0.07, 0.5, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+  ctx.globalAlpha = 0.85;
+  ctx.fillStyle = PAPER_FILL;
+  ctx.beginPath();
+  ctx.ellipse(-s * 0.42, -s * 0.38, s * 0.18, s * 0.08, -0.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+/** Lignite: blocky lumps of brown coal, the grain of what it grew from still running through them. */
+function chunks(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
+  for (let k = 0; k < 3; k++) {
+    const cx = (rng() - 0.5) * r;
+    const cy = (rng() - 0.5) * r * 0.8;
+    const s = r * (0.3 + rng() * 0.16);
+    const pts: P[] = [[cx - s, cy - s * 0.5], [cx - s * 0.2, cy - s * 0.8], [cx + s, cy - s * 0.45], [cx + s * 0.85, cy + s * 0.55], [cx - s * 0.1, cy + s * 0.75], [cx - s * 0.95, cy + s * 0.35]];
+    inked(ctx, pts, color, 0.9);
+    poly(ctx, pts);
+    ctx.save();
+    ctx.clip();
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = '#2a1e12';
+    for (let j = -2; j <= 2; j++) {
+      ctx.beginPath();
+      ctx.moveTo(cx - s, cy + j * s * 0.3);
+      ctx.bezierCurveTo(cx - s * 0.3, cy + j * s * 0.3 - s * 0.15, cx + s * 0.3, cy + j * s * 0.3 + s * 0.15, cx + s, cy + j * s * 0.3);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** Water: beads pooled in the rock, each with a bright meniscus and a glint. */
+function beads(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
+  for (let k = 0; k < 3; k++) {
+    const cx = (k - 1) * r * 0.45 + (rng() - 0.5) * r * 0.2;
+    const cy = (k === 1 ? -0.15 : 0.15) * r + (rng() - 0.5) * r * 0.2;
+    const s = r * (k === 1 ? 0.48 : 0.36);
+    // A drop: round below, drawn up to a point.
+    const pts: P[] = Array.from({ length: 14 }, (_, i) => {
+      const a = (i / 14) * Math.PI * 2 - Math.PI / 2;
+      const pinch = Math.sin(a) < -0.6 ? 0.55 : 1;
+      return [cx + Math.cos(a) * s * pinch, cy + Math.sin(a) * s * (Math.sin(a) < 0 ? 1.25 : 0.95)];
+    });
+    inked(ctx, pts, color, 0.9);
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = PAPER_FILL;
+    ctx.beginPath();
+    ctx.ellipse(cx - s * 0.32, cy - s * 0.05, s * 0.12, s * 0.28, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy + s * 0.1, s * 0.6, Math.PI * 0.15, Math.PI * 0.85);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** Carbon: light, porous lumps of char, pitted with holes, the cap's gills still ridging one face, a glint where it's glassy. */
+function char(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
+  for (let k = 0; k < 2; k++) {
+    const cx = (k === 0 ? -0.25 : 0.3) * r + (rng() - 0.5) * r * 0.15;
+    const cy = (k === 0 ? 0.1 : -0.15) * r;
+    const s = r * (k === 0 ? 0.55 : 0.42);
+    const pts: P[] = Array.from({ length: 9 }, (_, i) => {
+      const a = (i / 9) * Math.PI * 2;
+      const q = s * (0.75 + rng() * 0.35);
+      return [cx + Math.cos(a) * q, cy + Math.sin(a) * q * 0.8];
+    });
+    inked(ctx, pts, color, 0.9);
+    poly(ctx, pts);
+    ctx.save();
+    ctx.clip();
+    // The gills: fine fanned ridges across one face.
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = '#7b6f8c';
+    ctx.lineWidth = 0.45;
+    for (let j = -3; j <= 3; j++) {
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.2, cy + s * 0.9);
+      ctx.lineTo(cx + j * s * 0.3, cy - s * 0.9);
+      ctx.stroke();
+    }
+    // Pores, dark with a pale lower lip.
+    for (let j = 0; j < 5; j++) {
+      const px = cx + (rng() - 0.5) * s * 1.2;
+      const py = cy + (rng() - 0.5) * s;
+      const pr = s * (0.07 + rng() * 0.07);
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = '#141218';
+      ctx.beginPath();
+      ctx.arc(px, py, pr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = PAPER_FILL;
+      ctx.lineWidth = 0.35;
+      ctx.beginPath();
+      ctx.arc(px, py, pr, Math.PI * 0.1, Math.PI * 0.9);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = PAPER_FILL;
+    ctx.beginPath();
+    ctx.ellipse(cx - s * 0.4, cy - s * 0.35, s * 0.12, s * 0.06, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+const GLYPHS = { nugget, cube: cubes, flake: flakes, prism: prisms, wire: wires, rime, botryoid, rhomb: rhombs, resin, chunk: chunks, bead: beads, char } as const;
 
 export function drawOreGlyph(ctx: CanvasRenderingContext2D, ore: OreKind, T: number, seed: number): void {
   const rng = createRng(seed);

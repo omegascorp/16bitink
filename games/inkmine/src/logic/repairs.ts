@@ -1,10 +1,11 @@
-import { recipeOf } from './blueprints';
+import { blueprintId, recipeOf } from './blueprints';
+import { PIECES } from './gear';
 import { fitInventories, hasOnHand, onHand, spend, type PrintResult, type Profile } from './economy';
-import { FUEL, ROUND_TRIP } from './fuel';
+import { fuelOre, ROUND_TRIP } from './fuel';
 import { countOf, holdEntries, type Hold } from './hold';
 import { ORES } from './ore';
-import { hasBeat, tradeLine } from './story';
-import { FIRST_COURSE, isFixed, SHIP_TANK, STARSHIP, STARSHIP_IDS, type StarshipId } from './starship';
+import { hasBeat, tradeLine, WAKE } from './story';
+import { FIRST_COURSE, isFixed, shipFuelOre, STARSHIP, STARSHIP_IDS, type StarshipId } from './starship';
 import { hasTool, TOOL_KINDS } from './tools';
 
 /**
@@ -133,10 +134,51 @@ export type Goal =
   /** Set course for the first sister moon on the star map. */
   | { readonly kind: 'course' }
   /** Course set: chapter 1 is over. */
-  | { readonly kind: 'done' };
+  | { readonly kind: 'done' }
+  /** In orbit over a world not yet landed on: go down. */
+  | { readonly kind: 'land' }
+  /** On Mycel: follow the Aster lander's distress beacon with the receiver, by its strength, to the wreck. */
+  | { readonly kind: 'distress' }
+  /** The Aster's resonator studied: print the pulse, your first weapon (tools.ts). */
+  | { readonly kind: 'pulse' }
+  /** Mycel's drill printed: study the rest of the Aster crew's gear there for its designs. */
+  | { readonly kind: 'explore'; readonly found: number; readonly of: number }
+  /** Every Mk 2 design found: follow the faint signal under the beacon's, east, to where the crew went (the Aster's camp). */
+  | { readonly kind: 'trail' }
+  /** At the camp: bring the sleep pod its charge, in the bag (story.ts WAKE). */
+  | { readonly kind: 'wake' }
+  /** The last of the Aster awake: its crew flew to Brine. Chapter 2 is over; Brine comes later. */
+  | { readonly kind: 'brine' };
 
 /** The drill that breaks Graphite's stone: the thrusters' silver and the radio's quartz lie in it. */
 const STONE_DRILL = 'drill-1';
+/** Mycel's drill: its stone, and the rest of its gear, wait on it. */
+const MYCEL_DRILL = 'drill-2';
+/** Mycel's set of designs to study, Mk 2 (the beacon leads to the nearest one not yet learnt). */
+export const MYCEL_SET = PIECES.map((piece) => blueprintId(piece, 2));
+
+/**
+ * Chapter 2, on Mycel: land, follow the distress beacon to the Aster lander's
+ * wreck, study their resonator by it and print the pulse (Mycel has
+ * creatures, and the deeper the fiercer), then find and print its drill (its
+ * stone won't break for Graphite's), then study the rest of the Aster crew's
+ * gear round the wreck. Then the crew's trail east to their camp, where the
+ * last of them sleeps in a pod that needs power; woken, it shows where the
+ * others went: Brine.
+ */
+function mycelGoal(p: Profile): Goal {
+  if (!p.visited.includes('mycel')) return { kind: 'land' };
+  if (!hasBeat(p, 'asterFound')) return { kind: 'distress' };
+  // Their resonator first, lying in the open by the wreck: the stone round it is where things live.
+  if (!p.found.includes('pulse')) return { kind: 'find', blueprint: 'pulse' };
+  if (!hasTool(p, 'pulse')) return { kind: 'pulse' };
+  const drill = recipeOf(MYCEL_DRILL)!;
+  if (p.gear.drill < drill.mk) return p.found.includes(MYCEL_DRILL) ? { kind: 'print', blueprint: MYCEL_DRILL } : { kind: 'find', blueprint: MYCEL_DRILL };
+  const found = MYCEL_SET.filter((id) => p.found.includes(id)).length;
+  if (found < MYCEL_SET.length) return { kind: 'explore', found, of: MYCEL_SET.length };
+  if (!hasBeat(p, 'asterCamp')) return { kind: 'trail' };
+  return hasBeat(p, 'asterWoken') ? { kind: 'brine' } : { kind: 'wake' };
+}
 
 /**
  * What to do next: the printer, the hull (its ore lies in the soil), then
@@ -147,6 +189,7 @@ const STONE_DRILL = 'drill-1';
  * complaint about No Man's Sky's start is the stretch with no prompt.
  */
 export function currentGoal(p: Profile): Goal {
+  if (p.at === 'mycel' || p.visited.includes('mycel')) return mycelGoal(p);
   if (!isRepaired(p, 'printer')) return { kind: 'repair', id: 'printer' };
   if (!isRepaired(p, 'hull')) return { kind: 'repair', id: 'hull' };
   const drill = recipeOf(STONE_DRILL)!;
@@ -170,7 +213,18 @@ export function needsLine(need: Hold, have: Hold): string {
 
 /** The goal as one line for the HUD. */
 export function goalLine(p: Profile, g: Goal): string {
-  if (g.kind === 'find') return 'Stone is too hard for the starter drill. Find a broken drill to study: follow the beacon';
+  if (g.kind === 'find' && g.blueprint === 'pulse') return "Something of the Aster's lies by their wreck that isn't gear: study it. Follow the beacon";
+  if (g.kind === 'pulse') {
+    const need = TOOL_KINDS.pulse.recipe;
+    return `Print the pulse, the Aster's weapon rebuilt your way: ${hasOnHand(p)(need) ? 'go aboard (L at the lander)' : needsLine(need, onHand(p))}`;
+  }
+  if (g.kind === 'find') return g.blueprint === MYCEL_DRILL ? "Mycel's stone is too hard for Graphite's drill. Study the Aster crew's broken drill near their wreck: follow the beacon" : 'Stone is too hard for the starter drill. Find a broken drill to study: follow the beacon';
+  if (g.kind === 'land') return 'Land on Mycel: Land, top right';
+  if (g.kind === 'distress') return "Follow the Aster's distress call with the receiver: the more bars, the closer you are";
+  if (g.kind === 'explore') return `The Aster crew's gear lies round their wreck: study each broken piece for its design. Mk 2 designs ${g.found}/${g.of}`;
+  if (g.kind === 'trail') return "The crew's pictures showed them walking east. Under the beacon's pulses the receiver picks out a fainter one, slow as a heartbeat: follow it";
+  if (g.kind === 'wake') return `The last of the Aster sleeps in a pod whose power is failing. Bring it a charge in your bag: ${tradeLine(p.suit, (ore) => ORES[ore as keyof typeof ORES].name, WAKE)}`;
+  if (g.kind === 'brine') return "The Aster's crew flew to Brine, the sea world, years ago and never called back. Find them: Brine is coming soon";
   if (g.kind === 'print') return `Print the ${recipeOf(g.blueprint)!.piece} Mk ${recipeOf(g.blueprint)!.mk}: go aboard (L at the lander)`;
   if (g.kind === 'receiver') {
     const need = TOOL_KINDS.receiver.recipe;
@@ -181,8 +235,8 @@ export function goalLine(p: Profile, g: Goal): string {
   if (g.kind === 'trade') return `The Lamplighters want silver from deep down for a drive core. Bring it in your bag: ${tradeLine(p.suit, (ore) => ORES[ore as keyof typeof ORES].name)}`;
   if (g.kind === 'collect') return 'Your ship is whole: go back to the Lamplighters for the drive core';
   if (g.kind === 'fuel') {
-    const ice = Math.min(countOf(onHand(p), FUEL.ore), ROUND_TRIP - p.fuel);
-    return p.fuel + ice >= ROUND_TRIP ? 'Fill the tank to fly up to your ship and back: go aboard (L at the lander) and refill' : `Fill the tank to fly up to your ship and back: ${ORES[FUEL.ore].name} ${p.fuel + ice}/${ROUND_TRIP}`;
+    const ice = Math.min(countOf(onHand(p), fuelOre(p)), ROUND_TRIP - p.fuel);
+    return p.fuel + ice >= ROUND_TRIP ? 'Fill the tank to fly up to your ship and back: go aboard (L at the lander) and refill' : `Fill the tank to fly up to your ship and back: ${ORES[fuelOre(p)].name} ${p.fuel + ice}/${ROUND_TRIP}`;
   }
   if (g.kind === 'liftoff') return 'Lift off and fly up to your ship: go aboard (L at the lander)';
   if (g.kind === 'starship') {
@@ -192,8 +246,8 @@ export function goalLine(p: Profile, g: Goal): string {
     return `Mend your ship's ${s.name.toLowerCase()}: ${how}`;
   }
   if (g.kind === 'shipFuel') {
-    const ice = Math.min(countOf(onHand(p), SHIP_TANK.ore), FIRST_COURSE.fuel - p.shipFuel);
-    const how = p.shipFuel + ice >= FIRST_COURSE.fuel ? (p.docked ? 'refill it on the Starship tab' : 'fly up to it (L at the lander)') : `${ORES[SHIP_TANK.ore].name} ${p.shipFuel + ice}/${FIRST_COURSE.fuel}, carried up in the lander`;
+    const ice = Math.min(countOf(onHand(p), shipFuelOre(p)), FIRST_COURSE.fuel - p.shipFuel);
+    const how = p.shipFuel + ice >= FIRST_COURSE.fuel ? (p.docked ? 'refill it on the Starship tab' : 'fly up to it (L at the lander)') : `${ORES[shipFuelOre(p)].name} ${p.shipFuel + ice}/${FIRST_COURSE.fuel}, carried up in the lander`;
     return `Fill your ship's tank for the trip to Mycel: ${how}`;
   }
   if (g.kind === 'course') return p.docked ? 'Set course for Mycel: the star map, on the Starship tab' : 'Set course for Mycel: fly up to your ship (L at the lander)';

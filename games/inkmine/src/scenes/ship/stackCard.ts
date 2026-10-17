@@ -1,5 +1,5 @@
 import { TEX } from '../../art/textures';
-import { currentPlanet } from '../../level/planets';
+import { fuelsAt } from '../../logic/worlds';
 import { onHand } from '../../logic/economy';
 import { countOf } from '../../logic/hold';
 import { isLocked, type SlotRef, type Stack } from '../../logic/inventory';
@@ -29,7 +29,7 @@ function whereLine(page: ShipPage, at: SlotRef, s: Stack): string {
   const p = page.profile;
   if (at.bag === 1) return 'in the cargo';
   if (at.bag === 2) return p.docked ? "in the starship's hold" : "in the starship's hold, up in orbit";
-  if (keptOres(p).includes(s.ore)) return 'in the suit bag · kept for the Lamplighters';
+  if (keptOres(p).includes(s.ore)) return `in the suit bag · kept for ${p.at === 'mycel' ? "the Aster's pod" : 'the Lamplighters'}`;
   return isLocked(p.suit, at.slot) ? 'in the suit bag · locked' : 'in the suit bag';
 }
 
@@ -55,7 +55,7 @@ export function stackCard(page: ShipPage, at: SlotRef, s: Stack, x: number, y: n
   let ry = Math.max(top + PIC, about.y + about.height) + 12;
   divider(scene, x, ry, w);
   ry += 12;
-  const fuels = Object.entries(currentPlanet().fuels).filter(([, o]) => o === s.ore) as [keyof typeof GAUGE_NAMES, string][];
+  const fuels = Object.entries(fuelsAt(page.profile.at)).filter(([, ores]) => ores.includes(s.ore)) as [keyof typeof GAUGE_NAMES, readonly string[]][];
   for (const [gauge] of fuels) {
     const t = aside(scene, x + PAD, ry, `Fuel: one piece puts ${FEED[gauge]} in ${GAUGE_NAMES[gauge]}.`, 16, w - PAD * 2, INK_TEXT);
     ry += t.height + 4;

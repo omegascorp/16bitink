@@ -2,6 +2,7 @@ import { hasOnHand, onHand, spend, type PrintResult, type Profile } from './econ
 import { countOf, type Hold } from './hold';
 import type { OreKey } from './ore';
 import { hasBeat, withBeat } from './story';
+import { waterAt } from './worlds';
 
 /**
  * Your starship (spec, "Your starship and travel"): it came out of the
@@ -67,7 +68,10 @@ export const STARSHIP: Readonly<Record<StarshipSlot, StarshipSystem>> = {
 };
 
 /** The starship's fuel tank, once mended: split from ice like the lander's, for now (another fuel may take over for long trips). */
-export const SHIP_TANK = { capacity: 10, ore: 'ice' as OreKey } as const;
+export const SHIP_TANK = { capacity: 10 } as const;
+
+/** What the starship's tank is split from where you are (the water you carry up: worlds.ts). */
+export const shipFuelOre = (p: Pick<Profile, 'at'>): OreKey => waterAt(p.at);
 
 /** The first trip the map offers, and what it burns (a sister moon: its window is always open). */
 export const FIRST_COURSE = { to: 'mycel', fuel: 6 } as const;
@@ -98,7 +102,7 @@ export type ShipRefillCheck = 'ok' | 'full' | 'materials' | 'tank' | 'away';
 
 /** Lumps a refill of the starship's tank would take now. */
 export function shipRefillCost(p: Profile): number {
-  return Math.min(SHIP_TANK.capacity - p.shipFuel, countOf(onHand(p), SHIP_TANK.ore));
+  return Math.min(SHIP_TANK.capacity - p.shipFuel, countOf(onHand(p), shipFuelOre(p)));
 }
 
 export function canRefillShip(p: Profile): ShipRefillCheck {
@@ -112,7 +116,7 @@ export function refillShip(p: Profile): PrintResult<ShipRefillCheck> {
   const why = canRefillShip(p);
   if (why !== 'ok') return { ok: false, why };
   const n = shipRefillCost(p);
-  return { ok: true, profile: { ...spend(p, { [SHIP_TANK.ore]: n }), shipFuel: p.shipFuel + n } };
+  return { ok: true, profile: { ...spend(p, { [shipFuelOre(p)]: n }), shipFuel: p.shipFuel + n } };
 }
 
 /** Whether the star map can be looked at: its telescope sees again. */

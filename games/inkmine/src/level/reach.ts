@@ -1,13 +1,13 @@
 import { tileCost, VOLATILE_COST, type DrillSpec } from '../logic/drill';
 import { indexOf, inside, TILE, tileAt, volatileAt, type Terrain } from '../logic/terrain';
-import { blastBreaks } from '../logic/volatiles';
+import { blastBreaks, lightsWhenDrilled, volatileKeyOf } from '../logic/volatiles';
 
 /**
  * The level test's reachability check (spec, "Levels"): the least energy
  * to open a way from the lander to every tile, with a given drill. Open
  * tiles cost nothing, rock costs what the drill pays for it, and firedamp
  * or a charge costs a tap and then blows the soil and stone round it open
- * for free. Getting about (walking, flying, ladders) is taken as given:
+ * for free (a spore pocket only opens: it needs a blast to go off). Getting about (walking, flying, ladders) is taken as given:
  * this asks whether the ground lets you through, not how you climb.
  *
  * Returns the cost per tile index, Infinity where the drill can't reach.
@@ -18,7 +18,8 @@ export function energyMap(t: Terrain, drill: DrillSpec, start: readonly [number,
   // Tiles a blast would open: anything blastable next to a volatile.
   const blown = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
-    if (!t.volatile[i]) continue;
+    const kind = volatileKeyOf(t.volatile[i]!);
+    if (!kind || !lightsWhenDrilled(kind)) continue;
     const vx = i % t.width;
     const vy = Math.floor(i / t.width);
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {

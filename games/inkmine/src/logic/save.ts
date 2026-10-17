@@ -1,5 +1,4 @@
 import type { KeyValueStore } from '@16bitink/game-sdk';
-import { recipeOf } from './blueprints';
 import { fitInventories, NEW_PROFILE, type Profile } from './economy';
 import { PIECES, type Loadout } from './gear';
 import type { Inventory, Stack } from './inventory';
@@ -9,7 +8,9 @@ import { SHIP_TANK, STARSHIP_IDS, type StarshipId } from './starship';
 import { REPAIR_IDS, type RepairId } from './repairs';
 import { MODULE_KEYS, maxLevel, storeCapacity, type ShipModules } from './ship';
 import { BEATS, type Beat } from './story';
+import { isDesign } from './designs';
 import { TOOLS, type Tool } from './tools';
+import { isWorldId, WORLD_IDS, type WorldId } from './worlds';
 
 /**
  * v3: one open world, no levels (v2's level records and pending rewards are
@@ -85,10 +86,16 @@ function parseStarship(v: unknown): StarshipId[] {
   return [...new Set(v.filter((id): id is StarshipId => typeof id === 'string' && (STARSHIP_IDS as readonly string[]).includes(id)))];
 }
 
+/** Known worlds landed on, once each and in order, Graphite always (it's where the game starts). */
+function parseVisited(v: unknown): WorldId[] {
+  const listed = Array.isArray(v) ? v.filter(isWorldId) : [];
+  return WORLD_IDS.filter((id) => id === 'graphite' || listed.includes(id));
+}
+
 /** Untrusted saved data to a profile: anything malformed is dropped, never thrown. */
 export function parseProfile(raw: unknown): Profile {
   if (!isObj(raw)) return NEW_PROFILE;
-  const found = Array.isArray(raw.found) ? [...new Set(raw.found.filter((id): id is string => typeof id === 'string' && !!recipeOf(id)))] : [];
+  const found = Array.isArray(raw.found) ? [...new Set(raw.found.filter((id): id is string => typeof id === 'string' && isDesign(id)))] : [];
   // Sized to what the gear and ship give, whatever the save said.
   return fitInventories({
     suit: parseInventory(raw.suit, NEW_PROFILE.suit),
@@ -106,6 +113,8 @@ export function parseProfile(raw: unknown): Profile {
     shipFuel: parseFuel(raw.shipFuel, SHIP_TANK.capacity),
     hold: parseInventory(raw.hold, NEW_PROFILE.hold),
     stores: parseStores(raw.stores, storeCapacity(parseShip(raw.ship))),
+    at: isWorldId(raw.at) ? raw.at : 'graphite',
+    visited: parseVisited(raw.visited),
   });
 }
 

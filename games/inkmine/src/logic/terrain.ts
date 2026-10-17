@@ -9,10 +9,12 @@
  * unless the grid wraps: a world you can walk all the way round (spec,
  * "The world"), where column `width` is column 0 again and there are no
  * sides. Tile lookups fold x round the ring, so callers never have to.
+ * A cap is one of Mycel's cap mushrooms: solid, soft as soil to drill, and
+ * springy (mine.ts throws you high off one).
  * The grid is mutated in place: it is per-frame world state shared by the
  * simulation and the chunked ground renderer (as InkCrab's beach is).
  */
-export const TILE = { air: 0, soil: 1, stone: 2, deep: 3, bedrock: 4 } as const;
+export const TILE = { air: 0, soil: 1, stone: 2, deep: 3, bedrock: 4, cap: 5 } as const;
 export type Tile = (typeof TILE)[keyof typeof TILE];
 
 /** The three grades a drill is weighed against (see drill.ts). */
@@ -104,7 +106,7 @@ export function isSolid(t: Terrain, x: number, y: number): boolean {
 
 /** A tile's grade, or null for air and bedrock. */
 export function gradeOf(tile: Tile): Grade | null {
-  if (tile === TILE.soil) return 0;
+  if (tile === TILE.soil || tile === TILE.cap) return 0;
   if (tile === TILE.stone) return 1;
   if (tile === TILE.deep) return 2;
   return null;

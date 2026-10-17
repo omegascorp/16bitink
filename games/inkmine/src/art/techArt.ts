@@ -1,32 +1,35 @@
-import type { Look } from '../logic/gear';
+import { lookOf } from '../logic/gear';
 import type { Tech } from '../logic/tech';
 import { capsule, edge, oval, pt, type Draw } from './kit';
 import { bell, crumpledBell, dish, gash, hullPlate, weldPlate } from './landerParts';
 import { dab, gleam, glow, mix, paint, SHADOW } from './paint';
+import { cell } from './prospector/cell';
 import { drill } from './prospector/drill';
 import { HEAD, helmet } from './prospector/helmet';
-import { jetpack } from './prospector/jetpack';
+import { jetpack, nozzles } from './prospector/jetpack';
+import { pack } from './prospector/pack';
 import { part, rivets, roundRect, seam, sheen, WASH } from './prospector/parts';
 import { arm, leg, torso } from './prospector/suit';
+import { drawStarshipSystem } from './starship/systems';
+import { drawPulseTool } from './aster/weapon';
 
 /**
  * The pictures in the lander's technology slots, No Man's Sky style: each
  * slot shows the thing itself. Gear is drawn with the prospector's own
- * parts in its look, so a slot matches what the character wears; the
- * ship's systems are drawn with the lander's parts, broken until mended.
+ * parts at its mark, so a slot matches what the character wears; the
+ * lander's systems are drawn with the lander's parts, broken until mended;
+ * the starship's are drawn like the starship (starship/systems.ts).
  * Each fits a frame of TECH_FRAME units, origin at the centre.
  */
 export const TECH_FRAME = 40;
 
-/** What a picture depends on beyond its slot: a gear piece's look, a system broken or mended. */
-export type TechVariant = Look | 'broken' | 'mended';
+/** What a picture depends on beyond its slot: a gear piece's mark, a system broken or mended. */
+export type TechVariant = number | 'broken' | 'mended';
 
 const CHARGE = WASH.charge;
 const STEEL = '#b9c1cc';
 const CRATE = '#b48a55';
 const CORE = '#7fd3e0';
-/** The paper showing through a split. */
-const PAPERISH = '#f1ece0';
 
 /** Draws `fn` moved by (dx, dy) and scaled by `s` about the origin. */
 function placed(d: Draw, dx: number, dy: number, s: number, fn: () => void): void {
@@ -38,46 +41,13 @@ function placed(d: Draw, dx: number, dy: number, s: number, fn: () => void): voi
   ctx.restore();
 }
 
-/** The energy cell: a squat battery with a charge window, more bars and a better case with each look. */
-function cell(d: Draw, look: Look): void {
-  const body = roundRect(-8, -12, 8, 13, 2.4);
-  part(d, body, look === 2 ? WASH.gunmetal : look === 1 ? WASH.enamel : WASH.cell, { shadow: 0.55, line: 0.8, gloss: true });
-  part(d, roundRect(-3.4, -15, 3.4, -12, 0.8), WASH.darkMetal, { shadow: 0.4, line: 0.6, hatch: 0 });
-  const win = roundRect(-5, -8.6, 5, 8.4, 1);
-  part(d, win, '#2c3352', { shadow: 0, line: 0.5, hatch: 0 });
-  glow(d.pen.ctx, pt(0, 0), 9, CHARGE, 0.3);
-  const bars = 3 + look;
-  const step = 15.6 / bars;
-  for (let k = 0; k < bars; k++) {
-    const y = 7.4 - (k + 1) * step + 0.7;
-    part(d, roundRect(-3.8, y, 3.8, y + step - 1.4, 0.4), CHARGE, { shadow: 0, line: 0, hatch: 0, alpha: 1 });
-  }
-  if (look > 0) rivets(d, [pt(-6.2, -10.2), pt(6.2, -10.2), pt(-6.2, 11.2), pt(6.2, 11.2)], 0.5);
-  sheen(d, [pt(-6.6, -10), pt(-6.6, 9)], 0.8);
-}
-
-/** The ore pack: a satchel with a flap and buckle; bigger and stiffer with each look. */
-function pack(d: Draw, look: Look): void {
-  const w = 10 + look * 1.4;
-  const bag = [pt(-w, -6), pt(w, -6), pt(w + 1.4, 11), pt(-w - 1.4, 11)];
-  part(d, bag, look === 2 ? WASH.gunmetal : look === 1 ? WASH.contractor : WASH.leather, { shadow: 0.6, line: 0.8 });
-  d.pen.stroke([pt(-w + 2, -6), pt(-w + 4, -13), pt(w - 4, -13), pt(w - 2, -6)], 1.2, d.ink, 0.9, false);
-  const flap = [pt(-w - 0.6, -6.6), pt(w + 0.6, -6.6), pt(w, 2), pt(0, 4), pt(-w, 2)];
-  part(d, flap, mix(look === 2 ? WASH.gunmetal : look === 1 ? WASH.contractor : WASH.leather, SHADOW, 0.12), { shadow: 0.35, line: 0.7 });
-  part(d, roundRect(-2, 1.4, 2, 5.4, 0.6), WASH.metal, { shadow: 0.3, line: 0.5, gloss: true, hatch: 0 });
-  seam(d, [pt(-w + 1, 8.6), pt(w - 1, 8.6)], 0.5);
-  // A lump of ore peeking out from under the flap, in highlighter.
-  paint(d, oval(w - 3, -7.4, 2.4, 1.6, 10), '#ffa94d', { alpha: 1, shadow: 0.4, hatch: 0, line: 0.5 });
-  sheen(d, [pt(-w + 1.4, -4.6), pt(-w + 1, 0)], 0.7);
-}
-
 /** The work suit off its wearer: torso, arms hanging, legs. */
-function suit(d: Draw, look: Look): void {
-  leg(d, look, pt(-3, 6.6), pt(-3.6, 13), false);
-  leg(d, look, pt(2.4, 6.6), pt(3, 13), true);
-  arm(d, look, pt(-5.6, -1.6), pt(-8.4, 7.4));
-  torso(d, look);
-  arm(d, look, pt(4.4, -1.6), pt(7.8, 7.4));
+function suit(d: Draw, mk: number): void {
+  leg(d, mk, pt(-3, 6.6), pt(-3.6, 13), false);
+  leg(d, mk, pt(2.4, 6.6), pt(3, 13), true);
+  arm(d, mk, pt(-5.6, -1.6), pt(-8.4, 7.4));
+  torso(d, mk);
+  arm(d, mk, pt(4.4, -1.6), pt(7.8, 7.4));
 }
 
 /** The printer: a boxy fabricator with its head over a half-printed part; cracked and dark when broken. */
@@ -190,13 +160,20 @@ function refit(d: Draw): void {
   sheen(d, [pt(-12, -6), pt(-9, 6)], 0.8);
 }
 
-function gear(d: Draw, t: Extract<Tech, { kind: 'gear' }>, look: Look): void {
-  if (t.piece === 'drill') placed(d, -3.4, 2, 1.75, () => drill(d, look, pt(0, 0), -0.6, 0, false));
-  else if (t.piece === 'cell') cell(d, look);
-  else if (t.piece === 'pack') pack(d, look);
-  else if (t.piece === 'suit') placed(d, 0, -4.4, 1.3, () => suit(d, look));
-  else if (t.piece === 'helmet') placed(d, -HEAD.x + 0.6, -HEAD.y + 1.2, 1.3, () => helmet(d, look, pt(0.6, 0.2)));
-  else placed(d, 10.6, -2.6, 1.45, () => jetpack(d, look));
+function gear(d: Draw, t: Extract<Tech, { kind: 'gear' }>, mk: number): void {
+  if (t.piece === 'drill') placed(d, -3.4, 2, 1.75, () => drill(d, mk, pt(0, 0), -0.6, 0, false));
+  else if (t.piece === 'cell') placed(d, 9.2, -0.4, 1.9, () => cell(d, mk));
+  else if (t.piece === 'pack') placed(d, 5.9, -8.6, 3.5, () => pack(d, mk));
+  else if (t.piece === 'suit') placed(d, 0, -4.4, 1.3, () => suit(d, mk));
+  else if (t.piece === 'helmet') placed(d, -HEAD.x + 0.6, -HEAD.y + 1.2, 1.3, () => helmet(d, mk, pt(0.6, 0.2)));
+  else {
+    // A work can stands alone (its cell is a slot of its own), so it's drawn bigger and centred.
+    const [dx, dy, s] = lookOf(mk) === 0 ? [11.8, -1.9, 1.7] : [10.6, -2.6, 1.45];
+    placed(d, dx, dy, s, () => {
+      jetpack(d, mk);
+      nozzles(d, mk);
+    });
+  }
 }
 
 function system(d: Draw, t: Extract<Tech, { kind: 'repair' }>, broken: boolean): void {
@@ -237,89 +214,11 @@ function receiver(d: Draw): void {
   sheen(d, [pt(-7.6, -7), pt(-7.6, 12)], 0.8);
 }
 
-/** The starship's power: a junction box with its cable bundle; scorched, its lamps dark, when burnt out. */
-function power(d: Draw, broken: boolean): void {
-  for (const [y, col] of [[-6, '#b07a3a'], [-2, '#c9c6bd'], [2, '#b07a3a']] as const) d.pen.stroke([pt(-16, y + 8), pt(-11, y + 6), pt(-8, y)], 1.4, col, 0.95, false);
-  const box = roundRect(-8, -11, 13, 11, 2);
-  part(d, box, broken ? WASH.darkMetal : '#c7c9ce', { shadow: 0.5, line: 0.85, gloss: true });
-  part(d, roundRect(-4, -7, 9, 1, 1), '#2f3346', { shadow: 0, line: 0.6, hatch: 0 });
-  for (let k = 0; k < 3; k++) {
-    const x = -1 + k * 4;
-    if (!broken) glow(d.pen.ctx, pt(x, -3), 2.6, CHARGE, 0.6);
-    d.pen.dot(x, -3, 1.1, broken ? '#55607e' : CHARGE);
-  }
-  d.pen.stroke([pt(-3, 5), pt(9, 5)], 0.6, d.ink, 0.6, false);
-  if (broken) {
-    dab(d, oval(4, 7, 8, 4, 14), '#2a2733', 0.45, 1.5);
-    d.pen.stroke([pt(6, -11), pt(4, -6), pt(7, -3)], 0.7, d.ink, 0.9, false);
-  }
-}
-
-/** The starship's fuel tank: a capsule wound with carbon fibre; split along a seam and frosted where the fuel boiled out. */
-function shipTank(d: Draw, broken: boolean): void {
-  const tank = capsule(pt(0, -12), pt(0, 12), 9, 9);
-  part(d, tank, '#4a4f5c', { shadow: 0.55, line: 0.9, gloss: true, hatch: 0 });
-  // The winding: fine diagonal fibres across it.
-  d.pen.clipped(tank, () => {
-    for (let y = -24; y < 24; y += 2.2) d.pen.hair([pt(-10, y), pt(10, y + 7)], 0.4, '#8a90a0', 0.55);
-  });
-  part(d, roundRect(-3, -17, 3, -13, 0.8), WASH.metal, { shadow: 0.4, line: 0.6, hatch: 0 });
-  if (broken) {
-    dab(d, oval(-1, 2, 6, 8, 16), '#f4fbff', 0.55, 1.5);
-    d.pen.stroke([pt(1, -9), pt(-1, -3), pt(1.4, 3), pt(-0.6, 9)], 0.9, d.ink, 0.95, false);
-  } else {
-    glow(d.pen.ctx, pt(5, -4), 3, '#9fe3f0', 0.6);
-    d.pen.dot(5, -4, 1.2, '#9fe3f0');
-  }
-}
-
-/** The starship's engine: an ion engine's round grid of holes in a ring; glowing blue when running, cracked and cold when not. */
-function engine(d: Draw, broken: boolean): void {
-  const ring = oval(0, 0, 14, 14, 36);
-  part(d, ring, WASH.darkMetal, { shadow: 0.5, line: 0.9, gloss: true });
-  const grid = oval(0, 0, 10.5, 10.5, 32);
-  if (!broken) glow(d.pen.ctx, pt(0, 0), 13, '#7fb8ff', 0.55);
-  part(d, grid, broken ? '#3a3f55' : '#9ec9ff', { shadow: 0.2, line: 0.6, hatch: 0, alpha: 1 });
-  for (let y = -8; y <= 8; y += 3.2) for (let x = -8; x <= 8; x += 3.2) {
-    if (x * x + y * y > 80) continue;
-    d.pen.dot(x + (Math.round(y / 3.2) % 2 ? 1.6 : 0), y, 0.8, broken ? '#20243a' : '#e8f3ff');
-  }
-  if (broken) d.pen.stroke([pt(-9, -5), pt(-3, -1), pt(-5, 4), pt(2, 9)], 0.9, d.ink, 0.95, false);
-}
-
-/** The starship's telescope: a tube on a mount, its lens catching the light. */
-function telescope(d: Draw): void {
-  const tube = capsule(pt(-12, 8), pt(10, -8), 5, 6);
-  part(d, tube, '#d9d4c6', { shadow: 0.5, line: 0.85, gloss: true });
-  part(d, oval(10.4, -8.4, 4.2, 5.4, 18), '#26314f', { shadow: 0, line: 0.7, hatch: 0 });
-  gleam(d, [pt(9, -11), pt(11, -6)], 1, 0.9);
-  d.pen.stroke([pt(-2, 2), pt(-4, 13)], 1.2, d.ink, 0.9, false);
-  d.pen.stroke([pt(-9, 14), pt(3, 14)], 1.2, d.ink, 0.9, false);
-}
-
-/** The starship's jump drive: a ring meant to steady a wormhole, burnt black and split. */
-function jump(d: Draw): void {
-  const outer = oval(0, 0, 15, 15, 40);
-  const inner = oval(0, 0, 9, 9, 32).reverse();
-  part(d, [...outer, ...inner], '#3a3d4c', { shadow: 0.5, line: 0.9, gloss: true });
-  dab(d, oval(4, 4, 10, 8, 18), '#141622', 0.45, 2);
-  d.pen.stroke([pt(9, -9), pt(12, -12.5)], 1.2, PAPERISH, 1, false);
-  d.pen.stroke([pt(8.6, -8.4), pt(11, -11)], 0.6, d.ink, 0.9, false);
-}
-
-function starshipSystem(d: Draw, t: Extract<Tech, { kind: 'starship' }>, broken: boolean): void {
-  if (t.id === 'power') power(d, broken);
-  else if (t.id === 'tank') shipTank(d, broken);
-  else if (t.id === 'engine') engine(d, broken);
-  else if (t.id === 'telescope') telescope(d);
-  else jump(d);
-}
-
 export function drawTech(d: Draw, t: Tech, variant: TechVariant): void {
   if (t.kind === 'gear') gear(d, t, typeof variant === 'number' ? variant : 0);
-  else if (t.kind === 'tool') receiver(d);
+  else if (t.kind === 'tool') (t.id === 'pulse' ? drawPulseTool : receiver)(d);
   else if (t.kind === 'repair') system(d, t, variant === 'broken');
-  else if (t.kind === 'starship') starshipSystem(d, t, variant === 'broken');
+  else if (t.kind === 'starship') drawStarshipSystem(d, t.id, variant === 'broken');
   else if (t.key === 'cargo') cargo(d);
   else if (t.key === 'winch') winch(d);
   else if (t.key === 'stores') supplyTanks(d);

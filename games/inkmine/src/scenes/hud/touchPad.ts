@@ -11,9 +11,18 @@ export interface TouchInput extends StickDirection {
   readonly thrust: boolean;
   /** The Bag (or Aboard) button tapped since last read. */
   readonly menu: boolean;
+  /** The Pulse button tapped since last read (shown once the pulse is printed). */
+  readonly fire: boolean;
 }
 
-export const NO_TOUCH: TouchInput = { ix: 0, iy: 0, jump: false, thrust: false, menu: false };
+/** A round button: its middle and radius, in the HUD's units. */
+interface Disc {
+  readonly x: number;
+  readonly y: number;
+  readonly r: number;
+}
+
+export const NO_TOUCH: TouchInput = { ix: 0, iy: 0, jump: false, thrust: false, menu: false, fire: false };
 
 /** Sizes in CSS pixels, scaled back up from the HUD's interface scale so they stay thumb-sized. */
 const JUMP_R = 46;
@@ -36,6 +45,9 @@ export class TouchPad {
   private readonly g: Phaser.GameObjects.Graphics;
   private readonly jumpText: Phaser.GameObjects.Text;
   private readonly bagText: Phaser.GameObjects.Text;
+  private readonly pulseText: Phaser.GameObjects.Text;
+  private armed = false;
+  private fired = false;
   private stick: { id: number; x: number; y: number; dx: number; dy: number } | null = null;
   private jumpId: number | null = null;
   private jumped = false;
@@ -49,6 +61,7 @@ export class TouchPad {
       scene.add.text(0, 0, t.toUpperCase(), { fontFamily: SERIF, fontSize: `${size}px`, fontStyle: '600', color: INK_TEXT }).setOrigin(0.5).setDepth(31).setLetterSpacing(size * 0.1);
     this.jumpText = text('Jump', 17);
     this.bagText = text('Bag', 14);
+    this.pulseText = text('Pulse', 13);
     scene.input.on('pointerdown', this.onDown, this);
     scene.input.on('pointermove', this.onMove, this);
     scene.input.on('pointerup', this.onUp, this);
@@ -70,6 +83,15 @@ export class TouchPad {
     this.g.setVisible(shown);
     this.jumpText.setVisible(shown);
     this.bagText.setVisible(shown);
+    this.pulseText.setVisible(shown && this.armed);
+    this.draw();
+  }
+
+  /** With the pulse printed, a Pulse button over Jump. */
+  setArmed(armed: boolean): void {
+    if (armed === this.armed) return;
+    this.armed = armed;
+    this.pulseText.setVisible(this.shown && armed);
     this.draw();
   }
 
@@ -89,9 +111,10 @@ export class TouchPad {
   read(): TouchInput {
     if (!this.shown) return NO_TOUCH;
     const dir = this.stick ? stickDirection(this.stick.dx, this.stick.dy) : { ix: 0 as const, iy: 0 as const };
-    const out: TouchInput = { ...dir, jump: this.jumped, thrust: this.jumpId !== null, menu: this.menued };
+    const out: TouchInput = { ...dir, jump: this.jumped, thrust: this.jumpId !== null, menu: this.menued, fire: this.fired };
     this.jumped = false;
     this.menued = false;
+    this.fired = false;
     return out;
   }
 
@@ -101,6 +124,7 @@ export class TouchPad {
     this.jumpId = null;
     this.jumped = false;
     this.menued = false;
+    this.fired = false;
     this.draw();
   }
 
@@ -114,14 +138,15 @@ export class TouchPad {
     return px / uiScaleOf(this.scene);
   }
 
-  private buttons(): { jump: { x: number; y: number; r: number }; bag: { x: number; y: number; r: number } } {
+  private buttons(): { jump: Disc; bag: Disc; pulse: Disc } {
     const { width, height } = viewSize(this.scene);
     const jr = this.css(JUMP_R);
     const br = this.css(BAG_R);
     const m = this.css(MARGIN);
     const jump = { x: width - m - jr, y: height - m - jr, r: jr };
     const bag = { x: jump.x - jr - br - this.css(18), y: jump.y - jr * 0.9, r: br };
-    return { jump, bag };
+    const pulse = { x: jump.x - jr * 0.2, y: jump.y - jr - br - this.css(22), r: br };
+    return { jump, bag, pulse };
   }
 
   private onDown(p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]): void {
@@ -130,8 +155,10 @@ export class TouchPad {
     // A tap on the HUD's own buttons (a card, a gauge) is theirs.
     if (over.length) return;
     const at = toView(p.x, p.y, this.scene);
-    const { jump, bag } = this.buttons();
-    if (Math.hypot(at.x - jump.x, at.y - jump.y) <= jump.r * 1.25) {
+    const { jump, bag, pulse } = this.buttons();
+    if (this.armed && Math.hypot(at.x - pulse.x, at.y - pulse.y) <= pulse.r * 1.3) {
+      this.fired = true;
+    } else if (Math.hypot(at.x - jump.x, at.y - jump.y) <= jump.r * 1.25) {
       this.jumpId = p.id;
       this.jumped = true;
     } else if (Math.hypot(at.x - bag.x, at.y - bag.y) <= bag.r * 1.3) {
@@ -168,11 +195,15 @@ export class TouchPad {
   private draw(): void {
     this.g.clear();
     if (!this.shown) return;
-    const { jump, bag } = this.buttons();
+    const { jump, bag, pulse } = this.buttons();
     this.disc(jump.x, jump.y, jump.r, this.jumpId !== null);
     this.disc(bag.x, bag.y, bag.r, false);
     this.jumpText.setPosition(jump.x, jump.y);
     this.bagText.setPosition(bag.x, bag.y);
+    if (this.armed) {
+      this.disc(pulse.x, pulse.y, pulse.r, false);
+      this.pulseText.setPosition(pulse.x, pulse.y);
+    }
     const st = this.stick;
     if (st) {
       const r = this.css(STICK.radius);

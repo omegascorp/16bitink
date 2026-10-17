@@ -4,9 +4,13 @@ import { bakeSystem, shipTexture, TEX } from '../art/textures';
 import { shipLookOf } from '../art/starship';
 import { worldRadius } from '../art/systemArt';
 import { habitableZone, KIND_LINE, moonsOf, planetsOf, snowLine, STAR, worldById, WORLDS, type World } from '../logic/starSystem';
-import { getProfile, getSound, setProfile } from '../host';
+import { getHost, getProfile, getSound, REG, setProfile } from '../host';
+import { hasWorld } from '../level/planets';
+import { canTravel, travel, tripFuel, type TravelCheck } from '../logic/travel';
+import { isWorldId, type WorldId } from '../logic/worlds';
+import { loadPaidPlanets } from './BootScene';
 import type { Profile } from '../logic/economy';
-import { canSetCourse, FIRST_COURSE, setCourse } from '../logic/starship';
+import { FIRST_COURSE, setCourse } from '../logic/starship';
 import { hasBeat } from '../logic/story';
 import { relayoutOnResize, screenScene, viewSize } from './hidpi';
 import { muteButton } from './kit/muteButton';
@@ -72,7 +76,8 @@ export class SystemScene extends Phaser.Scene {
     // Out among the stars: high, sparse and spacious.
     getSound(this)?.setMood('space');
     const { width, height } = viewSize(this);
-    const selected = worldById(data.selected ?? 'graphite') ?? WORLDS[0]!;
+    const here = getProfile(this).at;
+    const selected = worldById(data.selected ?? here) ?? WORLDS[0]!;
     this.header(width);
     const layout = this.layout(width);
     this.zones(layout, width);
@@ -86,13 +91,15 @@ export class SystemScene extends Phaser.Scene {
     });
     if (data.arrived) this.arrival();
     if (data.demoEnd) this.demoEnd();
+    // At a world whose ground didn't load (the full game, offline): say so, and offer to try again.
+    if (!hasWorld(here)) this.unavailable(here);
   }
 
   private header(width: number): void {
     const title = heading(this, GAP + 4, 18, 'The orange star', 30).setOrigin(0, 0).setDepth(2);
     muteButton(this, title.x + title.width + 30, 36)?.setDepth(2);
-    // Once the first trip is set, the demo is over, and the map says so.
-    const over = hasBeat(getProfile(this), 'course');
+    // Once the first trip is set without the full game, the demo is over, and the map says so.
+    const over = demoOver(getProfile(this));
     const sub = over ? 'the end of the demo: the rest of the journey is coming soon' : "through your ship's telescope: in no chart you remember";
     aside(this, GAP + 6, 54, sub, 17, Math.max(240, width - BACK.w - GAP * 4), over ? MADDER : SEPIA).setOrigin(0, 0).setDepth(2);
     plaque(this, width - GAP - BACK.w / 2, 40, 'Back to the ship', () => this.back(), { width: BACK.w, height: BACK.h, kind: 'primary', size: 16 }).setDepth(2);
@@ -179,7 +186,7 @@ export class SystemScene extends Phaser.Scene {
       img.setInteractive({ useHandCursor: true }).on('pointerup', () => this.select(w));
       this.nameOf(l, w, p, r);
     }
-    const home = l.at(worldById('graphite')!);
+    const home = l.at(worldById(getProfile(this).at) ?? WORLDS[0]!);
     const ship = l.vertical ? { x: home.x, y: home.y - 40 } : { x: home.x - 50, y: home.y };
     const img = this.add.image(ship.x, ship.y, shipTexture(this, shipLookOf(getProfile(this)), 'small'));
     img.setScale(MAP_SHIP_W / img.width);
@@ -189,7 +196,7 @@ export class SystemScene extends Phaser.Scene {
 
   /** A world's name: beside a moon, over a giant, under a planet (across); beside everything (down). */
   private nameOf(l: Layout, w: World, p: { x: number; y: number }, r: number): void {
-    const bold = w.id === 'graphite' ? '600' : '500';
+    const bold = w.id === getProfile(this).at ? '600' : '500';
     if (l.vertical) {
       if (w.parent) label(this, p.x, p.y + r + 4, w.name, 15, INK_TEXT, bold).setOrigin(0.5, 0);
       else label(this, p.x + r * (w.id === 'sepia' ? 2.2 : 1) + 8, p.y, w.name, 16, INK_TEXT, bold).setOrigin(0, 0.5);
@@ -208,8 +215,10 @@ export class SystemScene extends Phaser.Scene {
     const tx = x + PAD + 112;
     const tw = cw - (tx - x) - PAD;
     label(this, tx, top, w.name, 24, INK_TEXT, '600');
-    // Room on the right for the Set course button on the first trip's world.
-    const tw2 = w.id === FIRST_COURSE.to ? tw - 220 : tw;
+    // Room on the right for the Set course button on a world the ship can fly to.
+    const p = getProfile(this);
+    const trip = isWorldId(w.id) && tripFuel(p.at, w.id) !== null ? w.id : null;
+    const tw2 = trip ? tw - 220 : tw;
     const where = w.parent ? `moon of ${worldById(w.parent)!.name}` : `${ordinal(planetsOf().indexOf(w) + 1)} world from the star`;
     const kind = aside(this, tx, top + 34, `${KIND_LINE[w.kind]} · ${where}`, 16, tw2, w.kind === 'living' ? VERDIGRIS : INK_TEXT);
     let ry = kind.y + kind.height + 6;
@@ -219,17 +228,19 @@ export class SystemScene extends Phaser.Scene {
     ry = a.y + a.height + 8;
     const seen = prose(this, tx, ry, w.seen, 17, tw);
     ry = Math.max(top + 100, seen.y + seen.height + 10);
-    const status = scrawl(this, tx, ry, statusOf(w, getProfile(this)), 22, INK_TEXT, tw);
+    const status = scrawl(this, tx, ry, statusOf(w, p), 22, INK_TEXT, tw);
     ry += status.height + 12;
-    if (w.id === FIRST_COURSE.to) {
-      const why = canSetCourse(getProfile(this));
-      if (why !== 'set') {
-        // Up by the name, so it's in view without scrolling.
-        plaque(this, x + cw - PAD - 100, top + 18, 'Set course', () => this.setCourse(), { width: 200, height: 44, size: 16, kind: why === 'ok' ? 'primary' : 'off' });
-        if (why !== 'ok') {
-          const t = aside(this, tx, ry, COURSE_WHY[why], 15, tw, SEPIA);
-          ry += t.height + 10;
-        }
+    if (trip) {
+      const why = canTravel(p, trip, hasWorld);
+      // Without the full game the first trip still ends the demo, and after that the button offers it.
+      const unlock = why === 'locked' && hasBeat(p, 'course');
+      const go = (): void => (why === 'ok' ? this.fly(trip) : unlock ? getHost(this).onBuy() : this.setCourse());
+      // Up by the name, so it's in view without scrolling.
+      plaque(this, x + cw - PAD - 100, top + 18, unlock ? 'Unlock' : 'Set course', go, { width: 200, height: 44, size: 16, kind: why === 'ok' || why === 'locked' ? 'primary' : 'off' });
+      const note = travelWhy(why, tripFuel(p.at, trip)!);
+      if (note) {
+        const t = aside(this, tx, ry, note, 15, tw, SEPIA);
+        ry += t.height + 10;
       }
     }
     const h = ry - y;
@@ -256,7 +267,36 @@ export class SystemScene extends Phaser.Scene {
     this.scene.start('Ship', { remote: false, tab: 'starship' });
   }
 
-  /** The first trip, from its world's card: the end of chapter 1. */
+  /** A trip made: the ship flies there, and its page opens in orbit over the new world. Setting out from Graphite the first time ends chapter 1. */
+  private fly(to: WorldId): void {
+    const was = getProfile(this);
+    const first = !hasBeat(was, 'course');
+    setProfile(this, travel(was, to));
+    const name = worldById(to)!.name;
+    const from = worldById(was.at)!.name;
+    storyCard(this, {
+      title: `Course set for ${name}`,
+      subtitle: first ? 'the end of chapter 1' : `${from} to ${name}`,
+      pictures: [{ key: shipTexture(this, shipLookOf(getProfile(this)), 'small'), h: 70 }, { key: TEX.world(to), h: 70 }],
+      text: first
+        ? `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${name} grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.`
+        : `The engine hums and ${from} slides away below. A short hop round the ringed giant, and ${name} fills the window.`,
+      button: `On to ${name}`,
+    }, () => this.scene.start('Ship', { remote: false, tab: 'starship' }));
+  }
+
+  /** At a world whose ground isn't loaded: the full game failed to come down. */
+  private unavailable(at: WorldId): void {
+    const err = (this.registry.get(REG.fullError) as string | null | undefined) ?? 'This world is part of the full game.';
+    storyCard(this, {
+      title: `${worldById(at)!.name} isn't here`,
+      subtitle: 'the full game',
+      text: `${err} Until it comes down, your ship can't land.`,
+      button: 'Try again',
+    }, () => void loadPaidPlanets(this).then(() => this.scene.restart({ selected: at } satisfies SystemData)));
+  }
+
+  /** The first trip without the full game, from its world's card: the end of the demo. */
   private setCourse(): void {
     const r = setCourse(getProfile(this));
     if (!r.ok) return;
@@ -266,20 +306,23 @@ export class SystemScene extends Phaser.Scene {
       title: `Course set for ${to}`,
       subtitle: 'the end of chapter 1',
       pictures: [{ key: shipTexture(this, shipLookOf(getProfile(this)), 'small'), h: 70 }, { key: TEX.world(FIRST_COURSE.to), h: 70 }],
-      text: `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${to} grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.`,
+      text: `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${to} grows ahead, green under its haze: a world with air, and with life in it. Somewhere under that haze, the Aster beacon is still calling.`,
       button: 'On to Mycel',
     }, () => this.scene.restart({ selected: FIRST_COURSE.to, demoEnd: true } satisfies SystemData));
   }
 
-  /** Where the demo stops: on the star map, with the rest of the journey still to come. */
+  /** Where the demo stops: on the star map, with the full game offered (Mycel is in it; the rest of the journey is still coming). */
   private demoEnd(): void {
+    const host = getHost(this);
+    const price = host.price ? ` · ${host.price}` : '';
     storyCard(this, {
       title: 'The end of the demo',
       subtitle: 'thank you for playing',
       pictures: [{ key: TEX.world(FIRST_COURSE.to), h: 80 }],
-      text: `That's as far as the demo goes. ${worldById(FIRST_COURSE.to)!.name} and the eight worlds after it, each with its own people, language and dangers, and the long search for the way home, are coming soon.`,
-      button: 'Look at the map',
-    }, () => {});
+      text: `That's as far as the demo goes. ${worldById(FIRST_COURSE.to)!.name}, the green moon, is in the full game: follow an alien distress call down into a fungal jungle, find the wreck of the Aster's lander, and learn from their strange gear to print your own from the moon's ores. The worlds after it, each with its own people, language and dangers, and the long search for the way home, are coming.`,
+      button: `Unlock the full game${price}`,
+      secondary: { label: 'Look at the map', press: () => {} },
+    }, () => host.onBuy());
   }
 }
 
@@ -287,17 +330,27 @@ function ordinal(n: number): string {
   return ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth'][n - 1] ?? `${n}th`;
 }
 
-/** Why the first trip can't be set yet, beside its button. */
-const COURSE_WHY = {
-  away: 'Trips are set aboard your ship.',
-  broken: 'The ship needs its power, telescope, tank and engine mended first.',
-  fuel: `The ship's tank needs ${FIRST_COURSE.fuel} units for the trip.`,
-} as const;
+/** The first trip set without the full game: the demo's over. */
+const demoOver = (p: Profile): boolean => hasBeat(p, 'course') && !hasWorld('mycel');
 
-/** Whether you've been, can go, or can't land. */
+/** Why a trip can't be made yet, beside its button (nothing when it can). */
+function travelWhy(why: TravelCheck, fuel: number): string | null {
+  if (why === 'docked') return 'Trips are set aboard your ship.';
+  if (why === 'ship') return 'The ship needs its power, telescope, tank and engine mended first.';
+  if (why === 'fuel') return `The ship's tank needs ${fuel} units for the trip.`;
+  if (why === 'locked') return 'It\'s in the full game.';
+  return null;
+}
+
+/** Whether you're there, have been, can go, or can't land. */
 function statusOf(w: World, p: Profile): string {
-  if (w.chapter === 1) return 'You were here. Your ship circles it.';
+  if (w.id === p.at) return p.docked ? 'Your ship circles it.' : 'You are here. Your ship circles it.';
+  if (isWorldId(w.id) && p.visited.includes(w.id)) return 'You were here.';
   if (w.chapter === null) return 'No ground to land on. Its moons are what matter.';
-  if (w.id === FIRST_COURSE.to) return hasBeat(p, 'course') ? 'Course set: the next chapter goes there.' : "A sister moon: the nearest trip, within reach of the ship's first tank.";
+  if (isWorldId(w.id) && tripFuel(p.at, w.id) !== null) {
+    if (demoOver(p) && w.id === FIRST_COURSE.to) return 'Course set: the full game goes there.';
+    return w.id === FIRST_COURSE.to && hasBeat(p, 'distress') ? "The Aster's distress call comes from here. A sister moon, within reach of the ship's first tank." : "A sister moon: the nearest trip, within reach of the ship's first tank.";
+  }
+  if (w.id === 'brine' && hasBeat(p, 'asterWoken')) return "The Aster's crew flew here from Mycel years ago and never called back. Out of reach: it needs a bigger tank, and the chapters after.";
   return 'Out of reach: it needs a bigger tank, and the chapters after.';
 }

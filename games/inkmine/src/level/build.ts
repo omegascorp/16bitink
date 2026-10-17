@@ -1,3 +1,6 @@
+import { placeCreatures } from '../logic/creatures';
+import { hasTool } from '../logic/tools';
+import { fuelsAt } from '../logic/worlds';
 import type { Profile } from '../logic/economy';
 import { Ladders } from '../logic/ladders';
 import type { MineSetup } from '../logic/mine';
@@ -38,6 +41,8 @@ export function buildWorld(planet: PlanetDef, p: Profile, save: WorldSave | null
   const def = planet.world;
   const terrain = buildGround(def);
   const base = terrain.tiles.slice();
+  // On the ground as carved, so they stand in the same places every landing, however it's been dug.
+  const creatures = placeCreatures(terrain, def.creatures ?? [], def.site.surface, TILE_SIZE, def.site.seed, def.giant && [def.giant.at[0], def.site.surface + def.giant.at[1]]);
   const ladders = new Ladders(terrain);
   if (save) applyWorld(terrain, ladders, save);
   const taken = new Set(save?.taken ?? []);
@@ -58,10 +63,12 @@ export function buildWorld(planet: PlanetDef, p: Profile, save: WorldSave | null
       stores: p.stores,
       storesCap: storeCapacity(p.ship),
       bag: p.suit,
-      fuels: planet.fuels,
+      fuels: fuelsAt(planet.world.id),
       dropped: droppedBag(terrain.width, save?.bag),
       pieces: save?.pieces,
       outpost: def.outpost === undefined ? undefined : { col: def.outpost, row: def.site.surface },
+      creatures,
+      armed: hasTool(p, 'pulse'),
     },
   };
 }

@@ -2,7 +2,7 @@
 
 Oct 17, 2026 · @Hayk · research and a first draft of the rules for every creature, plant and people in InkMine
 
-What alien life could really look like, according to research, and how InkMine uses it. The aim is to settle this early, so that every creature, plant and race we add follows the same rules, and so the real science behind them can become shorts and long-form videos later. Facts marked *(unverified)* are from memory, not from a source read during this research. Everything under "Proposed for InkMine" is a draft for @Hayk to accept or change, except where marked as @Hayk's decision (Oct 17, 2026: the habitable-zone rule, crabs on some worlds, Graphite's food web). None of it is built.
+What alien life could really look like, according to research, and how InkMine uses it. The aim is to settle this early, so that every creature, plant and race we add follows the same rules, and so the real science behind them can become shorts and long-form videos later. Facts marked *(unverified)* are from memory, not from a source read during this research. Everything under "Proposed for InkMine" is a draft for @Hayk to accept or change, except where marked as @Hayk's decision (Oct 17, 2026: the habitable-zone rule, crabs on some worlds, Graphite with microbes only). Mycel's creatures are built.
 
 ## The short version
 
@@ -116,7 +116,7 @@ On Earth, unrelated lineages keep landing on the same solutions. The palaeontolo
 Each planet names where its life gets energy. That decides where the creatures are, which is a level-design tool.
 
 - **Sunlit planets:** plants on the surface, grazers and hunters near them, fewer creatures as you dig down.
-- **Under-ice and underground worlds (Graphite, Umbra):** life lives on chemical energy from the deep, so **the deeper you go, the more and fiercer the creatures.** This gives a real reason for the existing rule that weapons are the depth gate.
+- **Under-ice and underground worlds (Umbra):** life lives on chemical energy from the deep, so **the deeper you go, the more and fiercer the creatures.** This gives a real reason for the rule that weapons are the depth gate. (Graphite is underground too, but has only microbes: no creatures, by @Hayk's choice, Oct 17, 2026.)
 - **Dead worlds:** no creatures; the danger is the planet.
 
 ## 4. Thinking creatures
@@ -282,7 +282,7 @@ That is 4 living, 2 under ice or underground, 4 dead, and 2 giants. **Bonus for 
 
 | # | Planet | Kind | Energy source | The crab | What changes | Real-world hook |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Graphite | Underground | Chemical, from the deep: radioactivity splitting ice, heat from the ringed giant's tides | **Grit crabs**: the dust ticks, drawn crab-shaped | Nothing: no surface life is already how it's built | The 2.8 km deep gold-mine ecosystem; Enceladus |
+| 1 | Graphite | Underground | Chemical, from the deep: radioactivity splitting ice, heat from the ringed giant's tides | — | Microbes only (Oct 17, 2026): no creatures | The 2.8 km deep gold-mine ecosystem; Enceladus |
 | 2 | Talus | Living, sparse | Sunlight on a dry world | **Boulder crabs**: the boulder beetles, a crab that mimics rock | Nothing | Cacti and euphorbias evolved the same water-saving look separately *(unverified)* |
 | 3 | Brine | Living | Sunlight above, vents below | Shore crabs on the islands | Nothing | The Purple Earth idea; sharks and dolphins share one shape |
 | 4 | Mycel | Living | Rot: fungus eats the dead | — | Nothing | *Prototaxites*, the 8 m fungus "tree" *(unverified)* |
@@ -314,14 +314,24 @@ A second breathable world can come in a later system.
 1. **Hazards only** (recommended). Each dead world's gate is its given gear (coolant foam on Ember, the thermal lance on Rime, the tuning fork on Prism). It's the cleanest reading of the rule and the biggest change of pace.
 2. **Hazards plus machines.** Old automated miners or guardians left by someone else keep weapons useful. This works under the rule, since machines aren't life, but it uses up the machine race's surprise early.
 
-### Graphite's food web (accepted by @Hayk, Oct 17, 2026)
+### Graphite: microbes only (changed by @Hayk, Oct 17, 2026)
 
-| Level | Who | What it does |
+Graphite has no flora and no fauna: it's a bare rock moon, which keeps the free chapter simple and needs no weapons. Grit crabs, lead worms and the Grinder are cut. What's left is microbial:
+
+| Who | What it does |
+| --- | --- |
+| **Rock film**: mats of microbes on warm cave walls deep down, living on chemical energy | Harmless. They make the **firedamp**: the gas pockets are methane breathed out by microbes, as some of Earth's coal-mine gas is *(unverified)* |
+
+### Mycel's creatures (built Oct 17, 2026)
+
+Mycel's life runs on rot: fungus eats the dead, and its animals are fungal too. Each starts from a convergent shape (spec, "Creatures"):
+
+| Who | Shape | Why it's like that |
 | --- | --- | --- |
-| Producers | **Rock film**: blue-ink mats on warm cave walls, living on chemical energy | Harmless. They make the **firedamp**: the gas pockets are methane breathed out by microbes, as some of Earth's coal-mine gas is *(unverified)*. Firedamp now has a reason |
-| Grazers | **Grit crabs** (the dust ticks) | Scrape the mats. Walkers in the lead seams |
-| Burrowers | **Lead worms** | Eat their way through graphite for the carbon |
-| Top | **The Grinder** | Eats lead worms; lives deepest, where it's warmest |
+| **Puffballs** | Spitter, a sac | Fungi spread by spores; a sac that fires them at whatever moves near is a spore-spreader that also feeds on what it kills |
+| **Snap tendrils** | Dropper, a whip | Hyphae that grow down from cave ceilings and grab: a trap shape, like a sundew's |
+| **Grazers** | Soft crawler under plates | They eat caps, so they're slow and armoured rather than fast |
+| **The Mother Mycel** | A giant heart of fungal flesh | The moon's oldest mycelium, grown into a chamber; its beat pumps spores out through the rock |
 
 ## 8. Videos this research gives us
 

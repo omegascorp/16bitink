@@ -9,6 +9,7 @@ import type { StarshipId } from './starship';
 import type { Beat } from './story';
 import type { Tool } from './tools';
 import { SUIT_STACK } from './suit';
+import type { WorldId } from './worlds';
 
 /**
  * Everything the player owns, wherever they are on the planet. There's no
@@ -44,6 +45,10 @@ export interface Profile {
   readonly hold: Inventory;
   /** The lander's air tank and battery, which top the suit up at the lander (stores.ts). */
   readonly stores: { readonly air: number; readonly power: number };
+  /** The world you're at: on its ground, or docked in orbit over it (worlds.ts). */
+  readonly at: WorldId;
+  /** Worlds you've landed on, the first included. */
+  readonly visited: readonly WorldId[];
 }
 
 /** The starship's hold: big slots and big stacks, as a hauler's. */
@@ -68,6 +73,8 @@ export const NEW_PROFILE: Profile = {
   shipFuel: 0,
   hold: emptyInventory(STARSHIP_HOLD.slots, STARSHIP_HOLD.stack),
   stores: { air: storeCapacity(STARTER_SHIP), power: storeCapacity(STARTER_SHIP) },
+  at: 'graphite',
+  visited: ['graphite'],
 };
 
 /** Every resource on hand: the cargo and the suit's bag, and the starship's hold while docked. */
@@ -98,11 +105,6 @@ export function fitInventories(p: Profile): Profile {
 
 /** Whether the printer works: it's the first thing the crash broke. */
 export const printerWorks = (p: Profile): boolean => p.repaired.includes('printer');
-
-/** A blueprint learnt (by studying a broken part): listed once, if it's a real one. */
-export function findBlueprint(p: Profile, id: string): Profile {
-  return recipeOf(id) && !p.found.includes(id) ? { ...p, found: [...p.found, id] } : p;
-}
 
 export type PrintResult<Why> = { readonly ok: true; readonly profile: Profile } | { readonly ok: false; readonly why: Why };
 

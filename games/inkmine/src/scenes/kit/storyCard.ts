@@ -29,6 +29,8 @@ export interface StoryCardSpec {
   /** What the prospector makes of it. */
   readonly text: string;
   readonly button: string;
+  /** A second, lesser button beside the main one: it closes the card and does its own thing instead of the main one's. */
+  readonly secondary?: { readonly label: string; readonly press: () => void };
 }
 
 const W = 640;
@@ -100,15 +102,23 @@ export function storyCard(scene: Phaser.Scene, spec: StoryCardSpec, onClose: () 
     if (!e.repeat) close();
   };
   const made: Phaser.GameObjects.GameObject[] = [];
-  const close = (): void => {
+  const close = (then: () => void = onClose): void => {
     if (closed) return;
     closed = true;
     scene.input.keyboard?.off('keydown-SPACE', onKey);
     scene.input.keyboard?.off('keydown-ENTER', onKey);
     for (const o of made) o.destroy();
-    onClose();
+    then();
   };
-  parts.push(plaque(scene, 0, h / 2 - 46, spec.button, close, { width: Math.max(220, spec.button.length * 17 + 48), height: 46, kind: 'primary' }));
+  const bw = (text: string): number => Math.max(200, text.length * 15 + 44);
+  const second = spec.secondary;
+  if (second) {
+    const [w1, w2] = [bw(spec.button), bw(second.label)];
+    const gap = 16;
+    const left = -(w1 + w2 + gap) / 2;
+    parts.push(plaque(scene, left + w2 / 2, h / 2 - 46, second.label, () => close(second.press), { width: w2, height: 46, kind: 'secondary', size: 15 }));
+    parts.push(plaque(scene, left + w2 + gap + w1 / 2, h / 2 - 46, spec.button, () => close(), { width: w1, height: 46, kind: 'primary', size: 15 }));
+  } else parts.push(plaque(scene, 0, h / 2 - 46, spec.button, () => close(), { width: Math.max(220, spec.button.length * 17 + 48), height: 46, kind: 'primary' }));
   // Taps meant for the page under the card go nowhere.
   const sheet = scene.add.rectangle(0, 0, width, height, 0x1f2a55, 0.18).setOrigin(0).setScrollFactor(0).setDepth(depth - 1).setInteractive();
   // Pinned with its children: Phaser hit-tests each child by its own scroll factor, so on a scrolled page the button's tap area would slide off it.

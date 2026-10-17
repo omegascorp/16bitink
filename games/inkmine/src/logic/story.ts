@@ -15,7 +15,7 @@ import type { OreKey } from './ore';
  *
  * The beats are saved as reached: never rename one.
  */
-export const BEATS = ['called', 'met', 'paid', 'core', 'flown', 'course', 'aboard', 'firstLight'] as const;
+export const BEATS = ['called', 'met', 'paid', 'core', 'flown', 'course', 'aboard', 'firstLight', 'mycelOrbit', 'mycelLanded', 'distress', 'asterFound', 'asterCamp', 'asterWoken'] as const;
 export type Beat = (typeof BEATS)[number];
 
 /**
@@ -27,19 +27,40 @@ export const OUTPOST = { col: 180, worldCols: 256, domes: 5 } as const;
 /** What the Lamplighters want for the core: silver, which lies deep. */
 export const TRADE: Hold = { silver: 10 };
 
+/** The beat that says a world's first-landing card was read (Graphite's opening is `started`). */
+export const ARRIVAL_BEAT: Readonly<Partial<Record<string, Beat>>> = { mycel: 'mycelLanded' };
+
 export const hasBeat = (p: Pick<Profile, 'beats'>, b: Beat): boolean => p.beats.includes(b);
 
 export function withBeat(p: Profile, b: Beat): Profile {
   return hasBeat(p, b) ? p : { ...p, beats: [...p.beats, b] };
 }
 
-/** Ores kept in the bag at the lander: the Lamplighters' silver, from when they ask for it until they have it. */
+/**
+ * What the Aster's sleep pod needs to wake its sleeper (spec, "Mycel"): its
+ * cell is a glass prism with a pyrite cathode, as theirs all are, and
+ * it's drained flat. Pyrite for the cathode, calcite for the clear crystal.
+ */
+export const WAKE: Hold = { pyrite: 6, calcite: 4 };
+
+/**
+ * Ores kept in the bag at the lander, from when they're asked for until
+ * they're handed over: the Lamplighters' silver, and the sleep pod's charge.
+ */
 export function keptOres(p: Pick<Profile, 'beats'>): OreKey[] {
-  return hasBeat(p, 'met') && !hasBeat(p, 'paid') ? holdEntries(TRADE).map(([ore]) => ore) : [];
+  const asked = [...(hasBeat(p, 'met') && !hasBeat(p, 'paid') ? holdEntries(TRADE) : []), ...(hasBeat(p, 'asterCamp') && !hasBeat(p, 'asterWoken') ? holdEntries(WAKE) : [])];
+  return [...new Set(asked.map(([ore]) => ore))];
 }
 
 /** The call is waiting: the radio works and it hasn't been taken yet. */
 export const callDue = (p: Profile): boolean => p.repaired.includes('comms') && !hasBeat(p, 'called');
+
+/**
+ * The Aster lander's distress call is waiting: the starship's power is back
+ * on over Graphite and its radio hasn't played the recording yet. It's
+ * what sends you to Mycel (spec, "Mycel").
+ */
+export const distressDue = (p: Profile): boolean => p.docked && p.at === 'graphite' && p.starship.includes('power') && !hasBeat(p, 'distress');
 
 /** The ship is whole but for the core: what the Lamplighters wait for before they hand it over. */
 export const shipWhole = (p: Profile): boolean => p.repaired.includes('hull') && p.repaired.includes('thrusters');
@@ -57,10 +78,10 @@ export function signalBars(tiles: number): number {
   return BANDS.find(([within]) => tiles <= within)?.[1] ?? 0;
 }
 
-/** "native silver 3/10": what the trade wants against what's in the bag. */
-export function tradeLine(bag: Inventory, names: (ore: string) => string): string {
+/** "native silver 3/10": what the trade (or another hold, such as the pod's charge) wants against what's in the bag. */
+export function tradeLine(bag: Inventory, names: (ore: string) => string, want: Hold = TRADE): string {
   const have = contents(bag);
-  return holdEntries(TRADE).map(([ore, n]) => `${names(ore)} ${Math.min(countOf(have, ore), n)}/${n}`).join(' · ');
+  return holdEntries(want).map(([ore, n]) => `${names(ore)} ${Math.min(countOf(have, ore), n)}/${n}`).join(' · ');
 }
 
 /**
@@ -96,4 +117,32 @@ export function visit(p: Profile, bag: Inventory): Visit {
   }
   if (!shipWhole(profile)) return { profile, bag: after, says: hasBeat(p, 'paid') ? 'waitShip' : 'paid' };
   return { profile: withBeat(profile, 'core'), bag: after, says: 'core' };
+}
+
+/**
+ * What happens at the Aster's camp on Mycel (spec, "Mycel"), at the end of
+ * the crew's trail east:
+ * - 'camp': the first time, you find it: three empty bedrolls, pictures on
+ *   the wall of the other three flying off to Brine, and the last of them
+ *   asleep in a pod whose power is failing;
+ * - 'pod': the pod still waits for its charge (the bag hasn't all of it);
+ * - 'woken': the charge taken from the bag, the sleeper wakes and shows
+ *   you where its crew went;
+ * - 'awake': it's awake already; it flashes its crown at you.
+ */
+export type CampSays = 'camp' | 'pod' | 'woken' | 'awake';
+
+export interface CampVisit {
+  readonly profile: Profile;
+  /** The suit's bag after the visit (the pod's charge is taken from it). */
+  readonly bag: Inventory;
+  readonly says: CampSays;
+}
+
+export function campVisit(p: Profile, bag: Inventory): CampVisit {
+  if (!hasBeat(p, 'asterCamp')) return { profile: withBeat(p, 'asterCamp'), bag, says: 'camp' };
+  if (hasBeat(p, 'asterWoken')) return { profile: p, bag, says: 'awake' };
+  const took = takeHoldFrom(bag, WAKE);
+  if (holdEntries(took.short).length) return { profile: p, bag, says: 'pod' };
+  return { profile: withBeat(p, 'asterWoken'), bag: took.inv, says: 'woken' };
 }

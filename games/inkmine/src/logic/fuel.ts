@@ -3,11 +3,12 @@ import { countOf } from './hold';
 import type { OreKey } from './ore';
 import { isFixed } from './starship';
 import { hasBeat, withBeat } from './story';
+import { waterAt } from './worlds';
 
 /**
  * The lander's fuel tank (spec, "Your starship and travel"): hydrogen and
- * oxygen, split from water ice by the lander's power, as real moon bases
- * plan to fuel their rockets. Refilled from the ice on hand (the cargo,
+ * oxygen, split from water by the lander's power, as real moon bases
+ * plan to fuel their rockets (ice on Graphite, liquid on Mycel: worlds.ts). Refilled from the water on hand (the cargo,
  * then the bag), one unit a lump, on the ground or docked; docked, it fills
  * through the starship's tank, so not while that's split. Graphite has no
  * air to brake in, so landing burns as much as climbing: lift-off waits for
@@ -22,16 +23,17 @@ export const FUEL = {
   toOrbit: 6,
   /** Units landing back on Graphite burns. */
   toGround: 6,
-  /** What it's split from. */
-  ore: 'ice' as OreKey,
 } as const;
+
+/** What the tank is split from where you are. */
+export const fuelOre = (p: Pick<Profile, 'at'>): OreKey => waterAt(p.at);
 
 /** What lift-off needs in the tank: the climb and the landing after. */
 export const ROUND_TRIP = FUEL.toOrbit + FUEL.toGround;
 
 /** Lumps a refill would take now: what the tank lacks, or what's on hand if that's less. */
 export function refillCost(p: Profile): number {
-  return Math.min(FUEL.max - p.fuel, countOf(onHand(p), FUEL.ore));
+  return Math.min(FUEL.max - p.fuel, countOf(onHand(p), fuelOre(p)));
 }
 
 /** Why a refill can't happen: 'tank' when docked and the starship's tank is still split. */
@@ -48,7 +50,7 @@ export function refill(p: Profile): PrintResult<RefillCheck> {
   const why = canRefill(p);
   if (why !== 'ok') return { ok: false, why };
   const n = refillCost(p);
-  return { ok: true, profile: { ...spend(p, { [FUEL.ore]: n }), fuel: p.fuel + n } };
+  return { ok: true, profile: { ...spend(p, { [fuelOre(p)]: n }), fuel: p.fuel + n } };
 }
 
 /** Whether the lander can climb to the starship now, or why not. */
@@ -74,11 +76,12 @@ export function canLand(p: Profile): LandCheck {
   return p.fuel >= FUEL.toGround ? 'ok' : 'fuel';
 }
 
-/** Back down to Graphite from the starship: the fuel burnt, on the ground. */
+/** Back down from the starship to the world it circles: the fuel burnt, on the ground, and the world counted as landed on. */
 export function land(p: Profile): PrintResult<LandCheck> {
   const why = canLand(p);
   if (why !== 'ok') return { ok: false, why };
-  return { ok: true, profile: { ...p, fuel: p.fuel - FUEL.toGround, docked: false } };
+  const visited = p.visited.includes(p.at) ? p.visited : [...p.visited, p.at];
+  return { ok: true, profile: { ...p, fuel: p.fuel - FUEL.toGround, docked: false, visited } };
 }
 
 /** Whether the lander has flown up once (the star map's been seen). */

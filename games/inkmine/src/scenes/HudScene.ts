@@ -14,6 +14,8 @@ import { plaque } from './kit/plaque';
 import { aside, heading, INK_TEXT, label, MADDER, prose, SEPIA } from './kit/type';
 import { drawSlotGrid, gridHeight } from './slots';
 import { storyCard } from './kit/storyCard';
+import { ASTER_CARD } from './hud/asterCard';
+import { campSpec } from './hud/campCards';
 import { talkSpec } from './hud/talkCards';
 import { TouchPad } from './hud/touchPad';
 import { muteButton } from './kit/muteButton';
@@ -36,6 +38,9 @@ const WOKE_MS = 9000;
 const HINT = {
   keys: '← →  walk     ↓ ↑  drill     SPACE  jump, hold to fly     L or ESC  inventory (feed the suit there), or aboard at the lander     M  sound',
   touch: 'left thumb: walk and drill · Jump: hold to fly · Bag: inventory',
+  /** With the pulse printed. */
+  armedKeys: '← →  walk     ↓ ↑  drill     SPACE  jump, hold to fly     F  pulse     L or ESC  inventory, or aboard at the lander     M  sound',
+  armedTouch: 'left thumb: walk and drill · Jump: hold to fly · Pulse: fire · Bag: inventory',
 } as const;
 /** Paper-coloured halo round text laid straight over the game. */
 const HALO = { stroke: '#f5efdf', strokeThickness: 5 } as const;
@@ -88,7 +93,7 @@ export class HudScene extends Phaser.Scene {
   private failed!: Phaser.GameObjects.Text;
   private intro: Phaser.GameObjects.Container | null = null;
   private woke: Phaser.GameObjects.Container | null = null;
-  /** A Lamplighter's card, while one is talking. */
+  /** A Lamplighter's card while one is talking, or the Aster lander's. */
   private talk: Phaser.GameObjects.GameObject[] | null = null;
   private shown = '';
   private goalShown = '';
@@ -179,7 +184,9 @@ export class HudScene extends Phaser.Scene {
     const touch = this.touch.visible;
     const prompt = touch ? 'At the lander: tap Aboard' : 'At the lander: press L to go aboard';
     if (this.prompt.text !== prompt) this.prompt.setText(prompt);
-    const hint = touch ? HINT.touch : HINT.keys;
+    const armed = (this.scene.get('Game') as GameScene).mine.fauna.armed;
+    this.touch.setArmed(armed);
+    const hint = touch ? (armed ? HINT.armedTouch : HINT.touch) : armed ? HINT.armedKeys : HINT.keys;
     if (this.hint.text !== hint) this.hint.setText(hint);
   }
 
@@ -243,12 +250,24 @@ export class HudScene extends Phaser.Scene {
     this.failed.setVisible(mine.state === 'failed');
   }
 
-  /** A Lamplighter's card up while one is talking (the world waits), gone once it's read. */
+  /** A Lamplighter's card up while one is talking, the Aster lander's once you reach it, or the Aster camp's (the world waits), gone once it's read. */
   private showTalk(game: GameScene): void {
     if (game.talk && game.talk !== 'thanks' && !this.talk) {
       this.talk = storyCard(this, talkSpec(this, game.talk), () => {
         this.talk = null;
         game.closeTalk();
+      }, 70);
+    }
+    if (game.found && !this.talk) {
+      this.talk = storyCard(this, ASTER_CARD, () => {
+        this.talk = null;
+        game.closeFound();
+      }, 70);
+    }
+    if (game.camp && game.camp !== 'awake' && !this.talk) {
+      this.talk = storyCard(this, campSpec(this, game.camp), () => {
+        this.talk = null;
+        game.closeCamp();
       }, 70);
     }
   }
@@ -285,10 +304,12 @@ export class HudScene extends Phaser.Scene {
   private showIntro(): void {
     const { width, height } = viewSize(this);
     const left = -INTRO_W / 2 + 40;
-    const parts: Phaser.GameObjects.GameObject[] = [heading(this, 0, 36, 'Graphite', 30).setOrigin(0.5, 0)];
-    parts.push(aside(this, 0, 76, 'a grey moon, uncharted', 18, INTRO_W - 80, SEPIA).setOrigin(0.5, 0));
+    // Graphite's opening, or a later world's first landing (its planet carries the card).
+    const card = this.play?.introCard() ?? null;
+    const parts: Phaser.GameObjects.GameObject[] = [heading(this, 0, 36, card?.title ?? 'Graphite', 30).setOrigin(0.5, 0)];
+    parts.push(aside(this, 0, 76, card?.arrival.subtitle ?? 'a grey moon, uncharted', 18, INTRO_W - 80, SEPIA).setOrigin(0.5, 0));
     let y = 120;
-    for (const para of INTRO) {
+    for (const para of card?.arrival.paragraphs ?? INTRO) {
       const t = prose(this, left, y, para, 20, INTRO_W - 80);
       parts.push(t);
       y += t.height + 12;
@@ -296,7 +317,7 @@ export class HudScene extends Phaser.Scene {
     const h = y + 80;
     for (const part of parts) (part as unknown as { y: number }).y -= h / 2;
     const close = (): void => this.closeIntro();
-    parts.push(plaque(this, 0, h / 2 - 46, 'Get up', close, { width: 180, height: 46, kind: 'primary' }));
+    parts.push(plaque(this, 0, h / 2 - 46, card?.arrival.button ?? 'Get up', close, { width: 180, height: 46, kind: 'primary' }));
     this.intro = plateCard(this, width / 2, height / 2, INTRO_W, h, parts, 77).setDepth(50);
     this.input.keyboard?.once('keydown-SPACE', close);
     this.input.keyboard?.once('keydown-ENTER', close);

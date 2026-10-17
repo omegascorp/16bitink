@@ -66,11 +66,22 @@ export class MineSounds {
       case 'shielded': return s.play('shield');
       case 'hurt': return s.play('hurt');
       case 'lit': return s.play('fizz');
+      // A spore pocket's puff: the fizz, low and short.
+      case 'spores': return s.play('fizz', { pitch: 0.55 });
+      // Off a cap: a soft, springy pluck, higher for the big jump.
+      case 'bounce': return s.play('land', { pitch: e.big ? 1.5 : 1.9 });
       case 'blast': return this.blast(e.blast.at, mine);
       case 'item':
       case 'salvage': return s.play('find');
       case 'recall': return s.play('winch');
       case 'failed': return s.play('failed');
+      // Mycel's creatures: the pulse a bright rising note, a burst a puff, a spat clot and the Mother's beat low.
+      case 'pulse': return s.play('swell', { pitch: 2.2 });
+      case 'struck': return s.play(e.killed ? 'fizz' : 'dull', { pitch: e.killed ? 0.7 : 1.4 });
+      case 'spat': return s.play('fizz', { pitch: 0.45 });
+      case 'grabbed': return s.play('hurt', { pitch: 0.8 });
+      case 'freed': return s.play('land', { pitch: 1.2 });
+      case 'beat': return s.play('blast', { pitch: e.near ? 0.5 : 0.35 });
       default: return;
     }
   }

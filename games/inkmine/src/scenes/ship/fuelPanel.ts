@@ -1,4 +1,4 @@
-import { canLiftOff, canRefill, FUEL, refill, refillCost, ROUND_TRIP } from '../../logic/fuel';
+import { canLiftOff, canRefill, FUEL, fuelOre, refill, refillCost, ROUND_TRIP } from '../../logic/fuel';
 import { ORES } from '../../logic/ore';
 import { Gauge } from '../kit/gauge';
 import { plaque } from '../kit/plaque';
@@ -15,7 +15,7 @@ const LOW = ROUND_TRIP / FUEL.max;
 const NOTES = {
   core: 'Lift-off needs the drive core fitted.',
   fuel: `The climb to your ship burns ${FUEL.toOrbit} units and landing again ${FUEL.toGround}: lift-off waits for both.`,
-  docked: `Landing on Graphite burns ${FUEL.toGround} units.`,
+  docked: `Landing burns ${FUEL.toGround} units.`,
   tank: "Aboard, the lander fills through the ship's tank, and it's split: mend it on the Starship tab first.",
 } as const;
 
@@ -26,13 +26,13 @@ export function tankRow(page: ShipPage, x: number, y: number, w: number, level: 
   new Gauge(scene, x + PAD, y, inner, BAR_H, 'fuel').set(level / max, low);
   const ry = y + BAR_H + 8;
   label(scene, x + PAD, ry, `${level} / ${max} units`, 17, INK_TEXT, '600');
-  aside(scene, x + w - PAD, ry + 2, `one lump of ${ORES[FUEL.ore].name} a unit`, 15, inner / 2, SEPIA).setOrigin(1, 0);
+  aside(scene, x + w - PAD, ry + 2, `one lump of ${ORES[fuelOre(page.profile)].name} a unit`, 15, inner / 2, SEPIA).setOrigin(1, 0);
   return ry + 32;
 }
 
 /**
  * The lander's fuel on the Lander tab (spec, "Your starship and travel"):
- * the tank's bar, a Refill button that splits the ice on hand into fuel,
+ * the tank's bar, a Refill button that splits the water on hand into fuel,
  * and Lift off once the drive core is in and there's enough to go up and
  * come back down. Aboard the starship, landing is the page's way out, so
  * only Refill is here. Far from the lander it's look-only. Returns the height.
@@ -47,7 +47,9 @@ export function fuelPanel(page: ShipPage, x: number, y: number, w: number): numb
   if (page.remote) {
     plaque(scene, x + PAD + FUEL_BTN.w / 2, cy, 'At the lander', () => {}, opts(false));
   } else {
-    const fillText = { ok: `Refill · ${refillCost(p)} ice`, full: 'Full', materials: 'No ice on hand', tank: "Ship's tank is split" }[fill];
+    // The ore's name short enough for a button: "ice" for water ice.
+    const ore = ORES[fuelOre(p)].name.split(' ').at(-1);
+    const fillText = { ok: `Refill · ${refillCost(p)} ${ore}`, full: 'Full', materials: `No ${ore} on hand`, tank: "Ship's tank is split" }[fill];
     plaque(scene, x + PAD + FUEL_BTN.w / 2, cy, fillText, () => {
       const r = refill(p);
       if (r.ok) page.commit(r.profile, { news: 'Tank filled' });

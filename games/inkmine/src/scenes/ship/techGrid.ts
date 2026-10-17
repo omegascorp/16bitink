@@ -3,7 +3,6 @@ import type Phaser from 'phaser';
 import { techTexture } from '../../art/textures';
 import type { TechVariant } from '../../art/techArt';
 import type { Profile } from '../../logic/economy';
-import { lookOf } from '../../logic/gear';
 import { isRepaired } from '../../logic/repairs';
 import { hasBeat } from '../../logic/story';
 import { techKey, techState, type Tech, type TechState } from '../../logic/tech';
@@ -35,9 +34,9 @@ export function techGridFit(n: number, w: number, max = 92, min = 70): { cell: n
   return { cols, cell: Math.min(max, Math.floor((w - GAP_X * (cols - 1)) / cols)) };
 }
 
-/** What the slot's picture shows: a gear piece in its look, a system broken or mended. */
+/** What the slot's picture shows: a gear piece at its mark, a system broken or mended. */
 export function variantOf(p: Profile, t: Tech): TechVariant {
-  if (t.kind === 'gear') return lookOf(p.gear[t.piece]);
+  if (t.kind === 'gear') return p.gear[t.piece];
   // The Lamplighters' core is whole before it's fitted.
   if (t.kind === 'repair') return isRepaired(p, t.id) || (t.id === 'core' && hasBeat(p, 'core')) ? 'mended' : 'broken';
   if (t.kind === 'starship') return canFix(p, t.id) === 'done' ? 'mended' : 'broken';
