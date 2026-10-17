@@ -164,6 +164,22 @@ function winch(d: Draw): void {
   part(d, roundRect(-14, 4, 14, 7, 0.6), WASH.metal, { shadow: 0.4, line: 0.6, hatch: 0 });
 }
 
+/** The supply tanks: a tall air cylinder, cerulean-banded, beside a squat battery with its charge showing, on one cradle. */
+function supplyTanks(d: Draw): void {
+  const tank = capsule(pt(-6, -13), pt(-6, 10), 12, 12);
+  hullPlate(d, tank, '#cfd6de', -12, 0, -19, 16, 0.15);
+  edge(d, tank, 0.9);
+  for (const y of [-8, 5]) d.pen.fill([pt(-12, y), pt(0, y), pt(0, y + 2.2), pt(-12, y + 2.2)], '#3f8fae', 0.85);
+  part(d, roundRect(-8.4, -19.6, -3.6, -17.4, 0.6), WASH.darkMetal, { shadow: 0.3, line: 0.5, hatch: 0 });
+  sheen(d, [pt(-9.6, -12), pt(-9.6, 8)], 0.7);
+  const battery = roundRect(2, -5, 15, 11, 1.4);
+  part(d, battery, WASH.darkMetal, { shadow: 0.45, line: 0.8, gloss: true, hatch: 0.15 });
+  part(d, roundRect(4.4, -7.4, 7.2, -5, 0.4), STEEL, { shadow: 0.2, line: 0.45, hatch: 0 });
+  part(d, roundRect(9.8, -7.4, 12.6, -5, 0.4), STEEL, { shadow: 0.2, line: 0.45, hatch: 0 });
+  for (let k = 0; k < 3; k++) part(d, roundRect(4.6, 7.6 - k * 4.4, 12.4, 9.6 - k * 4.4, 0.4), CHARGE, { shadow: 0.15, line: 0.4, hatch: 0, alpha: 1 });
+  part(d, roundRect(-15, 13, 16, 16, 0.6), WASH.metal, { shadow: 0.4, line: 0.6, hatch: 0 });
+}
+
 /** The hull refit: a plate on its frame, with the guild's rivets: the lander, built bigger. */
 function refit(d: Draw): void {
   const sheet = [pt(-15, -10), pt(13, -13), pt(15, 10), pt(-13, 12)];
@@ -306,5 +322,6 @@ export function drawTech(d: Draw, t: Tech, variant: TechVariant): void {
   else if (t.kind === 'starship') starshipSystem(d, t, variant === 'broken');
   else if (t.key === 'cargo') cargo(d);
   else if (t.key === 'winch') winch(d);
+  else if (t.key === 'stores') supplyTanks(d);
   else refit(d);
 }

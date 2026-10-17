@@ -52,6 +52,7 @@ export class MineSounds {
       case 'tooHard':
       case 'flat':
       case 'noFuel':
+      case 'storesShort':
       case 'cantFeed': return s.play('dull');
       case 'bagFull':
       case 'cargoFull': return s.play('full');

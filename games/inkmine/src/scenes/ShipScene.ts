@@ -21,6 +21,7 @@ import { desk, NO_FOCUS, type ShipPage, type ShipUi } from './ship/panel';
 import { storagePanel } from './ship/storagePanel';
 import { fuelPanel } from './ship/fuelPanel';
 import { lifePanel } from './ship/lifePanel';
+import { storesPanel } from './ship/storesPanel';
 import { starshipPanel } from './ship/starshipPanel';
 import { drawTabs } from './ship/tabs';
 import { stackCard } from './ship/stackCard';
@@ -148,10 +149,13 @@ export class ShipScene extends Phaser.Scene {
     if (!this.remote) shipStoryCard(page);
   }
 
-  /** The panel under the tab's figure, with the gap after it: the lander's or the starship's fuel, or, in the inventory far from the lander, the suit's life support. */
+  /** The tab's own panels, with the gap after them: the lander's fuel and supplies, the starship's fuel and course, or, in the inventory far from the lander, the suit's life support. */
   private fuel(page: ShipPage, tab: Tab, x: number, y: number, w: number): number {
     if (tab === 'suit') return this.remote ? lifePanel(page, x, y, w) + GAP : 0;
-    return (tab === 'ship' ? fuelPanel(page, x, y, w) : starshipPanel(page, x, y, w)) + GAP;
+    if (tab === 'starship') return starshipPanel(page, x, y, w) + GAP;
+    // The lander's fuel, then its supplies for the suit.
+    const fuelH = fuelPanel(page, x, y, w) + GAP;
+    return fuelH + storesPanel(page, x, y + fuelH, w) + GAP;
   }
 
   /** The title, the tab strip, the way back down (or, aboard the starship, landing), and any news. */

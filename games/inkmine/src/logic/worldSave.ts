@@ -2,6 +2,8 @@ import type { KeyValueStore } from '@16bitink/game-sdk';
 import type { DroppedBag } from './flag';
 import type { Inventory } from './inventory';
 import type { Ladders } from './ladders';
+import { oreKeyOf } from './ore';
+import type { Piece } from './pieces';
 import { parseInventory } from './save';
 import { TILE, type Terrain, type TilePos } from './terrain';
 
@@ -9,7 +11,8 @@ import { TILE, type Terrain, type TilePos } from './terrain';
  * What a world keeps between sessions (spec, "Saving and loading"). Not the
  * world itself: the builder carves that again from its seed in a few
  * milliseconds. Only what the player changed: the ground they dug or blew
- * out, the ladders they left, and the items they took for good. Dug ground
+ * out, the ladders they left, the items they took for good, and the ore
+ * they broke out and left lying. Dug ground
  * and ladders are one bit a tile, packed as runs, so a world with a few
  * hours of tunnels saves in a few KB.
  *
@@ -30,6 +33,15 @@ export interface WorldSave {
   readonly taken: readonly string[];
   /** The bag left under its flag (flag.ts), at a tile index, if there is one. */
   readonly bag?: SavedBag;
+  /** Pieces of ore left lying loose (pieces.ts), each at the tile index it lay in. */
+  readonly pieces?: readonly SavedPiece[];
+}
+
+export interface SavedPiece {
+  /** Tile index: row × width + column. */
+  readonly at: number;
+  /** The ore's id (ore.ts). */
+  readonly ore: number;
 }
 
 export interface SavedBag {
@@ -52,16 +64,29 @@ const KEY = (worldId: string): string => `inkmine.world.${worldId}.v1`;
 /** Longest packed mask accepted, in characters: far above any real world (a 600 × 500 world fully striped is ~400 KB). */
 const MAX_PACKED = 1_000_000;
 const MAX_TAKEN = 512;
+/** Loose pieces kept, at most: far above what a full bag leaves behind. */
+const MAX_PIECES = 400;
 
 /** What changed from the carved ground (`base`, its tiles as carved) to the world as it is. */
-export function captureWorld(base: Uint8Array, t: Terrain, ladders: Ladders, version: number, taken: readonly string[], dropped: DroppedBag | null = null): WorldSave {
+export function captureWorld(base: Uint8Array, t: Terrain, ladders: Ladders, version: number, taken: readonly string[], dropped: DroppedBag | null = null, loose: readonly SavedPiece[] = []): WorldSave {
   const n = t.width * t.height;
   const dug = new Uint8Array(n);
   for (let i = 0; i < n; i++) if (base[i] !== TILE.air && t.tiles[i] === TILE.air) dug[i] = 1;
   const rungs = new Uint8Array(n);
   for (const [x, y] of ladders.all()) rungs[y * t.width + x] = 1;
   const bag = saveBag(t, dropped);
-  return { version, dug, ladders: rungs, taken: [...new Set(taken)], ...(bag ? { bag } : {}) };
+  const pieces = loose.slice(0, MAX_PIECES);
+  return { version, dug, ladders: rungs, taken: [...new Set(taken)], ...(bag ? { bag } : {}), ...(pieces.length ? { pieces } : {}) };
+}
+
+/** Loose pieces as the save keeps them: the tile each one's middle is in (`tile` px a tile). */
+export function savePieces(t: Terrain, loose: readonly Piece[], tile: number): SavedPiece[] {
+  const T = tile;
+  return loose.slice(0, MAX_PIECES).map((p) => {
+    const col = Math.min(t.width - 1, Math.max(0, Math.floor((p.x + p.w / 2) / T)));
+    const row = Math.min(t.height - 1, Math.max(0, Math.floor((p.y + p.h / 2) / T)));
+    return { at: row * t.width + col, ore: p.ore };
+  });
 }
 
 /**
@@ -153,6 +178,7 @@ export function saveWorld(store: KeyValueStore | undefined, worldId: string, sav
       ladders: packMask(save.ladders),
       taken: save.taken,
       bag: save.bag,
+      pieces: save.pieces,
     }));
     return true;
   } catch (err) {
@@ -200,7 +226,19 @@ function parseWorld(raw: unknown, n: number, known: ReadonlySet<string>): WorldS
   const ids = Array.isArray(o.taken) ? o.taken.slice(0, MAX_TAKEN) : [];
   const taken = [...new Set(ids.filter((id): id is string => typeof id === 'string' && known.has(id)))];
   const bag = parseBag(o.bag, n);
-  return { version: o.version as number, dug, ladders, taken, ...(bag ? { bag } : {}) };
+  const pieces = parsePieces(o.pieces, n);
+  return { version: o.version as number, dug, ladders, taken, ...(bag ? { bag } : {}), ...(pieces.length ? { pieces } : {}) };
+}
+
+/** Loose pieces on the world, of ores that exist; anything else is dropped. */
+function parsePieces(raw: unknown, n: number): SavedPiece[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, MAX_PIECES).flatMap((p): SavedPiece[] => {
+    if (typeof p !== 'object' || p === null) return [];
+    const o = p as Record<string, unknown>;
+    const ok = Number.isInteger(o.at) && (o.at as number) >= 0 && (o.at as number) < n && Number.isInteger(o.ore) && oreKeyOf(o.ore as number) !== null;
+    return ok ? [{ at: o.at as number, ore: o.ore as number }] : [];
+  });
 }
 
 /** A left bag, if it's on the world and holds something real. */

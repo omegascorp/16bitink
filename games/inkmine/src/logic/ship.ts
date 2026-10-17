@@ -13,7 +13,7 @@ import type { Hold } from './hold';
  *
  * Keys are saved: never rename one.
  */
-export const MODULE_KEYS = ['cargo', 'winch', 'hull'] as const;
+export const MODULE_KEYS = ['cargo', 'winch', 'stores', 'hull'] as const;
 export type ModuleKey = (typeof MODULE_KEYS)[number];
 export type ShipModules = Readonly<Record<ModuleKey, number>>;
 
@@ -30,6 +30,8 @@ export interface ModuleKind {
 /** The ship's cargo: slots at the start and per Cargo hold level, and pieces a slot stacks. */
 export const CARGO_SLOTS = { base: 16, per: 6 } as const;
 export const CARGO_STACK = 50;
+/** Units the lander's air tank and battery each hold, by the supply tanks' level (stores.ts). */
+export const STORE_CAPACITY = [600, 1200, 2000] as const;
 
 export const MODULES: Readonly<Record<ModuleKey, ModuleKind>> = {
   cargo: {
@@ -44,6 +46,12 @@ export const MODULES: Readonly<Record<ModuleKey, ModuleKind>> = {
     recipes: [{ galena: 8, copper: 6 }, { galena: 16, silver: 4 }],
     gives: ['recall drops the bag', 'recall keeps half of each stack', 'recall keeps the whole bag'],
   },
+  stores: {
+    name: 'Supply tanks',
+    about: "A bigger air tank and battery for topping up the suit",
+    recipes: [{ copper: 10, graphite: 8, galena: 4 }, { galena: 14, silver: 6, quartz: 3 }],
+    gives: STORE_CAPACITY.map((n) => `${n.toLocaleString('en-GB')} units each`),
+  },
   hull: {
     name: 'Hull refit',
     about: 'A bigger lander: opens the next row of upgrades',
@@ -52,7 +60,12 @@ export const MODULES: Readonly<Record<ModuleKey, ModuleKind>> = {
   },
 };
 
-export const STARTER_SHIP: ShipModules = { cargo: 0, winch: 0, hull: 0 };
+export const STARTER_SHIP: ShipModules = { cargo: 0, winch: 0, stores: 0, hull: 0 };
+
+/** What the lander's air tank and battery each hold with these modules. */
+export function storeCapacity(s: Pick<ShipModules, 'stores'>): number {
+  return STORE_CAPACITY[Math.min(s.stores, STORE_CAPACITY.length - 1)]!;
+}
 
 export function cargoSlots(s: ShipModules): number {
   return CARGO_SLOTS.base + CARGO_SLOTS.per * s.cargo;

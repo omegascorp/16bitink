@@ -23,7 +23,7 @@ import { currentGoal, wreckOf, type Goal, type Wreck } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
 import { ringDelta, volatileAt } from '../logic/terrain';
 import { volatileKeyOf } from '../logic/volatiles';
-import { captureWorld, loadWorld, saveWorld } from '../logic/worldSave';
+import { captureWorld, loadWorld, savePieces, saveWorld } from '../logic/worldSave';
 import { BeaconView } from './game/beaconView';
 import { FlagView } from './game/flagView';
 import { FxView } from './game/fxView';
@@ -265,7 +265,7 @@ export class GameScene extends Phaser.Scene {
 
   /** The profile with the cargo and the bag as they are this moment (they live in the sim while playing). */
   liveProfile(): Profile {
-    return { ...getProfile(this), cargo: this.mine.cargo, suit: this.mine.suit.bag };
+    return { ...getProfile(this), cargo: this.mine.cargo, suit: this.mine.suit.bag, stores: this.mine.stores };
   }
 
   /** The one thing to do next, for the HUD. */
@@ -418,7 +418,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.mine) return;
     const world = this.planet.world;
     setProfile(this, this.liveProfile());
-    const changes = captureWorld(this.base, this.mine.terrain, this.mine.ladders, world.version, this.taken, this.mine.dropped);
+    const changes = captureWorld(this.base, this.mine.terrain, this.mine.ladders, world.version, this.taken, this.mine.dropped, savePieces(this.mine.terrain, this.mine.pieces, this.mine.tile));
     holdWorld(this, world.id, changes);
     this.changed = !saveWorld(getHost(this).storage, world.id, changes);
     this.savedAt = this.mine.time;
@@ -470,6 +470,9 @@ export class GameScene extends Phaser.Scene {
         break;
       case 'restock':
         over('suit topped up');
+        break;
+      case 'storesShort':
+        this.fx.note(px, p.y - 32, `the lander's ${e.short.map((k) => (k === 'air' ? 'air tank' : 'battery')).join(' and ')} ran short: refill aboard`, true);
         break;
       case 'fed':
         over(`${e.gauge === 'air' ? 'air' : 'cell'} + ${ORES[e.ore].name}`);

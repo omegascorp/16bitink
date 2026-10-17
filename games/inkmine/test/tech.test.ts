@@ -12,7 +12,7 @@ describe('the technology slots', () => {
   it('lays out the suit as the six gear pieces and its tools, the ship as its systems and its modules', () => {
     expect(SUIT_TECH.map(techKey)).toEqual(['gear:drill', 'gear:cell', 'gear:pack', 'gear:suit', 'gear:helmet', 'gear:jetpack', 'tool:receiver']);
     expect(SHIP_SYSTEMS.map(techKey)).toEqual(['repair:printer', 'repair:hull', 'repair:thrusters', 'repair:comms', 'repair:core']);
-    expect(SHIP_MODULES.map(techKey)).toEqual(['module:cargo', 'module:winch', 'module:hull']);
+    expect(SHIP_MODULES.map(techKey)).toEqual(['module:cargo', 'module:winch', 'module:stores', 'module:hull']);
   });
 
   it('round-trips a key, and rejects one it does not know', () => {

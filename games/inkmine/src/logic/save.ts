@@ -7,7 +7,7 @@ import { ORES } from './ore';
 import { FUEL } from './fuel';
 import { SHIP_TANK, STARSHIP_IDS, type StarshipId } from './starship';
 import { REPAIR_IDS, type RepairId } from './repairs';
-import { MODULE_KEYS, maxLevel, type ShipModules } from './ship';
+import { MODULE_KEYS, maxLevel, storeCapacity, type ShipModules } from './ship';
 import { BEATS, type Beat } from './story';
 import { TOOLS, type Tool } from './tools';
 
@@ -72,6 +72,13 @@ function parseFuel(v: unknown, max: number): number {
   return typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0;
 }
 
+/** The lander's stores: each a level within its tank; missing (a save from before them) means full. */
+function parseStores(v: unknown, cap: number): { air: number; power: number } {
+  const o = isObj(v) ? v : {};
+  const level = (x: unknown): number => (typeof x === 'number' && Number.isFinite(x) ? Math.max(0, Math.min(cap, x)) : cap);
+  return { air: level(o.air), power: level(o.power) };
+}
+
 /** Known starship systems mended, once each. */
 function parseStarship(v: unknown): StarshipId[] {
   if (!Array.isArray(v)) return [];
@@ -98,6 +105,7 @@ export function parseProfile(raw: unknown): Profile {
     starship: parseStarship(raw.starship),
     shipFuel: parseFuel(raw.shipFuel, SHIP_TANK.capacity),
     hold: parseInventory(raw.hold, NEW_PROFILE.hold),
+    stores: parseStores(raw.stores, storeCapacity(parseShip(raw.ship))),
   });
 }
 

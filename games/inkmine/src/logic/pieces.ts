@@ -4,7 +4,8 @@ import { foldX, ringDelta, type Terrain } from './terrain';
 /**
  * Loose pieces of ore, broken out of the rock by the drill or a blast. They
  * fall and come to rest; near the prospector they fly to the bag, if
- * there's room.
+ * there's room. Left lying (a full bag), they stay, and are saved with the
+ * world (worldSave.ts), so they're there when you come back.
  */
 export interface Piece extends Body {
   readonly id: number;
@@ -26,6 +27,13 @@ let nextId = 1;
 export function newPiece(ore: number, cx: number, cy: number): Piece {
   const s = PIECE.size;
   return { id: nextId++, ore, x: cx - s / 2, y: cy - s / 2, w: s, h: s, vx: 0, vy: -60, onGround: false };
+}
+
+/** A piece put back where it was left (worldSave.ts): resting on the floor of tile (col, row), still. */
+export function restingPiece(ore: number, col: number, row: number, tile: number, worldCols: number): Piece {
+  const s = PIECE.size;
+  const c = ((col % worldCols) + worldCols) % worldCols;
+  return { id: nextId++, ore, x: (c + 0.5) * tile - s / 2, y: (row + 1) * tile - s, w: s, h: s, vx: 0, vy: 0, onGround: true };
 }
 
 const centre = (b: Box): { x: number; y: number } => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });

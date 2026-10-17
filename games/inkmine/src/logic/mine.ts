@@ -10,8 +10,11 @@ import { bankItems, freeItems, inPouch, placeItems, stepItems, type ItemDef, typ
 import { ORES } from './ore';
 import { Ladders } from './ladders';
 import { jetFor, type JetSpec } from './marks';
-import { between, caught, newPiece, PIECE, stepPiece, type Piece } from './pieces';
-import { AIR, breathe, burn, emptyBag, feed, fits, hasRoomFor, hurt, newSuit, pickFeed, rechargeJet, regen, restore, spend, stow, withBag, worn, type Fuels, type Gauge, type Suit, type SuitSpec } from './suit';
+import { between, caught, newPiece, PIECE, restingPiece, stepPiece, type Piece } from './pieces';
+import type { SavedPiece } from './worldSave';
+import { AIR, breathe, burn, emptyBag, feed, fits, hasRoomFor, hurt, newSuit, pickFeed, rechargeJet, regen, spend, stow, withBag, worn, type Fuels, type Gauge, type Suit, type SuitSpec } from './suit';
+import { restockFrom, solarCharge, type StoreKind, type Stores } from './stores';
+import { STORE_CAPACITY } from './ship';
 import type { OreKey } from './ore';
 import { bodyCell, centredX, drillTarget } from './target';
 import { contentAt, foldX, ringDelta, setTile, TILE, tileAt, volatileAt, type Terrain, type TilePos } from './terrain';
@@ -42,6 +45,11 @@ export interface MineSetup {
   readonly fuels?: Fuels;
   /** A bag left in the world last time, under its flag (default none). */
   readonly dropped?: DroppedBag | null;
+  /** Ore left lying loose last time, each at its tile (default none). */
+  readonly pieces?: readonly SavedPiece[];
+  /** The lander's air tank and battery, and what each holds (default full starter tanks). */
+  readonly stores?: Stores;
+  readonly storesCap?: number;
   /** Where the Lamplighters' outpost stands: its middle column and the surface row (default none). */
   readonly outpost?: { readonly col: number; readonly row: number };
 }
@@ -77,6 +85,8 @@ export type MineEvent =
   | { readonly kind: 'cargoFull' }
   /** The lander put the suit right (hearts, shield, air, cell). */
   | { readonly kind: 'restock' }
+  /** At the lander, the air tank or the battery couldn't fill the suit (stores.ts). */
+  | { readonly kind: 'storesShort'; readonly short: readonly StoreKind[] }
   | { readonly kind: 'noFuel' }
   | { readonly kind: 'fed'; readonly gauge: Gauge; readonly ore: OreKey }
   | { readonly kind: 'cantFeed'; readonly gauge: Gauge; readonly ore: OreKey; readonly why: 'none' | 'full' }
@@ -113,6 +123,8 @@ const VOLATILE_TAP = 0.08;
 const NOTICE_GAP = 1.2;
 /** The suit says the air is low at most this often. */
 const AIR_NOTICE_GAP = 20;
+/** Seconds before the lander says again that its stores ran short. */
+const STORES_NOTICE_GAP = 30;
 /** The lander's footprint in tiles either side of its middle, and its height. */
 export const LANDER = { half: 1, rows: 3 } as const;
 /** The outpost's reach: columns either side of its middle, and rows above its ground. */
@@ -150,6 +162,9 @@ export class Mine {
   suit: Suit;
   /** The ship's cargo, filled at the lander. */
   cargo: Inventory;
+  /** The lander's air tank and battery, which top the suit up (stores.ts). */
+  stores: Stores;
+  readonly storesCap: number;
   items: MineItem[];
   /** The bag left in the world, under its flag. */
   dropped: DroppedBag | null;
@@ -174,6 +189,8 @@ export class Mine {
     this.suit = setup.bag ? newSuit(setup.suit, setup.bag) : newSuit(setup.suit);
     this.cargo = setup.cargo ?? emptyInventory(CARGO.slots, CARGO.stack);
     this.dropped = setup.dropped ?? null;
+    this.storesCap = setup.storesCap ?? STORE_CAPACITY[0];
+    this.stores = setup.stores ?? { air: this.storesCap, power: this.storesCap };
     this.fuels = setup.fuels ?? GRAPHITE_FUELS;
     this.jet = setup.jet ?? JET;
     const T = this.tile;
@@ -183,6 +200,8 @@ export class Mine {
     this.outpostBox = o ? { x: (o.col - OUTPOST_REACH.half) * T, y: (o.row - OUTPOST_REACH.rows) * T, w: (OUTPOST_REACH.half * 2 + 1) * T, h: OUTPOST_REACH.rows * T } : null;
     this.items = placeItems(setup.terrain, setup.items ?? [], row, T);
     this.player = this.startBody();
+    const W = setup.terrain.width;
+    this.pieces = (setup.pieces ?? []).map((sp) => restingPiece(sp.ore, sp.at % W, Math.floor(sp.at / W), T, W));
   }
 
   /** Metres below the lander's ground. */
@@ -227,6 +246,7 @@ export class Mine {
     // Not on a recall: the bag just left would be picked straight back up at the lander.
     if (!input.recall) this.flagStep(events);
     this.landerStep(events);
+    this.stores = solarCharge(this.stores, this.storesCap, dt);
     this.lifeStep(dt, events);
     if (this.suit.hearts <= 0) {
       this.state = 'failed';
@@ -420,8 +440,13 @@ export class Mine {
       for (const item of banked) events.push({ kind: 'bankItem', item });
     }
     if (worn(this.suit)) {
-      this.suit = restore(this.suit);
-      events.push({ kind: 'restock' });
+      const was = this.suit;
+      const r = restockFrom(was, this.stores);
+      // Only when something actually went in: with the stores empty, standing here puts nothing right.
+      if (r.suit.air !== was.air || r.suit.energy !== was.energy || r.suit.hearts !== was.hearts || r.suit.shield !== was.shield) events.push({ kind: 'restock' });
+      this.suit = r.suit;
+      this.stores = r.stores;
+      if (r.short.length) this.notice('storesShort', events, { kind: 'storesShort', short: r.short }, STORES_NOTICE_GAP);
     }
   }
 

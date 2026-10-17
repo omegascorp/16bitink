@@ -34,6 +34,28 @@ describe('life support in the field', () => {
     expect(events.some((e) => e.kind === 'restock')).toBe(true);
   });
 
+  it("fills up from the lander's stores, and says so once when they run short", () => {
+    const m = mine(SITE);
+    standAt(m, 8, 2);
+    m.suit = { ...m.suit, air: 40 };
+    m.stores = { air: 30, power: 500 };
+    toLander(m);
+    const events = run(m, 0.5);
+    expect(m.suit.air).toBe(70);
+    expect(m.stores.air).toBe(0);
+    expect(events.filter((e) => e.kind === 'storesShort')).toHaveLength(1);
+    expect(events.filter((e) => e.kind === 'restock')).toHaveLength(1);
+  });
+
+  it("charges the lander's battery from its panels while the world runs", () => {
+    const m = mine(SITE);
+    standAt(m, 8, 2);
+    m.stores = { air: 0, power: 100 };
+    run(m, 10);
+    expect(m.stores.power).toBeGreaterThan(100);
+    expect(m.stores.air).toBe(0);
+  });
+
   it('warns once the air runs low, and again when it is gone', () => {
     const m = mine(SITE);
     standAt(m, 8, 2);

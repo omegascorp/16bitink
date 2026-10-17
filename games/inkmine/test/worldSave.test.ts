@@ -170,6 +170,20 @@ describe('saving a world', () => {
     }
   });
 
+  it('keeps the pieces left lying loose, where they lay', () => {
+    const store = memoryStore();
+    const withPieces: WorldSave = { ...save, pieces: [{ at: 70, ore: 1 }, { at: 71, ore: 5 }] };
+    saveWorld(store, 'graphite', withPieces);
+    expect(loadWorld(store, 'graphite', N, known)).toEqual(withPieces);
+  });
+
+  it('drops loose pieces it cannot trust, and keeps the rest', () => {
+    const store = memoryStore();
+    const pieces = [{ at: 70, ore: 1 }, { at: N, ore: 1 }, { at: 3, ore: 99 }, { at: 1.5, ore: 2 }, 'nope', { at: 4, ore: 2 }];
+    store.setItem('inkmine.world.graphite.v1', JSON.stringify({ version: 1, dug: packMask(tunnels(N)), ladders: packMask(new Uint8Array(N)), taken: [], pieces }));
+    expect(loadWorld(store, 'graphite', N, known)?.pieces).toEqual([{ at: 70, ore: 1 }, { at: 4, ore: 2 }]);
+  });
+
   it('says when it could not save', () => {
     const full: KeyValueStore = { getItem: () => null, setItem: () => { throw new Error('quota'); } };
     expect(saveWorld(full, 'graphite', save)).toBe(false);

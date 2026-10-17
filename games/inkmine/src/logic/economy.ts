@@ -3,7 +3,7 @@ import { STARTER_LOADOUT, type Loadout } from './gear';
 import { addHold, holds, type Hold } from './hold';
 import { contents, emptyInventory, resize, takeHoldFrom, type Inventory } from './inventory';
 import { suitSpecFor } from './marks';
-import { canUpgrade, CARGO_STACK, cargoSlots, nextRecipe, STARTER_SHIP, upgrade, type ModuleKey, type ShipModules, type UpgradeCheck } from './ship';
+import { canUpgrade, CARGO_STACK, cargoSlots, nextRecipe, STARTER_SHIP, storeCapacity, upgrade, type ModuleKey, type ShipModules, type UpgradeCheck } from './ship';
 import type { RepairId } from './repairs';
 import type { StarshipId } from './starship';
 import type { Beat } from './story';
@@ -42,6 +42,8 @@ export interface Profile {
   readonly shipFuel: number;
   /** The starship's hold: ore carried up and kept aboard her, reachable only while docked. */
   readonly hold: Inventory;
+  /** The lander's air tank and battery, which top the suit up at the lander (stores.ts). */
+  readonly stores: { readonly air: number; readonly power: number };
 }
 
 /** The starship's hold: big slots and big stacks, as a hauler's. */
@@ -65,6 +67,7 @@ export const NEW_PROFILE: Profile = {
   starship: [],
   shipFuel: 0,
   hold: emptyInventory(STARSHIP_HOLD.slots, STARSHIP_HOLD.stack),
+  stores: { air: storeCapacity(STARTER_SHIP), power: storeCapacity(STARTER_SHIP) },
 };
 
 /** Every resource on hand: the cargo and the suit's bag, and the starship's hold while docked. */
