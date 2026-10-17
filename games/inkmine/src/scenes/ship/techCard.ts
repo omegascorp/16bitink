@@ -15,7 +15,8 @@ import { PIECE_NAMES, recipeLine, SOURCES, techName } from './techText';
 
 /** The picture's size, and the gap beside it. */
 const PIC = 104;
-const BTN = { w: 150, h: 44 } as const;
+/** `wide` fits "At the lander", the label far from it. */
+const BTN = { w: 150, wide: 210, h: 44 } as const;
 /** The print button's label when it can't print yet. */
 const BUILD_WHY: Readonly<Record<BuildCheck | 'offline', string>> = { ok: 'Print', built: 'Built', notFound: 'No blueprint', materials: 'Needs ore', order: 'Locked', offline: 'Offline' };
 /** The repair button's label when it can't repair yet. */
@@ -168,8 +169,10 @@ export function techCard(page: ShipPage, t: Tech, x: number, y: number, w: numbe
     ry += t3.height + 4;
   }
   if (c.button) {
-    const b = c.button;
-    plaque(scene, x + w - PAD - BTN.w / 2, ry + 10 + BTN.h / 2, b.label, b.press, { width: BTN.w, height: BTN.h, size: 16, kind: b.ok ? 'primary' : 'off' });
+    // Printing and repairing take the lander's printer: far from it the card only reads.
+    const b = page.remote ? { label: 'At the lander', ok: false, press: () => undefined } : c.button;
+    const bw = page.remote ? BTN.wide : BTN.w;
+    plaque(scene, x + w - PAD - bw / 2, ry + 10 + BTN.h / 2, b.label, b.press, { width: bw, height: BTN.h, size: 16, kind: b.ok ? 'primary' : 'off' });
     ry += BTN.h + 14;
   }
   const h = ry - y + 10;

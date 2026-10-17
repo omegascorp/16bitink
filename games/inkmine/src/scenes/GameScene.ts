@@ -204,8 +204,10 @@ export class GameScene extends Phaser.Scene {
       }
     };
     this.events.once(Phaser.Scenes.Events.DESTROY, onDestroy);
+    this.events.on(Phaser.Scenes.Events.RESUME, this.fromSuit, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       unhook();
+      this.events.off(Phaser.Scenes.Events.RESUME, this.fromSuit, this);
       this.events.off(Phaser.Scenes.Events.DESTROY, onDestroy);
       this.scale.off('resize', this.fitZoom, this);
       this.ground.destroy();
@@ -229,8 +231,9 @@ export class GameScene extends Phaser.Scene {
     const input = still ? NO_INPUT : { ...keys, ...this.asked };
     if (!still) this.asked = {};
     this.iy = input.iy;
-    if (!still && aboard && this.mine.atLander) {
-      this.goAboard();
+    if (!still && aboard) {
+      if (this.mine.atLander) this.goAboard();
+      else this.openSuit();
       return;
     }
     for (const e of this.mine.step(still ? 0 : dt, input)) this.react(e);
@@ -495,6 +498,26 @@ export class GameScene extends Phaser.Scene {
     const woke: Woke = { how: printerWorks(getProfile(this)) ? 'printed' : 'dragged', bag };
     this.cameras.main.fade(FAILED_MS, 245, 240, 225);
     this.time.delayedCall(FAILED_MS, () => this.scene.restart({ woke }));
+  }
+
+  /**
+   * Far from the lander: the same page, opened over the paused world. The
+   * suit bag can be sorted and locked there; the cargo and the lander can
+   * only be looked at, and nothing prints without the lander's printer.
+   * The page closes back into the world just where it was (see `fromSuit`).
+   */
+  private openSuit(): void {
+    this.save();
+    this.scene.sleep('Hud');
+    this.scene.launch('Ship', { remote: true });
+    this.scene.pause();
+  }
+
+  /** Back from the suit page: take the bag as it was left there, and drop any key pressed meanwhile. */
+  private fromSuit(): void {
+    this.mine.suit = withBag(this.mine.suit, getProfile(this).suit);
+    this.keys.forget();
+    this.scene.wake('Hud');
   }
 
   /** Into the lander: save, and open the ship's page (printing, the cargo). Back down starts from the lander. */

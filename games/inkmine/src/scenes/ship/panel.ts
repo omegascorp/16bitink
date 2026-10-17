@@ -19,19 +19,24 @@ export interface ShipUi {
   readonly news?: string;
   /** The stack picked up to move. */
   readonly selected?: SlotRef;
-  /** The jettison button was pressed once: the next press throws the stack away. */
+  /** The Drop button was pressed once: the next press throws the stack away. */
   readonly confirm?: boolean;
   /** The tab showing: the suit or the ship. */
   readonly tab?: Tab;
-  /** The technology slot the detail card shows (a techKey). */
+  /** The technology slot the detail card shows (a techKey), NO_FOCUS for none, or unset for the tab's default. */
   readonly focus?: string;
 }
+
+/** `focus` when nothing is in focus: a slot tapped twice, or a stack picked up or put down. The right side is then empty. */
+export const NO_FOCUS = 'none';
 
 /** What a panel needs from the page: the profile, and a way to change it (saving and redrawing). */
 export interface ShipPage {
   readonly scene: Phaser.Scene;
   readonly profile: Profile;
   readonly ui: ShipUi;
+  /** Opened far from the lander: the suit bag can be sorted and locked; the cargo and the lander are look-only, and nothing prints. */
+  readonly remote: boolean;
   commit(p: Profile, ui?: ShipUi): void;
   /** Redraws with new page state only. */
   setUi(ui: ShipUi): void;

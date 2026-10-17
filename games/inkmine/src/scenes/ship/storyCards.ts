@@ -38,7 +38,7 @@ function liftOff(scene: Phaser.Scene, page: ShipPage): void {
     title: 'Lift-off',
     subtitle: 'the end of chapter 1, on Graphite',
     pictures: [{ key: TEX.lander(landerLookOf(p.ship), 0, wreckOf(p)), h: 150 }],
-    text: "The core hums, the thrusters catch, and the lander lifts off the grey moon. Down on the far rim, the Lamplighters' lanterns get small. The drive works. Where to? The star chart, and the planets past Graphite, come in the next chapter.",
+    text: "The core hums, the thrusters catch, and the lander lifts off the grey moon. Down on the far rim, the Lamplighters' lanterns get small. The drive works. But which way is home? The star chart, and the planets past Graphite, come in the next chapter.",
     button: 'Where to?',
   }, () => page.commit(withBeat(page.profile, 'flown')));
 }

@@ -5,7 +5,7 @@ import type { MineInput } from '../../logic/mine';
  * Keyboard controls: arrows or WASD move and drill (push into the ground),
  * Space jumps and, held in the air, fires the jetpack,
  * R feeds the lower of the cell and life support from the bag, L (or Enter)
- * goes aboard at the lander, Esc (or P) pauses (recall is on the pause
+ * goes aboard at the lander and opens the suit anywhere else, Esc (or P) pauses (recall is on the pause
  * card). Touch comes with the HUD's stick and buttons (build order, later).
  */
 export class GameInput {
@@ -53,7 +53,12 @@ export class GameInput {
     return a || b;
   }
 
-  /** Pressed this frame: go aboard (only does anything at the lander). */
+  /** Forgets every press so far: keys pressed while the game waited behind the suit page don't fire when it resumes. */
+  forget(): void {
+    for (const key of Object.values(this.keys)) this.seen.set(key, key.timeDown);
+  }
+
+  /** Pressed this frame: go aboard at the lander, or open the suit anywhere else. */
   aboard(): boolean {
     const a = this.pressed(this.keys.aboard);
     const b = this.pressed(this.keys.enter);

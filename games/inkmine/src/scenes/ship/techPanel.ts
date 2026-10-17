@@ -1,6 +1,6 @@
 import { SHIP_MODULES, SHIP_SYSTEMS, SUIT_TECH, techKey, type Tab, type Tech } from '../../logic/tech';
 import { aside, label, INK_TEXT, SEPIA } from '../kit/type';
-import { PAD, section, SECTION_BODY, type ShipPage } from './panel';
+import { NO_FOCUS, PAD, section, SECTION_BODY, type ShipPage } from './panel';
 import { drawTechGrid, techGridFit } from './techGrid';
 
 /** A group of slots on a tab, with its heading and a note on what it is. */
@@ -18,8 +18,12 @@ const GROUPS: Readonly<Record<Tab, readonly Group[]>> = {
   ],
 };
 
-/** A tab's technology slots, grouped, with the slot in focus ringed. A tap focuses a slot. Returns the height. */
-export function techPanel(page: ShipPage, tab: Tab, focus: Tech, x: number, y: number, w: number): number {
+/**
+ * A tab's technology slots, grouped, with the slot in focus (if any) ringed.
+ * A tap focuses a slot, putting down any stack held so its card shows; a tap
+ * on the slot already in focus lets it go. Returns the height.
+ */
+export function techPanel(page: ShipPage, tab: Tab, focus: Tech | null, x: number, y: number, w: number): number {
   const { scene, profile: p } = page;
   const inner = w - PAD * 2;
   const most = Math.max(...GROUPS[tab].map((g) => g.list.length));
@@ -29,7 +33,8 @@ export function techPanel(page: ShipPage, tab: Tab, focus: Tech, x: number, y: n
     label(scene, x + PAD, ry + 10, g.name, 18, INK_TEXT, '600').setOrigin(0, 0.5);
     aside(scene, x + w - PAD, ry + 10, g.note, 15, 300, SEPIA).setOrigin(1, 0.5);
     ry += 28;
-    ry += drawTechGrid(scene, p, x + PAD, ry, g.list, { ...fit, focus: techKey(focus), onTap: (t) => page.setUi({ selected: page.ui.selected, focus: techKey(t) }) }) + 4;
+    const onTap = (t: Tech): void => page.setUi({ focus: focus && techKey(focus) === techKey(t) ? NO_FOCUS : techKey(t) });
+    ry += drawTechGrid(scene, p, x + PAD, ry, g.list, { ...fit, focus: focus ? techKey(focus) : undefined, onTap }) + 4;
   }
   const h = ry - y + 6;
   section(scene, x, y, w, h, 'Technology', 31);

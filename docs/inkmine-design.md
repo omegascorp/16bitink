@@ -4,7 +4,7 @@ Oct 13, 2026 · @Hayk · rewritten Oct 15, 2026 around an open world (see Decisi
 
 ## Overview
 
-A 2D side-view mining game drawn in ballpoint pen. You're a lone alien prospector for a mining guild, flying a mining ship that carries no weapons. There are no humans anywhere in the game: you, the crew who came before you and everyone you meet are aliens. On a routine jump your lander is pulled through a wormhole into a part of the galaxy no chart covers, and it crash-lands on a small grey moon. The link to the guild is gone. You have an energy drill, a patched-up suit and a wrecked lander, and the only way home is to dig up what the ship needs and fix it.
+A 2D side-view mining game drawn in ballpoint pen. You're a lone alien prospector for a mining guild, flying a mining ship that carries no weapons. There are no humans anywhere in the game: you, the crew who came before you and everyone you meet are aliens. On a jump your lander falls into a wild wormhole, a natural one that your people never charted or steadied, and being unstable it tears the ship apart on the way through. You crash-land on a small grey moon in a part of the universe your species has never seen. The link to the guild is gone, and so is part of your memory: you don't know where you are, which star is home, or any language spoken around you. You have an energy drill, a patched-up suit and a wrecked lander. The goal of the whole game is to find where home is in the sky and gather enough to get there; the first step is to dig up what the ship needs and fix it.
 
 Each planet is a small open world: one hand-made cross-section of ground you can walk all the way around and dig as deep as your drill allows. Nobody gives you a list of missions. Your suit tells you what's broken and what it needs. Later, the aliens you meet hand you jobs in person, and you can only understand them once you learn their language. Every trip down is still push-your-luck: how deep you go and how full a bag you carry before the drill's cell or your air runs low. There's no money: what you dig is what you build with.
 
@@ -20,7 +20,7 @@ Design pillars:
 
 ## Inspiration
 
-Full notes in [inkmine-research.md](inkmine-research.md). What InkMine takes:
+Full notes in [inkmine-research.md](inkmine-research.md). The science behind the creatures, plants and races (convergent evolution, alien intelligence, chemistries other than carbon and water) is in [inkmine-xenobiology.md](inkmine-xenobiology.md). What InkMine takes:
 
 | Game | Taken into InkMine |
 | --- | --- |
@@ -40,13 +40,22 @@ Avoided, because players complain about them: energy to start a run, paid revive
 
 Graphite is chapter 1, and the free version. It ends the moment the lander flies.
 
-1. **The wormhole.** A short ink-drawn opening: the jump, the tear, the fall, the crash. You climb out of a smoking, tilted lander on the rim of a crater.
+1. **The wormhole.** A short ink-drawn opening: the jump, the wild wormhole, the tear, the fall, the crash. You climb out of a smoking, tilted lander on the rim of a crater, and the memory of the way back is gone.
 2. **The suit takes stock.** Its systems list what's broken. The printer is the first repair: it takes only copper from the crater walls, and nothing in the first area can hurt you.
 3. **The radio.** The lander's radio and dish were broken in the crash. Repaired, it still can't reach the guild, but a call comes in at once (built Oct 17, 2026): a slow voice in knots nobody can read. The radio records it; the dish can't say where it's from, only that it's somewhere over the horizon.
 4. **The receiver and the alien.** You print a handheld **receiver** (a suit tool: copper and quartz, no blueprint) and follow the call hot and cold: the HUD's "Next" plate shows its bars, and the suit notes "signal stronger" / "signal weaker" as you walk. There's no arrow while you search, nor while you dig for their silver; it points back to them once the core is waiting. At the outpost on the crater's far rim a Lamplighter meets you. You can't understand a word; they draw in the dust what they want: ten lumps of silver, from deep down, for a drive core.
 5. **The hull and the thrusters.** Your suit asks for the parts as you need them. You can repair them in any order, and each one takes ore from deeper down.
 6. **The drive core.** It cracked in the wormhole, and nothing you can print will fix it. The Lamplighters make one. As built: you bring them the silver in your bag (they take it from the bag), and once the hull and thrusters are mended they hand the core over; you fit it aboard. Later, when the language is built, the core waits for fluency and their last job as well.
 7. **Lift-off.** The lander flies, the galaxy map opens, and the free version ends: "The drive works. Where to?"
+
+**The way home** (@Hayk, Oct 17, 2026). Your people travel only through wormholes they have found, charted and steadied. This one was wild: natural, unprepared and unstable, so it wrecked the ship and took part of your memory. You're somewhere your species has never been, and you don't know where. The goal across all chapters is two things: **find where home is in the sky**, and **have enough to travel there**. Chapter 1 only gets the lander flying, so the lift-off card asks "which way is home?"
+
+Proposed, to decide:
+
+- **Science behind it.** Wormholes are allowed by general relativity, but a wormhole you can pass through would need exotic matter to hold it open, and without it one would collapse (Morris & Thorne, 1988). That's exactly what "steadied" means for your people, and why a wild one nearly kills you.
+- **Finding home: a pulsar map.** Pulsars are dead stars that flash at exact, unchanging rates, so a few of them can pin down a star's place in the galaxy. The Pioneer plaques and the Voyager records carry such a map to the Sun, made of 14 pulsars. Your people could carry one too. The lost memory means you can't read it until you rebuild it: each new planet's sky, an alien star chart or a recovered memory adds a pulsar, until home is pinned on the galaxy map.
+- **Memory comes back in pieces,** found like the Aster logs: a smell in a cave, a song on the radio. Which pieces the wormhole took, and which the printer gets wrong each time it reprints you, can stay quietly unclear.
+- **Getting there** is the endgame's big build: the drive, fuel and supplies for the trip, or steadying a wormhole yourself, the way your people do.
 
 **Those who came before.** You aren't the first ship to fall through. The **Aster crew**, prospectors of your own kind, came years ago and never left: their half-buried base, their unfired charges in the rock, their buried time capsules and their logs are scattered across Graphite. The logs are in your language, so they explain things and teach you Lamplighter words they had learned. They also carry the story's slow chill: the Aster crew were reprinted many times.
 
@@ -109,7 +118,7 @@ Anything that blows is in the rock for a reason. Blasts break soil and stone wit
 
 | What | Where it comes from | Effect |
 | --- | --- | --- |
-| Firedamp | Natural: pockets of methane trapped in the rock, the old hazard of coal and graphite mines, mostly by graphite seams | Drilling one opens it: it hisses and bursts 0.7 s later, breaking a 3 × 3 area |
+| Firedamp | Natural: pockets of methane trapped in the rock, the old hazard of coal and graphite mines, mostly by graphite seams. On Graphite the gas is alive in origin: microbe mats (rock film) on warm cave walls breathe it out (Oct 17, 2026, see [inkmine-xenobiology.md](inkmine-xenobiology.md)) | Drilling one opens it: it hisses and bursts 0.7 s later, breaking a 3 × 3 area |
 | Old charge | The Aster crew drilled it into the rock and never fired it | A tap on its detonator arms it; 1.4 s later it breaks a 3 × 3 area |
 | Line charge | Aster charges on detonating cord along a seam | Breaks its whole row, four tiles each way |
 | Each planet's own | Planet 3 on | Spore pockets on Mycel, magma blisters on Ember, fire ice on Rime, and so on |
@@ -159,8 +168,8 @@ Ore is kept as resources in two slot inventories (decided with @Hayk on Oct 14, 
 | Cargo hold | 16 | 50 | The Cargo hold module: 6 more slots a level |
 
 - **At the lander** the bag empties into the cargo automatically, the rarest ore first; whatever doesn't fit stays in the bag ("cargo hold full").
-- **Locked slots** (Oct 17, 2026): aboard, pick up a stack in the suit bag and press Lock; a locked slot (a padlock on it, in the menu and on the HUD) is never emptied into the cargo. While the Lamplighters wait for their silver, silver in the bag stays there the same way, without locking, until they have it. Moving stacks between the bag and the cargo is aboard: pick one up, then "To cargo" / "To suit bag", or tap a slot on the other tab.
-- **Inside the lander** both grids are shown. Tap a stack to pick it up, tap a slot to put it there: into an empty slot, onto the same ore (as much as fits), or swapping. A picked-up stack can be split in half or jettisoned (tap twice).
+- **Locked slots** (Oct 17, 2026): aboard, pick up a stack in the suit bag and press Lock; a locked slot (a padlock on it, in the menu and on the HUD) is never emptied into the cargo. While the Lamplighters wait for their silver, silver in the bag stays there the same way, without locking, until they have it. Moving stacks between the bag and the cargo is aboard: pick one up, then "To cargo" / "To suit bag", or tap a slot on the other tab. A picked-up stack takes the detail card's place on the right (Oct 17, 2026): the ore drawn big, how many are in the stack and on hand, where it sits (locked, or kept for the Lamplighters), real facts about the mineral, what it fuels, and what it's still needed for, each ticked once enough is on hand (`logic/needs.ts`). Only one thing is selected at a time: tapping a technology slot puts the stack down and shows that slot's card, picking up a stack lets the slot go, and tapping the selected slot or stack again leaves the right side empty (there's no Put down button). Far from the lander, L opens the same page over the paused world (Oct 17, 2026): the suit bag can still be sorted, split, locked and dropped, but the cargo and the lander are look-only (a cargo stack shows its card, nothing moves into or out of the cargo) and Print / Repair read "At the lander", since printing takes the lander's printer. The page is titled Inventory there, and on the Ship tab a note over the lander says you're far from it and must come back to print, repair or move the cargo. Back, L or Esc closes it, and play carries on where it stopped (the world is paused while it's open).
+- **Inside the lander** both grids are shown. Tap a stack to pick it up, tap a slot to put it there: into an empty slot, onto the same ore (as much as fits), or swapping. A picked-up stack can be split in half or dropped (tap twice).
 - **Things you're given or find** (a blueprint, a time capsule, an Aster log, a job item) go in a separate pouch and never take bag space.
 
 ## Getting around
@@ -183,7 +192,7 @@ Ore is real minerals, so the field guide can teach real facts, as the fish and s
 - **Gems** are rare, single blocks: quartz, garnet, beryl, ruby, sapphire, diamond.
 - **Each planet has a signature material,** found nowhere else and the main ingredient of that planet's gear.
 - **Each planet has its own fuels** for the drill and life support, so feeding them is part of learning the planet.
-- **Junk that looks like treasure:** pyrite (fool's gold) on Talus is in no recipe; it only fills slots until you jettison it.
+- **Junk that looks like treasure:** pyrite (fool's gold) on Talus is in no recipe; it only fills slots until you drop it.
 
 Every ore type has its own highlighter colour and its own glyph shape in the rock (nuggets, crystals, bands), so it reads without colour.
 
@@ -310,7 +319,7 @@ Up to three gadget slots, filled inside the lander and printed from resources. O
 
 ## Creatures
 
-Every planet has its own native creatures, invented but built from a few behaviours, so a new planet is new drawings more than new code.
+Every planet has its own native creatures, invented but built from a few behaviours, so a new planet is new drawings more than new code. They follow the rules in [inkmine-xenobiology.md](inkmine-xenobiology.md): each starts from a shape evolution keeps repeating (crab, worm, wing, glow lure…) and gets a reason to exist from its planet's energy source (proposed Oct 17, 2026, not yet accepted).
 
 | Behaviour | Example |
 | --- | --- |
@@ -344,7 +353,7 @@ Each planet is its own world, with its own shape, people and language, and adds 
 
 | # | Planet | Biome | New mechanic | Given gear | Creatures | Giant | Signature material |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Graphite | Grey cratered moon | The basics: drilling, ore, firedamp, the life system, repairs, the first language | Starter set | Dust ticks (walker), lead worms (burrower) | The Grinder, a giant rock worm | Graphite, pencil lead |
+| 1 | Graphite | Grey cratered moon | The basics: drilling, ore, firedamp, the life system, repairs, the first language | Starter set | Grit crabs (walker), lead worms (burrower) | The Grinder, a giant rock worm | Graphite, pencil lead |
 | 2 | Talus | Red mesas and dry gullies | Gravity: loose rock and boulders fall when you dig under them, and crush creatures | Blasting charges | Boulder beetles (mimic), sand skates (burrower) | The Rockslide, which sheds boulders as it walks | Hematite, "blood ore" |
 | 3 | Brine | Island crust over a flooded underworld | Water and air: breaking into an aquifer floods the tunnels; you swim, and underwater air drains fast, refilled by bubble capsules (Mr. Driller) | Rebreather | Cave lampreys (swimmer), bubble jellies (flyer) | The Leviathan, in an underground sea | Brine pearls |
 | 4 | Mycel | Fungal jungle | Growth: fungus slowly grows back over tunnels; cap mushrooms bounce you; spore pockets catch fire from a blast | Spore filter | Puffballs (spitter), snap tendrils (dropper) | The Mother Mycel, a heart you mine your way around | Amber with alien insects in it |
@@ -367,7 +376,7 @@ A grey moon of soft dark rock, pocked with craters, with a ringed planet hanging
 | --- | --- | --- | --- |
 | The crash site | Surface and soil under the lander | Copper, ice; no creatures; a vault (Pack) | Start |
 | The crater rim | Surface, far side | The Lamplighter outpost, inscriptions | Walking over |
-| The lead seams | Soil and the first stone, near the lander | Graphite seams, firedamp, dust ticks | Start; stone with the Drill |
+| The lead seams | Soil and the first stone, near the lander | Graphite seams, firedamp, grit crabs | Start; stone with the Drill |
 | The Aster base | Half-buried under the old workings | Old charges, logs, a time capsule in the blast, the Drill blueprint | Clearing the cave-in |
 | The grey band | Stone, mid-depth | Galena, quartz, lead worms, standing stones | The Drill |
 | The deep | Deepest stone | Silver, the Lamplighters' deep post, a vault (Jetpack), the Grinder | The Drill, a good cell, routes back |
@@ -473,7 +482,7 @@ Pushing to dig, talk and read keeps touch play to one stick and two buttons.
 As in the other games, entries unlock the first time you meet them:
 
 - **Minerals:** every real ore and gem, with real facts (hardness, where it forms, what it's used for).
-- **Xenobiology notebook:** the invented creatures, drawn as specimen sketches with made-up notes, clearly fiction.
+- **Xenobiology notebook:** the invented creatures, drawn as specimen sketches. Proposed (Oct 17, 2026): each entry is invented but grounded in real science, with a scan line ("Carbon · water · chemical energy"), its convergent shape and its air, and a note in the prospector's voice that never mentions Earth (see [inkmine-xenobiology.md](inkmine-xenobiology.md)).
 - **Lexicon:** every Lamplighter word you know, its knot glyph beside your handwriting.
 - **Logs:** the Aster crew's logs and time capsules, in the order you found them.
 
@@ -570,7 +579,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 2. ~~**The life system:** shield, hearts, life support, feeding gauges from the bag, the self-charging jetpack, dying, the dropped bag, recall~~ (done Oct 16, 2026; water ice added to Graphite, world version 2). The pause card is the start of the pause screen: Resume and Recall.
 3. ~~**The repair list** in place of missions; the wrecked lander and its repair stages; inside the lander in place of the result screen and chart~~ (done Oct 16, 2026, before step 2). Not yet: lift-off at the end (it waits for the Lamplighters and the core).
 4. **The Lamplighters:** ~~the call, the receiver, the outpost, the first job by picture, the core for silver~~ (done Oct 17, 2026); still to come: speech with word-by-word translation, the lexicon, texts and Aster logs.
-5. **Creatures** (dust ticks, lead worms) and fighting with the drill.
+5. **Creatures** (grit crabs, lead worms) and fighting with the drill.
 6. **The rest of Graphite:** the Aster base, the grey band, the deep, the Grinder; the drive core and lift-off; the opening and the ending.
 7. Coach hints, sound, touch controls, account sync; add InkMine to the catalog with chapter 1 free.
 8. The galaxy map and planets 2–10, one at a time, each with its people.
@@ -592,6 +601,7 @@ Settled with @Hayk on Oct 15, 2026 (replacing the 100 levels, missions, contract
 
 - **Open worlds.** Each planet is a small open world, hand-made and truly different from the others. Graphite wraps around.
 - **The story start:** a wormhole, a crash, the link to the guild lost; you begin by repairing the lander, which doesn't fly until the end of chapter 1. Lift-off ends the free version.
+- **The wild wormhole and the way home** (Oct 17, 2026): the wormhole was natural, not steadied by your people, so it wrecked the ship and took part of your memory. You're in a part of the universe unknown to your species and understand none of its languages. The goal is to find home in the sky and gather enough to travel there.
 - **Free version = Graphite only;** other planets are paid.
 - **No linear missions:** the suit asks for what's needed; jobs are handed over in person, not from a board.
 - **One race on Graphite**, the Lamplighters, whose language you learn through the radio: levels of understanding, from talking and from found texts (their inscriptions, Aster logs, time capsules).
@@ -606,9 +616,11 @@ Settled with @Hayk on Oct 15, 2026 (replacing the 100 levels, missions, contract
 ## Open questions
 
 - **The Lamplighters' look and name** are a first draft.
-- **The prospector's alien look:** the drawing inside the helmet reads as human.
+- **The prospector's alien look:** the drawing inside the helmet reads as human. @Hayk wants them much more different, not necessarily humanoid; concepts in [inkmine-xenobiology.md](inkmine-xenobiology.md) section 5.
 - **Weapons:** how they work, their marks, and which depth band each one opens.
 - **Graphite's size** (256 × 160 built) and how long chapter 1 runs; repair amounts and gauge drain rates.
 - **Catalog progress** without blots: probably repairs done and words known.
 - **Pumice's gear.** The jetpack was planet 5's given gear; it's now in the starter set.
 - **Who lives on planets 2–10.**
+- **The way home:** the pulsar map, memory fragments, and what the final journey needs (see "The way home").
+- **Life rules** ([inkmine-xenobiology.md](inkmine-xenobiology.md)). Decided Oct 17, 2026: plants and animals only in the habitable zone, with life under ice the exception; crabs on some worlds; carbon + water most common, other chemistries in later systems; almost no air breathable for the prospector, with one or two twist worlds; the grit crab and rock-film food web on Graphite. Still proposed: the first system's layout (4 living, 2 under ice or underground, 4 dead, with Umbra as an under-ice moon), creatures on dead worlds, a non-humanoid prospector (the tidewalker), Cardia as the breathable twist.

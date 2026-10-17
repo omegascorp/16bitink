@@ -6,7 +6,7 @@ import type { Tab } from '../../logic/tech';
 import { drawSlotGrid, gridHeight } from '../slots';
 import { plaque } from '../kit/plaque';
 import { aside, FADED, INK_TEXT, label, SEPIA } from '../kit/type';
-import { PAD, section, SECTION_BODY, type ShipPage } from './panel';
+import { NO_FOCUS, PAD, section, SECTION_BODY, type ShipPage } from './panel';
 
 const CELL = 52;
 const NAMES = ['suit bag', 'cargo'] as const;
@@ -18,8 +18,10 @@ const BTN_H = 40;
  * a slot to move it there (into an empty slot, onto the same ore, or
  * swapping); a stack picked up on one tab can be put down on the other.
  * A picked-up stack can be sent to the other store, split in half or
- * jettisoned (tap twice); a slot in the suit bag can be locked, so the
- * lander never takes what's in it. Returns the panel's height.
+ * dropped (tap twice); a slot in the suit bag can be locked, so the
+ * lander never takes what's in it. Far from the lander (`page.remote`) the
+ * suit bag still sorts, splits, locks and drops, but the cargo can only
+ * be looked at: nothing moves into or out of it. Returns the panel's height.
  */
 export function storagePanel(page: ShipPage, tab: Tab, x: number, y: number, w: number): number {
   const { scene, profile: p, ui } = page;
@@ -39,10 +41,13 @@ export function storagePanel(page: ShipPage, tab: Tab, x: number, y: number, w: 
   ry += gridHeight(inv.slots.length, opts) + 10;
   const picked = sel ? pair[sel.bag].slots[sel.slot] : null;
   const inner = w - PAD * 2;
-  if (picked && sel) {
+  if (picked && sel && page.remote && sel.bag === 1) {
+    const t = aside(scene, x + PAD, ry, `${picked.n} ${ORES[picked.ore].name} in the cargo. The cargo stays aboard: it can be moved only at the lander.`, 16, inner, INK_TEXT);
+    ry += t.height + 10;
+  } else if (picked && sel) {
     const here = sel.bag === bag;
     const where = here ? '' : ` from the ${NAMES[sel.bag]}`;
-    const t = aside(scene, x + PAD, ry, `Holding ${picked.n} ${ORES[picked.ore].name}${where}. Tap a slot to put it there.`, 16, inner, INK_TEXT);
+    const t = aside(scene, x + PAD, ry, `Holding ${picked.n} ${ORES[picked.ore].name}${where}. Tap a slot to put it there, or tap it again to put it back.`, 16, inner, INK_TEXT);
     ry += t.height + 10;
     const other = NAMES[sel.bag === 0 ? 1 : 0];
     // Nothing moves when the other store has no room for it: the button is off rather than silently putting the stack down.
@@ -50,14 +55,13 @@ export function storagePanel(page: ShipPage, tab: Tab, x: number, y: number, w: 
     const canSend = sent[0] !== pair[0] || sent[1] !== pair[1];
     const canSplit = picked.n >= 2 && pair[sel.bag].slots.includes(null);
     const buttons: { text: string; kind: 'secondary' | 'danger' | 'off'; press: () => void }[] = [
-      { text: `To ${other}`, kind: canSend ? 'secondary' : 'off', press: () => commitPair(page, sent) },
+      ...(page.remote ? [] : [{ text: `To ${other}`, kind: canSend ? 'secondary' as const : 'off' as const, press: () => commitPair(page, sent) }]),
       { text: 'Split', kind: canSplit ? 'secondary' : 'off', press: () => commitPair(page, withInv(pair, sel.bag, splitStack(pair[sel.bag], sel.slot))) },
       {
-        text: ui.confirm ? 'Sure?' : 'Jettison', kind: ui.confirm ? 'danger' : 'secondary',
+        text: ui.confirm ? 'Sure?' : 'Drop', kind: ui.confirm ? 'danger' : 'secondary',
         press: () => (ui.confirm ? commitPair(page, withInv(pair, sel.bag, jettison(pair[sel.bag], sel.slot))) : page.setUi({ selected: sel, confirm: true })),
       },
       ...(sel.bag === 0 ? [{ text: isLocked(p.suit, sel.slot) ? 'Unlock' : 'Lock', kind: 'secondary' as const, press: () => page.commit({ ...p, suit: toggleLock(p.suit, sel.slot) }, { selected: sel }) }] : []),
-      { text: 'Put down', kind: 'secondary', press: () => page.setUi({}) },
     ];
     // All in a row when there's room, else rows of two.
     const across = inner >= buttons.length * 120 ? buttons.length : 2;
@@ -68,6 +72,10 @@ export function storagePanel(page: ShipPage, tab: Tab, x: number, y: number, w: 
       plaque(scene, bx, by, b.text, b.press, { width: bw, height: BTN_H, size: 14, kind: b.kind });
     });
     ry += Math.ceil(buttons.length / across) * (BTN_H + 8) + 6;
+  } else if (page.remote) {
+    const tip = bag === 0 ? 'Tap a stack to pick it up and move it. Locked slots stay in the bag at the lander.' : 'The cargo is aboard the lander: you can look here, and move it there.';
+    const t = aside(scene, x + PAD, ry, tip, 16, inner, FADED);
+    ry += t.height + 10;
   } else {
     const tip = bag === 0 ? 'Tap a stack to pick it up and move it. Locked slots stay in the bag at the lander.' : 'Tap a stack to pick it up and move it.';
     const t = aside(scene, x + PAD, ry, tip, 16, inner, FADED);
@@ -95,16 +103,26 @@ function commitPair(page: ShipPage, [suit, cargo]: [Inventory, Inventory]): void
   page.commit({ ...page.profile, suit, cargo });
 }
 
-/** A tap on a slot: pick a stack up, put it down where tapped, or put it back. */
+/**
+ * A tap on a slot: pick a stack up, put it down where tapped, or put it
+ * back. Holding one clears the technology focus, so its card shows alone.
+ * Far from the lander nothing moves into or out of the cargo: a tap that
+ * would picks up what's tapped instead (or puts the stack back).
+ */
 function tap(page: ShipPage, at: SlotRef): void {
   const { profile: p, ui } = page;
   const sel = ui.selected;
+  const filled = (at.bag === 0 ? p.suit : p.cargo).slots[at.slot] !== null;
   if (!sel) {
-    if ((at.bag === 0 ? p.suit : p.cargo).slots[at.slot]) page.setUi({ selected: at });
+    if (filled) page.setUi({ selected: at, focus: NO_FOCUS });
     return;
   }
   if (sel.bag === at.bag && sel.slot === at.slot) {
-    page.setUi({});
+    page.setUi({ focus: NO_FOCUS });
+    return;
+  }
+  if (page.remote && (sel.bag === 1 || at.bag === 1)) {
+    page.setUi(filled ? { selected: at, focus: NO_FOCUS } : { focus: NO_FOCUS });
     return;
   }
   commitPair(page, moveStack([p.suit, p.cargo], sel, at));

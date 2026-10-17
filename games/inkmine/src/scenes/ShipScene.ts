@@ -11,9 +11,10 @@ import { defaultTab, focusOf, TABS, type Tab } from '../logic/tech';
 import { relayoutOnResize, screenScene, toView, viewSize } from './hidpi';
 import { plaque } from './kit/plaque';
 import { aside, heading, INK_TEXT, scrawl, SEPIA } from './kit/type';
-import { desk, type ShipPage, type ShipUi } from './ship/panel';
+import { desk, NO_FOCUS, type ShipPage, type ShipUi } from './ship/panel';
 import { storagePanel } from './ship/storagePanel';
 import { drawTabs } from './ship/tabs';
+import { stackCard } from './ship/stackCard';
 import { techCard } from './ship/techCard';
 import { shipStoryCard } from './ship/storyCards';
 import { techPanel } from './ship/techPanel';
@@ -21,6 +22,8 @@ import { techPanel } from './ship/techPanel';
 export interface ShipData extends ShipUi {
   /** Where the page was scrolled to, kept across a redraw. */
   readonly scrollY?: number;
+  /** Opened with L far from the lander, over the paused world (see ShipPage.remote). */
+  readonly remote?: boolean;
 }
 
 const GAP = 20;
@@ -37,10 +40,14 @@ const BACK = { w: 180, h: 46 } as const;
  * Ship tab (Q / E, or tap). Each shows its technology slots (the gear; the
  * ship's systems and modules) above its storage (the suit bag; the cargo),
  * and beside them the prospector or the lander with the slot in focus on a
- * detail card, to print or repair it.
+ * detail card, to print or repair it; a stack picked up from the storage
+ * shows on that card instead. Tap the slot again, or put the stack down,
+ * and the card goes. Far from the lander, L opens the same page over the
+ * paused world, read-only but for sorting and locking the suit bag.
  */
 export class ShipScene extends Phaser.Scene {
   private ui: ShipUi = {};
+  private remote = false;
 
   constructor() {
     super('Ship');
@@ -56,19 +63,28 @@ export class ShipScene extends Phaser.Scene {
     bakeCharacters(this, prospectorLook(profile.gear), landerLookOf(profile.ship), wreckOf(profile));
     bakePickups(this, planet.style.stone);
 
-    const tab = data.tab ?? defaultTab(profile);
-    const focus = focusOf(profile, tab, data.focus);
+    this.remote = data.remote ?? false;
+    const tab = data.tab ?? (this.remote ? 'suit' : defaultTab(profile));
     this.ui = { selected: data.selected, confirm: data.confirm, tab, focus: data.focus };
     const page: ShipPage = {
       scene: this,
       profile,
       ui: this.ui,
+      remote: this.remote,
       commit: (p, ui = {}) => this.redraw(p, ui),
       setUi: (ui) => this.redraw(null, ui),
     };
 
     const { width } = viewSize(this);
     const wide = width >= WIDE;
+    // The right side shows one thing: the stack held, else the slot in focus, else nothing.
+    const sel = this.ui.selected;
+    const held = sel ? (sel.bag === 0 ? profile.suit : profile.cargo).slots[sel.slot] : null;
+    const focus = held || data.focus === NO_FOCUS ? null : focusOf(profile, tab, data.focus);
+    const card = (x: number, y: number, w: number): number => {
+      if (sel && held) return stackCard(page, sel, held, x, y, w);
+      return focus ? techCard(page, focus, x, y, w) : 0;
+    };
     this.header(width, wide, tab, data.news);
     let bottom: number;
     if (wide) {
@@ -80,38 +96,53 @@ export class ShipScene extends Phaser.Scene {
       const h1 = techPanel(page, tab, focus, x0, top, leftW);
       const h2 = storagePanel(page, tab, x0, top + h1 + GAP, leftW);
       this.figure(tab, profile, x1 + rightW / 2, top + FIG.wide - 10, false);
-      const h3 = techCard(page, focus, x1, top + FIG.wide, rightW);
+      this.farNote(tab, x1 + rightW / 2, top + 4, rightW, 28);
+      const h3 = card(x1, top + FIG.wide, rightW);
       bottom = Math.max(top + h1 + GAP + h2, top + FIG.wide + h3);
     } else {
       const colW = Math.floor(Math.min(620, width - GAP * 2) / 8) * 8;
       const x = Math.round((width - colW) / 2);
       const top = HEAD.narrow;
       this.figure(tab, profile, width / 2, top + FIG.narrow - 10, true);
+      this.farNote(tab, width / 2, top - 6, colW, 22);
       const panels: ((y: number) => number)[] = [
         (y) => techPanel(page, tab, focus, x, y, colW),
-        (y) => techCard(page, focus, x, y, colW),
+        (y) => card(x, y, colW),
         (y) => storagePanel(page, tab, x, y, colW),
       ];
-      bottom = panels.reduce((y, panel) => y + panel(y) + GAP, top + FIG.narrow) - GAP;
+      // An empty card takes no room, nor a gap.
+      bottom = panels.reduce((y, panel) => { const h = panel(y); return h ? y + h + GAP : y; }, top + FIG.narrow) - GAP;
     }
     desk(this, width, Math.max(viewSize(this).height, bottom + GAP * 2));
     this.scroll(bottom + GAP, data.scrollY ?? 0);
     this.keys(tab);
-    shipStoryCard(page);
+    // Story beats happen aboard, not on the suit page far away.
+    if (!this.remote) shipStoryCard(page);
   }
 
   /** The title, the tab strip, the way back down, and any news. */
   private header(width: number, wide: boolean, tab: Tab, news?: string): void {
     const planet = currentPlanet();
-    heading(this, GAP + 4, 18, 'The lander', 30).setOrigin(0, 0);
-    aside(this, GAP + 6, 54, `crash site, ${planet.name}`, 17, 400, SEPIA).setOrigin(0, 0);
-    plaque(this, width - GAP - BACK.w / 2, 40, 'Back down', () => this.scene.start('Game'), { width: BACK.w, height: BACK.h, kind: 'primary' });
+    heading(this, GAP + 4, 18, this.remote ? 'Inventory' : 'The lander', 30).setOrigin(0, 0);
+    const where = this.remote ? 'far from the lander: the cargo is look-only' : `crash site, ${planet.name}`;
+    aside(this, GAP + 6, 54, where, 17, 400, SEPIA).setOrigin(0, 0);
+    const back = (): void => {
+      if (this.remote) this.close();
+      else this.scene.start('Game');
+    };
+    plaque(this, width - GAP - BACK.w / 2, 40, this.remote ? 'Back' : 'Back down', back, { width: BACK.w, height: BACK.h, kind: 'primary' });
     const pick = (t: Tab): void => this.redraw(null, { selected: this.ui.selected, tab: t });
     if (wide) drawTabs(this, width - GAP - BACK.w - 40, 38, tab, pick);
     else drawTabs(this, width - GAP, 104, tab, pick);
     if (!news) return;
     if (wide) scrawl(this, width / 2, 40, news, 30, INK_TEXT).setOrigin(0.5, 0.5);
     else scrawl(this, GAP, 104, news, 26, INK_TEXT).setOrigin(0, 0.5);
+  }
+
+  /** Over the lander, when it's looked at from far away: why nothing here can be touched. */
+  private farNote(tab: Tab, cx: number, y: number, w: number, size: number): void {
+    if (!this.remote || tab !== 'ship') return;
+    scrawl(this, cx, y, "You're far from the lander. Come back to it to print, repair or move the cargo.", size, INK_TEXT, w).setOrigin(0.5, 0).setAlign('center');
   }
 
   /** The prospector (suit tab) or the lander as broken as it still is (ship tab), standing on `groundY`. */
@@ -136,13 +167,21 @@ export class ShipScene extends Phaser.Scene {
     };
     this.input.keyboard?.on('keydown-Q', () => step(-1));
     this.input.keyboard?.on('keydown-E', () => step(1));
+    // Far from the lander, L (which opened it) or Esc closes it again.
+    if (this.remote) for (const k of ['keydown-L', 'keydown-ESC']) this.input.keyboard?.once(k, () => this.close());
+  }
+
+  /** The suit page closes back into the world, which takes the bag as it was left here. */
+  private close(): void {
+    this.scene.stop();
+    this.scene.resume('Game');
   }
 
   /** Saves a changed profile (if any) and redraws with new page state, keeping the scroll and (unless changed) the tab and focus. */
   private redraw(p: Profile | null, ui: ShipUi): void {
     if (p) setProfile(this, p);
     const keep = ui.tab && ui.tab !== this.ui.tab ? { tab: ui.tab } : { tab: this.ui.tab, focus: this.ui.focus };
-    const next: ShipData = { scrollY: this.cameras.main.scrollY, ...keep, ...ui };
+    const next: ShipData = { scrollY: this.cameras.main.scrollY, remote: this.remote, ...keep, ...ui };
     this.scene.restart(next);
   }
 

@@ -35,8 +35,8 @@ const WOKE_MS = 9000;
 const HALO = { stroke: '#f5efdf', strokeThickness: 5 } as const;
 /** The opening card (spec, "Story: chapter 1"). */
 const INTRO = [
-  'The jump went wrong. A wormhole tore open, and the lander fell through it, out among stars no chart has.',
-  'It came down hard on a small grey moon. The link to the guild is gone, and the suit is still listing the damage.',
+  'The jump went wrong. The lander struck a wild wormhole, one nobody had charted or steadied, and it tore through, out among stars no chart has.',
+  "It came down hard on a small grey moon. The link to the guild is gone, the suit is still listing the damage, and the way back is gone from memory: which way home lies, even which star.",
   "Nothing can be mended without the printer, and the printer wants copper. There's copper in the crater walls.",
 ] as const;
 
@@ -121,7 +121,7 @@ export class HudScene extends Phaser.Scene {
         .on('pointerdown', () => this.play?.feedGauge(gauge as GaugeName));
     }
     this.prompt = aside(this, 0, 0, 'At the lander: press L to go aboard', 22, 600, INK_TEXT).setStyle(HALO).setOrigin(0.5).setVisible(false);
-    this.hint = label(this, 0, 0, '← →  walk     ↓ ↑  drill     SPACE  jump, hold to fly     R  feed air or cell     L  go aboard     ESC  pause', 15, SEPIA, '500')
+    this.hint = label(this, 0, 0, '← →  walk     ↓ ↑  drill     SPACE  jump, hold to fly     R  feed air or cell     L  suit, or aboard at the lander     ESC  pause', 15, SEPIA, '500')
       .setStyle(HALO).setOrigin(0.5, 1).setAlpha(0.9);
     this.failed = heading(this, 0, 0, 'Your suit gave out', 34, MADDER).setStyle(HALO).setOrigin(0.5).setVisible(false);
     this.layout();
