@@ -1,16 +1,17 @@
-import type Phaser from 'phaser';
 import { techTexture, TEX } from '../../art/textures';
-import { isRepaired, wreckOf } from '../../logic/repairs';
+import { setProfile } from '../../host';
+import { liftOff } from '../../logic/fuel';
+import { wreckOf } from '../../logic/repairs';
 import { landerLookOf } from '../../logic/ship';
-import { callDue, hasBeat, withBeat } from '../../logic/story';
+import { callDue, withBeat } from '../../logic/story';
 import { storyCard } from '../kit/storyCard';
 import type { ShipPage } from './panel';
 
 /**
  * The story's moments aboard: the call that comes in the moment the radio
- * works (spec, "Story: chapter 1"), and lift-off once the drive core is in.
- * Each shows once; closing it saves that it was seen. Returns whether one
- * is up.
+ * works (spec, "Story: chapter 1"). It shows once; closing it saves that
+ * it was seen. Returns whether one is up. Lift-off has its own card, from
+ * the Fuel panel (liftOffCard).
  */
 export function shipStoryCard(page: ShipPage): boolean {
   const { scene, profile: p } = page;
@@ -25,20 +26,26 @@ export function shipStoryCard(page: ShipPage): boolean {
     }, () => page.commit(withBeat(page.profile, 'called'), { news: 'Call recorded' }));
     return true;
   }
-  if (isRepaired(p, 'core') && !hasBeat(p, 'flown')) {
-    liftOff(scene, page);
-    return true;
-  }
   return false;
 }
 
-function liftOff(scene: Phaser.Scene, page: ShipPage): void {
-  const p = page.profile;
+/**
+ * Lift-off, from the Fuel panel's button: the climb burns the fuel and is
+ * saved, and closing the card flies on up to the ship in orbit (the star
+ * map). The end of chapter 1.
+ */
+export function liftOffCard(page: ShipPage): void {
+  const { scene, profile: p } = page;
+  const r = liftOff(p);
+  if (!r.ok) return;
   storyCard(scene, {
     title: 'Lift-off',
     subtitle: 'the end of chapter 1, on Graphite',
     pictures: [{ key: TEX.lander(landerLookOf(p.ship), 0, wreckOf(p)), h: 150 }],
-    text: "The core hums, the thrusters catch, and the lander lifts off the grey moon. Down on the far rim, the Lamplighters' lanterns get small. The drive works. But which way is home? The star chart, and the planets past Graphite, come in the next chapter.",
-    button: 'Where to?',
-  }, () => page.commit(withBeat(page.profile, 'flown')));
+    text: "The core hums, the tanks feed the thrusters, and the lander climbs off the grey moon. Down on the far rim, the Lamplighters' lanterns get small. Then, ahead, a dark shape against the stars, turning slowly: your ship, right where she braked into orbit before her systems died.",
+    button: 'Fly up to her',
+  }, () => {
+    setProfile(scene, r.profile);
+    scene.scene.start('System', { arrived: true });
+  });
 }

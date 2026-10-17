@@ -6,6 +6,7 @@ import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 import { HudScene } from './scenes/HudScene';
 import { ShipScene } from './scenes/ShipScene';
+import { SystemScene } from './scenes/SystemScene';
 import { DPR } from './scenes/hidpi';
 
 /** Mounts InkMine into `parent`, filling it completely and tracking its size. */
@@ -32,7 +33,7 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     },
     input: { activePointers: 3 },
     audio: { noAudio: true },
-    scene: [BootScene, GameScene, ShipScene, HudScene],
+    scene: [BootScene, GameScene, ShipScene, SystemScene, HudScene],
   });
   game.registry.set(REG.host, host);
   const resizer = new ResizeObserver(() => {

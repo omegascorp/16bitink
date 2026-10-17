@@ -9,11 +9,13 @@ import { wreckOf } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
 import { defaultTab, focusOf, TABS, type Tab } from '../logic/tech';
 import type { GameScene } from './GameScene';
-import { relayoutOnResize, screenScene, toView, viewSize } from './hidpi';
+import { relayoutOnResize, screenScene, viewSize } from './hidpi';
 import { plaque } from './kit/plaque';
+import { dragScroll } from './kit/scroll';
 import { aside, heading, INK_TEXT, scrawl, SEPIA } from './kit/type';
 import { desk, NO_FOCUS, type ShipPage, type ShipUi } from './ship/panel';
 import { storagePanel } from './ship/storagePanel';
+import { fuelPanel } from './ship/fuelPanel';
 import { drawTabs } from './ship/tabs';
 import { stackCard } from './ship/stackCard';
 import { techCard } from './ship/techCard';
@@ -48,7 +50,8 @@ const MENU_KEYS = ['keydown-L', 'keydown-ESC', 'keydown-P'] as const;
  * shows on that card instead. Tap the slot again, or put the stack down,
  * and the card goes. Far from the lander, L opens the same page over the
  * paused world, read-only but for sorting and locking the suit bag; it's
- * the pause menu too, with Recall. L, Esc or P leaves either page.
+ * the pause menu too, with Recall. L, Esc or P leaves either page. The Ship
+ * tab also has the fuel tank, with Refill and Lift off (ship/fuelPanel.ts).
  */
 export class ShipScene extends Phaser.Scene {
   private ui: ShipUi = {};
@@ -102,8 +105,10 @@ export class ShipScene extends Phaser.Scene {
       const h2 = storagePanel(page, tab, x0, top + h1 + GAP, leftW);
       this.figure(tab, profile, x1 + rightW / 2, top + FIG.wide - 10, false);
       this.farNote(tab, x1 + rightW / 2, top + 4, rightW, 28);
-      const h3 = card(x1, top + FIG.wide, rightW);
-      bottom = Math.max(top + h1 + GAP + h2, top + FIG.wide + h3);
+      // The Ship tab has the fuel tank under the lander, then the card.
+      const fuelH = tab === 'ship' ? fuelPanel(page, x1, top + FIG.wide, rightW) + GAP : 0;
+      const h3 = card(x1, top + FIG.wide + fuelH, rightW);
+      bottom = Math.max(top + h1 + GAP + h2, top + FIG.wide + fuelH + (h3 || -GAP));
     } else {
       const colW = Math.floor(Math.min(620, width - GAP * 2) / 8) * 8;
       const x = Math.round((width - colW) / 2);
@@ -111,6 +116,7 @@ export class ShipScene extends Phaser.Scene {
       this.figure(tab, profile, width / 2, top + FIG.narrow - 10, true);
       this.farNote(tab, width / 2, top - 6, colW, 22);
       const panels: ((y: number) => number)[] = [
+        (y) => (tab === 'ship' ? fuelPanel(page, x, y, colW) : 0),
         (y) => techPanel(page, tab, focus, x, y, colW),
         (y) => card(x, y, colW),
         (y) => storagePanel(page, tab, x, y, colW),
@@ -119,7 +125,7 @@ export class ShipScene extends Phaser.Scene {
       bottom = panels.reduce((y, panel) => { const h = panel(y); return h ? y + h + GAP : y; }, top + FIG.narrow) - GAP;
     }
     desk(this, width, Math.max(viewSize(this).height, bottom + GAP * 2));
-    this.scroll(bottom + GAP, data.scrollY ?? 0);
+    dragScroll(this, bottom + GAP, data.scrollY ?? 0);
     this.keys(tab);
     // Story beats happen aboard, not on the suit page far away.
     if (!this.remote) shipStoryCard(page);
@@ -211,31 +217,5 @@ export class ShipScene extends Phaser.Scene {
     const keep = ui.tab && ui.tab !== this.ui.tab ? { tab: ui.tab } : { tab: this.ui.tab, focus: this.ui.focus };
     const next: ShipData = { scrollY: this.cameras.main.scrollY, remote: this.remote, ...keep, ...ui };
     this.scene.restart(next);
-  }
-
-  /** On a screen too short for the page, drag or wheel to scroll it. */
-  private scroll(contentH: number, startY: number): void {
-    const { height } = viewSize(this);
-    if (contentH <= height) return;
-    const cam = this.cameras.main;
-    // Clamped by hand: camera bounds don't sit right with this zoomed, top-left-origin camera.
-    const to = (y: number): void => {
-      cam.setScroll(0, Phaser.Math.Clamp(y, 0, contentH - height));
-    };
-    to(startY);
-    this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => to(cam.scrollY + dy));
-    let last: number | null = null;
-    this.input.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
-      last = toView(ptr.x, ptr.y, this).y;
-    });
-    this.input.on('pointermove', (ptr: Phaser.Input.Pointer) => {
-      if (last === null || !ptr.isDown) return;
-      const now = toView(ptr.x, ptr.y, this).y;
-      to(cam.scrollY - (now - last));
-      last = now;
-    });
-    this.input.on('pointerup', () => {
-      last = null;
-    });
   }
 }

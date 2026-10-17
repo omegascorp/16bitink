@@ -31,6 +31,8 @@ export interface Profile {
   readonly beats: readonly Beat[];
   /** One-off tools printed for the suit (tools.ts). */
   readonly tools: readonly Tool[];
+  /** The lander's fuel tank, in units (fuel.ts): split from ice, burnt climbing to orbit. */
+  readonly fuel: number;
 }
 
 /** Cargo slots out of use while the hull is breached (repairs.ts). */
@@ -46,6 +48,7 @@ export const NEW_PROFILE: Profile = {
   started: false,
   beats: [],
   tools: [],
+  fuel: 0,
 };
 
 /** Every resource on hand: the cargo and the suit's bag. */

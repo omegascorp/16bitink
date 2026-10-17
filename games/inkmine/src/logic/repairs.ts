@@ -1,5 +1,6 @@
 import { recipeOf } from './blueprints';
 import { fitInventories, hasOnHand, onHand, spend, type PrintResult, type Profile } from './economy';
+import { FUEL } from './fuel';
 import { countOf, holdEntries, type Hold } from './hold';
 import { ORES } from './ore';
 import { hasBeat, tradeLine } from './story';
@@ -11,9 +12,9 @@ import { hasTool, TOOL_KINDS } from './tools';
  * repair takes ore straight from the cargo (then the bag), no parts to
  * craft first, and opens something you use at once, the way No Man's Sky's
  * crash-and-repair opening does. The printer is first, the radio second,
- * the hull and the thrusters in either order. The drive core can't be
- * printed: the local aliens make it, and when it's in, the lander flies and
- * chapter 1 ends.
+ * then the hull and the thrusters in either order. The drive core can't be
+ * printed: the local aliens make it. With it in and the tank filled
+ * (fuel.ts), the lander flies up to the ship in orbit and chapter 1 ends.
  *
  * Ids are saved: never change one.
  */
@@ -63,7 +64,7 @@ export const REPAIRS: Readonly<Record<RepairId, Repair>> = {
   core: {
     id: 'core', name: 'Drive core', needs: null, after: ['hull', 'thrusters'],
     broken: 'Cracked in the wormhole. Nothing you can print will fix it.',
-    opens: 'The drive works. Where to?',
+    opens: 'The drive works. Fill the tank, and she can climb to the ship.',
   },
 };
 
@@ -119,7 +120,9 @@ export type Goal =
   | { readonly kind: 'trade' }
   /** Paid and the ship whole: go back to them for the core. */
   | { readonly kind: 'collect' }
-  /** The core is in: chapter 1 is over. */
+  /** The core is in: fill the tank for the climb to orbit (fuel.ts). */
+  | { readonly kind: 'fuel' }
+  /** Fuelled: lift off and fly up to the ship (chapter 1 is over once you have). */
   | { readonly kind: 'done' };
 
 /** The drill that breaks Graphite's stone: the radio needs quartz, which lies in it. */
@@ -129,7 +132,7 @@ const STONE_DRILL = 'drill-1';
  * What to do next: the printer, then (as quartz lies in stone) finding and
  * printing the drill, then the radio; then following the call to the
  * Lamplighters, the hull and the thrusters, bringing the Lamplighters their
- * silver, and last fitting the drive core they give you. One goal at a
+ * silver, fitting the drive core they give you, and last filling the tank. One goal at a
  * time, never none: the complaint about No Man's Sky's start is the stretch
  * with no prompt.
  */
@@ -142,7 +145,8 @@ export function currentGoal(p: Profile): Goal {
   const next = REPAIR_IDS.find((id) => id !== 'core' && !isRepaired(p, id));
   if (next) return { kind: 'repair', id: next };
   if (!hasBeat(p, 'core')) return hasBeat(p, 'paid') ? { kind: 'collect' } : { kind: 'trade' };
-  return isRepaired(p, 'core') ? { kind: 'done' } : { kind: 'repair', id: 'core' };
+  if (!isRepaired(p, 'core')) return { kind: 'repair', id: 'core' };
+  return hasBeat(p, 'flown') || p.fuel >= FUEL.toOrbit ? { kind: 'done' } : { kind: 'fuel' };
 }
 
 /** "native copper 3/6 · quartz 0/2": what a repair needs against what's on hand. */
@@ -162,7 +166,11 @@ export function goalLine(p: Profile, g: Goal): string {
   if (g.kind === 'signal') return 'Follow the call with the receiver: the more bars, the closer you are';
   if (g.kind === 'trade') return `The Lamplighters want silver from deep down for a drive core. Bring it in your bag: ${tradeLine(p.suit, (ore) => ORES[ore as keyof typeof ORES].name)}`;
   if (g.kind === 'collect') return 'Your ship is whole: go back to the Lamplighters for the drive core';
-  if (g.kind === 'done') return 'The drive works. Where to?';
+  if (g.kind === 'fuel') {
+    const ice = Math.min(countOf(onHand(p), FUEL.ore), FUEL.toOrbit - p.fuel);
+    return p.fuel + ice >= FUEL.toOrbit ? 'Fill the tank for the climb to orbit: go aboard (L at the lander) and refill' : `Fill the tank for the climb to orbit: ${ORES[FUEL.ore].name} ${p.fuel + ice}/${FUEL.toOrbit}`;
+  }
+  if (g.kind === 'done') return hasBeat(p, 'flown') ? 'Your ship waits in orbit: the star map is aboard (L at the lander)' : 'Lift off and fly up to your ship: go aboard (L at the lander)';
   const r = REPAIRS[g.id];
   const label = `Repair the ${r.name.toLowerCase()}`;
   if (!r.needs) return hasBeat(p, 'core') ? 'Fit the drive core: go aboard (L at the lander)' : `${label}: the Lamplighters can make one`;

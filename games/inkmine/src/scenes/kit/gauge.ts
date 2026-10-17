@@ -3,13 +3,15 @@ import { createRng } from '../../logic/rng';
 import { bakeUi, granulate, RES, roundRect, rule, RULE, uiImage, wash } from './paint';
 
 /** What a gauge holds, and so its wash. */
-export type GaugeKind = 'air' | 'cell';
+export type GaugeKind = 'air' | 'cell' | 'fuel';
 
 const COLORS: Readonly<Record<GaugeKind | 'low', string>> = {
   /** Cerulean: life support. */
   air: '#3f8fae',
   /** Gamboge: the drill's charge. */
   cell: '#d49a2a',
+  /** Viridian: the lander's fuel, split from ice. */
+  fuel: '#3f8c7a',
   /** Madder, once it's low. */
   low: '#b0382e',
 };

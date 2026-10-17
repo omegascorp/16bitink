@@ -257,6 +257,8 @@ Carbon is the best bet because it forms four strong bonds, long chains and rings
 
 A first pass over the current ten under the habitable-zone rule. Mechanics stay; who lives where changes.
 
+**Built Oct 17, 2026** as the first star system (design spec, "The first star system"; `logic/starSystem.ts`): this layout, around an orange dwarf, with the giants named Sepia (ringed) and Indigo (ice giant), and Pumice as Indigo's small porous moon rather than a planet of its own.
+
 **A layout that fits the rule.** A habitable zone has room for only a few planets: our Sun's has Earth, with Venus and Mars at its edges *(unverified)*. TRAPPIST-1, a red dwarf, has three or four in its zone *(unverified)*. The way to fit more living worlds is a **ringed giant in the habitable zone with big moons**: Graphite already has a ringed planet in its sky. From the star outwards:
 
 | Orbit | World | Kind | Why |
@@ -350,7 +352,7 @@ A long-form video could walk through the first system from the star outwards: wh
 
 ## Open questions
 
-- **The first system layout** in section 7: 4 living, 2 under ice or underground, 4 dead, with Mycel and Cardia as moons of Graphite's ringed giant?
+- **The first system layout** in section 7: built Oct 17, 2026, as proposed (4 living, 2 under ice or underground, 4 dead, with Mycel and Cardia as moons of Graphite's ringed giant). Still to confirm.
 - **Dead worlds:** hazards only, or hazards plus machines?
 - **The breathable twist:** Cardia, and a second world later?
 - **Umbra** becomes an under-ice moon (darkness kept, cause changed)?
@@ -368,3 +370,4 @@ A long-form video could walk through the first system from the star outwards: wh
 - Intelligence and technology: Balbi & Frank, "The oxygen bottleneck for technospheres", *Nature Astronomy* (2024), [University of Rochester](https://www.rochester.edu/newscenter/atmospheric-oxygen-cosmic-technospheres-alien-technology-589242/); Mills, Macalady, Frank & Wright, "A reassessment of the hard-steps model", *Science Advances* (2025), [arXiv](https://arxiv.org/abs/2408.10293v2), [Penn State](https://iee.psu.edu/news/does-planetary-evolution-favor-human-life-study-ups-odds-were-not-alone)
 - Aliens in fiction: [Project Hail Mary science (Nerdzap)](https://nerdzap.com/news/project-hail-mary-science-andy-weir/), [Rocky (Moss and Fog)](https://mossandfog.beehiiv.com/p/rocky-project-hail-mary); [Expedition](https://en.wikipedia.org/wiki/Expedition_(book)), [Alien Planet](https://en.wikipedia.org/wiki/Alien_Planet); [Alien Worlds (Netflix)](https://www.netflix.com/title/80221410); why aliens are humanoid: [Science Focus](https://www.sciencefocus.com/space/it-came-from-beyond-the-silver-screen-aliens-in-the-movies/), [TVLine on Star Trek](https://tvline.com/2247657/star-trek-in-universe-reason-most-alien-races-humanoid/), [Goodreads blog](https://www.goodreads.com/author_blog_posts/3650131-why-are-so-many-aliens-humanoid)
 - Other chemistries: Bains et al., ["Alternative solvents for life"](https://arxiv.org/pdf/2401.07296) (2024); Petkowski, Bains & Seager, ["On the potential of silicon as a building block for life"](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7345352/), *Life* (2020); Seager et al., amino acids in sulfuric acid, *Astrobiology* (2024), [MIT](https://physics.mit.edu/?p=17885); Rahm et al., azotosomes on Titan (2020), [PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC6981084), [Phys.org](https://pda.phys.org/news/2020-02-polarity-inverted-membranes-self-assemble-saturn-moon.html)
+- The first star system (Oct 17, 2026): Cuntz & Guinan, ["About Exobiology: The Case for Dwarf K Stars"](https://www.arxiv.org/pdf/1606.09580), *ApJ* (2016), and [NASA](https://exoplanets.nasa.gov/news/1620/goldilocks-stars-are-best-places-to-look-for-life); Kopparapu et al., ["Habitable Zones Around Main-Sequence Stars: New Estimates"](https://alphaxiv.org/abs/1301.6674) (2013), edges from [PSU](https://pure.psu.edu/en/publications/remote-life-detection-criteria-habitable-zone-boundaries-and-the-/) and [PHL](https://phl.upr.edu/library/labnotes/limits-of-the-new-habitable-zone); Thomas et al., ["Hyperion's sponge-like appearance"](https://www.nature.com/articles/nature05779), *Nature* (2007), and [Scientific American](https://www.scientificamerican.com/article/saturns-moon-hyperion-porous-like-sponge/). The snow line's scaling (2.7 AU × √luminosity) and giants drifting inward are from memory *(unverified)*

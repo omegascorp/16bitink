@@ -7,7 +7,8 @@ import type { Pt } from './pen';
  * Graphite's sky, painted: an airless moon's sky is black even by day, so
  * it's a deep indigo wash grading down to a warm glow along the horizon,
  * with the stars left as bare paper (as a watercolourist masks them), a
- * ringed planet washed and shaded hanging over the horizon, and the rims of
+ * ringed planet (Sepia, the giant Graphite circles) washed and shaded
+ * hanging over the horizon with two of its other moons, and the rims of
  * far craters in aerial perspective. Two layers so they can scroll at
  * different speeds: the far sky (`drawSky`) and the crater ridges
  * (`drawRidges`, ridgeArt.ts), each drawn from the top-left of its canvas with the
@@ -63,8 +64,9 @@ export function drawSky(d: Draw, w: number, h: number, horizon: number, _style: 
   ctx.globalAlpha = 1;
   stars(ctx, rng, w, horizon);
   ringedPlanet(d, pt(w * 0.42, horizon * 0.5), Math.min(64, horizon * 0.18));
-  smallMoon(d, pt(w * 0.12, horizon * 0.36), 12);
-  smallMoon(d, pt(w * 0.78, horizon * 0.24), 7);
+  // Graphite's sister moons round the ringed giant (starSystem.ts): green, hazy Mycel and red Cardia.
+  smallMoon(d, pt(w * 0.12, horizon * 0.36), 12, '#c9dcae', '#5f7a4c');
+  smallMoon(d, pt(w * 0.78, horizon * 0.24), 7, '#ebb1a9', '#86424a');
 }
 
 /** Stars left as paper: specks, a few with a soft halo, and a handful of four-point glints. */
@@ -106,7 +108,7 @@ function stars(ctx: CanvasRenderingContext2D, rng: Rng, w: number, horizon: numb
 }
 
 /** A washed sphere: the colour, a lit side and a terminator, painted inside `shape`. */
-function sphere(d: Draw, c: Pt, r: number, shape: readonly Pt[], light: string, dark: string): void {
+export function sphere(d: Draw, c: Pt, r: number, shape: readonly Pt[], light: string, dark: string): void {
   const ctx = d.pen.ctx;
   d.pen.clipped(shape, () => {
     const g = ctx.createRadialGradient(c.x - r * 0.4, c.y - r * 0.45, r * 0.1, c.x, c.y, r * 1.15);
@@ -137,7 +139,7 @@ function sphere(d: Draw, c: Pt, r: number, shape: readonly Pt[], light: string, 
   });
 }
 
-function ringedPlanet(d: Draw, c: Pt, r: number): void {
+export function ringedPlanet(d: Draw, c: Pt, r: number): void {
   const ctx = d.pen.ctx;
   const tilt = -0.32;
   const ring = (k: number, half: 'back' | 'front'): Pt[] => {
@@ -180,8 +182,8 @@ function ringedPlanet(d: Draw, c: Pt, r: number): void {
   band('front', 0.7);
 }
 
-function smallMoon(d: Draw, c: Pt, r: number): void {
+function smallMoon(d: Draw, c: Pt, r: number, light: string, dark: string): void {
   const moon = oval(c.x, c.y, r, r, 24);
-  sphere(d, c, r, moon, '#ece6d6', '#8e8a96');
+  sphere(d, c, r, moon, light, dark);
   edge(d, moon, 1);
 }

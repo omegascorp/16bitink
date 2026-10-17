@@ -4,6 +4,7 @@ import { fitInventories, NEW_PROFILE, type Profile } from './economy';
 import { PIECES, type Loadout } from './gear';
 import type { Inventory, Stack } from './inventory';
 import { ORES } from './ore';
+import { FUEL } from './fuel';
 import { REPAIR_IDS, type RepairId } from './repairs';
 import { MODULE_KEYS, maxLevel, type ShipModules } from './ship';
 import { BEATS, type Beat } from './story';
@@ -65,6 +66,11 @@ function parseTools(v: unknown): Tool[] {
   return [...new Set(v.filter((t): t is Tool => typeof t === 'string' && (TOOLS as readonly string[]).includes(t)))];
 }
 
+/** A tank level: a whole number of units, within the tank. */
+function parseFuel(v: unknown): number {
+  return typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(FUEL.max, Math.floor(v))) : 0;
+}
+
 /** Untrusted saved data to a profile: anything malformed is dropped, never thrown. */
 export function parseProfile(raw: unknown): Profile {
   if (!isObj(raw)) return NEW_PROFILE;
@@ -80,6 +86,7 @@ export function parseProfile(raw: unknown): Profile {
     started: raw.started === true,
     beats: parseBeats(raw.beats),
     tools: parseTools(raw.tools),
+    fuel: parseFuel(raw.fuel),
   });
 }
 

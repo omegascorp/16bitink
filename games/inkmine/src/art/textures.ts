@@ -15,6 +15,8 @@ import type { Wreck } from '../logic/repairs';
 import { drawProspector, POSES, PROSPECTOR_FRAME, PROSPECTOR_GROUND, type Pose } from './prospector';
 import { drawRidges, RIDGE_W } from './ridgeArt';
 import { drawSky, SKY_W } from './skyArt';
+import { drawShip, drawStar, drawWorld, SHIP_ART, STAR_ART, worldFrame } from './systemArt';
+import { WORLDS } from '../logic/starSystem';
 import { drawTech, TECH_FRAME, type TechVariant } from './techArt';
 import { techKey, type Tech } from '../logic/tech';
 
@@ -30,6 +32,9 @@ export const TEX = {
   outpost: (f: number) => `outpost-${f}`,
   sky: (h: number) => `sky-${h}`,
   ridges: (h: number) => `ridges-${h}`,
+  world: (id: string) => `world-${id}`,
+  star: 'star',
+  ship: (lit: boolean) => `ship-${lit ? 'lit' : 'dark'}`,
 } as const;
 
 /** Texture px per unit for the prospector: drawn finer than the rest, as the eye goes to them. */
@@ -134,6 +139,16 @@ export function generateTextures(scene: Phaser.Scene, style: GroundStyle, skyHei
   bake(scene, TEX.sky(skyHeight), SKY_W, skyHeight + SKY_SKIRT, 0, 0, 1, (ctx) => drawSky(makeDraw(ctx, 900, 0, 0), SKY_W, skyHeight + SKY_SKIRT, skyHeight, style));
   const ridge = skyHeight * 0.5;
   bake(scene, TEX.ridges(skyHeight), RIDGE_W, ridge + SKY_SKIRT, 0, 0, 1, (ctx) => drawRidges(makeDraw(ctx, 910, 0, 0), RIDGE_W, ridge + SKY_SKIRT, ridge, style));
+}
+
+/** The star map's star, worlds and ship (SystemScene). */
+export function bakeSystem(scene: Phaser.Scene): void {
+  WORLDS.forEach((w, i) => {
+    const f = worldFrame(w);
+    bake(scene, TEX.world(w.id), f, f, f / 2, f / 2, 3, (ctx) => drawWorld(makeDraw(ctx, 800 + i, 0, 0), w));
+  });
+  bake(scene, TEX.star, STAR_ART.w, STAR_ART.h, STAR_ART.w, STAR_ART.h / 2, 1.5, (ctx) => drawStar(makeDraw(ctx, 790, 0, 0)));
+  for (const lit of [false, true]) bake(scene, TEX.ship(lit), SHIP_ART.w, SHIP_ART.h, SHIP_ART.w / 2, SHIP_ART.h / 2, 4, (ctx) => drawShip(makeDraw(ctx, 795, 0, 0), lit), LANDER_FINISH);
 }
 
 /** Texture px per unit for a technology slot's picture: drawn large, as the detail card shows it big. */

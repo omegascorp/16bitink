@@ -4,7 +4,7 @@ Oct 13, 2026 · @Hayk · rewritten Oct 15, 2026 around an open world (see Decisi
 
 ## Overview
 
-A 2D side-view mining game drawn in ballpoint pen. You're a lone alien prospector for a mining guild, flying a mining ship that carries no weapons. There are no humans anywhere in the game: you, the crew who came before you and everyone you meet are aliens. On a jump your lander falls into a wild wormhole, a natural one that your people never charted or steadied, and being unstable it tears the ship apart on the way through. You crash-land on a small grey moon in a part of the universe your species has never seen. The link to the guild is gone, and so is part of your memory: you don't know where you are, which star is home, or any language spoken around you. You have an energy drill, a patched-up suit and a wrecked lander. The goal of the whole game is to find where home is in the sky and gather enough to get there; the first step is to dig up what the ship needs and fix it.
+A 2D side-view mining game drawn in ballpoint pen. You're a lone alien prospector for a mining guild, flying a mining ship that carries no weapons, with a lander to go down to the ground. There are no humans anywhere in the game: you, the crew who came before you and everyone you meet are aliens. On a jump your ship falls into a wild wormhole, a natural one that your people never charted or steadied, and being unstable it tears the ship apart on the way through. Before her systems die she brakes into orbit and sends you down in the lander for what she'll need, and the lander crash-lands on a small grey moon in a part of the universe your species has never seen. The link to the guild is gone, and so is part of your memory: you don't know where you are, which star is home, or any language spoken around you. You have an energy drill, a patched-up suit and a wrecked lander. The goal of the whole game is to find where home is in the sky and gather enough to get there; the first step is to dig up what the ship needs and fix it.
 
 Each planet is a small open world: one hand-made cross-section of ground you can walk all the way around and dig as deep as your drill allows. Nobody gives you a list of missions. Your suit tells you what's broken and what it needs. Later, the aliens you meet hand you jobs in person, and you can only understand them once you learn their language. Every trip down is still push-your-luck: how deep you go and how full a bag you carry before the drill's cell or your air runs low. There's no money: what you dig is what you build with.
 
@@ -40,15 +40,16 @@ Avoided, because players complain about them: energy to start a run, paid revive
 
 Graphite is chapter 1, and the free version. It ends the moment the lander flies.
 
-1. **The wormhole.** A short ink-drawn opening: the jump, the wild wormhole, the tear, the fall, the crash. You climb out of a smoking, tilted lander on the rim of a crater, and the memory of the way back is gone.
+1. **The wormhole.** A short ink-drawn opening: the jump, the wild wormhole, the tear; the ship braking into orbit, dark, and sending you down in the lander; the fall, the crash. You climb out of a smoking, tilted lander on the rim of a crater, and the memory of the way back is gone. Your ship is up there somewhere, and the lander has to fly to reach her (Oct 17, 2026).
 2. **The suit takes stock.** Its systems list what's broken. The printer is the first repair: it takes only copper from the crater walls, and nothing in the first area can hurt you.
 3. **The radio.** The lander's radio and dish were broken in the crash. Repaired, it still can't reach the guild, but a call comes in at once (built Oct 17, 2026): a slow voice nobody understands. The radio records it; the dish can't say where it's from, only that it's somewhere over the horizon.
 4. **The receiver and the alien.** You print a handheld **receiver** (a suit tool: copper and quartz, no blueprint) and follow the call hot and cold: the HUD's "Next" plate shows its bars, and the suit notes "signal stronger" / "signal weaker" as you walk. There's no arrow while you search, nor while you dig for their silver; it points back to them once the core is waiting. At the outpost on the crater's far rim a Lamplighter meets you. You can't understand a word; they draw in the dust what they want: ten lumps of silver, from deep down, for a drive core.
 5. **The hull and the thrusters.** Your suit asks for the parts as you need them. You can repair them in any order, and each one takes ore from deeper down.
 6. **The drive core.** It cracked in the wormhole, and nothing you can print will fix it. The Lamplighters make one. As built: you bring them the silver in your bag (they take it from the bag), and once the hull and thrusters are mended they hand the core over; you fit it aboard. Later, when the language is built, the core waits for fluency and their last job as well.
-7. **Lift-off.** The lander flies, the galaxy map opens, and the free version ends: "The drive works. Where to?"
+7. **Fuel.** The tank split in the crash. Fuel is hydrogen and oxygen split from water ice, as real moon bases plan to fuel their rockets: the Ship tab's Fuel panel has the tank's bar and a Refill button that turns the ice on hand into fuel, one lump a unit (built Oct 17, 2026; `logic/fuel.ts`). The tank holds 12; the climb to orbit burns 10. Ice also feeds life support, so the two pull on the same ore.
+8. **Lift-off, and your ship** (built Oct 17, 2026). With the core in and the tank full enough, **Lift off** on the Fuel panel climbs to the ship in orbit. Docked, she's cold and her jump drive is dead, but her telescope works: the **star map** opens on the first star system, and the grey moon turns out to be one of three moons round the ringed giant. The free version ends here. After that the map opens from the Fuel panel, and "Back down to Graphite" returns to the lander.
 
-**The way home** (@Hayk, Oct 17, 2026). Your people travel only through wormholes they have found, charted and steadied. This one was wild: natural, unprepared and unstable, so it wrecked the ship and took part of your memory. You're somewhere your species has never been, and you don't know where. The goal across all chapters is two things: **find where home is in the sky**, and **have enough to travel there**. Chapter 1 only gets the lander flying, so the lift-off card asks "which way is home?"
+**The way home** (@Hayk, Oct 17, 2026). Your people travel only through wormholes they have found, charted and steadied. This one was wild: natural, unprepared and unstable, so it wrecked the ship and took part of your memory. You're somewhere your species has never been, and you don't know where. The goal across all chapters is two things: **find where home is in the sky**, and **have enough to travel there**. Chapter 1 only gets you back to your ship, and her telescope shows a system no chart you remember has.
 
 Proposed, to decide:
 
@@ -210,9 +211,9 @@ There's no mission list and no job board. Things to do come from two places:
 | Radio (saved id `comms`) | 4 copper, 2 quartz | The call; then the receiver, the Lamplighters, the lexicon | Quartz crystals keep radios on frequency |
 | Hull plating | 10 graphite, 3 galena | The six cargo slots the breach put out of use (10 → 16) | Graphite fibres make light, stiff panels; lead only seals the seams. A lead hull would be heavy, and cosmic rays hitting it spray more radiation |
 | Thrusters | 6 copper, 6 silver, 2 graphite | The engines fire; only the core is missing | Rocket chambers are lined with copper and a little silver, which pulls the heat away before the wall melts; the nozzle throat is graphite |
-| Drive core | Can't be printed: the Lamplighters give it for 10 silver once the hull and thrusters are mended | Lift-off: the end of chapter 1 | — |
+| Drive core | Can't be printed: the Lamplighters give it for 10 silver once the hull and thrusters are mended | With a full enough tank, lift-off to the ship: the end of chapter 1 | — |
 
-- **The order:** the printer first, the radio second (the start teaches the game), the hull and thrusters in either order, the core last. A repair whose turn hasn't come says what it's waiting for.
+- **The order:** the printer first, the radio second (the start teaches the game), the hull and thrusters in either order, the core last, then fuel for the climb (not a repair: a tank you refill, see "Story: chapter 1"). A repair whose turn hasn't come says what it's waiting for.
 - **The drill in between.** The radio needs quartz, which lies in stone, and the starter drill can't break stone. So after the printer, the goal is a broken drill to study, which lies at the foot of the fissure where an earlier crew lost it. A beacon arrow by the prospector points the short way round the world to it, with the distance in metres (No Man's Sky's marker, inked). Then: print the Drill, then the comms.
 - **No crafting chain.** No Man's Sky's repairs go through crafted parts (metal plating, a refiner, di-hydrogen jelly); InkMine's take raw ore straight from the cargo, then the bag.
 - **The lander shows it.** Each broken system has a wrecked look of its own: a dark, cracked porthole until the printer runs (then its warm glow), the dish hanging by its cable until the radio work, a gash and torn heat-shield tiles until the hull is plated (then a welded patch), and a crumpled, scorched engine bell, smoking, until the thrusters are fixed (dev page `/specimens.html`, "After the crash").
@@ -357,6 +358,37 @@ Your ship is a mining ship: it has no weapons, and you start with none. Weapon b
 
 To design: the weapons themselves (how they fire, their marks), and how the depth bands match them.
 
+## The first star system
+
+Built Oct 17, 2026 (`logic/starSystem.ts`, the star map in `scenes/SystemScene.ts`), by the life rules in [inkmine-xenobiology.md](inkmine-xenobiology.md): plants and animals only in the habitable zone, on worlds big enough to hold air; life under a crust only on a giant's moon, where tides keep water liquid; everything else dead; carbon and water in this system; one breathable world. `test/starSystem.test.ts` holds the data to those rules.
+
+**The star** is an orange dwarf (luminosity 0.45 of the Sun's, mass 0.78). Orange dwarfs are what researchers rank as the best hosts for life: long-lived, steady, and much calmer than red dwarfs, whose flares blast their planets (Cuntz & Guinan, 2016). The game calls it "the orange star": the prospector doesn't know its name.
+
+**The zones.** The habitable zone runs from 0.50 to 1.19 AU (the wide "recent Venus" to "early Mars" edges of Kopparapu et al., 2013, scaled by the star's brightness). Water freezes past the snow line, about 1.8 AU, where ice giants form. AU and Earth masses are the docs' units only: the game never names Earth.
+
+| From the star | World | Kind | Mass (Earth = 1) | Air | Chapter |
+| --- | --- | --- | --- | --- | --- |
+| 0.12 AU | **Ember** | Dead: one face always to the star, its night side molten | 0.6 | Carbon dioxide, sulfur gases | 7 |
+| 0.30 AU | **Prism** | Dead: too small to keep air; glints like glass | 0.07 | None | 8 |
+| 0.56 AU | **Talus** | Living, sparse: the zone's warm edge, losing its water | 0.45 | Thin carbon dioxide | 2 |
+| 0.78 AU | **Brine** | Living: nearly all sea, purple with life | 1.1 | Nitrogen, carbon dioxide | 3 |
+| 1.05 AU | **Sepia** | Ringed gas giant, not landed on. It formed farther out and drifted in, as many real giants do, bringing its icy moons, which is why Graphite has ice | 95 | — | — |
+| ↳ moon | **Graphite** | Underground: too small for air, kneaded warm by Sepia's tides | 0.03 | None | 1 |
+| ↳ moon | **Mycel** | Living: green under a spore haze | 0.3 | Thick carbon dioxide, spores | 4 |
+| ↳ moon | **Cardia** | Living: the living planet | 0.5 | Rich in oxygen: **breathable** | 10 |
+| 3.4 AU | **Indigo** | Ice giant, not landed on, past the snow line | 15 | — | — |
+| ↳ moon | **Umbra** | Under ice: an ocean kept liquid by Indigo's tides; plumes from the cracks | 0.015 | None above the ice | 9 |
+| ↳ moon | **Pumice** | Dead: so porous it would float on water, like Saturn's moon Hyperion (density 0.54 g/cm³, over 40% empty space; Thomas et al., 2007) | 0.0001 | None | 5 |
+| 9 AU | **Rime** | Dead: alone, no giant to knead it, frozen to the core | 0.004 | A trace of nitrogen frost | 6 |
+
+That's 4 living worlds, 2 with life under a crust, 4 dead and 2 giants. Two ice worlds with opposite fates: Umbra kept an ocean because Indigo squeezes it; Rime froze solid. In Graphite's sky, Sepia hangs over the horizon with Mycel (green) and Cardia (red) beside it: worlds you can't reach yet, from the start.
+
+**Your ship** circles Graphite. She came out of the wormhole broken and braked into orbit round the nearest ground before her systems failed. The ship flies between worlds; the lander goes down to them. Getting her jump drive back is the long game (see "The way home").
+
+**The star map** is drawn from the ship's telescope: the star's disc at the left edge, the worlds along a line by distance on a log scale (or the inner four would sit on top of each other), the habitable zone washed in highlighter, the snow line dashed, each giant's moons hanging from it, and your ship by Graphite. On a phone held upright it runs down the page. Tap a world for its card: what kind it is, its air, the scan ("carbon · water"), what the telescope sees, and whether you've been. Every world's line is something real instruments could tell from orbit (air from its light, plumes, a night side's glow), so the map never knows more than the ship could.
+
+**Chapters don't follow distance.** The order of the ten stays the difficulty order (water before lava, darkness last), so the route hops round the system.
+
 ## The ten planets
 
 Each planet is its own world, with its own shape, people and language, and adds one mechanic while keeping everything before it. Who lives on planets 2–10 is to design, one planet at a time.
@@ -371,7 +403,7 @@ Each planet is its own world, with its own shape, people and language, and adds 
 | 6 | Rime | Ice world | Ice: slippery floors, frozen blocks only the lance melts; cold as a hazard | Thermal lance | Frost mites (swarm walker), ice wyrms (burrower) | The Hoarfrost, a giant ice spider | Fire ice (methane clathrate) |
 | 7 | Ember | Volcanic world | Lava: flows like water, burns; lava meeting water turns to obsidian; heat as a hazard | Coolant foam | Magma slugs (burning trails), cinder bats (flyer) | The Salamander | Diamonds, in kimberlite pipes |
 | 8 | Prism | Crystal caverns | Resonance: hit a crystal and every touching crystal of its colour shatters at once | Tuning fork | Shardlings (hurt only while glowing), refractors (beams bounce off crystal) | The Crystal Queen | Singing quartz |
-| 9 | Umbra | Dark side of a tidally locked world | Darkness: only your lamp, flares and glowing minerals give light | Flares | Lurkers (strike from the dark), glow lures (mimic ore glints) | The Listener, which hunts by the sound of digging | Willemite, which glows green |
+| 9 | Umbra | An ocean under an ice shell (was: the dark side of a tidally locked world) | Darkness: only your lamp, flares and glowing minerals give light | Flares | Lurkers (strike from the dark), glow lures (mimic ore glints) | The Listener, which hunts by the sound of digging | Willemite, which glows green |
 | 10 | Cardia | A living planet | Heartbeat: every few seconds a beat shakes the ground; every earlier mechanic returns | — | Antibodies (chasers), veins that pump fluid | The Heart | Heartstone |
 
 Order follows difficulty and dependency: water (3) before lava (7) so lava-meets-water reads; darkness (9) is the hardest.
@@ -402,7 +434,8 @@ There's no result screen and no level select in chapter 1.
 
 - **Inside the lander** (L at the lander), laid out like No Man's Sky's inventory (ShipScene, Oct 17, 2026): a **Suit** and a **Ship** tab (tap, or Q / E). Each tab has a Technology plate of big slots with a drawn picture of what's fitted (`art/techArt.ts`), its Mk or level, and a corner flag (verdigris: an upgrade ready to print; madder: broken), then a separate Storage plate (the suit bag; the cargo). The suit's slots are the six gear pieces; the ship's are its Systems (the crash repairs, drawn broken until mended) and its Modules. Beside them stand the prospector or the lander, over a detail card for the slot in focus with its next step, its ore ticked off, and Print / Repair. A stack picked up on one tab can be put down on the other, or sent across with "To cargo" / "To suit bag". Back down is at the top right.
 - **The pause screen is the inventory** (Oct 17, 2026): L, Esc or P away from the lander opens the Inventory page over the paused world, and the same keys close it. Recall is on it, top centre, with a note on what it costs. There's no separate pause card any more. Still to come on it: the survey sheet, the repair list and the field guide (with the lexicon and the logs).
-- **After chapter 1:** the star chart becomes the galaxy map you fly between planets on (paid version).
+- **The Fuel panel** (Ship tab, under the lander): the tank's bar, Refill, and Lift off (or, after the flight, Star map). Far from the lander it's look-only.
+- **After chapter 1:** the star map ("The first star system") is where you choose the next world, and later the galaxy map past it (paid version).
 
 ## Art direction
 
@@ -594,7 +627,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 5. **Creatures** (grit crabs, lead worms) and fighting with the drill.
 6. **The rest of Graphite:** the Aster base, the grey band, the deep, the Grinder; the drive core and lift-off; the opening and the ending.
 7. Coach hints, sound, touch controls, account sync; add InkMine to the catalog with chapter 1 free.
-8. The galaxy map and planets 2–10, one at a time, each with its people.
+8. ~~The first star system and its map~~ (done Oct 17, 2026: fuel, lift-off, docking, the star map); then planets 2–10, one at a time, each with its people, and the galaxy map past this system.
 
 ## Decisions
 
@@ -625,6 +658,12 @@ Settled with @Hayk on Oct 15, 2026 (replacing the 100 levels, missions, contract
 - **Creatures live below the ground,** and weapons are what let you go deeper.
 - **No result screen,** only the pause screen.
 
+Settled with @Hayk on Oct 17, 2026:
+
+- **Your ship is in orbit.** Chapter 1 ends when the repaired, fuelled lander flies up to her; the moon you crashed on is a satellite of a giant planet.
+- **The first star system follows the life rules** (see "The first star system"). The layout built is the one proposed in [inkmine-xenobiology.md](inkmine-xenobiology.md) section 7, with names for the giants (Sepia, Indigo) and Pumice made Indigo's moon; it's built, so change it now if it's wrong.
+- **Fuel is a tank with a bar,** refilled from ice aboard, not a one-off repair.
+
 ## Open questions
 
 - **The Lamplighters' look and name** are a first draft.
@@ -635,4 +674,4 @@ Settled with @Hayk on Oct 15, 2026 (replacing the 100 levels, missions, contract
 - **Pumice's gear.** The jetpack was planet 5's given gear; it's now in the starter set.
 - **Who lives on planets 2–10.**
 - **The way home:** the pulsar map, memory fragments, and what the final journey needs (see "The way home").
-- **Life rules** ([inkmine-xenobiology.md](inkmine-xenobiology.md)). Decided Oct 17, 2026: plants and animals only in the habitable zone, with life under ice the exception; crabs on some worlds; carbon + water most common, other chemistries in later systems; almost no air breathable for the prospector, with one or two twist worlds; the grit crab and rock-film food web on Graphite. Still proposed: the first system's layout (4 living, 2 under ice or underground, 4 dead, with Umbra as an under-ice moon), creatures on dead worlds, a non-humanoid prospector (the tidewalker), Cardia as the breathable twist.
+- **Life rules** ([inkmine-xenobiology.md](inkmine-xenobiology.md)). Decided Oct 17, 2026: plants and animals only in the habitable zone, with life under ice the exception; crabs on some worlds; carbon + water most common, other chemistries in later systems; almost no air breathable for the prospector, with one or two twist worlds; the grit crab and rock-film food web on Graphite. Built Oct 17, 2026, to confirm: the first system's layout (4 living, 2 under ice or underground, 4 dead, with Umbra as an under-ice moon; see "The first star system"). Still proposed: creatures on dead worlds, a non-humanoid prospector (the tidewalker), Cardia as the breathable twist.
