@@ -60,7 +60,7 @@ const isPlanet = shape({
   blurb: isText(400),
   style: isStyle,
   signature: isOre,
-  world: shape({ id: (v) => isWorldId(v) && v !== 'graphite', version: intIn(1, 10_000), site: isSite, items: listOf(isItem, 200) }, { outpost: col }),
+  world: shape({ id: (v) => isWorldId(v) && v !== 'graphite', version: intIn(1, 10_000), site: isSite, items: listOf(isItem, 200) }, { outpost: col, crash: col }),
 }, {
   arrival: shape({ subtitle: isText(120), paragraphs: listOf(isText(2000), 8), button: isText(40) }),
 });

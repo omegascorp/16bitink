@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { BLUE, INK, RED, RED_HEX } from '../../art/palette';
 import { nozzleOf, PROSPECTOR_GROUND } from '../../art/prospector';
-import type { Look } from '../../logic/gear';
 import type { Blast } from '../../logic/blastSim';
 import type { Mine } from '../../logic/mine';
 import { createRng } from '../../logic/rng';
@@ -23,7 +22,7 @@ export class FxView {
   private readonly flame: Phaser.GameObjects.Graphics;
   private readonly rng = createRng(5);
 
-  constructor(private readonly scene: Phaser.Scene, private readonly tile: number, private readonly jetLook: Look) {
+  constructor(private readonly scene: Phaser.Scene, private readonly tile: number, private readonly jetMk: number) {
     this.cracks = scene.add.graphics().setDepth(4);
     this.flame = scene.add.graphics().setDepth(4.5);
   }
@@ -33,7 +32,7 @@ export class FxView {
     const g = this.flame.clear();
     if (!mine.jetting) return;
     const p = mine.player;
-    const nozzle = nozzleOf(this.jetLook);
+    const nozzle = nozzleOf(this.jetMk);
     const x = ring.near(p.x + p.w / 2) + nozzle.x * SCALE * mine.facing;
     const y = p.y + p.h + (nozzle.y - PROSPECTOR_GROUND) * SCALE;
     const len = 9 + this.rng() * 7;

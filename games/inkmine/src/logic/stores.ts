@@ -1,5 +1,5 @@
 import { onHand, spend, type PrintResult, type Profile } from './economy';
-import { countOf } from './hold';
+import { countOf, holdEntries, type Hold } from './hold';
 import type { OreKey } from './ore';
 import { storeCapacity } from './ship';
 import type { Suit } from './suit';
@@ -19,10 +19,10 @@ import { fuelsAt } from './worlds';
  * right for free.
  */
 export const STORES = {
-  air: { per: 25 },
-  power: { per: 20 },
+  air: { per: 40 },
+  power: { per: 35 },
   /** Units of charge a second the panels put back in the battery. */
-  solar: 0.3,
+  solar: 0.5,
 } as const;
 
 export type StoreKind = 'air' | 'power';
@@ -35,16 +35,31 @@ export interface Stores {
 
 export { storeCapacity };
 
-/** What refills a store where you are: the air tank from the world's water, the battery from its cell fuel. */
-export function storeOre(p: Pick<Profile, 'at'>, k: StoreKind): OreKey {
+/** What refills a store where you are, the main one first: the air tank from the world's water, the battery from what feeds its cell. */
+export function storeOres(p: Pick<Profile, 'at'>, k: StoreKind): readonly OreKey[] {
   const fuels = fuelsAt(p.at);
   return k === 'air' ? fuels.air : fuels.cell;
 }
 
+/** The store's main ore where you are (the one named). */
+export const storeOre = (p: Pick<Profile, 'at'>, k: StoreKind): OreKey => storeOres(p, k)[0]!;
+
+/** What a refill of one store would take now: the main ore first, then the others, as far as its room goes and what's on hand. */
+export function storeRefill(p: Profile, k: StoreKind): Hold {
+  const have = onHand(p);
+  let need = Math.ceil((storeCapacity(p.ship) - p.stores[k]) / STORES[k].per);
+  const take: Partial<Record<OreKey, number>> = {};
+  for (const ore of storeOres(p, k)) {
+    const n = Math.min(need, countOf(have, ore));
+    if (n > 0) take[ore] = n;
+    need -= n;
+  }
+  return take;
+}
+
 /** Lumps a refill of one store would take now: what fills it, or what's on hand if that's less. */
 export function storeRefillCost(p: Profile, k: StoreKind): number {
-  const room = storeCapacity(p.ship) - p.stores[k];
-  return Math.min(Math.ceil(room / STORES[k].per), countOf(onHand(p), storeOre(p, k)));
+  return holdEntries(storeRefill(p, k)).reduce((sum, [, n]) => sum + n, 0);
 }
 
 export type StoreRefillCheck = 'ok' | 'full' | 'materials';
@@ -59,7 +74,7 @@ export function refillStore(p: Profile, k: StoreKind): PrintResult<StoreRefillCh
   const why = canRefillStore(p, k);
   if (why !== 'ok') return { ok: false, why };
   const n = storeRefillCost(p, k);
-  const spent = spend(p, { [storeOre(p, k)]: n });
+  const spent = spend(p, storeRefill(p, k));
   return { ok: true, profile: { ...spent, stores: { ...p.stores, [k]: Math.min(storeCapacity(p.ship), p.stores[k] + n * STORES[k].per) } } };
 }
 

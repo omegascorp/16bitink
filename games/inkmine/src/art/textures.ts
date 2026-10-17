@@ -6,11 +6,12 @@ import { drawLander, drawLanderAir, LANDER_H, LANDER_W, SOUND, wreckCode } from 
 import { drawItem, ITEM_FRAME, ITEM_KINDS } from './itemArt';
 import { drawWreck, WRECK_FRAME } from './wreckArt';
 import { drawLamplighter, drawOutpost, LAMPLIGHTER, OUTPOST_ART } from './lamplighterArt';
+import { ASTER_WRECK, drawAsterBeam, drawAsterWreck } from './asterWreckArt';
 import { drawOrePiece } from './oreArt';
 import { finishSprite } from './paint';
 import { ART_RES, BLUE, BOIL, INK, type GroundStyle } from './palette';
 import { makeCanvas } from './pen';
-import { lookKey, PIECES, type Look, type ProspectorLook } from '../logic/gear';
+import { lookKey, PIECES, type Look, type Piece, type ProspectorLook } from '../logic/gear';
 import type { Wreck } from '../logic/repairs';
 import { drawProspector, POSES, PROSPECTOR_FRAME, PROSPECTOR_GROUND, type Pose } from './prospector';
 import { drawRidges, RIDGE_W } from './ridgeArt';
@@ -28,10 +29,12 @@ export const TEX = {
   charge: (kind: 'charge' | 'lineCharge', lit: boolean, f: number) => `charge-${kind}-${lit ? 'lit' : 'idle'}-${f}`,
   piece: (ore: string) => `piece-${ore}`,
   item: (kind: string, f: number) => `item-${kind}-${f}`,
-  wreck: (piece: string, f: number) => `wreck-${piece}-${f}`,
+  wreck: (piece: string, mk: number, f: number) => `wreck-${piece}-${mk}-${f}`,
   tech: (t: Tech, variant: TechVariant) => `tech-${techKey(t)}-${variant}`,
   lamplighter: (f: number) => `lamplighter-${f}`,
   outpost: (f: number) => `outpost-${f}`,
+  asterWreck: (f: number) => `aster-wreck-${f}`,
+  asterBeam: 'aster-beam',
   sky: (world: string, h: number) => `sky-${world}-${h}`,
   ridges: (world: string, h: number) => `ridges-${world}-${h}`,
   world: (id: string) => `world-${id}`,
@@ -118,13 +121,27 @@ export function bakeLamplighters(scene: Phaser.Scene): void {
   }
 }
 
-/** Mission items and ore pieces (also shown on the result card and the ship's page). */
+/** The Aster lander's wreck on Mycel and its beacon's light (in play, and on the card when you find it). Origin on the ground under its middle. */
+export function bakeAsterWreck(scene: Phaser.Scene): void {
+  const A = ASTER_WRECK;
+  for (let f = 0; f < BOIL; f++) bake(scene, TEX.asterWreck(f), A.w, A.h, A.ox, A.oy, ART_RES, (ctx) => drawAsterWreck(makeDraw(ctx, 760 + f, f, 0)), LANDER_FINISH);
+  bake(scene, TEX.asterBeam, 24, 24, 12, 12, ART_RES, (ctx) => drawAsterBeam(ctx, 11));
+}
+
+/** Mission items and ore pieces (also shown on the result card and the ship's page). Broken parts are baked as they're met (`wreckTexture`). */
 export function bakePickups(scene: Phaser.Scene, rock: string): void {
   for (let f = 0; f < BOIL; f++) {
     ITEM_KINDS.forEach((kind, i) => bake(scene, TEX.item(kind, f), ITEM_FRAME, ITEM_FRAME, ITEM_FRAME / 2, ITEM_FRAME / 2, 3, (ctx) => drawItem(makeDraw(ctx, 400 + i * 10 + f, f, 0), kind)));
-    PIECES.forEach((piece, i) => bake(scene, TEX.wreck(piece, f), WRECK_FRAME, WRECK_FRAME, WRECK_FRAME / 2, WRECK_FRAME / 2, 3, (ctx) => drawWreck(makeDraw(ctx, 460 + i * 10 + f, f, 0), piece)));
   }
   ORE_KINDS.forEach((ore, i) => bake(scene, TEX.piece(ore.key), PIECE_FRAME, PIECE_FRAME, PIECE_FRAME / 2, PIECE_FRAME / 2, 3, (ctx) => drawOrePiece(ctx, ore, PIECE_FRAME, 500 + i, rock)));
+}
+
+/** A broken part in the world, a piece of mark `mk` in boil frame `f`, baked the first time it's asked for. Returns its key. */
+export function wreckTexture(scene: Phaser.Scene, piece: Piece, mk: number, f: number): string {
+  const key = TEX.wreck(piece, mk, f);
+  const seed = 460 + PIECES.indexOf(piece) * 10 + mk * 100 + f;
+  bake(scene, key, WRECK_FRAME, WRECK_FRAME, WRECK_FRAME / 2, WRECK_FRAME / 2, 3, (ctx) => drawWreck(makeDraw(ctx, seed, f, 0), piece, mk));
+  return key;
 }
 
 /** Every sprite, each drawn BOIL times slightly differently for the line boil. `skyHeight` is the sky down to the horizon. */

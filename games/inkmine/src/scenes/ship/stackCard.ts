@@ -55,7 +55,7 @@ export function stackCard(page: ShipPage, at: SlotRef, s: Stack, x: number, y: n
   let ry = Math.max(top + PIC, about.y + about.height) + 12;
   divider(scene, x, ry, w);
   ry += 12;
-  const fuels = Object.entries(fuelsAt(page.profile.at)).filter(([, o]) => o === s.ore) as [keyof typeof GAUGE_NAMES, string][];
+  const fuels = Object.entries(fuelsAt(page.profile.at)).filter(([, ores]) => ores.includes(s.ore)) as [keyof typeof GAUGE_NAMES, readonly string[]][];
   for (const [gauge] of fuels) {
     const t = aside(scene, x + PAD, ry, `Fuel: one piece puts ${FEED[gauge]} in ${GAUGE_NAMES[gauge]}.`, 16, w - PAD * 2, INK_TEXT);
     ry += t.height + 4;

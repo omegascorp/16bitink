@@ -3,7 +3,9 @@ import { drawLander, drawLanderAir, LANDER_H, LANDER_W } from '../src/art/lander
 import { drawProspector, POSES, PROSPECTOR_FRAME, PROSPECTOR_GROUND } from '../src/art/prospector';
 import { ART_RES } from '../src/art/palette';
 import { LANDER_FINISH, PROSPECTOR_FINISH, PROSPECTOR_RES, render } from '../src/art/textures';
-import { evenLoadout, LOOK_NAMES, lookOf, prospectorLook, type Look, type ProspectorLook } from '../src/logic/gear';
+import { evenLoadout, LOOK_NAMES, lookOf, MAX_MK, PIECES, prospectorLook, STARTER_LOADOUT, type Look, type ProspectorLook } from '../src/logic/gear';
+import { MARKS } from '../src/art/prospector/marks';
+import { drawWreck, WRECK_FRAME } from '../src/art/wreckArt';
 import type { Wreck } from '../src/logic/repairs';
 import { drawTech, TECH_FRAME } from '../src/art/techArt';
 import { drawLamplighter, drawOutpost, LAMPLIGHTER, OUTPOST_ART } from '../src/art/lamplighterArt';
@@ -81,18 +83,27 @@ for (const look of [BROKEN_SHIP, WHOLE]) {
   figure(starship, 'on a story card', s);
 }
 
-const play = section('At play size', 'As the game draws them, at the size they stand on screen.');
-for (const mk of [1, 5, 9]) for (const pose of ['idle', 'drillSide'] as const) atPlaySize(play, `Mk ${mk} ${pose}`, prospector(prospectorLook(evenLoadout(mk)), pose, 0, PROSPECTOR_RES), PROSPECTOR_FRAME * 0.82);
+const MKS = Array.from({ length: MAX_MK + 1 }, (_, mk) => mk);
+
+const play = section('At play size', 'As the game draws them, at the size they stand on screen: every piece at the same mark, Mk 0 to Mk 10, idle and drilling.');
+for (const mk of MKS) atPlaySize(play, `Mk ${mk}`, prospector(prospectorLook(evenLoadout(mk)), 'idle', 0, PROSPECTOR_RES), PROSPECTOR_FRAME * 0.82);
+for (const mk of [0, 1, 2]) atPlaySize(play, `Mk ${mk} drilling`, prospector(prospectorLook(evenLoadout(mk)), 'drillSide', 0, PROSPECTOR_RES), PROSPECTOR_FRAME * 0.82);
 atPlaySize(play, 'the wreck', landerCanvas(0, { printer: true, comms: true, hull: true, thrusters: true }, ART_RES), LANDER_W);
 
-for (const mk of [1, 5, 9]) {
-  const row = section(`Mk ${mk}: ${LOOK_NAMES[lookOf(mk)]}`, 'idle, walk, drilling sideways, down and up, on a ladder, flying');
+const every = section('Every mark', 'The whole set at each mark, big: Mk 0 the starter, then each planet\'s set in its materials.');
+for (const mk of MKS) figure(every, `Mk ${mk} ${MARKS[mk]!.planet}`, prospector(prospectorLook(evenLoadout(mk)), 'idle'));
+
+for (const mk of [0, 1, 2, 5, 9]) {
+  const row = section(`Mk ${mk}: ${MARKS[mk]!.planet}, ${LOOK_NAMES[lookOf(mk)]}`, 'idle, walk, drilling sideways, down and up, on a ladder, flying');
   for (const pose of POSES) figure(row, pose, prospector(prospectorLook(evenLoadout(mk)), pose));
 }
 
-const mixed = section('Half-upgraded', 'Each piece changes on its own: here a contractor drill and jetpack on the starter suit and helmet, then a deep-space helmet on contractor gear.');
-figure(mixed, 'drill 5, jetpack 5', prospector({ drill: 1, suit: 0, helmet: 0, jetpack: 1 }, 'idle'));
-figure(mixed, 'helmet 9, the rest 5', prospector({ drill: 1, suit: 1, helmet: 2, jetpack: 1 }, 'idle'));
+const mixed = section('Half-upgraded', 'Each piece changes on its own: the starter set with one Graphite piece at a time, then Graphite\'s set with Mycel\'s pieces coming in, then a mix across the families.');
+for (const piece of PIECES) figure(mixed, `${piece} 1`, prospector({ ...STARTER_LOADOUT, [piece]: 1 }, 'idle'));
+figure(mixed, 'Mk 1, drill and helmet 2', prospector({ ...evenLoadout(1), drill: 2, helmet: 2 }, 'idle'));
+figure(mixed, 'Mk 1, suit and pack 2', prospector({ ...evenLoadout(1), suit: 2, pack: 2 }, 'idle'));
+figure(mixed, 'drill 5, jetpack 6, rest 2', prospector({ ...evenLoadout(2), drill: 5, jetpack: 6 }, 'idle'));
+figure(mixed, 'helmet 9, the rest 5', prospector({ ...evenLoadout(5), helmet: 9 }, 'idle'));
 
 const ships = section('The lander', 'Refitted as the game goes on: the tin can (planets 1–3), refitted with a cargo pod, a solar wing and a floodlight (planets 4–7), the deep hauler with twin engines and a crane (planets 8–10). The hopper on the right is where the bag is tipped in.');
 function landerCanvas(look: Look, wreck?: Wreck, res = 3): HTMLCanvasElement {
@@ -118,6 +129,13 @@ function tech(t: Parameters<typeof drawTech>[1], v: Parameters<typeof drawTech>[
   canvas.style.background = '#efe6cf';
   return canvas;
 }
+function wreck(piece: (typeof PIECES)[number], mk: number): HTMLCanvasElement {
+  const F = WRECK_FRAME;
+  const canvas = render(F, F, F / 2, F / 2, 4, (ctx) => drawWreck(makeDraw(ctx, 460, 0, 0), piece, mk));
+  canvas.style.width = `${F * 3}px`;
+  canvas.style.background = '#c9c4b8';
+  return canvas;
+}
 const lampRow = section('The Lamplighters', 'A Lamplighter in each boil frame, and their outpost on the far rim.');
 for (const f of [0, 1, 2]) {
   const L = LAMPLIGHTER;
@@ -133,8 +151,15 @@ for (const f of [0, 1, 2]) {
   c.style.background = 'linear-gradient(#4b5583, #a59bab 90%, #ada79c 90%)';
   figure(lampRow, 'the outpost', c);
 }
-const gearRow = section('Technology: suit', 'The gear slots in the lander menu, in each look.');
-for (const t of SUIT_TECH) for (const v of [0, 1, 2] as const) figure(gearRow, `${techKey(t)} ${v}`, tech(t, v));
+for (const piece of PIECES) {
+  const row = section(`Technology: ${piece}`, 'The gear slot in the lander menu at every mark, Mk 0 to Mk 10.');
+  for (const mk of MKS) figure(row, `Mk ${mk}`, tech({ kind: 'gear', piece }, mk));
+}
+const toolRow = section('Technology: tools', 'The receiver.');
+for (const t of SUIT_TECH.filter((x) => x.kind !== 'gear')) figure(toolRow, techKey(t), tech(t, 'mended'));
+const wreckRow = section('Broken parts', 'Gear lying in the world, tipped over in the dust: Graphite\'s (Mk 1, our own kind of gear) and Mycel\'s (Mk 2, the Aster\'s), then a few later marks.');
+for (const mk of [1, 2]) for (const piece of PIECES) figure(wreckRow, `${piece} ${mk}`, wreck(piece, mk));
+for (const [piece, mk] of [['drill', 4], ['helmet', 6], ['jetpack', 9]] as const) figure(wreckRow, `${piece} ${mk}`, wreck(piece, mk));
 const shipRow = section('Technology: ship', 'Systems broken and mended, then the modules.');
 for (const t of SHIP_SYSTEMS) for (const v of ['broken', 'mended'] as const) figure(shipRow, `${techKey(t)} ${v}`, tech(t, v));
 for (const t of SHIP_MODULES) figure(shipRow, techKey(t), tech(t, 'mended'));

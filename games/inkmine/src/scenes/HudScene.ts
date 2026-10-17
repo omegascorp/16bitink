@@ -14,6 +14,7 @@ import { plaque } from './kit/plaque';
 import { aside, heading, INK_TEXT, label, MADDER, prose, SEPIA } from './kit/type';
 import { drawSlotGrid, gridHeight } from './slots';
 import { storyCard } from './kit/storyCard';
+import { ASTER_CARD } from './hud/asterCard';
 import { talkSpec } from './hud/talkCards';
 import { TouchPad } from './hud/touchPad';
 import { muteButton } from './kit/muteButton';
@@ -88,7 +89,7 @@ export class HudScene extends Phaser.Scene {
   private failed!: Phaser.GameObjects.Text;
   private intro: Phaser.GameObjects.Container | null = null;
   private woke: Phaser.GameObjects.Container | null = null;
-  /** A Lamplighter's card, while one is talking. */
+  /** A Lamplighter's card while one is talking, or the Aster lander's. */
   private talk: Phaser.GameObjects.GameObject[] | null = null;
   private shown = '';
   private goalShown = '';
@@ -243,12 +244,18 @@ export class HudScene extends Phaser.Scene {
     this.failed.setVisible(mine.state === 'failed');
   }
 
-  /** A Lamplighter's card up while one is talking (the world waits), gone once it's read. */
+  /** A Lamplighter's card up while one is talking, or the Aster lander's once you reach it (the world waits), gone once it's read. */
   private showTalk(game: GameScene): void {
     if (game.talk && game.talk !== 'thanks' && !this.talk) {
       this.talk = storyCard(this, talkSpec(this, game.talk), () => {
         this.talk = null;
         game.closeTalk();
+      }, 70);
+    }
+    if (game.found && !this.talk) {
+      this.talk = storyCard(this, ASTER_CARD, () => {
+        this.talk = null;
+        game.closeFound();
       }, 70);
     }
   }

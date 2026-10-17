@@ -47,7 +47,13 @@ export interface SuitSpec {
 /** The two gauges fed from the bag: the drill's cell and life support. */
 export type Gauge = 'cell' | 'air';
 /** Which ore feeds each gauge: each planet has its own fuels. */
-export type Fuels = Readonly<Record<Gauge, OreKey>>;
+/** What feeds each gauge where you are, the main one first (worlds.ts). */
+export type Fuels = Readonly<Record<Gauge, readonly OreKey[]>>;
+
+/** The first of a gauge's fuels there's any of in the bag, or null. */
+export function fuelIn(bag: Inventory, fuels: Fuels, g: Gauge): OreKey | null {
+  return fuels[g].find((ore) => countIn(bag, ore) > 0) ?? null;
+}
 
 /** Pieces of one ore a suit bag slot stacks. */
 export const SUIT_STACK = 10;
@@ -66,7 +72,7 @@ export const AIR = { full: 100, seconds: 360, choke: 6, low: 0.25 } as const;
 /** Fuel a second the jetpack gets back while you stand on something (a full starter tank in 2 s). */
 export const JET_RECHARGE = 30;
 /** What one piece of fuel puts in each gauge. */
-export const FEED: Readonly<Record<Gauge, number>> = { cell: 20, air: 25 };
+export const FEED: Readonly<Record<Gauge, number>> = { cell: 35, air: 40 };
 
 /** A suit fresh from the ship: everything full, and the bag as it was left (empty by default). */
 export function newSuit(spec: SuitSpec, bag: Inventory = emptyInventory(spec.slots, SUIT_STACK)): Suit {
@@ -139,7 +145,7 @@ export const hasRoomFor = (s: Suit, g: Gauge): boolean => room(s, g) >= FEED[g] 
 /** Which gauge the feed key feeds: the lower one with room and fuel for it, or else the lower one (to say why not). */
 export function pickFeed(s: Suit, fuels: Fuels): Gauge {
   const order: Gauge[] = share(s, 'cell') < share(s, 'air') ? ['cell', 'air'] : ['air', 'cell'];
-  return order.find((g) => hasRoomFor(s, g) && countIn(s.bag, fuels[g]) > 0) ?? order[0]!;
+  return order.find((g) => hasRoomFor(s, g) && fuelIn(s.bag, fuels, g) !== null) ?? order[0]!;
 }
 
 /** Whether a piece of this ore (by id) has room in the bag: a stack of it with room, or an empty slot. */

@@ -10,26 +10,29 @@ import type { PlanetDef } from '../src/level/types';
  *
  * The prospector arrives with Graphite's Mk 1 drill, a step behind: soil
  * costs double and the stone won't break, so the way in is the soil and the
- * caves until Mycel's own drill is printed. The Aster crew came here too:
- * their second lander lies wrecked in the coal swamp, its crew's gear
- * scattered round the moon, each piece a Mk 2 design to study.
+ * caves until Mycel's own drill is printed. Another people fell through
+ * the wormhole before you: the Aster (your name for them, for the star they
+ * sign everything with). Their lander lies wrecked in the coal swamp, its
+ * distress beacon still pulsing (heard first from orbit over Graphite, then
+ * followed down here with the receiver). Its crew's gear, alien technology,
+ * was thrown all round the wreck as it came down: each piece studied gives
+ * a Mk 2 design, rebuilt in your own way.
  *
  * Regions, going east from the lander at column 40:
  *
  * - The landing glade, round the lander: soft peat, water pooled in pockets
  *   close under it.
  * - The cap forest (columns 60–120): cap mushrooms all along the surface to
- *   spring off. A cave in the soil under it holds a broken Drill, the way
- *   to the stone (reachable through soil alone).
- * - The spore hollows (120–150): pockets of spores all through the soil
- *   round a cave with a broken Cell.
- * - The coal swamp (150–200): lignite seams, and firedamp where they rot;
- *   the Aster lander's wreck, a broken Pack in the hollow under it.
- * - The limestone vault, far east (215): sealed in stone all round (the
- *   Helmet; Mycel's drill).
- * - The amber deep, under the middle (120, 76): stone walls and a soil door
- *   on the west (the Jetpack).
- * - The grotto west of the lander (20, 58), in the stone (the Suit).
+ *   spring off, on the walk to the wreck.
+ * - The coal swamp (120–170): lignite seams, and firedamp where they rot.
+ *   The Aster lander lies at column 140, a furrow ploughed west of it, and its
+ *   gear round it:
+ *   - in the peat (Graphite's drill reaches these): the Drill in a cave west
+ *     along the furrow, the Pack in the hollow under the wreck, the Cell in
+ *     a cave to the east among spore pockets, and a second drill past it;
+ *   - in the limestone under it (Mycel's drill): the Helmet in a sinkhole
+ *     sealed in stone, the Suit in a grotto, and the Jetpack deep down in
+ *     the amber, stone walls and a soil door on the west.
  *
  * The ground: peat soil to about 24 m, limestone to about 88 m, deep rock
  * below for a later drill.
@@ -52,12 +55,14 @@ export const PLANET_2: PlanetDef = {
       stone: 24, deep: 88, caves: 52, caveFrom: 5,
       ores: [
         // Water pooled in sealed pockets: near the surface all round, thickest round the landing glade, and some deep.
-        { ore: 'water', from: 2, to: 20, veins: 40, size: [2, 4] },
-        { ore: 'water', from: 1, to: 12, veins: 14, size: [2, 4], cols: [20, 62] },
-        { ore: 'water', from: 26, to: 100, veins: 26, size: [2, 3] },
+        { ore: 'water', from: 2, to: 20, veins: 54, size: [2, 4] },
+        { ore: 'water', from: 1, to: 12, veins: 20, size: [2, 4], cols: [20, 62] },
+        { ore: 'water', from: 26, to: 100, veins: 32, size: [2, 3] },
         // Lignite in the peat, richest in the coal swamp.
-        { ore: 'lignite', from: 3, to: 22, veins: 40, size: [3, 5] },
-        { ore: 'lignite', from: 6, to: 18, veins: 14, size: [3, 6], cols: [150, 200] },
+        { ore: 'lignite', from: 3, to: 22, veins: 52, size: [3, 5] },
+        // A little close round the landing glade, for the first trips.
+        { ore: 'lignite', from: 2, to: 10, veins: 8, size: [2, 4], cols: [24, 60] },
+        { ore: 'lignite', from: 6, to: 18, veins: 18, size: [3, 6], cols: [120, 170] },
         // Pyrite grows where the peat rots without air, and in the limestone below.
         { ore: 'pyrite', from: 8, to: 23, veins: 24, size: [2, 3] },
         { ore: 'pyrite', from: 24, to: 80, veins: 40, size: [2, 4] },
@@ -79,35 +84,38 @@ export const PLANET_2: PlanetDef = {
         { where: 'surface', clusters: 10, size: 2 },
         { where: 'caves', clusters: 44, size: 3 },
       ],
+      // The Aster lander's ground is kept flat, as yours is.
+      flats: [140],
       rooms: [
-        // The Drill's cave under the cap forest.
-        { at: [92, 17], w: 9, h: 3 },
-        // The Cell's cave in the spore hollows.
-        { at: [135, 12], w: 10, h: 4 },
-        // The hollow under the Aster lander's wreck.
-        { at: [186, 8], w: 8, h: 3 },
-        // A second broken drill's cave, nearer the glade.
-        { at: [62, 20], w: 7, h: 3 },
-        // The grotto in the stone west of the lander.
-        { at: [20, 58], w: 10, h: 4 },
+        // The hollow under the Aster lander.
+        { at: [140, 8], w: 8, h: 3 },
+        // The Drill's cave, west along the furrow it ploughed.
+        { at: [127, 16], w: 8, h: 3 },
+        // The Cell's cave east of the wreck, among the spore pockets.
+        { at: [155, 12], w: 9, h: 3 },
+        // A second broken drill's cave, past it.
+        { at: [163, 19], w: 7, h: 3 },
+        // The grotto in the stone under the wreck.
+        { at: [150, 50], w: 10, h: 4 },
       ],
       vaults: [
-        // The Helmet: sealed in limestone all round, no soft way in.
-        { at: [215, 38], w: 4, h: 3, wall: 'stone' },
+        // The Helmet: down a sinkhole under the wreck, sealed in limestone all round, no soft way in.
+        { at: [136, 36], w: 4, h: 3, wall: 'stone' },
         // The Jetpack, in the amber deep: stone walls, a soil door on the west.
-        { at: [120, 76], w: 4, h: 3, wall: 'stone', door: 'left' },
+        { at: [128, 72], w: 4, h: 3, wall: 'stone', door: 'left' },
       ],
     },
+    crash: 140,
     // The Aster crew's gear, lost on Mycel: touch a piece to study it (its design) and take it apart (half its materials).
     items: [
-      { id: 'cap-cave-drill', kind: 'wreck', at: [92, 18], blueprint: 'drill-2', drill: 1 },
-      { id: 'spore-cave-cell', kind: 'wreck', at: [135, 13], blueprint: 'cell-2', drill: 1 },
-      { id: 'aster-wreck-pack', kind: 'wreck', at: [186, 9], blueprint: 'pack-2', drill: 1 },
-      { id: 'limestone-vault-helmet', kind: 'wreck', at: [216, 40], blueprint: 'helmet-2', drill: 2 },
-      { id: 'amber-vault-jetpack', kind: 'wreck', at: [121, 78], blueprint: 'jetpack-2', drill: 2 },
-      { id: 'grotto-suit', kind: 'wreck', at: [20, 59], blueprint: 'suit-2', drill: 2 },
-      // A repeat: a second drill near the glade, only salvage.
-      { id: 'glade-cave-drill-2', kind: 'wreck', at: [62, 21], blueprint: 'drill-2', drill: 1 },
+      { id: 'furrow-drill', kind: 'wreck', at: [127, 17], blueprint: 'drill-2', drill: 1 },
+      { id: 'spore-cave-cell', kind: 'wreck', at: [155, 13], blueprint: 'cell-2', drill: 1 },
+      { id: 'aster-wreck-pack', kind: 'wreck', at: [141, 9], blueprint: 'pack-2', drill: 1 },
+      { id: 'sinkhole-helmet', kind: 'wreck', at: [137, 38], blueprint: 'helmet-2', drill: 2 },
+      { id: 'amber-vault-jetpack', kind: 'wreck', at: [129, 74], blueprint: 'jetpack-2', drill: 2 },
+      { id: 'grotto-suit', kind: 'wreck', at: [150, 51], blueprint: 'suit-2', drill: 2 },
+      // A repeat: a second drill east of the wreck, only salvage.
+      { id: 'east-cave-drill-2', kind: 'wreck', at: [163, 20], blueprint: 'drill-2', drill: 1 },
     ],
   },
   arrival: {
@@ -115,7 +123,7 @@ export const PLANET_2: PlanetDef = {
     paragraphs: [
       "The lander drops through haze so thick the light goes green, and settles in soft ground that gives under its legs. Outside, things grow: springy caps underfoot, giant stalks in the haze, threads of white running over everything, spores drifting in the air like slow snow.",
       "The suit tastes the air and won't open: heavy with carbon dioxide and thick with spores, nothing to breathe. Life signs everywhere. There's water here, pooled in the ground, and brown coal for the cell; ice and graphite won't be found.",
-      "Your drill is a step behind on this moon: the peat costs double and the stone won't break. Someone else came down here once. There's metal out in the jungle, broken and old.",
+      "Your drill is a step behind on this moon: the peat costs double and the stone won't break. And the receiver picks up the Aster beacon's pulses at once, faint, from somewhere out in the jungle: follow them, stronger and closer.",
     ],
     button: 'Step out',
   },

@@ -399,7 +399,59 @@ function beads(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng
   }
 }
 
-const GLYPHS = { nugget, cube: cubes, flake: flakes, prism: prisms, wire: wires, rime, botryoid, rhomb: rhombs, resin, chunk: chunks, bead: beads } as const;
+/** Carbon: light, porous lumps of char, pitted with holes, the cap's gills still ridging one face, a glint where it's glassy. */
+function char(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
+  for (let k = 0; k < 2; k++) {
+    const cx = (k === 0 ? -0.25 : 0.3) * r + (rng() - 0.5) * r * 0.15;
+    const cy = (k === 0 ? 0.1 : -0.15) * r;
+    const s = r * (k === 0 ? 0.55 : 0.42);
+    const pts: P[] = Array.from({ length: 9 }, (_, i) => {
+      const a = (i / 9) * Math.PI * 2;
+      const q = s * (0.75 + rng() * 0.35);
+      return [cx + Math.cos(a) * q, cy + Math.sin(a) * q * 0.8];
+    });
+    inked(ctx, pts, color, 0.9);
+    poly(ctx, pts);
+    ctx.save();
+    ctx.clip();
+    // The gills: fine fanned ridges across one face.
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = '#7b6f8c';
+    ctx.lineWidth = 0.45;
+    for (let j = -3; j <= 3; j++) {
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.2, cy + s * 0.9);
+      ctx.lineTo(cx + j * s * 0.3, cy - s * 0.9);
+      ctx.stroke();
+    }
+    // Pores, dark with a pale lower lip.
+    for (let j = 0; j < 5; j++) {
+      const px = cx + (rng() - 0.5) * s * 1.2;
+      const py = cy + (rng() - 0.5) * s;
+      const pr = s * (0.07 + rng() * 0.07);
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = '#141218';
+      ctx.beginPath();
+      ctx.arc(px, py, pr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = PAPER_FILL;
+      ctx.lineWidth = 0.35;
+      ctx.beginPath();
+      ctx.arc(px, py, pr, Math.PI * 0.1, Math.PI * 0.9);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = PAPER_FILL;
+    ctx.beginPath();
+    ctx.ellipse(cx - s * 0.4, cy - s * 0.35, s * 0.12, s * 0.06, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+const GLYPHS = { nugget, cube: cubes, flake: flakes, prism: prisms, wire: wires, rime, botryoid, rhomb: rhombs, resin, chunk: chunks, bead: beads, char } as const;
 
 export function drawOreGlyph(ctx: CanvasRenderingContext2D, ore: OreKind, T: number, seed: number): void {
   const rng = createRng(seed);

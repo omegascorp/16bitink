@@ -18,13 +18,14 @@ import { lampFor } from '../logic/marks';
 import { Mine, NO_INPUT, SPORE_AIR, type MineEvent, type MineInput } from '../logic/mine';
 import { oreById, ORES } from '../logic/ore';
 import { ARRIVAL_BEAT, hasBeat, keptOres, OUTPOST, signalBars, visit, withBeat, type Says } from '../logic/story';
-import { feed, withBag, type FeedResult, type Fuels, type Gauge, type Suit } from '../logic/suit';
-import { currentGoal, wreckOf, type Goal, type Wreck } from '../logic/repairs';
+import { feed, fuelIn, withBag, type FeedResult, type Fuels, type Gauge, type Suit } from '../logic/suit';
+import { currentGoal, MYCEL_SET, wreckOf, type Goal, type Wreck } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
 import { ringDelta, volatileAt } from '../logic/terrain';
 import { volatileKeyOf } from '../logic/volatiles';
 import { captureWorld, loadWorld, savePieces, saveWorld } from '../logic/worldSave';
 import { BeaconView } from './game/beaconView';
+import { CrashView } from './game/crashView';
 import { FlagView } from './game/flagView';
 import { FxView } from './game/fxView';
 import { GroundView } from './game/groundView';
@@ -56,6 +57,8 @@ const PARALLAX = { sky: 0.15, ridges: 0.45 } as const;
 const SMOKE_MS = 380;
 /** Where the engine bell sits on the lander's drawing, px up from its feet. */
 const BELL_Y = 22;
+/** Tiles either side of a lost lander that count as reaching it by its beacon. */
+const WRECK_REACH = 4;
 
 /** How you came back after the suit gave out, for the note on waking (spec, "Why you wake at the lander"). */
 export interface Woke {
@@ -107,12 +110,17 @@ export class GameScene extends Phaser.Scene {
   woke: Woke | null = null;
   /** A Lamplighter is talking (a card is up): the world waits until it's read. */
   talk: Says | null = null;
+  /** The Aster lander's card is up (you followed its beacon to it): the world waits until it's read. */
+  found = false;
   /** The prospector was at the outpost last step: a visit starts on walking up, not every step there. */
   private wasAtOutpost = false;
   /** The receiver's last reading, in bars, for saying stronger or weaker. */
   private lastBars: number | null = null;
   private outpost: Phaser.GameObjects.Image | null = null;
   private lamplighter: Phaser.GameObjects.Image | null = null;
+  /** Where a lost lander lies on this world, and its picture (Mycel's Aster lander). */
+  private crashAt: { readonly col: number; readonly row: number } | null = null;
+  private crash: CrashView | null = null;
   /** Asked for from outside the world (a tapped gauge on the HUD, recall in the inventory), done on the next step. */
   private asked: Partial<Pick<MineInput, 'feed' | 'recall'>> = {};
   private smokeAt = 0;
@@ -128,6 +136,7 @@ export class GameScene extends Phaser.Scene {
     this.asked = {};
     this.woke = data?.woke ?? null;
     this.talk = null;
+    this.found = false;
     this.lastBars = null;
     this.changed = false;
     this.smokeAt = 0;
@@ -164,6 +173,8 @@ export class GameScene extends Phaser.Scene {
     this.ground = new GroundView(this, t, T, style, (g) => tooHard(setup.drill, g), roof);
     this.lander = this.add.image((setup.lander.col + 0.5) * T, setup.lander.row * T, TEX.lander(this.ship, 0, this.wreck)).setOrigin(0.5, 1).setScale(1 / ART_RES).setDepth(2);
     this.placeOutpost(setup.outpost, T);
+    this.crashAt = world.crash === undefined ? null : { col: world.crash, row: world.site.surface };
+    this.crash = this.crashAt ? new CrashView(this, this.crashAt, T) : null;
     this.things = new ThingsView(this, T);
     this.items = new ItemsView(this, T);
     this.prospector = new ProspectorView(this, look);
@@ -223,7 +234,7 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const dt = Math.min(delta / 1000, MAX_DT);
-    const still = this.ended || this.intro || this.talk !== null;
+    const still = this.ended || this.intro || this.talk !== null || this.found;
     // Keys are read every frame, so one pressed while the world waits doesn't fire when it starts again.
     const hud = this.scene.get('Hud') as HudScene | null;
     const touch = hud?.touch && this.scene.isActive('Hud') ? hud.touch.read() : undefined;
@@ -241,6 +252,7 @@ export class GameScene extends Phaser.Scene {
     const atOutpost = this.mine.atOutpost;
     if (atOutpost && !this.wasAtOutpost && !still) this.converse();
     this.wasAtOutpost = atOutpost;
+    if (!still) this.reachWreck();
     if (!still) this.listen();
     this.sounds.listen(this.mine, still);
     const cam = this.cameras.main;
@@ -254,6 +266,7 @@ export class GameScene extends Phaser.Scene {
     this.lamp.update(this.mine, cam.worldView, this.ring);
     this.lander.setTexture(TEX.lander(this.ship, Math.floor(time / 125) % BOIL, this.wreck)).setX(this.ring.near((this.mine.landerBox.x + this.mine.landerBox.w / 2)));
     this.drawOutpost(time);
+    this.crash?.update(this.ring, time);
     this.beacon.update(this.mine, this.ring, this.beaconTarget(), 'beacon', time);
     const d = this.mine.dropped;
     this.bagBeacon.update(this.mine, this.ring, d ? { x: (d.col + 0.5) * this.mine.tile, y: (d.row + 0.5) * this.mine.tile } : null, 'your bag', time);
@@ -286,7 +299,8 @@ export class GameScene extends Phaser.Scene {
 
   /** A Feed button in the inventory (the world waits behind it): one piece from the bag into the gauge, now, and the bag saved as it's left. */
   feedNow(g: Gauge): FeedResult {
-    const r = feed(withBag(this.mine.suit, getProfile(this).suit), g, this.mine.fuels[g]);
+    const suit = withBag(this.mine.suit, getProfile(this).suit);
+    const r = feed(suit, g, fuelIn(suit.bag, this.mine.fuels, g) ?? this.mine.fuels[g][0]!);
     if (r.ok) {
       this.mine.suit = r.suit;
       setProfile(this, { ...getProfile(this), suit: r.suit.bag });
@@ -322,13 +336,40 @@ export class GameScene extends Phaser.Scene {
     setProfile(this, p.at === 'graphite' || !beat ? { ...p, started: true } : withBeat(p, beat));
   }
 
-  /** The receiver's reading in bars while following the call (null otherwise), for the HUD. */
+  /** The receiver's reading in bars while following a call (null otherwise), for the HUD. */
   signal(): number | null {
-    const o = this.mine.outpostBox;
-    if (!o || this.goal().kind !== 'signal') return null;
+    const from = this.callFrom();
+    if (from === null) return null;
     const p = this.mine.player;
-    const tiles = Math.abs(ringDelta(this.mine.terrain, p.x + p.w / 2, o.x + o.w / 2, this.mine.tile)) / this.mine.tile;
+    const tiles = Math.abs(ringDelta(this.mine.terrain, p.x + p.w / 2, from, this.mine.tile)) / this.mine.tile;
     return signalBars(tiles);
+  }
+
+  /** Where the call being followed comes from, px along the ground: the Lamplighters' outpost, or a lost lander's beacon. Null while none is. */
+  private callFrom(): number | null {
+    const g = this.goal().kind;
+    const o = this.mine.outpostBox;
+    if (g === 'signal' && o) return o.x + o.w / 2;
+    if (g === 'distress' && this.crashAt) return (this.crashAt.col + 0.5) * this.mine.tile;
+    return null;
+  }
+
+  /** Walking up to the Aster lander by its beacon, on the ground beside it: its card shows what's left, and its log. */
+  private reachWreck(): void {
+    const c = this.crashAt;
+    if (!c || this.goal().kind !== 'distress') return;
+    const p = this.mine.player;
+    const T = this.mine.tile;
+    const near = Math.abs(ringDelta(this.mine.terrain, p.x + p.w / 2, (c.col + 0.5) * T, T)) / T <= WRECK_REACH;
+    if (near && p.y + p.h <= (c.row + 2) * T) this.found = true;
+  }
+
+  /** The Aster lander's card was read: saved as found, and the search for its crew's gear begins. */
+  closeFound(): void {
+    if (!this.found) return;
+    this.found = false;
+    setProfile(this, withBeat(this.liveProfile(), 'asterFound'));
+    this.save();
   }
 
   /** The receiver crackling stronger or weaker as you walk: hot and cold, never a direction. */
@@ -405,14 +446,32 @@ export class GameScene extends Phaser.Scene {
     this.save();
   }
 
-  /** Where the beacon points: a broken part with the design a 'find' goal is after, while it's still in the world; the outpost once they have your silver and the core is waiting. */
+  /**
+   * Where the beacon points: the nearest broken part with the design a
+   * 'find' goal is after, or (studying Mycel's set) the nearest whose design
+   * isn't learnt yet, while it's still in the world; the outpost once they
+   * have your silver and the core is waiting.
+   */
   private beaconTarget(): { x: number; y: number } | null {
     const g = this.goal();
     const o = this.mine.outpostBox;
     // Not while you're after their silver: it's deep down, not at the outpost. Once it's paid, it points the way back for the core.
     if (o && g.kind === 'collect') return { x: o.x + o.w / 2, y: o.y + o.h / 2 };
-    if (g.kind !== 'find') return null;
-    const it = this.mine.items.find((i) => i.blueprint === g.blueprint && (i.state === 'rock' || i.state === 'loose'));
+    if (g.kind === 'find') return this.nearestPart((bp) => bp === g.blueprint);
+    if (g.kind === 'explore') {
+      const found = getProfile(this).found;
+      return this.nearestPart((bp) => MYCEL_SET.includes(bp) && !found.includes(bp));
+    }
+    return null;
+  }
+
+  /** The nearest broken part still in the world whose blueprint `wanted` picks, the short way round. */
+  private nearestPart(wanted: (blueprint: string) => boolean): { x: number; y: number } | null {
+    const p = this.mine.player;
+    const T = this.mine.tile;
+    const away = (i: MineItem): number => Math.hypot(ringDelta(this.mine.terrain, p.x + p.w / 2, i.x + i.w / 2, T), i.y - p.y);
+    const parts = this.mine.items.filter((i) => (i.state === 'rock' || i.state === 'loose') && wanted(i.blueprint ?? ''));
+    const it = parts.sort((a, b) => away(a) - away(b))[0];
     return it ? { x: it.x + it.w / 2, y: it.y + it.h / 2 } : null;
   }
 
@@ -457,7 +516,7 @@ export class GameScene extends Phaser.Scene {
         over('too hard!', true);
         break;
       case 'flat':
-        over(`cell flat: feed it ${ORES[this.mine.fuels.cell].name} in the inventory (L)`, true);
+        over(`cell flat: feed it ${ORES[this.mine.fuels.cell[0]!].name} in the inventory (L)`, true);
         break;
       case 'bagFull':
         over('bag full', true);
@@ -498,7 +557,7 @@ export class GameScene extends Phaser.Scene {
         over(e.why === 'full' ? `${e.gauge === 'air' ? 'life support' : 'the cell'} is full` : `no ${ORES[e.ore].name} in the bag`, true);
         break;
       case 'airLow':
-        this.fx.note(px, p.y - 32, `air low: feed it ${ORES[this.mine.fuels.air].name} in the inventory (L)`, true);
+        this.fx.note(px, p.y - 32, `air low: feed it ${ORES[this.mine.fuels.air[0]!].name} in the inventory (L)`, true);
         break;
       case 'airOut':
         this.fx.note(px, p.y - 32, 'out of air!', true);

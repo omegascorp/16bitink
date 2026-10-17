@@ -1,13 +1,18 @@
-import type { Look } from '../../logic/gear';
+import { lookOf } from '../../logic/gear';
 import { cub, edge, tint, type Draw } from '../kit';
 import { dab, glow, mix, paint, SHADOW, soft } from '../paint';
 import { PAPER_FILL } from '../palette';
 import type { Pt } from '../pen';
-import { oval, part, pt, rivets, roundRect, sheen, WASH } from './parts';
+import { cageTouches, collarOf, fishbowlBehind, fishbowlFront, HEAD, lamp, antenna, R, shellTouches } from './helmetMarks';
+import { lashing } from './asterMotifs';
+import { markOf } from './marks';
+import { oval, part, pt, rivets, sheen, WASH } from './parts';
 
 /**
- * The helmet, in three looks, with the prospector inside:
- * 0, a glass fishbowl on a bolted collar, a clip-on lamp, a stub antenna;
+ * The helmet, with the prospector inside. Its shape comes in three
+ * families, each mark in its planet's materials with its own touches
+ * (helmetMarks.ts):
+ * 0, a glass fishbowl on a bolted collar, a lamp on the front;
  * 1, the fishbowl in a protective cage, twin lamps on the cage's top bar,
  *    a radio with a whip antenna and an ear-piece;
  * 2, a hard shell with a wide tinted visor, a lamp strip over it and a
@@ -17,8 +22,7 @@ import { oval, part, pt, rivets, roundRect, sheen, WASH } from './parts';
  * set forward, no nose, and lilac frills sweeping back from behind the
  * jaw. `gaze` is where the eyes look (the drill's direction).
  */
-export const HEAD = pt(1, -11);
-const R = 8.6;
+export { HEAD };
 
 /** The head inside the glass. */
 function head(d: Draw, gaze: Pt): void {
@@ -72,19 +76,23 @@ function face(d: Draw, gaze: Pt, dim: boolean): void {
   d.pen.stroke([pt(c.x + 0.2, c.y + 3), pt(c.x + 1.2, c.y + 3.35), pt(c.x + 2.2, c.y + 3)], 0.35, d.ink, dim ? 0.4 : 0.75, false);
 }
 
-function collar(d: Draw, look: Look): void {
+function collar(d: Draw, mk: number): void {
+  const m = markOf(mk);
+  const look = lookOf(mk);
   const ring = [pt(-6.4, -2.9), pt(6.8, -3.4), pt(7.1, -0.5), pt(-6.5, 0)];
-  part(d, ring, look === 2 ? WASH.armour : WASH.metal, { shadow: 0.5, line: 0.6, gloss: true });
+  part(d, ring, look === 2 ? m.shell : look === 1 ? m.fitting : collarOf(mk), { shadow: 0.5, line: 0.6, gloss: true });
   sheen(d, [pt(-5.4, -2.4), pt(-1, -2.7)], 0.45);
-  if (look < 2) rivets(d, [pt(-4.2, -1.4), pt(0, -1.6), pt(4.2, -1.8)], 0.42);
+  // Mycel's set is lashed with the Aster's cord, not riveted.
+  if (mk === 2) for (const x of [-4.2, 0, 4.2]) lashing(d, pt(x, -1.6 - x * 0.05), 2.2, Math.PI / 2, 2);
+  else if (look < 2) rivets(d, [pt(-4.2, -1.4), pt(0, -1.6), pt(4.2, -1.8)], 0.42, mk === 0 ? undefined : look === 0 ? m.fitting : m.shell);
 }
 
-/** The glass bowl with the prospector inside, painted as glass: depth behind, reflections in front. */
-function bubble(d: Draw, gaze: Pt): void {
+/** The glass bowl with the prospector inside, painted as glass (tinted `wash`): depth behind, reflections in front. Returns its outline. */
+function bubble(d: Draw, gaze: Pt, wash: string): Pt[] {
   const { ctx } = d.pen;
   const glass = oval(HEAD.x, HEAD.y, R, R * 0.96, 36);
-  // Inside the bowl: cool, darker up under the rim where the light doesn't reach.
-  paint(d, glass, '#a9c4da', { alpha: 0.75, shadow: 0.45, hatch: 0, line: 0 });
+  // Inside the bowl: darker up under the rim where the light doesn't reach.
+  paint(d, glass, wash, { alpha: 0.75, shadow: 0.45, hatch: 0, line: 0 });
   head(d, gaze);
   face(d, gaze, false);
   d.pen.clipped(glass, () => {
@@ -107,6 +115,7 @@ function bubble(d: Draw, gaze: Pt): void {
   });
   edge(d, glass, 0.75, 0.95);
   d.pen.dot(HEAD.x + 4.8, HEAD.y - 5.2, 0.7, PAPER_FILL, 0.95);
+  return glass;
 }
 
 /** A soft painted stroke: a reflection inside glass. */
@@ -114,66 +123,55 @@ function haze(d: Draw, pts: readonly Pt[], color: string, w: number, alpha: numb
   soft(d.pen.ctx, w * 0.4, () => d.pen.stroke(pts, w, color, alpha, false));
 }
 
-function lamp(d: Draw, at: Pt, s = 1): void {
-  const body = roundRect(at.x - 1.9 * s, at.y - 1.5 * s, at.x + 1.6 * s, at.y + 1.5 * s, 0.6);
-  part(d, body, WASH.darkMetal, { shadow: 0.5, line: 0.5, gloss: true });
-  sheen(d, [pt(at.x - 1.4 * s, at.y - 0.9 * s), pt(at.x + 0.9 * s, at.y - 1 * s)], 0.35);
-  glow(d.pen.ctx, pt(at.x + 2.2 * s, at.y), 3.2 * s, WASH.lamp, 0.55);
-  const lens = oval(at.x + 2 * s, at.y, 0.95 * s, 1.35 * s, 12);
-  paint(d, lens, WASH.lamp, { alpha: 1, shadow: 0.15, hatch: 0, line: 0.4, gloss: true });
-}
-
-function antenna(d: Draw, from: Pt, to: Pt, w: number): void {
-  d.pen.stroke([from, to], w, d.ink, 0.95, false);
-  d.pen.stroke([pt(from.x + 0.2, from.y - 0.1), pt(to.x + 0.2, to.y - 0.1)], w * 0.35, '#c9d1dc', 0.7, false);
-}
-
-export function helmet(d: Draw, look: Look, gaze: Pt): void {
-  collar(d, look);
+export function helmet(d: Draw, mk: number, gaze: Pt): void {
+  const look = lookOf(mk);
+  const m = markOf(mk);
+  collar(d, mk);
   if (look === 0) {
-    // Stub antenna at the back, the fishbowl, a lamp clipped on the front.
-    antenna(d, pt(HEAD.x - 5.5, HEAD.y - 6), pt(HEAD.x - 7.5, HEAD.y - 10), 0.8);
-    d.pen.dot(HEAD.x - 7.6, HEAD.y - 10.4, 0.85, d.ink);
-    bubble(d, gaze);
-    lamp(d, pt(HEAD.x + 4.2, HEAD.y - 8.6));
+    // What rides at the back, the fishbowl, then what's fitted over it.
+    fishbowlBehind(d, mk);
+    fishbowlFront(d, mk, bubble(d, gaze, m.glass));
     return;
   }
   if (look === 1) {
     // Whip antenna and a comm unit over the ear.
     antenna(d, pt(HEAD.x - 6.5, HEAD.y - 3), pt(HEAD.x - 10.2, HEAD.y - 17), 0.6);
     d.pen.dot(HEAD.x - 10.3, HEAD.y - 17.4, 0.75, d.ink);
-    bubble(d, gaze);
-    // The cage: two bars over the glass.
+    bubble(d, gaze, m.glass);
+    // The cage: two bars over the glass, in the mark's metal.
     for (const k of [-0.35, 0.3]) {
       const bar: Pt[] = [];
       for (let i = 0; i <= 12; i++) {
         const a = Math.PI + (i / 12) * Math.PI;
         bar.push(pt(HEAD.x + Math.cos(a) * R * 1.03 + k * 3 * Math.sin(a), HEAD.y + Math.sin(a) * R * 1.03));
       }
-      d.pen.stroke(bar, 1.3, d.ink, 0.95, false);
-      d.pen.stroke(bar.map((p) => pt(p.x - 0.2, p.y - 0.25)), 0.45, '#c9d1dc', 0.8, false);
+      d.pen.stroke(bar, 1.5, d.ink, 0.95, false);
+      d.pen.stroke(bar, 0.8, m.shell, 1, false);
+      d.pen.stroke(bar.map((p) => pt(p.x - 0.2, p.y - 0.25)), 0.35, '#ffffff', 0.6, false);
     }
     const ear = oval(HEAD.x - 4.6, HEAD.y + 2.2, 2.2, 2.6, 14);
-    part(d, ear, WASH.darkMetal, { shadow: 0.5, line: 0.5, gloss: true });
+    part(d, ear, m.shell, { shadow: 0.5, line: 0.5, gloss: true });
     sheen(d, [pt(HEAD.x - 5.8, HEAD.y + 1), pt(HEAD.x - 4.6, HEAD.y + 0.2)], 0.4);
-    lamp(d, pt(HEAD.x - 1, HEAD.y - 10.2), 0.85);
-    lamp(d, pt(HEAD.x + 4.4, HEAD.y - 8.4), 0.85);
+    const lens = mk === 5 ? m.accent : WASH.lamp;
+    lamp(d, pt(HEAD.x - 1, HEAD.y - 10.2), 0.85, m.trim, lens);
+    lamp(d, pt(HEAD.x + 4.4, HEAD.y - 8.4), 0.85, m.trim, lens);
+    cageTouches(d, mk);
     return;
   }
   // Deep-space: a hard shell with a tinted visor.
   const fin = [pt(HEAD.x - 4, HEAD.y - 7.6), pt(HEAD.x - 9, HEAD.y - 12.5), pt(HEAD.x - 7.6, HEAD.y - 6.4)];
-  part(d, fin, WASH.undersuit, { shadow: 0.4, line: 0.5 });
+  part(d, fin, m.cloth, { shadow: 0.4, line: 0.5 });
   const shell = oval(HEAD.x, HEAD.y, R * 1.02, R, 36);
-  part(d, shell, WASH.armour, { shadow: 0.6, line: 0.6, gloss: true });
-  // A cobalt stripe over the crown, the guild's colour on its best gear.
+  part(d, shell, m.shell, { shadow: 0.6, line: 0.6, gloss: true });
+  // A stripe over the crown in the mark's colour.
   const stripe = [pt(HEAD.x - 1.6, HEAD.y - R - 1), pt(HEAD.x + 1.6, HEAD.y - R - 1), pt(HEAD.x - 2.6, HEAD.y + 1), pt(HEAD.x - 6.4, HEAD.y + 2.4), pt(HEAD.x - 5.6, HEAD.y - 3)];
   d.pen.clipped(shell, () => {
-    d.pen.fill(stripe, WASH.undersuit, 0.9);
+    d.pen.fill(stripe, m.accent, 0.9);
     d.pen.stroke([...stripe, stripe[0]!], 0.35, d.ink, 0.7);
   });
   sheen(d, [pt(HEAD.x - 6.4, HEAD.y - 1), pt(HEAD.x - 5.2, HEAD.y - 5), pt(HEAD.x - 2, HEAD.y - 7.4)], 0.8);
   const visor = [pt(HEAD.x - 1.6, HEAD.y - 4.8), pt(HEAD.x + 7.4, HEAD.y - 4.2), pt(HEAD.x + 8.6, HEAD.y + 0.6), pt(HEAD.x + 6.4, HEAD.y + 4.6), pt(HEAD.x - 0.6, HEAD.y + 4.2), pt(HEAD.x - 2.4, HEAD.y)];
-  paint(d, visor, '#55658a', { alpha: 0.7, shadow: 0.3, hatch: 0, line: 0 });
+  paint(d, visor, mix(m.glass, SHADOW, 0.45), { alpha: 0.7, shadow: 0.3, hatch: 0, line: 0 });
   d.pen.clipped(visor, () => {
     head(d, pt(gaze.x * 0.6 + 1.2, gaze.y * 0.6));
     face(d, pt(gaze.x * 0.6, gaze.y * 0.6), false);
@@ -192,7 +190,8 @@ export function helmet(d: Draw, look: Look, gaze: Pt): void {
   sheen(d, [pt(HEAD.x + 6.6, HEAD.y - 2.2), pt(HEAD.x + 7.4, HEAD.y + 0.6)], 0.5);
   // Lamp strip over the visor.
   const strip = [pt(HEAD.x - 0.6, HEAD.y - 6.4), pt(HEAD.x + 6.6, HEAD.y - 5.8), pt(HEAD.x + 6.4, HEAD.y - 5), pt(HEAD.x - 0.8, HEAD.y - 5.6)];
-  glow(d.pen.ctx, pt(HEAD.x + 3, HEAD.y - 5.8), 4.5, WASH.lamp, 0.4);
-  paint(d, strip, WASH.lamp, { alpha: 1, shadow: 0, hatch: 0, line: 0.4 });
+  glow(d.pen.ctx, pt(HEAD.x + 3, HEAD.y - 5.8), 4.5, m.charge, 0.4);
+  paint(d, strip, m.charge, { alpha: 1, shadow: 0, hatch: 0, line: 0.4 });
   tint(d, strip, '#ffffff', 0.3);
+  shellTouches(d, mk, shell);
 }

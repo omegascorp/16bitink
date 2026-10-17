@@ -137,6 +137,8 @@ export type Goal =
   | { readonly kind: 'done' }
   /** In orbit over a world not yet landed on: go down. */
   | { readonly kind: 'land' }
+  /** On Mycel: follow the Aster lander's distress beacon with the receiver, by its strength, to the wreck. */
+  | { readonly kind: 'distress' }
   /** Mycel's drill printed: study the rest of the Aster crew's gear there for its designs. */
   | { readonly kind: 'explore'; readonly found: number; readonly of: number }
   /** Every Mk 2 design found: chapter 2's story goes on later. */
@@ -146,15 +148,17 @@ export type Goal =
 const STONE_DRILL = 'drill-1';
 /** Mycel's drill: its stone, and the rest of its gear, wait on it. */
 const MYCEL_DRILL = 'drill-2';
-/** Mycel's set of designs to study, Mk 2. */
-const MYCEL_SET = PIECES.map((piece) => blueprintId(piece, 2));
+/** Mycel's set of designs to study, Mk 2 (the beacon leads to the nearest one not yet learnt). */
+export const MYCEL_SET = PIECES.map((piece) => blueprintId(piece, 2));
 
 /**
- * Chapter 2, on Mycel: land, then find and print its drill (its stone won't
- * break for Graphite's), then study the rest of the Aster crew's gear there.
+ * Chapter 2, on Mycel: land, follow the distress beacon to the Aster lander's
+ * wreck, then find and print its drill (its stone won't break for
+ * Graphite's), then study the rest of the Aster crew's gear round the wreck.
  */
 function mycelGoal(p: Profile): Goal {
   if (!p.visited.includes('mycel')) return { kind: 'land' };
+  if (!hasBeat(p, 'asterFound')) return { kind: 'distress' };
   const drill = recipeOf(MYCEL_DRILL)!;
   if (p.gear.drill < drill.mk) return p.found.includes(MYCEL_DRILL) ? { kind: 'print', blueprint: MYCEL_DRILL } : { kind: 'find', blueprint: MYCEL_DRILL };
   const found = MYCEL_SET.filter((id) => p.found.includes(id)).length;
@@ -194,9 +198,10 @@ export function needsLine(need: Hold, have: Hold): string {
 
 /** The goal as one line for the HUD. */
 export function goalLine(p: Profile, g: Goal): string {
-  if (g.kind === 'find') return g.blueprint === MYCEL_DRILL ? "Mycel's stone is too hard for Graphite's drill. Find a broken one of the Aster crew's to study: follow the beacon" : 'Stone is too hard for the starter drill. Find a broken drill to study: follow the beacon';
+  if (g.kind === 'find') return g.blueprint === MYCEL_DRILL ? "Mycel's stone is too hard for Graphite's drill. Study the Aster crew's broken drill near their wreck: follow the beacon" : 'Stone is too hard for the starter drill. Find a broken drill to study: follow the beacon';
   if (g.kind === 'land') return 'Land on Mycel: Land, top right';
-  if (g.kind === 'explore') return `The Aster crew's gear lies all over Mycel: study each broken piece for its design. Mk 2 designs ${g.found}/${g.of}`;
+  if (g.kind === 'distress') return "Follow the Aster's distress call with the receiver: the more bars, the closer you are";
+  if (g.kind === 'explore') return `The Aster crew's gear lies round their wreck: study each broken piece for its design. Mk 2 designs ${g.found}/${g.of}`;
   if (g.kind === 'soon') return "That's Mycel for now: print your Mk 2 gear. Its people, and what lives at its heart, are coming soon";
   if (g.kind === 'print') return `Print the ${recipeOf(g.blueprint)!.piece} Mk ${recipeOf(g.blueprint)!.mk}: go aboard (L at the lander)`;
   if (g.kind === 'receiver') {

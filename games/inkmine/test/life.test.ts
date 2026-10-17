@@ -3,9 +3,9 @@ import { contents } from '../src/logic/inventory';
 import { suitSpecFor, markGain, markStat } from '../src/logic/marks';
 import { evenLoadout, STARTER_LOADOUT } from '../src/logic/gear';
 import { ORES } from '../src/logic/ore';
-import { AIR, breathe, feed, FEED, GRACE, hurt, JET_RECHARGE, newSuit, pickFeed, rechargeJet, regen, restore, SHIELD, STARTER, stow, type Suit } from '../src/logic/suit';
+import { AIR, breathe, feed, FEED, GRACE, hurt, JET_RECHARGE, newSuit, pickFeed, rechargeJet, regen, restore, SHIELD, STARTER, stow, type Fuels, type Suit } from '../src/logic/suit';
 
-const FUELS = { cell: 'graphite', air: 'ice' } as const;
+const FUELS: Fuels = { cell: ['graphite'], air: ['ice'] };
 const withOre = (s: Suit, ...ids: number[]): Suit => ids.reduce((acc, id) => stow(acc, id)!, s);
 
 describe('the shield', () => {

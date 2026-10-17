@@ -45,7 +45,7 @@ describe('sound effects', () => {
     expect(orePitch(0)).toBe(1);
     expect(orePitch(-3)).toBe(1);
     expect(orePitch(1.5)).toBe(1);
-    expect(orePitch(13)).toBe(orePitch(1));
+    expect(orePitch(14)).toBe(orePitch(1));
   });
 });
 

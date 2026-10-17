@@ -12,7 +12,7 @@ import { Ladders } from './ladders';
 import { jetFor, type JetSpec } from './marks';
 import { between, caught, newPiece, PIECE, restingPiece, stepPiece, type Piece } from './pieces';
 import type { SavedPiece } from './worldSave';
-import { AIR, breathe, burn, emptyBag, feed, fits, hasRoomFor, hurt, newSuit, pickFeed, rechargeJet, regen, spend, stow, withBag, worn, type Fuels, type Gauge, type Suit, type SuitSpec } from './suit';
+import { AIR, breathe, burn, emptyBag, feed, fits, fuelIn, hasRoomFor, hurt, newSuit, pickFeed, rechargeJet, regen, spend, stow, withBag, worn, type Fuels, type Gauge, type Suit, type SuitSpec } from './suit';
 import { restockFrom, solarCharge, type StoreKind, type Stores } from './stores';
 import { STORE_CAPACITY } from './ship';
 import type { OreKey } from './ore';
@@ -56,7 +56,7 @@ export interface MineSetup {
 }
 
 /** Graphite's fuels: graphite for the drill (it's in battery anodes), water ice for the air. */
-export const GRAPHITE_FUELS: Fuels = { cell: 'graphite', air: 'ice' };
+export const GRAPHITE_FUELS: Fuels = { cell: ['graphite'], air: ['ice'] };
 
 /** The starter ship's cargo: slots, and pieces a slot stacks. */
 export const CARGO = { slots: 16, stack: 50 } as const;
@@ -133,6 +133,8 @@ const VOLATILE_TAP = 0.08;
 export const CAP_SPRING = { jump: 560, min: 220, keep: 0.5 } as const;
 /** Air a spore pocket's cloud costs when it's drilled into. */
 export const SPORE_AIR = 12;
+/** What a drilled cap mushroom breaks into: its flesh charred to carbon by the drill (cell fuel), and the water it was mostly made of. */
+export const CAP_YIELD: readonly OreKey[] = ['carbon', 'water'];
 /** The same notice ("too hard", "cell flat", "bag full") is said at most this often. */
 const NOTICE_GAP = 1.2;
 /** The suit says the air is low at most this often. */
@@ -381,9 +383,11 @@ export class Mine {
       return;
     }
     tiles.forEach(([tx, ty], i) => {
-      const ore = contentAt(this.terrain, tx, ty);
+      const cap = tileAt(this.terrain, tx, ty) === TILE.cap;
+      const ore = cap ? ORES[CAP_YIELD[0]!].id : contentAt(this.terrain, tx, ty);
       setTile(this.terrain, tx, ty, TILE.air);
-      if (ore) this.pieces.push(newPiece(ore, (tx + 0.5) * this.tile, (ty + 0.5) * this.tile));
+      if (cap) CAP_YIELD.forEach((k, j) => this.pieces.push(newPiece(ORES[k].id, (tx + 0.3 + j * 0.4) * this.tile, (ty + 0.5) * this.tile)));
+      else if (ore) this.pieces.push(newPiece(ore, (tx + 0.5) * this.tile, (ty + 0.5) * this.tile));
       events.push({ kind: 'drilled', tile: [tx, ty], cost: costs[i]!, ore });
     });
     if (target.centre && y > bodyCell(this.player, this.tile).row) this.player = { ...this.player, vy: DROP_KICK, onGround: false };
@@ -511,7 +515,7 @@ export class Mine {
   /** One piece of fuel from the bag into a gauge. */
   private feedStep(choice: Gauge | 'lowest', events: MineEvent[]): void {
     const gauge = choice === 'lowest' ? pickFeed(this.suit, this.fuels) : choice;
-    const ore = this.fuels[gauge];
+    const ore = fuelIn(this.suit.bag, this.fuels, gauge) ?? this.fuels[gauge][0]!;
     // The key never wastes a piece on a gauge it would mostly overfill; a tapped gauge is fed anyway (you chose it).
     const r = choice === 'lowest' && !hasRoomFor(this.suit, gauge) ? ({ ok: false, why: 'full' } as const) : feed(this.suit, gauge, ore);
     if (r.ok) {

@@ -15,7 +15,7 @@ import type { OreKey } from './ore';
  *
  * The beats are saved as reached: never rename one.
  */
-export const BEATS = ['called', 'met', 'paid', 'core', 'flown', 'course', 'aboard', 'firstLight', 'mycelOrbit', 'mycelLanded'] as const;
+export const BEATS = ['called', 'met', 'paid', 'core', 'flown', 'course', 'aboard', 'firstLight', 'mycelOrbit', 'mycelLanded', 'distress', 'asterFound'] as const;
 export type Beat = (typeof BEATS)[number];
 
 /**
@@ -43,6 +43,13 @@ export function keptOres(p: Pick<Profile, 'beats'>): OreKey[] {
 
 /** The call is waiting: the radio works and it hasn't been taken yet. */
 export const callDue = (p: Profile): boolean => p.repaired.includes('comms') && !hasBeat(p, 'called');
+
+/**
+ * The Aster lander's distress call is waiting: the starship's power is back
+ * on over Graphite and its radio hasn't played the recording yet. It's
+ * what sends you to Mycel (spec, "Mycel").
+ */
+export const distressDue = (p: Profile): boolean => p.docked && p.at === 'graphite' && p.starship.includes('power') && !hasBeat(p, 'distress');
 
 /** The ship is whole but for the core: what the Lamplighters wait for before they hand it over. */
 export const shipWhole = (p: Profile): boolean => p.repaired.includes('hull') && p.repaired.includes('thrusters');

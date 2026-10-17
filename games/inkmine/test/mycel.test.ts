@@ -3,12 +3,14 @@ import { recipeOf } from '../src/logic/blueprints';
 import { NEW_PROFILE, type Profile } from '../src/logic/economy';
 import { canLand, fuelOre, land } from '../src/logic/fuel';
 import { addHoldTo } from '../src/logic/inventory';
-import { CAP_SPRING, SPORE_AIR } from '../src/logic/mine';
+import { CAP_SPRING, CAP_YIELD, SPORE_AIR } from '../src/logic/mine';
+import { ORES } from '../src/logic/ore';
 import { currentGoal, goalLine } from '../src/logic/repairs';
 import { parseProfile } from '../src/logic/save';
 import { STARSHIP_IDS } from '../src/logic/starship';
-import { hasBeat } from '../src/logic/story';
-import { refillStore, storeOre } from '../src/logic/stores';
+import { distressDue, hasBeat } from '../src/logic/story';
+import { refillStore, storeCapacity, storeOre, storeRefill, STORES } from '../src/logic/stores';
+import { fuelsAt } from '../src/logic/worlds';
 import { canTravel, travel, tripFuel } from '../src/logic/travel';
 import { TILE, tileAt, volatileAt } from '../src/logic/terrain';
 import { blastBreaks } from '../src/logic/volatiles';
@@ -65,6 +67,17 @@ describe("Mycel's cap mushrooms", () => {
     run(m, 1, { iy: 1 });
     expect(tileAt(m.terrain, 2, 1)).toBe(TILE.air);
     expect(blastBreaks(mine(['m']).terrain, 0, 0)).toBe(true);
+  });
+
+  it('break into carbon for the cell and water for the air when drilled', () => {
+    const m = mine(['....', '..m.', 'ssss', '####']);
+    standAt(m, 2, 1);
+    const events = run(m, 1, { iy: 1 });
+    expect(events.find((e) => e.kind === 'drilled')).toMatchObject({ ore: ORES.carbon.id });
+    // Both pieces are picked up.
+    const picked = events.flatMap((e) => (e.kind === 'ore' ? [e.ore] : []));
+    expect(picked.sort()).toEqual([ORES.carbon.id, ORES.water.id].sort());
+    expect(CAP_YIELD).toEqual(['carbon', 'water']);
   });
 });
 
@@ -126,8 +139,24 @@ describe('travel between the sister moons', () => {
   });
 });
 
+describe("the Aster's distress call", () => {
+  it('plays aboard over Graphite once the power is back, once', () => {
+    const dark = { ...whole, starship: [] };
+    expect(distressDue(dark)).toBe(false);
+    expect(distressDue({ ...dark, starship: ['power'] })).toBe(true);
+    expect(distressDue({ ...dark, starship: ['power'], docked: false })).toBe(false);
+    expect(distressDue({ ...dark, starship: ['power'], beats: [...dark.beats, 'distress'] })).toBe(false);
+    expect(distressDue({ ...whole, at: 'mycel' })).toBe(false);
+  });
+
+  it('is kept in the save', () => {
+    const back = parseProfile(JSON.parse(JSON.stringify({ ...whole, beats: [...whole.beats, 'distress', 'asterFound'] })));
+    expect(hasBeat(back, 'distress') && hasBeat(back, 'asterFound')).toBe(true);
+  });
+});
+
 describe('on Mycel', () => {
-  const landed: Profile = { ...whole, at: 'mycel', docked: false, visited: ['graphite', 'mycel'], beats: [...whole.beats, 'course'], gear: { ...whole.gear, drill: 1 } };
+  const landed: Profile = { ...whole, at: 'mycel', docked: false, visited: ['graphite', 'mycel'], beats: [...whole.beats, 'course', 'distress', 'asterFound'], gear: { ...whole.gear, drill: 1 } };
 
   it('splits its tanks from water and charges the battery from lignite', () => {
     expect(fuelOre(landed)).toBe('water');
@@ -135,7 +164,23 @@ describe('on Mycel', () => {
     expect(storeOre(landed, 'power')).toBe('lignite');
     const low = { ...landed, stores: { air: 100, power: 100 }, cargo: addHoldTo(landed.cargo, { water: 4, lignite: 3, ice: 9 }).inv };
     const r = refillStore(low, 'air');
-    expect(r.ok && r.profile.stores.air).toBe(200);
+    expect(r.ok && r.profile.stores.air).toBe(Math.min(storeCapacity(low.ship), 100 + 4 * STORES.air.per));
+  });
+
+  it("charges the battery from lignite first, then from caps' carbon", () => {
+    const flat = { ...landed, stores: { air: 100, power: 0 }, cargo: addHoldTo(landed.cargo, { lignite: 1, carbon: 40 }).inv };
+    const need = Math.ceil(storeCapacity(flat.ship) / STORES.power.per);
+    expect(storeRefill(flat, 'power')).toEqual({ lignite: 1, carbon: need - 1 });
+    const r = refillStore(flat, 'power');
+    expect(r.ok && r.profile.stores.power).toBe(storeCapacity(flat.ship));
+    expect(fuelsAt('mycel').cell).toEqual(['lignite', 'carbon']);
+  });
+
+  it("first follows the Aster's distress call to their wreck", () => {
+    const fresh = { ...landed, beats: landed.beats.filter((b) => b !== 'asterFound') };
+    expect(currentGoal(fresh)).toEqual({ kind: 'distress' });
+    expect(goalLine(fresh, currentGoal(fresh))).toMatch(/distress call with the receiver/);
+    expect(currentGoal({ ...fresh, docked: true, visited: ['graphite'] })).toEqual({ kind: 'land' });
   });
 
   it("leads to Mycel's drill, then the rest of its designs", () => {

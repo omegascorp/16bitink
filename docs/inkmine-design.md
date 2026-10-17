@@ -58,12 +58,14 @@ Proposed, to decide:
 
 - **Science behind it.** Wormholes are allowed by general relativity, but a wormhole you can pass through would need exotic matter to hold it open, and without it one would collapse (Morris & Thorne, 1988). That's exactly what "steadied" means for your people, and why a wild one nearly kills you.
 - **Finding home: a pulsar map.** Pulsars are dead stars that flash at exact, unchanging rates, so a few of them can pin down a star's place in the galaxy. The Pioneer plaques and the Voyager records carry such a map to the Sun, made of 14 pulsars. Your people could carry one too. The lost memory means you can't read it until you rebuild it: each new planet's sky, an alien star chart or a recovered memory adds a pulsar, until home is pinned on the galaxy map.
-- **Memory comes back in pieces,** found like the Aster logs: a smell in a cave, a song on the radio. Which pieces the wormhole took, and which the printer gets wrong each time it reprints you, can stay quietly unclear.
+- **Memory comes back in pieces,** found like the old crew's logs: a smell in a cave, a song on the radio. Which pieces the wormhole took, and which the printer gets wrong each time it reprints you, can stay quietly unclear.
 - **Getting there** is the endgame's big build: the drive, fuel and supplies for the trip, or steadying a wormhole yourself, the way your people do.
 
-**Those who came before.** You aren't the first ship to fall through. The **Aster crew**, prospectors of your own kind, came years ago and never left: their half-buried base, their unfired charges in the rock, their buried time capsules and their logs are scattered across Graphite. The logs are in your language, so they explain things and teach you Lamplighter words they had learned. They also carry the story's slow chill: the Aster crew were reprinted many times.
+**Those who came before.** You aren't the first ship to fall through. An **old crew**, prospectors of your own kind, came years ago and never left: their half-buried base, their unfired charges in the rock, their buried time capsules and their logs are scattered across Graphite. The logs are in your language, so they explain things and teach you Lamplighter words they had learned. They also carry the story's slow chill: the old crew were reprinted many times.
 
-**Why you wake at the lander.** The lander's printer takes a scan of you every time you step inside. When you die, it prints you again from that scan. The bag was never part of the scan, so it stays where you fell. This is also why the printer is the first thing you repair. The Aster logs hint that being reprinted again and again isn't quite free ("Fourth time today. It got my markings wrong.").
+**Other peoples fell through too** (Oct 17, 2026). Each species builds in its own way, so their ships and their technology look nothing like yours, and their broken gear is something the suit can study and rebuild in your own form (see Gear). The first you find is **the Aster**, on Mycel: see "The Aster". (Until Oct 17 the doc called Graphite's old crew "the Aster crew"; the name now belongs to the aliens.)
+
+**Why you wake at the lander.** The lander's printer takes a scan of you every time you step inside. When you die, it prints you again from that scan. The bag was never part of the scan, so it stays where you fell. This is also why the printer is the first thing you repair. The old crew's logs hint that being reprinted again and again isn't quite free ("Fourth time today. It got my markings wrong.").
 
 ## The world
 
@@ -71,7 +73,7 @@ Each planet is one hand-made world, a side-view cross-section like InkCrab's bea
 
 - **The world wraps.** Walk far enough east and you come back from the west: you're on a small moon. The join is invisible (InkFish's sea does the same, `logic/ring.ts`), and nothing is ever more than half the world away from the lander.
 - **What you dig stays dug.** Tunnels and shafts are saved, so over time the ground near the lander becomes your own network of routes. Ore doesn't grow back. Instead you go deeper as your drill improves, and every layer down holds more and richer ore than the one above.
-- **Regions, not levels.** The world is laid out in hand-placed regions (the crash crater, the Aster base, the lead seams, the deep), each with its own ore, creatures and things to find. Harder rock and darker depths gate them, not menus.
+- **Regions, not levels.** The world is laid out in hand-placed regions (the crash crater, the old crew's base, the lead seams, the deep), each with its own ore, creatures and things to find. Harder rock and darker depths gate them, not menus.
 - **The survey sheet** in the pause menu shows what you've seen, centred on the lander, with the wrap drawn as the sheet's two edges meeting.
 
 Tiles are 32 px; a 1280 × 720 view shows about 40 × 22 tiles. Sizes to tune in playtests:
@@ -81,7 +83,7 @@ Tiles are 32 px; a 1280 × 720 view shows about 40 × 22 tiles. Sizes to tune in
 | Graphite | 256 × 160 (built) | ~6.5 around × 7 deep |
 | Later planets | Bigger, each its own shape | Tall on Pumice, mostly sea on Brine, and so on |
 
-The ground is layered in strata that get harder and richer with depth, broken up by caves, pockets of loose rock, the planet's own features and set pieces: the alien outpost, the Aster base, a crashed probe, a creature nest.
+The ground is layered in strata that get harder and richer with depth, broken up by caves, pockets of loose rock, the planet's own features and set pieces: the alien outpost, the old crew's base, a crashed probe, a creature nest.
 
 ## Core loop
 
@@ -123,13 +125,13 @@ Anything that blows is in the rock for a reason. Blasts break soil and stone wit
 | What | Where it comes from | Effect |
 | --- | --- | --- |
 | Firedamp | Natural: pockets of methane trapped in the rock, the old hazard of coal and graphite mines, mostly by graphite seams. On Graphite the gas is alive in origin: microbe mats (rock film) on warm cave walls breathe it out (Oct 17, 2026, see [inkmine-xenobiology.md](inkmine-xenobiology.md)) | Drilling one opens it: it hisses and bursts 0.7 s later, breaking a 3 × 3 area |
-| Old charge | The Aster crew drilled it into the rock and never fired it | A tap on its detonator arms it; 1.4 s later it breaks a 3 × 3 area |
-| Line charge | Aster charges on detonating cord along a seam | Breaks its whole row, four tiles each way |
+| Old charge | The old crew drilled it into the rock and never fired it | A tap on its detonator arms it; 1.4 s later it breaks a 3 × 3 area |
+| Line charge | The old crew's charges on detonating cord along a seam | Breaks its whole row, four tiles each way |
 | Each planet's own | Planet 3 on | Spore pockets on Mycel, magma blisters on Ember, fire ice on Rime, and so on |
 
 - **Drawn into the rock, not on it.** Firedamp is an irregular hollow washed pale, with faint red wisps of gas and pressure cracks. Old charges are steel canisters in drilled bore holes, with hazard bands, a detonator lamp and a lead wire along the seam.
 - **Red where it can hurt you:** the wisps, the hazard bands, the lamp (slow blink when armed, fast once lit), and the outline of the blast area while anything is lit.
-- **Charges open the Aster base.** Its entrance is behind a cave-in that the crew's own charges can clear, but one of their time capsules sits inside the blast. Getting both out is the puzzle.
+- **Charges open the old crew's base.** Its entrance is behind a cave-in that the crew's own charges can clear, but one of their time capsules sits inside the blast. Getting both out is the puzzle.
 - **Your own charges:** the gadget is a blasting charge you place, then step clear.
 
 ## The suit: staying alive
@@ -155,9 +157,9 @@ Life works the No Man's Sky way, adapted to a pen-drawn phone screen. Five gauge
 **Recall.** If you're stuck (no energy, no way up), Recall on the inventory page (L or Esc) winches you up to the lander. It works like dying, without the printing: the bag stays where you were, flagged. The Winch module keeps part of each stack in the bag; only the rest is left under the flag.
 
 **Built (Oct 16, 2026)** (`logic/suit.ts`, `logic/flag.ts`):
-- The numbers: the shield refills at half a bar a second, starting 4 s after the last hit. A hit takes a whole bar or, with less than one, a heart; then 2 s of grace. Life support is 100 and lasts 6 minutes outside; empty, a heart goes every 6 s (shield or no shield). One graphite gives the cell 20, one ice gives life support 25. The jetpack charges 30 a second (a starter tank in 2 s) on the ground or a ladder.
+- The numbers: the shield refills at half a bar a second, starting 4 s after the last hit. A hit takes a whole bar or, with less than one, a heart; then 2 s of grace. Life support is 100 and lasts 6 minutes outside; empty, a heart goes every 6 s (shield or no shield). One graphite gives the cell 35, one ice gives life support 40 (raised from 20 and 25 on Oct 17, 2026, with more fuel veins on both worlds: fuel had become a hunt). The jetpack charges 30 a second (a starter tank in 2 s) on the ground or a ladder.
 - The suit's marks: a heart on odd marks, a shield bar on even ones (Mk 2 has two bars).
-- The lander puts everything right the moment you touch it: hearts, shield and the jetpack for free; air and the cell from its **stores** (built Oct 17, 2026; `logic/stores.ts`). An air tank and a battery, 600 units each to start (six starter suits' worth), shown in the Lander tab's Supplies panel under its fuel. Refill buttons turn ice (25 a lump) and graphite (20 a lump) on hand into air and charge; the battery also charges itself slowly from the lander's panels (0.3 a second), so it can't stay flat, and ice lies near the surface all round, so the tank can't either. Run short and the suit is only part filled, with a note. The **Supply tanks** module makes both 1,200, then 2,000. The aim is an errand every few trips, not every one; the jetpack stays free, since it's how you move, not a budget. (Decided Oct 17, 2026: with everything free at the lander, nothing you brought home mattered; now ice, graphite, fuel and the stores pull on the same ores.)
+- The lander puts everything right the moment you touch it: hearts, shield and the jetpack for free; air and the cell from its **stores** (built Oct 17, 2026; `logic/stores.ts`). An air tank and a battery, 600 units each to start (six starter suits' worth), shown in the Lander tab's Supplies panel under its fuel. Refill buttons turn ice (40 a lump) and graphite (35 a lump) on hand into air and charge (on Mycel, water, and lignite or caps' carbon); the battery also charges itself slowly from the lander's panels (0.5 a second), so it can't stay flat, and ice lies near the surface all round, so the tank can't either. Run short and the suit is only part filled, with a note. The **Supply tanks** module makes both 1,200, then 2,000. The aim is an errand every few trips, not every one; the jetpack stays free, since it's how you move, not a budget. (Decided Oct 17, 2026: with everything free at the lander, nothing you brought home mattered; now ice, graphite, fuel and the stores pull on the same ores.)
 - The inventory's Life support panel (L or Esc away from the lander, or the Bag button) feeds either gauge from the bag; tapping a gauge on the HUD feeds that one. There's no feed key (R was dropped Oct 17, 2026: it wasn't clear what it did).
 - Waking: "The printer made you again, from the scan it took the last time you were aboard." Before the printer is mended the suit drags you back instead ("Mend the printer: it can do better than that"). A red beacon arrow points to the bag.
 - Not yet: medkits, the survey sheet's flag.
@@ -174,7 +176,7 @@ Ore is kept as resources in two slot inventories (decided with @Hayk on Oct 14, 
 - **At the lander** the bag empties into the cargo automatically, the rarest ore first; whatever doesn't fit stays in the bag ("cargo hold full").
 - **Locked slots** (Oct 17, 2026): aboard, pick up a stack in the suit bag and press Lock; a locked slot (a padlock on it, in the menu and on the HUD) is never emptied into the cargo. While the Lamplighters wait for their silver, silver in the bag stays there the same way, without locking, until they have it. Moving stacks between the bag and the cargo is aboard: pick one up, then "To cargo" / "To suit bag", or tap a slot on the other tab. A picked-up stack takes the detail card's place on the right (Oct 17, 2026): the ore drawn big, how many are in the stack and on hand, where it sits (locked, or kept for the Lamplighters), real facts about the mineral, what it fuels, and what it's still needed for, each ticked once enough is on hand (`logic/needs.ts`). Only one thing is selected at a time: tapping a technology slot puts the stack down and shows that slot's card, picking up a stack lets the slot go, and tapping the selected slot or stack again leaves the right side empty (there's no Put down button). Far from the lander, L or Esc opens the same page over the paused world (Oct 17, 2026), and it doubles as the pause menu with Recall on it: the suit bag can still be sorted, split, locked and dropped, but the cargo and the lander are look-only (a cargo stack shows its card, nothing moves into or out of the cargo) and Print / Repair read "At the lander", since printing takes the lander's printer. The page is titled Inventory there, and on the Ship tab a note over the lander says you're far from it and must come back to print, repair or move the cargo. Back, L or Esc closes it, and play carries on where it stopped (the world is paused while it's open).
 - **Inside the lander** both grids are shown. Tap a stack to pick it up, tap a slot to put it there: into an empty slot, onto the same ore (as much as fits), or swapping. A picked-up stack can be split in half or dropped (tap twice).
-- **Things you're given or find** (a time capsule, an Aster log, a job item) go in a separate pouch and never take bag space. Broken parts aren't carried: they're studied and taken apart where they lie (see Gear).
+- **Things you're given or find** (a time capsule, an old crew's log, a job item) go in a separate pouch and never take bag space. Broken parts aren't carried: they're studied and taken apart where they lie (see Gear).
 
 ## Getting around
 
@@ -232,13 +234,13 @@ There's no mission list and no job board. Things to do come from two places:
 | Salvage | Find their listening probe, lost when a lead worm dragged it under |
 | Mark | Plant their listening stakes at three spots across the world |
 | Clear | Drive the lead worms out of their deep post |
-| Open | Get into the Aster base (old charges) |
+| Open | Get into the old crew's base (old charges) |
 
 The old mission code (haul, hunt, core sample, salvage, survey, clear, demolition) becomes these jobs and the repair list. There are no blots: progress is the lander's repairs and the lexicon.
 
 ## The Lamplighters
 
-Graphite's only people, and the first race you meet. A working name: it's what the Aster crew called them. You learn what they call themselves when you become fluent.
+Graphite's only people, and the first race you meet. A working name: it's what the old crew called them. You learn what they call themselves when you become fluent.
 
 - **Who they are:** tall, thin and slow, in sealed suits of layered cloth, each carrying a lantern, because their home world is dark. They're drawn in blue: they're never a danger.
 - **Why they're on Graphite:** they don't live here. They came to mine it, as you did, and keep a small mining outpost on the crater's far rim. They've seen ships fall through the wormhole before, and they deal only with those who learn to talk with them. That's why they won't just hand over a core.
@@ -267,8 +269,8 @@ Graphite has about 70 words to learn and needs 55, so you never have to find eve
 | Talking | Every conversation with a Lamplighter | A word or two |
 | Inscriptions | The outpost's walls, standing stones out in the world | A few words each |
 | Lamplighter writings | Given as job rewards | Several words |
-| Aster logs | The Aster base, and with lost Aster equipment out in the world | Many words: the crew had learned some already, and wrote glossaries in the margins |
-| Time capsules | Buried in the rock, highlighter-marked like ore | Many words, plus a piece of the Aster story |
+| the old crew's logs | The old crew's base, and with their lost equipment out in the world | Many words: the crew had learned some already, and wrote glossaries in the margins |
+| Time capsules | Buried in the rock, highlighter-marked like ore | Many words, plus a piece of the old crew's story |
 
 Reading anything is pushing into it, like drilling: the drill never hurts a person or a text.
 
@@ -280,7 +282,7 @@ Every planet has its own set of gear, the best you can have there, built from th
 
 **Six pieces**, each with a mark per planet (Mk 1 on Graphite up to Mk 10 on Cardia). You start with a Mk 0 starter set.
 
-**Blueprints come from broken parts** (Oct 17, 2026). No blueprints lie about the world, since nobody would leave a drawing in a cave. What lies about is broken gear: a split drill, a cracked cell, a torn pack, left behind by the Aster crew and others who fell through before you. Each is drawn as the piece it was, tipped over and half sunk in dust (`art/wreckArt.ts`). Walk into one and the suit **studies it and takes it apart** in one go:
+**Blueprints come from broken parts** (Oct 17, 2026). No blueprints lie about the world, since nobody would leave a drawing in a cave. What lies about is broken gear: a split drill, a cracked cell, a torn pack, left behind by the old crew, the Aster and others who fell through before you. Each is drawn as the piece it was, tipped over and half sunk in dust (`art/wreckArt.ts`). Walk into one and the suit **studies it and takes it apart** in one go:
 
 - **A design you don't have** is learnt on the spot ("Drill Mk 1 design learnt!"). The suit records it, so there's nothing to carry home.
 - **A design you know** teaches nothing ("Cell Mk 1: nothing new"). Parts repeat, so you'll meet these.
@@ -304,7 +306,7 @@ Graphite has five, one per Mk 1 design but the Suit's (a Lamplighter job gives t
 | Piece | Materials | Gives (`logic/marks.ts`) | Blueprint from |
 | --- | --- | --- | --- |
 | Cell | 4 graphite, 6 copper | Energy 100 → 140 | The Lamplighters' first job |
-| Drill | 6 graphite, 4 copper | Breaks Graphite's stone | The Aster base |
+| Drill | 6 graphite, 4 copper | Breaks Graphite's stone | The old crew's base |
 | Pack | 6 graphite, 2 copper | Bag 4 → 6 slots | A vault near the crash site |
 | Helmet | 4 graphite, 2 quartz | Lamp 4.5 → 6 tiles | A Lamplighter job |
 | Jetpack | 5 graphite, 3 silver | Fuel 6 → 9 s, faster climb | A deep vault |
@@ -462,7 +464,7 @@ A grey moon of soft dark rock, pocked with craters, with a ringed planet hanging
 | The crash site | Surface and soil under the lander | Copper, ice; no creatures; a vault (Pack) | Start |
 | The crater rim | Surface, far side | The Lamplighter outpost, inscriptions | Walking over |
 | The lead seams | Soil and the first stone, near the lander | Graphite seams, firedamp, grit crabs | Start; stone with the Drill |
-| The Aster base | Half-buried under the old workings | Old charges, logs, a time capsule in the blast, a broken drill to study | Clearing the cave-in |
+| The old crew's base | Half-buried under the old workings | Old charges, logs, a time capsule in the blast, a broken drill to study | Clearing the cave-in |
 | The grey band | Stone, mid-depth | Galena, quartz, lead worms, standing stones | The Drill |
 | The deep | Deepest stone | Silver, the Lamplighters' deep post, a vault (Jetpack), the Grinder | The Drill, a good cell, routes back |
 | Below | Deep rock | Rich veins and a vault, for a later drill | A return visit after chapter 1 |
@@ -473,13 +475,17 @@ Graphite's existing levels 1–5 (`level/planet1.ts`) become the first regions: 
 
 Built Oct 17, 2026, as the first step of chapter 2: travel there, its world, its ores, its Mk 2 gear and two of its three mechanics. Still to come: fungus growing back over tunnels, its creatures, its people (and the spore filter they give), the Mother Mycel, and the chapter's story past the gear.
 
-Graphite's sister moon round the ringed giant, big enough to hold air: a fungal jungle under a thick haze of carbon dioxide and spores. Green from space and in its sky; violet underground, its soil peat of fungal matter, its stone limestone. The Aster crew came here too: their second lander lies wrecked in the coal swamp and their gear is scattered round the moon, each broken piece a Mk 2 design to study.
+Graphite's sister moon round the ringed giant, big enough to hold air: a fungal jungle under a thick haze of carbon dioxide and spores. Green from space and in its sky; violet underground, its soil peat of fungal matter, its stone limestone. The Aster's lander lies wrecked in the coal swamp, its crew's gear thrown round it, each broken piece a Mk 2 design to study.
+
+**Why you go: a distress call** (Oct 17, 2026). The moment the starship's power is mended over Graphite, its radio picks up the Aster's beacon (a "Distress call" card, beat `distress`): not words but a pattern of pulses, with a picture folded in, an eight-pointed star falling into a green circle. Nobody needs a language for that. The dish puts it on Mycel, and the pulses' own count says it has been calling for years. It's the reason to fly there before you know anything else about the moon, and it runs through the cards that follow: the star map's Mycel card says the call comes from there, the course card and the orbit card mention it, and the demo-end card offers it as the hook.
+
+**Following it down.** On landing, the goal is "Follow the Aster's distress call with the receiver": the same hot-and-cold bars as the Lamplighters' call, now pointing at the wreck, 100 tiles east of the lander (faint, one bar, at the lander; static if you set off west). Walking up to it on the ground opens "The Aster lander" card (beat `asterFound`): no one inside for years, and pictures scratched into the shell for whoever came, showing the pod falling, its pieces flying out round it and sinking into the ground, and small figures walking away east. Then the HUD leads to their drill, and to the rest of their gear, all round the wreck. The beacon arrow points to the nearest part whose design isn't learnt yet.
 
 **Getting there.** With the ship whole and 6 units in its tank, Set course on the star map's Mycel card flies there (the "Course set for Mycel" card, "the end of chapter 1"), and the ship's page opens docked over Mycel with an "In orbit over Mycel" card. Land goes down; the first landing has its own card ("a green moon, alive"). Without the full game the same button ends the demo with an offer to unlock it (the demo-end card's Unlock button calls the host's checkout).
 
-**Its fuels** (`logic/worlds.ts`): water, liquid here, for life support and both tanks (split as ice is on Graphite), and lignite for the cell (a carbon fuel cell burns it). Ice and graphite aren't found there. The lander's stores refill from the world you're on.
+**Its fuels** (`logic/worlds.ts`): water, liquid here, for life support and both tanks (split as ice is on Graphite), and lignite or carbon for the cell (a carbon fuel cell burns either). A gauge can take more than one fuel: the main one is named, and feeding takes whichever is in the bag, main first; the battery refills the same way. Ice and graphite aren't found there. The lander's stores refill from the world you're on.
 
-**Its ores** (`logic/ore.ts`, ids 7–12): malachite (copper carbonate, banded green), pyrite (iron sulfide, brassy cubes), calcite (limestone's crystal, clear rhombs), amber (fossil resin with tiny fliers in it, the signature material), lignite and water. Each has its own glyph in the rock (`art/oreArt.ts`).
+**Its ores** (`logic/ore.ts`, ids 7–13): malachite (copper carbonate, banded green), pyrite (iron sulfide, brassy cubes), calcite (limestone's crystal, clear rhombs), amber (fossil resin with tiny fliers in it, the signature material), lignite, water, and carbon, which never lies in the rock: it comes off caps. Each has its own glyph (`art/oreArt.ts`; carbon's is porous char with the gills still showing).
 
 **The Mk 2 set** (`logic/blueprints.ts`):
 
@@ -492,27 +498,37 @@ Graphite's sister moon round the ringed giant, big enough to hold air: a fungal 
 | Jetpack | 5 lignite, 3 pyrite | A carbon nozzle pressed from lignite, on iron joints |
 | Suit | 6 calcite, 3 amber | Mineral wool spun from calcite (as rock wool is from limestone), bound in amber |
 
-**A step behind.** You arrive with Graphite's Mk 1 drill: Mycel's peat costs 2 a block and its stone won't break, so the way in is the peat and the caves until its drill is printed. The HUD leads: find the broken Drill (beacon), print it, then study the rest of the Aster crew's gear ("Mk 2 designs 2/6"), then "That's Mycel for now".
+**A step behind.** You arrive with Graphite's Mk 1 drill: Mycel's peat costs 2 a block and its stone won't break, so the way in is the peat and the caves until its drill is printed. The HUD leads: follow the distress call to the wreck, find the Aster's broken drill near it (beacon), print it, then study the rest of their gear ("Mk 2 designs 2/6"), then "That's Mycel for now".
 
 **Its mechanics:**
-- **Cap mushrooms** (`TILE.cap`): solid, soft as soil to drill, standing on the surface (the cap forest) and on cave floors. Jump off one and it throws you about five tiles up; land on one from a fall and it gives back half the speed, so you settle in a bounce or two; hold down and it doesn't bounce you.
+- **Caps** (`TILE.cap`): solid, soft as soil to drill, standing on the surface (the cap forest) and on cave floors. Jump off one and it throws you about five tiles up; land on one from a fall and it gives back half the speed, so you settle in a bounce or two; hold down and it doesn't bounce you. **Drilled, a cap gives two pieces** (Oct 17, 2026, `CAP_YIELD` in `logic/mine.ts`): carbon, its flesh charred by the drill's heat, for the cell, and water for the air. That's real: a fungus is about nine parts water, and the rest is mostly chitin, which chars to nearly pure carbon, the fuel a direct carbon fuel cell burns. **They look nothing like a mushroom at home** (`art/mycelGround.ts`): a swollen, see-through bladder of water, veined inside with a waterline sloshing in it, drawn up to a crown of fleshy horns, standing on three root-legs that curl out to the ground, with fine threads hanging from its belly, each tipped with a bead of light. The giant ones on the horizon are the same bladders on tall stalks.
 - **Spore pockets** (volatile 4): hollows of dry spores in the peat. Drilled, they only puff, a choking cloud that costs 12 air; a blast reaching one sets the dust alight and it bursts like firedamp. Firedamp here gathers by lignite seams.
 
 **Regions** (`content/planet2.ts`, 240 × 144, the lander at column 40):
 
 | Region | Where | What's there | Opens with |
 | --- | --- | --- | --- |
-| The landing glade | Round the lander | Water pooled close under the peat | Start |
-| The cap forest | Columns 60–120 | Caps along the surface; a cave in the peat under it with a broken Drill | Start |
-| The spore hollows | 120–150 | Spore pockets all through the peat round a cave with a broken Cell | Start |
-| The coal swamp | 150–200 | Lignite seams and firedamp; the Aster lander's wreck, a broken Pack in the hollow under it | Start |
-| The limestone vault | Far east (215, 38 m) | Sealed in stone: a broken Helmet | Mycel's drill |
-| The amber deep | Under the middle (120, 76 m) | Stone walls, a soil door: a broken Jetpack | Mycel's drill |
-| The grotto | West of the lander (20, 58 m) | A cave in the stone: a broken Suit | Mycel's drill |
+| The landing glade | Round the lander | Water and a little lignite close under the peat | Start |
+| The cap forest | Columns 60–120 | Caps along the surface, on the walk to the wreck | Start |
+| The coal swamp | 120–170 | Lignite seams and firedamp; the Aster lander at column 140, a furrow ploughed west of it | Start |
+| Round the wreck, in the peat | 127–163 | The broken Drill west along the furrow, the Pack in the hollow under the wreck, the Cell in a cave east among spore pockets, a second drill past it | Start |
+| Under the wreck, in the stone | 128–150, 36–74 m | The Helmet down a sinkhole sealed in limestone, the Suit in a grotto, the Jetpack deep in the amber (stone walls, a soil door) | Mycel's drill |
+
+Every part lies within 25 columns of the wreck (decided Oct 17, 2026: spread round the whole moon, the search had no shape; the call leads you to the wreck and the wreck is where you search).
 
 **Its look:** a violet ground style; a hazy day sky, green-grey overhead and warm at the horizon, the orange star a soft disc, Sepia huge and faded with Graphite and Cardia beside it, spores drifting as specks of light (`art/mycelSky.ts`); three ranges of fungal forest along the horizon, giant caps and bare trunks, the far ones lost in the haze; caps and spore pockets drawn into the ground (`art/mycelGround.ts`).
 
-`test/world.test.ts` checks Mycel as it checks Graphite (fuels near the lander, every design reachable with its drill, three times the Mk 2 set's materials), and that its drill and twice its materials are within reach of Graphite's drill while its stone vaults aren't.
+**The Aster lander** (`art/asterWreckArt.ts`, drawn in the world by `scenes/game/crashView.ts`, the world's `crash` column): a ribbed ceramic pod like a seed head on claw legs, tipped forward on a folded leg, split open, a fan of petal thrusters under it, torn petals in the furrow, threads of fungus climbing it, its beacon a glass bead on the crown that flashes teal.
+
+`test/world.test.ts` checks Mycel as it checks Graphite (fuels near the lander, every design reachable with its drill, three times the Mk 2 set's materials), that its drill and twice its materials are within reach of Graphite's drill while its stone vaults aren't, and that every part lies round the wreck, which lies within the receiver's range of the lander.
+
+### The Aster
+
+Another people who fell through the wormhole, years before you, and the first aliens you find. "The Aster" is your name for them, for the eight-pointed star they sign everything with; nobody yet knows what they call themselves, and their writing (rosettes of strokes round a centre, in a dark plum ink) can't be read. Nobody has met one: on Mycel there's only their lander and their gear, and pictures of the crew walking east.
+
+**Their design language** (`art/aster/style.ts`), nothing like the guild's: things look grown more than built. Glazed ceramic, bone-white with lilac glaze pooled low, ribbed like a shell and arranged round a centre; joints lashed with dark red cord where ours are riveted; hexagonal glass with a cool teal glow where power runs; their star on everything. No rivets, no straight panel seams, none of the guild's cobalt and enamel.
+
+**Their gear** (`art/aster/gear.ts`), as it lies broken on Mycel: a coring drill that cuts a ring with a crown of eight teeth; a cell that's a hexagonal glass prism with charge glowing in it; a pack like a lashed clam shell; a helmet of faceted glass on a ribbed collar with their star for a crest; a jetpack that's a fan of four petal nozzles round a glass heart; a suit of overlapping shell bands over woven cord. Studying one gives a Mk 2 blueprint, but the printer builds it your way, in your shape, borrowing their ideas (see "The prospector's look", Mk 2). Every species met later builds in its own way like this, and its technology can be studied the same way.
 
 ## Inside the lander and the pause screen
 
@@ -559,16 +575,36 @@ Ink and colour keep the three-ink rule from InkFish and InkCrab:
 
 ## The prospector's look
 
-A small alien in a suit, helmet and pack with a drill in hand, in blue like every "you" in the catalog. You can see them inside the helmet, with eyes that look where the drill points. They are no human: a broad, smooth head in cool mint, darker markings dappled over the crown (the ones the printer gets wrong), big dark eyes set forward, no nose, a small mouth, and lilac frills sweeping back from behind the jaw. The work suit is cobalt cloth with ochre leather (boots, gloves, belt, pouch) and an ochre fuel can and drill, so the figure reads at a glance against the grey rock. The art is in `games/inkmine/src/art/prospector/`, one file per part, and every look in every pose is on the dev page `/specimens.html`.
+A small alien in a suit, helmet and pack with a drill in hand, in blue like every "you" in the catalog. You can see them inside the helmet, with eyes that look where the drill points. They are no human: a broad, smooth head in cool mint, darker markings dappled over the crown (the ones the printer gets wrong), big dark eyes set forward, no nose, a small mouth, and lilac frills sweeping back from behind the jaw. The work suit is cobalt cloth with ochre leather (boots, gloves, belt, pouch) and an ochre fuel can and drill, so the figure reads at a glance against the grey rock. The art is in `games/inkmine/src/art/prospector/`, one file per part, and every mark of every piece, and the prospector at several loadouts and in every pose, is on the dev page `/specimens.html`.
 
-**The character changes with the gear.** Each piece shows on the character in three looks, by its mark, and each changes on its own (`logic/gear.ts`):
+**The character changes with the gear.** Every mark of every piece looks its own, on the character, in its lander slot and as a broken part in the world (`logic/gear.ts`, `art/prospector/`). The shape comes in three families, so progress shows in big steps:
 
 | Piece | Mk 0–3: prospector | Mk 4–7: guild contractor | Mk 8–10: deep-space |
 | --- | --- | --- | --- |
-| Suit | Patched work suit: stitched patches, a zip and chest pocket, a tool pouch, lace-up boots | A chest plate with the guild's stamp (a pick over a star), a domed shoulder plate, knee pads, steel toecaps | Overlapping armour plates, jointed knees, a forearm guard, sealed boots |
-| Helmet | Glass fishbowl on a bolted collar, a clip-on lamp, a stub antenna (cracked until the radio repair) | The fishbowl in a protective cage, twin lamps, a radio with a whip antenna and an ear-piece | A hard shell with a wide tinted visor, a lamp strip and a sensor fin |
-| Jetpack | A battery cell and a dented fuel can strapped together, one nozzle | A framed pack with twin tanks, two nozzles, a pressure dial and a fin | A sealed pod with vents and a gimballed nozzle |
-| Drill | A hand drill: pistol grip, vented housing, fluted cone bit, power cable from the cell | A heavy drill: finned housing, fore-grip, coolant canister, carbide teeth | A plasma lance: heat-sink rings and three prongs round an emitter; no cable |
+| Suit | Work suit: cloth, a belt, boots | A chest plate with the guild's stamp (a pick over a star), a domed shoulder plate, knee pads, capped toes | Overlapping armour plates, jointed knees, a forearm guard, sealed boots |
+| Helmet | Glass fishbowl on a bolted collar, a lamp on the front (cracked until the radio repair) | The fishbowl in a protective cage, twin lamps, a radio with a whip antenna and an ear-piece | A hard shell with a wide tinted visor, a lamp strip and a sensor fin |
+| Jetpack | A fuel can strapped on, one nozzle | A framed pack with twin tanks, two nozzles, a pressure dial and a fin | A sealed pod with vents and a gimballed nozzle |
+| Cell | A tall battery with a charge window, on the back in front of the jetpack | A riveted box with a round charge gauge | A slim cartridge with a ring of light |
+| Pack | A bag at the hip, a size up each mark | A stiff case on a frame | A hard sample canister with a lit band |
+| Drill | A hand drill: pistol grip, housing, fluted cone bit, power cable from the cell | A heavy drill: finned housing, fore-grip, coolant canister, carbide teeth | A plasma lance: heat-sink rings and three prongs round an emitter; no cable |
+
+Within a family, each mark is printed from its planet's materials (`art/prospector/marks.ts`) and has its own touches:
+
+| Mark | Materials | Its own touches |
+| --- | --- | --- |
+| Mk 0, starter | Cobalt cloth, ochre leather, steel | Stitched patches, a zip and chest pocket, laced boots, a dented ochre can and drill, a small leather pouch, gamboge charge |
+| Mk 1, Graphite | Carbon black and charcoal, copper, silver, quartz | Charcoal twill quilted across with copper piping, copper cuffs and toecaps; a copper hoop round a clear quartz bowl, a copper-wound antenna; copper terminals on a black cell, copper-orange charge; a black can with silver bands; a black drill with its copper windings showing and diamond grit on the bit; a carbon satchel on a copper frame |
+| Mk 2, Mycel | Calcite wool, amber, malachite, pyrite brass, lignite | Our shape rebuilt with the Aster's ideas (their gear is what the suit learnt it from): ribbed shell-like plates, dark cord lashings instead of rivets, small hexagonal windows glowing teal, the eight-pointed star. A cream padded suit bound in amber, a ribbed malachite chest plate; an amber filter shade over the bowl pinned on a brass star, a malachite filter canister; a brass cell under a ribbed cap, its charge in three hexagonal windows; a ribbed lignite bottle with a brass dome; a malachite drill with a brass handle and an iron bit; a lignite bag bound in amber |
+| Mk 3, Brine | Teal oilskin, brine pearl | Pearl buttons, a rope belt, waders, a snorkel up the helmet, a water jet on the drill, a net bag |
+| Mk 4, Talus | Hematite red-brown, desert khaki | A dust scarf, a dust brim on the cage, rust |
+| Mk 5, Prism | Clear and violet quartz | Facets, crystals set in the plate, the dial and the cage's crest, crystal lenses |
+| Mk 6, Ember | Obsidian, diamond | Seams and fins glowing orange, a diamond stud, a heat shield over the cage |
+| Mk 7, Pumice | Pale porous stone, helium-3 | Pores, rose helium-3 bands and a bottle on the helmet |
+| Mk 8, Rime | Ice blue | Frost along the edges, fire-ice light |
+| Mk 9, Umbra | Deep navy | Willemite seams glowing green |
+| Mk 10, Cardia | Heartstone gold, deep red | A heartstone on the chest, the brow, the lance and the pod |
+
+A broken part in the world is drawn at its blueprint's mark. Mycel's broken parts are the Aster's own equipment, not ours (`art/aster/gear.ts`).
 
 Poses: idle, walk, drilling sideways, down and up, on a ladder, flying, and talking (a hand raised, the helmet tilted).
 
@@ -616,7 +652,7 @@ As in the other games, entries unlock the first time you meet them:
 - **Minerals:** every real ore and gem, with real facts (hardness, where it forms, what it's used for).
 - **Xenobiology notebook:** the invented creatures, drawn as specimen sketches. Proposed (Oct 17, 2026): each entry is invented but grounded in real science, with a scan line ("Carbon · water · chemical energy"), its convergent shape and its air, and a note in the prospector's voice that never mentions Earth (see [inkmine-xenobiology.md](inkmine-xenobiology.md)).
 - **Lexicon:** every Lamplighter word you know, its knot glyph beside your handwriting.
-- **Logs:** the Aster crew's logs and time capsules, in the order you found them.
+- **Logs:** the old crew's logs and time capsules, in the order you found them.
 
 ## Content and monetization
 
@@ -630,7 +666,7 @@ Same model as InkFish and InkCrab:
 
 Each planet is one file (`planet1.ts` … `planet10.ts`) holding one world definition, carved by a builder with a fixed seed, as InkCrab's beaches are.
 
-- **A world definition** gives its size, seed, surface profile and the lander's spot; where the strata change; its regions; and the hand-placed parts: caves, vaults, the outpost, the Aster base, old charges, texts, broken parts (each teaching a design), job items, the giant's arena; and how much of each ore and creature to scatter per region.
+- **A world definition** gives its size, seed, surface profile and the lander's spot; where the strata change; its regions; and the hand-placed parts: caves, vaults, the outpost, the old crew's base, old charges, texts, broken parts (each teaching a design), job items, the giant's arena; and how much of each ore and creature to scatter per region.
 - **The builder** fills the rest, so the ground meets itself at the wrap's join.
 - **A world test** checks: every repair and job item is reachable with the gear expected by then; enough of every material exists (three times what the story needs); enough words exist for each level; nothing needed sits in deep rock or bedrock.
 - **The save** holds what changed, not the world (below).
@@ -710,9 +746,9 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 1. **One world:** ~~merge levels 1–5 into a single wrapping Graphite world; the open-world save~~ (done); the survey sheet centred on the lander.
 2. ~~**The life system:** shield, hearts, life support, feeding gauges from the bag, the self-charging jetpack, dying, the dropped bag, recall~~ (done Oct 16, 2026; water ice added to Graphite, world version 2). The pause card was the start of the pause screen (Resume and Recall); since Oct 17, 2026 the inventory is the pause screen, with Recall on it.
 3. ~~**The repair list** in place of missions; the wrecked lander and its repair stages; inside the lander in place of the result screen and chart~~ (done Oct 16, 2026, before step 2). Not yet: lift-off at the end (it waits for the Lamplighters and the core).
-4. **The Lamplighters:** ~~the call, the receiver, the outpost, the first job by picture, the core for silver~~ (done Oct 17, 2026); still to come: speech with word-by-word translation, the lexicon, texts and Aster logs.
+4. **The Lamplighters:** ~~the call, the receiver, the outpost, the first job by picture, the core for silver~~ (done Oct 17, 2026); still to come: speech with word-by-word translation, the lexicon, texts and the old crew's logs.
 5. **Creatures** (grit crabs, lead worms) and fighting with the drill.
-6. **The rest of Graphite:** the Aster base, the grey band, the deep, the Grinder; the drive core and lift-off; the opening and the ending.
+6. **The rest of Graphite:** the old crew's base, the grey band, the deep, the Grinder; the drive core and lift-off; the opening and the ending.
 7. Coach hints, sound, touch controls, account sync; add InkMine to the catalog with chapter 1 free. Sound and touch built Oct 17, 2026: calm synthesized ambience after No Man's Sky (a drone that darkens with depth, a warmer hum aboard, a sparse starry one on the map) and soft event sounds, all Web Audio with no files (`src/audio/`); M or the ♪ button mutes, saved.
 8. ~~The first star system and its map~~ (done Oct 17, 2026: fuel, lift-off, docking, the starship's repairs and hold, first light, the first trip, the end of the demo). Mycel's first step built the same day (see "Mycel"); next, the game clock, moving orbits and trip costs by launch window; then planets 2–10, one at a time, each with its people, and the galaxy map past this system.
 
@@ -736,7 +772,7 @@ Settled with @Hayk on Oct 15, 2026 (replacing the 100 levels, missions, contract
 - **The wild wormhole and the way home** (Oct 17, 2026): the wormhole was natural, not steadied by your people, so it wrecked the ship and took part of your memory. You're in a part of the universe unknown to your species and understand none of its languages. The goal is to find home in the sky and gather enough to travel there.
 - **Free version = Graphite only;** other planets are paid.
 - **No linear missions:** the suit asks for what's needed; jobs are handed over in person, not from a board.
-- **One race on Graphite**, the Lamplighters, whose language you learn through the radio: levels of understanding, from talking and from found texts (their inscriptions, Aster logs, time capsules).
+- **One race on Graphite**, the Lamplighters, whose language you learn through the radio: levels of understanding, from talking and from found texts (their inscriptions, the old crew's logs, time capsules).
 - **Tunnels stay dug;** you go deeper over time. The lift is the shortcut home.
 - **Life system from No Man's Sky;** dying reprints you at the lander, and the bag waits where you fell.
 - **Drill energy and life support are refilled from raw materials** you carry.

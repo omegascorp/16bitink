@@ -1,5 +1,6 @@
 import { ORES } from '../../logic/ore';
-import { canRefillStore, refillStore, storeCapacity, storeOre, storeRefillCost, STORES, type StoreKind } from '../../logic/stores';
+import { holdEntries } from '../../logic/hold';
+import { canRefillStore, refillStore, storeCapacity, storeOre, storeOres, storeRefill, storeRefillCost, STORES, type StoreKind } from '../../logic/stores';
 import { AIR } from '../../logic/suit';
 import { Gauge } from '../kit/gauge';
 import { plaque } from '../kit/plaque';
@@ -33,7 +34,7 @@ export function storesPanel(page: ShipPage, x: number, y: number, w: number): nu
     new Gauge(scene, x + PAD, ry + 28, barW, BAR_H, GAUGE[k]).set(level / cap, AIR.low);
     const why = canRefillStore(p, k);
     // The ore's name short enough for a button: "ice" for water ice.
-    const short = ORES[storeOre(p, k)].name.split(' ').at(-1);
+    const short = ORES[holdEntries(storeRefill(p, k))[0]?.[0] ?? storeOre(p, k)].name.split(' ').at(-1);
     const text = page.remote ? 'At the lander' : why === 'ok' ? `Refill · ${storeRefillCost(p, k)} ${short}` : why === 'full' ? 'Full' : `No ${short}`;
     plaque(scene, x + w - PAD - FUEL_BTN.w / 2, ry + 24, text, () => {
       const r = refillStore(p, k);
@@ -41,7 +42,7 @@ export function storesPanel(page: ShipPage, x: number, y: number, w: number): nu
     }, { width: FUEL_BTN.w, height: FUEL_BTN.h, size: 15, kind: !page.remote && why === 'ok' ? 'secondary' : 'off' });
     ry += ROW_H;
   }
-  const note = `They top your suit up at the lander. One ${ORES[storeOre(p, 'air')].name} gives the tank ${STORES.air.per}, one ${ORES[storeOre(p, 'power')].name} the battery ${STORES.power.per}; its panels also charge it slowly. Supply tanks make both bigger.`;
+  const note = `They top your suit up at the lander. One ${storeOres(p, 'air').map((o) => ORES[o].name).join(' or ')} gives the tank ${STORES.air.per}, one ${storeOres(p, 'power').map((o) => ORES[o].name).join(' or ')} the battery ${STORES.power.per}; its panels also charge it slowly. Supply tanks make both bigger.`;
   const t = aside(scene, x + PAD, ry, note, 15, inner, SEPIA);
   ry += t.height + 10;
   const h = ry - y;

@@ -37,12 +37,12 @@ describe.each(worlds)('the world of %s', (_id, planet) => {
   const def = planet.world;
 
   it('has fuel for life support and the cell within the starter drill\'s reach, and near the lander', () => {
-    for (const ore of [fuelsAt(def.id).air, fuelsAt(def.id).cell]) {
+    for (const ore of [fuelsAt(def.id).air[0]!, fuelsAt(def.id).cell[0]!]) {
       expect(reachableOre(planet, 0, ore)).toBeGreaterThan(40);
     }
     // Ice within 30 columns of the crash, for the first trips.
     const t = buildGround(def);
-    const near = [...t.content.keys()].filter((i) => t.content[i] === ORES[fuelsAt(def.id).air].id && Math.abs((i % t.width) - def.site.landerCol) < 30);
+    const near = [...t.content.keys()].filter((i) => t.content[i] === ORES[fuelsAt(def.id).air[0]!].id && Math.abs((i % t.width) - def.site.landerCol) < 30);
     expect(near.length).toBeGreaterThan(10);
   });
 
@@ -120,7 +120,7 @@ describe('Mycel', () => {
   const ground = buildGround(mycel.world);
 
   it("Mycel's drill and twice its materials are within reach of Graphite's, a step behind: through the peat and the caves", () => {
-    const bp = item('cap-cave-drill');
+    const bp = item('furrow-drill');
     expect(bp.blueprint).toBe('drill-2');
     // Graphite's drill pays double for the peat here: two of its cells at most.
     expect(reach(mycel, 1).at(bp.at[0], bp.at[1])).toBeLessThanOrEqual((STARTER.energy + 40) * 2);
@@ -129,7 +129,18 @@ describe('Mycel', () => {
 
   it("its stone won't break for Graphite's drill: the Helmet, the Jetpack and the Suit wait for Mycel's", () => {
     const { at } = reach(mycel, 1);
-    for (const id of ['limestone-vault-helmet', 'amber-vault-jetpack', 'grotto-suit']) expect(at(item(id).at[0], item(id).at[1]), id).toBe(Infinity);
+    for (const id of ['sinkhole-helmet', 'amber-vault-jetpack', 'grotto-suit']) expect(at(item(id).at[0], item(id).at[1]), id).toBe(Infinity);
+  });
+
+  it("keeps the Aster crew's gear round their wreck, not all over the moon", () => {
+    const crash = mycel.world.crash!;
+    const width = mycel.world.site.width;
+    const gap = (x: number) => Math.min(Math.abs(x - crash), width - Math.abs(x - crash));
+    for (const it of mycel.world.items) expect(gap(it.at[0]), it.id).toBeLessThanOrEqual(25);
+    // Far enough from the lander that the receiver has to be followed, near enough that it hears the call (signalBars).
+    const fromLander = gap(mycel.world.site.landerCol);
+    expect(fromLander).toBeGreaterThan(60);
+    expect(fromLander).toBeLessThanOrEqual(100);
   });
 
   it('has a cap forest to spring off and spore pockets in the peat', () => {

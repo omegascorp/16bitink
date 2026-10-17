@@ -6,10 +6,12 @@
  * terrain's content layer, so never renumber one.
  *
  * Graphite's six come first; Mycel's (chapter 2) follow: malachite, pyrite,
- * calcite, amber, lignite and water. They ship with the game even though
- * Mycel itself comes from the server, as saves keep only ores they know.
+ * calcite, amber, lignite and water, then carbon, which never lies in the
+ * rock: it comes off Mycel's cap mushrooms (with their water) when they're
+ * drilled. They ship with the game even though Mycel itself comes from the
+ * server, as saves keep only ores they know.
  */
-export type OreGlyph = 'nugget' | 'cube' | 'flake' | 'prism' | 'wire' | 'rime' | 'botryoid' | 'rhomb' | 'resin' | 'chunk' | 'bead';
+export type OreGlyph = 'nugget' | 'cube' | 'flake' | 'prism' | 'wire' | 'rime' | 'botryoid' | 'rhomb' | 'resin' | 'chunk' | 'bead' | 'char';
 
 export interface OreKind {
   readonly id: number;
@@ -42,6 +44,8 @@ export const ORES = {
   lignite: { id: 11, key: 'lignite', name: 'lignite', value: 3, color: '#5b4733', mark: '#b48e64', glyph: 'chunk', about: 'Brown coal: dead growth pressed underground until it turned half to carbon, soft and still woody in its grain. The suit\'s cell burns it in a little carbon fuel cell to charge, so here it feeds the drill.' },
   /** Water: on Mycel it lies liquid, and life support and the tanks are split from it as they are from ice. */
   water: { id: 12, key: 'water', name: 'water', value: 2, color: '#8cc6e6', mark: '#a6e0f7', glyph: 'bead', about: 'Liquid water, pooled in sealed pockets in the soil and seeping from cave walls. Split, it gives air to breathe and fuel to fly, as ice does on a dead moon.' },
+  /** Carbon: a cap's flesh, dried and charred by the drill's heat as it comes off: no vein of it lies in the rock. */
+  carbon: { id: 13, key: 'carbon', name: 'carbon', value: 2, color: '#34303b', mark: '#b7a6cf', glyph: 'char', about: "A cap's flesh, charred by the drill's heat as it comes off: porous, light and almost pure carbon, the gills still showing in it. A cap is nine parts water; the rest is chitin, which chars to carbon, and a carbon fuel cell burns that as it burns coal. So every cap drilled gives carbon for the cell and water for the air." },
 } as const satisfies Record<string, OreKind>;
 
 export type OreKey = keyof typeof ORES;

@@ -13,7 +13,7 @@ import { ringedPlanet, sphere } from './skyArt';
  * through it, the ringed giant Sepia hangs huge and faded, Graphite (grey)
  * and Cardia (red) are faint beside it, and spores drift as specks of light.
  * Along the horizon, three ranges of fungal forest in aerial perspective:
- * giant caps on stalks and tall bare trunks, the far ones lost in the haze,
+ * giant caps (swollen bladders on stalks) and tall bare trunks, the far ones lost in the haze,
  * the near one violet and firmly inked. Both layers tile side to side.
  */
 
@@ -174,19 +174,21 @@ function shapeOf(g: Growth, base: number, ox: number): Pt[] {
   return body;
 }
 
-/** A cap's dome, drooping at its rim, over the top of its stalk. */
+/** A giant cap's bladder on the top of its stalk, as the near ones are drawn: a round belly hanging low, drawn up to a narrow, blunt crown. */
 function capOf(g: Growth, base: number, ox: number): { dome: Pt[]; rim: Pt[] } {
-  const c = pt(g.x + ox + g.lean, base - g.h);
-  const R = g.w / 2;
+  const R = g.w * 0.36;
+  const c = pt(g.x + ox + g.lean, base - g.h - R * 0.3);
   const dome: Pt[] = [];
   for (let i = 0; i <= 16; i++) {
     const a = Math.PI + (i / 16) * Math.PI;
-    dome.push(pt(c.x + Math.cos(a) * R, c.y + Math.sin(a) * R * 0.62));
+    const u = -Math.sin(a);
+    dome.push(pt(c.x + Math.cos(a) * R * (1 - 0.5 * u ** 2.2), c.y - u * R * 1.35));
   }
+  // The belly, from the right round under to the left.
   const rim: Pt[] = [];
-  for (let i = 0; i <= 16; i++) {
-    const t = i / 16;
-    rim.push(pt(c.x + R - t * R * 2, c.y + R * 0.1 + Math.sin(t * Math.PI) * R * 0.14));
+  for (let i = 1; i < 16; i++) {
+    const a = (i / 16) * Math.PI;
+    rim.push(pt(c.x + Math.cos(a) * R, c.y + Math.sin(a) * R * 0.7));
   }
   return { dome, rim };
 }
@@ -219,7 +221,7 @@ function paintRange(d: Draw, rng: Rng, w: number, h: number, r: Range): void {
       const { dome, rim } = capOf(g, r.base, ox);
       const cap = [...dome, ...rim];
       fill(ctx, cap, mix(r.color, '#8a5d93', 0.35 * r.light));
-      // The dome lit from the upper left, its underside (the gills) in shadow.
+      // The bladder lit from the upper left, its frill in shadow.
       fill(ctx, dome.slice(0, 9).concat([pt(dome[8]!.x, dome[8]!.y + 6)]), lit, 0.3);
       fill(ctx, [...rim, ...rim.map((p) => pt(p.x, p.y - g.w * 0.05)).reverse()], shade, 0.6);
     });
@@ -239,17 +241,20 @@ function paintRange(d: Draw, rng: Rng, w: number, h: number, r: Range): void {
     if (g.kind === 'cap') {
       const { dome, rim } = capOf(g, r.base, ox);
       d.pen.stroke([...dome, ...rim, dome[0]!], 1.05, d.ink, r.ink, false);
-      // Gills under the rim, and spots on the dome.
-      for (let k = 2; k < rim.length - 2; k += 2) d.pen.hair([rim[k]!, pt(rim[k]!.x + (g.x + ox + g.lean - rim[k]!.x) * 0.25, rim[k]!.y - g.w * 0.05)], 0.4, d.ink, r.ink * 0.5);
-      for (let k = 0; k < 4; k++) {
-        const p = dome[3 + k * 3]!;
-        ctx.globalAlpha = 0.45 * r.light;
-        ctx.fillStyle = '#f6eedd';
+      // Threads hanging from the frill, each tipped with a bead of light, and horns budding from the crown.
+      for (let k = 1; k < rim.length - 1; k += 3) {
+        const p = rim[k]!;
+        const end = pt(p.x + g.w * 0.02, p.y + g.w * (0.18 + ((k * 7) % 5) * 0.05));
+        d.pen.hair([p, end], 0.45, d.ink, r.ink * 0.6);
+        ctx.globalAlpha = 0.7 * r.light;
+        ctx.fillStyle = '#c9fbe9';
         ctx.beginPath();
-        ctx.ellipse(p.x + (g.x + ox + g.lean - p.x) * 0.3, p.y + g.w * 0.08, g.w * 0.035, g.w * 0.025, 0, 0, Math.PI * 2);
+        ctx.arc(end.x, end.y, Math.max(0.8, g.w * 0.025), 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
       }
+      const crown = dome[8]!;
+      for (const s of [-1, 0, 1]) d.pen.stroke([pt(crown.x + s * g.w * 0.12, crown.y + Math.abs(s) * g.w * 0.05), pt(crown.x + s * g.w * 0.17, crown.y - g.w * (s === 0 ? 0.16 : 0.1))], 1, d.ink, r.ink * 0.8, false);
     }
   });
   // The ground line along the foot of the near range.

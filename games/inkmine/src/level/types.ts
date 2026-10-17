@@ -25,6 +25,8 @@ export interface WorldDef {
   readonly items: readonly ItemDef[];
   /** The column the local people's outpost stands at, on the surface (none on a world without them). */
   readonly outpost?: number;
+  /** The column a lost lander lies wrecked at, on the surface, its distress beacon still calling (Mycel's Aster lander). */
+  readonly crash?: number;
 }
 
 /** The card shown the first time you land on a world: its name, a line under it, a few paragraphs and the button. */

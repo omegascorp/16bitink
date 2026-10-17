@@ -1,11 +1,13 @@
-import type { Look } from '../logic/gear';
+import { lookOf } from '../logic/gear';
 import type { Tech } from '../logic/tech';
 import { capsule, edge, oval, pt, type Draw } from './kit';
 import { bell, crumpledBell, dish, gash, hullPlate, weldPlate } from './landerParts';
 import { dab, gleam, glow, mix, paint, SHADOW } from './paint';
+import { cell } from './prospector/cell';
 import { drill } from './prospector/drill';
 import { HEAD, helmet } from './prospector/helmet';
-import { jetpack } from './prospector/jetpack';
+import { jetpack, nozzles } from './prospector/jetpack';
+import { pack } from './prospector/pack';
 import { part, rivets, roundRect, seam, sheen, WASH } from './prospector/parts';
 import { arm, leg, torso } from './prospector/suit';
 import { drawStarshipSystem } from './starship/systems';
@@ -13,15 +15,15 @@ import { drawStarshipSystem } from './starship/systems';
 /**
  * The pictures in the lander's technology slots, No Man's Sky style: each
  * slot shows the thing itself. Gear is drawn with the prospector's own
- * parts in its look, so a slot matches what the character wears; the
+ * parts at its mark, so a slot matches what the character wears; the
  * lander's systems are drawn with the lander's parts, broken until mended;
  * the starship's are drawn like the starship (starship/systems.ts).
  * Each fits a frame of TECH_FRAME units, origin at the centre.
  */
 export const TECH_FRAME = 40;
 
-/** What a picture depends on beyond its slot: a gear piece's look, a system broken or mended. */
-export type TechVariant = Look | 'broken' | 'mended';
+/** What a picture depends on beyond its slot: a gear piece's mark, a system broken or mended. */
+export type TechVariant = number | 'broken' | 'mended';
 
 const CHARGE = WASH.charge;
 const STEEL = '#b9c1cc';
@@ -38,46 +40,13 @@ function placed(d: Draw, dx: number, dy: number, s: number, fn: () => void): voi
   ctx.restore();
 }
 
-/** The energy cell: a squat battery with a charge window, more bars and a better case with each look. */
-function cell(d: Draw, look: Look): void {
-  const body = roundRect(-8, -12, 8, 13, 2.4);
-  part(d, body, look === 2 ? WASH.gunmetal : look === 1 ? WASH.enamel : WASH.cell, { shadow: 0.55, line: 0.8, gloss: true });
-  part(d, roundRect(-3.4, -15, 3.4, -12, 0.8), WASH.darkMetal, { shadow: 0.4, line: 0.6, hatch: 0 });
-  const win = roundRect(-5, -8.6, 5, 8.4, 1);
-  part(d, win, '#2c3352', { shadow: 0, line: 0.5, hatch: 0 });
-  glow(d.pen.ctx, pt(0, 0), 9, CHARGE, 0.3);
-  const bars = 3 + look;
-  const step = 15.6 / bars;
-  for (let k = 0; k < bars; k++) {
-    const y = 7.4 - (k + 1) * step + 0.7;
-    part(d, roundRect(-3.8, y, 3.8, y + step - 1.4, 0.4), CHARGE, { shadow: 0, line: 0, hatch: 0, alpha: 1 });
-  }
-  if (look > 0) rivets(d, [pt(-6.2, -10.2), pt(6.2, -10.2), pt(-6.2, 11.2), pt(6.2, 11.2)], 0.5);
-  sheen(d, [pt(-6.6, -10), pt(-6.6, 9)], 0.8);
-}
-
-/** The ore pack: a satchel with a flap and buckle; bigger and stiffer with each look. */
-function pack(d: Draw, look: Look): void {
-  const w = 10 + look * 1.4;
-  const bag = [pt(-w, -6), pt(w, -6), pt(w + 1.4, 11), pt(-w - 1.4, 11)];
-  part(d, bag, look === 2 ? WASH.gunmetal : look === 1 ? WASH.contractor : WASH.leather, { shadow: 0.6, line: 0.8 });
-  d.pen.stroke([pt(-w + 2, -6), pt(-w + 4, -13), pt(w - 4, -13), pt(w - 2, -6)], 1.2, d.ink, 0.9, false);
-  const flap = [pt(-w - 0.6, -6.6), pt(w + 0.6, -6.6), pt(w, 2), pt(0, 4), pt(-w, 2)];
-  part(d, flap, mix(look === 2 ? WASH.gunmetal : look === 1 ? WASH.contractor : WASH.leather, SHADOW, 0.12), { shadow: 0.35, line: 0.7 });
-  part(d, roundRect(-2, 1.4, 2, 5.4, 0.6), WASH.metal, { shadow: 0.3, line: 0.5, gloss: true, hatch: 0 });
-  seam(d, [pt(-w + 1, 8.6), pt(w - 1, 8.6)], 0.5);
-  // A lump of ore peeking out from under the flap, in highlighter.
-  paint(d, oval(w - 3, -7.4, 2.4, 1.6, 10), '#ffa94d', { alpha: 1, shadow: 0.4, hatch: 0, line: 0.5 });
-  sheen(d, [pt(-w + 1.4, -4.6), pt(-w + 1, 0)], 0.7);
-}
-
 /** The work suit off its wearer: torso, arms hanging, legs. */
-function suit(d: Draw, look: Look): void {
-  leg(d, look, pt(-3, 6.6), pt(-3.6, 13), false);
-  leg(d, look, pt(2.4, 6.6), pt(3, 13), true);
-  arm(d, look, pt(-5.6, -1.6), pt(-8.4, 7.4));
-  torso(d, look);
-  arm(d, look, pt(4.4, -1.6), pt(7.8, 7.4));
+function suit(d: Draw, mk: number): void {
+  leg(d, mk, pt(-3, 6.6), pt(-3.6, 13), false);
+  leg(d, mk, pt(2.4, 6.6), pt(3, 13), true);
+  arm(d, mk, pt(-5.6, -1.6), pt(-8.4, 7.4));
+  torso(d, mk);
+  arm(d, mk, pt(4.4, -1.6), pt(7.8, 7.4));
 }
 
 /** The printer: a boxy fabricator with its head over a half-printed part; cracked and dark when broken. */
@@ -190,13 +159,20 @@ function refit(d: Draw): void {
   sheen(d, [pt(-12, -6), pt(-9, 6)], 0.8);
 }
 
-function gear(d: Draw, t: Extract<Tech, { kind: 'gear' }>, look: Look): void {
-  if (t.piece === 'drill') placed(d, -3.4, 2, 1.75, () => drill(d, look, pt(0, 0), -0.6, 0, false));
-  else if (t.piece === 'cell') cell(d, look);
-  else if (t.piece === 'pack') pack(d, look);
-  else if (t.piece === 'suit') placed(d, 0, -4.4, 1.3, () => suit(d, look));
-  else if (t.piece === 'helmet') placed(d, -HEAD.x + 0.6, -HEAD.y + 1.2, 1.3, () => helmet(d, look, pt(0.6, 0.2)));
-  else placed(d, 10.6, -2.6, 1.45, () => jetpack(d, look));
+function gear(d: Draw, t: Extract<Tech, { kind: 'gear' }>, mk: number): void {
+  if (t.piece === 'drill') placed(d, -3.4, 2, 1.75, () => drill(d, mk, pt(0, 0), -0.6, 0, false));
+  else if (t.piece === 'cell') placed(d, 9.2, -0.4, 1.9, () => cell(d, mk));
+  else if (t.piece === 'pack') placed(d, 5.9, -8.6, 3.5, () => pack(d, mk));
+  else if (t.piece === 'suit') placed(d, 0, -4.4, 1.3, () => suit(d, mk));
+  else if (t.piece === 'helmet') placed(d, -HEAD.x + 0.6, -HEAD.y + 1.2, 1.3, () => helmet(d, mk, pt(0.6, 0.2)));
+  else {
+    // A work can stands alone (its cell is a slot of its own), so it's drawn bigger and centred.
+    const [dx, dy, s] = lookOf(mk) === 0 ? [11.8, -1.9, 1.7] : [10.6, -2.6, 1.45];
+    placed(d, dx, dy, s, () => {
+      jetpack(d, mk);
+      nozzles(d, mk);
+    });
+  }
 }
 
 function system(d: Draw, t: Extract<Tech, { kind: 'repair' }>, broken: boolean): void {

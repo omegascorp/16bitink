@@ -1,18 +1,20 @@
-import { shipTexture, techTexture, TEX } from '../../art/textures';
+import { bakeSystem, shipTexture, techTexture, TEX } from '../../art/textures';
 import { BROKEN_SHIP, shipLookOf } from '../../art/starship';
 import { getSound, setProfile } from '../../host';
 import { liftOff } from '../../logic/fuel';
 import { wreckOf } from '../../logic/repairs';
 import { landerLookOf } from '../../logic/ship';
 import { mapOpen } from '../../logic/starship';
-import { callDue, hasBeat, withBeat } from '../../logic/story';
+import { callDue, distressDue, hasBeat, withBeat } from '../../logic/story';
 import { storyCard } from '../kit/storyCard';
 import type { ShipPage } from './panel';
 
 /**
  * The story's moments aboard: the call that comes in the moment the radio
  * works (spec, "Story: chapter 1"), docking with the starship for the
- * first time, and its telescope's first light, which opens the star map.
+ * first time, the Aster's distress call once its power is back (what
+ * sends you to Mycel), and its telescope's first light, which opens the
+ * star map.
  * Each shows once; closing it saves that it was seen. Returns whether one
  * is up. Lift-off has its own card, from the Fuel panel (liftOffCard).
  */
@@ -34,7 +36,7 @@ export function shipStoryCard(page: ShipPage): boolean {
       title: 'In orbit over Mycel',
       subtitle: 'the green moon',
       pictures: [{ key: shipTexture(scene, shipLookOf(p), 'small'), h: 70 }, { key: TEX.world('mycel'), h: 70 }],
-      text: "Below, a haze the colour of moss hides the ground. Through gaps in it: white threads mapping the hills, caps the size of hills, and something metal glinting in a swamp. The suit's sensors light up at once: life, everywhere. Ice and graphite won't be found down there: you'll have to work with what Mycel has.",
+      text: "Below, a haze the colour of moss hides the ground. Through gaps in it: white threads mapping the hills, caps the size of hills, and somewhere under it all, the Aster beacon's pulses, loud and clear up here. Down there the receiver can follow it. The suit's sensors light up at once: life, everywhere. Ice and graphite won't be found down there: you'll have to work with what Mycel has.",
       button: 'Take it in',
     }, () => page.commit(withBeat(page.profile, 'mycelOrbit'), { tab: 'starship' }));
     return true;
@@ -47,6 +49,18 @@ export function shipStoryCard(page: ShipPage): boolean {
       text: "It's cold and dark. The wormhole burnt out its power lines, cracked its telescope's mirror, split its fuel tank and killed its engine, and its jump drive is burnt black. Without the telescope you can't even see which star this is. Everything it needs to mend is down on the grey moon: copper, silver, quartz, graphite and ice, carried up in the lander a load at a time.",
       button: 'Get to work',
     }, () => page.commit(withBeat(page.profile, 'aboard'), { tab: 'starship' }));
+    return true;
+  }
+  if (distressDue(p)) {
+    bakeSystem(scene);
+    storyCard(scene, {
+      title: 'Distress call',
+      subtitle: "on the ship's radio, as the power comes back",
+      voice: { words: 10, seed: 41 },
+      pictures: [{ key: shipTexture(scene, shipLookOf(p), 'small'), h: 70 }, { key: TEX.world('mycel'), h: 70 }],
+      text: "The lights come up, and the ship's radio picks something out of the hiss: not a voice, not the guild's codes. A pattern of pulses, the same phrase over and over, and folded into it a picture the screen can draw: an eight-pointed star falling into a green circle. Nobody needs a language for that. Someone else fell through the wormhole, came down on the green moon, and is calling for help. The Aster, you call them, for the star. The dish finds the source, Mycel, beside this moon, and the pulses' own count says they've been calling for years.",
+      button: 'Mark where it comes from',
+    }, () => page.commit(withBeat(page.profile, 'distress'), { tab: 'starship', news: 'Distress call recorded' }));
     return true;
   }
   if (p.docked && mapOpen(p) && !hasBeat(p, 'firstLight')) {

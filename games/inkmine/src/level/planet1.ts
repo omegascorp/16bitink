@@ -10,7 +10,7 @@ import type { PlanetDef } from './types';
  * Regions, going east from the lander (the hand-placed parts came from the
  * first five landing sites, before the world was made one):
  *
- * Each "(the X)" below is a broken X of the Aster crew's, to study for its
+ * Each "(the X)" below is a broken X of an earlier guild crew's, to study for its
  * design and take apart for its materials.
  *
  * - The crash site, round the lander: copper-rich soil, a cave, and a vault
@@ -42,8 +42,8 @@ export const PLANET_1: PlanetDef = {
   signature: 'graphite',
   world: {
     id: 'graphite',
-    // 2: water ice added (it moved the random firedamp a little). 3: the outpost's ground flattened.
-    version: 3,
+    // 2: water ice added (it moved the random firedamp a little). 3: the outpost's ground flattened. 4: more ice and graphite for the gauges (added last, so only the firedamp moved).
+    version: 4,
     site: {
       // 256 columns round: a whole number of ground chunks (16) and hatch tiles (4), so both repeat cleanly at the join.
       width: 256, height: 160, wrap: true, seed: 1001, surface: 12, landerCol: 64, flats: [OUTPOST.col, OUTPOST.col + OUTPOST.domes],
@@ -62,6 +62,11 @@ export const PLANET_1: PlanetDef = {
         { ore: 'ice', from: 2, to: 18, veins: 34, size: [2, 4] },
         { ore: 'ice', from: 1, to: 12, veins: 14, size: [3, 5], cols: [40, 62] },
         { ore: 'ice', from: 25, to: 95, veins: 30, size: [2, 3] },
+        // More of both fuels, so feeding the gauges isn't a hunt: ice and graphite close under the soil all round, thickest near the lander.
+        { ore: 'ice', from: 2, to: 16, veins: 16, size: [2, 4] },
+        { ore: 'ice', from: 1, to: 10, veins: 6, size: [3, 4], cols: [44, 84] },
+        { ore: 'graphite', from: 3, to: 18, veins: 14, size: [2, 4] },
+        { ore: 'graphite', from: 3, to: 14, veins: 6, size: [2, 4], cols: [70, 100] },
       ],
       firedamp: 34,
       rooms: [
@@ -92,7 +97,7 @@ export const PLANET_1: PlanetDef = {
         { kind: 'charge', at: [214, 37] },
       ],
     },
-    // Broken parts of the Aster crew's gear, lost or left behind: touch one to study it (its design) and take it apart (half its materials).
+    // Broken parts of an earlier guild crew's gear, lost or left behind: touch one to study it (its design) and take it apart (half its materials).
     // The ids predate them (they were blueprints), and saves list them, so they stay. Two are repeats: nothing new to learn, only salvage.
     items: [
       { id: 'crash-vault-pack', kind: 'wreck', at: [101, 11], blueprint: 'pack-1', drill: 0 },

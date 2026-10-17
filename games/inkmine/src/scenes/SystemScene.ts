@@ -306,7 +306,7 @@ export class SystemScene extends Phaser.Scene {
       title: `Course set for ${to}`,
       subtitle: 'the end of chapter 1',
       pictures: [{ key: shipTexture(this, shipLookOf(getProfile(this)), 'small'), h: 70 }, { key: TEX.world(FIRST_COURSE.to), h: 70 }],
-      text: `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${to} grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.`,
+      text: `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${to} grows ahead, green under its haze: a world with air, and with life in it. Somewhere under that haze, the Aster beacon is still calling.`,
       button: 'On to Mycel',
     }, () => this.scene.restart({ selected: FIRST_COURSE.to, demoEnd: true } satisfies SystemData));
   }
@@ -319,7 +319,7 @@ export class SystemScene extends Phaser.Scene {
       title: 'The end of the demo',
       subtitle: 'thank you for playing',
       pictures: [{ key: TEX.world(FIRST_COURSE.to), h: 80 }],
-      text: `That's as far as the demo goes. ${worldById(FIRST_COURSE.to)!.name}, the green moon, is in the full game: a fungal jungle with its own ores, its own gear to print and the Aster crew's lost lander. The worlds after it, each with its own people, language and dangers, and the long search for the way home, are coming.`,
+      text: `That's as far as the demo goes. ${worldById(FIRST_COURSE.to)!.name}, the green moon, is in the full game: follow an alien distress call down into a fungal jungle, find the wreck of the Aster's lander, and learn from their strange gear to print your own from the moon's ores. The worlds after it, each with its own people, language and dangers, and the long search for the way home, are coming.`,
       button: `Unlock the full game${price}`,
       secondary: { label: 'Look at the map', press: () => {} },
     }, () => host.onBuy());
@@ -347,6 +347,9 @@ function statusOf(w: World, p: Profile): string {
   if (w.id === p.at) return p.docked ? 'Your ship circles it.' : 'You are here. Your ship circles it.';
   if (isWorldId(w.id) && p.visited.includes(w.id)) return 'You were here.';
   if (w.chapter === null) return 'No ground to land on. Its moons are what matter.';
-  if (isWorldId(w.id) && tripFuel(p.at, w.id) !== null) return demoOver(p) && w.id === FIRST_COURSE.to ? 'Course set: the full game goes there.' : "A sister moon: the nearest trip, within reach of the ship's first tank.";
+  if (isWorldId(w.id) && tripFuel(p.at, w.id) !== null) {
+    if (demoOver(p) && w.id === FIRST_COURSE.to) return 'Course set: the full game goes there.';
+    return w.id === FIRST_COURSE.to && hasBeat(p, 'distress') ? "The Aster's distress call comes from here. A sister moon, within reach of the ship's first tank." : "A sister moon: the nearest trip, within reach of the ship's first tank.";
+  }
   return 'Out of reach: it needs a bigger tank, and the chapters after.';
 }

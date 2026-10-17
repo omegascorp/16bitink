@@ -1,7 +1,6 @@
 import { getProfile } from '../../host';
-import { countIn } from '../../logic/inventory';
 import { ORES } from '../../logic/ore';
-import { AIR, FEED, hasRoomFor, type Gauge as GaugeName } from '../../logic/suit';
+import { AIR, FEED, fuelIn, hasRoomFor, type Gauge as GaugeName } from '../../logic/suit';
 import type { GameScene } from '../GameScene';
 import { Gauge } from '../kit/gauge';
 import { plaque } from '../kit/plaque';
@@ -34,11 +33,11 @@ export function lifePanel(page: ShipPage, x: number, y: number, w: number): numb
   for (const g of ['air', 'cell'] as const) {
     const level = g === 'air' ? suit.air : suit.energy;
     const max = g === 'air' ? suit.maxAir : suit.maxEnergy;
-    const ore = ORES[fuels[g]];
+    const ore = ORES[fuelIn(suit.bag, fuels, g) ?? fuels[g][0]!];
     label(scene, x + PAD, ry, NAMES[g], 17, INK_TEXT, '600');
     aside(scene, x + PAD + barW, ry + 2, `${Math.round(level)} / ${max}`, 15, barW / 2, SEPIA).setOrigin(1, 0);
     new Gauge(scene, x + PAD, ry + 28, barW, BAR_H, g).set(level / max, LOW);
-    const have = countIn(suit.bag, fuels[g]) > 0;
+    const have = fuelIn(suit.bag, fuels, g) !== null;
     const room = hasRoomFor(suit, g);
     const text = !room ? 'Full' : have ? `Feed · 1 ${ore.name}` : `No ${ore.name}`;
     plaque(scene, x + w - PAD - FUEL_BTN.w / 2, ry + 24, text, () => {
@@ -47,7 +46,8 @@ export function lifePanel(page: ShipPage, x: number, y: number, w: number): numb
     }, { width: FUEL_BTN.w, height: FUEL_BTN.h, size: 15, kind: have && room ? 'secondary' : 'off' });
     ry += ROW_H;
   }
-  const note = `One ${ORES[fuels.air].name} gives the air ${FEED.air}, one ${ORES[fuels.cell].name} gives the cell ${FEED.cell}, from the bag. At the lander the suit tops itself up.`;
+  const names = (g: keyof typeof fuels): string => fuels[g].map((o) => ORES[o].name).join(' or ');
+  const note = `One ${names('air')} gives the air ${FEED.air}, one ${names('cell')} gives the cell ${FEED.cell}, from the bag. At the lander the suit tops itself up.`;
   const t = aside(scene, x + PAD, ry, note, 15, inner, SEPIA);
   ry += t.height + 10;
   const h = ry - y;
