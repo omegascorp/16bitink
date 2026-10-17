@@ -19,9 +19,9 @@ const WINDOW_DARK = '#3a3f55';
 const NAV_RED = '#e0533f';
 const NAV_GREEN = '#63c27f';
 
-/** Her hull, from the engine collar to the nose. */
+/** The hull, from the engine collar to the nose. */
 const HULL_SHAPE: readonly Pt[] = [pt(-29, -7), pt(26, -7), pt(36, -4.6), pt(42, -1), pt(42, 1.6), pt(36, 4.6), pt(26, 7), pt(-29, 7)];
-/** The frames round her, and the plate rows' seams along her. */
+/** The frames round the hull, and the plate rows' seams along it. */
 const FRAMES = [-16, -3, 10, 23] as const;
 const ROWS = [-3.8, 4.4] as const;
 const PORTHOLES = [-24, -19, 6, 12, 18] as const;
@@ -61,7 +61,7 @@ function lyingTube(d: Draw, shape: readonly Pt[], color: string, x0: number, x1:
   pen.clipped([pt(x0 - 2, sy), pt(x1 + 2, sy), pt(x1 + 2, y1 + 2), pt(x0 - 2, y1 + 2)], () => pen.hatch(shape, 1.3, 0.05, 0.3, { color: d.ink, alpha: 0.22 }));
 }
 
-/** A light on a fin tip or mast: a coloured lens, glowing once her power's on. */
+/** A light on a fin tip or mast: a coloured lens, glowing once the power's on. */
 function navLight(d: Draw, at: Pt, color: string, lit: boolean, r = 0.8): void {
   if (lit) glow(d.pen.ctx, at, r * 4, color, 0.6);
   d.pen.dot(at.x, at.y, r, lit ? color : mix(color, SHADOW, 0.55));
@@ -114,7 +114,7 @@ function bell(d: Draw, y: number, w: number): void {
   edge(d, oval(-MOUTH, y, 0.9, w, 14), 0.6, 0.9);
 }
 
-/** The engine block: dark metal, a grille of cooling slots, an access panel, coolant pipes into the hull, and a bolted collar where it meets her. */
+/** The engine block: dark metal, a grille of cooling slots, an access panel, coolant pipes into the hull, and a bolted collar where it meets the hull. */
 function engineBlock(d: Draw, fine: boolean): void {
   for (const dir of [-1, 1] as const) {
     const pipe = tube([pt(-39, dir * 6), pt(-36, dir * 8), pt(-31, dir * 7.9), pt(-28, dir * 6.6)], 1.1, 1.1);
@@ -132,7 +132,7 @@ function engineBlock(d: Draw, fine: boolean): void {
   if (fine) rivets(d, [-6, -3, 0, 3, 6].map((y) => pt(-29.2, y)), 0.3);
 }
 
-/** Her deck along her back: a row of cabin windows, a handrail on stanchions, and the docking collar behind it where the lander locks on. */
+/** The deck along the top: a row of cabin windows, a handrail on stanchions, and the docking collar behind it where the lander locks on. */
 function deck(d: Draw, lit: boolean, fine: boolean): void {
   const shape = [pt(-20, -7), pt(-17, -10.4), pt(20, -10.4), pt(26, -7)];
   part(d, shape, mix(HULL, SHADOW, 0.12), { shadow: 0.45, line: 0.75, gloss: true, hatch: 0.1 });
@@ -156,7 +156,7 @@ function deck(d: Draw, lit: boolean, fine: boolean): void {
   }
 }
 
-/** Her hull plate: frames round her, a seam along each plate row and the joints staggered between, rivets down every frame. */
+/** The hull plate: frames round it, a seam along each plate row and the joints staggered between, rivets down every frame. */
 function plating(d: Draw, fine: boolean): void {
   d.pen.clipped(HULL_SHAPE, () => {
     for (const x of FRAMES) seam(d, [pt(x, -6.9), pt(x + 0.2, 0), pt(x, 6.9)], 0.45);
@@ -174,7 +174,7 @@ function plating(d: Draw, fine: boolean): void {
   });
 }
 
-/** The cargo hold's doors, in her flank between two frames: two leaves in a recessed frame, hinges along the top, a handle, and hazard chevrons along the sill. */
+/** The cargo hold's doors, in the flank between two frames: two leaves in a recessed frame, hinges along the top, a handle, and hazard chevrons along the sill. */
 function holdDoors(d: Draw, fine: boolean): void {
   const frame = roundRect(-14.8, -6.3, -4.2, 0.1, 0.6);
   part(d, frame, mix(HULL, SHADOW, 0.32), { shadow: 0.3, line: 0.55, hatch: 0 });
@@ -193,7 +193,7 @@ function holdDoors(d: Draw, fine: boolean): void {
   });
 }
 
-/** The bridge in her nose: three panes under a visor, the nose cone seamed on, its tip capped, thrusters top and bottom, and a whip aerial out front. */
+/** The bridge in the nose: three panes under a visor, the nose cone seamed on, its tip capped, thrusters top and bottom, and a whip aerial out front. */
 function bridge(d: Draw, lit: boolean, fine: boolean): void {
   const cone = [pt(37.4, -4.1), pt(42, -1), pt(42, 1.6), pt(37.4, 4.1)];
   d.pen.clipped(HULL_SHAPE, () => {
@@ -219,7 +219,7 @@ function bridge(d: Draw, lit: boolean, fine: boolean): void {
   if (fine) rivets(d, [pt(30.4, -5.9), pt(34.6, -5.2), pt(30.4, 5.9), pt(34.6, 5.2)], 0.26);
 }
 
-/** Portholes down her flank, each in a bright rim. */
+/** Portholes down the flank, each in a bright rim. */
 function portholes(d: Draw, lit: boolean, fine: boolean): void {
   for (const x of PORTHOLES) {
     if (lit) glow(d.pen.ctx, pt(x, -2.2), 2.4, WINDOW_LIT, 0.5);
@@ -233,7 +233,7 @@ function portholes(d: Draw, lit: boolean, fine: boolean): void {
   }
 }
 
-/** Three ore pods under her, each clamped on by two pylons, with darker end caps, bands round it and a load hatch. */
+/** Three ore pods under the hull, each clamped on by two pylons, with darker end caps, bands round it and a load hatch. */
 function pods(d: Draw, fine: boolean): void {
   for (const x of PODS) {
     for (const px of [x + 2.2, x + 8.8]) {
@@ -254,7 +254,7 @@ function pods(d: Draw, fine: boolean): void {
   }
 }
 
-/** The jump drive's ring round her waist on two struts, with emitter nodes round it: burnt dark, scorched and cracked by the wild wormhole. */
+/** The jump drive's ring round the waist on two struts, with emitter nodes round it: burnt dark, scorched and cracked by the wild wormhole. */
 function jumpRing(d: Draw, fine: boolean): void {
   const ring = oval(-33, 0, 3.4, 16, 28);
   d.pen.stroke(ring.slice(7, 22), 2.6, '#2b2e3c', 0.9, false);
@@ -294,7 +294,7 @@ function masts(d: Draw, lit: boolean, fine: boolean): void {
   navLight(d, pt(24.25, -17.2), NAV_RED, lit, 0.6);
 }
 
-/** Her marks: the guild's stripe and pinstripe along her, its mark under the hold, and the wormhole's scorch over her stern. */
+/** The ship's marks: the guild's stripe and pinstripe along it, its mark under the hold, and the wormhole's scorch over the stern. */
 function marks(d: Draw, fine: boolean): void {
   d.pen.clipped(HULL_SHAPE, () => {
     d.pen.fill([pt(-29, 0.6), pt(36, 0.6), pt(39, 2.4), pt(-29, 2.4)], STRIPE, 0.85);
@@ -310,12 +310,12 @@ function marks(d: Draw, fine: boolean): void {
 /**
  * Your ship, side on, nose to the right (spec, "Your starship and
  * travel"): a long plated mining hull on a spine, three ore pods slung
- * under it, the cargo hold's doors in her flank, an engine block at the
+ * under it, the cargo hold's doors in its flank, an engine block at the
  * back with radiator fins, coolant pipes and two bells, the jump drive's
- * ring round her waist (burnt dark: it's dead), a deck with a docking
+ * ring round its waist (burnt dark: it's dead), a deck with a docking
  * collar for the lander, a bridge with a strip of windows, a dish and a
- * sensor mast, and the guild's mark. Her windows and lights are dark until
- * her power's back (`lit`). `fine` adds the small work (rivets, grilles,
+ * sensor mast, and the guild's mark. Its windows and lights are dark until
+ * its power's back (`lit`). `fine` adds the small work (rivets, grilles,
  * hinges, grime) for the big picture on the Starship tab; the star map's
  * little ship leaves it out. Origin at the centre.
  */

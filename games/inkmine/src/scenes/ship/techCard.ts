@@ -133,7 +133,7 @@ function repairText(page: ShipPage, t: Extract<Tech, { kind: 'repair' }>): CardT
 }
 
 /** The mend button's label when it can't mend yet. */
-const FIX_WHY: Readonly<Record<FixCheck, string>> = { ok: 'Mend', done: 'Working', order: 'Later', materials: 'Needs ore', away: 'Aboard her', never: 'Not here' };
+const FIX_WHY: Readonly<Record<FixCheck, string>> = { ok: 'Mend', done: 'Working', order: 'Later', materials: 'Needs ore', away: 'Aboard only', never: 'Not here' };
 
 function starshipText(page: ShipPage, t: Extract<Tech, { kind: 'starship' }>): CardText {
   const p = page.profile;
@@ -142,7 +142,7 @@ function starshipText(page: ShipPage, t: Extract<Tech, { kind: 'starship' }>): C
   if (t.id === 'jump') return { status: 'burnt out', statusColor: MADDER, now: s.broken };
   if (why === 'done') return { status: 'mended', statusColor: VERDIGRIS, now: s.opens };
   const first = s.after.filter((a) => !p.starship.includes(a)).map((a) => STARSHIP[a].name.toLowerCase()).join(' and the ');
-  const next = why === 'order' ? `Mend it after the ${first}.` : why === 'away' ? 'Mended aboard her only: carry the ore up in the lander.' : s.fact ?? '';
+  const next = why === 'order' ? `Mend it after the ${first}.` : why === 'away' ? 'Mended aboard the ship only: carry the ore up in the lander.' : s.fact ?? '';
   return {
     status: 'broken', statusColor: MADDER, now: s.broken,
     next: next ? { text: next, color: why === 'order' || why === 'away' ? FADED : SEPIA } : undefined,
@@ -150,7 +150,7 @@ function starshipText(page: ShipPage, t: Extract<Tech, { kind: 'starship' }>): C
     button: {
       label: FIX_WHY[why], ok: why === 'ok', press: () => {
         const out = fix(page.profile, t.id as StarshipId);
-        if (out.ok) page.commit(out.profile, { news: `Her ${s.name.toLowerCase()} mended!` });
+        if (out.ok) page.commit(out.profile, { news: `${s.name} mended!` });
       },
     },
   };

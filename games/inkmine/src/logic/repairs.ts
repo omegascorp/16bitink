@@ -60,13 +60,13 @@ export const REPAIRS: Readonly<Record<RepairId, Repair>> = {
   thrusters: {
     id: 'thrusters', name: 'Thrusters', needs: { copper: 6, silver: 6, graphite: 2 }, after: ['printer'],
     broken: 'The thrusters took the landing: the engine bell is crumpled and the wiring burnt.',
-    opens: "The thrusters fire. With a drive core, she'd fly; and with the radio working, you might find out where to get one.",
+    opens: "The thrusters fire. With a drive core, it would fly; and with the radio working, you might find out where to get one.",
     fact: 'Rocket chambers are lined with copper and a little silver: it pulls the heat away before the wall can melt. The nozzle throat is graphite.',
   },
   core: {
     id: 'core', name: 'Drive core', needs: null, after: ['comms'],
     broken: 'Cracked in the wormhole. Nothing you can print will fix it.',
-    opens: 'The drive works. Fill the tank, and she can climb to the ship.',
+    opens: 'The drive works. Fill the tank, and the lander can climb to the ship.',
   },
 };
 
@@ -128,7 +128,7 @@ export type Goal =
   | { readonly kind: 'liftoff' }
   /** Aboard (or back down for the ore): mend the starship's next system (starship.ts). */
   | { readonly kind: 'starship'; readonly id: StarshipId }
-  /** She's mended: fill her tank for the first trip. */
+  /** The ship's mended: fill its tank for the first trip. */
   | { readonly kind: 'shipFuel' }
   /** Set course for the first sister moon on the star map. */
   | { readonly kind: 'course' }
@@ -188,12 +188,12 @@ export function goalLine(p: Profile, g: Goal): string {
   if (g.kind === 'starship') {
     const s = STARSHIP[g.id];
     const need = s.needs!;
-    const how = hasOnHand(p)(need) ? (p.docked ? 'mend it on the Starship tab' : 'fly up to her (L at the lander)') : `${needsLine(need, onHand(p))}, carried up in the lander`;
+    const how = hasOnHand(p)(need) ? (p.docked ? 'mend it on the Starship tab' : 'fly up to it (L at the lander)') : `${needsLine(need, onHand(p))}, carried up in the lander`;
     return `Mend your ship's ${s.name.toLowerCase()}: ${how}`;
   }
   if (g.kind === 'shipFuel') {
     const ice = Math.min(countOf(onHand(p), SHIP_TANK.ore), FIRST_COURSE.fuel - p.shipFuel);
-    const how = p.shipFuel + ice >= FIRST_COURSE.fuel ? (p.docked ? 'refill her on the Starship tab' : 'fly up to her (L at the lander)') : `${ORES[SHIP_TANK.ore].name} ${p.shipFuel + ice}/${FIRST_COURSE.fuel}, carried up in the lander`;
+    const how = p.shipFuel + ice >= FIRST_COURSE.fuel ? (p.docked ? 'refill it on the Starship tab' : 'fly up to it (L at the lander)') : `${ORES[SHIP_TANK.ore].name} ${p.shipFuel + ice}/${FIRST_COURSE.fuel}, carried up in the lander`;
     return `Fill your ship's tank for the trip to Mycel: ${how}`;
   }
   if (g.kind === 'course') return p.docked ? 'Set course for Mycel: the star map, on the Starship tab' : 'Set course for Mycel: fly up to your ship (L at the lander)';

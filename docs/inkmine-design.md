@@ -4,7 +4,7 @@ Oct 13, 2026 · @Hayk · rewritten Oct 15, 2026 around an open world (see Decisi
 
 ## Overview
 
-A 2D side-view mining game drawn in ballpoint pen. You're a lone alien prospector for a mining guild, flying a mining ship that carries no weapons, with a lander to go down to the ground. There are no humans anywhere in the game: you, the crew who came before you and everyone you meet are aliens. On a jump your ship falls into a wild wormhole, a natural one that your people never charted or steadied, and being unstable it tears the ship apart on the way through. Before her systems die she brakes into orbit and sends you down in the lander for what she'll need, and the lander crash-lands on a small grey moon in a part of the universe your species has never seen. The link to the guild is gone, and so is part of your memory: you don't know where you are, which star is home, or any language spoken around you. You have an energy drill, a patched-up suit and a wrecked lander. The goal of the whole game is to find where home is in the sky and gather enough to get there; the first step is to dig up what the ship needs and fix it.
+A 2D side-view mining game drawn in ballpoint pen. You're a lone alien prospector for a mining guild, flying a mining ship that carries no weapons, with a lander to go down to the ground. There are no humans anywhere in the game: you, the crew who came before you and everyone you meet are aliens. On a jump your ship falls into a wild wormhole, a natural one that your people never charted or steadied, and being unstable it tears the ship apart on the way through. Before its systems die it brakes into orbit and sends you down in the lander for what it will need, and the lander crash-lands on a small grey moon in a part of the universe your species has never seen. The link to the guild is gone, and so is part of your memory: you don't know where you are, which star is home, or any language spoken around you. You have an energy drill, a patched-up suit and a wrecked lander. The goal of the whole game is to find where home is in the sky and gather enough to get there; the first step is to dig up what the ship needs and fix it.
 
 Each planet is a small open world: one hand-made cross-section of ground you can walk all the way around and dig as deep as your drill allows. Nobody gives you a list of missions. Your suit tells you what's broken and what it needs. Later, the aliens you meet hand you jobs in person, and you can only understand them once you learn their language. Every trip down is still push-your-luck: how deep you go and how full a bag you carry before the drill's cell or your air runs low. There's no money: what you dig is what you build with.
 
@@ -40,19 +40,19 @@ Avoided, because players complain about them: energy to start a run, paid revive
 
 Graphite is chapter 1, and the free version. It ends the moment the lander flies.
 
-1. **The wormhole.** A short ink-drawn opening: the jump, the wild wormhole, the tear; the ship braking into orbit, dark, and sending you down in the lander; the fall, the crash. You climb out of a smoking, tilted lander on the rim of a crater, and the memory of the way back is gone. Your ship is up there somewhere, and the lander has to fly to reach her (Oct 17, 2026).
+1. **The wormhole.** A short ink-drawn opening: the jump, the wild wormhole, the tear; the ship braking into orbit, dark, and sending you down in the lander; the fall, the crash. You climb out of a smoking, tilted lander on the rim of a crater, and the memory of the way back is gone. Your ship is up there somewhere, and the lander has to fly to reach it (Oct 17, 2026).
 2. **The suit takes stock.** Its systems list what's broken. The printer is the first repair: it takes only copper from the crater walls, and nothing in the first area can hurt you.
 3. **The hull and the thrusters.** Your suit asks for the parts as you need them. You can repair them in any order, and each one takes ore from deeper down: the hull's from the soil, the thrusters' silver from the stone, past the stone drill.
 4. **The radio, last before the core** (order changed Oct 17, 2026). The lander's radio and dish were broken in the crash. Repaired, it still can't reach the guild, but a call comes in at once: a slow voice nobody understands. The radio records it; the dish can't say where it's from, only that it's somewhere over the horizon.
 5. **The receiver and the alien.** You print a handheld **receiver** (a suit tool: copper and quartz, no blueprint) and follow the call hot and cold: the HUD's "Next" plate shows its bars, and the suit notes "signal stronger" / "signal weaker" as you walk. There's no arrow while you search, nor while you dig for their silver; it points back to them once the core is waiting. At the outpost on the crater's far rim a Lamplighter meets you. You can't understand a word; they draw in the dust what they want: ten lumps of silver, from deep down, for a drive core.
 6. **The drive core.** It cracked in the wormhole, and nothing you can print will fix it. The Lamplighters make one. As built: you bring them the silver in your bag (they take it from the bag) and, your lander whole by then, they hand the core over; you fit it aboard. (A save from before the reorder that paid with the lander still broken waits for the hull and thrusters, as before.) Later, when the language is built, the core waits for fluency and their last job as well.
 7. **Fuel.** The lander's tank split in the crash. Fuel is hydrogen and oxygen split from water ice, as real moon bases plan to fuel their rockets: the Lander tab's fuel panel has the tank's bar and a Refill button that turns the ice on hand into fuel, one lump a unit (built Oct 17, 2026; `logic/fuel.ts`). The tank holds 12. Graphite has no air to brake in, so landing burns as much as the climb: 6 up, 6 down, and Lift off waits for both, so you can't strand yourself in orbit. Ice also feeds life support, so the two pull on the same ore.
-8. **Lift-off, and your starship** (built Oct 17, 2026). With the core in and a full tank, **Lift off** climbs to the starship in orbit and docks. She's cold and dark: the wormhole burnt out her power, cracked her telescope's mirror, split her tank and killed her engine, and her jump drive is burnt black. Without the telescope there's no star map yet.
-9. **Back down for her parts.** Her repairs take Graphite's ore, mended aboard her only, so you land (Land, top right, burns 6), dig, fill the lander's cargo, refuel and climb again. Ore can be stowed in her own hold. The HUD's "Next" leads the way ("Mend your ship's power: native copper 3/10 · native silver 0/4, carried up in the lander").
-10. **First light.** With her power and telescope mended, the telescope sees again and the **star map** opens on the first star system: the grey moon turns out to be one of three moons round the ringed giant.
-11. **The first trip, and the end of the demo.** With her tank and engine mended and her tank filled, the star map's Mycel card has **Set course**. She leaves for Mycel, and the demo ends on the star map: "the end of the demo: the rest of the journey is coming soon". A finished demo opens on the star map from then on.
+8. **Lift-off, and your starship** (built Oct 17, 2026). With the core in and a full tank, **Lift off** climbs to the starship in orbit and docks. It's cold and dark: the wormhole burnt out its power, cracked its telescope's mirror, split its tank and killed its engine, and its jump drive is burnt black. Without the telescope there's no star map yet.
+9. **Back down for its parts.** The ship's repairs take Graphite's ore, mended aboard only, so you land (Land, top right, burns 6), dig, fill the lander's cargo, refuel and climb again. Ore can be stowed in the ship's own hold. The HUD's "Next" leads the way ("Mend your ship's power: native copper 3/10 · native silver 0/4, carried up in the lander").
+10. **First light.** With the ship's power and telescope mended, the telescope sees again and the **star map** opens on the first star system: the grey moon turns out to be one of three moons round the ringed giant.
+11. **The first trip, and the end of the demo.** With the ship's tank and engine mended and the tank filled, the star map's Mycel card has **Set course**. The ship leaves for Mycel, and the demo ends on the star map: "the end of the demo: the rest of the journey is coming soon". A finished demo opens on the star map from then on.
 
-**The way home** (@Hayk, Oct 17, 2026). Your people travel only through wormholes they have found, charted and steadied. This one was wild: natural, unprepared and unstable, so it wrecked the ship and took part of your memory. You're somewhere your species has never been, and you don't know where. The goal across all chapters is two things: **find where home is in the sky**, and **have enough to travel there**. Chapter 1 gets you back to your ship and flying again, and her telescope shows a system no chart you remember has.
+**The way home** (@Hayk, Oct 17, 2026). Your people travel only through wormholes they have found, charted and steadied. This one was wild: natural, unprepared and unstable, so it wrecked the ship and took part of your memory. You're somewhere your species has never been, and you don't know where. The goal across all chapters is two things: **find where home is in the sky**, and **have enough to travel there**. Chapter 1 gets you back to your ship and flying again, and its telescope shows a system no chart you remember has.
 
 Proposed, to decide:
 
@@ -363,25 +363,25 @@ To design: the weapons themselves (how they fire, their marks), and how the dept
 
 ## Your starship and travel
 
-Decided with @Hayk on Oct 17, 2026; the starship, her repairs, her hold and the first trip are built (`logic/starship.ts`, the Starship tab, the star map's Set course). Travel past the first trip is designed, not built.
+Decided with @Hayk on Oct 17, 2026; the starship, its repairs, its hold and the first trip are built (`logic/starship.ts`, the Starship tab, the star map's Set course). Travel past the first trip is designed, not built.
 
-**The starship flies between worlds; the lander goes down and up.** She circles the world you're on; the lander climbs to her and lands again, burning its own fuel each way.
+**The starship flies between worlds; the lander goes down and up.** It circles the world you're on; the lander climbs to it and lands again, burning its own fuel each way.
 
-**Her systems,** mended aboard her only, with ore carried up in the lander (or stowed in her hold):
+**The starship's systems,** mended aboard only, with ore carried up in the lander (or stowed in its hold):
 
 | System | Needs | Opens | Real fact for the guide |
 | --- | --- | --- | --- |
-| Power | 10 copper, 4 silver | Her lights and systems; the others can be mended after it | Silver carries electricity better than any other metal; spacecraft wire their power contacts with it |
+| Power | 10 copper, 4 silver | The lights and systems; the others can be mended after it | Silver carries electricity better than any other metal; spacecraft wire their power contacts with it |
 | Telescope | 4 quartz, 2 silver | The star map ("First light") | Big telescope mirrors are glass under a film of silver or aluminium far thinner than a hair; quartz glass barely changes shape with heat |
-| Fuel tank | 12 graphite, 3 copper | Her tank, level 1 (10 units): enough for a sister moon | Big rocket tanks are wound with carbon fibre over a thin liner: as strong as steel and far lighter |
+| Fuel tank | 12 graphite, 3 copper | The tank, level 1 (10 units): enough for a sister moon | Big rocket tanks are wound with carbon fibre over a thin liner: as strong as steel and far lighter |
 | Engine | 8 graphite, 4 silver, 3 quartz | Flying between worlds | Ion engines push charged gas through grids; graphite grids last longest, as the beam barely wears carbon away |
 | Jump drive | Can't be mended here | The way home, the endgame | — |
 
 `test/world.test.ts` checks Graphite holds half again over everything chapter 1 takes (gear, both ships' repairs and the trade) within the Drill Mk 1's reach.
 
-**Her hold:** 24 slots of 50, on the Starship tab. Docked, stacks move between it and the lander's cargo ("Unload the lander's cargo here"), and repairs aboard draw on it. On the ground it can be looked at, not touched.
+**The starship's hold:** 24 slots of 50, on the Starship tab. Docked, stacks move between it and the lander's cargo ("Unload the lander's cargo here"), and repairs aboard draw on it. On the ground it can be looked at, not touched.
 
-**How far she can go is set by her tank, not a rule.** Each trip has a fuel cost; if her tank can hold it, she can make it. Printing a bigger tank (a module) reaches the next ring of worlds. Level 1 reaches the sister moons (the first trip, to Mycel, burns 6 of 10).
+**How far the ship can go is set by its tank, not a rule.** Each trip has a fuel cost; if the tank can hold it, the ship can make it. Printing a bigger tank (a module) reaches the next ring of worlds. Level 1 reaches the sister moons (the first trip, to Mycel, burns 6 of 10).
 
 **What a trip costs depends on timing** (to build). Every world moves on its true orbit on a game clock. Between two orbits, a trip costs least at its launch window and more the further you are from it (up to about 3×), as real mission planners find. So with a tank that's only just big enough you wait for the window; with a bigger one you can go early and pay more. Rough costs from Graphite at the window (estimates for the cheapest transfer between the orbits, before the giants' gravity, which adds a flat amount):
 
@@ -422,7 +422,7 @@ Built Oct 17, 2026 (`logic/starSystem.ts`, the star map in `scenes/SystemScene.t
 
 That's 4 living worlds, 2 with life under a crust, 4 dead and 2 giants. Two ice worlds with opposite fates: Umbra kept an ocean because Indigo squeezes it; Rime froze solid. In Graphite's sky, Sepia hangs over the horizon with Mycel (green) and Cardia (red) beside it: worlds you can't reach yet, from the start.
 
-**Your ship** circles Graphite. She came out of the wormhole broken and braked into orbit round the nearest ground before her systems failed. The ship flies between worlds; the lander goes down to them. Getting her jump drive back is the long game (see "The way home", and "Your starship and travel" below).
+**Your ship** circles Graphite. It came out of the wormhole broken and braked into orbit round the nearest ground before its systems failed. The ship flies between worlds; the lander goes down to them. Getting its jump drive back is the long game (see "The way home", and "Your starship and travel" below).
 
 **The star map** is drawn from the ship's telescope: the star's disc at the left edge, the worlds along a line by distance on a log scale (or the inner four would sit on top of each other), the habitable zone washed in highlighter, the snow line dashed, each giant's moons hanging from it, and your ship by Graphite. On a phone held upright it runs down the page. Tap a world for its card: what kind it is, its air, the scan ("carbon · water"), what the telescope sees, and whether you've been. Every world's line is something real instruments could tell from orbit (air from its light, plumes, a night side's glow), so the map never knows more than the ship could.
 
@@ -473,8 +473,8 @@ There's no result screen and no level select in chapter 1.
 
 - **Inside the lander** (L at the lander), laid out like No Man's Sky's inventory (ShipScene, Oct 17, 2026): a **Suit** and a **Ship** tab (tap, or Q / E). Each tab has a Technology plate of big slots with a drawn picture of what's fitted (`art/techArt.ts`), its Mk or level, and a corner flag (verdigris: an upgrade ready to print; madder: broken), then a separate Storage plate (the suit bag; the cargo). The suit's slots are the six gear pieces; the ship's are its Systems (the crash repairs, drawn broken until mended) and its Modules. Beside them stand the prospector or the lander, over a detail card for the slot in focus with its next step, its ore ticked off, and Print / Repair. A stack picked up on one tab can be put down on the other, or sent across with "To cargo" / "To suit bag". Back down is at the top right.
 - **The pause screen is the inventory** (Oct 17, 2026): L, Esc or P away from the lander opens the Inventory page over the paused world, and the same keys close it. Recall is on it, top centre, with a note on what it costs. There's no separate pause card any more. Still to come on it: the survey sheet, the repair list and the field guide (with the lexicon and the logs).
-- **Three tabs: Suit, Lander, Starship** (Oct 17, 2026). The Starship tab appears the first time you fly up to her: her systems, her hold, and her fuel panel. Aboard her, the page is titled "Your starship" and its way out is **Land**.
-- **The fuel panels:** the Lander tab's (the lander's tank, Refill, Lift off), under the cargo, and the Starship tab's (her tank, Refill, Star map), under her picture. Far from the lander they're look-only. Docked, the lander fills through her tank, so its Refill waits until her tank is mended (on the ground it splits its own ice).
+- **Three tabs: Suit, Lander, Starship** (Oct 17, 2026). The Starship tab appears the first time you fly up to it: its systems, its hold, and its fuel panel. Aboard, the page is titled "Your starship" and its way out is **Land**.
+- **The fuel panels:** the Lander tab's (the lander's tank, Refill, Lift off), under the cargo, and the Starship tab's (its tank, Refill, Star map), under its picture. Far from the lander they're look-only. Docked, the lander fills through the ship's tank, so its Refill waits until that tank is mended (on the ground it splits its own ice).
 - **After chapter 1:** the star map ("The first star system") is where you choose the next world, and later the galaxy map past it (paid version).
 
 ## Art direction
@@ -700,10 +700,10 @@ Settled with @Hayk on Oct 15, 2026 (replacing the 100 levels, missions, contract
 
 Settled with @Hayk on Oct 17, 2026:
 
-- **Your ship is in orbit.** Chapter 1 ends when the repaired, fuelled lander flies up to her; the moon you crashed on is a satellite of a giant planet.
+- **Your ship is in orbit.** Chapter 1 ends when the repaired, fuelled lander flies up to it; the moon you crashed on is a satellite of a giant planet.
 - **The first star system follows the life rules** (see "The first star system"). The layout built is the one proposed in [inkmine-xenobiology.md](inkmine-xenobiology.md) section 7, with names for the giants (Sepia, Indigo) and Pumice made Indigo's moon; it's built, so change it now if it's wrong.
 - **Fuel is a tank with a bar,** refilled from ice aboard, not a one-off repair.
-- **Travel** (see "Your starship and travel"): the starship travels and the lander goes down and up; her tank decides how far you can go, and bigger tanks are upgrades; ice now, a rarer fuel later; trips cost least at their launch window. The starship has her own tab, systems to mend (the telescope too, so the star map isn't there at first) and a hold. Chapter 1 ends with her mended and the first trip set, on the star map, as the end of the demo; the chapter order follows the tank (Mycel 2nd, Brine 3rd, Talus 4th, Prism, Ember, Pumice, Rime, Umbra, Cardia last).
+- **Travel** (see "Your starship and travel"): the starship travels and the lander goes down and up; its tank decides how far you can go, and bigger tanks are upgrades; ice now, a rarer fuel later; trips cost least at their launch window. The starship has its own tab, systems to mend (the telescope too, so the star map isn't there at first) and a hold. Chapter 1 ends with it mended and the first trip set, on the star map, as the end of the demo; the chapter order follows the tank (Mycel 2nd, Brine 3rd, Talus 4th, Prism, Ember, Pumice, Rime, Umbra, Cardia last).
 
 ## Open questions
 

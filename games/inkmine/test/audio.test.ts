@@ -175,13 +175,13 @@ describe('news aboard', () => {
   it('a warm chord for anything printed, repaired or mended', () => {
     expect(newsSound('Printed: Drill Mk 1!')).toBe('mended');
     expect(newsSound('Printer repaired!')).toBe('mended');
-    expect(newsSound('Her telescope mended!')).toBe('mended');
+    expect(newsSound('Telescope mended!')).toBe('mended');
     expect(newsSound('The drive core is in!')).toBe('mended');
   });
 
   it('a rising tone for a tank or the suit filled, a dull one for a no', () => {
     expect(newsSound('Tank filled')).toBe('fed');
-    expect(newsSound('Her tank filled')).toBe('fed');
+    expect(newsSound("Ship's tank filled")).toBe('fed');
     expect(newsSound('Air + water ice')).toBe('fed');
     expect(newsSound('Life support is full')).toBe('dull');
     expect(newsSound('No graphite in the bag')).toBe('dull');

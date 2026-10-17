@@ -13,7 +13,7 @@ const aboard = (cargo: Hold = {}): Profile => {
 const RICH: Hold = { copper: 20, silver: 10, graphite: 30, quartz: 5, ice: 20 };
 
 describe('the starship', () => {
-  it('is mended aboard her only, power first, from the ore carried up', () => {
+  it('is mended aboard only, power first, from the ore carried up', () => {
     const p = aboard(RICH);
     expect(canFix({ ...p, docked: false }, 'power')).toBe('away');
     expect(canFix(p, 'tank')).toBe('order');
@@ -27,7 +27,7 @@ describe('the starship', () => {
     expect(canFix(r.profile, 'tank')).toBe('ok');
   });
 
-  it('opens the star map only once her telescope is mended, and keeps her jump drive past mending', () => {
+  it('opens the star map only once its telescope is mended, and keeps its jump drive past mending', () => {
     const p = aboard(RICH);
     expect(mapOpen(p)).toBe(false);
     expect(canFix(p, 'telescope')).toBe('order');
@@ -37,7 +37,7 @@ describe('the starship', () => {
     expect(canFix(p, 'jump')).toBe('never');
   });
 
-  it('keeps a hold of her own, used for repairs only while docked', () => {
+  it('keeps a hold of its own, used for repairs only while docked', () => {
     const p = aboard();
     const stocked = { ...p, hold: addHoldTo(p.hold, { copper: 10, silver: 4 }).inv };
     expect(canFix(stocked, 'power')).toBe('ok');
@@ -46,7 +46,7 @@ describe('the starship', () => {
     expect(canFix({ ...stocked, docked: false }, 'power')).toBe('away');
   });
 
-  it('fills her tank only once it is mended, from ice, never over the top', () => {
+  it('fills its tank only once it is mended, from ice, never over the top', () => {
     const p = aboard(RICH);
     expect(canRefillShip(p)).toBe('tank');
     const mended = { ...p, starship: ['power', 'telescope', 'tank'] as Profile['starship'] };
@@ -67,7 +67,7 @@ describe('the starship', () => {
     if (r.ok) expect(canSetCourse(r.profile)).toBe('set');
   });
 
-  it('shows her tab once you have flown up to her, not before', () => {
+  it('shows its tab once you have flown up to it, not before', () => {
     expect(tabsFor(NEW_PROFILE)).toEqual(['suit', 'ship']);
     expect(tabsFor({ beats: ['called', 'met', 'paid', 'core'] })).toEqual(['suit', 'ship']);
     expect(tabsFor(withBeat(NEW_PROFILE, 'flown'))).toEqual(['suit', 'ship', 'starship']);

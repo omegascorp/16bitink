@@ -11,7 +11,7 @@ import type { ShipPage } from './panel';
 /**
  * The story's moments aboard: the call that comes in the moment the radio
  * works (spec, "Story: chapter 1"), docking with the starship for the
- * first time, and her telescope's first light, which opens the star map.
+ * first time, and its telescope's first light, which opens the star map.
  * Each shows once; closing it saves that it was seen. Returns whether one
  * is up. Lift-off has its own card, from the Fuel panel (liftOffCard).
  */
@@ -34,7 +34,7 @@ export function shipStoryCard(page: ShipPage): boolean {
       title: 'Docked',
       subtitle: 'your ship, at last',
       pictures: [{ key: TEX.ship(false), h: 80 }],
-      text: "She's cold and dark. The wormhole burnt out her power lines, cracked her telescope's mirror, split her fuel tank and killed her engine, and her jump drive is burnt black. Without the telescope you can't even see which star this is. Everything she needs to mend is down on the grey moon: copper, silver, quartz, graphite and ice, carried up in the lander a load at a time.",
+      text: "It's cold and dark. The wormhole burnt out its power lines, cracked its telescope's mirror, split its fuel tank and killed its engine, and its jump drive is burnt black. Without the telescope you can't even see which star this is. Everything it needs to mend is down on the grey moon: copper, silver, quartz, graphite and ice, carried up in the lander a load at a time.",
       button: 'Get to work',
     }, () => page.commit(withBeat(page.profile, 'aboard'), { tab: 'starship' }));
     return true;
@@ -69,8 +69,8 @@ export function liftOffCard(page: ShipPage): void {
     title: 'Lift-off',
     subtitle: 'up to your ship',
     pictures: [{ key: TEX.lander(landerLookOf(p.ship), 0, wreckOf(p)), h: 150 }],
-    text: "The core hums, the tanks feed the thrusters, and the lander climbs off the grey moon. Down on the far rim, the Lamplighters' lanterns get small. Then, ahead, a dark shape against the stars, turning slowly: your ship, right where she braked into orbit before her systems died.",
-    button: 'Fly up to her',
+    text: "The core hums, the tanks feed the thrusters, and the lander climbs off the grey moon. Down on the far rim, the Lamplighters' lanterns get small. Then, ahead, a dark shape against the stars, turning slowly: your ship, right where it braked into orbit before its systems died.",
+    button: 'Fly up to it',
   }, () => {
     setProfile(scene, r.profile);
     scene.scene.start('Ship', { remote: false, tab: 'starship' });

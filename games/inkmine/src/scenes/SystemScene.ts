@@ -247,7 +247,7 @@ export class SystemScene extends Phaser.Scene {
     }, () => {});
   }
 
-  /** Back to the starship's page (the map is only open aboard her). */
+  /** Back to the starship's page (the map is only open aboard). */
   private back(): void {
     this.scene.start('Ship', { remote: false, tab: 'starship' });
   }
@@ -262,7 +262,7 @@ export class SystemScene extends Phaser.Scene {
       title: `Course set for ${to}`,
       subtitle: 'the end of chapter 1',
       pictures: [{ key: TEX.ship(true), h: 70 }, { key: TEX.world(FIRST_COURSE.to), h: 70 }],
-      text: `Her engine hums for the first time since the wormhole, and the grey moon slides away under her. ${to} grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.`,
+      text: `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${to} grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.`,
       button: 'On to Mycel',
     }, () => this.scene.restart({ selected: FIRST_COURSE.to, demoEnd: true } satisfies SystemData));
   }
@@ -286,14 +286,14 @@ function ordinal(n: number): string {
 /** Why the first trip can't be set yet, beside its button. */
 const COURSE_WHY = {
   away: 'Trips are set aboard your ship.',
-  broken: 'She needs her power, telescope, tank and engine mended first.',
-  fuel: `Her tank needs ${FIRST_COURSE.fuel} units for the trip.`,
+  broken: 'The ship needs its power, telescope, tank and engine mended first.',
+  fuel: `The ship's tank needs ${FIRST_COURSE.fuel} units for the trip.`,
 } as const;
 
 /** Whether you've been, can go, or can't land. */
 function statusOf(w: World, p: Profile): string {
   if (w.chapter === 1) return 'You were here. Your ship circles it.';
   if (w.chapter === null) return 'No ground to land on. Its moons are what matter.';
-  if (w.id === FIRST_COURSE.to) return hasBeat(p, 'course') ? 'Course set: the next chapter goes there.' : 'A sister moon: the nearest trip, within reach of her first tank.';
+  if (w.id === FIRST_COURSE.to) return hasBeat(p, 'course') ? 'Course set: the next chapter goes there.' : "A sister moon: the nearest trip, within reach of the ship's first tank.";
   return 'Out of reach: it needs a bigger tank, and the chapters after.';
 }

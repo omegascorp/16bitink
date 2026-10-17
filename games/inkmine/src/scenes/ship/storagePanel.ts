@@ -22,7 +22,7 @@ const storesOf = (p: Profile): Inventory[] => [p.suit, p.cargo, p.hold];
 /** Where "To …" sends a stack from `bag`: the suit and cargo trade, and docked the cargo and the starship's hold do. */
 const partnerOf = (p: Profile, bag: number): number => (bag === 2 ? 1 : bag === 0 ? 1 : p.docked ? 2 : 0);
 
-/** Whether a store can be touched now: the cargo only at the lander, the starship's hold only aboard her. */
+/** Whether a store can be touched now: the cargo only at the lander, the starship's hold only aboard it. */
 function reachable(page: ShipPage, bag: number): boolean {
   if (bag === 1) return !page.remote;
   if (bag === 2) return !page.remote && page.profile.docked;
@@ -40,7 +40,7 @@ function reachable(page: ShipPage, bag: number): boolean {
  * locked, so the lander never takes what's in it. Far from the lander
  * (`page.remote`) the suit bag still sorts, splits, locks and drops, but
  * the cargo can only be looked at; the starship's hold can only be touched
- * aboard her. Returns the panel's height.
+ * aboard it. Returns the panel's height.
  */
 export function storagePanel(page: ShipPage, tab: Tab, x: number, y: number, w: number): number {
   const { scene, profile: p, ui } = page;
@@ -94,18 +94,18 @@ export function storagePanel(page: ShipPage, tab: Tab, x: number, y: number, w: 
     });
     ry += Math.ceil(buttons.length / across) * (BTN_H + 8) + 6;
   } else if (!reachable(page, bag)) {
-    const tip = bag === 1 ? 'The cargo is aboard the lander: you can look here, and move it there.' : 'Her hold is aboard her: you can look here, and move it there. Carry ore up in the lander and stow it here.';
+    const tip = bag === 1 ? 'The cargo is aboard the lander: you can look here, and move it there.' : "The ship's hold is aboard the ship: you can look here, and move it there. Carry ore up in the lander and stow it here.";
     const t = aside(scene, x + PAD, ry, tip, 16, inner, FADED);
     ry += t.height + 10;
   } else if (bag === 0 && page.remote) {
     const t = aside(scene, x + PAD, ry, 'Tap a stack to pick it up and move it. Locked slots stay in the bag at the lander.', 16, inner, FADED);
     ry += t.height + 10;
   } else {
-    const tip = bag === 0 ? 'Tap a stack to pick it up and move it. Locked slots stay in the bag at the lander.' : bag === 2 ? 'Tap a stack to pick it up and move it. What is stowed here stays aboard her, and repairs aboard can use it.' : 'Tap a stack to pick it up and move it.';
+    const tip = bag === 0 ? 'Tap a stack to pick it up and move it. Locked slots stay in the bag at the lander.' : bag === 2 ? 'Tap a stack to pick it up and move it. What is stowed here stays aboard the ship, and repairs aboard can use it.' : 'Tap a stack to pick it up and move it.';
     const t = aside(scene, x + PAD, ry, tip, 16, inner, FADED);
     ry += t.height + 10;
     if (bag !== 1) {
-      // The suit bag stows into the cargo; the cargo unloads into her hold.
+      // The suit bag stows into the cargo; the cargo unloads into the ship's hold.
       const from = bag === 0 ? p.suit : p.cargo;
       const into = bag === 0 ? p.cargo : p.hold;
       const stow = transferAll(from, into, bag === 0 ? kept : () => false);
@@ -138,7 +138,7 @@ function commitStores(page: ShipPage, [suit, cargo, hold]: Inventory[]): void {
  * A tap on a slot: pick a stack up, put it down where tapped, or put it
  * back. Holding one clears the technology focus, so its card shows alone.
  * A store that can't be touched now (the cargo far from the lander, the
- * starship's hold away from her) takes nothing and gives nothing: a tap
+ * starship's hold away from it) takes nothing and gives nothing: a tap
  * that would picks up what's tapped instead (or puts the stack back).
  */
 function tap(page: ShipPage, at: SlotRef): void {

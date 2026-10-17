@@ -9,7 +9,7 @@ import { canPrintTool, TOOLS, type Tool } from './tools';
 
 /**
  * The lander's menu as No Man's Sky lays it out: a Suit tab, a Lander tab
- * (saved and keyed as 'ship') and, once the radio reaches her, a Starship
+ * (saved and keyed as 'ship') and, once you've flown up to it, a Starship
  * tab, each with technology slots (the gear pieces; the lander's crashed
  * systems and its modules; the starship's systems). Each slot says at a
  * glance how it stands: an upgrade ready to print, broken, fitted, or not
@@ -18,7 +18,7 @@ import { canPrintTool, TOOLS, type Tool } from './tools';
 export type Tab = 'suit' | 'ship' | 'starship';
 export const TABS: readonly Tab[] = ['suit', 'ship', 'starship'];
 
-/** The tabs there are now: the starship's once you've flown up to her the first time. */
+/** The tabs there are now: the starship's once you've flown up to it the first time. */
 export const tabsFor = (p: Pick<Profile, 'beats'>): readonly Tab[] => (hasBeat(p, 'flown') ? TABS : TABS.filter((t) => t !== 'starship'));
 
 export type Tech =
@@ -72,7 +72,7 @@ export function techState(p: Profile, t: Tech): TechState {
   return r && printerWorks(p) && canBuild(r, p.found, p.gear, hasOnHand(p)) === 'ok' ? 'ready' : 'fitted';
 }
 
-/** The tab to open on: the starship when aboard her, the suit when the next thing to do is print gear, else the lander. */
+/** The tab to open on: the starship when aboard, the suit when the next thing to do is print gear, else the lander. */
 export function defaultTab(p: Profile): Tab {
   if (p.docked) return 'starship';
   return currentGoal(p).kind === 'print' ? 'suit' : 'ship';

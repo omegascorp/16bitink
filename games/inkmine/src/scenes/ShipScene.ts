@@ -118,7 +118,7 @@ export class ShipScene extends Phaser.Scene {
       const left = top + h1 + (h2 ? GAP + h2 : 0);
       this.figure(tab, profile, x1 + rightW / 2, top + FIG.wide - 10, false);
       this.farNote(tab, x1 + rightW / 2, top + 4, rightW, 28);
-      // The lander's fuel and the suit's life support go under the storage; the starship's tank, with her course, under her picture, then the card.
+      // The lander's fuel and the suit's life support go under the storage; the starship's tank, with its course, under its picture, then the card.
       const under = belowStorage(tab) ? Math.max(0, this.fuel(page, tab, x0, left + GAP, leftW) - GAP) : 0;
       const fuelH = belowStorage(tab) ? 0 : this.fuel(page, tab, x1, top + FIG.wide, rightW);
       const h3 = card(x1, top + FIG.wide + fuelH, rightW);
@@ -130,7 +130,7 @@ export class ShipScene extends Phaser.Scene {
       this.figure(tab, profile, width / 2, top + FIG.narrow - 10, true);
       this.farNote(tab, width / 2, top - 6, colW, 22);
       const fuel = (y: number): number => Math.max(0, this.fuel(page, tab, x, y, colW) - GAP);
-      // The starship's tank (and her course) leads; the lander's fuel and the suit's life support follow the storage.
+      // The starship's tank (and its course) leads; the lander's fuel and the suit's life support follow the storage.
       const panels: ((y: number) => number)[] = [
         (y) => (belowStorage(tab) ? 0 : fuel(y)),
         (y) => techPanel(page, tab, focus, x, y, colW),
@@ -212,7 +212,7 @@ export class ShipScene extends Phaser.Scene {
       return;
     }
     if (tab === 'starship') {
-      // Dark until her power's back.
+      // Dark until its power's back.
       bakeSystem(this);
       const img = this.add.image(cx, groundY - (small ? 70 : 110), TEX.shipBig(isFixed(p, 'power')));
       img.setScale((small ? 330 : 500) / img.width);

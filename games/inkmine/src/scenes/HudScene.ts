@@ -41,8 +41,8 @@ const HINT = {
 const HALO = { stroke: '#f5efdf', strokeThickness: 5 } as const;
 /** The opening card (spec, "Story: chapter 1"). */
 const INTRO = [
-  "The jump went wrong. Your ship struck a wild wormhole, one nobody had charted or steadied, and it tore through, out among stars no chart has. Before her systems died she braked into orbit and sent you down in the lander, for what she'd need.",
-  "The lander came down hard on a small grey moon. The link to the guild is gone, the suit is still listing the damage, and the way back is gone from memory: which way home lies, even which star. Your ship is up there somewhere, dark. The lander will have to fly to reach her.",
+  "The jump went wrong. Your ship struck a wild wormhole, one nobody had charted or steadied, and it tore through, out among stars no chart has. Before its systems died it braked into orbit and sent you down in the lander, for what it would need.",
+  "The lander came down hard on a small grey moon. The link to the guild is gone, the suit is still listing the damage, and the way back is gone from memory: which way home lies, even which star. Your ship is up there somewhere, dark. The lander will have to fly to reach it.",
   "Nothing can be mended without the printer, and the printer wants copper. There's copper in the crater walls.",
 ] as const;
 

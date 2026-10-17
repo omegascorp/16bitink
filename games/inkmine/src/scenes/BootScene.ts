@@ -5,7 +5,7 @@ import { hasBeat } from '../logic/story';
 import { screenScene, viewSize } from './hidpi';
 import { inkText } from './ui';
 
-/** Shows a word while the game's first scene bakes its drawings, then starts it: the world, or the starship if the game was left aboard her. */
+/** Shows a word while the game's first scene bakes its drawings, then starts it: the world, or the starship if the game was left aboard it. */
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('Boot');

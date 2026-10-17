@@ -4,20 +4,20 @@ import type { OreKey } from './ore';
 import { hasBeat, withBeat } from './story';
 
 /**
- * Your starship (spec, "Your starship and travel"): she came out of the
- * wild wormhole broken and braked into orbit over Graphite before her
- * systems died. The lander climbs up to her; she's what flies between
- * worlds, and the lander only goes down and up. The wormhole broke her
- * power, her telescope (so the star map stays dark until it's mended), her
- * fuel tank and her engine: each takes Graphite's ores, carried up in the
- * lander, and can only be mended aboard her. Her jump drive is past
+ * Your starship (spec, "Your starship and travel"): it came out of the
+ * wild wormhole broken and braked into orbit over Graphite before its
+ * systems died. The lander climbs up to it; the starship is what flies
+ * between worlds, and the lander only goes down and up. The wormhole broke
+ * its power, its telescope (so the star map stays dark until it's mended),
+ * its fuel tank and its engine: each takes Graphite's ores, carried up in
+ * the lander, and can only be mended aboard. Its jump drive is past
  * mending here: it's the way home, for later.
  *
  * Ids are saved: never change one.
  */
 export const STARSHIP_IDS = ['power', 'telescope', 'tank', 'engine'] as const;
 export type StarshipId = (typeof STARSHIP_IDS)[number];
-/** Her slots on the Starship tab: the four to mend, and the jump drive, past mending here. */
+/** The starship's slots on the Starship tab: the four to mend, and the jump drive, past mending here. */
 export const STARSHIP_SLOTS = [...STARSHIP_IDS, 'jump'] as const;
 export type StarshipSlot = (typeof STARSHIP_SLOTS)[number];
 
@@ -37,20 +37,20 @@ export interface StarshipSystem {
 export const STARSHIP: Readonly<Record<StarshipSlot, StarshipSystem>> = {
   power: {
     id: 'power', name: 'Power', needs: { copper: 10, silver: 4 }, after: [],
-    broken: 'The wormhole burnt out her power lines: half her lights are dark and nothing aboard can draw much.',
-    opens: 'Her lights are on and her systems wake: she can power repairs.',
+    broken: 'The wormhole burnt out the power lines: half the lights are dark and nothing aboard can draw much.',
+    opens: 'The lights are on and the systems wake: the ship can power repairs.',
     fact: 'Silver carries electricity better than any other metal. Spacecraft wire their power contacts with it where every loss counts.',
   },
   tank: {
     id: 'tank', name: 'Fuel tank', needs: { graphite: 12, copper: 3 }, after: ['power'],
-    broken: 'Her tank split along a seam and the fuel boiled away into space.',
+    broken: 'The tank split along a seam and the fuel boiled away into space.',
     opens: "The tank holds again: enough fuel for a short trip, as far as a sister moon. A bigger tank will take you further.",
     fact: 'Big rocket tanks are wound with carbon fibre over a thin liner: as strong as steel and far lighter.',
   },
   engine: {
     id: 'engine', name: 'Engine', needs: { graphite: 8, silver: 4, quartz: 3 }, after: ['power'],
-    broken: 'Her engine, for flying between worlds, is cold: its grids cracked and its insulators shattered.',
-    opens: 'The engine runs. With fuel in the tank, she can fly between worlds again.',
+    broken: 'The engine, for flying between worlds, is cold: its grids cracked and its insulators shattered.',
+    opens: 'The engine runs. With fuel in the tank, the ship can fly between worlds again.',
     fact: 'Ion engines push charged gas out through grids. Graphite grids last longest: the beam barely wears carbon away.',
   },
   telescope: {
@@ -66,7 +66,7 @@ export const STARSHIP: Readonly<Record<StarshipSlot, StarshipSystem>> = {
   },
 };
 
-/** Her fuel tank, once mended: split from ice like the lander's, for now (another fuel may take over for long trips). */
+/** The starship's fuel tank, once mended: split from ice like the lander's, for now (another fuel may take over for long trips). */
 export const SHIP_TANK = { capacity: 10, ore: 'ice' as OreKey } as const;
 
 /** The first trip the map offers, and what it burns (a sister moon: its window is always open). */
@@ -75,7 +75,7 @@ export const FIRST_COURSE = { to: 'mycel', fuel: 6 } as const;
 export const isFixed = (p: Pick<Profile, 'starship'>, id: StarshipId): boolean => p.starship.includes(id);
 export const starshipWhole = (p: Pick<Profile, 'starship'>): boolean => STARSHIP_IDS.every((id) => p.starship.includes(id));
 
-/** Whether a system can be mended now, or why not: 'away' when you're not aboard her. */
+/** Whether a system can be mended now, or why not: 'away' when you're not aboard. */
 export type FixCheck = 'ok' | 'done' | 'order' | 'materials' | 'away' | 'never';
 
 export function canFix(p: Profile, id: StarshipSlot): FixCheck {
@@ -96,7 +96,7 @@ export function fix(p: Profile, id: StarshipId): PrintResult<FixCheck> {
 
 export type ShipRefillCheck = 'ok' | 'full' | 'materials' | 'tank' | 'away';
 
-/** Lumps a refill of her tank would take now. */
+/** Lumps a refill of the starship's tank would take now. */
 export function shipRefillCost(p: Profile): number {
   return Math.min(SHIP_TANK.capacity - p.shipFuel, countOf(onHand(p), SHIP_TANK.ore));
 }
@@ -115,12 +115,12 @@ export function refillShip(p: Profile): PrintResult<ShipRefillCheck> {
   return { ok: true, profile: { ...spend(p, { [SHIP_TANK.ore]: n }), shipFuel: p.shipFuel + n } };
 }
 
-/** Whether the star map can be looked at: her telescope sees again. */
+/** Whether the star map can be looked at: its telescope sees again. */
 export const mapOpen = (p: Pick<Profile, 'starship'>): boolean => p.starship.includes('telescope');
 
 export type CourseCheck = 'ok' | 'away' | 'broken' | 'fuel' | 'set';
 
-/** Whether the first trip can be set now: aboard, the ship mended, the fuel for it in her tank. */
+/** Whether the first trip can be set now: aboard, the ship mended, the fuel for it in the tank. */
 export function canSetCourse(p: Profile): CourseCheck {
   if (hasBeat(p, 'course')) return 'set';
   if (!p.docked) return 'away';

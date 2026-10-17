@@ -7,8 +7,8 @@ import { PAD, section, SECTION_BODY, type ShipPage } from './panel';
 
 /** What the panel says under its buttons, by how the first trip stands. */
 const COURSE_NOTE = {
-  away: 'Her tank is refilled aboard her: carry the ice up in the lander.',
-  broken: 'Mend her power, telescope, tank and engine, and she can fly.',
+  away: "The ship's tank is refilled aboard: carry the ice up in the lander.",
+  broken: 'Mend its power, telescope, tank and engine, and the ship can fly.',
   fuel: `The trip to ${worldById(FIRST_COURSE.to)!.name}, a sister moon, burns ${FIRST_COURSE.fuel} units.`,
   ok: `Ready: set course for ${worldById(FIRST_COURSE.to)!.name} on the star map.`,
   set: `Course set for ${worldById(FIRST_COURSE.to)!.name}.`,
@@ -16,25 +16,25 @@ const COURSE_NOTE = {
 
 /**
  * The starship's fuel on the Starship tab (spec, "Your starship and
- * travel"): her tank's bar once it's mended, Refill from the ice on hand
- * (aboard her only), and the star map, where trips are set. Returns the height.
+ * travel"): its tank's bar once it's mended, Refill from the ice on hand
+ * (aboard only), and the star map, where trips are set. Returns the height.
  */
 export function starshipPanel(page: ShipPage, x: number, y: number, w: number): number {
   const { scene, profile: p } = page;
   let ry = y + SECTION_BODY;
   if (isFixed(p, 'tank')) ry = tankRow(page, x, ry, w, p.shipFuel, SHIP_TANK.capacity, FIRST_COURSE.fuel / SHIP_TANK.capacity);
   else {
-    const t = aside(scene, x + PAD, ry, 'Her tank is split: it holds nothing until it is mended.', 16, w - PAD * 2, SEPIA);
+    const t = aside(scene, x + PAD, ry, 'The tank is split: it holds nothing until it is mended.', 16, w - PAD * 2, SEPIA);
     ry += t.height + 12;
   }
   const cy = ry + FUEL_BTN.h / 2;
   const fill = canRefillShip(p);
   const opts = (ok: boolean, primary = false) => ({ width: FUEL_BTN.w, height: FUEL_BTN.h, size: 16, kind: ok ? (primary ? 'primary' : 'secondary') : 'off' }) as const;
   if (isFixed(p, 'tank')) {
-    const fillText = fill === 'ok' ? `Refill · ${shipRefillCost(p)} ice` : fill === 'full' ? 'Full' : fill === 'away' ? 'Aboard her' : 'No ice on hand';
+    const fillText = fill === 'ok' ? `Refill · ${shipRefillCost(p)} ice` : fill === 'full' ? 'Full' : fill === 'away' ? 'Aboard only' : 'No ice on hand';
     plaque(scene, x + PAD + FUEL_BTN.w / 2, cy, fillText, () => {
       const r = refillShip(p);
-      if (r.ok) page.commit(r.profile, { news: 'Her tank filled' });
+      if (r.ok) page.commit(r.profile, { news: "Ship's tank filled" });
     }, opts(fill === 'ok'));
   }
   if (p.docked && !page.remote) plaque(scene, x + w - PAD - FUEL_BTN.w / 2, cy, mapOpen(p) ? 'Star map' : 'Telescope down', () => {

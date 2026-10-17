@@ -237,7 +237,7 @@ function receiver(d: Draw): void {
   sheen(d, [pt(-7.6, -7), pt(-7.6, 12)], 0.8);
 }
 
-/** Her power: a junction box with its cable bundle; scorched, its lamps dark, when burnt out. */
+/** The starship's power: a junction box with its cable bundle; scorched, its lamps dark, when burnt out. */
 function power(d: Draw, broken: boolean): void {
   for (const [y, col] of [[-6, '#b07a3a'], [-2, '#c9c6bd'], [2, '#b07a3a']] as const) d.pen.stroke([pt(-16, y + 8), pt(-11, y + 6), pt(-8, y)], 1.4, col, 0.95, false);
   const box = roundRect(-8, -11, 13, 11, 2);
@@ -255,7 +255,7 @@ function power(d: Draw, broken: boolean): void {
   }
 }
 
-/** Her fuel tank: a capsule wound with carbon fibre; split along a seam and frosted where the fuel boiled out. */
+/** The starship's fuel tank: a capsule wound with carbon fibre; split along a seam and frosted where the fuel boiled out. */
 function shipTank(d: Draw, broken: boolean): void {
   const tank = capsule(pt(0, -12), pt(0, 12), 9, 9);
   part(d, tank, '#4a4f5c', { shadow: 0.55, line: 0.9, gloss: true, hatch: 0 });
@@ -273,7 +273,7 @@ function shipTank(d: Draw, broken: boolean): void {
   }
 }
 
-/** Her engine: an ion engine's round grid of holes in a ring; glowing blue when running, cracked and cold when not. */
+/** The starship's engine: an ion engine's round grid of holes in a ring; glowing blue when running, cracked and cold when not. */
 function engine(d: Draw, broken: boolean): void {
   const ring = oval(0, 0, 14, 14, 36);
   part(d, ring, WASH.darkMetal, { shadow: 0.5, line: 0.9, gloss: true });
@@ -287,7 +287,7 @@ function engine(d: Draw, broken: boolean): void {
   if (broken) d.pen.stroke([pt(-9, -5), pt(-3, -1), pt(-5, 4), pt(2, 9)], 0.9, d.ink, 0.95, false);
 }
 
-/** Her telescope: a tube on a mount, its lens catching the light. */
+/** The starship's telescope: a tube on a mount, its lens catching the light. */
 function telescope(d: Draw): void {
   const tube = capsule(pt(-12, 8), pt(10, -8), 5, 6);
   part(d, tube, '#d9d4c6', { shadow: 0.5, line: 0.85, gloss: true });
@@ -297,7 +297,7 @@ function telescope(d: Draw): void {
   d.pen.stroke([pt(-9, 14), pt(3, 14)], 1.2, d.ink, 0.9, false);
 }
 
-/** Her jump drive: a ring meant to steady a wormhole, burnt black and split. */
+/** The starship's jump drive: a ring meant to steady a wormhole, burnt black and split. */
 function jump(d: Draw): void {
   const outer = oval(0, 0, 15, 15, 40);
   const inner = oval(0, 0, 9, 9, 32).reverse();

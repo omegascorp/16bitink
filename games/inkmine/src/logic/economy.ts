@@ -40,7 +40,7 @@ export interface Profile {
   readonly starship: readonly StarshipId[];
   /** The starship's fuel tank, in units (starship.ts). */
   readonly shipFuel: number;
-  /** The starship's hold: ore carried up and kept aboard her, reachable only while docked. */
+  /** The starship's hold: ore carried up and kept aboard it, reachable only while docked. */
   readonly hold: Inventory;
   /** The lander's air tank and battery, which top the suit up at the lander (stores.ts). */
   readonly stores: { readonly air: number; readonly power: number };
