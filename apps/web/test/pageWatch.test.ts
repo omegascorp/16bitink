@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { networkType } from '../src/lib/client/analytics';
 import { createErrorGate, errorReport, MAX_ERRORS_PER_PAGE, scrollPercent } from '../src/lib/client/pageWatch';
 
 describe('scrollPercent', () => {
@@ -44,13 +43,5 @@ describe('createErrorGate', () => {
     expect(pass('a')).toBe(false);
     const more = Array.from({ length: MAX_ERRORS_PER_PAGE + 2 }, (_, i) => pass(`m${i}`));
     expect(more.filter(Boolean)).toHaveLength(MAX_ERRORS_PER_PAGE - 1);
-  });
-});
-
-describe('networkType', () => {
-  it('reports only the connection types the server knows', () => {
-    expect(networkType({ effectiveType: '3g' })).toBe('3g');
-    expect(networkType({ effectiveType: 'wifi' })).toBeUndefined();
-    expect(networkType(undefined)).toBeUndefined();
   });
 });

@@ -18,7 +18,7 @@ if (!admin) return new Response('Not found', { status: 404 });
 const days = parsePeriod(Astro.url.searchParams.get('days'));
 const range = rangeFor(days, new Date());
 const games = playableGames();
-const DIMENSIONS: readonly (readonly [Dimension, string])[] = [['country', 'Country'], ['os', 'OS'], ['browser', 'Browser'], ['device', 'Device'], ['net', 'Connection']];
+const DIMENSIONS: readonly (readonly [Dimension, string])[] = [['country', 'Country'], ['os', 'OS'], ['browser', 'Browser'], ['device', 'Device']];
 
 const [totals, perDay, perGame, funnels, shares, recent, entries, plays, errors] = await Promise.all([
   overview(range),
@@ -196,7 +196,7 @@ const when = (d: Date): string => d.toISOString().slice(0, 16).replace('T', ' ')
     <p class="note">Outcome, the furthest the visit got: played (a level), no level (in the game, no level started), load failed, left loading, tapped (no end recorded), no tap (saw a play page), bounced (one page), browsed. "On it": time the landing page was on screen.</p>
     <div class="scroll">
       <table>
-        <thead><tr><th>Started</th><th>Country</th><th>OS / browser</th><th>Device</th><th>Net</th><th>Landed on</th><th>From</th><th>On it</th><th>Pages</th><th>Outcome</th><th>Games</th><th>Levels</th><th>Played</th></tr></thead>
+        <thead><tr><th>Started</th><th>Country</th><th>OS / browser</th><th>Device</th><th>Landed on</th><th>From</th><th>On it</th><th>Pages</th><th>Outcome</th><th>Games</th><th>Levels</th><th>Played</th></tr></thead>
         <tbody>
           {recent.map((s) => (
             <tr>
@@ -204,7 +204,6 @@ const when = (d: Date): string => d.toISOString().slice(0, 16).replace('T', ' ')
               <td>{countryName(s.country)}</td>
               <td>{s.os} · {s.browser}</td>
               <td>{s.device}</td>
-              <td>{s.net ?? '–'}</td>
               <td>{s.landing ?? '–'}</td>
               <td>{s.ref ?? '–'}</td>
               <td>{seconds(s.landingSeconds)}</td>

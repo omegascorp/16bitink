@@ -2,7 +2,7 @@ import type { GameHandle, GameHost, GameModule } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { PAPER } from './art/palette';
 import { SoundBoard } from './audio/sound';
-import { REG } from './host';
+import { REG, tickPlay } from './host';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 import { HudScene } from './scenes/HudScene';
@@ -41,6 +41,7 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
   // Sound is synthesized by our own SoundBoard (audio/), as in InkCrab; Phaser's audio stays off.
   const sound = new SoundBoard(host.storage);
   game.registry.set(REG.sound, sound);
+  game.events.on(Phaser.Core.Events.STEP, (_time: number, delta: number) => tickPlay(game, delta));
   const resizer = new ResizeObserver(() => {
     const next = cssSize();
     const w = Math.round(next.width * DPR);

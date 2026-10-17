@@ -99,14 +99,14 @@ describe.skipIf(!uri)('loading and page diagnostics (MongoDB)', () => {
     expect(errors[0]?.last).toBeInstanceOf(Date);
   });
 
-  it('adds the landing page, referrer, connection and loading outcome to each visit', async () => {
+  it('adds the landing page, referrer and loading outcome to each visit', async () => {
     await recordEvents([
       view('a', '/', 'www.youtube.com'), leave('a', '/', 6000), view('a', '/play/inkfish'),
       ev('a', 'play_tap', { ms: 900 }, 'inkfish'), ev('a', 'load_abandon', { ms: 9000, pct: 20 }, 'inkfish'),
-      { ...view('b', '/games/inkcrab'), net: '3g' },
+      view('b', '/games/inkcrab'),
     ]);
     const [b, a] = await recentSessions(RANGE);
-    expect(a).toMatchObject({ landing: '/', ref: 'www.youtube.com', landingSeconds: 6, tapped: true, failed: false, abandoned: true, net: null });
-    expect(b).toMatchObject({ landing: '/games/inkcrab', ref: null, landingSeconds: null, tapped: false, failed: false, abandoned: false, net: '3g' });
+    expect(a).toMatchObject({ landing: '/', ref: 'www.youtube.com', landingSeconds: 6, tapped: true, failed: false, abandoned: true });
+    expect(b).toMatchObject({ landing: '/games/inkcrab', ref: null, landingSeconds: null, tapped: false, failed: false, abandoned: false });
   });
 });

@@ -18,6 +18,8 @@ const handle = mount(parent, {
   onBuy: () => alert('Checkout would open here'),
   price: '$4.99',
   onExit: () => alert('Exit to catalog'),
+  // What the website would record: open the console's Verbose level to see the goal funnel's events.
+  track: (e) => console.debug('[stats]', e),
 });
 // Exposed for automated smoke tests only.
 (window as unknown as { __game: unknown }).__game = handle.phaser;

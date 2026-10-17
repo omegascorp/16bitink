@@ -9,6 +9,8 @@ import { REPAIR_IDS, type RepairId } from './repairs';
 import { MODULE_KEYS, maxLevel, storeCapacity, type ShipModules } from './ship';
 import { BEATS, type Beat } from './story';
 import { isDesign } from './designs';
+import { NEW_STATS, type PlayStats } from './playStats';
+import { STEPS } from './progress';
 import { TOOLS, type Tool } from './tools';
 import { isWorldId, WORLD_IDS, type WorldId } from './worlds';
 
@@ -92,6 +94,18 @@ function parseVisited(v: unknown): WorldId[] {
   return WORLD_IDS.filter((id) => id === 'graphite' || listed.includes(id));
 }
 
+/** A century of play: no real save comes near it. */
+const MAX_PLAYED = 100 * 365 * 24 * 3600;
+
+/** Play time within bounds, the step only if the funnel lists it, and its start no later than now. */
+function parseStats(v: unknown): PlayStats {
+  if (!isObj(v)) return NEW_STATS;
+  const seconds = (x: unknown, max: number): number => (typeof x === 'number' && Number.isFinite(x) ? Math.max(0, Math.min(max, x)) : 0);
+  const played = seconds(v.played, MAX_PLAYED);
+  const step = STEPS.some((s) => s.key === v.step) ? (v.step as string) : '';
+  return { played, step, since: seconds(v.since, played) };
+}
+
 /** Untrusted saved data to a profile: anything malformed is dropped, never thrown. */
 export function parseProfile(raw: unknown): Profile {
   if (!isObj(raw)) return NEW_PROFILE;
@@ -115,6 +129,7 @@ export function parseProfile(raw: unknown): Profile {
     stores: parseStores(raw.stores, storeCapacity(parseShip(raw.ship))),
     at: isWorldId(raw.at) ? raw.at : 'graphite',
     visited: parseVisited(raw.visited),
+    stats: parseStats(raw.stats),
   });
 }
 

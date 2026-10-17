@@ -708,7 +708,7 @@ A world is never stored. Loading carves it again from its seed and lays the save
 
 | Save | Key | Holds |
 | --- | --- | --- |
-| Profile | `inkmine.profile.v3` | The bag, the cargo, gear marks, blueprints found, lander modules, the world you're at and the worlds you've landed on (`logic/save.ts`) |
+| Profile | `inkmine.profile.v3` | The bag, the cargo, gear marks, blueprints found, lander modules, the world you're at and the worlds you've landed on, play time and the goal last reported to the stats (`logic/save.ts`) |
 | One per world | `inkmine.world.<id>.v1` | The world's version; dug tiles and ladders, each one bit a tile; ids of items banked for good (`logic/worldSave.ts`) |
 
 The world save also keeps the bag left under its flag (a tile index and the inventory). Later: texts read, words known, jobs.
@@ -720,6 +720,17 @@ The world save also keeps the bag left under its flag (a tile index and the inve
 - **Merging two devices** (when account sync arrives): digging only ever removes rock on Graphite, so dug masks merge by OR, and taken items and words by union. Inventories and gear come from the newer save. Talus (falling rock) and Mycel (regrowth) move tiles, so they'll need more than a dug mask.
 - **Shipped worlds change only by adding.** The save says "this tile is open", never what was there. If a released world's layout moves, old tunnels open into different rock; that's harmless but odd, so bump the world's `version` and prefer adding over moving. Items are saved by id, so they survive changes.
 - **The roof.** The ground's first surface is taken from the carved ground, before the save, so a shaft dug in an earlier session still reads as inside the planet, not sky.
+
+## Stats: goals as levels
+
+InkMine has no levels, so the site's level funnel follows the goal chain instead (`logic/progress.ts`). Each goal is one step, numbered in the order a player meets it, from "Repair the printer" (1) to "The end (Brine is coming)" (30). The funnel needs no changes on the site.
+
+- **A step starts** when it becomes the goal, and again at the start of each session, so "Tries" counts the sittings a goal took.
+- **A step is beaten** when the goal moves past it. Its time is play time, counted only while the game is on screen and kept in the profile (`stats.played`), so a goal spread over three evenings counts all three.
+- **Steps gone straight past** (the drill studied before the hull was mended, a tank already full) start and are beaten at once, at 0 seconds, so no step has fewer players than the one after it.
+- **"Fly to Mycel (paid)"** is the buy: how many beat it is how many bought the full game. The last step is beaten as soon as it's reached, as it ends the story so far.
+- **Saves from before the stats** pick up at their current goal without reporting the ones they passed.
+- **Add steps only at the end.** The funnel groups by step number, so a goal inserted into Graphite's part renumbers every step after it, and stats recorded before the change no longer line up. New chapters' goals go after Brine's.
 
 ## Tech: what to reuse
 

@@ -88,9 +88,8 @@ describe('parseBatch', () => {
       { type: 'load_fail', at: 7, game: 'inkcrab', ms: 2000, stage: 'boot', error: 'WebGL unavailable' },
       { type: 'load_abandon', at: 8, game: 'inkfish', ms: 12000, pct: 41 },
       { type: 'js_error', at: 9, path: '/', error: 'TypeError: x is undefined', source: '/_astro/a.js:1:200' },
-    ], { net: '3g' }));
+    ]));
     expect(parsed?.events).toHaveLength(9);
-    expect(parsed?.net).toBe('3g');
   });
 
   it.each([
@@ -103,12 +102,6 @@ describe('parseBatch', () => {
     ['a ready event with no stage', { type: 'game_ready', at: 1, game: 'inkfish', ms: 1 }],
   ])('rejects %s', (_label, event) => {
     expect(parseBatch(batch([event]))).toBeNull();
-  });
-
-  it('leaves out a connection type it does not know, keeping the batch', () => {
-    const parsed = parseBatch(batch([{ type: 'game_start', at: 1, game: 'inkfish' }], { net: '6g' }));
-    expect(parsed).not.toBeNull();
-    expect(parsed?.net).toBeUndefined();
   });
 
   it('drops unknown fields instead of storing them', () => {
@@ -161,13 +154,13 @@ describe('toStoredEvents', () => {
     }]);
   });
 
-  it('stores the connection type on every event of the batch', () => {
+  it('stores the load fields, and not a connection type an older page still sends', () => {
     const parsed = parseBatch(batch([
       { type: 'pageview', at: 1_000_000, path: '/' },
       { type: 'load_fail', at: 1_000_000, game: 'inkfish', ms: 900, stage: 'mount', error: 'boom' },
     ], { net: '2g' }))!;
     const stored = toStoredEvents(parsed, VISIT, NOW, isGame);
-    expect(stored.map((e) => e.net)).toEqual(['2g', '2g']);
+    expect(stored.every((e) => !('net' in e))).toBe(true);
     expect(stored[1]).toMatchObject({ meta: { event: 'load_fail', game: 'inkfish' }, ms: 900, stage: 'mount', error: 'boom' });
   });
 

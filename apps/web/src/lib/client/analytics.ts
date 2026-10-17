@@ -50,14 +50,6 @@ export function gameTag(game: string, version: string | undefined): GameTag {
 
 type Queued = Event & { readonly at: number };
 
-const NET_TYPES: ReadonlySet<string> = new Set(['slow-2g', '2g', '3g', '4g']);
-
-/** The browser's connection type, when it's one the server knows. */
-export function networkType(connection: { readonly effectiveType?: unknown } | undefined): string | undefined {
-  const type = connection?.effectiveType;
-  return typeof type === 'string' && NET_TYPES.has(type) ? type : undefined;
-}
-
 const randomId = (): string =>
   typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
 
@@ -124,8 +116,7 @@ export function flushAnalytics(leaving = false): void {
   timer = null;
   if (queue.length === 0) return;
   const now = Date.now();
-  const net = networkType((navigator as Navigator & { connection?: { effectiveType?: unknown } }).connection);
-  const body = JSON.stringify({ visitor: visitorId(now), session: visitId(now), sentAt: now, touch: navigator.maxTouchPoints > 1, ...(net ? { net } : {}), events: queue });
+  const body = JSON.stringify({ visitor: visitorId(now), session: visitId(now), sentAt: now, touch: navigator.maxTouchPoints > 1, events: queue });
   queue = [];
   try {
     if (leaving && navigator.sendBeacon?.(ENDPOINT, body)) return;

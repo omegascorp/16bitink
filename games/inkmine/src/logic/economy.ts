@@ -1,4 +1,5 @@
 import { canBuild, recipeOf, type BuildCheck } from './blueprints';
+import { NEW_STATS, type PlayStats } from './playStats';
 import { STARTER_LOADOUT, type Loadout } from './gear';
 import { addHold, holds, type Hold } from './hold';
 import { contents, emptyInventory, resize, takeHoldFrom, type Inventory } from './inventory';
@@ -49,6 +50,8 @@ export interface Profile {
   readonly at: WorldId;
   /** Worlds you've landed on, the first included. */
   readonly visited: readonly WorldId[];
+  /** Play time and the goal last reported, for the site's stats (progress.ts). */
+  readonly stats: PlayStats;
 }
 
 /** The starship's hold: big slots and big stacks, as a hauler's. */
@@ -75,6 +78,7 @@ export const NEW_PROFILE: Profile = {
   stores: { air: storeCapacity(STARTER_SHIP), power: storeCapacity(STARTER_SHIP) },
   at: 'graphite',
   visited: ['graphite'],
+  stats: NEW_STATS,
 };
 
 /** Every resource on hand: the cargo and the suit's bag, and the starship's hold while docked. */
