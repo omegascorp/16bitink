@@ -1,5 +1,6 @@
 import type { Body, Box } from './body';
-import { alive, CREATURE, type Creature } from './creatures';
+import { alive, CREATURE, SPOILS, type Creature } from './creatures';
+import type { OreKey } from './ore';
 import type { MineEvent } from './mine';
 import { newShot, PULSE, stepShot, type Shot } from './pulse';
 import { foldX, isSolid, ringDelta, TILE, tileAt, type Terrain, type TilePos } from './terrain';
@@ -40,6 +41,13 @@ export interface FaunaInput {
   readonly jump: boolean;
 }
 
+/** A piece a killed creature left, px, for the Mine to drop. */
+export interface Spoil {
+  readonly ore: OreKey;
+  readonly x: number;
+  readonly y: number;
+}
+
 let nextGlob = 1;
 
 /**
@@ -53,6 +61,8 @@ export class Fauna {
   shots: Shot[] = [];
   /** The tendril holding the prospector, by id; null when free. */
   held: number | null = null;
+  /** Pieces left by what was killed since the Mine last took them (takeSpoils). */
+  private spoils: Spoil[] = [];
   private struggles = 0;
   private cooldown = 0;
 
@@ -71,6 +81,22 @@ export class Fauna {
     this.globs = this.globs.flatMap((g) => this.fly(g, dt, host));
   }
 
+  /** The pieces left by what was killed since last asked, once. */
+  takeSpoils(): Spoil[] {
+    const out = this.spoils;
+    this.spoils = [];
+    return out;
+  }
+
+  /** `c` killed: bursting or slumping, and leaving its spoils where its body was. */
+  private kill(c: Creature, tile: number): Creature {
+    const ores = SPOILS[c.kind] ?? [];
+    // A tendril's body hangs below its knot in the ceiling; a puffball's sits on its foot.
+    const y = c.kind === 'tendril' ? c.y + tile * 0.6 : c.y - tile * 0.4;
+    ores.forEach((ore, j) => this.spoils.push({ ore, x: c.x + (j - (ores.length - 1) / 2) * tile * 0.4, y }));
+    return { ...c, hp: 0, state: c.kind === 'puffball' ? 'burst' : 'dead', timer: 0.6 };
+  }
+
   /** A blast over `area` bursts puffballs, severs tendrils and curls up grazers; the Mother doesn't notice. */
   blast(area: readonly TilePos[], tile: number): void {
     const hit = new Set(area.map(([x, y]) => `${x},${y}`));
@@ -80,7 +106,7 @@ export class Fauna {
       if (!hit.has(key)) return c;
       if (c.kind === 'grazer') return { ...c, state: 'curled', timer: CREATURE.grazer.curl };
       if (c.id === this.held) this.held = null;
-      return { ...c, hp: 0, state: c.kind === 'puffball' ? 'burst' : 'dead', timer: 0.6 };
+      return this.kill(c, tile);
     });
   }
 
@@ -114,7 +140,7 @@ export class Fauna {
     else if (c.kind !== 'mother') {
       const hp = c.hp - 1;
       if (c.id === this.held && (hp <= 0 || c.kind === 'tendril')) this.release(events);
-      after = hp > 0 ? { ...c, hp, state: c.kind === 'tendril' ? 'retract' : c.state } : { ...c, hp: 0, state: c.kind === 'puffball' ? 'burst' : 'dead', timer: 0.6 };
+      after = hp > 0 ? { ...c, hp, state: c.kind === 'tendril' ? 'retract' : c.state } : this.kill(c, host.tile);
       // A puffball bursting close by fills the air round it with spores.
       if (after.state === 'burst' && distance(host, c.x, c.y - 14) < CREATURE.puffball.burstReach * host.tile) host.loseAir(CREATURE.puffball.burstAir);
     }

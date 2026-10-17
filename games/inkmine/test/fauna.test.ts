@@ -5,6 +5,8 @@ import { PLANET_1 } from '../src/level/planet1';
 import { canBuild, nextMark, RECIPES } from '../src/logic/blueprints';
 import { CREATURE, type Creature, type CreatureKind } from '../src/logic/creatures';
 import { NEW_PROFILE } from '../src/logic/economy';
+import { countIn } from '../src/logic/inventory';
+import { ORES, type OreKey } from '../src/logic/ore';
 import { NO_INPUT, type Mine, type MineEvent, type MineInput } from '../src/logic/mine';
 import { PULSE } from '../src/logic/pulse';
 import { parseProfile } from '../src/logic/save';
@@ -193,6 +195,34 @@ describe('where they live', () => {
   it('arms you once the pulse is printed', () => {
     expect(setup.armed).toBe(false);
     expect(buildWorld(mycel, { ...p, tools: ['receiver', 'pulse'] }, null).setup.armed).toBe(true);
+  });
+});
+
+describe('spoils', () => {
+  /** Pieces of `ore` lying about or already in the bag. */
+  const got = (m: Mine, ore: OreKey): number => m.pieces.filter((p) => p.ore === ORES[ore].id).length + countIn(m.suit.bag, ore);
+
+  it('a burst puffball leaves carbon and water', () => {
+    const m = mine(CAVE, { lander: { col: 1, row: 1 }, armed: true, creatures: [creature('puffball', 12, FLOOR)] });
+    standAt(m, 8, 7);
+    m.facing = 1;
+    const [carbon, water] = [got(m, 'carbon'), got(m, 'water')];
+    play(m, 1, {}, { fire: true });
+    expect(got(m, 'carbon')).toBe(carbon + 1);
+    expect(got(m, 'water')).toBe(water + 1);
+  });
+
+  it('a severed tendril leaves carbon and amber; a blast kills and leaves spoils too', () => {
+    const m = mine(CAVE, { lander: { col: 1, row: 1 }, creatures: [creature('tendril', 10, 1 * T), creature('puffball', 14, FLOOR, { id: 2 })] });
+    m.fauna.blast([[10, 1], [14, 6]], T);
+    expect(m.fauna.takeSpoils().map((s) => s.ore).sort()).toEqual(['amber', 'carbon', 'carbon', 'water']);
+    expect(m.fauna.takeSpoils()).toEqual([]);
+  });
+
+  it('a grazer only curls up, and leaves nothing', () => {
+    const m = mine(CAVE, { lander: { col: 1, row: 1 }, creatures: [creature('grazer', 12, FLOOR)] });
+    m.fauna.blast([[12, 6]], T);
+    expect(m.fauna.takeSpoils()).toEqual([]);
   });
 });
 

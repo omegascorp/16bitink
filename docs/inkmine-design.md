@@ -366,6 +366,8 @@ Every planet has its own native creatures, invented but built from a few behavio
 | Grazer | Harmless, blue ink | The surface among the caps, away from the lander | Crawls along eating caps, stepping up and down a tile, turning at walls and drops. Shot, it curls up for 3 s and comes to no harm |
 | The Mother Mycel | Giant | Her chamber deep in the limestone east of the wreck (10 × 7 tiles) | Can't be hurt (a pulse leaves no mark). Every 4 s she beats: a red wave of spores spreads out, costing 10 air to anyone within 7 tiles of her. Touching her is a hit and throws you off. You mine your way around her |
 
+What you kill leaves pieces where it was, picked up like ore (`SPOILS` in `logic/creatures.ts`). A puffball leaves carbon and water, since it's cap flesh round a sac of water. A tendril leaves carbon and amber: it's a resinous root, so it's the deep stone's reward. Grazers and the Mother leave nothing, since neither can be killed. A blast kills the same way a pulse does.
+
 ## Weapons
 
 Your ship is a mining ship: it has no weapons, and you start with none. Graphite has nothing to fight, so you need none there. Weapons come from other peoples' technology: studied from what they left, or given in trade, and printed from ore like everything else.

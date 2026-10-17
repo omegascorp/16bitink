@@ -1,3 +1,4 @@
+import type { OreKey } from './ore';
 import { createRng, type Rng } from './rng';
 import { isSolid, surfaceRow, TILE, tileAt, wrapX, type Terrain, type TilePos } from './terrain';
 
@@ -38,6 +39,17 @@ export const CREATURE = {
   /** `wave`: tiles from her body that a beat's spores reach. */
   mother: { w: 8, h: 6, beat: 4, wave: 7, waveAir: 10, push: 380 },
 } as const;
+
+/**
+ * What a creature leaves when it's killed, as pieces to pick up: a puffball
+ * is a cap's flesh round a sac of water, a tendril a resinous root (the
+ * stalks' resin, fresh). Grazers only curl up and the Mother can't be hurt,
+ * so they leave nothing.
+ */
+export const SPOILS: Partial<Record<CreatureKind, readonly OreKey[]>> = {
+  puffball: ['carbon', 'water'],
+  tendril: ['carbon', 'amber'],
+};
 
 /**
  * One creature. `x`, `y` is where it's anchored, px: a puffball's foot and

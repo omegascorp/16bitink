@@ -450,6 +450,7 @@ export class Mine {
     for (const blast of blasts) {
       events.push({ kind: 'blast', blast });
       this.fauna.blast(blast.area, this.tile);
+      this.dropSpoils();
       for (const { ore, tile } of blast.ores) this.pieces.push(newPiece(ore, (tile[0] + 0.5) * this.tile, (tile[1] + 0.5) * this.tile));
       if (blast.area.some(([x, y]) => this.occupies(x, y))) this.hurt(events);
     }
@@ -639,6 +640,12 @@ export class Mine {
         this.knock = { dir: Math.sign(vx), speed: Math.abs(vx), until: this.time + 0.3 };
       },
     }, events);
+    this.dropSpoils();
+  }
+
+  /** What killed creatures left, as pieces to pick up. */
+  private dropSpoils(): void {
+    for (const s of this.fauna.takeSpoils()) this.pieces.push(newPiece(ORES[s.ore].id, s.x, s.y));
   }
 
   private notice(key: string, events: MineEvent[], event: MineEvent, gap = NOTICE_GAP): void {
