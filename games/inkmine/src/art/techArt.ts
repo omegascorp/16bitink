@@ -8,12 +8,14 @@ import { HEAD, helmet } from './prospector/helmet';
 import { jetpack } from './prospector/jetpack';
 import { part, rivets, roundRect, seam, sheen, WASH } from './prospector/parts';
 import { arm, leg, torso } from './prospector/suit';
+import { drawStarshipSystem } from './starship/systems';
 
 /**
  * The pictures in the lander's technology slots, No Man's Sky style: each
  * slot shows the thing itself. Gear is drawn with the prospector's own
  * parts in its look, so a slot matches what the character wears; the
- * ship's systems are drawn with the lander's parts, broken until mended.
+ * lander's systems are drawn with the lander's parts, broken until mended;
+ * the starship's are drawn like the starship (starship/systems.ts).
  * Each fits a frame of TECH_FRAME units, origin at the centre.
  */
 export const TECH_FRAME = 40;
@@ -25,8 +27,6 @@ const CHARGE = WASH.charge;
 const STEEL = '#b9c1cc';
 const CRATE = '#b48a55';
 const CORE = '#7fd3e0';
-/** The paper showing through a split. */
-const PAPERISH = '#f1ece0';
 
 /** Draws `fn` moved by (dx, dy) and scaled by `s` about the origin. */
 function placed(d: Draw, dx: number, dy: number, s: number, fn: () => void): void {
@@ -237,89 +237,11 @@ function receiver(d: Draw): void {
   sheen(d, [pt(-7.6, -7), pt(-7.6, 12)], 0.8);
 }
 
-/** The starship's power: a junction box with its cable bundle; scorched, its lamps dark, when burnt out. */
-function power(d: Draw, broken: boolean): void {
-  for (const [y, col] of [[-6, '#b07a3a'], [-2, '#c9c6bd'], [2, '#b07a3a']] as const) d.pen.stroke([pt(-16, y + 8), pt(-11, y + 6), pt(-8, y)], 1.4, col, 0.95, false);
-  const box = roundRect(-8, -11, 13, 11, 2);
-  part(d, box, broken ? WASH.darkMetal : '#c7c9ce', { shadow: 0.5, line: 0.85, gloss: true });
-  part(d, roundRect(-4, -7, 9, 1, 1), '#2f3346', { shadow: 0, line: 0.6, hatch: 0 });
-  for (let k = 0; k < 3; k++) {
-    const x = -1 + k * 4;
-    if (!broken) glow(d.pen.ctx, pt(x, -3), 2.6, CHARGE, 0.6);
-    d.pen.dot(x, -3, 1.1, broken ? '#55607e' : CHARGE);
-  }
-  d.pen.stroke([pt(-3, 5), pt(9, 5)], 0.6, d.ink, 0.6, false);
-  if (broken) {
-    dab(d, oval(4, 7, 8, 4, 14), '#2a2733', 0.45, 1.5);
-    d.pen.stroke([pt(6, -11), pt(4, -6), pt(7, -3)], 0.7, d.ink, 0.9, false);
-  }
-}
-
-/** The starship's fuel tank: a capsule wound with carbon fibre; split along a seam and frosted where the fuel boiled out. */
-function shipTank(d: Draw, broken: boolean): void {
-  const tank = capsule(pt(0, -12), pt(0, 12), 9, 9);
-  part(d, tank, '#4a4f5c', { shadow: 0.55, line: 0.9, gloss: true, hatch: 0 });
-  // The winding: fine diagonal fibres across it.
-  d.pen.clipped(tank, () => {
-    for (let y = -24; y < 24; y += 2.2) d.pen.hair([pt(-10, y), pt(10, y + 7)], 0.4, '#8a90a0', 0.55);
-  });
-  part(d, roundRect(-3, -17, 3, -13, 0.8), WASH.metal, { shadow: 0.4, line: 0.6, hatch: 0 });
-  if (broken) {
-    dab(d, oval(-1, 2, 6, 8, 16), '#f4fbff', 0.55, 1.5);
-    d.pen.stroke([pt(1, -9), pt(-1, -3), pt(1.4, 3), pt(-0.6, 9)], 0.9, d.ink, 0.95, false);
-  } else {
-    glow(d.pen.ctx, pt(5, -4), 3, '#9fe3f0', 0.6);
-    d.pen.dot(5, -4, 1.2, '#9fe3f0');
-  }
-}
-
-/** The starship's engine: an ion engine's round grid of holes in a ring; glowing blue when running, cracked and cold when not. */
-function engine(d: Draw, broken: boolean): void {
-  const ring = oval(0, 0, 14, 14, 36);
-  part(d, ring, WASH.darkMetal, { shadow: 0.5, line: 0.9, gloss: true });
-  const grid = oval(0, 0, 10.5, 10.5, 32);
-  if (!broken) glow(d.pen.ctx, pt(0, 0), 13, '#7fb8ff', 0.55);
-  part(d, grid, broken ? '#3a3f55' : '#9ec9ff', { shadow: 0.2, line: 0.6, hatch: 0, alpha: 1 });
-  for (let y = -8; y <= 8; y += 3.2) for (let x = -8; x <= 8; x += 3.2) {
-    if (x * x + y * y > 80) continue;
-    d.pen.dot(x + (Math.round(y / 3.2) % 2 ? 1.6 : 0), y, 0.8, broken ? '#20243a' : '#e8f3ff');
-  }
-  if (broken) d.pen.stroke([pt(-9, -5), pt(-3, -1), pt(-5, 4), pt(2, 9)], 0.9, d.ink, 0.95, false);
-}
-
-/** The starship's telescope: a tube on a mount, its lens catching the light. */
-function telescope(d: Draw): void {
-  const tube = capsule(pt(-12, 8), pt(10, -8), 5, 6);
-  part(d, tube, '#d9d4c6', { shadow: 0.5, line: 0.85, gloss: true });
-  part(d, oval(10.4, -8.4, 4.2, 5.4, 18), '#26314f', { shadow: 0, line: 0.7, hatch: 0 });
-  gleam(d, [pt(9, -11), pt(11, -6)], 1, 0.9);
-  d.pen.stroke([pt(-2, 2), pt(-4, 13)], 1.2, d.ink, 0.9, false);
-  d.pen.stroke([pt(-9, 14), pt(3, 14)], 1.2, d.ink, 0.9, false);
-}
-
-/** The starship's jump drive: a ring meant to steady a wormhole, burnt black and split. */
-function jump(d: Draw): void {
-  const outer = oval(0, 0, 15, 15, 40);
-  const inner = oval(0, 0, 9, 9, 32).reverse();
-  part(d, [...outer, ...inner], '#3a3d4c', { shadow: 0.5, line: 0.9, gloss: true });
-  dab(d, oval(4, 4, 10, 8, 18), '#141622', 0.45, 2);
-  d.pen.stroke([pt(9, -9), pt(12, -12.5)], 1.2, PAPERISH, 1, false);
-  d.pen.stroke([pt(8.6, -8.4), pt(11, -11)], 0.6, d.ink, 0.9, false);
-}
-
-function starshipSystem(d: Draw, t: Extract<Tech, { kind: 'starship' }>, broken: boolean): void {
-  if (t.id === 'power') power(d, broken);
-  else if (t.id === 'tank') shipTank(d, broken);
-  else if (t.id === 'engine') engine(d, broken);
-  else if (t.id === 'telescope') telescope(d);
-  else jump(d);
-}
-
 export function drawTech(d: Draw, t: Tech, variant: TechVariant): void {
   if (t.kind === 'gear') gear(d, t, typeof variant === 'number' ? variant : 0);
   else if (t.kind === 'tool') receiver(d);
   else if (t.kind === 'repair') system(d, t, variant === 'broken');
-  else if (t.kind === 'starship') starshipSystem(d, t, variant === 'broken');
+  else if (t.kind === 'starship') drawStarshipSystem(d, t.id, variant === 'broken');
   else if (t.key === 'cargo') cargo(d);
   else if (t.key === 'winch') winch(d);
   else if (t.key === 'stores') supplyTanks(d);

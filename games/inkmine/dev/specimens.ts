@@ -8,7 +8,7 @@ import type { Wreck } from '../src/logic/repairs';
 import { drawTech, TECH_FRAME } from '../src/art/techArt';
 import { drawLamplighter, drawOutpost, LAMPLIGHTER, OUTPOST_ART } from '../src/art/lamplighterArt';
 import { BLUE } from '../src/art/palette';
-import { SHIP_MODULES, SHIP_SYSTEMS, SUIT_TECH, techKey } from '../src/logic/tech';
+import { SHIP_MODULES, SHIP_SYSTEMS, STARSHIP_TECH, SUIT_TECH, techKey } from '../src/logic/tech';
 import { TECH_RES } from '../src/art/textures';
 import { BROKEN_SHIP, drawStarship, drawStarshipAir, STARSHIP_ART, type ShipLook } from '../src/art/starship';
 import { SHIP_FINISH, SHIP_MAP_FINISH, SHIP_MAP_RES, SHIP_RES } from '../src/art/textures';
@@ -138,3 +138,5 @@ for (const t of SUIT_TECH) for (const v of [0, 1, 2] as const) figure(gearRow, `
 const shipRow = section('Technology: ship', 'Systems broken and mended, then the modules.');
 for (const t of SHIP_SYSTEMS) for (const v of ['broken', 'mended'] as const) figure(shipRow, `${techKey(t)} ${v}`, tech(t, v));
 for (const t of SHIP_MODULES) figure(shipRow, techKey(t), tech(t, 'mended'));
+const starRow = section('Technology: starship', 'The starship\'s systems as the wormhole left them, then mended; the jump drive is past mending here.');
+for (const t of STARSHIP_TECH) for (const v of ['broken', 'mended'] as const) figure(starRow, `${techKey(t)} ${v}`, tech(t, v));
