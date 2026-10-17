@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./content": "./content/paid.ts",
     "./package.json": "./package.json"
   },
   "scripts": {

@@ -40,8 +40,6 @@ export const PLANET_1: PlanetDef = {
   blurb: 'A grey moon of soft dark rock, pencil lead in its seams.',
   style: GRAPHITE,
   signature: 'graphite',
-  // Graphite is in battery anodes; water ice is what real moon bases plan to make air from.
-  fuels: { cell: 'graphite', air: 'ice' },
   world: {
     id: 'graphite',
     // 2: water ice added (it moved the random firedamp a little). 3: the outpost's ground flattened.

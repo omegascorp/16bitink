@@ -1,5 +1,6 @@
 import type { DrillSpec } from './drill';
 import type { Loadout, Piece } from './gear';
+import { worldOfChapter } from './starSystem';
 import { AIR, type SuitSpec } from './suit';
 
 /**
@@ -58,11 +59,17 @@ export function lampFor(mk: number): number {
   return at(MARK_STEP.lamp, mk);
 }
 
+/** "Graphite's stone": the stone a drill of mark `mk` is built for, on chapter `mk`'s world. */
+function stoneOf(mk: number): string {
+  const name = worldOfChapter(mk)?.name;
+  return name ? `${name}'s stone` : `planet ${mk}'s stone`;
+}
+
 /** What going from mark `mk - 1` to `mk` gives, in a few words, for the fabricator sheet. */
 export function markGain(piece: Piece, mk: number): string {
   const was = mk - 1;
   switch (piece) {
-    case 'drill': return mk === 1 ? "breaks Graphite's stone" : `breaks planet ${mk}'s stone`;
+    case 'drill': return `breaks ${stoneOf(mk)}`;
     case 'cell': return `energy ${at(MARK_STEP.energy, was)} → ${at(MARK_STEP.energy, mk)}`;
     case 'pack': return `bag ${at(MARK_STEP.slots, was)} → ${at(MARK_STEP.slots, mk)} slots`;
     case 'suit':
@@ -75,7 +82,7 @@ export function markGain(piece: Piece, mk: number): string {
 /** What a piece at mark `mk` does now, in a few words. */
 export function markStat(piece: Piece, mk: number): string {
   switch (piece) {
-    case 'drill': return mk === 0 ? 'starter drill: soil only' : `breaks planet ${mk}'s stone`;
+    case 'drill': return mk === 0 ? 'starter drill: soil only' : `breaks ${stoneOf(mk)}`;
     case 'cell': return `${at(MARK_STEP.energy, mk)} energy`;
     case 'pack': return `${at(MARK_STEP.slots, mk)} bag slots`;
     case 'suit': return `${heartsAt(mk)} hearts, ${shieldAt(mk)} shield bar${shieldAt(mk) > 1 ? 's' : ''}`;

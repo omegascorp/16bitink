@@ -15,7 +15,7 @@ import type { OreKey } from './ore';
  *
  * The beats are saved as reached: never rename one.
  */
-export const BEATS = ['called', 'met', 'paid', 'core', 'flown', 'course', 'aboard', 'firstLight'] as const;
+export const BEATS = ['called', 'met', 'paid', 'core', 'flown', 'course', 'aboard', 'firstLight', 'mycelOrbit', 'mycelLanded'] as const;
 export type Beat = (typeof BEATS)[number];
 
 /**
@@ -26,6 +26,9 @@ export type Beat = (typeof BEATS)[number];
 export const OUTPOST = { col: 180, worldCols: 256, domes: 5 } as const;
 /** What the Lamplighters want for the core: silver, which lies deep. */
 export const TRADE: Hold = { silver: 10 };
+
+/** The beat that says a world's first-landing card was read (Graphite's opening is `started`). */
+export const ARRIVAL_BEAT: Readonly<Partial<Record<string, Beat>>> = { mycel: 'mycelLanded' };
 
 export const hasBeat = (p: Pick<Profile, 'beats'>, b: Beat): boolean => p.beats.includes(b);
 

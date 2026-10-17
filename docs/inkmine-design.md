@@ -50,7 +50,7 @@ Graphite is chapter 1, and the free version. It ends the moment the lander flies
 8. **Lift-off, and your starship** (built Oct 17, 2026). With the core in and a full tank, **Lift off** climbs to the starship in orbit and docks. It's cold and dark: the wormhole burnt out its power, cracked its telescope's mirror, split its tank and killed its engine, and its jump drive is burnt black. Without the telescope there's no star map yet.
 9. **Back down for its parts.** The ship's repairs take Graphite's ore, mended aboard only, so you land (Land, top right, burns 6), dig, fill the lander's cargo, refuel and climb again. Ore can be stowed in the ship's own hold. The HUD's "Next" leads the way ("Mend your ship's power: native copper 3/10 · native silver 0/4, carried up in the lander").
 10. **First light.** With the ship's power and telescope mended, the telescope sees again and the **star map** opens on the first star system: the grey moon turns out to be one of three moons round the ringed giant.
-11. **The first trip, and the end of the demo.** With the ship's tank and engine mended and the tank filled, the star map's Mycel card has **Set course**. The ship leaves for Mycel, and the demo ends on the star map: "the end of the demo: the rest of the journey is coming soon". A finished demo opens on the star map from then on.
+11. **The first trip, and the end of the demo.** With the ship's tank and engine mended and the tank filled, the star map's Mycel card has **Set course**. Without the full game the demo ends there on the star map, with an offer to unlock it, and a finished demo opens on the star map from then on; with it, the ship flies on to Mycel (see "Mycel").
 
 **The way home** (@Hayk, Oct 17, 2026). Your people travel only through wormholes they have found, charted and steadied. This one was wild: natural, unprepared and unstable, so it wrecked the ship and took part of your memory. You're somewhere your species has never been, and you don't know where. The goal across all chapters is two things: **find where home is in the sky**, and **have enough to travel there**. Chapter 1 gets you back to your ship and flying again, and its telescope shows a system no chart you remember has.
 
@@ -363,7 +363,7 @@ To design: the weapons themselves (how they fire, their marks), and how the dept
 
 ## Your starship and travel
 
-Decided with @Hayk on Oct 17, 2026; the starship, its repairs, its hold and the first trip are built (`logic/starship.ts`, the Starship tab, the star map's Set course). Travel past the first trip is designed, not built.
+Decided with @Hayk on Oct 17, 2026; the starship, its repairs, its hold and the first trip are built (`logic/starship.ts`, the Starship tab, the star map's Set course). Trips between Graphite and Mycel are built (`logic/travel.ts`, Oct 17, 2026): 6 units each way, set on the star map aboard, landing on the world the ship circles. Travel past them (launch windows, bigger tanks) is designed, not built.
 
 **The starship flies between worlds; the lander goes down and up.** It circles the world you're on; the lander climbs to it and lands again, burning its own fuel each way.
 
@@ -468,6 +468,51 @@ A grey moon of soft dark rock, pocked with craters, with a ringed planet hanging
 | Below | Deep rock | Rich veins and a vault, for a later drill | A return visit after chapter 1 |
 
 Graphite's existing levels 1–5 (`level/planet1.ts`) become the first regions: their rooms, fissures, vaults and items move into one world definition.
+
+## Mycel (chapter 2, the full game)
+
+Built Oct 17, 2026, as the first step of chapter 2: travel there, its world, its ores, its Mk 2 gear and two of its three mechanics. Still to come: fungus growing back over tunnels, its creatures, its people (and the spore filter they give), the Mother Mycel, and the chapter's story past the gear.
+
+Graphite's sister moon round the ringed giant, big enough to hold air: a fungal jungle under a thick haze of carbon dioxide and spores. Green from space and in its sky; violet underground, its soil peat of fungal matter, its stone limestone. The Aster crew came here too: their second lander lies wrecked in the coal swamp and their gear is scattered round the moon, each broken piece a Mk 2 design to study.
+
+**Getting there.** With the ship whole and 6 units in its tank, Set course on the star map's Mycel card flies there (the "Course set for Mycel" card, "the end of chapter 1"), and the ship's page opens docked over Mycel with an "In orbit over Mycel" card. Land goes down; the first landing has its own card ("a green moon, alive"). Without the full game the same button ends the demo with an offer to unlock it (the demo-end card's Unlock button calls the host's checkout).
+
+**Its fuels** (`logic/worlds.ts`): water, liquid here, for life support and both tanks (split as ice is on Graphite), and lignite for the cell (a carbon fuel cell burns it). Ice and graphite aren't found there. The lander's stores refill from the world you're on.
+
+**Its ores** (`logic/ore.ts`, ids 7–12): malachite (copper carbonate, banded green), pyrite (iron sulfide, brassy cubes), calcite (limestone's crystal, clear rhombs), amber (fossil resin with tiny fliers in it, the signature material), lignite and water. Each has its own glyph in the rock (`art/oreArt.ts`).
+
+**The Mk 2 set** (`logic/blueprints.ts`):
+
+| Piece | Materials | What it's made of |
+| --- | --- | --- |
+| Cell | 5 pyrite, 3 malachite | A pyrite cathode on a copper collector, as real lithium–iron disulfide cells are built |
+| Pack | 5 lignite, 2 amber | Coal-pitch carbon fibre bound in amber resin |
+| Drill | 6 pyrite, 4 malachite | An iron bit with copper windings |
+| Helmet | 4 calcite, 2 amber | An optical calcite visor under an amber filter |
+| Jetpack | 5 lignite, 3 pyrite | A carbon nozzle pressed from lignite, on iron joints |
+| Suit | 6 calcite, 3 amber | Mineral wool spun from calcite (as rock wool is from limestone), bound in amber |
+
+**A step behind.** You arrive with Graphite's Mk 1 drill: Mycel's peat costs 2 a block and its stone won't break, so the way in is the peat and the caves until its drill is printed. The HUD leads: find the broken Drill (beacon), print it, then study the rest of the Aster crew's gear ("Mk 2 designs 2/6"), then "That's Mycel for now".
+
+**Its mechanics:**
+- **Cap mushrooms** (`TILE.cap`): solid, soft as soil to drill, standing on the surface (the cap forest) and on cave floors. Jump off one and it throws you about five tiles up; land on one from a fall and it gives back half the speed, so you settle in a bounce or two; hold down and it doesn't bounce you.
+- **Spore pockets** (volatile 4): hollows of dry spores in the peat. Drilled, they only puff, a choking cloud that costs 12 air; a blast reaching one sets the dust alight and it bursts like firedamp. Firedamp here gathers by lignite seams.
+
+**Regions** (`content/planet2.ts`, 240 × 144, the lander at column 40):
+
+| Region | Where | What's there | Opens with |
+| --- | --- | --- | --- |
+| The landing glade | Round the lander | Water pooled close under the peat | Start |
+| The cap forest | Columns 60–120 | Caps along the surface; a cave in the peat under it with a broken Drill | Start |
+| The spore hollows | 120–150 | Spore pockets all through the peat round a cave with a broken Cell | Start |
+| The coal swamp | 150–200 | Lignite seams and firedamp; the Aster lander's wreck, a broken Pack in the hollow under it | Start |
+| The limestone vault | Far east (215, 38 m) | Sealed in stone: a broken Helmet | Mycel's drill |
+| The amber deep | Under the middle (120, 76 m) | Stone walls, a soil door: a broken Jetpack | Mycel's drill |
+| The grotto | West of the lander (20, 58 m) | A cave in the stone: a broken Suit | Mycel's drill |
+
+**Its look:** a violet ground style; a hazy day sky, green-grey overhead and warm at the horizon, the orange star a soft disc, Sepia huge and faded with Graphite and Cardia beside it, spores drifting as specks of light (`art/mycelSky.ts`); three ranges of fungal forest along the horizon, giant caps and bare trunks, the far ones lost in the haze; caps and spore pockets drawn into the ground (`art/mycelGround.ts`).
+
+`test/world.test.ts` checks Mycel as it checks Graphite (fuels near the lander, every design reachable with its drill, three times the Mk 2 set's materials), and that its drill and twice its materials are within reach of Graphite's drill while its stone vaults aren't.
 
 ## Inside the lander and the pause screen
 
@@ -578,7 +623,7 @@ As in the other games, entries unlock the first time you meet them:
 Same model as InkFish and InkCrab:
 
 - Chapter 1 (Graphite) is free and ends at lift-off; planets 2–10 are a $4.99 one-time purchase.
-- Paid planets are server-only content served after the entitlement check (`content/` entry, `/api/content/inkmine`).
+- Paid planets are server-only content served after the entitlement check (`content/` entry, `/api/content/inkmine`). Built Oct 17, 2026, as InkCrab's: Mycel's world is `content/planet2.ts`, registered in the site's `content.server.ts`; an owner's game fetches it at boot and checks it (`level/validate.ts`) before installing it (`level/planets.ts`). Only the ground and where things lie in it are server-side: Mycel's art, ores, Mk 2 recipes and story text ship with the game, as saves keep only ores and blueprints they know. `test/paywall.test.ts` checks no client code imports the paid planets. The dev page plays as an owner with `DEV_UNLOCK=true`. InkMine has no Stripe price yet, so the site can't sell it.
 - Nothing is ever sold for real money except the unlock: no currency packs, no energy, no boosts.
 
 ## Worlds: how they're made
@@ -599,7 +644,7 @@ A world is never stored. Loading carves it again from its seed and lays the save
 
 | Save | Key | Holds |
 | --- | --- | --- |
-| Profile | `inkmine.profile.v3` | The bag, the cargo, gear marks, blueprints found, lander modules (`logic/save.ts`) |
+| Profile | `inkmine.profile.v3` | The bag, the cargo, gear marks, blueprints found, lander modules, the world you're at and the worlds you've landed on (`logic/save.ts`) |
 | One per world | `inkmine.world.<id>.v1` | The world's version; dug tiles and ladders, each one bit a tile; ids of items banked for good (`logic/worldSave.ts`) |
 
 The world save also keeps the bag left under its flag (a tile index and the inventory). Later: texts read, words known, jobs.
@@ -669,7 +714,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 5. **Creatures** (grit crabs, lead worms) and fighting with the drill.
 6. **The rest of Graphite:** the Aster base, the grey band, the deep, the Grinder; the drive core and lift-off; the opening and the ending.
 7. Coach hints, sound, touch controls, account sync; add InkMine to the catalog with chapter 1 free. Sound and touch built Oct 17, 2026: calm synthesized ambience after No Man's Sky (a drone that darkens with depth, a warmer hum aboard, a sparse starry one on the map) and soft event sounds, all Web Audio with no files (`src/audio/`); M or the ♪ button mutes, saved.
-8. ~~The first star system and its map~~ (done Oct 17, 2026: fuel, lift-off, docking, the starship's repairs and hold, first light, the first trip, the end of the demo); next, the game clock, moving orbits and trip costs by launch window; then planets 2–10, one at a time, each with its people, and the galaxy map past this system.
+8. ~~The first star system and its map~~ (done Oct 17, 2026: fuel, lift-off, docking, the starship's repairs and hold, first light, the first trip, the end of the demo). Mycel's first step built the same day (see "Mycel"); next, the game clock, moving orbits and trip costs by launch window; then planets 2–10, one at a time, each with its people, and the galaxy map past this system.
 
 ## Decisions
 

@@ -1,4 +1,4 @@
-import { boxHitsSolid, climbBody, jump, moveBody, type Body, type Box } from './body';
+import { boxHitsSolid, climbBody, jump, moveBody, PHYS, type Body, type Box } from './body';
 import { BlastSim, type Blast } from './blastSim';
 import type { Loadout } from './gear';
 import { DRILL_SECONDS_PER_ENERGY, tileCost, VOLATILE_COST, type DrillSpec } from './drill';
@@ -18,6 +18,7 @@ import { STORE_CAPACITY } from './ship';
 import type { OreKey } from './ore';
 import { bodyCell, centredX, drillTarget } from './target';
 import { contentAt, foldX, ringDelta, setTile, TILE, tileAt, volatileAt, type Terrain, type TilePos } from './terrain';
+import { lightsWhenDrilled, volatileKeyOf } from './volatiles';
 
 /** Everything a dig site starts from. */
 export interface MineSetup {
@@ -94,6 +95,10 @@ export type MineEvent =
   | { readonly kind: 'airOut' }
   | { readonly kind: 'shielded' }
   | { readonly kind: 'lit'; readonly tile: TilePos }
+  /** Drilled into a spore pocket: it puffed, and the cloud cost air. */
+  | { readonly kind: 'spores'; readonly tile: TilePos }
+  /** Sprang off a cap mushroom. */
+  | { readonly kind: 'bounce'; readonly big: boolean }
   | { readonly kind: 'blast'; readonly blast: Blast }
   | { readonly kind: 'hurt'; readonly hearts: number; readonly cause: 'blast' | 'air' }
   /** Winched up; `left` pieces stayed in the world under the flag. */
@@ -119,6 +124,15 @@ export const JET: JetSpec = jetFor(0);
 const DROP_KICK = 260;
 /** Seconds for the drill to open a firedamp pocket or knock an old charge's detonator. */
 const VOLATILE_TAP = 0.08;
+/**
+ * Mycel's cap mushrooms: jump off one and it throws you `jump` px/s up
+ * (about five tiles, where a plain jump clears two); land on one from a fall
+ * faster than `min` and it gives back `keep` of the speed, so you settle in
+ * a bounce or two instead of springing for ever.
+ */
+export const CAP_SPRING = { jump: 560, min: 220, keep: 0.5 } as const;
+/** Air a spore pocket's cloud costs when it's drilled into. */
+export const SPORE_AIR = 12;
 /** The same notice ("too hard", "cell flat", "bag full") is said at most this often. */
 const NOTICE_GAP = 1.2;
 /** The suit says the air is low at most this often. */
@@ -283,7 +297,9 @@ export class Mine {
       this.player = climbBody(this.terrain, before, input.ix, input.iy, PROSPECTOR.climb, dt, T);
     } else {
       this.climbing = false;
-      let launched = input.jump ? (onLadder ? { ...before, vy: -PROSPECTOR.jump, onGround: false } : jump(before, PROSPECTOR.jump)) : before;
+      const springy = before.onGround && this.onCap(before);
+      let launched = input.jump ? (onLadder ? { ...before, vy: -PROSPECTOR.jump, onGround: false } : jump(before, springy ? CAP_SPRING.jump : PROSPECTOR.jump)) : before;
+      if (input.jump && springy) events.push({ kind: 'bounce', big: true });
       if (input.thrust && !launched.onGround) {
         if (this.suit.fuel > 0) {
           this.jetting = true;
@@ -292,12 +308,26 @@ export class Mine {
         } else this.notice('noFuel', events, { kind: 'noFuel' });
       }
       this.player = moveBody(this.terrain, launched, input.ix, PROSPECTOR.walk, dt, T, input.iy <= 0);
+      // Landing on a cap from a fall gives some of it back.
+      const fall = Math.min(PHYS.maxFall, launched.vy + PHYS.gravity * dt);
+      if (!launched.onGround && this.player.onGround && fall > CAP_SPRING.min && input.iy <= 0 && this.onCap(this.player)) {
+        this.player = { ...this.player, vy: -fall * CAP_SPRING.keep, onGround: false };
+        events.push({ kind: 'bounce', big: false });
+      }
       // Stepping off a ledge while heading down drops straight onto the next stair.
       if (input.iy > 0 && before.onGround && !this.player.onGround && this.player.vy >= 0) this.player = { ...this.player, vy: Math.max(this.player.vy, DROP_KICK) };
     }
     this.player = { ...this.player, x: foldX(this.terrain, this.player.x, T) };
     const footing = this.player.onGround || this.climbing || this.jetting;
     return input.ix !== 0 && footing && Math.abs(this.player.x - before.x) < 0.01;
+  }
+
+  /** Whether a body stands on a cap mushroom: one under either foot. */
+  private onCap(b: Body): boolean {
+    const T = this.tile;
+    const row = Math.floor((b.y + b.h + 0.5) / T);
+    for (let x = Math.floor(b.x / T); x <= Math.floor((b.x + b.w - 0.01) / T); x++) if (tileAt(this.terrain, x, row) === TILE.cap) return true;
+    return false;
   }
 
   private drillStep(dt: number, input: MineInput, blocked: boolean, events: MineEvent[]): void {
@@ -336,9 +366,18 @@ export class Mine {
     }
     this.drilling = null;
     this.suit = spend(this.suit, cost) ?? this.suit;
-    if (volatileAt(this.terrain, x, y)) {
+    const kind = volatileKeyOf(volatileAt(this.terrain, x, y));
+    if (kind && lightsWhenDrilled(kind)) {
       this.blasts.light(x, y);
       events.push({ kind: 'lit', tile: target.tile });
+      return;
+    }
+    if (kind) {
+      // A spore pocket only opens, in a choking puff.
+      setTile(this.terrain, x, y, TILE.air);
+      this.suit = { ...this.suit, air: Math.max(0, this.suit.air - SPORE_AIR) };
+      events.push({ kind: 'spores', tile: target.tile }, { kind: 'tiles', tiles: [target.tile] });
+      this.items = freeItems(this.items, [target.tile]);
       return;
     }
     tiles.forEach(([tx, ty], i) => {

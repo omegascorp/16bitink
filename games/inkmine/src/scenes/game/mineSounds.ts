@@ -66,6 +66,10 @@ export class MineSounds {
       case 'shielded': return s.play('shield');
       case 'hurt': return s.play('hurt');
       case 'lit': return s.play('fizz');
+      // A spore pocket's puff: the fizz, low and short.
+      case 'spores': return s.play('fizz', { pitch: 0.55 });
+      // Off a cap: a soft, springy pluck, higher for the big jump.
+      case 'bounce': return s.play('land', { pitch: e.big ? 1.5 : 1.9 });
       case 'blast': return this.blast(e.blast.at, mine);
       case 'item':
       case 'salvage': return s.play('find');

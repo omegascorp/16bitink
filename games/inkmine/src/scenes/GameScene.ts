@@ -8,16 +8,16 @@ import { TEX, generateTextures } from '../art/textures';
 import { getHost, getProfile, getSound, heldWorld, holdWorld, setProfile } from '../host';
 import { buildWorld } from '../level/build';
 import { currentPlanet } from '../level/planets';
-import type { PlanetDef } from '../level/types';
+import type { Arrival, PlanetDef } from '../level/types';
 import { recipeOf } from '../logic/blueprints';
 import { tooHard } from '../logic/drill';
 import { findBlueprint, printerWorks, type Profile } from '../logic/economy';
 import { prospectorLook, type Look } from '../logic/gear';
 import type { MineItem } from '../logic/items';
 import { lampFor } from '../logic/marks';
-import { Mine, NO_INPUT, type MineEvent, type MineInput } from '../logic/mine';
+import { Mine, NO_INPUT, SPORE_AIR, type MineEvent, type MineInput } from '../logic/mine';
 import { oreById, ORES } from '../logic/ore';
-import { keptOres, OUTPOST, signalBars, visit, type Says } from '../logic/story';
+import { ARRIVAL_BEAT, hasBeat, keptOres, OUTPOST, signalBars, visit, withBeat, type Says } from '../logic/story';
 import { feed, withBag, type FeedResult, type Fuels, type Gauge, type Suit } from '../logic/suit';
 import { currentGoal, wreckOf, type Goal, type Wreck } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
@@ -123,7 +123,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(data?: { woke?: Woke }): void {
-    this.planet = currentPlanet();
+    this.planet = currentPlanet(getProfile(this));
     this.ended = false;
     this.asked = {};
     this.woke = data?.woke ?? null;
@@ -152,12 +152,13 @@ export class GameScene extends Phaser.Scene {
     const look = prospectorLook(setup.loadout);
     this.ship = landerLookOf(profile.ship);
     this.wreck = wreckOf(profile);
-    this.intro = !profile.started;
-    generateTextures(this, style, skyH, look, this.ship, this.wreck);
+    this.intro = this.introDue(profile);
+    const id = this.planet.world.id;
+    generateTextures(this, id, style, skyH, look, this.ship, this.wreck);
     this.cameras.main.setBackgroundColor(PAPER);
     // Far sky and crater rims scroll slower than the ground, so they read as far off; both tile round the world.
-    this.sky = this.add.tileSprite(0, 0, SKY_W, this.textures.get(TEX.sky(skyH)).getSourceImage().height, TEX.sky(skyH)).setOrigin(0).setScrollFactor(PARALLAX.sky, 1).setDepth(0);
-    this.ridges = this.add.tileSprite(0, skyH * 0.5 + T * 0.5, RIDGE_W, this.textures.get(TEX.ridges(skyH)).getSourceImage().height, TEX.ridges(skyH)).setOrigin(0).setScrollFactor(PARALLAX.ridges, 1).setDepth(0.5);
+    this.sky = this.add.tileSprite(0, 0, SKY_W, this.textures.get(TEX.sky(id, skyH)).getSourceImage().height, TEX.sky(id, skyH)).setOrigin(0).setScrollFactor(PARALLAX.sky, 1).setDepth(0);
+    this.ridges = this.add.tileSprite(0, skyH * 0.5 + T * 0.5, RIDGE_W, this.textures.get(TEX.ridges(id, skyH)).getSourceImage().height, TEX.ridges(id, skyH)).setOrigin(0).setScrollFactor(PARALLAX.ridges, 1).setDepth(0.5);
     // The ground's roof is taken from the carved ground, so a shaft dug in an earlier session still reads as inside the planet.
     const roof = roofRows({ ...t, tiles: built.base });
     this.ground = new GroundView(this, t, T, style, (g) => tooHard(setup.drill, g), roof);
@@ -299,11 +300,26 @@ export class GameScene extends Phaser.Scene {
     this.asked = { ...this.asked, recall: true };
   }
 
+  /** Whether the opening card (Graphite) or a world's first-landing card is still to be read. */
+  private introDue(p: Profile): boolean {
+    if (p.at === 'graphite') return !p.started;
+    const beat = ARRIVAL_BEAT[p.at];
+    return !!beat && !!this.planet.arrival && !hasBeat(p, beat);
+  }
+
+  /** The card to open on: Graphite's opening (null: the HUD's own), or this world's first landing. */
+  introCard(): { readonly title: string; readonly arrival: Arrival } | null {
+    const a = this.planet.arrival;
+    return this.planet.world.id === 'graphite' || !a ? null : { title: this.planet.name, arrival: a };
+  }
+
   /** Closes the opening card: the world starts, and it's never shown again. */
   closeIntro(): void {
     if (!this.intro) return;
     this.intro = false;
-    setProfile(this, { ...this.liveProfile(), started: true });
+    const p = this.liveProfile();
+    const beat = ARRIVAL_BEAT[p.at];
+    setProfile(this, p.at === 'graphite' || !beat ? { ...p, started: true } : withBeat(p, beat));
   }
 
   /** The receiver's reading in bars while following the call (null otherwise), for the HUD. */
@@ -514,7 +530,11 @@ export class GameScene extends Phaser.Scene {
         this.fx.note(this.ring.near((e.tile[0] + 0.5) * this.mine.tile), e.tile[1] * this.mine.tile - 6, kind === 'firedamp' ? 'firedamp! get clear' : 'charge armed! get clear', true);
         break;
       }
+      case 'spores':
+        this.fx.note(this.ring.near((e.tile[0] + 0.5) * this.mine.tile), e.tile[1] * this.mine.tile - 6, `spores! air − ${SPORE_AIR}`, true);
+        break;
       case 'drilled':
+      case 'bounce':
         break;
     }
   }

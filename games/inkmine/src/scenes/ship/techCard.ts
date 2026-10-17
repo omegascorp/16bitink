@@ -12,7 +12,7 @@ import { plaque } from '../kit/plaque';
 import { aside, FADED, INK_TEXT, label, MADDER, prose, SEPIA, VERDIGRIS } from '../kit/type';
 import { divider, PAD, section, SECTION_BODY, type ShipPage } from './panel';
 import { variantOf } from './techGrid';
-import { PIECE_NAMES, recipeLine, SOURCES, techName } from './techText';
+import { PIECE_NAMES, recipeLine, sourceOf, techName } from './techText';
 
 /** The picture's size, and the gap beside it. */
 const PIC = 104;
@@ -46,7 +46,7 @@ function gearText(page: ShipPage, t: Extract<Tech, { kind: 'gear' }>): CardText 
   const check = canBuild(r, p.found, p.gear, hasOnHand(p));
   // An offline printer only matters once there's something it could print: a missing blueprint still says so.
   const why = !printerWorks(p) && (check === 'ok' || check === 'materials') ? 'offline' : check;
-  if (why === 'notFound') return { ...base, next: { text: `No Mk ${r.mk} blueprint yet: ${SOURCES.get(r.id) ?? 'none on this planet'}.`, color: FADED } };
+  if (why === 'notFound') return { ...base, next: { text: `No Mk ${r.mk} blueprint yet: ${sourceOf(r.id) ?? 'none on this planet'}.`, color: FADED } };
   return {
     ...base,
     next: { text: `Mk ${r.mk}: ${markGain(t.piece, r.mk)}${why === 'offline' ? ' · repair the printer first' : ''}`, color: why === 'ok' ? INK_TEXT : SEPIA },

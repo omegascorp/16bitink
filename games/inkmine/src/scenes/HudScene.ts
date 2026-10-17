@@ -285,10 +285,12 @@ export class HudScene extends Phaser.Scene {
   private showIntro(): void {
     const { width, height } = viewSize(this);
     const left = -INTRO_W / 2 + 40;
-    const parts: Phaser.GameObjects.GameObject[] = [heading(this, 0, 36, 'Graphite', 30).setOrigin(0.5, 0)];
-    parts.push(aside(this, 0, 76, 'a grey moon, uncharted', 18, INTRO_W - 80, SEPIA).setOrigin(0.5, 0));
+    // Graphite's opening, or a later world's first landing (its planet carries the card).
+    const card = this.play?.introCard() ?? null;
+    const parts: Phaser.GameObjects.GameObject[] = [heading(this, 0, 36, card?.title ?? 'Graphite', 30).setOrigin(0.5, 0)];
+    parts.push(aside(this, 0, 76, card?.arrival.subtitle ?? 'a grey moon, uncharted', 18, INTRO_W - 80, SEPIA).setOrigin(0.5, 0));
     let y = 120;
-    for (const para of INTRO) {
+    for (const para of card?.arrival.paragraphs ?? INTRO) {
       const t = prose(this, left, y, para, 20, INTRO_W - 80);
       parts.push(t);
       y += t.height + 12;
@@ -296,7 +298,7 @@ export class HudScene extends Phaser.Scene {
     const h = y + 80;
     for (const part of parts) (part as unknown as { y: number }).y -= h / 2;
     const close = (): void => this.closeIntro();
-    parts.push(plaque(this, 0, h / 2 - 46, 'Get up', close, { width: 180, height: 46, kind: 'primary' }));
+    parts.push(plaque(this, 0, h / 2 - 46, card?.arrival.button ?? 'Get up', close, { width: 180, height: 46, kind: 'primary' }));
     this.intro = plateCard(this, width / 2, height / 2, INTRO_W, h, parts, 77).setDepth(50);
     this.input.keyboard?.once('keydown-SPACE', close);
     this.input.keyboard?.once('keydown-ENTER', close);

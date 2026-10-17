@@ -1,4 +1,4 @@
-import { PLANETS } from '../../level/planets';
+import { loadedPlanets } from '../../level/planets';
 import type { Piece } from '../../logic/gear';
 import { countOf, holdEntries, type Hold } from '../../logic/hold';
 import { ORES } from '../../logic/ore';
@@ -18,13 +18,11 @@ export function techName(t: Tech): string {
   return REPAIRS[t.id].name;
 }
 
-/** Where each blueprint is learnt: which planet's world has a broken one to study. */
-function blueprintSources(): ReadonlyMap<string, string> {
-  const out = new Map<string, string>();
-  for (const planet of PLANETS) for (const it of planet.world.items) if (it.blueprint) out.set(it.blueprint, `study a broken one; there's one somewhere on ${planet.name}`);
-  return out;
+/** Where a blueprint is learnt: "study a broken one" on the planet whose world has one (the full game's once it's installed). */
+export function sourceOf(blueprint: string): string | undefined {
+  const planet = loadedPlanets().find((pl) => pl.world.items.some((it) => it.blueprint === blueprint));
+  return planet && `study a broken one; there's one somewhere on ${planet.name}`;
 }
-export const SOURCES = blueprintSources();
 
 /** A recipe with what's on hand ticked off: "graphite 3/4 · native copper 6/6 ✓". */
 export function recipeLine(need: Hold, have: Hold): string {

@@ -1,5 +1,5 @@
 import { shipTexture, techTexture, TEX } from '../../art/textures';
-import { BROKEN_SHIP } from '../../art/starship';
+import { BROKEN_SHIP, shipLookOf } from '../../art/starship';
 import { getSound, setProfile } from '../../host';
 import { liftOff } from '../../logic/fuel';
 import { wreckOf } from '../../logic/repairs';
@@ -29,7 +29,17 @@ export function shipStoryCard(page: ShipPage): boolean {
     }, () => page.commit(withBeat(page.profile, 'called'), { news: 'Call recorded' }));
     return true;
   }
-  if (p.docked && !hasBeat(p, 'aboard')) {
+  if (p.docked && p.at === 'mycel' && !hasBeat(p, 'mycelOrbit')) {
+    storyCard(scene, {
+      title: 'In orbit over Mycel',
+      subtitle: 'the green moon',
+      pictures: [{ key: shipTexture(scene, shipLookOf(p), 'small'), h: 70 }, { key: TEX.world('mycel'), h: 70 }],
+      text: "Below, a haze the colour of moss hides the ground. Through gaps in it: white threads mapping the hills, caps the size of hills, and something metal glinting in a swamp. The suit's sensors light up at once: life, everywhere. Ice and graphite won't be found down there: you'll have to work with what Mycel has.",
+      button: 'Take it in',
+    }, () => page.commit(withBeat(page.profile, 'mycelOrbit'), { tab: 'starship' }));
+    return true;
+  }
+  if (p.docked && p.at === 'graphite' && !hasBeat(p, 'aboard')) {
     storyCard(scene, {
       title: 'Docked',
       subtitle: 'your ship, at last',

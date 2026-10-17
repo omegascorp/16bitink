@@ -42,8 +42,14 @@ export interface CarveSpec {
   readonly caves: number;
   readonly caveFrom: number;
   readonly ores: readonly OreRule[];
-  /** Firedamp pockets (natural): little clusters, most of them by a graphite seam, as methane gathers by coal. */
+  /** Firedamp pockets (natural): little clusters, most of them by a seam of `seam` ore, as methane gathers by coal. */
   readonly firedamp: number;
+  /** The ore firedamp gathers by (default graphite; lignite on Mycel). */
+  readonly seam?: OreKey;
+  /** Spore pockets (Mycel): little clusters in the soil. */
+  readonly spores?: number;
+  /** Cap mushrooms: clusters standing on the open surface or on cave floors. */
+  readonly caps?: readonly CapRule[];
   /** Old charges an earlier crew left, placed by hand where the level needs them: column and depth below the surface. */
   readonly charges?: readonly { readonly kind: 'charge' | 'lineCharge'; readonly at: readonly [number, number] }[];
   /** The lander's column: the ground is flat and clear around it. */
@@ -58,6 +64,15 @@ export interface CarveSpec {
   readonly vaults?: readonly Vault[];
   /** Firedamp pockets placed by hand (column, depth), as a way through a vault wall. */
   readonly pockets?: readonly (readonly [number, number])[];
+}
+
+/** Clusters of cap mushrooms: on the open surface or on cave floors, optionally only between two columns. */
+export interface CapRule {
+  readonly where: 'surface' | 'caves';
+  readonly clusters: number;
+  /** Caps a cluster, at most. */
+  readonly size: number;
+  readonly cols?: readonly [number, number];
 }
 
 export interface Room {
@@ -121,6 +136,7 @@ export function carve(spec: CarveSpec): Terrain {
   for (const line of spec.tunnels ?? []) tunnel(t, spec, line);
   for (const rule of spec.ores) for (let i = 0; i < rule.veins; i++) vein(t, spec, surface, rule, rng);
   for (let i = 0; i < spec.firedamp; i++) firedamp(t, spec, surface, rng);
+  for (let i = 0; i < (spec.spores ?? 0); i++) sporePocket(t, spec, surface, rng);
   for (const vault of spec.vaults ?? []) wallVault(t, spec, vault);
   for (const [x, depth] of spec.pockets ?? []) {
     const y = spec.surface + depth;
@@ -130,6 +146,8 @@ export function carve(spec: CarveSpec): Terrain {
     const y = surface[col(spec, x)]! + depth;
     if (inside(t, x, y) && tileAt(t, x, y) !== TILE.air && tileAt(t, x, y) !== TILE.bedrock) setVolatile(t, x, y, VOLATILES[kind].id);
   }
+  // Caps last, on the ground as it finally lies.
+  for (const rule of spec.caps ?? []) for (let i = 0; i < rule.clusters; i++) caps(t, spec, surface, rule, rng);
   return t;
 }
 
@@ -257,9 +275,9 @@ function holdsOre(t: Terrain, x: number, y: number): boolean {
   return inside(t, x, y) && (tile === TILE.soil || tile === TILE.stone || tile === TILE.deep) && contentAt(t, x, y) === 0;
 }
 
-/** A cluster of one to three firedamp pockets in soil or stone, half the time beside a graphite seam. */
+/** A cluster of one to three firedamp pockets in soil or stone, half the time beside a seam. */
 function firedamp(t: Terrain, spec: CarveSpec, surface: readonly number[], rng: Rng): void {
-  const seams = rng() < 0.5 ? seamTiles(t) : [];
+  const seams = rng() < 0.5 ? seamTiles(t, spec.seam ?? 'graphite') : [];
   for (let tries = 0; tries < 40; tries++) {
     const seam = seams.length ? seams[Math.floor(rng() * seams.length)]! : null;
     const x = col(spec, seam ? seam[0] + (rng() < 0.5 ? -1 : 1) : 1 + Math.floor(rng() * (spec.width - 2)));
@@ -276,11 +294,57 @@ function firedamp(t: Terrain, spec: CarveSpec, surface: readonly number[], rng: 
   }
 }
 
-/** Every graphite tile, for firedamp to gather by. */
-function seamTiles(t: Terrain): [number, number][] {
+/** Every tile of the seam ore, for firedamp to gather by. */
+function seamTiles(t: Terrain, ore: OreKey): [number, number][] {
   const out: [number, number][] = [];
-  for (let i = 0; i < t.content.length; i++) if (t.content[i] === ORES.graphite.id) out.push([i % t.width, Math.floor(i / t.width)]);
+  const id = ORES[ore].id;
+  for (let i = 0; i < t.content.length; i++) if (t.content[i] === id) out.push([i % t.width, Math.floor(i / t.width)]);
   return out;
+}
+
+/** A cluster of one to four spore pockets in the soil, below the topsoil. */
+function sporePocket(t: Terrain, spec: CarveSpec, surface: readonly number[], rng: Rng): void {
+  for (let tries = 0; tries < 40; tries++) {
+    const x = 1 + Math.floor(rng() * (spec.width - 2));
+    const y = surface[x]! + TOPSOIL + Math.floor(rng() * Math.max(1, spec.stone));
+    if (!pocketable(t, spec, surface, x, y)) continue;
+    const size = 1 + Math.floor(rng() * 4);
+    let [cx, cy] = [x, y];
+    for (let k = 0; k < size && pocketable(t, spec, surface, cx, cy); k++) {
+      setVolatile(t, cx, cy, VOLATILES.spores.id);
+      if (rng() < 0.6) cx += rng() < 0.5 ? -1 : 1;
+      else cy += rng() < 0.5 ? -1 : 1;
+    }
+    return;
+  }
+}
+
+/**
+ * A cluster of cap mushrooms side by side, each standing on solid ground
+ * with open air over it: along the open surface, or on a cave floor. Never
+ * by the lander or an outpost (their ground is kept clear).
+ */
+function caps(t: Terrain, spec: CarveSpec, surface: readonly number[], rule: CapRule, rng: Rng): void {
+  const standing = (x: number, y: number): boolean => inside(t, x, y) && tileAt(t, x, y) === TILE.air && tileAt(t, x, y - 1) === TILE.air
+    && tileAt(t, x, y + 1) !== TILE.air && tileAt(t, x, y + 1) !== TILE.cap && fromFlat(spec, x) > PAD + 1;
+  for (let tries = 0; tries < 60; tries++) {
+    const x0 = rule.cols ? veinColumn(spec, { ore: 'copper', from: 0, to: 0, veins: 0, size: [0, 0], cols: rule.cols }, rng) : Math.floor(rng() * spec.width);
+    let y: number;
+    if (rule.where === 'surface') y = surfaceAt(spec, x0) - 1;
+    else {
+      // A cave floor: the first open tile over solid ground, going down from somewhere below the topsoil.
+      y = surface[x0]! + TOPSOIL + Math.floor(rng() * (spec.height - surface[x0]! - TOPSOIL - BEDROCK_ROWS - 2));
+      while (y < spec.height - BEDROCK_ROWS && !(tileAt(t, x0, y) === TILE.air && tileAt(t, x0, y + 1) !== TILE.air)) y++;
+    }
+    if (!standing(x0, y)) continue;
+    const n = 1 + Math.floor(rng() * rule.size);
+    for (let k = 0; k < n; k++) {
+      const x = col(spec, x0 + k);
+      if (!standing(x, y)) break;
+      setTile(t, x, y, TILE.cap);
+    }
+    return;
+  }
 }
 
 /** Soil or stone with nothing in it, below the topsoil and away from the lander. */

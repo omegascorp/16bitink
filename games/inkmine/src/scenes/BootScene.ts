@@ -1,9 +1,24 @@
 import Phaser from 'phaser';
 import { PAPER } from '../art/palette';
-import { getHost, getProfile } from '../host';
-import { hasBeat } from '../logic/story';
+import { getHost, getProfile, REG } from '../host';
+import { installPaidPlanets } from '../level/planets';
+import { firstScene } from '../level/route';
+import { parsePlanets } from '../level/validate';
 import { screenScene, viewSize } from './hidpi';
 import { inkText } from './ui';
+
+/** Fetches the full game's planets when the host says the player owns it. Never rejects: a failure is kept in REG.fullError. */
+export async function loadPaidPlanets(scene: Phaser.Scene): Promise<void> {
+  const host = getHost(scene);
+  if (!host.unlocked) return;
+  try {
+    installPaidPlanets(parsePlanets(await host.loadContent()));
+    scene.registry.set(REG.fullError, null);
+  } catch (err) {
+    console.error('[inkmine] failed to load the full game', err);
+    scene.registry.set(REG.fullError, 'Could not load the full game. Check your connection and try again.');
+  }
+}
 
 /** Shows a word while the game's first scene bakes its drawings, then starts it: the world, or the starship if the game was left aboard it. */
 export class BootScene extends Phaser.Scene {
@@ -20,14 +35,13 @@ export class BootScene extends Phaser.Scene {
     // On the site, its loading screen covers the game until ready(); in the dev harness the label shows.
     const loading = getHost(this).loading;
     loading?.progress(0, label);
-    // Let the label paint before the (synchronous) texture drawing. A game left aboard the starship opens there.
-    this.time.delayedCall(30, () => {
-      const p = getProfile(this);
-      // The demo over, it opens on the star map, where it ended.
-      const [key, data] = p.docked && hasBeat(p, 'course') ? ['System', {}] : p.docked ? ['Ship', { remote: false, tab: 'starship' }] : ['Game', undefined];
+    // Let the label paint before the (synchronous) texture drawing. An owner's game fetches the full game's planets first.
+    const start = (): void => {
+      const [key, data] = firstScene(getProfile(this));
       // Lift the loading screen once the first real screen has been drawn, not on this word.
       this.scene.get(key).events.once(Phaser.Scenes.Events.CREATE, () => this.game.events.once(Phaser.Core.Events.POST_RENDER, () => loading?.ready()));
       this.scene.start(key, data);
-    });
+    };
+    void loadPaidPlanets(this).then(() => this.time.delayedCall(30, start));
   }
 }

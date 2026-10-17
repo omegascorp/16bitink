@@ -1,3 +1,4 @@
+import { fuelsAt } from '../logic/worlds';
 import type { Profile } from '../logic/economy';
 import { Ladders } from '../logic/ladders';
 import type { MineSetup } from '../logic/mine';
@@ -58,7 +59,7 @@ export function buildWorld(planet: PlanetDef, p: Profile, save: WorldSave | null
       stores: p.stores,
       storesCap: storeCapacity(p.ship),
       bag: p.suit,
-      fuels: planet.fuels,
+      fuels: fuelsAt(planet.world.id),
       dropped: droppedBag(terrain.width, save?.bag),
       pieces: save?.pieces,
       outpost: def.outpost === undefined ? undefined : { col: def.outpost, row: def.site.surface },

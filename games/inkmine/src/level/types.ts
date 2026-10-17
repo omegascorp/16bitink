@@ -1,7 +1,7 @@
 import type { GroundStyle } from '../art/palette';
 import type { ItemDef } from '../logic/items';
 import type { OreKey } from '../logic/ore';
-import type { Fuels } from '../logic/suit';
+import type { WorldId } from '../logic/worlds';
 import type { CarveSpec } from './carve';
 
 /**
@@ -13,7 +13,7 @@ import type { CarveSpec } from './carve';
  */
 export interface WorldDef {
   /** Permanent: the world's save is keyed by it. Never change or reuse one. */
-  readonly id: string;
+  readonly id: WorldId;
   /**
    * Bumped whenever a released world's layout changes. Saves record it;
    * a save from another version still loads (its tunnels stay open in the
@@ -27,6 +27,13 @@ export interface WorldDef {
   readonly outpost?: number;
 }
 
+/** The card shown the first time you land on a world: its name, a line under it, a few paragraphs and the button. */
+export interface Arrival {
+  readonly subtitle: string;
+  readonly paragraphs: readonly string[];
+  readonly button: string;
+}
+
 export interface PlanetDef {
   /** 1..10. */
   readonly number: number;
@@ -35,7 +42,7 @@ export interface PlanetDef {
   readonly style: GroundStyle;
   /** The planet's signature material; the main ingredient of its gear. */
   readonly signature: OreKey;
-  /** What feeds the drill's cell and life support here: each planet has its own fuels. */
-  readonly fuels: Fuels;
   readonly world: WorldDef;
+  /** The card on first landing (Graphite's opening is the HUD's own). */
+  readonly arrival?: Arrival;
 }

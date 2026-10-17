@@ -15,6 +15,7 @@ import type { Wreck } from '../logic/repairs';
 import { drawProspector, POSES, PROSPECTOR_FRAME, PROSPECTOR_GROUND, type Pose } from './prospector';
 import { drawRidges, RIDGE_W } from './ridgeArt';
 import { drawSky, SKY_W } from './skyArt';
+import { drawMycelRidges, drawMycelSky } from './mycelSky';
 import { drawStarship, drawStarshipAir, shipLookKey, STARSHIP_ART, type ShipLook } from './starship';
 import { drawStar, drawWorld, STAR_ART, worldFrame } from './systemArt';
 import { WORLDS } from '../logic/starSystem';
@@ -31,8 +32,8 @@ export const TEX = {
   tech: (t: Tech, variant: TechVariant) => `tech-${techKey(t)}-${variant}`,
   lamplighter: (f: number) => `lamplighter-${f}`,
   outpost: (f: number) => `outpost-${f}`,
-  sky: (h: number) => `sky-${h}`,
-  ridges: (h: number) => `ridges-${h}`,
+  sky: (world: string, h: number) => `sky-${world}-${h}`,
+  ridges: (world: string, h: number) => `ridges-${world}-${h}`,
   world: (id: string) => `world-${id}`,
   star: 'star',
   ship: (look: ShipLook, size: ShipSize) => `ship-${size}-${shipLookKey(look)}`,
@@ -127,7 +128,7 @@ export function bakePickups(scene: Phaser.Scene, rock: string): void {
 }
 
 /** Every sprite, each drawn BOIL times slightly differently for the line boil. `skyHeight` is the sky down to the horizon. */
-export function generateTextures(scene: Phaser.Scene, style: GroundStyle, skyHeight: number, look: ProspectorLook, landerLook: Look, wreck: Wreck = SOUND): void {
+export function generateTextures(scene: Phaser.Scene, world: string, style: GroundStyle, skyHeight: number, look: ProspectorLook, landerLook: Look, wreck: Wreck = SOUND): void {
   bakeCharacters(scene, look, landerLook, wreck);
   bakePickups(scene, style.stone);
   bakeLamplighters(scene);
@@ -137,9 +138,19 @@ export function generateTextures(scene: Phaser.Scene, style: GroundStyle, skyHei
       bake(scene, TEX.charge('lineCharge', lit, f), LINE_FRAME_W, CHARGE_FRAME, LINE_FRAME_W / 2, CHARGE_FRAME / 2, ART_RES * 1.5, (ctx) => drawLineCharge(makeDraw(ctx, 310 + f, f, 0), lit));
     }
   }
-  bake(scene, TEX.sky(skyHeight), SKY_W, skyHeight + SKY_SKIRT, 0, 0, 1, (ctx) => drawSky(makeDraw(ctx, 900, 0, 0), SKY_W, skyHeight + SKY_SKIRT, skyHeight, style));
+  // Each world has its own sky and horizon: Graphite's airless night and crater rims, Mycel's hazy day and fungal forest.
+  const mycel = world === 'mycel';
+  bake(scene, TEX.sky(world, skyHeight), SKY_W, skyHeight + SKY_SKIRT, 0, 0, 1, (ctx) => {
+    const d = makeDraw(ctx, 900, 0, 0);
+    if (mycel) drawMycelSky(d, SKY_W, skyHeight + SKY_SKIRT, skyHeight);
+    else drawSky(d, SKY_W, skyHeight + SKY_SKIRT, skyHeight, style);
+  });
   const ridge = skyHeight * 0.5;
-  bake(scene, TEX.ridges(skyHeight), RIDGE_W, ridge + SKY_SKIRT, 0, 0, 1, (ctx) => drawRidges(makeDraw(ctx, 910, 0, 0), RIDGE_W, ridge + SKY_SKIRT, ridge, style));
+  bake(scene, TEX.ridges(world, skyHeight), RIDGE_W, ridge + SKY_SKIRT, 0, 0, 1, (ctx) => {
+    const d = makeDraw(ctx, 910, 0, 0);
+    if (mycel) drawMycelRidges(d, RIDGE_W, ridge + SKY_SKIRT, ridge, style);
+    else drawRidges(d, RIDGE_W, ridge + SKY_SKIRT, ridge, style);
+  });
 }
 
 /** The star map's star and worlds (SystemScene); its ship is baked by `shipTexture`. */

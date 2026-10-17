@@ -4,7 +4,8 @@ import { bakeCharacters, bakePickups, PROSPECTOR_RES, shipTexture, TEX } from '.
 import { shipLookOf } from '../art/starship';
 import { newsSound } from '../audio/news';
 import { getProfile, getSound, setProfile } from '../host';
-import { currentPlanet } from '../level/planets';
+import { currentPlanet, hasWorld } from '../level/planets';
+import { worldById } from '../logic/starSystem';
 import type { Profile } from '../logic/economy';
 import { prospectorLook } from '../logic/gear';
 import { wreckOf } from '../logic/repairs';
@@ -77,7 +78,7 @@ export class ShipScene extends Phaser.Scene {
     relayoutOnResize(this, (): ShipData => ({ ...data, news: undefined, scrollY: this.cameras.main.scrollY }));
     this.cameras.main.setBackgroundColor(PAPER);
     const profile = getProfile(this);
-    const planet = currentPlanet();
+    const planet = currentPlanet(getProfile(this));
     bakeCharacters(this, prospectorLook(profile.gear), landerLookOf(profile.ship), wreckOf(profile));
     bakePickups(this, planet.style.stone);
 
@@ -160,17 +161,19 @@ export class ShipScene extends Phaser.Scene {
 
   /** The title, the tab strip, the way back down (or, aboard the starship, landing), and any news. */
   private header(width: number, wide: boolean, tab: Tab, news?: string): void {
-    const planet = currentPlanet();
-    const docked = getProfile(this).docked;
+    const p = getProfile(this);
+    const docked = p.docked;
+    // By the star map's name: a world whose ground didn't load is still the one you're over.
+    const name = worldById(p.at)?.name ?? currentPlanet(p).name;
     const title = heading(this, GAP + 4, 18, this.remote ? 'Inventory' : docked ? 'Your starship' : 'The lander', 30).setOrigin(0, 0);
     muteButton(this, title.x + title.width + 30, 36);
-    const where = this.remote ? 'far from the lander: the cargo is look-only' : docked ? `docked, in orbit over ${planet.name}` : `crash site, ${planet.name}`;
+    const where = this.remote ? 'far from the lander: the cargo is look-only' : docked ? `docked, in orbit over ${name}` : `${p.at === 'graphite' ? 'crash site' : 'landing site'}, ${name}`;
     aside(this, GAP + 6, 54, where, 17, 400, SEPIA).setOrigin(0, 0);
     const back = (): void => {
       if (this.remote) this.close();
       else this.backDown();
     };
-    const canGo = !docked || this.remote || canLand(getProfile(this)) === 'ok';
+    const canGo = !docked || this.remote || (canLand(p) === 'ok' && hasWorld(p.at));
     plaque(this, width - GAP - BACK.w / 2, 40, this.remote ? 'Back' : docked ? 'Land' : 'Back down', back, { width: BACK.w, height: BACK.h, kind: canGo ? 'primary' : 'off' });
     const pick = (t: Tab): void => this.redraw(null, { selected: this.ui.selected, tab: t });
     if (wide) drawTabs(this, width - GAP - BACK.w - 40, 38, this.tabs, tab, pick);
@@ -256,6 +259,7 @@ export class ShipScene extends Phaser.Scene {
   private backDown(): void {
     const p = getProfile(this);
     if (p.docked) {
+      if (!hasWorld(p.at)) return;
       const r = land(p);
       if (!r.ok) return;
       setProfile(this, r.profile);

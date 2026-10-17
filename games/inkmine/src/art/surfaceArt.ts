@@ -181,7 +181,7 @@ export function surfaceRocks(ctx: CanvasRenderingContext2D, t: Terrain, roof: In
     const fx = wrapX(t, x);
     const y = roof[fx] ?? 0;
     if (y < ty - 1 || y > ty + tiles + 1) continue;
-    if (tileAt(t, x, y) === TILE.air || tileAt(t, x, y - 1) !== TILE.air) continue;
+    if (tileAt(t, x, y) === TILE.air || tileAt(t, x, y) === TILE.cap || tileAt(t, x, y - 1) !== TILE.air) continue;
     // Flat ground only: the neighbours' surface at the same row.
     if ((roof[wrapX(t, x - 1)] ?? -1) !== y || (roof[wrapX(t, x + 1)] ?? -1) !== y) continue;
     for (let k = 0; k < 2; k++) {

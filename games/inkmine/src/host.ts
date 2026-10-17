@@ -8,7 +8,7 @@ interface RegistryReader {
   readonly registry: { get(key: string): unknown; set(key: string, value: unknown): unknown };
 }
 
-export const REG = { host: 'host', profile: 'profile', worlds: 'worlds', sound: 'sound' } as const;
+export const REG = { host: 'host', profile: 'profile', worlds: 'worlds', sound: 'sound', fullError: 'fullError' } as const;
 
 export const getHost = (s: RegistryReader): GameHost => s.registry.get(REG.host) as GameHost;
 

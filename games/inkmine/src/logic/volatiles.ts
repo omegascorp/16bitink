@@ -12,6 +12,10 @@ import { inside, TILE, tileAt, wrapX, type Terrain, type TilePos } from './terra
  *   cave-in open) or a contract (leave the old relay standing).
  * - Line charge: charges strung on detonating cord along a seam; it breaks
  *   its whole row.
+ * - Spore pocket (Mycel): a hollow packed with dry fungal spores. Drilled,
+ *   it only puffs them out, a choking cloud that costs air; but a blast
+ *   reaching it sets the dust alight, and it bursts like firedamp (grain
+ *   and flour dust burn the same way).
  *
  * Ids live in the terrain's volatile layer; never renumber one.
  */
@@ -19,7 +23,11 @@ export const VOLATILES = {
   firedamp: { id: 1, key: 'firedamp', name: 'firedamp', fuse: 0.7, area: 'burst' },
   charge: { id: 2, key: 'charge', name: 'old charge', fuse: 1.4, area: 'burst' },
   lineCharge: { id: 3, key: 'lineCharge', name: 'line charge', fuse: 1.4, area: 'row' },
+  spores: { id: 4, key: 'spores', name: 'spore pocket', fuse: 0.3, area: 'burst' },
 } as const;
+
+/** What drilling into each does: lights it, or (a spore pocket) only opens it in a puff. */
+export const lightsWhenDrilled = (kind: VolatileKey): boolean => kind !== 'spores';
 
 export type VolatileKey = keyof typeof VOLATILES;
 
@@ -47,8 +55,8 @@ export function blastArea(t: Terrain, kind: VolatileKey, x: number, y: number): 
   return out.filter(([bx, by]) => inside(t, bx, by)).map(([bx, by]) => [wrapX(t, bx), by] as const);
 }
 
-/** Whether a blast breaks this tile: soil and stone, never deep rock or bedrock. */
+/** Whether a blast breaks this tile: soil, stone and caps, never deep rock or bedrock. */
 export function blastBreaks(t: Terrain, x: number, y: number): boolean {
   const tile = tileAt(t, x, y);
-  return tile === TILE.soil || tile === TILE.stone;
+  return tile === TILE.soil || tile === TILE.stone || tile === TILE.cap;
 }

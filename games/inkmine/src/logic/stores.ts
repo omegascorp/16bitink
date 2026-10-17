@@ -3,12 +3,14 @@ import { countOf } from './hold';
 import type { OreKey } from './ore';
 import { storeCapacity } from './ship';
 import type { Suit } from './suit';
+import { fuelsAt } from './worlds';
 
 /**
  * The lander's stores: an air tank and a battery that top the suit up at
  * the lander, instead of air and charge appearing from nowhere. The tank
- * is refilled from water ice (split, as the suit splits it) and the
- * battery from graphite, both from what's on hand; the battery also
+ * is refilled from the world's water (split, as the suit splits it) and the
+ * battery from what feeds the cell there (graphite on Graphite, lignite on
+ * Mycel: worlds.ts), both from what's on hand; the battery also
  * charges slowly from the lander's panels, so it can't be left flat for
  * good, and ice lies near the surface all round, so the tank never can
  * either. They start full and hold enough for several dives, so a refill
@@ -17,8 +19,8 @@ import type { Suit } from './suit';
  * right for free.
  */
 export const STORES = {
-  air: { ore: 'ice' as OreKey, per: 25 },
-  power: { ore: 'graphite' as OreKey, per: 20 },
+  air: { per: 25 },
+  power: { per: 20 },
   /** Units of charge a second the panels put back in the battery. */
   solar: 0.3,
 } as const;
@@ -33,10 +35,16 @@ export interface Stores {
 
 export { storeCapacity };
 
+/** What refills a store where you are: the air tank from the world's water, the battery from its cell fuel. */
+export function storeOre(p: Pick<Profile, 'at'>, k: StoreKind): OreKey {
+  const fuels = fuelsAt(p.at);
+  return k === 'air' ? fuels.air : fuels.cell;
+}
+
 /** Lumps a refill of one store would take now: what fills it, or what's on hand if that's less. */
 export function storeRefillCost(p: Profile, k: StoreKind): number {
   const room = storeCapacity(p.ship) - p.stores[k];
-  return Math.min(Math.ceil(room / STORES[k].per), countOf(onHand(p), STORES[k].ore));
+  return Math.min(Math.ceil(room / STORES[k].per), countOf(onHand(p), storeOre(p, k)));
 }
 
 export type StoreRefillCheck = 'ok' | 'full' | 'materials';
@@ -51,7 +59,7 @@ export function refillStore(p: Profile, k: StoreKind): PrintResult<StoreRefillCh
   const why = canRefillStore(p, k);
   if (why !== 'ok') return { ok: false, why };
   const n = storeRefillCost(p, k);
-  const spent = spend(p, { [STORES[k].ore]: n });
+  const spent = spend(p, { [storeOre(p, k)]: n });
   return { ok: true, profile: { ...spent, stores: { ...p.stores, [k]: Math.min(storeCapacity(p.ship), p.stores[k] + n * STORES[k].per) } } };
 }
 

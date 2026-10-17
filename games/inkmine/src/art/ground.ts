@@ -7,6 +7,7 @@ import { oreById } from '../logic/ore';
 import { depthTone, facesOf, lightHollows, lightRock, pebble, washTile, type Face } from './groundPaint';
 import { drawOreGlyph } from './oreArt';
 import { cobbles, strata, surfaceRocks } from './surfaceArt';
+import { capsIn, sporesIn } from './mycelGround';
 import { INK, PAPER, RED, type GroundStyle } from './palette';
 
 /**
@@ -233,12 +234,12 @@ function shadowLine(ctx: CanvasRenderingContext2D, faces: readonly Face[]): void
   ctx.globalAlpha = 1;
 }
 
-/** The first solid row of each column (taken as the level begins): anything open below it is inside the planet. */
+/** The first solid row of each column (taken as the level begins): anything open below it is inside the planet. A cap mushroom standing on the surface is outside it. */
 export function roofRows(t: Terrain): Int32Array {
   const rows = new Int32Array(t.width);
   for (let x = 0; x < t.width; x++) {
     let y = 0;
-    while (y < t.height && tileAt(t, x, y) === TILE.air) y++;
+    while (y < t.height && (tileAt(t, x, y) === TILE.air || tileAt(t, x, y) === TILE.cap)) y++;
     rows[x] = y;
   }
   return rows;
@@ -391,7 +392,8 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
   const size = c.tiles * T;
   ctx.setTransform(res, 0, 0, res, (CHUNK_PAD - c.tx * T) * res, (CHUNK_PAD - c.ty * T) * res);
   ctx.clearRect(c.tx * T - CHUNK_PAD, c.ty * T - CHUNK_PAD, size + CHUNK_PAD * 2, size + CHUNK_PAD * 2);
-  const ground: Mask = (x, y) => tileAt(t, x, y) !== TILE.air;
+  // Cap mushrooms aren't rock: they're drawn standing in front of it (mycelGround.ts).
+  const ground: Mask = (x, y) => tileAt(t, x, y) !== TILE.air && tileAt(t, x, y) !== TILE.cap;
   const of = (tile: number): Mask => (x, y) => tileAt(t, x, y) === tile;
   // Hollows inside the planet (open tiles under its first surface): the back wall.
   const inner: Mask = (x, y) => !ground(x, y) && inside(t, x, 0) && y >= (roof[wrapX(t, x)] ?? 0);
@@ -458,6 +460,7 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
   ctx.restore();
   ores(ctx, t, c, T);
   firedamp(ctx, t, c, T);
+  sporesIn(ctx, t, c, T);
   // Faint lines where one grade gives way to the next; heavy ink where you can't drill.
   inkEdges(ctx, of(TILE.stone), c, T, 0.9, 100, 0.45);
   inkEdges(ctx, of(TILE.deep), c, T, 0.9, 200, 0.45);
@@ -471,6 +474,7 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
   };
   inkEdges(ctx, hard, c, T, 2.8, 300);
   surfaceRocks(ctx, t, roof, c.tx, c.ty, c.tiles, T, style);
+  capsIn(ctx, t, c, T);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 

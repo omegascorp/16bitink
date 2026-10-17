@@ -4,8 +4,12 @@
  * metal, ice's pale blue) with a highlighter swipe of a matching tint behind
  * it, and its own glyph in the rock, so it reads without colour. Ids are stored in the
  * terrain's content layer, so never renumber one.
+ *
+ * Graphite's six come first; Mycel's (chapter 2) follow: malachite, pyrite,
+ * calcite, amber, lignite and water. They ship with the game even though
+ * Mycel itself comes from the server, as saves keep only ores they know.
  */
-export type OreGlyph = 'nugget' | 'cube' | 'flake' | 'prism' | 'wire' | 'rime';
+export type OreGlyph = 'nugget' | 'cube' | 'flake' | 'prism' | 'wire' | 'rime' | 'botryoid' | 'rhomb' | 'resin' | 'chunk' | 'bead';
 
 export interface OreKind {
   readonly id: number;
@@ -31,6 +35,13 @@ export const ORES = {
   silver: { id: 5, key: 'silver', name: 'native silver', value: 12, color: '#e4e8ee', mark: '#dfe6f0', glyph: 'wire', about: 'Pure silver metal, grown in curling wires inside the rock. The best conductor of any metal, and rarer and deeper than copper.' },
   /** Water ice: what life support is fed (real moon bases plan to make air from it). */
   ice: { id: 6, key: 'ice', name: 'water ice', value: 2, color: '#e2f5fa', mark: '#b9ecf5', glyph: 'rime', about: 'Water, frozen as hard as rock where the sun never warms it. Split, it gives air to breathe, which is why the suit takes it for life support.' },
+  malachite: { id: 7, key: 'malachite', name: 'malachite', value: 9, color: '#2f8f5b', mark: '#6fdc9a', glyph: 'botryoid', about: 'Copper carbonate in banded green bubbles, grown where water heavy with carbon dioxide seeped through copper-bearing rock. Ground, it was one of the first green paints; heated, it gives up its copper.' },
+  pyrite: { id: 8, key: 'pyrite', name: 'pyrite', value: 7, color: '#c9b35c', mark: '#f2dc62', glyph: 'cube', about: 'Iron sulfide in brassy cubes, the fool\'s gold. It grows where living things rot away from the air, so the deep peat of a living world is full of it. Real batteries use it for their cathodes.' },
+  calcite: { id: 9, key: 'calcite', name: 'calcite', value: 8, color: '#efe4cc', mark: '#f7d993', glyph: 'rhomb', about: 'Calcium carbonate, laid down as limestone where carbon dioxide-rich water met the rock. Its clear crystals split light in two; seafarers may once have used them to find the sun through cloud.' },
+  amber: { id: 10, key: 'amber', name: 'amber', value: 18, color: '#e39b2c', mark: '#ffc04d', glyph: 'resin', about: 'Resin wept by Mycel\'s giant stalks long ago and hardened over ages into a warm, light stone. Some pieces hold tiny six-legged fliers caught in it, whole. As a binder it makes a strong, light composite.' },
+  lignite: { id: 11, key: 'lignite', name: 'lignite', value: 3, color: '#5b4733', mark: '#b48e64', glyph: 'chunk', about: 'Brown coal: dead growth pressed underground until it turned half to carbon, soft and still woody in its grain. The suit\'s cell burns it in a little carbon fuel cell to charge, so here it feeds the drill.' },
+  /** Water: on Mycel it lies liquid, and life support and the tanks are split from it as they are from ice. */
+  water: { id: 12, key: 'water', name: 'water', value: 2, color: '#8cc6e6', mark: '#a6e0f7', glyph: 'bead', about: 'Liquid water, pooled in sealed pockets in the soil and seeping from cave walls. Split, it gives air to breathe and fuel to fly, as ice does on a dead moon.' },
 } as const satisfies Record<string, OreKind>;
 
 export type OreKey = keyof typeof ORES;
