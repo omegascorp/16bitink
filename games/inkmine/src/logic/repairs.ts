@@ -4,7 +4,7 @@ import { fitInventories, hasOnHand, onHand, spend, type PrintResult, type Profil
 import { fuelOre, ROUND_TRIP } from './fuel';
 import { countOf, holdEntries, type Hold } from './hold';
 import { ORES } from './ore';
-import { hasBeat, tradeLine } from './story';
+import { hasBeat, tradeLine, WAKE } from './story';
 import { FIRST_COURSE, isFixed, shipFuelOre, STARSHIP, STARSHIP_IDS, type StarshipId } from './starship';
 import { hasTool, TOOL_KINDS } from './tools';
 
@@ -143,8 +143,12 @@ export type Goal =
   | { readonly kind: 'pulse' }
   /** Mycel's drill printed: study the rest of the Aster crew's gear there for its designs. */
   | { readonly kind: 'explore'; readonly found: number; readonly of: number }
-  /** Every Mk 2 design found: chapter 2's story goes on later. */
-  | { readonly kind: 'soon' };
+  /** Every Mk 2 design found: follow the faint signal under the beacon's, east, to where the crew went (the Aster's camp). */
+  | { readonly kind: 'trail' }
+  /** At the camp: bring the sleep pod its charge, in the bag (story.ts WAKE). */
+  | { readonly kind: 'wake' }
+  /** The last of the Aster awake: its crew flew to Brine. Chapter 2 is over; Brine comes later. */
+  | { readonly kind: 'brine' };
 
 /** The drill that breaks Graphite's stone: the thrusters' silver and the radio's quartz lie in it. */
 const STONE_DRILL = 'drill-1';
@@ -158,7 +162,9 @@ export const MYCEL_SET = PIECES.map((piece) => blueprintId(piece, 2));
  * wreck, study their resonator by it and print the pulse (Mycel has
  * creatures, and the deeper the fiercer), then find and print its drill (its
  * stone won't break for Graphite's), then study the rest of the Aster crew's
- * gear round the wreck.
+ * gear round the wreck. Then the crew's trail east to their camp, where the
+ * last of them sleeps in a pod that needs power; woken, it shows where the
+ * others went: Brine.
  */
 function mycelGoal(p: Profile): Goal {
   if (!p.visited.includes('mycel')) return { kind: 'land' };
@@ -169,7 +175,9 @@ function mycelGoal(p: Profile): Goal {
   const drill = recipeOf(MYCEL_DRILL)!;
   if (p.gear.drill < drill.mk) return p.found.includes(MYCEL_DRILL) ? { kind: 'print', blueprint: MYCEL_DRILL } : { kind: 'find', blueprint: MYCEL_DRILL };
   const found = MYCEL_SET.filter((id) => p.found.includes(id)).length;
-  return found < MYCEL_SET.length ? { kind: 'explore', found, of: MYCEL_SET.length } : { kind: 'soon' };
+  if (found < MYCEL_SET.length) return { kind: 'explore', found, of: MYCEL_SET.length };
+  if (!hasBeat(p, 'asterCamp')) return { kind: 'trail' };
+  return hasBeat(p, 'asterWoken') ? { kind: 'brine' } : { kind: 'wake' };
 }
 
 /**
@@ -214,7 +222,9 @@ export function goalLine(p: Profile, g: Goal): string {
   if (g.kind === 'land') return 'Land on Mycel: Land, top right';
   if (g.kind === 'distress') return "Follow the Aster's distress call with the receiver: the more bars, the closer you are";
   if (g.kind === 'explore') return `The Aster crew's gear lies round their wreck: study each broken piece for its design. Mk 2 designs ${g.found}/${g.of}`;
-  if (g.kind === 'soon') return "That's Mycel for now: print your Mk 2 gear. Its people, and what lives at its heart, are coming soon";
+  if (g.kind === 'trail') return "The crew's pictures showed them walking east. Under the beacon's pulses the receiver picks out a fainter one, slow as a heartbeat: follow it";
+  if (g.kind === 'wake') return `The last of the Aster sleeps in a pod whose power is failing. Bring it a charge in your bag: ${tradeLine(p.suit, (ore) => ORES[ore as keyof typeof ORES].name, WAKE)}`;
+  if (g.kind === 'brine') return "The Aster's crew flew to Brine, the sea world, years ago and never called back. Find them: Brine is coming soon";
   if (g.kind === 'print') return `Print the ${recipeOf(g.blueprint)!.piece} Mk ${recipeOf(g.blueprint)!.mk}: go aboard (L at the lander)`;
   if (g.kind === 'receiver') {
     const need = TOOL_KINDS.receiver.recipe;

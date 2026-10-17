@@ -15,6 +15,8 @@ import { TECH_RES } from '../src/art/textures';
 import { BROKEN_SHIP, drawStarship, drawStarshipAir, STARSHIP_ART, type ShipLook } from '../src/art/starship';
 import { SHIP_FINISH, SHIP_MAP_FINISH, SHIP_MAP_RES, SHIP_RES } from '../src/art/textures';
 import { creatureSections } from './creatures';
+import { ASTER_CAMP, ASTER_CRAFT_PICTURE, ASTER_PERSON, drawAsterBrinePicture, drawAsterCamp, drawAsterCraftPicture, drawAsterPerson, drawAsterPersonAir, drawSleepPod, drawSleepPodAir, SLEEP_POD } from '../src/art/aster/camp';
+import { ASTER_FINISH, ASTER_PICTURE_RES, type Finish } from '../src/art/textures';
 
 // Dev page: the prospector in every look and pose, big enough to judge the drawing.
 const root = document.getElementById('root');
@@ -56,6 +58,59 @@ function atPlaySize(row: HTMLElement, label: string, canvas: HTMLCanvasElement, 
 }
 
 creatureSections(section, figure);
+
+// The Aster's camp: the pod, the Aster, the camp's props, the wall pictures, then all of it together at play size.
+{
+  const row = section('Mycel: the Aster camp', 'The sleep pod failing and open; the Aster standing and speaking (blue: harmless); the camp\'s props; the pictures on its wall. Then together as the scene sets them (pod at the camp\'s middle, the Aster 52 to its right) with the prospector for scale, at 2x and 1x.');
+  const CAVE = 'linear-gradient(#e4dae1 0%, #e4dae1 calc(100% - var(--floor)), #9f8aab calc(100% - var(--floor)))';
+  type Art = { readonly w: number; readonly h: number; readonly ox: number; readonly oy: number };
+  const art = (a: Art, res: number, draw: (ctx: CanvasRenderingContext2D) => void, finish?: Finish, after?: (ctx: CanvasRenderingContext2D) => void): HTMLCanvasElement => render(a.w, a.h, a.ox, a.oy, res, draw, finish, after);
+  const shownAt = (c: HTMLCanvasElement, a: Art, scale: number): HTMLCanvasElement => {
+    c.style.width = `${a.w * scale}px`;
+    c.style.background = CAVE;
+    c.style.setProperty('--floor', `${(a.h - a.oy) * scale}px`);
+    return c;
+  };
+  const pod = (state: 'failing' | 'open', res: number, f = 0): HTMLCanvasElement => art(SLEEP_POD, res, (ctx) => drawSleepPod(makeDraw(ctx, 5000 + f, f, 0), state), LANDER_FINISH, (ctx) => drawSleepPodAir(makeDraw(ctx, 5005 + f, f, 0), state));
+  const aster = (pose: 'stand' | 'speak', res: number, f = 0): HTMLCanvasElement => art(ASTER_PERSON, res, (ctx) => drawAsterPerson(makeDraw(ctx, 5020 + f, f, 0, BLUE), pose), ASTER_FINISH, (ctx) => drawAsterPersonAir(makeDraw(ctx, 5025 + f, f, 0, BLUE), pose));
+  const camp = (res: number, f = 0): HTMLCanvasElement => art(ASTER_CAMP, res, (ctx) => drawAsterCamp(makeDraw(ctx, 5040 + f, f, 0)), LANDER_FINISH);
+  for (const state of ['failing', 'open'] as const) figure(row, `pod ${state}`, shownAt(pod(state, 6), SLEEP_POD, 5));
+  for (const pose of ['stand', 'speak'] as const) figure(row, pose, shownAt(aster(pose, 8), ASTER_PERSON, 7));
+  for (const f of [1, 2]) figure(row, `stand ${f}`, shownAt(aster('stand', 8, f), ASTER_PERSON, 7));
+  figure(row, 'the camp', shownAt(camp(4), ASTER_CAMP, 4));
+  const W = ASTER_CRAFT_PICTURE;
+  for (const [name, draw] of [['the craft picture', drawAsterCraftPicture], ['the Brine picture', drawAsterBrinePicture]] as const) {
+    const c = art(W, ASTER_PICTURE_RES, (ctx) => draw(makeDraw(ctx, 5050, 0, 0)));
+    c.style.height = '96px';
+    c.style.background = '#efe6cf';
+    figure(row, `${name}, card size`, c);
+    const big = art(W, 5, (ctx) => draw(makeDraw(ctx, 5050, 0, 0)));
+    big.style.width = `${W.w * 3.5}px`;
+    figure(row, name, big);
+  }
+  // Together, as the scene sets them: drawn at play resolution, laid on one canvas in world units.
+  const C = ASTER_CAMP;
+  for (const [state, pose] of [['failing', null], ['open', 'speak']] as const) {
+    const res = ART_RES;
+    const scene = document.createElement('canvas');
+    scene.width = C.w * res;
+    scene.height = C.h * res;
+    const ctx = scene.getContext('2d')!;
+    const put = (c: HTMLCanvasElement, a: Art, x: number): void => ctx.drawImage(c, (C.ox + x - a.ox) * res, (C.oy - a.oy) * res);
+    put(camp(res), C, 0);
+    put(pod(state, res), SLEEP_POD, 0);
+    if (pose) put(aster(pose, res), ASTER_PERSON, 52);
+    const P = PROSPECTOR_FRAME;
+    const p = render(P, P, P / 2, P / 2, res, (c) => drawProspector(makeDraw(c, 100, 0, PROSPECTOR_GROUND), 'idle', prospectorLook(evenLoadout(2))), PROSPECTOR_FINISH);
+    ctx.drawImage(p, (C.ox - 70 - P / 2) * res, (C.oy - P / 2 - PROSPECTOR_GROUND) * res);
+    figure(row, `${state}, 2x`, shownAt(scene, C, 2));
+    const one = document.createElement('canvas');
+    one.width = scene.width;
+    one.height = scene.height;
+    one.getContext('2d')!.drawImage(scene, 0, 0);
+    figure(row, `${state}, 1x`, shownAt(one, C, 1));
+  }
+}
 
 const starship = section('The starship', 'Your starship: as it first docks (every system broken, dark), part way mended, and whole. Then at the Starship tab\'s size, and the star map\'s little ship.');
 function shipCanvas(look: ShipLook, res: number, finish = SHIP_FINISH): HTMLCanvasElement {

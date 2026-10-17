@@ -15,6 +15,7 @@ import { aside, heading, INK_TEXT, label, MADDER, prose, SEPIA } from './kit/typ
 import { drawSlotGrid, gridHeight } from './slots';
 import { storyCard } from './kit/storyCard';
 import { ASTER_CARD } from './hud/asterCard';
+import { campSpec } from './hud/campCards';
 import { talkSpec } from './hud/talkCards';
 import { TouchPad } from './hud/touchPad';
 import { muteButton } from './kit/muteButton';
@@ -249,7 +250,7 @@ export class HudScene extends Phaser.Scene {
     this.failed.setVisible(mine.state === 'failed');
   }
 
-  /** A Lamplighter's card up while one is talking, or the Aster lander's once you reach it (the world waits), gone once it's read. */
+  /** A Lamplighter's card up while one is talking, the Aster lander's once you reach it, or the Aster camp's (the world waits), gone once it's read. */
   private showTalk(game: GameScene): void {
     if (game.talk && game.talk !== 'thanks' && !this.talk) {
       this.talk = storyCard(this, talkSpec(this, game.talk), () => {
@@ -261,6 +262,12 @@ export class HudScene extends Phaser.Scene {
       this.talk = storyCard(this, ASTER_CARD, () => {
         this.talk = null;
         game.closeFound();
+      }, 70);
+    }
+    if (game.camp && game.camp !== 'awake' && !this.talk) {
+      this.talk = storyCard(this, campSpec(this, game.camp), () => {
+        this.talk = null;
+        game.closeCamp();
       }, 70);
     }
   }

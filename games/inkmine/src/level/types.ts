@@ -33,6 +33,8 @@ export interface WorldDef {
   readonly creatures?: readonly CreatureRule[];
   /** The world's giant, where it lives: the floor of its chamber, by column and depth (a room should be carved there). */
   readonly giant?: { readonly at: TilePos };
+  /** Where a lost crew made camp, by column and depth: the last open row of its cave (a room should be carved there). Mycel's Aster camp, at the end of their trail. */
+  readonly camp?: { readonly at: TilePos };
 }
 
 /** The card shown the first time you land on a world: its name, a line under it, a few paragraphs and the button. */

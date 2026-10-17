@@ -29,7 +29,7 @@ function whereLine(page: ShipPage, at: SlotRef, s: Stack): string {
   const p = page.profile;
   if (at.bag === 1) return 'in the cargo';
   if (at.bag === 2) return p.docked ? "in the starship's hold" : "in the starship's hold, up in orbit";
-  if (keptOres(p).includes(s.ore)) return 'in the suit bag · kept for the Lamplighters';
+  if (keptOres(p).includes(s.ore)) return `in the suit bag · kept for ${p.at === 'mycel' ? "the Aster's pod" : 'the Lamplighters'}`;
   return isLocked(p.suit, at.slot) ? 'in the suit bag · locked' : 'in the suit bag';
 }
 

@@ -487,7 +487,7 @@ Graphite's existing levels 1–5 (`level/planet1.ts`) become the first regions: 
 
 ## Mycel (chapter 2, the full game)
 
-Built Oct 17, 2026, as the first step of chapter 2: travel there, its world, its ores, its Mk 2 gear, two of its three mechanics, its creatures and the Mother Mycel (see Creatures), and the Aster's pulse (see Weapons). Still to come: fungus growing back over tunnels, its people (and the spore filter they give), and the chapter's story past the gear.
+Built Oct 17, 2026, as the first step of chapter 2: travel there, its world, its ores, its Mk 2 gear, two of its three mechanics, its creatures and the Mother Mycel (see Creatures), the Aster's pulse (see Weapons), and the chapter's ending, the Aster's camp (see "The ending"). Still to come: fungus growing back over tunnels, and the spore filter.
 
 Graphite's sister moon round the ringed giant, big enough to hold air: a fungal jungle under a thick haze of carbon dioxide and spores. Green from space and in its sky; violet underground, its soil peat of fungal matter, its stone limestone. The Aster's lander lies wrecked in the coal swamp, its crew's gear thrown round it, each broken piece a Mk 2 design to study.
 
@@ -512,7 +512,7 @@ Graphite's sister moon round the ringed giant, big enough to hold air: a fungal 
 | Jetpack | 5 lignite, 3 pyrite | A carbon nozzle pressed from lignite, on iron joints |
 | Suit | 6 calcite, 3 amber | Mineral wool spun from calcite (as rock wool is from limestone), bound in amber |
 
-**A step behind.** You arrive with Graphite's Mk 1 drill: Mycel's peat costs 2 a block and its stone won't break, so the way in is the peat and the caves until its drill is printed. The HUD leads: follow the distress call to the wreck, find the Aster's broken drill near it (beacon), print it, then study the rest of their gear ("Mk 2 designs 2/6"), then "That's Mycel for now".
+**A step behind.** You arrive with Graphite's Mk 1 drill: Mycel's peat costs 2 a block and its stone won't break, so the way in is the peat and the caves until its drill is printed. The HUD leads: follow the distress call to the wreck, find the Aster's broken drill near it (beacon), print it, then study the rest of their gear ("Mk 2 designs 2/6"), then follow the crew's trail to their camp (see "The ending").
 
 **Its mechanics:**
 - **Caps** (`TILE.cap`): solid, soft as soil to drill, standing on the surface (the cap forest) and on cave floors. Jump off one and it throws you about five tiles up; land on one from a fall and it gives back half the speed, so you settle in a bounce or two; hold down and it doesn't bounce you. **Drilled, a cap gives two pieces** (Oct 17, 2026, `CAP_YIELD` in `logic/mine.ts`): carbon, its flesh charred by the drill's heat, for the cell, and water for the air. That's real: a fungus is about nine parts water, and the rest is mostly chitin, which chars to nearly pure carbon, the fuel a direct carbon fuel cell burns. **They look nothing like a mushroom at home** (`art/mycelGround.ts`): a swollen, see-through bladder of water, veined inside with a waterline sloshing in it, drawn up to a crown of fleshy horns, standing on three root-legs that curl out to the ground, with fine threads hanging from its belly, each tipped with a bead of light. The giant ones on the horizon are the same bladders on tall stalks.
@@ -536,9 +536,23 @@ Every part lies within 25 columns of the wreck (decided Oct 17, 2026: spread rou
 
 `test/world.test.ts` checks Mycel as it checks Graphite (fuels near the lander, every design reachable with its drill, three times the Mk 2 set's materials), that its drill and twice its materials are within reach of Graphite's drill while its stone vaults aren't, and that every part lies round the wreck, which lies within the receiver's range of the lander.
 
+### The ending: the Aster's camp
+
+Decided with @Hayk on Oct 17, 2026: one of the crew is alive, asleep, and waking it points the way to the next world.
+
+1. **The trail** (goal `trail`). Once the six Mk 2 designs are studied, the receiver picks out a second, fainter signal under the beacon's pulses, slow as a heartbeat, and the HUD says to follow it. It's the same hot-and-cold bars as before. It leads east, 74 columns past the wreck, to a shaft the crew dug down into the peat, its mouth grown over with a skin of peat since. When the bars say "right here", the beacon arrow points down at the camp, and one tile of drilling opens the shaft.
+2. **The camp** (beat `asterCamp`, the card "The Aster camp"). At the bottom is a cave they sealed against the spores with amber resin. Three woven-cord bedrolls lie in it, empty. Pictures scratched in their plum ink on the wall show what happened: they built a small craft from the lander's petals, three of them flew off in it towards a blue world, and one lay down in a pod to wait. That pod is in the corner, its glass glowing a weak teal, and the suit reads its cell as nearly flat. This is why the beacon kept calling.
+3. **The charge** (goal `wake`, `WAKE` in `logic/story.ts`). The pod's cell is a glass prism on a pyrite cathode, as all of theirs are. It needs 6 pyrite and 4 calcite, carried in the bag. Those ores stay in the bag at the lander until the pod has them, as the Lamplighters' silver did. Walking in with them, the pod takes them.
+4. **The last of the Aster** (beat `asterWoken`, the card "The last of the Aster"). The pod's petals open and its sleeper unfolds: the first alien you meet who is a castaway like you. It speaks in flashes of light from the glass on its crown, the same pulses as the distress call. It scratches the story again in the peat: three of its crew, the craft, the blue world. It's **Brine**, the sea world on the star map. They promised to call back and never did. It taps your suit, then the blue world.
+5. **The end of chapter 2** (goal `brine`). The HUD says the crew flew to Brine years ago and never called back, and that Brine is coming soon. The star map's Brine card says the Aster crew flew there. The Aster stays at its camp, by its open pod, keeping the beacon going in case they come back. Walking in again, its crown flashes at you.
+
+The camp's cave is at column 214, depth 12–16, with the shaft at column 209 (`content/planet2.ts`, world version 2). `scenes/game/campSite.ts` draws the camp, the pod and the Aster; the cards are in `scenes/hud/campCards.ts`; the pictures are in `art/aster/camp.ts`.
+
 ### The Aster
 
-Another people who fell through the wormhole, years before you, and the first aliens you find. "The Aster" is your name for them, for the eight-pointed star they sign everything with; nobody yet knows what they call themselves, and their writing (rosettes of strokes round a centre, in a dark plum ink) can't be read. Nobody has met one: on Mycel there's only their lander and their gear, and pictures of the crew walking east.
+Another people who fell through the wormhole, years before you, and the first aliens you find. "The Aster" is your name for them, for the eight-pointed star they sign everything with; nobody yet knows what they call themselves, and their writing (rosettes of strokes round a centre, in a dark plum ink) can't be read. On Mycel you find their lander, their gear and pictures of the crew walking east, and at the end of that trail, the last of them, asleep (see "The ending").
+
+**Their bodies** (Oct 17, 2026, `art/aster/camp.ts`): nothing like yours. Small, about two-thirds of your height. A ribbed, seed-shaped shell like their lander, bone-white glazed with lilac, on six thin jointed legs splayed round it. Two long, fine forelimbs end in three digits. They have no head: a ring of small eyes runs round the top of the shell, and on the crown, under a faceted glass dome, is a hexagonal organ that glows teal. They talk in pulses of its light, which is why their distress call is pulses. They're drawn in blue ink: never a danger.
 
 **Their design language** (`art/aster/style.ts`), nothing like the guild's: things look grown more than built. Glazed ceramic, bone-white with lilac glaze pooled low, ribbed like a shell and arranged round a centre; joints lashed with dark red cord where ours are riveted; hexagonal glass with a cool teal glow where power runs; their star on everything. No rivets, no straight panel seams, none of the guild's cobalt and enamel.
 

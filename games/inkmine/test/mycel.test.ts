@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { recipeOf } from '../src/logic/blueprints';
 import { NEW_PROFILE, type Profile } from '../src/logic/economy';
 import { canLand, fuelOre, land } from '../src/logic/fuel';
-import { addHoldTo } from '../src/logic/inventory';
+import { addHoldTo, countIn } from '../src/logic/inventory';
 import { CAP_SPRING, CAP_YIELD, SPORE_AIR } from '../src/logic/mine';
 import { ORES } from '../src/logic/ore';
 import { currentGoal, goalLine } from '../src/logic/repairs';
 import { parseProfile } from '../src/logic/save';
 import { STARSHIP_IDS } from '../src/logic/starship';
-import { distressDue, hasBeat } from '../src/logic/story';
+import { campVisit, distressDue, hasBeat, keptOres } from '../src/logic/story';
 import { canPrintTool, printTool, TOOL_KINDS } from '../src/logic/tools';
 import { designName, designSalvage } from '../src/logic/designs';
 import { refillStore, storeCapacity, storeOre, storeRefill, STORES } from '../src/logic/stores';
@@ -209,7 +209,33 @@ describe('on Mycel', () => {
     const printed = { ...landed, found: ['pulse', 'drill-2', 'cell-2'], gear: { ...landed.gear, drill: 2 } };
     expect(currentGoal(printed)).toEqual({ kind: 'explore', found: 2, of: 6 });
     const all = { ...printed, found: ['pulse', ...['cell', 'pack', 'drill', 'helmet', 'jetpack', 'suit'].map((p) => `${p}-2`)] };
-    expect(currentGoal(all)).toEqual({ kind: 'soon' });
+    expect(currentGoal(all)).toEqual({ kind: 'trail' });
     expect(recipeOf('drill-2')!.materials).toEqual({ pyrite: 6, malachite: 4 });
+  });
+
+  it("then follows the crew's trail to their camp, wakes the last of them, and points on to Brine", () => {
+    const all: Profile = { ...landed, found: ['pulse', ...['cell', 'pack', 'drill', 'helmet', 'jetpack', 'suit'].map((p) => `${p}-2`)], gear: { ...landed.gear, drill: 2 } };
+    expect(goalLine(all, currentGoal(all))).toMatch(/walking east/);
+    // The camp found: the pod waits for its charge, counted from the bag.
+    const camp = campVisit(all, all.suit);
+    expect(camp.says).toBe('camp');
+    expect(currentGoal(camp.profile)).toEqual({ kind: 'wake' });
+    expect(goalLine(camp.profile, currentGoal(camp.profile))).toMatch(/pyrite 0\/6 · calcite 0\/4/);
+    expect(keptOres(camp.profile)).toEqual(['pyrite', 'calcite']);
+    // Not all of it: the pod goes on waiting, the bag untouched.
+    const some = addHoldTo(camp.profile.suit, { pyrite: 6, calcite: 3 }).inv;
+    expect(campVisit(camp.profile, some)).toEqual({ profile: camp.profile, bag: some, says: 'pod' });
+    // All of it: taken from the bag, and the sleeper wakes.
+    const enough = addHoldTo(camp.profile.suit, { pyrite: 7, calcite: 4 }).inv;
+    const woken = campVisit(camp.profile, enough);
+    expect(woken.says).toBe('woken');
+    expect(countIn(woken.bag, 'pyrite')).toBe(1);
+    expect(countIn(woken.bag, 'calcite')).toBe(0);
+    expect(currentGoal(woken.profile)).toEqual({ kind: 'brine' });
+    expect(goalLine(woken.profile, currentGoal(woken.profile))).toMatch(/Brine/);
+    expect(keptOres(woken.profile)).toEqual([]);
+    expect(campVisit(woken.profile, woken.bag).says).toBe('awake');
+    // Saved and loaded, it stays where it was.
+    expect(currentGoal(parseProfile(JSON.parse(JSON.stringify(woken.profile))))).toEqual({ kind: 'brine' });
   });
 });

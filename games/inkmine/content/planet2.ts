@@ -34,6 +34,11 @@ import type { PlanetDef } from '../src/level/types';
  *     sealed in stone, the Suit in a grotto, and the Jetpack deep down in
  *     the amber, stone walls and a soil door on the west.
  *
+ * - East of the swamp (205–222): the Aster's camp, a cave in the peat at
+ *   the end of the crew's trail, a shaft they dug down to it (grown over
+ *   at the top); the last of
+ *   them asleep in a pod there, the others gone to Brine.
+ *
  * The ground: peat soil to about 24 m, limestone to about 88 m, deep rock
  * below for a later drill.
  */
@@ -48,7 +53,7 @@ export const PLANET_2: PlanetDef = {
   signature: 'amber',
   world: {
     id: 'mycel',
-    version: 1,
+    version: 2,
     site: {
       // 240 columns round: a whole number of ground chunks (16) and hatch tiles (4), so both repeat cleanly at the join.
       width: 240, height: 144, wrap: true, seed: 2002, surface: 14, landerCol: 40,
@@ -99,7 +104,11 @@ export const PLANET_2: PlanetDef = {
         { at: [150, 50], w: 10, h: 4 },
         // The Mother Mycel's chamber, deep in the limestone east of the wreck.
         { at: [200, 74], w: 14, h: 9 },
+        // The Aster's camp, at the end of their trail east: a cave in the peat they sealed against the spores.
+        { at: [214, 14], w: 14, h: 5 },
       ],
+      // The shaft the crew dug down to it, its mouth grown over with a skin of peat since.
+      tunnels: [[[209, 0], [209, 12]]],
       vaults: [
         // The Helmet: down a sinkhole under the wreck, sealed in limestone all round, no soft way in.
         { at: [136, 36], w: 4, h: 3, wall: 'stone' },
@@ -119,6 +128,8 @@ export const PLANET_2: PlanetDef = {
     ],
     // The Mother Mycel, on her chamber's floor.
     giant: { at: [200, 78] },
+    // The Aster's camp: their sleep pod on its floor, the last of the crew asleep in it.
+    camp: { at: [214, 16] },
     // The Aster crew's gear, lost on Mycel: touch a piece to study it (its design) and take it apart (half its materials).
     items: [
       // The Aster's resonator, lying in the open just east of the wreck: the pulse.

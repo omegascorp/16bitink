@@ -66,6 +66,7 @@ const isPlanet = shape({
     crash: col,
     creatures: listOf(shape({ kind: oneOf(...CREATURE_KINDS), count: intIn(0, 64), from: depth, to: depth }, { cols: tuple(col, col) }), 16),
     giant: shape({ at }),
+    camp: shape({ at }),
   }),
 }, {
   arrival: shape({ subtitle: isText(120), paragraphs: listOf(isText(2000), 8), button: isText(40) }),

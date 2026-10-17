@@ -4,7 +4,7 @@ import { roofRows } from '../art/ground';
 import { RIDGE_W } from '../art/ridgeArt';
 import { SKY_W } from '../art/skyArt';
 import { LAMPLIGHTER, OUTPOST_ART } from '../art/lamplighterArt';
-import { TEX, generateTextures } from '../art/textures';
+import { ridgeRoom, TEX, generateTextures } from '../art/textures';
 import { getHost, getProfile, getSound, heldWorld, holdWorld, setProfile } from '../host';
 import { buildWorld } from '../level/build';
 import { currentPlanet } from '../level/planets';
@@ -17,7 +17,7 @@ import type { MineItem } from '../logic/items';
 import { lampFor } from '../logic/marks';
 import { Mine, NO_INPUT, SPORE_AIR, type MineEvent, type MineInput } from '../logic/mine';
 import { oreById, ORES } from '../logic/ore';
-import { ARRIVAL_BEAT, hasBeat, keptOres, OUTPOST, signalBars, visit, withBeat, type Says } from '../logic/story';
+import { ARRIVAL_BEAT, campVisit, hasBeat, keptOres, OUTPOST, signalBars, visit, withBeat, type CampSays, type Says } from '../logic/story';
 import { feed, fuelIn, withBag, type FeedResult, type Fuels, type Gauge, type Suit } from '../logic/suit';
 import { currentGoal, MYCEL_SET, wreckOf, type Goal, type Wreck } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
@@ -25,6 +25,7 @@ import { ringDelta, volatileAt } from '../logic/terrain';
 import { volatileKeyOf } from '../logic/volatiles';
 import { captureWorld, loadWorld, savePieces, saveWorld } from '../logic/worldSave';
 import { BeaconView } from './game/beaconView';
+import { CampSite } from './game/campSite';
 import { CrashView } from './game/crashView';
 import { FaunaView } from './game/faunaView';
 import { FlagView } from './game/flagView';
@@ -113,6 +114,8 @@ export class GameScene extends Phaser.Scene {
   talk: Says | null = null;
   /** The Aster lander's card is up (you followed its beacon to it): the world waits until it's read. */
   found = false;
+  /** Something's happening at the Aster's camp (a card is up): the world waits until it's read. */
+  camp: CampSays | null = null;
   /** The prospector was at the outpost last step: a visit starts on walking up, not every step there. */
   private wasAtOutpost = false;
   /** The receiver's last reading, in bars, for saying stronger or weaker. */
@@ -122,6 +125,10 @@ export class GameScene extends Phaser.Scene {
   /** Where a lost lander lies on this world, and its picture (Mycel's Aster lander). */
   private crashAt: { readonly col: number; readonly row: number } | null = null;
   private crash: CrashView | null = null;
+  /** Where a lost crew made camp on this world, and its picture (Mycel's Aster camp). */
+  private campSite: CampSite | null = null;
+  /** The prospector was at the camp last step: a visit starts on walking in, not every step there. */
+  private wasAtCamp = false;
   /** The creatures and the pulse's shots; none on a world with neither (Graphite, unarmed). */
   private fauna: FaunaView | null = null;
   /** Asked for from outside the world (a tapped gauge on the HUD, recall in the inventory), done on the next step. */
@@ -140,6 +147,7 @@ export class GameScene extends Phaser.Scene {
     this.woke = data?.woke ?? null;
     this.talk = null;
     this.found = false;
+    this.camp = null;
     this.lastBars = null;
     this.changed = false;
     this.smokeAt = 0;
@@ -173,7 +181,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(PAPER);
     // Far sky and crater rims scroll slower than the ground, so they read as far off; both tile round the world.
     this.sky = this.add.tileSprite(0, 0, SKY_W, this.textures.get(TEX.sky(id, skyH)).getSourceImage().height, TEX.sky(id, skyH)).setOrigin(0).setScrollFactor(PARALLAX.sky, 1).setDepth(0);
-    this.ridges = this.add.tileSprite(0, skyH * 0.5 + T * 0.5, RIDGE_W, this.textures.get(TEX.ridges(id, skyH)).getSourceImage().height, TEX.ridges(id, skyH)).setOrigin(0).setScrollFactor(PARALLAX.ridges, 1).setDepth(0.5);
+    this.ridges = this.add.tileSprite(0, skyH * 0.5 + T * 0.5 - ridgeRoom(skyH), RIDGE_W, this.textures.get(TEX.ridges(id, skyH)).getSourceImage().height, TEX.ridges(id, skyH)).setOrigin(0).setScrollFactor(PARALLAX.ridges, 1).setDepth(0.5);
     // The ground's roof is taken from the carved ground, so a shaft dug in an earlier session still reads as inside the planet.
     const roof = roofRows({ ...t, tiles: built.base });
     this.ground = new GroundView(this, t, T, style, (g) => tooHard(setup.drill, g), roof);
@@ -181,6 +189,7 @@ export class GameScene extends Phaser.Scene {
     this.placeOutpost(setup.outpost, T);
     this.crashAt = world.crash === undefined ? null : { col: world.crash, row: world.site.surface };
     this.crash = this.crashAt ? new CrashView(this, this.crashAt, T) : null;
+    this.campSite = world.camp ? new CampSite(this, { col: world.camp.at[0], row: world.site.surface + world.camp.at[1] }, T) : null;
     this.fauna = this.mine.fauna.creatures.length || this.mine.fauna.armed ? new FaunaView(this, T) : null;
     this.things = new ThingsView(this, T);
     this.items = new ItemsView(this, T);
@@ -197,6 +206,7 @@ export class GameScene extends Phaser.Scene {
     if (t.wrap) cam.setBounds(-RING_REACH, 0, RING_REACH * 2, worldH);
     else cam.setBounds(0, 0, t.width * T, worldH);
     this.wasAtOutpost = this.mine.atOutpost;
+    this.wasAtCamp = this.atCamp();
     const p = this.mine.player;
     this.ring.centre = p.x + p.w / 2;
     this.prospector.update(this.mine, 0, 0, this.ring);
@@ -241,7 +251,7 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const dt = Math.min(delta / 1000, MAX_DT);
-    const still = this.ended || this.intro || this.talk !== null || this.found;
+    const still = this.ended || this.intro || this.talk !== null || this.found || this.camp !== null;
     // Keys are read every frame, so one pressed while the world waits doesn't fire when it starts again.
     const hud = this.scene.get('Hud') as HudScene | null;
     const touch = hud?.touch && this.scene.isActive('Hud') ? hud.touch.read() : undefined;
@@ -260,6 +270,9 @@ export class GameScene extends Phaser.Scene {
     if (atOutpost && !this.wasAtOutpost && !still) this.converse();
     this.wasAtOutpost = atOutpost;
     if (!still) this.reachWreck();
+    const atCamp = this.atCamp();
+    if (atCamp && !this.wasAtCamp && !still) this.visitCamp();
+    this.wasAtCamp = atCamp;
     if (!still) this.listen();
     this.sounds.listen(this.mine, still);
     const cam = this.cameras.main;
@@ -274,6 +287,7 @@ export class GameScene extends Phaser.Scene {
     this.lander.setTexture(TEX.lander(this.ship, Math.floor(time / 125) % BOIL, this.wreck)).setX(this.ring.near((this.mine.landerBox.x + this.mine.landerBox.w / 2)));
     this.drawOutpost(time);
     this.crash?.update(this.ring, time);
+    this.campSite?.update(this.ring, time, hasBeat(getProfile(this), 'asterWoken'));
     this.fauna?.update(this.mine, time, this.ring);
     this.beacon.update(this.mine, this.ring, this.beaconTarget(), 'beacon', time);
     const d = this.mine.dropped;
@@ -360,6 +374,7 @@ export class GameScene extends Phaser.Scene {
     const o = this.mine.outpostBox;
     if (g === 'signal' && o) return o.x + o.w / 2;
     if (g === 'distress' && this.crashAt) return (this.crashAt.col + 0.5) * this.mine.tile;
+    if (g === 'trail' && this.campSite) return this.campSite.x;
     return null;
   }
 
@@ -380,6 +395,39 @@ export class GameScene extends Phaser.Scene {
     this.keys.forget();
     setProfile(this, withBeat(this.liveProfile(), 'asterFound'));
     this.save();
+  }
+
+  /** In at the Aster's camp, once their trail is what you're following (it's dug into, so it's found by walking in). */
+  private atCamp(): boolean {
+    const g = this.goal().kind;
+    return !!this.campSite && (g === 'trail' || g === 'wake' || g === 'brine') && this.campSite.holds(this.mine);
+  }
+
+  /**
+   * Walking into the Aster's camp: found the first time, the pod taking its
+   * charge from the bag once it's all there, the sleeper awake after (story.ts).
+   * A card shows it; the world waits until it's read. Saved at once.
+   */
+  private visitCamp(): void {
+    const v = campVisit(this.liveProfile(), this.mine.suit.bag);
+    this.mine.suit = withBag(this.mine.suit, v.bag);
+    setProfile(this, { ...v.profile, suit: v.bag, cargo: this.mine.cargo });
+    this.mine.keep = keptOres(v.profile);
+    this.save();
+    if (v.says === 'awake') {
+      const p = this.mine.player;
+      this.fx.note(this.ring.near(p.x + p.w / 2), p.y - 32, 'its crown flashes at you');
+      return;
+    }
+    this.camp = v.says;
+  }
+
+  /** A camp card was read. Finding it, with the charge already in the bag, the pod takes it at once. */
+  closeCamp(): void {
+    const was = this.camp;
+    this.camp = null;
+    this.keys.forget();
+    if (was === 'camp' && this.goal().kind === 'wake' && campVisit(this.liveProfile(), this.mine.suit.bag).says === 'woken') this.visitCamp();
   }
 
   /** The receiver crackling stronger or weaker as you walk: hot and cold, never a direction. */
@@ -469,6 +517,8 @@ export class GameScene extends Phaser.Scene {
     // Not while you're after their silver: it's deep down, not at the outpost. Once it's paid, it points the way back for the core.
     if (o && g.kind === 'collect') return { x: o.x + o.w / 2, y: o.y + o.h / 2 };
     if (g.kind === 'find') return this.nearestPart((bp) => bp === g.blueprint);
+    // The camp once found; while following the trail, only when the receiver says it's right here (it's underground).
+    if (this.campSite && (g.kind === 'wake' || (g.kind === 'trail' && this.signal() === 5))) return this.campSite.point;
     if (g.kind === 'explore') {
       const found = getProfile(this).found;
       return this.nearestPart((bp) => MYCEL_SET.includes(bp) && !found.includes(bp));

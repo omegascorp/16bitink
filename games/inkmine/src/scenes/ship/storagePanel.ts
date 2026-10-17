@@ -120,7 +120,7 @@ export function storagePanel(page: ShipPage, tab: Tab, x: number, y: number, w: 
   return h;
 }
 
-/** What stays in the bag at the lander: locked slots, and the ore the Lamplighters are waiting for. */
+/** What stays in the bag at the lander: locked slots, and the ore someone's waiting for (the Lamplighters, the Aster's pod). */
 function keeps(p: ShipPage['profile']): (s: Stack, slot: number) => boolean {
   const ores = keptOres(p);
   return (s, slot) => isLocked(p.suit, slot) || ores.includes(s.ore);

@@ -8,6 +8,7 @@ import { drawPulseWreck, drawWreck, WRECK_FRAME } from './wreckArt';
 import { drawLamplighter, drawOutpost, LAMPLIGHTER, OUTPOST_ART } from './lamplighterArt';
 import { ASTER_WRECK, drawAsterBeam, drawAsterWreck } from './asterWreckArt';
 import { drawPulseShot, SHOT_ART } from './aster/weapon';
+import { ASTER_CAMP, ASTER_CRAFT_PICTURE, ASTER_PERSON, drawAsterBrinePicture, drawAsterCamp, drawAsterCraftPicture, drawAsterPerson, drawAsterPersonAir, drawSleepPod, drawSleepPodAir, SLEEP_POD, type AsterPose, type PodState } from './aster/camp';
 import { drawGrazer, GRAZER_ART } from './creatures/grazer';
 import { drawMotherMycel, MOTHER_ART } from './creatures/mother';
 import { drawPuffball, drawSporeGlob, GLOB_ART, PUFFBALL_ART, type PuffPose } from './creatures/puffball';
@@ -40,6 +41,11 @@ export const TEX = {
   outpost: (f: number) => `outpost-${f}`,
   asterWreck: (f: number) => `aster-wreck-${f}`,
   asterBeam: 'aster-beam',
+  asterPod: (state: PodState, f: number) => `aster-pod-${state}-${f}`,
+  asterPerson: (pose: AsterPose, f: number) => `aster-person-${pose}-${f}`,
+  asterCamp: (f: number) => `aster-camp-${f}`,
+  asterCraftPicture: 'aster-picture-craft',
+  asterBrinePicture: 'aster-picture-brine',
   puffball: (pose: PuffPose, f: number) => `puffball-${pose}-${f}`,
   glob: (f: number) => `glob-${f}`,
   tendril: (step: number, grab: boolean, f: number) => `tendril-${step}-${grab ? 'grab' : 'open'}-${f}`,
@@ -142,6 +148,31 @@ export function bakeAsterWreck(scene: Phaser.Scene): void {
   bake(scene, TEX.asterBeam, 24, 24, 12, 12, ART_RES, (ctx) => drawAsterBeam(ctx, 11));
 }
 
+/** Texture px per unit for the pictures on the Aster's camp wall, as story cards show them. */
+export const ASTER_PICTURE_RES = 3;
+/** The Aster themself is inked in blue, as they're never a danger (spec, "The Aster"), with a fine silhouette so its thin legs keep their paint. */
+export const ASTER_FINISH: Finish = { line: 0.55, rim: 0.6, ink: BLUE };
+
+/**
+ * The Aster's camp on Mycel: the sleep pod failing and open, the Aster
+ * standing and speaking, the camp's props, and the two pictures from its
+ * wall (once each, for story cards). Origins as `SLEEP_POD`, `ASTER_PERSON`
+ * and `ASTER_CAMP` say: on the floor, under each one's middle.
+ */
+export function bakeAsterCamp(scene: Phaser.Scene): void {
+  const P = SLEEP_POD;
+  const A = ASTER_PERSON;
+  const C = ASTER_CAMP;
+  for (let f = 0; f < BOIL; f++) {
+    (['failing', 'open'] as const).forEach((state, i) => bake(scene, TEX.asterPod(state, f), P.w, P.h, P.ox, P.oy, ART_RES, (ctx) => drawSleepPod(makeDraw(ctx, 5000 + i * 10 + f, f, 0), state), LANDER_FINISH, (ctx) => drawSleepPodAir(makeDraw(ctx, 5005 + i * 10 + f, f, 0), state)));
+    (['stand', 'speak'] as const).forEach((pose, i) => bake(scene, TEX.asterPerson(pose, f), A.w, A.h, A.ox, A.oy, ART_RES, (ctx) => drawAsterPerson(makeDraw(ctx, 5020 + i * 10 + f, f, 0, BLUE), pose), ASTER_FINISH, (ctx) => drawAsterPersonAir(makeDraw(ctx, 5025 + i * 10 + f, f, 0, BLUE), pose)));
+    bake(scene, TEX.asterCamp(f), C.w, C.h, C.ox, C.oy, ART_RES, (ctx) => drawAsterCamp(makeDraw(ctx, 5040 + f, f, 0)), LANDER_FINISH);
+  }
+  const W = ASTER_CRAFT_PICTURE;
+  bake(scene, TEX.asterCraftPicture, W.w, W.h, W.ox, W.oy, ASTER_PICTURE_RES, (ctx) => drawAsterCraftPicture(makeDraw(ctx, 5050, 0, 0)));
+  bake(scene, TEX.asterBrinePicture, W.w, W.h, W.ox, W.oy, ASTER_PICTURE_RES, (ctx) => drawAsterBrinePicture(makeDraw(ctx, 5051, 0, 0)));
+}
+
 /** The Aster's broken resonator lying in the world, baked when first needed. */
 export function pulseWreckTexture(scene: Phaser.Scene, f: number): string {
   const key = TEX.pulseWreck(f);
@@ -212,11 +243,19 @@ export function generateTextures(scene: Phaser.Scene, world: string, style: Grou
     else drawSky(d, SKY_W, skyHeight + SKY_SKIRT, skyHeight, style);
   });
   const ridge = skyHeight * 0.5;
-  bake(scene, TEX.ridges(world, skyHeight), RIDGE_W, ridge + SKY_SKIRT, 0, 0, 1, (ctx) => {
+  const room = ridgeRoom(skyHeight);
+  bake(scene, TEX.ridges(world, skyHeight), RIDGE_W, room + ridge + SKY_SKIRT, 0, 0, 1, (ctx) => {
+    // Drawn below the room left over the horizon, so the tallest growths aren't cut off at the strip's top.
+    ctx.translate(0, room);
     const d = makeDraw(ctx, 910, 0, 0);
     if (mycel) drawMycelRidges(d, RIDGE_W, ridge + SKY_SKIRT, ridge, style);
     else drawRidges(d, RIDGE_W, ridge + SKY_SKIRT, ridge, style);
   });
+}
+
+/** Room over the ridges' picture, px: the far forest's tallest caps rise past the strip's own height. The strip is placed this much higher. */
+export function ridgeRoom(skyHeight: number): number {
+  return skyHeight * 0.5;
 }
 
 /** The star map's star and worlds (SystemScene); its ship is baked by `shipTexture`. */

@@ -351,5 +351,6 @@ function statusOf(w: World, p: Profile): string {
     if (demoOver(p) && w.id === FIRST_COURSE.to) return 'Course set: the full game goes there.';
     return w.id === FIRST_COURSE.to && hasBeat(p, 'distress') ? "The Aster's distress call comes from here. A sister moon, within reach of the ship's first tank." : "A sister moon: the nearest trip, within reach of the ship's first tank.";
   }
+  if (w.id === 'brine' && hasBeat(p, 'asterWoken')) return "The Aster's crew flew here from Mycel years ago and never called back. Out of reach: it needs a bigger tank, and the chapters after.";
   return 'Out of reach: it needs a bigger tank, and the chapters after.';
 }

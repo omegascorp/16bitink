@@ -10,7 +10,7 @@ import { RECIPES } from '../src/logic/blueprints';
 import { isDesign } from '../src/logic/designs';
 import { REPAIRS } from '../src/logic/repairs';
 import { STARSHIP, STARSHIP_IDS } from '../src/logic/starship';
-import { TRADE } from '../src/logic/story';
+import { TRADE, WAKE } from '../src/logic/story';
 import { addHold, holdEntries, type Hold } from '../src/logic/hold';
 import { ORES, type OreKey } from '../src/logic/ore';
 import { STARTER } from '../src/logic/suit';
@@ -142,6 +142,21 @@ describe('Mycel', () => {
     const fromLander = gap(mycel.world.site.landerCol);
     expect(fromLander).toBeGreaterThan(60);
     expect(fromLander).toBeLessThanOrEqual(100);
+  });
+
+  it("has the Aster's camp east of the wreck, open, on solid ground, reached by their shaft, with the pod's charge to be found", () => {
+    const [col, depth] = mycel.world.camp!.at;
+    const y = mycel.world.site.surface + depth;
+    const crash = mycel.world.crash!;
+    expect(col - crash).toBeGreaterThan(40);
+    // The pod's floor: open where it lies, solid under it.
+    for (const dx of [-1, 0, 1]) {
+      expect(tileAt(ground, col + dx, y), `${dx}`).toBe(TILE.air);
+      expect(tileAt(ground, col + dx, y + 1), `${dx}`).not.toBe(TILE.air);
+    }
+    // In the peat: Graphite's drill would do, and Mycel's makes light work of it.
+    expect(reach(mycel, 1).at(col, depth)).toBeLessThan(Infinity);
+    for (const [ore, n] of holdEntries(WAKE)) expect(reachableOre(mycel, 2, ore), ore).toBeGreaterThanOrEqual(n * 3);
   });
 
   it('has a cap forest to spring off and spore pockets in the peat', () => {
