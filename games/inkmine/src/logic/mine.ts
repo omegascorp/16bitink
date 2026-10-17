@@ -2,10 +2,12 @@ import { boxHitsSolid, climbBody, jump, moveBody, type Body, type Box } from './
 import { BlastSim, type Blast } from './blastSim';
 import type { Loadout } from './gear';
 import { DRILL_SECONDS_PER_ENERGY, tileCost, VOLATILE_COST, type DrillSpec } from './drill';
-import { holdSize, type Hold } from './hold';
+import { holdEntries, holdSize, type Hold } from './hold';
 import { contents as contentsOf, emptyInventory, isEmpty, isLocked, splitShare, transferAll, type Inventory, type Stack } from './inventory';
 import { joinBags, settle, type DroppedBag } from './flag';
+import { salvageOf } from './blueprints';
 import { bankItems, freeItems, inPouch, placeItems, stepItems, type ItemDef, type MineItem } from './items';
+import { ORES } from './ore';
 import { Ladders } from './ladders';
 import { jetFor, type JetSpec } from './marks';
 import { between, caught, newPiece, PIECE, stepPiece, type Piece } from './pieces';
@@ -90,6 +92,8 @@ export type MineEvent =
   | { readonly kind: 'bagBack'; readonly pieces: number }
   | { readonly kind: 'item'; readonly item: MineItem }
   | { readonly kind: 'bankItem'; readonly item: MineItem }
+  /** Touched an old part: studied (its design is the item's blueprint) and taken apart, its salvage spilt as ore. */
+  | { readonly kind: 'salvage'; readonly item: MineItem }
   /** The suit gave out; `dropped` pieces stayed where you fell. */
   | { readonly kind: 'failed'; readonly dropped: number };
 
@@ -376,9 +380,19 @@ export class Mine {
   }
 
   private itemStep(dt: number, events: MineEvent[]): void {
-    const { items, caught } = stepItems(this.terrain, this.items, this.player, dt, this.tile);
+    const { items, caught, salvaged } = stepItems(this.terrain, this.items, this.player, dt, this.tile);
     this.items = items;
     for (const item of caught) events.push({ kind: 'item', item });
+    for (const item of salvaged) {
+      events.push({ kind: 'salvage', item });
+      // Its materials spill out, a little apart, and fly to the bag like any ore.
+      const cx = item.x + item.w / 2;
+      const cy = item.y + item.h / 2;
+      let k = 0;
+      for (const [ore, n] of holdEntries(salvageOf(item.blueprint ?? ''))) {
+        for (let i = 0; i < n; i++, k++) this.pieces.push(newPiece(ORES[ore].id, cx + ((k % 5) - 2) * 3, cy - 4));
+      }
+    }
   }
 
   private near(p: Box): boolean {

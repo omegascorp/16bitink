@@ -16,10 +16,10 @@ export function techName(t: Tech): string {
   return REPAIRS[t.id].name;
 }
 
-/** Where each blueprint is found: which planet's world it lies somewhere in. */
+/** Where each blueprint is learnt: which planet's world has a broken one to study. */
 function blueprintSources(): ReadonlyMap<string, string> {
   const out = new Map<string, string>();
-  for (const planet of PLANETS) for (const it of planet.world.items) if (it.blueprint) out.set(it.blueprint, `it's somewhere on ${planet.name}`);
+  for (const planet of PLANETS) for (const it of planet.world.items) if (it.blueprint) out.set(it.blueprint, `study a broken one; there's one somewhere on ${planet.name}`);
   return out;
 }
 export const SOURCES = blueprintSources();

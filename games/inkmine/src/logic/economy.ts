@@ -75,7 +75,7 @@ export function fitInventories(p: Profile): Profile {
 /** Whether the printer works: it's the first thing the crash broke. */
 export const printerWorks = (p: Profile): boolean => p.repaired.includes('printer');
 
-/** A blueprint found and banked: listed once, if it's a real one. */
+/** A blueprint learnt (by studying a broken part): listed once, if it's a real one. */
 export function findBlueprint(p: Profile, id: string): Profile {
   return recipeOf(id) && !p.found.includes(id) ? { ...p, found: [...p.found, id] } : p;
 }

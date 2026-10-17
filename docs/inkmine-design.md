@@ -170,7 +170,7 @@ Ore is kept as resources in two slot inventories (decided with @Hayk on Oct 14, 
 - **At the lander** the bag empties into the cargo automatically, the rarest ore first; whatever doesn't fit stays in the bag ("cargo hold full").
 - **Locked slots** (Oct 17, 2026): aboard, pick up a stack in the suit bag and press Lock; a locked slot (a padlock on it, in the menu and on the HUD) is never emptied into the cargo. While the Lamplighters wait for their silver, silver in the bag stays there the same way, without locking, until they have it. Moving stacks between the bag and the cargo is aboard: pick one up, then "To cargo" / "To suit bag", or tap a slot on the other tab. A picked-up stack takes the detail card's place on the right (Oct 17, 2026): the ore drawn big, how many are in the stack and on hand, where it sits (locked, or kept for the Lamplighters), real facts about the mineral, what it fuels, and what it's still needed for, each ticked once enough is on hand (`logic/needs.ts`). Only one thing is selected at a time: tapping a technology slot puts the stack down and shows that slot's card, picking up a stack lets the slot go, and tapping the selected slot or stack again leaves the right side empty (there's no Put down button). Far from the lander, L or Esc opens the same page over the paused world (Oct 17, 2026), and it doubles as the pause menu with Recall on it: the suit bag can still be sorted, split, locked and dropped, but the cargo and the lander are look-only (a cargo stack shows its card, nothing moves into or out of the cargo) and Print / Repair read "At the lander", since printing takes the lander's printer. The page is titled Inventory there, and on the Ship tab a note over the lander says you're far from it and must come back to print, repair or move the cargo. Back, L or Esc closes it, and play carries on where it stopped (the world is paused while it's open).
 - **Inside the lander** both grids are shown. Tap a stack to pick it up, tap a slot to put it there: into an empty slot, onto the same ore (as much as fits), or swapping. A picked-up stack can be split in half or dropped (tap twice).
-- **Things you're given or find** (a blueprint, a time capsule, an Aster log, a job item) go in a separate pouch and never take bag space.
+- **Things you're given or find** (a time capsule, an Aster log, a job item) go in a separate pouch and never take bag space. Broken parts aren't carried: they're studied and taken apart where they lie (see Gear).
 
 ## Getting around
 
@@ -213,7 +213,7 @@ There's no mission list and no job board. Things to do come from two places:
 | Drive core | Can't be printed: the Lamplighters give it for 10 silver once the hull and thrusters are mended | Lift-off: the end of chapter 1 | — |
 
 - **The order:** the printer first, the radio second (the start teaches the game), the hull and thrusters in either order, the core last. A repair whose turn hasn't come says what it's waiting for.
-- **The drill in between.** The radio needs quartz, which lies in stone, and the starter drill can't break stone. So after the printer, the goal is the Drill's blueprint, which lies at the foot of the fissure where an earlier crew lost it. A beacon arrow by the prospector points the short way round the world to it, with the distance in metres (No Man's Sky's marker, inked). Then: print the Drill, then the comms.
+- **The drill in between.** The radio needs quartz, which lies in stone, and the starter drill can't break stone. So after the printer, the goal is a broken drill to study, which lies at the foot of the fissure where an earlier crew lost it. A beacon arrow by the prospector points the short way round the world to it, with the distance in metres (No Man's Sky's marker, inked). Then: print the Drill, then the comms.
 - **No crafting chain.** No Man's Sky's repairs go through crafted parts (metal plating, a refiner, di-hydrogen jelly); InkMine's take raw ore straight from the cargo, then the bag.
 - **The lander shows it.** Each broken system has a wrecked look of its own: a dark, cracked porthole until the printer runs (then its warm glow), the dish hanging by its cable until the radio work, a gash and torn heat-shield tiles until the hull is plated (then a welded patch), and a crumpled, scorched engine bell, smoking, until the thrusters are fixed (dev page `/specimens.html`, "After the crash").
 - **The opening card,** shown once: the jump went wrong, the wormhole, the crash, and that the printer wants copper from the crater walls.
@@ -276,6 +276,16 @@ Every planet has its own set of gear, the best you can have there, built from th
 
 **Six pieces**, each with a mark per planet (Mk 1 on Graphite up to Mk 10 on Cardia). You start with a Mk 0 starter set.
 
+**Blueprints come from broken parts** (Oct 17, 2026). No blueprints lie about the world, since nobody would leave a drawing in a cave. What lies about is broken gear: a split drill, a cracked cell, a torn pack, left behind by the Aster crew and others who fell through before you. Each is drawn as the piece it was, tipped over and half sunk in dust (`art/wreckArt.ts`). Walk into one and the suit **studies it and takes it apart** in one go:
+
+- **A design you don't have** is learnt on the spot ("Drill Mk 1 design learnt!"). The suit records it, so there's nothing to carry home.
+- **A design you know** teaches nothing ("Cell Mk 1: nothing new"). Parts repeat, so you'll meet these.
+- **Either way it's salvage:** half of each material the part takes to print (at least one of each, `salvageOf` in `logic/blueprints.ts`) spills out as ore and flies to the bag. So a repeat is still worth the walk.
+- **It's gone for good** afterwards; the world save lists it as taken.
+- One buried in rock shows through with the pulsing highlighter ring until you dig it out. The beacon points at a part with the design the current goal needs.
+
+Graphite has five, one per Mk 1 design but the Suit's (a Lamplighter job gives that), and two repeats: a second cell in the cave east of the crash and a second drill in the cave under the old charges.
+
 | Piece | What a new mark gives |
 | --- | --- |
 | Drill | Breaks the planet's stone (table above), costs less on everything, hits creatures harder |
@@ -298,7 +308,7 @@ Every planet has its own set of gear, the best you can have there, built from th
 
 Every mark is an even step, never an exponential curve.
 
-**The good moment:** you find a blueprint, see in pencil what it needs, go and dig it up, and the printer inks the part in. Every new piece changes something you feel on the very next trip: stone you couldn't break, a vault you couldn't reach, a cave too dark to read.
+**The good moment:** you find a broken part and learn its design, see in pencil what it needs, go and dig it up, and the printer inks the part in. Every new piece changes something you feel on the very next trip: stone you couldn't break, a vault you couldn't reach, a cave too dark to read.
 
 **Rules that keep it from turning into grind:**
 
@@ -379,7 +389,7 @@ A grey moon of soft dark rock, pocked with craters, with a ringed planet hanging
 | The crash site | Surface and soil under the lander | Copper, ice; no creatures; a vault (Pack) | Start |
 | The crater rim | Surface, far side | The Lamplighter outpost, inscriptions | Walking over |
 | The lead seams | Soil and the first stone, near the lander | Graphite seams, firedamp, grit crabs | Start; stone with the Drill |
-| The Aster base | Half-buried under the old workings | Old charges, logs, a time capsule in the blast, the Drill blueprint | Clearing the cave-in |
+| The Aster base | Half-buried under the old workings | Old charges, logs, a time capsule in the blast, a broken drill to study | Clearing the cave-in |
 | The grey band | Stone, mid-depth | Galena, quartz, lead worms, standing stones | The Drill |
 | The deep | Deepest stone | Silver, the Lamplighters' deep post, a vault (Jetpack), the Grinder | The Drill, a good cell, routes back |
 | Below | Deep rock | Rich veins and a vault, for a later drill | A return visit after chapter 1 |
@@ -500,7 +510,7 @@ Same model as InkFish and InkCrab:
 
 Each planet is one file (`planet1.ts` … `planet10.ts`) holding one world definition, carved by a builder with a fixed seed, as InkCrab's beaches are.
 
-- **A world definition** gives its size, seed, surface profile and the lander's spot; where the strata change; its regions; and the hand-placed parts: caves, vaults, the outpost, the Aster base, old charges, texts, blueprints, job items, the giant's arena; and how much of each ore and creature to scatter per region.
+- **A world definition** gives its size, seed, surface profile and the lander's spot; where the strata change; its regions; and the hand-placed parts: caves, vaults, the outpost, the Aster base, old charges, texts, broken parts (each teaching a design), job items, the giant's arena; and how much of each ore and creature to scatter per region.
 - **The builder** fills the rest, so the ground meets itself at the wrap's join.
 - **A world test** checks: every repair and job item is reachable with the gear expected by then; enough of every material exists (three times what the story needs); enough words exist for each level; nothing needed sits in deep rock or bedrock.
 - **The save** holds what changed, not the world (below).
@@ -591,7 +601,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 Settled with @Hayk on Oct 13, 2026:
 
 - **The run limit** is the drill's energy cell: every block costs energy. Upgradeable (the Cell).
-- **Gear** is per planet: find the blueprint, hunt the planet's materials, build it. **Six pieces** per planet.
+- **Gear** is per planet: find the blueprint, hunt the planet's materials, build it. **Six pieces** per planet. (Since Oct 17, 2026, a blueprint is learnt by studying a broken part, not picked up.)
 - **The planets** stay as listed.
 - **Shared code:** copy from InkCrab now, extract a package later.
 

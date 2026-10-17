@@ -4,12 +4,13 @@ import { CHARGE_FRAME, drawCharge, drawLineCharge, LINE_FRAME_W } from './charge
 import { makeDraw } from './kit';
 import { drawLander, drawLanderAir, LANDER_H, LANDER_W, SOUND, wreckCode } from './landerArt';
 import { drawItem, ITEM_FRAME, ITEM_KINDS } from './itemArt';
+import { drawWreck, WRECK_FRAME } from './wreckArt';
 import { drawLamplighter, drawOutpost, LAMPLIGHTER, OUTPOST_ART } from './lamplighterArt';
 import { drawOrePiece } from './oreArt';
 import { finishSprite } from './paint';
 import { ART_RES, BLUE, BOIL, INK, type GroundStyle } from './palette';
 import { makeCanvas } from './pen';
-import { lookKey, type Look, type ProspectorLook } from '../logic/gear';
+import { lookKey, PIECES, type Look, type ProspectorLook } from '../logic/gear';
 import type { Wreck } from '../logic/repairs';
 import { drawProspector, POSES, PROSPECTOR_FRAME, PROSPECTOR_GROUND, type Pose } from './prospector';
 import { drawRidges, RIDGE_W } from './ridgeArt';
@@ -23,6 +24,7 @@ export const TEX = {
   charge: (kind: 'charge' | 'lineCharge', lit: boolean, f: number) => `charge-${kind}-${lit ? 'lit' : 'idle'}-${f}`,
   piece: (ore: string) => `piece-${ore}`,
   item: (kind: string, f: number) => `item-${kind}-${f}`,
+  wreck: (piece: string, f: number) => `wreck-${piece}-${f}`,
   tech: (t: Tech, variant: TechVariant) => `tech-${techKey(t)}-${variant}`,
   lamplighter: (f: number) => `lamplighter-${f}`,
   outpost: (f: number) => `outpost-${f}`,
@@ -113,6 +115,7 @@ export function bakeLamplighters(scene: Phaser.Scene): void {
 export function bakePickups(scene: Phaser.Scene, rock: string): void {
   for (let f = 0; f < BOIL; f++) {
     ITEM_KINDS.forEach((kind, i) => bake(scene, TEX.item(kind, f), ITEM_FRAME, ITEM_FRAME, ITEM_FRAME / 2, ITEM_FRAME / 2, 3, (ctx) => drawItem(makeDraw(ctx, 400 + i * 10 + f, f, 0), kind)));
+    PIECES.forEach((piece, i) => bake(scene, TEX.wreck(piece, f), WRECK_FRAME, WRECK_FRAME, WRECK_FRAME / 2, WRECK_FRAME / 2, 3, (ctx) => drawWreck(makeDraw(ctx, 460 + i * 10 + f, f, 0), piece)));
   }
   ORE_KINDS.forEach((ore, i) => bake(scene, TEX.piece(ore.key), PIECE_FRAME, PIECE_FRAME, PIECE_FRAME / 2, PIECE_FRAME / 2, 3, (ctx) => drawOrePiece(ctx, ore, PIECE_FRAME, 500 + i, rock)));
 }

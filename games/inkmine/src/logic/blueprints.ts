@@ -38,6 +38,17 @@ export const RECIPES: Readonly<Record<string, Recipe>> = Object.fromEntries([
   recipe('suit', 1, { graphite: 8, quartz: 3 }),
 ].map((r) => [r.id, r]));
 
+/**
+ * What taking an old part apart gives back: half of each material it
+ * takes to print (at least one of each). Repeats of a design you already
+ * know still give this, so every broken part is worth the walk.
+ */
+export function salvageOf(id: string): Hold {
+  const r = RECIPES[id];
+  if (!r) return {};
+  return Object.fromEntries(Object.entries(r.materials).map(([ore, n]) => [ore, Math.max(1, Math.floor((n ?? 0) / 2))]));
+}
+
 export function recipeOf(id: string): Recipe | undefined {
   return RECIPES[id];
 }

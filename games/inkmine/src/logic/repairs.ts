@@ -107,7 +107,7 @@ export function wreckOf(p: Profile): Wreck {
 /** The one thing to do next, shown on the HUD. */
 export type Goal =
   | { readonly kind: 'repair'; readonly id: RepairId }
-  /** A blueprint the next repair can't be reached without, lying somewhere on the planet. */
+  /** A blueprint the next repair can't be reached without, learnt by studying a broken one somewhere on the planet. */
   | { readonly kind: 'find'; readonly blueprint: string }
   /** Found, now print it aboard. */
   | { readonly kind: 'print'; readonly blueprint: string }
@@ -152,7 +152,7 @@ export function needsLine(need: Hold, have: Hold): string {
 
 /** The goal as one line for the HUD. */
 export function goalLine(p: Profile, g: Goal): string {
-  if (g.kind === 'find') return 'Stone is too hard for the starter drill. Find the drill blueprint: follow the beacon';
+  if (g.kind === 'find') return 'Stone is too hard for the starter drill. Find a broken drill to study: follow the beacon';
   if (g.kind === 'print') return `Print the ${recipeOf(g.blueprint)!.piece} Mk ${recipeOf(g.blueprint)!.mk}: go aboard (L at the lander)`;
   if (g.kind === 'receiver') {
     const need = TOOL_KINDS.receiver.recipe;

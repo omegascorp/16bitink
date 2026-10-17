@@ -10,17 +10,20 @@ import type { PlanetDef } from './types';
  * Regions, going east from the lander (the hand-placed parts came from the
  * first five landing sites, before the world was made one):
  *
+ * Each "(the X)" below is a broken X of the Aster crew's, to study for its
+ * design and take apart for its materials.
+ *
  * - The crash site, round the lander: copper-rich soil, a cave, and a vault
  *   walled in stone with firedamp in its wall as the way in (the Pack).
  * - The fissure, to the east: a passage two tiles across through the stone,
- *   down to a cave at 58 m where the Drill's blueprint lies. The starter
+ *   down to a cave at 58 m where a broken Drill lies. The starter
  *   drill can follow it all the way.
  * - The helmet vault, further east: walled in deep rock under a soil plug in
  *   the stone, so it needs the new drill.
  * - The old charges, east again: an earlier crew's line of charges over a
  *   cave they never opened, silver round it.
  * - The lead seams, west of the lander: graphite and its firedamp, and a
- *   cave holding the Cell's blueprint.
+ *   cave holding a broken Cell.
  * - The jetpack vault, deep under the middle: stone walls, a soil door.
  * - The Lamplighters' outpost, on the crater's far rim at column 180: flat
  *   ground, kept clear of caves (story.ts).
@@ -91,12 +94,17 @@ export const PLANET_1: PlanetDef = {
         { kind: 'charge', at: [214, 37] },
       ],
     },
+    // Broken parts of the Aster crew's gear, lost or left behind: touch one to study it (its design) and take it apart (half its materials).
+    // The ids predate them (they were blueprints), and saves list them, so they stay. Two are repeats: nothing new to learn, only salvage.
     items: [
-      { id: 'crash-vault-pack', kind: 'blueprint', at: [101, 11], blueprint: 'pack-1', drill: 0 },
-      { id: 'seams-cave-cell', kind: 'blueprint', at: [28, 13], blueprint: 'cell-1', drill: 0 },
-      { id: 'fissure-cave-drill', kind: 'blueprint', at: [150, 59], blueprint: 'drill-1', drill: 0 },
-      { id: 'deep-vault-helmet', kind: 'blueprint', at: [181, 36], blueprint: 'helmet-1', drill: 1 },
-      { id: 'stone-vault-jetpack', kind: 'blueprint', at: [119, 82], blueprint: 'jetpack-1', drill: 1 },
+      { id: 'crash-vault-pack', kind: 'wreck', at: [101, 11], blueprint: 'pack-1', drill: 0 },
+      { id: 'seams-cave-cell', kind: 'wreck', at: [28, 13], blueprint: 'cell-1', drill: 0 },
+      { id: 'fissure-cave-drill', kind: 'wreck', at: [150, 59], blueprint: 'drill-1', drill: 0 },
+      { id: 'deep-vault-helmet', kind: 'wreck', at: [181, 36], blueprint: 'helmet-1', drill: 1 },
+      { id: 'stone-vault-jetpack', kind: 'wreck', at: [119, 82], blueprint: 'jetpack-1', drill: 1 },
+      // Repeats: a second cell in the cave east of the crash, a second drill in the cave under the old charges.
+      { id: 'crash-cave-cell-2', kind: 'wreck', at: [91, 11], blueprint: 'cell-1', drill: 0 },
+      { id: 'charges-cave-drill-2', kind: 'wreck', at: [212, 43], blueprint: 'drill-1', drill: 1 },
     ],
     outpost: OUTPOST.col,
   },

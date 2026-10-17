@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { salvageOf } from '../src/logic/blueprints';
 import { ORES } from '../src/logic/ore';
 import { bagHas, bagOf, mine, run, standAt, T } from './helpers';
 
@@ -30,16 +31,12 @@ describe('things to find', () => {
     expect(banked).toContainEqual(expect.objectContaining({ kind: 'bankItem', item: expect.objectContaining({ id: 'a-core', state: 'banked' }) }));
   });
 
-  it('one on open ground lies loose; a blueprint keeps its id', () => {
-    const m = mine(SITE, { items: [{ id: 'a-pack', kind: 'blueprint', at: [5, -1], blueprint: 'pack-1' }] });
+  it('one on open ground lies loose and is picked up whole', () => {
+    const m = mine(SITE, { items: [{ id: 'a-probe', kind: 'probe', at: [5, -1] }] });
     expect(m.items[0]!.state).toBe('loose');
     standAt(m, 5, 2);
     run(m, 0.5);
     expect(m.items[0]!.state).toBe('pouch');
-    toLander(m);
-    const events = run(m, 0.1);
-    const banked = events.flatMap((e) => (e.kind === 'bankItem' ? [e.item] : []));
-    expect(banked.map((it) => [it.id, it.blueprint])).toEqual([['a-pack', 'pack-1']]);
   });
 
   it('a blast frees an item in its area', () => {
@@ -47,6 +44,40 @@ describe('things to find', () => {
     m.blasts.light(4, 5, 0.01);
     run(m, 0.1);
     expect(m.items[0]!.state).not.toBe('rock');
+  });
+});
+
+describe('broken parts', () => {
+  const drillWreck = { id: 'a-drill', kind: 'wreck' as const, at: [5, -1] as const, blueprint: 'drill-1' };
+
+  it('one on open ground is studied and taken apart when touched: its design, and about half its materials as ore', () => {
+    const m = mine(SITE, { items: [drillWreck] });
+    expect(m.items[0]!.state).toBe('loose');
+    standAt(m, 5, 2);
+    const events = run(m, 1.5);
+    expect(events).toContainEqual(expect.objectContaining({ kind: 'salvage', item: expect.objectContaining({ id: 'a-drill', blueprint: 'drill-1' }) }));
+    expect(m.items[0]!.state).toBe('salvaged');
+    expect(bagHas(m.suit.bag)).toEqual({ graphite: 3, copper: 2 });
+  });
+
+  it('never goes to the pouch: there is nothing to bank, the design is learnt on the spot', () => {
+    const m = mine(SITE, { items: [drillWreck] });
+    standAt(m, 5, 2);
+    const events = run(m, 1.5);
+    expect(events.some((e) => e.kind === 'item' || e.kind === 'bankItem')).toBe(false);
+  });
+
+  it('one in the rock waits to be dug out, then comes apart like any other', () => {
+    const m = mine(SITE, { items: [{ ...drillWreck, at: [3, 1] }] });
+    expect(m.items[0]!.state).toBe('rock');
+    const events = run(m, 2.5, { iy: 1 });
+    expect(events.some((e) => e.kind === 'salvage')).toBe(true);
+  });
+
+  it('salvage is half of what the part takes to print, at least one of each', () => {
+    expect(salvageOf('drill-1')).toEqual({ graphite: 3, copper: 2 });
+    expect(salvageOf('helmet-1')).toEqual({ graphite: 2, quartz: 1 });
+    expect(salvageOf('no-such')).toEqual({});
   });
 });
 

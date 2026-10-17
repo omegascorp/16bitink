@@ -3,13 +3,16 @@ import { between } from './pieces';
 import { foldX, isSolid, type Terrain, type TilePos } from './terrain';
 
 /**
- * Things to find in the world: a blueprint, and later what people ask you
- * for (a core sample, a lost probe, a fossil). Some sit in the rock until
- * the drill or a blast breaks them out; some lie in the open (a blueprint in
- * a vault). Loose, they fall and rest; near the prospector they fly to the
- * pouch, which never fills. Banked at the lander, they're yours for good.
+ * Things to find in the world: broken parts of others' gear (a wreck), and
+ * later what people ask you for (a core sample, a lost probe, a fossil).
+ * Some sit in the rock until the drill or a blast breaks them out; some lie
+ * in the open. Loose, they fall and rest. A wreck is studied and taken
+ * apart where it lies, the moment you touch it: its design is learnt (if
+ * it's new) and half its materials spill out as ore (see `salvageOf`). The
+ * rest fly to the pouch when you're near, and are yours for good once
+ * banked at the lander.
  */
-export type ItemKind = 'core' | 'probe' | 'fossil' | 'blueprint';
+export type ItemKind = 'core' | 'probe' | 'fossil' | 'wreck';
 
 export interface ItemDef {
   /** Permanent: the world save lists banked items by it. Never change or reuse one. */
@@ -17,7 +20,7 @@ export interface ItemDef {
   readonly kind: ItemKind;
   /** Column, and rows below the surface at the lander. */
   readonly at: TilePos;
-  /** The blueprint's id (blueprints.ts), for a blueprint. */
+  /** The design a wreck teaches (a blueprint id, blueprints.ts); also what it's a broken one of. */
   readonly blueprint?: string;
   /** Set into this rock, whatever the carver left there (default: as found; open ground leaves it loose). */
   readonly grade?: 'soil' | 'stone';
@@ -25,7 +28,7 @@ export interface ItemDef {
   readonly drill?: number;
 }
 
-export type ItemState = 'rock' | 'loose' | 'pouch' | 'banked';
+export type ItemState = 'rock' | 'loose' | 'pouch' | 'banked' | 'salvaged';
 
 export interface MineItem extends Body {
   readonly index: number;
@@ -36,7 +39,8 @@ export interface MineItem extends Body {
   readonly state: ItemState;
 }
 
-export const ITEM = { size: 18, magnet: 56, flySpeed: 320, catch: 16 } as const;
+/** `wreckReach`: px each side past a wreck's box that still counts as touching it, as it's drawn wider than its box. */
+export const ITEM = { size: 18, magnet: 56, flySpeed: 320, catch: 16, wreckReach: 12 } as const;
 
 /** Items placed for a site: in the rock where their tile is solid, otherwise loose on the spot. */
 export function placeItems(t: Terrain, defs: readonly ItemDef[], surfaceRow: number, tile: number): MineItem[] {
@@ -57,12 +61,27 @@ export function freeItems(items: readonly MineItem[], opened: readonly TilePos[]
   return items.map((it) => (it.state === 'rock' && keys.has(`${it.tile[0]},${it.tile[1]}`) ? { ...it, state: 'loose', vy: -80 } : it));
 }
 
-/** One step for loose items: fly to the prospector when near, otherwise fall. Returns the items and those just caught. */
-export function stepItems(t: Terrain, items: readonly MineItem[], player: Box, dt: number, tile: number): { items: MineItem[]; caught: MineItem[] } {
+/**
+ * One step for loose items: a wreck the prospector touches is taken apart;
+ * anything else flies to them when near; otherwise they fall. Returns the
+ * items, those just caught and the wrecks just taken apart.
+ */
+export function stepItems(t: Terrain, items: readonly MineItem[], player: Box, dt: number, tile: number): { items: MineItem[]; caught: MineItem[]; salvaged: MineItem[] } {
   const caught: MineItem[] = [];
+  const salvaged: MineItem[] = [];
   const next = items.map((it): MineItem => {
     if (it.state !== 'loose') return it;
     const { dx, dy, d } = between(t, it, player, tile);
+    if (it.kind === 'wreck') {
+      // Studied where it lies: touching is enough. A wreck is too big to fly to the pouch.
+      if (Math.abs(dx) < (it.w + player.w) / 2 + ITEM.wreckReach && Math.abs(dy) < (it.h + player.h) / 2) {
+        const done = { ...it, state: 'salvaged' as const };
+        salvaged.push(done);
+        return done;
+      }
+      const fell = moveBody(t, it, 0, 0, dt, tile);
+      return { ...it, ...fell, x: foldX(t, fell.x, tile) };
+    }
     if (d < ITEM.catch) {
       const got = { ...it, state: 'pouch' as const };
       caught.push(got);
@@ -75,7 +94,7 @@ export function stepItems(t: Terrain, items: readonly MineItem[], player: Box, d
     const moved = moveBody(t, it, 0, 0, dt, tile);
     return { ...it, ...moved, x: foldX(t, moved.x, tile) };
   });
-  return { items: next, caught };
+  return { items: next, caught, salvaged };
 }
 
 /** Banks everything in the pouch; returns the items and those just banked. */

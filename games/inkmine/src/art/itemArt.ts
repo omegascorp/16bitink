@@ -6,14 +6,13 @@ import type { Pt } from './pen';
 /**
  * Mission items in ink over a highlighter halo (pickups are highlighted):
  * a core sample in its steel tube, the lost survey probe, a fossil ammonite
- * on a chip of rock, and a blueprint rolled and tied. Each fits a frame of
- * ITEM_FRAME units, origin at the centre.
+ * on a chip of rock. Each fits a frame of ITEM_FRAME units, origin at the
+ * centre. Broken parts (wrecks) are drawn by wreckArt.ts.
  */
 export const ITEM_FRAME = 32;
 
 const STEEL = '#b9c0c8';
 const ROCK = '#8f8d8a';
-const BLUEPRINT = '#5b7fc4';
 const AMMONITE = '#c9b48a';
 
 function halo(d: Draw, rx: number, ry: number): void {
@@ -74,26 +73,11 @@ function fossil(d: Draw): void {
   }
 }
 
-/** A blueprint rolled up and tied: blue paper, its curl showing at one end, a string round the middle. */
-function blueprint(d: Draw): void {
-  halo(d, 15, 9);
-  const roll = [pt(-12, -4), pt(10, -6), pt(11, 2), pt(-11, 4)];
-  skin(d, roll, BLUEPRINT, 0.7);
-  for (const x of [-7, -3, 4, 7]) d.pen.hair([pt(x, -4.5), pt(x + 0.5, 3)], 0.4, PAPER_FILL, 0.7);
-  edge(d, roll, 1.1);
-  const end = oval(10.5, -2, 2.4, 4.2, 16);
-  skin(d, end, BLUEPRINT, 0.4);
-  edge(d, end, 0.9);
-  d.pen.hair([pt(10.5, -2), pt(11.4, -1)], 0.6, d.ink, 0.8);
-  d.pen.stroke([pt(-1, -5.4), pt(-0.2, 3.4)], 1.1, '#b07a3b', 0.95, false);
-  d.pen.stroke([pt(-0.4, 3.4), pt(-3, 7), pt(-5, 8)], 0.8, '#b07a3b', 0.9, false);
-}
-
-export function drawItem(d: Draw, kind: ItemKind): void {
+export function drawItem(d: Draw, kind: Exclude<ItemKind, 'wreck'>): void {
   if (kind === 'core') core(d);
   else if (kind === 'probe') probe(d);
-  else if (kind === 'fossil') fossil(d);
-  else blueprint(d);
+  else fossil(d);
 }
 
-export const ITEM_KINDS: readonly ItemKind[] = ['core', 'probe', 'fossil', 'blueprint'];
+/** The kinds drawn here: every kind but the wreck. */
+export const ITEM_KINDS: readonly Exclude<ItemKind, 'wreck'>[] = ['core', 'probe', 'fossil'];

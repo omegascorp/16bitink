@@ -9,9 +9,11 @@ import { getHost, getProfile, heldWorld, holdWorld, setProfile } from '../host';
 import { buildWorld } from '../level/build';
 import { currentPlanet } from '../level/planets';
 import type { PlanetDef } from '../level/types';
+import { recipeOf } from '../logic/blueprints';
 import { tooHard } from '../logic/drill';
 import { findBlueprint, printerWorks, type Profile } from '../logic/economy';
 import { prospectorLook, type Look } from '../logic/gear';
+import type { MineItem } from '../logic/items';
 import { lampFor } from '../logic/marks';
 import { Mine, NO_INPUT, type MineEvent, type MineInput } from '../logic/mine';
 import { oreById, ORES } from '../logic/ore';
@@ -347,7 +349,25 @@ export class GameScene extends Phaser.Scene {
     this.outpost.setTexture(TEX.outpost(f)).setX(this.ring.near(x + OUTPOST.domes * this.mine.tile));
   }
 
-  /** Where the beacon points: the blueprint a 'find' goal is after, while it's still lying in the world; the outpost once they have your silver and the core is waiting. */
+  /**
+   * An old part studied and taken apart: a design you didn't have is learnt
+   * on the spot (no need to carry it home: the suit records it), a known one
+   * teaches nothing; either way its materials spill out. It's gone for good.
+   */
+  private salvaged(item: MineItem, px: number, py: number): void {
+    const r = recipeOf(item.blueprint ?? '');
+    const p = getProfile(this);
+    const name = r ? `${r.piece[0]!.toUpperCase()}${r.piece.slice(1)} Mk ${r.mk}` : 'part';
+    const learnt = r !== undefined && !p.found.includes(r.id);
+    if (learnt) setProfile(this, findBlueprint(p, r.id));
+    // Above the "+ ore" notes its salvage brings, which rise from just over the prospector.
+    this.fx.note(px, py - 62, learnt ? `${name} design learnt!` : `${name}: nothing new`);
+    this.fx.note(px, py - 40, 'taken apart for parts');
+    this.taken = [...this.taken, item.id];
+    this.save();
+  }
+
+  /** Where the beacon points: a broken part with the design a 'find' goal is after, while it's still in the world; the outpost once they have your silver and the core is waiting. */
   private beaconTarget(): { x: number; y: number } | null {
     const g = this.goal();
     const o = this.mine.outpostBox;
@@ -408,13 +428,15 @@ export class GameScene extends Phaser.Scene {
         this.changed = true;
         break;
       case 'item':
-        over(e.item.kind === 'blueprint' ? 'a blueprint!' : `+ the ${e.item.kind === 'core' ? 'core sample' : e.item.kind}`);
+        over(`+ the ${e.item.kind === 'core' ? 'core sample' : e.item.kind}`);
         break;
       case 'bankItem':
-        this.fx.note(px, p.y - 32, e.item.kind === 'blueprint' ? 'blueprint stowed' : `${e.item.kind === 'core' ? 'core sample' : e.item.kind} stowed`);
-        if (e.item.blueprint) setProfile(this, findBlueprint(getProfile(this), e.item.blueprint));
+        this.fx.note(px, p.y - 32, `${e.item.kind === 'core' ? 'core sample' : e.item.kind} stowed`);
         this.taken = [...this.taken, e.item.id];
         this.save();
+        break;
+      case 'salvage':
+        this.salvaged(e.item, px, p.y);
         break;
       case 'bank':
         over(`${e.pieces} into the cargo`);
