@@ -13,7 +13,7 @@ import type { Hold } from './hold';
  *
  * Keys are saved: never rename one.
  */
-export const MODULE_KEYS = ['cargo', 'winch', 'rack', 'hull'] as const;
+export const MODULE_KEYS = ['cargo', 'winch', 'hull'] as const;
 export type ModuleKey = (typeof MODULE_KEYS)[number];
 export type ShipModules = Readonly<Record<ModuleKey, number>>;
 
@@ -44,12 +44,6 @@ export const MODULES: Readonly<Record<ModuleKey, ModuleKind>> = {
     recipes: [{ galena: 8, copper: 6 }, { galena: 16, silver: 4 }],
     gives: ['recall drops the bag', 'recall keeps half of each stack', 'recall keeps the whole bag'],
   },
-  rack: {
-    name: 'Ladder rack',
-    about: 'More ladders each landing',
-    recipes: [{ copper: 8 }, { copper: 14, galena: 4 }, { copper: 20, silver: 4 }],
-    gives: ['4 ladders', '6 ladders', '8 ladders', '10 ladders'],
-  },
   hull: {
     name: 'Hull refit',
     about: 'A bigger lander: opens the next row of upgrades',
@@ -58,7 +52,7 @@ export const MODULES: Readonly<Record<ModuleKey, ModuleKind>> = {
   },
 };
 
-export const STARTER_SHIP: ShipModules = { cargo: 0, winch: 0, rack: 0, hull: 0 };
+export const STARTER_SHIP: ShipModules = { cargo: 0, winch: 0, hull: 0 };
 
 export function cargoSlots(s: ShipModules): number {
   return CARGO_SLOTS.base + CARGO_SLOTS.per * s.cargo;
@@ -67,10 +61,6 @@ export function cargoSlots(s: ShipModules): number {
 /** Share of each stack a recall keeps. */
 export function winchKeeps(s: ShipModules): number {
   return [0, 0.5, 1][s.winch] ?? 1;
-}
-
-export function laddersFor(s: ShipModules): number {
-  return 4 + 2 * s.rack;
 }
 
 export function landerLookOf(s: ShipModules): Look {

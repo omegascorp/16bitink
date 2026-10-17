@@ -3,7 +3,7 @@ import type { MineInput } from '../../logic/mine';
 
 /**
  * Keyboard controls: arrows or WASD move and drill (push into the ground),
- * Space jumps and, held in the air, fires the jetpack, E unrolls a ladder,
+ * Space jumps and, held in the air, fires the jetpack,
  * R feeds the lower of the cell and life support from the bag, L (or Enter)
  * goes aboard at the lander, Esc (or P) pauses (recall is on the pause
  * card). Touch comes with the HUD's stick and buttons (build order, later).
@@ -11,7 +11,7 @@ import type { MineInput } from '../../logic/mine';
 export class GameInput {
   /** Each button's last key-down time seen, so a press counts once, however short. */
   private readonly seen = new Map<Phaser.Input.Keyboard.Key, number>();
-  private readonly keys: Record<'left' | 'right' | 'up' | 'down' | 'a' | 'd' | 'w' | 's' | 'jump' | 'ladder' | 'feed' | 'aboard' | 'enter' | 'pause' | 'p', Phaser.Input.Keyboard.Key>;
+  private readonly keys: Record<'left' | 'right' | 'up' | 'down' | 'a' | 'd' | 'w' | 's' | 'jump' | 'feed' | 'aboard' | 'enter' | 'pause' | 'p', Phaser.Input.Keyboard.Key>;
 
   constructor(scene: Phaser.Scene) {
     const kb = scene.input.keyboard;
@@ -20,7 +20,7 @@ export class GameInput {
     this.keys = {
       left: kb.addKey(K.LEFT), right: kb.addKey(K.RIGHT), up: kb.addKey(K.UP), down: kb.addKey(K.DOWN),
       a: kb.addKey(K.A), d: kb.addKey(K.D), w: kb.addKey(K.W), s: kb.addKey(K.S),
-      jump: kb.addKey(K.SPACE), ladder: kb.addKey(K.E), feed: kb.addKey(K.R), aboard: kb.addKey(K.L), enter: kb.addKey(K.ENTER),
+      jump: kb.addKey(K.SPACE), feed: kb.addKey(K.R), aboard: kb.addKey(K.L), enter: kb.addKey(K.ENTER),
       pause: kb.addKey(K.ESC), p: kb.addKey(K.P),
     };
     // A key pressed before this scene started (going aboard, a card closed) isn't a press here.
@@ -32,7 +32,7 @@ export class GameInput {
     const ix = (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0);
     const iy = (k.down.isDown || k.s.isDown ? 1 : 0) - (k.up.isDown || k.w.isDown ? 1 : 0);
     const just = (key: Phaser.Input.Keyboard.Key): boolean => this.pressed(key);
-    return { ix, iy, jump: just(k.jump), thrust: k.jump.isDown, ladder: just(k.ladder), recall: false, feed: just(k.feed) ? 'lowest' : null };
+    return { ix, iy, jump: just(k.jump), thrust: k.jump.isDown, recall: false, feed: just(k.feed) ? 'lowest' : null };
   }
 
   /**

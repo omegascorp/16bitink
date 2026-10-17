@@ -2,7 +2,7 @@ import type { Profile } from '../logic/economy';
 import { Ladders } from '../logic/ladders';
 import type { MineSetup } from '../logic/mine';
 import { drillFor, jetFor, suitSpecFor } from '../logic/marks';
-import { laddersFor, winchKeeps } from '../logic/ship';
+import { winchKeeps } from '../logic/ship';
 import { inside, setTile, TILE, type Terrain } from '../logic/terrain';
 import { applyWorld, droppedBag, type WorldSave } from '../logic/worldSave';
 import { carve } from './carve';
@@ -50,7 +50,6 @@ export function buildWorld(planet: PlanetDef, p: Profile, save: WorldSave | null
       loadout: p.gear,
       suit: suitSpecFor(p.gear),
       jet: jetFor(p.gear.jetpack),
-      ladders: laddersFor(p.ship),
       placedLadders: ladders,
       winchKeeps: winchKeeps(p.ship),
       lander: { col: def.site.landerCol, row: def.site.surface },

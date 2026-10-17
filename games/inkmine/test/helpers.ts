@@ -43,7 +43,6 @@ export function mine(rows: readonly string[], over: Partial<MineSetup> = {}): Mi
     drill: { mk: 1, planet: 1 },
     loadout: STARTER_LOADOUT,
     suit: STARTER,
-    ladders: 3,
     lander: { col: 1, row: 2 },
     ...over,
   });
@@ -55,7 +54,7 @@ export function run(m: Mine, seconds: number, input: Partial<MineInput> = {}): M
   const steps = Math.round(seconds * 60);
   for (let i = 0; i < steps; i++) {
     const held = { ...NO_INPUT, ix: input.ix ?? 0, iy: input.iy ?? 0, thrust: input.thrust ?? false };
-    const pressed = i === 0 ? { jump: input.jump ?? false, ladder: input.ladder ?? false, recall: input.recall ?? false, feed: input.feed ?? null } : {};
+    const pressed = i === 0 ? { jump: input.jump ?? false, recall: input.recall ?? false, feed: input.feed ?? null } : {};
     events.push(...m.step(1 / 60, { ...held, ...pressed }));
   }
   return events;

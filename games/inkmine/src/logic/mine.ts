@@ -6,13 +6,13 @@ import { holdSize, type Hold } from './hold';
 import { contents as contentsOf, emptyInventory, isEmpty, splitShare, transferAll, type Inventory } from './inventory';
 import { joinBags, settle, type DroppedBag } from './flag';
 import { bankItems, freeItems, inPouch, placeItems, stepItems, type ItemDef, type MineItem } from './items';
-import { ladderRungs, Ladders } from './ladders';
+import { Ladders } from './ladders';
 import { jetFor, type JetSpec } from './marks';
 import { between, caught, newPiece, PIECE, stepPiece, type Piece } from './pieces';
 import { AIR, breathe, burn, emptyBag, feed, fits, hasRoomFor, hurt, newSuit, pickFeed, rechargeJet, regen, restore, spend, stow, withBag, worn, type Fuels, type Gauge, type Suit, type SuitSpec } from './suit';
 import type { OreKey } from './ore';
 import { bodyCell, centredX, drillTarget } from './target';
-import { contentAt, foldX, ringDelta, setTile, TILE, tileAt, volatileAt, wrapX, type Terrain, type TilePos } from './terrain';
+import { contentAt, foldX, ringDelta, setTile, TILE, tileAt, volatileAt, type Terrain, type TilePos } from './terrain';
 
 /** Everything a dig site starts from. */
 export interface MineSetup {
@@ -22,8 +22,6 @@ export interface MineSetup {
   /** The marks of every gear piece, for how the prospector looks. */
   readonly loadout: Loadout;
   readonly suit: SuitSpec;
-  /** Ladder gadgets carried. */
-  readonly ladders: number;
   /** Ladders already hanging in the world (from a save), over `terrain` (default none). */
   readonly placedLadders?: Ladders;
   /** The lander's middle column and the surface row it stands on. */
@@ -57,13 +55,12 @@ export interface MineInput {
   readonly jump: boolean;
   /** Jump held: in the air, the jetpack fires. */
   readonly thrust: boolean;
-  readonly ladder: boolean;
   readonly recall: boolean;
   /** Feed a gauge from the bag this step: a tapped one, or the lower one (the feed key). */
   readonly feed: Gauge | 'lowest' | null;
 }
 
-export const NO_INPUT: MineInput = { ix: 0, iy: 0, jump: false, thrust: false, ladder: false, recall: false, feed: null };
+export const NO_INPUT: MineInput = { ix: 0, iy: 0, jump: false, thrust: false, recall: false, feed: null };
 
 export type MineEvent =
   | { readonly kind: 'tiles'; readonly tiles: readonly TilePos[] }
@@ -85,8 +82,6 @@ export type MineEvent =
   | { readonly kind: 'lit'; readonly tile: TilePos }
   | { readonly kind: 'blast'; readonly blast: Blast }
   | { readonly kind: 'hurt'; readonly hearts: number; readonly cause: 'blast' | 'air' }
-  | { readonly kind: 'ladder'; readonly rungs: readonly TilePos[] }
-  | { readonly kind: 'noLadders' }
   /** Winched up; `left` pieces stayed in the world under the flag. */
   | { readonly kind: 'recall'; readonly left: number }
   /** Touched the flag: pieces back in the bag. */
@@ -149,7 +144,6 @@ export class Mine {
   /** The bag left in the world, under its flag. */
   dropped: DroppedBag | null;
   readonly fuels: Fuels;
-  laddersLeft: number;
   pieces: Piece[] = [];
   drilling: Drilling | null = null;
   climbing = false;
@@ -167,7 +161,6 @@ export class Mine {
     this.blasts = new BlastSim(setup.terrain);
     this.suit = setup.bag ? newSuit(setup.suit, setup.bag) : newSuit(setup.suit);
     this.cargo = setup.cargo ?? emptyInventory(CARGO.slots, CARGO.stack);
-    this.laddersLeft = setup.ladders;
     this.dropped = setup.dropped ?? null;
     this.fuels = setup.fuels ?? GRAPHITE_FUELS;
     this.jet = setup.jet ?? JET;
@@ -203,7 +196,6 @@ export class Mine {
     const events: MineEvent[] = [];
     if (input.recall) this.recall(events);
     if (input.feed) this.feedStep(input.feed, events);
-    if (input.ladder) this.placeLadder(events);
     const blocked = this.move(dt, input, events);
     this.drillStep(dt, input, blocked, events);
     this.blastStep(dt, events);
@@ -461,21 +453,6 @@ export class Mine {
     this.dropped = { col: x, row: y, bag: this.dropped ? joinBags(bag, this.dropped.bag) : bag };
     if (bag === this.suit.bag) this.suit = emptyBag(this.suit);
     return pieces;
-  }
-
-  private placeLadder(events: MineEvent[]): void {
-    if (this.laddersLeft <= 0) {
-      events.push({ kind: 'noLadders' });
-      return;
-    }
-    const cell = bodyCell(this.player, this.tile);
-    const [col, row] = [wrapX(this.terrain, cell.col), cell.row];
-    const rungs = ladderRungs(this.terrain, col, row);
-    if (rungs.length < 2) return;
-    this.ladders.add(rungs);
-    this.laddersLeft--;
-    this.centreOver(col);
-    events.push({ kind: 'ladder', rungs });
   }
 
   /**

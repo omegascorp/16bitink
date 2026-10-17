@@ -372,12 +372,6 @@ export class GameScene extends Phaser.Scene {
       case 'noFuel':
         over('out of fuel', true);
         break;
-      case 'noLadders':
-        over('no ladders left', true);
-        break;
-      case 'ladder':
-        this.changed = true;
-        break;
       case 'recall':
         over(e.left ? `winched up; ${e.left} left under the flag` : 'winched up');
         this.changed = true;

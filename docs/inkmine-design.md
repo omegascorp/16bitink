@@ -57,7 +57,7 @@ Graphite is chapter 1, and the free version. It ends the moment the lander flies
 Each planet is one hand-made world, a side-view cross-section like InkCrab's beach but much bigger and mostly underground. The surface strip at the top holds the lander, the alien outpost and the sky. Below is ground to dig, as deep as your drill can take you.
 
 - **The world wraps.** Walk far enough east and you come back from the west: you're on a small moon. The join is invisible (InkFish's sea does the same, `logic/ring.ts`), and nothing is ever more than half the world away from the lander.
-- **What you dig stays dug.** Tunnels, ladders and shafts are saved, so over time the ground near the lander becomes your own network of routes. Ore doesn't grow back. Instead you go deeper as your drill improves, and every layer down holds more and richer ore than the one above.
+- **What you dig stays dug.** Tunnels and shafts are saved, so over time the ground near the lander becomes your own network of routes. Ore doesn't grow back. Instead you go deeper as your drill improves, and every layer down holds more and richer ore than the one above.
 - **Regions, not levels.** The world is laid out in hand-placed regions (the crash crater, the Aster base, the lead seams, the deep), each with its own ore, creatures and things to find. Harder rock and darker depths gate them, not menus.
 - **The survey sheet** in the pause menu shows what you've seen, centred on the lander, with the wrap drawn as the sheet's two edges meeting.
 
@@ -133,13 +133,13 @@ Life works the No Man's Sky way, adapted to a pen-drawn phone screen. Five gauge
 | **Bag** | 4 slots, stacks of 10 | A slot inventory (below) | The lander moves it into the cargo |
 
 - **Feeding a gauge** from the bag is one tap on the gauge (or a key): it takes one piece of the right ore at a time. On Graphite, graphite feeds the drill (graphite really is used in battery anodes) and ice feeds life support (water ice in shadowed craters is how real moon bases plan to make air). So graphite is both fuel and what you build with, and you choose which.
-- **The jetpack recharging on the ground** means any shaft with ledges to stop on can be climbed. A careless straight shaft still traps you, which is what ladders are for.
+- **The jetpack recharging on the ground** means any shaft with ledges to stop on can be climbed. A careless straight shaft still traps you: dig ledges as you go, or recall.
 - **Hazard protection** is a sixth gauge that exists only on planets that need it: heat on Ember, cold on Rime. Graphite has none, to keep the free planet simple.
 - **The jetpack gauge shows only while you fly**, beside the prospector, so the HUD stays small.
 
 **Dying.** At zero hearts the screen inks over and you wake at the lander, printed again (see Story). Your bag stays where you fell, marked on the survey sheet and in the world with a little inked flag. Walk back and touch it to get everything back. There is one flag at a time: die again before you reach it and the flag moves to where you fell, carrying the old bag with the new (decided Oct 16, 2026, after review: losing the first bag on the way back to it felt cruel). The cargo hold is always safe.
 
-**Recall.** If you're stuck (no energy, no ladders, no way up), the pause menu's recall winches you up to the lander. It works like dying, without the printing: the bag stays where you were, flagged. The Winch module keeps part of each stack in the bag; only the rest is left under the flag.
+**Recall.** If you're stuck (no energy, no way up), the pause menu's recall winches you up to the lander. It works like dying, without the printing: the bag stays where you were, flagged. The Winch module keeps part of each stack in the bag; only the rest is left under the flag.
 
 **Built (Oct 16, 2026)** (`logic/suit.ts`, `logic/flag.ts`):
 - The numbers: the shield refills at half a bar a second, starting 4 s after the last hit. A hit takes a whole bar or, with less than one, a heart; then 2 s of grace. Life support is 100 and lasts 6 minutes outside; empty, a heart goes every 6 s (shield or no shield). One graphite gives the cell 20, one ice gives life support 25. The jetpack charges 30 a second (a starter tank in 2 s) on the ground or a ladder.
@@ -170,10 +170,9 @@ The world is big and tunnels stay dug, so shortcuts home are something you build
 | --- | --- |
 | Walk, jump, step up | Walk, jump one tile, climb a one-tile step automatically |
 | Jetpack | Hold jump in the air to fly. You can drill while hovering: up through a roof, or into a wall. Recharges whenever you stand on ground |
-| Ladders | Printed from copper and placed where you stand. They stay where you put them, so a ladder in a shaft is a permanent way up |
 | The lift | A lander module: a cable lift you hang down one shaft of your choice, from the lander's winch. Ride it both ways. Later levels of the module make it longer |
 
-Ladders and the lift are what make the world's depth manageable: every trip down leaves the next one shorter.
+The lift is what makes the world's depth manageable: every trip down leaves the next one shorter. There are no ladders to place (taken out Oct 17, 2026); ladders an older save left in the world still hang and can be climbed.
 
 ## Ore and materials
 
@@ -304,7 +303,6 @@ Up to three gadget slots, filled inside the lander and printed from resources. O
 
 | Gadget | From | Use |
 | --- | --- | --- |
-| Ladder | Graphite | Place a ladder; it stays |
 | Medkit | Graphite | Restore one heart |
 | Blasting charge | Talus | A charge you set in the rock: place it, then step clear |
 | Flare | Umbra | A light you throw that burns for a while |
@@ -380,7 +378,7 @@ Graphite's existing levels 1–5 (`level/planet1.ts`) become the first regions: 
 
 There's no result screen and no level select in chapter 1.
 
-- **Inside the lander** (L at the lander): the damage report over the lander as broken as it is, the printer's sheets (gear, lander modules), both inventories, and the way back down (ShipScene).
+- **Inside the lander** (L at the lander), laid out like No Man's Sky's inventory (ShipScene, Oct 17, 2026): a **Suit** and a **Ship** tab (tap, or Q / E). Each tab has a Technology plate of big slots with a drawn picture of what's fitted (`art/techArt.ts`), its Mk or level, and a corner flag (verdigris: an upgrade ready to print; madder: broken), then a separate Storage plate (the suit bag; the cargo). The suit's slots are the six gear pieces; the ship's are its Systems (the crash repairs, drawn broken until mended) and its Modules. Beside them stand the prospector or the lander, over a detail card for the slot in focus with its next step, its ore ticked off, and Print / Repair. A stack picked up on one tab can be put down on the other, or sent across with "To cargo" / "To suit bag". Back down is at the top right.
 - **The pause screen:** the survey sheet, the repair list, the field guide (with the lexicon and the logs), and recall.
 - **After chapter 1:** the star chart becomes the galaxy map you fly between planets on (paid version).
 
@@ -455,7 +453,7 @@ The ship's own upgrades, printed from resources like everything else (`logic/shi
 | Lift | A cable lift down one shaft from the lander; each level makes it longer |
 | Hull refit | The lander's look and the next row of upgrades (after chapter 1) |
 
-The ladder rack and the recall winch are gone: ladders are printed and stay where you place them, and recall is free (it costs you a trip back for the bag).
+The ladder rack is gone (ladders can't be placed), and recall is free (it costs you a trip back for the bag).
 
 ## Controls
 
@@ -544,7 +542,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 | Crafting trees | Cut | One recipe per piece, from raw materials |
 | Collectible card upgrades, random rewards | Cut | Pocket Mine 3's card grind is what this avoids |
 | Real-time energy timers, paid boosts, currency packs | Never | Clashes with the one-purchase model |
-| Base-building | Cut | Ladders and the lift are the only things you build in the world |
+| Base-building | Cut | The lift is the only thing you build in the world |
 | Fall damage | Cut | |
 | Multiplayer | Not planned | |
 
@@ -559,7 +557,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 
 **Built before (Oct 14, 2026):** on Graphite, before the open-world rewrite:
 - Walking, jumping and drilling by pushing, with diagonal stairs; the jetpack; energy per block by grade and drill mark.
-- The ground in three grades, chunk-rendered near the camera; ores as highlighter glyphs; the lander banking the bag; ladders; recall; hearts.
+- The ground in three grades, chunk-rendered near the camera; ores as highlighter glyphs; the lander banking the bag; recall; hearts.
 - Firedamp and old charges, chaining, with their blast area in red.
 - Levels 1–5 carved by the builder, with rooms, fissures, vaults and items, and a reachability test (`level/reach.ts`).
 - Missions and contracts, the bag and cargo inventories, the six Mk 1 blueprints and the printer, lander modules, result cards, local saves.
@@ -596,7 +594,7 @@ Settled with @Hayk on Oct 15, 2026 (replacing the 100 levels, missions, contract
 - **Free version = Graphite only;** other planets are paid.
 - **No linear missions:** the suit asks for what's needed; jobs are handed over in person, not from a board.
 - **One race on Graphite**, the Lamplighters, whose language you learn through the comms unit: levels of understanding, from talking and from found texts (their inscriptions, Aster logs, time capsules).
-- **Tunnels stay dug;** you go deeper over time. Ladders and the lift are the shortcuts home.
+- **Tunnels stay dug;** you go deeper over time. The lift is the shortcut home.
 - **Life system from No Man's Sky;** dying reprints you at the lander, and the bag waits where you fell.
 - **Drill energy and life support are refilled from raw materials** you carry.
 - **No humans:** you are an alien, and so is the earlier crew. The local race came to Graphite to mine it.

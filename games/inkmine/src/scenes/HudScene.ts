@@ -116,7 +116,7 @@ export class HudScene extends Phaser.Scene {
         .on('pointerdown', () => this.play?.feedGauge(gauge as GaugeName));
     }
     this.prompt = aside(this, 0, 0, 'At the lander: press L to go aboard', 22, 600, INK_TEXT).setStyle(HALO).setOrigin(0.5).setVisible(false);
-    this.hint = label(this, 0, 0, '← →  walk     ↓ ↑  drill     SPACE  jump, hold to fly     E  ladder     R  feed air or cell     L  go aboard     ESC  pause', 15, SEPIA, '500')
+    this.hint = label(this, 0, 0, '← →  walk     ↓ ↑  drill     SPACE  jump, hold to fly     R  feed air or cell     L  go aboard     ESC  pause', 15, SEPIA, '500')
       .setStyle(HALO).setOrigin(0.5, 1).setAlpha(0.9);
     this.failed = heading(this, 0, 0, 'Your suit gave out', 34, MADDER).setStyle(HALO).setOrigin(0.5).setVisible(false);
     this.layout();

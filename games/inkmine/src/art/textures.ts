@@ -13,6 +13,8 @@ import type { Wreck } from '../logic/repairs';
 import { drawProspector, POSES, PROSPECTOR_FRAME, PROSPECTOR_GROUND, type Pose } from './prospector';
 import { drawRidges, RIDGE_W } from './ridgeArt';
 import { drawSky, SKY_W } from './skyArt';
+import { drawTech, TECH_FRAME, type TechVariant } from './techArt';
+import { techKey, type Tech } from '../logic/tech';
 
 export const TEX = {
   prospector: (pose: Pose, look: ProspectorLook, f: number) => `prospector-${lookKey(look)}-${pose}-${f}`,
@@ -20,6 +22,7 @@ export const TEX = {
   charge: (kind: 'charge' | 'lineCharge', lit: boolean, f: number) => `charge-${kind}-${lit ? 'lit' : 'idle'}-${f}`,
   piece: (ore: string) => `piece-${ore}`,
   item: (kind: string, f: number) => `item-${kind}-${f}`,
+  tech: (t: Tech, variant: TechVariant) => `tech-${techKey(t)}-${variant}`,
   sky: (h: number) => `sky-${h}`,
   ridges: (h: number) => `ridges-${h}`,
 } as const;
@@ -113,4 +116,16 @@ export function generateTextures(scene: Phaser.Scene, style: GroundStyle, skyHei
   bake(scene, TEX.sky(skyHeight), SKY_W, skyHeight + SKY_SKIRT, 0, 0, 1, (ctx) => drawSky(makeDraw(ctx, 900, 0, 0), SKY_W, skyHeight + SKY_SKIRT, skyHeight, style));
   const ridge = skyHeight * 0.5;
   bake(scene, TEX.ridges(skyHeight), RIDGE_W, ridge + SKY_SKIRT, 0, 0, 1, (ctx) => drawRidges(makeDraw(ctx, 910, 0, 0), RIDGE_W, ridge + SKY_SKIRT, ridge, style));
+}
+
+/** Texture px per unit for a technology slot's picture: drawn large, as the detail card shows it big. */
+export const TECH_RES = 5;
+const TECH_FINISH: Finish = { line: 0.7, rim: 0.6 };
+
+/** A technology slot's picture (the lander's menu), baked the first time it's asked for. Returns its key. */
+export function techTexture(scene: Phaser.Scene, t: Tech, variant: TechVariant): string {
+  const key = TEX.tech(t, variant);
+  const seed = 600 + [...key].reduce((n, ch) => n + ch.charCodeAt(0), 0);
+  bake(scene, key, TECH_FRAME, TECH_FRAME, TECH_FRAME / 2, TECH_FRAME / 2, TECH_RES, (ctx) => drawTech(makeDraw(ctx, seed, 0, 0), t, variant), TECH_FINISH);
+  return key;
 }

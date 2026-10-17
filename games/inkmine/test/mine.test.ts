@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { NO_INPUT } from '../src/logic/mine';
 import { ORES } from '../src/logic/ore';
 import { TILE, tileAt } from '../src/logic/terrain';
 import { bagHas, bagOf, mine, run, standAt, T } from './helpers';
@@ -56,15 +57,9 @@ describe('a dig site', () => {
     expect(m.depth).toBe(0);
   });
 
-  it('a ladder gets you back out of a shaft', () => {
-    const m = mine(SITE);
-    run(m, 2, { iy: 1 });
-    expect(m.depth).toBe(4);
-    run(m, 0.05, { ladder: true });
-    expect(m.laddersLeft).toBe(2);
-    run(m, 2.5, { iy: -1 });
-    run(m, 0.6, { ix: 1 });
-    expect(m.depth).toBe(0);
+  it('has no ladders to place: there is no ladder input', () => {
+    expect(Object.keys(NO_INPUT)).not.toContain('ladder');
+    expect(mine(SITE)).not.toHaveProperty('laddersLeft');
   });
 
   it('the drill sets off a firedamp pocket, and its blast costs a heart if you stand in it with the shield down', () => {

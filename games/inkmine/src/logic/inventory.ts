@@ -200,3 +200,21 @@ export function splitStack(inv: Inventory, slot: number): Inventory {
 export function jettison(inv: Inventory, slot: number): Inventory {
   return { ...inv, slots: inv.slots.map((x, i) => (i === slot ? null : x)) };
 }
+
+/**
+ * Sends the stack in slot `from` to the other inventory of the pair, as
+ * much as fits: onto its stacks of that ore first, then into empty slots.
+ * What doesn't fit stays where it was.
+ */
+export function sendStack(pair: readonly [Inventory, Inventory], from: SlotRef): [Inventory, Inventory] {
+  const src = pair[from.bag].slots[from.slot];
+  if (!src) return [pair[0], pair[1]];
+  const to = from.bag === 0 ? 1 : 0;
+  const r = addOre(pair[to], src.ore, src.n);
+  if (!r.added) return [pair[0], pair[1]];
+  const left = src.n - r.added;
+  const out: [Inventory, Inventory] = [pair[0], pair[1]];
+  out[to] = r.inv;
+  out[from.bag] = { ...pair[from.bag], slots: pair[from.bag].slots.map((x, i) => (i === from.slot ? (left > 0 ? { ore: src.ore, n: left } : null) : x)) };
+  return out;
+}

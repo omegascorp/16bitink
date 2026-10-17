@@ -5,6 +5,9 @@ import { ART_RES } from '../src/art/palette';
 import { LANDER_FINISH, PROSPECTOR_FINISH, PROSPECTOR_RES, render } from '../src/art/textures';
 import { evenLoadout, LOOK_NAMES, lookOf, prospectorLook, type Look, type ProspectorLook } from '../src/logic/gear';
 import type { Wreck } from '../src/logic/repairs';
+import { drawTech, TECH_FRAME } from '../src/art/techArt';
+import { SHIP_MODULES, SHIP_SYSTEMS, SUIT_TECH, techKey } from '../src/logic/tech';
+import { TECH_RES } from '../src/art/textures';
 
 // Dev page: the prospector in every look and pose, big enough to judge the drawing.
 const root = document.getElementById('root');
@@ -74,3 +77,16 @@ for (const [name, wreck] of [
   ['comms up', { ...BROKEN, printer: false, comms: false }],
   ['hull plated', { printer: false, comms: false, hull: false, thrusters: true }],
 ] as const) figure(wrecks, name, landerCanvas(0, wreck));
+
+function tech(t: Parameters<typeof drawTech>[1], v: Parameters<typeof drawTech>[2]): HTMLCanvasElement {
+  const F = TECH_FRAME;
+  const canvas = render(F, F, F / 2, F / 2, TECH_RES, (ctx) => drawTech(makeDraw(ctx, 600, 0, 0), t, v), { line: 0.7, rim: 0.6 });
+  canvas.style.width = `${F * 3}px`;
+  canvas.style.background = '#efe6cf';
+  return canvas;
+}
+const gearRow = section('Technology: suit', 'The gear slots in the lander menu, in each look.');
+for (const t of SUIT_TECH) for (const v of [0, 1, 2] as const) figure(gearRow, `${techKey(t)} ${v}`, tech(t, v));
+const shipRow = section('Technology: ship', 'Systems broken and mended, then the modules.');
+for (const t of SHIP_SYSTEMS) for (const v of ['broken', 'mended'] as const) figure(shipRow, `${techKey(t)} ${v}`, tech(t, v));
+for (const t of SHIP_MODULES) figure(shipRow, techKey(t), tech(t, 'mended'));

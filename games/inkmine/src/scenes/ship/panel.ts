@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { Profile } from '../../logic/economy';
 import type { SlotRef } from '../../logic/inventory';
 import { createRng } from '../../logic/rng';
+import type { Tab } from '../../logic/tech';
 import { bakeUi, fibres } from '../kit/paint';
 import { plate, PLATE_BODY } from '../kit/plate';
 import { SEPIA } from '../kit/type';
@@ -20,6 +21,10 @@ export interface ShipUi {
   readonly selected?: SlotRef;
   /** The jettison button was pressed once: the next press throws the stack away. */
   readonly confirm?: boolean;
+  /** The tab showing: the suit or the ship. */
+  readonly tab?: Tab;
+  /** The technology slot the detail card shows (a techKey). */
+  readonly focus?: string;
 }
 
 /** What a panel needs from the page: the profile, and a way to change it (saving and redrawing). */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addOre, contents, countIn, emptyInventory, jettison, keepShare, moveStack, resize, roomFor, splitStack, takeOre, transferAll, type Inventory } from '../src/logic/inventory';
+import { addOre, contents, countIn, emptyInventory, jettison, keepShare, moveStack, resize, roomFor, sendStack, splitStack, takeOre, transferAll, type Inventory } from '../src/logic/inventory';
 
 const filled = (stack: number, ...stacks: ([string, number] | null)[]): Inventory =>
   ({ stack, slots: stacks.map((s) => (s ? { ore: s[0] as 'copper', n: s[1] } : null)) });
@@ -79,5 +79,20 @@ describe('shrinking an inventory', () => {
   it('moves stacks from the cut slots into empty ones before anything is lost', () => {
     const inv = { stack: 10, slots: [{ ore: 'copper' as const, n: 3 }, null, null, { ore: 'galena' as const, n: 5 }] };
     expect(resize(inv, 2).slots).toEqual([{ ore: 'copper', n: 3 }, { ore: 'galena', n: 5 }]);
+  });
+
+  it('sends a stack to the other inventory: onto its stacks of that ore, then into empty slots, leaving what does not fit', () => {
+    const bag = filled(10, ['copper', 10], ['galena', 4]);
+    const cargo = filled(12, ['copper', 8], null, ['quartz', 2]);
+    const [b, c] = sendStack([bag, cargo], { bag: 0, slot: 0 });
+    expect(c.slots).toEqual([{ ore: 'copper', n: 12 }, { ore: 'copper', n: 6 }, { ore: 'quartz', n: 2 }]);
+    expect(b.slots).toEqual([null, { ore: 'galena', n: 4 }]);
+    const full = filled(5, ['quartz', 5]);
+    const [b2, c2] = sendStack([bag, full], { bag: 0, slot: 1 });
+    expect(b2).toEqual(bag);
+    expect(c2).toEqual(full);
+    const [b3, c3] = sendStack([filled(10, ['copper', 3]), filled(50, ['copper', 49])], { bag: 1, slot: 0 });
+    expect(b3.slots).toEqual([{ ore: 'copper', n: 10 }]);
+    expect(c3.slots).toEqual([{ ore: 'copper', n: 42 }]);
   });
 });

@@ -45,7 +45,6 @@ export function testMineSetup(): MineSetup {
     drill: { mk: 1, planet: 1 },
     loadout: evenLoadout(1),
     suit: STARTER,
-    ladders: 6,
     lander: { col: TEST_MINE.landerCol, row: TEST_MINE.surface },
   };
 }

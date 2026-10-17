@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { RECIPES } from '../src/logic/blueprints';
 import { findBlueprint, NEW_PROFILE, onHand, printModule, printPart, type Profile } from '../src/logic/economy';
 import { addHoldTo, contents, emptyInventory, type Inventory } from '../src/logic/inventory';
-import { capOf, cargoSlots, laddersFor, landerLookOf, winchKeeps } from '../src/logic/ship';
+import { capOf, cargoSlots, landerLookOf, winchKeeps } from '../src/logic/ship';
 import { parseProfile } from '../src/logic/save';
 import type { Hold } from '../src/logic/hold';
 
@@ -69,9 +69,8 @@ describe('the ship', () => {
   });
 
   it('each module does what it says', () => {
-    const s = { cargo: 3, winch: 2, rack: 1, hull: 2 };
+    const s = { cargo: 3, winch: 2, hull: 2 };
     expect(winchKeeps(s)).toBe(1);
-    expect(laddersFor(s)).toBe(6);
     expect(landerLookOf(s)).toBe(2);
     expect(cargoSlots(s)).toBe(34);
   });
@@ -84,7 +83,8 @@ describe('the saved profile', () => {
       cargo: { stack: 50, slots: [{ ore: 'graphite', n: 3 }, { ore: 'gold', n: 2 }, { ore: 'copper', n: 99 }, null] },
       suit: { stack: 10, slots: 'nope' },
       gear: { pack: 1, drill: 99 }, found: ['cell-1', 'warp-9', 'cell-1'],
-      ship: { winch: 1, hull: 9 },
+      // A Ladder rack from before ladders were taken out: dropped.
+      ship: { winch: 1, hull: 9, rack: 2 },
       // Left over from a level-based save: ignored.
       levels: { 'first-strike': { won: true, blots: 2, paid: ['order'] } }, pending: { silver: 2 },
     });
@@ -94,7 +94,7 @@ describe('the saved profile', () => {
     expect(p.suit.slots.length).toBe(6);
     expect(p.gear).toEqual({ drill: 0, cell: 0, pack: 1, suit: 0, helmet: 0, jetpack: 0 });
     expect(p.found).toEqual(['cell-1']);
-    expect(p.ship).toEqual({ cargo: 0, winch: 1, rack: 0, hull: 0 });
+    expect(p.ship).toEqual({ cargo: 0, winch: 1, hull: 0 });
     expect(Object.keys(p).sort()).toEqual(['cargo', 'found', 'gear', 'repaired', 'ship', 'started', 'suit']);
     expect(p.started).toBe(false);
     expect(parseProfile({ started: true }).started).toBe(true);

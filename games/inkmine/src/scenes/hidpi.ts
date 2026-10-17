@@ -67,13 +67,13 @@ export function crispText(scene: Phaser.Scene): void {
 }
 
 /** Lays a page out again when the screen resizes or turns: restarts the scene with the same data, once the resizing settles. */
-export function relayoutOnResize(scene: Phaser.Scene, data: object): void {
+export function relayoutOnResize(scene: Phaser.Scene, data: object | (() => object)): void {
   let timer: ReturnType<typeof setTimeout> | null = null;
   const { width, height } = scene.scale;
   const onResize = (): void => {
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => {
-      if (scene.scale.width !== width || scene.scale.height !== height) scene.scene.restart(data);
+      if (scene.scale.width !== width || scene.scale.height !== height) scene.scene.restart(typeof data === 'function' ? data() : data);
     }, 150);
   };
   scene.scale.on('resize', onResize);

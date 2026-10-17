@@ -1,0 +1,31 @@
+import { PLANETS } from '../../level/planets';
+import type { Piece } from '../../logic/gear';
+import { countOf, holdEntries, type Hold } from '../../logic/hold';
+import { ORES } from '../../logic/ore';
+import { REPAIRS } from '../../logic/repairs';
+import { MODULES } from '../../logic/ship';
+import type { Tech } from '../../logic/tech';
+
+export const PIECE_NAMES: Readonly<Record<Piece, string>> = { drill: 'Drill', cell: 'Cell', pack: 'Pack', suit: 'Suit', helmet: 'Helmet', jetpack: 'Jetpack' };
+
+export function techName(t: Tech): string {
+  if (t.kind === 'gear') return PIECE_NAMES[t.piece];
+  if (t.kind === 'module') return MODULES[t.key].name;
+  return REPAIRS[t.id].name;
+}
+
+/** Where each blueprint is found: which planet's world it lies somewhere in. */
+function blueprintSources(): ReadonlyMap<string, string> {
+  const out = new Map<string, string>();
+  for (const planet of PLANETS) for (const it of planet.world.items) if (it.blueprint) out.set(it.blueprint, `it's somewhere on ${planet.name}`);
+  return out;
+}
+export const SOURCES = blueprintSources();
+
+/** A recipe with what's on hand ticked off: "graphite 3/4 · native copper 6/6 ✓". */
+export function recipeLine(need: Hold, have: Hold): string {
+  return holdEntries(need).map(([ore, n]) => {
+    const got = Math.min(countOf(have, ore), n);
+    return `${ORES[ore].name} ${got}/${n}${got >= n ? ' ✓' : ''}`;
+  }).join(' · ');
+}
