@@ -10,6 +10,8 @@ import { drawLamplighter, drawOutpost, LAMPLIGHTER, OUTPOST_ART } from '../src/a
 import { BLUE } from '../src/art/palette';
 import { SHIP_MODULES, SHIP_SYSTEMS, SUIT_TECH, techKey } from '../src/logic/tech';
 import { TECH_RES } from '../src/art/textures';
+import { BROKEN_SHIP, drawStarship, drawStarshipAir, STARSHIP_ART, type ShipLook } from '../src/art/starship';
+import { SHIP_FINISH, SHIP_MAP_FINISH, SHIP_MAP_RES, SHIP_RES } from '../src/art/textures';
 
 // Dev page: the prospector in every look and pose, big enough to judge the drawing.
 const root = document.getElementById('root');
@@ -48,6 +50,35 @@ function atPlaySize(row: HTMLElement, label: string, canvas: HTMLCanvasElement, 
   canvas.style.width = `${px}px`;
   canvas.style.background = 'linear-gradient(#4b5583, #a59bab 70%, #ada79c 70%)';
   figure(row, label, canvas);
+}
+
+const starship = section('The starship', 'Your starship: as it first docks (every system broken, dark), part way mended, and whole. Then at the Starship tab\'s size, and the star map\'s little ship.');
+function shipCanvas(look: ShipLook, res: number, finish = SHIP_FINISH): HTMLCanvasElement {
+  const S = STARSHIP_ART;
+  return render(S.w, S.h, S.w / 2, S.h / 2, res, (ctx) => drawStarship(makeDraw(ctx, 796, 0, 0), look), finish, (ctx) => drawStarshipAir(makeDraw(ctx, 797, 0, 0), look));
+}
+const WHOLE: ShipLook = { power: true, telescope: true, tank: true, engine: true };
+for (const [name, look] of [['as it docks', BROKEN_SHIP], ['power and tank mended', { ...BROKEN_SHIP, power: true, tank: true }], ['whole', WHOLE]] as const) {
+  const c = shipCanvas(look, SHIP_RES);
+  c.style.width = `${Math.min(1400, window.innerWidth - 60)}px`;
+  c.style.background = '#efe6cf';
+  figure(starship, name, c);
+}
+for (const look of [BROKEN_SHIP, WHOLE]) {
+  const c = shipCanvas(look, SHIP_RES);
+  c.style.width = '500px';
+  c.style.background = '#efe6cf';
+  figure(starship, 'at the Starship tab\'s size', c);
+}
+{
+  const m = shipCanvas(WHOLE, SHIP_MAP_RES, SHIP_MAP_FINISH);
+  m.style.width = '60px';
+  m.style.background = '#1d2140';
+  figure(starship, 'on the star map', m);
+  const s = shipCanvas(BROKEN_SHIP, SHIP_MAP_RES, SHIP_MAP_FINISH);
+  s.style.height = '80px';
+  s.style.background = '#efe6cf';
+  figure(starship, 'on a story card', s);
 }
 
 const play = section('At play size', 'As the game draws them, at the size they stand on screen.');

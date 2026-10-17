@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ART_RES, PAPER } from '../art/palette';
-import { bakeCharacters, bakePickups, bakeSystem, PROSPECTOR_RES, TEX } from '../art/textures';
+import { bakeCharacters, bakePickups, PROSPECTOR_RES, shipTexture, TEX } from '../art/textures';
+import { shipLookOf } from '../art/starship';
 import { newsSound } from '../audio/news';
 import { getProfile, getSound, setProfile } from '../host';
 import { currentPlanet } from '../level/planets';
@@ -9,7 +10,6 @@ import { prospectorLook } from '../logic/gear';
 import { wreckOf } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
 import { canLand, land } from '../logic/fuel';
-import { isFixed } from '../logic/starship';
 import { defaultTab, focusOf, tabsFor, type Tab } from '../logic/tech';
 import type { GameScene } from './GameScene';
 import { relayoutOnResize, screenScene, viewSize } from './hidpi';
@@ -212,10 +212,9 @@ export class ShipScene extends Phaser.Scene {
       return;
     }
     if (tab === 'starship') {
-      // Dark until its power's back.
-      bakeSystem(this);
-      const img = this.add.image(cx, groundY - (small ? 70 : 110), TEX.shipBig(isFixed(p, 'power')));
-      img.setScale((small ? 330 : 500) / img.width);
+      // Each system shows as broken until it's mended, and it's dark until its power's back.
+      const img = this.add.image(cx, groundY - (small ? 80 : 118), shipTexture(this, shipLookOf(p), 'big'));
+      img.setScale((small ? Math.min(350, viewSize(this).width - 32) : 548) / img.width);
       return;
     }
     const s = (small ? 1.15 : 1.75) / ART_RES;

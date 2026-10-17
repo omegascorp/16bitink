@@ -377,6 +377,8 @@ Decided with @Hayk on Oct 17, 2026; the starship, its repairs, its hold and the 
 | Engine | 8 graphite, 4 silver, 3 quartz | Flying between worlds | Ion engines push charged gas through grids; graphite grids last longest, as the beam barely wears carbon away |
 | Jump drive | Can't be mended here | The way home, the endgame | — |
 
+**Its picture shows what's broken** (`art/starship/`, Oct 17, 2026), as the lander's wreck does: dark windows and lights until the power's back, a dented telescope with its lid hanging bent and glass drifting off it, the carbon-wound tank split and frosted in its truss, the ion thrusters' grids cracked and their insulators chipped (blue in the grids once mended and powered). The jump ring stays burnt black and torn. It's drawn side on: three ion thrusters behind a power bay with radiator wings, the ring round the waist, the tank in an open truss, the faceted hold with its doors, the docking collar, the dish and sensor mast and three ore pods, the crew's drum with its portholes and the telescope on its back, and the bridge in the nose. The star map and the story cards use the same drawing, small.
+
 `test/world.test.ts` checks Graphite holds half again over everything chapter 1 takes (gear, both ships' repairs and the trade) within the Drill Mk 1's reach.
 
 **The starship's hold:** 24 slots of 50, on the Starship tab. Docked, stacks move between it and the lander's cargo ("Unload the lander's cargo here"), and repairs aboard draw on it. On the ground it can be looked at, not touched.

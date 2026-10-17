@@ -15,7 +15,7 @@ import type { Wreck } from '../logic/repairs';
 import { drawProspector, POSES, PROSPECTOR_FRAME, PROSPECTOR_GROUND, type Pose } from './prospector';
 import { drawRidges, RIDGE_W } from './ridgeArt';
 import { drawSky, SKY_W } from './skyArt';
-import { drawShip, SHIP_ART } from './shipArt';
+import { drawStarship, drawStarshipAir, shipLookKey, STARSHIP_ART, type ShipLook } from './starship';
 import { drawStar, drawWorld, STAR_ART, worldFrame } from './systemArt';
 import { WORLDS } from '../logic/starSystem';
 import { drawTech, TECH_FRAME, type TechVariant } from './techArt';
@@ -35,8 +35,7 @@ export const TEX = {
   ridges: (h: number) => `ridges-${h}`,
   world: (id: string) => `world-${id}`,
   star: 'star',
-  ship: (lit: boolean) => `ship-${lit ? 'lit' : 'dark'}`,
-  shipBig: (lit: boolean) => `ship-big-${lit ? 'lit' : 'dark'}`,
+  ship: (look: ShipLook, size: ShipSize) => `ship-${size}-${shipLookKey(look)}`,
 } as const;
 
 /** Texture px per unit for the prospector: drawn finer than the rest, as the eye goes to them. */
@@ -143,18 +142,32 @@ export function generateTextures(scene: Phaser.Scene, style: GroundStyle, skyHei
   bake(scene, TEX.ridges(skyHeight), RIDGE_W, ridge + SKY_SKIRT, 0, 0, 1, (ctx) => drawRidges(makeDraw(ctx, 910, 0, 0), RIDGE_W, ridge + SKY_SKIRT, ridge, style));
 }
 
-/** The star map's star, worlds and ship (SystemScene). */
+/** The star map's star and worlds (SystemScene); its ship is baked by `shipTexture`. */
 export function bakeSystem(scene: Phaser.Scene): void {
   WORLDS.forEach((w, i) => {
     const f = worldFrame(w);
     bake(scene, TEX.world(w.id), f, f, f / 2, f / 2, 3, (ctx) => drawWorld(makeDraw(ctx, 800 + i, 0, 0), w));
   });
   bake(scene, TEX.star, STAR_ART.w, STAR_ART.h, STAR_ART.w, STAR_ART.h / 2, 1.5, (ctx) => drawStar(makeDraw(ctx, 790, 0, 0)));
-  for (const lit of [false, true]) {
-    bake(scene, TEX.ship(lit), SHIP_ART.w, SHIP_ART.h, SHIP_ART.w / 2, SHIP_ART.h / 2, 4, (ctx) => drawShip(makeDraw(ctx, 795, 0, 0), lit), LANDER_FINISH);
-    // The Starship tab's figure: the same ship, drawn big.
-    bake(scene, TEX.shipBig(lit), SHIP_ART.w, SHIP_ART.h, SHIP_ART.w / 2, SHIP_ART.h / 2, 16, (ctx) => drawShip(makeDraw(ctx, 796, 0, 0), lit, true), LANDER_FINISH);
-  }
+}
+
+/** The starship's two sizes: big on the Starship tab, small on the star map and the story cards. */
+export type ShipSize = 'big' | 'small';
+/** Texture px per unit for the Starship tab's picture: about twice the CSS px it's shown at, for sharp lines. */
+export const SHIP_RES = 5;
+/** A fine silhouette for the big picture, so its detail carries it. */
+export const SHIP_FINISH: Finish = { line: 0.5, rim: 0.5 };
+/** Small, the silhouette is heavier, so the ship still reads as one shape. */
+export const SHIP_MAP_RES = 2;
+export const SHIP_MAP_FINISH: Finish = { line: 1.5, rim: 0.5 };
+
+/** The starship as it stands (`look`), baked the first time it's asked for at that size. Returns its key. */
+export function shipTexture(scene: Phaser.Scene, look: ShipLook, size: ShipSize): string {
+  const key = TEX.ship(look, size);
+  const S = STARSHIP_ART;
+  const [res, finish] = size === 'big' ? [SHIP_RES, SHIP_FINISH] : [SHIP_MAP_RES, SHIP_MAP_FINISH];
+  bake(scene, key, S.w, S.h, S.w / 2, S.h / 2, res, (ctx) => drawStarship(makeDraw(ctx, 796, 0, 0), look), finish, (ctx) => drawStarshipAir(makeDraw(ctx, 797, 0, 0), look));
+  return key;
 }
 
 /** Texture px per unit for a technology slot's picture: drawn large, as the detail card shows it big. */

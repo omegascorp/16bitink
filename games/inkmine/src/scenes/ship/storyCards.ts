@@ -1,4 +1,5 @@
-import { bakeSystem, techTexture, TEX } from '../../art/textures';
+import { shipTexture, techTexture, TEX } from '../../art/textures';
+import { BROKEN_SHIP } from '../../art/starship';
 import { getSound, setProfile } from '../../host';
 import { liftOff } from '../../logic/fuel';
 import { wreckOf } from '../../logic/repairs';
@@ -29,11 +30,10 @@ export function shipStoryCard(page: ShipPage): boolean {
     return true;
   }
   if (p.docked && !hasBeat(p, 'aboard')) {
-    bakeSystem(scene);
     storyCard(scene, {
       title: 'Docked',
       subtitle: 'your ship, at last',
-      pictures: [{ key: TEX.ship(false), h: 80 }],
+      pictures: [{ key: shipTexture(scene, BROKEN_SHIP, 'small'), h: 80 }],
       text: "It's cold and dark. The wormhole burnt out its power lines, cracked its telescope's mirror, split its fuel tank and killed its engine, and its jump drive is burnt black. Without the telescope you can't even see which star this is. Everything it needs to mend is down on the grey moon: copper, silver, quartz, graphite and ice, carried up in the lander a load at a time.",
       button: 'Get to work',
     }, () => page.commit(withBeat(page.profile, 'aboard'), { tab: 'starship' }));

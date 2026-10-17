@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
 import { PAPER } from '../art/palette';
-import { bakeSystem, TEX } from '../art/textures';
+import { bakeSystem, shipTexture, TEX } from '../art/textures';
+import { shipLookOf } from '../art/starship';
 import { worldRadius } from '../art/systemArt';
 import { habitableZone, KIND_LINE, moonsOf, planetsOf, snowLine, STAR, worldById, WORLDS, type World } from '../logic/starSystem';
 import { getProfile, getSound, setProfile } from '../host';
 import type { Profile } from '../logic/economy';
-import { canSetCourse, FIRST_COURSE, isFixed, setCourse } from '../logic/starship';
+import { canSetCourse, FIRST_COURSE, setCourse } from '../logic/starship';
 import { hasBeat } from '../logic/story';
 import { relayoutOnResize, screenScene, viewSize } from './hidpi';
 import { muteButton } from './kit/muteButton';
@@ -34,6 +35,8 @@ const AU = { near: 0.1, far: 12 } as const;
 const MOON = { first: 60, step: 52, firstDown: 170, stepDown: 72 } as const;
 const BACK = { w: 300, h: 46 } as const;
 const CARD_W = 760;
+/** How wide the ship is drawn by its world. */
+const MAP_SHIP_W = 57;
 const HIGHLIGHT = 0xd9ee7a;
 /** Keys that leave the map, as they leave the lander's page. */
 const BACK_KEYS = ['keydown-L', 'keydown-ESC', 'keydown-P'] as const;
@@ -178,7 +181,8 @@ export class SystemScene extends Phaser.Scene {
     }
     const home = l.at(worldById('graphite')!);
     const ship = l.vertical ? { x: home.x, y: home.y - 40 } : { x: home.x - 50, y: home.y };
-    this.add.image(ship.x, ship.y, TEX.ship(isFixed(getProfile(this), 'power'))).setScale(0.55 / 4);
+    const img = this.add.image(ship.x, ship.y, shipTexture(this, shipLookOf(getProfile(this)), 'small'));
+    img.setScale(MAP_SHIP_W / img.width);
     if (l.vertical) scrawl(this, ship.x + 30, ship.y, 'your ship', 18, INK_TEXT).setOrigin(0, 0.5);
     else scrawl(this, ship.x, ship.y + 12, 'your ship', 18, INK_TEXT).setOrigin(0.5, 0);
   }
@@ -261,7 +265,7 @@ export class SystemScene extends Phaser.Scene {
     storyCard(this, {
       title: `Course set for ${to}`,
       subtitle: 'the end of chapter 1',
-      pictures: [{ key: TEX.ship(true), h: 70 }, { key: TEX.world(FIRST_COURSE.to), h: 70 }],
+      pictures: [{ key: shipTexture(this, shipLookOf(getProfile(this)), 'small'), h: 70 }, { key: TEX.world(FIRST_COURSE.to), h: 70 }],
       text: `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${to} grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.`,
       button: 'On to Mycel',
     }, () => this.scene.restart({ selected: FIRST_COURSE.to, demoEnd: true } satisfies SystemData));
