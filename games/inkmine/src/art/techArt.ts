@@ -11,6 +11,7 @@ import { pack } from './prospector/pack';
 import { part, rivets, roundRect, seam, sheen, WASH } from './prospector/parts';
 import { arm, leg, torso } from './prospector/suit';
 import { drawStarshipSystem } from './starship/systems';
+import { drawPulseTool } from './aster/weapon';
 
 /**
  * The pictures in the lander's technology slots, No Man's Sky style: each
@@ -215,7 +216,7 @@ function receiver(d: Draw): void {
 
 export function drawTech(d: Draw, t: Tech, variant: TechVariant): void {
   if (t.kind === 'gear') gear(d, t, typeof variant === 'number' ? variant : 0);
-  else if (t.kind === 'tool') receiver(d);
+  else if (t.kind === 'tool') (t.id === 'pulse' ? drawPulseTool : receiver)(d);
   else if (t.kind === 'repair') system(d, t, variant === 'broken');
   else if (t.kind === 'starship') drawStarshipSystem(d, t.id, variant === 'broken');
   else if (t.key === 'cargo') cargo(d);

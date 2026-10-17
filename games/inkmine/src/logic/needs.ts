@@ -4,7 +4,7 @@
  * the next mark of each gear piece whose blueprint is found, the tools not
  * yet printed and the next level of each module.
  */
-import { blueprintId, recipeOf } from './blueprints';
+import { nextMark } from './blueprints';
 import type { Profile } from './economy';
 import { PIECES } from './gear';
 import { countOf, type Hold } from './hold';
@@ -26,7 +26,7 @@ export function oreNeeds(p: Profile, ore: OreKey): readonly OreNeed[] {
     .map((id): OreNeed => ({ kind: 'tech', tech: { kind: 'repair', id }, n: of(REPAIRS[id].needs) }));
   const trade: OreNeed[] = hasBeat(p, 'met') && !hasBeat(p, 'paid') ? [{ kind: 'trade', n: of(TRADE) }] : [];
   const gear = PIECES.flatMap((piece): OreNeed[] => {
-    const r = recipeOf(blueprintId(piece, p.gear[piece] + 1));
+    const r = nextMark(piece, p.found, p.gear);
     return r && p.found.includes(r.id) ? [{ kind: 'tech', tech: { kind: 'gear', piece }, mk: r.mk, n: of(r.materials) }] : [];
   });
   const tools = TOOLS.filter((t) => !['have', 'nothing'].includes(canPrintTool(p, t)))

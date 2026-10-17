@@ -14,6 +14,7 @@ import { SHIP_MODULES, SHIP_SYSTEMS, STARSHIP_TECH, SUIT_TECH, techKey } from '.
 import { TECH_RES } from '../src/art/textures';
 import { BROKEN_SHIP, drawStarship, drawStarshipAir, STARSHIP_ART, type ShipLook } from '../src/art/starship';
 import { SHIP_FINISH, SHIP_MAP_FINISH, SHIP_MAP_RES, SHIP_RES } from '../src/art/textures';
+import { creatureSections } from './creatures';
 
 // Dev page: the prospector in every look and pose, big enough to judge the drawing.
 const root = document.getElementById('root');
@@ -53,6 +54,8 @@ function atPlaySize(row: HTMLElement, label: string, canvas: HTMLCanvasElement, 
   canvas.style.background = 'linear-gradient(#4b5583, #a59bab 70%, #ada79c 70%)';
   figure(row, label, canvas);
 }
+
+creatureSections(section, figure);
 
 const starship = section('The starship', 'Your starship: as it first docks (every system broken, dark), part way mended, and whole. Then at the Starship tab\'s size, and the star map\'s little ship.');
 function shipCanvas(look: ShipLook, res: number, finish = SHIP_FINISH): HTMLCanvasElement {

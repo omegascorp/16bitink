@@ -1,6 +1,8 @@
 import type { GroundStyle } from '../art/palette';
+import type { CreatureRule } from '../logic/creatures';
 import type { ItemDef } from '../logic/items';
 import type { OreKey } from '../logic/ore';
+import type { TilePos } from '../logic/terrain';
 import type { WorldId } from '../logic/worlds';
 import type { CarveSpec } from './carve';
 
@@ -27,6 +29,10 @@ export interface WorldDef {
   readonly outpost?: number;
   /** The column a lost lander lies wrecked at, on the surface, its distress beacon still calling (Mycel's Aster lander). */
   readonly crash?: number;
+  /** Where its creatures live (creatures.ts; none on a dead world like Graphite). */
+  readonly creatures?: readonly CreatureRule[];
+  /** The world's giant, where it lives: the floor of its chamber, by column and depth (a room should be carved there). */
+  readonly giant?: { readonly at: TilePos };
 }
 
 /** The card shown the first time you land on a world: its name, a line under it, a few paragraphs and the button. */

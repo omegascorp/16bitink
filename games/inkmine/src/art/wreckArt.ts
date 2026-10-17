@@ -1,5 +1,6 @@
 import type { Piece } from '../logic/gear';
 import { drawAsterGear } from './aster/gear';
+import { drawAsterPulse } from './aster/weapon';
 import { edge, oval, pt, tint, type Draw } from './kit';
 import { HIGHLIGHT } from './palette';
 import { dab, mix, SHADOW } from './paint';
@@ -40,7 +41,16 @@ function crack(d: Draw, x: number, y: number, len: number, dir: number): void {
 const ASTER_MK = 2;
 
 export function drawWreck(d: Draw, piece: Piece, mk: number): void {
-  const lie = LIE[piece];
+  lying(d, LIE[piece], () => (mk === ASTER_MK ? drawAsterGear(d, piece) : drawTech(d, { kind: 'gear', piece }, mk)));
+}
+
+/** The Aster's broken resonator by their wreck (the pulse's design), lying as their gear does. */
+export function drawPulseWreck(d: Draw): void {
+  lying(d, { tip: -0.4, sink: 4 }, () => drawAsterPulse(d));
+}
+
+/** A broken thing lying as `lie` says: tipped, grimed and cracked, half sunk in dust, a bit broken off beside it. */
+function lying(d: Draw, lie: { readonly tip: number; readonly sink: number }, drawPart: () => void): void {
   const ctx = d.pen.ctx;
   // What's left to find: a faint highlighter pool, like any pickup.
   tint(d, oval(0, 9, 16, 6, 24), HIGHLIGHT, 0.35);
@@ -48,8 +58,7 @@ export function drawWreck(d: Draw, piece: Piece, mk: number): void {
   ctx.translate(0, lie.sink * 0.4);
   ctx.rotate(lie.tip);
   ctx.scale(0.86, 0.86);
-  if (mk === ASTER_MK) drawAsterGear(d, piece);
-  else drawTech(d, { kind: 'gear', piece }, mk);
+  drawPart();
   // Age: soot and grime washed over the whole part, heavier low down.
   dab(d, oval(2, 6, 15, 10, 20), mix(SHADOW, DUST, 0.5), 0.32, 2);
   crack(d, -6, -6, 11, 0.9);

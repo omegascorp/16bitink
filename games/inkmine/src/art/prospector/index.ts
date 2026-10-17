@@ -7,6 +7,7 @@ import { helmet } from './helmet';
 import { jetpack, nozzles, NOZZLES, strap } from './jetpack';
 import { pack } from './pack';
 import { pt } from './parts';
+import { pulseBracer } from './pulse';
 import { arm, leg, torso } from './suit';
 
 /**
@@ -14,7 +15,8 @@ import { arm, leg, torso } from './suit';
  * an energy cell on their back, an ore pack at the hip and a drill in hand,
  * inked in blue like every "you" in the catalog. Each of the six pieces is
  * drawn at its own mark (logic/gear.ts, marks.ts), so the character
- * changes piece by piece as gear is built. Drawn facing right in
+ * changes piece by piece as gear is built; armed, the pulse is on the
+ * front forearm (pulse.ts). Drawn facing right in
  * a frame of PROSPECTOR_FRAME units with the feet on y = PROSPECTOR_GROUND;
  * `d.f` (0..2) is both the line-boil frame and the walk step.
  */
@@ -76,7 +78,9 @@ export function drawProspector(d: Draw, pose: Pose, look: ProspectorLook): void 
   if (pose === 'climb') {
     // Hands on the rungs overhead, behind the helmet; the drill rides on the pack.
     arm(d, look.suit, pt(-3.8, -1), pt(-5.6, -16 + (d.f === 1 ? 1.4 : 0)));
-    arm(d, look.suit, pt(3.6, -1), pt(7.4, -15 - (d.f === 1 ? 1.4 : 0)));
+    const reach = pt(7.4, -15 - (d.f === 1 ? 1.4 : 0));
+    arm(d, look.suit, pt(3.6, -1), reach);
+    if (look.armed) pulseBracer(d, pt(3.6, -1), reach);
     helmet(d, look.helmet, pt(0.4, -1.4));
     return;
   }
@@ -86,6 +90,8 @@ export function drawProspector(d: Draw, pose: Pose, look: ProspectorLook): void 
     // The drill's power cable from the cell.
     d.pen.stroke([pt(-7.6, 7), pt(-3.6, 11.4), pt(rig.hand.x - 4, rig.hand.y + 4.4), pt(rig.hand.x - 1.4, rig.hand.y + 2)], 0.9, d.ink, 0.8, false);
   }
-  arm(d, look.suit, pt(2, -0.6), rig.hand);
+  const shoulder = pt(2, -0.6);
+  arm(d, look.suit, shoulder, rig.hand);
+  if (look.armed) pulseBracer(d, shoulder, rig.hand);
   drill(d, look.drill, rig.hand, rig.angle, spin, pose.startsWith('drill'));
 }

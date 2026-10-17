@@ -9,9 +9,9 @@ import { getHost, getProfile, getSound, heldWorld, holdWorld, setProfile } from 
 import { buildWorld } from '../level/build';
 import { currentPlanet } from '../level/planets';
 import type { Arrival, PlanetDef } from '../level/types';
-import { recipeOf } from '../logic/blueprints';
+import { designName, findBlueprint, isDesign, learnTaken } from '../logic/designs';
 import { tooHard } from '../logic/drill';
-import { findBlueprint, printerWorks, type Profile } from '../logic/economy';
+import { printerWorks, type Profile } from '../logic/economy';
 import { prospectorLook, type Look } from '../logic/gear';
 import type { MineItem } from '../logic/items';
 import { lampFor } from '../logic/marks';
@@ -26,6 +26,7 @@ import { volatileKeyOf } from '../logic/volatiles';
 import { captureWorld, loadWorld, savePieces, saveWorld } from '../logic/worldSave';
 import { BeaconView } from './game/beaconView';
 import { CrashView } from './game/crashView';
+import { FaunaView } from './game/faunaView';
 import { FlagView } from './game/flagView';
 import { FxView } from './game/fxView';
 import { GroundView } from './game/groundView';
@@ -121,6 +122,8 @@ export class GameScene extends Phaser.Scene {
   /** Where a lost lander lies on this world, and its picture (Mycel's Aster lander). */
   private crashAt: { readonly col: number; readonly row: number } | null = null;
   private crash: CrashView | null = null;
+  /** The creatures and the pulse's shots; none on a world with neither (Graphite, unarmed). */
+  private fauna: FaunaView | null = null;
   /** Asked for from outside the world (a tapped gauge on the HUD, recall in the inventory), done on the next step. */
   private asked: Partial<Pick<MineInput, 'feed' | 'recall'>> = {};
   private smokeAt = 0;
@@ -144,6 +147,9 @@ export class GameScene extends Phaser.Scene {
     const profile = getProfile(this);
     const save = heldWorld(this, world.id) ?? loadWorld(getHost(this).storage, world.id, world.site.width * world.site.height, new Set(world.items.map((it) => it.id)));
     this.taken = [...(save?.taken ?? [])];
+    // A part already taken apart has taught its design, whatever an older build failed to record.
+    const learnt = learnTaken(getProfile(this), world.items, this.taken);
+    if (learnt !== getProfile(this)) setProfile(this, learnt);
     const built = buildWorld(this.planet, profile, save);
     const setup = built.setup;
     this.base = built.base;
@@ -158,7 +164,7 @@ export class GameScene extends Phaser.Scene {
     const skyH = setup.lander.row * T;
     const style = this.planet.style;
     crispText(this);
-    const look = prospectorLook(setup.loadout);
+    const look = prospectorLook(setup.loadout, setup.armed);
     this.ship = landerLookOf(profile.ship);
     this.wreck = wreckOf(profile);
     this.intro = this.introDue(profile);
@@ -175,6 +181,7 @@ export class GameScene extends Phaser.Scene {
     this.placeOutpost(setup.outpost, T);
     this.crashAt = world.crash === undefined ? null : { col: world.crash, row: world.site.surface };
     this.crash = this.crashAt ? new CrashView(this, this.crashAt, T) : null;
+    this.fauna = this.mine.fauna.creatures.length || this.mine.fauna.armed ? new FaunaView(this, T) : null;
     this.things = new ThingsView(this, T);
     this.items = new ItemsView(this, T);
     this.prospector = new ProspectorView(this, look);
@@ -267,6 +274,7 @@ export class GameScene extends Phaser.Scene {
     this.lander.setTexture(TEX.lander(this.ship, Math.floor(time / 125) % BOIL, this.wreck)).setX(this.ring.near((this.mine.landerBox.x + this.mine.landerBox.w / 2)));
     this.drawOutpost(time);
     this.crash?.update(this.ring, time);
+    this.fauna?.update(this.mine, time, this.ring);
     this.beacon.update(this.mine, this.ring, this.beaconTarget(), 'beacon', time);
     const d = this.mine.dropped;
     this.bagBeacon.update(this.mine, this.ring, d ? { x: (d.col + 0.5) * this.mine.tile, y: (d.row + 0.5) * this.mine.tile } : null, 'your bag', time);
@@ -331,6 +339,7 @@ export class GameScene extends Phaser.Scene {
   closeIntro(): void {
     if (!this.intro) return;
     this.intro = false;
+    this.keys.forget();
     const p = this.liveProfile();
     const beat = ARRIVAL_BEAT[p.at];
     setProfile(this, p.at === 'graphite' || !beat ? { ...p, started: true } : withBeat(p, beat));
@@ -368,6 +377,7 @@ export class GameScene extends Phaser.Scene {
   closeFound(): void {
     if (!this.found) return;
     this.found = false;
+    this.keys.forget();
     setProfile(this, withBeat(this.liveProfile(), 'asterFound'));
     this.save();
   }
@@ -402,9 +412,10 @@ export class GameScene extends Phaser.Scene {
     this.talk = v.says;
   }
 
-  /** The talk card was read: the world goes on. */
+  /** The talk card was read: the world goes on (the key that closed it isn't a press here). */
   closeTalk(): void {
     this.talk = null;
+    this.keys.forget();
   }
 
   /** The outpost's domes east of where a Lamplighter stands to meet you, on the far rim. */
@@ -434,11 +445,11 @@ export class GameScene extends Phaser.Scene {
    * teaches nothing; either way its materials spill out. It's gone for good.
    */
   private salvaged(item: MineItem, px: number, py: number): void {
-    const r = recipeOf(item.blueprint ?? '');
+    const id = item.blueprint ?? '';
     const p = getProfile(this);
-    const name = r ? `${r.piece[0]!.toUpperCase()}${r.piece.slice(1)} Mk ${r.mk}` : 'part';
-    const learnt = r !== undefined && !p.found.includes(r.id);
-    if (learnt) setProfile(this, findBlueprint(p, r.id));
+    const name = designName(id) ?? 'part';
+    const learnt = isDesign(id) && !p.found.includes(id);
+    if (learnt) setProfile(this, findBlueprint(p, id));
     // Above the "+ ore" notes its salvage brings, which rise from just over the prospector.
     this.fx.note(px, py - 62, learnt ? `${name} design learnt!` : `${name}: nothing new`);
     this.fx.note(px, py - 40, 'taken apart for parts');

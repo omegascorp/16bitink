@@ -23,6 +23,13 @@ describe('how gear shows on the prospector', () => {
     expect(lookKey(prospectorLook(STARTER_LOADOUT))).toBe('000000');
   });
 
+  it('marks the pulse on the wrist in the key, leaving unarmed keys as they were', () => {
+    expect(prospectorLook(evenLoadout(2)).armed).toBeUndefined();
+    expect(prospectorLook(evenLoadout(2), true).armed).toBe(true);
+    expect(lookKey(prospectorLook(evenLoadout(2)))).toBe('222222');
+    expect(lookKey(prospectorLook(evenLoadout(2), true))).toBe('222222w');
+  });
+
   it('still groups marks into three families for the silhouette', () => {
     expect([0, 1, 2, 3].map(lookOf)).toEqual([0, 0, 0, 0]);
     expect([4, 7].map(lookOf)).toEqual([1, 1]);

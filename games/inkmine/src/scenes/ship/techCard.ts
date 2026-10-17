@@ -1,5 +1,5 @@
 import { techTexture } from '../../art/textures';
-import { blueprintId, canBuild, recipeOf, type BuildCheck } from '../../logic/blueprints';
+import { canBuild, nextMark, type BuildCheck } from '../../logic/blueprints';
 import { hasOnHand, onHand, printerWorks, printModule, printPart } from '../../logic/economy';
 import { markGain, markStat } from '../../logic/marks';
 import { canRepair, needsLine, REPAIRS, repair, type RepairCheck } from '../../logic/repairs';
@@ -19,7 +19,7 @@ const PIC = 104;
 /** `wide` fits "At the lander", the label far from it. */
 const BTN = { w: 150, wide: 210, h: 44 } as const;
 /** The print button's label when it can't print yet. */
-const BUILD_WHY: Readonly<Record<BuildCheck | 'offline', string>> = { ok: 'Print', built: 'Built', notFound: 'No blueprint', materials: 'Needs ore', order: 'Locked', offline: 'Offline' };
+const BUILD_WHY: Readonly<Record<BuildCheck | 'offline', string>> = { ok: 'Print', built: 'Built', notFound: 'No blueprint', materials: 'Needs ore', offline: 'Offline' };
 /** The repair button's label when it can't repair yet. */
 const REPAIR_WHY: Readonly<Record<RepairCheck, string>> = { ok: 'Repair', done: 'Repaired', order: 'Later', materials: 'Needs ore', given: "Can't print" };
 
@@ -41,7 +41,7 @@ function gearText(page: ShipPage, t: Extract<Tech, { kind: 'gear' }>): CardText 
   const p = page.profile;
   const mk = p.gear[t.piece];
   const base = { status: `Mk ${mk}`, statusColor: INK_TEXT, now: markStat(t.piece, mk) };
-  const r = recipeOf(blueprintId(t.piece, mk + 1));
+  const r = nextMark(t.piece, p.found, p.gear);
   if (!r) return { ...base, next: { text: 'The best there is on this planet.', color: FADED } };
   const check = canBuild(r, p.found, p.gear, hasOnHand(p));
   // An offline printer only matters once there's something it could print: a missing blueprint still says so.
@@ -93,7 +93,7 @@ function toolText(page: ShipPage, t: Extract<Tech, { kind: 'tool' }>): CardText 
   if (why === 'have') return { status: 'printed', statusColor: VERDIGRIS, now: `${k.about}.` };
   return {
     status: 'not printed', statusColor: FADED, now: `${k.about}.`,
-    next: why === 'nothing' ? { text: 'Nothing to listen for yet.', color: FADED } : why === 'offline' ? { text: 'Repair the printer first.', color: SEPIA } : undefined,
+    next: why === 'nothing' ? { text: t.id === 'pulse' ? "No design yet: something of the Aster's lies by their wreck on Mycel." : 'Nothing to listen for yet.', color: FADED } : why === 'offline' ? { text: 'Repair the printer first.', color: SEPIA } : undefined,
     recipe: why === 'nothing' ? undefined : { text: recipeLine(k.recipe, onHand(p)), ok: why === 'ok' },
     button: {
       label: TOOL_WHY[why], ok: why === 'ok', press: () => {

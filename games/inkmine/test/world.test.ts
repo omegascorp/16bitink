@@ -7,6 +7,7 @@ import { fuelsAt } from '../src/logic/worlds';
 import { energyMap } from '../src/level/reach';
 import type { PlanetDef, WorldDef } from '../src/level/types';
 import { RECIPES } from '../src/logic/blueprints';
+import { isDesign } from '../src/logic/designs';
 import { REPAIRS } from '../src/logic/repairs';
 import { STARSHIP, STARSHIP_IDS } from '../src/logic/starship';
 import { TRADE } from '../src/logic/story';
@@ -70,7 +71,7 @@ describe.each(worlds)('the world of %s', (_id, planet) => {
     const t = buildGround(def);
     for (const item of def.items) {
       expect(tileAt(t, item.at[0], def.site.surface + item.at[1])).not.toBe(TILE.bedrock);
-      if (item.blueprint) expect(RECIPES[item.blueprint], item.id).toBeDefined();
+      if (item.blueprint) expect(isDesign(item.blueprint), item.id).toBe(true);
     }
   });
 

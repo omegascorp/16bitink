@@ -9,6 +9,8 @@ import { currentGoal, goalLine } from '../src/logic/repairs';
 import { parseProfile } from '../src/logic/save';
 import { STARSHIP_IDS } from '../src/logic/starship';
 import { distressDue, hasBeat } from '../src/logic/story';
+import { canPrintTool, printTool, TOOL_KINDS } from '../src/logic/tools';
+import { designName, designSalvage } from '../src/logic/designs';
 import { refillStore, storeCapacity, storeOre, storeRefill, STORES } from '../src/logic/stores';
 import { fuelsAt } from '../src/logic/worlds';
 import { canTravel, travel, tripFuel } from '../src/logic/travel';
@@ -156,7 +158,7 @@ describe("the Aster's distress call", () => {
 });
 
 describe('on Mycel', () => {
-  const landed: Profile = { ...whole, at: 'mycel', docked: false, visited: ['graphite', 'mycel'], beats: [...whole.beats, 'course', 'distress', 'asterFound'], gear: { ...whole.gear, drill: 1 } };
+  const landed: Profile = { ...whole, at: 'mycel', docked: false, visited: ['graphite', 'mycel'], beats: [...whole.beats, 'course', 'distress', 'asterFound'], gear: { ...whole.gear, drill: 1 }, found: ['pulse'], tools: ['receiver', 'pulse'] };
 
   it('splits its tanks from water and charges the battery from lignite', () => {
     expect(fuelOre(landed)).toBe('water');
@@ -183,13 +185,30 @@ describe('on Mycel', () => {
     expect(currentGoal({ ...fresh, docked: true, visited: ['graphite'] })).toEqual({ kind: 'land' });
   });
 
+  it("studies the Aster's resonator by the wreck and prints the pulse before anything else", () => {
+    const atWreck = { ...landed, found: [], tools: ['receiver'] as Profile['tools'], repaired: ['printer', 'hull', 'thrusters', 'comms', 'core'] as Profile['repaired'] };
+    expect(currentGoal(atWreck)).toEqual({ kind: 'find', blueprint: 'pulse' });
+    expect(goalLine(atWreck, currentGoal(atWreck))).toMatch(/isn't gear/);
+    const studied = { ...atWreck, found: ['pulse'] };
+    expect(currentGoal(studied)).toEqual({ kind: 'pulse' });
+    expect(canPrintTool(atWreck, 'pulse')).toBe('nothing');
+    expect(canPrintTool(studied, 'pulse')).toBe('materials');
+    const rich = { ...studied, cargo: addHoldTo(studied.cargo, TOOL_KINDS.pulse.recipe).inv };
+    const r = printTool(rich, 'pulse');
+    expect(r.ok && r.profile.tools).toEqual(['receiver', 'pulse']);
+    expect(r.ok && currentGoal(r.profile)).toEqual({ kind: 'find', blueprint: 'drill-2' });
+    // Taken apart, the broken one gives half its makings back.
+    expect(designSalvage('pulse')).toEqual({ pyrite: 1, malachite: 1, lignite: 1 });
+    expect(designName('pulse')).toBe('Pulse');
+  });
+
   it("leads to Mycel's drill, then the rest of its designs", () => {
     expect(currentGoal(landed)).toEqual({ kind: 'find', blueprint: 'drill-2' });
     expect(goalLine(landed, currentGoal(landed))).toMatch(/Mycel's stone/);
-    expect(currentGoal({ ...landed, found: ['drill-2'] })).toEqual({ kind: 'print', blueprint: 'drill-2' });
-    const printed = { ...landed, found: ['drill-2', 'cell-2'], gear: { ...landed.gear, drill: 2 } };
+    expect(currentGoal({ ...landed, found: ['pulse', 'drill-2'] })).toEqual({ kind: 'print', blueprint: 'drill-2' });
+    const printed = { ...landed, found: ['pulse', 'drill-2', 'cell-2'], gear: { ...landed.gear, drill: 2 } };
     expect(currentGoal(printed)).toEqual({ kind: 'explore', found: 2, of: 6 });
-    const all = { ...printed, found: ['cell', 'pack', 'drill', 'helmet', 'jetpack', 'suit'].map((p) => `${p}-2`) };
+    const all = { ...printed, found: ['pulse', ...['cell', 'pack', 'drill', 'helmet', 'jetpack', 'suit'].map((p) => `${p}-2`)] };
     expect(currentGoal(all)).toEqual({ kind: 'soon' });
     expect(recipeOf('drill-2')!.materials).toEqual({ pyrite: 6, malachite: 4 });
   });

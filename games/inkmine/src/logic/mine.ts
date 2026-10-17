@@ -1,11 +1,13 @@
 import { boxHitsSolid, climbBody, jump, moveBody, PHYS, type Body, type Box } from './body';
 import { BlastSim, type Blast } from './blastSim';
+import type { Creature, CreatureKind } from './creatures';
+import { Fauna } from './fauna';
 import type { Loadout } from './gear';
 import { DRILL_SECONDS_PER_ENERGY, tileCost, VOLATILE_COST, type DrillSpec } from './drill';
 import { holdEntries, holdSize, type Hold } from './hold';
 import { contents as contentsOf, emptyInventory, isEmpty, isLocked, splitShare, transferAll, type Inventory, type Stack } from './inventory';
 import { joinBags, settle, type DroppedBag } from './flag';
-import { salvageOf } from './blueprints';
+import { designSalvage } from './designs';
 import { bankItems, freeItems, inPouch, placeItems, stepItems, type ItemDef, type MineItem } from './items';
 import { ORES } from './ore';
 import { Ladders } from './ladders';
@@ -53,6 +55,10 @@ export interface MineSetup {
   readonly storesCap?: number;
   /** Where the Lamplighters' outpost stands: its middle column and the surface row (default none). */
   readonly outpost?: { readonly col: number; readonly row: number };
+  /** The world's creatures, placed for this landing (creatures.ts; default none). */
+  readonly creatures?: readonly Creature[];
+  /** Whether the prospector carries the pulse (pulse.ts; default not). */
+  readonly armed?: boolean;
 }
 
 /** Graphite's fuels: graphite for the drill (it's in battery anodes), water ice for the air. */
@@ -71,9 +77,11 @@ export interface MineInput {
   readonly recall: boolean;
   /** Feed a gauge from the bag this step: a tapped one, or the lower one (the feed key). */
   readonly feed: Gauge | 'lowest' | null;
+  /** Fire the pulse this step (default not). */
+  readonly fire?: boolean;
 }
 
-export const NO_INPUT: MineInput = { ix: 0, iy: 0, jump: false, thrust: false, recall: false, feed: null };
+export const NO_INPUT: MineInput = { ix: 0, iy: 0, jump: false, thrust: false, recall: false, feed: null, fire: false };
 
 export type MineEvent =
   | { readonly kind: 'tiles'; readonly tiles: readonly TilePos[] }
@@ -100,7 +108,18 @@ export type MineEvent =
   /** Sprang off a cap mushroom. */
   | { readonly kind: 'bounce'; readonly big: boolean }
   | { readonly kind: 'blast'; readonly blast: Blast }
-  | { readonly kind: 'hurt'; readonly hearts: number; readonly cause: 'blast' | 'air' }
+  | { readonly kind: 'hurt'; readonly hearts: number; readonly cause: 'blast' | 'air' | 'creature' }
+  /** Fired the pulse. */
+  | { readonly kind: 'pulse' }
+  /** A pulse hit a creature: `killed` when it burst or was severed. */
+  | { readonly kind: 'struck'; readonly creature: CreatureKind; readonly killed: boolean }
+  /** A puffball spat a clot of spores. */
+  | { readonly kind: 'spat' }
+  /** A snap tendril caught the prospector, or let go. */
+  | { readonly kind: 'grabbed' }
+  | { readonly kind: 'freed' }
+  /** The Mother Mycel beat; `near` when its wave reached the prospector. */
+  | { readonly kind: 'beat'; readonly near: boolean }
   /** Winched up; `left` pieces stayed in the world under the flag. */
   | { readonly kind: 'recall'; readonly left: number }
   /** Touched the flag: pieces back in the bag. */
@@ -188,6 +207,10 @@ export class Mine {
   /** Ores that stay in the bag at the lander (what someone's waiting for), on top of its locked slots. */
   keep: readonly OreKey[] = [];
   pieces: Piece[] = [];
+  /** The creatures, what they spit and the pulses fired at them. */
+  readonly fauna: Fauna;
+  /** Thrown by something (the Mother Mycel): pushed this way until `until`. */
+  private knock: { readonly dir: number; readonly speed: number; readonly until: number } | null = null;
   drilling: Drilling | null = null;
   climbing = false;
   /** The jetpack fired this step. */
@@ -215,6 +238,7 @@ export class Mine {
     const o = setup.outpost;
     this.outpostBox = o ? { x: (o.col - OUTPOST_REACH.half) * T, y: (o.row - OUTPOST_REACH.rows) * T, w: (OUTPOST_REACH.half * 2 + 1) * T, h: OUTPOST_REACH.rows * T } : null;
     this.items = placeItems(setup.terrain, setup.items ?? [], row, T);
+    this.fauna = new Fauna(setup.creatures ?? [], setup.armed ?? false);
     this.player = this.startBody();
     const W = setup.terrain.width;
     this.pieces = (setup.pieces ?? []).map((sp) => restingPiece(sp.ore, sp.at % W, Math.floor(sp.at / W), T, W));
@@ -254,8 +278,12 @@ export class Mine {
     const events: MineEvent[] = [];
     if (input.recall) this.recall(events);
     if (input.feed) this.feedStep(input.feed, events);
-    const blocked = this.move(dt, input, events);
-    this.drillStep(dt, input, blocked, events);
+    // Held by a tendril, there's no walking or drilling: only struggling (jump) and the pulse.
+    const held = this.fauna.held !== null;
+    const moving = held ? { ...NO_INPUT, jump: input.jump } : input;
+    const blocked = held ? this.hold() : this.move(dt, moving, events);
+    this.drillStep(dt, moving, blocked, events);
+    this.faunaStep(dt, input, events);
     this.blastStep(dt, events);
     this.pieceStep(dt, events);
     this.itemStep(dt, events);
@@ -294,6 +322,7 @@ export class Mine {
     const onLadder = this.ladders.has(col, row);
     if (input.ix !== 0) this.facing = input.ix > 0 ? 1 : -1;
     this.jetting = false;
+    const knocked = this.knock && this.time < this.knock.until ? this.knock : null;
     if (onLadder && !input.jump) {
       this.climbing = true;
       this.player = climbBody(this.terrain, before, input.ix, input.iy, PROSPECTOR.climb, dt, T);
@@ -309,7 +338,7 @@ export class Mine {
           launched = { ...launched, vy: Math.max(-this.jet.maxRise, launched.vy - this.jet.thrust * dt) };
         } else this.notice('noFuel', events, { kind: 'noFuel' });
       }
-      this.player = moveBody(this.terrain, launched, input.ix, PROSPECTOR.walk, dt, T, input.iy <= 0);
+      this.player = knocked ? moveBody(this.terrain, launched, knocked.dir, knocked.speed, dt, T) : moveBody(this.terrain, launched, input.ix, PROSPECTOR.walk, dt, T, input.iy <= 0);
       // Landing on a cap from a fall gives some of it back.
       const fall = Math.min(PHYS.maxFall, launched.vy + PHYS.gravity * dt);
       if (!launched.onGround && this.player.onGround && fall > CAP_SPRING.min && input.iy <= 0 && this.onCap(this.player)) {
@@ -420,6 +449,7 @@ export class Mine {
     }
     for (const blast of blasts) {
       events.push({ kind: 'blast', blast });
+      this.fauna.blast(blast.area, this.tile);
       for (const { ore, tile } of blast.ores) this.pieces.push(newPiece(ore, (tile[0] + 0.5) * this.tile, (tile[1] + 0.5) * this.tile));
       if (blast.area.some(([x, y]) => this.occupies(x, y))) this.hurt(events);
     }
@@ -452,7 +482,7 @@ export class Mine {
       const cx = item.x + item.w / 2;
       const cy = item.y + item.h / 2;
       let k = 0;
-      for (const [ore, n] of holdEntries(salvageOf(item.blueprint ?? ''))) {
+      for (const [ore, n] of holdEntries(designSalvage(item.blueprint ?? ''))) {
         for (let i = 0; i < n; i++, k++) this.pieces.push(newPiece(ORES[ore].id, cx + ((k % 5) - 2) * 3, cy - 4));
       }
     }
@@ -573,11 +603,42 @@ export class Mine {
     events.push({ kind: 'recall', left: dropped });
   }
 
-  private hurt(events: MineEvent[]): void {
+  private hurt(events: MineEvent[], cause: 'blast' | 'creature' = 'blast'): void {
     const r = hurt(this.suit, this.time);
     this.suit = r.suit;
     if (r.hit === 'shield') events.push({ kind: 'shielded' });
-    if (r.hit === 'heart') events.push({ kind: 'hurt', hearts: this.suit.hearts, cause: 'blast' });
+    if (r.hit === 'heart') events.push({ kind: 'hurt', hearts: this.suit.hearts, cause });
+  }
+
+  /** Held where they are, as a tendril holds them: no falling, no walking. Never a blocked push. */
+  private hold(): boolean {
+    this.player = { ...this.player, vx: 0, vy: 0 };
+    this.climbing = false;
+    this.jetting = false;
+    return false;
+  }
+
+  /** The creatures' turn: they act on the prospector as they now stand, and the pulse fires if asked. */
+  private faunaStep(dt: number, input: MineInput, events: MineEvent[]): void {
+    this.fauna.step(dt, { fire: input.fire ?? false, iy: input.iy, jump: input.jump }, {
+      terrain: this.terrain,
+      tile: this.tile,
+      player: this.player,
+      facing: this.facing,
+      hurt: () => this.hurt(events, 'creature'),
+      loseAir: (n) => {
+        this.suit = { ...this.suit, air: Math.max(0, this.suit.air - n) };
+      },
+      spend: (n) => {
+        const s = spend(this.suit, n);
+        if (s) this.suit = s;
+        return !!s;
+      },
+      push: (vx, vy) => {
+        this.player = { ...this.player, vy, onGround: false };
+        this.knock = { dir: Math.sign(vx), speed: Math.abs(vx), until: this.time + 0.3 };
+      },
+    }, events);
   }
 
   private notice(key: string, events: MineEvent[], event: MineEvent, gap = NOTICE_GAP): void {

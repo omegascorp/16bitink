@@ -231,9 +231,9 @@ There's no mission list and no job board. Things to do come from two places:
 | --- | --- |
 | Bring | Bring them quartz from below the grey band |
 | Sample | Drill a core sample from a marked deep spot |
-| Salvage | Find their listening probe, lost when a lead worm dragged it under |
+| Salvage | Find their listening probe, lost down a fissure in the deep |
 | Mark | Plant their listening stakes at three spots across the world |
-| Clear | Drive the lead worms out of their deep post |
+| Clear | Dig out their deep post after a cave-in |
 | Open | Get into the old crew's base (old charges) |
 
 The old mission code (haul, hunt, core sample, salvage, survey, clear, demolition) becomes these jobs and the repair list. There are no blots: progress is the lander's repairs and the lexicon.
@@ -314,6 +314,8 @@ Graphite has five, one per Mk 1 design but the Suit's (a Lamplighter job gives t
 
 Every mark is an even step, never an exponential curve.
 
+**Marks can be skipped** (Oct 17, 2026, @Hayk): a Mk 2 design found on Mycel prints over a Mk 0, whether or not Graphite's Mk 1 was ever found. The slot shows the best mark you've found above what you wear (`nextMark` in `logic/blueprints.ts`).
+
 **The good moment:** you find a broken part and learn its design, see in pencil what it needs, go and dig it up, and the printer inks the part in. Every new piece changes something you feel on the very next trip: stone you couldn't break, a vault you couldn't reach, a cave too dark to read.
 
 **Rules that keep it from turning into grind:**
@@ -346,22 +348,32 @@ Every planet has its own native creatures, invented but built from a few behavio
 | Spitter | Sits still, shoots on a visible wind-up |
 | Mimic | Looks like a boulder or an ore glint until you're close |
 
-- **Few and readable.** Pocket Mine 3's fans complained that monsters crowded out the mining, so they're kept to their regions, and the crash site has none. A creature notices you within about 4 tiles and shows it with a red "!" before it moves.
+- **None on Graphite** (decided Oct 17, 2026, @Hayk): it's a bare rock moon, no flora and no fauna (only microbes in the deep, which breathe out its firedamp). That keeps the free chapter simple and needs no weapons. Creatures start on Mycel.
+- **Few and readable.** Pocket Mine 3's fans complained that monsters crowded out the mining, so they're kept to their regions, and the landing site has none. A creature notices you within about 4 tiles and shows it with a red "!" before it moves.
 - **Red ink means it can hurt you.** Harmless grazers are drawn in blue.
 - **They live below the ground,** more of them and fiercer the deeper you go. That is what stops you going deeper, more than the rock does.
-- **The drill is a tool, not a weapon.** It can knock a small shallow creature back, but going deeper needs a weapon (below). Blasts, falling boulders and hazards hurt creatures too, so the terrain is still a weapon.
+- **The drill is a tool, not a weapon.** Going deeper needs a weapon (below). Blasts hurt creatures too, so the terrain is still a weapon.
 - **No loot.** Creatures drop nothing; a reason to clear them comes from a job.
-- **Each planet's giant** lives in its deepest region. On Graphite, the **Grinder**, a giant rock worm, has made the Lamplighters' deep post unsafe; the last job takes you past it.
+- **Never saved.** They're placed fresh from the world's rules on every landing (`placeCreatures`, on the ground as carved, so in the same spots each time): what you burst grows back.
+- **Each planet's giant** lives in its deepest region. Mycel's is the **Mother Mycel**.
+
+**Built on Mycel (Oct 17, 2026)** (`logic/creatures.ts`, `logic/fauna.ts`, drawn by `scenes/game/faunaView.ts`, art in `art/creatures/`):
+
+| Creature | Behaviour | Where | What it does |
+| --- | --- | --- | --- |
+| Puffball | Spitter | Cave floors: round the wreck in the peat (none near the lander), and all through the limestone | Notices you within 5 tiles (if nothing's in the way), a red "!", swells for 0.7 s, then spits a clot of spores in an arc: a hit (shield, then a heart) and 6 air. A pulse bursts it; bursting close by costs 6 air too. Rests 2.4 s between spits |
+| Snap tendril | Dropper | Cave ceilings in the limestone only, where the floor is within 5 tiles | When you pass under it, a "!" for 0.3 s, then it whips down. Catching you, it holds you where you are (no walking or drilling) and squeezes, a hit every 1.2 s, until you struggle free (jump three times) or shoot it (a shot makes it let go, a second severs it) |
+| Grazer | Harmless, blue ink | The surface among the caps, away from the lander | Crawls along eating caps, stepping up and down a tile, turning at walls and drops. Shot, it curls up for 3 s and comes to no harm |
+| The Mother Mycel | Giant | Her chamber deep in the limestone east of the wreck (10 × 7 tiles) | Can't be hurt (a pulse leaves no mark). Every 4 s she beats: a red wave of spores spreads out, costing 10 air to anyone within 7 tiles of her. Touching her is a hit and throws you off. You mine your way around her |
 
 ## Weapons
 
-Your ship is a mining ship: it has no weapons, and you start with none. Weapon blueprints come from the local aliens, as job rewards or in trade, and are printed from ore like everything else.
+Your ship is a mining ship: it has no weapons, and you start with none. Graphite has nothing to fight, so you need none there. Weapons come from other peoples' technology: studied from what they left, or given in trade, and printed from ore like everything else.
 
-- **Hand weapons** come first, from the Lamplighters on Graphite. They're the gate to the deep: each mark lets you hold your own against the creatures of the next band down.
-- **Ship weapons** come later, from the races of the paid planets, once the lander flies.
+- **The pulse** (built Oct 17, 2026, `logic/pulse.ts`), your first weapon, is the Aster's. Their broken wrist resonator lies in the open just east of their wreck on Mycel; studying it gives its design, and the printer builds it your way from Mycel's peat ores (3 pyrite, 2 malachite, 2 lignite: it's a tool, beside the receiver). The goal after the wreck is to study it and print it, before the drill, since Mycel's stone is where its creatures live. It throws a ring of force in a straight line: the way you face, or up or down while you hold them; held by a tendril, straight at it. It carries 7 tiles, rock stops it, it never breaks the ground, a shot costs 2 of the cell, and it fires every 0.45 s. F fires it; on a touch screen a Pulse button appears over Jump. You wear it as a bracer on the front wrist.
+- **Later marks and weapons** come from the peoples met later, each built in their own way.
+- **Ship weapons** come later still, from the races of the paid planets.
 - **Drawn in blue.** Your weapon is drawn in blue like the rest of your gear; red stays for danger.
-
-To design: the weapons themselves (how they fire, their marks), and how the depth bands match them.
 
 ## Your starship and travel
 
@@ -438,7 +450,7 @@ Each planet is its own world, with its own shape, people and language, and adds 
 
 | # | Planet | Biome | New mechanic | Given gear | Creatures | Giant | Signature material |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Graphite | Grey cratered moon | The basics: drilling, ore, firedamp, the life system, repairs, the first language | Starter set | Grit crabs (walker), lead worms (burrower) | The Grinder, a giant rock worm | Graphite, pencil lead |
+| 1 | Graphite | Grey cratered moon | The basics: drilling, ore, firedamp, the life system, repairs, the first language | Starter set | None: a bare rock (Oct 17, 2026) | None | Graphite, pencil lead |
 | 2 | Mycel | Fungal jungle | Growth: fungus slowly grows back over tunnels; cap mushrooms bounce you; spore pockets catch fire from a blast | Spore filter | Puffballs (spitter), snap tendrils (dropper) | The Mother Mycel, a heart you mine your way around | Amber with alien insects in it |
 | 3 | Brine | Island crust over a flooded underworld | Water and air: breaking into an aquifer floods the tunnels; you swim, and underwater air drains fast, refilled by bubble capsules (Mr. Driller) | Rebreather | Cave lampreys (swimmer), bubble jellies (flyer) | The Leviathan, in an underground sea | Brine pearls |
 | 4 | Talus | Red mesas and dry gullies | Gravity: loose rock and boulders fall when you dig under them, and crush creatures | Blasting charges | Boulder beetles (mimic), sand skates (burrower) | The Rockslide, which sheds boulders as it walks | Hematite, "blood ore" |
@@ -463,23 +475,23 @@ A grey moon of soft dark rock, pocked with craters, with a ringed planet hanging
 | --- | --- | --- | --- |
 | The crash site | Surface and soil under the lander | Copper, ice; no creatures; a vault (Pack) | Start |
 | The crater rim | Surface, far side | The Lamplighter outpost, inscriptions | Walking over |
-| The lead seams | Soil and the first stone, near the lander | Graphite seams, firedamp, grit crabs | Start; stone with the Drill |
+| The lead seams | Soil and the first stone, near the lander | Graphite seams, firedamp | Start; stone with the Drill |
 | The old crew's base | Half-buried under the old workings | Old charges, logs, a time capsule in the blast, a broken drill to study | Clearing the cave-in |
-| The grey band | Stone, mid-depth | Galena, quartz, lead worms, standing stones | The Drill |
-| The deep | Deepest stone | Silver, the Lamplighters' deep post, a vault (Jetpack), the Grinder | The Drill, a good cell, routes back |
+| The grey band | Stone, mid-depth | Galena, quartz, standing stones | The Drill |
+| The deep | Deepest stone | Silver, the Lamplighters' deep post, a vault (Jetpack) | The Drill, a good cell, routes back |
 | Below | Deep rock | Rich veins and a vault, for a later drill | A return visit after chapter 1 |
 
 Graphite's existing levels 1–5 (`level/planet1.ts`) become the first regions: their rooms, fissures, vaults and items move into one world definition.
 
 ## Mycel (chapter 2, the full game)
 
-Built Oct 17, 2026, as the first step of chapter 2: travel there, its world, its ores, its Mk 2 gear and two of its three mechanics. Still to come: fungus growing back over tunnels, its creatures, its people (and the spore filter they give), the Mother Mycel, and the chapter's story past the gear.
+Built Oct 17, 2026, as the first step of chapter 2: travel there, its world, its ores, its Mk 2 gear, two of its three mechanics, its creatures and the Mother Mycel (see Creatures), and the Aster's pulse (see Weapons). Still to come: fungus growing back over tunnels, its people (and the spore filter they give), and the chapter's story past the gear.
 
 Graphite's sister moon round the ringed giant, big enough to hold air: a fungal jungle under a thick haze of carbon dioxide and spores. Green from space and in its sky; violet underground, its soil peat of fungal matter, its stone limestone. The Aster's lander lies wrecked in the coal swamp, its crew's gear thrown round it, each broken piece a Mk 2 design to study.
 
 **Why you go: a distress call** (Oct 17, 2026). The moment the starship's power is mended over Graphite, its radio picks up the Aster's beacon (a "Distress call" card, beat `distress`): not words but a pattern of pulses, with a picture folded in, an eight-pointed star falling into a green circle. Nobody needs a language for that. The dish puts it on Mycel, and the pulses' own count says it has been calling for years. It's the reason to fly there before you know anything else about the moon, and it runs through the cards that follow: the star map's Mycel card says the call comes from there, the course card and the orbit card mention it, and the demo-end card offers it as the hook.
 
-**Following it down.** On landing, the goal is "Follow the Aster's distress call with the receiver": the same hot-and-cold bars as the Lamplighters' call, now pointing at the wreck, 100 tiles east of the lander (faint, one bar, at the lander; static if you set off west). Walking up to it on the ground opens "The Aster lander" card (beat `asterFound`): no one inside for years, and pictures scratched into the shell for whoever came, showing the pod falling, its pieces flying out round it and sinking into the ground, and small figures walking away east. Then the HUD leads to their drill, and to the rest of their gear, all round the wreck. The beacon arrow points to the nearest part whose design isn't learnt yet.
+**Following it down.** On landing, the goal is "Follow the Aster's distress call with the receiver": the same hot-and-cold bars as the Lamplighters' call, now pointing at the wreck, 100 tiles east of the lander (faint, one bar, at the lander; static if you set off west). Walking up to it on the ground opens "The Aster lander" card (beat `asterFound`): no one inside for years, and pictures scratched into the shell for whoever came, showing the pod falling, its pieces flying out round it and sinking into the ground, and small figures walking away east. Then the HUD leads to their resonator lying just east of the wreck (study it, print the pulse), then their drill, and the rest of their gear, all round the wreck. The beacon arrow points to the nearest part whose design isn't learnt yet.
 
 **Getting there.** With the ship whole and 6 units in its tank, Set course on the star map's Mycel card flies there (the "Course set for Mycel" card, "the end of chapter 1"), and the ship's page opens docked over Mycel with an "In orbit over Mycel" card. Land goes down; the first landing has its own card ("a green moon, alive"). Without the full game the same button ends the demo with an offer to unlock it (the demo-end card's Unlock button calls the host's checkout).
 
@@ -747,8 +759,8 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 2. ~~**The life system:** shield, hearts, life support, feeding gauges from the bag, the self-charging jetpack, dying, the dropped bag, recall~~ (done Oct 16, 2026; water ice added to Graphite, world version 2). The pause card was the start of the pause screen (Resume and Recall); since Oct 17, 2026 the inventory is the pause screen, with Recall on it.
 3. ~~**The repair list** in place of missions; the wrecked lander and its repair stages; inside the lander in place of the result screen and chart~~ (done Oct 16, 2026, before step 2). Not yet: lift-off at the end (it waits for the Lamplighters and the core).
 4. **The Lamplighters:** ~~the call, the receiver, the outpost, the first job by picture, the core for silver~~ (done Oct 17, 2026); still to come: speech with word-by-word translation, the lexicon, texts and the old crew's logs.
-5. **Creatures** (grit crabs, lead worms) and fighting with the drill.
-6. **The rest of Graphite:** the old crew's base, the grey band, the deep, the Grinder; the drive core and lift-off; the opening and the ending.
+5. ~~**Creatures**~~: none on Graphite (Oct 17, 2026). Built on Mycel instead, with the Aster's pulse (see Creatures, Weapons).
+6. **The rest of Graphite:** the old crew's base, the grey band, the deep; the drive core and lift-off; the opening and the ending.
 7. Coach hints, sound, touch controls, account sync; add InkMine to the catalog with chapter 1 free. Sound and touch built Oct 17, 2026: calm synthesized ambience after No Man's Sky (a drone that darkens with depth, a warmer hum aboard, a sparse starry one on the map) and soft event sounds, all Web Audio with no files (`src/audio/`); M or the ♪ button mutes, saved.
 8. ~~The first star system and its map~~ (done Oct 17, 2026: fuel, lift-off, docking, the starship's repairs and hold, first light, the first trip, the end of the demo). Mycel's first step built the same day (see "Mycel"); next, the game clock, moving orbits and trip costs by launch window; then planets 2–10, one at a time, each with its people, and the galaxy map past this system.
 

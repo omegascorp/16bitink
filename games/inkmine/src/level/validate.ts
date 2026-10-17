@@ -1,5 +1,6 @@
-import { RECIPES } from '../logic/blueprints';
+import { isDesign } from '../logic/designs';
 import { ORES } from '../logic/ore';
+import { CREATURE_KINDS } from '../logic/creatures';
 import { isWorldId } from '../logic/worlds';
 import type { PlanetDef } from './types';
 
@@ -52,7 +53,7 @@ const isSite = shape({
   pockets: listOf(at, 200),
 });
 const isItem = shape({ id: isSlug, kind: oneOf('core', 'probe', 'fossil', 'wreck'), at }, {
-  blueprint: keyOf(RECIPES), grade: oneOf('soil', 'stone'), drill: intIn(0, 10),
+  blueprint: (v) => typeof v === 'string' && isDesign(v), grade: oneOf('soil', 'stone'), drill: intIn(0, 10),
 });
 const isPlanet = shape({
   number: intIn(2, 10),
@@ -60,7 +61,12 @@ const isPlanet = shape({
   blurb: isText(400),
   style: isStyle,
   signature: isOre,
-  world: shape({ id: (v) => isWorldId(v) && v !== 'graphite', version: intIn(1, 10_000), site: isSite, items: listOf(isItem, 200) }, { outpost: col, crash: col }),
+  world: shape({ id: (v) => isWorldId(v) && v !== 'graphite', version: intIn(1, 10_000), site: isSite, items: listOf(isItem, 200) }, {
+    outpost: col,
+    crash: col,
+    creatures: listOf(shape({ kind: oneOf(...CREATURE_KINDS), count: intIn(0, 64), from: depth, to: depth }, { cols: tuple(col, col) }), 16),
+    giant: shape({ at }),
+  }),
 }, {
   arrival: shape({ subtitle: isText(120), paragraphs: listOf(isText(2000), 8), button: isText(40) }),
 });

@@ -75,6 +75,13 @@ export class MineSounds {
       case 'salvage': return s.play('find');
       case 'recall': return s.play('winch');
       case 'failed': return s.play('failed');
+      // Mycel's creatures: the pulse a bright rising note, a burst a puff, a spat clot and the Mother's beat low.
+      case 'pulse': return s.play('swell', { pitch: 2.2 });
+      case 'struck': return s.play(e.killed ? 'fizz' : 'dull', { pitch: e.killed ? 0.7 : 1.4 });
+      case 'spat': return s.play('fizz', { pitch: 0.45 });
+      case 'grabbed': return s.play('hurt', { pitch: 0.8 });
+      case 'freed': return s.play('land', { pitch: 1.2 });
+      case 'beat': return s.play('blast', { pitch: e.near ? 0.5 : 0.35 });
       default: return;
     }
   }

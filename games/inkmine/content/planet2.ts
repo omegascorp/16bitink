@@ -97,6 +97,8 @@ export const PLANET_2: PlanetDef = {
         { at: [163, 19], w: 7, h: 3 },
         // The grotto in the stone under the wreck.
         { at: [150, 50], w: 10, h: 4 },
+        // The Mother Mycel's chamber, deep in the limestone east of the wreck.
+        { at: [200, 74], w: 14, h: 9 },
       ],
       vaults: [
         // The Helmet: down a sinkhole under the wreck, sealed in limestone all round, no soft way in.
@@ -106,8 +108,21 @@ export const PLANET_2: PlanetDef = {
       ],
     },
     crash: 140,
+    creatures: [
+      // Puffballs: none in the peat by the landing glade; round the wreck, in its caves.
+      { kind: 'puffball', count: 12, from: 3, to: 23, cols: [108, 178] },
+      // Deeper is fiercer: more in the limestone caves all round, and the tendrils there.
+      { kind: 'puffball', count: 14, from: 24, to: 86 },
+      { kind: 'tendril', count: 18, from: 24, to: 86 },
+      // Grazers crawl the surface among the caps, away from the lander.
+      { kind: 'grazer', count: 8, from: 0, to: 0, cols: [64, 230] },
+    ],
+    // The Mother Mycel, on her chamber's floor.
+    giant: { at: [200, 78] },
     // The Aster crew's gear, lost on Mycel: touch a piece to study it (its design) and take it apart (half its materials).
     items: [
+      // The Aster's resonator, lying in the open just east of the wreck: the pulse.
+      { id: 'aster-pulse', kind: 'wreck', at: [146, -3], blueprint: 'pulse', drill: 1 },
       { id: 'furrow-drill', kind: 'wreck', at: [127, 17], blueprint: 'drill-2', drill: 1 },
       { id: 'spore-cave-cell', kind: 'wreck', at: [155, 13], blueprint: 'cell-2', drill: 1 },
       { id: 'aster-wreck-pack', kind: 'wreck', at: [141, 9], blueprint: 'pack-2', drill: 1 },

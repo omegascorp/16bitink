@@ -81,12 +81,25 @@ export function isBuilt(r: Recipe, gear: Loadout): boolean {
   return gear[r.piece] >= r.mk;
 }
 
-export type BuildCheck = 'ok' | 'built' | 'notFound' | 'materials' | 'order';
+export type BuildCheck = 'ok' | 'built' | 'notFound' | 'materials';
 
-/** Whether a blueprint can be printed now, or why not. A mark needs the one before it. `has` says whether the materials are on hand. */
+/**
+ * Whether a blueprint can be printed now, or why not. Marks can be skipped
+ * (Oct 17, 2026): a Mk 2 found on Mycel prints over a Mk 0, whether or not
+ * Graphite's Mk 1 was ever found. `has` says whether the materials are on
+ * hand.
+ */
 export function canBuild(r: Recipe, found: readonly string[], gear: Loadout, has: (need: Hold) => boolean): BuildCheck {
   if (isBuilt(r, gear)) return 'built';
   if (!found.includes(r.id)) return 'notFound';
-  if (gear[r.piece] !== r.mk - 1) return 'order';
   return has(r.materials) ? 'ok' : 'materials';
+}
+
+/** The design to print next for a piece: the best mark found above what's built, or else (to say it's still to find) the one after it. */
+export function nextMark(piece: Piece, found: readonly string[], gear: Loadout): Recipe | undefined {
+  for (let mk = 10; mk > gear[piece]; mk--) {
+    const r = RECIPES[blueprintId(piece, mk)];
+    if (r && found.includes(r.id)) return r;
+  }
+  return RECIPES[blueprintId(piece, gear[piece] + 1)];
 }

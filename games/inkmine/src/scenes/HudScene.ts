@@ -37,6 +37,9 @@ const WOKE_MS = 9000;
 const HINT = {
   keys: '← →  walk     ↓ ↑  drill     SPACE  jump, hold to fly     L or ESC  inventory (feed the suit there), or aboard at the lander     M  sound',
   touch: 'left thumb: walk and drill · Jump: hold to fly · Bag: inventory',
+  /** With the pulse printed. */
+  armedKeys: '← →  walk     ↓ ↑  drill     SPACE  jump, hold to fly     F  pulse     L or ESC  inventory, or aboard at the lander     M  sound',
+  armedTouch: 'left thumb: walk and drill · Jump: hold to fly · Pulse: fire · Bag: inventory',
 } as const;
 /** Paper-coloured halo round text laid straight over the game. */
 const HALO = { stroke: '#f5efdf', strokeThickness: 5 } as const;
@@ -180,7 +183,9 @@ export class HudScene extends Phaser.Scene {
     const touch = this.touch.visible;
     const prompt = touch ? 'At the lander: tap Aboard' : 'At the lander: press L to go aboard';
     if (this.prompt.text !== prompt) this.prompt.setText(prompt);
-    const hint = touch ? HINT.touch : HINT.keys;
+    const armed = (this.scene.get('Game') as GameScene).mine.fauna.armed;
+    this.touch.setArmed(armed);
+    const hint = touch ? (armed ? HINT.armedTouch : HINT.touch) : armed ? HINT.armedKeys : HINT.keys;
     if (this.hint.text !== hint) this.hint.setText(hint);
   }
 

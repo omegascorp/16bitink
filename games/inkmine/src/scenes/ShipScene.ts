@@ -8,6 +8,7 @@ import { currentPlanet, hasWorld } from '../level/planets';
 import { worldById } from '../logic/starSystem';
 import type { Profile } from '../logic/economy';
 import { prospectorLook } from '../logic/gear';
+import { hasTool } from '../logic/tools';
 import { wreckOf } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
 import { canLand, land } from '../logic/fuel';
@@ -79,7 +80,7 @@ export class ShipScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(PAPER);
     const profile = getProfile(this);
     const planet = currentPlanet(getProfile(this));
-    bakeCharacters(this, prospectorLook(profile.gear), landerLookOf(profile.ship), wreckOf(profile));
+    bakeCharacters(this, prospectorLook(profile.gear, hasTool(profile, 'pulse')), landerLookOf(profile.ship), wreckOf(profile));
     bakePickups(this, planet.style.stone);
 
     this.remote = data.remote ?? false;
@@ -210,7 +211,7 @@ export class ShipScene extends Phaser.Scene {
     if (tab === 'suit') {
       const s = (small ? 3.6 : 5.6) / PROSPECTOR_RES;
       // The frame's centre is 14 units above the feet.
-      const img = this.add.image(cx, groundY - 14 * s * PROSPECTOR_RES, TEX.prospector('idle', prospectorLook(p.gear), 0)).setScale(s);
+      const img = this.add.image(cx, groundY - 14 * s * PROSPECTOR_RES, TEX.prospector('idle', prospectorLook(p.gear, hasTool(p, 'pulse')), 0)).setScale(s);
       shadow.fillEllipse(cx, groundY, img.displayWidth * 0.32, 12);
       return;
     }

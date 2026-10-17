@@ -4,12 +4,17 @@ import { CHARGE_FRAME, drawCharge, drawLineCharge, LINE_FRAME_W } from './charge
 import { makeDraw } from './kit';
 import { drawLander, drawLanderAir, LANDER_H, LANDER_W, SOUND, wreckCode } from './landerArt';
 import { drawItem, ITEM_FRAME, ITEM_KINDS } from './itemArt';
-import { drawWreck, WRECK_FRAME } from './wreckArt';
+import { drawPulseWreck, drawWreck, WRECK_FRAME } from './wreckArt';
 import { drawLamplighter, drawOutpost, LAMPLIGHTER, OUTPOST_ART } from './lamplighterArt';
 import { ASTER_WRECK, drawAsterBeam, drawAsterWreck } from './asterWreckArt';
+import { drawPulseShot, SHOT_ART } from './aster/weapon';
+import { drawGrazer, GRAZER_ART } from './creatures/grazer';
+import { drawMotherMycel, MOTHER_ART } from './creatures/mother';
+import { drawPuffball, drawSporeGlob, GLOB_ART, PUFFBALL_ART, type PuffPose } from './creatures/puffball';
+import { drawTendril, TENDRIL_ART } from './creatures/tendril';
 import { drawOrePiece } from './oreArt';
 import { finishSprite } from './paint';
-import { ART_RES, BLUE, BOIL, INK, type GroundStyle } from './palette';
+import { ART_RES, BLUE, BOIL, INK, RED, type GroundStyle } from './palette';
 import { makeCanvas } from './pen';
 import { lookKey, PIECES, type Look, type Piece, type ProspectorLook } from '../logic/gear';
 import type { Wreck } from '../logic/repairs';
@@ -35,6 +40,13 @@ export const TEX = {
   outpost: (f: number) => `outpost-${f}`,
   asterWreck: (f: number) => `aster-wreck-${f}`,
   asterBeam: 'aster-beam',
+  puffball: (pose: PuffPose, f: number) => `puffball-${pose}-${f}`,
+  glob: (f: number) => `glob-${f}`,
+  tendril: (step: number, grab: boolean, f: number) => `tendril-${step}-${grab ? 'grab' : 'open'}-${f}`,
+  grazer: (pose: 'walk' | 'curled', f: number) => `grazer-${pose}-${f}`,
+  mother: (beat: 0 | 1 | 2, f: number) => `mother-${beat}-${f}`,
+  shot: (f: number) => `pulse-shot-${f}`,
+  pulseWreck: (f: number) => `pulse-wreck-${f}`,
   sky: (world: string, h: number) => `sky-${world}-${h}`,
   ridges: (world: string, h: number) => `ridges-${world}-${h}`,
   world: (id: string) => `world-${id}`,
@@ -51,6 +63,8 @@ export const PIECE_FRAME = 24;
 export interface Finish {
   readonly line: number;
   readonly rim: number;
+  /** The silhouette's ink (default the world's blue-black; madder for what can hurt you). */
+  readonly ink?: string;
 }
 
 /** The prospector's finish: a firm silhouette, as the eye goes to them. */
@@ -72,7 +86,7 @@ export function render(w: number, h: number, ox: number, oy: number, res: number
   draw(ctx);
   if (finish) {
     light(ctx, canvas.width, canvas.height);
-    finishSprite(canvas, { unit: res, ink: INK, line: finish.line, rim: finish.rim });
+    finishSprite(canvas, { unit: res, ink: finish.ink ?? INK, line: finish.line, rim: finish.rim });
   }
   // What's round a figure (a shadow, smoke, a glow) goes on after its finish, so it isn't outlined.
   after?.(ctx);
@@ -126,6 +140,41 @@ export function bakeAsterWreck(scene: Phaser.Scene): void {
   const A = ASTER_WRECK;
   for (let f = 0; f < BOIL; f++) bake(scene, TEX.asterWreck(f), A.w, A.h, A.ox, A.oy, ART_RES, (ctx) => drawAsterWreck(makeDraw(ctx, 760 + f, f, 0)), LANDER_FINISH);
   bake(scene, TEX.asterBeam, 24, 24, 12, 12, ART_RES, (ctx) => drawAsterBeam(ctx, 11));
+}
+
+/** The Aster's broken resonator lying in the world, baked when first needed. */
+export function pulseWreckTexture(scene: Phaser.Scene, f: number): string {
+  const key = TEX.pulseWreck(f);
+  bake(scene, key, WRECK_FRAME, WRECK_FRAME, WRECK_FRAME / 2, WRECK_FRAME / 2, 3, (ctx) => drawPulseWreck(makeDraw(ctx, 1080 + f, f, 0)));
+  return key;
+}
+
+/** How far down a tendril is drawn, in baked steps (its reach, 0..1, rounded to the nearest). */
+export const TENDRIL_STEPS = [0, 1 / 3, 2 / 3, 1] as const;
+
+/**
+ * Mycel's creatures in every pose, and what flies (spat clots, the
+ * pulse's rings). The hostile ones are inked in madder red, the grazers in
+ * the usual ink (spec, "Art direction": red for danger only). Origins as
+ * each drawing's constants say.
+ */
+export function bakeFauna(scene: Phaser.Scene): void {
+  const red = (ctx: CanvasRenderingContext2D, seed: number, f: number) => makeDraw(ctx, seed, f, 0, RED);
+  const RED_FINISH: Finish = { ...LANDER_FINISH, ink: RED };
+  for (let f = 0; f < BOIL; f++) {
+    const P = PUFFBALL_ART;
+    (['idle', 'swell', 'spit', 'burst'] as const).forEach((pose, i) => bake(scene, TEX.puffball(pose, f), P.w, P.h, P.ox, P.oy, ART_RES * 1.5, (ctx) => drawPuffball(red(ctx, 900 + i * 10 + f, f), pose), RED_FINISH));
+    bake(scene, TEX.glob(f), GLOB_ART.w, GLOB_ART.h, GLOB_ART.ox, GLOB_ART.oy, ART_RES * 1.5, (ctx) => drawSporeGlob(red(ctx, 950 + f, f)));
+    const Td = TENDRIL_ART;
+    TENDRIL_STEPS.forEach((reach, i) => {
+      for (const grab of [false, true]) bake(scene, TEX.tendril(i, grab, f), Td.w, Td.h, Td.ox, Td.oy, ART_RES * 1.5, (ctx) => drawTendril(red(ctx, 960 + i * 10 + (grab ? 5 : 0) + f, f), reach, grab), RED_FINISH);
+    });
+    const G = GRAZER_ART;
+    for (const pose of ['walk', 'curled'] as const) bake(scene, TEX.grazer(pose, f), G.w, G.h, G.ox, G.oy, ART_RES * 1.5, (ctx) => drawGrazer(makeDraw(ctx, 1000 + f + (pose === 'curled' ? 5 : 0), f, 0), pose), LANDER_FINISH);
+    const M = MOTHER_ART;
+    ([0, 1, 2] as const).forEach((beat) => bake(scene, TEX.mother(beat, f), M.w, M.h, M.ox, M.oy, ART_RES, (ctx) => drawMotherMycel(red(ctx, 1020 + beat * 10 + f, f), beat), RED_FINISH));
+    bake(scene, TEX.shot(f), SHOT_ART.w, SHOT_ART.h, SHOT_ART.ox, SHOT_ART.oy, ART_RES * 1.5, (ctx) => drawPulseShot(makeDraw(ctx, 1060 + f, f, 0)));
+  }
 }
 
 /** Mission items and ore pieces (also shown on the result card and the ship's page). Broken parts are baked as they're met (`wreckTexture`). */

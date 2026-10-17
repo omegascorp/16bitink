@@ -1,5 +1,4 @@
 import type { KeyValueStore } from '@16bitink/game-sdk';
-import { recipeOf } from './blueprints';
 import { fitInventories, NEW_PROFILE, type Profile } from './economy';
 import { PIECES, type Loadout } from './gear';
 import type { Inventory, Stack } from './inventory';
@@ -9,6 +8,7 @@ import { SHIP_TANK, STARSHIP_IDS, type StarshipId } from './starship';
 import { REPAIR_IDS, type RepairId } from './repairs';
 import { MODULE_KEYS, maxLevel, storeCapacity, type ShipModules } from './ship';
 import { BEATS, type Beat } from './story';
+import { isDesign } from './designs';
 import { TOOLS, type Tool } from './tools';
 import { isWorldId, WORLD_IDS, type WorldId } from './worlds';
 
@@ -95,7 +95,7 @@ function parseVisited(v: unknown): WorldId[] {
 /** Untrusted saved data to a profile: anything malformed is dropped, never thrown. */
 export function parseProfile(raw: unknown): Profile {
   if (!isObj(raw)) return NEW_PROFILE;
-  const found = Array.isArray(raw.found) ? [...new Set(raw.found.filter((id): id is string => typeof id === 'string' && !!recipeOf(id)))] : [];
+  const found = Array.isArray(raw.found) ? [...new Set(raw.found.filter((id): id is string => typeof id === 'string' && isDesign(id)))] : [];
   // Sized to what the gear and ship give, whatever the save said.
   return fitInventories({
     suit: parseInventory(raw.suit, NEW_PROFILE.suit),

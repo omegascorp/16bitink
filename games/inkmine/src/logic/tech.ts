@@ -1,4 +1,4 @@
-import { canBuild, blueprintId, recipeOf } from './blueprints';
+import { canBuild, nextMark } from './blueprints';
 import { hasOnHand, printerWorks, type Profile } from './economy';
 import { PIECES, type Piece } from './gear';
 import { canRepair, currentGoal, REPAIR_IDS, type RepairId } from './repairs';
@@ -68,7 +68,7 @@ export function techState(p: Profile, t: Tech): TechState {
     if (printerWorks(p) && canUpgrade(p.ship, t.key, hasOnHand(p)) === 'ok') return 'ready';
     return p.ship[t.key] > 0 ? 'fitted' : 'empty';
   }
-  const r = recipeOf(blueprintId(t.piece, p.gear[t.piece] + 1));
+  const r = nextMark(t.piece, p.found, p.gear);
   return r && printerWorks(p) && canBuild(r, p.found, p.gear, hasOnHand(p)) === 'ok' ? 'ready' : 'fitted';
 }
 

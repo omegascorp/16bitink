@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { RECIPES } from '../src/logic/blueprints';
-import { findBlueprint, NEW_PROFILE, onHand, printModule, printPart, type Profile } from '../src/logic/economy';
+import { findBlueprint } from '../src/logic/designs';
+import { NEW_PROFILE, onHand, printModule, printPart, type Profile } from '../src/logic/economy';
 import { addHoldTo, contents, emptyInventory, type Inventory } from '../src/logic/inventory';
 import { capOf, cargoSlots, landerLookOf, winchKeeps } from '../src/logic/ship';
 import { parseProfile } from '../src/logic/save';

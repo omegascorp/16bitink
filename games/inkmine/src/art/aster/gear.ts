@@ -14,13 +14,13 @@ import { ASTER, starGlyph } from './style';
  */
 
 /** A shell part: glazed ceramic, lit, with the glaze pooled along its lower edge. */
-function shell(d: Draw, shape: readonly Pt[], low: number, gloss = true): void {
+export function shell(d: Draw, shape: readonly Pt[], low: number, gloss = true): void {
   paint(d, shape, ASTER.shell, { alpha: 1, shadow: 0.5, hatch: 0.12, line: 0.8, gloss });
   d.pen.clipped(shape, () => dab(d, oval(0, low, 40, 8, 16), ASTER.glaze, 0.5, 2.5));
 }
 
 /** Ribs across a part: a shadowed groove with a lit ridge beside it, between two points, curving by `bow`. */
-function rib(d: Draw, a: Pt, b: Pt, bow: number): void {
+export function rib(d: Draw, a: Pt, b: Pt, bow: number): void {
   const m = pt((a.x + b.x) / 2 + bow, (a.y + b.y) / 2);
   const line = cub(a, m, m, b, 8);
   d.pen.hair(line, 0.7, mix(ASTER.glaze, SHADOW, 0.45), 0.8);
@@ -28,7 +28,7 @@ function rib(d: Draw, a: Pt, b: Pt, bow: number): void {
 }
 
 /** Cord lashed round a part, across from `a` to `b`: a few tight turns. */
-function lash(d: Draw, a: Pt, b: Pt, turns = 3): void {
+export function lash(d: Draw, a: Pt, b: Pt, turns = 3): void {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const len = Math.hypot(dx, dy);
@@ -42,7 +42,7 @@ function lash(d: Draw, a: Pt, b: Pt, turns = 3): void {
 }
 
 /** A hexagonal glass window with the teal glow behind it. */
-function hexGlass(d: Draw, c: Pt, r: number, lit = true): void {
+export function hexGlass(d: Draw, c: Pt, r: number, lit = true): void {
   const hex = Array.from({ length: 6 }, (_, i) => pt(c.x + Math.cos((i / 6) * Math.PI * 2 + Math.PI / 6) * r, c.y + Math.sin((i / 6) * Math.PI * 2 + Math.PI / 6) * r));
   if (lit) glow(d.pen.ctx, c, r * 2, ASTER.glow, 0.35);
   paint(d, hex, ASTER.glass, { alpha: 1, shadow: 0.3, hatch: 0, line: 0.6, gloss: true });
