@@ -48,6 +48,8 @@ export interface CarveSpec {
   readonly charges?: readonly { readonly kind: 'charge' | 'lineCharge'; readonly at: readonly [number, number] }[];
   /** The lander's column: the ground is flat and clear around it. */
   readonly landerCol: number;
+  /** Other columns kept flat and clear round, like the lander's (an outpost stands there). */
+  readonly flats?: readonly number[];
   /** Hand-placed caves round a column and depth, so wide and tall. */
   readonly rooms?: readonly Room[];
   /** Hand-placed fissures: open passages two tiles across, through these points (column, depth) in order. They go through any rock. */
@@ -95,8 +97,13 @@ const period = (spec: CarveSpec): number | undefined => (spec.wrap ? spec.width 
 
 const col = (spec: CarveSpec, x: number): number => (spec.wrap ? x - spec.width * Math.floor(x / spec.width) : x);
 
+/** Columns from `x` to the nearest place kept flat: the lander, or one of the flats. */
+function fromFlat(spec: CarveSpec, x: number): number {
+  return Math.min(gap(spec, x, spec.landerCol), ...(spec.flats ?? []).map((f) => gap(spec, x, f)));
+}
+
 export function surfaceAt(spec: CarveSpec, x: number): number {
-  const fromLander = gap(spec, x, spec.landerCol);
+  const fromLander = fromFlat(spec, x);
   if (fromLander <= PAD) return spec.surface;
   const c = col(spec, x);
   const roll = valueNoise(c, 0, 9, spec.seed, period(spec)) * 2.2 + valueNoise(c, 0, 3, spec.seed + 1, period(spec)) * 0.6;
@@ -159,7 +166,7 @@ function worm(t: Terrain, spec: CarveSpec, surface: readonly number[], rng: Rng)
         const cx = Math.round(x + dx);
         const cy = Math.round(y + dy);
         if (!inside(t, cx, cy) || cy < surface[col(spec, cx)]! + TOPSOIL) continue;
-        if (gap(spec, cx, spec.landerCol) <= PAD) continue;
+        if (fromFlat(spec, cx) <= PAD) continue;
         const tile = tileAt(t, cx, cy);
         if (tile === TILE.soil || tile === TILE.stone || tile === TILE.deep) setTile(t, cx, cy, TILE.air);
       }

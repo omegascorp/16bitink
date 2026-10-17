@@ -5,6 +5,8 @@ import { contents, emptyInventory, resize, takeHoldFrom, type Inventory } from '
 import { suitSpecFor } from './marks';
 import { canUpgrade, CARGO_STACK, cargoSlots, nextRecipe, STARTER_SHIP, upgrade, type ModuleKey, type ShipModules, type UpgradeCheck } from './ship';
 import type { RepairId } from './repairs';
+import type { Beat } from './story';
+import type { Tool } from './tools';
 import { SUIT_STACK } from './suit';
 
 /**
@@ -25,6 +27,10 @@ export interface Profile {
   readonly repaired: readonly RepairId[];
   /** The opening card has been read. */
   readonly started: boolean;
+  /** How far the story has come past the radio (story.ts). */
+  readonly beats: readonly Beat[];
+  /** One-off tools printed for the suit (tools.ts). */
+  readonly tools: readonly Tool[];
 }
 
 /** Cargo slots out of use while the hull is breached (repairs.ts). */
@@ -38,6 +44,8 @@ export const NEW_PROFILE: Profile = {
   ship: STARTER_SHIP,
   repaired: [],
   started: false,
+  beats: [],
+  tools: [],
 };
 
 /** Every resource on hand: the cargo and the suit's bag. */

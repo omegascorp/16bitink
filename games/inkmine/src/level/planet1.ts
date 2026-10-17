@@ -1,4 +1,5 @@
 import { GRAPHITE } from '../art/palette';
+import { OUTPOST } from '../logic/story';
 import type { PlanetDef } from './types';
 
 /**
@@ -21,6 +22,8 @@ import type { PlanetDef } from './types';
  * - The lead seams, west of the lander: graphite and its firedamp, and a
  *   cave holding the Cell's blueprint.
  * - The jetpack vault, deep under the middle: stone walls, a soil door.
+ * - The Lamplighters' outpost, on the crater's far rim at column 180: flat
+ *   ground, kept clear of caves (story.ts).
  *
  * Water ice for life support lies in pockets all round, thickest in the
  * crater's shadow just west of the lander.
@@ -38,11 +41,11 @@ export const PLANET_1: PlanetDef = {
   fuels: { cell: 'graphite', air: 'ice' },
   world: {
     id: 'graphite',
-    // 2: water ice added (it moved the random firedamp a little).
-    version: 2,
+    // 2: water ice added (it moved the random firedamp a little). 3: the outpost's ground flattened.
+    version: 3,
     site: {
       // 256 columns round: a whole number of ground chunks (16) and hatch tiles (4), so both repeat cleanly at the join.
-      width: 256, height: 160, wrap: true, seed: 1001, surface: 12, landerCol: 64,
+      width: 256, height: 160, wrap: true, seed: 1001, surface: 12, landerCol: 64, flats: [OUTPOST.col, OUTPOST.col + OUTPOST.domes],
       stone: 20, deep: 90, caves: 46, caveFrom: 6,
       ores: [
         // The crash site is rich in copper; there's a little everywhere.
@@ -95,5 +98,6 @@ export const PLANET_1: PlanetDef = {
       { id: 'deep-vault-helmet', kind: 'blueprint', at: [181, 36], blueprint: 'helmet-1', drill: 1 },
       { id: 'stone-vault-jetpack', kind: 'blueprint', at: [119, 82], blueprint: 'jetpack-1', drill: 1 },
     ],
+    outpost: OUTPOST.col,
   },
 };

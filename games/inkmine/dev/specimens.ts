@@ -6,6 +6,8 @@ import { LANDER_FINISH, PROSPECTOR_FINISH, PROSPECTOR_RES, render } from '../src
 import { evenLoadout, LOOK_NAMES, lookOf, prospectorLook, type Look, type ProspectorLook } from '../src/logic/gear';
 import type { Wreck } from '../src/logic/repairs';
 import { drawTech, TECH_FRAME } from '../src/art/techArt';
+import { drawLamplighter, drawOutpost, LAMPLIGHTER, OUTPOST_ART } from '../src/art/lamplighterArt';
+import { BLUE } from '../src/art/palette';
 import { SHIP_MODULES, SHIP_SYSTEMS, SUIT_TECH, techKey } from '../src/logic/tech';
 import { TECH_RES } from '../src/art/textures';
 
@@ -69,7 +71,7 @@ function landerCanvas(look: Look, wreck?: Wreck, res = 3): HTMLCanvasElement {
 }
 for (const [look, name] of [[0, 'tin can'], [1, 'refitted'], [2, 'deep hauler']] as const) figure(ships, name, landerCanvas(look));
 
-const wrecks = section('After the crash', 'The tin can as chapter 1 mends it, one system at a time: a dark cracked porthole until the printer runs, the dish snapped until the comms work, a gash and torn heat-shield tiles until the hull is plated, a crumpled bell until the thrusters are fixed.');
+const wrecks = section('After the crash', 'The tin can as chapter 1 mends it, one system at a time: a dark cracked porthole until the printer runs, the dish snapped until the radio work, a gash and torn heat-shield tiles until the hull is plated, a crumpled bell until the thrusters are fixed.');
 const BROKEN: Wreck = { printer: true, comms: true, hull: true, thrusters: true };
 for (const [name, wreck] of [
   ['the wreck', BROKEN],
@@ -84,6 +86,21 @@ function tech(t: Parameters<typeof drawTech>[1], v: Parameters<typeof drawTech>[
   canvas.style.width = `${F * 3}px`;
   canvas.style.background = '#efe6cf';
   return canvas;
+}
+const lampRow = section('The Lamplighters', 'A Lamplighter in each boil frame, and their outpost on the far rim.');
+for (const f of [0, 1, 2]) {
+  const L = LAMPLIGHTER;
+  const c = render(L.w, L.h, L.w * 0.62, L.h - 2, 4, (ctx) => drawLamplighter(makeDraw(ctx, 700 + f, f, 0, BLUE)), LANDER_FINISH);
+  c.style.width = `${L.w * 3}px`;
+  c.style.background = 'linear-gradient(#4b5583, #a59bab 85%, #ada79c 85%)';
+  figure(lampRow, `lamplighter ${f}`, c);
+}
+{
+  const O = OUTPOST_ART;
+  const c = render(O.w, O.h, O.w / 2, O.h - 2, 3, (ctx) => drawOutpost(makeDraw(ctx, 720, 0, 0)), LANDER_FINISH);
+  c.style.width = `${O.w * 2}px`;
+  c.style.background = 'linear-gradient(#4b5583, #a59bab 90%, #ada79c 90%)';
+  figure(lampRow, 'the outpost', c);
 }
 const gearRow = section('Technology: suit', 'The gear slots in the lander menu, in each look.');
 for (const t of SUIT_TECH) for (const v of [0, 1, 2] as const) figure(gearRow, `${techKey(t)} ${v}`, tech(t, v));

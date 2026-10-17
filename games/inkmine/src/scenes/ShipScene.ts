@@ -15,6 +15,7 @@ import { desk, type ShipPage, type ShipUi } from './ship/panel';
 import { storagePanel } from './ship/storagePanel';
 import { drawTabs } from './ship/tabs';
 import { techCard } from './ship/techCard';
+import { shipStoryCard } from './ship/storyCards';
 import { techPanel } from './ship/techPanel';
 
 export interface ShipData extends ShipUi {
@@ -96,6 +97,7 @@ export class ShipScene extends Phaser.Scene {
     desk(this, width, Math.max(viewSize(this).height, bottom + GAP * 2));
     this.scroll(bottom + GAP, data.scrollY ?? 0);
     this.keys(tab);
+    shipStoryCard(page);
   }
 
   /** The title, the tab strip, the way back down, and any news. */

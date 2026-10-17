@@ -5,12 +5,14 @@ import { ORES } from '../../logic/ore';
 import { REPAIRS } from '../../logic/repairs';
 import { MODULES } from '../../logic/ship';
 import type { Tech } from '../../logic/tech';
+import { TOOL_KINDS } from '../../logic/tools';
 
 export const PIECE_NAMES: Readonly<Record<Piece, string>> = { drill: 'Drill', cell: 'Cell', pack: 'Pack', suit: 'Suit', helmet: 'Helmet', jetpack: 'Jetpack' };
 
 export function techName(t: Tech): string {
   if (t.kind === 'gear') return PIECE_NAMES[t.piece];
   if (t.kind === 'module') return MODULES[t.key].name;
+  if (t.kind === 'tool') return TOOL_KINDS[t.id].name;
   return REPAIRS[t.id].name;
 }
 

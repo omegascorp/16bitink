@@ -129,3 +129,19 @@ describe('carving a wrapping world', () => {
     for (const x of xs) expect(x >= 54 || x <= 10, `copper at column ${x}`).toBe(true);
   });
 });
+
+describe('the outpost', () => {
+  it('stands on flat ground, like the lander', () => {
+    const spec: CarveSpec = { width: 64, height: 40, seed: 77, surface: 10, landerCol: 5, wrap: true, stone: 12, deep: 24, caves: 0, caveFrom: 4, ores: [], firedamp: 0, flats: [40] };
+    for (let x = 37; x <= 43; x++) expect(surfaceAt(spec, x)).toBe(spec.surface);
+  });
+
+  it('knows when the prospector is there, and only then', () => {
+    const m = mine(['............', '............', 'ssssssssssss', '############'], { outpost: { col: 9, row: 2 } });
+    standAt(m, 2, 2);
+    expect(m.atOutpost).toBe(false);
+    standAt(m, 9, 2);
+    expect(m.atOutpost).toBe(true);
+    expect(mine(['......', '......', 'ssssss', '######']).atOutpost).toBe(false);
+  });
+});

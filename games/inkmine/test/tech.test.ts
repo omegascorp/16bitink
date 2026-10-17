@@ -9,8 +9,8 @@ const repaired = (...ids: Profile['repaired']): Profile => fitInventories({ ...N
 const RICH: Hold = { copper: 40, galena: 40, graphite: 30, quartz: 20, silver: 20 };
 
 describe('the technology slots', () => {
-  it('lays out the suit as the six gear pieces, the ship as its systems and its modules', () => {
-    expect(SUIT_TECH.map(techKey)).toEqual(['gear:drill', 'gear:cell', 'gear:pack', 'gear:suit', 'gear:helmet', 'gear:jetpack']);
+  it('lays out the suit as the six gear pieces and its tools, the ship as its systems and its modules', () => {
+    expect(SUIT_TECH.map(techKey)).toEqual(['gear:drill', 'gear:cell', 'gear:pack', 'gear:suit', 'gear:helmet', 'gear:jetpack', 'tool:receiver']);
     expect(SHIP_SYSTEMS.map(techKey)).toEqual(['repair:printer', 'repair:comms', 'repair:hull', 'repair:thrusters', 'repair:core']);
     expect(SHIP_MODULES.map(techKey)).toEqual(['module:cargo', 'module:winch', 'module:hull']);
   });
@@ -33,6 +33,14 @@ describe('the technology slots', () => {
     expect(techState(withCargo(NEW_PROFILE, RICH), winch)).toBe('empty');
     expect(techState(withCargo(repaired('printer'), RICH), winch)).toBe('ready');
     expect(techState({ ...repaired('printer'), ship: { ...NEW_PROFILE.ship, winch: 1 } }, winch)).toBe('fitted');
+  });
+
+  it('says a tool is empty until printed, ready once there is a call to follow and ore for it', () => {
+    const receiver: Tech = { kind: 'tool', id: 'receiver' };
+    const heard = { ...withCargo(repaired('printer', 'comms'), RICH), beats: ['called'] as Profile['beats'] };
+    expect(techState(withCargo(repaired('printer', 'comms'), RICH), receiver)).toBe('empty');
+    expect(techState(heard, receiver)).toBe('ready');
+    expect(techState({ ...heard, tools: ['receiver'] }, receiver)).toBe('fitted');
   });
 
   it('says a gear piece is ready once its blueprint is found and its ore is on hand', () => {

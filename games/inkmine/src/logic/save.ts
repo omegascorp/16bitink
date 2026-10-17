@@ -6,6 +6,8 @@ import type { Inventory, Stack } from './inventory';
 import { ORES } from './ore';
 import { REPAIR_IDS, type RepairId } from './repairs';
 import { MODULE_KEYS, maxLevel, type ShipModules } from './ship';
+import { BEATS, type Beat } from './story';
+import { TOOLS, type Tool } from './tools';
 
 /**
  * v3: one open world, no levels (v2's level records and pending rewards are
@@ -49,6 +51,18 @@ function parseRepaired(v: unknown): RepairId[] {
   return [...new Set(v.filter((id): id is RepairId => typeof id === 'string' && (REPAIR_IDS as readonly string[]).includes(id)))];
 }
 
+/** Known story beats, once each. */
+function parseBeats(v: unknown): Beat[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.filter((b): b is Beat => typeof b === 'string' && (BEATS as readonly string[]).includes(b)))];
+}
+
+/** Known tools, once each. */
+function parseTools(v: unknown): Tool[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.filter((t): t is Tool => typeof t === 'string' && (TOOLS as readonly string[]).includes(t)))];
+}
+
 /** Untrusted saved data to a profile: anything malformed is dropped, never thrown. */
 export function parseProfile(raw: unknown): Profile {
   if (!isObj(raw)) return NEW_PROFILE;
@@ -62,6 +76,8 @@ export function parseProfile(raw: unknown): Profile {
     ship: parseShip(raw.ship),
     repaired: parseRepaired(raw.repaired),
     started: raw.started === true,
+    beats: parseBeats(raw.beats),
+    tools: parseTools(raw.tools),
   });
 }
 

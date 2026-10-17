@@ -2,13 +2,15 @@ import { recipeOf } from './blueprints';
 import { fitInventories, hasOnHand, onHand, spend, type PrintResult, type Profile } from './economy';
 import { countOf, holdEntries, type Hold } from './hold';
 import { ORES } from './ore';
+import { hasBeat, tradeLine } from './story';
+import { hasTool, TOOL_KINDS } from './tools';
 
 /**
  * Chapter 1's spine (spec, "What to do: needs, not missions"): the lander
  * came down hard after the wormhole, and the suit lists what's broken. Each
  * repair takes ore straight from the cargo (then the bag), no parts to
  * craft first, and opens something you use at once, the way No Man's Sky's
- * crash-and-repair opening does. The printer is first, the comms second,
+ * crash-and-repair opening does. The printer is first, the radio second,
  * the hull and the thrusters in either order. The drive core can't be
  * printed: the local aliens make it, and when it's in, the lander flies and
  * chapter 1 ends.
@@ -41,9 +43,9 @@ export const REPAIRS: Readonly<Record<RepairId, Repair>> = {
     fact: "Copper carries the printer's power: it's the best cheap conductor there is.",
   },
   comms: {
-    id: 'comms', name: 'Comms', needs: { copper: 4, quartz: 2 }, after: ['printer'],
-    broken: "The comms unit cracked in the landing. There's no link to the guild.",
-    opens: "The comms are up. No guild, this far out; but something is talking out there.",
+    id: 'comms', name: 'Radio', needs: { copper: 4, quartz: 2 }, after: ['printer'],
+    broken: "The radio cracked in the landing, and the dish hangs by its cable. There's no link to the guild.",
+    opens: "The radio works. No guild, this far out; but something out there is calling.",
     fact: 'Quartz crystals keep radios on frequency: they ring at a rate that never drifts.',
   },
   hull: {
@@ -76,7 +78,8 @@ export function canRepair(p: Profile, id: RepairId): RepairCheck {
   const r = REPAIRS[id];
   if (isRepaired(p, id)) return 'done';
   if (!r.after.every((a) => isRepaired(p, a))) return 'order';
-  if (!r.needs) return 'given';
+  // The drive core can't be printed: it's the Lamplighters' to give (story.ts).
+  if (!r.needs) return hasBeat(p, 'core') ? 'ok' : 'given';
   return hasOnHand(p)(r.needs) ? 'ok' : 'materials';
 }
 
@@ -84,7 +87,8 @@ export function canRepair(p: Profile, id: RepairId): RepairCheck {
 export function repair(p: Profile, id: RepairId): PrintResult<RepairCheck> {
   const why = canRepair(p, id);
   if (why !== 'ok') return { ok: false, why };
-  const spent = spend(p, REPAIRS[id].needs!);
+  const needs = REPAIRS[id].needs;
+  const spent = needs ? spend(p, needs) : p;
   return { ok: true, profile: fitInventories({ ...spent, repaired: [...spent.repaired, id] }) };
 }
 
@@ -106,23 +110,39 @@ export type Goal =
   /** A blueprint the next repair can't be reached without, lying somewhere on the planet. */
   | { readonly kind: 'find'; readonly blueprint: string }
   /** Found, now print it aboard. */
-  | { readonly kind: 'print'; readonly blueprint: string };
+  | { readonly kind: 'print'; readonly blueprint: string }
+  /** The call came in: print a receiver to follow it. */
+  | { readonly kind: 'receiver' }
+  /** Follow the call with the receiver, by its strength, to the Lamplighters. */
+  | { readonly kind: 'signal' }
+  /** Bring the Lamplighters what they asked for, in the bag. */
+  | { readonly kind: 'trade' }
+  /** Paid and the ship whole: go back to them for the core. */
+  | { readonly kind: 'collect' }
+  /** The core is in: chapter 1 is over. */
+  | { readonly kind: 'done' };
 
-/** The drill that breaks Graphite's stone: the comms need quartz, which lies in it. */
+/** The drill that breaks Graphite's stone: the radio needs quartz, which lies in it. */
 const STONE_DRILL = 'drill-1';
 
 /**
  * What to do next: the printer, then (as quartz lies in stone) finding and
- * printing the drill, then the comms, the hull, the thrusters, and last the
- * drive core. One goal at a time, never none: the complaint about No Man's
- * Sky's start is the stretch with no prompt.
+ * printing the drill, then the radio; then following the call to the
+ * Lamplighters, the hull and the thrusters, bringing the Lamplighters their
+ * silver, and last fitting the drive core they give you. One goal at a
+ * time, never none: the complaint about No Man's Sky's start is the stretch
+ * with no prompt.
  */
 export function currentGoal(p: Profile): Goal {
   if (!isRepaired(p, 'printer')) return { kind: 'repair', id: 'printer' };
   const drill = recipeOf(STONE_DRILL)!;
   if (p.gear.drill < drill.mk) return p.found.includes(STONE_DRILL) ? { kind: 'print', blueprint: STONE_DRILL } : { kind: 'find', blueprint: STONE_DRILL };
-  const next = REPAIR_IDS.find((id) => !isRepaired(p, id))!;
-  return { kind: 'repair', id: next };
+  if (!isRepaired(p, 'comms')) return { kind: 'repair', id: 'comms' };
+  if (!hasBeat(p, 'met')) return hasTool(p, 'receiver') ? { kind: 'signal' } : { kind: 'receiver' };
+  const next = REPAIR_IDS.find((id) => id !== 'core' && !isRepaired(p, id));
+  if (next) return { kind: 'repair', id: next };
+  if (!hasBeat(p, 'core')) return hasBeat(p, 'paid') ? { kind: 'collect' } : { kind: 'trade' };
+  return isRepaired(p, 'core') ? { kind: 'done' } : { kind: 'repair', id: 'core' };
 }
 
 /** "native copper 3/6 · quartz 0/2": what a repair needs against what's on hand. */
@@ -134,8 +154,17 @@ export function needsLine(need: Hold, have: Hold): string {
 export function goalLine(p: Profile, g: Goal): string {
   if (g.kind === 'find') return 'Stone is too hard for the starter drill. Find the drill blueprint: follow the beacon';
   if (g.kind === 'print') return `Print the ${recipeOf(g.blueprint)!.piece} Mk ${recipeOf(g.blueprint)!.mk}: go aboard (L at the lander)`;
+  if (g.kind === 'receiver') {
+    const need = TOOL_KINDS.receiver.recipe;
+    const how = hasOnHand(p)(need) ? 'go aboard (L at the lander)' : needsLine(need, onHand(p));
+    return `The radio caught a call from somewhere over the horizon. Print a receiver to follow it: ${how}`;
+  }
+  if (g.kind === 'signal') return 'Follow the call with the receiver: the more bars, the closer you are';
+  if (g.kind === 'trade') return `The Lamplighters want silver from deep down for a drive core. Bring it in your bag: ${tradeLine(p.suit, (ore) => ORES[ore as keyof typeof ORES].name)}`;
+  if (g.kind === 'collect') return 'Your ship is whole: go back to the Lamplighters for the drive core';
+  if (g.kind === 'done') return 'The drive works. Where to?';
   const r = REPAIRS[g.id];
   const label = `Repair the ${r.name.toLowerCase()}`;
-  if (!r.needs) return `${label}: find who can make one`;
+  if (!r.needs) return hasBeat(p, 'core') ? 'Fit the drive core: go aboard (L at the lander)' : `${label}: the Lamplighters can make one`;
   return hasOnHand(p)(r.needs) ? `${label}: go aboard (L at the lander)` : `${label}: ${needsLine(r.needs, onHand(p))}`;
 }

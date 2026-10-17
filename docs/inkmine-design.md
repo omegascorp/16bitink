@@ -42,10 +42,10 @@ Graphite is chapter 1, and the free version. It ends the moment the lander flies
 
 1. **The wormhole.** A short ink-drawn opening: the jump, the tear, the fall, the crash. You climb out of a smoking, tilted lander on the rim of a crater.
 2. **The suit takes stock.** Its systems list what's broken. The printer is the first repair: it takes only copper from the crater walls, and nothing in the first area can hurt you.
-3. **The comms unit.** It's in your helmet and was cracked in the crash. Repaired, it still can't reach the guild, but it starts picking up voices that aren't your kind's.
-4. **The alien.** A Lamplighter finds you (below). You can't understand a word. They point, draw pictures in the dust and hand you their first job by showing you what they want.
+3. **The radio.** The lander's radio and dish were broken in the crash. Repaired, it still can't reach the guild, but a call comes in at once (built Oct 17, 2026): a slow voice in knots nobody can read. The radio records it; the dish can't say where it's from, only that it's somewhere over the horizon.
+4. **The receiver and the alien.** You print a handheld **receiver** (a suit tool: copper and quartz, no blueprint) and follow the call hot and cold: the HUD's "Next" plate shows its bars, and the suit notes "signal stronger" / "signal weaker" as you walk. There's no arrow until you've met them. At the outpost on the crater's far rim a Lamplighter meets you. You can't understand a word; they draw in the dust what they want: ten lumps of silver, from deep down, for a drive core.
 5. **The hull and the thrusters.** Your suit asks for the parts as you need them. You can repair them in any order, and each one takes ore from deeper down.
-6. **The drive core.** It cracked in the wormhole, and nothing you can print will fix it. The Lamplighters know how to make one, but they help only those who can talk with them. Once you're fluent and have done their last job, they hand it over.
+6. **The drive core.** It cracked in the wormhole, and nothing you can print will fix it. The Lamplighters make one. As built: you bring them the silver in your bag (they take it from the bag), and once the hull and thrusters are mended they hand the core over; you fit it aboard. Later, when the language is built, the core waits for fluency and their last job as well.
 7. **Lift-off.** The lander flies, the galaxy map opens, and the free version ends: "The drive works. Where to?"
 
 **Those who came before.** You aren't the first ship to fall through. The **Aster crew**, prospectors of your own kind, came years ago and never left: their half-buried base, their unfired charges in the rock, their buried time capsules and their logs are scattered across Graphite. The logs are in your language, so they explain things and teach you Lamplighter words they had learned. They also carry the story's slow chill: the Aster crew were reprinted many times.
@@ -197,15 +197,15 @@ There's no mission list and no job board. Things to do come from two places:
 | Repair | Needs | Opens | Real fact for the guide |
 | --- | --- | --- | --- |
 | Printer | 6 copper | Printing: gear from blueprints, lander modules. Until then the printer sheets say "offline" | Copper is the best cheap conductor |
-| Comms | 4 copper, 2 quartz | Hearing the Lamplighters; the lexicon | Quartz crystals keep radios on frequency |
+| Radio (saved id `comms`) | 4 copper, 2 quartz | The call; then the receiver, the Lamplighters, the lexicon | Quartz crystals keep radios on frequency |
 | Hull plating | 10 galena, 6 graphite | The six cargo slots the breach put out of use (10 → 16) | Lead shields against radiation |
 | Thrusters | 6 silver, 4 quartz | The engines fire; only the core is missing | Silver is the best conductor of electricity |
-| Drive core | Can't be printed: the Lamplighters make it | Lift-off: the end of chapter 1 | — |
+| Drive core | Can't be printed: the Lamplighters give it for 10 silver once the hull and thrusters are mended | Lift-off: the end of chapter 1 | — |
 
-- **The order:** the printer first, the comms second (the start teaches the game), the hull and thrusters in either order, the core last. A repair whose turn hasn't come says what it's waiting for.
-- **The drill in between.** The comms need quartz, which lies in stone, and the starter drill can't break stone. So after the printer, the goal is the Drill's blueprint, which lies at the foot of the fissure where an earlier crew lost it. A beacon arrow by the prospector points the short way round the world to it, with the distance in metres (No Man's Sky's marker, inked). Then: print the Drill, then the comms.
+- **The order:** the printer first, the radio second (the start teaches the game), the hull and thrusters in either order, the core last. A repair whose turn hasn't come says what it's waiting for.
+- **The drill in between.** The radio needs quartz, which lies in stone, and the starter drill can't break stone. So after the printer, the goal is the Drill's blueprint, which lies at the foot of the fissure where an earlier crew lost it. A beacon arrow by the prospector points the short way round the world to it, with the distance in metres (No Man's Sky's marker, inked). Then: print the Drill, then the comms.
 - **No crafting chain.** No Man's Sky's repairs go through crafted parts (metal plating, a refiner, di-hydrogen jelly); InkMine's take raw ore straight from the cargo, then the bag.
-- **The lander shows it.** Each broken system has a wrecked look of its own: a dark, cracked porthole until the printer runs (then its warm glow), the dish hanging by its cable until the comms work, a gash and torn heat-shield tiles until the hull is plated (then a welded patch), and a crumpled, scorched engine bell, smoking, until the thrusters are fixed (dev page `/specimens.html`, "After the crash").
+- **The lander shows it.** Each broken system has a wrecked look of its own: a dark, cracked porthole until the printer runs (then its warm glow), the dish hanging by its cable until the radio work, a gash and torn heat-shield tiles until the hull is plated (then a welded patch), and a crumpled, scorched engine bell, smoking, until the thrusters are fixed (dev page `/specimens.html`, "After the crash").
 - **The opening card,** shown once: the jump went wrong, the wormhole, the crash, and that the printer wants copper from the crater walls.
 - **Taken from No Man's Sky's opening ("Awakenings"):** you start crash-landed, repairs open what the next repair needs, the ship's damage is read from inside it, one part needs a blueprint found somewhere marked, and there's always one objective on screen. Players' main complaint about it, stretches with no prompt, is why the goal is never empty.
 
@@ -244,7 +244,7 @@ Lamplighter speech appears as knot glyphs in a speech bubble. Every word you kno
 | 3 · Talk | 40 | You can answer: two or three short replies to choose from, which can ask about things and teach more words |
 | 4 · Fluent | 55 | Their stories, their name for themselves, their best blueprints, and the drive core (with their last job) |
 
-Graphite has about 70 words to learn and needs 55, so you never have to find everything. Progress toward the next level shows as a thin bar on the comms entry in the pause menu.
+Graphite has about 70 words to learn and needs 55, so you never have to find everything. Progress toward the next level shows as a thin bar on the radio entry in the pause menu.
 
 **Where words come from:**
 
@@ -258,7 +258,7 @@ Graphite has about 70 words to learn and needs 55, so you never have to find eve
 
 Reading anything is pushing into it, like drilling: the drill never hurts a person or a text.
 
-**Each race has its own language.** On later planets the comms unit learns each new language from scratch, so meeting a new people always starts with gestures again.
+**Each race has its own language.** On later planets the radio learns each new language from scratch, so meeting a new people always starts with gestures again.
 
 ## Gear: blueprints, materials, the printer
 
@@ -424,7 +424,7 @@ A small alien in a suit, helmet and pack with a drill in hand, in blue like ever
 | Piece | Mk 0–3: prospector | Mk 4–7: guild contractor | Mk 8–10: deep-space |
 | --- | --- | --- | --- |
 | Suit | Patched work suit: stitched patches, a zip and chest pocket, a tool pouch, lace-up boots | A chest plate with the guild's stamp (a pick over a star), a domed shoulder plate, knee pads, steel toecaps | Overlapping armour plates, jointed knees, a forearm guard, sealed boots |
-| Helmet | Glass fishbowl on a bolted collar, a clip-on lamp, a stub antenna (cracked until the comms repair) | The fishbowl in a protective cage, twin lamps, a radio with a whip antenna and an ear-piece | A hard shell with a wide tinted visor, a lamp strip and a sensor fin |
+| Helmet | Glass fishbowl on a bolted collar, a clip-on lamp, a stub antenna (cracked until the radio repair) | The fishbowl in a protective cage, twin lamps, a radio with a whip antenna and an ear-piece | A hard shell with a wide tinted visor, a lamp strip and a sensor fin |
 | Jetpack | A battery cell and a dented fuel can strapped together, one nozzle | A framed pack with twin tanks, two nozzles, a pressure dial and a fin | A sealed pod with vents and a gimballed nozzle |
 | Drill | A hand drill: pistol grip, vented housing, fluted cone bit, power cable from the cell | A heavy drill: finned housing, fore-grip, coolant canister, carbide teeth | A plasma lance: heat-sink rings and three prongs round an emitter; no cable |
 
@@ -437,7 +437,7 @@ The prospector's ship. In chapter 1 you watch it come back together: every repai
 | Stage | Look |
 | --- | --- |
 | The wreck | The tin can with a torn heat shield and a jagged gash (the hatch hanging open until the hull is plated), a crumpled bell still smoking, the dish snapped and hanging by its cable, the porthole dark and cracked. Not yet drawn: the tilt on a buckled leg |
-| Repaired, one part at a time | The printer's glow in the porthole; the dish back up (comms); welded hull plates (hull); a clean engine bell (thrusters) |
+| Repaired, one part at a time | The printer's glow in the porthole; the dish back up (radio); welded hull plates (hull); a clean engine bell (thrusters) |
 | The tin can | Fully repaired, ready to fly: an enamelled, weathered can with a domed top on a descent stage wrapped in crinkled gold foil, four spindly legs, heat-shield tiles, one heat-tinted engine bell, a riveted porthole, a hatch with a ladder, RCS quads, a dish and a cobalt pennant |
 | Refitted, the deep hauler | Later hull refits, as before: braced legs and a cargo pod, then a wider hull with twin engines and a crane |
 
@@ -568,7 +568,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 1. **One world:** ~~merge levels 1–5 into a single wrapping Graphite world; the open-world save~~ (done); the survey sheet centred on the lander.
 2. ~~**The life system:** shield, hearts, life support, feeding gauges from the bag, the self-charging jetpack, dying, the dropped bag, recall~~ (done Oct 16, 2026; water ice added to Graphite, world version 2). The pause card is the start of the pause screen: Resume and Recall.
 3. ~~**The repair list** in place of missions; the wrecked lander and its repair stages; inside the lander in place of the result screen and chart~~ (done Oct 16, 2026, before step 2). Not yet: lift-off at the end (it waits for the Lamplighters and the core).
-4. **The Lamplighters:** the outpost, jobs by picture, the comms repair, speech with word-by-word translation, the lexicon, texts and Aster logs.
+4. **The Lamplighters:** ~~the call, the receiver, the outpost, the first job by picture, the core for silver~~ (done Oct 17, 2026); still to come: speech with word-by-word translation, the lexicon, texts and Aster logs.
 5. **Creatures** (dust ticks, lead worms) and fighting with the drill.
 6. **The rest of Graphite:** the Aster base, the grey band, the deep, the Grinder; the drive core and lift-off; the opening and the ending.
 7. Coach hints, sound, touch controls, account sync; add InkMine to the catalog with chapter 1 free.
@@ -593,7 +593,7 @@ Settled with @Hayk on Oct 15, 2026 (replacing the 100 levels, missions, contract
 - **The story start:** a wormhole, a crash, the link to the guild lost; you begin by repairing the lander, which doesn't fly until the end of chapter 1. Lift-off ends the free version.
 - **Free version = Graphite only;** other planets are paid.
 - **No linear missions:** the suit asks for what's needed; jobs are handed over in person, not from a board.
-- **One race on Graphite**, the Lamplighters, whose language you learn through the comms unit: levels of understanding, from talking and from found texts (their inscriptions, Aster logs, time capsules).
+- **One race on Graphite**, the Lamplighters, whose language you learn through the radio: levels of understanding, from talking and from found texts (their inscriptions, Aster logs, time capsules).
 - **Tunnels stay dug;** you go deeper over time. The lift is the shortcut home.
 - **Life system from No Man's Sky;** dying reprints you at the lander, and the bag waits where you fell.
 - **Drill energy and life support are refilled from raw materials** you carry.

@@ -40,6 +40,8 @@ export interface MineSetup {
   readonly fuels?: Fuels;
   /** A bag left in the world last time, under its flag (default none). */
   readonly dropped?: DroppedBag | null;
+  /** Where the Lamplighters' outpost stands: its middle column and the surface row (default none). */
+  readonly outpost?: { readonly col: number; readonly row: number };
 }
 
 /** Graphite's fuels: graphite for the drill (it's in battery anodes), water ice for the air. */
@@ -109,6 +111,8 @@ const NOTICE_GAP = 1.2;
 const AIR_NOTICE_GAP = 20;
 /** The lander's footprint in tiles either side of its middle, and its height. */
 export const LANDER = { half: 1, rows: 3 } as const;
+/** The outpost's reach: columns either side of its middle, and rows above its ground. */
+export const OUTPOST_REACH = { half: 3, rows: 4 } as const;
 
 interface Drilling {
   readonly tile: TilePos;
@@ -134,6 +138,8 @@ export class Mine {
   readonly ladders: Ladders;
   readonly blasts: BlastSim;
   readonly landerBox: Box;
+  /** Where talking to the Lamplighters happens; null on a world without them. */
+  readonly outpostBox: Box | null;
   readonly jet: JetSpec;
   player: Body;
   facing: 1 | -1 = 1;
@@ -167,6 +173,8 @@ export class Mine {
     const T = this.tile;
     const { col, row } = setup.lander;
     this.landerBox = { x: (col - LANDER.half) * T, y: (row - LANDER.rows) * T, w: (LANDER.half * 2 + 1) * T, h: LANDER.rows * T };
+    const o = setup.outpost;
+    this.outpostBox = o ? { x: (o.col - OUTPOST_REACH.half) * T, y: (o.row - OUTPOST_REACH.rows) * T, w: (OUTPOST_REACH.half * 2 + 1) * T, h: OUTPOST_REACH.rows * T } : null;
     this.items = placeItems(setup.terrain, setup.items ?? [], row, T);
     this.player = this.startBody();
   }
@@ -178,8 +186,17 @@ export class Mine {
 
   /** Whether the prospector is at the lander (where they bank, and can step aboard). */
   get atLander(): boolean {
+    return this.touches(this.landerBox);
+  }
+
+  /** Whether the prospector is at the Lamplighters' outpost (where they talk). */
+  get atOutpost(): boolean {
+    return !!this.outpostBox && this.touches(this.outpostBox);
+  }
+
+  /** Whether the prospector overlaps a box, measured the short way round. */
+  private touches(l: Box): boolean {
     const p = this.player;
-    const l = this.landerBox;
     const lx = p.x + ringDelta(this.terrain, p.x, l.x, this.tile);
     return !(p.x + p.w < lx || p.x > lx + l.w || p.y + p.h < l.y || p.y > l.y + l.h);
   }

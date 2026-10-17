@@ -26,7 +26,7 @@ import { part, rivets, roundRect, seam, WASH } from './prospector/parts';
  *
  * After the crash the tin can shows what's still broken (spec, "The
  * lander"), each system mended on its own: a dark, cracked porthole until
- * the printer runs (then its glow), the dish snapped off until the comms
+ * the printer runs (then its glow), the dish snapped off until the radio
  * work, a gash in the hull, torn heat-shield tiles and the hatch hanging
  * open until it's plated (then a welded patch), and a crumpled bell with
  * smoke still coming off it until the thrusters are fixed.

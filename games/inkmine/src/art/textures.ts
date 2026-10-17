@@ -4,9 +4,10 @@ import { CHARGE_FRAME, drawCharge, drawLineCharge, LINE_FRAME_W } from './charge
 import { makeDraw } from './kit';
 import { drawLander, drawLanderAir, LANDER_H, LANDER_W, SOUND, wreckCode } from './landerArt';
 import { drawItem, ITEM_FRAME, ITEM_KINDS } from './itemArt';
+import { drawLamplighter, drawOutpost, LAMPLIGHTER, OUTPOST_ART } from './lamplighterArt';
 import { drawOrePiece } from './oreArt';
 import { finishSprite } from './paint';
-import { ART_RES, BOIL, INK, type GroundStyle } from './palette';
+import { ART_RES, BLUE, BOIL, INK, type GroundStyle } from './palette';
 import { makeCanvas } from './pen';
 import { lookKey, type Look, type ProspectorLook } from '../logic/gear';
 import type { Wreck } from '../logic/repairs';
@@ -23,6 +24,8 @@ export const TEX = {
   piece: (ore: string) => `piece-${ore}`,
   item: (kind: string, f: number) => `item-${kind}-${f}`,
   tech: (t: Tech, variant: TechVariant) => `tech-${techKey(t)}-${variant}`,
+  lamplighter: (f: number) => `lamplighter-${f}`,
+  outpost: (f: number) => `outpost-${f}`,
   sky: (h: number) => `sky-${h}`,
   ridges: (h: number) => `ridges-${h}`,
 } as const;
@@ -95,6 +98,17 @@ export function bakeCharacters(scene: Phaser.Scene, look: ProspectorLook, lander
   }
 }
 
+/** The Lamplighters and their outpost (in play, and on the cards where they talk). Origin at the middle of their footing. */
+export function bakeLamplighters(scene: Phaser.Scene): void {
+  const L = LAMPLIGHTER;
+  const O = OUTPOST_ART;
+  for (let f = 0; f < BOIL; f++) {
+    // Drawn in blue, as they're never a danger (spec, "The Lamplighters").
+    bake(scene, TEX.lamplighter(f), L.w, L.h, L.w * 0.62, L.h - 2, ART_RES * 1.5, (ctx) => drawLamplighter(makeDraw(ctx, 700 + f, f, 0, BLUE)), LANDER_FINISH);
+    bake(scene, TEX.outpost(f), O.w, O.h, O.w / 2, O.h - 2, ART_RES, (ctx) => drawOutpost(makeDraw(ctx, 720 + f, f, 0)), LANDER_FINISH);
+  }
+}
+
 /** Mission items and ore pieces (also shown on the result card and the ship's page). */
 export function bakePickups(scene: Phaser.Scene, rock: string): void {
   for (let f = 0; f < BOIL; f++) {
@@ -107,6 +121,7 @@ export function bakePickups(scene: Phaser.Scene, rock: string): void {
 export function generateTextures(scene: Phaser.Scene, style: GroundStyle, skyHeight: number, look: ProspectorLook, landerLook: Look, wreck: Wreck = SOUND): void {
   bakeCharacters(scene, look, landerLook, wreck);
   bakePickups(scene, style.stone);
+  bakeLamplighters(scene);
   for (let f = 0; f < BOIL; f++) {
     for (const lit of [false, true]) {
       bake(scene, TEX.charge('charge', lit, f), CHARGE_FRAME, CHARGE_FRAME, CHARGE_FRAME / 2, CHARGE_FRAME / 2, ART_RES * 1.5, (ctx) => drawCharge(makeDraw(ctx, 300 + f, f, 0), lit));

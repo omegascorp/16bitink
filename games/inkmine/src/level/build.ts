@@ -58,6 +58,7 @@ export function buildWorld(planet: PlanetDef, p: Profile, save: WorldSave | null
       bag: p.suit,
       fuels: planet.fuels,
       dropped: droppedBag(terrain.width, save?.bag),
+      outpost: def.outpost === undefined ? undefined : { col: def.outpost, row: def.site.surface },
     },
   };
 }

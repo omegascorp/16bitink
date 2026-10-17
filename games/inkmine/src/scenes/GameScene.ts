@@ -3,6 +3,7 @@ import { ART_RES, BOIL, PAPER, RED } from '../art/palette';
 import { roofRows } from '../art/ground';
 import { RIDGE_W } from '../art/ridgeArt';
 import { SKY_W } from '../art/skyArt';
+import { LAMPLIGHTER, OUTPOST_ART } from '../art/lamplighterArt';
 import { TEX, generateTextures } from '../art/textures';
 import { getHost, getProfile, heldWorld, holdWorld, setProfile } from '../host';
 import { buildWorld } from '../level/build';
@@ -14,10 +15,11 @@ import { prospectorLook, type Look } from '../logic/gear';
 import { lampFor } from '../logic/marks';
 import { Mine, NO_INPUT, type MineEvent, type MineInput } from '../logic/mine';
 import { oreById, ORES } from '../logic/ore';
-import type { Gauge } from '../logic/suit';
+import { OUTPOST, signalBars, visit, type Says } from '../logic/story';
+import { withBag, type Gauge } from '../logic/suit';
 import { currentGoal, wreckOf, type Goal, type Wreck } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
-import { volatileAt } from '../logic/terrain';
+import { ringDelta, volatileAt } from '../logic/terrain';
 import { volatileKeyOf } from '../logic/volatiles';
 import { captureWorld, loadWorld, saveWorld } from '../logic/worldSave';
 import { BeaconView } from './game/beaconView';
@@ -101,6 +103,14 @@ export class GameScene extends Phaser.Scene {
   paused = false;
   /** How you came back, if the suit gave out just before this session (the HUD says so once). */
   woke: Woke | null = null;
+  /** A Lamplighter is talking (a card is up): the world waits until it's read. */
+  talk: Says | null = null;
+  /** The prospector was at the outpost last step: a visit starts on walking up, not every step there. */
+  private wasAtOutpost = false;
+  /** The receiver's last reading, in bars, for saying stronger or weaker. */
+  private lastBars: number | null = null;
+  private outpost: Phaser.GameObjects.Image | null = null;
+  private lamplighter: Phaser.GameObjects.Image | null = null;
   /** Asked for from the HUD (a tapped gauge, recall on the pause card), done on the next step. */
   private asked: Partial<Pick<MineInput, 'feed' | 'recall'>> = {};
   private smokeAt = 0;
@@ -115,6 +125,8 @@ export class GameScene extends Phaser.Scene {
     this.paused = false;
     this.asked = {};
     this.woke = data?.woke ?? null;
+    this.talk = null;
+    this.lastBars = null;
     this.changed = false;
     this.smokeAt = 0;
     const world = this.planet.world;
@@ -146,6 +158,7 @@ export class GameScene extends Phaser.Scene {
     const roof = roofRows({ ...t, tiles: built.base });
     this.ground = new GroundView(this, t, T, style, (g) => tooHard(setup.drill, g), roof);
     this.lander = this.add.image((setup.lander.col + 0.5) * T, setup.lander.row * T, TEX.lander(this.ship, 0, this.wreck)).setOrigin(0.5, 1).setScale(1 / ART_RES).setDepth(2);
+    this.placeOutpost(setup.outpost, T);
     this.things = new ThingsView(this, T);
     this.items = new ItemsView(this, T);
     this.prospector = new ProspectorView(this, look);
@@ -159,6 +172,7 @@ export class GameScene extends Phaser.Scene {
     const cam = this.cameras.main;
     if (t.wrap) cam.setBounds(-RING_REACH, 0, RING_REACH * 2, worldH);
     else cam.setBounds(0, 0, t.width * T, worldH);
+    this.wasAtOutpost = this.mine.atOutpost;
     const p = this.mine.player;
     this.ring.centre = p.x + p.w / 2;
     this.prospector.update(this.mine, 0, 0, this.ring);
@@ -201,12 +215,12 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const dt = Math.min(delta / 1000, MAX_DT);
-    if (!this.ended && !this.intro && this.keys.pause()) {
+    if (!this.ended && !this.intro && !this.talk && this.keys.pause()) {
       this.paused = !this.paused;
       // A gauge tapped just before pausing isn't fed after it.
       this.asked = {};
     }
-    const still = this.ended || this.intro || this.paused;
+    const still = this.ended || this.intro || this.paused || this.talk !== null;
     // Keys are read every frame, so one pressed while the world waits doesn't fire when it starts again.
     const keys = this.keys.read();
     const aboard = this.keys.aboard();
@@ -218,6 +232,10 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     for (const e of this.mine.step(still ? 0 : dt, input)) this.react(e);
+    const atOutpost = this.mine.atOutpost;
+    if (atOutpost && !this.wasAtOutpost && !still) this.converse();
+    this.wasAtOutpost = atOutpost;
+    if (!still) this.listen();
     const cam = this.cameras.main;
     this.ring.centre = cam.midPoint.x;
     this.ground.update(cam.worldView);
@@ -228,6 +246,7 @@ export class GameScene extends Phaser.Scene {
     this.fx.jet(this.mine, this.ring);
     this.lamp.update(this.mine, cam.worldView, this.ring);
     this.lander.setTexture(TEX.lander(this.ship, Math.floor(time / 125) % BOIL, this.wreck)).setX(this.ring.near((this.mine.landerBox.x + this.mine.landerBox.w / 2)));
+    this.drawOutpost(time);
     this.beacon.update(this.mine, this.ring, this.beaconTarget(), 'beacon', time);
     const d = this.mine.dropped;
     this.bagBeacon.update(this.mine, this.ring, d ? { x: (d.col + 0.5) * this.mine.tile, y: (d.row + 0.5) * this.mine.tile } : null, 'your bag', time);
@@ -272,9 +291,75 @@ export class GameScene extends Phaser.Scene {
     setProfile(this, { ...this.liveProfile(), started: true });
   }
 
-  /** Where the beacon points: the blueprint a 'find' goal is after, while it's still lying in the world. */
+  /** The receiver's reading in bars while following the call (null otherwise), for the HUD. */
+  signal(): number | null {
+    const o = this.mine.outpostBox;
+    if (!o || this.goal().kind !== 'signal') return null;
+    const p = this.mine.player;
+    const tiles = Math.abs(ringDelta(this.mine.terrain, p.x + p.w / 2, o.x + o.w / 2, this.mine.tile)) / this.mine.tile;
+    return signalBars(tiles);
+  }
+
+  /** The receiver crackling stronger or weaker as you walk: hot and cold, never a direction. */
+  private listen(): void {
+    const bars = this.signal();
+    if (bars !== null && this.lastBars !== null && bars !== this.lastBars) {
+      const p = this.mine.player;
+      this.fx.note(this.ring.near(p.x + p.w / 2), p.y - 32, bars > this.lastBars ? 'signal stronger' : 'signal weaker', bars < this.lastBars);
+    }
+    this.lastBars = bars;
+  }
+
+  /**
+   * Walking up to the Lamplighters: they meet you, wait for their silver,
+   * take it from the bag, or hand over the core (story.ts). A card shows
+   * what they say; the world waits until it's read. Saved at once.
+   */
+  private converse(): void {
+    const v = visit(this.liveProfile(), this.mine.suit.bag);
+    if (!v.says) return;
+    this.mine.suit = withBag(this.mine.suit, v.bag);
+    setProfile(this, { ...v.profile, suit: v.bag, cargo: this.mine.cargo });
+    this.save();
+    if (v.says === 'thanks') {
+      const p = this.mine.player;
+      this.fx.note(this.ring.near(p.x + p.w / 2), p.y - 32, 'they raise their lanterns');
+      return;
+    }
+    this.talk = v.says;
+  }
+
+  /** The talk card was read: the world goes on. */
+  closeTalk(): void {
+    this.talk = null;
+  }
+
+  /** The outpost's domes east of where a Lamplighter stands to meet you, on the far rim. */
+  private placeOutpost(at: { col: number; row: number } | undefined, T: number): void {
+    this.outpost = null;
+    this.lamplighter = null;
+    if (!at) return;
+    const O = OUTPOST_ART;
+    const L = LAMPLIGHTER;
+    this.outpost = this.add.image(0, at.row * T, TEX.outpost(0)).setOrigin(0.5, (O.h - 2) / O.h).setScale(1 / ART_RES).setDepth(1.8);
+    this.lamplighter = this.add.image(0, at.row * T, TEX.lamplighter(0)).setOrigin(0.62, (L.h - 2) / L.h).setScale(1 / (ART_RES * 1.5)).setDepth(2.1);
+  }
+
+  /** The outpost and the Lamplighter drawn near the camera, their lines boiling. */
+  private drawOutpost(time: number): void {
+    const o = this.mine.outpostBox;
+    if (!o || !this.outpost || !this.lamplighter) return;
+    const f = Math.floor(time / 160) % BOIL;
+    const x = o.x + o.w / 2;
+    this.lamplighter.setTexture(TEX.lamplighter(f)).setX(this.ring.near(x));
+    this.outpost.setTexture(TEX.outpost(f)).setX(this.ring.near(x + OUTPOST.domes * this.mine.tile));
+  }
+
+  /** Where the beacon points: the blueprint a 'find' goal is after, while it's still lying in the world; the outpost once you've met them. */
   private beaconTarget(): { x: number; y: number } | null {
     const g = this.goal();
+    const o = this.mine.outpostBox;
+    if (o && (g.kind === 'trade' || g.kind === 'collect')) return { x: o.x + o.w / 2, y: o.y + o.h / 2 };
     if (g.kind !== 'find') return null;
     const it = this.mine.items.find((i) => i.blueprint === g.blueprint && (i.state === 'rock' || i.state === 'loose'));
     return it ? { x: it.x + it.w / 2, y: it.y + it.h / 2 } : null;

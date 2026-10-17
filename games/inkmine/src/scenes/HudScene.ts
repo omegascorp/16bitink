@@ -13,6 +13,8 @@ import { plate, plateCard, plateHeading, PLATE_BODY } from './kit/plate';
 import { plaque } from './kit/plaque';
 import { aside, heading, INK_TEXT, label, MADDER, prose, SEPIA } from './kit/type';
 import { drawSlotGrid, gridHeight } from './slots';
+import { storyCard } from './kit/storyCard';
+import { talkSpec } from './hud/talkCards';
 
 /** The cell reads as low (madder) under this share of its charge. */
 const LOW = 0.25;
@@ -81,6 +83,8 @@ export class HudScene extends Phaser.Scene {
   private intro: Phaser.GameObjects.Container | null = null;
   private pause: Phaser.GameObjects.Container | null = null;
   private woke: Phaser.GameObjects.Container | null = null;
+  /** A Lamplighter's card, while one is talking. */
+  private talk: Phaser.GameObjects.GameObject[] | null = null;
   private shown = '';
   private goalShown = '';
 
@@ -103,6 +107,7 @@ export class HudScene extends Phaser.Scene {
     this.intro = null;
     this.pause = null;
     this.woke = null;
+    this.talk = null;
     const gx = PANEL.x + GAUGE.x;
     this.air = new Gauge(this, gx, PANEL.y + ROW.air - GAUGE.h / 2, GAUGE.w, GAUGE.h, 'air');
     this.cell = new Gauge(this, gx, PANEL.y + ROW.cell - GAUGE.h / 2, GAUGE.w, GAUGE.h, 'cell');
@@ -145,10 +150,13 @@ export class HudScene extends Phaser.Scene {
       this.shown = sig;
       this.draw(mine);
     }
+    this.showTalk(game);
     const goal = goalLine(game.liveProfile(), game.goal());
-    if (goal !== this.goalShown) {
-      this.goalShown = goal;
-      this.drawGoal(goal);
+    const bars = game.signal();
+    const key = `${goal}|${bars}`;
+    if (key !== this.goalShown) {
+      this.goalShown = key;
+      this.drawGoal(goal, bars);
     }
     this.prompt.setVisible(aboard);
   }
@@ -212,15 +220,40 @@ export class HudScene extends Phaser.Scene {
     this.failed.setVisible(mine.state === 'failed');
   }
 
-  /** The objective plate: what to do next, with what's on hand counted. */
-  private drawGoal(line: string): void {
+  /** A Lamplighter's card up while one is talking (the world waits), gone once it's read. */
+  private showTalk(game: GameScene): void {
+    if (game.talk && game.talk !== 'thanks' && !this.talk) {
+      this.talk = storyCard(this, talkSpec(this, game.talk), () => {
+        this.talk = null;
+        game.closeTalk();
+      }, 70);
+    }
+  }
+
+  /** The objective plate: what to do next, with what's on hand counted; while following the call, the receiver's bars. */
+  private drawGoal(line: string, bars: number | null): void {
     for (const o of this.goalParts) o.destroy();
     const { width } = viewSize(this);
     const x = width - GOAL.w - 14;
     const y = 14;
     const text = prose(this, x + GOAL.pad, y + PLATE_BODY - 4, line, 18, GOAL.w - GOAL.pad * 2, INK_TEXT).setDepth(1);
-    const h = PLATE_BODY + text.height + 10;
-    this.goalParts = [...plate(this, x, y, GOAL.w, h, { seed: 31, depth: 0 }), ...plateHeading(this, x, y, GOAL.w, 'Next', 0.5), text];
+    let h = PLATE_BODY + text.height + 10;
+    const parts: Phaser.GameObjects.GameObject[] = [text];
+    if (bars !== null) {
+      const by = y + h + 22;
+      parts.push(label(this, x + GOAL.pad, by, 'Receiver', 17, SEPIA, '600').setOrigin(0, 0.5).setDepth(1));
+      const g = this.add.graphics().setDepth(1);
+      for (let k = 0; k < 5; k++) {
+        const bh = 6 + k * 4;
+        const bx = x + GOAL.pad + 96 + k * 14;
+        g.fillStyle(k < bars ? 0x2f6f62 : 0xd8cfb8, 1).fillRect(bx, by + 10 - bh, 9, bh);
+        g.lineStyle(0.8, 0x1f2a55, 0.7).strokeRect(bx, by + 10 - bh, 9, bh);
+      }
+      parts.push(g);
+      parts.push(aside(this, x + GOAL.pad + 176, by, bars === 0 ? 'static' : bars >= 5 ? 'right here' : 'warmer, colder', 16, 140, SEPIA).setOrigin(0, 0.5).setDepth(1));
+      h += 44;
+    }
+    this.goalParts = [...plate(this, x, y, GOAL.w, h, { seed: 31, depth: 0 }), ...plateHeading(this, x, y, GOAL.w, 'Next', 0.5), ...parts];
   }
 
   /** The opening card: how you got here, and the first thing to do. Any key or a tap starts. */

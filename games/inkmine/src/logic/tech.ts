@@ -3,6 +3,7 @@ import { hasOnHand, printerWorks, type Profile } from './economy';
 import { PIECES, type Piece } from './gear';
 import { canRepair, currentGoal, REPAIR_IDS, type RepairId } from './repairs';
 import { canUpgrade, MODULE_KEYS, type ModuleKey } from './ship';
+import { canPrintTool, TOOLS, type Tool } from './tools';
 
 /**
  * The lander's menu as No Man's Sky lays it out: a Suit tab and a Ship tab,
@@ -16,11 +17,12 @@ export const TABS: readonly Tab[] = ['suit', 'ship'];
 export type Tech =
   | { readonly kind: 'gear'; readonly piece: Piece }
   | { readonly kind: 'module'; readonly key: ModuleKey }
-  | { readonly kind: 'repair'; readonly id: RepairId };
+  | { readonly kind: 'repair'; readonly id: RepairId }
+  | { readonly kind: 'tool'; readonly id: Tool };
 
 export type TechState = 'ready' | 'broken' | 'fitted' | 'empty';
 
-export const SUIT_TECH: readonly Tech[] = PIECES.map((piece) => ({ kind: 'gear', piece }));
+export const SUIT_TECH: readonly Tech[] = [...PIECES.map((piece): Tech => ({ kind: 'gear', piece })), ...TOOLS.map((id): Tech => ({ kind: 'tool', id }))];
 export const SHIP_SYSTEMS: readonly Tech[] = REPAIR_IDS.map((id) => ({ kind: 'repair', id }));
 export const SHIP_MODULES: readonly Tech[] = MODULE_KEYS.map((key) => ({ kind: 'module', key }));
 
@@ -29,7 +31,9 @@ export const tabTech = (tab: Tab): readonly Tech[] => (tab === 'suit' ? SUIT_TEC
 
 /** "gear:drill", "repair:hull", "module:hull": unique, as a repair and a module can share a name. */
 export function techKey(t: Tech): string {
-  return t.kind === 'gear' ? `gear:${t.piece}` : t.kind === 'module' ? `module:${t.key}` : `repair:${t.id}`;
+  if (t.kind === 'gear') return `gear:${t.piece}`;
+  if (t.kind === 'module') return `module:${t.key}`;
+  return `${t.kind}:${t.id}`;
 }
 
 const ALL: ReadonlyMap<string, Tech> = new Map([...SUIT_TECH, ...SHIP_SYSTEMS, ...SHIP_MODULES].map((t) => [techKey(t), t]));
@@ -42,6 +46,10 @@ export function techState(p: Profile, t: Tech): TechState {
   if (t.kind === 'repair') {
     const why = canRepair(p, t.id);
     return why === 'done' ? 'fitted' : why === 'ok' ? 'ready' : 'broken';
+  }
+  if (t.kind === 'tool') {
+    const why = canPrintTool(p, t.id);
+    return why === 'have' ? 'fitted' : why === 'ok' ? 'ready' : 'empty';
   }
   if (t.kind === 'module') {
     if (printerWorks(p) && canUpgrade(p.ship, t.key, hasOnHand(p)) === 'ok') return 'ready';

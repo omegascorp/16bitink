@@ -22,7 +22,7 @@ describe('the lander after the crash', () => {
     expect(canRepair(withCargo(repaired('printer'), { copper: 20, quartz: 10 }), 'comms')).toBe('ok');
     expect(canRepair(repaired('printer', 'comms', 'hull', 'thrusters'), 'core')).toBe('given');
     expect(canRepair(repaired('printer'), 'printer')).toBe('done');
-    // The comms second (the start teaches the game), then the hull and the thrusters in either order.
+    // The radio second (the start teaches the game), then the hull and the thrusters in either order.
     expect(canRepair(withCargo(repaired('printer'), REPAIRS.hull.needs!), 'hull')).toBe('order');
     expect(canRepair(repaired('printer', 'comms'), 'hull')).toBe('materials');
     expect(canRepair(withCargo(repaired('printer', 'comms'), REPAIRS.thrusters.needs!), 'thrusters')).toBe('ok');
@@ -60,16 +60,18 @@ describe('the printer', () => {
 });
 
 describe('what to do next', () => {
-  it('walks the chapter: printer, then the drill, then comms, hull, thrusters, and last the core', () => {
+  it('walks the chapter: printer, then the drill, then the radio, the call, hull, thrusters, and last the core', () => {
     expect(currentGoal(NEW_PROFILE)).toEqual({ kind: 'repair', id: 'printer' });
     const printer = repaired('printer');
     expect(currentGoal(printer)).toEqual({ kind: 'find', blueprint: 'drill-1' });
     expect(currentGoal({ ...printer, found: ['drill-1'] })).toEqual({ kind: 'print', blueprint: 'drill-1' });
     const drilled = { ...printer, found: ['drill-1'], gear: { ...printer.gear, drill: 1 } };
     expect(currentGoal(drilled)).toEqual({ kind: 'repair', id: 'comms' });
-    expect(currentGoal({ ...drilled, repaired: ['printer', 'comms'] })).toEqual({ kind: 'repair', id: 'hull' });
-    expect(currentGoal({ ...drilled, repaired: ['printer', 'comms', 'hull'] })).toEqual({ kind: 'repair', id: 'thrusters' });
-    expect(currentGoal({ ...drilled, repaired: ['printer', 'comms', 'hull', 'thrusters'] })).toEqual({ kind: 'repair', id: 'core' });
+    expect(currentGoal({ ...drilled, repaired: ['printer', 'comms'] })).toEqual({ kind: 'receiver' });
+    const met = { ...drilled, beats: ['called', 'met'] as Profile['beats'] };
+    expect(currentGoal({ ...met, repaired: ['printer', 'comms'] })).toEqual({ kind: 'repair', id: 'hull' });
+    expect(currentGoal({ ...met, repaired: ['printer', 'comms', 'hull'] })).toEqual({ kind: 'repair', id: 'thrusters' });
+    expect(currentGoal({ ...met, repaired: ['printer', 'comms', 'hull', 'thrusters'] })).toEqual({ kind: 'trade' });
   });
 
   it('counts what you have toward a repair, and says when to go aboard', () => {

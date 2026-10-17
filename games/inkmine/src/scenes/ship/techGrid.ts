@@ -4,6 +4,7 @@ import type { TechVariant } from '../../art/techArt';
 import type { Profile } from '../../logic/economy';
 import { lookOf } from '../../logic/gear';
 import { isRepaired } from '../../logic/repairs';
+import { hasBeat } from '../../logic/story';
 import { techKey, techState, type Tech, type TechState } from '../../logic/tech';
 import { bakeUi, roundRect, rule, RULE, uiImage, wash } from '../kit/paint';
 import { FADED, INK_TEXT, label, SEPIA } from '../kit/type';
@@ -36,7 +37,8 @@ export function techGridFit(n: number, w: number, max = 92, min = 70): { cell: n
 /** What the slot's picture shows: a gear piece in its look, a system broken or mended. */
 export function variantOf(p: Profile, t: Tech): TechVariant {
   if (t.kind === 'gear') return lookOf(p.gear[t.piece]);
-  if (t.kind === 'repair') return isRepaired(p, t.id) ? 'mended' : 'broken';
+  // The Lamplighters' core is whole before it's fitted.
+  if (t.kind === 'repair') return isRepaired(p, t.id) || (t.id === 'core' && hasBeat(p, 'core')) ? 'mended' : 'broken';
   return 'mended';
 }
 

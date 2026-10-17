@@ -116,7 +116,7 @@ function core(d: Draw, broken: boolean): void {
   for (const x of [-7.6, 7.6]) d.pen.stroke([pt(x * 0.75, -13), pt(x, -2), pt(x * 0.9, 10)], 0.9, d.ink, 0.85, false);
 }
 
-/** The comms after the crash: the mast snapped off short, the dish fallen on its rim beside it. */
+/** The radio after the crash: the mast snapped off short, the dish fallen on its rim beside it. */
 function fallenDish(d: Draw): void {
   const stub = capsule(pt(-12, 14), pt(-11.4, 0), 2.4, 2);
   part(d, stub, WASH.metal, { shadow: 0.4, line: 0.7, hatch: 0 });
@@ -199,8 +199,29 @@ function system(d: Draw, t: Extract<Tech, { kind: 'repair' }>, broken: boolean):
   } else bell(d, 0, -12, 13, 12);
 }
 
+/** The receiver: a handheld radio with a whip antenna, a dial and a row of signal bars, three of them lit. */
+function receiver(d: Draw): void {
+  d.pen.stroke([pt(5, -8), pt(9, -17)], 1.1, d.ink, 0.95, false);
+  d.pen.dot(9.2, -17.4, 1.2, d.ink);
+  const body = roundRect(-9, -9, 9, 15, 3);
+  part(d, body, '#c7703f', { shadow: 0.55, line: 0.85, gloss: true });
+  const face = roundRect(-6.4, -6, 6.4, 3, 1.4);
+  part(d, face, '#2c3352', { shadow: 0, line: 0.6, hatch: 0 });
+  glow(d.pen.ctx, pt(0, -1.6), 8, CHARGE, 0.25);
+  for (let k = 0; k < 5; k++) {
+    const h = 1.6 + k * 1.3;
+    const x = -4.6 + k * 2.3;
+    part(d, roundRect(x, 1.2 - h, x + 1.5, 1.2, 0.3), k < 3 ? CHARGE : '#55607e', { shadow: 0, line: 0, hatch: 0, alpha: 1 });
+  }
+  part(d, oval(-3.4, 8.6, 2.6, 2.6, 14), WASH.metal, { shadow: 0.4, line: 0.6, gloss: true, hatch: 0 });
+  d.pen.stroke([pt(-3.4, 8.6), pt(-2, 6.6)], 0.6, d.ink, 0.9, false);
+  for (let y = 6.4; y <= 11.4; y += 1.6) d.pen.hair([pt(1.6, y), pt(6.4, y)], 0.5, mix('#c7703f', SHADOW, 0.6), 0.85);
+  sheen(d, [pt(-7.6, -7), pt(-7.6, 12)], 0.8);
+}
+
 export function drawTech(d: Draw, t: Tech, variant: TechVariant): void {
   if (t.kind === 'gear') gear(d, t, typeof variant === 'number' ? variant : 0);
+  else if (t.kind === 'tool') receiver(d);
   else if (t.kind === 'repair') system(d, t, variant === 'broken');
   else if (t.key === 'cargo') cargo(d);
   else if (t.key === 'winch') winch(d);

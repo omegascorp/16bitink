@@ -4,7 +4,9 @@ import { hasOnHand, onHand, printerWorks, printModule, printPart } from '../../l
 import { markGain, markStat } from '../../logic/marks';
 import { canRepair, needsLine, REPAIRS, repair, type RepairCheck } from '../../logic/repairs';
 import { canUpgrade, capOf, maxLevel, MODULES, nextRecipe } from '../../logic/ship';
+import { hasBeat } from '../../logic/story';
 import type { Tech } from '../../logic/tech';
+import { canPrintTool, printTool, TOOL_KINDS, type ToolCheck } from '../../logic/tools';
 import { plaque } from '../kit/plaque';
 import { aside, FADED, INK_TEXT, label, MADDER, prose, SEPIA, VERDIGRIS } from '../kit/type';
 import { divider, PAD, section, SECTION_BODY, type ShipPage } from './panel';
@@ -79,11 +81,41 @@ function moduleText(page: ShipPage, t: Extract<Tech, { kind: 'module' }>): CardT
   };
 }
 
+/** The print button's label for a tool. */
+const TOOL_WHY: Readonly<Record<ToolCheck, string>> = { ok: 'Print', have: 'Printed', nothing: 'Not yet', offline: 'Offline', materials: 'Needs ore' };
+
+function toolText(page: ShipPage, t: Extract<Tech, { kind: 'tool' }>): CardText {
+  const p = page.profile;
+  const k = TOOL_KINDS[t.id];
+  const why = canPrintTool(p, t.id);
+  if (why === 'have') return { status: 'printed', statusColor: VERDIGRIS, now: `${k.about}.` };
+  return {
+    status: 'not printed', statusColor: FADED, now: `${k.about}.`,
+    next: why === 'nothing' ? { text: 'Nothing to listen for yet.', color: FADED } : why === 'offline' ? { text: 'Repair the printer first.', color: SEPIA } : undefined,
+    recipe: why === 'nothing' ? undefined : { text: recipeLine(k.recipe, onHand(p)), ok: why === 'ok' },
+    button: {
+      label: TOOL_WHY[why], ok: why === 'ok', press: () => {
+        const out = printTool(page.profile, t.id);
+        if (out.ok) page.commit(out.profile, { news: `Printed: the ${k.name.toLowerCase()}!` });
+      },
+    },
+  };
+}
+
 function repairText(page: ShipPage, t: Extract<Tech, { kind: 'repair' }>): CardText {
   const p = page.profile;
   const r = REPAIRS[t.id];
   const why = canRepair(p, t.id);
   if (why === 'done') return { status: 'mended', statusColor: VERDIGRIS, now: r.opens };
+  if (t.id === 'core' && hasBeat(p, 'core') && why === 'ok') {
+    return {
+      status: 'ready to fit', statusColor: VERDIGRIS, now: "The Lamplighters' core sits in the cargo, wrapped in cloth and still warm.",
+      button: { label: 'Fit it', ok: true, press: () => {
+        const out = repair(page.profile, t.id);
+        if (out.ok) page.commit(out.profile, { news: 'The drive core is in!' });
+      } },
+    };
+  }
   const first = r.after.filter((a) => !p.repaired.includes(a)).map((a) => REPAIRS[a].name.toLowerCase()).join(' and the ');
   return {
     status: 'broken', statusColor: MADDER, now: r.broken,
@@ -101,6 +133,7 @@ function repairText(page: ShipPage, t: Extract<Tech, { kind: 'repair' }>): CardT
 function cardText(page: ShipPage, t: Tech): CardText {
   if (t.kind === 'gear') return gearText(page, t);
   if (t.kind === 'module') return moduleText(page, t);
+  if (t.kind === 'tool') return toolText(page, t);
   return repairText(page, t);
 }
 
@@ -140,6 +173,6 @@ export function techCard(page: ShipPage, t: Tech, x: number, y: number, w: numbe
     ry += BTN.h + 14;
   }
   const h = ry - y + 10;
-  section(scene, x, y, w, h, t.kind === 'gear' ? 'Gear' : t.kind === 'module' ? 'Module' : 'System', 61);
+  section(scene, x, y, w, h, t.kind === 'gear' ? 'Gear' : t.kind === 'module' ? 'Module' : t.kind === 'tool' ? 'Tool' : 'System', 61);
   return h;
 }

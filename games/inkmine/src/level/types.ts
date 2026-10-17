@@ -23,6 +23,8 @@ export interface WorldDef {
   readonly site: CarveSpec;
   /** Blueprints (and later what people ask for), by column and depth below the lander's ground. */
   readonly items: readonly ItemDef[];
+  /** The column the local people's outpost stands at, on the surface (none on a world without them). */
+  readonly outpost?: number;
 }
 
 export interface PlanetDef {

@@ -261,7 +261,7 @@ export function rcs(d: Draw, x: number, y: number, side: 1 | -1): void {
   }
 }
 
-/** The comms dish on its mast: a white bowl, lit inside, with a feed horn. */
+/** The radio dish on its mast: a white bowl, lit inside, with a feed horn. */
 export function dish(d: Draw, at: Pt, r: number): void {
   const mast = capsule(at, pt(at.x + 2, at.y - r * 1.3), 1.2, 1);
   part(d, mast, WASH.metal, { shadow: 0.4, line: 0.5, hatch: 0 });
