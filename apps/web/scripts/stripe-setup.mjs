@@ -24,6 +24,14 @@ const PRODUCTS = [
     unitAmount: 499,
     currency: 'usd',
   },
+  {
+    // Not on sale yet: the catalog gives InkMine no lookup key until its full game (planets 2-10) is out.
+    lookupKey: 'inkmine_full',
+    name: 'InkMine: Full Game',
+    description: 'The full InkMine game on 16bit.ink: all ten worlds round the orange star. One-time purchase, no subscription.',
+    unitAmount: 499,
+    currency: 'usd',
+  },
 ];
 
 const key = process.env.STRIPE_SECRET_KEY;

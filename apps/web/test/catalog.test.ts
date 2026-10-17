@@ -15,13 +15,15 @@ describe('catalog', () => {
   });
 
   it('lists every game for sale, so the admin panel can unlock it and make keys for it', () => {
-    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab']);
+    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine']);
   });
 
   it('only sells playable games with a Stripe lookup key', () => {
     expect(isPurchasable(findGame('inkfish'))).toBe(true);
     expect(isPurchasable(findGame('inkcrab'))).toBe(true);
     expect(isPurchasable(findGame('blot'))).toBe(false);
+    // A free demo until its full game is out.
+    expect(isPurchasable(findGame('inkmine'))).toBe(false);
     expect(isPurchasable(undefined)).toBe(false);
   });
 });

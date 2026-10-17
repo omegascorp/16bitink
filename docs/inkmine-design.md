@@ -46,10 +46,13 @@ Graphite is chapter 1, and the free version. It ends the moment the lander flies
 4. **The receiver and the alien.** You print a handheld **receiver** (a suit tool: copper and quartz, no blueprint) and follow the call hot and cold: the HUD's "Next" plate shows its bars, and the suit notes "signal stronger" / "signal weaker" as you walk. There's no arrow while you search, nor while you dig for their silver; it points back to them once the core is waiting. At the outpost on the crater's far rim a Lamplighter meets you. You can't understand a word; they draw in the dust what they want: ten lumps of silver, from deep down, for a drive core.
 5. **The hull and the thrusters.** Your suit asks for the parts as you need them. You can repair them in any order, and each one takes ore from deeper down.
 6. **The drive core.** It cracked in the wormhole, and nothing you can print will fix it. The Lamplighters make one. As built: you bring them the silver in your bag (they take it from the bag), and once the hull and thrusters are mended they hand the core over; you fit it aboard. Later, when the language is built, the core waits for fluency and their last job as well.
-7. **Fuel.** The tank split in the crash. Fuel is hydrogen and oxygen split from water ice, as real moon bases plan to fuel their rockets: the Ship tab's Fuel panel has the tank's bar and a Refill button that turns the ice on hand into fuel, one lump a unit (built Oct 17, 2026; `logic/fuel.ts`). The tank holds 12; the climb to orbit burns 10. Ice also feeds life support, so the two pull on the same ore.
-8. **Lift-off, and your ship** (built Oct 17, 2026). With the core in and the tank full enough, **Lift off** on the Fuel panel climbs to the ship in orbit. Docked, she's cold and her jump drive is dead, but her telescope works: the **star map** opens on the first star system, and the grey moon turns out to be one of three moons round the ringed giant. The free version ends here. After that the map opens from the Fuel panel, and "Back down to Graphite" returns to the lander.
+7. **Fuel.** The lander's tank split in the crash. Fuel is hydrogen and oxygen split from water ice, as real moon bases plan to fuel their rockets: the Lander tab's fuel panel has the tank's bar and a Refill button that turns the ice on hand into fuel, one lump a unit (built Oct 17, 2026; `logic/fuel.ts`). The tank holds 12. Graphite has no air to brake in, so landing burns as much as the climb: 6 up, 6 down, and Lift off waits for both, so you can't strand yourself in orbit. Ice also feeds life support, so the two pull on the same ore.
+8. **Lift-off, and your starship** (built Oct 17, 2026). With the core in and a full tank, **Lift off** climbs to the starship in orbit and docks. She's cold and dark: the wormhole burnt out her power, cracked her telescope's mirror, split her tank and killed her engine, and her jump drive is burnt black. Without the telescope there's no star map yet.
+9. **Back down for her parts.** Her repairs take Graphite's ore, mended aboard her only, so you land (Land, top right, burns 6), dig, fill the lander's cargo, refuel and climb again. Ore can be stowed in her own hold. The HUD's "Next" leads the way ("Mend your ship's power: native copper 3/10 · native silver 0/4, carried up in the lander").
+10. **First light.** With her power and telescope mended, the telescope sees again and the **star map** opens on the first star system: the grey moon turns out to be one of three moons round the ringed giant.
+11. **The first trip, and the end of the demo.** With her tank and engine mended and her tank filled, the star map's Mycel card has **Set course**. She leaves for Mycel, and the demo ends on the star map: "the end of the demo: the rest of the journey is coming soon". A finished demo opens on the star map from then on.
 
-**The way home** (@Hayk, Oct 17, 2026). Your people travel only through wormholes they have found, charted and steadied. This one was wild: natural, unprepared and unstable, so it wrecked the ship and took part of your memory. You're somewhere your species has never been, and you don't know where. The goal across all chapters is two things: **find where home is in the sky**, and **have enough to travel there**. Chapter 1 only gets you back to your ship, and her telescope shows a system no chart you remember has.
+**The way home** (@Hayk, Oct 17, 2026). Your people travel only through wormholes they have found, charted and steadied. This one was wild: natural, unprepared and unstable, so it wrecked the ship and took part of your memory. You're somewhere your species has never been, and you don't know where. The goal across all chapters is two things: **find where home is in the sky**, and **have enough to travel there**. Chapter 1 gets you back to your ship and flying again, and her telescope shows a system no chart you remember has.
 
 Proposed, to decide:
 
@@ -104,7 +107,7 @@ The prospector carries an **energy drill**: a futuristic mining tool powered by 
 | Stone | Cross-hatch | Too hard | 2 | 1 |
 | Deep rock | Dense cross-hatch, heavy outline | Too hard | Too hard | 2 |
 | Bedrock, ruin walls | Solid ink | Never | Never | Never |
-| Loose rock, boulders (from planet 2) | Round outlines | 1; falls when undermined | 1 | 1 |
+| Loose rock, boulders (from Talus) | Round outlines | 1; falls when undermined | 1 | 1 |
 
 - **Arriving on a new planet, your drill is a step behind.** Soil costs double and stone won't budge, so you start out following soil and caves. Building that planet's drill opens up the stone: the "now I can go anywhere" moment. On Graphite you start with the Mk 0 starter drill, but its soil costs the normal 1 energy, so the start teaches drilling before it teaches saving energy.
 - **Deep rock waits for the next planet's drill.** It guards vaults and rich veins, so Graphite is worth a visit later with better gear. Chapter 1 never needs it.
@@ -358,6 +361,42 @@ Your ship is a mining ship: it has no weapons, and you start with none. Weapon b
 
 To design: the weapons themselves (how they fire, their marks), and how the depth bands match them.
 
+## Your starship and travel
+
+Decided with @Hayk on Oct 17, 2026; the starship, her repairs, her hold and the first trip are built (`logic/starship.ts`, the Starship tab, the star map's Set course). Travel past the first trip is designed, not built.
+
+**The starship flies between worlds; the lander goes down and up.** She circles the world you're on; the lander climbs to her and lands again, burning its own fuel each way.
+
+**Her systems,** mended aboard her only, with ore carried up in the lander (or stowed in her hold):
+
+| System | Needs | Opens | Real fact for the guide |
+| --- | --- | --- | --- |
+| Power | 10 copper, 4 silver | Her lights and systems; the others can be mended after it | Silver carries electricity better than any other metal; spacecraft wire their power contacts with it |
+| Telescope | 4 quartz, 2 silver | The star map ("First light") | Big telescope mirrors are glass under a film of silver or aluminium far thinner than a hair; quartz glass barely changes shape with heat |
+| Fuel tank | 12 graphite, 3 copper | Her tank, level 1 (10 units): enough for a sister moon | Big rocket tanks are wound with carbon fibre over a thin liner: as strong as steel and far lighter |
+| Engine | 8 graphite, 4 silver, 3 quartz | Flying between worlds | Ion engines push charged gas through grids; graphite grids last longest, as the beam barely wears carbon away |
+| Jump drive | Can't be mended here | The way home, the endgame | — |
+
+`test/world.test.ts` checks Graphite holds half again over everything chapter 1 takes (gear, both ships' repairs and the trade) within the Drill Mk 1's reach.
+
+**Her hold:** 24 slots of 50, on the Starship tab. Docked, stacks move between it and the lander's cargo ("Unload the lander's cargo here"), and repairs aboard draw on it. On the ground it can be looked at, not touched.
+
+**How far she can go is set by her tank, not a rule.** Each trip has a fuel cost; if her tank can hold it, she can make it. Printing a bigger tank (a module) reaches the next ring of worlds. Level 1 reaches the sister moons (the first trip, to Mycel, burns 6 of 10).
+
+**What a trip costs depends on timing** (to build). Every world moves on its true orbit on a game clock. Between two orbits, a trip costs least at its launch window and more the further you are from it (up to about 3×), as real mission planners find. So with a tank that's only just big enough you wait for the window; with a bigger one you can go early and pay more. Rough costs from Graphite at the window (estimates for the cheapest transfer between the orbits, before the giants' gravity, which adds a flat amount):
+
+| Trip | Rough cost (km/s) | Tank level |
+| --- | --- | --- |
+| Mycel, Cardia (sister moons) | ~1–2, window always open | 1 |
+| Brine | ~4 | 2 |
+| Talus | ~9 | 3 |
+| Indigo's moons | ~10.5 | 3 |
+| Prism, Ember, Rime | More, or a chain of shorter trips | 4+ |
+
+Windows come round every few days for sister moons, and from minutes to about two hours of play for the planets (Indigo to Rime is the longest), with the clock at about 26 game days a minute of play. **The clock runs only while you play** (the spec rules out real-time timers), and a **Wait** button on the map skips to the window for a cost in supplies.
+
+**Fuel:** water ice for now, for the lander and the starship. Long starship trips later need a rarer fuel from another world (@Hayk, Oct 17, 2026).
+
 ## The first star system
 
 Built Oct 17, 2026 (`logic/starSystem.ts`, the star map in `scenes/SystemScene.ts`), by the life rules in [inkmine-xenobiology.md](inkmine-xenobiology.md): plants and animals only in the habitable zone, on worlds big enough to hold air; life under a crust only on a giant's moon, where tides keep water liquid; everything else dead; carbon and water in this system; one breathable world. `test/starSystem.test.ts` holds the data to those rules.
@@ -368,26 +407,26 @@ Built Oct 17, 2026 (`logic/starSystem.ts`, the star map in `scenes/SystemScene.t
 
 | From the star | World | Kind | Mass (Earth = 1) | Air | Chapter |
 | --- | --- | --- | --- | --- | --- |
-| 0.12 AU | **Ember** | Dead: one face always to the star, its night side molten | 0.6 | Carbon dioxide, sulfur gases | 7 |
-| 0.30 AU | **Prism** | Dead: too small to keep air; glints like glass | 0.07 | None | 8 |
-| 0.56 AU | **Talus** | Living, sparse: the zone's warm edge, losing its water | 0.45 | Thin carbon dioxide | 2 |
+| 0.12 AU | **Ember** | Dead: one face always to the star, its night side molten | 0.6 | Carbon dioxide, sulfur gases | 6 |
+| 0.30 AU | **Prism** | Dead: too small to keep air; glints like glass | 0.07 | None | 5 |
+| 0.56 AU | **Talus** | Living, sparse: the zone's warm edge, losing its water | 0.45 | Thin carbon dioxide | 4 |
 | 0.78 AU | **Brine** | Living: nearly all sea, purple with life | 1.1 | Nitrogen, carbon dioxide | 3 |
 | 1.05 AU | **Sepia** | Ringed gas giant, not landed on. It formed farther out and drifted in, as many real giants do, bringing its icy moons, which is why Graphite has ice | 95 | — | — |
 | ↳ moon | **Graphite** | Underground: too small for air, kneaded warm by Sepia's tides | 0.03 | None | 1 |
-| ↳ moon | **Mycel** | Living: green under a spore haze | 0.3 | Thick carbon dioxide, spores | 4 |
+| ↳ moon | **Mycel** | Living: green under a spore haze | 0.3 | Thick carbon dioxide, spores | 2 |
 | ↳ moon | **Cardia** | Living: the living planet | 0.5 | Rich in oxygen: **breathable** | 10 |
 | 3.4 AU | **Indigo** | Ice giant, not landed on, past the snow line | 15 | — | — |
 | ↳ moon | **Umbra** | Under ice: an ocean kept liquid by Indigo's tides; plumes from the cracks | 0.015 | None above the ice | 9 |
-| ↳ moon | **Pumice** | Dead: so porous it would float on water, like Saturn's moon Hyperion (density 0.54 g/cm³, over 40% empty space; Thomas et al., 2007) | 0.0001 | None | 5 |
-| 9 AU | **Rime** | Dead: alone, no giant to knead it, frozen to the core | 0.004 | A trace of nitrogen frost | 6 |
+| ↳ moon | **Pumice** | Dead: so porous it would float on water, like Saturn's moon Hyperion (density 0.54 g/cm³, over 40% empty space; Thomas et al., 2007) | 0.0001 | None | 7 |
+| 9 AU | **Rime** | Dead: alone, no giant to knead it, frozen to the core | 0.004 | A trace of nitrogen frost | 8 |
 
 That's 4 living worlds, 2 with life under a crust, 4 dead and 2 giants. Two ice worlds with opposite fates: Umbra kept an ocean because Indigo squeezes it; Rime froze solid. In Graphite's sky, Sepia hangs over the horizon with Mycel (green) and Cardia (red) beside it: worlds you can't reach yet, from the start.
 
-**Your ship** circles Graphite. She came out of the wormhole broken and braked into orbit round the nearest ground before her systems failed. The ship flies between worlds; the lander goes down to them. Getting her jump drive back is the long game (see "The way home").
+**Your ship** circles Graphite. She came out of the wormhole broken and braked into orbit round the nearest ground before her systems failed. The ship flies between worlds; the lander goes down to them. Getting her jump drive back is the long game (see "The way home", and "Your starship and travel" below).
 
 **The star map** is drawn from the ship's telescope: the star's disc at the left edge, the worlds along a line by distance on a log scale (or the inner four would sit on top of each other), the habitable zone washed in highlighter, the snow line dashed, each giant's moons hanging from it, and your ship by Graphite. On a phone held upright it runs down the page. Tap a world for its card: what kind it is, its air, the scan ("carbon · water"), what the telescope sees, and whether you've been. Every world's line is something real instruments could tell from orbit (air from its light, plumes, a night side's glow), so the map never knows more than the ship could.
 
-**Chapters don't follow distance.** The order of the ten stays the difficulty order (water before lava, darkness last), so the route hops round the system.
+**Chapters follow the tank, not distance from the star.** Each chapter's world is the next one the starship's tank reaches from where you are: Graphite's sister moon Mycel first, then the next planets in and out.
 
 ## The ten planets
 
@@ -396,17 +435,17 @@ Each planet is its own world, with its own shape, people and language, and adds 
 | # | Planet | Biome | New mechanic | Given gear | Creatures | Giant | Signature material |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Graphite | Grey cratered moon | The basics: drilling, ore, firedamp, the life system, repairs, the first language | Starter set | Grit crabs (walker), lead worms (burrower) | The Grinder, a giant rock worm | Graphite, pencil lead |
-| 2 | Talus | Red mesas and dry gullies | Gravity: loose rock and boulders fall when you dig under them, and crush creatures | Blasting charges | Boulder beetles (mimic), sand skates (burrower) | The Rockslide, which sheds boulders as it walks | Hematite, "blood ore" |
+| 2 | Mycel | Fungal jungle | Growth: fungus slowly grows back over tunnels; cap mushrooms bounce you; spore pockets catch fire from a blast | Spore filter | Puffballs (spitter), snap tendrils (dropper) | The Mother Mycel, a heart you mine your way around | Amber with alien insects in it |
 | 3 | Brine | Island crust over a flooded underworld | Water and air: breaking into an aquifer floods the tunnels; you swim, and underwater air drains fast, refilled by bubble capsules (Mr. Driller) | Rebreather | Cave lampreys (swimmer), bubble jellies (flyer) | The Leviathan, in an underground sea | Brine pearls |
-| 4 | Mycel | Fungal jungle | Growth: fungus slowly grows back over tunnels; cap mushrooms bounce you; spore pockets catch fire from a blast | Spore filter | Puffballs (spitter), snap tendrils (dropper) | The Mother Mycel, a heart you mine your way around | Amber with alien insects in it |
-| 5 | Pumice | Light, porous moon | Low gravity: long floaty jumps, slow falls, drifting rubble | To decide | Drift moths (flyer), regolith hoppers (walker) | The Grazer, a floating giant | Helium-3 |
-| 6 | Rime | Ice world | Ice: slippery floors, frozen blocks only the lance melts; cold as a hazard | Thermal lance | Frost mites (swarm walker), ice wyrms (burrower) | The Hoarfrost, a giant ice spider | Fire ice (methane clathrate) |
-| 7 | Ember | Volcanic world | Lava: flows like water, burns; lava meeting water turns to obsidian; heat as a hazard | Coolant foam | Magma slugs (burning trails), cinder bats (flyer) | The Salamander | Diamonds, in kimberlite pipes |
-| 8 | Prism | Crystal caverns | Resonance: hit a crystal and every touching crystal of its colour shatters at once | Tuning fork | Shardlings (hurt only while glowing), refractors (beams bounce off crystal) | The Crystal Queen | Singing quartz |
+| 4 | Talus | Red mesas and dry gullies | Gravity: loose rock and boulders fall when you dig under them, and crush creatures | Blasting charges | Boulder beetles (mimic), sand skates (burrower) | The Rockslide, which sheds boulders as it walks | Hematite, "blood ore" |
+| 5 | Prism | Crystal caverns | Resonance: hit a crystal and every touching crystal of its colour shatters at once | Tuning fork | Shardlings (hurt only while glowing), refractors (beams bounce off crystal) | The Crystal Queen | Singing quartz |
+| 6 | Ember | Volcanic world | Lava: flows like water, burns; lava meeting water turns to obsidian; heat as a hazard | Coolant foam | Magma slugs (burning trails), cinder bats (flyer) | The Salamander | Diamonds, in kimberlite pipes |
+| 7 | Pumice | Light, porous moon | Low gravity: long floaty jumps, slow falls, drifting rubble | To decide | Drift moths (flyer), regolith hoppers (walker) | The Grazer, a floating giant | Helium-3 |
+| 8 | Rime | Ice world | Ice: slippery floors, frozen blocks only the lance melts; cold as a hazard | Thermal lance | Frost mites (swarm walker), ice wyrms (burrower) | The Hoarfrost, a giant ice spider | Fire ice (methane clathrate) |
 | 9 | Umbra | An ocean under an ice shell (was: the dark side of a tidally locked world) | Darkness: only your lamp, flares and glowing minerals give light | Flares | Lurkers (strike from the dark), glow lures (mimic ore glints) | The Listener, which hunts by the sound of digging | Willemite, which glows green |
 | 10 | Cardia | A living planet | Heartbeat: every few seconds a beat shakes the ground; every earlier mechanic returns | — | Antibodies (chasers), veins that pump fluid | The Heart | Heartstone |
 
-Order follows difficulty and dependency: water (3) before lava (7) so lava-meets-water reads; darkness (9) is the hardest.
+Order follows the starship's tank (Oct 17, 2026): the cheapest trips first, so each chapter's world is the next one a bigger tank reaches (see "Your starship and travel"). It still keeps the dependencies: water (Brine, 3) before lava (Ember, 6) so lava-meets-water reads; darkness (Umbra, 9) is the hardest; Cardia, the sister moon you could see from the start and the one world you can breathe on, is last.
 
 **What makes a planet unique** (a checklist for designing each one): its world has its own shape, not just new colours; one mechanic that changes how you dig; its own people with their own language, wants and look; its own fuels for the drill and life support; and a reason, in the story, to be there.
 
@@ -434,7 +473,8 @@ There's no result screen and no level select in chapter 1.
 
 - **Inside the lander** (L at the lander), laid out like No Man's Sky's inventory (ShipScene, Oct 17, 2026): a **Suit** and a **Ship** tab (tap, or Q / E). Each tab has a Technology plate of big slots with a drawn picture of what's fitted (`art/techArt.ts`), its Mk or level, and a corner flag (verdigris: an upgrade ready to print; madder: broken), then a separate Storage plate (the suit bag; the cargo). The suit's slots are the six gear pieces; the ship's are its Systems (the crash repairs, drawn broken until mended) and its Modules. Beside them stand the prospector or the lander, over a detail card for the slot in focus with its next step, its ore ticked off, and Print / Repair. A stack picked up on one tab can be put down on the other, or sent across with "To cargo" / "To suit bag". Back down is at the top right.
 - **The pause screen is the inventory** (Oct 17, 2026): L, Esc or P away from the lander opens the Inventory page over the paused world, and the same keys close it. Recall is on it, top centre, with a note on what it costs. There's no separate pause card any more. Still to come on it: the survey sheet, the repair list and the field guide (with the lexicon and the logs).
-- **The Fuel panel** (Ship tab, under the lander): the tank's bar, Refill, and Lift off (or, after the flight, Star map). Far from the lander it's look-only.
+- **Three tabs: Suit, Lander, Starship** (Oct 17, 2026). The Starship tab appears once the lander's radio works (her telemetry comes over it): her systems, her hold, and her fuel panel. Aboard her, the page is titled "Your starship" and its way out is **Land**.
+- **The fuel panels:** the Lander tab's (the lander's tank, Refill, Lift off) and the Starship tab's (her tank, Refill, Star map). Far from the lander they're look-only.
 - **After chapter 1:** the star map ("The first star system") is where you choose the next world, and later the galaxy map past it (paid version).
 
 ## Art direction
@@ -627,7 +667,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 5. **Creatures** (grit crabs, lead worms) and fighting with the drill.
 6. **The rest of Graphite:** the Aster base, the grey band, the deep, the Grinder; the drive core and lift-off; the opening and the ending.
 7. Coach hints, sound, touch controls, account sync; add InkMine to the catalog with chapter 1 free.
-8. ~~The first star system and its map~~ (done Oct 17, 2026: fuel, lift-off, docking, the star map); then planets 2–10, one at a time, each with its people, and the galaxy map past this system.
+8. ~~The first star system and its map~~ (done Oct 17, 2026: fuel, lift-off, docking, the starship's repairs and hold, first light, the first trip, the end of the demo); next, the game clock, moving orbits and trip costs by launch window; then planets 2–10, one at a time, each with its people, and the galaxy map past this system.
 
 ## Decisions
 
@@ -663,6 +703,7 @@ Settled with @Hayk on Oct 17, 2026:
 - **Your ship is in orbit.** Chapter 1 ends when the repaired, fuelled lander flies up to her; the moon you crashed on is a satellite of a giant planet.
 - **The first star system follows the life rules** (see "The first star system"). The layout built is the one proposed in [inkmine-xenobiology.md](inkmine-xenobiology.md) section 7, with names for the giants (Sepia, Indigo) and Pumice made Indigo's moon; it's built, so change it now if it's wrong.
 - **Fuel is a tank with a bar,** refilled from ice aboard, not a one-off repair.
+- **Travel** (see "Your starship and travel"): the starship travels and the lander goes down and up; her tank decides how far you can go, and bigger tanks are upgrades; ice now, a rarer fuel later; trips cost least at their launch window. The starship has her own tab, systems to mend (the telescope too, so the star map isn't there at first) and a hold. Chapter 1 ends with her mended and the first trip set, on the star map, as the end of the demo; the chapter order follows the tank (Mycel 2nd, Brine 3rd, Talus 4th, Prism, Ember, Pumice, Rime, Umbra, Cardia last).
 
 ## Open questions
 

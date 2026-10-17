@@ -1,4 +1,4 @@
-import { canLiftOff, canRefill, FUEL, refill, refillCost } from '../../logic/fuel';
+import { canLiftOff, canRefill, FUEL, refill, refillCost, ROUND_TRIP } from '../../logic/fuel';
 import { ORES } from '../../logic/ore';
 import { Gauge } from '../kit/gauge';
 import { plaque } from '../kit/plaque';
@@ -7,56 +7,60 @@ import { PAD, section, SECTION_BODY, type ShipPage } from './panel';
 import { liftOffCard } from './storyCards';
 
 const BAR_H = 18;
-const BTN = { w: 200, h: 44 } as const;
-/** Below this share the bar turns madder, as the suit's gauges do. */
-const LOW = FUEL.toOrbit / FUEL.max;
+export const FUEL_BTN = { w: 200, h: 44 } as const;
+/** Below this share the bar turns madder: not enough to go up and come back down. */
+const LOW = ROUND_TRIP / FUEL.max;
 
-/** Why the lander can't climb yet, under the buttons. */
-const LIFT_NOTE = {
+/** Why the lander can't climb yet, or what landing burns, under the buttons. */
+const NOTES = {
   core: 'Lift-off needs the drive core fitted.',
-  fuel: `The climb to the ship in orbit burns ${FUEL.toOrbit} units.`,
+  fuel: `The climb to your ship burns ${FUEL.toOrbit} units and landing again ${FUEL.toGround}: lift-off waits for both.`,
+  docked: `Landing on Graphite burns ${FUEL.toGround} units.`,
 } as const;
 
+/** A tank's bar, its level in words, and what it's split from: the top of both fuel panels. Returns the y under it. */
+export function tankRow(page: ShipPage, x: number, y: number, w: number, level: number, max: number, low: number): number {
+  const { scene } = page;
+  const inner = w - PAD * 2;
+  new Gauge(scene, x + PAD, y, inner, BAR_H, 'fuel').set(level / max, low);
+  const ry = y + BAR_H + 8;
+  label(scene, x + PAD, ry, `${level} / ${max} units`, 17, INK_TEXT, '600');
+  aside(scene, x + w - PAD, ry + 2, `one lump of ${ORES[FUEL.ore].name} a unit`, 15, inner / 2, SEPIA).setOrigin(1, 0);
+  return ry + 32;
+}
+
 /**
- * The lander's fuel on the Ship tab (spec, "The lander"): the tank's bar,
- * a Refill button that splits the ice on hand into fuel, and Lift off once
- * the drive core is in and there's enough for the climb to the ship. After
- * the flight, the same place opens the star map. Far from the lander it's
- * look-only. Returns the height.
+ * The lander's fuel on the Lander tab (spec, "Your starship and travel"):
+ * the tank's bar, a Refill button that splits the ice on hand into fuel,
+ * and Lift off once the drive core is in and there's enough to go up and
+ * come back down. Aboard the starship, landing is the page's way out, so
+ * only Refill is here. Far from the lander it's look-only. Returns the height.
  */
 export function fuelPanel(page: ShipPage, x: number, y: number, w: number): number {
   const { scene, profile: p } = page;
-  const inner = w - PAD * 2;
-  let ry = y + SECTION_BODY;
-  const bar = new Gauge(scene, x + PAD, ry, inner, BAR_H, 'fuel');
-  bar.set(p.fuel / FUEL.max, LOW);
-  ry += BAR_H + 8;
-  label(scene, x + PAD, ry, `${p.fuel} / ${FUEL.max} units`, 17, INK_TEXT, '600');
-  aside(scene, x + w - PAD, ry + 2, `one lump of ${ORES[FUEL.ore].name} a unit`, 15, inner / 2, SEPIA).setOrigin(1, 0);
-  ry += 32;
+  let ry = tankRow(page, x, y + SECTION_BODY, w, p.fuel, FUEL.max, LOW);
   const lift = canLiftOff(p);
   const fill = canRefill(p);
-  const cy = ry + BTN.h / 2;
+  const cy = ry + FUEL_BTN.h / 2;
+  const opts = (ok: boolean, primary = false) => ({ width: FUEL_BTN.w, height: FUEL_BTN.h, size: 16, kind: ok ? (primary ? 'primary' : 'secondary') : 'off' }) as const;
   if (page.remote) {
-    plaque(scene, x + PAD + BTN.w / 2, cy, 'At the lander', () => {}, { width: BTN.w, height: BTN.h, size: 16, kind: 'off' });
+    plaque(scene, x + PAD + FUEL_BTN.w / 2, cy, 'At the lander', () => {}, opts(false));
   } else {
     const fillText = fill === 'ok' ? `Refill · ${refillCost(p)} ice` : fill === 'full' ? 'Full' : 'No ice on hand';
-    const doFill = (): void => {
+    plaque(scene, x + PAD + FUEL_BTN.w / 2, cy, fillText, () => {
       const r = refill(p);
       if (r.ok) page.commit(r.profile, { news: 'Tank filled' });
-    };
-    plaque(scene, x + PAD + BTN.w / 2, cy, fillText, doFill, { width: BTN.w, height: BTN.h, size: 16, kind: fill === 'ok' ? 'secondary' : 'off' });
-    if (lift === 'flown') plaque(scene, x + w - PAD - BTN.w / 2, cy, 'Star map', () => scene.scene.start('System', { arrived: false }), { width: BTN.w, height: BTN.h, size: 16, kind: 'primary' });
-    else plaque(scene, x + w - PAD - BTN.w / 2, cy, 'Lift off', () => {
+    }, opts(fill === 'ok'));
+    if (lift !== 'docked') plaque(scene, x + w - PAD - FUEL_BTN.w / 2, cy, 'Lift off', () => {
       if (lift === 'ok') liftOffCard(page);
-    }, { width: BTN.w, height: BTN.h, size: 16, kind: lift === 'ok' ? 'primary' : 'off' });
+    }, opts(lift === 'ok', true));
   }
-  ry += BTN.h + 10;
-  if (!page.remote && (lift === 'core' || lift === 'fuel')) {
-    const t = aside(scene, x + PAD, ry, LIFT_NOTE[lift], 15, inner, SEPIA);
+  ry += FUEL_BTN.h + 10;
+  if (!page.remote && lift !== 'ok') {
+    const t = aside(scene, x + PAD, ry, NOTES[lift], 15, w - PAD * 2, SEPIA);
     ry += t.height + 6;
   }
   const h = ry - y + 8;
-  section(scene, x, y, w, h, 'Fuel', 47);
+  section(scene, x, y, w, h, 'Lander fuel', 47);
   return h;
 }

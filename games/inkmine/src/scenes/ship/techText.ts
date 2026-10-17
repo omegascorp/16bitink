@@ -4,6 +4,7 @@ import { countOf, holdEntries, type Hold } from '../../logic/hold';
 import { ORES } from '../../logic/ore';
 import { REPAIRS } from '../../logic/repairs';
 import { MODULES } from '../../logic/ship';
+import { STARSHIP } from '../../logic/starship';
 import type { Tech } from '../../logic/tech';
 import { TOOL_KINDS } from '../../logic/tools';
 
@@ -13,6 +14,7 @@ export function techName(t: Tech): string {
   if (t.kind === 'gear') return PIECE_NAMES[t.piece];
   if (t.kind === 'module') return MODULES[t.key].name;
   if (t.kind === 'tool') return TOOL_KINDS[t.id].name;
+  if (t.kind === 'starship') return STARSHIP[t.id].name;
   return REPAIRS[t.id].name;
 }
 

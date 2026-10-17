@@ -166,40 +166,44 @@ export function keepShare(inv: Inventory, share: number): Inventory {
 }
 
 export interface SlotRef {
-  /** Which inventory: 0 or 1 of the pair being managed (the suit and the ship). */
-  readonly bag: 0 | 1;
+  /** Which store: its index among those being managed (the suit's bag 0, the lander's cargo 1, the starship's hold 2). */
+  readonly bag: number;
   readonly slot: number;
 }
 
+/** The stores with one replaced. */
+function withStore(stores: readonly Inventory[], bag: number, inv: Inventory): Inventory[] {
+  return stores.map((x, i) => (i === bag ? inv : x));
+}
+
 /**
- * Moves the stack in slot `a` onto slot `b`, either inventory to either:
- * into an empty slot, onto a stack of the same ore (as much as fits, the
- * rest stays), or swapping with a different ore (if each fits the other's
- * stack size). Returns the pair, unchanged when nothing can move.
+ * Moves the stack in slot `a` onto slot `b`, any store to any: into an
+ * empty slot, onto a stack of the same ore (as much as fits, the rest
+ * stays), or swapping with a different ore (if each fits the other's
+ * stack size). Returns the stores, unchanged when nothing can move.
  */
-export function moveStack(pair: readonly [Inventory, Inventory], a: SlotRef, b: SlotRef): [Inventory, Inventory] {
-  if (a.bag === b.bag && a.slot === b.slot) return [pair[0], pair[1]];
-  const src = pair[a.bag].slots[a.slot];
-  if (!src) return [pair[0], pair[1]];
-  const dstInv = pair[b.bag];
+export function moveStack(stores: readonly [Inventory, Inventory], a: SlotRef, b: SlotRef): [Inventory, Inventory];
+export function moveStack(stores: readonly Inventory[], a: SlotRef, b: SlotRef): Inventory[];
+export function moveStack(stores: readonly Inventory[], a: SlotRef, b: SlotRef): Inventory[] {
+  const same = [...stores];
+  if (a.bag === b.bag && a.slot === b.slot) return same;
+  const src = stores[a.bag]?.slots[a.slot];
+  const dstInv = stores[b.bag];
+  if (!src || !dstInv) return same;
   const dst = dstInv.slots[b.slot];
-  if (dst === undefined) return [pair[0], pair[1]];
-  const set = (p: [Inventory, Inventory], ref: SlotRef, s: Stack | null): [Inventory, Inventory] => {
-    const out: [Inventory, Inventory] = [p[0], p[1]];
-    const inv = out[ref.bag];
-    out[ref.bag] = { ...inv, slots: inv.slots.map((x, i) => (i === ref.slot ? s : x)) };
-    return out;
-  };
+  if (dst === undefined) return same;
+  const set = (out: readonly Inventory[], ref: SlotRef, st: Stack | null): Inventory[] =>
+    withStore(out, ref.bag, { ...out[ref.bag]!, slots: out[ref.bag]!.slots.map((x, i) => (i === ref.slot ? st : x)) });
   if (dst === null || dst.ore === src.ore) {
     const have = dst?.n ?? 0;
     const put = Math.min(src.n, dstInv.stack - have);
-    if (put <= 0) return [pair[0], pair[1]];
-    const placed = set([pair[0], pair[1]], b, { ore: src.ore, n: have + put });
+    if (put <= 0) return same;
+    const placed = set(stores, b, { ore: src.ore, n: have + put });
     return set(placed, a, src.n - put > 0 ? { ore: src.ore, n: src.n - put } : null);
   }
   // A different ore: swap, if each stack fits where it's going.
-  if (src.n > dstInv.stack || dst.n > pair[a.bag].stack) return [pair[0], pair[1]];
-  return set(set([pair[0], pair[1]], b, src), a, dst);
+  if (src.n > dstInv.stack || dst.n > stores[a.bag]!.stack) return same;
+  return set(set(stores, b, src), a, dst);
 }
 
 /** Splits half of a stack (rounded down) into the first empty slot of the same inventory. */
@@ -217,19 +221,19 @@ export function jettison(inv: Inventory, slot: number): Inventory {
 }
 
 /**
- * Sends the stack in slot `from` to the other inventory of the pair, as
- * much as fits: onto its stacks of that ore first, then into empty slots.
- * What doesn't fit stays where it was.
+ * Sends the stack in slot `from` to store `to` (by default the other of
+ * the first two), as much as fits: onto its stacks of that ore first, then
+ * into empty slots. What doesn't fit stays where it was.
  */
-export function sendStack(pair: readonly [Inventory, Inventory], from: SlotRef): [Inventory, Inventory] {
-  const src = pair[from.bag].slots[from.slot];
-  if (!src) return [pair[0], pair[1]];
-  const to = from.bag === 0 ? 1 : 0;
-  const r = addOre(pair[to], src.ore, src.n);
-  if (!r.added) return [pair[0], pair[1]];
+export function sendStack(stores: readonly [Inventory, Inventory], from: SlotRef, to?: number): [Inventory, Inventory];
+export function sendStack(stores: readonly Inventory[], from: SlotRef, to?: number): Inventory[];
+export function sendStack(stores: readonly Inventory[], from: SlotRef, to: number = from.bag === 0 ? 1 : 0): Inventory[] {
+  const src = stores[from.bag]?.slots[from.slot];
+  const dst = stores[to];
+  if (!src || !dst || to === from.bag) return [...stores];
+  const r = addOre(dst, src.ore, src.n);
+  if (!r.added) return [...stores];
   const left = src.n - r.added;
-  const out: [Inventory, Inventory] = [pair[0], pair[1]];
-  out[to] = r.inv;
-  out[from.bag] = { ...pair[from.bag], slots: pair[from.bag].slots.map((x, i) => (i === from.slot ? (left > 0 ? { ore: src.ore, n: left } : null) : x)) };
-  return out;
+  const fromInv = stores[from.bag]!;
+  return withStore(withStore(stores, to, r.inv), from.bag, { ...fromInv, slots: fromInv.slots.map((x, i) => (i === from.slot ? (left > 0 ? { ore: src.ore, n: left } : null) : x)) });
 }

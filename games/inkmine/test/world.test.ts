@@ -5,6 +5,9 @@ import { PLANETS } from '../src/level/planets';
 import { energyMap } from '../src/level/reach';
 import type { PlanetDef, WorldDef } from '../src/level/types';
 import { RECIPES } from '../src/logic/blueprints';
+import { REPAIRS } from '../src/logic/repairs';
+import { STARSHIP, STARSHIP_IDS } from '../src/logic/starship';
+import { TRADE } from '../src/logic/story';
 import { addHold, holdEntries, type Hold } from '../src/logic/hold';
 import { ORES, type OreKey } from '../src/logic/ore';
 import { STARTER } from '../src/logic/suit';
@@ -76,6 +79,14 @@ describe.each(worlds)('the world of %s', (_id, planet) => {
 describe('Graphite', () => {
   const graphite = PLANETS[0]!;
   const item = (id: string) => graphite.world.items.find((it) => it.id === id)!;
+
+  it('holds what all of chapter 1 takes, gear, both ships and the trade together, half again over, within the Drill Mk 1\'s reach', () => {
+    const repairs = Object.values(REPAIRS).flatMap((r) => (r.needs ? [r.needs] : []));
+    const starship = STARSHIP_IDS.map((id) => STARSHIP[id].needs!);
+    const gear = Object.values(RECIPES).filter((r) => r.mk === 1).map((r) => r.materials);
+    const need = [...repairs, ...starship, ...gear, TRADE].reduce<Hold>((sum, h) => addHold(sum, h), {});
+    for (const [ore, n] of holdEntries(need)) expect(reachableOre(graphite, 1, ore), ore).toBeGreaterThanOrEqual(Math.ceil(n * 1.5));
+  });
 
   it("the drill's blueprint and twice its materials are within the starter drill's reach", () => {
     expect(item('fissure-cave-drill').drill).toBe(0);

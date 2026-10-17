@@ -15,7 +15,7 @@ import type { OreKey } from './ore';
  *
  * The beats are saved as reached: never rename one.
  */
-export const BEATS = ['called', 'met', 'paid', 'core', 'flown'] as const;
+export const BEATS = ['called', 'met', 'paid', 'core', 'flown', 'course', 'aboard', 'firstLight'] as const;
 export type Beat = (typeof BEATS)[number];
 
 /**

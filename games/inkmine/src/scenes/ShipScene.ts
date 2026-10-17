@@ -1,13 +1,15 @@
 import Phaser from 'phaser';
 import { ART_RES, PAPER } from '../art/palette';
-import { bakeCharacters, bakePickups, PROSPECTOR_RES, TEX } from '../art/textures';
+import { bakeCharacters, bakePickups, bakeSystem, PROSPECTOR_RES, TEX } from '../art/textures';
 import { getProfile, setProfile } from '../host';
 import { currentPlanet } from '../level/planets';
 import type { Profile } from '../logic/economy';
 import { prospectorLook } from '../logic/gear';
 import { wreckOf } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
-import { defaultTab, focusOf, TABS, type Tab } from '../logic/tech';
+import { canLand, land } from '../logic/fuel';
+import { isFixed } from '../logic/starship';
+import { defaultTab, focusOf, tabsFor, type Tab } from '../logic/tech';
 import type { GameScene } from './GameScene';
 import { relayoutOnResize, screenScene, viewSize } from './hidpi';
 import { plaque } from './kit/plaque';
@@ -16,6 +18,7 @@ import { aside, heading, INK_TEXT, scrawl, SEPIA } from './kit/type';
 import { desk, NO_FOCUS, type ShipPage, type ShipUi } from './ship/panel';
 import { storagePanel } from './ship/storagePanel';
 import { fuelPanel } from './ship/fuelPanel';
+import { starshipPanel } from './ship/starshipPanel';
 import { drawTabs } from './ship/tabs';
 import { stackCard } from './ship/stackCard';
 import { techCard } from './ship/techCard';
@@ -56,6 +59,7 @@ const MENU_KEYS = ['keydown-L', 'keydown-ESC', 'keydown-P'] as const;
 export class ShipScene extends Phaser.Scene {
   private ui: ShipUi = {};
   private remote = false;
+  private tabs: readonly Tab[] = [];
 
   constructor() {
     super('Ship');
@@ -72,7 +76,9 @@ export class ShipScene extends Phaser.Scene {
     bakePickups(this, planet.style.stone);
 
     this.remote = data.remote ?? false;
-    const tab = data.tab ?? (this.remote ? 'suit' : defaultTab(profile));
+    this.tabs = tabsFor(profile);
+    const asked = data.tab && this.tabs.includes(data.tab) ? data.tab : undefined;
+    const tab = asked ?? (this.remote ? 'suit' : defaultTab(profile));
     this.ui = { selected: data.selected, confirm: data.confirm, tab, focus: data.focus };
     const page: ShipPage = {
       scene: this,
@@ -87,7 +93,7 @@ export class ShipScene extends Phaser.Scene {
     const wide = width >= WIDE;
     // The right side shows one thing: the stack held, else the slot in focus, else nothing.
     const sel = this.ui.selected;
-    const held = sel ? (sel.bag === 0 ? profile.suit : profile.cargo).slots[sel.slot] : null;
+    const held = sel ? ([profile.suit, profile.cargo, profile.hold][sel.bag]?.slots[sel.slot] ?? null) : null;
     const focus = held || data.focus === NO_FOCUS ? null : focusOf(profile, tab, data.focus);
     const card = (x: number, y: number, w: number): number => {
       if (sel && held) return stackCard(page, sel, held, x, y, w);
@@ -105,10 +111,10 @@ export class ShipScene extends Phaser.Scene {
       const h2 = storagePanel(page, tab, x0, top + h1 + GAP, leftW);
       this.figure(tab, profile, x1 + rightW / 2, top + FIG.wide - 10, false);
       this.farNote(tab, x1 + rightW / 2, top + 4, rightW, 28);
-      // The Ship tab has the fuel tank under the lander, then the card.
-      const fuelH = tab === 'ship' ? fuelPanel(page, x1, top + FIG.wide, rightW) + GAP : 0;
+      // The Lander and Starship tabs have a fuel tank under the figure, then the card.
+      const fuelH = this.fuel(page, tab, x1, top + FIG.wide, rightW);
       const h3 = card(x1, top + FIG.wide + fuelH, rightW);
-      bottom = Math.max(top + h1 + GAP + h2, top + FIG.wide + fuelH + (h3 || -GAP));
+      bottom = Math.max(top + h1 + (h2 ? GAP + h2 : 0), top + FIG.wide + fuelH + (h3 || -GAP));
     } else {
       const colW = Math.floor(Math.min(620, width - GAP * 2) / 8) * 8;
       const x = Math.round((width - colW) / 2);
@@ -116,7 +122,7 @@ export class ShipScene extends Phaser.Scene {
       this.figure(tab, profile, width / 2, top + FIG.narrow - 10, true);
       this.farNote(tab, width / 2, top - 6, colW, 22);
       const panels: ((y: number) => number)[] = [
-        (y) => (tab === 'ship' ? fuelPanel(page, x, y, colW) : 0),
+        (y) => Math.max(0, this.fuel(page, tab, x, y, colW) - GAP),
         (y) => techPanel(page, tab, focus, x, y, colW),
         (y) => card(x, y, colW),
         (y) => storagePanel(page, tab, x, y, colW),
@@ -131,20 +137,28 @@ export class ShipScene extends Phaser.Scene {
     if (!this.remote) shipStoryCard(page);
   }
 
-  /** The title, the tab strip, the way back down, and any news. */
+  /** The tab's fuel tank under its figure (the lander's, or the starship's), with the gap after it; 0 on the suit's. */
+  private fuel(page: ShipPage, tab: Tab, x: number, y: number, w: number): number {
+    if (tab === 'suit') return 0;
+    return (tab === 'ship' ? fuelPanel(page, x, y, w) : starshipPanel(page, x, y, w)) + GAP;
+  }
+
+  /** The title, the tab strip, the way back down (or, aboard the starship, landing), and any news. */
   private header(width: number, wide: boolean, tab: Tab, news?: string): void {
     const planet = currentPlanet();
-    heading(this, GAP + 4, 18, this.remote ? 'Inventory' : 'The lander', 30).setOrigin(0, 0);
-    const where = this.remote ? 'far from the lander: the cargo is look-only' : `crash site, ${planet.name}`;
+    const docked = getProfile(this).docked;
+    heading(this, GAP + 4, 18, this.remote ? 'Inventory' : docked ? 'Your starship' : 'The lander', 30).setOrigin(0, 0);
+    const where = this.remote ? 'far from the lander: the cargo is look-only' : docked ? `docked, in orbit over ${planet.name}` : `crash site, ${planet.name}`;
     aside(this, GAP + 6, 54, where, 17, 400, SEPIA).setOrigin(0, 0);
     const back = (): void => {
       if (this.remote) this.close();
       else this.backDown();
     };
-    plaque(this, width - GAP - BACK.w / 2, 40, this.remote ? 'Back' : 'Back down', back, { width: BACK.w, height: BACK.h, kind: 'primary' });
+    const canGo = !docked || this.remote || canLand(getProfile(this)) === 'ok';
+    plaque(this, width - GAP - BACK.w / 2, 40, this.remote ? 'Back' : docked ? 'Land' : 'Back down', back, { width: BACK.w, height: BACK.h, kind: canGo ? 'primary' : 'off' });
     const pick = (t: Tab): void => this.redraw(null, { selected: this.ui.selected, tab: t });
-    if (wide) drawTabs(this, width - GAP - BACK.w - 40, 38, tab, pick);
-    else drawTabs(this, width - GAP, 104, tab, pick);
+    if (wide) drawTabs(this, width - GAP - BACK.w - 40, 38, this.tabs, tab, pick);
+    else drawTabs(this, width - GAP, 104, this.tabs, tab, pick);
     if (this.remote) this.recallButton(wide ? width / 2 : GAP + RECALL.w / 2, wide ? 34 : 104, wide);
     if (!news) return;
     if (wide) scrawl(this, width / 2, 40, news, 30, INK_TEXT).setOrigin(0.5, 0.5);
@@ -179,29 +193,48 @@ export class ShipScene extends Phaser.Scene {
       shadow.fillEllipse(cx, groundY, img.displayWidth * 0.32, 12);
       return;
     }
+    if (tab === 'starship') {
+      // Dark until her power's back.
+      bakeSystem(this);
+      const img = this.add.image(cx, groundY - (small ? 70 : 110), TEX.shipBig(isFixed(p, 'power')));
+      img.setScale((small ? 330 : 500) / img.width);
+      return;
+    }
     const s = (small ? 1.15 : 1.75) / ART_RES;
     this.add.image(cx, groundY, TEX.lander(landerLookOf(p.ship), 0, wreckOf(p))).setOrigin(0.5, 1).setScale(s);
   }
 
   /** Q and E switch tabs, as the shoulder buttons do in No Man's Sky. */
   private keys(tab: Tab): void {
+    const tabs = this.tabs;
     const step = (d: number): void => {
-      const next = TABS[(TABS.indexOf(tab) + d + TABS.length) % TABS.length]!;
+      const next = tabs[(tabs.indexOf(tab) + d + tabs.length) % tabs.length]!;
       this.redraw(null, { selected: this.ui.selected, tab: next });
     };
     this.input.keyboard?.on('keydown-Q', () => step(-1));
     this.input.keyboard?.on('keydown-E', () => step(1));
     // The keys that open the page close it: back into the world far away, back down aboard. A held key's repeats don't count.
+    // Aboard the starship they do nothing: landing burns fuel, so it takes the button.
     const leave = (e: KeyboardEvent): void => {
-      if (e.repeat) return;
+      if (e.repeat || (!this.remote && getProfile(this).docked)) return;
       if (this.remote) this.close();
       else this.backDown();
     };
     for (const k of MENU_KEYS) this.input.keyboard?.on(k, leave);
   }
 
-  /** Out of the lander: the world starts again from it. Empty data, so a waking note from an earlier start isn't shown again. */
+  /**
+   * Out of the lander: the world starts again from it. Empty data, so a
+   * waking note from an earlier start isn't shown again. Aboard the
+   * starship it's the landing, which burns the lander's fuel.
+   */
   private backDown(): void {
+    const p = getProfile(this);
+    if (p.docked) {
+      const r = land(p);
+      if (!r.ok) return;
+      setProfile(this, r.profile);
+    }
     this.scene.start('Game', {});
   }
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { FUEL } from '../src/logic/fuel';
+import { FUEL, ROUND_TRIP } from '../src/logic/fuel';
+import { FIRST_COURSE } from '../src/logic/starship';
 import { fitInventories, NEW_PROFILE, type Profile } from '../src/logic/economy';
 import type { Hold } from '../src/logic/hold';
 import { addHoldTo, countIn, emptyInventory, type Inventory } from '../src/logic/inventory';
@@ -106,8 +107,16 @@ describe('the goals after the comms', () => {
     expect(currentGoal(given)).toEqual({ kind: 'repair', id: 'core' });
     const fitted = { ...given, repaired: [...given.repaired, 'core'] as Profile['repaired'] };
     expect(currentGoal(fitted)).toEqual({ kind: 'fuel' });
-    expect(currentGoal({ ...fitted, fuel: FUEL.toOrbit })).toEqual({ kind: 'done' });
-    expect(currentGoal(withBeat(fitted, 'flown'))).toEqual({ kind: 'done' });
+    expect(currentGoal({ ...fitted, fuel: FUEL.toOrbit })).toEqual({ kind: 'fuel' });
+    expect(currentGoal({ ...fitted, fuel: ROUND_TRIP })).toEqual({ kind: 'liftoff' });
+    const up = { ...withBeat(fitted, 'flown'), docked: true };
+    expect(currentGoal(up)).toEqual({ kind: 'starship', id: 'power' });
+    expect(currentGoal({ ...up, starship: ['power'] as Profile['starship'] })).toEqual({ kind: 'starship', id: 'telescope' });
+    expect(currentGoal({ ...up, starship: ['power', 'telescope'] as Profile['starship'] })).toEqual({ kind: 'starship', id: 'tank' });
+    const mended = { ...up, starship: ['power', 'telescope', 'tank', 'engine'] as Profile['starship'] };
+    expect(currentGoal(mended)).toEqual({ kind: 'shipFuel' });
+    expect(currentGoal({ ...mended, shipFuel: FIRST_COURSE.fuel })).toEqual({ kind: 'course' });
+    expect(currentGoal(withBeat(mended, 'course'))).toEqual({ kind: 'done' });
   });
 
   it('say what to print, how to follow the call, and what to bring, counting the silver in the bag', () => {
@@ -119,10 +128,12 @@ describe('the goals after the comms', () => {
     expect(goalLine(whole, { kind: 'collect' })).toMatch(/core/i);
     const given = withBeat(withBeat(whole, 'paid'), 'core');
     expect(goalLine(given, { kind: 'repair', id: 'core' })).toMatch(/go aboard/);
-    expect(goalLine(given, { kind: 'fuel' })).toMatch(/water ice 0\/10/);
-    expect(goalLine(withCargo(given, { ice: 10 }), { kind: 'fuel' })).toMatch(/refill/);
-    expect(goalLine(given, { kind: 'done' })).toMatch(/Lift off/);
-    expect(goalLine(withBeat(given, 'flown'), { kind: 'done' })).toMatch(/star map/);
+    expect(goalLine(given, { kind: 'fuel' })).toMatch(/water ice 0\/12/);
+    expect(goalLine(withCargo(given, { ice: 12 }), { kind: 'fuel' })).toMatch(/refill/);
+    expect(goalLine(given, { kind: 'liftoff' })).toMatch(/Lift off/);
+    expect(goalLine(given, { kind: 'starship', id: 'power' })).toMatch(/power: native copper 0\/10.*carried up/);
+    expect(goalLine({ ...withCargo(given, { copper: 10, silver: 4 }), docked: true }, { kind: 'starship', id: 'power' })).toMatch(/Starship tab/);
+    expect(goalLine({ ...given, docked: true }, { kind: 'course' })).toMatch(/star map/);
   });
 });
 

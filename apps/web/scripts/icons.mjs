@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { inkcrabArt } from './icons/inkcrab.mjs';
 import { inkfishArt } from './icons/inkfish.mjs';
+import { inkmineArt } from './icons/inkmine.mjs';
 import { INK, PAPER, SIZE, brandDrop, paper } from './icons/paper.mjs';
 
 const PUBLIC = join(dirname(fileURLToPath(import.meta.url)), '..', 'public');
@@ -25,6 +26,7 @@ const ICONS = {
   '16bitink': () => brandDrop({ top: 45, scale: 1.1 }),
   inkfish: (opts) => inkfishArt(opts),
   inkcrab: (opts) => inkcrabArt(opts),
+  inkmine: (opts) => inkmineArt(opts),
 };
 
 function svg(art, { maskable = false } = {}) {

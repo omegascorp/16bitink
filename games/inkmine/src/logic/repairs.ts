@@ -1,9 +1,10 @@
 import { recipeOf } from './blueprints';
 import { fitInventories, hasOnHand, onHand, spend, type PrintResult, type Profile } from './economy';
-import { FUEL } from './fuel';
+import { FUEL, ROUND_TRIP } from './fuel';
 import { countOf, holdEntries, type Hold } from './hold';
 import { ORES } from './ore';
 import { hasBeat, tradeLine } from './story';
+import { FIRST_COURSE, isFixed, SHIP_TANK, STARSHIP, STARSHIP_IDS, type StarshipId } from './starship';
 import { hasTool, TOOL_KINDS } from './tools';
 
 /**
@@ -120,9 +121,17 @@ export type Goal =
   | { readonly kind: 'trade' }
   /** Paid and the ship whole: go back to them for the core. */
   | { readonly kind: 'collect' }
-  /** The core is in: fill the tank for the climb to orbit (fuel.ts). */
+  /** The core is in: fill the tank for the climb to orbit and back (fuel.ts). */
   | { readonly kind: 'fuel' }
-  /** Fuelled: lift off and fly up to the ship (chapter 1 is over once you have). */
+  /** Fuelled: lift off and fly up to the starship. */
+  | { readonly kind: 'liftoff' }
+  /** Aboard (or back down for the ore): mend the starship's next system (starship.ts). */
+  | { readonly kind: 'starship'; readonly id: StarshipId }
+  /** She's mended: fill her tank for the first trip. */
+  | { readonly kind: 'shipFuel' }
+  /** Set course for the first sister moon on the star map. */
+  | { readonly kind: 'course' }
+  /** Course set: chapter 1 is over. */
   | { readonly kind: 'done' };
 
 /** The drill that breaks Graphite's stone: the radio needs quartz, which lies in it. */
@@ -146,7 +155,11 @@ export function currentGoal(p: Profile): Goal {
   if (next) return { kind: 'repair', id: next };
   if (!hasBeat(p, 'core')) return hasBeat(p, 'paid') ? { kind: 'collect' } : { kind: 'trade' };
   if (!isRepaired(p, 'core')) return { kind: 'repair', id: 'core' };
-  return hasBeat(p, 'flown') || p.fuel >= FUEL.toOrbit ? { kind: 'done' } : { kind: 'fuel' };
+  if (!hasBeat(p, 'flown')) return p.fuel >= ROUND_TRIP ? { kind: 'liftoff' } : { kind: 'fuel' };
+  const broken = STARSHIP_IDS.find((id) => !isFixed(p, id));
+  if (broken) return { kind: 'starship', id: broken };
+  if (hasBeat(p, 'course')) return { kind: 'done' };
+  return p.shipFuel >= FIRST_COURSE.fuel ? { kind: 'course' } : { kind: 'shipFuel' };
 }
 
 /** "native copper 3/6 · quartz 0/2": what a repair needs against what's on hand. */
@@ -167,10 +180,23 @@ export function goalLine(p: Profile, g: Goal): string {
   if (g.kind === 'trade') return `The Lamplighters want silver from deep down for a drive core. Bring it in your bag: ${tradeLine(p.suit, (ore) => ORES[ore as keyof typeof ORES].name)}`;
   if (g.kind === 'collect') return 'Your ship is whole: go back to the Lamplighters for the drive core';
   if (g.kind === 'fuel') {
-    const ice = Math.min(countOf(onHand(p), FUEL.ore), FUEL.toOrbit - p.fuel);
-    return p.fuel + ice >= FUEL.toOrbit ? 'Fill the tank for the climb to orbit: go aboard (L at the lander) and refill' : `Fill the tank for the climb to orbit: ${ORES[FUEL.ore].name} ${p.fuel + ice}/${FUEL.toOrbit}`;
+    const ice = Math.min(countOf(onHand(p), FUEL.ore), ROUND_TRIP - p.fuel);
+    return p.fuel + ice >= ROUND_TRIP ? 'Fill the tank to fly up to your ship and back: go aboard (L at the lander) and refill' : `Fill the tank to fly up to your ship and back: ${ORES[FUEL.ore].name} ${p.fuel + ice}/${ROUND_TRIP}`;
   }
-  if (g.kind === 'done') return hasBeat(p, 'flown') ? 'Your ship waits in orbit: the star map is aboard (L at the lander)' : 'Lift off and fly up to your ship: go aboard (L at the lander)';
+  if (g.kind === 'liftoff') return 'Lift off and fly up to your ship: go aboard (L at the lander)';
+  if (g.kind === 'starship') {
+    const s = STARSHIP[g.id];
+    const need = s.needs!;
+    const how = hasOnHand(p)(need) ? (p.docked ? 'mend it on the Starship tab' : 'fly up to her (L at the lander)') : `${needsLine(need, onHand(p))}, carried up in the lander`;
+    return `Mend your ship's ${s.name.toLowerCase()}: ${how}`;
+  }
+  if (g.kind === 'shipFuel') {
+    const ice = Math.min(countOf(onHand(p), SHIP_TANK.ore), FIRST_COURSE.fuel - p.shipFuel);
+    const how = p.shipFuel + ice >= FIRST_COURSE.fuel ? (p.docked ? 'refill her on the Starship tab' : 'fly up to her (L at the lander)') : `${ORES[SHIP_TANK.ore].name} ${p.shipFuel + ice}/${FIRST_COURSE.fuel}, carried up in the lander`;
+    return `Fill your ship's tank for the trip to Mycel: ${how}`;
+  }
+  if (g.kind === 'course') return p.docked ? 'Set course for Mycel: the star map, on the Starship tab' : 'Set course for Mycel: fly up to your ship (L at the lander)';
+  if (g.kind === 'done') return 'Course set for Mycel: the next chapter goes there';
   const r = REPAIRS[g.id];
   const label = `Repair the ${r.name.toLowerCase()}`;
   if (!r.needs) return hasBeat(p, 'core') ? 'Fit the drive core: go aboard (L at the lander)' : `${label}: the Lamplighters can make one`;

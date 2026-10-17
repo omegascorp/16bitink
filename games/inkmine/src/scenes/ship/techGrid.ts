@@ -1,3 +1,4 @@
+import { canFix } from '../../logic/starship';
 import type Phaser from 'phaser';
 import { techTexture } from '../../art/textures';
 import type { TechVariant } from '../../art/techArt';
@@ -39,6 +40,7 @@ export function variantOf(p: Profile, t: Tech): TechVariant {
   if (t.kind === 'gear') return lookOf(p.gear[t.piece]);
   // The Lamplighters' core is whole before it's fitted.
   if (t.kind === 'repair') return isRepaired(p, t.id) || (t.id === 'core' && hasBeat(p, 'core')) ? 'mended' : 'broken';
+  if (t.kind === 'starship') return canFix(p, t.id) === 'done' ? 'mended' : 'broken';
   return 'mended';
 }
 

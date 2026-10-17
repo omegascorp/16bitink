@@ -1,4 +1,4 @@
-import { SHIP_MODULES, SHIP_SYSTEMS, SUIT_TECH, techKey, type Tab, type Tech } from '../../logic/tech';
+import { SHIP_MODULES, SHIP_SYSTEMS, STARSHIP_TECH, SUIT_TECH, techKey, type Tab, type Tech } from '../../logic/tech';
 import { aside, label, INK_TEXT, SEPIA } from '../kit/type';
 import { NO_FOCUS, PAD, section, SECTION_BODY, type ShipPage } from './panel';
 import { drawTechGrid, techGridFit } from './techGrid';
@@ -16,6 +16,7 @@ const GROUPS: Readonly<Record<Tab, readonly Group[]>> = {
     { name: 'Systems', note: 'what the crash broke', list: SHIP_SYSTEMS },
     { name: 'Modules', note: 'printed upgrades', list: SHIP_MODULES },
   ],
+  starship: [{ name: 'Systems', note: 'what the wormhole broke', list: STARSHIP_TECH }],
 };
 
 /**

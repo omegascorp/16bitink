@@ -1,5 +1,5 @@
 ---
-import type { CatalogGame } from '../data/games';
+import { isPurchasable, type CatalogGame } from '../data/games';
 
 interface Props {
   game: CatalogGame;
@@ -18,7 +18,7 @@ const play = `/play/${game.slug}`;
     <h2><a class="title" href={play}>{game.title}</a></h2>
     <p class="tagline">{game.tagline}</p>
     <a class="btn btn-ink play" href={play}>{owned ? 'Play' : 'Play free'}</a>
-    <p class="terms">{!owned && `First chapter free, full game ${game.price} one-time. `}<a href={`/games/${game.slug}`}>About the game</a></p>
+    <p class="terms">{!owned && (isPurchasable(game) ? `First chapter free, full game ${game.price} one-time. ` : 'Free demo, full game coming soon. ')}<a href={`/games/${game.slug}`}>About the game</a></p>
   </div>
 </article>
 

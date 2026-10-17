@@ -8,6 +8,7 @@ import { HudScene } from './scenes/HudScene';
 import { ShipScene } from './scenes/ShipScene';
 import { SystemScene } from './scenes/SystemScene';
 import { DPR } from './scenes/hidpi';
+import { GAME_VERSION } from './version';
 
 /** Mounts InkMine into `parent`, filling it completely and tracking its size. */
 export function mount(parent: HTMLElement, host: GameHost): GameHandle & { readonly phaser: Phaser.Game } {
@@ -52,5 +53,5 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
   };
 }
 
-const inkmine: GameModule = { mount };
+const inkmine: GameModule = { mount, version: GAME_VERSION };
 export default inkmine;

@@ -1,25 +1,25 @@
 import Phaser from 'phaser';
-import { TABS, type Tab } from '../../logic/tech';
+import type { Tab } from '../../logic/tech';
 import { FADED, heading, INK_TEXT } from '../kit/type';
 
-const NAMES: Readonly<Record<Tab, string>> = { suit: 'Suit', ship: 'Ship' };
+const NAMES: Readonly<Record<Tab, string>> = { suit: 'Suit', ship: 'Lander', starship: 'Starship' };
 const SIZE = 22;
 const GAP = 34;
 
 /**
  * The tab strip, as No Man's Sky's: the tab names in spaced capitals, the
- * one showing in ink with a double rule under it, the other faded, with a
- * hairline between. Laid out leftwards from `right`, centred on `y`.
+ * one showing in ink with a double rule under it, the others faded, with a
+ * hairline between each. Laid out leftwards from `right`, centred on `y`.
  * Returns its width.
  */
-export function drawTabs(scene: Phaser.Scene, right: number, y: number, current: Tab, onPick: (t: Tab) => void): number {
-  const texts = TABS.map((t) => heading(scene, 0, y, NAMES[t], SIZE, t === current ? INK_TEXT : FADED).setOrigin(0, 0.5));
+export function drawTabs(scene: Phaser.Scene, right: number, y: number, tabs: readonly Tab[], current: Tab, onPick: (t: Tab) => void): number {
+  const texts = tabs.map((t) => heading(scene, 0, y, NAMES[t], SIZE, t === current ? INK_TEXT : FADED).setOrigin(0, 0.5));
   const width = texts.reduce((w, t) => w + t.width, 0) + GAP * (texts.length - 1);
   const g = scene.add.graphics();
   const ink = Phaser.Display.Color.HexStringToColor(INK_TEXT).color;
   let x = right - width;
   texts.forEach((t, i) => {
-    const tab = TABS[i]!;
+    const tab = tabs[i]!;
     t.setX(x);
     if (tab === current) {
       g.lineStyle(1.6, ink, 0.9).lineBetween(x, y + 18, x + t.width - SIZE * 0.16, y + 18);

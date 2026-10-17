@@ -95,7 +95,7 @@ describe('the saved profile', () => {
     expect(p.gear).toEqual({ drill: 0, cell: 0, pack: 1, suit: 0, helmet: 0, jetpack: 0 });
     expect(p.found).toEqual(['cell-1']);
     expect(p.ship).toEqual({ cargo: 0, winch: 1, hull: 0 });
-    expect(Object.keys(p).sort()).toEqual(['beats', 'cargo', 'found', 'fuel', 'gear', 'repaired', 'ship', 'started', 'suit', 'tools']);
+    expect(Object.keys(p).sort()).toEqual(['beats', 'cargo', 'docked', 'found', 'fuel', 'gear', 'hold', 'repaired', 'ship', 'shipFuel', 'starship', 'started', 'suit', 'tools']);
     expect(p.started).toBe(false);
     expect(parseProfile({ started: true }).started).toBe(true);
     expect(parseProfile({ started: 'yes' }).started).toBe(false);

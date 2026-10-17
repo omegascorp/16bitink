@@ -35,6 +35,7 @@ export const TEX = {
   world: (id: string) => `world-${id}`,
   star: 'star',
   ship: (lit: boolean) => `ship-${lit ? 'lit' : 'dark'}`,
+  shipBig: (lit: boolean) => `ship-big-${lit ? 'lit' : 'dark'}`,
 } as const;
 
 /** Texture px per unit for the prospector: drawn finer than the rest, as the eye goes to them. */
@@ -148,7 +149,11 @@ export function bakeSystem(scene: Phaser.Scene): void {
     bake(scene, TEX.world(w.id), f, f, f / 2, f / 2, 3, (ctx) => drawWorld(makeDraw(ctx, 800 + i, 0, 0), w));
   });
   bake(scene, TEX.star, STAR_ART.w, STAR_ART.h, STAR_ART.w, STAR_ART.h / 2, 1.5, (ctx) => drawStar(makeDraw(ctx, 790, 0, 0)));
-  for (const lit of [false, true]) bake(scene, TEX.ship(lit), SHIP_ART.w, SHIP_ART.h, SHIP_ART.w / 2, SHIP_ART.h / 2, 4, (ctx) => drawShip(makeDraw(ctx, 795, 0, 0), lit), LANDER_FINISH);
+  for (const lit of [false, true]) {
+    bake(scene, TEX.ship(lit), SHIP_ART.w, SHIP_ART.h, SHIP_ART.w / 2, SHIP_ART.h / 2, 4, (ctx) => drawShip(makeDraw(ctx, 795, 0, 0), lit), LANDER_FINISH);
+    // The Starship tab's figure: the same ship, drawn big.
+    bake(scene, TEX.shipBig(lit), SHIP_ART.w, SHIP_ART.h, SHIP_ART.w / 2, SHIP_ART.h / 2, 16, (ctx) => drawShip(makeDraw(ctx, 796, 0, 0), lit), LANDER_FINISH);
+  }
 }
 
 /** Texture px per unit for a technology slot's picture: drawn large, as the detail card shows it big. */

@@ -7,7 +7,7 @@ apps/web            Astro 7 site (Node server on DigitalOcean App Platform): cat
 packages/game-sdk   The contract between site and games (GameModule, GameHost)
 games/inkfish       Phaser 4 game package: client game (src/) + server-only paid content (content/)
 games/inkcrab       Second game (prototype): hermit crab trading up through shells; design in docs/inkcrab-design.md
-games/inkmine       Third game (prototype): planet-hopping miner; design in docs/inkmine-design.md
+games/inkmine       Third game: planet-hopping miner, in the catalog as a free demo (chapter 1); design in docs/inkmine-design.md
 docs/               Research, tech & monetization decisions, art pipeline
 ```
 
@@ -17,7 +17,7 @@ docs/               Research, tech & monetization decisions, art pipeline
 pnpm install
 pnpm --filter @16bitink/inkfish dev     # game alone at http://localhost:5174 (prefix DEV_UNLOCK=true to play as an owner, DEV_ALL_LEVELS=true to open every level)
 pnpm --filter @16bitink/inkcrab dev     # InkCrab test beach at http://localhost:5175 (not in the catalog yet)
-pnpm --filter @16bitink/inkmine dev     # InkMine test mine at http://localhost:5176 (not in the catalog yet)
+pnpm --filter @16bitink/inkmine dev     # InkMine at http://localhost:5176 (?reset starts over)
 pnpm dev                                # site at http://localhost:4321
 pnpm test                               # unit tests (game logic, tokens, purchases, catalog)
 MONGODB_TEST_URI=mongodb://localhost:27017/16bitink_test pnpm --filter @16bitink/web test   # + database integration tests
@@ -87,6 +87,7 @@ All games share one deployment, one checkout and one webhook.
    - Add the package as a dependency (`pnpm add '@16bitink/<slug>@workspace:*'`).
    - Add a catalog entry in `src/data/games.ts`: title, `theme`, `fonts`, `stripeLookupKey`.
    - Add one line to `src/games/loaders.ts` (client) and, if it sells content, one to `src/games/content.server.ts`.
+   - A free demo with nothing for sale yet (InkMine) leaves out `price` and `stripeLookupKey`: its pages say the full game is coming soon.
 4. In Stripe, create the one-time price with that lookup key.
 5. For the level funnel in `/admin/analytics`, call `host.track?.({ type: 'level_start', level, n, name })` when a level begins and `{ type: 'level_end', …, result, seconds }` when it is won, lost or left (`n` = the level's 1-based place in the game's order).
 

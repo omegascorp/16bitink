@@ -39,7 +39,12 @@ export interface World {
   readonly au: number;
   /** In Earth masses: the astronomers' unit again, never said in the game. */
   readonly mass: number;
-  /** Its place in the game's order (1 = Graphite, chapter 1); null for a giant, which isn't landed on. */
+  /**
+   * Its place in the game's order (1 = Graphite, chapter 1); null for a
+   * giant, which isn't landed on. The order follows the starship's tank:
+   * the cheapest trips first (sister moons, then the next planets out and
+   * in), keeping water before lava and darkness near the end.
+   */
   readonly chapter: number | null;
   /** Its air, in a few words. */
   readonly air: string;
@@ -82,17 +87,17 @@ export const inZone = (au: number, star: Star = STAR): boolean => {
 /** From the star outwards; each giant's moons follow it, nearest first. */
 export const WORLDS: readonly World[] = [
   {
-    id: 'ember', name: 'Ember', kind: 'dead', parent: null, au: 0.12, mass: 0.6, chapter: 7,
+    id: 'ember', name: 'Ember', kind: 'dead', parent: null, au: 0.12, mass: 0.6, chapter: 6,
     air: 'carbon dioxide and sulfur gases', breathable: false, chemistry: null,
     seen: 'So close to the star that one face always looks at it. The night side glows dull red: the ground there is molten.',
   },
   {
-    id: 'prism', name: 'Prism', kind: 'dead', parent: null, au: 0.3, mass: 0.07, chapter: 8,
+    id: 'prism', name: 'Prism', kind: 'dead', parent: null, au: 0.3, mass: 0.07, chapter: 5,
     air: 'none', breathable: false, chemistry: null,
     seen: 'No air. Too small to have kept any. It flashes as it turns, as if parts of it were glass.',
   },
   {
-    id: 'talus', name: 'Talus', kind: 'living', parent: null, au: 0.56, mass: 0.45, chapter: 2,
+    id: 'talus', name: 'Talus', kind: 'living', parent: null, au: 0.56, mass: 0.45, chapter: 4,
     air: 'thin carbon dioxide', breathable: false, chemistry: 'carbon · water',
     seen: 'Red dust and dry gullies, at the warm edge of where water can stay. A faint trace in its thin air that only something alive would keep making.',
   },
@@ -112,7 +117,7 @@ export const WORLDS: readonly World[] = [
     seen: 'The grey moon. Too small to hold air, but Sepia\'s tides knead it, and deep down it\'s warm enough for life.',
   },
   {
-    id: 'mycel', name: 'Mycel', kind: 'living', parent: 'sepia', au: 1.05, mass: 0.3, chapter: 4,
+    id: 'mycel', name: 'Mycel', kind: 'living', parent: 'sepia', au: 1.05, mass: 0.3, chapter: 2,
     air: 'thick carbon dioxide, full of spores', breathable: false, chemistry: 'carbon · water',
     seen: 'Green under a thick haze. The haze scatters light like dust and thickens and thins with its seasons: spores, maybe.',
   },
@@ -132,12 +137,12 @@ export const WORLDS: readonly World[] = [
     seen: 'A cracked shell of ice. Plumes of water vapour jet from the cracks: there\'s an ocean under there, kept liquid by Indigo\'s tides.',
   },
   {
-    id: 'pumice', name: 'Pumice', kind: 'dead', parent: 'indigo', au: 3.4, mass: 0.0001, chapter: 5,
+    id: 'pumice', name: 'Pumice', kind: 'dead', parent: 'indigo', au: 3.4, mass: 0.0001, chapter: 7,
     air: 'none', breathable: false, chemistry: null,
     seen: 'Too light for its size: it would float on water. Ice and rock full of holes, like a sponge.',
   },
   {
-    id: 'rime', name: 'Rime', kind: 'dead', parent: null, au: 9, mass: 0.004, chapter: 6,
+    id: 'rime', name: 'Rime', kind: 'dead', parent: null, au: 9, mass: 0.004, chapter: 8,
     air: 'a trace of nitrogen, frozen out as frost', breathable: false, chemistry: null,
     seen: 'Far out, alone, frozen to the core. No giant to knead it, so no ocean ever stayed liquid inside.',
   },

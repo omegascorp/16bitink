@@ -5,6 +5,7 @@ import { contents, emptyInventory, resize, takeHoldFrom, type Inventory } from '
 import { suitSpecFor } from './marks';
 import { canUpgrade, CARGO_STACK, cargoSlots, nextRecipe, STARTER_SHIP, upgrade, type ModuleKey, type ShipModules, type UpgradeCheck } from './ship';
 import type { RepairId } from './repairs';
+import type { StarshipId } from './starship';
 import type { Beat } from './story';
 import type { Tool } from './tools';
 import { SUIT_STACK } from './suit';
@@ -31,9 +32,20 @@ export interface Profile {
   readonly beats: readonly Beat[];
   /** One-off tools printed for the suit (tools.ts). */
   readonly tools: readonly Tool[];
-  /** The lander's fuel tank, in units (fuel.ts): split from ice, burnt climbing to orbit. */
+  /** The lander's fuel tank, in units (fuel.ts): split from ice, burnt climbing to orbit and landing. */
   readonly fuel: number;
+  /** In orbit, aboard the starship, with the lander docked (fuel.ts); else on the ground. */
+  readonly docked: boolean;
+  /** The starship's systems mended (starship.ts). */
+  readonly starship: readonly StarshipId[];
+  /** The starship's fuel tank, in units (starship.ts). */
+  readonly shipFuel: number;
+  /** The starship's hold: ore carried up and kept aboard her, reachable only while docked. */
+  readonly hold: Inventory;
 }
+
+/** The starship's hold: big slots and big stacks, as a hauler's. */
+export const STARSHIP_HOLD = { slots: 24, stack: CARGO_STACK } as const;
 
 /** Cargo slots out of use while the hull is breached (repairs.ts). */
 const BREACHED = 6;
@@ -49,20 +61,26 @@ export const NEW_PROFILE: Profile = {
   beats: [],
   tools: [],
   fuel: 0,
+  docked: false,
+  starship: [],
+  shipFuel: 0,
+  hold: emptyInventory(STARSHIP_HOLD.slots, STARSHIP_HOLD.stack),
 };
 
-/** Every resource on hand: the cargo and the suit's bag. */
+/** Every resource on hand: the cargo and the suit's bag, and the starship's hold while docked. */
 export function onHand(p: Profile): Hold {
-  return addHold(contents(p.cargo), contents(p.suit));
+  const near = addHold(contents(p.cargo), contents(p.suit));
+  return p.docked ? addHold(near, contents(p.hold)) : near;
 }
 
 export const hasOnHand = (p: Profile) => (need: Hold): boolean => holds(onHand(p), need);
 
-/** Takes `need` out, from the cargo first, then the suit's bag. Assumes it's all on hand (see hasOnHand). */
+/** Takes `need` out, from the cargo first, then (docked) the starship's hold, then the suit's bag. Assumes it's all on hand (see hasOnHand). */
 export function spend(p: Profile, need: Hold): Profile {
   const fromCargo = takeHoldFrom(p.cargo, need);
-  const fromSuit = takeHoldFrom(p.suit, fromCargo.short);
-  return { ...p, cargo: fromCargo.inv, suit: fromSuit.inv };
+  const fromHold = p.docked ? takeHoldFrom(p.hold, fromCargo.short) : { inv: p.hold, short: fromCargo.short };
+  const fromSuit = takeHoldFrom(p.suit, fromHold.short);
+  return { ...p, cargo: fromCargo.inv, hold: fromHold.inv, suit: fromSuit.inv };
 }
 
 /** Cargo slots in use: what the ship gives, less those open to the dust while the hull is breached. */

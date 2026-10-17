@@ -3,31 +3,39 @@ import { hasOnHand, printerWorks, type Profile } from './economy';
 import { PIECES, type Piece } from './gear';
 import { canRepair, currentGoal, REPAIR_IDS, type RepairId } from './repairs';
 import { canUpgrade, MODULE_KEYS, type ModuleKey } from './ship';
+import { canFix, STARSHIP_SLOTS, type StarshipSlot } from './starship';
 import { canPrintTool, TOOLS, type Tool } from './tools';
 
 /**
- * The lander's menu as No Man's Sky lays it out: a Suit tab and a Ship tab,
- * each with technology slots (the gear pieces; the ship's crashed systems
- * and its modules) above its storage. Each slot says at a glance how it
- * stands: an upgrade ready to print, broken, fitted, or not built yet.
+ * The lander's menu as No Man's Sky lays it out: a Suit tab, a Lander tab
+ * (saved and keyed as 'ship') and, once the radio reaches her, a Starship
+ * tab, each with technology slots (the gear pieces; the lander's crashed
+ * systems and its modules; the starship's systems). Each slot says at a
+ * glance how it stands: an upgrade ready to print, broken, fitted, or not
+ * built yet.
  */
-export type Tab = 'suit' | 'ship';
-export const TABS: readonly Tab[] = ['suit', 'ship'];
+export type Tab = 'suit' | 'ship' | 'starship';
+export const TABS: readonly Tab[] = ['suit', 'ship', 'starship'];
+
+/** The tabs there are now: the starship's once the lander's radio picks up her telemetry. */
+export const tabsFor = (p: Pick<Profile, 'repaired'>): readonly Tab[] => (p.repaired.includes('comms') ? TABS : TABS.filter((t) => t !== 'starship'));
 
 export type Tech =
   | { readonly kind: 'gear'; readonly piece: Piece }
   | { readonly kind: 'module'; readonly key: ModuleKey }
   | { readonly kind: 'repair'; readonly id: RepairId }
-  | { readonly kind: 'tool'; readonly id: Tool };
+  | { readonly kind: 'tool'; readonly id: Tool }
+  | { readonly kind: 'starship'; readonly id: StarshipSlot };
 
 export type TechState = 'ready' | 'broken' | 'fitted' | 'empty';
 
 export const SUIT_TECH: readonly Tech[] = [...PIECES.map((piece): Tech => ({ kind: 'gear', piece })), ...TOOLS.map((id): Tech => ({ kind: 'tool', id }))];
 export const SHIP_SYSTEMS: readonly Tech[] = REPAIR_IDS.map((id) => ({ kind: 'repair', id }));
 export const SHIP_MODULES: readonly Tech[] = MODULE_KEYS.map((key) => ({ kind: 'module', key }));
+export const STARSHIP_TECH: readonly Tech[] = STARSHIP_SLOTS.map((id) => ({ kind: 'starship', id }));
 
 /** Every slot on a tab, in reading order. */
-export const tabTech = (tab: Tab): readonly Tech[] => (tab === 'suit' ? SUIT_TECH : [...SHIP_SYSTEMS, ...SHIP_MODULES]);
+export const tabTech = (tab: Tab): readonly Tech[] => (tab === 'suit' ? SUIT_TECH : tab === 'starship' ? STARSHIP_TECH : [...SHIP_SYSTEMS, ...SHIP_MODULES]);
 
 /** "gear:drill", "repair:hull", "module:hull": unique, as a repair and a module can share a name. */
 export function techKey(t: Tech): string {
@@ -36,7 +44,7 @@ export function techKey(t: Tech): string {
   return `${t.kind}:${t.id}`;
 }
 
-const ALL: ReadonlyMap<string, Tech> = new Map([...SUIT_TECH, ...SHIP_SYSTEMS, ...SHIP_MODULES].map((t) => [techKey(t), t]));
+const ALL: ReadonlyMap<string, Tech> = new Map([...SUIT_TECH, ...SHIP_SYSTEMS, ...SHIP_MODULES, ...STARSHIP_TECH].map((t) => [techKey(t), t]));
 
 export function techOf(key: string): Tech | undefined {
   return ALL.get(key);
@@ -45,6 +53,10 @@ export function techOf(key: string): Tech | undefined {
 export function techState(p: Profile, t: Tech): TechState {
   if (t.kind === 'repair') {
     const why = canRepair(p, t.id);
+    return why === 'done' ? 'fitted' : why === 'ok' ? 'ready' : 'broken';
+  }
+  if (t.kind === 'starship') {
+    const why = canFix(p, t.id);
     return why === 'done' ? 'fitted' : why === 'ok' ? 'ready' : 'broken';
   }
   if (t.kind === 'tool') {
@@ -59,8 +71,9 @@ export function techState(p: Profile, t: Tech): TechState {
   return r && printerWorks(p) && canBuild(r, p.found, p.gear, hasOnHand(p)) === 'ok' ? 'ready' : 'fitted';
 }
 
-/** The tab to open on: the suit when the next thing to do is print gear, else the ship. */
+/** The tab to open on: the starship when aboard her, the suit when the next thing to do is print gear, else the lander. */
 export function defaultTab(p: Profile): Tab {
+  if (p.docked) return 'starship';
   return currentGoal(p).kind === 'print' ? 'suit' : 'ship';
 }
 

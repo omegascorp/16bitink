@@ -177,6 +177,9 @@ importers:
       '@16bitink/inkfish':
         specifier: workspace:*
         version: link:../../games/inkfish
+      '@16bitink/inkmine':
+        specifier: workspace:*
+        version: link:../../games/inkmine
       '@astrojs/node':
         specifier: ^11.1.6
         version: 11.1.6(astro@7.3.5(@types/node@24.19.1)(yaml@2.9.1))

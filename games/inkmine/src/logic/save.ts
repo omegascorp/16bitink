@@ -5,6 +5,7 @@ import { PIECES, type Loadout } from './gear';
 import type { Inventory, Stack } from './inventory';
 import { ORES } from './ore';
 import { FUEL } from './fuel';
+import { SHIP_TANK, STARSHIP_IDS, type StarshipId } from './starship';
 import { REPAIR_IDS, type RepairId } from './repairs';
 import { MODULE_KEYS, maxLevel, type ShipModules } from './ship';
 import { BEATS, type Beat } from './story';
@@ -67,8 +68,14 @@ function parseTools(v: unknown): Tool[] {
 }
 
 /** A tank level: a whole number of units, within the tank. */
-function parseFuel(v: unknown): number {
-  return typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(FUEL.max, Math.floor(v))) : 0;
+function parseFuel(v: unknown, max: number): number {
+  return typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0;
+}
+
+/** Known starship systems mended, once each. */
+function parseStarship(v: unknown): StarshipId[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.filter((id): id is StarshipId => typeof id === 'string' && (STARSHIP_IDS as readonly string[]).includes(id)))];
 }
 
 /** Untrusted saved data to a profile: anything malformed is dropped, never thrown. */
@@ -86,7 +93,11 @@ export function parseProfile(raw: unknown): Profile {
     started: raw.started === true,
     beats: parseBeats(raw.beats),
     tools: parseTools(raw.tools),
-    fuel: parseFuel(raw.fuel),
+    fuel: parseFuel(raw.fuel, FUEL.max),
+    docked: raw.docked === true,
+    starship: parseStarship(raw.starship),
+    shipFuel: parseFuel(raw.shipFuel, SHIP_TANK.capacity),
+    hold: parseInventory(raw.hold, NEW_PROFILE.hold),
   });
 }
 
