@@ -40,6 +40,8 @@ const GAP = 20;
 const WIDE = 1000;
 /** Header rows: one on a wide screen, two (tabs under the title) on a narrow one. */
 const HEAD = { wide: 92, narrow: 150 } as const;
+/** The tabs whose panel goes under the storage rather than under the figure: the lander's fuel, the suit's life support. */
+const belowStorage = (tab: Tab): boolean => tab === 'ship' || tab === 'suit';
 /** Room for the figure over the detail card (wide), or above the slots (narrow). */
 const FIG = { wide: 320, narrow: 210 } as const;
 const BACK = { w: 180, h: 46 } as const;
@@ -115,11 +117,11 @@ export class ShipScene extends Phaser.Scene {
       const left = top + h1 + (h2 ? GAP + h2 : 0);
       this.figure(tab, profile, x1 + rightW / 2, top + FIG.wide - 10, false);
       this.farNote(tab, x1 + rightW / 2, top + 4, rightW, 28);
-      // The lander's fuel goes under its cargo; the starship's tank, with her course, under her picture, then the card.
-      const landerFuel = tab === 'ship' ? this.fuel(page, tab, x0, left + GAP, leftW) - GAP : 0;
-      const fuelH = tab === 'ship' ? 0 : this.fuel(page, tab, x1, top + FIG.wide, rightW);
+      // The lander's fuel and the suit's life support go under the storage; the starship's tank, with her course, under her picture, then the card.
+      const under = belowStorage(tab) ? Math.max(0, this.fuel(page, tab, x0, left + GAP, leftW) - GAP) : 0;
+      const fuelH = belowStorage(tab) ? 0 : this.fuel(page, tab, x1, top + FIG.wide, rightW);
       const h3 = card(x1, top + FIG.wide + fuelH, rightW);
-      bottom = Math.max(left + (landerFuel ? GAP + landerFuel : 0), top + FIG.wide + fuelH + (h3 || -GAP));
+      bottom = Math.max(left + (under ? GAP + under : 0), top + FIG.wide + fuelH + (h3 || -GAP));
     } else {
       const colW = Math.floor(Math.min(620, width - GAP * 2) / 8) * 8;
       const x = Math.round((width - colW) / 2);
@@ -127,13 +129,13 @@ export class ShipScene extends Phaser.Scene {
       this.figure(tab, profile, width / 2, top + FIG.narrow - 10, true);
       this.farNote(tab, width / 2, top - 6, colW, 22);
       const fuel = (y: number): number => Math.max(0, this.fuel(page, tab, x, y, colW) - GAP);
-      // The starship's tank (and her course) leads; the lander's fuel follows its cargo.
+      // The starship's tank (and her course) leads; the lander's fuel and the suit's life support follow the storage.
       const panels: ((y: number) => number)[] = [
-        (y) => (tab === 'ship' ? 0 : fuel(y)),
+        (y) => (belowStorage(tab) ? 0 : fuel(y)),
         (y) => techPanel(page, tab, focus, x, y, colW),
         (y) => card(x, y, colW),
         (y) => storagePanel(page, tab, x, y, colW),
-        (y) => (tab === 'ship' ? fuel(y) : 0),
+        (y) => (belowStorage(tab) ? fuel(y) : 0),
       ];
       // An empty card takes no room, nor a gap.
       bottom = panels.reduce((y, panel) => { const h = panel(y); return h ? y + h + GAP : y; }, top + FIG.narrow) - GAP;
