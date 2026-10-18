@@ -6,7 +6,7 @@ import { worldRadius } from '../art/systemArt';
 import { habitableZone, KIND_LINE, moonsOf, planetsOf, snowLine, STAR, worldById, WORLDS, type World } from '../logic/starSystem';
 import { getHost, getProfile, getSound, REG, setProfile } from '../host';
 import { hasWorld } from '../level/planets';
-import { canTravel, travel, tripFuel, type TravelCheck } from '../logic/travel';
+import { canTravel, travel, tripFuel, TRIPS, type TravelCheck } from '../logic/travel';
 import { isWorldId, type WorldId } from '../logic/worlds';
 import { loadPaidPlanets } from './BootScene';
 import type { Profile } from '../logic/economy';
@@ -14,6 +14,7 @@ import { FIRST_COURSE, isFixed, setCourse } from '../logic/starship';
 import { hasBeat } from '../logic/story';
 import { relayoutOnResize, screenScene, viewSize } from './hidpi';
 import { muteButton, narrationButton } from './kit/muteButton';
+import { narrator } from './NarratorScene';
 import { plaque } from './kit/plaque';
 import { dragScroll } from './kit/scroll';
 import { storyCard } from './kit/storyCard';
@@ -64,6 +65,9 @@ interface Layout {
  * telescope makes of it. Shown first when you dock at the end of chapter 1,
  * and from the lander's Fuel panel after.
  */
+/** Whether the map offers a trip from where the ship is to `to`: Brine's once the Aster has shown you why to go. */
+const offered = (p: Profile, to: WorldId): boolean => tripFuel(p.at, to) !== null && (to !== 'brine' || hasBeat(p, 'asterWoken'));
+
 export class SystemScene extends Phaser.Scene {
   constructor() {
     super('System');
@@ -92,6 +96,7 @@ export class SystemScene extends Phaser.Scene {
     });
     if (data.arrived) this.arrival();
     if (data.demoEnd) this.demoEnd();
+    this.prefetchTrips(getProfile(this));
     // At a world whose ground didn't load (the full game, offline): say so, and offer to try again.
     if (!hasWorld(here)) this.unavailable(here);
   }
@@ -219,8 +224,7 @@ export class SystemScene extends Phaser.Scene {
     label(this, tx, top, w.name, 24, INK_TEXT, '600');
     // Room on the right for the Set course button on a world the ship can fly to.
     const p = getProfile(this);
-    // Brine's trip is offered once the Aster has shown you why to go.
-    const trip = isWorldId(w.id) && tripFuel(p.at, w.id) !== null && (w.id !== 'brine' || hasBeat(p, 'asterWoken')) ? w.id : null;
+    const trip = isWorldId(w.id) && offered(p, w.id) ? w.id : null;
     const tw2 = trip ? tw - 220 : tw;
     const where = w.parent ? `moon of ${worldById(w.parent)!.name}` : `${ordinal(planetsOf().indexOf(w) + 1)} world from the star`;
     const kind = aside(this, tx, top + 34, `${KIND_LINE[w.kind]} · ${where}`, 16, tw2, w.kind === 'living' ? VERDIGRIS : INK_TEXT);
@@ -249,6 +253,18 @@ export class SystemScene extends Phaser.Scene {
     const h = ry - y;
     section(this, x, y, cw, h, 'Telescope', 91);
     return h;
+  }
+
+  /** The narration for each trip the map offers, fetched while you look: the trip's card, or, without the full game, the first course's and the demo's end. */
+  private prefetchTrips(p: Profile): void {
+    const voice = narrator(this);
+    if (!voice) return;
+    for (const to of new Set(TRIPS.flatMap((t) => t.between))) {
+      if (!offered(p, to)) continue;
+      const why = canTravel(p, to, hasWorld);
+      if (why !== 'locked') voice.prefetch(flightCard(this, p, to).line);
+      else if (!hasBeat(p, 'course')) [firstCourseCard(this, p), demoEndCard(undefined, () => undefined)].forEach((c) => voice.prefetch(c.line));
+    }
   }
 
   private select(w: World): void {

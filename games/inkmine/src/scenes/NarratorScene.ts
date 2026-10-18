@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { VoicePlayer } from '../audio/voice';
-import { getHost, getSound } from '../host';
+import { getHost, getSound, REG } from '../host';
+import type { Profile } from '../logic/economy';
 import { hasNarration, narrationUrl } from '../narration/library';
 import { readingTime, subtitleAt, subtitles } from '../narration/lines';
 import { remember } from '../narration/journal';
+import { upcoming } from '../narration/upcoming';
 import { screenScene, viewSize } from './hidpi';
 import { plateCard } from './kit/plate';
 import { plaque } from './kit/plaque';
@@ -16,6 +18,8 @@ const STRIP = { w: 700, h: 104, lift: 78, pad: 16, portrait: 64, button: 44 } as
 const SUB_SIZE = 21;
 /** A speaker's alien voice (the Lamplighters') plays first; the narrator starts after it, s per word, plus a beat. */
 const ALIEN_WORD = 0.45;
+/** The story's next lines fetched ahead: how many, and how often (ms) it's looked at, the first time a while after start so the game loads first. */
+const AHEAD = { lines: 2, every: 3000, first: 4000 } as const;
 
 /** A line in the queue: what the strip says and shows, and the card to read it on. */
 interface Line {
@@ -72,6 +76,8 @@ export class NarratorScene extends Phaser.Scene {
   private bar: Phaser.GameObjects.Graphics | null = null;
   private pauseLabel: Phaser.GameObjects.Text | null = null;
   private shownChunk = -1;
+  /** Ms until the story's next lines are looked at again. */
+  private aheadIn: number = AHEAD.first;
 
   constructor() {
     super('Narrator');
@@ -129,7 +135,24 @@ export class NarratorScene extends Phaser.Scene {
     };
   }
 
+  /** Fetches `line`'s recording ahead of time, if it'll be read aloud. */
+  prefetch(line: string | undefined): void {
+    if (!getSound(this)?.narration || !hasNarration(line)) return;
+    void narrationUrl(line)?.then((url) => this.voice?.prefetch(url));
+  }
+
+  /** Fetches the story's next lines, so their voice is there when they come. */
+  private lookAhead(delta: number): void {
+    this.aheadIn -= delta;
+    if (this.aheadIn > 0) return;
+    this.aheadIn = AHEAD.every;
+    // The profile as the game has it, once it's loaded (reading it through getProfile would start the session).
+    const p = this.registry.get(REG.profile) as Profile | undefined;
+    if (p) for (const line of upcoming(p, AHEAD.lines)) this.prefetch(line);
+  }
+
   update(_time: number, delta: number): void {
+    this.lookAhead(delta);
     if (!this.line) {
       if (this.queue.length) this.begin(this.queue.shift()!);
       return;

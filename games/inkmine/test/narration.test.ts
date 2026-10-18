@@ -4,13 +4,14 @@ import { PLANET_2 } from '../content/planet2';
 import { PLANET_3 } from '../content/planet3';
 import { NEW_PROFILE, type Profile } from '../src/logic/economy';
 import { FIRST_COURSE } from '../src/logic/starship';
-import { withBeat, type Beat } from '../src/logic/story';
+import { BEATS, withBeat, type Beat } from '../src/logic/story';
 import { tripFuel, TRIPS } from '../src/logic/travel';
 import type { WorldId } from '../src/logic/worlds';
 import { recordedLines } from '../src/narration/library';
 import { readingTime, sameWords, SUBTITLE_MAX, subtitleAt, subtitles } from '../src/narration/lines';
 import { readJournal, remember } from '../src/narration/journal';
 import { NARRATOR, spokenScript } from '../src/narration/script';
+import { ON_DEMAND, STORY_LINES, upcoming } from '../src/narration/upcoming';
 import MANIFEST from '../narration/lines.json';
 import { ASTER_CARD } from '../src/scenes/hud/asterCard';
 import { craftSpec, crystalSpec, reefSpec } from '../src/scenes/hud/brineCards';
@@ -137,6 +138,26 @@ describe('the narrator\'s lines', () => {
     expect(manifest.filter((r) => !byLine.has(r.line)).map((r) => r.line), 'in narration/lines.json, but no card reads them: run with NARRATION_DUMP=1').toEqual([]);
     const moved = unique.filter((c) => { const r = kept.get(c.line!); return r && !sameWords(r.text, c.text); }).map((c) => c.line);
     expect(moved, `words changed since they were recorded: record them again ${howTo}`).toEqual([]);
+  });
+});
+
+describe('the lines to come', () => {
+  it('place every card: in the story\'s order, as a reminder, or as a trip (the star map fetches those)', () => {
+    const placed = [...STORY_LINES.map((s) => s.line), ...ON_DEMAND];
+    expect(new Set(placed).size, 'a line placed twice').toBe(placed.length);
+    const cards = [...new Set(allLines().map((c) => c.line!))];
+    const trip = (l: string): boolean => l.startsWith('trip-') || l === 'demo-end';
+    expect(cards.filter((l) => !trip(l) && !placed.includes(l)), 'cards not placed in src/narration/upcoming.ts').toEqual([]);
+    expect(placed.filter((l) => !cards.includes(l)), 'placed, but no card reads them').toEqual([]);
+  });
+
+  it('are the next two the story tells, from the start to the end', () => {
+    expect(upcoming(NEW_PROFILE, 2)).toEqual(['arrival-graphite', 'ship-call']);
+    const started = { ...NEW_PROFILE, started: true };
+    expect(upcoming((['called', 'met'] as Beat[]).reduce(withBeat, started), 2)).toEqual(['talk-paid', 'talk-core']);
+    const allBut = (last: Beat): Profile => BEATS.filter((b) => b !== last).reduce(withBeat, started);
+    expect(upcoming(allBut('asterReunion'), 2)).toEqual(['camp-reunion']);
+    expect(upcoming(BEATS.reduce(withBeat, started), 2)).toEqual([]);
   });
 });
 

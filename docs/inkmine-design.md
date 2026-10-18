@@ -668,6 +668,8 @@ To record: run `NARRATION_DUMP=1 npx vitest run test/narration.test.ts`, which b
 - a new card needs a `line` id and a place in the test's `allLines()`;
 - a removed card leaves its mp3 behind, which the test names for deleting.
 
+**Loading:** a recording is fetched only when it's needed, never as part of the game's own loading. A few seconds after the game starts, and every few seconds after that, the narrator fetches the story's next two lines (`narration/upcoming.ts` keeps the story's lines in order, each told once its beat is saved). The star map fetches the cards for the trips it offers. Reminders are fetched when they're said; the Lamplighters' and Tidesingers' own voices play first and cover the wait. Recordings are kept as mp3 bytes and only the playing one is decoded, so heard lines don't pile up as raw audio. A new card goes into `upcoming.ts`, as a story line or a reminder; the test says so if it's left out.
+
 The first recording (Oct 18, 2026): 44 lines, about 21 minutes, 8.4 MB, about 16,000 credits.
 
 ## Inside the lander and the pause screen

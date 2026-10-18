@@ -1,14 +1,15 @@
 import type { SoundBoard } from './sound';
 
 /**
- * The narrator's voice: a recording fetched and decoded once, played on the
- * sound board's own voice track (not dipped with the rest), and paused,
- * resumed or stopped from where it is. Silent, and never throwing, where
- * there's no Web Audio or sound is off: the caller times the subtitles
- * itself then.
+ * The narrator's voice: recordings fetched once and kept as they came (a
+ * few hundred KB of mp3 each), decoded only when they're played, so heard
+ * lines don't pile up as raw audio; played on the sound board's own voice
+ * track (not dipped with the rest), and paused, resumed or stopped from
+ * where it is. Silent, and never throwing, where there's no Web Audio or
+ * sound is off: the caller times the subtitles itself then.
  */
 export class VoicePlayer {
-  private readonly cache = new Map<string, Promise<AudioBuffer | null>>();
+  private readonly files = new Map<string, Promise<ArrayBuffer | null>>();
   private decoder: BaseAudioContext | null = null;
   private source: AudioBufferSourceNode | null = null;
   private ctx: AudioContext | null = null;
@@ -17,19 +18,35 @@ export class VoicePlayer {
 
   constructor(private readonly board: SoundBoard) {}
 
+  /** Fetches the recording at `url` ahead of its line, behind whatever else is loading. */
+  prefetch(url: string): void {
+    void this.file(url, 'low');
+  }
+
   /** The recording at `url`, decoded (null when it can't be fetched or decoded). */
   load(url: string): Promise<AudioBuffer | null> {
-    let p = this.cache.get(url);
+    return this.file(url, 'high').then((data) => {
+      if (!data) return null;
+      // Decoding takes the bytes it's given: a copy keeps them for next time.
+      return (this.decoding()?.decodeAudioData(data.slice(0)) ?? Promise.resolve(null)).catch((err: unknown) => {
+        console.warn('[inkmine] narration did not decode', url, err);
+        return null;
+      });
+    });
+  }
+
+  /** The recording's bytes, fetched once; a failed fetch is tried again next time. */
+  private file(url: string, priority: RequestPriority): Promise<ArrayBuffer | null> {
+    let p = this.files.get(url);
     if (!p) {
-      p = fetch(url)
+      p = fetch(url, { priority })
         .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`${r.status}`))))
-        .then((data) => this.decoding()?.decodeAudioData(data) ?? null)
         .catch((err: unknown) => {
           console.warn('[inkmine] narration did not load', url, err);
-          this.cache.delete(url);
+          this.files.delete(url);
           return null;
         });
-      this.cache.set(url, p);
+      this.files.set(url, p);
     }
     return p;
   }
