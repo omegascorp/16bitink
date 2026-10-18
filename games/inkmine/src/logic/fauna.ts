@@ -4,6 +4,10 @@ import type { OreKey } from './ore';
 import type { MineEvent } from './mine';
 import { newShot, PULSE, stepShot, type Shot } from './pulse';
 import { foldX, isSolid, ringDelta, TILE, tileAt, type Terrain, type TilePos } from './terrain';
+import { bodyOf, clear, distance, edgeDistance, overlaps, reachOf } from './faunaShape';
+import { jelly, lamprey, leviathan, noiseAt } from './seaFauna';
+
+export { bodyOf, reachOf } from './faunaShape';
 
 /** A clot of spores a puffball spat, in flight. */
 export interface Glob {
@@ -31,6 +35,8 @@ export interface FaunaHost {
   spend(energy: number): boolean;
   /** Throws the prospector, px/s. */
   push(vx: number, vy: number): void;
+  /** Whether a tile is under water (none is on a dry world). */
+  wet?(x: number, y: number): boolean;
 }
 
 /** What the controls ask of the fauna this step. */
@@ -91,23 +97,33 @@ export class Fauna {
   /** `c` killed: bursting or slumping, and leaving its spoils where its body was. */
   private kill(c: Creature, tile: number): Creature {
     const ores = SPOILS[c.kind] ?? [];
-    // A tendril's body hangs below its knot in the ceiling; a puffball's sits on its foot.
-    const y = c.kind === 'tendril' ? c.y + tile * 0.6 : c.y - tile * 0.4;
-    ores.forEach((ore, j) => this.spoils.push({ ore, x: c.x + (j - (ores.length - 1) / 2) * tile * 0.4, y }));
-    return { ...c, hp: 0, state: c.kind === 'puffball' ? 'burst' : 'dead', timer: 0.6 };
+    // A tendril's body hangs below its knot in the ceiling; a rasp eel's lies just out of its burrow; a jelly's is round its middle; a puffball's sits on its foot.
+    const x = c.kind === 'lamprey' ? c.x + c.facing * tile * 0.5 : c.x;
+    const y = c.kind === 'tendril' ? c.y + tile * 0.6 : c.kind === 'lamprey' || c.kind === 'jelly' ? c.y : c.y - tile * 0.4;
+    ores.forEach((ore, j) => this.spoils.push({ ore, x: x + (j - (ores.length - 1) / 2) * tile * 0.4, y }));
+    return { ...c, hp: 0, state: c.kind === 'puffball' || c.kind === 'jelly' ? 'burst' : 'dead', timer: 0.6 };
   }
 
-  /** A blast over `area` bursts puffballs, severs tendrils and curls up grazers; the Mother doesn't notice. */
-  blast(area: readonly TilePos[], tile: number): void {
+  /** A blast over `area` bursts what it reaches and curls up grazers and crabs; the giants don't notice (but a sleeping Leviathan hears it). */
+  blast(area: readonly TilePos[], tile: number, terrain?: Terrain): void {
     const hit = new Set(area.map(([x, y]) => `${x},${y}`));
+    const at = area[0];
+    if (at && terrain) this.noise((at[0] + 0.5) * tile, (at[1] + 0.5) * tile, 'blast', terrain, tile);
     this.creatures = this.creatures.map((c) => {
-      if (!alive(c) || c.kind === 'mother') return c;
-      const key = `${Math.floor(c.x / tile)},${Math.floor((c.kind === 'tendril' ? c.y + 1 : c.y - 1) / tile)}`;
-      if (!hit.has(key)) return c;
-      if (c.kind === 'grazer') return { ...c, state: 'curled', timer: CREATURE.grazer.curl };
+      if (!alive(c) || c.kind === 'mother' || c.kind === 'leviathan') return c;
+      const row = c.kind === 'tendril' ? c.y + 1 : c.kind === 'jelly' || c.kind === 'lamprey' ? c.y : c.y - 1;
+      const col = c.kind === 'lamprey' ? c.x + c.facing : c.x;
+      if (!hit.has(`${Math.floor(col / tile)},${Math.floor(row / tile)}`)) return c;
+      if (c.kind === 'grazer' || c.kind === 'crab') return { ...c, state: 'curled', timer: c.kind === 'crab' ? CREATURE.crab.tuck : CREATURE.grazer.curl };
       if (c.id === this.held) this.held = null;
       return this.kill(c, tile);
     });
+  }
+
+  /** A sound at (x, y) px (a tile drilled, a blast): a sleeping Leviathan within earshot hears it. */
+  noise(x: number, y: number, kind: 'drill' | 'blast', terrain: Terrain, tile: number): void {
+    if (!this.creatures.some((c) => c.kind === 'leviathan')) return;
+    this.creatures = this.creatures.map((c) => noiseAt(c, x, y, kind, terrain, tile));
   }
 
   /** A pulse fired from the hand: the way you face, or up or down while held; held by a tendril, straight at it. */
@@ -137,10 +153,13 @@ export class Fauna {
     const c = this.creatures[i]!;
     let after: Creature = c;
     if (c.kind === 'grazer') after = { ...c, state: 'curled', timer: CREATURE.grazer.curl };
+    else if (c.kind === 'crab') after = { ...c, state: 'curled', timer: CREATURE.crab.tuck };
+    // The Leviathan takes it without a mark, but it doesn't sleep through it.
+    else if (c.kind === 'leviathan') after = noiseAt(c, s.x, s.y, 'shot', host.terrain, host.tile);
     else if (c.kind !== 'mother') {
       const hp = c.hp - 1;
       if (c.id === this.held && (hp <= 0 || c.kind === 'tendril')) this.release(events);
-      after = hp > 0 ? { ...c, hp, state: c.kind === 'tendril' ? 'retract' : c.state } : this.kill(c, host.tile);
+      after = hp > 0 ? { ...c, hp, state: c.kind === 'tendril' || c.kind === 'lamprey' ? 'retract' : c.state } : this.kill(c, host.tile);
       // A puffball bursting close by fills the air round it with spores.
       if (after.state === 'burst' && distance(host, c.x, c.y - 14) < CREATURE.puffball.burstReach * host.tile) host.loseAir(CREATURE.puffball.burstAir);
     }
@@ -153,7 +172,10 @@ export class Fauna {
     if (c.state === 'burst' || c.state === 'dead') return { ...c, timer: c.timer - dt, reach: Math.max(0, c.reach - dt * 2) };
     if (c.kind === 'puffball') return this.puffball(c, dt, host, events);
     if (c.kind === 'tendril') return this.tendril(c, dt, input, host, events);
-    if (c.kind === 'grazer') return grazer(c, dt, host);
+    if (c.kind === 'grazer' || c.kind === 'crab') return grazer(c, dt, host);
+    if (c.kind === 'jelly') return jelly(c, dt, host, events);
+    if (c.kind === 'lamprey') return lamprey(c, dt, host, events);
+    if (c.kind === 'leviathan') return leviathan(c, dt, host, events);
     return mother(c, dt, host, events);
   }
 
@@ -248,7 +270,8 @@ export class Fauna {
 /**
  * Crawls along the ground, stepping up a tile or down one, turning before
  * a wall or a drop it can't take (and now and then for no reason); shot,
- * it curls up a while. It falls if the ground goes from under it.
+ * it curls up a while. It falls if the ground goes from under it. A
+ * grazer, or a crab (its tucking in is the grazer's curling up).
  */
 function grazer(c: Creature, dt: number, host: FaunaHost): Creature {
   const t = host.terrain;
@@ -272,7 +295,7 @@ function grazer(c: Creature, dt: number, host: FaunaHost): Creature {
   };
   const ahead = Math.floor((c.x + c.facing * T * 0.45) / T);
   if (ahead !== col && level(ahead) === null) return turned;
-  const x = c.x + c.facing * CREATURE.grazer.speed * T * dt;
+  const x = c.x + c.facing * CREATURE[c.kind === 'crab' ? 'crab' : 'grazer'].speed * T * dt;
   const next = Math.floor(x / T);
   const y = next !== col ? c.y + (level(next) ?? 0) * T : c.y;
   return { ...c, x: foldX(t, x, T), y, timer };
@@ -300,52 +323,4 @@ function mother(c: Creature, dt: number, host: FaunaHost, events: MineEvent[]): 
 /** Ground a grazer walks on: anything solid but a cap. */
 function firm(t: Terrain, x: number, y: number): boolean {
   return isSolid(t, x, y) && tileAt(t, x, y) !== TILE.cap;
-}
-
-/** How far down a tendril can reach from its knot: its full length, or to the floor under it. */
-export function reachOf(t: Terrain, c: Creature, tile: number): number {
-  const col = Math.floor(c.x / tile);
-  const top = Math.floor(c.y / tile);
-  let rows = 0;
-  while (rows < CREATURE.tendril.reach && !isSolid(t, col, top + rows)) rows++;
-  return Math.max(tile * 0.5, Math.min(CREATURE.tendril.reach, rows) * tile);
-}
-
-/** The box a creature is hit in, px. */
-export function bodyOf(c: Creature, t: Terrain, tile: number): Box {
-  if (c.kind === 'puffball') return { x: c.x - 13, y: c.y - 28, w: 26, h: 28 };
-  if (c.kind === 'tendril') return { x: c.x - 10, y: c.y, w: 20, h: Math.max(14, c.reach * reachOf(t, c, tile)) };
-  if (c.kind === 'grazer') return { x: c.x - 22, y: c.y - 24, w: 44, h: 24 };
-  const M = CREATURE.mother;
-  return { x: c.x - (M.w * tile) / 2, y: c.y - M.h * tile, w: M.w * tile, h: M.h * tile };
-}
-
-/** Whether two boxes overlap, measured the short way round. */
-function overlaps(host: FaunaHost, a: Box, b: Box): boolean {
-  const bx = a.x + ringDelta(host.terrain, a.x, b.x, host.tile);
-  return a.x < bx + b.w && a.x + a.w > bx && a.y < b.y + b.h && a.y + a.h > b.y;
-}
-
-/** From the prospector's middle to (x, y), px, the short way round. */
-function distance(host: FaunaHost, x: number, y: number): number {
-  const p = host.player;
-  return Math.hypot(ringDelta(host.terrain, p.x + p.w / 2, x, host.tile), p.y + p.h / 2 - y);
-}
-
-/** From the prospector's middle to the nearest edge of a box, px (0 inside it). */
-function edgeDistance(host: FaunaHost, b: Box): number {
-  const p = host.player;
-  const dx = Math.max(0, Math.abs(ringDelta(host.terrain, b.x + b.w / 2, p.x + p.w / 2, host.tile)) - b.w / 2);
-  const dy = Math.max(0, Math.abs(p.y + p.h / 2 - (b.y + b.h / 2)) - b.h / 2);
-  return Math.hypot(dx, dy);
-}
-
-/** Whether nothing solid lies on the straight line from (x, y) along (dx, dy). */
-function clear(t: Terrain, x: number, y: number, dx: number, dy: number, tile: number): boolean {
-  const steps = Math.ceil(Math.hypot(dx, dy) / (tile / 3));
-  for (let i = 1; i < steps; i++) {
-    const k = i / steps;
-    if (isSolid(t, Math.floor((x + dx * k) / tile), Math.floor((y + dy * k) / tile))) return false;
-  }
-  return true;
 }

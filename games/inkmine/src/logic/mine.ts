@@ -125,6 +125,11 @@ export type MineEvent =
   | { readonly kind: 'freed' }
   /** The Mother Mycel beat; `near` when its wave reached the prospector. */
   | { readonly kind: 'beat'; readonly near: boolean }
+  /** A bubble jelly stung the prospector; a rasp eel bit them. */
+  | { readonly kind: 'stung' }
+  | { readonly kind: 'bitten' }
+  /** The Leviathan stirred in its sleep, woke, or went back to sleep. */
+  | { readonly kind: 'leviathan'; readonly now: 'stir' | 'wake' | 'sleep' }
   /** Water moved (a flood running): these tiles' water changed. */
   | { readonly kind: 'water'; readonly tiles: readonly TilePos[] }
   /** Ground opened into water, and it's pouring in; `near` when it's close to the prospector. */
@@ -495,6 +500,7 @@ export class Mine {
       if (cap) CAP_YIELD.forEach((k, j) => this.pieces.push(newPiece(ORES[k].id, (tx + 0.3 + j * 0.4) * this.tile, (ty + 0.5) * this.tile)));
       else if (ore) this.pieces.push(newPiece(ore, (tx + 0.5) * this.tile, (ty + 0.5) * this.tile));
       events.push({ kind: 'drilled', tile: [tx, ty], cost: costs[i]!, ore });
+      this.fauna.noise((tx + 0.5) * this.tile, (ty + 0.5) * this.tile, 'drill', this.terrain, this.tile);
     });
     if (target.centre && y > bodyCell(this.player, this.tile).row) this.player = { ...this.player, vy: DROP_KICK, onGround: false };
     this.items = freeItems(this.items, tiles);
@@ -526,7 +532,7 @@ export class Mine {
     }
     for (const blast of blasts) {
       events.push({ kind: 'blast', blast });
-      this.fauna.blast(blast.area, this.tile);
+      this.fauna.blast(blast.area, this.tile, this.terrain);
       this.dropSpoils();
       for (const { ore, tile } of blast.ores) this.pieces.push(newPiece(ore, (tile[0] + 0.5) * this.tile, (tile[1] + 0.5) * this.tile));
       if (blast.area.some(([x, y]) => this.occupies(x, y))) this.hurt(events);
@@ -739,6 +745,7 @@ export class Mine {
         this.player = { ...this.player, vy, onGround: false };
         this.knock = { dir: Math.sign(vx), speed: Math.abs(vx), until: this.time + 0.3 };
       },
+      wet: (x, y) => this.water?.isWet(x, y) ?? false,
     }, events);
     this.dropSpoils();
   }

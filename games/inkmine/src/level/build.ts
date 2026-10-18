@@ -53,7 +53,10 @@ export function buildWorld(planet: PlanetDef, p: Profile, save: WorldSave | null
   const base = terrain.tiles.slice();
   const roof = roofRows(terrain);
   // On the ground as carved, so they stand in the same places every landing, however it's been dug.
-  const creatures = placeCreatures(terrain, def.creatures ?? [], def.site.surface, TILE_SIZE, def.site.seed, def.giant && [def.giant.at[0], def.site.surface + def.giant.at[1]]);
+  const giant = def.giant && { at: [def.giant.at[0], def.site.surface + def.giant.at[1]] as const, kind: def.giant.kind ?? 'mother' };
+  // Water-dwellers are placed in the water as carved.
+  const carvedWet = site.seaRow !== null || site.water.some((v) => v === 1) ? Water.carved(terrain, site.seaRow, site.water, site.dry, roof) : null;
+  const creatures = placeCreatures(terrain, def.creatures ?? [], def.site.surface, TILE_SIZE, def.site.seed, giant, (x, y) => carvedWet?.isWet(x, y) ?? false);
   const ladders = new Ladders(terrain);
   if (save) applyWorld(terrain, ladders, save);
   const taken = new Set(save?.taken ?? []);

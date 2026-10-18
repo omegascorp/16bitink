@@ -42,6 +42,8 @@ export class BootScene extends Phaser.Scene {
       this.scene.get(key).events.once(Phaser.Scenes.Events.CREATE, () => this.game.events.once(Phaser.Core.Events.POST_RENDER, () => loading?.ready()));
       this.scene.start(key, data);
     };
+    // The narrator runs over every scene from now on (NarratorScene).
+    this.scene.launch('Narrator');
     void loadPaidPlanets(this).then(() => this.time.delayedCall(30, start));
   }
 }

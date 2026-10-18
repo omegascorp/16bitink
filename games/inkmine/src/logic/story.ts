@@ -19,6 +19,8 @@ export const BEATS = [
   'called', 'met', 'paid', 'core', 'flown', 'course', 'aboard', 'firstLight', 'mycelOrbit', 'mycelLanded', 'distress', 'asterFound', 'asterCamp', 'asterWoken',
   // Chapter 3, Brine (spec, "Brine: The story").
   'brineOrbit', 'brineLanded', 'craftFound', 'reefMet', 'reefPaid', 'crewMet', 'craftRaised', 'craftMended',
+  // The end of chapter 3: the craft's drive crystal, by the Leviathan; the craft flies home; the four Aster together again on Mycel.
+  'crystalFound', 'craftFlown', 'asterReunion',
 ] as const;
 export type Beat = (typeof BEATS)[number];
 
@@ -147,9 +149,12 @@ export function visit(p: Profile, bag: Inventory): Visit {
  * - 'pod': the pod still waits for its charge (the bag hasn't all of it);
  * - 'woken': the charge taken from the bag, the sleeper wakes and shows
  *   you where its crew went;
- * - 'awake': it's awake already; it flashes its crown at you.
+ * - 'awake': it's awake already; it flashes its crown at you;
+ * - 'reunion': the crew flew home from Brine, and the four of them are
+ *   together again; they give you their star chart (the end of chapter 3);
+ * - 'together': after that, the four flash their crowns at you.
  */
-export type CampSays = 'camp' | 'pod' | 'woken' | 'awake';
+export type CampSays = 'camp' | 'pod' | 'woken' | 'awake' | 'reunion' | 'together';
 
 export interface CampVisit {
   readonly profile: Profile;
@@ -160,6 +165,8 @@ export interface CampVisit {
 
 export function campVisit(p: Profile, bag: Inventory): CampVisit {
   if (!hasBeat(p, 'asterCamp')) return { profile: withBeat(p, 'asterCamp'), bag, says: 'camp' };
+  if (hasBeat(p, 'asterReunion')) return { profile: p, bag, says: 'together' };
+  if (hasBeat(p, 'craftFlown')) return { profile: withBeat(p, 'asterReunion'), bag, says: 'reunion' };
   if (hasBeat(p, 'asterWoken')) return { profile: p, bag, says: 'awake' };
   const took = takeHoldFrom(bag, WAKE);
   if (holdEntries(took.short).length) return { profile: p, bag, says: 'pod' };
@@ -209,10 +216,12 @@ export function reefVisit(p: Profile, bag: Inventory, patchReady: PatchReady): R
  * What happens at the Aster craft on Brine:
  * - 'found': the first time: sunk on the reef, empty, its radio drowned, and the crew's scratched pictures;
  * - 'heart': raised, it waits for a new cell (the bag hasn't all of it);
- * - 'mended': the cell's ore taken, it hums again;
+ * - 'mended': the cell's ore taken, it hums again, but its drive crystal is
+ *   gone, down in the Leviathan's cave;
+ * - 'flight': you bring the crystal, and the crew fly home to Mycel;
  * - null: nothing to do there now.
  */
-export type CraftSays = 'found' | 'heart' | 'mended';
+export type CraftSays = 'found' | 'heart' | 'mended' | 'flight';
 
 export interface CraftVisit {
   readonly profile: Profile;
@@ -222,8 +231,19 @@ export interface CraftVisit {
 
 export function craftVisit(p: Profile, bag: Inventory): CraftVisit {
   if (!hasBeat(p, 'craftFound')) return { profile: withBeat(p, 'craftFound'), bag, says: 'found' };
+  if (hasBeat(p, 'craftFlown')) return { profile: p, bag, says: null };
+  if (hasBeat(p, 'crystalFound')) return { profile: withBeat(p, 'craftFlown'), bag, says: 'flight' };
   if (!hasBeat(p, 'craftRaised') || hasBeat(p, 'craftMended')) return { profile: p, bag, says: null };
   const took = takeHoldFrom(bag, HEART);
   if (holdEntries(took.short).length) return { profile: p, bag, says: 'heart' };
   return { profile: withBeat(p, 'craftMended'), bag: took.inv, says: 'mended' };
+}
+
+/**
+ * The craft's drive crystal, lying in the Leviathan's cave: once the crew
+ * have said it's gone (the craft mended), touching it takes it (the suit
+ * carries it, as it carries a design). Null before then, or once it's taken.
+ */
+export function crystalVisit(p: Profile): Profile | null {
+  return hasBeat(p, 'craftMended') && !hasBeat(p, 'crystalFound') ? withBeat(p, 'crystalFound') : null;
 }

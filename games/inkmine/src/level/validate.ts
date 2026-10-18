@@ -1,6 +1,6 @@
 import { isDesign } from '../logic/designs';
 import { ORES } from '../logic/ore';
-import { CREATURE_KINDS } from '../logic/creatures';
+import { CREATURE_KINDS, GIANT_KINDS } from '../logic/creatures';
 import { isWorldId } from '../logic/worlds';
 import type { PlanetDef } from './types';
 
@@ -69,10 +69,11 @@ const isPlanet = shape({
     outpost: col,
     crash: col,
     creatures: listOf(shape({ kind: oneOf(...CREATURE_KINDS), count: intIn(0, 64), from: depth, to: depth }, { cols: tuple(col, col) }), 16),
-    giant: shape({ at }),
+    giant: shape({ at }, { kind: oneOf(...GIANT_KINDS) }),
     camp: shape({ at }),
     craft: col,
     reef: shape({ at }),
+    crystal: shape({ at }),
   }),
 }, {
   arrival: shape({ subtitle: isText(120), paragraphs: listOf(isText(2000), 8), button: isText(40) }),

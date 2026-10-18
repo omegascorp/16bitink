@@ -13,10 +13,12 @@ import { plate, plateCard, plateHeading, PLATE_BODY } from './kit/plate';
 import { plaque } from './kit/plaque';
 import { aside, heading, INK_TEXT, label, MADDER, prose, SEPIA } from './kit/type';
 import { drawSlotGrid, gridHeight } from './slots';
-import { storyCard } from './kit/storyCard';
+import { storyCard, type StoryCardSpec } from './kit/storyCard';
 import { ASTER_CARD } from './hud/asterCard';
 import { campSpec } from './hud/campCards';
-import { craftSpec, reefSpec } from './hud/brineCards';
+import { craftSpec, crystalSpec, reefSpec } from './hud/brineCards';
+import { narrator } from './NarratorScene';
+import { landingSpec, OPENING } from './hud/opening';
 import { talkSpec } from './hud/talkCards';
 import { TouchPad } from './hud/touchPad';
 import { muteButton } from './kit/muteButton';
@@ -46,11 +48,6 @@ const HINT = {
 /** Paper-coloured halo round text laid straight over the game. */
 const HALO = { stroke: '#f5efdf', strokeThickness: 5 } as const;
 /** The opening card (spec, "Story: chapter 1"). */
-const INTRO = [
-  "The jump went wrong. Your ship struck a wild wormhole, one nobody had charted or steadied, and it tore through, out among stars no chart has. Before its systems died it braked into orbit and sent you down in the lander, for what it would need.",
-  "The lander came down hard on a small grey moon. The link to the guild is gone, the suit is still listing the damage, and the way back is gone from memory: which way home lies, even which star. Your ship is up there somewhere, dark. The lander will have to fly to reach it.",
-  "Nothing can be mended without the printer, and the printer wants copper. There's copper in the crater walls.",
-] as const;
 
 /** Sets a gauge's reading, in madder when low; only when it changed. */
 function reading(t: Phaser.GameObjects.Text, text: string, low: boolean): void {
@@ -253,38 +250,32 @@ export class HudScene extends Phaser.Scene {
     this.failed.setVisible(mine.state === 'failed');
   }
 
-  /** A Lamplighter's card up while one is talking, the Aster lander's once you reach it, or the Aster camp's (the world waits), gone once it's read. */
+  /**
+   * A story moment in the world (a Lamplighter talking, the Aster lander,
+   * the camp, the reef, the craft, the crystal): read aloud by the
+   * narrator while play goes on, or, with narration off or the line not
+   * recorded, shown on a card while the world waits.
+   */
   private showTalk(game: GameScene): void {
-    if (game.talk && game.talk !== 'thanks' && !this.talk) {
-      this.talk = storyCard(this, talkSpec(this, game.talk), () => {
-        this.talk = null;
-        game.closeTalk();
-      }, 70);
+    if (this.talk) return;
+    if (game.talk && game.talk !== 'thanks') this.tell(talkSpec(this, game.talk), () => game.closeTalk());
+    else if (game.found) this.tell(ASTER_CARD, () => game.closeFound());
+    else if (game.camp && game.camp !== 'awake' && game.camp !== 'together') this.tell(campSpec(this, game.camp), () => game.closeCamp(), game.camp === 'reunion');
+    else if (game.reef && game.reef !== 'wait') this.tell(reefSpec(this, game.reef), () => game.closeReef());
+    else if (game.craft) this.tell(craftSpec(this, game.craft), () => game.closeCraft());
+    else if (game.crystal) this.tell(crystalSpec(this), () => game.closeCrystal());
+  }
+
+  /** Reads `spec` aloud as play goes on and closes it at once; `hold` (a chapter's end), or with no voice for it, a card the world waits on. */
+  private tell(spec: StoryCardSpec, close: () => void, hold = false): void {
+    if (!hold && narrator(this)?.say(spec)) {
+      close();
+      return;
     }
-    if (game.found && !this.talk) {
-      this.talk = storyCard(this, ASTER_CARD, () => {
-        this.talk = null;
-        game.closeFound();
-      }, 70);
-    }
-    if (game.camp && game.camp !== 'awake' && !this.talk) {
-      this.talk = storyCard(this, campSpec(this, game.camp), () => {
-        this.talk = null;
-        game.closeCamp();
-      }, 70);
-    }
-    if (game.reef && game.reef !== 'wait' && !this.talk) {
-      this.talk = storyCard(this, reefSpec(this, game.reef), () => {
-        this.talk = null;
-        game.closeReef();
-      }, 70);
-    }
-    if (game.craft && !this.talk) {
-      this.talk = storyCard(this, craftSpec(this, game.craft), () => {
-        this.talk = null;
-        game.closeCraft();
-      }, 70);
-    }
+    this.talk = storyCard(this, spec, () => {
+      this.talk = null;
+      close();
+    }, 70);
   }
 
   /** The objective plate: what to do next, with what's on hand counted; while following the call, the receiver's bars. */
@@ -320,11 +311,11 @@ export class HudScene extends Phaser.Scene {
     const { width, height } = viewSize(this);
     const left = -INTRO_W / 2 + 40;
     // Graphite's opening, or a later world's first landing (its planet carries the card).
-    const card = this.play?.introCard() ?? null;
-    const parts: Phaser.GameObjects.GameObject[] = [heading(this, 0, 36, card?.title ?? 'Graphite', 30).setOrigin(0.5, 0)];
-    parts.push(aside(this, 0, 76, card?.arrival.subtitle ?? 'a grey moon, uncharted', 18, INTRO_W - 80, SEPIA).setOrigin(0.5, 0));
+    const card = this.play?.introCard() ?? OPENING;
+    const parts: Phaser.GameObjects.GameObject[] = [heading(this, 0, 36, card.title, 30).setOrigin(0.5, 0)];
+    parts.push(aside(this, 0, 76, card.arrival.subtitle, 18, INTRO_W - 80, SEPIA).setOrigin(0.5, 0));
     let y = 120;
-    for (const para of card?.arrival.paragraphs ?? INTRO) {
+    for (const para of card.arrival.paragraphs) {
       const t = prose(this, left, y, para, 20, INTRO_W - 80);
       parts.push(t);
       y += t.height + 12;
@@ -332,14 +323,17 @@ export class HudScene extends Phaser.Scene {
     const h = y + 80;
     for (const part of parts) (part as unknown as { y: number }).y -= h / 2;
     const close = (): void => this.closeIntro();
-    parts.push(plaque(this, 0, h / 2 - 46, card?.arrival.button ?? 'Get up', close, { width: 180, height: 46, kind: 'primary' }));
+    parts.push(plaque(this, 0, h / 2 - 46, card.arrival.button, close, { width: 180, height: 46, kind: 'primary' }));
     this.intro = plateCard(this, width / 2, height / 2, INTRO_W, h, parts, 77).setDepth(50);
     this.input.keyboard?.once('keydown-SPACE', close);
     this.input.keyboard?.once('keydown-ENTER', close);
+    // Read aloud while it's open, and on in the narrator's strip once it's closed.
+    const uncover = narrator(this)?.sayOver(landingSpec(card));
     // Closed by the button, the keys mustn't stay listening.
     this.intro.once(Phaser.GameObjects.Events.DESTROY, () => {
       this.input.keyboard?.off('keydown-SPACE', close);
       this.input.keyboard?.off('keydown-ENTER', close);
+      uncover?.();
     });
   }
 

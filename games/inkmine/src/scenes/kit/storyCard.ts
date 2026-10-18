@@ -28,6 +28,12 @@ export interface StoryCardSpec {
   readonly pictures?: readonly CardPicture[];
   /** What the prospector makes of it. */
   readonly text: string;
+  /**
+   * The narrator's line for it: its recording is narration/<line>.mp3
+   * (spec, "Narration"). An id, not the words, so the words can be
+   * touched up without losing the voice. None, and it's never read aloud.
+   */
+  readonly line?: string;
   readonly button: string;
   /** A second, lesser button beside the main one: it closes the card and does its own thing instead of the main one's. */
   readonly secondary?: { readonly label: string; readonly press: () => void };
@@ -36,6 +42,16 @@ export interface StoryCardSpec {
 const W = 640;
 const PAD = 44;
 
+/** The narrator scene (NarratorScene), as a card needs it: reading the card aloud while it's open, and on after. */
+interface Narrator {
+  sayOver(spec: StoryCardSpec): () => void;
+}
+
+export interface StoryCardOpts {
+  /** Read aloud by the narrator (default); off for a card the narrator opened itself. */
+  readonly narrate?: boolean;
+}
+
 /**
  * A card over the page for a moment in the story (the call, meeting the
  * Lamplighters, lift-off): who's talking and their voice (or their knotted
@@ -43,7 +59,7 @@ const PAD = 44;
  * in a row, what the prospector makes of it, and one button. A sheet under
  * it takes every tap meant for the page. Space or Enter closes it too.
  */
-export function storyCard(scene: Phaser.Scene, spec: StoryCardSpec, onClose: () => void, depth = 80): Phaser.GameObjects.GameObject[] {
+export function storyCard(scene: Phaser.Scene, spec: StoryCardSpec, onClose: () => void, depth = 80, opts: StoryCardOpts = {}): Phaser.GameObjects.GameObject[] {
   const { width, height } = viewSize(scene);
   const parts: Phaser.GameObjects.GameObject[] = [heading(scene, 0, 30, spec.title, 28).setOrigin(0.5, 0)];
   let y = 70;
@@ -108,6 +124,7 @@ export function storyCard(scene: Phaser.Scene, spec: StoryCardSpec, onClose: () 
     scene.input.keyboard?.off('keydown-SPACE', onKey);
     scene.input.keyboard?.off('keydown-ENTER', onKey);
     for (const o of made) o.destroy();
+    uncover();
     then();
   };
   const bw = (text: string): number => Math.max(200, text.length * 15 + 44);
@@ -126,6 +143,9 @@ export function storyCard(scene: Phaser.Scene, spec: StoryCardSpec, onClose: () 
   made.push(sheet, card);
   scene.input.keyboard?.on('keydown-SPACE', onKey);
   scene.input.keyboard?.on('keydown-ENTER', onKey);
+  // Read aloud while it's open, and on in the narrator's strip once it's closed.
+  const voice = opts.narrate === false ? null : (scene.scene.get('Narrator') as unknown as Narrator | null);
+  const uncover = voice?.sayOver(spec) ?? ((): void => undefined);
   // A soft swell as it opens, and the speaker's voice as its trace shows it.
   const sound = getSound(scene);
   sound?.play('swell');

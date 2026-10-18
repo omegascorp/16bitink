@@ -3,10 +3,10 @@ import { createRng, type Rng } from './rng';
 import { isSolid, surfaceRow, TILE, tileAt, wrapX, type Terrain, type TilePos } from './terrain';
 
 /**
- * Mycel's creatures (spec, "Creatures"; the rules in
+ * The creatures of the living worlds (spec, "Creatures"; the rules in
  * docs/inkmine-xenobiology.md). Graphite, a dead rock, has none. They're
  * few and kept to their places, deeper is fiercer, and none come near the
- * lander:
+ * lander. Mycel's:
  * - puffballs sit on cave floors, notice you, swell and spit a clot of
  *   spores (a hit, and air lost); a pulse bursts them;
  * - snap tendrils hang from cave ceilings in the stone and whip down to
@@ -14,13 +14,25 @@ import { isSolid, surfaceRow, TILE, tileAt, wrapX, type Terrain, type TilePos } 
  * - grazers crawl the surface eating caps: harmless, they curl up when shot;
  * - the Mother Mycel, the moon's giant, a heart in a deep chamber: it can't
  *   be hurt, touching it hurts, and each beat sends out a wave of spores.
+ * Brine's (seaFauna.ts):
+ * - shore crabs walk the islands and the seabed: harmless, they tuck in when shot;
+ * - bubble jellies drift in the water and come for a swimmer: a sting is a
+ *   hit and air lost; a pulse bursts them;
+ * - rasp eels wait in burrows in flooded cave walls and lunge out at
+ *   whatever swims in front of them;
+ * - the Leviathan, Brine's giant, asleep in the deepest flooded cave: it
+ *   can't be hurt, and noise wakes it (drilling or blasting near it, or
+ *   swimming right up to it); awake, it sweeps its cave a while.
  * Placed fresh on every landing from the world's rules, never saved: what
  * you burst grows back.
  *
  * Kinds are in world definitions: never rename one.
  */
-export const CREATURE_KINDS = ['puffball', 'tendril', 'grazer'] as const;
-export type CreatureKind = (typeof CREATURE_KINDS)[number] | 'mother';
+export const CREATURE_KINDS = ['puffball', 'tendril', 'grazer', 'crab', 'jelly', 'lamprey'] as const;
+/** A world's giant: one, in its deepest place. */
+export const GIANT_KINDS = ['mother', 'leviathan'] as const;
+export type GiantKind = (typeof GIANT_KINDS)[number];
+export type CreatureKind = (typeof CREATURE_KINDS)[number] | GiantKind;
 
 /** A rule placing creatures of a kind: how many, between which depths below the surface, and optionally between which columns. */
 export interface CreatureRule {
@@ -38,6 +50,20 @@ export const CREATURE = {
   grazer: { speed: 0.6, curl: 3 },
   /** `wave`: tiles from her body that a beat's spores reach. */
   mother: { w: 8, h: 6, beat: 4, wave: 7, waveAir: 10, push: 380 },
+  crab: { speed: 0.5, tuck: 3 },
+  /** `speed` tiles/s drifting at you; `sting` air a sting costs; `lose` how far off (×notice) it gives up. */
+  jelly: { hp: 1, notice: 5, warn: 0.5, speed: 0.9, sting: 4, rest: 2, lose: 1.6, recoil: 1.2 },
+  /** `sense` tiles ahead of its burrow it sees, within `band` tiles up or down; `reach` tiles it lunges at most. */
+  lamprey: { hp: 2, sense: 4, band: 0.7, warn: 0.35, strike: 0.15, retract: 0.5, rest: 2.2, reach: 4 },
+  /**
+   * Its body in tiles; noise (0..1 wakes it): `drill` per tile drilled
+   * within `hear` tiles, `blast` per blast within `hearBlast`, `near` a
+   * second while you swim within `close` tiles of it, `shot` per pulse;
+   * `decay` a second. Awake it stirs for `warn` s, sweeps its cave for
+   * `awake` s at `speed` tiles/s (no further than `range` from home), then
+   * goes home to sleep.
+   */
+  leviathan: { w: 10, h: 4, hear: 10, drill: 0.14, hearBlast: 18, blast: 0.8, close: 3, near: 0.18, shot: 0.5, decay: 0.03, stir: 0.5, warn: 1.6, awake: 12, speed: 3, range: 14, push: 420 },
 } as const;
 
 /**
@@ -49,13 +75,19 @@ export const CREATURE = {
 export const SPOILS: Partial<Record<CreatureKind, readonly OreKey[]>> = {
   puffball: ['carbon', 'water'],
   tendril: ['carbon', 'amber'],
+  // A jelly is mostly salt water; a rasp eel's teeth are capped with magnetite, as a real chiton's are.
+  jelly: ['water', 'halite'],
+  lamprey: ['magnetite'],
 };
 
 /**
  * One creature. `x`, `y` is where it's anchored, px: a puffball's foot and
- * a grazer's underside on the ground, a tendril's knot in the ceiling, the
- * Mother's base on her chamber floor. `state` and `timer` drive what it's
- * doing; `reach` is how far a tendril is down (0..1).
+ * a grazer's or a crab's underside on the ground, a tendril's knot in the
+ * ceiling, a jelly's middle, a rasp eel's burrow mouth in its wall (it
+ * faces out of it), a giant's base on its chamber floor. `state` and
+ * `timer` drive what it's doing; `reach` is how far a tendril is down or a
+ * rasp eel is out (0..1). A giant that moves keeps its `home` (px along
+ * the ground); the Leviathan's `noise` is how near it is to waking (0..1).
  */
 export interface Creature {
   readonly id: number;
@@ -67,6 +99,8 @@ export interface Creature {
   readonly timer: number;
   readonly facing: 1 | -1;
   readonly reach: number;
+  readonly home?: number;
+  readonly noise?: number;
 }
 
 export type CreatureState = 'idle' | 'warn' | 'swell' | 'rest' | 'strike' | 'hold' | 'retract' | 'walk' | 'curled' | 'burst' | 'dead';
@@ -75,8 +109,9 @@ const SPACING = 6;
 
 /** A creature fresh where it's placed. */
 function born(id: number, kind: CreatureKind, x: number, y: number, rng: Rng): Creature {
-  const hp = kind === 'puffball' ? CREATURE.puffball.hp : kind === 'tendril' ? CREATURE.tendril.hp : 1;
-  return { id, kind, x, y, hp, state: kind === 'grazer' ? 'walk' : 'idle', timer: rng() * 2, facing: rng() < 0.5 ? 1 : -1, reach: 0 };
+  const hp = kind === 'puffball' || kind === 'tendril' || kind === 'lamprey' ? CREATURE[kind].hp : 1;
+  const c: Creature = { id, kind, x, y, hp, state: kind === 'grazer' || kind === 'crab' ? 'walk' : 'idle', timer: rng() * 2, facing: rng() < 0.5 ? 1 : -1, reach: 0 };
+  return kind === 'leviathan' ? { ...c, home: x, noise: 0 } : c;
 }
 
 /** Whether (x, y) is a cave floor: open, with ground under it and a roof somewhere over it (`top`: the column's first solid row). */
@@ -98,15 +133,52 @@ function surfaceSpot(t: Terrain, x: number, y: number, top: number): boolean {
   return y === ground - 1 && isSolid(t, x, ground);
 }
 
-const FITS = { puffball: caveFloor, tendril: caveCeiling, grazer: surfaceSpot } as const;
+/** Whether a tile is under water (on a world with none, nothing is). */
+export type WetAt = (x: number, y: number) => boolean;
+
+/** Whether (x, y) is open water with water above and below it: room for a jelly to hang in. */
+function openWater(t: Terrain, x: number, y: number, wet: WetAt): boolean {
+  return !isSolid(t, x, y) && wet(x, y) && wet(x, y - 1) && wet(x, y + 1) && wet(x - 1, y) && wet(x + 1, y);
+}
+
+/** Which way a rasp eel's burrow at (x, y) would face out (a wall behind it, three tiles of water in front), or 0. */
+export function burrowFacing(t: Terrain, x: number, y: number, wet: WetAt): 1 | -1 | 0 {
+  if (isSolid(t, x, y) || !wet(x, y)) return 0;
+  for (const dir of [1, -1] as const) {
+    if (!isSolid(t, x - dir, y)) continue;
+    let room = 0;
+    while (room < 3 && !isSolid(t, x + dir * room, y) && wet(x + dir * room, y)) room++;
+    if (room >= 3) return dir;
+  }
+  return 0;
+}
+
+type Fit = (t: Terrain, x: number, y: number, top: number, wet: WetAt) => boolean;
+const FITS: Record<(typeof CREATURE_KINDS)[number], Fit> = {
+  puffball: caveFloor,
+  tendril: caveCeiling,
+  grazer: surfaceSpot,
+  // A crab walks the open ground, dry or under the sea.
+  crab: surfaceSpot,
+  jelly: (t, x, y, _top, wet) => openWater(t, x, y, wet),
+  lamprey: (t, x, y, _top, wet) => burrowFacing(t, x, y, wet) !== 0,
+};
+/** Kinds that walk the surface: their rule's depths reach a little above and below it. */
+const WALKERS = new Set<string>(['grazer', 'crab']);
+
+/** Where a world's giant lives, and which it is. */
+export interface GiantAt {
+  readonly at: TilePos;
+  readonly kind: GiantKind;
+}
 
 /**
  * Every creature a world's rules place on its carved ground, from its seed,
  * so the same spots each landing; each kind kept SPACING tiles apart. Depths
- * are below `surface`, the lander's ground row. `mother`, if given, is her
- * base tile (her chamber's floor).
+ * are below `surface`, the lander's ground row. `giant`, if given, stands on
+ * its base tile (its chamber's floor). `wet` says where the carved water is.
  */
-export function placeCreatures(t: Terrain, rules: readonly CreatureRule[], surface: number, tile: number, seed: number, mother?: TilePos): Creature[] {
+export function placeCreatures(t: Terrain, rules: readonly CreatureRule[], surface: number, tile: number, seed: number, giant?: GiantAt, wet: WetAt = () => false): Creature[] {
   const rng = createRng(seed ^ 0x5eed);
   const out: Creature[] = [];
   const tops = Array.from({ length: t.width }, (_, x) => surfaceRow(t, x));
@@ -115,9 +187,10 @@ export function placeCreatures(t: Terrain, rules: readonly CreatureRule[], surfa
     const [c0, c1] = rule.cols ?? [0, t.width - 1];
     const spots: TilePos[] = [];
     for (let x = c0; x <= c1; x++) {
-      for (let y = Math.max(1, surface + rule.from - (rule.kind === 'grazer' ? 8 : 0)); y <= Math.min(t.height - 3, surface + rule.to + (rule.kind === 'grazer' ? 8 : 0)); y++) {
+      const slack = WALKERS.has(rule.kind) ? 8 : 0;
+      for (let y = Math.max(1, surface + rule.from - slack); y <= Math.min(t.height - 3, surface + rule.to + slack); y++) {
         const wx = wrapX(t, x);
-        if (FITS[rule.kind](t, wx, y, tops[wx]!)) spots.push([wx, y]);
+        if (FITS[rule.kind](t, wx, y, tops[wx]!, wet)) spots.push([wx, y]);
       }
     }
     // Shuffled with the seed, then taken in turn wherever there's room.
@@ -130,12 +203,24 @@ export function placeCreatures(t: Terrain, rules: readonly CreatureRule[], surfa
       if (taken.length >= rule.count) break;
       if (taken.some(([tx, ty]) => Math.abs(tx - x) < SPACING && Math.abs(ty - y) < SPACING)) continue;
       taken.push([x, y]);
-      const cx = (x + 0.5) * tile;
-      out.push(born(id++, rule.kind, cx, rule.kind === 'tendril' ? y * tile : (y + 1) * tile, rng));
+      out.push(placed(id++, rule.kind, x, y, tile, rng, t, wet));
     }
   }
-  if (mother) out.push(born(id++, 'mother', (mother[0] + 0.5) * tile, (mother[1] + 1) * tile, rng));
+  if (giant) out.push(born(id++, giant.kind, (giant.at[0] + 0.5) * tile, (giant.at[1] + 1) * tile, rng));
   return out;
+}
+
+/** A creature born on its tile, anchored as its kind is (see Creature). */
+function placed(id: number, kind: (typeof CREATURE_KINDS)[number], x: number, y: number, tile: number, rng: Rng, t: Terrain, wet: WetAt): Creature {
+  const cx = (x + 0.5) * tile;
+  if (kind === 'tendril') return born(id, kind, cx, y * tile, rng);
+  if (kind === 'jelly') return born(id, kind, cx, (y + 0.5) * tile, rng);
+  if (kind === 'lamprey') {
+    const facing = burrowFacing(t, x, y, wet) || 1;
+    // Its mouth on the wall's face, facing out into the water.
+    return { ...born(id, kind, (facing === 1 ? x : x + 1) * tile, (y + 0.5) * tile, rng), facing };
+  }
+  return born(id, kind, cx, (y + 1) * tile, rng);
 }
 
 /** Whether a creature can still act (not burst, severed or curled up). */

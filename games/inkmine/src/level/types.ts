@@ -1,5 +1,5 @@
 import type { GroundStyle } from '../art/palette';
-import type { CreatureRule } from '../logic/creatures';
+import type { CreatureRule, GiantKind } from '../logic/creatures';
 import type { ItemDef } from '../logic/items';
 import type { OreKey } from '../logic/ore';
 import type { TilePos } from '../logic/terrain';
@@ -31,14 +31,16 @@ export interface WorldDef {
   readonly crash?: number;
   /** Where its creatures live (creatures.ts; none on a dead world like Graphite). */
   readonly creatures?: readonly CreatureRule[];
-  /** The world's giant, where it lives: the floor of its chamber, by column and depth (a room should be carved there). */
-  readonly giant?: { readonly at: TilePos };
+  /** The world's giant, where it lives: the floor of its chamber, by column and depth (a room should be carved there), and which it is (default the Mother Mycel). */
+  readonly giant?: { readonly at: TilePos; readonly kind?: GiantKind };
   /** Where a lost crew made camp, by column and depth: the last open row of its cave (a room should be carved there). Mycel's Aster camp, at the end of their trail. */
   readonly camp?: { readonly at: TilePos };
   /** The column a lost crew's craft lies sunk at, on the seabed (Brine's Aster craft). */
   readonly craft?: number;
   /** Where the local people live under the water, by column and depth: the floor of their cave (Brine's Tidesingers). */
   readonly reef?: { readonly at: TilePos };
+  /** Where the lost craft's drive crystal lies, by column and depth: the floor of the cave it fell into (Brine's, by the Leviathan). */
+  readonly crystal?: { readonly at: TilePos };
 }
 
 /** The card shown the first time you land on a world: its name, a line under it, a few paragraphs and the button. */

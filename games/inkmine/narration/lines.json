@@ -1,0 +1,398 @@
+[
+  {
+    "line": "arrival-graphite",
+    "title": "Graphite",
+    "text": "The jump went wrong. Your ship struck a wild wormhole, one nobody had charted or steadied, and it tore through, out among stars no chart has. Before its systems died it braked into orbit and sent you down in the lander, for what it would need.\n\nThe lander came down hard on a small grey moon. The link to the guild is gone, the suit is still listing the damage, and the way back is gone from memory: which way home lies, even which star. Your ship is up there somewhere, dark. The lander will have to fly to reach it.\n\nNothing can be mended without the printer, and the printer wants copper. There's copper in the crater walls.",
+    "script": "[warm, storytelling] The jump went wrong. Your ship struck a wild wormhole, one nobody had charted or steadied, and it tore through, out among stars no chart has. Before its systems died it braked into orbit and sent you down in the lander, for what it would need.\n\nThe lander came down hard on a small grey moon. The link to the guild is gone, the suit is still listing the damage, and the way back is gone from memory: which way home lies, even which star. Your ship is up there somewhere, dark. The lander will have to fly to reach it.\n\nNothing can be mended without the printer, and the printer wants copper. There's copper in the crater walls.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:27Z"
+  },
+  {
+    "line": "arrival-mycel",
+    "title": "Mycel",
+    "text": "The lander drops through haze so thick the light goes green, and settles in soft ground that gives under its legs. Outside, things grow: springy caps underfoot, giant stalks in the haze, threads of white running over everything, spores drifting in the air like slow snow.\n\nThe suit tastes the air and won't open: heavy with carbon dioxide and thick with spores, nothing to breathe. Life signs everywhere. There's water here, pooled in the ground, and brown coal for the cell; ice and graphite won't be found.\n\nYour drill is a step behind on this moon: the peat costs double and the stone won't break. And the receiver picks up the Aster beacon's pulses at once, faint, from somewhere out in the jungle: follow them, stronger and closer.",
+    "script": "[warm, storytelling] The lander drops through haze so thick the light goes green, and settles in soft ground that gives under its legs. Outside, things grow: springy caps underfoot, giant stalks in the haze, threads of white running over everything, spores drifting in the air like slow snow.\n\nThe suit tastes the air and won't open: heavy with carbon dioxide and thick with spores, nothing to breathe. Life signs everywhere. There's water here, pooled in the ground, and brown coal for the cell; ice and graphite won't be found.\n\nYour drill is a step behind on this moon: the peat costs double and the stone won't break. And the receiver picks up the Aster beacon's pulses at once, faint, from somewhere out in the jungle: follow them, stronger and closer.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:38Z"
+  },
+  {
+    "line": "arrival-brine",
+    "title": "Brine",
+    "text": "The lander comes down on the only kind of ground there is: an island of black rock crusted white with salt, and all round it, to the edge of the haze, a sea the colour of wine. Little waves slap the shore. The water is thick with something living, too small to see, that turns the light purple.\n\nThe suit won't open: nitrogen and carbon dioxide, nothing to breathe. Fresh water lies under the island, floating on the salt sea below it, and dark lumps of manganese lie in the seabed for the cell.\n\nYour drill is a step behind here: the sediment costs double and the basalt won't break. Out on the reef to the east, something bright catches the light, half under the water.",
+    "script": "[warm, storytelling] The lander comes down on the only kind of ground there is: an island of black rock crusted white with salt, and all round it, to the edge of the haze, a sea the colour of wine. Little waves slap the shore. The water is thick with something living, too small to see, that turns the light purple.\n\nThe suit won't open: nitrogen and carbon dioxide, nothing to breathe. Fresh water lies under the island, floating on the salt sea below it, and dark lumps of manganese lie in the seabed for the cell.\n\nYour drill is a step behind here: the sediment costs double and the basalt won't break. Out on the reef to the east, something bright catches the light, half under the water.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:30Z"
+  },
+  {
+    "line": "talk-meet",
+    "title": "A Lamplighter",
+    "text": "Tall and slow, a lantern held out on a crook: the voice from the radio. Not a word of it makes sense, but the suit records it all. Then they crouch and draw in the dust: ten lumps of silver, the kind that lies deep down, and beside it something you know at once. A drive core.",
+    "script": "[warm, storytelling] Tall and slow, a lantern held out on a crook: the voice from the radio. Not a word of it makes sense, but the suit records it all. Then they crouch and draw in the dust: ten lumps of silver, the kind that lies deep down, and beside it something you know at once. A drive core.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:43Z"
+  },
+  {
+    "line": "talk-want",
+    "title": "The Lamplighter waits",
+    "text": "They draw it again, patiently: ten lumps of silver, then the core. Bring the silver in your bag.",
+    "script": "[warm, storytelling] They draw it again, patiently: ten lumps of silver, then the core. Bring the silver in your bag.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:35Z"
+  },
+  {
+    "line": "talk-paid",
+    "title": "The silver",
+    "text": "They take the silver piece by piece, weigh each one in a gloved hand, and nod. Then they draw your lander: the torn hull, the crumpled engine bell. They tap the drawing and shake their lantern. Not yet: mend the hull and the thrusters first.",
+    "script": "[warm, storytelling] They take the silver piece by piece, weigh each one in a gloved hand, and nod. Then they draw your lander: the torn hull, the crumpled engine bell. They tap the drawing and shake their lantern. Not yet: mend the hull and the thrusters first.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:43Z"
+  },
+  {
+    "line": "talk-wait-ship",
+    "title": "Not yet",
+    "text": "They draw your lander again, torn hull and crumpled bell, and shake their lantern. Mend the hull and the thrusters, then come back.",
+    "script": "[warm, storytelling] They draw your lander again, torn hull and crumpled bell, and shake their lantern. Mend the hull and the thrusters, then come back.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:43Z"
+  },
+  {
+    "line": "talk-core",
+    "title": "The drive core",
+    "text": "They go into the big dome and come back with something wrapped in cloth, warm through the glove: a drive core, whole. They press it into your hands and raise their lantern. Take it back to the lander and fit it.",
+    "script": "[warm, storytelling] They go into the big dome and come back with something wrapped in cloth, warm through the glove: a drive core, whole. They press it into your hands and raise their lantern. Take it back to the lander and fit it.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:36Z"
+  },
+  {
+    "line": "aster-lander",
+    "title": "The Aster lander",
+    "text": "Nothing anyone you know would build: a ribbed shell like a seed pod, glazed white, lashed with cord, an eight-pointed star on its crown. It came in too fast from the west, ploughed a furrow through the peat and split open. Nobody's inside, and nobody has been for years. By the door, the crew scratched pictures into the shell for whoever followed the beacon: the pod falling in flames, its pieces flying out all round it, some sinking into the ground, and small figures walking away east. Their broken gear is still out there, close by. None of it works like yours, but the suit can study it.",
+    "script": "[warm, storytelling] Nothing anyone you know would build: a ribbed shell like a seed pod, glazed white, lashed with cord, an eight-pointed star on its crown. It came in too fast from the west, ploughed a furrow through the peat and split open. Nobody's inside, and nobody has been for years. By the door, the crew scratched pictures into the shell for whoever followed the beacon: the pod falling in flames, its pieces flying out all round it, some sinking into the ground, and small figures walking away east. Their broken gear is still out there, close by. None of it works like yours, but the suit can study it.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:46Z"
+  },
+  {
+    "line": "camp-camp",
+    "title": "The Aster camp",
+    "text": "Under a skin of peat, a shaft, and at its bottom a cave they sealed against the spores, every crack smeared shut with amber. Three bedrolls of woven cord lie along the wall, long empty. Above them, in their plum ink, the crew drew what happened: a small craft built from the lander's petals, three of them flying off in it towards a blue world, and one lying down in a pod to wait. The pod is here, in the middle of the cave. Through its glass you can make out someone asleep, in a faint teal glow that flickers. The suit reads its cell: nearly flat. Their cells are glass prisms on a pyrite cathode, like the pulse's, so you can make it a charge: 6 pyrite and 4 calcite.",
+    "script": "[warm, storytelling] Under a skin of peat, a shaft, and at its bottom a cave they sealed against the spores, every crack smeared shut with amber. Three bedrolls of woven cord lie along the wall, long empty. Above them, in their plum ink, the crew drew what happened: a small craft built from the lander's petals, three of them flying off in it towards a blue world, and one lying down in a pod to wait. The pod is here, in the middle of the cave. Through its glass you can make out someone asleep, in a faint teal glow that flickers. The suit reads its cell: nearly flat. Their cells are glass prisms on a pyrite cathode, like the pulse's, so you can make it a charge: 6 pyrite and 4 calcite.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:32Z"
+  },
+  {
+    "line": "camp-pod",
+    "title": "The sleep pod",
+    "text": "The glow under the glass is fainter than when you left. Bring the pod its charge in your bag: 6 pyrite and 4 calcite.",
+    "script": "[warm, storytelling] The glow under the glass is fainter than when you left. Bring the pod its charge in your bag: 6 pyrite and 4 calcite.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:47Z"
+  },
+  {
+    "line": "camp-woken",
+    "title": "The last of the Aster",
+    "text": "The ore goes into the pod's cell, and the glass brightens until it hurts to look at. The petals unfold. Something inside stirs and stands up on six thin legs: a shell glazed lilac, small eyes all the way round it, and a light pulsing in the glass on its crown, the same pulses as the distress call. It looks at you for a long time. Then it crouches and scratches in the peat, as its crew did on the wall: the three of them, the craft, the blue world. Brine, the sea world on your star map. It draws a line from Brine back to here and stops it halfway: they were going to call back, and never did. It taps your suit, then the blue world, and its crown flashes slow and steady, as the beacon has all these years.",
+    "script": "[warm, storytelling] The ore goes into the pod's cell, and the glass brightens until it hurts to look at. The petals unfold. Something inside stirs and stands up on six thin legs: a shell glazed lilac, small eyes all the way round it, and a light pulsing in the glass on its crown, the same pulses as the distress call. It looks at you for a long time. Then it crouches and scratches in the peat, as its crew did on the wall: the three of them, the craft, the blue world. Brine, the sea world on your star map. It draws a line from Brine back to here and stops it halfway: they were going to call back, and never did. It taps your suit, then the blue world, and its crown flashes slow and steady, as the beacon has all these years.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:25Z"
+  },
+  {
+    "line": "camp-reunion",
+    "title": "Four again",
+    "text": "Their craft stands among the caps above the shaft, its glass glowing. Down in the camp all four of them are together: three thin from the sea, one still stiff from its years of sleep, their crowns rippling light round the cave so fast the suit can't follow it. When they see you, they stop. The one you woke comes forward with something rolled in cord: a chart scratched on a sheet of their glaze, this star and its worlds as only a crew that crossed them could have mapped them, with a course drawn in from the ringed giant's moons to a rust-red world nearer the star. Talus. They tap it, then your suit, then the mark at the chart's edge where the wormhole is. Whatever they saw at Talus, they think it matters for the way home.",
+    "script": "[warm, storytelling] Their craft stands among the caps above the shaft, its glass glowing. Down in the camp all four of them are together: three thin from the sea, one still stiff from its years of sleep, their crowns rippling light round the cave so fast the suit can't follow it. When they see you, they stop. The one you woke comes forward with something rolled in cord: a chart scratched on a sheet of their glaze, this star and its worlds as only a crew that crossed them could have mapped them, with a course drawn in from the ringed giant's moons to a rust-red world nearer the star. Talus. They tap it, then your suit, then the mark at the chart's edge where the wormhole is. Whatever they saw at Talus, they think it matters for the way home.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:41Z"
+  },
+  {
+    "line": "reef-meet",
+    "title": "The Tidesingers",
+    "text": "They come out of the dark on wide wings, two of them, slow and huge: flat bodies that fly through the water, long lobes curled at the front, eyes along the wing's edge. The song you followed is theirs, and up close it fills the suit. They won't let you past. One lands on the sand and unrolls a lobe into three fine fingers and draws: a branching lump of copper, an arrow into a block of rock, and its own lobe beating on the rock to no use. It wants copper, from inside the stone they can't break. Behind them, through the water, a pale dome glows in the dark, and in it, three small shapes with stars on their shells. Bring them 8 native copper.",
+    "script": "[warm, storytelling] They come out of the dark on wide wings, two of them, slow and huge: flat bodies that fly through the water, long lobes curled at the front, eyes along the wing's edge. The song you followed is theirs, and up close it fills the suit. They won't let you past. One lands on the sand and unrolls a lobe into three fine fingers and draws: a branching lump of copper, an arrow into a block of rock, and its own lobe beating on the rock to no use. It wants copper, from inside the stone they can't break. Behind them, through the water, a pale dome glows in the dark, and in it, three small shapes with stars on their shells. Bring them 8 native copper.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:45Z"
+  },
+  {
+    "line": "reef-want",
+    "title": "The Tidesingers",
+    "text": "They circle you, singing low, and the one who drew taps the picture in the sand again. They're still waiting for 8 native copper, in your bag.",
+    "script": "[warm, storytelling] They circle you, singing low, and the one who drew taps the picture in the sand again. They're still waiting for 8 native copper, in your bag.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:28Z"
+  },
+  {
+    "line": "reef-paid",
+    "title": "The Tidesingers",
+    "text": "They take the copper one lump at a time, turning each in their fingers, and the song rises. Then the one who drew shows you how they bore stone: a tube of copper, spun between its lobes on wet sand, the sand doing the cutting. It's how the Egyptians drilled granite, with copper tubes and sand, four and a half thousand years ago. The suit records it as a design: the Drill Mk 3, your way. Then they part, and lead you in.",
+    "script": "[warm, storytelling] They take the copper one lump at a time, turning each in their fingers, and the song rises. Then the one who drew shows you how they bore stone: a tube of copper, spun between its lobes on wet sand, the sand doing the cutting. It's how the Egyptians drilled granite, with copper tubes and sand, four and a half thousand years ago. The suit records it as a design: the Drill Mark 3, your way. Then they part, and lead you in.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:23Z"
+  },
+  {
+    "line": "reef-crew",
+    "title": "The Aster crew",
+    "text": "Under the reef the Tidesingers keep a dome of woven fibre, sealed with wax, and full of air: they carry it down in bladders from the surface, a bubble at a time, as a diving bell spider fills its silk bell. In it, three Aster, thin and dull-shelled, their crowns flashing weakly. They know your suit from the pictures the last of them must have scratched for anyone who followed. They flash the story: their craft sank on the reef, the Tidesingers caught them as they swam and brought them here, and they have lived in this bubble ever since, their radio drowned with the craft. Radio dies in seawater; they could never call back. One of them shows you how they breathe out on the reef: a pouch of salt that scrubs the breath, so it can be breathed again. The suit records it: the rebreather.",
+    "script": "[warm, storytelling] Under the reef the Tidesingers keep a dome of woven fibre, sealed with wax, and full of air: they carry it down in bladders from the surface, a bubble at a time, as a diving bell spider fills its silk bell. In it, three Aster, thin and dull-shelled, their crowns flashing weakly. They know your suit from the pictures the last of them must have scratched for anyone who followed. They flash the story: their craft sank on the reef, the Tidesingers caught them as they swam and brought them here, and they have lived in this bubble ever since, their radio drowned with the craft. Radio dies in seawater; they could never call back. One of them shows you how they breathe out on the reef: a pouch of salt that scrubs the breath, so it can be breathed again. The suit records it: the rebreather.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:34Z"
+  },
+  {
+    "line": "reef-patch",
+    "title": "The Aster crew",
+    "text": "They've drawn their craft on the dome's wall: its hull split along the keel. The Tidesingers can float it up with bladders, but it must hold air first. They need iron to patch it: 10 magnetite, from the basalt, in your bag.",
+    "script": "[warm, storytelling] They've drawn their craft on the dome's wall: its hull split along the keel. The Tidesingers can float it up with bladders, but it must hold air first. They need iron to patch it: 10 magnetite, from the basalt, in your bag.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:26Z"
+  },
+  {
+    "line": "reef-raised",
+    "title": "Up from the reef",
+    "text": "The crew hammer the iron into plates and lash them over the split with cord; the Tidesingers swim down with bladder after bladder of air and tie them under the hull. Slowly, then all at once, the craft lifts off the reef and rises, streaming, to bob on the surface. Real salvors raise wrecks just like this, with lift bags. But its glass stays dark: its cell drowned. It needs a new heart.",
+    "script": "[warm, storytelling] The crew hammer the iron into plates and lash them over the split with cord; the Tidesingers swim down with bladder after bladder of air and tie them under the hull. Slowly, then all at once, the craft lifts off the reef and rises, streaming, to bob on the surface. Real salvors raise wrecks just like this, with lift bags. But its glass stays dark: its cell drowned. It needs a new heart.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:35Z"
+  },
+  {
+    "line": "craft-found",
+    "title": "The Aster craft",
+    "text": "It's the craft from the pictures on Mycel, built from the lander's petals: tipped on the reef two metres down, cracked along its keel, purple slime over the glaze. Nobody inside. Its radio sits in the water, dead: radio waves die within a metre or two of seawater, which is why submarines can only hear the slowest ones, and why the crew never called back. Scratched inside the hull in their plum ink: the craft going down, three small figures swimming, and under them, great wide shapes rising out of the deep, carrying them down. Down, not up.",
+    "script": "[warm, storytelling] It's the craft from the pictures on Mycel, built from the lander's petals: tipped on the reef two metres down, cracked along its keel, purple slime over the glaze. Nobody inside. Its radio sits in the water, dead: radio waves die within a metre or two of seawater, which is why submarines can only hear the slowest ones, and why the crew never called back. Scratched inside the hull in their plum ink: the craft going down, three small figures swimming, and under them, great wide shapes rising out of the deep, carrying them down. Down, not up.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:35Z"
+  },
+  {
+    "line": "craft-heart",
+    "title": "The Aster craft",
+    "text": "It bobs over the reef, patched, its glass dark. Their cells are glass prisms on a cathode; bring it 6 manganese nodule and 4 brine pearl, in your bag.",
+    "script": "[warm, storytelling] It bobs over the reef, patched, its glass dark. Their cells are glass prisms on a cathode; bring it 6 manganese nodule and 4 brine pearl, in your bag.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:31Z"
+  },
+  {
+    "line": "craft-mended",
+    "title": "The craft's heart",
+    "text": "The crew lift the old cell out, black with salt, and build the new one in its place: manganese for the cathode, nacre to case the prism. The glass catches, flickers and glows teal, and the hull hums. But it doesn't rise. They open the keel and show you an empty cradle: the drive crystal, the glass that turns the cell's power into lift, fell out through the split when it sank. One of them scratches it on the hull for you: the crystal tumbling down a crack in the reef, far down into a cave full of water, to lie beside a shape so big it fills the drawing, asleep. The Tidesingers never go down there. When they sing of it, they sing very quietly.",
+    "script": "[warm, storytelling] The crew lift the old cell out, black with salt, and build the new one in its place: manganese for the cathode, nacre to case the prism. The glass catches, flickers and glows teal, and the hull hums. But it doesn't rise. They open the keel and show you an empty cradle: the drive crystal, the glass that turns the cell's power into lift, fell out through the split when it sank. One of them scratches it on the hull for you: the crystal tumbling down a crack in the reef, far down into a cave full of water, to lie beside a shape so big it fills the drawing, asleep. The Tidesingers never go down there. When they sing of it, they sing very quietly.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:46Z"
+  },
+  {
+    "line": "craft-flight",
+    "title": "Home",
+    "text": "The crew slot the crystal into its cradle under the keel, and the craft lifts out of the sea, streaming, on a column of teal light. The Tidesingers rise all round it, singing the long song you followed here, and the crew answer in light, crown after crown. Then it climbs, and turns towards the ringed giant and its green moon: home to Mycel, where the last of them has been waiting all this time. As it goes, their crowns flash at you, slow and steady, the same pulses as the beacon: come.",
+    "script": "[warm, storytelling] The crew slot the crystal into its cradle under the keel, and the craft lifts out of the sea, streaming, on a column of teal light. The Tidesingers rise all round it, singing the long song you followed here, and the crew answer in light, crown after crown. Then it climbs, and turns towards the ringed giant and its green moon: home to Mycel, where the last of them has been waiting all this time. As it goes, their crowns flash at you, slow and steady, the same pulses as the beacon: come.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:40Z"
+  },
+  {
+    "line": "crystal",
+    "title": "The drive crystal",
+    "text": "It lies in the silt at the far end of the cave, a prism of teal glass as long as your forearm, still faintly lit. At the other end, filling the dark, something sleeps: longer than your lander is tall, crusted with salt, a row of lights along its flank dimming and brightening with each slow breath. Real deep-sea animals light themselves like this, with photophores. You ease the crystal into the suit's pouch. Now back out, as quietly as you came: no drilling near it.",
+    "script": "[warm, storytelling] It lies in the silt at the far end of the cave, a prism of teal glass as long as your forearm, still faintly lit. At the other end, filling the dark, something sleeps: longer than your lander is tall, crusted with salt, a row of lights along its flank dimming and brightening with each slow breath. Real deep-sea animals light themselves like this, with photophores. You ease the crystal into the suit's pouch. Now back out, as quietly as you came: no drilling near it.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:41Z"
+  },
+  {
+    "line": "ship-call",
+    "title": "Incoming call",
+    "text": "Not the guild. A voice, slow and low, in no language the suit knows: the same slow sounds over and over, then quiet, then again. The radio records it. The dish can't say where it's coming from, only that it's somewhere over the horizon. A handheld receiver could follow it: the stronger it gets, the closer you are.",
+    "script": "[warm, storytelling] Not the guild. A voice, slow and low, in no language the suit knows: the same slow sounds over and over, then quiet, then again. The radio records it. The dish can't say where it's coming from, only that it's somewhere over the horizon. A handheld receiver could follow it: the stronger it gets, the closer you are.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:42Z"
+  },
+  {
+    "line": "ship-mycel-orbit",
+    "title": "In orbit over Mycel",
+    "text": "Below, a haze the colour of moss hides the ground. Through gaps in it: white threads mapping the hills, caps the size of hills, and somewhere under it all, the Aster beacon's pulses, loud and clear up here. Down there the receiver can follow it. The suit's sensors light up at once: life, everywhere. Ice and graphite won't be found down there: you'll have to work with what Mycel has.",
+    "script": "[warm, storytelling] Below, a haze the colour of moss hides the ground. Through gaps in it: white threads mapping the hills, caps the size of hills, and somewhere under it all, the Aster beacon's pulses, loud and clear up here. Down there the receiver can follow it. The suit's sensors light up at once: life, everywhere. Ice and graphite won't be found down there: you'll have to work with what Mycel has.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:39Z"
+  },
+  {
+    "line": "ship-brine-orbit",
+    "title": "In orbit over Brine",
+    "text": "Sea, from one edge of the window to the other, violet where the light goes into it. Islands of black rock lie scattered on it, crusted white. The radio hears nothing: no beacon, no pulses. But the telescope, turned on the reef east of the biggest island, picks out something bright just under the water: petals, glazed lilac, the shape of the craft in the Aster's pictures. The lander can only come down on rock: the big island it is.",
+    "script": "[warm, storytelling] Sea, from one edge of the window to the other, violet where the light goes into it. Islands of black rock lie scattered on it, crusted white. The radio hears nothing: no beacon, no pulses. But the telescope, turned on the reef east of the biggest island, picks out something bright just under the water: petals, glazed lilac, the shape of the craft in the Aster's pictures. The lander can only come down on rock: the big island it is.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:29Z"
+  },
+  {
+    "line": "ship-docked",
+    "title": "Docked",
+    "text": "It's cold and dark. The wormhole burnt out its power lines, cracked its telescope's mirror, split its fuel tank and killed its engine, and its jump drive is burnt black. Without the telescope you can't even see which star this is. Everything it needs to mend is down on the grey moon: copper, silver, quartz, graphite and ice, carried up in the lander a load at a time.",
+    "script": "[warm, storytelling] It's cold and dark. The wormhole burnt out its power lines, cracked its telescope's mirror, split its fuel tank and killed its engine, and its jump drive is burnt black. Without the telescope you can't even see which star this is. Everything it needs to mend is down on the grey moon: copper, silver, quartz, graphite and ice, carried up in the lander a load at a time.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:30Z"
+  },
+  {
+    "line": "ship-distress",
+    "title": "Distress call",
+    "text": "The lights come up, and the ship's radio picks something out of the hiss: not a voice, not the guild's codes. A pattern of pulses, the same phrase over and over, and folded into it a picture the screen can draw: an eight-pointed star falling into a green circle. Nobody needs a language for that. Someone else fell through the wormhole, came down on the green moon, and is calling for help. The Aster, you call them, for the star. The dish finds the source, Mycel, beside this moon, and the pulses' own count says they've been calling for years.",
+    "script": "[warm, storytelling] The lights come up, and the ship's radio picks something out of the hiss: not a voice, not the guild's codes. A pattern of pulses, the same phrase over and over, and folded into it a picture the screen can draw: an eight-pointed star falling into a green circle. Nobody needs a language for that. Someone else fell through the wormhole, came down on the green moon, and is calling for help. The Aster, you call them, for the star. The dish finds the source, Mycel, beside this moon, and the pulses' own count says they've been calling for years.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:39Z"
+  },
+  {
+    "line": "ship-first-light",
+    "title": "First light",
+    "text": "The new mirror settles, the eyepiece clears, and for the first time since the wormhole you can see where you are.",
+    "script": "[warm, storytelling] The new mirror settles, the eyepiece clears, and for the first time since the wormhole you can see where you are.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:27Z"
+  },
+  {
+    "line": "ship-lift-off",
+    "title": "Lift-off",
+    "text": "The core hums, the tanks feed the thrusters, and the lander climbs off the grey moon. Down on the far rim, the Lamplighters' lanterns get small. Then, ahead, a dark shape against the stars, turning slowly: your ship, right where it braked into orbit before its systems died.",
+    "script": "[warm, storytelling] The core hums, the tanks feed the thrusters, and the lander climbs off the grey moon. Down on the far rim, the Lamplighters' lanterns get small. Then, ahead, a dark shape against the stars, turning slowly: your ship, right where it braked into orbit before its systems died.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:44Z"
+  },
+  {
+    "line": "map-where-you-fell",
+    "title": "Where you fell",
+    "text": "The orange star, and twelve worlds round it. The grey moon was never a planet: it's one of three moons round the ringed giant. Not one of these worlds is in any chart you remember. Home is somewhere past all of them.",
+    "script": "[warm, storytelling] The orange star, and twelve worlds round it. The grey moon was never a planet: it's one of three moons round the ringed giant. Not one of these worlds is in any chart you remember. Home is somewhere past all of them.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:31Z"
+  },
+  {
+    "line": "trip-first",
+    "title": "Course set for Mycel",
+    "text": "The engine hums for the first time since the wormhole, and the grey moon slides away below. Mycel grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.",
+    "script": "[warm, storytelling] The engine hums for the first time since the wormhole, and the grey moon slides away below. Mycel grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:26Z"
+  },
+  {
+    "line": "trip-graphite-mycel",
+    "title": "Course set for Mycel",
+    "text": "The engine hums and Graphite slides away below. A short hop round the ringed giant, and Mycel fills the window.",
+    "script": "[warm, storytelling] The engine hums and Graphite slides away below. A short hop round the ringed giant, and Mycel fills the window.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:34Z"
+  },
+  {
+    "line": "trip-sea-from-graphite",
+    "title": "Course set for Brine",
+    "text": "The Aster tank takes the strain, and for the first time the ship leaves the ringed giant behind. Graphite shrinks to a grey dot beside it, then is lost in its glare. Days on, a blue-violet world fills the window: sea from edge to edge, scattered with islands, and somewhere down there, three of the Aster.",
+    "script": "[warm, storytelling] The Aster tank takes the strain, and for the first time the ship leaves the ringed giant behind. Graphite shrinks to a grey dot beside it, then is lost in its glare. Days on, a blue-violet world fills the window: sea from edge to edge, scattered with islands, and somewhere down there, three of the Aster.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:28Z"
+  },
+  {
+    "line": "trip-mycel-graphite",
+    "title": "Course set for Graphite",
+    "text": "The engine hums and Mycel slides away below. A short hop round the ringed giant, and Graphite fills the window.",
+    "script": "[warm, storytelling] The engine hums and Mycel slides away below. A short hop round the ringed giant, and Graphite fills the window.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:24Z"
+  },
+  {
+    "line": "trip-sea-from-mycel",
+    "title": "Course set for Brine",
+    "text": "The Aster tank takes the strain, and for the first time the ship leaves the ringed giant behind. Mycel shrinks to a green dot beside it, then is lost in its glare. Days on, a blue-violet world fills the window: sea from edge to edge, scattered with islands, and somewhere down there, three of the Aster.",
+    "script": "[warm, storytelling] The Aster tank takes the strain, and for the first time the ship leaves the ringed giant behind. Mycel shrinks to a green dot beside it, then is lost in its glare. Days on, a blue-violet world fills the window: sea from edge to edge, scattered with islands, and somewhere down there, three of the Aster.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:33Z"
+  },
+  {
+    "line": "trip-graphite-brine",
+    "title": "Course set for Brine",
+    "text": "The engine hums and Graphite slides away below. The long crossing between the ringed giant and the sea world, and Brine fills the window.",
+    "script": "[warm, storytelling] The engine hums and Graphite slides away below. The long crossing between the ringed giant and the sea world, and Brine fills the window.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:25Z"
+  },
+  {
+    "line": "trip-mycel-brine",
+    "title": "Course set for Brine",
+    "text": "The engine hums and Mycel slides away below. The long crossing between the ringed giant and the sea world, and Brine fills the window.",
+    "script": "[warm, storytelling] The engine hums and Mycel slides away below. The long crossing between the ringed giant and the sea world, and Brine fills the window.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:37Z"
+  },
+  {
+    "line": "trip-brine-graphite",
+    "title": "Course set for Graphite",
+    "text": "The engine hums and Brine slides away below. The long crossing between the ringed giant and the sea world, and Graphite fills the window.",
+    "script": "[warm, storytelling] The engine hums and Brine slides away below. The long crossing between the ringed giant and the sea world, and Graphite fills the window.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:47Z"
+  },
+  {
+    "line": "trip-brine-mycel",
+    "title": "Course set for Mycel",
+    "text": "The engine hums and Brine slides away below. The long crossing between the ringed giant and the sea world, and Mycel fills the window.",
+    "script": "[warm, storytelling] The engine hums and Brine slides away below. The long crossing between the ringed giant and the sea world, and Mycel fills the window.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:42Z"
+  },
+  {
+    "line": "trip-homeward",
+    "title": "Course set for Mycel",
+    "text": "The engine hums and the sea world falls away behind. Somewhere ahead, a speck of teal light is crossing the same dark: the crew's craft, going home. Days on, the ringed giant fills the window, and beside it the green moon, where four of the Aster will be waiting.",
+    "script": "[warm, storytelling] The engine hums and the sea world falls away behind. Somewhere ahead, a speck of teal light is crossing the same dark: the crew's craft, going home. Days on, the ringed giant fills the window, and beside it the green moon, where four of the Aster will be waiting.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:26Z"
+  },
+  {
+    "line": "trip-first-demo",
+    "title": "Course set for Mycel",
+    "text": "The engine hums for the first time since the wormhole, and the grey moon slides away below. Mycel grows ahead, green under its haze: a world with air, and with life in it. Somewhere under that haze, the Aster beacon is still calling.",
+    "script": "[warm, storytelling] The engine hums for the first time since the wormhole, and the grey moon slides away below. Mycel grows ahead, green under its haze: a world with air, and with life in it. Somewhere under that haze, the Aster beacon is still calling.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:24Z"
+  },
+  {
+    "line": "demo-end",
+    "title": "The end of the demo",
+    "text": "That's as far as the demo goes. Mycel, the green moon, is in the full game: follow an alien distress call down into a fungal jungle, find the wreck of the Aster's lander, and learn from their strange gear to print your own from the moon's ores. Then on to Brine, a purple sea world, to swim its reefs and find the Aster's lost crew. The worlds after it, and the long search for the way home, come as free updates.",
+    "script": "[warm, storytelling] That's as far as the demo goes. Mycel, the green moon, is in the full game: follow an alien distress call down into a fungal jungle, find the wreck of the Aster's lander, and learn from their strange gear to print your own from the moon's ores. Then on to Brine, a purple sea world, to swim its reefs and find the Aster's lost crew. The worlds after it, and the long search for the way home, come as free updates.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T05:05:36Z"
+  }
+]

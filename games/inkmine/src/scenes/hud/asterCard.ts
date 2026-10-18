@@ -9,6 +9,7 @@ import type { StoryCardSpec } from '../kit/storyCard';
  * broken gear, alien technology, is what the suit learns Mk 2 from.
  */
 export const ASTER_CARD: StoryCardSpec = {
+  line: 'aster-lander',
   title: 'The Aster lander',
   subtitle: 'what the beacon was calling from',
   portrait: { key: TEX.asterWreck(0), h: 120 },

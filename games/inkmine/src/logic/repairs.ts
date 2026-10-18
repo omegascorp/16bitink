@@ -6,6 +6,7 @@ import { countOf, holdEntries, type Hold } from './hold';
 import { ORES } from './ore';
 import { HEART, hasBeat, RAISE, REEF_TRADE, tradeLine, WAKE } from './story';
 import { FIRST_COURSE, isFixed, shipFuelOre, STARSHIP, STARSHIP_IDS, type StarshipId } from './starship';
+import { worldById } from './starSystem';
 import { tripFuel } from './travel';
 import type { WorldId } from './worlds';
 import { hasTool, TOOL_KINDS } from './tools';
@@ -167,7 +168,13 @@ export type Goal =
   | { readonly kind: 'raise' }
   /** The craft is up: bring its new heart's ore to it, in the bag. */
   | { readonly kind: 'heart' }
-  /** The craft hums again. Chapter 3 goes on later. */
+  /** The craft hums, but its drive crystal fell into the Leviathan's cave: fetch it. */
+  | { readonly kind: 'crystal' }
+  /** Bring the crystal to the craft. */
+  | { readonly kind: 'flight' }
+  /** Back on Mycel: the crew flew home; meet them at their camp. */
+  | { readonly kind: 'reunion' }
+  /** The four Aster together again, and their star chart yours: the end of chapter 3. */
   | { readonly kind: 'brineEnd' };
 
 /** The drill that breaks Graphite's stone: the thrusters' silver and the radio's quartz lie in it. */
@@ -207,11 +214,18 @@ function mycelGoal(p: Profile): Goal {
   if (!hasBeat(p, 'asterWoken')) return { kind: 'wake' };
   // On to Brine: fit the tank the Aster drew, fill it and set course.
   if (!isFixed(p, 'asterTank')) return { kind: 'brine' };
-  return p.shipFuel >= brineTrip(p) ? { kind: 'setCourse', to: 'brine' } : { kind: 'tripFuel', to: 'brine' };
+  return tripGoal(p, 'brine');
 }
 
-/** What the trip to Brine burns from where you are (from Mycel, or Graphite if you went back). */
-const brineTrip = (p: Profile): number => tripFuel(p.at === 'brine' ? 'mycel' : p.at, 'brine') ?? 0;
+/** A world's name, for the goal lines. */
+const worldName = (id: WorldId): string => worldById(id)?.name ?? id;
+
+/** What the trip to `to` burns from where you are (from Mycel if you're there already). */
+const tripTo = (p: Profile, to: WorldId): number => tripFuel(p.at === to ? (to === 'mycel' ? 'brine' : 'mycel') : p.at, to) ?? 0;
+const brineTrip = (p: Profile): number => tripTo(p, 'brine');
+
+/** Fill the ship's tank for `to`, or, filled, set course for it. */
+const tripGoal = (p: Profile, to: WorldId): Goal => (p.shipFuel >= tripTo(p, to) ? { kind: 'setCourse', to } : { kind: 'tripFuel', to });
 
 /**
  * Chapter 3, on Brine (spec, "Brine: The story"): land, swim out to the
@@ -219,7 +233,9 @@ const brineTrip = (p: Profile): number => tripFuel(p.at === 'brine' ? 'mycel' : 
  * them copper (they give the Mk 3 drill's design, and let you in to the
  * crew, who give the rebreather's), print both, study the Tidesingers' old
  * tools in their drowned village, then raise the crew's craft (iron for its
- * hull) and give it a new heart.
+ * hull) and give it a new heart. Its drive crystal fell into the flooded
+ * underworld, by the sleeping Leviathan: fetch it and the crew fly home to
+ * Mycel, where the four Aster meet again at their camp.
  */
 function brineGoal(p: Profile): Goal {
   if (!p.visited.includes('brine')) return { kind: 'land', world: 'brine' };
@@ -232,7 +248,10 @@ function brineGoal(p: Profile): Goal {
   if (found < BRINE_SET.length) return { kind: 'explore', found, of: BRINE_SET.length, mk: 3 };
   if (!hasBeat(p, 'craftRaised')) return { kind: 'raise' };
   if (!hasBeat(p, 'craftMended')) return { kind: 'heart' };
-  return { kind: 'brineEnd' };
+  if (!hasBeat(p, 'crystalFound')) return { kind: 'crystal' };
+  if (!hasBeat(p, 'craftFlown')) return { kind: 'flight' };
+  if (hasBeat(p, 'asterReunion')) return { kind: 'brineEnd' };
+  return p.at === 'mycel' ? { kind: 'reunion' } : tripGoal(p, 'mycel');
 }
 
 /**
@@ -287,12 +306,12 @@ export function goalLine(p: Profile, g: Goal): string {
     return `The Aster's crew flew to Brine and never called back. Fit the tank the Aster drew for you, to reach it: ${how}`;
   }
   if (g.kind === 'tripFuel') {
-    const want = brineTrip(p);
+    const want = tripTo(p, g.to);
     const water = Math.min(countOf(onHand(p), shipFuelOre(p)), want - p.shipFuel);
     const how = p.shipFuel + water >= want ? (p.docked ? 'refill it on the Starship tab' : 'fly up to it (L at the lander)') : `${ORES[shipFuelOre(p)].name} ${p.shipFuel + water}/${want}, carried up in the lander`;
-    return `Fill your ship's tank for the trip to Brine: ${how}`;
+    return `${g.to === 'mycel' ? 'The crew flew home to Mycel. ' : ''}Fill your ship's tank for the trip to ${worldName(g.to)}: ${how}`;
   }
-  if (g.kind === 'setCourse') return p.docked ? 'Set course for Brine: the star map, on the Starship tab' : 'Set course for Brine: fly up to your ship (L at the lander)';
+  if (g.kind === 'setCourse') return `${g.to === 'mycel' ? 'The crew flew home. ' : ''}Set course for ${worldName(g.to)}: ${p.docked ? 'the star map, on the Starship tab' : 'fly up to your ship (L at the lander)'}`;
   if (g.kind === 'craft') return "The telescope saw something bright on the reef east of the island: swim out to it. Follow the beacon";
   if (g.kind === 'song') return 'Radio dies in seawater, but sound carries: put your helmet under water and follow the song. The more bars, the closer';
   if (g.kind === 'reefTrade') return `The Tidesingers want copper from inside the rock. Bring it in your bag: ${tradeLine(p.suit, (ore) => ORES[ore as keyof typeof ORES].name, REEF_TRADE)}`;
@@ -302,7 +321,10 @@ export function goalLine(p: Profile, g: Goal): string {
   }
   if (g.kind === 'raise') return `The crew's craft has a cracked hull. Bring them iron to patch it, at the reef: ${tradeLine(p.suit, (ore) => ORES[ore as keyof typeof ORES].name, RAISE)}`;
   if (g.kind === 'heart') return `The craft is up, but its cell drowned. Bring it a new heart: ${tradeLine(p.suit, (ore) => ORES[ore as keyof typeof ORES].name, HEART)}`;
-  if (g.kind === 'brineEnd') return 'The craft hums again. What the crew do next, and what lives in the flooded underworld, is coming soon';
+  if (g.kind === 'crystal') return "The craft's drive crystal fell down a crack into the flooded underworld, where something huge sleeps. Fetch it, quietly: drilling near it wakes it. Follow the beacon";
+  if (g.kind === 'flight') return 'Bring the drive crystal to the crew\'s craft over the reef. Follow the beacon';
+  if (g.kind === 'reunion') return p.docked ? 'The crew flew home to their camp on Mycel: land and go to them' : 'The crew flew home: meet them at their camp in the east. Follow the beacon';
+  if (g.kind === 'brineEnd') return "The end of chapter 3. The Aster's star chart shows the way to Talus: chapter 4 is coming";
   if (g.kind === 'print') return `Print the ${recipeOf(g.blueprint)!.piece} Mk ${recipeOf(g.blueprint)!.mk}: go aboard (L at the lander)`;
   if (g.kind === 'receiver') {
     const need = TOOL_KINDS.receiver.recipe;

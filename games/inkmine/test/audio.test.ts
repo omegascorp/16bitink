@@ -50,13 +50,15 @@ describe('sound effects', () => {
 });
 
 describe('saved sound settings', () => {
-  it('reads muted only when it says so; anything else is sound on', () => {
-    expect(parseSoundSettings(JSON.stringify({ muted: true }))).toEqual({ muted: true });
-    expect(parseSoundSettings(JSON.stringify({ muted: false }))).toEqual({ muted: false });
-    expect(parseSoundSettings(null)).toEqual({ muted: false });
-    expect(parseSoundSettings('not json')).toEqual({ muted: false });
-    expect(parseSoundSettings('"muted"')).toEqual({ muted: false });
-    expect(parseSoundSettings(JSON.stringify({ muted: 'yes' }))).toEqual({ muted: false });
+  it('reads muted only when it says so, and narration on unless it says off; anything else is sound and narration on', () => {
+    const on = { muted: false, narration: true };
+    expect(parseSoundSettings(JSON.stringify({ muted: true }))).toEqual({ ...on, muted: true });
+    expect(parseSoundSettings(JSON.stringify({ muted: false }))).toEqual(on);
+    expect(parseSoundSettings(JSON.stringify({ muted: false, narration: false }))).toEqual({ ...on, narration: false });
+    expect(parseSoundSettings(null)).toEqual(on);
+    expect(parseSoundSettings('not json')).toEqual(on);
+    expect(parseSoundSettings('"muted"')).toEqual(on);
+    expect(parseSoundSettings(JSON.stringify({ muted: 'yes', narration: 'no' }))).toEqual(on);
   });
 
   it('the sound board remembers mute in storage and tells whoever listens, without Web Audio', () => {
