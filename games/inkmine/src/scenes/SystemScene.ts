@@ -97,6 +97,13 @@ export class SystemScene extends Phaser.Scene {
     if (data.arrived) this.arrival();
     if (data.demoEnd) this.demoEnd();
     this.prefetchTrips(getProfile(this));
+    // Sound or narration back on while the map is open: fetch them then.
+    const sound = getSound(this);
+    if (sound) {
+      const again = (): void => this.prefetchTrips(getProfile(this));
+      const stops = [sound.onMuteChange(again), sound.onNarrationChange(again)];
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => stops.forEach((stop) => stop()));
+    }
     // At a world whose ground didn't load (the full game, offline): say so, and offer to try again.
     if (!hasWorld(here)) this.unavailable(here);
   }

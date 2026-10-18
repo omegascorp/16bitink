@@ -54,8 +54,10 @@ const lineOf = (spec: StoryCardSpec, speak: boolean): Line => ({ spec, chunks: s
  * queued; a strip at the foot of the screen names it and shows its
  * subtitles in time with the voice, with pause, skip, and Read, which
  * opens the full card (with its pictures) and holds the world while it's
- * open. Everything else dips under the voice. Muted, the subtitles still
- * run, at a reading pace.
+ * open. Everything else dips under the voice. With sound muted or
+ * narration off, nothing is read or fetched: story moments are cards the
+ * world waits on, as before, and switched back on, the next lines are
+ * fetched again.
  */
 export class NarratorScene extends Phaser.Scene {
   /** The full card is open from the strip: the world waits while it's read. */
@@ -68,6 +70,8 @@ export class NarratorScene extends Phaser.Scene {
   private paused = false;
   /** A modal card on another scene is showing this line already: the strip waits under it. */
   private covered = false;
+  /** Sound went off: the line is on a card the world waits on, and closing it ends the line. */
+  private carded = false;
   private buffer: AudioBuffer | null = null;
   private voicing = false;
   private voice!: VoicePlayer;
@@ -89,15 +93,32 @@ export class NarratorScene extends Phaser.Scene {
     if (sound) this.voice = new VoicePlayer(sound);
     this.scale.on('resize', this.build, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', this.build, this));
-    sound?.onMuteChange(() => this.resync());
-    sound?.onNarrationChange((on) => {
-      if (!on) this.clear();
-    });
+    sound?.onMuteChange(() => this.heard());
+    sound?.onNarrationChange(() => this.heard());
   }
 
-  /** Whether the narrator would read `spec` aloud: narration is on and its line is recorded. */
+  /** Whether the narrator can be heard: sound on, and narration on. */
+  private get audible(): boolean {
+    const sound = getSound(this);
+    return !!sound?.narration && !sound.muted;
+  }
+
+  /** Sound or narration switched: off, what's left to read goes on cards; on, the next lines are fetched. */
+  private heard(): void {
+    if (this.audible) {
+      this.aheadIn = 0;
+      return;
+    }
+    this.stopVoice();
+    if (!this.line) return;
+    // A card on another scene shows it already.
+    if (this.covered) this.finish();
+    else this.card(this.line);
+  }
+
+  /** Whether the narrator would read `spec` aloud: it can be heard and its line is recorded. */
   canSay(spec: StoryCardSpec): boolean {
-    if (!getSound(this)?.narration) return false;
+    if (!this.audible) return false;
     if (hasNarration(spec.line)) return true;
     warnUnrecorded(spec);
     return false;
@@ -137,7 +158,7 @@ export class NarratorScene extends Phaser.Scene {
 
   /** Fetches `line`'s recording ahead of time, if it'll be read aloud. */
   prefetch(line: string | undefined): void {
-    if (!getSound(this)?.narration || !hasNarration(line)) return;
+    if (!this.audible || !hasNarration(line)) return;
     void narrationUrl(line)?.then((url) => this.voice?.prefetch(url));
   }
 
@@ -157,6 +178,7 @@ export class NarratorScene extends Phaser.Scene {
       if (this.queue.length) this.begin(this.queue.shift()!);
       return;
     }
+    if (this.carded) return;
     if (!this.paused && !document.hidden) {
       const heard = this.voicing ? this.voice.position : null;
       // The voice's own clock while it plays (it stops with a hidden tab); else the scene's.
@@ -185,6 +207,11 @@ export class NarratorScene extends Phaser.Scene {
     this.shownChunk = -1;
     this.duration = line.delay + readingTime(line.spec.text);
     remember(getHost(this).storage, line.spec);
+    // Queued before sound went off: a card, and nothing fetched.
+    if (!this.audible) {
+      this.card(line);
+      return;
+    }
     if (line.speak && line.spec.voice) getSound(this)?.speak(line.spec.voice.words, line.spec.voice.seed);
     this.build();
     const url = narrationUrl(line.spec.line);
@@ -207,13 +234,9 @@ export class NarratorScene extends Phaser.Scene {
     getSound(this)?.duck(false);
   }
 
-  /** Mute switched: the voice stops or picks up again where the subtitles are. */
-  private resync(): void {
-    this.stopVoice();
-  }
-
   private finish(): void {
     this.stopVoice();
+    this.carded = false;
     this.line = null;
     this.buffer = null;
     this.strip?.destroy();
@@ -234,7 +257,23 @@ export class NarratorScene extends Phaser.Scene {
     this.strip?.setVisible(false);
     storyCard(this, line.spec, () => {
       this.reading = false;
-      if (this.line === line) this.strip?.setVisible(true);
+      if (this.line !== line) return;
+      if (this.carded) this.finish();
+      else this.strip?.setVisible(true);
+    }, 90, { narrate: false });
+  }
+
+  /** The line on its card, with the world waiting, as when there's no narration: closing it ends the line. */
+  private card(line: Line): void {
+    this.carded = true;
+    this.strip?.destroy();
+    this.strip = null;
+    // Open from Read already: closing that ends it.
+    if (this.reading) return;
+    this.reading = true;
+    storyCard(this, line.spec, () => {
+      this.reading = false;
+      if (this.line === line) this.finish();
     }, 90, { narrate: false });
   }
 
