@@ -8,12 +8,14 @@ What we've learned about InkFish's long-form YouTube videos (16:9, not looping),
 |---|---|---|---|---|---|---|---|
 | "InkFish Level 1" (gameplay), checked 2026-10-12 | 61s | – | 34% | 2 | 1 | 1 | – |
 | "InkFish Level 1", thumbnail check 2026-10-11 to 10-13 | | **1.1%** on 1.6K impressions | | | | | |
+| *Fish Get Weirder the Deeper You Go… Until They Can't*, posted 2026-10-17, checked 2026-10-18 (~1 day) | 5:45 | **4.3%** on 6,838 impressions | 32.3% (1:51 average) | 413 | 377 | 4 | +3 |
+| "InkFish Level 1", same export | 61s | 1.1% on 2,374 impressions | 30% | 128 | 63 | 2 | 0 |
 
 ### Tests in flight
 
 | # | Video | Testing | Status |
 |---|---|---|---|
-| 1 | *Fish Get Weirder the Deeper You Go… Until They Can't* (`promo/longform/1 - fish get weirder the deeper you go.mp4`, 5:44). A narrated descent through the game's ten zones. The cold open teases a line no fish should cross and a camera that filmed something below it; the snailfish at 8,336 m pays it off at 5:10. | Can an educational video built on a proven promise ("the deeper you go…") bring views and site visits to a channel with few subscribers? Watch CTR across the three thumbnails, retention at 0:30 (the hook), at 2:07 (the game mention) and at 5:10 (the payoff), and youtube.com visits to 16bit.ink. | Made 2026-10-14, not yet posted |
+| 1 | *Fish Get Weirder the Deeper You Go… Until They Can't* (`promo/longform/1 - fish get weirder the deeper you go.mp4`, 5:44). A narrated descent through the game's ten zones. The cold open teases a line no fish should cross and a camera that filmed something below it; the snailfish at 8,336 m pays it off at 5:10. | Can an educational video built on a proven promise ("the deeper you go…") bring views and site visits to a channel with few subscribers? Watch CTR across the three thumbnails, retention at 0:30 (the hook), at 2:07 (the game mention) and at 5:10 (the payoff), and youtube.com visits to 16bit.ink. | Posted 2026-10-17. After a day: 4.3% CTR (four times Level 1's 1.1%), 32.3% viewed (1:51 of 5:45), 413 views, +3 subs. Still to check: the Test & Compare winner, the retention curve at 0:30 / 2:07 / 5:10, traffic sources, and site visits |
 
 ## What works so far
 
@@ -21,6 +23,7 @@ What we've learned about InkFish's long-form YouTube videos (16:9, not looping),
 2. **"The deeper you go, the stranger they get" is a proven promise.** *Why Deep Sea Creatures Get Creepier the Deeper You Go* has 17.1M views in 11 months, and *Why Animals Get Creepier the Deeper You Go* has 3.8M. A hand-painted *Most Disturbing Creatures in Each Ocean Layer* has 2.0M in 3 months, so a drawn style can win.
 3. **"Why" beats "what".** The big ones explain one pattern across the whole video, so every section pays off the title.
 4. **Don't lead with an angle that's being farmed.** "The depth no fish can survive" videos from new channels sit at 2–331 views. A strong story like that works better inside the video, as the open loop and the payoff.
+5. **Packaging built on the thumbnail rules gets clicked** (2026-10-18, one day in). The descent video's 4.3% CTR is four times the Level 1 gameplay video's 1.1%, on almost three times the impressions. YouTube is showing it, so the next question is retention: 1:51 of 5:45 means most viewers leave before the game mention at 2:07. Check the retention curve before cutting the next video.
 
 ### Similar videos (YouTube search, 2026-10-14)
 

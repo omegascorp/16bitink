@@ -43,6 +43,11 @@ import { createEels } from './eels/render';
 import { createSwordfish } from './swordfish/render';
 import { createGrouper } from './grouper/render';
 import { createSharkSkin } from './sharkskin/render';
+import { createGoliath } from './goliath/render';
+import { createSwallower } from './swallower/render';
+import { createMako } from './mako/render';
+import { createPistol } from './pistol/render';
+import { createSlurp } from './slurp/render';
 import { PAPER_ON_DARK, withCredit } from './credit';
 
 /**
@@ -69,6 +74,11 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * references: goldfish (no three-second memory), surfer (you look like a
  * seal), drown (fish can drown), eels (Freud and the eel riddle), swordfish
  * (heated eyes), grouper (fish can point) and sharkskin (covered in teeth).
+ * The batch of 2026-10-18, built on the two breakouts (one giant mouth or a
+ * violent action in frame 1, on dark water): goliath (a grouper swallows a
+ * shark in one bite), swallower (a fish four times its length inside it), mako
+ * (it can jump into your boat), pistol (a snap almost as hot as the sun) and
+ * slurp (gameplay: "how did that fit" 2, the viperfish slurps a gulper eel).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -260,6 +270,26 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   sharkskin: async () => {
     await loadCaptionFont();
     return withCredit(createSharkSkin(ctx), ctx);
+  },
+  goliath: async () => {
+    await loadCaptionFont();
+    return withCredit(createGoliath(ctx), ctx, PAPER_ON_DARK);
+  },
+  swallower: async () => {
+    await loadCaptionFont();
+    return withCredit(createSwallower(ctx), ctx, PAPER_ON_DARK);
+  },
+  mako: async () => {
+    await loadCaptionFont();
+    return withCredit(createMako(ctx), ctx, PAPER_ON_DARK);
+  },
+  pistol: async () => {
+    await loadCaptionFont();
+    return withCredit(createPistol(ctx), ctx, PAPER_ON_DARK);
+  },
+  slurp: async () => {
+    await loadCaptionFont();
+    return createSlurp(ctx);
   },
 };
 
