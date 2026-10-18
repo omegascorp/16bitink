@@ -1,0 +1,36 @@
+import { ambience, foldLoop, offlineMix, rotatedWav } from '../audioKit';
+import { SOUNDS } from './script';
+import { LOOP_S } from './story';
+
+/**
+ * The short's soundtrack: the narrator (voice.mp3, starting with the loop),
+ * the game's effects quiet under it, one set per mood (script.ts lists them:
+ * the bud's twinkle, the blocky one's boops, the time-lapse's dawns, a ding
+ * per toe, the heart and brain mending, falling tunes for the sad canal, the
+ * cheeky whoosh and the puppy's huff), and a low hum of the water. The
+ * voice's last words ("And no matter what,") run up to the loop point, so the
+ * loop finishes the sentence.
+ */
+const TAIL_S = 2;
+const VOICE_URL = new URL('./voice.mp3', import.meta.url).href;
+const VOICE_GAIN = 0.75;
+const HUM_GAIN = 0.4;
+/** The whole mix, set so the recorded video peaks around -4 dB. */
+const OUT_GAIN = 1.12;
+
+export async function renderAxolotlAudio(start = 0): Promise<Blob> {
+  const { ctx, play } = offlineMix(LOOP_S + TAIL_S, 3);
+  for (const cue of SOUNDS) play(cue.id, cue.t, cue.pitch, cue.gain, cue.pan);
+  const response = await fetch(VOICE_URL);
+  if (!response.ok) throw new Error(`voice.mp3: ${response.status}`);
+  const voice = ctx.createBufferSource();
+  voice.buffer = await ctx.decodeAudioData(await response.arrayBuffer());
+  // Straight to the output: the effects' master gain is for their quiet synth levels.
+  const level = ctx.createGain();
+  level.gain.value = VOICE_GAIN;
+  voice.connect(level).connect(ctx.destination);
+  voice.start(0);
+  const loop = foldLoop(await ctx.startRendering(), LOOP_S);
+  const hum = ambience(loop[0]!.length, 3);
+  return rotatedWav(loop.map((ch, c) => ch.map((v, i) => OUT_GAIN * (v + HUM_GAIN * hum[c]![i]!))), LOOP_S, start);
+}

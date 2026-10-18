@@ -48,6 +48,8 @@ import { createSwallower } from './swallower/render';
 import { createMako } from './mako/render';
 import { createPistol } from './pistol/render';
 import { createSlurp } from './slurp/render';
+import { createAxolotl } from './axolotl/render';
+import { createDragon } from './dragon/render';
 import { PAPER_ON_DARK, withCredit } from './credit';
 
 /**
@@ -79,6 +81,10 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * shark in one bite), swallower (a fish four times its length inside it), mako
  * (it can jump into your boat), pistol (a snap almost as hot as the sun) and
  * slurp (gameplay: "how did that fit" 2, the viperfish slurps a gulper eel).
+ * axolotl (it can grow back its own legs) is an emotional rollercoaster: a new
+ * mood every sentence, in picture, colour and sound.
+ * So is dragon (the blue dragon, a tiny slug that eats the man o' war and
+ * steals its stingers).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -290,6 +296,14 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   slurp: async () => {
     await loadCaptionFont();
     return createSlurp(ctx);
+  },
+  axolotl: async () => {
+    await loadCaptionFont();
+    return withCredit(createAxolotl(ctx), ctx, PAPER_ON_DARK);
+  },
+  dragon: async () => {
+    await loadCaptionFont();
+    return withCredit(createDragon(ctx), ctx, PAPER_ON_DARK);
   },
 };
 

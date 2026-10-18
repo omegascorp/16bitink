@@ -10,6 +10,7 @@ import { createOctopus } from './octopus/render';
 import { createRedCrab } from './redcrab/render';
 import { createSnowCrab } from './snowcrab/render';
 import { createRaccoon } from './raccoon/render';
+import { createManowar } from './manowar/render';
 
 /**
  * Dev-only promo video page for InkCrab, 1080x1920. Every short is a
@@ -18,7 +19,8 @@ import { createRaccoon } from './raccoon/render';
  * ?short= picks one: chain (hermit crabs queue to swap shells), crabs
  * (evolution keeps making crabs), coconut (the coconut crab), octopus
  * (three hearts), redcrab (Christmas Island's march to the sea), snowcrab
- * (ten billion vanished) or raccoon (it isn't washing its food). ?short=kit
+ * (ten billion vanished), raccoon (it isn't washing its food) or manowar
+ * (the Portuguese man o' war is NOT a jellyfish). ?short=kit
  * shows the shared sprites. Plays live; ?t=4.2 freezes one moment.
  * `pnpm promo` (dev/promo/record.mjs) drives window.promo frame by frame to
  * make the video files.
@@ -74,6 +76,7 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   redcrab: narrated(createRedCrab),
   snowcrab: narrated(createSnowCrab),
   raccoon: narrated(createRaccoon, true),
+  manowar: narrated(createManowar),
 };
 
 const name = params.get('short') ?? 'kit';
