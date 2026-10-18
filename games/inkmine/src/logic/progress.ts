@@ -62,8 +62,14 @@ const STEP_LIST: readonly Step[] = [
   { key: 'tripFuel:mycel', name: "Fill the ship's tank for Mycel" },
   { key: 'course:mycel', name: 'Set course for Mycel' },
   { key: 'reunion', name: 'Meet the crew at their camp' },
+  // Chapter 4, Talus (Oct 18, 2026): 'brineEnd', the end of chapter 3, was the last step until then.
+  { key: 'talus', name: 'Fit the long tank' },
+  { key: 'tripFuel:talus', name: "Fill the ship's tank for Talus" },
+  { key: 'course:talus', name: 'Set course for Talus' },
+  { key: 'land:talus', name: 'Land on Talus' },
+  { key: 'searchShip', name: 'Find the search ship' },
   // The end of the story so far: reaching it is beating it.
-  { key: 'brineEnd', name: 'The end of chapter 3' },
+  { key: 'talusSoFar', name: 'The story so far (chapter 4 continues)' },
 ];
 export const STEPS: readonly Step[] = STEP_LIST;
 

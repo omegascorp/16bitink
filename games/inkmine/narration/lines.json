@@ -27,6 +27,15 @@
     "recorded": "2026-10-18T05:05:30Z"
   },
   {
+    "line": "arrival-talus",
+    "title": "Talus",
+    "text": "The lander comes down on a dry seabed, white with salt and cracked into plates as far as the haze. Red mesas stand up out of it like islands that lost their sea. The dust settling on the visor is rust: iron oxide, as fine as flour.\n\nThe suit won't open: thin carbon dioxide. There's no water to drink or split, but the white crust is gypsum, and baked it gives up the water locked inside it. Yellow sulfur grows in it, for the cell.\n\nYour drill is a step behind here: the soil costs double and the stone won't break. Mind the slopes under the mesas: they're loose rock, and dig under it and it comes down. At the foot of the big mesa to the east, the ship of your own kind is waiting.",
+    "script": "[warm, storytelling] The lander comes down on a dry seabed, white with salt and cracked into plates as far as the haze. Red mesas stand up out of it like islands that lost their sea. The dust settling on the visor is rust: iron oxide, as fine as flour.\n\nThe suit won't open: thin carbon dioxide. There's no water to drink or split, but the white crust is gypsum, and baked it gives up the water locked inside it. Yellow sulfur grows in it, for the cell.\n\nYour drill is a step behind here: the soil costs double and the stone won't break. Mind the slopes under the mesas: they're loose rock, and dig under it and it comes down. At the foot of the big mesa to the east, the ship of your own kind is waiting.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T11:10:55Z"
+  },
+  {
     "line": "talk-meet",
     "title": "A Lamplighter",
     "text": "Tall and slow, a lantern held out on a crook: the voice from the radio. Not a word of it makes sense, but the suit records it all. Then they crouch and draw in the dust: ten lumps of silver, the kind that lies deep down, and beside it something you know at once. A drive core.",
@@ -216,6 +225,15 @@
     "recorded": "2026-10-18T05:05:41Z"
   },
   {
+    "line": "search-ship",
+    "title": "A guild ship",
+    "text": "The hatch opens to the suit's touch, as if it knew you. Inside it's dark and dry, red dust on every ledge, and the recorder still has a little power. It speaks in your own language: the first words you've understood since the wormhole. This is a search party, sent through the wild wormhole after your ship went missing. They came looking for you. And their first log is dated years before you ever fell.",
+    "script": "[warm, storytelling] The hatch opens to the suit's touch, as if it knew you. Inside it's dark and dry, red dust on every ledge, and the recorder still has a little power. It speaks in your own language: the first words you've understood since the wormhole. This is a search party, sent through the wild wormhole after your ship went missing. They came looking for you. And their first log is dated years before you ever fell.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T11:10:55Z"
+  },
+  {
     "line": "ship-call",
     "title": "Incoming call",
     "text": "Not the guild. A voice, slow and low, in no language the suit knows: the same slow sounds over and over, then quiet, then again. The radio records it. The dish can't say where it's coming from, only that it's somewhere over the horizon. A handheld receiver could follow it: the stronger it gets, the closer you are.",
@@ -241,6 +259,15 @@
     "voice": "JBFqnCBsd6RMkjVDRZzb",
     "model": "eleven_v4",
     "recorded": "2026-10-18T05:05:29Z"
+  },
+  {
+    "line": "ship-talus-orbit",
+    "title": "In orbit over Talus",
+    "text": "Rust red, from pole to pole, the colour of iron that water once rusted. White flats lie between the mesas where seas used to be, and dust hangs over them in a thin brown haze. The telescope sweeps the mesas for whatever the Aster marked, and stops on one: on its flank, half under a slide of rock, something cobalt and white enamel. The guild's colours. A ship of your own kind.",
+    "script": "[warm, storytelling] Rust red, from pole to pole, the colour of iron that water once rusted. White flats lie between the mesas where seas used to be, and dust hangs over them in a thin brown haze. The telescope sweeps the mesas for whatever the Aster marked, and stops on one: on its flank, half under a slide of rock, something cobalt and white enamel. The guild's colours. A ship of your own kind.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T11:10:55Z"
   },
   {
     "line": "ship-docked",
@@ -342,6 +369,15 @@
     "recorded": "2026-10-18T05:05:25Z"
   },
   {
+    "line": "trip-red-from-graphite",
+    "title": "Course set for Talus",
+    "text": "The long tank takes the strain. Graphite shrinks to a grey dot beside the ringed giant, and the ship turns in towards the star, past the sea world on its own orbit. The light through the window grows harder every day. Then a rust-red world fills it, white where its seas used to be: the world the Aster marked on their chart. Something of your own kind is down there.",
+    "script": "[warm, storytelling] The long tank takes the strain. Graphite shrinks to a grey dot beside the ringed giant, and the ship turns in towards the star, past the sea world on its own orbit. The light through the window grows harder every day. Then a rust-red world fills it, white where its seas used to be: the world the Aster marked on their chart. Something of your own kind is down there.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T11:10:55Z"
+  },
+  {
     "line": "trip-mycel-brine",
     "title": "Course set for Brine",
     "text": "The engine hums and Mycel slides away below. The long crossing between the ringed giant and the sea world, and Brine fills the window.",
@@ -349,6 +385,15 @@
     "voice": "JBFqnCBsd6RMkjVDRZzb",
     "model": "eleven_v4",
     "recorded": "2026-10-18T05:05:37Z"
+  },
+  {
+    "line": "trip-red-from-mycel",
+    "title": "Course set for Talus",
+    "text": "The long tank takes the strain. Mycel shrinks to a green dot beside the ringed giant, and the ship turns in towards the star, past the sea world on its own orbit. The light through the window grows harder every day. Then a rust-red world fills it, white where its seas used to be: the world the Aster marked on their chart. Something of your own kind is down there.",
+    "script": "[warm, storytelling] The long tank takes the strain. Mycel shrinks to a green dot beside the ringed giant, and the ship turns in towards the star, past the sea world on its own orbit. The light through the window grows harder every day. Then a rust-red world fills it, white where its seas used to be: the world the Aster marked on their chart. Something of your own kind is down there.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T11:10:55Z"
   },
   {
     "line": "trip-brine-graphite",
@@ -369,6 +414,15 @@
     "recorded": "2026-10-18T05:05:42Z"
   },
   {
+    "line": "trip-red-from-brine",
+    "title": "Course set for Talus",
+    "text": "The long tank takes the strain. The sea world falls away behind, purple, and the ship turns in towards the star. The light through the window grows harder every day. Then a rust-red world fills it, white where its seas used to be: the world the Aster marked on their chart. Something of your own kind is down there.",
+    "script": "[warm, storytelling] The long tank takes the strain. The sea world falls away behind, purple, and the ship turns in towards the star. The light through the window grows harder every day. Then a rust-red world fills it, white where its seas used to be: the world the Aster marked on their chart. Something of your own kind is down there.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T11:10:55Z"
+  },
+  {
     "line": "trip-homeward",
     "title": "Course set for Mycel",
     "text": "The engine hums and the sea world falls away behind. Somewhere ahead, a speck of teal light is crossing the same dark: the crew's craft, going home. Days on, the ringed giant fills the window, and beside it the green moon, where four of the Aster will be waiting.",
@@ -376,6 +430,60 @@
     "voice": "JBFqnCBsd6RMkjVDRZzb",
     "model": "eleven_v4",
     "recorded": "2026-10-18T05:05:26Z"
+  },
+  {
+    "line": "trip-graphite-talus",
+    "title": "Course set for Talus",
+    "text": "The engine hums and Graphite slides away below. Days of falling in towards the star, and Talus fills the window.",
+    "script": "[warm, storytelling] The engine hums and Graphite slides away below. Days of falling in towards the star, and Talus fills the window.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T11:10:55Z"
+  },
+  {
+    "line": "trip-mycel-talus",
+    "title": "Course set for Talus",
+    "text": "The engine hums and Mycel slides away below. Days of falling in towards the star, and Talus fills the window.",
+    "script": "[warm, storytelling] The engine hums and Mycel slides away below. Days of falling in towards the star, and Talus fills the window.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T11:10:55Z"
+  },
+  {
+    "line": "trip-brine-talus",
+    "title": "Course set for Talus",
+    "text": "The engine hums and Brine slides away below. Days of falling in towards the star, and Talus fills the window.",
+    "script": "[warm, storytelling] The engine hums and Brine slides away below. Days of falling in towards the star, and Talus fills the window.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T11:10:55Z"
+  },
+  {
+    "line": "trip-talus-graphite",
+    "title": "Course set for Graphite",
+    "text": "The engine hums and Talus slides away below. Days of climbing out from the star, and Graphite fills the window.",
+    "script": "[warm, storytelling] The engine hums and Talus slides away below. Days of climbing out from the star, and Graphite fills the window.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T11:10:55Z"
+  },
+  {
+    "line": "trip-talus-mycel",
+    "title": "Course set for Mycel",
+    "text": "The engine hums and Talus slides away below. Days of climbing out from the star, and Mycel fills the window.",
+    "script": "[warm, storytelling] The engine hums and Talus slides away below. Days of climbing out from the star, and Mycel fills the window.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T11:10:55Z"
+  },
+  {
+    "line": "trip-talus-brine",
+    "title": "Course set for Brine",
+    "text": "The engine hums and Talus slides away below. Days of climbing out from the star, and Brine fills the window.",
+    "script": "[warm, storytelling] The engine hums and Talus slides away below. Days of climbing out from the star, and Brine fills the window.",
+    "voice": "JBFqnCBsd6RMkjVDRZzb",
+    "model": "eleven_v4",
+    "recorded": "2026-10-18T11:10:55Z"
   },
   {
     "line": "trip-first-demo",

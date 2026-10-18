@@ -90,6 +90,13 @@ export class MineSounds {
       case 'splash': return s.play('crumbleSoft', { pitch: e.into ? 0.6 : 0.8 });
       case 'flood': return e.near ? s.play('blast', { pitch: 0.3 }) : undefined;
       case 'deep': return s.play('airLow', { pitch: 0.8 });
+      // Talus's: a storm's warning a long low swell; a boulder crab's pinch the hit, sharp; a skate bursting up a soft crumble and the hit; the Rockslide lower than the Leviathan, its quakes a dull boom.
+      case 'storm': return e.now === 'warn' ? s.play('swell', { pitch: 0.3 }) : undefined;
+      case 'pinched': return s.play('hurt', { pitch: 1.4 });
+      case 'struckUp': return s.play('crumbleSoft', { pitch: 0.6 });
+      case 'rockslide': return e.now === 'sleep' ? undefined : e.now === 'quake' ? s.play('blast', { pitch: 0.22, gain: 0.7 }) : s.play('swell', { pitch: e.now === 'wake' ? 0.2 : 0.32 });
+      // Loose rock: a grinding shiver as it starts to go, a heavy thud where it lands.
+      case 'rock': return e.now === 'shake' ? s.play('grindSoft', { pitch: 0.45, gain: 0.8 }) : e.now === 'land' ? s.play('land', { pitch: 0.5 }) : undefined;
       default: return;
     }
   }
@@ -100,6 +107,7 @@ export class MineSounds {
     if (!s) return;
     const p = mine.player;
     s.setDepth(mine.depth);
+    s.setGust(still ? 0 : mine.storm?.strength ?? 0);
     const jetting = !still && mine.jetting;
     if (jetting && !this.wasJetting) s.play('jetStart');
     s.hold('jet', jetting);

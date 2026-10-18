@@ -4,11 +4,11 @@ import type { Fuels } from './suit';
 /**
  * The worlds you can stand on, by the id their world save is keyed by (and
  * the star map's, starSystem.ts): Graphite, free, and Mycel, the full
- * game's first, and Brine, its second (their ground comes from the server,
- * level/planets.ts). The
+ * game's first, Brine, its second, and Talus, its third (their ground
+ * comes from the server, level/planets.ts). The
  * profile says which one you're at. Ids are saved: never change one.
  */
-export const WORLD_IDS = ['graphite', 'mycel', 'brine'] as const;
+export const WORLD_IDS = ['graphite', 'mycel', 'brine', 'talus'] as const;
 export type WorldId = (typeof WORLD_IDS)[number];
 
 export const isWorldId = (v: unknown): v is WorldId => typeof v === 'string' && (WORLD_IDS as readonly string[]).includes(v);
@@ -19,14 +19,17 @@ export const isWorldId = (v: unknown): v is WorldId => typeof v === 'string' && 
  * and the lander's air tank are split from the same water as the suit's air:
  * ice on Graphite, where it's frozen; liquid on Mycel and Brine. The cell runs on
  * graphite on Graphite (battery anodes) and on Mycel on what a carbon fuel
- * cell burns: lignite, or the carbon a drilled cap leaves. The main fuel
- * comes first, and is the one named.
+ * cell burns: lignite, or the carbon a drilled cap leaves. On Talus,
+ * where the seas dried up, the water is baked out of gypsum (a fifth of it
+ * is water), with a little liquid water deep down; its cell is a
+ * lithium–sulfur one. The main fuel comes first, and is the one named.
  */
 export const FUELS: Readonly<Record<WorldId, Fuels>> = {
   graphite: { cell: ['graphite'], air: ['ice'] },
   mycel: { cell: ['lignite', 'carbon'], air: ['water'] },
   // Fresh water from under the islands for the air and tanks; manganese nodules for the cell (an alkaline battery's cathode).
   brine: { cell: ['nodule'], air: ['water'] },
+  talus: { cell: ['sulfur'], air: ['gypsum', 'water'] },
 };
 
 export const fuelsAt = (at: WorldId): Fuels => FUELS[at];

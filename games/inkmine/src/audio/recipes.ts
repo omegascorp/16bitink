@@ -37,7 +37,8 @@ export function canPlay(id: SfxId, now: number, last: Map<string, number>): bool
 }
 
 /** A major pentatonic over three octaves and a note, as pitch multipliers over the chime's root: any two finds in a row sound well together. Graphite's ores ring the lowest, Mycel's above them, Brine's at the top. */
-const PENTATONIC = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3, 2, 9 / 4, 5 / 2, 3, 10 / 3, 4, 9 / 2, 5, 6, 20 / 3, 8, 9] as const;
+// Talus's five (ids 18–22) ring an octave below the root, earthy, where the scale would otherwise climb out of hearing.
+const PENTATONIC = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3, 2, 9 / 4, 5 / 2, 3, 10 / 3, 4, 9 / 2, 5, 6, 20 / 3, 8, 9, 1 / 2, 9 / 16, 5 / 8, 3 / 4, 5 / 6] as const;
 
 /**
  * The pickup chime's pitch for an ore id: each ore its own note of the

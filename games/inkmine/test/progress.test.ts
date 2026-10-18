@@ -60,6 +60,12 @@ function walk(): Profile[] {
   next((p) => ({ ...p, shipFuel: 14 }));
   next((p) => ({ ...p, at: 'mycel', shipFuel: 0 }));
   next((p) => beats(p, 'asterReunion'));
+  // Chapter 4: the long tank, the trip, and Talus.
+  next((p) => ({ ...p, starship: [...p.starship, 'longTank'] }));
+  next((p) => ({ ...p, shipFuel: 28 }));
+  next((p) => ({ ...p, at: 'talus', docked: true, shipFuel: 0 }));
+  next((p) => ({ ...p, visited: [...p.visited, 'talus'], docked: false }));
+  next((p) => beats(p, 'shipFound'));
   return out;
 }
 

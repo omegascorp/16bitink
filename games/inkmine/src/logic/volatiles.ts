@@ -1,4 +1,4 @@
-import { inside, TILE, tileAt, wrapX, type Terrain, type TilePos } from './terrain';
+import { inside, isGrowth, TILE, tileAt, wrapX, type Terrain, type TilePos } from './terrain';
 
 /**
  * Things in the rock that blow, each there for a reason (spec, "Firedamp
@@ -55,8 +55,8 @@ export function blastArea(t: Terrain, kind: VolatileKey, x: number, y: number): 
   return out.filter(([bx, by]) => inside(t, bx, by)).map(([bx, by]) => [wrapX(t, bx), by] as const);
 }
 
-/** Whether a blast breaks this tile: soil, stone and caps, never deep rock or bedrock. */
+/** Whether a blast breaks this tile: soil, stone and growths, never deep rock or bedrock. */
 export function blastBreaks(t: Terrain, x: number, y: number): boolean {
   const tile = tileAt(t, x, y);
-  return tile === TILE.soil || tile === TILE.stone || tile === TILE.cap;
+  return tile === TILE.soil || tile === TILE.stone || isGrowth(tile);
 }

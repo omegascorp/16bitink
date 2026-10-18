@@ -15,7 +15,7 @@ import { canLand, land } from '../logic/fuel';
 import { defaultTab, focusOf, tabsFor, type Tab } from '../logic/tech';
 import type { GameScene } from './GameScene';
 import { relayoutOnResize, screenScene, viewSize } from './hidpi';
-import { muteButton, narrationButton } from './kit/muteButton';
+import { fullscreenButton, muteButton, narrationButton } from './kit/muteButton';
 import { plaque } from './kit/plaque';
 import { dragScroll } from './kit/scroll';
 import { aside, heading, INK_TEXT, scrawl, SEPIA } from './kit/type';
@@ -169,6 +169,8 @@ export class ShipScene extends Phaser.Scene {
     const title = heading(this, GAP + 4, 18, this.remote ? 'Inventory' : docked ? 'Your starship' : 'The lander', 30).setOrigin(0, 0);
     muteButton(this, title.x + title.width + 30, 36);
     narrationButton(this, title.x + title.width + 72, 36);
+    // The inventory is the pause menu too: full screen comes back from here after a swipe leaves it.
+    fullscreenButton(this, title.x + title.width + 114, 36);
     const where = this.remote ? 'far from the lander: the cargo is look-only' : docked ? `docked, in orbit over ${name}` : `${p.at === 'graphite' ? 'crash site' : 'landing site'}, ${name}`;
     aside(this, GAP + 6, 54, where, 17, 400, SEPIA).setOrigin(0, 0);
     const back = (): void => {

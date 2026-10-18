@@ -47,6 +47,9 @@ export const STORY_LINES: readonly StoryLine[] = [
   after('crystal', 'crystalFound'),
   after('craft-flight', 'craftFlown'),
   after('camp-reunion', 'asterReunion'),
+  after('ship-talus-orbit', 'talusOrbit'),
+  after('arrival-talus', 'talusLanded'),
+  after('search-ship', 'shipFound'),
 ];
 
 /** Reminders, heard only by coming back without what was asked for: fetched when they're said. */

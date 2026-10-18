@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { knobOffset, stickDirection, STICK, type StickDirection } from '../../logic/joystick';
+import { PAD, padButtons, padCorner, type Corner, type PadButtons } from '../../logic/screenLayout';
 import { toView, uiScaleOf, viewSize } from '../hidpi';
 import { INK_TEXT, SERIF } from '../kit/type';
 
@@ -15,19 +16,8 @@ export interface TouchInput extends StickDirection {
   readonly fire: boolean;
 }
 
-/** A round button: its middle and radius, in the HUD's units. */
-interface Disc {
-  readonly x: number;
-  readonly y: number;
-  readonly r: number;
-}
-
 export const NO_TOUCH: TouchInput = { ix: 0, iy: 0, jump: false, thrust: false, menu: false, fire: false };
 
-/** Sizes in CSS pixels, scaled back up from the HUD's interface scale so they stay thumb-sized. */
-const JUMP_R = 46;
-const BAG_R = 32;
-const MARGIN = 26;
 /** The stick takes a thumb landing in the left part of the screen, below the suit's plate. */
 const STICK_ZONE = { w: 0.5, top: 0.38 } as const;
 const PAPER = 0xf5efdf;
@@ -99,6 +89,13 @@ export class TouchPad {
     return this.shown;
   }
 
+  /** The corner the buttons take while they show (see padCorner), or null. */
+  corner(): Corner | null {
+    if (!this.shown) return null;
+    const { width, height } = viewSize(this.scene);
+    return padCorner(width, height, uiScaleOf(this.scene), this.armed);
+  }
+
   /** At the lander, Bag goes aboard instead: its label says so. */
   setAboard(aboard: boolean): void {
     if (aboard === this.aboard) return;
@@ -138,15 +135,9 @@ export class TouchPad {
     return px / uiScaleOf(this.scene);
   }
 
-  private buttons(): { jump: Disc; bag: Disc; pulse: Disc } {
+  private buttons(): PadButtons {
     const { width, height } = viewSize(this.scene);
-    const jr = this.css(JUMP_R);
-    const br = this.css(BAG_R);
-    const m = this.css(MARGIN);
-    const jump = { x: width - m - jr, y: height - m - jr, r: jr };
-    const bag = { x: jump.x - jr - br - this.css(18), y: jump.y - jr * 0.9, r: br };
-    const pulse = { x: jump.x - jr * 0.2, y: jump.y - jr - br - this.css(22), r: br };
-    return { jump, bag, pulse };
+    return padButtons(width, height, uiScaleOf(this.scene));
   }
 
   private onDown(p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]): void {
@@ -215,8 +206,8 @@ export class TouchPad {
       // Where the stick is, when no thumb is on it: a faint ring in the lower left.
       const { height } = viewSize(this.scene);
       const r = this.css(STICK.radius);
-      const x = this.css(MARGIN) + r;
-      const y = height - this.css(MARGIN) - r;
+      const x = this.css(PAD.margin) + r;
+      const y = height - this.css(PAD.margin) - r;
       this.g.lineStyle(this.css(1.4), INK, 0.3).strokeCircle(x, y, r);
       this.g.fillStyle(INK, 0.18).fillCircle(x, y, this.css(6));
     }

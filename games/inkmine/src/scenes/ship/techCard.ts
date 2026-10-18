@@ -4,7 +4,7 @@ import { hasOnHand, onHand, printerWorks, printModule, printPart } from '../../l
 import { markGain, markStat } from '../../logic/marks';
 import { canRepair, needsLine, REPAIRS, repair, type RepairCheck } from '../../logic/repairs';
 import { canUpgrade, capOf, maxLevel, MODULES, nextRecipe } from '../../logic/ship';
-import { canFix, fix, STARSHIP, type FixCheck, type StarshipFit } from '../../logic/starship';
+import { canFix, fix, isUpgrade, STARSHIP, type FixCheck, type StarshipFit } from '../../logic/starship';
 import { hasBeat } from '../../logic/story';
 import type { Tech } from '../../logic/tech';
 import { canPrintTool, printTool, TOOL_KINDS, type ToolCheck } from '../../logic/tools';
@@ -140,10 +140,10 @@ function starshipText(page: ShipPage, t: Extract<Tech, { kind: 'starship' }>): C
   const s = STARSHIP[t.id];
   const why = canFix(p, t.id);
   if (t.id === 'jump') return { status: 'burnt out', statusColor: MADDER, now: s.broken };
-  if (why === 'done') return { status: t.id === 'asterTank' ? 'fitted' : 'mended', statusColor: VERDIGRIS, now: s.opens };
+  if (why === 'done') return { status: isUpgrade(t.id) ? 'fitted' : 'mended', statusColor: VERDIGRIS, now: s.opens };
   // An upgrade nobody has shown you yet: an empty slot.
   if (why === 'design') return { status: 'empty', statusColor: FADED, now: 'An empty mounting beside the tank. Someone who has built a bigger one could show you how.' };
-  const fitting = t.id === 'asterTank';
+  const fitting = isUpgrade(t.id);
   const first = s.after.filter((a) => !p.starship.includes(a)).map((a) => STARSHIP[a].name.toLowerCase()).join(' and the ');
   const next = why === 'order' ? `Mend it after the ${first}.` : why === 'away' ? 'Mended aboard the ship only: carry the ore up in the lander.' : s.fact ?? '';
   return {

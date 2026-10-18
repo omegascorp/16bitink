@@ -45,6 +45,7 @@ const isSite = shape({
   seam: isOre,
   spores: isCount,
   caps: listOf(shape({ where: oneOf('surface', 'caves'), clusters: isCount, size: intIn(1, 16) }, { cols: tuple(col, col) }), 16),
+  plants: listOf(shape({ clusters: isCount, size: intIn(1, 16), tall: tuple(intIn(1, 6), intIn(1, 6)) }, { cols: tuple(col, col) }), 16),
   charges: listOf(shape({ kind: oneOf('charge', 'lineCharge'), at })),
   flats: listOf(col, 16),
   rooms: listOf(shape({ at, w: intIn(1, 64), h: intIn(1, 64) }), 200),
@@ -55,6 +56,8 @@ const isSite = shape({
   aquifers: listOf(shape({ at, w: intIn(1, 64), h: intIn(1, 64) }), 64),
   waterPockets: shape({ count: isCount, from: depth, to: depth, size: tuple(intIn(1, 16), intIn(1, 16)) }),
   bells: listOf(shape({ at, w: intIn(1, 32), h: intIn(1, 32) }), 16),
+  roll: (v) => typeof v === 'number' && v >= 0 && v <= 4,
+  mesas: listOf(shape({ cols: tuple(col, col), height: intIn(1, 64) }, { cap: intIn(0, 16), talus: intIn(0, 32) }), 32),
 });
 const isItem = shape({ id: isSlug, kind: oneOf('core', 'probe', 'fossil', 'wreck'), at }, {
   blueprint: (v) => typeof v === 'string' && isDesign(v), grade: oneOf('soil', 'stone'), drill: intIn(0, 10),
@@ -74,6 +77,8 @@ const isPlanet = shape({
     craft: col,
     reef: shape({ at }),
     crystal: shape({ at }),
+    searchShip: shape({ at }),
+    weather: oneOf('dust'),
   }),
 }, {
   arrival: shape({ subtitle: isText(120), paragraphs: listOf(isText(2000), 8), button: isText(40) }),

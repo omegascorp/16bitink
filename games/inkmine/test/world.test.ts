@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { buildGround } from '../src/level/build';
+import { buildGround, buildWorld, TILE_SIZE } from '../src/level/build';
+import { PLANET_1 } from '../src/level/planet1';
+import { NEW_PROFILE } from '../src/logic/economy';
 import { surfaceAt } from '../src/level/carve';
 import { INKMINE_PAID_PLANETS } from '../content/paid';
 import { loadedPlanets } from '../src/level/planets';
@@ -207,5 +209,97 @@ describe('Brine', () => {
     const craft = brine.world.craft!;
     expect(gap(brine.world.reef!.at[0], craft)).toBeLessThanOrEqual(100);
     for (const id of ['village-cell', 'village-pack', 'village-helmet', 'basalt-jetpack', 'basalt-suit']) expect(gap(item(id).at[0], craft), id).toBeLessThanOrEqual(60);
+  });
+});
+
+describe('Talus', () => {
+  const talus = INKMINE_PAID_PLANETS[2]!;
+  const def = talus.world;
+  const t = buildGround(def);
+
+  it("its drill's materials lie within reach of Brine's drill, a step behind: in the sandstone and the loose rock", () => {
+    for (const [ore, n] of holdEntries(RECIPES['drill-4']!.materials)) expect(reachableOre(talus, 3, ore), ore).toBeGreaterThanOrEqual(n * 3);
+  });
+
+  it("holds the gypsum for the trip home many times over, within reach of Brine's drill", () => {
+    expect(reachableOre(talus, 3, 'gypsum')).toBeGreaterThanOrEqual(28 * 4);
+  });
+
+  it("buries the search ship's hatch in loose rock at the big mesa's foot, within reach of Brine's drill and of the lander", () => {
+    const [x, depth] = def.searchShip!.at;
+    expect(tileAt(t, x, def.site.surface + depth)).toBe(TILE.loose);
+    expect(reach(talus, 3).at(x, depth)).toBeLessThan(Infinity);
+    expect(Math.abs(x - def.site.landerCol)).toBeLessThanOrEqual(110);
+  });
+
+  it("caps its mesas with stone Brine's drill can't break, over soft sandstone", () => {
+    for (const m of def.site.mesas!) {
+      const mid = Math.floor((m.cols[0] + m.cols[1]) / 2);
+      const top = surfaceAt(def.site, mid);
+      // The flat under it rolls a row or so.
+      expect(Math.abs(def.site.surface - top - m.height), `mesa at ${mid}`).toBeLessThanOrEqual(1);
+      expect(tileAt(t, mid, top)).toBe(TILE.stone);
+      expect(tileAt(t, mid, top + (m.cap ?? 2))).toBe(TILE.soil);
+    }
+  });
+
+  it('heaps loose rock at the mesas\' feet, and none of it stands on nothing', () => {
+    let loose = 0;
+    for (let y = 0; y < t.height - 1; y++) {
+      for (let x = 0; x < t.width; x++) {
+        if (tileAt(t, x, y) !== TILE.loose) continue;
+        loose++;
+        expect(tileAt(t, x, y + 1), `loose rock at ${x},${y}`).not.toBe(TILE.air);
+      }
+    }
+    expect(loose).toBeGreaterThan(80);
+  });
+
+  it('is a planet, much bigger than the moons: twice the way round of Graphite or Mycel', () => {
+    const moons = [PLANET_1.world.site.width, INKMINE_PAID_PLANETS[0]!.world.site.width];
+    for (const w of moons) expect(def.site.width).toBeGreaterThanOrEqual(w * 2);
+  });
+
+  it('grows barrel plants on bare ground, stands of them in the Barrel Garden, none by the lander', () => {
+    const garden = new Set<number>();
+    let all = 0;
+    for (let x = 0; x < t.width; x++) {
+      for (let y = 0; y < t.height - 1; y++) {
+        if (tileAt(t, x, y) !== TILE.plant) continue;
+        all++;
+        if (x >= 292 && x <= 356) garden.add(x);
+        const under = tileAt(t, x, y + 1);
+        expect(under === TILE.plant || under === TILE.soil || under === TILE.stone, `plant at ${x},${y}`).toBe(true);
+        expect(Math.abs(x - def.site.landerCol), `plant at ${x}`).toBeGreaterThan(8);
+      }
+    }
+    expect(garden.size).toBeGreaterThanOrEqual(15);
+    expect(all).toBeGreaterThan(30);
+  });
+
+  it('places its creatures where they live, none near the lander', () => {
+    const built = buildWorld(talus, NEW_PROFILE, null);
+    const creatures = built.setup.creatures!;
+    const count = (kind: string): number => creatures.filter((c) => c.kind === kind).length;
+    expect(count('rockcrab')).toBeGreaterThanOrEqual(10);
+    expect(count('skate')).toBeGreaterThanOrEqual(8);
+    expect(count('beetle')).toBeGreaterThanOrEqual(8);
+    expect(count('rockslide')).toBe(1);
+    for (const c of creatures) expect(Math.abs(Math.floor(c.x / TILE_SIZE) - def.site.landerCol), c.kind).toBeGreaterThan(25);
+  });
+
+  it("sleeps the Rockslide on its cave's floor under the Throne, in stone Brine's drill can't break, opal past it", () => {
+    const [x, depth] = def.giant!.at;
+    const y = def.site.surface + depth;
+    expect(tileAt(t, x, y)).toBe(TILE.air);
+    expect(tileAt(t, x, y + 1)).not.toBe(TILE.air);
+    for (let dx = -4; dx <= 4; dx++) expect(tileAt(t, x + dx, y - 3), `${x + dx}`).toBe(TILE.air);
+    expect(tileAt(t, x, y - 8)).toBe(TILE.stone);
+    expect(reach(talus, 3).at(x, depth)).toBe(Infinity);
+  });
+
+  it('has dust storms', () => {
+    expect(def.weather).toBe('dust');
+    expect(buildWorld(talus, NEW_PROFILE, null).setup.storm).toBe(def.site.seed);
   });
 });

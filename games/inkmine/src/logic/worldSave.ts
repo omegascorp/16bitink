@@ -14,7 +14,8 @@ import { TILE, type Terrain, type TilePos } from './terrain';
  * out, the ladders they left, the items they took for good, and the ore
  * they broke out and left lying. Dug ground
  * and ladders are one bit a tile, packed as runs, so a world with a few
- * hours of tunnels saves in a few KB.
+ * hours of tunnels saves in a few KB. On Talus, where loose rock falls,
+ * where it lies now is kept the same way (`rubble`).
  *
  * The save never says what a tile *is*, only that it's open now. If a
  * world is retuned after release, old tunnels stay open in the new rock:
@@ -37,6 +38,8 @@ export interface WorldSave {
   readonly pieces?: readonly SavedPiece[];
   /** One per tile: 1 where water stands (water.ts), on a world with water. */
   readonly wet?: Uint8Array;
+  /** One per tile: 1 where loose rock lies now (rocks.ts), on a world with any. */
+  readonly rubble?: Uint8Array;
 }
 
 export interface SavedPiece {
@@ -70,15 +73,18 @@ const MAX_TAKEN = 512;
 const MAX_PIECES = 400;
 
 /** What changed from the carved ground (`base`, its tiles as carved) to the world as it is. */
-export function captureWorld(base: Uint8Array, t: Terrain, ladders: Ladders, version: number, taken: readonly string[], dropped: DroppedBag | null = null, loose: readonly SavedPiece[] = [], wet?: Uint8Array): WorldSave {
+export function captureWorld(base: Uint8Array, t: Terrain, ladders: Ladders, version: number, taken: readonly string[], dropped: DroppedBag | null = null, loose: readonly SavedPiece[] = [], wet?: Uint8Array, rubble?: Uint8Array): WorldSave {
   const n = t.width * t.height;
   const dug = new Uint8Array(n);
-  for (let i = 0; i < n; i++) if (base[i] !== TILE.air && t.tiles[i] === TILE.air) dug[i] = 1;
+  // Ground a rock has since fallen into counts as dug too, so its old rock (and ore) isn't put back under the rubble.
+  const opened = (i: number): boolean => t.tiles[i] === TILE.air || (t.tiles[i] === TILE.loose && base[i] !== TILE.loose);
+  for (let i = 0; i < n; i++) if (base[i] !== TILE.air && opened(i)) dug[i] = 1;
   const rungs = new Uint8Array(n);
   for (const [x, y] of ladders.all()) rungs[y * t.width + x] = 1;
   const bag = saveBag(t, dropped);
   const pieces = loose.slice(0, MAX_PIECES);
-  return { version, dug, ladders: rungs, taken: [...new Set(taken)], ...(bag ? { bag } : {}), ...(pieces.length ? { pieces } : {}), ...(wet ? { wet: wet.slice() } : {}) };
+  const rocks = rubble?.some((v) => v === 1) ? { rubble: rubble.slice() } : {};
+  return { version, dug, ladders: rungs, taken: [...new Set(taken)], ...(bag ? { bag } : {}), ...(pieces.length ? { pieces } : {}), ...(wet ? { wet: wet.slice() } : {}), ...rocks };
 }
 
 /** Loose pieces as the save keeps them: the tile each one's middle is in (`tile` px a tile). */
@@ -93,9 +99,10 @@ export function savePieces(t: Terrain, loose: readonly Piece[], tile: number): S
 
 /**
  * Puts a save back onto a freshly carved world: opens what was dug (with
- * whatever ore or gas was in it) and hangs the ladders. Bedrock never
- * opens and a ladder only hangs in the open, whatever the save says: saves
- * are untrusted, and a retuned world may have rock where a tunnel was.
+ * whatever ore or gas was in it), lays loose rock back where it fell, and
+ * hangs the ladders. Bedrock never opens, loose rock only lands in the
+ * open and a ladder only hangs there, whatever the save says: saves are
+ * untrusted, and a retuned world may have rock where a tunnel was.
  */
 export function applyWorld(t: Terrain, ladders: Ladders, save: WorldSave): void {
   const n = t.width * t.height;
@@ -106,6 +113,7 @@ export function applyWorld(t: Terrain, ladders: Ladders, save: WorldSave): void 
       t.content[i] = 0;
       t.volatile[i] = 0;
     }
+    if (save.rubble?.[i] && t.tiles[i] === TILE.air) t.tiles[i] = TILE.loose;
     if (save.ladders[i] && t.tiles[i] === TILE.air) rungs.push([i % t.width, Math.floor(i / t.width)]);
   }
   ladders.add(rungs);
@@ -182,6 +190,7 @@ export function saveWorld(store: KeyValueStore | undefined, worldId: string, sav
       bag: save.bag,
       pieces: save.pieces,
       ...(save.wet ? { wet: packMask(save.wet) } : {}),
+      ...(save.rubble ? { rubble: packMask(save.rubble) } : {}),
     }));
     return true;
   } catch (err) {
@@ -232,7 +241,9 @@ function parseWorld(raw: unknown, n: number, known: ReadonlySet<string>): WorldS
   const pieces = parsePieces(o.pieces, n);
   // Water that can't be read is left out: the world's water is carved afresh instead.
   const wet = o.wet === undefined ? null : unpackMask(o.wet, n);
-  return { version: o.version as number, dug, ladders, taken, ...(bag ? { bag } : {}), ...(pieces.length ? { pieces } : {}), ...(wet ? { wet } : {}) };
+  // Rubble that can't be read is left out: rocks that fell are gone, but nothing worse.
+  const rubble = o.rubble === undefined ? null : unpackMask(o.rubble, n);
+  return { version: o.version as number, dug, ladders, taken, ...(bag ? { bag } : {}), ...(pieces.length ? { pieces } : {}), ...(wet ? { wet } : {}), ...(rubble ? { rubble } : {}) };
 }
 
 /** Loose pieces on the world, of ores that exist; anything else is dropped. */

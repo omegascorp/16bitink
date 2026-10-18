@@ -9,10 +9,12 @@ import { contents, type Inventory } from '../../logic/inventory';
 import type { Mine } from '../../logic/mine';
 import type { Goal } from '../../logic/repairs';
 import { brineSetFound } from '../../logic/repairs';
-import { campVisit, craftVisit, crystalVisit, HEART, hasBeat, keptOres, RAISE, REEF_TRADE, reefVisit, type CampSays, type CraftSays, type ReefSays } from '../../logic/story';
+import { campVisit, craftVisit, crystalVisit, HEART, hasBeat, keptOres, RAISE, REEF_TRADE, reefVisit, searchShipVisit, type CampSays, type CraftSays, type ReefSays } from '../../logic/story';
 import { withBag } from '../../logic/suit';
 import { CampSite } from './campSite';
 import { CraftSite, CrystalSite, ReefSite } from './brineSites';
+import { SearchShipSite } from './talusSites';
+import type { GroundStyle } from '../../art/palette';
 import type { Ring } from './ring';
 
 /** What the story sites need of the scene they're in. */
@@ -42,11 +44,12 @@ const LANDED_OFF = 7;
 
 /**
  * The places the story happens in a world, and what happens there
- * (story.ts): the Aster's camp on Mycel, and on Brine the Tidesingers'
- * reef, the crew's craft and its drive crystal in the Leviathan's cave.
- * Walking (or swimming) up to one starts a visit; a card shows what
- * happens, and the world waits until it's read (the HUD reads `camp`,
- * `reef`, `craft` and `crystal`). Each visit saves at once.
+ * (story.ts): the Aster's camp on Mycel; on Brine the Tidesingers' reef,
+ * the crew's craft and its drive crystal in the Leviathan's cave; on Talus
+ * the search party's ship. Walking (or swimming, or digging) up to one
+ * starts a visit; a card shows what happens, and the world waits until
+ * it's read (the HUD reads `camp`, `reef`, `craft`, `crystal` and `ship`).
+ * Each visit saves at once.
  */
 export class StorySites {
   /** A card is up for one of them: what it says. */
@@ -54,15 +57,18 @@ export class StorySites {
   reef: ReefSays | null = null;
   craft: CraftSays | null = null;
   crystal = false;
+  /** The search party's ship was just found (Talus). */
+  ship = false;
   private readonly campSite: CampSite | null;
   private readonly reefSite: ReefSite | null;
   private readonly craftSite: CraftSite | null;
   private readonly crystalSite: CrystalSite | null;
+  private readonly searchSite: SearchShipSite | null;
   /** The crew's craft, landed over their camp once they're home (Mycel). */
   private readonly landed: CraftSite | null;
-  private was = { camp: false, reef: false, craft: false, crystal: false };
+  private was = { camp: false, reef: false, craft: false, crystal: false, ship: false };
 
-  constructor(private readonly scene: Phaser.Scene, private readonly host: StoryHost, world: WorldDef, tile: number) {
+  constructor(private readonly scene: Phaser.Scene, private readonly host: StoryHost, world: WorldDef, tile: number, style: GroundStyle) {
     const site = world.site;
     const camp = world.camp;
     this.campSite = camp ? new CampSite(scene, { col: camp.at[0], row: site.surface + camp.at[1] }, tile) : null;
@@ -74,21 +80,23 @@ export class StorySites {
     const seaRow = site.surface + (site.sea?.level ?? 0);
     this.craftSite = world.craft === undefined ? null : new CraftSite(scene, { col: world.craft, row: surfaceAt(site, world.craft) }, tile, seaRow);
     this.crystalSite = world.crystal ? new CrystalSite(scene, { col: world.crystal.at[0], row: site.surface + world.crystal.at[1] }, tile) : null;
-    this.was = { camp: this.atCamp(), reef: this.atReef(), craft: this.atCraft(), crystal: this.atCrystal() };
+    this.searchSite = world.searchShip ? new SearchShipSite(scene, site, { col: world.searchShip.at[0], row: site.surface + world.searchShip.at[1] }, tile, style) : null;
+    this.was = { camp: this.atCamp(), reef: this.atReef(), craft: this.atCraft(), crystal: this.atCrystal(), ship: this.atShip() };
   }
 
   /** Whether a card is up for any of them (the world waits). */
   get waiting(): boolean {
-    return this.camp !== null || this.reef !== null || this.craft !== null || this.crystal;
+    return this.camp !== null || this.reef !== null || this.craft !== null || this.crystal || this.ship;
   }
 
   /** Each step the world runs: arriving at a place starts a visit (once per arrival). */
   step(): void {
-    const now = { camp: this.atCamp(), reef: this.atReef(), craft: this.atCraft(), crystal: this.atCrystal() };
+    const now = { camp: this.atCamp(), reef: this.atReef(), craft: this.atCraft(), crystal: this.atCrystal(), ship: this.atShip() };
     if (now.camp && !this.was.camp) this.visitCamp();
     if (now.reef && !this.was.reef) this.visitReef();
     if (now.craft && !this.was.craft) this.visitCraft();
     if (now.crystal && !this.was.crystal) this.takeCrystal();
+    if (now.ship && !this.was.ship) this.findShip();
     this.was = now;
   }
 
@@ -99,6 +107,7 @@ export class StorySites {
     this.reefSite?.update(ring, now, hasBeat(p, 'crewMet'));
     this.craftSite?.update(ring, now, craftState(p));
     this.crystalSite?.update(ring, now, hasBeat(p, 'craftMended') && !hasBeat(p, 'crystalFound'));
+    this.searchSite?.update(ring, now, this.host.mine);
   }
 
   /** Where a call being followed comes from, px along the ground: the camp's slow pulse, or the Tidesingers' song. */
@@ -116,6 +125,7 @@ export class StorySites {
     if (this.craftSite && (g.kind === 'craft' || g.kind === 'flight' || (g.kind === 'heart' && has(HEART)))) return this.craftSite.point;
     if (this.reefSite && ((g.kind === 'reefTrade' && has(REEF_TRADE)) || (g.kind === 'raise' && has(RAISE)))) return this.reefSite.point;
     if (this.crystalSite && g.kind === 'crystal') return this.crystalSite.point;
+    if (this.searchSite && g.kind === 'searchShip') return this.searchSite.point;
     return null;
   }
 
@@ -149,10 +159,15 @@ export class StorySites {
     this.host.forget();
   }
 
+  closeShip(): void {
+    this.ship = false;
+    this.host.forget();
+  }
+
   /** In at the Aster's camp, once it's where the story is (it's dug into, so it's found by walking in). */
   private atCamp(): boolean {
     const g = this.host.goal().kind;
-    return !!this.campSite && (g === 'trail' || g === 'wake' || g === 'brine' || g === 'reunion' || g === 'brineEnd') && this.campSite.holds(this.host.mine);
+    return !!this.campSite && (g === 'trail' || g === 'wake' || g === 'brine' || g === 'reunion' || g === 'talus') && this.campSite.holds(this.host.mine);
   }
 
   private atReef(): boolean {
@@ -165,6 +180,10 @@ export class StorySites {
 
   private atCrystal(): boolean {
     return !!this.crystalSite?.near(this.host.mine);
+  }
+
+  private atShip(): boolean {
+    return !!this.searchSite?.reached(this.host.mine);
   }
 
   /** The profile after a visit, with the bag as the visit left it; the bag's kept ores follow the story. */
@@ -215,6 +234,14 @@ export class StorySites {
     }
     this.settle(v.profile, v.bag);
     this.craft = v.says;
+  }
+
+  /** Reaching the search ship's hatch, dug free: found, the first time. */
+  private findShip(): void {
+    const p = searchShipVisit(this.host.liveProfile());
+    if (!p) return;
+    this.settle(p, this.host.mine.suit.bag);
+    this.ship = true;
   }
 
   /** Touching the drive crystal, once the crew have said it's gone: the suit takes it. */

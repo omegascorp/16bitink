@@ -6,6 +6,7 @@ import { TENDRIL_ART, TENDRIL_REACH } from '../../art/creatures/tendril';
 import { ART_RES, BOIL, RED, RED_HEX } from '../../art/palette';
 import { bakeFauna, TENDRIL_STEPS, TEX } from '../../art/textures';
 import { bakeBrineFauna, BRINE_FAUNA_RES, BRINE_FAUNA_TEX, CRAB_ART, JELLY_ART, LAMPREY_ART, LAMPREY_REACH, LAMPREY_STEPS, LEVIATHAN_ART, type JellyPose, type LeviathanPose } from '../../art/brineFauna';
+import { bakeTalusFauna, BEETLE_ART, ROCKCRAB_ART, ROCKSLIDE_ART, SKATE_ART, SKATE_STEPS, TALUS_FAUNA_RES, TALUS_FAUNA_TEX, type RockcrabPose, type RockslidePose } from '../../art/talusFauna';
 import { CREATURE, type Creature, type CreatureKind } from '../../logic/creatures';
 import { reachOf } from '../../logic/fauna';
 import { lungeOf } from '../../logic/faunaShape';
@@ -24,12 +25,16 @@ const WAVE_S = 0.9;
 const BOB = { px: 3, ms: 2600 } as const;
 /** Brine's kinds: their art is baked only on a world that has them. */
 const BRINE_KINDS = new Set<CreatureKind>(['crab', 'jelly', 'lamprey', 'leviathan']);
+/** Talus's kinds, the same way. */
+const TALUS_KINDS = new Set<CreatureKind>(['rockcrab', 'skate', 'beetle', 'rockslide']);
+/** The giants stand behind the ground's edges, in their caves. */
+const GIANTS = new Set<CreatureKind>(['mother', 'leviathan', 'rockslide']);
 
 /**
  * The creatures in the world, drawn near the camera (creatures.ts): each in
  * its pose, a red "!" over any that has just noticed you, the clots
  * puffballs spit, the pulse's rings, and the Mother Mycel's wave spreading
- * from her each beat. Mycel's and Brine's.
+ * from her each beat. Mycel's, Brine's and Talus's.
  */
 export class FaunaView {
   private readonly sprites = new Map<number, Phaser.GameObjects.Image>();
@@ -40,6 +45,7 @@ export class FaunaView {
   constructor(private readonly scene: Phaser.Scene, private readonly tile: number, creatures: readonly Creature[] = []) {
     bakeFauna(scene);
     if (creatures.some((c) => BRINE_KINDS.has(c.kind))) bakeBrineFauna(scene);
+    if (creatures.some((c) => TALUS_KINDS.has(c.kind))) bakeTalusFauna(scene);
     this.wave = scene.add.graphics().setDepth(1.95);
   }
 
@@ -63,7 +69,7 @@ export class FaunaView {
   private sprite(c: Creature): Phaser.GameObjects.Image {
     let img = this.sprites.get(c.id);
     if (!img) {
-      img = this.scene.add.image(0, 0, TEX.glob(0)).setDepth(c.kind === 'mother' || c.kind === 'leviathan' ? 1.9 : 3.55);
+      img = this.scene.add.image(0, 0, TEX.glob(0)).setDepth(GIANTS.has(c.kind) ? 1.9 : 3.55);
       this.sprites.set(c.id, img);
     }
     return img;
@@ -89,6 +95,8 @@ export class FaunaView {
       const M = MOTHER_ART;
       img.setTexture(TEX.mother(motherBeat(c), f)).setOrigin(M.ox / M.w, M.oy / M.h).setScale(1 / ART_RES);
       this.drawWave(c, x);
+    } else if (TALUS_KINDS.has(c.kind)) {
+      this.drawTalus(img, c, f, now);
     } else {
       this.drawBrine(img, c, mine, f, now);
     }
@@ -115,6 +123,25 @@ export class FaunaView {
     }
   }
 
+  /** One of Talus's creatures in its pose: a boulder crab still, rearing or running, a sand skate as far out of the ground as it is, a dew beetle walking or tucked, the Rockslide asleep, stirring or awake. */
+  private drawTalus(img: Phaser.GameObjects.Image, c: Creature, f: number, now: number): void {
+    const R = TALUS_FAUNA_RES;
+    const step = Math.floor((now / 1000) * WALK_FPS) % BOIL;
+    if (c.kind === 'rockcrab') {
+      const pose = rockcrabPose(c);
+      img.setTexture(TALUS_FAUNA_TEX.rockcrab(pose, pose === 'run' ? step : f)).setOrigin(ROCKCRAB_ART.ox / ROCKCRAB_ART.w, ROCKCRAB_ART.oy / ROCKCRAB_ART.h).setScale(1 / R.rockcrab).setFlipX(c.facing < 0);
+    } else if (c.kind === 'skate') {
+      const steps: readonly number[] = SKATE_STEPS;
+      const i = steps.reduce((best, r, k) => (Math.abs(r - c.reach) < Math.abs(steps[best]! - c.reach) ? k : best), 0);
+      img.setTexture(TALUS_FAUNA_TEX.skate(i, f)).setOrigin(SKATE_ART.ox / SKATE_ART.w, SKATE_ART.oy / SKATE_ART.h).setScale(1 / R.skate).setFlipX(c.facing < 0);
+    } else if (c.kind === 'beetle') {
+      const tucked = c.state === 'curled';
+      img.setTexture(TALUS_FAUNA_TEX.beetle(tucked ? 'tucked' : 'walk', tucked ? f : step)).setOrigin(BEETLE_ART.ox / BEETLE_ART.w, BEETLE_ART.oy / BEETLE_ART.h).setScale(1 / R.beetle).setFlipX(c.facing < 0);
+    } else {
+      img.setTexture(TALUS_FAUNA_TEX.rockslide(rockslidePose(c), f)).setOrigin(ROCKSLIDE_ART.ox / ROCKSLIDE_ART.w, ROCKSLIDE_ART.oy / ROCKSLIDE_ART.h).setScale(1 / R.rockslide).setFlipX(c.facing < 0);
+    }
+  }
+
   /** A red "!" over a creature that has just noticed you, before it acts (spec, "Creatures"). */
   private mark(c: Creature, x: number): void {
     const warn = c.state === 'warn';
@@ -127,7 +154,8 @@ export class FaunaView {
       t = this.scene.add.text(0, 0, '!', { fontFamily: HAND, fontSize: '30px', color: RED, stroke: '#f5efdf', strokeThickness: 4 }).setOrigin(0.5, 1).setDepth(6);
       this.marks.set(c.id, t);
     }
-    const y = c.kind === 'tendril' ? c.y + 30 : c.kind === 'lamprey' ? c.y - 18 : c.kind === 'jelly' ? c.y - 24 : c.kind === 'leviathan' ? c.y - CREATURE.leviathan.h * this.tile - 6 : c.y - 34;
+    const giant = c.kind === 'leviathan' || c.kind === 'rockslide' ? CREATURE[c.kind].h * this.tile + 6 : 0;
+    const y = c.kind === 'tendril' ? c.y + 30 : c.kind === 'lamprey' ? c.y - 18 : c.kind === 'jelly' ? c.y - 24 : giant ? c.y - giant : c.kind === 'skate' ? c.y - 8 : c.y - 34;
     t.setVisible(true).setPosition(x, y);
   }
 
@@ -191,6 +219,20 @@ function jellyPose(c: Creature): JellyPose {
 function leviathanPose(c: Creature): LeviathanPose {
   if (c.state === 'walk' || c.state === 'rest') return 'awake';
   if (c.state === 'warn' || (c.noise ?? 0) >= CREATURE.leviathan.stir) return 'stir';
+  return 'sleep';
+}
+
+/** A boulder crab's pose: a boulder while it sits still, rearing up to pinch, running. */
+function rockcrabPose(c: Creature): RockcrabPose {
+  if (c.state === 'warn') return 'rear';
+  if (c.state === 'walk' || c.state === 'dead') return 'run';
+  return c.state === 'rest' ? 'rear' : 'boulder';
+}
+
+/** The Rockslide's pose: asleep, stirring (noise building, or waking), or awake and on its feet. */
+function rockslidePose(c: Creature): RockslidePose {
+  if (c.state === 'walk' || c.state === 'rest') return 'awake';
+  if (c.state === 'warn' || (c.noise ?? 0) >= CREATURE.rockslide.stir) return 'stir';
   return 'sleep';
 }
 

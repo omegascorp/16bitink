@@ -11,10 +11,15 @@
  * sides. Tile lookups fold x round the ring, so callers never have to.
  * A cap is one of Mycel's cap mushrooms: solid, soft as soil to drill, and
  * springy (mine.ts throws you high off one).
+ * Loose rock is Talus's: a boulder as soft as soil to drill, which falls
+ * when what holds it up is dug out (rocks.ts).
+ * A plant is one of Talus's barrel plants: a pleated segment of a column
+ * that stores water, solid, soft as soil, standing on the open ground.
+ * Caps and plants are growths: they stand on the planet, not in it.
  * The grid is mutated in place: it is per-frame world state shared by the
  * simulation and the chunked ground renderer (as InkCrab's beach is).
  */
-export const TILE = { air: 0, soil: 1, stone: 2, deep: 3, bedrock: 4, cap: 5 } as const;
+export const TILE = { air: 0, soil: 1, stone: 2, deep: 3, bedrock: 4, cap: 5, loose: 6, plant: 7 } as const;
 export type Tile = (typeof TILE)[keyof typeof TILE];
 
 /** The three grades a drill is weighed against (see drill.ts). */
@@ -104,9 +109,12 @@ export function isSolid(t: Terrain, x: number, y: number): boolean {
   return tileAt(t, x, y) !== TILE.air;
 }
 
+/** Whether a tile grows on the ground rather than being part of it: a cap mushroom or a barrel plant. */
+export const isGrowth = (tile: Tile): boolean => tile === TILE.cap || tile === TILE.plant;
+
 /** A tile's grade, or null for air and bedrock. */
 export function gradeOf(tile: Tile): Grade | null {
-  if (tile === TILE.soil || tile === TILE.cap) return 0;
+  if (tile === TILE.soil || tile === TILE.cap || tile === TILE.loose || tile === TILE.plant) return 0;
   if (tile === TILE.stone) return 1;
   if (tile === TILE.deep) return 2;
   return null;

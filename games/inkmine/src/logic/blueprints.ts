@@ -78,7 +78,26 @@ const MK3: readonly Recipe[] = [
   recipe('suit', 3, { magnetite: 4, pearl: 3 }),
 ];
 
-export const RECIPES: Readonly<Record<string, Recipe>> = Object.fromEntries([...MK1, ...MK2, ...MK3].map((r) => [r.id, r]));
+/**
+ * Talus's Mk 4 set, from a drying desert world (spec, "Talus"): a
+ * lithium–sulfur cell on copper foil; an iron frame padded with silica
+ * foam; a steel bit (iron from hematite) with copper windings; a selenite
+ * visor (clear gypsum, which the Romans glazed windows with); a
+ * silica-lined nozzle in an iron housing, as real rocket nozzles are lined
+ * with silica phenolic; and iron mail over cloth lined with gypsum, which
+ * sheds heat as its water boils off. Hematite, Talus's signature, is in
+ * four of them.
+ */
+const MK4: readonly Recipe[] = [
+  recipe('cell', 4, { sulfur: 5, copper: 3 }),
+  recipe('pack', 4, { hematite: 5, opal: 2 }),
+  recipe('drill', 4, { hematite: 6, copper: 3 }),
+  recipe('helmet', 4, { gypsum: 4, opal: 2 }),
+  recipe('jetpack', 4, { hematite: 4, opal: 3 }),
+  recipe('suit', 4, { gypsum: 5, hematite: 3 }),
+];
+
+export const RECIPES: Readonly<Record<string, Recipe>> = Object.fromEntries([...MK1, ...MK2, ...MK3, ...MK4].map((r) => [r.id, r]));
 
 /**
  * What taking an old part apart gives back: half of each material it

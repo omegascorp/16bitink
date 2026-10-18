@@ -3,13 +3,14 @@ import { isLocked, usedSlots } from '../logic/inventory';
 import { inPouch } from '../logic/items';
 import type { Mine } from '../logic/mine';
 import { goalLine } from '../logic/repairs';
+import { stormLine } from '../logic/storm';
 import { AIR, bagFull, type Gauge as GaugeName } from '../logic/suit';
 import type { GameScene, Woke } from './GameScene';
 import { screenScene, viewSize } from './hidpi';
 import { Gauge } from './kit/gauge';
 import { iconKey, type IconKind } from './kit/icons';
 import { RES, uiImage } from './kit/paint';
-import { plate, plateCard, plateHeading, PLATE_BODY } from './kit/plate';
+import { fitCardBody, fitScale, plate, plateCard, plateHeading, PLATE_BODY, type CardBody } from './kit/plate';
 import { plaque } from './kit/plaque';
 import { aside, heading, INK_TEXT, label, MADDER, prose, SEPIA } from './kit/type';
 import { drawSlotGrid, gridHeight } from './slots';
@@ -17,6 +18,7 @@ import { storyCard, type StoryCardSpec } from './kit/storyCard';
 import { ASTER_CARD } from './hud/asterCard';
 import { campSpec } from './hud/campCards';
 import { craftSpec, crystalSpec, reefSpec } from './hud/brineCards';
+import { SEARCH_SHIP_CARD } from './hud/talusCards';
 import { narrator } from './NarratorScene';
 import { landingSpec, OPENING } from './hud/opening';
 import { talkSpec } from './hud/talkCards';
@@ -89,6 +91,8 @@ export class HudScene extends Phaser.Scene {
   private prompt!: Phaser.GameObjects.Text;
   private hint!: Phaser.GameObjects.Text;
   private failed!: Phaser.GameObjects.Text;
+  /** Talus's dust storms in a line at the top: coming, and whether you're under cover. */
+  private storm!: Phaser.GameObjects.Text;
   private intro: Phaser.GameObjects.Container | null = null;
   private woke: Phaser.GameObjects.Container | null = null;
   /** A Lamplighter's card while one is talking, or the Aster lander's. */
@@ -139,6 +143,7 @@ export class HudScene extends Phaser.Scene {
     // Fingers lifted while the inventory was open never reached the pad.
     this.events.on(Phaser.Scenes.Events.WAKE, () => this.touch.release());
     this.failed = heading(this, 0, 0, 'Your suit gave out', 34, MADDER).setStyle(HALO).setOrigin(0.5).setVisible(false);
+    this.storm = label(this, 0, 0, '', 20, INK_TEXT, '600').setStyle(HALO).setOrigin(0.5, 0).setVisible(false);
     this.layout();
     this.scale.on('resize', this.layout, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', this.layout, this));
@@ -177,6 +182,16 @@ export class HudScene extends Phaser.Scene {
     this.prompt.setVisible(aboard);
     this.touch.setAboard(aboard);
     this.controlsText();
+    this.showStorm(mine);
+  }
+
+  /** The storm's line: hidden in the calm, madder while it's a danger to you. */
+  private showStorm(mine: Mine): void {
+    const line = mine.storm && mine.state === 'playing' ? stormLine(mine.storm, mine.exposed) : null;
+    this.storm.setVisible(!!line);
+    if (!line) return;
+    if (this.storm.text !== line.text) this.storm.setText(line.text);
+    this.storm.setColor(line.danger ? MADDER : INK_TEXT);
   }
 
   /** The prompt at the lander and the controls along the bottom, for keys or for touch. */
@@ -194,6 +209,7 @@ export class HudScene extends Phaser.Scene {
     const { width, height } = viewSize(this);
     this.hint.setPosition(width / 2, height - 10);
     this.failed.setPosition(width / 2, height / 2);
+    this.storm.setPosition(width / 2, 14);
     this.prompt.setPosition(width / 2, height - 56);
     this.intro?.setPosition(width / 2, height / 2);
     this.woke?.setPosition(width / 2, height * 0.3);
@@ -264,6 +280,7 @@ export class HudScene extends Phaser.Scene {
     else if (game.reef && game.reef !== 'wait') this.tell(reefSpec(this, game.reef), () => game.closeReef());
     else if (game.craft) this.tell(craftSpec(this, game.craft), () => game.closeCraft());
     else if (game.crystal) this.tell(crystalSpec(this), () => game.closeCrystal());
+    else if (game.searchShip) this.tell(SEARCH_SHIP_CARD, () => game.closeShip());
   }
 
   /** Reads `spec` aloud as play goes on and closes it at once; `hold` (a chapter's end), or with no voice for it, a card the world waits on. */
@@ -308,23 +325,27 @@ export class HudScene extends Phaser.Scene {
 
   /** The opening card: how you got here, and the first thing to do. Any key or a tap starts. */
   private showIntro(): void {
-    const { width, height } = viewSize(this);
-    const left = -INTRO_W / 2 + 40;
+    const view = viewSize(this);
     // Graphite's opening, or a later world's first landing (its planet carries the card).
     const card = this.play?.introCard() ?? OPENING;
-    const parts: Phaser.GameObjects.GameObject[] = [heading(this, 0, 36, card.title, 30).setOrigin(0.5, 0)];
-    parts.push(aside(this, 0, 76, card.arrival.subtitle, 18, INTRO_W - 80, SEPIA).setOrigin(0.5, 0));
-    let y = 120;
-    for (const para of card.arrival.paragraphs) {
-      const t = prose(this, left, y, para, 20, INTRO_W - 80);
-      parts.push(t);
-      y += t.height + 12;
-    }
-    const h = y + 80;
-    for (const part of parts) (part as unknown as { y: number }).y -= h / 2;
+    const body = (w: number): CardBody => {
+      const parts: Phaser.GameObjects.GameObject[] = [heading(this, 0, 36, card.title, 30).setOrigin(0.5, 0)];
+      parts.push(aside(this, 0, 76, card.arrival.subtitle, 18, w - 80, SEPIA).setOrigin(0.5, 0));
+      let y = 120;
+      for (const para of card.arrival.paragraphs) {
+        const t = prose(this, -w / 2 + 40, y, para, 20, w - 80);
+        parts.push(t);
+        y += t.height + 12;
+      }
+      const h = y + 80;
+      for (const part of parts) (part as unknown as { y: number }).y -= h / 2;
+      return { parts, h };
+    };
+    const { parts, h, w } = fitCardBody(body, INTRO_W, view);
     const close = (): void => this.closeIntro();
     parts.push(plaque(this, 0, h / 2 - 46, card.arrival.button, close, { width: 180, height: 46, kind: 'primary' }));
-    this.intro = plateCard(this, width / 2, height / 2, INTRO_W, h, parts, 77).setDepth(50);
+    // Shrunk to fit a short screen (a phone on its side), so the button is always there to tap.
+    this.intro = plateCard(this, view.width / 2, view.height / 2, w, h, parts, 77).setDepth(50).setScale(fitScale(h, view.height));
     this.input.keyboard?.once('keydown-SPACE', close);
     this.input.keyboard?.once('keydown-ENTER', close);
     // Read aloud while it's open, and on in the narrator's strip once it's closed.

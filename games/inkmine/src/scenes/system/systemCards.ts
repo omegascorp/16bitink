@@ -26,34 +26,53 @@ export const whereYouFellCard = (): StoryCardSpec => ({
 
 /**
  * A trip made from `was` (the profile before it) to `to`: the first one
- * ends chapter 1, the first to Brine starts chapter 3, and following the
- * Aster crew home from Brine ends chapter 3's sea part. Each kind of trip
- * is its own line for the narrator; the others are per route.
+ * ends chapter 1, the first to Brine starts chapter 3, following the
+ * Aster crew home from Brine ends chapter 3's sea part, and the first to
+ * Talus starts chapter 4. Each kind of trip is its own line for the
+ * narrator; the others are per route.
  */
 export function flightCard(scene: Phaser.Scene, was: Profile, to: WorldId): StoryCardSpec {
   const first = !hasBeat(was, 'course');
   const sea = to === 'brine' && !was.visited.includes('brine');
+  const red = to === 'talus' && !was.visited.includes('talus');
   // Following the Aster crew home from the sea world, at the end of chapter 3.
   const homeward = to === 'mycel' && was.at === 'brine' && hasBeat(was, 'craftFlown') && !hasBeat(was, 'asterReunion');
   const name = worldById(to)!.name;
   const from = worldById(was.at)!.name;
-  const text = first
-    ? `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${name} grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.`
-    : homeward
-      ? `The engine hums and the sea world falls away behind. Somewhere ahead, a speck of teal light is crossing the same dark: the crew's craft, going home. Days on, the ringed giant fills the window, and beside it the green moon, where four of the Aster will be waiting.`
-      : sea
-        ? `The Aster tank takes the strain, and for the first time the ship leaves the ringed giant behind. ${from} shrinks to a ${was.at === 'mycel' ? 'green' : 'grey'} dot beside it, then is lost in its glare. Days on, a blue-violet world fills the window: sea from edge to edge, scattered with islands, and somewhere down there, three of the Aster.`
-        : to === 'brine' || was.at === 'brine'
-          ? `The engine hums and ${from} slides away below. The long crossing between the ringed giant and the sea world, and ${name} fills the window.`
-          : `The engine hums and ${from} slides away below. A short hop round the ringed giant, and ${name} fills the window.`;
+  const text = first ? FIRST_TRIP(name) : homeward ? HOMEWARD : sea ? seaText(from, was.at) : red ? redText(from, was.at) : routeText(from, was.at, name, to);
   return {
-    line: first ? 'trip-first' : homeward ? 'trip-homeward' : sea ? `trip-sea-from-${was.at}` : `trip-${was.at}-${to}`,
+    line: first ? 'trip-first' : homeward ? 'trip-homeward' : sea ? `trip-sea-from-${was.at}` : red ? `trip-red-from-${was.at}` : `trip-${was.at}-${to}`,
     title: `Course set for ${name}`,
-    subtitle: first ? 'the end of chapter 1' : sea ? 'the start of chapter 3' : `${from} to ${name}`,
+    subtitle: first ? 'the end of chapter 1' : sea ? 'the start of chapter 3' : red ? 'the start of chapter 4' : `${from} to ${name}`,
     pictures: [{ key: shipTexture(scene, shipLookOf(was), 'small'), h: 70 }, { key: TEX.world(to), h: 70 }],
     text,
     button: `On to ${name}`,
   };
+}
+
+const FIRST_TRIP = (name: string): string =>
+  `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${name} grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.`;
+
+const HOMEWARD = `The engine hums and the sea world falls away behind. Somewhere ahead, a speck of teal light is crossing the same dark: the crew's craft, going home. Days on, the ringed giant fills the window, and beside it the green moon, where four of the Aster will be waiting.`;
+
+/** The first trip to Brine: the start of chapter 3. */
+const seaText = (from: string, at: WorldId): string =>
+  `The Aster tank takes the strain, and for the first time the ship leaves the ringed giant behind. ${from} shrinks to a ${at === 'mycel' ? 'green' : 'grey'} dot beside it, then is lost in its glare. Days on, a blue-violet world fills the window: sea from edge to edge, scattered with islands, and somewhere down there, three of the Aster.`;
+
+/** Any other trip: a hop round the ringed giant, the crossing to the sea world, or the fall in to Talus and the climb back out. */
+function routeText(from: string, at: WorldId, name: string, to: WorldId): string {
+  if (to === 'talus') return `The engine hums and ${from} slides away below. Days of falling in towards the star, and ${name} fills the window.`;
+  if (at === 'talus') return `The engine hums and ${from} slides away below. Days of climbing out from the star, and ${name} fills the window.`;
+  if (to === 'brine' || at === 'brine') return `The engine hums and ${from} slides away below. The long crossing between the ringed giant and the sea world, and ${name} fills the window.`;
+  return `The engine hums and ${from} slides away below. A short hop round the ringed giant, and ${name} fills the window.`;
+}
+
+/** The first trip to Talus, in towards the star on the Aster's course: the start of chapter 4. */
+function redText(from: string, at: WorldId): string {
+  const behind = at === 'brine'
+    ? 'The sea world falls away behind, purple, and the ship turns in towards the star.'
+    : `${from} shrinks to a ${at === 'mycel' ? 'green' : 'grey'} dot beside the ringed giant, and the ship turns in towards the star, past the sea world on its own orbit.`;
+  return `The long tank takes the strain. ${behind} The light through the window grows harder every day. Then a rust-red world fills it, white where its seas used to be: the world the Aster marked on their chart. Something of your own kind is down there.`;
 }
 
 /** The first trip set without the full game: the end of chapter 1, and of the demo. */

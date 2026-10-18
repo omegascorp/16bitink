@@ -198,6 +198,11 @@ export class SoundBoard {
     this.ambience?.setDepth(depth);
   }
 
+  /** How hard a dust storm is blowing, 0..1, for the ambience's wind. */
+  setGust(gust: number): void {
+    this.ambience?.setGust(gust);
+  }
+
   destroy(): void {
     if (typeof window !== 'undefined') {
       for (const ev of UNLOCK_EVENTS) window.removeEventListener(ev, this.unlock, { capture: true });

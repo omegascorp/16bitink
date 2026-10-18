@@ -3,6 +3,7 @@ import { hasTool } from '../logic/tools';
 import { fuelsAt } from '../logic/worlds';
 import type { Profile } from '../logic/economy';
 import { Ladders } from '../logic/ladders';
+import { settleRocks } from '../logic/rocks';
 import type { MineSetup } from '../logic/mine';
 import { drillFor, jetFor, suitSpecFor } from '../logic/marks';
 import { storeCapacity, winchKeeps } from '../logic/ship';
@@ -59,6 +60,8 @@ export function buildWorld(planet: PlanetDef, p: Profile, save: WorldSave | null
   const creatures = placeCreatures(terrain, def.creatures ?? [], def.site.surface, TILE_SIZE, def.site.seed, giant, (x, y) => carvedWet?.isWet(x, y) ?? false);
   const ladders = new Ladders(terrain);
   if (save) applyWorld(terrain, ladders, save);
+  // Loose rock a save (or a retuned world) leaves standing on nothing comes to rest before play.
+  settleRocks(terrain);
   const taken = new Set(save?.taken ?? []);
   // Water as it stood when saved; else as carved, with whatever's been dug since poured into.
   const wet = site.seaRow !== null || site.water.some((v) => v === 1);
@@ -98,6 +101,7 @@ export function buildWorld(planet: PlanetDef, p: Profile, save: WorldSave | null
       armed: hasTool(p, 'pulse'),
       water,
       rebreather: hasTool(p, 'rebreather'),
+      storm: def.weather === 'dust' ? def.site.seed : undefined,
     },
   };
 }

@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import { describe, expect, it } from 'vitest';
 import { PLANET_2 } from '../content/planet2';
 import { PLANET_3 } from '../content/planet3';
+import { PLANET_4 } from '../content/planet4';
 import { NEW_PROFILE, type Profile } from '../src/logic/economy';
 import { FIRST_COURSE } from '../src/logic/starship';
 import { BEATS, withBeat, type Beat } from '../src/logic/story';
@@ -18,8 +19,9 @@ import { craftSpec, crystalSpec, reefSpec } from '../src/scenes/hud/brineCards';
 import { campSpec } from '../src/scenes/hud/campCards';
 import { landingSpec, OPENING } from '../src/scenes/hud/opening';
 import { talkSpec } from '../src/scenes/hud/talkCards';
+import { SEARCH_SHIP_CARD } from '../src/scenes/hud/talusCards';
 import type { StoryCardSpec } from '../src/scenes/kit/storyCard';
-import { brineOrbitCard, callCard, distressCard, dockedCard, firstLightCard, liftOffSpec, mycelOrbitCard } from '../src/scenes/ship/shipCards';
+import { brineOrbitCard, callCard, distressCard, dockedCard, firstLightCard, liftOffSpec, mycelOrbitCard, talusOrbitCard } from '../src/scenes/ship/shipCards';
 import { demoEndCard, firstCourseCard, flightCard, whereYouFellCard } from '../src/scenes/system/systemCards';
 
 /** Node's environment, as far as this test needs it (the project has no Node types). */
@@ -63,14 +65,15 @@ function allLines(): StoryCardSpec[] {
   const p = NEW_PROFILE;
   return [
     landingSpec(OPENING),
-    ...[PLANET_2, PLANET_3].map((planet) => landingSpec({ world: planet.world.id, title: planet.name, arrival: planet.arrival! })),
+    ...[PLANET_2, PLANET_3, PLANET_4].map((planet) => landingSpec({ world: planet.world.id, title: planet.name, arrival: planet.arrival! })),
     ...(['meet', 'want', 'paid', 'waitShip', 'core'] as const).map((s) => talkSpec(SCENE, s)),
     ASTER_CARD,
     ...(['camp', 'pod', 'woken', 'reunion'] as const).map((s) => campSpec(SCENE, s)),
     ...(['meet', 'want', 'paid', 'crew', 'patch', 'raised'] as const).map((s) => reefSpec(SCENE, s)),
     ...(['found', 'heart', 'mended', 'flight'] as const).map((s) => craftSpec(SCENE, s)),
     crystalSpec(SCENE),
-    ...[callCard, mycelOrbitCard, brineOrbitCard, dockedCard, distressCard, firstLightCard, liftOffSpec].map((card) => card(SCENE, p)),
+    SEARCH_SHIP_CARD,
+    ...[callCard, mycelOrbitCard, brineOrbitCard, talusOrbitCard, dockedCard, distressCard, firstLightCard, liftOffSpec].map((card) => card(SCENE, p)),
     whereYouFellCard(),
     ...trips().map(([was, to]) => flightCard(SCENE, was, to)),
     firstCourseCard(SCENE, p),

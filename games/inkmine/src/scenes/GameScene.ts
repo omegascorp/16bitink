@@ -7,7 +7,6 @@ import { LAMPLIGHTER, OUTPOST_ART } from '../art/lamplighterArt';
 import { ridgeRoom, TEX, generateTextures } from '../art/textures';
 import { getHost, getProfile, getSound, heldWorld, holdWorld, setProfile } from '../host';
 import { buildWorld } from '../level/build';
-import { CREATURE } from '../logic/creatures';
 import { currentPlanet } from '../level/planets';
 import type { PlanetDef } from '../level/types';
 import { designName, findBlueprint, isDesign, learnTaken } from '../logic/designs';
@@ -16,7 +15,7 @@ import { printerWorks, type Profile } from '../logic/economy';
 import { prospectorLook, type Look } from '../logic/gear';
 import type { MineItem } from '../logic/items';
 import { lampFor } from '../logic/marks';
-import { Mine, NO_INPUT, SPORE_AIR, type MineEvent, type MineInput } from '../logic/mine';
+import { Mine, NO_INPUT, type MineEvent, type MineInput } from '../logic/mine';
 import { oreById, ORES } from '../logic/ore';
 import { ARRIVAL_BEAT, hasBeat, keptOres, OUTPOST, signalBars, visit, withBeat, type CampSays, type CraftSays, type ReefSays, type Says } from '../logic/story';
 import { feed, fuelIn, withBag, type FeedResult, type Fuels, type Gauge, type Suit } from '../logic/suit';
@@ -29,6 +28,9 @@ import { BeaconView } from './game/beaconView';
 import { StorySites } from './game/storySites';
 import { narrator } from './NarratorScene';
 import { BRINE_WATER, WaterView } from './game/waterView';
+import { RocksView } from './game/rocksView';
+import { StormView } from './game/stormView';
+import { hazardNote, type Say } from './game/hazardNotes';
 import { CrashView } from './game/crashView';
 import { FaunaView } from './game/faunaView';
 import { FlagView } from './game/flagView';
@@ -131,6 +133,8 @@ export class GameScene extends Phaser.Scene {
   private sites!: StorySites;
   /** The world's water, painted; none on a dry world. */
   private waterView: WaterView | null = null;
+  /** Loose rock shaking and falling (Talus). */
+  private rocks!: RocksView;
   /** The creatures and the pulse's shots; none on a world with neither (Graphite, unarmed). */
   private fauna: FaunaView | null = null;
   /** Presses are forgotten again on the next step (forgetKeys). */
@@ -138,6 +142,10 @@ export class GameScene extends Phaser.Scene {
   /** Asked for from outside the world (a tapped gauge on the HUD, recall in the inventory), done on the next step. */
   private asked: Partial<Pick<MineInput, 'feed' | 'recall'>> = {};
   private smokeAt = 0;
+  /** The suit has said "loose rock!" this landing. */
+  private warnedRock = false;
+  /** Talus's dust storms over the view; null on a world without them. */
+  private storm: StormView | null = null;
   private sounds!: MineSounds;
 
   constructor() {
@@ -154,6 +162,7 @@ export class GameScene extends Phaser.Scene {
     this.lastBars = null;
     this.changed = false;
     this.smokeAt = 0;
+    this.warnedRock = false;
     const world = this.planet.world;
     const profile = getProfile(this);
     const save = heldWorld(this, world.id) ?? loadWorld(getHost(this).storage, world.id, world.site.width * world.site.height, new Set(world.items.map((it) => it.id)));
@@ -193,6 +202,8 @@ export class GameScene extends Phaser.Scene {
     this.crashAt = world.crash === undefined ? null : { col: world.crash, row: world.site.surface };
     this.crash = this.crashAt ? new CrashView(this, this.crashAt, T) : null;
     this.waterView = this.mine.water ? new WaterView(this, this.mine.water, t, T, BRINE_WATER) : null;
+    this.rocks = new RocksView(this, this.mine, style, id);
+    this.storm = this.mine.storm ? new StormView(this, [this.sky, this.ridges]) : null;
     this.fauna = this.mine.fauna.creatures.length || this.mine.fauna.armed ? new FaunaView(this, T, this.mine.fauna.creatures) : null;
     this.things = new ThingsView(this, T);
     this.items = new ItemsView(this, T);
@@ -217,7 +228,7 @@ export class GameScene extends Phaser.Scene {
       say: (text) => this.say(text),
       forget: () => this.forgetKeys(),
       signal: () => this.signal(),
-    }, world, T);
+    }, world, T, style);
     const p = this.mine.player;
     this.ring.centre = p.x + p.w / 2;
     this.prospector.update(this.mine, 0, 0, this.ring);
@@ -304,7 +315,9 @@ export class GameScene extends Phaser.Scene {
     this.crash?.update(this.ring, time);
     this.sites.update(this.ring, time);
     this.waterView?.update(cam.worldView, this.ring, time);
+    this.rocks.update(this.ring, time);
     this.fauna?.update(this.mine, time, this.ring);
+    this.storm?.update(this.mine, cam.worldView, time, still ? 0 : dt);
     this.beacon.update(this.mine, this.ring, this.beaconTarget(), 'beacon', time);
     const d = this.mine.dropped;
     this.bagBeacon.update(this.mine, this.ring, d ? { x: (d.col + 0.5) * this.mine.tile, y: (d.row + 0.5) * this.mine.tile } : null, 'your bag', time);
@@ -436,6 +449,10 @@ export class GameScene extends Phaser.Scene {
     return this.sites.crystal;
   }
 
+  get searchShip(): boolean {
+    return this.sites.ship;
+  }
+
   /** Its card was read: the world goes on. */
   closeCamp(): void {
     this.sites.closeCamp();
@@ -451,6 +468,10 @@ export class GameScene extends Phaser.Scene {
 
   closeCrystal(): void {
     this.sites.closeCrystal();
+  }
+
+  closeShip(): void {
+    this.sites.closeShip();
   }
 
   /** Forgets every key pressed so far, now and again on the next step: a card was just closed by a key that may not have reached this scene yet. */
@@ -588,7 +609,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.mine) return;
     const world = this.planet.world;
     setProfile(this, this.liveProfile());
-    const changes = captureWorld(this.base, this.mine.terrain, this.mine.ladders, world.version, this.taken, this.mine.dropped, savePieces(this.mine.terrain, this.mine.pieces, this.mine.tile), this.mine.water?.settledWet());
+    const changes = captureWorld(this.base, this.mine.terrain, this.mine.ladders, world.version, this.taken, this.mine.dropped, savePieces(this.mine.terrain, this.mine.pieces, this.mine.tile), this.mine.water?.settledWet(), this.mine.rubble());
     holdWorld(this, world.id, changes);
     this.changed = !saveWorld(getHost(this).storage, world.id, changes);
     this.savedAt = this.mine.time;
@@ -599,6 +620,13 @@ export class GameScene extends Phaser.Scene {
     const p = this.mine.player;
     const px = this.ring.near(p.x + p.w / 2);
     const over = (text: string, danger = false): void => this.fx.note(px, p.y - 10, text, danger);
+    const say: Say = {
+      over,
+      high: (text, danger = false) => this.fx.note(px, p.y - 32, text, danger),
+      at: (x, y, text, danger = false) => this.fx.note(this.ring.near(x), y, text, danger),
+      shake: (ms, strength) => this.cameras.main.shake(ms, strength),
+    };
+    if (hazardNote(e, say, this.mine.tile, this.mine.storm?.dir ?? 1) && e.kind !== 'hurt') return;
     switch (e.kind) {
       case 'tiles':
         this.ground.invalidate(e.tiles);
@@ -684,24 +712,12 @@ export class GameScene extends Phaser.Scene {
         this.fx.note(this.ring.near((e.tile[0] + 0.5) * this.mine.tile), e.tile[1] * this.mine.tile - 6, kind === 'firedamp' ? 'firedamp! get clear' : 'charge armed! get clear', true);
         break;
       }
-      case 'spores':
-        this.fx.note(this.ring.near((e.tile[0] + 0.5) * this.mine.tile), e.tile[1] * this.mine.tile - 6, `spores! air − ${SPORE_AIR}`, true);
-        break;
-      case 'stung':
-        over(`stung! air − ${CREATURE.jelly.sting}`, true);
-        break;
-      case 'leviathan':
-        if (e.now === 'wake') this.cameras.main.shake(700, 0.004);
-        this.fx.note(px, p.y - 32, e.now === 'stir' ? 'something huge stirs below…' : e.now === 'wake' ? 'it’s awake! get clear' : 'it settles back to sleep', e.now !== 'sleep');
-        break;
-      case 'flood':
-        if (e.near) {
-          this.cameras.main.shake(260, 0.0025);
-          this.fx.note(px, p.y - 32, e.sea ? 'the sea is coming in!' : 'water! it’s pouring in', true);
+      case 'rock':
+        // Said once, the first time a rock starts to go near you: the rest of the slope speaks for itself.
+        if (e.now === 'shake' && !this.warnedRock && Math.abs(ringDelta(this.mine.terrain, p.x, (e.tile[0] + 0.5) * this.mine.tile, this.mine.tile)) < this.mine.tile * 4) {
+          this.warnedRock = true;
+          over('loose rock!', true);
         }
-        break;
-      case 'deep':
-        this.fx.note(px, p.y - 32, `deep water: air ×${e.rate.toFixed(1)}`, true);
         break;
       case 'water':
         this.changed = true;

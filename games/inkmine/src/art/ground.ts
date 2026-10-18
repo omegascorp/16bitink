@@ -1,13 +1,15 @@
 import { cellCase, cellGeometry } from '../logic/contour';
 import { hash } from '../logic/noise';
 import { createRng } from '../logic/rng';
-import { contentAt, gradeOf, inside, TILE, tileAt, volatileAt, wrapX, type Grade, type Terrain } from '../logic/terrain';
+import { contentAt, gradeOf, inside, isGrowth, TILE, tileAt, volatileAt, wrapX, type Grade, type Terrain } from '../logic/terrain';
 import { VOLATILES } from '../logic/volatiles';
 import { oreById } from '../logic/ore';
 import { depthTone, facesOf, lightHollows, lightRock, pebble, washTile, type Face } from './groundPaint';
 import { drawOreGlyph } from './oreArt';
 import { cobbles, strata, surfaceRocks } from './surfaceArt';
 import { capsIn, sporesIn } from './mycelGround';
+import { looseIn } from './talusGround';
+import { floraIn, PLANT_MAX } from './talusFlora';
 import { INK, PAPER, RED, type GroundStyle } from './palette';
 
 /**
@@ -234,12 +236,12 @@ function shadowLine(ctx: CanvasRenderingContext2D, faces: readonly Face[]): void
   ctx.globalAlpha = 1;
 }
 
-/** The first solid row of each column (taken as the level begins): anything open below it is inside the planet. A cap mushroom standing on the surface is outside it. */
+/** The first solid row of each column (taken as the level begins): anything open below it is inside the planet. A growth standing on the surface (a cap, a barrel plant) is outside it. */
 export function roofRows(t: Terrain): Int32Array {
   const rows = new Int32Array(t.width);
   for (let x = 0; x < t.width; x++) {
     let y = 0;
-    while (y < t.height && (tileAt(t, x, y) === TILE.air || tileAt(t, x, y) === TILE.cap)) y++;
+    while (y < t.height && (tileAt(t, x, y) === TILE.air || isGrowth(tileAt(t, x, y)))) y++;
     rows[x] = y;
   }
   return rows;
@@ -392,8 +394,8 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
   const size = c.tiles * T;
   ctx.setTransform(res, 0, 0, res, (CHUNK_PAD - c.tx * T) * res, (CHUNK_PAD - c.ty * T) * res);
   ctx.clearRect(c.tx * T - CHUNK_PAD, c.ty * T - CHUNK_PAD, size + CHUNK_PAD * 2, size + CHUNK_PAD * 2);
-  // Cap mushrooms aren't rock: they're drawn standing in front of it (mycelGround.ts).
-  const ground: Mask = (x, y) => tileAt(t, x, y) !== TILE.air && tileAt(t, x, y) !== TILE.cap;
+  // Growths (caps, barrel plants) aren't rock, and loose rock is boulders: they're drawn standing in front of it (mycelGround.ts, talusFlora.ts, talusGround.ts).
+  const ground: Mask = (x, y) => tileAt(t, x, y) !== TILE.air && !isGrowth(tileAt(t, x, y)) && tileAt(t, x, y) !== TILE.loose;
   const of = (tile: number): Mask => (x, y) => tileAt(t, x, y) === tile;
   // Hollows inside the planet (open tiles under its first surface): the back wall.
   const inner: Mask = (x, y) => !ground(x, y) && inside(t, x, 0) && y >= (roof[wrapX(t, x)] ?? 0);
@@ -475,6 +477,8 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
   inkEdges(ctx, hard, c, T, 2.8, 300);
   surfaceRocks(ctx, t, roof, c.tx, c.ty, c.tiles, T, style);
   capsIn(ctx, t, c, T);
+  looseIn(ctx, t, c, T, style);
+  floraIn(ctx, t, roof, c, T);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
@@ -482,6 +486,7 @@ export function drawChunk(ctx: CanvasRenderingContext2D, t: Terrain, roof: Int32
 export function chunkHasGround(t: Terrain, roof: Int32Array, c: ChunkRect): boolean {
   const x0 = t.wrap ? c.tx - 1 : Math.max(0, c.tx - 1);
   const x1 = t.wrap ? c.tx + c.tiles : Math.min(t.width - 1, c.tx + c.tiles);
-  for (let x = x0; x <= x1; x++) if (roof[wrapX(t, x)]! <= c.ty + c.tiles) return true;
+  // A barrel plant stands up to PLANT_MAX tiles over the ground, into the chunk above.
+  for (let x = x0; x <= x1; x++) if (roof[wrapX(t, x)]! - PLANT_MAX <= c.ty + c.tiles) return true;
   return false;
 }

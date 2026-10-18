@@ -1,6 +1,6 @@
 import type { OreKey } from './ore';
 import { createRng, type Rng } from './rng';
-import { isSolid, surfaceRow, TILE, tileAt, wrapX, type Terrain, type TilePos } from './terrain';
+import { isGrowth, isSolid, surfaceRow, TILE, tileAt, wrapX, type Terrain, type TilePos } from './terrain';
 
 /**
  * The creatures of the living worlds (spec, "Creatures"; the rules in
@@ -23,14 +23,24 @@ import { isSolid, surfaceRow, TILE, tileAt, wrapX, type Terrain, type TilePos } 
  * - the Leviathan, Brine's giant, asleep in the deepest flooded cave: it
  *   can't be hurt, and noise wakes it (drilling or blasting near it, or
  *   swimming right up to it); awake, it sweeps its cave a while.
+ * Talus's (talusFauna.ts):
+ * - boulder crabs sit on the slopes of loose rock looking like boulders,
+ *   until you come close: then they pinch, and scuttle off;
+ * - sand skates cruise just under the crust of the flats, feeling for
+ *   footsteps, and strike up at whoever walks over them;
+ * - dew beetles walk the open ground: harmless, they tuck in when shot, and
+ *   whenever a dust storm blows;
+ * - the Rockslide, Talus's giant, a crab the size of a hill asleep in a
+ *   cave under a mesa: it can't be hurt, noise wakes it, and awake it
+ *   scuttles back and forth shaking rock down from the roof.
  * Placed fresh on every landing from the world's rules, never saved: what
  * you burst grows back.
  *
  * Kinds are in world definitions: never rename one.
  */
-export const CREATURE_KINDS = ['puffball', 'tendril', 'grazer', 'crab', 'jelly', 'lamprey'] as const;
+export const CREATURE_KINDS = ['puffball', 'tendril', 'grazer', 'crab', 'jelly', 'lamprey', 'rockcrab', 'skate', 'beetle'] as const;
 /** A world's giant: one, in its deepest place. */
-export const GIANT_KINDS = ['mother', 'leviathan'] as const;
+export const GIANT_KINDS = ['mother', 'leviathan', 'rockslide'] as const;
 export type GiantKind = (typeof GIANT_KINDS)[number];
 export type CreatureKind = (typeof CREATURE_KINDS)[number] | GiantKind;
 
@@ -64,6 +74,28 @@ export const CREATURE = {
    * goes home to sleep.
    */
   leviathan: { w: 10, h: 4, hear: 10, drill: 0.14, hearBlast: 18, blast: 0.8, close: 3, near: 0.18, shot: 0.5, decay: 0.03, stir: 0.5, warn: 1.6, awake: 12, speed: 3, range: 14, push: 420 },
+  /**
+   * Still, it's a boulder: it notices you within `notice` tiles, rears up
+   * for `warn` s, pinches what's within `pinch` tiles of its claws, then
+   * scuttles off at `speed` tiles/s for `flee` s and rests `rest` s before
+   * it settles back into a boulder. Its hematite shell takes two shots.
+   */
+  rockcrab: { hp: 2, notice: 1.4, warn: 0.4, pinch: 0.5, speed: 2.2, flee: 2, rest: 1.5 },
+  /**
+   * Cruises under the crust at `speed` tiles/s, no further than `range`
+   * from where it lives; feels footsteps within `sense` tiles (never a
+   * flyer), darts under them at `dash` for `warn` s, then strikes up
+   * `reach` tiles in `strike` s, pulls back in `retract` s and rests.
+   */
+  skate: { hp: 1, speed: 1, range: 8, sense: 3, warn: 0.6, dash: 3.5, strike: 0.16, reach: 1.6, retract: 0.4, rest: 2.6, toss: 380 },
+  /** Walks the open ground; shot, or in a storm, it tucks in. */
+  beetle: { speed: 0.45, tuck: 3 },
+  /**
+   * The Leviathan's numbers for waking (see leviathan), on its feet: awake,
+   * it scuttles its cave and every `quake` s shakes `rocks` rocks down from
+   * the roof within `spread` tiles of it.
+   */
+  rockslide: { w: 9, h: 5, hear: 9, drill: 0.12, hearBlast: 16, blast: 0.7, close: 2.5, near: 0.2, shot: 0.4, decay: 0.03, stir: 0.5, warn: 1.8, awake: 10, speed: 1.8, range: 10, push: 420, quake: 1.3, rocks: 3, spread: 8 },
 } as const;
 
 /**
@@ -78,6 +110,9 @@ export const SPOILS: Partial<Record<CreatureKind, readonly OreKey[]>> = {
   // A jelly is mostly salt water; a rasp eel's teeth are capped with magnetite, as a real chiton's are.
   jelly: ['water', 'halite'],
   lamprey: ['magnetite'],
+  // A boulder crab's shell is hematite; a sand skate keeps water in its gut, as the dry world's animals must.
+  rockcrab: ['hematite'],
+  skate: ['water'],
 };
 
 /**
@@ -101,6 +136,8 @@ export interface Creature {
   readonly reach: number;
   readonly home?: number;
   readonly noise?: number;
+  /** Seconds since the Rockslide last shook the roof. */
+  readonly quake?: number;
 }
 
 export type CreatureState = 'idle' | 'warn' | 'swell' | 'rest' | 'strike' | 'hold' | 'retract' | 'walk' | 'curled' | 'burst' | 'dead';
@@ -109,9 +146,11 @@ const SPACING = 6;
 
 /** A creature fresh where it's placed. */
 function born(id: number, kind: CreatureKind, x: number, y: number, rng: Rng): Creature {
-  const hp = kind === 'puffball' || kind === 'tendril' || kind === 'lamprey' ? CREATURE[kind].hp : 1;
-  const c: Creature = { id, kind, x, y, hp, state: kind === 'grazer' || kind === 'crab' ? 'walk' : 'idle', timer: rng() * 2, facing: rng() < 0.5 ? 1 : -1, reach: 0 };
-  return kind === 'leviathan' ? { ...c, home: x, noise: 0 } : c;
+  const hp = kind === 'puffball' || kind === 'tendril' || kind === 'lamprey' || kind === 'rockcrab' || kind === 'skate' ? CREATURE[kind].hp : 1;
+  const walks = kind === 'grazer' || kind === 'crab' || kind === 'beetle' || kind === 'skate';
+  const c: Creature = { id, kind, x, y, hp, state: walks ? 'walk' : 'idle', timer: rng() * 2, facing: rng() < 0.5 ? 1 : -1, reach: 0 };
+  if (kind === 'leviathan' || kind === 'rockslide') return { ...c, home: x, noise: 0 };
+  return kind === 'skate' ? { ...c, home: x } : c;
 }
 
 /** Whether (x, y) is a cave floor: open, with ground under it and a roof somewhere over it (`top`: the column's first solid row). */
@@ -126,11 +165,22 @@ function caveCeiling(t: Terrain, x: number, y: number, top: number): boolean {
   return false;
 }
 
-/** Whether (x, y) is on the open surface: the tile over the ground, caps aside (a grazer crawls in among them). */
+/** Whether (x, y) is on the open surface: the tile over the ground, growths aside (a grazer crawls in among them). */
 function surfaceSpot(t: Terrain, x: number, y: number, top: number): boolean {
   let ground = top;
-  while (ground < t.height && tileAt(t, x, ground) === TILE.cap) ground++;
+  while (ground < t.height && isGrowth(tileAt(t, x, ground))) ground++;
   return y === ground - 1 && isSolid(t, x, ground);
+}
+
+/** Whether (x, y) is on a slope of loose rock: the open tile over a boulder, where a boulder crab can pass for one. */
+function slopeSpot(t: Terrain, x: number, y: number, top: number): boolean {
+  return surfaceSpot(t, x, y, top) && tileAt(t, x, y + 1) === TILE.loose;
+}
+
+/** Whether (x, y) is the crust of a flat: the first solid tile of its column, sand, with sand level either side, where a sand skate can cruise. */
+export function crustSpot(t: Terrain, x: number, y: number, top: number): boolean {
+  if (y !== top || tileAt(t, x, y) !== TILE.soil) return false;
+  return [-1, 1].every((d) => tileAt(t, x + d, y) === TILE.soil && !isSolid(t, x + d, y - 1));
 }
 
 /** Whether a tile is under water (on a world with none, nothing is). */
@@ -162,9 +212,12 @@ const FITS: Record<(typeof CREATURE_KINDS)[number], Fit> = {
   crab: surfaceSpot,
   jelly: (t, x, y, _top, wet) => openWater(t, x, y, wet),
   lamprey: (t, x, y, _top, wet) => burrowFacing(t, x, y, wet) !== 0,
+  rockcrab: slopeSpot,
+  skate: crustSpot,
+  beetle: surfaceSpot,
 };
-/** Kinds that walk the surface: their rule's depths reach a little above and below it. */
-const WALKERS = new Set<string>(['grazer', 'crab']);
+/** Kinds that live at the surface: their rule's depths reach a little above and below it (the ground rolls, and mesas stand up). */
+const WALKERS = new Set<string>(['grazer', 'crab', 'rockcrab', 'skate', 'beetle']);
 
 /** Where a world's giant lives, and which it is. */
 export interface GiantAt {
@@ -215,6 +268,8 @@ function placed(id: number, kind: (typeof CREATURE_KINDS)[number], x: number, y:
   const cx = (x + 0.5) * tile;
   if (kind === 'tendril') return born(id, kind, cx, y * tile, rng);
   if (kind === 'jelly') return born(id, kind, cx, (y + 0.5) * tile, rng);
+  // A sand skate lies in its crust tile, its back at the ground line.
+  if (kind === 'skate') return born(id, kind, cx, y * tile, rng);
   if (kind === 'lamprey') {
     const facing = burrowFacing(t, x, y, wet) || 1;
     // Its mouth on the wall's face, facing out into the water.

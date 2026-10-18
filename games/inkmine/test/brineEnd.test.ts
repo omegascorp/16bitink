@@ -42,7 +42,7 @@ describe('the end of chapter 3', () => {
     expect(currentGoal(home)).toEqual({ kind: 'reunion' });
     const met = campVisit(home, home.suit);
     expect(met.says).toBe('reunion');
-    expect(currentGoal(met.profile)).toEqual({ kind: 'brineEnd' });
+    expect(currentGoal(met.profile)).toEqual({ kind: 'talus' });
     expect(campVisit(met.profile, home.suit).says).toBe('together');
   });
 
@@ -54,20 +54,20 @@ describe('the end of chapter 3', () => {
     expect(goalLine({ ...flown, shipFuel: 14 }, { kind: 'setCourse', to: 'mycel' })).toMatch(/Set course for Mycel/);
   });
 
-  it('says each new goal in a line, and the end names the next world', () => {
+  it('says each new goal in a line, and the end sends you on to Talus', () => {
     expect(goalLine(MENDED, currentGoal(MENDED))).toMatch(/wakes it/);
     const found = beats(MENDED, 'crystalFound');
     expect(goalLine(found, currentGoal(found))).toMatch(/craft/);
     const end = { ...beats(MENDED, 'crystalFound', 'craftFlown', 'asterReunion'), at: 'mycel' as const };
-    expect(goalLine(end, currentGoal(end))).toMatch(/chapter 3.*Talus/);
+    expect(goalLine(end, currentGoal(end))).toMatch(/Talus.*long tank/);
   });
 
-  it('lists its steps in the funnel, ending on the end of chapter 3', () => {
+  it('lists its steps in the funnel, then on to Talus', () => {
     const keys = STEPS.map((s) => s.key);
     const at = (k: string): number => keys.indexOf(k);
     expect(at('heart')).toBeLessThan(at('crystal'));
     expect([at('crystal'), at('flight'), at('tripFuel:mycel'), at('course:mycel'), at('reunion')]).toEqual([at('crystal'), at('crystal') + 1, at('crystal') + 2, at('crystal') + 3, at('crystal') + 4]);
-    expect(keys[keys.length - 1]).toBe('brineEnd');
+    expect(at('talus')).toBe(at('reunion') + 1);
   });
 });
 

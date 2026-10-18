@@ -63,6 +63,8 @@ Proposed, to decide:
 
 **Those who came before.** You aren't the first ship to fall through. An **old crew**, prospectors of your own kind, came years ago and never left: their half-buried base, their unfired charges in the rock, their buried time capsules and their logs are scattered across Graphite. The logs are in your language, so they explain things and teach you Lamplighter words they had learned. They also carry the story's slow chill: the old crew were reprinted many times.
 
+**They came looking for you** (@Hayk, Oct 18, 2026). The old crew aren't from Graphite, and they didn't fall through by chance: they're a search party your people sent into the wild wormhole after your ship went missing. A wild wormhole doesn't keep time, so they came out **years before you did**. They searched the ringed giant's moons first (their base and broken gear on Graphite), then followed something to Talus, where their ship lies (see "Talus").
+
 **Other peoples fell through too** (Oct 17, 2026). Each species builds in its own way, so their ships and their technology look nothing like yours, and their broken gear is something the suit can study and rebuild in your own form (see Gear). The first you find is **the Aster**, on Mycel: see "The Aster". (Until Oct 17 the doc called Graphite's old crew "the Aster crew"; the name now belongs to the aliens.)
 
 **Why you wake at the lander.** The lander's printer takes a scan of you every time you step inside. When you die, it prints you again from that scan. The bag was never part of the scan, so it stays where you fell. This is also why the printer is the first thing you repair. The old crew's logs hint that being reprinted again and again isn't quite free ("Fourth time today. It got my markings wrong.").
@@ -355,7 +357,7 @@ Every planet has its own native creatures, invented but built from a few behavio
 - **The drill is a tool, not a weapon.** Going deeper needs a weapon (below). Blasts hurt creatures too, so the terrain is still a weapon.
 - **No loot.** Creatures drop nothing; a reason to clear them comes from a job.
 - **Never saved.** They're placed fresh from the world's rules on every landing (`placeCreatures`, on the ground as carved, so in the same spots each time): what you burst grows back.
-- **Each planet's giant** lives in its deepest region. Mycel's is the **Mother Mycel**; Brine's is the **Leviathan**.
+- **Each planet's giant** lives in its deepest region. Mycel's is the **Mother Mycel**; Brine's is the **Leviathan**; Talus's is the **Rockslide** (see "Talus: Its fauna").
 
 **Built on Mycel (Oct 17, 2026)** (`logic/creatures.ts`, `logic/fauna.ts`, drawn by `scenes/game/faunaView.ts`, art in `art/creatures/`):
 
@@ -648,6 +650,115 @@ The drill and its materials lie in the sediment, within reach of Mycel's drill.
 
 A sea people, clever, who never had fire: under water nothing burns, so they never smelted metal. What they make is stone, shell, glass and woven fibre. They need copper, and they can't dig it out of the basalt. They're ray-shaped: a broad, flat body that flies through the water on two wide wings, with two long lobes in front that unroll into hands (real manta rays unroll lobes like these to feed, and have the biggest brains of any fish). Their eyes sit on the wing's leading edge. They talk in long, low songs, the same song the suit follows. Drawn in blue: never a danger. Their language is for later.
 
+## Talus (chapter 4, the full game)
+
+Decided with @Hayk on Oct 18, 2026:
+- **What the Aster saw on Talus is a ship of your own kind:** the old crew's, the search party sent after you (see "They came looking for you").
+- **Talus's people are water-keepers.** As the surface dried they went down to the last water under the mesas, and they guard every drop. They want what you can dig and pay in knowledge, as the Tidesingers do.
+- **The bigger tank comes from the Aster.** With their chart they draw a longer tank, and every trip to Talus needs it.
+
+Everything else below is Claude's draft, for @Hayk to change: the beats, the water-keepers' look and name, the world, the ores and the Mk 4 set.
+
+**Built Oct 18, 2026 (step 1 of the build plan, and the story to the search ship):**
+- **The world and its ground:** `content/planet4.ts` (then 320 × 180, the lander at column 40) and `logic/rocks.ts`, with mesas and their slopes of loose rock carved by `level/carve.ts` (`mesas`, `roll`).
+- **Fuels, ores and gear:** the fuels (`logic/worlds.ts`), the five ores (`logic/ore.ts`, drawn in `art/talusOres.ts`) and the Mk 4 set.
+- **Getting there:** the long tank (`logic/starship.ts`, its picture in `art/starship/systems.ts`), the trips and their cards, and the orbit and landing cards.
+- **The look:** the sky and mesa horizon (`art/talusSky.ts`) and loose rock as boulders over gravel (`art/talusGround.ts`).
+- **The search ship:** its picture (`art/searchShipArt.ts`, a sister of your own starship, cut off along the ground) and its site and card (`scenes/game/talusSites.ts`, `scenes/hud/talusCards.ts`).
+- **Tests:** `test/rocks.test.ts`, `test/talus.test.ts` and the Talus part of `test/world.test.ts`.
+- **Narration recorded** (Oct 18, 2026): the 12 new lines (the orbit, landing and search-ship cards, and nine trips), about 4 minutes, about 3,400 credits.
+
+**Built Oct 18, 2026, asked for by @Hayk: Talus much bigger than the moons, its flora and fauna, and a mechanic of its own (dust storms):**
+- **The world is 512 × 224**, twice the way round of Graphite (256) or Mycel (240): it's a planet, not a moon. New regions east of the search ship: the Skate Flats, the Barrel Garden, the Teeth and the Throne, the biggest mesa (`content/planet4.ts`, version 2; a save from the old 320-wide world is set aside as `.bak` and Talus starts fresh).
+- **Dust storms** (`logic/storm.ts`, drawn by `scenes/game/stormView.ts`), below.
+- **Flora:** barrel plants (`TILE.plant`, drawn with their tap roots and the living stones by `art/talusFlora.ts`), below.
+- **Fauna:** the boulder crab, the sand skate, the dew beetle (`logic/talusFauna.ts`) and the giant, the Rockslide (`logic/giants.ts`, which the Leviathan now shares), below. Their drawings are in `art/creatures/`.
+- **Tests:** `test/storm.test.ts`, `test/talusFauna.test.ts`, and the Talus part of `test/world.test.ts`.
+
+### The world
+
+Talus is the zone's warm edge (0.56 AU), smaller than Brine (0.45 masses), under thin carbon dioxide. It had seas once. The star's warmth lifts the water high into the air, where light splits it and the hydrogen leaks away into space; that is how Venus lost its oceans. What's left are white flats of salt and gypsum where the seas dried, red mesas between them, and water only deep under the mesas. It's red for Mars's reason: iron rusted by the water it used to have. Life holds on, sparse: pleated, water-storing plants, the shape cacti and euphorbias found separately on Earth.
+
+**Its new mechanic: loose rock.** A talus is the slope of broken rock that piles up under a cliff.
+- **Loose rock** (`TILE.loose`) is soil-hard and drawn as rounded boulders. Dig out what holds one up and it shakes for half a second, then drops straight down until it lands, and stays there. Whatever loose rock sat on top follows, so a whole column comes down one block after another, as in Mr. Driller and SteamWorld Dig.
+- **A falling rock hurts:** a heart once the shield is down, and it shatters on you. It **crushes any creature** it lands on, so a gap dug under a slope is a trap.
+- **Saved:** where loose rock lies now, one bit a tile (the world save's `rubble`), so a slide you set off stays where it fell.
+- **Later in the chapter:** blasting charges, the given gear, bring down whole slopes at once.
+
+**Its own mechanic: dust storms** (`logic/storm.ts`). In a thin, dry atmosphere over fine dust, the sun heats the ground, the air over it rises, and the wind it pulls in lifts dust, which soaks up more sunlight and warms the air further. On Mars that feedback grows storms the size of continents, and the 2018 one ended the Opportunity rover by starving its solar panels of light.
+- **They come in turns:** a calm of 2½ to 4 minutes (the first comes 70 to 110 s after landing), an 18-second warning (a brown wall of dust rising on the horizon it's coming from, and the suit saying so), the storm itself (32 to 46 s, gusting one way), then 6 s as it clears. The same storms come at the same times on every landing; nothing about them is saved.
+- **Out in it,** the wind shoves you downwind: 75 px/s on your feet (walking is 125, so you can still walk into it, slowly) and 150 px/s off them, so the jetpack can't make headway against it. Every 5 s or so in the open, the grit lands a hit (the shield, then a heart).
+- **Cover:** anything solid over your head (an overhang, a mesa's lip, a tunnel), or a wall within two tiles on the side the wind comes from (the lee of a boulder, a hole, the lander). Underground nothing happens; a few metres down, the storm is only a sound.
+- **While it blows the lander's solar panels make nothing,** as Opportunity's didn't.
+- **You see and hear it:** the air goes thick and rust-brown, the light dims, grit streaks past downwind, the sky and the far mesas go brown, and the wind roars up (the planet's wind bed, louder with the gusts). Dew beetles tuck in until it passes.
+
+**Its flora** (`art/talusFlora.ts`). Sunlight on a dry world: life saves every drop, so it's sparse, near the surface, and where it can reach water.
+- **Barrel plants** (`TILE.plant`): pleated columns one to three tiles high, a dusty sage with a waxy bloom on the ribs (it turns back the sun, as a glaucous cactus's does), spines in tufts, the top crowned with rust-red flowers. Cacti and euphorbias evolved this same shape separately on Earth: a leafless stem that swells to store water. Drilled, each segment gives a water; cut through, the segments above come down too. A few grow in the Wash and out on the flats, and stands of them in the Barrel Garden.
+- **Tap roots:** drawn running down through the ground under each plant, forking, towards the water far below, as a desert mesquite's do (some go down 50 m).
+- **Living stones:** pairs of fat leaves sunk in the crust near the barrels, the colour of the dust, each with a clear window on top to let the light in. Earth's lithops pass for pebbles the same way. Drawn only, not dug.
+
+**Its fauna** (`logic/talusFauna.ts`, `logic/giants.ts`). None round the lander:
+
+| Creature | Behaviour | Where | What it does |
+| --- | --- | --- | --- |
+| Boulder crab | Mimic | On the loose-rock slopes under every mesa | Talus's crab-form, its shell a hematite-armoured boulder: still, it passes for one of the rocks round it. Come within 1.4 tiles and it rears up (a red "!"), pinches what's at its claws (a hit), and scuttles off for 2 s; it rests 1.5 s and settles into a boulder again. Its shell takes two shots: the first sends it running. A falling rock crushes it. Leaves hematite |
+| Sand skate | Burrower | Under the crust of the Skate Flats, the Barrel Garden and the far flats | A flat, ray-shaped animal cruising just under the salt crust, a ripple and two eye-bumps showing. It feels footsteps: walk within 3 tiles above it and it darts under you (0.6 s, the sand rippling), then strikes up out of the ground 1.6 tiles, a hit and a toss. It never feels a flyer, so the jetpack crosses skate ground safely. Only out of the ground can it be shot (one shot). Leaves water: a dry world's animals keep it in their guts |
+| Dew beetle | Harmless walker, blue ink | Among the barrel plants | Long legs hold it off the hot ground; it drinks the night frost that settles on the bumps of its back, as Namib fog-basking beetles drink fog. Shot, it tucks in for 3 s; it tucks in all through a dust storm |
+| The Rockslide | Giant | Asleep at the west end of a long cave 70–77 m under the Throne, in stone the Mk 4 drill opens; an opal bed at the east end | A crab the size of a hill, its back a heap of boulders. It can't be hurt. Noise wakes it as it does the Leviathan (drilling within 9 tiles, a blast within 16, a pulse, standing right by it); awake it scuttles its cave for 10 s, and every 1.3 s it shakes three rocks down from the roof within 8 tiles of it, one over you if you're in reach. They land as loose rock |
+
+**Its fuels.**
+- **Air and both tanks: gypsum,** baked for its water. Gypsum is a fifth water by weight, bound into the crystal, and heat drives it out; real plans for Mars bases count on gypsum and similar minerals for water. A little liquid water lies deep under the mesas.
+- **The cell: native sulfur,** the cathode of a lithium–sulfur cell. Real sulfur beds lie in gypsum, where microbes turned the sulfate into sulfur (Sicily's, and the Gulf Coast's).
+- Water is scarce, so filling the ship's tank for the trip home (28 units) is real work.
+
+**Its ores** (ids 18–22), with native copper:
+
+| Ore | What it is | Real fact |
+| --- | --- | --- |
+| **Hematite** (the signature, "blood ore") | Iron oxide, as small round spherules | Opportunity found hematite spherules ("blueberries") on Mars in 2004. They grew in groundwater, the first sure sign Mars had been wet |
+| **Gypsum** | Desert-rose rosettes in the flats; clear selenite blades deeper down | The Romans glazed windows with sheets of selenite (*lapis specularis*) |
+| **Sulfur** | Native sulfur, yellow crystals in the gypsum | Microbes in buried gypsum make it |
+| **Nitre** | Saltpetre, white crusts in dry ground | Chile's Atacama nitrate beds formed because it almost never rains there. Nitre and sulfur make black powder (the blasting charges) |
+| **Opal** | Silica laid down by water in dry ground, flashing colour | Australia's opal formed as an inland sea dried; orbiters have found opal on Mars |
+
+**The Mk 4 set:**
+
+| Piece | Materials | What it's made of |
+| --- | --- | --- |
+| Cell | 5 sulfur, 3 copper | A lithium–sulfur cell: a sulfur cathode on copper foil |
+| Pack | 5 hematite, 2 opal | An iron frame padded with silica foam |
+| Drill | 6 hematite, 3 copper | A steel bit, iron from hematite, with copper windings |
+| Helmet | 4 gypsum, 2 opal | A selenite visor |
+| Jetpack | 4 hematite, 3 opal | A silica-lined nozzle in an iron housing; real rocket nozzles are lined with silica phenolic |
+| Suit | 5 gypsum, 3 hematite | Iron mail over a cloth lined with gypsum, which sheds heat as its water boils off, as plasterboard does in a fire |
+
+### Getting there
+
+The four Aster draw the **long tank** (`longTank`) with their chart: a longer jar of the same pitch fibre with a collar of pyrite iron, printed from Mycel's ores (12 lignite, 6 amber, 6 pyrite) and fitted aboard. The ship then holds 32. The trips:
+- **Graphite or Mycel ↔ Talus:** 28 each way.
+- **Brine ↔ Talus:** 22.
+
+Neither fits the Aster tank's 20.
+
+### The story (draft)
+
+1. **Fit the long tank** (goal `talus`), fill it and set course. The orbit card (beat `talusOrbit`): a rust-red world, white flats, mesas. On a mesa's flank the telescope picks out cobalt and enamel: the guild's colours. A ship of your own kind.
+2. **Land** on the salt flat (beat `talusLanded`). The first-landing card: thin carbon dioxide and dust. Water is locked in the gypsum, sulfur feeds the cell, and the rock is loose: dig under it and it comes down.
+3. **The search ship** (goal `searchShip`, beat `shipFound`). It lies at the foot of the big mesa east of the lander, half buried by a rockslide, its hatch under loose rock. Digging it free is the first lesson in what falls. Inside, its recorder holds logs in **your own language**, the first words you've been able to read since the wormhole. A search party, sent through after your ship. Their first log is dated years before you fell.
+4. **The drumming** (goal `drum`). The last log says they went down "to the water", with the people who live under the mesa. Those people talk by drumming on rock, as mole rats do, and sound runs through rock far better than through thin air. Standing on bare rock underground, the suit feels the drumming as bars, hot and cold; on the surface it feels nothing. That's the third way of following something: the receiver's radio, Brine's song in water, and now drums in rock.
+5. **The water-keepers** (beat `keepersMet`). They live in a cave by an underground lake under the mesa. Their last well is failing because the water keeps sinking.
+6. **Their well** (goal `well`). They ask for a dig, not ore. Under their cistern, below a bed of clay, lies water under pressure. Bore down through the clay into it, and the water rises up the bore by itself and fills the cistern: an artesian well, named for Artois, where the French bored them. The clay is soft, so Brine's drill can do it.
+7. **Their pay** (beat `wellDug`): how they cut stone (the **Drill Mk 4** design), and what they remember of the search crew.
+
+**Still to design:** the rest of the Mk 4 designs (probably the search crew's broken gear along the gullies), the blasting charges, what became of the search crew, what the Rockslide's opal bed is for in the story, the first piece of the pulsar map, and the hook to chapter 5.
+
+### Build plan
+
+1. ~~**The ground:** loose rock, falling and saved; Talus's world, ores and fuels; the long tank and the trips; the Mk 4 set~~ (done Oct 18, 2026, with the search ship).
+2. **The story to the water-keepers:** the orbit and landing cards, the search ship and its logs, the drumming, the keepers, the artesian well (an extension of `logic/water.ts`), and the Mk 4 drill.
+3. **The art:** sky and mesas, ground and ores, the guild's search ship, the water-keepers.
+4. **The rest:** the remaining designs, the charges and the ending (~~the creatures, the Rockslide~~ built Oct 18, 2026, with the dust storms and the flora). Each new card's narration is recorded once its words are settled.
+
 ## Narration
 
 Decided with @Hayk on Oct 18, 2026: the story is heard, not read on cards that stop play. The narrator is ElevenLabs' **George** (voice `JBFqnCBsd6RMkjVDRZzb`, model eleven_v4), a warm British storyteller, picked from three auditions (George, Mark from the shorts, Cherine).
@@ -656,14 +767,14 @@ Decided with @Hayk on Oct 18, 2026: the story is heard, not read on cards that s
 
 - **Story moments in the world don't pause.** Meeting a Lamplighter, the Aster lander, the camp, the reef, the craft and the crystal are read aloud while you keep playing. A strip at the foot of the screen names the card and shows its subtitles (at most two lines of about 42 characters, the BBC's guideline), timed to the voice, with ❚❚ (pause), » (skip) and **Read**, which opens the full card with its pictures and holds the world while it's open.
 - **Nothing you need is only in the voice:** the goal plate already says what to bring.
-- **Still on cards:** the landing cards (Graphite's opening, each world's first landing), the chapter-end card ("Four again") and decisions (the demo's end, "Unlock the full game"). On the ship and star-map pages, where there's nothing to play, the card shows as before; the voice starts with it and carries on in the strip once it's closed.
+- **Still on cards:** the landing cards (Graphite's opening, each world's first landing), the first lift-off off the grey moon (later lift-offs, from any world, go straight up with no card), the chapter-end card ("Four again") and decisions (the demo's end, "Unlock the full game"). On the ship and star-map pages, where there's nothing to play, the card shows as before; the voice starts with it and carries on in the strip once it's closed.
 - **One line at a time,** queued; the same line twice is played once. A speaker's own voice (the Lamplighters' sound trace) plays first, then the narrator. The ambience and effects dip to 40% under the voice (`SoundBoard.duck`).
 - **Muted, or narration off** (the quotation-marks button beside the mute button on the ship and star-map pages, remembered with the sound setting): the story shows on cards the world waits on, as before, and no recording is fetched. A line already in the strip, or waiting for it, moves onto its card. Switched back on, the next lines are fetched at once.
 - **The journal** (`narration/journal.ts`) keeps every line heard, newest last, in the browser's storage, for a later page to replay or reread them.
 
 **The recordings** (`games/inkmine/narration/<line>.mp3`, mono 64 kbps, loudness-normalized): each story card names its line, an id like `talk-meet` or `trip-mycel-brine`, so its words can be touched up without losing the voice. A card with no recording, or no line, falls back to its card; in development the game warns about it in the console. `narration/lines.json` keeps, for each recording, the card's words when it was recorded, the script the voice read, the voice, the model and when. `test/narration.test.ts` builds every narrated card (every trip from the trip table, not a hand-made list) and fails while a line is unrecorded, a recording is left over, or a card's words have changed since its recording. Spacing, punctuation and capitals don't count, so a comma moved needs nothing.
 
-To record: run `NARRATION_DUMP=1 npx vitest run test/narration.test.ts`, which brings `lines.json` up to date and lists each line still to record with its script (`recorded: null`). The script is the words tagged `[warm, storytelling]`, with "Mk 3" said as "Mark 3" (`narration/script.ts`). Generate each in George's voice, save it as `<line>.mp3` after `ffmpeg -ac 1 -af loudnorm=I=-17:TP=-1.5:LRA=11 -b:a 64k`, then run the dump again to mark it recorded. To record a line again after its words change, delete its mp3 first. **Adding or removing a mission:**
+To record: run `NARRATION_DUMP=1 npx vitest run test/narration.test.ts`, which brings `lines.json` up to date and lists each line still to record with its script (`recorded: null`). The script is the words tagged `[warm, storytelling]`, with "Mk 3" said as "Mark 3" (`narration/script.ts`). Generate each in George's voice, save it as `<line>.mp3` after `ffmpeg -ac 1 -af loudnorm=I=-17:TP=-1.5:LRA=11 -ar 44100 -b:a 64k`, then run the dump again to mark it recorded. To record a line again after its words change, delete its mp3 first. **Adding or removing a mission:**
 - a new card needs a `line` id and a place in the test's `allLines()`;
 - a removed card leaves its mp3 behind, which the test names for deleting.
 
@@ -785,6 +896,8 @@ The ladder rack is gone (ladders can't be placed), and recall is free (it costs 
 | Inventory and pause (aboard at the lander) | L, Esc or P / Start; the same keys close it | Bag button (says Aboard at the lander) |
 
 Pushing to dig, talk and read keeps touch play to one stick and two buttons (built Oct 17, 2026, `scenes/hud/touchPad.ts`): the stick appears wherever the left thumb lands in the lower left; Jump and Bag sit bottom right. They show on a touch screen and hide once a key is pressed.
+
+**On a phone** (checked Oct 18, 2026, both ways up; `logic/screenLayout.ts`). The game plays held either way, as InkFish and InkCrab do; the site asks for full screen and landscape when play starts (Android), and the inventory header has a ⤢ button to get full screen back after a swipe leaves it (where the browser allows it: not on an iPhone). A phone on its side is only 560 layout units tall, shorter than several story cards (the end of chapter 3's is 689), so a card too tall for the screen first widens (up to 900) so its text takes fewer lines, then shrinks to fit: its button is always on screen. The narrator's strip keeps clear of the touch buttons: centred between them on a wide screen, slid left of them on a small one, raised over them on a phone held upright.
 
 ## Field guide
 

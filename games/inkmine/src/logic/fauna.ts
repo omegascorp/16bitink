@@ -1,11 +1,14 @@
-import type { Body, Box } from './body';
+import type { Body } from './body';
 import { alive, CREATURE, SPOILS, type Creature } from './creatures';
 import type { OreKey } from './ore';
 import type { MineEvent } from './mine';
 import { newShot, PULSE, stepShot, type Shot } from './pulse';
-import { foldX, isSolid, ringDelta, TILE, tileAt, type Terrain, type TilePos } from './terrain';
+import { foldX, isSolid, ringDelta, type Terrain, type TilePos } from './terrain';
 import { bodyOf, clear, distance, edgeDistance, overlaps, reachOf } from './faunaShape';
-import { jelly, lamprey, leviathan, noiseAt } from './seaFauna';
+import { leviathan, noiseAt, rockslide, sleeps } from './giants';
+import { jelly, lamprey } from './seaFauna';
+import { beetle, fleeFrom, rockcrab, skate } from './talusFauna';
+import { grazer } from './walkers';
 
 export { bodyOf, reachOf } from './faunaShape';
 
@@ -37,6 +40,10 @@ export interface FaunaHost {
   push(vx: number, vy: number): void;
   /** Whether a tile is under water (none is on a dry world). */
   wet?(x: number, y: number): boolean;
+  /** Whether a dust storm is blowing (none on a world without them). */
+  readonly storming?: boolean;
+  /** The Rockslide shook the roof: `rocks` rocks to come down within `spread` tiles of (x, y) px. */
+  quake?(x: number, y: number, spread: number, rocks: number): void;
 }
 
 /** What the controls ask of the fauna this step. */
@@ -55,6 +62,11 @@ export interface Spoil {
 }
 
 let nextGlob = 1;
+
+/** The giants: nothing hurts them, and blasts and rocks don't touch them. */
+const isGiant = (c: Creature): boolean => c.kind === 'mother' || sleeps(c);
+/** Harmless crawlers tuck in (or curl up) when hit, for this long, and come to no harm. */
+const TUCK: Partial<Record<Creature['kind'], number>> = { grazer: CREATURE.grazer.curl, crab: CREATURE.crab.tuck, beetle: CREATURE.beetle.tuck };
 
 /**
  * The creatures of a dig site, the clots they spit and the pulses you
@@ -101,7 +113,7 @@ export class Fauna {
     const x = c.kind === 'lamprey' ? c.x + c.facing * tile * 0.5 : c.x;
     const y = c.kind === 'tendril' ? c.y + tile * 0.6 : c.kind === 'lamprey' || c.kind === 'jelly' ? c.y : c.y - tile * 0.4;
     ores.forEach((ore, j) => this.spoils.push({ ore, x: x + (j - (ores.length - 1) / 2) * tile * 0.4, y }));
-    return { ...c, hp: 0, state: c.kind === 'puffball' || c.kind === 'jelly' ? 'burst' : 'dead', timer: 0.6 };
+    return { ...c, hp: 0, reach: 0, state: c.kind === 'puffball' || c.kind === 'jelly' ? 'burst' : 'dead', timer: 0.6 };
   }
 
   /** A blast over `area` bursts what it reaches and curls up grazers and crabs; the giants don't notice (but a sleeping Leviathan hears it). */
@@ -110,19 +122,42 @@ export class Fauna {
     const at = area[0];
     if (at && terrain) this.noise((at[0] + 0.5) * tile, (at[1] + 0.5) * tile, 'blast', terrain, tile);
     this.creatures = this.creatures.map((c) => {
-      if (!alive(c) || c.kind === 'mother' || c.kind === 'leviathan') return c;
-      const row = c.kind === 'tendril' ? c.y + 1 : c.kind === 'jelly' || c.kind === 'lamprey' ? c.y : c.y - 1;
-      const col = c.kind === 'lamprey' ? c.x + c.facing : c.x;
+      if (!alive(c) || isGiant(c)) return c;
+      const [col, row] = this.cellOf(c);
       if (!hit.has(`${Math.floor(col / tile)},${Math.floor(row / tile)}`)) return c;
-      if (c.kind === 'grazer' || c.kind === 'crab') return { ...c, state: 'curled', timer: c.kind === 'crab' ? CREATURE.crab.tuck : CREATURE.grazer.curl };
+      const tuck = TUCK[c.kind];
+      if (tuck) return { ...c, state: 'curled', timer: tuck };
       if (c.id === this.held) this.held = null;
       return this.kill(c, tile);
     });
   }
 
-  /** A sound at (x, y) px (a tile drilled, a blast): a sleeping Leviathan within earshot hears it. */
+  /**
+   * A falling rock coming down on `area` crushes whatever is there,
+   * crabs and grazers too (spec, "Talus"); the giants don't notice.
+   */
+  crush(area: readonly TilePos[], tile: number): void {
+    const hit = new Set(area.map(([x, y]) => `${x},${y}`));
+    this.creatures = this.creatures.map((c) => {
+      if (!alive(c) || isGiant(c)) return c;
+      const [col, row] = this.cellOf(c);
+      if (!hit.has(`${Math.floor(col / tile)},${Math.floor(row / tile)}`)) return c;
+      if (c.id === this.held) this.held = null;
+      return this.kill(c, tile);
+    });
+  }
+
+  /** The point of a creature's body a blast or a rock is weighed against, px: a tendril's hangs below its knot, a rasp eel's lies out of its burrow, a walker's above its feet. */
+  private cellOf(c: Creature): readonly [number, number] {
+    // A sand skate lies in the crust, under its back.
+    const row = c.kind === 'tendril' || c.kind === 'skate' ? c.y + 1 : c.kind === 'jelly' || c.kind === 'lamprey' ? c.y : c.y - 1;
+    const col = c.kind === 'lamprey' ? c.x + c.facing : c.x;
+    return [col, row];
+  }
+
+  /** A sound at (x, y) px (a tile drilled, a blast): a sleeping giant within earshot hears it. */
   noise(x: number, y: number, kind: 'drill' | 'blast', terrain: Terrain, tile: number): void {
-    if (!this.creatures.some((c) => c.kind === 'leviathan')) return;
+    if (!this.creatures.some(sleeps)) return;
     this.creatures = this.creatures.map((c) => noiseAt(c, x, y, kind, terrain, tile));
   }
 
@@ -152,10 +187,12 @@ export class Fauna {
     if (i < 0) return false;
     const c = this.creatures[i]!;
     let after: Creature = c;
-    if (c.kind === 'grazer') after = { ...c, state: 'curled', timer: CREATURE.grazer.curl };
-    else if (c.kind === 'crab') after = { ...c, state: 'curled', timer: CREATURE.crab.tuck };
-    // The Leviathan takes it without a mark, but it doesn't sleep through it.
-    else if (c.kind === 'leviathan') after = noiseAt(c, s.x, s.y, 'shot', host.terrain, host.tile);
+    const tuck = TUCK[c.kind];
+    if (tuck) after = { ...c, state: 'curled', timer: tuck };
+    // A sleeping giant takes it without a mark, but it doesn't sleep through it.
+    else if (sleeps(c)) after = noiseAt(c, s.x, s.y, 'shot', host.terrain, host.tile);
+    // A boulder crab's shell turns the first: it runs for it.
+    else if (c.kind === 'rockcrab') after = c.hp > 1 ? fleeFrom({ ...c, hp: c.hp - 1 }, s.x, host) : this.kill(c, host.tile);
     else if (c.kind !== 'mother') {
       const hp = c.hp - 1;
       if (c.id === this.held && (hp <= 0 || c.kind === 'tendril')) this.release(events);
@@ -176,6 +213,10 @@ export class Fauna {
     if (c.kind === 'jelly') return jelly(c, dt, host, events);
     if (c.kind === 'lamprey') return lamprey(c, dt, host, events);
     if (c.kind === 'leviathan') return leviathan(c, dt, host, events);
+    if (c.kind === 'rockcrab') return rockcrab(c, dt, host, events);
+    if (c.kind === 'skate') return skate(c, dt, host, events);
+    if (c.kind === 'beetle') return beetle(c, dt, host);
+    if (c.kind === 'rockslide') return rockslide(c, dt, host, events);
     return mother(c, dt, host, events);
   }
 
@@ -267,40 +308,6 @@ export class Fauna {
   }
 }
 
-/**
- * Crawls along the ground, stepping up a tile or down one, turning before
- * a wall or a drop it can't take (and now and then for no reason); shot,
- * it curls up a while. It falls if the ground goes from under it. A
- * grazer, or a crab (its tucking in is the grazer's curling up).
- */
-function grazer(c: Creature, dt: number, host: FaunaHost): Creature {
-  const t = host.terrain;
-  const T = host.tile;
-  const timer = c.timer - dt;
-  if (c.state === 'curled') return timer > 0 ? { ...c, timer } : { ...c, state: 'walk', timer: 4 };
-  // Caps are its food, not its ground: it crawls in among them.
-  const isSolid = (x: number, y: number): boolean => firm(t, x, y);
-  const col = Math.floor(c.x / T);
-  const row = Math.floor((c.y - 1) / T);
-  // Nothing under it: it drops, a tile line at a time, so it can't fall through one.
-  if (!isSolid(col, row + 1)) return { ...c, y: Math.min(c.y + 300 * dt, (Math.floor(c.y / T) + 1) * T) };
-  const turned = { ...c, facing: c.facing === 1 ? -1 : 1, timer: 5 + (c.id % 4) } as const;
-  if (timer <= 0) return turned;
-  // How a column's ground stands against this one's: level, a step up, a step down, or no way on.
-  const level = (ax: number): number | null => {
-    if (!isSolid(ax, row) && isSolid(ax, row + 1)) return 0;
-    if (isSolid(ax, row) && !isSolid(ax, row - 1) && !isSolid(col, row - 1)) return -1;
-    if (!isSolid(ax, row) && !isSolid(ax, row + 1) && isSolid(ax, row + 2)) return 1;
-    return null;
-  };
-  const ahead = Math.floor((c.x + c.facing * T * 0.45) / T);
-  if (ahead !== col && level(ahead) === null) return turned;
-  const x = c.x + c.facing * CREATURE[c.kind === 'crab' ? 'crab' : 'grazer'].speed * T * dt;
-  const next = Math.floor(x / T);
-  const y = next !== col ? c.y + (level(next) ?? 0) * T : c.y;
-  return { ...c, x: foldX(t, x, T), y, timer };
-}
-
 /** Beats: each beat a wave of spores (air lost within its reach); touching her is a hit, and throws you off. */
 function mother(c: Creature, dt: number, host: FaunaHost, events: MineEvent[]): Creature {
   const M = CREATURE.mother;
@@ -318,9 +325,4 @@ function mother(c: Creature, dt: number, host: FaunaHost, events: MineEvent[]): 
     host.push((dx < 0 ? -1 : 1) * M.push, -220);
   }
   return { ...c, timer };
-}
-
-/** Ground a grazer walks on: anything solid but a cap. */
-function firm(t: Terrain, x: number, y: number): boolean {
-  return isSolid(t, x, y) && tileAt(t, x, y) !== TILE.cap;
 }

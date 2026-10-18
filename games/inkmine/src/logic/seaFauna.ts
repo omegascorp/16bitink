@@ -1,13 +1,14 @@
 import { CREATURE, type Creature } from './creatures';
 import type { FaunaHost } from './fauna';
-import { bodyOf, clear, edgeDistance, lungeOf, overlaps } from './faunaShape';
+import { bodyOf, clear, lungeOf, overlaps } from './faunaShape';
 import type { MineEvent } from './mine';
-import { foldX, isSolid, ringDelta, type Terrain } from './terrain';
+import { foldX, isSolid, ringDelta } from './terrain';
 
 /**
  * Brine's creatures that live in the water (creatures.ts): the bubble
- * jelly, the rasp eel and the Leviathan. Pure steps, as fauna.ts's are: each
- * takes a creature and returns it as it is a moment later.
+ * jelly and the rasp eel (the Leviathan, a giant, is in giants.ts). Pure
+ * steps, as fauna.ts's are: each takes a creature and returns it as it is a
+ * moment later.
  */
 
 /** Whether a tile is under water, as the host sees it (nothing is on a dry world). */
@@ -101,76 +102,4 @@ export function lamprey(c: Creature, dt: number, host: FaunaHost, events: MineEv
     return reach > 0 ? { ...c, reach } : { ...c, reach: 0, state: 'rest', timer: L.rest };
   }
   return timer > 0 ? { ...c, timer } : { ...c, state: 'idle', timer: 0 };
-}
-
-/**
- * Asleep on its cave floor, its noise falling back as things go quiet;
- * swimming right up to it stirs it, and touching it wakes it at once. At a
- * full measure of noise it wakes (a long stir first), then sweeps its cave
- * back and forth, turning at rock and at the end of its range; its body is
- * a hit and throws you. Then it swims home and sleeps again.
- */
-export function leviathan(c: Creature, dt: number, host: FaunaHost, events: MineEvent[]): Creature {
-  const V = CREATURE.leviathan;
-  const T = host.tile;
-  const t = host.terrain;
-  const body = bodyOf(c, t, T);
-  const touching = overlaps(host, host.player, body);
-  const timer = c.timer - dt;
-  if (c.state === 'idle') {
-    const close = edgeDistance(host, body) < V.close * T;
-    const noise = touching ? 1 : Math.max(0, (c.noise ?? 0) + (close ? V.near : -V.decay) * dt);
-    if (noise >= 1) {
-      events.push({ kind: 'leviathan', now: 'wake' });
-      return { ...c, noise: 1, state: 'warn', timer: V.warn };
-    }
-    // Its `reach` marks that it has stirred in this sleep, so it's said once (and again after it has settled).
-    if (noise >= V.stir && c.reach === 0) {
-      events.push({ kind: 'leviathan', now: 'stir' });
-      return { ...c, noise, reach: 1 };
-    }
-    return { ...c, noise, reach: noise < V.stir / 2 ? 0 : c.reach };
-  }
-  if (touching) {
-    host.hurt();
-    const dx = ringDelta(t, c.x, host.player.x + host.player.w / 2, T);
-    host.push((dx < 0 ? -1 : 1) * V.push, -200);
-  }
-  if (c.state === 'warn') return timer > 0 ? { ...c, timer } : { ...c, state: 'walk', timer: V.awake };
-  if (c.state === 'walk') {
-    const swept = sweep(c, V.speed * T * dt, t, T);
-    return timer > 0 ? { ...swept, timer } : { ...swept, state: 'rest', timer: 0 };
-  }
-  // Home again, to sleep.
-  const home = c.home ?? c.x;
-  const left = ringDelta(t, c.x, home, T);
-  if (Math.abs(left) <= V.speed * T * dt) {
-    events.push({ kind: 'leviathan', now: 'sleep' });
-    return { ...c, x: home, state: 'idle', noise: 0, timer: 0, reach: 0 };
-  }
-  return { ...c, x: foldX(t, c.x + Math.sign(left) * V.speed * T * dt, T), facing: left < 0 ? -1 : 1 };
-}
-
-/** Swims `step` px the way it faces, turning before rock at its middle or past its range from home. */
-function sweep(c: Creature, step: number, t: Terrain, tile: number): Creature {
-  const V = CREATURE.leviathan;
-  const nose = c.x + c.facing * ((V.w * tile) / 2 + step);
-  const mid = Math.floor((c.y - (V.h * tile) / 2) / tile);
-  const past = Math.abs(ringDelta(t, c.home ?? c.x, c.x + c.facing * step, tile)) > V.range * tile;
-  if (past || isSolid(t, Math.floor(foldX(t, nose, tile) / tile), mid)) return { ...c, facing: c.facing === 1 ? -1 : 1 };
-  return { ...c, x: foldX(t, c.x + c.facing * step, tile) };
-}
-
-/** A sound at (x, y) px: a drilled tile or a blast. A sleeping Leviathan in earshot takes it as noise. */
-export function noiseAt(c: Creature, x: number, y: number, kind: 'drill' | 'blast' | 'shot', t: Terrain, tile: number): Creature {
-  if (c.kind !== 'leviathan' || c.state !== 'idle') return c;
-  const V = CREATURE.leviathan;
-  const body = bodyOf(c, t, tile);
-  const dx = Math.max(0, Math.abs(ringDelta(t, body.x + body.w / 2, x, tile)) - body.w / 2);
-  const dy = Math.max(0, Math.abs(y - (body.y + body.h / 2)) - body.h / 2);
-  const reach = (kind === 'blast' ? V.hearBlast : V.hear) * tile;
-  if (kind !== 'shot' && Math.hypot(dx, dy) > reach) return c;
-  const add = kind === 'drill' ? V.drill : kind === 'blast' ? V.blast : V.shot;
-  // It wakes on its own next step (which says so), not here.
-  return { ...c, noise: Math.min(1.5, (c.noise ?? 0) + add) };
 }

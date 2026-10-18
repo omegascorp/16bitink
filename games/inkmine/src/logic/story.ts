@@ -21,6 +21,8 @@ export const BEATS = [
   'brineOrbit', 'brineLanded', 'craftFound', 'reefMet', 'reefPaid', 'crewMet', 'craftRaised', 'craftMended',
   // The end of chapter 3: the craft's drive crystal, by the Leviathan; the craft flies home; the four Aster together again on Mycel.
   'crystalFound', 'craftFlown', 'asterReunion',
+  // Chapter 4, Talus (spec, "Talus: The story"): in orbit, landed, the search ship found.
+  'talusOrbit', 'talusLanded', 'shipFound',
 ] as const;
 export type Beat = (typeof BEATS)[number];
 
@@ -34,7 +36,7 @@ export const OUTPOST = { col: 180, worldCols: 256, domes: 5 } as const;
 export const TRADE: Hold = { silver: 10 };
 
 /** The beat that says a world's first-landing card was read (Graphite's opening is `started`). */
-export const ARRIVAL_BEAT: Readonly<Partial<Record<string, Beat>>> = { mycel: 'mycelLanded', brine: 'brineLanded' };
+export const ARRIVAL_BEAT: Readonly<Partial<Record<string, Beat>>> = { mycel: 'mycelLanded', brine: 'brineLanded', talus: 'talusLanded' };
 
 export const hasBeat = (p: Pick<Profile, 'beats'>, b: Beat): boolean => p.beats.includes(b);
 
@@ -237,6 +239,14 @@ export function craftVisit(p: Profile, bag: Inventory): CraftVisit {
   const took = takeHoldFrom(bag, HEART);
   if (holdEntries(took.short).length) return { profile: p, bag, says: 'heart' };
   return { profile: withBeat(p, 'craftMended'), bag: took.inv, says: 'mended' };
+}
+
+/**
+ * The search party's ship on Talus (spec, "Talus: The story"): reaching its
+ * hatch, dug free of the loose rock over it, finds it. Null once it's found.
+ */
+export function searchShipVisit(p: Profile): Profile | null {
+  return hasBeat(p, 'shipFound') ? null : withBeat(p, 'shipFound');
 }
 
 /**

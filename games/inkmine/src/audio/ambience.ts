@@ -9,6 +9,9 @@ const DEPTH_TAU = 1.2;
 const DETUNE = 0.004;
 /** How far the pad's low-pass wanders either way, as a share of its cutoff. */
 const FILTER_SWAY = 0.3;
+/** A full storm's wind is this many times the calm's more, and it rises or falls over about this many seconds. */
+const GUST_RISE = 7;
+const GUST_TAU = 0.6;
 const SURFACE: Shade = { level: 1, cutoff: 1, wind: 1 };
 
 /** Everything sounding for one mood, with the knobs depth turns. */
@@ -78,6 +81,8 @@ function windBed(ctx: AudioContext, level: number, into: AudioNode, sources: Aud
 export class Ambience {
   private layer: Layer | null = null;
   private shade: Shade = SURFACE;
+  /** How hard a dust storm is blowing, 0..1: the wind rises with it (Talus). */
+  private gust = 0;
   private bellTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** `dry` goes straight to the speakers; `wet` through the echo, for the far-off tones' long tails. */
@@ -106,7 +111,22 @@ export class Ambience {
     l.pad.gain.setTargetAtTime(l.spec.level * next.level, t, DEPTH_TAU);
     l.filter.frequency.setTargetAtTime(l.spec.cutoff * next.cutoff, t, DEPTH_TAU);
     l.filterSway.gain.setTargetAtTime(l.spec.cutoff * next.cutoff * FILTER_SWAY, t, DEPTH_TAU);
-    l.wind?.gain.setTargetAtTime(l.spec.wind * next.wind, t, DEPTH_TAU);
+    l.wind?.gain.setTargetAtTime(this.windLevel(l.spec.wind), t, DEPTH_TAU);
+  }
+
+  /** How hard a dust storm blows, 0..1: the planet's wind roars up with it, hushed by depth as ever. */
+  setGust(gust: number): void {
+    const k = Math.round(gust * 20) / 20;
+    if (k === this.gust) return;
+    this.gust = k;
+    const l = this.layer;
+    if (!l || l.mood !== 'planet') return;
+    l.wind?.gain.setTargetAtTime(this.windLevel(l.spec.wind), this.ctx.currentTime, GUST_TAU);
+  }
+
+  /** The wind bed's gain: the mood's, hushed by depth, raised by a storm. */
+  private windLevel(wind: number): number {
+    return wind * this.shade.wind * (1 + this.gust * GUST_RISE);
   }
 
   /** Stops everything at once (the context is going away). */

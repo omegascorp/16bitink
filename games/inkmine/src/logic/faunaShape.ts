@@ -31,12 +31,19 @@ export function bodyOf(c: Creature, t: Terrain, tile: number): Box {
   if (c.kind === 'grazer') return { x: c.x - 22, y: c.y - 24, w: 44, h: 24 };
   if (c.kind === 'crab') return { x: c.x - 17, y: c.y - 20, w: 34, h: 20 };
   if (c.kind === 'jelly') return { x: c.x - 12, y: c.y - 14, w: 24, h: 30 };
+  if (c.kind === 'rockcrab') return { x: c.x - 15, y: c.y - 22, w: 30, h: 22 };
+  if (c.kind === 'beetle') return { x: c.x - 12, y: c.y - 15, w: 24, h: 15 };
+  if (c.kind === 'skate') {
+    // Under the crust there's nothing to hit; struck up, its body stands out of the ground.
+    const up = c.reach * CREATURE.skate.reach * tile;
+    return up < tile * 0.2 ? { x: c.x, y: c.y, w: 0, h: 0 } : { x: c.x - 11, y: c.y - up, w: 22, h: up };
+  }
   if (c.kind === 'lamprey') {
     // From its mouth out to its head; a little of its head shows even tucked in.
     const out = Math.max(14, c.reach * lungeOf(t, c, tile));
     return { x: c.facing === 1 ? c.x : c.x - out, y: c.y - 8, w: out, h: 16 };
   }
-  const G = c.kind === 'leviathan' ? CREATURE.leviathan : CREATURE.mother;
+  const G = CREATURE[c.kind === 'leviathan' || c.kind === 'rockslide' ? c.kind : 'mother'];
   return { x: c.x - (G.w * tile) / 2, y: c.y - G.h * tile, w: G.w * tile, h: G.h * tile };
 }
 

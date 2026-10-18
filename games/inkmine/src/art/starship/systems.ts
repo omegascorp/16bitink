@@ -457,12 +457,22 @@ function jump(d: Draw): void {
   }
 }
 
-/** The Aster tank's jar: lying along x, its axis at JAR.y, a narrow neck out of its right end. */
-const JAR = { x0: -12.4, x1: 9.6, y: -1.4, r: 6.6, neck: 3 } as const;
-const JAR_BODY = capsule(pt(JAR.x0, JAR.y), pt(JAR.x1, JAR.y), JAR.r * 2, JAR.r * 2);
-const JAR_NECK = roundRect(JAR.x1 + JAR.r - 1.4, JAR.y - JAR.neck, JAR.x1 + JAR.r + 3, JAR.y + JAR.neck, 1);
-/** Where the cradle's saddles stand under the jar. */
-const SADDLES = [-7.4, 5.4] as const;
+/** An Aster jar: lying along x, its axis at `y`, a narrow neck out of its right end; the cradle's saddles under it at `saddles`, its ribs at `ribs`. */
+interface Jar {
+  readonly x0: number;
+  readonly x1: number;
+  readonly y: number;
+  readonly r: number;
+  readonly neck: number;
+  readonly saddles: readonly number[];
+  readonly ribs: readonly number[];
+}
+/** The Aster tank's jar (chapter 3). */
+const JAR: Jar = { x0: -12.4, x1: 9.6, y: -1.4, r: 6.6, neck: 3, saddles: [-7.4, 5.4], ribs: [-14.6, -4.4, 3.6, 9.2] };
+/** Their long tank's (chapter 4): longer and slimmer, the same fibre. */
+const LONG_JAR: Jar = { x0: -14.2, x1: 11.4, y: -1.4, r: 5.2, neck: 2.4, saddles: [-8.6, 6.6], ribs: [-10.4, -2.6, 5.2] };
+const jarBody = (j: Jar): Pt[] => capsule(pt(j.x0, j.y), pt(j.x1, j.y), j.r * 2, j.r * 2);
+const jarNeck = (j: Jar): Pt[] => roundRect(j.x1 + j.r - 1.4, j.y - j.neck, j.x1 + j.r + 3, j.y + j.neck, 1);
 /** Pencil, for what's planned but not built: a soft graphite grey, kept faint enough that the slot's silhouette leaves it alone. */
 const PENCIL = '#6d6a72';
 
@@ -492,13 +502,13 @@ function dashed(d: Draw, pts: readonly Pt[], dash: number, gap: number, alpha = 
 }
 
 /** The ship's cradle the Aster tank sits in: a riveted rail on the deck, two saddles with rubber pads, our fuel line coming up at the right. */
-function tankCradle(d: Draw, fitted: boolean): void {
+function tankCradle(d: Draw, fitted: boolean, j: Jar): void {
   const { pen } = d;
   part(d, roundRect(-18, 8.6, 18, 11.6, 0.8), COLOR.gunmetal, { shadow: 0.4, line: 0.5, hatch: 0, gloss: true });
   rivets(d, [pt(-16, 10.1), pt(-1, 10.1), pt(16, 10.1)], 0.32);
-  const bottom = JAR.y + JAR.r;
-  for (const x of SADDLES) {
-    const sag = (dx: number): number => JAR.y + Math.sqrt(Math.max(0, JAR.r ** 2 - dx * dx));
+  const bottom = j.y + j.r;
+  for (const x of j.saddles) {
+    const sag = (dx: number): number => j.y + Math.sqrt(Math.max(0, j.r ** 2 - dx * dx));
     const top = Array.from({ length: 9 }, (_, i) => {
       const dx = 3.2 - (6.4 * i) / 8;
       return pt(x + dx, sag(dx) + 0.6);
@@ -510,7 +520,7 @@ function tankCradle(d: Draw, fitted: boolean): void {
     if (!fitted) pen.hair([pt(x, bottom + 0.6), pt(x, bottom + 2.4)], 0.2, d.ink, 0.5);
   }
   // Our fuel line, up from the deck to where the jar's neck will meet it.
-  const line = fitted ? [pt(16.6, 8.8), pt(17.4, 4), pt(16.6, -0.4), pt(JAR.x1 + JAR.r + 3.2, JAR.y)] : [pt(16.6, 8.8), pt(17.4, 4), pt(17, 1.6)];
+  const line = fitted ? [pt(16.6, 8.8), pt(17.4, 4), pt(16.6, -0.4), pt(j.x1 + j.r + 3.2, j.y)] : [pt(16.6, 8.8), pt(17.4, 4), pt(17, 1.6)];
   part(d, tube(line, 1.3, 1.3), COLOR.copper, { shadow: 0.35, line: 0.3, hatch: 0, gloss: true });
   if (!fitted) {
     // Capped off until there's a tank to feed.
@@ -527,64 +537,82 @@ function tankCradle(d: Draw, fitted: boolean): void {
  * their dark red cord. Until it's fitted the cradle stands empty, the jar
  * pencilled in, dashed, where it will go.
  */
-function asterTank(d: Draw, fitted: boolean): void {
+function asterTank(d: Draw, fitted: boolean, j: Jar = JAR): void {
   const { pen } = d;
-  tankCradle(d, fitted);
+  tankCradle(d, fitted, j);
+  const JAR_BODY = jarBody(j);
+  const JAR_NECK = jarNeck(j);
   if (!fitted) {
     dashed(d, [...JAR_BODY, JAR_BODY[0]!], 1.5, 1.1);
     dashed(d, JAR_NECK.slice(0, 9), 1.1, 0.9);
     // Its axis, out through the neck, and the ribs it will have, faintest.
-    dashed(d, [pt(JAR.x0 - JAR.r + 1, JAR.y), pt(JAR.x1 + JAR.r + 5, JAR.y)], 2.6, 0.9, 0.22, 0.3);
-    for (const x of [-4.4, 3.6]) dashed(d, [pt(x, JAR.y - JAR.r + 0.6), pt(x + 1, JAR.y), pt(x, JAR.y + JAR.r - 0.6)], 0.9, 0.9, 0.2, 0.3);
+    dashed(d, [pt(j.x0 - j.r + 1, j.y), pt(j.x1 + j.r + 5, j.y)], 2.6, 0.9, 0.22, 0.3);
+    for (const x of j.ribs.slice(1, 3)) dashed(d, [pt(x, j.y - j.r + 0.6), pt(x + 1, j.y), pt(x, j.y + j.r - 0.6)], 0.9, 0.9, 0.2, 0.3);
     return;
   }
   // The neck and its stopper, behind the jar's shoulder.
-  shell(d, JAR_NECK, JAR.y + 2.6);
-  lash(d, pt(JAR.x1 + JAR.r + 0.8, JAR.y - JAR.neck - 0.3), pt(JAR.x1 + JAR.r + 0.8, JAR.y + JAR.neck + 0.3), 2);
-  const stopper = oval(JAR.x1 + JAR.r + 3.2, JAR.y, 1.2, JAR.neck + 0.5, 14);
+  shell(d, JAR_NECK, j.y + 2.6);
+  lash(d, pt(j.x1 + j.r + 0.8, j.y - j.neck - 0.3), pt(j.x1 + j.r + 0.8, j.y + j.neck + 0.3), 2);
+  const stopper = oval(j.x1 + j.r + 3.2, j.y, 1.2, j.neck + 0.5, 14);
   pen.fill(stopper, mix(ASTER.glaze, ASTER.shell, 0.3), 1);
   pen.hair([...stopper, stopper[0]!], 0.4, d.ink, 0.85);
   // The jar: glazed ceramic, lit along its top as a cylinder is.
-  shell(d, JAR_BODY, JAR.y + JAR.r + 3.4);
+  shell(d, JAR_BODY, j.y + j.r + 3.4);
   pen.clipped(JAR_BODY, () => {
-    dab(d, [pt(JAR.x0 - 6, JAR.y - 4.6), pt(JAR.x1 + 6, JAR.y - 4.6), pt(JAR.x1 + 6, JAR.y - 2.8), pt(JAR.x0 - 6, JAR.y - 2.8)], LIGHT, 0.3, 0.8);
+    dab(d, [pt(j.x0 - 6, j.y - 4.6), pt(j.x1 + 6, j.y - 4.6), pt(j.x1 + 6, j.y - 2.8), pt(j.x0 - 6, j.y - 2.8)], LIGHT, 0.3, 0.8);
     // The fibre winding: helical turns showing as fine slanted lines, each curving round the jar's form, the counter-wound layer fainter.
     const wind = mix(ASTER.glaze, SHADOW, 0.35);
-    for (let x = JAR.x0 - JAR.r - 8; x < JAR.x1 + JAR.r + 4; x += 0.85) {
+    for (let x = j.x0 - j.r - 8; x < j.x1 + j.r + 4; x += 0.85) {
       const helix = Array.from({ length: 9 }, (_, i) => {
         const t = i / 8;
-        const y = JAR.y - JAR.r + t * JAR.r * 2;
+        const y = j.y - j.r + t * j.r * 2;
         return pt(x + 4.4 * (0.5 - 0.5 * Math.cos(t * Math.PI)), y);
       });
       pen.hair(helix, 0.18, wind, 0.42);
       pen.hair(helix.map((p) => pt(x + 4.4 - (p.x - x), p.y)), 0.13, wind, 0.18);
     }
     // Round as a cylinder: a core shadow along its underside, light bounced up into its very edge.
-    dab(d, [pt(JAR.x0 - 8, JAR.y + 1.6), pt(JAR.x1 + 8, JAR.y + 1.6), pt(JAR.x1 + 8, JAR.y + 4.8), pt(JAR.x0 - 8, JAR.y + 4.8)], mix(ASTER.glaze, SHADOW, 0.5), 0.32, 1.2);
-    dab(d, [pt(JAR.x0 - 8, JAR.y + 5.4), pt(JAR.x1 + 8, JAR.y + 5.4), pt(JAR.x1 + 8, JAR.y + 7), pt(JAR.x0 - 8, JAR.y + 7)], BOUNCE, 0.3, 0.6);
+    dab(d, [pt(j.x0 - 8, j.y + 1.6), pt(j.x1 + 8, j.y + 1.6), pt(j.x1 + 8, j.y + 4.8), pt(j.x0 - 8, j.y + 4.8)], mix(ASTER.glaze, SHADOW, 0.5), 0.32, 1.2);
+    dab(d, [pt(j.x0 - 8, j.y + 5.4), pt(j.x1 + 8, j.y + 5.4), pt(j.x1 + 8, j.y + 7), pt(j.x0 - 8, j.y + 7)], BOUNCE, 0.3, 0.6);
   });
   // Its ribs, round it: a groove in the glaze with a lit ridge beside it.
-  for (const x of [-14.6, -4.4, 3.6, 9.2]) {
+  for (const x of j.ribs) {
     const ring = Array.from({ length: 9 }, (_, i) => {
       const t = i / 8;
-      return pt(x + 1.6 * Math.sin(t * Math.PI), JAR.y - JAR.r + 0.3 + t * (JAR.r * 2 - 0.6));
+      return pt(x + 1.6 * Math.sin(t * Math.PI), j.y - j.r + 0.3 + t * (j.r * 2 - 0.6));
     });
     pen.hair(ring, 0.75, mix(ASTER.glaze, SHADOW, 0.72), 0.9);
     pen.hair(ring.map((p) => pt(p.x - 0.6, p.y)), 0.4, PAPER_FILL, 0.6);
   }
   // Tied to our saddles with their cord.
-  for (const x of SADDLES) lash(d, pt(x + 0.6, JAR.y - JAR.r - 0.3), pt(x + 1.6, JAR.y + JAR.r + 1.4), 3);
+  for (const x of j.saddles) lash(d, pt(x + 0.6, j.y - j.r - 0.3), pt(x + 1.6, j.y + j.r + 1.4), 3);
   // The gauge: a hexagon of teal glass, the water standing in it.
   const GR = 3.2;
-  hexGlass(d, pt(0, JAR.y - 0.6), GR);
-  const hex = Array.from({ length: 6 }, (_, i) => pt(Math.cos((i / 6) * Math.PI * 2 + Math.PI / 6) * GR, JAR.y - 0.6 + Math.sin((i / 6) * Math.PI * 2 + Math.PI / 6) * GR));
+  hexGlass(d, pt(0, j.y - 0.6), GR);
+  const hex = Array.from({ length: 6 }, (_, i) => pt(Math.cos((i / 6) * Math.PI * 2 + Math.PI / 6) * GR, j.y - 0.6 + Math.sin((i / 6) * Math.PI * 2 + Math.PI / 6) * GR));
   pen.clipped(hex, () => {
-    pen.fill([pt(-4, JAR.y - 1), pt(4, JAR.y - 1), pt(4, JAR.y + 3), pt(-4, JAR.y + 3)], ASTER.glow, 0.55);
-    pen.hair([pt(-2.8, JAR.y - 1), pt(2.8, JAR.y - 1)], 0.3, '#e9fff8', 0.95);
+    pen.fill([pt(-4, j.y - 1), pt(4, j.y - 1), pt(4, j.y + 3), pt(-4, j.y + 3)], ASTER.glow, 0.55);
+    pen.hair([pt(-2.8, j.y - 1), pt(2.8, j.y - 1)], 0.3, '#e9fff8', 0.95);
   });
   pen.hair([...hex, hex[0]!], 0.5, ASTER.cord, 0.9);
-  starGlyph(d, pt(-11, JAR.y - 0.6), 2.4, ASTER.cord);
+  starGlyph(d, pt(-11, j.y - 0.6), 2.4, ASTER.cord);
   navLight(d, pt(13.6, 6.2), COLOR.green, true, 0.6);
+}
+
+/**
+ * Their long tank (chapter 4): the same glazed jar wound in fibre, longer
+ * and slimmer, with a collar of pyrite iron, brassy and bolted, at each end
+ * where it meets our cradle. Pencilled in until it's fitted.
+ */
+function longTank(d: Draw, fitted: boolean): void {
+  asterTank(d, fitted, LONG_JAR);
+  if (!fitted) return;
+  const j = LONG_JAR;
+  for (const x of [j.x0 - j.r * 0.35, j.x1 + j.r * 0.35]) {
+    const band = roundRect(x - 1.1, j.y - j.r - 0.5, x + 1.1, j.y + j.r + 0.5, 0.6);
+    part(d, band, '#b89a3e', { shadow: 0.4, line: 0.45, hatch: 0, gloss: true });
+    rivets(d, [pt(x, j.y - j.r + 0.9), pt(x, j.y), pt(x, j.y + j.r - 0.9)], 0.26);
+  }
 }
 
 /** How each picture sits in its frame: moved and scaled so it fits with room round it. */
@@ -592,6 +620,7 @@ const FIT: Readonly<Record<StarshipSlot, readonly [number, number, number]>> = {
   power: [1.6, 0.6, 0.84],
   tank: [0, 1.4, 0.84],
   asterTank: [-0.4, -0.6, 0.86],
+  longTank: [-0.4, -0.6, 0.86],
   engine: [1.8, 0, 0.86],
   telescope: [-0.8, 1.2, 0.84],
   jump: [0, -1.4, 0.98],
@@ -609,6 +638,7 @@ export function drawStarshipSystem(d: Draw, id: StarshipSlot, broken: boolean): 
   else if (id === 'engine') engine(d, broken);
   else if (id === 'telescope') telescope(d, broken);
   else if (id === 'asterTank') asterTank(d, !broken);
+  else if (id === 'longTank') longTank(d, !broken);
   else jump(d);
   ctx.restore();
 }

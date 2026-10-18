@@ -41,6 +41,10 @@ export interface WorldDef {
   readonly reef?: { readonly at: TilePos };
   /** Where the lost craft's drive crystal lies, by column and depth: the floor of the cave it fell into (Brine's, by the Leviathan). */
   readonly crystal?: { readonly at: TilePos };
+  /** Where the search party's ship lies wrecked (Talus): its hatch, by column and depth, buried in the loose rock at a mesa's foot. */
+  readonly searchShip?: { readonly at: TilePos };
+  /** The world's weather: Talus has dust storms (storm.ts; default none). */
+  readonly weather?: 'dust';
 }
 
 /** The card shown the first time you land on a world: its name, a line under it, a few paragraphs and the button. */

@@ -8,8 +8,9 @@ import type { WorldId } from './worlds';
  * each trip burns fuel from its tank, and the trip is open if the tank
  * holds enough. The trips between the ringed giant's two moons you can land
  * on, Graphite and Mycel, fit its first tank; Brine, the next planet in,
- * needs the Aster's tank (starship.ts). Their windows are always open for
- * now; the game clock and launch windows come later.
+ * needs the Aster's tank (starship.ts), and Talus, nearer the star still,
+ * their long one. Their windows are always open for now; the game clock and
+ * launch windows come later.
  */
 export interface Trip {
   readonly between: readonly [WorldId, WorldId];
@@ -22,6 +23,10 @@ export const TRIPS: readonly Trip[] = [
   // Out from the ringed giant's moons to the sea world: about twice the push, and more than the first tank holds.
   { between: ['mycel', 'brine'], fuel: 14 },
   { between: ['graphite', 'brine'], fuel: 14 },
+  // In to Talus, at the zone's warm edge: about twice the push again from the moons, less from Brine's orbit next to it. Neither fits the Aster tank.
+  { between: ['graphite', 'talus'], fuel: 28 },
+  { between: ['mycel', 'talus'], fuel: 28 },
+  { between: ['brine', 'talus'], fuel: 22 },
 ];
 
 /** What a trip from one world to another burns, or null with no trip between them. */

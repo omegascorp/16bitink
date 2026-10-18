@@ -174,8 +174,12 @@ export type Goal =
   | { readonly kind: 'flight' }
   /** Back on Mycel: the crew flew home; meet them at their camp. */
   | { readonly kind: 'reunion' }
-  /** The four Aster together again, and their star chart yours: the end of chapter 3. */
-  | { readonly kind: 'brineEnd' };
+  /** The four Aster together again, their star chart yours: fit the long tank they drew, to reach Talus (starship.ts longTank). */
+  | { readonly kind: 'talus' }
+  /** On Talus: go to the ship of your own kind the telescope saw on the big mesa. */
+  | { readonly kind: 'searchShip' }
+  /** The search ship found: the story so far ends here, and chapter 4 goes on in a later update. */
+  | { readonly kind: 'talusSoFar' };
 
 /** The drill that breaks Graphite's stone: the thrusters' silver and the radio's quartz lie in it. */
 const STONE_DRILL = 'drill-1';
@@ -222,7 +226,6 @@ const worldName = (id: WorldId): string => worldById(id)?.name ?? id;
 
 /** What the trip to `to` burns from where you are (from Mycel if you're there already). */
 const tripTo = (p: Profile, to: WorldId): number => tripFuel(p.at === to ? (to === 'mycel' ? 'brine' : 'mycel') : p.at, to) ?? 0;
-const brineTrip = (p: Profile): number => tripTo(p, 'brine');
 
 /** Fill the ship's tank for `to`, or, filled, set course for it. */
 const tripGoal = (p: Profile, to: WorldId): Goal => (p.shipFuel >= tripTo(p, to) ? { kind: 'setCourse', to } : { kind: 'tripFuel', to });
@@ -250,8 +253,20 @@ function brineGoal(p: Profile): Goal {
   if (!hasBeat(p, 'craftMended')) return { kind: 'heart' };
   if (!hasBeat(p, 'crystalFound')) return { kind: 'crystal' };
   if (!hasBeat(p, 'craftFlown')) return { kind: 'flight' };
-  if (hasBeat(p, 'asterReunion')) return { kind: 'brineEnd' };
+  // The four Aster together, their chart yours: on to Talus, with the long tank they drew.
+  if (hasBeat(p, 'asterReunion')) return isFixed(p, 'longTank') ? tripGoal(p, 'talus') : { kind: 'talus' };
   return p.at === 'mycel' ? { kind: 'reunion' } : tripGoal(p, 'mycel');
+}
+
+/**
+ * Chapter 4, on Talus (spec, "Talus: The story"): land on the salt flat,
+ * then go to the ship of your own kind the telescope saw on the big mesa,
+ * half buried under a rockslide. The rest of the chapter is still to come.
+ */
+function talusGoal(p: Profile): Goal {
+  if (!p.visited.includes('talus')) return { kind: 'land', world: 'talus' };
+  if (!hasBeat(p, 'shipFound')) return { kind: 'searchShip' };
+  return { kind: 'talusSoFar' };
 }
 
 /**
@@ -263,6 +278,7 @@ function brineGoal(p: Profile): Goal {
  * complaint about No Man's Sky's start is the stretch with no prompt.
  */
 export function currentGoal(p: Profile): Goal {
+  if (p.at === 'talus' || p.visited.includes('talus')) return talusGoal(p);
   if (p.at === 'brine' || p.visited.includes('brine')) return brineGoal(p);
   if (p.at === 'mycel' || p.visited.includes('mycel')) return mycelGoal(p);
   if (!isRepaired(p, 'printer')) return { kind: 'repair', id: 'printer' };
@@ -294,7 +310,7 @@ export function goalLine(p: Profile, g: Goal): string {
     return `Print the pulse, the Aster's weapon rebuilt your way: ${hasOnHand(p)(need) ? 'go aboard (L at the lander)' : needsLine(need, onHand(p))}`;
   }
   if (g.kind === 'find') return g.blueprint === MYCEL_DRILL ? "Mycel's stone is too hard for Graphite's drill. Study the Aster crew's broken drill near their wreck: follow the beacon" : 'Stone is too hard for the starter drill. Find a broken drill to study: follow the beacon';
-  if (g.kind === 'land') return `Land on ${g.world === 'brine' ? 'Brine' : 'Mycel'}: Land, top right`;
+  if (g.kind === 'land') return `Land on ${worldName(g.world ?? 'mycel')}: Land, top right`;
   if (g.kind === 'distress') return "Follow the Aster's distress call with the receiver: the more bars, the closer you are";
   if (g.kind === 'explore' && g.mk === 3) return `The Tidesingers' old village lies drowned under the shelf west of the reef: study their broken tools for designs. Mk 3 designs ${g.found}/${g.of}`;
   if (g.kind === 'explore') return `The Aster crew's gear lies round their wreck: study each broken piece for its design. Mk 2 designs ${g.found}/${g.of}`;
@@ -324,7 +340,13 @@ export function goalLine(p: Profile, g: Goal): string {
   if (g.kind === 'crystal') return "The craft's drive crystal fell down a crack into the flooded underworld, where something huge sleeps. Fetch it, quietly: drilling near it wakes it. Follow the beacon";
   if (g.kind === 'flight') return 'Bring the drive crystal to the crew\'s craft over the reef. Follow the beacon';
   if (g.kind === 'reunion') return p.docked ? 'The crew flew home to their camp on Mycel: land and go to them' : 'The crew flew home: meet them at their camp in the east. Follow the beacon';
-  if (g.kind === 'brineEnd') return "The end of chapter 3. The Aster's star chart shows the way to Talus: chapter 4 is coming";
+  if (g.kind === 'talus') {
+    const need = STARSHIP.longTank.needs!;
+    const how = hasOnHand(p)(need) ? (p.docked ? 'fit it on the Starship tab' : 'fly up to your ship (L at the lander)') : `${needsLine(need, onHand(p))}, carried up in the lander`;
+    return `The Aster's star chart marks Talus, nearer the star: whatever they saw there matters for the way home. Fit the long tank they drew, to reach it: ${how}`;
+  }
+  if (g.kind === 'searchShip') return 'The telescope saw a ship of your own kind on the flank of the big mesa east of the lander: go to it. Follow the beacon';
+  if (g.kind === 'talusSoFar') return "A search party of your own kind came here after you. Where they went next is still to come: chapter 4 continues in a later update";
   if (g.kind === 'print') return `Print the ${recipeOf(g.blueprint)!.piece} Mk ${recipeOf(g.blueprint)!.mk}: go aboard (L at the lander)`;
   if (g.kind === 'receiver') {
     const need = TOOL_KINDS.receiver.recipe;

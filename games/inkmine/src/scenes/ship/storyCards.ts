@@ -1,10 +1,10 @@
 import { bakeSystem } from '../../art/textures';
 import { getSound, setProfile } from '../../host';
-import { liftOff } from '../../logic/fuel';
+import { hasFlown, liftOff } from '../../logic/fuel';
 import { mapOpen } from '../../logic/starship';
 import { callDue, distressDue, hasBeat, withBeat } from '../../logic/story';
 import { storyCard } from '../kit/storyCard';
-import { brineOrbitCard, callCard, distressCard, dockedCard, firstLightCard, liftOffSpec, mycelOrbitCard } from './shipCards';
+import { brineOrbitCard, callCard, distressCard, dockedCard, firstLightCard, liftOffSpec, mycelOrbitCard, talusOrbitCard } from './shipCards';
 import type { ShipPage } from './panel';
 
 /**
@@ -30,6 +30,10 @@ export function shipStoryCard(page: ShipPage): boolean {
     storyCard(scene, brineOrbitCard(scene, p), () => page.commit(withBeat(page.profile, 'brineOrbit'), { tab: 'starship' }));
     return true;
   }
+  if (p.docked && p.at === 'talus' && !hasBeat(p, 'talusOrbit')) {
+    storyCard(scene, talusOrbitCard(scene, p), () => page.commit(withBeat(page.profile, 'talusOrbit'), { tab: 'starship' }));
+    return true;
+  }
   if (p.docked && p.at === 'graphite' && !hasBeat(p, 'aboard')) {
     storyCard(scene, dockedCard(scene, p), () => page.commit(withBeat(page.profile, 'aboard'), { tab: 'starship' }));
     return true;
@@ -51,16 +55,19 @@ export function shipStoryCard(page: ShipPage): boolean {
 
 /**
  * Lift-off, from the Fuel panel's button: the climb burns the fuel and is
- * saved, and closing the card flies on up to the ship in orbit (the star
- * map). The end of chapter 1.
+ * saved, and the lander flies on up to the ship in orbit. The first time,
+ * off the grey moon, it's the end of chapter 1 and has its card (closing
+ * it flies on up); after that, from any world, it just goes.
  */
 export function liftOffCard(page: ShipPage): void {
   const { scene, profile: p } = page;
   const r = liftOff(p);
   if (!r.ok) return;
   getSound(scene)?.play('liftOff');
-  storyCard(scene, liftOffSpec(scene, p), () => {
+  const fly = (): void => {
     setProfile(scene, r.profile);
     scene.scene.start('Ship', { remote: false, tab: 'starship' });
-  });
+  };
+  if (hasFlown(p)) fly();
+  else storyCard(scene, liftOffSpec(scene, p), fly);
 }

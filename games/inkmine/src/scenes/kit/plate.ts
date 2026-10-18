@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { cardFits, cardScale, cardWidest } from '../../logic/screenLayout';
 import { bakeUi, castShadow, lozenge, notched, paper, roundRect, rule, RULE, uiImage } from './paint';
 import { heading, INK_TEXT } from './type';
 
@@ -81,3 +82,26 @@ export function plateCard(scene: Phaser.Scene, cx: number, cy: number, w: number
   const sheet = uiImage(scene, -w / 2 - MARGIN, -h / 2 - MARGIN, plateKey(scene, w, h, seed, 'card'));
   return scene.add.container(cx, cy, [sheet, ...parts]);
 }
+
+/** A card's contents laid out at a width: what was made, and how tall it came out. */
+export interface CardBody {
+  readonly parts: Phaser.GameObjects.GameObject[];
+  readonly h: number;
+}
+
+/**
+ * A card's contents, laid out to fit the screen (`view`, in the scene's
+ * units): at width `w`, or, when that comes out too tall and the screen
+ * is wide (a phone on its side), wider, so its text takes fewer lines.
+ * Pair it with fitScale for what still doesn't fit.
+ */
+export function fitCardBody(build: (w: number) => CardBody, w: number, view: { readonly width: number; readonly height: number }): CardBody & { readonly w: number } {
+  const body = build(w);
+  const wide = cardWidest(view.width, MARGIN);
+  if (cardFits(body.h, view.height, MARGIN) || wide <= w) return { ...body, w };
+  for (const part of body.parts) part.destroy();
+  return { ...build(wide), w: wide };
+}
+
+/** The scale a card `h` tall draws at so it fits a screen `viewH` tall, its button on it: 1, or less on a short screen. */
+export const fitScale = (h: number, viewH: number): number => cardScale(h, viewH, MARGIN);

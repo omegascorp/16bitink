@@ -43,6 +43,16 @@ export const brineOrbitCard = (scene: Phaser.Scene, p: Profile): StoryCardSpec =
     button: 'Take it in',
   });
 
+/** In orbit over Talus, the first time: the start of chapter 4 (spec, "Talus: The story"). */
+export const talusOrbitCard = (scene: Phaser.Scene, p: Profile): StoryCardSpec => ({
+  line: 'ship-talus-orbit',
+  title: 'In orbit over Talus',
+  subtitle: 'the red world',
+  pictures: [{ key: shipTexture(scene, shipLookOf(p), 'small'), h: 70 }, { key: TEX.world('talus'), h: 70 }],
+  text: "Rust red, from pole to pole, the colour of iron that water once rusted. White flats lie between the mesas where seas used to be, and dust hangs over them in a thin brown haze. The telescope sweeps the mesas for whatever the Aster marked, and stops on one: on its flank, half under a slide of rock, something cobalt and white enamel. The guild's colours. A ship of your own kind.",
+  button: 'Take it in',
+});
+
 /** Docked with your ship, the first time. */
 export const dockedCard = (scene: Phaser.Scene, p: Profile): StoryCardSpec => ({
   line: 'ship-docked',

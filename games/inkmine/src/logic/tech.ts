@@ -3,7 +3,7 @@ import { hasOnHand, printerWorks, type Profile } from './economy';
 import { PIECES, type Piece } from './gear';
 import { canRepair, currentGoal, REPAIR_IDS, type RepairId } from './repairs';
 import { canUpgrade, MODULE_KEYS, type ModuleKey } from './ship';
-import { canFix, STARSHIP_SLOTS, type StarshipSlot } from './starship';
+import { canFix, isUpgrade, STARSHIP_SLOTS, type StarshipSlot } from './starship';
 import { hasBeat } from './story';
 import { canPrintTool, TOOLS, type Tool } from './tools';
 
@@ -58,7 +58,7 @@ export function techState(p: Profile, t: Tech): TechState {
   }
   if (t.kind === 'starship') {
     const why = canFix(p, t.id);
-    if (t.id === 'asterTank' && why !== 'done' && why !== 'ok') return 'empty';
+    if (isUpgrade(t.id) && why !== 'done' && why !== 'ok') return 'empty';
     return why === 'done' ? 'fitted' : why === 'ok' ? 'ready' : 'broken';
   }
   if (t.kind === 'tool') {

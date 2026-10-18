@@ -6,5 +6,6 @@
  */
 import { PLANET_2 } from './planet2';
 import { PLANET_3 } from './planet3';
+import { PLANET_4 } from './planet4';
 
-export const INKMINE_PAID_PLANETS = [PLANET_2, PLANET_3];
+export const INKMINE_PAID_PLANETS = [PLANET_2, PLANET_3, PLANET_4];

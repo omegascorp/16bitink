@@ -1,153 +1,31 @@
 import { boxHitsSolid, climbBody, jump, moveBody, PHYS, type Body, type Box, type Fall } from './body';
-import { BlastSim, type Blast } from './blastSim';
-import type { Creature, CreatureKind } from './creatures';
+import { BlastSim } from './blastSim';
 import { Fauna } from './fauna';
-import type { Loadout } from './gear';
 import { DRILL_SECONDS_PER_ENERGY, tileCost, VOLATILE_COST, type DrillSpec } from './drill';
-import { holdEntries, holdSize, type Hold } from './hold';
+import { holdEntries, holdSize } from './hold';
 import { contents as contentsOf, emptyInventory, isEmpty, isLocked, splitShare, transferAll, type Inventory, type Stack } from './inventory';
 import { joinBags, settle, type DroppedBag } from './flag';
 import { designSalvage } from './designs';
-import { bankItems, freeItems, inPouch, placeItems, stepItems, type ItemDef, type MineItem } from './items';
+import { bankItems, freeItems, inPouch, placeItems, stepItems, type MineItem } from './items';
 import { ORES } from './ore';
 import { Ladders } from './ladders';
 import { jetFor, type JetSpec } from './marks';
 import { between, caught, newPiece, PIECE, restingPiece, stepPiece, type Piece } from './pieces';
-import type { SavedPiece } from './worldSave';
-import { AIR, airRate, breathe, burn, emptyBag, feed, fits, fuelIn, hasRoomFor, hurt, newSuit, pickFeed, rechargeJet, regen, spend, stow, withBag, worn, type Fuels, type Gauge, type Suit, type SuitSpec } from './suit';
-import { restockFrom, solarCharge, type StoreKind, type Stores } from './stores';
+import { AIR, airRate, breathe, burn, emptyBag, feed, fits, fuelIn, hasRoomFor, hurt, newSuit, pickFeed, rechargeJet, regen, spend, stow, withBag, worn, type Fuels, type Gauge, type Suit } from './suit';
+import { Rocks, rubbleOf, type FallingRock } from './rocks';
+import { exposed, Storm, STORM } from './storm';
+import { restockFrom, solarCharge, type Stores } from './stores';
 import { STORE_CAPACITY } from './ship';
 import type { OreKey } from './ore';
 import { bodyCell, centredX, drillTarget } from './target';
+import type { MineEvent } from './mineEvents';
+import { CARGO, GRAPHITE_FUELS, NO_INPUT, type MineInput, type MineSetup } from './mineSetup';
 import { contentAt, foldX, ringDelta, setTile, TILE, tileAt, volatileAt, type Terrain, type TilePos } from './terrain';
 import { lightsWhenDrilled, volatileKeyOf } from './volatiles';
 import type { Water } from './water';
 
-/** Everything a dig site starts from. */
-export interface MineSetup {
-  readonly terrain: Terrain;
-  readonly tileSize: number;
-  readonly drill: DrillSpec;
-  /** The marks of every gear piece, for how the prospector looks. */
-  readonly loadout: Loadout;
-  readonly suit: SuitSpec;
-  /** Ladders already hanging in the world (from a save), over `terrain` (default none). */
-  readonly placedLadders?: Ladders;
-  /** The lander's middle column and the surface row it stands on. */
-  readonly lander: { readonly col: number; readonly row: number };
-  /** The jetpack's mark (default the starter's). */
-  readonly jet?: JetSpec;
-  /** Things to find: blueprints, and later what people ask for (default none). */
-  readonly items?: readonly ItemDef[];
-  /** Share of the bag a recall keeps: the ship's winch (default none). */
-  readonly winchKeeps?: number;
-  /** The ship's cargo, which the bag empties into at the lander (default an empty starter hold). */
-  readonly cargo?: Inventory;
-  /** What the suit's bag still holds from the last landing (default empty). */
-  readonly bag?: Inventory;
-  /** The ores that feed the cell and life support (default Graphite's: graphite and ice). */
-  readonly fuels?: Fuels;
-  /** A bag left in the world last time, under its flag (default none). */
-  readonly dropped?: DroppedBag | null;
-  /** Ore left lying loose last time, each at its tile (default none). */
-  readonly pieces?: readonly SavedPiece[];
-  /** The lander's air tank and battery, and what each holds (default full starter tanks). */
-  readonly stores?: Stores;
-  readonly storesCap?: number;
-  /** Where the Lamplighters' outpost stands: its middle column and the surface row (default none). */
-  readonly outpost?: { readonly col: number; readonly row: number };
-  /** The world's creatures, placed for this landing (creatures.ts; default none). */
-  readonly creatures?: readonly Creature[];
-  /** Whether the prospector carries the pulse (pulse.ts; default not). */
-  readonly armed?: boolean;
-  /** The world's water (water.ts; default none). */
-  readonly water?: Water | null;
-  /** Whether the suit has the rebreather, so depth doesn't matter to the air (default not). */
-  readonly rebreather?: boolean;
-}
-
-/** Graphite's fuels: graphite for the drill (it's in battery anodes), water ice for the air. */
-export const GRAPHITE_FUELS: Fuels = { cell: ['graphite'], air: ['ice'] };
-
-/** The starter ship's cargo: slots, and pieces a slot stacks. */
-export const CARGO = { slots: 16, stack: 50 } as const;
-
-/** One step's controls: held directions (-1..1), the jump button held (thrust), and buttons pressed this step. */
-export interface MineInput {
-  readonly ix: number;
-  readonly iy: number;
-  readonly jump: boolean;
-  /** Jump held: in the air, the jetpack fires. */
-  readonly thrust: boolean;
-  readonly recall: boolean;
-  /** Feed a gauge from the bag this step: a tapped one, or the lower one (the feed key). */
-  readonly feed: Gauge | 'lowest' | null;
-  /** Fire the pulse this step (default not). */
-  readonly fire?: boolean;
-}
-
-export const NO_INPUT: MineInput = { ix: 0, iy: 0, jump: false, thrust: false, recall: false, feed: null, fire: false };
-
-export type MineEvent =
-  | { readonly kind: 'tiles'; readonly tiles: readonly TilePos[] }
-  | { readonly kind: 'drilled'; readonly tile: TilePos; readonly cost: number; readonly ore: number }
-  | { readonly kind: 'tooHard'; readonly tile: TilePos }
-  | { readonly kind: 'flat' }
-  | { readonly kind: 'ore'; readonly ore: number }
-  | { readonly kind: 'bagFull' }
-  | { readonly kind: 'bank'; readonly moved: Hold; readonly pieces: number }
-  | { readonly kind: 'cargoFull' }
-  /** The lander put the suit right (hearts, shield, air, cell). */
-  | { readonly kind: 'restock' }
-  /** At the lander, the air tank or the battery couldn't fill the suit (stores.ts). */
-  | { readonly kind: 'storesShort'; readonly short: readonly StoreKind[] }
-  | { readonly kind: 'noFuel' }
-  | { readonly kind: 'fed'; readonly gauge: Gauge; readonly ore: OreKey }
-  | { readonly kind: 'cantFeed'; readonly gauge: Gauge; readonly ore: OreKey; readonly why: 'none' | 'full' }
-  | { readonly kind: 'airLow' }
-  | { readonly kind: 'airOut' }
-  | { readonly kind: 'shielded' }
-  | { readonly kind: 'lit'; readonly tile: TilePos }
-  /** Drilled into a spore pocket: it puffed, and the cloud cost air. */
-  | { readonly kind: 'spores'; readonly tile: TilePos }
-  /** Sprang off a cap mushroom. */
-  | { readonly kind: 'bounce'; readonly big: boolean }
-  | { readonly kind: 'blast'; readonly blast: Blast }
-  | { readonly kind: 'hurt'; readonly hearts: number; readonly cause: 'blast' | 'air' | 'creature' }
-  /** Fired the pulse. */
-  | { readonly kind: 'pulse' }
-  /** A pulse hit a creature: `killed` when it burst or was severed. */
-  | { readonly kind: 'struck'; readonly creature: CreatureKind; readonly killed: boolean }
-  /** A puffball spat a clot of spores. */
-  | { readonly kind: 'spat' }
-  /** A snap tendril caught the prospector, or let go. */
-  | { readonly kind: 'grabbed' }
-  | { readonly kind: 'freed' }
-  /** The Mother Mycel beat; `near` when its wave reached the prospector. */
-  | { readonly kind: 'beat'; readonly near: boolean }
-  /** A bubble jelly stung the prospector; a rasp eel bit them. */
-  | { readonly kind: 'stung' }
-  | { readonly kind: 'bitten' }
-  /** The Leviathan stirred in its sleep, woke, or went back to sleep. */
-  | { readonly kind: 'leviathan'; readonly now: 'stir' | 'wake' | 'sleep' }
-  /** Water moved (a flood running): these tiles' water changed. */
-  | { readonly kind: 'water'; readonly tiles: readonly TilePos[] }
-  /** Ground opened into water, and it's pouring in; `near` when it's close to the prospector. */
-  | { readonly kind: 'flood'; readonly near: boolean; readonly sea: boolean }
-  /** Went into the water, or came out. */
-  | { readonly kind: 'splash'; readonly into: boolean }
-  /** Deep enough under water that the air drains `rate` times as fast (said as it gets worse). */
-  | { readonly kind: 'deep'; readonly rate: number }
-  /** Winched up; `left` pieces stayed in the world under the flag. */
-  | { readonly kind: 'recall'; readonly left: number }
-  /** Touched the flag: pieces back in the bag. */
-  | { readonly kind: 'bagBack'; readonly pieces: number }
-  | { readonly kind: 'item'; readonly item: MineItem }
-  | { readonly kind: 'bankItem'; readonly item: MineItem }
-  /** Touched an old part: studied (its design is the item's blueprint) and taken apart, its salvage spilt as ore. */
-  | { readonly kind: 'salvage'; readonly item: MineItem }
-  /** The suit gave out; `dropped` pieces stayed where you fell. */
-  | { readonly kind: 'failed'; readonly dropped: number };
+export { CARGO, GRAPHITE_FUELS, NO_INPUT, type MineInput, type MineSetup } from './mineSetup';
+export type { MineEvent } from './mineEvents';
 
 export const PROSPECTOR = { w: 20, h: 28, walk: 125, climb: 105, jump: 330 } as const;
 /**
@@ -172,6 +50,10 @@ export const CAP_SPRING = { jump: 560, min: 220, keep: 0.5 } as const;
 export const SPORE_AIR = 12;
 /** What a drilled cap mushroom breaks into: its flesh charred to carbon by the drill (cell fuel), and the water it was mostly made of. */
 export const CAP_YIELD: readonly OreKey[] = ['carbon', 'water'];
+/** What each segment of a Talus barrel plant gives: the water its pleats hold. */
+export const BARREL_YIELD: readonly OreKey[] = ['water'];
+/** What a growth breaks into, by tile. */
+const GROWTH_YIELD: Partial<Record<number, readonly OreKey[]>> = { [TILE.cap]: CAP_YIELD, [TILE.plant]: BARREL_YIELD };
 /**
  * Swimming: you sink slowly (`fall`), faster holding down (`dive`); jump
  * strokes you up to `rise` px/s; walking along the bottom or swimming
@@ -253,6 +135,16 @@ export class Mine {
   swimming = false;
   /** The world's water; null on a dry world. */
   readonly water: Water | null;
+  /** Loose rock shaking and falling (Talus). */
+  readonly rocks: Rocks;
+  /** The dust storms (Talus); null on a world without them. */
+  readonly storm: Storm | null;
+  /** Out in the wind this step: no roof over the prospector and no lee. */
+  exposed = false;
+  /** Seconds out in a storm towards the grit's next hit. */
+  private grit = 0;
+  /** The state of the dig site's own random sequence (chance). */
+  private luck = 0x9e3779b9;
   /** How fast the air last drained, for saying when deep water makes it worse. */
   private airPace = 1;
   time = 0;
@@ -280,6 +172,8 @@ export class Mine {
     this.items = placeItems(setup.terrain, setup.items ?? [], row, T);
     this.fauna = new Fauna(setup.creatures ?? [], setup.armed ?? false);
     this.water = setup.water ?? null;
+    this.rocks = new Rocks(setup.terrain, this.tile);
+    this.storm = setup.storm === undefined ? null : new Storm(setup.storm);
     this.player = this.startBody();
     this.swimming = this.inWater(this.player);
     const W = setup.terrain.width;
@@ -323,17 +217,20 @@ export class Mine {
     // Held by a tendril, there's no walking or drilling: only struggling (jump) and the pulse.
     const held = this.fauna.held !== null;
     const moving = held ? { ...NO_INPUT, jump: input.jump } : input;
+    this.stormStep(dt, events);
     const blocked = held ? this.hold() : this.move(dt, moving, events);
     this.drillStep(dt, moving, blocked, events);
     this.faunaStep(dt, input, events);
     this.blastStep(dt, events);
+    this.rockStep(dt, events);
     this.waterStep(dt, events);
     this.pieceStep(dt, events);
     this.itemStep(dt, events);
     // Not on a recall: the bag just left would be picked straight back up at the lander.
     if (!input.recall) this.flagStep(events);
     this.landerStep(events);
-    this.stores = solarCharge(this.stores, this.storesCap, dt);
+    // A storm's dust blots out the sun: the panels make nothing while it blows.
+    this.stores = solarCharge(this.stores, this.storesCap, this.storm?.blowing ? 0 : dt);
     this.lifeStep(dt, events);
     if (this.suit.hearts <= 0) {
       this.state = 'failed';
@@ -387,7 +284,8 @@ export class Mine {
           launched = { ...launched, vy: Math.max(-this.jet.maxRise, launched.vy - this.jet.thrust * dt) };
         } else this.notice('noFuel', events, { kind: 'noFuel' });
       }
-      this.player = knocked ? moveBody(this.terrain, launched, knocked.dir, knocked.speed, dt, T) : moveBody(this.terrain, launched, input.ix, PROSPECTOR.walk, dt, T, input.iy <= 0);
+      const vx = input.ix * PROSPECTOR.walk + this.wind(launched.onGround);
+      this.player = knocked ? moveBody(this.terrain, launched, knocked.dir, knocked.speed, dt, T) : moveBody(this.terrain, launched, Math.sign(vx), Math.abs(vx), dt, T, input.iy <= 0);
       // Landing on a cap from a fall gives some of it back.
       const fall = Math.min(PHYS.maxFall, launched.vy + PHYS.gravity * dt);
       if (!launched.onGround && this.player.onGround && fall > CAP_SPRING.min && input.iy <= 0 && this.onCap(this.player)) {
@@ -400,6 +298,33 @@ export class Mine {
     this.player = { ...this.player, x: foldX(this.terrain, this.player.x, T) };
     const footing = this.player.onGround || this.climbing || this.jetting || this.swimming;
     return input.ix !== 0 && footing && Math.abs(this.player.x - before.x) < 0.01;
+  }
+
+  /** Px/s a storm shoves the prospector this step, out in it: harder off their feet. */
+  private wind(onGround: boolean): number {
+    const s = this.storm;
+    if (!s || !this.exposed) return 0;
+    return s.dir * s.strength * (onGround ? STORM.wind : STORM.airWind);
+  }
+
+  /**
+   * The weather's turn: it moves on (each change said), and out in a storm
+   * the grit lands a hit every few seconds. Under cover it lets up, slowly.
+   */
+  private stormStep(dt: number, events: MineEvent[]): void {
+    const s = this.storm;
+    if (!s) return;
+    const turned = s.step(dt);
+    if (turned) events.push({ kind: 'storm', now: turned });
+    this.exposed = s.blowing && !this.atLander && exposed(this.terrain, this.player, this.tile, s.dir);
+    if (!this.exposed) {
+      this.grit = Math.max(0, this.grit - dt);
+      return;
+    }
+    this.grit += dt * Math.max(0.3, s.strength);
+    if (this.grit < STORM.grit) return;
+    this.grit = 0;
+    this.hurt(events, 'storm');
   }
 
   /** Whether a body is in water: its middle is. */
@@ -493,18 +418,32 @@ export class Mine {
       this.items = freeItems(this.items, [target.tile]);
       return;
     }
+    const opened: TilePos[] = [...tiles];
     tiles.forEach(([tx, ty], i) => {
-      const cap = tileAt(this.terrain, tx, ty) === TILE.cap;
-      const ore = cap ? ORES[CAP_YIELD[0]!].id : contentAt(this.terrain, tx, ty);
-      setTile(this.terrain, tx, ty, TILE.air);
-      if (cap) CAP_YIELD.forEach((k, j) => this.pieces.push(newPiece(ORES[k].id, (tx + 0.3 + j * 0.4) * this.tile, (ty + 0.5) * this.tile)));
-      else if (ore) this.pieces.push(newPiece(ore, (tx + 0.5) * this.tile, (ty + 0.5) * this.tile));
+      const was = tileAt(this.terrain, tx, ty);
+      const growth = GROWTH_YIELD[was];
+      const ore = growth ? ORES[growth[0]!].id : contentAt(this.terrain, tx, ty);
+      this.breakTile(tx, ty);
       events.push({ kind: 'drilled', tile: [tx, ty], cost: costs[i]!, ore });
       this.fauna.noise((tx + 0.5) * this.tile, (ty + 0.5) * this.tile, 'drill', this.terrain, this.tile);
+      // A barrel plant cut through: the segments above come down with it.
+      for (let up = ty - 1; was === TILE.plant && tileAt(this.terrain, tx, up) === TILE.plant; up--) {
+        this.breakTile(tx, up);
+        opened.push([tx, up]);
+      }
     });
     if (target.centre && y > bodyCell(this.player, this.tile).row) this.player = { ...this.player, vy: DROP_KICK, onGround: false };
-    this.items = freeItems(this.items, tiles);
-    events.push({ kind: 'tiles', tiles });
+    this.items = freeItems(this.items, opened);
+    events.push({ kind: 'tiles', tiles: opened });
+  }
+
+  /** A tile drilled out: open now, and what it held (its ore, or a growth's yield) loose where it was. */
+  private breakTile(x: number, y: number): void {
+    const growth = GROWTH_YIELD[tileAt(this.terrain, x, y)];
+    const ore = contentAt(this.terrain, x, y);
+    setTile(this.terrain, x, y, TILE.air);
+    if (growth) growth.forEach((k, j) => this.pieces.push(newPiece(ORES[k].id, (x + 0.5 + (j - (growth.length - 1) / 2) * 0.4) * this.tile, (y + 0.5) * this.tile)));
+    else if (ore) this.pieces.push(newPiece(ore, (x + 0.5) * this.tile, (y + 0.5) * this.tile));
   }
 
   /** Energy to drill (x, y): a tap for something volatile, otherwise by grade; null when too hard. */
@@ -537,6 +476,61 @@ export class Mine {
       for (const { ore, tile } of blast.ores) this.pieces.push(newPiece(ore, (tile[0] + 0.5) * this.tile, (tile[1] + 0.5) * this.tile));
       if (blast.area.some(([x, y]) => this.occupies(x, y))) this.hurt(events);
     }
+  }
+
+  /**
+   * Ground opened this step (drilled, blown out) leaves loose rock above it
+   * on nothing, and it shakes, then drops. A falling rock breaks on the
+   * prospector (a heart, once the shield's down) and crushes any creature it
+   * comes down on (rocks.ts).
+   */
+  private rockStep(dt: number, events: MineEvent[]): void {
+    this.rocks.opened(events.flatMap((e) => (e.kind === 'tiles' ? e.tiles : [])));
+    const { shook, freed, landed } = this.rocks.step(dt);
+    for (const tile of shook) events.push({ kind: 'rock', now: 'shake', tile });
+    for (const tile of freed) events.push({ kind: 'rock', now: 'fall', tile });
+    for (const tile of landed) events.push({ kind: 'rock', now: 'land', tile });
+    if (freed.length || landed.length) {
+      // Rocks leaving their tiles open more ground (rocks above, water beside); landing ones only need drawing.
+      this.rocks.opened(freed);
+      this.items = freeItems(this.items, freed);
+      events.push({ kind: 'tiles', tiles: [...freed, ...landed] });
+    }
+    const T = this.tile;
+    for (const rock of [...this.rocks.falling]) {
+      const rows = [Math.floor(rock.y / T), Math.floor((rock.y + T - 1e-6) / T)];
+      this.fauna.crush([...new Set(rows)].map((row) => [rock.col, row] as const), T);
+      if (!this.under(this.rockBox(rock))) continue;
+      this.rocks.shatter(rock);
+      events.push({ kind: 'rock', now: 'hit', tile: [rock.col, Math.floor(rock.y / this.tile)] });
+      this.hurt(events, 'rock');
+    }
+  }
+
+  /** Whether a box overlaps the prospector from above (a rock they stand on never counts), measured the short way round. */
+  private under(l: Box): boolean {
+    const p = this.player;
+    const lx = p.x + ringDelta(this.terrain, p.x, l.x, this.tile);
+    const overlaps = p.x < lx + l.w && p.x + p.w > lx && p.y < l.y + l.h && p.y + p.h > l.y;
+    return overlaps && l.y + l.h / 2 < p.y + p.h / 2;
+  }
+
+  /** Where loose rock lies, with any still falling put where it will land: what the save keeps (worldSave.ts). */
+  rubble(): Uint8Array {
+    const mask = rubbleOf(this.terrain);
+    const T = this.tile;
+    // Lowest first, so one falling on another stops on top of it.
+    for (const rock of [...this.rocks.falling].sort((a, b) => b.y - a.y)) {
+      let row = Math.floor(rock.y / T);
+      while (row + 1 < this.terrain.height && tileAt(this.terrain, rock.col, row + 1) === TILE.air && !mask[(row + 1) * this.terrain.width + rock.col]) row++;
+      mask[row * this.terrain.width + rock.col] = 1;
+    }
+    return mask;
+  }
+
+  /** A falling rock's box, px. */
+  rockBox(rock: FallingRock): Box {
+    return { x: rock.col * this.tile, y: rock.y, w: this.tile, h: this.tile };
   }
 
   /**
@@ -710,7 +704,7 @@ export class Mine {
     events.push({ kind: 'recall', left: dropped });
   }
 
-  private hurt(events: MineEvent[], cause: 'blast' | 'creature' = 'blast'): void {
+  private hurt(events: MineEvent[], cause: 'blast' | 'creature' | 'rock' | 'storm' = 'blast'): void {
     const r = hurt(this.suit, this.time);
     this.suit = r.suit;
     if (r.hit === 'shield') events.push({ kind: 'shielded' });
@@ -746,8 +740,32 @@ export class Mine {
         this.knock = { dir: Math.sign(vx), speed: Math.abs(vx), until: this.time + 0.3 };
       },
       wet: (x, y) => this.water?.isWet(x, y) ?? false,
+      storming: this.storm?.blowing ?? false,
+      quake: (x, y, spread, rocks) => this.quake(x, y, spread, rocks),
     }, events);
     this.dropSpoils();
+  }
+
+  /**
+   * The roof shaken round (x, y) px: `rocks` rocks come down within
+   * `spread` tiles, one of them always over the prospector if they're in
+   * reach, the rest scattered (rocks.ts lands them as loose rock).
+   */
+  private quake(x: number, y: number, spread: number, rocks: number): void {
+    const T = this.tile;
+    const p = this.player;
+    const col = Math.floor(x / T);
+    const row = Math.floor((y - 1) / T);
+    const pc = Math.floor((p.x + p.w / 2) / T);
+    const cols = Math.abs(ringDelta(this.terrain, col, pc)) <= spread ? [pc] : [];
+    for (let k = 0; cols.length < rocks && k < rocks * 3; k++) cols.push(col + Math.round((this.chance() * 2 - 1) * spread));
+    for (const c of cols) this.rocks.fromRoof(c, c === pc ? Math.floor(p.y / T) : row, spread + 4);
+  }
+
+  /** A number in [0, 1) from the dig site's own sequence, so a session plays the same way twice. */
+  private chance(): number {
+    this.luck = (Math.imul(this.luck, 1664525) + 1013904223) >>> 0;
+    return this.luck / 4294967296;
   }
 
   /** What killed creatures left, as pieces to pick up. */

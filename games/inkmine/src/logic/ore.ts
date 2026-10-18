@@ -9,11 +9,12 @@
  * calcite, amber, lignite and water, then carbon, which never lies in the
  * rock: it comes off Mycel's cap mushrooms (with their water) when they're
  * drilled. Brine's (chapter 3) come after: manganese nodules, halite,
- * magnetite and brine pearls (it shares native copper and water). They
- * ship with the game even though the paid worlds come from the server, as
- * saves keep only ores they know.
+ * magnetite and brine pearls (it shares native copper and water). Talus's
+ * (chapter 4) come last: hematite, gypsum, native sulfur, nitre and opal
+ * (with native copper and water). They ship with the game even though the
+ * paid worlds come from the server, as saves keep only ores they know.
  */
-export type OreGlyph = 'nugget' | 'cube' | 'flake' | 'prism' | 'wire' | 'rime' | 'botryoid' | 'rhomb' | 'resin' | 'chunk' | 'bead' | 'char' | 'nodule' | 'salt' | 'octahedron' | 'pearl';
+export type OreGlyph = 'nugget' | 'cube' | 'flake' | 'prism' | 'wire' | 'rime' | 'botryoid' | 'rhomb' | 'resin' | 'chunk' | 'bead' | 'char' | 'nodule' | 'salt' | 'octahedron' | 'pearl' | 'spherule' | 'rosette' | 'sulfur' | 'crust' | 'opal';
 
 export interface OreKind {
   readonly id: number;
@@ -56,6 +57,16 @@ export const ORES = {
   magnetite: { id: 16, key: 'magnetite', name: 'magnetite', value: 9, color: '#2e3036', mark: '#8fa3c4', glyph: 'octahedron', about: "Iron oxide in black eight-sided crystals, the most magnetic mineral there is: a lump of it swings a compass. Sea-floor lava is full of it, and as each flow cooled its crystals froze pointing at the poles of the day. Smelted, it's iron." },
   /** Brine pearls: nacre from old shell beds, Brine's signature. */
   pearl: { id: 17, key: 'pearl', name: 'brine pearl', value: 20, color: '#efe6f2', mark: '#e2c6f5', glyph: 'pearl', about: "Nacre, laid down layer on layer round a grain of grit inside a shell, and buried with the shell beds when the sea moved on. Nacre is chalk and a little protein stacked like bricks and mortar, and it's thousands of times tougher than the chalk alone: the toughest ceramic in nature." },
+  /** Hematite: Talus's signature, the blood ore, as spherules grown in old groundwater. */
+  hematite: { id: 18, key: 'hematite', name: 'hematite', value: 14, color: '#5e3a3a', mark: '#e0705a', glyph: 'spherule', about: "Iron oxide, grown into little round spherules where groundwater once seeped through the rock. A rover found the same \"blueberries\" on Mars, the first sure sign that Mars had been wet. Ground up it's red ochre, the oldest paint there is, and smelted it's iron: the old name means blood stone." },
+  /** Gypsum: the water of Talus's lost seas, locked in a crystal; baked, it gives the air and the tanks their water. */
+  gypsum: { id: 19, key: 'gypsum', name: 'gypsum', value: 3, color: '#ead8bd', mark: '#ffd9a8', glyph: 'rosette', about: "Calcium sulfate with water locked inside the crystal, left behind where a salty sea dried up. Grown in sand it makes \"desert roses\"; deep down it grows clear blades, which the Romans used as window glass. It's a fifth water by weight, and heat drives the water out, so here the suit bakes it for air and the tanks." },
+  /** Native sulfur: Talus's cell fuel (a lithium–sulfur cell's cathode). */
+  sulfur: { id: 20, key: 'sulfur', name: 'native sulfur', value: 5, color: '#e9c93a', mark: '#fff06a', glyph: 'sulfur', about: "Pure sulfur in bright yellow crystals, made in buried gypsum by microbes that breathe sulfate instead of oxygen. It burns with a blue flame and smells of matches. A lithium–sulfur cell stores more charge for its weight than any common battery, so the cell runs on it here." },
+  /** Nitre: saltpetre, which only lasts in ground where it almost never rains. */
+  nitre: { id: 21, key: 'nitre', name: 'nitre', value: 6, color: '#f4f1ea', mark: '#cfe3ff', glyph: 'crust', about: "Saltpetre, a nitrate that crusts dry ground in white needles. Rain would wash it away in a season, so it only builds up in the driest deserts, like Chile's Atacama, where whole beds of it were mined. Mixed with sulfur and charcoal it makes black powder." },
+  /** Opal: silica laid down by water in dry ground. */
+  opal: { id: 22, key: 'opal', name: 'opal', value: 22, color: '#d9e8ee', mark: '#b6f0e4', glyph: 'opal', about: "Silica laid down by water seeping through dry ground, as tiny spheres stacked so evenly that they split light into flashes of every colour. Australia's opal formed as an inland sea dried up, and orbiters have found opal on Mars too. Silica stands heat that melts metal." },
 } as const satisfies Record<string, OreKind>;
 
 export type OreKey = keyof typeof ORES;

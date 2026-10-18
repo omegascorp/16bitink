@@ -79,7 +79,7 @@ describe("Brine's story", () => {
     step((q) => ({ ...q, at: 'mycel', shipFuel: 0 }));
     step((q) => campVisit(q, q.suit).profile);
     kinds.push(currentGoal(p).kind);
-    expect(kinds).toEqual(['craft', 'song', 'reefTrade', 'print', 'rebreather', 'explore', 'raise', 'heart', 'crystal', 'flight', 'tripFuel', 'setCourse', 'reunion', 'brineEnd']);
+    expect(kinds).toEqual(['craft', 'song', 'reefTrade', 'print', 'rebreather', 'explore', 'raise', 'heart', 'crystal', 'flight', 'tripFuel', 'setCourse', 'reunion', 'talus']);
     for (const g of kinds) expect(g.length).toBeGreaterThan(0);
   });
 

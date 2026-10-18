@@ -69,12 +69,13 @@ describe('parsePlanets', () => {
 });
 
 describe('installing the full game', () => {
-  it('adds Mycel and Brine after Graphite, and a profile there lands there', () => {
+  it('adds Mycel, Brine and Talus after Graphite, and a profile there lands there', () => {
     installPaidPlanets(parsePlanets(wire(INKMINE_PAID_PLANETS)));
-    expect(loadedPlanets().map((p) => p.world.id)).toEqual(['graphite', 'mycel', 'brine']);
-    expect(hasWorld('mycel') && hasWorld('brine')).toBe(true);
+    expect(loadedPlanets().map((p) => p.world.id)).toEqual(['graphite', 'mycel', 'brine', 'talus']);
+    expect(hasWorld('mycel') && hasWorld('brine') && hasWorld('talus')).toBe(true);
     expect(currentPlanet({ ...NEW_PROFILE, at: 'mycel' }).name).toBe('Mycel');
     expect(currentPlanet({ ...NEW_PROFILE, at: 'brine' }).name).toBe('Brine');
+    expect(currentPlanet({ ...NEW_PROFILE, at: 'talus' }).name).toBe('Talus');
   });
 });
 

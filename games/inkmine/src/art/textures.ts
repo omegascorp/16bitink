@@ -24,6 +24,7 @@ import { drawRidges, RIDGE_W } from './ridgeArt';
 import { drawSky, SKY_W } from './skyArt';
 import { drawMycelRidges, drawMycelSky } from './mycelSky';
 import { drawBrineRidges, drawBrineSky } from './brineSky';
+import { drawTalusRidges, drawTalusSky } from './talusSky';
 import { drawStarship, drawStarshipAir, shipLookKey, STARSHIP_ART, type ShipLook } from './starship';
 import { drawStar, drawWorld, STAR_ART, worldFrame } from './systemArt';
 import { WORLDS } from '../logic/starSystem';
@@ -238,15 +239,17 @@ export function generateTextures(scene: Phaser.Scene, world: string, style: Grou
       bake(scene, TEX.charge('lineCharge', lit, f), LINE_FRAME_W, CHARGE_FRAME, LINE_FRAME_W / 2, CHARGE_FRAME / 2, ART_RES * 1.5, (ctx) => drawLineCharge(makeDraw(ctx, 310 + f, f, 0), lit));
     }
   }
-  // Each world has its own sky and horizon: Graphite's airless night and crater rims, Mycel's hazy day and fungal forest, Brine's lilac haze over a purple sea and its islands.
+  // Each world has its own sky and horizon: Graphite's airless night and crater rims, Mycel's hazy day and fungal forest, Brine's lilac haze over a purple sea and its islands, Talus's dusty butterscotch over its mesas.
   const mycel = world === 'mycel';
   const brine = world === 'brine';
+  const talus = world === 'talus';
   // Brine's seabed lies far under its islands' ground, and the sky shows down through the water to it.
   const skirt = brine ? SEA_SKIRT : SKY_SKIRT;
   bake(scene, TEX.sky(world, skyHeight), SKY_W, skyHeight + skirt, 0, 0, 1, (ctx) => {
     const d = makeDraw(ctx, 900, 0, 0);
     if (mycel) drawMycelSky(d, SKY_W, skyHeight + skirt, skyHeight);
     else if (brine) drawBrineSky(d, SKY_W, skyHeight + skirt, skyHeight);
+    else if (talus) drawTalusSky(d, SKY_W, skyHeight + skirt, skyHeight);
     else drawSky(d, SKY_W, skyHeight + skirt, skyHeight, style);
   });
   const ridge = skyHeight * 0.5;
@@ -257,6 +260,7 @@ export function generateTextures(scene: Phaser.Scene, world: string, style: Grou
     const d = makeDraw(ctx, 910, 0, 0);
     if (mycel) drawMycelRidges(d, RIDGE_W, ridge + skirt, ridge, style);
     else if (brine) drawBrineRidges(d, RIDGE_W, ridge + skirt, ridge, style);
+    else if (talus) drawTalusRidges(d, RIDGE_W, ridge + skirt, ridge, style);
     else drawRidges(d, RIDGE_W, ridge + skirt, ridge, style);
   });
 }

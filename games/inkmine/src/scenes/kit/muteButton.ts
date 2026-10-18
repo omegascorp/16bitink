@@ -53,3 +53,20 @@ export function narrationButton(scene: Phaser.Scene, x: number, y: number): Phas
   if (!sound) return null;
   return ringToggle(scene, x, y, '\u201C\u201D', () => sound.narration, () => sound.setNarration(!sound.narration), (sync) => sound.onNarrationChange(sync));
 }
+
+/**
+ * Full screen on or off, as InkFish's corner button: the site asks for it
+ * when play starts, and this brings it back after a swipe or Back leaves it.
+ * Nothing is drawn where the browser can't (an iPhone, an in-app browser).
+ */
+export function fullscreenButton(scene: Phaser.Scene, x: number, y: number): Phaser.GameObjects.Container | null {
+  // Phaser only checks the method exists; in-app browsers (WebViews) have it but refuse every request.
+  if (!scene.scale.fullscreen.available || !document.fullscreenEnabled) return null;
+  const toggle = (): void => {
+    if (scene.scale.isFullscreen) scene.scale.stopFullscreen();
+    // Not scale.startFullscreen(): it drops the request's promise, so a refusal becomes an uncaught error.
+    else (scene.scale.getFullscreenTarget() as HTMLElement).requestFullscreen({ navigationUI: 'hide' }).catch(() => undefined);
+  };
+  // Never struck through: the glyph says what a tap does either way.
+  return ringToggle(scene, x, y, '⤢', () => true, toggle, () => () => undefined);
+}

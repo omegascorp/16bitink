@@ -1,6 +1,8 @@
 import type { OreKind } from '../logic/ore';
 import { createRng, type Rng } from '../logic/rng';
 import { mix, rgba } from './paint';
+import { TALUS_GLYPHS } from './talusOres';
+import { dab, disc, inked, inside, line, lumpy, poly, restShadow, TAU, type P } from './oreKit';
 import { INK, PAPER_FILL } from './palette';
 
 /**
@@ -12,42 +14,9 @@ import { INK, PAPER_FILL } from './palette';
  * cubes, calcite in rhombs, amber in drops with a flier inside, lignite in
  * grained lumps and water in beads; on Brine, manganese in knobbed nodules,
  * halite in hollow-faced cubes, magnetite in glossy octahedra and pearls,
- * one still in its shell. Drawn centred on the origin, fitting a tile of
+ * one still in its shell; on Talus, see talusOres.ts. Drawn centred on the origin, fitting a tile of
  * `T` px. Plain canvas paths (not the Pen), since a chunk may hold dozens.
  */
-type P = readonly [number, number];
-
-function poly(ctx: CanvasRenderingContext2D, pts: readonly P[]): void {
-  ctx.beginPath();
-  pts.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
-  ctx.closePath();
-}
-
-/** Highlighter fill modelled like a stone (lit on the upper left, shaded on the lower right), then a pen outline. */
-function inked(ctx: CanvasRenderingContext2D, pts: readonly P[], color: string, width = 1.1): void {
-  poly(ctx, pts);
-  ctx.globalAlpha = 0.95;
-  ctx.fillStyle = color;
-  ctx.fill();
-  const xs = pts.map(([x]) => x);
-  const ys = pts.map(([, y]) => y);
-  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  const g = ctx.createLinearGradient(x0, y0, x1, y1);
-  g.addColorStop(0, 'rgba(255, 252, 235, 0.6)');
-  g.addColorStop(0.35, 'rgba(255, 252, 235, 0)');
-  g.addColorStop(0.7, 'rgba(60, 30, 40, 0.12)');
-  g.addColorStop(1, 'rgba(40, 24, 60, 0.38)');
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = g;
-  ctx.fill();
-  ctx.globalAlpha = 0.95;
-  ctx.lineWidth = width;
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = INK;
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-}
-
 /**
  * A highlighter swipe behind the glyph, as if someone marked the find: one
  * curved stroke of a broad nib at a slant, doubled where it was pressed
@@ -456,64 +425,6 @@ function char(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng)
 
 // Brine's ores (chapter 3), painted with more layers than the plain fills above: each has its own light, sheen and reflected colour.
 
-const TAU = Math.PI * 2;
-
-function disc(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry = rx): void {
-  ctx.beginPath();
-  ctx.ellipse(x, y, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, TAU);
-}
-
-/** A soft radial dab of colour, fading out from its middle. */
-function dab(ctx: CanvasRenderingContext2D, x: number, y: number, rad: number, color: string, alpha: number): void {
-  const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
-  g.addColorStop(0, rgba(color, alpha));
-  g.addColorStop(1, rgba(color, 0));
-  ctx.fillStyle = g;
-  ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2);
-}
-
-/** Runs `draw` clipped to a closed outline. */
-function inside(ctx: CanvasRenderingContext2D, pts: readonly P[], draw: () => void): void {
-  ctx.save();
-  poly(ctx, pts);
-  ctx.clip();
-  draw();
-  ctx.restore();
-}
-
-function line(ctx: CanvasRenderingContext2D, pts: readonly P[], color: string, width: number, alpha: number): void {
-  ctx.globalAlpha = alpha;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = width;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  pts.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-}
-
-/** A lumpy outline: a circle of florets, each bulging out between cusps, as a cauliflower or a botryoidal crust. */
-function lumpy(cx: number, cy: number, s: number, lobes: number, rng: Rng, squash = 0.86): P[] {
-  const amps = Array.from({ length: lobes }, () => 0.6 + rng() * 0.6);
-  const per = 5;
-  const turn = rng() * TAU;
-  return Array.from({ length: lobes * per }, (_, i) => {
-    const a = (i / (lobes * per)) * TAU + turn;
-    const q = s * (0.84 + 0.16 * Math.sin(((i % per) / per) * Math.PI) * amps[Math.floor(i / per)]!);
-    return [cx + Math.cos(a) * q, cy + Math.sin(a) * q * squash];
-  });
-}
-
-/** A soft shadow where a rounded thing rests on the rock. */
-function restShadow(ctx: CanvasRenderingContext2D, x: number, y: number, s: number): void {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(1, 0.4);
-  dab(ctx, 0, 0, s, '#1a1626', 0.35);
-  ctx.restore();
-}
-
 /** Manganese nodules: black-brown concretions, knobbed all over like a cauliflower, a dull sheen on their tops, seabed grit settled on them. */
 function nodules(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rng): void {
   const lumps = [
@@ -802,7 +713,7 @@ function pearls(ctx: CanvasRenderingContext2D, color: string, r: number, rng: Rn
   pearlBall(ctx, 0.62 * r, 0.48 * r, r * 0.14, color);
 }
 
-const GLYPHS = { nugget, cube: cubes, flake: flakes, prism: prisms, wire: wires, rime, botryoid, rhomb: rhombs, resin, chunk: chunks, bead: beads, char, nodule: nodules, salt, octahedron: octahedra, pearl: pearls } as const;
+const GLYPHS = { nugget, cube: cubes, flake: flakes, prism: prisms, wire: wires, rime, botryoid, rhomb: rhombs, resin, chunk: chunks, bead: beads, char, nodule: nodules, salt, octahedron: octahedra, pearl: pearls, ...TALUS_GLYPHS } as const;
 
 export function drawOreGlyph(ctx: CanvasRenderingContext2D, ore: OreKind, T: number, seed: number): void {
   const rng = createRng(seed);

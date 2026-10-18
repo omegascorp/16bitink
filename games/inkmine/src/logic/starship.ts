@@ -21,12 +21,15 @@ export type StarshipId = (typeof STARSHIP_IDS)[number];
 /**
  * Fitted later, not broken: the Aster's tank (chapter 3), drawn for you
  * by the last of the Aster on Mycel once it's awake. It doubles the tank,
- * enough for Brine.
+ * enough for Brine. Then their long tank (chapter 4), drawn by all four
+ * with their star chart: enough for Talus.
  */
-export const STARSHIP_UPGRADES = ['asterTank'] as const;
+export const STARSHIP_UPGRADES = ['asterTank', 'longTank'] as const;
 /** Whatever can be fitted aboard and saved as such: the four mended systems and the upgrades. */
 export type StarshipFit = StarshipId | (typeof STARSHIP_UPGRADES)[number];
 export const STARSHIP_FITS: readonly StarshipFit[] = [...STARSHIP_IDS, ...STARSHIP_UPGRADES];
+/** Whether a slot is an upgrade to fit, not a system to mend. */
+export const isUpgrade = (id: string): id is (typeof STARSHIP_UPGRADES)[number] => (STARSHIP_UPGRADES as readonly string[]).includes(id);
 /** The starship's slots on the Starship tab: the four to mend, the upgrades, and the jump drive, past mending here. */
 export const STARSHIP_SLOTS = [...STARSHIP_IDS, ...STARSHIP_UPGRADES, 'jump'] as const;
 export type StarshipSlot = (typeof STARSHIP_SLOTS)[number];
@@ -75,6 +78,12 @@ export const STARSHIP: Readonly<Record<StarshipSlot, StarshipSystem>> = {
     opens: 'The Aster tank is fitted: the ship holds twice the fuel, enough to reach Brine.',
     fact: 'Big rocket tanks are carbon fibre wound over a thin liner. Here the fibre is pitch from lignite, the resin amber and the liner a ceramic of calcite.',
   },
+  longTank: {
+    id: 'longTank', name: 'Long tank', needs: { lignite: 12, amber: 6, pyrite: 6 }, after: ['asterTank'],
+    broken: "The four Aster drew it with their star chart: a longer jar of the same pitch fibre, with a collar of pyrite iron at each end. It holds enough for Talus, nearer the star.",
+    opens: 'The long tank is fitted: the ship holds enough to reach Talus.',
+    fact: "The longer a tank, the more it holds for the same width of wall, which is why rocket stages are tall and thin. The collars take the push where the tank meets the frame.",
+  },
   jump: {
     id: 'jump', name: 'Jump drive', needs: null, after: [],
     broken: 'Dead. It steadies wormholes for a jump, and the wild one burnt it out. Nothing in this system can mend it: it is the way home, for later.',
@@ -82,11 +91,14 @@ export const STARSHIP: Readonly<Record<StarshipSlot, StarshipSystem>> = {
   },
 };
 
-/** The starship's fuel tank, once mended: split from ice like the lander's, for now (another fuel may take over for long trips). With the Aster's tank fitted it holds `aster`. */
-export const SHIP_TANK = { capacity: 10, aster: 20 } as const;
+/** The starship's fuel tank, once mended: split from ice like the lander's, for now (another fuel may take over for long trips). With the Aster's tank fitted it holds `aster`; with their long tank, `long`. */
+export const SHIP_TANK = { capacity: 10, aster: 20, long: 32 } as const;
 
 /** What the starship's tank holds now. */
-export const shipTankCapacity = (p: Pick<Profile, 'starship'>): number => (p.starship.includes('asterTank') ? SHIP_TANK.aster : SHIP_TANK.capacity);
+export function shipTankCapacity(p: Pick<Profile, 'starship'>): number {
+  if (p.starship.includes('longTank')) return SHIP_TANK.long;
+  return p.starship.includes('asterTank') ? SHIP_TANK.aster : SHIP_TANK.capacity;
+}
 
 /** What the starship's tank is split from where you are (the water you carry up: worlds.ts). */
 export const shipFuelOre = (p: Pick<Profile, 'at'>): OreKey => waterAt(p.at);
@@ -102,11 +114,14 @@ export type FixCheck = 'ok' | 'done' | 'order' | 'materials' | 'away' | 'never' 
 
 /** The Aster tank's design: the last of the Aster draws it once it's awake. */
 export const asterTankKnown = (p: Pick<Profile, 'beats'>): boolean => hasBeat(p, 'asterWoken');
+/** The long tank's design: the four Aster draw it with their star chart, together again. */
+export const longTankKnown = (p: Pick<Profile, 'beats'>): boolean => hasBeat(p, 'asterReunion');
 
 export function canFix(p: Profile, id: StarshipSlot): FixCheck {
   if (id === 'jump') return 'never';
   if (isFixed(p, id)) return 'done';
   if (id === 'asterTank' && !asterTankKnown(p)) return 'design';
+  if (id === 'longTank' && !longTankKnown(p)) return 'design';
   const s = STARSHIP[id];
   if (!s.after.every((a) => isFixed(p, a))) return 'order';
   if (!p.docked) return 'away';

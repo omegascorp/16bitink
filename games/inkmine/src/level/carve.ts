@@ -1,6 +1,7 @@
 import { hash, valueNoise } from '../logic/noise';
 import { ORES, type OreKey } from '../logic/ore';
 import { createRng, type Rng } from '../logic/rng';
+import { settleRocks } from '../logic/rocks';
 import { contentAt, createTerrain, inside, setContent, setTile, setVolatile, TILE, tileAt, volatileAt, type Terrain } from '../logic/terrain';
 import { VOLATILES } from '../logic/volatiles';
 
@@ -50,6 +51,8 @@ export interface CarveSpec {
   readonly spores?: number;
   /** Cap mushrooms: clusters standing on the open surface or on cave floors. */
   readonly caps?: readonly CapRule[];
+  /** Barrel plants (Talus): stands of them on the open surface. */
+  readonly plants?: readonly PlantRule[];
   /** Old charges an earlier crew left, placed by hand where the level needs them: column and depth below the surface. */
   readonly charges?: readonly { readonly kind: 'charge' | 'lineCharge'; readonly at: readonly [number, number] }[];
   /** The lander's column: the ground is flat and clear around it. */
@@ -72,7 +75,36 @@ export interface CarveSpec {
   readonly waterPockets?: { readonly count: number; readonly from: number; readonly to: number; readonly size: readonly [number, number] };
   /** Hand-placed caves kept full of air, that water never fills (an air bell). */
   readonly bells?: readonly Room[];
+  /** How much the open ground rolls, as a share of the usual (default 1; Talus's dry seabeds lie flatter). */
+  readonly roll?: number;
+  /** Mesas standing up out of the ground (Talus), with slopes of loose rock at their feet. */
+  readonly mesas?: readonly Mesa[];
 }
+
+/**
+ * A mesa (Talus): a flat-topped hill `height` rows over the ground between
+ * two columns (going east from the first), its top `cap` rows of hard
+ * stone (the caprock that keeps a real mesa from wearing down) over soft
+ * sandstone. At its feet, slopes of loose rock that fell from its cliffs,
+ * `talus` columns wide each side, highest against the cliff.
+ */
+export interface Mesa {
+  readonly cols: readonly [number, number];
+  readonly height: number;
+  /** Rows of caprock (default 2). */
+  readonly cap?: number;
+  /** Columns of loose rock each side (default 5). */
+  readonly talus?: number;
+}
+
+/** What stands on the ground at a column: a mesa's body (rows, its caprock first), and loose rock heaped over that. */
+interface Rise {
+  readonly body: number;
+  readonly cap: number;
+  readonly scree: number;
+}
+
+const FLAT: Rise = { body: 0, cap: 0, scree: 0 };
 
 /**
  * A sea round islands: the islands (column bands, going east from the
@@ -109,6 +141,14 @@ export interface CapRule {
   readonly clusters: number;
   /** Caps a cluster, at most. */
   readonly size: number;
+  readonly cols?: readonly [number, number];
+}
+
+/** Stands of barrel plants on the open surface: so many stands, each of up to `size` plants, each `tall` segments high; optionally only between two columns. */
+export interface PlantRule {
+  readonly clusters: number;
+  readonly size: number;
+  readonly tall: readonly [number, number];
   readonly cols?: readonly [number, number];
 }
 
@@ -154,14 +194,46 @@ function fromFlat(spec: CarveSpec, x: number): number {
   return Math.min(gap(spec, x, spec.landerCol), ...(spec.flats ?? []).map((f) => gap(spec, x, f)));
 }
 
+/** The top of the ground at column `x`: the rolling land, a mesa on it, or the loose rock heaped at a mesa's foot. */
 export function surfaceAt(spec: CarveSpec, x: number): number {
+  const rise = riseAt(spec, x);
+  return landAt(spec, x) - rise.body - rise.scree;
+}
+
+/** The ground at column `x` under any mesa or loose rock: the rolling land, or the seabed. */
+function landAt(spec: CarveSpec, x: number): number {
   const fromLander = fromFlat(spec, x);
   if (fromLander <= PAD) return spec.surface;
   const c = col(spec, x);
-  const roll = valueNoise(c, 0, 9, spec.seed, period(spec)) * 2.2 + valueNoise(c, 0, 3, spec.seed + 1, period(spec)) * 0.6;
+  const roll = (valueNoise(c, 0, 9, spec.seed, period(spec)) * 2.2 + valueNoise(c, 0, 3, spec.seed + 1, period(spec)) * 0.6) * (spec.roll ?? 1);
   const ease = Math.min(1, (fromLander - PAD) / 4);
   const land = spec.surface + Math.round(roll * ease);
   return spec.sea ? seaFloor(spec, spec.sea, c, land) : land;
+}
+
+/**
+ * The mesa standing at column `x`, or the loose rock at one's foot: the
+ * body is flat on top, a row lower at its very edges, and the loose rock
+ * slopes from two-fifths of the cliff's height against it down to nothing.
+ */
+function riseAt(spec: CarveSpec, x: number): Rise {
+  let best = FLAT;
+  for (const m of spec.mesas ?? []) {
+    const span = col(spec, m.cols[1] - m.cols[0]);
+    const into = col(spec, x - m.cols[0]);
+    const cap = m.cap ?? 2;
+    if (into <= span) {
+      const edge = into === 0 || into === span ? 1 : 0;
+      return { body: m.height - edge, cap, scree: 0 };
+    }
+    const off = Math.min(into - span, col(spec, m.cols[0] - x));
+    const talus = m.talus ?? 5;
+    if (off > talus) continue;
+    const k = 1 - (off - 1) / talus;
+    const scree = Math.round(m.height * 0.4 * k ** 1.6 + (hash(col(spec, x), 0, spec.seed + 61) - 0.5));
+    if (scree > best.scree) best = { body: 0, cap: 0, scree };
+  }
+  return best;
 }
 
 /** Columns from `x` to the nearest island, 0 on one (the short way round a wrapping site). */
@@ -295,19 +367,33 @@ function carveGround(spec: CarveSpec): Terrain {
   }
   // Caps last, on the ground as it finally lies.
   for (const rule of spec.caps ?? []) for (let i = 0; i < rule.clusters; i++) caps(t, spec, surface, rule, rng);
+  for (const rule of spec.plants ?? []) for (let i = 0; i < rule.clusters; i++) plants(t, spec, rule, rng);
+  // Loose rock that caves left standing on nothing has already fallen.
+  settleRocks(t);
   return t;
 }
 
-/** Soil, stone and deep rock by depth, their borders wandering, over bedrock. */
+/**
+ * Soil, stone and deep rock by depth below the land, their borders
+ * wandering, over bedrock; above the land, a mesa's caprock over its
+ * sandstone, or loose rock heaped at its foot.
+ */
 function layGround(t: Terrain, spec: CarveSpec, surface: readonly number[]): void {
   for (let x = 0; x < spec.width; x++) {
+    const rise = riseAt(spec, x);
+    const land = surface[x]! + rise.body + rise.scree;
     for (let y = surface[x]!; y < spec.height; y++) {
       const floor = spec.height - BEDROCK_ROWS - (hash(x, 0, spec.seed + 7) < 0.4 ? 1 : 0);
       if (y >= floor) {
         setTile(t, x, y, TILE.bedrock);
         continue;
       }
-      const d = y - surface[x]! + valueNoise(x, y, 6, spec.seed + 3, period(spec)) * 3.5;
+      if (y < land) {
+        const into = y - surface[x]!;
+        setTile(t, x, y, into < rise.scree ? TILE.loose : into < rise.scree + rise.cap ? TILE.stone : TILE.soil);
+        continue;
+      }
+      const d = y - land + valueNoise(x, y, 6, spec.seed + 3, period(spec)) * 3.5;
       setTile(t, x, y, d < spec.stone ? TILE.soil : d < spec.deep ? TILE.stone : TILE.deep);
     }
   }
@@ -489,6 +575,34 @@ function caps(t: Terrain, spec: CarveSpec, surface: readonly number[], rule: Cap
       const x = col(spec, x0 + k);
       if (!standing(x, y)) break;
       setTile(t, x, y, TILE.cap);
+    }
+    return;
+  }
+}
+
+/**
+ * A stand of barrel plants: a few columns along the open surface, a tile or
+ * two apart, each a stack of segments standing on bare ground (not on loose
+ * rock, which would carry it off when it slid). Never by the lander.
+ */
+function plants(t: Terrain, spec: CarveSpec, rule: PlantRule, rng: Rng): void {
+  const rooted = (x: number, y: number): boolean => inside(t, x, y) && tileAt(t, x, y) === TILE.air && tileAt(t, x, y - 1) === TILE.air
+    && (tileAt(t, x, y + 1) === TILE.soil || tileAt(t, x, y + 1) === TILE.stone) && fromFlat(spec, x) > PAD + 1;
+  for (let tries = 0; tries < 60; tries++) {
+    const x0 = rule.cols ? veinColumn(spec, { ore: 'copper', from: 0, to: 0, veins: 0, size: [0, 0], cols: rule.cols }, rng) : Math.floor(rng() * spec.width);
+    let y = 0;
+    while (y < spec.height - 1 && tileAt(t, x0, y + 1) === TILE.air) y++;
+    if (!rooted(x0, y)) continue;
+    const n = 1 + Math.floor(rng() * rule.size);
+    let x = x0;
+    for (let k = 0; k < n; k++) {
+      let gy = 0;
+      while (gy < spec.height - 1 && tileAt(t, x, gy + 1) === TILE.air) gy++;
+      if (rooted(x, gy)) {
+        const tall = rule.tall[0] + Math.floor(rng() * (rule.tall[1] - rule.tall[0] + 1));
+        for (let h = 0; h < tall && tileAt(t, x, gy - h) === TILE.air && tileAt(t, x, gy - h - 1) === TILE.air; h++) setTile(t, x, gy - h, TILE.plant);
+      }
+      x = col(spec, x + 2 + Math.floor(rng() * 2));
     }
     return;
   }

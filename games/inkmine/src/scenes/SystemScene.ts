@@ -66,7 +66,7 @@ interface Layout {
  * and from the lander's Fuel panel after.
  */
 /** Whether the map offers a trip from where the ship is to `to`: Brine's once the Aster has shown you why to go. */
-const offered = (p: Profile, to: WorldId): boolean => tripFuel(p.at, to) !== null && (to !== 'brine' || hasBeat(p, 'asterWoken'));
+const offered = (p: Profile, to: WorldId): boolean => tripFuel(p.at, to) !== null && (to !== 'brine' || hasBeat(p, 'asterWoken')) && (to !== 'talus' || hasBeat(p, 'asterReunion'));
 
 export class SystemScene extends Phaser.Scene {
   constructor() {
@@ -347,11 +347,15 @@ function statusOf(w: World, p: Profile): string {
       ? "The Aster's crew flew here from Mycel years ago and never called back. The Aster tank holds enough to reach it."
       : "The Aster's crew flew here from Mycel years ago and never called back. Out of the first tank's reach: the Aster drew you a bigger one.";
   }
-  if (isWorldId(w.id) && tripFuel(p.at, w.id) !== null && w.id !== 'brine') {
+  if (w.id === 'talus' && hasBeat(p, 'asterReunion')) {
+    return isFixed(p, 'longTank')
+      ? "On the Aster's star chart, a course is drawn in to it from the ringed giant's moons, and their star marked on it. The long tank holds enough to reach it."
+      : "On the Aster's star chart, a course is drawn in to it from the ringed giant's moons, and their star marked on it. Out of the Aster tank's reach: the four of them drew you a longer one.";
+  }
+  if (isWorldId(w.id) && tripFuel(p.at, w.id) !== null && w.id !== 'brine' && w.id !== 'talus') {
     if (demoOver(p) && w.id === FIRST_COURSE.to) return 'Course set: the full game goes there.';
     return w.id === FIRST_COURSE.to && hasBeat(p, 'distress') ? "The Aster's distress call comes from here. A sister moon, within reach of the ship's first tank." : "A sister moon: the nearest trip, within reach of the ship's first tank.";
   }
-  if (w.id === 'talus' && hasBeat(p, 'asterReunion')) return "On the Aster's star chart, a course is drawn in to it from the ringed giant's moons. Chapter 4 goes there.";
   if (w.id === 'brine' && hasBeat(p, 'asterWoken')) return "The Aster's crew flew here from Mycel years ago and never called back. Out of reach: it needs a bigger tank, and the chapters after.";
   return 'Out of reach: it needs a bigger tank, and the chapters after.';
 }

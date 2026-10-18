@@ -5,15 +5,17 @@ import type { Profile } from '../logic/economy';
 import { hasNarration, narrationUrl } from '../narration/library';
 import { readingTime, subtitleAt, subtitles } from '../narration/lines';
 import { remember } from '../narration/journal';
+import { STRIP_FIT, stripPlace, type StripPlace } from '../logic/screenLayout';
 import { upcoming } from '../narration/upcoming';
+import type { HudScene } from './HudScene';
 import { screenScene, viewSize } from './hidpi';
 import { plateCard } from './kit/plate';
 import { plaque } from './kit/plaque';
 import { storyCard, type StoryCardSpec } from './kit/storyCard';
 import { label, prose, SEPIA } from './kit/type';
 
-/** The strip at the foot of the screen, layout px: its width at most, its height, and how far up from the bottom. */
-const STRIP = { w: 700, h: 104, lift: 78, pad: 16, portrait: 64, button: 44 } as const;
+/** The strip at the foot of the screen, layout px: its height, padding, picture and buttons (its width and place: STRIP_FIT, stripPlace). */
+const STRIP = { h: 104, pad: 16, portrait: 64, button: 44 } as const;
 /** Subtitles are read larger than other text, as they're on screen only a moment. */
 const SUB_SIZE = 21;
 /** A speaker's alien voice (the Lamplighters') plays first; the narrator starts after it, s per word, plus a beat. */
@@ -76,6 +78,8 @@ export class NarratorScene extends Phaser.Scene {
   private voicing = false;
   private voice!: VoicePlayer;
   private strip: Phaser.GameObjects.Container | null = null;
+  /** The strip's width as last laid out (see place). */
+  private stripW: number = STRIP_FIT.w;
   private subtitle: Phaser.GameObjects.Text | null = null;
   private bar: Phaser.GameObjects.Graphics | null = null;
   private pauseLabel: Phaser.GameObjects.Text | null = null;
@@ -277,6 +281,12 @@ export class NarratorScene extends Phaser.Scene {
     }, 90, { narrate: false });
   }
 
+  /** Where the strip sits (see stripPlace): clear of the touch buttons while they show. */
+  private place(width: number): StripPlace {
+    const hud = this.scene.get('Hud') as HudScene | null;
+    return stripPlace(width, hud?.sys.isActive() ? (hud.touch?.corner() ?? null) : null);
+  }
+
   /** The strip for the current line, laid out for the screen as it is. */
   private build(): void {
     this.strip?.destroy();
@@ -284,7 +294,8 @@ export class NarratorScene extends Phaser.Scene {
     const line = this.line;
     if (!line || this.covered) return;
     const { width, height } = viewSize(this);
-    const w = Math.min(STRIP.w, width - 32);
+    const { x: cx, w, lift } = this.place(width);
+    this.stripW = w;
     const h = STRIP.h;
     const left = -w / 2 + STRIP.pad;
     const parts: Phaser.GameObjects.GameObject[] = [];
@@ -314,7 +325,7 @@ export class NarratorScene extends Phaser.Scene {
     parts.push(pause);
     parts.push(plaque(this, skipX, 0, '»', () => this.finish(), small));
     parts.push(plaque(this, readX, 0, 'Read', () => this.read(), { ...small, width: readW, size: 12 }));
-    this.strip = plateCard(this, width / 2, height - STRIP.lift - h / 2, w, h, parts, 131).setDepth(10);
+    this.strip = plateCard(this, cx, height - lift - h / 2, w, h, parts, 131).setDepth(10);
     this.shownChunk = -1;
     this.showProgress();
   }
@@ -329,8 +340,7 @@ export class NarratorScene extends Phaser.Scene {
       this.shownChunk = i;
       this.subtitle.setText(this.at < line.delay ? '…' : (line.chunks[i] ?? ''));
     }
-    const { width } = viewSize(this);
-    const w = Math.min(STRIP.w, width - 32);
+    const w = this.stripW;
     const k = Phaser.Math.Clamp(this.at / this.duration, 0, 1);
     this.bar.clear().lineStyle(2, 0x1f2a55, 0.35).lineBetween(-w / 2 + STRIP.pad, STRIP.h / 2 - 8, -w / 2 + STRIP.pad + (w - STRIP.pad * 2) * k, STRIP.h / 2 - 8);
   }

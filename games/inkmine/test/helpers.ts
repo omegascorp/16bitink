@@ -15,7 +15,7 @@ export const T = 32;
  * rock, `#` bedrock, `f` firedamp in soil, `F` firedamp in stone, `b` an old
  * charge in soil, `y` a line charge in soil, `c` copper in soil, `g`
  * graphite in soil, `q` quartz in stone, `m` a cap mushroom, `p` a spore
- * pocket in soil.
+ * pocket in soil, `o` loose rock.
  */
 export function grid(rows: readonly string[], wrap = false): Terrain {
   const t = createTerrain(rows[0]!.length, rows.length, wrap);
@@ -34,6 +34,7 @@ export function grid(rows: readonly string[], wrap = false): Terrain {
       if (ch === 'q') setTile(t, x, y, TILE.stone, ORES.quartz.id);
       if (ch === 'm') setTile(t, x, y, TILE.cap);
       if (ch === 'p') setTile(t, x, y, TILE.soil, 0, VOLATILES.spores.id);
+      if (ch === 'o') setTile(t, x, y, TILE.loose);
     });
   });
   return t;

@@ -41,11 +41,11 @@ describe('sound effects', () => {
   it('gives each ore its own note of the pentatonic, and unknown ids the root', () => {
     const pitches = ORE_KINDS.map((o) => orePitch(o.id));
     expect(new Set(pitches).size).toBe(pitches.length);
-    for (const p of pitches) expect(p).toBeGreaterThanOrEqual(1);
+    for (const p of pitches) expect(p).toBeGreaterThan(0);
     expect(orePitch(0)).toBe(1);
     expect(orePitch(-3)).toBe(1);
     expect(orePitch(1.5)).toBe(1);
-    expect(orePitch(18)).toBe(orePitch(1));
+    expect(orePitch(ORE_KINDS.length + 1)).toBe(orePitch(1));
   });
 });
 
