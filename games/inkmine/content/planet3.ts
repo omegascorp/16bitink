@@ -31,8 +31,16 @@ import type { PlanetDef } from '../src/level/types';
  * - The pearl banks (230–310): old shell beds deep in the sediment and the
  *   top of the basalt.
  * - Salt Isle (300–340): halite and fresh water again.
- * - The underworld, all round: big flooded caves sealed in the basalt
- *   (where the Leviathan will live), and small water pockets everywhere.
+ * - The Leviathan's cave (158–193, 83–92 m down): the biggest of the
+ *   flooded caves sealed in the basalt, under the reef. The Leviathan
+ *   sleeps at its west end; the crew's drive crystal lies at its east end,
+ *   where it fell, far enough off to dig down to quietly.
+ * - The underworld, all round: more flooded caves sealed in the basalt,
+ *   and small water pockets everywhere.
+ *
+ * Its creatures: shore crabs on the islands and the seabed (harmless),
+ * bubble jellies in the open sea and the flooded caves, rasp eels in the
+ * flooded caves' walls; none round the lander or at the Tidesingers' reef.
  *
  * The ground: sediment to about 22 m under the seabed, basalt to about
  * 110 m, deep rock below for a later drill.
@@ -111,10 +119,10 @@ export const PLANET_3: PlanetDef = {
       ],
       // The air bell the Tidesingers keep full for the crew, in the cave's upper corner.
       bells: [{ at: [216, 31], w: 7, h: 3 }],
-      // The underworld: big caves full of water, sealed in the basalt.
+      // The underworld: big caves full of water, sealed in the basalt. The second is the Leviathan's.
       aquifers: [
         { at: [60, 70], w: 24, h: 8 },
-        { at: [176, 88], w: 30, h: 10 },
+        { at: [176, 88], w: 36, h: 10 },
         { at: [268, 78], w: 22, h: 9 },
         { at: [352, 100], w: 26, h: 8 },
         { at: [16, 124], w: 30, h: 10 },
@@ -125,6 +133,22 @@ export const PLANET_3: PlanetDef = {
     craft: 150,
     // The Tidesingers' home: the floor of their cave.
     reef: { at: [209, 37] },
+    // The Leviathan, asleep on the floor at the west end of its cave; the craft's drive crystal at the east end, 18 tiles past it.
+    giant: { at: [165, 92], kind: 'leviathan' },
+    crystal: { at: [188, 92] },
+    creatures: [
+      // Shore crabs walk the islands (away from the lander) and the seabed.
+      { kind: 'crab', count: 4, from: 0, to: 0, cols: [62, 78] },
+      { kind: 'crab', count: 4, from: 0, to: 0, cols: [300, 340] },
+      { kind: 'crab', count: 10, from: 7, to: 18, cols: [80, 296] },
+      // Bubble jellies in the open sea, east of the Landing Isle, and more down in the flooded caves (none under the Landing Isle).
+      { kind: 'jelly', count: 12, from: 3, to: 18, cols: [84, 296] },
+      { kind: 'jelly', count: 18, from: 40, to: 150, cols: [66, 372] },
+      // Rasp eels in the walls of the flooded caves (none in the Tidesingers' reef): deeper is fiercer.
+      { kind: 'lamprey', count: 4, from: 20, to: 60, cols: [84, 190] },
+      { kind: 'lamprey', count: 4, from: 20, to: 60, cols: [228, 380] },
+      { kind: 'lamprey', count: 16, from: 60, to: 150, cols: [66, 372] },
+    ],
     // The Tidesingers' old tools, in their drowned village: each a Mk 3 design (the drill comes from them alive, for copper).
     items: [
       { id: 'village-cell', kind: 'wreck', at: [96, 16], blueprint: 'cell-3', drill: 2 },

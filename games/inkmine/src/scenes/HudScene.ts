@@ -16,7 +16,7 @@ import { drawSlotGrid, gridHeight } from './slots';
 import { storyCard } from './kit/storyCard';
 import { ASTER_CARD } from './hud/asterCard';
 import { campSpec } from './hud/campCards';
-import { craftSpec, reefSpec } from './hud/brineCards';
+import { craftSpec, crystalSpec, reefSpec } from './hud/brineCards';
 import { talkSpec } from './hud/talkCards';
 import { TouchPad } from './hud/touchPad';
 import { muteButton } from './kit/muteButton';
@@ -267,7 +267,7 @@ export class HudScene extends Phaser.Scene {
         game.closeFound();
       }, 70);
     }
-    if (game.camp && game.camp !== 'awake' && !this.talk) {
+    if (game.camp && game.camp !== 'awake' && game.camp !== 'together' && !this.talk) {
       this.talk = storyCard(this, campSpec(this, game.camp), () => {
         this.talk = null;
         game.closeCamp();
@@ -283,6 +283,12 @@ export class HudScene extends Phaser.Scene {
       this.talk = storyCard(this, craftSpec(this, game.craft), () => {
         this.talk = null;
         game.closeCraft();
+      }, 70);
+    }
+    if (game.crystal && !this.talk) {
+      this.talk = storyCard(this, crystalSpec(this), () => {
+        this.talk = null;
+        game.closeCrystal();
       }, 70);
     }
   }

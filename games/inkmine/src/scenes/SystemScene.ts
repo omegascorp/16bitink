@@ -273,12 +273,16 @@ export class SystemScene extends Phaser.Scene {
     const was = getProfile(this);
     const first = !hasBeat(was, 'course');
     const sea = to === 'brine' && !was.visited.includes('brine');
+    // Following the Aster crew home, at the end of chapter 3.
+    const homeward = to === 'mycel' && hasBeat(was, 'craftFlown') && !hasBeat(was, 'asterReunion');
     setProfile(this, travel(was, to));
     const name = worldById(to)!.name;
     const from = worldById(was.at)!.name;
     const text = first
       ? `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${name} grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.`
-      : sea
+      : homeward
+        ? `The engine hums and the sea world falls away behind. Somewhere ahead, a speck of teal light is crossing the same dark: the crew's craft, going home. Days on, the ringed giant fills the window, and beside it the green moon, where four of the Aster will be waiting.`
+        : sea
         ? `The Aster tank takes the strain, and for the first time the ship leaves the ringed giant behind. ${from} shrinks to a green dot beside it, then is lost in its glare. Days on, a blue-violet world fills the window: sea from edge to edge, scattered with islands, and somewhere down there, three of the Aster.`
         : to === 'brine' || was.at === 'brine'
           ? `The engine hums and ${from} slides away below. The long crossing between the ringed giant and the sea world, and ${name} fills the window.`
@@ -364,6 +368,7 @@ function statusOf(w: World, p: Profile): string {
     if (demoOver(p) && w.id === FIRST_COURSE.to) return 'Course set: the full game goes there.';
     return w.id === FIRST_COURSE.to && hasBeat(p, 'distress') ? "The Aster's distress call comes from here. A sister moon, within reach of the ship's first tank." : "A sister moon: the nearest trip, within reach of the ship's first tank.";
   }
+  if (w.id === 'talus' && hasBeat(p, 'asterReunion')) return "On the Aster's star chart, a course is drawn in to it from the ringed giant's moons. Chapter 4 goes there.";
   if (w.id === 'brine' && hasBeat(p, 'asterWoken')) return "The Aster's crew flew here from Mycel years ago and never called back. Out of reach: it needs a bigger tank, and the chapters after.";
   return 'Out of reach: it needs a bigger tank, and the chapters after.';
 }

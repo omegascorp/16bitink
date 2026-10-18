@@ -355,7 +355,7 @@ Every planet has its own native creatures, invented but built from a few behavio
 - **The drill is a tool, not a weapon.** Going deeper needs a weapon (below). Blasts hurt creatures too, so the terrain is still a weapon.
 - **No loot.** Creatures drop nothing; a reason to clear them comes from a job.
 - **Never saved.** They're placed fresh from the world's rules on every landing (`placeCreatures`, on the ground as carved, so in the same spots each time): what you burst grows back.
-- **Each planet's giant** lives in its deepest region. Mycel's is the **Mother Mycel**.
+- **Each planet's giant** lives in its deepest region. Mycel's is the **Mother Mycel**; Brine's is the **Leviathan**.
 
 **Built on Mycel (Oct 17, 2026)** (`logic/creatures.ts`, `logic/fauna.ts`, drawn by `scenes/game/faunaView.ts`, art in `art/creatures/`):
 
@@ -367,6 +367,17 @@ Every planet has its own native creatures, invented but built from a few behavio
 | The Mother Mycel | Giant | Her chamber deep in the limestone east of the wreck (10 × 7 tiles) | Can't be hurt (a pulse leaves no mark). Every 4 s she beats: a red wave of spores spreads out, costing 10 air to anyone within 7 tiles of her. Touching her is a hit and throws you off. You mine your way around her |
 
 What you kill leaves pieces where it was, picked up like ore (`SPOILS` in `logic/creatures.ts`). A puffball leaves carbon and water, since it's cap flesh round a sac of water. A tendril leaves carbon and amber: it's a resinous root, so it's the deep stone's reward. Grazers and the Mother leave nothing, since neither can be killed. A blast kills the same way a pulse does.
+
+**Built on Brine (Oct 18, 2026)** (`logic/seaFauna.ts`, the crab with the grazer's walk in `logic/fauna.ts`; art in `art/creatures/` and `art/brineFauna.ts`). None round the lander, under the Landing Isle, or in the Tidesingers' reef:
+
+| Creature | Behaviour | Where | What it does |
+| --- | --- | --- | --- |
+| Shore crab | Harmless walker, blue ink | The islands (away from the lander) and the seabed | Walks the ground as a grazer does; shot, it tucks in for 3 s. Brine's crab-form, salt-crusted |
+| Bubble jelly | Flyer, water only | The open sea east of the Landing Isle, and the flooded caves | Hangs in the water, bobbing. Notices a swimmer within 5 tiles (a "!"), then drifts after them at 0.9 tiles/s, only through water. A sting is a hit and 4 air; then it backs off and rests 2 s. It gives up when you leave the water. Left dry, it bursts. A pulse bursts it |
+| Rasp eel | Lunger | Burrows in the walls of flooded caves, deeper ones more | Waits in its burrow facing out; when something is in front of it on its row, within 4 tiles, a "!", then it lunges out and bites (a hit) and pulls back in to rest. A pulse sends it back in; a second kills it. Its teeth are capped with magnetite, as a real chiton's are |
+| The Leviathan | Giant | Asleep at the west end of its cave, 83–92 m down under the reef (10 × 4 tiles) | Can't be hurt. Noise wakes it: each tile drilled within 10 tiles of it, a blast within 18, a pulse, swimming within 3 tiles of it; it settles again in the quiet. At half a measure it stirs ("something huge stirs below…"); at a full one it wakes, stirs 1.6 s, then sweeps its cave back and forth for 12 s. Touching it, awake, is a hit and throws you; touching it asleep wakes it. Then it swims home and sleeps |
+
+A jelly leaves water and halite (it's mostly salt water); a rasp eel leaves magnetite. Crabs and the Leviathan leave nothing.
 
 ## Weapons
 
@@ -454,7 +465,7 @@ Each planet is its own world, with its own shape, people and language, and adds 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Graphite | Grey cratered moon | The basics: drilling, ore, firedamp, the life system, repairs, the first language | Starter set | None: a bare rock (Oct 17, 2026) | None | Graphite, pencil lead |
 | 2 | Mycel | Fungal jungle | Growth: fungus slowly grows back over tunnels; cap mushrooms bounce you; spore pockets catch fire from a blast | Spore filter | Puffballs (spitter), snap tendrils (dropper) | The Mother Mycel, a heart you mine your way around | Amber with alien insects in it |
-| 3 | Brine | Island crust over a flooded underworld | Water and air: breaking into an aquifer floods the tunnels; you swim, and underwater air drains fast, refilled by bubble capsules (Mr. Driller) | Rebreather | Cave lampreys (swimmer), bubble jellies (flyer) | The Leviathan, in an underground sea | Brine pearls |
+| 3 | Brine | Island crust over a flooded underworld | Water and air: breaking into an aquifer floods the tunnels; you swim, and underwater air drains fast, refilled by bubble capsules (Mr. Driller) | Rebreather | Rasp eels (lunger), bubble jellies (flyer), shore crabs (harmless) | The Leviathan, asleep in a flooded cave | Brine pearls |
 | 4 | Talus | Red mesas and dry gullies | Gravity: loose rock and boulders fall when you dig under them, and crush creatures | Blasting charges | Boulder beetles (mimic), sand skates (burrower) | The Rockslide, which sheds boulders as it walks | Hematite, "blood ore" |
 | 5 | Prism | Crystal caverns | Resonance: hit a crystal and every touching crystal of its colour shatters at once | Tuning fork | Shardlings (hurt only while glowing), refractors (beams bounce off crystal) | The Crystal Queen | Singing quartz |
 | 6 | Ember | Volcanic world | Lava: flows like water, burns; lava meeting water turns to obsidian; heat as a hazard | Coolant foam | Magma slugs (burning trails), cinder bats (flyer) | The Salamander | Diamonds, in kimberlite pipes |
@@ -560,7 +571,9 @@ Another people who fell through the wormhole, years before you, and the first al
 
 ## Brine (chapter 3, the full game)
 
-Decided with @Hayk on Oct 17, 2026: the three Aster crew who flew to Brine are alive. Their craft sank in the sea, and Brine's own people, an ocean people, pulled them out. They live with them now and can't leave. The ocean people can't make fire, so they can't get metal: they ask you for it and pay in knowledge. The starship's bigger tank, the one Brine needs, comes from the woken Aster. This first step builds the spine: the tank and the trip, Brine's world, ores and water, swimming, the Mk 3 gear and the story up to the crew's craft flying again. Brine's creatures, the Leviathan and the ocean people's language come next. @Hayk asked for a longer story and a bigger world than Mycel's.
+Decided with @Hayk on Oct 17, 2026: the three Aster crew who flew to Brine are alive. Their craft sank in the sea, and Brine's own people, an ocean people, pulled them out. They live with them now and can't leave. The ocean people can't make fire, so they can't get metal: they ask you for it and pay in knowledge. The starship's bigger tank, the one Brine needs, comes from the woken Aster. This first step builds the spine: the tank and the trip, Brine's world, ores and water, swimming, the Mk 3 gear and the story up to the crew's craft flying again. @Hayk asked for a longer story and a bigger world than Mycel's.
+
+Finished on Oct 18, 2026, with @Hayk's choices: the crew go home **by way of the deep** (their craft's drive crystal lies by the Leviathan; fetched, they fly home to Mycel, the four Aster meet again, and their star chart points to Talus, chapter 4); the Leviathan **sleeps and is avoided** (noise wakes it); the Tidesingers' language waits for a **game-wide language system**, built later for the Lamplighters and the Tidesingers together. Built: Brine's creatures (`logic/seaFauna.ts`, art in `art/creatures/` and `art/brineFauna.ts`), the Leviathan and its cave, the crystal, the flight home and the reunion (`scenes/game/storySites.ts`, which holds every story place's visits now). `test/seaFauna.test.ts` and `test/brineEnd.test.ts` check it.
 
 Built Oct 18, 2026 (`content/planet3.ts`, `logic/water.ts`, the reef and craft in `scenes/game/brineSites.ts`, their cards in `scenes/hud/brineCards.ts`, the art in `art/tidesinger/`, `art/asterCraftArt.ts` and `art/brineSky.ts`); `test/brine.test.ts`, `test/water.test.ts` and the Brine part of `test/world.test.ts` check it.
 
@@ -583,7 +596,11 @@ A sea world in the habitable zone, a little bigger than the prospector's own (1.
 11. **The drowned village** (goal `explore:3`). The Tidesingers' old village lies under the shelf west of the reef, flooded and given up long ago. Their broken tools lie in it, each a Mk 3 design ("Mk 3 designs 2/6"): stone, shell and glass, no metal anywhere.
 12. **Raise the craft** (goal `raise`). The crew want to go home, or at least to go on. Their craft has to come up first: its hull is cracked. Bring the crew 10 magnetite from the basalt for the patch (kept in the bag), and the Tidesingers fill bladders under it and float it up (beat `craftRaised`, the card "Up from the reef"). Real salvors raise wrecks with lift bags.
 13. **A new heart for the craft** (goal `heart`). Its cell drowned. Their cells are glass prisms on a cathode; on Brine that means 6 manganese nodule and 4 brine pearl, carried to the craft, now floating over the reef (beat `craftMended`, "The craft's heart").
-14. **The end, for now** (goal `brineEnd`). The craft hums; the crew thank the Tidesingers in light and song. Where they fly, and what lives in Brine's flooded underworld, comes next.
+14. **The drive crystal** (goal `crystal`). The craft hums but won't rise: its drive crystal, the glass that turns the cell's power into lift, fell out through the split keel and down a crack in the reef into the Leviathan's cave (the card "The craft's heart" now ends on the crew's drawing of it). The beacon points to it. Dig down quietly from its end of the cave and swim to it (beat `crystalFound`, the card "The drive crystal"): touching it takes it.
+15. **Bring it to the craft** (goal `flight`). The crew slot it in and fly home to Mycel (beat `craftFlown`, the card "Home"). The craft is gone from Brine.
+16. **Back to Mycel**: fill the ship's tank (14) and set course (goals `tripFuel:mycel`, `course:mycel`; the course card follows the crew's light home).
+17. **The reunion** (goal `reunion`). The crew's craft stands landed among the caps over their camp; in the camp all four Aster are together (beat `asterReunion`, the card "Four again"). They give you their star chart, with a course drawn in to Talus, nearer the star, and point at the wormhole's mark: whatever they saw at Talus matters for the way home. The star map's Talus card says chapter 4 goes there.
+18. **The end of chapter 3** (goal `brineEnd`).
 
 ### Water and air
 
@@ -607,7 +624,8 @@ Brine is 384 tiles round and 200 deep (Graphite 256 × 160, Mycel 240 × 144). I
 | The Tidesingers' reef | 196–222, 30–40 m down | Their home, flooded, reached through a cave in the seabed; the air bell with the crew | The song |
 | The pearl banks | 240–300 | Old shell beds deep in the sediment and in the basalt: brine pearls | Mk 3 drill for most |
 | Salt Isle | 300–340 | A second island: halite and fresh water | Swimming |
-| The underworld | Deep, all round | Big flooded caves in the basalt | Later: the Leviathan |
+| The Leviathan's cave | 158–193, 83–92 m down, under the reef | The biggest flooded cave: the Leviathan asleep at its west end, the craft's drive crystal at its east end, 18 tiles past it, so you can dig down to it out of earshot | The Mk 3 drill, the rebreather (it's 10 m of water deep) |
+| The underworld | Deep, all round | More flooded caves in the basalt, water pockets everywhere, jellies and rasp eels | Mk 3 drill |
 
 **Its fuels:** fresh water for the air and both tanks, and manganese nodules for the cell. Real alkaline batteries have a manganese dioxide cathode, and manganese nodules cover real abyssal seabeds.
 
@@ -795,7 +813,7 @@ The world save also keeps the bag left under its flag (a tile index and the inve
 
 ## Stats: goals as levels
 
-InkMine has no levels, so the site's level funnel follows the goal chain instead (`logic/progress.ts`). Each goal is one step, numbered in the order a player meets it, from "Repair the printer" (1) to "The end (more of Brine is coming)" (42). Brine's twelve steps (31–42) were added after chapter 2's; step 30, `brine`, was chapter 2's end and is now "Fit the Aster's tank". The funnel needs no changes on the site.
+InkMine has no levels, so the site's level funnel follows the goal chain instead (`logic/progress.ts`). Each goal is one step, numbered in the order a player meets it, from "Repair the printer" (1) to "The end of chapter 3" (47). Brine's steps (31–47) were added after chapter 2's; step 30, `brine`, was chapter 2's end and is now "Fit the Aster's tank". Brine's last five (crystal, flight, the trip to Mycel, the reunion) were put in before its end step on Oct 18, 2026, before Brine was ever on sale, so no player had reached them; from now on, steps are only appended. The funnel needs no changes on the site.
 
 - **A step starts** when it becomes the goal, and again at the start of each session, so "Tries" counts the sittings a goal took.
 - **A step is beaten** when the goal moves past it. Its time is play time, counted only while the game is on screen and kept in the profile (`stats.played`), so a goal spread over three evenings counts all three.
@@ -861,7 +879,7 @@ Copy what InkMine needs into `games/inkmine` first; extract a shared package onc
 5. ~~**Creatures**~~: none on Graphite (Oct 17, 2026). Built on Mycel instead, with the Aster's pulse (see Creatures, Weapons).
 6. **The rest of Graphite:** the old crew's base, the grey band, the deep; the drive core and lift-off; the opening and the ending.
 7. Coach hints, sound, touch controls, account sync; add InkMine to the catalog with chapter 1 free. Sound and touch built Oct 17, 2026: calm synthesized ambience after No Man's Sky (a drone that darkens with depth, a warmer hum aboard, a sparse starry one on the map) and soft event sounds, all Web Audio with no files (`src/audio/`); M or the ♪ button mutes, saved.
-8. ~~The first star system and its map~~ (done Oct 17, 2026: fuel, lift-off, docking, the starship's repairs and hold, first light, the first trip, the end of the demo). Mycel's first step built the same day (see "Mycel"), and Brine's spine on Oct 18, 2026 (see "Brine": its creatures, the Leviathan and the Tidesingers' language still to come); next, the game clock, moving orbits and trip costs by launch window; then planets 2–10, one at a time, each with its people, and the galaxy map past this system.
+8. ~~The first star system and its map~~ (done Oct 17, 2026: fuel, lift-off, docking, the starship's repairs and hold, first light, the first trip, the end of the demo). Mycel's first step built the same day (see "Mycel"), and Brine on Oct 18, 2026 (see "Brine"; the Tidesingers' language waits for the game-wide language system); next, the game clock, moving orbits and trip costs by launch window; then planets 2–10, one at a time, each with its people, and the galaxy map past this system.
 
 ## Decisions
 

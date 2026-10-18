@@ -7,7 +7,7 @@ import { NEW_PROFILE, type Profile } from '../src/logic/economy';
 import { addHoldTo, contents, emptyInventory } from '../src/logic/inventory';
 import { BRINE_SET, brineSetFound, currentGoal, goalLine, MYCEL_SET } from '../src/logic/repairs';
 import { canFix, fix, shipTankCapacity, SHIP_TANK, STARSHIP_IDS } from '../src/logic/starship';
-import { craftVisit, HEART, keptOres, RAISE, REEF_TRADE, reefVisit, withBeat } from '../src/logic/story';
+import { campVisit, craftVisit, crystalVisit, HEART, keptOres, RAISE, REEF_TRADE, reefVisit, withBeat } from '../src/logic/story';
 import { airRate, AIR, STARTER, SUIT_STACK } from '../src/logic/suit';
 import { canTravel, tripFuel } from '../src/logic/travel';
 import { fuelsAt } from '../src/logic/worlds';
@@ -58,7 +58,7 @@ describe('the way to Brine', () => {
 });
 
 describe("Brine's story", () => {
-  it('goes craft, song, copper, drill, rebreather, the drowned village, the hull, the heart', () => {
+  it('goes craft, song, copper, drill, rebreather, the drowned village, the hull, the heart, the crystal, home to Mycel and the reunion', () => {
     const kinds: string[] = [];
     let p = LANDED;
     const step = (f: (q: Profile) => Profile): void => {
@@ -73,8 +73,13 @@ describe("Brine's story", () => {
     step((q) => ({ ...q, found: [...new Set([...q.found, ...BRINE_SET])] }));
     step((q) => reefVisit(q, bag(RAISE), brineSetFound).profile);
     step((q) => craftVisit(q, bag(HEART)).profile);
+    step((q) => crystalVisit(q)!);
+    step((q) => craftVisit(q, q.suit).profile);
+    step((q) => ({ ...q, docked: true, shipFuel: 14 }));
+    step((q) => ({ ...q, at: 'mycel', shipFuel: 0 }));
+    step((q) => campVisit(q, q.suit).profile);
     kinds.push(currentGoal(p).kind);
-    expect(kinds).toEqual(['craft', 'song', 'reefTrade', 'print', 'rebreather', 'explore', 'raise', 'heart', 'brineEnd']);
+    expect(kinds).toEqual(['craft', 'song', 'reefTrade', 'print', 'rebreather', 'explore', 'raise', 'heart', 'crystal', 'flight', 'tripFuel', 'setCourse', 'reunion', 'brineEnd']);
     for (const g of kinds) expect(g.length).toBeGreaterThan(0);
   });
 

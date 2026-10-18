@@ -58,7 +58,7 @@ export function reefSpec(scene: Phaser.Scene, says: Exclude<ReefSays, 'wait'>): 
   }
 }
 
-/** What happens at the Aster craft (story.ts craftVisit): finding it sunk, its heart still to bring, and mended. */
+/** What happens at the Aster craft (story.ts craftVisit): finding it sunk, its heart still to bring, mended (but missing its drive crystal), and flying home. */
 export function craftSpec(scene: Phaser.Scene, says: CraftSays): StoryCardSpec {
   const pic = brinePictures(scene);
   switch (says) {
@@ -78,8 +78,26 @@ export function craftSpec(scene: Phaser.Scene, says: CraftSays): StoryCardSpec {
     case 'mended':
       return {
         title: "The craft's heart", subtitle: 'it hums again', portrait: pic.craftMended,
-        text: "The crew lift the old cell out, black with salt, and build the new one in its place: manganese for the cathode, nacre to case the prism. The glass catches, flickers and glows teal, and the hull hums. The three of them flash their crowns in a long ripple, and out in the water the Tidesingers answer in song. They're not leaving yet: they keep looking at the deep water, and at the reef. What they want to do next, and what lives down in Brine's flooded underworld, is for the next part of the story.",
-        button: 'Watch it glow',
+        text: "The crew lift the old cell out, black with salt, and build the new one in its place: manganese for the cathode, nacre to case the prism. The glass catches, flickers and glows teal, and the hull hums. But it doesn't rise. They open the keel and show you an empty cradle: the drive crystal, the glass that turns the cell's power into lift, fell out through the split when it sank. One of them scratches it on the hull for you: the crystal tumbling down a crack in the reef, far down into a cave full of water, to lie beside a shape so big it fills the drawing, asleep. The Tidesingers never go down there. When they sing of it, they sing very quietly.",
+        pictures: [pic.crystalFall],
+        button: 'Down, quietly',
+      };
+    case 'flight':
+      return {
+        title: 'Home', subtitle: 'the craft flies', portrait: pic.craftFlying, voice: { words: 4, seed: 347 },
+        text: "The crew slot the crystal into its cradle under the keel, and the craft lifts out of the sea, streaming, on a column of teal light. The Tidesingers rise all round it, singing the long song you followed here, and the crew answer in light, crown after crown. Then it climbs, and turns towards the ringed giant and its green moon: home to Mycel, where the last of them has been waiting all this time. As it goes, their crowns flash at you, slow and steady, the same pulses as the beacon: come.",
+        button: 'Follow them',
       };
   }
+}
+
+/** Finding the craft's drive crystal in the Leviathan's cave (story.ts crystalVisit). */
+export function crystalSpec(scene: Phaser.Scene): StoryCardSpec {
+  const pic = brinePictures(scene);
+  return {
+    title: 'The drive crystal', subtitle: "in the Leviathan's cave", portrait: pic.crystal,
+    text: "It lies in the silt at the far end of the cave, a prism of teal glass as long as your forearm, still faintly lit. At the other end, filling the dark, something sleeps: longer than your lander is tall, crusted with salt, a row of lights along its flank dimming and brightening with each slow breath. Real deep-sea animals light themselves like this, with photophores. You ease the crystal into the suit's pouch. Now back out, as quietly as you came: no drilling near it.",
+    pictures: [pic.leviathan],
+    button: 'Quietly',
+  };
 }

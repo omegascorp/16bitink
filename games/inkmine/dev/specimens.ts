@@ -18,6 +18,8 @@ import { creatureSections } from './creatures';
 import { brineSections } from './brineLand';
 import { brineGearSections } from './brineGear';
 import { brineFolkSections } from './brineFolk';
+import { brineEndingSections } from './brineEnding';
+import { brineFaunaSections } from './brineFauna';
 import { ASTER_CAMP, ASTER_CRAFT_PICTURE, ASTER_PERSON, drawAsterBrinePicture, drawAsterCamp, drawAsterCraftPicture, drawAsterPerson, drawAsterPersonAir, drawSleepPod, drawSleepPodAir, SLEEP_POD } from '../src/art/aster/camp';
 import { ASTER_FINISH, ASTER_PICTURE_RES, type Finish } from '../src/art/textures';
 
@@ -229,3 +231,5 @@ for (const t of STARSHIP_TECH) for (const v of ['broken', 'mended'] as const) fi
 brineSections(section, figure);
 brineGearSections(section, figure);
 brineFolkSections(section, figure);
+brineEndingSections(section, figure);
+brineFaunaSections(section, figure);

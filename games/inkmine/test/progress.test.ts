@@ -55,6 +55,11 @@ function walk(): Profile[] {
   next((p) => ({ ...p, found: [...new Set([...p.found, ...BRINE_SET])] }));
   next((p) => beats(p, 'craftRaised'));
   next((p) => beats(p, 'craftMended'));
+  next((p) => beats(p, 'crystalFound'));
+  next((p) => ({ ...beats(p, 'craftFlown'), shipFuel: 0 }));
+  next((p) => ({ ...p, shipFuel: 14 }));
+  next((p) => ({ ...p, at: 'mycel', shipFuel: 0 }));
+  next((p) => beats(p, 'asterReunion'));
   return out;
 }
 

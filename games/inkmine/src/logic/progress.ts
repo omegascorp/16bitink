@@ -56,8 +56,14 @@ const STEP_LIST: readonly Step[] = [
   { key: 'explore:3', name: 'Study the Mk 3 designs' },
   { key: 'raise', name: "Raise the crew's craft" },
   { key: 'heart', name: "Give the craft a new heart" },
+  // Inserted before the end on Oct 18, 2026, before Brine was ever on sale (nobody had reached these steps).
+  { key: 'crystal', name: 'Fetch the drive crystal' },
+  { key: 'flight', name: 'Bring the crystal to the craft' },
+  { key: 'tripFuel:mycel', name: "Fill the ship's tank for Mycel" },
+  { key: 'course:mycel', name: 'Set course for Mycel' },
+  { key: 'reunion', name: 'Meet the crew at their camp' },
   // The end of the story so far: reaching it is beating it.
-  { key: 'brineEnd', name: 'The end (more of Brine is coming)' },
+  { key: 'brineEnd', name: 'The end of chapter 3' },
 ];
 export const STEPS: readonly Step[] = STEP_LIST;
 

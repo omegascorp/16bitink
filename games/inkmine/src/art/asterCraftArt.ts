@@ -6,6 +6,7 @@ import type { Pt } from './pen';
 import { lash, rib } from './aster/gear';
 import { ASTER, starGlyph } from './aster/style';
 import { fibreCord, liftBag, TIDE } from './tidesinger/style';
+import { craftDrips, craftGround, craftLegs, craftLift, craftThrust, type GroundState } from './asterCraftFlight';
 
 /**
  * The Aster crew's craft on Brine (spec, "Brine": the craft, raising it, a
@@ -22,13 +23,21 @@ import { fibreCord, liftBag, TIDE } from './tidesinger/style';
  * slime, its glass dark. `raised`: floating level on the Tidesingers' lift
  * bladders, its cracks patched with black plates of magnetite iron lashed
  * on with cord (our work, so riveted), glass still dark. `mended`: the
- * same, its glass glowing. 1 unit = 1 px in the world.
+ * same, its glass glowing. `landed`: home on dry ground, up on four claw
+ * legs with petal pads for feet, patched, its glass glowing, no bladders
+ * and no water. `flying`: lifting off, its legs folded under it, teal thrust
+ * under it, the last of the sea dripping off it (asterCraftFlight.ts).
+ * 1 unit = 1 px in the world.
  */
 
 /** Origin on the ground (or the reef) under its middle. */
 export const ASTER_CRAFT = { w: 176, h: 136, ox: 88, oy: 130 } as const;
 
-export type CraftState = 'sunk' | 'raised' | 'mended';
+export type CraftState = 'sunk' | 'raised' | 'mended' | 'landed' | 'flying';
+
+/** Whether its heart is mended and its glass glows. */
+const isLit = (state: CraftState): boolean => state === 'mended' || state === 'landed' || state === 'flying';
+const onGround = (state: CraftState): state is GroundState => state === 'landed' || state === 'flying';
 
 /** Its heart, the big hexagon of glass on its front, from its origin when level: the scene can pulse light there. */
 export const ASTER_CRAFT_HEART = pt(0, -32);
@@ -110,7 +119,7 @@ function sidePetal(d: Draw, base: Pt, angle: number, len: number, wid: number, f
 /** The canopy: a dome of faceted glass over the cup, lashed round its foot, the beacon bead and their star on its crown. */
 function canopy(d: Draw, state: CraftState): Pt[] {
   const dome = [...oval(0, RIM + 1, 38, 25, 40).filter((p) => p.y <= RIM + 1)];
-  const lit = state === 'mended';
+  const lit = isLit(state);
   paint(d, dome, lit ? mix(ASTER.glass, '#9fb9c0', 0.5) : mix(DIM_GLASS, '#8ea4ac', 0.35), { alpha: 0.72, shadow: 0.4, hatch: 0, line: 0, gloss: true });
   d.pen.clipped(dome, () => {
     if (lit) glow(d.pen.ctx, pt(0, RIM - 6), 30, ASTER.glow, 0.35);
@@ -209,7 +218,7 @@ function patch(d: Draw, crack: readonly Pt[]): void {
 
 /** The craft as built, level, in its own frame (keel at KEEL). */
 function craft(d: Draw, state: CraftState): void {
-  const lit = state === 'mended';
+  const lit = isLit(state);
   const sunk = state === 'sunk';
   // The far side petal, the back of the rim, then the canopy over the cup.
   sidePetal(d, pt(40, RIM + 4), -Math.PI / 2 + 0.6, 42, 19, true);
@@ -252,9 +261,9 @@ function craft(d: Draw, state: CraftState): void {
     for (const [x, y, w, s] of [[-24, -24, 6, 1], [30, -46, 4.4, 2], [-44, -44, 3.4, 3], [8, -22, 3, 4], [-16, -82, 3.6, 5]] as const) slime(d, pt(x, y), w, s);
     weed(d, [pt(-48, -56), pt(-44, -57), pt(-51, -52), pt(46, -56), pt(42, -57)], 1, 16);
   } else {
-    // A little of it still on, where the slime wasn't scraped off.
+    // A little of it still on, where the slime wasn't scraped off; out of the sea, the weed is gone.
     slime(d, pt(-24, -22), 3.6, 6);
-    weed(d, [pt(-48, -56), pt(46, -56)], 2, 9);
+    if (!onGround(state)) weed(d, [pt(-48, -56), pt(46, -56)], 2, 9);
   }
 }
 
@@ -294,6 +303,19 @@ export function drawAsterCraft(d: Draw, state: CraftState): void {
     weed(d, [pt(-50, -1), pt(-46, -2), pt(56, -1)], 3, 12);
     return;
   }
+  if (onGround(state)) {
+    // Out of the water: on its legs, or lifting off with them folded.
+    const lift = craftLift(state, d.f);
+    craftGround(d, state);
+    ctx.save();
+    ctx.translate(0, -lift);
+    craftLegs(d, state, lift, true);
+    craft(d, state);
+    craftLegs(d, state, lift, false);
+    ctx.restore();
+    if (state === 'flying') craftDrips(d, lift);
+    return;
+  }
   // Floating: it rides a little over the reef, the bladders holding it level.
   dab(d, oval(0, 0, 50, 3, 24), SHADOW, 0.14, 2);
   ctx.save();
@@ -303,10 +325,17 @@ export function drawAsterCraft(d: Draw, state: CraftState): void {
   ctx.restore();
 }
 
-/** What's round it (drawn after its finish): when mended, the glow of its glass in the water. */
+/** What's round it (drawn after its finish): when mended, the glow of its glass in the water; out of it, in the air, and the thrust under it as it lifts off. */
 export function drawAsterCraftAir(d: Draw, state: CraftState): void {
-  if (state !== 'mended') return;
   const { ctx } = d.pen;
+  if (onGround(state)) {
+    const y = -craftLift(state, d.f);
+    if (state === 'flying') craftThrust(d, -y);
+    glow(ctx, pt(ASTER_CRAFT_HEART.x, ASTER_CRAFT_HEART.y + y), 24 * [1, 0.92, 1.08][d.f]!, ASTER.glow, 0.38);
+    glow(ctx, pt(0, RIM - 8 + y), 36, ASTER.glow, 0.16);
+    return;
+  }
+  if (state !== 'mended') return;
   const y = -4 + [0, -0.5, 0.4][d.f]!;
   glow(ctx, pt(ASTER_CRAFT_HEART.x, ASTER_CRAFT_HEART.y + y), 26, ASTER.glow, 0.4);
   glow(ctx, pt(0, RIM - 8 + y), 40, ASTER.glow, 0.2);

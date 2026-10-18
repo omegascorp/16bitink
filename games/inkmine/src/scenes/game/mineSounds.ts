@@ -82,6 +82,10 @@ export class MineSounds {
       case 'grabbed': return s.play('hurt', { pitch: 0.8 });
       case 'freed': return s.play('land', { pitch: 1.2 });
       case 'beat': return s.play('blast', { pitch: e.near ? 0.5 : 0.35 });
+      // Brine's: a jelly's sting a thin fizz, a rasp eel's bite the hit, high; the Leviathan a long low swell, lower as it wakes.
+      case 'stung': return s.play('fizz', { pitch: 1.6 });
+      case 'bitten': return s.play('hurt', { pitch: 1.25 });
+      case 'leviathan': return e.now === 'sleep' ? undefined : s.play('swell', { pitch: e.now === 'wake' ? 0.25 : 0.4 });
       // Water: a soft plop going in or out, a low rush when a flood starts near, a dull note as deep water bites.
       case 'splash': return s.play('crumbleSoft', { pitch: e.into ? 0.6 : 0.8 });
       case 'flood': return e.near ? s.play('blast', { pitch: 0.3 }) : undefined;

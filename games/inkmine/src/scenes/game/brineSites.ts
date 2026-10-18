@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import { ASTER_CRAFT, type CraftState } from '../../art/asterCraftArt';
-import { bakeBrine, BRINE_TEX, TIDESINGER_RES } from '../../art/brineTextures';
+import { bakeBrine, BRINE_TEX, CRYSTAL_RES, DRIVE_CRYSTAL, TIDESINGER_RES } from '../../art/brineTextures';
 import { ART_RES, BOIL } from '../../art/palette';
 import { TIDESINGER } from '../../art/tidesinger/body';
 import { AIR_BELL, REEF_HOME } from '../../art/tidesinger/reef';
@@ -83,22 +83,24 @@ export class ReefSite {
 }
 
 /**
- * The Aster crew's craft on Brine: sunk on the reef top under two metres of
- * water, then, once raised, riding at the surface on its lift bags, its
- * glass dark until its heart is mended.
+ * The Aster crew's craft: on Brine, sunk on the reef top under two metres
+ * of water, then, once raised, riding at the surface on its lift bags, its
+ * glass dark until its heart is mended, and gone once it flies home; on
+ * Mycel, landed by their camp after that.
  */
 export class CraftSite {
   readonly x: number;
-  /** The reef's top under it, px. */
+  /** The ground under it, px (Brine's reef top). */
   private readonly reef: number;
-  private readonly sea: number;
+  /** The sea's surface over it, px; null on dry ground. */
+  private readonly sea: number | null;
   private readonly image: Phaser.GameObjects.Image;
 
-  constructor(scene: Phaser.Scene, at: { readonly col: number; readonly row: number }, private readonly tile: number, seaRow: number) {
+  constructor(scene: Phaser.Scene, at: { readonly col: number; readonly row: number }, private readonly tile: number, seaRow: number | null) {
     bakeBrine(scene);
     this.x = (at.col + 0.5) * tile;
     this.reef = at.row * tile;
-    this.sea = seaRow * tile;
+    this.sea = seaRow === null ? null : seaRow * tile;
     const C = ASTER_CRAFT;
     this.image = scene.add.image(this.x, this.reef, BRINE_TEX.asterCraft('sunk', 0)).setOrigin(C.ox / C.w, C.oy / C.h).setScale(1 / ART_RES).setDepth(1.8);
   }
@@ -116,10 +118,54 @@ export class CraftSite {
     return across <= CRAFT_REACH.cols && feet <= this.reef + 4 && feet >= this.reef - CRAFT_REACH.rows * T;
   }
 
-  update(ring: Ring, now: number, state: CraftState): void {
+  /** `state` null: it isn't here (flown). */
+  update(ring: Ring, now: number, state: CraftState | null): void {
+    this.image.setVisible(state !== null);
+    if (state === null) return;
     const f = Math.floor(now / BOIL_MS) % BOIL;
-    // Raised, it bobs gently on the swell.
-    const y = state === 'sunk' ? this.reef : this.sea + FLOAT + Math.sin(now * 0.0016) * 2;
+    // Raised, it bobs gently on the swell; landed or sunk, it rests on the ground.
+    const afloat = this.sea !== null && (state === 'raised' || state === 'mended');
+    const y = afloat ? this.sea! + FLOAT + Math.sin(now * 0.0016) * 2 : this.reef;
     this.image.setTexture(BRINE_TEX.asterCraft(state, f)).setPosition(ring.near(this.x), y);
+  }
+}
+
+/** How near the drive crystal counts as touching it: tiles either side, and rows above its floor. */
+const CRYSTAL_REACH = { cols: 1.5, rows: 2 } as const;
+
+/**
+ * The Aster craft's drive crystal, lying in the silt of the Leviathan's
+ * cave: there once the crew have told you it's gone, glowing softly, until
+ * you take it.
+ */
+export class CrystalSite {
+  readonly x: number;
+  private readonly floor: number;
+  private readonly image: Phaser.GameObjects.Image;
+
+  constructor(scene: Phaser.Scene, at: { readonly col: number; readonly row: number }, private readonly tile: number) {
+    bakeBrine(scene);
+    this.x = (at.col + 0.5) * tile;
+    this.floor = (at.row + 1) * tile;
+    const C = DRIVE_CRYSTAL;
+    this.image = scene.add.image(this.x, this.floor, BRINE_TEX.driveCrystal(0)).setOrigin(C.ox / C.w, C.oy / C.h).setScale(1 / CRYSTAL_RES).setDepth(3.4).setVisible(false);
+  }
+
+  get point(): { x: number; y: number } {
+    return { x: this.x, y: this.floor - this.tile / 2 };
+  }
+
+  /** Whether the prospector is touching it. */
+  near(mine: Mine): boolean {
+    const p = mine.player;
+    const T = this.tile;
+    const across = Math.abs(ringDelta(mine.terrain, p.x + p.w / 2, this.x, T)) / T;
+    const feet = p.y + p.h;
+    return across <= CRYSTAL_REACH.cols && feet <= this.floor + 4 && feet >= this.floor - CRYSTAL_REACH.rows * T;
+  }
+
+  update(ring: Ring, now: number, shown: boolean): void {
+    this.image.setVisible(shown);
+    if (shown) this.image.setTexture(BRINE_TEX.driveCrystal(Math.floor(now / BOIL_MS) % BOIL)).setX(ring.near(this.x));
   }
 }
