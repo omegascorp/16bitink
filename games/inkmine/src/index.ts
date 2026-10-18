@@ -6,6 +6,7 @@ import { REG, tickPlay } from './host';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 import { HudScene } from './scenes/HudScene';
+import { NarratorScene } from './scenes/NarratorScene';
 import { ShipScene } from './scenes/ShipScene';
 import { SystemScene } from './scenes/SystemScene';
 import { DPR } from './scenes/hidpi';
@@ -35,7 +36,8 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     },
     input: { activePointers: 3 },
     audio: { noAudio: true },
-    scene: [BootScene, GameScene, ShipScene, SystemScene, HudScene],
+    // The narrator last, so its strip draws over every other scene.
+    scene: [BootScene, GameScene, ShipScene, SystemScene, HudScene, NarratorScene],
   });
   game.registry.set(REG.host, host);
   // Sound is synthesized by our own SoundBoard (audio/), as in InkCrab; Phaser's audio stays off.

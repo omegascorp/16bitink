@@ -5,14 +5,8 @@ import { parsePlanets } from '../src/level/validate';
 import { NEW_PROFILE, type Profile } from '../src/logic/economy';
 import { firstScene } from '../src/level/route';
 
-declare global {
-  interface ImportMeta {
-    glob(pattern: string, options: { query: '?raw'; import: 'default'; eager: true }): Record<string, string>;
-  }
-}
-
-/** Every client source file's text, by path. */
-const SOURCES = import.meta.glob('../src/**/*.ts', { query: '?raw', import: 'default', eager: true });
+/** Every client source file's text, by path (Vite's glob import: its types come with src/narration/library.ts). */
+const SOURCES = import.meta.glob<string>('../src/**/*.ts', { query: '?raw', import: 'default', eager: true });
 const wire = (v: unknown): unknown => JSON.parse(JSON.stringify(v));
 
 describe('paid planets stay out of the game bundle', () => {

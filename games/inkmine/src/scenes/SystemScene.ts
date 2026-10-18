@@ -13,10 +13,11 @@ import type { Profile } from '../logic/economy';
 import { FIRST_COURSE, isFixed, setCourse } from '../logic/starship';
 import { hasBeat } from '../logic/story';
 import { relayoutOnResize, screenScene, viewSize } from './hidpi';
-import { muteButton } from './kit/muteButton';
+import { muteButton, narrationButton } from './kit/muteButton';
 import { plaque } from './kit/plaque';
 import { dragScroll } from './kit/scroll';
 import { storyCard } from './kit/storyCard';
+import { demoEndCard, firstCourseCard, flightCard, whereYouFellCard } from './system/systemCards';
 import { aside, heading, INK_TEXT, label, MADDER, prose, scrawl, SEPIA, VERDIGRIS } from './kit/type';
 import { desk, PAD, section, SECTION_BODY } from './ship/panel';
 
@@ -98,6 +99,7 @@ export class SystemScene extends Phaser.Scene {
   private header(width: number): void {
     const title = heading(this, GAP + 4, 18, 'The orange star', 30).setOrigin(0, 0).setDepth(2);
     muteButton(this, title.x + title.width + 30, 36)?.setDepth(2);
+    narrationButton(this, title.x + title.width + 72, 36)?.setDepth(2);
     // Once the first trip is set without the full game, the demo is over, and the map says so.
     const over = demoOver(getProfile(this));
     const sub = over ? 'the end of the demo: the journey goes on in the full game' : "through your ship's telescope: in no chart you remember";
@@ -254,13 +256,7 @@ export class SystemScene extends Phaser.Scene {
   }
 
   private arrival(): void {
-    storyCard(this, {
-      title: 'Where you fell',
-      subtitle: 'the star map, at first light',
-      pictures: [{ key: TEX.star, h: 90 }, { key: TEX.world('sepia'), h: 90 }],
-      text: `${STAR.name[0]!.toUpperCase()}${STAR.name.slice(1)}, and twelve worlds round it. The grey moon was never a planet: it's one of three moons round the ringed giant. Not one of these worlds is in any chart you remember. Home is somewhere past all of them.`,
-      button: 'Look around',
-    }, () => {});
+    storyCard(this, whereYouFellCard(), () => {});
   }
 
   /** Back to the starship's page (the map is only open aboard). */
@@ -271,29 +267,8 @@ export class SystemScene extends Phaser.Scene {
   /** A trip made: the ship flies there, and its page opens in orbit over the new world. Setting out from Graphite the first time ends chapter 1. */
   private fly(to: WorldId): void {
     const was = getProfile(this);
-    const first = !hasBeat(was, 'course');
-    const sea = to === 'brine' && !was.visited.includes('brine');
-    // Following the Aster crew home, at the end of chapter 3.
-    const homeward = to === 'mycel' && hasBeat(was, 'craftFlown') && !hasBeat(was, 'asterReunion');
     setProfile(this, travel(was, to));
-    const name = worldById(to)!.name;
-    const from = worldById(was.at)!.name;
-    const text = first
-      ? `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${name} grows ahead, green under its haze: a world with air, and with life in it. Whatever lives there has never seen anything like you.`
-      : homeward
-        ? `The engine hums and the sea world falls away behind. Somewhere ahead, a speck of teal light is crossing the same dark: the crew's craft, going home. Days on, the ringed giant fills the window, and beside it the green moon, where four of the Aster will be waiting.`
-        : sea
-        ? `The Aster tank takes the strain, and for the first time the ship leaves the ringed giant behind. ${from} shrinks to a green dot beside it, then is lost in its glare. Days on, a blue-violet world fills the window: sea from edge to edge, scattered with islands, and somewhere down there, three of the Aster.`
-        : to === 'brine' || was.at === 'brine'
-          ? `The engine hums and ${from} slides away below. The long crossing between the ringed giant and the sea world, and ${name} fills the window.`
-          : `The engine hums and ${from} slides away below. A short hop round the ringed giant, and ${name} fills the window.`;
-    storyCard(this, {
-      title: `Course set for ${name}`,
-      subtitle: first ? 'the end of chapter 1' : sea ? 'the start of chapter 3' : `${from} to ${name}`,
-      pictures: [{ key: shipTexture(this, shipLookOf(getProfile(this)), 'small'), h: 70 }, { key: TEX.world(to), h: 70 }],
-      text,
-      button: `On to ${name}`,
-    }, () => this.scene.start('Ship', { remote: false, tab: 'starship' }));
+    storyCard(this, flightCard(this, was, to), () => this.scene.start('Ship', { remote: false, tab: 'starship' }));
   }
 
   /** At a world whose ground isn't loaded: the full game failed to come down. */
@@ -304,7 +279,7 @@ export class SystemScene extends Phaser.Scene {
       subtitle: 'the full game',
       text: `${err} Until it comes down, your ship can't land.`,
       button: 'Try again',
-    }, () => void loadPaidPlanets(this).then(() => this.scene.restart({ selected: at } satisfies SystemData)));
+    }, () => void loadPaidPlanets(this).then(() => this.scene.restart({ selected: at } satisfies SystemData)), undefined, { narrate: false });
   }
 
   /** The first trip without the full game, from its world's card: the end of the demo. */
@@ -312,28 +287,13 @@ export class SystemScene extends Phaser.Scene {
     const r = setCourse(getProfile(this));
     if (!r.ok) return;
     setProfile(this, r.profile);
-    const to = worldById(FIRST_COURSE.to)!.name;
-    storyCard(this, {
-      title: `Course set for ${to}`,
-      subtitle: 'the end of chapter 1',
-      pictures: [{ key: shipTexture(this, shipLookOf(getProfile(this)), 'small'), h: 70 }, { key: TEX.world(FIRST_COURSE.to), h: 70 }],
-      text: `The engine hums for the first time since the wormhole, and the grey moon slides away below. ${to} grows ahead, green under its haze: a world with air, and with life in it. Somewhere under that haze, the Aster beacon is still calling.`,
-      button: 'On to Mycel',
-    }, () => this.scene.restart({ selected: FIRST_COURSE.to, demoEnd: true } satisfies SystemData));
+    storyCard(this, firstCourseCard(this, getProfile(this)), () => this.scene.restart({ selected: FIRST_COURSE.to, demoEnd: true } satisfies SystemData));
   }
 
   /** Where the demo stops: on the star map, with the full game offered (Mycel and Brine, and the worlds still to come). */
   private demoEnd(): void {
     const host = getHost(this);
-    const price = host.price ? ` · ${host.price}` : '';
-    storyCard(this, {
-      title: 'The end of the demo',
-      subtitle: 'thank you for playing',
-      pictures: [{ key: TEX.world(FIRST_COURSE.to), h: 80 }],
-      text: `That's as far as the demo goes. ${worldById(FIRST_COURSE.to)!.name}, the green moon, is in the full game: follow an alien distress call down into a fungal jungle, find the wreck of the Aster's lander, and learn from their strange gear to print your own from the moon's ores. Then on to Brine, a purple sea world, to swim its reefs and find the Aster's lost crew. The worlds after it, and the long search for the way home, come as free updates.`,
-      button: `Unlock the full game${price}`,
-      secondary: { label: 'Look at the map', press: () => {} },
-    }, () => host.onBuy());
+    storyCard(this, demoEndCard(host.price, () => {}), () => host.onBuy());
   }
 }
 

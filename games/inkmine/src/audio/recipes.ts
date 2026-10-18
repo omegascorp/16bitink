@@ -50,18 +50,23 @@ export function orePitch(oreId: number): number {
 
 export interface SoundSettings {
   readonly muted: boolean;
+  /** The narrator reads the story aloud (as you play); off, the story shows on cards to read. */
+  readonly narration: boolean;
 }
 
 export const SOUND_KEY = 'inkmine:sound';
 
-/** Saved settings from storage; anything unreadable means sound on. */
+/** Saved settings from storage; anything unreadable means sound on, narration on. */
 export function parseSoundSettings(raw: string | null): SoundSettings {
-  if (!raw) return { muted: false };
+  const on: SoundSettings = { muted: false, narration: true };
+  if (!raw) return on;
   try {
     const data: unknown = JSON.parse(raw);
-    return { muted: typeof data === 'object' && data !== null && (data as { muted?: unknown }).muted === true };
+    if (typeof data !== 'object' || data === null) return on;
+    const d = data as { muted?: unknown; narration?: unknown };
+    return { muted: d.muted === true, narration: d.narration !== false };
   } catch {
-    return { muted: false };
+    return on;
   }
 }
 

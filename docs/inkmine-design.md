@@ -648,6 +648,28 @@ The drill and its materials lie in the sediment, within reach of Mycel's drill.
 
 A sea people, clever, who never had fire: under water nothing burns, so they never smelted metal. What they make is stone, shell, glass and woven fibre. They need copper, and they can't dig it out of the basalt. They're ray-shaped: a broad, flat body that flies through the water on two wide wings, with two long lobes in front that unroll into hands (real manta rays unroll lobes like these to feed, and have the biggest brains of any fish). Their eyes sit on the wing's leading edge. They talk in long, low songs, the same song the suit follows. Drawn in blue: never a danger. Their language is for later.
 
+## Narration
+
+Decided with @Hayk on Oct 18, 2026: the story is heard, not read on cards that stop play. The narrator is ElevenLabs' **George** (voice `JBFqnCBsd6RMkjVDRZzb`, model eleven_v4), a warm British storyteller, picked from three auditions (George, Mark from the shorts, Cherine).
+
+**How it plays** (`scenes/NarratorScene.ts`), from what other games do: Bastion's narrator talks while you play and never stops the game; Subnautica plays voice logs while you swim and keeps their text to reread; Xbox's accessibility guidelines put subtitles on by default, name the speaker and show them large; good mixes play one voice at a time and dip the rest under it.
+
+- **Story moments in the world don't pause.** Meeting a Lamplighter, the Aster lander, the camp, the reef, the craft and the crystal are read aloud while you keep playing. A strip at the foot of the screen names the card and shows its subtitles (at most two lines of about 42 characters, the BBC's guideline), timed to the voice, with ❚❚ (pause), » (skip) and **Read**, which opens the full card with its pictures and holds the world while it's open.
+- **Nothing you need is only in the voice:** the goal plate already says what to bring.
+- **Still on cards:** the landing cards (Graphite's opening, each world's first landing), the chapter-end card ("Four again") and decisions (the demo's end, "Unlock the full game"). On the ship and star-map pages, where there's nothing to play, the card shows as before; the voice starts with it and carries on in the strip once it's closed.
+- **One line at a time,** queued; the same line twice is played once. A speaker's own voice (the Lamplighters' sound trace) plays first, then the narrator. The ambience and effects dip to 40% under the voice (`SoundBoard.duck`).
+- **Muted,** the subtitles still run, at a reading pace; unmuted, the voice picks up where they are.
+- **Narration off** (the quotation-marks button beside the mute button on the ship and star-map pages, remembered with the sound setting): the story shows on cards the world waits on, as before.
+- **The journal** (`narration/journal.ts`) keeps every line heard, newest last, in the browser's storage, for a later page to replay or reread them.
+
+**The recordings** (`games/inkmine/narration/<line>.mp3`, mono 64 kbps, loudness-normalized): each story card names its line, an id like `talk-meet` or `trip-mycel-brine`, so its words can be touched up without losing the voice. A card with no recording, or no line, falls back to its card; in development the game warns about it in the console. `narration/lines.json` keeps, for each recording, the card's words when it was recorded, the script the voice read, the voice, the model and when. `test/narration.test.ts` builds every narrated card (every trip from the trip table, not a hand-made list) and fails while a line is unrecorded, a recording is left over, or a card's words have changed since its recording. Spacing, punctuation and capitals don't count, so a comma moved needs nothing.
+
+To record: run `NARRATION_DUMP=1 npx vitest run test/narration.test.ts`, which brings `lines.json` up to date and lists each line still to record with its script (`recorded: null`). The script is the words tagged `[warm, storytelling]`, with "Mk 3" said as "Mark 3" (`narration/script.ts`). Generate each in George's voice, save it as `<line>.mp3` after `ffmpeg -ac 1 -af loudnorm=I=-17:TP=-1.5:LRA=11 -b:a 64k`, then run the dump again to mark it recorded. To record a line again after its words change, delete its mp3 first. **Adding or removing a mission:**
+- a new card needs a `line` id and a place in the test's `allLines()`;
+- a removed card leaves its mp3 behind, which the test names for deleting.
+
+The first recording (Oct 18, 2026): 44 lines, about 21 minutes, 8.4 MB, about 16,000 credits.
+
 ## Inside the lander and the pause screen
 
 There's no result screen and no level select in chapter 1.

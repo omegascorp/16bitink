@@ -9,7 +9,7 @@ import { getHost, getProfile, getSound, heldWorld, holdWorld, setProfile } from 
 import { buildWorld } from '../level/build';
 import { CREATURE } from '../logic/creatures';
 import { currentPlanet } from '../level/planets';
-import type { Arrival, PlanetDef } from '../level/types';
+import type { PlanetDef } from '../level/types';
 import { designName, findBlueprint, isDesign, learnTaken } from '../logic/designs';
 import { tooHard } from '../logic/drill';
 import { printerWorks, type Profile } from '../logic/economy';
@@ -27,6 +27,7 @@ import { volatileKeyOf } from '../logic/volatiles';
 import { captureWorld, loadWorld, savePieces, saveWorld } from '../logic/worldSave';
 import { BeaconView } from './game/beaconView';
 import { StorySites } from './game/storySites';
+import { narrator } from './NarratorScene';
 import { BRINE_WATER, WaterView } from './game/waterView';
 import { CrashView } from './game/crashView';
 import { FaunaView } from './game/faunaView';
@@ -43,6 +44,7 @@ import { ProspectorView } from './game/prospectorView';
 import { Ring } from './game/ring';
 import { ThingsView } from './game/thingsView';
 import { crispText, DPR, screenSize } from './hidpi';
+import type { LandingCard } from './hud/opening';
 
 /** Longest frame the simulation takes in one step (tab switches, hitches). */
 const MAX_DT = 1 / 20;
@@ -131,6 +133,8 @@ export class GameScene extends Phaser.Scene {
   private waterView: WaterView | null = null;
   /** The creatures and the pulse's shots; none on a world with neither (Graphite, unarmed). */
   private fauna: FaunaView | null = null;
+  /** Presses are forgotten again on the next step (forgetKeys). */
+  private forgetAgain = false;
   /** Asked for from outside the world (a tapped gauge on the HUD, recall in the inventory), done on the next step. */
   private asked: Partial<Pick<MineInput, 'feed' | 'recall'>> = {};
   private smokeAt = 0;
@@ -211,7 +215,7 @@ export class GameScene extends Phaser.Scene {
       goal: () => this.goal(),
       save: () => this.save(),
       say: (text) => this.say(text),
-      forget: () => this.keys.forget(),
+      forget: () => this.forgetKeys(),
       signal: () => this.signal(),
     }, world, T);
     const p = this.mine.player;
@@ -258,7 +262,13 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const dt = Math.min(delta / 1000, MAX_DT);
-    const still = this.ended || this.intro || this.talk !== null || this.found || this.sites.waiting;
+    // The key that closed a card may reach this scene's keys only now: forget it again, so Enter doesn't also open the inventory.
+    if (this.forgetAgain) {
+      this.forgetAgain = false;
+      this.keys.forget();
+    }
+    // The narrator's full card, opened from its strip, holds the world too.
+    const still = this.ended || this.intro || this.talk !== null || this.found || this.sites.waiting || !!narrator(this)?.reading;
     // Keys are read every frame, so one pressed while the world waits doesn't fire when it starts again.
     const hud = this.scene.get('Hud') as HudScene | null;
     const touch = hud?.touch && this.scene.isActive('Hud') ? hud.touch.read() : undefined;
@@ -350,16 +360,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** The card to open on: Graphite's opening (null: the HUD's own), or this world's first landing. */
-  introCard(): { readonly title: string; readonly arrival: Arrival } | null {
+  introCard(): LandingCard | null {
     const a = this.planet.arrival;
-    return this.planet.world.id === 'graphite' || !a ? null : { title: this.planet.name, arrival: a };
+    return this.planet.world.id === 'graphite' || !a ? null : { world: this.planet.world.id, title: this.planet.name, arrival: a };
   }
 
   /** Closes the opening card: the world starts, and it's never shown again. */
   closeIntro(): void {
     if (!this.intro) return;
     this.intro = false;
-    this.keys.forget();
+    this.forgetKeys();
     const p = this.liveProfile();
     const beat = ARRIVAL_BEAT[p.at];
     setProfile(this, p.at === 'graphite' || !beat ? { ...p, started: true } : withBeat(p, beat));
@@ -404,7 +414,7 @@ export class GameScene extends Phaser.Scene {
   closeFound(): void {
     if (!this.found) return;
     this.found = false;
-    this.keys.forget();
+    this.forgetKeys();
     setProfile(this, withBeat(this.liveProfile(), 'asterFound'));
     this.save();
   }
@@ -441,6 +451,12 @@ export class GameScene extends Phaser.Scene {
 
   closeCrystal(): void {
     this.sites.closeCrystal();
+  }
+
+  /** Forgets every key pressed so far, now and again on the next step: a card was just closed by a key that may not have reached this scene yet. */
+  private forgetKeys(): void {
+    this.keys.forget();
+    this.forgetAgain = true;
   }
 
   /** A note over the prospector. */
@@ -482,7 +498,7 @@ export class GameScene extends Phaser.Scene {
   /** The talk card was read: the world goes on (the key that closed it isn't a press here). */
   closeTalk(): void {
     this.talk = null;
-    this.keys.forget();
+    this.forgetKeys();
   }
 
   /** The outpost's domes east of where a Lamplighter stands to meet you, on the far rim. */
@@ -730,7 +746,7 @@ export class GameScene extends Phaser.Scene {
   /** Back from the suit page: take the bag as it was left there, and drop any key pressed meanwhile. */
   private fromSuit(): void {
     this.mine.suit = withBag(this.mine.suit, getProfile(this).suit);
-    this.keys.forget();
+    this.forgetKeys();
     this.scene.wake('Hud');
   }
 

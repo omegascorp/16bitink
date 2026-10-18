@@ -9,6 +9,9 @@ import { breath, speak, synthesize } from './synth';
 const UNLOCK_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'] as const;
 /** Overall loudness: calm, under whatever else the player is listening to. */
 const MASTER = 0.5;
+/** The narrator's voice, on its own way to the speakers; everything else dips to DUCK of its level under it. */
+const VOICE = 0.95;
+const DUCK = 0.4;
 /** How much of each effect goes into the echo, for a soft tail. */
 const EFFECT_SEND = 0.22;
 /** The echo: two taps, fed back through a low-pass so each repeat is softer and darker, like a big quiet space. */
@@ -37,6 +40,10 @@ export type HeldId = 'jet';
 export class SoundBoard {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  private voiceOut: GainNode | null = null;
+  private ducked = false;
+  private narrationOn: boolean;
+  private readonly narrationListeners = new Set<(on: boolean) => void>();
   private echo: AudioNode | null = null;
   private ambience: Ambience | null = null;
   private mood: Mood = 'none';
@@ -55,7 +62,9 @@ export class SoundBoard {
   };
 
   constructor(private readonly store: KeyValueStore | undefined) {
-    this.mutedNow = parseSoundSettings(safeGet(store)).muted;
+    const settings = parseSoundSettings(safeGet(store));
+    this.mutedNow = settings.muted;
+    this.narrationOn = settings.narration;
     if (typeof window === 'undefined') return;
     // Safari only lets audio start on some gestures (touchend, click), others on pointerdown or a key: listen for all.
     for (const ev of UNLOCK_EVENTS) window.addEventListener(ev, this.unlock, { capture: true });
@@ -72,16 +81,59 @@ export class SoundBoard {
     if (muted === this.mutedNow) return;
     this.mutedNow = muted;
     if (muted) this.releaseAll();
-    if (this.ctx && this.master) this.master.gain.setTargetAtTime(muted ? 0 : MASTER, this.ctx.currentTime, 0.05);
+    this.level();
     // Let the fade finish before suspending; unmuting resumes at once.
     if (muted) setTimeout(() => this.wake(), 300);
     else this.wake();
+    this.remember();
+    for (const l of this.listeners) l(muted);
+  }
+
+  /** Whether the narrator reads the story aloud. */
+  get narration(): boolean {
+    return this.narrationOn;
+  }
+
+  setNarration(on: boolean): void {
+    if (on === this.narrationOn) return;
+    this.narrationOn = on;
+    this.remember();
+    for (const l of this.narrationListeners) l(on);
+  }
+
+  /** Calls `listener` whenever narration is switched on or off; returns how to stop. */
+  onNarrationChange(listener: (on: boolean) => void): () => void {
+    this.narrationListeners.add(listener);
+    return () => this.narrationListeners.delete(listener);
+  }
+
+  /** Where the narrator's voice goes, while sound is on and running: its own level, not dipped with the rest. Null otherwise. */
+  voiceTrack(): { readonly ctx: AudioContext; readonly out: AudioNode } | null {
+    const ctx = this.live();
+    return ctx && this.voiceOut ? { ctx, out: this.voiceOut } : null;
+  }
+
+  /** Dips the ambience and effects under the narrator's voice, or brings them back. */
+  duck(on: boolean): void {
+    if (on === this.ducked) return;
+    this.ducked = on;
+    this.level();
+  }
+
+  /** The master and voice levels for mute and ducking, eased there. */
+  private level(): void {
+    if (!this.ctx || !this.master) return;
+    const t = this.ctx.currentTime;
+    this.master.gain.setTargetAtTime(this.mutedNow ? 0 : this.ducked ? MASTER * DUCK : MASTER, t, this.ducked ? 0.12 : 0.4);
+    this.voiceOut?.gain.setTargetAtTime(this.mutedNow ? 0 : VOICE, t, 0.05);
+  }
+
+  private remember(): void {
     try {
-      this.store?.setItem(SOUND_KEY, JSON.stringify({ muted }));
+      this.store?.setItem(SOUND_KEY, JSON.stringify({ muted: this.mutedNow, narration: this.narrationOn }));
     } catch {
       // Storage full or blocked: the setting just won't survive a reload.
     }
-    for (const l of this.listeners) l(muted);
   }
 
   /** Calls `listener` whenever mute changes; returns how to stop. */
@@ -154,10 +206,12 @@ export class SoundBoard {
     }
     this.releaseAll();
     this.listeners.clear();
+    this.narrationListeners.clear();
     this.ambience?.destroy();
     void this.ctx?.close().catch(() => undefined);
     this.ctx = null;
     this.master = null;
+    this.voiceOut = null;
     this.echo = null;
     this.ambience = null;
   }
@@ -194,8 +248,12 @@ export class SoundBoard {
       const master = ctx.createGain();
       master.gain.value = this.mutedNow ? 0 : MASTER;
       master.connect(ctx.destination);
+      const voice = ctx.createGain();
+      voice.gain.value = this.mutedNow ? 0 : VOICE;
+      voice.connect(ctx.destination);
       this.ctx = ctx;
       this.master = master;
+      this.voiceOut = voice;
       this.echo = echoBus(ctx, master);
       this.ambience = new Ambience(ctx, master, this.echo);
       this.ambience.setDepth(this.depth);
