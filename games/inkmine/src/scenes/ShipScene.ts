@@ -8,6 +8,7 @@ import { currentPlanet, hasWorld } from '../level/planets';
 import { worldById } from '../logic/starSystem';
 import type { Profile } from '../logic/economy';
 import { prospectorLook } from '../logic/gear';
+import { STRIP_ROOM } from '../logic/screenLayout';
 import { hasTool } from '../logic/tools';
 import { wreckOf } from '../logic/repairs';
 import { landerLookOf } from '../logic/ship';
@@ -143,8 +144,9 @@ export class ShipScene extends Phaser.Scene {
       // An empty card takes no room, nor a gap.
       bottom = panels.reduce((y, panel) => { const h = panel(y); return h ? y + h + GAP : y; }, top + FIG.narrow) - GAP;
     }
-    desk(this, width, Math.max(viewSize(this).height, bottom + GAP * 2));
-    dragScroll(this, bottom + GAP, data.scrollY ?? 0);
+    // Room under it all for the narrator's strip, which reads over the page.
+    desk(this, width, Math.max(viewSize(this).height, bottom + STRIP_ROOM + GAP));
+    dragScroll(this, bottom + STRIP_ROOM, data.scrollY ?? 0);
     this.keys(tab);
     this.soundFor(data.news);
     // Story beats happen aboard, not on the suit page far away.

@@ -554,9 +554,9 @@ export class GameScene extends Phaser.Scene {
     const name = designName(id) ?? 'part';
     const learnt = isDesign(id) && !p.found.includes(id);
     if (learnt) setProfile(this, findBlueprint(p, id));
-    // Above the "+ ore" notes its salvage brings, which rise from just over the prospector.
-    this.fx.note(px, py - 62, learnt ? `${name} design learnt!` : `${name}: nothing new`);
+    // Above the "+ ore" notes its salvage brings, which rise from just over the prospector; the second goes up clear of the first, so the news reads on top.
     this.fx.note(px, py - 40, 'taken apart for parts');
+    this.fx.note(px, py - 40, learnt ? `${name} design learnt!` : `${name}: nothing new`);
     this.taken = [...this.taken, item.id];
     this.save();
   }

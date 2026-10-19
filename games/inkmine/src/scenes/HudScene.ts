@@ -276,16 +276,16 @@ export class HudScene extends Phaser.Scene {
     if (this.talk) return;
     if (game.talk && game.talk !== 'thanks') this.tell(talkSpec(this, game.talk), () => game.closeTalk());
     else if (game.found) this.tell(ASTER_CARD, () => game.closeFound());
-    else if (game.camp && game.camp !== 'awake' && game.camp !== 'together') this.tell(campSpec(this, game.camp), () => game.closeCamp(), game.camp === 'reunion');
+    else if (game.camp && game.camp !== 'awake' && game.camp !== 'together') this.tell(campSpec(this, game.camp), () => game.closeCamp());
     else if (game.reef && game.reef !== 'wait') this.tell(reefSpec(this, game.reef), () => game.closeReef());
     else if (game.craft) this.tell(craftSpec(this, game.craft), () => game.closeCraft());
     else if (game.crystal) this.tell(crystalSpec(this), () => game.closeCrystal());
     else if (game.searchShip) this.tell(SEARCH_SHIP_CARD, () => game.closeShip());
   }
 
-  /** Reads `spec` aloud as play goes on and closes it at once; `hold` (a chapter's end), or with no voice for it, a card the world waits on. */
-  private tell(spec: StoryCardSpec, close: () => void, hold = false): void {
-    if (!hold && narrator(this)?.say(spec)) {
+  /** Reads `spec` aloud as play goes on and closes it at once; with no voice for it, a card the world waits on. */
+  private tell(spec: StoryCardSpec, close: () => void): void {
+    if (narrator(this)?.say(spec)) {
       close();
       return;
     }
@@ -323,11 +323,19 @@ export class HudScene extends Phaser.Scene {
     this.goalParts = [...plate(this, x, y, GOAL.w, h, { seed: 31, depth: 0 }), ...plateHeading(this, x, y, GOAL.w, 'Next', 0.5), ...parts];
   }
 
-  /** The opening card: how you got here, and the first thing to do. Any key or a tap starts. */
+  /**
+   * The opening: how you got here, and the first thing to do. Read aloud
+   * in the narrator's strip while play goes on, as every story moment is;
+   * with no voice for it, a card the world waits on (any key or a tap starts).
+   */
   private showIntro(): void {
     const view = viewSize(this);
     // Graphite's opening, or a later world's first landing (its planet carries the card).
     const card = this.play?.introCard() ?? OPENING;
+    if (narrator(this)?.say(landingSpec(card))) {
+      this.play?.closeIntro();
+      return;
+    }
     const body = (w: number): CardBody => {
       const parts: Phaser.GameObjects.GameObject[] = [heading(this, 0, 36, card.title, 30).setOrigin(0.5, 0)];
       parts.push(aside(this, 0, 76, card.arrival.subtitle, 18, w - 80, SEPIA).setOrigin(0.5, 0));
@@ -348,13 +356,10 @@ export class HudScene extends Phaser.Scene {
     this.intro = plateCard(this, view.width / 2, view.height / 2, w, h, parts, 77).setDepth(50).setScale(fitScale(h, view.height));
     this.input.keyboard?.once('keydown-SPACE', close);
     this.input.keyboard?.once('keydown-ENTER', close);
-    // Read aloud while it's open, and on in the narrator's strip once it's closed.
-    const uncover = narrator(this)?.sayOver(landingSpec(card));
     // Closed by the button, the keys mustn't stay listening.
     this.intro.once(Phaser.GameObjects.Events.DESTROY, () => {
       this.input.keyboard?.off('keydown-SPACE', close);
       this.input.keyboard?.off('keydown-ENTER', close);
-      uncover?.();
     });
   }
 

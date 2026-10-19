@@ -52,6 +52,8 @@ export class SoundBoard {
   private readonly last = new Map<string, number>();
   private readonly listeners = new Set<(muted: boolean) => void>();
   private mutedNow: boolean;
+  /** Web Audio failed to start here (a locked-down browser): nothing will ever play. */
+  private broken = false;
   private readonly unlock = (): void => this.start();
   private readonly onVisibility = (): void => this.wake();
   private readonly onKey = (e: KeyboardEvent): void => {
@@ -74,6 +76,18 @@ export class SoundBoard {
 
   get muted(): boolean {
     return this.mutedNow;
+  }
+
+  /**
+   * Sound is on and Web Audio is there, but not running yet: the browser
+   * won't start it before a click, tap or key that it counts as one (an
+   * event it doesn't count leaves the context suspended). The narrator
+   * waits for it rather than lose the start of a line.
+   */
+  get waitingForGesture(): boolean {
+    if (this.broken || this.mutedNow || typeof window === 'undefined') return false;
+    if (!(window.AudioContext ?? (window as unknown as { webkitAudioContext?: unknown }).webkitAudioContext)) return false;
+    return this.ctx?.state !== 'running';
   }
 
   /** Mutes or unmutes, remembers it, and tells anything showing it (a mute button). */
@@ -267,6 +281,7 @@ export class SoundBoard {
     } catch {
       // No usable audio here (a locked-down browser): stay silent.
       this.ctx = null;
+      this.broken = true;
     }
   }
 }

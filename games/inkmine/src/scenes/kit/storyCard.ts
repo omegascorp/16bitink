@@ -45,8 +45,12 @@ const PAD = 44;
 
 /** The narrator scene (NarratorScene), as a card needs it: reading the card aloud while it's open, and on after. */
 interface Narrator {
+  say(spec: StoryCardSpec): boolean;
   sayOver(spec: StoryCardSpec): () => void;
 }
+
+/** The narrator scene, if the game has one. */
+const narratorOf = (scene: Phaser.Scene): Narrator | null => scene.scene.get('Narrator') as unknown as Narrator | null;
 
 export interface StoryCardOpts {
   /** Read aloud by the narrator (default); off for a card the narrator opened itself. */
@@ -97,7 +101,7 @@ export function storyCard(scene: Phaser.Scene, spec: StoryCardSpec, onClose: () 
   scene.input.keyboard?.on('keydown-SPACE', onKey);
   scene.input.keyboard?.on('keydown-ENTER', onKey);
   // Read aloud while it's open, and on in the narrator's strip once it's closed.
-  const voice = opts.narrate === false ? null : (scene.scene.get('Narrator') as unknown as Narrator | null);
+  const voice = opts.narrate === false ? null : narratorOf(scene);
   const uncover = voice?.sayOver(spec) ?? ((): void => undefined);
   // A soft swell as it opens, and the speaker's voice as its trace shows it.
   const sound = getSound(scene);
@@ -160,4 +164,20 @@ function cardBody(scene: Phaser.Scene, spec: StoryCardSpec, W: number): CardBody
   const h = y + 56;
   for (const part of parts) (part as unknown as { y: number }).y -= h / 2;
   return { parts, h };
+}
+
+/**
+ * A story moment on a page you can go on using (the ship, the star map):
+ * read aloud in the narrator's strip while the page stays live, with
+ * `onClose` run straight away, as it is in the world (spec, "Narration").
+ * With narration off or the line not recorded, it's the card, which the
+ * page waits on.
+ */
+export function tellStory(scene: Phaser.Scene, spec: StoryCardSpec, onClose: () => void): void {
+  if (!narratorOf(scene)?.say(spec)) {
+    storyCard(scene, spec, onClose);
+    return;
+  }
+  // Next tick: onClose may restart the page, which mustn't happen while it's still being drawn.
+  scene.time.delayedCall(0, onClose);
 }

@@ -3,6 +3,7 @@ import { BLUE, INK, RED, RED_HEX } from '../../art/palette';
 import { nozzleOf, PROSPECTOR_GROUND } from '../../art/prospector';
 import type { Blast } from '../../logic/blastSim';
 import type { Mine } from '../../logic/mine';
+import { placeNote, type PlacedNote } from '../../logic/noteStack';
 import { createRng } from '../../logic/rng';
 import { HAND_FONT } from '../ui';
 import { SCALE } from './prospectorView';
@@ -11,11 +12,6 @@ import type { Ring } from './ring';
 const INK_HEX = Phaser.Display.Color.HexStringToColor(INK).color;
 /** The jet flame's watercolour wash. */
 const FLAME_WASH = 0xf6c770;
-/** Notes written this close together (ms) stack a line apart instead of over each other: a cap's carbon and water arrive at once. */
-const NOTE_STACK_MS = 450;
-const NOTE_LINE = 22;
-/** A run of them (a blast's worth of pieces) climbs this many lines, then starts again at the bottom. */
-const NOTE_STACK_MAX = 4;
 
 /**
  * Small effects in the world: cracks spreading through the block being
@@ -26,8 +22,8 @@ export class FxView {
   private readonly cracks: Phaser.GameObjects.Graphics;
   private readonly flame: Phaser.GameObjects.Graphics;
   private readonly rng = createRng(5);
-  private lastNote = -Infinity;
-  private stacked = 0;
+  /** The notes still showing, so a new one is written clear of them (noteStack.ts). */
+  private notes: PlacedNote[] = [];
 
   constructor(private readonly scene: Phaser.Scene, private readonly tile: number, private readonly jetMk: number) {
     this.cracks = scene.add.graphics().setDepth(4);
@@ -125,16 +121,18 @@ export class FxView {
     this.scene.cameras.main.shake(180, 0.006);
   }
 
-  /** A note written beside a point, rising and fading. */
+  /** A note written beside a point, rising and fading; moved up clear of any still showing that it would cover (a salvaged part's lines and the ore it spills). */
   note(x: number, y: number, text: string, danger = false): void {
-    const now = this.scene.time.now;
-    this.stacked = now - this.lastNote < NOTE_STACK_MS ? (this.stacked + 1) % NOTE_STACK_MAX : 0;
-    this.lastNote = now;
-    const at = y - this.stacked * NOTE_LINE;
     const t = this.scene.add
-      .text(x, at, text, { fontFamily: HAND_FONT, fontSize: '20px', color: danger ? RED : BLUE, stroke: '#f5f0e1', strokeThickness: 4 })
+      .text(x, y, text, { fontFamily: HAND_FONT, fontSize: '20px', color: danger ? RED : BLUE, stroke: '#f5f0e1', strokeThickness: 4 })
       .setOrigin(0.5)
       .setDepth(8);
-    this.scene.tweens.add({ targets: t, y: at - 26, alpha: 0, duration: 1300, ease: 'Quad.easeOut', onComplete: () => t.destroy() });
+    const placed: PlacedNote = { x, w: t.width, at: placeNote(this.notes, x, t.width, y) };
+    this.notes = [...this.notes, placed];
+    t.setY(placed.at);
+    this.scene.tweens.add({ targets: t, y: placed.at - 26, alpha: 0, duration: 1300, ease: 'Quad.easeOut', onComplete: () => {
+      this.notes = this.notes.filter((n) => n !== placed);
+      t.destroy();
+    } });
   }
 }

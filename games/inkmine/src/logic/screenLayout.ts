@@ -50,8 +50,11 @@ export function padCorner(width: number, height: number, scale: number, armed: b
   };
 }
 
-/** The narrator's strip: its widest, how far up from the bottom it sits, the narrowest it may get between the buttons, and how far it keeps from them. */
-export const STRIP_FIT = { w: 700, lift: 78, min: 520, clear: 12, edge: 16 } as const;
+/** The narrator's strip: its widest, its height, how far up from the bottom it sits, the narrowest it may get between the buttons, and how far it keeps from them. */
+export const STRIP_FIT = { w: 700, h: 104, lift: 78, min: 520, clear: 12, edge: 16 } as const;
+
+/** Room a page leaves under its content, so the last of it scrolls clear of the narrator's strip. */
+export const STRIP_ROOM = STRIP_FIT.lift + STRIP_FIT.h + STRIP_FIT.clear;
 
 /** Where the strip goes: its middle, its width, and how far up it sits. */
 export interface StripPlace {

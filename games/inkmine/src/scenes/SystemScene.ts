@@ -6,6 +6,7 @@ import { worldRadius } from '../art/systemArt';
 import { habitableZone, KIND_LINE, moonsOf, planetsOf, snowLine, STAR, worldById, WORLDS, type World } from '../logic/starSystem';
 import { getHost, getProfile, getSound, REG, setProfile } from '../host';
 import { hasWorld } from '../level/planets';
+import { STRIP_ROOM } from '../logic/screenLayout';
 import { canTravel, travel, tripFuel, TRIPS, type TravelCheck } from '../logic/travel';
 import { isWorldId, type WorldId } from '../logic/worlds';
 import { loadPaidPlanets } from './BootScene';
@@ -17,7 +18,7 @@ import { muteButton, narrationButton } from './kit/muteButton';
 import { narrator } from './NarratorScene';
 import { plaque } from './kit/plaque';
 import { dragScroll } from './kit/scroll';
-import { storyCard } from './kit/storyCard';
+import { storyCard, tellStory } from './kit/storyCard';
 import { demoEndCard, firstCourseCard, flightCard, whereYouFellCard } from './system/systemCards';
 import { aside, heading, INK_TEXT, label, MADDER, prose, scrawl, SEPIA, VERDIGRIS } from './kit/type';
 import { desk, PAD, section, SECTION_BODY } from './ship/panel';
@@ -89,8 +90,9 @@ export class SystemScene extends Phaser.Scene {
     this.worlds(layout, selected);
     const cw = Math.min(CARD_W, width - GAP * 2);
     const cardBottom = layout.bottom + this.card(selected, Math.round((width - cw) / 2), layout.bottom, cw);
-    desk(this, width, Math.max(height, cardBottom + GAP * 2));
-    dragScroll(this, cardBottom + GAP, 0);
+    // Room under it all for the narrator's strip, which reads over the map.
+    desk(this, width, Math.max(height, cardBottom + STRIP_ROOM + GAP));
+    dragScroll(this, cardBottom + STRIP_ROOM, 0);
     for (const k of BACK_KEYS) this.input.keyboard?.on(k, (e: KeyboardEvent) => {
       if (!e.repeat) this.back();
     });
@@ -279,7 +281,7 @@ export class SystemScene extends Phaser.Scene {
   }
 
   private arrival(): void {
-    storyCard(this, whereYouFellCard(), () => {});
+    tellStory(this, whereYouFellCard(), () => {});
   }
 
   /** Back to the starship's page (the map is only open aboard). */
@@ -291,7 +293,7 @@ export class SystemScene extends Phaser.Scene {
   private fly(to: WorldId): void {
     const was = getProfile(this);
     setProfile(this, travel(was, to));
-    storyCard(this, flightCard(this, was, to), () => this.scene.start('Ship', { remote: false, tab: 'starship' }));
+    tellStory(this, flightCard(this, was, to), () => this.scene.start('Ship', { remote: false, tab: 'starship' }));
   }
 
   /** At a world whose ground isn't loaded: the full game failed to come down. */
@@ -310,13 +312,19 @@ export class SystemScene extends Phaser.Scene {
     const r = setCourse(getProfile(this));
     if (!r.ok) return;
     setProfile(this, r.profile);
-    storyCard(this, firstCourseCard(this, getProfile(this)), () => this.scene.restart({ selected: FIRST_COURSE.to, demoEnd: true } satisfies SystemData));
+    tellStory(this, firstCourseCard(this, getProfile(this)), () => this.scene.restart({ selected: FIRST_COURSE.to, demoEnd: true } satisfies SystemData));
   }
 
-  /** Where the demo stops: on the star map, with the full game offered (Mycel and Brine, and the worlds still to come). */
+  /**
+   * Where the demo stops: on the star map, with the full game offered
+   * (Mycel and Brine, and the worlds still to come). Told in the strip, with
+   * the map's Unlock button there to press; with no voice for it, the card,
+   * whose button unlocks.
+   */
   private demoEnd(): void {
     const host = getHost(this);
-    storyCard(this, demoEndCard(host.price, () => {}), () => host.onBuy());
+    const spec = demoEndCard(host.price, () => {});
+    if (!narrator(this)?.say(spec)) storyCard(this, spec, () => host.onBuy());
   }
 }
 

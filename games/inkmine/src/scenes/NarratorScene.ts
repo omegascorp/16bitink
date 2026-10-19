@@ -10,12 +10,15 @@ import { upcoming } from '../narration/upcoming';
 import type { HudScene } from './HudScene';
 import { screenScene, viewSize } from './hidpi';
 import { plateCard } from './kit/plate';
-import { plaque } from './kit/plaque';
+import { iconTexture } from './kit/uiIcons';
+import { plaque, plaqueIconSize, plaqueInk } from './kit/plaque';
 import { storyCard, type StoryCardSpec } from './kit/storyCard';
 import { label, prose, SEPIA } from './kit/type';
 
 /** The strip at the foot of the screen, layout px: its height, padding, picture and buttons (its width and place: STRIP_FIT, stripPlace). */
-const STRIP = { h: 104, pad: 16, portrait: 64, button: 44 } as const;
+const STRIP = { h: STRIP_FIT.h, pad: 16, portrait: 64, button: 44 } as const;
+/** The strip's small buttons' label size (their icons are sized from it). */
+const STRIP_ICON = 14;
 /** Subtitles are read larger than other text, as they're on screen only a moment. */
 const SUB_SIZE = 21;
 /** A speaker's alien voice (the Lamplighters') plays first; the narrator starts after it, s per word, plus a beat. */
@@ -82,7 +85,7 @@ export class NarratorScene extends Phaser.Scene {
   private stripW: number = STRIP_FIT.w;
   private subtitle: Phaser.GameObjects.Text | null = null;
   private bar: Phaser.GameObjects.Graphics | null = null;
-  private pauseLabel: Phaser.GameObjects.Text | null = null;
+  private pauseLabel: Phaser.GameObjects.Image | null = null;
   private shownChunk = -1;
   /** Ms until the story's next lines are looked at again. */
   private aheadIn: number = AHEAD.first;
@@ -141,16 +144,17 @@ export class NarratorScene extends Phaser.Scene {
   }
 
   /**
-   * Reads `spec` aloud now while a card shows it (a page with nothing to
-   * play: the ship, the star map), ahead of the queue; the strip waits under
-   * the card and carries on once it's closed. Returns what to call then.
+   * Reads `spec` aloud now while a card shows it, ahead of the queue; the
+   * strip waits under the card and carries on once it's closed. A line it
+   * cuts into is told again after it, not lost. Returns what to call then.
    */
   sayOver(spec: StoryCardSpec): () => void {
     if (!this.canSay(spec)) return () => undefined;
     this.queue = this.queue.filter((l) => !same(l.spec, spec));
     if (!this.line || !same(this.line.spec, spec)) {
-      this.queue.unshift(lineOf(spec, false));
+      const cut = this.line;
       this.finish();
+      this.queue.unshift(lineOf(spec, false), ...(cut ? [cut] : []));
     }
     this.covered = true;
     this.strip?.setVisible(false);
@@ -183,7 +187,8 @@ export class NarratorScene extends Phaser.Scene {
       return;
     }
     if (this.carded) return;
-    if (!this.paused && !document.hidden) {
+    // Before the first click, tap or key the browser keeps the voice silent: the line waits at its start for it.
+    if (!this.paused && !document.hidden && !getSound(this)?.waitingForGesture) {
       const heard = this.voicing ? this.voice.position : null;
       // The voice's own clock while it plays (it stops with a hidden tab); else the scene's.
       this.at = heard !== null ? heard + this.line.delay : this.at + delta / 1000;
@@ -250,7 +255,7 @@ export class NarratorScene extends Phaser.Scene {
   private togglePause(): void {
     this.paused = !this.paused;
     if (this.paused) this.stopVoice();
-    this.pauseLabel?.setText(this.paused ? '▶' : '❚❚');
+    this.pauseLabel?.setTexture(iconTexture(this, this.paused ? 'play' : 'pause', plaqueIconSize(STRIP_ICON), plaqueInk()));
   }
 
   /** The full card, from the strip's Read: the world waits while it's open; the voice reads on. */
@@ -315,15 +320,15 @@ export class NarratorScene extends Phaser.Scene {
     this.bar = this.add.graphics();
     parts.push(this.bar);
     // From the right: Read, skip, pause.
-    const small = { width: STRIP.button, height: 36, size: 14 } as const;
+    const small = { width: STRIP.button, height: 36, size: STRIP_ICON } as const;
     const readW = STRIP.button + 22;
     const readX = w / 2 - STRIP.pad - readW / 2;
     const skipX = readX - readW / 2 - 8 - STRIP.button / 2;
     const pauseX = skipX - STRIP.button - 8;
-    const pause = plaque(this, pauseX, 0, this.paused ? '▶' : '❚❚', () => this.togglePause(), small);
-    this.pauseLabel = pause.list[1] as Phaser.GameObjects.Text;
+    const pause = plaque(this, pauseX, 0, 'Pause', () => this.togglePause(), { ...small, icon: this.paused ? 'play' : 'pause' });
+    this.pauseLabel = pause.list[1] as Phaser.GameObjects.Image;
     parts.push(pause);
-    parts.push(plaque(this, skipX, 0, '»', () => this.finish(), small));
+    parts.push(plaque(this, skipX, 0, 'Skip', () => this.finish(), { ...small, icon: 'skip' }));
     parts.push(plaque(this, readX, 0, 'Read', () => this.read(), { ...small, width: readW, size: 12 }));
     this.strip = plateCard(this, cx, height - lift - h / 2, w, h, parts, 131).setDepth(10);
     this.shownChunk = -1;

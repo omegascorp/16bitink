@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { farSound, landGain, LAND_MIN_VY } from '../src/audio/hearing';
 import { depthShade, MOODS, nextBell } from '../src/audio/mood';
 import { newsSound } from '../src/audio/news';
@@ -91,6 +91,35 @@ describe('saved sound settings', () => {
       board.destroy();
     }).not.toThrow();
     expect(new SoundBoard(undefined).muted).toBe(false);
+  });
+
+  it('waits for the first click, tap or key only where there is Web Audio to start and sound is on', () => {
+    // No browser at all: nothing to wait for, so the narrator never stalls.
+    expect(new SoundBoard(memoryStore()).waitingForGesture).toBe(false);
+    const unlocks: (() => void)[] = [];
+    const listen = (ev: string, fn: () => void): void => {
+      if (ev === 'pointerdown') unlocks.push(fn);
+    };
+    // Web Audio that fails to start once a gesture tries it: nothing will ever play, so nothing waits.
+    const AudioContext = class { state = 'suspended'; resume = (): Promise<void> => Promise.resolve(); createGain = (): never => { throw new Error('no audio here'); }; };
+    vi.stubGlobal('window', { addEventListener: listen, removeEventListener: () => undefined, AudioContext });
+    vi.stubGlobal('document', { addEventListener: () => undefined, removeEventListener: () => undefined, hidden: false });
+    try {
+      const board = new SoundBoard(memoryStore());
+      expect(board.waitingForGesture).toBe(true);
+      board.setMuted(true);
+      expect(board.waitingForGesture).toBe(false);
+      board.setMuted(false);
+      unlocks.forEach((fn) => fn());
+      expect(board.waitingForGesture).toBe(false);
+      // Another board, not tried yet: waiting.
+      expect(new SoundBoard(memoryStore()).waitingForGesture).toBe(true);
+      vi.stubGlobal('window', { addEventListener: listen, removeEventListener: () => undefined });
+      // A browser with no Web Audio: nothing will ever play, so nothing waits.
+      expect(new SoundBoard(memoryStore()).waitingForGesture).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

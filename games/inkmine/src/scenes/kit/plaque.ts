@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { getSound } from '../../host';
+import { iconImage, type IconName } from './uiIcons';
 import { bakeUi, castShadow, PAPER_DEEP, RES, roundRect, rule, RULE, wash } from './paint';
 import { FADED, INK_TEXT, SERIF } from './type';
 
@@ -11,6 +12,8 @@ export interface PlaqueOpts {
   readonly height?: number;
   readonly size?: number;
   readonly kind?: PlaqueKind;
+  /** An icon in place of the label (the label is then only its name). */
+  readonly icon?: IconName;
 }
 
 const MARGIN = 8;
@@ -47,6 +50,12 @@ function plaqueKey(scene: Phaser.Scene, w: number, h: number, kind: PlaqueKind):
   });
 }
 
+/** An icon's size on a plaque whose label would be `size` px: about a capital's height and a half. */
+export const plaqueIconSize = (size: number): number => Math.round(size * 1.3);
+
+/** The label's ink on a plaque of `kind` (an icon swapped in later is inked to match). */
+export const plaqueInk = (kind: PlaqueKind = 'secondary'): string => LOOK[kind].label;
+
 /**
  * A button as a small engraved plaque: the main action washed in ink with
  * paper-coloured capitals, a lesser one on paper, a loss in madder, and
@@ -59,10 +68,12 @@ export function plaque(scene: Phaser.Scene, x: number, y: number, text: string, 
   const kind = opts.kind ?? 'secondary';
   const size = opts.size ?? 19;
   const img = scene.add.image(0, 0, plaqueKey(scene, w, h, kind)).setScale(1 / RES);
-  const t = scene.add
-    .text(0, 1, text.toUpperCase(), { fontFamily: SERIF, fontSize: `${size}px`, fontStyle: '600', color: LOOK[kind].label, padding: { x: 2, y: 3 } })
-    .setLetterSpacing(size * 0.12)
-    .setOrigin(0.5);
+  const t = opts.icon
+    ? iconImage(scene, 0, 0, opts.icon, plaqueIconSize(size), LOOK[kind].label)
+    : scene.add
+      .text(0, 1, text.toUpperCase(), { fontFamily: SERIF, fontSize: `${size}px`, fontStyle: '600', color: LOOK[kind].label, padding: { x: 2, y: 3 } })
+      .setLetterSpacing(size * 0.12)
+      .setOrigin(0.5);
   const c = scene.add.container(x, y, [img, t]).setSize(w, h);
   if (kind === 'off') return c;
   c.setInteractive({ useHandCursor: true });
