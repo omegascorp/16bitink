@@ -3,7 +3,7 @@ import { INKCRAB_PAID_BEACHES } from '@16bitink/inkcrab/content';
 import { INKFISH_FULL_CHAPTERS } from '@16bitink/inkfish/content';
 import { parseBeaches } from '../../../games/inkcrab/src/level/validate';
 import { parseChapters } from '../../../games/inkfish/src/levels/validate';
-import { findGame, GAMES, isPurchasable, playableGames } from '../src/data/games';
+import { findGame, GAMES, isNew, isPurchasable, playableGames, type CatalogGame } from '../src/data/games';
 import { PAID_CONTENT } from '../src/games/content.server';
 import { GAME_LOADERS } from '../src/games/loaders';
 import { GAME_VERSIONS } from '../src/games/versions';
@@ -16,6 +16,27 @@ describe('catalog', () => {
 
   it('lists every game for sale, so the admin panel can unlock it and make keys for it', () => {
     expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine']);
+  });
+
+  it('says in a few words what every playable game gives for free', () => {
+    for (const g of playableGames()) {
+      expect(g.demo, g.slug).toBeTruthy();
+      expect(g.demo!.length, g.slug).toBeLessThanOrEqual(24);
+    }
+  });
+
+  it('dates every playable game, so the newest can be marked', () => {
+    for (const g of playableGames()) expect(g.released, g.slug).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('marks a game new for its first eight days, counted from the start of its release day (UTC)', () => {
+    const game = { released: '2026-10-17' } as CatalogGame;
+    expect(isNew(game, new Date('2026-10-17T00:00:00Z'))).toBe(true);
+    expect(isNew(game, new Date('2026-10-24T23:59:59Z'))).toBe(true);
+    expect(isNew(game, new Date('2026-10-25T00:00:00Z'))).toBe(false);
+    // Dated ahead (announced, not out yet) or undated: not new.
+    expect(isNew(game, new Date('2026-10-16T12:00:00Z'))).toBe(false);
+    expect(isNew({} as CatalogGame, new Date('2026-10-17T12:00:00Z'))).toBe(false);
   });
 
   it('only sells playable games with a Stripe lookup key', () => {

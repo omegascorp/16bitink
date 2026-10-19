@@ -101,6 +101,72 @@ export async function entryStats(range: Range, limit = 12): Promise<EntryStats> 
   return row ?? { landings: [], referrers: [] };
 }
 
+/** Clicks on one game's card on the home page. */
+export interface HomeCardStats {
+  readonly game: string;
+  /** Its place on the page, 1 at the top (the highest it was shown in the period). */
+  readonly slot: number;
+  /** Visits that clicked this card. */
+  readonly visits: number;
+  /** Of those, visits that went on to start this game. */
+  readonly played: number;
+  /** Clicks by part of the card. */
+  readonly cover: number;
+  readonly title: number;
+  readonly play: number;
+  readonly about: number;
+}
+
+export interface HomeClickStats {
+  /** Visits that saw the home page. */
+  readonly homeVisits: number;
+  /** Of those, visits that clicked any game card. */
+  readonly clickedVisits: number;
+  /** In page order. */
+  readonly cards: readonly HomeCardStats[];
+}
+
+interface HomeClickFacets {
+  readonly home: readonly { n: number }[];
+  readonly clicked: readonly { n: number }[];
+  readonly cards: readonly HomeCardStats[];
+}
+
+const clicksOn = (target: string): AccumulatorOperator => ({ $sum: { $cond: [{ $and: [isEvent('home_click'), { $eq: ['$target', target] }] }, 1, 0] } });
+
+/** How many home page visits click through to a game, which game and which part of its card. */
+export async function homeClicks(range: Range): Promise<HomeClickStats> {
+  const [row] = await aggregate<HomeClickFacets>([
+    { $match: { ...inRange(range), 'meta.event': { $in: ['pageview', 'home_click', 'game_start'] } } },
+    {
+      $facet: {
+        home: [{ $match: { 'meta.event': 'pageview', path: '/' } }, { $group: { _id: '$session' } }, { $count: 'n' }],
+        clicked: [{ $match: { 'meta.event': 'home_click' } }, { $group: { _id: '$session' } }, { $count: 'n' }],
+        cards: [
+          { $match: { 'meta.event': { $in: ['home_click', 'game_start'] } } },
+          {
+            $group: {
+              _id: { game: '$meta.game', session: '$session' },
+              clicked: hasEvent('home_click'), played: hasEvent('game_start'), slot: { $min: '$slot' },
+              cover: clicksOn('cover'), title: clicksOn('title'), play: clicksOn('play'), about: clicksOn('about'),
+            },
+          },
+          { $match: { clicked: 1 } },
+          {
+            $group: {
+              _id: '$_id.game', slot: { $min: '$slot' }, visits: { $sum: 1 }, played: { $sum: '$played' },
+              cover: { $sum: '$cover' }, title: { $sum: '$title' }, play: { $sum: '$play' }, about: { $sum: '$about' },
+            },
+          },
+          { $project: { _id: 0, game: '$_id', slot: 1, visits: 1, played: 1, cover: 1, title: 1, play: 1, about: 1 } },
+          { $sort: { slot: 1, game: 1 } },
+        ],
+      },
+    },
+  ]);
+  return { homeVisits: row?.home[0]?.n ?? 0, clickedVisits: row?.clicked[0]?.n ?? 0, cards: row?.cards ?? [] };
+}
+
 /** One game's way from its play page to the first level, in visits. */
 export interface PlayFunnel {
   readonly game: string;

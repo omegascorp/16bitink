@@ -104,6 +104,25 @@ describe('parseBatch', () => {
     expect(parseBatch(batch([event]))).toBeNull();
   });
 
+  it('accepts a click on a home page game card', () => {
+    const parsed = parseBatch(batch([
+      { type: 'home_click', at: 1, game: 'inkfish', target: 'cover', slot: 1 },
+      { type: 'home_click', at: 2, game: 'inkcrab', target: 'play', slot: 2 },
+      { type: 'home_click', at: 3, game: 'inkcrab', target: 'title', slot: 2 },
+      { type: 'home_click', at: 4, game: 'inkfish', target: 'about', slot: 1 },
+    ]));
+    expect(parsed?.events).toHaveLength(4);
+  });
+
+  it.each([
+    ['an unknown target', { type: 'home_click', at: 1, game: 'inkfish', target: 'banner', slot: 1 }],
+    ['no slot', { type: 'home_click', at: 1, game: 'inkfish', target: 'play' }],
+    ['a slot of 0', { type: 'home_click', at: 1, game: 'inkfish', target: 'play', slot: 0 }],
+    ['a fractional slot', { type: 'home_click', at: 1, game: 'inkfish', target: 'play', slot: 1.5 }],
+  ])('rejects a home click with %s', (_label, event) => {
+    expect(parseBatch(batch([event]))).toBeNull();
+  });
+
   it('drops unknown fields instead of storing them', () => {
     const parsed = parseBatch(batch([{ type: 'game_start', at: 1, game: 'inkfish', $set: { role: 'admin' } }]));
     expect(parsed?.events[0]).toEqual({ type: 'game_start', at: 1, game: 'inkfish' });
@@ -162,6 +181,11 @@ describe('toStoredEvents', () => {
     const stored = toStoredEvents(parsed, VISIT, NOW, isGame);
     expect(stored.every((e) => !('net' in e))).toBe(true);
     expect(stored[1]).toMatchObject({ meta: { event: 'load_fail', game: 'inkfish' }, ms: 900, stage: 'mount', error: 'boom' });
+  });
+
+  it('stores which part of which home page card was clicked', () => {
+    const parsed = parseBatch(batch([{ type: 'home_click', at: 1_000_000, game: 'inkcrab', target: 'cover', slot: 2 }]))!;
+    expect(toStoredEvents(parsed, VISIT, NOW, isGame)[0]).toMatchObject({ meta: { event: 'home_click', game: 'inkcrab' }, target: 'cover', slot: 2 });
   });
 
   it('keeps page views (no game) and drops events for games that are not playable', () => {

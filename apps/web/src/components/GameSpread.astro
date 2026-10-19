@@ -1,26 +1,91 @@
 ---
 import { isPurchasable, type CatalogGame } from '../data/games';
+import { coverSrcset, coverVariant, loopSources } from '../lib/covers';
+import GameStats from './GameStats.astro';
 
 interface Props {
   game: CatalogGame;
   owned?: boolean;
+  /** Place in the home page list, 1 at the top: tagged on click analytics. */
+  position: number;
+  /** The first game: full width on wide screens, with its description beside the cover. */
+  featured?: boolean;
+  /** Out this past week: a "New!" sticker on the cover. */
+  fresh?: boolean;
 }
-const { game, owned = false } = Astro.props;
+const { game, owned = false, position, featured = false, fresh = false } = Astro.props;
 const play = `/play/${game.slug}`;
+const playLabel = owned ? 'Play' : 'Play free';
+const cover = game.cover ?? '/covers/inkfish.png';
+// Featured: about 60% of the 1100px column on desktop; otherwise half of it.
+const sizes = featured ? '(min-width: 900px) 660px, calc(100vw - 32px)' : '(min-width: 900px) 530px, calc(100vw - 32px)';
+const terms = owned ? '' : isPurchasable(game) ? `${game.demo ?? 'First chapter free'}, no sign-up. Full game ${game.price}, one-time. ` : 'Free demo, full game coming soon. ';
 ---
-<article class="spread">
-  <a href={play} class="cover" aria-label={`Play ${game.title}`}>
-    <img src={game.cover} alt="" width="1200" height="675" fetchpriority="high" />
+<article class:list={['spread', { featured }]} data-game={game.slug} data-slot={position}>
+  <a href={play} class="cover" aria-label={`${playLabel}: ${game.title}${fresh ? ' (new this week)' : ''}`} data-click="cover">
+    <picture>
+      <source type="image/avif" srcset={coverSrcset(cover, 'avif')} sizes={sizes} />
+      <source type="image/webp" srcset={coverSrcset(cover, 'webp')} sizes={sizes} />
+      <img
+        src={coverVariant(cover, 1200, 'webp')} alt="" width="1200" height="675"
+        loading={position === 1 ? 'eager' : 'lazy'} fetchpriority={position === 1 ? 'high' : 'auto'} decoding="async"
+      />
+    </picture>
+    <!-- A gameplay loop over the cover: started by the script below once on screen, never with reduced motion or Save-Data. -->
+    {game.loop && (
+      <video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" data-loop>
+        {loopSources(game.slug).map((s) => <source src={s.src} type={s.type} />)}
+      </video>
+    )}
+    {fresh && <span class="new" aria-hidden="true">New!</span>}
     <!-- Phones only: the play button below the cover can sit under the fold, so the cover says it plays too. -->
-    <span class="badge btn btn-ink" aria-hidden="true">▶ {owned ? 'Play' : 'Play free'}</span>
+    <span class="badge btn btn-ink" aria-hidden="true">▶ {playLabel}</span>
   </a>
   <div class="caption">
-    <h2><a class="title" href={play}>{game.title}</a></h2>
+    <h2><a class="title" href={play} data-click="title">{game.title}</a></h2>
     <p class="tagline">{game.tagline}</p>
-    <a class="btn btn-ink play" href={play}>{owned ? 'Play' : 'Play free'}</a>
-    <p class="terms">{!owned && (isPurchasable(game) ? `First chapter free, full game ${game.price} one-time. ` : 'Free demo, full game coming soon. ')}<a href={`/games/${game.slug}`}>About the game</a></p>
+    <div class="numbers"><GameStats game={game} owned={owned} large={featured} compact /></div>
+    {featured && game.description[0] && <p class="blurb">{game.description[0]}</p>}
+    <a class="btn btn-ink play" href={play} data-click="play">{playLabel}</a>
+    <p class="terms">{terms}<a href={`/games/${game.slug}`} data-click="about">About the game</a></p>
   </div>
 </article>
+
+<script>
+  import { track, type HomeClickTarget } from '../lib/client/analytics';
+
+  const TARGETS: readonly string[] = ['cover', 'title', 'play', 'about'] satisfies readonly HomeClickTarget[];
+
+  // Which card, and which part of it, gets the click. Sent with sendBeacon as the page unloads.
+  document.addEventListener('click', (e) => {
+    const link = e.target instanceof Element ? e.target.closest<HTMLElement>('.spread [data-click]') : null;
+    const card = link?.closest<HTMLElement>('.spread');
+    const target = link?.dataset.click ?? '';
+    const slot = Number(card?.dataset.slot);
+    if (!card?.dataset.game || !TARGETS.includes(target) || !Number.isInteger(slot)) return;
+    track({ type: 'home_click', game: card.dataset.game, target: target as HomeClickTarget, slot });
+  });
+
+  /** Gameplay loops play only while on screen, and not at all for reduced motion or Save-Data. */
+  function startLoops(): void {
+    const videos = document.querySelectorAll<HTMLVideoElement>('.spread video[data-loop]');
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    if (videos.length === 0 || connection?.saveData || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const seen = new IntersectionObserver((entries) => {
+      for (const { target, isIntersecting } of entries) {
+        const video = target as HTMLVideoElement;
+        if (!isIntersecting) video.pause();
+        // Autoplay can still be refused (e.g. low-power mode): the cover stays.
+        else video.play().catch(() => undefined);
+      }
+    }, { threshold: 0.5 });
+    for (const video of videos) {
+      video.addEventListener('playing', () => video.classList.add('on'), { once: true });
+      seen.observe(video);
+    }
+  }
+  startLoops();
+</script>
 
 <style>
   .spread { position: relative; }
@@ -36,14 +101,19 @@ const play = `/play/${game.slug}`;
   .cover:focus-visible { outline: 3px dashed var(--blue-ink); outline-offset: 6px; }
   /* Two strips of tape hold the page in the sketchbook. */
   .cover::before, .cover::after {
-    content: ''; position: absolute; top: -11px; width: 72px; height: 22px; background: var(--tape);
+    content: ''; position: absolute; top: -11px; width: 72px; height: 22px; background: var(--tape); z-index: 1;
   }
   .cover::before { left: 8%; transform: rotate(-4deg); }
   .cover::after { right: 8%; transform: rotate(3deg); }
   .cover img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+  .cover video {
+    position: absolute; inset: 10px; width: calc(100% - 20px); height: calc(100% - 20px); object-fit: cover;
+    opacity: 0; transition: opacity 0.4s ease;
+  }
+  .cover video.on { opacity: 1; }
   @media (prefers-reduced-motion: no-preference) {
-    /* Line boil: the same hand-drawn wobble the game uses. */
-    .cover img { filter: url(#boil); }
+    /* Line boil, the wobble the games use: always on the featured cover, on the others while pointed at. One at a time keeps phones cool. */
+    .featured .cover img, .cover:hover img { filter: url(#boil); }
   }
 
   .caption {
@@ -56,19 +126,41 @@ const play = `/play/${game.slug}`;
   }
   .title { color: var(--blue-ink); text-decoration: none; text-shadow: 0 0 10px var(--paper), 0 0 4px var(--paper); }
   .tagline { grid-column: 1; margin: 4px 0 0; font-family: var(--font-hand); font-size: 1.5rem; line-height: 1.2; }
+  .numbers { grid-column: 1 / -1; }
+  .blurb { grid-column: 1 / -1; margin: 14px 0 0; max-width: 46ch; }
   .play { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 1.6rem; min-height: 52px; padding-inline: 26px; }
   .terms { grid-column: 1 / -1; margin: 14px 0 0; color: var(--ink-soft); font-size: 0.9rem; }
 
-  .badge { display: none; }
+  /* A red-ink sticker slapped on the corner. */
+  .new {
+    position: absolute; left: -14px; top: 22px; z-index: 2; padding: 2px 14px 4px;
+    font-family: var(--font-hand); font-size: 1.7rem; font-weight: 700; line-height: 1;
+    color: var(--red-ink); background: var(--paper-2); border: 2.5px solid var(--red-ink);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; transform: rotate(-8deg);
+    box-shadow: 2px 3px 0 rgba(27, 26, 31, 0.25);
+  }
+
+  .badge { display: none; z-index: 1; }
   @media (max-width: 620px) {
     .badge {
       display: inline-flex; position: absolute; right: 18px; bottom: 18px;
       min-height: 44px; padding: 6px 18px; font-size: 1.45rem; transform: rotate(1.5deg);
     }
+    /* Phones: the cover already says what the game is; the blurb would push the next game a screen down. */
+    .blurb { display: none; }
   }
 
   @media (max-width: 420px) {
     .caption { grid-template-columns: 1fr; }
     .play { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 18px; }
+  }
+
+  /* Wide screens: the featured game takes the whole row, cover left and its pitch beside it. */
+  @media (min-width: 900px) {
+    .featured { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 40px; align-items: center; }
+    .featured .caption { display: flex; flex-direction: column; align-items: flex-start; padding: 0; }
+    .featured h2 { margin: 0; font-size: clamp(4.4rem, 7vw, 5.6rem); }
+    .featured .tagline { font-size: 1.75rem; }
+    .featured .play { align-self: flex-start; margin-top: 22px; font-size: 1.9rem; min-height: 60px; padding-inline: 34px; }
   }
 </style>

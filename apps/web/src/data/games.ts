@@ -22,6 +22,16 @@ export interface CatalogGame {
   readonly description: readonly string[];
   readonly status: GameStatus;
   readonly cover?: string;
+  /** Has a silent gameplay loop in public/loops/ (made by scripts/loops.mjs), played over the cover. */
+  readonly loop?: boolean;
+  /** Release day (YYYY-MM-DD, UTC): the home page marks a game "New" for NEW_FOR_DAYS from it. */
+  readonly released?: string;
+  /** Last day the game itself changed (YYYY-MM-DD, UTC): bump it with each release. */
+  readonly updated?: string;
+  /** How much game there is: chapters, and levels when counted; `ready` below `chapters` means the rest is still being made. */
+  readonly size?: { readonly chapters: number; readonly ready?: number; readonly levels?: number };
+  /** What the free demo gives, in a few words: "10 levels free". */
+  readonly demo?: string;
   /** Display price for the full-game unlock; the charged amount lives in Stripe. */
   readonly price?: string;
   /**
@@ -50,6 +60,11 @@ export const GAMES: readonly CatalogGame[] = [
     ],
     status: 'playable',
     cover: '/covers/inkfish.png',
+    loop: true,
+    released: '2026-10-03',
+    updated: '2026-10-16',
+    size: { chapters: 10, levels: 100 },
+    demo: '10 levels free',
     price: '$4.99',
     stripeLookupKey: 'inkfish_full',
     theme: { paper: '#f4eddc', ink: '#1b1a1f', accent: '#1f3f8a' },
@@ -73,6 +88,11 @@ export const GAMES: readonly CatalogGame[] = [
     ],
     status: 'playable',
     cover: '/covers/inkcrab.png',
+    loop: true,
+    released: '2026-10-11',
+    updated: '2026-10-17',
+    size: { chapters: 10, levels: 100 },
+    demo: '10 levels free',
     price: '$4.99',
     stripeLookupKey: 'inkcrab_full',
     theme: { paper: '#f5f0e1', ink: '#26316a', accent: '#b3322b' },
@@ -103,6 +123,11 @@ export const GAMES: readonly CatalogGame[] = [
     ],
     status: 'playable',
     cover: '/covers/inkmine.png',
+    loop: true,
+    released: '2026-10-17',
+    updated: '2026-10-19',
+    size: { chapters: 10, ready: 3 },
+    demo: 'First world free',
     price: '$4.99',
     stripeLookupKey: 'inkmine_full',
     theme: { paper: '#f4eddc', ink: '#1f2a55', accent: '#4a2f7a' },
@@ -149,6 +174,18 @@ export function findGame(slug: string): CatalogGame | undefined {
 
 export function isPurchasable(game: CatalogGame | undefined): game is CatalogGame & { stripeLookupKey: string } {
   return game?.status === 'playable' && typeof game.stripeLookupKey === 'string';
+}
+
+/** A new game comes out every Sunday: it stays marked new until the next one has had a day. */
+export const NEW_FOR_DAYS = 8;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Out, and released within the last NEW_FOR_DAYS days. */
+export function isNew(game: CatalogGame, now: Date): boolean {
+  const released = game.released ? Date.parse(`${game.released}T00:00:00Z`) : Number.NaN;
+  if (!Number.isFinite(released)) return false;
+  const age = now.getTime() - released;
+  return age >= 0 && age < NEW_FOR_DAYS * DAY_MS;
 }
 
 export const playableGames = (): CatalogGame[] => GAMES.filter((g) => g.status === 'playable');

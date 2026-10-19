@@ -12,7 +12,10 @@
     "stripe:setup": "node --env-file=.env scripts/stripe-setup.mjs",
     "stripe:setup:prod": "node --env-file=.env.production scripts/stripe-setup.mjs",
     "test": "vitest run",
-    "typecheck": "astro check"
+    "typecheck": "astro check",
+    "covers": "node scripts/covers.mjs",
+    "loops": "node scripts/loops.mjs",
+    "gameplay": "node scripts/gameplay/record.mjs"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",

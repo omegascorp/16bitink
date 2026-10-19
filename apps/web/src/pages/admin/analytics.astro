@@ -3,7 +3,7 @@ import Base from '../../layouts/Base.astro';
 import { findGame, playableGames } from '../../data/games';
 import { currentAdmin } from '../../lib/adminAuth';
 import { countryName, formatDuration, funnelRows, parsePeriod, percent, PERIODS, rangeFor, visitOutcome } from '../../lib/adminStats';
-import { entryStats, playFunnel, QUICK_LEAVE_MS, topErrors } from '../../lib/db/diagnosticsRepo';
+import { entryStats, homeClicks, playFunnel, QUICK_LEAVE_MS, topErrors } from '../../lib/db/diagnosticsRepo';
 import { breakdown, daily, gameStats, levelFunnel, overview, recentSessions, type Dimension } from '../../lib/db/eventRepo';
 
 export const prerender = false;
@@ -20,7 +20,7 @@ const range = rangeFor(days, new Date());
 const games = playableGames();
 const DIMENSIONS: readonly (readonly [Dimension, string])[] = [['country', 'Country'], ['os', 'OS'], ['browser', 'Browser'], ['device', 'Device']];
 
-const [totals, perDay, perGame, funnels, shares, recent, entries, plays, errors] = await Promise.all([
+const [totals, perDay, perGame, funnels, shares, recent, entries, plays, errors, home] = await Promise.all([
   overview(range),
   daily(range),
   gameStats(range),
@@ -30,6 +30,7 @@ const [totals, perDay, perGame, funnels, shares, recent, entries, plays, errors]
   entryStats(range),
   playFunnel(range),
   topErrors(range),
+  homeClicks(range),
 ]);
 
 const title = (slug: string): string => findGame(slug)?.title ?? slug;
@@ -83,6 +84,20 @@ const when = (d: Date): string => d.toISOString().slice(0, 16).replace('T', ' ')
         </tbody>
       </table>
     </div>
+
+    <h2>Home page cards</h2>
+    <p class="note">{share(home.clickedVisits, home.homeVisits)} of {home.homeVisits} home page visits clicked a game. Per game: visits that clicked its card, how many of those started it, and which part of the card they clicked (cover, name, play button, "About the game").</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>#</th><th>Game</th><th>Visits</th><th>Played</th><th>Cover</th><th>Name</th><th>Play</th><th>About</th></tr></thead>
+        <tbody>
+          {home.cards.map((c) => (
+            <tr><td>{c.slot}</td><td>{title(c.game)}</td><td>{share(c.visits, home.homeVisits)}</td><td>{share(c.played, c.visits)}</td><td>{c.cover}</td><td>{c.title}</td><td>{c.play}</td><td>{c.about}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    {home.cards.length === 0 && <p class="empty">No home page clicks yet.</p>}
 
     <h2>From play page to first level</h2>
     <p class="note">Visits at each step. Started: the game mounted. Shown: the loading screen lifted (stalled: the game went quiet for 15s and it was lifted anyway). Hid while loading: the page was closed or switched away before the game showed. Wait: from opening the play page to tapping. Load: from the tap to the game's first screen.</p>

@@ -44,6 +44,8 @@ const eventSchema = new Schema<StoredEvent>(
     stage: String,
     error: String,
     source: String,
+    target: String,
+    slot: Number,
   },
   {
     collection: 'events',

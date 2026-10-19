@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import BuyButton from '../../components/BuyButton.astro';
+import GameStats from '../../components/GameStats.astro';
 import { findGame, isPurchasable } from '../../data/games';
 import { currentUser, ownership } from '../../lib/owner';
 
@@ -34,6 +35,7 @@ Astro.response.headers.set('cache-control', 'private, no-store');
       <p class="pixel-label">{owned ? 'Full game · unlocked' : forSale ? `Free demo · full game ${game.price} one-time` : 'Free demo · the full game is coming soon'}</p>
       <h1>{game.title}</h1>
       <p class="tag">{game.tagline}</p>
+      <div class="numbers"><GameStats game={game} owned={owned} large /></div>
       {game.description.map((p) => <p>{p}</p>)}
       <div class="actions">
         <a class="btn btn-ink" href={`/play/${game.slug}`}>{owned ? 'Play the full game' : 'Play free, full-screen'}</a>
@@ -79,6 +81,7 @@ Astro.response.headers.set('cache-control', 'private, no-store');
   .shot { padding: 10px; transform: rotate(-0.8deg); }
   .shot img { display: block; width: 100%; height: auto; border-radius: 2px; }
   .tag { font-family: var(--font-hand); font-size: 1.8rem; color: var(--blue-ink); margin: -6px 0 12px; }
+  .numbers { margin: 0 0 18px; }
   .actions { display: flex; flex-wrap: wrap; gap: 14px; margin: 26px 0 10px; }
   .cancelled { color: var(--red-ink); }
   .one-time { margin: 0 0 6px; font-size: 1rem; }

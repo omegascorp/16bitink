@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { StoredEvent } from '../src/lib/analytics';
 import { connectDb, disconnectDb } from '../src/lib/db/connection';
-import { entryStats, playFunnel, topErrors } from '../src/lib/db/diagnosticsRepo';
+import { entryStats, homeClicks, playFunnel, topErrors } from '../src/lib/db/diagnosticsRepo';
 import { AnalyticsEvent } from '../src/lib/db/eventModel';
 import { recentSessions, recordEvents } from '../src/lib/db/eventRepo';
 
@@ -56,6 +56,28 @@ describe.skipIf(!uri)('loading and page diagnostics (MongoDB)', () => {
       { ref: null, visits: 2, started: 2 },
       { ref: 'm.youtube.com', visits: 1, started: 0 },
     ]);
+  });
+
+  it('counts which home page cards get clicked, where, and whether that game was then played', async () => {
+    const click = (s: string, game: string, target: StoredEvent['target'], slot: number): StoredEvent => ev(s, 'home_click', { target, slot }, game);
+    await recordEvents([
+      // a: home, clicks InkFish's cover, plays it.
+      view('a', '/'), click('a', 'inkfish', 'cover', 1), ev('a', 'game_start', {}, 'inkfish'),
+      // b: home, reads about InkCrab, then presses its play button but leaves before it starts.
+      view('b', '/'), click('b', 'inkcrab', 'about', 2), click('b', 'inkcrab', 'play', 2),
+      // c: home twice, clicks nothing.
+      view('c', '/'), view('c', '/'),
+      // d: never on the home page.
+      view('d', '/games/inkmine'),
+    ]);
+    expect(await homeClicks(RANGE)).toEqual({
+      homeVisits: 3,
+      clickedVisits: 2,
+      cards: [
+        { game: 'inkfish', slot: 1, visits: 1, played: 1, cover: 1, title: 0, play: 0, about: 0 },
+        { game: 'inkcrab', slot: 2, visits: 1, played: 0, cover: 0, title: 0, play: 1, about: 1 },
+      ],
+    });
   });
 
   it('follows each game from its play page to the first level', async () => {

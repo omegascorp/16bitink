@@ -28,6 +28,8 @@ const ErrorText = z.string().min(1).max(200);
 export const LOAD_STAGES = ['download', 'mount', 'boot'] as const;
 /** How the loading screen lifted: the game said it was ready, or it went quiet and the stall timer lifted it. */
 export const READY_STAGES = ['ready', 'stall'] as const;
+/** Which part of a home page game card was clicked: the cover, the game's name, the play button or the "About the game" link. */
+export const HOME_CLICK_TARGETS = ['cover', 'title', 'play', 'about'] as const;
 
 const Event = z.discriminatedUnion('type', [
   z.object({ type: z.literal('pageview'), at: At, path: Path, ref: z.string().max(100).optional() }),
@@ -42,6 +44,8 @@ const Event = z.discriminatedUnion('type', [
   /** The page went away while the game was still loading, `pct` of the way. */
   z.object({ type: z.literal('load_abandon'), at: At, game: Game, ms: Ms, pct: Percent, ...Version }),
   z.object({ type: z.literal('game_start'), at: At, game: Game, ...Version }),
+  /** A game card on the home page was clicked; `slot` is its place in the list, 1 at the top. */
+  z.object({ type: z.literal('home_click'), at: At, game: Game, target: z.enum(HOME_CLICK_TARGETS), slot: z.number().int().min(1).max(20) }),
   z.object({ type: z.literal('play_time'), at: At, game: Game, seconds: z.number().finite().min(0).max(MAX_PLAY_TIME_SECONDS), ...Version }),
   z.object({ type: z.literal('level_start'), at: At, game: Game, ...Level, ...Version }),
   z.object({
@@ -151,6 +155,9 @@ export interface StoredEvent extends Visit {
   readonly stage?: string;
   readonly error?: string;
   readonly source?: string;
+  /** Home page clicks: which part of the card, and the card's place in the list. */
+  readonly target?: (typeof HOME_CLICK_TARGETS)[number];
+  readonly slot?: number;
 }
 
 /** Older events than this in one batch are clamped: a tab asleep for days shouldn't rewrite history. */

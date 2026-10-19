@@ -30,12 +30,16 @@ type Event =
   | { readonly type: 'page_leave'; readonly path: string; readonly ms: number; readonly scroll: number; readonly loadMs?: number }
   | { readonly type: 'js_error'; readonly path: string; readonly error: string; readonly source?: string }
   | ({ readonly type: 'game_start' } & GameTag)
+  | { readonly type: 'home_click'; readonly game: string; readonly target: HomeClickTarget; readonly slot: number }
   | ({ readonly type: 'play_time'; readonly seconds: number } & GameTag)
   | ({ readonly type: 'play_tap'; readonly ms: number } & GameTag)
   | ({ readonly type: 'game_ready'; readonly ms: number; readonly stage: 'ready' | 'stall' } & GameTag)
   | ({ readonly type: 'load_fail'; readonly ms: number; readonly stage: LoadStage; readonly error: string } & GameTag)
   | ({ readonly type: 'load_abandon'; readonly ms: number; readonly pct: number } & GameTag)
   | (GameEvent & GameTag);
+
+/** Which part of a home page game card was clicked. */
+export type HomeClickTarget = 'cover' | 'title' | 'play' | 'about';
 
 /** Where a game's load failed: fetching its code, starting it, or its own boot. */
 export type LoadStage = 'download' | 'mount' | 'boot';

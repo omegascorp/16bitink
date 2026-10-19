@@ -1,0 +1,77 @@
+---
+/**
+ * How big a game is, drawn rather than told: a tile per chapter (blue: free,
+ * ink: out, dashed: in development) and the level count as a big pen number,
+ * with when it came out and last changed underneath.
+ */
+import type { CatalogGame } from '../data/games';
+import { chapterTiles, gameDates, gameSize } from '../lib/gameFacts';
+
+interface Props {
+  game: CatalogGame;
+  /** Owners see no free tile: every chapter is theirs. */
+  owned?: boolean;
+  /** Bigger numbers, for a game page or the featured card. */
+  large?: boolean;
+  /** Home page cards: only the level count, no chapter tiles or dates. */
+  compact?: boolean;
+}
+const { game, owned = false, large = false, compact = false } = Astro.props;
+const size = gameSize(game);
+const dates = gameDates(game, new Date());
+// Every game's demo is its first chapter.
+const tiles = size ? chapterTiles(size, owned ? 0 : 1) : [];
+const coming = size ? size.chapters - size.ready : 0;
+---
+{size && (!compact || size.levels) && (
+  <div class:list={['stats', { large }]}>
+    {!compact && <div class="stat">
+      <p class="figure">
+        {coming > 0 ? <><b>{size.ready}</b><span class="of">/{size.chapters}</span></> : <b>{size.chapters}</b>}
+        <span class="unit">chapters</span>
+      </p>
+      <p class="tiles" aria-hidden="true">
+        {tiles.map((tile, i) => <i class={tile} style={`--tilt:${((i * 7) % 5) - 2}deg`}></i>)}
+        {coming > 0 && <span class="coming-note">+{coming} coming</span>}
+      </p>
+    </div>}
+    {size.levels && (
+      <div class="stat">
+        <p class="figure"><b>{size.levels}</b><span class="unit">levels</span></p>
+      </div>
+    )}
+  </div>
+)}
+{!compact && (dates.released || dates.updated) && (
+  <p class="dates">
+    {dates.released && <span>Out {dates.released}</span>}
+    {dates.updated && <span>Updated {dates.updated}</span>}
+  </p>
+)}
+
+<style>
+  .stats { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 28px; margin: 12px 0 0; }
+  .stat p { margin: 0; }
+
+  .figure { display: flex; align-items: baseline; gap: 6px; font-family: var(--font-hand); line-height: 1; }
+  .figure b { font-size: 2.3rem; font-weight: 700; color: var(--blue-ink); }
+  .of { font-size: 1.5rem; font-weight: 700; color: var(--ink-soft); margin-left: -4px; }
+  .unit { font-size: 1.3rem; color: var(--ink-soft); }
+
+  /* A strip of chapter pages, each a little crooked. */
+  .tiles { display: flex; align-items: center; gap: 3px; margin-top: 6px !important; }
+  .tiles i {
+    display: block; width: 13px; height: 17px; box-sizing: border-box;
+    border: 2px solid var(--ink); background: var(--ink);
+    border-radius: 4px 2px 5px 2px / 2px 5px 2px 4px; transform: rotate(var(--tilt));
+  }
+  .tiles .free { background: var(--blue-ink); border-color: var(--blue-ink); }
+  .tiles .coming { background: transparent; border: 2px dashed var(--ink-faint); }
+  .coming-note { margin-left: 6px; font-family: var(--font-hand); font-size: 1.15rem; line-height: 1; color: var(--ink-soft); }
+
+  .large .figure b { font-size: 2.9rem; }
+  .large .tiles i { width: 15px; height: 20px; }
+
+  .dates { display: flex; flex-wrap: wrap; gap: 0 10px; margin: 8px 0 0; font-size: 0.85rem; color: var(--ink-soft); }
+  .dates span + span::before { content: '·'; margin-right: 10px; color: var(--ink-faint); }
+</style>

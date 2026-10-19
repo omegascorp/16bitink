@@ -2,6 +2,7 @@
 import { playableGames, type CatalogGame } from '../../data/games';
 import { appleTouchIcon } from '../../lib/manifest';
 import { GAME_VERSIONS } from '../../games/versions';
+import { coverSrcset, coverVariant } from '../../lib/covers';
 
 export function getStaticPaths() {
   return playableGames().map((game) => ({ params: { slug: game.slug }, props: { game } }));
@@ -13,6 +14,7 @@ interface Props {
 const { game } = Astro.props;
 const theme = game.theme ?? { paper: '#f4eddc', ink: '#1b1a1f', accent: '#1f3f8a' };
 const version = GAME_VERSIONS[game.slug];
+const cover = game.cover ?? '/covers/inkfish.png';
 const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean).join('&');
 ---
 <!doctype html>
@@ -39,8 +41,15 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
     <div id="stage" aria-label={`${game.title} game`} data-game={game.slug} data-price={game.price ?? ''} data-fonts={JSON.stringify(game.fonts?.await ?? [])}>
       <div id="splash">
         <p class="brand"><span class="bits">16bit</span><span class="ink">.ink</span></p>
+        <!-- What you're about to play, while there's room for it (not on a phone held sideways). Usually cached from the home page. -->
+        <picture class="shot">
+          <source type="image/avif" srcset={coverSrcset(cover, 'avif')} sizes="min(420px, 80vw)" />
+          <source type="image/webp" srcset={coverSrcset(cover, 'webp')} sizes="min(420px, 80vw)" />
+          <img src={coverVariant(cover, 640, 'webp')} alt="" width="1200" height="675" decoding="async" />
+        </picture>
         <h1>{game.title}</h1>
         <p class="tag">{game.tagline}</p>
+        <p class="free">No download · No sign-up</p>
         <button id="play" type="button">Tap to play</button>
         <div id="loader" hidden>
           <div id="loader-bar" class="bar" role="progressbar" aria-label={`Loading ${game.title}`} aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -88,7 +97,14 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
       }
       #splash.leaving { opacity: 0; pointer-events: none; }
       #splash h1 { font-size: clamp(4rem, 16vw, 8rem); margin: 0; line-height: 0.9; color: var(--accent); }
-      .tag { font-size: 1.8rem; margin: 0 0 18px; }
+      .tag { font-size: 1.8rem; margin: 0; }
+      .free { font-family: Georgia, serif; font-size: 0.95rem; margin: 2px 0 18px; opacity: 0.75; }
+      .shot { display: block; margin: 10px 0 4px; }
+      .shot img {
+        display: block; width: min(420px, 80vw); height: auto; box-sizing: border-box;
+        border: 3px solid var(--ink); box-shadow: 3px 4px 0 var(--ink); transform: rotate(-1deg);
+      }
+      @media (max-height: 640px) { .shot { display: none; } }
       .brand { font-size: 1.6rem; margin: 0; }
       .brand .bits { font-family: 'Silkscreen', monospace; font-size: 1.1rem; }
       .brand .ink { color: var(--accent); }
