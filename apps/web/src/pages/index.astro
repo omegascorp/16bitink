@@ -1,8 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
 import GameSpread from '../components/GameSpread.astro';
+import SundaySignup from '../components/SundaySignup.astro';
 import { isNew, playableGames } from '../data/games';
 import { currentUser, ownership } from '../lib/owner';
+import { siteJsonLd } from '../lib/seo';
 
 // Rendered per request, so owners see "Play" instead of "Play free".
 export const prerender = false;
@@ -29,6 +31,7 @@ Astro.response.headers.set('cache-control', 'private, no-store');
   description="Small games drawn with a pen: InkFish, InkCrab and InkMine. Play free in your browser, full-screen, with no download and no sign-up."
   image="/covers/home.jpg"
   user={user}
+  jsonLd={[siteJsonLd(Astro.site ?? Astro.url)]}
 >
   <!-- Displacement filter shared by every cover: redraws the wobble 8 times a second. -->
   <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
@@ -51,6 +54,7 @@ Astro.response.headers.set('cache-control', 'private, no-store');
   <div class="games">
     {games.map((game, i) => <GameSpread game={game} owned={owned.has(game.slug)} position={i + 1} featured={i === 0} fresh={isNew(game, now)} />)}
   </div>
+  <SundaySignup />
 </Base>
 
 <style>

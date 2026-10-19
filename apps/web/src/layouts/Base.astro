@@ -3,6 +3,7 @@ import '../styles/global.css';
 import Logo from '../components/Logo.astro';
 import Account from '../components/Account.astro';
 import { appleTouchIcon } from '../lib/manifest';
+import { jsonLdScript } from '../lib/seo';
 
 interface Props {
   title: string;
@@ -10,8 +11,10 @@ interface Props {
   image?: string;
   /** Server-rendered pages pass who is signed in (null: nobody); static pages leave it out. */
   user?: { readonly name: string; readonly email: string } | null;
+  /** schema.org structured data for search engines (see lib/seo.ts). */
+  jsonLd?: readonly unknown[];
 }
-const { title, description, image = '/covers/inkfish.png', user } = Astro.props;
+const { title, description, image = '/covers/inkfish.png', user, jsonLd = [] } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(image, Astro.site);
 ---
@@ -27,10 +30,14 @@ const ogImage = new URL(image, Astro.site);
     <link rel="apple-touch-icon" href={appleTouchIcon()} />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#f4eddc" />
+    <meta property="og:site_name" content="16bit.ink" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
     <meta name="twitter:card" content="summary_large_image" />
+    {jsonLd.map((data) => <script type="application/ld+json" set:html={jsonLdScript(data)} />)}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <slot name="head" />

@@ -1,6 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 import { clientIp } from './lib/clientIp';
 import { createRateLimiter, limitFor, type LimitedRoute, type RateLimiter } from './lib/rateLimit';
+import { shortLinkTarget } from './lib/shortLinks';
 
 const MINUTE = 60_000;
 const limiters: Record<LimitedRoute, RateLimiter> = {
@@ -13,9 +14,14 @@ const limiters: Record<LimitedRoute, RateLimiter> = {
   redeem: createRateLimiter({ limit: 10, windowMs: MINUTE }),
   // A page sends a batch every few seconds at most; this covers several open tabs.
   events: createRateLimiter({ limit: 60, windowMs: MINUTE }),
+  // A person signs up once; this allows a typo or two, not a list.
+  subscribe: createRateLimiter({ limit: 5, windowMs: MINUTE }),
 };
 
 export const onRequest = defineMiddleware((context, next) => {
+  // 16bit.ink/fish, typed from a video: a temporary redirect, so the target can change.
+  const short = context.isPrerendered ? null : shortLinkTarget(context.url.pathname);
+  if (short) return new Response(null, { status: 302, headers: { location: short, 'cache-control': 'no-store' } });
   const route = limitFor(context.url.pathname);
   if (route && !context.isPrerendered) {
     const ip = clientIp(context.request, () => context.clientAddress);

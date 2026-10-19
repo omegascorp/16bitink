@@ -1,0 +1,49 @@
+---
+/**
+ * The Sunday email sign-up: one short email when the week's new game is
+ * out. A plain form post that comes back to this page (see /api/subscribe),
+ * so it works without scripts. Only on pages rendered per request, which
+ * read how the sign-up went from the address.
+ */
+const MESSAGES: Record<string, { readonly text: string; readonly ok: boolean }> = {
+  done: { text: 'You’re on the list. See you on Sunday!', ok: true },
+  invalid: { text: 'That doesn’t look like an email address. Try again?', ok: false },
+  error: { text: 'Something went wrong on our side. Please try again in a minute.', ok: false },
+};
+const outcome = MESSAGES[Astro.url.searchParams.get('sunday') ?? ''];
+---
+<section id="sunday" class="sunday paper-card" aria-labelledby="sunday-title">
+  <h2 id="sunday-title">A new game every Sunday</h2>
+  {outcome?.ok ? (
+    <p class="sunday-done" role="status">{outcome.text}</p>
+  ) : (
+    <>
+      <p>Leave your email and we’ll send one short note when the week’s new game is out. Nothing else, and every email has an unsubscribe link. See the <a href="/privacy#sunday-email">privacy policy</a>.</p>
+      {outcome && <p class="sunday-error" role="alert">{outcome.text}</p>}
+      <form class="sunday-form" method="post" action="/api/subscribe">
+        <input type="hidden" name="from" value={Astro.url.pathname} />
+        <label for="sunday-email" class="visually-hidden">Email address</label>
+        <input id="sunday-email" name="email" type="email" required maxlength="254" placeholder="you@example.com" autocomplete="email" />
+        <!-- Only bots fill this in: people never see it. -->
+        <div class="sunday-hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off" /></label></div>
+        <button class="btn btn-ink" type="submit">Tell me on Sunday</button>
+      </form>
+    </>
+  )}
+</section>
+
+<style>
+  .sunday { margin-top: 72px; transform: rotate(0.3deg); }
+  .sunday h2 { margin-bottom: 0.2em; }
+  .sunday p { margin: 0 0 12px; max-width: 62ch; }
+  .sunday-done { font-family: var(--font-hand); font-size: 1.7rem; color: var(--blue-ink); }
+  .sunday-error { color: var(--red-ink); }
+  .sunday-form { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+  .sunday-form input[type='email'] {
+    flex: 1 1 260px; min-width: 0; max-width: 380px; font: inherit;
+    padding: 10px 12px; background: var(--paper); color: var(--ink); border: 2px solid var(--ink); border-radius: 4px;
+  }
+  .sunday-form input:focus-visible { outline: 2px dashed var(--blue-ink); outline-offset: 3px; }
+  .sunday-hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+</style>

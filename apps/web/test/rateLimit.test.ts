@@ -43,6 +43,11 @@ describe('which routes are limited', () => {
     expect(limitFor('/api/redeem')).toBe('redeem');
   });
 
+  it('limits the Sunday email sign-up and unsubscribe, which write to the database', () => {
+    expect(limitFor('/api/subscribe')).toBe('subscribe');
+    expect(limitFor('/api/unsubscribe')).toBe('subscribe');
+  });
+
   it('never limits the Stripe webhook or pages', () => {
     expect(limitFor('/api/webhook')).toBeNull();
     expect(limitFor('/games/inkfish')).toBeNull();

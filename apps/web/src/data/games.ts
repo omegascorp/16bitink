@@ -19,6 +19,12 @@ export interface CatalogGame {
   readonly slug: string;
   readonly title: string;
   readonly tagline: string;
+  /** What people type into a search box to find a game like this, e.g. "fish-eat-fish game": used in the page title and FAQ. */
+  readonly kind?: string;
+  /** Genres for search engines' structured data. */
+  readonly genre?: readonly string[];
+  /** A path to type from a video, e.g. "fish" for 16bit.ink/fish: it opens the game page and is counted as its own source. */
+  readonly short?: string;
   readonly description: readonly string[];
   readonly status: GameStatus;
   readonly cover?: string;
@@ -54,6 +60,9 @@ export const GAMES: readonly CatalogGame[] = [
     slug: 'inkfish',
     title: 'InkFish',
     tagline: 'Eat smaller fish. Grow. Don’t get eaten.',
+    kind: 'fish-eat-fish game',
+    genre: ['Arcade', 'Casual', 'Survival'],
+    short: 'fish',
     description: [
       'A fish-eat-fish game drawn entirely in pen and ink. Start as a doodle-sized fry in a sketchbook tide pool and eat your way up the food chain.',
       'Chain meals into an Ink Frenzy, dodge fishing hooks and jellyfish, and grab what sinks from above: a battery to shock predators into lunch, or a plastic bag you really shouldn’t eat.',
@@ -82,6 +91,9 @@ export const GAMES: readonly CatalogGame[] = [
     slug: 'inkcrab',
     title: 'InkCrab',
     tagline: 'Eat. Grow. Find a bigger shell.',
+    kind: 'hermit crab game',
+    genre: ['Arcade', 'Casual', 'Survival'],
+    short: 'crab',
     description: [
       'A hermit crab game drawn in ballpoint pen. Dig through a beach cut open like an ant farm, eat what you find, and trade up into ever-bigger shells, but swapping leaves you soft and defenceless for a moment.',
       'Out-race rival crabs to empty shells, lead a vacancy chain of little crabs behind you, and keep out of sight of gulls, foxes and the rising tide across ten beaches, from coral atolls to frozen shingle.',
@@ -117,6 +129,9 @@ export const GAMES: readonly CatalogGame[] = [
     slug: 'inkmine',
     title: 'InkMine',
     tagline: 'Dig. Repair. Find your way home.',
+    kind: 'space mining game',
+    genre: ['Adventure', 'Mining', 'Exploration'],
+    short: 'mine',
     description: [
       'A mining game drawn in ballpoint pen. A wild wormhole tore your ship apart and threw you down onto a small grey moon, among stars no chart has. Dig for copper, graphite, silver and ice, and print what the wreck of your lander needs to fly again.',
       'Every block costs drill energy and every trip costs air. Follow a strange call over the horizon to the Lamplighters, who speak no language you know, trade them silver from deep down for a drive core, and climb back up to your starship, waiting dark in orbit.',

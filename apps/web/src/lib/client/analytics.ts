@@ -1,4 +1,5 @@
 import type { GameEvent } from '@16bitink/game-sdk';
+import { pageviewRef } from '../shortLinks';
 
 /**
  * First-party analytics, sent only to our own server (POST /api/events).
@@ -137,16 +138,16 @@ export function track(event: Event): void {
   else timer ??= setTimeout(() => flushAnalytics(), FLUSH_DELAY_MS);
 }
 
-/** A page view; the referrer only as a host, and only when it's another site. */
+/** A page view, with where it came from: a short link typed from a video, or another site's host only. */
 export function trackPageview(): void {
-  let ref: string | undefined;
-  try {
-    const host = document.referrer ? new URL(document.referrer).hostname : '';
-    ref = host && host !== location.hostname ? host.slice(0, 100) : undefined;
-  } catch {
-    ref = undefined;
-  }
+  const ref = pageviewRef({ referrer: document.referrer, hostname: location.hostname, search: location.search });
   track({ type: 'pageview', path: location.pathname.slice(0, 200), ...(ref ? { ref } : {}) });
+  // Counted once: a reload or a shared copy of the address isn't another visit from the video.
+  if (new URLSearchParams(location.search).has('via')) {
+    const url = new URL(location.href);
+    url.searchParams.delete('via');
+    history.replaceState(history.state, '', url);
+  }
 }
 
 /** A level event from a game, trimmed to what the server accepts. */

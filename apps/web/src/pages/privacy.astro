@@ -28,6 +28,9 @@ const mail = `mailto:${COMPANY.email}`;
   <h3>When you sign in with Google</h3>
   <p>You don't need to sign in to play the free part of a game. You do need to sign in to buy a game, and to play it on another device. Google tells us your name, your email address and your Google account ID. We don't receive your Google password or access anything else in your Google account. We keep these details in a signed cookie in your browser for up to 30 days, so the site knows who you are. We don't keep a separate account profile on our servers. Your Google account ID is saved in the record of each purchase you make.</p>
 
+  <h3 id="sunday-email">When you join the Sunday email</h3>
+  <p>If you leave your email address in the "A new game every Sunday" form, we save the address, the page you signed up on, the date, and a random code for your unsubscribe link. We use the address only to email you when a new game comes out, about once a week. We never sell it, share it for advertising, or link it to your visit statistics. Every email has an unsubscribe link, which takes your address off the list and deletes it.</p>
+
   <h3>When you visit the website</h3>
   <p>Like any website, our servers receive your IP address, browser type and the pages you request. Our hosting provider keeps this information briefly in server logs, which we use only to keep the site running and secure: for example, to fix errors and to stop abuse. To protect checkout and sign-in from abuse, we count requests per IP address for up to one minute.</p>
   <p>Our pages load fonts from Google Fonts. Your browser fetches them from Google's servers, so Google receives your IP address. See <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>.</p>
@@ -35,7 +38,7 @@ const mail = `mailto:${COMPANY.email}`;
   <h3>How we count visits and plays</h3>
   <p>To learn which games people enjoy and where a level is too hard, our own server records simple statistics. Nothing is sent to an analytics company. For each visit we record:</p>
   <ul>
-    <li>the pages you open, and the website that linked you here (its name only, such as youtube.com);</li>
+    <li>the pages you open, and the website that linked you here (its name only, such as youtube.com), or the short address you typed, such as 16bit.ink/fish;</li>
     <li>how long each page is on screen, how far down you scroll it, and how long it took to load;</li>
     <li>whether a game loaded when you tapped play, how long that took, and the error message if it failed, along with any script error a page hits (the message and our file it came from);</li>
     <li>the games you start, the levels you start and how each one ended (won, lost or left), how long it took, and the score;</li>
@@ -77,13 +80,15 @@ const mail = `mailto:${COMPANY.email}`;
     <li><strong>Stripe</strong> processes payments, sends your receipt, and screens payments for fraud. See the <a href="https://stripe.com/privacy">Stripe Privacy Policy</a>.</li>
     <li><strong>Google</strong> provides sign-in and web fonts. See the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.</li>
     <li><strong>DigitalOcean</strong> hosts the website and its servers.</li>
-    <li><strong>Our database provider</strong> stores purchase records and our visit statistics on our behalf.</li>
+    <li><strong>Our database provider</strong> stores purchase records, the Sunday email list and our visit statistics on our behalf.</li>
+    <li><strong>The email service that sends the Sunday email</strong> receives the addresses on the list, only to deliver it.</li>
   </ul>
   <p>We may also share data where the law requires it, or to protect our rights or someone's safety, for example in a payment fraud investigation.</p>
 
   <h2>Our legal reasons for using your data</h2>
   <p>If you live in the European Economic Area or the United Kingdom, the law requires us to tell you our legal basis for each use:</p>
   <ul>
+    <li><strong>With your consent:</strong> the Sunday email. You can withdraw it at any time with the unsubscribe link.</li>
     <li><strong>To perform our contract with you:</strong> unlocking and restoring a game you bought, sign-in, and refunds.</li>
     <li><strong>To meet legal obligations:</strong> keeping records of sales for tax and accounting.</li>
     <li><strong>For our legitimate interests:</strong> keeping the website secure, preventing fraud and abuse, answering your messages, and counting visits and plays so we can improve our games. We make sure these interests don't override your rights.</li>
@@ -94,6 +99,7 @@ const mail = `mailto:${COMPANY.email}`;
     <li><strong>Purchase records:</strong> while you own the game, so we can restore it for you, and for as long as tax and accounting law requires us to keep sales records.</li>
     <li><strong>Sign-in details:</strong> only in the cookie in your browser, for up to 30 days.</li>
     <li><strong>Server logs:</strong> briefly, as kept by our hosting provider.</li>
+    <li><strong>Sunday email list:</strong> until you unsubscribe.</li>
     <li><strong>Visit statistics:</strong> about two years, then deleted automatically.</li>
     <li><strong>Support emails:</strong> as long as needed to resolve your request.</li>
   </ul>

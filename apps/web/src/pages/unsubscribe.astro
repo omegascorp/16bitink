@@ -1,0 +1,46 @@
+---
+import Base from '../layouts/Base.astro';
+
+// Per request: the token in the address decides what this page offers.
+export const prerender = false;
+
+const params = Astro.url.searchParams;
+const token = (params.get('t') ?? '').slice(0, 64);
+const done = params.get('done') === '1';
+const failed = params.get('error') === '1';
+Astro.response.headers.set('cache-control', 'private, no-store');
+// The token is in the address: never send it to other sites.
+Astro.response.headers.set('referrer-policy', 'same-origin');
+---
+<Base title="Unsubscribe | 16bit.ink" description="Stop the Sunday email from 16bit.ink.">
+  <meta name="robots" content="noindex" slot="head" />
+  <section class="paper-card narrow tape">
+    {done ? (
+      <>
+        <h1>You're off the list</h1>
+        <p>No more Sunday emails. The games are still here whenever you want them.</p>
+        <a class="btn" href="/">Back to the games</a>
+      </>
+    ) : failed ? (
+      <>
+        <h1>That didn't work</h1>
+        <p role="alert">Something went wrong on our side. Please try the link in the email again in a minute.</p>
+      </>
+    ) : token ? (
+      <>
+        <h1>Unsubscribe?</h1>
+        <p>You'll stop getting the Sunday email about each new game.</p>
+        <!-- A button, not the link itself: mail scanners open links, and that mustn't unsubscribe anyone. -->
+        <form method="post" action="/api/unsubscribe">
+          <input type="hidden" name="t" value={token} />
+          <button class="btn btn-ink" type="submit">Unsubscribe</button>
+        </form>
+      </>
+    ) : (
+      <>
+        <h1>Unsubscribe</h1>
+        <p>Use the unsubscribe link at the bottom of any Sunday email.</p>
+      </>
+    )}
+  </section>
+</Base>

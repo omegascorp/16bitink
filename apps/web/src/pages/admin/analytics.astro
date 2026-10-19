@@ -5,6 +5,7 @@ import { currentAdmin } from '../../lib/adminAuth';
 import { countryName, formatDuration, funnelRows, parsePeriod, percent, PERIODS, rangeFor, visitOutcome } from '../../lib/adminStats';
 import { entryStats, homeClicks, playFunnel, QUICK_LEAVE_MS, topErrors } from '../../lib/db/diagnosticsRepo';
 import { breakdown, daily, gameStats, levelFunnel, overview, recentSessions, type Dimension } from '../../lib/db/eventRepo';
+import { countSubscribers } from '../../lib/db/subscriberRepo';
 
 export const prerender = false;
 
@@ -20,7 +21,7 @@ const range = rangeFor(days, new Date());
 const games = playableGames();
 const DIMENSIONS: readonly (readonly [Dimension, string])[] = [['country', 'Country'], ['os', 'OS'], ['browser', 'Browser'], ['device', 'Device']];
 
-const [totals, perDay, perGame, funnels, shares, recent, entries, plays, errors, home] = await Promise.all([
+const [totals, perDay, perGame, funnels, shares, recent, entries, plays, errors, home, subscribers] = await Promise.all([
   overview(range),
   daily(range),
   gameStats(range),
@@ -31,6 +32,7 @@ const [totals, perDay, perGame, funnels, shares, recent, entries, plays, errors,
   playFunnel(range),
   topErrors(range),
   homeClicks(range),
+  countSubscribers(),
 ]);
 
 const title = (slug: string): string => findGame(slug)?.title ?? slug;
@@ -57,7 +59,9 @@ const when = (d: Date): string => d.toISOString().slice(0, 16).replace('T', ' ')
       <div><dt>Games started</dt><dd>{totals.plays}</dd></div>
       <div><dt>Time played</dt><dd>{formatDuration(totals.playSeconds)}</dd></div>
       <div><dt>Page views</dt><dd>{totals.pageviews}</dd></div>
+      <div><dt>Sunday list</dt><dd>{subscribers}</dd></div>
     </dl>
+    <p class="note">Sunday list: everyone signed up, all time. <a href="/api/admin/subscribers">Download it as CSV</a> (with each address's unsubscribe link) to import into an email tool. Short links typed from videos show up below as sources like “16bit.ink/fish”.</p>
 
     <h2>Where visits start</h2>
     <p class="note">The first page of each visit. Bounced: left without opening another page or starting a game. Quick: on screen under {QUICK_LEAVE_MS / 1000}s. Before load: left before the page and its pictures finished loading. Times count only while the page was on screen.</p>

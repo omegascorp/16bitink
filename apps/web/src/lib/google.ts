@@ -97,7 +97,9 @@ export function checkIdToken(claims: unknown, o: CheckOptions): GoogleUser | nul
 
 /** Where to go after signing in: a path on this site, never another origin or the sign-in routes. */
 export function safeReturnPath(raw: string | null): string {
-  if (!raw || !raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return '/';
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/';
+  // Browsers drop tabs and newlines from a Location and read "\" as "/", so "/\t/evil" would leave the site.
+  if (/[\u0000-\u001f\u007f\\]/.test(raw)) return '/';
   if (raw === '/auth/google' || raw.startsWith('/auth/google/') || raw.startsWith('/auth/google?')) return '/';
   return raw;
 }
