@@ -6,6 +6,7 @@ import { buyFullGame, fetchMe, startCheckout } from './checkout';
 import { createLoadingBar } from './loadingBar';
 import { accountProgress } from './progress';
 import { scopedStorage } from './scopedStorage';
+import { reloadForNewBuild, shouldReloadForNewBuild } from './staleBuild';
 
 interface ApiEnvelope<T> {
   readonly success: boolean;
@@ -120,12 +121,18 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
   };
   document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && hiddenWhileLoading());
   window.addEventListener('pagehide', hiddenWhileLoading);
+  // Set once and never cleared: from the first tap the reload waits for the tap's own outcome,
+  // and once the game is mounted nothing here may reload the page out from under the player.
+  let tapped = false;
+  let playing = false;
   // Re-created on retry: a failed dynamic import stays rejected forever.
   let engineP = loadGame(game);
-  engineP.catch(() => undefined);
+  // Failed before the player tapped: a page older than the deploy reloads onto the new one unseen.
+  engineP.catch((err: unknown) => !tapped && reloadIfStale(err, playing));
   const fontP = Promise.all(fonts.map((f) => document.fonts.load(f))).catch(() => undefined);
 
   play.addEventListener('click', async () => {
+    tapped = true;
     play.disabled = true;
     status.textContent = '';
     bar.show();
@@ -142,6 +149,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
       const userId = me?.id ?? null;
       const progress = userId ? accountSaves : null;
       tag = gameTag(game, module.version);
+      playing = true;
       // The splash stays over the game, showing its boot progress, until the game calls loading.ready().
       const handle = module.mount(stage, {
         unlocked,
@@ -173,6 +181,11 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
       console.error('[16bit.ink] failed to start game', err);
       if (attempt) track({ type: 'load_fail', ...tag, ms: sinceTap(attempt), stage: step, error: errorText(err) });
       attempt = null;
+      // A page older than the deploy: retrying asks for the same missing file, so reload (tap again after).
+      if (step === 'download' && reloadIfStale(err, playing)) {
+        status.textContent = 'Updating to the latest version…';
+        return;
+      }
       bar.fail();
       // Without WebGL every retry fails the same way (one phone logged 9 in a row): say why and stop there.
       if (step === 'mount' && !hasWebGL()) {
@@ -202,6 +215,21 @@ async function resumeBuy(game: string, status: HTMLElement, accessP: Promise<Acc
   status.textContent = 'Taking you to checkout…';
   const result = await startCheckout(game);
   status.textContent = result.error ?? '';
+}
+
+/**
+ * The game's code is gone from the server (a deploy since this page loaded): reload once onto
+ * the new build. Never while `playing`: a game that mounted keeps running on the code it has.
+ */
+function reloadIfStale(err: unknown, playing: boolean): boolean {
+  if (!shouldReloadForNewBuild({ err, online: navigator.onLine, playing })) return false;
+  let session: Storage | undefined;
+  try {
+    session = window.sessionStorage;
+  } catch {
+    session = undefined;
+  }
+  return reloadForNewBuild(session, Date.now(), () => window.location.reload());
 }
 
 /** This browser's storage, keyed to the signed-in account (see scopedStorage). */
