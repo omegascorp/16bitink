@@ -85,3 +85,10 @@ export async function ownership(cookies: AstroCookies, game: string, url: URL): 
   if (!user) return null;
   return (await accountOwns(user, game, url)) ? { v: 2, g: game, s: `user:${user.userId}`, iat: user.iat } : null;
 }
+
+/** The slugs of every playable game owned on this browser (see `ownership`). */
+export async function ownedGameSlugs(cookies: AstroCookies, url: URL): Promise<Set<string>> {
+  const games = playableGames();
+  const claims = await Promise.all(games.map((game) => ownership(cookies, game.slug, url)));
+  return new Set(games.filter((_, i) => claims[i] !== null).map((game) => game.slug));
+}

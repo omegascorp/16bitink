@@ -4,7 +4,7 @@ import GameSpread from '../components/GameSpread.astro';
 import PartnerAd from '../components/PartnerAd.astro';
 import SundaySignup from '../components/SundaySignup.astro';
 import { isNew, playableGames } from '../data/games';
-import { currentUser, ownership } from '../lib/owner';
+import { currentUser, ownedGameSlugs } from '../lib/owner';
 import { siteJsonLd } from '../lib/seo';
 
 // Rendered per request, so owners see "Play" instead of "Play free".
@@ -15,11 +15,8 @@ const now = new Date();
 let owned = new Set<string>();
 let user: { name: string; email: string } | null | undefined;
 try {
-  const [claims, session] = await Promise.all([
-    Promise.all(games.map((game) => ownership(Astro.cookies, game.slug, Astro.url))),
-    currentUser(Astro.cookies),
-  ]);
-  owned = new Set(games.filter((_, i) => claims[i] !== null).map((game) => game.slug));
+  const [slugs, session] = await Promise.all([ownedGameSlugs(Astro.cookies, Astro.url), currentUser(Astro.cookies)]);
+  owned = slugs;
   user = session && { name: session.name, email: session.email };
 } catch (err) {
   // The home page must always load: fall back to "Play free" and let the header look up the user in the browser.
@@ -55,7 +52,8 @@ Astro.response.headers.set('cache-control', 'private, no-store');
   <div class="games">
     {games.map((game, i) => <GameSpread game={game} owned={owned.has(game.slug)} position={i + 1} featured={i === 0} fresh={isNew(game, now)} />)}
   </div>
-  <PartnerAd />
+  <!-- Anyone who has bought a game sees no ads. -->
+  {owned.size === 0 && <PartnerAd />}
   <SundaySignup />
 </Base>
 

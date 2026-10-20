@@ -5,7 +5,7 @@ import GameStats from '../../components/GameStats.astro';
 import PartnerAd from '../../components/PartnerAd.astro';
 import SundaySignup from '../../components/SundaySignup.astro';
 import { findGame, isPurchasable } from '../../data/games';
-import { currentUser, ownership } from '../../lib/owner';
+import { currentUser, ownedGameSlugs } from '../../lib/owner';
 import { faqJsonLd, gameFaq, gameJsonLd, gameTitle } from '../../lib/seo';
 
 // Rendered per request, so owners and signed-in players see their own page
@@ -18,10 +18,13 @@ if (!game || game.status !== 'playable') return new Response('Not found', { stat
 const forSale = isPurchasable(game);
 
 let owned = false;
+// Anyone who has bought any game sees no ads.
+let ownsAny = false;
 let user: { name: string; email: string } | null = null;
 try {
-  const [claims, session] = await Promise.all([ownership(Astro.cookies, game.slug, Astro.url), currentUser(Astro.cookies)]);
-  owned = claims !== null;
+  const [slugs, session] = await Promise.all([ownedGameSlugs(Astro.cookies, Astro.url), currentUser(Astro.cookies)]);
+  owned = slugs.has(game.slug);
+  ownsAny = slugs.size > 0;
   user = session && { name: session.name, email: session.email };
 } catch (err) {
   // The sales page must always load: fall back to the signed-out free version.
@@ -72,7 +75,7 @@ const site = Astro.site ?? Astro.url;
       </div>
     </div>
   </article>
-  <PartnerAd />
+  {!ownsAny && <PartnerAd />}
   <section class="faq" aria-labelledby="faq-title">
     <h2 id="faq-title">Questions</h2>
     <dl>
