@@ -1,0 +1,57 @@
+---
+/**
+ * c4c.club partner cards: one on phones, two side by side on wide screens.
+ * Each card posts its height to the page, or asks to be hidden when it has
+ * nothing to show; the other card then takes the whole row, and the block
+ * goes away once none is left.
+ */
+const SRC = 'https://c4c.club/embed?key=c4c_ffd5c63c47f8e517c582fba5&fit=content';
+const MAX_HEIGHT = 400;
+// Matches the home page, where the games go two to a row.
+const WIDE = '(min-width: 900px)';
+const SANDBOX = 'allow-scripts allow-popups allow-popups-to-escape-sandbox';
+---
+<aside class="partner" data-partner-ad data-max-height={MAX_HEIGHT} data-wide={WIDE} aria-label="Partner promotion">
+  <iframe src={SRC} title="Partner promotion" loading="lazy" scrolling="no" sandbox={SANDBOX}></iframe>
+  <!-- Wide screens only: loaded from the script, so phones never fetch it. -->
+  <iframe class="wide-only" data-src={SRC} title="Partner promotion" loading="lazy" scrolling="no" sandbox={SANDBOX}></iframe>
+</aside>
+
+<script>
+  for (const block of document.querySelectorAll<HTMLElement>('[data-partner-ad]')) {
+    const frames = Array.from(block.querySelectorAll('iframe'));
+    const maxHeight = Number(block.dataset.maxHeight);
+    const wide = matchMedia(block.dataset.wide ?? '');
+
+    const loadWide = () => {
+      if (!wide.matches) return;
+      for (const frame of frames) {
+        if (frame.dataset.src && !frame.getAttribute('src')) frame.src = frame.dataset.src;
+      }
+    };
+    loadWide();
+    wide.addEventListener('change', loadWide);
+
+    window.addEventListener('message', (event) => {
+      // Sandboxed without same-origin, so the origin reads "null": match the frame itself.
+      const frame = frames.find((candidate) => candidate.contentWindow === event.source);
+      if (!frame || !event.data) return;
+      if (event.data.type === 'c4c:collapse') {
+        frame.hidden = true;
+        block.hidden = frames.every((f) => f.hidden || !f.getAttribute('src'));
+      }
+      const height = Number(event.data.height);
+      if (event.data.type === 'c4c:height' && height > 0 && height < maxHeight) frame.style.height = `${height}px`;
+    });
+  }
+</script>
+
+<style>
+  .partner { display: flex; align-items: flex-start; gap: 48px; margin-top: 72px; }
+  .partner[hidden] { display: none; }
+  .partner iframe { display: block; flex: 1 1 0; min-width: 0; height: 96px; border: 0; color-scheme: normal; }
+  .partner iframe[hidden] { display: none; }
+  @media not (min-width: 900px) {
+    .partner .wide-only { display: none; }
+  }
+</style>

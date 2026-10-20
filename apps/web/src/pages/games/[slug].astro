@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import BuyButton from '../../components/BuyButton.astro';
 import GameStats from '../../components/GameStats.astro';
+import PartnerAd from '../../components/PartnerAd.astro';
 import SundaySignup from '../../components/SundaySignup.astro';
 import { findGame, isPurchasable } from '../../data/games';
 import { currentUser, ownership } from '../../lib/owner';
@@ -71,6 +72,7 @@ const site = Astro.site ?? Astro.url;
       </div>
     </div>
   </article>
+  <PartnerAd />
   <section class="faq" aria-labelledby="faq-title">
     <h2 id="faq-title">Questions</h2>
     <dl>

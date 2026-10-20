@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import GameSpread from '../components/GameSpread.astro';
+import PartnerAd from '../components/PartnerAd.astro';
 import SundaySignup from '../components/SundaySignup.astro';
 import { isNew, playableGames } from '../data/games';
 import { currentUser, ownership } from '../lib/owner';
@@ -54,6 +55,7 @@ Astro.response.headers.set('cache-control', 'private, no-store');
   <div class="games">
     {games.map((game, i) => <GameSpread game={game} owned={owned.has(game.slug)} position={i + 1} featured={i === 0} fresh={isNew(game, now)} />)}
   </div>
+  <PartnerAd />
   <SundaySignup />
 </Base>
 
