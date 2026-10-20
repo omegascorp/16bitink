@@ -97,6 +97,7 @@ function along(def: LevelDef, u: number, from = AWAY): number {
 
 /** The beach's finds: spread along the beach past the start, each a few digs down (deeper on later beaches). */
 export function findSpots(def: LevelDef, m: Mission): (readonly [col: number, depth: number])[] {
+  if (def.finds) return def.finds.slice(0, m.finds);
   const beach = slotOf(def)?.beach ?? 0;
   const deepest = 2 + Math.floor(beach / 2);
   return Array.from({ length: m.finds }, (_, i) => [along(def, (i + 0.5) / m.finds, AWAY / 2), 2 + ((i * 2 + beach) % deepest)] as const);

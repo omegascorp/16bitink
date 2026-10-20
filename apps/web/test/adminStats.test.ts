@@ -1,10 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { countryName, formatDuration, funnelRows, parsePeriod, rangeFor, visitOutcome, type OutcomeInput } from '../src/lib/adminStats';
+import { commonest, countryName, formatDuration, funnelRows, parsePeriod, rangeFor, visitOutcome, type OutcomeInput } from '../src/lib/adminStats';
 import type { FunnelStep } from '../src/lib/db/eventRepo';
 
-const step = (n: number, reached: number, finished: number): FunnelStep => ({ n, level: `l${n}`, name: null, reached, finished, attempts: reached, winSeconds: null });
+const step = (n: number, reached: number, finished: number): FunnelStep => ({ n, level: `l${n}`, name: null, reached, finished, attempts: reached, winSeconds: null, stops: [] });
+
+describe('commonest', () => {
+  it('picks the note most players stopped at, first seen on a tie', () => {
+    expect(commonest(['size 3/4 full', 'size 2/4', 'size 3/4 full'])).toEqual({ progress: 'size 3/4 full', players: 2 });
+    expect(commonest(['a', 'b'])).toEqual({ progress: 'a', players: 1 });
+    expect(commonest([])).toBeNull();
+  });
+});
 
 describe('funnelRows', () => {
+  it("shows where a level's unbeaten players got stuck", () => {
+    const rows = funnelRows([{ ...step(1, 10, 3), stops: ['size 3/4 full', 'size 3/4 full', 'size 2/4'] }, step(2, 3, 3)]);
+    expect(rows[0]?.stuckAt).toEqual({ progress: 'size 3/4 full', players: 2 });
+    expect(rows[1]?.stuckAt).toBeNull();
+  });
+
   it('shows each level as a share of the first level, and of the level before', () => {
     const rows = funnelRows([step(1, 200, 150), step(2, 120, 60), step(3, 30, 30)]);
     expect(rows.map((r) => [r.ofStart, r.fromPrevious, r.winRate])).toEqual([[100, null, 75], [60, 60, 50], [15, 25, 100]]);

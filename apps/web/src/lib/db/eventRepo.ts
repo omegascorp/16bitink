@@ -123,11 +123,14 @@ export interface FunnelStep {
   readonly attempts: number;
   /** Average time of a winning run, or null when nobody won. */
   readonly winSeconds: number | null;
+  /** Where each player who never won it last stopped, as the game put it (games that report progress). */
+  readonly stops: readonly string[];
 }
 
 /** How many visitors reached, and beat, each level of `game`, in level order. */
 export async function levelFunnel(game: string, range: Range): Promise<FunnelStep[]> {
   const won: Expression = { $and: [isEvent('level_end'), { $eq: ['$result', 'win'] }] };
+  const unwonProgress: Expression = { $and: [isEvent('level_end'), { $ne: ['$result', 'win'] }, { $gt: ['$progress', null] }] };
   return aggregate<FunnelStep>([
     { $match: { ...inRange(range), 'meta.game': game, 'meta.event': { $in: ['level_start', 'level_end'] } } },
     { $sort: { ts: 1 } },
@@ -136,17 +139,20 @@ export async function levelFunnel(game: string, range: Range): Promise<FunnelSte
         _id: { n: '$n', visitor: '$visitor' }, level: { $last: '$level' }, name: { $last: '$name' },
         won: { $max: { $cond: [won, 1, 0] } }, attempts: countOf('level_start'),
         winSeconds: { $push: { $cond: [won, '$seconds', '$$REMOVE'] } },
+        progress: { $push: { $cond: [unwonProgress, '$progress', '$$REMOVE'] } },
       },
     },
     {
       $group: {
         _id: '$_id.n', level: { $last: '$level' }, name: { $last: '$name' }, reached: { $sum: 1 }, finished: { $sum: '$won' },
         attempts: { $sum: '$attempts' }, winSeconds: { $push: '$winSeconds' },
+        // Where each player who never won it last stopped.
+        stops: { $push: { $cond: [{ $and: [{ $eq: ['$won', 0] }, { $gt: [{ $size: '$progress' }, 0] }] }, { $arrayElemAt: ['$progress', -1] }, '$$REMOVE'] } },
       },
     },
     {
       $project: {
-        _id: 0, n: '$_id', level: 1, name: { $ifNull: ['$name', null] }, reached: 1, finished: 1, attempts: 1,
+        _id: 0, n: '$_id', level: 1, name: { $ifNull: ['$name', null] }, reached: 1, finished: 1, attempts: 1, stops: 1,
         winSeconds: { $avg: { $reduce: { input: '$winSeconds', initialValue: [], in: { $concatArrays: ['$$value', '$$this'] } } } },
       },
     },

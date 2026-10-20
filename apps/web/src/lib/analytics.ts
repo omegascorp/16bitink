@@ -22,6 +22,8 @@ const Path = z.string().regex(/^\/[^\s]{0,199}$/);
 /** Milliseconds, e.g. on a page or waiting for a game; a day is far longer than any real one. */
 const Ms = z.number().finite().min(0).max(24 * 3600 * 1000);
 const Percent = z.number().int().min(0).max(100);
+/** Longest level progress note a game may send ("size 3/4 full, finds 1/3"). */
+export const PROGRESS_MAX = 60;
 /** An error message as the browser gave it, trimmed by the page. */
 const ErrorText = z.string().min(1).max(200);
 /** Where a game's load went wrong: fetching its code, starting it, or its own boot (drawing the art). */
@@ -52,6 +54,7 @@ const Event = z.discriminatedUnion('type', [
     type: z.literal('level_end'), at: At, game: Game, ...Level, ...Version,
     result: z.enum(['win', 'lose', 'quit']), seconds: Seconds,
     score: z.number().int().min(0).max(1e9).optional(), cause: z.string().max(40).optional(),
+    progress: z.string().max(PROGRESS_MAX).optional(),
   }),
 ]);
 
@@ -146,6 +149,8 @@ export interface StoredEvent extends Visit {
   readonly seconds?: number;
   readonly score?: number;
   readonly cause?: string;
+  /** How far a level's run got, in the game's words (level_end). */
+  readonly progress?: string;
   /** The game's version, on game events. */
   readonly version?: string;
   readonly ms?: number;

@@ -15,7 +15,7 @@ const BIRDS: Readonly<Record<BirdSpecies, true>> = { kestrel: true, hawk: true, 
 const DECKS: Readonly<Record<DeckKind, true>> = { boat: true, house: true, rack: true };
 const GROUNDS: Readonly<Record<NonNullable<LevelDef['ground']>, true>> = { black: true, grey: true, shingle: true, moonlit: true };
 const LESSONS: Readonly<Record<Lesson, true>> = {
-  move: true, jump: true, swap: true, dig: true, drop: true, hide: true, buried: true, sky: true, pit: true, sandfish: true, tide: true, octopus: true,
+  move: true, jump: true, swap: true, dig: true, drop: true, reach: true, hide: true, buried: true, sky: true, pit: true, sandfish: true, tide: true, octopus: true,
   climb: true, heron: true, vent: true, kelp: true, fog: true, raccoon: true, rival: true, rain: true, deck: true, monitor: true,
   wind: true, ice: true, fox: true, moon: true, glow: true, chain: true, line: true,
 };
@@ -47,7 +47,7 @@ const isBirds = listOf(shape({ count: isCount, size: isPos }, { species: keyOf(B
 const OPTIONALS: Readonly<Record<string, Check>> = {
   loose: isCount, granite: isCount,
   pits: nums(2), pools: nums(3), dens: nums(2), mud: nums(3), columns: nums(3), vents: nums(4), ice: nums(3), rocks: nums(3), trees: nums(3),
-  kelp: nums(2), glow: nums(2),
+  kelp: nums(2), glow: nums(2), finds: nums(2),
   tide: shape({ low: isNum, high: isNum, period: isPos }),
   tideBrings: shape({ food: isCount }, { shells: listOf(tuple([isShell, isPos, isNum])) }),
   fog: shape({ banks: nums(2), drift: isNum }),

@@ -36,6 +36,7 @@ const eventSchema = new Schema<StoredEvent>(
     seconds: Number,
     score: Number,
     cause: String,
+    progress: String,
     version: String,
     ms: Number,
     scroll: Number,

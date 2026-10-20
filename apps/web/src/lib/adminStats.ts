@@ -34,6 +34,17 @@ export interface FunnelRow extends FunnelStep {
   readonly winRate: number;
   /** Share of the players who reached the level before that also reached this one. */
   readonly fromPrevious: number | null;
+  /** The commonest place its unbeaten players stopped, and how many stopped there; null when none reported one. */
+  readonly stuckAt: { readonly progress: string; readonly players: number } | null;
+}
+
+/** The commonest of some notes (the first seen on a tie), with its count; null when there are none. */
+export function commonest(notes: readonly string[]): { progress: string; players: number } | null {
+  const counts = new Map<string, number>();
+  for (const n of notes) counts.set(n, (counts.get(n) ?? 0) + 1);
+  let best: { progress: string; players: number } | null = null;
+  for (const [progress, players] of counts) if (!best || players > best.players) best = { progress, players };
+  return best;
 }
 
 /**
@@ -50,6 +61,7 @@ export function funnelRows(steps: readonly FunnelStep[]): FunnelRow[] {
       ofStart: percent(step.reached, base),
       winRate: percent(step.finished, step.reached),
       fromPrevious: prev && prev.n === step.n - 1 ? percent(step.reached, prev.reached) : null,
+      stuckAt: commonest(step.stops),
     };
   });
 }

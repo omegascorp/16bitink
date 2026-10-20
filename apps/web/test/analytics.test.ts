@@ -32,9 +32,15 @@ describe('parseBatch', () => {
     ['a negative play time', batch([{ type: 'play_time', at: 1, game: 'inkfish', seconds: -1 }])],
     ['a level number of 0', batch([{ type: 'level_start', at: 1, game: 'inkfish', level: 'a', n: 0 }])],
     ['an unknown result', batch([{ type: 'level_end', at: 1, game: 'inkfish', level: 'a', n: 1, result: 'draw', seconds: 1 }])],
+    ['an overlong progress note', batch([{ type: 'level_end', at: 1, game: 'inkcrab', level: 'a', n: 1, result: 'quit', seconds: 1, progress: 'x'.repeat(61) }])],
     ['a game slug with capitals', batch([{ type: 'game_start', at: 1, game: 'InkFish' }])],
   ])('rejects %s', (_label, raw) => {
     expect(parseBatch(raw)).toBeNull();
+  });
+
+  it("keeps a level's progress note", () => {
+    const parsed = parseBatch(batch([{ type: 'level_end', at: 1, game: 'inkcrab', level: 'margin-wall', n: 2, result: 'quit', seconds: 90, progress: 'size 3/4 full, finds 1/3' }]));
+    expect(parsed?.events[0]).toMatchObject({ progress: 'size 3/4 full, finds 1/3' });
   });
 
   it('keeps the game version on game events', () => {

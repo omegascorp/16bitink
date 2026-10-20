@@ -13,6 +13,7 @@ const KEYS: Readonly<Record<Press, { readonly keys: readonly string[]; readonly 
   grab: { keys: ['E'], label: 'to move in' },
   dig: { keys: ['X'], label: 'to dig' },
   drop: { keys: ['C'], label: 'to drop sand' },
+  build: { keys: ['↑', 'C'], label: 'to build a step' },
   hide: { keys: ['Z'], label: 'hold to hide' },
 };
 /** Most keycaps one press shows. */
@@ -24,10 +25,11 @@ const TOUCH_LABEL: Readonly<Record<Press, string>> = {
   grab: 'tap to move in',
   dig: 'hold to dig',
   drop: 'tap dig to drop sand',
+  build: 'stick up + dig to build a step',
   hide: 'hold to hide',
 };
-/** The touch dig button drops sand too, with nothing to dig or no room for more; walking is the stick. */
-const BUTTON_OF: Readonly<Record<Exclude<Press, 'move'>, TouchButton>> = { jump: 'jump', grab: 'grab', dig: 'dig', drop: 'dig', hide: 'hide' };
+/** The touch dig button drops sand too, with nothing to dig or no room for more, and builds a step with the stick up; walking is the stick. */
+const BUTTON_OF: Readonly<Record<Exclude<Press, 'move'>, TouchButton>> = { jump: 'jump', grab: 'grab', dig: 'dig', drop: 'dig', build: 'dig', hide: 'hide' };
 
 /** The keycap, HUD units: its least width, its height, the depth of its skirt, its gap from the crab, from its note, from the next cap, and its padding round a long key name. */
 const CAP = { size: 44, skirt: 5, aside: 14, gap: 8, between: 6, pad: 12 } as const;

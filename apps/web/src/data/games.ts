@@ -120,6 +120,7 @@ export const GAMES: readonly CatalogGame[] = [
       'Arrows / WASD or the stick: walk and aim',
       'Space or the jump button: jump',
       'X / C or tap a tile: dig / place sand',
+      '↑ + C or stick up + dig: build a step to climb',
       'E / Enter or tap a shell: move house',
       'Hold Z or the hide button: hide in your shell',
       'Esc / P / ❚❚: pause',

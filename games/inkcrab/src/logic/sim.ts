@@ -8,7 +8,7 @@ import { Shore, type TideBrings } from './shore';
 import { isLowWater, type TideSpec } from './tide';
 import { isWet, type Water } from './water';
 import { settleColumn } from './sandfall';
-import { digColumns, diggableOf, digTargets, placeTarget, tileSpan, type TilePos } from './dig';
+import { digColumns, diggableOf, digTargets, placeTarget, stepTarget, tileSpan, type TilePos } from './dig';
 import { feed, initialGrowth, isCapped, type Growth } from './growth';
 import { buriedFood, centre, food, makeItem, overlaps, shell, type Item } from './items';
 import { createRng, type Rng } from './rng';
@@ -207,6 +207,8 @@ export type HunterId = SpeciesId | BirdSpecies;
 const DIG_SECONDS = 0.22;
 /** Jump height in a light shell, tiles: 2.5 at size 1, growing with the crab (about 5.3 at size 8). */
 const JUMP_TILES = { base: 2.1, perSize: 0.4 } as const;
+/** What the touch dig button settles on for a press: dig, put sand down in front, or build a step under the crab. */
+type WorkMode = 'dig' | 'place' | 'build';
 const WALKING = 0.1;
 const FOOD_EVERY = 2.5;
 const SHALLOW_EVERY = 4;
@@ -324,7 +326,7 @@ export class Beach {
   /** The crab last stood on ice: in the air, it's still sliding. */
   private slid = false;
   /** What the held touch dig button is doing this press, once settled (see workMode). */
-  private working: 'dig' | 'place' | null = null;
+  private working: WorkMode | null = null;
   private turning = 0;
   private readonly hasRivals: boolean;
   private readonly rng: Rng;
@@ -581,6 +583,7 @@ export class Beach {
       const work = input.work ? this.workMode(input) : null;
       if (input.dig || work === 'dig') this.dig(input, events);
       else if (input.place || work === 'place') this.place(input, events);
+      else if (work === 'build') this.buildStep(events);
       else if (input.work && this.crab.sand >= this.sandCapacity) this.sandFull(events);
     }
     if (input.interact && this.nearbyShell && this.nearbyFits && !this.nearbyHeld) {
@@ -712,24 +715,55 @@ export class Beach {
     this.fullNotice = FULL_AGAIN;
   }
 
+  /**
+   * Puts a clump down. On the ground, aiming up or down builds a step under
+   * the crab; so does putting sand down facing a wall with no room in front,
+   * so pressing it at a bank too high to jump builds the way up.
+   */
   private place(input: Input, events: SimEvent[]): void {
     const c = this.crab;
+    if (input.aimY !== 0 && this.canBuild() && this.buildStep(events)) return;
     const at = placeTarget(this.terrain, c.body, c.facing, input.aimY, this.tileSize);
     if (at) this.addTile(at, events);
+    else if (this.canBuild()) this.buildStep(events);
+  }
+
+  /** Standing on firm ground, out of the water and the roots: where a step can be built. */
+  private canBuild(): boolean {
+    const c = this.crab;
+    return c.body.onGround && !c.climbing && !c.hidden && !c.swap && !this.submerged(c.body);
+  }
+
+  /** A clump under the crab's feet, and the crab lifted a tile onto it. False when there's no sand or no room. */
+  private buildStep(events: SimEvent[]): boolean {
+    const at = stepTarget(this.terrain, this.crab.body, this.tileSize);
+    const before = this.crab.sand;
+    if (!at) return false;
+    this.addTile(at, events);
+    if (this.crab.sand === before) return false;
+    const b = this.crab.body;
+    this.crab = { ...this.crab, body: { ...b, y: b.y - this.tileSize, vy: 0 } };
+    return true;
   }
 
   /**
    * What the touch dig button does for this press: dig if there's sand where
    * it aims and room in the shell, else put sand down if it carries any.
+   * With the stick pushed straight up and sand to put down, it builds a
+   * step under the crab instead (the touch "build up"), as it does when
+   * there's nowhere else to put the sand, up against a wall.
    * Settled once per press; until then (nothing to do yet) it looks again.
    */
-  private workMode(input: Input): 'dig' | 'place' | null {
+  private workMode(input: Input): WorkMode | null {
     if (this.working) return this.working;
     const c = this.crab;
     const walking = Math.abs(input.moveX) > WALKING;
     const room = c.sand < this.sandCapacity;
-    if (room && diggableOf(this.terrain, digTargets(c.body, c.facing, input.aimY, walking, this.tileSize)).length) this.working = 'dig';
+    const step = c.sand > 0 && this.canBuild() && stepTarget(this.terrain, c.body, this.tileSize) !== null;
+    if (step && input.aimY === -1 && !walking) this.working = 'build';
+    else if (room && diggableOf(this.terrain, digTargets(c.body, c.facing, input.aimY, walking, this.tileSize)).length) this.working = 'dig';
     else if (c.sand > 0 && placeTarget(this.terrain, c.body, c.facing, input.aimY, this.tileSize)) this.working = 'place';
+    else if (step) this.working = 'build';
     return this.working;
   }
 

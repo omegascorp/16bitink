@@ -422,3 +422,16 @@ describe('monsoon harbour', () => {
     });
   }
 });
+
+describe('hand-placed finds', () => {
+  it('list at least as many spots as the mission asks for, inside the beach', () => {
+    for (const { levels } of BEACHES) {
+      for (const def of levels) {
+        if (!def.finds) continue;
+        expect(def.finds.length, def.id).toBeGreaterThanOrEqual(missionOf(def).finds);
+        for (const [col] of def.finds) expect(col > 1 && col < def.width - 2, `${def.id} col ${col}`).toBe(true);
+        expect(buildLevel(def).items.filter((i) => i.kind.type === 'find'), def.id).toHaveLength(missionOf(def).finds);
+      }
+    }
+  });
+});

@@ -1,4 +1,4 @@
-import type { Box } from './body';
+import { boxHitsSolid, type Box } from './body';
 import { isDiggable, tileAt, TILE, type Terrain } from './terrain';
 
 /** Tile coordinates. */
@@ -64,6 +64,18 @@ export function placeTarget(t: Terrain, b: Box, facing: 1 | -1, aimY: -1 | 0 | 1
   const col = facing > 0 ? s.x1 + 1 : s.x0 - 1;
   for (let y = s.y1 + 1; y >= s.y0 - 1; y--) if (tileAt(t, col, y) === TILE.air) return [col, y];
   return null;
+}
+
+/**
+ * Building a step: the clump goes under the crab's middle, in the row its
+ * feet stand in, and the crab is lifted a tile onto it. Null when that spot
+ * isn't open or there's no headroom for the lift.
+ */
+export function stepTarget(t: Terrain, b: Box, tile: number): TilePos | null {
+  const s = tileSpan(b, tile);
+  const x = Math.floor((b.x + b.w / 2) / tile);
+  if (tileAt(t, x, s.y1) !== TILE.air) return null;
+  return boxHitsSolid(t, { ...b, y: b.y - tile }, tile) ? null : [x, s.y1];
 }
 
 export function diggableOf(t: Terrain, tiles: readonly TilePos[]): TilePos[] {

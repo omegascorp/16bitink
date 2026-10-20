@@ -24,12 +24,15 @@ export const BEACH_1: readonly LevelDef[] = [
   {
     id: 'margin-wall', name: 'Margin Wall', seed: 104, width: 60, height: 32, parTime: 120,
     hint: 'Dig sand, then drop it to build up to the nerite on the shelf.',
-    profile: [[0, 15], [32, 15], [33, 10], [46, 10], [47, 15], [59, 15]],
+    // The shelf is 4 high: a size-3 crab in its snail jumps 3.3, so one clump of sand at the wall gets it up.
+    profile: [[0, 15], [32, 15], [33, 11], [46, 11], [47, 15], [59, 15]],
     startCol: 6,
     shells: [['snail', 3, 16, 0], ['nerite', 4, 40, 0]],
     food: { surface: 14, buried: 10, shallow: 5 },
+    // The cowries lie in the open sand, never in the shelf's face, so the mission doesn't hang on the wall too.
+    finds: [[19, 2], [27, 2], [52, 2]],
     critters: [{ count: 3, sizes: [1, 1], species: 'slater' }],
-    teach: ['dig', 'drop', 'swap'],
+    teach: ['dig', 'drop', 'reach', 'swap'],
   },
   {
     id: 'ghost-writers', name: 'Ghost Writers', seed: 105, width: 72, height: 32, parTime: 120,

@@ -1,18 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { shellOf } from '../src/logic/shells';
-import { Coach, ledgeAhead } from '../src/logic/coach';
+import { Coach, ledgeAhead, nextShell, tallBankAhead } from '../src/logic/coach';
 import { makeCritter } from '../src/logic/critters';
 import { digColumns } from '../src/logic/dig';
 import { meterGoal } from '../src/logic/growth';
-import { makeItem, shell } from '../src/logic/items';
+import { findItem, makeItem, shell } from '../src/logic/items';
 import { Beach, IDLE, type Input, type SimEvent } from '../src/logic/sim';
 import { createTerrain, setTile, TILE, type Terrain } from '../src/logic/terrain';
 
 const T = 16;
 
-function beach(items = [] as ReturnType<typeof makeItem>[]): Beach {
+/** A flat beach (surface at row 10), the crab at column 5; `bank` raises columns [from, to] to `top`. */
+function beach(items = [] as ReturnType<typeof makeItem>[], bank?: { from: number; to: number; top: number }): Beach {
   const terrain: Terrain = createTerrain(60, 30);
   for (let x = 0; x < 60; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
+  if (bank) for (let x = bank.from; x <= bank.to; x++) for (let y = bank.top; y < 10; y++) setTile(terrain, x, y, TILE.sand);
   return new Beach({ terrain, items, start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0 });
 }
 
@@ -35,17 +37,54 @@ describe('the coach', () => {
     expect(new Coach(['move']).hint(b, 'keys')?.lesson).toBe('move');
   });
 
-  it('shows the dig lesson until the first dig, then the drop lesson until sand is dropped', () => {
-    const b = beach();
-    const coach = new Coach(['dig', 'drop']);
+  it('teaches digging when something buried is near, pointing at it, until the first dig', () => {
+    const cowrie = makeItem(7, findItem('cowrie'), 9 * T, 12 * T, true);
+    const b = beach([cowrie]);
+    const coach = new Coach(['dig']);
     play(b, coach, {}, 1);
-    expect(coach.hint(b, 'keys')?.lesson).toBe('dig');
+    const h = coach.hint(b, 'keys');
+    expect(h?.lesson).toBe('dig');
+    expect(h?.text).toMatch(/buried/i);
+    expect(h?.target?.x).toBeCloseTo(cowrie.x + cowrie.w / 2);
     play(b, coach, { aimY: 1, dig: true });
     expect(coach.learnt('dig')).toBe(true);
-    expect(coach.hint(b, 'keys')?.lesson).toBe('drop');
-    play(b, coach, {}, 0.5);
-    play(b, coach, { place: true });
+    expect(coach.hint(b, 'keys')).toBeNull();
+  });
+
+  it('with nothing buried near, waits a while before teaching digging', () => {
+    const b = beach();
+    const coach = new Coach(['dig']);
+    play(b, coach, {}, 1);
+    expect(coach.hint(b, 'keys')).toBeNull();
+    play(b, coach, {}, 20);
+    expect(coach.hint(b, 'keys')?.lesson).toBe('dig');
+  });
+
+  it('teaches building a step only carrying sand at a bank too high to jump, until a step is built', () => {
+    const b = beach([], { from: 8, to: 20, top: 7 });
+    const coach = new Coach(['drop']);
+    play(b, coach, {}, 1);
+    b.crab = { ...b.crab, sand: 3 };
+    play(b, coach, {}, 0.1);
+    const h = coach.hint(b, 'keys');
+    expect(h?.lesson).toBe('drop');
+    expect(h?.target?.x).toBeCloseTo(8.5 * T);
+    expect(h?.text).toMatch(/↑ \+ C/);
+    expect(coach.hint(b, 'touch')?.text).toMatch(/stick up/);
+    // Away from the bank, or with no sand, it says nothing.
+    expect(tallBankAhead(b, -1)).toBeNull();
+    b.crab = { ...b.crab, sand: 0 };
+    expect(coach.hint(b, 'keys')).toBeNull();
+    b.crab = { ...b.crab, sand: 3 };
+    play(b, coach, { place: true, aimY: -1 });
     expect(coach.learnt('drop')).toBe(true);
+  });
+
+  it('a bank the crab can jump onto is no reason to build', () => {
+    const b = beach([], { from: 8, to: 20, top: 8 });
+    const coach = new Coach(['drop']);
+    play(b, coach, {}, 1);
+    b.crab = { ...b.crab, sand: 3 };
     expect(coach.hint(b, 'keys')).toBeNull();
   });
 
@@ -113,7 +152,9 @@ describe('the coach', () => {
 
   it('teaches digging at an angle, not straight down', () => {
     const b = beach();
-    const dig = new Coach(['dig']).hint(b, 'keys')!.text;
+    const coach = new Coach(['dig']);
+    play(b, coach, {}, 21);
+    const dig = coach.hint(b, 'keys')!.text;
     expect(dig).toMatch(/→/);
     expect(dig).toMatch(/↓/);
     expect(dig).toMatch(/straight down/i);
@@ -140,7 +181,36 @@ describe('the coach', () => {
 
   it('words hints for touch screens', () => {
     const b = beach();
-    expect(new Coach(['dig']).hint(b, 'touch')?.text).toMatch(/hold dig/);
+    const coach = new Coach(['dig']);
+    play(b, coach, {}, 21);
+    expect(coach.hint(b, 'touch')?.text).toMatch(/hold dig/);
+  });
+
+  it('points up at the next shell when it lies out of jumping reach, until the crab moves into it', () => {
+    const snail = makeItem(9, shell('snail'), 14 * T, 6 * T - 10, false);
+    const b = beach([snail], { from: 8, to: 20, top: 6 });
+    const coach = new Coach(['reach', 'swap']);
+    play(b, coach, {}, 1);
+    expect(coach.hint(b, 'keys')).toBeNull();
+    b.crab = { ...b.crab, growth: { size: 2, meter: meterGoal(2) } };
+    play(b, coach, {}, 0.1);
+    const h = coach.hint(b, 'keys');
+    expect(h?.lesson).toBe('reach');
+    expect(h?.target?.x).toBeCloseTo(snail.x + snail.w / 2);
+    expect(h?.text).toMatch(/too high/);
+    expect(coach.hint(b, 'touch')?.text).toMatch(/stick up/);
+    coach.observe(b, [{ type: 'swapDone', from: b.crab.shell, to: shellOf('snail'), dropped: null }]);
+    expect(coach.learnt('reach')).toBe(true);
+  });
+
+  it('says nothing about reaching a shell lying within a jump', () => {
+    const snail = makeItem(9, shell('snail'), 14 * T, 8 * T - 10, false);
+    const b = beach([snail], { from: 8, to: 20, top: 8 });
+    const coach = new Coach(['reach']);
+    play(b, coach, {}, 1);
+    b.crab = { ...b.crab, growth: { size: 2, meter: meterGoal(2) } };
+    play(b, coach, {}, 0.1);
+    expect(coach.hint(b, 'keys')).toBeNull();
   });
 });
 
@@ -238,5 +308,25 @@ describe('the jump lesson', () => {
     play(b, coach, { moveX: 1 }, 1);
     expect(b.crab.body.x).toBeGreaterThan(11 * T);
     expect(ledgeAhead(b, 1)).toBeNull();
+  });
+});
+
+describe('nextShell', () => {
+  it('is the nearest shell that fits once the crab is full, lying in the open before a buried one', () => {
+    const near = makeItem(1, shell('snail'), 9 * T, 12 * T, true);
+    const far = makeItem(2, shell('snail'), 30 * T, 10 * T - 10, false);
+    const tooBig = makeItem(3, shell('nerite'), 7 * T, 10 * T - 10, false);
+    const b = beach([near, far, tooBig]);
+    b.crab = { ...b.crab, growth: { size: 2, meter: meterGoal(2) } };
+    expect(nextShell(b)?.id).toBe(2);
+  });
+
+  it('falls back to a buried shell, and is null with none that fits', () => {
+    const grown = (b: Beach): Beach => {
+      b.crab = { ...b.crab, growth: { size: 2, meter: meterGoal(2) } };
+      return b;
+    };
+    expect(nextShell(grown(beach([makeItem(1, shell('snail'), 9 * T, 12 * T, true)])))?.id).toBe(1);
+    expect(nextShell(grown(beach([])))).toBeNull();
   });
 });

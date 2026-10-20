@@ -144,7 +144,7 @@ const when = (d: Date): string => d.toISOString().slice(0, 16).replace('T', ' ')
           <div class="scroll">
             <table class="funnel">
               <thead>
-                <tr><th>#</th><th>Level</th><th class="bar-col">Reached</th><th>Players</th><th>From prev.</th><th>Beat it</th><th>Tries</th><th>Avg win</th></tr>
+                <tr><th>#</th><th>Level</th><th class="bar-col">Reached</th><th>Players</th><th>From prev.</th><th>Beat it</th><th>Tries</th><th>Avg win</th><th>Stuck at</th></tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
@@ -157,6 +157,7 @@ const when = (d: Date): string => d.toISOString().slice(0, 16).replace('T', ' ')
                     <td>{r.finished} <span class="soft">({r.winRate}%)</span></td>
                     <td>{r.attempts}</td>
                     <td>{r.winSeconds === null ? '–' : formatDuration(r.winSeconds)}</td>
+                    <td>{r.stuckAt ? <>{r.stuckAt.progress} <span class="soft">×{r.stuckAt.players}</span></> : '–'}</td>
                   </tr>
                 ))}
               </tbody>

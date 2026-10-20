@@ -167,6 +167,7 @@ Keep actions few and context-sensitive; side view has more verbs than top-down, 
 | --- | --- | --- |
 | Move, climb | Arrows or stick (climb when against a climbable surface) | Virtual stick |
 | Dig / place sand | One button, aimed by direction held | Dig button, aimed by the stick: digs if there's sand there and room in the shell, else drops sand (settled per press) |
+| Build a step | ↑ (or ↓) + place on the ground, or place facing a bank: sand goes under the crab and lifts it a tile | Stick straight up + dig, carrying sand (or dig at a bank once the shell is full of sand) |
 | Retract into shell | Hold one button | Hold a button |
 | Interact (swap, steal, eat) | One context button | Grab button |
 

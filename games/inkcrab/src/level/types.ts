@@ -91,6 +91,8 @@ export interface LevelDef {
     /** Clams buried by hand: column and depth. */
     readonly clams?: readonly (readonly [number, number])[];
   };
+  /** Where a beachcombing mission buries its finds: column and depth, in place of the spread `findSpots` lays out. */
+  readonly finds?: readonly (readonly [number, number])[];
   readonly critters?: readonly CritterGroup[];
   /** Birds hunting from the sky. */
   readonly birds?: readonly BirdGroup[];

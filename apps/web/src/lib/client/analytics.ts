@@ -150,10 +150,16 @@ export function trackPageview(): void {
   }
 }
 
+/** Longest level progress note kept (the server refuses more). */
+const PROGRESS_MAX = 60;
+
 /** A level event from a game, trimmed to what the server accepts. */
 export function trackLevel(tag: GameTag, e: GameEvent): void {
   if (!Number.isInteger(e.n) || e.n < 1) return;
-  track({ ...e, ...tag, level: e.level.slice(0, 40), ...(e.name ? { name: e.name.slice(0, 80) } : {}) });
+  track({
+    ...e, ...tag, level: e.level.slice(0, 40), ...(e.name ? { name: e.name.slice(0, 80) } : {}),
+    ...(e.type === 'level_end' && e.progress ? { progress: e.progress.slice(0, PROGRESS_MAX) } : {}),
+  });
 }
 
 /** Play time is reported at least this often, so a tab that dies unannounced loses at most this much. */

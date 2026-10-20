@@ -127,6 +127,8 @@ export type GameEvent =
       readonly score?: number;
       /** Why the level was lost, e.g. "eaten". */
       readonly cause?: string;
+      /** How far the player got, in the game's own short words, e.g. "size 3/4 full, finds 1/3": where runs that aren't won stop. */
+      readonly progress?: string;
     });
 
 /** Returned by `mount` so the host can tear a game down cleanly. */

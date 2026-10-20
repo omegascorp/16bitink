@@ -5,7 +5,8 @@ import { getHost, getSound, REG, trackGame } from '../host';
 import { buildLevel, START_SIZE } from '../level/build';
 import { isBeachFinale, levelById, levelOrder, loadedLevels, themeOf } from '../level/levels';
 import type { LevelDef } from '../level/types';
-import { Coach } from '../logic/coach';
+import { Coach, nextShell } from '../logic/coach';
+import { runNote } from '../logic/runNote';
 import { surfaceRow, type Terrain } from '../logic/terrain';
 import { centre } from '../logic/items';
 import { shellPx, SHELLS } from '../logic/shells';
@@ -98,6 +99,8 @@ export class GameScene extends Phaser.Scene {
   private windView: WindView | null = null;
   /** The level has been won or lost (or left), so it's been reported. */
   private over = false;
+  /** The run was reported as quit when the page hid; it's picked up again if the player comes back to it. */
+  private away = false;
   private nightView: NightView | null = null;
   private input2!: GameInput;
   private touch!: TouchState;
@@ -175,20 +178,43 @@ export class GameScene extends Phaser.Scene {
     return Math.round(this.beach.elapsed * 10) / 10;
   }
 
-  /** Reports the level's start, and a quit if the player leaves before it ends (map, exit). */
+  /**
+   * Reports the level's start, and a quit if the player leaves before it
+   * ends (map, exit), or when the page hides: closing the tab sends nothing
+   * else. That report goes out ahead of the site's flush on hiding (caught
+   * on the window, before its listener on the document), and if the player
+   * comes back the run goes on and its end is reported too.
+   */
   private trackStart(): void {
     this.over = false;
+    this.away = false;
     trackGame(this, { type: 'level_start', ...this.levelRef() });
     const quit = (): void => {
       if (this.over) return;
       this.over = true;
-      trackGame(this, { type: 'level_end', ...this.levelRef(), result: 'quit', seconds: this.seconds() });
+      trackGame(this, { type: 'level_end', ...this.levelRef(), result: 'quit', seconds: this.seconds(), progress: runNote(this.beach) });
+    };
+    const visibility = (): void => {
+      if (document.visibilityState === 'hidden') {
+        if (this.over) return;
+        this.away = true;
+        quit();
+      } else if (this.away) {
+        this.away = false;
+        this.over = false;
+      }
+    };
+    const unwatch = (): void => window.removeEventListener('visibilitychange', visibility, { capture: true });
+    window.addEventListener('visibilitychange', visibility, { capture: true });
+    const ended = (): void => {
+      unwatch();
+      quit();
     };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.events.off(Phaser.Scenes.Events.DESTROY, quit);
-      quit();
+      this.events.off(Phaser.Scenes.Events.DESTROY, ended);
+      ended();
     });
-    this.events.once(Phaser.Scenes.Events.DESTROY, quit);
+    this.events.once(Phaser.Scenes.Events.DESTROY, ended);
   }
 
   /** The faraway beach, anchored above the beach's typical surface height and wide enough for any scroll. */
@@ -224,7 +250,9 @@ export class GameScene extends Phaser.Scene {
     const host = getHost(this);
     if (!this.over) {
       this.over = true;
-      trackGame(this, { type: 'level_end', ...this.levelRef(), result: won ? 'win' : 'lose', seconds: this.seconds(), ...(b.caughtBy ? { cause: b.caughtBy } : {}) });
+      trackGame(this, {
+        type: 'level_end', ...this.levelRef(), result: won ? 'win' : 'lose', seconds: this.seconds(), progress: runNote(b), ...(b.caughtBy ? { cause: b.caughtBy } : {}),
+      });
     }
     this.sightings.save();
     const saved = loadProgress(host.storage);
@@ -293,13 +321,16 @@ export class GameScene extends Phaser.Scene {
 
   /**
    * The coach's arrow: bobbing over what the hint is about, or at the edge
-   * of the view pointing the way when it's off screen.
+   * of the view pointing the way when it's off screen. With no hint and the
+   * shell full, it points to the next shell, ahead of the mission's arrow.
    */
   private drawPointer(time: number): void {
     const g = this.pointer.clear();
     // At a shell its line isn't ready for (or just after trying it), a red arrow points out who's missing, even in view.
     const missing = this.beach.heldNotice > 0 || this.beach.nearbyHeld ? chainTarget(this.beach) : null;
-    const coached = missing ? undefined : this.coach.hint(this.beach, 'keys')?.target;
+    const hinted = missing ? undefined : this.coach.hint(this.beach, 'keys')?.target;
+    const shell = missing || hinted || !this.beach.capped || this.beach.crab.swap ? null : nextShell(this.beach);
+    const coached = hinted ?? (shell ? centre(shell) : undefined);
     // Without a hint, a red arrow at the edge points the way to the mission's next find;
     // once the player seems lost, it bobs over the find even in view.
     const view = this.cameras.main.worldView;

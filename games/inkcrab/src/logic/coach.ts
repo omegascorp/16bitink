@@ -12,7 +12,7 @@ import { isSolid, surfaceRow, tileAt, TILE } from './terrain';
 
 
 /** Something a level teaches, step by step, with a hint shown only while it's relevant. */
-export type Lesson = 'move' | 'jump' | 'swap' | 'dig' | 'drop' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron' | 'vent'
+export type Lesson = 'move' | 'jump' | 'swap' | 'dig' | 'drop' | 'reach' | 'hide' | 'buried' | 'sky' | 'pit' | 'sandfish' | 'tide' | 'octopus' | 'climb' | 'heron' | 'vent'
   | 'kelp' | 'fog' | 'raccoon'
   | 'rival'
   | 'rain' | 'deck' | 'monitor'
@@ -53,6 +53,12 @@ const DECK_NEAR = 8;
 const ICE_NEAR = 8;
 /** How close (tiles) glowing plankton is before the glow lesson speaks up. */
 const GLOW_NEAR = 8;
+/** How close (tiles) something buried (a find, a shell) is before the dig lesson speaks up, pointing at it. */
+const DIG_NEAR = 8;
+/** Seconds into a level before the dig lesson speaks up anyway, with nothing buried near. */
+const DIG_AFTER = 20;
+/** How far ahead (tiles) a bank too high to jump makes the drop lesson speak up. */
+const BANK_NEAR = 3;
 
 const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
   keys: {
@@ -60,7 +66,9 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     jump: 'Too high to walk up? Press Space to jump onto it.',
     swap: 'Your shell is full! Walk to the bigger shell and press E to move in. Out of your shell anything can catch you, so move when no one\'s about.',
     dig: 'Dig a slope: hold → (or ←) and ↓, then press X. Digging straight down can trap you.',
-    drop: 'You\'re carrying sand. Press C to drop it; jump, then ↓ + C to build up under you.',
+    digHere: 'Something\'s buried here! Dig a slope down to it: hold → (or ←) and ↓, then press X.',
+    drop: 'Too high to jump? Build a step: press ↑ + C to put sand under you (or C facing the bank), then jump.',
+    reach: 'That shell is too high to jump to. Build a step: dig some sand, then press ↑ + C by the bank to put it under you, and jump up.',
     full: 'You\'re full of sand. Drop some with C before you dig more.',
     hide: 'Red ink means it can catch you! Hold Z to hide in your shell.',
     buried: 'Highlighted sand hides something buried. Dig a slope down to it: hold → and ↓ with X.',
@@ -94,7 +102,9 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     jump: 'Too high to walk up? Tap jump to hop onto it.',
     swap: 'Your shell is full! Walk to the bigger shell and press grab to move in. Out of your shell anything can catch you, so move when no one\'s about.',
     dig: 'Dig a slope: push the stick down and sideways, and hold dig. Digging straight down can trap you.',
-    drop: 'You\'re carrying sand. Press dig facing open space to drop it; jump, then stick down + dig to build up under you.',
+    digHere: 'Something\'s buried here! Dig a slope down to it: push the stick down and sideways, and hold dig.',
+    drop: 'Too high to jump? Build a step: push the stick up and press dig to put sand under you, then jump.',
+    reach: 'That shell is too high to jump to. Build a step: dig some sand, then by the bank push the stick up and press dig to put it under you, and jump up.',
     full: 'You\'re full of sand. Press dig to drop some before you dig more.',
     hide: 'Red ink means it can catch you! Hold the shell button to hide.',
     buried: 'Highlighted sand hides something buried. Dig a slope down to it: push the stick down and sideways, and hold dig.',
@@ -184,6 +194,41 @@ export function birdOverhead(beach: Beach): boolean {
 }
 
 /**
+ * The top of a bank too high to jump onto, within a few tiles ahead of a
+ * crab standing on the surface, or null. Underground (in a tunnel) the
+ * banks around don't count.
+ */
+export function tallBankAhead(beach: Beach, dir: number): { x: number; y: number } | null {
+  const b = beach.crab.body;
+  const T = beach.tileSize;
+  if (!b.onGround || dir === 0) return null;
+  const col = Math.floor((b.x + b.w / 2) / T);
+  const feet = Math.round((b.y + b.h) / T);
+  if (surfaceRow(beach.terrain, col) !== feet) return null;
+  for (let d = 1; d <= BANK_NEAR; d++) {
+    const x = col + Math.sign(dir) * d;
+    const top = surfaceRow(beach.terrain, x);
+    if (feet - top > beach.jumpTiles) return { x: (x + 0.5) * T, y: top * T };
+    if (top !== feet) return null;
+  }
+  return null;
+}
+
+/**
+ * The next shell to move into once the crab's shell is full: the nearest
+ * that fits and lets it grow past its cap, lying in the open, or else
+ * buried. Null when there's none.
+ */
+export function nextShell(beach: Beach): Item | null {
+  const c = beach.crab;
+  const at = centre(c.body);
+  const fits = [...beach.items.values()].filter((i) => i.kind.type === 'shell' && canWear(i.kind.shell, c.growth.size) && i.kind.shell.size > beach.cap);
+  const pool = fits.some((i) => !i.buried) ? fits.filter((i) => !i.buried) : fits;
+  const dist = (i: Item): number => Math.hypot(centre(i).x - at.x, centre(i).y - at.y);
+  return pool.reduce<Item | null>((best, i) => (!best || dist(i) < dist(best) ? i : best), null);
+}
+
+/**
  * The tutorial: watches play and offers one hint at a time for the lessons
  * a level teaches. Each lesson ends once the player has done it (eaten,
  * moved house, dug, dropped sand, hidden from a hunter, uncovered a shell),
@@ -205,7 +250,11 @@ export class Coach {
     for (const e of events) {
       if (e.type === 'ate') this.done.add('move');
       else if (e.type === 'jumped') this.done.add('jump');
-      else if (e.type === 'swapDone') this.done.add('swap');
+      else if (e.type === 'swapDone') {
+        this.done.add('swap');
+        // Reaching a shell up high is learnt by moving into one that was out of reach.
+        if (this.facing.delete('reach')) this.done.add('reach');
+      }
       else if (e.type === 'tiles' && e.dug) this.done.add('dig');
       else if (e.type === 'revealed' && beach.items.get(e.id)?.kind.type === 'shell') this.done.add('buried');
       else if (e.type === 'thrown') this.done.add('vent');
@@ -216,6 +265,9 @@ export class Coach {
     if (c.sand < this.lastSand) this.done.add('drop');
     this.lastSand = c.sand;
     if (c.hidden && hunterNear(beach)) this.done.add('hide');
+    // The next shell lying out of jumping reach: the reach lesson is learnt on moving into it.
+    const needed = c.swap || !beach.capped ? null : this.biggerShell(beach);
+    if (needed && this.riseTo(beach, needed) > beach.jumpTiles) this.facing.add('reach');
     this.escape('sky', birdOverhead(beach) && underSky(beach.terrain, c.body, beach.tileSize));
     this.escape('pit', beach.pitPull(c.body) !== 0);
     this.escape('sandfish', this.sandfishNear(beach) && !underSky(beach.terrain, c.body, beach.tileSize));
@@ -287,6 +339,10 @@ export class Coach {
       const ledge = ledgeAhead(beach, Math.sign(c.body.vx));
       if (ledge) return { lesson: 'jump', text: t.jump!, target: ledge };
     }
+    if (open('reach')) {
+      const shell = this.highShell(beach);
+      if (shell) return { lesson: 'reach', text: t.reach!, target: centre(shell) };
+    }
     if (open('swap') && beach.capped) {
       const shell = this.biggerShell(beach);
       if (shell) return { lesson: 'swap', text: t.swap!, target: centre(shell) };
@@ -323,9 +379,42 @@ export class Coach {
     }
     if (open('climb') && this.rootsNear(beach)) return { lesson: 'climb', text: t.climb!, target: this.perchedShell(beach) ?? undefined };
     if (open('move')) return { lesson: 'move', text: t.move! };
-    if (open('dig')) return { lesson: 'dig', text: t.dig! };
-    if (open('drop') && c.sand > 0) return { lesson: 'drop', text: t.drop! };
+    // Digging is taught when there's something to dig for, or after a while anyway.
+    if (open('dig')) {
+      const buried = this.buriedNear(beach);
+      if (buried) return { lesson: 'dig', text: t.digHere!, target: centre(buried) };
+      if (beach.elapsed >= DIG_AFTER) return { lesson: 'dig', text: t.dig! };
+    }
+    // Building up is taught carrying sand at a bank too high to jump.
+    if (open('drop') && c.sand > 0) {
+      const bank = tallBankAhead(beach, c.facing);
+      if (bank) return { lesson: 'drop', text: t.drop!, target: bank };
+    }
     return null;
+  }
+
+  /**
+   * The shell the crab needs next when it lies up out of jumping reach:
+   * once it's out of reach the hint holds until the crab is within a tile
+   * of its level, so it doesn't flicker off mid-jump.
+   */
+  private highShell(beach: Beach): Item | null {
+    const shell = beach.capped ? this.biggerShell(beach) : null;
+    if (!shell) return null;
+    const rise = this.riseTo(beach, shell);
+    return rise > beach.jumpTiles || (this.facing.has('reach') && rise > 1) ? shell : null;
+  }
+
+  /** How far (tiles) a shell lies above the crab's feet. */
+  private riseTo(beach: Beach, shell: Item): number {
+    return (beach.crab.body.y + beach.crab.body.h - (shell.y + shell.h)) / beach.tileSize;
+  }
+
+  /** The nearest buried find or shell within a few tiles, to dig for. */
+  private buriedNear(beach: Beach): Item | null {
+    const at = centre(beach.crab.body);
+    const item = this.nearest(beach, (i) => i.buried && (i.kind.type === 'find' || i.kind.type === 'shell'));
+    return item && Math.abs(centre(item).x - at.x) < DIG_NEAR * beach.tileSize ? item : null;
   }
 
   /** Down a hole with walls on both sides taller than it can jump. */

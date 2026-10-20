@@ -96,6 +96,31 @@ describe('which press the player needs to be shown', () => {
     expect(pressNeeded(b, 'dig')).toBe('drop');
   });
 
+  it('asks to build a step where the hint needs one, or to dig first with no sand to build with', () => {
+    const b = beach();
+    step(b, {}, 30);
+    expect(pressNeeded(b, 'reach')).toBe('dig');
+    b.crab = { ...b.crab, sand: 3 };
+    expect(pressNeeded(b, 'reach')).toBe('build');
+    expect(pressNeeded(b, 'drop')).toBe('build');
+  });
+
+  it('learns the build press once a step is built, apart from dropping sand', () => {
+    const b = beach();
+    step(b, {}, 30);
+    const cue = new FirstPress(memoryStore());
+    b.crab = { ...b.crab, sand: 3 };
+    cue.observe(b, 'keys');
+    step(b, { place: true });
+    cue.observe(b, 'keys');
+    expect(cue.cue(b, 'reach', 'keys')).toBe('build');
+    step(b, {}, 30);
+    step(b, { place: true, aimY: -1 });
+    cue.observe(b, 'keys');
+    expect(cue.cue(b, 'reach', 'keys')).toBeNull();
+    expect(cue.cue(b, 'reach', 'touch')).toBe('build');
+  });
+
   it('puts hiding first: the danger can\'t wait', () => {
     const b = beach();
     step(b, {}, 30);

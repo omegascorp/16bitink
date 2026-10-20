@@ -28,7 +28,8 @@ const LATCHED: Readonly<Record<string, Latch>> = {
 
 /**
  * Keyboard: arrows/WASD to walk and aim, Space to jump, X to dig and C to
- * place sand (both repeat while held), E or Enter to move into a shell,
+ * place sand (both repeat while held; ↑ or ↓ with C on the ground, or C
+ * against a bank, builds a step under the crab), E or Enter to move into a shell,
  * Z held to hide in the shell. Touch (the HUD's buttons): the stick walks
  * and aims, dig digs or drops sand (see Input.work), grab moves in or raps.
  */

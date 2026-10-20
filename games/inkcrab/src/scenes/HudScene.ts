@@ -234,8 +234,8 @@ export class HudScene extends Phaser.Scene {
     } else this.prompt.setVisible(false);
 
     this.help.setPosition(width - 14, height - 10).setText(this.touchSeen
-      ? 'stick walks and aims · dig digs, or drops sand in the open · grab moves in · hold the shell to hide'
-      : '←→ walk · ↑↓ aim · Space jump · X dig · C place sand · E move in · Z hide');
+      ? 'stick walks and aims · dig digs or drops sand, stick up builds · grab moves in · hold the shell to hide'
+      : '←→ walk · ↑↓ aim · Space jump · X dig · C place sand · ↑ C build a step · E move in · Z hide');
     this.controls.clear().setScale(1 / uiScaleOf(this));
     if (this.touchSeen) {
       const screen = screenSize(this);
