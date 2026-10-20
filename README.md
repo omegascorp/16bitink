@@ -46,6 +46,12 @@ For checkout locally:
 
 First-party and cookie-free: pages and games send events to `POST /api/events`, stored in the MongoDB time-series collection `events` (created on the first write, raw events expire after about 25 months). Admins see them at `/admin/analytics`: visitors, play time, per-game level funnels, OS/browser/device/country, latest visits. Visiting any `/admin` page stops that browser from counting itself. Country comes from the bundled GeoLite2 database (`geoip-country`, updated by bumping the package); the IP is never stored. Browsers that send Global Privacy Control or Do Not Track send nothing.
 
+## Admin MCP (Claude connector)
+
+`/mcp` is an MCP server for admins, so Claude can run creator outreach: `list_games`, `create_key` (an activation key for one creator: at most 5 accounts, 30 keys a day, tagged "by outreach" in `/admin/keys`), `list_keys` (who each key was for and whether it was redeemed; redeemers' emails are never shown) and `traffic` (visitors, players, landing pages and referrers over N days). It can't delete, refund, unlock games for players or read their emails.
+
+Connect it in claude.ai: Settings → Connectors → Add custom connector → `https://16bit.ink/mcp`. Claude registers itself, then you sign in with Google as an `ADMIN_EMAILS` account and click Allow. Claude Code works too (`claude mcp add --transport http 16bitink https://16bit.ink/mcp`). Access tokens last an hour and refresh for 30 days; tokens stop working as soon as the account is no longer an admin. Codes only go to Claude's callback or a loopback address. Storage: `oauth_clients` and `oauth_tokens` (hashes only, expiring). The OAuth and MCP endpoints are exempt from the cross-site form check (`src/lib/originCheck.ts`, which replaces Astro's `security.checkOrigin`), since Claude calls them from its servers with no cookies.
+
 ## Deploy (DigitalOcean App Platform)
 
 1. **Stripe:** set `STRIPE_SECRET_KEY` in `apps/web/.env` to the **live** key and run `pnpm --filter @16bitink/web stripe:setup`. This creates "InkFish: Full Game", a one-time $4.99 price with lookup key `inkfish_full`. Then put the test key back.

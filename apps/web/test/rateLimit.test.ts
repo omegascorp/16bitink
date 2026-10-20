@@ -40,6 +40,9 @@ describe('which routes are limited', () => {
     expect(limitFor('/admin')).toBe('admin');
     expect(limitFor('/api/admin/grants')).toBe('admin');
     expect(limitFor('/api/admin/keys')).toBe('admin');
+    expect(limitFor('/mcp')).toBe('admin');
+    expect(limitFor('/oauth/token')).toBe('oauth');
+    expect(limitFor('/oauth/authorize')).toBe('oauth');
     expect(limitFor('/api/redeem')).toBe('redeem');
   });
 

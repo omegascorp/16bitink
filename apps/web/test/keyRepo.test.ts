@@ -4,7 +4,7 @@ import { connectDb, disconnectDb } from '../src/lib/db/connection';
 import { Grant } from '../src/lib/db/grantModel';
 import { grantedGames, revokeGame } from '../src/lib/db/grantRepo';
 import { Key } from '../src/lib/db/keyModel';
-import { createKey, deleteUnusedKey, listKeys, redeemKey } from '../src/lib/db/keyRepo';
+import { countApiKeysSince, createKey, deleteUnusedKey, listKeys, redeemKey } from '../src/lib/db/keyRepo';
 import { User } from '../src/lib/db/userModel';
 
 // Integration test: needs a throwaway MongoDB, e.g.
@@ -38,6 +38,17 @@ describe.skipIf(!uri)('activation keys (MongoDB)', () => {
     const { keys, total } = await listKeys({ page: 0, perPage: 10 });
     expect(total).toBe(1);
     expect(keys[0]).toMatchObject({ code, game: 'inkfish', note: 'Some Channel', uses: 3, redemptions: [] });
+  });
+
+  it('counts only keys made through the API, since a given time', async () => {
+    await createKey({ game: 'inkfish', uses: 1, note: 'By hand', createdBy: ADMIN });
+    await createKey({ game: 'inkfish', uses: 1, note: 'Channel A', createdBy: ADMIN, via: 'api' });
+    await createKey({ game: 'inkcrab', uses: 1, note: 'Channel B', createdBy: ADMIN, via: 'api' });
+    const old = await createKey({ game: 'inkfish', uses: 1, note: 'Old', createdBy: ADMIN, via: 'api' });
+    await Key.collection.updateOne({ code: old }, { $set: { createdAt: new Date(Date.now() - 2 * 86_400_000) } });
+    expect(await countApiKeysSince(new Date(Date.now() - 86_400_000))).toBe(2);
+    const { keys } = await listKeys({ page: 0, perPage: 10 });
+    expect(keys.filter((k) => k.via === 'api').map((k) => k.note).sort()).toEqual(['Channel A', 'Channel B', 'Old']);
   });
 
   it('redeeming unlocks the game and shows who redeemed it', async () => {

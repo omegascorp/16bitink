@@ -1,5 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 import { clientIp } from './lib/clientIp';
+import { isForbiddenCrossOrigin } from './lib/originCheck';
 import { createRateLimiter, limitFor, type LimitedRoute, type RateLimiter } from './lib/rateLimit';
 import { shortLinkTarget } from './lib/shortLinks';
 
@@ -16,12 +17,17 @@ const limiters: Record<LimitedRoute, RateLimiter> = {
   events: createRateLimiter({ limit: 60, windowMs: MINUTE }),
   // A person signs up once; this allows a typo or two, not a list.
   subscribe: createRateLimiter({ limit: 5, windowMs: MINUTE }),
+  // Connecting Claude: a handful of registrations, sign-ins and token refreshes.
+  oauth: createRateLimiter({ limit: 20, windowMs: MINUTE }),
 };
 
 export const onRequest = defineMiddleware((context, next) => {
   // 16bit.ink/fish, typed from a video: a temporary redirect, so the target can change.
   const short = context.isPrerendered ? null : shortLinkTarget(context.url.pathname);
   if (short) return new Response(null, { status: 302, headers: { location: short, 'cache-control': 'no-store' } });
+  if (!context.isPrerendered && isForbiddenCrossOrigin(context.request, context.url)) {
+    return new Response(`Cross-site ${context.request.method} form submissions are forbidden`, { status: 403 });
+  }
   const route = limitFor(context.url.pathname);
   if (route && !context.isPrerendered) {
     const ip = clientIp(context.request, () => context.clientAddress);

@@ -30,6 +30,7 @@
     "@16bitink/inkfish": "workspace:*",
     "@16bitink/inkmine": "workspace:*",
     "@astrojs/node": "^11.1.6",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "astro": "^7.3.5",
     "geoip-country": "^5.0.202610100242",
     "mongoose": "^9.10.3",

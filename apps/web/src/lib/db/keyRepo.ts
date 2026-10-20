@@ -12,6 +12,8 @@ export interface KeySummary {
   readonly game: string;
   readonly note: string;
   readonly createdAt: Date;
+  /** 'api' when automation made it. */
+  readonly via?: 'api';
   /** How many accounts may redeem it. */
   readonly uses: number;
   /** Who redeemed it and when, oldest first; empty while unused. */
@@ -37,16 +39,23 @@ function redemptionsOf(key: Partial<KeyUses>): readonly RedemptionDoc[] {
 }
 
 /** Creates one key for `game` that up to `uses` accounts can redeem. Returns its code. */
-export async function createKey(opts: { readonly game: string; readonly uses: number; readonly note: string; readonly createdBy: UserId }): Promise<string> {
+export async function createKey(opts: {
+  readonly game: string; readonly uses: number; readonly note: string; readonly createdBy: UserId; readonly via?: 'api';
+}): Promise<string> {
   const code = generateKey();
-  await Key.create({ code, game: opts.game, note: opts.note, uses: opts.uses, redemptions: [], createdBy: oid(opts.createdBy) });
+  await Key.create({
+    code, game: opts.game, note: opts.note, uses: opts.uses, redemptions: [], createdBy: oid(opts.createdBy), ...(opts.via && { via: opts.via }),
+  });
   return code;
 }
+
+/** How many keys automation has made since `since` (for the API's daily cap). */
+export const countApiKeysSince = (since: Date): Promise<number> => Key.countDocuments({ via: 'api', createdAt: { $gte: since } }).exec();
 
 /** Keys, newest first, with who redeemed them. */
 export async function listKeys(opts: { readonly page: number; readonly perPage: number }): Promise<KeyPage> {
   const [docs, total] = await Promise.all([
-    Key.find({}, { code: 1, game: 1, note: 1, createdAt: 1, uses: 1, redemptions: 1, redeemedBy: 1, redeemedAt: 1 })
+    Key.find({}, { code: 1, game: 1, note: 1, createdAt: 1, via: 1, uses: 1, redemptions: 1, redeemedBy: 1, redeemedAt: 1 })
       .sort({ createdAt: -1, _id: -1 }).skip(opts.page * opts.perPage).limit(opts.perPage).lean().exec(),
     Key.countDocuments({}),
   ]);
@@ -54,7 +63,7 @@ export async function listKeys(opts: { readonly page: number; readonly perPage: 
   const users = redeemerIds.length ? await User.find({ _id: { $in: redeemerIds } }, { email: 1 }).lean().exec() : [];
   const emails = new Map(users.map((u) => [u._id.toHexString(), u.email]));
   const keys = docs.map((d) => ({
-    code: d.code, game: d.game, note: d.note, createdAt: d.createdAt, uses: d.uses ?? 1,
+    code: d.code, game: d.game, note: d.note, createdAt: d.createdAt, ...(d.via && { via: d.via }), uses: d.uses ?? 1,
     redemptions: redemptionsOf(d).map((r) => ({ email: emails.get(r.userId.toHexString()) ?? '(deleted user)', at: r.at })),
   }));
   return { keys, total };

@@ -2,6 +2,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { connectDb, disconnectDb } from '../src/lib/db/connection';
 import { Purchase } from '../src/lib/db/purchaseModel';
 import { User } from '../src/lib/db/userModel';
+import { OAuthToken } from '../src/lib/db/oauthModel';
+import { findAccessToken, issueTokens } from '../src/lib/db/oauthRepo';
 import { ensurePlayerId, findRole, listUsers, signInGoogleUser, syncAdminRoles } from '../src/lib/db/userRepo';
 import { Grant } from '../src/lib/db/grantModel';
 import { grantedGames, grantedGamesFor, grantGame, revokeGame } from '../src/lib/db/grantRepo';
@@ -75,6 +77,15 @@ describe.skipIf(!uri)('roles and grants (MongoDB)', () => {
     expect(await syncAdminRoles(new Set(['role-2@example.com', 'nobody@example.com']))).toBe(2);
     expect([await findRole(a), await findRole(b), await findRole(c)]).toEqual(['user', 'admin', 'user']);
     expect(await syncAdminRoles(new Set(['role-2@example.com']))).toBe(0);
+  });
+
+  it('signs an admin who is removed out of connected apps', async () => {
+    const [a, b] = [await make(1, 'admin'), await make(2, 'admin')];
+    const [ta, tb] = [await issueTokens('c_role', a, at), await issueTokens('c_role', b, at)];
+    await syncAdminRoles(new Set(['role-2@example.com']));
+    expect(await findAccessToken(ta.accessToken, at)).toBeNull();
+    expect(await findAccessToken(tb.accessToken, at)).not.toBeNull();
+    await OAuthToken.deleteMany({ clientId: 'c_role' });
   });
 
   it('lists users newest first, searchable by email or name, a page at a time', async () => {

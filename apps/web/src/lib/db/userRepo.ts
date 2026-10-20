@@ -2,6 +2,7 @@ import type { Role } from '../admins';
 import type { GoogleUser } from '../google';
 import { generatePlayerId, normalizePlayerId } from '../playerId';
 import type { UserId } from '../userId';
+import { revokeUserTokens } from './oauthRepo';
 import { User } from './userModel';
 
 const DUPLICATE_KEY = 11000;
@@ -55,13 +56,22 @@ export async function findRole(userId: UserId): Promise<Role | null> {
   return user?.role ?? null;
 }
 
+/** The user's email if they are an admin right now; null otherwise. */
+export async function findAdminEmail(userId: UserId): Promise<string | null> {
+  const user = await User.findById(userId, { role: 1, email: 1 }).lean().exec();
+  return user?.role === 'admin' ? user.email : null;
+}
+
 /** Makes exactly these emails admins: listed users are promoted, other admins demoted. Returns how many changed. */
 export async function syncAdminRoles(adminEmails: ReadonlySet<string>): Promise<number> {
   const emails = [...adminEmails];
+  const leaving = await User.find({ email: { $nin: emails }, role: 'admin' }, { _id: 1 }).lean().exec();
   const [up, down] = await Promise.all([
     User.updateMany({ email: { $in: emails }, role: { $ne: 'admin' } }, { $set: { role: 'admin' } }),
     User.updateMany({ email: { $nin: emails }, role: 'admin' }, { $set: { role: 'user' } }),
   ]);
+  // Former admins are signed out of connected apps, so tokens don't wake up if they're made admin again.
+  await revokeUserTokens(leaving.map((u) => u._id.toHexString()));
   return up.modifiedCount + down.modifiedCount;
 }
 

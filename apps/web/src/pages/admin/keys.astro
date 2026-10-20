@@ -54,7 +54,7 @@ const rows = keys.map((k, i) => ({
         <li class:list={['admin-key', { fresh: k.fresh, used: k.full }]}>
           <code class="admin-code">{k.shown}</code>
           <span class="admin-key-meta">
-            {findGame(k.game)?.title ?? k.game}{k.note && <> · <strong>{k.note}</strong></>} · created {day(k.createdAt)}
+            {findGame(k.game)?.title ?? k.game}{k.note && <> · <strong>{k.note}</strong></>} · created {day(k.createdAt)}{k.via === 'api' && <> by outreach</>}
             {k.uses > 1 && <> · {k.used} of {k.uses} used</>}
           </span>
           {!k.full && (

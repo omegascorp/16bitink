@@ -7,6 +7,9 @@ export default defineConfig({
   // A standalone Node server, run on DigitalOcean App Platform (setup in the README).
   adapter: node({ mode: 'standalone' }),
   security: {
+    // Done in src/middleware.ts instead (lib/originCheck.ts), the same rule
+    // with an opt-out for the OAuth and MCP endpoints Claude calls from its servers.
+    checkOrigin: false,
     // App Platform terminates TLS and forwards plain HTTP. Trust its
     // X-Forwarded-Proto/Host only for our own domains, so origin checks and
     // the Google sign-in callback see https://16bit.ink.

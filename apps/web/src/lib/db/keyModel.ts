@@ -16,8 +16,10 @@ export interface KeyDoc {
   readonly game: string;
   /** Who it is for, e.g. the creator's channel name. */
   readonly note: string;
-  /** The admin who created it. */
+  /** The admin who created it (for keys made through the API: the first admin). */
   readonly createdBy: Types.ObjectId;
+  /** 'api' when automation made it (lib/keysApi.ts); absent when an admin made it in /admin/keys. */
+  readonly via?: 'api';
   /** How many accounts may redeem it. Absent on keys made before multi-use keys: 1. */
   readonly uses?: number;
   /** Who redeemed it, oldest first. */
@@ -44,6 +46,7 @@ const keySchema = new Schema<KeyDoc>(
     game: { type: String, required: true },
     note: { type: String, default: '' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    via: { type: String, enum: ['api'] },
     uses: { type: Number, min: 1 },
     redemptions: { type: [redemptionSchema], default: undefined },
     redeemedBy: { type: Schema.Types.ObjectId, ref: 'User' },

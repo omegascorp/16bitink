@@ -1,0 +1,79 @@
+---
+import Base from '../../layouts/Base.astro';
+import { db } from '../../lib/db';
+import { findClient } from '../../lib/db/oauthRepo';
+import { findAdminEmail } from '../../lib/db/userRepo';
+import { parseAuthorize, redirectWith } from '../../lib/oauth';
+import { currentUser } from '../../lib/owner';
+
+// Per request: who is signed in decides what this page shows.
+export const prerender = false;
+
+Astro.response.headers.set('cache-control', 'private, no-store');
+// The code challenge and state are in the address: never send them to other sites.
+Astro.response.headers.set('referrer-policy', 'same-origin');
+// Nobody can frame this page and trick an admin into clicking Allow.
+Astro.response.headers.set('x-frame-options', 'DENY');
+Astro.response.headers.set('content-security-policy', "frame-ancestors 'none'");
+
+const req = parseAuthorize(Astro.url.searchParams);
+if (req && 'error' in req) return Astro.redirect(redirectWith(req.redirectUri, { error: req.error, state: req.state }), 302);
+
+let problem: string | null = null;
+let clientName = '';
+let registeredAt = '';
+let adminEmail: string | null = null;
+let signedIn: { name: string; email: string } | null = null;
+if (!req) {
+  problem = 'This connection link isn’t valid. Start again from the app you were connecting.';
+} else {
+  try {
+    await db();
+    const client = await findClient(req.clientId, new Date());
+    if (!client || !client.redirectUris.includes(req.redirectUri)) {
+      problem = 'This app isn’t registered here any more. Remove the connector and add it again.';
+    } else {
+      clientName = client.name;
+      registeredAt = client.createdAt.toISOString().slice(0, 16).replace('T', ' ');
+      const session = await currentUser(Astro.cookies);
+      if (!session) return Astro.redirect(`/auth/google?return=${encodeURIComponent(`${Astro.url.pathname}${Astro.url.search}`)}`, 302);
+      signedIn = { name: session.name, email: session.email };
+      adminEmail = await findAdminEmail(session.userId);
+      if (!adminEmail) problem = 'Only 16bit.ink admins can connect apps to the admin tools.';
+    }
+  } catch (err) {
+    console.error('[oauth/authorize] failed', err);
+    problem = 'Something went wrong on our side. Please try again in a minute.';
+  }
+}
+const destination = req ? new URL(req.redirectUri).host : '';
+const fields = ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method'] as const;
+---
+<Base title="Connect an app | 16bit.ink" description="Allow an app to use the 16bit.ink admin tools." user={signedIn}>
+  <meta name="robots" content="noindex, nofollow" slot="head" />
+  <section class="paper-card narrow tape">
+    {problem ? (
+      <>
+        <h1>Can’t connect</h1>
+        <p role="alert">{problem}</p>
+      </>
+    ) : (
+      <>
+        <h1>Connect an app?</h1>
+        <p role="note"><strong>Only click Allow if you just clicked Connect yourself.</strong> If someone sent you this link, close the page: they would get admin access.</p>
+        <p>An app calling itself <strong>“{clientName}”</strong> (the name is its own, not checked), registered {registeredAt} UTC, wants to use the 16bit.ink admin tools as <strong>{adminEmail}</strong>. The approval goes to <strong>{destination}</strong>. It will be able to:</p>
+        <ul>
+          <li>create free keys for creators and reviewers (a few accounts per key, at most 30 keys a day)</li>
+          <li>see the keys and whether they were redeemed</li>
+          <li>read visitor and play numbers</li>
+        </ul>
+        <p>It can’t see players’ emails, refund, unlock games for players, or delete anything.</p>
+        <form method="post" action="/oauth/approve" class="admin-create">
+          {fields.map((name) => <input type="hidden" name={name} value={Astro.url.searchParams.get(name) ?? ''} />)}
+          <button class="btn btn-ink" type="submit" name="decision" value="allow">Allow</button>
+          <button class="btn" type="submit" name="decision" value="deny">Deny</button>
+        </form>
+      </>
+    )}
+  </section>
+</Base>
