@@ -98,7 +98,7 @@ describe('the line of marbles', () => {
     expect(b!.s).toBeGreaterThan(400);
   });
 
-  it('stands still once nothing pushes it: the tail popped after the burrow closed', () => {
+  it('keeps rolling from the back once the burrow is shut and its part popped (nothing may stop under a tunnel)', () => {
     const line = makeLine();
     line.spawning = false;
     line.lay(['red', 'red'], 300, true);
@@ -107,7 +107,7 @@ describe('the line of marbles', () => {
     run(line, SETTLE + 0.05, 60);
     const blue = line.marbles[0]!.s;
     run(line, 1, 60);
-    expect(line.marbles[0]!.s).toBe(blue);
+    expect(line.marbles[0]!.s).toBeGreaterThan(blue + 50);
   });
 
   it('puts a shot against the marble it hit, even with a gap beyond it', () => {

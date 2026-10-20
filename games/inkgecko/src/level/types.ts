@@ -4,18 +4,30 @@ import type { Pt } from '../logic/path';
 /** Every level is laid out on this board, scaled to fit the screen. */
 export const BOARD = { w: 1280, h: 720 } as const;
 
-/** Where the gecko stands: in one spot turning to aim (Zuma), or running along a branch spitting up (Luxor). */
+/**
+ * Where the gecko stands: in one spot turning to aim (Zuma), running along a
+ * branch spitting up (Luxor), or hopping between lily pads, turning to aim
+ * on each (Zuma's Revenge's lily pads).
+ */
 export type ShooterDef =
   | { readonly kind: 'pivot'; readonly x: number; readonly y: number }
-  | { readonly kind: 'rail'; readonly y: number; readonly x0: number; readonly x1: number };
+  | { readonly kind: 'rail'; readonly y: number; readonly x0: number; readonly x1: number }
+  | { readonly kind: 'hop'; readonly pads: readonly Pt[] };
+
+/** A covered stretch of track, as shares of its length (0 = burrow, 1 = well): marbles under it can't be hit. */
+export interface TunnelDef {
+  readonly from: number;
+  readonly to: number;
+}
 
 /** One track: control points from the burrow to the well; the game draws a smooth curve through them. */
 export interface TrackDef {
   readonly points: readonly Pt[];
+  readonly tunnels?: readonly TunnelDef[];
 }
 
 /** What a level's first-time hints teach. */
-export type Teach = 'spit' | 'swap' | 'rail' | 'catch' | 'pull';
+export type Teach = 'spit' | 'swap' | 'rail' | 'catch' | 'pull' | 'hop' | 'tunnel' | 'dragonfly';
 
 export interface LevelDef {
   /** Permanent: saves are keyed by it. */

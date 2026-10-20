@@ -126,6 +126,7 @@ export class HudScene extends Phaser.Scene {
     this.drawLives(b.lives);
     const charms = (Object.entries(b.timers) as [keyof typeof b.timers, number][]).filter(([, t]) => t > 0).map(([c, t]) => `${CHARM_NAMES[c]} ${Math.ceil(t)}s`);
     if (b.burstArmed) charms.push('Burst ready');
+    if (b.dragonfly) charms.push('Dragonfly ready');
     // The clock against par, for the time blot, then any charms at work.
     this.status.setText([`${clock(b.elapsed)} / ${clock(game.level.par)}`, ...charms].join('   '));
     this.title.setColor(b.danger > 0.85 ? RED : BLUE);

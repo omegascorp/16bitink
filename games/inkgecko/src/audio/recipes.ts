@@ -4,8 +4,10 @@
  * synthesis itself lives in synth.ts; there are no audio files.
  */
 export const SFX_IDS = [
-  // The gecko: a spit, a swap, a marble joining the line.
-  'spit', 'swap', 'stuck',
+  // The gecko: a spit, a swap, a marble joining the line, a hop between lily pads and its landing, a Dragonfly let go.
+  'spit', 'swap', 'stuck', 'hop', 'plop', 'dragonfly',
+  // The line pouring out of the burrow at the start.
+  'rush',
   // The line: pops (pitched up per combo link), a gap closing, parts meeting, bonuses.
   'pop', 'pull', 'join', 'gap', 'streak',
   // Charms: one used, one dropping, one caught.
@@ -14,17 +16,20 @@ export const SFX_IDS = [
   'danger', 'well',
   // Endings and the interface.
   'filled', 'win', 'lose', 'click',
+  // The map: the gecko's steps up the path, a level's card opening.
+  'steps', 'card',
 ] as const;
 
 export type SfxId = (typeof SFX_IDS)[number];
 
 /** Shortest gap between two plays of the same sound, ms. */
 export const MIN_GAP_MS: Readonly<Record<SfxId, number>> = {
-  spit: 40, swap: 60, stuck: 40,
+  spit: 40, swap: 60, stuck: 40, hop: 150, plop: 150, dragonfly: 200, rush: 1000,
   pop: 40, pull: 150, join: 80, gap: 200, streak: 200,
   charm: 150, drop: 200, catch: 100,
   danger: 350, well: 500,
   filled: 1000, win: 1000, lose: 1000, click: 40,
+  steps: 120, card: 80,
 };
 
 /** Pitch for a pop: each combo link a step higher, up a major scale. */

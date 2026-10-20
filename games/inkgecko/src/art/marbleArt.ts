@@ -169,6 +169,27 @@ function emblem(charm: CharmId, s: number): Emblem {
       const ticks = [[P(0, -9.2), P(0, -3.2)], [P(0, 3.2), P(0, 9.2)], [P(-9.2, 0), P(-3.2, 0)], [P(3.2, 0), P(9.2, 0)]];
       return { lines: [ring(5.8, 22), ...ticks], fills: [ring(1.5, 10)] };
     }
+    case 'dragonfly': {
+      // A dragonfly darting to the upper right: long body, four slim wings, round head.
+      const turn = -Math.PI / 4;
+      const D = (x: number, y: number): Pt => P((x + 1) * Math.cos(turn) - y * Math.sin(turn), (x + 1) * Math.sin(turn) + y * Math.cos(turn));
+      const wing = (root: Pt, tip: Pt, wd: number): Pt[] => {
+        const l = Math.hypot(tip.x - root.x, tip.y - root.y) || 1;
+        const ux = (tip.x - root.x) / l;
+        const uy = (tip.y - root.y) / l;
+        return Array.from({ length: 14 }, (_, i) => {
+          const t = (i / 14) * TAU;
+          const along = (1 - Math.cos(t)) / 2;
+          const across = Math.sin(t) * wd * (0.55 + 0.45 * along);
+          return D(root.x + ux * along * l - uy * across, root.y + uy * along * l + ux * across);
+        });
+      };
+      const wings = [1, -1].flatMap((side) => [wing(pt(2.6, side * 0.6), pt(4.2, side * 8.2), 1.9), wing(pt(1.3, side * 0.6), pt(-1.7, side * 7.8), 1.8)]);
+      const thorax = Array.from({ length: 10 }, (_, i) => D(2.1 + Math.cos((i / 10) * TAU) * 2.1, Math.sin((i / 10) * TAU) * 1.6));
+      const head = Array.from({ length: 10 }, (_, i) => D(5.4 + Math.cos((i / 10) * TAU) * 1.6, Math.sin((i / 10) * TAU) * 1.6));
+      const abdomen = [D(-8.6, 0), D(-4, 0.15), D(0.5, 0)];
+      return { lines: [abdomen], fills: [...wings, thorax, head] };
+    }
   }
 }
 

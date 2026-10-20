@@ -1,3 +1,4 @@
+import { CHAPTER_2 } from '../src/level/chapter2';
 import type { LevelDef } from '../src/level/types';
 
 /**
@@ -6,4 +7,4 @@ import type { LevelDef } from '../src/level/types';
  * verified owners. Never import this, or the chapter files, from the game's
  * client code or they ship to everyone (test/paywall.test.ts checks).
  */
-export const INKGECKO_PAID_CHAPTERS: readonly (readonly LevelDef[])[] = [];
+export const INKGECKO_PAID_CHAPTERS: readonly (readonly LevelDef[])[] = [CHAPTER_2];

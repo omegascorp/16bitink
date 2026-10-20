@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LevelDef } from '../src/level/types';
-import { Board, LIVES, NO_INPUT, REWIND_SHARE, type BoardEvent, type BoardInput } from '../src/logic/board';
+import { Board, HOP_TIME, LIVES, NO_INPUT, REWIND_SHARE, type BoardEvent, type BoardInput } from '../src/logic/board';
 import { D } from '../src/logic/line';
 
 /** A straight track across the board above a pivot gecko. */
@@ -188,5 +188,67 @@ describe('the rail', () => {
     const events = run(b, 3, { ...NO_INPUT, aim: { x: 200, y: 0 } });
     expect(of(events, 'caught')).toHaveLength(0);
     expect(b.drops).toHaveLength(0);
+  });
+});
+
+describe('the pond', () => {
+  const HOP: LevelDef = { ...PIVOT, id: 'test-hop', shooter: { kind: 'hop', pads: [{ x: 400, y: 600 }, { x: 900, y: 600 }] } };
+  /** The straight track with its middle fifth (x 508–772) under a log. */
+  const TUNNEL: LevelDef = { ...PIVOT, id: 'test-tunnel', tracks: [{ points: PIVOT.tracks[0]!.points, tunnels: [{ from: 0.4, to: 0.6 }] }] };
+
+  it('hops the gecko to another lily pad, and holds its spit until it lands', () => {
+    const b = quiet(HOP);
+    expect(b.gecko).toMatchObject({ x: 400, y: 600 });
+    const first = b.step({ ...NO_INPUT, hop: 1, fire: true }, 1 / 60);
+    expect(of(first, 'hop')).toEqual([{ type: 'hop', pad: 1 }]);
+    expect(of(first, 'spit')).toHaveLength(0);
+    const events = run(b, HOP_TIME + 0.1);
+    expect(of(events, 'landed')).toEqual([{ type: 'landed', pad: 1 }]);
+    expect(of(events, 'spit')).toHaveLength(1);
+    expect(b.gecko).toMatchObject({ x: 900, y: 600 });
+    expect(b.pad).toBe(1);
+  });
+
+  it('ignores a hop to the pad it is on, or mid-hop', () => {
+    const b = quiet(HOP);
+    expect(of(b.step({ ...NO_INPUT, hop: 0 }, 1 / 60), 'hop')).toHaveLength(0);
+    b.step({ ...NO_INPUT, hop: 1 }, 1 / 60);
+    expect(of(b.step({ ...NO_INPUT, hop: 0 }, 1 / 60), 'hop')).toHaveLength(0);
+  });
+
+  it("can't hit marbles under a tunnel: the shot flies over them", () => {
+    const b = quiet(TUNNEL);
+    b.lines[0]!.lay(['blue', 'red', 'green'], 628, true);
+    expect(b.covered(0, 660)).toBe(true);
+    expect(b.covered(0, 300)).toBe(false);
+    b.loaded = 'red';
+    const events = run(b, 1.2, { ...NO_INPUT, aim: { x: 640, y: 200 }, fire: true });
+    expect(of(events, 'stuck')).toHaveLength(0);
+    expect(of(events, 'miss')).toHaveLength(1);
+    expect(b.lines[0]!.marbles).toHaveLength(3);
+  });
+
+  it('sends a Dragonfly through every marble in its way, keeping the loaded marble', () => {
+    const level: LevelDef = { ...PIVOT, tracks: [{ points: [{ x: -20, y: 300 }, { x: 1300, y: 300 }] }, { points: [{ x: -20, y: 150 }, { x: 1300, y: 150 }] }] };
+    const b = quiet(level);
+    for (const l of b.lines) l.lay(['blue', 'red', 'green', 'yellow', 'blue'], 596, true);
+    b.loaded = 'blue';
+    b.dragonfly = true;
+    const events = run(b, 1.2, { ...NO_INPUT, aim: { x: 640, y: 0 }, fire: true });
+    expect(of(events, 'spit')[0]!.dragonfly).toBe(true);
+    expect(new Set(of(events, 'pop').map((e) => e.line))).toEqual(new Set([0, 1]));
+    expect(of(events, 'stuck')).toHaveLength(0);
+    expect(of(events, 'miss')).toHaveLength(0);
+    expect(b.loaded).toBe('blue');
+    expect(b.dragonfly).toBe(false);
+  });
+
+  it('arms the Dragonfly when its marble pops', () => {
+    const b = quiet();
+    b.lines[0]!.lay(['blue', 'red', 'red', 'blue'], 600, true);
+    b.lines[0]!.marbles[1]!.charm = 'dragonfly';
+    b.loaded = 'red';
+    run(b, 1, { ...NO_INPUT, aim: { x: xOf(b, 2) + D / 2, y: 200 }, fire: true });
+    expect(b.dragonfly).toBe(true);
   });
 });

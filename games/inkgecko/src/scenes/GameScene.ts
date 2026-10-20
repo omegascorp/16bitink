@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import { ART_RES } from '../art/palette';
-import { bakeBoard, TEX } from '../art/textures';
+import { bakeBoard, bakeCovers, dropBoard, TEX } from '../art/textures';
 import { pitchForCombo } from '../audio/recipes';
 import { getHost, getSound, trackGame } from '../host';
-import { levelById, levelOrder, loadedLevels } from '../level/levels';
+import { levelById, levelOrder, loadedLevels, placeOf } from '../level/levels';
 import { BOARD, type LevelDef } from '../level/types';
 import { commitProgress } from '../logic/accountSave';
 import { Board, LIVES, type BoardEvent } from '../logic/board';
@@ -27,6 +27,8 @@ const MAX_DT = 1 / 20;
 const END_DELAY_MS = 1200;
 /** The heartbeat starts once a line's front is this far to its well. */
 const DANGER_FROM = 0.82;
+/** A tap this close to a lily pad's centre hops there, board px. */
+const PAD_TAP = 64;
 
 /** One level: the board drawn to fit the screen, the gecko, and what happens when it's won or lost. */
 export class GameScene extends Phaser.Scene {
@@ -52,7 +54,10 @@ export class GameScene extends Phaser.Scene {
     this.over = false;
     this.heartbeat = 0;
     this.add.tileSprite(-BOARD.w, -BOARD.h, BOARD.w * 3, BOARD.h * 3, TEX.paper).setOrigin(0).setDepth(0);
-    this.add.image(0, 0, bakeBoard(this, this.level)).setOrigin(0).setScale(1 / ART_RES).setDepth(1);
+    this.add.image(0, 0, bakeBoard(this, this.level, placeOf(this.level.id))).setOrigin(0).setScale(1 / ART_RES).setDepth(1);
+    // Tunnels lie over the marbles (and shots fly over them, under the gecko).
+    const covers = bakeCovers(this, this.level);
+    if (covers) this.add.image(0, 0, covers).setOrigin(0).setScale(1 / ART_RES).setDepth(5.5);
     this.fx = new FxView(this, this.board);
     this.marbles = new MarblesView(this);
     this.gecko = new GeckoView(this, this.board);
@@ -63,23 +68,52 @@ export class GameScene extends Phaser.Scene {
       },
       onGecko: (p) => this.gecko.contains(p.x, p.y),
       overHud: (p) => this.hud()?.covers(p) ?? false,
+      padAt: (p) => this.padAt(p),
+      padStep: (step) => {
+        const s = this.level.shooter;
+        return s.kind === 'hop' ? (this.board.pad + step + s.pads.length) % s.pads.length : null;
+      },
     });
     this.fit();
     this.scale.on('resize', this.fit, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', this.fit, this));
     this.scene.launch('Hud');
     this.trackStart();
+    const sound = getSound(this);
+    sound?.setBed(placeOf(this.level.id));
+    sound?.play('rush');
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      sound?.setRoll(0);
+      // A level's painting is ~15 MB of texture: let it go with the level.
+      dropBoard(this, this.level);
+    });
+  }
+
+  /** The lily pad (other than the gecko's own) at board point p, on hop levels. */
+  private padAt(p: { x: number; y: number }): number | null {
+    const s = this.level.shooter;
+    if (s.kind !== 'hop') return null;
+    const i = s.pads.findIndex((q, k) => k !== this.board.pad && Math.hypot(q.x - p.x, q.y - p.y) < PAD_TAP);
+    return i < 0 ? null : i;
   }
 
   private hud(): HudScene | undefined {
     return this.scene.get('Hud') as HudScene | undefined;
   }
 
-  /** The whole board in view, as big as the screen allows, centred, with paper round it. */
+  /**
+   * The whole board in view, as big as the screen allows, centred, with paper
+   * round it. On a phone held upright the board (seen from above) turns a
+   * quarter so it fills the screen instead of a strip of it.
+   */
   private fit(): void {
     const { width, height } = viewSize(this);
-    const zoom = Math.min(width / BOARD.w, height / BOARD.h);
-    this.cameras.main.setZoom(DPR * zoom).centerOn(BOARD.w / 2, BOARD.h / 2);
+    const turned = isUpright(width, height);
+    const zoom = Math.max(0.1, turned ? Math.min(width / BOARD.h, (height - UPRIGHT_HUD * 2) / BOARD.w) : Math.min(width / BOARD.w, height / BOARD.h));
+    this.cameras.main.setZoom(DPR * zoom).setRotation(turned ? Math.PI / 2 : 0).centerOn(BOARD.w / 2, BOARD.h / 2);
+    this.fx.turn = turned ? Math.PI / 2 : 0;
+    // Words on the board are sized in board px: lift them where the board is drawn small.
+    this.fx.textScale = Phaser.Math.Clamp(0.85 / zoom, 1, 1.7);
   }
 
   private levelRef(): { level: string; n: number; name: string } {
@@ -122,6 +156,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   pausePlay(): void {
+    getSound(this)?.setRoll(0);
     this.scene.pause();
   }
 
@@ -150,6 +185,17 @@ export class GameScene extends Phaser.Scene {
     this.gecko.update(this.board, time, dt);
     this.fx.update(this.board, time, this.board.timers.aim > 0);
     this.listenForDanger(dt);
+    getSound(this)?.setRoll(this.rolling());
+  }
+
+  /** How hard the lines are rolling, for the rumble: loud while they rush out, quiet as they creep, still when stopped. */
+  private rolling(): number {
+    const b = this.board;
+    if (b.state !== 'play' || b.lines.every((l) => !l.marbles.length)) return 0;
+    if (b.lines.some((l) => l.rushing && l.marbles.length)) return 1;
+    if (b.timers.reverse > 0 || b.lines.some((l) => l.rewind > 0)) return 0.55;
+    if (b.lines.every((l) => !l.spawning)) return 0.08;
+    return Phaser.Math.Clamp(0.14 + (b.level.speed / 40) * 0.18 * (b.timers.slow > 0 ? 0.5 : 1), 0, 0.5);
   }
 
   private listenForDanger(dt: number): void {
@@ -167,8 +213,11 @@ export class GameScene extends Phaser.Scene {
     this.fx.react(e);
     if (e.type === 'spit') {
       this.gecko.spat(time);
-      sound?.play('spit');
-    } else if (e.type === 'swap') {
+      sound?.play(e.dragonfly ? 'dragonfly' : 'spit');
+    } else if (e.type === 'hop') {
+      this.gecko.hopped();
+      sound?.play('hop');
+    } else if (e.type === 'landed') sound?.play('plop'); else if (e.type === 'swap') {
       this.gecko.swapped();
       sound?.play('swap');
     } else if (e.type === 'stuck') sound?.play('stuck');
@@ -210,4 +259,12 @@ export class GameScene extends Phaser.Scene {
       this.scene.start('Result', result);
     });
   }
+}
+
+/** Room kept for the HUD above and below an upright board, screen px. */
+const UPRIGHT_HUD = 56;
+
+/** A phone held upright: the board turns a quarter to fill it. */
+export function isUpright(width: number, height: number): boolean {
+  return height > width * 1.15;
 }

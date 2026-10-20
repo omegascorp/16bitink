@@ -36,7 +36,7 @@ function envelope(v: Voice, start: number, dur: number, peak: number, attack: nu
   return g;
 }
 
-function tone(v: Voice, o: ToneOpts): void {
+export function tone(v: Voice, o: ToneOpts): void {
   const start = v.t + (o.delay ?? 0);
   const osc = v.ctx.createOscillator();
   osc.type = o.type ?? 'sine';
@@ -69,7 +69,7 @@ interface NoiseOpts {
 
 const noiseBuffers = new WeakMap<AudioContext, AudioBuffer>();
 
-function noiseBuffer(ctx: AudioContext): AudioBuffer {
+export function noiseBuffer(ctx: AudioContext): AudioBuffer {
   const cached = noiseBuffers.get(ctx);
   if (cached) return cached;
   const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
@@ -79,7 +79,7 @@ function noiseBuffer(ctx: AudioContext): AudioBuffer {
   return buf;
 }
 
-function noise(v: Voice, o: NoiseOpts): void {
+export function noise(v: Voice, o: NoiseOpts): void {
   const start = v.t + (o.delay ?? 0);
   const src = v.ctx.createBufferSource();
   src.buffer = noiseBuffer(v.ctx);
@@ -108,6 +108,26 @@ const RECIPES: Readonly<Record<SfxId, (v: Voice) => void>> = {
   swap: (v) => {
     noise(v, { dur: 0.025, gain: 0.3, filter: 'bandpass', from: 3200, q: 5 });
     noise(v, { dur: 0.025, gain: 0.25, filter: 'bandpass', from: 2600, q: 5, delay: 0.05 });
+  },
+  // A springy leap off a lily pad.
+  hop: (v) => {
+    tone(v, { from: 300, to: 760, dur: 0.16, gain: 0.14, vibrato: { depth: 20, rate: 30 } });
+    noise(v, { dur: 0.06, gain: 0.15, filter: 'bandpass', from: 900, to: 1600, q: 2 });
+  },
+  // Landing on a pad: a soft wet plop and a ripple.
+  plop: (v) => {
+    tone(v, { from: 900, to: 260, dur: 0.12, gain: 0.18 });
+    noise(v, { dur: 0.25, gain: 0.14, filter: 'bandpass', from: 1400, to: 500, q: 1.5, delay: 0.03 });
+  },
+  // A dragonfly's wings: a fluttering zip.
+  dragonfly: (v) => {
+    noise(v, { dur: 0.45, gain: 0.22, filter: 'bandpass', from: 1800, to: 3600, q: 3, attack: 0.02 });
+    tone(v, { type: 'sawtooth', from: 180, to: 240, dur: 0.45, gain: 0.05, vibrato: { depth: 60, rate: 45 } });
+  },
+  // The line pouring out of the burrow: a rattle of marbles that slows.
+  rush: (v) => {
+    for (let i = 0; i < 14; i++) noise(v, { dur: 0.03, gain: 0.18 - i * 0.008, filter: 'bandpass', from: 2400 + (i % 3) * 500, q: 5, delay: i * (0.04 + i * 0.006) });
+    noise(v, { dur: 1.2, gain: 0.16, filter: 'lowpass', from: 600, to: 250, attack: 0.05 });
   },
   // Glass on glass: a bright clack.
   stuck: (v) => {
@@ -163,6 +183,15 @@ const RECIPES: Readonly<Record<SfxId, (v: Voice) => void>> = {
   lose: (v) => notes(v, [392, 330, 262], 0.18, { type: 'triangle', dur: 0.3, gain: 0.2, vibrato: { depth: 4, rate: 6 } }),
   // A pencil tick.
   click: (v) => noise(v, { dur: 0.03, gain: 0.25, filter: 'bandpass', from: 2800, q: 2 }),
+  // Little feet on stone: four soft pats.
+  steps: (v) => {
+    for (let i = 0; i < 4; i++) noise(v, { dur: 0.025, gain: 0.16, filter: 'bandpass', from: 1500 + (i % 2) * 400, q: 3, delay: i * 0.075 });
+  },
+  // A card turned over: a paper flick and a soft note.
+  card: (v) => {
+    noise(v, { dur: 0.08, gain: 0.2, filter: 'highpass', from: 2500, to: 5000 });
+    tone(v, { type: 'triangle', from: 880, dur: 0.18, gain: 0.07, delay: 0.04 });
+  },
 };
 
 export function hasRecipe(id: string): boolean {
@@ -173,6 +202,7 @@ export function hasRecipe(id: string): boolean {
 export const LEVEL: Readonly<Record<SfxId, number>> = {
   spit: 2, swap: 2, stuck: 1.6, pop: 1.8, pull: 2.2, join: 1.6, gap: 2, streak: 1.6,
   charm: 2.4, drop: 2, catch: 2, danger: 2.2, well: 1.6, filled: 1.4, win: 1, lose: 1, click: 1.1,
+  hop: 1.8, plop: 1.8, dragonfly: 2.8, rush: 1.6, steps: 1.4, card: 1.2,
 };
 
 export function synthesize(id: SfxId, v: Voice): void {

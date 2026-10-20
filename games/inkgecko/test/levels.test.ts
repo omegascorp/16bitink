@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { CHAPTER_1 } from '../src/level/chapter1';
+import { CHAPTER_2 } from '../src/level/chapter2';
 import { BOARD, type LevelDef } from '../src/level/types';
 import { CHARMS } from '../src/logic/charms';
 import { COLOURS } from '../src/logic/colours';
 import { D } from '../src/logic/line';
+import { TUNNEL_MAX, TUNNEL_MIN } from '../src/art/placesArt';
 import { buildPath, pointAt } from '../src/logic/path';
 
 /** Room between the gecko's centre and any track, and (more, for the stones round it) a well. */
@@ -11,6 +13,8 @@ const GECKO_CLEAR = 120;
 const WELL_CLEAR = 150;
 /** Lanes of a track (or of two tracks) must not run closer than this. */
 const LANE_GAP = D * 1.2;
+/** Lily pads (radius ~58) mustn't overlap. */
+const PAD_GAP = 150;
 
 const paths = (l: LevelDef) => l.tracks.map((t) => buildPath(t.points));
 
@@ -25,7 +29,27 @@ describe('chapter 1', () => {
     expect(CHAPTER_1.filter((l) => l.shooter.kind === 'rail').length).toBeGreaterThanOrEqual(3);
   });
 
-  for (const level of CHAPTER_1) {
+});
+
+describe('chapter 2', () => {
+  it('has ten levels with unique ids, and brings in hopping, tunnels and the Dragonfly', () => {
+    expect(CHAPTER_2).toHaveLength(10);
+    const ids = [...CHAPTER_1, ...CHAPTER_2].map((l) => l.id);
+    expect(new Set(ids).size).toBe(20);
+    expect(CHAPTER_2.filter((l) => l.shooter.kind === 'hop').length).toBeGreaterThanOrEqual(3);
+    expect(CHAPTER_2.filter((l) => l.tracks.some((t) => t.tunnels?.length)).length).toBeGreaterThanOrEqual(5);
+    expect(CHAPTER_2.some((l) => l.charms.includes('dragonfly'))).toBe(true);
+  });
+});
+
+/** Where the gecko can stand: its spot, its pads, or along its branch. */
+const stands = (l: LevelDef): { x: number; y: number }[] | null => {
+  const s = l.shooter;
+  return s.kind === 'pivot' ? [s] : s.kind === 'hop' ? [...s.pads] : null;
+};
+
+describe('every level', () => {
+  for (const level of [...CHAPTER_1, ...CHAPTER_2]) {
     describe(level.id, () => {
       it('uses known colours and charms', () => {
         expect(level.colours).toBeGreaterThanOrEqual(3);
@@ -51,13 +75,14 @@ describe('chapter 1', () => {
 
       it('leaves room round the gecko', () => {
         const s = level.shooter;
+        const spots = stands(level);
         for (const p of paths(level)) {
           for (const q of p.pts) {
-            if (s.kind === 'pivot') expect(Math.hypot(q.x - s.x, q.y - s.y)).toBeGreaterThan(GECKO_CLEAR);
-            else expect(s.y - q.y).toBeGreaterThan(120);
+            if (spots) for (const g of spots) expect(Math.hypot(q.x - g.x, q.y - g.y)).toBeGreaterThan(GECKO_CLEAR);
+            else if (s.kind === 'rail') expect(s.y - q.y).toBeGreaterThan(120);
           }
           const end = pointAt(p, p.length);
-          if (s.kind === 'pivot') expect(Math.hypot(end.x - s.x, end.y - s.y)).toBeGreaterThan(WELL_CLEAR);
+          if (spots) for (const g of spots) expect(Math.hypot(end.x - g.x, end.y - g.y)).toBeGreaterThan(WELL_CLEAR);
         }
       });
 
@@ -75,6 +100,25 @@ describe('chapter 1', () => {
             }
           });
         });
+      });
+
+      it('keeps lily pads apart and tunnels in the open middle of a track', () => {
+        const s = level.shooter;
+        if (s.kind === 'hop') {
+          expect(s.pads.length).toBeGreaterThanOrEqual(2);
+          s.pads.forEach((a, i) => s.pads.forEach((b, j) => j > i && expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(PAD_GAP)));
+        }
+        for (const t of level.tracks) {
+          const length = buildPath(t.points).length;
+          for (const c of t.tunnels ?? []) {
+            // As long as the tunnel art is made for.
+            expect((c.to - c.from) * length).toBeGreaterThan(TUNNEL_MIN);
+            expect((c.to - c.from) * length).toBeLessThan(TUNNEL_MAX);
+            expect(c.from).toBeGreaterThanOrEqual(0.1);
+            expect(c.to).toBeLessThanOrEqual(0.85);
+            expect(c.to - c.from).toBeGreaterThan(0.04);
+          }
+        }
       });
 
       it('is long enough to play', () => {

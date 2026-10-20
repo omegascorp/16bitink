@@ -8,7 +8,7 @@ packages/game-sdk   The contract between site and games (GameModule, GameHost)
 games/inkfish       Phaser 4 game package: client game (src/) + server-only paid content (content/)
 games/inkcrab       Second game (prototype): hermit crab trading up through shells; design in docs/inkcrab-design.md
 games/inkmine       Third game: planet-hopping miner, chapter 1 free, chapters 2-3 (Mycel, Brine) in the $4.99 full game; design in docs/inkmine-design.md
-games/inkgecko      Fourth game (in progress, not in the catalog yet): Zuma/Luxor-style marble shooter, chapter 1 (10 levels) built; design in docs/inkgecko-design.md
+games/inkgecko      Fourth game (in progress, not in the catalog yet): Zuma/Luxor-style marble shooter, chapters 1 (free) and 2 (The Pond, full game) built; design in docs/inkgecko-design.md
 docs/               Research, tech & monetization decisions, art pipeline
 ```
 
@@ -19,7 +19,7 @@ pnpm install
 pnpm --filter @16bitink/inkfish dev     # game alone at http://localhost:5174 (prefix DEV_UNLOCK=true to play as an owner, DEV_ALL_LEVELS=true to open every level)
 pnpm --filter @16bitink/inkcrab dev     # InkCrab test beach at http://localhost:5175 (not in the catalog yet)
 pnpm --filter @16bitink/inkmine dev     # InkMine at http://localhost:5176 (?reset starts over)
-pnpm --filter @16bitink/inkgecko dev    # InkGecko at http://localhost:5177 (/specimens.html shows all its art)
+pnpm --filter @16bitink/inkgecko dev    # InkGecko at http://localhost:5177 (/specimens.html shows its art, /map.html the whole level map)
 pnpm dev                                # site at http://localhost:4321
 pnpm test                               # unit tests (game logic, tokens, purchases, catalog)
 MONGODB_TEST_URI=mongodb://localhost:27017/16bitink_test pnpm --filter @16bitink/web test   # + database integration tests

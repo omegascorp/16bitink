@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { MARBLE_RES } from '../../art/marbleArt';
 import { BOIL } from '../../art/palette';
-import { TEX } from '../../art/textures';
+import { DRAGONFLY_RES, TEX } from '../../art/textures';
 import type { Board } from '../../logic/board';
 import { CHARM_FADES_AFTER } from '../../logic/charms';
 import { D } from '../../logic/line';
@@ -88,10 +88,13 @@ export class MarblesView {
       live.add(s.id);
       let img = this.shots.get(s.id);
       if (!img) {
-        img = this.scene.add.image(s.x, s.y, TEX.marble(s.colour, 0)).setScale(1 / MARBLE_RES).setDepth(6);
+        img = this.scene.add.image(s.x, s.y, TEX.marble(s.colour, 0)).setScale(s.pierce ? 1.15 / DRAGONFLY_RES : 1 / MARBLE_RES).setDepth(6);
         this.shots.set(s.id, img);
       }
-      img.setTexture(TEX.marble(s.colour, Math.floor(time / 140) % BOIL)).setPosition(s.x, s.y).setRotation(time / 60);
+      const f = Math.floor(time / (s.pierce ? 50 : 140)) % BOIL;
+      // A Dragonfly flies nose first; a marble spins.
+      if (s.pierce) img.setTexture(TEX.dragonfly(Math.floor(time / 35) % 2, f)).setPosition(s.x, s.y).setRotation(Math.atan2(s.vy, s.vx) + Math.PI / 2);
+      else img.setTexture(TEX.marble(s.colour, f)).setPosition(s.x, s.y).setRotation(time / 60);
       if (s.burst) img.setTint(0xffd9a0);
     }
     for (const [id, img] of this.shots) {

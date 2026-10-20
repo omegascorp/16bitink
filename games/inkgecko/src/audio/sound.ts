@@ -1,12 +1,13 @@
 import type { KeyValueStore } from '@16bitink/game-sdk';
 import { canPlay, parseSoundSettings, SOUND_KEY, spatial, type SfxId, type View } from './recipes';
+import { Ambience, type Bed } from './ambience';
 import { synthesize } from './synth';
 
 /** Gestures that may start audio (browsers block it before one). */
 const UNLOCK_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'] as const;
 
 /** Overall loudness: effects sit under whatever else the player is listening to. */
-const MASTER = 0.5;
+const MASTER = 0.75;
 
 export interface PlayOpts {
   /** Pitch multiplier (see pitchForCombo). */
@@ -26,6 +27,9 @@ export interface PlayOpts {
 export class SoundBoard {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  private ambience: Ambience | null = null;
+  /** The bed asked for, kept until the audio can start. */
+  private bed: Bed | null = null;
   private readonly last = new Map<string, number>();
   private mutedNow: boolean;
   private readonly unlock = (): void => this.start();
@@ -71,7 +75,20 @@ export class SoundBoard {
     setTimeout(() => panner.disconnect(), 2000);
   }
 
+  /** The place's background sound (null for silence). */
+  setBed(bed: Bed | null): void {
+    this.bed = bed;
+    this.ambience?.setBed(bed);
+  }
+
+  /** How hard the line is rolling, 0..1 (the rumble under play). */
+  setRoll(level: number): void {
+    this.ambience?.setRoll(level);
+  }
+
   destroy(): void {
+    this.ambience?.destroy();
+    this.ambience = null;
     for (const ev of UNLOCK_EVENTS) window.removeEventListener(ev, this.unlock, { capture: true });
     document.removeEventListener('visibilitychange', this.onVisibility);
     void this.ctx?.close().catch(() => undefined);
@@ -90,6 +107,8 @@ export class SoundBoard {
     this.master = this.ctx.createGain();
     this.master.gain.value = this.mutedNow ? 0 : MASTER;
     this.master.connect(this.ctx.destination);
+    this.ambience = new Ambience(this.ctx, this.master);
+    this.ambience.setBed(this.bed);
   }
 }
 

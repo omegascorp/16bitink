@@ -182,7 +182,9 @@ export class Line {
   /** The pushed part moves; matching gaps close; everything that overlaps is pushed on. */
   private move(dt: number, speed: number): void {
     const parts = this.parts();
-    const tailPart = this.tail === null ? -1 : parts.findIndex((p) => p.some((m) => m.id === this.tail));
+    const pushed = this.tail === null ? -1 : parts.findIndex((p) => p.some((m) => m.id === this.tail));
+    // With the burrow shut and its part gone, the leftovers keep rolling from the back (else one could stop under a tunnel for good).
+    const tailPart = pushed < 0 && !this.spawning ? 0 : pushed;
     const rush = this.rushing && this.front() < this.path.length * RUSH_UNTIL ? RUSH_FACTOR : 1;
     if (rush === 1) this.rushing = false;
     parts.forEach((part, k) => {

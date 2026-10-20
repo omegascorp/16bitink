@@ -1,14 +1,16 @@
 import { CHARMS, type CharmId } from '../logic/charms';
 import { COLOURS } from '../logic/colours';
 import type { Pt } from '../logic/path';
-import { BOARD, type LevelDef, type ShooterDef, type Teach, type TrackDef } from './types';
+import { BOARD, type LevelDef, type ShooterDef, type Teach, type TrackDef, type TunnelDef } from './types';
 
 /** Caps on what the server may send. */
 const MAX_CHAPTERS = 20;
 const MAX_LEVELS = 20;
 const MAX_TRACKS = 4;
 const MAX_POINTS = 400;
-const TEACH: readonly Teach[] = ['spit', 'swap', 'rail', 'catch', 'pull'];
+const MAX_PADS = 4;
+const MAX_TUNNELS = 6;
+const TEACH: readonly Teach[] = ['spit', 'swap', 'rail', 'catch', 'pull', 'hop', 'tunnel', 'dragonfly'];
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const num = (v: unknown, lo: number, hi: number): v is number => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
@@ -23,12 +25,20 @@ function shooter(v: unknown): ShooterDef {
   if (!isObj(v)) throw new Error('bad shooter');
   if (v.kind === 'pivot' && num(v.x, 0, BOARD.w) && num(v.y, 0, BOARD.h)) return { kind: 'pivot', x: v.x, y: v.y };
   if (v.kind === 'rail' && num(v.y, 0, BOARD.h) && num(v.x0, 0, BOARD.w) && num(v.x1, 0, BOARD.w) && v.x0 < v.x1) return { kind: 'rail', y: v.y, x0: v.x0, x1: v.x1 };
+  if (v.kind === 'hop' && Array.isArray(v.pads) && v.pads.length >= 2 && v.pads.length <= MAX_PADS) return { kind: 'hop', pads: v.pads.map(point) };
   throw new Error('bad shooter');
+}
+
+function tunnel(v: unknown): TunnelDef {
+  if (!isObj(v) || !num(v.from, 0, 1) || !num(v.to, 0, 1) || v.from >= v.to) throw new Error('bad tunnel');
+  return { from: v.from, to: v.to };
 }
 
 function track(v: unknown): TrackDef {
   if (!isObj(v) || !Array.isArray(v.points) || v.points.length < 2 || v.points.length > MAX_POINTS) throw new Error('bad track');
-  return { points: v.points.map(point) };
+  if (v.tunnels === undefined) return { points: v.points.map(point) };
+  if (!Array.isArray(v.tunnels) || v.tunnels.length > MAX_TUNNELS) throw new Error('bad tunnels');
+  return { points: v.points.map(point), tunnels: v.tunnels.map(tunnel) };
 }
 
 function level(v: unknown): LevelDef {

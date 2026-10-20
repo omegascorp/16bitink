@@ -1,4 +1,4 @@
-import { BOARD, type LevelDef } from '../level/types';
+import { BOARD, type LevelDef, type ShooterDef } from '../level/types';
 import { BURST_REACH, CHARM_SECONDS, SLOW_FACTOR, type CharmId } from './charms';
 import { dealColour, paletteOf, type ColourId } from './colours';
 import { D, Line, SETTLE, type LineEvent, type Marble } from './line';
@@ -31,6 +31,8 @@ const CHARM_EVERY = 9;
 export const LIVES = 3;
 /** After a marble falls in, the lines roll back this share of their track. */
 export const REWIND_SHARE = 0.25;
+/** A hop from one lily pad to another takes this long, s. */
+export const HOP_TIME = 0.32;
 /** A marble that touches a shot within this distance (centre to centre) is hit. */
 const HIT_DIST = D * 0.86;
 /** Chance a new marble from the burrow is the colour of the one ahead of it (clumps make matches). */
@@ -49,6 +51,8 @@ export interface Shot {
   gaps: number;
   /** A Burst charm caught on a rail level: pops what it lands among instead of joining the line. */
   readonly burst: boolean;
+  /** A Dragonfly: flies on through the whole board, popping every marble it touches. */
+  readonly pierce: boolean;
 }
 
 export interface Drop {
@@ -64,14 +68,18 @@ export interface BoardInput {
   readonly aim: Pt | null;
   readonly fire: boolean;
   readonly swap: boolean;
-  /** Rail levels: run left (−1) or right (1) by keys. */
+  /** Rail levels: run left (−1) or right (1) by keys. Pivot and hop levels: turn. */
   readonly move: number;
+  /** Hop levels: the pad to hop to. */
+  readonly hop: number | null;
 }
 
-export const NO_INPUT: BoardInput = { aim: null, fire: false, swap: false, move: 0 };
+export const NO_INPUT: BoardInput = { aim: null, fire: false, swap: false, move: 0, hop: null };
 
 export type BoardEvent =
-  | { readonly type: 'spit'; readonly x: number; readonly y: number; readonly colour: ColourId }
+  | { readonly type: 'spit'; readonly x: number; readonly y: number; readonly colour: ColourId; readonly dragonfly: boolean }
+  | { readonly type: 'hop'; readonly pad: number }
+  | { readonly type: 'landed'; readonly pad: number }
   | { readonly type: 'swap' }
   | { readonly type: 'stuck'; readonly x: number; readonly y: number; readonly colour: ColourId }
   | { readonly type: 'miss' }
@@ -98,6 +106,11 @@ export class Board {
   readonly lines: Line[];
   readonly palette: readonly ColourId[];
   readonly rail: boolean;
+  readonly kind: ShooterDef['kind'];
+  /** Hop levels: the pad the gecko is on (or hopping to). */
+  pad = 0;
+  /** A hop in the air: from where, and how far through (0..1). */
+  hopping: { readonly from: Pt; readonly to: Pt; t: number } | null = null;
   /** The gecko: where it stands and which way it faces (radians, 0 = right). */
   readonly gecko: { x: number; y: number; angle: number };
   loaded: ColourId;
@@ -114,6 +127,8 @@ export class Board {
   readonly timers: Record<'slow' | 'reverse' | 'aim', number> = { slow: 0, reverse: 0, aim: 0 };
   /** A Burst charm caught on a rail level, for the next spit. */
   burstArmed = false;
+  /** A Dragonfly charm, for the next spit. */
+  dragonfly = false;
   /** Best combo and longest streak this level, for the result card. */
   best = { combo: 0, streak: 0 };
   private readonly rng: Rng;
@@ -127,14 +142,19 @@ export class Board {
   private waiting = new Map<number, number>();
   /** Gaps each waiting shot flew through: paid out if it pops. */
   private readonly gapsFor = new Map<number, number>();
+  /** Each line's covered stretches (tunnels), in distance along its track. */
+  private readonly covers: readonly (readonly [number, number])[][];
 
   constructor(readonly level: LevelDef, seed = Date.now()) {
     this.rng = createRng(seed);
     this.palette = paletteOf(level.colours);
     this.lines = level.tracks.map((t) => new Line(buildPath(t.points), (behind) => this.spawnColour(behind), () => this.ids++));
+    this.covers = level.tracks.map((t, i) => (t.tunnels ?? []).map((c) => [c.from * this.lines[i]!.path.length, c.to * this.lines[i]!.path.length] as const));
     const s = level.shooter;
     this.rail = s.kind === 'rail';
-    this.gecko = s.kind === 'pivot' ? { x: s.x, y: s.y, angle: -Math.PI / 2 } : { x: (s.x0 + s.x1) / 2, y: s.y, angle: -Math.PI / 2 };
+    this.kind = s.kind;
+    const start = s.kind === 'pivot' ? s : s.kind === 'hop' ? s.pads[0]! : { x: (s.x0 + s.x1) / 2, y: s.y };
+    this.gecko = { x: start.x, y: start.y, angle: -Math.PI / 2 };
     this.loaded = this.palette[Math.floor(this.rng() * this.palette.length)]!;
     this.next = this.palette[Math.floor(this.rng() * this.palette.length)]!;
   }
@@ -154,6 +174,11 @@ export class Board {
     return pointAt(line.path, m.s);
   }
 
+  /** Whether distance `s` along line `li` is under a tunnel. */
+  covered(li: number, s: number): boolean {
+    return this.covers[li]?.some(([a, b]) => s >= a && s <= b) ?? false;
+  }
+
   /** Where a spit leaves the gecko's mouth. */
   mouth(): Pt {
     return { x: this.gecko.x + Math.cos(this.gecko.angle) * MOUTH, y: this.gecko.y + Math.sin(this.gecko.angle) * MOUTH };
@@ -168,7 +193,9 @@ export class Board {
     this.aimAndMove(input, dt);
     if (input.swap) this.swap(events);
     if (input.fire) this.queuedFire = true;
-    if (this.queuedFire && this.reload <= 0 && this.atRailTarget()) this.spit(events);
+    if (input.hop !== null) this.hop(input.hop, events);
+    this.stepHop(dt, events);
+    if (this.queuedFire && this.reload <= 0 && this.atRailTarget() && !this.hopping) this.spit(events);
     this.stepShots(dt, events);
     this.stepLines(dt, events);
     this.stepDrops(dt, events);
@@ -182,7 +209,7 @@ export class Board {
   private aimAndMove(input: BoardInput, dt: number): void {
     const g = this.gecko;
     const s = this.level.shooter;
-    if (s.kind === 'pivot') {
+    if (s.kind !== 'rail') {
       if (input.move !== 0) g.angle += input.move * PIVOT_TURN * dt;
       else if (input.aim) g.angle = Math.atan2(input.aim.y - g.y, input.aim.x - g.x);
       return;
@@ -201,6 +228,27 @@ export class Board {
     return Math.abs(Math.max(s.x0, Math.min(s.x1, this.railTarget)) - this.gecko.x) < 4;
   }
 
+  /** Hop levels: jump to another pad (not mid-hop). */
+  private hop(pad: number, events: BoardEvent[]): void {
+    const s = this.level.shooter;
+    if (s.kind !== 'hop' || this.hopping || pad === this.pad || !s.pads[pad]) return;
+    this.hopping = { from: { x: this.gecko.x, y: this.gecko.y }, to: s.pads[pad]!, t: 0 };
+    this.pad = pad;
+    events.push({ type: 'hop', pad });
+  }
+
+  private stepHop(dt: number, events: BoardEvent[]): void {
+    const h = this.hopping;
+    if (!h) return;
+    h.t = Math.min(1, h.t + dt / HOP_TIME);
+    const k = h.t * h.t * (3 - 2 * h.t);
+    this.gecko.x = h.from.x + (h.to.x - h.from.x) * k;
+    this.gecko.y = h.from.y + (h.to.y - h.from.y) * k;
+    if (h.t < 1) return;
+    this.hopping = null;
+    events.push({ type: 'landed', pad: this.pad });
+  }
+
   private swap(events: BoardEvent[]): void {
     [this.loaded, this.next] = [this.next, this.loaded];
     events.push({ type: 'swap' });
@@ -212,9 +260,18 @@ export class Board {
     const from = this.mouth();
     const speed = SHOT_SPEED * (this.timers.aim > 0 ? AIM_SHOT_FACTOR : 1);
     const a = this.gecko.angle;
-    this.shots.push({ id: this.ids++, colour: this.loaded, x: from.x, y: from.y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, gaps: 0, burst: this.burstArmed });
+    const pierce = this.dragonfly;
+    this.shots.push({
+      id: this.ids++, colour: this.loaded, x: from.x, y: from.y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, gaps: 0,
+      burst: this.burstArmed && !pierce, pierce,
+    });
+    events.push({ type: 'spit', x: from.x, y: from.y, colour: this.loaded, dragonfly: pierce });
+    // The Dragonfly goes instead of a marble: the gecko keeps the one in its mouth.
+    if (pierce) {
+      this.dragonfly = false;
+      return;
+    }
     this.burstArmed = false;
-    events.push({ type: 'spit', x: from.x, y: from.y, colour: this.loaded });
     this.loaded = this.next;
     this.next = dealColour(this.rng, this.coloursInPlay(), this.palette);
   }
@@ -236,17 +293,21 @@ export class Board {
       shot.x += (shot.vx * dt) / steps;
       shot.y += (shot.vy * dt) / steps;
       const hit = this.hitAt(shot);
+      if (hit && shot.pierce) {
+        this.pierce(hit.line, hit.index, events);
+        continue;
+      }
       if (hit) {
         this.land(shot, hit.line, hit.index, events);
         return false;
       }
       // Only a shot that flies on past the track has gone through a gap (not one that clips a marble at its edge).
-      for (const line of this.lines) {
-        for (const s of crossings(line.path, from, shot)) if (inGap(line, s)) shot.gaps++;
-      }
+      this.lines.forEach((line, li) => {
+        for (const s of crossings(line.path, from, shot)) if (inGap(line, s) && !this.covered(li, s)) shot.gaps++;
+      });
     }
     const out = shot.x < -D || shot.x > BOARD.w + D || shot.y < -D || shot.y > BOARD.h + D;
-    if (out) {
+    if (out && !shot.pierce) {
       this.streak = 0;
       events.push({ type: 'miss' });
     }
@@ -258,7 +319,7 @@ export class Board {
     let best: { line: number; index: number; d: number } | null = null;
     this.lines.forEach((line, li) => {
       line.marbles.forEach((m, index) => {
-        if (m.s < 0 || m.s > line.path.length) return;
+        if (m.s < 0 || m.s > line.path.length || this.covered(li, m.s)) return;
         const at = pointAt(line.path, m.s);
         const d = Math.hypot(at.x - p.x, at.y - p.y);
         if (d < HIT_DIST && (!best || d < best.d)) best = { line: li, index, d };
@@ -285,6 +346,14 @@ export class Board {
     for (const e of lineEvents) this.onLineEvent(line, li, e, events);
     this.waiting.set(shot.id, this.elapsed + SETTLE + 0.1);
     if (shot.gaps > 0) this.gapsFor.set(shot.id, shot.gaps);
+  }
+
+  /** A Dragonfly flying through: the marble it touched pops on its own. */
+  private pierce(li: number, index: number, events: BoardEvent[]): void {
+    const line = this.lines[li]!;
+    const lineEvents: LineEvent[] = [];
+    line.popIds(new Set([line.marbles[index]!.id]), 0, null, lineEvents);
+    for (const e of lineEvents) this.onLineEvent(line, li, e, events);
   }
 
   private stepLines(dt: number, events: BoardEvent[]): void {
@@ -343,9 +412,15 @@ export class Board {
 
   private useCharm(charm: CharmId, at: Pt, events: BoardEvent[]): void {
     events.push({ type: 'charm', charm, x: at.x, y: at.y });
-    if (charm === 'burst') this.burstAt(at, events);
-    else this.timers[charm] = CHARM_SECONDS[charm];
+    this.arm(charm, at, events);
     if (charm === 'reverse') this.timers.slow = 0;
+  }
+
+  /** A charm takes effect: Burst pops round `at`, Dragonfly waits for the next spit, the rest run for a while. */
+  private arm(charm: CharmId, at: Pt, events: BoardEvent[]): void {
+    if (charm === 'burst') this.burstAt(at, events);
+    else if (charm === 'dragonfly') this.dragonfly = true;
+    else this.timers[charm] = CHARM_SECONDS[charm];
   }
 
   /** Pops every marble within Burst's reach of `at`, on every line. */
@@ -382,7 +457,7 @@ export class Board {
       if (Math.abs(d.y - g.y) < 26 && Math.abs(d.x - g.x) < CATCH_HALF) {
         events.push({ type: 'caught', charm: d.charm, x: d.x, y: d.y });
         if (d.charm === 'burst') this.burstArmed = true;
-        else this.timers[d.charm] = CHARM_SECONDS[d.charm];
+        else this.arm(d.charm, d, events);
         return false;
       }
       return d.y < BOARD.h + 40;
@@ -394,7 +469,7 @@ export class Board {
     if (this.rail || !this.level.charms.length) return;
     this.charmClock += dt;
     if (this.charmClock < CHARM_EVERY) return;
-    const open = this.lines.flatMap((line) => line.marbles.filter((m) => !m.charm && m.s > line.path.length * 0.08 && m.s < line.path.length * 0.8));
+    const open = this.lines.flatMap((line, li) => line.marbles.filter((m) => !m.charm && m.s > line.path.length * 0.08 && m.s < line.path.length * 0.8 && !this.covered(li, m.s)));
     if (!open.length) return;
     this.charmClock = 0;
     const m = open[Math.floor(this.rng() * open.length)]!;

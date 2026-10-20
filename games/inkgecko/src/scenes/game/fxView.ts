@@ -28,6 +28,10 @@ export class FxView {
   private readonly wells: Phaser.GameObjects.Image[];
   private readonly burrows: Phaser.GameObjects.Image[];
   private readonly aim: Phaser.GameObjects.Graphics;
+  /** How far the camera turns the board (a phone held upright), so words can stay upright. */
+  turn = 0;
+  /** Words grow when the board is drawn small (a phone), so they stay readable. */
+  textScale = 1;
 
   constructor(private readonly scene: Phaser.Scene, board: Board) {
     this.burrows = board.lines.map((l) => {
@@ -93,8 +97,11 @@ export class FxView {
   }
 
   private say(x: number, y: number, text: string, size: number, color: string = BLUE): void {
-    const t = this.scene.add.text(x, y, text, { fontFamily: HAND_FONT, fontSize: `${size}px`, color, stroke: '#fffaf0', strokeThickness: 4 })
+    const t = this.scene.add.text(x, y, text, { fontFamily: HAND_FONT, fontSize: `${Math.round(size * this.textScale)}px`, color, stroke: '#fffaf0', strokeThickness: 4 })
       .setOrigin(0.5).setDepth(20).setResolution(DPR * 2);
-    this.scene.tweens.add({ targets: t, y: y - 30, alpha: 0, delay: 350, duration: 900, onComplete: () => t.destroy() });
+    // Upright on screen even when the board is turned (a phone held upright), rising up the screen.
+    const turn = this.turn;
+    t.setRotation(-turn);
+    this.scene.tweens.add({ targets: t, x: x - Math.sin(turn) * 30, y: y - Math.cos(turn) * 30, alpha: 0, delay: 350, duration: 900, onComplete: () => t.destroy() });
   }
 }

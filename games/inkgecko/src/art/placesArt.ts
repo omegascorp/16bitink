@@ -1,5 +1,8 @@
 import { createRng } from '../logic/rng';
 import { paintGarden } from './garden';
+import { paintPond, type PondKeep } from './pond';
+import { padRing, seatPad } from './pondLife';
+import { paintTunnel } from './tunnel';
 import { bezier, closed, type Draw, oval, pt, ribbon, shade, TAU } from './kit';
 import { LEAF, MOSS, PAPER_FILL, STONE, STONE_DARK } from './palette';
 import { makeCanvas, type Pt } from './pen';
@@ -331,6 +334,52 @@ export function drawTrack(d: Draw, pts: readonly Pt[]): void {
  */
 export function drawGarden(d: Draw, w: number, h: number): void {
   paintGarden(d, w, h);
+}
+
+/**
+ * Chapter 2's page, "The Pond", in BOARD coordinates 0..w × 0..h: a damp
+ * flagstone terrace across the play area with the pond lapping round it in
+ * bays at the corners and down the sides, lily pads, reeds, kingcups and a
+ * goldfish in the water. The shore gives way round `keep` (the level's
+ * groove centre lines and pad centres) so no water or coping comes near
+ * them; pondReach with the same `keep` says where the water is.
+ */
+export function drawPond(d: Draw, w: number, h: number, keep: PondKeep): void {
+  paintPond(d, w, h, keep);
+}
+
+/** Shortest and longest covered stretch the tunnel art is made for, board units. */
+export const TUNNEL_MIN = 80;
+export const TUNNEL_MAX = 400;
+
+/**
+ * A cover over a stretch of track, for a transparent layer drawn ABOVE the
+ * marbles: `pts` is the stretch of the track's centre line (BOARD
+ * coordinates, every ~4 units). A mossy hollow log on a nearly straight
+ * stretch, a mossy stone-slab footbridge along a curve; either fully
+ * covers a band at least TRACK_W + 22 wide, ends included, and shades the groove
+ * just outside each end where the marbles roll in and out.
+ */
+export function drawTunnel(d: Draw, pts: readonly Pt[]): void {
+  paintTunnel(d, pts, TRACK_W);
+}
+
+/** Radius of a lily pad the gecko sits on (hop levels). */
+export const PAD_R = 58;
+
+/**
+ * A big lily pad the gecko sits on, centred at x, y (BOARD coordinates):
+ * by default floating in a small pool sunk in the paving (radius ~1.3 r),
+ * with its slit, veins, a bead of water and a bud at its rim. Pass
+ * `inPool = false` where the pad sits on open pond water.
+ */
+export function drawLilyPad(d: Draw, x: number, y: number, r: number = PAD_R, inPool = true): void {
+  seatPad(d, pt(x, y), r, inPool);
+}
+
+/** A faint dotted ink ring round a pad the gecko can hop to, radius a little beyond r. */
+export function drawPadRing(d: Draw, x: number, y: number, r: number = PAD_R): void {
+  padRing(d, pt(x, y), r);
 }
 
 const BARK = '#8b6a4a';

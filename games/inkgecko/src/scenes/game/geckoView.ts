@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GECKO_MOUTH, GECKO_RES, GECKO_TAIL, type GeckoPose } from '../../art/geckoArt';
 import { MARBLE_RES } from '../../art/marbleArt';
 import { BOIL } from '../../art/palette';
-import { TEX } from '../../art/textures';
+import { DRAGONFLY_RES, TEX } from '../../art/textures';
 import { MOUTH, type Board } from '../../logic/board';
 import { colourHex } from '../../logic/colours';
 
@@ -28,6 +28,7 @@ export class GeckoView {
   private colour: Phaser.Display.Color;
   private lastX: number;
   private bounce = 0;
+  private readonly base: number;
 
   constructor(scene: Phaser.Scene, board: Board) {
     // Scaled so the drawn mouth sits where the board spits from.
@@ -38,6 +39,7 @@ export class GeckoView {
     this.next = scene.add.image(GECKO_TAIL.x, GECKO_TAIL.y, TEX.marble(board.next, 0)).setScale(marble * TAIL_SCALE);
     this.loaded = scene.add.image(GECKO_MOUTH.x, GECKO_MOUTH.y, TEX.marble(board.loaded, 0)).setScale(marble);
     this.root = scene.add.container(board.gecko.x, board.gecko.y, [this.skin, this.next, this.lines, this.loaded]).setScale(scale).setDepth(8);
+    this.base = scale;
     this.colour = Phaser.Display.Color.IntegerToColor(colourHex(board.loaded));
     this.lastX = board.gecko.x;
   }
@@ -55,17 +57,26 @@ export class GeckoView {
     this.bounce = 1;
   }
 
+  /** A hop to another lily pad: its marbles jostle (the rise and fall follow the board's hop). */
+  hopped(): void {
+    this.bounce = 1;
+  }
+
   update(board: Board, time: number, dt: number): void {
     const g = board.gecko;
     const moving = Math.abs(g.x - this.lastX) > 0.5;
     this.lastX = g.x;
-    this.root.setPosition(g.x, g.y).setRotation(g.angle + Math.PI / 2);
+    // Mid-hop it's nearer the eye: bigger at the top of the jump.
+    const air = board.hopping ? Math.sin(board.hopping.t * Math.PI) : 0;
+    this.root.setPosition(g.x, g.y).setRotation(g.angle + Math.PI / 2).setScale(this.base * (1 + air * 0.28));
     const pose: GeckoPose = time < this.spitUntil ? 'spit' : 'idle';
     // Legs boil faster while it runs along the branch.
     const f = Math.floor(time / (moving ? 70 : 150)) % BOIL;
     this.skin.setTexture(TEX.geckoSkin(pose, f));
     this.lines.setTexture(TEX.geckoLines(pose, f));
-    this.loaded.setTexture(TEX.marble(board.loaded, f)).setVisible(time >= this.spitUntil);
+    // A Dragonfly waiting to go sits on its snout instead of the marble.
+    if (board.dragonfly) this.loaded.setTexture(TEX.dragonfly(Math.floor(time / 60) % 2, f)).setVisible(true);
+    else this.loaded.setTexture(TEX.marble(board.loaded, f)).setVisible(time >= this.spitUntil);
     this.next.setTexture(TEX.marble(board.next, f));
     // The skin eases to the loaded marble's colour.
     const want = Phaser.Display.Color.IntegerToColor(colourHex(board.loaded));
@@ -78,8 +89,8 @@ export class GeckoView {
     this.skin.setTint(this.colour.color);
     this.bounce = Math.max(0, this.bounce - dt * 5);
     const b = 1 + Math.sin(this.bounce * Math.PI) * 0.25;
-    const marble = 1 / MARBLE_RES / this.root.scale;
-    this.loaded.setScale(marble * b);
+    const marble = 1 / MARBLE_RES / this.base;
+    this.loaded.setScale(board.dragonfly ? (0.9 / DRAGONFLY_RES / this.base) * b : marble * b);
     this.next.setScale(marble * TAIL_SCALE * b);
   }
 }

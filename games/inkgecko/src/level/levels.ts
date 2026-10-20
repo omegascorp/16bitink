@@ -5,8 +5,14 @@ import type { LevelDef } from './types';
 export const FREE_CHAPTERS = 1;
 /** Chapters planned for the full game. */
 export const PLANNED_CHAPTERS = 10;
+/** Chapters made so far (free and paid); the map draws the rest as pencil drafts. */
+export const BUILT_CHAPTERS = 2;
 /** Chapter names, in order (the full game's are shown locked on the map). */
 export const CHAPTER_NAMES: readonly string[] = ['The Garden', 'The Pond', 'The Greenhouse', 'The Orchard', 'The Rockery', 'The Allotment', 'The Wild Meadow', 'The Old Barn', 'The Ruins', 'The Night Garden'];
+
+/** A chapter's place: how its boards are painted and sound. Chapters past these aren't drawn yet. */
+export type Place = 'garden' | 'pond';
+export const CHAPTER_PLACES: readonly Place[] = ['garden', 'pond'];
 
 let paid: readonly (readonly LevelDef[])[] = [];
 
@@ -48,4 +54,9 @@ export function chapterOf(id: string): number {
 /** The last free level: finishing it offers the full game. */
 export function isFreeEnd(id: string): boolean {
   return CHAPTER_1[CHAPTER_1.length - 1]!.id === id;
+}
+
+/** The place a level is set in (the garden for anything unknown). */
+export function placeOf(id: string): Place {
+  return CHAPTER_PLACES[chapterOf(id)] ?? 'garden';
 }
