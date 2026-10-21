@@ -26,7 +26,7 @@ export function boardPreview(scene: Phaser.Scene, level: LevelDef, place: Place,
     parts.push(scene.add.image(start.x, start.y, TEX.burrow(0)).setScale(1 / PLACE_RES));
     parts.push(scene.add.image(end.x, end.y, TEX.well(0)).setScale(1 / PLACE_RES));
   }
-  const covers = bakeCovers(scene, level);
+  const covers = bakeCovers(scene, level, place);
   if (covers) parts.push(scene.add.image(0, 0, covers).setOrigin(0).setScale(1 / ART_RES));
   const s = level.shooter;
   const at = s.kind === 'pivot' ? s : s.kind === 'hop' ? s.pads[0]! : { x: (s.x0 + s.x1) / 2, y: s.y };

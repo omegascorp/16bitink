@@ -190,6 +190,27 @@ function emblem(charm: CharmId, s: number): Emblem {
       const abdomen = [D(-8.6, 0), D(-4, 0.15), D(0.5, 0)];
       return { lines: [abdomen], fills: [...wings, thorax, head] };
     }
+    case 'inkpot': {
+      // A squat ink bottle with a fat drop running off its lip.
+      const bottle = closed([
+        P(-2.4, -5.2), P(-2.4, -3.4), P(-5.6, -1.6), P(-6.6, 0.6), P(-6.6, 5.6), P(-5.8, 7.4), P(-4.2, 7.9),
+        P(2.2, 7.9), P(3.8, 7.4), P(4.6, 5.6), P(4.6, 0.6), P(3.6, -1.6), P(0.4, -3.4), P(0.4, -5.2),
+      ]);
+      const lip = [P(-3.6, -6.6), P(1.6, -6.6)];
+      // A teardrop, point up, round below.
+      const drop = Array.from({ length: 16 }, (_, i) => {
+        const t = (i / 16) * TAU;
+        return P(7 + Math.sin(t) * Math.sin(t / 2) * 2.4, 3.6 - Math.cos(t) * 3);
+      });
+      return { lines: [lip], fills: [bottle, drop] };
+    }
+    case 'geode': {
+      // A cut crystal: a flat table, a shallow crown and a long pointed pavilion, with its facet lines.
+      const gem = closed([P(-8.4, -2.6), P(-4.6, -7), P(4.6, -7), P(8.4, -2.6), P(0, 8.6)]);
+      const girdle = [P(-8.4, -2.6), P(8.4, -2.6)];
+      const facets = [[P(-1.6, -7), P(-3.4, -2.6), P(0, 8.6)], [P(1.6, -7), P(3.4, -2.6), P(0, 8.6)]];
+      return { lines: [gem, girdle, ...facets], fills: [] };
+    }
   }
 }
 

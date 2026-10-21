@@ -129,6 +129,33 @@ const RECIPES: Readonly<Record<SfxId, (v: Voice) => void>> = {
     for (let i = 0; i < 14; i++) noise(v, { dur: 0.03, gain: 0.18 - i * 0.008, filter: 'bandpass', from: 2400 + (i % 3) * 500, q: 5, delay: i * (0.04 + i * 0.006) });
     noise(v, { dur: 1.2, gain: 0.16, filter: 'lowpass', from: 600, to: 250, attack: 0.05 });
   },
+  // A Geode let go: a high crystal chime with a shimmer.
+  crystal: (v) => {
+    notes(v, [1568, 2093, 2637], 0.04, { type: 'sine', dur: 0.35, gain: 0.07 });
+    tone(v, { type: 'triangle', from: 3136, dur: 0.5, gain: 0.03, delay: 0.1, vibrato: { depth: 30, rate: 14 } });
+  },
+  // A bud opening: a soft rising flutter of petals.
+  blossom: (v) => {
+    noise(v, { dur: 0.18, gain: 0.12, filter: 'bandpass', from: 1800, to: 3600, q: 2, attack: 0.03 });
+    notes(v, [660, 880, 1320], 0.05, { type: 'sine', dur: 0.16, gain: 0.08 });
+  },
+  // A stone breaking: a dry crack and a scatter of grit.
+  crack: (v) => {
+    noise(v, { dur: 0.05, gain: 0.5, filter: 'highpass', from: 1500, attack: 0.001 });
+    noise(v, { dur: 0.22, gain: 0.18, filter: 'bandpass', from: 2600, to: 1200, q: 1.2, delay: 0.03 });
+    tone(v, { from: 180, to: 90, dur: 0.08, gain: 0.12 });
+  },
+  // A windfall dropping onto the grass.
+  thud: (v) => {
+    tone(v, { from: 160, to: 70, dur: 0.12, gain: 0.25 });
+    noise(v, { dur: 0.08, gain: 0.12, filter: 'lowpass', from: 600 });
+  },
+  // Spitting a windfall: a juicy thock and a bright bonus note.
+  fruit: (v) => {
+    tone(v, { from: 520, to: 260, dur: 0.08, gain: 0.2 });
+    noise(v, { dur: 0.06, gain: 0.2, filter: 'bandpass', from: 1200, q: 3 });
+    notes(v, [1047, 1568], 0.07, { type: 'triangle', dur: 0.18, gain: 0.1 });
+  },
   // Glass on glass: a bright clack.
   stuck: (v) => {
     noise(v, { dur: 0.03, gain: 0.45, filter: 'bandpass', from: 3600, q: 6, attack: 0.001 });
@@ -203,6 +230,7 @@ export const LEVEL: Readonly<Record<SfxId, number>> = {
   spit: 2, swap: 2, stuck: 1.6, pop: 1.8, pull: 2.2, join: 1.6, gap: 2, streak: 1.6,
   charm: 2.4, drop: 2, catch: 2, danger: 2.2, well: 1.6, filled: 1.4, win: 1, lose: 1, click: 1.1,
   hop: 1.8, plop: 1.8, dragonfly: 2.8, rush: 1.6, steps: 1.4, card: 1.2,
+  crystal: 2.2, blossom: 2, crack: 1.8, thud: 1.6, fruit: 2,
 };
 
 export function synthesize(id: SfxId, v: Voice): void {

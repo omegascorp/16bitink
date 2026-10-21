@@ -1,15 +1,17 @@
 import { createRng, type Rng } from '../logic/rng';
-import { closed, type Draw, oval, pt, ribbon, TAU } from './kit';
+import { closed, type Draw, makeDraw, oval, pt, ribbon, TAU } from './kit';
 import { LEAF, MOSS, PAPER_FILL, STONE, STONE_DARK } from './palette';
-import type { Pt } from './pen';
+import { makeCanvas, type Pt } from './pen';
 import { mix, rgba } from './wash';
 
 /**
- * Covers over a stretch of groove on the pond, drawn on a transparent layer
- * above the marbles: a mossy hollow log on a nearly straight stretch, a
- * stone-slab footbridge built along a curve. Both fully cover a band
- * wider than the groove, ends included, and darken the groove just outside
- * each end so the marbles visibly roll into the shade beneath.
+ * Covers over a stretch of groove in the garden and on the pond, drawn on a
+ * transparent layer above the marbles: a mossy hollow log on a nearly
+ * straight stretch, a stone-slab footbridge built along a curve. Both fully
+ * cover a band wider than the groove, ends included, and darken the groove
+ * just outside each end so the marbles visibly roll into the shade beneath.
+ * Also the shared pieces the other places' covers are built from, and the
+ * raised deck that carries a groove over a crossing (paintRaised).
  */
 const BARK = '#87684a';
 const CUT_WOOD = '#dcc49b';
@@ -20,13 +22,14 @@ const LOG_MAX_BOW = 9;
 /** Margin of cover either side of the groove, beyond the six the brief asks for. */
 const SPARE = 5;
 
-const unit = (a: Pt, b: Pt): Pt => {
+/** Unit vector from a to b. */
+export const unit = (a: Pt, b: Pt): Pt => {
   const l = Math.hypot(b.x - a.x, b.y - a.y) || 1;
   return pt((b.x - a.x) / l, (b.y - a.y) / l);
 };
 
 /** Shade on the groove floor just outside an end, deepest at the mouth: the dark under the cover. */
-function mouth(d: Draw, end: Pt, out: Pt, grooveW: number): void {
+export function mouth(d: Draw, end: Pt, out: Pt, grooveW: number): void {
   const { ctx } = d.pen;
   const len = 30;
   const n = pt(-out.y, out.x);
@@ -45,8 +48,18 @@ function mouth(d: Draw, end: Pt, out: Pt, grooveW: number): void {
   ctx.restore();
 }
 
+/** Half the width a cover must span over a groove grooveW wide. */
+export const coverHalf = (grooveW: number): number => grooveW / 2 + 6 + SPARE;
+
+/** The dark under each end of a cover over `pts`, on the groove just outside it. */
+export function coverEnds(d: Draw, pts: readonly Pt[], grooveW: number): void {
+  const near = Math.min(3, pts.length - 1);
+  mouth(d, pts[0]!, unit(pts[near]!, pts[0]!), grooveW);
+  mouth(d, pts[pts.length - 1]!, unit(pts[pts.length - 1 - near]!, pts[pts.length - 1]!), grooveW);
+}
+
 /** An ellipse with radius ra along unit vector u and rb across it. */
-function tilted(c: Pt, u: Pt, ra: number, rb: number, n = 22): Pt[] {
+export function tilted(c: Pt, u: Pt, ra: number, rb: number, n = 22): Pt[] {
   return Array.from({ length: n }, (_, i) => {
     const t = (i / n) * TAU;
     return pt(c.x + u.x * Math.cos(t) * ra - u.y * Math.sin(t) * rb, c.y + u.y * Math.cos(t) * ra + u.x * Math.sin(t) * rb);
@@ -54,7 +67,7 @@ function tilted(c: Pt, u: Pt, ra: number, rb: number, n = 22): Pt[] {
 }
 
 /** Moss cushions and a stipple of spores over part of a shape. */
-function mossOver(d: Draw, shape: readonly Pt[], centres: readonly Pt[], spread: number, rng: Rng): void {
+export function mossOver(d: Draw, shape: readonly Pt[], centres: readonly Pt[], spread: number, rng: Rng): void {
   const { pen } = d;
   pen.clipped(shape, () => {
     for (const c of centres) {
@@ -78,7 +91,7 @@ function mossOver(d: Draw, shape: readonly Pt[], centres: readonly Pt[], spread:
 }
 
 /** A hollow log laid along a nearly straight stretch, from a to b, `half` wide either side. */
-function hollowLog(d: Draw, a: Pt, b: Pt, half: number, rng: Rng): void {
+export function hollowLog(d: Draw, a: Pt, b: Pt, half: number, rng: Rng): void {
   const { pen } = d;
   const u = unit(a, b);
   const len = Math.hypot(b.x - a.x, b.y - a.y);
@@ -147,7 +160,7 @@ function hollowLog(d: Draw, a: Pt, b: Pt, half: number, rng: Rng): void {
 }
 
 /** One dressed stone: a quad inset by `gap`, corners worn, washed, shaded and outlined. */
-function block(d: Draw, quad: readonly Pt[], rng: Rng, gap = 1.2): void {
+export function block(d: Draw, quad: readonly Pt[], rng: Rng, gap = 1.2): void {
   const { pen } = d;
   const c = pt(quad.reduce((s, p) => s + p.x, 0) / quad.length, quad.reduce((s, p) => s + p.y, 0) / quad.length);
   const shape = quad.map((p) => {
@@ -269,11 +282,62 @@ export function paintTunnel(d: Draw, pts: readonly Pt[], grooveW: number): void 
   const b = pts[pts.length - 1]!;
   const u = unit(a, b);
   const bow = pts.reduce((m, p) => Math.max(m, Math.abs((p.x - a.x) * -u.y + (p.y - a.y) * u.x)), 0);
-  const half = grooveW / 2 + 6 + SPARE;
-  // The dark under each end, on the groove just outside it.
-  const near = Math.min(3, pts.length - 1);
-  mouth(d, a, unit(pts[near]!, a), grooveW);
-  mouth(d, b, unit(pts[pts.length - 1 - near]!, b), grooveW);
+  const half = coverHalf(grooveW);
+  coverEnds(d, pts, grooveW);
   if (bow <= LOG_MAX_BOW) hollowLog(d, a, b, half + bow, rng);
   else footbridge(d, pts, half + 2, rng);
+}
+
+/** Paints a place's deck (structure either side of the groove) along `pts`, `half` wide either side of the centre line. */
+export type DeckPainter = (d: Draw, pts: readonly Pt[], half: number, grooveW: number, rng: Rng) => void;
+/** Paints a groove along a centre line (drawTrack). */
+export type GroovePainter = (d: Draw, pts: readonly Pt[]) => void;
+
+/** Width of a deck's parapet either side of the groove, and how long the groove fades into the ground at each end. */
+export const PARAPET = 10;
+const FADE = 16;
+
+/**
+ * A raised stretch of groove carried over a cover below: the deck's shadow,
+ * the place's deck structure between its end posts, then the groove itself
+ * on a bed, fading out at both ends into the same groove on the ground.
+ */
+export function paintRaised(d: Draw, pts: readonly Pt[], grooveW: number, deck: DeckPainter, groove: GroovePainter, bed: string): void {
+  if (pts.length < 4) return;
+  const { ctx } = d.pen;
+  const rng = createRng(Math.round(pts[0]!.x * 11 + pts[0]!.y * 5 + pts.length));
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1]! + Math.hypot(pts[i]!.x - pts[i - 1]!.x, pts[i]!.y - pts[i - 1]!.y));
+  const len = cum[cum.length - 1]!;
+  const inner = pts.filter((_, i) => cum[i]! >= FADE && cum[i]! <= len - FADE);
+  const half = grooveW / 2 + PARAPET;
+  if (inner.length >= 3) {
+    const shadow = ribbon(inner, () => half * 2 + 2).shape;
+    d.pen.fill(shadow.map((p) => pt(p.x + SHADOW.x * 12, p.y + SHADOW.y * 12)), d.ink, 0.16);
+    d.pen.fill(shadow.map((p) => pt(p.x + SHADOW.x * 6, p.y + SHADOW.y * 6)), d.ink, 0.1);
+    deck(d, inner, half, grooveW, rng);
+  }
+  // The groove on its bed, on a layer of its own so its ends can fade into the ground.
+  const { canvas: off, ctx: oc } = makeCanvas(ctx.canvas.width, ctx.canvas.height);
+  oc.setTransform(ctx.getTransform());
+  const od = makeDraw(oc, Math.round(rng() * 1e6), d.f, d.g, d.ink);
+  od.pen.fill(ribbon(pts, () => grooveW + 1).shape, PAPER_FILL, 1);
+  od.pen.fill(ribbon(pts, () => grooveW + 1).shape, bed, 0.5);
+  groove(od, pts);
+  const a = pts[0]!;
+  const b = pts[pts.length - 1]!;
+  const g = oc.createLinearGradient(a.x, a.y, b.x, b.y);
+  const chord = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  const f = Math.min(0.45, FADE / chord);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(f, 'rgba(0,0,0,1)');
+  g.addColorStop(1 - f, 'rgba(0,0,0,1)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  oc.globalCompositeOperation = 'destination-in';
+  oc.fillStyle = g;
+  oc.fillRect(Math.min(a.x, b.x) - 400, Math.min(a.y, b.y) - 400, Math.abs(b.x - a.x) + 800, Math.abs(b.y - a.y) + 800);
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(off, 0, 0);
+  ctx.restore();
 }

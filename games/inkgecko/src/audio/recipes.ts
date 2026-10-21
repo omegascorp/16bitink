@@ -8,6 +8,8 @@ export const SFX_IDS = [
   'spit', 'swap', 'stuck', 'hop', 'plop', 'dragonfly',
   // The line pouring out of the burrow at the start.
   'rush',
+  // Chapters 3–5: a Geode let go, a bud opening, a stone breaking, a windfall landing and being hit.
+  'crystal', 'blossom', 'crack', 'thud', 'fruit',
   // The line: pops (pitched up per combo link), a gap closing, parts meeting, bonuses.
   'pop', 'pull', 'join', 'gap', 'streak',
   // Charms: one used, one dropping, one caught.
@@ -25,6 +27,7 @@ export type SfxId = (typeof SFX_IDS)[number];
 /** Shortest gap between two plays of the same sound, ms. */
 export const MIN_GAP_MS: Readonly<Record<SfxId, number>> = {
   spit: 40, swap: 60, stuck: 40, hop: 150, plop: 150, dragonfly: 200, rush: 1000,
+  crystal: 150, blossom: 120, crack: 60, thud: 300, fruit: 120,
   pop: 40, pull: 150, join: 80, gap: 200, streak: 200,
   charm: 150, drop: 200, catch: 100,
   danger: 350, well: 500,

@@ -1,7 +1,8 @@
 import { BOARD, type LevelDef, type ShooterDef } from '../level/types';
 import { BURST_REACH, CHARM_SECONDS, SLOW_FACTOR, type CharmId } from './charms';
 import { dealColour, paletteOf, type ColourId } from './colours';
-import { D, Line, SETTLE, type LineEvent, type Marble } from './line';
+import { FRUIT_EVERY, FRUIT_HIT, FRUIT_POINTS, rollFruit, spawnFruit, type Fruit, type FruitKind } from './fruit';
+import { D, Line, SETTLE, type LineEvent, type Marble, type Spawned } from './line';
 import { angleAt, buildPath, crossings, pointAt, type Pt } from './path';
 import { createRng, type Rng } from './rng';
 
@@ -53,6 +54,8 @@ export interface Shot {
   readonly burst: boolean;
   /** A Dragonfly: flies on through the whole board, popping every marble it touches. */
   readonly pierce: boolean;
+  /** A Geode crystal: joins the line as the colour of the marble it hits. */
+  readonly wild: boolean;
 }
 
 export interface Drop {
@@ -77,7 +80,7 @@ export interface BoardInput {
 export const NO_INPUT: BoardInput = { aim: null, fire: false, swap: false, move: 0, hop: null };
 
 export type BoardEvent =
-  | { readonly type: 'spit'; readonly x: number; readonly y: number; readonly colour: ColourId; readonly dragonfly: boolean }
+  | { readonly type: 'spit'; readonly x: number; readonly y: number; readonly colour: ColourId; readonly dragonfly: boolean; readonly geode: boolean }
   | { readonly type: 'hop'; readonly pad: number }
   | { readonly type: 'landed'; readonly pad: number }
   | { readonly type: 'swap' }
@@ -85,7 +88,7 @@ export type BoardEvent =
   | { readonly type: 'miss' }
   | {
     readonly type: 'pop'; readonly x: number; readonly y: number; readonly colour: ColourId; readonly count: number;
-    readonly combo: number; readonly points: number; readonly line: number; readonly marbles: readonly { x: number; y: number; colour: ColourId }[];
+    readonly combo: number; readonly points: number; readonly line: number; readonly marbles: readonly { x: number; y: number; colour: ColourId; stone?: boolean }[];
   }
   | { readonly type: 'pull'; readonly x: number; readonly y: number }
   | { readonly type: 'join'; readonly x: number; readonly y: number }
@@ -94,6 +97,9 @@ export type BoardEvent =
   | { readonly type: 'charm'; readonly charm: CharmId; readonly x: number; readonly y: number }
   | { readonly type: 'drop'; readonly drop: Drop }
   | { readonly type: 'caught'; readonly charm: CharmId; readonly x: number; readonly y: number }
+  | { readonly type: 'blossom'; readonly x: number; readonly y: number; readonly count: number }
+  | { readonly type: 'windfall'; readonly fruit: Fruit }
+  | { readonly type: 'fruit'; readonly x: number; readonly y: number; readonly kind: FruitKind; readonly points: number }
   | { readonly type: 'well'; readonly lives: number; readonly x: number; readonly y: number; readonly colour: ColourId }
   | { readonly type: 'filled' }
   | { readonly type: 'won' }
@@ -129,6 +135,10 @@ export class Board {
   burstArmed = false;
   /** A Dragonfly charm, for the next spit. */
   dragonfly = false;
+  /** A Geode charm, for the next spit. */
+  geode = false;
+  /** Windfalls rolling across the board (orchard levels). */
+  fruits: Fruit[] = [];
   /** Best combo and longest streak this level, for the result card. */
   best = { combo: 0, streak: 0 };
   private readonly rng: Rng;
@@ -144,12 +154,18 @@ export class Board {
   private readonly gapsFor = new Map<number, number>();
   /** Each line's covered stretches (tunnels), in distance along its track. */
   private readonly covers: readonly (readonly [number, number])[][];
+  /** Each line's stretches carried over a crossing, in distance along its track. */
+  private readonly lifts: readonly (readonly [number, number])[][];
+  private fruitClock = 0;
 
   constructor(readonly level: LevelDef, seed = Date.now()) {
     this.rng = createRng(seed);
     this.palette = paletteOf(level.colours);
-    this.lines = level.tracks.map((t) => new Line(buildPath(t.points), (behind) => this.spawnColour(behind), () => this.ids++));
-    this.covers = level.tracks.map((t, i) => (t.tunnels ?? []).map((c) => [c.from * this.lines[i]!.path.length, c.to * this.lines[i]!.path.length] as const));
+    this.lines = level.tracks.map((t) => new Line(buildPath(t.points), (behind) => this.spawnNext(behind), () => this.ids++));
+    const stretches = (list: readonly { from: number; to: number }[] | undefined, i: number): (readonly [number, number])[] =>
+      (list ?? []).map((c) => [c.from * this.lines[i]!.path.length, c.to * this.lines[i]!.path.length] as const);
+    this.covers = level.tracks.map((t, i) => stretches(t.tunnels, i));
+    this.lifts = level.tracks.map((t, i) => stretches(t.raised, i));
     const s = level.shooter;
     this.rail = s.kind === 'rail';
     this.kind = s.kind;
@@ -179,6 +195,11 @@ export class Board {
     return this.covers[li]?.some(([a, b]) => s >= a && s <= b) ?? false;
   }
 
+  /** Whether distance `s` along line `li` is carried over a crossing (drawn above the tunnel below). */
+  raised(li: number, s: number): boolean {
+    return this.lifts[li]?.some(([a, b]) => s >= a && s <= b) ?? false;
+  }
+
   /** Where a spit leaves the gecko's mouth. */
   mouth(): Pt {
     return { x: this.gecko.x + Math.cos(this.gecko.angle) * MOUTH, y: this.gecko.y + Math.sin(this.gecko.angle) * MOUTH };
@@ -199,6 +220,7 @@ export class Board {
     this.stepShots(dt, events);
     this.stepLines(dt, events);
     this.stepDrops(dt, events);
+    this.stepFruit(dt, events);
     this.placeCharms(dt);
     this.refreshColours();
     this.expireWaiting();
@@ -261,14 +283,16 @@ export class Board {
     const speed = SHOT_SPEED * (this.timers.aim > 0 ? AIM_SHOT_FACTOR : 1);
     const a = this.gecko.angle;
     const pierce = this.dragonfly;
+    const wild = !pierce && this.geode;
     this.shots.push({
       id: this.ids++, colour: this.loaded, x: from.x, y: from.y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, gaps: 0,
-      burst: this.burstArmed && !pierce, pierce,
+      burst: this.burstArmed && !pierce && !wild, pierce, wild,
     });
-    events.push({ type: 'spit', x: from.x, y: from.y, colour: this.loaded, dragonfly: pierce });
-    // The Dragonfly goes instead of a marble: the gecko keeps the one in its mouth.
-    if (pierce) {
-      this.dragonfly = false;
+    events.push({ type: 'spit', x: from.x, y: from.y, colour: this.loaded, dragonfly: pierce, geode: wild });
+    // A Dragonfly or a Geode goes instead of a marble: the gecko keeps the one in its mouth.
+    if (pierce || wild) {
+      if (pierce) this.dragonfly = false;
+      else this.geode = false;
       return;
     }
     this.burstArmed = false;
@@ -292,6 +316,7 @@ export class Board {
       const from = { x: shot.x, y: shot.y };
       shot.x += (shot.vx * dt) / steps;
       shot.y += (shot.vy * dt) / steps;
+      if (!shot.pierce && this.hitFruit(shot, events)) return false;
       const hit = this.hitAt(shot);
       if (hit && shot.pierce) {
         this.pierce(hit.line, hit.index, events);
@@ -340,9 +365,10 @@ export class Board {
     const a = angleAt(line.path, m.s);
     const ahead = (shot.x - at.x) * Math.cos(a) + (shot.y - at.y) * Math.sin(a) > 0;
     const lineEvents: LineEvent[] = [];
-    const placed = line.insert(index, ahead ? 'front' : 'back', shot.colour, shot.id, lineEvents);
+    const colour = shot.wild ? wildColour(line, index, shot.colour) : shot.colour;
+    const placed = line.insert(index, ahead ? 'front' : 'back', colour, shot.id, lineEvents);
     const p = pointAt(line.path, placed.s);
-    events.push({ type: 'stuck', x: p.x, y: p.y, colour: shot.colour });
+    events.push({ type: 'stuck', x: p.x, y: p.y, colour });
     for (const e of lineEvents) this.onLineEvent(line, li, e, events);
     this.waiting.set(shot.id, this.elapsed + SETTLE + 0.1);
     if (shot.gaps > 0) this.gapsFor.set(shot.id, shot.gaps);
@@ -370,10 +396,11 @@ export class Board {
     else if (e.type === 'pull') events.push({ type: 'pull', ...pointAt(line.path, e.s) });
     else if (e.type === 'join') events.push({ type: 'join', ...pointAt(line.path, e.s) });
     else if (e.type === 'fell') this.fell(line, e.marble, events);
+    else if (e.type === 'blossom') events.push({ type: 'blossom', ...pointAt(line.path, e.marbles[0]!.s), count: e.marbles.length });
   }
 
   private scorePop(line: Line, li: number, e: Extract<LineEvent, { type: 'pop' }>, events: BoardEvent[]): void {
-    const spots = e.marbles.map((m) => ({ ...pointAt(line.path, m.s), colour: m.colour }));
+    const spots = e.marbles.map((m) => ({ ...pointAt(line.path, m.s), colour: m.colour, ...(m.stone ? { stone: true } : {}) }));
     const mid = spots[Math.floor(spots.length / 2)]!;
     const points = e.marbles.length * POINTS.marble * (1 + e.combo);
     this.addScore(points, events);
@@ -396,7 +423,7 @@ export class Board {
       }
     }
     for (const m of e.marbles) {
-      if (m.charm) this.useCharm(m.charm, pointAt(line.path, m.s), events);
+      if (m.charm) this.useCharm(m.charm, pointAt(line.path, m.s), m.stone ? this.loaded : m.colour, events);
     }
     if (this.rail) this.maybeDrop(mid, events);
   }
@@ -410,17 +437,63 @@ export class Board {
     }
   }
 
-  private useCharm(charm: CharmId, at: Pt, events: BoardEvent[]): void {
+  private useCharm(charm: CharmId, at: Pt, colour: ColourId, events: BoardEvent[]): void {
     events.push({ type: 'charm', charm, x: at.x, y: at.y });
-    this.arm(charm, at, events);
+    this.arm(charm, at, colour, events);
     if (charm === 'reverse') this.timers.slow = 0;
   }
 
-  /** A charm takes effect: Burst pops round `at`, Dragonfly waits for the next spit, the rest run for a while. */
-  private arm(charm: CharmId, at: Pt, events: BoardEvent[]): void {
+  /**
+   * A charm takes effect: Burst pops round `at`, the Ink Pot pops every
+   * marble of `colour`, Dragonfly and Geode wait for the next spit, the
+   * rest run for a while.
+   */
+  private arm(charm: CharmId, at: Pt, colour: ColourId, events: BoardEvent[]): void {
     if (charm === 'burst') this.burstAt(at, events);
+    else if (charm === 'inkpot') this.popColour(colour, events);
     else if (charm === 'dragonfly') this.dragonfly = true;
+    else if (charm === 'geode') this.geode = true;
     else this.timers[charm] = CHARM_SECONDS[charm];
+  }
+
+  /** The Ink Pot: every marble of one colour, on every line, pops. */
+  private popColour(colour: ColourId, events: BoardEvent[]): void {
+    this.lines.forEach((line, li) => {
+      const ids = new Set(line.marbles.filter((m) => m.s >= 0 && !m.stone && m.colour === colour).map((m) => m.id));
+      const lineEvents: LineEvent[] = [];
+      line.popIds(ids, 0, null, lineEvents);
+      for (const e of lineEvents) this.onLineEvent(line, li, e, events);
+    });
+  }
+
+  /** Orchard levels: now and then a windfall rolls across, clear of the gecko's branch. */
+  private stepFruit(dt: number, events: BoardEvent[]): void {
+    this.fruits = this.fruits.filter((f) => rollFruit(f, dt));
+    if (!this.level.fruit || this.filled) return;
+    this.fruitClock += dt;
+    if (this.fruitClock < FRUIT_EVERY) return;
+    this.fruitClock = 0;
+    const bottom = this.rail ? this.gecko.y - 140 : BOARD.h - 110;
+    const fruit = spawnFruit(this.rng, this.ids++, 110, bottom);
+    this.fruits.push(fruit);
+    events.push({ type: 'windfall', fruit });
+  }
+
+  /** A shot that hits a windfall: points, and one of the level's charms. */
+  private hitFruit(shot: Shot, events: BoardEvent[]): boolean {
+    const f = this.fruits.find((q) => Math.hypot(q.x - shot.x, q.y - shot.y) < FRUIT_HIT);
+    if (!f) return false;
+    this.fruits = this.fruits.filter((q) => q !== f);
+    this.addScore(FRUIT_POINTS, events);
+    events.push({ type: 'fruit', x: f.x, y: f.y, kind: f.kind, points: FRUIT_POINTS });
+    const charms = this.level.charms;
+    if (charms.length) {
+      const charm = charms[Math.floor(this.rng() * charms.length)]!;
+      events.push({ type: 'charm', charm, x: f.x, y: f.y });
+      if (charm === 'burst') this.burstArmed = true;
+      else this.arm(charm, f, shot.colour, events);
+    }
+    return true;
   }
 
   /** Pops every marble within Burst's reach of `at`, on every line. */
@@ -457,7 +530,7 @@ export class Board {
       if (Math.abs(d.y - g.y) < 26 && Math.abs(d.x - g.x) < CATCH_HALF) {
         events.push({ type: 'caught', charm: d.charm, x: d.x, y: d.y });
         if (d.charm === 'burst') this.burstArmed = true;
-        else this.arm(d.charm, d, events);
+        else this.arm(d.charm, d, this.loaded, events);
         return false;
       }
       return d.y < BOARD.h + 40;
@@ -469,7 +542,7 @@ export class Board {
     if (this.rail || !this.level.charms.length) return;
     this.charmClock += dt;
     if (this.charmClock < CHARM_EVERY) return;
-    const open = this.lines.flatMap((line, li) => line.marbles.filter((m) => !m.charm && m.s > line.path.length * 0.08 && m.s < line.path.length * 0.8 && !this.covered(li, m.s)));
+    const open = this.lines.flatMap((line, li) => line.marbles.filter((m) => !m.charm && !m.stone && m.s > line.path.length * 0.08 && m.s < line.path.length * 0.8 && !this.covered(li, m.s)));
     if (!open.length) return;
     this.charmClock = 0;
     const m = open[Math.floor(this.rng() * open.length)]!;
@@ -519,6 +592,14 @@ export class Board {
     }
   }
 
+  /** The next marble out of a burrow: now and then a stone or a bud (if the level has them), else a colour. */
+  private spawnNext(behind: readonly ColourId[]): Spawned {
+    const colour = this.spawnColour(behind);
+    if (this.level.stones && this.rng() < this.level.stones) return { colour, stone: true };
+    if (this.level.buds && this.rng() < this.level.buds) return { colour, bud: true };
+    return { colour };
+  }
+
   /** A colour for the next marble out of a burrow: often the same as the one ahead, never a third alike. */
   private spawnColour(behind: readonly ColourId[]): ColourId {
     const [a, b] = behind;
@@ -529,6 +610,18 @@ export class Board {
     if (a && this.rng() < SAME_CHANCE) return a;
     return this.palette[Math.floor(this.rng() * this.palette.length)]!;
   }
+}
+
+/** The colour a Geode takes: the marble it hit, or its nearest neighbour that isn't a stone. */
+function wildColour(line: Line, index: number, fallback: ColourId): ColourId {
+  const ms = line.marbles;
+  for (let d = 0; d < ms.length; d++) {
+    for (const i of [index - d, index + d]) {
+      const m = ms[i];
+      if (m && !m.stone) return m.colour;
+    }
+  }
+  return fallback;
 }
 
 /** Whether distance `s` along a line's track lies in a gap between two of its marbles. */

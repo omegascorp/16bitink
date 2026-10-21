@@ -7,7 +7,7 @@ describe('the coach', () => {
     c.observe([], 0.1);
     expect(c.current(false)).toMatch(/Click/);
     expect(c.current(true)).toMatch(/Tap/);
-    c.observe([{ type: 'spit', x: 0, y: 0, colour: 'red', dragonfly: false }], 0.1);
+    c.observe([{ type: 'spit', x: 0, y: 0, colour: 'red', dragonfly: false, geode: false }], 0.1);
     expect(c.current(false)).not.toBeNull();
     c.observe([{ type: 'pop', x: 0, y: 0, colour: 'red', count: 3, combo: 0, points: 30, line: 0, marbles: [] }], 0.1);
     expect(c.current(false)).toBeNull();

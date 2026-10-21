@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { MARBLE_RES } from '../../art/marbleArt';
 import { BOIL } from '../../art/palette';
-import { DRAGONFLY_RES, TEX } from '../../art/textures';
+import { DRAGONFLY_RES, FRUIT_RES, TEX } from '../../art/textures';
 import type { Board } from '../../logic/board';
 import { CHARM_FADES_AFTER } from '../../logic/charms';
 import { D } from '../../logic/line';
@@ -13,9 +13,13 @@ const CATCH_UP = 16;
 const BLINK_FOR = 3;
 const TOKEN_RES = 3;
 
+/** Marbles are drawn under the tunnel covers (5.5), except where carried over a crossing. */
+const DEPTH = { marble: 4, bud: 4.2, mark: 5, raised: 5.7, raisedBud: 5.75, raisedMark: 5.8 } as const;
+
 interface Shown {
   readonly img: Phaser.GameObjects.Image;
   mark: Phaser.GameObjects.Image | null;
+  bud: Phaser.GameObjects.Image | null;
   s: number;
   seen: boolean;
 }
@@ -25,6 +29,7 @@ export class MarblesView {
   private readonly marbles = new Map<number, Shown>();
   private readonly shots = new Map<number, Phaser.GameObjects.Image>();
   private readonly drops = new Map<number, Phaser.GameObjects.Image>();
+  private readonly fruits = new Map<number, Phaser.GameObjects.Image>();
 
   constructor(private readonly scene: Phaser.Scene) {}
 
@@ -36,12 +41,12 @@ export class MarblesView {
   sync(board: Board, dt: number, time: number): void {
     for (const m of this.marbles.values()) m.seen = false;
     const k = Math.min(1, dt * CATCH_UP);
-    for (const line of board.lines) {
+    board.lines.forEach((line, li) => {
       const L = line.path.length;
       for (const m of line.marbles) {
         let v = this.marbles.get(m.id);
         if (!v) {
-          v = { img: this.scene.add.image(0, 0, TEX.marble(m.colour, 0)).setScale(1 / MARBLE_RES).setDepth(4), mark: null, s: m.s, seen: true };
+          v = { img: this.scene.add.image(0, 0, TEX.marble(m.colour, 0)).setScale(1 / MARBLE_RES), mark: null, bud: null, s: m.s, seen: true };
           this.marbles.set(m.id, v);
         }
         v.seen = true;
@@ -52,19 +57,55 @@ export class MarblesView {
         const into = Phaser.Math.Clamp((L - v.s) / D + 0.35, 0, 1);
         const size = Math.min(out, into);
         const f = (Math.floor(time / 140) + m.id) % BOIL;
-        v.img.setTexture(TEX.marble(m.colour, f)).setPosition(p.x, p.y).setRotation(v.s / (D * 0.9))
-          .setScale(size / MARBLE_RES).setVisible(size > 0.05).setAlpha(Math.min(1, size * 1.5));
+        const up = board.raised(li, v.s);
+        v.img.setTexture(m.stone ? TEX.stone(f) : TEX.marble(m.colour, f)).setPosition(p.x, p.y).setRotation(v.s / (D * 0.9))
+          .setScale(size / MARBLE_RES).setVisible(size > 0.05).setAlpha(Math.min(1, size * 1.5)).setDepth(up ? DEPTH.raised : DEPTH.marble);
+        this.syncBud(v, m.bud === true, f, size, up);
         this.syncMark(v, m.charm, m.charmAge, p, size, time);
+        v.mark?.setDepth(up ? DEPTH.raisedMark : DEPTH.mark);
       }
-    }
+    });
     for (const [id, v] of this.marbles) {
       if (v.seen) continue;
       v.img.destroy();
       v.mark?.destroy();
+      v.bud?.destroy();
       this.marbles.delete(id);
     }
     this.syncShots(board, time);
     this.syncDrops(board, time);
+    this.syncFruit(board, time);
+  }
+
+  /** A bud closed over the marble, turning with it. */
+  private syncBud(v: Shown, bud: boolean, f: number, size: number, up: boolean): void {
+    if (!bud) {
+      v.bud?.destroy();
+      v.bud = null;
+      return;
+    }
+    v.bud ??= this.scene.add.image(0, 0, TEX.bud(0));
+    v.bud.setTexture(TEX.bud(f)).setPosition(v.img.x, v.img.y).setRotation(v.img.rotation).setScale(size / MARBLE_RES)
+      .setVisible(v.img.visible).setAlpha(v.img.alpha).setDepth(up ? DEPTH.raisedBud : DEPTH.bud);
+  }
+
+  /** Windfalls rolling across the board, rocking a little as they go (their shadow is painted on, so they don't spin). */
+  private syncFruit(board: Board, time: number): void {
+    const live = new Set<number>();
+    for (const fr of board.fruits) {
+      live.add(fr.id);
+      let img = this.fruits.get(fr.id);
+      if (!img) {
+        img = this.scene.add.image(fr.x, fr.y, TEX.fruit(fr.kind, 0)).setScale(1 / FRUIT_RES).setDepth(6.5);
+        this.fruits.set(fr.id, img);
+      }
+      img.setTexture(TEX.fruit(fr.kind, Math.floor(time / 150) % BOIL)).setPosition(fr.x, fr.y).setRotation(Math.sin(fr.x / 22) * 0.25);
+    }
+    for (const [id, img] of this.fruits) {
+      if (live.has(id)) continue;
+      img.destroy();
+      this.fruits.delete(id);
+    }
   }
 
   private syncMark(v: Shown, charm: string | null, age: number, p: { x: number; y: number }, size: number, time: number): void {
@@ -94,7 +135,7 @@ export class MarblesView {
       const f = Math.floor(time / (s.pierce ? 50 : 140)) % BOIL;
       // A Dragonfly flies nose first; a marble spins.
       if (s.pierce) img.setTexture(TEX.dragonfly(Math.floor(time / 35) % 2, f)).setPosition(s.x, s.y).setRotation(Math.atan2(s.vy, s.vx) + Math.PI / 2);
-      else img.setTexture(TEX.marble(s.colour, f)).setPosition(s.x, s.y).setRotation(time / 60);
+      else img.setTexture(s.wild ? TEX.geode(f) : TEX.marble(s.colour, f)).setPosition(s.x, s.y).setRotation(time / 60);
       if (s.burst) img.setTint(0xffd9a0);
     }
     for (const [id, img] of this.shots) {

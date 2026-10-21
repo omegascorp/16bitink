@@ -15,11 +15,14 @@ const TIME_RES = Number(params.get('res') ?? 2);
 const VIEW = 0.5;
 
 const ids = (prefix: string): string[] => Array.from({ length: 10 }, (_, i) => `${prefix}-${i + 1}`);
-const DRAFTS = ['The Greenhouse', 'The Orchard', 'The Rockery', 'The Allotment', 'The Wild Meadow', 'The Old Barn', 'The Ruins', 'The Night Garden'];
+const DRAFTS = ['The Allotment', 'The Wild Meadow', 'The Old Barn', 'The Ruins', 'The Night Garden'];
 const chapters: MapChapter[] = [
   { name: 'The Garden', place: 'garden', levelIds: ids('garden') },
   { name: 'The Pond', place: 'pond', levelIds: ids('pond') },
-  ...DRAFTS.map((name, i): MapChapter => ({ name, place: 'draft', levelIds: ids(`draft${i + 3}`) })),
+  { name: 'The Greenhouse', place: 'greenhouse', levelIds: ids('greenhouse') },
+  { name: 'The Orchard', place: 'orchard', levelIds: ids('orchard') },
+  { name: 'The Rockery', place: 'rockery', levelIds: ids('rockery') },
+  ...DRAFTS.map((name, i): MapChapter => ({ name, place: 'draft', levelIds: ids(`draft${i + 6}`) })),
 ];
 const layout = computeMapLayout(chapters);
 
@@ -164,10 +167,23 @@ function seams(): void {
   sheet.append(Object.assign(document.createElement('figcaption'), { textContent: lines.join('\n') }));
 }
 
-const [garden, pond, draft] = layout.regions;
+const [garden, pond, greenhouse, orchard, rockery, draft] = layout.regions;
+/** `?only=greenhouse,orchard…` limits the crops to those whose key is listed. */
+const only = params.get('only')?.split(',');
+const show = (key: string, title: string, y0: number, h: number): void => {
+  if (!only || only.includes(key)) crop(title, y0, h);
+};
 if (!params.has('crops')) wholeScroll();
 if (params.has('seams')) seams();
-crop('The Garden, full size: the terrace, wall and gate, the lower lawn', garden!.gate.y - 900, 1220);
-crop('The Garden into the Pond, full size', pond!.bottom - 700, 1100);
-crop('The Pond, full size: a bridge, the island, the top shore into the draft', pond!.top - 200, 1100);
-crop('The Greenhouse (draft), full size', draft!.top - 50, 900);
+const whole = (r: typeof garden): [number, number] => [r!.top - 40, r!.bottom - r!.top + 80];
+show('garden', 'The Garden, full size: the terrace, wall and gate, the lower lawn', garden!.gate.y - 900, 1220);
+show('pond', 'The Garden into the Pond, full size', pond!.bottom - 700, 1100);
+show('pond', 'The Pond, full size: a bridge, the island, the top shore', pond!.top - 200, 1100);
+show('pond-greenhouse', 'The Pond into the Greenhouse, full size: the top shore, the lawn, the glasshouse door', greenhouse!.bottom - 520, 1000);
+show('greenhouse', 'The Greenhouse, full size', ...whole(greenhouse));
+show('greenhouse-orchard', 'The Greenhouse into the Orchard, full size: the far door, the hedge and five-bar gate', orchard!.bottom - 520, 1000);
+show('orchard', 'The Orchard, full size', ...whole(orchard));
+show('orchard-rockery', 'The Orchard into the Rockery, full size: the last row, the dry-stone wall and standing stones', rockery!.bottom - 520, 1000);
+show('rockery', 'The Rockery, full size', ...whole(rockery));
+show('rockery-draft', 'The Rockery into the drafts, full size: the paint giving out into pencil', rockery!.top - 520, 1100);
+show('draft', 'The Allotment (draft), full size', draft!.top - 50, 900);

@@ -8,7 +8,7 @@ packages/game-sdk   The contract between site and games (GameModule, GameHost)
 games/inkfish       Phaser 4 game package: client game (src/) + server-only paid content (content/)
 games/inkcrab       Second game (prototype): hermit crab trading up through shells; design in docs/inkcrab-design.md
 games/inkmine       Third game: planet-hopping miner, chapter 1 free, chapters 2-3 (Mycel, Brine) in the $4.99 full game; design in docs/inkmine-design.md
-games/inkgecko      Fourth game (in progress, not in the catalog yet): Zuma/Luxor-style marble shooter, chapters 1 (free) and 2 (The Pond, full game) built; design in docs/inkgecko-design.md
+games/inkgecko      Fourth game (in progress, not in the catalog yet): Zuma/Luxor-style marble shooter, chapters 1 (free) and 2–5 (Pond, Greenhouse, Orchard, Rockery; full game) built; design in docs/inkgecko-design.md
 docs/               Research, tech & monetization decisions, art pipeline
 ```
 

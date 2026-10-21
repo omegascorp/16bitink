@@ -56,7 +56,7 @@ export class GameScene extends Phaser.Scene {
     this.add.tileSprite(-BOARD.w, -BOARD.h, BOARD.w * 3, BOARD.h * 3, TEX.paper).setOrigin(0).setDepth(0);
     this.add.image(0, 0, bakeBoard(this, this.level, placeOf(this.level.id))).setOrigin(0).setScale(1 / ART_RES).setDepth(1);
     // Tunnels lie over the marbles (and shots fly over them, under the gecko).
-    const covers = bakeCovers(this, this.level);
+    const covers = bakeCovers(this, this.level, placeOf(this.level.id));
     if (covers) this.add.image(0, 0, covers).setOrigin(0).setScale(1 / ART_RES).setDepth(5.5);
     this.fx = new FxView(this, this.board);
     this.marbles = new MarblesView(this);
@@ -213,7 +213,7 @@ export class GameScene extends Phaser.Scene {
     this.fx.react(e);
     if (e.type === 'spit') {
       this.gecko.spat(time);
-      sound?.play(e.dragonfly ? 'dragonfly' : 'spit');
+      sound?.play(e.dragonfly ? 'dragonfly' : e.geode ? 'crystal' : 'spit');
     } else if (e.type === 'hop') {
       this.gecko.hopped();
       sound?.play('hop');
@@ -221,7 +221,12 @@ export class GameScene extends Phaser.Scene {
       this.gecko.swapped();
       sound?.play('swap');
     } else if (e.type === 'stuck') sound?.play('stuck');
-    else if (e.type === 'pop') sound?.play('pop', { pitch: pitchForCombo(e.combo) });
+    else if (e.type === 'pop') {
+      sound?.play('pop', { pitch: pitchForCombo(e.combo) });
+      if (e.marbles.some((m) => m.stone)) sound?.play('crack');
+    } else if (e.type === 'blossom') sound?.play('blossom');
+    else if (e.type === 'windfall') sound?.play('thud');
+    else if (e.type === 'fruit') sound?.play('fruit');
     else if (e.type === 'pull') sound?.play('pull');
     else if (e.type === 'join') sound?.play('join');
     else if (e.type === 'gap') sound?.play('gap');

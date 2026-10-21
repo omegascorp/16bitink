@@ -76,6 +76,7 @@ export class GeckoView {
     this.lines.setTexture(TEX.geckoLines(pose, f));
     // A Dragonfly waiting to go sits on its snout instead of the marble.
     if (board.dragonfly) this.loaded.setTexture(TEX.dragonfly(Math.floor(time / 60) % 2, f)).setVisible(true);
+    else if (board.geode) this.loaded.setTexture(TEX.geode(f)).setVisible(true);
     else this.loaded.setTexture(TEX.marble(board.loaded, f)).setVisible(time >= this.spitUntil);
     this.next.setTexture(TEX.marble(board.next, f));
     // The skin eases to the loaded marble's colour.

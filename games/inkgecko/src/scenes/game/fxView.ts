@@ -77,12 +77,19 @@ export class FxView {
 
   react(e: BoardEvent): void {
     if (e.type === 'pop') {
-      for (const m of e.marbles) this.splash(m.x, m.y, m.colour);
+      for (const m of e.marbles) this.splash(m.x, m.y, m.colour, m.stone === true);
       this.say(e.x, e.y - 8, `+${e.points}`, 15);
       if (e.combo > 0) this.say(e.x, e.y - 30, `combo ×${e.combo + 1}!`, 20 + Math.min(e.combo, 4) * 3);
     } else if (e.type === 'streak') this.say(e.x, e.y + 22, `streak ${e.streak}!`, 16);
     else if (e.type === 'gap') this.say(e.x, e.y + 40, e.gaps > 1 ? `${e.gaps}-gap shot!` : 'gap shot!', 17);
     else if (e.type === 'charm') this.say(e.x, e.y - 50, `${CHARM_NAMES[e.charm]}!`, 22);
+    else if (e.type === 'blossom') {
+      this.bloom(e.x, e.y);
+      this.say(e.x, e.y - 28, e.count > 1 ? 'blossom ×' + e.count : 'blossom!', 17);
+    } else if (e.type === 'fruit') {
+      this.bloom(e.x, e.y);
+      this.say(e.x, e.y - 10, `+${e.points}`, 20);
+    }
     else if (e.type === 'caught') this.say(e.x, e.y - 40, `${CHARM_NAMES[e.charm]}!`, 22);
     else if (e.type === 'well') {
       this.say(e.x, e.y - 40, e.lives > 0 ? 'into the well! −1 life' : 'into the well!', 22, RED);
@@ -90,8 +97,16 @@ export class FxView {
     } else if (e.type === 'filled') this.say(640, 120, 'The burrows are shut: pop the rest!', 26);
   }
 
-  private splash(x: number, y: number, colour: Parameters<typeof TEX.splash>[0]): void {
+  /** Petals bursting open where a bud blossomed or a windfall was hit. */
+  private bloom(x: number, y: number): void {
+    const img = this.scene.add.image(x, y, TEX.bloom).setDepth(6.6).setScale(0.3 / SPLASH_RES).setRotation(Math.random() * Math.PI * 2);
+    this.scene.tweens.add({ targets: img, scale: 0.9 / SPLASH_RES, alpha: 0, duration: 700, ease: 'Quad.easeOut', onComplete: () => img.destroy() });
+  }
+
+  private splash(x: number, y: number, colour: Parameters<typeof TEX.splash>[0], stone = false): void {
     const img = this.scene.add.image(x, y, TEX.splash(colour)).setDepth(2).setScale(0.25 / SPLASH_RES).setRotation(Math.random() * Math.PI * 2).setAlpha(0.95);
+    // A stone breaks into grey grit, not paint.
+    if (stone) img.setTint(0x9a968c);
     this.scene.tweens.add({ targets: img, scale: 0.85 / SPLASH_RES, duration: 180, ease: 'Quad.easeOut' });
     this.scene.tweens.add({ targets: img, alpha: 0, delay: 500, duration: 900, onComplete: () => img.destroy() });
   }

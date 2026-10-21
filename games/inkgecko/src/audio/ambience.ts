@@ -1,12 +1,12 @@
 import { noise, noiseBuffer, tone, type Voice } from './synth';
 
-/** Where the player is, by ear: the garden (and the map), or the pond. */
-export type Bed = 'garden' | 'pond';
+/** Where the player is, by ear: a chapter's place (the map sounds like the garden). */
+export type Bed = 'garden' | 'pond' | 'greenhouse' | 'orchard' | 'rockery';
 
 /** How often the bed may add a creature's call, ms. */
 const TICK_MS = 700;
 /** Chance per tick of a call in each place. */
-const CALL_CHANCE: Readonly<Record<Bed, number>> = { garden: 0.16, pond: 0.2 };
+const CALL_CHANCE: Readonly<Record<Bed, number>> = { garden: 0.16, pond: 0.2, greenhouse: 0.22, orchard: 0.2, rockery: 0.24 };
 /** The rolling line at full rush, and how fast its loudness follows the line. */
 const ROLL_MAX = 0.32;
 const ROLL_TAU = 0.15;
@@ -30,6 +30,17 @@ function croak(v: Voice, rnd: () => number): void {
     tone(v, { type: 'square', from: f, to: f * 0.9, dur: 0.07, gain: 0.03, delay: i * 0.11 });
     noise(v, { dur: 0.07, gain: 0.05, filter: 'bandpass', from: f * 6, q: 6, delay: i * 0.11 });
   }
+}
+
+/** A wood pigeon in the orchard trees: a soft five-note coo. */
+function coo(v: Voice, rnd: () => number): void {
+  const f = 420 + rnd() * 40;
+  [0, 0.32, 0.52, 0.72, 1.1].forEach((t, i) => tone(v, { from: f * (i === 1 ? 1.08 : 1), to: f * 0.92, dur: i === 1 ? 0.28 : 0.16, gain: 0.05, delay: t, vibrato: { depth: 6, rate: 7 } }));
+}
+
+/** Water trickling over stones: a few quick bubbling drips. */
+function trickle(v: Voice, rnd: () => number): void {
+  for (let i = 0; i < 4 + Math.floor(rnd() * 4); i++) tone(v, { from: 900 + rnd() * 900, to: 600 + rnd() * 300, dur: 0.05, gain: 0.03, delay: i * (0.05 + rnd() * 0.07) });
 }
 
 /** Water dripping off a leaf into the pond. */
@@ -148,10 +159,20 @@ export class Ambience {
     lift.connect(this.bedGain);
     const voice = { ...v, out: lift };
     const r = Math.random;
+    const k = r();
     if (bed === 'pond') {
-      const k = r();
       if (k < 0.4) croak(voice, r);
       else if (k < 0.75) drip(voice, r);
+      else chirps(voice, r);
+    } else if (bed === 'greenhouse') {
+      // Condensation dripping off the glass, a bird outside now and then.
+      if (k < 0.8) drip(voice, r);
+      else chirps(voice, r);
+    } else if (bed === 'orchard') {
+      if (k < 0.35) coo(voice, r);
+      else chirps(voice, r);
+    } else if (bed === 'rockery') {
+      if (k < 0.65) trickle(voice, r);
       else chirps(voice, r);
     } else chirps(voice, r);
     setTimeout(() => lift.disconnect(), 2000);

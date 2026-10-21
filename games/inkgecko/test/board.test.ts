@@ -252,3 +252,67 @@ describe('the pond', () => {
     expect(b.dragonfly).toBe(true);
   });
 });
+
+describe('chapters 3–5', () => {
+  it('pops every marble of one colour with the Ink Pot', () => {
+    const level: LevelDef = { ...PIVOT, tracks: [{ points: [{ x: -20, y: 300 }, { x: 1300, y: 300 }] }, { points: [{ x: -20, y: 150 }, { x: 1300, y: 150 }] }] };
+    const b = quiet(level);
+    b.lines[0]!.lay(['red', 'blue', 'blue', 'green'], 300, true);
+    b.lines[1]!.lay(['blue', 'yellow', 'yellow', 'blue', 'red', 'red'], 300, true);
+    b.lines[0]!.marbles[1]!.charm = 'inkpot';
+    b.loaded = 'blue';
+    // Make the match on the near line: the pot's marble pops and the pot takes every other blue.
+    const events = run(b, 1, { ...NO_INPUT, aim: { x: b.marbleAt(b.lines[0]!, b.lines[0]!.marbles[2]!).x + D / 2, y: 300 }, fire: true });
+    expect(of(events, 'charm').map((e) => e.charm)).toEqual(['inkpot']);
+    for (const line of b.lines) expect(line.marbles.some((q) => q.colour === 'blue')).toBe(false);
+    expect(b.lines[1]!.marbles.length).toBe(4);
+  });
+
+  it('joins a Geode to the line as the colour it hits, keeping the loaded marble', () => {
+    const b = quiet();
+    b.lines[0]!.lay(['blue', 'green', 'green', 'blue'], 600, true);
+    b.loaded = 'blue';
+    b.geode = true;
+    const events = run(b, 1, { ...NO_INPUT, aim: { x: xOf(b, 1) + D / 2, y: 200 }, fire: true });
+    expect(of(events, 'spit')[0]!.geode).toBe(true);
+    expect(of(events, 'stuck')[0]!.colour).toBe('green');
+    expect(of(events, 'pop')[0]!.colour).toBe('green');
+    expect(b.loaded).toBe('blue');
+    expect(b.geode).toBe(false);
+  });
+
+  it('rolls fruit across orchard levels; a spit at one scores and gives a charm', () => {
+    const level: LevelDef = { ...PIVOT, fruit: true, charms: ['slow'] };
+    const b = quiet(level);
+    b.lines[0]!.lay(['blue', 'green', 'blue'], 100, true);
+    const events = run(b, 10.2);
+    expect(of(events, 'windfall')).toHaveLength(1);
+    const f = b.fruits[0]!;
+    // Freeze it in front of the gecko and spit at it.
+    f.x = 640;
+    const lead = { x: 640, y: f.y };
+    const hit = run(b, 1, { ...NO_INPUT, aim: lead, fire: true });
+    expect(of(hit, 'fruit')).toHaveLength(1);
+    expect(b.timers.slow).toBeGreaterThan(0);
+    expect(b.fruits).toHaveLength(0);
+  });
+
+  it('marks the stretches carried over a crossing as raised', () => {
+    const level: LevelDef = { ...PIVOT, tracks: [{ points: PIVOT.tracks[0]!.points, raised: [{ from: 0.4, to: 0.6 }] }] };
+    const b = quiet(level);
+    expect(b.raised(0, 660)).toBe(true);
+    expect(b.raised(0, 100)).toBe(false);
+    expect(b.covered(0, 660)).toBe(false);
+  });
+
+  it('spawns stones and buds at the level\'s shares', () => {
+    const level: LevelDef = { ...PIVOT, stones: 0.3, buds: 0.3, speed: 200 };
+    const b = new Board(level, 3);
+    run(b, 6);
+    const ms = b.lines[0]!.marbles;
+    expect(ms.some((m) => m.stone)).toBe(true);
+    expect(ms.some((m) => m.bud)).toBe(true);
+    expect(ms.some((m) => !m.bud && !m.stone)).toBe(true);
+  });
+});
+

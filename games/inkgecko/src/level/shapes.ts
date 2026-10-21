@@ -41,6 +41,27 @@ export function zigzag(x0: number, x1: number, y0: number, y1: number, rows: num
   return out;
 }
 
+/**
+ * A figure of eight round (cx, cy), crossing itself in the middle: `ax`
+ * out to each side, its lobes `ay` tall in all. Starts at angle `t0` and
+ * runs `turns` of the whole figure (1 = the full eight), clockwise in the
+ * right lobe when `dir` is 1.
+ */
+export function figure8(cx: number, cy: number, ax: number, ay: number, t0: number, turns: number, dir: 1 | -1 = 1): Pt[] {
+  const steps = Math.max(12, Math.round(turns * 32));
+  return Array.from({ length: steps + 1 }, (_, i) => {
+    const t = t0 + dir * (i / steps) * turns * Math.PI * 2;
+    return { x: round(cx + Math.sin(t) * ax), y: round(cy + Math.sin(t) * Math.cos(t) * ay) };
+  });
+}
+
+/** A shape turned by `a` radians round (cx, cy) (a figure of eight standing upright, say). */
+export function turned(points: readonly Pt[], cx: number, cy: number, a: number): Pt[] {
+  const c = Math.cos(a);
+  const s = Math.sin(a);
+  return points.map((p) => ({ x: round(cx + (p.x - cx) * c - (p.y - cy) * s), y: round(cy + (p.x - cx) * s + (p.y - cy) * c) }));
+}
+
 /** Points along a straight line, end excluded. */
 export function line(a: Pt, b: Pt, n: number): Pt[] {
   return Array.from({ length: n }, (_, i) => ({ x: round(a.x + ((b.x - a.x) * i) / n), y: round(a.y + ((b.y - a.y) * i) / n) }));

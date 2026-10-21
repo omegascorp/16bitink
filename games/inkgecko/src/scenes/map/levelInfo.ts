@@ -18,7 +18,14 @@ export function whatsNew(level: LevelDef, earlier: readonly LevelDef[]): string[
   const kinds = new Set(earlier.map((l) => l.shooter.kind));
   if (!kinds.has(level.shooter.kind)) out.push(level.shooter.kind === 'rail' ? 'A branch to run along' : level.shooter.kind === 'hop' ? 'Lily pads to hop between' : 'Standing still to aim');
   if (level.tracks.length > 1 && !earlier.some((l) => l.tracks.length > 1)) out.push('Two lines at once');
-  if (level.tracks.some((t) => t.tunnels?.length) && !earlier.some((l) => l.tracks.some((t) => t.tunnels?.length))) out.push('Tunnels');
+  const first = (has: (l: LevelDef) => boolean, label: string): void => {
+    if (has(level) && !earlier.some(has)) out.push(label);
+  };
+  first((l) => l.tracks.some((t) => t.tunnels?.length), 'Tunnels');
+  first((l) => l.tracks.some((t) => t.raised?.length), 'Crossing lines');
+  first((l) => l.fruit === true, 'Windfalls to spit');
+  first((l) => (l.buds ?? 0) > 0, 'Buds');
+  first((l) => (l.stones ?? 0) > 0, 'Stones');
   const most = Math.max(...earlier.map((l) => l.colours));
   if (level.colours > most) out.push(`${level.colours} colours`);
   const seen = new Set(earlier.flatMap((l) => l.charms));

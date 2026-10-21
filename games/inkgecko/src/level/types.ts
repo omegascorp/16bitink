@@ -20,14 +20,19 @@ export interface TunnelDef {
   readonly to: number;
 }
 
-/** One track: control points from the burrow to the well; the game draws a smooth curve through them. */
+/**
+ * One track: control points from the burrow to the well; the game draws a
+ * smooth curve through them. Where tracks cross, the lower one runs through
+ * a tunnel and the upper one is `raised` over it (drawn above the cover).
+ */
 export interface TrackDef {
   readonly points: readonly Pt[];
   readonly tunnels?: readonly TunnelDef[];
+  readonly raised?: readonly TunnelDef[];
 }
 
 /** What a level's first-time hints teach. */
-export type Teach = 'spit' | 'swap' | 'rail' | 'catch' | 'pull' | 'hop' | 'tunnel' | 'dragonfly';
+export type Teach = 'spit' | 'swap' | 'rail' | 'catch' | 'pull' | 'hop' | 'tunnel' | 'dragonfly' | 'cross' | 'inkpot' | 'fruit' | 'bud' | 'stone' | 'geode';
 
 export interface LevelDef {
   /** Permanent: saves are keyed by it. */
@@ -46,4 +51,10 @@ export interface LevelDef {
   /** Charms that can turn up in this level. */
   readonly charms: readonly CharmId[];
   readonly teach?: readonly Teach[];
+  /** Fruit rolls across the board now and then: spit it for points and a charm (the orchard). */
+  readonly fruit?: boolean;
+  /** Share of new marbles that come out closed in a bud, 0..0.4 (they blossom beside a match before they can pop). */
+  readonly buds?: number;
+  /** Share of new marbles that are stones, 0..0.4 (never match; break when a pop happens beside them). */
+  readonly stones?: number;
 }

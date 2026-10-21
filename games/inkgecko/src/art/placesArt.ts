@@ -1,8 +1,16 @@
+import type { Place } from '../level/levels';
 import { createRng } from '../logic/rng';
 import { paintGarden } from './garden';
+import { paintGreenhouse } from './greenhouse';
+import { brickDeck, drainPipe, GREENHOUSE_BED, upturnedSaucer } from './greenhouseParts';
+import type { GroundKeep } from './keep';
+import { paintOrchard } from './orchard';
+import { ORCHARD_BED, orchardCover, plankDeck, treeStump } from './orchardParts';
 import { paintPond, type PondKeep } from './pond';
 import { padRing, seatPad } from './pondLife';
-import { paintTunnel } from './tunnel';
+import { paintRockery } from './rockery';
+import { ROCKERY_BED, slabBridge, stepStone, stoneDeck } from './rockeryParts';
+import { type DeckPainter, paintRaised, paintTunnel } from './tunnel';
 import { bezier, closed, type Draw, oval, pt, ribbon, shade, TAU } from './kit';
 import { LEAF, MOSS, PAPER_FILL, STONE, STONE_DARK } from './palette';
 import { makeCanvas, type Pt } from './pen';
@@ -344,7 +352,7 @@ export function drawGarden(d: Draw, w: number, h: number): void {
  * groove centre lines and pad centres) so no water or coping comes near
  * them; pondReach with the same `keep` says where the water is.
  */
-export function drawPond(d: Draw, w: number, h: number, keep: PondKeep): void {
+export function drawPond(d: Draw, w: number, h: number, keep: PondKeep | GroundKeep): void {
   paintPond(d, w, h, keep);
 }
 
@@ -355,13 +363,55 @@ export const TUNNEL_MAX = 400;
 /**
  * A cover over a stretch of track, for a transparent layer drawn ABOVE the
  * marbles: `pts` is the stretch of the track's centre line (BOARD
- * coordinates, every ~4 units). A mossy hollow log on a nearly straight
- * stretch, a mossy stone-slab footbridge along a curve; either fully
+ * coordinates, every ~4 units). Garden and pond: a mossy hollow log on a
+ * nearly straight stretch, a mossy stone-slab footbridge along a curve.
+ * Greenhouse: a salt-glazed drain pipe in jointed sections. Orchard: a
+ * hollow log on a straight, a row of upturned apple crates along a curve.
+ * Rockery: rough stone slabs laid across like a clapper bridge. Each fully
  * covers a band at least TRACK_W + 22 wide, ends included, and shades the groove
  * just outside each end where the marbles roll in and out.
  */
-export function drawTunnel(d: Draw, pts: readonly Pt[]): void {
-  paintTunnel(d, pts, TRACK_W);
+export function drawTunnel(d: Draw, pts: readonly Pt[], place: Place = 'pond'): void {
+  if (place === 'greenhouse') drainPipe(d, pts, TRACK_W);
+  else if (place === 'orchard') orchardCover(d, pts, TRACK_W);
+  else if (place === 'rockery') slabBridge(d, pts, TRACK_W);
+  else paintTunnel(d, pts, TRACK_W);
+}
+
+/** Each place's deck for a raised groove, and the ground tone under the groove on it. */
+const DECKS: Readonly<Record<Place, readonly [DeckPainter, string]>> = {
+  garden: [stoneDeck, ROCKERY_BED],
+  pond: [stoneDeck, ROCKERY_BED],
+  greenhouse: [brickDeck, GREENHOUSE_BED],
+  orchard: [plankDeck, ORCHARD_BED],
+  rockery: [stoneDeck, ROCKERY_BED],
+};
+
+/**
+ * Where one track rolls over another (a crossing): the upper groove's
+ * stretch `pts` (its centre line, BOARD coordinates every ~4 units, ~60–220
+ * long and roughly straight) carried over the cover below on a little deck —
+ * brick causeway (greenhouse), plank bridge (orchard), stone slabs (rockery,
+ * garden, pond). For the covers layer, drawn AFTER the tunnels; marbles on
+ * it are drawn above it. The groove runs across it at TRACK_W and fades into
+ * the same groove on the ground at both ends.
+ */
+export function drawRaised(d: Draw, pts: readonly Pt[], place: Place): void {
+  const [deck, bed] = DECKS[place];
+  paintRaised(d, pts, TRACK_W, deck, drawTrack, bed);
+}
+
+/**
+ * A level's ground for its place, in BOARD coordinates 0..w × 0..h. Every
+ * place but the garden keeps its water and big or raised features clear of
+ * `keep` (the level's groove centre lines and pad centres).
+ */
+export function drawGround(d: Draw, place: Place, w: number, h: number, keep: GroundKeep): void {
+  if (place === 'pond') paintPond(d, w, h, keep);
+  else if (place === 'greenhouse') paintGreenhouse(d, w, h, keep);
+  else if (place === 'orchard') paintOrchard(d, w, h, keep);
+  else if (place === 'rockery') paintRockery(d, w, h, keep);
+  else paintGarden(d, w, h);
 }
 
 /** Radius of a lily pad the gecko sits on (hop levels). */
@@ -375,6 +425,19 @@ export const PAD_R = 58;
  */
 export function drawLilyPad(d: Draw, x: number, y: number, r: number = PAD_R, inPool = true): void {
   seatPad(d, pt(x, y), r, inPool);
+}
+
+/**
+ * The spot a gecko hops between on hop levels, centred at x, y (BOARD
+ * coordinates), PAD_R across: a lily pad in its pool (pond, garden), an
+ * upturned terracotta saucer (greenhouse), a sawn stump with its rings
+ * (orchard), a big flat stepping stone set in gravel (rockery).
+ */
+export function drawPad(d: Draw, place: Place, x: number, y: number): void {
+  if (place === 'greenhouse') upturnedSaucer(d, pt(x, y), PAD_R);
+  else if (place === 'orchard') treeStump(d, pt(x, y), PAD_R);
+  else if (place === 'rockery') stepStone(d, pt(x, y), PAD_R);
+  else seatPad(d, pt(x, y), PAD_R, true);
 }
 
 /** A faint dotted ink ring round a pad the gecko can hop to, radius a little beyond r. */

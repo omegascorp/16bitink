@@ -1,14 +1,19 @@
 import { drawGeckoLines, drawGeckoSkin, GECKO_FRAME, GECKO_MOUTH, GECKO_RES, GECKO_TAIL, type GeckoPose } from '../src/art/geckoArt';
 import { DRAGONFLY_FRAME, drawDragonfly } from '../src/art/dragonflyArt';
+import { drawBloom, drawBud, drawFruit, drawGeode, drawStone, FRUIT_FRAME, FRUITS } from '../src/art/propsArt';
 import { makeDraw, type Draw } from '../src/art/kit';
 import { drawCharmMark, drawCharmToken, drawMarble, drawSplash, MARBLE_FRAME, MARBLE_R, MARBLE_RES, SPLASH_FRAME, TOKEN_FRAME } from '../src/art/marbleArt';
 import { ART_RES, BOIL } from '../src/art/palette';
 import { makeCanvas, type Pt } from '../src/art/pen';
-import { BURROW_FRAME, drawBranch, drawBurrow, drawGarden, drawLilyPad, drawPadRing, drawPond, drawTrack, drawTunnel, drawWell, PAD_R, WELL_FRAME } from '../src/art/placesArt';
+import { BURROW_FRAME, drawBranch, drawBurrow, drawGarden, drawGround, drawLilyPad, drawPad, drawPadRing, drawPond, drawRaised, drawTrack, drawTunnel, drawWell, PAD_R, WELL_FRAME } from '../src/art/placesArt';
+import type { Place } from '../src/level/levels';
+import { CHAPTER_3 } from '../src/level/chapter3';
+import { CHAPTER_4 } from '../src/level/chapter4';
+import { CHAPTER_5 } from '../src/level/chapter5';
 import { KEEP_NOTHING, type PondKeep, pondReach } from '../src/art/pond';
 import { CHAPTER_2 } from '../src/level/chapter2';
 import { line, spiral as spiralOf } from '../src/level/shapes';
-import { buildPath, type Path } from '../src/logic/path';
+import { buildPath, crossings, type Path } from '../src/logic/path';
 import { CHARMS, type CharmId } from '../src/logic/charms';
 import { COLOUR_WASH, COLOURS, type ColourId } from '../src/logic/colours';
 
@@ -400,4 +405,257 @@ if (pondLevels) for (const level of CHAPTER_2) {
     keep.pads.forEach((p, i) => drawLilyPad(dr(ctx, 700 + i, 0), p.x, p.y));
   });
   canvas.parentElement!.querySelector('figcaption')!.textContent = `${level.id}: ${ms.toFixed(0)} ms · groove points with water within 46: ${wetPoints(keep, W, H, 46)}`;
+}
+
+// ——— Props (chapters 3–5): fruit, buds and blooms, stones, the Geode shot, the Ink Pot and Geode charms ———
+/** Texture px per unit each prop is baked at (as recommended for textures.ts). */
+const PROP_RES = { fruit: 3, marble: MARBLE_RES, bloom: 3 } as const;
+const MF = MARBLE_FRAME;
+
+/** A marble with something drawn over it (a bud), as the game layers them. */
+const budded = (c: ColourId, f: number) => (ctx: CanvasRenderingContext2D): void => {
+  drawMarble(dr(ctx, 900 + f, f), c);
+  drawBud(dr(ctx, 910 + f, f));
+};
+
+const propFruit = section('props', 'fruit: apple, pear, plum, boil frames 0–2, big');
+if (propFruit) for (const kind of FRUITS) {
+  for (let f = 0; f < BOIL; f++) figure(propFruit, `${kind} f${f}`, FRUIT_FRAME * 5, FRUIT_FRAME * 5, 220, framed(FRUIT_FRAME, 5, (ctx) => drawFruit(dr(ctx, 800 + f, f), kind)));
+}
+const propBuds = section('props', 'buds over each colour (big), then boil frames on red');
+if (propBuds) {
+  COLOURS.forEach((c, i) => figure(propBuds, c, MF * 5, MF * 5, 170, framed(MF, 5, (ctx) => {
+    ctx.rotate(i * 0.7);
+    budded(c, 0)(ctx);
+  })));
+  for (let f = 0; f < BOIL; f++) figure(propBuds, `f${f}`, MF * 5, MF * 5, 170, framed(MF, 5, budded('red', f)));
+}
+const propBloom = section('props', 'bloom (a bud blossoming), boil frames, big');
+if (propBloom) for (let f = 0; f < 2; f++) figure(propBloom, `bloom f${f}`, SPLASH_FRAME * 4, SPLASH_FRAME * 4, 260, framed(SPLASH_FRAME, 4, (ctx) => drawBloom(dr(ctx, 920 + f, f))));
+const propStones = section('props', 'stones (whole, cracked) and the Geode shot, boil frames, beside marbles');
+if (propStones) {
+  for (let f = 0; f < BOIL; f++) figure(propStones, `stone f${f}`, MF * 5, MF * 5, 170, framed(MF, 5, (ctx) => drawStone(dr(ctx, 930 + f, f), false)));
+  for (let f = 0; f < BOIL; f++) figure(propStones, `cracked f${f}`, MF * 5, MF * 5, 170, framed(MF, 5, (ctx) => drawStone(dr(ctx, 940 + f, f), true)));
+  for (let f = 0; f < BOIL; f++) figure(propStones, `geode f${f}`, MF * 5, MF * 5, 170, framed(MF, 5, (ctx) => drawGeode(dr(ctx, 950 + f, f))));
+  for (const c of ['blue', 'purple', 'teal'] as const) figure(propStones, c, MF * 5, MF * 5, 170, framed(MF, 5, (ctx) => drawMarble(dr(ctx, 960, 0), c)));
+}
+const propMarks = section('props', 'Ink Pot and Geode marks on every colour, and their tokens');
+if (propMarks) for (const charm of ['inkpot', 'geode'] as const) {
+  for (const c of COLOURS) figure(propMarks, `${charm} on ${c}`, MF * MARBLE_RES, MF * MARBLE_RES, 110, framed(MF, MARBLE_RES, (ctx) => {
+    drawMarble(dr(ctx, 970, 0), c);
+    drawCharmMark(dr(ctx, 971, 0), charm);
+  }));
+  for (let f = 0; f < BOIL; f++) figure(propMarks, `${charm} token f${f}`, TOKEN_FRAME * 4, TOKEN_FRAME * 4, 130, framed(TOKEN_FRAME, 4, (ctx) => drawCharmToken(dr(ctx, 975 + f, f), charm)));
+}
+
+/** Everything baked at its texture res and drawn at board size on paper, as in game (shown 1 and 2 css px per unit). */
+const propGame = section('props', 'at game size: a line of marbles with buds, stones and a geode; fruit; marks; blooms (1× and 2× board px)');
+if (propGame) {
+  const W = 620;
+  const H = 150;
+  const sprite = (units: number, res: number, draw: (ctx: CanvasRenderingContext2D) => void): HTMLCanvasElement => bake(units, res, draw);
+  const marbleTex = COLOURS.map((c) => sprite(MF, PROP_RES.marble, (ctx) => drawMarble(dr(ctx, 980, 0), c)));
+  const budTex = sprite(MF, PROP_RES.marble, (ctx) => drawBud(dr(ctx, 981, 0)));
+  const stoneTex = [false, true].map((k) => sprite(MF, PROP_RES.marble, (ctx) => drawStone(dr(ctx, 982, 0), k)));
+  const geodeTex = sprite(MF, PROP_RES.marble, (ctx) => drawGeode(dr(ctx, 983, 0)));
+  const markTex = (['inkpot', 'geode'] as const).map((ch) => sprite(MF, PROP_RES.marble, (ctx) => drawCharmMark(dr(ctx, 984, 0), ch)));
+  const fruitTex = FRUITS.map((k) => sprite(FRUIT_FRAME, PROP_RES.fruit, (ctx) => drawFruit(dr(ctx, 985, 0), k)));
+  const bloomTex = sprite(SPLASH_FRAME, PROP_RES.bloom, (ctx) => drawBloom(dr(ctx, 986, 0)));
+  for (const scale of [1, 2]) {
+    figure(propGame, `${scale}×`, W * ART_RES, H * ART_RES, W * scale, (ctx) => {
+      ctx.scale(ART_RES, ART_RES);
+      ctx.fillStyle = '#efe6cc';
+      ctx.fillRect(0, 0, W, H);
+      const put = (tex: HTMLCanvasElement, res: number, x: number, y: number, rot = 0): void => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rot);
+        ctx.scale(1 / res, 1 / res);
+        ctx.drawImage(tex, -tex.width / 2, -tex.height / 2);
+        ctx.restore();
+      };
+      // The line: marbles, every other one budded, stones among them, the geode shot nearby.
+      const step = MARBLE_R * 2;
+      for (let i = 0; i < 16; i++) {
+        const x = 30 + i * step;
+        const rot = i * 0.9;
+        if (i % 5 === 3) put(stoneTex[i % 2]!, PROP_RES.marble, x, 40, rot);
+        else {
+          put(marbleTex[i % COLOURS.length]!, PROP_RES.marble, x, 40, rot);
+          if (i % 2 === 0) put(budTex, PROP_RES.marble, x, 40, rot);
+          if (i === 7) put(markTex[0]!, PROP_RES.marble, x, 40);
+          if (i === 11) put(markTex[1]!, PROP_RES.marble, x, 40);
+        }
+      }
+      put(geodeTex, PROP_RES.marble, 560, 40);
+      fruitTex.forEach((t, i) => put(t, PROP_RES.fruit, 50 + i * 60, 108, i * 0.6));
+      put(bloomTex, PROP_RES.bloom, 260, 105);
+      put(bloomTex, PROP_RES.bloom, 340, 105, 1.1);
+      put(budTex, PROP_RES.marble, 420, 108);
+    });
+  }
+}
+
+/** Where track `over` first crosses track `under`: the distance along each. */
+function firstCrossing(over: Path, under: Path): { sOver: number; sUnder: number } | null {
+  for (let i = 0; i + 1 < over.pts.length; i++) {
+    const hits = crossings(under, over.pts[i]!, over.pts[i + 1]!);
+    if (hits.length > 0) return { sOver: over.cum[i]!, sUnder: hits[0]! };
+  }
+  return null;
+}
+
+/** Draws a marble at each `every`-th point of pts. */
+function marblesAlong(ctx: CanvasRenderingContext2D, pts: readonly Pt[], seed: number, every = 8): void {
+  for (let i = 0; i < pts.length; i += every) {
+    ctx.save();
+    ctx.translate(pts[i]!.x, pts[i]!.y);
+    ctx.rotate(i * 0.9);
+    drawMarble(dr(ctx, seed + i, 0), COLOURS[(i * 5 + (i >> 1)) % 5]!);
+    ctx.restore();
+  }
+}
+
+/**
+ * A chapter 3–5 board: the place's ground round a spiral track that passes
+ * near the edges and a second track crossing it, one plain tunnel, the
+ * crossing (a tunnel on the lower stretch, a raised deck on the upper), two
+ * pads with the gecko on one, marbles throughout.
+ */
+function placeBoard(place: Place, seed: number): void {
+  const row = section(place, `${place}: ground, spiral track near the edges, a tunnel, a crossing (tunnel below, raised deck above), two pads (ART_RES)`);
+  if (!row) return;
+  const W = 1280;
+  const H = 720;
+  const times: string[] = [];
+  const canvas = figure(row, '', W * ART_RES, H * ART_RES, W, (ctx) => {
+    ctx.scale(ART_RES, ART_RES);
+    const a = buildPath([...line({ x: 1320, y: 70 }, { x: 900, y: 70 }, 4), ...spiralOf(620, 390, 300, 120, 1.25, -Math.PI / 2 - 0.35, -1, 1.82, 1)]);
+    const b = buildPath([{ x: -30, y: 280 }, { x: 110, y: 300 }, { x: 220, y: 330 }, { x: 290, y: 350 }]);
+    const pads: Pt[] = [{ x: 560, y: 400 }, { x: 760, y: 360 }];
+    const keep = { grooves: [a.pts, b.pts], pads };
+    let t = performance.now();
+    drawGround(dr(ctx, seed, 0), place, W, H, keep);
+    times.push(`${place} ${(performance.now() - t).toFixed(0)} ms`);
+    drawTrack(dr(ctx, seed + 1, 0), a.pts);
+    drawTrack(dr(ctx, seed + 2, 0), b.pts);
+    pads.forEach((p, i) => {
+      drawPad(dr(ctx, seed + 3 + i, 0), place, p.x, p.y);
+      drawPadRing(dr(ctx, seed + 5 + i, 0), p.x, p.y, PAD_R);
+    });
+    for (const end of [a.pts[a.pts.length - 1]!, b.pts[b.pts.length - 1]!]) {
+      ctx.save();
+      ctx.translate(end.x, end.y);
+      drawWell(dr(ctx, seed + 7, 0));
+      ctx.restore();
+    }
+    const cross = firstCrossing(a, b);
+    const onDeck = cross ? stretch(a, cross.sOver - 90, cross.sOver + 90) : [];
+    marblesAlong(ctx, a.pts.filter((p) => !onDeck.includes(p)), seed + 10);
+    marblesAlong(ctx, b.pts, seed + 300, 9);
+    ctx.save();
+    ctx.translate(pads[0]!.x, pads[0]!.y);
+    loadedGecko(ctx, 'teal', 'red', 0);
+    ctx.restore();
+    // Covers: a plain tunnel, then the crossing's tunnel and deck, then marbles on the deck.
+    const layer = makeCanvas(W * ART_RES, H * ART_RES);
+    layer.ctx.scale(ART_RES, ART_RES);
+    t = performance.now();
+    drawTunnel(dr(layer.ctx, seed + 20, 0), stretch(a, 1250, 1520), place);
+    if (cross) {
+      drawTunnel(dr(layer.ctx, seed + 21, 0), stretch(b, cross.sUnder - 70, cross.sUnder + 70), place);
+      drawRaised(dr(layer.ctx, seed + 22, 0), onDeck, place);
+    }
+    times.push(`covers ${(performance.now() - t).toFixed(0)} ms`);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(layer.canvas, 0, 0);
+    ctx.restore();
+    marblesAlong(ctx, onDeck, seed + 600);
+  });
+  canvas.parentElement!.querySelector('figcaption')!.textContent = times.join(' · ');
+}
+placeBoard('greenhouse', 3000);
+placeBoard('orchard', 4000);
+placeBoard('rockery', 5000);
+
+const covers = section('covers', 'covers close up: each place\'s tunnel on a straight and a tight curve, and its raised deck over a crossing; pads');
+if (covers) {
+  const straight = Array.from({ length: 70 }, (_, i) => ({ x: 70 + i * 4, y: 120 + i * 0.5 }));
+  const curve = buildPath(spiralOf(180, 130, 95, 95, 0.5, Math.PI * 0.75, 1, 1, 1)).pts.slice();
+  for (const place of ['garden', 'greenhouse', 'orchard', 'rockery'] as const) {
+    for (const [label, pts] of [['straight', straight], ['curve', curve]] as const) {
+      figure(covers, `${place} ${label}`, 360 * 2, 260 * 2, 400, (ctx) => {
+        ctx.scale(2, 2);
+        ctx.translate(-460, -230);
+        drawGround(dr(ctx, 200, 0), place, 1280, 720, KEEP_NOTHING);
+        ctx.translate(460, 230);
+        drawTrack(dr(ctx, 243, 0), pts);
+        marblesAlong(ctx, pts, 250);
+        drawTunnel(dr(ctx, 244, 0), pts.slice(Math.round(pts.length * 0.25), Math.round(pts.length * 0.75)), place);
+      });
+    }
+    figure(covers, `${place} crossing`, 360 * 2, 260 * 2, 400, (ctx) => {
+      ctx.scale(2, 2);
+      ctx.translate(-460, -230);
+      drawGround(dr(ctx, 200, 0), place, 1280, 720, KEEP_NOTHING);
+      ctx.translate(460, 230);
+      const under = Array.from({ length: 80 }, (_, i) => ({ x: 20 + i * 4, y: 150 + Math.sin(i / 20) * 10 }));
+      const over = Array.from({ length: 62 }, (_, i) => ({ x: 150 + i * 1.2, y: 10 + i * 3.8 }));
+      drawTrack(dr(ctx, 245, 0), under);
+      drawTrack(dr(ctx, 246, 0), over);
+      marblesAlong(ctx, under, 260, 9);
+      drawTunnel(dr(ctx, 247, 0), under.slice(22, 52), place);
+      const deck = over.slice(8, 54);
+      drawRaised(dr(ctx, 248, 0), deck, place);
+      marblesAlong(ctx, deck, 270);
+    });
+    figure(covers, `${place} pad`, 220 * 3, 220 * 3, 300, framed(220, 3, (ctx) => {
+      ctx.translate(-110, -110);
+      drawGround(dr(ctx, 200, 0), place, 1280, 720, KEEP_NOTHING);
+      drawPad(dr(ctx, 249, 0), place, 110, 110);
+      drawPadRing(dr(ctx, 250, 0), 110, 110, PAD_R);
+      ctx.translate(110, 110);
+      loadedGecko(ctx, 'yellow', 'purple', 1);
+    }));
+  }
+}
+
+/** Each chapter 3–5 level as the game bakes it: ground for its keep, grooves, pads, then covers (tunnels, then raised decks). */
+for (const [place, levels] of [['greenhouse', CHAPTER_3], ['orchard', CHAPTER_4], ['rockery', CHAPTER_5]] as const) {
+  const row = section(`${place}-levels`, `${place} levels: each ground giving way round its grooves and pads, with its covers (ART_RES, shown small)`);
+  if (!row) continue;
+  for (const level of levels) {
+    const W = 1280;
+    const H = 720;
+    const paths = level.tracks.map((t) => buildPath(t.points));
+    const pads = level.shooter.kind === 'hop' ? level.shooter.pads : [];
+    let ms = 0;
+    let cms = 0;
+    const canvas = figure(row, '', W * ART_RES, H * ART_RES, 620, (ctx) => {
+      ctx.scale(ART_RES, ART_RES);
+      let t = performance.now();
+      drawGround(dr(ctx, 600, 0), place, W, H, { grooves: paths.map((p) => p.pts), pads });
+      ms = performance.now() - t;
+      paths.forEach((p, i) => drawTrack(dr(ctx, 640 + i, 0), p.pts));
+      pads.forEach((p, i) => {
+        drawPad(dr(ctx, 700 + i, 0), place, p.x, p.y);
+        drawPadRing(dr(ctx, 720 + i, 0), p.x, p.y, PAD_R);
+      });
+      const sh = level.shooter;
+      if (sh.kind === 'rail') drawBranch(dr(ctx, 680, 0), sh.x0 - 50, sh.x1 + 50, sh.y + 4);
+      const layer = makeCanvas(W * ART_RES, H * ART_RES);
+      layer.ctx.scale(ART_RES, ART_RES);
+      const part = (i: number, c: { from: number; to: number }): Pt[] => stretch(paths[i]!, c.from * paths[i]!.length, c.to * paths[i]!.length);
+      t = performance.now();
+      level.tracks.forEach((tr, i) => (tr.tunnels ?? []).forEach((c, k) => drawTunnel(dr(layer.ctx, 760 + i * 10 + k, 0), part(i, c), place)));
+      level.tracks.forEach((tr, i) => (tr.raised ?? []).forEach((c, k) => drawRaised(dr(layer.ctx, 800 + i * 10 + k, 0), part(i, c), place)));
+      cms = performance.now() - t;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(layer.canvas, 0, 0);
+      ctx.restore();
+    });
+    canvas.parentElement!.querySelector('figcaption')!.textContent = `${level.id}: ground ${ms.toFixed(0)} ms · covers ${cms.toFixed(0)} ms`;
+  }
 }

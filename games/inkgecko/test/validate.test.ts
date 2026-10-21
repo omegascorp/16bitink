@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { CHAPTER_1 } from '../src/level/chapter1';
 import { CHAPTER_2 } from '../src/level/chapter2';
+import { CHAPTER_3 } from '../src/level/chapter3';
+import { CHAPTER_4 } from '../src/level/chapter4';
+import { CHAPTER_5 } from '../src/level/chapter5';
 import { parseChapters } from '../src/level/validate';
 
 const wire = (v: unknown): unknown => JSON.parse(JSON.stringify(v));
@@ -9,6 +12,8 @@ describe('paid chapters from the server', () => {
   it('round-trips real levels', () => {
     expect(parseChapters(wire([CHAPTER_1]))).toEqual(wire([CHAPTER_1]));
     expect(parseChapters(wire([CHAPTER_2]))).toEqual(wire([CHAPTER_2]));
+    expect(parseChapters(wire([CHAPTER_3, CHAPTER_4, CHAPTER_5]))).toEqual(wire([CHAPTER_3, CHAPTER_4, CHAPTER_5]));
+    expect(() => parseChapters([[{ ...CHAPTER_1[0], stones: 0.9 }]])).toThrow();
   });
 
   it('throws out anything malformed', () => {

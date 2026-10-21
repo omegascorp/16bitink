@@ -37,6 +37,8 @@ Started Oct 21, 2026. Fourth game on 16bit.ink.
 | **Burst** | Pops every marble within 2½ marbles of it | Level 5 |
 | **Aim** | A dotted aim line and faster shots for 10 s | Level 7 |
 | **Dragonfly** | The next spit is a dragonfly that flies through the whole board, popping every marble it touches; the gecko keeps its marble | Level 13 |
+| **Ink Pot** | Pops every marble of one colour, on every line (the colour of the marble it rode on, or the gecko's) | Level 23 |
+| **Geode** | The next spit is a crystal that joins the line as the colour of whatever it hits; the gecko keeps its marble | Level 43 |
 
 On pivot levels a charm rides on a marble in the line; pop that marble to use it, and it fades after 12 s if you don't. On rail levels every third pop drops a charm, which falls past the gecko: run under it to catch it.
 
@@ -89,9 +91,60 @@ New: **lily pads** to hop between, **tunnels** (stretches of track under a mossy
 | 19 | The Weir | rail | a long, fast zigzag | 5 | |
 | 20 | Deep Water | hop, 3 pads | two spirals wound together | 5 | The chapter's final test |
 
+## Chapter 3: The Greenhouse (full game)
+
+New: **crossing tracks**. Where two lines (or one line and itself) cross, the earlier pass runs through a tunnel and the later one rolls over it on a raised deck; marbles in the tunnel are hidden, the ones on top can be hit (`level/cross.ts` finds the crossings and places both). The **Ink Pot** charm. Ground: an old glasshouse floor with the glazing bars' shadows.
+
+| # | Name | Gecko | Track | Colours | New |
+|---|---|---|---|---|---|
+| 21 | Potting Bench | rail | a figure of eight | 4 | Crossings |
+| 22 | Seed Trays | pivot (low) | an eight above the gecko | 4 | |
+| 23 | Ink Pot | pivot | a long spiral | 5 | Ink Pot charm |
+| 24 | Cold Frames | rail | two lines crossing in an X | 4 | Two lines crossing |
+| 25 | The Vine | hop, 2 | an eight above the pads | 5 | |
+| 26 | Tomato Rows | pivot | a U and an arch, crossing | 4 | |
+| 27 | Watering Can | rail | two upright eights | 5 | |
+| 28 | Glass Maze | pivot (low) | two lines crossing | 5 | |
+| 29 | Hot Bed | hop, 3 | a wide eight | 5 | |
+| 30 | The Palm House | pivot | 26's lines the other way round | 5 | Final test |
+
+## Chapter 4: The Orchard (full game)
+
+New: **windfalls** (apples, pears, plums) roll across the grass every 10 s or so; spit one for 100 points and a free charm. **Buds**: some marbles come out closed in a bud; in a match they blossom instead of popping, and pop with the next match. The gecko hops between tree stumps.
+
+| # | Name | Gecko | Colours | Buds | New |
+|---|---|---|---|---|---|
+| 31 | Windfalls | pivot | 4 | – | Windfalls |
+| 32 | Blossom | pivot | 4 | 15% | Buds |
+| 33 | The Ladder | rail | 4 | 10% | |
+| 34 | Stumps | hop, 2 | 5 | 12% | |
+| 35 | Apple Rows | pivot, 2 lines | 4 | 12% | |
+| 36 | The Pear Tree | rail, an eight | 5 | 15% | |
+| 37 | Plum Alley | hop, 3 | 5 | 18% | |
+| 38 | The Cider Press | pivot | 5 | 20% | |
+| 39 | Harvest | rail, 2 lines | 5 | 15% | |
+| 40 | The Old Pear | pivot, 2 spirals | 5 | 20% | Final test |
+
+## Chapter 5: The Rockery (full game)
+
+New: **stones** in the line match nothing and break when a pop happens right beside them; they also stop a gap rolling back. The **Geode** charm. The gecko hops between stepping stones; tunnels are stone slabs.
+
+| # | Name | Gecko | Colours | Stones | New |
+|---|---|---|---|---|---|
+| 41 | Gravel Path | pivot | 4 | 8% | Stones |
+| 42 | Stepping Stones | hop, 2 | 4 | 10% | |
+| 43 | The Geode | pivot | 5 | 10% | Geode charm |
+| 44 | Scree | rail, tunnels | 5 | 12% | |
+| 45 | Alpine Cushions | hop, 3, an eight | 5 | 12% | |
+| 46 | The Rill | pivot, 2 lines, tunnels | 5 | 14% | |
+| 47 | Boulder Run | rail, an eight | 5 | 15% | |
+| 48 | Saxifrage | hop, 3 | 5 | 16% | |
+| 49 | The Cairn | rail, long and fast | 5 | 18% | |
+| 50 | The Summit | hop, 3, 2 spirals | 5 | 18% | Final test |
+
 ## The map
 
-A vertical scroll: the estate's garden plan seen from above, which the gecko climbs from the garden by the house (chapter 1) to the night garden (chapter 10). A worn stone groove winds up through every chapter with a pocket for each level, a marble in it once reachable; each chapter has a gate and a name board at its foot. Chapters not built yet are pencil drafts; the full game's chapters are painted but locked until bought.
+A vertical scroll: the estate's garden plan seen from above, which the gecko climbs from the garden by the house (chapter 1) to the night garden (chapter 10). Chapters 1–5 are painted; 6–10 are pencil drafts until built (`BUILT_CHAPTERS`). A worn stone groove winds up through every chapter with a pocket for each level, a marble in it once reachable; each chapter has a gate and a name board at its foot. Chapters not built yet are pencil drafts; the full game's chapters are painted but locked until bought.
 
 - The gecko waits on the path below the level it's up to; after a win it walks up to the next one and the view follows.
 - Tapping a level opens its card: a picture of the board, how the gecko plays it, what's new in it, its blots and best time against par, and Play.

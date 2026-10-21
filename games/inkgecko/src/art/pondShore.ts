@@ -1,3 +1,4 @@
+import type { GroundKeep } from './keep';
 import { pt, TAU } from './kit';
 import type { Pt } from './pen';
 
@@ -9,11 +10,8 @@ import type { Pt } from './pen';
  * always keep clear of them. Board coordinates.
  */
 
-/** What the pond must leave dry on a level: its tracks' centre lines (every ~4 units) and the gecko's pads. */
-export interface PondKeep {
-  readonly grooves: readonly (readonly Pt[])[];
-  readonly pads: readonly Pt[];
-}
+/** What the pond must leave dry on a level: the shared GroundKeep (grooves' centre lines and the gecko's pads). */
+export type PondKeep = GroundKeep;
 
 /** Nothing to keep dry: the pond's own shape. */
 export const KEEP_NOTHING: PondKeep = { grooves: [], pads: [] };

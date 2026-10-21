@@ -9,7 +9,7 @@ const path = buildPath([{ x: 0, y: 0 }, { x: 2000, y: 0 }]);
 function makeLine(spawn: ColourId[] = []): Line {
   let id = 1;
   const queue = [...spawn];
-  return new Line(path, () => queue.shift() ?? 'red', () => id++);
+  return new Line(path, () => ({ colour: queue.shift() ?? 'red' }), () => id++);
 }
 
 /** Steps the line `seconds` at `speed`, collecting its events. */

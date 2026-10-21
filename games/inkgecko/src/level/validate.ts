@@ -10,7 +10,9 @@ const MAX_TRACKS = 4;
 const MAX_POINTS = 400;
 const MAX_PADS = 4;
 const MAX_TUNNELS = 6;
-const TEACH: readonly Teach[] = ['spit', 'swap', 'rail', 'catch', 'pull', 'hop', 'tunnel', 'dragonfly'];
+const TEACH: readonly Teach[] = ['spit', 'swap', 'rail', 'catch', 'pull', 'hop', 'tunnel', 'dragonfly', 'cross', 'inkpot', 'fruit', 'bud', 'stone', 'geode'];
+/** Most of a line that may be stones or buds. */
+const MAX_SHARE = 0.4;
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const num = (v: unknown, lo: number, hi: number): v is number => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
@@ -34,25 +36,44 @@ function tunnel(v: unknown): TunnelDef {
   return { from: v.from, to: v.to };
 }
 
+function stretches(v: unknown, what: string): TunnelDef[] | undefined {
+  if (v === undefined) return undefined;
+  if (!Array.isArray(v) || v.length > MAX_TUNNELS) throw new Error(`bad ${what}`);
+  return v.map(tunnel);
+}
+
 function track(v: unknown): TrackDef {
   if (!isObj(v) || !Array.isArray(v.points) || v.points.length < 2 || v.points.length > MAX_POINTS) throw new Error('bad track');
-  if (v.tunnels === undefined) return { points: v.points.map(point) };
-  if (!Array.isArray(v.tunnels) || v.tunnels.length > MAX_TUNNELS) throw new Error('bad tunnels');
-  return { points: v.points.map(point), tunnels: v.tunnels.map(tunnel) };
+  const tunnels = stretches(v.tunnels, 'tunnels');
+  const raised = stretches(v.raised, 'raised');
+  return { points: v.points.map(point), ...(tunnels ? { tunnels } : {}), ...(raised ? { raised } : {}) };
+}
+
+/** An optional share (of stones or buds) in 0..MAX_SHARE. */
+function share(v: unknown, id: string): number | undefined {
+  if (v === undefined) return undefined;
+  if (!num(v, 0, MAX_SHARE)) throw new Error(`${id}: bad share`);
+  return v;
 }
 
 function level(v: unknown): LevelDef {
   if (!isObj(v)) throw new Error('bad level');
-  const { id, name, tracks, colours, speed, goal, par, charms, teach } = v;
+  const { id, name, tracks, colours, speed, goal, par, charms, teach, fruit } = v;
   if (!str(id, /^[a-z0-9-]{1,64}$/) || !str(name, /^.{1,60}$/)) throw new Error('bad level id or name');
   if (!Array.isArray(tracks) || tracks.length < 1 || tracks.length > MAX_TRACKS) throw new Error(`${id}: bad tracks`);
   if (!num(colours, 2, COLOURS.length) || !Number.isInteger(colours)) throw new Error(`${id}: bad colours`);
   if (!num(speed, 5, 200) || !num(goal, 10, 100000) || !num(par, 1, 3600)) throw new Error(`${id}: bad numbers`);
   if (!Array.isArray(charms) || !charms.every((c): c is CharmId => (CHARMS as readonly unknown[]).includes(c))) throw new Error(`${id}: bad charms`);
   if (teach !== undefined && (!Array.isArray(teach) || !teach.every((t): t is Teach => (TEACH as readonly unknown[]).includes(t)))) throw new Error(`${id}: bad teach`);
+  if (fruit !== undefined && typeof fruit !== 'boolean') throw new Error(`${id}: bad fruit`);
+  const buds = share(v.buds, id);
+  const stones = share(v.stones, id);
   return {
     id, name, shooter: shooter(v.shooter), tracks: tracks.map(track), colours, speed, goal, par, charms,
     ...(teach ? { teach: teach as Teach[] } : {}),
+    ...(fruit !== undefined ? { fruit } : {}),
+    ...(buds !== undefined ? { buds } : {}),
+    ...(stones !== undefined ? { stones } : {}),
   };
 }
 

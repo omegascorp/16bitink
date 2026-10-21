@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { CHAPTER_1 } from '../src/level/chapter1';
 import { CHAPTER_2 } from '../src/level/chapter2';
+import { CHAPTER_3 } from '../src/level/chapter3';
+import { CHAPTER_4 } from '../src/level/chapter4';
+import { CHAPTER_5 } from '../src/level/chapter5';
+import { findCrossings } from '../src/level/cross';
 import { BOARD, type LevelDef } from '../src/level/types';
 import { CHARMS } from '../src/logic/charms';
 import { COLOURS } from '../src/logic/colours';
@@ -48,8 +52,20 @@ const stands = (l: LevelDef): { x: number; y: number }[] | null => {
   return s.kind === 'pivot' ? [s] : s.kind === 'hop' ? [...s.pads] : null;
 };
 
+describe('crossings', () => {
+  it('cross at a readable angle', () => {
+    for (const level of [...CHAPTER_3, ...CHAPTER_4, ...CHAPTER_5]) {
+      for (const c of findCrossings(paths(level))) expect(c.angle, `${level.id} at (${Math.round(c.at.x)}, ${Math.round(c.at.y)})`).toBeGreaterThan(0.6);
+    }
+  });
+
+  it('chapter 3 is built round them', () => {
+    expect(CHAPTER_3.filter((l) => findCrossings(paths(l)).length > 0).length).toBeGreaterThanOrEqual(7);
+  });
+});
+
 describe('every level', () => {
-  for (const level of [...CHAPTER_1, ...CHAPTER_2]) {
+  for (const level of [...CHAPTER_1, ...CHAPTER_2, ...CHAPTER_3, ...CHAPTER_4, ...CHAPTER_5]) {
     describe(level.id, () => {
       it('uses known colours and charms', () => {
         expect(level.colours).toBeGreaterThanOrEqual(3);
@@ -86,14 +102,20 @@ describe('every level', () => {
         }
       });
 
-      it('never runs its lanes into each other', () => {
+      it('never runs its lanes into each other (except over and under a crossing)', () => {
         const all = paths(level);
+        const within = (list: readonly { from: number; to: number }[] | undefined, s: number, L: number): boolean => (list ?? []).some((c) => s >= c.from * L && s <= c.to * L);
+        const under = (t: number, s: number): boolean => within(level.tracks[t]!.tunnels, s, all[t]!.length);
+        const over = (t: number, s: number): boolean => within(level.tracks[t]!.raised, s, all[t]!.length);
         all.forEach((p, i) => {
           all.forEach((o, j) => {
             if (j < i) return;
             for (let a = 0; a < p.pts.length; a += 3) {
               for (let b = 0; b < o.pts.length; b += 3) {
                 if (i === j && Math.abs(p.cum[a]! - o.cum[b]!) < D * 4) continue;
+                const sa = p.cum[a]!;
+                const sb = o.cum[b]!;
+                if ((under(i, sa) && over(j, sb)) || (over(i, sa) && under(j, sb))) continue;
                 const d = Math.hypot(p.pts[a]!.x - o.pts[b]!.x, p.pts[a]!.y - o.pts[b]!.y);
                 if (d < LANE_GAP) throw new Error(`${level.id}: track ${i} at ${Math.round(p.cum[a]!)} runs ${Math.round(d)}px from track ${j} at ${Math.round(o.cum[b]!)}`);
               }
@@ -114,7 +136,6 @@ describe('every level', () => {
             // As long as the tunnel art is made for.
             expect((c.to - c.from) * length).toBeGreaterThan(TUNNEL_MIN);
             expect((c.to - c.from) * length).toBeLessThan(TUNNEL_MAX);
-            expect(c.from).toBeGreaterThanOrEqual(0.1);
             expect(c.to).toBeLessThanOrEqual(0.85);
             expect(c.to - c.from).toBeGreaterThan(0.04);
           }

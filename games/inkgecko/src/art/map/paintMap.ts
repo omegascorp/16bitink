@@ -1,10 +1,15 @@
 import { type MapLayout, type MapNode, type MapRegion, regionAt } from '../../scenes/map/layout';
 import { makeDraw } from '../kit';
+import type { Band } from './band';
 import { drawFeatures, type Feature, type Geo, geoOf, seedOf, type Span, touches } from './common';
 import { draftPlan } from './draftBand';
 import { paintEnds } from './ends';
 import { type GardenPlan, gardenPlan, inBed, paintBeds } from './gardenBand';
 import { gardenWall, pencilGate, pencilSign, roseArch, signBoard } from './gates';
+import { greenhousePlan } from './greenhouseBand';
+import { orchardPlan } from './orchardBand';
+import { rockeryPlan } from './rockeryBand';
+import { greenhouseDoor, hedgeGate, stoneGap } from './thresholds';
 import { lawnMarks, paintLawn, paintPaper } from './ground';
 import { paintedGroove, pencilGroove, pencilPocket } from './groove';
 import { jointMoss, paintSlab, pathSlabs, pocketBed, pocketDimple, type Slab, slabTouches } from './paving';
@@ -40,6 +45,8 @@ interface Plan {
   readonly sheets: readonly Sheet[];
   readonly gardens: readonly GardenPlan[];
   readonly ponds: readonly PondPlan[];
+  /** Chapters 3 on (greenhouse, orchard, rockery), each painted by its own band. */
+  readonly bands: readonly Band[];
   readonly drafts: readonly Feature[];
   readonly path: readonly Slab[];
   readonly bridges: readonly (readonly [number, number])[];
@@ -52,6 +59,12 @@ const painted = (r: MapRegion): boolean => r.chapter.place !== 'draft';
 
 /** How far into a lawn's ragged top the painted groove stops and the pencil takes over. */
 const PAINT_STOP = 40;
+
+const BANDS: Partial<Record<MapRegion['chapter']['place'], (geo: Geo, r: MapRegion) => Band>> = {
+  greenhouse: greenhousePlan,
+  orchard: orchardPlan,
+  rockery: rockeryPlan,
+};
 
 function stretchesOf(geo: Geo, sheets: readonly Sheet[]): Stretch[] {
   const { layout, pts } = geo;
@@ -97,15 +110,33 @@ function planOf(layout: MapLayout): Plan {
   const regions = layout.regions;
   const gardens = regions.filter((r) => r.chapter.place === 'garden').map((r) => gardenPlan(geo, r));
   const ponds = regions.filter((r) => r.chapter.place === 'pond').map((r) => pondPlan(geo, r));
+  const bands = regions.flatMap((r) => {
+    const make = BANDS[r.chapter.place];
+    return make ? [make(geo, r)] : [];
+  });
   const drafts = regions.filter((r) => !painted(r)).flatMap((r) => draftPlan(geo, r));
   const bridges = ponds.flatMap((p) => p.bridges);
   const onBridge = (i: number): boolean => bridges.some(([a, b]) => i >= a - 3 && i <= b + 3);
   const sheets = sheetsOf(layout);
   // The paved path, over each lawn: from above the garden wall (or the sheet's foot) to below its ragged top.
-  const path = sheets.flatMap((s, k) => pathSlabs(geo, geo.index(s.bottom - 24), geo.index(s.top + 40), 5100 + k, onBridge));
-  const plan: Plan = { geo, stretches: stretchesOf(geo, sheets), sheets, gardens, ponds, drafts, path, bridges };
+  // Where a band lays its own floor (the glasshouse's tiled aisle), the paving stops short and starts again beyond.
+  const unpaved = bands.flatMap((b) => b.unpaved.map(([lo, hi]) => [geo.index(hi), geo.index(lo)] as const));
+  const path = sheets.flatMap((s, k) => pieces(geo.index(s.bottom - 24), geo.index(s.top + 40), unpaved).flatMap(([a, b], j) => pathSlabs(geo, a, b, 5100 + k * 16 + j, onBridge)));
+  const plan: Plan = { geo, stretches: stretchesOf(geo, sheets), sheets, gardens, ponds, bands, drafts, path, bridges };
   plans.set(layout, plan);
   return plan;
+}
+
+/** Index range a..b with the `holes` cut out of it. */
+function pieces(a: number, b: number, holes: readonly (readonly [number, number])[]): [number, number][] {
+  let out: [number, number][] = [[a, b]];
+  for (const [h0, h1] of holes) {
+    out = out.flatMap(([p, q]): [number, number][] => {
+      if (h1 <= p || h0 >= q) return [[p, q]];
+      return [...(h0 > p ? [[p, h0] as [number, number]] : []), ...(h1 < q ? [[h1, q] as [number, number]] : [])];
+    });
+  }
+  return out.filter(([p, q]) => q - p > 6);
 }
 
 /** Nodes whose pockets a chunk may touch, with room for a whole pen run of the groove beyond the span. */
@@ -132,15 +163,20 @@ export function paintMapChunk(ctx: CanvasRenderingContext2D, layout: MapLayout, 
     jointMoss(ctx, terrace, span);
     paintBeds(ctx, g.beds, span, 7300);
   }
+  const bands = plan.bands.filter((b) => b.region.top - 300 < span.y1 && b.region.bottom + 300 > span.y0);
+  for (const b of bands) b.ground(ctx, span);
   const wet = (x: number, y: number): boolean => plan.ponds.some((p) => p.inWater(x, y));
   const beds = plan.gardens.flatMap((g) => g.beds);
-  for (const s of plan.sheets) lawnMarks(ctx, geo, span, s.top, s.bottom - 20, (x, y) => wet(x, y) || inBed(beds, x, y, 6));
+  const bare = (x: number, y: number): boolean => bands.some((b) => y > b.region.top - 60 && y < b.region.bottom + 60 && b.bare(x, y));
+  for (const s of plan.sheets) lawnMarks(ctx, geo, span, s.top, s.bottom - 20, (x, y) => wet(x, y) || inBed(beds, x, y, 6) || bare(x, y));
   for (const p of plan.ponds) {
     paintWater(ctx, geo, p, span);
     drawFeatures(ctx, span, p.water);
     paintShores(ctx, p, span);
   }
   for (const g of plan.gardens) drawFeatures(ctx, span, g.under);
+  for (const b of bands) b.floor(ctx, span);
+  for (const b of bands) drawFeatures(ctx, span, b.under);
   // The path, the pockets' beds and the bridges, then the groove over them.
   const path = plan.path.filter((s) => slabTouches(span, s));
   path.forEach((s) => paintSlab(makeDraw(ctx, s.seed, 0, 0), s));
@@ -159,6 +195,7 @@ export function paintMapChunk(ctx: CanvasRenderingContext2D, layout: MapLayout, 
   // What stands up from the ground: reeds, trees, gates and name boards; then the pencil drafts.
   for (const p of plan.ponds) drawFeatures(ctx, span, p.banks);
   for (const g of plan.gardens) drawFeatures(ctx, span, g.over);
+  for (const b of bands) drawFeatures(ctx, span, b.over);
   for (const r of layout.regions) paintGate(ctx, r, span);
   drawFeatures(ctx, span, plan.drafts);
 }
@@ -170,6 +207,9 @@ function paintGate(ctx: CanvasRenderingContext2D, r: MapRegion, span: Span): voi
   const board = makeDraw(ctx, seedOf(6000, r.index, 2), 0, 0);
   if (r.chapter.place === 'garden') gardenWall(d, r.gate);
   else if (r.chapter.place === 'pond') roseArch(d, r.gate);
+  else if (r.chapter.place === 'greenhouse') greenhouseDoor(d, r.gate);
+  else if (r.chapter.place === 'orchard') hedgeGate(d, r.gate);
+  else if (r.chapter.place === 'rockery') stoneGap(d, r.gate);
   else pencilGate(d, r.gate);
   if (painted(r)) signBoard(board, r.sign);
   else pencilSign(board, r.sign);
