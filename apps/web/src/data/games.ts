@@ -169,6 +169,45 @@ export const GAMES: readonly CatalogGame[] = [
     ],
   },
   {
+    slug: 'inkgecko',
+    title: 'InkGecko',
+    tagline: 'Spit. Match three. Keep them from the well.',
+    kind: 'marble shooter game',
+    genre: ['Puzzle', 'Arcade', 'Casual'],
+    short: 'gecko',
+    description: [
+      'A marble shooter drawn in ballpoint pen. A gecko sits on a garden path and spits painted marbles into a line rolling towards an old well. Three of a colour pop, and when the colours either side of the gap match, the line rolls back for a combo.',
+      'Its skin turns the colour of the marble in its mouth. Ten gardens, from a lily pond and a greenhouse to an old barn and a garden at night, each with a new trick: tunnels, windfalls, twined pairs, chameleon marbles, bank shots off barn walls and broken columns to glance off.',
+    ],
+    status: 'playable',
+    cover: '/covers/inkgecko.png',
+    loop: true,
+    // Listed on the home page from this day (see isOut); its pages answer before that, for a look ahead of launch.
+    released: '2026-10-24',
+    updated: '2026-10-24',
+    size: { chapters: 10, levels: 100 },
+    demo: '10 levels free',
+    price: '$4.99',
+    stripeLookupKey: 'inkgecko_full',
+    theme: { paper: '#f5f0e1', ink: '#26316a', accent: '#5f8f4e' },
+    icon: 'inkgecko',
+    orientation: 'landscape',
+    fonts: { googleCss: 'family=Caveat:wght@500;700', await: ['32px Caveat'] },
+    features: [
+      'Garden 1 free: 10 levels, no sign-up',
+      'Full game: 90 more levels across 9 more gardens, each with its own new trick',
+      'One-time purchase: no subscription, no ads, no energy timers',
+    ],
+    controls: [
+      'Mouse / finger: aim and spit',
+      'Right-click, Space or tap the gecko: swap marbles',
+      'A / D or arrows: run along the branch; W / Enter: spit',
+      'Q / E or tap a lily pad: hop',
+      'Esc / P / ❚❚: pause',
+      'M / ♪: sound on/off',
+    ],
+  },
+  {
     slug: 'pixel-quill',
     title: 'Untitled #2',
     tagline: 'Still in the sketchbook.',
@@ -204,4 +243,18 @@ export function isNew(game: CatalogGame, now: Date): boolean {
   return age >= 0 && age < NEW_FOR_DAYS * DAY_MS;
 }
 
+/** Out by `now`: its release day has begun (UTC). Undated games are out. */
+export function isOut(game: CatalogGame, now: Date): boolean {
+  if (!game.released) return true;
+  const released = Date.parse(`${game.released}T00:00:00Z`);
+  return Number.isFinite(released) && now.getTime() >= released;
+}
+
+/**
+ * Every playable game, released or not: what the site serves, sells and
+ * counts. A game dated ahead can be played and bought by link before its day.
+ */
 export const playableGames = (): CatalogGame[] => GAMES.filter((g) => g.status === 'playable');
+
+/** What the home page and the sitemap list: playable games whose release day has come. */
+export const listedGames = (now: Date): CatalogGame[] => playableGames().filter((g) => isOut(g, now));

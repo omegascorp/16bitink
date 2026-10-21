@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findGame, playableGames } from '../src/data/games';
+import { findGame, listedGames, playableGames } from '../src/data/games';
 import { gameFaq, gameJsonLd, gameTitle, jsonLdScript, robotsTxt, siteJsonLd, sitemapXml } from '../src/lib/seo';
 
 const SITE = new URL('https://16bit.ink');
@@ -22,7 +22,9 @@ describe('robots.txt', () => {
 });
 
 describe('sitemap.xml', () => {
-  const xml = sitemapXml(SITE);
+  /** After every catalog game's release day. */
+  const LATER = new Date('2030-01-01T00:00:00Z');
+  const xml = sitemapXml(SITE, listedGames(LATER));
 
   it('lists the home page, the info pages and every playable game', () => {
     expect(xml).toContain('<loc>https://16bit.ink/</loc>');
@@ -37,6 +39,12 @@ describe('sitemap.xml', () => {
   it('dates the home page by the newest game change', () => {
     const newest = playableGames().map((g) => g.updated ?? g.released ?? '').sort().at(-1);
     expect(xml).toContain(`<loc>https://16bit.ink/</loc><lastmod>${newest}</lastmod>`);
+  });
+
+  it('leaves a game out until its release day (UTC)', () => {
+    const gecko = '<loc>https://16bit.ink/games/inkgecko</loc>';
+    expect(sitemapXml(SITE, listedGames(new Date('2026-10-23T23:59:59Z')))).not.toContain(gecko);
+    expect(sitemapXml(SITE, listedGames(new Date('2026-10-24T00:00:00Z')))).toContain(gecko);
   });
 
   it('leaves out games still in the sketchbook and private pages', () => {

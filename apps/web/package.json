@@ -28,6 +28,7 @@
     "@16bitink/game-sdk": "workspace:*",
     "@16bitink/inkcrab": "workspace:*",
     "@16bitink/inkfish": "workspace:*",
+    "@16bitink/inkgecko": "workspace:*",
     "@16bitink/inkmine": "workspace:*",
     "@astrojs/node": "^11.1.6",
     "@modelcontextprotocol/sdk": "1.32.1",

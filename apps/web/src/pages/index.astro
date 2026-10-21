@@ -3,15 +3,18 @@ import Base from '../layouts/Base.astro';
 import GameSpread from '../components/GameSpread.astro';
 import PartnerAd from '../components/PartnerAd.astro';
 import SundaySignup from '../components/SundaySignup.astro';
-import { isNew, playableGames } from '../data/games';
+import { isNew, listedGames } from '../data/games';
 import { currentUser, ownedGameSlugs } from '../lib/owner';
 import { siteJsonLd } from '../lib/seo';
 
 // Rendered per request, so owners see "Play" instead of "Play free".
 export const prerender = false;
 
-const games = playableGames();
 const now = new Date();
+// A game dated ahead appears here on its release day, with no deploy.
+const games = listedGames(now);
+const titles = games.map((g) => g.title);
+const named = titles.length > 1 ? `${titles.slice(0, -1).join(', ')} and ${titles.at(-1)}` : titles.join('');
 let owned = new Set<string>();
 let user: { name: string; email: string } | null | undefined;
 try {
@@ -26,7 +29,7 @@ Astro.response.headers.set('cache-control', 'private, no-store');
 ---
 <Base
   title="16bit.ink: free pen-and-ink games for your browser"
-  description="Small games drawn with a pen: InkFish, InkCrab and InkMine. Play free in your browser, full-screen, with no download and no sign-up."
+  description={`Small games drawn with a pen: ${named}. Play free in your browser, full-screen, with no download and no sign-up.`}
   image="/covers/home.jpg"
   user={user}
   jsonLd={[siteJsonLd(Astro.site ?? Astro.url)]}

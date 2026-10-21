@@ -45,6 +45,8 @@ const PRESETS = {
   inkcrab: { port: 5175, level: 'knee-deep', zoom: 2, skip: 4, seconds: 16, from: 2, to: 11 },
   // Graphite, the free first world, from the lander.
   inkmine: { port: 5176, level: null, zoom: 1.5, skip: 1, seconds: 16, from: 0.5, to: 8.5 },
+  // Apple Rows in the orchard, like the cover: the whole board, as it's played.
+  inkgecko: { port: 5177, level: 'orchard-5', zoom: 1, skip: 3, seconds: 14, from: 1, to: 11 },
 };
 
 const args = process.argv.slice(2).filter((a) => a !== '--');

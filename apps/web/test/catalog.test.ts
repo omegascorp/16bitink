@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { INKCRAB_PAID_BEACHES } from '@16bitink/inkcrab/content';
 import { INKFISH_FULL_CHAPTERS } from '@16bitink/inkfish/content';
+import { INKGECKO_PAID_CHAPTERS } from '@16bitink/inkgecko/content';
 import { parseBeaches } from '../../../games/inkcrab/src/level/validate';
+import { parseChapters as parseGeckoChapters } from '../../../games/inkgecko/src/level/validate';
 import { parseChapters } from '../../../games/inkfish/src/levels/validate';
-import { findGame, GAMES, isNew, isPurchasable, playableGames, type CatalogGame } from '../src/data/games';
+import { findGame, GAMES, isNew, isOut, isPurchasable, listedGames, playableGames, type CatalogGame } from '../src/data/games';
 import { PAID_CONTENT } from '../src/games/content.server';
 import { GAME_LOADERS } from '../src/games/loaders';
 import { GAME_VERSIONS } from '../src/games/versions';
@@ -15,7 +17,20 @@ describe('catalog', () => {
   });
 
   it('lists every game for sale, so the admin panel can unlock it and make keys for it', () => {
-    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine']);
+    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko']);
+  });
+
+  it('is out from the start of its release day (UTC), or always when undated', () => {
+    const game = { released: '2026-10-24' } as CatalogGame;
+    expect(isOut(game, new Date('2026-10-23T23:59:59Z'))).toBe(false);
+    expect(isOut(game, new Date('2026-10-24T00:00:00Z'))).toBe(true);
+    expect(isOut({} as CatalogGame, new Date('2026-01-01T00:00:00Z'))).toBe(true);
+    expect(isOut({ released: 'soon' } as CatalogGame, new Date('2026-10-24T00:00:00Z'))).toBe(false);
+  });
+
+  it('lists InkGecko on the home page from Saturday, Oct 24 (UTC), and every other playable game now', () => {
+    expect(listedGames(new Date('2026-10-23T23:59:59Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine']);
+    expect(listedGames(new Date('2026-10-24T00:00:00Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko']);
   });
 
   it('says in a few words what every playable game gives for free', () => {
@@ -43,6 +58,7 @@ describe('catalog', () => {
     expect(isPurchasable(findGame('inkfish'))).toBe(true);
     expect(isPurchasable(findGame('inkcrab'))).toBe(true);
     expect(isPurchasable(findGame('inkmine'))).toBe(true);
+    expect(isPurchasable(findGame('inkgecko'))).toBe(true);
     expect(isPurchasable(findGame('blot'))).toBe(false);
     expect(isPurchasable(undefined)).toBe(false);
   });
@@ -86,5 +102,13 @@ describe('paid inkcrab beaches', () => {
     const beaches = parseBeaches(JSON.parse(JSON.stringify(INKCRAB_PAID_BEACHES)));
     expect(beaches).toHaveLength(9);
     expect(beaches.flat()).toHaveLength(90);
+  });
+});
+
+describe('paid inkgecko chapters', () => {
+  it('pass the game client validator: 9 gardens of 10 levels', () => {
+    const chapters = parseGeckoChapters(JSON.parse(JSON.stringify(INKGECKO_PAID_CHAPTERS)));
+    expect(chapters).toHaveLength(9);
+    expect(chapters.flat()).toHaveLength(90);
   });
 });

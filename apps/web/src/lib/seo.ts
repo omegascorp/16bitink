@@ -5,7 +5,7 @@
  */
 
 import { COMPANY } from '../data/company';
-import { isPurchasable, playableGames, type CatalogGame } from '../data/games';
+import { isPurchasable, listedGames, type CatalogGame } from '../data/games';
 
 /** Pages that are private, per player or for machines: nothing to find in a search. */
 const PRIVATE_PATHS = ['/admin', '/api/', '/account', '/redeem', '/purchase/', '/auth/', '/unsubscribe'] as const;
@@ -21,7 +21,7 @@ const lastChanged = (game: CatalogGame): string | undefined => game.updated ?? g
 
 const urlEntry = (loc: URL, lastmod?: string): string => `  <url><loc>${loc}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`;
 
-export function sitemapXml(site: URL, games: readonly CatalogGame[] = playableGames()): string {
+export function sitemapXml(site: URL, games: readonly CatalogGame[] = listedGames(new Date())): string {
   const newest = games.map(lastChanged).filter((d): d is string => Boolean(d)).sort().at(-1);
   const entries = [
     urlEntry(new URL('/', site), newest),

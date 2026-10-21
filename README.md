@@ -8,7 +8,7 @@ packages/game-sdk   The contract between site and games (GameModule, GameHost)
 games/inkfish       Phaser 4 game package: client game (src/) + server-only paid content (content/)
 games/inkcrab       Second game (prototype): hermit crab trading up through shells; design in docs/inkcrab-design.md
 games/inkmine       Third game: planet-hopping miner, chapter 1 free, chapters 2-3 (Mycel, Brine) in the $4.99 full game; design in docs/inkmine-design.md
-games/inkgecko      Fourth game (in progress, not in the catalog yet): Zuma/Luxor-style marble shooter, all 10 chapters built (1 free; 2–10 the full game: Pond, Greenhouse, Orchard, Rockery, Allotment, Wild Meadow, Old Barn, Ruins, Night Garden); design in docs/inkgecko-design.md
+games/inkgecko      Fourth game: Zuma/Luxor-style marble shooter, in the catalog from Sat Oct 24 (its `released` day: the home page and sitemap list it from then, no deploy needed), all 10 chapters built (1 free; 2–10 the full game: Pond, Greenhouse, Orchard, Rockery, Allotment, Wild Meadow, Old Barn, Ruins, Night Garden); design in docs/inkgecko-design.md
 docs/               Research, tech & monetization decisions, art pipeline
 ```
 
@@ -96,6 +96,7 @@ All games share one deployment, one checkout and one webhook.
    - Add a catalog entry in `src/data/games.ts`: title, `theme`, `fonts`, `stripeLookupKey`.
    - Add one line to `src/games/loaders.ts` (client) and, if it sells content, one to `src/games/content.server.ts`.
    - A free demo with nothing for sale yet leaves out `price` and `stripeLookupKey`: its pages say the full game is coming soon.
+   - Set `released` to the launch day to list it ahead: until that day (UTC) the home page and sitemap leave it out, while its pages, short link and checkout already work by link (`listedGames` in `src/data/games.ts`).
 4. In Stripe, create the one-time price with that lookup key.
 5. For the level funnel in `/admin/analytics`, call `host.track?.({ type: 'level_start', level, n, name })` when a level begins and `{ type: 'level_end', …, result, seconds }` when it is won, lost or left (`n` = the level's 1-based place in the game's order).
 

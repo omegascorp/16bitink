@@ -177,6 +177,9 @@ importers:
       '@16bitink/inkfish':
         specifier: workspace:*
         version: link:../../games/inkfish
+      '@16bitink/inkgecko':
+        specifier: workspace:*
+        version: link:../../games/inkgecko
       '@16bitink/inkmine':
         specifier: workspace:*
         version: link:../../games/inkmine
