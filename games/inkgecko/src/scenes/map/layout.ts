@@ -9,7 +9,7 @@ import { buildPath, type Pt } from '../../logic/path';
  */
 
 /** How a chapter's band is painted: in full, or as a pencil draft while it isn't built yet. */
-export type MapPlace = 'garden' | 'pond' | 'greenhouse' | 'orchard' | 'rockery' | 'draft';
+export type MapPlace = 'garden' | 'pond' | 'greenhouse' | 'orchard' | 'rockery' | 'allotment' | 'meadow' | 'barn' | 'ruins' | 'night' | 'draft';
 
 export const MAP = {
   width: 1600,

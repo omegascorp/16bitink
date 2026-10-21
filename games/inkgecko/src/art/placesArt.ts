@@ -1,19 +1,30 @@
 import type { Place } from '../level/levels';
 import { createRng } from '../logic/rng';
+import { paintAllotment } from './allotment';
+import { ALLOTMENT_BED, fleeceTunnel, scaffoldDeck, upturnedBucket } from './allotmentParts';
+import { paintBarn } from './barn';
+import { BARN_BED, balePad, baleRow, beamDeck } from './barnParts';
 import { paintGarden } from './garden';
 import { paintGreenhouse } from './greenhouse';
 import { brickDeck, drainPipe, GREENHOUSE_BED, upturnedSaucer } from './greenhouseParts';
 import type { GroundKeep } from './keep';
+import { paintMeadow } from './meadow';
+import { grassBank } from './meadowBank';
+import { boardwalk, MEADOW_BED, millstone } from './meadowParts';
 import { paintOrchard } from './orchard';
 import { ORCHARD_BED, orchardCover, plankDeck, treeStump } from './orchardParts';
 import { paintPond, type PondKeep } from './pond';
 import { padRing, seatPad } from './pondLife';
 import { paintRockery } from './rockery';
 import { ROCKERY_BED, slabBridge, stepStone, stoneDeck } from './rockeryParts';
+import { paintNight } from './night';
+import { moonBridge, moonStone, NIGHT_BED, yewArch } from './nightParts';
+import { paintRuins } from './ruins';
+import { balustradeDeck, columnDrum, fallenArch, RUINS_BED } from './ruinsParts';
 import { type DeckPainter, paintRaised, paintTunnel } from './tunnel';
 import { bezier, closed, type Draw, oval, pt, ribbon, shade, TAU } from './kit';
 import { LEAF, MOSS, PAPER_FILL, STONE, STONE_DARK } from './palette';
-import { makeCanvas, type Pt } from './pen';
+import { type Pt, withScratch } from './pen';
 import { mix, rgba } from './wash';
 
 /** Where shadows fall: away from a light at the upper left. */
@@ -200,16 +211,17 @@ export const TRACK_W = 40;
  * cut (a stroke minus a shifted copy of itself) without clipping per point.
  */
 function overlay(ctx: CanvasRenderingContext2D, alpha: number, paint: (c: CanvasRenderingContext2D) => void): void {
-  const { ctx: off } = makeCanvas(ctx.canvas.width, ctx.canvas.height);
-  off.setTransform(ctx.getTransform());
-  off.lineCap = 'round';
-  off.lineJoin = 'round';
-  paint(off);
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.globalAlpha = alpha;
-  ctx.drawImage(off.canvas, 0, 0);
-  ctx.restore();
+  withScratch(ctx.canvas.width, ctx.canvas.height, (off, canvas) => {
+    off.setTransform(ctx.getTransform());
+    off.lineCap = 'round';
+    off.lineJoin = 'round';
+    paint(off);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(canvas, 0, 0);
+    ctx.restore();
+  });
 }
 
 function polyPath(pts: readonly Pt[], dx = 0, dy = 0): Path2D {
@@ -287,40 +299,46 @@ function rims(d: Draw, pts: readonly Pt[], inset: number, width: number, alpha: 
   }
 }
 
+/** A groove's floor, shade and light tones: by day, and in the night garden's moonlight. */
+const DAY_TRACK = [mix(STONE, PAPER_FILL, 0.4), STONE_DARK, PAPER_FILL] as const;
+const NIGHT_TRACK = ['#a2aaba', '#353d52', '#e6ecf6'] as const;
+
 /**
  * A groove worn into the ground along `pts` (a dense, smooth polyline in
  * BOARD coordinates, about every 4 units): a channel TRACK_W wide, its
  * floor a little darker than the ground, the wall nearer the light in
  * shadow and the far one catching it, between two slightly wobbling pen
- * rims. Fast on long paths; crossings are fine.
+ * rims. Fast on long paths; crossings are fine. `place` only matters at
+ * night, where the groove is worn into moonlit gravel.
  */
-export function drawTrack(d: Draw, pts: readonly Pt[]): void {
+export function drawTrack(d: Draw, pts: readonly Pt[], place?: Place): void {
   if (pts.length < 2) return;
   const { pen } = d;
   const { ctx } = pen;
   const path = polyPath(pts);
+  const [floor, dark, light] = place === 'night' ? NIGHT_TRACK : DAY_TRACK;
   // The floor: worn smooth, the paving's joints mostly scuffed away.
   ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.lineWidth = TRACK_W;
-  ctx.strokeStyle = rgba(mix(STONE, PAPER_FILL, 0.4), 0.7);
+  ctx.strokeStyle = rgba(floor, 0.7);
   ctx.stroke(path);
-  ctx.strokeStyle = rgba(STONE_DARK, 0.16);
+  ctx.strokeStyle = rgba(dark, 0.16);
   ctx.stroke(path);
   ctx.lineWidth = TRACK_W * 0.45;
-  ctx.strokeStyle = rgba(STONE_DARK, 0.06);
+  ctx.strokeStyle = rgba(dark, 0.06);
   ctx.stroke(path);
   ctx.restore();
   // Shadow under the wall nearer the light, soft at its edge; light on the far wall.
-  const light = pt(-SHADOW_DIR.x, -SHADOW_DIR.y);
-  overlay(ctx, 0.2, (c) => rimBand(c, pts, STONE_DARK, 9, light));
-  overlay(ctx, 0.3, (c) => rimBand(c, pts, mix(STONE_DARK, d.ink, 0.3), 4.5, light));
-  overlay(ctx, 0.55, (c) => rimBand(c, pts, PAPER_FILL, 3.5, SHADOW_DIR));
+  const toLight = pt(-SHADOW_DIR.x, -SHADOW_DIR.y);
+  overlay(ctx, 0.2, (c) => rimBand(c, pts, dark, 9, toLight));
+  overlay(ctx, 0.3, (c) => rimBand(c, pts, mix(dark, d.ink, 0.3), 4.5, toLight));
+  overlay(ctx, 0.55, (c) => rimBand(c, pts, light, 3.5, SHADOW_DIR));
   // Grit on the floor.
   const rng = createRng(pts.length);
   ctx.save();
-  ctx.fillStyle = rgba(STONE_DARK, 0.45);
+  ctx.fillStyle = rgba(dark, 0.45);
   for (let i = 0; i < pts.length; i += 2) {
     const p = pts[i]!;
     const r = (rng() - 0.5) * TRACK_W * 0.8;
@@ -367,7 +385,9 @@ export const TUNNEL_MAX = 400;
  * nearly straight stretch, a mossy stone-slab footbridge along a curve.
  * Greenhouse: a salt-glazed drain pipe in jointed sections. Orchard: a
  * hollow log on a straight, a row of upturned apple crates along a curve.
- * Rockery: rough stone slabs laid across like a clapper bridge. Each fully
+ * Rockery: rough stone slabs laid across like a clapper bridge. Meadow: a
+ * grassy earth bank humped over it with a stone culvert at each end.
+ * Allotment: a fleece cloche on wire hoops, its hem pegged and bricked. Each fully
  * covers a band at least TRACK_W + 22 wide, ends included, and shades the groove
  * just outside each end where the marbles roll in and out.
  */
@@ -375,6 +395,11 @@ export function drawTunnel(d: Draw, pts: readonly Pt[], place: Place = 'pond'): 
   if (place === 'greenhouse') drainPipe(d, pts, TRACK_W);
   else if (place === 'orchard') orchardCover(d, pts, TRACK_W);
   else if (place === 'rockery') slabBridge(d, pts, TRACK_W);
+  else if (place === 'allotment') fleeceTunnel(d, pts, TRACK_W);
+  else if (place === 'meadow') grassBank(d, pts, TRACK_W);
+  else if (place === 'barn') baleRow(d, pts, TRACK_W);
+  else if (place === 'ruins') fallenArch(d, pts, TRACK_W);
+  else if (place === 'night') yewArch(d, pts, TRACK_W);
   else paintTunnel(d, pts, TRACK_W);
 }
 
@@ -385,6 +410,11 @@ const DECKS: Readonly<Record<Place, readonly [DeckPainter, string]>> = {
   greenhouse: [brickDeck, GREENHOUSE_BED],
   orchard: [plankDeck, ORCHARD_BED],
   rockery: [stoneDeck, ROCKERY_BED],
+  allotment: [scaffoldDeck, ALLOTMENT_BED],
+  meadow: [boardwalk, MEADOW_BED],
+  ruins: [balustradeDeck, RUINS_BED],
+  night: [moonBridge, NIGHT_BED],
+  barn: [beamDeck, BARN_BED],
 };
 
 /**
@@ -392,13 +422,14 @@ const DECKS: Readonly<Record<Place, readonly [DeckPainter, string]>> = {
  * stretch `pts` (its centre line, BOARD coordinates every ~4 units, ~60–220
  * long and roughly straight) carried over the cover below on a little deck —
  * brick causeway (greenhouse), plank bridge (orchard), stone slabs (rockery,
- * garden, pond). For the covers layer, drawn AFTER the tunnels; marbles on
+ * garden, pond), scaffold boards on bricks (allotment). For the covers
+ * layer, drawn AFTER the tunnels; marbles on
  * it are drawn above it. The groove runs across it at TRACK_W and fades into
  * the same groove on the ground at both ends.
  */
 export function drawRaised(d: Draw, pts: readonly Pt[], place: Place): void {
   const [deck, bed] = DECKS[place];
-  paintRaised(d, pts, TRACK_W, deck, drawTrack, bed);
+  paintRaised(d, pts, TRACK_W, deck, (gd, gp) => drawTrack(gd, gp, place), bed);
 }
 
 /**
@@ -411,6 +442,11 @@ export function drawGround(d: Draw, place: Place, w: number, h: number, keep: Gr
   else if (place === 'greenhouse') paintGreenhouse(d, w, h, keep);
   else if (place === 'orchard') paintOrchard(d, w, h, keep);
   else if (place === 'rockery') paintRockery(d, w, h, keep);
+  else if (place === 'allotment') paintAllotment(d, w, h, keep);
+  else if (place === 'meadow') paintMeadow(d, w, h, keep);
+  else if (place === 'barn') paintBarn(d, w, h, keep);
+  else if (place === 'ruins') paintRuins(d, w, h, keep);
+  else if (place === 'night') paintNight(d, w, h, keep);
   else paintGarden(d, w, h);
 }
 
@@ -431,12 +467,19 @@ export function drawLilyPad(d: Draw, x: number, y: number, r: number = PAD_R, in
  * The spot a gecko hops between on hop levels, centred at x, y (BOARD
  * coordinates), PAD_R across: a lily pad in its pool (pond, garden), an
  * upturned terracotta saucer (greenhouse), a sawn stump with its rings
- * (orchard), a big flat stepping stone set in gravel (rockery).
+ * (orchard), a big flat stepping stone set in gravel (rockery), an old
+ * millstone half sunk in the grass (meadow), an upturned galvanised bucket
+ * (allotment).
  */
 export function drawPad(d: Draw, place: Place, x: number, y: number): void {
   if (place === 'greenhouse') upturnedSaucer(d, pt(x, y), PAD_R);
   else if (place === 'orchard') treeStump(d, pt(x, y), PAD_R);
   else if (place === 'rockery') stepStone(d, pt(x, y), PAD_R);
+  else if (place === 'allotment') upturnedBucket(d, pt(x, y), PAD_R);
+  else if (place === 'meadow') millstone(d, pt(x, y), PAD_R);
+  else if (place === 'barn') balePad(d, pt(x, y), PAD_R);
+  else if (place === 'ruins') columnDrum(d, pt(x, y), PAD_R);
+  else if (place === 'night') moonStone(d, pt(x, y), PAD_R);
   else seatPad(d, pt(x, y), PAD_R, true);
 }
 

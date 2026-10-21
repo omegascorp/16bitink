@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { INKGECKO_PAID_CHAPTERS } from '../content/paid';
 import { CHAPTER_1 } from '../src/level/chapter1';
-import { installPaidChapters, isFreeEnd, levelById, loadedChapters, loadedLevels, nextLevel } from '../src/level/levels';
+import { BUILT_CHAPTERS, CHAPTER_PLACES, FREE_CHAPTERS, installPaidChapters, isFreeEnd, levelById, loadedChapters, loadedLevels, nextLevel } from '../src/level/levels';
 import { parseChapters } from '../src/level/validate';
 
 declare global {
@@ -17,8 +17,19 @@ describe('paid chapters stay out of the game bundle', () => {
   it('no client code imports the paid content', () => {
     expect(Object.keys(SOURCES).length).toBeGreaterThan(20);
     for (const [file, text] of Object.entries(SOURCES)) {
-      for (const spec of [...text.matchAll(/from '([^']+)'/g)].map((m) => m[1]!)) expect(spec, file).not.toMatch(/content\/paid/);
+      // Every way in: `from '…'`, a bare `import '…'`, and a dynamic `import('…')`.
+      const specs = [...text.matchAll(/(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g)].map((m) => m[1]!);
+      for (const spec of specs) {
+        expect(spec, file).not.toMatch(/content\/paid/);
+        // The paid chapters' own files are as good as the content.
+        expect(spec, file).not.toMatch(/(^|\/)chapter([2-9]|\d\d)$/);
+      }
     }
+  });
+
+  it('has every built chapter: one free, the rest paid, each with a place', () => {
+    expect(FREE_CHAPTERS + INKGECKO_PAID_CHAPTERS.length).toBe(BUILT_CHAPTERS);
+    expect(CHAPTER_PLACES).toHaveLength(BUILT_CHAPTERS);
   });
 
   it('serves paid chapters the client can read', () => {

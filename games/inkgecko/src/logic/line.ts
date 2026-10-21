@@ -31,6 +31,10 @@ export interface Marble {
   bud?: boolean;
   /** A stone: matches nothing, and breaks when a pop happens beside it. */
   readonly stone?: boolean;
+  /** Tied with twine to the marble with this id: when either pops, so does the other. */
+  tie?: number;
+  /** A chameleon: it takes the next colour every few seconds (the board turns them). */
+  readonly chameleon?: boolean;
 }
 
 /** What comes out of the burrow next. */
@@ -38,6 +42,9 @@ export interface Spawned {
   readonly colour: ColourId;
   readonly bud?: boolean;
   readonly stone?: boolean;
+  /** Tied to the marble ahead of it, if that one is free to tie. */
+  readonly tie?: boolean;
+  readonly chameleon?: boolean;
 }
 
 export type LineEvent =
@@ -131,6 +138,16 @@ export class Line {
     if (this.rewind <= 0) this.fall(events);
     this.age(dt);
     this.runChecks(events);
+    this.crumble(events);
+  }
+
+  /**
+   * Stones left on their own once the burrow is shut crumble away: nothing
+   * could ever pop beside them, and they would only roll into the well.
+   */
+  private crumble(events: LineEvent[]): void {
+    if (this.spawning || !this.marbles.length || !this.marbles.every((m) => m.stone)) return;
+    this.popIds(new Set(this.marbles.map((m) => m.id)), 0, null, events);
   }
 
   /**
@@ -159,14 +176,28 @@ export class Line {
   }
 
   /** Pops the marbles with these ids, as one pop. */
-  popIds(chosen: ReadonlySet<number>, combo: number, shot: number | null, events: LineEvent[]): void {
-    // Stones touching anything that pops break with it.
-    const ids = new Set(chosen);
+  popIds(picked: ReadonlySet<number>, combo: number, shot: number | null, events: LineEvent[]): void {
+    // A marble tied with twine takes its partner with it.
+    const chosen = new Set(picked);
+    for (const m of this.marbles) if (picked.has(m.id) && m.tie !== undefined) chosen.add(m.tie);
+    // Buds never pop at once, by a match or a charm: they blossom, and can pop next time.
+    const buds = this.marbles.filter((m) => m.bud && chosen.has(m.id));
+    if (buds.length) {
+      for (const m of buds) m.bud = false;
+      events.push({ type: 'blossom', marbles: buds });
+      // Freshly opened buds may now make a match of their own.
+      for (const m of buds) this.checks.push({ id: m.id, at: this.time + SETTLE, combo, shot: null });
+    }
+    const ids = new Set([...chosen].filter((id) => !buds.some((m) => m.id === id)));
+    // Stones touching anything that pops break with it, and so do the stones touching those.
     this.marbles.forEach((m, i) => {
-      if (!chosen.has(m.id)) return;
-      for (const j of [i - 1, i + 1]) {
-        const n = this.marbles[j];
-        if (n?.stone && Math.abs(n.s - m.s) <= TOUCH) ids.add(n.id);
+      if (!ids.has(m.id) || m.stone) return;
+      for (const step of [-1, 1]) {
+        for (let j = i + step; ; j += step) {
+          const n = this.marbles[j];
+          if (!n?.stone || Math.abs(n.s - this.marbles[j - step]!.s) > TOUCH) break;
+          ids.add(n.id);
+        }
       }
     });
     const popped = this.marbles.filter((m) => ids.has(m.id));
@@ -185,6 +216,7 @@ export class Line {
       gone = false;
     }
     this.marbles = this.marbles.filter((m) => !ids.has(m.id));
+    this.untieOrphans();
     this.pairs = this.touchingPairs();
     // A shot whose marble pops through a seam still counts for its streak.
     const by = shot ?? popped.map((m) => this.shots.get(m.id)).find((id) => id !== undefined) ?? null;
@@ -256,7 +288,15 @@ export class Line {
       const s = back ? back.s - D : Math.min(0, this.marbles[0]?.s ?? 0) - D;
       const behind = this.marbles.slice(0, 2).filter((m) => !m.stone).map((m) => m.colour);
       const next = this.spawnNext(behind);
-      const m: Marble = { id: this.nextId(), colour: next.colour, s, charm: null, charmAge: 0, ...(next.bud ? { bud: true } : {}), ...(next.stone ? { stone: true } : {}) };
+      const m: Marble = {
+        id: this.nextId(), colour: next.colour, s, charm: null, charmAge: 0,
+        ...(next.bud ? { bud: true } : {}), ...(next.stone ? { stone: true } : {}), ...(next.chameleon ? { chameleon: true } : {}),
+      };
+      // Twine ties it to the marble just ahead, when that one is a plain marble touching it.
+      if (next.tie && !m.stone && back && back.tie === undefined && !back.stone && back.s - s <= TOUCH) {
+        m.tie = back.id;
+        back.tie = m.id;
+      }
       this.marbles = [m, ...this.marbles];
       if (back) this.pairs.add(`${m.id}:${back.id}`);
       this.tail = m.id;
@@ -269,7 +309,30 @@ export class Line {
     if (!last || last.s < this.path.length) return;
     this.marbles = this.marbles.slice(0, -1);
     this.shots.delete(last.id);
+    this.untieOrphans();
     events.push({ type: 'fell', marble: last });
+  }
+
+  /** Everything rolls on at `speed`, gaps and all, and what reaches the well goes down it (the end of a lost level). */
+  drain(dt: number, speed: number): Marble[] {
+    this.spawning = false;
+    for (const m of this.marbles) m.s += speed * dt;
+    const gone = this.marbles.filter((m) => m.s >= this.path.length);
+    this.marbles = this.marbles.filter((m) => m.s < this.path.length);
+    return gone;
+  }
+
+  /** A marble whose partner has gone (fallen in, or popped while it blossomed) is free again. */
+  private untieOrphans(): void {
+    for (const m of this.marbles) if (m.tie !== undefined && this.indexOf(m.tie) < 0) delete m.tie;
+  }
+
+  /** A marble turns another colour where it is (a chameleon), and is checked for a match. */
+  recolour(id: number, colour: ColourId): void {
+    const i = this.indexOf(id);
+    if (i < 0 || this.marbles[i]!.colour === colour) return;
+    this.marbles[i] = { ...this.marbles[i]!, colour };
+    this.checks.push({ id, at: this.time + SETTLE, combo: 0, shot: null });
   }
 
   private age(dt: number): void {
@@ -293,14 +356,8 @@ export class Line {
       if (i < 0) continue;
       const run = this.runAt(i);
       if (run.length < 3) continue;
-      // Buds in a match blossom instead of popping; the open marbles pop.
-      const buds = run.filter((m) => m.bud);
-      for (const m of buds) m.bud = false;
-      if (buds.length) events.push({ type: 'blossom', marbles: buds });
-      const open = run.filter((m) => !buds.includes(m));
-      if (open.length) this.popIds(new Set(open.map((m) => m.id)), c.combo, c.shot, events);
-      // Freshly opened buds may now make a match of their own.
-      for (const m of buds) this.checks.push({ id: m.id, at: this.time + SETTLE, combo: c.combo, shot: null });
+      // Buds in the match blossom instead (see popIds); the open marbles pop.
+      this.popIds(new Set(run.map((m) => m.id)), c.combo, c.shot, events);
     }
   }
 

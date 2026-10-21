@@ -1,6 +1,13 @@
 import type { CharmId } from '../logic/charms';
 import type { Pt } from '../logic/path';
 
+/** A broken column standing on the board (the ruins): shots glance off it. */
+export interface PillarDef {
+  readonly x: number;
+  readonly y: number;
+  readonly r: number;
+}
+
 /** Every level is laid out on this board, scaled to fit the screen. */
 export const BOARD = { w: 1280, h: 720 } as const;
 
@@ -32,7 +39,7 @@ export interface TrackDef {
 }
 
 /** What a level's first-time hints teach. */
-export type Teach = 'spit' | 'swap' | 'rail' | 'catch' | 'pull' | 'hop' | 'tunnel' | 'dragonfly' | 'cross' | 'inkpot' | 'fruit' | 'bud' | 'stone' | 'geode';
+export type Teach = 'spit' | 'swap' | 'rail' | 'catch' | 'pull' | 'hop' | 'tunnel' | 'dragonfly' | 'cross' | 'inkpot' | 'fruit' | 'bud' | 'stone' | 'geode' | 'twine' | 'hedgehog' | 'chameleon' | 'rain' | 'bank' | 'pillar' | 'dark' | 'lantern';
 
 export interface LevelDef {
   /** Permanent: saves are keyed by it. */
@@ -57,4 +64,14 @@ export interface LevelDef {
   readonly buds?: number;
   /** Share of new marbles that are stones, 0..0.4 (never match; break when a pop happens beside them). */
   readonly stones?: number;
+  /** Share of new marbles that come out tied with twine to the marble ahead, 0..0.4 (the pair pops together; the allotment). */
+  readonly twine?: number;
+  /** Share of new marbles that are chameleons, 0..0.4 (they change colour every few seconds; the meadow). */
+  readonly chameleons?: number;
+  /** Shots bounce off the board's left, right and top edges, its timber walls (the barn). */
+  readonly walls?: boolean;
+  /** Broken columns standing on the board that shots glance off (the ruins). */
+  readonly pillars?: readonly PillarDef[];
+  /** Night: only what the gecko, the lanterns and the burrows light can be seen (the night garden). */
+  readonly dark?: boolean;
 }

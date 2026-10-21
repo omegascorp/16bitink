@@ -8,11 +8,13 @@ import { BOARD } from '../level/types';
 import { buildPath } from '../logic/path';
 import { drawDragonfly, DRAGONFLY_FRAME } from './dragonflyArt';
 import { drawBloom, drawBud, drawFruit, drawGeode, drawStone, FRUIT_FRAME, FRUITS } from './propsArt';
+import { drawHedgehog, drawRainSplash, drawRainStreak, drawSheen, drawSheenRing, drawTwineCord, drawTwineKnot, HEDGEHOG_FRAME, HEDGEHOG_RES, RAIN_RES, RAIN_SPLASH_FRAME, RAIN_STREAK_FRAME, TWINE_CORD_FRAME } from './propsFarm';
 import { drawGeckoLines, drawGeckoSkin, GECKO_FRAME, GECKO_RES, type GeckoPose } from './geckoArt';
 import { makeDraw } from './kit';
+import { drawGardenLantern, GARDEN_LANTERN_FRAME } from './nightLantern';
 import { drawCharmMark, drawCharmToken, drawMarble, drawSplash, MARBLE_FRAME, MARBLE_RES, SPLASH_FRAME, TOKEN_FRAME } from './marbleArt';
 import { ART_RES, BOIL, PAPER } from './palette';
-import { makeCanvas } from './pen';
+import { makeCanvas, releaseScratch, shrink } from './pen';
 import { BURROW_FRAME, drawBranch, drawBurrow, drawGround, drawPad, drawPadRing, drawRaised, drawTrack, drawTunnel, drawWell, WELL_FRAME } from './placesArt';
 import type { Pt } from './pen';
 
@@ -32,6 +34,18 @@ export const TEX = {
   bloom: 'bloom',
   stone: (f: number) => `stone-${f}`,
   geode: (f: number) => `geode-${f}`,
+  /** Twine tied round a twined marble (+x towards its partner), and the cord between the pair. */
+  twineKnot: (f: number) => `twine-knot-${f}`,
+  twineCord: (f: number) => `twine-cord-${f}`,
+  /** The Hedgehog trundling towards +x, walk step 0 or 1. */
+  hedgehog: (step: number, f: number) => `hedgehog-${step}-${f}`,
+  /** A chameleon marble's iridescent sheen, and the ring that shimmers before it turns. */
+  sheen: (f: number) => `sheen-${f}`,
+  sheenRing: (f: number) => `sheen-ring-${f}`,
+  rainStreak: 'rain-streak',
+  rainSplash: 'rain-splash',
+  /** A little garden lantern for the night garden (one beside each well), glowing or (lit = false) dark. */
+  gardenLantern: (f: number, lit = true) => `garden-lantern-${lit ? 'lit' : 'dark'}-${f}`,
   paper: 'paper',
   /** A level's ground, tracks and branch, drawn when the level starts. */
   board: (levelId: string) => `board-${levelId}`,
@@ -52,7 +66,30 @@ function bakeNow(scene: Phaser.Scene, key: string, units: number, res: number, d
   ctx.scale(res, res);
   ctx.translate(units / 2, units / 2);
   draw(ctx);
-  scene.textures.addCanvas(key, canvas);
+  addPainted(scene, key, canvas);
+}
+
+/**
+ * A finished painting as a plain image texture: addCanvas would make a
+ * CanvasTexture, which reads every pixel back and keeps a second copy.
+ */
+function addPainted(scene: Phaser.Scene, key: string, canvas: HTMLCanvasElement): void {
+  scene.textures.addImage(key, canvas as unknown as HTMLImageElement);
+}
+
+/** Removes a texture and empties the canvas it was painted on, so its memory goes now. */
+export function freeTexture(scene: Phaser.Scene, key: string): void {
+  if (!scene.textures.exists(key)) return;
+  const source = scene.textures.get(key).getSourceImage();
+  scene.textures.remove(key);
+  if (source instanceof HTMLCanvasElement) shrink(source);
+}
+
+/** A steady number from a level id, so each level's ground lies a little differently. */
+function idSeed(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 100000;
+  return h;
 }
 
 function bakePaper(scene: Phaser.Scene): void {
@@ -60,7 +97,7 @@ function bakePaper(scene: Phaser.Scene): void {
   const { canvas, ctx } = makeCanvas(PAPER_TILE, PAPER_TILE);
   ctx.fillStyle = PAPER;
   ctx.fillRect(0, 0, PAPER_TILE, PAPER_TILE);
-  scene.textures.addCanvas(TEX.paper, canvas);
+  addPainted(scene, TEX.paper, canvas);
 }
 
 /**
@@ -93,8 +130,16 @@ export function textureJobs(scene: Phaser.Scene): SliceJob[] {
     bake(TEX.stone(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawStone(makeDraw(ctx, 600 + f, f, 0), false));
     bake(TEX.geode(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawGeode(makeDraw(ctx, 610 + f, f, 0)));
     bake(TEX.burrow(f), BURROW_FRAME, 3, (ctx) => drawBurrow(makeDraw(ctx, 520 + f, f, 0)));
+    bake(TEX.twineKnot(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawTwineKnot(makeDraw(ctx, 630 + f, f, 0)));
+    bake(TEX.twineCord(f), TWINE_CORD_FRAME, MARBLE_RES, (ctx) => drawTwineCord(makeDraw(ctx, 634 + f, f, 0)));
+    for (const step of [0, 1] as const) bake(TEX.hedgehog(step, f), HEDGEHOG_FRAME, HEDGEHOG_RES, (ctx) => drawHedgehog(makeDraw(ctx, 650 + f, f, 0), step));
+    bake(TEX.sheen(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawSheen(makeDraw(ctx, 660 + f, f, 0)));
+    bake(TEX.sheenRing(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawSheenRing(makeDraw(ctx, 664 + f, f, 0)));
+    for (const lit of [true, false]) bake(TEX.gardenLantern(f, lit), GARDEN_LANTERN_FRAME, 3, (ctx) => drawGardenLantern(makeDraw(ctx, 680 + f, f, 0), lit));
   }
   bake(TEX.bloom, SPLASH_FRAME, 2, (ctx) => drawBloom(makeDraw(ctx, 620, 0, 0)));
+  bake(TEX.rainStreak, RAIN_STREAK_FRAME, RAIN_RES, (ctx) => drawRainStreak(makeDraw(ctx, 670, 0, 0)));
+  bake(TEX.rainSplash, RAIN_SPLASH_FRAME, RAIN_RES, (ctx) => drawRainSplash(makeDraw(ctx, 672, 0, 0)));
   return jobs;
 }
 
@@ -108,9 +153,9 @@ export function bakeBoard(scene: Phaser.Scene, level: LevelDef, place: Place): s
   const sh = level.shooter;
   // The branch a rail gecko runs along counts as a groove: nothing big may lie under it.
   const branch: Pt[] = sh.kind === 'rail' ? Array.from({ length: Math.ceil((sh.x1 - sh.x0 + 100) / 4) + 1 }, (_, i) => ({ x: sh.x0 - 50 + i * 4, y: sh.y + 4 })) : [];
-  const keep = { grooves: [...level.tracks.map((t) => buildPath(t.points).pts), ...(branch.length ? [branch] : [])], pads: sh.kind === 'hop' ? sh.pads : [] };
-  drawGround(makeDraw(ctx, 600 + level.id.length, 0, 0), place, BOARD.w, BOARD.h, keep);
-  level.tracks.forEach((t, i) => drawTrack(makeDraw(ctx, 640 + i, 0, 0), buildPath(t.points).pts));
+  const keep = { grooves: [...level.tracks.map((t) => buildPath(t.points).pts), ...(branch.length ? [branch] : [])], pads: sh.kind === 'hop' ? sh.pads : sh.kind === 'pivot' ? [{ x: sh.x, y: sh.y }] : [], pillars: level.pillars ?? [] };
+  drawGround(makeDraw(ctx, 600 + idSeed(level.id), 0, 0), place, BOARD.w, BOARD.h, keep);
+  level.tracks.forEach((t, i) => drawTrack(makeDraw(ctx, 640 + i, 0, 0), buildPath(t.points).pts, place));
   const s = level.shooter;
   if (s.kind === 'rail') drawBranch(makeDraw(ctx, 680, 0, 0), s.x0 - 50, s.x1 + 50, s.y + 4);
   if (s.kind === 'hop') {
@@ -119,7 +164,8 @@ export function bakeBoard(scene: Phaser.Scene, level: LevelDef, place: Place): s
       drawPadRing(makeDraw(ctx, 720 + i, 0, 0), p.x, p.y);
     });
   }
-  scene.textures.addCanvas(key, canvas);
+  releaseScratch();
+  addPainted(scene, key, canvas);
   return key;
 }
 
@@ -147,11 +193,23 @@ export function bakeCovers(scene: Phaser.Scene, level: LevelDef, place: Place): 
     const pts = stretch(i, c);
     if (pts.length > 1) drawRaised(makeDraw(ctx, 800 + i * 10 + k, 0, 0), pts, place);
   }));
-  scene.textures.addCanvas(key, canvas);
+  releaseScratch();
+  addPainted(scene, key, canvas);
   return key;
 }
 
 /** Frees a level's baked ground and tunnels (they are big: a full board at ART_RES each). */
 export function dropBoard(scene: Phaser.Scene, level: LevelDef): void {
-  for (const key of [TEX.board(level.id), TEX.covers(level.id)]) if (scene.textures.exists(key)) scene.textures.remove(key);
+  for (const key of [TEX.board(level.id), TEX.covers(level.id)]) freeTexture(scene, key);
+}
+
+/**
+ * Frees every baked board but `keep`'s: a level played again starts on the
+ * board it already has, while one left behind doesn't hold its memory.
+ */
+export function dropBoards(scene: Phaser.Scene, keep?: LevelDef): void {
+  const kept = keep ? [TEX.board(keep.id), TEX.covers(keep.id)] : [];
+  for (const key of scene.textures.getTextureKeys()) {
+    if ((key.startsWith('board-') || key.startsWith('covers-')) && !kept.includes(key)) freeTexture(scene, key);
+  }
 }

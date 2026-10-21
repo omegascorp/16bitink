@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { ART_RES } from '../art/palette';
-import { bakeBoard, bakeCovers, dropBoard, TEX } from '../art/textures';
+import { bakeBoard, bakeCovers, dropBoards, TEX } from '../art/textures';
 import { pitchForCombo } from '../audio/recipes';
 import { getHost, getSound, trackGame } from '../host';
 import { levelById, levelOrder, loadedLevels, placeOf } from '../level/levels';
@@ -13,6 +13,7 @@ import { FxView } from './game/fxView';
 import { GameInput } from './game/input';
 import { GeckoView } from './game/geckoView';
 import { MarblesView } from './game/marblesView';
+import { NightView } from './game/nightView';
 import { DPR, viewSize } from './hidpi';
 import type { HudScene } from './HudScene';
 import type { ResultData } from './ResultScene';
@@ -25,6 +26,8 @@ export interface GameData {
 const MAX_DT = 1 / 20;
 /** A beat to see the win (or the last marble fall) before the result card. */
 const END_DELAY_MS = 1200;
+/** A lost level waits for its lines to pour away down the wells, but no longer than this, ms. */
+const DRAIN_MAX_MS = 3500;
 /** The heartbeat starts once a line's front is this far to its well. */
 const DANGER_FROM = 0.82;
 /** A tap this close to a lily pad's centre hops there, board px. */
@@ -42,6 +45,9 @@ export class GameScene extends Phaser.Scene {
   private over = false;
   private away = false;
   private heartbeat = 0;
+  private night: NightView | null = null;
+  /** On a loss, whether the lines have all poured away yet. */
+  private drainedAll = false;
 
   constructor() {
     super('Game');
@@ -53,7 +59,10 @@ export class GameScene extends Phaser.Scene {
     this.coach = new Coach(this.level.teach ?? []);
     this.over = false;
     this.heartbeat = 0;
+    this.drainedAll = false;
     this.add.tileSprite(-BOARD.w, -BOARD.h, BOARD.w * 3, BOARD.h * 3, TEX.paper).setOrigin(0).setDepth(0);
+    // A retry keeps the board it was played on; any other level's painting goes.
+    dropBoards(this, this.level);
     this.add.image(0, 0, bakeBoard(this, this.level, placeOf(this.level.id))).setOrigin(0).setScale(1 / ART_RES).setDepth(1);
     // Tunnels lie over the marbles (and shots fly over them, under the gecko).
     const covers = bakeCovers(this, this.level, placeOf(this.level.id));
@@ -61,6 +70,7 @@ export class GameScene extends Phaser.Scene {
     this.fx = new FxView(this, this.board);
     this.marbles = new MarblesView(this);
     this.gecko = new GeckoView(this, this.board);
+    this.night = this.level.dark ? new NightView(this) : null;
     this.input2 = new GameInput(this, {
       toBoard: (p) => {
         const w = this.cameras.main.getWorldPoint(p.x, p.y);
@@ -84,8 +94,6 @@ export class GameScene extends Phaser.Scene {
     sound?.play('rush');
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       sound?.setRoll(0);
-      // A level's painting is ~15 MB of texture: let it go with the level.
-      dropBoard(this, this.level);
     });
   }
 
@@ -179,11 +187,13 @@ export class GameScene extends Phaser.Scene {
   update(time: number, delta: number): void {
     const dt = Math.min(delta / 1000, MAX_DT);
     const events = this.board.step(this.input2.read(), dt);
+    if (this.board.state === 'lost') this.drainedAll = this.board.drain(dt, events);
     this.coach.observe(events, dt);
     for (const e of events) this.react(e, time);
     this.marbles.sync(this.board, dt, time);
     this.gecko.update(this.board, time, dt);
     this.fx.update(this.board, time, this.board.timers.aim > 0);
+    this.night?.update(this.board, time, dt);
     this.listenForDanger(dt);
     getSound(this)?.setRoll(this.rolling());
   }
@@ -211,6 +221,7 @@ export class GameScene extends Phaser.Scene {
   private react(e: BoardEvent, time: number): void {
     const sound = getSound(this);
     this.fx.react(e);
+    this.night?.react(e);
     if (e.type === 'spit') {
       this.gecko.spat(time);
       sound?.play(e.dragonfly ? 'dragonfly' : e.geode ? 'crystal' : 'spit');
@@ -226,6 +237,12 @@ export class GameScene extends Phaser.Scene {
       if (e.marbles.some((m) => m.stone)) sound?.play('crack');
     } else if (e.type === 'blossom') sound?.play('blossom');
     else if (e.type === 'windfall') sound?.play('thud');
+    else if (e.type === 'hedgehog') sound?.play('snuffle');
+    else if (e.type === 'munch') sound?.play('munch');
+    else if (e.type === 'shift') sound?.play('shift');
+    else if (e.type === 'rain') sound?.play('rain');
+    else if (e.type === 'bounce') sound?.play('bounce');
+    else if (e.type === 'sink') sound?.play('sink', { pitch: 0.9 + Math.random() * 0.25 });
     else if (e.type === 'fruit') sound?.play('fruit');
     else if (e.type === 'pull') sound?.play('pull');
     else if (e.type === 'join') sound?.play('join');
@@ -258,11 +275,25 @@ export class GameScene extends Phaser.Scene {
     const result: ResultData = {
       levelId: this.level.id, won, time: b.elapsed, blots, livesLost, score: b.score,
       bestCombo: b.best.combo, bestStreak: b.best.streak, previousBest: saved.levels[this.level.id]?.bestTime,
+      progress: b.progress,
     };
-    this.time.delayedCall(END_DELAY_MS, () => {
+    // The card lies over the board, held still behind it.
+    const show = (): void => {
       this.scene.stop('Hud');
-      this.scene.start('Result', result);
-    });
+      this.scene.pause();
+      this.scene.launch('Result', result);
+    };
+    if (won) {
+      this.time.delayedCall(END_DELAY_MS, show);
+      return;
+    }
+    // A loss: the line pours into the well first, then a beat, then the card.
+    const started = this.time.now;
+    const wait = (): void => {
+      if (this.drainedAll || this.time.now - started > DRAIN_MAX_MS) this.time.delayedCall(END_DELAY_MS * 0.6, show);
+      else this.time.delayedCall(100, wait);
+    };
+    wait();
   }
 }
 

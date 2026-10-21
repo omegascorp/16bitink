@@ -9,6 +9,7 @@ import { pullFromAccount } from '../logic/accountSave';
 import { firstScreen, loadProgress } from '../logic/save';
 import { screenScene, viewSize } from './hidpi';
 import { inkText } from './ui';
+import { uiTextureJobs } from './uiPaint';
 
 /** Shares of the site's loading bar: drawing the art, then fetching the full game's chapters, then the first screen. */
 const DRAWN_AT = 0.9;
@@ -41,7 +42,7 @@ export class BootScene extends Phaser.Scene {
   private async boot(label: string): Promise<void> {
     const loading = getHost(this).loading;
     // Drawn a slice at a time, so the loading bar moves and the page never freezes.
-    await runInSlices(textureJobs(this), { onProgress: (f) => loading?.progress(f * DRAWN_AT, label) });
+    await runInSlices([...textureJobs(this), ...uiTextureJobs(this)], { onProgress: (f) => loading?.progress(f * DRAWN_AT, label) });
     this.registry.set(REG.fullError, null);
     if (getHost(this).unlocked) loading?.progress(DRAWN_AT, 'fetching the full game…');
     await Promise.all([loadPaidChapters(this), pullFromAccount(getHost(this))]);

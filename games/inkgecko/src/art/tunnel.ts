@@ -1,7 +1,7 @@
 import { createRng, type Rng } from '../logic/rng';
 import { closed, type Draw, makeDraw, oval, pt, ribbon, TAU } from './kit';
 import { LEAF, MOSS, PAPER_FILL, STONE, STONE_DARK } from './palette';
-import { makeCanvas, type Pt } from './pen';
+import { type Pt, withScratch } from './pen';
 import { mix, rgba } from './wash';
 
 /**
@@ -318,26 +318,27 @@ export function paintRaised(d: Draw, pts: readonly Pt[], grooveW: number, deck: 
     deck(d, inner, half, grooveW, rng);
   }
   // The groove on its bed, on a layer of its own so its ends can fade into the ground.
-  const { canvas: off, ctx: oc } = makeCanvas(ctx.canvas.width, ctx.canvas.height);
-  oc.setTransform(ctx.getTransform());
-  const od = makeDraw(oc, Math.round(rng() * 1e6), d.f, d.g, d.ink);
-  od.pen.fill(ribbon(pts, () => grooveW + 1).shape, PAPER_FILL, 1);
-  od.pen.fill(ribbon(pts, () => grooveW + 1).shape, bed, 0.5);
-  groove(od, pts);
-  const a = pts[0]!;
-  const b = pts[pts.length - 1]!;
-  const g = oc.createLinearGradient(a.x, a.y, b.x, b.y);
-  const chord = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-  const f = Math.min(0.45, FADE / chord);
-  g.addColorStop(0, 'rgba(0,0,0,0)');
-  g.addColorStop(f, 'rgba(0,0,0,1)');
-  g.addColorStop(1 - f, 'rgba(0,0,0,1)');
-  g.addColorStop(1, 'rgba(0,0,0,0)');
-  oc.globalCompositeOperation = 'destination-in';
-  oc.fillStyle = g;
-  oc.fillRect(Math.min(a.x, b.x) - 400, Math.min(a.y, b.y) - 400, Math.abs(b.x - a.x) + 800, Math.abs(b.y - a.y) + 800);
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.drawImage(off, 0, 0);
-  ctx.restore();
+  withScratch(ctx.canvas.width, ctx.canvas.height, (oc, off) => {
+    oc.setTransform(ctx.getTransform());
+    const od = makeDraw(oc, Math.round(rng() * 1e6), d.f, d.g, d.ink);
+    od.pen.fill(ribbon(pts, () => grooveW + 1).shape, PAPER_FILL, 1);
+    od.pen.fill(ribbon(pts, () => grooveW + 1).shape, bed, 0.5);
+    groove(od, pts);
+    const a = pts[0]!;
+    const b = pts[pts.length - 1]!;
+    const g = oc.createLinearGradient(a.x, a.y, b.x, b.y);
+    const chord = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const f = Math.min(0.45, FADE / chord);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(f, 'rgba(0,0,0,1)');
+    g.addColorStop(1 - f, 'rgba(0,0,0,1)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    oc.globalCompositeOperation = 'destination-in';
+    oc.fillStyle = g;
+    oc.fillRect(Math.min(a.x, b.x) - 400, Math.min(a.y, b.y) - 400, Math.abs(b.x - a.x) + 800, Math.abs(b.y - a.y) + 800);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(off, 0, 0);
+    ctx.restore();
+  });
 }

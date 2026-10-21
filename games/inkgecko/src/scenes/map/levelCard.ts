@@ -1,15 +1,17 @@
 import Phaser from 'phaser';
-import { BLUE_HEX, PAPER_HEX, RED } from '../../art/palette';
+import { PAPER_HEX, RED } from '../../art/palette';
 import type { Place } from '../../level/levels';
 import type { LevelDef } from '../../level/types';
 import type { LevelRecord } from '../../logic/save';
-import { clock, drawBlots, HAND_FONT, inkButton, inkText, wobblyRect } from '../ui';
+import { clock, drawBlots, HAND_FONT, inkButton, inkText } from '../ui';
+import { freePaper, paperCard } from '../uiPaint';
 import { boardPreview, dropPreview } from './thumb';
 import { shooterLine } from './levelInfo';
 
 const SOFT_INK = '#4a463e';
 const CARD_W = 440;
 const THUMB = { w: 360, h: 203 } as const;
+const CARD_SEED = 61;
 
 export interface LevelCardOpts {
   readonly level: LevelDef;
@@ -35,6 +37,7 @@ export interface ChapterCardOpts {
 export class MapCard {
   private readonly root: Phaser.GameObjects.Container;
   private readonly onKey: (e: KeyboardEvent) => void;
+  private paperH = 0;
 
   private constructor(private readonly scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, view: { width: number; height: number }, height: number, fill: (c: Phaser.GameObjects.Container, top: number) => (() => void) | null, private readonly onClose: () => void) {
     const shade = scene.add.rectangle(0, 0, view.width, view.height, PAPER_HEX, 0.6).setOrigin(0).setInteractive();
@@ -44,10 +47,8 @@ export class MapCard {
     const fit = Math.min(1, (view.height - 24) / height, (view.width - 16) / CARD_W);
     const top = view.height / 2 / fit - h / 2;
     const card = scene.add.container(view.width / 2, 0);
-    const g = scene.add.graphics();
-    g.fillStyle(PAPER_HEX, 1).fillRect(-CARD_W / 2, top, CARD_W, h);
-    g.fillStyle(0x26316a, 0.08).fillRect(-CARD_W / 2 + 6, top + h, CARD_W, 6);
-    wobblyRect(g, -CARD_W / 2, top, CARD_W, h, 77, 2, BLUE_HEX);
+    const g = paperCard(scene, 0, top + h / 2, CARD_W, h, CARD_SEED, { tapes: ['tl', 'tr'], rule: true });
+    this.paperH = h;
     // The card swallows presses so they don't reach the shade behind it.
     const body = scene.add.zone(0, top + h / 2, CARD_W, h).setInteractive();
     card.add([body, g]);
@@ -79,7 +80,7 @@ export class MapCard {
       const thumbY = top + 104 + THUMB.h / 2;
       card.add(boardPreview(scene, o.level, o.place, THUMB.w, THUMB.h).setY(thumbY));
       let y = thumbY + THUMB.h / 2 + 26;
-      card.add(inkText(scene, 0, y, shooterLine(o.level), 19, SOFT_INK));
+      card.add(inkText(scene, 0, y, shooterLine(o.level, o.place), 19, SOFT_INK));
       if (o.news.length) {
         y += 34;
         card.add(inkText(scene, 0, y, `New: ${o.news.join(' · ')}`, 21, RED));
@@ -90,7 +91,7 @@ export class MapCard {
       card.add(blots);
       const times = o.record ? `best ${clock(o.record.bestTime)} · par ${clock(o.level.par)}` : `par ${clock(o.level.par)}`;
       card.add(scene.add.text(-46, y, times, { fontFamily: HAND_FONT, fontSize: '22px', color: SOFT_INK, padding: { x: 4, y: 4 } }).setOrigin(0, 0.5));
-      card.add(inkButton(scene, 0, y + 58, o.record ? 'Play again' : 'Play', o.onPlay, { width: 220, height: 56, size: 32 }));
+      card.add(inkButton(scene, 0, y + 58, o.record ? 'Play again' : 'Play', o.onPlay, { width: 220, height: 58, size: 32, kind: 'leaf' }));
       return o.onPlay;
     }, () => {
       // The baked board stays only for the level about to start on it.
@@ -103,7 +104,7 @@ export class MapCard {
     return new MapCard(scene, layer, view, 150 + o.lines.length * 34 + (o.action ? 70 : 0), (card, top) => {
       card.add(inkText(scene, 0, top + 46, o.title, 36));
       o.lines.forEach((line, i) => card.add(inkText(scene, 0, top + 100 + i * 34, line, 22, SOFT_INK)));
-      if (o.action) card.add(inkButton(scene, 0, top + 116 + o.lines.length * 34 + 22, o.action.label, o.action.run, { width: 240, height: 54 }));
+      if (o.action) card.add(inkButton(scene, 0, top + 116 + o.lines.length * 34 + 22, o.action.label, o.action.run, { width: 240, height: 56, kind: 'leaf' }));
       return o.action?.run ?? null;
     }, onClose);
   }
@@ -111,6 +112,7 @@ export class MapCard {
   close(): void {
     this.scene.input.keyboard?.off('keydown', this.onKey);
     this.root.destroy();
+    freePaper(this.scene, CARD_W, this.paperH, CARD_SEED);
     this.onClose();
   }
 }

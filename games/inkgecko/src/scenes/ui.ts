@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
-import { BLUE, BLUE_HEX, PAPER_HEX } from '../art/palette';
+import { BLUE, BLUE_HEX } from '../art/palette';
 import { createRng } from '../logic/rng';
-import { getSound } from '../host';
-import { toView } from './hidpi';
+import type { PlateKind } from '../art/uiArtParts';
+import { paintedButton } from './uiPaint';
 
 export const HAND_FONT = '"Caveat", "Patrick Hand", "Comic Sans MS", cursive';
 
@@ -29,43 +29,19 @@ export interface ButtonOpts {
   readonly width?: number;
   readonly height?: number;
   readonly size?: number;
-  /** Fill behind the label (default paper) and the label's ink (default blue). */
-  readonly fill?: number;
+  /** The plate's wash: paper (default), leaf green for the main action, or sky blue. */
+  readonly kind?: PlateKind;
+  /** The label's ink (default blue on paper, cream on a coloured wash). */
   readonly color?: string;
 }
 
 /**
- * A paper button with a hand-drawn border (after InkFish's). It fires only
- * for a press that started on it and didn't drag, so lifting a steering
- * finger never triggers it.
+ * A painted button (see paintedButton): a washed plate, pen contour, soft
+ * shadow. It fires only for a press that started on it and didn't drag,
+ * so lifting a steering finger never triggers it. Its label is list[1].
  */
 export function inkButton(scene: Phaser.Scene, x: number, y: number, label: string, onClick: () => void, opts: ButtonOpts = {}): Phaser.GameObjects.Container {
-  const w = opts.width ?? 200;
-  const h = opts.height ?? 52;
-  const g = scene.add.graphics();
-  g.fillStyle(opts.fill ?? PAPER_HEX, 0.95).fillRect(-w / 2, -h / 2, w, h);
-  wobblyRect(g, -w / 2, -h / 2, w, h, label.length * 31, 1.8, BLUE_HEX);
-  const t = inkText(scene, 0, 0, label, opts.size ?? 28, opts.color);
-  const c = scene.add.container(x, y, [g, t]).setSize(w, h);
-  c.setInteractive({ useHandCursor: true });
-  let pressedAt: { x: number; y: number } | null = null;
-  c.on('pointerover', () => c.setScale(1.04));
-  c.on('pointerout', () => {
-    c.setScale(1);
-    pressedAt = null;
-  });
-  c.on('pointerdown', (p: Phaser.Input.Pointer) => {
-    pressedAt = toView(p.x, p.y);
-  });
-  c.on('pointerup', (p: Phaser.Input.Pointer) => {
-    const start = pressedAt;
-    pressedAt = null;
-    const end = toView(p.x, p.y);
-    if (!start || Math.hypot(start.x - end.x, start.y - end.y) > 12) return;
-    getSound(scene)?.play('click');
-    onClick();
-  });
-  return c;
+  return paintedButton(scene, x, y, label, onClick, opts);
 }
 
 /** Ink blots (the stars): `earned` filled, the rest as empty rings. */

@@ -1,16 +1,23 @@
 import { type MapLayout, type MapNode, type MapRegion, regionAt } from '../../scenes/map/layout';
 import { makeDraw } from '../kit';
+import { allotmentPlan } from './allotmentBand';
 import type { Band } from './band';
+import { barnPlan } from './barnBand';
 import { drawFeatures, type Feature, type Geo, geoOf, seedOf, type Span, touches } from './common';
 import { draftPlan } from './draftBand';
+import { farmGate, palingGate, stileFence } from './farmGates';
 import { paintEnds } from './ends';
 import { type GardenPlan, gardenPlan, inBed, paintBeds } from './gardenBand';
 import { gardenWall, pencilGate, pencilSign, roseArch, signBoard } from './gates';
 import { greenhousePlan } from './greenhouseBand';
 import { orchardPlan } from './orchardBand';
 import { rockeryPlan } from './rockeryBand';
+import { ruinsPlan } from './ruinsBand';
 import { greenhouseDoor, hedgeGate, stoneGap } from './thresholds';
 import { lawnMarks, paintLawn, paintPaper } from './ground';
+import { ironGate, ruinedArch } from './lateGates';
+import { meadowPlan } from './meadowBand';
+import { nightPlan } from './nightBand';
 import { paintedGroove, pencilGroove, pencilPocket } from './groove';
 import { jointMoss, paintSlab, pathSlabs, pocketBed, pocketDimple, type Slab, slabTouches } from './paving';
 import { type PondPlan, pondPlan } from './pondBand';
@@ -64,6 +71,11 @@ const BANDS: Partial<Record<MapRegion['chapter']['place'], (geo: Geo, r: MapRegi
   greenhouse: greenhousePlan,
   orchard: orchardPlan,
   rockery: rockeryPlan,
+  allotment: allotmentPlan,
+  meadow: meadowPlan,
+  barn: barnPlan,
+  ruins: ruinsPlan,
+  night: nightPlan,
 };
 
 function stretchesOf(geo: Geo, sheets: readonly Sheet[]): Stretch[] {
@@ -210,6 +222,11 @@ function paintGate(ctx: CanvasRenderingContext2D, r: MapRegion, span: Span): voi
   else if (r.chapter.place === 'greenhouse') greenhouseDoor(d, r.gate);
   else if (r.chapter.place === 'orchard') hedgeGate(d, r.gate);
   else if (r.chapter.place === 'rockery') stoneGap(d, r.gate);
+  else if (r.chapter.place === 'allotment') palingGate(d, r.gate);
+  else if (r.chapter.place === 'meadow') stileFence(d, r.gate);
+  else if (r.chapter.place === 'barn') farmGate(d, r.gate);
+  else if (r.chapter.place === 'ruins') ruinedArch(d, r.gate);
+  else if (r.chapter.place === 'night') ironGate(d, r.gate);
   else pencilGate(d, r.gate);
   if (painted(r)) signBoard(board, r.sign);
   else pencilSign(board, r.sign);

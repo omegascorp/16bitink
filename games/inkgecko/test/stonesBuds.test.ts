@@ -40,6 +40,34 @@ describe('stones', () => {
     expect(line.marbles.map((m) => m.colour)).toEqual(['green']);
   });
 
+  it('break in a chain: a stone touching a breaking stone breaks too', () => {
+    const line = makeLine();
+    line.lay(['green', 'blue', 'blue', 'red', 'red'], 400);
+    line.marbles[1] = { ...line.marbles[1]!, stone: true };
+    line.marbles[2] = { ...line.marbles[2]!, stone: true };
+    line.insert(4, 'front', 'red', null, []);
+    run(line, SETTLE + 0.2);
+    expect(line.marbles.map((m) => m.colour)).toEqual(['green']);
+  });
+
+  it('crumble once the burrow is shut and only stones are left', () => {
+    const line = makeLine();
+    line.lay(['blue'], 400);
+    line.marbles[0] = { ...line.marbles[0]!, stone: true };
+    const events = run(line, 0.1);
+    expect(events.some((e) => e.type === 'pop')).toBe(true);
+    expect(line.marbles).toHaveLength(0);
+  });
+
+  it('stay while the burrow still sends marbles', () => {
+    const line = makeLine();
+    line.lay(['blue'], 400);
+    line.marbles[0] = { ...line.marbles[0]!, stone: true };
+    line.spawning = true;
+    run(line, 0.1);
+    expect(line.marbles.some((m) => m.stone)).toBe(true);
+  });
+
   it("don't count as a colour in the line", () => {
     const line = makeLine();
     line.lay(['blue'], 400);
@@ -70,6 +98,16 @@ describe('buds', () => {
     // The two open reds popped; the bud stayed and opened.
     expect(line.marbles.map((m) => m.colour)).toEqual(['green', 'red', 'green']);
     expect(line.marbles[1]!.bud).toBe(false);
+  });
+
+  it('blossom instead of popping when a charm picks them', () => {
+    const line = makeLine();
+    line.lay(['red', 'red', 'blue'], 400);
+    line.marbles[0]!.bud = true;
+    const events: LineEvent[] = [];
+    line.popIds(new Set(line.marbles.slice(0, 2).map((m) => m.id)), 0, null, events);
+    expect(events.map((e) => e.type)).toEqual(['blossom', 'pop']);
+    expect(line.marbles.map((m) => [m.colour, m.bud])).toEqual([['red', false], ['blue', undefined]]);
   });
 
   it('a run of buds only blossoms', () => {

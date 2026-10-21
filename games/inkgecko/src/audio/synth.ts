@@ -208,6 +208,36 @@ const RECIPES: Readonly<Record<SfxId, (v: Voice) => void>> = {
     tone(v, { type: 'triangle', from: 1047, dur: 0.6, gain: 0.22, delay: 0.36 });
   },
   lose: (v) => notes(v, [392, 330, 262], 0.18, { type: 'triangle', dur: 0.3, gain: 0.2, vibrato: { depth: 4, rate: 6 } }),
+  // The Hedgehog sets off: a busy little snuffle.
+  snuffle: (v) => {
+    for (let i = 0; i < 5; i++) noise(v, { dur: 0.05, gain: 0.22, filter: 'bandpass', from: 900 + (i % 2) * 500, q: 3, delay: i * 0.07 });
+    tone(v, { type: 'triangle', from: 1400, to: 1800, dur: 0.08, gain: 0.05, delay: 0.36 });
+  },
+  // A nibble: a crisp crunch.
+  munch: (v) => {
+    noise(v, { dur: 0.05, gain: 0.3, filter: 'bandpass', from: 2400, q: 2, attack: 0.002 });
+    tone(v, { type: 'triangle', from: 520, to: 360, dur: 0.06, gain: 0.08 });
+  },
+  // Chameleons turning: a glassy shimmer sliding up.
+  shift: (v) => {
+    tone(v, { type: 'sine', from: 900, to: 1800, dur: 0.35, gain: 0.08, vibrato: { depth: 40, rate: 18 } });
+    tone(v, { type: 'triangle', from: 1350, to: 2700, dur: 0.3, gain: 0.04, delay: 0.05 });
+  },
+  // Rain: a quick shower of patters with a soft hiss under it.
+  rain: (v) => {
+    noise(v, { dur: 0.9, gain: 0.14, filter: 'highpass', from: 3000, attack: 0.08 });
+    for (let i = 0; i < 14; i++) noise(v, { dur: 0.02, gain: 0.18, filter: 'bandpass', from: 2500 + (i % 5) * 600, q: 6, delay: 0.04 + i * 0.05 });
+  },
+  // A marble off a timber wall: a knock on wood.
+  bounce: (v) => {
+    tone(v, { type: 'triangle', from: 340, to: 220, dur: 0.08, gain: 0.25, attack: 0.001 });
+    noise(v, { dur: 0.04, gain: 0.25, filter: 'bandpass', from: 1200, q: 3, attack: 0.001 });
+  },
+  // A marble dropping down the hole: a short falling whistle and a far-off tock.
+  sink: (v) => {
+    tone(v, { type: 'sine', from: 900, to: 260, dur: 0.22, gain: 0.08 });
+    noise(v, { dur: 0.05, gain: 0.12, filter: 'lowpass', from: 700, delay: 0.2 });
+  },
   // A pencil tick.
   click: (v) => noise(v, { dur: 0.03, gain: 0.25, filter: 'bandpass', from: 2800, q: 2 }),
   // Little feet on stone: four soft pats.
@@ -231,6 +261,7 @@ export const LEVEL: Readonly<Record<SfxId, number>> = {
   charm: 2.4, drop: 2, catch: 2, danger: 2.2, well: 1.6, filled: 1.4, win: 1, lose: 1, click: 1.1,
   hop: 1.8, plop: 1.8, dragonfly: 2.8, rush: 1.6, steps: 1.4, card: 1.2,
   crystal: 2.2, blossom: 2, crack: 1.8, thud: 1.6, fruit: 2,
+  snuffle: 1.8, munch: 1.6, shift: 2, rain: 2, bounce: 2, sink: 1.6,
 };
 
 export function synthesize(id: SfxId, v: Voice): void {

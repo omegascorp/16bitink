@@ -245,6 +245,45 @@ export function makeCanvas(w: number, h: number): { canvas: HTMLCanvasElement; c
   return { canvas, ctx };
 }
 
+/** Spare layers for painting a stroke apart before laying it over (see `withScratch`). */
+const scratch: HTMLCanvasElement[] = [];
+
+/**
+ * Paints on a clear w × h layer lent for the call, then hands it back, so a
+ * board's many soft bands share a couple of canvases instead of each making
+ * one the size of the board. Nested calls get layers of their own.
+ */
+export function withScratch<T>(w: number, h: number, paint: (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => T): T {
+  const canvas = scratch.pop() ?? document.createElement('canvas');
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w;
+    canvas.height = h;
+  }
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('2D canvas is not available');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  try {
+    return paint(ctx, canvas);
+  } finally {
+    ctx.restore();
+    scratch.push(canvas);
+  }
+}
+
+/** Lets the spare layers go (a bake is done): phones keep a tight budget for canvas memory. */
+export function releaseScratch(): void {
+  for (const c of scratch) shrink(c);
+  scratch.length = 0;
+}
+
+/** Empties a canvas's pixels now: browsers (iOS Safari above all) free them late otherwise. */
+export function shrink(canvas: HTMLCanvasElement): void {
+  canvas.width = 0;
+  canvas.height = 0;
+}
+
 const TAU = Math.PI * 2;
 /** The direction shadows fall (light comes from the upper left). */
 const SHADOW = { x: 0.55, y: 0.84 };

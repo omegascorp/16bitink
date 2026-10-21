@@ -4,6 +4,11 @@ import { CHAPTER_2 } from '../src/level/chapter2';
 import { CHAPTER_3 } from '../src/level/chapter3';
 import { CHAPTER_4 } from '../src/level/chapter4';
 import { CHAPTER_5 } from '../src/level/chapter5';
+import { CHAPTER_6 } from '../src/level/chapter6';
+import { CHAPTER_7 } from '../src/level/chapter7';
+import { CHAPTER_8 } from '../src/level/chapter8';
+import { CHAPTER_9 } from '../src/level/chapter9';
+import { CHAPTER_10 } from '../src/level/chapter10';
 import { findCrossings } from '../src/level/cross';
 import { BOARD, type LevelDef } from '../src/level/types';
 import { CHARMS } from '../src/logic/charms';
@@ -17,6 +22,8 @@ const GECKO_CLEAR = 120;
 const WELL_CLEAR = 150;
 /** Lanes of a track (or of two tracks) must not run closer than this. */
 const LANE_GAP = D * 1.2;
+/** Room between a pillar's edge and any track's centre line, board px. */
+const PILLAR_CLEAR = 34;
 /** Lily pads (radius ~58) mustn't overlap. */
 const PAD_GAP = 150;
 
@@ -54,7 +61,7 @@ const stands = (l: LevelDef): { x: number; y: number }[] | null => {
 
 describe('crossings', () => {
   it('cross at a readable angle', () => {
-    for (const level of [...CHAPTER_3, ...CHAPTER_4, ...CHAPTER_5]) {
+    for (const level of [...CHAPTER_3, ...CHAPTER_4, ...CHAPTER_5, ...CHAPTER_6, ...CHAPTER_7, ...CHAPTER_8, ...CHAPTER_9, ...CHAPTER_10]) {
       for (const c of findCrossings(paths(level))) expect(c.angle, `${level.id} at (${Math.round(c.at.x)}, ${Math.round(c.at.y)})`).toBeGreaterThan(0.6);
     }
   });
@@ -65,7 +72,7 @@ describe('crossings', () => {
 });
 
 describe('every level', () => {
-  for (const level of [...CHAPTER_1, ...CHAPTER_2, ...CHAPTER_3, ...CHAPTER_4, ...CHAPTER_5]) {
+  for (const level of [...CHAPTER_1, ...CHAPTER_2, ...CHAPTER_3, ...CHAPTER_4, ...CHAPTER_5, ...CHAPTER_6, ...CHAPTER_7, ...CHAPTER_8, ...CHAPTER_9, ...CHAPTER_10]) {
     describe(level.id, () => {
       it('uses known colours and charms', () => {
         expect(level.colours).toBeGreaterThanOrEqual(3);
@@ -100,6 +107,21 @@ describe('every level', () => {
           const end = pointAt(p, p.length);
           if (spots) for (const g of spots) expect(Math.hypot(end.x - g.x, end.y - g.y)).toBeGreaterThan(WELL_CLEAR);
         }
+      });
+
+      it('stands its pillars on the board, clear of the tracks, the gecko and each other', () => {
+        const pillars = level.pillars ?? [];
+        const spots = stands(level);
+        const s = level.shooter;
+        pillars.forEach((c, i) => {
+          expect(c.x - c.r).toBeGreaterThan(30);
+          expect(c.x + c.r).toBeLessThan(BOARD.w - 30);
+          expect(c.y - c.r).toBeGreaterThan(30);
+          for (const p of paths(level)) for (const q of p.pts) expect(Math.hypot(q.x - c.x, q.y - c.y), `${level.id} pillar ${i}`).toBeGreaterThan(c.r + PILLAR_CLEAR);
+          if (spots) for (const g of spots) expect(Math.hypot(g.x - c.x, g.y - c.y), `${level.id} pillar ${i} by the gecko`).toBeGreaterThan(c.r + GECKO_CLEAR * 0.7);
+          else if (s.kind === 'rail') expect(s.y - c.y, `${level.id} pillar ${i} by the branch`).toBeGreaterThan(c.r + 50);
+          pillars.forEach((o, j) => j > i && expect(Math.hypot(o.x - c.x, o.y - c.y)).toBeGreaterThan(c.r + o.r + D * 1.5));
+        });
       });
 
       it('never runs its lanes into each other (except over and under a crossing)', () => {

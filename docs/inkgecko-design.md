@@ -39,10 +39,15 @@ Started Oct 21, 2026. Fourth game on 16bit.ink.
 | **Dragonfly** | The next spit is a dragonfly that flies through the whole board, popping every marble it touches; the gecko keeps its marble | Level 13 |
 | **Ink Pot** | Pops every marble of one colour, on every line (the colour of the marble it rode on, or the gecko's) | Level 23 |
 | **Geode** | The next spit is a crystal that joins the line as the colour of whatever it hits; the gecko keeps its marble | Level 43 |
+| **Hedgehog** | A hedgehog trundles up the line nearest its well from the well, eating the front 10 marbles | Level 53 |
+| **Rain** | A shower pops every open marble in a column down the whole board (tunnels keep theirs dry) | Level 63 |
+| **Lantern** | Night levels: the whole garden is lit for 12 s | Level 93 |
 
 On pivot levels a charm rides on a marble in the line; pop that marble to use it, and it fades after 12 s if you don't. On rail levels every third pop drops a charm, which falls past the gecko: run under it to catch it.
 
-Later chapters: Lightning (clears a column, rail levels), Colour Bomb (clears a colour), Wild marble, stone marbles that break only next to a pop, wrapped marbles, tunnels, crossing tracks, a 60-second blitz level and bosses.
+Ideas not used yet: a 60-second blitz level and bosses.
+
+Buds never pop at once, whether a match or a charm picks them: they blossom first. A stone breaks when a marble beside it pops, and so does any stone touching a breaking one; stones left alone after the burrows shut crumble away. When a level is lost, what's left of the lines pours into the wells, faster and faster, before the result card (as in Zuma).
 
 ### Ink blots (stars)
 
@@ -142,9 +147,96 @@ New: **stones** in the line match nothing and break when a pop happens right bes
 | 49 | The Cairn | rail, long and fast | 5 | 18% | |
 | 50 | The Summit | hop, 3, 2 spirals | 5 | 18% | Final test |
 
+## Chapter 6: The Allotment (full game)
+
+New: **twined pairs**, two neighbouring marbles tied with garden twine that pop together (either one popping takes the other with it), and the **Hedgehog** charm. Tracks run squared off like the beds; the gecko hops between upturned buckets; tunnels are fleece cloches.
+
+| # | Name | Gecko | Colours | Twine | New |
+|---|---|---|---|---|---|
+| 51 | Bean Rows | pivot, square spiral | 4 | 12% | Twine |
+| 52 | Seed Drills | rail, wavering rows | 4 | 14% | |
+| 53 | The Hedgehog | pivot | 5 | 12% | Hedgehog charm |
+| 54 | Water Butts | hop, 2 | 5 | 15% | |
+| 55 | Runner Beans | pivot, 2 lines | 5 | 15% | |
+| 56 | The Shed | rail, an eight | 5 | 16% | |
+| 57 | Onion Bed | hop, 3 | 5 | 18% | |
+| 58 | Marrow Patch | pivot (low), rows | 5 | 16% | + buds |
+| 59 | Scarecrow | rail, 2 lines | 5 | 20% | |
+| 60 | Harvest Festival | hop, 3, 2 spirals | 5 | 22% | Final test |
+
+## Chapter 7: The Wild Meadow (full game)
+
+New: **chameleon marbles**, which all take the next colour together every 4 s (a shimmering ring warns of the turn), and the **Rain** charm. Tracks meander and curl into loop-the-loops through the long grass; the gecko hops between millstones; tunnels are grassy banks with stone culverts.
+
+| # | Name | Gecko | Colours | Chameleons | New |
+|---|---|---|---|---|---|
+| 61 | Long Grass | pivot (low), rows | 4 | 8% | Chameleons |
+| 62 | Poppies | rail, a lasso of loops | 4 | 10% | |
+| 63 | Rain Cloud | pivot | 5 | 10% | Rain charm |
+| 64 | The Stile | hop, 2, rows | 5 | 12% | |
+| 65 | Cornflowers | pivot, 2 lines | 5 | 12% | |
+| 66 | Butterflies | rail, a lasso | 5 | 13% | |
+| 67 | Mown Circle | hop, 3 | 5 | 14% | |
+| 68 | Cow Parsley | pivot (low), a lasso | 5 | 14% | + twine |
+| 69 | Skylark | rail, long and fast | 5 | 15% | |
+| 70 | Midsummer | hop, 3, 2 spirals | 5 | 16% | Final test |
+
+## Chapter 8: The Old Barn (full game)
+
+New: **bank shots**: shots bounce off the barn's timber walls (left, right and top; the bottom, the open doors, lets them out), up to three times, and a faint aim line shows the bounce. A **sixth colour** from level 73. The gecko hops between hay bales; tunnels run under rows of bales.
+
+| # | Name | Gecko | Colours | New |
+|---|---|---|---|---|
+| 71 | Hayloft | pivot, square spiral | 5 | Bank shots |
+| 72 | Cart Shed | rail | 5 | |
+| 73 | Milk Churns | pivot | 6 | Six colours |
+| 74 | Hay Bales | hop, 2 | 6 | + stones |
+| 75 | Threshing Floor | pivot, 2 lines | 6 | |
+| 76 | The Ladder | rail | 6 | + twine |
+| 77 | Swallows' Nest | hop, 3, an eight | 6 | + chameleons |
+| 78 | Lantern Light | pivot (low), rows | 6 | + buds |
+| 79 | Grain Sacks | rail, 2 lines | 6 | + stones |
+| 80 | The Big Doors | hop, 3, 2 square spirals | 6 | Final test |
+
+## Chapter 9: The Ruins (full game)
+
+New: **broken columns** stand on the board and shots glance off them (mirrored about the column's surface, up to four times): in the way, or a way round the line. The gecko hops between fallen column drums; tunnels run under collapsed arches.
+
+| # | Name | Gecko | Colours | Columns |
+|---|---|---|---|---|
+| 81 | Broken Columns | pivot | 5 | 2 (teaches them) |
+| 82 | Fallen Arch | rail | 5 | 2 |
+| 83 | Mosaic Floor | pivot | 6 | 4 |
+| 84 | The Chapel | hop, 2 | 6 | 1 |
+| 85 | Cloister | pivot, 2 lines | 6 | 2 |
+| 86 | Ivy Walk | rail, a lasso | 6 | 2 |
+| 87 | Bell Tower | hop, 3, an eight | 6 | 2 |
+| 88 | The Old Font | pivot (low) | 6 | 2 |
+| 89 | Fallen Statue | rail, 2 lines | 6 | 1 |
+| 90 | The Folly | hop, 3, 2 spirals | 6 | 1, final test |
+
+## Chapter 10: The Night Garden (full game, the last)
+
+New: **night**: a dark layer over the board with soft pools of light round the gecko, the lanterns by the wells, the burrows, shots in flight and pops, and patches of moonlight drifting over; marbles in the dark show only faintly. The **Lantern** charm lights the whole garden for 12 s. The chapter brings back a little of everything.
+
+| # | Name | Gecko | Colours | New |
+|---|---|---|---|---|
+| 91 | Moonrise | pivot | 5 | Night |
+| 92 | Night Stocks | rail | 5 | |
+| 93 | Lantern Light | pivot, square spiral | 6 | Lantern charm |
+| 94 | Moon Bridge | hop, 2, a lasso | 6 | |
+| 95 | Box Hedges | pivot, 2 lines | 6 | |
+| 96 | Moonflowers | rail, an eight | 6 | + chameleons |
+| 97 | The Moon Pool | hop, 3 | 6 | + twine |
+| 98 | Night Scented | pivot (low), a lasso | 6 | |
+| 99 | Midnight | rail, 2 lines | 6 | + stones |
+| 100 | The Last Lantern | hop, 3, 2 spirals | 6 | The final test |
+
+Balance: a headless bot (perfect sight, slow and wobbly aim) plays every level; middle levels of a chapter should not be harder than its final test, and new chapters sit near chapter 4–5's rates. Night levels are eased beyond that, since the bot sees in the dark.
+
 ## The map
 
-A vertical scroll: the estate's garden plan seen from above, which the gecko climbs from the garden by the house (chapter 1) to the night garden (chapter 10). Chapters 1–5 are painted; 6–10 are pencil drafts until built (`BUILT_CHAPTERS`). A worn stone groove winds up through every chapter with a pocket for each level, a marble in it once reachable; each chapter has a gate and a name board at its foot. Chapters not built yet are pencil drafts; the full game's chapters are painted but locked until bought.
+A vertical scroll: the estate's garden plan seen from above, which the gecko climbs from the garden by the house (chapter 1) to the night garden (chapter 10). All ten chapters are painted (`BUILT_CHAPTERS` = 10); a chapter not built yet would be a pencil draft. A worn stone groove winds up through every chapter with a pocket for each level, a marble in it once reachable; each chapter has a gate and a name board at its foot. Chapters not built yet are pencil drafts; the full game's chapters are painted but locked until bought.
 
 - The gecko waits on the path below the level it's up to; after a win it walks up to the next one and the view follows.
 - Tapping a level opens its card: a picture of the board, how the gecko plays it, what's new in it, its blots and best time against par, and Play.

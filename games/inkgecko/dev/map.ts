@@ -13,17 +13,18 @@ const CHUNK = 1024;
 const TIME_RES = Number(params.get('res') ?? 2);
 /** Display scale of the whole scroll. */
 const VIEW = 0.5;
+/** `?zoom=0.5` shows the crops smaller (still painted at the screen's resolution). */
+const ZOOM = Number(params.get('zoom') ?? 1);
 
 const ids = (prefix: string): string[] => Array.from({ length: 10 }, (_, i) => `${prefix}-${i + 1}`);
-const DRAFTS = ['The Allotment', 'The Wild Meadow', 'The Old Barn', 'The Ruins', 'The Night Garden'];
-const chapters: MapChapter[] = [
-  { name: 'The Garden', place: 'garden', levelIds: ids('garden') },
-  { name: 'The Pond', place: 'pond', levelIds: ids('pond') },
-  { name: 'The Greenhouse', place: 'greenhouse', levelIds: ids('greenhouse') },
-  { name: 'The Orchard', place: 'orchard', levelIds: ids('orchard') },
-  { name: 'The Rockery', place: 'rockery', levelIds: ids('rockery') },
-  ...DRAFTS.map((name, i): MapChapter => ({ name, place: 'draft', levelIds: ids(`draft${i + 6}`) })),
-];
+/** `?built=5` paints only the first five chapters, as the game does until the rest land (default all ten). */
+const BUILT = Number(params.get('built') ?? 10);
+const PLACES: readonly MapChapter['place'][] = ['garden', 'pond', 'greenhouse', 'orchard', 'rockery', 'allotment', 'meadow', 'barn', 'ruins', 'night'];
+const NAMES = ['The Garden', 'The Pond', 'The Greenhouse', 'The Orchard', 'The Rockery', 'The Allotment', 'The Wild Meadow', 'The Old Barn', 'The Ruins', 'The Night Garden'];
+const chapters: MapChapter[] = NAMES.map((name, i): MapChapter => {
+  const place = i < BUILT ? PLACES[i] ?? 'draft' : 'draft';
+  return { name, place, levelIds: ids(place === 'draft' ? `draft${i + 1}` : place) };
+});
 const layout = computeMapLayout(chapters);
 
 function heading(text: string): void {
@@ -105,7 +106,7 @@ function crop(title: string, y0: number, h: number): void {
   ctx.scale(res, res);
   ctx.translate(0, -y0);
   paintMapChunk(ctx, layout, y0, h);
-  canvas.style.width = `${layout.width}px`;
+  canvas.style.width = `${layout.width * ZOOM}px`;
   sheet.append(canvas);
 }
 
@@ -167,7 +168,9 @@ function seams(): void {
   sheet.append(Object.assign(document.createElement('figcaption'), { textContent: lines.join('\n') }));
 }
 
-const [garden, pond, greenhouse, orchard, rockery, draft] = layout.regions;
+const [garden, pond, greenhouse, orchard, rockery, allotment, meadow, barn, ruins, night] = layout.regions;
+/** The first chapter still pencilled. */
+const draft = layout.regions.find((r) => r.chapter.place === 'draft');
 /** `?only=greenhouse,orchard…` limits the crops to those whose key is listed. */
 const only = params.get('only')?.split(',');
 const show = (key: string, title: string, y0: number, h: number): void => {
@@ -185,5 +188,14 @@ show('greenhouse-orchard', 'The Greenhouse into the Orchard, full size: the far 
 show('orchard', 'The Orchard, full size', ...whole(orchard));
 show('orchard-rockery', 'The Orchard into the Rockery, full size: the last row, the dry-stone wall and standing stones', rockery!.bottom - 520, 1000);
 show('rockery', 'The Rockery, full size', ...whole(rockery));
-show('rockery-draft', 'The Rockery into the drafts, full size: the paint giving out into pencil', rockery!.top - 520, 1100);
-show('draft', 'The Allotment (draft), full size', draft!.top - 50, 900);
+show('rockery-allotment', 'The Rockery into the Allotment, full size', allotment!.bottom - 520, 1000);
+show('allotment', 'The Allotment, full size', ...whole(allotment));
+show('allotment-meadow', 'The Allotment into the Wild Meadow, full size', meadow!.bottom - 520, 1000);
+show('meadow', 'The Wild Meadow, full size', ...whole(meadow));
+show('meadow-barn', 'The Wild Meadow into the Old Barn, full size', barn!.bottom - 520, 1000);
+show('barn', 'The Old Barn, full size', ...whole(barn));
+show('barn-ruins', 'The Old Barn into the Ruins, full size', ruins!.bottom - 520, 1000);
+show('ruins', 'The Ruins, full size', ...whole(ruins));
+show('ruins-night', 'The Ruins into the Night Garden, full size', night!.bottom - 520, 1000);
+show('night', 'The Night Garden and the top of the map, full size', 0, night!.bottom + 40);
+if (draft) show('draft', `${draft.chapter.name} (draft) and the paint giving out below it, full size`, draft.bottom - 520, 1100);

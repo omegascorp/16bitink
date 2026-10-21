@@ -35,6 +35,14 @@ const HINTS: Readonly<Record<Teach, Hint>> = {
   bud: { id: 'bud', mouse: 'Buds don\'t pop: match one and it blossoms, then it can', touch: 'Buds don\'t pop: match one and it blossoms, then it can', until: is('blossom'), max: 14 },
   stone: { id: 'stone', mouse: 'Stones match nothing: pop the marbles beside them to break them', touch: 'Stones match nothing: pop the marbles beside them to break them', until: (e) => e.type === 'pop' && e.marbles.some((m) => m.stone), max: 14 },
   geode: { id: 'geode', mouse: 'A Geode! Your next spit turns the colour of whatever it hits', touch: 'A Geode! Your next spit turns the colour of whatever it hits', after: charmed('geode'), until: is('spit'), max: 8 },
+  twine: { id: 'twine', mouse: 'Marbles tied with twine pop together: pop one, both go!', touch: 'Marbles tied with twine pop together: pop one, both go!', until: is('pop'), max: 12 },
+  hedgehog: { id: 'hedgehog', mouse: 'A Hedgehog! It eats its way up the line from the well', touch: 'A Hedgehog! It eats its way up the line from the well', after: charmed('hedgehog'), until: is('hedgehogGone'), max: 8 },
+  chameleon: { id: 'chameleon', mouse: 'Shimmering marbles change colour every few seconds: time your shot', touch: 'Shimmering marbles change colour every few seconds: time your shot', until: is('shift'), max: 14 },
+  rain: { id: 'rain', mouse: 'Rain! Every marble under the shower pops', touch: 'Rain! Every marble under the shower pops', after: charmed('rain'), until: is('spit'), max: 5 },
+  pillar: { id: 'pillar', mouse: 'Shots glance off the old columns: use them to reach round the line', touch: 'Shots glance off the old columns: use them to reach round the line', until: is('bounce'), max: 14 },
+  dark: { id: 'dark', mouse: 'Night: you only see what the gecko and the lanterns light', touch: 'Night: you only see what the gecko and the lanterns light', until: is('pop'), max: 12 },
+  lantern: { id: 'lantern', mouse: 'A Lantern! The whole garden is lit for a while', touch: 'A Lantern! The whole garden is lit for a while', after: charmed('lantern'), until: is('spit'), max: 6 },
+  bank: { id: 'bank', mouse: 'Marbles bounce off the barn walls: bank a shot round the line!', touch: 'Marbles bounce off the barn walls: bank a shot round the line!', until: is('bounce'), max: 14 },
 };
 
 /**

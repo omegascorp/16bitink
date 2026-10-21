@@ -39,7 +39,7 @@ export function parseProgress(raw: unknown): Progress {
   if (typeof raw !== 'object' || raw === null) return EMPTY_PROGRESS;
   const levels = (raw as { levels?: unknown }).levels;
   if (typeof levels !== 'object' || levels === null) return EMPTY_PROGRESS;
-  const kept = Object.entries(levels as Record<string, unknown>).filter(([id, r]) => /^[a-z0-9-]{1,64}$/.test(id) && isRecord(r)).slice(0, MAX_LEVELS);
+  const kept = Object.entries(levels as Record<string, unknown>).filter(([id, r]) => /^[a-z0-9-]{1,64}$/.test(id) && !(id in Object.prototype) && isRecord(r)).slice(0, MAX_LEVELS);
   return { levels: Object.fromEntries(kept) as Record<string, LevelRecord> };
 }
 

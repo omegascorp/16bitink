@@ -12,6 +12,8 @@ import type { Pt } from './pen';
 export interface GroundKeep {
   readonly grooves: readonly (readonly Pt[])[];
   readonly pads: readonly Pt[];
+  /** The ruins' standing columns (centre and radius), painted by the ground itself; others keep clear of them. */
+  readonly pillars?: readonly { readonly x: number; readonly y: number; readonly r: number }[];
 }
 
 /** Nothing to keep clear: a place's own layout. */

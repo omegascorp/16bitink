@@ -10,6 +10,10 @@ export const SFX_IDS = [
   'rush',
   // Chapters 3–5: a Geode let go, a bud opening, a stone breaking, a windfall landing and being hit.
   'crystal', 'blossom', 'crack', 'thud', 'fruit',
+  // Chapters 6–8: the Hedgehog setting off and nibbling, chameleons turning, Rain, a shot off a barn wall.
+  'snuffle', 'munch', 'shift', 'rain', 'bounce',
+  // A marble dropping down the well's hole (each one, as the line drains away on a loss).
+  'sink',
   // The line: pops (pitched up per combo link), a gap closing, parts meeting, bonuses.
   'pop', 'pull', 'join', 'gap', 'streak',
   // Charms: one used, one dropping, one caught.
@@ -28,6 +32,7 @@ export type SfxId = (typeof SFX_IDS)[number];
 export const MIN_GAP_MS: Readonly<Record<SfxId, number>> = {
   spit: 40, swap: 60, stuck: 40, hop: 150, plop: 150, dragonfly: 200, rush: 1000,
   crystal: 150, blossom: 120, crack: 60, thud: 300, fruit: 120,
+  snuffle: 600, munch: 70, shift: 400, rain: 600, bounce: 50, sink: 45,
   pop: 40, pull: 150, join: 80, gap: 200, streak: 200,
   charm: 150, drop: 200, catch: 100,
   danger: 350, well: 500,

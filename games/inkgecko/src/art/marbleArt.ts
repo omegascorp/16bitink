@@ -123,6 +123,8 @@ interface Emblem {
   lines: Pt[][];
   /** Solid shapes: arrowheads, stars, dots. */
   fills: Pt[][];
+  /** Shapes laid over the fills in a colour of their own (a lantern's flame). */
+  cuts?: { shapes: Pt[][]; colour: string };
 }
 
 /** A charm's emblem at scale s (1 fits within radius ~9.5). */
@@ -211,6 +213,44 @@ function emblem(charm: CharmId, s: number): Emblem {
       const facets = [[P(-1.6, -7), P(-3.4, -2.6), P(0, 8.6)], [P(1.6, -7), P(3.4, -2.6), P(0, 8.6)]];
       return { lines: [gem, girdle, ...facets], fills: [] };
     }
+    case 'hedgehog': {
+      // A hedgehog trundling right, from the side: a spiky dome, its head apart from it by a hair, a nose, two feet.
+      const n = 17;
+      const back = Array.from({ length: n }, (_, i) => {
+        const ang = Math.PI + (i / (n - 1)) * Math.PI * 0.66;
+        const r = i % 2 === 0 ? 1 : 0.74;
+        return P(-1.6 + Math.cos(ang) * 8.4 * r, 4.4 + Math.sin(ang) * 9.2 * r);
+      });
+      const end = back[n - 1]!;
+      const body = [...back, pt(end.x - 1.6 * s, 4.4 * s), P(-10, 4.4)];
+      const head = [P(3.4, -1.6), P(5.8, -0.6), P(8.8, 1.9), P(7.6, 4.4), P(3.4, 4.4), P(3, 1.2)];
+      const nose = ring(1.15, 8).map((p) => pt(p.x + 9.6 * s, p.y + 2.4 * s));
+      const feet = [[P(-6.4, 5.9), P(-3.6, 5.9), P(-4, 7.8), P(-6.4, 7.8)], [P(1.6, 5.9), P(4.4, 5.9), P(4.4, 7.8), P(2, 7.8)]];
+      return { lines: [], fills: [body, head, nose, ...feet] };
+    }
+    case 'lantern': {
+      // A garden lantern: a ring to hang it by, a peaked cap, a glowing square body with a big warm flame in it, a foot.
+      const cap = [P(-6.8, -3.4), P(-1.2, -7.2), P(1.2, -7.2), P(6.8, -3.4)];
+      const frame = closed([P(-4.4, -3.4), P(4.4, -3.4), P(4.4, 5), P(-4.4, 5)]);
+      const flame = Array.from({ length: 16 }, (_, i) => {
+        const t = (i / 16) * TAU;
+        return P(Math.sin(t) * Math.sin(t / 2) * 2.1, 1.1 - Math.cos(t) * 3.1);
+      });
+      const foot = [P(-5.8, 5), P(5.8, 5), P(5.2, 7.6), P(-5.2, 7.6)];
+      return { lines: [ring(1.5, 10).map((p) => pt(p.x, p.y - 8.9 * s))], fills: [cap, frame, foot], cuts: { shapes: [flame], colour: '#e8922c' } };
+    }
+    case 'rain': {
+      // A rain cloud, three slanting streaks falling from it.
+      const puffs = [[-4.9, -2.6, 3.3], [0.2, -4.8, 4.3], [5.1, -2.4, 3.2]] as const;
+      const top = Array.from({ length: 25 }, (_, i) => {
+        const x = -8.2 + (i / 24) * 16.5;
+        const y = Math.min(...puffs.map(([cx, cy, r]) => (Math.abs(x - cx) < r ? cy - Math.sqrt(r * r - (x - cx) ** 2) : 99)));
+        return P(x, Math.min(y, -0.4));
+      });
+      const cloud = [...top, P(7.4, 0.6), P(-6.6, 0.6)];
+      const streak = (x: number, y: number, l: number): Pt[] => [P(x, y), P(x - l * 0.3, y + l)];
+      return { lines: [streak(-4.4, 3.6, 3.8), streak(0.6, 3.6, 5), streak(5.4, 3.6, 3.8)], fills: [cloud] };
+    }
   }
 }
 
@@ -242,6 +282,12 @@ function paintEmblem(d: Draw, e: Emblem, line: number, colour: string, outline =
   ctx.restore();
 }
 
+/** An emblem's cuts, each in its own colour, over its fills. */
+function paintCuts(d: Draw, e: Emblem): void {
+  if (!e.cuts) return;
+  for (const shape of e.cuts.shapes) d.pen.fill(shape, e.cuts.colour, 1);
+}
+
 /**
  * The emblem of a charm, paper-white outlined in ink so it reads on any
  * marble colour; drawn over a marble that carries the charm, within radius ~10.
@@ -255,6 +301,7 @@ export function drawCharmMark(d: Draw, charm: CharmId): void {
   d.pen.ctx.restore();
   paintEmblem(d, e, 4.3, d.ink, 2.4);
   paintEmblem(d, e, 2.1, PAPER_FILL);
+  paintCuts(d, e);
 }
 
 /** Token frame size: the falling charm on rail levels is drawn centred in it. */
@@ -298,7 +345,9 @@ export function drawCharmToken(d: Draw, charm: CharmId): void {
   });
   pen.crescent(disc, pt(-4, -6), () => pen.hatch(disc, 1.9, 0.9, 0.45, { color: d.ink, alpha: 0.45 }));
   // The emblem, large, in ink.
-  paintEmblem(d, emblem(charm, 1.12), 2.3, d.ink);
+  const e = emblem(charm, 1.12);
+  paintEmblem(d, e, 2.3, d.ink);
+  paintCuts(d, e);
   pen.hair(closed(inner), 0.7, d.ink, 0.6);
   pen.stroke(closed(oval(0, 0, R, R, 36)), 1.4, d.ink, 1);
   pen.hair(bezier(pt(-11.5, -4.5), pt(-10, -10), pt(-4.5, -12.5), 6), 1.2, PAPER_FILL, 0.85);

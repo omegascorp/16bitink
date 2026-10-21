@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { paintMapChunk } from '../../art/map/paintMap';
 import { makeCanvas } from '../../art/pen';
+import { freeTexture } from '../../art/textures';
 import type { MapLayout } from './layout';
 
 /** World px down one baked chunk of the plan. */
@@ -8,7 +9,7 @@ const CHUNK = 1024;
 /** World px each chunk reaches past its neighbours, so their edges overlap instead of leaving a hairline. */
 const OVERLAP = 2;
 /** Chunks kept either side of the view; anything further is freed. */
-const KEEP = 2;
+const KEEP = 1;
 
 /**
  * The plan's painting, baked in horizontal bands around the camera and freed
@@ -37,7 +38,7 @@ export class MapView {
     for (const [i, img] of this.chunks) {
       if (i >= first - KEEP && i <= last + KEEP) continue;
       img.destroy();
-      this.scene.textures.remove(this.key(i));
+      freeTexture(this.scene, this.key(i));
       this.chunks.delete(i);
     }
     const mid = (top + bottom) / 2 / CHUNK;
@@ -59,7 +60,7 @@ export class MapView {
     ctx.translate(0, -y0);
     paintMapChunk(ctx, this.layout, y0, h);
     const key = this.key(i);
-    if (this.scene.textures.exists(key)) this.scene.textures.remove(key);
+    freeTexture(this.scene, key);
     // A plain image texture from the canvas: addCanvas would make a CanvasTexture, which reads every pixel back.
     this.scene.textures.addImage(key, canvas as unknown as HTMLImageElement);
     const img = this.scene.add.image(0, y0, key).setOrigin(0).setDisplaySize(this.layout.width, h);
@@ -70,7 +71,7 @@ export class MapView {
   private destroy(): void {
     for (const [i, img] of this.chunks) {
       img.destroy();
-      this.scene.textures.remove(this.key(i));
+      freeTexture(this.scene, this.key(i));
     }
     this.chunks.clear();
   }

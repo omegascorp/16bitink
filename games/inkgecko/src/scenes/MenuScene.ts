@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SIGN_BOARD } from '../art/map/paintMap';
 import { BLUE, PAPER_HEX } from '../art/palette';
+import { dropBoards } from '../art/textures';
 import { getFullError, getHost, getSound } from '../host';
 import { BUILT_CHAPTERS, CHAPTER_NAMES, CHAPTER_PLACES, levelById, levelOrder, loadedChapters, loadedLevels, placeOf, PLANNED_CHAPTERS } from '../level/levels';
 import { colourHex, COLOURS } from '../logic/colours';
@@ -97,7 +98,10 @@ export class MenuScene extends Phaser.Scene {
     const paint = this.add.layer();
     const world = this.add.layer();
     this.uiLayer = this.add.layer();
-    this.view = new MapView(this, this.layout, paint, Math.min(2, this.zoom * DPR));
+    // The level left behind lets its painting go (~15 MB): the map needs the room.
+    dropBoards(this);
+    // Map bands are baked a little softer on touch screens, which have the tightest canvas budget.
+    this.view = new MapView(this, this.layout, paint, Math.min(this.sys.game.device.input.touch ? 1.5 : 2, this.zoom * DPR));
 
     const names = new Map(loadedLevels().map((l) => [l.id, l.name]));
     const blots = new Map(Object.entries(this.progress.levels).map(([id, r]) => [id, r.blots]));
@@ -257,7 +261,8 @@ export class MenuScene extends Phaser.Scene {
       // An owner whose chapters failed to load (or haven't yet): try again.
       this.card = MapCard.chapter(this, this.uiLayer, this.ui, {
         title, lines: [error ?? 'Your full game is still on its way.'],
-        action: { label: 'Try again', run: () => void loadPaidChapters(this).then(() => this.scene.restart({ focusY: this.focusY })) },
+        // The player may have gone into a level while it loads: only redraw a map that is still showing.
+        action: { label: 'Try again', run: () => void loadPaidChapters(this).then(() => this.scene.isActive() && this.scene.restart({ focusY: this.focusY })) },
       }, close);
     } else if (locked && host.price) {
       this.card = MapCard.chapter(this, this.uiLayer, this.ui, {

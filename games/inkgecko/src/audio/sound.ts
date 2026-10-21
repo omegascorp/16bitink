@@ -98,7 +98,8 @@ export class SoundBoard {
 
   private start(): void {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended' && !document.hidden) void this.ctx.resume().catch(() => undefined);
+      // Not only 'suspended': iOS leaves it 'interrupted' after a call, Siri or the lock screen.
+      if (this.ctx.state !== 'running' && this.ctx.state !== 'closed' && !document.hidden) void this.ctx.resume().catch(() => undefined);
       return;
     }
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -109,6 +110,8 @@ export class SoundBoard {
     this.master.connect(this.ctx.destination);
     this.ambience = new Ambience(this.ctx, this.master);
     this.ambience.setBed(this.bed);
+    // Some browsers make it suspended even inside the gesture: ask now rather than on the next tap.
+    if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => undefined);
   }
 }
 
