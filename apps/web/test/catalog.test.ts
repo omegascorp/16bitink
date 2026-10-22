@@ -28,9 +28,9 @@ describe('catalog', () => {
     expect(isOut({ released: 'soon' } as CatalogGame, new Date('2026-10-24T00:00:00Z'))).toBe(false);
   });
 
-  it('lists InkGecko on the home page from Saturday, Oct 24 (UTC), and every other playable game now', () => {
-    expect(listedGames(new Date('2026-10-23T23:59:59Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine']);
-    expect(listedGames(new Date('2026-10-24T00:00:00Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko']);
+  it('lists InkGecko on the home page from its release day, Oct 22 (UTC), and every other playable game before', () => {
+    expect(listedGames(new Date('2026-10-21T23:59:59Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine']);
+    expect(listedGames(new Date('2026-10-22T00:00:00Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko']);
   });
 
   it('says in a few words what every playable game gives for free', () => {

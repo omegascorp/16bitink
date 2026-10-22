@@ -43,8 +43,8 @@ describe('sitemap.xml', () => {
 
   it('leaves a game out until its release day (UTC)', () => {
     const gecko = '<loc>https://16bit.ink/games/inkgecko</loc>';
-    expect(sitemapXml(SITE, listedGames(new Date('2026-10-23T23:59:59Z')))).not.toContain(gecko);
-    expect(sitemapXml(SITE, listedGames(new Date('2026-10-24T00:00:00Z')))).toContain(gecko);
+    expect(sitemapXml(SITE, listedGames(new Date('2026-10-21T23:59:59Z')))).not.toContain(gecko);
+    expect(sitemapXml(SITE, listedGames(new Date('2026-10-22T00:00:00Z')))).toContain(gecko);
   });
 
   it('leaves out games still in the sketchbook and private pages', () => {
