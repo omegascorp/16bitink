@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { inkcrabArt } from './icons/inkcrab.mjs';
 import { inkfishArt } from './icons/inkfish.mjs';
+import { inkgeckoArt } from './icons/inkgecko.mjs';
 import { inkmineArt } from './icons/inkmine.mjs';
 import { INK, PAPER, SIZE, brandDrop, paper } from './icons/paper.mjs';
 
@@ -27,6 +28,7 @@ const ICONS = {
   inkfish: (opts) => inkfishArt(opts),
   inkcrab: (opts) => inkcrabArt(opts),
   inkmine: (opts) => inkmineArt(opts),
+  inkgecko: (opts) => inkgeckoArt(opts),
 };
 
 function svg(art, { maskable = false } = {}) {

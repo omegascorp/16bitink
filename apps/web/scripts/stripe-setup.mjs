@@ -31,6 +31,13 @@ const PRODUCTS = [
     unitAmount: 499,
     currency: 'usd',
   },
+  {
+    lookupKey: 'inkgecko_full',
+    name: 'InkGecko: Full Game',
+    description: 'The full InkGecko game on 16bit.ink: all 100 levels across 10 gardens. One-time purchase, no subscription.',
+    unitAmount: 499,
+    currency: 'usd',
+  },
 ];
 
 const key = process.env.STRIPE_SECRET_KEY;

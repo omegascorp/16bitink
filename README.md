@@ -8,6 +8,7 @@ packages/game-sdk   The contract between site and games (GameModule, GameHost)
 games/inkfish       Phaser 4 game package: client game (src/) + server-only paid content (content/)
 games/inkcrab       Second game (prototype): hermit crab trading up through shells; design in docs/inkcrab-design.md
 games/inkmine       Third game: planet-hopping miner, chapter 1 free, chapters 2-3 (Mycel, Brine) in the $4.99 full game; design in docs/inkmine-design.md
+games/inkgecko      Fourth game: Zuma/Luxor-style marble shooter, in the catalog since Oct 22, all 10 chapters built (1 free; 2–10 the full game: Pond, Greenhouse, Orchard, Rockery, Allotment, Wild Meadow, Old Barn, Ruins, Night Garden); design in docs/inkgecko-design.md
 docs/               Research, tech & monetization decisions, art pipeline
 ```
 
@@ -18,6 +19,7 @@ pnpm install
 pnpm --filter @16bitink/inkfish dev     # game alone at http://localhost:5174 (prefix DEV_UNLOCK=true to play as an owner, DEV_ALL_LEVELS=true to open every level)
 pnpm --filter @16bitink/inkcrab dev     # InkCrab test beach at http://localhost:5175 (not in the catalog yet)
 pnpm --filter @16bitink/inkmine dev     # InkMine at http://localhost:5176 (?reset starts over)
+pnpm --filter @16bitink/inkgecko dev    # InkGecko at http://localhost:5177 (/specimens.html shows its art, /map.html the whole level map)
 pnpm dev                                # site at http://localhost:4321
 pnpm test                               # unit tests (game logic, tokens, purchases, catalog)
 MONGODB_TEST_URI=mongodb://localhost:27017/16bitink_test pnpm --filter @16bitink/web test   # + database integration tests
@@ -94,6 +96,7 @@ All games share one deployment, one checkout and one webhook.
    - Add a catalog entry in `src/data/games.ts`: title, `theme`, `fonts`, `stripeLookupKey`.
    - Add one line to `src/games/loaders.ts` (client) and, if it sells content, one to `src/games/content.server.ts`.
    - A free demo with nothing for sale yet leaves out `price` and `stripeLookupKey`: its pages say the full game is coming soon.
+   - Set `released` to the launch day to list it ahead: until that day (UTC) the home page and sitemap leave it out, while its pages, short link and checkout already work by link (`listedGames` in `src/data/games.ts`).
 4. In Stripe, create the one-time price with that lookup key.
 5. For the level funnel in `/admin/analytics`, call `host.track?.({ type: 'level_start', level, n, name })` when a level begins and `{ type: 'level_end', …, result, seconds }` when it is won, lost or left (`n` = the level's 1-based place in the game's order).
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { INKCRAB_PAID_BEACHES } from '@16bitink/inkcrab/content';
 import { INKFISH_FULL_CHAPTERS } from '@16bitink/inkfish/content';
+import { INKGECKO_PAID_CHAPTERS } from '@16bitink/inkgecko/content';
 import { findGame, playableGames, type CatalogGame } from '../src/data/games';
 import { chapterTiles, formatDay, gameDates, gameSize } from '../src/lib/gameFacts';
 
@@ -62,8 +63,9 @@ describe('catalog sizes', () => {
     }
   });
 
-  it('InkFish and InkCrab count the levels they really ship', () => {
+  it('InkFish, InkCrab and InkGecko count the levels they really ship', () => {
     expect(findGame('inkfish')?.size).toEqual({ chapters: INKFISH_FULL_CHAPTERS.length + 1, levels: INKFISH_FULL_CHAPTERS.flatMap((c) => c.levels).length + DEMO_LEVELS });
     expect(findGame('inkcrab')?.size).toEqual({ chapters: INKCRAB_PAID_BEACHES.length + 1, levels: INKCRAB_PAID_BEACHES.flat().length + DEMO_LEVELS });
+    expect(findGame('inkgecko')?.size).toEqual({ chapters: INKGECKO_PAID_CHAPTERS.length + 1, levels: INKGECKO_PAID_CHAPTERS.flat().length + DEMO_LEVELS });
   });
 });
