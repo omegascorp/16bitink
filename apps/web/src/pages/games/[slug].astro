@@ -4,7 +4,7 @@ import BuyButton from '../../components/BuyButton.astro';
 import GameStats from '../../components/GameStats.astro';
 import PartnerAd from '../../components/PartnerAd.astro';
 import SundaySignup from '../../components/SundaySignup.astro';
-import { findGame, isPurchasable, listedGames } from '../../data/games';
+import { findGame, homeGames, isPurchasable } from '../../data/games';
 import { coverSrcset, coverVariant } from '../../lib/covers';
 import { currentUser, ownedGameSlugs } from '../../lib/owner';
 import { faqJsonLd, gameFaq, gameJsonLd, gameTitle } from '../../lib/seo';
@@ -38,7 +38,7 @@ const faq = gameFaq(game);
 const site = Astro.site ?? Astro.url;
 const cover = game.cover ?? '/covers/inkfish.png';
 // Where a player lands on leaving a game: the other games, newest first, one tap from playing.
-const others = listedGames(new Date()).filter((g) => g.slug !== game.slug).reverse();
+const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
 ---
 <Base title={gameTitle(game)} description={game.description[0] ?? game.tagline} image={game.cover} user={user} jsonLd={[gameJsonLd(game, site), faqJsonLd(faq)]}>
   <article class="game">

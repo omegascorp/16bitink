@@ -5,7 +5,7 @@ import { INKGECKO_PAID_CHAPTERS } from '@16bitink/inkgecko/content';
 import { parseBeaches } from '../../../games/inkcrab/src/level/validate';
 import { parseChapters as parseGeckoChapters } from '../../../games/inkgecko/src/level/validate';
 import { parseChapters } from '../../../games/inkfish/src/levels/validate';
-import { findGame, GAMES, isNew, isOut, isPurchasable, listedGames, playableGames, type CatalogGame } from '../src/data/games';
+import { findGame, GAMES, homeGames, isNew, isOut, isPurchasable, listedGames, newestFirst, playableGames, type CatalogGame } from '../src/data/games';
 import { PAID_CONTENT } from '../src/games/content.server';
 import { GAME_LOADERS } from '../src/games/loaders';
 import { GAME_VERSIONS } from '../src/games/versions';
@@ -31,6 +31,17 @@ describe('catalog', () => {
   it('lists InkGecko on the home page from its release day, Oct 22 (UTC), and every other playable game before', () => {
     expect(listedGames(new Date('2026-10-21T23:59:59Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine']);
     expect(listedGames(new Date('2026-10-22T00:00:00Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko']);
+  });
+
+  it('puts the newest game first on the home page, so this week\'s game is the featured one', () => {
+    expect(homeGames(new Date('2026-10-21T23:59:59Z')).map((g) => g.slug)).toEqual(['inkmine', 'inkcrab', 'inkfish']);
+    expect(homeGames(new Date('2026-10-22T00:00:00Z')).map((g) => g.slug)).toEqual(['inkgecko', 'inkmine', 'inkcrab', 'inkfish']);
+  });
+
+  it('orders newest first, keeping catalog order for a shared day and undated games last', () => {
+    const g = (slug: string, released?: string): CatalogGame => ({ slug, released } as CatalogGame);
+    const order = newestFirst([g('a', '2026-10-03'), g('b'), g('c', '2026-10-11'), g('d', '2026-10-11'), g('e', 'soon')]);
+    expect(order.map((x) => x.slug)).toEqual(['c', 'd', 'a', 'b', 'e']);
   });
 
   it('says in a few words what every playable game gives for free', () => {

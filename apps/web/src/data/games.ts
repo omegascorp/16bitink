@@ -258,3 +258,19 @@ export const playableGames = (): CatalogGame[] => GAMES.filter((g) => g.status =
 
 /** What the home page and the sitemap list: playable games whose release day has come. */
 export const listedGames = (now: Date): CatalogGame[] => playableGames().filter((g) => isOut(g, now));
+
+/** A release day as a timestamp; NaN when undated or unreadable. */
+const releasedAt = (game: CatalogGame): number => (game.released ? Date.parse(`${game.released}T00:00:00Z`) : Number.NaN);
+
+/** Newest release first; games out the same day keep their catalog order, and undated ones go last. */
+export function newestFirst(games: readonly CatalogGame[]): CatalogGame[] {
+  const key = (g: CatalogGame): number => {
+    const at = releasedAt(g);
+    return Number.isFinite(at) ? at : Number.NEGATIVE_INFINITY;
+  };
+  // Array.prototype.sort is stable, so ties stay in catalog order.
+  return [...games].sort((a, b) => key(b) - key(a) || 0);
+}
+
+/** The home page's games: this week's game first (the featured one), then the rest newest first. */
+export const homeGames = (now: Date): CatalogGame[] => newestFirst(listedGames(now));
