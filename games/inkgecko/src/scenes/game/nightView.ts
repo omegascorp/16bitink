@@ -5,6 +5,8 @@ import { pointAt } from '../../logic/path';
 
 /** The night's darkness is drawn at this share of board resolution: it is all soft edges. */
 const RES = 0.5;
+/** How far past the board's edges the night reaches, board px: over the mirrored ground on the widest screens. */
+const BLEED = 400;
 const LIGHT_KEY = 'night-light';
 /** The light texture's radius, px; each light is scaled from it. */
 const LIGHT_R = 128;
@@ -39,7 +41,7 @@ export class NightView {
 
   constructor(private readonly scene: Phaser.Scene) {
     makeLight(scene);
-    this.rt = scene.add.renderTexture(0, 0, BOARD.w * RES, BOARD.h * RES).setOrigin(0).setScale(1 / RES).setDepth(7.5);
+    this.rt = scene.add.renderTexture(-BLEED, -BLEED, (BOARD.w + BLEED * 2) * RES, (BOARD.h + BLEED * 2) * RES).setOrigin(0).setScale(1 / RES).setDepth(7.5);
   }
 
   react(e: BoardEvent): void {
@@ -56,7 +58,7 @@ export class NightView {
     rt.fill(NIGHT_HEX, DARKNESS * (1 - this.lift));
     if (this.lift < 1) {
       const light = (x: number, y: number, r: number, alpha = 1): void => {
-        rt.stamp(LIGHT_KEY, undefined, x * RES, y * RES, { scale: (r * RES) / LIGHT_R, alpha, blendMode: Phaser.BlendModes.ERASE });
+        rt.stamp(LIGHT_KEY, undefined, (x + BLEED) * RES, (y + BLEED) * RES, { scale: (r * RES) / LIGHT_R, alpha, blendMode: Phaser.BlendModes.ERASE });
       };
       const flicker = 1 + Math.sin(time / 90) * 0.03 + Math.sin(time / 37) * 0.02;
       light(board.gecko.x, board.gecko.y, R.gecko);

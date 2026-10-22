@@ -18,3 +18,21 @@ export const RAIN_HALF = 52;
 export const CHARM_FADES_AFTER = 12;
 
 export const CHARM_NAMES: Readonly<Record<CharmId, string>> = { slow: 'Slow', reverse: 'Reverse', burst: 'Burst', aim: 'Aim', dragonfly: 'Dragonfly', inkpot: 'Ink Pot', geode: 'Geode', hedgehog: 'Hedgehog', rain: 'Rain', lantern: 'Lantern' };
+
+/**
+ * Reverse and Slow stall the line: each only turns up once a line is this
+ * far towards its well (0..1), where it rescues rather than drags.
+ */
+export const STALL_FROM: Readonly<Partial<Record<CharmId, number>>> = { slow: 0.35, reverse: 0.5 };
+
+/**
+ * The charm to give next: one of the level's `charms` that fits how close
+ * the line is to its well (`danger`, 0..1), not `last` again while there is
+ * another, chosen by `roll` (0..1). Null when none fits yet.
+ */
+export function pickCharm(charms: readonly CharmId[], danger: number, last: CharmId | null, roll: number): CharmId | null {
+  const fits = charms.filter((c) => danger >= (STALL_FROM[c] ?? 0));
+  const fresh = fits.filter((c) => c !== last);
+  const pool = fresh.length ? fresh : fits;
+  return pool[Math.min(pool.length - 1, Math.floor(roll * pool.length))] ?? null;
+}

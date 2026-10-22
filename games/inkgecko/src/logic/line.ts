@@ -8,6 +8,12 @@ export const D = 32;
 const TOUCH = D + 0.5;
 /** How fast the front of a gap rolls back to close it when the colours match, board px/s. */
 export const PULL_SPEED = 560;
+/**
+ * The pushed part keeps at least this much of itself out of the burrow, so
+ * there is always something to shoot: rolling back (the Reverse charm)
+ * stops here, and a line popped down to less rushes out to here again.
+ */
+export const MIN_OUT = D * 6;
 /** How fast the line rolls back after a marble falls in the well. */
 export const REWIND_SPEED = 900;
 /** A shot settles into the line for this long before it can pop. */
@@ -243,7 +249,10 @@ export class Line {
     if (rush === 1) this.rushing = false;
     parts.forEach((part, k) => {
       if (k === tailPart) {
-        for (const m of part) m.s += speed * rush * dt;
+        const front = part[part.length - 1]!.s;
+        const short = this.spawning && front < MIN_OUT ? RUSH_FACTOR : 1;
+        const d = speed < 0 ? Math.max(speed * dt, Math.min(0, MIN_OUT - front)) : speed * Math.max(rush, short) * dt;
+        for (const m of part) m.s += d;
         return;
       }
       const prev = parts[k - 1];

@@ -1,5 +1,5 @@
 import { BOARD, type LevelDef, type ShooterDef } from '../level/types';
-import { BURST_REACH, CHARM_SECONDS, HEDGEHOG_EATS, HEDGEHOG_SPEED, RAIN_HALF, SLOW_FACTOR, type CharmId } from './charms';
+import { BURST_REACH, CHARM_SECONDS, HEDGEHOG_EATS, HEDGEHOG_SPEED, pickCharm, RAIN_HALF, SLOW_FACTOR, type CharmId } from './charms';
 import { dealColour, paletteOf, type ColourId } from './colours';
 import { FRUIT_EVERY, FRUIT_HIT, FRUIT_POINTS, rollFruit, spawnFruit, type Fruit, type FruitKind } from './fruit';
 import { D, Line, SETTLE, type LineEvent, type Marble, type Spawned } from './line';
@@ -20,7 +20,7 @@ export const PIVOT_TURN = 2.8;
 /** Reverse rolls the line back at this speed. */
 export const REVERSE_SPEED = 150;
 /** On rail levels every this many pops drops a charm. */
-export const DROP_EVERY = 3;
+export const DROP_EVERY = 4;
 /** A falling charm's gravity and top speed. */
 const DROP_GRAVITY = 520;
 const DROP_MAX = 300;
@@ -175,6 +175,8 @@ export class Board {
   private queuedFire = false;
   private popsSinceDrop = 0;
   private charmClock = 0;
+  /** The charm given last, so the next one is a different one when it can be. */
+  private lastCharm: CharmId | null = null;
   /** Shots that joined the line, waiting to see if they pop (for the streak). */
   private waiting = new Map<number, number>();
   /** Gaps each waiting shot flew through: paid out if it pops. */
@@ -677,8 +679,11 @@ export class Board {
     if (!this.level.charms.length) return;
     this.popsSinceDrop++;
     if (this.popsSinceDrop < DROP_EVERY) return;
+    // None fits yet (only stalling charms, the line far from its well): the next pop tries again.
+    const charm = pickCharm(this.level.charms, this.danger, this.lastCharm, this.rng());
+    if (!charm) return;
     this.popsSinceDrop = 0;
-    const charm = this.level.charms[Math.floor(this.rng() * this.level.charms.length)]!;
+    this.lastCharm = charm;
     const drop: Drop = { id: this.ids++, charm, x: at.x, y: at.y, vy: 0 };
     this.drops.push(drop);
     events.push({ type: 'drop', drop });
@@ -705,10 +710,12 @@ export class Board {
     this.charmClock += dt;
     if (this.charmClock < CHARM_EVERY) return;
     const open = this.lines.flatMap((line, li) => line.marbles.filter((m) => !m.charm && !m.stone && m.s > line.path.length * 0.08 && m.s < line.path.length * 0.8 && !this.covered(li, m.s)));
-    if (!open.length) return;
+    const charm = pickCharm(this.level.charms, this.danger, this.lastCharm, this.rng());
+    if (!open.length || !charm) return;
     this.charmClock = 0;
+    this.lastCharm = charm;
     const m = open[Math.floor(this.rng() * open.length)]!;
-    m.charm = this.level.charms[Math.floor(this.rng() * this.level.charms.length)]!;
+    m.charm = charm;
     m.charmAge = 0;
   }
 

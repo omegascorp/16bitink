@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ColourId } from '../src/logic/colours';
-import { D, Line, SETTLE, type LineEvent } from '../src/logic/line';
+import { D, Line, MIN_OUT, SETTLE, type LineEvent } from '../src/logic/line';
 import { buildPath } from '../src/logic/path';
 
 const path = buildPath([{ x: 0, y: 0 }, { x: 2000, y: 0 }]);
@@ -31,6 +31,48 @@ describe('the line of marbles', () => {
     const front = line.front();
     run(line, 1, 60);
     expect(line.front() - front).toBeCloseTo(60, 0);
+  });
+
+  it('never rolls back into its burrow: a short line stops with its front MIN_OUT out', () => {
+    const line = makeLine();
+    line.rushing = false;
+    run(line, 4, 60);
+    expect(line.front()).toBeGreaterThan(MIN_OUT);
+    run(line, 3, -150);
+    expect(line.front()).toBeCloseTo(MIN_OUT, 0);
+    // Out again at its own speed straight away, not after crawling out of the burrow.
+    run(line, 1, 60);
+    expect(line.front()).toBeCloseTo(MIN_OUT + 60, 0);
+  });
+
+  it('rushes back out of the burrow when popped down to almost nothing', () => {
+    const line = makeLine();
+    line.rushing = false;
+    run(line, 1, 30);
+    expect(line.front()).toBeGreaterThanOrEqual(MIN_OUT);
+    // Once enough is out, it rolls at its own speed again.
+    const front = line.front();
+    run(line, 1, 30);
+    expect(line.front() - front).toBeCloseTo(30, 0);
+  });
+
+  it('rolls a long line back the whole way', () => {
+    const line = makeLine();
+    line.rushing = false;
+    run(line, 16, 60);
+    const front = line.front();
+    run(line, 3, -150);
+    expect(line.front()).toBeCloseTo(front - 450, -1);
+  });
+
+  it('does not roll back at all when its front is already near the burrow', () => {
+    const line = makeLine();
+    line.rushing = false;
+    run(line, 0.1, 60);
+    const front = line.front();
+    expect(front).toBeLessThan(MIN_OUT);
+    run(line, 1, -150);
+    expect(line.front()).toBeCloseTo(front, 0);
   });
 
   it('rushes in at the start of a level', () => {

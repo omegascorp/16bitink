@@ -9,6 +9,7 @@ import { commitProgress } from '../logic/accountSave';
 import { Board, LIVES, type BoardEvent } from '../logic/board';
 import { Coach } from '../logic/coach';
 import { blotsFor, loadProgress, recordResult } from '../logic/save';
+import { layGround } from './game/boardBleed';
 import { FxView } from './game/fxView';
 import { GameInput } from './game/input';
 import { GeckoView } from './game/geckoView';
@@ -63,7 +64,7 @@ export class GameScene extends Phaser.Scene {
     this.add.tileSprite(-BOARD.w, -BOARD.h, BOARD.w * 3, BOARD.h * 3, TEX.paper).setOrigin(0).setDepth(0);
     // A retry keeps the board it was played on; any other level's painting goes.
     dropBoards(this, this.level);
-    this.add.image(0, 0, bakeBoard(this, this.level, placeOf(this.level.id))).setOrigin(0).setScale(1 / ART_RES).setDepth(1);
+    layGround(this, bakeBoard(this, this.level, placeOf(this.level.id)), 1);
     // Tunnels lie over the marbles (and shots fly over them, under the gecko).
     const covers = bakeCovers(this, this.level, placeOf(this.level.id));
     if (covers) this.add.image(0, 0, covers).setOrigin(0).setScale(1 / ART_RES).setDepth(5.5);
@@ -110,8 +111,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * The whole board in view, as big as the screen allows, centred, with paper
-   * round it. On a phone held upright the board (seen from above) turns a
+   * The whole board in view, as big as the screen allows, centred, its
+   * mirrored edges filling the rest of the screen. On a phone held upright the board (seen from above) turns a
    * quarter so it fills the screen instead of a strip of it.
    */
   private fit(): void {

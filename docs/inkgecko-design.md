@@ -14,9 +14,10 @@ Started Oct 21, 2026. Fourth game on 16bit.ink.
 
 ## Rules
 
-- **Board:** every level is laid out on a 1280 × 720 board, scaled to fit the screen with paper around it.
+- **Board:** every level is laid out on a 1280 × 720 board, scaled to fit the screen; past its edges the board goes on mirrored, fading towards paper, so the ground reaches the screen's edges whatever its shape.
 - **Marbles** are 32 board px across and roll along a track (a smooth curve through the level's control points) from a burrow to the well.
 - **The line** is pushed from the burrow at the level's speed. It rushes in at the start of a level until a few marbles are out, then slows to its rolling speed.
+- **Always something to shoot:** while the burrow is open, the line keeps at least 6 marbles' length out of it. Reverse stops there, and a line popped down to less rushes out to there again.
 - **Shooting:** a shot flies straight until it touches a marble, then joins the line next to it (in front or behind, whichever side it hit). The marbles ahead are pushed forward to make room.
 - **Pops:** 3 or more touching marbles of one colour pop. 10 points a marble.
 - **Rollback:** if the marbles either side of a gap match, the part in front rolls back (fast) until it meets the rest. If the seam makes 3+, it pops again: a **combo**, each link worth more (×2, ×3…).
@@ -32,7 +33,7 @@ Started Oct 21, 2026. Fourth game on 16bit.ink.
 
 | Charm | Effect | First seen |
 |---|---|---|
-| **Reverse** | The line rolls backwards for 3 s | Level 3 |
+| **Reverse** | The line rolls backwards for 3 s, but never closer than 6 marbles to the burrow | Level 3 |
 | **Slow** | The line rolls at half speed for 8 s | Level 2 |
 | **Burst** | Pops every marble within 2½ marbles of it | Level 5 |
 | **Aim** | A dotted aim line and faster shots for 10 s | Level 7 |
@@ -43,7 +44,7 @@ Started Oct 21, 2026. Fourth game on 16bit.ink.
 | **Rain** | A shower pops every open marble in a column down the whole board (tunnels keep theirs dry) | Level 63 |
 | **Lantern** | Night levels: the whole garden is lit for 12 s | Level 93 |
 
-On pivot levels a charm rides on a marble in the line; pop that marble to use it, and it fades after 12 s if you don't. On rail levels every third pop drops a charm, which falls past the gecko: run under it to catch it.
+On pivot levels a charm rides on a marble in the line; pop that marble to use it, and it fades after 12 s if you don't. On rail levels every fourth pop drops a charm, which falls past the gecko: run under it to catch it. Slow and Reverse stall the line, so they only turn up once a line is a third (Slow) or half (Reverse) of the way to its well, where they rescue rather than drag; and the same charm never comes twice in a row while the level has another.
 
 Ideas not used yet: a 60-second blitz level and bosses.
 
