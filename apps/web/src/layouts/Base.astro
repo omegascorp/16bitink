@@ -38,10 +38,11 @@ const ogImage = new URL(image, Astro.site);
     <meta property="og:image" content={ogImage} />
     <meta name="twitter:card" content="summary_large_image" />
     {jsonLd.map((data) => <script type="application/ld+json" set:html={jsonLdScript(data)} />)}
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- The fonts the first screen draws with (see global.css), fetched alongside the stylesheet rather than after it. -->
+    <link rel="preload" href="/fonts/caveat.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/source-serif-4.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/silkscreen.woff2" as="font" type="font/woff2" crossorigin />
     <slot name="head" />
-    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Silkscreen&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet" />
   </head>
   <body>
     <header class="wrap site-header">

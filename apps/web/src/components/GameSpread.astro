@@ -66,11 +66,20 @@ const terms = owned ? '' : isPurchasable(game) ? `${game.demo ?? 'First chapter 
     track({ type: 'home_click', game: card.dataset.game, target: target as HomeClickTarget, slot });
   });
 
-  /** Gameplay loops play only while on screen, and not at all for reduced motion or Save-Data. */
+  /** Connections too slow to spend on a decoration (Chrome's guess; other browsers don't say). */
+  const SLOW = ['slow-2g', '2g', '3g'];
+
+  /**
+   * Gameplay loops play only while on screen, and not at all for reduced motion,
+   * Save-Data or a slow connection. They start once the page has loaded: a playing
+   * video holds back the load event, and on a phone it would take the bandwidth
+   * the cover, fonts and play button need first.
+   */
   function startLoops(): void {
     const videos = document.querySelectorAll<HTMLVideoElement>('.spread video[data-loop]');
-    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-    if (videos.length === 0 || connection?.saveData || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (videos.length === 0 || connection?.saveData || SLOW.includes(connection?.effectiveType ?? '')) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const seen = new IntersectionObserver((entries) => {
       for (const { target, isIntersecting } of entries) {
         const video = target as HTMLVideoElement;
@@ -84,7 +93,8 @@ const terms = owned ? '' : isPurchasable(game) ? `${game.demo ?? 'First chapter 
       seen.observe(video);
     }
   }
-  startLoops();
+  if (document.readyState === 'complete') startLoops();
+  else window.addEventListener('load', startLoops, { once: true });
 </script>
 
 <style>
@@ -114,6 +124,8 @@ const terms = owned ? '' : isPurchasable(game) ? `${game.demo ?? 'First chapter 
   @media (prefers-reduced-motion: no-preference) {
     /* Line boil, the wobble the games use: always on the featured cover, on the others while pointed at. One at a time keeps phones cool. */
     .featured .cover img, .cover:hover img { filter: url(#boil); }
+    /* Hidden under a playing loop: no point redrawing the wobble 8 times a second. */
+    .spread .cover:has(video.on) img { filter: none; }
   }
 
   .caption {

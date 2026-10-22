@@ -58,3 +58,33 @@ export async function findPurchasesForUsers(userIds: readonly UserId[]): Promise
   const docs = await Purchase.find({ userId: { $in: userIds.map(oid) } }, FIELDS).lean<PurchaseDoc[]>().exec();
   return docs.map(toRecord);
 }
+
+/** One game's live sales in one currency over a period. */
+export interface GameSales {
+  readonly game: string;
+  readonly currency: string;
+  /** Payments made in the period that are still paid. */
+  readonly paid: number;
+  /** Payments made in the period that were since refunded or disputed. */
+  readonly refunded: number;
+  /** What the paid ones brought in, in the smallest currency unit, after discounts. */
+  readonly amount: number;
+}
+
+/** Live (real-money) sales paid in [from, to), per game and currency, best-selling first. Test-mode payments never count. */
+export async function salesByGame(range: { readonly from: Date; readonly to: Date }): Promise<GameSales[]> {
+  const isPaid = { $eq: ['$status', 'paid'] };
+  return Purchase.aggregate<GameSales>([
+    { $match: { livemode: true, paidAt: { $gte: range.from, $lt: range.to } } },
+    {
+      $group: {
+        _id: { game: '$game', currency: '$currency' },
+        paid: { $sum: { $cond: [isPaid, 1, 0] } },
+        refunded: { $sum: { $cond: [isPaid, 0, 1] } },
+        amount: { $sum: { $cond: [isPaid, '$amount', 0] } },
+      },
+    },
+    { $project: { _id: 0, game: '$_id.game', currency: '$_id.currency', paid: 1, refunded: 1, amount: 1 } },
+    { $sort: { paid: -1, game: 1, currency: 1 } },
+  ]).exec();
+}

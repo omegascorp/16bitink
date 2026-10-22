@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { connectDb, disconnectDb } from '../src/lib/db/connection';
 import { Purchase } from '../src/lib/db/purchaseModel';
-import { claimPurchase, claimPurchasesByEmail, findPurchase, findPurchasesFor, findPurchasesForUsers, savePurchase, setPaymentStatus } from '../src/lib/db/purchaseRepo';
+import { claimPurchase, claimPurchasesByEmail, findPurchase, findPurchasesFor, findPurchasesForUsers, salesByGame, savePurchase, setPaymentStatus } from '../src/lib/db/purchaseRepo';
 import type { PurchaseRecord } from '../src/lib/purchases';
 
 // Integration test: needs a throwaway MongoDB, e.g.
@@ -75,5 +75,21 @@ describe.skipIf(!uri)('purchase repository (MongoDB)', () => {
 
   it('returns null for an unknown session', async () => {
     expect(await findPurchase('cs_nope')).toBeNull();
+  });
+
+  it('counts live sales in the period by game, never test-mode ones or refunds as takings', async () => {
+    // Far from the other tests' dates, so only these count.
+    const at = (day: number): Date => new Date(Date.UTC(2031, 0, day));
+    const live = { ...record, livemode: true, paymentIntent: null };
+    await savePurchase({ ...live, sessionId: 'cs_test_s1', paidAt: at(2) });
+    await savePurchase({ ...live, sessionId: 'cs_test_s2', paidAt: at(3), amount: 399 });
+    await savePurchase({ ...live, sessionId: 'cs_test_s3', paidAt: at(4), status: 'refunded' });
+    await savePurchase({ ...live, sessionId: 'cs_test_s4', paidAt: at(4), game: 'inkcrab' });
+    await savePurchase({ ...live, sessionId: 'cs_test_s5', paidAt: at(5), livemode: false });
+    await savePurchase({ ...live, sessionId: 'cs_test_s6', paidAt: at(20) });
+    expect(await salesByGame({ from: at(1), to: at(10) })).toEqual([
+      { game: 'inkfish', currency: 'usd', paid: 2, refunded: 1, amount: 898 },
+      { game: 'inkcrab', currency: 'usd', paid: 1, refunded: 0, amount: 499 },
+    ]);
   });
 });
