@@ -48,8 +48,13 @@ import { createSwallower } from './swallower/render';
 import { createMako } from './mako/render';
 import { createPistol } from './pistol/render';
 import { createSlurp } from './slurp/render';
+import { createLure } from './lure/render';
 import { createAxolotl } from './axolotl/render';
 import { createDragon } from './dragon/render';
+import { createFrogfish } from './frogfish/render';
+import { createTigerShark } from './tigershark/render';
+import { createKraken } from './kraken/render';
+import { createKayak } from './kayak/render';
 import { PAPER_ON_DARK, withCredit } from './credit';
 
 /**
@@ -81,10 +86,13 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * shark in one bite), swallower (a fish four times its length inside it), mako
  * (it can jump into your boat), pistol (a snap almost as hot as the sun) and
  * slurp (gameplay: "how did that fit" 2, the viperfish slurps a gulper eel).
+ * lure (gameplay: "how did that fit" 3, the viperfish swallows an anglerfish, lure last).
  * axolotl (it can grow back its own legs) is an emotional rollercoaster: a new
  * mood every sentence, in picture, colour and sound.
  * So is dragon (the blue dragon, a tiny slug that eats the man o' war and
  * steals its stingers).
+ * frogfish (it eats faster than you can blink) too: frame 1 is the gulp.
+ * kraken (the real Kraken: a sperm whale with a giant squid in its jaws) too.
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -297,6 +305,10 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
     await loadCaptionFont();
     return createSlurp(ctx);
   },
+  lure: async () => {
+    await loadCaptionFont();
+    return createLure(ctx);
+  },
   axolotl: async () => {
     await loadCaptionFont();
     return withCredit(createAxolotl(ctx), ctx, PAPER_ON_DARK);
@@ -304,6 +316,22 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   dragon: async () => {
     await loadCaptionFont();
     return withCredit(createDragon(ctx), ctx, PAPER_ON_DARK);
+  },
+  frogfish: async () => {
+    await loadCaptionFont();
+    return withCredit(createFrogfish(ctx), ctx, PAPER_ON_DARK);
+  },
+  tigershark: async () => {
+    await loadCaptionFont();
+    return withCredit(createTigerShark(ctx), ctx, PAPER_ON_DARK);
+  },
+  kraken: async () => {
+    await loadCaptionFont();
+    return withCredit(createKraken(ctx), ctx, PAPER_ON_DARK);
+  },
+  kayak: async () => {
+    await loadCaptionFont();
+    return withCredit(createKayak(ctx), ctx, PAPER_ON_DARK);
   },
 };
 

@@ -30,7 +30,7 @@ const PAPER_ON_INK: TextInk = { fill: PAPER, halo: '#05091a' };
 /** The viper's skin over its eye, for closed eyes. */
 const VIPER_LID = '#8a9fd3';
 /** The midnight zone's night over the paper (levels/zones.ts ZONE_NIGHT: 0x07112e at 0.8), a touch deeper at the bottom. */
-function makeWater(): HTMLCanvasElement {
+export function makeWater(): HTMLCanvasElement {
   const canvas = makePaper();
   const ctx = canvas.getContext('2d')!;
   const g = ctx.createLinearGradient(0, 0, 0, VIDEO.height);
@@ -42,7 +42,7 @@ function makeWater(): HTMLCanvasElement {
 }
 
 /** The soft pool of light the game keeps round you in the deep (scenes/game/deepLight.ts), tinted like the viper's lights. */
-function drawPlayerLight(ctx: CanvasRenderingContext2D, p: Pose): void {
+export function drawPlayerLight(ctx: CanvasRenderingContext2D, p: Pose): void {
   const r = p.length * 1.1;
   const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
   g.addColorStop(0, 'rgba(190,200,230,0.16)');
@@ -56,7 +56,7 @@ function drawPlayerLight(ctx: CanvasRenderingContext2D, p: Pose): void {
 }
 
 /** The viper's own lights, glowing over its drawing as the game's glow twins do; the lure (the biggest) brightness `lure`. */
-function drawLights(ctx: CanvasRenderingContext2D, sprite: Sprite, pose: Pose, look: SwimLook, lure: number): void {
+export function drawLights(ctx: CanvasRenderingContext2D, sprite: Sprite, pose: Pose, look: SwimLook, lure: number): void {
   const lights = fishLights('viperfish');
   const k = pose.length / sprite.bodyPx;
   const biggest = Math.max(...lights.map((l) => l.r));
@@ -68,13 +68,15 @@ function drawLights(ctx: CanvasRenderingContext2D, sprite: Sprite, pose: Pose, l
 }
 
 /** A fish drawn out of the dark: its drawing darkened by `murk` (0 plain .. 1 hidden) in a layer of its own. */
-function drawMurky(ctx: CanvasRenderingContext2D, layer: CanvasRenderingContext2D, sprite: Sprite, pose: Pose, boil: number, murk: number): void {
+export function drawMurky(
+  ctx: CanvasRenderingContext2D, layer: CanvasRenderingContext2D, sprite: Sprite, pose: Pose, boil: number, murk: number, look: SwimLook = {},
+): void {
   if (murk <= 0.005) {
-    drawSwimmer(ctx, sprite, pose, boil);
+    drawSwimmer(ctx, sprite, pose, boil, look);
     return;
   }
   layer.clearRect(0, 0, VIDEO.width, VIDEO.height);
-  drawSwimmer(layer, sprite, pose, boil);
+  drawSwimmer(layer, sprite, pose, boil, look);
   layer.save();
   layer.globalCompositeOperation = 'source-atop';
   layer.fillStyle = `rgba(5,10,30,${(0.95 * murk).toFixed(3)})`;

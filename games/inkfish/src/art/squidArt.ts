@@ -332,3 +332,16 @@ export function drawSquidPortrait(ctx: CanvasRenderingContext2D, variant: Varian
   drawBody(d, true);
   for (const { limb, path } of limbs.filter((l) => !l.limb.far)) drawLimb(d, path, limb.kind, clubShare(limb.length), false);
 }
+
+/**
+ * One arm or tentacle along any path (body px, root first), for rigs that
+ * bend the limbs themselves (the promo shorts): the same drawing as the
+ * game's, sized to the path's own length.
+ */
+export function drawSquidLimbAlong(
+  ctx: CanvasRenderingContext2D, path: readonly Pt[], kind: LimbKind, variant: Variant, seed: number, far = false,
+): void {
+  let length = 0;
+  for (let i = 1; i < path.length; i++) length += Math.hypot(path[i]!.x - path[i - 1]!.x, path[i]!.y - path[i - 1]!.y);
+  drawLimb(draw(ctx, variant, seed, 0, 0), path, kind, clubShare(Math.max(length, CLUB_LENGTH + 20)), far);
+}

@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "dev": "vite dev --port 5177"
+    "dev": "vite dev --port 5177",
+    "promo": "node dev/promo/record.mjs"
   },
   "dependencies": {
     "@16bitink/game-sdk": "workspace:*",
