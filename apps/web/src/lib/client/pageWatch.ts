@@ -1,3 +1,4 @@
+import { isForeignError } from '../foreignErrors';
 import { flushAnalytics, track } from './analytics';
 
 /**
@@ -92,11 +93,11 @@ export function watchPage(): void {
   window.addEventListener('pagehide', report);
 }
 
-/** Reports uncaught script errors and promise rejections on this page. */
+/** Reports uncaught script errors and promise rejections on this page, but not an in-app browser's own. */
 export function watchErrors(): void {
   const pass = createErrorGate();
   const send = (report: ErrorReport): void => {
-    if (pass(report.error)) track({ type: 'js_error', path: path(), ...report });
+    if (!isForeignError(report) && pass(report.error)) track({ type: 'js_error', path: path(), ...report });
   };
   window.addEventListener('error', (e) => {
     // A resource that failed to load (an image, a script tag) arrives here too, with no message.

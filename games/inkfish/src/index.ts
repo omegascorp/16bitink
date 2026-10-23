@@ -40,6 +40,8 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     // costs old mobile GPUs a lot of fill-rate.
     render: {
       antialias: true, antialiasGL: false, roundPixels: false, mipmapFilter: 'LINEAR_MIPMAP_LINEAR', powerPreference: 'high-performance',
+      // The texture units WebGL promises everywhere: some Android GPUs report more but can't link a shader using them all.
+      maxTextures: 8,
     },
     input: { activePointers: 3 },
     // Sound effects are synthesized by our own SoundBoard (audio/sound.ts); Phaser's audio stays off.

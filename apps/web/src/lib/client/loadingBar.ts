@@ -20,7 +20,7 @@ export interface LoadingBar {
   readonly reporter: LoadingReporter;
   /** The game is mounted; from now on, a game that stops reporting gets the screen lifted anyway. */
   mounted(): void;
-  /** Loading failed: back to the button. */
+  /** Loading failed, or the game crashed: back to the button, the splash over the game again. */
   fail(): void;
   /** How far the bar has got, 0–100. */
   percent(): number;
@@ -62,6 +62,7 @@ function findElements(splash: HTMLElement, play: HTMLButtonElement): Elements {
  */
 export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, downloadStart: number, events: LoadingBarEvents = {}): LoadingBar {
   const el = findElements(splash, play);
+  const home = splash.parentElement;
   let startedAt = downloadStart;
   let downloaded = false;
   let boot = 0;
@@ -69,6 +70,7 @@ export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, d
   let frame = 0;
   let finished = false;
   let stallTimer: ReturnType<typeof setTimeout> | undefined;
+  let removeTimer: ReturnType<typeof setTimeout> | undefined;
 
   const render = (): void => {
     // Never moves backwards, e.g. when the real download beats the estimate's position.
@@ -97,7 +99,7 @@ export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, d
     boot = 1;
     render();
     el.splash.classList.add('leaving');
-    setTimeout(() => el.splash.remove(), FADE_MS);
+    removeTimer = setTimeout(() => el.splash.remove(), FADE_MS);
   };
 
   const watchStall = (): void => {
@@ -147,6 +149,13 @@ export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, d
       startedAt = performance.now();
       el.loader.hidden = true;
       el.play.hidden = false;
+      if (finished) {
+        // The game had shown: bring the splash back over it.
+        finished = false;
+        clearTimeout(removeTimer);
+        el.splash.classList.remove('leaving');
+        if (!el.splash.isConnected) home?.append(el.splash);
+      }
     },
     percent: () => Math.floor(shown * 100),
   };

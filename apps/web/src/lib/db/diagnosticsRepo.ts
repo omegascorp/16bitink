@@ -1,4 +1,5 @@
 import type { AccumulatorOperator, Expression, PipelineStage } from 'mongoose';
+import { FOREIGN_MESSAGES, FOREIGN_SOURCE } from '../foreignErrors';
 import { AnalyticsEvent } from './eventModel';
 import type { Range } from './eventRepo';
 
@@ -242,10 +243,14 @@ export interface ErrorStats {
   readonly last: Date;
 }
 
-/** The errors visitors hit, most frequent first. */
+/** The errors visitors hit, most frequent first; not the ones in-app browsers' own scripts sent before the site dropped them. */
 export async function topErrors(range: Range, limit = 15): Promise<ErrorStats[]> {
+  const foreign = [
+    { 'meta.event': 'js_error', error: { $in: [...FOREIGN_MESSAGES] } },
+    { 'meta.event': 'js_error', source: FOREIGN_SOURCE },
+  ];
   return aggregate<ErrorStats>([
-    { $match: { ...inRange(range), 'meta.event': { $in: ['load_fail', 'js_error'] } } },
+    { $match: { ...inRange(range), 'meta.event': { $in: ['load_fail', 'js_error'] }, $nor: foreign } },
     {
       $addFields: {
         where: { $cond: [isEvent('load_fail'), { $concat: [{ $ifNull: ['$meta.game', '?'] }, ' · ', { $ifNull: ['$stage', '?'] }] }, { $ifNull: ['$source', { $ifNull: ['$path', ''] }] }] },

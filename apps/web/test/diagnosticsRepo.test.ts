@@ -112,6 +112,9 @@ describe.skipIf(!uri)('loading and page diagnostics (MongoDB)', () => {
       ev('b', 'load_fail', { ms: 1, stage: 'boot', error: 'WebGL unavailable', os: 'iOS', browser: 'Safari' }, 'inkfish'),
       ev('b', 'load_fail', { ms: 1, stage: 'boot', error: 'WebGL unavailable', os: 'iOS', browser: 'Safari' }, 'inkfish'),
       ev('c', 'js_error', { path: '/', error: 'TypeError: x is undefined', source: '/_astro/a.js:1:2' }),
+      // An in-app browser's own scripts: left out.
+      ev('d', 'js_error', { path: '/', error: 'Uncaught Error: Error invoking postMessage: Java object is gone', source: 'navigation_performance_logger_android' }),
+      ev('d', 'js_error', { path: '/', error: 'Script error.' }),
     ]);
     const errors = await topErrors(RANGE);
     expect(errors.map(({ last: _last, ...e }) => ({ ...e, agents: [...e.agents].sort() }))).toEqual([

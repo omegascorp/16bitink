@@ -32,6 +32,8 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     },
     render: {
       antialias: true, antialiasGL: false, roundPixels: false, mipmapFilter: 'LINEAR_MIPMAP_LINEAR', powerPreference: 'high-performance',
+      // The texture units WebGL promises everywhere: some Android GPUs report more but can't link a shader using them all.
+      maxTextures: 8,
     },
     input: { activePointers: 3 },
     audio: { noAudio: true },

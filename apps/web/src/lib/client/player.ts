@@ -74,6 +74,12 @@ function hasWebGL(): boolean {
   }
 }
 
+/**
+ * Phaser couldn't build a shader (vertex, fragment or link): seen on a few Android GPUs.
+ * The driver fails the same way on every retry.
+ */
+const isShaderFailure = (message: string): boolean => /Shader failed/.test(message);
+
 const NO_WEBGL_TEXT = "This browser can't draw the game: its graphics acceleration (WebGL) is off or unsupported. Try updating it, or open the page in Chrome or Firefox.";
 
 /** One press of "Tap to play" until the game shows or fails. */
@@ -130,6 +136,13 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
   // Failed before the player tapped: a page older than the deploy reloads onto the new one unseen.
   engineP.catch((err: unknown) => !tapped && reloadIfStale(err, playing));
   const fontP = Promise.all(fonts.map((f) => document.fonts.load(f))).catch(() => undefined);
+  // This browser can't draw the game, so every retry would fail the same way: say why and stop there.
+  const cantPlay = (): void => {
+    bar.fail();
+    status.textContent = NO_WEBGL_TEXT;
+    play.disabled = true;
+    play.textContent = "Can't play in this browser";
+  };
 
   play.addEventListener('click', async () => {
     tapped = true;
@@ -175,6 +188,16 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
         },
       });
       bar.mounted();
+      // Phaser builds shaders as it first draws with them, inside its frame loop, which stops at the throw.
+      const onShaderFailure = (e: ErrorEvent): void => {
+        if (!isShaderFailure(e.message)) return;
+        window.removeEventListener('error', onShaderFailure);
+        if (attempt) track({ type: 'load_fail', ...tag, ms: sinceTap(attempt), stage: 'boot', error: errorText(e.error ?? e.message) });
+        attempt = null;
+        handle.destroy();
+        cantPlay();
+      };
+      window.addEventListener('error', onShaderFailure);
       track({ type: 'game_start', ...tag });
       trackPlayTime(tag);
     } catch (err) {
@@ -186,13 +209,12 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
         status.textContent = 'Updating to the latest version…';
         return;
       }
-      bar.fail();
-      // Without WebGL every retry fails the same way (one phone logged 9 in a row): say why and stop there.
-      if (step === 'mount' && !hasWebGL()) {
-        status.textContent = NO_WEBGL_TEXT;
-        play.textContent = "Can't play in this browser";
+      // Without WebGL every retry fails the same way (one phone logged 9 in a row).
+      if (step === 'mount' && (!hasWebGL() || isShaderFailure(errorText(err)))) {
+        cantPlay();
         return;
       }
+      bar.fail();
       status.textContent = 'The game failed to load. Check your connection and try again.';
       engineP = loadGame(game);
       engineP.catch(() => undefined);
