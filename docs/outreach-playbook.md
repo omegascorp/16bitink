@@ -71,10 +71,34 @@ Answer simple ones the same day: a key (`create_key`, note = their name and outl
 
 A new game is a reason to write again to people who covered or liked an earlier one. For first emails, pick whichever game fits the person, not just the newest.
 
+## Directories and communities (added 2026-10-23)
+
+Cold email got 1 reply from 10 (an angry one). Places that *ask* for games can't be annoyed by a submission, so they come before more email. Submit each game separately: one listing per game, each linking to its own `/games/<slug>?via=<site>` page.
+
+**Now, nothing to build (link-out):**
+
+| Where | How | Notes |
+|---|---|---|
+| [Foundplay](https://foundplay.io/submit) | Paste the game's URL, sign in with an emailed code, publish | Free, no exclusivity, live right away, link goes to our site. Lists "AI-made originals" too, so no AI problem. `foundplay.io` already sent 5 visitors who all started a game (week to 2026-10-23), though we have no listing yet |
+| Phaser | [Showcase forum](https://phaser.discourse.group/t/welcome-to-the-phaser-showcase-forum/19) post per game, Phaser Discord, [editor.phaser.io/share](https://editor.phaser.io/share) for their news | The dev angle: no image files, everything drawn by code. Their "made with Phaser" list reads itch.io metadata |
+| Show HN | One post, from the owner's HN account | "Things people can run… without barriers such as signups" fits: the free levels need no account. Lead with how the ink is drawn by code; expect questions on AI and on the paid part, answer them plainly |
+| Reddit | r/WebGames, r/playmygame, r/IndieGaming, r/IndieDev, r/phaser, r/gamedev (Screenshot Saturday) | Owner's account. Read each sidebar first; r/WebGames wants no sign-ups and some account history. One game per post, days apart |
+
+**Later, needs a standalone build of each game's free levels** (a zip with `index.html` at the root, paid levels left out, a "full game at 16bit.ink" end screen):
+
+- **itch.io**: the largest browser-game audience. Upload the free levels, tag the engine as Phaser, link to 16bit.ink for the rest (or sell on itch too: 10% cut by default, and itch handles payment).
+- **Newgrounds**: players vote on whether a game stays. Whether it allows links out to a paid version is unconfirmed, so check its upload rules first.
+- **Game Jolt, idev.games, klyo** (klyo also takes a plain URL, reviewed before listing).
+
+**Skip:** Poki (web-exclusive for 5 years by default), CrazyGames and GameDistribution/GameMonetize (their SDK and ads, no links out), Bounty Board Arcade ("every game in the Arcade is free").
+
+Forum, Reddit and HN posts go out from the owner's own accounts and in their own words. Claude prepares the facts, clips and screenshots, but doesn't write the posts: a post that reads as AI-written gets called out there just like Web Curios did. Directory forms (Foundplay, klyo) are fine for Claude to fill in.
+
 ## Results log
 
 | Date | Sent | To | Game | Replies | Keys redeemed | Visits (`traffic`) |
 |---|---|---|---|---|---|---|
 | 2026-10-20 | 5 | Phaser World, Gamedev.js Weekly, Web Curios, Cozy Game Reviews, Indie Game Picks | InkFish ×4, InkCrab ×1 | 1: Web Curios, annoyed at an AI-written pitch (owner answered; status `no`) | – | 0 by end of day |
+| 2026-10-21 | 5 | Indie Hive, Alpha Beta Gamer, kottke.org, Waxy, Gaming Furever | InkFish ×4, InkMine ×1 | 0 by 2026-10-23 | – | 0 by 2026-10-23 |
 
 Check replies, bounces and visits before each new batch. No follow-ups for the 2026-10-20 batch: it was written in the old style.
