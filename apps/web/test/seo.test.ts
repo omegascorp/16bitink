@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { findGame, listedGames, playableGames } from '../src/data/games';
-import { gameFaq, gameJsonLd, gameTitle, jsonLdScript, robotsTxt, siteJsonLd, sitemapXml } from '../src/lib/seo';
+import { fansOfLine, gameFaq, gameJsonLd, gameTitle, jsonLdScript, robotsTxt, siteJsonLd, sitemapXml } from '../src/lib/seo';
 
 const SITE = new URL('https://16bit.ink');
 const inkfish = findGame('inkfish')!;
@@ -118,6 +118,7 @@ describe('game FAQ', () => {
       const faq = gameFaq(g);
       expect(faq.map((f) => f.q), g.slug).toEqual([
         `Is ${g.title} free to play?`,
+        ...(g.fansOf ? [`Is ${g.title} like ${g.fansOf.games[0]}?`] : []),
         `Do I need to download ${g.title}?`,
         'Does my progress save?',
         'Are there more games like this?',
@@ -126,9 +127,33 @@ describe('game FAQ', () => {
     }
   });
 
+  it('compares with the games it plays like, and says it is not one of them', () => {
+    const like = gameFaq(inkfish)[1]!;
+    expect(like.q).toBe('Is InkFish like Feeding Frenzy?');
+    expect(like.a).toContain(inkfish.fansOf!.how);
+    expect(like.a).toContain('isn’t made by or connected to the makers of Feeding Frenzy or Hungry Shark');
+  });
+
+  it('has a comparison for every playable game', () => {
+    for (const g of playableGames()) expect(g.fansOf?.games.length, g.slug).toBeGreaterThan(0);
+  });
+
+  it('leaves the comparison out for a game without one', () => {
+    const plain = { ...inkfish, fansOf: undefined };
+    expect(gameFaq(plain).map((f) => f.q)).not.toContain('Is InkFish like Feeding Frenzy?');
+    expect(fansOfLine(plain)).toBeUndefined();
+  });
+
   it('states the one-time price only when the full game is for sale', () => {
     expect(gameFaq(inkfish)[0]!.a).toContain('one-time purchase of $4.99');
     const free = { ...inkfish, price: undefined, stripeLookupKey: undefined };
     expect(gameFaq(free)[0]!.a).not.toContain('$');
+  });
+});
+
+describe('fansOfLine', () => {
+  it('lists the games a game plays like', () => {
+    expect(fansOfLine(inkfish)).toBe('For fans of Feeding Frenzy and Hungry Shark.');
+    expect(fansOfLine({ ...inkfish, fansOf: { games: ['A', 'B', 'C'], how: '' } })).toBe('For fans of A, B and C.');
   });
 });

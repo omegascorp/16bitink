@@ -86,6 +86,22 @@ export interface FaqEntry {
   readonly a: string;
 }
 
+/** "A", "A and B", "A, B and C" (or "A, B or C"). */
+const listOf = (items: readonly string[], last: 'and' | 'or' = 'and'): string =>
+  items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} ${last} ${items[items.length - 1]}`;
+
+/** "For fans of Zuma and Luxor.": the games a game plays like, for the people searching for them. */
+export function fansOfLine(game: CatalogGame): string | undefined {
+  return game.fansOf?.games.length ? `For fans of ${listOf(game.fansOf.games)}.` : undefined;
+}
+
+/** "Is InkGecko like Zuma?": what's alike, what's its own, and that it's no relation (the names belong to their makers). */
+function fansOfFaq(game: CatalogGame): readonly FaqEntry[] {
+  const { games = [], how = '' } = game.fansOf ?? {};
+  if (!games.length) return [];
+  return [{ q: `Is ${game.title} like ${games[0]}?`, a: `${how} ${game.title} is our own game and isn’t made by or connected to the makers of ${listOf(games, 'or')}.` }];
+}
+
 /** The questions people ask before playing a browser game, answered from the catalog. */
 export function gameFaq(game: CatalogGame): readonly FaqEntry[] {
   const price =
@@ -94,6 +110,7 @@ export function gameFaq(game: CatalogGame): readonly FaqEntry[] {
       : ' The rest of the game is coming soon.';
   return [
     { q: `Is ${game.title} free to play?`, a: `Yes. The whole first chapter is free, with no sign-up and no ads.${price}` },
+    ...fansOfFaq(game),
     {
       q: `Do I need to download ${game.title}?`,
       a: `No. ${game.title} runs full-screen in your web browser, on a computer, phone or tablet. You can also add it to your home screen and open it like an app.`,

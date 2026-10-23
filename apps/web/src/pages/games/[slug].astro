@@ -7,7 +7,7 @@ import SundaySignup from '../../components/SundaySignup.astro';
 import { findGame, homeGames, isPurchasable } from '../../data/games';
 import { coverSrcset, coverVariant, loopSources } from '../../lib/covers';
 import { currentUser, ownedGameSlugs } from '../../lib/owner';
-import { faqJsonLd, gameFaq, gameJsonLd, gameTitle } from '../../lib/seo';
+import { fansOfLine, faqJsonLd, gameFaq, gameJsonLd, gameTitle } from '../../lib/seo';
 
 // Rendered per request, so owners and signed-in players see their own page
 // from the first paint (no flash of the free version).
@@ -35,6 +35,7 @@ try {
 }
 Astro.response.headers.set('cache-control', 'private, no-store');
 const faq = gameFaq(game);
+const fansOf = fansOfLine(game);
 const site = Astro.site ?? Astro.url;
 const cover = game.cover ?? '/covers/inkfish.png';
 // Where a player lands on leaving a game: the other games, newest first, one tap from playing.
@@ -59,6 +60,7 @@ const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
       <p class="pixel-label">{owned ? 'Full game · unlocked' : forSale ? `Free demo · full game ${game.price} one-time` : 'Free demo · the full game is coming soon'}</p>
       <h1>{game.title}</h1>
       <p class="tag">{game.tagline}</p>
+      {fansOf && <p class="fans">{fansOf}</p>}
       <div class="numbers"><GameStats game={game} owned={owned} large /></div>
       {game.description.map((p) => <p>{p}</p>)}
       <div class="actions">
@@ -152,6 +154,7 @@ const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
   /* The tape stays over the loop. */
   .shot::before { z-index: 1; }
   .tag { font-family: var(--font-hand); font-size: 1.8rem; color: var(--blue-ink); margin: -6px 0 12px; }
+  .fans { color: var(--ink-soft); font-style: italic; margin: -8px 0 14px; }
   .numbers { margin: 0 0 18px; }
   .actions { display: flex; flex-wrap: wrap; gap: 14px; margin: 26px 0 10px; }
   .cancelled { color: var(--red-ink); }

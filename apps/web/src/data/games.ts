@@ -21,6 +21,12 @@ export interface CatalogGame {
   readonly tagline: string;
   /** What people type into a search box to find a game like this, e.g. "fish-eat-fish game": used in the page title and FAQ. */
   readonly kind?: string;
+  /**
+   * Well-known games this one plays like, for people searching for them: shown as "For fans of …" and
+   * answered in the FAQ. `how` says honestly what's alike and what's its own; name other games only
+   * to compare, never as if this were one of them.
+   */
+  readonly fansOf?: { readonly games: readonly string[]; readonly how: string };
   /** Genres for search engines' structured data. */
   readonly genre?: readonly string[];
   /** A path to type from a video, e.g. "fish" for 16bit.ink/fish: it opens the game page and is counted as its own source. */
@@ -61,6 +67,10 @@ export const GAMES: readonly CatalogGame[] = [
     title: 'InkFish',
     tagline: 'Eat smaller fish. Grow. Don’t get eaten.',
     kind: 'fish-eat-fish game',
+    fansOf: {
+      games: ['Feeding Frenzy', 'Hungry Shark'],
+      how: 'It plays the same way at heart: you start as the smallest fish in the water, eat anything smaller than you and grow until the fish that hunted you become lunch. InkFish adds its own ideas: chained meals build an Ink Frenzy, hooks and jellyfish drift through, and things sink from above, like a battery that shocks predators.',
+    },
     genre: ['Arcade', 'Casual', 'Survival'],
     short: 'fish',
     description: [
@@ -92,6 +102,10 @@ export const GAMES: readonly CatalogGame[] = [
     title: 'InkCrab',
     tagline: 'Eat. Grow. Find a bigger shell.',
     kind: 'hermit crab game',
+    fansOf: {
+      games: ['Another Crab’s Treasure', 'Feeding Frenzy'],
+      how: 'Like Another Crab’s Treasure, you are a hermit crab trading up into bigger shells, but InkCrab is a small 2D arcade game, not a Soulslike. Like Feeding Frenzy, you eat to grow: dig through the sand, outgrow your shell, race rival crabs to the next one and hide from gulls, foxes and the tide.',
+    },
     genre: ['Arcade', 'Casual', 'Survival'],
     short: 'crab',
     description: [
@@ -131,6 +145,10 @@ export const GAMES: readonly CatalogGame[] = [
     title: 'InkMine',
     tagline: 'Dig. Repair. Find your way home.',
     kind: 'space mining game',
+    fansOf: {
+      games: ['Motherload', 'SteamWorld Dig'],
+      how: 'Yes, the loop is the same: drill down for ore and get back up before your drill energy and air run out. InkMine puts it on small alien worlds with a story: a wormhole threw you onto a moon no chart has, you print the parts your wrecked lander needs to fly again, and you meet aliens who speak no language you know.',
+    },
     genre: ['Adventure', 'Mining', 'Exploration'],
     short: 'mine',
     description: [
@@ -173,6 +191,10 @@ export const GAMES: readonly CatalogGame[] = [
     title: 'InkGecko',
     tagline: 'Spit. Match three. Keep them from the well.',
     kind: 'marble shooter game',
+    fansOf: {
+      games: ['Zuma', 'Luxor'],
+      how: 'Yes, it is the same kind of marble shooter: a line of coloured marbles rolls along a path, your gecko spits marbles into it, and three of a colour pop before the line reaches the end. Close a gap between two matching colours and the line rolls back for a combo. Each of InkGecko’s ten gardens adds its own trick, from tunnels and twined pairs to bank shots off barn walls.',
+    },
     genre: ['Puzzle', 'Arcade', 'Casual'],
     short: 'gecko',
     description: [
