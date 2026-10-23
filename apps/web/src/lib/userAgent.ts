@@ -21,6 +21,10 @@ const OS: readonly (readonly [RegExp, string])[] = [
 ];
 
 const BROWSERS: readonly (readonly [RegExp, string])[] = [
+  // In-app browsers first: they're built on Chrome or Safari, but Google refuses to sign anyone in inside them.
+  [/FBAN\/|FBAV\/|FB_IAB\//, 'Facebook app'],
+  [/Instagram /, 'Instagram app'],
+  [/musical_ly|BytedanceWebview|TikTok/, 'TikTok app'],
   [/Edg(e|A|iOS)?\//, 'Edge'],
   [/OPR\/|Opera/, 'Opera'],
   [/SamsungBrowser\//, 'Samsung Internet'],

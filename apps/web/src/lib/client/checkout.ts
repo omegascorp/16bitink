@@ -1,4 +1,5 @@
 import { signInToBuyUrl } from '../buyFlow';
+import { trackBuy, trackCheckout, type BuyPlace } from './analytics';
 
 interface CheckoutResult {
   readonly error?: string;
@@ -15,13 +16,20 @@ export async function startCheckout(game: string): Promise<CheckoutResult> {
     const body = (await res.json().catch(() => null)) as { success?: boolean; data?: { url?: string }; error?: string } | null;
     const url = body?.data?.url;
     if (!res.ok || !url || !url.startsWith('https://checkout.stripe.com/')) {
-      return { error: body?.error ?? 'Checkout is unavailable right now. Please try again.' };
+      return failed(game, body?.error ?? 'Checkout is unavailable right now. Please try again.');
     }
+    trackCheckout(game);
     window.location.assign(url);
     return {};
   } catch {
-    return { error: 'Network error. Check your connection and try again.' };
+    return failed(game, 'Network error. Check your connection and try again.');
   }
+}
+
+/** Checkout couldn't open: counted, and the reason passed on to show the player. */
+function failed(game: string, error: string): CheckoutResult {
+  trackCheckout(game, error);
+  return { error };
 }
 
 /** Who is signed in: `id` is set only when someone is. */
@@ -51,10 +59,12 @@ export async function isSignedIn(): Promise<boolean | null> {
 /**
  * Buying is the same for every game: sign in with Google, then pay.
  * Signed out, this leaves for Google; the page then resumes the purchase on return.
+ * `where`: which offer the player took, for the stats.
  */
-export async function buyFullGame(game: string): Promise<CheckoutResult> {
+export async function buyFullGame(game: string, where: BuyPlace): Promise<CheckoutResult> {
   const signedIn = await isSignedIn();
-  if (signedIn === null) return { error: 'Network error. Check your connection and try again.' };
+  trackBuy(game, where, signedIn === true);
+  if (signedIn === null) return failed(game, 'Network error. Check your connection and try again.');
   if (!signedIn) {
     window.location.assign(signInToBuyUrl(window.location.pathname, game));
     return {};

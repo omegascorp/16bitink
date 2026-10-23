@@ -4,7 +4,7 @@ import { bakeSystem, shipTexture, TEX } from '../art/textures';
 import { shipLookOf } from '../art/starship';
 import { worldRadius } from '../art/systemArt';
 import { habitableZone, KIND_LINE, moonsOf, planetsOf, snowLine, STAR, worldById, WORLDS, type World } from '../logic/starSystem';
-import { getHost, getProfile, getSound, REG, setProfile } from '../host';
+import { getHost, getProfile, getSound, REG, setProfile, trackOffer } from '../host';
 import { hasWorld } from '../level/planets';
 import { STRIP_ROOM } from '../logic/screenLayout';
 import { canTravel, travel, tripFuel, TRIPS, type TravelCheck } from '../logic/travel';
@@ -250,7 +250,8 @@ export class SystemScene extends Phaser.Scene {
       const why = canTravel(p, trip, hasWorld);
       // Without the full game the first trip still ends the demo, and after that the button offers it.
       const unlock = why === 'locked' && hasBeat(p, 'course');
-      const go = (): void => (why === 'ok' ? this.fly(trip) : unlock ? getHost(this).onBuy() : this.setCourse());
+      const go = (): void => (why === 'ok' ? this.fly(trip) : unlock ? getHost(this).onBuy('locked') : this.setCourse());
+      if (unlock) trackOffer(this, 'locked');
       // Up by the name, so it's in view without scrolling.
       plaque(this, x + cw - PAD - 100, top + 18, unlock ? 'Unlock' : 'Set course', go, { width: 200, height: 44, size: 16, kind: why === 'ok' || why === 'locked' ? 'primary' : 'off' });
       const note = travelWhy(why, tripFuel(p.at, trip)!);
@@ -324,7 +325,8 @@ export class SystemScene extends Phaser.Scene {
   private demoEnd(): void {
     const host = getHost(this);
     const spec = demoEndCard(host.price, () => {});
-    if (!narrator(this)?.say(spec)) storyCard(this, spec, () => host.onBuy());
+    trackOffer(this, 'free_end');
+    if (!narrator(this)?.say(spec)) storyCard(this, spec, () => host.onBuy('free_end'));
   }
 }
 

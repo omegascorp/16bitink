@@ -1,4 +1,4 @@
-import type { GameEvent, GameHost } from '@16bitink/game-sdk';
+import type { GameEvent, GameHost, OfferPlace } from '@16bitink/game-sdk';
 import type { SoundBoard } from './audio/sound';
 import type { Profile } from './logic/economy';
 import { advance, sessionStart } from './logic/progress';
@@ -25,6 +25,11 @@ function track(s: RegistryReader, events: readonly GameEvent[]): void {
       // Ignored on purpose.
     }
   }
+}
+
+/** Reports that the full-game offer is on screen (once per showing), for the site's stats. */
+export function trackOffer(s: RegistryReader, where: OfferPlace): void {
+  track(s, [{ type: 'offer_view', where }]);
 }
 
 /** Seconds played in all so far, this session's included. */

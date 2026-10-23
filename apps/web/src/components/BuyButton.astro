@@ -35,7 +35,7 @@ const { game, label } = Astro.props;
         }
         button.disabled = false;
       };
-      button.addEventListener('click', () => void run(buyFullGame));
+      button.addEventListener('click', () => void run((g) => buyFullGame(g, 'page')));
       if (isPendingBuy(window.location.search, game)) {
         // Dropped first so Back or a reload never re-opens checkout.
         const url = new URL(window.location.href);

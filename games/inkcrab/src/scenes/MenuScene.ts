@@ -4,7 +4,7 @@ import Phaser from 'phaser';
 import { BLUE, BLUE_HEX, PAPER_HEX, RED } from '../art/palette';
 import { TEX } from '../art/textures';
 import { FOOT, FRAME } from '../art/frame';
-import { getFullError, getHost } from '../host';
+import { getFullError, getHost, trackOffer } from '../host';
 import { BIOMES, LEVELS_PER_BEACH } from '../level/biomes';
 import { guidePages, guideProgress, shellSeenId, type GuidePage } from '../guide/catalog';
 import { levelGoal } from '../level/build';
@@ -143,7 +143,7 @@ export class MenuScene extends Phaser.Scene {
   /** Plays a level; one of the full game's beaches, without it, offers it instead, and an owner's that failed to load is fetched again. */
   private play(levelId: string): void {
     const host = getHost(this);
-    if (isPaid(levelId) && !host.unlocked) host.onBuy();
+    if (isPaid(levelId) && !host.unlocked) host.onBuy('map');
     else if (levelById(levelId)) this.scene.start('Game', { levelId });
     else this.retryFullGame();
   }
@@ -186,6 +186,7 @@ export class MenuScene extends Phaser.Scene {
     card.fillStyle(PAPER_HEX, 0.82).fillRoundedRect(node.x - w / 2, y - 16, w, 54, 8);
     layer.add([card, title, goal]);
     const locked = isPaid(node.levelId) && !host.unlocked;
+    if (locked) trackOffer(this, 'map');
     const label = locked ? (host.price ? `Unlock · ${host.price}` : 'Unlock') : !def ? 'Retry' : done ? 'Play again' : 'Play';
     const button = inkButton(this, node.x, y + 64, label, () => this.play(node.levelId), { width: locked ? 190 : 132, height: 44, size: 26 });
     // A slow breath on the first visit, so the eye finds it.

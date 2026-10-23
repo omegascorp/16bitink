@@ -1,7 +1,7 @@
-import { isGameModule, type GameModule, type KeyValueStore } from '@16bitink/game-sdk';
+import { isGameModule, isOfferPlace, type GameModule, type KeyValueStore } from '@16bitink/game-sdk';
 import { GAME_LOADERS } from '../../games/loaders';
 import { isPendingBuy, BUY_PARAM, signInUrl } from '../buyFlow';
-import { flushAnalytics, gameTag, track, trackLevel, trackPlayTime, type LoadStage } from './analytics';
+import { flushAnalytics, gameTag, track, trackGameEvent, trackPlayTime, trackSignIn, type LoadStage } from './analytics';
 import { buyFullGame, fetchMe, startCheckout } from './checkout';
 import { createLoadingBar } from './loadingBar';
 import { accountProgress } from './progress';
@@ -167,19 +167,20 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
       const handle = module.mount(stage, {
         unlocked,
         allLevelsOpen,
-        track: (event) => trackLevel(tag, event),
+        track: (event) => trackGameEvent(tag, event),
         loading: bar.reporter,
         storage: safeStorage(userId),
         progress: progress ?? undefined,
         signedIn: me?.signedIn === true,
         price: stage.dataset.price || undefined,
         loadContent: () => getJson<unknown>(`/api/content/${encodeURIComponent(game)}`),
-        onBuy: () => {
+        onBuy: (where) => {
           if (document.fullscreenElement) void document.exitFullscreen();
-          void buyFullGame(game).then((r) => r.error && alert(r.error));
+          void buyFullGame(game, isOfferPlace(where) ? where : 'unknown').then((r) => r.error && alert(r.error));
         },
         onSignIn: () => {
           if (document.fullscreenElement) void document.exitFullscreen();
+          trackSignIn('save', game);
           window.location.assign(signInUrl(window.location.pathname));
         },
         onExit: () => {

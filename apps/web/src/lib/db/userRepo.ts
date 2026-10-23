@@ -114,3 +114,8 @@ export async function listUsers(opts: { readonly search: string; readonly page: 
   }));
   return { users, total };
 }
+
+/** Accounts made with `from <= createdAt < to`, not counting admins (the team testing). */
+export async function countNewUsers(range: { readonly from: Date; readonly to: Date }): Promise<number> {
+  return User.countDocuments({ createdAt: { $gte: range.from, $lt: range.to }, role: { $ne: 'admin' } }).exec();
+}

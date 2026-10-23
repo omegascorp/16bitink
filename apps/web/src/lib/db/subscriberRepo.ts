@@ -32,3 +32,8 @@ export async function listSubscribers(): Promise<SubscriberRow[]> {
   const docs = await Subscriber.find({}, { email: 1, source: 1, token: 1, createdAt: 1 }).sort({ createdAt: 1, _id: 1 }).lean().exec();
   return docs.map((d) => ({ email: d.email, source: d.source, token: d.token, createdAt: d.createdAt }));
 }
+
+/** Addresses added with `from <= createdAt < to`. */
+export async function countNewSubscribers(range: { readonly from: Date; readonly to: Date }): Promise<number> {
+  return Subscriber.countDocuments({ createdAt: { $gte: range.from, $lt: range.to } }).exec();
+}

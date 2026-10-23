@@ -1,4 +1,4 @@
-import type { GameEvent, GameHost } from '@16bitink/game-sdk';
+import type { GameEvent, GameHost, OfferPlace } from '@16bitink/game-sdk';
 import type { SoundBoard } from './audio/sound';
 
 interface RegistryReader {
@@ -22,6 +22,11 @@ export function trackGame(s: RegistryReader, event: GameEvent): void {
   } catch {
     // Ignored on purpose.
   }
+}
+
+/** Reports that the full-game offer is on screen (once per showing), for the site's stats. */
+export function trackOffer(s: RegistryReader, where: OfferPlace): void {
+  trackGame(s, { type: 'offer_view', where });
 }
 export const getFullError = (s: RegistryReader): string | null => (s.registry.get(REG.fullError) as string | null) ?? null;
 /** The game's sound, if it was set up (not in tests or headless runs). */

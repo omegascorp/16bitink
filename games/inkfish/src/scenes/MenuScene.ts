@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { crispText, DPR, screenZoom, toView, uiCamera, viewSize } from './hidpi';
 import { BOIL_FPS, BOIL_FRAMES, ensureFishTextures, fishKey } from '../art/textures';
 import { dropUnusedArt, trackArt } from '../art/artCache';
-import { getChapters, getFullError, getHost } from '../host';
+import { getChapters, getFullError, getHost, trackOffer } from '../host';
 import { guidePages, guideProgress, type GuidePage } from '../guide';
 import { allLevels } from '../levels/chapters';
 import { LEVELS_PER_CHAPTER, ZONE_INFO, ZONE_NIGHT } from '../levels/zones';
@@ -224,9 +224,10 @@ export class MenuScene extends Phaser.Scene {
       const locked = this.layout.nodes.length - playable;
       // Portrait: the tabs span the full width, so the offer sits above them and the depth caption.
       const offerY = height - (narrow ? 150 : 90) * s;
-      ui(inkButton(this, width - 170 * s, offerY, `Unlock ${locked} more levels`, () => host.onBuy(), { width: 300 * s, height: 52 * s, size: 26 * s, color: RED_INK }));
+      ui(inkButton(this, width - 170 * s, offerY, `Unlock ${locked} more levels`, () => host.onBuy('map'), { width: 300 * s, height: 52 * s, size: 26 * s, color: RED_INK }));
       const once = host.price ? `${host.price}, one-time purchase` : 'One-time purchase';
       ui(inkText(this, width - 170 * s, offerY + 40 * s, once, 18 * s, SOFT_INK));
+      trackOffer(this, 'map');
     }
     const error = getFullError(this);
     if (error) {

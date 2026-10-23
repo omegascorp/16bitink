@@ -55,8 +55,8 @@ describe.skipIf(!uri)('analytics events (MongoDB)', () => {
       { ...start('e', 1), ts: new Date('2026-09-01T00:00:00Z') },
     ]);
     expect(await levelFunnel('inkfish', RANGE)).toEqual([
-      { n: 1, level: 'l1', name: 'Level 1', reached: 3, finished: 2, attempts: 4, winSeconds: 30 },
-      { n: 2, level: 'l2', name: 'Level 2', reached: 2, finished: 1, attempts: 2, winSeconds: 50 },
+      { n: 1, level: 'l1', name: 'Level 1', reached: 3, finished: 2, attempts: 4, winSeconds: 30, stops: [] },
+      { n: 2, level: 'l2', name: 'Level 2', reached: 2, finished: 1, attempts: 2, winSeconds: 50, stops: [] },
     ]);
   });
 

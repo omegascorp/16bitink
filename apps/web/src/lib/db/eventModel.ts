@@ -47,6 +47,9 @@ const eventSchema = new Schema<StoredEvent>(
     source: String,
     target: String,
     slot: Number,
+    where: String,
+    signedIn: Boolean,
+    app: Boolean,
   },
   {
     collection: 'events',

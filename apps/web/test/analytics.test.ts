@@ -129,6 +129,46 @@ describe('parseBatch', () => {
     expect(parseBatch(batch([event]))).toBeNull();
   });
 
+  it('accepts the steps toward a purchase', () => {
+    const parsed = parseBatch(batch([
+      { type: 'offer_view', at: 1, game: 'inkfish', where: 'free_end', version: '1.0.0' },
+      { type: 'offer_view', at: 2, game: 'inkcrab', where: 'map' },
+      { type: 'buy_click', at: 3, game: 'inkfish', where: 'free_end', signedIn: false, version: '1.0.0' },
+      { type: 'buy_click', at: 4, game: 'inkcrab', where: 'page', signedIn: true },
+      { type: 'signin_click', at: 5, game: 'inkfish', where: 'save' },
+      { type: 'signin_click', at: 6, where: 'header' },
+      { type: 'checkout_open', at: 7, game: 'inkfish' },
+      { type: 'checkout_fail', at: 8, game: 'inkfish', error: 'Network error. Check your connection and try again.' },
+      { type: 'app_install', at: 9 },
+      { type: 'pageview', at: 10, path: '/', app: true },
+    ]));
+    expect(parsed?.events).toHaveLength(10);
+  });
+
+  it.each([
+    ['an offer in an unknown place', { type: 'offer_view', at: 1, game: 'inkfish', where: 'popup' }],
+    ['an offer with no game', { type: 'offer_view', at: 1, where: 'map' }],
+    ['a buy from an unknown place', { type: 'buy_click', at: 1, game: 'inkfish', where: 'banner', signedIn: false }],
+    ['a buy without saying who was signed in', { type: 'buy_click', at: 1, game: 'inkfish', where: 'page' }],
+    ['a sign-in from an unknown place', { type: 'signin_click', at: 1, where: 'popup' }],
+    ['a checkout failure with no reason', { type: 'checkout_fail', at: 1, game: 'inkfish' }],
+    ['a page view marked as not the app', { type: 'pageview', at: 1, path: '/', app: false }],
+  ])('rejects %s', (_label, event) => {
+    expect(parseBatch(batch([event]))).toBeNull();
+  });
+
+  it('stores where an offer was taken and whether the player was signed in', () => {
+    const parsed = parseBatch(batch([
+      { type: 'buy_click', at: 1_000_000, game: 'inkcrab', where: 'locked', signedIn: false },
+      { type: 'signin_click', at: 1_000_000, where: 'header' },
+      { type: 'pageview', at: 1_000_000, path: '/play/inkfish', app: true },
+    ]))!;
+    const [buy, signIn, view] = toStoredEvents(parsed, VISIT, NOW, isGame);
+    expect(buy).toMatchObject({ meta: { event: 'buy_click', game: 'inkcrab' }, where: 'locked', signedIn: false });
+    expect(signIn).toMatchObject({ meta: { event: 'signin_click', game: null }, where: 'header' });
+    expect(view).toMatchObject({ meta: { event: 'pageview', game: null }, app: true });
+  });
+
   it('drops unknown fields instead of storing them', () => {
     const parsed = parseBatch(batch([{ type: 'game_start', at: 1, game: 'inkfish', $set: { role: 'admin' } }]));
     expect(parsed?.events[0]).toEqual({ type: 'game_start', at: 1, game: 'inkfish' });

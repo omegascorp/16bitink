@@ -48,8 +48,9 @@ export interface GameHost {
    * Starts the purchase flow for this game. The flow is the same for every
    * game: a signed-out player signs in with Google first, then pays. Call it
    * when the player finishes the last free level (and from any unlock button).
+   * `where` says which offer the player took, for the site's stats.
    */
-  onBuy(): void;
+  onBuy(where?: OfferPlace): void;
   /** True when a player is signed in, so the game can say whether buying needs a sign-in first. */
   readonly signedIn?: boolean;
   /**
@@ -116,8 +117,23 @@ export interface LevelRef {
 
 export type LevelResult = 'win' | 'lose' | 'quit';
 
-/** What a game reports: each level it starts, and how that level ended. */
+/**
+ * Where a game shows the full-game offer: the screen at the end of the free
+ * part, the level map, a card opened by tapping locked content, or a
+ * locked page of the game's guide.
+ */
+export const OFFER_PLACES = ['free_end', 'map', 'locked', 'guide'] as const;
+export type OfferPlace = (typeof OFFER_PLACES)[number];
+
+export const isOfferPlace = (value: unknown): value is OfferPlace => (OFFER_PLACES as readonly unknown[]).includes(value);
+
+/**
+ * What a game reports: each level it starts, how that level ended, and each
+ * time it puts the full-game offer in front of the player (`offer_view`:
+ * once per showing, not per frame).
+ */
 export type GameEvent =
+  | { readonly type: 'offer_view'; readonly where: OfferPlace }
   | (LevelRef & { readonly type: 'level_start' })
   | (LevelRef & {
       readonly type: 'level_end';

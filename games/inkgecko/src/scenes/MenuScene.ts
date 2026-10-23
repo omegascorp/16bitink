@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { SIGN_BOARD } from '../art/map/paintMap';
 import { BLUE, PAPER_HEX } from '../art/palette';
 import { dropBoards } from '../art/textures';
-import { getFullError, getHost, getSound } from '../host';
+import { getFullError, getHost, getSound, trackOffer } from '../host';
 import { BUILT_CHAPTERS, CHAPTER_NAMES, CHAPTER_PLACES, levelById, levelOrder, loadedChapters, loadedLevels, placeOf, PLANNED_CHAPTERS } from '../level/levels';
 import { colourHex, COLOURS } from '../logic/colours';
 import { chapterTally, loadProgress, type Progress } from '../logic/save';
@@ -267,8 +267,9 @@ export class MenuScene extends Phaser.Scene {
     } else if (locked && host.price) {
       this.card = MapCard.chapter(this, this.uiLayer, this.ui, {
         title, lines: [`Chapters 2–${PLANNED_CHAPTERS} are the full game:`, 'lily pads, tunnels, the Dragonfly and more.'],
-        action: { label: `Unlock · ${host.price}`, run: () => host.onBuy() },
+        action: { label: `Unlock · ${host.price}`, run: () => host.onBuy('locked') },
       }, close);
+      trackOffer(this, 'locked');
     } else {
       this.card = MapCard.chapter(this, this.uiLayer, this.ui, { title, lines: ['Still being drawn: on the way soon!', 'New chapters arrive as free updates.'] }, close);
     }

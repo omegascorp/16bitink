@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { PAPER, PAPER_HEX } from '../art/palette';
-import { getHost, getSound } from '../host';
+import { getHost, getSound, trackOffer } from '../host';
 import { isFreeEnd, levelById, levelOrder, loadedLevels, nextLevel } from '../level/levels';
 import { screenScene, screenSize, viewSize } from './hidpi';
 import { GeckoPortrait } from './result/geckoPortrait';
@@ -129,8 +129,10 @@ export class ResultScene extends Phaser.Scene {
     let primary: Action | null;
     if (!data.won) primary = { label: 'Try again', run: replay };
     else if (next) primary = { label: 'Next level', run: () => this.go('Game', { levelId: next.id }) };
-    else if (isFreeEnd(data.levelId) && !host.unlocked && host.price) primary = { label: `Full game · ${host.price}`, run: () => host.onBuy() };
-    else primary = null;
+    else if (isFreeEnd(data.levelId) && !host.unlocked && host.price) {
+      primary = { label: `Full game · ${host.price}`, run: () => host.onBuy('free_end') };
+      trackOffer(this, 'free_end');
+    } else primary = null;
     const y = top + BUTTONS.primary;
     if (primary) card.add(inkButton(this, 0, y, primary.label, primary.run, { width: 260, height: 62, size: 34, kind: 'leaf' }));
     else card.add(inkText(this, 0, y, 'More chapters are on the way!', 28));

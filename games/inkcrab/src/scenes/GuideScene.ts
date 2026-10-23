@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BLUE, BLUE_HEX, PAPER_HEX, RED } from '../art/palette';
 import { TEX } from '../art/textures';
-import { getFullError, getHost } from '../host';
+import { getFullError, getHost, trackOffer } from '../host';
 import { guidePages, guideProgress, type GuidePage } from '../guide';
 import { BIOMES } from '../level/biomes';
 import { loadedBeaches } from '../level/levels';
@@ -117,7 +117,8 @@ export class GuideScene extends Phaser.Scene {
     inkText(this, width / 2, height / 2 - 24 * s, error ?? 'Unlock the full game to explore this beach.', 26 * s, error ? RED : SOFT_INK);
     if (!host.unlocked) {
       const label = host.price ? `Unlock the full game · ${host.price}` : 'Unlock the full game';
-      inkButton(this, width / 2, height / 2 + 36 * s, label, () => host.onBuy(), { width: 340 * s, height: 50 * s, size: 26 * s });
+      inkButton(this, width / 2, height / 2 + 36 * s, label, () => host.onBuy('guide'), { width: 340 * s, height: 50 * s, size: 26 * s });
+      trackOffer(this, 'guide');
     } else if (error) {
       inkButton(this, width / 2, height / 2 + 36 * s, 'Retry', () => void loadPaidBeaches(this).then(() => this.scene.restart({ beach: this.beach })), { width: 140 * s, height: 46 * s, size: 24 * s });
     }

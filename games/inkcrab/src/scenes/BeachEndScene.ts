@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { INK } from '../art/palette';
-import { getHost } from '../host';
+import { getHost, trackOffer } from '../host';
 import { BIOMES, LEVELS_PER_BEACH } from '../level/biomes';
 import { shellLadder } from '../level/build';
 import { beachIndexOf, FREE_BEACHES, isFreeEnd, levelById, loadedBeaches, themeOf } from '../level/levels';
@@ -129,7 +129,8 @@ export class BeachEndScene extends Phaser.Scene {
     const host = getHost(this);
     if (!host.unlocked && isFreeEnd(levelId)) {
       const rest = BIOMES.slice(FREE_BEACHES);
-      return { kind: 'buy', beaches: rest, levels: rest.length * LEVELS_PER_BEACH, price: host.price, signedIn: host.signedIn === true, onBuy: () => host.onBuy() };
+      trackOffer(this, 'free_end');
+      return { kind: 'buy', beaches: rest, levels: rest.length * LEVELS_PER_BEACH, price: host.price, signedIn: host.signedIn === true, onBuy: () => host.onBuy('free_end') };
     }
     const next = loadedBeaches()[beach + 1];
     return { kind: 'next', beach: BIOMES[beach + 1], onSail: next?.[0] ? () => this.scene.start('Game', { levelId: next[0]!.id }) : undefined };

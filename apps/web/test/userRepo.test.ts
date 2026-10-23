@@ -4,7 +4,7 @@ import { Purchase } from '../src/lib/db/purchaseModel';
 import { User } from '../src/lib/db/userModel';
 import { OAuthToken } from '../src/lib/db/oauthModel';
 import { findAccessToken, issueTokens } from '../src/lib/db/oauthRepo';
-import { ensurePlayerId, findRole, listUsers, signInGoogleUser, syncAdminRoles } from '../src/lib/db/userRepo';
+import { countNewUsers, ensurePlayerId, findRole, listUsers, signInGoogleUser, syncAdminRoles } from '../src/lib/db/userRepo';
 import { Grant } from '../src/lib/db/grantModel';
 import { grantedGames, grantedGamesFor, grantGame, revokeGame } from '../src/lib/db/grantRepo';
 import { isUserId } from '../src/lib/userId';
@@ -40,6 +40,15 @@ describe.skipIf(!uri)('users (MongoDB)', () => {
     expect(again).toBe(first);
     const user = await User.findById(first).lean().exec();
     expect(user).toMatchObject({ googleId: google.googleId, email: 'new@example.com', name: 'Fish', lastSignInAt: new Date('2026-10-02T00:00:00Z') });
+  });
+
+  it('counts the accounts made in a period, not admins', async () => {
+    const before = new Date(Date.now() - 60_000);
+    await signInGoogleUser(google, 'user', new Date());
+    await signInGoogleUser({ ...google, googleId: '2', email: 'admin-test@example.com' }, 'admin', new Date());
+    const after = new Date(Date.now() + 60_000);
+    expect(await countNewUsers({ from: before, to: after })).toBe(1);
+    expect(await countNewUsers({ from: after, to: new Date(after.getTime() + 60_000) })).toBe(0);
   });
 
   it('allows many users without a Google account, but one user per Google account', async () => {

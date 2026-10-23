@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { screenScene, viewSize } from './hidpi';
-import { getChapters, getHost } from '../host';
+import { getChapters, getHost, trackOffer } from '../host';
 import { ART_RES, birdKey, ensureBirdTextures, fishKey } from '../art/textures';
 import { PAN_SIZE } from '../art/deathArt';
 import { bodyProportions } from '../art/fishArt';
@@ -179,10 +179,11 @@ export class ResultScene extends Phaser.Scene {
     root.add([me, inkText(this, 0, -200, title, isDemoEnd ? 64 : 76, BLUE_INK), inkText(this, 0, -120, `Score ${data.score} · ${Math.round(data.seconds)}s`, 32), g]);
 
     if (isDemoEnd) {
+      trackOffer(this, 'free_end');
       root.add([
         inkText(this, 0, 30, 'The ocean keeps going… deeper, darker, and drawn by hand.', 26),
         inkText(this, 0, 64, `${LOCKED_CHAPTER_TEASERS.reduce((n, c) => n + c.levelCount, 0)} more levels in ${LOCKED_CHAPTER_TEASERS.length} deeper zones, with new fish to play.`, 22, '#5b5446'),
-        inkButton(this, 0, 130, host.price ? `Unlock the full ocean · ${host.price}` : 'Unlock the full ocean', () => host.onBuy(), { width: 400, color: RED_INK }),
+        inkButton(this, 0, 130, host.price ? `Unlock the full ocean · ${host.price}` : 'Unlock the full ocean', () => host.onBuy('free_end'), { width: 400, color: RED_INK }),
         inkText(this, 0, 182, host.signedIn ? 'One-time purchase: no subscription, no ads.' : 'Sign in with Google, then pay once: no subscription, no ads.', 20, '#5b5446'),
         inkButton(this, 0, 240, 'Level select', menu),
       ]);

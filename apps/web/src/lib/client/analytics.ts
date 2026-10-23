@@ -1,4 +1,4 @@
-import type { GameEvent } from '@16bitink/game-sdk';
+import { isOfferPlace, type GameEvent, type OfferPlace } from '@16bitink/game-sdk';
 import { pageviewRef } from '../shortLinks';
 
 /**
@@ -27,7 +27,7 @@ interface GameTag {
 }
 
 type Event =
-  | { readonly type: 'pageview'; readonly path: string; readonly ref?: string }
+  | { readonly type: 'pageview'; readonly path: string; readonly ref?: string; readonly app?: true }
   | { readonly type: 'page_leave'; readonly path: string; readonly ms: number; readonly scroll: number; readonly loadMs?: number }
   | { readonly type: 'js_error'; readonly path: string; readonly error: string; readonly source?: string }
   | ({ readonly type: 'game_start' } & GameTag)
@@ -37,7 +37,17 @@ type Event =
   | ({ readonly type: 'game_ready'; readonly ms: number; readonly stage: 'ready' | 'stall' } & GameTag)
   | ({ readonly type: 'load_fail'; readonly ms: number; readonly stage: LoadStage; readonly error: string } & GameTag)
   | ({ readonly type: 'load_abandon'; readonly ms: number; readonly pct: number } & GameTag)
+  | ({ readonly type: 'buy_click'; readonly where: BuyPlace; readonly signedIn: boolean } & GameTag)
+  | { readonly type: 'signin_click'; readonly where: SignInPlace; readonly game?: string }
+  | { readonly type: 'checkout_open'; readonly game: string }
+  | { readonly type: 'checkout_fail'; readonly game: string; readonly error: string }
+  | { readonly type: 'app_install' }
   | (GameEvent & GameTag);
+
+/** Where a buy was tapped: one of the game's own offers, the game's page, or a game too old to say. */
+export type BuyPlace = OfferPlace | 'page' | 'unknown';
+/** Where a sign-in was tapped: a game's "save your progress", the site header, or "Bought it already?". */
+export type SignInPlace = 'save' | 'header' | 'restore';
 
 /** Which part of a home page game card was clicked. */
 export type HomeClickTarget = 'cover' | 'title' | 'play' | 'about';
@@ -138,10 +148,26 @@ export function track(event: Event): void {
   else timer ??= setTimeout(() => flushAnalytics(), FLUSH_DELAY_MS);
 }
 
-/** A page view, with where it came from: a short link typed from a video, or another site's host only. */
+/** Opened from the home screen, as the installed app. */
+function isInstalledApp(): boolean {
+  try {
+    return matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A page view, with where it came from: a short link typed from a video, or another site's host only;
+ * and whether it's the installed app. Also counts the browser installing the site as an app.
+ */
 export function trackPageview(): void {
   const ref = pageviewRef({ referrer: document.referrer, hostname: location.hostname, search: location.search });
-  track({ type: 'pageview', path: location.pathname.slice(0, 200), ...(ref ? { ref } : {}) });
+  track({ type: 'pageview', path: location.pathname.slice(0, 200), ...(ref ? { ref } : {}), ...(isInstalledApp() ? { app: true as const } : {}) });
+  window.addEventListener('appinstalled', () => {
+    track({ type: 'app_install' });
+    flushAnalytics();
+  }, { once: true });
   // Counted once: a reload or a shared copy of the address isn't another visit from the video.
   if (new URLSearchParams(location.search).has('via')) {
     const url = new URL(location.href);
@@ -153,13 +179,38 @@ export function trackPageview(): void {
 /** Longest level progress note kept (the server refuses more). */
 const PROGRESS_MAX = 60;
 
-/** A level event from a game, trimmed to what the server accepts. */
-export function trackLevel(tag: GameTag, e: GameEvent): void {
-  if (!Number.isInteger(e.n) || e.n < 1) return;
-  track({
+/** A game's event, trimmed to what the server accepts; null when the server would refuse it anyway. */
+export function fromGameEvent(tag: GameTag, e: GameEvent): Event | null {
+  if (e.type === 'offer_view') return isOfferPlace(e.where) ? { type: 'offer_view', where: e.where, ...tag } : null;
+  if (!Number.isInteger(e.n) || e.n < 1) return null;
+  return {
     ...e, ...tag, level: e.level.slice(0, 40), ...(e.name ? { name: e.name.slice(0, 80) } : {}),
     ...(e.type === 'level_end' && e.progress ? { progress: e.progress.slice(0, PROGRESS_MAX) } : {}),
-  });
+  };
+}
+
+/** Records an event a game reported: its levels, and the offers it showed. */
+export function trackGameEvent(tag: GameTag, e: GameEvent): void {
+  const event = fromGameEvent(tag, e);
+  if (event) track(event);
+}
+
+/** A buy offer was taken, from a game or the game's page. */
+export function trackBuy(game: string, where: BuyPlace, signedIn: boolean): void {
+  track({ type: 'buy_click', game, where, signedIn });
+}
+
+/** A sign-in was tapped; the page is about to leave for Google, so the event goes now. */
+export function trackSignIn(where: SignInPlace, game?: string): void {
+  track({ type: 'signin_click', where, ...(game ? { game } : {}) });
+  flushAnalytics(true);
+}
+
+/** Stripe's checkout is opening (the page leaves next, so the event goes now), or couldn't, and why. */
+export function trackCheckout(game: string, error?: string): void {
+  if (error) track({ type: 'checkout_fail', game, error: (error.trim() || 'Unknown error').slice(0, 200) });
+  else track({ type: 'checkout_open', game });
+  flushAnalytics(true);
 }
 
 /** Play time is reported at least this often, so a tab that dies unannounced loses at most this much. */

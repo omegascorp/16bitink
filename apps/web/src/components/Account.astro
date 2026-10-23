@@ -21,6 +21,8 @@ const signInHref = known ? `/auth/google?return=${encodeURIComponent(Astro.url.p
 </account-menu>
 
 <script>
+  import { trackSignIn } from '../lib/client/analytics';
+
   interface Me {
     readonly signedIn: boolean;
     readonly name?: string;
@@ -35,6 +37,7 @@ const signInHref = known ? `/auth/google?return=${encodeURIComponent(Astro.url.p
       const signOut = this.querySelector<HTMLButtonElement>('.account-signout');
       if (!signIn || !user || !name || !signOut) return;
       signOut.addEventListener('click', () => void this.signOut(signOut));
+      signIn.addEventListener('click', () => trackSignIn('header'));
       // The server already rendered who is signed in.
       if (this.dataset.known !== undefined) return;
       signIn.href = `/auth/google?return=${encodeURIComponent(location.pathname + location.search)}`;

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { screenScene, toView, viewSize } from './hidpi';
-import { getChapters, getHost } from '../host';
+import { getChapters, getHost, trackOffer } from '../host';
 import { guidePages, guideProgress, type GuideId, type GuidePage } from '../guide';
 import { ZONE_INFO } from '../levels/zones';
 import { loadSave } from '../logic/save';
@@ -83,7 +83,10 @@ export class GuideScene extends Phaser.Scene {
     const page = this.pages.find((p) => p.chapter === this.chapter);
     if (!page) {
       this.add.existing(inkText(this, width / 2, height / 2 - 20 * s, 'Unlock the full game to meet the creatures down here.', 26 * s, '#5b5446'));
-      if (!host.unlocked) inkButton(this, width / 2, height / 2 + 40 * s, 'Unlock all levels', () => host.onBuy(), { width: 260 * s, height: 50 * s, size: 26 * s, color: RED_INK });
+      if (!host.unlocked) {
+        inkButton(this, width / 2, height / 2 + 40 * s, 'Unlock all levels', () => host.onBuy('guide'), { width: 260 * s, height: 50 * s, size: 26 * s, color: RED_INK });
+        trackOffer(this, 'guide');
+      }
       return;
     }
     // How much of this chapter's page is filled in, right under its name.
