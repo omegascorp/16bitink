@@ -12,7 +12,7 @@
  *
  * Writes promo/<slug>-gameplay.mp4 (the whole take) and promo/<slug>-gameplay.png
  * (one frame a second, to pick the best stretch), then cuts --from/--to into
- * public/loops/ with scripts/loops.mjs. Runs differ (levels are seeded by the
+ * src/assets/loops/ with scripts/loops.mjs. Runs differ (levels are seeded by the
  * clock), so check the contact sheet and re-cut with loops.mjs if the preset
  * window isn't the best part. Flags override the preset: --level --zoom
  * --skip --seconds --from --to --url.

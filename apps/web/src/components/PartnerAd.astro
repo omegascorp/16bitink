@@ -12,25 +12,51 @@ const WIDE = '(min-width: 900px)';
 const SANDBOX = 'allow-scripts allow-popups allow-popups-to-escape-sandbox';
 ---
 <aside class="partner" data-partner-ad data-max-height={MAX_HEIGHT} data-wide={WIDE} aria-label="Partner promotion">
-  <iframe src={SRC} title="Partner promotion" loading="lazy" scrolling="no" sandbox={SANDBOX}></iframe>
-  <!-- Wide screens only: loaded from the script, so phones never fetch it. -->
-  <iframe class="wide-only" data-src={SRC} title="Partner promotion" loading="lazy" scrolling="no" sandbox={SANDBOX}></iframe>
+  <!-- Both loaded from the script, after the page and only when scrolled near: the second on wide screens only. -->
+  <iframe data-src={SRC} title="Partner promotion" scrolling="no" sandbox={SANDBOX}></iframe>
+  <iframe class="wide-only" data-src={SRC} data-wide-only title="Partner promotion" scrolling="no" sandbox={SANDBOX}></iframe>
 </aside>
 
 <script>
+  /** How far below the screen the cards start loading, so they're usually ready by the time they scroll in. */
+  const AHEAD = '300px';
+  /** Longest wait for the page's load event before watching anyway. */
+  const LOAD_WAIT_MS = 8000;
+
   for (const block of document.querySelectorAll<HTMLElement>('[data-partner-ad]')) {
     const frames = Array.from(block.querySelectorAll('iframe'));
     const maxHeight = Number(block.dataset.maxHeight);
     const wide = matchMedia(block.dataset.wide ?? '');
+    let near = false;
 
-    const loadWide = () => {
-      if (!wide.matches) return;
+    const load = () => {
+      if (!near) return;
       for (const frame of frames) {
-        if (frame.dataset.src && !frame.getAttribute('src')) frame.src = frame.dataset.src;
+        const wanted = !('wideOnly' in frame.dataset) || wide.matches;
+        if (wanted && frame.dataset.src && !frame.getAttribute('src')) frame.src = frame.dataset.src;
       }
     };
-    loadWide();
-    wide.addEventListener('change', loadWide);
+    wide.addEventListener('change', load);
+
+    // A third-party page (~330 KB of script) mustn't compete with the covers or hold back the load
+    // event: wait for both (or a while, should something stall the load), then for the block to come near the screen.
+    let watching = false;
+    const watch = () => {
+      if (watching) return;
+      watching = true;
+      const seen = new IntersectionObserver((entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        seen.disconnect();
+        near = true;
+        load();
+      }, { rootMargin: `0px 0px ${AHEAD} 0px` });
+      seen.observe(block);
+    };
+    if (document.readyState === 'complete') watch();
+    else {
+      window.addEventListener('load', watch, { once: true });
+      setTimeout(watch, LOAD_WAIT_MS);
+    }
 
     window.addEventListener('message', (event) => {
       // Sandboxed without same-origin, so the origin reads "null": match the frame itself.

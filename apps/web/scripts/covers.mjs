@@ -1,6 +1,7 @@
 /**
- * Renders the web copies of every game cover, and the home page's social
- * preview, from the masters in public/covers/<slug>.png (1200x675).
+ * Renders the web copies of every game cover (into src/assets/covers/, so the
+ * build hashes them), and the home page's social preview (next to the
+ * masters), from the masters in public/covers/<slug>.png (1200x675).
  * Run after changing a cover: `pnpm --filter @16bitink/web covers`.
  *
  *   <slug>-640.avif, -1200.avif   what the pages show (src/lib/covers.ts names them)
@@ -12,7 +13,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
-const COVERS = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'covers');
+const WEB = join(dirname(fileURLToPath(import.meta.url)), '..');
+const COVERS = join(WEB, 'public', 'covers');
+const COPIES = join(WEB, 'src', 'assets', 'covers');
 const WIDTHS = [640, 1200];
 const PAPER = '#f4eddc';
 const INK = '#1b1a1f';
@@ -26,8 +29,8 @@ for (const file of masters) {
   const slug = file.replace(/\.png$/, '');
   for (const width of WIDTHS) {
     const resized = () => sharp(join(COVERS, file)).resize({ width, withoutEnlargement: true });
-    await resized().avif({ quality: 70, effort: 6 }).toFile(join(COVERS, `${slug}-${width}.avif`));
-    await resized().webp({ quality: 86, effort: 6 }).toFile(join(COVERS, `${slug}-${width}.webp`));
+    await resized().avif({ quality: 70, effort: 6 }).toFile(join(COPIES, `${slug}-${width}.avif`));
+    await resized().webp({ quality: 86, effort: 6 }).toFile(join(COPIES, `${slug}-${width}.webp`));
   }
   console.log(`wrote ${slug}-{${WIDTHS.join(',')}}.{avif,webp}`);
 }

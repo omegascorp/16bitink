@@ -4,6 +4,9 @@ import Logo from '../components/Logo.astro';
 import Account from '../components/Account.astro';
 import { appleTouchIcon } from '../lib/manifest';
 import { jsonLdScript } from '../lib/seo';
+import caveat from '../assets/fonts/caveat.woff2?url';
+import sourceSerif from '../assets/fonts/source-serif-4.woff2?url';
+import silkscreen from '../assets/fonts/silkscreen.woff2?url';
 
 interface Props {
   title: string;
@@ -38,10 +41,11 @@ const ogImage = new URL(image, Astro.site);
     <meta property="og:image" content={ogImage} />
     <meta name="twitter:card" content="summary_large_image" />
     {jsonLd.map((data) => <script type="application/ld+json" set:html={jsonLdScript(data)} />)}
-    <!-- The fonts the first screen draws with (see global.css), fetched alongside the stylesheet rather than after it. -->
-    <link rel="preload" href="/fonts/caveat.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/source-serif-4.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/silkscreen.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- The fonts the first screen draws with (see global.css), fetched alongside the stylesheet rather than after it.
+         The same hashed URLs as the stylesheet's; one small enough to be inlined into it needs no fetch at all. -->
+    {[caveat, sourceSerif, silkscreen].filter((href) => !href.startsWith('data:')).map((href) => (
+      <link rel="preload" href={href} as="font" type="font/woff2" crossorigin />
+    ))}
     <slot name="head" />
   </head>
   <body>

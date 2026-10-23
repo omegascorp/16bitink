@@ -28,7 +28,7 @@ export interface CatalogGame {
   readonly description: readonly string[];
   readonly status: GameStatus;
   readonly cover?: string;
-  /** Has a silent gameplay loop in public/loops/ (made by scripts/loops.mjs), played over the cover. */
+  /** Has a silent gameplay loop in src/assets/loops/ (made by scripts/loops.mjs), played over the cover. */
   readonly loop?: boolean;
   /** Release day (YYYY-MM-DD, UTC): the home page marks a game "New" for NEW_FOR_DAYS from it. */
   readonly released?: string;

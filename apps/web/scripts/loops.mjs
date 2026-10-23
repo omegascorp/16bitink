@@ -4,7 +4,7 @@
  *
  *   pnpm --filter @16bitink/web loops -- inkfish ~/Desktop/inkfish.mov --from 12 --to 24
  *
- * writes public/loops/inkfish.webm and .mp4 (960x540, 24 fps, no sound),
+ * writes src/assets/loops/inkfish.webm and .mp4 (960x540, 24 fps, no sound),
  * then set `loop: true` on the game in src/data/games.ts.
  *
  * The recording is cropped to 16:9 from its centre, so record the game
@@ -17,7 +17,7 @@ import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'loops');
+const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'assets', 'loops');
 const WIDTH = 960;
 const HEIGHT = 540;
 const FPS = 24;
