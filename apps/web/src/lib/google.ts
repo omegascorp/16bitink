@@ -95,11 +95,12 @@ export function checkIdToken(claims: unknown, o: CheckOptions): GoogleUser | nul
   return { googleId: c.sub as string, email, name };
 }
 
-/** Where to go after signing in: a path on this site, never another origin or the sign-in routes. */
+/** Where to go after signing in: a path on this site, never another origin or the sign-in pages. */
 export function safeReturnPath(raw: string | null): string {
   if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/';
   // Browsers drop tabs and newlines from a Location and read "\" as "/", so "/\t/evil" would leave the site.
   if (/[\u0000-\u001f\u007f\\]/.test(raw)) return '/';
-  if (raw === '/auth/google' || raw.startsWith('/auth/google/') || raw.startsWith('/auth/google?')) return '/';
+  // Never back into a sign-in step: that would loop, or spend a one-time link.
+  if (/^\/(auth|signin)([/?#]|$)/.test(raw)) return '/';
   return raw;
 }

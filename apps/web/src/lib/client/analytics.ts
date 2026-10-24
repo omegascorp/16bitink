@@ -46,8 +46,8 @@ type Event =
 
 /** Where a buy was tapped: one of the game's own offers, the game's page, or a game too old to say. */
 export type BuyPlace = OfferPlace | 'page' | 'unknown';
-/** Where a sign-in was tapped: a game's "save your progress", the site header, or "Bought it already?". */
-export type SignInPlace = 'save' | 'header' | 'restore';
+/** Where a sign-in was tapped: a game's "save your progress", the site header, or "Bought it already?"; then, on the sign-in page, the way chosen. */
+export type SignInPlace = 'save' | 'header' | 'restore' | 'google' | 'email';
 
 /** Which part of a home page game card was clicked. */
 export type HomeClickTarget = 'cover' | 'title' | 'play' | 'about';
@@ -200,7 +200,7 @@ export function trackBuy(game: string, where: BuyPlace, signedIn: boolean): void
   track({ type: 'buy_click', game, where, signedIn });
 }
 
-/** A sign-in was tapped; the page is about to leave for Google, so the event goes now. */
+/** A sign-in was tapped; the page may be about to leave (for Google or the sign-in page), so the event goes now. */
 export function trackSignIn(where: SignInPlace, game?: string): void {
   track({ type: 'signin_click', where, ...(game ? { game } : {}) });
   flushAnalytics(true);

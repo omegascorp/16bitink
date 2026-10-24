@@ -1,0 +1,172 @@
+---
+import Base from '../layouts/Base.astro';
+import { googleSignInUrl } from '../lib/buyFlow';
+import { requireSecret } from '../lib/env';
+import { safeReturnPath } from '../lib/google';
+import { currentUser } from '../lib/owner';
+import { EMAIL_FLOW_COOKIE, verifyEmailFlow } from '../lib/session';
+import { parseUserAgent } from '../lib/userAgent';
+
+/**
+ * Where every "Sign in" leads: Google, or a code and link by email. In the
+ * Facebook, Instagram and TikTok apps Google refuses to sign anyone in, so
+ * there the email comes first, and its code is typed back here: the player
+ * never leaves the app, and this browser's saves move into the account.
+ */
+export const prerender = false;
+
+const ret = safeReturnPath(Astro.url.searchParams.get('return'));
+const nowSec = Math.floor(Date.now() / 1000);
+let pending: string | null = null;
+try {
+  if (await currentUser(Astro.cookies)) return Astro.redirect(ret, 303);
+  // Back on this page while a code is on its way (an in-app browser reloads after a trip to the mail app).
+  pending = (await verifyEmailFlow(Astro.cookies.get(EMAIL_FLOW_COOKIE)?.value, requireSecret('ENTITLEMENT_SECRET'), nowSec))?.email ?? null;
+} catch (err) {
+  console.error('[signin] session check failed', err);
+}
+const inApp = ['Facebook app', 'Instagram app', 'TikTok app'].includes(parseUserAgent(Astro.request.headers.get('user-agent') ?? '').browser);
+Astro.response.headers.set('cache-control', 'private, no-store');
+---
+<Base title="Sign in | 16bit.ink" description="Sign in to 16bit.ink to keep your progress and purchases on every device." user={null}>
+  <meta name="robots" content="noindex" slot="head" />
+  <section class="paper-card narrow tape signin" data-return={ret}>
+    <h1>Sign in</h1>
+    <p>Your progress and purchases follow you to any device you sign in on.</p>
+
+    <form class="signin-email" data-step="email" hidden={Boolean(pending)} novalidate>
+      <label for="signin-email">Your email</label>
+      <div class="signin-row">
+        <input id="signin-email" name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" placeholder="you@example.com" />
+        <button class="btn btn-ink" type="submit">Email me a code</button>
+      </div>
+    </form>
+
+    <form class="signin-code" data-step="code" hidden={!pending} novalidate>
+      <p>We sent a 6-digit code to <strong data-sent-to>{pending}</strong>. Type it here, or open the link in the email.</p>
+      <label for="signin-code" class="visually-hidden">Sign-in code</label>
+      <div class="signin-row">
+        <input id="signin-code" name="code" required maxlength="12" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9 \-]*" placeholder="123456" />
+        <button class="btn btn-ink" type="submit">Sign in</button>
+      </div>
+      <p class="signin-small">No email? Check spam, or <button type="button" class="signin-link" data-restart>use another address</button>.</p>
+    </form>
+
+    <p class="signin-error" role="alert" hidden></p>
+
+    <div class="signin-or" hidden={Boolean(pending)}>
+      <span>or</span>
+      {inApp ? (
+        <p class="signin-small">Google sign-in doesn't work inside this app. Use email, or open 16bit.ink in your browser to sign in with Google.</p>
+      ) : (
+        <a class="btn" href={googleSignInUrl(ret)} data-google>Sign in with Google</a>
+      )}
+    </div>
+  </section>
+</Base>
+
+<script>
+  import { trackSignIn } from '../lib/client/analytics';
+
+  interface Reply {
+    readonly success?: boolean;
+    readonly data?: { readonly email?: string; readonly ret?: string };
+    readonly error?: string;
+  }
+
+  const root = document.querySelector<HTMLElement>('.signin');
+  const emailForm = root?.querySelector<HTMLFormElement>('[data-step="email"]');
+  const codeForm = root?.querySelector<HTMLFormElement>('[data-step="code"]');
+  const errorBox = root?.querySelector<HTMLElement>('.signin-error');
+  const or = root?.querySelector<HTMLElement>('.signin-or');
+
+  async function post(path: string, body: unknown): Promise<Reply> {
+    try {
+      const res = await fetch(path, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const reply = (await res.json().catch(() => null)) as Reply | null;
+      if (res.ok && reply?.success) return reply;
+      return { error: reply?.error ?? (res.status === 429 ? 'Too many tries. Please wait a minute and try again.' : 'Something went wrong. Please try again.') };
+    } catch {
+      return { error: 'Network error. Check your connection and try again.' };
+    }
+  }
+
+  if (root && emailForm && codeForm && errorBox && or) {
+    const ret = root.dataset.return ?? '/';
+    const showError = (message: string | null): void => {
+      errorBox.textContent = message ?? '';
+      errorBox.hidden = !message;
+    };
+    const showStep = (step: 'email' | 'code'): void => {
+      emailForm.hidden = step !== 'email';
+      codeForm.hidden = step !== 'code';
+      or.hidden = step !== 'email';
+      showError(null);
+      (step === 'email' ? emailForm : codeForm).querySelector('input')?.focus();
+    };
+    const busy = (form: HTMLFormElement, on: boolean): void => {
+      for (const el of form.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input, button')) el.disabled = on;
+    };
+
+    root.querySelector('[data-google]')?.addEventListener('click', () => trackSignIn('google'));
+
+    emailForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = emailForm.querySelector<HTMLInputElement>('input[name="email"]');
+      const email = input?.value.trim() ?? '';
+      if (!email) return showError('Type your email first.');
+      trackSignIn('email');
+      busy(emailForm, true);
+      const reply = await post('/auth/email', { email, return: ret });
+      busy(emailForm, false);
+      if (reply.error) return showError(reply.error);
+      const sentTo = codeForm.querySelector<HTMLElement>('[data-sent-to]');
+      if (sentTo) sentTo.textContent = reply.data?.email ?? email;
+      showStep('code');
+    });
+
+    codeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = codeForm.querySelector<HTMLInputElement>('input[name="code"]');
+      busy(codeForm, true);
+      const reply = await post('/auth/email/code', { code: input?.value ?? '' });
+      if (reply.error) {
+        busy(codeForm, false);
+        showError(reply.error);
+        input?.select();
+        return;
+      }
+      location.assign(reply.data?.ret ?? ret);
+    });
+
+    root.querySelector('[data-restart]')?.addEventListener('click', () => showStep('email'));
+  }
+</script>
+
+<style>
+  .signin label { display: block; margin-bottom: 6px; }
+  .signin-email, .signin-code { margin-top: 18px; }
+  .signin-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+  .signin-row input {
+    flex: 1 1 240px; min-width: 0; max-width: 340px; font: inherit;
+    padding: 10px 12px; background: var(--paper-2); color: var(--ink); border: 2px solid var(--ink); border-radius: 4px;
+  }
+  .signin-code input { font-family: var(--font-pixel); letter-spacing: 0.3em; text-align: center; }
+  .signin-row input:focus-visible { outline: 2px dashed var(--blue-ink); outline-offset: 3px; }
+  .signin-error { color: var(--red-ink); margin-top: 12px; }
+  .signin-small { font-size: 0.92rem; color: var(--ink-soft); }
+  .signin-or { margin-top: 26px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .signin-or > span { font-family: var(--font-hand); font-size: 1.4rem; color: var(--ink-soft); }
+  .signin-or[hidden], .signin form[hidden], .signin-error[hidden] { display: none; }
+  .signin-link {
+    font: inherit; color: var(--blue-ink); background: none; border: 0; padding: 0; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .signin-link:focus-visible { outline: 2px dashed var(--blue-ink); outline-offset: 3px; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+</style>

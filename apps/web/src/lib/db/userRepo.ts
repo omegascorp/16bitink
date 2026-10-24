@@ -1,4 +1,5 @@
 import type { Role } from '../admins';
+import { nameFromEmail } from '../emailSignIn';
 import type { GoogleUser } from '../google';
 import { generatePlayerId, normalizePlayerId } from '../playerId';
 import type { UserId } from '../userId';
@@ -10,17 +11,31 @@ const DUPLICATE_KEY = 11000;
 const isDuplicateKey = (err: unknown): boolean =>
   typeof err === 'object' && err !== null && (err as { code?: unknown }).code === DUPLICATE_KEY;
 
+const ID_ONLY = { _id: 1 } as const;
+const OLDEST_FIRST = { createdAt: 1 } as const;
+
 async function upsertGoogleUser(g: GoogleUser, role: Role, now: Date): Promise<UserId> {
+  const set = { email: g.email, name: g.name, lastSignInAt: now, role };
+  const own = await User.findOneAndUpdate({ googleId: g.googleId }, { $set: set }, { projection: ID_ONLY }).lean().exec();
+  if (own) return own._id.toHexString();
+  // An account made by signing in with this email, not yet tied to a Google account, becomes this one:
+  // Google has verified the address, so it is the same person.
+  const joined = await User.findOneAndUpdate(
+    { email: g.email, googleId: { $exists: false } },
+    { $set: { ...set, googleId: g.googleId } },
+    { sort: OLDEST_FIRST, projection: ID_ONLY },
+  ).lean().exec();
+  if (joined) return joined._id.toHexString();
   const user = await User.findOneAndUpdate(
     { googleId: g.googleId },
-    { $set: { email: g.email, name: g.name, lastSignInAt: now, role }, $setOnInsert: { googleId: g.googleId } },
-    { upsert: true, new: true, projection: { _id: 1 } },
+    { $set: set, $setOnInsert: { googleId: g.googleId } },
+    { upsert: true, returnDocument: 'after', projection: ID_ONLY },
   ).lean().exec();
   if (!user) throw new Error('User upsert returned nothing');
   return user._id.toHexString();
 }
 
-/** The user for this Google account, created on first sign-in, with `role` as of now. */
+/** The user for this Google account (or the email account it joins), created on first sign-in, with `role` as of now. */
 export async function signInGoogleUser(g: GoogleUser, role: Role, now: Date): Promise<UserId> {
   try {
     return await upsertGoogleUser(g, role, now);
@@ -29,6 +44,20 @@ export async function signInGoogleUser(g: GoogleUser, role: Role, now: Date): Pr
     if (!isDuplicateKey(err)) throw err;
     return upsertGoogleUser(g, role, now);
   }
+}
+
+/**
+ * The user with this (proven) email, Google account or not, created on first
+ * sign-in, with `role` as of now. Emails aren't unique in the database, so two
+ * first sign-ins at the same instant could make two users; each emailed code
+ * works once, which keeps that to someone racing their own two emails.
+ */
+export async function signInEmailUser(email: string, role: Role, now: Date): Promise<UserId> {
+  const found = await User.findOneAndUpdate({ email }, { $set: { lastSignInAt: now, role } }, { sort: OLDEST_FIRST, projection: ID_ONLY })
+    .lean().exec();
+  if (found) return found._id.toHexString();
+  const created = await User.create({ email, name: nameFromEmail(email), lastSignInAt: now, role });
+  return created._id.toHexString();
 }
 
 const PLAYER_ID_ATTEMPTS = 5;
@@ -48,6 +77,12 @@ export async function ensurePlayerId(userId: UserId, generate: () => string = ge
     }
   }
   throw new Error(`Could not assign a player id to ${userId}`);
+}
+
+/** The name the header shows for this user, or null when there is no such user. */
+export async function findName(userId: UserId): Promise<string | null> {
+  const user = await User.findById(userId, { name: 1 }).lean().exec();
+  return user?.name ?? null;
 }
 
 /** The user's current role, or null when there is no such user. */

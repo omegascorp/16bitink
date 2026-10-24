@@ -117,7 +117,7 @@ export function gameFaq(game: CatalogGame): readonly FaqEntry[] {
     },
     {
       q: 'Does my progress save?',
-      a: 'Yes, in your browser, as you play. Sign in with Google if you want to carry on from the same place on another device.',
+      a: 'Yes, in your browser, as you play. Sign in with Google or your email if you want to carry on from the same place on another device.',
     },
     { q: 'Are there more games like this?', a: 'Yes. 16bit.ink releases a new small game every Sunday, all in the same pen-and-ink style.' },
   ];

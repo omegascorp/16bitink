@@ -1,14 +1,23 @@
 /**
- * Buying the full game is: sign in with Google, then pay. A signed-out
- * player leaves for Google with a return path that carries `?buy=<game>`,
- * and the page they left picks the purchase back up when they come home.
+ * Buying the full game is: sign in (Google or email), then pay. A signed-out
+ * player goes to the sign-in page with a return path that carries
+ * `?buy=<game>`, and the page they left picks the purchase back up when
+ * they come home.
  */
 export const BUY_PARAM = 'buy';
 
-/** Google sign-in that comes back to `returnPath` (a same-site path) afterwards. */
-export function signInUrl(returnPath: string): string {
+/** The sign-in page (Google or email), coming back to `returnPath` (a same-site path) afterwards. */
+export function signInPageUrl(returnPath: string): string {
+  return `/signin?return=${encodeURIComponent(returnPath)}`;
+}
+
+/** Straight to Google's sign-in, coming back to `returnPath` afterwards. */
+export function googleSignInUrl(returnPath: string): string {
   return `/auth/google?return=${encodeURIComponent(returnPath)}`;
 }
+
+/** Where every "sign in" sends a player. */
+export const signInUrl = signInPageUrl;
 
 /** Where to send a signed-out player who asked to buy `game` from `pathname`. */
 export function signInToBuyUrl(pathname: string, game: string): string {

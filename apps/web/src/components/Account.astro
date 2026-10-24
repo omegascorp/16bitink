@@ -8,12 +8,14 @@
 interface Props {
   user?: { readonly name: string; readonly email: string } | null;
 }
+import { signInPageUrl } from '../lib/buyFlow';
+
 const { user } = Astro.props;
 const known = user !== undefined;
-const signInHref = known ? `/auth/google?return=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}` : '/auth/google';
+const signInHref = known ? signInPageUrl(Astro.url.pathname + Astro.url.search) : '/signin';
 ---
 <account-menu data-known={known ? '' : undefined}>
-  <a href={signInHref} data-signin hidden={Boolean(user)} title="Sign in with Google to get your purchases back">Sign in</a>
+  <a href={signInHref} data-signin hidden={Boolean(user)} title="Sign in to get your progress and purchases back">Sign in</a>
   <span class="account-user" hidden={!user}>
     <a class="account-name" href="/account" title={user?.email}>{user?.name}</a>
     <button type="button" class="account-signout">Sign out</button>
@@ -21,6 +23,7 @@ const signInHref = known ? `/auth/google?return=${encodeURIComponent(Astro.url.p
 </account-menu>
 
 <script>
+  import { signInPageUrl } from '../lib/buyFlow';
   import { trackSignIn } from '../lib/client/analytics';
 
   interface Me {
@@ -40,7 +43,7 @@ const signInHref = known ? `/auth/google?return=${encodeURIComponent(Astro.url.p
       signIn.addEventListener('click', () => trackSignIn('header'));
       // The server already rendered who is signed in.
       if (this.dataset.known !== undefined) return;
-      signIn.href = `/auth/google?return=${encodeURIComponent(location.pathname + location.search)}`;
+      signIn.href = signInPageUrl(location.pathname + location.search);
       const me = await this.fetchMe();
       if (!me?.signedIn) return;
       name.textContent = me.name ?? '';

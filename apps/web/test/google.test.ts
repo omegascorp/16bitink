@@ -83,7 +83,7 @@ describe('return path', () => {
     expect(safeReturnPath('/games/inkfish?x=1')).toBe('/games/inkfish?x=1');
   });
 
-  it.each([null, '', 'https://evil.example', '//evil.example', '/\\evil.example', 'games', '/auth/google', '/auth/google/callback?code=1', '/\t/evil.example', '/\n/evil.example', '/games\\..\\/evil.example'])(
+  it.each([null, '', 'https://evil.example', '//evil.example', '/\\evil.example', 'games', '/auth/google', '/auth/google/callback?code=1', '/auth/email/verify?t=x', '/auth/signout', '/signin', '/signin?return=/x', '/\t/evil.example', '/\n/evil.example', '/games\\..\\/evil.example'])(
     'sends %s home',
     (raw) => expect(safeReturnPath(raw)).toBe('/'),
   );

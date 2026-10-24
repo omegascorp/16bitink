@@ -7,4 +7,4 @@ export const COMPANY = {
 } as const;
 
 /** The date both legal documents were last changed. */
-export const LEGAL_UPDATED = 'October 20, 2026';
+export const LEGAL_UPDATED = 'October 24, 2026';

@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import { findGame } from '../data/games';
 import { currentUser } from '../lib/owner';
+import { signInPageUrl } from '../lib/buyFlow';
 
 // Per request: who is signed in decides what this page asks for.
 export const prerender = false;
@@ -24,7 +25,7 @@ try {
 } catch (err) {
   console.error('[redeem] session check failed', err);
 }
-const signInHref = `/auth/google?return=${encodeURIComponent(`/redeem${key ? `?key=${encodeURIComponent(key)}` : ''}`)}`;
+const signInHref = signInPageUrl(`/redeem${key ? `?key=${encodeURIComponent(key)}` : ''}`);
 Astro.response.headers.set('cache-control', 'private, no-store');
 // The key may be in the address: never send it to other sites. Not
 // no-referrer, which also blanks the form's Origin and fails the CSRF check.
@@ -36,7 +37,7 @@ Astro.response.headers.set('referrer-policy', 'same-origin');
     {unlocked ? (
       <>
         <h1>{unlocked.title} unlocked!</h1>
-        <p>The full game is on your account now. Sign in with Google on any device to play it there too.</p>
+        <p>The full game is on your account now. Sign in on any device to play it there too.</p>
         <a class="btn btn-ink" href={`/play/${unlocked.slug}`}>Play the full game</a>
       </>
     ) : (
@@ -45,7 +46,7 @@ Astro.response.headers.set('referrer-policy', 'same-origin');
         {user ? (
           <p>Enter your key to unlock the full game on <strong>{user.email}</strong>.</p>
         ) : (
-          <p>Keys unlock a game on your account, so you'll need to sign in with Google first.</p>
+          <p>Keys unlock a game on your account, so you'll need to sign in first.</p>
         )}
         {error && <p class="redeem-error" role="alert">{error}</p>}
         {user ? (
@@ -55,7 +56,7 @@ Astro.response.headers.set('referrer-policy', 'same-origin');
             <button class="btn btn-ink" type="submit">Unlock</button>
           </form>
         ) : (
-          <a class="btn btn-ink" href={signInHref}>Sign in with Google</a>
+          <a class="btn btn-ink" href={signInHref}>Sign in</a>
         )}
       </>
     )}

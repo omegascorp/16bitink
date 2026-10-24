@@ -7,6 +7,7 @@ import SundaySignup from '../../components/SundaySignup.astro';
 import { findGame, homeGames, isPurchasable } from '../../data/games';
 import { coverSrcset, coverVariant, loopSources } from '../../lib/covers';
 import { currentUser, ownedGameSlugs } from '../../lib/owner';
+import { signInPageUrl } from '../../lib/buyFlow';
 import { fansOfLine, faqJsonLd, gameFaq, gameJsonLd, gameTitle } from '../../lib/seo';
 
 // Rendered per request, so owners and signed-in players see their own page
@@ -75,7 +76,7 @@ const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
         <p class="one-time"><strong>One-time purchase.</strong> Pay once and the full game is yours to keep: no subscription, no ads, nothing more to buy. Refunds within 14 days, see the <a href="/terms#refunds">terms</a>.</p>
       )}
       <p class="cancelled" hidden>Checkout cancelled. No charge was made.</p>
-      {forSale && !owned && !user && <p class="restore">Bought it already? <a href={`/auth/google?return=/games/${game.slug}`} data-restore={game.slug}>Sign in with Google</a> with the email on your receipt to unlock it here.</p>}
+      {forSale && !owned && !user && <p class="restore">Bought it already? <a href={signInPageUrl(`/games/${game.slug}`)} data-restore={game.slug}>Sign in</a> with the email on your receipt to unlock it here.</p>}
       {forSale && !owned && <p class="restore">Got a key? <a href="/redeem">Redeem it here</a>.</p>}
       <div class="cols">
         {game.features && (

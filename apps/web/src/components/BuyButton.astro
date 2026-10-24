@@ -15,7 +15,7 @@ const { game, label } = Astro.props;
   import { buyFullGame, startCheckout } from '../lib/client/checkout';
 
   /**
-   * Sign in with Google, then pay. The button only renders while the game is
+   * Sign in, then pay. The button only renders while the game is
    * not owned, so coming back from sign-in to a purchase the account already
    * holds never reaches checkout again.
    */

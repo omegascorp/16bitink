@@ -226,7 +226,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
 }
 
 /**
- * Back from Google sign-in with a purchase pending: go straight on to checkout.
+ * Back from signing in with a purchase pending: go straight on to checkout.
  * The marker is dropped first so Back or a reload never re-opens checkout.
  */
 async function resumeBuy(game: string, status: HTMLElement, accessP: Promise<Access>): Promise<void> {

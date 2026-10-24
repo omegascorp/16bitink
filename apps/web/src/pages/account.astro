@@ -4,13 +4,14 @@ import { db } from '../lib/db';
 import { ensurePlayerId } from '../lib/db/userRepo';
 import { currentUser } from '../lib/owner';
 import { formatPlayerId } from '../lib/playerId';
+import { signInPageUrl } from '../lib/buyFlow';
 
 export const prerender = false;
 
 Astro.response.headers.set('cache-control', 'private, no-store');
 
 const session = await currentUser(Astro.cookies);
-if (!session) return Astro.redirect(`/auth/google?return=${encodeURIComponent('/account')}`, 303);
+if (!session) return Astro.redirect(signInPageUrl('/account'), 303);
 const user = { name: session.name, email: session.email };
 
 let playerId: string | null = null;

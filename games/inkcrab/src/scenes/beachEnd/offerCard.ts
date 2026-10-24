@@ -93,7 +93,7 @@ function buyParts(scene: Phaser.Scene, w: number, h: number, offer: Extract<Offe
   scene.tweens.add({ targets: buy, scale: 1.035, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut', delay: 1600 });
   const note = offer.signedIn
     ? 'One-time purchase: no subscription, no ads.'
-    : 'Sign in with Google, then pay once. No subscription, no ads.';
+    : 'Sign in, then pay once. No subscription, no ads.';
   parts.push(buy, scene.add.text(0, buyY + 52, note, { fontFamily: HAND_FONT, fontSize: '18px', color: SOFT_INK }).setOrigin(0.5));
   return parts;
 }

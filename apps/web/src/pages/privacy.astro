@@ -16,17 +16,20 @@ const mail = `mailto:${COMPANY.email}`;
   <p>Nothing that identifies you. Your game progress, scores, settings and the fish you've discovered are saved in your browser's local storage, on your device only. We never receive them. Clearing your browser's site data deletes them.</p>
 
   <h3>When you buy a game</h3>
-  <p>To buy a game, you sign in with Google first. Checkout then happens on Stripe's secure payment page. Stripe collects your payment details, email address and billing details. We never see or store your full card number. Once the payment succeeds, we save a purchase record with:</p>
+  <p>To buy a game, you sign in first, with Google or with your email. Checkout then happens on Stripe's secure payment page. Stripe collects your payment details, email address and billing details. We never see or store your full card number. Once the payment succeeds, we save a purchase record with:</p>
   <ul>
     <li>the game you bought, the price paid, the currency and the date;</li>
-    <li>the email address of the Google account you were signed in with, which is also where your receipt goes;</li>
-    <li>your Google account ID;</li>
+    <li>the email address you were signed in with, which is also where your receipt goes;</li>
+    <li>your Google account ID, if you signed in with Google;</li>
     <li>Stripe's reference numbers for the checkout and the payment, and whether it was later refunded or disputed.</li>
   </ul>
   <p>We use this record to unlock the game for you, restore it when you sign in on another device, handle refunds and disputes, and keep the accounting records the law requires.</p>
 
   <h3>When you sign in with Google</h3>
   <p>You don't need to sign in to play the free part of a game. You do need to sign in to buy a game, and to play it on another device. Google tells us your name, your email address and your Google account ID. We don't receive your Google password or access anything else in your Google account. We keep these details in a signed cookie in your browser for up to 30 days, so the site knows who you are. We don't keep a separate account profile on our servers. Your Google account ID is saved in the record of each purchase you make.</p>
+
+  <h3>When you sign in with your email</h3>
+  <p>Instead of Google, you can sign in with just your email address. We email you a 6-digit code and a sign-in link, which work once, for 15 minutes. We save your address, the page you were signing in from, and a scrambled (hashed) copy of the code and link, so we can check them; this record is deleted automatically after 15 minutes. Signing in saves your email address and a first name taken from it on your account. If you later sign in with Google using the same address, it's the same account. We use the address to sign you in and to find your purchases, never for marketing.</p>
 
   <h3 id="sunday-email">When you join the Sunday email</h3>
   <p>If you leave your email address in the "A new game every Sunday" form, we save the address, the page you signed up on, the date, and a random code for your unsubscribe link. We use the address only to email you when a new game comes out, about once a week. We never sell it, share it for advertising, or link it to your visit statistics. Every email has an unsubscribe link, which takes your address off the list and deletes it.</p>
@@ -65,8 +68,9 @@ const mail = `mailto:${COMPANY.email}`;
     </thead>
     <tbody>
       <tr><td><code>ink_own_&lt;game&gt;</code></td><td>Proves this browser bought a game. It holds a signed purchase reference, not your name or email.</td><td>5 years</td></tr>
-      <tr><td><code>ink_user</code></td><td>Keeps you signed in with Google. It holds your Google account ID, name and email, signed so it can't be altered.</td><td>30 days, or until you sign out</td></tr>
+      <tr><td><code>ink_user</code></td><td>Keeps you signed in. It holds your account ID, name and email, signed so it can't be altered.</td><td>30 days, or until you sign out</td></tr>
       <tr><td><code>ink_signin</code></td><td>Protects a Google sign-in while it is in progress.</td><td>10 minutes</td></tr>
+      <tr><td><code>ink_email</code></td><td>Remembers which sign-in email this browser asked for, so the code typed here is checked against it. It holds the email address, signed so it can't be altered.</td><td>15 minutes</td></tr>
       <tr><td>Local storage</td><td>Game progress, settings and discoveries, on your device only.</td><td>Until you clear your browser's site data</td></tr>
       <tr><td><code>16bitink:visitor</code> (local storage)</td><td>A random ID, so our statistics count a returning visitor once.</td><td>13 months, or until you clear your browser's site data</td></tr>
       <tr><td><code>16bitink:no-analytics</code> (local storage)</td><td>Remembers that you turned statistics off.</td><td>Until you turn them back on or clear your browser's site data</td></tr>
@@ -80,6 +84,7 @@ const mail = `mailto:${COMPANY.email}`;
     <li><strong>Stripe</strong> processes payments, sends your receipt, and screens payments for fraud. See the <a href="https://stripe.com/privacy">Stripe Privacy Policy</a>.</li>
     <li><strong>Google</strong> provides sign-in and web fonts. See the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.</li>
     <li><strong>DigitalOcean</strong> hosts the website and its servers.</li>
+    <li><strong>Amazon Web Services</strong> (Amazon SES) delivers the sign-in emails. See the <a href="https://aws.amazon.com/privacy/">AWS Privacy Notice</a>.</li>
     <li><strong>Our database provider</strong> stores purchase records, the Sunday email list and our visit statistics on our behalf.</li>
     <li><strong>The email service that sends the Sunday email</strong> receives the addresses on the list, only to deliver it.</li>
   </ul>

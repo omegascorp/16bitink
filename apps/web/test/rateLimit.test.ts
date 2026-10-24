@@ -36,6 +36,9 @@ describe('which routes are limited', () => {
     expect(limitFor('/auth/google')).toBe('auth');
     expect(limitFor('/auth/google/callback')).toBe('auth');
     expect(limitFor('/auth/signout')).toBe('auth');
+    expect(limitFor('/auth/email')).toBe('mail');
+    expect(limitFor('/auth/email/code')).toBe('auth');
+    expect(limitFor('/auth/email/verify')).toBe('auth');
     expect(limitFor('/api/progress/inkfish')).toBe('progress');
     expect(limitFor('/admin')).toBe('admin');
     expect(limitFor('/api/admin/grants')).toBe('admin');

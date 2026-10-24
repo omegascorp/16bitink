@@ -35,8 +35,8 @@ export const READY_STAGES = ['ready', 'stall'] as const;
 export const HOME_CLICK_TARGETS = ['cover', 'title', 'play', 'about'] as const;
 /** Where a buy was tapped: one of a game's own offers, the game's page on the site, or a game too old to say. */
 export const BUY_PLACES = [...OFFER_PLACES, 'page', 'unknown'] as const;
-/** Where a sign-in was tapped: a game's "save your progress", the site header, or "Bought it already?" on a game page. */
-export const SIGN_IN_PLACES = ['save', 'header', 'restore'] as const;
+/** Where a sign-in was tapped: a game's "save your progress", the site header, or "Bought it already?" on a game page; then, on the sign-in page, the way chosen. */
+export const SIGN_IN_PLACES = ['save', 'header', 'restore', 'google', 'email'] as const;
 
 const Event = z.discriminatedUnion('type', [
   /** `app`: opened from the home screen, as the installed app. */

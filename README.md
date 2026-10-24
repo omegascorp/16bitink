@@ -63,7 +63,7 @@ Connect it in claude.ai: Settings → Connectors → Add custom connector → `h
    - Build command: `pnpm install --frozen-lockfile && pnpm build`
    - Run command: `node apps/web/dist/server/entry.mjs`
    - HTTP port: `8080`, health check path `/`
-   - Plain variables: `HOST=0.0.0.0`, `PORT=8080`, `STRIPE_AUTOMATIC_TAX=false`, `GOOGLE_CLIENT_ID`
+   - Plain variables: `HOST=0.0.0.0`, `PORT=8080`, `STRIPE_AUTOMATIC_TAX=false`, `GOOGLE_CLIENT_ID`, `SMTP_HOST` (e.g. `email-smtp.us-east-1.amazonaws.com`), `SMTP_PORT=587`, `SMTP_FROM` (e.g. `16bit.ink <signin@16bit.ink>`, on a domain verified in Amazon SES)
 
    Then fill in the encrypted variables:
    - `STRIPE_SECRET_KEY`
@@ -71,6 +71,7 @@ Connect it in claude.ai: Settings → Connectors → Add custom connector → `h
    - `ENTITLEMENT_SECRET` (`openssl rand -base64 48`; at least 32 characters, or the site refuses to run)
    - `MONGODB_URI`
    - `GOOGLE_CLIENT_SECRET`
+   - `SMTP_USER`, `SMTP_PASS`: Amazon SES SMTP credentials, for email sign-in (a code and a link). SES must be out of its sandbox to email players.
    - `ADMIN_EMAILS`: comma-separated Google account emails of admins. On each deploy (server start) and at sign-in, these users get role `admin` and everyone else `user`. Admins can open `/admin` to list players and unlock games for them, and `/admin/keys` to create activation keys (e.g. for YouTubers) that unlock a game at `/redeem` for one account, or for up to N accounts sharing the same key.
 
    Never set `DEV_UNLOCK` or `DEV_ALL_LEVELS` in production.

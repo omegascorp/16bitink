@@ -57,8 +57,8 @@ export async function isSignedIn(): Promise<boolean | null> {
 }
 
 /**
- * Buying is the same for every game: sign in with Google, then pay.
- * Signed out, this leaves for Google; the page then resumes the purchase on return.
+ * Buying is the same for every game: sign in, then pay.
+ * Signed out, this leaves for the sign-in page; the page then resumes the purchase on return.
  * `where`: which offer the player took, for the stats.
  */
 export async function buyFullGame(game: string, where: BuyPlace): Promise<CheckoutResult> {

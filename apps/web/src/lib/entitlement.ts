@@ -2,7 +2,7 @@
  * Stateless proof of purchase: an HMAC-signed token stored in an
  * httpOnly cookie. Issued only after the server has confirmed a paid
  * Stripe Checkout Session. The purchase is also saved in the database,
- * so signing in with Google restores it on another device.
+ * so signing in restores it on another device.
  */
 
 import { readToken, signToken } from './token';
