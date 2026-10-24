@@ -14,6 +14,7 @@ import sharp from 'sharp';
 import { inkcrabArt } from './icons/inkcrab.mjs';
 import { inkfishArt } from './icons/inkfish.mjs';
 import { inkgeckoArt } from './icons/inkgecko.mjs';
+import { inkheroesArt } from './icons/inkheroes.mjs';
 import { inkmineArt } from './icons/inkmine.mjs';
 import { INK, PAPER, SIZE, brandDrop, paper } from './icons/paper.mjs';
 
@@ -29,6 +30,7 @@ const ICONS = {
   inkcrab: (opts) => inkcrabArt(opts),
   inkmine: (opts) => inkmineArt(opts),
   inkgecko: (opts) => inkgeckoArt(opts),
+  inkheroes: (opts) => inkheroesArt(opts),
 };
 
 function svg(art, { maskable = false } = {}) {

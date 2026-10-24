@@ -98,6 +98,12 @@ export interface FurOpts {
   readonly keep?: (x: number, y: number) => number;
   /** Bend of each hair, as a fraction of its length. */
   readonly curl?: number;
+  /**
+   * Where the rest-space coat lands in this pose: the hairs are placed (and
+   * `flow` and `keep` read) in rest space, then carried along, so the coat
+   * moves with the body instead of re-scattering each frame.
+   */
+  readonly map?: (p: Pt) => Pt;
 }
 
 /** Short pen hairs over a shape, laid along the coat's flow, clipped to it. */
@@ -122,8 +128,9 @@ export function fur(d: Draw, clip: readonly Pt[], o: FurOpts): void {
     const mid = pt(x + cx * l * 0.5 - cy * l * bend, y + cy * l * 0.5 + cx * l * bend);
     hairs.push([pt(x, y), mid, pt(x + cx * l, y + cy * l)]);
   }
-  d.pen.clipped(clip, () => {
-    for (const h of hairs) d.pen.hair(h, o.width, o.color, o.alpha);
+  const m = o.map;
+  d.pen.clipped(m ? clip.map(m) : clip, () => {
+    for (const h of hairs) d.pen.hair(m ? h.map(m) : h, o.width, o.color, o.alpha);
   });
 }
 
@@ -132,7 +139,7 @@ export function fur(d: Draw, clip: readonly Pt[], o: FurOpts): void {
  * flicked out from inside the shape towards the edge, the marks that make
  * a ruff or a brush read as a mass of hair.
  */
-export function locks(d: Draw, edge: readonly Pt[], o: { every: number; len: number; rake: Pt; side: 1 | -1; width: number; color: string; alpha: number; seed: number }): void {
+export function locks(d: Draw, edge: readonly Pt[], o: { every: number; len: number; rake: Pt; side: 1 | -1; width: number; color: string; alpha: number; seed: number; map?: (p: Pt) => Pt }): void {
   const rng = createRng(o.seed);
   const pts = resample(edge, o.every);
   for (let i = 0; i < pts.length - 1; i++) {
@@ -150,7 +157,8 @@ export function locks(d: Draw, edge: readonly Pt[], o: { every: number; len: num
       const root = pt(a.x + dx * t - nx * depth, a.y + dy * t - ny * depth);
       const tip = pt(a.x + dx * t + o.rake.x * depth * 0.5 - nx * depth * 0.1, a.y + dy * t + o.rake.y * depth * 0.5 - ny * depth * 0.1);
       const mid = pt((root.x + tip.x) / 2 + o.rake.x * depth * 0.25, (root.y + tip.y) / 2 + o.rake.y * depth * 0.25);
-      d.pen.hair([root, mid, tip], o.width, o.color, o.alpha * (0.7 + rng() * 0.3));
+      const hair = [root, mid, tip];
+      d.pen.hair(o.map ? hair.map(o.map) : hair, o.width, o.color, o.alpha * (0.7 + rng() * 0.3));
     }
   }
 }

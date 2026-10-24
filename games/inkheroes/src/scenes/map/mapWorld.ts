@@ -3,16 +3,16 @@ import { CREATURE_RES, FRAME_H, FRAME_W, GROUND_Y } from '../../art/creatures/ty
 import { INK_HEX, PAPER } from '../../art/palette';
 import { frameFor, SITE_RES, type SiteArt } from '../../art/sites/types';
 import { CHUNK, TILE } from '../../art/terrain';
-import { TEX } from '../../art/textures';
+import { heroFigure, TEX } from '../../art/textures';
 import type { MapDef } from '../../level/types';
 import { gridOf, liveObjects, type Adventure } from '../../logic/adventure';
 import type { MapObject } from '../../logic/objects';
 import type { PathStep } from '../../logic/path';
+import { FigureAnim } from '../figureAnim';
+import { dustPuff, Gait, WALK_FPS } from '../gait';
 
 /** How big creatures and the hero stand on the map, in units per frame unit. */
 const MAP_FIGURE = 0.62;
-/** Line-boil frames a second. */
-const BOIL_FPS = 5;
 
 export const tileCentre = (x: number, y: number): { x: number; y: number } => ({ x: (x + 0.5) * TILE, y: (y + 0.5) * TILE });
 const tileFoot = (x: number, y: number): { x: number; y: number } => ({ x: (x + 0.5) * TILE, y: (y + 0.92) * TILE });
@@ -32,11 +32,12 @@ export class MapWorld {
   readonly hero: Phaser.GameObjects.Image;
   private readonly sprites = new Map<string, Phaser.GameObjects.Image>();
   private readonly flags = new Map<string, Phaser.GameObjects.Image>();
-  private readonly figures: { img: Phaser.GameObjects.Image; key: (f: number) => string }[] = [];
+  /** Every figure's animation: the hero's and each monster's. */
+  private readonly figures: FigureAnim[] = [];
+  private heroAnim!: FigureAnim;
   private readonly path: Phaser.GameObjects.Graphics;
   private readonly fog: Phaser.Textures.CanvasTexture;
-  private boil = 0;
-  private boilClock = 0;
+  private ride: Gait | null = null;
 
   constructor(private readonly scene: Phaser.Scene, private readonly def: MapDef, adv: Adventure) {
     const g = gridOf(def);
@@ -54,7 +55,8 @@ export class MapWorld {
     scene.add.image(foot.x + 30, foot.y - 96, TEX.flag('player', 0)).setOrigin(0.25, 0.9).setDepth(11 + t.y);
     for (const o of def.objects) this.addObject(o);
     this.hero = scene.add.image(0, 0, TEX.hero('player', 0)).setOrigin(0.5, GROUND_Y / FRAME_H).setScale(MAP_FIGURE / CREATURE_RES);
-    this.figures.push({ img: this.hero, key: (f) => TEX.hero('player', f) });
+    this.heroAnim = new FigureAnim(this.hero, heroFigure('player'));
+    this.figures.push(this.heroAnim);
     const key = `fog-${def.id}`;
     if (scene.textures.exists(key)) scene.textures.remove(key);
     this.fog = scene.textures.createCanvas(key, g.w + 2, g.h + 2)!;
@@ -70,7 +72,7 @@ export class MapWorld {
       // Monsters face whichever way their id says, so a map doesn't look stamped.
       img.setFlipX(o.id.length % 2 === 0);
       this.sprites.set(o.id, img);
-      this.figures.push({ img, key: (f) => TEX.creature(id, f) });
+      this.figures.push(new FigureAnim(img, id));
       return;
     }
     const art = siteArtOf(o);
@@ -101,6 +103,19 @@ export class MapWorld {
   placeHero(x: number, y: number): void {
     const foot = tileFoot(x, y);
     this.hero.setPosition(foot.x, foot.y).setDepth(10 + y + 0.6);
+  }
+
+  /** The hero sets off at a gallop (kicking up dust) for a walk of one or more steps. */
+  startRide(): void {
+    this.ride ??= new Gait(this.scene, this.hero, 'gallop', { onFall: (x, y, heavy) => dustPuff(this.scene, x, y, 6, heavy, undefined, undefined, this.hero.depth - 0.05) });
+    this.ride.start();
+    this.heroAnim.walk(WALK_FPS.gallop);
+  }
+
+  /** The hero reins in; `now` when the map is about to sleep for a fight or the town. */
+  stopRide(now = false): void {
+    this.ride?.stop(now);
+    this.heroAnim.idle();
   }
 
   /** Slides the hero one step; resolves when it gets there. */
@@ -146,13 +161,9 @@ export class MapWorld {
     this.fog.refresh();
   }
 
-  /** Line boil: every figure redraws with the next pen frame a few times a second. */
+  /** Every figure breathes (and the hero gallops while riding). */
   update(delta: number): void {
-    this.boilClock += delta;
-    if (this.boilClock < 1000 / BOIL_FPS) return;
-    this.boilClock = 0;
-    this.boil = (this.boil + 1) % 3;
-    for (const f of this.figures) f.img.setTexture(f.key(this.boil));
+    for (const f of this.figures) f.update(delta);
   }
 
   /** The figure's frame width on the map, for hit-testing. */

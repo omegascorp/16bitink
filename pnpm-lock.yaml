@@ -180,6 +180,9 @@ importers:
       '@16bitink/inkgecko':
         specifier: workspace:*
         version: link:../../games/inkgecko
+      '@16bitink/inkheroes':
+        specifier: workspace:*
+        version: link:../../games/inkheroes
       '@16bitink/inkmine':
         specifier: workspace:*
         version: link:../../games/inkmine

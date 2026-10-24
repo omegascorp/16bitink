@@ -2,7 +2,8 @@ import { bezier, pt, type Draw } from '../kit';
 import type { Pt } from '../pen';
 import { sprite } from './neutralFinish';
 import { blob, dab, folds, gleam, glow, mix, ovalAt, paint, roundTube, SHADOW, stud, tatters } from './neutralKit';
-import type { CreatureDrawer } from './types';
+import { beat, beatPt, breath, chainOf, joint, lowJoint, place, pulse, smear, step, strideBob, turn, wave, within, xf, type Xf } from './neutralRig';
+import { IDLE, type CreatureDrawer, type Pose } from './types';
 
 /**
  * The Skeleton: an undead warrior about 60 tall in bleached, weathered
@@ -27,6 +28,9 @@ const C = {
   clothEdge: '#a8894a',
   rope: '#bfa375',
 } as const;
+
+/** The jaw's hinge, under the cheekbone at the back of the skull. */
+const JAW_HINGE = pt(3, -55.6);
 
 /** A bone from a to b: a shaft of width w swelling to knobbed ends. */
 function bone(d: Draw, a: Pt, b: Pt, w: number, color: string = C.bone, knob = 0.8): Pt[] {
@@ -53,12 +57,16 @@ function forearm(d: Draw, elbow: Pt, wrist: Pt, color: string): void {
 }
 
 /** A leg: femur, kneecap, shin and a bony foot pointing forward. */
-function leg(d: Draw, hip: Pt, knee: Pt, ankle: Pt, toe: Pt, color: string): void {
+function leg(d: Draw, hip: Pt, knee: Pt, ankle: Pt, toe: Pt, color: string, tilt = 0): void {
   bone(d, hip, knee, 2.1, color);
   bone(d, pt(knee.x - 0.6, knee.y + 0.8), pt(ankle.x - 0.4, ankle.y), 0.8, mix(color, SHADOW, 0.15), 0.6);
   bone(d, pt(knee.x + 0.3, knee.y + 0.6), ankle, 1.6, color);
   paint(d, ovalAt(pt(knee.x + 1, knee.y - 0.2), 1.3, 1.5), color, { shadow: 0.4, line: 0.45, hatch: 0 });
-  // The heel bone, then the long bones of the foot fanning to the toes.
+  within(d.pen.ctx, xf(ankle, tilt), () => foot(d, ankle, toe, color));
+}
+
+/** The heel bone, then the long bones of the foot fanning to the toes. */
+function foot(d: Draw, ankle: Pt, toe: Pt, color: string): void {
   paint(d, ovalAt(pt(ankle.x - 1, ankle.y + 1.6), 1.6, 1.4), color, { shadow: 0.5, line: 0.5, hatch: 0 });
   for (const [k, w] of [[-0.5, 0.95], [0.5, 1.05]] as const) {
     const a = pt(ankle.x + 0.4, ankle.y + 1 + k * 0.6);
@@ -110,8 +118,7 @@ function hips(d: Draw): void {
 }
 
 /** The shield on the far arm, turned a little away: planks, a faded ochre band, an iron rim and boss, a crack. */
-function shield(d: Draw): void {
-  const c = pt(16.6, -35.4);
+function shield(d: Draw, c: Pt): void {
   const rim = ovalAt(c, 7.8, 11.6, -0.1, 28);
   // A bite out of the rim at the top.
   const bitten = rim.map((p, i) => (i >= 19 && i <= 21 ? pt(c.x + (p.x - c.x) * 0.84, c.y + (p.y - c.y) * 0.84) : p));
@@ -152,11 +159,22 @@ function sword(d: Draw, hand: Pt, dir: Pt): void {
 }
 
 /** The skull, in three-quarter profile: long cranium, deep glowing sockets, the nose's hollow, teeth, a jaw hung a little open. */
-function skull(d: Draw): void {
+function skull(d: Draw, jawOpen: number): void {
+  // The dark of the mouth, showing as the jaw drops.
+  if (jawOpen > 0.01) d.pen.fill([pt(4.4, -56.4), pt(12.2, -56.4), turn(pt(12.2, -54.2), JAW_HINGE, jawOpen), turn(pt(4.4, -54.2), JAW_HINGE, jawOpen)], C.socket, 1);
+  within(d.pen.ctx, xf(JAW_HINGE, jawOpen), () => jaw(d));
+  cranium(d);
+}
+
+/** The jaw, hung from its hinge below the ear, with its row of lower teeth. */
+function jaw(d: Draw): void {
   const jaw = blob([pt(2.4, -56.6), pt(6.8, -55.4), pt(11.6, -55.2), pt(12.2, -53.2), pt(10.2, -51.6), pt(5.6, -52), pt(3, -53.8)], 4);
   paint(d, jaw, mix(C.bone, SHADOW, 0.12), { shadow: 0.55, line: 0.6, hatch: 0.2 });
   dab(d, [pt(6.4, -55.4), pt(12, -55.2), pt(11.6, -54.2), pt(6.6, -54.4)], C.socket, 0.8, 0.2);
   for (let x = 7; x < 11.8; x += 1.1) paint(d, [pt(x - 0.45, -54.6), pt(x + 0.45, -54.6), pt(x + 0.35, -53.4), pt(x - 0.35, -53.4)], C.bone, { shadow: 0, line: 0.25, hatch: 0 });
+}
+
+function cranium(d: Draw): void {
   const cranium = blob([pt(-2.2, -60.6), pt(-1, -64.8), pt(3.4, -67.2), pt(8.4, -66), pt(10.8, -62.8), pt(11.4, -60.2), pt(12.8, -57.8), pt(12.2, -55.6), pt(7.4, -55.4), pt(3, -56), pt(-0.6, -57.6)], 5);
   paint(d, cranium, C.bone, { shadow: 0.55, line: 0.75, hatch: 0.2, cross: true });
   d.pen.clipped(cranium, () => {
@@ -183,27 +201,163 @@ function skull(d: Draw): void {
   gleam(d, [pt(5.8, -64), pt(8.6, -64.4), pt(10.2, -63)], 0.5, 0.6);
 }
 
-export const drawSkeleton: CreatureDrawer = (ctx, seed, f) => {
+
+// The rest pose, as painted: the hips the body turns about, the spine the chest creaks about, the neck, and each limb's joints.
+const HIPS = pt(0, -30);
+const SPINE = pt(-0.6, -36);
+const NECK = pt(3.4, -52);
+const FAR_HIP = pt(2.6, -29.2);
+const NEAR_HIP = pt(-2.2, -29.2);
+const FAR_LEG = chainOf(FAR_HIP, pt(8.4, -16.4), pt(7.2, -3.4));
+const NEAR_LEG = chainOf(NEAR_HIP, pt(-5.2, -16.2), pt(-10, -3.6));
+const FAR_ANKLE = pt(7.2, -3.4);
+const NEAR_ANKLE = pt(-10, -3.6);
+/** The toe, from the ankle. */
+const FAR_TOE = pt(6.6, 3);
+const NEAR_TOE = pt(6.4, 3.2);
+const SHIELD_SHOULDER = pt(5, -49.2);
+const SHIELD_ARM = chainOf(SHIELD_SHOULDER, pt(10.6, -41.6), pt(15.4, -37.4));
+const SHIELD_WRIST = pt(15.4, -37.4);
+/** The shield's centre, from the wrist that holds it. */
+const SHIELD_AT = pt(1.2, 2);
+const SHOULDER = pt(-3.6, -49.8);
+const ARM = chainOf(SHOULDER, pt(-12.4, -51.4), pt(-9.8, -59.4));
+/** The sword hand (the root of the guard) and the way the blade points, at rest. */
+const HAND = pt(-9.4, -60.6);
+const SWORD_ANG = Math.atan2(-0.879, 0.476);
+const SWORD_LEN = 30.4;
+
+interface Rig {
+  /** Everything above the legs, turned about the hips. */
+  readonly body: Xf;
+  /** The rib cage, arms and skull, creaking about the spine within the body. */
+  readonly chest: Xf;
+  /** The skull, within the chest. */
+  readonly head: Xf;
+  readonly jaw: number;
+  readonly farAnkle: Pt;
+  readonly farTilt: number;
+  readonly nearAnkle: Pt;
+  readonly nearTilt: number;
+  /** The sword hand and blade angle, the shield wrist, in chest space. */
+  readonly hand: Pt;
+  readonly swordAng: number;
+  readonly shieldWrist: Pt;
+}
+
+/** A jerk: the wave snapped toward its ends, so bones move in starts and stops. */
+const jerk = (v: number): number => Math.sign(v) * Math.pow(Math.abs(v), 0.4);
+
+/** Idle: a slight creaky sway, the skull tilting and the jaw dropping a moment, the sword point drifting. */
+function idle(t: number): Rig {
+  return {
+    body: xf(HIPS, 0, 0.3 * wave(t), -0.3 * breath(t)),
+    chest: xf(SPINE, 0.035 * jerk(wave(t, 0.1)), 0, -0.4 * breath(t)),
+    head: xf(NECK, 0.06 * wave(t, 0.35) + 0.07 * pulse(t, 0.5, 0.17)),
+    jaw: 0.16 * pulse(t, 0.33, 0.17) + 0.08 * pulse(t, 0.5, 0.17),
+    farAnkle: FAR_ANKLE,
+    farTilt: 0,
+    nearAnkle: NEAR_ANKLE,
+    nearTilt: 0,
+    hand: pt(HAND.x + 0.4 * wave(t, 0.2), HAND.y + 0.7 * wave(t, 0.45)),
+    swordAng: SWORD_ANG + 0.05 * wave(t, 0.25),
+    shieldWrist: pt(SHIELD_WRIST.x + 0.4 * wave(t, 0.6), SHIELD_WRIST.y + 0.6 * wave(t, 0.3)),
+  };
+}
+
+/** Walk: a stiff, jerky march: near-straight legs kicked high, the body rocking in starts, the jaw clacking at each footfall. */
+function walk(t: number): Rig {
+  const body = xf(HIPS, 0.04 + 0.035 * jerk(wave(2 * t, 0.1)), 0.5, 0.8 - 1.8 * strideBob(t));
+  const mid = place(body, HIPS).x + 1.4;
+  const near = step(t, 5.5, 4.6);
+  const far = step(t + 0.5, 5.5, 4.6);
+  const swing = Math.cos(Math.PI * 2 * t);
+  return {
+    body,
+    chest: xf(SPINE, 0.04 * jerk(wave(t, 0.25)), 0, 0),
+    head: xf(NECK, 0.09 * jerk(wave(2 * t, 0.4)) - 0.03),
+    jaw: 0.18 * pulse(t, 0, 0.17) + 0.18 * pulse(t, 0.5, 0.17),
+    farAnkle: pt(mid + 1 + far.x, FAR_ANKLE.y + far.y),
+    farTilt: far.tilt,
+    nearAnkle: pt(mid - 1 + near.x, NEAR_ANKLE.y + near.y),
+    nearTilt: near.tilt,
+    hand: pt(HAND.x - 0.8 * swing, HAND.y + 1.2 * jerk(wave(2 * t, 0.1))),
+    swordAng: SWORD_ANG + 0.09 * jerk(swing),
+    shieldWrist: pt(SHIELD_WRIST.x + 1.8 * swing, SHIELD_WRIST.y + 0.6 * Math.abs(swing)),
+  };
+}
+
+/** Attack: a rattling chop: the sword hauled up and back, then brought down hard in front, the jaw flapping open. */
+function attack(t: number): Rig {
+  return {
+    body: xf(HIPS, beat(t, [0, -0.06, 0.1, 0.07, 0]), beat(t, [0, -1.5, 3, 2, 0]), beat(t, [0, 0, 1.5, 1, 0])),
+    chest: xf(SPINE, beat(t, [0, -0.08, 0.1, 0.06, 0])),
+    head: xf(NECK, beat(t, [0, -0.1, 0.12, 0.04, 0])),
+    jaw: beat(t, [0, 0.06, 0.3, 0.14, 0]),
+    farAnkle: pt(beat(t, [FAR_ANKLE.x, 7.2, 11, 11, FAR_ANKLE.x]), FAR_ANKLE.y - beat(t, [0, 2.5, 0, 0, 0])),
+    farTilt: beat(t, [0, -0.15, 0, 0, 0]),
+    nearAnkle: pt(beat(t, [NEAR_ANKLE.x, -10.4, -9, -9, NEAR_ANKLE.x]), NEAR_ANKLE.y),
+    nearTilt: 0,
+    hand: beatPt(t, [HAND, pt(-12, -64), pt(12.5, -42.5), pt(10.5, -37.5), HAND]),
+    swordAng: beat(t, [SWORD_ANG, -1.9, 0.3, 0.7, SWORD_ANG]),
+    shieldWrist: beatPt(t, [SHIELD_WRIST, pt(16.5, -40), pt(11.6, -34.6), pt(12.2, -35.4), SHIELD_WRIST]),
+  };
+}
+
+function rigOf(pose: Pose): Rig {
+  if (pose.kind === 'walk') return walk(pose.t);
+  if (pose.kind === 'attack') return attack(pose.t);
+  return idle(pose.t);
+}
+
+/** Where the sword's point is, on the frame. */
+const swordPoint = (r: Rig): Pt => place(r.body, place(r.chest, pt(r.hand.x + Math.cos(r.swordAng) * SWORD_LEN, r.hand.y + Math.sin(r.swordAng) * SWORD_LEN)));
+
+/** A leg from its hip (body space) down to its ankle (ground space), knee solved between. */
+function legTo(d: Draw, r: Rig, hip: Pt, chain: typeof FAR_LEG, ankle: Pt, toe: Pt, color: string, tilt: number): void {
+  const h = place(r.body, hip);
+  leg(d, h, joint(chain, h, ankle), ankle, pt(ankle.x + toe.x, ankle.y + toe.y), color, tilt);
+}
+
+export const drawSkeleton: CreatureDrawer = (ctx, seed, f, pose: Pose = IDLE) => {
+  const r = rigOf(pose);
   sprite(ctx, seed, f, { shadow: 16, shadowX: 1.5, line: 0.6 }, (d) => {
     const far = mix(C.bone, SHADOW, 0.22);
+    const inBody = (draw: () => void): void => within(d.pen.ctx, r.body, draw);
+    const inChest = (draw: () => void): void => inBody(() => within(d.pen.ctx, r.chest, draw));
     // The far side, in shade: shield arm and the front leg.
-    bone(d, pt(5, -49.2), pt(10.6, -41.6), 1.6, far);
-    forearm(d, pt(10.6, -41.6), pt(15.4, -37.4), far);
-    leg(d, pt(2.6, -29.2), pt(8.4, -16.4), pt(7.2, -3.4), pt(13.8, -0.4), far);
-    leg(d, pt(-2.2, -29.2), pt(-5.2, -16.2), pt(-10, -3.6), pt(-3.6, -0.4), C.bone);
-    hips(d);
-    ribcage(d);
-    // A scrap of the tabard still caught on the near shoulder.
-    const scrap = [pt(-4.6, -51.6), pt(-1, -51.4), pt(-0.2, -48), ...tatters(pt(-0.8, -45.2), pt(-5.4, -44.4), 2, 2.6, 9)];
-    paint(d, scrap, C.cloth, { shadow: 0.45, line: 0.5, hatch: 0.15 });
-    shield(d);
-    sword(d, pt(-9.4, -60.6), pt(0.476, -0.879));
-    skull(d);
-    // The sword arm, raised: upper arm back, forearm up to the fist round the grip.
-    bone(d, pt(-3.6, -49.8), pt(-12.4, -51.4), 1.7);
-    forearm(d, pt(-12.4, -51.4), pt(-9.8, -59.4), C.bone);
-    const fist = blob([pt(-11.4, -61.4), pt(-8.4, -62.4), pt(-7.4, -60), pt(-8.6, -58.4), pt(-11, -58.8)], 4);
-    paint(d, fist, C.bone, { shadow: 0.45, line: 0.55, hatch: 0 });
-    for (const k of [0, 1, 2]) d.pen.hair([pt(-10.8 + k * 0.9, -61.6 + k * 0.3), pt(-10.2 + k * 0.9, -58.8 + k * 0.2)], 0.3, d.ink, 0.7);
+    const shieldElbow = joint(SHIELD_ARM, SHIELD_SHOULDER, r.shieldWrist);
+    inChest(() => {
+      bone(d, SHIELD_SHOULDER, shieldElbow, 1.6, far);
+      forearm(d, shieldElbow, r.shieldWrist, far);
+    });
+    legTo(d, r, FAR_HIP, FAR_LEG, r.farAnkle, FAR_TOE, far, r.farTilt);
+    legTo(d, r, NEAR_HIP, NEAR_LEG, r.nearAnkle, NEAR_TOE, C.bone, r.nearTilt);
+    inBody(() => hips(d));
+    inChest(() => {
+      ribcage(d);
+      // A scrap of the tabard still caught on the near shoulder.
+      const scrap = [pt(-4.6, -51.6), pt(-1, -51.4), pt(-0.2, -48), ...tatters(pt(-0.8, -45.2), pt(-5.4, -44.4), 2, 2.6, 9)];
+      paint(d, scrap, C.cloth, { shadow: 0.45, line: 0.5, hatch: 0.15 });
+      shield(d, pt(r.shieldWrist.x + SHIELD_AT.x, r.shieldWrist.y + SHIELD_AT.y));
+      sword(d, r.hand, pt(Math.cos(r.swordAng), Math.sin(r.swordAng)));
+      within(d.pen.ctx, r.head, () => skull(d, r.jaw));
+      // The sword arm: upper arm, forearm up to the fist round the grip.
+      const spin = r.swordAng - SWORD_ANG;
+      const wrist = turn(pt(r.hand.x - 0.4, r.hand.y + 1.2), r.hand, spin);
+      const elbow = joint(ARM, SHOULDER, wrist);
+      bone(d, SHOULDER, elbow, 1.7);
+      forearm(d, elbow, wrist, C.bone);
+      within(d.pen.ctx, xf(HAND, spin, r.hand.x - HAND.x, r.hand.y - HAND.y), () => {
+        const fist = blob([pt(-11.4, -61.4), pt(-8.4, -62.4), pt(-7.4, -60), pt(-8.6, -58.4), pt(-11, -58.8)], 4);
+        paint(d, fist, C.bone, { shadow: 0.45, line: 0.55, hatch: 0 });
+        for (const k of [0, 1, 2]) d.pen.hair([pt(-10.8 + k * 0.9, -61.6 + k * 0.3), pt(-10.2 + k * 0.9, -58.8 + k * 0.2)], 0.3, d.ink, 0.7);
+      });
+    });
   });
+  // The chop: speed lines along the sword point's path as it comes down.
+  if (pose.kind === 'attack') {
+    const path = Array.from({ length: 11 }, (_, i) => swordPoint(attack(pose.t - 0.11 + (i / 10) * 0.1)));
+    smear(ctx, seed, f, path, 1, beat(pose.t, [0, 0, 0.75, 0.25, 0]));
+  }
 };

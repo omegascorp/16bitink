@@ -1,8 +1,9 @@
+import { runInSlices } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { FIELD_H, FIELD_W, HEX, FIELD_PAD } from '../art/battlefield';
 import { CREATURE_RES, FRAME_H, GROUND_Y } from '../art/creatures/types';
 import { INK, PAPER } from '../art/palette';
-import { TEX } from '../art/textures';
+import { heroFigure, poseJobs, TEX, type Figure } from '../art/textures';
 import { getSound } from '../host';
 import { afterBattle, battleSides, gridOf } from '../logic/adventure';
 import { act, activeStack, alive, canShoot, createBattle, experienceFor, moves, stackById, strikeFrom } from '../logic/battle';
@@ -19,6 +20,7 @@ import { BattleView } from './battle/battleView';
 import { screenScene, toView, viewSize } from './hidpi';
 import type { MapScene } from './MapScene';
 import { Session } from './session';
+import { inkText } from './ui';
 import { HAND, paintedButton } from './uiPaint';
 
 const BAR_H = 96;
@@ -42,6 +44,8 @@ export class BattleScene extends Phaser.Scene {
   private monsterId = '';
   private state!: BattleState;
   private view!: BattleView;
+  /** The field is laid out (not still painting the fighters' poses). */
+  private live = false;
   private busy = false;
   /** An AI (or Auto) turn is counting down: only one may wait at a time. */
   private aiPending = false;
@@ -68,13 +72,34 @@ export class BattleScene extends Phaser.Scene {
     this.auto = false;
     this.casting = null;
     this.pending = null;
+    this.live = false;
     const adv = this.session.adv;
     const sides = battleSides(adv, data.monsterId);
     const start = createBattle(sides.attacker, sides.defender, sides.seed);
     this.state = start.state;
+    // The fighters' poses are painted as the battle opens (once; they're kept for the next).
+    const figures: Figure[] = [...new Set(this.state.stacks.map((s) => s.creature)), heroFigure('player')];
+    const jobs = poseJobs(this, figures, ['idle', 'walk', 'attack']);
+    if (!jobs.length) {
+      this.begin(sides.seed);
+      return;
+    }
+    const v = viewSize(this);
+    const label = inkText(this, v.width / 2, v.height / 2, 'the armies form up…', 32);
+    void runInSlices(jobs).then(() => {
+      if (!this.sys.isActive()) return;
+      label.destroy();
+      this.begin(sides.seed);
+    });
+  }
+
+  /** Lays out the field and the bar, wires the input and starts the first turn. */
+  private begin(seed: number): void {
+    const adv = this.session.adv;
     const g = gridOf(this.session.def);
     const terrain = g.terrain[tileIndex(g, adv.hero.x, adv.hero.y)]!;
-    this.view = new BattleView(this, this.state, terrain === 'water' ? 'grass' : terrain, sides.seed, [true, false]);
+    this.view = new BattleView(this, this.state, terrain === 'water' ? 'grass' : terrain, seed, [true, false]);
+    this.live = true;
     this.status = this.add.text(0, 0, '', { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '26px', color: INK }).setOrigin(0.5, 0);
     this.buildBar();
     this.layout();
@@ -97,7 +122,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   update(_t: number, delta: number): void {
-    this.view.update(delta, this.state);
+    if (this.live) this.view.update(delta);
   }
 
   /**

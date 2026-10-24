@@ -28,7 +28,7 @@ const coming = size ? size.chapters - size.ready : 0;
     {!compact && <div class="stat">
       <p class="figure">
         {coming > 0 ? <><b>{size.ready}</b><span class="of">/{size.chapters}</span></> : <b>{size.chapters}</b>}
-        <span class="unit">chapters</span>
+        <span class="unit">{size.chapters === 1 ? 'chapter' : 'chapters'}</span>
       </p>
       <p class="tiles" aria-hidden="true">
         {tiles.map((tile, i) => <i class={tile} style={`--tilt:${((i * 7) % 5) - 2}deg`}></i>)}

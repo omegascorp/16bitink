@@ -1,6 +1,7 @@
 import { pt, type Draw } from '../kit';
 import type { Pt } from '../pen';
 import { dab, gleam, LIGHT, limb, lineOf, mix, paint, shapeOf, SHADOW, type Joint } from './crownElitePaint';
+import { apply, mapXY, type LegPose, type MountRig, type Stance } from './crownMountRig';
 
 /**
  * The Crown's horses, shared by the Lancer's barded warhorse and the hero's
@@ -9,6 +10,11 @@ import { dab, gleam, LIGHT, limb, lineOf, mix, paint, shapeOf, SHADOW, type Join
  * horse: withers 49 units up, body as long as the horse is tall, a head of
  * about 21 and a neck a little longer; forelegs knee at 14, hocks at 17,
  * sloping pasterns and hooves flat on the ground.
+ *
+ * Everything here is drawn in the standing pose's coordinates; the rig
+ * (crownMountRig.ts) says where it goes: the body is painted under its
+ * `body` map, the neck bent by `warp`, the head under `head`, and the legs
+ * come already placed in the figure.
  */
 export interface HorseLook {
   readonly coat: string;
@@ -18,7 +24,8 @@ export interface HorseLook {
   readonly hoof: string;
   /** Leg thickness (1 for a warhorse, less for a riding horse). */
   readonly build: number;
-  readonly pose: 'charge' | 'walk';
+  /** How it stands at rest (crownMountRig.ts). */
+  readonly pose: Stance;
   /** A white blaze down the face. */
   readonly blaze?: boolean;
 }
@@ -46,51 +53,6 @@ const HEAD_KEYS: readonly (readonly [number, number])[] = [
 
 /** The crest: where the mane grows, from the poll back to the withers. */
 export const CREST = lineOf([[24.2, -73.2], [17.4, -70.4], [10.6, -64], [5.4, -56.4], [2.4, -52.6]]);
-
-interface LegPose {
-  readonly joints: readonly Joint[];
-  /** Hoof turn: 0 flat on the ground. */
-  readonly tilt: number;
-}
-
-type Legs = Readonly<Record<'nearFore' | 'farFore' | 'nearHind' | 'farHind', LegPose>>;
-
-const STAND_FORE = (x: number): LegPose => ({
-  joints: [[x - 1, -36, 11], [x, -27.6, 8], [x + 0.4, -18, 4.6], [x + 0.6, -14.4, 5.2], [x + 0.5, -10.6, 3.5], [x + 0.4, -6.4, 3.4], [x + 0.8, -4.6, 4.3], [x + 2.4, -3, 3.3]],
-  tilt: 0,
-});
-
-/** A hind leg standing, its cannon at x: thigh, gaskin angled back to the point of the hock, then plumb. */
-const STAND_HIND = (x: number): LegPose => ({
-  joints: [[x + 8, -40, 18], [x + 4, -29, 13], [x + 1.4, -22.4, 8], [x - 1.4, -16.8, 6.2], [x - 0.5, -12.6, 3.8], [x, -6.6, 3.6], [x + 0.2, -4.6, 4.4], [x + 1.8, -3, 3.3]],
-  tilt: 0,
-});
-
-const POSES: Readonly<Record<HorseLook['pose'], Legs>> = {
-  // Charging: the near fore folded high, the far hind thrust back.
-  charge: {
-    nearFore: {
-      joints: [[14, -36, 11], [16.8, -28.4, 8], [22, -22.6, 4.8], [23.8, -20, 5.3], [23.2, -16.5, 3.5], [21.6, -12.2, 3.4], [21, -10.6, 4.3], [19.6, -8.6, 3.3]],
-      tilt: 0.7,
-    },
-    farFore: STAND_FORE(11),
-    nearHind: STAND_HIND(-27),
-    farHind: {
-      joints: [[-19, -39, 15], [-22.6, -29, 12], [-27.6, -22, 7.6], [-31.6, -17.4, 5.8], [-32.6, -13.4, 3.6], [-34, -7.2, 3.4], [-34.2, -4.9, 4.2], [-33, -3, 3.2]],
-      tilt: -0.12,
-    },
-  },
-  // Walking: the far fore lifted mid-stride, the hinds apart.
-  walk: {
-    nearFore: STAND_FORE(15.6),
-    farFore: {
-      joints: [[10, -36, 10], [11.4, -27.6, 7.6], [13.6, -18.4, 4.4], [14.2, -15, 5], [13, -11.4, 3.3], [10.8, -8, 3.2], [10.1, -6.6, 4.1], [9.8, -4.8, 3.2]],
-      tilt: 0.95,
-    },
-    nearHind: STAND_HIND(-28.4),
-    farHind: STAND_HIND(-21.6),
-  },
-};
 
 function pointIn(poly: readonly Pt[], p: Pt): boolean {
   let inside = false;
@@ -125,8 +87,8 @@ function hoof(d: Draw, c: Pt, tilt: number, look: HorseLook): void {
   gleam(d, [at(0.6, 0.6), at(2.2, 2.4)], 0.45, 0.6);
 }
 
-/** One leg, painted, with its joints drawn in and its hoof. */
-function leg(d: Draw, pose: LegPose, look: HorseLook, far: boolean, body: readonly Pt[] | null): void {
+/** One leg, painted, with its joints drawn in and its hoof; `belly` is how far the body has dropped over it. */
+function leg(d: Draw, pose: LegPose, look: HorseLook, far: boolean, body: readonly Pt[] | null, belly: number): void {
   const j = pose.joints.map(([x, y, w]) => [x, y, w * look.build] as Joint);
   const l = limb(j, 7);
   const coat = far ? mix(look.coat, SHADOW, 0.32) : look.coat;
@@ -138,7 +100,7 @@ function leg(d: Draw, pose: LegPose, look: HorseLook, far: boolean, body: readon
     d.pen.clipped(l.shape, () => {
       dab(d, [pt(knee[0] - 9, knee[1] - 1), pt(knee[0] + 9, knee[1] - 1), pt(knee[0] + 9, 4), pt(knee[0] - 9, 4)], low, 0.85, 1.2);
       // Shadow under the belly on the leg's top.
-      if (body) dab(d, [pt(knee[0] - 12, -34), pt(knee[0] + 12, -34), pt(knee[0] + 12, -22), pt(knee[0] - 12, -24)], SHADOW, far ? 0.2 : 0.28, 2.2);
+      if (body) dab(d, [pt(knee[0] - 12, -34 + belly), pt(knee[0] + 12, -34 + belly), pt(knee[0] + 12, -22 + belly), pt(knee[0] - 12, -24 + belly)], SHADOW, far ? 0.2 : 0.28, 2.2);
     });
   };
   if (body) outside(d, body, paintIt);
@@ -158,30 +120,42 @@ function leg(d: Draw, pose: LegPose, look: HorseLook, far: boolean, body: readon
   hoof(d, pt(c[0], c[1]), pose.tilt, look);
 }
 
+const bellyOver = (rig: MountRig, pose: LegPose): number => {
+  const x = pose.joints[3]![0];
+  return apply(rig.body, pt(x, -30)).y + 30;
+};
+
 /** The far legs, in shade behind the body. */
-export function farLegs(d: Draw, look: HorseLook): void {
-  const p = POSES[look.pose];
-  leg(d, p.farHind, look, true, null);
-  leg(d, p.farFore, look, true, null);
+export function farLegs(d: Draw, look: HorseLook, rig: MountRig): void {
+  const { farHind, farFore } = rig.legs;
+  leg(d, farHind, look, true, null, 0);
+  leg(d, farFore, look, true, null, 0);
 }
 
-/** The near legs, over the body's lower edge (`body` is the torso's outline). */
-export function nearLegs(d: Draw, look: HorseLook, body: readonly Pt[]): void {
-  const p = POSES[look.pose];
-  leg(d, p.nearHind, look, false, body);
-  leg(d, p.nearFore, look, false, body);
+/** The near legs, over the body's lower edge (`body` is the torso's outline, in the figure). */
+export function nearLegs(d: Draw, look: HorseLook, rig: MountRig, body: readonly Pt[]): void {
+  const { nearHind, nearFore } = rig.legs;
+  leg(d, nearHind, look, false, body, bellyOver(rig, nearHind));
+  leg(d, nearFore, look, false, body, bellyOver(rig, nearFore));
 }
 
-export function torsoShape(): Pt[] {
-  return shapeOf(TORSO_KEYS, 6);
+/** The body and neck's outline, the neck bent by `warp`. */
+export function torsoShape(warp: (p: Pt) => Pt = (p) => p): Pt[] {
+  return shapeOf(mapXY(TORSO_KEYS, warp), 6);
+}
+
+/** The torso's outline where the rig has put it, in the figure (to clip the near legs). */
+export function torsoInFigure(rig: MountRig): Pt[] {
+  return torsoShape(rig.warp).map((p) => apply(rig.body, p));
 }
 
 /** Body and neck: coat wash, form shading, and the muscles a horse painter draws in. */
-export function torso(d: Draw, look: HorseLook): Pt[] {
-  const body = torsoShape();
+export function torso(d: Draw, look: HorseLook, warp: (p: Pt) => Pt = (p) => p): Pt[] {
+  const body = torsoShape(warp);
+  const w = (xy: readonly (readonly [number, number])[]): [number, number][] => mapXY(xy, warp);
   paint(d, body, look.coat, { shadow: 0.6, hatch: 0.16, line: 0, lit: pt(0.45, 0.2) });
   const { pen } = d;
-  const ink = (xy: readonly (readonly [number, number])[], w = 0.4, a = 0.5): void => pen.hair(lineOf(xy), w, d.ink, a);
+  const ink = (xy: readonly (readonly [number, number])[], width = 0.4, a = 0.5): void => pen.hair(lineOf(w(xy)), width, d.ink, a);
   pen.clipped(body, () => {
     // The big masses catch the light: shoulder, barrel, haunch; the hollows between stay deep.
     for (const [x, y, rx, ry] of [[14, -45, 6, 8], [-22, -42, 7, 7], [-6, -40, 9, 5]] as const) {
@@ -190,8 +164,8 @@ export function torso(d: Draw, look: HorseLook): Pt[] {
     dab(d, shapeOf([[-14, -46], [-10, -40], [-13, -30], [-17, -36]]), SHADOW, 0.12, 2.2);
     dab(d, shapeOf([[-28, -32], [12, -33], [14, -26], [-28, -25]]), SHADOW, 0.22, 2.4);
     gleam(d, lineOf([[-27, -50.4], [-19, -51.4], [-8, -48.4], [0, -50.4]]), 1, 0.4);
-    gleam(d, lineOf([[7.6, -60], [13.4, -66.4], [19, -70]]), 0.8, 0.35);
-    dab(d, shapeOf([[20, -66], [25, -66], [27, -60], [22, -58]]), SHADOW, 0.3, 1.6);
+    gleam(d, lineOf(w([[7.6, -60], [13.4, -66.4], [19, -70]])), 0.8, 0.35);
+    dab(d, shapeOf(w([[20, -66], [25, -66], [27, -60], [22, -58]])), SHADOW, 0.3, 1.6);
   });
   // Shoulder blade, point of shoulder, elbow, the flank's fold, point of hip, hamstring, jugular groove.
   ink([[4, -51], [9.4, -43], [16.6, -35.6]], 0.45, 0.45);
@@ -234,14 +208,16 @@ export function head(d: Draw, look: HorseLook): Pt[] {
   return shape;
 }
 
-/** The mane along the crest and the forelock, combed into strands. */
-export function mane(d: Draw, look: HorseLook): void {
+/** The mane along the crest (bent with the neck by `warp`), combed into strands; `wind` lifts it. */
+export function mane(d: Draw, look: HorseLook, warp: (p: Pt) => Pt = (p) => p, wind = 0, t = 0): void {
   const { pen } = d;
-  const top = CREST.map((p) => pt(p.x - 0.6, p.y - 1.2));
-  const n = CREST.length;
-  const bot = CREST.map((p, i) => {
+  const crest = CREST.map(warp);
+  const top = crest.map((p) => pt(p.x - 0.6, p.y - 1.2));
+  const n = crest.length;
+  const bot = crest.map((p, i) => {
     const u = i / (n - 1);
-    return pt(p.x - 1.2 - u * 1.4, p.y + 3.4 + Math.sin(u * 11) * 0.9 + u * 1.2);
+    const lift = wind * u * (1.6 + 0.8 * Math.sin(t * Math.PI * 2 + u * 9));
+    return pt(p.x - 1.2 - u * 1.4 - lift, p.y + 3.4 + Math.sin(u * 11) * 0.9 + u * 1.2 - lift * 0.9);
   });
   const shape = [...top, ...[...bot].reverse()];
   paint(d, shape, look.mane, { shadow: 0.45, hatch: 0, line: 0.55 });
@@ -250,18 +226,42 @@ export function mane(d: Draw, look: HorseLook): void {
     const b = bot[i]!;
     pen.hair([a, pt((a.x + b.x) / 2 - 0.6, (a.y + b.y) / 2), pt(b.x - 0.8, b.y + 0.4)], 0.3, i % 2 ? mix(look.mane, '#ffffff', 0.35) : d.ink, 0.6);
   }
+}
+
+/** The forelock between the ears (head coordinates). */
+export function forelock(d: Draw, look: HorseLook): void {
   const lock = shapeOf([[25, -74.6], [27.6, -73.8], [29.8, -69.6], [28.8, -68.8], [26.4, -71.4]], 4);
   paint(d, lock, look.mane, { shadow: 0.3, hatch: 0, line: 0.45 });
 }
 
-/** The tail: a full fall of hair from the dock, combed and lifting in the wind. */
-export function tail(d: Draw, look: HorseLook, swish = 0): void {
-  const spine = lineOf([[-27.6, -50], [-32.8, -47.6], [-37.4, -40], [-39.4 - swish, -29], [-38.6 - swish * 1.6, -15]], 5);
+/** The tail: a full fall of hair from the dock, combed; `lift` raises it (degrees), `swish` swings its end back. */
+export function tail(d: Draw, look: HorseLook, swish = 0, lift = 0): void {
+  const dock = pt(-27.6, -50);
+  const [cs, sn] = [Math.cos((lift * Math.PI) / 180), Math.sin((lift * Math.PI) / 180)];
+  const keys: [number, number][] = [[-27.6, -50], [-32.8, -47.6], [-37.4, -40], [-39.4 - swish, -29], [-38.6 - swish * 1.6, -15]];
+  const raised = keys.map(([x, y], i): [number, number] => {
+    // The dock is stiff: the lift bends the hair more the further down it falls.
+    const k = Math.min(1, i / 2);
+    const [dx, dy] = [x - dock.x, y - dock.y];
+    const [rx, ry] = [dock.x + dx * cs - dy * sn, dock.y + dx * sn + dy * cs];
+    return [x + (rx - x) * k, y + (ry - y) * k];
+  });
+  const spine = lineOf(raised, 5);
   const w = (u: number): number => 2.6 + Math.sin(Math.PI * Math.min(1, u * 1.3)) * 4.8 - u * 1.4;
   const l = limb(spine.map((p, i) => [p.x, p.y, w(i / (spine.length - 1))] as Joint), 1);
   paint(d, l.shape, look.mane, { shadow: 0.5, hatch: 0.14, line: 0.6 });
+  const nr = l.spine.map((p, i, a) => {
+    const q = a[Math.min(a.length - 1, i + 1)]!;
+    const o = a[Math.max(0, i - 1)]!;
+    const [dx, dy] = [q.x - o.x, q.y - o.y];
+    const m = Math.hypot(dx, dy) || 1;
+    return pt(-dy / m, dx / m);
+  });
   for (const k of [-0.3, 0, 0.3]) {
-    const strand = l.spine.map((p, i) => pt(p.x + k * w(i / (l.spine.length - 1)) * 0.9, p.y));
+    const strand = l.spine.map((p, i) => {
+      const off = k * w(i / (l.spine.length - 1)) * 0.9;
+      return pt(p.x + nr[i]!.x * off, p.y + nr[i]!.y * off);
+    });
     d.pen.hair(strand.slice(2), 0.3, mix(look.mane, '#ffffff', 0.4), 0.55);
   }
 }

@@ -6,6 +6,7 @@ import { CREATURE_IDS, type CreatureId } from '../src/logic/creatures';
 // Dev-only sheet for reviewing InkHeroes' procedural art.
 //   /specimens.html                    every creature, big, three boil frames, and a battle-sized pair
 //   /specimens.html?only=wolf,ogre     just those
+//   /specimens.html?poses&only=wolf   every idle, walk and attack frame (add hero to only for the hero; &kind=walk for one pose)
 const sheet = document.getElementById('sheet')!;
 const params = new URLSearchParams(location.search);
 const only = params.get('only')?.split(',') ?? null;
@@ -40,7 +41,39 @@ function figure(r: HTMLElement, label: string, c: HTMLCanvasElement): void {
 }
 
 const ids = CREATURE_IDS.filter((id) => !only || only.includes(id));
-for (const id of ids) {
+const poses = params.has('poses');
+if (poses) {
+  // Pose sheets: every baked frame of idle, walk and attack, in order.
+  //   /specimens.html?poses&only=spearman,hero[&kind=walk][&size=160]
+  const { POSE_FRAMES, poseAt } = await import('../src/art/creatures/types');
+  const { drawHero } = await import('../src/art/heroArt');
+  const { BANNER } = await import('../src/art/palette');
+  const kinds = (params.get('kind')?.split(',') ?? ['idle', 'walk', 'attack']) as (keyof typeof POSE_FRAMES)[];
+  const size = Number(params.get('size') ?? 150);
+  const figures: (CreatureId | 'hero')[] = [...ids, ...(!only || only.includes('hero') ? (['hero'] as const) : [])];
+  for (const id of figures) {
+    for (const kind of kinds) {
+      const r = row(`${id} · ${kind}`);
+      for (let i = 0; i < POSE_FRAMES[kind]; i++) {
+        const { canvas, ctx } = makeCanvas(FRAME_W * CREATURE_RES, FRAME_H * CREATURE_RES);
+        ctx.scale(CREATURE_RES, CREATURE_RES);
+        ctx.strokeStyle = 'rgba(35,42,79,0.15)';
+        ctx.strokeRect(0.5, 0.5, FRAME_W - 1, FRAME_H - 1);
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND_Y);
+        ctx.lineTo(FRAME_W, GROUND_Y);
+        ctx.stroke();
+        ctx.translate(FRAME_W / 2, GROUND_Y);
+        const pose = poseAt(kind, i);
+        if (id === 'hero') drawHero(ctx, 101, i % 3, BANNER.player, pose);
+        else CREATURE_ART[id](ctx, 101, i % 3, pose);
+        canvas.style.width = `${size}px`;
+        figure(r, `t ${pose.t.toFixed(2)}`, canvas);
+      }
+    }
+  }
+}
+for (const id of poses ? [] : ids) {
   const r = row(id);
   for (let f = 0; f < 3; f++) figure(r, `frame ${f}`, creatureCanvas(id, f, big));
   figure(r, 'battle size', creatureCanvas(id, 0, 96));
@@ -48,7 +81,7 @@ for (const id of ids) {
   figure(r, 'map size', creatureCanvas(id, 0, 48));
 }
 
-if (!only || only.includes('hero')) {
+if (!poses && (!only || only.includes('hero'))) {
   const { drawHero } = await import('../src/art/heroArt');
   const { BANNER } = await import('../src/art/palette');
   const r = row('hero');
@@ -71,7 +104,7 @@ if (!only || only.includes('hero')) {
   figure(r, 'facing left', heroCanvas(0, 96, BANNER.player, true));
 }
 
-if (only?.includes('map')) {
+if (!poses && only?.includes('map')) {
   const { paintChunk, CHUNK, TILE } = await import('../src/art/terrain');
   const { gridOf } = await import('../src/logic/adventure');
   const { MAPS } = await import('../src/level/maps');
@@ -95,7 +128,7 @@ if (only?.includes('map')) {
   figure(r, def.id, canvas);
 }
 
-if (!only || only.includes('sites')) {
+if (!poses && (!only || only.includes('sites'))) {
   const { SITE_ART, SITE_ARTS, drawResourceIcon, drawFlag } = await import('../src/art/sites');
   const { frameFor, SITE_RES } = await import('../src/art/sites/types');
   const { RESOURCES } = await import('../src/logic/resources');

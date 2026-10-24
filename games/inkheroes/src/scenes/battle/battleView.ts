@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { fieldPoint, FIELD_H, FIELD_PAD, FIELD_W, HEX, hexOutline, paintBattlefield } from '../../art/battlefield';
+import { BOWMAN_ARROW_FROM } from '../../art/creatures/bowman';
+import { MONK_ORB_FROM } from '../../art/creatures/monk';
 import { CREATURE_RES, FRAME_H, GROUND_Y } from '../../art/creatures/types';
 import { BANNER } from '../../art/palette';
 import { makeCanvas } from '../../art/pen';
-import { freeTexture, TEX } from '../../art/textures';
+import { freeTexture, heroFigure, TEX } from '../../art/textures';
 import { alive, stackById } from '../../logic/battle';
 import type { BattleEvent, BattleState, Stack } from '../../logic/battleTypes';
 import { creature } from '../../logic/creatures';
@@ -11,16 +13,24 @@ import type { Hex } from '../../logic/hex';
 import type { Terrain } from '../../logic/map';
 import { SPELLS } from '../../logic/spells';
 import { getSound } from '../../host';
+import { FigureAnim } from '../figureAnim';
+import { dustPuff, Gait, gaitOf, WALK_FPS } from '../gait';
 import { HAND } from '../uiPaint';
 
 /** How big units stand on the field (units per frame unit). */
 const UNIT_SCALE = 0.9;
 const FIELD_KEY = 'battlefield';
 const SIDE_HEX = [0x2f55a8, 0xb98a3e] as const;
+/** A walker's time a hex, and the pause as a unit settles where it stops, ms. */
+const WALK_MS = 200;
+const SETTLE_MS = 120;
+/** How long a melee attacker takes to step in: through the first two attack frames, onto the blow. */
+const LUNGE_MS = 240;
 
 interface UnitSprite {
   readonly img: Phaser.GameObjects.Image;
   readonly badge: Phaser.GameObjects.Text;
+  readonly anim: FigureAnim;
 }
 
 /** Highlights to show for the active unit. */
@@ -41,9 +51,9 @@ export interface Marks {
 export class BattleView {
   readonly root: Phaser.GameObjects.Container;
   private readonly units = new Map<number, UnitSprite>();
+  /** Each side's hero beside the field, if it has one. */
+  private readonly heroes: (FigureAnim | null)[] = [null, null];
   private readonly marks: Phaser.GameObjects.Graphics;
-  private boil = 0;
-  private boilClock = 0;
 
   constructor(private readonly scene: Phaser.Scene, state: BattleState, terrain: Terrain, seed: number, heroes: readonly [boolean, boolean]) {
     freeTexture(scene, FIELD_KEY);
@@ -61,6 +71,7 @@ export class BattleView {
       const x = side === 0 ? FIELD_PAD.x * 0.45 : FIELD_W - FIELD_PAD.x * 0.45;
       const img = scene.add.image(x, FIELD_H * 0.42, TEX.hero(side === 0 ? 'player' : 'rival', 0)).setOrigin(0.5, GROUND_Y / FRAME_H).setScale(0.95 / CREATURE_RES).setFlipX(side === 1);
       this.root.add(img);
+      this.heroes[side] = new FigureAnim(img, heroFigure(side === 0 ? 'player' : 'rival'));
     });
     for (const s of state.stacks) this.addUnit(s);
     this.sync(state);
@@ -73,7 +84,7 @@ export class BattleView {
       fontFamily: 'Georgia, serif', fontSize: '15px', color: '#fdf8ea', backgroundColor: s.side === 0 ? BANNER.player : '#8a6a32', padding: { x: 4, y: 1 },
     }).setOrigin(0.5, 0.5);
     this.root.add([img, badge]);
-    this.units.set(s.id, { img, badge });
+    this.units.set(s.id, { img, badge, anim: new FigureAnim(img, s.creature) });
   }
 
   /** Puts every unit where the state has it, sorted so lower rows stand in front. */
@@ -115,25 +126,41 @@ export class BattleView {
       case 'move': {
         const u = this.units.get(ev.stack)!;
         const from = stackById(before, ev.stack);
+        u.badge.setVisible(false);
+        this.root.bringToTop(u.img);
+        const style = gaitOf(from.creature);
+        const gait = new Gait(this.scene, u.img, style, { onFall: (x, y, heavy) => dustPuff(this.scene, x, y, 9, heavy, this.root, u.img) }).start();
+        u.anim.walk(WALK_FPS[style]);
         for (const h of ev.path) {
           const p = fieldPoint(h);
-          if (p.x !== u.img.x) u.img.setFlipX(p.x < u.img.x);
-          u.badge.setVisible(false);
-          await this.tween(u.img, { x: p.x, y: p.y + HEX * 0.55 }, ev.flies ? 380 : 140, ev.flies ? 'Sine.easeInOut' : 'Linear');
+          const to = { x: p.x, y: p.y + HEX * 0.55 };
+          if (to.x !== u.img.x) u.img.setFlipX(to.x < u.img.x);
+          if (ev.flies) await this.fly(u.img, gait, to);
+          else await this.tween(u.img, to, WALK_MS, 'Linear');
         }
+        gait.stop();
+        u.anim.idle();
+        await this.wait(SETTLE_MS);
         u.img.setFlipX(from.side === 1);
         return;
       }
       case 'strike': {
         const a = this.units.get(ev.stack)!;
         const t = this.units.get(ev.target)!;
+        // Face the foe for the blow, then turn back to the side's facing.
+        const facing = a.img.flipX;
+        if (t.img.x !== a.img.x) a.img.setFlipX(t.img.x < a.img.x);
+        const home = { x: a.img.x, y: a.img.y };
+        const lunge = { x: home.x + (t.img.x - home.x) * 0.22, y: home.y + (t.img.y - home.y) * 0.22 };
+        // A melee attacker steps in through the wind-up; the blow lands on the strike frame.
+        if (!ev.ranged) void this.tween(a.img, lunge, LUNGE_MS, 'Quad.easeIn');
+        let struck!: () => void;
+        const blow = new Promise<void>((resolve) => (struck = resolve));
+        const swing = a.anim.attack(struck);
+        await blow;
         if (ev.ranged) await this.projectile(a.img, t.img, stackById(before, ev.stack));
-        else {
-          const dx = (t.img.x - a.img.x) * 0.3;
-          const dy = (t.img.y - a.img.y) * 0.3;
-          await this.tween(a.img, { x: a.img.x + dx, y: a.img.y + dy }, 110, 'Quad.easeIn');
-          void this.tween(a.img, { x: a.img.x - dx, y: a.img.y - dy }, 160, 'Quad.easeOut');
-        }
+        else void swing.then(() => this.tween(a.img, home, 200, 'Quad.easeOut'));
+        void swing.then(() => a.img.setFlipX(facing));
         this.hit(t.img);
         this.float(t.img.x, t.img.y - 70, `−${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}${ev.lucky ? '  Lucky!' : ''}`, ev.retaliation ? '#7a4a1e' : '#a9302a');
         await this.wait(260);
@@ -142,6 +169,9 @@ export class BattleView {
       }
       case 'spell': {
         const t = this.units.get(ev.target)!;
+        // The hero raises the sword and the spell lands as it comes down.
+        const caster = this.heroes[ev.side];
+        if (caster) await new Promise<void>((resolve) => void caster.attack(resolve));
         const flash = this.scene.add.circle(t.img.x, t.img.y - 30, 10, 0xfff3c0, 0.9);
         this.root.add(flash);
         await this.tween(flash, { radius: 46, alpha: 0 }, 420, 'Quad.easeOut');
@@ -188,12 +218,18 @@ export class BattleView {
     }
   }
 
+  /** An arrow or a monk's orb, from where the painting looses it (frame units scaled to the field) to the target's chest. */
   private async projectile(from: Phaser.GameObjects.Image, to: Phaser.GameObjects.Image, shooter: Stack): Promise<void> {
     const monk = creature(shooter.creature).id === 'monk';
-    const shot = monk ? this.scene.add.circle(from.x, from.y - 40, 6, 0xfff0b0, 1).setStrokeStyle(2, 0xc99a2e) : this.scene.add.rectangle(from.x, from.y - 40, 22, 2.4, 0x3b2a1a);
-    shot.setRotation(Math.atan2(to.y - from.y, to.x - from.x));
+    const at = monk ? MONK_ORB_FROM : BOWMAN_ARROW_FROM;
+    const dir = from.flipX ? -1 : 1;
+    const x = from.x + dir * at.x * UNIT_SCALE;
+    const y = from.y + at.y * UNIT_SCALE;
+    const end = { x: to.x, y: to.y - 40 };
+    const shot = monk ? this.scene.add.circle(x, y, 6, 0xfff0b0, 1).setStrokeStyle(2, 0xc99a2e) : this.scene.add.rectangle(x, y, 22, 2.4, 0x3b2a1a);
+    shot.setRotation(Math.atan2(end.y - y, end.x - x));
     this.root.add(shot);
-    await this.tween(shot, { x: to.x, y: to.y - 40 }, 260, 'Linear');
+    await this.tween(shot, end, 160 + Math.hypot(end.x - x, end.y - y) * 0.35, 'Linear');
     shot.destroy();
   }
 
@@ -209,6 +245,23 @@ export class BattleView {
     this.scene.tweens.add({ targets: t, y: y - 36, alpha: 0, delay: 500, duration: 900, ease: 'Sine.easeIn', onComplete: () => t.destroy() });
   }
 
+  /** A flyer takes off, beats across in an arc (longer flights take longer) and lands. */
+  private async fly(img: Phaser.GameObjects.Image, gait: Gait, to: { x: number; y: number }): Promise<void> {
+    const from = { x: img.x, y: img.y };
+    const ms = Phaser.Math.Clamp(260 + Math.hypot(to.x - from.x, to.y - from.y) * 1.5, 360, 950);
+    await new Promise<void>((resolve) => this.scene.tweens.addCounter({
+      from: 0, to: 1, duration: ms, ease: 'Sine.easeInOut',
+      onUpdate: (tw) => {
+        const u = tw.getValue() ?? 0;
+        img.setPosition(from.x + (to.x - from.x) * u, from.y + (to.y - from.y) * u);
+        gait.lift = u;
+      },
+      onComplete: () => resolve(),
+    }));
+    img.setPosition(to.x, to.y);
+    gait.lift = 0;
+  }
+
   private tween(target: object, props: Record<string, number>, duration: number, ease: string): Promise<void> {
     return new Promise((resolve) => this.scene.tweens.add({ targets: target, ...props, duration, ease, onComplete: () => resolve() }));
   }
@@ -217,13 +270,10 @@ export class BattleView {
     return new Promise((resolve) => this.scene.time.delayedCall(ms, resolve));
   }
 
-  /** Line boil for every unit. */
-  update(delta: number, state: BattleState): void {
-    this.boilClock += delta;
-    if (this.boilClock < 200) return;
-    this.boilClock = 0;
-    this.boil = (this.boil + 1) % 3;
-    for (const s of state.stacks) this.units.get(s.id)!.img.setTexture(TEX.creature(s.creature, this.boil));
+  /** Every unit's and hero's animation. */
+  update(delta: number): void {
+    for (const u of this.units.values()) u.anim.update(delta);
+    for (const h of this.heroes) h?.update(delta);
   }
 
   /** Field units under a screen point. */

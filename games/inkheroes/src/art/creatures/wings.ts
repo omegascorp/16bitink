@@ -64,16 +64,19 @@ export function wing(d: Draw, s: WingSpec): void {
   const shade = (c: string): string => (s.far ? mix(c, SHADOW, 0.3) : c);
   const [col, tip, cov] = [shade(s.feather), shade(s.tip), shade(s.covert)];
   const p = s.primaries;
+  // Counts survive a blend of poses as near-integers: round them.
+  const pn = Math.round(p.n);
   // Primaries: the outermost (at the hand's tip) first.
-  for (let i = p.n - 1; i >= 0; i--) {
-    const t = p.n === 1 ? 1 : i / (p.n - 1);
+  for (let i = pn - 1; i >= 0; i--) {
+    const t = pn === 1 ? 1 : i / (pn - 1);
     const root = lerp(s.wrist, s.hand, 0.15 + t * 0.85);
     feather(d, root, p.a0 + (p.a1 - p.a0) * t, p.l0 + (p.l1 - p.l0) * t, 4.2, col, tip, true);
   }
   // Secondaries off the forearm, then tertials off the upper arm: the outer first.
   const sec = s.secondaries;
-  for (let i = sec.n - 1; i >= 0; i--) {
-    const t = i / (sec.n - 1);
+  const sn = Math.round(sec.n);
+  for (let i = sn - 1; i >= 0; i--) {
+    const t = i / (sn - 1);
     const root = t < 0.75 ? lerp(s.elbow, s.wrist, t / 0.75) : lerp(s.elbow, s.wrist, 1);
     const r = lerp(s.shoulder, s.elbow, 0.45);
     const at = i < 2 ? lerp(r, s.elbow, i / 2) : root;

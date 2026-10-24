@@ -5,7 +5,7 @@ import { gridOf } from '../logic/adventure';
 import { CREATURE_IDS, type CreatureId } from '../logic/creatures';
 import { RESOURCES, type Resource } from '../logic/resources';
 import { CREATURE_ART } from './creatures';
-import { CREATURE_RES, FRAME_H, FRAME_W, GROUND_Y } from './creatures/types';
+import { CREATURE_RES, FRAME_H, FRAME_W, GROUND_Y, POSE_FRAMES, poseAt, type PoseKind } from './creatures/types';
 import { drawHero } from './heroArt';
 import { BANNER, BOIL } from './palette';
 import { makeCanvas, releaseScratch, shrink } from './pen';
@@ -17,10 +17,16 @@ import { drawTownGround, TOWN_ART } from './townscape';
 import { PIECE_SLOT, SLOTS, TOWN_PIECES, TOWN_RES, TOWN_VIEW, type TownPiece } from './townscape/types';
 
 export type BannerKey = keyof typeof BANNER;
+/** Anything with poses: a creature, or a hero under a banner. */
+export type Figure = CreatureId | `hero-${BannerKey}`;
+export const heroFigure = (banner: BannerKey): Figure => `hero-${banner}`;
 
 export const TEX = {
-  creature: (id: CreatureId, f: number) => `cr-${id}-${f}`,
-  hero: (banner: BannerKey, f: number) => `hero-${banner}-${f}`,
+  /** Frame `i` of a figure's pose (see creatures/types.ts POSE_FRAMES). */
+  figure: (fig: Figure, kind: PoseKind, i: number) => `fig-${fig}-${kind}-${i}`,
+  /** A creature's idle frame (frame 0 is how it stands in lists and portraits). */
+  creature: (id: CreatureId, f: number) => `fig-${id}-idle-${f}`,
+  hero: (banner: BannerKey, f: number) => `fig-hero-${banner}-idle-${f}`,
   site: (art: SiteArt) => `site-${art}`,
   chunk: (mapId: string, cx: number, cy: number) => `chunk-${mapId}-${cx}-${cy}`,
   icon: (r: Resource) => `res-${r}`,
@@ -53,18 +59,25 @@ export function freeTexture(scene: Phaser.Scene, key: string): void {
   if (source instanceof HTMLCanvasElement) shrink(source);
 }
 
-function creatureJob(scene: Phaser.Scene, id: CreatureId, f: number): SliceJob {
-  return () => bake(scene, TEX.creature(id, f), FRAME_W, FRAME_H, CREATURE_RES, (ctx) => {
+/** Paints frame `i` of a figure's pose. */
+function figureJob(scene: Phaser.Scene, fig: Figure, kind: PoseKind, i: number): SliceJob {
+  return () => bake(scene, TEX.figure(fig, kind, i), FRAME_W, FRAME_H, CREATURE_RES, (ctx) => {
     ctx.translate(FRAME_W / 2, GROUND_Y);
-    CREATURE_ART[id](ctx, 1000 + CREATURE_IDS.indexOf(id) * 17, f);
+    // The pen is reseeded a frame at a time, so the lines shimmer as the figure moves.
+    const pose = poseAt(kind, i);
+    if (fig.startsWith('hero-')) drawHero(ctx, 4242, i % 3, BANNER[fig.slice(5) as BannerKey], pose);
+    else CREATURE_ART[fig as CreatureId](ctx, 1000 + CREATURE_IDS.indexOf(fig as CreatureId) * 17, i % 3, pose);
   });
 }
 
-function heroJob(scene: Phaser.Scene, banner: BannerKey, f: number): SliceJob {
-  return () => bake(scene, TEX.hero(banner, f), FRAME_W, FRAME_H, CREATURE_RES, (ctx) => {
-    ctx.translate(FRAME_W / 2, GROUND_Y);
-    drawHero(ctx, 4242, f, BANNER[banner]);
-  });
+export const ALL_FIGURES: readonly Figure[] = [...CREATURE_IDS, heroFigure('player'), heroFigure('rival')];
+
+/** The frames of `kinds` for `figures` not painted yet (walks and attacks are painted when a battle or a map opens). */
+export function poseJobs(scene: Phaser.Scene, figures: readonly Figure[], kinds: readonly PoseKind[]): SliceJob[] {
+  const jobs = figures.flatMap((fig) => kinds.flatMap((kind) => Array.from({ length: POSE_FRAMES[kind] }, (_, i) => i)
+    .filter((i) => !scene.textures.exists(TEX.figure(fig, kind, i)))
+    .map((i) => figureJob(scene, fig, kind, i))));
+  return jobs.length ? [...jobs, () => releaseScratch()] : [];
 }
 
 function siteJob(scene: Phaser.Scene, art: SiteArt): SliceJob {
@@ -75,12 +88,12 @@ function siteJob(scene: Phaser.Scene, art: SiteArt): SliceJob {
   });
 }
 
-/** Everything drawn once at boot: creatures, the hero, sites, icons and flags. */
+/** Everything drawn once at boot: every creature and hero standing, sites, icons and flags. */
 export function textureJobs(scene: Phaser.Scene): SliceJob[] {
   const boil = Array.from({ length: BOIL }, (_, f) => f);
   return [
-    ...CREATURE_IDS.flatMap((id) => boil.map((f) => creatureJob(scene, id, f))),
-    ...(['player', 'rival'] as const).flatMap((b) => boil.map((f) => heroJob(scene, b, f))),
+    // Every figure standing (the rest of its idle loop is painted when a map or battle needs it).
+    ...ALL_FIGURES.map((fig) => figureJob(scene, fig, 'idle', 0)),
     ...SITE_ARTS.map((art) => siteJob(scene, art)),
     ...RESOURCES.map((r) => () => bake(scene, TEX.icon(r), ICON_SIZE, ICON_SIZE, ICON_RES, (ctx) => {
       ctx.translate(ICON_SIZE / 2, ICON_SIZE / 2);

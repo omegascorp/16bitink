@@ -10,7 +10,7 @@ import { BUILDINGS, type BuildingId } from '../logic/buildings';
 import type { CreatureId } from '../logic/creatures';
 import { canAfford, describeAmount, pay, RESOURCES } from '../logic/resources';
 import { build, cantBuild, has, hire, income, SPELLBOOK_COST } from '../logic/town';
-import { screenScene, viewSize } from './hidpi';
+import { screenScene, toView, viewSize } from './hidpi';
 import type { MapScene } from './MapScene';
 import { Session } from './session';
 import { buildPanel, guildPanel, recruitPanel, type PanelBody, type PanelKind, type TownActions } from './town/townPanels';
@@ -19,9 +19,14 @@ import { inkText } from './ui';
 import { cardFit } from './uiLayout';
 import { HAND, paintedButton, paperCard, roundButton } from './uiPaint';
 
-/** The town screen is laid out on this board and scaled to fit: the townscape over a strip for the armies. */
-const BOARD = { w: TOWN_VIEW.w, h: 720 } as const;
-const STRIP = { y: TOWN_VIEW.h, h: BOARD.h - TOWN_VIEW.h } as const;
+/** The strip along the bottom for the purse, armies and buttons, in its own units (it spans the screen's width). */
+const STRIP = { w: TOWN_VIEW.w, h: 250 } as const;
+/** The most of the screen's height the strip may take. */
+const STRIP_SHARE = 0.4;
+/** How far the townscape tucks under the strip's torn edge. */
+const TUCK = 12;
+/** A press that moves further than this (CSS px) is a drag, not a tap. */
+const DRAG = 10;
 const SANS = 'Georgia, serif';
 
 type SlotRef = { readonly army: 'hero' | 'garrison'; readonly i: number };
@@ -46,6 +51,16 @@ export class TownScene extends Phaser.Scene {
   private board!: Phaser.GameObjects.Container;
   private picked: SlotRef | null = null;
   private panel: PanelKind | null = null;
+  /** Where the strip begins on screen: messages show just above it. */
+  private stripTop = 0;
+  /** The townscape, how far it is panned from centre and how far it can go each way. */
+  private town: Phaser.GameObjects.Container | null = null;
+  private townLeft = 0;
+  private panX = 0;
+  private panRoom = 0;
+  /** Where the current press began, and whether it has turned into a drag. */
+  private press: { x: number; y: number; panX: number } | null = null;
+  private dragged = false;
   private fresh: BuildingId | undefined;
   private ready = false;
 
@@ -63,6 +78,8 @@ export class TownScene extends Phaser.Scene {
     this.ready = false;
     this.scale.on('resize', this.draw, this);
     this.input.keyboard?.on('keydown-ESC', () => (this.panel ? this.openPanel(null) : this.close()));
+    this.panX = 0;
+    this.wirePan();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', this.draw, this));
     // The townscape is painted the first time a town opens (and as it grows).
     const jobs = townJobs(this, shownPieces(this.session.adv.town.built));
@@ -81,6 +98,26 @@ export class TownScene extends Phaser.Scene {
     });
   }
 
+  /** Dragging the townscape sideways pans it when it's wider than the screen. */
+  private wirePan(): void {
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      const at = toView(p.x, p.y, this);
+      this.press = at.y < this.stripTop && !this.panel ? { ...at, panX: this.panX } : null;
+      this.dragged = false;
+    });
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      if (!this.press || !p.isDown) return;
+      const at = toView(p.x, p.y, this);
+      if (!this.dragged && Math.abs(at.x - this.press.x) < DRAG) return;
+      this.dragged = true;
+      this.panX = Phaser.Math.Clamp(this.press.panX + at.x - this.press.x, -this.panRoom / 2, this.panRoom / 2);
+      this.town?.setX(this.townLeft + this.panX);
+    });
+    this.input.on('pointerup', () => {
+      this.press = null;
+    });
+  }
+
   private close(): void {
     this.scene.stop();
     (this.scene.get('Map') as MapScene).back();
@@ -96,26 +133,40 @@ export class TownScene extends Phaser.Scene {
     const v = viewSize(this);
     const b = this.add.container(0, 0);
     this.board = b;
-    const s = cardFit(v, BOARD, 1.25);
-    b.setScale(s).setPosition(v.width / 2 - (BOARD.w * s) / 2, v.height / 2 - (BOARD.h * s) / 2);
-    b.add(townView(this, this.session.adv.town.built, { onPick: (id) => this.pickBuilding(id), fresh: this.fresh }));
+    // The strip spans the bottom; the townscape fills the screen above it,
+    // as wide as the screen and cropping its sky (or its sides) to cover.
+    const u = Math.min(1.25, v.width / STRIP.w, (v.height * STRIP_SHARE) / STRIP.h);
+    const stripTop = v.height - STRIP.h * u;
+    this.stripTop = stripTop;
+    const area = { w: v.width, h: stripTop + TUCK };
+    const s = Math.max(area.w / TOWN_VIEW.w, area.h / TOWN_VIEW.h);
+    // Wider than the screen (a phone held upright): drag sideways to look along the town.
+    this.panRoom = Math.max(0, TOWN_VIEW.w * s - area.w);
+    this.panX = Phaser.Math.Clamp(this.panX, -this.panRoom / 2, this.panRoom / 2);
+    const town = townView(this, this.session.adv.town.built, { onPick: (id) => this.pickBuilding(id), fresh: this.fresh });
+    town.setScale(s).setPosition((area.w - TOWN_VIEW.w * s) / 2 + this.panX, area.h - TOWN_VIEW.h * s);
+    this.town = town;
+    this.townLeft = (area.w - TOWN_VIEW.w * s) / 2;
+    b.add(town);
     this.fresh = undefined;
-    this.drawStrip(b);
-    if (this.panel) this.drawPanel(b, this.panel);
+    const strip = this.add.container(0, stripTop).setScale(u);
+    this.drawStrip(strip, v.width / u);
+    b.add(strip);
+    if (this.panel) this.drawPanel(b, this.panel, v);
   }
 
-  /** The strip under the townscape: name, income and purse; the armies; the town's buttons. */
-  private drawStrip(b: Phaser.GameObjects.Container): void {
+  /** The strip under the townscape, `w` units wide: name, income and purse; the armies; the town's buttons. */
+  private drawStrip(b: Phaser.GameObjects.Container, w: number): void {
     const adv = this.session.adv;
     const t = adv.town;
-    b.add(paperCard(this, BOARD.w / 2, STRIP.y + STRIP.h / 2 + 2, BOARD.w - 8, STRIP.h - 4, 811, { radius: 6, rough: 1.2, shadow: 0.7, rule: true }));
-    b.add(this.add.text(22, STRIP.y + 8, t.name, { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '40px', color: INK }));
-    b.add(this.add.text(30, STRIP.y + 56, `${income(t)} gold a day · ${t.builtToday ? 'built today' : 'one building a day'}`, { fontFamily: SANS, fontSize: '14px', color: INK }));
-    let x = BOARD.w - 24;
+    b.add(paperCard(this, w / 2, STRIP.h / 2 + 2, Math.round(w - 8), STRIP.h - 4, 811, { radius: 6, rough: 1.2, shadow: 0.7, rule: true }));
+    b.add(this.add.text(22, 8, t.name, { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '40px', color: INK }));
+    b.add(this.add.text(30, 56, `${income(t)} gold a day · ${t.builtToday ? 'built today' : 'one building a day'}`, { fontFamily: SANS, fontSize: '14px', color: INK }));
+    let x = w - 24;
     for (const r of [...RESOURCES].reverse()) {
-      const n = this.add.text(x, STRIP.y + 34, String(adv.purse[r]), { fontFamily: HAND, fontSize: '26px', color: INK, padding: { x: 4, y: 2 } }).setOrigin(1, 0.5);
+      const n = this.add.text(x, 34, String(adv.purse[r]), { fontFamily: HAND, fontSize: '26px', color: INK, padding: { x: 4, y: 2 } }).setOrigin(1, 0.5);
       x -= n.width + 2;
-      const icon = this.add.image(x - 12, STRIP.y + 34, TEX.icon(r)).setScale(1 / 3);
+      const icon = this.add.image(x - 12, 34, TEX.icon(r)).setScale(1 / 3);
       x -= 40;
       b.add([n, icon]);
     }
@@ -128,15 +179,15 @@ export class TownScene extends Phaser.Scene {
       ['Leave', () => this.close(), 'sky'],
     ];
     buttons.forEach(([label, onClick, kind], i) => {
-      const bx = 870 + (i % 2) * 160;
-      const by = STRIP.y + 112 + Math.floor(i / 2) * 60;
+      const bx = w - 310 + (i % 2) * 160;
+      const by = 112 + Math.floor(i / 2) * 60;
       b.add(paintedButton(this, bx, by, label, onClick, { width: 146, height: 48, size: 24, kind }));
     });
   }
 
   private drawArmies(b: Phaser.GameObjects.Container): void {
     const adv = this.session.adv;
-    const y = STRIP.y + 82;
+    const y = 82;
     const rows: { label: string; army: Army; ref: SlotRef['army'] }[] = [{ label: 'Garrison', army: adv.town.garrison, ref: 'garrison' }];
     if (heroInTown(adv)) rows.push({ label: adv.hero.name, army: adv.hero.army, ref: 'hero' });
     else b.add(this.add.text(30, y + 90, `${adv.hero.name} is away: troops hired now wait in the garrison.`, { fontFamily: SANS, fontSize: '14px', color: INK }));
@@ -157,7 +208,7 @@ export class TownScene extends Phaser.Scene {
   }
 
   private pickBuilding(id: BuildingId): void {
-    if (this.panel) return;
+    if (this.panel || this.dragged) return;
     const opens = OPENS[id];
     if (opens) {
       this.openPanel(opens);
@@ -171,16 +222,15 @@ export class TownScene extends Phaser.Scene {
     this.draw();
   }
 
-  /** A panel over the townscape, on a dimmed board that closes it when tapped. */
-  private drawPanel(b: Phaser.GameObjects.Container, kind: PanelKind): void {
+  /** A panel in the middle of the screen, over a dimmed town that closes it when tapped. */
+  private drawPanel(b: Phaser.GameObjects.Container, kind: PanelKind, v: { width: number; height: number }): void {
     const adv = this.session.adv;
     const body: PanelBody = kind === 'build' ? buildPanel(this, adv, this.session.def.off, this.actions()) : kind === 'recruit' ? recruitPanel(this, adv, this.actions()) : guildPanel(this, adv, this.actions());
-    const dim = this.add.rectangle(BOARD.w / 2, BOARD.h / 2, BOARD.w + 400, BOARD.h + 400, 0x232a4f, 0.28).setInteractive();
+    const dim = this.add.rectangle(v.width / 2, v.height / 2, v.width, v.height, 0x232a4f, 0.28).setInteractive();
     dim.on('pointerup', () => this.openPanel(null));
     b.add(dim);
-    const x0 = BOARD.w / 2 - body.w / 2;
-    const y0 = Math.max(6, Math.min(TOWN_VIEW.h / 2 + 40, BOARD.h / 2) - body.h / 2);
-    const p = this.add.container(x0, y0);
+    const k = cardFit(v, body, 1.25);
+    const p = this.add.container(v.width / 2 - (body.w * k) / 2, v.height / 2 - (body.h * k) / 2).setScale(k);
     const card = paperCard(this, body.w / 2, body.h / 2, body.w, body.h, 900 + body.h, { radius: 8, rule: true, shadow: 1.2 });
     // The card swallows taps so only the dim board around it closes the panel.
     const guard = this.add.zone(body.w / 2, body.h / 2, body.w, body.h).setInteractive();
@@ -262,9 +312,14 @@ export class TownScene extends Phaser.Scene {
     this.draw();
   }
 
+  /** A message on an ink banner just above the strip, rising in and fading after a while. */
   private toast(text: string): void {
     const v = viewSize(this);
-    const t = this.add.text(v.width / 2, v.height - 30, text, { fontFamily: HAND, fontSize: '28px', color: INK, backgroundColor: '#fdf8ea', padding: { x: 14, y: 6 } }).setOrigin(0.5, 1).setDepth(10);
-    this.tweens.add({ targets: t, alpha: 0, delay: 1800, duration: 500, onComplete: () => t.destroy() });
+    const y = (this.stripTop || v.height) - 18;
+    const t = this.add.text(v.width / 2, y + 10, text, { fontFamily: HAND, fontSize: '28px', color: '#fdf8ea', backgroundColor: '#27408b', padding: { x: 18, y: 6 }, align: 'center', wordWrap: { width: Math.min(760, v.width - 40) } })
+      .setOrigin(0.5, 1).setDepth(20).setAlpha(0);
+    t.setShadow(0, 3, 'rgba(35,42,79,0.35)', 6, false, true);
+    this.tweens.add({ targets: t, alpha: 1, y, duration: 220, ease: 'Quad.easeOut' });
+    this.tweens.add({ targets: t, alpha: 0, delay: 2600, duration: 500, onComplete: () => t.destroy() });
   }
 }

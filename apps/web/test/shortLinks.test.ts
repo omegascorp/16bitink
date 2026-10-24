@@ -5,7 +5,7 @@ import { pageviewRef, shortLinkTarget } from '../src/lib/shortLinks';
 describe('short links', () => {
   it('gives every playable game a short path people can type from a video', () => {
     const shorts = playableGames().map((g) => g.short);
-    expect(shorts).toEqual(['fish', 'crab', 'mine', 'gecko']);
+    expect(shorts).toEqual(['fish', 'crab', 'mine', 'gecko', 'heroes']);
     expect(new Set(shorts).size).toBe(shorts.length);
   });
 

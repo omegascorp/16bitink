@@ -2,7 +2,7 @@ import { runInSlices } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { PAPER } from '../art/palette';
 import { TILE } from '../art/terrain';
-import { chunkJobs, dropChunks } from '../art/textures';
+import { chunkJobs, dropChunks, heroFigure, poseJobs } from '../art/textures';
 import { getSound } from '../host';
 import { gridOf, guardAt, isSeen, objectAt, planPath, stepHero, type Adventure } from '../logic/adventure';
 import { creature, sizeWord } from '../logic/creatures';
@@ -48,7 +48,13 @@ export class MapScene extends Phaser.Scene {
     const label = this.add.text(0, 0, 'unrolling the map…', { fontFamily: '"Caveat", cursive', fontSize: '32px', color: '#232a4f' }).setOrigin(0.5);
     this.cameras.main.centerOn(0, 0).setZoom(DPR);
     dropChunks(this, this.session.def.id);
-    void runInSlices(chunkJobs(this, this.session.def)).then(() => {
+    // The map's ground, the hero's gallop for riding across it, and everyone's idle loop.
+    const monsters = [...new Set(this.session.def.objects.flatMap((o) => (o.kind === 'monster' && o.creature ? [o.creature] : [])))];
+    void runInSlices([
+      ...chunkJobs(this, this.session.def),
+      ...poseJobs(this, [heroFigure('player')], ['idle', 'walk']),
+      ...poseJobs(this, monsters, ['idle']),
+    ]).then(() => {
       // The scene may have been left while its ground was painting.
       if (!this.sys.isActive()) return;
       label.destroy();
@@ -219,12 +225,14 @@ export class MapScene extends Phaser.Scene {
   /** Walks the planned path a step at a time, stopping for sites, monsters, the town or the day's end. */
   private async walk(path: readonly PathStep[]): Promise<void> {
     this.walking = true;
+    this.world.startRide();
     this.setPath(null);
     let rest = [...path];
     for (const step of path) {
       const r = stepHero(this.session.adv, this.session.def, step);
       if (r.battle && r.adv === this.session.adv) {
         this.walking = false;
+        this.world.stopRide(true);
         this.startBattle(r.battle);
         return;
       }
@@ -238,17 +246,20 @@ export class MapScene extends Phaser.Scene {
       rest = rest.slice(1);
       if (r.battle) {
         this.walking = false;
+        this.world.stopRide(true);
         this.startBattle(r.battle);
         return;
       }
       if (r.town) {
         this.walking = false;
+        this.world.stopRide(true);
         this.openTown();
         return;
       }
       if (r.stop) break;
     }
     this.walking = false;
+    this.world.stopRide();
     // Keep showing what's left for tomorrow.
     if (rest.length) this.setPath(planPath(this.session.adv, this.session.def, rest[rest.length - 1]!.x, rest[rest.length - 1]!.y));
     this.showPrompts();

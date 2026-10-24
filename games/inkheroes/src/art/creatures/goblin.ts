@@ -3,7 +3,8 @@ import { PAPER_FILL } from '../palette';
 import type { Pt } from '../pen';
 import { sprite } from './neutralFinish';
 import { blob, dab, folds, gleam, limb, mix, ovalAt, paint, roundTube, SHADOW, stitches, stud, tatters } from './neutralKit';
-import type { CreatureDrawer } from './types';
+import { beat, beatPt, breath, chainOf, joint, lowJoint, place, pulse, smear, step, strideBob, turn, wave, within, xf, type Xf } from './neutralRig';
+import { IDLE, type CreatureDrawer, type Pose } from './types';
 
 /**
  * The Goblin: a small, wiry green imp about 44 tall, crouched and leaning
@@ -29,8 +30,12 @@ const C = {
   nail: '#e9dcb8',
 } as const;
 
-/** A big bare foot: heel at `heel`, long toes pointing forward, claws at the tips. */
-function foot(d: Draw, heel: Pt, len: number, color: string): void {
+/** A big bare foot: heel at `heel`, long toes pointing forward, claws at the tips; `tilt` turns it about the ankle (+ toes down). */
+function foot(d: Draw, heel: Pt, len: number, color: string, tilt = 0): void {
+  within(d.pen.ctx, xf(pt(heel.x + 2.6, heel.y - 1.8), tilt), () => footAt(d, heel, len, color));
+}
+
+function footAt(d: Draw, heel: Pt, len: number, color: string): void {
   const shape = blob([pt(heel.x - 1.4, heel.y - 1), pt(heel.x + 1, heel.y - 3.6), pt(heel.x + len * 0.55, heel.y - 2.6), pt(heel.x + len, heel.y - 0.6), pt(heel.x + len * 0.6, heel.y + 0.4), pt(heel.x, heel.y + 0.3)], 4);
   paint(d, shape, color, { shadow: 0.45, line: 0.6, hatch: 0.12 });
   for (const k of [0, 1]) d.pen.hair([pt(heel.x + len * (0.62 + k * 0.16), heel.y - 1.8 + k * 0.6), pt(heel.x + len * (0.7 + k * 0.16), heel.y - 0.2)], 0.3, d.ink, 0.6);
@@ -163,30 +168,186 @@ function club(d: Draw, grip: Pt, top: Pt): void {
   for (const [k, side] of [[0.7, -1.2], [0.84, 1.4], [0.9, -1.6]] as const) stud(d, along(len * k, side), 0.6, C.iron);
 }
 
-export const drawGoblin: CreatureDrawer = (ctx, seed, f) => {
+
+// The rest pose, as painted: the hips the body turns about, the neck the head turns about, and each limb's joints.
+const HIPS = pt(-0.7, -14);
+const NECK = pt(4.6, -29);
+const FAR_HIP = pt(-3.4, -14);
+const NEAR_HIP = pt(2, -14);
+const FAR_LEG = chainOf(FAR_HIP, pt(-9.6, -8.6), pt(-9, -2.2));
+const NEAR_LEG = chainOf(NEAR_HIP, pt(8, -8.8), pt(6, -2.2));
+/** Knees bent forward, as in a stride (the far knee rests splayed back). */
+const FORWARD = NEAR_LEG.bend;
+const FAR_HEEL = pt(-11.4, -0.4);
+const NEAR_HEEL = pt(3.2, -0.4);
+/** The ankle sits up and forward of the heel. */
+const ANKLE = pt(2.6, -1.8);
+const FAR_SHOULDER = pt(-2, -27.6);
+const FAR_ARM = chainOf(FAR_SHOULDER, pt(-8.4, -24), pt(-13.6, -26.8));
+const FAR_HAND = pt(-13.6, -26.8);
+const CLAW_ANG = Math.PI + 0.35;
+const SHOULDER = pt(3.6, -27);
+const ARM = chainOf(SHOULDER, pt(9.4, -21), pt(14.6, -24.4));
+/** The club's grip and the way it points (grip to head), at rest. */
+const GRIP = pt(15, -24.2);
+const CLUB_ANG = Math.atan2(-43.4 + 24.2, 25.4 - 15);
+const CLUB_LEN = Math.hypot(25.4 - 15, -43.4 + 24.2);
+const FAR_EAR = { root: pt(3.6, -40.8), tip: pt(-9.6, -49.4) };
+const NEAR_EAR = { root: pt(1.4, -35.2), tip: pt(-14.6, -44.4) };
+
+interface Rig {
+  /** The torso, arms and head, turned about the hips. */
+  readonly body: Xf;
+  /** The head and ears, within the body. */
+  readonly head: Xf;
+  readonly earFar: number;
+  readonly earNear: number;
+  readonly farHeel: Pt;
+  readonly farTilt: number;
+  readonly nearHeel: Pt;
+  readonly nearTilt: number;
+  /** Knee bend for each leg (the walk bends both forward). */
+  readonly farBend: number;
+  readonly nearBend: number;
+  /** The free hand and its claw's angle, in body space. */
+  readonly farHand: Pt;
+  readonly clawAng: number;
+  /** The club's grip and angle, in body space. */
+  readonly grip: Pt;
+  readonly clubAng: number;
+}
+
+/** Idle: twitchy, never still: weight rocking foot to foot, a sudden glance, an ear flicking. */
+function idle(t: number): Rig {
+  return {
+    body: xf(HIPS, 0.03 * wave(t, 0.1), 0.9 * wave(t), -0.6 * breath(t) + 0.5 * pulse(t, 0.5, 0.17)),
+    head: xf(NECK, 0.05 * wave(t, 0.25) - 0.09 * pulse(t, 0.5, 0.17), 0, -0.3 * breath(t)),
+    earFar: 0.03 * wave(t) + 0.26 * pulse(t, 0.67, 0.17),
+    earNear: 0.04 * wave(t, 0.5) + 0.24 * pulse(t, 0.33, 0.17),
+    farHeel: FAR_HEEL,
+    farTilt: 0,
+    nearHeel: NEAR_HEEL,
+    nearTilt: 0,
+    farBend: FAR_LEG.bend,
+    nearBend: NEAR_LEG.bend,
+    farHand: pt(FAR_HAND.x + 0.7 * wave(t, 0.3), FAR_HAND.y + 0.9 * wave(t, 0.55)),
+    clawAng: CLAW_ANG + 0.2 * wave(t, 0.4),
+    grip: pt(GRIP.x + 0.5 * wave(t, 0.2), GRIP.y - 0.8 * breath(t)),
+    clubAng: CLUB_ANG + 0.07 * wave(t, 0.15),
+  };
+}
+
+/** Walk: a hunched scurry: bent low and leaning in, short quick steps, the club bobbing, ears trailing. */
+function walk(t: number): Rig {
+  const body = xf(HIPS, 0.13, 0.4, 1.3 - 1.5 * strideBob(t));
+  // Both feet stride about one spot under the hips (the far one a touch behind), so they pass each other.
+  const mid = place(body, HIPS).x + 1.6;
+  const foot = (x: number, u: number): { heel: Pt; tilt: number } => {
+    const s = step(u, 6, 4);
+    return { heel: pt(x + s.x - ANKLE.x, -0.4 + s.y), tilt: s.tilt };
+  };
+  const near = foot(mid + 0.8, t);
+  const far = foot(mid - 0.8, t + 0.5);
+  const swing = Math.cos(Math.PI * 2 * t);
+  return {
+    body,
+    head: xf(NECK, -0.1 + 0.04 * wave(2 * t, 0.15), 0, 0.4 * wave(2 * t, 0.2)),
+    earFar: 0.1 * wave(2 * t, 0.1) - 0.06,
+    earNear: 0.13 * wave(2 * t, 0.05) - 0.06,
+    farHeel: far.heel,
+    farTilt: far.tilt,
+    nearHeel: near.heel,
+    nearTilt: near.tilt,
+    farBend: FORWARD,
+    nearBend: FORWARD,
+    farHand: pt(FAR_HAND.x + 3.2 * swing, FAR_HAND.y + 1.2 * Math.abs(swing)),
+    clawAng: CLAW_ANG - 0.2 * swing,
+    grip: pt(GRIP.x - 2 * swing, GRIP.y - 1 * Math.abs(swing)),
+    clubAng: CLUB_ANG + 0.14 * swing,
+  };
+}
+
+/** Attack: a quick hack: club cocked back over the shoulder, then whipped down and forward with a hop onto the front foot. */
+function attack(t: number): Rig {
+  return {
+    body: xf(HIPS, beat(t, [0, -0.13, 0.2, 0.13, 0]), beat(t, [0, -2, 3.4, 2.4, 0]), beat(t, [0, 0.4, 1.6, 1.2, 0])),
+    head: xf(NECK, beat(t, [0, -0.12, 0.13, 0.06, 0])),
+    earFar: beat(t, [0, -0.12, 0.16, 0.08, 0]),
+    earNear: beat(t, [0, -0.14, 0.2, 0.1, 0]),
+    farHeel: pt(beat(t, [FAR_HEEL.x, -12, -10.6, -10.6, FAR_HEEL.x]), FAR_HEEL.y),
+    farTilt: 0,
+    nearHeel: pt(beat(t, [NEAR_HEEL.x, 2.4, 7, 7, NEAR_HEEL.x]), NEAR_HEEL.y - beat(t, [0, 2, 0, 0, 0])),
+    nearTilt: beat(t, [0, -0.2, 0, 0, 0]),
+    farBend: FAR_LEG.bend,
+    nearBend: NEAR_LEG.bend,
+    farHand: beatPt(t, [FAR_HAND, pt(-9.5, -31), pt(-14.4, -24.4), pt(-14, -25.4), FAR_HAND]),
+    clawAng: beat(t, [CLAW_ANG, Math.PI - 0.4, CLAW_ANG + 0.3, CLAW_ANG + 0.15, CLAW_ANG]),
+    grip: beatPt(t, [GRIP, pt(-0.4, -31), pt(17.6, -22.6), pt(15.8, -20.4), GRIP]),
+    clubAng: beat(t, [CLUB_ANG, -2.2, 0.3, 0.62, CLUB_ANG]),
+  };
+}
+
+function rigOf(pose: Pose): Rig {
+  if (pose.kind === 'walk') return walk(pose.t);
+  if (pose.kind === 'attack') return attack(pose.t);
+  return idle(pose.t);
+}
+
+/** Where the club's head is, on the frame. */
+const clubHead = (r: Rig): Pt => place(r.body, pt(r.grip.x + Math.cos(r.clubAng) * CLUB_LEN, r.grip.y + Math.sin(r.clubAng) * CLUB_LEN));
+
+/** A leg from its hip (body space) down to its foot (ground space), knee solved between. */
+function legTo(d: Draw, r: Rig, hip: Pt, heel: Pt, chain: typeof NEAR_LEG, bend: number, color: string): void {
+  const h = place(r.body, hip);
+  const ankle = pt(heel.x + ANKLE.x, heel.y + ANKLE.y);
+  leg(d, h, joint(chain, h, ankle, bend), ankle, color);
+}
+
+export const drawGoblin: CreatureDrawer = (ctx, seed, f, pose: Pose = IDLE) => {
+  const r = rigOf(pose);
   sprite(ctx, seed, f, { shadow: 15, shadowX: 1, line: 0.6 }, (d) => {
     const far = mix(C.skin, SHADOW, 0.3);
+    const inBody = (draw: () => void): void => within(d.pen.ctx, r.body, draw);
+    const inHead = (draw: () => void): void => inBody(() => within(d.pen.ctx, r.head, draw));
     // The far side, in shade: ear behind the head, leg, foot, and the arm flung back.
-    ear(d, pt(3.6, -40.8), pt(-9.6, -49.4), 4.4, false);
-    foot(d, pt(-11.4, -0.4), 8.2, far);
-    leg(d, pt(-3.4, -14), pt(-9.6, -8.6), pt(-9, -2.2), far);
-    limb(d, pt(-2, -27.6), pt(-8.4, -24), 3.4, 2.8, far, { hatch: 0.14 });
-    limb(d, pt(-8.4, -24), pt(-13.6, -26.8), 2.8, 2.2, far, { hatch: 0.1 });
-    claw(d, pt(-14.2, -27.2), Math.PI + 0.35, far);
+    inHead(() => ear(d, FAR_EAR.root, turn(FAR_EAR.tip, FAR_EAR.root, r.earFar), 4.4, false));
+    foot(d, r.farHeel, 8.2, far, r.farTilt);
+    legTo(d, r, FAR_HIP, r.farHeel, FAR_LEG, r.farBend, far);
+    inBody(() => {
+      const elbow = joint(FAR_ARM, FAR_SHOULDER, r.farHand);
+      limb(d, FAR_SHOULDER, elbow, 3.4, 2.8, far, { hatch: 0.14 });
+      limb(d, elbow, r.farHand, 2.8, 2.2, far, { hatch: 0.1 });
+      claw(d, pt(r.farHand.x - 0.6, r.farHand.y - 0.4), r.clawAng, far);
+    });
     // The near leg and foot.
-    foot(d, pt(3.2, -0.4), 8.8, C.skin);
-    leg(d, pt(2, -14), pt(8, -8.8), pt(6, -2.2), C.skin);
-    tunic(d);
+    foot(d, r.nearHeel, 8.8, C.skin, r.nearTilt);
+    legTo(d, r, NEAR_HIP, r.nearHeel, NEAR_LEG, r.nearBend, C.skin);
+    inBody(() => tunic(d));
     // The near ear, swept back, then the head over its root.
-    head(d);
-    ear(d, pt(1.4, -35.2), pt(-14.6, -44.4), 6.4, true);
-    // The club arm: upper arm in a torn sleeve, forearm, fist round the club.
-    limb(d, pt(3.6, -27), pt(9.4, -21), 3.8, 3.2, C.skin, { hatch: 0.14 });
-    const sleeve = [...blob([pt(1, -29.4), pt(5.6, -29.8), pt(7.6, -26)], 4).slice(0, 10), ...tatters(pt(7.6, -25.4), pt(2, -24.8), 2, 1.6, 7)];
-    paint(d, sleeve, C.tunic, { shadow: 0.45, line: 0.55, hatch: 0.15 });
-    limb(d, pt(9.4, -21), pt(14.6, -24.4), 3.2, 2.7, C.skin, { hatch: 0.12 });
-    club(d, pt(15, -24.2), pt(25.4, -43.4));
-    paint(d, ovalAt(pt(15.2, -24.6), 2.3, 2, 0.4), C.skin, { shadow: 0.4, line: 0.55, hatch: 0 });
-    for (const k of [0, 1]) d.pen.hair([pt(14.4 + k * 1.1, -26.2 + k * 0.4), pt(15.6 + k * 1.1, -23.2 + k * 0.4)], 0.3, d.ink, 0.65);
+    inHead(() => {
+      head(d);
+      ear(d, NEAR_EAR.root, turn(NEAR_EAR.tip, NEAR_EAR.root, r.earNear), 6.4, true);
+    });
+    inBody(() => {
+      // The club arm: upper arm in a torn sleeve, forearm, fist round the club.
+      const spin = r.clubAng - CLUB_ANG;
+      const hand = turn(pt(14.6, -24.4), GRIP, spin);
+      const wrist = pt(hand.x + r.grip.x - GRIP.x, hand.y + r.grip.y - GRIP.y);
+      const elbow = lowJoint(ARM, SHOULDER, wrist);
+      limb(d, SHOULDER, elbow, 3.8, 3.2, C.skin, { hatch: 0.14 });
+      const sleeve = [...blob([pt(1, -29.4), pt(5.6, -29.8), pt(7.6, -26)], 4).slice(0, 10), ...tatters(pt(7.6, -25.4), pt(2, -24.8), 2, 1.6, 7)];
+      paint(d, sleeve, C.tunic, { shadow: 0.45, line: 0.55, hatch: 0.15 });
+      limb(d, elbow, wrist, 3.2, 2.7, C.skin, { hatch: 0.12 });
+      club(d, r.grip, pt(r.grip.x + Math.cos(r.clubAng) * CLUB_LEN, r.grip.y + Math.sin(r.clubAng) * CLUB_LEN));
+      within(d.pen.ctx, xf(GRIP, spin, r.grip.x - GRIP.x, r.grip.y - GRIP.y), () => {
+        paint(d, ovalAt(pt(15.2, -24.6), 2.3, 2, 0.4), C.skin, { shadow: 0.4, line: 0.55, hatch: 0 });
+        for (const k of [0, 1]) d.pen.hair([pt(14.4 + k * 1.1, -26.2 + k * 0.4), pt(15.6 + k * 1.1, -23.2 + k * 0.4)], 0.3, d.ink, 0.65);
+      });
+    });
   });
+  // The blow: speed lines along the club head's path as it lands.
+  if (pose.kind === 'attack') {
+    const path = Array.from({ length: 9 }, (_, i) => clubHead(attack(pose.t - 0.13 + (i / 8) * 0.12)));
+    smear(ctx, seed, f, path, 0.9, beat(pose.t, [0, 0, 0.75, 0.25, 0]));
+  }
 };

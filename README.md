@@ -8,7 +8,7 @@ packages/game-sdk   The contract between site and games (GameModule, GameHost)
 games/inkfish       Phaser 4 game package: client game (src/) + server-only paid content (content/)
 games/inkcrab       Second game (prototype): hermit crab trading up through shells; design in docs/inkcrab-design.md
 games/inkmine       Third game: planet-hopping miner, chapter 1 free, chapters 2-3 (Mycel, Brine) in the $4.99 full game; design in docs/inkmine-design.md
-games/inkheroes     Fifth game (in progress): Heroes of Might and Magic III-style strategy, chapter 1 map 1 playable; design in docs/inkheroes-design.md
+games/inkheroes     Fifth game: Heroes of Might and Magic III-style strategy, listed from Oct 25 as a free demo (chapter 1 map 1 playable, nothing for sale yet); design in docs/inkheroes-design.md
 games/inkgecko      Fourth game: Zuma/Luxor-style marble shooter, in the catalog since Oct 22, all 10 chapters built (1 free; 2–10 the full game: Pond, Greenhouse, Orchard, Rockery, Allotment, Wild Meadow, Old Barn, Ruins, Night Garden); design in docs/inkgecko-design.md
 docs/               Research, tech & monetization decisions, art pipeline
 ```
@@ -21,7 +21,7 @@ pnpm --filter @16bitink/inkfish dev     # game alone at http://localhost:5174 (p
 pnpm --filter @16bitink/inkcrab dev     # InkCrab test beach at http://localhost:5175 (not in the catalog yet)
 pnpm --filter @16bitink/inkmine dev     # InkMine at http://localhost:5176 (?reset starts over)
 pnpm --filter @16bitink/inkgecko dev    # InkGecko at http://localhost:5177 (/specimens.html shows its art, /map.html the whole level map)
-pnpm --filter @16bitink/inkheroes dev   # InkHeroes at http://localhost:5178 (?reset starts over; /specimens.html shows its art, ?only=map the painted map; NO_HMR=true stops reloads while art changes)
+pnpm --filter @16bitink/inkheroes dev   # InkHeroes at http://localhost:5178 (?reset starts over; /specimens.html shows its art, ?only=map the painted map, /art.html the town and menu paintings; NO_HMR=true stops reloads while art changes)
 pnpm dev                                # site at http://localhost:4321
 pnpm test                               # unit tests (game logic, tokens, purchases, catalog)
 MONGODB_TEST_URI=mongodb://localhost:27017/16bitink_test pnpm --filter @16bitink/web test   # + database integration tests

@@ -26,7 +26,7 @@ export default defineConfig({
   devToolbar: { enabled: false },
   // The game packages ship TypeScript source; let Vite bundle them.
   vite: {
-    ssr: { noExternal: ['@16bitink/inkfish', '@16bitink/inkcrab', '@16bitink/inkmine', '@16bitink/inkgecko'] },
+    ssr: { noExternal: ['@16bitink/inkfish', '@16bitink/inkcrab', '@16bitink/inkmine', '@16bitink/inkgecko', '@16bitink/inkheroes'] },
     // Ties the game's saved drawings (art cache) to its source.
     define: { __INKFISH_BUILD__: JSON.stringify(inkfishBuildId()) },
     // Phaser is ~1.4 MB and loaded lazily on the play page only.

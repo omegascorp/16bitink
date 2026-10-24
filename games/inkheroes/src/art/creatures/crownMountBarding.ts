@@ -1,14 +1,44 @@
 import { pt, type Draw } from '../kit';
 import type { Pt } from '../pen';
 import { dab, gleam, LIGHT, lineOf, mix, paint, shapeOf, SHADOW } from './crownElitePaint';
+import { mapXY } from './crownMountRig';
 import { CROWN_BLUE, GOLD, STEEL } from './crownMountRider';
 
 /**
  * The Lancer's barding: a caparison of Crown blue over the horse's neck and
  * body, edged in gold and powdered with gold crowns, falling in folds to a
  * scalloped hem at the knees; and a steel chanfron over the face with a
- * blue plume at the poll.
+ * blue plume at the poll. Drawn in the horse's body coordinates; the
+ * cloth over the neck bends with it (`warp`), the hem streams back in the
+ * wind and rides up over a lifted knee (Drape).
  */
+
+/** How the caparison hangs this frame. */
+export interface Drape {
+  readonly warp: (p: Pt) => Pt;
+  /** 0 standing, 1 at the gallop. */
+  readonly wind: number;
+  /** Loop phase, for the ripple along the hem. */
+  readonly t: number;
+  /** Knees and hocks (body coordinates) pushing the hem up from below. */
+  readonly knees: readonly Pt[];
+}
+
+const STILL: Drape = { warp: (p) => p, wind: 0, t: 0, knees: [] };
+
+/** Moves a point of the hanging cloth: the lower it hangs, the more the wind and the knees move it. */
+function drape(p: Pt, o: Drape): Pt {
+  const hang = Math.max(0, Math.min(1, (p.y + 34) / 12));
+  if (hang === 0) return o.warp(p);
+  const w = o.wind * hang;
+  let x = p.x - w * 2.2;
+  let y = p.y - w * (1.2 + Math.sin(o.t * Math.PI * 2 - p.x * 0.16) * 1.1);
+  for (const k of o.knees) {
+    const near = 1 - ((x - k.x) / 8) ** 2;
+    if (near > 0 && k.y - 2 < y) y += (k.y - 2 - y) * near * near * hang;
+  }
+  return o.warp(pt(x, y));
+}
 
 /** A small gold crown (three points on a band), centred at c, `s` across. */
 export function goldCrown(d: Draw, c: Pt, s: number): void {
@@ -32,14 +62,15 @@ const TOP: readonly [number, number][] = [
 ];
 const FRONT: readonly [number, number][] = [[26.2, -24.4], [24.6, -31], [24, -38.6], [25, -45], [24.6, -52], [25.6, -59], [27.4, -64.6]];
 
-export function caparisonShape(): Pt[] {
-  return shapeOf([...TOP, [-39.4, -20.6], ...hem(-36, 24, -20, -23.6, 8), ...FRONT], 4);
+export function caparisonShape(o: Drape = STILL): Pt[] {
+  return shapeOf(mapXY([...TOP, [-39.4, -20.6], ...hem(-36, 24, -20, -23.6, 8), ...FRONT], (p) => drape(p, o)), 4);
 }
 
 /** The caparison, painted: blue field, folds, gold crowns and border. */
-export function caparison(d: Draw): Pt[] {
+export function caparison(d: Draw, o: Drape = STILL): Pt[] {
   const { pen } = d;
-  const shape = caparisonShape();
+  const shape = caparisonShape(o);
+  const w = (xy: readonly (readonly [number, number])[]): [number, number][] => mapXY(xy, o.warp);
   paint(d, shape, CROWN_BLUE, { shadow: 0.6, hatch: 0.22, cross: true, line: 0, lit: pt(0.5, 0.25) });
   pen.clipped(shape, () => {
     // The body's roundness under the cloth, then folds hanging from it to the hem.
@@ -51,16 +82,16 @@ export function caparison(d: Draw): Pt[] {
       pen.hair(lineOf([[x + 2.2, -32], [x + 2.6, -26], [x + 3 + sway, -20]]), 0.35, mix(CROWN_BLUE, SHADOW, 0.65), 0.75);
     }
     // The cloth stretched round the neck: creases from the throat.
-    for (const k of [0, 1, 2]) pen.hair(lineOf([[24.6 - k * 1.2, -60 + k * 5], [19 - k * 2, -58 + k * 4.6], [14 - k * 2, -54 + k * 4]]), 0.35, mix(CROWN_BLUE, SHADOW, 0.6), 0.6);
+    for (const k of [0, 1, 2]) pen.hair(lineOf(w([[24.6 - k * 1.2, -60 + k * 5], [19 - k * 2, -58 + k * 4.6], [14 - k * 2, -54 + k * 4]])), 0.35, mix(CROWN_BLUE, SHADOW, 0.6), 0.6);
   });
   // The gold border: along the hem, and down the neck's edge.
-  const border = hem(-38.6, 25.4, -21.6, -25, 8).map(([x, y]) => pt(x, y));
+  const border = hem(-38.6, 25.4, -21.6, -25, 8).map(([x, y]) => drape(pt(x, y), o));
   pen.clipped(shape, () => {
     pen.stroke(border, 2.2, GOLD, 0.95, false);
     pen.stroke(border.map((p) => pt(p.x, p.y - 1.5)), 0.35, d.ink, 0.6, false);
   });
   pen.stroke([...shape, shape[0]!], 0.65, d.ink, 0.9);
-  for (const [x, y, s] of [[-20, -42, 7], [-4, -36, 7], [12, -40, 6.4], [-27, -30, 5.6], [8, -29, 5.6], [16, -58, 5.4]] as const) goldCrown(d, pt(x, y), s);
+  for (const [x, y, s] of [[-20, -42, 7], [-4, -36, 7], [12, -40, 6.4], [-27, -30, 5.6], [8, -29, 5.6], [16, -58, 5.4]] as const) goldCrown(d, drape(pt(x, y), o), s);
   return shape;
 }
 

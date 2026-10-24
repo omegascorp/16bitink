@@ -49,8 +49,8 @@ function clothPad(d: Draw, cloth: string, trim: string): void {
   paint(d, shapeOf([[1.8, -38], [4.6, -38], [5.2, -28], [2.4, -27.6]], 3), LEATHER, { shadow: 0.4, hatch: 0, line: 0.45 });
 }
 
-/** Bridle: headstall, browband, noseband, bit ring and the reins up to the rider's hand. */
-export function bridle(d: Draw, strap: string, hand: Pt): void {
+/** The bridle's headstall: cheekpiece, browband and noseband (head coordinates). */
+export function headstall(d: Draw, strap: string): void {
   const { pen } = d;
   const s = (xy: readonly (readonly [number, number])[], w = 0.95): void => {
     pen.stroke(lineOf(xy), w + 0.5, d.ink, 0.9, false);
@@ -59,9 +59,13 @@ export function bridle(d: Draw, strap: string, hand: Pt): void {
   s([[26.2, -73.4], [27, -66], [28.6, -59], [31.6, -53.4]]);
   s([[25.4, -71.2], [28.2, -70.4], [29.8, -69]], 0.8);
   s([[31.2, -58.6], [33.6, -57.6], [36, -56.8]], 0.9);
-  // Reins: a slack curve from the bit back to the hand.
-  const bit = HORSE.bit;
-  pen.stroke(lineOf([[bit.x, bit.y], [24, -51], [14, -54], [hand.x, hand.y]]), 0.7, d.ink, 0.9, false);
+}
+
+/** Reins: a slack curve from the bit ring (`bit`, where the head has put it) back to the rider's hand, and the ring. */
+export function reins(d: Draw, bit: Pt, hand: Pt): void {
+  const { pen } = d;
+  const along = (u: number, sag: number): [number, number] => [bit.x + (hand.x - bit.x) * u, bit.y + (hand.y - bit.y) * u + sag];
+  pen.stroke(lineOf([[bit.x, bit.y], along(0.35, 2.6), along(0.7, 1.2), [hand.x, hand.y]]), 0.7, d.ink, 0.9, false);
   pen.dot(bit.x - 0.2, bit.y - 0.4, 1, GOLD);
   pen.hair(lineOf([[bit.x - 0.9, bit.y - 0.9], [bit.x + 0.5, bit.y - 1.2]]), 0.3, '#fff2d8', 0.8);
 }
@@ -143,6 +147,15 @@ export function plateArm(d: Draw, shoulder: Pt, elbow: Pt, wrist: Pt, colour = S
   gleam(d, [pt(elbow.x + (wrist.x - elbow.x) * 0.2, elbow.y + (wrist.y - elbow.y) * 0.2 - 1), pt(elbow.x + (wrist.x - elbow.x) * 0.75, elbow.y + (wrist.y - elbow.y) * 0.75 - 1)], 0.6, 0.7);
 }
 
+/** Where the elbow goes for a hand at `wrist`: the arm's two bones kept their length, the elbow bent down and out. */
+export function elbowFor(shoulder: Pt, wrist: Pt, upper = 8.9, fore = 13.1): Pt {
+  const [dx, dy] = [wrist.x - shoulder.x, wrist.y - shoulder.y];
+  const d = Math.max(Math.abs(upper - fore) + 0.01, Math.min(upper + fore - 0.01, Math.hypot(dx, dy)));
+  const a = Math.acos(Math.max(-1, Math.min(1, (upper * upper + d * d - fore * fore) / (2 * upper * d))));
+  const base = Math.atan2(dy, dx) + a;
+  return pt(shoulder.x + Math.cos(base) * upper, shoulder.y + Math.sin(base) * upper);
+}
+
 /** A gauntleted fist round a shaft at `at`. */
 export function fist(d: Draw, at: Pt, colour = STEEL): void {
   const shape = shapeOf([[at.x - 2.4, at.y - 1.4], [at.x + 0.4, at.y - 2.6], [at.x + 2.6, at.y - 1], [at.x + 2.4, at.y + 1.8], [at.x - 0.4, at.y + 2.4], [at.x - 2.6, at.y + 1]], 4);
@@ -157,6 +170,12 @@ export const RIDER_SCALE = 1.15;
 export function onRider(p: Pt): Pt {
   const s = HORSE.seat;
   return pt(s.x + (p.x - s.x) * RIDER_SCALE, s.y + (p.y - s.y) * RIDER_SCALE);
+}
+
+/** The rider's drawing point that lands at `p` once scaled (onRider undone). */
+export function offRider(p: Pt): Pt {
+  const s = HORSE.seat;
+  return pt(s.x + (p.x - s.x) / RIDER_SCALE, s.y + (p.y - s.y) / RIDER_SCALE);
 }
 
 /** Runs `draw` with the rider's scale about the seat. */
