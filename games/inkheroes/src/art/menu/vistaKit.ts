@@ -140,6 +140,25 @@ export function onLayer(ctx: CanvasRenderingContext2D, draw: (c: CanvasRendering
   });
 }
 
+/**
+ * A building set into the evening at `x, y`, scaled by `s`: painted, then
+ * sunk under a dusky glaze (`shade`), the side towards the sun kept warm.
+ */
+export function dusk(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, shade: number, draw: (c: CanvasRenderingContext2D) => void): void {
+  onLayer(ctx, (c) => {
+    c.translate(x, y);
+    c.scale(s, s);
+    draw(c);
+  }, (c) => {
+    c.globalCompositeOperation = 'source-atop';
+    const g = c.createLinearGradient(x - 120 * s, 0, x + 120 * s, 0);
+    g.addColorStop(0, rgba('#6a4028', shade * 0.6));
+    g.addColorStop(1, rgba('#20182a', shade * 1.2));
+    c.fillStyle = g;
+    c.fillRect(x - 400, y - 400, 800, 500);
+  });
+}
+
 /** Paints `draw` on a layer, glazes what it painted with haze (thicker towards the far edge: aerial perspective), and lays it over ctx. */
 export function hazed(ctx: CanvasRenderingContext2D, haze: Haze, draw: (c: CanvasRenderingContext2D) => void): void {
   onLayer(ctx, draw, (s) => {
@@ -231,7 +250,7 @@ export function variegate(ctx: CanvasRenderingContext2D, rng: Rng, shape: readon
       return pt(c.x + Math.cos(a) * rr, c.y + Math.sin(a) * rr * 0.55);
     });
     soft(ctx, r * 0.15, () => {
-      ctx.fillStyle = rgba('#fff6e0', 0.16);
+      ctx.fillStyle = rgba(mix(tints[0]!, LIGHT, 0.35), 0.14);
       pathOf(ctx, ring);
       ctx.fill();
     });
@@ -326,6 +345,131 @@ export function cloud(ctx: CanvasRenderingContext2D, rng: Rng, cx: number, cy: n
     c.globalCompositeOperation = 'destination-out';
     c.fillStyle = g;
     c.fillRect(cx - w, cy - h * 0.16, w * 2, h * 3);
+  });
+}
+
+export interface MassTone {
+  /** The billows' body, the deep shade away from the sun, the lit edge turned to it and the glow just inside that edge. */
+  readonly body: string;
+  readonly deep: string;
+  readonly lit: string;
+  readonly glow: string;
+  readonly alpha: number;
+}
+
+/**
+ * A towering cloud mass in a low sun, as an old master paints a storm
+ * coming on at evening: billows piled into a dome, each a heavy grey-violet
+ * turning darker away from the sun, its edge turned to the sun caught in
+ * gold (brightest nearest it, `reach` the falloff), a glow sunk just inside
+ * that edge; the underside gathering into dark shade, its base dissolving
+ * raggedly into the sky.
+ */
+export function massCloud(ctx: CanvasRenderingContext2D, rng: Rng, cx: number, cy: number, w: number, h: number, tone: MassTone, sun: Pt, reach: number): void {
+  const puffs: Puff[] = [];
+  const n = Math.max(6, Math.round(w / (h * 0.32)));
+  for (let i = 0; i < n; i++) {
+    const u = (i + 0.5) / n;
+    const hump = Math.sin(Math.PI * u) ** 0.7;
+    const r = h * (0.13 + 0.3 * hump) * (0.7 + rng() * 0.6);
+    puffs.push({ x: cx - w / 2 + w * u + (rng() - 0.5) * w * 0.05, y: cy - r * 0.35 - h * 0.5 * hump * (0.55 + rng() * 0.45), r });
+  }
+  for (let i = 0; i < n; i++) {
+    const u = 0.06 + rng() * 0.88;
+    const hump = Math.sin(Math.PI * u);
+    const r = h * (0.12 + rng() * 0.18);
+    puffs.push({ x: cx - w / 2 + w * u, y: cy - h * (0.05 + 0.75 * hump * rng()), r });
+  }
+  puffs.sort((a, b) => a.y - b.y);
+  // Billows are never circles: each a lumpy, cauliflowered blob.
+  const shapes = puffs.map((p) => lumpy(rng, p));
+  const top = Math.min(...puffs.map((p) => p.y - p.r));
+  const toSun = (x: number, y: number): { ux: number; uy: number; k: number } => {
+    const dist = Math.hypot(sun.x - x, sun.y - y) || 1;
+    return { ux: (sun.x - x) / dist, uy: (sun.y - y) / dist, k: Math.max(0.15, Math.min(1, 1.15 - dist / reach)) };
+  };
+  const all = (c: CanvasRenderingContext2D, dx = 0, dy = 0): void => {
+    c.beginPath();
+    for (const s of shapes) ring(c, s, dx, dy);
+  };
+  const whole = toSun(cx, cy - h * 0.4);
+  onLayer(ctx, (c) => {
+    soft(c, 1, () => {
+      c.fillStyle = rgba(tone.body, tone.alpha);
+      all(c);
+      c.fill('nonzero');
+    });
+    c.save();
+    c.globalCompositeOperation = 'source-atop';
+    // The billows' forms: each sinks into shade on the side away from the sun and glows on the side towards it, softly, so they read as volume rather than outlines.
+    for (const [i, p] of puffs.entries()) {
+      const { ux, uy, k } = toSun(p.x, p.y);
+      const low = Math.max(0, Math.min(1, (p.y - top) / Math.max(1, cy - top)));
+      softly(c, p.r * 0.45, tone.deep, 0.3 + low * 0.35, (cc) => {
+        cc.beginPath();
+        cc.ellipse(p.x - ux * p.r * 0.45, p.y - uy * p.r * 0.45, p.r * 0.95, p.r * 0.8, 0, 0, TAU);
+      });
+      if (k > 0.25) softly(c, p.r * 0.35, tone.glow, 0.35 * k, (cc) => {
+        cc.beginPath();
+        cc.ellipse(p.x + ux * p.r * 0.45, p.y + uy * p.r * 0.45, p.r * 0.6, p.r * 0.5, 0, 0, TAU);
+      });
+      // A lit lip on the billow's sun side, feathered inwards.
+      if (i % 2 === 0 || k > 0.6) {
+        const off = p.r * 0.22;
+        softly(c, p.r * 0.12, tone.lit, 0.4 * k * k, (cc) => {
+          cc.beginPath();
+          ring(cc, shapes[i]!);
+          ring(cc, shapes[i]!, -ux * off, -uy * off);
+        }, { rule: 'evenodd' });
+      }
+    }
+    // The underside gathers into shadow.
+    const g = c.createLinearGradient(0, top + (cy - top) * 0.45, 0, cy);
+    g.addColorStop(0, rgba(tone.deep, 0));
+    g.addColorStop(1, rgba(tone.deep, 0.5));
+    c.fillStyle = g;
+    c.fillRect(cx - w, top - h, w * 2, h * 3);
+    c.restore();
+    // The silver lining: the whole mass's edge turned to the sun caught in light, crisp outside, feathered within, brightest nearest the sun.
+    onLayer(c, (l) => {
+      l.fillStyle = tone.lit;
+      all(l);
+      l.fill('nonzero');
+    }, (l) => {
+      l.globalCompositeOperation = 'destination-out';
+      const off = h * 0.05;
+      soft(l, h * 0.02, () => {
+        l.fillStyle = '#000';
+        all(l, -whole.ux * off, -whole.uy * off);
+        l.fill('nonzero');
+      });
+      l.globalCompositeOperation = 'destination-in';
+      const fade = l.createRadialGradient(sun.x, sun.y, 0, sun.x, sun.y, reach * 1.3);
+      fade.addColorStop(0, 'rgba(0,0,0,1)');
+      fade.addColorStop(1, 'rgba(0,0,0,0.12)');
+      l.fillStyle = fade;
+      l.fillRect(cx - w, top - h, w * 2, h * 3);
+    });
+  }, (c) => {
+    // The base dissolves raggedly into the sky.
+    const m = c.createLinearGradient(0, cy - h * 0.12, 0, cy + h * 0.12);
+    m.addColorStop(0, 'rgba(0,0,0,0)');
+    m.addColorStop(1, 'rgba(0,0,0,1)');
+    c.globalCompositeOperation = 'destination-out';
+    c.fillStyle = m;
+    c.fillRect(cx - w, cy - h * 0.13, w * 2, h * 3);
+  });
+}
+
+/** A billow's outline: a circle swelling into small cauliflower lobes, a little flattened. */
+function lumpy(rng: Rng, p: Puff): Pt[] {
+  const lobes = 5 + Math.floor(rng() * 4);
+  const ph = rng() * TAU;
+  const q = rng() * TAU;
+  return Array.from({ length: 36 }, (_, i) => {
+    const a = (i / 36) * TAU;
+    const k = 0.9 + 0.1 * Math.abs(Math.sin((a * lobes) / 2 + ph)) ** 0.7 + 0.06 * Math.sin(a * 2 + q) + (rng() - 0.5) * 0.03;
+    return pt(p.x + Math.cos(a) * p.r * k, p.y + Math.sin(a) * p.r * k * 0.88);
   });
 }
 

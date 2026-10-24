@@ -15,17 +15,17 @@ export const DEPTH = 0.6;
 export const SKEW = 0.16;
 export const P = (x: number, z: number, h = 0): Pt => pt(x + z * SKEW, -z * DEPTH - h);
 
-export const STONE = '#c8bea8';
-export const STONE_WARM = '#cdb894';
-export const MORTAR = '#8f8676';
-export const TIMBER = '#8a6440';
-export const TIMBER_DARK = '#5a3d26';
-export const PLANK = '#a88358';
-export const HOLE = '#2b2738';
-export const CROWN_BLUE = '#2f55a8';
-export const CROWN_GOLD = '#c99a2e';
-export const SHINGLE = '#8d5a3e';
-export const THATCH = '#c8a65e';
+export const STONE = '#948a76';
+export const STONE_WARM = '#9c8766';
+export const MORTAR = '#4f463a';
+export const TIMBER = '#5e3f25';
+export const TIMBER_DARK = '#35221a';
+export const PLANK = '#7a5a38';
+export const HOLE = '#140e0c';
+export const CROWN_BLUE = '#28468f';
+export const CROWN_GOLD = '#b8892a';
+export const SHINGLE = '#5e3626';
+export const THATCH = '#9a7a3e';
 
 export interface Box {
   readonly x0: number;
@@ -321,7 +321,7 @@ export function arch(d: Draw, at: Surface, u: number, w: number, h: number, colo
 
 /** A narrow window: an arched dark slot with a lit sill. */
 export function slit(d: Draw, at: Surface, u: number, v: number, w: number, h: number): void {
-  const hole = arch(d, (a, b) => at(a, b + v), u, w, h, '#c8bea8', 0);
+  const hole = arch(d, (a, b) => at(a, b + v), u, w, h, STONE, 0);
   d.pen.hair([at(u - 0.4, v - 0.3), at(u + w + 0.4, v - 0.3)], 0.6, PAPER_FILL, 0.7);
   void hole;
 }

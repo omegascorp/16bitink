@@ -2,9 +2,11 @@ import type { Rng } from '../../logic/rng';
 import { bezier, closed, oval, pt, type Draw } from '../kit';
 import { PAPER_FILL } from '../palette';
 import type { Pt } from '../pen';
+import { deepen, LICHEN, MOSS, mossFoot } from './light';
 import { ashlar, boards, CROWN_BLUE, CROWN_GOLD, frontOf, HOLE, P, quad, roundWash, shingles, sideOf, type Box, type Surface } from '../sites/build';
-import { blob, boundsOf, crisp, dab, flat, glow, LIGHT, mix, paint, rgba, SHADOW, soft, sprite } from '../sites/paintKit';
+import { blob, boundsOf, crisp, dab, flat, glow, LIGHT, mix, paint, rgba, SHADOW, soft } from '../sites/paintKit';
 import { IRON } from '../sites/parts';
+import { townSprite } from './townSprite';
 import { SLOTS, type Slot, type TownDrawer } from './types';
 
 /**
@@ -14,13 +16,13 @@ import { SLOTS, type Slot, type TownDrawer } from './types';
  * coursed stones, quoins, slates with moss, windows with their reveals and
  * sills, heavy doors with iron straps, eave shadows and heraldry.
  */
-export const OAK = '#7a5232';
-export const OAK_DARK = '#4e3322';
-export const SLATE = '#5f7192';
-export const SLATE_WARM = '#6d6a7c';
-export const STRAW = '#d4b264';
+export const OAK = '#4e3420';
+export const OAK_DARK = '#2e1c10';
+export const SLATE = '#454d58';
+export const SLATE_WARM = '#4d4850';
+export const STRAW = '#9a7c44';
 export const CANDLE = '#f7c560';
-export const STEEL = '#b9bec8';
+export const STEEL = '#8a8e96';
 
 /** Stone courses and slates at townscape scale. */
 const COURSE = 6.4;
@@ -36,9 +38,9 @@ export const off = (p: Pt, v: Pt): Pt => pt(p.x + v.x, p.y + v.y);
 export function face(d: Draw, rng: Rng, at: Surface, w: number, h: number, color: string, tex: Finish, tone: number): Pt[] {
   const { pen } = d;
   const shape = crisp(quad(at, 0, 0, w, h), 4);
-  flat(d, shape, color, { tone, hatch: tone > 0.2 ? 0.22 : 0, line: 0 });
+  flat(d, shape, color, { tone: deepen(tone), hatch: tone > 0.2 ? 0.22 : 0, line: 0 });
   const toned = tone > 0 ? mix(color, SHADOW, tone * 0.7) : color;
-  if (tex === 'stone') ashlar(d, rng, at, w, h, shape, toned, COURSE, STONE_LEN);
+  if (tex === 'stone') { ashlar(d, rng, at, w, h, shape, toned, COURSE, STONE_LEN); mossFoot(d, rng, at, w, h, shape); }
   if (tex === 'plank') boards(d, rng, at, w, h, shape, toned, 5.2);
   if (tex === 'plaster') {
     pen.clipped(shape, () => {
@@ -46,7 +48,7 @@ export function face(d: Draw, rng: Rng, at: Surface, w: number, h: number, color
       for (let i = 0; i < Math.max(1, Math.round((w * h) / 1800)); i++) {
         const c = at(rng() * w, h * (0.15 + rng() * 0.6));
         const patch = blob(c, 5 + rng() * 5, 3 + rng() * 3, rng, 0.35, 14);
-        pen.fill(patch, mix(toned, '#9a8a70', 0.5), 0.35);
+        pen.fill(patch, mix(toned, '#735f46', 0.5), 0.35);
         for (let k = 0; k < 3; k++) pen.hair([pt(c.x - 4, c.y - 2 + k * 2.6), pt(c.x + 4, c.y - 2 + k * 2.6)], 0.35, d.ink, 0.35);
       }
     });
@@ -55,7 +57,7 @@ export function face(d: Draw, rng: Rng, at: Surface, w: number, h: number, color
     // Wet-in-wet blooms: the wash pooling warmer and cooler across the face.
     for (let i = 0; i < Math.max(2, Math.round((w * h) / 900)); i++) {
       const c = at(rng() * w, rng() * h);
-      const tint = rng() < 0.5 ? '#9c7f58' : '#7d86a0';
+      const tint = rng() < 0.5 ? '#705a3b' : '#5a5e66';
       dab(d, blob(c, 6 + rng() * 10, 4 + rng() * 6, rng, 0.3, 14), mix(toned, tint, 0.6), 0.16, 3);
     }
     pen.stipple(shape, Math.round(w * h * 0.06), () => 0.55, 0.42, mix(toned, SHADOW, 0.45));
@@ -64,7 +66,7 @@ export function face(d: Draw, rng: Rng, at: Surface, w: number, h: number, color
       const u = rng() * w;
       dab(d, crisp(quad(at, u, h * (0.35 + rng() * 0.3), u + 2 + rng() * 3, h), 3), mix(toned, SHADOW, 0.4), 0.12, 1.2);
     }
-    soft(pen.ctx, 2.4, () => pen.fill(quad(at, -3, -2, w + 3, Math.min(h * 0.25, 9)), mix(toned, '#5a4a3a', 0.5), 0.26));
+    soft(pen.ctx, 2.4, () => pen.fill(quad(at, -3, -2, w + 3, Math.min(h * 0.25, 9)), mix(toned, '#4a3624', 0.5), 0.26));
     // The light: a warm glaze where it strikes the upper left, a cool one settling to the lower right.
     const r = Math.max(w, h);
     soft(pen.ctx, r * 0.18, () => {
@@ -109,7 +111,7 @@ export function stringCourse(d: Draw, at: Surface, u0: number, u1: number, v: nu
 function plane(d: Draw, rng: Rng, at: Surface, w: number, h: number, color: string, tone: number, kind: Roofing): Pt[] {
   const { pen } = d;
   const shape = crisp(quad(at, 0, 0, w, h), 4);
-  flat(d, shape, color, { tone, hatch: tone > 0.2 ? 0.26 : 0, line: 0 });
+  flat(d, shape, color, { tone: deepen(tone), hatch: tone > 0.2 ? 0.26 : 0, line: 0 });
   const toned = tone > 0 ? mix(color, SHADOW, tone * 0.6) : color;
   if (kind === 'slate') shingles(d, rng, at, w, h, shape, toned, 4.4, 5.4);
   else shingles(d, rng, at, w, h, shape, toned, 5, 4.6);
@@ -117,7 +119,7 @@ function plane(d: Draw, rng: Rng, at: Surface, w: number, h: number, color: stri
     // Lichen and moss low on the slope, a sheen of light skimming its upper part.
     for (let i = 0; i < Math.round(w / 22); i++) {
       const c = at(rng() * w, h * rng() * 0.3);
-      dab(d, blob(c, 3 + rng() * 5, 1.6 + rng() * 2, rng, 0.4, 12), rng() < 0.5 ? '#7f9a5a' : '#9a9a78', 0.16, 1.6);
+      dab(d, blob(c, 3 + rng() * 5, 1.6 + rng() * 2, rng, 0.4, 12), rng() < 0.5 ? MOSS : LICHEN, 0.22, 1.6);
     }
     if (tone < 0.2) soft(pen.ctx, 4, () => pen.fill(quad(at, 0, h * 0.62, w * 0.55, h), LIGHT, 0.16));
     soft(pen.ctx, 1.6, () => pen.fill(quad(at, -2, -2, w + 2, 2.4), SHADOW, 0.25));
@@ -143,7 +145,7 @@ export function gableRoof(d: Draw, rng: Rng, b: Box, rise: number, along: 'x' | 
     const zm = (b.z0 + b.z1) / 2;
     eaveShadow(d, frontOf(b), b.x1 - b.x0, b.h1 - b.h0, 9);
     const end = crisp([P(b.x1, b.z0, h), P(b.x1, b.z1, h), P(b.x1, zm, h + rise)], 4);
-    flat(d, end, wallColor, { tone: 0.42, hatch: 0.26, line: 0.65 });
+    flat(d, end, wallColor, { tone: deepen(0.42), hatch: 0.26, line: 0.65 });
     const back: Surface = (u, v) => P(b.x0 - o + u, b.z1 + o - (v / rise) * (b.z1 + o - zm), h + v);
     plane(d, rng, back, b.x1 - b.x0 + 2 * o, rise, color, -0.1, kind);
     const front: Surface = (u, v) => P(b.x0 - o + u, b.z0 - o + (v / rise) * (zm - b.z0 + o), h - o * 0.5 + v * (1 + (o * 0.5) / rise));
@@ -173,7 +175,7 @@ export function pyramidRoof(d: Draw, rng: Rng, b: Box, rise: number, color: stri
   const apex = P((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2, b.h1 + rise);
   const tri = (a: Pt, c: Pt, tone: number): void => {
     const shape = crisp([a, c, apex], 4);
-    flat(d, shape, color, { tone, hatch: tone > 0.2 ? 0.28 : 0, line: 0 });
+    flat(d, shape, color, { tone: deepen(tone), hatch: tone > 0.2 ? 0.28 : 0, line: 0 });
     const span = Math.hypot(c.x - a.x, c.y - a.y);
     const at: Surface = (u, v) => {
       const t = v / rise;
@@ -239,8 +241,8 @@ function glass(d: Draw, hole: readonly Pt[]): void {
   const ys = hole.map((p) => p.y);
   d.pen.clipped(hole, () => {
     const g = ctx.createLinearGradient(Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys));
-    g.addColorStop(0, '#68759a');
-    g.addColorStop(0.45, '#3a3f5c');
+    g.addColorStop(0, '#4c5466');
+    g.addColorStop(0.45, '#24262e');
     g.addColorStop(1, HOLE);
     ctx.fillStyle = g;
     ctx.fillRect(Math.min(...xs) - 1, Math.min(...ys) - 1, Math.max(...xs) - Math.min(...xs) + 2, Math.max(...ys) - Math.min(...ys) + 2);
@@ -342,7 +344,7 @@ export function door(d: Draw, rng: Rng, at: Surface, u: number, w: number, h: nu
     for (const v of [h * 0.2, arched ? sp * 0.85 : h * 0.75]) {
       pen.stroke([at(u + 0.5, v), at(u + w * 0.78, v)], 1.5, IRON, 0.95, false);
       pen.stroke(bezier(at(u + w * 0.78, v), at(u + w * 0.88, v + 1.6), at(u + w * 0.82, v + 2.4), 5), 0.9, IRON, 0.9, false);
-      for (let s = u + 2; s < u + w * 0.75; s += 2.6) pen.dot(at(s, v).x, at(s, v).y, 0.42, '#c9c3b6', 0.95);
+      for (let s = u + 2; s < u + w * 0.75; s += 2.6) pen.dot(at(s, v).x, at(s, v).y, 0.42, '#928473', 0.95);
     }
     pen.crescent(leaf, pt(2, 2.4), () => soft(pen.ctx, 0.6, () => pen.fill(leaf, SHADOW, 0.45)));
   });
@@ -480,7 +482,7 @@ export function flag(d: Draw, foot: Pt, h: number, color: string, len = 22, dept
 }
 
 /** A barrel standing on the ground, `c` at the middle of its foot: bellied staves, iron hoops, its lid. */
-export function barrel(d: Draw, c: Pt, r: number, h: number, wood = '#8f6640'): void {
+export function barrel(d: Draw, c: Pt, r: number, h: number, wood = '#69492b'): void {
   const { pen } = d;
   const ry = r * 0.42;
   const side = [...bezier(pt(c.x - r, c.y - h), pt(c.x - r * 1.2, c.y - h / 2), pt(c.x - r, c.y), 8), ...oval(c.x, c.y, r, ry, 24).filter((p) => p.y >= c.y - 0.01).sort((a, b) => a.x - b.x), ...bezier(pt(c.x + r, c.y), pt(c.x + r * 1.2, c.y - h / 2), pt(c.x + r, c.y - h), 8)];
@@ -503,7 +505,7 @@ export function barrel(d: Draw, c: Pt, r: number, h: number, wood = '#8f6640'): 
 export function tufts(d: Draw, rng: Rng, x0: number, x1: number, y: number, n: number, k = 1): void {
   for (let i = 0; i < n; i++) {
     const x = x0 + rng() * (x1 - x0);
-    for (let j = -2; j <= 2; j++) d.pen.stroke([pt(x + j * 0.9, y + rng() * 0.6), pt(x + j * 2.2 * k + (rng() - 0.5), y - (3 + rng() * 4) * k)], 0.6, rng() < 0.5 ? '#6f8f4e' : '#4d7a45', 0.95, false);
+    for (let j = -2; j <= 2; j++) d.pen.stroke([pt(x + j * 0.9, y + rng() * 0.6), pt(x + j * 2.2 * k + (rng() - 0.5), y - (3 + rng() * 4) * k)], 0.6, rng() < 0.5 ? '#4d6634' : '#365930', 0.95, false);
   }
 }
 
@@ -511,12 +513,12 @@ export function tufts(d: Draw, rng: Rng, x0: number, x1: number, y: number, n: n
 export function apron(d: Draw, rng: Rng, c: Pt, rx: number, ry: number, stones = true): void {
   const { pen } = d;
   const patch = blob(c, rx, ry, rng, 0.18, 24);
-  soft(pen.ctx, 2, () => pen.fill(patch, '#b49a72', 0.55));
+  soft(pen.ctx, 2, () => pen.fill(patch, '#76604a', 0.55));
   if (!stones) return;
   for (let i = 0; i < Math.round(rx / 3); i++) {
     const p = pt(c.x + (rng() - 0.5) * rx * 1.5, c.y + (rng() - 0.5) * ry * 1.3);
     const s = blob(p, 3 + rng() * 2.5, 1.5 + rng(), rng, 0.2, 10);
-    pen.fill(s, mix('#c4b89c', PAPER_FILL, rng() * 0.3), 0.85);
+    pen.fill(s, mix('#8e7c62', PAPER_FILL, rng() * 0.3), 0.85);
     pen.hair(closed(s), 0.4, d.ink, 0.5);
   }
 }
@@ -539,5 +541,5 @@ export function windowGlow(d: Draw, c: Pt, r: number, alpha = 0.3): void {
 
 /** Paints `draw` as a finished building in its slot's frame: ground first, the figure inked and rim-lit, then the air. */
 export function dwelling(slot: Slot, draw: (d: Draw, rng: Rng) => void, ground: (d: Draw, rng: Rng) => void, air?: (d: Draw, rng: Rng) => void, line = 1.3): TownDrawer {
-  return (ctx, seed) => sprite(ctx, seed, 0, { bounds: boundsOf(SLOTS[slot].frame), line, ground, air }, draw);
+  return (ctx, seed) => townSprite(ctx, seed, 0, { bounds: boundsOf(SLOTS[slot].frame), line, ground, air }, draw);
 }

@@ -251,10 +251,10 @@ export const GAMES: readonly CatalogGame[] = [
     updated: '2026-10-25',
     size: { chapters: 1 },
     demo: 'First map free',
-    theme: { paper: '#f3ecd9', ink: '#232a4f', accent: '#27408b' },
+    theme: { paper: '#15110d', ink: '#efe2c2', accent: '#d4a849' },
     icon: 'inkheroes',
     orientation: 'landscape',
-    fonts: { googleCss: 'family=Caveat:wght@500;700', await: ['32px Caveat'] },
+    fonts: { googleCss: 'family=Caveat:wght@500;700&family=Cinzel:wght@500;600;700;800&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400', await: ['32px Caveat', '700 32px Cinzel', '32px "EB Garamond"', '600 32px "EB Garamond"'] },
     features: [
       'Map 1 free: Ashford, a 20–40 minute campaign map, no sign-up',
       'Heroes III-style battles on a hex field: retaliation, shooters, flyers, morale, luck and spells',

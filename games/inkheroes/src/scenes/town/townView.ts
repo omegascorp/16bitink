@@ -1,10 +1,9 @@
 import Phaser from 'phaser';
-import { INK } from '../../art/palette';
+import { DISPLAY, UI } from '../../art/palette';
 import { TEX } from '../../art/textures';
 import { townPieces } from '../../art/townscape';
 import { PIECE_SLOT, SLOTS, TOWN_RES, TOWN_VIEW, type TownPiece } from '../../art/townscape/types';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
-import { HAND } from '../uiPaint';
 
 /** Brightens a building under the pointer (added to its colours). */
 const LIFT = 0x22201a;
@@ -27,7 +26,7 @@ export const shownPieces = (built: readonly BuildingId[]): TownPiece[] => townPi
 export function townView(scene: Phaser.Scene, built: readonly BuildingId[], opts: TownViewOpts): Phaser.GameObjects.Container {
   const c = scene.add.container(0, 0);
   c.add(scene.add.image(0, 0, TEX.townGround).setOrigin(0).setScale(1 / TOWN_RES));
-  const label = scene.add.text(0, 0, '', { fontFamily: HAND, fontSize: '26px', color: INK, backgroundColor: 'rgba(253,248,234,0.92)', padding: { x: 10, y: 2 } }).setOrigin(0.5, 1).setVisible(false);
+  const label = scene.add.text(0, 0, '', { fontFamily: DISPLAY, fontStyle: '700', fontSize: '18px', color: UI.title, backgroundColor: 'rgba(26,15,11,0.9)', padding: { x: 12, y: 5 } }).setOrigin(0.5, 1).setVisible(false);
   for (const { piece, building } of townPieces(built)) {
     const slot = SLOTS[PIECE_SLOT[piece]];
     const fr = slot.frame;
@@ -49,7 +48,7 @@ export function townView(scene: Phaser.Scene, built: readonly BuildingId[], opts
   return c;
 }
 
-/** A new building rises out of the paper. */
+/** A new building rises into place. */
 function inkIn(scene: Phaser.Scene, img: Phaser.GameObjects.Image): void {
   const y = img.y;
   img.setAlpha(0).setY(y + 10);

@@ -1,6 +1,5 @@
 import { closed, makeDraw, oval, pt, ribbon, type Draw } from '../kit';
 import type { Pt } from '../pen';
-import { PAPER_FILL } from '../palette';
 import { mix } from '../wash';
 import { chain, fur, limb, locks, tufted } from './beastFur';
 import { dab, finished, groundShadow, paint, SHADOW } from './beastPaint';
@@ -10,10 +9,11 @@ import { WOLF, wolfHead } from './wolfHead';
 import { bodyWarp, LEGS, wolfPose, type LegId, type WolfPose } from './wolfRig';
 
 /**
- * The Wolf: a big grey timber wolf stalking forward, head lowered and
- * snarling, hackles up in a thick ruff. A dark umber saddle over a grey
- * coat, buff legs and a cream chest, the fur laid in with directional pen
- * strokes; near fore reaching, near hind driving back. About 95 long and
+ * The Wolf: a lean dire wolf stalking forward, shoulders and head carried
+ * low and level with the back, snarling, hackles up in a thick ruff. A
+ * near-black saddle over a dark brindled grey-umber coat, dusky legs and a
+ * dull pale throat, the fur laid in with directional pen strokes and lit
+ * warm along the back; near fore reaching, near hind driving back. About 95 long and
  * 50 at the raised ruff, origin on the ground under its middle.
  *
  * Every part is painted in its rest place and carried into the pose (see
@@ -21,7 +21,7 @@ import { bodyWarp, LEGS, wolfPose, type LegId, type WolfPose } from './wolfRig';
  * their sockets to the paws, the head and tail turned at their roots.
  */
 const SEED = 4000;
-const LEG = '#a58f6c';
+const LEG = '#5e5040';
 
 type Warp = (p: Pt) => Pt;
 
@@ -57,7 +57,12 @@ function paintTorso(d: Draw, m: Warp): Part {
     dab(d, M([pt(36, -41), pt(26, -37), pt(18, -30), pt(6, -27), pt(-12, -30), pt(-12, -23), pt(30, -19), pt(38, -27)]), WOLF.cream, 0.85, 2);
     fur(d, TORSO, { map: m, flow: coatFlow, count: 300, len: 2.6, width: 0.32, color: WOLF.saddle, alpha: 0.8, seed: SEED + 10, keep: (x, y) => (y < -42 ? 0.95 : x > 16 ? 0.12 : 0.4) });
     fur(d, TORSO, { map: m, flow: coatFlow, count: 130, len: 2.4, width: 0.3, color: mix(WOLF.grey, WOLF.umber, 0.5), alpha: 0.7, seed: SEED + 11, keep: (_, y) => (y > -43 ? 0.8 : 0.2) });
-    fur(d, TORSO, { map: m, flow: coatFlow, count: 110, len: 2.2, width: 0.32, color: PAPER_FILL, alpha: 0.6, seed: SEED + 12, keep: (x, y) => (y < -45 && x < 20 ? 0.15 : x > 18 ? 0.5 : 0.04) });
+    fur(d, TORSO, { map: m, flow: coatFlow, count: 110, len: 2.2, width: 0.32, color: WOLF.lit, alpha: 0.55, seed: SEED + 12, keep: (x, y) => (y < -45 && x < 20 ? 0.15 : x > 18 ? 0.5 : 0.04) });
+    // Brindling: dark streaks raked down the flanks, tawny between them.
+    const streak = (x: number, y: number): number => 0.5 + 0.5 * Math.sin(x * 0.62 + y * 0.34);
+    const flank = (x: number, y: number): boolean => y > -48 && x < 20 && x > -40;
+    fur(d, TORSO, { map: m, flow: coatFlow, count: 160, len: 3, width: 0.36, color: WOLF.saddle, alpha: 0.8, seed: SEED + 15, keep: (x, y) => (flank(x, y) && streak(x, y) > 0.6 ? 0.95 : 0) });
+    fur(d, TORSO, { map: m, flow: coatFlow, count: 90, len: 2.4, width: 0.3, color: WOLF.tan, alpha: 0.55, seed: SEED + 16, keep: (x, y) => (flank(x, y) && streak(x, y) < 0.3 ? 0.9 : 0) });
     // Core shadow under the barrel.
     dab(d, M([pt(-24, -36), pt(0, -33), pt(20, -30), pt(24, -19), pt(-24, -21)]), SHADOW, 0.28, 2.2);
   });
@@ -177,8 +182,10 @@ function coat(d: Draw, body: Warp, parts: readonly Part[]): void {
   for (const [i, [rest, m]] of parts.entries()) {
     d.pen.clipped(rest.map(m), () => {
       dab(d, saddle, WOLF.saddle, 0.75, 2.6);
+      // The sun on the round of the shoulder and the haunch.
+      for (const [x, y, rx, ry] of [[18, -47, 8, 4], [-30, -43, 9, 4.4]] as const) dab(d, oval(x, y, rx, ry, 14).map(body), mix(WOLF.grey, WOLF.lit, 0.45), 0.35, 2.6);
       fur(d, rest, { map: m, flow: (x, y) => (x > 18 ? Math.PI / 2 + 0.4 : y < -42 ? Math.PI - 0.2 : Math.PI - 0.9), count: i === 0 ? 120 : 70, len: 2.4, width: 0.3, color: WOLF.saddle, alpha: 0.7, seed: SEED + 60 + i, keep: (_, y) => (y < -40 ? 0.9 : 0.35) });
-      fur(d, rest, { map: m, flow: () => Math.PI - 0.35, count: 50, len: 2, width: 0.32, color: PAPER_FILL, alpha: 0.55, seed: SEED + 70 + i, keep: (x, y) => (y < -47 && x < 20 ? 0.25 : 0.02) });
+      fur(d, rest, { map: m, flow: () => Math.PI - 0.35, count: 50, len: 2, width: 0.32, color: WOLF.lit, alpha: 0.5, seed: SEED + 70 + i, keep: (x, y) => (y < -47 && x < 20 ? 0.25 : 0.02) });
     });
   }
 }
@@ -217,6 +224,8 @@ function hinged(body: Warp, id: LegId, pivot: Pt, share: number, p: WolfPose): W
 }
 
 const NECK = pt(33, -44);
+/** The head carried nose-down, ready to strike. */
+const HEAD_DROP = 0.08;
 
 /** The wolf, back to front: far legs, tail, torso, near legs, head. */
 function wolf(d: Draw, p: WolfPose): void {
@@ -239,12 +248,13 @@ function wolf(d: Draw, p: WolfPose): void {
   drawLeg('nearFore');
   const shoulder = nearShoulder(d, shoulderM);
   coat(d, body, [torsoPart, thigh, shoulder]);
-  const head = compose(place(NECK, body(NECK), turnAt(body, NECK) + p.tilt), translate(0, -5));
-  posed(d, head, () => wolfHead(d, { gape: p.gape, ear: p.ear }));
+  // Carried low, level with the back: the hunting stance.
+  const head = compose(place(NECK, body(NECK), turnAt(body, NECK) + p.tilt + HEAD_DROP), translate(0, -2.5));
+  posed(d, head, () => wolfHead(d, { gape: p.gape, ear: p.ear - 0.22 }));
 }
 
 export const drawWolf: CreatureDrawer = (ctx, seed, f, pose) => {
   const p = wolfPose(pose);
   const ground = makeDraw(ctx, seed + f, f, 0);
-  finished(ctx, { line: 0.85, rim: 0.6 }, () => groundShadow(ground, -4 + p.bx, 48, 3.2), (layer) => wolf(makeDraw(layer, seed + f, f, 0), p));
+  finished(ctx, { line: 0.58, rim: 0.65 }, () => groundShadow(ground, -4 + p.bx, 48, 3.2), (layer) => wolf(makeDraw(layer, seed + f, f, 0), p));
 };

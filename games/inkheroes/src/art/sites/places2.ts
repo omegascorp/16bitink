@@ -1,10 +1,10 @@
 import type { Rng } from '../../logic/rng';
 import { bezier, closed, oval, pt, type Draw } from '../kit';
-import { PAPER_FILL } from '../palette';
 import type { Pt } from '../pen';
 import {
-  arch, backArc, beam, block, DEPTH, frontArc, frontOf, gable, HOLE, P, PLANK, roundWash, STONE, TIMBER, TIMBER_DARK,
+  arch, backArc, beam, block, DEPTH, frontArc, frontOf, gable, HOLE, P, roundWash, SHINGLE, THATCH, TIMBER, TIMBER_DARK,
 } from './build';
+import { PLANK, STONE } from './darkPaints';
 import { mine } from './mines';
 import { lump } from './parts';
 import { small } from './piles';
@@ -16,28 +16,32 @@ import { cone } from './spire';
  * The map's visitable places, part two: a carved standing stone, a
  * wayside shrine with its candle, a windmill and a stable.
  */
-const MOSS = '#6f8f4e';
+/** The windmill's limewashed stone, gone grey-ochre with weather. */
+const WHITEWASH = '#968a72';
+const MOSS = '#4a5f30';
 const RUNE = '#7fb6e0';
+const MENHIR = '#6c6e66';
+const FIELDSTONE = '#5e574c';
 
 /** Grass tufts at the foot of something. */
 function tufts(d: Draw, rng: Rng, x0: number, x1: number, y: number, n: number): void {
   for (let i = 0; i < n; i++) {
     const x = x0 + rng() * (x1 - x0);
-    for (let k = -1; k <= 1; k++) d.pen.stroke([pt(x + k * 0.8, y + rng()), pt(x + k * 2 + (rng() - 0.5), y - 3 - rng() * 2.5)], 0.6, rng() < 0.5 ? MOSS : '#4d7a45', 0.95, false);
+    for (let k = -1; k <= 1; k++) d.pen.stroke([pt(x + k * 0.8, y + rng()), pt(x + k * 2 + (rng() - 0.5), y - 3 - rng() * 2.5)], 0.6, rng() < 0.5 ? MOSS : '#2f4a26', 0.95, false);
   }
 }
 
 function standingStone(d: Draw, rng: Rng): void {
-  lump(d, rng, pt(-13, 3), 3, 2.2, '#a39d8c');
-  lump(d, rng, pt(14, 4), 2.4, 1.8, '#a39d8c');
+  lump(d, rng, pt(-13, 3), 3, 2.2, FIELDSTONE);
+  lump(d, rng, pt(14, 4), 2.4, 1.8, FIELDSTONE);
   const stone = [pt(-9, 2), ...bezier(pt(-9, 2), pt(-11, -26), pt(-3, -47), 12).slice(1), ...bezier(pt(-3, -47), pt(3, -50), pt(6, -42), 6).slice(1), ...bezier(pt(6, -42), pt(11, -20), pt(10, 2), 10).slice(1), pt(0, 3.5)];
-  paint(d, stone, '#9fa39a', { shadow: 0.65, hatch: 0.3, cross: true, line: 0.7 });
+  paint(d, stone, MENHIR, { shadow: 0.65, hatch: 0.3, cross: true, line: 0.7 });
   d.pen.clipped(stone, () => {
     // The side turned from the light, a narrow face down its right.
-    d.pen.fill([pt(4, -46), pt(12, -40), pt(12, 4), pt(5, 4), pt(6, -20)], mix('#9fa39a', SHADOW, 0.45), 0.45);
+    d.pen.fill([pt(4, -46), pt(12, -40), pt(12, 4), pt(5, 4), pt(6, -20)], mix(MENHIR, SHADOW, 0.45), 0.5);
     d.pen.hair([pt(4, -45), pt(6, -20), pt(5, 3)], 0.5, d.ink, 0.6);
-    d.pen.stipple(stone, 220, () => 0.6, 0.45, mix('#9fa39a', SHADOW, 0.5));
-    for (let i = 0; i < 5; i++) paint(d, blob(pt(-6 + rng() * 10, -6 - rng() * 36), 2.2 + rng() * 1.6, 1.4 + rng(), rng, 0.3, 10), rng() < 0.5 ? '#c8c27a' : MOSS, { shadow: 0.2, hatch: 0, line: 0, alpha: 0.6 });
+    d.pen.stipple(stone, 220, () => 0.6, 0.45, mix(MENHIR, SHADOW, 0.5));
+    for (let i = 0; i < 5; i++) paint(d, blob(pt(-6 + rng() * 10, -6 - rng() * 36), 2.2 + rng() * 1.6, 1.4 + rng(), rng, 0.3, 10), rng() < 0.5 ? '#7d7a40' : MOSS, { shadow: 0.2, hatch: 0, line: 0, alpha: 0.6 });
   });
   // Runes cut down its face.
   const glyphs: [number, number][][] = [
@@ -46,7 +50,7 @@ function standingStone(d: Draw, rng: Rng): void {
   glyphs.forEach((g, i) => {
     const o = pt(-3.5 + (i % 2) * 0.6, -40 + i * 7);
     const pts = g.map(([gx, gy]) => pt(o.x + gx * 1.6, o.y + gy * 1.3));
-    d.pen.stroke(pts.map((p) => pt(p.x + 0.45, p.y + 0.45)), 1.3, mix('#9fa39a', SHADOW, 0.7), 0.95, false);
+    d.pen.stroke(pts.map((p) => pt(p.x + 0.45, p.y + 0.45)), 1.3, mix(MENHIR, SHADOW, 0.7), 0.95, false);
     d.pen.stroke(pts, 0.9, RUNE, 1, false);
   });
   tufts(d, rng, -10, 11, 4, 6);
@@ -57,7 +61,7 @@ function runeGlow(d: Draw): void {
 }
 
 function shrine(d: Draw, rng: Rng): void {
-  block(d, rng, { x0: -9, x1: 9, z0: -2, z1: 6, h0: 0, h1: 3 }, mix(STONE, '#a39d8c', 0.3), 'stone');
+  block(d, rng, { x0: -9, x1: 9, z0: -2, z1: 6, h0: 0, h1: 3 }, mix(STONE, FIELDSTONE, 0.3), 'stone');
   block(d, rng, { x0: -4.5, x1: 4.5, z0: 0, z1: 5, h0: 3, h1: 20 }, STONE, 'stone', false);
   const niche = { x0: -7, x1: 7, z0: -1, z1: 7, h0: 20, h1: 33 };
   block(d, rng, niche, STONE, 'stone', false);
@@ -67,16 +71,16 @@ function shrine(d: Draw, rng: Rng): void {
     glow(d.pen.ctx, at(7, 5), 7, '#f6c060', 0.75);
     const base = at(7, 0.5);
     const candle = crisp([pt(base.x - 1, base.y), pt(base.x + 1, base.y), pt(base.x + 1, base.y - 4), pt(base.x - 1, base.y - 4)], 1);
-    paint(d, candle, '#f3ead2', { shadow: 0.3, hatch: 0, line: 0.35 });
+    paint(d, candle, '#d8ccb0', { shadow: 0.3, hatch: 0, line: 0.35 });
     flame(d, pt(base.x, base.y - 4.2), 3.2);
   });
-  gable(d, rng, niche, 8, 'z', '#8d5a3e', 'shingle', STONE, 1.6);
+  gable(d, rng, niche, 8, 'z', SHINGLE, 'shingle', STONE, 1.6);
   // A small cross-shaped finial and flowers left at its foot.
   const apex = P(0, -2.6, 41.4);
   d.pen.stroke([apex, pt(apex.x, apex.y - 4)], 0.9, d.ink, 1, false);
   d.pen.stroke([pt(apex.x - 1.5, apex.y - 2.8), pt(apex.x + 1.5, apex.y - 2.8)], 0.9, d.ink, 1, false);
   tufts(d, rng, -10, 10, 5, 4);
-  for (const [x, y, c] of [[-8, 3, '#d65a5a'], [-6, 4.5, '#f3ead2'], [7, 4, '#d65a5a'], [9, 2.5, '#e3c845']] as const) {
+  for (const [x, y, c] of [[-8, 3, '#a83a32'], [-6, 4.5, '#d8ccb0'], [7, 4, '#a83a32'], [9, 2.5, '#c9a538']] as const) {
     d.pen.dot(x, y, 1.1, c, 1);
     d.pen.dot(x + 0.3, y + 0.2, 0.4, d.ink, 0.6);
   }
@@ -92,9 +96,9 @@ function sail(d: Draw, hub: Pt, ang: number, len: number): void {
   const n = pt(-dir.y, dir.x);
   const at = (s: number, t: number): Pt => pt(hub.x + dir.x * s + n.x * t, hub.y + dir.y * s + n.y * t);
   const frame = crisp([at(6, 0.6), at(len, 0.6), at(len, 7), at(6, 7)], 2);
-  d.pen.fill(frame, PAPER_FILL, 0.25);
+  d.pen.fill(frame, '#b5a888', 0.15);
   const cloth = crisp([at(8, 0.8), at(len - 1, 0.8), at(len - 1, 6.6), at(8, 6.6)], 2);
-  paint(d, cloth, '#e7dcc0', { shadow: 0.3, hatch: 0, line: 0, alpha: 0.75 });
+  paint(d, cloth, '#ad9f80', { shadow: 0.3, hatch: 0, line: 0, alpha: 0.75 });
   for (let s = 6; s <= len; s += 3.6) d.pen.hair([at(s, 0.6), at(s, 7)], 0.4, TIMBER_DARK, 0.85);
   for (const t of [3.8, 7]) d.pen.hair([at(6, t), at(len, t)], 0.5, TIMBER_DARK, 0.9);
   beam(d, hub, at(len + 1, 0), 1.6, TIMBER, 0.5);
@@ -105,7 +109,7 @@ function windmill(d: Draw, rng: Rng): void {
   const b = P(x, z, 0);
   const t = P(x, z, H);
   const body = [...frontArc(b.x, b.y, r0), ...backArc(t.x, t.y, r1)];
-  roundWash(d, body, b.x - r0, b.x + r0, '#d6ccb4');
+  roundWash(d, body, b.x - r0, b.x + r0, WHITEWASH);
   d.pen.clipped(body, () => {
     for (let v = 4; v < H; v += 4.2) {
       const k = v / H;
@@ -121,28 +125,28 @@ function windmill(d: Draw, rng: Rng): void {
   });
   d.pen.stroke(closed(crisp(body, 4)), 0.6, d.ink, 0.85);
   const at = (u: number, v: number): Pt => pt(b.x + u, b.y + r0 * DEPTH - v);
-  arch(d, at, -3.5, 7, 10, '#d6ccb4', 1.3);
-  arch(d, at, -1.2, 2.6, 4, '#d6ccb4', 0.8, 20);
-  cone(d, rng, t, r1 + 2, 12, '#7b5a40', null);
+  arch(d, at, -3.5, 7, 10, WHITEWASH, 1.3);
+  arch(d, at, -1.2, 2.6, 4, WHITEWASH, 0.8, 20);
+  cone(d, rng, t, r1 + 2, 12, '#4e3424', null);
   const hub = pt(t.x + 1, t.y - 2);
   for (let k = 0; k < 4; k++) sail(d, hub, 0.38 + (k * Math.PI) / 2, 23);
   paint(d, oval(hub.x, hub.y, 2.2, 2.2, 12), TIMBER_DARK, { shadow: 0.4, hatch: 0, line: 0.5 });
   for (const [px, py] of [[16, 6], [20, 4]] as const) {
     const sackShape = blob(pt(px, py), 3, 3.4, rng, 0.15, 14);
-    paint(d, sackShape, '#d9c9a0', { shadow: 0.55, hatch: 0.25, line: 0.55 });
+    paint(d, sackShape, '#9e8a64', { shadow: 0.55, hatch: 0.25, line: 0.55 });
   }
 }
 
 /** A horse's head and neck looking out over a half door, facing right, `c` at the neck's foot. */
 function horse(d: Draw, c: Pt): void {
   const p = (x: number, y: number): Pt => pt(c.x + x * 0.8, c.y + y * 0.8);
-  const coat = '#a86a40';
+  const coat = '#6e4228';
   const head = [p(-3.4, 0.5), p(-3.6, -6), p(-1.8, -11), p(0.6, -11.4), p(4.6, -8), p(7.4, -3.6), p(7, -1.2), p(4.2, -1.4), p(2.2, -4), p(1.6, 0.5)];
   paint(d, head, coat, { shadow: 0.5, hatch: 0.22, line: 0.6 });
   paint(d, [p(-1.8, -10.6), p(-1.4, -14.4), p(0.4, -11.2)], mix(coat, SHADOW, 0.2), { shadow: 0.3, hatch: 0, line: 0.45 });
   // The mane down the back of the neck, a white blaze, the eye and nostril.
-  for (let i = 0; i < 5; i++) d.pen.stroke([p(-3.3 + i * 0.35, -1.5 - i * 2), p(-4.6 + i * 0.35, -0.6 - i * 2)], 0.9, '#3d2a1e', 0.95, false);
-  d.pen.fill([p(1, -10.4), p(6.6, -4), p(5.8, -3.4), p(0.4, -9.4)], '#f3ead2', 0.9);
+  for (let i = 0; i < 5; i++) d.pen.stroke([p(-3.3 + i * 0.35, -1.5 - i * 2), p(-4.6 + i * 0.35, -0.6 - i * 2)], 0.9, '#1e130c', 0.95, false);
+  d.pen.fill([p(1, -10.4), p(6.6, -4), p(5.8, -3.4), p(0.4, -9.4)], '#cfc2a4', 0.85);
   d.pen.dot(p(1.4, -8).x, p(1.4, -8).y, 0.65, d.ink, 1);
   d.pen.dot(p(6.2, -2.4).x, p(6.2, -2.4).y, 0.45, d.ink, 0.9);
   d.pen.hair([p(4.2, -1.4), p(5.4, -2.2)], 0.4, d.ink, 0.7);
@@ -162,17 +166,17 @@ function stables(d: Draw, rng: Rng): void {
     d.pen.stroke([at(u + 0.6, 0.8), at(u + 10.4, 6.2)], 0.8, TIMBER_DARK, 0.9, false);
   }
   horse(d, at(10.5, 7.4));
-  gable(d, rng, b, 12, 'x', '#c4a35c', 'thatch', PLANK, 2);
+  gable(d, rng, b, 12, 'x', THATCH, 'thatch', PLANK, 2);
   // A hay bale by the door and a fence run off to the left.
   const hay = crisp([pt(16, 9), pt(28, 8), pt(28, 1), pt(16, 2)], 2);
-  paint(d, hay, '#d9b862', { shadow: 0.5, hatch: 0.25, line: 0.6 });
+  paint(d, hay, '#9e8038', { shadow: 0.5, hatch: 0.25, line: 0.6 });
   d.pen.clipped(hay, () => {
     for (let i = 0; i < 30; i++) {
       const q = pt(16 + rng() * 12, 1 + rng() * 8);
-      d.pen.hair([q, pt(q.x + 2 + rng() * 2, q.y + (rng() - 0.5))], 0.4, rng() < 0.5 ? '#a5823a' : '#f2e2a4', 0.8);
+      d.pen.hair([q, pt(q.x + 2 + rng() * 2, q.y + (rng() - 0.5))], 0.4, rng() < 0.5 ? '#5e4620' : '#c9b06a', 0.8);
     }
   });
-  for (const x of [20, 25]) d.pen.stroke([pt(x, 1.5), pt(x, 8.6)], 0.8, '#efe2bd', 0.95, false);
+  for (const x of [20, 25]) d.pen.stroke([pt(x, 1.5), pt(x, 8.6)], 0.8, '#a8966c', 0.95, false);
   for (const x of [-38, -30]) beam(d, pt(x, 10), pt(x, 0), 1.6, TIMBER_DARK, 0.5);
   beam(d, pt(-39, 3), pt(-29, 3), 1.3, TIMBER, 0.45);
   beam(d, pt(-39, 7), pt(-29, 7), 1.3, TIMBER, 0.45);

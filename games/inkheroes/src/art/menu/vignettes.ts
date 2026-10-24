@@ -1,5 +1,6 @@
 import { createRng } from '../../logic/rng';
 import { pt, TAU } from '../kit';
+import { INK } from '../palette';
 import type { Pt } from '../pen';
 import { VIGNETTE, type VignetteId } from './types';
 import { paintAshford, paintBlackBanner, paintThornwood } from './vignetteScenes';
@@ -7,9 +8,9 @@ import { onLayer, rgba, soft } from './vistaKit';
 
 /**
  * The maps' vignettes: a small painted scene of each, set into its card
- * like a watercolour sketch on the page: the scene fades out through a
- * soft, ragged oval where the wash ran thin, a darker tide line of pigment
- * just inside the edge, the cream paper (#f3ecd9) showing round it.
+ * like a small oil sketch let into the page: the scene fades out through a
+ * soft, ragged oval where the paint ran thin, a darker tide line of umber
+ * just inside the edge, the card showing round it.
  */
 const { w: W, h: H } = VIGNETTE;
 
@@ -57,7 +58,7 @@ export function drawVignette(ctx: CanvasRenderingContext2D, id: VignetteId, seed
     c.save();
     c.globalCompositeOperation = 'source-atop';
     soft(c, 1.6, () => {
-      c.strokeStyle = rgba('#2a2c48', 0.32);
+      c.strokeStyle = rgba(INK, 0.45);
       c.lineWidth = 3;
       c.beginPath();
       edge.forEach((p, i) => (i === 0 ? c.moveTo(p.x, p.y) : c.lineTo(p.x, p.y)));

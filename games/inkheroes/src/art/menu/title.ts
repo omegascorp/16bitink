@@ -1,205 +1,229 @@
 import { createRng, type Rng } from '../../logic/rng';
 import { closed, makeDraw, pt, type Draw } from '../kit';
-import { INK } from '../palette';
+import { DISPLAY, INK, UI } from '../palette';
 import { pathOf, type Pt } from '../pen';
-import { CROWN_BLUE, CROWN_GOLD } from '../sites/build';
-import { crisp } from '../sites/paintKit';
 import { TITLE, type MenuDrawer } from './types';
-import { bloomAt, LIGHT, mix, poolEdge, rgba, SHADOW, soft, through } from './vistaKit';
+import { bloomAt, LIGHT, mix, onLayer, poolEdge, rgba, SHADOW, soft } from './vistaKit';
 
 /**
- * The game's name on the Crown's banner: a ribbon of blue cloth arched
- * across the sky, gold-trimmed and stitched, its swallowtailed ends folded
- * back behind it and turned into shadow. Washed like the rest of the
- * painting (lit from the upper left, creases and pooled edges, a fine pen
- * contour), lettered in bold hand script in deep ink edged with gold.
+ * The game's name on a heraldic plaque: a long panel of deep oxblood
+ * lacquer with pointed ends, set in a bevelled gilt frame lit from the
+ * upper left, a fine inner fillet of gold, gilt bosses at its points and
+ * rivets at its corners. The name is cut in Roman capitals and gilded:
+ * bright on the faces turned to the light, sunk into dark on the far
+ * edges, with a hard shadow where the letters stand off the lacquer.
  */
-const { w: W } = TITLE;
+const { w: W, h: H } = TITLE;
 const CX = W / 2;
-/** The band's half-width, height and arch. */
-const HALF = 222;
-const BAND = 82;
-const ARCH = 13;
-const TOP = 40;
-const DROP = 24;
-const TAIL = 84;
+const CY = 90;
+/** The panel's half-width to where the ends begin to point, its half-height and how far the points reach. */
+const HALF = 226;
+const HALF_H = 52;
+const POINT = 50;
+const FRAME = 9;
+/** Towards the light (upper left), as a unit vector. */
+const TO_LIGHT = pt(-0.55, -0.84);
 
-/** The band's top edge at x: highest in the middle. */
-const topAt = (x: number): number => TOP + ARCH * ((x - CX) / HALF) ** 2;
-const slopeAt = (x: number): number => (2 * ARCH * (x - CX)) / (HALF * HALF);
+const GILT = UI.gilt;
+const GILT_DEEP = UI.giltDeep;
+const GILT_LIGHT = UI.giltLight;
+const LACQUER = '#6e1c18';
 
-function bandShape(): Pt[] {
-  const top = Array.from({ length: 41 }, (_, i) => {
-    const x = CX - HALF + (i / 40) * HALF * 2;
-    return pt(x, topAt(x));
+function plaque(): Pt[] {
+  return [pt(CX - HALF, CY - HALF_H), pt(CX + HALF, CY - HALF_H), pt(CX + HALF + POINT, CY), pt(CX + HALF, CY + HALF_H), pt(CX - HALF, CY + HALF_H), pt(CX - HALF - POINT, CY)];
+}
+
+/** A convex polygon (clockwise on screen) pulled in by `d` on every side. */
+function inset(poly: readonly Pt[], d: number): Pt[] {
+  const n = poly.length;
+  const lines = poly.map((a, i) => {
+    const b = poly[(i + 1) % n]!;
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    // Inward normal for a clockwise outline in y-down space.
+    const nx = -(b.y - a.y) / len;
+    const ny = (b.x - a.x) / len;
+    return { a: pt(a.x + nx * d, a.y + ny * d), dx: b.x - a.x, dy: b.y - a.y };
   });
-  return [...top, ...[...top].reverse().map((p) => pt(p.x, p.y + BAND))];
+  return lines.map((l, i) => {
+    const m = lines[(i + n - 1) % n]!;
+    const den = m.dx * l.dy - m.dy * l.dx;
+    const t = ((l.a.x - m.a.x) * l.dy - (l.a.y - m.a.y) * l.dx) / (den || 1);
+    return pt(m.a.x + m.dx * t, m.a.y + m.dy * t);
+  });
 }
 
-/** One tail (side −1 left, 1 right): set lower, reaching out past the band, notched at its end. */
-function tailShape(side: -1 | 1): Pt[] {
-  const inner = CX + side * (HALF - 34);
-  const outer = CX + side * (HALF + TAIL);
-  const y0 = topAt(CX + side * HALF) + DROP;
-  const lift = -6;
-  const top = through([pt(inner, y0), pt((inner + outer) / 2, y0 + lift * 0.6), pt(outer, y0 + lift)], 6);
-  const bot = top.map((p) => pt(p.x, p.y + BAND)).reverse();
-  const notch = pt(outer - side * 30, y0 + lift + BAND / 2);
-  return [...top, notch, ...bot];
+/** The gilt frame: one facet per side between the outer and inner outlines, each lit by how squarely it faces the light. */
+function frame(d: Draw, outer: readonly Pt[], inner: readonly Pt[]): void {
+  const n = outer.length;
+  for (let i = 0; i < n; i++) {
+    const a = outer[i]!;
+    const b = outer[(i + 1) % n]!;
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    // The facet slopes away outwards, so it faces along the side's outward normal.
+    const lit = ((b.y - a.y) / len) * TO_LIGHT.x - ((b.x - a.x) / len) * TO_LIGHT.y;
+    const facet = [a, b, inner[(i + 1) % n]!, inner[i]!];
+    const base = lit > 0 ? mix(GILT, GILT_LIGHT, lit * 0.6) : mix(GILT, GILT_DEEP, -lit * 0.9);
+    d.pen.fill(facet, base, 1);
+  }
+  // Burnish: a few soft blooms and a fine scratch of light along the lit edges.
+  d.pen.clipped(outer, () => {
+    for (const [x, y, r] of [[CX - HALF + 30, CY - HALF_H + 3, 60], [CX - 40, CY - HALF_H + 3, 80], [CX - HALF - POINT * 0.5, CY - 20, 30]] as const) bloomAt(d.pen.ctx, pt(x, y), r, GILT_LIGHT, 0.5);
+  });
+  rule(d.pen.ctx, [outer[5]!, outer[0]!, outer[1]!].map((p) => pt(p.x + 0.6, p.y + 1.6)), 0.8, '#fff1c4', 0.7);
+  rule(d.pen.ctx, closed(outer), 1.2, INK, 0.9);
+  rule(d.pen.ctx, closed(inner), 0.9, mix(GILT_DEEP, SHADOW, 0.5), 0.9);
 }
 
-/** The fold where the band turns back into a tail: a dark triangle of the cloth's back. */
-function foldShape(side: -1 | 1): Pt[] {
-  const end = CX + side * HALF;
-  const y = topAt(end) + BAND;
-  return [pt(end, y), pt(end - side * 34, y + DROP - 1), pt(end - side * 34, y - 2)];
+/** An engraver's clean rule along `pts`: the frame's lines are cut, not drawn freehand. */
+function rule(ctx: CanvasRenderingContext2D, pts: readonly Pt[], w: number, color: string, alpha: number): void {
+  ctx.save();
+  ctx.strokeStyle = rgba(color, alpha);
+  ctx.lineWidth = w;
+  ctx.lineJoin = 'miter';
+  ctx.beginPath();
+  pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+  ctx.stroke();
+  ctx.restore();
 }
 
-/** Cloth washed in its blue: lit at the upper left, creased, pigment pooled at the hems. */
-function cloth(d: Draw, rng: Rng, shape: readonly Pt[], tone: number, creases: readonly number[]): void {
+/** The lacquered field: deep oxblood, glowing at the upper left, sinking to near-black at the lower right, mottled, with a little hatching in its shade. */
+function field(d: Draw, rng: Rng, shape: readonly Pt[]): void {
   const ctx = d.pen.ctx;
-  const body = mix(CROWN_BLUE, SHADOW, tone);
-  const xs = shape.map((p) => p.x);
-  const ys = shape.map((p) => p.y);
-  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
   ctx.save();
   pathOf(ctx, shape);
   ctx.clip();
-  const g = ctx.createLinearGradient(x0, y0, x0 + (x1 - x0) * 0.35, y1);
-  g.addColorStop(0, mix(body, LIGHT, 0.32));
-  g.addColorStop(0.5, body);
-  g.addColorStop(1, mix(body, SHADOW, 0.35));
+  const g = ctx.createLinearGradient(CX - HALF, CY - HALF_H, CX + HALF * 0.4, CY + HALF_H * 1.6);
+  g.addColorStop(0, mix(LACQUER, '#b04432', 0.18));
+  g.addColorStop(0.45, LACQUER);
+  g.addColorStop(1, mix(LACQUER, SHADOW, 0.6));
   ctx.fillStyle = g;
-  ctx.fillRect(x0 - 2, y0 - 2, x1 - x0 + 4, y1 - y0 + 4);
-  for (let i = 0; i < 8; i++) bloomAt(ctx, pt(x0 + rng() * (x1 - x0), y0 + rng() * (y1 - y0)), 18 + rng() * 30, rng() < 0.5 ? mix(body, LIGHT, 0.3) : mix(body, SHADOW, 0.35), 0.3);
-  // Creases: a soft dark trough with a lit ridge beside it, running across the cloth.
-  for (const cx of creases) {
-    soft(ctx, 5, () => {
-      ctx.fillStyle = rgba(mix(body, SHADOW, 0.5), 0.55);
-      ctx.beginPath();
-      ctx.ellipse(cx + 4, (y0 + y1) / 2 + 4, 7, (y1 - y0) * 0.6, 0.12, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = rgba(mix(body, LIGHT, 0.45), 0.45);
-      ctx.beginPath();
-      ctx.ellipse(cx - 7, (y0 + y1) / 2, 5, (y1 - y0) * 0.6, 0.12, 0, Math.PI * 2);
-      ctx.fill();
+  ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 14; i++) bloomAt(ctx, pt(CX - HALF - POINT + rng() * (HALF + POINT) * 2, CY - HALF_H + rng() * HALF_H * 2), 20 + rng() * 40, rng() < 0.5 ? mix(LACQUER, '#a83a2a', 0.4) : mix(LACQUER, SHADOW, 0.5), 0.3);
+  // A soft sheen across the upper third, where the lacquer takes the light.
+  ctx.save();
+  ctx.translate(CX - 80, CY - HALF_H * 0.55);
+  ctx.scale(1, 0.18);
+  bloomAt(ctx, pt(0, 0), 230, '#c86a4e', 0.28);
+  ctx.restore();
+  ctx.restore();
+  d.pen.crescent(shape, pt(-6, -12), () => d.pen.hatch(shape, 2.6, 0.95, 0.4, { color: SHADOW, alpha: 0.28 }));
+  poolEdge(ctx, shape, SHADOW, 0.6, 6);
+}
+
+/** A gilt boss: a domed stud with its rim, lit upper left. */
+function boss(d: Draw, c: Pt, r: number): void {
+  const ctx = d.pen.ctx;
+  soft(ctx, 1.2, () => {
+    ctx.fillStyle = rgba(SHADOW, 0.6);
+    ctx.beginPath();
+    ctx.arc(c.x + r * 0.3, c.y + r * 0.45, r * 1.05, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  const g = ctx.createRadialGradient(c.x - r * 0.35, c.y - r * 0.4, r * 0.1, c.x, c.y, r);
+  g.addColorStop(0, GILT_LIGHT);
+  g.addColorStop(0.5, GILT);
+  g.addColorStop(1, GILT_DEEP);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+  ctx.fill();
+  d.pen.dot(c.x - r * 0.35, c.y - r * 0.4, r * 0.22, '#fff4d0', 0.9);
+  d.pen.circle(c.x, c.y, r, 0.7, INK);
+}
+
+/** A gilt lozenge at the plaque's point, with a boss at its heart. */
+function lozenge(d: Draw, c: Pt, rx: number, ry: number): void {
+  const shape = [pt(c.x, c.y - ry), pt(c.x + rx, c.y), pt(c.x, c.y + ry), pt(c.x - rx, c.y)];
+  d.pen.fill(shape, GILT, 1);
+  d.pen.fill([shape[3]!, shape[0]!, c], GILT_LIGHT, 0.85);
+  d.pen.fill([shape[1]!, shape[2]!, c], GILT_DEEP, 0.85);
+  d.pen.stroke(closed(shape), 0.8, INK, 0.9);
+  boss(d, c, Math.min(rx, ry) * 0.38);
+}
+
+/** The name, cut in Roman capitals and gilded. */
+function lettering(ctx: CanvasRenderingContext2D, text: string): void {
+  let size = 74;
+  ctx.font = `700 ${size}px ${DISPLAY}`;
+  ctx.letterSpacing = '4px';
+  const fit = 400;
+  const measured = ctx.measureText(text).width;
+  if (measured > fit) size = Math.floor((size * fit) / measured);
+  const font = `700 ${size}px ${DISPLAY}`;
+  const setup = (c: CanvasRenderingContext2D): void => {
+    c.font = font;
+    c.letterSpacing = '4px';
+    c.textAlign = 'center';
+    c.textBaseline = 'alphabetic';
+  };
+  const base = CY + size * 0.36;
+  const top = base - size * 0.72;
+  ctx.save();
+  setup(ctx);
+  // Where the letters stand off the lacquer: a hard dark shadow down and right, then a softer one.
+  soft(ctx, 2.2, () => {
+    ctx.fillStyle = rgba('#120604', 0.8);
+    ctx.fillText(text, CX + 3, base + 4);
+  });
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = rgba('#1e0c06', 0.95);
+  ctx.lineWidth = 3.2;
+  ctx.strokeText(text, CX, base);
+  const gold = ctx.createLinearGradient(0, top, 0, base);
+  gold.addColorStop(0, '#fff0b8');
+  gold.addColorStop(0.32, GILT_LIGHT);
+  gold.addColorStop(0.5, GILT);
+  gold.addColorStop(0.56, '#8e6018');
+  gold.addColorStop(0.8, '#c8963a');
+  gold.addColorStop(1, '#e8c070');
+  ctx.fillStyle = gold;
+  ctx.fillText(text, CX, base);
+  ctx.restore();
+  // The bevel: a bright edge on the strokes' upper-left faces, a dark one on their lower-right.
+  for (const [dx, dy, color, alpha] of [[1.4, 1.8, '#fff6d6', 0.85], [-1.2, -1.6, '#3a2008', 0.7]] as const) {
+    onLayer(ctx, (c) => {
+      setup(c);
+      c.fillStyle = rgba(color, alpha);
+      c.fillText(text, CX, base);
+    }, (c) => {
+      setup(c);
+      c.globalCompositeOperation = 'destination-out';
+      c.fillStyle = '#000';
+      c.fillText(text, CX + dx, base + dy);
     });
   }
-  // The lower hem in shade, a little hatching in it.
-  soft(ctx, 6, () => {
-    ctx.fillStyle = rgba(mix(body, SHADOW, 0.6), 0.45);
-    ctx.fillRect(x0 - 4, y1 - 14, x1 - x0 + 8, 20);
-  });
-  ctx.restore();
-  d.pen.crescent(shape, pt(-4, -14), () => d.pen.hatch(shape, 3, 0.95, 0.4, { color: INK, alpha: 0.18 }));
-  poolEdge(ctx, shape, mix(body, SHADOW, 0.5), 0.5, 3);
-}
-
-/** Gold trim along an edge, set `inset` inside it: a gilt band with a dark under-line and stitch dots. */
-function trim(d: Draw, edge: readonly Pt[], inset: number): void {
-  const line = edge.map((p) => pt(p.x, p.y + inset));
-  d.pen.stroke(line.map((p) => pt(p.x + 0.4, p.y + 1.4)), 1.4, mix(CROWN_GOLD, SHADOW, 0.55), 0.6, false);
-  d.pen.stroke(line, 2.4, CROWN_GOLD, 0.95, false);
-  d.pen.hair(line.map((p) => pt(p.x - 0.3, p.y - 0.5)), 0.7, mix(CROWN_GOLD, LIGHT, 0.6), 0.8);
-  for (let i = 2; i < line.length - 1; i += 3) {
-    const p = line[i]!;
-    d.pen.dot(p.x, p.y + (inset > 0 ? 4 : -4), 0.55, mix(CROWN_GOLD, LIGHT, 0.3), 0.8);
-  }
-}
-
-/** The name, letter by letter along the band's arch: a soft shadow, a light edge, a gold edge, then deep ink. */
-function lettering(ctx: CanvasRenderingContext2D, text: string): void {
-  ctx.save();
-  ctx.font = '700 96px Caveat, cursive';
-  ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = 'left';
-  const total = ctx.measureText(text).width;
-  const start = CX - total / 2;
-  const base = (x: number): number => topAt(x) + BAND * 0.76;
-  const glyphs = [...text].map((ch, i) => {
-    const x = start + ctx.measureText(text.slice(0, i)).width;
-    const wch = ctx.measureText(ch).width;
-    const mid = x + wch / 2;
-    return { ch, x, mid, y: base(mid), a: Math.atan(slopeAt(mid)) };
-  });
-  const each = (draw: (ch: string) => void): void => {
-    for (const g of glyphs) {
-      ctx.save();
-      ctx.translate(g.mid, g.y);
-      ctx.rotate(g.a);
-      ctx.translate(g.x - g.mid, 0);
-      draw(g.ch);
-      ctx.restore();
-    }
-  };
-  ctx.lineJoin = 'round';
-  soft(ctx, 2.5, () => {
-    ctx.fillStyle = rgba(mix(CROWN_BLUE, SHADOW, 0.75), 0.75);
-    each((ch) => ctx.fillText(ch, 2.5, 4));
-  });
-  ctx.strokeStyle = rgba('#fbf1d8', 0.95);
-  ctx.lineWidth = 10;
-  each((ch) => ctx.strokeText(ch, 0, 0));
-  ctx.strokeStyle = CROWN_GOLD;
-  ctx.lineWidth = 6;
-  each((ch) => ctx.strokeText(ch, 0, 0));
-  ctx.strokeStyle = rgba(mix(CROWN_GOLD, LIGHT, 0.55), 0.9);
-  ctx.lineWidth = 1.6;
-  each((ch) => ctx.strokeText(ch, -0.8, -1.2));
-  const ink = ctx.createLinearGradient(0, TOP, 0, TOP + BAND);
-  ink.addColorStop(0, '#2a3262');
-  ink.addColorStop(0.55, '#181d40');
-  ink.addColorStop(1, '#12162f');
-  ctx.fillStyle = ink;
-  each((ch) => ctx.fillText(ch, 0, 0));
-  ctx.restore();
-}
-
-/** A small gilt lozenge with a glint. */
-function lozenge(d: Draw, c: Pt, r: number): void {
-  const shape = [pt(c.x, c.y - r), pt(c.x + r * 0.7, c.y), pt(c.x, c.y + r), pt(c.x - r * 0.7, c.y)];
-  d.pen.fill(shape, CROWN_GOLD, 1);
-  d.pen.fill([shape[0]!, shape[1]!, c], mix(CROWN_GOLD, LIGHT, 0.5), 0.8);
-  d.pen.stroke(closed(shape), 0.7, d.ink, 0.8);
 }
 
 export const drawTitle: MenuDrawer = (ctx, seed) => {
   const rng = createRng(seed);
   const d = makeDraw(ctx, seed + 1, 0, 0);
-  const band = bandShape();
-  const tails = [tailShape(-1), tailShape(1)];
-  // A soft shadow under the whole banner, thrown down and right onto the sky.
-  soft(ctx, 7, () => {
-    ctx.fillStyle = rgba('#3a4370', 0.28);
-    for (const s of [band, ...tails]) {
-      pathOf(ctx, s.map((p) => pt(p.x + 4, p.y + 7)));
-      ctx.fill();
-    }
+  const outer = plaque();
+  const inner = inset(outer, FRAME);
+  const fillet = inset(outer, FRAME + 6);
+  // The plaque's shadow thrown down and right onto the sky.
+  soft(ctx, 8, () => {
+    ctx.fillStyle = rgba('#0a0608', 0.6);
+    pathOf(ctx, outer.map((p) => pt(p.x + 5, p.y + 9)));
+    ctx.fill();
   });
-  for (const [i, t] of tails.entries()) {
-    const side = i === 0 ? -1 : 1;
-    cloth(d, rng, t, 0.3, [CX + side * (HALF + TAIL * 0.35)]);
-    const top = t.slice(0, Math.floor((t.length - 1) / 2));
-    d.pen.clipped(t, () => {
-      trim(d, top, 7);
-      trim(d, top.map((p) => pt(p.x, p.y + BAND)), -7);
-    });
-    d.pen.stroke(closed(crisp(t, 3)), 1.3, d.ink, 0.9);
-  }
-  for (const side of [-1, 1] as const) {
-    const f = foldShape(side);
-    d.pen.fill(f, mix(CROWN_BLUE, SHADOW, 0.7), 1);
-    d.pen.hatch(f, 2.2, 0.9, 0.4, { color: INK, alpha: 0.35 });
-    d.pen.stroke(closed(crisp(f, 3)), 1.1, d.ink, 0.9);
-  }
-  cloth(d, rng, band, 0.05, [CX - 150, CX + 40, CX + 170]);
-  const top = band.slice(0, 41);
-  trim(d, top, 7);
-  trim(d, top.map((p) => pt(p.x, p.y + BAND)), -7);
-  d.pen.stroke(closed(crisp(band, 3)), 1.5, d.ink, 0.95);
-  // A dry-brush shine along the band's upper fold.
-  d.pen.hair(top.slice(4, 26).map((p) => pt(p.x, p.y + 15)), 2.2, mix(CROWN_BLUE, LIGHT, 0.7), 0.35);
-  lozenge(d, pt(CX - HALF + 18, topAt(CX - HALF + 18) + BAND / 2), 6);
-  lozenge(d, pt(CX + HALF - 18, topAt(CX + HALF - 18) + BAND / 2), 6);
-  lettering(ctx, 'InkHeroes');
+  d.pen.fill(outer, GILT, 1);
+  frame(d, outer, inner);
+  field(d, rng, inner);
+  // The fillet: a fine gilt line inside the frame, lit along its upper-left run.
+  rule(ctx, closed(fillet).map((p) => pt(p.x + 0.7, p.y + 0.9)), 1.3, SHADOW, 0.7);
+  rule(ctx, closed(fillet), 1.1, mix(GILT, GILT_DEEP, 0.3), 0.95);
+  rule(ctx, [fillet[5]!, fillet[0]!, fillet[1]!].map((p) => pt(p.x - 0.3, p.y - 0.4)), 0.5, GILT_LIGHT, 0.8);
+  for (const p of [inset(outer, FRAME + 13)[0]!, inset(outer, FRAME + 13)[1]!, inset(outer, FRAME + 13)[3]!, inset(outer, FRAME + 13)[4]!]) boss(d, p, 2.6);
+  lozenge(d, pt(CX - HALF - POINT + 32, CY), 13, 17);
+  lozenge(d, pt(CX + HALF + POINT - 32, CY), 13, 17);
+  // A last warm glaze from the light's side over the whole plaque.
+  ctx.save();
+  ctx.globalCompositeOperation = 'soft-light';
+  ctx.beginPath();
+  outer.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+  ctx.closePath();
+  ctx.clip();
+  bloomAt(ctx, pt(CX - HALF, CY - HALF_H), 300, LIGHT, 0.35);
+  ctx.restore();
+  lettering(ctx, 'INKHEROES');
 };

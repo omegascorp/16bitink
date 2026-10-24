@@ -3,8 +3,9 @@ import { bezier, closed, pt, type Draw } from '../kit';
 import { PAPER_FILL } from '../palette';
 import type { Pt } from '../pen';
 import { DEPTH, frontArc, P, roundWash, type Surface } from '../sites/build';
-import { blob, boundsOf, dab, flat, glow, groundShadow, LIGHT, mix, paint, SHADOW, soft, sparkle, sprite } from '../sites/paintKit';
+import { blob, boundsOf, dab, flat, glow, groundShadow, LIGHT, mix, paint, SHADOW, soft, sparkle } from '../sites/paintKit';
 import { atmosphere, BLUE, disc, door, GOLD, roundBody, slab, box, surround, window } from './hallParts';
+import { townSprite } from './townSprite';
 import { SLOTS, type TownDrawer } from './types';
 
 /**
@@ -15,7 +16,7 @@ import { SLOTS, type TownDrawer } from './types';
  */
 
 const BOUNDS = boundsOf(SLOTS.guild.frame);
-const STONE_PALE = '#d9d2c2';
+const STONE_PALE = '#a29a88';
 const ARCANE = '#8fb8ff';
 const ARCANE_DEEP = '#9a7cf0';
 /** The tower's axis stands this far back from the anchor (its plinth's front edge at the anchor). */
@@ -47,7 +48,7 @@ function towerStones(d: Draw, rng: Rng, base: Pt, r: number, h: number, clip: re
           const t1 = t + (Math.PI / n) * (0.8 + rng() * 0.2);
           const x1 = base.x - r * Math.cos(t1);
           const y1 = base.y - v + r * DEPTH * Math.sin(t1);
-          pen.fill([pt(x, y - 0.4), pt(x1, y1 - 0.4), pt(x1, y1 - course + 0.4), pt(x, y - course + 0.4)], rng() < 0.4 ? mix(color, LIGHT, 0.5) : mix(color, '#7d6e58', 0.45), 0.16 + rng() * 0.1);
+          pen.fill([pt(x, y - 0.4), pt(x1, y1 - 0.4), pt(x1, y1 - course + 0.4), pt(x, y - course + 0.4)], rng() < 0.4 ? mix(color, LIGHT, 0.5) : mix(color, '#604d37', 0.45), 0.16 + rng() * 0.1);
         }
       }
     }
@@ -164,7 +165,7 @@ function lucarne(d: Draw, c: Pt, s: number): Pt {
   flat(d, face, STONE_PALE, { tone: 0.02, line: 0.5 });
   const w = pt(c.x, c.y - s * 0.7);
   const hole = [pt(w.x - s * 0.45, c.y - s * 0.15), ...Array.from({ length: 7 }, (_, i) => { const a = Math.PI - (i / 6) * Math.PI; return pt(w.x + Math.cos(a) * s * 0.45, w.y - s * 0.25 - Math.sin(a) * s * 0.45); }), pt(w.x + s * 0.45, c.y - s * 0.15)];
-  pen.fill(hole, '#3b4a8a', 1);
+  pen.fill(hole, '#313669', 1);
   pen.clipped(hole, () => glow(pen.ctx, w, s * 0.8, ARCANE, 0.95));
   pen.stroke(closed(hole), 0.45, d.ink, 0.9);
   const roof = [pt(c.x - s * 1.45, c.y - s * 1.3), pt(c.x + s * 1.45, c.y - s * 1.3), pt(c.x + s * 0.2, c.y - s * 2.75), pt(c.x - s * 0.2, c.y - s * 2.75)];
@@ -197,13 +198,13 @@ function roundBalustrade(d: Draw, c: Pt, r: number, h: number, color: string): v
 /** The tower's base: plinth and steps, the shaft with its door, windows, the rune band and crown of corbels. Returns its top. */
 function towerBase(d: Draw, rng: Rng, crown = R + 3.5): { readonly top: Pt; readonly lit: Pt; readonly lamp: Pt } {
   const base = P(0, ZC, 0);
-  disc(d, pt(base.x, base.y), R + 7, 3, mix(STONE_PALE, '#8f8676', 0.25));
+  disc(d, pt(base.x, base.y), R + 7, 3, mix(STONE_PALE, '#6c5d4a', 0.25));
   disc(d, pt(base.x, base.y - 3), R + 4, 3, STONE_PALE);
   const b = pt(base.x, base.y - 6);
   const body = storey(d, rng, b, R, SHAFT - 6, STONE_PALE);
   const at = drumAt(b, R);
   surround(d, at, -9, 0, 18, 24, 3, STONE_PALE, true);
-  door(d, at, -9, 18, 24, { arched: true, color: '#4f3d5c' });
+  door(d, at, -9, 18, 24, { arched: true, color: '#412d43' });
   window(d, at, -25, 40, 9, 22, STONE_PALE, { key: true, transoms: 1, frame: 2 });
   window(d, at, 14, 54, 9, 24, STONE_PALE, { key: true, transoms: 1, frame: 2, lit: 0 });
   window(d, at, -5, 66, 10, 26, STONE_PALE, { key: true, transoms: 2, frame: 2.2 });
@@ -254,16 +255,16 @@ function ivy(d: Draw, rng: Rng, b: Pt, top: number): void {
       u += (rng() - 0.5) * 2.2;
       vine.push(at(Math.max(-R * 1.45, u), v));
     }
-    pen.stroke(vine, 0.6, '#4b3a2a', 0.8, false);
+    pen.stroke(vine, 0.6, '#402b1a', 0.8, false);
     vine.forEach((p, i) => {
       const k = 1 - i / vine.length;
       for (let j = 0; j < 1 + k * 3; j++) {
         const c = pt(p.x + (rng() - 0.5) * 9 * (0.35 + k), p.y + (rng() - 0.5) * 4);
         const leaf = blob(c, 1.3 + rng() * 0.9, 1 + rng() * 0.6, rng, 0.3, 9, rng() * 3);
         const lit = rng() < 0.45;
-        pen.fill(leaf, lit ? '#78a35a' : rng() < 0.5 ? '#4d7a44' : '#3a6238', 0.95);
-        if (lit) pen.hair(closed(leaf).slice(0, 5), 0.3, '#c7dca0', 0.6);
-        pen.hair(closed(leaf), 0.28, '#24331f', 0.55);
+        pen.fill(leaf, lit ? '#52733b' : rng() < 0.5 ? '#36592f' : '#2a4928', 0.95);
+        if (lit) pen.hair(closed(leaf).slice(0, 5), 0.3, '#879769', 0.6);
+        pen.hair(closed(leaf), 0.28, '#222612', 0.55);
       }
     });
   }
@@ -274,21 +275,21 @@ function doorLamp(d: Draw, at: Surface): Pt {
   const { pen } = d;
   const wallPt = at(13.5, 21);
   const end = pt(wallPt.x + 4, wallPt.y - 1);
-  pen.stroke([wallPt, pt(wallPt.x + 2, wallPt.y - 2), end], 0.8, '#3a3640', 1, false);
+  pen.stroke([wallPt, pt(wallPt.x + 2, wallPt.y - 2), end], 0.8, '#2a2522', 1, false);
   const c = pt(end.x, end.y + 4.5);
   const cage = [pt(c.x - 1.8, c.y - 2.8), pt(c.x + 1.8, c.y - 2.8), pt(c.x + 1.4, c.y + 2.4), pt(c.x - 1.4, c.y + 2.4)];
   pen.fill(cage, '#c9e4ff', 0.95);
   pen.clipped(cage, () => glow(pen.ctx, c, 3, ARCANE, 1));
-  pen.stroke(closed(cage), 0.55, '#3a3640', 1);
-  pen.stroke([pt(c.x, c.y - 2.8), pt(c.x, c.y + 2.4)], 0.35, '#3a3640', 0.9, false);
-  pen.fill([pt(c.x - 2.4, c.y - 2.8), pt(c.x + 2.4, c.y - 2.8), pt(c.x, c.y - 5)], '#3a3640', 1);
-  pen.stroke([end, pt(c.x, c.y - 5)], 0.5, '#3a3640', 1, false);
+  pen.stroke(closed(cage), 0.55, '#2a2522', 1);
+  pen.stroke([pt(c.x, c.y - 2.8), pt(c.x, c.y + 2.4)], 0.35, '#2a2522', 0.9, false);
+  pen.fill([pt(c.x - 2.4, c.y - 2.8), pt(c.x + 2.4, c.y - 2.8), pt(c.x, c.y - 5)], '#2a2522', 1);
+  pen.stroke([end, pt(c.x, c.y - 5)], 0.5, '#2a2522', 1, false);
   return c;
 }
 
 /** Two shallow steps up to the door. */
 function steps2(d: Draw): void {
-  slab(d, box(-12, 12, ZC - R - 9, ZC - R + 1, 0, 3), mix(STONE_PALE, '#8f8676', 0.2), { line: 0.5 });
+  slab(d, box(-12, 12, ZC - R - 9, ZC - R + 1, 0, 3), mix(STONE_PALE, '#6c5d4a', 0.2), { line: 0.5 });
   slab(d, box(-10, 10, ZC - R - 5, ZC - R + 2, 3, 6), STONE_PALE, { line: 0.5 });
 }
 
@@ -394,7 +395,7 @@ function guildTwo(d: Draw, rng: Rng): Lights {
 function drawGuild(level: (d: Draw, rng: Rng) => Lights, motes: number): TownDrawer {
   return (ctx, seed) => {
     let lights: Lights | null = null;
-    sprite(ctx, seed, 0, {
+    townSprite(ctx, seed, 0, {
       bounds: BOUNDS,
       line: 1.3,
       ground: guildGround,

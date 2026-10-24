@@ -1,6 +1,6 @@
 import type { Draw } from '../kit';
 import { pathOf, withScratch, type Pt } from '../pen';
-import { INK, PAPER_FILL } from '../palette';
+import { INK } from '../palette';
 import { mix, rgba } from '../wash';
 import { FRAME_H, FRAME_W, GROUND_Y } from './types';
 
@@ -10,15 +10,23 @@ import { FRAME_H, FRAME_W, GROUND_Y } from './types';
  * colour, light rolling in from the upper left, a soft core shadow with
  * light bounced into its edge, pigment pooled at the rim, hatching in the
  * shadow, a fine pen line). `finished` paints a whole figure on a layer of
- * its own and finishes it: a rim of warm light on the lit edges, a cool
- * edge on the far side and one ink silhouette, heavier on the shadow side.
+ * its own and finishes it: one low warm light across the whole figure, a
+ * rim of sunlight on the lit edges, a deep violet-umber edge on the far
+ * side and one fine umber silhouette, firmer only on the shadow side, so
+ * the beast reads on a dark field. Old-master values: deep shadows, warm
+ * small lights, never paper white.
  */
 
-export const LIGHT = '#fff2d8';
-/** Cool shadow: indigo, as a painter mixes it (never black). */
-export const SHADOW = '#1e2350';
-/** Light bounced up from the ground into a shadow. */
-export const BOUNCE = '#c9c3b4';
+/** Warm late-afternoon light. */
+export const LIGHT = '#f2d49a';
+/** Shadow: a deep violet-umber, as an old master mixes it (never grey, never black). */
+export const SHADOW = '#22161a';
+/** Light bounced up from the earth into a shadow: dull and warm. */
+export const BOUNCE = '#7a6650';
+/** The palest a highlight goes: warm ivory, never white. */
+export const IVORY = '#e9dfc6';
+/** The warm rim of sunlight caught on the lit edge of a figure. */
+export const RIM = '#f4c472';
 /** Towards the light: up and to the left. */
 export const TO_LIGHT: Pt = { x: -0.55, y: -0.84 };
 
@@ -55,11 +63,13 @@ function blurs(ctx: CanvasRenderingContext2D): boolean {
 
 /** Runs `draw` with a soft edge of `r` units (hard where the canvas can't blur). */
 export function soft(ctx: CanvasRenderingContext2D, r: number, draw: () => void): void {
-  if (r <= 0 || !blurs(ctx)) {
+  const px = r * unitPx(ctx);
+  // Under a pixel a blur shows nothing but costs a whole filter pass.
+  if (px < 1 || !blurs(ctx)) {
     draw();
     return;
   }
-  ctx.filter = `blur(${(r * unitPx(ctx)).toFixed(2)}px)`;
+  ctx.filter = `blur(${px.toFixed(2)}px)`;
   draw();
   ctx.filter = 'none';
 }
@@ -106,32 +116,32 @@ export function paint(d: Draw, shape: readonly Pt[], color: string, o: PaintOpts
   const size = Math.max(1, Math.max(b.w, b.h));
   const minor = Math.max(1, Math.min(b.w, b.h));
   const shadow = o.shadow ?? 0.5;
-  pen.fill(shape, PAPER_FILL, 1);
+  pen.fill(shape, mix(color, SHADOW, 0.25), 1);
   pen.clipped(shape, () => {
     ctx.globalAlpha = o.alpha ?? 0.92;
     ctx.fillStyle = color;
     ctx.fillRect(b.x0 - 1, b.y0 - 1, b.w + 2, b.h + 2);
     const lx = b.x0 + b.w * 0.32;
     const ly = b.y0 + b.h * 0.24;
-    const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, size * 0.85);
-    const lit = mix(color, LIGHT, o.gloss ? 0.7 : 0.45);
-    g.addColorStop(0, rgba(lit, 0.8));
-    g.addColorStop(o.gloss ? 0.25 : 0.45, rgba(lit, 0.22));
+    const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, size * 0.78);
+    const lit = mix(color, LIGHT, o.gloss ? 0.62 : 0.4);
+    g.addColorStop(0, rgba(lit, 0.85));
+    g.addColorStop(o.gloss ? 0.22 : 0.36, rgba(lit, 0.35));
     g.addColorStop(1, rgba(lit, 0));
     ctx.globalAlpha = 1;
     ctx.fillStyle = g;
     ctx.fillRect(b.x0 - 1, b.y0 - 1, b.w + 2, b.h + 2);
   });
   if (shadow > 0) {
-    const k = minor * 0.42;
-    crescentFill(ctx, shape, TO_LIGHT.x * k, TO_LIGHT.y * k, mix(color, SHADOW, 0.6), 0.75 * shadow, o.gloss ? minor * 0.04 : minor * 0.12);
-    const r = minor * 0.09;
-    crescentFill(ctx, shape, TO_LIGHT.x * r, TO_LIGHT.y * r, mix(color, BOUNCE, 0.55), 0.38 * shadow, minor * 0.04);
+    const k = minor * 0.46;
+    crescentFill(ctx, shape, TO_LIGHT.x * k, TO_LIGHT.y * k, mix(color, SHADOW, 0.68), Math.min(1, 0.9 * shadow), o.gloss ? minor * 0.04 : Math.min(2.4, minor * 0.08));
+    const r = minor * 0.08;
+    crescentFill(ctx, shape, TO_LIGHT.x * r, TO_LIGHT.y * r, mix(color, BOUNCE, 0.4), 0.3 * shadow, minor * 0.04);
   }
   pen.clipped(shape, () => {
     soft(ctx, minor * 0.05, () => {
-      ctx.globalAlpha = 0.28;
-      ctx.strokeStyle = mix(color, SHADOW, 0.45);
+      ctx.globalAlpha = 0.32;
+      ctx.strokeStyle = mix(color, SHADOW, 0.55);
       ctx.lineWidth = Math.min(2.2, minor * 0.16);
       pathOf(ctx, shape);
       ctx.stroke();
@@ -142,10 +152,10 @@ export function paint(d: Draw, shape: readonly Pt[], color: string, o: PaintOpts
   if (hatch > 0 && shadow > 0) {
     const s = Math.max(1.3, size / 24);
     const k = minor * 0.3;
-    pen.crescent(shape, { x: TO_LIGHT.x * k, y: TO_LIGHT.y * k }, () => pen.hatch(shape, s, 0.9, 0.32, { color: d.ink, alpha: hatch }));
+    pen.crescent(shape, { x: TO_LIGHT.x * k, y: TO_LIGHT.y * k }, () => pen.hatch(shape, s, 0.9, 0.4, { color: d.ink, alpha: hatch }));
     if (o.cross) {
       const c = minor * 0.16;
-      pen.crescent(shape, { x: TO_LIGHT.x * c, y: TO_LIGHT.y * c }, () => pen.hatch(shape, s * 1.1, -0.55, 0.3, { color: d.ink, alpha: hatch * 0.9 }));
+      pen.crescent(shape, { x: TO_LIGHT.x * c, y: TO_LIGHT.y * c }, () => pen.hatch(shape, s * 1.1, -0.55, 0.36, { color: d.ink, alpha: hatch * 0.9 }));
     }
   }
   const line = o.line ?? 0.7;
@@ -159,7 +169,7 @@ export function dab(d: Draw, shape: readonly Pt[], color: string, alpha: number,
 
 /** A thin painted highlight along a curve: a glint on iron, horn or a wet nose. */
 export function gleam(d: Draw, pts: readonly Pt[], w: number, alpha = 0.9): void {
-  soft(d.pen.ctx, w * 0.25, () => d.pen.stroke(pts, w, PAPER_FILL, alpha, false));
+  soft(d.pen.ctx, w * 0.25, () => d.pen.stroke(pts, w, IVORY, alpha, false));
 }
 
 /** The pixels of `src` whose neighbour towards (dx, dy) is empty, tinted: a band along one side. */
@@ -207,12 +217,20 @@ function finishLayer(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, u
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = 'source-atop';
-    edgeBand(src, TO_LIGHT.x * u * 0.9, TO_LIGHT.y * u * 0.9, LIGHT, (band) => {
+    // One light over the whole figure: what faces the low sun warms, what is turned from it sinks into shadow.
+    const g = ctx.createLinearGradient(canvas.width * 0.1, canvas.height * 0.05, canvas.width * 0.85, canvas.height);
+    g.addColorStop(0, rgba(LIGHT, 0.16 * o.rim));
+    g.addColorStop(0.42, rgba(LIGHT, 0));
+    g.addColorStop(0.62, rgba(SHADOW, 0.12));
+    g.addColorStop(1, rgba(SHADOW, 0.42));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    edgeBand(src, TO_LIGHT.x * u * 1.2, TO_LIGHT.y * u * 1.2, RIM, (band) => {
       ctx.globalAlpha = o.rim;
       ctx.drawImage(band, 0, 0);
     });
-    edgeBand(src, -TO_LIGHT.x * u * 1.6, -TO_LIGHT.y * u * 1.6, SHADOW, (band) => {
-      ctx.globalAlpha = o.rim * 0.55;
+    edgeBand(src, -TO_LIGHT.x * u * 2, -TO_LIGHT.y * u * 2, SHADOW, (band) => {
+      ctx.globalAlpha = o.rim * 0.8;
       ctx.drawImage(band, 0, 0);
     });
     solidInk(src, INK, (ink) => {
@@ -222,7 +240,7 @@ function finishLayer(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, u
       for (let i = 0; i < 20; i++) {
         const a = (i / 20) * Math.PI * 2;
         const toShadow = Math.max(0, -(Math.cos(a) * TO_LIGHT.x + Math.sin(a) * TO_LIGHT.y));
-        const r = base * (0.7 + 0.9 * toShadow);
+        const r = base * (0.45 + 1.05 * toShadow);
         ctx.drawImage(ink, Math.cos(a) * r, Math.sin(a) * r);
       }
     });
@@ -249,10 +267,12 @@ export function finished(ctx: CanvasRenderingContext2D, o: Finish, ground: () =>
   });
 }
 
+const GROUND_DARK = '#140d09';
+
 /** A soft contact shadow on the ground, plus a darker core right under the feet. */
 export function groundShadow(d: Draw, cx: number, rx: number, ry: number): void {
   const ctx = d.pen.ctx;
   const ring = (k: number): Pt[] => Array.from({ length: 28 }, (_, i) => ({ x: cx + Math.cos((i / 28) * Math.PI * 2) * rx * k, y: 0.6 + Math.sin((i / 28) * Math.PI * 2) * ry * k }));
-  soft(ctx, ry * 0.8, () => d.pen.fill(ring(1), SHADOW, 0.16));
-  soft(ctx, ry * 0.4, () => d.pen.fill(ring(0.7), SHADOW, 0.14));
+  soft(ctx, ry * 0.8, () => d.pen.fill(ring(1), GROUND_DARK, 0.3));
+  soft(ctx, ry * 0.4, () => d.pen.fill(ring(0.7), GROUND_DARK, 0.3));
 }

@@ -15,7 +15,7 @@ import {
  * ending in flagged pavilions, and a great gilded dome on a colonnaded drum).
  */
 
-const LIME = '#e0d3b6';
+const LIME = '#ab9f86';
 const SLATES = { row: 4, tab: 4.8 } as const;
 
 /** Rusticated stonework: deep horizontal joints, every other course a little set back in shade. */
@@ -57,7 +57,7 @@ function wing(d: Draw, rng: Rng, b: Box, o: WingOpts): Pt[] {
   balustrade(d, at, 0, w, h, 7, o.stone);
   for (const u of o.statues) {
     slab(d, box(b.x0 + u - 3.4, b.x0 + u + 3.4, b.z0 - 0.5, b.z0 + 4, b.h1, b.h1 + 8), o.stone, { line: 0.45 });
-    statue(d, at(u, h + 8), 18, o.gilt ? GOLD : mix(o.stone, '#9fae9c', 0.25), o.gilt, u < w / 2 ? 1 : -1);
+    statue(d, at(u, h + 8), 18, o.gilt ? GOLD : mix(o.stone, '#757764', 0.25), o.gilt, u < w / 2 ? 1 : -1);
   }
   for (const u of [2.5, w - 2.5]) {
     slab(d, box(b.x0 + u - 3, b.x0 + u + 3, b.z0 - 0.5, b.z0 + 4, b.h1, b.h1 + 8), o.stone, { line: 0.45 });
@@ -91,7 +91,7 @@ function cityPortico(d: Draw, rng: Rng, back: readonly Pt[]): void {
   for (let u = 3; u < 84; u += 6) d.pen.fill(crisp(quad(at, u, 5.4, u + 2.6, 7.2), 1), mix(LIME, SHADOW, 0.3), 0.6);
   gableZ(d, rng, { ...e, z1: 22 }, 20, SLATE, LIME, SLATES, 1.5, 22);
   pediment(d, (u, v) => P(-42 + u, 5, 62 + v), 0, 84, 0, 20, LIME);
-  steps(d, -32, 32, -4, 3, 6, 2.7, mix(LIME, '#8f8676', 0.2), 1.5);
+  steps(d, -32, 32, -4, 3, 6, 2.7, mix(LIME, '#6c5d4a', 0.2), 1.5);
 }
 
 /** The city hall's dome: a drum with round windows and pilasters, a blue slate dome ribbed in gilt, a lantern. */
@@ -111,7 +111,7 @@ function cityDome(d: Draw): void {
 
 /** A lantern on a dome's crown: little columns round a dark core, a small cap and a gilt finial. */
 function lantern(d: Draw, c: Pt, r: number, h: number, cap: string): void {
-  roundBody(d, pt(c.x, c.y + 1), r - 1.2, h, '#3a3550', 0);
+  roundBody(d, pt(c.x, c.y + 1), r - 1.2, h, '#33283b', 0);
   for (const t of [0.12, 0.38, 0.62, 0.88]) {
     const x = c.x - r * Math.cos(t * Math.PI);
     const y = c.y + 1 + r * 0.6 * Math.sin(t * Math.PI);
@@ -165,7 +165,7 @@ function peristyle(d: Draw, zc: number, h0: number, h1: number, r: number, R: nu
       const x = base.x - r * Math.cos(t);
       const y = base.y + r * 0.6 * Math.sin(t);
       const w = 2.6 * Math.sin(t);
-      d.pen.fill([pt(x - w, y - 4), pt(x + w, y - 4), pt(x + w, y - (h1 - h0) + 7), pt(x, y - (h1 - h0) + 4.6), pt(x - w, y - (h1 - h0) + 7)], '#2a2638', 0.9);
+      d.pen.fill([pt(x - w, y - 4), pt(x + w, y - 4), pt(x + w, y - (h1 - h0) + 7), pt(x, y - (h1 - h0) + 4.6), pt(x - w, y - (h1 - h0) + 7)], '#1a120c', 0.9);
     }
   });
   d.pen.stroke([...wall, wall[0]!], 0.6, d.ink, 0.85);
@@ -196,7 +196,7 @@ function greatDome(d: Draw): void {
   });
   d.pen.stroke(frontArc(P(0, zc, 117.6).x, P(0, zc, 117.6).y, 32, 20), 0.8, GOLD, 0.9, false);
   d.pen.stroke([...attic, attic[0]!], 0.6, d.ink, 0.85);
-  const crown = dome(d, P(0, zc, 119.5), 31, 28, GOLD, '#e9bf55', 12, true);
+  const crown = dome(d, P(0, zc, 119.5), 31, 28, '#7e5a1c', GOLD, 12, false);
   lantern(d, crown, 6.5, 10, GOLD);
 }
 
@@ -219,7 +219,7 @@ function capitolPortico(d: Draw, rng: Rng, back: readonly Pt[]): void {
 
 /** The grand stair up to the terrace, its cheeks crowned with urns. */
 function grandStair(d: Draw): void {
-  steps(d, -30, 30, -5, 8, 16, 2.6, mix(MARBLE_W, '#8f8676', 0.18), 0.8);
+  steps(d, -30, 30, -5, 8, 16, 2.6, mix(MARBLE_W, '#6c5d4a', 0.18), 0.8);
   for (const x of [-37, 37]) {
     slab(d, box(x - 4.5, x + 4.5, -6, 16, 0, 18), MARBLE_W);
     urn(d, P(x, 4, 18), 10, GOLD);
@@ -236,14 +236,14 @@ function terrace(d: Draw, rng: Rng): void {
   const w = 2 * END + 4;
   const at = frontAt(t);
   face(d, rng, (u, v) => P(t.x1, t.z0 + u, v), 14, 16, MARBLE_W, { tone: 0.42, finish: 'smooth' });
-  const wall = face(d, rng, at, w, 16, mix(MARBLE_W, '#b7a986', 0.25), { tone: 0.08, finish: 'smooth' });
+  const wall = face(d, rng, at, w, 16, mix(MARBLE_W, '#80755a', 0.25), { tone: 0.08, finish: 'smooth' });
   rustic(d, at, wall, w, 16, 5.2);
   for (const u of [14, 36, 58, w - 58, w - 36, w - 14]) {
     const hole = crisp([at(u - 3, 0), at(u - 3, 6), at(u, 9), at(u + 3, 6), at(u + 3, 0)], 1.5);
-    d.pen.fill(hole, '#2a2638', 0.9);
+    d.pen.fill(hole, '#1a120c', 0.9);
     d.pen.stroke(closed(hole), 0.45, d.ink, 0.8);
   }
-  flat(d, crisp([P(-END - 2, 16, 16), P(END + 2, 16, 16), P(END + 2, 36, 16), P(-END - 2, 36, 16)], 4), mix(MARBLE_W, '#c9b48c', 0.3), { tone: -0.15, line: 0.5 });
+  flat(d, crisp([P(-END - 2, 16, 16), P(END + 2, 16, 16), P(END + 2, 36, 16), P(-END - 2, 36, 16)], 4), mix(MARBLE_W, '#8c7c5d', 0.3), { tone: -0.15, line: 0.5 });
   for (const [u0, u1] of [[0, w / 2 - 42], [w / 2 + 42, w]] as const) balustrade(d, at, u0, u1, 16, 6, MARBLE_W);
 }
 
@@ -272,7 +272,7 @@ export function capitol(d: Draw, rng: Rng): void {
   face(d, rng, (u, v) => P(c.x1, c.z0 + u, 16 + v), 50, 72, MARBLE_W, { tone: 0.42 });
   const front = face(d, rng, at, 100, 72, MARBLE_W, { tone: 0.02 });
   surround(d, at, 40, 0, 20, 32, 3, MARBLE_W, true);
-  door(d, at, 40, 20, 32, { arched: true, color: '#6a4a30' });
+  door(d, at, 40, 20, 32, { arched: true, color: '#503723' });
   for (const u of [14, 74]) window(d, at, u, 8, 12, 28, MARBLE_W, { key: true, transoms: 2, lit: 0.25 });
   leads(d, rng, c);
   cornice(d, at, front, 100, 72, 4, MARBLE_W);

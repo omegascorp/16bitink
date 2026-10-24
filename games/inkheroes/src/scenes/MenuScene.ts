@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { CREATURE_RES, FRAME_H, GROUND_Y } from '../art/creatures/types';
 import { VIGNETTE, VIGNETTE_IDS, VISTA, MENU_RES, TITLE, type VignetteId } from '../art/menu';
-import { INK, PAPER } from '../art/palette';
+import { BACKDROP, UI } from '../art/palette';
 import { TEX, VISTA_RES } from '../art/textures';
 import { getHost } from '../host';
 import { MAPS } from '../level/maps';
@@ -12,7 +12,7 @@ import { loadProgress } from '../logic/save';
 import { openCard } from './CardScene';
 import { screenScene, viewSize } from './hidpi';
 import { Session } from './session';
-import { HAND, paintedButton, paperCard, UI_TEX } from './uiPaint';
+import { body, MEDAL_R, paintedButton, panelCard, title, UI_TEX } from './uiPaint';
 
 /** Maps planned for chapter 1 but not built yet, shown as drafts. */
 const PLANNED: readonly { name: string; goal: string; vignette: VignetteId }[] = [
@@ -39,7 +39,7 @@ export class MenuScene extends Phaser.Scene {
 
   create(): void {
     screenScene(this, true);
-    this.cameras.main.setBackgroundColor(PAPER);
+    this.cameras.main.setBackgroundColor(BACKDROP);
     this.draw();
     this.scale.on('resize', this.draw, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', this.draw, this));
@@ -56,11 +56,11 @@ export class MenuScene extends Phaser.Scene {
     this.add.image(v.width / 2, v.height, TEX.vista).setOrigin(0.5, 1).setScale(cover / VISTA_RES).setDepth(-2);
     const root = this.add.container(v.width / 2, 0);
     root.add(this.add.image(0, 8, TEX.title).setOrigin(0.5, 0).setScale(1 / MENU_RES));
-    root.add(this.add.text(0, TITLE.h - 2, 'Chapter 1 · The Border March', { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '30px', color: INK, stroke: '#fdf8ea', strokeThickness: 5 }).setOrigin(0.5, 0));
+    root.add(title(this, 0, TITLE.h + 2, 'Chapter I · The Border March', 22, { color: UI.text }).setOrigin(0.5, 0));
     let y = TITLE.h + 50;
     if (resumed) {
       const label = `Continue: ${resumed.def.name}, ${calendar(resumed.adv.day)}`;
-      root.add(paintedButton(this, 0, y + 28, label, () => this.scene.start('Map'), { width: Math.min(560, v.width - 40), height: 56, size: 26, kind: 'leaf' }));
+      root.add(paintedButton(this, 0, y + 28, label, () => this.scene.start('Map'), { width: Math.min(560, v.width - 40), height: 56, size: 20, kind: 'primary' }));
       y += 80;
     }
     const all: Item[] = [...MAPS.map((def) => ({ def })), ...PLANNED.map((planned) => ({ planned }))];
@@ -98,27 +98,27 @@ export class MenuScene extends Phaser.Scene {
   private mapCard(x: number, y: number, item: Item, records: ReturnType<typeof loadProgress>['maps'], resumed: Session | null): Phaser.GameObjects.Container {
     const c = this.add.container(x, y);
     const draft = 'planned' in item;
-    c.add(paperCard(this, 0, 0, CARD.w, CARD.h, draft ? 97 + item.planned.name.length : item.def.n * 31, { rule: true, tint: draft ? 'sky' : 'cream' }));
+    c.add(panelCard(this, 0, 0, CARD.w, CARD.h, draft ? 97 + item.planned.name.length : item.def.n * 31, { tint: draft ? 'umber' : 'oxblood' }));
     const vig = vignetteOf(item);
-    const top = -CARD.h / 2 + 14;
+    const top = -CARD.h / 2 + 16;
     if (vig) c.add(this.add.image(0, top, TEX.vignette(vig)).setOrigin(0.5, 0).setScale(1 / MENU_RES).setAlpha(draft ? 0.55 : 1));
     const textY = top + VIGNETTE.h - 6;
     if (draft) {
-      c.add(this.add.text(0, textY, item.planned.name, { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '30px', color: INK }).setOrigin(0.5, 0).setAlpha(0.65));
-      c.add(this.add.text(0, textY + 44, `${item.planned.goal}.`, { fontFamily: 'Georgia, serif', fontSize: '14px', color: INK, align: 'center', wordWrap: { width: CARD.w - 30 } }).setOrigin(0.5, 0).setAlpha(0.6));
-      c.add(this.add.text(0, CARD.h / 2 - 40, 'Coming soon', { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '24px', color: '#27408b' }).setOrigin(0.5, 0).setAlpha(0.7));
+      c.add(title(this, 0, textY + 4, item.planned.name, 21, { color: UI.muted, align: 'center', wrap: CARD.w - 30 }).setOrigin(0.5, 0));
+      c.add(body(this, 0, textY + 40, `${item.planned.goal}.`, 16, { color: UI.muted, align: 'center', wrap: CARD.w - 36 }).setOrigin(0.5, 0));
+      c.add(body(this, 0, CARD.h / 2 - 44, 'Coming soon', 17, { color: UI.muted }).setFontStyle('italic').setOrigin(0.5, 0));
       return c;
     }
     const def = item.def;
     const rec = records[def.id];
-    c.add(this.add.text(0, textY, `${def.n}. ${def.name}`, { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '32px', color: INK }).setOrigin(0.5, 0));
-    c.add(this.add.text(0, textY + 44, `${def.goal.text[0]!.toUpperCase()}${def.goal.text.slice(1)}.`, { fontFamily: 'Georgia, serif', fontSize: '14px', color: INK, align: 'center', wordWrap: { width: CARD.w - 30 } }).setOrigin(0.5, 0));
+    c.add(title(this, 0, textY + 4, `${def.n}. ${def.name}`, 22, { align: 'center', wrap: CARD.w - 30 }).setOrigin(0.5, 0));
+    c.add(body(this, 0, textY + 40, `${def.goal.text[0]!.toUpperCase()}${def.goal.text.slice(1)}.`, 16, { align: 'center', wrap: CARD.w - 36 }).setOrigin(0.5, 0));
     for (let i = 0; i < 3; i++) {
-      const key = rec && i < rec.blots ? UI_TEX.blot(i) : UI_TEX.blotSlot;
-      c.add(this.add.image((i - 1) * 30, CARD.h / 2 - 72, key).setScale(0.28));
+      const key = rec && i < rec.blots ? UI_TEX.medal : UI_TEX.medalSlot;
+      c.add(this.add.image((i - 1) * 30, CARD.h / 2 - 72, key).setScale(12 / MEDAL_R / 2));
     }
     const playing = resumed?.def.id === def.id;
-    c.add(paintedButton(this, 0, CARD.h / 2 - 26, playing ? 'Continue' : rec ? 'Play again' : 'Play', () => this.play(def, resumed), { width: 150, height: 40, size: 22, kind: rec ? 'paper' : 'leaf' }));
+    c.add(paintedButton(this, 0, CARD.h / 2 - 26, playing ? 'Continue' : rec ? 'Play again' : 'Play', () => this.play(def, resumed), { width: 150, height: 40, size: 17, kind: rec ? 'plain' : 'primary' }));
     return c;
   }
 
@@ -141,7 +141,7 @@ export class MenuScene extends Phaser.Scene {
       body: `Your game on ${resumed.def.name} (${calendar(resumed.adv.day)}) will be lost.`,
       buttons: [
         { label: `Start ${def.name}`, onClick: begin },
-        { label: 'Keep my game', kind: 'paper', onClick: () => undefined },
+        { label: 'Keep my game', kind: 'plain', onClick: () => undefined },
       ],
     });
   }

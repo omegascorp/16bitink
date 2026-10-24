@@ -10,17 +10,17 @@ import { blob, crisp, dab, flat, gleam, LIGHT, mix, paint, polar, SHADOW, soft }
  * with their end grain, a mine cart on its rails, crystals, cut gems and
  * glass flasks. Local units, light from the upper left.
  */
-export const ROCK = '#a99f8c';
-export const GOLD = '#e0b13c';
-export const GOLD_DEEP = '#9c6a16';
-export const BARK = '#7a5534';
-export const END_GRAIN = '#d9b27a';
-export const ORE = '#7d7f86';
-export const IRON = '#4a4b55';
-export const CRYSTAL = '#cf4a4a';
-export const GEM = '#3fa36a';
-export const MERCURY = '#c9ced8';
-export const SULFUR = '#e6c740';
+export const ROCK = '#7d7464';
+export const GOLD = '#c99a2e';
+export const GOLD_DEEP = '#7a5012';
+export const BARK = '#4f3520';
+export const END_GRAIN = '#a8844f';
+export const ORE = '#5a5b60';
+export const IRON = '#34353a';
+export const CRYSTAL = '#a8302c';
+export const GEM = '#2e7a4e';
+export const MERCURY = '#a9aeb6';
+export const SULFUR = '#b89a2e';
 
 /** A rocky crag from x0 to x1 standing on `base`, peaking `h` high: a lit face, a hatched shadow face down from its ridge, cracks. */
 export function crag(d: Draw, rng: Rng, x0: number, x1: number, base: number, h: number, color = ROCK, peakAt = 0.45): Pt[] {

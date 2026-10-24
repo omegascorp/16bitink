@@ -42,15 +42,16 @@ export function river(d: Ink, rng: Rng, spine: readonly Pt[], w0: number, w1: nu
     c.beginPath();
     bot.forEach((p, i) => (i === 0 ? c.moveTo(p.x, p.y) : c.lineTo(p.x, p.y)));
   }, { stroke: bankWidth });
-  // Glints and ripples: short level strokes of bare paper, longer and more open nearer.
+  // Glints and ripples: short level strokes of the sky's gold, longer and more open nearer.
   for (let i = 0; i < line.length; i += 2) {
     const u = i / (line.length - 1);
     const c = line[i]!;
     const w = width(u);
-    if (rng() < 0.55) {
+    for (let j = 0; j < 2; j++) {
+      if (rng() > 0.6) continue;
       const len = w * (0.15 + rng() * 0.35);
       const x = c.x + (rng() - 0.5) * w * 0.6;
-      ctx.strokeStyle = rgba(rng() < 0.7 ? '#fdf8ea' : mix(tone.near, SHADOW, 0.35), 0.35 + rng() * 0.35);
+      ctx.strokeStyle = rgba(rng() < 0.75 ? '#f6d48a' : mix(tone.near, SHADOW, 0.35), 0.45 + rng() * 0.4);
       ctx.lineWidth = 0.5 + u * 0.9;
       ctx.beginPath();
       ctx.moveTo(x - len / 2, c.y);
@@ -157,7 +158,7 @@ export function bridge(d: Ink, rng: Rng, b: BridgeSpec): void {
     const g = ctx.createLinearGradient(b.x0, top, b.x1 * 0.4 + b.x0 * 0.6, b.water);
     g.addColorStop(0, mix(b.stone, LIGHT, 0.35));
     g.addColorStop(0.6, b.stone);
-    g.addColorStop(1, mix(b.stone, '#5d6b5a', 0.45));
+    g.addColorStop(1, mix(b.stone, '#2e3628', 0.5));
     ctx.fillStyle = g;
     ctx.fillRect(b.x0 - 6, top - 2, b.x1 - b.x0 + 12, b.water - top + 6);
     // Courses of stone, a few stones tinted apart.
@@ -169,7 +170,7 @@ export function bridge(d: Ink, rng: Rng, b: BridgeSpec): void {
       }
     }
     // Moss and damp low down.
-    softly(ctx, 3, '#55704d', 0.35, (c) => pathOf(c, [pt(b.x0 - 4, b.water - 7), pt(b.x1 + 4, b.water - 7), pt(b.x1 + 4, b.water + 2), pt(b.x0 - 4, b.water + 2)]));
+    softly(ctx, 3, '#2e3e22', 0.45, (c) => pathOf(c, [pt(b.x0 - 4, b.water - 7), pt(b.x1 + 4, b.water - 7), pt(b.x1 + 4, b.water + 2), pt(b.x0 - 4, b.water + 2)]));
     ctx.restore();
   };
   // The reflection first: the bridge flipped about the water line, softened and broken by ripples.
@@ -184,7 +185,7 @@ export function bridge(d: Ink, rng: Rng, b: BridgeSpec): void {
   ctx.restore();
   ctx.save();
   for (let y = b.water + 3; y < b.water + b.crown; y += 2.5 + rng() * 2) {
-    ctx.strokeStyle = rgba('#fdf8ea', 0.5);
+    ctx.strokeStyle = rgba('#e8c27a', 0.4);
     ctx.lineWidth = 0.7;
     const x = b.x0 + rng() * (b.x1 - b.x0);
     ctx.beginPath();
@@ -197,7 +198,7 @@ export function bridge(d: Ink, rng: Rng, b: BridgeSpec): void {
   // The arches: dark under the vault, the far bank's light glimpsed low.
   for (const [i, hole] of holes.entries()) {
     const a = b.arches[i]!;
-    gradeFill(ctx, hole, b.water - a.rise, b.water, [[0, mix(SHADOW, b.stone, 0.15)], [0.7, mix(SHADOW, '#5e7a8a', 0.5)], [1, '#9db3bd']], 0.92);
+    gradeFill(ctx, hole, b.water - a.rise, b.water, [[0, mix(SHADOW, b.stone, 0.15)], [0.7, mix(SHADOW, '#5e7a8a', 0.5)], [1, '#b88a50']], 0.92);
     const ring = archHole(b, a, 3.2);
     for (let k = 1; k < 10; k++) {
       const j = Math.round((k / 10) * (hole.length - 1));

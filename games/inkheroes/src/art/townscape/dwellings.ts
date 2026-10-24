@@ -18,7 +18,7 @@ import type { TownDrawer } from './types';
  * the monastery. Each is painted at its slot's anchor with the townscape
  * kit (dwellingKit.ts) and finished like the map's sites.
  */
-const GUARD_STONE = mix(STONE, '#b8ab90', 0.35);
+const GUARD_STONE = mix(STONE, '#86745b', 0.35);
 
 // ---- The guardhouse ----
 
@@ -31,7 +31,7 @@ function spearRack(d: Draw, x0: number, x1: number, y: number): void {
     const tip = pt(foot.x + 6 + (i % 3), foot.y - 44 + (i % 2) * 5);
     const len = Math.hypot(tip.x - foot.x, tip.y - foot.y);
     d.pen.stroke([foot, tip], 1.7, d.ink, 1, false);
-    d.pen.stroke([foot, tip], 0.9, i % 2 ? TIMBER : '#a07a4c', 1, false);
+    d.pen.stroke([foot, tip], 0.9, i % 2 ? TIMBER : '#735632', 1, false);
     const dir = pt((tip.x - foot.x) / len, (tip.y - foot.y) / len);
     const at = (s: number, n: number): Pt => pt(tip.x + dir.x * s - dir.y * n, tip.y + dir.y * s + dir.x * n);
     if (i % 2 === 0) {
@@ -115,7 +115,7 @@ function guardhouse(d: Draw, rng: Rng): void {
   lantern(d, at(57, 26));
   // The garrison's kit: barrels by the wall, the rack of spears and halberds.
   barrel(d, pt(-58, 2), 6.4, 15);
-  barrel(d, pt(-69, 5), 5.4, 12, '#87603c');
+  barrel(d, pt(-69, 5), 5.4, 12, '#634529');
   spearRack(d, 52, 74, 6);
 }
 
@@ -135,13 +135,13 @@ function guardhouseAir(d: Draw): void {
 
 // ---- The archery range ----
 
-const FLETCH = ['#a9302a', '#efe6cf', '#2f55a8'] as const;
+const FLETCH = ['#7e2420', '#c9bc9c', '#28468f'] as const;
 
 /** An arrow from its point `tip` back along `dir` (unit), `len` long: shaft, nock and fletching. */
 function arrow(d: Draw, tip: Pt, dir: Pt, len: number, fletch: string): void {
   const end = pt(tip.x + dir.x * len, tip.y + dir.y * len);
   d.pen.stroke([tip, end], 1.1, d.ink, 1, false);
-  d.pen.stroke([tip, end], 0.55, '#d9bf8c', 1, false);
+  d.pen.stroke([tip, end], 0.55, '#96835b', 1, false);
   const n = pt(-dir.y, dir.x);
   for (const s of [-1, 1]) {
     const vane = [pt(end.x - dir.x * 4.6, end.y - dir.y * 4.6), pt(end.x + n.x * s * 1.9 - dir.x * 0.4, end.y + n.y * s * 1.9 - dir.y * 0.4), pt(end.x + dir.x * 0.6, end.y + dir.y * 0.6)];
@@ -164,14 +164,14 @@ function butt(d: Draw, rng: Rng, c: Pt, r: number, hits: readonly (readonly [num
     for (let i = 0; i < 40; i++) {
       const a = rng() * Math.PI * 2;
       const p = pt(c.x + r * 0.32 + Math.cos(a) * r * 0.66, c.y + Math.sin(a) * r * 0.92);
-      pen.hair([p, pt(p.x + 2.4, p.y + (rng() - 0.5) * 1.4)], 0.4, rng() < 0.5 ? '#8c6a2c' : '#f0dc9c', 0.8);
+      pen.hair([p, pt(p.x + 2.4, p.y + (rng() - 0.5) * 1.4)], 0.4, rng() < 0.5 ? '#664c1b' : '#a59564', 0.8);
     }
   });
   const face = oval(c.x, c.y, r * 0.72, r, 32);
   paint(d, face, STRAW, { shadow: 0.25, hatch: 0, line: 0 });
   pen.clipped(face, () => {
-    for (let k = 0.15; k < 1; k += 0.11) pen.hair(closed(oval(c.x + 0.3, c.y, r * 0.72 * k, r * k, 24)), 0.4, '#9a7634', 0.55);
-    const rings: readonly (readonly [number, string])[] = [[0.84, '#efe6cf'], [0.66, CROWN_BLUE], [0.48, '#efe6cf'], [0.32, '#a9302a'], [0.15, CROWN_GOLD]];
+    for (let k = 0.15; k < 1; k += 0.11) pen.hair(closed(oval(c.x + 0.3, c.y, r * 0.72 * k, r * k, 24)), 0.4, '#6f5420', 0.55);
+    const rings: readonly (readonly [number, string])[] = [[0.84, '#c9bc9c'], [0.66, CROWN_BLUE], [0.48, '#c9bc9c'], [0.32, '#7e2420'], [0.15, CROWN_GOLD]];
     for (const [k, col] of rings) {
       const ring = oval(c.x - 0.4, c.y, r * 0.72 * k, r * k, 28);
       pen.fill(ring, col, 0.9);
@@ -180,7 +180,7 @@ function butt(d: Draw, rng: Rng, c: Pt, r: number, hits: readonly (readonly [num
     pen.crescent(face, pt(-r * 0.3, -r * 0.4), () => soft(pen.ctx, r * 0.1, () => pen.fill(face, SHADOW, 0.32)));
     pen.fill(oval(c.x - r * 0.25, c.y - r * 0.35, r * 0.25, r * 0.3, 14), LIGHT, 0.18);
     // Cords binding the coil.
-    for (const t of [-0.45, 0.45]) pen.stroke([pt(c.x - r, c.y + r * t - 1), pt(c.x + r, c.y + r * t + 1)], 0.8, '#6b4a26', 0.7, false);
+    for (const t of [-0.45, 0.45]) pen.stroke([pt(c.x - r, c.y + r * t - 1), pt(c.x + r, c.y + r * t + 1)], 0.8, '#51371b', 0.7, false);
   });
   pen.stroke(closed(face), 0.75, d.ink, 0.92);
   hits.forEach(([hx, hy], i) => {
@@ -195,7 +195,7 @@ function fence(d: Draw, xa: number, za: number, xb: number, zb: number, posts: n
   for (let i = 0; i < posts; i++) {
     const t = i / (posts - 1);
     const post = [pt(at(t, 0).x - 1.3, at(t, 0).y), pt(at(t, 0).x + 1.3, at(t, 0).y), pt(at(t, 15).x + 1.3, at(t, 15).y), pt(at(t, 16.6).x, at(t, 16.6).y), pt(at(t, 15).x - 1.3, at(t, 15).y)];
-    paint(d, post, i % 2 ? TIMBER : mix(TIMBER, '#9b7448', 0.5), { shadow: 0.45, hatch: 0, line: 0.55 });
+    paint(d, post, i % 2 ? TIMBER : mix(TIMBER, '#705230', 0.5), { shadow: 0.45, hatch: 0, line: 0.55 });
   }
   for (const h of [6, 12.5]) beam(d, at(-0.02, h), at(1.02, h - 0.4), 1.9, mix(TIMBER, LIGHT, 0.12), 0.5);
 }
@@ -205,15 +205,15 @@ function bow(d: Draw, top: Pt, len: number): void {
   const bot = pt(top.x + 1, top.y + len);
   const belly = pt(top.x - len * 0.32, top.y + len / 2);
   d.pen.stroke(bezier(top, belly, bot, 12), 1.5, OAK_DARK, 1, false);
-  d.pen.hair([top, bot], 0.4, '#efe6cf', 0.9);
-  d.pen.stroke([pt(top.x - 2.6, top.y + len / 2 - 2), pt(top.x - 2.6, top.y + len / 2 + 2)], 1.6, '#a9302a', 0.9, false);
+  d.pen.hair([top, bot], 0.4, '#c9bc9c', 0.9);
+  d.pen.stroke([pt(top.x - 2.6, top.y + len / 2 - 2), pt(top.x - 2.6, top.y + len / 2 + 2)], 1.6, '#7e2420', 0.9, false);
 }
 
 /** A leather quiver on a peg, its fletchings showing. */
 function quiver(d: Draw, top: Pt): void {
   const body = [pt(top.x - 2.4, top.y), pt(top.x + 2.4, top.y), pt(top.x + 1.8, top.y + 14), pt(top.x - 1.8, top.y + 14)];
   for (let i = 0; i < 4; i++) d.pen.stroke([pt(top.x - 1.6 + i * 1.1, top.y + 1), pt(top.x - 2 + i * 1.3, top.y - 3.4)], 1.1, FLETCH[i % 3]!, 0.95, false);
-  paint(d, body, '#8a5a32', { shadow: 0.4, hatch: 0, line: 0.55 });
+  paint(d, body, '#664122', { shadow: 0.4, hatch: 0, line: 0.55 });
   d.pen.hair([pt(top.x - 2.2, top.y + 3), pt(top.x + 2.2, top.y + 3)], 0.6, OAK_DARK, 0.8);
 }
 
@@ -250,8 +250,8 @@ function gallery(d: Draw, rng: Rng): void {
 function targetSign(d: Draw, hook: Pt): void {
   const c = pt(hook.x, hook.y + 9);
   for (const s of [-1, 1]) d.pen.stroke([pt(hook.x + s * 3, hook.y), pt(c.x + s * 4.6, c.y - 4)], 0.6, OAK_DARK, 0.9, false);
-  paint(d, oval(c.x, c.y, 7, 6.4, 24), '#efe6cf', { shadow: 0.35, hatch: 0, line: 0.7 });
-  for (const [k, col] of [[0.72, CROWN_BLUE], [0.48, '#efe6cf'], [0.3, '#a9302a'], [0.13, CROWN_GOLD]] as const) {
+  paint(d, oval(c.x, c.y, 7, 6.4, 24), '#c9bc9c', { shadow: 0.35, hatch: 0, line: 0.7 });
+  for (const [k, col] of [[0.72, CROWN_BLUE], [0.48, '#c9bc9c'], [0.3, '#7e2420'], [0.13, CROWN_GOLD]] as const) {
     d.pen.fill(oval(c.x, c.y, 7 * k, 6.4 * k, 20), col, 0.95);
     d.pen.hair(closed(oval(c.x, c.y, 7 * k, 6.4 * k, 20)), 0.4, d.ink, 0.6);
   }
@@ -288,7 +288,7 @@ function archeryGround(d: Draw, rng: Rng): void {
   castShadow(d, [P(-26, 14, 0), P(-26, 40, 0), P(-6, 34, 0), P(-8, 10, 0)], 0, 0, 0.18, 3);
   // The worn shooting lanes from the gallery to the butts, and the targets' shadows.
   for (const [x, z] of [[28, 38], [70, 34], [48, 12]] as const) {
-    soft(d.pen.ctx, 3, () => d.pen.fill(blob(P(x - 14, z - 2, 0), 34, 5, rng, 0.2, 18), '#b49a72', 0.32));
+    soft(d.pen.ctx, 3, () => d.pen.fill(blob(P(x - 14, z - 2, 0), 34, 5, rng, 0.2, 18), '#76604a', 0.32));
     groundShadow(d, P(x + 6, z, 0).x, P(x, z, 0).y + 1, 12, 3, 0.2);
   }
   apron(d, rng, pt(-50, 6), 30, 5, false);

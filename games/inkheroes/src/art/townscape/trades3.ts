@@ -15,7 +15,7 @@ import type { TownDrawer } from './types';
  * the angels' white tower on its crag, winged, its gilt dome in a halo of
  * light.
  */
-const SAND = '#d8c08a';
+const SAND = '#96835a';
 
 /** A shade laid over a round thing already coloured: clear on its lit left, cool indigo on its right. */
 function roundShade(d: Draw, shape: readonly Pt[], x0: number, x1: number, depth = 0.4): void {
@@ -55,7 +55,7 @@ function pavilion(d: Draw, x: number, z: number, r: number, wallH: number, rise:
   const c0 = at(Math.PI * 0.42, 0);
   const c1 = at(Math.PI * 0.58, 0);
   const peak = pt((c0.x + c1.x) / 2, c0.y - wallH * 0.85);
-  pen.fill([c0, c1, peak], '#2b2738', 0.92);
+  pen.fill([c0, c1, peak], '#17100c', 0.92);
   for (const [foot, s] of [[c0, -1], [c1, 1]] as const) {
     const flap = [foot, peak, pt(foot.x + s * 2.8, foot.y - wallH * 0.4), pt(foot.x + s * 3.4, foot.y)];
     paint(d, flap, mix(stripe, CANVAS, 0.55), { shadow: 0.4, hatch: 0, line: 0.55 });
@@ -113,7 +113,7 @@ function stand(d: Draw, rng: Rng): void {
   });
   const deck: Box = { x0, x1, z0, z1, h0: 0, h1: ph };
   solid(d, rng, deck, PLANK, 'plank', true);
-  for (const z of [56, 49]) solid(d, rng, { x0: x0 + 4, x1: x1 - 4, z0: z, z1: z + 4, h0: ph, h1: ph + 4 }, mix(PLANK, '#d9b27a', 0.3), 'none', true);
+  for (const z of [56, 49]) solid(d, rng, { x0: x0 + 4, x1: x1 - 4, z0: z, z1: z + 4, h0: ph, h1: ph + 4 }, mix(PLANK, '#987a4e', 0.3), 'none', true);
   // Banners hung down the front, each blue with a gilt crown.
   const bw = 9;
   for (const x of [x0 + 8, (x0 + x1) / 2 - bw / 2, x1 - 8 - bw]) {
@@ -184,7 +184,7 @@ function lance(d: Draw, foot: Pt, tip: Pt): void {
   const plate = [pt(v.x + n.x * 3, v.y + n.y * 3), pt(v.x - n.x * 3, v.y - n.y * 3), pt(v.x + along.x * 5 - n.x * 1, v.y + along.y * 5 - n.y * 1), pt(v.x + along.x * 5 + n.x * 1, v.y + along.y * 5 + n.y * 1)];
   paint(d, plate, STEEL, { shadow: 0.4, hatch: 0, line: 0.55, gloss: true });
   pen.stroke([pt(tip.x - along.x * 2, tip.y - along.y * 2), pt(tip.x + along.x * 1.5, tip.y + along.y * 1.5)], 1.6, STEEL, 1, false);
-  for (const s of [-1, 0, 1]) pen.stroke([pt(tip.x + along.x * 1.2 + n.x * s, tip.y + along.y * 1.2 + n.y * s), pt(tip.x + along.x * 2.6 + n.x * s * 1.6, tip.y + along.y * 2.6 + n.y * s * 1.6)], 0.6, '#6a6e7c', 1, false);
+  for (const s of [-1, 0, 1]) pen.stroke([pt(tip.x + along.x * 1.2 + n.x * s, tip.y + along.y * 1.2 + n.y * s), pt(tip.x + along.x * 2.6 + n.x * s * 1.6, tip.y + along.y * 2.6 + n.y * s * 1.6)], 0.6, '#534e53', 1, false);
 }
 
 /** The lance rack at the near end: a trestle with its lances leant up against it. */
@@ -212,10 +212,10 @@ function tiltyardGround(d: Draw, rng: Rng): void {
   soft(ctx, 4, () => d.pen.fill(lists, SAND, 0.75));
   // Raked furrows down the lists, scuffed along both sides of the barrier.
   for (let z = 2; z < 44; z += 3.2) d.pen.hair([P(-96 + (z % 7), z), P(94 - (z % 5), z)], 0.4, mix(SAND, SHADOW, 0.35), 0.35);
-  for (const z of [14, 30]) soft(ctx, 2, () => d.pen.fill([P(-90, z - 3), P(86, z - 3), P(86, z + 3), P(-90, z + 3)], mix(SAND, '#8a7050', 0.5), 0.25));
+  for (const z of [14, 30]) soft(ctx, 2, () => d.pen.fill([P(-90, z - 3), P(86, z - 3), P(86, z + 3), P(-90, z + 3)], mix(SAND, '#645037', 0.5), 0.25));
   // Trodden grass round the tents and the stand.
-  earth(d, rng, [P(-104, 30), P(-40, 30), P(-8, 60), P(-8, 86), P(-60, 80), P(-104, 60)], '#b8a57c', 0.4);
-  earth(d, rng, [P(12, 40), P(88, 40), P(88, 70), P(12, 70)], '#b8a57c', 0.4);
+  earth(d, rng, [P(-104, 30), P(-40, 30), P(-8, 60), P(-8, 86), P(-60, 80), P(-104, 60)], '#817253', 0.4);
+  earth(d, rng, [P(12, 40), P(88, 40), P(88, 70), P(12, 70)], '#817253', 0.4);
   groundShadow(d, -56, -32, 26, 5, 0.22);
   groundShadow(d, -12, -46, 16, 3.5, 0.2);
   groundShadow(d, 58, -32, 40, 6, 0.2);
@@ -226,9 +226,9 @@ function tiltyardGround(d: Draw, rng: Rng): void {
 
 // ---- The seraph spire ----
 
-const WHITE = '#ece6d6';
-const WHITE_SHADE = '#c9c3d8';
-const GILT = '#d9ad3c';
+const WHITE = '#a99b80';
+const WHITE_SHADE = '#6e6058';
+const GILT = '#b8892a';
 const RADIANCE = '#fff4cc';
 const SZ = 30;
 /** The tower's axis on the ground, and the heights of its stages. */
@@ -239,7 +239,7 @@ const at = (x: number, h: number): Pt => P(x, SZ, h);
 /** A stepped round plinth on the crag. */
 function plinth(d: Draw, rng: Rng): void {
   // A few fallen stones about its foot, where it stands on the crag.
-  for (const [x, z, r] of [[-30, 2, 3.4], [-24, -2, 2.4], [34, 4, 3], [28, -1, 2.2], [40, 12, 2.6]] as const) lump(d, rng, P(x, z), r, r * 0.72, mix(ROCK, '#b7ad98', 0.3));
+  for (const [x, z, r] of [[-30, 2, 3.4], [-24, -2, 2.4], [34, 4, 3], [28, -1, 2.2], [40, 12, 2.6]] as const) lump(d, rng, P(x, z), r, r * 0.72, mix(ROCK, '#867560', 0.3));
   for (const [r, h0] of [[31, 0], [27, 4], [23.5, 8]] as const) {
     drum(d, rng, 0, SZ, r, h0, h0 + 4, WHITE, false);
     const top = P(0, SZ, h0 + 4);
@@ -277,7 +277,7 @@ function tholos(d: Draw, rng: Rng): void {
   const ring = drum(d, rng, 0, SZ, 22.5, 46, 52, WHITE, false);
   d.pen.stroke(frontArc(ring.base.x, ring.base.y - 3, 22.5, 22), 1.6, GILT, 0.95, false);
   d.pen.hair(frontArc(ring.base.x, ring.base.y - 2.2, 22.5, 22), 0.4, mix(GILT, SHADOW, 0.5), 0.8);
-  cone(d, rng, ring.top, 23, 10, '#e3d3a0', GILT);
+  cone(d, rng, ring.top, 23, 10, '#9c9068', GILT);
 }
 
 /** One feather from `base` to `tip`, `w` wide: a rounded white vane, its quill and a gilt edge on the outer ones. */
@@ -383,24 +383,24 @@ function seraphSpire(d: Draw, rng: Rng): void {
 
 function spireGround(d: Draw, rng: Rng): void {
   groundShadow(d, 8, -2, 46, 8, 0.24);
-  earth(d, rng, [P(-50, -6), P(56, -6), P(60, 14), P(-46, 16)], '#a89c80', 0.3);
+  earth(d, rng, [P(-50, -6), P(56, -6), P(60, 14), P(-46, 16)], '#7c6b50', 0.3);
 }
 
 function spireAir(d: Draw, rng: Rng): void {
   const ctx = d.pen.ctx;
   const c = at(0, LANTERN.h0 + 12);
-  glow(ctx, c, 48, RADIANCE, 0.5);
-  glow(ctx, c, 22, '#ffffff', 0.6);
+  glow(ctx, c, 44, RADIANCE, 0.3);
+  glow(ctx, c, 18, '#ffe9b0', 0.4);
   // Soft rays of light fanned from the lantern.
   for (let k = 0; k < 9; k++) {
     const a = -Math.PI / 2 + (k - 4) * 0.34 + (rng() - 0.5) * 0.08;
     const len = 34 + rng() * 10;
     const spread = 0.05;
-    soft(ctx, 2, () => d.pen.fill([pt(c.x + Math.cos(a - spread) * 10, c.y + Math.sin(a - spread) * 10), pt(c.x + Math.cos(a) * len, c.y + Math.sin(a) * len), pt(c.x + Math.cos(a + spread) * 10, c.y + Math.sin(a + spread) * 10)], RADIANCE, 0.3));
+    soft(ctx, 2, () => d.pen.fill([pt(c.x + Math.cos(a - spread) * 10, c.y + Math.sin(a - spread) * 10), pt(c.x + Math.cos(a) * len, c.y + Math.sin(a) * len), pt(c.x + Math.cos(a + spread) * 10, c.y + Math.sin(a + spread) * 10)], RADIANCE, 0.16));
   }
-  glow(ctx, at(0, 30), 14, RADIANCE, 0.35);
-  for (const h of [77, 111]) glow(ctx, at(0, h), 7, RADIANCE, 0.4);
-  for (const [x, h, r] of [[-30, 178, 2.6], [34, 168, 2.2], [-20, 200, 1.8], [24, 196, 2], [0, 214, 2.4]] as const) sparkle(d, at(x, h), r, 0.9);
+  glow(ctx, at(0, 30), 14, RADIANCE, 0.25);
+  for (const h of [77, 111]) glow(ctx, at(0, h), 7, RADIANCE, 0.28);
+  for (const [x, h, r] of [[-30, 178, 2.6], [34, 168, 2.2], [-20, 200, 1.8], [24, 196, 2], [0, 214, 2.4]] as const) sparkle(d, at(x, h), r * 0.8, 0.6);
 }
 
 export const TRADES_C: Readonly<Record<'tiltyard' | 'seraphSpire', TownDrawer>> = {

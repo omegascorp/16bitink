@@ -27,7 +27,7 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
       body: 'An old iron-bound chest, full of coin. Keep the gold, or give it to the villages along the road and learn from their stories?',
       buttons: [
         { label: `Keep ${first.gold} gold`, onClick: () => next('gold') },
-        { label: `Take ${first.xp} experience`, kind: 'sky', onClick: () => next('xp') },
+        { label: `Take ${first.xp} experience`, kind: 'crown', onClick: () => next('xp') },
       ],
     });
     return;
@@ -41,7 +41,7 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
       buttons: o.choices.length
         ? o.choices.map((id, i) => {
           const rank = (hero.skills[id] ?? 0) + 1;
-          return { label: `${RANK_NAMES[rank]} ${SKILLS[id].name}`, note: SKILLS[id].says(SKILLS[id].values[rank - 1]!), kind: i === 0 ? 'leaf' as const : 'sky' as const, onClick: () => next(id) };
+          return { label: `${RANK_NAMES[rank]} ${SKILLS[id].name}`, note: SKILLS[id].says(SKILLS[id].values[rank - 1]!), kind: i === 0 ? 'primary' as const : 'crown' as const, onClick: () => next(id) };
         })
         : [{ label: 'On we go', onClick: () => next() }],
     });
@@ -66,7 +66,7 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
           session.replayDay();
           scene.scene.restart();
         } },
-        { label: 'Back to the campaign', kind: 'paper', onClick: () => toMenu(scene, session, 'lose') },
+        { label: 'Back to the campaign', kind: 'plain', onClick: () => toMenu(scene, session, 'lose') },
       ],
     });
   }

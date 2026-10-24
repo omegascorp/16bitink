@@ -14,11 +14,11 @@ import { banner, OAK_DARK, STRAW, tufts } from './dwellingKit';
  * griffin looking out of one), a nest on a bracket below with its eggs, a
  * blue spire, the griffin-head banner and moulted feathers.
  */
-const TOWER_STONE = mix(STONE, '#d8cdb4', 0.3);
-const TAWNY = '#b8843e';
-const PLUMAGE = '#efe6cf';
-const BEAK = '#d9a43a';
-const TWIGS = ['#5a3d26', '#7a5534', '#8f6a3c', '#a5823a', '#c9a55c'] as const;
+const TOWER_STONE = mix(STONE, '#9b8a71', 0.3);
+const TAWNY = '#845c24';
+const PLUMAGE = '#c9bc9c';
+const BEAK = '#997019';
+const TWIGS = ['#462f1d', '#5b3e24', '#684c28', '#765b23', '#8d7239'] as const;
 
 /** The tower's axis on the plan. */
 const TX = 0;
@@ -44,7 +44,7 @@ function shaft(d: Draw, rng: Rng, r0: number, r1: number, h0: number, h1: number
         pen.hair([pt(px, py), pt(px, py + course - 0.4)], 0.42, d.ink, 0.4);
         if (rng() < 0.35) {
           const w = 5 * Math.sin(t) + 0.6;
-          pen.fill([pt(px, py + 0.3), pt(px + w, py + 0.3), pt(px + w, py + course - 0.3), pt(px, py + course - 0.3)], rng() < 0.5 ? mix(color, LIGHT, 0.5) : mix(color, '#7d6e58', 0.5), 0.2);
+          pen.fill([pt(px, py + 0.3), pt(px + w, py + 0.3), pt(px + w, py + course - 0.3), pt(px, py + course - 0.3)], rng() < 0.5 ? mix(color, LIGHT, 0.5) : mix(color, '#604d37', 0.5), 0.2);
         }
       }
       // A lit arris under each course on the lit flank.
@@ -52,9 +52,9 @@ function shaft(d: Draw, rng: Rng, r0: number, r1: number, h0: number, h1: number
     }
     for (let i = 0; i < 5; i++) {
       const c = pt(base.x + (rng() - 0.5) * r0 * 1.6, base.y - rng() * (h1 - h0));
-      dab(d, blob(c, 5 + rng() * 6, 8 + rng() * 10, rng, 0.3, 14), mix(color, rng() < 0.5 ? '#9c7f58' : '#7d86a0', 0.6), 0.16, 3);
+      dab(d, blob(c, 5 + rng() * 6, 8 + rng() * 10, rng, 0.3, 14), mix(color, rng() < 0.5 ? '#705a3b' : '#5a5e66', 0.6), 0.16, 3);
     }
-    soft(pen.ctx, 2.5, () => pen.fill([...frontArc(base.x, base.y - 8, r0 + 2, 16), pt(base.x + r0 + 2, base.y + 10), pt(base.x - r0 - 2, base.y + 10)], mix(color, '#5a4a3a', 0.5), 0.25));
+    soft(pen.ctx, 2.5, () => pen.fill([...frontArc(base.x, base.y - 8, r0 + 2, 16), pt(base.x + r0 + 2, base.y + 10), pt(base.x - r0 - 2, base.y + 10)], mix(color, '#4a3624', 0.5), 0.25));
   });
   pen.stroke(closed(body), 0.75, d.ink, 0.9);
   return body;
@@ -89,7 +89,7 @@ function shaftWindow(d: Draw, s: number, h: number, r: number, w: number, tall: 
   const sur = [pt(c.x - ww / 2 - 1.6, c.y + 1.6), pt(c.x + ww / 2 + 1.6, c.y + 1.6), ...head.map((p) => pt(c.x + (p.x - c.x) * ((ww + 3.2) / ww), p.y - 1.6))];
   flat(d, sur, mix(TOWER_STONE, LIGHT, 0.2), { tone: s > 0.3 ? 0.3 : 0, line: 0.5 });
   const hole = [pt(c.x - ww / 2, c.y), pt(c.x + ww / 2, c.y), ...head];
-  d.pen.fill(hole, '#2b2738', 0.95);
+  d.pen.fill(hole, '#17100c', 0.95);
   d.pen.crescent(hole, pt(-1, -1.2), () => d.pen.fill(hole, mix(TOWER_STONE, SHADOW, 0.2), 0.5));
   d.pen.stroke(closed(hole), 0.6, d.ink, 0.9);
 }
@@ -109,7 +109,7 @@ function nest(d: Draw, rng: Rng, c: Pt, rx: number, cup?: () => void): void {
     const k = 1 + (rng() - 0.5) * 0.16;
     return pt(c.x + Math.cos(a) * rx * k, c.y + Math.sin(a) * (below ? depth : ry * 1.15) * k);
   });
-  paint(d, heap, '#6e4c30', { shadow: 0.65, hatch: 0.22, line: 0.75 });
+  paint(d, heap, '#533822', { shadow: 0.65, hatch: 0.22, line: 0.75 });
   // Twigs woven round the heap, lit towards the upper left, crossing every way.
   pen.clipped(heap, () => {
     for (let i = 0; i < rx * 12; i++) {
@@ -134,13 +134,13 @@ function nest(d: Draw, rng: Rng, c: Pt, rx: number, cup?: () => void): void {
   }
   // The cup: deep in shade at its back, lined with straw and down.
   const rim = blob(pt(c.x + rx * 0.05, c.y - ry * 0.1), rx * 0.74, ry * 0.72, rng, 0.12, 22);
-  flat(d, rim, '#4e3424', { tone: 0.25, line: 0.6 });
+  flat(d, rim, '#422716', { tone: 0.25, line: 0.6 });
   pen.clipped(rim, () => {
-    pen.fill(oval(c.x + rx * 0.05, c.y + ry * 0.35, rx * 0.66, ry * 0.5, 20), mix(STRAW, '#4e3424', 0.35), 0.75);
+    pen.fill(oval(c.x + rx * 0.05, c.y + ry * 0.35, rx * 0.66, ry * 0.5, 20), mix(STRAW, '#422716', 0.35), 0.75);
     for (let i = 0; i < rx * 2; i++) {
       const p = pt(c.x + (rng() - 0.5) * rx * 1.4, c.y + (rng() - 0.2) * ry);
       const a = (rng() - 0.5) * 0.8;
-      pen.hair([p, pt(p.x + Math.cos(a) * 4, p.y + Math.sin(a) * 2)], 0.45, rng() < 0.5 ? STRAW : '#f0dc9c', 0.85);
+      pen.hair([p, pt(p.x + Math.cos(a) * 4, p.y + Math.sin(a) * 2)], 0.45, rng() < 0.5 ? STRAW : '#a59564', 0.85);
     }
   });
   cup?.();
@@ -158,8 +158,8 @@ function nest(d: Draw, rng: Rng, c: Pt, rx: number, cup?: () => void): void {
 function eggs(d: Draw, rng: Rng, c: Pt, s: number): void {
   for (const [dx, dy, k] of [[-0.35, 0.1, 1], [0.4, 0.15, 0.9]] as const) {
     const e = oval(c.x + dx * s * 2, c.y + dy * s - s * 0.55 * k, s * 0.5 * k, s * 0.68 * k, 18);
-    paint(d, e, '#e9dcb4', { shadow: 0.45, hatch: 0, line: 0.6, gloss: true });
-    for (let i = 0; i < 6; i++) d.pen.dot(c.x + dx * s * 2 + (rng() - 0.5) * s * 0.6, c.y + dy * s - s * 0.55 * k + (rng() - 0.5) * s * 0.8, 0.45, '#9a7634', 0.8);
+    paint(d, e, '#9f9577', { shadow: 0.45, hatch: 0, line: 0.6, gloss: true });
+    for (let i = 0; i < 6; i++) d.pen.dot(c.x + dx * s * 2 + (rng() - 0.5) * s * 0.6, c.y + dy * s - s * 0.55 * k + (rng() - 0.5) * s * 0.8, 0.45, '#6f5420', 0.8);
   }
 }
 
@@ -202,8 +202,8 @@ export function griffinHead(d: Draw, c: Pt, s: number, herald = false, folded = 
   if (!herald) gleam(d, [p(-1.6, -2.05), p(-2.2, -1.95), p(-2.55, -1.6)], 0.7, 0.7);
   // A fierce eye under a heavy brow.
   const e = p(-1.05, -1.85);
-  pen.dot(e.x, e.y, s * 0.2, herald ? '#232a4f' : '#d9a43a', 1);
-  pen.dot(e.x, e.y, s * 0.11, '#1b1a1f', 1);
+  pen.dot(e.x, e.y, s * 0.2, herald ? '#2a1d14' : '#997019', 1);
+  pen.dot(e.x, e.y, s * 0.11, '#1a120c', 1);
   if (!herald) pen.dot(e.x - s * 0.05, e.y - s * 0.07, s * 0.05, PAPER_FILL, 0.95);
   pen.stroke([p(-1.5, -2.15), p(-1.1, -2.1), p(-0.6, -2.25)], 0.8, d.ink, 0.9, false);
 }
@@ -255,7 +255,7 @@ function flyingGriffin(d: Draw, rng: Rng, c: Pt, k: number): void {
   // The lion's body and hind legs trailing, the tail with its tuft.
   d.pen.stroke(bezier(p(8, 0.5), p(14, 2), p(18, -3), 8), 1.4 * k, d.ink, 1, false);
   d.pen.stroke(bezier(p(8, 0.5), p(14, 2), p(18, -3), 8), 0.8 * k, TAWNY, 1, false);
-  paint(d, blob(p(18.6, -3.6), 1.6 * k, 1.1 * k, rng, 0.2, 10, -0.6), '#5a3d26', { shadow: 0.3, hatch: 0, line: 0.5 });
+  paint(d, blob(p(18.6, -3.6), 1.6 * k, 1.1 * k, rng, 0.2, 10, -0.6), '#462f1d', { shadow: 0.3, hatch: 0, line: 0.5 });
   for (const [x0, x1] of [[6, 11], [4.5, 9]] as const) paint(d, [p(x0, 1), p(x0 + 2, 2), p(x1, 4.6), p(x1 - 1.6, 5.2), p(x0 - 1, 2.6)], mix(TAWNY, SHADOW, 0.15), { shadow: 0.4, hatch: 0, line: 0.5 });
   const body = blob(p(1, 0.6), 8 * k, 3.4 * k, rng, 0.08, 18, -0.06);
   paint(d, body, TAWNY, { shadow: 0.5, hatch: 0.18, line: 0.65 });
@@ -313,14 +313,14 @@ function perch(d: Draw, rng: Rng, h: number, r: number): void {
 
 /** One loose boulder: a faceted lump, cracked and speckled. */
 function boulder(d: Draw, rng: Rng, c: Pt, rx: number, ry: number): void {
-  const shape = lump(d, rng, c, rx, ry, mix(ROCK, rng() < 0.5 ? '#9a917f' : '#b3a991', 0.4), 0.65);
+  const shape = lump(d, rng, c, rx, ry, mix(ROCK, rng() < 0.5 ? '#736450' : '#83735b', 0.4), 0.65);
   d.pen.clipped(shape, () => {
     d.pen.stipple(shape, Math.round(rx * ry * 0.5), (_, y) => 0.25 + ((y - c.y + ry) / (2 * ry)) * 0.6, 0.45, mix(ROCK, SHADOW, 0.55));
     d.pen.hair([pt(c.x - rx * 0.1, c.y - ry * 0.5), pt(c.x + rx * 0.05, c.y), pt(c.x - rx * 0.05, c.y + ry * 0.6)], 0.5, d.ink, 0.55);
   });
 }
 
-const CRAG = mix(ROCK, '#a59a86', 0.4);
+const CRAG = mix(ROCK, '#7a6954', 0.4);
 
 /**
  * One block of the crag: an irregular prism of rock from the ground up to
@@ -361,8 +361,8 @@ function rockBlock(d: Draw, rng: Rng, x0: number, x1: number, z0: number, z1: nu
       pen.hair([P(ua + 1, z0, v + 0.8), P(ub - 1, z0, v + 0.8)], 0.55, PAPER_FILL, 0.4);
     }
     pen.stipple(front, Math.round((x1 - x0) * h * 0.25), () => 0.5, 0.45, mix(CRAG, SHADOW, 0.5));
-    dab(d, blob(P((x0 + x1) / 2, z0, h * 0.7), (x1 - x0) * 0.4, h * 0.25, rng, 0.3, 12), rng() < 0.5 ? '#7f9a5a' : '#9c7f58', 0.16, 3);
-    soft(pen.ctx, 2.4, () => pen.fill([P(x0 - 2, z0, -2), P(x1 + 2, z0, -2), P(x1 + 2, z0, 8), P(x0 - 2, z0, 8)], mix(CRAG, '#4e4232', 0.5), 0.3));
+    dab(d, blob(P((x0 + x1) / 2, z0, h * 0.7), (x1 - x0) * 0.4, h * 0.25, rng, 0.3, 12), rng() < 0.5 ? '#586d3b' : '#705a3b', 0.16, 3);
+    soft(pen.ctx, 2.4, () => pen.fill([P(x0 - 2, z0, -2), P(x1 + 2, z0, -2), P(x1 + 2, z0, 8), P(x0 - 2, z0, 8)], mix(CRAG, '#42311f', 0.5), 0.3));
   });
   pen.clipped(top, () => pen.stipple(top, Math.round((x1 - x0) * (z1 - z0) * 0.12), () => 0.5, 0.4, mix(CRAG, SHADOW, 0.35)));
   if (rng() < 0.7) tufts(d, rng, t0.x + 2, tm.x, (t0.y + tm.y) / 2 + 1.5, 2, 0.8);
@@ -376,13 +376,13 @@ const CRAG_FRONT = [[-62, -40, -8, 4, 9], [-34, -14, -10, 2, 14], [14, 32, -8, 4
 function ivy(d: Draw, rng: Rng, h0: number, h1: number, r: number): void {
   const stem: Pt[] = [];
   for (let h = h0, i = 0; h < h1; h += 5, i++) stem.push(onShaft(-0.88 + Math.sin(i * 0.9) * 0.08, h, r));
-  d.pen.stroke(stem, 0.7, '#3f5f34', 0.95, false);
+  d.pen.stroke(stem, 0.7, '#2e4726', 0.95, false);
   stem.forEach((p, i) => {
     const n = i < stem.length * 0.6 ? 3 : 1;
     for (let k = 0; k < n; k++) {
       if (rng() < 0.2) continue;
       const leaf = blob(pt(p.x + (rng() - 0.35) * 7, p.y + (rng() - 0.5) * 4), 2.2, 1.6, rng, 0.25, 8, rng() * 3);
-      paint(d, leaf, rng() < 0.5 ? '#5f8f4e' : '#4d7a45', { shadow: 0.4, hatch: 0, line: 0.4 });
+      paint(d, leaf, rng() < 0.5 ? '#416634' : '#365930', { shadow: 0.4, hatch: 0, line: 0.4 });
     }
   });
 }

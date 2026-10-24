@@ -46,7 +46,7 @@ export interface OgrePose {
 /** Where the hips turn (and the upper body leans) from. */
 export const HIP = pt(-2, -38);
 export const NEAR_FIST = pt(16.2, -59.6);
-export const FAR_FIST = pt(37.6, -36);
+export const FAR_FIST = pt(37.4, -25);
 export const FEET = { near: 7, far: -21 } as const;
 
 export const REST: OgrePose = {
@@ -127,7 +127,7 @@ const key = (o: Partial<Key>): Key => ({
  */
 const ATTACK: readonly (readonly [number, Key])[] = [
   [0, key({})],
-  [0.27, key({ hipX: -1.5, hipY: 0.5, lean: -0.04, nod: 0.04, nearX: 9, nearLift: 5, nearTilt: -0.15, fx: 15.5, fy: -86, club: -0.49, raise: 0.35, gx: 3, gy: -90, flap: -0.12 })],
+  [0.27, key({ hipX: -1.5, hipY: 0.5, lean: -0.04, nod: 0.04, nearX: 9, nearLift: 5, nearTilt: -0.15, fx: 15.5, fy: -85, club: -0.49, raise: 0.35, gx: 3, gy: -90, flap: -0.12 })],
   [0.5, key({ hipX: 3, hipY: 3.4, lean: 0.15, nod: 0.12, nearX: 13, fx: 13.5, fy: -67, club: 3.52, gx: 23.5, gy: -48, flap: 0.18, impact: 1 })],
   [0.75, key({ hipX: 2.5, hipY: 3.8, lean: 0.12, nod: 0.08, nearX: 13, fx: 14, fy: -65, club: 3.58, gx: 24, gy: -46, flap: 0.05, impact: 0.45 })],
   [1, key({})],

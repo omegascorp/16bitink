@@ -13,8 +13,8 @@ import {
  * tower, the cloister's arcade with cypresses in its garth, the monks'
  * range with candlelight in its windows, and bee skeps by the path.
  */
-const MONK_STONE = mix(STONE, '#d9ccb0', 0.4);
-const CYPRESS = '#3f5f3a';
+const MONK_STONE = mix(STONE, '#9c896f', 0.4);
+const CYPRESS = '#2e472a';
 
 /** A tall cypress, `foot` at its base, `h` tall: a dark flame of foliage, lit on its left. */
 function cypress(d: Draw, rng: Rng, foot: Pt, h: number, w: number): void {
@@ -56,14 +56,14 @@ function rose(d: Draw, at: Surface, u: number, v: number, r: number, C: string):
     const g = pen.ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, r);
     g.addColorStop(0, '#fff1c0');
     g.addColorStop(0.5, CANDLE);
-    g.addColorStop(1, '#b0602e');
+    g.addColorStop(1, '#81431b');
     pen.ctx.fillStyle = g;
     pen.ctx.fillRect(c.x - r, c.y - r, r * 2, r * 2);
     // Coloured panes between the tracery: blue, red, gold.
     for (let i = 0; i < 8; i++) {
       const a = ((i + 0.5) / 8) * Math.PI * 2;
       const p = pt(c.x + Math.cos(a) * r * 0.66, c.y + Math.sin(a) * r * 0.66);
-      pen.fill(oval(p.x, p.y, r * 0.2, r * 0.2, 10), ['#4a6fc0', '#c0483a', '#e0b84a'][i % 3]!, 0.55);
+      pen.fill(oval(p.x, p.y, r * 0.2, r * 0.2, 10), ['#394e8e', '#8e3026', '#9d7e25'][i % 3]!, 0.55);
     }
     pen.crescent(glass, pt(1.6, 1.8), () => pen.fill(glass, SHADOW, 0.4));
   });
@@ -108,8 +108,8 @@ function lancet(d: Draw, at: Surface, u: number, v: number, w: number, h: number
       g.addColorStop(1, '#a8562a');
       pen.ctx.fillStyle = g;
       pen.ctx.fillRect(c.x - h, c.y - h, h * 2, h * 2);
-      pen.stroke([at(u + w / 2, v), at(u + w / 2, v + h)], 0.6, '#5a3d26', 0.9, false);
-      for (let k = 1; k < 4; k++) pen.hair([at(u, v + (h * k) / 4), at(u + w, v + (h * k) / 4)], 0.4, '#5a3d26', 0.8);
+      pen.stroke([at(u + w / 2, v), at(u + w / 2, v + h)], 0.6, '#462f1d', 0.9, false);
+      for (let k = 1; k < 4; k++) pen.hair([at(u, v + (h * k) / 4), at(u + w, v + (h * k) / 4)], 0.4, '#462f1d', 0.8);
     });
   } else pen.fill(hole, HOLE, 0.92);
   pen.crescent(hole, pt(1.2, 1.5), () => pen.fill(hole, SHADOW, 0.4));
@@ -133,7 +133,7 @@ function portal(d: Draw, rng: Rng, at: Surface, u: number, w: number, h: number,
       pen.hair([at(u + w / 2 + Math.cos(a) * (r - 3), sp + Math.sin(a) * (r - 3)), at(u + w / 2 + Math.cos(a) * r, sp + Math.sin(a) * r)], 0.45, d.ink, 0.6);
     }
   }
-  door(d, rng, at, u, w, h, C, { ring: 0, wood: '#6e4a2e', ajar: true });
+  door(d, rng, at, u, w, h, C, { ring: 0, wood: '#533721', ajar: true });
   // A carved cross over the door.
   const c = at(u + w / 2, h + 9.5);
   pen.stroke([pt(c.x, c.y - 3.4), pt(c.x, c.y + 3.4)], 1.4, mix(C, SHADOW, 0.45), 1, false);
@@ -152,8 +152,8 @@ function cross(d: Draw, foot: Pt, h: number, w = 2): void {
 
 /** A plank bench for the skeps, from x0 to x1 on the ground at y. */
 function bench(d: Draw, rng: Rng, x0: number, x1: number, y: number): void {
-  for (const x of [x0 + 3, (x0 + x1) / 2, x1 - 3]) d.pen.stroke([pt(x, y - 4), pt(x + 0.6, y + 1)], 1.8, '#5a3d26', 1, false);
-  box(d, rng, { x0, x1, z0: -y / 0.6 - 1, z1: -y / 0.6 + 4, h0: 4, h1: 5.6 }, '#9a7448', 'plank', true);
+  for (const x of [x0 + 3, (x0 + x1) / 2, x1 - 3]) d.pen.stroke([pt(x, y - 4), pt(x + 0.6, y + 1)], 1.8, '#462f1d', 1, false);
+  box(d, rng, { x0, x1, z0: -y / 0.6 - 1, z1: -y / 0.6 + 4, h0: 4, h1: 5.6 }, '#6f5230', 'plank', true);
 }
 
 /** A bee skep: a dome of coiled straw with its dark door, `foot` at the middle of its base. */
@@ -199,11 +199,11 @@ function monastery(d: Draw, rng: Rng): void {
   for (const x of [N.x0, N.x1]) buttress(d, rng, x, N.z0, 50, 6, C);
   // The monks' range to the right, candlelit.
   const R: Box = { x0: 40, x1: 104, z0: 22, z1: 46, h0: 0, h1: 36 };
-  box(d, rng, R, mix(C, '#e4d8bd', 0.3), 'plaster', false);
+  box(d, rng, R, mix(C, '#a39177', 0.3), 'plaster', false);
   const ra = frontOf(R);
   for (let i = 0; i < 5; i++) window(d, ra, 5 + i * 12, 8, 6, 9, C, { arched: true, lit: i !== 2, bars: true });
   for (let i = 0; i < 5; i++) window(d, ra, 5.5 + i * 12, 24, 5, 6, C, { lit: i % 2 === 0, sill: false });
-  gableRoof(d, rng, R, 18, 'x', mix(SLATE, '#6d6a7c', 0.4), 'slate', mix(C, '#e4d8bd', 0.3), 3);
+  gableRoof(d, rng, R, 18, 'x', mix(SLATE, '#4d4850', 0.4), 'slate', mix(C, '#a39177', 0.3), 3);
   // The bell tower: a tall square tower, the belfry's paired openings, a slate spire and cross.
   const T: Box = { x0: 12, x1: 36, z0: 12, z1: 36, h0: 0, h1: 104 };
   box(d, rng, T, C, 'stone', false);
@@ -219,7 +219,7 @@ function monastery(d: Draw, rng: Rng): void {
   // Bee skeps on their stools by the path, and the hives' flowers.
   bench(d, rng, 60, 98, 6);
   for (const x of [68, 88]) skep(d, pt(x, 1.4), 6.4);
-  haze(d, '#c9d3e0', 0.1, -115, -184, 115, 16);
+  haze(d, '#908e92', 0.1, -115, -184, 115, 16);
 }
 
 /** The belfry's paired openings on the tower's front, a bronze bell hanging in one. */
@@ -228,11 +228,11 @@ function belfry(d: Draw, at: Surface, C: string): void {
   for (const u of [3.5, 13.5]) window(d, at, u, 82, 7, 17, C, { arched: true, sill: u === 3.5 });
   const c = at(7, 96.5);
   const bell = [...bezier(pt(c.x - 1.6, c.y - 4.6), pt(c.x - 2.2, c.y - 1), pt(c.x - 3.4, c.y + 2.4), 6), pt(c.x + 3.4, c.y + 2.4), ...bezier(pt(c.x + 3.4, c.y + 2.4), pt(c.x + 2.2, c.y - 1), pt(c.x + 1.6, c.y - 4.6), 6).slice(1)];
-  paint(d, bell, '#b08a3a', { shadow: 0.45, hatch: 0, line: 0.55, gloss: true });
+  paint(d, bell, '#7e6021', { shadow: 0.45, hatch: 0, line: 0.55, gloss: true });
   gleam(d, [pt(c.x - 1.4, c.y - 3.8), pt(c.x - 2, c.y), pt(c.x - 2.6, c.y + 1.8)], 0.6, 0.7);
-  pen.stroke([pt(c.x, c.y - 4.6), pt(c.x, c.y - 7)], 0.8, '#4a4b55', 1, false);
+  pen.stroke([pt(c.x, c.y - 4.6), pt(c.x, c.y - 7)], 0.8, '#3e3739', 1, false);
   // Louvres across the other opening.
-  for (let v = 85; v < 96; v += 2.4) pen.stroke([at(13.8, v), at(20.2, v + 0.8)], 1, '#6e4a2e', 0.9, false);
+  for (let v = 85; v < 96; v += 2.4) pen.stroke([at(13.8, v), at(20.2, v + 0.8)], 1, '#533721', 0.9, false);
 }
 
 function monasteryGround(d: Draw, rng: Rng): void {
@@ -240,10 +240,10 @@ function monasteryGround(d: Draw, rng: Rng): void {
   castShadow(d, [P(104, 21, 0), P(104, 47, 0), P(112, 40, 0), P(112, 18, 0)], 0, 0, 0.18, 3);
   // The path from the portal down the slope, and the garden beds by the skeps.
   apron(d, rng, pt(-9, 6), 16, 5);
-  soft(d.pen.ctx, 2, () => d.pen.fill(blob(pt(80, 6), 24, 5, rng, 0.2, 16), '#8a6a44', 0.35));
+  soft(d.pen.ctx, 2, () => d.pen.fill(blob(pt(80, 6), 24, 5, rng, 0.2, 16), '#654c2e', 0.35));
   for (let i = 0; i < 18; i++) {
     const p = pt(58 + rng() * 44, 4 + rng() * 6);
-    d.pen.dot(p.x, p.y, 0.9, ['#d65a5a', '#e3c845', '#f3ead2', '#9a7ad0'][i % 4]!, 0.9);
+    d.pen.dot(p.x, p.y, 0.9, ['#9c3c3c', '#9d881c', '#ac9c84', '#715296'][i % 4]!, 0.9);
   }
   tufts(d, rng, -110, -50, 2, 6);
   tufts(d, rng, 36, 110, 3, 5);

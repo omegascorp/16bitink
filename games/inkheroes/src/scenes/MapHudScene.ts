@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { CREATURE_RES, FRAME_H, GROUND_Y } from '../art/creatures/types';
-import { INK } from '../art/palette';
+import { UI, UI_HEX } from '../art/palette';
 import { TEX } from '../art/textures';
 import { getHost, getSound } from '../host';
 import { calendar, type Adventure } from '../logic/adventure';
@@ -12,7 +12,7 @@ import { toMenu } from './cards';
 import { screenScene, viewSize } from './hidpi';
 import type { MapScene } from './MapScene';
 import { Session } from './session';
-import { HAND, paintedButton, paperCard, roundButton } from './uiPaint';
+import { body, countBadge, paintedButton, panelCard, roundButton, title } from './uiPaint';
 
 const BAR_H = 40;
 const PANEL = { w: 400, h: 132 } as const;
@@ -43,7 +43,7 @@ export class MapHudScene extends Phaser.Scene {
     this.slots = [];
     this.buildTop();
     this.buildPanel();
-    this.status = this.add.text(12, 0, '', { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '26px', color: INK, stroke: '#f3ecd9', strokeThickness: 5 }).setOrigin(0, 1);
+    this.status = title(this, 12, 0, '', 18, { color: UI.text }).setOrigin(0, 1);
     const map = this.scene.get('Map') as MapScene;
     const onStatus = (s: string): void => void this.status.setText(s);
     const onNote = (text: string): void => this.note(text);
@@ -71,33 +71,34 @@ export class MapHudScene extends Phaser.Scene {
       // Gold runs to five figures; the rest rarely past two.
       const x = 14 + (i === 0 ? 0 : 40 + i * 74);
       items.push(this.add.image(x + 11, BAR_H / 2, TEX.icon(r)).setDisplaySize(24, 24));
-      const t = this.add.text(x + 26, BAR_H / 2, '0', { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '24px', color: INK }).setOrigin(0, 0.5);
+      const t = body(this, x + 28, BAR_H / 2, '0', 19, { color: UI.text }).setFontStyle('600').setOrigin(0, 0.5);
       this.purse.push(t);
       items.push(t);
     });
-    this.date = this.add.text(0, BAR_H / 2, '', { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '24px', color: INK }).setOrigin(1, 0.5);
-    const bg = this.add.rectangle(0, 0, 4000, BAR_H, 0xf3ecd9, 0.92).setOrigin(0);
-    const rule = this.add.rectangle(0, BAR_H, 4000, 1.5, 0x232a4f, 0.5).setOrigin(0);
-    this.top = this.add.container(0, 0, [bg, rule, ...items, this.date]);
+    this.date = title(this, 0, BAR_H / 2, '', 17).setOrigin(1, 0.5);
+    const bg = this.add.rectangle(0, 0, 4000, BAR_H, UI_HEX.leafDeep, 0.94).setOrigin(0);
+    const rule = this.add.rectangle(0, BAR_H, 4000, 2, UI_HEX.gilt, 0.85).setOrigin(0);
+    const fillet = this.add.rectangle(0, BAR_H + 2, 4000, 1, 0x000000, 0.6).setOrigin(0);
+    this.top = this.add.container(0, 0, [bg, rule, fillet, ...items, this.date]);
   }
 
   private buildPanel(): void {
-    const card = paperCard(this, 0, 0, PANEL.w, PANEL.h, 77, { rule: true, shadow: 0.8 });
+    const card = panelCard(this, 0, 0, PANEL.w, PANEL.h, 77, { shadow: 0.8 });
     const portrait = this.add.image(-PANEL.w / 2 + 50, PANEL.h / 2 - 22, TEX.hero('player', 0)).setOrigin(0.5, GROUND_Y / FRAME_H).setScale(0.62 / CREATURE_RES);
-    this.heroLine = this.add.text(-PANEL.w / 2 + 96, -PANEL.h / 2 + 12, '', { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '26px', color: INK });
-    this.moveLine = this.add.text(-PANEL.w / 2 + 96, -PANEL.h / 2 + 42, '', { fontFamily: 'Georgia, serif', fontSize: '14px', color: INK });
+    this.heroLine = title(this, -PANEL.w / 2 + 96, -PANEL.h / 2 + 14, '', 17);
+    this.moveLine = body(this, -PANEL.w / 2 + 100, -PANEL.h / 2 + 42, '', 15);
     const items: Phaser.GameObjects.GameObject[] = [card, portrait, this.heroLine, this.moveLine];
     for (let i = 0; i < 7; i++) {
       const x = -PANEL.w / 2 + 112 + i * 40;
       const y = PANEL.h / 2 - 16;
-      const slot = this.add.rectangle(x, y - 20, 36, 46, 0x232a4f, 0.05).setStrokeStyle(1, 0x232a4f, 0.3);
+      const slot = this.add.rectangle(x, y - 20, 36, 46, UI_HEX.well, 0.75).setStrokeStyle(1, UI_HEX.giltDeep, 0.9);
       const img = this.add.image(x, y - 4, TEX.creature('spearman', 0)).setOrigin(0.5, GROUND_Y / FRAME_H).setScale(0.36 / CREATURE_RES);
-      const count = this.add.text(x + 17, y + 2, '', { fontFamily: 'Georgia, serif', fontSize: '13px', color: '#fdf8ea', backgroundColor: '#232a4f', padding: { x: 3, y: 1 } }).setOrigin(1, 1);
+      const count = countBadge(this, x + 17, y + 2, '', 13).setOrigin(1, 1);
       this.slots.push({ img, count });
       items.push(slot, img, count);
     }
-    const endDay = paintedButton(this, PANEL.w / 2 + 70, -PANEL.h / 2 + 26, 'End day', () => this.endDay(), { width: 120, height: 48, size: 24, kind: 'leaf' });
-    const town = paintedButton(this, PANEL.w / 2 + 70, 8, 'Town', () => (this.scene.get('Map') as MapScene).openTown(), { width: 120, height: 44, size: 24 });
+    const endDay = paintedButton(this, PANEL.w / 2 + 70, -PANEL.h / 2 + 26, 'End day', () => this.endDay(), { width: 120, height: 48, size: 17, kind: 'primary' });
+    const town = paintedButton(this, PANEL.w / 2 + 70, 8, 'Town', () => (this.scene.get('Map') as MapScene).openTown(), { width: 120, height: 44, size: 17 });
     const menu = roundButton(this, PANEL.w / 2 + 70, PANEL.h / 2 - 16, 'pause', () => this.menu(), 44);
     items.push(endDay, town, menu.root);
     this.panel = this.add.container(0, 0, items);
@@ -143,7 +144,7 @@ export class MapHudScene extends Phaser.Scene {
   /** A note floating up from the purse ("+5 wood"). */
   private note(text: string): void {
     const v = viewSize(this);
-    const t = this.add.text(v.width / 2, v.height * 0.4, text, { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '34px', color: '#2f6b3a', stroke: '#fdf8ea', strokeThickness: 6 }).setOrigin(0.5);
+    const t = title(this, v.width / 2, v.height * 0.4, text, 26, { color: UI.giltLight }).setOrigin(0.5);
     this.tweens.add({ targets: t, y: t.y - 60, alpha: 0, duration: 1400, ease: 'Sine.easeOut', onComplete: () => t.destroy() });
   }
 
@@ -156,15 +157,15 @@ export class MapHudScene extends Phaser.Scene {
       body: `Goal: ${this.session.def.goal.text}.\n${calendar(this.session.adv.day)}. The game saves as you play.`,
       buttons: [
         { label: 'Back to the map', onClick: () => undefined },
-        { label: sound?.muted ? 'Sound: off' : 'Sound: on', kind: 'paper', onClick: () => sound?.setMuted(!sound.muted) },
-        { label: 'Start this map again', kind: 'paper', onClick: () => {
+        { label: sound?.muted ? 'Sound: off' : 'Sound: on', kind: 'plain', onClick: () => sound?.setMuted(!sound.muted) },
+        { label: 'Start this map again', kind: 'plain', onClick: () => {
           const def = this.session.def;
           this.session.abandon(this, 'quit');
           Session.begin(this, getHost(this), def);
           this.scene.stop();
           this.scene.get('Map').scene.restart();
         } },
-        { label: 'Campaign menu', kind: 'paper', onClick: () => toMenu(this, this.session, null) },
+        { label: 'Campaign menu', kind: 'plain', onClick: () => toMenu(this, this.session, null) },
       ],
     });
   }

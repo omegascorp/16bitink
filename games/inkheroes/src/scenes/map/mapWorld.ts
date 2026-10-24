@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { CREATURE_RES, FRAME_H, FRAME_W, GROUND_Y } from '../../art/creatures/types';
-import { INK_HEX, PAPER } from '../../art/palette';
+import { INK_HEX, BACKDROP } from '../../art/palette';
 import { frameFor, SITE_RES, type SiteArt } from '../../art/sites/types';
 import { CHUNK, TILE } from '../../art/terrain';
 import { heroFigure, TEX } from '../../art/textures';
@@ -13,6 +13,9 @@ import { dustPuff, Gait, WALK_FPS } from '../gait';
 
 /** How big creatures and the hero stand on the map, in units per frame unit. */
 const MAP_FIGURE = 0.62;
+/** The planned path: reachable today (green, as in H3) and on later days (red). */
+const PATH_TODAY = 0x8fd860;
+const PATH_LATER = 0xe0574a;
 
 export const tileCentre = (x: number, y: number): { x: number; y: number } => ({ x: (x + 0.5) * TILE, y: (y + 0.5) * TILE });
 const tileFoot = (x: number, y: number): { x: number; y: number } => ({ x: (x + 0.5) * TILE, y: (y + 0.92) * TILE });
@@ -140,13 +143,16 @@ export class MapWorld {
       const last = i === path.length - 1;
       const today = s.day === 0;
       if (last) {
-        g.lineStyle(3, today ? 0x2f6b3a : 0x9a3b2c, 0.9);
-        g.lineBetween(c.x - 8, c.y - 8, c.x + 8, c.y + 8).lineBetween(c.x - 8, c.y + 8, c.x + 8, c.y - 8);
+        for (const [w, color] of [[5, INK_HEX], [3, today ? PATH_TODAY : PATH_LATER]] as const) {
+          g.lineStyle(w, color, 0.95);
+          g.lineBetween(c.x - 8, c.y - 8, c.x + 8, c.y + 8).lineBetween(c.x - 8, c.y + 8, c.x + 8, c.y - 8);
+        }
       } else if (today) {
-        g.fillStyle(0x2f6b3a, 0.85).fillCircle(c.x, c.y, 4.5);
-        g.lineStyle(1.2, INK_HEX, 0.6).strokeCircle(c.x, c.y, 4.5);
+        g.fillStyle(PATH_TODAY, 0.95).fillCircle(c.x, c.y, 4.5);
+        g.lineStyle(1.4, INK_HEX, 0.9).strokeCircle(c.x, c.y, 4.5);
       } else {
-        g.lineStyle(2, 0x9a3b2c, 0.75).strokeCircle(c.x, c.y, 4);
+        g.lineStyle(3.4, INK_HEX, 0.7).strokeCircle(c.x, c.y, 4);
+        g.lineStyle(2, PATH_LATER, 0.9).strokeCircle(c.x, c.y, 4);
       }
     });
   }
@@ -155,7 +161,7 @@ export class MapWorld {
     const g = gridOf(this.def);
     const ctx = this.fog.getContext();
     ctx.clearRect(0, 0, g.w + 2, g.h + 2);
-    ctx.fillStyle = PAPER;
+    ctx.fillStyle = BACKDROP;
     ctx.fillRect(0, 0, g.w + 2, g.h + 2);
     for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (adv.explored[x + y * g.w] === '1') ctx.clearRect(x + 1, y + 1, 1, 1);
     this.fog.refresh();

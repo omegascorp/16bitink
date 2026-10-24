@@ -18,7 +18,7 @@ import type { TownDrawer } from './types';
  * painted on its own at its slot's anchor (types.ts) and finished as the
  * map's sites are, with a rim of light and one weighted ink silhouette.
  */
-const TAVERN_ROOF = '#9a5b3c';
+const TAVERN_ROOF = '#714128';
 
 // ---- The tavern: a timber-framed inn, a cross-wing to the left, its sign out over the door ----
 
@@ -71,8 +71,8 @@ function chimney(d: Draw, rng: Rng): void {
   for (const x of [41, 45.5]) {
     const foot = P(x, 35, CHIMNEY.h1);
     const pot = crisp([pt(foot.x - 1.6, foot.y), pt(foot.x - 1.3, foot.y - 6), pt(foot.x + 1.3, foot.y - 6), pt(foot.x + 1.6, foot.y)], 1.5);
-    paint(d, pot, '#b5653e', { shadow: 0.5, hatch: 0, line: 0.6 });
-    d.pen.fill([pt(foot.x - 1.3, foot.y - 6), pt(foot.x + 1.3, foot.y - 6), pt(foot.x + 1, foot.y - 6.8), pt(foot.x - 1, foot.y - 6.8)], '#3a2a2a', 0.9);
+    paint(d, pot, '#844628', { shadow: 0.5, hatch: 0, line: 0.6 });
+    d.pen.fill([pt(foot.x - 1.3, foot.y - 6), pt(foot.x + 1.3, foot.y - 6), pt(foot.x + 1, foot.y - 6.8), pt(foot.x - 1, foot.y - 6.8)], '#321f1a', 0.9);
   }
 }
 
@@ -116,7 +116,7 @@ function sign(d: Draw): void {
   const mug = crisp([pt(c.x - 3, c.y - 3), pt(c.x + 2.4, c.y - 3), pt(c.x + 2.2, c.y + 4), pt(c.x - 2.8, c.y + 4)], 1.2);
   paint(d, mug, CROWN_GOLD, { shadow: 0.35, hatch: 0, line: 0.5, gloss: true });
   pen.stroke([pt(c.x + 2.3, c.y - 1.5), pt(c.x + 4.4, c.y - 0.6), pt(c.x + 4.2, c.y + 2), pt(c.x + 2.3, c.y + 2.6)], 0.8, CROWN_GOLD, 1, false);
-  paint(d, [pt(c.x - 3.6, c.y - 3), pt(c.x - 2.6, c.y - 5.2), pt(c.x - 0.4, c.y - 4.6), pt(c.x + 1.4, c.y - 5.4), pt(c.x + 3, c.y - 3)], '#f6efd8', { shadow: 0.2, hatch: 0, line: 0.45 });
+  paint(d, [pt(c.x - 3.6, c.y - 3), pt(c.x - 2.6, c.y - 5.2), pt(c.x - 0.4, c.y - 4.6), pt(c.x + 1.4, c.y - 5.4), pt(c.x + 3, c.y - 3)], '#ae9f88', { shadow: 0.2, hatch: 0, line: 0.45 });
 }
 
 /** The ground floor's door, its step and lantern, the barrels and a bench. */
@@ -131,11 +131,11 @@ function tavernFront(d: Draw, rng: Rng): void {
   d.pen.fill([pt(lamp.x - 2, lamp.y - 3.6), pt(lamp.x + 2, lamp.y - 3.6), pt(lamp.x, lamp.y - 5.6)], IRON, 1);
   // A bench under the window, a mug left on it.
   for (const x of [17, 31]) beam(d, P(x, 5, 0), P(x, 5, 7), 1.6, TIMBER_DARK, 0.5);
-  solid(d, rng, { x0: 14, x1: 34, z0: 3, z1: 7, h0: 7, h1: 8.6 }, mix(OAK, '#d9b27a', 0.25), 'none', true);
+  solid(d, rng, { x0: 14, x1: 34, z0: 3, z1: 7, h0: 7, h1: 8.6 }, mix(OAK, '#987a4e', 0.25), 'none', true);
   const mug = P(28, 5, 8.6);
-  paint(d, crisp([pt(mug.x - 1.4, mug.y), pt(mug.x - 1.4, mug.y - 3.4), pt(mug.x + 1.4, mug.y - 3.4), pt(mug.x + 1.4, mug.y)], 1), '#9a8a74', { shadow: 0.4, hatch: 0, line: 0.5 });
+  paint(d, crisp([pt(mug.x - 1.4, mug.y), pt(mug.x - 1.4, mug.y - 3.4), pt(mug.x + 1.4, mug.y - 3.4), pt(mug.x + 1.4, mug.y)], 1), '#735f49', { shadow: 0.4, hatch: 0, line: 0.5 });
   barrel(d, P(-23, 3), 5.2, 13, OAK);
-  barrel(d, P(-12, 1), 4.8, 12, mix(OAK, '#a5713f', 0.4));
+  barrel(d, P(-12, 1), 4.8, 12, mix(OAK, '#785028', 0.4));
   barrel(d, pt(P(-23, 3).x + 0.5, P(-23, 3).y - 13), 3.4, 8, mix(OAK, SHADOW, 0.1));
 }
 
@@ -153,7 +153,7 @@ function tavern(d: Draw, rng: Rng): void {
     flat(d, crisp([at(u, 2.6), at(u + 13, 2.6), at(u + 13, 5.6), at(u, 5.6)], 2), OAK, { tone: 0.1, line: 0.5 });
     for (let k = 0; k < 7; k++) {
       const p = at(u + 1 + k * 1.8 + rng(), 6.2 + rng() * 1.6);
-      d.pen.dot(p.x, p.y, 1.1, k % 3 === 0 ? '#4d7a45' : '#c8433a', 1);
+      d.pen.dot(p.x, p.y, 1.1, k % 3 === 0 ? '#365930' : '#932c25', 1);
       d.pen.dot(p.x - 0.3, p.y - 0.3, 0.35, PAPER_FILL, 0.6);
     }
   }
@@ -164,7 +164,7 @@ function tavern(d: Draw, rng: Rng): void {
 function tavernGround(d: Draw, rng: Rng): void {
   groundShadow(d, -8, 2, 92, 9, 0.24);
   throwShadow(d, 58, 12, 46, 26);
-  earth(d, rng, [P(-94, -8), P(66, -8), P(70, 10), P(40, 14), P(-90, 6)], '#bfa57c', 0.55);
+  earth(d, rng, [P(-94, -8), P(66, -8), P(70, 10), P(40, 14), P(-90, 6)], '#867252', 0.55);
   tufts(d, rng, -92, -84, 2, 3);
   tufts(d, rng, 62, 72, -2, 3);
 }
@@ -181,8 +181,8 @@ function tavernAir(d: Draw, rng: Rng): void {
 const SMITHY: Box = { x0: -60, x1: 38, z0: 10, z1: 44, h0: 0, h1: 40 };
 const FLUE_LOW: Box = { x0: -76, x1: -58, z0: 18, z1: 34, h0: 0, h1: 58 };
 const FLUE: Box = { x0: -73, x1: -61, z0: 21, z1: 31, h0: 58, h1: 92 };
-const SLATE = '#6b7591';
-const COAL = '#2e2430';
+const SLATE = '#525264';
+const COAL = '#281a1f';
 const FIRE = '#f08a32';
 /** The forge's coal bed, where the glow comes from. */
 const HEARTH_GLOW = P(-37, 36, 13);
@@ -191,14 +191,14 @@ const ANVIL = P(-12, -4, 0);
 function forgeChimney(d: Draw, rng: Rng): void {
   solid(d, rng, FLUE_LOW, STONE, 'stone');
   // The weathered shoulder where the flue narrows.
-  flat(d, crisp([P(FLUE_LOW.x0, FLUE_LOW.z0, FLUE_LOW.h1), P(FLUE_LOW.x1, FLUE_LOW.z0, FLUE_LOW.h1), P(FLUE.x1, FLUE.z0, FLUE.h0 + 5), P(FLUE.x0, FLUE.z0, FLUE.h0 + 5)], 3), mix(STONE, '#8a8070', 0.3), { tone: 0.05, hatch: 0.15, line: 0.7 });
+  flat(d, crisp([P(FLUE_LOW.x0, FLUE_LOW.z0, FLUE_LOW.h1), P(FLUE_LOW.x1, FLUE_LOW.z0, FLUE_LOW.h1), P(FLUE.x1, FLUE.z0, FLUE.h0 + 5), P(FLUE.x0, FLUE.z0, FLUE.h0 + 5)], 3), mix(STONE, '#695946', 0.3), { tone: 0.05, hatch: 0.15, line: 0.7 });
   solid(d, rng, { ...FLUE, h0: FLUE.h0 + 4 }, STONE, 'stone', true);
   const cap: Box = { x0: FLUE.x0 - 1.5, x1: FLUE.x1 + 1.5, z0: FLUE.z0 - 1.5, z1: FLUE.z1, h0: FLUE.h1 - 4, h1: FLUE.h1 };
   solid(d, rng, cap, mix(STONE, SHADOW, 0.08), 'none', true);
-  d.pen.fill(crisp([P(FLUE.x0 + 1, FLUE.z0 + 1, FLUE.h1), P(FLUE.x1 - 1, FLUE.z0 + 1, FLUE.h1), P(FLUE.x1 - 1, FLUE.z1 - 1, FLUE.h1), P(FLUE.x0 + 1, FLUE.z1 - 1, FLUE.h1)], 2), '#2b2230', 0.9);
+  d.pen.fill(crisp([P(FLUE.x0 + 1, FLUE.z0 + 1, FLUE.h1), P(FLUE.x1 - 1, FLUE.z0 + 1, FLUE.h1), P(FLUE.x1 - 1, FLUE.z1 - 1, FLUE.h1), P(FLUE.x0 + 1, FLUE.z1 - 1, FLUE.h1)], 2), '#26181f', 0.9);
   // Soot licking up from the top.
   const at = frontOf(cap);
-  d.pen.clipped(crisp([at(0, -40), at(15, -40), at(15, 4), at(0, 4)], 3), () => soft(d.pen.ctx, 2, () => d.pen.fill([at(2, 4), at(13, 4), at(11, -12), at(4, -10)], '#3a3440', 0.3)));
+  d.pen.clipped(crisp([at(0, -40), at(15, -40), at(15, 4), at(0, 4)], 3), () => soft(d.pen.ctx, 2, () => d.pen.fill([at(2, 4), at(13, 4), at(11, -12), at(4, -10)], '#33272c', 0.3)));
 }
 
 /** Inside the open front: the floor, the far wall lit by the fire, the hearth and hood, tools on their pegs. */
@@ -208,26 +208,26 @@ function smithyInside(d: Draw, rng: Rng, hole: readonly Pt[]): void {
   pen.clipped(hole, () => {
     pen.fill(hole, COAL, 1);
     const back = crisp([P(-50, 42, 0), P(28, 42, 0), P(28, 42, 40), P(-50, 42, 40)], 4);
-    flat(d, back, '#4a3436', { tone: 0.25, line: 0 });
+    flat(d, back, '#3f2724', { tone: 0.25, line: 0 });
     pen.clipped(back, () => {
-      for (let v = 4; v < 40; v += 5.2) pen.hair([P(-50, 42, v), P(28, 42, v)], 0.4, '#2a1e24', 0.5);
+      for (let v = 4; v < 40; v += 5.2) pen.hair([P(-50, 42, v), P(28, 42, v)], 0.4, '#251515', 0.5);
     });
-    flat(d, crisp([P(-50, 10, 0), P(-50, 42, 0), P(-50, 42, 36), P(-50, 10, 36)], 4), '#5a4038', { tone: 0.15, line: 0.5 });
-    flat(d, crisp([P(-50, 10, 0), P(28, 10, 0), P(28, 42, 0), P(-50, 42, 0)], 4), '#40322e', { tone: 0.25, line: 0 });
+    flat(d, crisp([P(-50, 10, 0), P(-50, 42, 0), P(-50, 42, 36), P(-50, 10, 36)], 4), '#4a2f24', { tone: 0.15, line: 0.5 });
+    flat(d, crisp([P(-50, 10, 0), P(28, 10, 0), P(28, 42, 0), P(-50, 42, 0)], 4), '#38251d', { tone: 0.25, line: 0 });
     // Tongs and hammers on the far wall.
     for (let i = 0; i < 5; i++) {
       const top = P(-14 + i * 6, 42, 30);
-      pen.dot(top.x, top.y, 0.6, '#c9a070', 0.9);
+      pen.dot(top.x, top.y, 0.6, '#8e6e49', 0.9);
       const len = 9 + (i % 2) * 4;
-      pen.stroke([top, pt(top.x + (i % 2 ? 0.5 : -0.5), top.y + len)], 0.8, '#1e1a22', 0.95, false);
-      if (i % 2) pen.fill(crisp([pt(top.x - 2, top.y + len), pt(top.x + 3, top.y + len), pt(top.x + 3, top.y + len + 2.2), pt(top.x - 2, top.y + len + 2.2)], 1), '#1e1a22', 0.95);
-      else pen.stroke([pt(top.x - 0.5, top.y + len), pt(top.x - 1.6, top.y + len + 3)], 0.7, '#1e1a22', 0.95, false);
+      pen.stroke([top, pt(top.x + (i % 2 ? 0.5 : -0.5), top.y + len)], 0.8, '#1b1213', 0.95, false);
+      if (i % 2) pen.fill(crisp([pt(top.x - 2, top.y + len), pt(top.x + 3, top.y + len), pt(top.x + 3, top.y + len + 2.2), pt(top.x - 2, top.y + len + 2.2)], 1), '#1b1213', 0.95);
+      else pen.stroke([pt(top.x - 0.5, top.y + len), pt(top.x - 1.6, top.y + len + 3)], 0.7, '#1b1213', 0.95, false);
     }
     // The hearth: a stone bed of coals under a hood that runs up to the flue.
     const hearth: Box = { x0: -49, x1: -25, z0: 30, z1: 42, h0: 0, h1: 12 };
-    solid(d, rng, hearth, '#6e5e58', 'stone', false);
+    solid(d, rng, hearth, '#574338', 'stone', false);
     const bed = crisp([P(hearth.x0, hearth.z0, 12), P(hearth.x1, hearth.z0, 12), P(hearth.x1, hearth.z1, 12), P(hearth.x0, hearth.z1, 12)], 2);
-    pen.fill(bed, '#3a1e1a', 1);
+    pen.fill(bed, '#31140e', 1);
     pen.clipped(bed, () => {
       for (let i = 0; i < 40; i++) {
         const c = P(hearth.x0 + 2 + rng() * 20, hearth.z0 + 1 + rng() * 10, 12);
@@ -236,16 +236,16 @@ function smithyInside(d: Draw, rng: Rng, hole: readonly Pt[]): void {
     });
     flame(d, P(-37, 35, 12), 9);
     const hood = crisp([P(-51, 32, 22), P(-23, 32, 22), P(-30, 38, 36), P(-44, 38, 36)], 3);
-    flat(d, hood, '#7a5a48', { tone: 0.1, line: 0.7 });
+    flat(d, hood, '#5a4133', { tone: 0.1, line: 0.7 });
     pen.clipped(hood, () => soft(ctx, 2, () => pen.fill([P(-51, 32, 22), P(-23, 32, 22), P(-23, 32, 26), P(-51, 32, 26)], FIRE, 0.4)));
     bellows(d, P(-12, 38, 9));
     // Horseshoes on pegs along the far wall, and a cask of bar iron.
     for (let i = 0; i < 4; i++) {
       const c = P(6 + i * 5, 42, 24);
-      pen.stroke(Array.from({ length: 9 }, (_, k) => pt(c.x + Math.cos(Math.PI * (0.1 + k * 0.1)) * 1.6, c.y + Math.sin(Math.PI * (0.1 + k * 0.1)) * 2)), 0.8, '#8a8a96', 0.9, false);
+      pen.stroke(Array.from({ length: 9 }, (_, k) => pt(c.x + Math.cos(Math.PI * (0.1 + k * 0.1)) * 1.6, c.y + Math.sin(Math.PI * (0.1 + k * 0.1)) * 2)), 0.8, '#685f62', 0.9, false);
     }
-    for (let i = 0; i < 5; i++) pen.stroke([P(17.5 + i * 1.4, 22, 9), P(16 + i * 1.9, 22, 23 + (i % 2) * 3)], 0.9, '#5a5866', 1, false);
-    barrel(d, P(20, 20), 5, 11, '#6a5040');
+    for (let i = 0; i < 5; i++) pen.stroke([P(17.5 + i * 1.4, 22, 9), P(16 + i * 1.9, 22, 23 + (i % 2) * 3)], 0.9, '#493f45', 1, false);
+    barrel(d, P(20, 20), 5, 11, '#543928');
     // The fire's light thrown over the inside, strongest round the hearth.
     ctx.save();
     const g = ctx.createRadialGradient(HEARTH_GLOW.x, HEARTH_GLOW.y, 0, HEARTH_GLOW.x, HEARTH_GLOW.y, 52);
@@ -256,19 +256,19 @@ function smithyInside(d: Draw, rng: Rng, hole: readonly Pt[]): void {
     ctx.fillRect(HEARTH_GLOW.x - 52, HEARTH_GLOW.y - 52, 104, 104);
     ctx.restore();
     const at = frontOf(SMITHY);
-    soft(ctx, 3, () => pen.fill([at(0, 40), at(98, 40), at(98, 30), at(0, 30)], '#1e1626', 0.55));
+    soft(ctx, 3, () => pen.fill([at(0, 40), at(98, 40), at(98, 30), at(0, 30)], '#1b0f18', 0.55));
   });
 }
 
 /** The great bellows beside the hearth: two boards and the pleated leather between, its nozzle to the fire. */
 function bellows(d: Draw, c: Pt): void {
   const leather = crisp([pt(c.x - 9, c.y - 1.5), pt(c.x + 7, c.y - 4.5), pt(c.x + 7, c.y + 3.5), pt(c.x - 9, c.y + 0.5)], 2);
-  paint(d, leather, '#7a4a32', { shadow: 0.5, hatch: 0, line: 0.6 });
-  for (const k of [-4, 0, 3.5]) d.pen.hair([pt(c.x + k, c.y - 2.4 - k * 0.2), pt(c.x + k, c.y + 1.6 + k * 0.15)], 0.45, '#2a1a14', 0.8);
-  d.pen.stroke([pt(c.x - 9, c.y - 1.8), pt(c.x + 8, c.y - 5.4)], 1.2, '#8a6440', 1, false);
-  d.pen.stroke([pt(c.x - 9, c.y + 0.8), pt(c.x + 8, c.y + 4.2)], 1.2, '#6a4a30', 1, false);
+  paint(d, leather, '#5c3624', { shadow: 0.5, hatch: 0, line: 0.6 });
+  for (const k of [-4, 0, 3.5]) d.pen.hair([pt(c.x + k, c.y - 2.4 - k * 0.2), pt(c.x + k, c.y + 1.6 + k * 0.15)], 0.45, '#241108', 0.8);
+  d.pen.stroke([pt(c.x - 9, c.y - 1.8), pt(c.x + 8, c.y - 5.4)], 1.2, '#65482c', 1, false);
+  d.pen.stroke([pt(c.x - 9, c.y + 0.8), pt(c.x + 8, c.y + 4.2)], 1.2, '#503723', 1, false);
   d.pen.stroke([pt(c.x - 9, c.y - 0.6), pt(c.x - 14, c.y - 0.2)], 1, IRON, 1, false);
-  d.pen.stroke([pt(c.x + 8, c.y - 5.4), pt(c.x + 10, c.y - 9)], 0.8, '#8a6440', 1, false);
+  d.pen.stroke([pt(c.x + 8, c.y - 5.4), pt(c.x + 10, c.y - 9)], 0.8, '#65482c', 1, false);
 }
 
 /** A flame: layered tongues, deep orange outside to a pale core. */
@@ -301,13 +301,13 @@ function smithyFront(d: Draw, rng: Rng): void {
     o: 3.5,
     end: (_, s) => {
       const v = crisp([s(14, 6), s(20, 6), s(20, 14), s(14, 14)], 2);
-      d.pen.fill(v, '#2b2230', 0.9);
+      d.pen.fill(v, '#26181f', 0.9);
       d.pen.stroke(closed(v), 0.6, d.ink, 0.9);
     },
   });
   // A horseshoe nailed over the opening, for luck.
   const hs = at(49, 37.5);
-  d.pen.stroke(Array.from({ length: 9 }, (_, i) => pt(hs.x + Math.cos(Math.PI * (0.1 + i * 0.1)) * 2.2, hs.y + 1 - Math.sin(Math.PI * (0.1 + i * 0.1)) * 2.6)), 1, '#b9bcc6', 1, false);
+  d.pen.stroke(Array.from({ length: 9 }, (_, i) => pt(hs.x + Math.cos(Math.PI * (0.1 + i * 0.1)) * 2.2, hs.y + 1 - Math.sin(Math.PI * (0.1 + i * 0.1)) * 2.6)), 1, '#877f80', 1, false);
 }
 
 /** The anvil on its stump, a bar of iron glowing on its face, a hammer leant against the stump. */
@@ -319,9 +319,9 @@ function anvil(d: Draw): void {
   const body = [pt(foot.x - stump.r, foot.y), pt(foot.x - stump.r, top), pt(foot.x + stump.r, top), pt(foot.x + stump.r, foot.y)];
   paint(d, crisp(body, 2), OAK, { shadow: 0.55, hatch: 0.25, line: 0.7 });
   for (let k = -2; k <= 2; k++) pen.hair([pt(foot.x + k * 2.2, foot.y), pt(foot.x + k * 2.2 + 0.3, top)], 0.4, mix(OAK, SHADOW, 0.6), 0.6);
-  paint(d, ovalPts(foot.x, top, stump.r, stump.r * 0.55), '#cfa874', { shadow: 0.2, hatch: 0, line: 0.6 });
+  paint(d, ovalPts(foot.x, top, stump.r, stump.r * 0.55), '#91734b', { shadow: 0.2, hatch: 0, line: 0.6 });
   const c = pt(foot.x + 0.5, top - 9.5);
-  const steel = '#5f6474';
+  const steel = '#4c474f';
   const shape = [pt(c.x - 6, c.y), pt(c.x + 8, c.y), pt(c.x + 8, c.y + 3.2), pt(c.x + 4, c.y + 4.6), pt(c.x + 3.4, c.y + 7), pt(c.x + 6.5, c.y + 9.5), pt(c.x - 5.5, c.y + 9.5), pt(c.x - 2.6, c.y + 7), pt(c.x - 3, c.y + 4.6), pt(c.x - 5.2, c.y + 3.4), pt(c.x - 9, c.y + 2.6), pt(c.x - 13.5, c.y + 0.8), pt(c.x - 9.5, c.y - 0.4)];
   paint(d, shape, steel, { shadow: 0.55, hatch: 0.2, line: 0.85, gloss: true });
   pen.fill([pt(c.x - 9.5, c.y - 0.4), pt(c.x - 6, c.y), pt(c.x + 8, c.y), pt(c.x + 9, c.y - 1.6), pt(c.x - 5, c.y - 1.8)], mix(steel, LIGHT_STEEL, 0.6), 0.95);
@@ -336,14 +336,14 @@ function anvil(d: Draw): void {
   paint(d, crisp(turnPts([pt(foot.x + 10, top - 7), pt(foot.x + 15, top - 7), pt(foot.x + 15, top - 3.6), pt(foot.x + 10, top - 3.6)], pt(foot.x + 12.5, top - 5.3), 0.45), 1), steel, { shadow: 0.4, hatch: 0, line: 0.6, gloss: true });
 }
 
-const LIGHT_STEEL = '#e6e9f0';
+const LIGHT_STEEL = '#d6d0c6';
 const ovalPts = (x: number, y: number, rx: number, ry: number): Pt[] => Array.from({ length: 18 }, (_, i) => pt(x + Math.cos((i / 18) * Math.PI * 2) * rx, y + Math.sin((i / 18) * Math.PI * 2) * ry));
 
 /** A sword hung point down from a bar at `top`: pommel, grip, a gilt guard, the blade with its fuller. */
 function sword(d: Draw, top: Pt, len: number): void {
   const { pen } = d;
-  pen.stroke([pt(top.x, top.y - 5.2), pt(top.x, top.y - 0.4)], 1.7, '#5a3a2a', 1, false);
-  for (let v = -4.6; v < -0.6; v += 1.1) pen.hair([pt(top.x - 0.85, v + top.y), pt(top.x + 0.85, v + top.y + 0.5)], 0.35, '#2a1a14', 0.7);
+  pen.stroke([pt(top.x, top.y - 5.2), pt(top.x, top.y - 0.4)], 1.7, '#462d20', 1, false);
+  for (let v = -4.6; v < -0.6; v += 1.1) pen.hair([pt(top.x - 0.85, v + top.y), pt(top.x + 0.85, v + top.y + 0.5)], 0.35, '#241108', 0.7);
   paint(d, ovalPts(top.x, top.y - 6.2, 1.4, 1.3), CROWN_GOLD, { shadow: 0.35, hatch: 0, line: 0.45, gloss: true });
   const guard = crisp([pt(top.x - 4.6, top.y - 0.4), pt(top.x + 4.6, top.y - 0.4), pt(top.x + 4.6, top.y + 1), pt(top.x - 4.6, top.y + 1)], 1.2);
   paint(d, guard, CROWN_GOLD, { shadow: 0.35, hatch: 0, line: 0.5, gloss: true });
@@ -360,7 +360,7 @@ function weaponRack(d: Draw, rng: Rng): void {
   for (const h of [36, 25]) beam(d, P(x0 - 2, z, h), P(x1 + 2, z, h), 2.2, TIMBER_DARK, 0.55);
   for (let i = 0; i < 4; i++) sword(d, P(x0 + 6 + i * 7.4, z, 36.5), 22 + (i % 2) * 2);
   kiteShield(d, P(54, -3, 17), 13, CROWN_BLUE, CROWN_GOLD, 'cross', -0.1);
-  kiteShield(d, P(73, -4, 16), 12.5, '#ede4cc', CROWN_BLUE, 'chevron', 0.12);
+  kiteShield(d, P(73, -4, 16), 12.5, '#a89880', CROWN_BLUE, 'chevron', 0.12);
   void rng;
 }
 
@@ -369,7 +369,7 @@ function quenchTub(d: Draw): void {
   const foot = P(14, -3);
   barrel(d, foot, 6.5, 7, mix(OAK, SHADOW, 0.1));
   const water = ovalPts(foot.x, foot.y - 7, 5.6, 5.6 * 0.6 * 0.9);
-  paint(d, water, '#4a5a78', { shadow: 0.3, hatch: 0, line: 0.5, gloss: true });
+  paint(d, water, '#3c4156', { shadow: 0.3, hatch: 0, line: 0.5, gloss: true });
   d.pen.hair([pt(foot.x - 3.4, foot.y - 7.8), pt(foot.x - 0.5, foot.y - 8.4)], 0.6, PAPER_FILL, 0.7);
 }
 
@@ -382,16 +382,16 @@ function smithy(d: Draw, rng: Rng): void {
   // A heap of coal at the corner.
   for (let i = 0; i < 9; i++) {
     const c = P(-56 + (i % 5) * 3.2, 3 - Math.floor(i / 5) * 1.2, 1.4 + Math.floor(i / 5) * 2.4);
-    paint(d, ovalPts(c.x, c.y, 2, 1.6), '#34303c', { shadow: 0.4, hatch: 0, line: 0.45, gloss: true });
+    paint(d, ovalPts(c.x, c.y, 2, 1.6), '#2e2428', { shadow: 0.4, hatch: 0, line: 0.45, gloss: true });
   }
 }
 
 function smithyGround(d: Draw, rng: Rng): void {
   groundShadow(d, -12, 2, 82, 8, 0.24);
   throwShadow(d, 38, 10, 44, 24);
-  earth(d, rng, [P(-80, -10), P(84, -10), P(84, 8), P(40, 12), P(-78, 14)], '#a99272', 0.6);
+  earth(d, rng, [P(-80, -10), P(84, -10), P(84, 8), P(40, 12), P(-78, 14)], '#78664d', 0.6);
   // Soot and cinders trodden into the yard before the forge.
-  dab(d, [P(-40, -6), P(20, -8), P(26, 8), P(-36, 9)], '#4a4048', 0.18, 4);
+  dab(d, [P(-40, -6), P(20, -8), P(26, 8), P(-36, 9)], '#3f2f30', 0.18, 4);
   tufts(d, rng, 80, 86, -2, 2);
 }
 
@@ -404,7 +404,7 @@ function smithyAir(d: Draw, rng: Rng): void {
     d.pen.dot(p.x, p.y, 0.5, rng() < 0.5 ? '#fde29a' : '#f5a040', 0.95);
   }
   smoke(d, rng, P(-67, 26, FLUE.h1 + 3), 15, 32, 9);
-  for (let i = 0; i < 3; i++) dab(d, blob(pt(P(14, -3).x - 1 + i * 2, P(14, -3).y - 14 - i * 5), 2.4 + i, 1.6 + i * 0.5, rng, 0.3, 12), '#e8e4ea', 0.25 - i * 0.06, 1.2);
+  for (let i = 0; i < 3; i++) dab(d, blob(pt(P(14, -3).x - 1 + i * 2, P(14, -3).y - 14 - i * 5), 2.4 + i, 1.6 + i * 0.5, rng, 0.3, 12), '#c4bcb4', 0.25 - i * 0.06, 1.2);
 }
 
 export const TRADES: Readonly<Record<'tavern' | 'blacksmith' | 'marketplace' | 'stables' | 'tiltyard' | 'seraphSpire', TownDrawer>> = {

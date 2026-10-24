@@ -1,10 +1,10 @@
 import type { Rng } from '../../logic/rng';
 import { bezier, pt, type Draw } from '../kit';
-import { PAPER_FILL } from '../palette';
 import type { Pt } from '../pen';
 import {
-  arch, block, CROWN_BLUE, CROWN_GOLD, drum, frontOf, gable, HOLE, merlonRow, P, pennant, pyramid, roundCrown, slit, STONE, type Box,
+  arch, block, CROWN_GOLD, drum, frontOf, gable, HOLE, merlonRow, P, pennant, pyramid, roundCrown, slit, type Box,
 } from './build';
+import { CROWN_BLUE, STONE } from './darkPaints';
 import { blob, crisp, dab, flat, groundShadow, mix, paint, SHADOW, sprite } from './paintKit';
 import { cone, finial } from './spire';
 import { SITE_FRAME } from './types';
@@ -18,9 +18,11 @@ import { SITE_FRAME } from './types';
  * the Crown's pennant. Spans three tiles across and the row behind.
  */
 const BLUE = CROWN_BLUE;
-const SLATE_HOUSE = '#5d6f93';
-const EARTH = '#b49a72';
-const GRASS = '#86a35e';
+const SLATE_HOUSE = '#3e4a63';
+const EARTH = '#5e4a34';
+const GRASS = '#3d5a28';
+const PLASTER = '#a49478';
+const FIELDSTONE = '#5e574c';
 /** The knoll the town stands on: everything above it is lifted this much. */
 const KNOLL = 6;
 
@@ -53,7 +55,7 @@ function gateTower(d: Draw, rng: Rng, x: number, z: number, r: number, h: number
 /** The keep: a tall square tower with a blue pyramid roof, gilt along its eaves, and its stair turret. */
 function keep(d: Draw, rng: Rng): void {
   const b: Box = { x0: -16, x1: 16, z0: 48, z1: 72, h0: 0, h1: 50 };
-  block(d, rng, b, mix(STONE, '#e3dccb', 0.2), 'stone', false);
+  block(d, rng, b, mix(STONE, '#b0a690', 0.25), 'stone', false);
   const at = frontOf(b);
   for (const u of [7, 22]) slit(d, at, u, 30, 3, 7);
   slit(d, at, 14, 14, 4, 9);
@@ -65,7 +67,7 @@ function keep(d: Draw, rng: Rng): void {
 }
 
 function house(d: Draw, rng: Rng, b: Box, along: 'x' | 'z', rise: number): void {
-  const wallC = '#e2d6bb';
+  const wallC = PLASTER;
   block(d, rng, b, wallC, 'plaster', false);
   const at = frontOf(b);
   const w = b.x1 - b.x0;
@@ -88,20 +90,20 @@ function knoll(d: Draw, rng: Rng): void {
     for (let i = 0; i < 22; i++) {
       const p = pt(-64 + rng() * 134, 2 + rng() * 6);
       const s = blob(p, 2 + rng() * 2.5, 1.4 + rng(), rng, 0.2, 10);
-      d.pen.fill(s, mix('#a39a88', PAPER_FILL, rng() * 0.3), 0.8);
+      d.pen.fill(s, mix(FIELDSTONE, '#8a8070', rng() * 0.4), 0.85);
       d.pen.stroke([...s, s[0]!], 0.35, d.ink, 0.6);
     }
   });
   // The road up to the gate.
   const road = [pt(-9, 14), pt(-7, 0), pt(-6, -6), pt(6, -6), pt(7, 0), pt(10, 14)];
-  paint(d, road, '#cdb48a', { shadow: 0.2, hatch: 0, line: 0.45 });
+  paint(d, road, '#5e4228', { shadow: 0.2, hatch: 0, line: 0.45 });
   for (const s of [-1, 1]) d.pen.hair([pt(s * 3, -5), pt(s * 3.5, 4), pt(s * 4.5, 13)], 0.4, mix(EARTH, SHADOW, 0.5), 0.6);
 }
 
 /** The ward inside the walls: packed earth and cobbles in the keep's shadow. */
 function ward(d: Draw, rng: Rng): void {
   const yard = crisp([P(-56, 6), P(56, 6), P(56, 82), P(-56, 82)], 4);
-  flat(d, yard, '#c7b48f', { tone: 0.12, line: 0 });
+  flat(d, yard, '#5e4e3a', { tone: 0.12, line: 0 });
   d.pen.stipple(yard, 900, () => 0.6, 0.45, mix(EARTH, SHADOW, 0.45));
   for (let i = 0; i < 8; i++) dab(d, blob(P(-50 + rng() * 100, 10 + rng() * 70), 5, 3, rng), GRASS, 0.3, 1);
   // The keep's shadow thrown down and right across the ward.
@@ -157,7 +159,8 @@ const FR = SITE_FRAME.town;
 export function drawTown(ctx: CanvasRenderingContext2D, seed: number, f: number): void {
   sprite(ctx, seed, f, {
     bounds: { x0: -FR.ox, y0: -FR.oy, x1: FR.w - FR.ox, y1: FR.h - FR.oy },
-    line: 0.9,
-    ground: (d) => groundShadow(d, 8, 8, 84, 9, 0.24),
+    line: 0.55,
+    rim: 0.4,
+    ground: (d) => groundShadow(d, 8, 8, 84, 9, 0.45),
   }, draw);
 }

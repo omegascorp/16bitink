@@ -97,7 +97,7 @@ export function mountains(ctx: CanvasRenderingContext2D, rng: Rng, peaks: readon
   // Mist gathering at the range's foot.
   const g = ctx.createLinearGradient(0, base - 70, 0, base + 6);
   g.addColorStop(0, rgba(tone.lit, 0));
-  g.addColorStop(1, rgba(mix(tone.lit, LIGHT, 0.4), 0.85));
+  g.addColorStop(1, rgba(mix(tone.lit, LIGHT, 0.25), 0.6));
   ctx.fillStyle = g;
   ctx.fillRect(-50, base - 70, 4000, 80);
 }
@@ -119,19 +119,19 @@ export function hill(d: { readonly pen: Pen; readonly ink: string }, rng: Rng, c
   const shape = bandBelow(crest, bottom);
   const top = Math.min(...crest.map((p) => p.y));
   gradeFill(ctx, shape, top, bottom, [[0, tone.lit], [0.35, tone.body], [1, tone.deep]]);
-  variegate(ctx, rng, shape, [tone.lit, tone.deep, mix(tone.body, '#c2a35e', 0.5), mix(tone.body, '#6f8f8a', 0.4)], { x0: crest[0]!.x, y0: top, x1: crest[crest.length - 1]!.x, y1: Math.min(bottom, top + 260) }, 0.26, 3);
+  variegate(ctx, rng, shape, [tone.lit, tone.deep, mix(tone.body, '#8a6a34', 0.5), mix(tone.body, '#2e4448', 0.4)], { x0: crest[0]!.x, y0: top, x1: crest[crest.length - 1]!.x, y1: Math.min(bottom, top + 260) }, 0.26, 3);
   o.fields?.(shape);
-  modelForm(ctx, shape, { reach: o.reach, blur: o.reach * 0.6, lit: mix(tone.lit, LIGHT, 0.6), litAlpha: 0.45, shade: mix(tone.deep, SHADOW, 0.35), shadeAlpha: 0.42 });
+  modelForm(ctx, shape, { reach: o.reach, blur: o.reach * 0.6, lit: mix(tone.lit, LIGHT, 0.35), litAlpha: 0.38, shade: mix(tone.deep, SHADOW, 0.5), shadeAlpha: 0.5 });
   if ((o.texture ?? 0) > 0) {
     const box = { x0: crest[0]!.x, y0: top, x1: crest[crest.length - 1]!.x, y1: bottom };
-    brushwork(ctx, rng, shape, o.texture!, box, [mix(tone.lit, LIGHT, 0.3), tone.deep, mix(tone.body, '#b5a160', 0.4)], { len: 14, width: 1.6, alpha: 0.22, angle: -0.08 });
+    brushwork(ctx, rng, shape, o.texture!, box, [mix(tone.lit, LIGHT, 0.15), tone.deep, mix(tone.body, '#8a7038', 0.4)], { len: 14, width: 1.6, alpha: 0.22, angle: -0.08 });
   }
   poolEdge(ctx, shape, mix(tone.deep, SHADOW, 0.3), 0.25, Math.max(1.5, o.reach * 0.12));
   if (o.inkAlpha > 0) d.pen.stroke(crest, o.ink ?? 1, d.ink, o.inkAlpha, false);
   return shape;
 }
 
-const FIELD_TINTS = ['#d9c27a', '#c9b56e', '#a9bd76', '#93ad66', '#c9a978', '#b7c27f', '#e0cf8e', '#9fb46e'] as const;
+const FIELD_TINTS = ['#8a7638', '#76683a', '#56662e', '#46582a', '#7a5e34', '#606a30', '#94803c', '#4e6028'] as const;
 
 export interface FieldOpts {
   readonly x0: number;
@@ -165,7 +165,7 @@ function hedgerow(ctx: CanvasRenderingContext2D, rng: Rng, a: Pt, b: Pt, color: 
   }
   const band = [...top, ...bot.reverse()];
   softly(ctx, size * 0.35, color, 0.55, (c) => pathOf(c, band));
-  ctx.strokeStyle = rgba(mix(color, LIGHT, 0.45), 0.5);
+  ctx.strokeStyle = rgba(mix(color, '#c89a50', 0.4), 0.45);
   ctx.lineWidth = Math.max(0.6, size * 0.35);
   ctx.beginPath();
   top.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x - size * 0.2, p.y + size * 0.25) : ctx.lineTo(p.x - size * 0.2, p.y + size * 0.25)));

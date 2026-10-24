@@ -2,13 +2,14 @@ import type { Rng } from '../../logic/rng';
 import { bezier, closed, pt, type Draw } from '../kit';
 import type { Pt } from '../pen';
 import { beam, P, quad, STONE, type Surface } from '../sites/build';
-import { blob, boundsOf, crisp, flat, groundShadow, LIGHT, mix, paint, SHADOW, sprite } from '../sites/paintKit';
+import { blob, boundsOf, crisp, flat, groundShadow, LIGHT, mix, paint, SHADOW } from '../sites/paintKit';
 import {
   apron, atmosphere, banner, BLUE, box, castOn, clock, cornice, door, face, flag, frontAt, gableX, gableZ, GOLD, groundCast, hipRoof, OAK, pinnacle, plane, PLASTER,
   quoins, shadeOn, shield, SLATE, slab, steps, surround, window,
 } from './hallParts';
 import { GUILD } from './guild';
 import { capitol, cityHall, setBack } from './hallsGrand';
+import { townSprite } from './townSprite';
 import { SLOTS, type TownDrawer } from './types';
 
 /**
@@ -19,7 +20,7 @@ import { SLOTS, type TownDrawer } from './types';
  */
 
 const BOUNDS = boundsOf(SLOTS.hall.frame);
-const ROOF_WOOD = '#94603f';
+const ROOF_WOOD = '#6a3826';
 const SHINGLES = { row: 4.6, tab: 5.2 } as const;
 
 // ---- Village hall ----
@@ -35,20 +36,20 @@ function casement(d: Draw, at: Surface, u: number, v: number, w: number, h: numb
   for (const s of shutters ? [-1, 1] : []) {
     const u0 = s < 0 ? u - w * 0.5 - 1 : u + w + 1;
     const sh = crisp(quad(at, u0, v, u0 + w * 0.5, v + h), 2);
-    flat(d, sh, mix(BLUE, '#4f7d84', 0.45), { tone: s < 0 ? -0.05 : 0.15, line: 0.5 });
+    flat(d, sh, mix(BLUE, '#3f595b', 0.45), { tone: s < 0 ? -0.05 : 0.15, line: 0.5 });
     pen.clipped(sh, () => { for (let k = 1; k < 3; k++) pen.hair([at(u0 + (w * 0.5 * k) / 3, v), at(u0 + (w * 0.5 * k) / 3, v + h)], 0.35, d.ink, 0.45); });
-    pen.hair([at(u0 + 0.6, v + h * 0.3), at(u0 + w * 0.5 - 0.6, v + h * 0.3)], 0.4, '#3a3640', 0.6);
+    pen.hair([at(u0 + 0.6, v + h * 0.3), at(u0 + w * 0.5 - 0.6, v + h * 0.3)], 0.4, '#2a2522', 0.6);
   }
   const frame = crisp(quad(at, u - 1.4, v - 1.4, u + w + 1.4, v + h + 1.4), 2);
   flat(d, frame, OAK, { tone: 0.05, line: 0.5 });
   const hole = crisp(quad(at, u, v, u + w, v + h), 2);
-  pen.fill(hole, '#2f3856', 1);
+  pen.fill(hole, '#1e2028', 1);
   pen.clipped(hole, () => {
-    pen.fill([at(u - 2, v + h * 0.2), at(u + w * 0.6, v + h + 2), at(u + w + 2, v + h + 2), at(u + w + 2, v + h * 0.8), at(u + w * 0.3, v - 2), at(u - 2, v - 2)], '#9fb2cf', 0.28);
+    pen.fill([at(u - 2, v + h * 0.2), at(u + w * 0.6, v + h + 2), at(u + w + 2, v + h + 2), at(u + w + 2, v + h * 0.8), at(u + w * 0.3, v - 2), at(u - 2, v - 2)], '#6c7688', 0.28);
     if (lit > 0) pen.fill(hole, '#f2b45a', lit);
     for (let k = -h; k < w + h; k += Math.max(2.6, w / 6)) {
-      pen.hair([at(u + k, v), at(u + k + h, v + h)], 0.3, '#565260', 0.6);
-      pen.hair([at(u + k, v + h), at(u + k + h, v)], 0.3, '#565260', 0.6);
+      pen.hair([at(u + k, v), at(u + k + h, v + h)], 0.3, '#463b41', 0.6);
+      pen.hair([at(u + k, v + h), at(u + k + h, v)], 0.3, '#463b41', 0.6);
     }
     pen.crescent(hole, pt(1.4, 1.6), () => pen.fill(hole, SHADOW, 0.45));
   });
@@ -69,11 +70,11 @@ function noticeBoard(d: Draw, rng: Rng, x: number, z: number): void {
     const tilt = (rng() - 0.5) * 0.8;
     const sheet = [at(u, v + tilt), at(u + w, v - tilt), at(u + w, v + h - tilt), at(u, v + h + tilt)];
     pen.fill(sheet.map((p) => pt(p.x + 0.6, p.y + 0.6)), SHADOW, 0.3);
-    flat(d, sheet, '#f1e6c8', { tone: -0.1, line: 0.35 });
-    for (let k = 1.4; k < h - 1; k += 1.3) pen.hair([at(u + 0.8, v + h - k), at(u + w * (0.5 + rng() * 0.4), v + h - k)], 0.25, '#55504a', 0.6);
+    flat(d, sheet, '#ab9a7e', { tone: -0.1, line: 0.35 });
+    for (let k = 1.4; k < h - 1; k += 1.3) pen.hair([at(u + 0.8, v + h - k), at(u + w * (0.5 + rng() * 0.4), v + h - k)], 0.25, '#463a2f', 0.6);
   }
   const seal = at(4.5, 3.2);
-  pen.dot(seal.x, seal.y, 1, '#a9302a', 1);
+  pen.dot(seal.x, seal.y, 1, '#7e2420', 1);
   const cap = box(x - 12, x + 12, z - 2, z + 4, 25, 26.4);
   slab(d, cap, OAK, { line: 0.45 });
   plane(d, rng, P(x - 13, z - 3, 26.4), P(x + 13, z - 3, 26.4), P(x + 13, z + 1, 31), P(x - 13, z + 1, 31), ROOF_WOOD, 0.02, { row: 2.4, tab: 3 });
@@ -86,10 +87,10 @@ function belfry(d: Draw, rng: Rng, x: number, z: number): void {
   const open = box(x - 8, x + 8, z + 0.5, z + 9.5, 108, 124);
   const at = frontAt(open);
   const back = crisp(quad(at, 0, 0, 16, 16), 2);
-  pen.fill(back, '#2a2638', 0.95);
+  pen.fill(back, '#1a120c', 0.95);
   const bell = [at(4.4, 3), at(11.6, 3), ...bezier(at(11.6, 3), at(11, 12), at(8, 13), 5).slice(1), ...bezier(at(8, 13), at(5, 12), at(4.4, 3), 5).slice(1, -1)];
-  paint(d, bell, '#b0823e', { shadow: 0.5, hatch: 0, gloss: true, line: 0.5 });
-  pen.hair([at(4.6, 3.2), at(11.4, 3.2)], 0.8, mix('#b0823e', LIGHT, 0.5), 0.8);
+  paint(d, bell, '#7e5b25', { shadow: 0.5, hatch: 0, gloss: true, line: 0.5 });
+  pen.hair([at(4.6, 3.2), at(11.4, 3.2)], 0.8, mix('#7e5b25', LIGHT, 0.5), 0.8);
   for (const u of [0, 15]) timber(d, at, u + 0.5, 0, u + 0.5, 16, 2);
   timber(d, at, 0, 15.6, 16, 15.6, 1.8);
   timber(d, at, 0, 0.6, 16, 0.6, 1.8);
@@ -125,7 +126,7 @@ function villageHall(d: Draw, rng: Rng): void {
   face(d, rng, (u, v) => P(lower.x1, lower.z0 + u, v), 34, 34, PLASTER, { finish: 'plaster', tone: 0.42 });
   const atL = frontAt(lower);
   const wallL = face(d, rng, atL, 112, 34, PLASTER, { finish: 'plaster', tone: 0 });
-  face(d, rng, atL, 112, 8, '#b9ab90', { finish: 'rubble', tone: 0.12 });
+  face(d, rng, atL, 112, 8, '#87745b', { finish: 'rubble', tone: 0.12 });
   frame(d, (u, v) => atL(u, v + 8), 112, 26, [1, 21, 40, 72, 91, 111], (u) => u > 36 && u < 76, false);
   for (const u of [7, 26, 81, 100]) casement(d, atL, u, 15, 9, 12, u === 26 ? 0.35 : 0, false);
   // The jettied upper storey: joist ends under it and its shadow on the wall below.
@@ -156,11 +157,11 @@ function flowerBox(d: Draw, rng: Rng, at: Surface, u: number, v: number, w: numb
   const { pen } = d;
   for (let i = 0; i < w * 1.4; i++) {
     const p = at(u + rng() * w, v + 1.2 + rng() * 2.6);
-    pen.fill(blob(p, 1.3, 0.9, rng, 0.2, 8), rng() < 0.5 ? '#5f8f4e' : '#4a7340', 0.95);
+    pen.fill(blob(p, 1.3, 0.9, rng, 0.2, 8), rng() < 0.5 ? '#416634' : '#34542d', 0.95);
   }
   for (let i = 0; i < w * 0.7; i++) {
     const p = at(u + 0.5 + rng() * (w - 1), v + 2 + rng() * 2.6);
-    pen.dot(p.x, p.y, 0.75, rng() < 0.6 ? '#c8423a' : '#e07a6a', 1);
+    pen.dot(p.x, p.y, 0.75, rng() < 0.6 ? '#932b26' : '#a15246', 1);
   }
   const b = crisp(quad(at, u - 0.6, v - 2.6, u + w + 0.6, v + 0.8), 2);
   flat(d, b, mix(OAK, LIGHT, 0.15), { tone: 0.05, line: 0.45 });
@@ -169,11 +170,11 @@ function flowerBox(d: Draw, rng: Rng, at: Surface, u: number, v: number, w: numb
 /** A rubble-stone chimney stack rising through the roof, capped and blackened at its mouth. */
 function chimney(d: Draw, rng: Rng, x: number, z: number, foot: number, top: number): void {
   const b = box(x - 5, x + 5, z, z + 7, foot, top);
-  face(d, rng, (u, v) => P(b.x1, b.z0 + u, foot + v), 7, top - foot, '#a8927a', { finish: 'ashlar', tone: 0.45, course: 3.4, stone: 5 });
-  face(d, rng, frontAt(b), 10, top - foot, '#a8927a', { finish: 'ashlar', tone: 0.1, course: 3.4, stone: 5 });
-  shadeOn(d, crisp(quad(frontAt(b), 0, 0, 10, top - foot), 2), quad(frontAt(b), -1, top - foot - 6, 11, top - foot + 1), 0.35, 2, '#2a2638');
+  face(d, rng, (u, v) => P(b.x1, b.z0 + u, foot + v), 7, top - foot, '#7d644d', { finish: 'ashlar', tone: 0.45, course: 3.4, stone: 5 });
+  face(d, rng, frontAt(b), 10, top - foot, '#7d644d', { finish: 'ashlar', tone: 0.1, course: 3.4, stone: 5 });
+  shadeOn(d, crisp(quad(frontAt(b), 0, 0, 10, top - foot), 2), quad(frontAt(b), -1, top - foot - 6, 11, top - foot + 1), 0.35, 2, '#1a120c');
   slab(d, box(x - 6.2, x + 6.2, z - 1.2, z + 8.2, top, top + 2.4), STONE);
-  d.pen.fill(crisp([P(x - 4, z + 1, top + 2.4), P(x + 4, z + 1, top + 2.4), P(x + 4, z + 6, top + 2.4), P(x - 4, z + 6, top + 2.4)], 2), '#2a2638', 0.9);
+  d.pen.fill(crisp([P(x - 4, z + 1, top + 2.4), P(x + 4, z + 1, top + 2.4), P(x + 4, z + 6, top + 2.4), P(x - 4, z + 6, top + 2.4)], 2), '#1a120c', 0.9);
 }
 
 /** The long shingled roof, the cross gable over the hall's great window, and the eaves' shadow on the upper storey. */
@@ -226,7 +227,7 @@ function porch(d: Draw, rng: Rng, atL: Surface, wallL: readonly Pt[]): void {
 
 // ---- Town hall ----
 
-const TOWN_STONE = '#d6c096';
+const TOWN_STONE = '#958973';
 const SLATES = { row: 4, tab: 4.8 } as const;
 
 /** The town hall's front: honey ashlar, quoined, two floors of arched windows, string courses and the Crown's banners. */
@@ -243,7 +244,7 @@ function townFront(d: Draw, rng: Rng, m: ReturnType<typeof box>): Pt[] {
   cornice(d, at, wall, 144, 32, 2.6, TOWN_STONE);
   cornice(d, at, wall, 144, 62, 4.5, TOWN_STONE);
   for (const u of [46, 90]) banner(d, at, u, 59, 8, 32);
-  slab(d, box(m.x0 - 2, m.x1 + 2, m.z0 - 2, m.z0 + 0.5, 0, 6), mix(TOWN_STONE, '#8f8676', 0.3));
+  slab(d, box(m.x0 - 2, m.x1 + 2, m.z0 - 2, m.z0 + 0.5, 0, 6), mix(TOWN_STONE, '#6c5d4a', 0.3));
   return wall;
 }
 
@@ -277,11 +278,11 @@ function clockTower(d: Draw, rng: Rng, wall: readonly Pt[], roof: readonly Pt[])
   for (const u of [7, 20]) {
     surround(d, at, u, 102, 7, 12, 1.6, TOWN_STONE, false);
     const hole = crisp([at(u, 102), ...Array.from({ length: 9 }, (_, i) => { const a = Math.PI - (i / 8) * Math.PI; return at(u + 3.5 + Math.cos(a) * 3.5, 110.5 + Math.sin(a) * 3.5); }), at(u + 7, 102)], 1.5);
-    d.pen.fill(hole, '#2a2638', 0.95);
+    d.pen.fill(hole, '#1a120c', 0.95);
     d.pen.clipped(hole, () => { for (let v = 103.5; v < 113; v += 1.8) d.pen.stroke([at(u, v), at(u + 7, v + 0.6)], 0.7, mix(OAK, LIGHT, 0.2), 0.9, false); });
   }
   cornice(d, at, tw, 34, 118, 3.4, TOWN_STONE);
-  steps(d, -14, 14, -16, 3, 6, 3.4, mix(TOWN_STONE, '#8f8676', 0.2), 1);
+  steps(d, -14, 14, -16, 3, 6, 3.4, mix(TOWN_STONE, '#6c5d4a', 0.2), 1);
   const spire = hipRoof(d, rng, t, 46, 19, SLATE, SLATES, 2);
   for (const [x, z] of [[-17, -6], [17, -6], [17, 22]] as const) pinnacle(d, rng, x, z, 118, 4, 12, TOWN_STONE, SLATE);
   d.pen.stroke([spire.a, pt(spire.a.x, spire.a.y - 6)], 0.9, d.ink, 0.95, false);
@@ -300,10 +301,10 @@ function townHall(d: Draw, rng: Rng): void {
 const townGround = (d: Draw, rng: Rng): void => {
   setBack(d, 10, () => groundCast(d, -72, 72, 0, 40, 30, 0.18));
   groundShadow(d, 4, 4, 92, 11, 0.24);
-  apron(d, rng, -30, 30, 12, '#c9b48c');
+  apron(d, rng, -30, 30, 12, '#8c7c5d');
 };
 
-const drawTown: TownDrawer = (ctx, seed) => sprite(ctx, seed, 0, { bounds: BOUNDS, line: 1.3, ground: townGround }, (d, rng) => setBack(d, 10, () => townHall(d, rng)));
+const drawTown: TownDrawer = (ctx, seed) => townSprite(ctx, seed, 0, { bounds: BOUNDS, line: 1.3, ground: townGround }, (d, rng) => setBack(d, 10, () => townHall(d, rng)));
 
 const villageGround = (d: Draw, rng: Rng): void => {
   setBack(d, 14, () => groundCast(d, -56, 56, 0, 34, 26, 0.18));
@@ -311,16 +312,16 @@ const villageGround = (d: Draw, rng: Rng): void => {
   apron(d, rng, -26, 26, 10);
 };
 
-const drawVillage: TownDrawer = (ctx, seed) => sprite(ctx, seed, 0, { bounds: BOUNDS, line: 1.3, ground: villageGround }, (d, rng) => setBack(d, 14, () => villageHall(d, rng)));
+const drawVillage: TownDrawer = (ctx, seed) => townSprite(ctx, seed, 0, { bounds: BOUNDS, line: 1.3, ground: villageGround }, (d, rng) => setBack(d, 14, () => villageHall(d, rng)));
 
 const grandGround = (half: number) => (d: Draw, rng: Rng): void => {
   setBack(d, 24, () => groundCast(d, -half, half, 0, 50, 30, 0.18));
   groundShadow(d, 4, -6, half + 16, 14, 0.24);
-  apron(d, rng, -40, 40, 10, '#cdb995');
+  apron(d, rng, -40, 40, 10, '#8e7f63');
 };
 
-const drawCity: TownDrawer = (ctx, seed) => sprite(ctx, seed, 0, { bounds: BOUNDS, line: 1.3, ground: grandGround(112) }, cityHall);
-const drawCapitol: TownDrawer = (ctx, seed) => sprite(ctx, seed, 0, { bounds: BOUNDS, line: 1.4, ground: grandGround(120) }, capitol);
+const drawCity: TownDrawer = (ctx, seed) => townSprite(ctx, seed, 0, { bounds: BOUNDS, line: 1.3, ground: grandGround(112) }, cityHall);
+const drawCapitol: TownDrawer = (ctx, seed) => townSprite(ctx, seed, 0, { bounds: BOUNDS, line: 1.4, ground: grandGround(120) }, capitol);
 
 export const HALLS: Readonly<Record<'hall-village' | 'hall-town' | 'hall-city' | 'hall-capitol' | 'guild-1' | 'guild-2', TownDrawer>> = {
   'hall-village': drawVillage,

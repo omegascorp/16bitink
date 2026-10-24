@@ -13,6 +13,17 @@ User's choices (Oct 24): the name **InkHeroes**; a **classic fantasy** world clo
 3. **Every number shows.** Hovering an attack shows the damage and kills it will do; hovering a monster shows its size word ("a pack of wolves"); a building says what it needs.
 4. **No lost evening.** The game saves at the start of every day; losing a battle offers that day again.
 
+## Art direction
+
+User's choice (Oct 24): dark colours and serious drawings, like the original H3. We take its mood, never its art or names. The bar is still a pen line over a professional painting, never a doodle.
+
+- **Light and value.** Warm late-afternoon light from the upper left. Everything is 30–45 % darker than a storybook. Shadows go umber or violet, not grey. Highlights are small and warm. Nothing is pure white.
+- **Colour.** Deep old-master colours: olive and emerald greens, umber and ochre earth, ultramarine, oxblood, brass, warm grey stone, walnut wood. The palette is in `src/art/palette.ts`. No pastels, mint or candy colours.
+- **Skies.** Ultramarine overhead, warming to amber at the horizon, with volumetric clouds. No outlined white puffs.
+- **Line.** Iron-gall umber ink (`INK`), thin. Firmer only on the shadow side.
+- **Figures.** People about 7 heads tall, with small stern faces. Steel is dark with sharp glints, and every figure has a warm rim light so it reads on a dark field. Beasts look anatomically real and menacing.
+- **Interface.** Tooled leather panels in gilt frames (`src/art/uiArt*.ts`). Buttons are enamel in gilt rims: crimson for the main action, blue for the Crown's, leather for plain ones. Titles are set in Cinzel, body text in EB Garamond.
+
 ## The adventure map
 
 - **Tiles:** square, 8-way movement. Diagonal steps cost ×√2 (rounded). A last step that costs more than what's left is still allowed if its straight cost fits (as H3).
@@ -191,6 +202,8 @@ Oct 24, 2026 (first session): the rules are built and tested (`games/inkheroes/s
 Oct 24 (second session): the town screen is a painted townscape like H3's (`src/art/townscape/`, contract in `types.ts`): the ground is painted once and each building stands in its slot once built (hall, walls and guild upgrade in place), lights up and names itself under the pointer, and opens its panel when tapped (the hall the Build ledger, the walls and dwellings Recruit, the guild its spells). The armies, purse and buttons sit in a strip below. The townscape is painted the first time a town opens. The menu has a painted vista, a title banner and a vignette on each map card (`src/art/menu/`). Preview the art with `dev/art.html` (`?town=start|all`, `?pieces=all`, `?menu=all`).
 
 Oct 24 (third session): the town fills the screen (drag sideways when it's wider than the screen) and its messages show on an ink banner above the strip. Every creature and the hero are animated: each drawer takes a pose (`src/art/creatures/types.ts`: idle 6 frames, walk 6, attack 5 with the blow on frame 2), painted through a rig of joints so the art is unchanged. Boot paints each figure standing; a map paints its figures' idle loops and the hero's gallop, a battle its fighters' poses. `FigureAnim` (scenes/figureAnim.ts) plays them; `gait.ts` adds a light lean and dust on top, and lifts flyers along their arc. Melee blows and shots land on the attack's strike frame; arrows and orbs leave from the points the bowman and monk paintings export. Check the frames with `dev/specimens.html?poses&only=<id>`.
+
+Oct 24 (fourth session): the whole game was repainted dark and serious after H3 (see Art direction). Figures are about 7 heads tall with stern faces, and the interface is leather and gilt in Cinzel and EB Garamond. The shared map ground lives in `src/art/terrainGround.ts` and `terrainBrush.ts`, with water, roads and peaks in their own files.
 
 ## Saving
 

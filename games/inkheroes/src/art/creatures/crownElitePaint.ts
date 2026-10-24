@@ -1,5 +1,5 @@
 import { makeDraw, normals, pt, type Draw } from '../kit';
-import { INK, PAPER_FILL } from '../palette';
+import { INK } from '../palette';
 import { makeCanvas, pathOf, shrink, type Pt } from '../pen';
 import { mix, rgba } from '../wash';
 
@@ -12,9 +12,18 @@ import { mix, rgba } from '../wash';
  * pass: a warm rim of light on its lit edges and one weighted ink
  * silhouette, heavier on the shadow side.
  */
-export const LIGHT = '#fff2d8';
-export const SHADOW = '#1e2350';
-export const BOUNCE = '#b9c3dc';
+/** Warm late-afternoon light from the upper left. */
+export const LIGHT = '#f4dcaa';
+/** Shadow: a deep violet-umber, never grey or navy. */
+export const SHADOW = '#2a1b22';
+/** Light bounced up from warm ground into the shadow's edge. */
+export const BOUNCE = '#8c6a4c';
+/** The warm rim of light on a figure's lit edge, so it reads on a dark field. */
+export const RIM = '#f0c47a';
+/** Specular glints: warm ivory, never pure white. */
+export const GLINT = '#f3e6c6';
+/** Pen lines are drawn at this fraction of the width asked: a fine finishing pen, not a cartoon outline. */
+const LINE_K = 0.62;
 export const TO_LIGHT: Pt = { x: -0.55, y: -0.84 };
 
 export { mix, rgba };
@@ -102,17 +111,17 @@ export function paint(d: Draw, shape: readonly Pt[], color: string, o: PaintOpts
   const size = Math.max(1, Math.max(b.w, b.h));
   const minor = Math.max(1, Math.min(b.w, b.h));
   const shadow = o.shadow ?? 0.5;
-  pen.fill(shape, PAPER_FILL, 1);
+  pen.fill(shape, mix(color, SHADOW, 0.25), 1);
   pen.clipped(shape, () => {
-    ctx.globalAlpha = o.alpha ?? 0.92;
+    ctx.globalAlpha = o.alpha ?? 0.94;
     ctx.fillStyle = color;
     ctx.fillRect(b.x0 - 1, b.y0 - 1, b.w + 2, b.h + 2);
     const lx = b.x0 + b.w * (o.lit?.x ?? 0.32);
     const ly = b.y0 + b.h * (o.lit?.y ?? 0.24);
-    const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, size * 0.85);
-    const lit = mix(color, LIGHT, o.gloss ? 0.7 : 0.5);
-    g.addColorStop(0, rgba(lit, 0.85));
-    g.addColorStop(o.gloss ? 0.25 : 0.45, rgba(lit, 0.25));
+    const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, size * (o.gloss ? 0.7 : 0.85));
+    const lit = mix(color, LIGHT, o.gloss ? 0.6 : 0.38);
+    g.addColorStop(0, rgba(lit, o.gloss ? 0.9 : 0.75));
+    g.addColorStop(o.gloss ? 0.18 : 0.45, rgba(lit, o.gloss ? 0.3 : 0.22));
     g.addColorStop(1, rgba(lit, 0));
     ctx.globalAlpha = 1;
     ctx.fillStyle = g;
@@ -120,9 +129,9 @@ export function paint(d: Draw, shape: readonly Pt[], color: string, o: PaintOpts
   });
   if (shadow > 0) {
     const k = minor * 0.42;
-    crescentFill(ctx, shape, TO_LIGHT.x * k, TO_LIGHT.y * k, mix(color, SHADOW, 0.62), 0.75 * shadow, o.gloss ? minor * 0.04 : minor * 0.12);
+    crescentFill(ctx, shape, TO_LIGHT.x * k, TO_LIGHT.y * k, mix(color, SHADOW, 0.72), Math.min(1, 0.95 * shadow), o.gloss ? minor * 0.04 : minor * 0.12);
     const r = minor * 0.09;
-    crescentFill(ctx, shape, TO_LIGHT.x * r, TO_LIGHT.y * r, mix(color, BOUNCE, 0.55), 0.4 * shadow, minor * 0.04);
+    crescentFill(ctx, shape, TO_LIGHT.x * r, TO_LIGHT.y * r, mix(color, BOUNCE, 0.45), 0.32 * shadow, minor * 0.04);
   }
   pen.clipped(shape, () => {
     soft(ctx, minor * 0.05, () => {
@@ -144,13 +153,13 @@ export function paint(d: Draw, shape: readonly Pt[], color: string, o: PaintOpts
       pen.crescent(shape, pt(TO_LIGHT.x * c, TO_LIGHT.y * c), () => pen.hatch(shape, s * 1.1, -0.55, 0.28, { color: d.ink, alpha: hatch * 0.9 }));
     }
   }
-  const line = o.line ?? 0.6;
-  if (line > 0) pen.stroke([...shape, shape[0]!], line, d.ink, o.lineAlpha ?? 0.9);
+  const line = (o.line ?? 0.6) * LINE_K;
+  if (line > 0) pen.stroke([...shape, shape[0]!], line, d.ink, o.lineAlpha ?? 0.85);
 }
 
 /** A soft painted highlight along a curve (metal, wet eye, sheen on cloth). */
 export function gleam(d: Draw, pts: readonly Pt[], w: number, alpha = 0.9): void {
-  soft(d.pen.ctx, w * 0.25, () => d.pen.stroke(pts, w, PAPER_FILL, alpha, false));
+  soft(d.pen.ctx, w * 0.25, () => d.pen.stroke(pts, w * 0.8, GLINT, alpha, false));
 }
 
 /** A soft wash dabbed over a shape, feathered at its edge. */
@@ -285,7 +294,7 @@ function finishLayer(canvas: HTMLCanvasElement, unit: number, line: number, rim:
   const ctx = canvas.getContext('2d')!;
   const src = makeCanvas(canvas.width, canvas.height);
   src.ctx.drawImage(canvas, 0, 0);
-  const lit = edgeBand(src.canvas, TO_LIGHT.x * unit * 0.9, TO_LIGHT.y * unit * 0.9, LIGHT);
+  const lit = edgeBand(src.canvas, TO_LIGHT.x * unit * 0.9, TO_LIGHT.y * unit * 0.9, RIM);
   const dark = edgeBand(src.canvas, -TO_LIGHT.x * unit * 1.6, -TO_LIGHT.y * unit * 1.6, SHADOW);
   const ink = solidInk(src.canvas, INK);
   ctx.save();
@@ -301,7 +310,7 @@ function finishLayer(canvas: HTMLCanvasElement, unit: number, line: number, rim:
   for (let i = 0; i < 20; i++) {
     const a = (i / 20) * Math.PI * 2;
     const toShadow = Math.max(0, -(Math.cos(a) * TO_LIGHT.x + Math.sin(a) * TO_LIGHT.y));
-    const r = base * (0.7 + 0.9 * toShadow);
+    const r = base * (0.45 + 1.05 * toShadow);
     ctx.drawImage(ink, Math.cos(a) * r, Math.sin(a) * r);
   }
   ctx.restore();
@@ -331,7 +340,7 @@ export function finished(ctx: CanvasRenderingContext2D, seed: number, f: number,
   const layer = makeCanvas(w, h);
   layer.ctx.setTransform(m.a, m.b, m.c, m.d, m.e - x0, m.f - y0);
   figure(makeDraw(layer.ctx, seed + f, f, 0));
-  finishLayer(layer.canvas, Math.hypot(m.a, m.b) || 1, o.line ?? 0.8, o.rim ?? 0.55);
+  finishLayer(layer.canvas, Math.hypot(m.a, m.b) || 1, (o.line ?? 0.8) * LINE_K, o.rim ?? 0.75);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(layer.canvas, x0, y0);

@@ -1,10 +1,11 @@
 import { makeDraw, oval, type Draw } from '../kit';
-import { LIGHT, SHADOW, TO_LIGHT, soft } from './neutralKit';
+import { SHADOW, TO_LIGHT, UMBER, soft } from './neutralKit';
 
 /**
  * The finish over a whole neutral figure, as InkMine's finishSprite: the
- * figure is painted on a layer of its own, then given a rim of warm light
- * on the edges turned to the light, a cool shade along the far edges and
+ * figure is painted on a layer of its own, then given a rim of warm, low
+ * sunlight on the edges turned to the light (so it reads on a dark field),
+ * a deep violet-umber shade along the far edges and
  * one weighted ink silhouette round everything, heavier on the shadow side,
  * so the interior lines can stay fine (an illustrator's line hierarchy).
  * The layer is laid over the frame with the soft contact shadow under it.
@@ -15,6 +16,8 @@ const BOUNDS = { x0: -60, y0: -108, x1: 60, y1: 14 } as const;
 /** Below this alpha a pixel is a glow's halo or a soft edge, not the figure: it isn't outlined. */
 const SOLID_FROM = 90;
 const SOLID_TO = 170;
+/** The rim light: low sun, warm gold. */
+const RIM = '#f2c47e';
 
 function layer(w: number, h: number): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
   const canvas = document.createElement('canvas');
@@ -62,16 +65,21 @@ function solidInk(src: HTMLCanvasElement, ink: string): HTMLCanvasElement {
 
 function finish(canvas: HTMLCanvasElement, unit: number, ink: string, line: number, rim: number): void {
   const ctx = canvas.getContext('2d')!;
-  const src = layer(canvas.width, canvas.height);
-  src.ctx.drawImage(canvas, 0, 0);
+  const inked = solidInk(canvas, ink);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // Trim the soft fringe that blurred washes leave outside the forms, so the rim light only catches solid edges.
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.drawImage(inked, 0, 0);
+  const src = layer(canvas.width, canvas.height);
+  src.ctx.drawImage(canvas, 0, 0);
   ctx.globalCompositeOperation = 'source-atop';
   ctx.globalAlpha = rim;
-  ctx.drawImage(edgeBand(src.canvas, TO_LIGHT.x * unit * 0.9, TO_LIGHT.y * unit * 0.9, LIGHT), 0, 0);
-  ctx.globalAlpha = rim * 0.55;
-  ctx.drawImage(edgeBand(src.canvas, -TO_LIGHT.x * unit * 1.6, -TO_LIGHT.y * unit * 1.6, SHADOW), 0, 0);
-  const inked = solidInk(src.canvas, ink);
+  ctx.drawImage(edgeBand(src.canvas, TO_LIGHT.x * unit * 0.8, TO_LIGHT.y * unit * 0.8, RIM), 0, 0);
+  ctx.globalAlpha = rim * 0.25;
+  ctx.drawImage(edgeBand(src.canvas, TO_LIGHT.x * unit * 1.6, TO_LIGHT.y * unit * 1.6, RIM), 0, 0);
+  ctx.globalAlpha = rim * 0.8;
+  ctx.drawImage(edgeBand(src.canvas, -TO_LIGHT.x * unit * 1.8, -TO_LIGHT.y * unit * 1.8, SHADOW), 0, 0);
   ctx.globalCompositeOperation = 'destination-over';
   ctx.globalAlpha = 1;
   const base = line * unit;
@@ -105,8 +113,8 @@ export function sprite(ctx: CanvasRenderingContext2D, seed: number, f: number, o
   const ground = makeDraw(ctx, seed + f, f, 0);
   const sx = o.shadowX ?? 0;
   soft(ctx, 2.2, () => {
-    ground.pen.fill(oval(sx, 0.6, o.shadow, 3.4, 28), SHADOW, 0.2);
-    ground.pen.fill(oval(sx, 0.4, o.shadow * 0.6, 1.8, 24), SHADOW, 0.22);
+    ground.pen.fill(oval(sx, 0.6, o.shadow, 3.4, 28), UMBER, 0.32);
+    ground.pen.fill(oval(sx, 0.4, o.shadow * 0.6, 1.8, 24), UMBER, 0.38);
   });
   const m = ctx.getTransform();
   const corners = [
@@ -123,7 +131,7 @@ export function sprite(ctx: CanvasRenderingContext2D, seed: number, f: number, o
   fig.ctx.setTransform(m.a, m.b, m.c, m.d, m.e - px0, m.f - py0);
   const d = makeDraw(fig.ctx, seed + f, f, 0);
   draw(d);
-  finish(fig.canvas, Math.hypot(m.a, m.b) || 1, d.ink, o.line ?? 0.85, o.rim ?? 0.55);
+  finish(fig.canvas, Math.hypot(m.a, m.b) || 1, d.ink, o.line ?? 0.5, o.rim ?? 0.6);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(fig.canvas, px0, py0);

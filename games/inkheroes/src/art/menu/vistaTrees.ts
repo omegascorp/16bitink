@@ -13,6 +13,9 @@ import { bloomAt, LIGHT, mix, rgba, SHADOW, softly, yAt } from './vistaKit';
  * Pines are tiers of drooping boughs, each shading the tier below.
  */
 
+/** Low evening sun on foliage: a warm olive-gold, never pale. */
+const SUNLIT = '#c8a04e';
+
 export type Ink = { readonly pen: Pen; readonly ink: string };
 
 export interface TreeTone {
@@ -75,8 +78,8 @@ function massesOf(rng: Rng, c: Pt, rx: number, ry: number): Mass[] {
 export function crown(d: Ink, rng: Rng, c: Pt, rx: number, ry: number, leaf: string, inkAlpha: number): void {
   const ctx = d.pen.ctx;
   const masses = massesOf(rng, c, rx, ry);
-  const lit = mix(leaf, LIGHT, 0.5);
-  const deep = mix(leaf, SHADOW, 0.55);
+  const lit = mix(leaf, SUNLIT, 0.42);
+  const deep = mix(leaf, SHADOW, 0.6);
   const all = masses.map((m) => m.shape);
   ctx.fillStyle = rgba(mix(leaf, deep, 0.25), 0.97);
   unionPath(ctx, all);
@@ -95,8 +98,8 @@ export function crown(d: Ink, rng: Rng, c: Pt, rx: number, ry: number, leaf: str
         cc.beginPath();
         cc.ellipse(m.c.x + m.rx * 0.45, m.c.y + m.ry * 0.55, m.rx * 0.85, m.ry * 0.7, 0, 0, TAU);
       });
-      bloomAt(ctx, pt(m.c.x - m.rx * 0.32, m.c.y - m.ry * 0.38), r * 0.95, lit, 0.75);
-      bloomAt(ctx, pt(m.c.x - m.rx * 0.4, m.c.y - m.ry * 0.5), r * 0.45, mix(lit, LIGHT, 0.4), 0.5);
+      bloomAt(ctx, pt(m.c.x - m.rx * 0.32, m.c.y - m.ry * 0.38), r * 0.95, lit, 0.6);
+      bloomAt(ctx, pt(m.c.x - m.rx * 0.4, m.c.y - m.ry * 0.5), r * 0.4, mix(lit, SUNLIT, 0.3), 0.35);
     });
   }
   // The crown as a whole turns from the light.
@@ -112,7 +115,7 @@ export function crown(d: Ink, rng: Rng, c: Pt, rx: number, ry: number, leaf: str
     const p = pt(c.x + (rng() * 2 - 1) * rx, c.y + (rng() * 2 - 1) * ry);
     const side = ((p.x - c.x) / rx) * 0.55 + ((p.y - c.y) / ry) * 0.84;
     if (side < -0.25) {
-      ctx.fillStyle = rgba(mix(lit, LIGHT, 0.35), 0.55);
+      ctx.fillStyle = rgba(mix(lit, SUNLIT, 0.3), 0.5);
       ctx.beginPath();
       ctx.ellipse(p.x, p.y, mark * 0.9, mark * 0.6, -0.4, 0, TAU);
       ctx.fill();
@@ -195,9 +198,9 @@ function tier(rng: Rng, apex: Pt, y: number, half: number, s: number): { readonl
 /** A dark pine on `base`, `s` tall: tiers of drooping boughs lit along their left, deep on the right, each shading the next. */
 export function pine(d: Ink, rng: Rng, base: Pt, s: number, leaf: string, inkAlpha: number): void {
   const ctx = d.pen.ctx;
-  d.pen.fill([pt(base.x - s * 0.018, base.y), pt(base.x - s * 0.01, base.y - s * 0.3), pt(base.x + s * 0.01, base.y - s * 0.3), pt(base.x + s * 0.02, base.y)], '#3b2c22', 0.95);
+  d.pen.fill([pt(base.x - s * 0.018, base.y), pt(base.x - s * 0.01, base.y - s * 0.3), pt(base.x + s * 0.01, base.y - s * 0.3), pt(base.x + s * 0.02, base.y)], '#24180f', 0.95);
   const tiers = Math.max(3, Math.min(8, Math.round(s / 18)));
-  const lit = mix(leaf, LIGHT, 0.45);
+  const lit = mix(leaf, SUNLIT, 0.4);
   const deep = mix(leaf, SHADOW, 0.6);
   const parts = Array.from({ length: tiers }, (_, i) => {
     const t1 = (i + 1.7) / (tiers + 0.7);
@@ -217,7 +220,7 @@ export function pine(d: Ink, rng: Rng, base: Pt, s: number, leaf: string, inkAlp
       g.addColorStop(1, rgba(deep, 0.97));
       ctx.fillStyle = g;
       ctx.fillRect(p.apex.x - p.half - 2, p.apex.y - 2, p.half * 2 + 4, p.y - p.apex.y + s * 0.05);
-      bloomAt(ctx, pt(p.apex.x - p.half * 0.35, p.apex.y + (p.y - p.apex.y) * 0.45), p.half * 0.6, mix(lit, LIGHT, 0.3), 0.4);
+      bloomAt(ctx, pt(p.apex.x - p.half * 0.35, p.apex.y + (p.y - p.apex.y) * 0.45), p.half * 0.6, mix(lit, SUNLIT, 0.25), 0.3);
       // Needles: short strokes raking down and out along each bough.
       ctx.lineCap = 'round';
       const n = Math.round(p.half * 0.9);

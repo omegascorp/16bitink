@@ -1,4 +1,5 @@
 import { pt, type Draw } from '../kit';
+import { INK } from '../palette';
 import type { Pt } from '../pen';
 import { dab, gleam, LIGHT, lineOf, mix, paint, shapeOf, SHADOW } from './crownElitePaint';
 import { mapXY } from './crownMountRig';
@@ -71,15 +72,16 @@ export function caparison(d: Draw, o: Drape = STILL): Pt[] {
   const { pen } = d;
   const shape = caparisonShape(o);
   const w = (xy: readonly (readonly [number, number])[]): [number, number][] => mapXY(xy, o.warp);
-  paint(d, shape, CROWN_BLUE, { shadow: 0.6, hatch: 0.22, cross: true, line: 0, lit: pt(0.5, 0.25) });
+  paint(d, shape, CROWN_BLUE, { shadow: 0.75, hatch: 0.24, cross: true, line: 0, lit: pt(0.5, 0.25) });
   pen.clipped(shape, () => {
-    // The body's roundness under the cloth, then folds hanging from it to the hem.
-    dab(d, shapeOf([[-26, -48], [14, -50], [16, -40], [-26, -38]]), LIGHT, 0.16, 3);
-    dab(d, shapeOf([[-36, -30], [24, -30], [24, -18], [-38, -18]]), SHADOW, 0.2, 2.4);
+    // The body's roundness under the cloth, then deep folds hanging from it to the hem.
+    dab(d, shapeOf([[-26, -48], [14, -50], [16, -40], [-26, -38]]), LIGHT, 0.12, 3);
+    dab(d, shapeOf([[-36, -30], [24, -30], [24, -18], [-38, -18]]), SHADOW, 0.35, 2.4);
     for (let x = -32; x <= 20; x += 5.2) {
       const sway = (x % 2) * 0.4;
-      dab(d, shapeOf([[x - 0.6, -31], [x + 0.6, -31], [x + 1.4 + sway, -19], [x - 0.6 + sway, -19]]), LIGHT, 0.22, 0.8);
-      pen.hair(lineOf([[x + 2.2, -32], [x + 2.6, -26], [x + 3 + sway, -20]]), 0.35, mix(CROWN_BLUE, SHADOW, 0.65), 0.75);
+      dab(d, shapeOf([[x - 0.6, -33], [x + 0.6, -33], [x + 1.4 + sway, -19], [x - 0.6 + sway, -19]]), LIGHT, 0.16, 0.8);
+      dab(d, shapeOf([[x + 1.8, -32], [x + 2.8, -32], [x + 3.6 + sway, -19], [x + 1.8 + sway, -19]]), SHADOW, 0.38, 0.9);
+      pen.hair(lineOf([[x + 2.2, -32], [x + 2.6, -26], [x + 3 + sway, -20]]), 0.3, INK, 0.6);
     }
     // The cloth stretched round the neck: creases from the throat.
     for (const k of [0, 1, 2]) pen.hair(lineOf(w([[24.6 - k * 1.2, -60 + k * 5], [19 - k * 2, -58 + k * 4.6], [14 - k * 2, -54 + k * 4]])), 0.35, mix(CROWN_BLUE, SHADOW, 0.6), 0.6);
@@ -87,11 +89,11 @@ export function caparison(d: Draw, o: Drape = STILL): Pt[] {
   // The gold border: along the hem, and down the neck's edge.
   const border = hem(-38.6, 25.4, -21.6, -25, 8).map(([x, y]) => drape(pt(x, y), o));
   pen.clipped(shape, () => {
-    pen.stroke(border, 2.2, GOLD, 0.95, false);
-    pen.stroke(border.map((p) => pt(p.x, p.y - 1.5)), 0.35, d.ink, 0.6, false);
+    pen.stroke(border, 1.6, GOLD, 0.9, false);
+    pen.stroke(border.map((p) => pt(p.x, p.y - 1.2)), 0.3, d.ink, 0.6, false);
   });
-  pen.stroke([...shape, shape[0]!], 0.65, d.ink, 0.9);
-  for (const [x, y, s] of [[-20, -42, 7], [-4, -36, 7], [12, -40, 6.4], [-27, -30, 5.6], [8, -29, 5.6], [16, -58, 5.4]] as const) goldCrown(d, drape(pt(x, y), o), s);
+  pen.stroke([...shape, shape[0]!], 0.42, d.ink, 0.85);
+  for (const [x, y, s] of [[-19, -38, 5.4], [13, -42, 5]] as const) goldCrown(d, drape(pt(x, y), o), s);
   return shape;
 }
 
@@ -99,15 +101,15 @@ export function caparison(d: Draw, o: Drape = STILL): Pt[] {
 export function chanfron(d: Draw): void {
   const { pen } = d;
   const plate = shapeOf([[25.6, -73.6], [29, -73.4], [31.4, -68.4], [34, -60.6], [35.8, -55.4], [34.8, -53.6], [32.6, -55.6], [29.8, -61.6], [27.2, -66.4], [25, -70]], 4);
-  paint(d, plate, STEEL, { shadow: 0.45, hatch: 0.14, line: 0.6, gloss: true, lit: pt(0.3, 0.2) });
+  paint(d, plate, STEEL, { shadow: 0.65, hatch: 0.18, line: 0.6, gloss: true, lit: pt(0.3, 0.2) });
   pen.hair(lineOf([[27.8, -72.4], [31, -65], [34.2, -56.6]]), 0.4, d.ink, 0.5);
   gleam(d, lineOf([[27.4, -71.6], [30.2, -65.6], [32.8, -58.6]]), 0.8, 0.85);
   for (const [x, y] of [[27.6, -70.4], [30.4, -63], [33, -57]] as const) pen.dot(x, y, 0.55, GOLD);
   // Eye guard round the eye.
   pen.stroke(lineOf([[26.6, -69], [29.8, -68], [30.4, -65.2]]), 0.9, d.ink, 0.85, false);
-  pen.stroke(lineOf([[26.6, -69], [29.8, -68], [30.4, -65.2]]), 0.5, mix(STEEL, '#ffffff', 0.4), 0.9, false);
+  pen.stroke(lineOf([[26.6, -69], [29.8, -68], [30.4, -65.2]]), 0.5, mix(STEEL, '#f3e6c6', 0.4), 0.9, false);
   // The plume at the poll.
   const plume = shapeOf([[24.6, -74.6], [23.4, -80], [20.2, -84.6], [16.6, -85], [19.6, -81], [21, -76]], 4);
-  paint(d, plume, CROWN_BLUE, { shadow: 0.4, hatch: 0, line: 0.5 });
-  pen.hair(lineOf([[23.8, -76], [22, -81], [18.6, -84]]), 0.3, '#e8eefc', 0.8);
+  paint(d, plume, CROWN_BLUE, { shadow: 0.55, hatch: 0, line: 0.5 });
+  pen.hair(lineOf([[23.8, -76], [22, -81], [18.6, -84]]), 0.3, '#d8ccae', 0.7);
 }

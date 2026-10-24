@@ -14,8 +14,8 @@ import {
  * slate, a gate bay with its own gable and the swordsmen's banner, a
  * practice pell in the yard.
  */
-const BARRACK_STONE = mix(STONE, '#d2c3a2', 0.3);
-const SHUTTER = mix(CROWN_BLUE, '#5a6c8c', 0.35);
+const BARRACK_STONE = mix(STONE, '#978366', 0.3);
+const SHUTTER = mix(CROWN_BLUE, '#474d63', 0.35);
 
 /** Gilt crossed swords: the swordsmen's device, `c` at the crossing. */
 export function swordsCharge(d: Draw, c: Pt, s: number): void {
@@ -24,7 +24,7 @@ export function swordsCharge(d: Draw, c: Pt, s: number): void {
     const pommel = pt(c.x - k * s * 0.5, c.y + s * 0.62);
     const guard = pt(c.x - k * s * 0.32, c.y + s * 0.4);
     d.pen.stroke([guard, tip], s * 0.16, mix(STEEL, LIGHT, 0.3), 1, false);
-    d.pen.hair([guard, tip], 0.35, '#232a4f', 0.7);
+    d.pen.hair([guard, tip], 0.35, '#2a1d14', 0.7);
     d.pen.stroke([pt(guard.x - s * 0.18, guard.y - k * s * 0.16), pt(guard.x + s * 0.18, guard.y + k * s * 0.16)], s * 0.12, CROWN_GOLD, 1, false);
     d.pen.stroke([guard, pommel], s * 0.12, CROWN_GOLD, 1, false);
     d.pen.dot(pommel.x, pommel.y, s * 0.09, CROWN_GOLD, 1);
@@ -40,8 +40,8 @@ function chimney(d: Draw, rng: Rng, x: number, z: number, h0: number, h1: number
   for (const dx of [-2.4, 2.4]) {
     const top = P(x + dx, z, h1 + 2.4);
     const pot = [pt(top.x - 1.6, top.y), pt(top.x + 1.6, top.y), pt(top.x + 1.3, top.y - 4), pt(top.x - 1.3, top.y - 4)];
-    paint(d, pot, '#b5653c', { shadow: 0.45, hatch: 0, line: 0.5 });
-    d.pen.fill(oval(top.x, top.y - 4, 1.3, 0.6, 10), '#2b2738', 0.95);
+    paint(d, pot, '#844626', { shadow: 0.45, hatch: 0, line: 0.5 });
+    d.pen.fill(oval(top.x, top.y - 4, 1.3, 0.6, 10), '#17100c', 0.95);
   }
 }
 
@@ -53,34 +53,34 @@ function pell(d: Draw, rng: Rng, foot: Pt): void {
   beam(d, pt(foot.x - 12, foot.y - 25), pt(foot.x + 12, foot.y - 26), 2.4, TIMBER_DARK);
   // The dummy: a sacking torso bound with cord, straw bursting from its seams, a sack head.
   const torso = blob(pt(foot.x, foot.y - 20), 6.5, 9, rng, 0.12, 18);
-  paint(d, torso, '#cdb88c', { shadow: 0.5, hatch: 0.22, line: 0.65 });
+  paint(d, torso, '#8e7e5c', { shadow: 0.5, hatch: 0.22, line: 0.65 });
   pen.clipped(torso, () => {
-    for (const v of [-25, -16]) pen.stroke([pt(foot.x - 7, foot.y + v), pt(foot.x + 7, foot.y + v + 1)], 0.9, '#6b4a26', 0.85, false);
+    for (const v of [-25, -16]) pen.stroke([pt(foot.x - 7, foot.y + v), pt(foot.x + 7, foot.y + v + 1)], 0.9, '#51371b', 0.85, false);
   });
   for (let i = 0; i < 7; i++) {
     const p = pt(foot.x - 5 + rng() * 10, foot.y - 12 + rng() * 2);
     pen.stroke([p, pt(p.x + (rng() - 0.5) * 4, p.y + 2 + rng() * 3)], 0.6, STRAW, 0.95, false);
   }
   const head = oval(foot.x + 0.4, foot.y - 31.5, 3.6, 4, 16);
-  paint(d, head, '#d6c398', { shadow: 0.45, hatch: 0, line: 0.6 });
+  paint(d, head, '#948564', { shadow: 0.45, hatch: 0, line: 0.6 });
   // An old dented kettle helm jammed on its head.
   const helm = [pt(foot.x - 6, foot.y - 32.4), pt(foot.x + 6.8, foot.y - 32.6), pt(foot.x + 4.2, foot.y - 34), pt(foot.x + 3.2, foot.y - 37.6), pt(foot.x - 2.4, foot.y - 37.6), pt(foot.x - 3.6, foot.y - 34)];
-  paint(d, helm, '#8d929e', { shadow: 0.45, hatch: 0, line: 0.6, gloss: true });
+  paint(d, helm, '#6a6568', { shadow: 0.45, hatch: 0, line: 0.6, gloss: true });
   pen.hair([pt(foot.x - 3, foot.y - 36.6), pt(foot.x - 1.6, foot.y - 34.6)], 0.6, PAPER_FILL, 0.8);
   // A dented wooden shield on its left arm, a cut across it.
   const sc = pt(foot.x - 11, foot.y - 21);
   const sh = oval(sc.x, sc.y, 4.6, 5.4, 18);
-  paint(d, sh, '#9b6a3e', { shadow: 0.5, hatch: 0.2, line: 0.65 });
+  paint(d, sh, '#714b29', { shadow: 0.5, hatch: 0.2, line: 0.65 });
   pen.stroke(closed(oval(sc.x, sc.y, 3.8, 4.6, 16)), 0.8, IRON, 0.9);
   pen.dot(sc.x, sc.y, 1.1, IRON, 1);
-  pen.hair([pt(sc.x - 2.6, sc.y - 3), pt(sc.x + 1.4, sc.y + 2)], 0.5, '#2b2738', 0.8);
+  pen.hair([pt(sc.x - 2.6, sc.y - 3), pt(sc.x + 1.4, sc.y + 2)], 0.5, '#17100c', 0.8);
 }
 
 /** A wooden practice sword leant against something, from its point `foot` up to the pommel. */
 function woodenSword(d: Draw, foot: Pt, lean: number): void {
   const top = pt(foot.x + lean, foot.y - 20);
   d.pen.stroke([foot, top], 2.2, d.ink, 1, false);
-  d.pen.stroke([foot, top], 1.4, '#b08a58', 1, false);
+  d.pen.stroke([foot, top], 1.4, '#7e6039', 1, false);
   const g = pt(foot.x + lean * 0.72, foot.y - 14.4);
   d.pen.stroke([pt(g.x - 3, g.y + 0.4), pt(g.x + 3, g.y - 0.4)], 1.6, TIMBER_DARK, 1, false);
 }
@@ -119,14 +119,14 @@ function barracks(d: Draw, rng: Rng): void {
   gableRoof(d, rng, { ...G, z1: 22 }, 22, 'z', SLATE, 'slate', C, 4);
   const oc = ga(15, 75);
   paint(d, oval(oc.x, oc.y, 5.2, 5.2, 18), mix(C, LIGHT, 0.3), { shadow: 0.3, hatch: 0, line: 0.55 });
-  paint(d, oval(oc.x, oc.y, 3.4, 3.4, 16), '#3a3f5c', { shadow: 0.4, hatch: 0, line: 0.55 });
+  paint(d, oval(oc.x, oc.y, 3.4, 3.4, 16), '#24262e', { shadow: 0.4, hatch: 0, line: 0.55 });
   d.pen.stroke([pt(oc.x - 3.4, oc.y), pt(oc.x + 3.4, oc.y)], 0.8, C, 0.95, false);
   d.pen.stroke([pt(oc.x, oc.y - 3.4), pt(oc.x, oc.y + 3.4)], 0.8, C, 0.95, false);
   banner(d, ga(15, 62), 13, 26, CROWN_BLUE, (c) => swordsCharge(d, c, 8), 0.6);
   // The yard: barrels and a crate on the left, the pell and wooden swords on the right.
   barrel(d, pt(-84, 5), 5.6, 13);
   const cr: Box = { x0: -96, x1: -86, z0: -12, z1: -4, h0: 0, h1: 8 };
-  box(d, rng, cr, '#a07a4c', 'plank', true);
+  box(d, rng, cr, '#735632', 'plank', true);
   pell(d, rng, pt(84, 0));
   woodenSword(d, pt(66, 4), 4);
   woodenSword(d, pt(70, 5), 6);
@@ -137,7 +137,7 @@ function barracksGround(d: Draw, rng: Rng): void {
   groundShadow(d, -10, -4, 96, 12, 0.26);
   castShadow(d, [P(56, -1, 0), P(56, 39, 0), P(80, 30, 0), P(82, -4, 0)], 0, 0, 0.2, 3);
   // The trodden yard around the pell, the step before the gate.
-  soft(d.pen.ctx, 3, () => d.pen.fill(blob(pt(80, 2), 22, 7, rng, 0.2, 18), '#c2a77a', 0.5));
+  soft(d.pen.ctx, 3, () => d.pen.fill(blob(pt(80, 2), 22, 7, rng, 0.2, 18), '#887350', 0.5));
   apron(d, rng, pt(-13, 6), 18, 4.5);
   tufts(d, rng, -80, -40, 3, 5);
   tufts(d, rng, 20, 56, 3, 4);

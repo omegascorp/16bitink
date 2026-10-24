@@ -1,9 +1,9 @@
 import type { Rng } from '../../logic/rng';
 import { bezier, closed, oval, pt, type Draw } from '../kit';
-import { PAPER_FILL } from '../palette';
 import type { Pt } from '../pen';
 import { erase } from '../wash';
-import { arch, beam, block, CROWN_GOLD, drum, P, pennant, slit, STONE, TIMBER, TIMBER_DARK } from './build';
+import { arch, beam, block, CROWN_GOLD, drum, HOLE, P, pennant, slit, TIMBER, TIMBER_DARK } from './build';
+import { STONE } from './darkPaints';
 import { mine } from './mines';
 import { IRON, lump } from './parts';
 import { small } from './piles';
@@ -13,9 +13,11 @@ import { blob, crisp, flat, glow, ink, LIGHT, mix, paint, SHADOW, soft } from '.
  * The map's treasure and visitable places, part one: the iron-bound chest,
  * a traveller's campfire, the mercenaries' camp and the ruined watchtower.
  */
-const OAK = '#7a5232';
-const CANVAS = '#ddd0ae';
-const RED = '#a9302a';
+const OAK = '#5a3a22';
+const CANVAS = '#a3946f';
+const RED = '#8e2420';
+/** Field stones, warm grey. */
+const FIELDSTONE = '#5e574c';
 
 function chest(d: Draw, rng: Rng): void {
   const [x0, x1, z0, z1, h] = [-11, 11, 0, 11, 9];
@@ -42,8 +44,8 @@ function chest(d: Draw, rng: Rng): void {
   const lp = P(0, z0, h - 1);
   const plate = crisp([pt(lp.x - 2.4, lp.y - 2.4), pt(lp.x + 2.4, lp.y - 2.4), pt(lp.x + 2.4, lp.y + 3), pt(lp.x - 2.4, lp.y + 3)], 1.5);
   paint(d, plate, CROWN_GOLD, { shadow: 0.35, hatch: 0, line: 0.5, gloss: true });
-  d.pen.dot(lp.x, lp.y + 0.6, 0.6, '#2b2738', 1);
-  d.pen.stroke([pt(lp.x, lp.y + 0.8), pt(lp.x, lp.y + 2)], 0.5, '#2b2738', 1, false);
+  d.pen.dot(lp.x, lp.y + 0.6, 0.6, HOLE, 1);
+  d.pen.stroke([pt(lp.x, lp.y + 0.8), pt(lp.x, lp.y + 2)], 0.5, HOLE, 1, false);
   for (const x of [x0, x1]) for (const v of [0.5, h]) {
     const c = P(x, z0, v);
     d.pen.fill(oval(c.x, c.y, 1.4, 1.4, 8), CROWN_GOLD, 0.95);
@@ -66,33 +68,33 @@ export function flame(d: Draw, c: Pt, h: number): void {
 function campfire(d: Draw, rng: Rng): void {
   // A bedroll beside the fire.
   const roll = [pt(9, -1), pt(21, -3), pt(22, 3), pt(10, 5)];
-  paint(d, crisp(roll, 2), '#8a6a8e', { shadow: 0.5, hatch: 0.25, line: 0.55 });
-  d.pen.fill(oval(9.5, 2, 2, 3, 12), mix('#8a6a8e', SHADOW, 0.2), 1);
+  paint(d, crisp(roll, 2), '#4e3c50', { shadow: 0.5, hatch: 0.25, line: 0.55 });
+  d.pen.fill(oval(9.5, 2, 2, 3, 12), mix('#4e3c50', SHADOW, 0.2), 1);
   d.pen.hair(closed(oval(9.5, 2, 1.1, 1.8, 10)), 0.4, d.ink, 0.7);
   d.pen.stroke(closed(oval(9.5, 2, 2, 3, 12)), 0.5, d.ink, 0.9);
-  for (const x of [14, 18.5]) d.pen.stroke([pt(x, -2.4), pt(x + 0.6, 4.4)], 0.9, '#6a4a2a', 1, false);
+  for (const x of [14, 18.5]) d.pen.stroke([pt(x, -2.4), pt(x + 0.6, 4.4)], 0.9, '#3a2616', 1, false);
   // The ring of stones, back half first, the logs and flame, then the near stones.
   const ring = (a: number): Pt => pt(-4 + Math.cos(a) * 11, Math.sin(a) * 4.6);
   for (let i = 0; i < 9; i++) {
     const a = Math.PI + (i / 8) * Math.PI;
-    lump(d, rng, ring(a), 2.6, 1.9, mix('#a39d8c', PAPER_FILL, rng() * 0.3), 0.45);
+    lump(d, rng, ring(a), 2.6, 1.9, mix(FIELDSTONE, '#8a8070', rng() * 0.4), 0.45);
   }
-  d.pen.fill(oval(-4, 0, 9, 3.6, 18), '#3a3036', 0.85);
+  d.pen.fill(oval(-4, 0, 9, 3.6, 18), '#1a1210', 0.9);
   beam(d, pt(-11, 1), pt(2, -3.5), 2.6, TIMBER);
   beam(d, pt(-10, -3), pt(3, 1.5), 2.6, mix(TIMBER, SHADOW, 0.15));
   for (const p of [pt(-11, 1), pt(3, 1.5)]) d.pen.fill(oval(p.x, p.y, 1.3, 1.3, 8), '#3a2a22', 0.95);
   flame(d, pt(-4, -1), 11);
   for (let i = 0; i < 7; i++) {
     const a = (i / 6) * Math.PI;
-    lump(d, rng, ring(a), 2.8, 2, mix('#a39d8c', PAPER_FILL, rng() * 0.3), 0.5);
+    lump(d, rng, ring(a), 2.8, 2, mix(FIELDSTONE, '#8a8070', rng() * 0.4), 0.5);
   }
 }
 
 function fireAir(d: Draw, rng: Rng): void {
-  glow(d.pen.ctx, pt(-4, -4), 14, '#f6b04a', 0.32);
+  glow(d.pen.ctx, pt(-4, -4), 18, '#f6a040', 0.42);
   for (let i = 0; i < 3; i++) {
     const s = blob(pt(-3 + i * 2, -18 - i * 6), 2.4 + i, 1.8 + i * 0.6, rng, 0.25, 12);
-    soft(d.pen.ctx, 1, () => d.pen.fill(s, '#bdb8b0', 0.35 - i * 0.08));
+    soft(d.pen.ctx, 1, () => d.pen.fill(s, '#7e776c', 0.4 - i * 0.1));
   }
   for (const p of [pt(-1, -16), pt(-6, -20), pt(1, -24)]) d.pen.dot(p.x, p.y, 0.5, '#f8c060', 0.9);
 }
@@ -114,7 +116,7 @@ function tent(d: Draw, rng: Rng): void {
   d.pen.stroke([P(x0, z0, 1), P(xm, z0, H), P(x1, z0, 1)], 1.6, RED, 0.95, false);
   // The door: the flaps tied back on a dark inside.
   const door = crisp([P(xm - 7, z0, 0), P(xm + 7, z0, 0), P(xm, z0, 17)], 2);
-  d.pen.fill(door, '#2b2738', 0.92);
+  d.pen.fill(door, HOLE, 0.92);
   for (const s of [-1, 1]) {
     const flap = [P(xm + s * 7, z0, 0), P(xm, z0, 17), P(xm + s * 9, z0, 5)];
     paint(d, flap, mix(CANVAS, SHADOW, 0.1), { shadow: 0.4, hatch: 0, line: 0.5 });
@@ -172,21 +174,21 @@ function watchtower(d: Draw, rng: Rng): void {
   flat(d, far, mix(STONE, SHADOW, 0.12), { tone: 0.1, line: 0.6 });
   d.pen.clipped(far, () => {
     for (let y = top - 6; y < top + 16; y += 3.6) d.pen.hair([pt(L, y), pt(R, y + 1)], 0.4, d.ink, 0.4);
-    d.pen.fill([...jag.map((p) => pt(p.x, p.y + 0.5)), ...[...jag].reverse().map((p) => pt(p.x + 1.5, p.y - 3.2))], '#3a3446', 0.75);
+    d.pen.fill([...jag.map((p) => pt(p.x, p.y + 0.5)), ...[...jag].reverse().map((p) => pt(p.x + 1.5, p.y - 3.2))], '#1e1814', 0.8);
   });
   d.pen.stroke(jag.map((p) => pt(p.x, p.y + 0.9)), 1.4, mix(STONE, LIGHT, 0.5), 0.9, false);
   ink(d, jag, 0.7, 0.95);
   // Ivy up its left side, and fallen stones at its foot.
   const stem = Array.from({ length: 12 }, (_, i) => pt(L + 3 + Math.sin(i * 1.3) * 2.5 + i * 0.25, t.base.y + 4 - i * 4));
-  d.pen.stroke(stem, 0.6, '#3f5f34', 0.95, false);
+  d.pen.stroke(stem, 0.6, '#24361c', 0.95, false);
   stem.forEach((p, i) => {
     for (const s of [-1, 1]) {
       if (rng() < 0.25) continue;
       const leaf = blob(pt(p.x + s * 1.8, p.y - 0.6), 1.7, 1.2, rng, 0.25, 8, s * 0.6);
-      paint(d, leaf, i % 2 ? '#5f8f4e' : '#4d7a45', { shadow: 0.4, hatch: 0, line: 0.35 });
+      paint(d, leaf, i % 2 ? '#3d5a28' : '#2c4520', { shadow: 0.4, hatch: 0, line: 0.35 });
     }
   });
-  for (const [px, py, s] of [[-24, 6, 3], [14, 7, 3.6], [20, 4, 2.4], [-18, 8, 2.2], [9, 9, 2]] as const) lump(d, rng, pt(px, py), s, s * 0.75, mix(STONE, '#a39d8c', 0.5));
+  for (const [px, py, s] of [[-24, 6, 3], [14, 7, 3.6], [20, 4, 2.4], [-18, 8, 2.2], [9, 9, 2]] as const) lump(d, rng, pt(px, py), s, s * 0.75, mix(STONE, FIELDSTONE, 0.5));
 }
 
 export const PLACES_A = {

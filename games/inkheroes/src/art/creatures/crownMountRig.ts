@@ -456,6 +456,15 @@ const GIRTH = pt(-4, -40);
 const NECK_BASE = pt(10, -50);
 const NECK_TIP = pt(25, -72);
 const THROAT = pt(26.5, -69);
+/**
+ * The neck's carriage: the drawing's neck is set forward and down by
+ * NECK_SET degrees and drawn in by NECK_SHORT units along its length, so it
+ * rises at about 45° in a short, arched, muscular line, not straight up.
+ * The head is turned back at the poll by most of that, so the face stays
+ * just ahead of the vertical.
+ */
+const NECK_SET = 13;
+const NECK_SHORT = 2.6;
 /** The rider's hip in body coordinates (crownMountRider's RIDER.hip on the scaled rider). */
 const RIDER_HIP = pt(-4.54, -54.39);
 
@@ -483,13 +492,15 @@ export function mountRig(stance: Stance, pose: Pose, attack: AttackMotion): Moun
   const body = rotAbout(GIRTH, m.pitch, m.dx, m.dy);
   const axis = v2(NECK_BASE, NECK_TIP);
   const axisLen = len(axis);
+  const along = pt(axis.x / axisLen, axis.y / axisLen);
   const warp = (p: Pt): Pt => {
     const q = v2(NECK_BASE, p);
     const u = (q.x * axis.x + q.y * axis.y) / (axisLen * axisLen);
     const k = smoothstep(0.2, 0.85, u);
-    return k === 0 ? p : apply(rotAbout(NECK_BASE, m.neck * k), p);
+    return k === 0 ? p : apply(rotAbout(NECK_BASE, (m.neck + NECK_SET) * k), pt(p.x - along.x * NECK_SHORT * k, p.y - along.y * NECK_SHORT * k));
   };
-  const head = compose(rotAbout(NECK_BASE, m.neck), rotAbout(THROAT, m.nod));
+  const drawIn: Affine = { a: 1, b: 0, c: 0, d: 1, e: -along.x * NECK_SHORT, f: -along.y * NECK_SHORT };
+  const head = compose(rotAbout(NECK_BASE, m.neck + NECK_SET), compose(drawIn, rotAbout(THROAT, m.nod - NECK_SET * 0.85)));
   const upper = rotAbout(RIDER_HIP, m.lean, 0, m.breath);
   const rest = kind === 'walk' ? GALLOP_REST : STANCES[stance];
   const legs = Object.fromEntries(

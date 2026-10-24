@@ -2,9 +2,11 @@ import type { Rng } from '../../logic/rng';
 import { bezier, closed, oval, pt, type Draw } from '../kit';
 import { PAPER_FILL } from '../palette';
 import type { Pt } from '../pen';
+import { deepen, MOSS, mossFoot } from './light';
 import { ashlar, beam, boards, DEPTH, frontOf, HOLE, P, quad, roundWash, shingles, sideOf, TIMBER_DARK, type Box, type Surface } from '../sites/build';
 import { IRON } from '../sites/parts';
-import { blob, boundsOf, boxOf, crisp, dab, flat, LIGHT, mix, paint, rgba, SHADOW, shift, soft, sprite } from '../sites/paintKit';
+import { blob, boundsOf, boxOf, crisp, dab, flat, LIGHT, mix, paint, rgba, SHADOW, shift, soft } from '../sites/paintKit';
+import { townSprite } from './townSprite';
 import { SLOTS, type TownDrawer } from './types';
 
 /**
@@ -14,14 +16,14 @@ import { SLOTS, type TownDrawer } from './types';
  * plus the things that stand about them (windows, doors, barrels, crates,
  * sacks, fruit) and what drifts over them (smoke).
  */
-export const OAK = '#7a5232';
-export const PLASTER = '#ece2c8';
-export const STRAW = '#cfae62';
-export const EARTH = '#b49a72';
-export const CANVAS = '#ece2c6';
-export const RED = '#a9302a';
-export const OCHRE = '#c9933a';
-export const STEEL = '#a9afbd';
+export const OAK = '#4e3420';
+export const PLASTER = '#a8895a';
+export const STRAW = '#967840';
+export const EARTH = '#76604a';
+export const CANVAS = '#b4a484';
+export const RED = '#7e2420';
+export const OCHRE = '#9a7232';
+export const STEEL = '#7e828c';
 export const WARM = '#f6b04a';
 
 export type Tex = 'stone' | 'plank' | 'plaster' | 'none';
@@ -31,7 +33,7 @@ export type Roofing = 'shingle' | 'slate' | 'thatch';
 export function plaster(d: Draw, rng: Rng, at: Surface, w: number, h: number, clip: readonly Pt[], color: string): void {
   d.pen.clipped(clip, () => {
     for (let i = 0; i < Math.round((w * h) / 260) + 2; i++) {
-      dab(d, blob(at(rng() * w, rng() * h), 5 + rng() * 8, 3 + rng() * 5, rng), rng() < 0.5 ? mix(color, LIGHT, 0.6) : mix(color, '#a89270', 0.6), 0.2, 2);
+      dab(d, blob(at(rng() * w, rng() * h), 5 + rng() * 8, 3 + rng() * 5, rng), rng() < 0.5 ? mix(color, LIGHT, 0.6) : mix(color, '#77664c', 0.6), 0.2, 2);
     }
     d.pen.stipple(clip, Math.round(w * h * 0.06), () => 0.5, 0.38, mix(color, SHADOW, 0.35));
   });
@@ -59,8 +61,8 @@ export function straw(d: Draw, rng: Rng, at: Surface, w: number, h: number, clip
 /** One wall face washed, textured and lined at townscape scale; `tone` darkens it. */
 export function face(d: Draw, rng: Rng, at: Surface, w: number, h: number, color: string, tex: Tex, tone: number): Pt[] {
   const shape = crisp(quad(at, 0, 0, w, h), 4);
-  flat(d, shape, color, { tone, hatch: tone > 0.2 ? 0.24 : 0, line: 0 });
-  if (tex === 'stone') ashlar(d, rng, at, w, h, shape, color, 5.2, 9.5);
+  flat(d, shape, color, { tone: deepen(tone), hatch: tone > 0.2 ? 0.24 : 0, line: 0 });
+  if (tex === 'stone') { ashlar(d, rng, at, w, h, shape, color, 5.2, 9.5); mossFoot(d, rng, at, w, h, shape); }
   if (tex === 'plank') boards(d, rng, at, w, h, shape, color, 4.4);
   if (tex === 'plaster') plaster(d, rng, at, w, h, shape, color);
   d.pen.clipped(shape, () => soft(d.pen.ctx, 2, () => d.pen.fill(quad(at, -2, -1, w + 2, Math.min(h * 0.3, 8)), mix(color, SHADOW, 0.5), 0.2)));
@@ -81,7 +83,7 @@ export function weather(d: Draw, rng: Rng, at: Surface, w: number, h: number, cl
   d.pen.clipped(clip, () => {
     for (let i = 0; i < Math.round((w * h) / 320) + 2; i++) {
       const moss = rng() < 0.45;
-      dab(d, blob(at(rng() * w, rng() * h * 0.7), 4 + rng() * 9, 2.5 + rng() * 4, rng, 0.3), moss ? mix(color, '#6f7f3e', 0.55) : mix(color, LIGHT, 0.45), moss ? 0.22 : 0.2, 2.2);
+      dab(d, blob(at(rng() * w, rng() * h * 0.7), 4 + rng() * 9, 2.5 + rng() * 4, rng, 0.3), moss ? mix(color, MOSS, 0.55) : mix(color, LIGHT, 0.45), moss ? 0.22 : 0.2, 2.2);
     }
     soft(d.pen.ctx, 2.5, () => d.pen.fill(quad(at, -2, -2, w + 2, Math.min(5, h * 0.2)), mix(color, SHADOW, 0.5), 0.18));
   });
@@ -89,7 +91,7 @@ export function weather(d: Draw, rng: Rng, at: Surface, w: number, h: number, cl
 
 export function roofPlane(d: Draw, rng: Rng, at: Surface, w: number, h: number, color: string, tone: number, kind: Roofing): Pt[] {
   const shape = crisp(quad(at, 0, 0, w, h), 4);
-  flat(d, shape, color, { tone, hatch: tone > 0.2 ? 0.24 : 0, line: 0 });
+  flat(d, shape, color, { tone: deepen(tone), hatch: tone > 0.2 ? 0.24 : 0, line: 0 });
   if (kind === 'thatch') {
     straw(d, rng, at, w, h, shape, color);
     beam(d, at(-0.5, 1.4), at(w + 0.5, 1.4), 3.4, mix(color, SHADOW, 0.18), 0.6);
@@ -130,7 +132,7 @@ export function roof(d: Draw, rng: Rng, b: Box, rise: number, along: 'x' | 'z', 
   if (along === 'x') {
     const zm = (b.z0 + b.z1) / 2;
     const tri = crisp([P(b.x1, b.z0, h), P(b.x1, b.z1, h), P(b.x1, zm, h + rise)], 4);
-    flat(d, tri, wallColor, { tone: 0.42, hatch: 0.26 });
+    flat(d, tri, wallColor, { tone: deepen(0.42), hatch: 0.26 });
     o.end?.(tri, (u, v) => P(b.x1, b.z0 + u, h + v));
     const w = b.x1 - b.x0 + 2 * ov;
     roofPlane(d, rng, (u, v) => P(b.x0 - ov + u, b.z1 + ov - (v / rise) * (b.z1 + ov - zm), h + v), w, rise, color, -0.1, kind);
@@ -185,15 +187,15 @@ export function casement(d: Draw, at: Surface, u: number, v: number, w: number, 
       g.addColorStop(0.55, rgba('#f2b257', 0.95));
       g.addColorStop(1, rgba('#c96f2e', 0.95));
     } else {
-      g.addColorStop(0, rgba('#8a97b0', 0.95));
-      g.addColorStop(0.45, rgba('#3d4560', 0.95));
-      g.addColorStop(1, rgba('#2b2f45', 0.95));
+      g.addColorStop(0, rgba('#676877', 0.95));
+      g.addColorStop(0.45, rgba('#343445', 0.95));
+      g.addColorStop(1, rgba('#272331', 0.95));
     }
     ctx.fillStyle = g;
     ctx.fillRect(b.x0 - 1, b.y0 - 1, b.w + 2, b.h + 2);
     if (o.lead ?? true) {
-      pen.hatch(glass, 2.6, 0.9, 0.3, { color: '#4a3020', alpha: 0.5 });
-      pen.hatch(glass, 2.6, -0.9 + Math.PI, 0.3, { color: '#4a3020', alpha: 0.5 });
+      pen.hatch(glass, 2.6, 0.9, 0.3, { color: '#3f2313', alpha: 0.5 });
+      pen.hatch(glass, 2.6, -0.9 + Math.PI, 0.3, { color: '#3f2313', alpha: 0.5 });
     }
     // The reveal's shadow across the head and down the left of the glass.
     soft(ctx, 0.6, () => pen.fill([at(u - 1, v + h + 1), at(u + w + 1, v + h + 1), at(u + w + 1, v + h - 1.6), at(u + 1.4, v + h - 1.6), at(u + 1.4, v - 1), at(u - 1, v - 1)], SHADOW, 0.38));
@@ -233,7 +235,7 @@ export function plankDoor(d: Draw, at: Surface, u: number, w: number, h: number,
     for (let k = u + 2.6; k < u + w; k += 2.6) pen.hair([at(k, 0), at(k, h)], 0.4, mix(color, SHADOW, 0.6), 0.75);
     for (const v of [h * 0.22, h * 0.62]) {
       pen.stroke([at(u, v), at(u + w * 0.82, v)], 1.3, IRON, 0.95, false);
-      for (let k = u + 1.2; k < u + w * 0.8; k += 2.4) pen.dot(at(k, v).x, at(k, v).y, 0.35, '#c9c3b6', 0.9);
+      for (let k = u + 1.2; k < u + w * 0.8; k += 2.4) pen.dot(at(k, v).x, at(k, v).y, 0.35, '#928473', 0.9);
     }
     soft(pen.ctx, 0.8, () => pen.fill([...head.map((p) => pt(p.x, p.y)), ...head.map((p) => pt(p.x + 0.4, p.y + 2.4)).reverse()], SHADOW, 0.4));
     soft(pen.ctx, 0.8, () => pen.fill([at(u, 0), at(u, h), at(u + 1.6, h), at(u + 1.6, 0)], SHADOW, 0.3));
@@ -271,7 +273,7 @@ export function barrel(d: Draw, foot: Pt, r: number, h: number, color = OAK): vo
     }
   });
   const lid = ell(top, r * 0.94, 0, Math.PI * 2, 20);
-  paint(d, lid, mix(color, '#d9b27a', 0.45), { shadow: 0.3, hatch: 0, line: 0.5 });
+  paint(d, lid, mix(color, '#987a4e', 0.45), { shadow: 0.3, hatch: 0, line: 0.5 });
   pen.clipped(lid, () => {
     for (let k = -2; k <= 2; k++) pen.hair([pt(foot.x + k * r * 0.36 - 1, top - ry), pt(foot.x + k * r * 0.36 + 1, top + ry)], 0.35, mix(color, SHADOW, 0.5), 0.6);
   });
@@ -279,7 +281,7 @@ export function barrel(d: Draw, foot: Pt, r: number, h: number, color = OAK): vo
 }
 
 /** A slatted crate: plank faces, a dark gap between slats, a cross brace on the front. */
-export function crate(d: Draw, rng: Rng, b: Box, color = '#b48a58', top = true): void {
+export function crate(d: Draw, rng: Rng, b: Box, color = '#806039', top = true): void {
   const { pen } = d;
   const { front, side } = solid(d, rng, b, color, 'none', top);
   const w = b.x1 - b.x0;
@@ -295,13 +297,13 @@ export function crate(d: Draw, rng: Rng, b: Box, color = '#b48a58', top = true):
 }
 
 /** A grain sack sat on `foot`: a soft lumpy body, the neck gathered and tied. */
-export function sack(d: Draw, rng: Rng, foot: Pt, r: number, color = '#c4ab7c'): void {
+export function sack(d: Draw, rng: Rng, foot: Pt, r: number, color = '#897652'): void {
   const body = blob(pt(foot.x, foot.y - r * 0.95), r, r * 1.05, rng, 0.08, 20);
   const neck = [pt(foot.x - r * 0.35, foot.y - r * 1.8), pt(foot.x - r * 0.15, foot.y - r * 2.45), pt(foot.x + r * 0.25, foot.y - r * 2.5), pt(foot.x + r * 0.4, foot.y - r * 1.8)];
   paint(d, neck, color, { shadow: 0.4, hatch: 0, line: 0.55 });
   paint(d, body, color, { shadow: 0.55, hatch: 0.22, line: 0.7 });
   d.pen.clipped(body, () => d.pen.hatch(body, 1.1, 0.05, 0.25, { color: mix(color, SHADOW, 0.5), alpha: 0.25 }));
-  d.pen.stroke([pt(foot.x - r * 0.38, foot.y - r * 1.82), pt(foot.x + r * 0.42, foot.y - r * 1.85)], 0.9, '#8a6a3e', 0.95, false);
+  d.pen.stroke([pt(foot.x - r * 0.38, foot.y - r * 1.82), pt(foot.x + r * 0.42, foot.y - r * 1.85)], 0.9, '#654c2a', 0.95, false);
   d.pen.hair([pt(foot.x - r * 0.2, foot.y - r * 1.6), pt(foot.x - r * 0.45, foot.y - r * 0.9)], 0.4, mix(color, SHADOW, 0.6), 0.7);
   d.pen.hair([pt(foot.x + r * 0.25, foot.y - r * 1.6), pt(foot.x + r * 0.55, foot.y - r * 0.6)], 0.4, mix(color, SHADOW, 0.6), 0.7);
 }
@@ -310,7 +312,7 @@ export function sack(d: Draw, rng: Rng, foot: Pt, r: number, color = '#c4ab7c'):
 export function fruit(d: Draw, c: Pt, r: number, color: string, stalk = true): void {
   paint(d, oval(c.x, c.y, r, r * 0.94, 14), color, { shadow: 0.55, hatch: 0, line: 0.45, gloss: true });
   d.pen.dot(c.x - r * 0.35, c.y - r * 0.38, Math.max(0.35, r * 0.2), PAPER_FILL, 0.85);
-  if (stalk) d.pen.hair([pt(c.x + r * 0.05, c.y - r * 0.8), pt(c.x + r * 0.3, c.y - r * 1.25)], 0.45, '#4a3a22', 0.9);
+  if (stalk) d.pen.hair([pt(c.x + r * 0.05, c.y - r * 0.8), pt(c.x + r * 0.3, c.y - r * 1.25)], 0.45, '#3f2b14', 0.9);
 }
 
 /** A heaped pyramid of fruit, `rows` deep, its base centred on `c`. */
@@ -332,7 +334,7 @@ export function smoke(d: Draw, rng: Rng, from: Pt, rise: number, lean: number, n
     const c = pt(from.x + lean * t * t * (0.8 + rng() * 0.4) + Math.sin(t * 5) * 1.5, from.y - 2 - t * rise);
     const r = 2.2 + t * 5.2;
     const s = blob(c, r * 1.3, r * 0.95, rng, 0.25, 16, -0.3 * t);
-    const color = mix('#a3a1b4', PAPER_FILL, 0.1 + t * 0.45);
+    const color = mix('#786e77', PAPER_FILL, 0.1 + t * 0.45);
     soft(pen.ctx, 0.9 + t * 1.8, () => pen.fill(s, color, 0.62 - t * 0.42));
     pen.clipped(s, () => soft(pen.ctx, r * 0.3, () => pen.fill(shift(s, -r * 0.4, -r * 0.45), mix(LIGHT, PAPER_FILL, 0.4), 0.3 - t * 0.2)));
     if (i % 3 === 1) pen.hair(s.slice(8, 15), 0.45, d.ink, 0.3 - t * 0.2);
@@ -348,7 +350,7 @@ export function earth(d: Draw, rng: Rng, shape: readonly Pt[], color = EARTH, al
   for (let i = 0; i < Math.round(b.w / 14); i++) {
     const c = pt(b.x0 + rng() * b.w, b.y0 + b.h * (0.3 + rng() * 0.6));
     const s = blob(c, 1.4 + rng() * 1.4, 0.9 + rng() * 0.7, rng, 0.2, 9);
-    paint(d, s, mix('#a39d8c', SHADOW, 0.05 + rng() * 0.15), { shadow: 0.5, hatch: 0, line: 0.4 });
+    paint(d, s, mix('#796b58', SHADOW, 0.05 + rng() * 0.15), { shadow: 0.5, hatch: 0, line: 0.4 });
   }
 }
 
@@ -357,7 +359,7 @@ export function tufts(d: Draw, rng: Rng, x0: number, x1: number, y: number, n: n
   for (let i = 0; i < n; i++) {
     const x = x0 + rng() * (x1 - x0);
     const yy = y + (rng() - 0.5) * 2;
-    for (let k = -2; k <= 2; k++) d.pen.stroke([pt(x + k * 0.8, yy + rng() * 0.6), pt(x + k * 2 * scale + (rng() - 0.5), yy - (3 + rng() * 3) * scale)], 0.55, rng() < 0.5 ? '#6f8f4e' : '#4d7a45', 0.95, false);
+    for (let k = -2; k <= 2; k++) d.pen.stroke([pt(x + k * 0.8, yy + rng() * 0.6), pt(x + k * 2 * scale + (rng() - 0.5), yy - (3 + rng() * 3) * scale)], 0.55, rng() < 0.5 ? '#4d6634' : '#365930', 0.95, false);
   }
 }
 
@@ -396,7 +398,7 @@ export function kiteShield(d: Draw, c: Pt, w: number, field: string, charge: str
   d.pen.stroke(closed(shape), 0.5, d.ink, 0.6);
 }
 
-const CROWN_GOLD_RIM = '#d8aa3c';
+const CROWN_GOLD_RIM = '#98751a';
 
 /** A wrought-iron curl (a sign bracket's scroll). */
 export function scroll(d: Draw, c: Pt, r: number, turn = 1): void {
@@ -423,5 +425,5 @@ export function paintIn(slot: keyof typeof SLOTS, draw: Painter, ground?: Painte
     paint(d, rng);
     ctx.restore();
   });
-  return (ctx, seed) => sprite(ctx, seed, 0, { bounds, line, ground: framed(ground), air: framed(air) }, draw);
+  return (ctx, seed) => townSprite(ctx, seed, 0, { bounds, line, ground: framed(ground), air: framed(air) }, draw);
 }

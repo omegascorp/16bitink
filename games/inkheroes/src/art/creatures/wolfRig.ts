@@ -162,6 +162,9 @@ export function wolfPose(pose: Pose | undefined): WolfPose {
   return idle(pose.t);
 }
 
+/** A standing dip of the forequarters: the wolf hunts with its shoulders low. */
+const CROUCH = 0.04;
+
 /** The body's pivot: pitch and flex turn about it. */
 const PIVOT = pt(0, -38);
 
@@ -176,7 +179,7 @@ export function bodyWarp(p: WolfPose): (q: Pt) => Pt {
     const ribs = clamp01(1 - Math.abs(q.x - 10) / 26);
     const y = q.y + p.breath * 1.3 * ribs * clamp01((q.y + 44) / 20);
     const flexed = turn(pt(q.x, y), PIVOT, p.arch * Math.max(-1, Math.min(1, q.x / 34)));
-    const pitched = turn(flexed, PIVOT, p.pitch);
+    const pitched = turn(flexed, PIVOT, p.pitch + CROUCH);
     return pt(pitched.x + p.bx, pitched.y + p.by);
   };
 }

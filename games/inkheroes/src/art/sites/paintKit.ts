@@ -16,11 +16,11 @@ import { mix, rgba } from '../wash';
  */
 
 /** Warm light from the upper left. */
-export const LIGHT = '#fff2d8';
-/** Cool shadow: indigo, as a painter mixes it (never black). */
-export const SHADOW = '#1e2350';
+export const LIGHT = '#ffe2b0';
+/** Deep shadow: umber warmed with a touch of violet, as an old master mixes it. */
+export const SHADOW = '#22140f';
 /** Light bounced up from the ground into a shadow. */
-export const BOUNCE = '#c9c3b0';
+export const BOUNCE = '#8a7556';
 /** Towards the light (up and to the left), and the way shadows fall. */
 export const TO_LIGHT: Pt = { x: -0.55, y: -0.84 };
 export const DOWN: Pt = { x: 0.55, y: 0.84 };

@@ -91,7 +91,7 @@ export function rivalKeep(ctx: CanvasRenderingContext2D, seed: number, at: Pt, s
 
 /** A cottage: limewashed walls, a door and a window, under thatch or shingles. */
 function cottage(d: Draw, rng: Rng, b: Box, along: 'x' | 'z', thatched: boolean): void {
-  const wallC = '#e4d8bc';
+  const wallC = '#a89878';
   block(d, rng, b, wallC, 'plaster', false);
   const at = frontOf(b);
   const w = b.x1 - b.x0;

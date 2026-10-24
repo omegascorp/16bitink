@@ -4,29 +4,33 @@ import type { Pt } from './pen';
 import { dab, finished, gleam, groundShadow, LIGHT, limb, lineOf, mix, paint, shapeOf, SHADOW } from './creatures/crownElitePaint';
 import { farLegs, forelock, head, HORSE, mane, nearLegs, tail, torso, torsoInFigure, torsoShape, type HorseLook } from './creatures/crownMountHorse';
 import { apply, beat, mountRig, within, type AttackMotion, type Beat, type MountRig } from './creatures/crownMountRig';
-import { asRider, elbowFor, fist, GOLD, headstall, LEATHER, legShadow, onRider, pauldron, plateArm, reins, RIDER, riderLeg, riderTorso, saddle, STEEL } from './creatures/crownMountRider';
+import { asHead, asRider, elbowFor, fist, GOLD, headstall, LEATHER, legShadow, onRider, pauldron, plateArm, reins, RIDER, riderLeg, riderTorso, saddle, STEEL } from './creatures/crownMountRider';
 
 /**
  * The hero on horseback: a commander on a light bay riding horse (no
  * barding, a blaze down its face), in a breastplate with a cloak and a
- * plumed open helm, a sword at the hip and the army's banner held high in
- * the owner's colour. Unlike the Lancer: no lance, no caparison, a lighter
+ * plumed open helm, a sword at the hip and the army's banner flying high
+ * in the owner's colour from a pole socketed behind the saddle's cantle
+ * (so it streams back clear of the helm). Unlike the Lancer: no lance, no caparison, a lighter
  * horse walking, and the flag, which carries the read at map size.
  *
  * Idle: the horse shifts its weight, paws with the lifted fore, nods and
  * swishes its tail; the banner ripples, the rider breathes. Walk: the
  * gallop, cloak and banner streaming. Attack (casting a battle spell): he
- * lets the banner stand in its stirrup cup, draws and raises the sword high
+ * draws and raises the sword high
  * (0.25), brings it down to point at the foe as the spell leaves it (0.5),
  * follows through and sheathes it.
  */
-const MOUNT: HorseLook = { coat: '#8f5a32', points: '#3a2a24', mane: '#2c211d', hoof: '#4a3f38', build: 0.9, pose: 'walk', blaze: true };
+const MOUNT: HorseLook = { coat: '#5c3520', points: '#1f1510', mane: '#170f0b', hoof: '#1f1813', build: 1.08, pose: 'walk', blaze: true };
 
-const SKIN = '#e2b48c';
-/** The banner pole: the hand holds it at HAND (rider units), its foot rests by the stirrup. */
+const SKIN = '#b98a68';
+/** Where the sword hand rests on the thigh when the sword is sheathed (rider units). */
 const HAND = pt(7.6, -63);
-const POLE_FOOT = pt(7.6, -36);
-const POLE_TOP = pt(11.4, -97.2);
+/** The banner pole (body units): socketed behind the cantle, leaning a little back. */
+const POLE_FOOT = pt(-13, -50);
+const POLE_TOP = pt(-15.6, -97.4);
+/** The flag is drawn this much shorter along its length, so its tails stay in the frame. */
+const FLAG_K = 0.84;
 
 const CAST: AttackMotion = {
   pitch: [0, -2.6, 1.6, 0.6, 0],
@@ -64,7 +68,7 @@ function cloak(d: Draw, banner: string, wind: number, t: number): void {
     return [x - wind * k * 2.6, y - wind * k * (3.4 + 1.6 * ripple) - (1 - wind) * k * 0.5 * ripple];
   });
   const shape = shapeOf(flow([[-6, -72], [-1.6, -71], [-6.4, -62], [-12, -53], [-20, -48.4], [-29, -46], [-33.4, -48.4], [-30, -52.4], [-25, -56], [-18.6, -61], [-12, -67.4]]), 5);
-  paint(d, shape, banner, { shadow: 0.6, hatch: 0.22, cross: true, line: 0.65 });
+  paint(d, shape, mix(banner, SHADOW, 0.15), { shadow: 0.72, hatch: 0.24, cross: true, line: 0.65 });
   d.pen.clipped(shape, () => {
     for (const k of [0, 1, 2]) {
       const x = -10 - k * 6;
@@ -78,7 +82,7 @@ function cloak(d: Draw, banner: string, wind: number, t: number): void {
 /** A sword at the near hip: scabbard slung back under the cloak, guard and grip at the belt (only the scabbard once it is `drawn`). */
 function sword(d: Draw, drawn: boolean): void {
   const sheath = limb([[-7, -55], [-14, -47], [-21.6, -39.6]].map(([x, y], i) => [x!, y!, [2.4, 2.2, 1.8][i]!] as const));
-  paint(d, sheath.shape, '#3d2a22', { shadow: 0.4, hatch: 0, line: 0.55 });
+  paint(d, sheath.shape, '#2a1c14', { shadow: 0.4, hatch: 0, line: 0.55 });
   d.pen.stroke(lineOf([[-19.6, -41.6], [-21.8, -39.4]]), 1.6, GOLD, 1, false);
   d.pen.stroke(lineOf([[-9.6, -52.4], [-11, -51]]), 1.4, GOLD, 1, false);
   if (drawn) return;
@@ -95,48 +99,66 @@ function standard(d: Draw, banner: string, t: number, wind: number): void {
   // A wave travelling from the pole to the tails, growing toward the free end.
   const r = (back: number): number => amp * (0.4 + back / 40) * Math.sin(t * Math.PI * 2 - back * 0.2);
   const top = POLE_TOP;
+  const { ctx } = pen;
+  ctx.save();
+  ctx.translate(top.x, top.y);
+  ctx.scale(FLAG_K, 1);
+  ctx.translate(-top.x, -top.y);
   const flag = shapeOf([
     [top.x - 0.6, top.y + 2.6], [top.x - 9, top.y + 0.6 + r(9)], [top.x - 19, top.y + 3.2 + r(19)], [top.x - 29, top.y + 1.2 + r(29)],
     [top.x - 36 - wind, top.y + 3.4 + r(36)], [top.x - 29.4, top.y + 8 + r(29)], [top.x - 35 - wind, top.y + 13 + r(35)], [top.x - 26, top.y + 12.6 + r(26)],
     [top.x - 17, top.y + 14 + r(17)], [top.x - 8, top.y + 12.6 + r(8)], [poleAt(top.y + 14).x - 0.4, top.y + 14],
   ], 4);
-  paint(d, flag, banner, { shadow: 0.5, hatch: 0.2, line: 0.7, lit: pt(0.75, 0.2) });
+  paint(d, flag, mix(banner, SHADOW, 0.12), { shadow: 0.65, hatch: 0.22, line: 0.7, lit: pt(0.75, 0.2) });
   pen.clipped(flag, () => {
     // The cloth's folds: light on the crests, shade in the troughs.
     for (const [x, a] of [[-6, 0.35], [-16, 0.28], [-26, 0.22]] as const) {
-      dab(d, shapeOf([[top.x + x - 2, top.y], [top.x + x + 2, top.y], [top.x + x + 1, top.y + 18], [top.x + x - 3, top.y + 18]]), LIGHT, a, 1.6);
-      dab(d, shapeOf([[top.x + x - 6, top.y], [top.x + x - 4, top.y], [top.x + x - 5, top.y + 18], [top.x + x - 7.4, top.y + 18]]), SHADOW, 0.18, 1.6);
+      dab(d, shapeOf([[top.x + x - 2, top.y], [top.x + x + 2, top.y], [top.x + x + 1, top.y + 18], [top.x + x - 3, top.y + 18]]), LIGHT, a * 0.6, 1.6);
+      dab(d, shapeOf([[top.x + x - 6, top.y], [top.x + x - 4, top.y], [top.x + x - 5, top.y + 18], [top.x + x - 7.4, top.y + 18]]), SHADOW, 0.32, 1.6);
     }
-    pen.stroke(flag, 1.6, GOLD, 0.9);
+    pen.stroke(flag, 1.2, GOLD, 0.85);
   });
   pen.stroke([...flag, flag[0]!], 0.6, d.ink, 0.9);
   // A gold crown on the field.
   const c = pt(top.x - 14, top.y + 7.6 + r(14));
   const crown = [pt(c.x - 4, c.y + 2.6), pt(c.x - 4.4, c.y - 2.4), pt(c.x - 2, c.y), pt(c.x, c.y - 3.4), pt(c.x + 2, c.y), pt(c.x + 4.4, c.y - 2.4), pt(c.x + 4, c.y + 2.6)];
   paint(d, crown, GOLD, { shadow: 0.3, hatch: 0, line: 0.5, gloss: true });
+  ctx.restore();
   // The pole and its finial.
-  pen.stroke([POLE_FOOT, top], 2, d.ink, 1, false);
-  pen.stroke([POLE_FOOT, top], 1.1, '#8a6236', 1, false);
-  pen.hair([pt(POLE_FOOT.x - 0.3, POLE_FOOT.y - 4), pt(top.x - 0.4, top.y + 6)], 0.35, '#e8cfa0', 0.8);
-  const tip = shapeOf([[top.x - 1.2, top.y + 0.4], [top.x - 0.4, top.y - 3], [top.x + 0.2, top.y - 5], [top.x + 1, top.y - 2.6], [top.x + 1.4, top.y + 0.6]], 3);
+  pen.stroke([POLE_FOOT, top], 1.6, d.ink, 1, false);
+  pen.stroke([POLE_FOOT, top], 1.1, '#4a2f1c', 1, false);
+  pen.hair([pt(POLE_FOOT.x - 0.3, POLE_FOOT.y - 4), pt(top.x - 0.4, top.y + 6)], 0.35, '#a8865a', 0.7);
+  const tip = shapeOf([[top.x - 1.1, top.y + 0.4], [top.x - 0.4, top.y - 2.4], [top.x + 0.2, top.y - 3.8], [top.x + 0.9, top.y - 2], [top.x + 1.3, top.y + 0.6]], 3);
   paint(d, tip, GOLD, { shadow: 0.35, hatch: 0, line: 0.5, gloss: true });
 }
 
-/** The head: an open burgonet with a peak, cheek plates, the face in profile and a plume in the banner's colour. */
+/** The head: an open burgonet with a peak and cheek plates over a stern, bearded face in profile, a plume in the banner's colour. */
 function helmAndFace(d: Draw, banner: string): void {
   const { pen } = d;
   const h = RIDER.head;
-  const plume = shapeOf([[h.x - 1.6, h.y - 5.6], [h.x - 6, h.y - 7], [h.x - 11, h.y - 5.4], [h.x - 14.6, h.y - 1.4], [h.x - 10.4, h.y - 2.8], [h.x - 5.6, h.y - 3]], 5);
-  paint(d, plume, '#f1ece0', { shadow: 0.45, hatch: 0, line: 0.55 });
-  for (const k of [0, 1, 2]) pen.hair(lineOf([[h.x - 2, h.y - 5.4], [h.x - 6.6 - k * 2, h.y - 6 + k * 0.8], [h.x - 10.4 - k * 1.4, h.y - 4 + k * 0.8]]), 0.3, banner, 0.8);
-  const face = shapeOf([[h.x + 1, h.y - 2.4], [h.x + 4, h.y - 1.8], [h.x + 4.6, h.y + 0.2], [h.x + 5.6, h.y + 1.2], [h.x + 4.4, h.y + 2], [h.x + 4.2, h.y + 3.6], [h.x + 2.6, h.y + 5], [h.x, h.y + 4.6]], 4);
-  paint(d, face, SKIN, { shadow: 0.4, hatch: 0, line: 0.55 });
-  pen.dot(h.x + 2.9, h.y - 0.3, 0.5, '#1d1716');
-  pen.hair(lineOf([[h.x + 2, h.y - 1.4], [h.x + 3.6, h.y - 1.3]]), 0.35, d.ink, 0.8);
-  const bowl = shapeOf([[h.x - 4.6, h.y + 3], [h.x - 5.4, h.y - 2], [h.x - 3, h.y - 5.8], [h.x + 1.4, h.y - 6.4], [h.x + 4.6, h.y - 4], [h.x + 6.8, h.y - 2.2], [h.x + 3, h.y - 2], [h.x + 0.6, h.y + 0.4], [h.x + 0.4, h.y + 4.6], [h.x - 2.4, h.y + 5]], 5);
-  paint(d, bowl, STEEL, { shadow: 0.5, hatch: 0.16, line: 0.65, gloss: true });
-  pen.stroke(lineOf([[h.x - 3.6, h.y - 5.4], [h.x + 1, h.y - 6.2], [h.x + 4.6, h.y - 3.6]]), 0.7, GOLD, 0.95, false);
-  gleam(d, lineOf([[h.x - 3.4, h.y - 3.4], [h.x - 0.6, h.y - 5]]), 0.7, 0.85);
+  asHead(d, () => {
+    const plume = shapeOf([[h.x - 1.6, h.y - 6.6], [h.x - 6, h.y - 8.4], [h.x - 11, h.y - 7], [h.x - 15, h.y - 2.6], [h.x - 10.4, h.y - 4], [h.x - 5.6, h.y - 4.2]], 5);
+    paint(d, plume, mix(banner, SHADOW, 0.2), { shadow: 0.6, hatch: 0, line: 0.55 });
+    for (const k of [0, 1, 2]) pen.hair(lineOf([[h.x - 2, h.y - 6.6], [h.x - 6.6 - k * 2, h.y - 7.4 + k * 0.8], [h.x - 10.4 - k * 1.4, h.y - 5 + k * 0.8]]), 0.3, k === 1 ? '#d8ccae' : mix(banner, SHADOW, 0.6), 0.7);
+    // The face: brow ridge, straight nose, a hard mouth and a short dark beard along the jaw.
+    const face = shapeOf([[h.x + 0.6, h.y - 2.8], [h.x + 3.8, h.y - 2.4], [h.x + 4.4, h.y - 0.6], [h.x + 5.8, h.y + 1.4], [h.x + 4.6, h.y + 2], [h.x + 4.8, h.y + 3.2], [h.x + 4.4, h.y + 4.4], [h.x + 2.6, h.y + 6], [h.x - 0.2, h.y + 5.4]], 4);
+    paint(d, face, SKIN, { shadow: 0.7, hatch: 0.12, line: 0.55, lit: pt(0.75, 0.3) });
+    const beard = shapeOf([[h.x + 0.2, h.y + 1.6], [h.x + 2.4, h.y + 3.2], [h.x + 4.8, h.y + 3.4], [h.x + 4.4, h.y + 4.8], [h.x + 2.4, h.y + 6.4], [h.x - 0.4, h.y + 5.6]], 4);
+    paint(d, beard, '#2a1d14', { shadow: 0.4, hatch: 0, line: 0.4 });
+    // The eye sunk in the shadow of the brow; the brow drawn down hard.
+    dab(d, shapeOf([[h.x + 1.4, h.y - 2], [h.x + 4.2, h.y - 1.8], [h.x + 3.8, h.y + 0.2], [h.x + 1.4, h.y]], 3), SHADOW, 0.55, 0.4);
+    pen.hair(lineOf([[h.x + 1.6, h.y - 1.9], [h.x + 3, h.y - 1.5], [h.x + 4.4, h.y - 1.9]]), 0.55, d.ink, 0.95);
+    pen.dot(h.x + 3.1, h.y - 0.7, 0.42, '#120c09');
+    pen.hair(lineOf([[h.x + 3.4, h.y + 2.8], [h.x + 4.6, h.y + 2.7]]), 0.35, d.ink, 0.8);
+    gleam(d, lineOf([[h.x + 4.4, h.y - 0.4], [h.x + 5.4, h.y + 1.2]]), 0.35, 0.5);
+    const bowl = shapeOf([[h.x - 4.8, h.y + 3.6], [h.x - 5.6, h.y - 2.2], [h.x - 3, h.y - 6.8], [h.x + 1.4, h.y - 7.4], [h.x + 4.6, h.y - 5], [h.x + 7.4, h.y - 3], [h.x + 3.2, h.y - 2.6], [h.x + 0.8, h.y - 0.2], [h.x + 0.8, h.y + 5.4], [h.x - 2.4, h.y + 5.8]], 5);
+    paint(d, bowl, STEEL, { shadow: 0.72, hatch: 0.2, cross: true, line: 0.65, gloss: true, lit: pt(0.3, 0.2) });
+    // The comb, the cheek plate's edge and the brass trim at the brim.
+    pen.hair(lineOf([[h.x - 4.6, h.y - 3], [h.x - 2, h.y - 6.8], [h.x + 2, h.y - 7.4]]), 0.4, d.ink, 0.6);
+    pen.hair(lineOf([[h.x - 1.8, h.y - 1], [h.x - 1.2, h.y + 3], [h.x - 0.8, h.y + 5.4]]), 0.4, d.ink, 0.55);
+    pen.stroke(lineOf([[h.x + 0.8, h.y - 2.6], [h.x + 4, h.y - 3], [h.x + 7.2, h.y - 3]]), 0.6, GOLD, 0.9, false);
+    gleam(d, lineOf([[h.x - 3.6, h.y - 4], [h.x - 0.6, h.y - 6]]), 0.7, 0.95);
+  });
 }
 
 /** The sword in the hand at `hand` (rider units), its blade `angle` degrees from straight ahead. */
@@ -147,7 +169,7 @@ function heldSword(d: Draw, hand: Pt, angle: number): void {
   const at = (s: number, off = 0): Pt => pt(hand.x + u.x * s + n.x * off, hand.y + u.y * s + n.y * off);
   const xy = (p: Pt): [number, number] => [p.x, p.y];
   const blade = shapeOf([xy(at(2.6, -1.1)), xy(at(BLADE * 0.75, -0.9)), xy(at(BLADE, 0)), xy(at(BLADE * 0.75, 0.9)), xy(at(2.6, 1.1))], 3);
-  paint(d, blade, '#dfe6ee', { shadow: 0.4, hatch: 0, line: 0.55, gloss: true });
+  paint(d, blade, '#b4b8bc', { shadow: 0.55, hatch: 0, line: 0.55, gloss: true });
   d.pen.hair([at(3.4, 0), at(BLADE * 0.72, 0)], 0.3, d.ink, 0.5);
   gleam(d, [at(3.6, -0.5), at(BLADE * 0.8, -0.35)], 0.5, 0.9);
   paint(d, shapeOf([xy(at(2.2, -3.2)), xy(at(2.9, -3)), xy(at(2.9, 3)), xy(at(2.2, 3.2))], 3), GOLD, { shadow: 0.3, hatch: 0, line: 0.5, gloss: true });
@@ -204,16 +226,16 @@ export function drawHero(ctx: CanvasRenderingContext2D, seed: number, f: number,
       });
       reins(d, apply(rig.head, HORSE.bit), apply(upper, onRider(RIDER.reinHand)));
       saddle(d, banner, GOLD, false);
+      standard(d, banner, rig.t, m.wind);
       within(d, upper, () => asRider(d, () => cloak(d, banner, m.wind, rig.t)));
       legShadow(d, torsoShape(rig.warp));
       within(d, upper, () => asRider(d, () => sword(d, grip.drawn)));
-      asRider(d, () => riderLeg(d, false, '#5a4636'));
+      asRider(d, () => riderLeg(d, false, '#3a2a20'));
       within(d, upper, () => {
         asRider(d, () => {
-          riderTorso(d, mix(banner, SHADOW, 0.15), GOLD);
-          fist(d, RIDER.reinHand, '#6b4a32');
+          riderTorso(d, mix(banner, SHADOW, 0.3), GOLD);
+          fist(d, RIDER.reinHand, '#3e2a1c');
         });
-        standard(d, banner, rig.t, m.wind);
         asRider(d, () => {
           // A sword raised overhead is in front of the helm; otherwise the helm is over the arm's top.
           const raised = grip.hand.y < -78;

@@ -1,86 +1,107 @@
 import { closed, oval, pt, type Draw } from '../kit';
 import type { Pt } from '../pen';
-import { PAPER_FILL } from '../palette';
 import { mix } from '../wash';
 import { chain, limb } from './beastFur';
 import { dab, gleam, paint, SHADOW } from './beastPaint';
+import { turn } from './beastRig';
+import { fist } from './ogreForm';
 
 /**
- * The ogre's head and club. The head is small for the bulk under it, set
- * low and forward: a heavy brow over little deep eyes, a broad flat nose,
- * an underbite with two tusks jutting up past the lip, a small ear and a
- * topknot of dark hair bound with a cord. The club is a knotted log with
- * two iron bands and studs round its head.
+ * The ogre's head and club. The head is small for the bulk under it, thrust
+ * forward and sunk low between the shoulders: a sloping bald skull, a
+ * heavy ridge of brow over small eyes lost in shadow, a broad flattened
+ * nose, a jutting underbite with two yellowed tusks, a torn ear with an
+ * iron ring. The club is a great knotted log bound with two iron bands
+ * and driven through with iron spikes round its head.
  */
 export const OGRE = {
-  skin: '#ae9b60',
-  skinLit: '#d2c08e',
-  skinDeep: '#6f6a3c',
-  hide: '#8c6a45',
-  hideSpot: '#5b4029',
-  hideLight: '#c4a57a',
-  belt: '#5a3d27',
-  bronze: '#b98a3e',
-  wood: '#8b6239',
-  woodDeep: '#5a3c22',
-  iron: '#62676b',
-  tusk: '#efe4c4',
-  hair: '#3b2d24',
-  eye: '#2a2222',
-  wrap: '#8e7556',
+  /** Mottled grey-ochre hide. */
+  skin: '#504a37',
+  skinLit: '#a88d5c',
+  skinDeep: '#241e15',
+  mottle: '#38321f',
+  /** Raised veins: darker, a little purple. */
+  vein: '#352a26',
+  /** Horny nails. */
+  nail: '#7a6a4c',
+  /** Old ochre staining in the hide. */
+  ochre: '#6c5732',
+  /** Blood under the hide: knuckles, nose, ear. */
+  flush: '#663826',
+  hide: '#5a4129',
+  hideSpot: '#33231a',
+  hideLight: '#8f7150',
+  belt: '#3a2618',
+  iron: '#4b4d4e',
+  ironLit: '#a6a399',
+  wood: '#4f331e',
+  woodDeep: '#2a190d',
+  tusk: '#cdbb8e',
+  eye: '#d29a34',
+  wrap: '#5e4a35',
 } as const;
 
 const HEAD: Pt[] = chain(
-  pt(6.4, -78),
-  [pt(5.2, -84.6), pt(9, -90.4), pt(15.6, -90.6)],
-  [pt(21, -90.6), pt(24.6, -87.4), pt(25.4, -84)],
-  [pt(27.2, -83.2), pt(27.4, -81.4), pt(26.6, -80.6)],
-  [pt(28.6, -79.6), pt(29.6, -77), pt(28, -75.6)],
-  [pt(27.6, -74.8), pt(27, -74.2), pt(26.4, -74.2)],
-  [pt(28.8, -73.6), pt(30, -71), pt(28.8, -68.6)],
-  [pt(27.6, -66.4), pt(22, -65.4), pt(16.6, -66.6)],
-  [pt(12, -67.6), pt(7.4, -71.4), pt(6.4, -78)],
+  pt(13.4, -79),
+  [pt(13, -84.4), pt(16.4, -87.8), pt(21, -87.8)],
+  [pt(25, -87.8), pt(28, -86.6), pt(30.4, -84.6)],
+  [pt(32, -83.6), pt(33.2, -82.4), pt(32.8, -81.2)],
+  [pt(32.4, -80.4), pt(31, -80.2), pt(30.4, -79.8)],
+  [pt(32, -79), pt(34, -77.2), pt(33.6, -75.8)],
+  [pt(33.2, -75.2), pt(32, -75.2), pt(31.4, -75)],
+  [pt(31.6, -74.6), pt(31.6, -74.2), pt(31.8, -74)],
+  [pt(33.8, -73.8), pt(35, -72.2), pt(34.4, -70.2)],
+  [pt(33.8, -68.8), pt(30, -67.4), pt(24, -67.6)],
+  [pt(19, -67.8), pt(14.2, -71.6), pt(13.4, -79)],
 );
 
-/** A tusk from the lower jaw up past the lip: ivory, curved back, a glint down it. */
+/** The ridge of brow, a shelf of bone jutting over the eyes. */
+const BROW: Pt[] = chain(pt(22, -85.4), [pt(26, -85.6), pt(30.6, -84.4), pt(33, -82.4)], [pt(33.4, -81.4), pt(32.6, -80.6), pt(31, -80.8)], [pt(28, -81.4), pt(25, -82), pt(22, -85.4)]);
+
+/** A tusk from the lower jaw up past the lip: yellowed ivory, curved back, a dull glint down it. */
 function tusk(d: Draw, x: number, y: number, h: number, far: boolean): void {
-  const t = chain(pt(x - 1.1, y), [pt(x - 1.2, y - h * 0.5), pt(x - 0.6, y - h * 0.9), pt(x - 1.4, y - h)], [pt(x + 0.4, y - h * 0.8), pt(x + 1.3, y - h * 0.4), pt(x + 1.2, y)]);
-  paint(d, t, far ? mix(OGRE.tusk, SHADOW, 0.25) : OGRE.tusk, { gloss: true, shadow: 0.5, hatch: 0, line: 0.45 });
-  if (!far) gleam(d, [pt(x - 0.6, y - 0.6), pt(x - 0.5, y - h * 0.65)], 0.35, 0.85);
+  const t = chain(pt(x - 1.1, y), [pt(x - 1.2, y - h * 0.5), pt(x - 0.8, y - h * 0.9), pt(x - 1.6, y - h)], [pt(x + 0.3, y - h * 0.8), pt(x + 1.2, y - h * 0.4), pt(x + 1.1, y)]);
+  paint(d, t, far ? mix(OGRE.tusk, SHADOW, 0.4) : OGRE.tusk, { gloss: true, shadow: 0.6, hatch: 0, line: 0.35 });
+  if (!far) gleam(d, [pt(x - 0.6, y - 0.8), pt(x - 0.6, y - h * 0.6)], 0.3, 0.55);
 }
 
 /** The head, facing right. */
 export function ogreHead(d: Draw): void {
-  // The topknot behind, bound with a cord.
-  const knot = chain(pt(6, -86), [pt(2.4, -90), pt(2.4, -95.4), pt(6.6, -96.6)], [pt(10.4, -97.4), pt(11.6, -93), pt(10, -88.6)]);
-  paint(d, knot, OGRE.hair, { shadow: 0.5, hatch: 0.2, line: 0.55 });
-  for (let k = 0; k < 6; k++) d.pen.hair([pt(4.4 + k * 0.9, -88.6), pt(4.2 + k * 0.7, -95 + Math.abs(k - 2.5) * 0.5)], 0.3, PAPER_FILL, 0.35);
-  d.pen.stroke([pt(4.6, -89.4), pt(10.6, -90.2)], 1.1, OGRE.bronze, 1, false);
-  tusk(d, 23.8, -72.6, 6, true);
-  paint(d, HEAD, OGRE.skin, { shadow: 0.6, hatch: 0.24, cross: true, line: 0 });
+  tusk(d, 30.2, -72.8, 5.6, true);
+  paint(d, HEAD, OGRE.skin, { shadow: 0.85, hatch: 0.32, cross: true, line: 0 });
   d.pen.clipped(HEAD, () => {
-    dab(d, oval(14, -86, 6, 3.4, 14), OGRE.skinLit, 0.5, 1.4);
-    // Deep sockets under the brow, a ruddy nose, the shadow under the jaw.
-    dab(d, oval(21.2, -80.4, 3.6, 2, 14), OGRE.skinDeep, 0.7, 0.9);
-    dab(d, oval(27, -77.4, 2.6, 2.2, 12), '#b0715a', 0.45, 1);
-    dab(d, oval(21, -75.6, 3, 2, 12), '#b0715a', 0.3, 1.2);
-    dab(d, [pt(8, -70), pt(28, -68.6), pt(28, -64), pt(8, -64)], SHADOW, 0.3, 1.2);
+    // Light on the dome; the eyes lost under the brow; the cheekbone caught; the heavy jaw's underside dark.
+    dab(d, oval(20, -85.6, 5.4, 2.2, 14), OGRE.skinLit, 0.7, 1.1);
+    dab(d, oval(29, -79.4, 4.4, 1.7, 14), SHADOW, 0.9, 0.6);
+    dab(d, oval(27.4, -76.8, 2.6, 1.2, 12), OGRE.skinLit, 0.5, 0.7);
+    dab(d, oval(32.6, -77, 1.6, 1.4, 12), OGRE.flush, 0.45, 0.7);
+    dab(d, [pt(14, -72.4), pt(35, -71.4), pt(35, -66), pt(14, -66)], SHADOW, 0.6, 1.2);
+    dab(d, [pt(12, -84), pt(17, -84), pt(18, -70), pt(12, -70)], SHADOW, 0.35, 1.6);
+    for (const [x, y, r] of [[17, -82, 1.4], [22, -76, 1.1], [19, -73.4, 1.2], [24.6, -86, 0.9]] as const) dab(d, oval(x, y, r * 1.3, r, 10), OGRE.mottle, 0.7, 0.4);
+    d.pen.stipple(HEAD, 40, (_, y) => (y > -78 ? 0.6 : 0.25), 0.25, OGRE.skinDeep);
   });
-  d.pen.stroke(closed(HEAD), 0.8, d.ink, 0.95);
-  // Brow ridge, frown creases, the eye, nostril and mouth.
-  d.pen.stroke([pt(17, -83.6), pt(21.4, -83.2), pt(25.6, -82)], 1, d.ink, 0.9, false);
-  for (const y of [-86.2, -87.6]) d.pen.hair([pt(18.6, y), pt(22, y + 0.3), pt(24.2, y + 1)], 0.35, d.ink, 0.6);
-  d.pen.fill(oval(21.4, -80.5, 1.25, 0.8, 12), OGRE.eye, 1);
-  d.pen.dot(21.8, -80.9, 0.32, PAPER_FILL, 0.95);
-  d.pen.hair([pt(27.2, -76.4), pt(26.4, -75.6), pt(25.2, -75.8)], 0.5, d.ink, 0.9);
-  d.pen.hair([pt(24.6, -78.6), pt(26.2, -76.4)], 0.35, d.ink, 0.6);
-  d.pen.stroke([pt(18.6, -72.4), pt(22.4, -73.2), pt(26.4, -73.8)], 0.6, d.ink, 0.95, false);
-  d.pen.hair([pt(19.4, -76.8), pt(20.6, -74.4), pt(19.8, -72.4)], 0.4, d.ink, 0.55);
-  tusk(d, 26.4, -72.8, 6.6, false);
-  // A small ear, a little pointed.
-  const ear = chain(pt(9.6, -82), [pt(6, -84.6), pt(4.6, -80), pt(6.6, -76.6)], [pt(8.4, -75.4), pt(10.4, -77), pt(10.2, -79)]);
-  paint(d, ear, mix(OGRE.skin, '#b0715a', 0.15), { shadow: 0.6, hatch: 0, line: 0.55 });
-  d.pen.hair([pt(8.4, -81.6), pt(7, -80), pt(8, -77.6)], 0.35, d.ink, 0.7);
+  d.pen.stroke(closed(HEAD), 0.5, d.ink, 0.85);
+  // The brow ridge: its top catching the sun, its underside a hard dark edge over the eyes.
+  d.pen.clipped(HEAD, () => dab(d, BROW, OGRE.skinLit, 0.55, 0.6));
+  d.pen.stroke([pt(24.6, -81.8), pt(28.6, -81), pt(32.6, -80.8)], 0.7, d.ink, 0.95, false);
+  for (const y of [-86.4, -87.2]) d.pen.hair([pt(24.6, y + 0.4), pt(27.4, y + 0.6), pt(29.6, y + 1.8)], 0.26, d.ink, 0.45);
+  // A small hard eye glinting in its socket.
+  d.pen.fill(oval(29.6, -79.4, 1, 0.42, 10), '#140c08', 1);
+  d.pen.dot(29.9, -79.4, 0.26, OGRE.eye, 0.95);
+  // The broad flat nose, the grim set of the underbite, the jaw's line, an old scar on the scalp.
+  d.pen.hair([pt(33.4, -76), pt(32.4, -75.4), pt(31.2, -75.8)], 0.38, d.ink, 0.85);
+  d.pen.hair([pt(30.8, -79), pt(31.8, -77)], 0.26, d.ink, 0.5);
+  d.pen.stroke([pt(25, -72.2), pt(28.6, -73.6), pt(31.8, -74)], 0.5, d.ink, 0.95, false);
+  d.pen.hair([pt(31.8, -74), pt(33.6, -73.6), pt(34.6, -72.6)], 0.32, d.ink, 0.6);
+  d.pen.hair([pt(18, -71.6), pt(23, -69.6), pt(29, -69.4)], 0.26, d.ink, 0.4);
+  d.pen.hair([pt(16.6, -86.4), pt(19, -84.6), pt(20.4, -84.8)], 0.3, mix(OGRE.flush, SHADOW, 0.3), 0.8);
+  tusk(d, 32.8, -73.2, 6.8, false);
+  // A small torn ear with an iron ring through it.
+  const ear = chain(pt(18.4, -81.4), [pt(15.4, -83.4), pt(14, -79.6), pt(15.4, -76.6)], [pt(16.4, -75.4), pt(18.6, -76.2), pt(18.8, -78.4)]);
+  paint(d, ear, mix(OGRE.skin, OGRE.flush, 0.2), { shadow: 0.7, hatch: 0, line: 0.38 });
+  d.pen.hair([pt(17.2, -80.4), pt(16, -79), pt(16.8, -77.2)], 0.28, d.ink, 0.7);
+  d.pen.stroke(closed(oval(15.6, -75.2, 1.2, 1.4, 10)), 0.4, OGRE.iron, 1, false);
+  d.pen.dot(15, -75.8, 0.22, OGRE.ironLit, 0.9);
 }
 
 /** The club's axis, grip end to head end. */
@@ -93,41 +114,49 @@ const along = (t: number, side: number): Pt => {
   return pt(CLUB.grip.x + dx * t + (-dy / l) * side, CLUB.grip.y + dy * t + (dx / l) * side);
 };
 
-/** The club: a log thickening to a knotted head, grain down it, two iron bands with rivets and studs. */
+/** The club's width at `t` along it, as the limb below tapers it. */
+const CLUB_W = [5.2, 7.4, 13.4, 15.6] as const;
+
+/** An iron spike driven through the club's head at `t`, jutting from one side. */
+function spike(d: Draw, t: number, side: 1 | -1, half: number, len: number): void {
+  const base0 = along(t - 0.022, side * (half - 0.6));
+  const base1 = along(t + 0.022, side * (half - 0.6));
+  const tip = along(t + 0.006, side * (half + len));
+  d.pen.fill([base0, tip, base1], OGRE.iron, 1);
+  d.pen.fill([base1, tip, along(t + 0.004, side * (half - 0.6))], SHADOW, 0.5);
+  d.pen.hair([base0, tip, base1], 0.3, d.ink, 0.85);
+}
+
+/** The club: a log thickening to a knotted head, grain down it, two iron bands with rivets, iron spikes. */
 export function ogreClub(d: Draw): void {
-  const shape = limb([CLUB.grip, along(0.45, 0), along(0.8, 0), CLUB.head], [4.6, 6.4, 12, 14]);
-  paint(d, shape, OGRE.wood, { shadow: 0.7, hatch: 0.28, cross: true, line: 0 });
+  for (const [t, s, h, l] of [[0.79, -1, 6.6, 4.2], [0.93, -1, 7.6, 4.8], [0.85, 1, 7.2, 4.4], [0.98, 1, 7.6, 3.8]] as const) spike(d, t, s as 1 | -1, h, l);
+  const shape = limb([CLUB.grip, along(0.45, 0), along(0.8, 0), CLUB.head], CLUB_W);
+  paint(d, shape, OGRE.wood, { shadow: 0.85, hatch: 0.3, cross: true, line: 0 });
   d.pen.clipped(shape, () => {
-    for (const s of [-1.6, 0.6, 2.4, -3.6, 4.2]) d.pen.hair([along(0.05, s * 0.4), along(0.5, s * 0.8), along(1.02, s * 1.4)], 0.35, OGRE.woodDeep, 0.7);
-    dab(d, oval(along(0.62, 1).x, along(0.62, 1).y, 1.6, 1.1, 10), OGRE.woodDeep, 0.8, 0.3);
-    d.pen.hair(closed(oval(along(0.62, 1).x, along(0.62, 1).y, 1.8, 1.3, 10)), 0.35, d.ink, 0.7);
-    gleam(d, [along(0.1, -1.6), along(0.55, -2.6), along(0.85, -5)], 0.5, 0.35);
+    for (const s of [-1.6, 0.6, 2.4, -3.6, 4.2]) d.pen.hair([along(0.05, s * 0.4), along(0.5, s * 0.8), along(1.02, s * 1.4)], 0.3, OGRE.woodDeep, 0.75);
+    for (const [t, s] of [[0.62, 1], [0.84, -2.5]] as const) {
+      const k = along(t, s);
+      dab(d, oval(k.x, k.y, 1.6, 1.1, 10), OGRE.woodDeep, 0.85, 0.3);
+      d.pen.hair(closed(oval(k.x, k.y, 1.9, 1.35, 10)), 0.3, d.ink, 0.7);
+    }
+    gleam(d, [along(0.1, -1.4), along(0.55, -2.4), along(0.85, -4.6)], 0.4, 0.25);
   });
-  d.pen.stroke(closed(shape), 0.8, d.ink, 0.95);
-  for (const [t, w] of [[0.7, 11.4], [0.9, 14.6]] as const) {
-    const band = [along(t - 0.025, -w / 2 - 0.4), along(t - 0.025, w / 2 + 0.4), along(t + 0.025, w / 2 + 0.4), along(t + 0.025, -w / 2 - 0.4)];
-    paint(d, band, OGRE.iron, { gloss: true, shadow: 0.6, hatch: 0, line: 0.55 });
+  d.pen.stroke(closed(shape), 0.55, d.ink, 0.9);
+  for (const [t, w] of [[0.7, 11.8], [0.9, 15.2]] as const) {
+    const band = [along(t - 0.026, -w / 2 - 0.5), along(t - 0.026, w / 2 + 0.5), along(t + 0.026, w / 2 + 0.5), along(t + 0.026, -w / 2 - 0.5)];
+    paint(d, band, OGRE.iron, { gloss: true, shadow: 0.7, hatch: 0, line: 0.4 });
     for (const s of [-0.3, 0.05, 0.38]) {
       const r = along(t, s * w);
-      d.pen.dot(r.x, r.y, 0.45, mix(OGRE.iron, PAPER_FILL, 0.5), 1);
+      d.pen.dot(r.x, r.y, 0.36, OGRE.ironLit, 0.6);
     }
-    gleam(d, [along(t - 0.012, -w / 2), along(t - 0.012, -w / 6)], 0.35, 0.8);
-  }
-  // Iron studs round the head.
-  for (const [t, s] of [[0.8, -6.8], [0.84, 6.6], [0.97, -5.4], [1.0, 3.2], [0.78, 0.4]] as const) {
-    const c = along(t, s);
-    const stud = oval(c.x, c.y, 1.3, 1.3, 10);
-    paint(d, stud, OGRE.iron, { gloss: true, shadow: 0.6, hatch: 0, line: 0.45 });
-    d.pen.dot(c.x - 0.35, c.y - 0.4, 0.3, PAPER_FILL, 0.9);
+    gleam(d, [along(t - 0.014, -w / 2), along(t - 0.014, -w / 6)], 0.3, 0.75);
   }
 }
 
-/** The near fist round the club's handle: knuckles over it, the thumb wrapped across. */
+/** The near fist round the club's handle: knuckle ridge over it, the fingers curled round the shaft, the thumb clamped across. */
 export function ogreFist(d: Draw, at: Pt): void {
-  const fist = chain(pt(at.x - 5, at.y - 3), [pt(at.x - 3, at.y - 6.6), pt(at.x + 3, at.y - 6.4), pt(at.x + 5, at.y - 3)], [pt(at.x + 6.4, at.y), pt(at.x + 5, at.y + 4.6), pt(at.x + 1, at.y + 5)], [pt(at.x - 3, at.y + 5.2), pt(at.x - 6.4, at.y + 1), pt(at.x - 5, at.y - 3)]);
-  paint(d, fist, OGRE.skin, { shadow: 0.6, hatch: 0.2, line: 0.75 });
-  d.pen.clipped(fist, () => dab(d, oval(at.x + 1, at.y - 4.6, 4.6, 2, 10), '#b0715a', 0.35, 1));
-  for (const k of [-1.8, 0.8, 3.2]) d.pen.hair([pt(at.x + k, at.y - 5.6), pt(at.x + k + 0.8, at.y - 1.8), pt(at.x + k + 0.4, at.y + 1)], 0.4, d.ink, 0.75);
-  d.pen.stroke([pt(at.x - 4.4, at.y - 2), pt(at.x - 0.6, at.y - 3.4), pt(at.x + 3, at.y - 2.2)], 0.6, d.ink, 0.85, false);
-  gleam(d, [pt(at.x - 2.6, at.y - 5.2), pt(at.x + 1.4, at.y - 5.6)], 0.5, 0.5);
+  // The fist's frame turned so its fingers lie across the shaft; its middle sits on the grip.
+  const a = -0.93;
+  const c = turn(pt(1.6, 5.6), pt(0, 0), a);
+  fist(d, pt(at.x - c.x, at.y - c.y), a, OGRE.skin, OGRE.skinLit, 1.05);
 }

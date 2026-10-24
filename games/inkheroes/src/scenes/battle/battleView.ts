@@ -3,7 +3,7 @@ import { fieldPoint, FIELD_H, FIELD_PAD, FIELD_W, HEX, hexOutline, paintBattlefi
 import { BOWMAN_ARROW_FROM } from '../../art/creatures/bowman';
 import { MONK_ORB_FROM } from '../../art/creatures/monk';
 import { CREATURE_RES, FRAME_H, GROUND_Y } from '../../art/creatures/types';
-import { BANNER } from '../../art/palette';
+import { BANNER, BOOK, DISPLAY, UI } from '../../art/palette';
 import { makeCanvas } from '../../art/pen';
 import { freeTexture, heroFigure, TEX } from '../../art/textures';
 import { alive, stackById } from '../../logic/battle';
@@ -15,12 +15,11 @@ import { SPELLS } from '../../logic/spells';
 import { getSound } from '../../host';
 import { FigureAnim } from '../figureAnim';
 import { dustPuff, Gait, gaitOf, WALK_FPS } from '../gait';
-import { HAND } from '../uiPaint';
 
 /** How big units stand on the field (units per frame unit). */
 const UNIT_SCALE = 0.9;
 const FIELD_KEY = 'battlefield';
-const SIDE_HEX = [0x2f55a8, 0xb98a3e] as const;
+const SIDE_HEX = [parseInt(BANNER.player.slice(1), 16), parseInt(BANNER.neutral.slice(1), 16)] as const;
 /** A walker's time a hex, and the pause as a unit settles where it stops, ms. */
 const WALK_MS = 200;
 const SETTLE_MS = 120;
@@ -81,7 +80,7 @@ export class BattleView {
     const p = fieldPoint(s.hex);
     const img = this.scene.add.image(p.x, p.y + HEX * 0.55, TEX.creature(s.creature, 0)).setOrigin(0.5, GROUND_Y / FRAME_H).setScale(UNIT_SCALE / CREATURE_RES).setFlipX(s.side === 1);
     const badge = this.scene.add.text(p.x, p.y + HEX * 0.62, '', {
-      fontFamily: 'Georgia, serif', fontSize: '15px', color: '#fdf8ea', backgroundColor: s.side === 0 ? BANNER.player : '#8a6a32', padding: { x: 4, y: 1 },
+      fontFamily: BOOK, fontStyle: '600', fontSize: '16px', color: UI.giltLight, backgroundColor: s.side === 0 ? '#16244d' : '#4a3414', padding: { x: 5, y: 0 },
     }).setOrigin(0.5, 0.5);
     this.root.add([img, badge]);
     this.units.set(s.id, { img, badge, anim: new FigureAnim(img, s.creature) });
@@ -105,11 +104,11 @@ export class BattleView {
 
   showMarks(m: Marks): void {
     const g = this.marks.clear();
-    for (const h of m.reach) this.fillHex(g, h, 0x2f6b3a, 0.12, 0x2f6b3a, 0.35);
-    for (const h of m.targets) this.fillHex(g, h, 0xa9302a, 0.12, 0xa9302a, 0.7);
-    if (m.active !== null) this.fillHex(g, m.active, 0xe8c45a, 0.35, 0x8a6a1e, 0.9);
-    if (m.from !== null && m.from !== undefined) this.fillHex(g, m.from, 0x2f6b3a, 0.3, 0x2f6b3a, 0.9);
-    else if (m.hover !== null && m.hover !== undefined) this.fillHex(g, m.hover, 0x232a4f, 0.1, 0x232a4f, 0.6);
+    for (const h of m.reach) this.fillHex(g, h, 0x0a0604, 0.22, 0xe0c27a, 0.35);
+    for (const h of m.targets) this.fillHex(g, h, 0xb0301f, 0.18, 0xe0574a, 0.8);
+    if (m.active !== null) this.fillHex(g, m.active, 0xf0cf78, 0.3, 0xf0cf78, 0.95);
+    if (m.from !== null && m.from !== undefined) this.fillHex(g, m.from, 0xf0cf78, 0.25, 0xf0cf78, 0.9);
+    else if (m.hover !== null && m.hover !== undefined) this.fillHex(g, m.hover, 0xfff0c8, 0.12, 0xfff0c8, 0.7);
   }
 
   private fillHex(g: Phaser.GameObjects.Graphics, h: Hex, fill: number, fa: number, line: number, la: number): void {
@@ -162,7 +161,7 @@ export class BattleView {
         else void swing.then(() => this.tween(a.img, home, 200, 'Quad.easeOut'));
         void swing.then(() => a.img.setFlipX(facing));
         this.hit(t.img);
-        this.float(t.img.x, t.img.y - 70, `−${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}${ev.lucky ? '  Lucky!' : ''}`, ev.retaliation ? '#7a4a1e' : '#a9302a');
+        this.float(t.img.x, t.img.y - 70, `−${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}${ev.lucky ? '  Lucky!' : ''}`, ev.retaliation ? '#e09a5a' : '#ff6a52');
         await this.wait(260);
         this.syncOne(after, ev.target);
         return;
@@ -177,7 +176,7 @@ export class BattleView {
         await this.tween(flash, { radius: 46, alpha: 0 }, 420, 'Quad.easeOut');
         flash.destroy();
         const def = SPELLS[ev.spell];
-        this.float(t.img.x, t.img.y - 70, ev.amount && def.target === 'enemy' ? `${def.name}: −${ev.amount}${ev.kills ? `  ${ev.kills} fall` : ''}` : def.name, '#27408b');
+        this.float(t.img.x, t.img.y - 70, ev.amount && def.target === 'enemy' ? `${def.name}: −${ev.amount}${ev.kills ? `  ${ev.kills} fall` : ''}` : def.name, '#9fc0ff');
         this.syncOne(after, ev.target);
         await this.wait(200);
         return;
@@ -185,19 +184,19 @@ export class BattleView {
       case 'wait':
       case 'defend': {
         const u = this.units.get(ev.stack)!;
-        this.float(u.img.x, u.img.y - 64, ev.type === 'wait' ? 'waits' : 'defends', '#232a4f');
+        this.float(u.img.x, u.img.y - 64, ev.type === 'wait' ? 'waits' : 'defends', UI.text);
         await this.wait(250);
         return;
       }
       case 'morale': {
         const u = this.units.get(ev.stack)!;
-        this.float(u.img.x, u.img.y - 80, ev.good ? 'High morale! Again!' : 'Low morale: falters', ev.good ? '#2f6b3a' : '#a9302a');
+        this.float(u.img.x, u.img.y - 80, ev.good ? 'High morale! Again!' : 'Low morale: falters', ev.good ? '#b8e08a' : '#ff6a52');
         await this.wait(450);
         return;
       }
       case 'round': {
         if (ev.round > 1) {
-          this.float(FIELD_W / 2, FIELD_H / 2, `Round ${ev.round}`, '#232a4f', 44);
+          this.float(FIELD_W / 2, FIELD_H / 2, `Round ${ev.round}`, UI.title, 34);
           await this.wait(350);
         }
         return;
@@ -226,7 +225,7 @@ export class BattleView {
     const x = from.x + dir * at.x * UNIT_SCALE;
     const y = from.y + at.y * UNIT_SCALE;
     const end = { x: to.x, y: to.y - 40 };
-    const shot = monk ? this.scene.add.circle(x, y, 6, 0xfff0b0, 1).setStrokeStyle(2, 0xc99a2e) : this.scene.add.rectangle(x, y, 22, 2.4, 0x3b2a1a);
+    const shot = monk ? this.scene.add.circle(x, y, 6, 0xfff0b0, 1).setStrokeStyle(2, 0xc99a2e) : this.scene.add.rectangle(x, y, 22, 2.4, 0xd8c39a);
     shot.setRotation(Math.atan2(end.y - y, end.x - x));
     this.root.add(shot);
     await this.tween(shot, end, 160 + Math.hypot(end.x - x, end.y - y) * 0.35, 'Linear');
@@ -239,8 +238,9 @@ export class BattleView {
     this.scene.tweens.add({ targets: img, x: img.x + 4, yoyo: true, repeat: 2, duration: 40 });
   }
 
-  float(x: number, y: number, text: string, color: string, size = 26): void {
-    const t = this.scene.add.text(x, y, text, { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: `${size}px`, color, stroke: '#fdf8ea', strokeThickness: 5 }).setOrigin(0.5);
+  float(x: number, y: number, text: string, color: string, size = 20): void {
+    const t = this.scene.add.text(x, y, text, { fontFamily: DISPLAY, fontStyle: '700', padding: { x: 8, y: 4 }, fontSize: `${size}px`, color, stroke: '#140b07', strokeThickness: Math.max(3, size * 0.16) }).setOrigin(0.5);
+    t.setShadow(0, 2, 'rgba(0,0,0,0.6)', 3, true, true);
     this.root.add(t);
     this.scene.tweens.add({ targets: t, y: y - 36, alpha: 0, delay: 500, duration: 900, ease: 'Sine.easeIn', onComplete: () => t.destroy() });
   }

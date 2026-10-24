@@ -4,7 +4,7 @@ import { finished, gleam, groundShadow, limb, lineOf, mix, paint, shapeOf, SHADO
 import { caparison, chanfron, goldCrown } from './crownMountBarding';
 import { farLegs, head, HORSE, nearLegs, tail, torsoInFigure, type HorseLook } from './crownMountHorse';
 import { apply, beat, invert, mountRig, within, type AttackMotion, type Beat, type MountRig } from './crownMountRig';
-import { asRider, CROWN_BLUE, elbowFor, fist, GOLD, headstall, offRider, onRider, pauldron, plateArm, reins, RIDER, riderLeg, riderTorso, saddle, STEEL } from './crownMountRider';
+import { asHead, asRider, CROWN_BLUE, elbowFor, fist, GOLD, headstall, offRider, onRider, pauldron, plateArm, reins, RIDER, riderLeg, riderTorso, saddle, STEEL } from './crownMountRider';
 import { IDLE, type CreatureDrawer } from './types';
 
 /**
@@ -20,7 +20,12 @@ import { IDLE, type CreatureDrawer } from './types';
  * little as the lance is drawn up and back (0.25), then lunges as the lance
  * drops level and drives home (0.5), and settles.
  */
-const MOUNT: HorseLook = { coat: '#a39d93', points: '#625c56', mane: '#e2dccf', hoof: '#46403b', build: 1, pose: 'charge' };
+/** The plume's lit feathers: warm ivory. */
+const PLUME_LIGHT = '#d8ccae';
+/** The lance: dark walnut, painted in spirals of Crown blue. */
+const WALNUT = '#3e2818';
+
+const MOUNT: HorseLook = { coat: '#3f3a36', points: '#1e1a17', mane: '#231d19', hoof: '#1b1613', build: 1.22, pose: 'charge' };
 
 const CHARGE: AttackMotion = {
   pitch: [0, -4.5, 3, 1.2, 0],
@@ -90,11 +95,11 @@ function lance(d: Draw, l: Lance): void {
   const butt = along(0);
   const tip = along(LEN);
   const shaft = limb([[butt.x, butt.y, 2.2], [along(GRIP_S).x, along(GRIP_S).y, 3], [along(head).x, along(head).y, 1.4]]);
-  paint(d, shaft.shape, CROWN_BLUE, { shadow: 0.5, hatch: 0, line: 0.6, gloss: true });
+  paint(d, shaft.shape, WALNUT, { shadow: 0.6, hatch: 0, line: 0.6, gloss: true });
   pen.clipped(shaft.shape, () => {
-    for (let s = 2; s < head; s += 5) pen.fill([along(s, -3), along(s + 2.2, -3), along(s + 0.4, 3), along(s - 1.8, 3)], '#eef0f6', 0.92);
-    pen.stroke([along(2, 0.9), along(head, 0.4)], 0.6, SHADOW, 0.35, false);
-    gleam(d, [along(4, -0.6), along(head - 2, -0.3)], 0.5, 0.7);
+    for (let s = 2; s < head; s += 5) pen.fill([along(s, -3), along(s + 2.2, -3), along(s + 0.4, 3), along(s - 1.8, 3)], CROWN_BLUE, 0.9);
+    pen.stroke([along(2, 0.9), along(head, 0.4)], 0.7, SHADOW, 0.5, false);
+    gleam(d, [along(4, -0.6), along(head - 2, -0.3)], 0.45, 0.6);
   });
   const xy = (p: Pt): [number, number] => [p.x, p.y];
   const point = shapeOf([xy(along(head - 1, -1)), xy(along(head + 2.4, -1.6)), xy(tip), xy(along(head + 2.4, 1.6)), xy(along(head - 1, 1))], 3);
@@ -111,7 +116,7 @@ function pennon(d: Draw, l: Lance, t: number, wind: number): void {
   const shape = [along(s0, 0.8), along(s0 - 7, 3.2 + w(0.6)), along(s0 - 16, 2.6 - w(1.4)), along(s1 - 15 - tail, 3.6 + w(2.4)), along(s1 - 8 - tail * 0.5, 6.6), along(s1 - 14 - tail, 10 - w(3)), along(s1 - 4, 8.4 + w(2.2)), along(s1, 7.6)];
   paint(d, shapeOf(shape.map((p) => [p.x, p.y] as [number, number]), 4), CROWN_BLUE, { shadow: 0.45, hatch: 0.14, line: 0.55, lit: pt(0.7, 0.3) });
   d.pen.stroke(lineOf([[along(s0, 2).x, along(s0, 2).y], [along(s1, 6.4).x, along(s1, 6.4).y]]), 1, GOLD, 0.95, false);
-  goldCrown(d, along(s1 - 4, 4.6), 4.4);
+  goldCrown(d, along(s1 - 4, 4.6), 3.6);
 }
 
 /** The vamplate: a steel cone on the lance in front of the fist. */
@@ -124,29 +129,32 @@ function vamplate(d: Draw, l: Lance): void {
   gleam(d, [along(s + 1.4, -3.4), along(s + 5.4, -1.2)], 0.6, 0.85);
 }
 
-/** The armet: a rounded helm with a jutting visor and eye slit, a gold coronet and a plume of blue and white; `stir` lifts the plume. */
+/** The armet: a close helm with a jutting beaked visor and a dark eye slit, a brass coronet, and a swept plume; `stir` lifts the plume. */
 function armet(d: Draw, stir: number): void {
   const { pen } = d;
   const h = RIDER.head;
   const at = (x: number, y: number): [number, number] => [h.x + x, h.y + y];
-  const { ctx } = d.pen;
-  ctx.save();
-  ctx.translate(RIDER.neck.x, RIDER.neck.y);
-  ctx.scale(0.86, 0.86);
-  ctx.translate(-RIDER.neck.x, -RIDER.neck.y);
-  for (const [c, dy, len] of [['#e8eefc', -1, 15], [CROWN_BLUE, 0.8, 13.6], [mix(CROWN_BLUE, SHADOW, 0.25), 2.4, 11]] as const) {
-    const plume = shapeOf([at(-1, -6), at(-5, -9.6 - dy), at(-len * 0.75, -9 - dy * 0.5 - stir * 0.6), at(-len - stir * 0.5, -5 + dy - stir), at(-len * 0.7, -5.6 + dy - stir * 0.5), at(-5, -4)], 5);
-    paint(d, plume, c, { shadow: 0.4, hatch: 0, line: 0.5 });
-  }
-  const bowl = shapeOf([at(-4.8, 3.6), at(-5.6, -1.6), at(-3.2, -6.2), at(1.2, -7), at(4.6, -4.8), at(6.4, -1.6), at(7.6, 1.2), at(5.8, 3.6), at(2.4, 5.4), at(-2.4, 5.6)], 5);
-  paint(d, bowl, STEEL, { shadow: 0.55, hatch: 0.2, line: 0.7, gloss: true, lit: pt(0.3, 0.2) });
-  pen.stroke(lineOf([at(1.6, -1.8), at(4, -1.6), at(6.6, -1)]), 1.1, '#141826', 1, false);
-  pen.hair(lineOf([at(-0.4, -0.2), at(3, 0.6), at(7.2, 1.2)]), 0.4, d.ink, 0.6);
-  for (const [x, y] of [[4.4, 2.6], [5.6, 2.2], [3.6, 3.6]] as const) pen.dot(h.x + x, h.y + y, 0.35, '#141826');
-  gleam(d, lineOf([at(-3.6, -3.6), at(-0.6, -5.6), at(2.6, -5.4)]), 0.8, 0.85);
-  pen.stroke(lineOf([at(-4.6, 4.6), at(0, 5.6), at(4.6, 4.6)]), 0.9, GOLD, 0.9, false);
-  goldCrown(d, pt(h.x - 0.2, h.y - 7.6), 5);
-  ctx.restore();
+  asHead(d, () => {
+    for (const [c, dy, len] of [[mix(CROWN_BLUE, SHADOW, 0.45), 1.4, 13], [CROWN_BLUE, 0, 15.6], [PLUME_LIGHT, -1.2, 11]] as const) {
+      const plume = shapeOf([at(-1, -7.4), at(-5, -11 - dy), at(-len * 0.72, -10.4 - dy * 0.5 - stir * 0.6), at(-len - stir * 0.5, -5.6 + dy - stir), at(-len * 0.66, -6.4 + dy - stir * 0.5), at(-5, -5.6)], 5);
+      paint(d, plume, c, { shadow: 0.55, hatch: 0, line: 0.5 });
+    }
+    for (const k of [0, 1, 2]) pen.hair(lineOf([at(-2, -8 + k * 0.6), at(-7 - k * 2, -9.4 + k), at(-12 - k, -6.6 + k)]), 0.3, mix(CROWN_BLUE, SHADOW, 0.6), 0.7);
+    const bowl = shapeOf([at(-5, 4.4), at(-6, -1.4), at(-4.6, -6.2), at(-0.8, -8.4), at(3.2, -7.4), at(5.8, -4.4), at(6.8, -1.2), at(9.2, 1.6), at(6.4, 3.8), at(2.6, 6), at(-2.4, 6.4)], 5);
+    paint(d, bowl, STEEL, { shadow: 0.75, hatch: 0.22, cross: true, line: 0.7, gloss: true, lit: pt(0.3, 0.18) });
+    // Visor: the eye slit in deep shadow, its upper edge lit; breaths; the bevor's line.
+    pen.stroke(lineOf([at(1.2, -2.2), at(4, -2), at(7, -1.2)]), 1.1, '#120c09', 1, false);
+    pen.hair(lineOf([at(1, -3), at(4, -2.9), at(6.8, -2.2)]), 0.35, '#f3e6c6', 0.7);
+    pen.hair(lineOf([at(-0.6, 0.6), at(3.4, 1.4), at(9, 1.6)]), 0.4, d.ink, 0.7);
+    for (const [x, y] of [[4.6, 3], [5.8, 2.6], [3.8, 4]] as const) pen.dot(h.x + x, h.y + y, 0.3, '#120c09');
+    pen.hair(lineOf([at(-3.4, 4.6), at(-1.6, 0), at(-2.4, -4)]), 0.4, d.ink, 0.5);
+    gleam(d, lineOf([at(-3.8, -4.2), at(-0.8, -6.6), at(2.6, -6.4)]), 0.8, 0.95);
+    gleam(d, lineOf([at(6.2, -0.4), at(8.2, 1.4)]), 0.5, 0.8);
+    // The brass coronet round the brow.
+    pen.stroke(lineOf([at(-5.4, -4.4), at(-1, -6.8), at(3.6, -6)]), 1, GOLD, 0.95, false);
+    for (const x of [-3.6, -0.4, 2.6]) pen.dot(h.x + x, h.y - 6.6 + Math.abs(x) * 0.1, 0.55, GOLD);
+    pen.stroke(lineOf([at(-4.8, 5), at(0, 6.2), at(4.8, 5)]), 0.7, GOLD, 0.85, false);
+  });
 }
 
 export const drawLancer: CreatureDrawer = (ctx, seed, f, pose = IDLE) => {

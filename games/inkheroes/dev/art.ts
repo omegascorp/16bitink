@@ -9,7 +9,7 @@ import { BUILDING_IDS, type BuildingId } from '../src/logic/buildings';
 //   /art.html?pieces=tavern,guild-1 those buildings alone, big, on their frames (pieces=all for every one)
 //   /art.html?menu=vista            the menu's vista (also: title, vignettes, all)
 //   &zoom=1.5                       display scale (default 1 for town/vista, 2 for pieces)
-await document.fonts.load('32px Caveat').catch(() => undefined);
+await Promise.all(['700 32px Cinzel', '32px "EB Garamond"', '600 32px "EB Garamond"'].map((f) => document.fonts.load(f))).catch(() => undefined);
 const sheet = document.getElementById('sheet')!;
 const params = new URLSearchParams(location.search);
 const zoom = params.get('zoom');

@@ -1,6 +1,6 @@
 import type { GameHandle, GameHost, GameModule } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
-import { PAPER } from './art/palette';
+import { BACKDROP } from './art/palette';
 import { SoundBoard } from './audio/sound';
 import { REG } from './host';
 import { BattleScene } from './scenes/BattleScene';
@@ -24,7 +24,7 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
   const game = new Phaser.Game({
     type: Phaser.WEBGL,
     parent,
-    backgroundColor: PAPER,
+    backgroundColor: BACKDROP,
     scale: { mode: Phaser.Scale.NONE, width: Math.round(width * DPR), height: Math.round(height * DPR), zoom: 1 / DPR, fullscreenTarget: parent },
     render: { antialias: true, antialiasGL: false, roundPixels: false, mipmapFilter: 'LINEAR_MIPMAP_LINEAR', powerPreference: 'high-performance', maxTextures: 8 },
     input: { activePointers: 3 },

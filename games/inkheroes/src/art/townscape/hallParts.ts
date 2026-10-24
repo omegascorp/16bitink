@@ -2,6 +2,7 @@ import type { Rng } from '../../logic/rng';
 import { bezier, closed, lerp, pt, type Draw } from '../kit';
 import { PAPER_FILL } from '../palette';
 import type { Pt } from '../pen';
+import { deepen, LICHEN, MOSS, mossFoot } from './light';
 import { ashlar, backArc, CROWN_BLUE, CROWN_GOLD, DEPTH, frontArc, HOLE, P, quad, roundWash, type Box, type Surface } from '../sites/build';
 import { blob, boxOf, crisp, dab, flat, gleam, LIGHT, mix, paint, pool, rgba, SHADOW, soft } from '../sites/paintKit';
 
@@ -13,12 +14,12 @@ import { blob, boxOf, crisp, dab, flat, gleam, LIGHT, mix, paint, pool, rgba, SH
  * Crown's banners. Everything is in the map's oblique view (sites/build.ts).
  */
 
-export const HONEY = '#d8c39a';
-export const MARBLE = '#e4dccb';
-export const PLASTER = '#ecdcb9';
-export const OAK = '#5a4130';
-export const SLATE = '#52648c';
-export const GLASS = '#2c3554';
+export const HONEY = '#9a8e78';
+export const MARBLE = '#ada391';
+export const PLASTER = '#a8895a';
+export const OAK = '#3e2a1c';
+export const SLATE = '#3f4855';
+export const GLASS = '#1c1e26';
 export const BLUE = CROWN_BLUE;
 export const GOLD = CROWN_GOLD;
 
@@ -51,15 +52,16 @@ export function face(d: Draw, rng: Rng, at: Surface, w: number, h: number, color
   const { pen } = d;
   const tone = o.tone ?? 0.05;
   const shape = crisp(quad(at, 0, 0, w, h), 4);
-  flat(d, shape, color, { tone, hatch: tone > 0.2 ? 0.26 : 0, line: 0 });
+  flat(d, shape, color, { tone: deepen(tone), hatch: tone > 0.2 ? 0.26 : 0, line: 0 });
   const fin = o.finish ?? 'ashlar';
   if (fin === 'ashlar') ashlar(d, rng, at, w, h, shape, color, o.course ?? 6.4, o.stone ?? 13);
   if (fin === 'rubble') rubble(d, rng, at, w, h, shape, color);
+  if (fin === 'ashlar' || fin === 'rubble') mossFoot(d, rng, at, w, h, shape);
   if (fin === 'plaster') {
     pen.clipped(shape, () => {
       for (let i = 0; i < Math.max(2, (w * h) / 500); i++) {
         const c = at(rng() * w, rng() * h);
-        dab(d, blob(c, 6 + rng() * 10, 4 + rng() * 6, rng), rng() < 0.5 ? mix(color, '#b49a72', 0.6) : mix(color, LIGHT, 0.6), 0.16, 3);
+        dab(d, blob(c, 6 + rng() * 10, 4 + rng() * 6, rng), rng() < 0.5 ? mix(color, '#76604a', 0.6) : mix(color, LIGHT, 0.6), 0.16, 3);
       }
       pen.stipple(shape, Math.round(w * h * 0.05), () => 0.5, 0.38, mix(color, SHADOW, 0.35));
     });
@@ -67,7 +69,7 @@ export function face(d: Draw, rng: Rng, at: Surface, w: number, h: number, color
   // Weather: a few soft stains, cooler and warmer, so the face isn't one flat tint.
   pen.clipped(shape, () => {
     for (let i = 0; i < Math.max(1, Math.round((w * h) / 1400)); i++) {
-      dab(d, blob(at(rng() * w, rng() * h * 0.8), 5 + rng() * 9, 7 + rng() * 9, rng), rng() < 0.6 ? mix(color, SHADOW, 0.35) : mix(color, '#9a8a5c', 0.4), 0.08, 3);
+      dab(d, blob(at(rng() * w, rng() * h * 0.8), 5 + rng() * 9, 7 + rng() * 9, rng), rng() < 0.6 ? mix(color, SHADOW, 0.35) : mix(color, '#6e613d', 0.4), 0.08, 3);
     }
   });
   // Damp and grime settling at the foot of the wall.
@@ -84,7 +86,7 @@ function rubble(d: Draw, rng: Rng, at: Surface, w: number, h: number, clip: read
       for (let u = -rng() * 6; u < w; u += 7 + rng() * 5) {
         const c = at(u + 4, v + 2.6);
         const s = blob(c, 3 + rng() * 1.6, 2 + rng() * 0.6, rng, 0.25, 12);
-        pen.fill(s, rng() < 0.5 ? mix(color, LIGHT, 0.35) : mix(color, '#7d6e58', 0.35), 0.5);
+        pen.fill(s, rng() < 0.5 ? mix(color, LIGHT, 0.35) : mix(color, '#604d37', 0.35), 0.5);
         pen.hair(closed(s), 0.4, d.ink, 0.5);
       }
     }
@@ -94,7 +96,7 @@ function rubble(d: Draw, rng: Rng, at: Surface, w: number, h: number, clip: read
 /** A plain box (a step, a plinth, a cornice block): right side shaded, front in half light, top lit. */
 export function slab(d: Draw, b: Box, color: string, o: { readonly top?: boolean; readonly line?: number } = {}): Pt[] {
   const line = o.line ?? 0.55;
-  flat(d, crisp([P(b.x1, b.z0, b.h0), P(b.x1, b.z1, b.h0), P(b.x1, b.z1, b.h1), P(b.x1, b.z0, b.h1)], 3), color, { tone: 0.4, hatch: 0.25, line });
+  flat(d, crisp([P(b.x1, b.z0, b.h0), P(b.x1, b.z1, b.h0), P(b.x1, b.z1, b.h1), P(b.x1, b.z0, b.h1)], 3), color, { tone: deepen(0.4), hatch: 0.25, line });
   const front = crisp([P(b.x0, b.z0, b.h0), P(b.x1, b.z0, b.h0), P(b.x1, b.z0, b.h1), P(b.x0, b.z0, b.h1)], 3);
   flat(d, front, color, { tone: 0.08, line });
   if (o.top ?? true) flat(d, crisp([P(b.x0, b.z0, b.h1), P(b.x1, b.z0, b.h1), P(b.x1, b.z1, b.h1), P(b.x0, b.z1, b.h1)], 3), color, { tone: -0.32, line });
@@ -123,7 +125,7 @@ export interface Courses {
  */
 export function plane(d: Draw, rng: Rng, a: Pt, b: Pt, c: Pt, e: Pt, color: string, tone: number, laid: Courses, mossy = 0): Pt[] {
   const shape = crisp(a === e || b === c ? [a, b, c] : [a, b, c, e], 4);
-  flat(d, shape, color, { tone, hatch: tone > 0.2 ? 0.26 : 0, line: 0, from: lerp(e, c, 0.2), to: lerp(a, b, 0.8) });
+  flat(d, shape, color, { tone: deepen(tone), hatch: tone > 0.2 ? 0.26 : 0, line: 0, from: lerp(e, c, 0.2), to: lerp(a, b, 0.8) });
   const span = Math.max(Math.hypot(b.x - a.x, b.y - a.y), Math.hypot(c.x - e.x, c.y - e.y), 1);
   const rise = Math.max(1, Math.hypot((e.x + c.x - a.x - b.x) / 2, (e.y + c.y - a.y - b.y) / 2));
   const at: Surface = (u, v) => {
@@ -135,7 +137,7 @@ export function plane(d: Draw, rng: Rng, a: Pt, b: Pt, c: Pt, e: Pt, color: stri
     for (let i = 0; i < Math.round((span * rise) / 900) + 1; i++) {
       dab(d, blob(at(rng() * span, rng() * rise), 6 + rng() * 10, 3 + rng() * 5, rng), rng() < 0.5 ? mix(color, LIGHT, 0.5) : mix(color, SHADOW, 0.4), 0.14, 2.5);
     }
-    for (let i = 0; i < mossy; i++) dab(d, blob(at(rng() * span, rng() * rise * 0.5), 4 + rng() * 6, 2 + rng() * 3, rng), '#7d8a4a', 0.22, 2);
+    for (let i = 0; i < mossy; i++) dab(d, blob(at(rng() * span, rng() * rise * 0.5), 4 + rng() * 6, 2 + rng() * 3, rng), MOSS, 0.22, 2);
   });
   courses(d, rng, at, span, rise, shape, color, laid);
   d.pen.stroke(closed(shape), 0.65, d.ink, 0.9);
@@ -158,7 +160,7 @@ function courses(d: Draw, rng: Rng, at: Surface, w: number, h: number, clip: rea
       while (u < w) {
         const u1 = u + laid.tab * (0.6 + rng() * 0.8);
         const r = rng();
-        if (r < 0.34) pen.fill([at(u + 0.3, wob(u)), at(u1 - 0.3, wob(u1)), at(u1 - 0.3, wob(u1) + laid.row), at(u + 0.3, wob(u) + laid.row)], r < 0.15 ? mix(color, LIGHT, 0.55) : r < 0.27 ? mix(color, SHADOW, 0.35) : mix(color, '#7f8a58', 0.45), 0.24);
+        if (r < 0.34) pen.fill([at(u + 0.3, wob(u)), at(u1 - 0.3, wob(u1)), at(u1 - 0.3, wob(u1) + laid.row), at(u + 0.3, wob(u) + laid.row)], r < 0.15 ? mix(color, LIGHT, 0.55) : r < 0.27 ? mix(color, SHADOW, 0.35) : mix(color, LICHEN, 0.45), 0.24);
         pen.hair([at(u1, wob(u1) + 0.1), at(u1 + 0.15, wob(u1) + laid.row * 0.82)], 0.38, d.ink, 0.42);
         if (rng() < 0.5) pen.hair([at(u + 0.6, wob(u) + 0.5), at(u1 - 0.6, wob(u1) + 0.5)], 0.45, mix(color, LIGHT, 0.55), 0.35);
         u = u1;
@@ -184,7 +186,7 @@ export function ridge(d: Draw, a: Pt, b: Pt, color: string, w = 2.2): void {
 export function gableX(d: Draw, rng: Rng, b: Box, rise: number, color: string, wall: string, laid: Courses, o = 4): Pt[] {
   const h = b.h1;
   const zm = (b.z0 + b.z1) / 2;
-  flat(d, crisp([P(b.x1, b.z0, h), P(b.x1, b.z1, h), P(b.x1, zm, h + rise)], 3), wall, { tone: 0.42, hatch: 0.3 });
+  flat(d, crisp([P(b.x1, b.z0, h), P(b.x1, b.z1, h), P(b.x1, zm, h + rise)], 3), wall, { tone: deepen(0.42), hatch: 0.3 });
   plane(d, rng, P(b.x1 + o, b.z1 + o, h - o * 0.6), P(b.x0 - o, b.z1 + o, h - o * 0.6), P(b.x0 - o, zm, h + rise), P(b.x1 + o, zm, h + rise), color, -0.1, laid);
   eaveBoard(d, P(b.x0 - o, b.z0 - o, h - o * 0.6), P(b.x1 + o, b.z0 - o, h - o * 0.6), color);
   const front = plane(d, rng, P(b.x0 - o, b.z0 - o, h - o * 0.6), P(b.x1 + o, b.z0 - o, h - o * 0.6), P(b.x1 + o, zm, h + rise), P(b.x0 - o, zm, h + rise), color, 0.04, laid, 3);
@@ -267,11 +269,11 @@ export function glass(d: Draw, hole: readonly Pt[], lit = 0, tint = GLASS): void
   pen.fill(hole, tint, 1);
   pen.clipped(hole, () => {
     const g = ctx.createLinearGradient(b.x0, b.y0, b.x0 + b.w, b.y0 + b.h);
-    g.addColorStop(0, rgba('#9fb2cf', 0));
-    g.addColorStop(0.35, rgba('#9fb2cf', 0.4));
-    g.addColorStop(0.5, rgba('#9fb2cf', 0.08));
-    g.addColorStop(0.7, rgba('#9fb2cf', 0.22));
-    g.addColorStop(1, rgba('#9fb2cf', 0));
+    g.addColorStop(0, rgba('#6c7688', 0));
+    g.addColorStop(0.35, rgba('#6c7688', 0.4));
+    g.addColorStop(0.5, rgba('#6c7688', 0.08));
+    g.addColorStop(0.7, rgba('#6c7688', 0.22));
+    g.addColorStop(1, rgba('#6c7688', 0));
     ctx.fillStyle = g;
     ctx.fillRect(b.x0, b.y0, b.w, b.h);
     if (lit > 0) {
@@ -369,14 +371,14 @@ export function door(d: Draw, at: Surface, u: number, w: number, h: number, o: {
   pen.clipped(leaf, () => {
     for (let x = 2.4; x < w; x += 2.6) pen.hair([at(u + x, 0), at(u + x, h)], 0.4, d.ink, 0.5);
     for (const y of [h * 0.22, h * 0.62]) {
-      pen.stroke([at(u, y), at(u + w * 0.42, y)], 1.1, '#3a3640', 0.9, false);
-      pen.stroke([at(u + w, y), at(u + w * 0.58, y)], 1.1, '#3a3640', 0.9, false);
+      pen.stroke([at(u, y), at(u + w * 0.42, y)], 1.1, '#2a2522', 0.9, false);
+      pen.stroke([at(u + w, y), at(u + w * 0.58, y)], 1.1, '#2a2522', 0.9, false);
     }
     if ((o.leaves ?? 2) > 1) pen.stroke([at(u + r, 0), at(u + r, h)], 0.7, d.ink, 0.8, false);
   });
   pen.crescent(shape, pt(2.4, 2.4), () => pen.fill(shape, SHADOW, 0.55));
   const ring = at(u + r + 2, h * 0.45);
-  pen.circle(ring.x, ring.y, 1.1, 0.5, '#3a3640');
+  pen.circle(ring.x, ring.y, 1.1, 0.5, '#2a2522');
   pen.stroke(closed(shape), 0.65, d.ink, 0.95);
   return shape;
 }
@@ -482,12 +484,12 @@ export function atmosphere(d: Draw, x0: number, y0: number, x1: number, y1: numb
   const g = ctx.createLinearGradient(x0, y0, x1, y1);
   g.addColorStop(0, rgba(LIGHT, 0.22));
   g.addColorStop(0.45, rgba(LIGHT, 0));
-  g.addColorStop(0.7, rgba(SHADOW, 0.04));
-  g.addColorStop(1, rgba(SHADOW, 0.2));
+  g.addColorStop(0.7, rgba(SHADOW, 0.1));
+  g.addColorStop(1, rgba(SHADOW, 0.32));
   ctx.fillStyle = g;
   ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
   const f = ctx.createLinearGradient(0, y1, 0, y1 - 40);
-  f.addColorStop(0, rgba(SHADOW, 0.16));
+  f.addColorStop(0, rgba(SHADOW, 0.24));
   f.addColorStop(1, rgba(SHADOW, 0));
   ctx.fillStyle = f;
   ctx.fillRect(x0, y1 - 40, x1 - x0, 40);
@@ -641,7 +643,7 @@ export function urn(d: Draw, foot: Pt, h: number, color: string): void {
 }
 
 /** A ground patch of worn earth and stone setts under a building's front, laid outside its silhouette. */
-export function apron(d: Draw, rng: Rng, x0: number, x1: number, depth: number, color = '#c2ad86'): void {
+export function apron(d: Draw, rng: Rng, x0: number, x1: number, depth: number, color = '#877759'): void {
   const shape = blob(pt((x0 + x1) / 2, depth * 0.3), (x1 - x0) / 2, depth, rng, 0.06, 30);
   dab(d, shape, color, 0.55, 2.5);
   d.pen.clipped(shape, () => {

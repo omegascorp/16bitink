@@ -15,7 +15,7 @@ import { pine, tree } from './vistaTrees';
 /** The rise's brow, left to right: about y 780 in the middle, a touch higher at the edges. */
 export const RISE: readonly Pt[] = through([pt(-20, 754), pt(180, 768), pt(420, 782), pt(640, 778), pt(820, 783), pt(1000, 777), pt(1220, 770), pt(1430, 758), pt(1620, 746)], 6);
 
-const GRASS = { lit: '#c4c06c', body: '#86a055', deep: '#456241', far: '#344d3d' } as const;
+const GRASS = { lit: '#6e6a30', body: '#34421f', deep: '#1c2412', far: '#12170c' } as const;
 
 /** Blades of grass standing along a line: fine tapered ink-green strokes, leaning a little with the breeze. */
 function blades(ctx: CanvasRenderingContext2D, rng: Rng, line: readonly Pt[], x0: number, x1: number, density: number, h: number, color: string, alpha: number): void {
@@ -44,18 +44,18 @@ function stone(ctx: CanvasRenderingContext2D, rng: Rng, c: Pt, r: number, seed: 
   const shape = blob(c, r * 1.4, r, rng, 0.25, 16).filter((p) => p.y <= c.y + r * 0.3);
   const under = blob(pt(c.x + r * 0.6, c.y + r * 0.35), r * 1.6, r * 0.45, rng, 0.1, 14);
   softly(ctx, r * 0.3, SHADOW, 0.25, (cc) => pathOf(cc, under));
-  d.pen.fill(shape, '#bdb29b', 1);
+  d.pen.fill(shape, '#6e6656', 1);
   d.pen.clipped(shape, () => {
     const dark = blob(pt(c.x + r * 0.7, c.y + r * 0.4), r * 1.2, r * 0.9, rng, 0.1, 14);
-    softly(ctx, r * 0.2, mix('#8f8676', SHADOW, 0.35), 0.7, (cc) => pathOf(cc, dark));
-    bloomAt(ctx, pt(c.x - r * 0.5, c.y - r * 0.5), r * 0.9, LIGHT, 0.7);
+    softly(ctx, r * 0.2, mix('#4e483e', SHADOW, 0.35), 0.7, (cc) => pathOf(cc, dark));
+    bloomAt(ctx, pt(c.x - r * 0.5, c.y - r * 0.5), r * 0.9, '#c8945a', 0.55);
   });
   d.pen.stroke([...shape, shape[0]!], 0.7, d.ink, 0.8);
 }
 
 /** Wild flowers: a scatter of tiny bright dots (cream, butter yellow, a little blue) on dark stems. */
 function flowers(ctx: CanvasRenderingContext2D, rng: Rng, x0: number, x1: number, y0: number, y1: number, n: number): void {
-  const colours = ['#f6efd8', '#efd36a', '#f6efd8', '#9fb4dc', '#e8a7a0'] as const;
+  const colours = ['#c8a050', '#9a7a3a', '#b89060', '#7a5a34'] as const;
   for (let i = 0; i < n; i++) {
     const x = x0 + rng() * (x1 - x0);
     const y = Math.max(yAt(RISE, x) + 6, y0 + rng() * (y1 - y0));
@@ -66,7 +66,7 @@ function flowers(ctx: CanvasRenderingContext2D, rng: Rng, x0: number, x1: number
     ctx.moveTo(x, y + r * 3);
     ctx.lineTo(x + 0.4, y);
     ctx.stroke();
-    ctx.fillStyle = rgba(colours[Math.floor(rng() * colours.length)]!, 0.9);
+    ctx.fillStyle = rgba(colours[Math.floor(rng() * colours.length)]!, 0.6);
     ctx.beginPath();
     ctx.arc(x, y, r, 0, TAU);
     ctx.fill();
@@ -79,22 +79,22 @@ export function foreground(ctx: CanvasRenderingContext2D, seed: number, w: numbe
   const d = makeDraw(ctx, seed + 1, 0, 0);
   const shape = bandBelow(RISE, h + 10);
   gradeFill(ctx, shape, 745, h, [[0, GRASS.lit], [0.18, GRASS.body], [0.6, mix(GRASS.body, GRASS.deep, 0.6)], [1, GRASS.deep]]);
-  variegate(ctx, rng, shape, ['#c9c27a', GRASS.deep, '#9cae5c', mix(GRASS.deep, '#4f6f73', 0.4)], { x0: 0, y0: 750, x1: w, y1: h }, 0.2, 5);
-  modelForm(ctx, shape, { reach: 30, blur: 18, lit: mix(GRASS.lit, LIGHT, 0.5), litAlpha: 0.55, shade: GRASS.far, shadeAlpha: 0.3 });
+  variegate(ctx, rng, shape, ['#5a5a28', GRASS.deep, '#3e4e22', mix(GRASS.deep, '#1e2e34', 0.4)], { x0: 0, y0: 750, x1: w, y1: h }, 0.2, 5);
+  modelForm(ctx, shape, { reach: 30, blur: 18, lit: mix(GRASS.lit, '#e0a050', 0.45), litAlpha: 0.5, shade: GRASS.far, shadeAlpha: 0.4 });
   // Broad wet-in-wet blooms: warmer patches where the light lies, cool pools in the hollows.
   d.pen.clipped(shape, () => {
     for (let i = 0; i < 14; i++) {
       const x = rng() * w;
       const y = 800 + rng() * 90;
-      bloomAt(ctx, pt(x, y), 60 + rng() * 90, rng() < 0.5 ? '#c9c27a' : mix(GRASS.deep, SHADOW, 0.25), 0.18 + rng() * 0.12);
+      bloomAt(ctx, pt(x, y), 60 + rng() * 90, rng() < 0.4 ? '#5e5a2a' : mix(GRASS.deep, SHADOW, 0.4), 0.2 + rng() * 0.12);
     }
     // The muster's ground: a broad sunlit swell in the middle.
     ctx.save();
     ctx.scale(1, 0.22);
-    bloomAt(ctx, pt(w / 2 - 60, 830 / 0.22), 520, '#d6cf86', 0.3);
+    bloomAt(ctx, pt(w / 2 - 60, 830 / 0.22), 520, '#6a5e2c', 0.3);
     ctx.restore();
   });
-  brushwork(ctx, rng, shape, 2600, { x0: 0, y0: 750, x1: w, y1: h }, [GRASS.deep, '#9cae5c', '#6d8a4d', GRASS.far, '#a9ae62'], { len: 10, width: 1.3, alpha: 0.26, angle: -1.3 });
+  brushwork(ctx, rng, shape, 2600, { x0: 0, y0: 750, x1: w, y1: h }, [GRASS.deep, '#4a5626', '#2e3a1a', GRASS.far, '#6a6430'], { len: 10, width: 1.3, alpha: 0.26, angle: -1.3 });
   // The brow: pigment pooled along the top edge, then a fine pen line broken by blades.
   softly(ctx, 1.4, mix(GRASS.deep, SHADOW, 0.2), 0.45, (cc) => {
     cc.beginPath();
@@ -130,9 +130,9 @@ export function framingTrees(ctx: CanvasRenderingContext2D, seed: number, w: num
   const d = makeDraw(ctx, seed + 3, 0, 0);
   longShadow(ctx, rng, pt(-20, 800), 420, 34, seed + 11);
   longShadow(ctx, rng, pt(w - 150, 800), 160, 18, seed + 12);
-  tree(d, rng, pt(-20, 795), 380, { leaf: '#5f7d45', trunk: '#4a382b' }, 0.6);
-  tree(d, rng, pt(110, 812), 240, { leaf: '#6f8a4c', trunk: '#4e3b2c' }, 0.6);
-  pine(d, rng, pt(w - 40, 785), 380, '#3a5844', 0.6);
-  pine(d, rng, pt(w + 30, 795), 440, '#34503e', 0.6);
-  tree(d, rng, pt(w - 140, 800), 220, { leaf: '#6d884c', trunk: '#4e3b2c' }, 0.6);
+  tree(d, rng, pt(-20, 795), 380, { leaf: '#26321a', trunk: '#22160e' }, 0.6);
+  tree(d, rng, pt(110, 812), 240, { leaf: '#2c3a1c', trunk: '#26180e' }, 0.6);
+  pine(d, rng, pt(w - 40, 785), 380, '#16221a', 0.6);
+  pine(d, rng, pt(w + 30, 795), 440, '#121c16', 0.6);
+  tree(d, rng, pt(w - 140, 800), 220, { leaf: '#28361a', trunk: '#26180e' }, 0.6);
 }

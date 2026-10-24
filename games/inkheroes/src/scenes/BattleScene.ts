@@ -2,7 +2,8 @@ import { runInSlices } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { FIELD_H, FIELD_W, HEX, FIELD_PAD } from '../art/battlefield';
 import { CREATURE_RES, FRAME_H, GROUND_Y } from '../art/creatures/types';
-import { INK, PAPER } from '../art/palette';
+import { BACKDROP, BANNER, UI, UI_HEX } from '../art/palette';
+import type { PlateKind } from '../art/uiArtParts';
 import { heroFigure, poseJobs, TEX, type Figure } from '../art/textures';
 import { getSound } from '../host';
 import { afterBattle, battleSides, gridOf } from '../logic/adventure';
@@ -20,8 +21,8 @@ import { BattleView } from './battle/battleView';
 import { screenScene, toView, viewSize } from './hidpi';
 import type { MapScene } from './MapScene';
 import { Session } from './session';
-import { inkText } from './ui';
-import { HAND, paintedButton } from './uiPaint';
+import { loadingText } from './ui';
+import { paintedButton, title } from './uiPaint';
 
 const BAR_H = 96;
 /** Pause before an AI unit acts, so the player can follow. */
@@ -64,7 +65,7 @@ export class BattleScene extends Phaser.Scene {
 
   create(data: BattleData): void {
     screenScene(this);
-    this.cameras.main.setBackgroundColor(PAPER);
+    this.cameras.main.setBackgroundColor(BACKDROP);
     this.session = Session.get(this);
     this.monsterId = data.monsterId;
     this.busy = false;
@@ -85,7 +86,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     const v = viewSize(this);
-    const label = inkText(this, v.width / 2, v.height / 2, 'the armies form up…', 32);
+    const label = loadingText(this, v.width / 2, v.height / 2, 'the armies form up…', 32);
     void runInSlices(jobs).then(() => {
       if (!this.sys.isActive()) return;
       label.destroy();
@@ -100,7 +101,7 @@ export class BattleScene extends Phaser.Scene {
     const terrain = g.terrain[tileIndex(g, adv.hero.x, adv.hero.y)]!;
     this.view = new BattleView(this, this.state, terrain === 'water' ? 'grass' : terrain, seed, [true, false]);
     this.live = true;
-    this.status = this.add.text(0, 0, '', { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '26px', color: INK }).setOrigin(0.5, 0);
+    this.status = title(this, 0, 4, '', 18, { color: UI.text }).setOrigin(0.5, 0);
     this.buildBar();
     this.layout();
     this.scale.on('resize', this.layout, this);
@@ -153,14 +154,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private buildBar(): void {
-    const btn = (x: number, label: string, fn: () => void, kind: 'paper' | 'leaf' | 'sky' = 'paper'): Phaser.GameObjects.Container =>
-      paintedButton(this, x, 22, label, fn, { width: 108, height: 42, size: 22, kind });
+    const btn = (x: number, label: string, fn: () => void, kind: PlateKind = 'plain'): Phaser.GameObjects.Container =>
+      paintedButton(this, x, 22, label, fn, { width: 108, height: 42, size: 15, kind });
     this.order = this.add.container(0, -22);
-    this.autoBtn = btn(240, 'Auto', () => this.toggleAuto(), 'sky');
+    this.autoBtn = btn(240, 'Auto', () => this.toggleAuto(), 'crown');
     this.buttons = [
       btn(-300, 'Wait', () => this.playerAct({ type: 'wait' })),
       btn(-180, 'Defend', () => this.playerAct({ type: 'defend' })),
-      btn(-60, 'Spell', () => this.openSpells(), 'sky'),
+      btn(-60, 'Spell', () => this.openSpells(), 'crown'),
       this.autoBtn,
     ];
     this.bar = this.add.container(0, 0, [this.order, ...this.buttons]);
@@ -369,13 +370,13 @@ export class BattleScene extends Phaser.Scene {
       buttons: [
         ...hero.spells.map((id) => {
           const why = cantCast(this.state, 0, id, null);
-          return { label: `${SPELLS[id].name} · ${SPELLS[id].mana} mana`, note: why ?? SPELLS[id].says, kind: why ? 'paper' as const : 'sky' as const, onClick: () => {
+          return { label: `${SPELLS[id].name} · ${SPELLS[id].mana} mana`, note: why ?? SPELLS[id].says, kind: why ? 'plain' as const : 'crown' as const, onClick: () => {
             if (why) return;
             this.casting = id;
             this.status.setText(`Choose a target for ${SPELLS[id].name}`);
           } };
         }),
-        { label: 'Close', kind: 'paper', onClick: () => undefined },
+        { label: 'Close', kind: 'plain', onClick: () => undefined },
       ],
     });
   }
@@ -388,7 +389,7 @@ export class BattleScene extends Phaser.Scene {
     const waited = live.filter((s) => s.waited).sort((a, b) => speedOf(a) - speedOf(b));
     [...fresh, ...waited].slice(0, 9).forEach((s, i) => {
       const x = -320 + i * 44;
-      const bg = this.add.circle(x, 0, 19, s.side === 0 ? 0x2f55a8 : 0xb98a3e, i === 0 ? 0.45 : 0.18).setStrokeStyle(i === 0 ? 2.5 : 1, 0x232a4f, 0.7);
+      const bg = this.add.circle(x, 0, 19, parseInt((s.side === 0 ? BANNER.player : BANNER.neutral).slice(1), 16), i === 0 ? 0.85 : 0.45).setStrokeStyle(i === 0 ? 2.5 : 1, UI_HEX.gilt, i === 0 ? 1 : 0.6);
       const img = this.add.image(x, 16, TEX.creature(s.creature, 0)).setOrigin(0.5, GROUND_Y / FRAME_H).setScale(0.3 / CREATURE_RES);
       this.order.add([bg, img]);
     });

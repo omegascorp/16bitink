@@ -1,6 +1,5 @@
 import type { Rng } from '../../logic/rng';
 import { closed, makeDraw, oval, pt, TAU, type Draw } from '../kit';
-import { PAPER_FILL } from '../palette';
 import { type Pt, withScratch } from '../pen';
 import { blob, crisp, dab, flat, LIGHT, mix, paint, rgba, SHADOW, soft } from '../sites/paintKit';
 
@@ -10,15 +9,22 @@ import { blob, crisp, dab, flat, LIGHT, mix, paint, rgba, SHADOW, soft } from '.
  * woods) with the pen along their crowns, grass tufts, and the trees and
  * bushes at the edges of the view, lit from the upper left like the rest.
  */
-export const GRASS_DEEP = '#4f6e3a';
-export const LEAF = '#628c47';
-export const LEAF_DARK = '#2f4a32';
-export const FAR = '#a6b2d0';
-export const WOOD = '#4f6e5a';
-export const GRASS_FAR = '#a9bc7b';
-export const GRASS_NEAR = '#7f9c50';
-export const EARTH = '#c8ab7d';
-export const ROCK = '#bdb39d';
+export const GRASS_DEEP = '#243a1a';
+export const LEAF = '#3d5a28';
+export const LEAF_DARK = '#18261a';
+/** The far country's blue-grey haze. */
+export const FAR = '#5a6479';
+export const WOOD = '#283c2a';
+export const GRASS_FAR = '#4a5e2c';
+export const GRASS_NEAR = '#2f4520';
+export const EARTH = '#6e5234';
+export const ROCK = '#665e51';
+/** Bark: dark walnut. */
+export const BARK = '#4a2f1c';
+/** The warmest lit accents (a stone's arris, a glint): warm ivory, never white. */
+export const IVORY = '#e9dfc6';
+/** A lit edge on `color`: its own colour warmed by the light. */
+export const litEdge = (color: string, k = 0.5): string => mix(color, LIGHT, k);
 
 /**
  * Many soft washes laid at once: painted crisp on a spare layer, then the
@@ -160,13 +166,49 @@ export function farTree(d: Draw, rng: Rng, x: number, y: number, s: number, tint
   d.pen.hair([pt(x + s * 0.75, y - s * 1.3), pt(x + s * 0.65, y - s * 0.3), pt(x, y + 0.2)], 0.45, d.ink, ink);
 }
 
-/** A broadleaf tree: a trunk and boughs under a crown of leafy masses, each lit from the upper left, the shade side hatched. */
+/** Lit foliage: the green warmed and brightened, never greyed (the sun on leaves is gold-green, not white). */
+export const LEAF_LIT = '#6f8236';
+
+/**
+ * One mass of leaves, painted rather than tinted: a dark body, the sunlit
+ * upper left laid in warm gold-green, clusters of leaves catching the
+ * light, a deep core shadow on the lower right with the shade hatched, a
+ * fine pen line.
+ */
+export function foliage(d: Draw, rng: Rng, m: readonly Pt[], green: string, depth: number): void {
+  const { pen } = d;
+  const ctx = pen.ctx;
+  const c = centroid(m);
+  const xs = m.map((p) => p.x);
+  const ys = m.map((p) => p.y);
+  const rx = (Math.max(...xs) - Math.min(...xs)) / 2;
+  const ry = (Math.max(...ys) - Math.min(...ys)) / 2;
+  const body = mix(green, LEAF_DARK, depth);
+  pen.fill(m, body, 1);
+  pen.clipped(m, () => {
+    soft(ctx, Math.max(0.8, ry * 0.3), () => pen.fill(blob(pt(c.x - rx * 0.3, c.y - ry * 0.35), rx * 0.75, ry * 0.6, rng, 0.25, 12), mix(LEAF_LIT, body, 0.15 + depth * 0.6), 0.6));
+    soft(ctx, Math.max(0.8, ry * 0.25), () => pen.fill(blob(pt(c.x + rx * 0.45, c.y + ry * 0.5), rx * 0.85, ry * 0.65, rng, 0.25, 12), mix(LEAF_DARK, SHADOW, 0.3), 0.7));
+    for (let k = 0; k < 6; k++) {
+      const q = pt(c.x - rx * 0.6 + rng() * rx * 1.1, c.y - ry * 0.7 + rng() * ry * 0.9);
+      const lit = (q.x - c.x) / rx + (q.y - c.y) / ry < 0.2;
+      if (!lit) continue;
+      pen.hair([q, pt(q.x + rx * 0.14, q.y - ry * 0.1), pt(q.x + rx * 0.28, q.y + ry * 0.02)], 0.45, mix(LEAF_LIT, LIGHT, 0.3), 0.55);
+    }
+  });
+  pen.crescent(m, { x: TO_LIGHT_X * rx * 0.6, y: TO_LIGHT_Y * ry * 0.6 }, () => pen.hatch(m, 1.4, 0.9, 0.32, { color: d.ink, alpha: 0.22 }));
+  pen.stroke(closed(m), 0.42, d.ink, 0.6);
+}
+
+const TO_LIGHT_X = -0.55;
+const TO_LIGHT_Y = -0.84;
+
+/** A broadleaf tree: a trunk and boughs under a crown of leafy masses, each lit from the upper left, the shade side deep and hatched. */
 export function tree(d: Draw, rng: Rng, foot: Pt, s: number, hue = 0.5): void {
-  dab(d, oval(foot.x + 16 * s, foot.y + 2, 28 * s, 5 * s, 18), SHADOW, 0.25, 2);
+  dab(d, oval(foot.x + 16 * s, foot.y + 2, 28 * s, 5 * s, 18), SHADOW, 0.4, 2);
   const lean = (rng() - 0.5) * 6 * s;
   const trunk = [pt(foot.x - 4.5 * s, foot.y + 1), pt(foot.x - 2.6 * s + lean * 0.5, foot.y - 26 * s), pt(foot.x - 7 * s + lean, foot.y - 42 * s), pt(foot.x + lean, foot.y - 34 * s), pt(foot.x + 7 * s + lean, foot.y - 44 * s), pt(foot.x + 2.8 * s + lean * 0.5, foot.y - 24 * s), pt(foot.x + 5 * s, foot.y + 1)];
-  paint(d, trunk, '#7a5a3c', { shadow: 0.6, hatch: 0.3, line: 0.8 });
-  const green = mix(LEAF, '#86a24f', hue);
+  paint(d, trunk, BARK, { shadow: 0.75, hatch: 0.3, line: 0.5 });
+  const green = mix(LEAF, '#45602a', hue);
   const top = pt(foot.x + lean, foot.y - 60 * s);
   const masses: Pt[][] = [];
   for (let i = 0; i < 7; i++) {
@@ -180,45 +222,48 @@ export function tree(d: Draw, rng: Rng, foot: Pt, s: number, hue = 0.5): void {
   for (const m of masses) {
     const c = centroid(m);
     const tone = (c.x - top.x) / (40 * s) + (c.y - top.y) / (36 * s);
-    paint(d, m, mix(green, LEAF_DARK, Math.max(0, Math.min(0.6, 0.18 + tone * 0.4))), { shadow: 0.7, hatch: 0.28, line: 0.75 });
-    d.pen.clipped(m, () => {
-      for (let k = 0; k < 8; k++) {
-        const q = pt(c.x - 6 * s + (rng() - 0.5) * 14 * s, c.y - 5 * s + (rng() - 0.5) * 10 * s);
-        d.pen.hair([q, pt(q.x + 2.5 * s, q.y - 1.2 * s), pt(q.x + 4.5 * s, q.y + 0.4 * s)], 0.45, mix(green, LIGHT, 0.6), 0.6);
-      }
-    });
+    foliage(d, rng, m, green, Math.max(0.1, Math.min(0.75, 0.3 + tone * 0.45)));
   }
 }
 
 /** A cypress: a tall dark flame of a tree, lit down its left. */
 export function cypress(d: Draw, rng: Rng, foot: Pt, h: number): void {
-  dab(d, oval(foot.x + h * 0.15, foot.y + 1, h * 0.25, h * 0.04, 14), SHADOW, 0.25, 1.5);
+  dab(d, oval(foot.x + h * 0.15, foot.y + 1, h * 0.25, h * 0.04, 14), SHADOW, 0.35, 1.5);
   const w = h * 0.13;
   const shape = [
     ...curve([pt(foot.x - w * 0.5, foot.y), pt(foot.x - w, foot.y - h * 0.35), pt(foot.x - w * 0.6, foot.y - h * 0.8), pt(foot.x + (rng() - 0.5) * 2, foot.y - h)], 3),
     ...curve([pt(foot.x + w * 0.7, foot.y - h * 0.8), pt(foot.x + w, foot.y - h * 0.35), pt(foot.x + w * 0.5, foot.y)], 3),
   ];
-  paint(d, shape, mix(LEAF_DARK, LEAF, 0.45), { shadow: 0.8, hatch: 0.35, line: 0.8 });
+  const ctx = d.pen.ctx;
+  d.pen.fill(shape, mix(LEAF_DARK, LEAF, 0.3), 1);
   d.pen.clipped(shape, () => {
-    for (let k = 0; k < 10; k++) {
+    const g = ctx.createLinearGradient(foot.x - w, 0, foot.x + w, 0);
+    g.addColorStop(0, rgba(mix(LEAF_LIT, LEAF, 0.5), 0.75));
+    g.addColorStop(0.45, rgba(LEAF, 0.2));
+    g.addColorStop(1, rgba(SHADOW, 0.55));
+    ctx.fillStyle = g;
+    ctx.fillRect(foot.x - w - 2, foot.y - h - 2, w * 2 + 4, h + 4);
+    for (let k = 0; k < 12; k++) {
       const y = foot.y - h * (0.1 + rng() * 0.8);
-      d.pen.hair([pt(foot.x - w * 0.6, y), pt(foot.x - w * 0.1, y - 3), pt(foot.x + w * 0.2, y - 1)], 0.45, mix(LEAF, LIGHT, 0.5), 0.55);
+      d.pen.hair([pt(foot.x - w * 0.6, y), pt(foot.x - w * 0.1, y - 3), pt(foot.x + w * 0.2, y - 1)], 0.45, mix(LEAF_LIT, LIGHT, 0.25), 0.5);
     }
+    d.pen.hatch(shape.map((p) => pt(p.x + w * 0.5, p.y)), 1.4, 1.1, 0.3, { color: d.ink, alpha: 0.25 });
   });
+  d.pen.stroke(closed(shape), 0.45, d.ink, 0.7);
 }
 
 /** A low bush: leafy masses huddled together. */
 export function bush(d: Draw, rng: Rng, foot: Pt, s: number): void {
-  dab(d, oval(foot.x + 6 * s, foot.y + 1, 15 * s, 3 * s, 14), SHADOW, 0.25, 1.4);
-  const green = mix(LEAF, '#86a457', rng());
+  dab(d, oval(foot.x + 6 * s, foot.y + 1, 15 * s, 3 * s, 14), SHADOW, 0.38, 1.4);
+  const green = mix(LEAF, '#4f6e2c', rng());
   for (const [dx, dy, r] of [[-9, -6, 8], [9, -6, 8], [0, -11, 10]] as const) {
     const m = blob(pt(foot.x + dx * s, foot.y + dy * s), r * s, r * 0.75 * s, rng, 0.22, 14);
-    paint(d, m, mix(green, LEAF_DARK, dx > 0 ? 0.32 : 0.1), { shadow: 0.65, hatch: 0.25, line: 0.7 });
+    foliage(d, rng, m, green, dx > 0 ? 0.55 : 0.3);
   }
 }
 
 /** Brush marks: short dabs of related greens laid side by side, the tooth of a loaded brush dragged over rough paper. */
-export function texture(d: Draw, rng: Rng, shape: readonly Pt[], count: number, scale = 1, tints: readonly string[] = [GRASS_DEEP, '#c7c27c', mix(GRASS_NEAR, LIGHT, 0.4)]): void {
+export function texture(d: Draw, rng: Rng, shape: readonly Pt[], count: number, scale = 1, tints: readonly string[] = [GRASS_DEEP, '#6f6a32', mix(GRASS_NEAR, LIGHT, 0.3)]): void {
   const ctx = d.pen.ctx;
   const xs = shape.map((p) => p.x);
   const ys = shape.map((p) => p.y);
@@ -257,7 +302,7 @@ export function wood(d: Draw, rng: Rng, x0: number, x1: number, y: number, h: nu
   if (near) {
     dab(d, oval((x0 + x1) / 2 + 4 * size, y + 2 * size, (x1 - x0) * 0.55, 3 * size, 24), SHADOW, 0.3, 2 * size);
     for (let x = x0 + rng() * 6 * size; x < x1; x += (5 + rng() * 6) * size) {
-      d.pen.stroke([pt(x, y + 1.5 * size + rng() * size), pt(x + (rng() - 0.5) * size, y - 6 * size)], 0.9 + rng() * 0.6 * size, mix('#5a4433', SHADOW, 0.3), 0.85, false);
+      d.pen.stroke([pt(x, y + 1.5 * size + rng() * size), pt(x + (rng() - 0.5) * size, y - 6 * size)], 0.9 + rng() * 0.6 * size, mix(BARK, SHADOW, 0.35), 0.85, false);
     }
   }
   ctx.save();
@@ -267,7 +312,7 @@ export function wood(d: Draw, rng: Rng, x0: number, x1: number, y: number, h: nu
   ctx.fill();
   ctx.clip();
   puffPath(ctx, puffs, (p) => ({ dx: -p.r * 0.3, dy: -p.r * 0.35, k: 0.55 }));
-  ctx.fillStyle = rgba(mix(tint, LIGHT, 0.45), 0.6);
+  ctx.fillStyle = rgba(mix(tint, LIGHT, 0.38), 0.55);
   ctx.fill();
   if (near) {
     // Leaves caught by the light on each crown, and the shade under them hatched.
@@ -281,11 +326,11 @@ export function wood(d: Draw, rng: Rng, x0: number, x1: number, y: number, h: nu
   }
   const g = ctx.createLinearGradient(0, y - h - 4 * size, 0, y + 2 * size);
   g.addColorStop(0, rgba(SHADOW, 0));
-  g.addColorStop(1, rgba(SHADOW, 0.3));
+  g.addColorStop(1, rgba(SHADOW, 0.42));
   ctx.fillStyle = g;
   ctx.fillRect(x0 - 6 * size, y - h - 8 * size, x1 - x0 + 12 * size, h + 12 * size);
   ctx.restore();
-  crownLine(d, rng, puffs, y, size > 1.5 ? 0.6 : 0.5, size > 1.5 ? 0.5 : 0.35);
+  crownLine(d, rng, puffs, y, size > 1.5 ? 0.45 : 0.4, size > 1.5 ? 0.4 : 0.22);
 }
 
 /**
@@ -308,13 +353,13 @@ export function rockFace(d: Draw, rng: Rng, x0: number, x1: number, topAt: (x: n
       const xm = x + w * (0.5 + rng() * 0.3);
       const crack = jag(rng, pt(xm, ya), pt(xm + (rng() - 0.4) * 6, yb), 4, 1.8);
       const side = [...crack, pt(x + w + 2, yb), pt(x + w + 2, ya + 3)];
-      soft(ctx, 0.8, () => d.pen.fill(side, mix(ROCK, SHADOW, 0.6), 0.32 + rng() * 0.22));
-      d.pen.hatch(side, 1.7, 1.15, 0.34, { color: d.ink, alpha: 0.26 });
-      d.pen.hair(crack, 0.6, d.ink, 0.6);
+      soft(ctx, 0.8, () => d.pen.fill(side, mix(ROCK, SHADOW, 0.62), 0.4 + rng() * 0.25));
+      d.pen.hatch(side, 1.7, 1.15, 0.34, { color: d.ink, alpha: 0.3 });
+      d.pen.hair(crack, 0.5, d.ink, 0.6);
       if (k > 0) {
         const f = jag(rng, pt(x - 1, ya + (rng() - 0.5) * 3), pt(xm + 1, ya + (rng() - 0.5) * 3), 4, 1);
         soft(ctx, 1, () => d.pen.fill([...f, ...f.slice().reverse().map((p) => pt(p.x, p.y + 4))], mix(ROCK, SHADOW, 0.55), 0.3));
-        d.pen.hair(f.map((p) => pt(p.x, p.y - 0.9)), 0.8, PAPER_FILL, 0.6);
+        d.pen.hair(f.map((p) => pt(p.x, p.y - 0.9)), 0.8, litEdge(ROCK, 0.45), 0.55);
         d.pen.hair(f, 0.5, d.ink, 0.55);
       }
       if (rng() < 0.35) d.pen.hair(jag(rng, pt(x + w * 0.15, ya + 4), pt(x + w * 0.4, ya + (yb - ya) * 0.7), 3, 1), 0.4, d.ink, 0.35);
@@ -339,7 +384,7 @@ export function rock(d: Draw, rng: Rng, c: Pt, rx: number, ry: number): void {
   d.pen.fill(side, mix(ROCK, SHADOW, 0.55), 0.55);
   d.pen.hatch(side, 1.4, 1.2, 0.32, { color: d.ink, alpha: 0.3 });
   d.pen.hair([peak, pt(peak.x + rx * 0.1, c.y + ry * 0.35)], 0.45, d.ink, 0.6);
-  d.pen.stroke(closed(shape), 0.65, d.ink, 0.85);
+  d.pen.stroke(closed(shape), 0.5, d.ink, 0.8);
   tuft(d, rng, pt(c.x - rx * 0.85, c.y + ry * 0.4), 3, 0.65);
   if (rng() < 0.5) tuft(d, rng, pt(c.x + rx * 0.9, c.y + ry * 0.4), 2.6, 0.6);
 }
@@ -350,7 +395,7 @@ export function road(d: Draw, rng: Rng, spine: readonly Pt[], w: (u: number) => 
   const ctx = d.pen.ctx;
   soft(ctx, 1, () => d.pen.fill(s.shape, EARTH, 0.9));
   const crown = strip(spine, (u) => w(u) * 0.55);
-  soft(ctx, 3, () => d.pen.fill(crown.shape, mix(EARTH, LIGHT, 0.45), 0.5));
+  soft(ctx, 3, () => d.pen.fill(crown.shape, mix(EARTH, LIGHT, 0.3), 0.4));
   d.pen.clipped(s.shape, () => {
     soft(ctx, 2.5, () => {
       for (let i = 0; i < spine.length; i += 2) {
@@ -361,8 +406,8 @@ export function road(d: Draw, rng: Rng, spine: readonly Pt[], w: (u: number) => 
     if (ruts) {
       for (const k of [-0.25, 0.25]) {
         const rut = spine.map((p, i) => pt(p.x + (s.left[i]!.x - p.x) * k * 2, p.y + (s.left[i]!.y - p.y) * k * 2));
-        d.pen.hair(rut, 0.7, mix(EARTH, SHADOW, 0.5), 0.45);
-        d.pen.hair(rut.map((p) => pt(p.x - 0.9, p.y - 0.7)), 0.5, PAPER_FILL, 0.35);
+        d.pen.hair(rut, 0.7, mix(EARTH, SHADOW, 0.55), 0.55);
+        d.pen.hair(rut.map((p) => pt(p.x - 0.9, p.y - 0.7)), 0.5, litEdge(EARTH, 0.45), 0.35);
       }
     }
   });
@@ -411,7 +456,7 @@ export function revetment(d: Draw, rng: Rng, front: readonly Pt[]): void {
     }
     soft(ctx, 1.5, () => d.pen.fill(front.map((p) => pt(p.x, p.y + 5)).concat(front.slice().reverse().map((p) => pt(p.x, p.y + 9))), SHADOW, 0.25));
   });
-  d.pen.hair(front.map((p) => pt(p.x, p.y - 0.6)), 0.8, PAPER_FILL, 0.6);
+  d.pen.hair(front.map((p) => pt(p.x, p.y - 0.6)), 0.8, litEdge(ROCK, 0.45), 0.55);
   d.pen.stroke(front.map((p) => pt(p.x, p.y + 7)), 0.8, d.ink, 0.7, false);
   for (const p of front) if (rng() < 0.4) tuft(d, rng, pt(p.x, p.y + 8), 3, 0.6);
   broken(d, rng, front, 0.6, d.ink, 0.5, 0.8);

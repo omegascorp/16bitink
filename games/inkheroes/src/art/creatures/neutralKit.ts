@@ -1,24 +1,29 @@
 import { capsule, closed, pt, ribbon, TAU, type Draw } from '../kit';
-import { PAPER_FILL } from '../palette';
 import { pathOf, type Pt } from '../pen';
 import { mix, rgba } from '../wash';
 
 /**
  * Painting for the neutral monsters (goblin, skeleton, bandit), ported from
  * InkMine's sprite painting (inkmine/src/art/paint.ts): each part is laid
- * in like a watercolour study, not a flat fill: a body colour, the light
- * rolling in from the upper left, a soft core shadow on the far side with
- * light bounced back into its edge, pigment pooled at the wash's rim, a
- * little hatching in the shadow, then a fine pen line. The figure's one
- * heavy silhouette and rim light come after, in neutralFinish.ts.
+ * in like an oil study in low, late light: a deep body colour, the warm
+ * light rolling in from the upper left, a dark core shadow on the far side
+ * with a little warm light bounced back into its edge, pigment pooled at
+ * the rim, hatching in the shadow, then a fine umber pen line. The figure's
+ * one silhouette and warm rim light come after, in neutralFinish.ts.
  */
 
-/** Warm light from the upper left. */
-export const LIGHT = '#fff2d8';
-/** Cool shadow: indigo, as a painter mixes it (never black). */
-export const SHADOW = '#1e2350';
-/** Light bounced up from the ground into a shadow. */
-export const BOUNCE = '#c9c3b0';
+/** Warm late-afternoon light from the upper left. */
+export const LIGHT = '#f6d49a';
+/** Deep shadow: violet-umber, as a painter mixes it (never grey). */
+export const SHADOW = '#22141a';
+/** Warm earth light bounced up from the ground into a shadow. */
+export const BOUNCE = '#8a6a48';
+/** The darkest dark: near-black umber. */
+export const UMBER = '#1a120c';
+/** Highlights are warm ivory, never white. */
+export const IVORY = '#e9dfc6';
+/** Pen lines are drawn at this share of the widths the figures ask for: a finishing pen, not an outline. */
+export const LINE_K = 0.66;
 /** Which way the light comes from: up and to the left. */
 export const TO_LIGHT: Pt = { x: -0.55, y: -0.84 };
 
@@ -106,17 +111,17 @@ export function paint(d: Draw, shape: readonly Pt[], color: string, o: PaintOpts
   const size = Math.max(1, Math.max(b.w, b.h));
   const minor = Math.max(1, Math.min(b.w, b.h));
   const shadow = o.shadow ?? 0.5;
-  pen.fill(shape, PAPER_FILL, 1);
+  pen.fill(shape, mix(color, UMBER, 0.45), 1);
   pen.clipped(shape, () => {
-    ctx.globalAlpha = o.alpha ?? 0.92;
+    ctx.globalAlpha = o.alpha ?? 1;
     ctx.fillStyle = color;
     ctx.fillRect(b.x0 - 1, b.y0 - 1, b.w + 2, b.h + 2);
-    const lx = b.x0 + b.w * 0.32;
-    const ly = b.y0 + b.h * 0.24;
-    const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, size * 0.85);
-    const lit = mix(color, LIGHT, o.gloss ? 0.7 : 0.45);
-    g.addColorStop(0, rgba(lit, 0.85));
-    g.addColorStop(o.gloss ? 0.25 : 0.45, rgba(lit, 0.25));
+    const lx = b.x0 + b.w * 0.3;
+    const ly = b.y0 + b.h * 0.22;
+    const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, size * 0.8);
+    const lit = mix(color, LIGHT, o.gloss ? 0.62 : 0.34);
+    g.addColorStop(0, rgba(lit, o.gloss ? 0.9 : 0.75));
+    g.addColorStop(o.gloss ? 0.22 : 0.42, rgba(lit, 0.22));
     g.addColorStop(1, rgba(lit, 0));
     ctx.globalAlpha = 1;
     ctx.fillStyle = g;
@@ -124,14 +129,14 @@ export function paint(d: Draw, shape: readonly Pt[], color: string, o: PaintOpts
   });
   if (shadow > 0) {
     const k = minor * 0.42;
-    crescentFill(ctx, shape, TO_LIGHT.x * k, TO_LIGHT.y * k, mix(color, SHADOW, 0.62), 0.75 * shadow, o.gloss ? minor * 0.04 : minor * 0.12);
+    crescentFill(ctx, shape, TO_LIGHT.x * k, TO_LIGHT.y * k, mix(color, SHADOW, 0.72), Math.min(1, 0.9 * shadow), o.gloss ? minor * 0.04 : minor * 0.12);
     const r = minor * 0.09;
-    crescentFill(ctx, shape, TO_LIGHT.x * r, TO_LIGHT.y * r, mix(color, BOUNCE, 0.5), 0.35 * shadow, minor * 0.04);
+    crescentFill(ctx, shape, TO_LIGHT.x * r, TO_LIGHT.y * r, mix(color, BOUNCE, 0.38), 0.3 * shadow, minor * 0.04);
   }
   pen.clipped(shape, () => {
     soft(ctx, minor * 0.05, () => {
-      ctx.globalAlpha = 0.28;
-      ctx.strokeStyle = mix(color, SHADOW, 0.45);
+      ctx.globalAlpha = 0.32;
+      ctx.strokeStyle = mix(color, SHADOW, 0.55);
       ctx.lineWidth = Math.min(2.2, minor * 0.16);
       pathOf(ctx, shape);
       ctx.stroke();
@@ -149,12 +154,12 @@ export function paint(d: Draw, shape: readonly Pt[], color: string, o: PaintOpts
     }
   }
   const line = o.line ?? 0.6;
-  if (line > 0) pen.stroke(closed(shape), line, d.ink, o.lineAlpha ?? 0.9);
+  if (line > 0) pen.stroke(closed(shape), line * LINE_K, d.ink, o.lineAlpha ?? 0.85);
 }
 
 /** A thin painted highlight along a curve: the glint on metal, a lit ridge. */
-export function gleam(d: Draw, pts: readonly Pt[], w: number, alpha = 0.9): void {
-  soft(d.pen.ctx, w * 0.25, () => d.pen.stroke(pts, w, PAPER_FILL, alpha, false));
+export function gleam(d: Draw, pts: readonly Pt[], w: number, alpha = 0.9, color: string = IVORY): void {
+  soft(d.pen.ctx, w * 0.25, () => d.pen.stroke(pts, w, color, alpha, false));
 }
 
 /** A soft wash dabbed over a shape (grime, rust, a cast shadow), feathered at its edge. */
@@ -256,13 +261,13 @@ export function stitches(d: Draw, from: Pt, to: Pt, n: number, color: string, w 
 
 /** Fold lines in cloth: fine strokes in the cloth's own shadow colour. */
 export function folds(d: Draw, lines: readonly (readonly Pt[])[], color: string, w = 0.45, alpha = 0.75): void {
-  const deep = mix(color, SHADOW, 0.55);
-  for (const l of lines) d.pen.hair(l, w, deep, alpha);
+  const deep = mix(color, SHADOW, 0.65);
+  for (const l of lines) d.pen.hair(l, w * 0.85, deep, alpha);
 }
 
 /** A rivet or nail head: a small dome, dark below and lit on top. */
 export function stud(d: Draw, p: Pt, r: number, color: string): void {
   d.pen.dot(p.x + r * 0.25, p.y + r * 0.3, r, d.ink, 0.6);
   d.pen.dot(p.x, p.y, r * 0.8, color, 1);
-  d.pen.dot(p.x - r * 0.25, p.y - r * 0.3, r * 0.38, PAPER_FILL, 0.9);
+  d.pen.dot(p.x - r * 0.25, p.y - r * 0.3, r * 0.38, IVORY, 0.85);
 }

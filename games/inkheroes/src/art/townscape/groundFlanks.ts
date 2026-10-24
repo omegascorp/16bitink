@@ -1,10 +1,9 @@
 import type { Rng } from '../../logic/rng';
 import { bezier, closed, oval, pt, type Draw } from '../kit';
-import { PAPER_FILL } from '../palette';
 import type { Pt } from '../pen';
 import { backArc, beam, block, frontArc, frontOf, gable, HOLE, PLANK, quad, roundWash, SHINGLE, STONE, THATCH } from '../sites/build';
 import { blob, crisp, dab, flat, LIGHT, mix, paint, rgba, SHADOW, soft } from '../sites/paintKit';
-import { broken, bush, crownLine, curve, cypress, EARTH, GRASS_DEEP, GRASS_FAR, LEAF, LEAF_DARK, type Puff, puffPath, road, rock, ROCK, strip, tree, tuft, wood, yAt } from './groundParts';
+import { BARK, broken, bush, crownLine, curve, cypress, EARTH, GRASS_DEEP, GRASS_FAR, IVORY, LEAF, LEAF_DARK, LEAF_LIT, litEdge, type Puff, puffPath, road, rock, ROCK, strip, tree, tuft, wood, yAt } from './groundParts';
 import { TOWN_VIEW } from './types';
 
 /**
@@ -30,11 +29,15 @@ export const FLANK_LANES = {
   right: [pt(1680, 398), pt(1760, 372), pt(1830, 338), pt(1890, 308), pt(1950, 282), pt(W + 14, 262)],
 } as const;
 
-const WATER = '#d6e2ea';
-const WATER_DEEP = '#8aa2c4';
-const WOOL = '#efe7d3';
-const VINE = '#557a3c';
-const WHITEWASH = '#e8dfca';
+/** Water holding the evening sky: dusky blue-grey, amber glints. */
+const WATER = '#4e566a';
+const WATER_DEEP = '#263049';
+const GLINT = '#d8b47a';
+const WOOL = '#c4b898';
+const FACE = '#2a221c';
+const VINE = '#3d5a28';
+const WHITEWASH = '#7a6e5a';
+const POST = '#5e5040';
 
 const at = (d: Draw, p: Pt, paint: () => void): void => {
   const ctx = d.pen.ctx;
@@ -59,9 +62,9 @@ function woodEdge(d: Draw, rng: Rng): void {
 function sheep(d: Draw, rng: Rng, foot: Pt, facing: 1 | -1, grazing: boolean): void {
   const { x, y } = foot;
   dab(d, oval(x + 2, y + 0.6, 8, 1.8, 14), SHADOW, 0.3, 1);
-  for (const dx of [-3.6, -1.6, 2.2, 4]) d.pen.hair([pt(x + dx, y - 3.5), pt(x + dx + (rng() - 0.5) * 0.6, y)], 0.8, '#3a3540', 0.9);
+  for (const dx of [-3.6, -1.6, 2.2, 4]) d.pen.hair([pt(x + dx, y - 3.5), pt(x + dx + (rng() - 0.5) * 0.6, y)], 0.8, FACE, 0.9);
   const body = blob(pt(x, y - 6), 6.4, 4.2, rng, 0.16, 16);
-  paint(d, body, WOOL, { shadow: 0.55, hatch: 0.14, line: 0.55 });
+  paint(d, body, WOOL, { shadow: 0.7, hatch: 0.16, line: 0.45 });
   d.pen.clipped(body, () => {
     for (let k = 0; k < 7; k++) {
       const c = pt(x - 4 + rng() * 8, y - 8.5 + rng() * 5);
@@ -70,9 +73,9 @@ function sheep(d: Draw, rng: Rng, foot: Pt, facing: 1 | -1, grazing: boolean): v
   });
   const head = pt(x + facing * 6.6, y - (grazing ? 3 : 7.4));
   const face = blob(head, 2.4, 1.7, rng, 0.1, 10, facing * (grazing ? 0.9 : 0.35));
-  d.pen.fill(face, '#3d3843', 0.95);
-  d.pen.fill(blob(pt(head.x - 0.6, head.y - 0.6), 0.9, 0.6, rng, 0.1, 8), mix('#3d3843', LIGHT, 0.4), 0.7);
-  d.pen.hair([pt(head.x - facing * 1.4, head.y - 1.2), pt(head.x - facing * 3, head.y - 1.8)], 0.7, '#3d3843', 0.9);
+  d.pen.fill(face, FACE, 0.95);
+  d.pen.fill(blob(pt(head.x - 0.6, head.y - 0.6), 0.9, 0.6, rng, 0.1, 8), mix(FACE, LIGHT, 0.3), 0.6);
+  d.pen.hair([pt(head.x - facing * 1.4, head.y - 1.2), pt(head.x - facing * 3, head.y - 1.8)], 0.7, FACE, 0.9);
   if (grazing) tuft(d, rng, pt(head.x + facing, head.y + 2), 2.4, 0.7);
 }
 
@@ -88,13 +91,13 @@ function fence(d: Draw, rng: Rng, line: readonly Pt[], gap = 16): void {
       const a = posts[i]!;
       const b = posts[i + 1]!;
       const rail = bezier(pt(a.x, a.y - v), pt((a.x + b.x) / 2, (a.y + b.y) / 2 - v + 0.8), pt(b.x, b.y - v), 6);
-      d.pen.hair(rail, 1.3, mix('#8d7a62', LIGHT, 0.2), 0.9);
+      d.pen.hair(rail, 1.3, mix(POST, LIGHT, 0.2), 0.9);
       d.pen.hair(rail.map((p) => pt(p.x, p.y + 0.6)), 0.45, d.ink, 0.6);
     }
   }
   for (const p of posts) {
     const post = crisp([pt(p.x - 0.9, p.y - 12 - rng()), pt(p.x + 0.9, p.y - 12.4), pt(p.x + 1, p.y), pt(p.x - 1, p.y)], 2);
-    flat(d, post, '#9b8a73', { tone: 0.1, line: 0.5 });
+    flat(d, post, POST, { tone: 0.1, line: 0.45 });
     tuft(d, rng, pt(p.x, p.y + 0.5), 3, 0.6);
   }
 }
@@ -106,11 +109,11 @@ const STREAM = curve([pt(306, 320), pt(298, 334), pt(310, 350), pt(292, 366), pt
 function stream(d: Draw, rng: Rng): void {
   const ctx = d.pen.ctx;
   const s = strip(STREAM, (u) => 2.5 + u * 13 + 2.2 * Math.sin(u * 17));
-  dab(d, s.shape.map((p) => pt(p.x + 1, p.y + 1.5)), mix(GRASS_DEEP, SHADOW, 0.3), 0.35, 1.5);
-  d.pen.fill(s.shape, PAPER_FILL, 1);
+  dab(d, s.shape.map((p) => pt(p.x + 1, p.y + 1.5)), mix(GRASS_DEEP, SHADOW, 0.3), 0.45, 1.5);
+  d.pen.fill(s.shape, WATER_DEEP, 1);
   d.pen.clipped(s.shape, () => {
     const g = ctx.createLinearGradient(0, 320, 0, 480);
-    g.addColorStop(0, rgba(mix(WATER, LIGHT, 0.2), 0.95));
+    g.addColorStop(0, rgba(mix(WATER, GLINT, 0.25), 0.95));
     g.addColorStop(1, rgba(mix(WATER, WATER_DEEP, 0.3), 0.95));
     ctx.fillStyle = g;
     ctx.fillRect(200, 320, 150, 170);
@@ -119,15 +122,15 @@ function stream(d: Draw, rng: Rng): void {
     for (let i = 4; i < STREAM.length - 2; i += 2) {
       const p = STREAM[i]!;
       const w = 2 + (i / STREAM.length) * 5;
-      d.pen.hair([pt(p.x - w + rng() * 2, p.y + rng()), pt(p.x + w * 0.4 + rng() * 2, p.y + rng())], 0.6, PAPER_FILL, 0.8);
+      d.pen.hair([pt(p.x - w + rng() * 2, p.y + rng()), pt(p.x + w * 0.4 + rng() * 2, p.y + rng())], 0.6, GLINT, 0.6);
     }
   });
-  broken(d, rng, s.left, 0.7, d.ink, 0.7, 0.85);
+  broken(d, rng, s.left, 0.55, d.ink, 0.7, 0.85);
   broken(d, rng, s.right, 0.6, d.ink, 0.5, 0.7);
   for (const edge of [s.left, s.right]) for (const p of edge) if (rng() < 0.5) tuft(d, rng, pt(p.x, p.y + 0.5), 3.4, 0.7);
   // The spring: water welling out between stones at the foot of the rocks.
   for (const [x, y, r] of [[296, 322, 6], [316, 324, 5], [318, 352, 4], [284, 368, 4.5], [270, 384, 3.5], [258, 432, 5], [244, 462, 6]] as const) rock(d, rng, pt(x, y), r, r * 0.55);
-  d.pen.fill(oval(305, 322, 4, 1.4, 12), PAPER_FILL, 0.8);
+  d.pen.fill(oval(305, 322, 4, 1.4, 12), GLINT, 0.55);
   // Reeds where it slows.
   for (const [x, y] of [[226, 440], [262, 446], [272, 372], [236, 470]] as const) {
     for (let k = 0; k < 5; k++) d.pen.hair([pt(x + k * 1.4, y), pt(x + k * 1.4 + (rng() - 0.3) * 2, y - 6 - rng() * 4)], 0.5, mix(GRASS_DEEP, SHADOW, 0.2), 0.8);
@@ -150,7 +153,7 @@ function bridge(d: Draw, rng: Rng): void {
       for (let x = x0 - flare + rng() * 3; x < x1 + flare; x += 4 + rng() * 3) d.pen.hair([pt(x, y - h + hump(x) + 0.6), pt(x, y + hump(x) - 0.4)], 0.4, d.ink, 0.45);
       d.pen.hair(base.map((p) => pt(p.x, p.y - h / 2)), 0.4, d.ink, 0.35);
     });
-    d.pen.hair(top.map((p) => pt(p.x, p.y + 0.4)), 0.9, PAPER_FILL, 0.7);
+    d.pen.hair(top.map((p) => pt(p.x, p.y + 0.4)), 0.9, litEdge(ROCK, 0.45), 0.6);
   };
   parapet(399, 4.5, 2);
   // The near face: a span of stone from the parapet down to the water, the arch's dark mouth in it.
@@ -189,7 +192,7 @@ function rick(d: Draw, rng: Rng, foot: Pt, r: number, h: number): void {
   const { x, y } = foot;
   dab(d, oval(x + r * 0.7, y + 1, r * 1.6, r * 0.35, 14), SHADOW, 0.3, 1.4);
   const body = [...frontArc(x, y, r), ...backArc(x, y - h, r)];
-  roundWash(d, body, x - r, x + r, '#cfae62', 0.25);
+  roundWash(d, body, x - r, x + r, '#94733a', 0.3);
   d.pen.clipped(body, () => {
     for (let k = 0; k < r * 3; k++) {
       const px = x - r + rng() * r * 2;
@@ -218,7 +221,7 @@ function barn(d: Draw, rng: Rng, foot: Pt): void {
   at(d, foot, () => {
     dab(d, oval(16, 2, 60, 8, 20), SHADOW, 0.25, 2.5);
     const b = { x0: -38, x1: 38, z0: 0, z1: 28, h0: 0, h1: 30 };
-    const { front } = block(d, rng, b, mix(PLANK, '#9c9078', 0.35), 'plank', false);
+    const { front } = block(d, rng, b, mix(PLANK, '#5e584c', 0.4), 'plank', false);
     // A footing of field stones.
     const face = frontOf(b);
     d.pen.clipped(front, () => d.pen.fill(crisp(quad(face, -1, -1, 77, 4.5), 3), mix(ROCK, SHADOW, 0.15), 0.85));
@@ -233,7 +236,7 @@ function barn(d: Draw, rng: Rng, foot: Pt): void {
     d.pen.hair([pt(leaf[0]!.x + 5, leaf[0]!.y - 0.5), pt(leaf[0]!.x + 5, leaf[0]!.y - 23)], 0.4, d.ink, 0.5);
     d.pen.fill(crisp(quad(face, 11, 15, 17, 20), 2), HOLE, 0.85);
     d.pen.fill(crisp(quad(face, 61, 15, 67, 20), 2), HOLE, 0.85);
-    gable(d, rng, b, 26, 'x', THATCH, 'thatch', mix(PLANK, '#9c9078', 0.35), 3);
+    gable(d, rng, b, 26, 'x', THATCH, 'thatch', mix(PLANK, '#5e584c', 0.4), 3);
   });
 }
 
@@ -276,13 +279,13 @@ function windmill(d: Draw, rng: Rng, foot: Pt): void {
     const frame = [along(10, 0), along(44, 0), along(44, 8), along(10, 8)];
     if (k % 2 === 0) {
       const cloth = [along(12, 0.6), along(43, 0.6), along(43, 7.4), along(12, 7.4)];
-      paint(d, cloth, '#efe6d0', { shadow: 0.35, hatch: 0, line: 0 });
+      paint(d, cloth, '#a89878', { shadow: 0.5, hatch: 0, line: 0 });
     }
-    for (let t = 10; t <= 44; t += 3.4) d.pen.hair([along(t, 0), along(t, 8)], 0.45, '#5a4a3a', 0.85);
-    d.pen.hair([frame[3]!, frame[2]!], 0.6, '#5a4a3a', 0.9);
-    beam(d, hub, tip, 1.6, '#7a5a3c', 0.5);
+    for (let t = 10; t <= 44; t += 3.4) d.pen.hair([along(t, 0), along(t, 8)], 0.45, '#3a2a1e', 0.85);
+    d.pen.hair([frame[3]!, frame[2]!], 0.6, '#3a2a1e', 0.9);
+    beam(d, hub, tip, 1.6, BARK, 0.45);
   }
-  d.pen.dot(hub.x, hub.y, 2.4, '#5a4a3a', 1);
+  d.pen.dot(hub.x, hub.y, 2.4, '#3a2a1e', 1);
   d.pen.dot(hub.x - 0.7, hub.y - 0.7, 0.8, LIGHT, 0.7);
   void rng;
 }
@@ -322,9 +325,9 @@ function vineyard(d: Draw, rng: Rng, horizon: readonly Pt[], front: readonly Pt[
       if (Math.min(x - a!, b! - x) < 14 && rng() < 0.35) continue;
       const y = rowAt(x);
       const r = (2.3 + rng() * 0.8) * near;
-      const tint = mix(VINE, k < 3 ? '#9fb08c' : '#86a24f', rng() * 0.6);
+      const tint = mix(VINE, k < 3 ? '#5d6a4a' : LEAF_LIT, rng() * 0.6);
       d.pen.fill(blob(pt(x, y - r * 0.6), r, r * 0.75, rng, 0.25, 9), tint, 0.92);
-      d.pen.fill(blob(pt(x - r * 0.35, y - r * 1.05), r * 0.5, r * 0.35, rng, 0.25, 8), mix(tint, LIGHT, 0.5), 0.75);
+      d.pen.fill(blob(pt(x - r * 0.35, y - r * 1.05), r * 0.5, r * 0.35, rng, 0.25, 8), mix(tint, LIGHT, 0.3), 0.65);
       if (rng() < 0.35) d.pen.hair([pt(x + r * 0.2, y - r * 1.4), pt(x + r * 0.9, y - r * 0.2)], 0.4, d.ink, 0.45);
     }
     broken(d, rng, line.map((p) => pt(p.x, p.y + 0.4)), 0.45, d.ink, 0.35 * near, 0.6);
@@ -342,12 +345,12 @@ function shrine(d: Draw, rng: Rng, foot: Pt): void {
     const face = frontOf(b);
     const niche = [face(1.6, 12), face(1.6, 16.5), ...bezier(face(1.6, 16.5), face(3.5, 19), face(5.4, 16.5), 6).slice(1), face(5.4, 12)];
     d.pen.fill(niche, HOLE, 0.85);
-    d.pen.dot(face(3.5, 14).x, face(3.5, 14).y, 0.9, '#d9b24a', 0.95);
+    d.pen.dot(face(3.5, 14).x, face(3.5, 14).y, 0.9, '#c4983a', 0.95);
     d.pen.stroke(closed(niche), 0.45, d.ink, 0.8);
     gable(d, rng, b, 5, 'z', SHINGLE, 'shingle', STONE, 1.4);
     d.pen.hair([pt(face(3.5, 26).x, face(3.5, 26).y - 0.5), pt(face(3.5, 26).x, face(3.5, 26).y - 4)], 0.6, d.ink, 0.85);
     d.pen.hair([pt(face(3.5, 26).x - 1.6, face(3.5, 26).y - 2.8), pt(face(3.5, 26).x + 1.6, face(3.5, 26).y - 2.8)], 0.6, d.ink, 0.85);
-    for (const [dx, c] of [[-5, '#e8a9a0'], [-3, '#fbf4dc'], [5, '#ecc94e'], [6.5, '#e8a9a0']] as const) {
+    for (const [dx, c] of [[-5, '#9c4436'], [-3, IVORY], [5, '#c4983a'], [6.5, '#9c4436']] as const) {
       tuft(d, rng, pt(dx, 1), 3, 0.7);
       d.pen.dot(dx + (rng() - 0.5), -2.2, 0.9, c, 0.95);
     }
@@ -372,7 +375,7 @@ function hedge(d: Draw, rng: Rng, pts: readonly Pt[], s = 1): void {
   }
   const tint = mix(LEAF, LEAF_DARK, 0.3);
   const none = (): { dx: number; dy: number; k: number } => ({ dx: 0, dy: 0, k: 1 });
-  dab(d, strip(line.map((p) => pt(p.x + 7 * s, p.y + 1)), () => 8 * s).shape, SHADOW, 0.25, 2);
+  dab(d, strip(line.map((p) => pt(p.x + 7 * s, p.y + 1)), () => 8 * s).shape, SHADOW, 0.38, 2);
   ctx.save();
   puffPath(ctx, puffs, none);
   ctx.fillStyle = tint;
@@ -380,19 +383,19 @@ function hedge(d: Draw, rng: Rng, pts: readonly Pt[], s = 1): void {
   ctx.clip();
   soft(ctx, 1.2, () => {
     puffPath(ctx, puffs, (p) => ({ dx: -p.r * 0.3, dy: -p.r * 0.35, k: 0.6 }));
-    ctx.fillStyle = rgba(mix(tint, LIGHT, 0.5), 0.65);
+    ctx.fillStyle = rgba(mix(tint, LEAF_LIT, 0.6), 0.55);
     ctx.fill();
   });
   soft(ctx, 2, () => {
     puffPath(ctx, puffs, (p) => ({ dx: p.r * 0.35, dy: p.r * 0.6, k: 0.8 }));
-    ctx.fillStyle = rgba(mix(tint, SHADOW, 0.5), 0.45);
+    ctx.fillStyle = rgba(mix(tint, SHADOW, 0.55), 0.6);
     ctx.fill();
   });
   for (const p of puffs) {
-    if (rng() < 0.6) d.pen.hair([pt(p.c.x - p.r * 0.5, p.c.y - p.r * 0.2), pt(p.c.x - p.r * 0.1, p.c.y - p.r * 0.45), pt(p.c.x + p.r * 0.2, p.c.y - p.r * 0.2)], 0.45, mix(tint, LIGHT, 0.65), 0.6);
+    if (rng() < 0.6) d.pen.hair([pt(p.c.x - p.r * 0.5, p.c.y - p.r * 0.2), pt(p.c.x - p.r * 0.1, p.c.y - p.r * 0.45), pt(p.c.x + p.r * 0.2, p.c.y - p.r * 0.2)], 0.45, mix(LEAF_LIT, LIGHT, 0.3), 0.5);
   }
   ctx.restore();
-  crownLine(d, rng, puffs, Math.max(...line.map((p) => p.y)) + 2, 0.6, 0.55);
+  crownLine(d, rng, puffs, Math.max(...line.map((p) => p.y)) + 2, 0.45, 0.45);
   broken(d, rng, line.map((p) => pt(p.x, p.y + 0.5)), 0.6, d.ink, 0.5, 0.6);
   for (const p of line) if (rng() < 0.3) tuft(d, rng, pt(p.x, p.y + 1), 3, 0.65);
 }

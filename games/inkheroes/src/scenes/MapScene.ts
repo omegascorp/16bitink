@@ -1,6 +1,6 @@
 import { runInSlices } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
-import { PAPER } from '../art/palette';
+import { BACKDROP } from '../art/palette';
 import { TILE } from '../art/terrain';
 import { chunkJobs, dropChunks, heroFigure, poseJobs } from '../art/textures';
 import { getSound } from '../host';
@@ -13,6 +13,7 @@ import { openPrompt } from './cards';
 import { DPR, screenZoom, toView } from './hidpi';
 import { MapWorld } from './map/mapWorld';
 import { Session } from './session';
+import { loadingText } from './ui';
 
 /** A press that moves further than this (CSS px) is a drag, not a tap. */
 const DRAG = 8;
@@ -44,8 +45,8 @@ export class MapScene extends Phaser.Scene {
     this.ready = false;
     this.path = null;
     this.walking = false;
-    this.cameras.main.setBackgroundColor(PAPER);
-    const label = this.add.text(0, 0, 'unrolling the map…', { fontFamily: '"Caveat", cursive', fontSize: '32px', color: '#232a4f' }).setOrigin(0.5);
+    this.cameras.main.setBackgroundColor(BACKDROP);
+    const label = loadingText(this, 0, 0, 'unrolling the map…', 30);
     this.cameras.main.centerOn(0, 0).setZoom(DPR);
     dropChunks(this, this.session.def.id);
     // The map's ground, the hero's gallop for riding across it, and everyone's idle loop.
