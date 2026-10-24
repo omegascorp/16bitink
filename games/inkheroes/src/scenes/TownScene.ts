@@ -1,37 +1,53 @@
+import { runInSlices } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { CREATURE_RES, FRAME_H, GROUND_Y } from '../art/creatures/types';
 import { INK, PAPER } from '../art/palette';
-import { TEX } from '../art/textures';
+import { TEX, townJobs } from '../art/textures';
 import { getSound } from '../host';
 import { enterTown, heroInTown } from '../logic/adventure';
 import { moveSlot, type Army } from '../logic/army';
 import { BUILDINGS, type BuildingId } from '../logic/buildings';
-import { creature, type CreatureId } from '../logic/creatures';
-import { describeAmount, pay, canAfford, RESOURCES } from '../logic/resources';
-import { SPELLS } from '../logic/spells';
-import { build, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, hire, hireable, income, SPELLBOOK_COST } from '../logic/town';
+import type { CreatureId } from '../logic/creatures';
+import { canAfford, describeAmount, pay, RESOURCES } from '../logic/resources';
+import { build, cantBuild, has, hire, income, SPELLBOOK_COST } from '../logic/town';
 import { screenScene, viewSize } from './hidpi';
 import type { MapScene } from './MapScene';
 import { Session } from './session';
+import { buildPanel, guildPanel, recruitPanel, type PanelBody, type PanelKind, type TownActions } from './town/townPanels';
+import { shownPieces, townView, TOWN_VIEW } from './town/townView';
+import { inkText } from './ui';
 import { cardFit } from './uiLayout';
-import { HAND, paintedButton, paperCard } from './uiPaint';
+import { HAND, paintedButton, paperCard, roundButton } from './uiPaint';
 
-/** The town screen is laid out on this board and scaled to fit. */
-const BOARD = { w: 1180, h: 720 } as const;
-const TILE = { w: 176, h: 86 } as const;
+/** The town screen is laid out on this board and scaled to fit: the townscape over a strip for the armies. */
+const BOARD = { w: TOWN_VIEW.w, h: 720 } as const;
+const STRIP = { y: TOWN_VIEW.h, h: BOARD.h - TOWN_VIEW.h } as const;
 const SANS = 'Georgia, serif';
 
 type SlotRef = { readonly army: 'hero' | 'garrison'; readonly i: number };
 
+/** What tapping each building in the townscape opens. */
+const OPENS: Partial<Record<BuildingId, PanelKind>> = {
+  villageHall: 'build', townHall: 'build', cityHall: 'build', capitol: 'build',
+  fort: 'recruit', citadel: 'recruit', castle: 'recruit',
+  guardhouse: 'recruit', archeryRange: 'recruit', griffinTower: 'recruit', barracks: 'recruit', monastery: 'recruit', tiltyard: 'recruit', seraphSpire: 'recruit',
+  mageGuild1: 'guild', mageGuild2: 'guild',
+};
+
 /**
- * A town: build one thing a day, hire from its dwellings, swap units
- * between the garrison and the visiting hero, buy a spellbook. Laid out on
- * one board that scales to the screen.
+ * A town, as Heroes III shows it: the painted townscape, where each
+ * building stands once built and opens what it does when tapped (the hall
+ * its ledger of buildings, the walls and dwellings the muster, the guild
+ * its spells), over a strip with the purse, the garrison and the visiting
+ * hero. One building a day; units swap between garrison and hero.
  */
 export class TownScene extends Phaser.Scene {
   private session!: Session;
   private board!: Phaser.GameObjects.Container;
   private picked: SlotRef | null = null;
+  private panel: PanelKind | null = null;
+  private fresh: BuildingId | undefined;
+  private ready = false;
 
   constructor() {
     super('Town');
@@ -42,10 +58,27 @@ export class TownScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(PAPER);
     this.session = Session.get(this);
     this.picked = null;
-    this.draw();
+    this.panel = null;
+    this.fresh = undefined;
+    this.ready = false;
     this.scale.on('resize', this.draw, this);
-    this.input.keyboard?.on('keydown-ESC', () => this.close());
+    this.input.keyboard?.on('keydown-ESC', () => (this.panel ? this.openPanel(null) : this.close()));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', this.draw, this));
+    // The townscape is painted the first time a town opens (and as it grows).
+    const jobs = townJobs(this, shownPieces(this.session.adv.town.built));
+    if (!jobs.length) {
+      this.ready = true;
+      this.draw();
+      return;
+    }
+    const v = viewSize(this);
+    const label = inkText(this, v.width / 2, v.height / 2, `the gates of ${this.session.adv.town.name} open…`, 32);
+    void runInSlices(jobs).then(() => {
+      if (!this.sys.isActive()) return;
+      label.destroy();
+      this.ready = true;
+      this.draw();
+    });
   }
 
   private close(): void {
@@ -53,46 +86,109 @@ export class TownScene extends Phaser.Scene {
     (this.scene.get('Map') as MapScene).back();
   }
 
+  private actions(): TownActions {
+    return { build: (id) => this.tryBuild(id), hire: (id, n) => this.hire(id, n), buyBook: () => this.buyBook() };
+  }
+
   private draw(): void {
+    if (!this.ready) return;
     this.board?.destroy();
     const v = viewSize(this);
-    const adv = this.session.adv;
-    const t = adv.town;
     const b = this.add.container(0, 0);
     this.board = b;
     const s = cardFit(v, BOARD, 1.25);
     b.setScale(s).setPosition(v.width / 2 - (BOARD.w * s) / 2, v.height / 2 - (BOARD.h * s) / 2);
-    b.add(this.add.text(0, 0, t.name, { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '52px', color: INK }));
-    b.add(this.add.text(0, 58, `${income(t)} gold a day · ${t.builtToday ? 'built today' : 'one building a day'}`, { fontFamily: SANS, fontSize: '16px', color: INK }));
-    b.add(this.add.text(BOARD.w - 150, 6, RESOURCES.map((r) => `${adv.purse[r]} ${r}`).join('   '), { fontFamily: SANS, fontSize: '15px', color: INK, align: 'right', wordWrap: { width: 560 } }).setOrigin(1, 0));
-    b.add(paintedButton(this, BOARD.w - 60, 28, 'Leave', () => this.close(), { width: 110, height: 46, size: 24, kind: 'leaf' }));
-    this.drawBuildings(b);
-    this.drawRecruits(b);
-    this.drawArmies(b);
+    b.add(townView(this, this.session.adv.town.built, { onPick: (id) => this.pickBuilding(id), fresh: this.fresh }));
+    this.fresh = undefined;
+    this.drawStrip(b);
+    if (this.panel) this.drawPanel(b, this.panel);
   }
 
-  private drawBuildings(b: Phaser.GameObjects.Container): void {
+  /** The strip under the townscape: name, income and purse; the armies; the town's buttons. */
+  private drawStrip(b: Phaser.GameObjects.Container): void {
     const adv = this.session.adv;
-    const off = this.session.def.off;
-    const shown = BUILD_ORDER.filter((id) => !off.includes(id));
-    b.add(this.add.text(0, 92, 'Buildings', { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '30px', color: INK }));
-    shown.forEach((id, i) => {
-      const x = (i % 4) * (TILE.w + 10);
-      const y = 132 + Math.floor(i / 4) * (TILE.h + 10);
-      const built = has(adv.town, id);
-      const why = cantBuild(adv.town, id, adv.purse, off);
-      const c = this.add.container(x + TILE.w / 2, y + TILE.h / 2);
-      c.add(paperCard(this, 0, 0, TILE.w, TILE.h, 600 + i, { radius: 5, rough: 1, shadow: 0.5, tint: built ? 'sage' : why ? 'cream' : 'sky' }));
-      c.add(this.add.text(0, -TILE.h / 2 + 6, BUILDINGS[id].name, { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '22px', color: INK }).setOrigin(0.5, 0));
-      const line = built ? `✓ ${BUILDINGS[id].says}` : why && why !== 'Not enough resources' ? why : describeAmount(BUILDINGS[id].cost);
-      c.add(this.add.text(0, -2, line, { fontFamily: SANS, fontSize: '12px', color: INK, align: 'center', wordWrap: { width: TILE.w - 14 } }).setOrigin(0.5, 0).setAlpha(built || !why ? 1 : 0.6));
-      if (!built) {
-        const zone = this.add.zone(0, 0, TILE.w, TILE.h).setInteractive({ useHandCursor: !why });
-        zone.on('pointerup', () => this.tryBuild(id));
-        c.add(zone);
-      }
-      b.add(c);
+    const t = adv.town;
+    b.add(paperCard(this, BOARD.w / 2, STRIP.y + STRIP.h / 2 + 2, BOARD.w - 8, STRIP.h - 4, 811, { radius: 6, rough: 1.2, shadow: 0.7, rule: true }));
+    b.add(this.add.text(22, STRIP.y + 8, t.name, { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '40px', color: INK }));
+    b.add(this.add.text(30, STRIP.y + 56, `${income(t)} gold a day · ${t.builtToday ? 'built today' : 'one building a day'}`, { fontFamily: SANS, fontSize: '14px', color: INK }));
+    let x = BOARD.w - 24;
+    for (const r of [...RESOURCES].reverse()) {
+      const n = this.add.text(x, STRIP.y + 34, String(adv.purse[r]), { fontFamily: HAND, fontSize: '26px', color: INK, padding: { x: 4, y: 2 } }).setOrigin(1, 0.5);
+      x -= n.width + 2;
+      const icon = this.add.image(x - 12, STRIP.y + 34, TEX.icon(r)).setScale(1 / 3);
+      x -= 40;
+      b.add([n, icon]);
+    }
+    this.drawArmies(b);
+    const guild = has(t, 'mageGuild1');
+    const buttons: [string, () => void, 'leaf' | 'paper' | 'sky'][] = [
+      ['Build', () => this.openPanel('build'), t.builtToday ? 'paper' : 'leaf'],
+      ['Recruit', () => this.openPanel('recruit'), 'paper'],
+      ...(guild ? [['Mage Guild', () => this.openPanel('guild'), 'paper'] as [string, () => void, 'paper']] : []),
+      ['Leave', () => this.close(), 'sky'],
+    ];
+    buttons.forEach(([label, onClick, kind], i) => {
+      const bx = 870 + (i % 2) * 160;
+      const by = STRIP.y + 112 + Math.floor(i / 2) * 60;
+      b.add(paintedButton(this, bx, by, label, onClick, { width: 146, height: 48, size: 24, kind }));
     });
+  }
+
+  private drawArmies(b: Phaser.GameObjects.Container): void {
+    const adv = this.session.adv;
+    const y = STRIP.y + 82;
+    const rows: { label: string; army: Army; ref: SlotRef['army'] }[] = [{ label: 'Garrison', army: adv.town.garrison, ref: 'garrison' }];
+    if (heroInTown(adv)) rows.push({ label: adv.hero.name, army: adv.hero.army, ref: 'hero' });
+    else b.add(this.add.text(30, y + 90, `${adv.hero.name} is away: troops hired now wait in the garrison.`, { fontFamily: SANS, fontSize: '14px', color: INK }));
+    rows.forEach((row, r) => {
+      const ry = y + r * 76;
+      b.add(this.add.text(22, ry + 18, row.label, { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '26px', color: INK }));
+      row.army.forEach((slot, i) => {
+        const x = 170 + i * 84;
+        const picked = this.picked?.army === row.ref && this.picked.i === i;
+        const box = this.add.rectangle(x, ry + 34, 78, 68, picked ? 0x2f6b3a : 0x232a4f, picked ? 0.18 : 0.06).setStrokeStyle(picked ? 2.5 : 1, picked ? 0x2f6b3a : 0x232a4f, picked ? 0.9 : 0.35).setInteractive({ useHandCursor: true });
+        box.on('pointerup', () => this.pickSlot({ army: row.ref, i }));
+        b.add(box);
+        if (!slot) return;
+        b.add(this.add.image(x, ry + 62, TEX.creature(slot.creature, 0)).setOrigin(0.5, GROUND_Y / FRAME_H).setScale(0.48 / CREATURE_RES));
+        b.add(this.add.text(x + 37, ry + 66, String(slot.count), { fontFamily: SANS, fontSize: '14px', color: '#fdf8ea', backgroundColor: '#232a4f', padding: { x: 3, y: 1 } }).setOrigin(1, 1));
+      });
+    });
+  }
+
+  private pickBuilding(id: BuildingId): void {
+    if (this.panel) return;
+    const opens = OPENS[id];
+    if (opens) {
+      this.openPanel(opens);
+      return;
+    }
+    this.toast(`${BUILDINGS[id].name}: ${BUILDINGS[id].says.toLowerCase()}`);
+  }
+
+  private openPanel(kind: PanelKind | null): void {
+    this.panel = kind;
+    this.draw();
+  }
+
+  /** A panel over the townscape, on a dimmed board that closes it when tapped. */
+  private drawPanel(b: Phaser.GameObjects.Container, kind: PanelKind): void {
+    const adv = this.session.adv;
+    const body: PanelBody = kind === 'build' ? buildPanel(this, adv, this.session.def.off, this.actions()) : kind === 'recruit' ? recruitPanel(this, adv, this.actions()) : guildPanel(this, adv, this.actions());
+    const dim = this.add.rectangle(BOARD.w / 2, BOARD.h / 2, BOARD.w + 400, BOARD.h + 400, 0x232a4f, 0.28).setInteractive();
+    dim.on('pointerup', () => this.openPanel(null));
+    b.add(dim);
+    const x0 = BOARD.w / 2 - body.w / 2;
+    const y0 = Math.max(6, Math.min(TOWN_VIEW.h / 2 + 40, BOARD.h / 2) - body.h / 2);
+    const p = this.add.container(x0, y0);
+    const card = paperCard(this, body.w / 2, body.h / 2, body.w, body.h, 900 + body.h, { radius: 8, rule: true, shadow: 1.2 });
+    // The card swallows taps so only the dim board around it closes the panel.
+    const guard = this.add.zone(body.w / 2, body.h / 2, body.w, body.h).setInteractive();
+    p.add([card, guard]);
+    p.add(this.add.text(body.w / 2, 8, body.title, { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '40px', color: INK }).setOrigin(0.5, 0));
+    p.add(body.items);
+    p.add(roundButton(this, body.w - 18, 18, 'close', () => this.openPanel(null), 44).root);
+    b.add(p);
   }
 
   private tryBuild(id: BuildingId): void {
@@ -108,39 +204,14 @@ export class TownScene extends Phaser.Scene {
     if (heroInTown(next)) next = enterTown(next);
     getSound(this)?.play('build');
     this.session.set(next);
-    this.toast(`${def.name} built: ${def.says.toLowerCase()}`);
-    this.draw();
-  }
-
-  private drawRecruits(b: Phaser.GameObjects.Container): void {
-    const adv = this.session.adv;
-    const x0 = 4 * (TILE.w + 10) + 20;
-    b.add(this.add.text(x0, 92, 'Recruit', { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '30px', color: INK }));
-    const homes = dwellings(adv.town);
-    if (homes.length === 0) b.add(this.add.text(x0, 136, 'Build a dwelling to hire troops.', { fontFamily: SANS, fontSize: '15px', color: INK }));
-    homes.forEach((id, i) => {
-      const y = 132 + i * 92;
-      const w = BOARD.w - x0;
-      const c = this.add.container(x0 + w / 2, y + 42);
-      c.add(paperCard(this, 0, 0, w, 84, 700 + i, { radius: 5, rough: 1, shadow: 0.5 }));
-      c.add(this.add.image(-w / 2 + 46, 38, TEX.creature(id, 0)).setOrigin(0.5, GROUND_Y / FRAME_H).setScale(0.55 / CREATURE_RES));
-      const cr = creature(id);
-      const can = hireable(adv.town, id, adv.purse);
-      c.add(this.add.text(-w / 2 + 92, -34, `${cr.plural}`, { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '24px', color: INK }));
-      c.add(this.add.text(-w / 2 + 92, -6, `${adv.town.stock[id] ?? 0} to hire · ${describeAmount(cr.cost)} each · +${growthOf(adv.town, id)} a week\nAtt ${cr.attack} Def ${cr.defense} Dmg ${cr.minDmg}–${cr.maxDmg} HP ${cr.hp} Spd ${cr.speed}${cr.shots ? ' · shoots' : ''}${cr.flies ? ' · flies' : ''}`, { fontFamily: SANS, fontSize: '12px', color: INK, lineSpacing: 3 }));
-      if (can > 0) {
-        c.add(paintedButton(this, w / 2 - 70, -16, 'Hire 1', () => this.hire(id, 1), { width: 110, height: 34, size: 20 }));
-        c.add(paintedButton(this, w / 2 - 70, 22, `Hire ${can}`, () => this.hire(id, can), { width: 110, height: 34, size: 20, kind: 'leaf' }));
-      }
-      b.add(c);
+    // Paint the new building, then close the ledger so it can be seen rising.
+    void runInSlices(townJobs(this, shownPieces(next.town.built))).then(() => {
+      if (!this.sys.isActive()) return;
+      this.fresh = id;
+      this.panel = null;
+      this.draw();
+      this.toast(`${def.name} built: ${def.says.toLowerCase()}`);
     });
-    // The mage guild's spells, and a spellbook for a hero without one.
-    const spells = guildSpells(adv.town);
-    if (has(adv.town, 'mageGuild1')) {
-      const y = 132 + Math.max(1, homes.length) * 92 + 6;
-      b.add(this.add.text(x0, y, `Mage Guild: ${spells.map((s) => SPELLS[s].name).join(', ')}`, { fontFamily: SANS, fontSize: '14px', color: INK, wordWrap: { width: BOARD.w - x0 } }));
-      if (heroInTown(adv) && !adv.hero.hasBook) b.add(paintedButton(this, x0 + 110, y + 46, `Spellbook: ${SPELLBOOK_COST} gold`, () => this.buyBook(), { width: 220, height: 38, size: 20 }));
-    }
   }
 
   private hire(id: CreatureId, n: number): void {
@@ -165,29 +236,6 @@ export class TownScene extends Phaser.Scene {
     }
     this.session.set(enterTown({ ...adv, purse: pay(adv.purse, { gold: SPELLBOOK_COST }), hero: { ...adv.hero, hasBook: true } }));
     this.draw();
-  }
-
-  private drawArmies(b: Phaser.GameObjects.Container): void {
-    const adv = this.session.adv;
-    const y = BOARD.h - 150;
-    const rows: { label: string; army: Army; ref: SlotRef['army'] }[] = [{ label: 'Garrison', army: adv.town.garrison, ref: 'garrison' }];
-    if (heroInTown(adv)) rows.push({ label: adv.hero.name, army: adv.hero.army, ref: 'hero' });
-    else b.add(this.add.text(0, y + 84, `${adv.hero.name} is away: troops hired now wait in the garrison.`, { fontFamily: SANS, fontSize: '14px', color: INK }));
-    rows.forEach((row, r) => {
-      const ry = y + r * 76;
-      b.add(this.add.text(0, ry + 20, row.label, { fontFamily: HAND, padding: { x: 8, y: 4 }, fontSize: '26px', color: INK }));
-      row.army.forEach((slot, i) => {
-        const x = 150 + i * 86;
-        const picked = this.picked?.army === row.ref && this.picked.i === i;
-        const box = this.add.rectangle(x, ry + 30, 80, 68, picked ? 0x2f6b3a : 0x232a4f, picked ? 0.18 : 0.05).setStrokeStyle(picked ? 2.5 : 1, picked ? 0x2f6b3a : 0x232a4f, picked ? 0.9 : 0.35).setInteractive({ useHandCursor: true });
-        box.on('pointerup', () => this.pickSlot({ army: row.ref, i }));
-        b.add(box);
-        if (!slot) return;
-        b.add(this.add.image(x, ry + 58, TEX.creature(slot.creature, 0)).setOrigin(0.5, GROUND_Y / FRAME_H).setScale(0.48 / CREATURE_RES));
-        b.add(this.add.text(x + 38, ry + 62, String(slot.count), { fontFamily: SANS, fontSize: '14px', color: '#fdf8ea', backgroundColor: '#232a4f', padding: { x: 3, y: 1 } }).setOrigin(1, 1));
-      });
-    });
-    if (rows.length === 2) b.add(this.add.text(150 + 7 * 86, y + 50, 'Tap a company,\nthen where it goes.', { fontFamily: SANS, fontSize: '13px', color: INK, lineSpacing: 3 }));
   }
 
   /** First tap picks a company; the second moves it there (merging like units, swapping others). */

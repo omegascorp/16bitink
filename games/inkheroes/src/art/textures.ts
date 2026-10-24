@@ -12,6 +12,9 @@ import { makeCanvas, releaseScratch, shrink } from './pen';
 import { drawFlag, drawResourceIcon, SITE_ART, SITE_ARTS } from './sites';
 import { frameFor, SITE_RES, type SiteArt } from './sites/types';
 import { CHUNK, paintChunk, TILE } from './terrain';
+import { drawTitle, drawVignette, drawVista, MENU_RES, TITLE, VIGNETTE, VIGNETTE_IDS, VISTA, type VignetteId } from './menu';
+import { drawTownGround, TOWN_ART } from './townscape';
+import { PIECE_SLOT, SLOTS, TOWN_PIECES, TOWN_RES, TOWN_VIEW, type TownPiece } from './townscape/types';
 
 export type BannerKey = keyof typeof BANNER;
 
@@ -22,6 +25,11 @@ export const TEX = {
   chunk: (mapId: string, cx: number, cy: number) => `chunk-${mapId}-${cx}-${cy}`,
   icon: (r: Resource) => `res-${r}`,
   flag: (banner: BannerKey, f: number) => `flag-${banner}-${f}`,
+  vista: 'menu-vista',
+  title: 'menu-title',
+  vignette: (id: VignetteId) => `menu-vignette-${id}`,
+  townGround: 'town-ground',
+  town: (piece: TownPiece) => `town-${piece}`,
 } as const;
 
 /** Texture px per unit for map chunks (the map is zoomed out more than the battle). */
@@ -82,7 +90,20 @@ export function textureJobs(scene: Phaser.Scene): SliceJob[] {
       ctx.translate(6, 27);
       drawFlag(ctx, BANNER[b], 31, f);
     }))),
+    ...menuJobs(scene),
     () => releaseScratch(),
+  ];
+}
+
+/** Texture px per unit for the menu's vista: a soft painting, shown screen-wide. */
+export const VISTA_RES = 1.5;
+
+/** The campaign menu's paintings: its vista, the title banner and each map's vignette. */
+function menuJobs(scene: Phaser.Scene): SliceJob[] {
+  return [
+    () => bake(scene, TEX.vista, VISTA.w, VISTA.h, VISTA_RES, (ctx) => drawVista(ctx, 11)),
+    () => bake(scene, TEX.title, TITLE.w, TITLE.h, MENU_RES, (ctx) => drawTitle(ctx, 13)),
+    ...VIGNETTE_IDS.map((id, i) => () => bake(scene, TEX.vignette(id), VIGNETTE.w, VIGNETTE.h, MENU_RES, (ctx) => drawVignette(ctx, id, 17 + i))),
   ];
 }
 
@@ -102,6 +123,22 @@ export function chunkJobs(scene: Phaser.Scene, def: MapDef): SliceJob[] {
   }
   jobs.push(() => releaseScratch());
   return jobs;
+}
+
+/** The town screen's paintings not drawn yet: its ground, then each of `pieces` (painted the first time the town opens). */
+export function townJobs(scene: Phaser.Scene, pieces: readonly TownPiece[]): SliceJob[] {
+  const ground: SliceJob = () => bake(scene, TEX.townGround, TOWN_VIEW.w, TOWN_VIEW.h, TOWN_RES, (ctx) => drawTownGround(ctx, 7));
+  const jobs = [
+    ...(scene.textures.exists(TEX.townGround) ? [] : [ground]),
+    ...pieces.filter((p) => !scene.textures.exists(TEX.town(p))).map((piece): SliceJob => () => {
+      const fr = SLOTS[PIECE_SLOT[piece]].frame;
+      bake(scene, TEX.town(piece), fr.w, fr.h, TOWN_RES, (ctx) => {
+        ctx.translate(fr.ox, fr.oy);
+        TOWN_ART[piece](ctx, 500 + TOWN_PIECES.indexOf(piece) * 11);
+      });
+    }),
+  ];
+  return jobs.length ? [...jobs, () => releaseScratch()] : [];
 }
 
 /** Frees another map's ground when a different map opens. */

@@ -1,7 +1,7 @@
 // Dev helper: screenshots a dev page to PNG, for checking art by eye.
 //   node dev/snap.mjs <out.png> "<page and query>" [width] [height]
 //   e.g. node dev/snap.mjs /tmp/wolf.png "specimens.html?only=wolf" 1400 900
-// Waits for window.__ready (set by specimens.ts), or 4 s for other pages. Needs Google Chrome.
+// Waits for window.__ready (set by specimens.ts and art.ts), or 4 s for index.html. Needs Google Chrome.
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -22,10 +22,10 @@ try {
   let pageError;
   page.on('pageerror', (e) => { pageError = e; });
   await page.goto(`${base}/${pageQuery}`);
-  if (pageQuery.startsWith('specimens')) await page.waitForFunction(() => window.__ready === true, null, { timeout: 60_000 }).catch((e) => { throw pageError ?? e; });
+  if (!pageQuery.startsWith('index')) await page.waitForFunction(() => window.__ready === true, null, { timeout: 60_000 }).catch((e) => { throw pageError ?? e; });
   else await page.waitForTimeout(4000);
   if (pageError) throw pageError;
-  await page.screenshot({ path: out, fullPage: pageQuery.startsWith('specimens') });
+  await page.screenshot({ path: out, fullPage: !pageQuery.startsWith('index') });
   console.log(`saved ${out}`);
 } finally {
   await browser.close();
