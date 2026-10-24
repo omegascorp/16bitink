@@ -25,8 +25,8 @@ const STRIP = { w: 1180, h: 250 } as const;
 const STRIP_SHARE = 0.4;
 /** How far the townscape tucks under the strip's torn edge. */
 const TUCK = 12;
-/** The most sky a wide screen may crop off the townscape's top, units: the keep's flag stands just below. */
-const SKY_CROP = 20;
+/** The most sky a very wide screen may crop off the townscape's top, units: the keep's flags fly about 90 below it. */
+const SKY_CROP = 60;
 /** A press that moves further than this (CSS px) is a drag, not a tap. */
 const DRAG = 10;
 const SANS = 'Georgia, serif';
@@ -136,8 +136,8 @@ export class TownScene extends Phaser.Scene {
     const b = this.add.container(0, 0);
     this.board = b;
     // The strip spans the bottom; the townscape fills the screen above it,
-    // cropping its sides (or a little sky) to cover. A screen wider still
-    // keeps the castle whole and shows the ground mirrored past its edges.
+    // as tall as the space and panned along; a screen wider than the whole
+    // painting crops some sky (never the castle) to cover.
     const u = Math.min(1.25, v.width / STRIP.w, (v.height * STRIP_SHARE) / STRIP.h);
     const stripTop = v.height - STRIP.h * u;
     this.stripTop = stripTop;

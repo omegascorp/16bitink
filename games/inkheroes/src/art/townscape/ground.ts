@@ -6,7 +6,7 @@ import { blob, crisp, flat, glow, LIGHT, mix, rgba, SHADOW, soft } from '../site
 import { FLANK_LANES, flanksGround, flanksNear } from './groundFlanks';
 import {
   bank, broken, bush, crownLine, curve, cypress, EARTH, FAR, farTree, GRASS_DEEP, GRASS_FAR, GRASS_NEAR, jag, LEAF_DARK, type Puff, puffPath,
-  revetment, road, rock, rockFace, ROCK, strip, texture, tree, tuft, wood, WOOD, yAt,
+  revetment, road, rock, rockFace, ROCK, softWashes, strip, texture, tree, tuft, wood, WOOD, yAt,
 } from './groundParts';
 import { TOWN_CORE, TOWN_VIEW, type GroundDrawer } from './types';
 
@@ -52,10 +52,10 @@ function sky(d: Draw, rng: Rng): void {
   glow(ctx, pt(CX + 120, 20), 460, LIGHT, 0.5);
   glow(ctx, pt(CX - 160, 0), 520, LIGHT, 0.3);
   // The wash laid in with a broad brush: darker where it pooled, paler blooms where it dried back.
-  soft(ctx, 16, () => {
+  softWashes(d, 16, (l) => {
     for (let i = 0; i < 27; i++) {
       const c = pt(rng() * W, 4 + rng() * 110);
-      d.pen.fill(blob(c, 70 + rng() * 140, 12 + rng() * 22, rng, 0.3, 18), rng() < 0.6 ? '#6588bd' : '#d6e2ea', 0.1 + rng() * 0.1);
+      l.pen.fill(blob(c, 70 + rng() * 140, 12 + rng() * 22, rng, 0.3, 18), rng() < 0.6 ? '#6588bd' : '#d6e2ea', 0.1 + rng() * 0.1);
     }
   });
 }
@@ -321,13 +321,13 @@ function hill(d: Draw, rng: Rng): void {
     ctx.fillStyle = g;
     ctx.fillRect(-10, 170, W + 20, H);
     // The wash pooled and bloomed unevenly, warmer on the near ground.
-    soft(ctx, 9, () => {
+    softWashes(d, 9, (l) => {
       for (let i = 0; i < 136; i++) {
         const c = pt(rng() * W, 250 + rng() * 230);
         const near = (c.y - 250) / 220;
         const r = rng();
         const tint = r < 0.25 ? '#cdb979' : r < 0.55 ? mix(GRASS_NEAR, LIGHT, 0.35) : GRASS_DEEP;
-        d.pen.fill(blob(c, 30 + rng() * 70, 8 + rng() * 16, rng, 0.3, 16), tint, (0.07 + rng() * 0.09) * (0.6 + near * 0.6));
+        l.pen.fill(blob(c, 30 + rng() * 70, 8 + rng() * 16, rng, 0.3, 16), tint, (0.07 + rng() * 0.09) * (0.6 + near * 0.6));
       }
     });
     texture(d, rng, body, 8800);
@@ -492,14 +492,13 @@ function terrace(d: Draw, rng: Rng): void {
   const shelf = [...shelfBack, end, ...front.slice().reverse()];
   d.pen.clipped(shelf, () => {
     const g = ctx.createLinearGradient(930, 0, end.x, 0);
-    g.addColorStop(0, rgba(LIGHT, 0));
-    g.addColorStop(0.15, rgba(LIGHT, 0.2));
+    g.addColorStop(0, rgba(LIGHT, 0.22));
     g.addColorStop(0.6, rgba(LIGHT, 0.16));
     g.addColorStop(1, rgba(LIGHT, 0));
     ctx.fillStyle = g;
     ctx.fillRect(920, 170, end.x - 910, 140);
   });
-  bank(d, front, curve([pt(end.x, 318), pt(1380, 318), pt(1290, 308), pt(1190, 300), pt(1080, 304), pt(990, 298), pt(935, 266)], 6));
+  bank(d, front, curve([pt(end.x + 2, 309), pt(1400, 318), pt(1290, 308), pt(1190, 300), pt(1080, 304), pt(990, 298), pt(935, 266)], 6));
   revetment(d, rng, front);
 }
 

@@ -1,7 +1,7 @@
 import type { Rng } from '../../logic/rng';
-import { closed, oval, pt, TAU, type Draw } from '../kit';
+import { closed, makeDraw, oval, pt, TAU, type Draw } from '../kit';
 import { PAPER_FILL } from '../palette';
-import type { Pt } from '../pen';
+import { type Pt, withScratch } from '../pen';
 import { blob, crisp, dab, flat, LIGHT, mix, paint, rgba, SHADOW, soft } from '../sites/paintKit';
 
 /**
@@ -19,6 +19,24 @@ export const GRASS_FAR = '#a9bc7b';
 export const GRASS_NEAR = '#7f9c50';
 export const EARTH = '#c8ab7d';
 export const ROCK = '#bdb39d';
+
+/**
+ * Many soft washes laid at once: painted crisp on a spare layer, then the
+ * layer laid over with a single blur of `r` units, so dozens of blooms
+ * cost one soft edge rather than one each (it respects the current clip).
+ */
+export function softWashes(d: Draw, r: number, paint: (layer: Draw) => void): void {
+  const ctx = d.pen.ctx;
+  const m = ctx.getTransform();
+  withScratch(ctx.canvas.width, ctx.canvas.height, (lctx, canvas) => {
+    lctx.setTransform(m);
+    paint(makeDraw(lctx, 0, 0, 0, d.ink));
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    soft(ctx, r * (Math.hypot(m.a, m.b) || 1), () => ctx.drawImage(canvas, 0, 0));
+    ctx.restore();
+  });
+}
 
 /** Smooth curve through points (Catmull-Rom), resampled about every `step` units. */
 export function curve(pts: readonly Pt[], step = 6): Pt[] {
@@ -251,6 +269,16 @@ export function wood(d: Draw, rng: Rng, x0: number, x1: number, y: number, h: nu
   puffPath(ctx, puffs, (p) => ({ dx: -p.r * 0.3, dy: -p.r * 0.35, k: 0.55 }));
   ctx.fillStyle = rgba(mix(tint, LIGHT, 0.45), 0.6);
   ctx.fill();
+  if (near) {
+    // Leaves caught by the light on each crown, and the shade under them hatched.
+    for (const p of puffs) {
+      for (let k = 0; k < 3; k++) {
+        const q = pt(p.c.x - p.r * 0.5 + rng() * p.r * 0.7, p.c.y - p.r * 0.6 + rng() * p.r * 0.6);
+        d.pen.hair([q, pt(q.x + 0.25 * p.r, q.y - 0.12 * p.r), pt(q.x + 0.45 * p.r, q.y + 0.04 * p.r)], 0.45, mix(tint, LIGHT, 0.6), 0.55);
+      }
+    }
+    d.pen.hatch([pt(x0 - 10, y - 4 * size), pt(x1 + 10, y - 4 * size), pt(x1 + 10, y + 4), pt(x0 - 10, y + 4)], 2.2, 1.1, 0.35, { color: d.ink, alpha: 0.18 });
+  }
   const g = ctx.createLinearGradient(0, y - h - 4 * size, 0, y + 2 * size);
   g.addColorStop(0, rgba(SHADOW, 0));
   g.addColorStop(1, rgba(SHADOW, 0.3));

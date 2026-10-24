@@ -4,7 +4,7 @@ import { PAPER_FILL } from '../palette';
 import type { Pt } from '../pen';
 import { backArc, beam, block, frontArc, frontOf, gable, HOLE, PLANK, quad, roundWash, SHINGLE, STONE, THATCH } from '../sites/build';
 import { blob, crisp, dab, flat, LIGHT, mix, paint, rgba, SHADOW, soft } from '../sites/paintKit';
-import { broken, bush, curve, cypress, EARTH, GRASS_DEEP, GRASS_FAR, LEAF, LEAF_DARK, road, rock, ROCK, strip, tree, tuft, wood, yAt } from './groundParts';
+import { broken, bush, crownLine, curve, cypress, EARTH, GRASS_DEEP, GRASS_FAR, LEAF, LEAF_DARK, type Puff, puffPath, road, rock, ROCK, strip, tree, tuft, wood, yAt } from './groundParts';
 import { TOWN_VIEW } from './types';
 
 /**
@@ -30,8 +30,8 @@ export const FLANK_LANES = {
   right: [pt(1680, 398), pt(1760, 372), pt(1830, 338), pt(1890, 308), pt(1950, 282), pt(W + 14, 262)],
 } as const;
 
-const WATER = '#cfdde8';
-const WATER_DEEP = '#7d97bf';
+const WATER = '#d6e2ea';
+const WATER_DEEP = '#8aa2c4';
 const WOOL = '#efe7d3';
 const VINE = '#557a3c';
 const WHITEWASH = '#e8dfca';
@@ -100,18 +100,18 @@ function fence(d: Draw, rng: Rng, line: readonly Pt[], gap = 16): void {
 }
 
 /** The stream's course, from the spring under the crag's outcrops down past the bridge and out at the near edge. */
-const STREAM = curve([pt(332, 328), pt(318, 348), pt(292, 368), pt(268, 388), pt(254, 404), pt(244, 426), pt(234, 450), pt(226, 482)], 4);
+const STREAM = curve([pt(306, 320), pt(298, 334), pt(310, 350), pt(292, 366), pt(266, 378), pt(256, 392), pt(252, 404), pt(242, 420), pt(248, 438), pt(234, 458), pt(224, 484)], 4);
 
 /** Water the colour of the sky, the far bank's shade in it, glints across, the banks inked and grassed, stones at the edge. */
 function stream(d: Draw, rng: Rng): void {
   const ctx = d.pen.ctx;
-  const s = strip(STREAM, (u) => 3 + u * 13);
+  const s = strip(STREAM, (u) => 2.5 + u * 13 + 2.2 * Math.sin(u * 17));
   dab(d, s.shape.map((p) => pt(p.x + 1, p.y + 1.5)), mix(GRASS_DEEP, SHADOW, 0.3), 0.35, 1.5);
   d.pen.fill(s.shape, PAPER_FILL, 1);
   d.pen.clipped(s.shape, () => {
     const g = ctx.createLinearGradient(0, 320, 0, 480);
-    g.addColorStop(0, rgba(mix(WATER, WATER_DEEP, 0.2), 0.95));
-    g.addColorStop(1, rgba(mix(WATER, WATER_DEEP, 0.45), 0.95));
+    g.addColorStop(0, rgba(mix(WATER, LIGHT, 0.2), 0.95));
+    g.addColorStop(1, rgba(mix(WATER, WATER_DEEP, 0.3), 0.95));
     ctx.fillStyle = g;
     ctx.fillRect(200, 320, 150, 170);
     // The far (left, upper) bank throws its shade on the water; the open sky shows in the middle.
@@ -126,8 +126,12 @@ function stream(d: Draw, rng: Rng): void {
   broken(d, rng, s.right, 0.6, d.ink, 0.5, 0.7);
   for (const edge of [s.left, s.right]) for (const p of edge) if (rng() < 0.5) tuft(d, rng, pt(p.x, p.y + 0.5), 3.4, 0.7);
   // The spring: water welling out between stones at the foot of the rocks.
-  for (const [x, y, r] of [[322, 330, 6], [342, 332, 5], [312, 346, 4], [300, 366, 4.5], [280, 378, 3.5], [262, 432, 5], [250, 456, 6]] as const) rock(d, rng, pt(x, y), r, r * 0.55);
-  d.pen.fill(oval(331, 331, 4, 1.5, 12), PAPER_FILL, 0.8);
+  for (const [x, y, r] of [[296, 322, 6], [316, 324, 5], [318, 352, 4], [284, 368, 4.5], [270, 384, 3.5], [258, 432, 5], [244, 462, 6]] as const) rock(d, rng, pt(x, y), r, r * 0.55);
+  d.pen.fill(oval(305, 322, 4, 1.4, 12), PAPER_FILL, 0.8);
+  // Reeds where it slows.
+  for (const [x, y] of [[226, 440], [262, 446], [272, 372], [236, 470]] as const) {
+    for (let k = 0; k < 5; k++) d.pen.hair([pt(x + k * 1.4, y), pt(x + k * 1.4 + (rng() - 0.3) * 2, y - 6 - rng() * 4)], 0.5, mix(GRASS_DEEP, SHADOW, 0.2), 0.8);
+  }
 }
 
 // ---- West, near: the bridge, the barn and its ricks ----
@@ -212,23 +216,24 @@ function rick(d: Draw, rng: Rng, foot: Pt, r: number, h: number): void {
 /** A thatched barn in the oblique view of the town's buildings, weathered boards, its great doors standing open. */
 function barn(d: Draw, rng: Rng, foot: Pt): void {
   at(d, foot, () => {
-    dab(d, oval(14, 2, 54, 7, 20), SHADOW, 0.25, 2.5);
-    const b = { x0: -34, x1: 34, z0: 0, z1: 26, h0: 0, h1: 26 };
+    dab(d, oval(16, 2, 60, 8, 20), SHADOW, 0.25, 2.5);
+    const b = { x0: -38, x1: 38, z0: 0, z1: 28, h0: 0, h1: 30 };
     const { front } = block(d, rng, b, mix(PLANK, '#9c9078', 0.35), 'plank', false);
     // A footing of field stones.
     const face = frontOf(b);
-    d.pen.clipped(front, () => d.pen.fill(crisp(quad(face, -1, -1, 69, 4), 3), mix(ROCK, SHADOW, 0.15), 0.85));
-    d.pen.hair([face(0, 4), face(68, 4)], 0.45, d.ink, 0.6);
+    d.pen.clipped(front, () => d.pen.fill(crisp(quad(face, -1, -1, 77, 4.5), 3), mix(ROCK, SHADOW, 0.15), 0.85));
+    d.pen.hair([face(0, 4.5), face(76, 4.5)], 0.45, d.ink, 0.6);
     // The doors: a dark threshold, one leaf swung back against the wall.
-    const door = crisp(quad(face, 24, 0, 44, 21), 3);
+    const door = crisp(quad(face, 27, 0, 49, 23), 3);
     d.pen.fill(door, HOLE, 0.88);
-    d.pen.clipped(door, () => d.pen.fill(crisp(quad(face, 24, 0, 30, 21), 3), mix(HOLE, LIGHT, 0.25), 0.5));
+    d.pen.clipped(door, () => d.pen.fill(crisp(quad(face, 27, 0, 33, 23), 3), mix(HOLE, LIGHT, 0.25), 0.5));
     d.pen.stroke(closed(door), 0.6, d.ink, 0.9);
-    const leaf = crisp([face(44, 0), face(44, 21), pt(face(44, 21).x + 9, face(44, 21).y + 3), pt(face(44, 0).x + 9, face(44, 0).y + 2)], 2);
+    const leaf = crisp([face(49, 0), face(49, 23), pt(face(49, 23).x + 10, face(49, 23).y + 3), pt(face(49, 0).x + 10, face(49, 0).y + 2)], 2);
     flat(d, leaf, PLANK, { tone: -0.05, line: 0.55 });
-    d.pen.hair([pt(leaf[0]!.x + 4.5, leaf[0]!.y - 0.5), pt(leaf[0]!.x + 4.5, leaf[0]!.y - 21)], 0.4, d.ink, 0.5);
-    d.pen.fill(crisp(quad(face, 10, 13, 15, 18), 2), HOLE, 0.85);
-    gable(d, rng, b, 22, 'x', THATCH, 'thatch', mix(PLANK, '#9c9078', 0.35), 3);
+    d.pen.hair([pt(leaf[0]!.x + 5, leaf[0]!.y - 0.5), pt(leaf[0]!.x + 5, leaf[0]!.y - 23)], 0.4, d.ink, 0.5);
+    d.pen.fill(crisp(quad(face, 11, 15, 17, 20), 2), HOLE, 0.85);
+    d.pen.fill(crisp(quad(face, 61, 15, 67, 20), 2), HOLE, 0.85);
+    gable(d, rng, b, 26, 'x', THATCH, 'thatch', mix(PLANK, '#9c9078', 0.35), 3);
   });
 }
 
@@ -288,20 +293,33 @@ function windmill(d: Draw, rng: Rng, foot: Pt): void {
  * them, smaller and paler up towards the windmill.
  */
 function vineyard(d: Draw, rng: Rng, horizon: readonly Pt[], front: readonly Pt[], mill: Pt): void {
-  const [x0, x1] = [1606, front[front.length - 1]!.x - 6];
-  const top = (x: number): number => yAt(horizon, x) + 12 + 14 * Math.max(0, 1 - Math.abs(x - mill.x) / 46);
+  const last = front[front.length - 1]!.x;
+  const top = (x: number): number => yAt(horizon, x) + 12 + 16 * Math.exp(-(((x - mill.x) / 34) ** 2));
   const lip = (x: number): number => yAt(front, x) - 3;
-  const xs = Array.from({ length: Math.ceil((x1 - x0) / 6) + 1 }, (_, i) => Math.min(x1, x0 + i * 6));
-  const field = [...xs.map((x) => pt(x, top(x))), ...xs.slice().reverse().map((x) => pt(x, lip(x)))];
-  dab(d, field, mix(EARTH, GRASS_FAR, 0.45), 0.45, 2);
+  // The planted ground ends in a soft curve each side: narrower up the slope, ragged where the last vines were set.
+  const ends = (f: number): [number, number] => [1612 + 30 * (1 - f) ** 1.5, last - 14 - 40 * (1 - f) ** 1.3];
   const rows = 10;
+  const edge: Pt[] = [];
+  for (let k = 0; k <= rows; k++) {
+    const f = k / rows;
+    const [a] = ends(f);
+    edge.push(pt(a - 4, top(a) + (lip(a) - top(a)) * f));
+  }
+  for (let k = rows; k >= 0; k--) {
+    const f = k / rows;
+    const [, b] = ends(f);
+    edge.push(pt(b + 4, top(b) + (lip(b) - top(b)) * f));
+  }
+  dab(d, curve([...edge, edge[0]!], 4), mix(EARTH, GRASS_FAR, 0.5), 0.4, 3);
   for (let k = 0; k < rows; k++) {
     const f = (k + 0.6) / rows;
     const near = 0.55 + f * 0.45;
+    const [a, b] = ends(f).map((x, i) => x + (i === 0 ? 1 : -1) * rng() * 8);
     const rowAt = (x: number): number => top(x) + (lip(x) - top(x)) * f;
-    const line = xs.map((x) => pt(x, rowAt(x)));
+    const line = Array.from({ length: Math.ceil((b! - a!) / 6) + 1 }, (_, i) => pt(Math.min(b!, a! + i * 6), rowAt(Math.min(b!, a! + i * 6))));
     soft(d.pen.ctx, 0.8, () => d.pen.stroke(line.map((p) => pt(p.x + 1, p.y + 1.6 * near)), 1.6 * near, mix(GRASS_DEEP, SHADOW, 0.4), 0.3, false));
-    for (let x = x0 + rng() * 4; x < x1; x += (4.2 + rng() * 1.6) * near) {
+    for (let x = a! + rng() * 4; x < b!; x += (4.2 + rng() * 1.6) * near) {
+      if (Math.min(x - a!, b! - x) < 14 && rng() < 0.35) continue;
       const y = rowAt(x);
       const r = (2.3 + rng() * 0.8) * near;
       const tint = mix(VINE, k < 3 ? '#9fb08c' : '#86a24f', rng() * 0.6);
@@ -336,29 +354,47 @@ function shrine(d: Draw, rng: Rng, foot: Pt): void {
   });
 }
 
-/** A hedgerow: a low run of leafy masses along a line, lit on their tops, one shaded flank. */
-function hedge(d: Draw, rng: Rng, line: readonly Pt[], s = 1): void {
-  for (let i = 0; i < line.length; i++) {
+/**
+ * A hedgerow along a line: one dense mass of leafy crowns (a hawthorn or a
+ * holly standing up out of it here and there), lit on top, shade pooled
+ * along its foot and its shadow thrown on the grass, the pen along its crown.
+ */
+function hedge(d: Draw, rng: Rng, pts: readonly Pt[], s = 1): void {
+  const ctx = d.pen.ctx;
+  const line = curve(pts, 3);
+  const puffs: Puff[] = [];
+  for (let i = 0; i < line.length; i += 1 + Math.floor(rng() * 3)) {
     const p = line[i]!;
-    const r = (6 + rng() * 4) * s;
-    const m = blob(pt(p.x, p.y - r * 0.7), r * 1.2, r * 0.85, rng, 0.25, 14);
-    paint(d, m, mix(LEAF, LEAF_DARK, 0.15 + rng() * 0.3), { shadow: 0.6, hatch: 0.22, line: 0.6, lineAlpha: 0.75 });
+    const tall = rng() < 0.1 ? 1.7 : 1;
+    const r = (4.5 + rng() * 3.5) * s * tall;
+    puffs.push({ c: pt(p.x, p.y - r * 0.8), r });
+    if (rng() < 0.5) puffs.push({ c: pt(p.x + (rng() - 0.5) * 4, p.y - r * 0.35), r: r * 0.7 });
   }
-}
-
-/** Points every `step` along a smooth line through `pts`. */
-function along(pts: readonly Pt[], step: number): Pt[] {
-  const c = curve(pts, 2);
-  const out: Pt[] = [c[0]!];
-  let run = 0;
-  for (let i = 1; i < c.length; i++) {
-    run += Math.hypot(c[i]!.x - c[i - 1]!.x, c[i]!.y - c[i - 1]!.y);
-    if (run >= step) {
-      out.push(c[i]!);
-      run = 0;
-    }
+  const tint = mix(LEAF, LEAF_DARK, 0.3);
+  const none = (): { dx: number; dy: number; k: number } => ({ dx: 0, dy: 0, k: 1 });
+  dab(d, strip(line.map((p) => pt(p.x + 7 * s, p.y + 1)), () => 8 * s).shape, SHADOW, 0.25, 2);
+  ctx.save();
+  puffPath(ctx, puffs, none);
+  ctx.fillStyle = tint;
+  ctx.fill();
+  ctx.clip();
+  soft(ctx, 1.2, () => {
+    puffPath(ctx, puffs, (p) => ({ dx: -p.r * 0.3, dy: -p.r * 0.35, k: 0.6 }));
+    ctx.fillStyle = rgba(mix(tint, LIGHT, 0.5), 0.65);
+    ctx.fill();
+  });
+  soft(ctx, 2, () => {
+    puffPath(ctx, puffs, (p) => ({ dx: p.r * 0.35, dy: p.r * 0.6, k: 0.8 }));
+    ctx.fillStyle = rgba(mix(tint, SHADOW, 0.5), 0.45);
+    ctx.fill();
+  });
+  for (const p of puffs) {
+    if (rng() < 0.6) d.pen.hair([pt(p.c.x - p.r * 0.5, p.c.y - p.r * 0.2), pt(p.c.x - p.r * 0.1, p.c.y - p.r * 0.45), pt(p.c.x + p.r * 0.2, p.c.y - p.r * 0.2)], 0.45, mix(tint, LIGHT, 0.65), 0.6);
   }
-  return out;
+  ctx.restore();
+  crownLine(d, rng, puffs, Math.max(...line.map((p) => p.y)) + 2, 0.6, 0.55);
+  broken(d, rng, line.map((p) => pt(p.x, p.y + 0.5)), 0.6, d.ink, 0.5, 0.6);
+  for (const p of line) if (rng() < 0.3) tuft(d, rng, pt(p.x, p.y + 1), 3, 0.65);
 }
 
 // ---- The two passes ----
@@ -373,14 +409,16 @@ const MILL = pt(1752, 0);
  */
 export function flanksGround(d: Draw, rng: Rng, horizon: readonly Pt[], terrace: readonly Pt[]): void {
   woodEdge(d, rng);
+  // Boulders broken off the crag's last shoulder, lying at the wood's edge.
+  for (const [x, y, r] of [[262, 308, 11], [244, 314, 7], [284, 316, 8]] as const) rock(d, rng, pt(x, y), r, r * 0.6);
   for (const [x, y, f, g] of [[214, 324, -1, true], [244, 318, 1, false], [270, 330, -1, true], [190, 334, 1, true]] as const) sheep(d, rng, pt(x, y), f, g);
   fence(d, rng, curve([pt(160, 344), pt(226, 344), pt(296, 352)], 2));
   stream(d, rng);
   const mill = pt(MILL.x, yAt(horizon, MILL.x) + 12);
   windmill(d, rng, mill);
   vineyard(d, rng, horizon, terrace, mill);
-  tree(d, rng, pt(1690, 346), 0.62, 0.8);
-  tree(d, rng, pt(1748, 336), 0.55, 0.6);
+  // A little orchard under the terrace.
+  for (const [x, y, s] of [[1668, 350, 0.6], [1722, 340, 0.56], [1696, 368, 0.62]] as const) tree(d, rng, pt(x, y), s, 0.75);
 }
 
 /** The flanks' near things, over the lanes: the bridge, the barn and its ricks, the shrine, hedges, and the trees closing each end. */
@@ -390,12 +428,13 @@ export function flanksNear(d: Draw, rng: Rng): void {
   barn(d, rng, pt(112, 356));
   rick(d, rng, pt(186, 360), 10, 12);
   rick(d, rng, pt(212, 368), 8.5, 10);
-  hedge(d, rng, along([pt(-10, 452), pt(80, 448), pt(170, 446), pt(208, 450)], 13));
+  hedge(d, rng, [pt(-10, 452), pt(80, 448), pt(170, 446), pt(212, 452)]);
   tree(d, rng, pt(-12, 392), 1.7, 0.25);
   tree(d, rng, pt(22, 478), 1.9, 0.55);
   for (const [x, y, s] of [[300, 446, 0.7], [166, 420, 0.6], [330, 384, 0.55]] as const) bush(d, rng, pt(x, y), s);
   shrine(d, rng, pt(1812, 376));
-  hedge(d, rng, along([pt(1640, 452), pt(1760, 440), pt(1880, 418), pt(1940, 404)], 13));
+  hedge(d, rng, [pt(1630, 456), pt(1700, 450), pt(1760, 440)]);
+  hedge(d, rng, [pt(1790, 434), pt(1880, 416), pt(1950, 404)]);
   cypress(d, rng, pt(1948, 296), 62);
   cypress(d, rng, pt(1966, 300), 48);
   tree(d, rng, pt(2000, 380), 1.7, 0.3);
