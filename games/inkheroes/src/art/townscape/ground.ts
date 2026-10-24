@@ -1,10 +1,14 @@
 import { createRng, type Rng } from '../../logic/rng';
-import { closed, makeDraw, oval, pt, TAU, type Draw } from '../kit';
+import { makeDraw, oval, pt, TAU, type Draw } from '../kit';
 import { PAPER_FILL } from '../palette';
 import type { Pt } from '../pen';
-import { blob, crisp, dab, flat, glow, LIGHT, mix, paint, rgba, SHADOW, soft } from '../sites/paintKit';
-import { broken, bush, crownLine, curve, cypress, farTree, GRASS_DEEP, jag, LEAF_DARK, type Puff, puffPath, strip, tree, tuft, yAt } from './groundParts';
-import { TOWN_VIEW, type GroundDrawer } from './types';
+import { blob, crisp, flat, glow, LIGHT, mix, rgba, SHADOW, soft } from '../sites/paintKit';
+import { FLANK_LANES, flanksGround, flanksNear } from './groundFlanks';
+import {
+  bank, broken, bush, crownLine, curve, cypress, EARTH, FAR, farTree, GRASS_DEEP, GRASS_FAR, GRASS_NEAR, jag, LEAF_DARK, type Puff, puffPath,
+  revetment, road, rock, rockFace, ROCK, strip, texture, tree, tuft, wood, WOOD, yAt,
+} from './groundParts';
+import { TOWN_CORE, TOWN_VIEW, type GroundDrawer } from './types';
 
 /**
  * The Crown's hill-town, its ground and sky: a luminous watercolour sky
@@ -13,44 +17,25 @@ import { TOWN_VIEW, type GroundDrawer } from './types';
  * the back left for the seraph spire, a terraced slope at the back right
  * for the monastery, and in front a grassy hill with a cobbled square
  * before the hall, lanes to the plots and the main road coming in from
- * the bottom edge. Trees close the view at the far left and right. Light
- * from the upper left; shadows cool indigo; distance cools and pales.
+ * the bottom edge. Light from the upper left; shadows cool indigo;
+ * distance cools and pales.
+ *
+ * The sky, the ranges, the valley and the hill run the whole view; the town
+ * (its crag, ridge, terrace, square and lanes) is painted in the core's own
+ * units (TOWN_CORE, the slots' frame of reference less its x), and the
+ * countryside either side of it comes from groundFlanks.ts.
  */
 const { w: W, h: H } = TOWN_VIEW;
+const CX = TOWN_CORE.x;
 
 const SKY_TOP = '#7c9fcc';
 const SKY_MID = '#b6cde0';
 const SKY_LOW = '#f3e6c8';
-const FAR = '#a6b2d0';
 const RANGE = '#8f9cc0';
 const VALLEY = '#a2b791';
-const WOOD = '#4f6e5a';
-const GRASS_FAR = '#a9bc7b';
-const GRASS_NEAR = '#7f9c50';
-const EARTH = '#c8ab7d';
-const ROCK = '#bdb39d';
 const COBBLE = '#c4b89c';
 const CLOUD = '#fcf6e8';
 const CLOUD_SHADE = '#9aa0c4';
-
-/** Brush marks: short dabs of related greens laid side by side, the tooth of a loaded brush dragged over rough paper. */
-function texture(d: Draw, rng: Rng, shape: readonly Pt[], count: number, scale = 1, tints: readonly string[] = [GRASS_DEEP, '#c7c27c', mix(GRASS_NEAR, LIGHT, 0.4)]): void {
-  const ctx = d.pen.ctx;
-  const xs = shape.map((p) => p.x);
-  const ys = shape.map((p) => p.y);
-  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  ctx.save();
-  for (let i = 0; i < count; i++) {
-    const y = y0 + rng() * (y1 - y0);
-    const near = scale * (0.6 + 0.8 * Math.max(0, (y - 240) / 230));
-    ctx.globalAlpha = 0.06 + rng() * 0.12;
-    ctx.fillStyle = tints[Math.floor(rng() * tints.length)]!;
-    ctx.beginPath();
-    ctx.ellipse(x0 + rng() * (x1 - x0), y, (2.5 + rng() * 5) * near, (0.7 + rng() * 0.9) * near, (rng() - 0.5) * 0.4, 0, TAU);
-    ctx.fill();
-  }
-  ctx.restore();
-}
 
 // ---- Sky ----
 
@@ -64,10 +49,11 @@ function sky(d: Draw, rng: Rng): void {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, 250);
   // The light pours in from the upper left.
-  glow(ctx, pt(120, 20), 460, LIGHT, 0.5);
+  glow(ctx, pt(CX + 120, 20), 460, LIGHT, 0.5);
+  glow(ctx, pt(CX - 160, 0), 520, LIGHT, 0.3);
   // The wash laid in with a broad brush: darker where it pooled, paler blooms where it dried back.
   soft(ctx, 16, () => {
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 27; i++) {
       const c = pt(rng() * W, 4 + rng() * 110);
       d.pen.fill(blob(c, 70 + rng() * 140, 12 + rng() * 22, rng, 0.3, 18), rng() < 0.6 ? '#6588bd' : '#d6e2ea', 0.1 + rng() * 0.1);
     }
@@ -154,49 +140,27 @@ function cloud(d: Draw, rng: Rng, cx: number, base: number, w: number, h: number
   broken(d, rng, bottom.slice(Math.floor(bottom.length * 0.25), Math.floor(bottom.length * 0.75)), 0.5, mix(CLOUD_SHADE, SHADOW, 0.4), 0.35, 0.5);
 }
 
-/** A wood far off: crowns heaped into one mass, lit on their tops, dark at their feet. */
-function wood(d: Draw, rng: Rng, x0: number, x1: number, y: number, h: number, tint: string): void {
-  const ctx = d.pen.ctx;
-  const puffs: Puff[] = [];
-  for (let x = x0; x < x1; x += 2.5 + rng() * 3) {
-    const k = Math.sin(((x - x0) / (x1 - x0)) * Math.PI);
-    const r = 3 + rng() * 2.4 + k * 1.6;
-    puffs.push({ c: pt(x, y - r * 0.5 - k * h + rng() * 2), r });
-    if (rng() < 0.5) puffs.push({ c: pt(x + rng() * 3, y - r * 1.3 - k * h), r: r * 0.8 });
-  }
-  const none = (): { dx: number; dy: number; k: number } => ({ dx: 0, dy: 0, k: 1 });
-  ctx.save();
-  puffPath(ctx, puffs, none);
-  ctx.rect(x0, y - 2, x1 - x0, 4);
-  ctx.fillStyle = tint;
-  ctx.fill();
-  ctx.clip();
-  puffPath(ctx, puffs, (p) => ({ dx: -p.r * 0.3, dy: -p.r * 0.35, k: 0.55 }));
-  ctx.fillStyle = rgba(mix(tint, LIGHT, 0.45), 0.6);
-  ctx.fill();
-  const g = ctx.createLinearGradient(0, y - h - 4, 0, y + 2);
-  g.addColorStop(0, rgba(SHADOW, 0));
-  g.addColorStop(1, rgba(SHADOW, 0.3));
-  ctx.fillStyle = g;
-  ctx.fillRect(x0 - 6, y - h - 8, x1 - x0 + 12, h + 12);
-  ctx.restore();
-  crownLine(d, rng, puffs, y, 0.5, 0.35);
-}
-
 function clouds(d: Draw, rng: Rng): void {
   // Thin streaks high up, then the heaped clouds over the far hills.
   soft(d.pen.ctx, 2.5, () => {
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 10; i++) {
       const c = pt(60 + rng() * (W - 120), 20 + rng() * 46);
       d.pen.fill(blob(c, 60 + rng() * 90, 2.5 + rng() * 3, rng, 0.25, 16), CLOUD, 0.5);
     }
   });
-  cloud(d, rng, 255, 140, 250, 74);
-  cloud(d, rng, 575, 78, 150, 42);
-  cloud(d, rng, 905, 126, 280, 84);
-  cloud(d, rng, 1135, 64, 120, 36);
-  cloud(d, rng, 50, 60, 120, 32);
-  cloud(d, rng, 740, 168, 110, 24);
+  // Over the town, as it was first composed...
+  cloud(d, rng, CX + 255, 140, 250, 74);
+  cloud(d, rng, CX + 575, 78, 150, 42);
+  cloud(d, rng, CX + 905, 126, 280, 84);
+  cloud(d, rng, CX + 1135, 64, 120, 36);
+  cloud(d, rng, CX + 50, 60, 120, 32);
+  cloud(d, rng, CX + 740, 168, 110, 24);
+  // ...and drifting on over the country either side: a big heap at each end, smaller ones between.
+  cloud(d, rng, 175, 128, 230, 66);
+  cloud(d, rng, 34, 46, 90, 26);
+  cloud(d, rng, 1790, 136, 240, 70);
+  cloud(d, rng, 1935, 58, 120, 32);
+  cloud(d, rng, 1690, 40, 80, 22);
 }
 
 // ---- Far country ----
@@ -274,20 +238,29 @@ function range(d: Draw, rng: Rng, peaks: readonly Peak[], base: number, color: s
   d.pen.stroke(ridge, 0.7, d.ink, ink, false);
 }
 
+/** The core's peaks where they stood, more either side of them. */
+const atCore = (peaks: readonly Peak[]): Peak[] => peaks.map((p) => ({ ...p, x: p.x + CX }));
+
 function mountains(d: Draw, rng: Rng): void {
   range(d, rng, [
-    { x: 110, h: 64, w: 120 }, { x: 380, h: 78, w: 130 }, { x: 590, h: 58, w: 110 }, { x: 860, h: 82, w: 140 }, { x: 1080, h: 60, w: 110 },
+    { x: 70, h: 72, w: 130 }, { x: 290, h: 56, w: 110 },
+    ...atCore([{ x: 110, h: 64, w: 120 }, { x: 380, h: 78, w: 130 }, { x: 590, h: 58, w: 110 }, { x: 860, h: 82, w: 140 }, { x: 1080, h: 60, w: 110 }]),
+    { x: 1730, h: 74, w: 130 }, { x: 1940, h: 64, w: 120 },
   ], 214, FAR, 0.18, 70);
   range(d, rng, [
-    { x: 20, h: 60, w: 110 }, { x: 175, h: 92, w: 130 }, { x: 315, h: 50, w: 90 }, { x: 485, h: 100, w: 140 }, { x: 650, h: 64, w: 110 },
-    { x: 790, h: 108, w: 150 }, { x: 960, h: 60, w: 110 }, { x: 1120, h: 90, w: 130 },
+    { x: 40, h: 64, w: 110 }, { x: 160, h: 96, w: 140 }, { x: 300, h: 66, w: 110 },
+    ...atCore([{ x: 20, h: 60, w: 110 }, { x: 175, h: 92, w: 130 }, { x: 315, h: 50, w: 90 }, { x: 485, h: 100, w: 140 }, { x: 650, h: 64, w: 110 },
+      { x: 790, h: 108, w: 150 }, { x: 960, h: 60, w: 110 }, { x: 1120, h: 90, w: 130 }]),
+    { x: 1700, h: 62, w: 100 }, { x: 1850, h: 104, w: 150 }, { x: 1990, h: 70, w: 110 },
   ], 230, RANGE, 0.38, 86);
 }
+
+const atX = (p: Pt): Pt => pt(p.x + CX, p.y);
 
 /** The valley between the ranges and the town: fields and hedges, a river, then wooded hills nearer in. */
 function valley(d: Draw, rng: Rng): void {
   const ctx = d.pen.ctx;
-  const back = curve([pt(-10, 228), pt(160, 220), pt(380, 228), pt(560, 218), pt(760, 228), pt(980, 214), pt(1190, 222)], 8);
+  const back = curve([pt(-10, 222), pt(150, 230), pt(300, 220), ...[pt(-10, 228), pt(160, 220), pt(380, 228), pt(560, 218), pt(760, 228), pt(980, 214), pt(1190, 222)].map(atX), pt(1780, 216), pt(1900, 226), pt(W + 10, 218)], 8);
   const body = [...back, pt(W + 10, 300), pt(-10, 300)];
   d.pen.clipped(body, () => {
     const g = ctx.createLinearGradient(0, 212, 0, 262);
@@ -295,7 +268,7 @@ function valley(d: Draw, rng: Rng): void {
     g.addColorStop(1, mix(VALLEY, '#c9cc94', 0.25));
     ctx.fillStyle = g;
     ctx.fillRect(-10, 205, W + 20, 100);
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 52; i++) {
       const x = rng() * W;
       const y = 226 + rng() * 26;
       const fw = 26 + rng() * 50;
@@ -304,21 +277,25 @@ function valley(d: Draw, rng: Rng): void {
       d.pen.hair([pt(x + 5, y + 7), pt(x + fw + 7, y + 5)], 0.4, mix(WOOD, FAR, 0.3), 0.4);
     }
     // A river winding across the valley floor, catching the sky.
-    const river = strip(curve([pt(-10, 240), pt(140, 234), pt(300, 244), pt(480, 236), pt(700, 246), pt(900, 234), pt(1190, 240)], 8), (u) => 3.2 + 1.6 * Math.sin(u * 11));
+    const bends = [pt(-10, 240), pt(140, 234), pt(300, 244), pt(480, 236), pt(700, 246), pt(900, 234), pt(1190, 240)].map(atX);
+    const river = strip(curve([pt(-10, 236), pt(160, 244), pt(290, 236), ...bends, pt(1780, 232), pt(W + 10, 242)], 8), (u) => 3.2 + 1.6 * Math.sin(u * 19));
     d.pen.fill(river.shape, '#e4ecf0', 0.9);
     d.pen.hair(river.right, 0.45, mix(FAR, SHADOW, 0.3), 0.4);
     // The shadow of a cloud drifting over the fields.
     soft(ctx, 10, () => {
-      d.pen.fill(oval(880, 240, 120, 12, 20), mix(VALLEY, SHADOW, 0.5), 0.2);
-      d.pen.fill(oval(250, 236, 90, 9, 20), mix(VALLEY, SHADOW, 0.5), 0.16);
+      d.pen.fill(oval(CX + 880, 240, 120, 12, 20), mix(VALLEY, SHADOW, 0.5), 0.2);
+      d.pen.fill(oval(CX + 250, 236, 90, 9, 20), mix(VALLEY, SHADOW, 0.5), 0.16);
+      d.pen.fill(oval(140, 238, 100, 10, 20), mix(VALLEY, SHADOW, 0.5), 0.16);
     });
   });
   d.pen.stroke(back, 0.6, d.ink, 0.35, false);
   // Woods along the nearer swells.
-  wood(d, rng, 80, 330, 246, 5, mix(WOOD, FAR, 0.3));
-  wood(d, rng, 420, 560, 240, 4, mix(WOOD, FAR, 0.35));
-  wood(d, rng, 690, 990, 242, 6, mix(WOOD, FAR, 0.3));
-  for (let i = 0; i < 30; i++) {
+  wood(d, rng, CX + 80, CX + 330, 246, 5, mix(WOOD, FAR, 0.3));
+  wood(d, rng, CX + 420, CX + 560, 240, 4, mix(WOOD, FAR, 0.35));
+  wood(d, rng, CX + 690, CX + 990, 242, 6, mix(WOOD, FAR, 0.3));
+  wood(d, rng, 60, 260, 244, 5, mix(WOOD, FAR, 0.32));
+  wood(d, rng, 1640, 1800, 238, 4, mix(WOOD, FAR, 0.35));
+  for (let i = 0; i < 50; i++) {
     const p = back[Math.floor(rng() * (back.length - 1))]!;
     farTree(d, rng, p.x + (rng() - 0.5) * 6, p.y + 4 + rng() * 20, 2 + rng() * 1.5, mix(WOOD, FAR, 0.45), 0.25);
   }
@@ -326,12 +303,15 @@ function valley(d: Draw, rng: Rng): void {
 
 // ---- The town's hill ----
 
-/** The hill's back edge, left to right: behind the crag, the ridge under the walls, then rising to the right. */
-const HILL_EDGE = curve([pt(-10, 246), pt(120, 244), pt(250, 250), pt(420, 240), pt(600, 236), pt(800, 240), pt(900, 238), pt(980, 226), pt(1080, 214), pt(1190, 198)], 6);
+/** The hill's back edge across the town, core units: behind the crag, the ridge under the walls, then rising to the right. */
+const HILL_CORE = [pt(-10, 246), pt(120, 244), pt(250, 250), pt(420, 240), pt(600, 236), pt(800, 240), pt(900, 238), pt(980, 226), pt(1080, 214), pt(1190, 198)];
+const HILL_EDGE = curve(HILL_CORE, 6);
+/** The same edge across the whole view: level meadow off to the left, and on the right a rise for the windmill before it falls away. */
+const HILL_VIEW = curve([pt(-10, 240), pt(130, 246), pt(290, 250), ...HILL_CORE.map(atX), pt(1680, 186), pt(1750, 181), pt(1830, 192), pt(1920, 212), pt(W + 10, 226)], 6);
 
 function hill(d: Draw, rng: Rng): void {
   const ctx = d.pen.ctx;
-  const body = [...HILL_EDGE, pt(W + 10, H + 10), pt(-10, H + 10)];
+  const body = [...HILL_VIEW, pt(W + 10, H + 10), pt(-10, H + 10)];
   d.pen.fill(body, PAPER_FILL, 1);
   d.pen.clipped(body, () => {
     const g = ctx.createLinearGradient(0, 200, 0, H);
@@ -339,10 +319,10 @@ function hill(d: Draw, rng: Rng): void {
     g.addColorStop(0.3, GRASS_FAR);
     g.addColorStop(1, GRASS_NEAR);
     ctx.fillStyle = g;
-    ctx.fillRect(-10, 190, W + 20, H);
+    ctx.fillRect(-10, 170, W + 20, H);
     // The wash pooled and bloomed unevenly, warmer on the near ground.
     soft(ctx, 9, () => {
-      for (let i = 0; i < 80; i++) {
+      for (let i = 0; i < 136; i++) {
         const c = pt(rng() * W, 250 + rng() * 230);
         const near = (c.y - 250) / 220;
         const r = rng();
@@ -350,26 +330,28 @@ function hill(d: Draw, rng: Rng): void {
         d.pen.fill(blob(c, 30 + rng() * 70, 8 + rng() * 16, rng, 0.3, 16), tint, (0.07 + rng() * 0.09) * (0.6 + near * 0.6));
       }
     });
-    texture(d, rng, body, 5200);
+    texture(d, rng, body, 8800);
     // Shadows of the clouds passing over the hill.
     soft(ctx, 16, () => {
-      d.pen.fill(blob(pt(860, 330), 170, 26, rng, 0.3, 18), SHADOW, 0.09);
-      d.pen.fill(blob(pt(250, 420), 150, 22, rng, 0.3, 18), SHADOW, 0.07);
+      d.pen.fill(blob(pt(CX + 860, 330), 170, 26, rng, 0.3, 18), SHADOW, 0.09);
+      d.pen.fill(blob(pt(CX + 250, 420), 150, 22, rng, 0.3, 18), SHADOW, 0.07);
+      d.pen.fill(blob(pt(120, 300), 130, 20, rng, 0.3, 18), SHADOW, 0.07);
+      d.pen.fill(blob(pt(1820, 360), 150, 22, rng, 0.3, 18), SHADOW, 0.08);
     });
     // The light rakes across from the left; the near corners darken.
     const lit = ctx.createLinearGradient(0, 0, W, 0);
-    lit.addColorStop(0, rgba(LIGHT, 0.18));
-    lit.addColorStop(0.55, rgba(LIGHT, 0));
-    lit.addColorStop(1, rgba(SHADOW, 0.1));
+    lit.addColorStop(0, rgba(LIGHT, 0.2));
+    lit.addColorStop(0.5, rgba(LIGHT, 0));
+    lit.addColorStop(1, rgba(SHADOW, 0.12));
     ctx.fillStyle = lit;
-    ctx.fillRect(-10, 190, W + 20, H);
+    ctx.fillRect(-10, 170, W + 20, H);
     const near = ctx.createLinearGradient(0, 400, 0, H);
     near.addColorStop(0, rgba(SHADOW, 0));
     near.addColorStop(1, rgba(SHADOW, 0.12));
     ctx.fillStyle = near;
     ctx.fillRect(-10, 400, W + 20, 80);
   });
-  d.pen.stroke(HILL_EDGE, 1.0, d.ink, 0.7, false);
+  d.pen.stroke(HILL_VIEW, 1.0, d.ink, 0.7, false);
 }
 
 /** The ridge the walls stand on: its turf lit along the top, then a bank falling to the town, earth and rock showing through. */
@@ -408,80 +390,41 @@ function ridge(d: Draw, rng: Rng): void {
 // ---- The crag ----
 
 /**
- * A rock face between a top line and a foot line: upright masses of uneven
- * width, each broken into blocks at uneven heights, every block turned into
- * shade on its right along a crack, lit ledges where the fractures run.
+ * The crag at the back left: a turf-topped plateau for the seraph spire, a
+ * rock face falling to the town, a jagged spur behind it that steps down
+ * to the left in broken outcrops and sinks into the meadow beyond the town.
  */
-function rockFace(d: Draw, rng: Rng, x0: number, x1: number, topAt: (x: number) => number, footAt: (x: number) => number): void {
-  const ctx = d.pen.ctx;
-  for (let x = x0; x < x1;) {
-    const w = 14 + rng() * 32;
-    const top = topAt(x + w / 2) + rng() * 4;
-    const bottom = footAt(x + w / 2) + 4;
-    const cuts = [top];
-    for (let y = top + 12 + rng() * 22; y < bottom - 10; y += 14 + rng() * 24) cuts.push(y);
-    cuts.push(bottom);
-    for (let k = 0; k + 1 < cuts.length; k++) {
-      const ya = cuts[k]!;
-      const yb = cuts[k + 1]!;
-      const xm = x + w * (0.5 + rng() * 0.3);
-      const crack = jag(rng, pt(xm, ya), pt(xm + (rng() - 0.4) * 6, yb), 4, 1.8);
-      const side = [...crack, pt(x + w + 2, yb), pt(x + w + 2, ya + 3)];
-      soft(ctx, 0.8, () => d.pen.fill(side, mix(ROCK, SHADOW, 0.6), 0.32 + rng() * 0.22));
-      d.pen.hatch(side, 1.7, 1.15, 0.34, { color: d.ink, alpha: 0.26 });
-      d.pen.hair(crack, 0.6, d.ink, 0.6);
-      if (k > 0) {
-        const f = jag(rng, pt(x - 1, ya + (rng() - 0.5) * 3), pt(xm + 1, ya + (rng() - 0.5) * 3), 4, 1);
-        soft(ctx, 1, () => d.pen.fill([...f, ...f.slice().reverse().map((p) => pt(p.x, p.y + 4))], mix(ROCK, SHADOW, 0.55), 0.3));
-        d.pen.hair(f.map((p) => pt(p.x, p.y - 0.9)), 0.8, PAPER_FILL, 0.6);
-        d.pen.hair(f, 0.5, d.ink, 0.55);
-      }
-      if (rng() < 0.35) d.pen.hair(jag(rng, pt(x + w * 0.15, ya + 4), pt(x + w * 0.4, ya + (yb - ya) * 0.7), 3, 1), 0.4, d.ink, 0.35);
-    }
-    x += w;
-  }
-}
-
-/** A loose stone: angular, its top lit, its right face in shade, a crisp contour and grass at its foot. */
-function rock(d: Draw, rng: Rng, c: Pt, rx: number, ry: number): void {
-  const n = 6 + Math.floor(rng() * 2);
-  const outline = Array.from({ length: n }, (_, i) => {
-    const a = Math.PI + (i / (n - 1)) * Math.PI;
-    const k = 0.75 + rng() * 0.35;
-    return pt(c.x + Math.cos(a) * rx * k, c.y + Math.sin(a) * ry * 1.15 * k);
-  });
-  const shape = crisp([...outline, pt(c.x + rx * 0.9, c.y + ry * 0.35), pt(c.x - rx * 0.9, c.y + ry * 0.35)], 2);
-  dab(d, oval(c.x + rx * 0.5, c.y + ry * 0.4, rx * 1.2, ry * 0.5, 14), SHADOW, 0.25, 1.2);
-  flat(d, shape, ROCK, { tone: -0.05, line: 0 });
-  const peak = outline[Math.floor(n / 2)]!;
-  const side = [peak, ...outline.slice(Math.floor(n / 2) + 1), pt(c.x + rx * 0.9, c.y + ry * 0.35), pt(peak.x + rx * 0.1, c.y + ry * 0.35)];
-  d.pen.fill(side, mix(ROCK, SHADOW, 0.55), 0.55);
-  d.pen.hatch(side, 1.4, 1.2, 0.32, { color: d.ink, alpha: 0.3 });
-  d.pen.hair([peak, pt(peak.x + rx * 0.1, c.y + ry * 0.35)], 0.45, d.ink, 0.6);
-  d.pen.stroke(closed(shape), 0.65, d.ink, 0.85);
-  tuft(d, rng, pt(c.x - rx * 0.85, c.y + ry * 0.4), 3, 0.65);
-  if (rng() < 0.5) tuft(d, rng, pt(c.x + rx * 0.9, c.y + ry * 0.4), 2.6, 0.6);
-}
-
-/** The crag at the back left: a turf-topped plateau for the seraph spire, a rock face falling to the town, a jagged spur behind. */
 function crag(d: Draw, rng: Rng): void {
   const ctx = d.pen.ctx;
-  // The spur at the left edge, behind the plateau, in the half-light.
-  const spurEdge = curve([pt(-10, 146), pt(2, 140), pt(10, 152), pt(17, 148), pt(26, 172), pt(34, 178), pt(42, 206), pt(52, 230), pt(60, 252)], 3);
-  const spur = [...spurEdge, pt(60, 300), pt(-10, 300)];
-  flat(d, spur, mix(ROCK, FAR, 0.15), { tone: 0.15, line: 0, from: pt(-10, 150), to: pt(60, 160) });
+  // The spur behind the plateau, in the half-light: its pinnacle over the town's edge, its shoulders falling away left.
+  const spurEdge = curve([
+    pt(-150, 300), pt(-138, 288), pt(-122, 284), pt(-110, 268), pt(-94, 264), pt(-82, 248), pt(-66, 242), pt(-52, 220), pt(-40, 208), pt(-28, 178), pt(-18, 160),
+    pt(-10, 146), pt(2, 140), pt(10, 152), pt(17, 148), pt(26, 172), pt(34, 178), pt(42, 206), pt(52, 230), pt(60, 252),
+  ], 3);
+  const spurFoot = curve([pt(60, 312), pt(-30, 322), pt(-66, 326), pt(-100, 320), pt(-130, 310), pt(-150, 300)], 5);
+  const spur = [...spurEdge, ...spurFoot];
+  flat(d, spur, mix(ROCK, FAR, 0.2), { tone: 0.15, line: 0, from: pt(-120, 230), to: pt(60, 170) });
   d.pen.clipped(spur, () => {
-    rockFace(d, rng, -14, 64, (x) => yAt(spurEdge, x), () => 300);
-    d.pen.stipple(spur, 700, () => 0.5, 0.4, mix(ROCK, SHADOW, 0.5));
+    rockFace(d, rng, -154, 64, (x) => yAt(spurEdge, x), () => 326);
+    d.pen.stipple(spur, 1500, () => 0.5, 0.4, mix(ROCK, SHADOW, 0.5));
+    // Turf caught on the lower shoulders, and the foot sinking into shade and grass.
+    soft(ctx, 3, () => d.pen.fill(spurFoot.map((p) => pt(p.x, p.y - 8)).concat(spurFoot.slice().reverse().map((p) => pt(p.x, p.y + 4))), SHADOW, 0.18));
+    for (const [x, y] of [[-130, 290], [-102, 268], [-74, 244], [-46, 212]] as const) {
+      d.pen.fill(blob(pt(x, y + 2), 9, 2.4, rng, 0.3, 10), GRASS_FAR, 0.85);
+      for (let k = 0; k < 3; k++) tuft(d, rng, pt(x - 6 + rng() * 12, y + 3), 3, 0.6);
+    }
   });
   d.pen.stroke(spurEdge, 1.2, d.ink, 0.85, false);
-  // The face under the plateau, high at the left and sinking into the turf at the right.
+  broken(d, rng, spurFoot.filter((p) => p.x < -60), 0.9, d.ink, 0.7, 0.8);
+  for (const p of spurFoot) if (p.x < -60 && rng() < 0.6) tuft(d, rng, pt(p.x, p.y + 1), 3.4, 0.7);
+  // The face under the plateau, high at the left and sinking into the turf at the right; its left end turns back into the spur.
   const lip = curve([pt(24, 252), pt(60, 262), pt(120, 268), pt(176, 266), pt(214, 260), pt(240, 262)], 4);
-  const footLine = curve([pt(274, 296), pt(236, 316), pt(180, 326), pt(120, 330), pt(60, 328), pt(10, 334), pt(-10, 334)], 6);
-  const face = [...lip, ...footLine, pt(-10, 286), pt(24, 252)];
+  const footLine = curve([pt(274, 296), pt(236, 316), pt(180, 326), pt(120, 330), pt(60, 328), pt(10, 334), pt(-30, 334), pt(-58, 330)], 6);
+  const side = curve([pt(-58, 330), pt(-44, 300), pt(-14, 270), pt(24, 252)], 4);
+  const face = [...lip, ...footLine, ...side.slice(1, -1)];
   flat(d, face, ROCK, { tone: 0, line: 0, from: pt(20, 250), to: pt(270, 300) });
   d.pen.clipped(face, () => {
-    rockFace(d, rng, -16, 280, (x) => (x > 240 ? 262 + (x - 240) * 0.9 : yAt(lip, x)), (x) => yAt(footLine.slice().reverse(), x));
+    rockFace(d, rng, -62, 280, (x) => (x > 240 ? 262 + (x - 240) * 0.9 : x < 24 ? yAt(side, x) : yAt(lip, x)), (x) => yAt(footLine.slice().reverse(), x));
     d.pen.stipple(face, 2200, () => 0.5, 0.42, mix(ROCK, SHADOW, 0.5));
     // The face turns from the light as it rounds to the right; shade gathers under the turf and at the foot.
     const turn = ctx.createLinearGradient(40, 0, 270, 0);
@@ -489,18 +432,18 @@ function crag(d: Draw, rng: Rng): void {
     turn.addColorStop(0.5, rgba(LIGHT, 0));
     turn.addColorStop(1, rgba(SHADOW, 0.22));
     ctx.fillStyle = turn;
-    ctx.fillRect(-10, 240, 290, 100);
+    ctx.fillRect(-62, 240, 342, 100);
     soft(ctx, 4, () => {
       d.pen.fill([...lip, pt(240, 274), pt(24, 266)], SHADOW, 0.3);
-      d.pen.fill([pt(-10, 318), pt(280, 300), pt(280, 340), pt(-10, 342)], SHADOW, 0.14);
+      d.pen.fill([pt(-62, 318), pt(280, 300), pt(280, 340), pt(-62, 342)], SHADOW, 0.14);
     });
-    for (let i = 0; i < 7; i++) {
-      const c = pt(rng() * 240, 284 + rng() * 36);
+    for (let i = 0; i < 8; i++) {
+      const c = pt(-30 + rng() * 270, 290 + rng() * 32);
       d.pen.fill(blob(c, 4 + rng() * 5, 1.6 + rng(), rng, 0.3, 10), GRASS_FAR, 0.85);
       for (let k = 0; k < 3; k++) tuft(d, rng, pt(c.x - 4 + rng() * 8, c.y + 1), 3.2, 0.65);
     }
   });
-  d.pen.stroke([pt(-10, 286), lip[0]!], 1.1, d.ink, 0.8, false);
+  d.pen.stroke(side, 1.1, d.ink, 0.8, false);
   d.pen.stroke(footLine.slice().reverse(), 1.3, d.ink, 0.85, false);
   stair(d, rng);
   // The plateau: a turf cap where the spire stands, its edge hanging ragged over the lip.
@@ -516,7 +459,7 @@ function crag(d: Draw, rng: Rng): void {
   for (const p of lip) d.pen.hair([pt(p.x, p.y - 1), pt(p.x + (rng() - 0.5) * 2.5, p.y + 1.5 + rng() * 4)], 0.55, mix(GRASS_DEEP, SHADOW, 0.3), 0.75);
   d.pen.stroke(lip, 0.95, d.ink, 0.75, false);
   // Fallen stones at its foot.
-  for (let i = 0; i < 6; i++) rock(d, rng, pt(10 + rng() * 230, 334 + rng() * 6), 4 + rng() * 5, 2.4 + rng() * 2);
+  for (let i = 0; i < 7; i++) rock(d, rng, pt(-40 + rng() * 280, 334 + rng() * 6), 4 + rng() * 5, 2.4 + rng() * 2);
 }
 
 /** Steps cut slantwise up the crag's flank to the plateau, each tread lit, each riser in shade. */
@@ -537,85 +480,30 @@ function stair(d: Draw, rng: Rng): void {
   d.pen.hair(cut.slice(0, 2), 0.6, d.ink, 0.6);
 }
 
+/** The terrace's lip, core units: under the monastery, then on along the slope beyond the town (a vineyard's, there) to the road. */
+const TERRACE_FRONT = curve([pt(935, 266), pt(1000, 272), pt(1100, 274), pt(1190, 272), pt(1270, 276), pt(1350, 284), pt(1430, 296), pt(1466, 303)], 6);
+
 /** The slope at the back right, terraced flat for the monastery, a dry-stone revetment along its lip. */
 function terrace(d: Draw, rng: Rng): void {
   const ctx = d.pen.ctx;
-  const front = curve([pt(935, 266), pt(1000, 272), pt(1100, 274), pt(1190, 272)], 6);
-  const shelfBack = HILL_EDGE.filter((p) => p.x > 935);
-  const shelf = [...shelfBack, pt(1190, 272), ...front.slice().reverse()];
+  const front = TERRACE_FRONT;
+  const end = front[front.length - 1]!;
+  const shelfBack = HILL_VIEW.map((p) => pt(p.x - CX, p.y)).filter((p) => p.x > 935 && p.x < end.x);
+  const shelf = [...shelfBack, end, ...front.slice().reverse()];
   d.pen.clipped(shelf, () => {
-    const g = ctx.createLinearGradient(930, 0, 1010, 0);
+    const g = ctx.createLinearGradient(930, 0, end.x, 0);
     g.addColorStop(0, rgba(LIGHT, 0));
-    g.addColorStop(1, rgba(LIGHT, 0.2));
+    g.addColorStop(0.15, rgba(LIGHT, 0.2));
+    g.addColorStop(0.6, rgba(LIGHT, 0.16));
+    g.addColorStop(1, rgba(LIGHT, 0));
     ctx.fillStyle = g;
-    ctx.fillRect(920, 190, 280, 90);
+    ctx.fillRect(920, 170, end.x - 910, 140);
   });
-  const foot = curve([pt(1190, 300), pt(1080, 304), pt(990, 298), pt(935, 266)], 6);
-  const bank = [...front, ...foot.slice(1)];
-  d.pen.clipped(bank, () => {
-    ctx.fillStyle = rgba(mix(GRASS_NEAR, SHADOW, 0.3), 0.32);
-    ctx.fillRect(920, 255, 280, 55);
-    d.pen.hatch(bank, 2.8, 1.15, 0.38, { color: d.ink, alpha: 0.14 });
-  });
-  // A low dry-stone revetment along the shelf's lip: two rough courses, lit on the coping, damp at the foot.
-  const wallFace = [...front, ...front.slice().reverse().map((p) => pt(p.x, p.y + 7))];
-  flat(d, wallFace, ROCK, { tone: 0.1, line: 0 });
-  d.pen.clipped(wallFace, () => {
-    for (const v of [0, 3.5]) {
-      for (let i = 0; i < front.length - 1; i++) {
-        const p = front[i]!;
-        for (let x = p.x + rng() * 3; x < front[i + 1]!.x; x += 4 + rng() * 4) {
-          const y = yAt(front, x) + v;
-          d.pen.fill(blob(pt(x + 2.5, y + 1.8), 2.4, 1.5, rng, 0.25, 8), rng() < 0.5 ? mix(ROCK, LIGHT, 0.4) : mix(ROCK, SHADOW, 0.25), 0.8);
-          d.pen.hair([pt(x, y + 0.3), pt(x + 0.3, y + 3.2)], 0.4, d.ink, 0.5);
-        }
-      }
-      d.pen.hair(front.map((p) => pt(p.x, p.y + v + 3.5)), 0.4, d.ink, 0.45);
-    }
-    soft(ctx, 1.5, () => d.pen.fill(front.map((p) => pt(p.x, p.y + 5)).concat(front.slice().reverse().map((p) => pt(p.x, p.y + 9))), SHADOW, 0.25));
-  });
-  d.pen.hair(front.map((p) => pt(p.x, p.y - 0.6)), 0.8, PAPER_FILL, 0.6);
-  d.pen.stroke(front.map((p) => pt(p.x, p.y + 7)), 0.8, d.ink, 0.7, false);
-  for (const p of front) if (rng() < 0.4) tuft(d, rng, pt(p.x, p.y + 8), 3, 0.6);
-  broken(d, rng, front, 0.6, d.ink, 0.5, 0.8);
+  bank(d, front, curve([pt(end.x, 318), pt(1380, 318), pt(1290, 308), pt(1190, 300), pt(1080, 304), pt(990, 298), pt(935, 266)], 6));
+  revetment(d, rng, front);
 }
 
 // ---- Roads, lanes and the square ----
-
-/** Packed earth, softly edged, a lighter crown, pebbles and (on the roads) cart ruts; grass creeping over the verges. */
-function road(d: Draw, rng: Rng, spine: readonly Pt[], w: (u: number) => number, ruts: boolean): void {
-  const s = strip(spine, w);
-  const ctx = d.pen.ctx;
-  soft(ctx, 1, () => d.pen.fill(s.shape, EARTH, 0.9));
-  const crown = strip(spine, (u) => w(u) * 0.55);
-  soft(ctx, 3, () => d.pen.fill(crown.shape, mix(EARTH, LIGHT, 0.45), 0.5));
-  d.pen.clipped(s.shape, () => {
-    soft(ctx, 2.5, () => {
-      for (let i = 0; i < spine.length; i += 2) {
-        const p = spine[i]!;
-        if (rng() < 0.5) d.pen.fill(blob(pt(p.x + (rng() - 0.5) * w(0.5) * 0.6, p.y), 3 + rng() * 5, 1.5 + rng(), rng, 0.3, 10), mix(EARTH, SHADOW, 0.35), 0.25);
-      }
-    });
-    if (ruts) {
-      for (const k of [-0.25, 0.25]) {
-        const rut = spine.map((p, i) => pt(p.x + (s.left[i]!.x - p.x) * k * 2, p.y + (s.left[i]!.y - p.y) * k * 2));
-        d.pen.hair(rut, 0.7, mix(EARTH, SHADOW, 0.5), 0.45);
-        d.pen.hair(rut.map((p) => pt(p.x - 0.9, p.y - 0.7)), 0.5, PAPER_FILL, 0.35);
-      }
-    }
-  });
-  for (let i = 0; i < spine.length; i++) {
-    if (rng() > 0.35) continue;
-    const p = spine[i]!;
-    const q = pt(p.x + (rng() - 0.5) * w(i / spine.length) * 0.8, p.y + (rng() - 0.5) * 3);
-    d.pen.dot(q.x, q.y, 0.6 + rng() * 0.6, mix(ROCK, LIGHT, 0.3), 0.9);
-    d.pen.hair([pt(q.x - 0.6, q.y + 0.7), pt(q.x + 0.8, q.y + 0.5)], 0.35, d.ink, 0.5);
-  }
-  // The verges: the near one a little sunk, the pen catching it in places; grass over both.
-  broken(d, rng, s.right, 0.55, d.ink, 0.45, 0.6);
-  broken(d, rng, s.left, 0.5, d.ink, 0.3, 0.4);
-  for (const edge of [s.left, s.right]) for (const p of edge) if (rng() < 0.45) tuft(d, rng, pt(p.x, p.y + 1), 2.6, 0.55);
-}
 
 /** The square in front of the hall: packed courses of setts, each rounded and lit on top, a dressed kerb round it, worn dusty down the middle. */
 function square(d: Draw, rng: Rng): void {
@@ -674,10 +562,16 @@ function square(d: Draw, rng: Rng): void {
   for (const p of lip) if (rng() < 0.5) tuft(d, rng, pt(p.x, p.y + 5), 3, 0.6);
 }
 
+/** A width that follows a spine's x rather than its length (so a lane keeps its width in town however far it runs on). */
+const byX = (spine: readonly Pt[], w: (x: number) => number) => (u: number): number => w(spine[Math.round(u * (spine.length - 1))]!.x);
+const toCore = (p: Pt): Pt => pt(p.x - CX, p.y);
+
 function roads(d: Draw, rng: Rng): void {
-  // Lanes first (the square and the main road lie over their ends).
-  road(d, rng, curve([pt(530, 412), pt(420, 404), pt(320, 400), pt(200, 404), pt(90, 400), pt(-10, 406)], 5), (u) => 28 - u * 5, false);
-  road(d, rng, curve([pt(780, 412), pt(880, 404), pt(980, 408), pt(1080, 400), pt(1190, 404)], 5), (u) => 27 - u * 4, false);
+  // Lanes first (the square and the main road lie over their ends), each running on out of town into the country.
+  const west = curve([pt(530, 412), pt(420, 404), pt(320, 400), pt(200, 404), pt(90, 400), pt(-10, 406), ...FLANK_LANES.left.map(toCore)], 5);
+  road(d, rng, west, byX(west, (x) => (x > -10 ? 28 - (5 * (530 - x)) / 540 : 23 - (7 * Math.min(400, -10 - x)) / 400)), false);
+  const east = curve([pt(780, 412), pt(880, 404), pt(980, 408), pt(1080, 400), pt(1190, 404), ...FLANK_LANES.right.map(toCore)], 5);
+  road(d, rng, east, byX(east, (x) => (x < 1190 ? 27 - (4 * (x - 780)) / 410 : 23 - (12 * Math.min(420, x - 1190)) / 420)), false);
   // Up the hill to the gate under the walls.
   road(d, rng, curve([pt(612, 382), pt(594, 346), pt(598, 306), pt(602, 278)], 5), (u) => 26 - u * 8, true);
   // To the griffin tower and the crag's stair.
@@ -691,17 +585,19 @@ function roads(d: Draw, rng: Rng): void {
 
 // ---- Grass, flowers, trees ----
 
-function meadow(d: Draw, rng: Rng): void {
-  for (let i = 0; i < 700; i++) {
+/** Grass and flowers scattered between x0 and x1, as thick on the ground as they are across the town. */
+function meadow(d: Draw, rng: Rng, x0: number, x1: number): void {
+  const span = x1 - x0;
+  for (let i = 0; i < span * 0.6; i++) {
     const y = 250 + rng() ** 0.7 * 222;
     const near = (y - 250) / 220;
-    tuft(d, rng, pt(rng() * W, y), 2 + near * 3.5, 0.3 + near * 0.3);
+    tuft(d, rng, pt(x0 + rng() * span, y), 2 + near * 3.5, 0.3 + near * 0.3);
   }
   const blooms = ['#fbf4dc', '#ecc94e', '#aab8e2', '#e8a9a0'];
-  for (let i = 0; i < 180; i++) {
+  for (let i = 0; i < span * 0.15; i++) {
     const y = 280 + rng() * 190;
     const c = blooms[Math.floor(rng() * blooms.length)]!;
-    const x = rng() * W;
+    const x = x0 + rng() * span;
     for (let k = 0; k < 3; k++) d.pen.dot(x + (rng() - 0.5) * 8, y + (rng() - 0.5) * 3, 0.5 + ((y - 280) / 190) * 0.6, c, 0.85);
   }
 }
@@ -712,7 +608,7 @@ function margins(d: Draw, rng: Rng): void {
   // Far right: cypresses up the slope, a broad tree and a bush at the edge.
   cypress(d, rng, pt(1158, 230), 70);
   cypress(d, rng, pt(1176, 236), 56);
-  tree(d, rng, pt(1190, 352), 1.5, 0.7);
+  tree(d, rng, pt(1196, 340), 0.95, 0.7);
   tree(d, rng, pt(1172, 470), 1.9, 0.3);
   // Far left: trees at the crag's foot and the near corner.
   tree(d, rng, pt(-6, 372), 1.6, 0.2);
@@ -743,20 +639,34 @@ function grain(ctx: CanvasRenderingContext2D, rng: Rng): void {
 export const drawTownGround: GroundDrawer = (ctx, seed) => {
   const rng = createRng(seed * 31 + 7);
   const d = makeDraw(ctx, seed, 0, 0);
+  const inCore = (paint: () => void): void => {
+    ctx.save();
+    ctx.translate(CX, 0);
+    paint();
+    ctx.restore();
+  };
   ctx.save();
   ctx.fillStyle = PAPER_FILL;
   ctx.fillRect(0, 0, W, H);
+  // Far off, the whole width.
   sky(d, rng);
   clouds(d, rng);
   mountains(d, rng);
   valley(d, rng);
   hill(d, rng);
-  terrace(d, rng);
-  ridge(d, rng);
-  crag(d, rng);
-  meadow(d, rng);
-  roads(d, rng);
-  margins(d, rng);
+  // The town's ground, then the country's beside it, then the lanes out over both.
+  inCore(() => {
+    terrace(d, rng);
+    ridge(d, rng);
+    crag(d, rng);
+    meadow(d, rng, -CX, W - CX);
+  });
+  flanksGround(d, rng, HILL_VIEW, TERRACE_FRONT.map(atX));
+  inCore(() => {
+    roads(d, rng);
+    margins(d, rng);
+  });
+  flanksNear(d, rng);
   ctx.restore();
   grain(ctx, rng);
 };

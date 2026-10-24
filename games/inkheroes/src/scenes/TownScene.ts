@@ -20,11 +20,13 @@ import { cardFit } from './uiLayout';
 import { HAND, paintedButton, paperCard, roundButton } from './uiPaint';
 
 /** The strip along the bottom for the purse, armies and buttons, in its own units (it spans the screen's width). */
-const STRIP = { w: TOWN_VIEW.w, h: 250 } as const;
+const STRIP = { w: 1180, h: 250 } as const;
 /** The most of the screen's height the strip may take. */
 const STRIP_SHARE = 0.4;
 /** How far the townscape tucks under the strip's torn edge. */
 const TUCK = 12;
+/** The most sky a wide screen may crop off the townscape's top, units: the keep's flag stands just below. */
+const SKY_CROP = 20;
 /** A press that moves further than this (CSS px) is a drag, not a tap. */
 const DRAG = 10;
 const SANS = 'Georgia, serif';
@@ -134,12 +136,13 @@ export class TownScene extends Phaser.Scene {
     const b = this.add.container(0, 0);
     this.board = b;
     // The strip spans the bottom; the townscape fills the screen above it,
-    // as wide as the screen and cropping its sky (or its sides) to cover.
+    // cropping its sides (or a little sky) to cover. A screen wider still
+    // keeps the castle whole and shows the ground mirrored past its edges.
     const u = Math.min(1.25, v.width / STRIP.w, (v.height * STRIP_SHARE) / STRIP.h);
     const stripTop = v.height - STRIP.h * u;
     this.stripTop = stripTop;
     const area = { w: v.width, h: stripTop + TUCK };
-    const s = Math.max(area.w / TOWN_VIEW.w, area.h / TOWN_VIEW.h);
+    const s = Math.max(area.h / TOWN_VIEW.h, Math.min(area.w / TOWN_VIEW.w, area.h / (TOWN_VIEW.h - SKY_CROP)));
     // Wider than the screen (a phone held upright): drag sideways to look along the town.
     this.panRoom = Math.max(0, TOWN_VIEW.w * s - area.w);
     this.panX = Phaser.Math.Clamp(this.panX, -this.panRoom / 2, this.panRoom / 2);

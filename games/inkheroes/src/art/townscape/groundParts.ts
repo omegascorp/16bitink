@@ -1,7 +1,8 @@
 import type { Rng } from '../../logic/rng';
-import { oval, pt, TAU, type Draw } from '../kit';
+import { closed, oval, pt, TAU, type Draw } from '../kit';
+import { PAPER_FILL } from '../palette';
 import type { Pt } from '../pen';
-import { blob, dab, LIGHT, mix, paint, SHADOW } from '../sites/paintKit';
+import { blob, crisp, dab, flat, LIGHT, mix, paint, rgba, SHADOW, soft } from '../sites/paintKit';
 
 /**
  * Parts for painting the townscape's ground (ground.ts): smooth curves and
@@ -12,6 +13,12 @@ import { blob, dab, LIGHT, mix, paint, SHADOW } from '../sites/paintKit';
 export const GRASS_DEEP = '#4f6e3a';
 export const LEAF = '#628c47';
 export const LEAF_DARK = '#2f4a32';
+export const FAR = '#a6b2d0';
+export const WOOD = '#4f6e5a';
+export const GRASS_FAR = '#a9bc7b';
+export const GRASS_NEAR = '#7f9c50';
+export const EARTH = '#c8ab7d';
+export const ROCK = '#bdb39d';
 
 /** Smooth curve through points (Catmull-Rom), resampled about every `step` units. */
 export function curve(pts: readonly Pt[], step = 6): Pt[] {
@@ -190,4 +197,194 @@ export function bush(d: Draw, rng: Rng, foot: Pt, s: number): void {
     const m = blob(pt(foot.x + dx * s, foot.y + dy * s), r * s, r * 0.75 * s, rng, 0.22, 14);
     paint(d, m, mix(green, LEAF_DARK, dx > 0 ? 0.32 : 0.1), { shadow: 0.65, hatch: 0.25, line: 0.7 });
   }
+}
+
+/** Brush marks: short dabs of related greens laid side by side, the tooth of a loaded brush dragged over rough paper. */
+export function texture(d: Draw, rng: Rng, shape: readonly Pt[], count: number, scale = 1, tints: readonly string[] = [GRASS_DEEP, '#c7c27c', mix(GRASS_NEAR, LIGHT, 0.4)]): void {
+  const ctx = d.pen.ctx;
+  const xs = shape.map((p) => p.x);
+  const ys = shape.map((p) => p.y);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  ctx.save();
+  for (let i = 0; i < count; i++) {
+    const y = y0 + rng() * (y1 - y0);
+    const near = scale * (0.6 + 0.8 * Math.max(0, (y - 240) / 230));
+    ctx.globalAlpha = 0.06 + rng() * 0.12;
+    ctx.fillStyle = tints[Math.floor(rng() * tints.length)]!;
+    ctx.beginPath();
+    ctx.ellipse(x0 + rng() * (x1 - x0), y, (2.5 + rng() * 5) * near, (0.7 + rng() * 0.9) * near, (rng() - 0.5) * 0.4, 0, TAU);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/**
+ * A wood: crowns heaped into one mass, lit on their tops, dark at their
+ * feet; `size` scales the crowns (1 far off, 3 or so a field away, where
+ * the trunks show under the crowns and the mass stands on its own shadow).
+ */
+export function wood(d: Draw, rng: Rng, x0: number, x1: number, y: number, h: number, tint: string, size = 1): void {
+  const ctx = d.pen.ctx;
+  const near = size > 1.5;
+  const puffs: Puff[] = [];
+  for (let x = x0; x < x1; x += (2.5 + rng() * 3) * size) {
+    const k = Math.sin(((x - x0) / (x1 - x0)) * Math.PI);
+    const r = (3 + rng() * 2.4 + k * 1.6) * size;
+    puffs.push({ c: pt(x, y - r * 0.5 - k * h + rng() * 2 * size), r });
+    if (rng() < 0.5) puffs.push({ c: pt(x + rng() * 3 * size, y - r * 1.3 - k * h), r: r * 0.8 });
+    // Near to, the understorey: lower, smaller crowns, so the wood's foot is ragged rather than ruled.
+    if (near) puffs.push({ c: pt(x + rng() * 2 * size, y - r * 0.15 - rng() * size * 2), r: r * (0.45 + rng() * 0.25) });
+  }
+  const none = (): { dx: number; dy: number; k: number } => ({ dx: 0, dy: 0, k: 1 });
+  if (near) {
+    dab(d, oval((x0 + x1) / 2 + 4 * size, y + 2 * size, (x1 - x0) * 0.55, 3 * size, 24), SHADOW, 0.3, 2 * size);
+    for (let x = x0 + rng() * 6 * size; x < x1; x += (5 + rng() * 6) * size) {
+      d.pen.stroke([pt(x, y + 1.5 * size + rng() * size), pt(x + (rng() - 0.5) * size, y - 6 * size)], 0.9 + rng() * 0.6 * size, mix('#5a4433', SHADOW, 0.3), 0.85, false);
+    }
+  }
+  ctx.save();
+  puffPath(ctx, puffs, none);
+  if (!near) ctx.rect(x0, y - 2 * size, x1 - x0, 4 * size);
+  ctx.fillStyle = tint;
+  ctx.fill();
+  ctx.clip();
+  puffPath(ctx, puffs, (p) => ({ dx: -p.r * 0.3, dy: -p.r * 0.35, k: 0.55 }));
+  ctx.fillStyle = rgba(mix(tint, LIGHT, 0.45), 0.6);
+  ctx.fill();
+  const g = ctx.createLinearGradient(0, y - h - 4 * size, 0, y + 2 * size);
+  g.addColorStop(0, rgba(SHADOW, 0));
+  g.addColorStop(1, rgba(SHADOW, 0.3));
+  ctx.fillStyle = g;
+  ctx.fillRect(x0 - 6 * size, y - h - 8 * size, x1 - x0 + 12 * size, h + 12 * size);
+  ctx.restore();
+  crownLine(d, rng, puffs, y, size > 1.5 ? 0.6 : 0.5, size > 1.5 ? 0.5 : 0.35);
+}
+
+/**
+ * A rock face between a top line and a foot line: upright masses of uneven
+ * width, each broken into blocks at uneven heights, every block turned into
+ * shade on its right along a crack, lit ledges where the fractures run.
+ */
+export function rockFace(d: Draw, rng: Rng, x0: number, x1: number, topAt: (x: number) => number, footAt: (x: number) => number): void {
+  const ctx = d.pen.ctx;
+  for (let x = x0; x < x1;) {
+    const w = 14 + rng() * 32;
+    const top = topAt(x + w / 2) + rng() * 4;
+    const bottom = footAt(x + w / 2) + 4;
+    const cuts = [top];
+    for (let y = top + 12 + rng() * 22; y < bottom - 10; y += 14 + rng() * 24) cuts.push(y);
+    cuts.push(bottom);
+    for (let k = 0; k + 1 < cuts.length; k++) {
+      const ya = cuts[k]!;
+      const yb = cuts[k + 1]!;
+      const xm = x + w * (0.5 + rng() * 0.3);
+      const crack = jag(rng, pt(xm, ya), pt(xm + (rng() - 0.4) * 6, yb), 4, 1.8);
+      const side = [...crack, pt(x + w + 2, yb), pt(x + w + 2, ya + 3)];
+      soft(ctx, 0.8, () => d.pen.fill(side, mix(ROCK, SHADOW, 0.6), 0.32 + rng() * 0.22));
+      d.pen.hatch(side, 1.7, 1.15, 0.34, { color: d.ink, alpha: 0.26 });
+      d.pen.hair(crack, 0.6, d.ink, 0.6);
+      if (k > 0) {
+        const f = jag(rng, pt(x - 1, ya + (rng() - 0.5) * 3), pt(xm + 1, ya + (rng() - 0.5) * 3), 4, 1);
+        soft(ctx, 1, () => d.pen.fill([...f, ...f.slice().reverse().map((p) => pt(p.x, p.y + 4))], mix(ROCK, SHADOW, 0.55), 0.3));
+        d.pen.hair(f.map((p) => pt(p.x, p.y - 0.9)), 0.8, PAPER_FILL, 0.6);
+        d.pen.hair(f, 0.5, d.ink, 0.55);
+      }
+      if (rng() < 0.35) d.pen.hair(jag(rng, pt(x + w * 0.15, ya + 4), pt(x + w * 0.4, ya + (yb - ya) * 0.7), 3, 1), 0.4, d.ink, 0.35);
+    }
+    x += w;
+  }
+}
+
+/** A loose stone: angular, its top lit, its right face in shade, a crisp contour and grass at its foot. */
+export function rock(d: Draw, rng: Rng, c: Pt, rx: number, ry: number): void {
+  const n = 6 + Math.floor(rng() * 2);
+  const outline = Array.from({ length: n }, (_, i) => {
+    const a = Math.PI + (i / (n - 1)) * Math.PI;
+    const k = 0.75 + rng() * 0.35;
+    return pt(c.x + Math.cos(a) * rx * k, c.y + Math.sin(a) * ry * 1.15 * k);
+  });
+  const shape = crisp([...outline, pt(c.x + rx * 0.9, c.y + ry * 0.35), pt(c.x - rx * 0.9, c.y + ry * 0.35)], 2);
+  dab(d, oval(c.x + rx * 0.5, c.y + ry * 0.4, rx * 1.2, ry * 0.5, 14), SHADOW, 0.25, 1.2);
+  flat(d, shape, ROCK, { tone: -0.05, line: 0 });
+  const peak = outline[Math.floor(n / 2)]!;
+  const side = [peak, ...outline.slice(Math.floor(n / 2) + 1), pt(c.x + rx * 0.9, c.y + ry * 0.35), pt(peak.x + rx * 0.1, c.y + ry * 0.35)];
+  d.pen.fill(side, mix(ROCK, SHADOW, 0.55), 0.55);
+  d.pen.hatch(side, 1.4, 1.2, 0.32, { color: d.ink, alpha: 0.3 });
+  d.pen.hair([peak, pt(peak.x + rx * 0.1, c.y + ry * 0.35)], 0.45, d.ink, 0.6);
+  d.pen.stroke(closed(shape), 0.65, d.ink, 0.85);
+  tuft(d, rng, pt(c.x - rx * 0.85, c.y + ry * 0.4), 3, 0.65);
+  if (rng() < 0.5) tuft(d, rng, pt(c.x + rx * 0.9, c.y + ry * 0.4), 2.6, 0.6);
+}
+
+/** Packed earth, softly edged, a lighter crown, pebbles and (on the roads) cart ruts; grass creeping over the verges. */
+export function road(d: Draw, rng: Rng, spine: readonly Pt[], w: (u: number) => number, ruts: boolean): void {
+  const s = strip(spine, w);
+  const ctx = d.pen.ctx;
+  soft(ctx, 1, () => d.pen.fill(s.shape, EARTH, 0.9));
+  const crown = strip(spine, (u) => w(u) * 0.55);
+  soft(ctx, 3, () => d.pen.fill(crown.shape, mix(EARTH, LIGHT, 0.45), 0.5));
+  d.pen.clipped(s.shape, () => {
+    soft(ctx, 2.5, () => {
+      for (let i = 0; i < spine.length; i += 2) {
+        const p = spine[i]!;
+        if (rng() < 0.5) d.pen.fill(blob(pt(p.x + (rng() - 0.5) * w(0.5) * 0.6, p.y), 3 + rng() * 5, 1.5 + rng(), rng, 0.3, 10), mix(EARTH, SHADOW, 0.35), 0.25);
+      }
+    });
+    if (ruts) {
+      for (const k of [-0.25, 0.25]) {
+        const rut = spine.map((p, i) => pt(p.x + (s.left[i]!.x - p.x) * k * 2, p.y + (s.left[i]!.y - p.y) * k * 2));
+        d.pen.hair(rut, 0.7, mix(EARTH, SHADOW, 0.5), 0.45);
+        d.pen.hair(rut.map((p) => pt(p.x - 0.9, p.y - 0.7)), 0.5, PAPER_FILL, 0.35);
+      }
+    }
+  });
+  for (let i = 0; i < spine.length; i++) {
+    if (rng() > 0.35) continue;
+    const p = spine[i]!;
+    const q = pt(p.x + (rng() - 0.5) * w(i / spine.length) * 0.8, p.y + (rng() - 0.5) * 3);
+    d.pen.dot(q.x, q.y, 0.6 + rng() * 0.6, mix(ROCK, LIGHT, 0.3), 0.9);
+    d.pen.hair([pt(q.x - 0.6, q.y + 0.7), pt(q.x + 0.8, q.y + 0.5)], 0.35, d.ink, 0.5);
+  }
+  // The verges: the near one a little sunk, the pen catching it in places; grass over both.
+  broken(d, rng, s.right, 0.55, d.ink, 0.45, 0.6);
+  broken(d, rng, s.left, 0.5, d.ink, 0.3, 0.4);
+  for (const edge of [s.left, s.right]) for (const p of edge) if (rng() < 0.45) tuft(d, rng, pt(p.x, p.y + 1), 2.6, 0.55);
+}
+
+/** A grassy bank falling from `front` (a terrace's lip) to `foot`, in shade and hatched. */
+export function bank(d: Draw, front: readonly Pt[], foot: readonly Pt[]): void {
+  const ctx = d.pen.ctx;
+  const shape = [...front, ...foot.slice(1)];
+  const xs = shape.map((p) => p.x);
+  const ys = shape.map((p) => p.y);
+  d.pen.clipped(shape, () => {
+    ctx.fillStyle = rgba(mix(GRASS_NEAR, SHADOW, 0.3), 0.32);
+    ctx.fillRect(Math.min(...xs) - 5, Math.min(...ys) - 5, Math.max(...xs) - Math.min(...xs) + 10, Math.max(...ys) - Math.min(...ys) + 10);
+    d.pen.hatch(shape, 2.8, 1.15, 0.38, { color: d.ink, alpha: 0.14 });
+  });
+}
+
+/** A low dry-stone revetment along a terrace's lip: two rough courses, lit on the coping, damp at the foot. */
+export function revetment(d: Draw, rng: Rng, front: readonly Pt[]): void {
+  const ctx = d.pen.ctx;
+  const wallFace = [...front, ...front.slice().reverse().map((p) => pt(p.x, p.y + 7))];
+  flat(d, wallFace, ROCK, { tone: 0.1, line: 0 });
+  d.pen.clipped(wallFace, () => {
+    for (const v of [0, 3.5]) {
+      for (let i = 0; i < front.length - 1; i++) {
+        const p = front[i]!;
+        for (let x = p.x + rng() * 3; x < front[i + 1]!.x; x += 4 + rng() * 4) {
+          const y = yAt(front, x) + v;
+          d.pen.fill(blob(pt(x + 2.5, y + 1.8), 2.4, 1.5, rng, 0.25, 8), rng() < 0.5 ? mix(ROCK, LIGHT, 0.4) : mix(ROCK, SHADOW, 0.25), 0.8);
+          d.pen.hair([pt(x, y + 0.3), pt(x + 0.3, y + 3.2)], 0.4, d.ink, 0.5);
+        }
+      }
+      d.pen.hair(front.map((p) => pt(p.x, p.y + v + 3.5)), 0.4, d.ink, 0.45);
+    }
+    soft(ctx, 1.5, () => d.pen.fill(front.map((p) => pt(p.x, p.y + 5)).concat(front.slice().reverse().map((p) => pt(p.x, p.y + 9))), SHADOW, 0.25));
+  });
+  d.pen.hair(front.map((p) => pt(p.x, p.y - 0.6)), 0.8, PAPER_FILL, 0.6);
+  d.pen.stroke(front.map((p) => pt(p.x, p.y + 7)), 0.8, d.ink, 0.7, false);
+  for (const p of front) if (rng() < 0.4) tuft(d, rng, pt(p.x, p.y + 8), 3, 0.6);
+  broken(d, rng, front, 0.6, d.ink, 0.5, 0.8);
 }

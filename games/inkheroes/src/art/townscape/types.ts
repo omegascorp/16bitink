@@ -15,7 +15,13 @@
  * brings its own contact shadow and footprint (a step, a patch of earth) but
  * no wider ground; it must stay inside its frame.
  */
-export const TOWN_VIEW = { w: 1180, h: 470 } as const;
+export const TOWN_VIEW = { w: 2000, h: 470 } as const;
+/**
+ * The town itself, units from the view's left: the hill, its square and
+ * every slot. The countryside either side carries the view out to the
+ * edges of wide screens (and is panned to on narrow ones).
+ */
+export const TOWN_CORE = { x: 410, w: 1180 } as const;
 export const TOWN_RES = 2;
 
 /** A drawing's frame, units: width, height, and where the origin sits from its top-left. */
@@ -50,20 +56,20 @@ const frame = (w: number, h: number, below = 14): Frame => ({ w, h, ox: w / 2, o
  * the guardhouse and the market.
  */
 export const SLOTS: Readonly<Record<Slot, SlotDef>> = {
-  walls: { x: 600, y: 268, frame: frame(560, 262, 22) },
-  seraphSpire: { x: 120, y: 252, frame: frame(180, 250, 16) },
-  monastery: { x: 1060, y: 262, frame: frame(230, 200, 16) },
-  griffinTower: { x: 300, y: 330, frame: frame(150, 310, 16) },
-  guild: { x: 905, y: 338, frame: frame(150, 300, 14) },
-  barracks: { x: 455, y: 352, frame: frame(200, 160) },
-  hall: { x: 650, y: 368, frame: frame(250, 220, 16) },
-  tiltyard: { x: 1050, y: 372, frame: frame(210, 140) },
-  tavern: { x: 95, y: 452, frame: frame(190, 170, 14) },
-  blacksmith: { x: 268, y: 458, frame: frame(170, 150, 12) },
-  guardhouse: { x: 440, y: 460, frame: frame(160, 150, 10) },
-  marketplace: { x: 780, y: 462, frame: frame(220, 130, 8) },
-  archeryRange: { x: 950, y: 458, frame: frame(180, 130, 12) },
-  stables: { x: 1105, y: 460, frame: frame(150, 140, 10) },
+  walls: { x: 1010, y: 268, frame: frame(560, 262, 22) },
+  seraphSpire: { x: 530, y: 252, frame: frame(180, 250, 16) },
+  monastery: { x: 1470, y: 262, frame: frame(230, 200, 16) },
+  griffinTower: { x: 710, y: 330, frame: frame(150, 310, 16) },
+  guild: { x: 1315, y: 338, frame: frame(150, 300, 14) },
+  barracks: { x: 865, y: 352, frame: frame(200, 160) },
+  hall: { x: 1060, y: 368, frame: frame(250, 220, 16) },
+  tiltyard: { x: 1460, y: 372, frame: frame(210, 140) },
+  tavern: { x: 505, y: 452, frame: frame(190, 170, 14) },
+  blacksmith: { x: 678, y: 458, frame: frame(170, 150, 12) },
+  guardhouse: { x: 850, y: 460, frame: frame(160, 150, 10) },
+  marketplace: { x: 1190, y: 462, frame: frame(220, 130, 8) },
+  archeryRange: { x: 1360, y: 458, frame: frame(180, 130, 12) },
+  stables: { x: 1515, y: 460, frame: frame(150, 140, 10) },
 };
 
 export const SLOT_ORDER = Object.keys(SLOTS) as Slot[];
