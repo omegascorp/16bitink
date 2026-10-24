@@ -22,19 +22,22 @@ describe('fixes from the first review', () => {
     let adv = fresh();
     const path = planPath(adv, ASHFORD, 10, 6)!;
     let battle: string | undefined;
+    let then: string | undefined;
     for (const step of path) {
-      const r = stepHero(adv, ASHFORD, step);
+      const r = stepHero(adv, ASHFORD, step, path[path.length - 1]);
       adv = r.adv;
       if (r.stop) {
         battle = r.battle;
+        then = r.then;
         break;
       }
     }
     expect(battle).toBe('goblins');
+    expect(then).toBe('sawmill');
     expect(adv.objects.find((o) => o.id === 'sawmill')!.owner).toBe('neutral');
     let b = createBattle({ hero: null, army: adv.hero.army }, { hero: null, army: armyOf([{ creature: 'goblin', count: 4 }]) }, 3).state;
     for (let i = 0; i < 300 && b.winner === null; i++) b = act(b, chooseAction(b)).state;
-    const after = afterBattle(adv, ASHFORD, 'goblins', b);
+    const after = afterBattle(adv, ASHFORD, 'goblins', b, then);
     expect(after.objects.find((o) => o.id === 'sawmill')!.owner).toBe('player');
   });
 

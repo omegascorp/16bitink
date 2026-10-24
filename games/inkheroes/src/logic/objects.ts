@@ -33,8 +33,19 @@ export interface MapObject {
   readonly gone?: boolean;
 }
 
-/** Sites a hero walks onto and keeps standing on (pickups vanish instead). */
+/** Things that vanish once visited. */
 export const PICKUPS: readonly ObjectKind[] = ['pile', 'chest', 'campfire'];
+/** Sites drawn a building tall: they also block the tile behind their own. */
+const TALL: readonly ObjectKind[] = ['mine', 'mercCamp', 'watchtower', 'windmill', 'stables'];
+
+/**
+ * Tiles an object blocks besides its own (x, y). As in H3 a hero never
+ * walks onto or through an object: it stops beside one and visits it
+ * from there (see stepHero).
+ */
+export function objectFootprint(o: Pick<MapObject, 'kind' | 'x' | 'y'>): { x: number; y: number }[] {
+  return TALL.includes(o.kind) ? [{ x: o.x, y: o.y - 1 }] : [];
+}
 export const ONCE_PER_HERO: readonly ObjectKind[] = ['mercCamp', 'watchtower', 'standingStone', 'shrine'];
 
 /** Mines' daily output. */

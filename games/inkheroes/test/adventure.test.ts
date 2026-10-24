@@ -8,7 +8,7 @@ import { act, createBattle } from '../src/logic/battle';
 import { chooseAction } from '../src/logic/battleAi';
 import { dailyMp, levelFor, nextLevelUp, xpForLevel } from '../src/logic/hero';
 import { passable, tileIndex } from '../src/logic/map';
-import { townFootprint } from '../src/logic/objects';
+import { objectFootprint, townFootprint } from '../src/logic/objects';
 import { findPath } from '../src/logic/path';
 import { build, cantBuild, growthOf, hire, weekly } from '../src/logic/town';
 
@@ -18,7 +18,7 @@ function walk(adv: Adventure, def: MapDef, x: number, y: number): { adv: Adventu
   if (!path) throw new Error(`no path to ${x},${y}`);
   let a = adv;
   for (const step of path) {
-    const r = stepHero(a, def, step);
+    const r = stepHero(a, def, step, path[path.length - 1]);
     a = r.adv;
     if (r.stop) return { adv: a, ...(r.battle ? { battle: r.battle } : {}), ...(r.town ? { town: true } : {}) };
   }
@@ -40,6 +40,29 @@ describe('maps', () => {
       }
       expect(def.objects.some((o) => o.id === def.goal.target)).toBe(true);
       for (const t of townFootprint(def.town.x, def.town.y)) expect(objectAtDef(def, t.x, t.y)).toBeUndefined();
+    });
+
+    it(`${def.id}: every object's footprint is open ground, clear of the town and other objects`, () => {
+      const g = gridOf(def);
+      const taken = new Set([...def.objects.map((o) => `${o.x},${o.y}`), `${def.town.x},${def.town.y}`, ...townFootprint(def.town.x, def.town.y).map((t) => `${t.x},${t.y}`)]);
+      for (const o of def.objects) {
+        for (const t of objectFootprint(o)) {
+          expect(passable(g, t.x, t.y), `${o.id} footprint ${t.x},${t.y}`).toBe(true);
+          expect(taken.has(`${t.x},${t.y}`), `${o.id} footprint ${t.x},${t.y}`).toBe(false);
+          expect(t.x === def.hero.x && t.y === def.hero.y, `${o.id} footprint on the hero`).toBe(false);
+          taken.add(`${t.x},${t.y}`);
+        }
+      }
+    });
+
+    it(`${def.id}: the hero can reach every object from beside it (fighting aside)`, () => {
+      const adv = peaceful(startAdventure(def));
+      const hero = { ...adv.hero, mp: 1e9 };
+      for (const o of def.objects) {
+        // Monsters gone, except the one being reached; every site stays in the way.
+        const objects = adv.objects.map((m) => (m.id === o.id ? { ...m, gone: false } : m));
+        expect(planPath({ ...adv, hero, objects }, def, o.x, o.y), o.id).not.toBeNull();
+      }
     });
 
     it(`${def.id}: the hero can reach every site (fighting aside)`, () => {
@@ -84,6 +107,20 @@ describe('the adventure', () => {
     adv = walk(endDay(adv), ASHFORD, 10, 6).adv;
     expect(adv.objects.find((o) => o.id === 'sawmill')!.owner).toBe('player');
     expect(dailyIncome(adv)).toMatchObject({ gold: 500, wood: 2 });
+  });
+
+  it('visits an object from beside it, never standing on or walking through one (as H3)', () => {
+    let adv = peaceful(startAdventure(ASHFORD));
+    const path = planPath(adv, ASHFORD, 3, 7)!;
+    const view = new Set([...adv.objects.flatMap((o) => [{ x: o.x, y: o.y }, ...objectFootprint(o)])].map((t) => `${t.x},${t.y}`));
+    for (const s of path.slice(0, -1)) expect(view.has(`${s.x},${s.y}`), `${s.x},${s.y}`).toBe(false);
+    adv = walk(adv, ASHFORD, 3, 7).adv;
+    expect(Math.max(Math.abs(adv.hero.x - 3), Math.abs(adv.hero.y - 7))).toBe(1);
+    // The sawmill is flagged from beside it; its back tile can't be walked onto.
+    adv = walk(endDay(adv), ASHFORD, 10, 6).adv;
+    expect(adv.objects.find((o) => o.id === 'sawmill')!.owner).toBe('player');
+    expect(adv.hero.x === 10 && adv.hero.y === 6).toBe(false);
+    expect(planPath(adv, ASHFORD, 10, 5)).toBeNull();
   });
 
   it('a monster’s guard zone starts a fight, and winning clears it and pays experience', () => {

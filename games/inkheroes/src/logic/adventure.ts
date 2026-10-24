@@ -5,7 +5,7 @@ import type { BattleSide } from './battle';
 import type { BattleState } from './battleTypes';
 import { applyLevelUp, dailyMp, gainedXp, maxMana, nextLevelUp, sightOf, toBattleHero, type Hero, type LevelUp } from './hero';
 import { parseGrid, tileIndex, type Grid } from './map';
-import { MINE_OUTPUT, townFootprint, type MapObject } from './objects';
+import { MINE_OUTPUT, objectFootprint, townFootprint, type MapObject } from './objects';
 import { canStep, findPath, type PathStep, type Terrainview } from './path';
 import { addTo, purse, type Purse } from './resources';
 import { skillValue, type SkillId } from './skills';
@@ -90,6 +90,9 @@ export const isSeen = (adv: Adventure, def: MapDef, x: number, y: number): boole
 
 export const liveObjects = (adv: Adventure): MapObject[] => adv.objects.filter((o) => !o.gone);
 export const objectAt = (adv: Adventure, x: number, y: number): MapObject | undefined => liveObjects(adv).find((o) => o.x === x && o.y === y);
+/** The live object whose picture stands on (x, y): its own tile or the rest of its footprint. */
+export const objectCovering = (adv: Adventure, x: number, y: number): MapObject | undefined =>
+  objectAt(adv, x, y) ?? liveObjects(adv).find((o) => objectFootprint(o).some((t) => t.x === x && t.y === y));
 export const heroInTown = (adv: Adventure): boolean => adv.hero.x === adv.town.x && adv.hero.y === adv.town.y;
 
 /** The monster whose guard zone covers (x, y): the 8 tiles round it. */
@@ -97,20 +100,21 @@ export function guardAt(adv: Adventure, x: number, y: number): MapObject | undef
   return liveObjects(adv).find((o) => o.kind === 'monster' && Math.abs(o.x - x) <= 1 && Math.abs(o.y - y) <= 1 && !(o.x === x && o.y === y));
 }
 
-/** What the pathfinder sees: the town's walls are solid; sites and guard zones end a path. */
+/** What the pathfinder sees: walls and footprints are solid, objects are visited from beside them, guard zones and the gate end a path. */
 export function terrainView(adv: Adventure, def: MapDef): Terrainview {
   const g = gridOf(def);
+  const inside = (t: { x: number; y: number }): boolean => t.x >= 0 && t.y >= 0 && t.x < g.w && t.y < g.h;
   const solid = new Set(townFootprint(adv.town.x, adv.town.y).map((t) => tileIndex(g, t.x, t.y)));
   const stopAt = new Set<number>();
-  const monsters = new Set<number>();
+  const visit = new Set<number>();
   for (const o of liveObjects(adv)) {
-    stopAt.add(tileIndex(g, o.x, o.y));
+    visit.add(tileIndex(g, o.x, o.y));
+    for (const t of objectFootprint(o).filter(inside)) solid.add(tileIndex(g, t.x, t.y));
     if (o.kind !== 'monster') continue;
-    monsters.add(tileIndex(g, o.x, o.y));
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (o.x + dx >= 0 && o.y + dy >= 0 && o.x + dx < g.w && o.y + dy < g.h) stopAt.add(tileIndex(g, o.x + dx, o.y + dy));
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (inside({ x: o.x + dx, y: o.y + dy })) stopAt.add(tileIndex(g, o.x + dx, o.y + dy));
   }
   stopAt.add(tileIndex(g, adv.town.x, adv.town.y));
-  return { grid: g, solid, stopAt, monsters, pathfinding: skillValue(adv.hero.skills, 'pathfinding') };
+  return { grid: g, solid, stopAt, visit, pathfinding: skillValue(adv.hero.skills, 'pathfinding') };
 }
 
 export function planPath(adv: Adventure, def: MapDef, x: number, y: number): PathStep[] | null {
@@ -123,27 +127,40 @@ export interface StepResult {
   readonly stop: boolean;
   /** A monster to fight now. */
   readonly battle?: string;
+  /** The site to visit once that fight is won (it was guarded). */
+  readonly then?: string;
   /** The hero walked into its town. */
   readonly town?: boolean;
   /** Short notes to float over the map ("+5 wood"). */
   readonly notes: readonly string[];
 }
 
-/** Takes one step of a planned path (the scene animates each). */
-export function stepHero(adv: Adventure, def: MapDef, step: PathStep): StepResult {
+/**
+ * Takes one step of a planned path (the scene animates each). A step onto
+ * an object is a visit: the hero stays where it is (as H3) and attacks the
+ * monster, or takes the site, after first fighting any monster guarding it.
+ * `goal` is where the path ends: a site there is taken after a fight that
+ * stops the hero beside it.
+ */
+export function stepHero(adv: Adventure, def: MapDef, step: PathStep, goal?: { x: number; y: number }): StepResult {
   const target = objectAt(adv, step.x, step.y);
   if (target?.kind === 'monster') return { adv, stop: true, battle: target.id, notes: [] };
   if (!canStep(step, adv.hero.mp)) return { adv, stop: true, notes: [] };
+  if (target) {
+    const guard = guardAt(adv, target.x, target.y);
+    if (guard) return { adv, stop: true, battle: guard.id, then: target.id, notes: [] };
+    const r = visitSite({ ...adv, hero: { ...adv.hero, mp: Math.max(0, adv.hero.mp - step.cost) } }, target);
+    return { adv: queueLevelUps(r.adv), stop: true, notes: r.notes };
+  }
   const hero = { ...adv.hero, x: step.x, y: step.y, mp: Math.max(0, adv.hero.mp - step.cost) };
   let next = revealAround({ ...adv, hero }, def, step.x, step.y, sightOf(hero));
   if (step.x === adv.town.x && step.y === adv.town.y) return { adv: enterTown(next), stop: true, town: true, notes: [] };
-  // A guarded tile is fought for first (as H3): its site is visited after the win (see afterBattle).
+  // A guarded tile is fought for first (as H3).
   const guard = guardAt(next, step.x, step.y);
-  if (guard) return { adv: next, stop: true, battle: guard.id, notes: [] };
-  if (target) {
-    const r = visitSite(next, target);
-    next = queueLevelUps(r.adv);
-    return { adv: next, stop: true, notes: r.notes };
+  if (guard) {
+    const site = goal && objectAt(next, goal.x, goal.y);
+    const beside = site && site.kind !== 'monster' && Math.abs(site.x - step.x) <= 1 && Math.abs(site.y - step.y) <= 1;
+    return { adv: next, stop: true, battle: guard.id, ...(beside ? { then: site.id } : {}), notes: [] };
   }
   return { adv: next, stop: false, notes: [] };
 }
@@ -198,8 +215,8 @@ export function battleSides(adv: Adventure, id: string): { attacker: BattleSide;
 
 const hashId = (s: string): number => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261);
 
-/** The map after a fight with monster `id` ends as `battle`. */
-export function afterBattle(adv: Adventure, def: MapDef, id: string, battle: BattleState): Adventure {
+/** The map after a fight with monster `id` ends as `battle`; `then` is the site the monster guarded, taken on a win. */
+export function afterBattle(adv: Adventure, def: MapDef, id: string, battle: BattleState, then?: string): Adventure {
   if (battle.winner !== 0) return { ...adv, status: 'lost', hero: { ...adv.hero, army: armyOf([]) } };
   const before = adv.hero.army;
   const army = survivors(battle, 0, before);
@@ -208,9 +225,9 @@ export function afterBattle(adv: Adventure, def: MapDef, id: string, battle: Bat
   const hero = { ...adv.hero, army, xp: adv.hero.xp + xp, mana: battle.heroes[0]?.mana ?? adv.hero.mana };
   const objects = adv.objects.map((o) => (o.id === id ? { ...o, gone: true } : o));
   let next: Adventure = { ...adv, hero, objects, lostStacks: adv.lostStacks + lost };
-  // The site the hero was fighting for (standing on it) is theirs now, unless another monster still guards it.
-  const site = objectAt(next, hero.x, hero.y);
-  if (site && site.kind !== 'monster' && !guardAt(next, hero.x, hero.y)) next = visitSite(next, site).adv;
+  // The site the hero was fighting for is theirs now, unless another monster still guards it.
+  const site = then ? liveObjects(next).find((o) => o.id === then) : undefined;
+  if (site && site.kind !== 'monster' && !guardAt(next, site.x, site.y)) next = visitSite(next, site).adv;
   return checkGoal(queueLevelUps(next), def);
 }
 

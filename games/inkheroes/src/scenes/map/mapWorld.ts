@@ -19,6 +19,8 @@ const PATH_LATER = 0xe0574a;
 
 export const tileCentre = (x: number, y: number): { x: number; y: number } => ({ x: (x + 0.5) * TILE, y: (y + 0.5) * TILE });
 const tileFoot = (x: number, y: number): { x: number; y: number } => ({ x: (x + 0.5) * TILE, y: (y + 0.92) * TILE });
+/** Where a path mark sits: low in its tile, by the feet of the hero and the base of what it leads to. */
+const tileMark = (x: number, y: number): { x: number; y: number } => ({ x: (x + 0.5) * TILE, y: (y + 0.7) * TILE });
 
 export function siteArtOf(o: MapObject): SiteArt | null {
   if (o.kind === 'mine' || o.kind === 'pile') return `${o.kind}-${o.resource!}` as SiteArt;
@@ -49,7 +51,8 @@ export class MapWorld {
         scene.add.image(cx * CHUNK * TILE, cy * CHUNK * TILE, TEX.chunk(def.id, cx, cy)).setOrigin(0).setDisplaySize(CHUNK * TILE, CHUNK * TILE).setDepth(0);
       }
     }
-    this.path = scene.add.graphics().setDepth(2);
+    // Over the sites (as H3's arrows), so the cross on a mine or a pile shows; under the fog.
+    this.path = scene.add.graphics().setDepth(900);
     // The town: its gate tile is (x, y); the picture rises over the row behind.
     const t = adv.town;
     const tf = frameFor('town');
@@ -121,6 +124,12 @@ export class MapWorld {
     this.heroAnim.idle();
   }
 
+  /** Turns the hero towards tile column `x` (to face what it visits or attacks). */
+  faceHero(x: number): void {
+    const cx = tileCentre(x, 0).x;
+    if (Math.abs(cx - this.hero.x) > 1) this.hero.setFlipX(cx < this.hero.x);
+  }
+
   /** Slides the hero one step; resolves when it gets there. */
   walkHero(x: number, y: number, ms: number): Promise<void> {
     const foot = tileFoot(x, y);
@@ -139,7 +148,7 @@ export class MapWorld {
     const g = this.path.clear();
     if (!path || path.length === 0) return;
     path.forEach((s, i) => {
-      const c = tileCentre(s.x, s.y);
+      const c = tileMark(s.x, s.y);
       const last = i === path.length - 1;
       const today = s.day === 0;
       if (last) {

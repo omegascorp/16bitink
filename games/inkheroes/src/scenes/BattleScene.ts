@@ -30,6 +30,8 @@ const AI_DELAY = 380;
 
 interface BattleData {
   readonly monsterId: string;
+  /** The site the monster guarded, taken on a win. */
+  readonly then?: string;
 }
 
 /** What tapping a hex would do now. */
@@ -43,6 +45,7 @@ type Intent = { action: Action; text: string; key: string; from?: Hex | null } |
 export class BattleScene extends Phaser.Scene {
   private session!: Session;
   private monsterId = '';
+  private then: string | undefined;
   private state!: BattleState;
   private view!: BattleView;
   /** The field is laid out (not still painting the fighters' poses). */
@@ -68,6 +71,7 @@ export class BattleScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(BACKDROP);
     this.session = Session.get(this);
     this.monsterId = data.monsterId;
+    this.then = data.then;
     this.busy = false;
     this.aiPending = false;
     this.auto = false;
@@ -405,7 +409,7 @@ export class BattleScene extends Phaser.Scene {
     const xp = experienceFor(this.state, 0);
     getSound(this)?.play(won ? 'win' : 'lose');
     const done = (): void => {
-      this.session.set(afterBattle(this.session.adv, this.session.def, this.monsterId, this.state));
+      this.session.set(afterBattle(this.session.adv, this.session.def, this.monsterId, this.state, this.then));
       this.scene.stop();
       (this.scene.get('Map') as MapScene).back();
     };

@@ -4,7 +4,7 @@ import { BACKDROP } from '../art/palette';
 import { TILE } from '../art/terrain';
 import { chunkJobs, dropChunks, heroFigure, poseJobs } from '../art/textures';
 import { getSound } from '../host';
-import { gridOf, guardAt, isSeen, objectAt, planPath, stepHero, type Adventure } from '../logic/adventure';
+import { gridOf, guardAt, isSeen, objectCovering, planPath, stepHero, type Adventure } from '../logic/adventure';
 import { creature, sizeWord } from '../logic/creatures';
 import { MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
 import type { PathStep } from '../logic/path';
@@ -186,7 +186,7 @@ export class MapScene extends Phaser.Scene {
     const g = gridOf(def);
     if (x < 0 || y < 0 || x >= g.w || y >= g.h || !isSeen(adv, def, x, y)) return '';
     if (Math.abs(x - adv.town.x) <= 1 && (y === adv.town.y || y === adv.town.y - 1)) return `${adv.town.name}: your town`;
-    const o = objectAt(adv, x, y);
+    const o = objectCovering(adv, x, y);
     if (!o) return '';
     if (o.kind === 'monster') {
       const c = creature(o.creature!);
@@ -203,7 +203,8 @@ export class MapScene extends Phaser.Scene {
     const { adv, def } = this.session;
     const end = this.path?.[this.path.length - 1];
     this.events.emit('status', this.describe(x, y));
-    if (end && end.x === x && end.y === y) {
+    const on = isSeen(adv, def, x, y) ? objectCovering(adv, x, y) : undefined;
+    if (end && ((end.x === x && end.y === y) || (on && end.x === on.x && end.y === on.y))) {
       void this.walk(this.path!);
       return;
     }
@@ -215,7 +216,9 @@ export class MapScene extends Phaser.Scene {
       this.setPath(null);
       return;
     }
-    this.setPath(planPath(adv, def, x, y));
+    // A tap anywhere on an object's picture heads for the object itself.
+    const o = objectCovering(adv, x, y);
+    this.setPath(planPath(adv, def, o?.x ?? x, o?.y ?? y));
   }
 
   private setPath(path: PathStep[] | null): void {
@@ -229,16 +232,21 @@ export class MapScene extends Phaser.Scene {
     this.world.startRide();
     this.setPath(null);
     let rest = [...path];
+    const goal = path[path.length - 1];
     for (const step of path) {
-      const r = stepHero(this.session.adv, this.session.def, step);
+      const r = stepHero(this.session.adv, this.session.def, step, goal);
       if (r.battle && r.adv === this.session.adv) {
         this.walking = false;
         this.world.stopRide(true);
-        this.startBattle(r.battle);
+        this.world.faceHero(step.x);
+        this.startBattle(r.battle, r.then);
         return;
       }
       if (r.adv === this.session.adv) break;
-      await this.world.walkHero(step.x, step.y, (STEP_MS * step.cost) / 100);
+      // A step onto an object is a visit from beside it: the hero turns to it and stays.
+      const visit = r.adv.hero.x !== step.x || r.adv.hero.y !== step.y;
+      if (visit) this.world.faceHero(step.x);
+      else await this.world.walkHero(step.x, step.y, (STEP_MS * step.cost) / 100);
       getSound(this)?.play('step');
       this.session.set(r.adv);
       this.followHero();
@@ -248,7 +256,7 @@ export class MapScene extends Phaser.Scene {
       if (r.battle) {
         this.walking = false;
         this.world.stopRide(true);
-        this.startBattle(r.battle);
+        this.startBattle(r.battle, r.then);
         return;
       }
       if (r.town) {
@@ -274,9 +282,9 @@ export class MapScene extends Phaser.Scene {
     if (h.x < view.x + margin || h.x > view.right - margin || h.y < view.y + margin || h.y > view.bottom - margin) cam.pan(h.x, h.y, 300, 'Sine.easeInOut');
   }
 
-  startBattle(monsterId: string): void {
+  startBattle(monsterId: string, then?: string): void {
     this.scene.sleep('MapHud');
-    this.scene.launch('Battle', { monsterId });
+    this.scene.launch('Battle', { monsterId, then });
     this.scene.sleep();
   }
 

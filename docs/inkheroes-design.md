@@ -29,7 +29,7 @@ User's choice (Oct 24): dark colours and serious drawings, like the original H3.
 - **Tiles:** square, 8-way movement. Diagonal steps cost ×√2 (rounded). A last step that costs more than what's left is still allowed if its straight cost fits (as H3).
 - **Ground costs a tile:** grass and dirt 100, rough 125, sand and snow 150, swamp 175. Roads 50. Water, mountains, trees and rocks block.
 - **Movement points a day** by the army's slowest unit (H3's table): speed ≤3 → 1500, 4 → 1560, 5 → 1630, 6 → 1700, 7 → 1760, 8 → 1830, 9 → 1900, 10 → 1960, 11+ → 2000. Logistics adds 10/20/30%.
-- **Moving:** tap a tile to see the path (filled dots for today, hollow dots for later days), tap it again to go. Tap a monster or a site to walk next to it and step in.
+- **Moving:** tap a tile to see the path (filled dots for today, hollow dots for later days), tap it again to go. Tap a monster or a site (anywhere on its picture) to walk next to it. As in H3, the hero never stands on or walks through an object: it stops beside one and picks it up, flags it or attacks it from there. Mines and other building-sized sites also block the tile behind them. A site in a monster's guard zone is fought for first and taken after the win.
 - **Fog:** the map starts hidden; heroes see 5 tiles round them (Scouting +1/2/3), towns 5.
 - **Monsters** guard the 8 tiles around them: stepping onto one of those tiles starts the fight. They grow 10% a week. They show a size word for their count: a few (1–4), several (5–9), a pack (10–19), lots (20–49), a horde (50–99), a throng (100–249), a swarm (250–499), zounds (500–999), a legion (1000+).
 - **Time:** End Day. 7-day weeks; every Monday (day 1 of a week) the town's dwellings fill up again.

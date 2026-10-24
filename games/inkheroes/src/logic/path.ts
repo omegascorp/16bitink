@@ -18,12 +18,12 @@ export interface PathStep extends Tile {
 /** What the pathfinder needs to know about the world beyond the ground. */
 export interface Terrainview {
   readonly grid: Grid;
-  /** Tiles nothing may enter (object footprints, other heroes). */
+  /** Tiles nothing may enter (the town's walls, the rest of a site's footprint). */
   readonly solid: ReadonlySet<number>;
-  /** Tiles a path may end on but not pass through (object gates, monsters' guard zones). */
+  /** Tiles a path may end on but not pass through (the town gate, monsters' guard zones). */
   readonly stopAt: ReadonlySet<number>;
-  /** Monsters' tiles: a path to one may step on from its guard zone (that's attacking it). */
-  readonly monsters?: ReadonlySet<number>;
+  /** Objects' own tiles: a path may end on one (the hero visits it from the tile before) but never crosses one. */
+  readonly visit?: ReadonlySet<number>;
   /** Pathfinding skill: 0..0.75 off rough ground's extra cost. */
   readonly pathfinding: number;
 }
@@ -62,9 +62,9 @@ export function findPath(v: Terrainview, from: Tile, tx: number, ty: number, mpL
     const [d, i] = popMin(heap);
     if (d > dist[i]!) continue;
     if (i === goal) break;
-    // A stop tile is never walked through, except from a monster's guard zone onto the monster being attacked.
+    // A stop tile is never walked through, except from a guard zone onto the object visited from it.
     const onlyGoal = i !== start && v.stopAt.has(i);
-    if (onlyGoal && !v.monsters?.has(goal)) continue;
+    if (onlyGoal && !v.visit?.has(goal)) continue;
     const x = i % g.w;
     const y = Math.floor(i / g.w);
     for (const [dx, dy] of DIRS) {
@@ -73,7 +73,7 @@ export function findPath(v: Terrainview, from: Tile, tx: number, ty: number, mpL
       if (!passable(g, nx, ny)) continue;
       const j = tileIndex(g, nx, ny);
       if (onlyGoal && j !== goal) continue;
-      if (v.solid.has(j)) continue;
+      if (v.solid.has(j) || (j !== goal && v.visit?.has(j))) continue;
       const nd = d + stepCost(v, { x, y }, { x: nx, y: ny });
       if (nd < dist[j]!) {
         dist[j] = nd;
