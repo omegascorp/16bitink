@@ -10,10 +10,11 @@ import { chromium } from 'playwright-core';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkg = path.resolve(here, '../..');
-/** Keep the ids in step with THUMBNAIL_IDS (thumbnail.ts) and DESCENT_THUMBNAILS (descent/thumbnails.ts). */
+/** Keep the ids in step with THUMBNAIL_IDS (thumbnail.ts), DESCENT_THUMBNAILS (descent/thumbnails.ts) and FOODCHAIN_THUMBNAILS (foodchain/thumbnails.ts). */
 const SETS = {
   level1: { ids: ['hunter', 'glowup', 'run'], dir: 'promo', prefix: 'youtube-thumb-level1-', badge: '1:01' },
   descent: { ids: ['split', 'line', 'layers'], dir: 'promo/longform', prefix: '1 - thumb-', badge: '5:44' },
+  foodchain: { ids: ['split', 'nest', 'wrong', 'lunch'], dir: 'promo/longform', prefix: '2 - thumb-', badge: '4:34' },
 };
 const setName = process.argv[2] ?? 'level1';
 const SET = SETS[setName];

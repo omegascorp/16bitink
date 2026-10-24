@@ -16,6 +16,7 @@ What we've learned about InkFish's long-form YouTube videos (16:9, not looping),
 | # | Video | Testing | Status |
 |---|---|---|---|
 | 1 | *Fish Get Weirder the Deeper You Go… Until They Can't* (`promo/longform/1 - fish get weirder the deeper you go.mp4`, 5:44). A narrated descent through the game's ten zones. The cold open teases a line no fish should cross and a camera that filmed something below it; the snailfish at 8,336 m pays it off at 5:10. | Can an educational video built on a proven promise ("the deeper you go…") bring views and site visits to a channel with few subscribers? Watch CTR across the three thumbnails, retention at 0:30 (the hook), at 2:07 (the game mention) and at 5:10 (the payoff), and youtube.com visits to 16bit.ink. | Posted 2026-10-17. After a day: 4.3% CTR (four times Level 1's 1.1%), 32.3% viewed (1:51 of 5:45), 413 views, +3 subs. Still to check: the Test & Compare winner, the retention curve at 0:30 / 2:07 / 5:10, traffic sources, and site visits |
+| 2 | *Fish Eat Fish Size Comparison… But Every Animal Is Real* (`promo/longform/2 - fish eat fish size comparison.mp4`, 4:34). MrBeast's "$1 vs $X" stair-step with animals: a diatom to the orca, a gulp and a zoom out per step, a weight tag in pounds that climbs like his dollar amounts, then the 10% rule and the twist that the giants eat at the bottom. | Do the genre's search terms ("fish eat fish", "size comparison") and a real-animals twist on a fiction-heavy genre bring search and browse traffic? Is the first minute stronger with the steps sped up (diatom and copepod in ~35 s)? Watch CTR on the four thumbnails and the title test (vs "There's Always a Bigger Fish… Until There Isn't"), retention at 0:28 (the hook), at 2:03 (the game mention) and at 2:38 (the great-white re-hook), and comments on the pinned "does an orca count as a fish?" question. | Made 2026-10-24, not posted yet |
 
 ## What works so far
 
@@ -74,6 +75,21 @@ On 2026-10-13 we compared the Level 1 thumbnail (pale paper, three lines of text
 - **Change what's on screen every 10–15 s.** A new subject, a label, a counter ticking, a cut.
 - **Mention the game after the video has delivered something.** Re-hook straight after it, then give the full pitch at the end, after the payoff.
 - **End 5 s after the last word**: YouTube's shortest end screen. A longer silent hold just loses viewers (the first cut held 12 s and was trimmed).
+
+### MrBeast's stair-step format (checked 2026-10-24)
+
+Our "smallest to biggest" videos use the same shape as MrBeast's "$1 vs $X" and "Ages 1–100" videos: *$1 vs $500,000 Plane Ticket* (607M views, 10:31), *$1 vs $1,000,000,000 Yacht* (580M), *$1 vs $1,000,000 Hotel Room* (483M), *Ages 1–100 Fight For $500,000* (473M). What his leaked production handbook (*How to Succeed in MrBeast Production*, 2024) and these videos do:
+
+1. **The title names both ends as numbers** ("$1 vs $500,000"), and the thumbnail is a split of the two ends. Nothing in between.
+2. **The cold open previews the top tier, then drops to the bottom one** ("but first, $1").
+3. **Stair-stepping:** "as you get deeper in the video the stakes get higher". The firework example goes $1, $10, $50, $375, $1,000, $10,000, then $40,000, $100,000, the world record. The steps grow by roughly ×3–×10, and the number is on screen at every step.
+4. **"Crazy progression" in minutes 1–3:** stop telling people what they'll watch and show it. The low tiers go by fast, and the top tiers get the most time.
+5. **The first minute matters most.** His example video lost 21M of its 60M clickers in the first minute. Front-load the most interesting content.
+6. **Re-engagement at ~3:00 and ~6:00:** a spectacle that resets attention. A "wow" that only this channel could show.
+7. **Long explanations go in the back half**, where viewers who stayed will sit through them.
+8. **Never signal the ending early, and end abruptly** to protect retention.
+9. **Simple:** "for 50 million people to understand something it must be simple".
+10. **Numbers in a title: the units people search in, one unit on both sides** (the user, 2026-10-24). "1 mm vs 30 m" reads as 1 vs 30, because the eye compares the digits before it notices the units. Grams fix that but no popular video uses them: the ones that work say "200 lb", "1,000 lbs". For an animal ladder, the search terms "Size Comparison" (*Sea Monsters Size Comparison* 53M, *Fish Size Comparison* 9.8M) and "Fish Eat Fish" (8.8M) beat a numeric "vs". Keep the on-screen counter in one unit (pounds, with metric under it) for the whole video.
 
 ### Descriptions
 
