@@ -16,6 +16,8 @@ export const PULL_SPEED = 560;
 export const MIN_OUT = D * 6;
 /** How fast the line rolls back after a marble falls in the well. */
 export const REWIND_SPEED = 900;
+/** How fast a shove (from a boss) pushes the line on. */
+const NUDGE_SPEED = 260;
 /** A shot settles into the line for this long before it can pop. */
 export const SETTLE = 0.12;
 /** Two parts meeting get this long before their seam pops, so the meeting is seen. */
@@ -41,6 +43,8 @@ export interface Marble {
   tie?: number;
   /** A chameleon: it takes the next colour every few seconds (the board turns them). */
   readonly chameleon?: boolean;
+  /** Gilded: gold levels count these as they pop. */
+  readonly gold?: boolean;
 }
 
 /** What comes out of the burrow next. */
@@ -51,6 +55,7 @@ export interface Spawned {
   /** Tied to the marble ahead of it, if that one is free to tie. */
   readonly tie?: boolean;
   readonly chameleon?: boolean;
+  readonly gold?: boolean;
 }
 
 export type LineEvent =
@@ -88,6 +93,8 @@ export class Line {
   rushing = true;
   /** Distance still to roll back after a marble fell in. */
   rewind = 0;
+  /** Distance still to be shoved forward (a boss's doing). */
+  nudge = 0;
   private time = 0;
   private checks: Check[] = [];
   /** A gap's front part (by its back marble's id) and the combo of the pop that opened the gap. */
@@ -139,6 +146,11 @@ export class Line {
     } else {
       this.move(dt, speed);
     }
+    if (this.nudge > 0) {
+      const d = Math.min(this.nudge, NUDGE_SPEED * dt);
+      this.nudge -= d;
+      for (const m of this.marbles) m.s += d;
+    }
     this.settle(events);
     this.spawn();
     if (this.rewind <= 0) this.fall(events);
@@ -154,6 +166,12 @@ export class Line {
   private crumble(events: LineEvent[]): void {
     if (this.spawning || !this.marbles.length || !this.marbles.every((m) => m.stone)) return;
     this.popIds(new Set(this.marbles.map((m) => m.id)), 0, null, events);
+  }
+
+  /** The front part of the line, if it is nothing but stones standing apart from the pushed part (else null). */
+  strandedHead(): readonly Marble[] | null {
+    const head = this.parts().at(-1);
+    return head && head.every((m) => m.stone && m.s >= 0) && !head.some((m) => m.id === this.tail) ? head : null;
   }
 
   /**
@@ -300,6 +318,7 @@ export class Line {
       const m: Marble = {
         id: this.nextId(), colour: next.colour, s, charm: null, charmAge: 0,
         ...(next.bud ? { bud: true } : {}), ...(next.stone ? { stone: true } : {}), ...(next.chameleon ? { chameleon: true } : {}),
+        ...(next.gold ? { gold: true } : {}),
       };
       // Twine ties it to the marble just ahead, when that one is a plain marble touching it.
       if (next.tie && !m.stone && back && back.tie === undefined && !back.stone && back.s - s <= TOUCH) {
@@ -342,6 +361,15 @@ export class Line {
     if (i < 0 || this.marbles[i]!.colour === colour) return;
     this.marbles[i] = { ...this.marbles[i]!, colour };
     this.checks.push({ id, at: this.time + SETTLE, combo: 0, shot: null });
+  }
+
+  /** Turns a plain marble into a stone where it is (a boss's doing); false if it can't be (tied, gilded, a bud or already stone). */
+  petrify(id: number): boolean {
+    const i = this.indexOf(id);
+    const m = this.marbles[i];
+    if (!m || m.stone || m.bud || m.gold || m.tie !== undefined) return false;
+    this.marbles[i] = { id: m.id, colour: m.colour, s: m.s, charm: null, charmAge: 0, stone: true };
+    return true;
   }
 
   private age(dt: number): void {

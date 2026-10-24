@@ -19,6 +19,8 @@ const R = { gecko: 270, well: 170, burrow: 120, shot: 95, flash: 190, moon: 150 
 const MOONBEAMS = 3;
 /** A pop lights the garden round it for this long, s. */
 const FLASH_FOR = 0.7;
+/** How much smaller every light is while the owl's hoot holds. */
+const HOOT_SHRINK = 0.42;
 /** How fast the dark lifts for a Lantern and settles again, per s. */
 const FADE = 2.5;
 
@@ -38,6 +40,8 @@ export class NightView {
   private readonly rt: Phaser.GameObjects.RenderTexture;
   private readonly flashes: Flash[] = [];
   private lift = 0;
+  /** How far the night has closed in after the owl's hoot, 0..1. */
+  private close = 0;
 
   constructor(private readonly scene: Phaser.Scene) {
     makeLight(scene);
@@ -51,6 +55,9 @@ export class NightView {
 
   update(board: Board, time: number, dt: number): void {
     this.lift = Phaser.Math.Clamp(this.lift + (board.timers.lantern > 0 ? FADE : -FADE) * dt, 0, 1);
+    this.close = Phaser.Math.Clamp(this.close + ((board.boss?.hoot ?? 0) > 0 ? FADE : -FADE) * dt, 0, 1);
+    // The owl's hoot draws the dark in round every light.
+    const near = 1 - this.close * HOOT_SHRINK;
     for (const f of this.flashes) f.age += dt;
     while (this.flashes.length && this.flashes[0]!.age > FLASH_FOR) this.flashes.shift();
     const rt = this.rt;
@@ -58,7 +65,7 @@ export class NightView {
     rt.fill(NIGHT_HEX, DARKNESS * (1 - this.lift));
     if (this.lift < 1) {
       const light = (x: number, y: number, r: number, alpha = 1): void => {
-        rt.stamp(LIGHT_KEY, undefined, (x + BLEED) * RES, (y + BLEED) * RES, { scale: (r * RES) / LIGHT_R, alpha, blendMode: Phaser.BlendModes.ERASE });
+        rt.stamp(LIGHT_KEY, undefined, (x + BLEED) * RES, (y + BLEED) * RES, { scale: (r * near * RES) / LIGHT_R, alpha, blendMode: Phaser.BlendModes.ERASE });
       };
       const flicker = 1 + Math.sin(time / 90) * 0.03 + Math.sin(time / 37) * 0.02;
       light(board.gecko.x, board.gecko.y, R.gecko);

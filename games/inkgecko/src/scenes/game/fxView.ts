@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
-import { BLUE, INK_HEX, RED } from '../../art/palette';
+import { BLUE, INK_HEX, RED, RED_HEX } from '../../art/palette';
 import { RAIN_RES, RAIN_SLANT } from '../../art/propsFarm';
 import { TEX } from '../../art/textures';
 import { MAX_BOUNCES, MAX_GLANCES, WALL_INSET, type Board, type BoardEvent } from '../../logic/board';
+import { BOSS_NAMES } from '../../logic/boss';
+import { MARBLE_RES } from '../../art/marbleArt';
+import { PAD_WARN } from '../../logic/twists';
 import { CHARM_NAMES, RAIN_HALF } from '../../logic/charms';
 import { colourHex, type ColourId } from '../../logic/colours';
 import { BOARD } from '../../level/types';
@@ -21,6 +24,9 @@ const RAIN_DROPS = 34;
 const SINK_MS = 380;
 /** The well starts to blush once the line's front is this far along. */
 const BLUSH_FROM = 0.7;
+/** What's said when a shot doesn't hurt the boss. */
+const BLOCKED = { blocked: 'no effect!', swallowed: 'gulp!', swatted: 'swat!' } as const;
+
 /** The well's colour at its most alarmed. */
 const BLUSH_HEX = 0xf07a6e;
 
@@ -40,12 +46,18 @@ export class FxView {
   private readonly aim: Phaser.GameObjects.Graphics;
   /** Night levels: a lit garden lantern standing by each well. */
   private readonly lanterns: Phaser.GameObjects.Image[];
+  /** Late burrows: a stone lid over each until it opens. */
+  private readonly lids: (Phaser.GameObjects.Image | null)[];
+  /** Restless pads' timer ring, and the wind's streaks. */
+  private readonly marks: Phaser.GameObjects.Graphics;
+  private streaks: { x: number; y: number; len: number; age: number; life: number }[] = [];
+  private lastTime = 0;
   /** How far the camera turns the board (a phone held upright), so words can stay upright. */
   turn = 0;
   /** Words grow when the board is drawn small (a phone), so they stay readable. */
   textScale = 1;
 
-  constructor(private readonly scene: Phaser.Scene, board: Board) {
+  constructor(private readonly scene: Phaser.Scene, private readonly board: Board) {
     this.burrows = board.lines.map((l) => {
       const p = pointAt(l.path, 0);
       return scene.add.image(p.x, p.y, TEX.burrow(0)).setScale(1 / 3).setDepth(3);
@@ -55,6 +67,12 @@ export class FxView {
       return scene.add.image(p.x, p.y, TEX.well(0)).setScale(1 / 3).setDepth(3);
     });
     this.aim = scene.add.graphics().setDepth(7);
+    this.marks = scene.add.graphics().setDepth(6.95);
+    this.lids = board.lines.map((l, i) => {
+      if (!board.isShut(i)) return null;
+      const p = pointAt(l.path, 0);
+      return scene.add.image(p.x, p.y, TEX.stone(0)).setScale(1.9 / MARBLE_RES).setDepth(3.2).setRotation(i);
+    });
     // Beside the well, off to the side the track doesn't come in from.
     this.lanterns = board.level.dark ? board.lines.map((l) => {
       const p = pointAt(l.path, l.path.length);
@@ -76,6 +94,40 @@ export class FxView {
       this.lanterns[i]?.setTexture(TEX.gardenLantern(f));
     });
     this.drawAim(board, showAim);
+    this.drawMarks(board, time);
+  }
+
+  /** A restless pad's ring running out round the gecko, and streaks blowing with the wind. */
+  private drawMarks(board: Board, time: number): void {
+    const g = this.marks.clear();
+    const dt = this.lastTime ? Math.min(0.1, (time - this.lastTime) / 1000) : 0;
+    this.lastTime = time;
+    board.lines.forEach((_, i) => {
+      if (!board.isShut(i)) this.lids[i]?.setVisible(false);
+    });
+    const limit = board.level.restless;
+    if (limit && !board.hopping && board.state === 'play') {
+      const left = Math.max(0, 1 - board.twists.padClock / limit);
+      const warn = board.twists.padClock >= limit - PAD_WARN;
+      const pulse = warn ? 0.5 + 0.5 * Math.sin(time / 70) : 1;
+      g.lineStyle(5, warn ? RED_HEX : INK_HEX, (warn ? 0.75 : 0.4) * pulse);
+      g.beginPath();
+      g.arc(board.gecko.x, board.gecko.y, 64, -Math.PI / 2, -Math.PI / 2 + left * Math.PI * 2);
+      g.strokePath();
+    }
+    const push = board.twists.push;
+    if (!board.level.wind) return;
+    // New streaks blow in while a gust is up (about 20 a second); each fades as it crosses.
+    if (Math.abs(push) > 40 && Math.random() < dt * 21) {
+      this.streaks.push({ x: push > 0 ? -60 : BOARD.w + 60, y: 40 + Math.random() * (BOARD.h - 80), len: 30 + Math.random() * 50, age: 0, life: 1.2 + Math.random() });
+    }
+    this.streaks = this.streaks.filter((s) => (s.age += dt) < s.life);
+    for (const s of this.streaks) {
+      s.x += Math.sign(push || 1) * 900 * dt * Math.max(0.3, board.twists.gust);
+      const a = Math.sin((s.age / s.life) * Math.PI) * 0.35;
+      g.lineStyle(1.6, INK_HEX, a);
+      g.lineBetween(s.x, s.y, s.x - Math.sign(push || 1) * s.len, s.y + Math.sin(s.x / 50) * 3);
+    }
   }
 
   /**
@@ -149,6 +201,47 @@ export class FxView {
       this.say(e.x, e.y - 40, e.lives > 0 ? 'into the well! −1 life' : 'into the well!', 22, RED);
       this.scene.cameras.main.shake(200, 0.004);
     } else if (e.type === 'filled') this.say(640, 120, 'The burrows are shut: pop the rest!', 26);
+    else this.reactTwist(e);
+  }
+
+  /** Words and marks for a level's twist, goal and boss. */
+  private reactTwist(e: BoardEvent): void {
+    if (e.type === 'gust') this.say(640, 90, 'a gust!', 24);
+    else if (e.type === 'surgeSoon') this.scene.cameras.main.shake(260, 0.0025);
+    else if (e.type === 'surge') this.say(640, 160, 'surge!', 26, RED);
+    else if (e.type === 'tide') this.say(640, 160, 'the lines draw back…', 22);
+    else if (e.type === 'burrowOpen') this.openLid(e.line, e.x, e.y);
+    else if (e.type === 'newColour') this.say(640, 160, 'a new colour joins!', 24);
+    else if (e.type === 'leafHit') this.knock(e.x, e.y);
+    else if (e.type === 'padWarn') this.say(this.board.gecko.x, this.board.gecko.y - 80, 'hop!', 24, RED);
+    else if (e.type === 'tipped') this.say(this.board.gecko.x, this.board.gecko.y - 80, 'tipped off!', 22);
+    else if (e.type === 'gold') this.say(e.x, e.y - 40, e.left > 0 ? `gold! ${e.left} to go` : 'all the gold!', 22, '#9a6b14');
+    else if (e.type === 'bossHit') {
+      this.splash(e.x, e.y, 'red');
+      this.say(e.x, e.y - 60, e.hp > 0 ? `ouch! ${e.hp} to go` : 'beaten!', 24, RED);
+    } else if (e.type === 'bossBlock') {
+      this.knock(e.x, e.y);
+      this.say(e.x, e.y - 30, BLOCKED[e.how], 18);
+    } else if (e.type === 'bossShove') this.say(e.x, e.y - 60, 'shove!', 20, RED);
+    else if (e.type === 'bossDrop') this.say(e.x, e.y - 50, 'a bud dropped in!', 18);
+    else if (e.type === 'bossStones') this.say(e.x, e.y - 40, 'stone!', 18);
+    else if (e.type === 'bossHoot') this.say(e.x, e.y - 50, 'hoo-hoo…', 22);
+    else if (e.type === 'bossBeaten') this.say(640, 200, 'Beaten! It runs off', 30, RED);
+    else if (e.type === 'lost' && e.cause === 'time') this.say(640, 200, 'Time\'s up!', 30, RED);
+  }
+
+  /** A late burrow opening: its lid pops off and rolls aside. */
+  private openLid(i: number, x: number, y: number): void {
+    const lid = this.lids[i];
+    this.say(x, y - 50, 'a new burrow opens!', 22);
+    if (!lid) return;
+    this.lids[i] = null;
+    this.scene.tweens.add({ targets: lid, x: x + 50, y: y - 20, angle: 200, alpha: 0, duration: 600, ease: 'Quad.Out', onComplete: () => lid.destroy() });
+  }
+
+  /** The boss's name, as it appears. */
+  announce(kind: keyof typeof BOSS_NAMES): void {
+    this.say(640, 200, `${BOSS_NAMES[kind]}!`, 34, RED);
   }
 
   /** A shower down one column of the board: slanting drops, splashes, a wet sheen that dries. */

@@ -18,11 +18,16 @@ const FERN: Pt[] = [
 const TWO_LEFT: Pt[] = spiral(640, 400, 300, 150, 0.95, -Math.PI / 2 - 0.15, -1, 1.75, 1);
 const TWO_RIGHT: Pt[] = spiral(640, 400, 300, 150, 0.95, Math.PI / 2 - 0.15, -1, 1.75, 1);
 
-/** Level 10: two spirals wound into each other, each starting on its own side. */
-const WELL_A: Pt[] = spiral(640, 400, 305, 165, 1.2, Math.PI, 1, 1.75, 1);
-const WELL_B: Pt[] = spiral(640, 400, 305, 165, 1.2, 0, 1, 1.75, 1);
+/** Level 10: three rows back and forth across the top of the lawn, the Mole's molehills between them and the gecko. */
+const MOLE_ROWS: Pt[] = [...line({ x: 1310, y: 100 }, { x: 1150, y: 100 }, 2), ...zigzag(1150, 130, 100, 320, 3)];
+const MOLEHILLS: Pt[] = [{ x: 250, y: 462 }, { x: 500, y: 450 }, { x: 780, y: 450 }, { x: 1030, y: 462 }];
 
-/** Chapter 1, The Garden: free. Pivot levels teach the basics; rail levels arrive at 4. */
+/**
+ * Chapter 1, The Garden: free. Pivot levels teach the basics; rail levels
+ * arrive at 4. Each level past the first few has its own twist (golden
+ * marbles, a hold-out, a late burrow, leaves, surges, lines at two speeds),
+ * and the Mole waits at the end.
+ */
 export const CHAPTER_1: readonly LevelDef[] = [
   {
     id: 'garden-1', name: 'First Pebbles', shooter: { kind: 'pivot', ...C },
@@ -32,7 +37,7 @@ export const CHAPTER_1: readonly LevelDef[] = [
   {
     id: 'garden-2', name: 'Moss Steps', shooter: { kind: 'pivot', ...C },
     tracks: [{ points: spiral(640, 400, 300, 150, 1.45, 0.1, -1, 1.75, 1) }],
-    colours: 3, speed: 33, goal: 1400, par: par(1400, 33), charms: ['slow'],
+    colours: 3, speed: 33, goal: 1400, par: par(1400, 33), charms: ['slow'], mode: { kind: 'gold', count: 5 },
   },
   {
     id: 'garden-3', name: 'Snail Trail', shooter: { kind: 'pivot', ...C },
@@ -42,36 +47,37 @@ export const CHAPTER_1: readonly LevelDef[] = [
   {
     id: 'garden-4', name: 'The Branch', shooter: { kind: 'rail', y: 638, x0: 90, x1: 1190 },
     tracks: [{ points: zigzag(170, 1110, 120, 440, 3) }],
-    colours: 4, speed: 34, goal: 1700, par: par(1700, 34), charms: ['slow', 'reverse'], teach: ['rail', 'catch'],
+    colours: 4, speed: 34, goal: 1700, par: 140, charms: ['slow', 'reverse'], teach: ['rail', 'catch'],
   },
   {
     id: 'garden-5', name: 'Fern Corner', shooter: { kind: 'pivot', x: 560, y: 400 },
     tracks: [{ points: FERN }],
-    colours: 4, speed: 36, goal: 2100, par: par(2100, 36), charms: ['slow', 'reverse', 'burst'],
+    colours: 4, speed: 38, goal: 2100, par: 120, charms: ['slow', 'reverse', 'burst'], mode: { kind: 'holdout', seconds: 70 },
   },
   {
     id: 'garden-6', name: 'Two Paths', shooter: { kind: 'pivot', ...C },
-    tracks: [{ points: TWO_LEFT }, { points: TWO_RIGHT }],
+    tracks: [{ points: TWO_LEFT }, { points: TWO_RIGHT, opensAt: 0.35 }],
     colours: 4, speed: 26, goal: 2300, par: par(2300, 40), charms: ['slow', 'reverse', 'burst'],
   },
   {
     id: 'garden-7', name: 'Rain Barrel', shooter: { kind: 'rail', y: 638, x0: 90, x1: 1190 },
     tracks: [{ points: zigzag(1170, 110, 95, 515, 5) }],
-    colours: 4, speed: 38, goal: 2500, par: par(2500, 38), charms: ['slow', 'reverse', 'burst', 'aim'],
+    colours: 4, speed: 36, goal: 2500, par: 205, charms: ['slow', 'reverse', 'burst', 'aim'], leaves: 2,
   },
   {
     id: 'garden-8', name: 'The Old Wall', shooter: { kind: 'pivot', ...C },
     tracks: [{ points: spiral(640, 400, 305, 160, 1.9, Math.PI / 2, -1, 1.75, 1) }],
-    colours: 5, speed: 34, goal: 2700, par: par(2700, 34), charms: ['slow', 'reverse', 'burst', 'aim'],
+    colours: 5, speed: 32, goal: 2700, par: par(2700, 32), charms: ['slow', 'reverse', 'burst', 'aim'], surge: 13,
   },
   {
     id: 'garden-9', name: 'Twin Drains', shooter: { kind: 'rail', y: 638, x0: 90, x1: 1190 },
-    tracks: [{ points: zigzag(110, 560, 95, 455, 4) }, { points: zigzag(1170, 720, 95, 455, 4) }],
-    colours: 5, speed: 26, goal: 2800, par: par(2800, 40), charms: ['slow', 'reverse', 'burst', 'aim'],
+    tracks: [{ points: zigzag(110, 560, 95, 455, 4), pace: 1.3 }, { points: zigzag(1170, 720, 95, 455, 4), pace: 0.75 }],
+    colours: 5, speed: 24, goal: 2800, par: 185, charms: ['slow', 'reverse', 'burst', 'aim'],
   },
   {
-    id: 'garden-10', name: 'The Well', shooter: { kind: 'pivot', ...C },
-    tracks: [{ points: WELL_A }, { points: WELL_B }],
-    colours: 5, speed: 30, goal: 3400, par: par(3400, 44), charms: ['slow', 'reverse', 'burst', 'aim'],
+    id: 'garden-10', name: 'Mole Hill', shooter: { kind: 'pivot', x: 640, y: 610 },
+    tracks: [{ points: MOLE_ROWS }],
+    colours: 5, speed: 30, goal: 3400, par: 150, charms: ['slow', 'reverse', 'burst', 'aim'],
+    boss: { kind: 'mole', hp: 9, spots: MOLEHILLS },
   },
 ];

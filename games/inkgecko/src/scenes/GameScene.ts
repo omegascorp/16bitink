@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { ART_RES } from '../art/palette';
 import { bakeBoard, bakeCovers, dropBoards, TEX } from '../art/textures';
-import { pitchForCombo } from '../audio/recipes';
+import { pitchForCombo, type SfxId } from '../audio/recipes';
 import { getHost, getSound, trackGame } from '../host';
 import { levelById, levelOrder, loadedLevels, placeOf } from '../level/levels';
 import { BOARD, type LevelDef } from '../level/types';
@@ -15,6 +15,10 @@ import { GameInput } from './game/input';
 import { GeckoView } from './game/geckoView';
 import { MarblesView } from './game/marblesView';
 import { NightView } from './game/nightView';
+import { BossView } from './game/bossView';
+import { twistTexts } from '../level/twistText';
+import { BOSS_KINDS } from '../level/types';
+import { freeBoss } from '../art/textures';
 import { DPR, viewSize } from './hidpi';
 import type { HudScene } from './HudScene';
 import type { ResultData } from './ResultScene';
@@ -47,6 +51,7 @@ export class GameScene extends Phaser.Scene {
   private away = false;
   private heartbeat = 0;
   private night: NightView | null = null;
+  private bossView: BossView | null = null;
   /** On a loss, whether the lines have all poured away yet. */
   private drainedAll = false;
 
@@ -57,7 +62,7 @@ export class GameScene extends Phaser.Scene {
   create(data: GameData): void {
     this.level = levelById(data?.levelId) ?? loadedLevels()[0]!;
     this.board = new Board(this.level);
-    this.coach = new Coach(this.level.teach ?? []);
+    this.coach = new Coach(this.level.teach ?? [], twistTexts(this.level).map((t) => t.hint));
     this.over = false;
     this.heartbeat = 0;
     this.drainedAll = false;
@@ -72,6 +77,13 @@ export class GameScene extends Phaser.Scene {
     this.marbles = new MarblesView(this);
     this.gecko = new GeckoView(this, this.board);
     this.night = this.level.dark ? new NightView(this) : null;
+    // Only this level's boss is kept painted.
+    for (const kind of BOSS_KINDS) if (kind !== this.level.boss?.kind) freeBoss(this, kind);
+    this.bossView = this.board.boss ? new BossView(this, this.board.boss) : null;
+    if (this.board.boss) {
+      const kind = this.board.boss.kind;
+      this.time.delayedCall(900, () => this.fx.announce(kind));
+    }
     this.input2 = new GameInput(this, {
       toBoard: (p) => {
         const w = this.cameras.main.getWorldPoint(p.x, p.y);
@@ -195,6 +207,7 @@ export class GameScene extends Phaser.Scene {
     this.gecko.update(this.board, time, dt);
     this.fx.update(this.board, time, this.board.timers.aim > 0);
     this.night?.update(this.board, time, dt);
+    this.bossView?.update(this.board, time);
     this.listenForDanger(dt);
     getSound(this)?.setRoll(this.rolling());
   }
@@ -255,19 +268,23 @@ export class GameScene extends Phaser.Scene {
     else if (e.type === 'filled') sound?.play('filled');
     else if (e.type === 'won') this.finish(true);
     else if (e.type === 'lost') this.finish(false);
+    else {
+      const id = e.type === 'bossShove' && this.level.boss?.kind === 'lion' ? 'roar' : TWIST_SOUNDS[e.type];
+      if (id) sound?.play(id);
+    }
   }
 
   /** Saves a win, then shows the result card after a beat. */
   private finish(won: boolean): void {
     const b = this.board;
-    const livesLost = LIVES - b.lives;
+    const livesLost = b.maxLives - b.lives;
     const blots = won ? blotsFor(b.elapsed, this.level.par, livesLost) : 0;
     const host = getHost(this);
     if (!this.over) {
       this.over = true;
       trackGame(this, {
         type: 'level_end', ...this.levelRef(), result: won ? 'win' : 'lose', seconds: this.seconds(), score: b.score, progress: this.progressNote(),
-        ...(won ? {} : { cause: 'well' }),
+        ...(won ? {} : { cause: b.lostBy }),
       });
     }
     const saved = loadProgress(host.storage);
@@ -276,7 +293,7 @@ export class GameScene extends Phaser.Scene {
     const result: ResultData = {
       levelId: this.level.id, won, time: b.elapsed, blots, livesLost, score: b.score,
       bestCombo: b.best.combo, bestStreak: b.best.streak, previousBest: saved.levels[this.level.id]?.bestTime,
-      progress: b.progress,
+      progress: b.progress, lostBy: b.lostBy,
     };
     // The card lies over the board, held still behind it.
     const show = (): void => {
@@ -297,6 +314,13 @@ export class GameScene extends Phaser.Scene {
     wait();
   }
 }
+
+/** The sounds of a level's twist and its boss, by event. */
+const TWIST_SOUNDS: Partial<Record<BoardEvent['type'], SfxId>> = {
+  gust: 'gust', surge: 'rush', tide: 'pull', burrowOpen: 'crack', newColour: 'charm', leafHit: 'thud', padWarn: 'danger', tipped: 'hop',
+  gold: 'catch', bossHit: 'bosshit', bossBlock: 'bounce', bossUp: 'thud', bossShove: 'join', bossDrop: 'drop', bossStones: 'crack',
+  bossHoot: 'hoot', bossCroak: 'croak', bossLand: 'plop', bossBeaten: 'filled',
+};
 
 /** Room kept for the HUD above and below an upright board, screen px. */
 const UPRIGHT_HUD = 56;

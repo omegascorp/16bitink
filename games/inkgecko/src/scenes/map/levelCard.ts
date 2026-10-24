@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PAPER_HEX, RED } from '../../art/palette';
+import { BLUE, PAPER_HEX, RED } from '../../art/palette';
 import type { Place } from '../../level/levels';
 import type { LevelDef } from '../../level/types';
 import type { LevelRecord } from '../../logic/save';
@@ -7,6 +7,7 @@ import { clock, drawBlots, HAND_FONT, inkButton, inkText } from '../ui';
 import { freePaper, paperCard } from '../uiPaint';
 import { boardPreview, dropPreview } from './thumb';
 import { shooterLine } from './levelInfo';
+import { twistTexts } from '../../level/twistText';
 
 const SOFT_INK = '#4a463e';
 const CARD_W = 440;
@@ -73,7 +74,8 @@ export class MapCard {
   }
 
   static level(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, view: { width: number; height: number }, o: LevelCardOpts, onClose: () => void): MapCard {
-    const newsH = o.news.length ? 34 : 0;
+    const twist = twistTexts(o.level).map((t) => t.card).join(' · ');
+    const newsH = (o.news.length ? 34 : 0) + (twist ? 34 : 0);
     return new MapCard(scene, layer, view, 470 + newsH, (card, top) => {
       card.add(inkText(scene, 0, top + 34, `Level ${o.number}`, 22, SOFT_INK));
       card.add(inkText(scene, 0, top + 70, o.level.name, 38));
@@ -84,6 +86,10 @@ export class MapCard {
       if (o.news.length) {
         y += 34;
         card.add(inkText(scene, 0, y, `New: ${o.news.join(' · ')}`, 21, RED));
+      }
+      if (twist) {
+        y += 34;
+        card.add(inkText(scene, 0, y, twist, 22, BLUE));
       }
       y += 42;
       const blots = scene.add.graphics();

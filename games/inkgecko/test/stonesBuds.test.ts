@@ -68,6 +68,15 @@ describe('stones', () => {
     expect(line.marbles.some((m) => m.stone)).toBe(true);
   });
 
+  it('a head of nothing but stones, apart from the pushed part, is stranded (the tortoise breaks it)', () => {
+    const line = makeLine();
+    line.lay(['red', 'blue'], 900);
+    line.lay(['green', 'red', 'blue'], 100, true);
+    expect(line.strandedHead()).toBeNull();
+    line.marbles = line.marbles.map((m) => (m.s >= 900 ? { ...m, stone: true } : m));
+    expect(line.strandedHead()?.length).toBe(2);
+  });
+
   it("don't count as a colour in the line", () => {
     const line = makeLine();
     line.lay(['blue'], 400);

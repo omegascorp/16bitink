@@ -1,10 +1,19 @@
 import { BOARD, type LevelDef, type ShooterDef } from '../level/types';
-import { BURST_REACH, CHARM_SECONDS, HEDGEHOG_EATS, HEDGEHOG_SPEED, pickCharm, RAIN_HALF, SLOW_FACTOR, type CharmId } from './charms';
+import { Boss, swat, swatted, type Arena } from './boss';
+import { CHARM_SECONDS, HEDGEHOG_EATS, pickCharm, SLOW_FACTOR, type CharmId } from './charms';
 import { dealColour, paletteOf, type ColourId } from './colours';
-import { FRUIT_EVERY, FRUIT_HIT, FRUIT_POINTS, rollFruit, spawnFruit, type Fruit, type FruitKind } from './fruit';
+import { bounce, glance, HIT_DIST, inGap, SHOT_R, wildColour } from './flight';
+import { FRUIT_EVERY, FRUIT_HIT, FRUIT_POINTS, rollFruit, spawnFruit, type Fruit } from './fruit';
+import { goalProgress, GOLD_SHARE, GOLD_SPARE, timeLeft } from './goal';
 import { D, Line, SETTLE, type LineEvent, type Marble, type Spawned } from './line';
 import { angleAt, buildPath, crossings, pointAt, type Pt } from './path';
 import { createRng, type Rng } from './rng';
+import { dropNear, hedgehogDone, hedgehogLine, inColumn, nearPoint, ofColour, sendHedgehog, stepHedgehog, type Hedgehog, type Pick } from './sweeps';
+import { Twists, wanderAt } from './twists';
+import type { BoardEvent, BoardInput, BoardState, Drop, LossCause, Shot } from './boardTypes';
+
+export { NO_INPUT, type BoardEvent, type BoardInput, type BoardState, type Drop, type LossCause, type Shot } from './boardTypes';
+export { MAX_BOUNCES, MAX_GLANCES, WALL_INSET } from './flight';
 
 /** How far ahead of its centre the gecko holds the marble it spits, board px (the drawing's GECKO_MOUTH; the view scales it to match). */
 export const MOUTH = 62;
@@ -34,101 +43,14 @@ export const LIVES = 3;
 export const REWIND_SHARE = 0.25;
 /** A hop from one lily pad to another takes this long, s. */
 export const HOP_TIME = 0.32;
-/** A marble that touches a shot within this distance (centre to centre) is hit. */
-const HIT_DIST = D * 0.86;
 /** Chance a new marble from the burrow is the colour of the one ahead of it (clumps make matches). */
 const SAME_CHANCE = 0.38;
 /** Chameleon marbles all take the next colour this often, s. */
 export const SHIFT_EVERY = 4;
-/** Barn levels: shots bounce off timber walls this far inside the board's left, right and top edges. */
-export const WALL_INSET = 14;
-/** A shot bounces this many times at most, then flies out. */
-export const MAX_BOUNCES = 3;
-/** A shot glances off a pillar this many times at most (on top of any wall bounces). */
-export const MAX_GLANCES = 4;
-/** A shot marble's radius, for glancing off pillars. */
-const SHOT_R = D / 2;
 /** On a loss, what's left of the lines pours into the wells this fast, board px/s (Zuma's ending). */
 export const DRAIN_SPEED = 700;
 
 export const POINTS = { marble: 10, gap: 50, streak: 20 } as const;
-
-export interface Shot {
-  readonly id: number;
-  readonly colour: ColourId;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  /** Gaps in the line it has flown through. */
-  gaps: number;
-  /** Walls it has bounced off (barn levels). */
-  bounces: number;
-  /** Pillars it has glanced off (the ruins). */
-  glances: number;
-  /** A Burst charm caught on a rail level: pops what it lands among instead of joining the line. */
-  readonly burst: boolean;
-  /** A Dragonfly: flies on through the whole board, popping every marble it touches. */
-  readonly pierce: boolean;
-  /** A Geode crystal: joins the line as the colour of the marble it hits. */
-  readonly wild: boolean;
-}
-
-export interface Drop {
-  readonly id: number;
-  readonly charm: CharmId;
-  readonly x: number;
-  y: number;
-  vy: number;
-}
-
-export interface BoardInput {
-  /** Where the player points, board px (pivot: aim at it; rail: run under it). */
-  readonly aim: Pt | null;
-  readonly fire: boolean;
-  readonly swap: boolean;
-  /** Rail levels: run left (−1) or right (1) by keys. Pivot and hop levels: turn. */
-  readonly move: number;
-  /** Hop levels: the pad to hop to. */
-  readonly hop: number | null;
-}
-
-export const NO_INPUT: BoardInput = { aim: null, fire: false, swap: false, move: 0, hop: null };
-
-export type BoardEvent =
-  | { readonly type: 'spit'; readonly x: number; readonly y: number; readonly colour: ColourId; readonly dragonfly: boolean; readonly geode: boolean }
-  | { readonly type: 'hop'; readonly pad: number }
-  | { readonly type: 'landed'; readonly pad: number }
-  | { readonly type: 'swap' }
-  | { readonly type: 'stuck'; readonly x: number; readonly y: number; readonly colour: ColourId }
-  | { readonly type: 'miss' }
-  | {
-    readonly type: 'pop'; readonly x: number; readonly y: number; readonly colour: ColourId; readonly count: number;
-    readonly combo: number; readonly points: number; readonly line: number; readonly marbles: readonly { x: number; y: number; colour: ColourId; stone?: boolean }[];
-  }
-  | { readonly type: 'pull'; readonly x: number; readonly y: number }
-  | { readonly type: 'join'; readonly x: number; readonly y: number }
-  | { readonly type: 'gap'; readonly x: number; readonly y: number; readonly gaps: number; readonly points: number }
-  | { readonly type: 'streak'; readonly x: number; readonly y: number; readonly streak: number; readonly points: number }
-  | { readonly type: 'charm'; readonly charm: CharmId; readonly x: number; readonly y: number }
-  | { readonly type: 'drop'; readonly drop: Drop }
-  | { readonly type: 'caught'; readonly charm: CharmId; readonly x: number; readonly y: number }
-  | { readonly type: 'blossom'; readonly x: number; readonly y: number; readonly count: number }
-  | { readonly type: 'windfall'; readonly fruit: Fruit }
-  | { readonly type: 'bounce'; readonly x: number; readonly y: number }
-  | { readonly type: 'shift'; readonly count: number }
-  | { readonly type: 'rain'; readonly x: number }
-  | { readonly type: 'hedgehog'; readonly line: number }
-  | { readonly type: 'munch'; readonly x: number; readonly y: number }
-  | { readonly type: 'hedgehogGone' }
-  | { readonly type: 'sink'; readonly x: number; readonly y: number; readonly colour: ColourId }
-  | { readonly type: 'fruit'; readonly x: number; readonly y: number; readonly kind: FruitKind; readonly points: number }
-  | { readonly type: 'well'; readonly lives: number; readonly x: number; readonly y: number; readonly colour: ColourId }
-  | { readonly type: 'filled' }
-  | { readonly type: 'won' }
-  | { readonly type: 'lost' };
-
-export type BoardState = 'play' | 'won' | 'lost';
 
 /** One level being played: the lines, the gecko and its marbles, shots in flight, charms, score and lives. */
 export class Board {
@@ -163,11 +85,25 @@ export class Board {
   /** Windfalls rolling across the board (orchard levels). */
   fruits: Fruit[] = [];
   /** The Hedgehog trundling up a line from its well, and how many more marbles it will eat. */
-  hedgehog: { readonly line: number; s: number; left: number } | null = null;
+  hedgehog: Hedgehog | null = null;
   /** Seconds until the chameleon marbles next change colour. */
   shiftIn = SHIFT_EVERY;
   /** Best combo and longest streak this level, for the result card. */
   best = { combo: 0, streak: 0 };
+  /** The level's lives (three, unless it says otherwise). */
+  readonly maxLives: number;
+  /** The level's twist as it plays out: wind, surges, tides, leaves, a restless pad. */
+  readonly twists: Twists;
+  /** The chapter's boss, on its last level. */
+  readonly boss: Boss | null;
+  /** Gold levels: golden marbles popped so far. */
+  goldPopped = 0;
+  /** Why the level was lost. */
+  lostBy: LossCause = 'well';
+  /** Late burrows: which lines are still shut, waiting for the bar. */
+  private readonly shut: boolean[];
+  /** The level's last colour, held back until the bar is full enough (colourAt). */
+  private heldColour: ColourId | null;
   private readonly rng: Rng;
   private ids = 1;
   private reload = 0;
@@ -187,6 +123,8 @@ export class Board {
   private readonly lifts: readonly (readonly [number, number])[][];
   private fruitClock = 0;
   private drained = 0;
+  /** The step's events, for line events that happen outside a line's own step (a boss's drop). */
+  private pending: BoardEvent[] = [];
 
   constructor(readonly level: LevelDef, seed = Date.now()) {
     this.rng = createRng(seed);
@@ -201,13 +139,28 @@ export class Board {
     this.kind = s.kind;
     const start = s.kind === 'pivot' ? s : s.kind === 'hop' ? s.pads[0]! : { x: (s.x0 + s.x1) / 2, y: s.y };
     this.gecko = { x: start.x, y: start.y, angle: -Math.PI / 2 };
-    this.loaded = this.palette[Math.floor(this.rng() * this.palette.length)]!;
-    this.next = this.palette[Math.floor(this.rng() * this.palette.length)]!;
+    this.maxLives = level.lives ?? LIVES;
+    this.lives = this.maxLives;
+    this.heldColour = level.colourAt ? this.palette[this.palette.length - 1]! : null;
+    this.shut = level.tracks.map((t) => (t.opensAt ?? 0) > 0);
+    this.shut.forEach((closed, i) => {
+      if (closed) this.lines[i]!.spawning = false;
+    });
+    this.twists = new Twists(level, this.rng, () => this.ids++);
+    this.boss = level.boss ? new Boss(level.boss, this.arena()) : null;
+    const deal = this.spawnPalette();
+    this.loaded = deal[Math.floor(this.rng() * deal.length)]!;
+    this.next = deal[Math.floor(this.rng() * deal.length)]!;
   }
 
-  /** How full the bar is, 0..1. */
+  /** How full the bar is, 0..1 (see goal.ts for what fills it). */
   get progress(): number {
-    return Math.min(1, this.score / this.level.goal);
+    return goalProgress(this);
+  }
+
+  /** Seconds left on a hold-out's or a blitz's clock, else null. */
+  get timeLeft(): number | null {
+    return timeLeft(this.level, this.elapsed);
   }
 
   /** How close the nearest line is to its well, 0..1. */
@@ -218,6 +171,11 @@ export class Board {
   /** Where marble `m` of `line` is on the board. */
   marbleAt(line: Line, m: Marble): Pt {
     return pointAt(line.path, m.s);
+  }
+
+  /** Whether line `li`'s burrow is still shut, waiting for the bar (a late burrow). */
+  isShut(li: number): boolean {
+    return this.shut[li] === true;
   }
 
   /** Whether distance `s` along line `li` is under a tunnel. */
@@ -253,13 +211,20 @@ export class Board {
   step(input: BoardInput, dt: number): BoardEvent[] {
     const events: BoardEvent[] = [];
     if (this.state !== 'play') return events;
+    this.pending = events;
     this.elapsed += dt;
     this.reload = Math.max(0, this.reload - dt);
     for (const k of Object.keys(this.timers) as (keyof Board['timers'])[]) this.timers[k] = Math.max(0, this.timers[k] - dt);
+    this.twists.step(dt, this.filled, events);
     this.aimAndMove(input, dt);
     if (input.swap) this.swap(events);
     if (input.fire) this.queuedFire = true;
     if (input.hop !== null) this.hop(input.hop, events);
+    if (this.twists.stepPad(dt, !this.hopping, this.pad, events) && this.level.shooter.kind === 'hop') {
+      const pad = (this.pad + 1) % this.level.shooter.pads.length;
+      events.push({ type: 'tipped', pad });
+      this.hop(pad, events);
+    }
     this.stepHop(dt, events);
     if (this.queuedFire && this.reload <= 0 && this.atRailTarget() && !this.hopping) this.spit(events);
     this.stepShots(dt, events);
@@ -269,15 +234,77 @@ export class Board {
     this.stepHedgehog(dt, events);
     this.stepShift(dt, events);
     this.placeCharms(dt);
+    this.boss?.step(dt, events);
+    this.stepGoal(events);
     this.refreshColours();
     this.expireWaiting();
     this.checkEnd(events);
     return events;
   }
 
+  /** What the bar asks for, as time goes: late burrows open, a held colour joins, a hold-out's clock fills it, a boss beaten fills it. */
+  private stepGoal(events: BoardEvent[]): void {
+    const p = this.progress;
+    const mode = this.level.mode?.kind;
+    const done = this.boss ? this.boss.beaten : mode === 'holdout' || mode === 'gold' ? p >= 1 : false;
+    if (done) {
+      this.fill(events);
+      return;
+    }
+    this.shut.forEach((closed, i) => {
+      if (!closed || this.filled || p < (this.level.tracks[i]!.opensAt ?? 0)) return;
+      this.shut[i] = false;
+      this.lines[i]!.spawning = true;
+      events.push({ type: 'burrowOpen', line: i, ...pointAt(this.lines[i]!.path, 0) });
+    });
+    if (this.heldColour && p >= (this.level.colourAt ?? 0)) {
+      events.push({ type: 'newColour', colour: this.heldColour });
+      this.heldColour = null;
+    }
+  }
+
+  /** The bar is full: the burrows shut, and what's left is to be popped. */
+  private fill(events: BoardEvent[]): void {
+    if (this.filled) return;
+    this.filled = true;
+    for (const line of this.lines) line.spawning = false;
+    events.push({ type: 'filled' });
+  }
+
+  /** What the boss may do to the board. */
+  private arena(): Arena {
+    return {
+      lines: this.lines,
+      palette: this.palette,
+      gecko: this.gecko,
+      random: () => this.rng(),
+      shove: (li, d) => {
+        const line = this.lines[li];
+        if (line?.marbles.length) line.nudge += d;
+      },
+      dropInto: (li, near, colour, bud) => this.dropInto(li, near, colour, bud),
+      petrify: (li, ids) => ids.filter((id) => this.lines[li]?.petrify(id)).length,
+      crumble: (li, ids) => this.sweep((_, i) => (i === li ? this.lines[li]!.marbles.filter((m) => ids.includes(m.id)) : []), this.pending),
+    };
+  }
+
+  /** A marble put into line `li` beside its open marble nearest `near` (a boss's doing); false if none is open. */
+  private dropInto(li: number, near: Pt, colour: ColourId, bud: boolean): boolean {
+    const line = this.lines[li];
+    const lineEvents = line ? dropNear(line, near, colour, bud, (s) => this.covered(li, s)) : null;
+    if (!line || !lineEvents) return false;
+    for (const e of lineEvents) this.onLineEvent(line, li, e, this.pending);
+    return true;
+  }
+
   private aimAndMove(input: BoardInput, dt: number): void {
     const g = this.gecko;
     const s = this.level.shooter;
+    if (s.kind === 'pivot' && this.level.wander) {
+      const at = wanderAt(this.level, s, this.elapsed);
+      g.x = at.x;
+      g.y = at.y;
+    }
     if (s.kind !== 'rail') {
       if (input.move !== 0) g.angle += input.move * PIVOT_TURN * dt;
       else if (input.aim) g.angle = Math.atan2(input.aim.y - g.y, input.aim.x - g.x);
@@ -319,6 +346,7 @@ export class Board {
   }
 
   private swap(events: BoardEvent[]): void {
+    if (this.level.noSwap) return;
     [this.loaded, this.next] = [this.next, this.loaded];
     events.push({ type: 'swap' });
   }
@@ -361,11 +389,19 @@ export class Board {
     const steps = Math.max(1, Math.ceil(dist / 8));
     for (let i = 0; i < steps; i++) {
       const from = { x: shot.x, y: shot.y };
+      shot.vx += (this.twists.push * dt) / steps;
       shot.x += (shot.vx * dt) / steps;
       shot.y += (shot.vy * dt) / steps;
-      if (this.level.walls) this.bounce(shot, events);
-      if (this.level.pillars) this.glance(shot, events);
+      const knock = (this.level.walls ? bounce(shot) : null) ?? (this.level.pillars ? glance(shot, this.level.pillars) : null);
+      if (knock) events.push({ type: 'bounce', ...knock });
       if (!shot.pierce && this.hitFruit(shot, events)) return false;
+      if (!shot.pierce && this.twists.leafAt(shot, SHOT_R, { x: shot.vx, y: shot.vy })) {
+        events.push({ type: 'leafHit', x: shot.x, y: shot.y });
+        this.streak = 0;
+        return false;
+      }
+      const met = this.meetBoss(shot, events);
+      if (met === 'gone') return false;
       const hit = this.hitAt(shot);
       if (hit && shot.pierce) {
         this.pierce(hit.line, hit.index, events);
@@ -388,53 +424,26 @@ export class Board {
     return !out;
   }
 
-  /** Barn levels: a shot that reaches a wall comes off it like a ball off a cushion. */
-  private bounce(shot: Shot, events: BoardEvent[]): void {
-    if (shot.bounces >= MAX_BOUNCES) return;
-    const lo = WALL_INSET;
-    const hi = BOARD.w - WALL_INSET;
-    let hit = false;
-    if (shot.x < lo && shot.vx < 0) {
-      shot.x = 2 * lo - shot.x;
-      shot.vx = -shot.vx;
-      hit = true;
-    } else if (shot.x > hi && shot.vx > 0) {
-      shot.x = 2 * hi - shot.x;
-      shot.vx = -shot.vx;
-      hit = true;
+  /** A shot reaching the boss: it hurts it, is stopped, swallowed (the frog spits it into a line), or batted back. */
+  private meetBoss(shot: Shot, events: BoardEvent[]): 'gone' | 'on' {
+    const b = this.boss;
+    if (!b || shot.bossed || !b.touches(shot, SHOT_R)) return 'on';
+    const how = b.hit(shot, events);
+    if (how === 'pass') return 'on';
+    shot.bossed = true;
+    if (how === 'swatted') {
+      swat(shot);
+      swatted(b);
+      return 'on';
     }
-    if (shot.y < lo && shot.vy < 0) {
-      shot.y = 2 * lo - shot.y;
-      shot.vy = -shot.vy;
-      hit = true;
+    if (how === 'swallowed') {
+      const li = b.nearestLine();
+      if (li !== null) this.dropInto(li, b, shot.colour, false);
     }
-    if (!hit) return;
-    shot.bounces++;
-    events.push({ type: 'bounce', x: shot.x, y: shot.y });
-  }
-
-  /** The ruins: a shot that meets a pillar glances off it, mirrored about the pillar's surface. */
-  private glance(shot: Shot, events: BoardEvent[]): void {
-    if (shot.glances >= MAX_GLANCES) return;
-    for (const p of this.level.pillars ?? []) {
-      const dx = shot.x - p.x;
-      const dy = shot.y - p.y;
-      const d = Math.hypot(dx, dy);
-      const reach = p.r + SHOT_R;
-      if (d >= reach || d === 0) continue;
-      const nx = dx / d;
-      const ny = dy / d;
-      const along = shot.vx * nx + shot.vy * ny;
-      // Only a shot still heading in is turned (one already leaving it just flies on).
-      if (along >= 0) continue;
-      shot.vx -= 2 * along * nx;
-      shot.vy -= 2 * along * ny;
-      shot.x = p.x + nx * reach;
-      shot.y = p.y + ny * reach;
-      shot.glances++;
-      events.push({ type: 'bounce', x: shot.x - nx * SHOT_R, y: shot.y - ny * SHOT_R });
-      return;
-    }
+    if (how !== 'hurt') this.streak = 0;
+    if (how === 'hurt' && shot.pierce) return 'on';
+    if (how === 'hurt' && shot.burst) this.burstAt(shot, events);
+    return 'gone';
   }
 
   /** The nearest marble a shot touches. */
@@ -481,10 +490,11 @@ export class Board {
   }
 
   private stepLines(dt: number, events: BoardEvent[]): void {
-    const speed = this.timers.reverse > 0 ? -REVERSE_SPEED : this.level.speed * (this.timers.slow > 0 ? SLOW_FACTOR : 1);
+    const base = this.twists.speed(this.level.speed * (this.timers.slow > 0 ? SLOW_FACTOR : 1));
+    const speed = this.timers.reverse > 0 ? -REVERSE_SPEED : base;
     this.lines.forEach((line, li) => {
       const lineEvents: LineEvent[] = [];
-      line.step(dt, speed, lineEvents);
+      line.step(dt, speed > 0 ? speed * (this.level.tracks[li]!.pace ?? 1) : speed, lineEvents);
       for (const e of lineEvents) this.onLineEvent(line, li, e, events);
     });
   }
@@ -504,6 +514,12 @@ export class Board {
     this.addScore(points, events);
     this.best.combo = Math.max(this.best.combo, e.combo);
     events.push({ type: 'pop', x: mid.x, y: mid.y, colour: (e.marbles.find((m) => !m.stone) ?? e.marbles[0]!).colour, count: e.marbles.length, combo: e.combo, points, line: li, marbles: spots });
+    const gold = e.marbles.filter((m) => m.gold).length;
+    if (gold && this.level.mode?.kind === 'gold') {
+      this.goldPopped += gold;
+      events.push({ type: 'gold', x: mid.x, y: mid.y, count: gold, left: Math.max(0, this.level.mode.count - this.goldPopped) });
+    }
+    this.boss?.popped(li, e.marbles, e.combo, events);
     if (e.shot !== null && this.waiting.delete(e.shot)) {
       this.streak++;
       this.best.streak = Math.max(this.best.streak, this.streak);
@@ -528,11 +544,9 @@ export class Board {
 
   private addScore(points: number, events: BoardEvent[]): void {
     this.score += points;
-    if (!this.filled && this.score >= this.level.goal) {
-      this.filled = true;
-      for (const line of this.lines) line.spawning = false;
-      events.push({ type: 'filled' });
-    }
+    // Points fill the bar only when nothing else does.
+    const byPoints = !this.boss && (!this.level.mode || this.level.mode.kind === 'blitz');
+    if (byPoints && this.score >= this.level.goal) this.fill(events);
   }
 
   private useCharm(charm: CharmId, at: Pt, colour: ColourId, events: BoardEvent[]): void {
@@ -547,33 +561,24 @@ export class Board {
    */
   private arm(charm: CharmId, at: Pt, colour: ColourId, events: BoardEvent[]): void {
     if (charm === 'burst') this.burstAt(at, events);
-    else if (charm === 'inkpot') this.popColour(colour, events);
+    else if (charm === 'inkpot') this.sweep(ofColour(colour), events);
     else if (charm === 'dragonfly') this.dragonfly = true;
     else if (charm === 'geode') this.geode = true;
-    else if (charm === 'rain') this.rainAt(at.x, events);
+    else if (charm === 'rain') {
+      events.push({ type: 'rain', x: at.x });
+      this.sweep(inColumn(at.x, (li, s) => this.covered(li, s)), events);
+    }
     else if (charm === 'hedgehog') this.sendHedgehog(events);
     else this.timers[charm] = CHARM_SECONDS[charm];
     // Reverse ends a Slow, however it came (a marble, a windfall or a catch).
     if (charm === 'reverse') this.timers.slow = 0;
   }
 
-  /** The Ink Pot: every marble of one colour, on every line, pops. */
-  private popColour(colour: ColourId, events: BoardEvent[]): void {
+  /** Pops the marbles `pick` chooses on every line, each line's as one pop. */
+  private sweep(pick: Pick, events: BoardEvent[]): void {
     this.lines.forEach((line, li) => {
-      const ids = new Set(line.marbles.filter((m) => m.s >= 0 && !m.stone && m.colour === colour).map((m) => m.id));
       const lineEvents: LineEvent[] = [];
-      line.popIds(ids, 0, null, lineEvents);
-      for (const e of lineEvents) this.onLineEvent(line, li, e, events);
-    });
-  }
-
-  /** Rain: every open marble in a column down the whole board pops (tunnels keep theirs dry). */
-  private rainAt(x: number, events: BoardEvent[]): void {
-    events.push({ type: 'rain', x });
-    this.lines.forEach((line, li) => {
-      const ids = new Set(line.marbles.filter((m) => m.s >= 0 && !this.covered(li, m.s) && Math.abs(pointAt(line.path, m.s).x - x) <= RAIN_HALF).map((m) => m.id));
-      const lineEvents: LineEvent[] = [];
-      line.popIds(ids, 0, null, lineEvents);
+      line.popIds(new Set(pick(line, li).map((m) => m.id)), 0, null, lineEvents);
       for (const e of lineEvents) this.onLineEvent(line, li, e, events);
     });
   }
@@ -584,10 +589,9 @@ export class Board {
       this.hedgehog.left += HEDGEHOG_EATS;
       return;
     }
-    const li = this.lines.reduce((best, l, i) => (l.marbles.length && l.front() / l.path.length > (this.lines[best]!.marbles.length ? this.lines[best]!.front() / this.lines[best]!.path.length : -1) ? i : best), 0);
-    const line = this.lines[li]!;
-    if (!line.marbles.length) return;
-    this.hedgehog = { line: li, s: line.path.length, left: HEDGEHOG_EATS };
+    const li = hedgehogLine(this.lines);
+    if (li === null) return;
+    this.hedgehog = sendHedgehog(li, this.lines[li]!.path.length);
     events.push({ type: 'hedgehog', line: li });
   }
 
@@ -596,19 +600,14 @@ export class Board {
     const h = this.hedgehog;
     if (!h) return;
     const line = this.lines[h.line]!;
-    const front = line.marbles[line.marbles.length - 1];
-    // It scurries along empty track, and slows to nibble once it reaches the line.
-    const far = !front || h.s - front.s > D * 3;
-    h.s -= HEDGEHOG_SPEED * (far ? 3.5 : 1) * dt;
-    if (front && front.s >= 0 && front.s + D * 0.5 >= h.s) {
-      h.s = Math.min(h.s, front.s + D * 0.5);
+    const eaten = stepHedgehog(h, line, dt);
+    if (eaten) {
       const lineEvents: LineEvent[] = [];
-      line.popIds(new Set([front.id]), 0, null, lineEvents);
+      line.popIds(new Set([eaten.id]), 0, null, lineEvents);
       for (const e of lineEvents) this.onLineEvent(line, h.line, e, events);
       events.push({ type: 'munch', ...pointAt(line.path, Math.max(0, h.s)) });
-      h.left--;
     }
-    if (h.left > 0 && h.s > 0 && line.marbles.some((m) => m.s >= 0)) return;
+    if (!hedgehogDone(h, line)) return;
     this.hedgehog = null;
     events.push({ type: 'hedgehogGone' });
   }
@@ -662,23 +661,13 @@ export class Board {
 
   /** Pops every marble within Burst's reach of `at`, on every line. */
   private burstAt(at: Pt, events: BoardEvent[]): void {
-    this.lines.forEach((line) => {
-      const ids = new Set(line.marbles.filter((m) => {
-        if (m.s < 0) return false;
-        const p = pointAt(line.path, m.s);
-        return Math.hypot(p.x - at.x, p.y - at.y) <= BURST_REACH * D;
-      }).map((m) => m.id));
-      const lineEvents: LineEvent[] = [];
-      line.popIds(ids, 0, null, lineEvents);
-      const li = this.lines.indexOf(line);
-      for (const e of lineEvents) this.onLineEvent(line, li, e, events);
-    });
+    this.sweep(nearPoint(at), events);
   }
 
   private maybeDrop(at: Pt, events: BoardEvent[]): void {
     if (!this.level.charms.length) return;
     this.popsSinceDrop++;
-    if (this.popsSinceDrop < DROP_EVERY) return;
+    if (this.popsSinceDrop < (this.level.charmy ? DROP_EVERY / 2 : DROP_EVERY)) return;
     // None fits yet (only stalling charms, the line far from its well): the next pop tries again.
     const charm = pickCharm(this.level.charms, this.danger, this.lastCharm, this.rng());
     if (!charm) return;
@@ -708,7 +697,7 @@ export class Board {
   private placeCharms(dt: number): void {
     if (this.rail || !this.level.charms.length) return;
     this.charmClock += dt;
-    if (this.charmClock < CHARM_EVERY) return;
+    if (this.charmClock < (this.level.charmy ? CHARM_EVERY / 2 : CHARM_EVERY)) return;
     const open = this.lines.flatMap((line, li) => line.marbles.filter((m) => !m.charm && !m.stone && m.s > line.path.length * 0.08 && m.s < line.path.length * 0.8 && !this.covered(li, m.s)));
     const charm = pickCharm(this.level.charms, this.danger, this.lastCharm, this.rng());
     if (!open.length || !charm) return;
@@ -752,9 +741,11 @@ export class Board {
   }
 
   private checkEnd(events: BoardEvent[]): void {
-    if (this.lives <= 0) {
+    const outOfTime = this.level.mode?.kind === 'blitz' && !this.filled && (this.timeLeft ?? 1) <= 0;
+    if (this.lives <= 0 || outOfTime) {
       this.state = 'lost';
-      events.push({ type: 'lost' });
+      this.lostBy = this.lives <= 0 ? 'well' : 'time';
+      events.push({ type: 'lost', cause: this.lostBy });
     } else if (this.filled && this.lines.every((l) => l.marbles.length === 0)) {
       this.state = 'won';
       events.push({ type: 'won' });
@@ -766,43 +757,35 @@ export class Board {
     const colour = this.spawnColour(behind);
     const l = this.level;
     if (l.stones && this.rng() < l.stones) return { colour, stone: true };
+    if (this.wantsGold() && this.rng() < GOLD_SHARE) return { colour, gold: true };
     if (l.buds && this.rng() < l.buds) return { colour, bud: true };
     if (l.chameleons && this.rng() < l.chameleons) return { colour, chameleon: true };
     if (l.twine && this.rng() < l.twine) return { colour, tie: true };
     return { colour };
   }
 
+  /** Gold levels: more golden marbles are needed out (a couple spare, in case some go down the well). */
+  private wantsGold(): boolean {
+    const mode = this.level.mode;
+    if (mode?.kind !== 'gold' || this.filled) return false;
+    const out = this.lines.reduce((n, l) => n + l.marbles.filter((m) => m.gold).length, 0);
+    return this.goldPopped + out < mode.count + GOLD_SPARE;
+  }
+
+  /** The colours the burrows send now: all the level's, but a held-back last one. */
+  private spawnPalette(): readonly ColourId[] {
+    return this.heldColour ? this.palette.filter((c) => c !== this.heldColour) : this.palette;
+  }
+
   /** A colour for the next marble out of a burrow: often the same as the one ahead, never a third alike. */
   private spawnColour(behind: readonly ColourId[]): ColourId {
+    const palette = this.spawnPalette();
     const [a, b] = behind;
     if (a && a === b) {
-      const others = this.palette.filter((c) => c !== a);
+      const others = palette.filter((c) => c !== a);
       return others[Math.floor(this.rng() * others.length)] ?? a;
     }
-    if (a && this.rng() < SAME_CHANCE) return a;
-    return this.palette[Math.floor(this.rng() * this.palette.length)]!;
+    if (a && palette.includes(a) && this.rng() < SAME_CHANCE) return a;
+    return palette[Math.floor(this.rng() * palette.length)]!;
   }
-}
-
-/** The colour a Geode takes: the marble it hit, or its nearest neighbour that isn't a stone. */
-function wildColour(line: Line, index: number, fallback: ColourId): ColourId {
-  const ms = line.marbles;
-  for (let d = 0; d < ms.length; d++) {
-    for (const i of [index - d, index + d]) {
-      const m = ms[i];
-      if (m && !m.stone) return m.colour;
-    }
-  }
-  return fallback;
-}
-
-/** Whether distance `s` along a line's track lies in a gap between two of its marbles. */
-function inGap(line: Line, s: number): boolean {
-  const ms = line.marbles;
-  for (let i = 1; i < ms.length; i++) {
-    const a = ms[i - 1]!;
-    const b = ms[i]!;
-    if (s > a.s + HIT_DIST && s < b.s - HIT_DIST) return true;
-  }
-  return false;
 }

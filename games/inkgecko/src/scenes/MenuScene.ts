@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { SIGN_BOARD } from '../art/map/paintMap';
 import { BLUE, PAPER_HEX } from '../art/palette';
-import { dropBoards } from '../art/textures';
+import { dropBoards, freeBoss } from '../art/textures';
+import { BOSS_KINDS } from '../level/types';
 import { getFullError, getHost, getSound, trackOffer } from '../host';
 import { BUILT_CHAPTERS, CHAPTER_NAMES, CHAPTER_PLACES, levelById, levelOrder, loadedChapters, loadedLevels, placeOf, PLANNED_CHAPTERS } from '../level/levels';
 import { colourHex, COLOURS } from '../logic/colours';
@@ -100,6 +101,7 @@ export class MenuScene extends Phaser.Scene {
     this.uiLayer = this.add.layer();
     // The level left behind lets its painting go (~15 MB): the map needs the room.
     dropBoards(this);
+    for (const kind of BOSS_KINDS) freeBoss(this, kind);
     // Map bands are baked a little softer on touch screens, which have the tightest canvas budget.
     this.view = new MapView(this, this.layout, paint, Math.min(this.sys.game.device.input.touch ? 1.5 : 2, this.zoom * DPR));
 

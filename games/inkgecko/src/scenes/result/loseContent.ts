@@ -19,7 +19,7 @@ export const LOSE = { title: 66, close: 160, bar: 252, tip: 350 } as const;
  */
 export function loseContent(scene: Phaser.Scene, card: Phaser.GameObjects.Container, data: ResultData, top: number, titleX: number, tip: string): void {
   const progress = Phaser.Math.Clamp(data.progress ?? 0, 0, 1);
-  card.add(inkText(scene, titleX + 12, top + LOSE.title, 'Into the well…', 50, WELL_INK));
+  card.add(inkText(scene, titleX + 12, top + LOSE.title, data.lostBy === 'time' ? 'Out of time…' : 'Into the well…', 50, WELL_INK));
   card.add(inkText(scene, titleX, top + LOSE.close, closeness(progress), 26, BLUE));
   const left = -GROOVE.w / 2;
   const y = top + LOSE.bar;

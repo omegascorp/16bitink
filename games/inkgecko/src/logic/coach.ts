@@ -3,7 +3,7 @@ import type { BoardEvent } from './board';
 
 /** A hint, worded for a mouse or for a touch screen. */
 interface Hint {
-  readonly id: Teach;
+  readonly id: Teach | 'twist';
   readonly mouse: string;
   readonly touch: string;
   /** Shown once an event like this happens (immediately when absent). */
@@ -45,18 +45,23 @@ const HINTS: Readonly<Record<Teach, Hint>> = {
   bank: { id: 'bank', mouse: 'Marbles bounce off the barn walls: bank a shot round the line!', touch: 'Marbles bounce off the barn walls: bank a shot round the line!', until: is('bounce'), max: 14 },
 };
 
+/** A level's twist is told for this long as it starts, s. */
+const TWIST_FOR = 7;
+
 /**
  * First-time hints for a level's `teach` list, one at a time: each shows
  * once its moment comes and goes when the player has done the thing (or
- * after a while).
+ * after a while). A level's twists (`twists`, already worded) are told
+ * first, for a few seconds each.
  */
 export class Coach {
   private queue: Hint[];
   private shownFor = 0;
   private started = false;
 
-  constructor(teach: readonly Teach[]) {
-    this.queue = teach.map((t) => HINTS[t]);
+  constructor(teach: readonly Teach[], twists: readonly string[] = []) {
+    const told = twists.map((text): Hint => ({ id: 'twist', mouse: text, touch: text, until: () => false, max: TWIST_FOR }));
+    this.queue = [...told, ...teach.map((t) => HINTS[t])];
   }
 
   /** The hint to show now, if any. */
