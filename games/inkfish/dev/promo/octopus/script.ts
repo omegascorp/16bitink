@@ -100,8 +100,8 @@ const COUNT: readonly SoundCue[] = WRAP_ORDER.map((_, k) => cue('drop', wrapStar
 
 /**
  * Quiet under the voice: it does the talking. The hook's wet whoosh and
- * squeeze (and the shark thrashing); the muffled gallery hum is synthesized
- * in audio.ts; small bubbles in the tank and a swish as a shark passes close;
+ * squeeze (and the shark thrashing); small bubbles in the tank and a swish
+ * as a shark passes close;
  * a tense low pulse under "Bad idea…"; the lunge, a splash, the arms
  * squeezing shut, the catch gone; a comic sploosh and a pail's clank, drips,
  * the sharks' sigh of bubbles; a rising tick for each arm in the count; a
