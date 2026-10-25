@@ -86,6 +86,55 @@ Channel totals: **81,311 views** (13,045 two days earlier), 717 likes, 10 shares
 6. **InkCrab hasn't travelled yet:** octopus hearts (37.4%) and red crabs (44.9%) are the two weakest narrated shorts in the export. That's only two, and both open on a chart (numbered hearts; "50,000,000" over a map of the beach), so judge InkCrab again once a crab short with an action in frame 1 is out (#32 coconut crab).
 7. **The directed Cedric batch (#23–29) isn't better yet.** #23 cleaner wrasse is at 52.2% after a day, below the plain reads (58–65%). Its frame 1 is a scorecard ("the mirror test": dog ✗, cat ✗, wrasse ✓) above the fish at its mirror. Topic and frame 1 matter more than delivery so far.
 
+**Export of 2026-10-25** (YouTube Studio, Content, lifetime; data to 10-24, so the 10-24 posts are about a day old and #50 is hours old). The top 16 by views:
+
+| Video (queue #) | Posted | Length | Stayed to watch | Avg % viewed | Views | Likes | Comments | Subs |
+|---|---|---|---|---|---|---|---|---|
+| "How did that fit?! 😳" (#21, gameplay swallow) | 10-16 | 13s | 70.8% | **138.1%** | **34,164** | 228 | 1 | +25 |
+| "This Fish Swallowed A Shark In One Bite 🦈" (#44, narrated swallow) | 10-23 | 20s | 73.4% | 92.1% | **25,537** | 210 | 0 | **+31** |
+| "Its mouth is bigger than its body 😱" (#13, narrated swallow) | 10-16 | 20s | 71.8% | 90.3% | 14,620 | 155 | 1 | +11 |
+| "This Fish Has Heated Eyes 🔥" (#41) | 10-21 | 16s | 64.4% | 106.6% | 14,851 | 85 | 1 | +4 |
+| "This fish was supposed to be extinct 🦕" (#7) | 10-18 | 23s | 61.5% | 83.6% | 10,586 | 74 | 0 | +6 |
+| "They call it the doomsday fish 🌊" (#6) | 10-17 | 22s | 56.6% | 94.3% | 10,029 | 84 | 1 | +3 |
+| "Shark Skin Is Covered In Tiny Teeth 🦈" (#43) | 10-22 | 19s | 56.4% | 92.9% | 10,021 | 34 | 2 | +1 |
+| "This Fish Swallowed A Fish 4 Times Its Length 😳" (#45, narrated swallow), **a day old** | 10-24 | 19s | **81.8%** | 102.3% | 9,701 | 124 | 0 | +16 |
+| "This fish flew for 45 seconds 🐟✈️" (#14) | 10-17 | 20s | 64.0% | 111.2% | 8,980 | 37 | 0 | +2 |
+| "This Fish Passed A Test Your Dog Fails 🐶" (#23) | 10-17 | 19s | 59.5% | 101.5% | 8,692 | 64 | 1 | +3 |
+| "Biggest teeth in the ocean (for its size) 🦷" (#8) | 10-19 | 22s | 61.7% | 83.8% | 7,668 | 52 | 2 | +2 |
+| "To A Shark, You Look Like This 🦈" (#38) | 10-22 | 17s | 72.8% | 91.4% | 7,477 | 58 | 1 | +1 |
+| "Yes, Fish Can Drown 🌊" (#39) | 10-23 | 17s | 60.1% | 112.0% | 4,776 | 24 | 0 | 0 |
+| "To Save The Reef, Eat This Fish 🍽️" (#26) | 10-20 | 20s | 48.8% | 87.6% | 4,680 | 32 | 0 | +5 |
+| "This Fish Stands On Stilts 🐟" (#28) | 10-21 | 20s | 64.5% | 81.7% | 4,368 | 45 | 2 | +6 |
+| "This Tiny Slug Eats The Man O' War 🐉" (#52), **a day old** | 10-24 | 20s | 57.4% | 74.9% | 1,500 | 17 | 0 | +1 |
+
+The bottom: "How Did That Fit?! Part 2" (#48, a day old) 61.1% and 1,726 views; mako jump (#46) 55.4% / 1,255; hermit crab queue (#30) 31.7% / 1,315; sharks older than trees (#29) 38.7% / 1,108; three hearts (#33) 38.9% / 1,480; Freud's eels (#40) 28.7% / 178; Titan (#49, a day old) **27.1%** / 274; black plants (#50, hours old) 30% / 23; blackdragon (#15) 57% but 130 views (stuck since posting).
+
+Channel totals: **230,520 views** (81,311 a week earlier), 1,861 likes, 19 shares, 30 comments (1 per ~7,700 views; target 1 per 1,500), +176 / −33 subscribers. 83,696 unique viewers, 62,406 new against 103 returning.
+
+Median views by format (shorts posted by 10-24):
+
+| Format | Shorts | Median stayed to watch | Median views | Subs |
+|---|---|---|---|---|
+| Narrated swallow (#13, 44, 45) | 3 | **73.4%** | 14,620 | **+58** |
+| Gameplay swallow (#21, 48) | 2 | 65.9% | 17,945 | +25 |
+| A body part that's a weapon or a superpower (#8, 41, 43) | 3 | 61.7% | 10,021 | +7 |
+| An action you can see (#14, 38, 46, 47) | 4 | 60.0% | 4,943 | +3 |
+| Myth-buster (#3, 10, 37, 39, 42) | 5 | 60.1% | 2,420 | +5 |
+| Strange deep-sea animal (#2, 4, 5, 6, 7, 11, 15, 28) | 8 | 56.4% | 2,341 | +26 |
+| Known reference (#9, 12, 23–27, 29, 40, 52) | 10 | 54.3% | 2,074 | +12 |
+| InkCrab (#30–36) | 7 | 50.7% | 1,445 | +9 |
+| InkMine (#49, 50) | 2 | 28.6% | 148 | 0 |
+
+**What changed:**
+
+1. **The narrated swallow is 3 for 3.** #13, #44 and #45 are the only narrated shorts above 70% stayed to watch, and #45 (81.8%) is the first short past Deven Seenath's 81.1% line. #44 reached 25.5k in two days and brought the most subscribers of any short (+31). Both new ones have a number or a named victim in the title ("A Shark In One Bite", "4 Times Its Length").
+2. **The channel now pushes shorts further at the same stayed to watch.** Posted by 10-22, shorts at 60–70% have a median of ~6,000 views and 70%+ a median of ~14,600; below 60% it's still ~1,700. A week ago 60–65% stopped at 2–3k. The older shorts (#2–12) didn't get the later lift: they stay at 1.7–2.9k.
+3. **A body part that's a weapon is the second-best format.** Heated eyes (14.9k), shark skin (10.0k) and fangtooth's teeth (7.7k) all got past 7k at 56–64%. All three show the body part big in frame 1.
+4. **The gameplay sequel didn't repeat the original (yet).** #48 "Part 2" is at 61.1% after a day, against #21's 70.8%. A "Part 2" title leans on a first part most viewers never saw. #59 "Part 3" isn't posted yet; judge the gameplay swallow again after it.
+5. **Space doesn't travel on this channel.** Titan (27.1%) and black plants (30%) are the two lowest stayed-to-watch numbers on the channel, below even Freud's eels (28.7%). They're young, but nothing else has opened below 31%. That answers the InkMine topic test: no more InkMine narrated shorts on this channel; post #51 only to finish the test.
+6. **InkCrab is still weak** (median 50.7%), except the raccoon (64.2%). History and people (Freud) fail too. The channel is ocean predators and what they eat.
+7. **Comments are still the gap:** 30 in 230k views. #45's 81.8% brought 0 comments. The rage-bait tests (#50, #54) can't be judged yet (#50 got 23 views).
+
 ## What works so far
 
 1. **A hook the viewer already knows wins the first second.** "There's always a bigger fish" is a known meme, so it had the best stayed-to-watch (48%) and the most engaged views. Stayed-to-watch is the number that decides whether YouTube shows a short to more people.
@@ -102,6 +151,9 @@ Channel totals: **81,311 views** (13,045 two days earlier), 717 likes, 10 shares
 12. **Frame 1 is one giant mouth mid-gulp: our best opening** (export of 2026-10-18). Both breakouts open on it: the viperfish's jaws round a fangtooth its own size (#21) and the gulper's ballooned mouth (#13), each alone on dark water. It's the same picture the most-viewed fish-eat-fish thumbnails use (see "Thumbnails" in `docs/longform-playbook.md`). Next best is an action the viewer can see (the parrotfish pooping sand next to "you", 64.6%; the flying fish in the air with a timer, 59.9%).
 13. **A frame 1 that looks like a chart gets swiped.** Labels, numbered parts, scorecards, timelines and big numbers over a map make a short look like a lesson: octopus hearts 37.4%, Greenland shark's timeline 40.0%, red crabs' "50,000,000" 44.9%, barreleye's labelled head 45.5%, the wrasse's mirror-test scorecard 52.2%. Put the number or the label in the narration and the second beat, not in the opening frame.
 14. **A gameplay short can be the best short.** #21 (13s, game footage, meme captions, no voice) got 31.8k views, +25 subscribers and 138% viewed. It sells the game too: "InkFish · 16bit.ink" is in every frame. It's still one short, so treat "gameplay with a giant swallow" as the format to repeat, not "gameplay" in general, until #16–20 and #22 are out.
+15. **The narrated swallow is our winning format** (export of 2026-10-25). All three narrated swallows (#13, #44, #45) opened above 70%, and #45 reached 81.8%. Its title names the size of the meal ("4 Times Its Length", "A Shark In One Bite"): a specific claim the first frame proves.
+16. **The second format is a body part that's a weapon, shown big in frame 1** (heated eyes, shark skin's teeth, fangtooth's teeth: 7.7–14.9k at 56–64%).
+17. **The channel's topic is ocean predators and what they eat.** Space (InkMine, 27–30%), people and history (Freud, 28.7%) and most crab facts (median 50.7%) open far below the ocean shorts.
 
 ## Advice from Shorts creators (added 2026-10-15, third video 2026-10-16, fourth 2026-10-22)
 
@@ -218,6 +270,7 @@ Four YouTube videos the user shared. The creators make money from Shorts coachin
 | InkMine batch (queue 49–51), "life on other worlds" built on real science, made with the new InkMine pipeline: `inkmine-titan-flight.mp4` (21s, "on Titan you could FLY by flapping your arms": air ~4× as thick, gravity ~⅐, −180 °C, lakes of liquid natural gas), `inkmine-black-plants.mp4` (22.5s, NASA's 2007 prediction that plants round red dwarfs could look black; carries the **rage-bait** line "Earth's plants are doing it WRONG"), `inkmine-heavy-planet.mp4` (24s, Galileo's 1638 square–cube law: at 3× gravity a deer might be short, wide and six-legged). Each script plans a new mood every sentence (emotional rollercoaster) | Does a new topic (space and alien life, InkMine's world) travel on this channel, which so far is ocean animals? Judge on stayed to watch against the ocean shorts' narrated average and the 70% line. If it's near or above, InkMine gets regular slots; if it's clearly below, keep InkMine to gameplay or give it its own channel. Also: #50's comments per view against #49 and #51 (rage bait), and #51 as the 24s length test | Made 2026-10-18 (`games/inkmine/dev/promo/titan/`, `plants/`, `heavy/`) |
 | Idea-bank batch (queue 52–54), topics with proof from other channels: `inkfish-blue-dragon.mp4` (19.5s, "this tiny slug EATS the man o' war… and steals its stingers"), `inkcrab-man-o-war.mp4` (21s, InkCrab, "this is NOT a jellyfish", the hermit crab beside a stranded man o' war), `inkfish-axolotl.mp4` (22.5s, "this animal can grow back its own LEGS", with the Minecraft aside and the **rage-bait** line "It's cuter than any puppy"). Each script plans a new mood every sentence | Do idea-bank topics that already went viral elsewhere (4.1M, 9.8M, 9.7M) beat our own picks on stayed to watch? #52 and #53 are each other's Related video: does the pair raise views per viewer? #53 is the InkCrab retest with an action in frame 1 (rule 6). #54 is the second rage-bait test: compare its comments per view with #50 and with the other narrated shorts | Made 2026-10-18 (`games/inkfish/dev/promo/dragon/`, `axolotl/`, `games/inkcrab/dev/promo/manowar/`) |
 | Repeat-the-winner batch (queue 55–61), planned 2026-10-22 from the fourth creator video ("what you make matters more than how well you make it"): five shorts repeat the giant swallow in frame 1, two test a new game. Narrated by Mark: `inkfish-kayak-whale.mp4` (18s, "this whale swallowed a KAYAKER", Chile 2025), `inkfish-kraken.mp4` (18s, sperm whale vs giant squid, "the Kraken is REAL"), `inkfish-frogfish.mp4` (16.5s, "eats faster than you can BLINK"), `inkfish-tiger-shark-birds.mp4` (19.5s, "these sharks eat birds that fall out of the SKY", Drymon et al. 2019). Gameplay: `inkfish-how-did-that-fit-3.mp4` (12s, the viperfish swallows an angler, lure last, "there is a light, anglerfish"). InkGecko gameplay (the first InkGecko shorts): `inkgecko-chain-reaction.mp4` (12s, one shot sets off six combos, "wait for it…" → "oddly satisfying") and `inkgecko-hedgehog-save.mp4` (11.2s, the line half a marble from the hole, "it's so over…" → "we're so back") | Does repeating the winning picture (one giant mouth mid-swallow, no labels in frame 1) give 70%+ stayed to watch on most of #55–59, not just one? Compare with #13 and #21 and with #44–48. InkGecko: does a marble shooter travel on an ocean-animal channel? Judge #60–61 on stayed to watch against the gameplay shorts (#21, #48) | Made 2026-10-22 (`games/inkfish/dev/promo/kayak/`, `kraken/`, `frogfish/`, `tigershark/`, `lure/`; `games/inkgecko/dev/promo/chain/`, `hedgehog/`) |
+| Export-driven batch (queue 62–69), planned 2026-10-25 from that day's export ("What changed" under it): five shorts open on a giant mouth mid-gulp or mid-clash, narrated by Mark: `inkfish-shark-alpha.mp4` (19.5s, "something ATE a great white shark", Shark Alpha 2003, a mystery that invites "megalodon" comments without us saying it), `inkfish-octopus-sharks.mp4` (18s, the Seattle Aquarium's octopuses ate the tank's dogfish sharks), `inkfish-blue-whale-gulp.mp4` (19.5s, one gulp is more than its own body weight in water), `inkfish-leatherback-mouth.mp4` (18s, a throat lined with spikes that all point down), `inkfish-fringehead.mp4` (18s, mouth-to-mouth fights, with the arguable line "Honestly? We should try that."). Tests: `inkfish-cookiecutter-shark.mp4` (18s, bit holes in US Navy submarines) and `inkfish-sheepshead-teeth.mp4` (19.5s, human teeth, with "Better teeth than most people.") test the body-part-as-a-weapon format; `inksnake-sea-krait.mp4` (16.5s, the first InkSnake short, built from the game's own reef art in the new `games/inksnake/dev/promo/`) tests InkSnake on an ocean topic | Does the narrated swallow keep opening above 70% when the swallower isn't a fish (whale, octopus, turtle) or the prey isn't shown being swallowed (fringehead)? Does a body-part close-up (#67, #68) repeat the 7–15k of heated eyes and shark skin? Does InkSnake travel where InkMine didn't, now that the topic is an ocean animal? Comments per view on #62 (a mystery), #66 and #68 (cheeky lines) against the batch | Made 2026-10-25 (`games/inkfish/dev/promo/alpha/`, `octopus/`, `bluewhale/`, `leatherback/`, `fringehead/`, `cookiecutter/`, `sheepshead/`; `games/inksnake/dev/promo/krait/`) |
 | `inkfish-viral-never-ends.mp4`: same footage as the shark short, hook "the food chain never ends" | Does the hook text alone move stayed-to-watch? | Ready, not yet posted |
 | `inkfish-loop.mp4` vs `inkfish-loop-captions.mp4` | Do captions help? | Ready, not yet posted |
 
@@ -236,6 +289,8 @@ Public so far: #2–6, 9–15, 21, 23, 33, 34. Not yet: #1, 7, 8, 16–20, 22, 2
 **#52–54:** post #52 and #53 on the same day, 2–3 hours apart (the slug first), so each one's Related video is already live. Post #54 on another day.
 
 **#55–61:** post #55 and #56 on the same day, 2–3 hours apart (each one's Related video is the other). Spread the five swallow shorts (#55–59) between the backlog's tier-1 shorts, and post #60 and #61 on the same day, 2–3 hours apart, so they're judged together as the InkGecko test.
+
+**#62–69 (from the 2026-10-25 export):** post the four unposted swallows (#55–58) and #62–66 first, alternating with the tests. Post #67 and #68 on one day, 2–3 hours apart (the body-part test), and #69 close to InkSnake's release on 2026-11-01, when 16bit.ink/snake is live. Hold #51 (InkMine) to the end: space didn't travel.
 
 Post tier 1 first: it tests rules 12 and 14 directly. Five gameplay shorts in tier 1–2 will also show whether #21's breakout came from the gameplay format or from the swallow.
 
@@ -329,8 +384,10 @@ Don't pick a "similar" voice, another Mark, or a voice from a search. If a take 
 |---|---|---|---|---|
 | Plain read (clownfish script, 2026-10-16) | 118 Hz | 108 Hz | 1,318 Hz | −24.6 LUFS |
 | Directed takes (#37–43, 14 takes, 2026-10-16) | 133–151 Hz | 109–170 Hz | 1,350–1,570 Hz | −22.6 to −24.6 LUFS |
+| Published directed shorts (#44–58, after atempo, 2026-10-25) | 139–172 Hz | 133–156 Hz | 1,441–1,697 Hz | |
+| Takes for #62–69 (32 takes, 2026-10-25) | 132–174 Hz | 118–147 Hz | 1,298–1,631 Hz | −21.9 to −24.7 LUFS |
 
-A take that comes back much lower, narrower or darker than this (as Cedric did, below) has drifted: don't use it, and don't fix it in the mix.
+A take that comes back much lower, narrower or darker than this (as Cedric did, below) has drifted: don't use it, and don't fix it in the mix. Higher and brighter is fine: scripts that open on `[excited]` or `[nervous]` read at 155–174 Hz (frogfish #57 is 172 Hz), and that's energy, not drift.
 
 Mark reads a little slower than Cedric did. In #37–43, five of seven scripts fit their loop at 1.07–1.15× speed, but eels and swordfish needed 1.20× and 1.24×. Write Mark's scripts about 10% shorter than Cedric's, or pick the next longer loop. His takes are also louder (peaks −3 to −6 dB), so `VOICE_GAIN` sits below 1 (0.65–0.95) in `audio.ts`.
 

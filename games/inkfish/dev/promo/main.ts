@@ -93,6 +93,14 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * steals its stingers).
  * frogfish (it eats faster than you can blink) too: frame 1 is the gulp.
  * kraken (the real Kraken: a sperm whale with a giant squid in its jaws) too.
+ * The batch of 2026-10-25, from the export of that day (the narrated swallow
+ * and the giant mouth won): alpha (something ate a great white shark: Shark
+ * Alpha, 2003), octopus (the giant octopuses that ate the aquarium's sharks),
+ * bluewhale (a blue whale's mouthful is bigger than its body), leatherback
+ * (the leatherback's spiked throat), fringehead (sarcastic fringeheads fight
+ * mouth to mouth), cookiecutter (the tiny shark that bit submarines),
+ * sheepshead (the fish with human teeth).
+ * They're loaded lazily (import() on demand).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -332,6 +340,41 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   kayak: async () => {
     await loadCaptionFont();
     return withCredit(createKayak(ctx), ctx, PAPER_ON_DARK);
+  },
+  alpha: async () => {
+    await loadCaptionFont();
+    const { createAlpha } = await import('./alpha/render');
+    return withCredit(createAlpha(ctx), ctx, PAPER_ON_DARK);
+  },
+  octopus: async () => {
+    await loadCaptionFont();
+    const { createOctopus } = await import('./octopus/render');
+    return withCredit(createOctopus(ctx), ctx, PAPER_ON_DARK);
+  },
+  bluewhale: async () => {
+    await loadCaptionFont();
+    const { createBlueWhale } = await import('./bluewhale/render');
+    return withCredit(createBlueWhale(ctx), ctx, PAPER_ON_DARK);
+  },
+  leatherback: async () => {
+    await loadCaptionFont();
+    const { createLeatherback } = await import('./leatherback/render');
+    return withCredit(createLeatherback(ctx), ctx, PAPER_ON_DARK);
+  },
+  fringehead: async () => {
+    await loadCaptionFont();
+    const { createFringehead } = await import('./fringehead/render');
+    return withCredit(createFringehead(ctx), ctx, PAPER_ON_DARK);
+  },
+  cookiecutter: async () => {
+    await loadCaptionFont();
+    const { createCookiecutter } = await import('./cookiecutter/render');
+    return withCredit(createCookiecutter(ctx), ctx, PAPER_ON_DARK);
+  },
+  sheepshead: async () => {
+    await loadCaptionFont();
+    const { createSheepshead } = await import('./sheepshead/render');
+    return withCredit(createSheepshead(ctx), ctx, PAPER_ON_DARK);
   },
 };
 
