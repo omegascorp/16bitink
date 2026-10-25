@@ -22,6 +22,15 @@ const BOIL_FPS = 7;
 /** The tongue flicks out this often, for this long, s. */
 const TONGUE_EVERY = 1.7;
 const TONGUE_FOR = 0.32;
+/**
+ * The head is turned along the body, from the point this far back along it
+ * (board px at SNAKE_W) to the head: so the back of the head always lies on
+ * the neck, and a sharp turn swings the head round as the snake moves
+ * instead of snapping it off the neck. LEAD of the rest of the way to the
+ * actual heading, so the snout still leads into a turn.
+ */
+const NECK_BACK = 28;
+const LEAD = 0.15;
 
 /**
  * The player's snake: the body as one textured ribbon (a Mesh2D) laid along
@@ -72,9 +81,10 @@ export class SnakeView {
     this.layBody();
     const k = s.width / SNAKE_W;
     const h = s.head;
+    const face = this.headAngle(k);
     this.gulp = Math.max(0, this.gulp - dt);
     const pose = s.mode === 'swallow' || this.gulp > 0 ? 'open' : s.striking ? 'strike' : 'shut';
-    this.head.setTexture(TEX.head(s.art, pose, f)).setPosition(h.x, h.y).setRotation(s.heading).setScale(k / this.art.head.res);
+    this.head.setTexture(TEX.head(s.art, pose, f)).setPosition(h.x, h.y).setRotation(face).setScale(k / this.art.head.res);
     // The tongue flicks now and then, and while it tastes the air on the hunt.
     this.tongueClock -= dt;
     if (this.tongueClock < -TONGUE_FOR) this.tongueClock = TONGUE_EVERY * (0.7 + Math.random() * 0.6);
@@ -82,8 +92,8 @@ export class SnakeView {
     const reach = this.art.snout * k;
     const wag = Math.sin(time / 28) * 0.18;
     this.tongue.setVisible(out).setTexture(TEX.tongue(s.art, f))
-      .setPosition(h.x + Math.cos(s.heading) * reach, h.y + Math.sin(s.heading) * reach)
-      .setRotation(s.heading + wag).setScale(k / this.art.tongue.res);
+      .setPosition(h.x + Math.cos(face) * reach, h.y + Math.sin(face) * reach)
+      .setRotation(face + wag).setScale(k / this.art.tongue.res);
     // Blinking while it's safe after a hit; faint while buried or under water.
     const blink = s.safe > 0 && Math.floor(time / 90) % 2 === 0 ? 0.35 : 1;
     const veil = s.cloak === 'buried' ? 0.22 : s.cloak === 'submerged' ? 0.32 : 1;
@@ -98,13 +108,27 @@ export class SnakeView {
     if (this.body.texture.key !== want) this.body.setTexture(want);
     if (s.cloak === 'dead') {
       this.head.setTexture(TEX.head(s.art, 'open', f)).setScale(k / this.art.head.res, -k / this.art.head.res);
-      this.tongue.setVisible(true).setRotation(s.heading + 0.4);
+      this.tongue.setVisible(true).setRotation(face + 0.4);
     }
     const lift = s.alt;
     if (lift > 0) {
       this.head.setPosition(h.x + LIFT.x * lift, h.y + LIFT.y * lift).setScale((k * (1 + lift * 0.15)) / this.art.head.res);
       this.tongue.setVisible(false);
     }
+  }
+
+  /** Which way the head sprite faces: along the neck (see NECK_BACK), leaning a little toward the heading. */
+  private headAngle(k: number): number {
+    const s = this.snake;
+    const h = s.head;
+    const back = s.trail.at(NECK_BACK * k);
+    const dx = h.x - back.x;
+    const dy = h.y - back.y;
+    // Too short a body (or none yet) to tell: the heading.
+    if (Math.hypot(dx, dy) < NECK_BACK * k * 0.5) return s.heading;
+    const along = Math.atan2(dy, dx);
+    const off = Math.atan2(Math.sin(s.heading - along), Math.cos(s.heading - along));
+    return along + off * LEAD;
   }
 
   /** Builds the ribbon's quads along the trail, and the shadow's under it. */
