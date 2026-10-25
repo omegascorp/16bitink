@@ -104,10 +104,22 @@ export function isRinged(e: object): e is Ringed {
 }
 
 /** A boss: an enemy with hit points, driven off when they run out. */
+/** What to do right now, worded for mouse and keys, and for touch. */
+export interface Prompt {
+  readonly mouse: string;
+  readonly touch: string;
+}
+
 export interface Boss extends Enemy {
   hp: number;
   readonly maxHp: number;
   readonly beaten: boolean;
+  /**
+   * What the player should do this moment of the fight ("It's sniffing:
+   * strike now!"), shown over the board ahead of first-time hints; null
+   * when there's nothing to say. Optional.
+   */
+  prompt?(snake: Snake): Prompt | null;
 }
 
 /** How a kind of enemy is told: its name, a few words for a level's card, a hint as it arrives, and a tip after a loss. */

@@ -88,6 +88,15 @@ function hawk(w: World): SnakeInput | null {
   return null;
 }
 
+/** Whether the body lies between a hunter and the head: it's pressed against the body well back from the neck. */
+function shielded(w: World, e: Pt): boolean {
+  const s = w.snake;
+  const pts = s.trail.pts;
+  const end = Math.min(s.trail.count, pts.length);
+  for (let i = s.neck * 2; i < end; i += 2) if (dist(pts[i]!, e) < s.width + 14) return dist(e, s.head) > 45;
+  return false;
+}
+
 function coyote(w: World): SnakeInput | null {
   const s = w.snake;
   const h = s.head;
@@ -99,8 +108,8 @@ function coyote(w: World): SnakeInput | null {
   const safe = !kingsnakeNear(w, 230);
   // Down in the sand while one still hunts; once they've lost us (back to prowling, bored a while), up and on.
   if (w.ability!.active && hunter && safe) return BURY;
-  // Sinking takes a moment it mustn't close in on.
-  if (hunter && dist(hunter, h) > 120 && canBury(w) && safe) return BURY;
+  // Sinking takes a moment it mustn't close in on: well away, or held off behind the body (it has to go round).
+  if (hunter && (dist(hunter, h) > 120 || shielded(w, hunter)) && canBury(w) && safe) return BURY;
   const close = by(near.filter((e) => dist(e, h) < 170));
   if (!close) return null;
   // Face to face with the strike ready: at its nose. Otherwise outrun it (on sand it's the slower).

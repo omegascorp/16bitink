@@ -9,7 +9,7 @@ import { STAGGER_TIME } from './preyMoves';
 import { createRng, type Rng } from './rng';
 import { Snake, type SnakeInput } from './snake';
 import { BIG_MEAL, venomMaxOf } from './species';
-import { dist, pt, type Pt, type Shape, wrapAngle } from './vec';
+import { dist, pt, pushOut, type Pt, type Shape, wrapAngle } from './vec';
 import { inZone } from './zones';
 
 export const LIVES = 3;
@@ -486,7 +486,8 @@ export class World {
    * The snake's body is solid to what walks or swims at its level: prey and
    * ground hunters slide along it rather than through it (so prey inside a
    * loop stays inside). Not to eggs, to anything in the air, or to hunters
-   * that pass over it (see Enemy.overBody).
+   * that pass over it (see Enemy.overBody). Ground hunters are kept out of
+   * solid things too (prey keep themselves out, see preyMoves.keepIn).
    */
   private keepOffBody(): void {
     const snake = this.snake;
@@ -504,10 +505,9 @@ export class World {
     }
     for (const e of [...this.enemies, ...(this.boss ? [this.boss] : [])]) {
       if (e.away || e.overBody || e.alt > 0.05) continue;
-      const out = pushOffBody(snake, e, ENEMY_GIRTH);
-      if (!out) continue;
-      e.x = out.p.x;
-      e.y = out.p.y;
+      // The body first: squeezed between it and a rock, a hunter ends up against the body, never in the rock.
+      slide(e, pushOffBody(snake, e, ENEMY_GIRTH));
+      for (const sh of this.solids) slide(e, pushOut(e, ENEMY_GIRTH, sh));
     }
   }
 
@@ -528,4 +528,19 @@ function seedOf(id: string): number {
   let h = 7;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
   return h;
+}
+
+/**
+ * Puts a hunter where a push left it, turning the way it was pressing into
+ * a slide along the surface (the side its heading favours), so one running
+ * at a rock or a coil goes round it instead of stalling there.
+ */
+function slide(e: Enemy, out: { readonly p: Pt; readonly n: Pt } | null): void {
+  if (!out) return;
+  const depth = dist(out.p, e);
+  const ax = -out.n.y;
+  const ay = out.n.x;
+  const side = Math.cos(e.heading) * ax + Math.sin(e.heading) * ay >= 0 ? 1 : -1;
+  e.x = out.p.x + ax * side * depth;
+  e.y = out.p.y + ay * side * depth;
 }

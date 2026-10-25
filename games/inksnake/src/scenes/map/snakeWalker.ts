@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { snakeJobs } from '../../art/textures';
+import { releaseScratch } from '../../art/pen';
 import { getSound } from '../../host';
 import { Snake } from '../../logic/snake';
 import type { SnakeId } from '../../logic/species';
@@ -36,6 +38,9 @@ export class SnakeWalker {
     // Laid along the trail up to where it waits.
     for (let d = tail; d <= this.s; d += LAY_STEP) this.snake.trail.moveHead(pathPoint(layout, d));
     this.snake.heading = this.headingAt(this.s);
+    // Only the free chapter's snake is painted at boot: the one for this chapter may not be yet.
+    for (const job of snakeJobs(scene, id)) job();
+    releaseScratch();
     this.view = new SnakeView(scene, this.snake, layer);
   }
 

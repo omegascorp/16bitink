@@ -1,4 +1,5 @@
-import { edgePoint, type Boss, type EnemyCtx } from '../enemyTypes';
+import { edgePoint, type Boss, type EnemyCtx, type Prompt } from '../enemyTypes';
+import type { Snake } from '../snake';
 import { EnemyBase } from '../enemies/base';
 import { clamp, dist, pt, type Pt } from '../vec';
 
@@ -17,6 +18,15 @@ export const FOX_RING = 44;
 const SNIFF_TIME = 2.2;
 const STRIKE_REACH = 46;
 const LEAD = 0.25;
+
+/** What to do at each moment of the fight. */
+const PROMPTS = {
+  playDead: { mouse: 'The fox is leaping! Hold E to play dead', touch: 'The fox is leaping! Hold Play dead' },
+  still: { mouse: 'Keep still… let it land', touch: 'Keep still… let it land' },
+  strike: { mouse: 'It\u2019s sniffing you: strike now! (click or Space)', touch: 'It\u2019s sniffing you: tap to strike now!' },
+  missed: { mouse: 'It only stops to sniff a snake playing dead', touch: 'It only stops to sniff a snake playing dead' },
+  ready: { mouse: 'When the fox crouches, hold E to play dead', touch: 'When the fox crouches, hold Play dead' },
+} as const satisfies Record<string, Prompt>;
 
 /**
  * The Red Fox, chapter 2's boss: it stalks the hognose and leaps high, the
@@ -43,6 +53,9 @@ export class Fox extends EnemyBase<FoxMode> implements Boss {
     void w;
   }
 
+  /** It has come down once on a snake that wasn't playing dead: the reminder shows while it stalks. */
+  private missed = false;
+
   get away(): boolean {
     return this.m === 'gone';
   }
@@ -62,6 +75,24 @@ export class Fox extends EnemyBase<FoxMode> implements Boss {
   /** How far through the leap's tell it is, 0..1 (the ring tightens). */
   get aiming(): number {
     return this.m === 'crouch' ? Math.min(1, this.age / CROUCH_TIME) : this.m === 'leap' ? 1 : 0;
+  }
+
+  /** The fight told step by step: play dead as it leaps, keep still as it lands, strike while it sniffs. */
+  prompt(snake: Snake): Prompt | null {
+    const dead = snake.cloak === 'dead';
+    switch (this.m) {
+      case 'crouch':
+      case 'leap':
+        return dead ? PROMPTS.still : PROMPTS.playDead;
+      case 'sniff':
+        return PROMPTS.strike;
+      case 'shake':
+        return PROMPTS.missed;
+      case 'stalk':
+        return this.missed && !dead ? PROMPTS.ready : null;
+      default:
+        return null;
+    }
   }
 
   step(ctx: EnemyCtx, dt: number): void {
@@ -110,8 +141,11 @@ export class Fox extends EnemyBase<FoxMode> implements Boss {
           // Not prey, is it? Nose down for a sniff.
           this.go('sniff', SNIFF_TIME);
           ctx.emit({ type: 'say', text: 'sniff… sniff…', x: this.x, y: this.y - 34 });
-        } else if (near && ctx.hurt('pounced', this.here())) this.retreatFrom(ctx, s.head, 1.6);
-        else this.go('shake', 0.5);
+        } else {
+          this.missed = true;
+          if (near && ctx.hurt('pounced', this.here())) this.retreatFrom(ctx, s.head, 1.6);
+          else this.go('shake', 0.8);
+        }
         return;
       }
       case 'sniff':

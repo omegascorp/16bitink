@@ -35,6 +35,8 @@ const BITE_REST = 1.6;
 const FLEE_TIME = 3.2;
 /** Fooled by a snake playing dead (or gone to ground) while it chased: it loses interest this long, s. */
 const BORED_TIME = 5;
+/** A chase that hasn't caught the head in this long tires it (the body kept it off): it gives up a while, s. */
+const TIRE_TIME = 7;
 
 /**
  * A chaser: it prowls the board, and runs at the snake's head once it sees
@@ -47,6 +49,8 @@ export class Chaser extends EnemyBase<ChaserMode> {
   private frozenFor = 0;
   /** Seconds it still has no interest in the snake. */
   private bored = 0;
+  /** Seconds it has been chasing without a bite. */
+  private chasing = 0;
 
   constructor(id: number, kind: string, arriveIn: number, readonly spec: ChaserSpec) {
     super(id, kind, pt(-60, -60), 'away');
@@ -146,21 +150,24 @@ export class Chaser extends EnemyBase<ChaserMode> {
       return;
     }
     if (this.sees(ctx)) {
-      if (this.m !== 'chase') ctx.emit({ type: 'say', text: '!', x: this.x, y: this.y - 24, danger: true });
+      if (this.m !== 'chase') {
+        ctx.emit({ type: 'say', text: '!', x: this.x, y: this.y - 24, danger: true });
+        this.chasing = 0;
+      }
       this.m = 'chase';
+      this.chasing += dt;
+      if (this.chasing > TIRE_TIME) {
+        this.giveUp(ctx, '…pant');
+        return;
+      }
       this.go2(ctx, s.head, this.spec.speed, dt);
       if (dist(s.head, this) < this.spec.reach + s.width / 2) this.bite(ctx);
       return;
     }
     if (this.m === 'chase') {
       // It lost the snake mid-chase: a cloak it can't see through makes it lose interest a while, and wander off.
-      if (s.cloak !== 'none') {
-        this.bored = BORED_TIME;
-        ctx.emit({ type: 'say', text: '…huh?', x: this.x, y: this.y - 22 });
-        const a = Math.atan2(this.y - s.head.y, this.x - s.head.x);
-        this.target = pt(clamp(this.x + Math.cos(a) * 220, 30, ctx.w - 30), clamp(this.y + Math.sin(a) * 220, 30, ctx.h - 30));
-      }
-      this.go('prowl', 2.5);
+      if (s.cloak !== 'none') this.giveUp(ctx, '…huh?');
+      else this.go('prowl', 2.5);
     }
     if ((done || dist(this, this.target) < 6) && this.bored <= 0) {
       this.target = this.wanderSpot(ctx);
@@ -169,10 +176,22 @@ export class Chaser extends EnemyBase<ChaserMode> {
     this.go2(ctx, this.target, this.spec.prowl, dt);
   }
 
+  /** It loses interest a while and wanders off, away from the snake. */
+  private giveUp(ctx: EnemyCtx, word: string): void {
+    const h = ctx.snake.head;
+    this.bored = BORED_TIME;
+    this.chasing = 0;
+    ctx.emit({ type: 'say', text: word, x: this.x, y: this.y - 22 });
+    const a = Math.atan2(this.y - h.y, this.x - h.x);
+    this.target = pt(clamp(this.x + Math.cos(a) * 220, 30, ctx.w - 30), clamp(this.y + Math.sin(a) * 220, 30, ctx.h - 30));
+    this.go('prowl', 2.5);
+  }
+
   private bite(ctx: EnemyCtx): void {
     const b = this.spec.bite;
     if (b.kind === 'hurt') ctx.hurt(b.cause, this.here());
     else ctx.nip(b.amount, this.here());
+    this.chasing = 0;
     this.go('bite', BITE_REST);
     // It backs off a little after a bite.
     const a = Math.atan2(this.y - ctx.snake.head.y, this.x - ctx.snake.head.x);

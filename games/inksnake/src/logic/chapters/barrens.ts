@@ -84,7 +84,8 @@ export const BARRENS_RULES: ChapterRules = {
       after: 'arrive', max: 14,
     },
     toads: { mouse: 'Toads puff up to look too big: a hognose eats them anyway', touch: 'Toads puff up to look too big: a hognose eats them anyway', until: 'eat', max: 10 },
-    foxplan: { mouse: 'Play dead as the fox leaps, then strike while it sniffs', touch: 'Play dead as the fox leaps, then tap to strike while it sniffs', after: 'crouch', until: 'bossHit', max: 18 },
+    // Before its first leap; from then on the fox says what to do at each moment (Fox.prompt).
+    foxplan: { mouse: 'Foxes pounce on mice from a leap. Fool this one: play dead', touch: 'Foxes pounce on mice from a leap. Fool this one: play dead', until: 'crouch', max: 10 },
   },
   hurts: {
     bitten: { title: 'Bitten…', word: 'Bitten!' },

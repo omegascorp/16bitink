@@ -28,6 +28,8 @@ export class HintNote {
 
   set(hint: string | null): void {
     if (hint === this.shown) return;
+    // One note straight after another (a fight's prompts follow fast): new words, no fade out and in.
+    const swap = this.shown !== null && hint !== null && this.root.alpha > 0.5;
     this.shown = hint;
     this.scene.tweens.killTweensOf(this.root);
     if (!hint) {
@@ -39,8 +41,8 @@ export class HintNote {
     this.card?.destroy();
     this.card = paperCard(this.scene, 0, 0, w, NOTE_H, 9, { radius: 4, rough: 1.2, shadow: 0.55, tapes: ['top'], tapeLen: 48, tint: 'sage' });
     this.root.addAt(this.card, 0);
-    this.root.setAlpha(0);
-    this.scene.tweens.add({ targets: this.root, alpha: 1, duration: 260 });
+    if (!swap) this.root.setAlpha(0);
+    this.scene.tweens.add({ targets: this.root, alpha: 1, duration: swap ? 120 : 260 });
     this.scene.tweens.add({ targets: this.card, angle: { from: -2.5, to: -0.6 }, duration: 320, ease: 'Back.Out' });
   }
 }
