@@ -25,6 +25,14 @@ export const NO_INPUT: SnakeInput = { toward: null, face: null, strike: false };
  */
 export type Cloak = 'none' | 'dead' | 'buried' | 'submerged' | 'air';
 
+/**
+ * Ground the head must keep to, beyond the board and solid things (a
+ * flying snake up in the canopy can't slither off its tree): given where
+ * a head of radius r would go, where it may go instead and the surface's
+ * normal, or null if it's fine there.
+ */
+export type Fence = (p: Pt, r: number) => { readonly p: Pt; readonly n: Pt } | null;
+
 /** A meter a snake's ability keeps (breath, warmth), for the HUD: 0 empty .. 1 full. */
 export interface SnakeMeter {
   readonly label: string;
@@ -84,6 +92,8 @@ export class Snake {
   turnScale = 1;
   /** Held still by its ability (playing dead, buried, luring): it doesn't move, but may still strike. */
   hold = false;
+  /** Where the head must keep to this frame (set by the ability, see Fence), or null. */
+  fence: Fence | null = null;
   /** Its ability's meter, if it keeps one. */
   meter: SnakeMeter | null = null;
   /** Height off the ground, 0..1, while gliding (the view lifts it off its shadow). */
@@ -203,6 +213,11 @@ export class Snake {
       if (!out) continue;
       q = out.p;
       normal = out.n;
+    }
+    const fenced = this.fence?.(q, r);
+    if (fenced) {
+      q = fenced.p;
+      normal = fenced.n;
     }
     return { p: q, normal };
   }

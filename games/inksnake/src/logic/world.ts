@@ -197,6 +197,7 @@ export class World {
     s.speedScale = 1;
     s.turnScale = 1;
     s.hold = false;
+    s.fence = null;
     if (!this.ability) return;
     const steering = input.face !== null || (input.moved === true && input.toward !== null && dist(input.toward, s.head) > 40);
     this.ability.step(this.actx, { held: input.ability === true, pressed: input.abilityPressed === true, steering }, dt);

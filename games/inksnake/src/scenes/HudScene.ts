@@ -165,9 +165,9 @@ export class HudScene extends Phaser.Scene {
     this.meter.update(w.score, w.progress, w.lives, time);
     const left = w.timeLeft;
     this.tag.update(w.elapsed, left !== null && left < 10, goalNotes(w));
-    // A boss's word for this moment of the fight comes before any first-time hint.
+    // A boss's word for this moment of the fight, then the ability's (down on the floor…), before any first-time hint.
     const touch = game.input2.touch;
-    const now = w.boss?.prompt?.(w.snake) ?? null;
+    const now = w.boss?.prompt?.(w.snake) ?? w.ability?.prompt?.(w.snake) ?? null;
     this.hint.set(now ? (touch ? now.touch : now.mouse) : game.coach.current(touch));
     this.abilityButton?.update(time);
   }

@@ -2,12 +2,13 @@ import { BOARD, type LevelDef, type ZoneDef } from '../../level/types';
 import { createRng } from '../rng';
 import { inZone, inZoneShape } from '../zones';
 import { clamp, dist, type Pt } from '../vec';
+import type { Prompt } from '../enemyTypes';
 import type { Ability, AbilityCtx, AbilityInput, AbilityMaker } from './types';
 
 /**
  * The adder is cold-blooded: its warmth (0 cold .. 1 warm) sets how fast it
- * moves and turns. It drains slowly and fills fast in sunshine, fastest
- * when the snake lies still in the sun (basking). The sunny ground is the
+ * moves and turns. It drains slowly and fills fast in sunshine, faster
+ * the more of the body lies in it, with no need to stop. The sunny ground is the
  * level's 'sun' zones, with cloud shadows drifting over them on the wind,
  * the same way every time a level is played, so the sunny spots shift.
  * Being cold never costs a life, but a cold snake can't get away.
@@ -17,9 +18,8 @@ import type { Ability, AbilityCtx, AbilityInput, AbilityMaker } from './types';
 const DRAIN_TIME = 35;
 const NIGHT_DRAIN = 1.4;
 const WATER_DRAIN = 2;
-/** Warmth a second with the whole body in the sun, and on top of that while basking. */
-const SUN_GAIN = 0.08;
-const BASK_GAIN = 0.28;
+/** Warmth a second with the whole body in the sun (a pass through a patch with the head alone gives about a third of it). */
+const SUN_GAIN = 0.45;
 /** At night only the stones that soaked up the day's sun are warm, and less so. */
 const STONE_GAIN = 0.6;
 /** The head's share of how sunny the snake is (the rest is the body's). */
@@ -30,10 +30,16 @@ const TURN = { cold: 0.55, warm: 1, hot: 1.05 } as const;
 const WARM = 0.85;
 /** The meter warns below this. */
 const LOW = 0.3;
-/** It basks once still this long in the sun, s, while cooler than BASK_BELOW; it takes this long to settle. */
-const BASK_AFTER = 0.4;
-const BASK_BELOW = 0.75;
-const SETTLE = 0.35;
+/** The notes over the board say what the sun is doing while it's cooler than this. */
+const TELL_BELOW = 0.7;
+/** How fast the shimmer of warming up comes and goes, per s. */
+const GLOW_RATE = 4;
+const PROMPTS = {
+  cold: { mouse: 'Cold and slow! Get into a patch of sunshine to warm up', touch: 'Cold and slow! Get into a patch of sunshine to warm up' },
+  stones: { mouse: 'Cold and slow! Lie on the warm stones to warm up', touch: 'Cold and slow! Lie on the warm stones to warm up' },
+  cloud: { mouse: 'A cloud is over this patch: find one in the sunshine', touch: 'A cloud is over this patch: find one in the sunshine' },
+  warming: { mouse: 'Warming up in the sunshine…', touch: 'Warming up in the sunshine…' },
+} as const satisfies Record<string, Prompt>;
 /** The pool's water slows it, as a share of its speed. */
 const SWIM = 0.7;
 /** Starting warmth: a usual day, a cold spring morning (levels teaching it), and a night. */
@@ -133,21 +139,20 @@ function byWarmth(v: number, k: { readonly cold: number; readonly warm: number; 
 }
 
 /**
- * The adder's warmth. Passive: no button. Lying still in a sun patch (no
- * steering) while cool makes it settle and bask; steering again moves on.
- * The view and the test bot read its clouds, its sun and its basking.
+ * The adder's warmth. Passive: no button. Sunshine on the body warms it
+ * as it goes; shade, clouds and the pool cool it. The view and the test
+ * bot read its clouds, its sun and whether it's warming.
  */
 export class Warmth implements Ability {
   readonly id = 'warmth';
   readonly label = 'Warmth';
   readonly button = false;
   value: number;
-  /** 0 moving .. 1 settled to bask. */
-  bask = 0;
+  /** 0..1, eased: how much it's warming up now (the view's shimmer). */
+  warming = 0;
   /** How sunny the snake is now, 0..1 (its body's share in the sun). */
   sun = 0;
   clouds: Cloud[] = [];
-  private still = 0;
   /** Told it's cold, until it warms up again. */
   private shivered = false;
 
@@ -162,11 +167,7 @@ export class Warmth implements Ability {
   }
 
   get active(): boolean {
-    return this.bask > 0.5;
-  }
-
-  get basking(): boolean {
-    return this.bask >= 1;
+    return this.warming > 0.5;
   }
 
   /** How warm the ground at `p` is now (0 shade .. 1 sunshine). */
@@ -174,25 +175,33 @@ export class Warmth implements Ability {
     return sunAt(this.level, p, this.clouds);
   }
 
-  step(ctx: AbilityCtx, input: AbilityInput, dt: number): void {
+  step(ctx: AbilityCtx, _input: AbilityInput, dt: number): void {
     const s = ctx.snake;
     this.clouds = cloudsAt(this.level, ctx.elapsed);
     this.sun = this.bodySun(ctx);
-    const headSun = this.sunAt(s.head);
-    // Basking: still (no steering) with the head in the sun, while cool.
-    this.still = input.steering || s.mode !== 'move' ? 0 : this.still + dt;
-    const wants = headSun > 0 && this.still > BASK_AFTER && this.value < (this.bask > 0 ? 1 : BASK_BELOW) && !s.striking;
-    this.bask = clamp(this.bask + (wants ? dt : -dt * 3) / SETTLE, 0, 1);
     const wet = ctx.inZone(s.head, 'water');
     const drain = (1 / DRAIN_TIME) * (this.level.dark ? NIGHT_DRAIN : 1) * (wet ? WATER_DRAIN : 1);
-    const gain = SUN_GAIN * this.sun + BASK_GAIN * this.bask * headSun;
+    const gain = SUN_GAIN * this.sun;
     const was = this.value;
     this.value = clamp(this.value + (gain - drain) * dt, 0, 1);
+    const glow = gain > drain && this.value < 1 ? 1 : 0;
+    this.warming = clamp(this.warming + Math.sign(glow - this.warming) * GLOW_RATE * dt, 0, 1);
     this.tell(ctx, was);
-    s.speedScale = byWarmth(this.value, SPEED) * (1 - this.bask) * (wet ? SWIM : 1);
+    s.speedScale = byWarmth(this.value, SPEED) * (wet ? SWIM : 1);
     s.turnScale = byWarmth(this.value, TURN);
-    if (this.basking) s.hold = true;
-    s.meter = { label: 'warmth', value: this.value, low: this.value < LOW };
+    const label = this.value < LOW ? 'cold: slow' : this.value >= WARM ? 'warm: fast' : 'warmth';
+    s.meter = { label, value: this.value, low: this.value < LOW };
+  }
+
+  /** What the sun is doing for a cool snake: warming it, hidden by a cloud, or nowhere near. */
+  prompt(snake: { readonly head: Pt }): Prompt | null {
+    if (this.value >= TELL_BELOW) return null;
+    if (this.warming > 0.5) return PROMPTS.warming;
+    const h = snake.head;
+    const covered = !this.level.dark && inZone(h, this.level.zones ?? [], 'sun') && this.sunAt(h) <= 0 && shaded(h, this.clouds);
+    if (covered) return PROMPTS.cloud;
+    if (this.value < LOW) return this.level.dark ? PROMPTS.stones : PROMPTS.cold;
+    return null;
   }
 
   /** How much of the snake lies in the sun: the head counts for HEAD_SHARE, the body (every few samples) for the rest. */
@@ -209,7 +218,7 @@ export class Warmth implements Ability {
     return HEAD_SHARE * this.sunAt(s.head) + (1 - HEAD_SHARE) * (k ? sum / k : 0);
   }
 
-  /** A shiver when it gets cold, and a sigh when basking has warmed it through. */
+  /** A shiver when it gets cold, and a sigh when the sun has warmed it through. */
   private tell(ctx: AbilityCtx, was: number): void {
     const h = ctx.snake.head;
     if (!this.shivered && this.value < 0.22 && was >= 0.22) {
@@ -217,7 +226,7 @@ export class Warmth implements Ability {
       ctx.emit({ type: 'say', text: 'Brrr… cold!', x: h.x, y: h.y - 30 });
     }
     if (this.shivered && this.value > 0.6) this.shivered = false;
-    if (this.bask > 0 && this.value >= 1 && was < 1) ctx.emit({ type: 'say', text: 'Warm!', x: h.x, y: h.y - 30 });
+    if (this.value >= 1 && was < 1) ctx.emit({ type: 'say', text: 'Warm!', x: h.x, y: h.y - 30 });
   }
 }
 

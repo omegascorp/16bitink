@@ -88,11 +88,11 @@ export const HEATH_RULES: ChapterRules = {
   },
   hints: {
     'adder-cold': {
-      mouse: 'A cold spring morning: the adder is slow. Get into a sun patch to warm up', touch: 'A cold spring morning: the adder is slow. Get into a sun patch to warm up',
+      mouse: 'A cold spring morning: the adder is slow. Slither into the golden sunshine to warm up', touch: 'A cold spring morning: the adder is slow. Slither into the golden sunshine to warm up',
       until: 'eat', max: 10,
     },
     'adder-bask': {
-      mouse: 'In the sun, keep still (let go of the mouse and keys) to bask and warm up fast', touch: 'In the sun, let go of the board to bask and warm up fast',
+      mouse: 'Golden patches are sunshine: slither through them to warm up. The more of you in the sun, the faster', touch: 'Golden patches are sunshine: slither through them to warm up. The more of you in the sun, the faster',
       max: 12,
     },
     'adder-clouds': {

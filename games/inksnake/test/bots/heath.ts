@@ -10,17 +10,21 @@ import { dist, pt, type Pt } from '../../src/logic/vec';
 import type { World } from '../../src/logic/world';
 import type { BotHook } from './types';
 
-/** Cold below this: it goes to bask before anything else but danger. */
+/** Cold below this: it goes for the sun before anything else but danger. */
 const COLD = 0.4;
 /** A sunny spot is worth this many px of travel less if it stays sunny a while. */
 const LASTING = 120;
+/** Once warming, it stays in the sun till this warm. */
+const WARM_ENOUGH = 0.8;
+/** In the sun, it aims at sunny ground at least this far off, to keep moving through it. */
+const ON_PAST = 70;
 
-/** Heading somewhere on purpose: steering, so it doesn't settle to bask on the way. */
+/** Heading somewhere on purpose. */
 const go = (toward: Pt, strike = false): SnakeInput => ({ toward, face: null, strike, moved: true });
 
 /**
  * The adder dodges every red ring and a trembling sett, keeps away from
- * the hedgehog (too prickly to strike), basks in the sun when it's cold,
+ * the hedgehog (too prickly to strike), slithers through the sun when it's cold,
  * strikes voles with its venom and follows them till they sleep, and
  * strikes the badger while it sniffs.
  */
@@ -31,19 +35,18 @@ export const bot: BotHook = (w) => {
   const h = s.head;
   const danger = dangerFrom(w);
   if (danger) return go(clear(w, away(h, danger, 220)));
-  // Cold: a hedgehog's nip costs only length, and running from it cold is hopeless: bask first.
+  // Cold: a hedgehog's nip costs only length, and running from it cold is hopeless: warm up first.
   const chaser = chaserNear(w);
-  if (chaser && ab.value >= COLD && !(ab.bask > 0)) return go(clear(w, away(h, chaser, 220)));
+  if (chaser && ab.value >= COLD) return go(clear(w, away(h, chaser, 220)));
   const boss = w.boss;
   if (boss instanceof Badger && boss.mode === 'sniff') {
     const ahead = Math.cos(Math.atan2(boss.y - h.y, boss.x - h.x) - s.heading) > 0.8;
     return go(pt(boss.x, boss.y), dist(boss, h) < 75 && ahead);
   }
-  // Still basking (or settling to): keep still until it's warm.
-  if (ab.bask > 0 && ab.value < 1) return { toward: null, face: null, strike: false };
-  if (ab.value < COLD) {
-    const spot = sunSpot(w, ab);
-    if (spot) return ab.sunAt(h) > 0 ? { toward: null, face: null, strike: false } : go(clear(w, spot));
+  // Cold, or warming and not yet warm: on through the sunshine (a spot a little way off, so it keeps crossing the patch).
+  if (ab.value < COLD || (ab.warming > 0.5 && ab.value < WARM_ENOUGH)) {
+    const spot = sunSpot(w, ab, ab.sunAt(h) > 0 ? ON_PAST : 0);
+    if (spot) return go(clear(w, spot));
   }
   // A bitten vole: let it run off and fall asleep (circling it ties knots), then swallow it.
   const bitten = w.prey.find((p) => p.mode === 'sleep');
@@ -82,7 +85,7 @@ function away(h: Pt, from: Pt, far: number): Pt {
 }
 
 /** The nearest sunny ground, favouring spots no cloud is about to cover. */
-function sunSpot(w: World, ab: Warmth): Pt | null {
+function sunSpot(w: World, ab: Warmth, beyond = 0): Pt | null {
   const h = w.snake.head;
   const soon = cloudsAt(w.level, w.elapsed + 4);
   let best: Pt | null = null;
@@ -90,7 +93,7 @@ function sunSpot(w: World, ab: Warmth): Pt | null {
   for (let x = 30; x < BOARD.w; x += 30) {
     for (let y = 30; y < BOARD.h; y += 30) {
       const p = pt(x, y);
-      if (ab.sunAt(p) <= 0 || w.solids.some((sh) => (sh.kind === 'circle' ? dist(p, sh) < sh.r + 14 : p.x > sh.x - 14 && p.x < sh.x + sh.w + 14 && p.y > sh.y - 14 && p.y < sh.y + sh.h + 14))) continue;
+      if (ab.sunAt(p) <= 0 || dist(p, h) < beyond || w.solids.some((sh) => (sh.kind === 'circle' ? dist(p, sh) < sh.r + 14 : p.x > sh.x - 14 && p.x < sh.x + sh.w + 14 && p.y > sh.y - 14 && p.y < sh.y + sh.h + 14))) continue;
       const lasts = shadedSoon(p, soon) ? 0 : LASTING;
       const sc = dist(p, h) - lasts;
       if (sc < score) {

@@ -12,6 +12,10 @@ const SOFT_INK = '#4a463e';
 const CARD_W = 440;
 const THUMB = { w: 360, h: 203 } as const;
 const CARD_SEED = 61;
+/** Notes under the picture wrap to this width (the card less its margins). */
+const NOTE_W = CARD_W - 80;
+const NOTE_GAP = 6;
+const SEP = ' · ';
 
 export interface LevelCardOpts {
   readonly level: LevelDef;
@@ -73,24 +77,25 @@ export class MapCard {
   }
 
   static level(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, view: { width: number; height: number }, o: LevelCardOpts, onClose: () => void): MapCard {
-    const twist = twistTexts(o.level).map((t) => t.card).join(' · ');
-    const newsH = (o.news.length ? 34 : 0) + (twist ? 34 : 0);
-    return new MapCard(scene, layer, view, 470 + newsH, (card, top) => {
+    // The notes under the picture, each wrapped to the card at its " · " breaks: the card grows to fit them.
+    const twists = twistTexts(o.level).map((t) => t.card);
+    const notes = [
+      wrapped(scene, playLine(o.level).split(SEP), 19, SOFT_INK),
+      ...(o.news.length ? [wrapped(scene, o.news.map((n, i) => (i ? n : `New: ${n}`)), 21, RED)] : []),
+      ...(twists.length ? [wrapped(scene, twists, 22, BLUE)] : []),
+    ];
+    const notesH = notes.reduce((h, t) => h + t.height, 0) + (notes.length - 1) * NOTE_GAP;
+    return new MapCard(scene, layer, view, 436 + notesH, (card, top) => {
       card.add(inkText(scene, 0, top + 34, `Level ${o.number}`, 22, SOFT_INK));
       card.add(inkText(scene, 0, top + 70, o.level.name, 38));
       const thumbY = top + 104 + THUMB.h / 2;
       card.add(boardPreview(scene, o.level, o.place, THUMB.w, THUMB.h).setY(thumbY));
-      let y = thumbY + THUMB.h / 2 + 26;
-      card.add(inkText(scene, 0, y, playLine(o.level), 19, SOFT_INK));
-      if (o.news.length) {
-        y += 34;
-        card.add(inkText(scene, 0, y, `New: ${o.news.join(' · ')}`, 21, RED));
+      let y = thumbY + THUMB.h / 2 + 12;
+      for (const t of notes) {
+        card.add(t.setPosition(0, y));
+        y += t.height + NOTE_GAP;
       }
-      if (twist) {
-        y += 34;
-        card.add(inkText(scene, 0, y, twist, 22, BLUE));
-      }
-      y += 42;
+      y += 42 - NOTE_GAP - 8;
       const blots = scene.add.graphics();
       drawBlots(blots, -92, y, o.record?.blots ?? 0, 10);
       card.add(blots);
@@ -120,4 +125,22 @@ export class MapCard {
     freePaper(this.scene, CARD_W, this.paperH, CARD_SEED);
     this.onClose();
   }
+}
+
+/**
+ * Short notes joined with " · ", broken into centred lines that fit the
+ * card: a line takes notes while they fit, and a single note too long for
+ * a line wraps at its spaces. Top-centred, so the card stacks them.
+ */
+function wrapped(scene: Phaser.Scene, parts: readonly string[], size: number, color: string): Phaser.GameObjects.Text {
+  const t = inkText(scene, 0, 0, '', size, color).setOrigin(0.5, 0).setAlign('center');
+  const fits = (s: string): boolean => t.setText(s).width <= NOTE_W;
+  const lines: string[] = [];
+  for (const part of parts) {
+    const last = lines[lines.length - 1];
+    if (last !== undefined && fits(last + SEP + part)) lines[lines.length - 1] = last + SEP + part;
+    else lines.push(part);
+  }
+  t.setWordWrapWidth(NOTE_W).setText(lines.join('\n'));
+  return t;
 }

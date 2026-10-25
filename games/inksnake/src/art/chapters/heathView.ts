@@ -7,6 +7,7 @@ import type { World } from '../../logic/world';
 import type { ChapterView } from './types';
 
 const SUN = 0xf2bf4a;
+const SUN_RIM = 0xd99a2b;
 const STONE_GLOW = 0xe0844a;
 const CLOUD = 0x4e5f80;
 const FROST = 0xdcecff;
@@ -16,6 +17,11 @@ const SOIL = 0x6b4f34;
 const DEPTH = { sun: 1.15, setts: 2.45, clouds: 4.8, frost: 4.85 } as const;
 /** Soft edges: this many rings, each a little smaller and as faint. */
 const SOFT = 4;
+/** Each ring's wash: sunshine strong enough to read as light, not bare sand; clouds a shadow you can see pass. */
+const SUN_ALPHA = 0.11;
+const STONE_ALPHA = 0.08;
+const RIM_ALPHA = 0.6;
+const CLOUD_ALPHA = 0.1;
 /** Cold below this: frost shows, more as it gets colder. */
 const FROSTY = 0.35;
 const PUFF_EVERY = 1.3;
@@ -34,7 +40,7 @@ interface Speck {
  * The Heath's own layer: the sun patches glowing warm where the sky is
  * clear (and the warm stones at night), soft blue-grey cloud shadows
  * drifting over the heath, frost and breath on a cold snake and a shimmer
- * on a basking one, and a sett trembling with soil flying before the
+ * on one warming up, and a sett trembling with soil flying before the
  * badger comes up. (The pool and the setts themselves are painted on the
  * board: heathPlace.ts.)
  */
@@ -62,7 +68,7 @@ class HeathView implements ChapterView {
     this.drawFrost(world, ab, time, dt);
   }
 
-  /** Each sun patch glows as much as it's in sunshine (sampled), pulsing gently; at night the warm stones glow faintly. */
+  /** Each sun patch glows golden, rimmed, as much as it's in sunshine (sampled), pulsing gently; at night the warm stones glow. */
   private drawSun(world: World, ab: Warmth | null, time: number): void {
     const g = this.sun;
     g.clear();
@@ -74,9 +80,11 @@ class HeathView implements ChapterView {
       const lit = sunnyShare(z, (p) => ab.sunAt(p) > 0);
       if (lit <= 0) continue;
       for (let i = 0; i < SOFT; i++) {
-        g.fillStyle(night ? STONE_GLOW : SUN, (night ? 0.06 : 0.08) * lit * pulse);
+        g.fillStyle(night ? STONE_GLOW : SUN, (night ? STONE_ALPHA : SUN_ALPHA) * lit * pulse);
         fillZone(g, z, -i * 7);
       }
+      g.lineStyle(2.5, night ? STONE_GLOW : SUN_RIM, RIM_ALPHA * lit * pulse);
+      strokeZone(g, z);
     }
   }
 
@@ -88,7 +96,7 @@ class HeathView implements ChapterView {
     for (const c of ab.clouds) {
       for (let i = 0; i < SOFT; i++) {
         const k = 1 - i * 0.09;
-        g.fillStyle(CLOUD, 0.045);
+        g.fillStyle(CLOUD, CLOUD_ALPHA);
         g.fillEllipse(c.x, c.y, c.rx * 2 * k, c.ry * 2 * k);
       }
     }
@@ -127,7 +135,7 @@ class HeathView implements ChapterView {
     }
   }
 
-  /** Frost glints round a cold snake's head and neck, and its breath; a warm shimmer over a basking one. */
+  /** Frost glints round a cold snake's head and neck, and its breath; a warm shimmer over one warming up. */
   private drawFrost(world: World, ab: Warmth | null, time: number, dt: number): void {
     const g = this.frost;
     g.clear();
@@ -158,9 +166,9 @@ class HeathView implements ChapterView {
       g.fillStyle(FROST, 0.35 * (1 - k));
       g.fillCircle(p.x, p.y - k * 8, 4 + k * 9);
     }
-    if (ab.bask > 0) {
-      // Heat shimmer: wavy lines rising off a basking snake.
-      g.lineStyle(1.4, SUN, 0.55 * ab.bask);
+    if (ab.warming > 0) {
+      // Heat shimmer: wavy lines rising off a snake soaking up the sun.
+      g.lineStyle(1.6, SUN_RIM, 0.6 * ab.warming);
       for (let i = -1; i <= 1; i++) {
         const x = h.x + i * 9;
         const rise = (time / 30 + i * 7) % 18;
@@ -192,6 +200,18 @@ function fillZone(g: Phaser.GameObjects.Graphics, z: ZoneDef, grow: number): voi
     z.points.forEach((p, i) => (i === 0 ? g.moveTo(p.x, p.y) : g.lineTo(p.x, p.y)));
     g.closePath();
     g.fillPath();
+  }
+}
+
+/** A zone's outline. */
+function strokeZone(g: Phaser.GameObjects.Graphics, z: ZoneDef): void {
+  if (z.shape === 'circle') g.strokeCircle(z.x, z.y, z.r);
+  else if (z.shape === 'rect') g.strokeRect(z.x, z.y, z.w, z.h);
+  else {
+    g.beginPath();
+    z.points.forEach((p, i) => (i === 0 ? g.moveTo(p.x, p.y) : g.lineTo(p.x, p.y)));
+    g.closePath();
+    g.strokePath();
   }
 }
 

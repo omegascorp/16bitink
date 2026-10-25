@@ -1,5 +1,5 @@
 import type { LevelDef, ZoneKind } from '../../level/types';
-import type { Enemy, EnemyCtx, EnemyEvent } from '../enemyTypes';
+import type { Enemy, EnemyCtx, EnemyEvent, Prompt } from '../enemyTypes';
 import type { Prey, PreyKind } from '../preyTypes';
 import type { Rng } from '../rng';
 import type { Snake } from '../snake';
@@ -51,6 +51,8 @@ export interface Ability {
   /** Whether it's in use now (the button lights up). */
   readonly active: boolean;
   step(ctx: AbilityCtx, input: AbilityInput, dt: number): void;
+  /** What the player should do now, if the ability has something to say ("glide to the next tree"), shown over the board. Optional. */
+  prompt?(snake: Snake): Prompt | null;
 }
 
 /** A snake's ability, made fresh for a level. */
