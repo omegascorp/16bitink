@@ -62,6 +62,12 @@ export interface Enemy {
   readonly modeAge: number;
   /** Off the board (arriving later, or gone): not drawn. */
   readonly away: boolean;
+  /**
+   * It passes over (or under) the snake's body instead of being stopped by
+   * it, as everything else on the ground is: birds, a shark below, a fire,
+   * a rockfall, a herd, a dust devil, an eel in its hole, other snakes.
+   */
+  readonly overBody?: boolean;
   step(ctx: EnemyCtx, dt: number): void;
   /**
    * Scared off by the snake's bluff (a hiss, a rasp, a hood) from `from`:

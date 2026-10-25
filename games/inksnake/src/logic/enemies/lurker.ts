@@ -27,6 +27,8 @@ export interface LurkerSpec {
  * and slides off to a new spot.
  */
 export class Lurker extends EnemyBase<LurkerMode> {
+  /** Over the snake's body, not stopped by it: it waits in its hole. */
+  readonly overBody = true;
   /** Where the lunge is aimed, while it tells and lunges. */
   aim: Pt | null = null;
   private from: Pt;

@@ -50,6 +50,8 @@ const RISE_TIME = 0.7;
  * to a strike that sends it off.
  */
 export class Diver extends EnemyBase<DiverMode> {
+  /** Over the snake's body, not stopped by it: it flies. */
+  readonly overBody = true;
   /** Where the dive will land, while locked or diving. */
   ring: Pt | null = null;
   private centre: Pt = pt(0, 0);

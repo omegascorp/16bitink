@@ -30,6 +30,8 @@ export interface ChargerSpec {
  * out of the lane, and as much of your body as you can.
  */
 export class Charger extends EnemyBase<ChargerMode> {
+  /** Over the snake's body, not stopped by it: it sweeps over. */
+  readonly overBody = true;
   /** The lane, edge to edge, while it warns and runs. */
   lane: { readonly from: Pt; readonly to: Pt } | null = null;
   private hitHead = false;

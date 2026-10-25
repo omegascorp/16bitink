@@ -42,6 +42,8 @@ const MOB_ALT = 0.45;
  * snakes at their nests is a game choice, not checked: see the research.)
  */
 export class Weaver extends EnemyBase<WeaverMode> {
+  /** Over the snake's body, not stopped by it: it flies. */
+  readonly overBody = true;
   /** The nest it guards. */
   readonly home: Pt;
   private from: Pt = pt(0, 0);

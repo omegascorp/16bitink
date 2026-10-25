@@ -36,6 +36,8 @@ const ALT = { perch: 0.22, fly: 0.75, high: 1 } as const;
  * strikes (its `hp`) drive it off.
  */
 export class SerpentEagle extends EnemyBase<EagleMode> implements Boss {
+  /** Over the snake's body, not stopped by it: it flies. */
+  readonly overBody = true;
   hp: number;
   readonly maxHp: number;
   /** Where the swoop will land, while it locks on and swoops. */

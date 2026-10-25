@@ -1,5 +1,6 @@
 import { BOARD, type LevelDef, type ZoneKind } from '../level/types';
 import { ABILITIES, type Ability, type AbilityCtx } from './abilities/index';
+import { pushOffBody } from './bodyBlock';
 import { findLoop, loopHint, ringRadius, ringTargets, SQUEEZE_TIME, SWALLOW_TIME, type Loop } from './coil';
 import { makeBoss, makeEnemies } from './enemies/index';
 import type { Boss, Enemy, EnemyCtx, EnemyEvent, HurtCause } from './enemyTypes';
@@ -8,7 +9,7 @@ import { STAGGER_TIME } from './preyMoves';
 import { createRng, type Rng } from './rng';
 import { Snake, type SnakeInput } from './snake';
 import { BIG_MEAL, venomMaxOf } from './species';
-import { dist, pt, type Pt, type Shape } from './vec';
+import { dist, pt, type Pt, type Shape, wrapAngle } from './vec';
 import { inZone } from './zones';
 
 export const LIVES = 3;
@@ -25,6 +26,9 @@ const COIL_BONUS = 0.5;
 const UNCOIL_TIME = 1.2;
 /** A venomous strike lands on prey this close to the head, past its edge, px. */
 const BITE_REACH = 10;
+/** How far prey (by its size) and hunters keep their middles off the snake's body, px from its edge. */
+const PREY_GIRTH = 0.4;
+const ENEMY_GIRTH = 10;
 /** Swallowing a meal much wider than the snake takes this many times a coiled swallow. */
 const BIG_SWALLOW = 1.5;
 
@@ -180,6 +184,7 @@ export class World {
     for (const p of this.prey) stepPrey(p, preySpec(p.kind), this.pw, dt);
     for (const e of this.enemies) e.step(this.ctx, dt);
     this.boss?.step(this.ctx, dt);
+    this.keepOffBody();
     this.tickRespawns(dt);
     this.judge();
     return this.events;
@@ -475,6 +480,35 @@ export class World {
     }
     const at = freeSpot(this.pw, spec.size / 2, atStart ? SPAWN_AWAY * 0.6 : SPAWN_AWAY, spec.zone);
     if (at) this.prey.push(makePrey(this.nextId++, kind, at, this.rng, null, marked));
+  }
+
+  /**
+   * The snake's body is solid to what walks or swims at its level: prey and
+   * ground hunters slide along it rather than through it (so prey inside a
+   * loop stays inside). Not to eggs, to anything in the air, or to hunters
+   * that pass over it (see Enemy.overBody).
+   */
+  private keepOffBody(): void {
+    const snake = this.snake;
+    for (const p of this.prey) {
+      if (p.alt > 0.05 || p.frozen || p.mode === 'caught' || p.mode === 'hidden') continue;
+      const spec = preySpec(p.kind);
+      if (spec.gait === 'still') continue;
+      const out = pushOffBody(snake, p, spec.size * PREY_GIRTH);
+      if (!out) continue;
+      p.x = out.p.x;
+      p.y = out.p.y;
+      // Off along the body, keeping the side it was already heading.
+      const along = Math.atan2(out.n.x, -out.n.y);
+      p.heading = Math.cos(wrapAngle(p.heading - along)) >= 0 ? along : wrapAngle(along + Math.PI);
+    }
+    for (const e of [...this.enemies, ...(this.boss ? [this.boss] : [])]) {
+      if (e.away || e.overBody || e.alt > 0.05) continue;
+      const out = pushOffBody(snake, e, ENEMY_GIRTH);
+      if (!out) continue;
+      e.x = out.p.x;
+      e.y = out.p.y;
+    }
   }
 
   private tickRespawns(dt: number): void {

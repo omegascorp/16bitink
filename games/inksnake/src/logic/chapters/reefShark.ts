@@ -40,6 +40,8 @@ const PAD = 24;
  * that's the moment to swim in and strike its snout.
  */
 export class Shark extends EnemyBase<SharkMode> implements Boss {
+  /** Over the snake's body, not stopped by it: it swims below. */
+  readonly overBody = true;
   hp: number;
   readonly maxHp: number;
   /** Where the charge runs, while it tells and charges. */

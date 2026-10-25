@@ -105,6 +105,17 @@ export class GameScene extends Phaser.Scene {
     getSound(this)?.setBed(this.level.dark ? 'night' : 'farm');
   }
 
+  /** A board point on the screen, in device px (as a pointer reads it): through the camera's zoom and turn. */
+  toScreen(x: number, y: number): { x: number; y: number } {
+    // Its turn (radians, set by setRotation) is on the camera though the typings don't declare it.
+    const cam = this.cameras.main as Phaser.Cameras.Scene2D.Camera & { readonly rotation: number };
+    const c = Math.cos(cam.rotation);
+    const s = Math.sin(cam.rotation);
+    const dx = (x - cam.midPoint.x) * cam.zoom;
+    const dy = (y - cam.midPoint.y) * cam.zoom;
+    return { x: cam.x + cam.width / 2 + c * dx - s * dy, y: cam.y + cam.height / 2 + s * dx + c * dy };
+  }
+
   private hud(): HudScene | undefined {
     return this.scene.get('Hud') as HudScene | undefined;
   }

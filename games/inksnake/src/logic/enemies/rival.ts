@@ -33,6 +33,8 @@ export interface RivalSpec {
  * a rival narrower than its gape whenever its head touches it.
  */
 export class RivalSnake {
+  /** Over the snake's body, not stopped by it: snakes cross. */
+  readonly overBody = true;
   readonly kind: string;
   readonly snake: Snake;
   x: number;

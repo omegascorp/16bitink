@@ -3,12 +3,13 @@ import { getSound } from '../host';
 import { levelOrder } from '../level/levels';
 import { goalNotes } from './hud/goalNotes';
 import type { GameScene } from './GameScene';
-import { screenScene, screenSize, toView, uiScaleOf, viewSize } from './hidpi';
+import { DPR, screenScene, screenSize, toView, uiScaleOf, viewSize } from './hidpi';
 import { HintNote } from './hud/hintNote';
 import { LevelTag } from './hud/levelTag';
 import { Meter, METER_H } from './hud/meter';
 import { PauseCard } from './hud/pauseCard';
 import { AbilityButton } from './hud/abilityButton';
+import { fadeUnder, type FadePiece } from './hud/underFade';
 import { hitSize, hudPlan, type HudPlan } from './uiLayout';
 import { ROUND, roundButton, type RoundButton } from './uiPaint';
 
@@ -81,6 +82,21 @@ export class HudScene extends Phaser.Scene {
     return [this.pauseButton, this.soundButton].some((b) => Math.abs(v.x - b.root.x) < r && Math.abs(v.y - b.root.y) < r);
   }
 
+  /** The pieces of the interface go see-through while the snake slides under them. */
+  private fadeUnderSnake(game: GameScene, dt: number): void {
+    const pieces: FadePiece[] = [this.tag.root, this.meter.root, this.pauseButton.root, this.soundButton.root, ...(this.abilityButton ? [this.abilityButton.root] : [])]
+      .map((root) => ({ box: root, fade: [root] }));
+    // The hint's note fades in and out on its own: fade what's on it instead.
+    pieces.push({ box: this.hint.root, fade: this.hint.faces });
+    const snake = game.world.snake;
+    const pts = snake.trail.pts.slice(0, snake.trail.count).map((p) => {
+      const s = game.toScreen(p.x, p.y);
+      return toView(s.x, s.y, this);
+    });
+    const z = game.cameras.main.zoom / DPR / uiScaleOf(this);
+    fadeUnder(this.pauseCard ? [] : pieces, pts, (snake.width / 2) * z, dt);
+  }
+
   private layout(): void {
     const view = viewSize(this);
     this.plan = hudPlan(view, screenSize(this), uiScaleOf(this), false, SIZES);
@@ -141,10 +157,11 @@ export class HudScene extends Phaser.Scene {
     this.game2().resumePlay();
   }
 
-  update(time: number): void {
+  update(time: number, delta: number): void {
     const game = this.game2();
     const w = game.world;
     if (!w) return;
+    this.fadeUnderSnake(game, delta / 1000);
     this.meter.update(w.score, w.progress, w.lives, time);
     const left = w.timeLeft;
     this.tag.update(w.elapsed, left !== null && left < 10, goalNotes(w));

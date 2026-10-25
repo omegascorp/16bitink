@@ -22,6 +22,8 @@ export interface DrifterSpec {
  * cost a life). It can't be struck or scared: steer round it.
  */
 export class Drifter extends EnemyBase<'drift'> {
+  /** Over the snake's body, not stopped by it: it drifts over. */
+  readonly overBody = true;
   private target: Pt;
   private rest = 0;
 

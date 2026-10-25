@@ -21,6 +21,11 @@ export class HintNote {
     this.root = scene.add.container(0, 0, [this.text]).setAlpha(0);
   }
 
+  /** What's on the note (its card and words), to fade without touching the note's own fade in and out. */
+  get faces(): readonly (Phaser.GameObjects.Image | Phaser.GameObjects.Text)[] {
+    return this.card ? [this.card, this.text] : [this.text];
+  }
+
   set(hint: string | null): void {
     if (hint === this.shown) return;
     this.shown = hint;
