@@ -1,32 +1,46 @@
 import Phaser from 'phaser';
+import { inStickZone, stickAngle } from '../../logic/joystick';
 import type { SnakeInput } from '../../logic/snake';
 import type { Pt } from '../../logic/vec';
+import { screenSize, toView } from '../hidpi';
 
 export interface InputHooks {
   /** Screen pointer (Phaser pointer px) to board px. */
   readonly toBoard: (p: Phaser.Input.Pointer) => Pt;
   /** True when the pointer is over a HUD button, so the press isn't a strike. */
   readonly overHud: (p: Phaser.Input.Pointer) => boolean;
+  /** How far the board is turned on screen, radians (a quarter on an upright phone). */
+  readonly turn: () => number;
 }
 
 /** A touch shorter than this, that barely moved, is a tap: a strike, ms and CSS px. */
 const TAP_MS = 220;
 const TAP_MOVE = 14;
 
+/** A finger on the thumbstick: where it landed and how far it's pulled since, CSS px. */
+export interface StickHold {
+  readonly x: number;
+  readonly y: number;
+  readonly dx: number;
+  readonly dy: number;
+}
+
 /**
  * Mouse, touch and keys to snake input.
  * Mouse: the head follows the pointer; click to strike.
- * Touch: the head follows a held finger; a quick tap strikes (and steers there).
+ * Touch: a thumb in the lower-left corner is a stick that steers like the keys;
+ * elsewhere the head follows a held finger; a quick tap strikes (and steers there).
  * Keys: arrows / WASD steer (the head turns towards the direction held), Space strikes, E or Shift is the snake's ability.
  * Pause and sound keys belong to the HUD, which keeps listening while the game is paused.
  */
 export class GameInput {
-  /** The last press was a finger, so hints speak of taps. */
-  touch = false;
+  /** The last press was a finger (or this is a phone), so hints speak of taps. */
+  touch: boolean;
   private toward: Pt | null = null;
   private strike = false;
   private readonly held = new Set<string>();
-  private down: { x: number; y: number; t: number } | null = null;
+  private down: { id: number; x: number; y: number; t: number } | null = null;
+  private stick: (StickHold & { readonly id: number; readonly t: number }) | null = null;
   /** The ability's button on screen is held. */
   private buttonHeld = false;
   private abilityWas = false;
@@ -34,8 +48,16 @@ export class GameInput {
   private moved = false;
 
   constructor(scene: Phaser.Scene, private readonly hooks: InputHooks) {
+    // A phone's hints speak of fingers from the start, not after the first touch.
+    this.touch = !scene.sys.game.device.os.desktop;
     scene.input.mouse?.disableContextMenu();
     scene.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      const st = this.stick;
+      if (st && p.id === st.id) {
+        const at = toView(p.x, p.y);
+        this.stick = { ...st, dx: at.x - st.x, dy: at.y - st.y };
+        return;
+      }
       // A finger only steers while it's down; a mouse steers just by moving.
       if (p.wasTouch && !p.isDown) return;
       this.toward = hooks.toBoard(p);
@@ -44,20 +66,37 @@ export class GameInput {
     scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       this.touch = p.wasTouch;
       if (hooks.overHud(p)) return;
+      if (p.wasTouch && !this.stick) {
+        const at = toView(p.x, p.y);
+        if (inStickZone(at.x, at.y, screenSize(scene))) {
+          this.stick = { id: p.id, x: at.x, y: at.y, dx: 0, dy: 0, t: p.event.timeStamp };
+          return;
+        }
+      }
       this.toward = hooks.toBoard(p);
       if (p.wasTouch) {
-        this.down = { x: p.x, y: p.y, t: p.event.timeStamp };
+        this.down = { id: p.id, x: p.x, y: p.y, t: p.event.timeStamp };
         return;
       }
       if (p.button === 0) this.strike = true;
     });
-    scene.input.on('pointerup', (p: Phaser.Input.Pointer) => {
+    const up = (p: Phaser.Input.Pointer): void => {
+      const st = this.stick;
+      if (st && p.id === st.id) {
+        // A quick tap on the stick strikes, as a tap anywhere does.
+        this.stick = null;
+        if (p.event.timeStamp - st.t < TAP_MS && Math.hypot(st.dx, st.dy) < TAP_MOVE) this.strike = true;
+        return;
+      }
       const d = this.down;
+      if (!p.wasTouch || !d || d.id !== p.id) return;
       this.down = null;
-      if (!p.wasTouch || !d) return;
       const moved = Math.hypot(p.x - d.x, p.y - d.y) / (window.devicePixelRatio || 1);
       if (p.event.timeStamp - d.t < TAP_MS && moved < TAP_MOVE) this.strike = true;
-    });
+    };
+    scene.input.on('pointerup', up);
+    // A thumb that slides off the canvas lets go of the stick too.
+    scene.input.on('pointerupoutside', up);
     const keys = scene.input.keyboard;
     keys?.on('keydown', (e: KeyboardEvent) => {
       this.touch = false;
@@ -80,6 +119,11 @@ export class GameInput {
     this.buttonHeld = held;
   }
 
+  /** The thumb on the stick, if any (the HUD draws it). */
+  get stickHold(): StickHold | null {
+    return this.stick;
+  }
+
   /** This frame's input; a strike is used up. */
   read(): SnakeInput {
     const ability = this.buttonHeld || this.has('KeyE', 'ShiftLeft', 'ShiftRight');
@@ -87,8 +131,11 @@ export class GameInput {
     this.abilityWas = ability;
     const x = (this.has('ArrowRight', 'KeyD') ? 1 : 0) - (this.has('ArrowLeft', 'KeyA') ? 1 : 0);
     const y = (this.has('ArrowDown', 'KeyS') ? 1 : 0) - (this.has('ArrowUp', 'KeyW') ? 1 : 0);
-    // Keys take over from the pointer until it moves again.
-    const face = x !== 0 || y !== 0 ? Math.atan2(y, x) : null;
+    // Keys (or the stick) take over from the pointer until it moves again.
+    const keyFace = x !== 0 || y !== 0 ? Math.atan2(y, x) : null;
+    const pull = this.stick ? stickAngle(this.stick.dx, this.stick.dy) : null;
+    // The stick is pulled on the screen; the board may be turned on it.
+    const face = keyFace ?? (pull === null ? null : pull - this.hooks.turn());
     if (face !== null) this.toward = null;
     const out: SnakeInput = { toward: this.toward, face, strike: this.strike, ability, abilityPressed, moved: this.moved };
     this.strike = false;
@@ -114,6 +161,7 @@ export class GameInput {
     this.held.clear();
     this.strike = false;
     this.down = null;
+    this.stick = null;
     this.buttonHeld = false;
     this.abilityWas = false;
   }

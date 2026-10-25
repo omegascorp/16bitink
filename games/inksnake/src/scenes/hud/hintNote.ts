@@ -16,6 +16,9 @@ export class HintNote {
   private card: Phaser.GameObjects.Image | null = null;
   private shown: string | null = null;
 
+  /** The note's height, layout units. */
+  static readonly height = NOTE_H;
+
   constructor(private readonly scene: Phaser.Scene) {
     this.text = scene.add.text(0, 2, '', { fontFamily: HAND, fontSize: '24px', color: BLUE, padding: { x: 4, y: 4 } }).setOrigin(0.5);
     this.root = scene.add.container(0, 0, [this.text]).setAlpha(0);

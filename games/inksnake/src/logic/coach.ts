@@ -20,7 +20,7 @@ const never = (): boolean => false;
 const arrived = (kind: string) => (e: WorldEvent): boolean => e.type === 'arrive' && e.kind === kind;
 
 const HINTS: Readonly<Record<string, Hint>> = {
-  steer: { id: 'steer', mouse: 'Move the mouse: the snake\'s head follows it', touch: 'Hold a finger on the board: the snake\'s head follows it', until: never, max: 5 },
+  steer: { id: 'steer', mouse: 'Move the mouse: the snake\'s head follows it', touch: 'Steer with the stick bottom left, or hold a finger where to go', until: never, max: 5 },
   eat: { id: 'eat', mouse: 'Catch mice and frogs to grow longer', touch: 'Catch mice and frogs to grow longer', until: is('eat'), max: 14 },
   strike: { id: 'strike', mouse: 'Click or Space to strike: a quick lunge', touch: 'Tap to strike: a quick lunge', after: is('eat'), until: is('strike'), max: 10 },
   knot: { id: 'knot', mouse: 'One life: don\'t bite your own body!', touch: 'One life: don\'t bite your own body!', until: never, max: 6 },

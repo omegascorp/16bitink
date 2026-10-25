@@ -87,6 +87,7 @@ export class GameScene extends Phaser.Scene {
         return { x: w.x, y: w.y };
       },
       overHud: (p) => this.hud()?.covers(p) ?? false,
+      turn: () => (this.cameras.main as Phaser.Cameras.Scene2D.Camera & { readonly rotation: number }).rotation,
     });
     this.fit();
     this.scale.on('resize', this.fit, this);

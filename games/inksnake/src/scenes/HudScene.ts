@@ -9,8 +9,10 @@ import { LevelTag } from './hud/levelTag';
 import { Meter, METER_H } from './hud/meter';
 import { PauseCard } from './hud/pauseCard';
 import { AbilityButton } from './hud/abilityButton';
+import { ThumbStick } from './hud/thumbStick';
 import { fadeUnder, type FadePiece } from './hud/underFade';
 import { hitSize, hudPlan, type HudPlan } from './uiLayout';
+import { STICK } from '../logic/joystick';
 import { ROUND, roundButton, type RoundButton } from './uiPaint';
 
 const MARGIN = 14;
@@ -19,8 +21,8 @@ const SIZES = { button: ROUND, margin: MARGIN, meterH: METER_H } as const;
 /**
  * Over the board: the level's paper tag with the clock, the meter (score,
  * the goal's vine, lives), the pause and sound buttons, first-time hints
- * on a taped note, and the pause card. Laid out for a screen held either
- * way (see hudPlan).
+ * on a taped note, the thumbstick on a touch screen, and the pause card.
+ * Laid out for a screen held either way (see hudPlan).
  */
 export class HudScene extends Phaser.Scene {
   private tag!: LevelTag;
@@ -31,6 +33,7 @@ export class HudScene extends Phaser.Scene {
   private plan!: HudPlan;
   private pauseCard: PauseCard | null = null;
   private abilityButton: AbilityButton | null = null;
+  private stick!: ThumbStick;
 
   constructor() {
     super('Hud');
@@ -44,6 +47,8 @@ export class HudScene extends Phaser.Scene {
     screenScene(this, true);
     this.pauseCard = null;
     const game = this.game2();
+    // First, so it draws under the rest.
+    this.stick = new ThumbStick(this);
     this.tag = new LevelTag(this, `${this.levelNumber()} · ${game.level.name}`, game.level.par);
     this.meter = new Meter(this, game.level.snake, game.world.maxLives);
     this.hint = new HintNote(this);
@@ -108,6 +113,10 @@ export class HudScene extends Phaser.Scene {
     // The ability's button in the corner a thumb reaches: bottom right, above the meter on an upright phone.
     const ab = AbilityButton.size;
     this.abilityButton?.root.setPosition(view.width - SIZES.margin - (ab.w / 2) * k, this.plan.upright ? this.plan.meter.y - SIZES.meterH * k - (ab.h / 2) * k : view.height - SIZES.margin - (ab.h / 2) * k).setScale(k);
+    // The stick's resting ring in the opposite corner, above the meter and the hint on an upright phone.
+    const r = (STICK.radius + 8) / uiScaleOf(this);
+    const bottom = this.plan.upright ? this.plan.hintY - (HintNote.height / 2) * k - SIZES.margin : view.height - SIZES.margin * 2;
+    this.stick.place(SIZES.margin * 2 + r, bottom - r);
     if (this.pauseCard) {
       // A turned or resized screen lays the card out afresh.
       this.pauseCard.destroy();
@@ -170,5 +179,7 @@ export class HudScene extends Phaser.Scene {
     const now = w.boss?.prompt?.(w.snake) ?? w.ability?.prompt?.(w.snake) ?? null;
     this.hint.set(now ? (touch ? now.touch : now.mouse) : game.coach.current(touch));
     this.abilityButton?.update(time);
+    this.stick.setVisible(!this.pauseCard && (touch || !this.sys.game.device.os.desktop));
+    this.stick.update(game.input2.stickHold);
   }
 }

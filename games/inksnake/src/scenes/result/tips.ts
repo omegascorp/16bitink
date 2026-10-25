@@ -12,7 +12,7 @@ export const TIPS: readonly Tip[] = [
   { mouse: 'A coil round two at once scores them both, with a bonus.', touch: 'A coil round two at once scores them both, with a bonus.' },
   { mouse: 'Mice can\'t see you under the leaves: wait there and strike as they pass.', touch: 'Mice can\'t see you under the leaves: wait there and strike as they pass.' },
   { mouse: 'Strike at a crow and it flaps off for a while.', touch: 'Strike at a crow and it flaps off for a while.' },
-  { mouse: 'Arrow keys or WASD steer too.', touch: 'Keep your finger a little ahead of the snake\'s head.' },
+  { mouse: 'Arrow keys or WASD steer too.', touch: 'Steer with the stick, bottom left: your thumb won\'t hide the snake.' },
 ];
 
 /** The `turn`-th tip in rotation, worded for touch or mouse. */
