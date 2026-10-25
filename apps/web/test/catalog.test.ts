@@ -17,7 +17,7 @@ describe('catalog', () => {
   });
 
   it('lists every game for sale, so the admin panel can unlock it and make keys for it', () => {
-    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko']);
+    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko', 'inksnake']);
   });
 
   it('is out from the start of its release day (UTC), or always when undated', () => {

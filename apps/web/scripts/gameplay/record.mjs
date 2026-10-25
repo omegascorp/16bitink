@@ -47,6 +47,8 @@ const PRESETS = {
   inkmine: { port: 5176, level: null, zoom: 1.5, skip: 1, seconds: 16, from: 0.5, to: 8.5 },
   // Apple Rows in the orchard, like the cover: the whole board, as it's played.
   inkgecko: { port: 5177, level: 'orchard-5', zoom: 1, skip: 3, seconds: 14, from: 1, to: 11 },
+  // Rat Run on the farm (free), following the snake: mice gulped (and a rat coiled, in some runs).
+  inksnake: { port: 5179, level: 'farm-3', zoom: 1.6, skip: 1, seconds: 24, from: 4, to: 14 },
 };
 
 const args = process.argv.slice(2).filter((a) => a !== '--');
