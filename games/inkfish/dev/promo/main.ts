@@ -100,6 +100,14 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * (the leatherback's spiked throat), fringehead (sarcastic fringeheads fight
  * mouth to mouth), cookiecutter (the tiny shark that bit submarines),
  * sheepshead (the fish with human teeth).
+ * The batch of 2026-10-26 (seven more narrated swallows, two body-part tests):
+ * wreckfish (a wreckfish swallows a dogfish shark whole, 1,500 ft down),
+ * eelescape (swallowed eels escape out through the gills), orcawhale (an
+ * orca swims into a blue whale's mouth for its tongue), conesnail (a snail
+ * that swallows fish whole), wobbegong (a carpet shark swallows a 3-ft shark),
+ * stargazer (the fish in the sand that eats whatever swims over it),
+ * orcaliver (orcas eat only a great white's liver), bobbit (a worm whose jaws
+ * can slice a fish in half), seastar (a starfish eats with its stomach outside its body).
  * They're loaded lazily (import() on demand).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
@@ -375,6 +383,51 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
     await loadCaptionFont();
     const { createSheepshead } = await import('./sheepshead/render');
     return withCredit(createSheepshead(ctx), ctx, PAPER_ON_DARK);
+  },
+  wreckfish: async () => {
+    await loadCaptionFont();
+    const { createWreckfish } = await import('./wreckfish/render');
+    return withCredit(createWreckfish(ctx), ctx, PAPER_ON_DARK);
+  },
+  eelescape: async () => {
+    await loadCaptionFont();
+    const { createEelescape } = await import('./eelescape/render');
+    return withCredit(createEelescape(ctx), ctx, PAPER_ON_DARK);
+  },
+  orcawhale: async () => {
+    await loadCaptionFont();
+    const { createOrcawhale } = await import('./orcawhale/render');
+    return withCredit(createOrcawhale(ctx), ctx, PAPER_ON_DARK);
+  },
+  conesnail: async () => {
+    await loadCaptionFont();
+    const { createConesnail } = await import('./conesnail/render');
+    return withCredit(createConesnail(ctx), ctx, PAPER_ON_DARK);
+  },
+  wobbegong: async () => {
+    await loadCaptionFont();
+    const { createWobbegong } = await import('./wobbegong/render');
+    return withCredit(createWobbegong(ctx), ctx, PAPER_ON_DARK);
+  },
+  stargazer: async () => {
+    await loadCaptionFont();
+    const { createStargazer } = await import('./stargazer/render');
+    return withCredit(createStargazer(ctx), ctx, PAPER_ON_DARK);
+  },
+  orcaliver: async () => {
+    await loadCaptionFont();
+    const { createOrcaliver } = await import('./orcaliver/render');
+    return withCredit(createOrcaliver(ctx), ctx, PAPER_ON_DARK);
+  },
+  bobbit: async () => {
+    await loadCaptionFont();
+    const { createBobbit } = await import('./bobbit/render');
+    return withCredit(createBobbit(ctx), ctx, PAPER_ON_DARK);
+  },
+  seastar: async () => {
+    await loadCaptionFont();
+    const { createSeastar } = await import('./seastar/render');
+    return withCredit(createSeastar(ctx), ctx, PAPER_ON_DARK);
   },
 };
 

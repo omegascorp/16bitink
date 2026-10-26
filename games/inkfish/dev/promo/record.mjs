@@ -110,10 +110,20 @@ const VARIANTS = [
   { name: 'inkfish-fringehead', query: '&short=fringehead', start: 0 },
   { name: 'inkfish-cookiecutter-shark', query: '&short=cookiecutter', start: 0 },
   { name: 'inkfish-sheepshead-teeth', query: '&short=sheepshead', start: 0 },
+  { name: 'inkfish-wreckfish-shark', query: '&short=wreckfish', start: 0 },
+  { name: 'inkfish-eel-escape', query: '&short=eelescape', start: 0 },
+  { name: 'inkfish-orca-blue-whale', query: '&short=orcawhale', start: 0 },
+  { name: 'inkfish-cone-snail', query: '&short=conesnail', start: 0 },
+  { name: 'inkfish-wobbegong', query: '&short=wobbegong', start: 0 },
+  { name: 'inkfish-stargazer', query: '&short=stargazer', start: 0 },
+  { name: 'inkfish-orca-liver', query: '&short=orcaliver', start: 0 },
+  { name: 'inkfish-bobbit-worm', query: '&short=bobbit', start: 0 },
+  { name: 'inkfish-starfish-stomach', query: '&short=seastar', start: 0 },
   // Long-form (16:9, not looping): recorded once from 0 to the end, its sound brought up to YouTube's -14 LUFS.
   // Only with --only (it takes ~25 minutes): a plain `pnpm promo` re-records the shorts.
   { name: 'inkfish-long-descent', page: 'longform.html', query: '&video=descent', start: 0, audioFilter: 'loudnorm=I=-14:TP=-1.5:LRA=11', onlyByName: true },
   { name: 'inkfish-long-foodchain', page: 'longform.html', query: '&video=foodchain', start: 0, audioFilter: 'loudnorm=I=-14:TP=-1.5:LRA=11', onlyByName: true },
+  { name: 'inkfish-long-swallowyou', page: 'longform.html', query: '&video=swallowyou', start: 0, audioFilter: 'loudnorm=I=-14:TP=-1.5:LRA=11', onlyByName: true },
 ];
 const chosen = only ? VARIANTS.filter((v) => v.name.includes(only)) : VARIANTS.filter((v) => !v.onlyByName);
 if (chosen.length === 0) throw new Error(`No variant name contains "${only}": ${VARIANTS.map((v) => v.name).join(', ')}`);

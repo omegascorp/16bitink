@@ -3,13 +3,15 @@ import type { Short } from './short';
 import { createDescent } from './descent/render';
 import { createKit } from './foodchain/kit';
 import { createFoodchain } from './foodchain/render';
+import { createSwallowyou } from './swallowyou/render';
 
 /**
  * Dev-only page for the long-form videos, 1920x1080. Unlike the shorts they
  * don't loop: `loopSeconds` is the video's length, and drawing runs from 0
  * to it once. ?video= picks one: descent ("fish get weirder the deeper you
  * go… until they can't", the default), foodchain ("fish eat fish size
- * comparison… but every animal is real") or foodchain-kit (its drawings). Plays live; ?t=95 freezes one moment.
+ * comparison… but every animal is real"), foodchain-kit (its drawings) or
+ * swallowyou ("every ocean animal that could swallow you… only one actually could"). Plays live; ?t=95 freezes one moment.
  * `pnpm promo -- --only long` (dev/promo/record.mjs) records it frame by frame.
  */
 const canvas = document.getElementById('promo') as HTMLCanvasElement;
@@ -34,6 +36,10 @@ const VIDEOS: Readonly<Record<string, () => Promise<Short>>> = {
   'foodchain-kit': async () => {
     await loadCaptionFont();
     return createKit(ctx, params.get('only'));
+  },
+  swallowyou: async () => {
+    await loadCaptionFont();
+    return createSwallowyou(ctx);
   },
 };
 
