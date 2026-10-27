@@ -20,7 +20,7 @@ export interface Run {
  * Plays one pull order the way an eager player would: after each pull, once
  * things settle, Nib is sent to the chest (as the ads' hero walks as soon as
  * the way opens). After the last pull Nib goes back and forth across the
- * room to pick up the gold, then to the chest.
+ * room to pick up the gold, then to the chest, and leaves.
  */
 export function play(level: LevelDef, order: readonly string[]): Run {
   const w = new World(level);
@@ -41,6 +41,7 @@ export function play(level: LevelDef, order: readonly string[]): Run {
     w.command({ kind: 'goto', x });
     run(MAX_TAIL / 4);
   }
+  w.leave();
   return { order, status: w.status, treasure: w.treasure, steps: w.steps, possible: true };
 }
 

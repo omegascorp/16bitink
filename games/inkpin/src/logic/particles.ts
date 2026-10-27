@@ -59,6 +59,8 @@ const STILL_SPEED = 0.12;
  * waterfall; it cools where it lands.
  */
 const FRONT_DELAY = 5;
+/** The fastest lava ever rises (px per step). */
+const LAVA_RISE = 1;
 const RESTING_SPEED = 0.3;
 /** Grains this close touch, for reactions. */
 const TOUCH = GRAIN_R * 2 + 1.5;
@@ -146,6 +148,13 @@ export class Grains {
   /** Wakes one coin. */
   wake(i: number): void {
     if (this.kind[i] !== COIN) return;
+    this.set[i] = 0;
+    this.still[i] = 0;
+  }
+
+  /** Knocks a set stone loose: it falls as gravel again until it settles. */
+  loosen(i: number): void {
+    if (this.kind[i] !== STONE) return;
     this.set[i] = 0;
     this.still[i] = 0;
   }
@@ -342,6 +351,8 @@ export class Grains {
       const keep = KEEP[k]!;
       this.vx[i] = (this.x[i]! - this.px[i]!) * keep;
       this.vy[i] = (this.y[i]! - this.py[i]!) * keep;
+      // Lava is thick: stone sinking through it or water landing on it can't fling it up a wall.
+      if (k === LAVA && this.vy[i]! < -LAVA_RISE) this.vy[i] = -LAVA_RISE;
       // Coins at rest settle instead of jostling in place, then fall asleep.
       if (k === COIN) {
         const resting = this.vx[i]! * this.vx[i]! + this.vy[i]! * this.vy[i]! < COIN_REST * COIN_REST;

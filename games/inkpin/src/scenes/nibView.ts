@@ -7,7 +7,7 @@ import { nibKey, shockKey } from './textures';
 const S = 1 / ART_RES;
 /** Line-boil frames per second. */
 const BOIL_FPS = 7;
-const MARK_FOR: Record<LossCause, NibMark> = { burnt: 'soot', inked: 'ink', melted: 'tears', fell: 'dizzy' };
+const MARK_FOR: Record<LossCause, NibMark> = { burnt: 'soot', inked: 'ink', pricked: 'dizzy', melted: 'tears', fell: 'dizzy' };
 
 /**
  * Nib on screen: picks the pose from what the creature is doing, carries the

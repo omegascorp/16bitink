@@ -13,7 +13,8 @@ const TIPS: Record<ControlMode, string> = {
 const CONTROL_LABEL: Record<ControlMode, string> = { tap: 'Move: tap to go  ⇄', stick: 'Move: joystick  ⇄' };
 const CAUSE_TEXT: Record<string, { title: string; line: string }> = {
   burnt: { title: 'Too hot!', line: 'Nib walked into the lava. Cool it with water first.' },
-  inked: { title: 'Inked!', line: 'The Blot got Nib. Wash it away first.' },
+  inked: { title: 'Caught!', line: 'The inky boar got Nib. Soak it with water, or jump on its head.' },
+  pricked: { title: 'Ouch, spikes!', line: 'Spiky guards can’t be stomped. Wash them away instead.' },
   melted: { title: 'The gold melted!', line: 'Coins that touch lava are gone, and too few are left.' },
   fell: { title: 'Whoops!', line: 'Nib fell out of the temple.' },
 };
@@ -36,6 +37,9 @@ export class HudScene extends Phaser.Scene {
   private stickBase!: Phaser.GameObjects.Graphics;
   private stickKnob!: Phaser.GameObjects.Graphics;
   private jumpButton!: Phaser.GameObjects.Container;
+  /** Shown once the goal is met: Nib may leave now or stay for the rest of the gold. */
+  private leaveButton!: Phaser.GameObjects.Text;
+  private goalShown = false;
 
   constructor() {
     super('hud');
@@ -77,6 +81,13 @@ export class HudScene extends Phaser.Scene {
     this.tip.setBackgroundColor('rgba(255,250,240,0.85)').setPadding(12, 4, 12, 4);
     // A jump button for touch screens in joystick mode (keyboards have Space).
     this.jumpButton = this.button('⤒', () => this.game.events.emit('cmd:jump'), 34);
+    this.leaveButton = text(26, PAPER).setOrigin(0.5).setBackgroundColor('#2f7a3a').setPadding(18, 6, 18, 6).setVisible(false);
+    this.leaveButton.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
+      hudTake(p);
+      this.sfx.unlock();
+      this.sfx.play('tap');
+      this.game.events.emit('cmd:leave');
+    });
     this.buttons = [this.button('↺', () => this.game.events.emit('cmd:restart')), this.button('?', () => this.game.events.emit('cmd:hint'))];
     this.layout();
     this.scale.on('resize', this.layout, this);
@@ -136,6 +147,10 @@ export class HudScene extends Phaser.Scene {
     this.controlChip.setPosition(x, narrow ? 76 : 86).setFontSize(narrow ? 16 : 18);
     const touch = this.sys.game.device.input.touch;
     this.jumpButton.setPosition(width - 52, height - 130).setVisible(touch && this.controls === 'stick');
+    // Centred, but clear of the jump button in the bottom-right corner.
+    this.leaveButton.setFontSize(narrow ? 24 : 26);
+    const leaveRoom = this.jumpButton.visible ? width - 104 : width;
+    this.leaveButton.setPosition(Math.min(width / 2, leaveRoom - this.leaveButton.width / 2 - 8), height - (narrow ? 96 : 70));
     this.tip.setPosition(width / 2, height - 10).setFontSize(narrow ? 19 : 22).setWordWrapWidth(width - 24).setAlign('center');
     if (this.card) this.card.setPosition(width / 2, this.cardY(this.card.getData('h') as number));
   }
@@ -146,7 +161,15 @@ export class HudScene extends Phaser.Scene {
   }
 
   private onState(s: HudState): void {
-    const label = `${s.coins} / ${s.needed}`;
+    if (s.goal && !this.goalShown) this.showGoal();
+    if (s.goal) {
+      const leave = `Leave with ${s.coins} coins  ➜`;
+      if (this.leaveButton.text !== leave) {
+        this.leaveButton.setText(leave);
+        this.layout();
+      }
+    }
+    const label = s.goal ? `${s.coins}` : `${s.coins} / ${s.needed}`;
     if (label !== this.lastCount) {
       this.lastCount = label;
       this.count.setText(label).setColor(s.coins >= s.needed ? '#2f7a3a' : INK);
@@ -157,10 +180,27 @@ export class HudScene extends Phaser.Scene {
       this.chestIcon.setTexture(s.chest ? 'chest-open' : 'chest-closed');
       if (s.chest) this.tweens.add({ targets: this.chestIcon, scale: 0.34, duration: 160, yoyo: true });
     }
-    if (s.started && this.tip.visible) this.tweens.add({ targets: this.tip, alpha: 0, duration: 400, onComplete: () => this.tip.setVisible(false) });
+    if (s.started && !s.goal && this.tip.visible && this.tip.alpha > 0.9) this.tweens.add({ targets: this.tip, alpha: 0, duration: 400, onComplete: () => this.tip.setVisible(false) });
+  }
+
+  /** The goal is met: say so, and offer the way out while the rest of the gold waits. */
+  private showGoal(): void {
+    this.goalShown = true;
+    this.leaveButton.setVisible(true).setScale(0.6);
+    this.tweens.add({ targets: this.leaveButton, scale: 1, duration: 260, ease: 'Back.out' });
+    this.tweens.add({ targets: this.leaveButton, scale: 1.06, duration: 600, yoyo: true, repeat: -1, delay: 300 });
+    this.tweens.killTweensOf(this.tip);
+    const key = this.sys.game.device.input.touch ? '' : ' (Enter)';
+    this.tip.setText(`Treasure found! Pick up the rest of the gold, or leave${key}.`).setVisible(true).setAlpha(0.92);
+    this.tweens.add({ targets: this.tip, alpha: 0, delay: 4500, duration: 600, onComplete: () => this.tip.setVisible(false) });
   }
 
   private onReset(): void {
+    this.goalShown = false;
+    this.tweens.killTweensOf(this.leaveButton);
+    this.leaveButton.setVisible(false).setScale(1);
+    this.tweens.killTweensOf(this.tip);
+    this.tip.setText(TIPS[this.controls]);
     this.card?.destroy();
     this.card = null;
     this.tip.setVisible(true).setAlpha(0.92);
@@ -186,6 +226,8 @@ export class HudScene extends Phaser.Scene {
 
   private showResult(r: Result): void {
     this.card?.destroy();
+    this.tweens.killTweensOf(this.leaveButton);
+    this.leaveButton.setVisible(false);
     const { width, height } = screenSize(this.scale);
     const w = Math.min(380, width - 32);
     const h = r.won ? 320 : 200;

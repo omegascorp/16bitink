@@ -1,14 +1,15 @@
 import Phaser from 'phaser';
 import { GRASS_H, GROUND_Y, SKY_H } from '../art/board';
 import { ART_RES, BOIL, PAPER_HEX } from '../art/palette';
-import { BLOT_FRAME, CHEST_FRAME, FLAME_FRAME, PIN_RING } from '../art/props';
+import { BOAR_FRAME } from '../art/boar';
+import { CHEST_FRAME, FLAME_FRAME, PIN_RING } from '../art/props';
 import { LiquidPainter, LIQUID_RES } from '../art/liquid';
 import type { SoundBoard } from '../audio/sfx';
 import { CELLAR } from '../level/cellar';
 import { segDistance } from '../logic/geom';
 import type { PinDef } from '../logic/level';
 import { COIN, STEPS_PER_SECOND } from '../logic/particles';
-import { World, type WorldEvent } from '../logic/world';
+import { World, type BlotEnd, type WorldEvent } from '../logic/world';
 import { DPR, screenSize } from './hidpi';
 import { NibView } from './nibView';
 import { bakeTextures, COIN_TURNS, pinKey } from './textures';
@@ -185,7 +186,7 @@ export class GameScene extends Phaser.Scene {
     this.chest = this.add.image(level.chest.x, level.chest.y, 'chest-closed').setScale(S).setOrigin(CHEST_FRAME.ox / CHEST_FRAME.w, CHEST_FRAME.oy / CHEST_FRAME.h);
     this.world0.add(this.chest);
     for (const b of this.world.blots) {
-      const img = this.add.image(b.x, b.y, 'blot-grump-0').setScale(S).setOrigin(BLOT_FRAME.ox / BLOT_FRAME.w, BLOT_FRAME.oy / BLOT_FRAME.h);
+      const img = this.add.image(b.x, b.y, 'blot-grump-0').setScale(S).setOrigin(BOAR_FRAME.ox / BOAR_FRAME.w, BOAR_FRAME.oy / BOAR_FRAME.h);
       this.blots.push(img);
       this.world0.add(img);
     }
@@ -344,7 +345,6 @@ export class GameScene extends Phaser.Scene {
           break;
         case 'goal':
           this.sfx.play('win');
-          this.nib.cheer();
           break;
         case 'chest':
           this.openChest();
@@ -354,6 +354,7 @@ export class GameScene extends Phaser.Scene {
           break;
         case 'washed':
         case 'scorched':
+        case 'stomped':
           this.blotGone(e.type, e.x, e.y);
           break;
         default:
@@ -394,25 +395,64 @@ export class GameScene extends Phaser.Scene {
     } });
   }
 
+  /** A picked-up coin hops into Nib's backpack, so even one dug out from deep down is seen going. */
+  private flyCoin(id: number, x: number, y: number): void {
+    const c = this.coins.get(id);
+    if (!c) return;
+    this.coins.delete(id);
+    c.setPosition(x, y).setVisible(true).setDepth(1);
+    const nib = this.world.nib;
+    this.tweens.add({
+      targets: c,
+      x: nib.x - nib.facing * 10,
+      y: nib.y - 18,
+      scale: S * 0.6,
+      alpha: 0.4,
+      duration: 260,
+      ease: 'Quad.in',
+      onComplete: () => c.destroy(),
+    });
+  }
+
   private puff(kind: 'steam' | 'smoke', x: number, y: number): void {
     const p = this.add.image(x, y, kind).setScale(S * (0.6 + Math.random() * 0.5)).setAlpha(0.9);
     this.world0.add(p);
     this.tweens.add({ targets: p, y: y - 40 - Math.random() * 30, x: x + (Math.random() - 0.5) * 24, scale: p.scale * 1.8, alpha: 0, duration: 700 + Math.random() * 400, onComplete: () => p.destroy() });
   }
 
-  private blotGone(how: 'washed' | 'scorched', x: number, y: number): void {
+  private blotGone(how: BlotEnd, x: number, y: number): void {
     const i = this.world.blots.findIndex((b) => b.gone === how && Math.abs(b.x - x) < 1 && Math.abs(b.y - y) < 1);
     const img = this.blots[i];
     if (!img) return;
+    if (how === 'stomped') {
+      // Squashed flat with a boing, then it puffs away, ink and all.
+      this.sfx.play('stomp');
+      img.setTexture('blot-scared-0');
+      this.tweens.add({
+        targets: img,
+        scaleY: S * 0.28,
+        scaleX: S * 1.25,
+        duration: 90,
+        ease: 'Quad.out',
+        onComplete: () => {
+          for (let k = 0; k < 3; k++) this.puff('steam', x + (k - 1) * 12, y + 12);
+          this.tweens.add({ targets: img, alpha: 0, delay: 350, duration: 250, onComplete: () => img.setVisible(false) });
+        },
+      });
+      return;
+    }
     this.sfx.play('squelch');
+    img.setTexture('blot-scared-0');
     if (how === 'washed') {
-      // It thins to a grey streak and runs off down the water.
-      img.setTint(0x8f97b8);
-      this.tweens.add({ targets: img, scaleY: S * 0.2, scaleX: S * 1.5, alpha: 0, y: y + 16, duration: 700, ease: 'Quad.in' });
+      // Soaked through, it tumbles away on the water.
+      img.setTint(0xb8c8e0);
+      for (let k = 0; k < 3; k++) this.puff('steam', x + (k - 1) * 10, y - 4);
+      this.tweens.add({ targets: img, angle: img.flipX ? 200 : -200, x: x + (img.flipX ? 40 : -40), y: y + 10, alpha: 0, duration: 800, ease: 'Quad.in' });
     } else {
-      img.setTint(0x5d5a5a);
-      for (let k = 0; k < 4; k++) this.puff('smoke', x + (k - 1.5) * 8, y - 6);
-      this.tweens.add({ targets: img, scale: S * 0.3, alpha: 0, duration: 600, ease: 'Quad.in' });
+      // A singed bottom: it rockets straight up in a puff of smoke.
+      img.setTint(0x7a6a62);
+      for (let k = 0; k < 4; k++) this.puff('smoke', x + (k - 1.5) * 8, y + 10);
+      this.tweens.add({ targets: img, y: y - 90, alpha: 0, duration: 650, ease: 'Quad.in' });
     }
   }
 
@@ -489,6 +529,10 @@ export class GameScene extends Phaser.Scene {
     this.world.jump();
   }
 
+  private onLeave(): void {
+    this.world.leave();
+  }
+
   private walk(dir: -1 | 0 | 1): void {
     this.world.command(dir === 0 ? { kind: 'stay' } : { kind: 'walk', dir });
   }
@@ -520,6 +564,10 @@ export class GameScene extends Phaser.Scene {
         this.keyDir = dir;
         this.walk(dir);
       }
+      return;
+    }
+    if (e.key === 'Enter') {
+      this.world.leave();
       return;
     }
     if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {

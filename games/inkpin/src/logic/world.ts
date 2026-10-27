@@ -13,6 +13,14 @@ export const BLOT_R = 22;
 /** Walking speeds in px per step. */
 const NIB_WALK = 0.95;
 const BLOT_WALK = 0.55;
+/** A Blot sees Nib this far away sideways, and only on about its own level (px). */
+const BLOT_SIGHT_X = 220;
+const BLOT_SIGHT_Y = 50;
+/** Steps a patrolling Blot pushes against something before it turns round. */
+const BLOT_TURN_STEPS = 30;
+/** Nib must be falling at least this fast (px per step) to stomp a guard, and bounces off at this share of a jump. */
+const STOMP_SPEED = 0.4;
+const STOMP_BOUNCE = 0.75;
 /** Water a Blot can soak up (grain contacts summed over steps) before it washes away. */
 const BLOT_SOAK = 260;
 /** The highest step a creature climbs without stopping (px): a raccoon hauls itself up a ledge. */
@@ -44,8 +52,10 @@ const PICKUP_REACH = 8;
  * between stones or sank to the bottom of a pool is never out of reach.
  */
 const DIG_DEPTH = 130;
+/** Stones below this fraction of Nib's radius under its middle are floor; higher ones it kicks aside. */
+const KICK_BELOW = 0.5;
 
-export type LossCause = 'burnt' | 'inked' | 'melted' | 'fell';
+export type LossCause = 'burnt' | 'inked' | 'pricked' | 'melted' | 'fell';
 
 /**
  * What the player has told Nib to do: stay put, walk one way (arrow keys,
@@ -62,6 +72,7 @@ export type WorldEvent =
   | { readonly type: 'goal' }
   | { readonly type: 'washed'; readonly x: number; readonly y: number }
   | { readonly type: 'scorched'; readonly x: number; readonly y: number }
+  | { readonly type: 'stomped'; readonly x: number; readonly y: number }
   | { readonly type: 'splash'; readonly x: number; readonly y: number }
   | { readonly type: 'chest'; readonly x: number; readonly y: number }
   | { readonly type: 'jump' };
@@ -81,11 +92,17 @@ export interface Creature {
   facing: number;
 }
 
+/** How a guard is beaten: washed away, scorched, or stomped flat. */
+export type BlotEnd = 'washed' | 'scorched' | 'stomped';
+
 export interface Blot extends Creature {
+  readonly spiky: boolean;
   soaked: number;
   /** Set when it's gone: washed away or dried to smoke. */
-  gone: 'washed' | 'scorched' | null;
+  gone: BlotEnd | null;
   goneAt: number;
+  /** Steps it has walked without getting anywhere: it turns round. */
+  stuck: number;
 }
 
 export interface PinState {
@@ -127,7 +144,7 @@ export class World {
     this.coinsTotal = this.grains.countOf(COIN);
     this.pins = level.pins.map((def) => ({ def, pulledAt: null }));
     this.nib = creature(level.nib.x, level.nib.y, NIB_R, 1);
-    this.blots = level.blots.map((b) => ({ ...creature(b.x, b.y, BLOT_R, -1), soaked: 0, gone: null, goneAt: 0 }));
+    this.blots = level.blots.map((b) => ({ ...creature(b.x, b.y, BLOT_R, -1), spiky: b.spiky ?? false, soaked: 0, gone: null, goneAt: 0, stuck: 0 }));
     this.rebuildSegs();
     // Let everything settle against the pins before play starts, so a level
     // opens at rest: still pools, coins asleep.
@@ -259,17 +276,34 @@ export class World {
     if (o.kind === 'goto') this.stalled = Math.abs(nib.x - before) < 0.05 ? this.stalled + 1 : 0;
   }
 
+  /**
+   * A Blot patrols its room, turning at walls and edges, and goes for Nib
+   * once Nib is close and on its level.
+   */
   private moveBlot(b: Blot): void {
-    const dir = Math.sign(this.nib.x - b.x) || b.facing;
-    b.facing = dir;
-    this.moveCreature(b, dir * BLOT_WALK, false);
+    const nib = this.nib;
+    const seesNib = Math.abs(nib.x - b.x) < BLOT_SIGHT_X && Math.abs(nib.y - b.y) < BLOT_SIGHT_Y;
+    if (seesNib) b.facing = Math.sign(nib.x - b.x) || b.facing;
+    else if (b.stuck > BLOT_TURN_STEPS || this.edgeAhead(b)) {
+      b.facing = -b.facing;
+      b.stuck = 0;
+    }
+    const before = b.x;
+    this.moveCreature(b, b.facing * BLOT_WALK, false);
+    b.stuck = Math.abs(b.x - before) < 0.1 ? b.stuck + 1 : 0;
     if (b.wet > 0) {
       b.soaked += b.wet;
       if (b.soaked > BLOT_SOAK) this.blotGone(b, 'washed');
     }
   }
 
-  private blotGone(b: Blot, how: 'washed' | 'scorched'): void {
+  /** True when a Blot standing on something would walk off a drop next. */
+  private edgeAhead(b: Blot): boolean {
+    if (b.air > FOOTING_STEPS || b.wet > 3) return false;
+    return !this.overlaps(b.x + b.facing * (b.r + 6), b.y + b.r + 14, 4);
+  }
+
+  private blotGone(b: Blot, how: BlotEnd): void {
     b.gone = how;
     b.goneAt = this.steps;
     this.events.push({ type: how, x: b.x, y: b.y });
@@ -308,7 +342,7 @@ export class World {
     const k = this.contact;
     for (let pass = 0; pass < 2; pass++) {
       for (const s of this.segs) if (capsuleContact(s, c.x, c.y, c.r, k)) this.resolve(c, k);
-      // Stone is solid ground.
+      // Stone is solid ground, but Nib kicks loose any rubble in front of its body.
       g.near(c.x, c.y, c.r + GRAIN_R, (i) => {
         if (g.kind[i] !== STONE) return;
         const dx = c.x - g.x[i]!;
@@ -317,7 +351,9 @@ export class World {
         k.nx = dx / d;
         k.ny = dy / d;
         k.depth = c.r + GRAIN_R - d;
-        if (k.depth > 0) this.resolve(c, k);
+        if (k.depth <= 0) return;
+        if (isNib && walk !== 0 && this.inTheWay(c, walk, i)) this.kick(c, walk, i, k);
+        else this.resolve(c, k);
       });
     }
     c.air = c.grounded ? 0 : c.air + 1;
@@ -348,6 +384,26 @@ export class World {
       g.y[i] = g.y[i]! + (dy / d) * push;
     });
     if (isNib && canWalk) this.dig(c);
+  }
+
+  /** A stone ahead of Nib and above its feet: rubble in the way, not the floor. */
+  private inTheWay(c: Creature, walk: number, i: number): boolean {
+    const g = this.grains;
+    return Math.sign(g.x[i]! - c.x) === Math.sign(walk) && g.y[i]! < c.y + c.r * KICK_BELOW;
+  }
+
+  /**
+   * Nib shoves a stone in its way, and the rubble around it comes loose, so
+   * lava that set into a wall or a lump never shuts Nib in.
+   */
+  private kick(c: Creature, walk: number, i: number, k: Contact): void {
+    const g = this.grains;
+    g.loosen(i);
+    g.x[i] = g.x[i]! - k.nx * k.depth;
+    g.y[i] = g.y[i]! - k.ny * k.depth;
+    g.near(g.x[i]!, g.y[i]!, GRAIN_R * 4, (j) => {
+      if (this.inTheWay(c, walk, j)) g.loosen(j);
+    });
   }
 
   /** Nib digs out the coins straight below it, in gaps between stones or at the bottom of a pool. */
@@ -406,6 +462,13 @@ export class World {
     if (nib.y > 1300) return this.lose('fell');
     for (const b of this.blots) {
       if (b.gone) continue;
+      if (this.stomps(b)) {
+        if (b.spiky) return this.lose('pricked');
+        this.blotGone(b, 'stomped');
+        nib.vy = -JUMP_SPEED * STOMP_BOUNCE;
+        nib.air = FOOTING_STEPS + 1;
+        continue;
+      }
       if (Math.hypot(b.x - nib.x, b.y - nib.y) < b.r + nib.r - 6) return this.lose('inked');
     }
     if (this.treasure < this.level.coinsNeeded) return this.lose('melted');
@@ -427,6 +490,13 @@ export class World {
     }
     const moving = this.grains.maxSpeed() > SETTLED_SPEED || Math.hypot(nib.vx, nib.vy) > SETTLED_SPEED * 0.5;
     this.quietSteps = moving ? 0 : this.quietSteps + 1;
+  }
+
+  /** Nib coming down on top of a guard, as in the old platformers: it lands on its head. */
+  private stomps(b: Blot): boolean {
+    const nib = this.nib;
+    const above = b.y - nib.y;
+    return nib.vy > STOMP_SPEED && above > b.r * 0.7 && Math.abs(b.x - nib.x) < b.r + nib.r * 0.6 && Math.hypot(b.x - nib.x, b.y - nib.y) < b.r + nib.r;
   }
 
   private lose(cause: LossCause): void {

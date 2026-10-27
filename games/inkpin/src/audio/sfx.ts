@@ -4,9 +4,9 @@
  * sound has a minimum gap so a pour of a hundred grains doesn't become a
  * hundred sounds.
  */
-export type Sfx = 'pull' | 'blocked' | 'jump' | 'sizzle' | 'coin' | 'splash' | 'squelch' | 'win' | 'fail' | 'tap';
+export type Sfx = 'pull' | 'blocked' | 'jump' | 'stomp' | 'sizzle' | 'coin' | 'splash' | 'squelch' | 'win' | 'fail' | 'tap';
 
-const GAP_MS: Record<Sfx, number> = { pull: 60, blocked: 150, jump: 120, sizzle: 140, coin: 45, splash: 220, squelch: 200, win: 500, fail: 500, tap: 60 };
+const GAP_MS: Record<Sfx, number> = { pull: 60, blocked: 150, jump: 120, stomp: 120, sizzle: 140, coin: 45, splash: 220, squelch: 200, win: 500, fail: 500, tap: 60 };
 
 export class SoundBoard {
   private ctx: AudioContext | null = null;
@@ -58,6 +58,12 @@ export class SoundBoard {
       case 'jump':
         // A springy boing, rising.
         this.tone(260, 620, 0.16, 0.16, 'triangle', t);
+        break;
+      case 'stomp':
+        // A squashy "bonk" with a springy rebound.
+        this.tone(520, 140, 0.12, 0.22, 'square', t);
+        this.tone(300, 760, 0.14, 0.12, 'triangle', t + 0.08);
+        this.hiss(0.06, 1200, 0.1, t);
         break;
       case 'tap':
         this.tone(900, 700, 0.05, 0.08, 'triangle', t);

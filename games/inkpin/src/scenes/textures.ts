@@ -2,7 +2,8 @@ import type Phaser from 'phaser';
 import { paintBoard, paintGrassTile, paintRockTile, paintSkyTile } from '../art/board';
 import { paintLantern, paintNib, paintSack, type NibMark, type NibPose } from '../art/nib';
 import { BOIL } from '../art/palette';
-import { COIN_SIZE, paintBlot, paintChest, paintCoin, paintFlame, paintGlow, paintIdol, paintPin, paintPuff } from '../art/props';
+import { paintBoar } from '../art/boar';
+import { COIN_SIZE, paintChest, paintCoin, paintFlame, paintGlow, paintIdol, paintPin, paintPuff } from '../art/props';
 import type { LevelDef } from '../logic/level';
 import { ART_RES } from '../art/palette';
 
@@ -27,8 +28,8 @@ export function bakeTextures(scene: Phaser.Scene, level: LevelDef): void {
   for (let b = 0; b < BOIL; b++) {
     for (const pose of NIB_POSES) add(nibKey(pose, b), () => paintNib({ pose, mark: 'none', boil: b }));
     for (const mark of NIB_MARKS) add(shockKey(mark, b), () => paintNib({ pose: 'shock', mark, boil: b }));
-    add(`blot-grump-${b}`, () => paintBlot('grump', b));
-    add(`blot-scared-${b}`, () => paintBlot('scared', b));
+    add(`blot-grump-${b}`, () => paintBoar('grump', b));
+    add(`blot-scared-${b}`, () => paintBoar('scared', b));
   }
   add('sack', paintSack);
   add('lantern', () => paintLantern(true));

@@ -22,7 +22,7 @@ Runners-up: **InkHeist**, which has no conflicts but is darker in tone, and **In
 
 ## Pillars
 
-1. **Pins and nothing else.** The only thing you do is pull a pin (and, from chapter 2, push one back in). Every level is a pin puzzle, from the first minute to the last.
+1. **Pins first.** Every level is a pin puzzle, from the first minute to the last. You also move Nib, but movement is part of the puzzle (where Nib waits, what he stands on), never a reflex test: every level can be finished with tap-to-go, and harder movement only leads to bonus gold. The movement rules are in [inkpin-levels.md](inkpin-levels.md#how-movement-fits-in).
 2. **Real flow, same every time.** Everything that pours or falls is simulated, with a fixed step and no randomness. A level always plays out the same on every device, so a loss comes from your order and timing, never from luck.
 3. **Order and amount.** The ad puzzles only ask which pin comes first. Ours also ask how much. Gate pins can be pushed back in to cut a flow mid-pour, so "just enough water to cool the lava without washing the gold away" is a puzzle.
 4. **Read it, then pull.** Each level fits on one screen (the tall levels scroll), and every material always does the same thing. A careful player can solve it in their head first, and the "first try" blot rewards that.
@@ -49,20 +49,23 @@ A switch under the level's goal flips between them and remembers the choice. The
 - **Water is safe for Nib.** Nib gets soggy and keeps going, and floats on deep water.
 - **Lava, fire, acid, gas and Blots are not.** Any of them touching Nib ends the level.
 - **Falling things:** a boulder or a bomb landing on Nib ends the level. Coins and gems landing on Nib are welcome.
-- Nib can't climb more than a step or jump a gap. Stone, ice and vines can build the way across.
+- Nib climbs a ledge up to about 44 px and jumps about 55 px, never a pit wall. Each ruin adds one new kind of ground (vines, crumbling ledges, ice floors, lifts, tides, wind…), listed in [inkpin-levels.md](inkpin-levels.md).
 
-## Blots
+## Guards
 
-The monsters are **Blots**: the Ink Atlas's spilled ink, got up and walking. They guard the treasure and come for Nib once a path is open, and one touch inks Nib and ends the level. Each chapter adds a new kind, so most chapters also bring a new way to beat one.
+The enemies are **guards**: grumpy animals that watch over each ruin's treasure (changed Oct 27, 2026; they used to be walking ink blots). The Jungle Temple's guard is a stout little **boar**. Each guard patrols its room, turning at walls and edges, and goes for Nib once he's close and on its level. One touch ends the level.
 
-| How a Blot ends | What happens |
+**Nib can stomp them**, as in the old platformers: landing on a guard's head squashes it flat with a boing, and it puffs away while Nib bounces off. Guards with **spikes** can't be stomped; landing on one ends the level, so it needs water, lava or a boulder. Each ruin's new guard (the "new Blot" in the tables below and in [inkpin-levels.md](inkpin-levels.md)) will become an animal of that ruin, some round and stompable, some spiky. That redesign is still to do.
+
+| How a guard is beaten | What happens |
 |---|---|
-| Water | It thins to a grey streak and runs off. Most Blots need about their own size in water. |
-| Lava or fire | It dries to a curl of smoke. |
-| A boulder or a bomb | It splats flat into a puddle. |
-| Acid (chapter 5) | It fizzes away. |
+| A stomp (not spiky guards) | It squashes flat with a boing and puffs away; Nib bounces off |
+| Water | It gets soaked, squeals and is swept off in a splash. Most guards need about their own size in water |
+| Lava or fire | Its bottom gets singed and it rockets off in a puff of smoke |
+| A boulder or a bomb | It's flattened like a stomp |
+| Acid (chapter 5) | It flees, fizzing |
 
-Cartoon only, as everywhere on 16bit.ink: no blood and nothing gross. Blots are ink, so a splat is just ink.
+Cartoon only, as everywhere on 16bit.ink: no blood and nothing gross. A beaten guard always just squashes or runs off in a puff.
 
 ## Rules
 
@@ -90,7 +93,7 @@ Every level has two kinds of treasure, and Nib takes both himself:
 - **Gold coins** pour and spill like the liquids. Nib picks up every coin he walks into, so after the pins are pulled the player walks Nib back and forth to gather what fell. Coins that melt in lava or drop out of reach are lost.
 - **The chest** holds the level's relic (in the Jungle Temple, a little golden idol). Nib opens it by walking up to it, and the idol jumps into his pack.
 
-A level is won when Nib has the relic **and** the level's coin target. Everything Nib carries out of a won level goes into the **bank**, which the result card shows (kept in the browser for now).
+A level is won when Nib has the relic **and** the level's coin target. Meeting the target doesn't end the level: a "Leave with N coins" button appears (Enter on a keyboard), and Nib can stay to pick up the rest of the gold. The level ends when Nib leaves or no gold is left. No gold is ever out of reach: Nib digs out coins that slipped between stones or sank to the bottom of a pool, and kicks aside lava that set into a lump or a wall. Everything Nib carries out of a won level goes into the **bank**, which the result card shows (kept in the browser for now).
 
 ### What the treasure is for (to decide)
 
@@ -136,7 +139,7 @@ A different ancient ruin each chapter, each with its treasure vault, a new mater
 
 | # | Ruin | New material (level 2) | New Blot (level 4) | Boss |
 |---|---|---|---|---|
-| 1 | **The Jungle Temple**: stone blocks, moss, vines, carved glyphs, torches | Water, gold coins, boulders | **Blot:** walks to Nib once a path is open | **The Big Blot**, which fills the idol hall's floor; flood it with every drop at once while Nib waits up high |
+| 1 | **The Jungle Temple**: stone blocks, moss, vines, carved glyphs, torches | Water, gold coins, boulders | **Blot:** patrols its room and goes for Nib on sight | **The Big Blot**, which fills the idol hall's floor; flood it with every drop at once while Nib waits up high |
 | 2 | **The Volcano Shrine**: black basalt, a fire idol, rivers of lava below | **Lava:** water turns it to stone, which builds floors and plugs holes | **Ember Blot:** lava can't hurt it, only water | **The Fire Idol**, which pours lava from three mouths in turn; cool each one with just enough water from gate pins |
 | 3 | **The Desert Tomb**: sandstone, sealed burial chambers, painted walls | **Tomb gas:** green, rises instead of falling, and Nib can't breathe it. A torch turns it into a blast that breaks cracked walls | **Puff Blot:** floats up on gas | **The Tomb Guardian**, a Blot in a stone coffin that breathes gas at Nib; light its breath to bring its own wall down on it |
 | 4 | **The Frozen Monastery**: a mountain monastery under the ice, prayer bells, icicles | **Ice:** frost freezes still water into blocks that slide and push; lava melts them back | **Frost Blot:** frozen solid, so water does nothing until it's thawed | **The Ice Wyrm**, which freezes every pool on its beat; time pulls between its breaths |
@@ -153,7 +156,7 @@ Each chapter has 10 levels on the same arc, so each new idea arrives on its own 
 
 | Level | Role | Twist |
 |---|---|---|
-| 1 | Meet the place | Only what you already know, in the new place's rooms |
+| 1 | Meet the place | The ruin's new ground for Nib (vines, ice floors, lifts…), with only materials you already know |
 | 2 | The new material | Taught on its own |
 | 3 | The material at work | The new material mixed with the old ones |
 | 4 | The new Blot | Taught on its own |
@@ -164,22 +167,9 @@ Each chapter has 10 levels on the same arc, so each new idea arrives on its own 
 | 9 | Lights out | Dark except where Nib's lantern, lava or fire glows, so look before you pull |
 | 10 | Boss | The chapter's big Blot, on a beat |
 
-## Chapter 1: The Jungle Temple (free)
+## The levels
 
-A stepped temple half swallowed by the jungle: big dressed stone blocks with moss, hanging vines, a band of carved glyphs (made up, not a real script), torches on the walls, and a treasure chest in every vault. The top of the temple pokes out of the jungle floor above each level. Chapter 1 teaches the basics the ads made famous, then goes deeper than any ad by level 8.
-
-| # | Name | Goal | Twist / new |
-|---|---|---|---|
-| 1 | The Door | Rescue | One pin between Nib and the chest (tutorial) |
-| 2 | Gold Rush | Loot | Coins pour into Nib's pack; pull in the order that keeps them out of the drain |
-| 3 | The Rain Cistern | Rescue | **Water:** wash a Blot away before opening Nib's path |
-| 4 | Two Blots | Clear | Blots wait in two rooms, and there's only enough water for both if it goes the right way |
-| 5 | The Gold Vault | Loot | Lots of gold, and lava above it: the prototype level |
-| 6 | Pin Over Pin | Rescue | **Pin order inside a shaft:** three pins stacked, three things to sort (water, boulder, gold) |
-| 7 | The Well of Vines | Rescue | **Tall:** a well two screens deep that scrolls |
-| 8 | The Flooded Stair | Loot | Remix: Blots, boulders and gold, and the water has to reach both rooms |
-| 9 | Torches Out | Rescue | Lights out: only Nib's lamp and the lava light the room |
-| 10 | The Idol Hall | Boss | The Big Blot pulses across the floor; get every drop of water onto it at once while Nib waits on the top ledge |
+Every level of all ten ruins, with what it asks and the new ground each ruin brings, is in [inkpin-levels.md](inkpin-levels.md). Chapter 1, the Jungle Temple, is free and teaches the basics the ads made famous, then goes deeper than any ad by level 8.
 
 ## The prototype (Oct 27, 2026)
 
@@ -187,12 +177,13 @@ One level, **The Gold Vault**, in `games/inkpin` on branch `feat/inkpin`, playab
 
 - **The puzzle:**
   - Four pins: water, lava, the coins (which sit above the lava) and the gate in front of Nib.
-  - With Nib walking by himself, 5 of the 24 pull orders won: water and lava first, in either order, then coins and gate. The tests now play each order like an eager player who sends Nib to the chest after every pull; most orders still lose. A whole run collects about 230–260 of the 280 coins.
+  - With Nib walking by himself, 5 of the 24 pull orders won: water and lava first, in either order, then coins and gate. The tests now play each order like an eager player who sends Nib to the chest after every pull; most orders still lose. Over 40 random pull timings of the winning orders, Nib always reached the chest and collected 279.6 of the 280 coins on average.
   - Every other order fails for a clear reason: the Blot gets Nib, Nib walks into the lava, or the coins drop into the lava and melt.
 - **What the simulation learned:**
   - Water touching lava makes stone. New stone is heavy gravel that sinks and spreads, then sets solid once still, so it always ends as a level floor.
   - Lava that has come to rest against stone freezes too, so a whole pool cools once water reaches it, while lava still pouring doesn't, so there are no stone waterfalls.
   - Coins at rest fall asleep and hold their place until something disturbs them.
+  - Lava is thick: it rises at most 1 px a step, so stone sinking through it can't fling it up a wall and over a ledge.
   - Levels settle for 3 seconds (off screen) before they start, so they open at rest.
 
 ## Controls

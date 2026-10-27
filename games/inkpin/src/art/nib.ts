@@ -231,12 +231,24 @@ function paintArm(pen: Pen, pose: NibPose, side: 'front' | 'back'): void {
   if (up) paw = side === 'front' ? { x: 36, y: -24 } : { x: -10, y: -26 };
   else if (swim) paw = side === 'front' ? { x: 28, y: 6 } : { x: 18, y: 10 };
   else paw = side === 'front' ? { x: 24, y: 9 } : { x: 17, y: 12 };
-  const color = side === 'back' ? mix(FUR_DARK, '#000000', 0.2) : FUR_DARK;
-  pen.stroke([shoulder, { x: (shoulder.x + paw.x) / 2 + 1, y: (shoulder.y + paw.y) / 2 + (up ? 0 : 2) }, paw], 5.5, color, 1, false);
-  pen.dot(paw.x, paw.y, 3.6, color);
+  // Raised paws are grey fur, so they read as hands beside the head and not as dark marks on it.
+  const base = up ? FUR : FUR_DARK;
+  const color = side === 'back' ? mix(base, '#000000', 0.2) : base;
+  const elbow = { x: (shoulder.x + paw.x) / 2 + 1, y: (shoulder.y + paw.y) / 2 + (up ? 0 : 2) };
+  if (up) pen.stroke([shoulder, elbow, paw], 7, INK, 0.85, false);
+  pen.stroke([shoulder, elbow, paw], 5.5, color, 1, false);
   if (up) {
-    // Little splayed fingers.
-    for (const a of [-0.6, 0, 0.6]) pen.hair([paw, { x: paw.x + Math.sin(a) * 6, y: paw.y - Math.cos(a) * 6 }], 1.6, color, 1);
+    // An open mitten of a paw with little splayed fingers, outlined in ink.
+    for (const a of [-0.6, 0, 0.6]) {
+      const tip = { x: paw.x + Math.sin(a) * 6, y: paw.y - Math.cos(a) * 6 };
+      pen.hair([paw, tip], 3.2, INK, 0.85);
+      pen.hair([paw, tip], 1.8, color, 1);
+    }
+    pen.dot(paw.x, paw.y, 5, INK, 0.85);
+    pen.dot(paw.x, paw.y, 4, color);
+    pen.dot(paw.x + 0.5, paw.y + 0.5, 1.8, FUR_LIGHT, 0.9);
+  } else {
+    pen.dot(paw.x, paw.y, 3.6, color);
   }
 }
 
@@ -418,8 +430,8 @@ function paintMark(pen: Pen, ctx: CanvasRenderingContext2D, mark: NibMark, boil:
       pen.hair(curl, 1.4, '#6b6670', 0.7);
     }
   } else if (mark === 'ink') {
-    // Splats of Blot ink, with drips.
-    for (const [x, y, r] of [[18, -18, 6], [-6, 4, 7], [26, -2, 4], [-28, -8, 5]] as const) {
+    // Splats of Blot ink on the body and tail, with drips; the face stays clean.
+    for (const [x, y, r] of [[-6, 6, 7], [4, 16, 4], [-28, -8, 5]] as const) {
       const splat: Pt[] = [];
       for (let i = 0; i < 14; i++) {
         const a = (i / 14) * Math.PI * 2;

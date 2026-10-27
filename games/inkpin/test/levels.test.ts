@@ -26,9 +26,60 @@ describe('The Gold Vault', () => {
       const s = play(CELLAR, order).status;
       return s.state === 'lost' ? s.cause : undefined;
     };
-    expect(cause(['gate', 'W', 'L', 'C'])).toBe('inked');
+    // Gate first drops Nib into the pit: on the boar's head (a stomp) or into its path, and then the lava.
+    expect(['inked', 'burnt']).toContain(cause(['gate', 'W', 'L', 'C']));
     expect(cause(['C', 'W', 'L', 'gate'])).toBe('melted');
     expect(cause(['L', 'gate', 'W', 'C'])).toBe('burnt');
+  });
+}, 120_000);
+
+describe('the treasure', () => {
+  /** Pulls a winning order with the given waits, then walks Nib across the room and back. */
+  const visit = (order: readonly string[], waits: readonly number[]): World => {
+    const w = new World(CELLAR);
+    order.forEach((id, i) => {
+      w.pull(id);
+      for (let s = 0; s < waits[i]!; s++) w.step();
+    });
+    for (const x of [650, 60, 650]) {
+      w.command({ kind: 'goto', x });
+      for (let s = 0; s < 1200 && !w.finished; s++) {
+        w.step();
+        if (w.nibOrder.kind === 'stay') break;
+      }
+    }
+    return w;
+  };
+
+  it('stays open after the goal, so the rest of the gold can be picked up, until Nib leaves', () => {
+    const w = visit(CELLAR.solution, [500, 500, 500, 500]);
+    expect(w.goalMet).toBe(true);
+    expect(w.coinsCollected).toBeGreaterThan(CELLAR.coinsNeeded);
+    if (!w.finished) {
+      expect(w.leave()).toBe(true);
+    }
+    expect(w.status.state).toBe('won');
+  });
+
+  it('cannot be left before the goal', () => {
+    const w = new World(CELLAR);
+    expect(w.leave()).toBe(false);
+    expect(w.status.state).toBe('playing');
+  });
+
+  // However long the player waits between pulls, lava never walls off the
+  // chest and no gold is left stuck where Nib can't reach it.
+  const timings: [string[], number[]][] = [
+    [['L', 'W', 'C', 'gate'], [293, 296, 994, 348]],
+    [['W', 'L', 'C', 'gate'], [1069, 382, 393, 1115]],
+    [['W', 'L', 'C', 'gate'], [604, 397, 1004, 1000]],
+    [['L', 'W', 'C', 'gate'], [250, 700, 300, 250]],
+    [['W', 'L', 'C', 'gate'], [300, 300, 300, 300]],
+  ];
+  it.each(timings)('reaches the chest and nearly every coin: %j after %j steps', (order, waits) => {
+    const w = visit(order, waits);
+    expect(w.chestTaken).toBe(true);
+    expect(w.coinsCollected).toBeGreaterThanOrEqual(w.coinsTotal - 8);
   });
 }, 120_000);
 
@@ -78,6 +129,52 @@ describe('pins', () => {
     const w = new World(CELLAR);
     expect(w.pull('W')).toBe(true);
     expect(w.pull('L')).toBe(true);
+  });
+});
+
+describe('Blots', () => {
+  it('patrol back and forth while Nib is out of sight', () => {
+    const w = new World(CELLAR);
+    const blot = w.blots[0]!;
+    let lo = blot.x;
+    let hi = blot.x;
+    let turns = 0;
+    let facing = blot.facing;
+    for (let s = 0; s < 3000; s++) {
+      w.step();
+      lo = Math.min(lo, blot.x);
+      hi = Math.max(hi, blot.x);
+      if (blot.facing !== facing) turns++;
+      facing = blot.facing;
+    }
+    expect(hi - lo).toBeGreaterThan(150);
+    expect(turns).toBeGreaterThanOrEqual(2);
+    expect(w.status.state).toBe('playing');
+  });
+
+  /** Drops Nib from above straight onto the first guard. */
+  const dropOnGuard = (level: typeof CELLAR): World => {
+    const w = new World(level);
+    const blot = w.blots[0]!;
+    w.nib.x = blot.x;
+    w.nib.y = blot.y - 90;
+    w.nib.vy = 0;
+    for (let s = 0; s < 200 && !w.finished && !blot.gone; s++) w.step();
+    return w;
+  };
+
+  it('is stomped flat when Nib lands on its head, and Nib bounces off', () => {
+    const w = dropOnGuard(CELLAR);
+    expect(w.blots[0]!.gone).toBe('stomped');
+    expect(w.status.state).toBe('playing');
+    expect(w.nib.vy).toBeLessThan(0);
+  });
+
+  it('can’t be stomped when it has spikes', () => {
+    const spiky = { ...CELLAR, blots: CELLAR.blots.map((b) => ({ ...b, spiky: true })) };
+    const w = dropOnGuard(spiky);
+    expect(w.blots[0]!.gone).toBe(null);
+    expect(w.status).toEqual({ state: 'lost', cause: 'pricked' });
   });
 });
 

@@ -33,7 +33,8 @@ export interface LevelDef {
   readonly pins: readonly PinDef[];
   readonly fills: readonly FillDef[];
   readonly nib: { readonly x: number; readonly y: number };
-  readonly blots: readonly { readonly x: number; readonly y: number }[];
+  /** The guards. A spiky one can't be stomped: landing on it hurts Nib instead. */
+  readonly blots: readonly { readonly x: number; readonly y: number; readonly spiky?: boolean }[];
   /** Where the chest stands; Nib opens it on reaching it and takes its treasure. */
   readonly chest: { readonly x: number; readonly y: number };
   /** Coins Nib must pick up, as well as taking the chest, to win. */
