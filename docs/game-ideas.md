@@ -12,7 +12,7 @@ Candidates for future Sunday games, with the research behind each. Started Octob
 **Status (Oct 27, 2026):**
 - The user found the underserved-classics list below didn't resonate.
 - The fake-ad formats are the direction under discussion.
-- Nothing has been picked yet.
+- **Picked: pin-pull rescue**, as InkPin. Design in [inkpin-design.md](inkpin-design.md).
 
 ## 1. The real game from the fake ads (current direction)
 
