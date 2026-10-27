@@ -1,0 +1,103 @@
+---
+import Base from '../layouts/Base.astro';
+import { findGame } from '../data/games';
+import { FLASH_GAMES, FLASH_PAGE } from '../data/flashGames';
+import { findGamesLike, listedGamesLike } from '../data/gamesLike';
+import { faqJsonLd, flashJsonLd, flashTitle } from '../lib/seo';
+
+// Rendered per request, so a game's "games like" link appears on its release day without a deploy.
+export const prerender = false;
+Astro.response.headers.set('cache-control', 'public, max-age=3600');
+
+const site = Astro.site ?? Astro.url;
+const listed = new Set(listedGamesLike(new Date()).map((p) => p.slug));
+/** Our take on a Flash game, once its "games like" page is up. */
+const oursFor = (slug: string | undefined) => {
+  const page = slug && listed.has(slug) ? findGamesLike(slug) : undefined;
+  const game = page && findGame(page.game);
+  return page && game ? { page, game } : undefined;
+};
+const longDate = (day: string): string =>
+  new Date(`${day}T00:00:00Z`).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+---
+<Base title={flashTitle()} description={FLASH_PAGE.description} jsonLd={[...flashJsonLd(site), faqJsonLd(FLASH_PAGE.faq)]}>
+  <article class="flash">
+    <header>
+      <p class="pixel-label">Flash games</p>
+      <h1>{FLASH_PAGE.heading}</h1>
+      <p class="answer">{FLASH_PAGE.answer}</p>
+      <p class="byline">By {FLASH_PAGE.author}, who makes the games at 16bit.ink · Updated <time datetime={FLASH_PAGE.updated}>{longDate(FLASH_PAGE.updated)}</time></p>
+    </header>
+
+    {FLASH_PAGE.sections.map((s) => (
+      <section>
+        <h2>{s.heading}</h2>
+        {s.paragraphs.map((p) => <p>{p}</p>)}
+      </section>
+    ))}
+
+    <section aria-labelledby="list-title">
+      <h2 id="list-title">{FLASH_GAMES.length} Flash games you can still play</h2>
+      <ol class="games">
+        {FLASH_GAMES.map((g) => {
+          const ours = oursFor(g.gamesLike);
+          return (
+            <li>
+              <h3>{g.name}</h3>
+              <p class="meta">{g.maker}, {g.year}</p>
+              <p>{g.what}</p>
+              <p class="play">
+                <strong>Play it now:</strong>{' '}
+                {g.playNow.map((w, i) => <>{i > 0 && ' · '}<a href={w.url} rel="noopener" target="_blank">{w.label}</a></>)}
+              </p>
+              {ours && (
+                <p class="ours">
+                  Our take: <a href={`/play/${ours.game.slug}`}>play {ours.game.title} free</a>, or see <a href={`/games-like/${ours.page.slug}`}>more games like {ours.page.classic}</a>.
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+
+    <section class="faq" aria-labelledby="faq-title">
+      <h2 id="faq-title">Questions</h2>
+      <dl>
+        {FLASH_PAGE.faq.map((f) => (
+          <>
+            <dt>{f.q}</dt>
+            <dd>{f.a}</dd>
+          </>
+        ))}
+      </dl>
+    </section>
+
+    <section class="sources" aria-labelledby="sources-title">
+      <h2 id="sources-title">Sources</h2>
+      <ol>{FLASH_PAGE.sources.map((s) => <li><a href={s.url} rel="noopener" target="_blank">{s.label}</a></li>)}</ol>
+      <p>Every game named here belongs to its makers. Our own games are not connected to them.</p>
+    </section>
+  </article>
+</Base>
+
+<style>
+  .flash { max-width: 820px; margin-inline: auto; padding-top: 24px; }
+  .flash section { margin-top: 56px; }
+  h1 { margin: 6px 0 14px; line-height: 1.1; }
+  .answer { font-size: 1.2rem; }
+  .byline { color: var(--ink-soft); font-size: 0.95rem; }
+  h2 { font-family: var(--font-hand); font-size: 2.3rem; line-height: 1.05; color: var(--blue-ink); margin: 0 0 12px; }
+  h3 { font-family: var(--font-hand); font-size: 1.8rem; line-height: 1.1; margin: 0; }
+  .meta { color: var(--ink-soft); font-size: 0.95rem; margin: 2px 0 8px; }
+  .games { padding-left: 1.6em; margin: 0; }
+  .games li { margin-bottom: 30px; }
+  .games li::marker { font-family: var(--font-hand); font-size: 1.6rem; color: var(--ink-faint); }
+  .play, .ours { margin: 6px 0 0; }
+  .ours { font-style: italic; }
+  .faq dl { margin: 0; }
+  .faq dt { font-family: var(--font-hand); font-size: 1.6rem; font-weight: 700; color: var(--blue-ink); margin-top: 18px; }
+  .faq dd { margin: 2px 0 0; }
+  .sources { font-size: 0.95rem; color: var(--ink-soft); }
+  .sources ol { padding-left: 1.4em; }
+</style>

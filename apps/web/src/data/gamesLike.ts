@@ -42,6 +42,11 @@ export interface GamesLikePage {
   readonly classic: string;
   /** Our game's catalog slug. */
   readonly game: string;
+  /**
+   * Our game's title while it is still on its branch and not in the catalog: the page is written and
+   * checked ahead, and stays down until the game joins the catalog (then remove this).
+   */
+  readonly coming?: string;
   /** The page's h1. */
   readonly heading: string;
   /** The meta description. */
@@ -519,7 +524,245 @@ export const GAMES_LIKE: readonly GamesLikePage[] = [
     published: '2026-10-27',
     updated: '2026-10-27',
   },
+  {
+    slug: 'snake',
+    classic: 'Snake',
+    game: 'inksnake',
+    heading: 'Games like Snake you can play today',
+    description:
+      'Miss Snake from your old Nokia? Play InkSnake free in your browser with no ads, or try Google’s Snake, Slither.io, Snakebird, Snake Pass and more.',
+    answer:
+      'If you miss Snake, try InkSnake: steer a snake that never stops, eat to grow longer and never bite your own body, with real snakes, coiling round prey too big to swallow and a hawk diving at you. It plays free in any browser, with no ads. Google’s own Snake game still plays the classic rules.',
+    oursWhy: [
+      'InkSnake keeps the rules everyone learned on a Nokia: the snake never stops, every meal makes it longer, and biting your own body ends the run. Then it makes the snake real. You start as a corn snake on a farm, swallowing mice and frogs whole, and you can watch each meal slide down its body. A rat is too big to swallow, so you circle round it and squeeze.',
+      'Crows peck your tail, a red-tailed hawk circles and dives, and each of the ten chapters is a new species with its own trick: a hognose that plays dead, a sidewinder that buries itself in the dunes, a flying snake gliding between treetops. It runs in any browser with no ads: the farm’s ten levels are free and the rest is a one-time $4.99.',
+    ],
+    alternatives: [
+      {
+        name: 'Google Snake',
+        madeBy: 'Google',
+        platforms: 'Browser',
+        price: 'Free',
+        why: 'The classic rules, built into Google: search “snake game” and play, with a settings menu and daily challenges.',
+        url: 'https://www.google.com/fbx?fbx=snake_arcade',
+      },
+      {
+        name: 'Slither.io',
+        madeBy: 'Steve Howse, 2016',
+        platforms: 'Browser, iPhone, Android',
+        price: 'Free, with a paid option to remove ads',
+        why: 'Snake as a crowd: every other snake is another player, and the goal is to be the longest on the server. Run your head into another snake and your run is over.',
+        url: 'https://apps.apple.com/us/app/slither-io/id1091944550',
+      },
+      {
+        name: 'Snake.io',
+        madeBy: 'Kooapps, 2016',
+        platforms: 'Browser, iPhone, Android',
+        price: 'Free, with ads and in-app purchases',
+        why: 'Classic eat-and-grow Snake played online against others. There are ad-free versions on Apple Arcade and Netflix.',
+        url: 'https://snake.io/',
+      },
+      {
+        name: 'Snakebird',
+        madeBy: 'Noumenon Games, 2015',
+        platforms: 'PC, Mac, Linux, iPhone, Android; Snakebird Complete also on Switch',
+        price: 'Paid on PC and Switch; free to try on phones, with a one-time unlock',
+        why: 'Snake turned into a puzzle game: every fruit your snake-bird eats makes it longer, and getting your length and shape right is the whole puzzle.',
+        url: 'https://store.steampowered.com/app/357300/Snakebird/',
+      },
+      {
+        name: 'Snake Pass',
+        madeBy: 'Sumo Digital, 2017',
+        platforms: 'PC, Switch, PlayStation 4, Xbox',
+        price: 'Paid',
+        why: 'You are the snake in a 3D world: there is no jumping, so you coil round bamboo poles and climb with real snake physics.',
+        url: 'https://store.steampowered.com/app/544330/Snake_Pass/',
+      },
+    ],
+    compare: [
+      { label: 'Made by', classic: 'Taneli Armanto at Nokia; first on the Nokia 6110, announced in late 1997', ours: '16bit.ink, 2026' },
+      { label: 'Plays on', classic: 'Nokia phones; today, Google’s Snake in a browser', ours: 'Any browser: computer, phone or tablet' },
+      { label: 'The snake', classic: 'A line of pixels', ours: 'Ten real species, from a corn snake to an anaconda' },
+      { label: 'Danger', classic: 'The walls and your own body', ours: 'Your own body, plus crows, a hawk and a boss in every chapter' },
+      { label: 'Ads', classic: 'None on Nokia phones or in Google’s version', ours: 'None, ever' },
+      { label: 'Price', classic: 'Came free with the phone; Google’s version is free', ours: 'First 10 levels free; full game $4.99 one-time' },
+    ],
+    sections: [
+      {
+        heading: 'Where did Snake come from?',
+        paragraphs: [
+          'Snake goes back to Blockade, an arcade game by Gremlin Industries from 1976, in which two players steered lines that grew behind them and tried not to crash. Home versions soon followed, from Atari’s Surround in 1977 to Nibbles, which came with MS-DOS from 1991 as a QBasic example.',
+          'It became famous on phones. Taneli Armanto programmed Snake for Nokia, and it first shipped on the Nokia 6110, announced at the end of 1997. Snake II, which first came on the Nokia 7110, was on the hugely popular Nokia 3310 in 2000. By 2009, Nokia estimated, Snake had been on some 350 million of its phones, and in 2012 the Museum of Modern Art in New York added it to its collection.',
+        ],
+      },
+      {
+        heading: 'Can you still play Snake?',
+        paragraphs: [
+          'Yes. Google has a free Snake game built into search: search for “snake game” and it comes up, with settings to change the board and a daily challenge. HMD, which makes Nokia phones today, put Snake on its 2024 remake of the Nokia 3210.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Who made the original Snake?',
+        a: 'The idea goes back to Blockade, a 1976 arcade game by Gremlin Industries. The Snake most people remember was programmed by Taneli Armanto for Nokia and first came on the Nokia 6110.',
+      },
+      {
+        q: 'Can I play Nokia Snake online?',
+        a: 'Google’s free Snake game plays the same classic rules in a browser: search for “snake game”. InkSnake keeps those rules too, adds real snakes and their hunters, and plays in any browser.',
+      },
+      {
+        q: 'Is Slither.io like Snake?',
+        a: 'Yes: it is Snake played online against other people. You eat to grow longer, the longest snake on the server leads, and running into another snake ends your run.',
+      },
+      {
+        q: 'What games are like Snake?',
+        a: 'InkSnake, which you can play free in a browser, plus Google Snake, Slither.io, Snake.io, Snakebird and Snake Pass.',
+      },
+    ],
+    sources: [
+      { label: 'Wikipedia: Snake (video game genre)', url: 'https://en.wikipedia.org/wiki/Snake_(video_game_genre)' },
+      { label: 'Wikipedia: Blockade', url: 'https://en.wikipedia.org/wiki/Blockade_(video_game)' },
+      { label: 'Wikipedia: Snake (1998 video game)', url: 'https://en.wikipedia.org/wiki/Snake_(1998_video_game)' },
+      { label: 'Nokia (2009): History of Nokia part 2, Snake', url: 'https://blogs.windows.com/devices/2009/01/20/history-of-nokia-part-2-snake/' },
+      { label: 'Wikipedia: Nokia 3310', url: 'https://en.wikipedia.org/wiki/Nokia_3310' },
+      { label: 'HMD: Nokia 3210', url: 'https://www.hmd.com/en_int/nokia-3210' },
+      { label: 'Wikipedia: Slither.io', url: 'https://en.wikipedia.org/wiki/Slither.io' },
+      { label: 'Wikipedia: Snakebird', url: 'https://en.wikipedia.org/wiki/Snakebird_(video_game)' },
+      { label: 'Wikipedia: Snake Pass', url: 'https://en.wikipedia.org/wiki/Snake_Pass_(video_game)' },
+    ],
+    author: 'Hayk',
+    published: '2026-10-27',
+    updated: '2026-10-27',
+  },
+  {
+    slug: 'heroes-of-might-and-magic-3',
+    classic: 'Heroes of Might and Magic III',
+    game: 'inkheroes',
+    // Written ahead of the game (on feat/inkheroes): remove once InkHeroes is in the catalog, and check its facts again then.
+    coming: 'InkHeroes',
+    heading: 'Games like Heroes of Might and Magic III you can play today',
+    description:
+      'Miss Heroes of Might and Magic III? Play InkHeroes free in your browser with no ads, or try Olden Era, Songs of Conquest, Heroes V, King’s Bounty and more.',
+    answer:
+      'If you miss Heroes of Might and Magic III, try InkHeroes: a hero rides a map taking mines and treasure, your town grows one building a day and hires each week’s troops, and battles are fought on hexes. Maps take 20 to 40 minutes, in any browser, with no ads. For more, try Olden Era and Songs of Conquest.',
+    oursWhy: [
+      'InkHeroes plays like Heroes III at heart. A hero rides across the map taking sawmills and gold mines and opening treasure chests; back in town you build one thing a day, from a guardhouse to a griffin tower, and hire each week’s troops. Fights happen on a hex field with retaliation, shooters, flyers, morale, luck and spells.',
+      'What it changes is the length. Each map is hand-made, takes 20 to 40 minutes and has one clear goal, and every number is shown before you commit, so a whole map fits in a lunch break, on a phone too. The first map is free in any browser, with no ads, and more maps, a rival lord and new factions are on the way.',
+    ],
+    alternatives: [
+      {
+        name: 'Heroes of Might and Magic: Olden Era',
+        madeBy: 'Unfrozen, published by Hooded Horse and Ubisoft, 2026',
+        platforms: 'PC',
+        price: 'Paid, in Early Access; also in PC Game Pass',
+        why: 'The official prequel, in Early Access since April 2026: hero-led armies, towns and hex battles in the Heroes III mould, with six factions so far.',
+        url: 'https://store.steampowered.com/app/3105440/',
+      },
+      {
+        name: 'Songs of Conquest',
+        madeBy: 'Lavapotion, 2024',
+        platforms: 'PC, Mac, PlayStation 5, Xbox Series X|S, Switch, iPhone, Android',
+        price: 'Paid; free to try on phones',
+        why: 'Its makers name Heroes III as their inspiration: an adventure map, towns to build and turn-based battles, in rich pixel art.',
+        url: 'https://www.songsofconquest.com/',
+      },
+      {
+        name: 'Heroes of Might and Magic V',
+        madeBy: 'Nival, 2006',
+        platforms: 'PC',
+        price: 'Paid',
+        why: 'The same series and formula in full 3D, with two expansions, Hammers of Fate and Tribes of the East.',
+        url: 'https://www.gog.com/en/game/heroes_of_might_and_magic_5_bundle',
+      },
+      {
+        name: 'King’s Bounty: The Legend',
+        madeBy: 'Katauri Interactive, 2008',
+        platforms: 'PC, Mac',
+        price: 'Paid',
+        why: 'A modern take on New World Computing’s 1990 King’s Bounty, the game Heroes grew out of: one hero roaming the world with stacks of troops, fighting on hexes.',
+        url: 'https://en.wikipedia.org/wiki/King%27s_Bounty:_The_Legend',
+      },
+      {
+        name: 'Age of Wonders 4',
+        madeBy: 'Triumph Studios, 2023',
+        platforms: 'PC, PlayStation 5, Xbox Series X|S',
+        price: 'Paid',
+        why: 'Bigger and deeper: build a fantasy empire and fight turn-based tactical battles. More of an empire game than Heroes, but with the same heroes, armies and spells.',
+        url: 'https://www.paradoxinteractive.com/games/age-of-wonders-4/about',
+      },
+      {
+        name: 'Disciples: Domination',
+        madeBy: 'Artefacts Studio, 2026',
+        platforms: 'PC, Mac, PlayStation 5, Xbox Series X|S',
+        price: 'Paid',
+        why: 'The latest in the Disciples line, Heroes’ dark-fantasy rival since the late 1990s: a hero leading a small party through grim lands, with turn-based battles.',
+        url: 'https://store.steampowered.com/app/2808560/',
+      },
+    ],
+    compare: [
+      { label: 'Made by', classic: 'New World Computing, published by 3DO, 1999', ours: '16bit.ink, 2026' },
+      { label: 'Plays on', classic: 'Windows (GOG and Steam); phones only through the fan engine VCMI', ours: 'Any browser: computer, phone or tablet' },
+      { label: 'A map takes', classic: 'Hours on a big map', ours: '20 to 40 minutes, with one clear goal' },
+      { label: 'Towns', classic: 'Eight kinds, nine with Armageddon’s Blade', ours: 'One for now; more factions on the way' },
+      { label: 'Battles', classic: 'Hexes, with spells, morale and luck', ours: 'Hexes, with retaliation, shooters, flyers, morale, luck and spells' },
+      { label: 'Ads', classic: 'None: it is a paid game', ours: 'None, ever' },
+      { label: 'Price', classic: 'Complete edition $9.99 on Steam', ours: 'First map free' },
+    ],
+    sections: [
+      {
+        heading: 'What was Heroes of Might and Magic III?',
+        paragraphs: [
+          'Heroes of Might and Magic III: The Restoration of Erathia is a turn-based strategy game by New World Computing, published by The 3DO Company for Windows in 1999. Queen Catherine returns to Erathia after her father’s assassination to find the kingdom falling to the dark forces of Nighon and Eeofol, and sets out to take it back.',
+          'Heroes ride an adventure map, fight wandering creatures, gather treasure and capture mines that pay out every turn. Towns grow building by building, the creatures in their dwellings multiply at the start of every week, and battles are fought turn by turn on a hex grid, with spells and artifacts deciding many of them. Armageddon’s Blade (1999) added a ninth town, the Conflux, The Shadow of Death followed in 2000, and the Complete edition bundles all three.',
+          'Its fans have kept it alive. Horn of the Abyss, a free fan expansion since 2011, adds new towns, and VCMI is an open-source engine that runs the game on modern systems, phones included, with your own copy of its files.',
+        ],
+      },
+      {
+        heading: 'Can you still play Heroes III?',
+        paragraphs: [
+          'Yes. GOG sells the Complete edition with both expansions, and since August 2026 Steam does too, for $9.99; Steam also has the 2015 HD Edition, which has the base game only. Horn of the Abyss is free on both stores for owners of the Complete edition.',
+          'Ubisoft, which owns the series today, has announced a 3D remake of Heroes III for 2027, on PC, PlayStation 5 and Xbox Series X|S.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Is there a new Heroes of Might and Magic game?',
+        a: 'Yes. Heroes of Might and Magic: Olden Era, a prequel by Unfrozen, has been in Early Access on PC since April 2026, and Ubisoft has announced a remake of Heroes III for 2027.',
+      },
+      {
+        q: 'Can I play Heroes 3 on my phone?',
+        a: 'Not from an app store today, as far as we can find: the 2015 HD Edition for phones seems to be gone. VCMI, a free open-source engine, runs Heroes III on Android and iPhone (sideloaded there) with your own copy of the game’s files. InkHeroes plays in a phone browser with nothing to install.',
+      },
+      {
+        q: 'Who made Heroes of Might and Magic III?',
+        a: 'New World Computing developed it and The 3DO Company published it in 1999. When 3DO went bankrupt in 2003, Ubisoft bought the series.',
+      },
+      {
+        q: 'What games are like Heroes 3?',
+        a: 'InkHeroes, which you can play free in a browser, plus Heroes of Might and Magic: Olden Era, Songs of Conquest, Heroes of Might and Magic V, King’s Bounty: The Legend, Age of Wonders 4 and Disciples: Domination.',
+      },
+    ],
+    sources: [
+      { label: 'Wikipedia: Heroes of Might and Magic III', url: 'https://en.wikipedia.org/wiki/Heroes_of_Might_and_Magic_III' },
+      { label: 'Wikipedia: Heroes of Might and Magic (series)', url: 'https://en.wikipedia.org/wiki/Heroes_of_Might_and_Magic' },
+      { label: 'GOG: Heroes of Might and Magic 3 Complete', url: 'https://www.gog.com/en/game/heroes_of_might_and_magic_3_complete_edition' },
+      { label: 'Steam: Heroes of Might and Magic III Complete', url: 'https://store.steampowered.com/app/4921760/' },
+      { label: 'Steam: Heroes of Might and Magic III HD Edition', url: 'https://store.steampowered.com/app/297000/' },
+      { label: 'Steam: Horn of the Abyss', url: 'https://store.steampowered.com/app/5061200/' },
+      { label: 'VCMI', url: 'https://vcmi.eu/' },
+      { label: 'Ubisoft: Heroes of Might and Magic III remake', url: 'https://news.ubisoft.com/en-us/article/54MdgBHzrGnGT0mwKtT9aq/heroes-of-might-and-magic-iii-remake-return-to-erathia-in-2027' },
+      { label: 'Wikipedia: Songs of Conquest', url: 'https://en.wikipedia.org/wiki/Songs_of_Conquest' },
+    ],
+    author: 'Hayk',
+    published: '2026-10-27',
+    updated: '2026-10-27',
+  },
 ];
+
+/** Our game's name on the page: from the catalog, or from `coming` while it is still being made. */
+export const ourTitle = (page: GamesLikePage): string => findGame(page.game)?.title ?? page.coming ?? page.game;
 
 export const findGamesLike = (slug: string): GamesLikePage | undefined => GAMES_LIKE.find((p) => p.slug === slug);
 

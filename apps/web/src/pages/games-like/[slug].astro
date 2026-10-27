@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { findGame, isPurchasable } from '../../data/games';
+import { FLASH_GAMES } from '../../data/flashGames';
 import { findGamesLike, listedGamesLike } from '../../data/gamesLike';
 import { coverSrcset, coverVariant } from '../../lib/covers';
 import { faqJsonLd, gamesLikeFaq, gamesLikeJsonLd, gamesLikeTitle } from '../../lib/seo';
@@ -18,6 +19,8 @@ const site = Astro.site ?? Astro.url;
 const faq = gamesLikeFaq(page);
 const cover = game.cover ?? '/covers/inkfish.png';
 const offer = isPurchasable(game) ? `${game.demo ?? 'Free demo'} · full game ${game.price} one-time` : `${game.demo ?? 'Free demo'}`;
+// A Flash-era classic links to the roundup of Flash games you can still play.
+const flashEra = FLASH_GAMES.some((g) => g.gamesLike === page.slug);
 const longDate = (day: string): string =>
   new Date(`${day}T00:00:00Z`).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 ---
@@ -82,6 +85,7 @@ const longDate = (day: string): string =>
         {s.paragraphs.map((p) => <p>{p}</p>)}
       </section>
     ))}
+    {flashEra && <p class="flash-link">Miss other Flash games too? See <a href="/flash-games">the Flash games you can still play, and where</a>.</p>}
 
     <section class="faq" aria-labelledby="faq-title">
       <h2 id="faq-title">Questions</h2>
@@ -127,6 +131,7 @@ const longDate = (day: string): string =>
   thead th { font-family: var(--font-hand); font-size: 1.5rem; color: var(--blue-ink); border-bottom: 2px solid var(--ink); }
   tbody th { font-weight: 600; white-space: nowrap; }
   @media (max-width: 600px) { tbody th { white-space: normal; } }
+  .flash-link { margin-top: 18px; font-style: italic; }
   .faq dl { margin: 0; }
   .faq dt { font-family: var(--font-hand); font-size: 1.6rem; font-weight: 700; color: var(--blue-ink); margin-top: 18px; }
   .faq dd { margin: 2px 0 0; }

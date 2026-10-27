@@ -21,6 +21,7 @@ const site = Astro.site ?? Astro.url;
     <p class="pixel-label">Games like the classics</p>
     <h1>Games like the classics</h1>
     <p class="answer">Each page here takes an old favourite and answers one question: what plays like it today? You get our own pen-and-ink take, free in your browser with no ads, other good games like it, and where you can still play the original.</p>
+    <p class="flash-link">Looking for the old Flash games themselves? See <a href="/flash-games">the Flash games you can still play, and where</a>.</p>
     <ul>
       {pages.map((p) => {
         const game = findGame(p.game);
@@ -48,6 +49,7 @@ const site = Astro.site ?? Astro.url;
   .index { padding-top: 24px; }
   h1 { margin: 6px 0 14px; line-height: 1.1; }
   .answer { font-size: 1.2rem; max-width: 760px; }
+  .flash-link { font-style: italic; }
   ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 36px; padding: 0; margin: 40px 0 0; list-style: none; }
   .card { display: flex; flex-direction: column; color: var(--ink); text-decoration: none; background: none; }
   .card picture { display: block; padding: 6px; background: var(--paper-2); border: 2px solid var(--ink); box-shadow: var(--shadow); transform: rotate(-0.6deg); transition: transform 0.2s ease; }

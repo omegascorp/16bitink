@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { findGame, listedGames } from '../src/data/games';
-import { GAMES_LIKE, findGamesLike, gamesLikeFor, listedGamesLike } from '../src/data/gamesLike';
+import { GAMES_LIKE, findGamesLike, gamesLikeFor, listedGamesLike, ourTitle } from '../src/data/gamesLike';
 import { gamesLikeFaq, gamesLikeIndexJsonLd, gamesLikeJsonLd, gamesLikeTitle, sitemapXml } from '../src/lib/seo';
 
 const SITE = new URL('https://16bit.ink');
@@ -15,14 +15,27 @@ describe('"games like" pages', () => {
     for (const p of GAMES_LIKE) expect(p.slug).toMatch(/^[a-z0-9-]{1,40}$/);
   });
 
-  it('each lead to a playable game of ours', () => {
-    for (const p of GAMES_LIKE) expect(findGame(p.game)?.status, p.slug).toBe('playable');
+  it('each lead to a playable game of ours, or wait for one still on its branch', () => {
+    for (const p of GAMES_LIKE) {
+      // Once the game is in the catalog, drop `coming` so the page goes up with it.
+      if (p.coming) expect(findGame(p.game), `${p.slug}: ${p.game} is in the catalog now, remove coming`).toBeUndefined();
+      else expect(findGame(p.game)?.status, p.slug).toBe('playable');
+    }
+  });
+
+  it('stay down while their game is still coming', () => {
+    const waiting = GAMES_LIKE.filter((p) => p.coming);
+    for (const p of waiting) expect(listedGamesLike(LATER).includes(p), p.slug).toBe(false);
+  });
+
+  it('name our game from the catalog, or from `coming` until it is in', () => {
+    expect(ourTitle(findGamesLike('motherload')!)).toBe('InkMine');
+    expect(ourTitle({ ...GAMES_LIKE[0]!, game: 'inknext', coming: 'InkNext' })).toBe('InkNext');
   });
 
   it('answer the search in the opening, short enough to be quoted whole', () => {
     for (const p of GAMES_LIKE) {
-      const game = findGame(p.game)!;
-      expect(p.answer, p.slug).toContain(game.title);
+      expect(p.answer, p.slug).toContain(ourTitle(p));
       expect(p.answer, p.slug).toContain(p.classic);
       expect(words(p.answer), p.slug).toBeLessThanOrEqual(60);
     }
@@ -137,7 +150,8 @@ describe('"games like" structured data', () => {
 describe('sitemap', () => {
   it('lists each "games like" page, dated by its last update', () => {
     const xml = sitemapXml(SITE, listedGames(LATER), listedGamesLike(LATER));
-    for (const p of GAMES_LIKE) expect(xml).toContain(`<loc>https://16bit.ink/games-like/${p.slug}</loc><lastmod>${p.updated}</lastmod>`);
+    for (const p of listedGamesLike(LATER)) expect(xml).toContain(`<loc>https://16bit.ink/games-like/${p.slug}</loc><lastmod>${p.updated}</lastmod>`);
+    for (const p of GAMES_LIKE.filter((g) => g.coming)) expect(xml).not.toContain(`/games-like/${p.slug}<`);
   });
 
   it('lists the index of "games like" pages, dated by the newest, only while there are any', () => {

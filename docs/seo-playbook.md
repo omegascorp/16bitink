@@ -20,10 +20,14 @@ Never title a page as if our game were the classic ("Play Zuma online"). Name th
 | Zuma (leads with **no ads**: Megazuma on Playgama shows an ad before its game starts) | InkGecko | Built Oct 27, 2026 |
 | Fishy (the free browser / Flash angle) | InkFish | Built Oct 27, 2026 |
 | Feeding Frenzy (the PC / console / phone angle, so it doesn't repeat Fishy's list) | InkFish | Built Oct 27, 2026 |
-| Heroes of Might and Magic III | InkHeroes | When it's out |
-| Snake (better as a history page) | InkSnake | |
+| Heroes of Might and Magic III | InkHeroes | Written and checked Oct 27, 2026; hidden (`coming: 'InkHeroes'`) until InkHeroes is in the catalog. When `feat/inkheroes` merges, the test asks to remove `coming`: re-check Olden Era's status and the remake's date then |
+| Snake (with the Blockade → Nokia → Google history) | InkSnake | Built Oct 27, 2026 |
 
 Each page: an opening answer of 60 words at most naming our game and the classic, ours first with a Play button, 3+ honest alternatives with official links (competitors too), a comparison table with an **Ads** row, the classic's history and where to play it now, an FAQ, and sources. Tests in `apps/web/test/gamesLike.test.ts` hold these rules.
+
+## Flash games roundup
+
+`/flash-games` (data in `apps/web/src/data/flashGames.ts`): 12 well-known Flash games, each with a legal way to play it today (the maker's site, an official remaster, the Flashpoint Archive; never "unblocked" portals, and no Newgrounds links until someone checks they play). Games ours plays like (Motherload, Fishy) link to their "games like" page and back. It's the page to post where Flash fans gather (r/flashgames). Built Oct 27, 2026.
 
 ## Adding a page
 
