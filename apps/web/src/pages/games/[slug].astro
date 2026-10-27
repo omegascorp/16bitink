@@ -5,6 +5,7 @@ import GameStats from '../../components/GameStats.astro';
 import PartnerAd from '../../components/PartnerAd.astro';
 import SundaySignup from '../../components/SundaySignup.astro';
 import { findGame, homeGames, isPurchasable } from '../../data/games';
+import { gamesLikeFor, listedGamesLike } from '../../data/gamesLike';
 import { coverSrcset, coverVariant, loopSources } from '../../lib/covers';
 import { currentUser, ownedGameSlugs } from '../../lib/owner';
 import { signInPageUrl } from '../../lib/buyFlow';
@@ -37,6 +38,8 @@ try {
 Astro.response.headers.set('cache-control', 'private, no-store');
 const faq = gameFaq(game);
 const fansOf = fansOfLine(game);
+// The pages for people searching for the old games this one plays like, once they're up.
+const likePages = listedGamesLike(new Date(), gamesLikeFor(game.slug));
 const site = Astro.site ?? Astro.url;
 const cover = game.cover ?? '/covers/inkfish.png';
 // Where a player lands on leaving a game: the other games, newest first, one tap from playing.
@@ -61,7 +64,12 @@ const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
       <p class="pixel-label">{owned ? 'Full game · unlocked' : forSale ? `Free demo · full game ${game.price} one-time` : 'Free demo · the full game is coming soon'}</p>
       <h1>{game.title}</h1>
       <p class="tag">{game.tagline}</p>
-      {fansOf && <p class="fans">{fansOf}</p>}
+      {fansOf && (
+        <p class="fans">
+          {fansOf}
+          {likePages.map((p, i) => <>{i === 0 ? ' More games like ' : ' · '}<a href={`/games-like/${p.slug}`}>{p.classic}</a></>)}
+        </p>
+      )}
       <div class="numbers"><GameStats game={game} owned={owned} large /></div>
       {game.description.map((p) => <p>{p}</p>)}
       <div class="actions">

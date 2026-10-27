@@ -1,0 +1,135 @@
+---
+import Base from '../../layouts/Base.astro';
+import { findGame, isPurchasable } from '../../data/games';
+import { findGamesLike, listedGamesLike } from '../../data/gamesLike';
+import { coverSrcset, coverVariant } from '../../lib/covers';
+import { faqJsonLd, gamesLikeFaq, gamesLikeJsonLd, gamesLikeTitle } from '../../lib/seo';
+
+// Rendered per request, like the sitemap, so a page goes up on its game's release day without a deploy.
+export const prerender = false;
+
+const page = findGamesLike(Astro.params.slug ?? '');
+const game = page && findGame(page.game);
+if (!page || !game || !listedGamesLike(new Date(), [page]).length) return new Response('Not found', { status: 404 });
+// The same for everyone: nothing per player on it.
+Astro.response.headers.set('cache-control', 'public, max-age=3600');
+
+const site = Astro.site ?? Astro.url;
+const faq = gamesLikeFaq(page);
+const cover = game.cover ?? '/covers/inkfish.png';
+const offer = isPurchasable(game) ? `${game.demo ?? 'Free demo'} · full game ${game.price} one-time` : `${game.demo ?? 'Free demo'}`;
+const longDate = (day: string): string =>
+  new Date(`${day}T00:00:00Z`).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+---
+<Base title={gamesLikeTitle(page)} description={page.description} image={game.cover} jsonLd={[...gamesLikeJsonLd(page, site), faqJsonLd(faq)]}>
+  <article class="like">
+    <header class="intro">
+      <p class="pixel-label">Games like {page.classic}</p>
+      <h1>{page.heading}</h1>
+      <p class="answer">{page.answer}</p>
+      <p class="byline">By {page.author}, who makes the games at 16bit.ink · Updated <time datetime={page.updated}>{longDate(page.updated)}</time></p>
+    </header>
+
+    <section class="pick" aria-labelledby="pick-title">
+      <a class="shot paper-card tape" href={`/play/${game.slug}`} aria-label={`Play ${game.title} free`}>
+        <picture>
+          <source type="image/avif" srcset={coverSrcset(cover, 'avif')} sizes="(min-width: 861px) 520px, calc(100vw - 52px)" />
+          <source type="image/webp" srcset={coverSrcset(cover, 'webp')} sizes="(min-width: 861px) 520px, calc(100vw - 52px)" />
+          <img src={coverVariant(cover, 1200, 'webp')} alt={`${game.title} gameplay`} width="1200" height="675" fetchpriority="high" />
+        </picture>
+      </a>
+      <div>
+        <h2 id="pick-title"><span class="num">1.</span> {game.title}</h2>
+        <p class="meta">16bit.ink, {game.released?.slice(0, 4)} · Web browser: computer, phone or tablet · {offer}</p>
+        {page.oursWhy.map((p) => <p>{p}</p>)}
+        <div class="actions">
+          <a class="btn btn-ink" href={`/play/${game.slug}`}>Play {game.title} free</a>
+          <a href={`/games/${game.slug}`}>More about {game.title}</a>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="more-title">
+      <h2 id="more-title">More games like {page.classic}</h2>
+      <ol class="alts" start="2">
+        {page.alternatives.map((a) => (
+          <li>
+            <h3><a href={a.url} rel="noopener" target="_blank">{a.name}</a></h3>
+            <p class="meta">{a.madeBy} · {a.platforms} · {a.price}</p>
+            <p>{a.why}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section aria-labelledby="compare-title">
+      <h2 id="compare-title">{page.classic} vs {game.title}</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col"></th><th scope="col">{page.classic}</th><th scope="col">{game.title}</th></tr></thead>
+          <tbody>
+            {page.compare.map((row) => (
+              <tr><th scope="row">{row.label}</th><td>{row.classic}</td><td>{row.ours}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    {page.sections.map((s) => (
+      <section>
+        <h2>{s.heading}</h2>
+        {s.paragraphs.map((p) => <p>{p}</p>)}
+      </section>
+    ))}
+
+    <section class="faq" aria-labelledby="faq-title">
+      <h2 id="faq-title">Questions</h2>
+      <dl>
+        {faq.map((f) => (
+          <>
+            <dt>{f.q}</dt>
+            <dd>{f.a}</dd>
+          </>
+        ))}
+      </dl>
+    </section>
+
+    <section class="sources" aria-labelledby="sources-title">
+      <h2 id="sources-title">Sources</h2>
+      <ol>{page.sources.map((s) => <li><a href={s.url} rel="noopener" target="_blank">{s.label}</a></li>)}</ol>
+      <p>{page.classic} and the other games named here belong to their makers. {game.title} is our own game and is not connected to them.</p>
+    </section>
+  </article>
+</Base>
+
+<style>
+  .like { max-width: 820px; margin-inline: auto; padding-top: 24px; }
+  .like section { margin-top: 56px; }
+  h1 { margin: 6px 0 14px; line-height: 1.1; }
+  .answer { font-size: 1.2rem; }
+  .byline { color: var(--ink-soft); font-size: 0.95rem; }
+  h2 { font-family: var(--font-hand); font-size: 2.3rem; line-height: 1.05; color: var(--blue-ink); margin: 0 0 12px; }
+  h3 { font-family: var(--font-hand); font-size: 1.8rem; line-height: 1.1; margin: 0; }
+  .meta { color: var(--ink-soft); font-size: 0.95rem; margin: 2px 0 8px; }
+  .pick { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+  @media (max-width: 860px) { .pick { grid-template-columns: 1fr; gap: 20px; } }
+  .shot { display: block; padding: 8px; transform: rotate(-0.8deg); background-image: none; }
+  .shot img { display: block; width: 100%; height: auto; border-radius: 2px; }
+  .num { color: var(--ink-faint); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 18px; }
+  .alts { padding-left: 1.6em; margin: 0; }
+  .alts li { margin-bottom: 26px; }
+  .alts li::marker { font-family: var(--font-hand); font-size: 1.6rem; color: var(--ink-faint); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.98rem; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1.5px solid var(--ink-faint); }
+  thead th { font-family: var(--font-hand); font-size: 1.5rem; color: var(--blue-ink); border-bottom: 2px solid var(--ink); }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  @media (max-width: 600px) { tbody th { white-space: normal; } }
+  .faq dl { margin: 0; }
+  .faq dt { font-family: var(--font-hand); font-size: 1.6rem; font-weight: 700; color: var(--blue-ink); margin-top: 18px; }
+  .faq dd { margin: 2px 0 0; }
+  .sources { font-size: 0.95rem; color: var(--ink-soft); }
+  .sources ol { padding-left: 1.4em; }
+</style>

@@ -1,0 +1,60 @@
+---
+import Base from '../../layouts/Base.astro';
+import { findGame } from '../../data/games';
+import { listedGamesLike } from '../../data/gamesLike';
+import { coverSrcset, coverVariant } from '../../lib/covers';
+import { gamesLikeIndexJsonLd } from '../../lib/seo';
+
+// Rendered per request, like the pages it lists, so a new one shows up on its game's release day.
+export const prerender = false;
+Astro.response.headers.set('cache-control', 'public, max-age=3600');
+
+const pages = listedGamesLike(new Date());
+const site = Astro.site ?? Astro.url;
+---
+<Base
+  title="Games Like the Classics, Free in Your Browser | 16bit.ink"
+  description="Miss an old favourite like Motherload? Each page here names the games that play like it today, ours and others, with where to play the original now."
+  jsonLd={[gamesLikeIndexJsonLd(pages, site)]}
+>
+  <section class="index">
+    <p class="pixel-label">Games like the classics</p>
+    <h1>Games like the classics</h1>
+    <p class="answer">Each page here takes an old favourite and answers one question: what plays like it today? You get our own pen-and-ink take, free in your browser with no ads, other good games like it, and where you can still play the original.</p>
+    <ul>
+      {pages.map((p) => {
+        const game = findGame(p.game);
+        const art = game?.cover ?? '/covers/inkfish.png';
+        return (
+          <li>
+            <a class="card" href={`/games-like/${p.slug}`}>
+              <picture>
+                <source type="image/avif" srcset={coverSrcset(art, 'avif')} sizes="(min-width: 900px) 340px, calc(100vw - 32px)" />
+                <source type="image/webp" srcset={coverSrcset(art, 'webp')} sizes="(min-width: 900px) 340px, calc(100vw - 32px)" />
+                <img src={coverVariant(art, 640, 'webp')} alt="" width="1200" height="675" loading="lazy" decoding="async" />
+              </picture>
+              <span class="title">Games like {p.classic}</span>
+              <span class="ours">Our take: {game?.title}</span>
+              <span class="desc">{p.description}</span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  </section>
+</Base>
+
+<style>
+  .index { padding-top: 24px; }
+  h1 { margin: 6px 0 14px; line-height: 1.1; }
+  .answer { font-size: 1.2rem; max-width: 760px; }
+  ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 36px; padding: 0; margin: 40px 0 0; list-style: none; }
+  .card { display: flex; flex-direction: column; color: var(--ink); text-decoration: none; background: none; }
+  .card picture { display: block; padding: 6px; background: var(--paper-2); border: 2px solid var(--ink); box-shadow: var(--shadow); transform: rotate(-0.6deg); transition: transform 0.2s ease; }
+  .card:hover picture { transform: rotate(0deg); }
+  .card:focus-visible { outline: 3px dashed var(--blue-ink); outline-offset: 6px; }
+  .card img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+  .title { margin-top: 12px; font-family: var(--font-hand); font-size: 2.1rem; font-weight: 700; line-height: 1; color: var(--blue-ink); }
+  .ours { font-weight: 600; margin-top: 4px; }
+  .desc { color: var(--ink-soft); font-size: 0.95rem; margin-top: 4px; }
+</style>

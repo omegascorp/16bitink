@@ -5,7 +5,8 @@
  */
 
 import { COMPANY } from '../data/company';
-import { isPurchasable, listedGames, type CatalogGame } from '../data/games';
+import { findGame, isPurchasable, listedGames, type CatalogGame } from '../data/games';
+import { listedGamesLike, type GamesLikePage } from '../data/gamesLike';
 
 /** Pages that are private, per player or for machines: nothing to find in a search. */
 const PRIVATE_PATHS = ['/admin', '/api/', '/account', '/redeem', '/purchase/', '/auth/', '/unsubscribe'] as const;
@@ -21,11 +22,17 @@ const lastChanged = (game: CatalogGame): string | undefined => game.updated ?? g
 
 const urlEntry = (loc: URL, lastmod?: string): string => `  <url><loc>${loc}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`;
 
-export function sitemapXml(site: URL, games: readonly CatalogGame[] = listedGames(new Date())): string {
+export function sitemapXml(
+  site: URL,
+  games: readonly CatalogGame[] = listedGames(new Date()),
+  gamesLike: readonly GamesLikePage[] = listedGamesLike(new Date()),
+): string {
   const newest = games.map(lastChanged).filter((d): d is string => Boolean(d)).sort().at(-1);
   const entries = [
     urlEntry(new URL('/', site), newest),
     ...games.map((g) => urlEntry(new URL(`/games/${g.slug}`, site), lastChanged(g))),
+    ...(gamesLike.length ? [urlEntry(new URL('/games-like', site), gamesLike.map((p) => p.updated).sort().at(-1))] : []),
+    ...gamesLike.map((p) => urlEntry(new URL(`/games-like/${p.slug}`, site), p.updated)),
     ...INFO_PATHS.map((p) => urlEntry(new URL(p, site))),
   ];
   return ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', ...entries, '</urlset>', ''].join('\n');
@@ -134,4 +141,73 @@ export function faqJsonLd(faq: readonly FaqEntry[]): Record<string, unknown> {
 /** Structured data as the body of a `<script type="application/ld+json">`, safe from early `</script>` endings. */
 export function jsonLdScript(data: unknown): string {
   return JSON.stringify(data).replace(/</g, '\\u003c');
+}
+
+/** Longest title a results page shows whole. */
+const MAX_TITLE = 65;
+
+/**
+ * "Games Like Motherload You Can Play Today | 16bit.ink": the phrase people type, first, matching the h1.
+ * A long name drops the tail ("Games Like Heroes of Might and Magic III | 16bit.ink").
+ */
+export function gamesLikeTitle(page: GamesLikePage): string {
+  const long = `Games Like ${page.classic} You Can Play Today | 16bit.ink`;
+  return long.length <= MAX_TITLE ? long : `Games Like ${page.classic} | 16bit.ink`;
+}
+
+/** The page's own questions, then whose game is whose (the classic's name belongs to its makers). */
+export function gamesLikeFaq(page: GamesLikePage): readonly FaqEntry[] {
+  const title = findGame(page.game)?.title ?? page.game;
+  return [
+    ...page.faq,
+    {
+      q: `Is ${title} made by the makers of ${page.classic}?`,
+      a: `No. ${title} is our own game, made at 16bit.ink, and it is not made by or connected to the makers of ${page.classic}. We name ${page.classic} only to compare.`,
+    },
+  ];
+}
+
+/** An Article (who wrote it and when) and the ranked list of games it recommends, ours first. */
+export function gamesLikeJsonLd(page: GamesLikePage, site: URL): readonly Record<string, unknown>[] {
+  const url = new URL(`/games-like/${page.slug}`, site).href;
+  const game = findGame(page.game);
+  const ours = { name: game?.title ?? page.game, url: new URL(`/games/${page.game}`, site).href };
+  const items = [ours, ...page.alternatives.map((a) => ({ name: a.name, url: a.url }))];
+  return [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: page.heading,
+      description: page.description,
+      url,
+      ...(game?.cover ? { image: new URL(game.cover, site).href } : {}),
+      datePublished: page.published,
+      dateModified: page.updated,
+      author: { '@type': 'Person', name: page.author, url: new URL('/about', site).href },
+      publisher: publisher(site),
+      about: { '@type': 'VideoGame', name: page.classic },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: page.heading,
+      itemListOrder: 'https://schema.org/ItemListOrderAscending',
+      itemListElement: items.map((item, i) => ({ '@type': 'ListItem', position: i + 1, name: item.name, url: item.url })),
+    },
+  ];
+}
+
+/** The index of "games like" pages: a collection, each page in the order shown. */
+export function gamesLikeIndexJsonLd(pages: readonly GamesLikePage[], site: URL): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Games like the classics',
+    url: new URL('/games-like', site).href,
+    publisher: publisher(site),
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: pages.map((p, i) => ({ '@type': 'ListItem', position: i + 1, name: p.heading, url: new URL(`/games-like/${p.slug}`, site).href })),
+    },
+  };
 }
