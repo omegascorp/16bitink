@@ -3,6 +3,10 @@ import { paintBoard, paintGrassTile, paintRockTile, paintSkyTile } from '../art/
 import { paintLantern, paintNib, paintSack, type NibMark, type NibPose } from '../art/nib';
 import { BOIL } from '../art/palette';
 import { paintBoar } from '../art/boar';
+import { paintBoulder } from '../art/boulder';
+import { paintPorcupine } from '../art/porcupine';
+import { BOULDER_R } from '../logic/boulders';
+import { BLOT_R, BOSS_R } from '../logic/world';
 import { COIN_SIZE, paintChest, paintCoin, paintFlame, paintGlow, paintIdol, paintPin, paintPuff } from '../art/props';
 import type { LevelDef } from '../logic/level';
 import { ART_RES } from '../art/palette';
@@ -15,6 +19,10 @@ export const COIN_TURNS = [0, 0.35, 0.7, 0.9] as const;
 export const nibKey = (pose: NibPose, boil: number): string => `nib-${pose}-${boil}`;
 export const shockKey = (mark: NibMark, boil: number): string => `nib-shock-${mark}-${boil}`;
 export const pinKey = (id: string, lit: boolean): string => `pin-${id}${lit ? '-lit' : ''}`;
+/** The kinds of guard: the boar, the spiky porcupine, and the Great Boar (the boss, painted this much bigger). */
+export type GuardKind = 'boar' | 'porcupine' | 'boss';
+export const BOSS_SCALE = BOSS_R / BLOT_R;
+export const guardKey = (kind: GuardKind, scared: boolean, boil: number): string => `guard-${kind}-${scared ? 'scared' : 'grump'}-${boil}`;
 
 export function bakeTextures(scene: Phaser.Scene, level: LevelDef): void {
   const tx = scene.textures;
@@ -28,9 +36,14 @@ export function bakeTextures(scene: Phaser.Scene, level: LevelDef): void {
   for (let b = 0; b < BOIL; b++) {
     for (const pose of NIB_POSES) add(nibKey(pose, b), () => paintNib({ pose, mark: 'none', boil: b }));
     for (const mark of NIB_MARKS) add(shockKey(mark, b), () => paintNib({ pose: 'shock', mark, boil: b }));
-    add(`blot-grump-${b}`, () => paintBoar('grump', b));
-    add(`blot-scared-${b}`, () => paintBoar('scared', b));
+    for (const scared of [false, true]) {
+      const mood = scared ? 'scared' : 'grump';
+      add(guardKey('boar', scared, b), () => paintBoar(mood, b));
+      add(guardKey('porcupine', scared, b), () => paintPorcupine(mood, b));
+      add(guardKey('boss', scared, b), () => paintBoar(mood, b, BOSS_SCALE, true));
+    }
   }
+  add('boulder', () => paintBoulder(BOULDER_R));
   add('sack', paintSack);
   add('lantern', () => paintLantern(true));
   add('chest-closed', () => paintChest(false));

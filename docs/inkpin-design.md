@@ -173,7 +173,7 @@ Every level of all ten ruins, with what it asks and the new ground each ruin bri
 
 ## The prototype (Oct 27, 2026)
 
-One level, **The Gold Vault**, in `games/inkpin` on branch `feat/inkpin`, playable on desktop and phones (`pnpm --filter @16bitink/inkpin dev`, port 5203).
+All ten levels of Chapter 1 ([inkpin-levels.md](inkpin-levels.md)) in `games/inkpin` on branch `feat/inkpin`, playable on desktop and phones (`pnpm --filter @16bitink/inkpin dev`, port 5203; `?level=7` opens a level, and the dev page opens them all). Winning a level opens the next one; progress is kept in the browser. The first one built, **The Gold Vault** (level 5), is described below.
 
 - **The puzzle:**
   - Four pins: water, lava, the coins (which sit above the lava) and the gate in front of Nib.
@@ -185,13 +185,20 @@ One level, **The Gold Vault**, in `games/inkpin` on branch `feat/inkpin`, playab
   - Coins at rest fall asleep and hold their place until something disturbs them.
   - Lava is thick: it rises at most 1 px a step, so stone sinking through it can't fling it up a wall and over a ledge.
   - Levels settle for 3 seconds (off screen) before they start, so they open at rest.
+- **What Chapter 1 added:**
+  - Vines: tap one to climb to that spot. Boulders: they roll, sink through water and coins, plug a drain dip and squash a guard (or Nib) they fall on. Drains: anything that reaches one is gone, so a level can be lost to "down the drain".
+  - Swimming, Nib dives for the gold under it, however deep the pool.
+  - Mario-style stomps make a guard under a drop easy prey, so a guard Nib could fall on is a porcupine (spiky) where the level needs it to stay a threat.
+  - The boss soaks up water but dries as it goes, and the hall drains, so only the whole flood at once washes it away; the tests check it falls to the flood at any pull timing.
+  - A dark level is night over the rooms with light cut out round Nib's lamp, torches, pin rings and lava. A level taller than one screen opens on its bottom, then the camera follows Nib.
 
 ## Controls
 
 - **Touch, mouse and keyboard:**
   - **Pull a pin:** tap or click it, or drag it out. With a keyboard, each pin shows a number, and the number key pulls it.
   - **Push a gate pin back in** (chapter 2 on): tap it again.
-  - **Look around a tall level:** drag the board, or scroll.
+  - **Look around a tall level:** the camera follows Nib (a look at the bottom first). Dragging or scrolling the board is still to build.
+  - **Climb a vine:** tap the spot on it; with keys, up and down next to it.
 - **Restart:** R or ↺. **Hint:** H or the ? button.
 - **Pause:** Esc, P or ❚❚. **Sound:** M or ♪.
 

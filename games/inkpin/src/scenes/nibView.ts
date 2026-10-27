@@ -7,7 +7,7 @@ import { nibKey, shockKey } from './textures';
 const S = 1 / ART_RES;
 /** Line-boil frames per second. */
 const BOIL_FPS = 7;
-const MARK_FOR: Record<LossCause, NibMark> = { burnt: 'soot', inked: 'ink', pricked: 'dizzy', melted: 'tears', fell: 'dizzy' };
+const MARK_FOR: Record<LossCause, NibMark> = { burnt: 'soot', inked: 'ink', pricked: 'dizzy', melted: 'tears', drained: 'tears', crushed: 'dizzy', fell: 'dizzy' };
 
 /**
  * Nib on screen: picks the pose from what the creature is doing, carries the
@@ -28,7 +28,7 @@ export class NibView {
     layer.add([this.sack, this.body, this.lantern]);
   }
 
-  update(nib: Creature, time: number, delta: number): void {
+  update(nib: Creature, time: number, delta: number, climbing = false): void {
     const boil = Math.floor((time / 1000) * BOIL_FPS) % BOIL;
     if (this.ending === 'lost') {
       // Googly eyes: the shocked face swaps pupils fast.
@@ -37,8 +37,13 @@ export class NibView {
     }
     const footed = nib.air <= FOOTING_STEPS;
     let pose: NibPose = 'stand';
+    let facing = nib.facing;
     if (this.ending === 'won') pose = 'cheer';
-    else if (nib.wet > 3 && !footed) pose = 'swim';
+    else if (climbing) {
+      // Paws up on the vine, swapping hands every few px of climb.
+      pose = 'cheer';
+      facing = Math.floor(nib.y / 14) % 2 ? 1 : -1;
+    } else if (nib.wet > 3 && !footed) pose = 'swim';
     else if (!footed && nib.vy < -0.3) pose = 'cheer';
     else if (Math.abs(nib.vx) > 0.15 && footed) {
       this.walkClock += delta * Math.abs(nib.vx) * 0.012;
@@ -46,7 +51,7 @@ export class NibView {
     }
     this.body.setTexture(nibKey(pose, boil));
     const hop = this.ending === 'won' ? -Math.abs(Math.sin(time / 160)) * 10 : 0;
-    this.place(nib.x, nib.y + hop, nib.facing, pose);
+    this.place(nib.x, nib.y + hop, facing, pose);
   }
 
   private place(x: number, y: number, facing: number, pose: NibPose): void {

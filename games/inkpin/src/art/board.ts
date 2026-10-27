@@ -1,4 +1,4 @@
-import type { LevelDef, Room } from '../logic/level';
+import type { DrainDef, LevelDef, Room, VineDef } from '../logic/level';
 import { createRng, type Rng } from '../logic/rng';
 import { ART_RES, GOLD, GOLD_DARK, GRASS, INK, MOSS, PAPER, ROCK, ROCK_DARK, TEMPLE, TEMPLE_DARK, WOOD_DARK } from './palette';
 import { ellipse, makeCanvas, Pen, type Pt } from './pen';
@@ -218,14 +218,73 @@ export function paintBoard(level: LevelDef): HTMLCanvasElement {
   ctx.translate(-vx, -vy);
   const pen = new Pen(ctx, 7, 0.7);
   paintTempleTop(ctx, pen, level.rooms);
-  paintRooms(ctx, pen, level.rooms);
+  paintRooms(ctx, pen, level.rooms, vy + h);
+  for (const d of level.drains ?? []) paintDrain(ctx, pen, level.rooms, d);
   for (const i of level.bars) {
     const s = level.walls[i];
     if (s) paintBar(ctx, pen, s.ax, s.ay, s.bx, s.by, s.t);
   }
   for (const t of level.torches) paintTorchBracket(ctx, pen, t.x, t.y);
-  paintVines(pen, level.rooms);
+  // Hanging vines for decoration only where there are none to climb, so the two are never confused.
+  if (!level.vines?.length) paintVines(pen, level.rooms);
+  (level.vines ?? []).forEach((v, i) => paintClimbingVine(ctx, pen, v, i));
   return canvas;
+}
+
+/** A drain: a dark hole under an iron grate, wherever its box shows inside the rooms. */
+function paintDrain(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Room[], d: DrainDef): void {
+  ctx.save();
+  ctx.clip(roomPath(rooms));
+  const g = ctx.createLinearGradient(0, d.y0, 0, d.y1);
+  g.addColorStop(0, '#2a2420');
+  g.addColorStop(1, '#0e0c0b');
+  ctx.fillStyle = g;
+  ctx.fillRect(d.x0, d.y0, d.x1 - d.x0, d.y1 - d.y0);
+  // Rusty iron bars across it, and a frame.
+  for (let x = d.x0 + 6; x < d.x1 - 2; x += 9) {
+    pen.hair([{ x, y: d.y0 }, { x, y: d.y1 }], 2.4, '#4d4a52', 1);
+    pen.hair([{ x: x - 0.8, y: d.y0 }, { x: x - 0.8, y: d.y1 }], 0.8, '#8a8690', 0.8);
+  }
+  pen.hair([{ x: d.x0, y: d.y0 + 3 }, { x: d.x1, y: d.y0 + 3 }], 2.6, '#4d4a52', 1);
+  ctx.restore();
+}
+
+/**
+ * A vine Nib climbs: two thick strands twisted round each other from a knot
+ * at the ledge down to the floor, with broad leaves, so it reads as a rope
+ * to grab, not as decoration.
+ */
+function paintClimbingVine(ctx: CanvasRenderingContext2D, pen: Pen, v: VineDef, seed: number): void {
+  const rng = createRng(70 + seed);
+  const top = v.top - 30;
+  const len = v.bottom - top;
+  const strand = (phase: number): Pt[] => {
+    const pts: Pt[] = [];
+    for (let y = 0; y <= len; y += 6) pts.push({ x: v.x + Math.sin(y / 22 + phase) * 4.5, y: top + y });
+    return pts;
+  };
+  const dark = mix(MOSS, INK, 0.45);
+  for (const phase of [0, Math.PI]) {
+    const pts = strand(phase);
+    pen.stroke(pts, 4.6, INK, 0.9, false);
+    pen.stroke(pts, 3.2, phase ? dark : mix(MOSS, INK, 0.2), 1, false);
+  }
+  // Leaves in pairs down its length, bigger towards the bottom.
+  for (let y = 14; y < len - 6; y += 20 + rng() * 10) {
+    const side = rng() < 0.5 ? -1 : 1;
+    const s = 6 + (y / len) * 4;
+    const p = { x: v.x + Math.sin(y / 22) * 4.5, y: top + y };
+    const leaf = [p, { x: p.x + side * s, y: p.y - s * 0.6 }, { x: p.x + side * s * 1.8, y: p.y + s * 0.2 }, { x: p.x + side * s * 0.8, y: p.y + s * 0.5 }];
+    pen.fill(leaf, rng() < 0.5 ? MOSS : mix(MOSS, '#ffffff', 0.22), 1);
+    pen.stroke([...leaf, leaf[0]!], 0.8, INK, 0.75, false);
+    pen.hair([p, { x: p.x + side * s * 1.4, y: p.y }], 0.6, dark, 0.7);
+  }
+  // The knot where it's tied off at the top.
+  ctx.fillStyle = mix(MOSS, INK, 0.3);
+  ctx.beginPath();
+  ctx.arc(v.x, top, 5.5, 0, Math.PI * 2);
+  ctx.fill();
+  pen.circle(v.x, top, 5.5, 1.2, INK);
 }
 
 function roomPath(rooms: readonly Room[]): Path2D {
@@ -237,7 +296,7 @@ function roomPath(rooms: readonly Room[]): Path2D {
   return path;
 }
 
-function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Room[]): void {
+function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Room[], bottom: number): void {
   const union = roomPath(rooms);
   // A rim of shade cut into the rock, then the ink outline; the room fill goes
   // over both, so only their outer halves show and shared edges vanish.
@@ -254,7 +313,7 @@ function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Roo
   ctx.fill(union);
   ctx.save();
   ctx.clip(union);
-  paintTempleStone(ctx, pen);
+  paintTempleStone(ctx, pen, bottom);
   paintFrieze(ctx, pen, rooms);
   // Depth: soft shade along every edge, and the cellar darker towards the top.
   ctx.lineJoin = 'round';
@@ -263,11 +322,11 @@ function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Roo
     ctx.lineWidth = 40 - k * 9;
     ctx.stroke(union);
   }
-  const shade = ctx.createLinearGradient(0, 300, 0, 1240);
+  const shade = ctx.createLinearGradient(0, 300, 0, Math.min(bottom, 1240));
   shade.addColorStop(0, rgba('#5b4a3a', 0.1));
   shade.addColorStop(1, rgba('#5b4a3a', 0));
   ctx.fillStyle = shade;
-  ctx.fillRect(-40, 300, 840, 950);
+  ctx.fillRect(-40, 300, 840, bottom - 300);
   ctx.restore();
   for (const room of rooms) {
     // Cobwebs in the top corners of the tall rooms.
@@ -292,10 +351,10 @@ function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Roo
  * heights, each with its own wash, a lit top edge and a shaded bottom one,
  * a few cracked, and moss creeping over the lower ones.
  */
-function paintTempleStone(ctx: CanvasRenderingContext2D, pen: Pen): void {
+function paintTempleStone(ctx: CanvasRenderingContext2D, pen: Pen, bottom: number): void {
   const rng = createRng(5);
   let y = 300;
-  while (y < 1290) {
+  while (y < bottom + 30) {
     const bh = 34 + Math.floor(rng() * 3) * 8;
     let x = -40 - rng() * 60;
     while (x < 780) {

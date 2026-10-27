@@ -5,8 +5,15 @@ import { GameScene } from './scenes/GameScene';
 import { DPR } from './scenes/hidpi';
 import { HudScene } from './scenes/HudScene';
 
-/** Mounts the InkPin prototype into `parent`, filling it and following its size. */
-export function mount(parent: HTMLElement): { readonly phaser: Phaser.Game; destroy(): void } {
+export interface MountOptions {
+  /** The level to open at (0-based), if it's open. */
+  readonly level?: number;
+  /** Opens every level, for testing. */
+  readonly unlockAll?: boolean;
+}
+
+/** Mounts InkPin into `parent`, filling it and following its size. */
+export function mount(parent: HTMLElement, options: MountOptions = {}): { readonly phaser: Phaser.Game; destroy(): void } {
   const cssSize = (): { width: number; height: number } => ({
     width: parent.clientWidth || window.innerWidth,
     height: parent.clientHeight || window.innerHeight,
@@ -25,6 +32,8 @@ export function mount(parent: HTMLElement): { readonly phaser: Phaser.Game; dest
   });
   const sfx = new SoundBoard();
   game.registry.set('sfx', sfx);
+  game.registry.set('unlockAll', options.unlockAll ?? false);
+  if (options.level !== undefined) game.registry.set('level', options.level);
   const resizer = new ResizeObserver(() => {
     const next = cssSize();
     const w = Math.round(next.width * DPR);

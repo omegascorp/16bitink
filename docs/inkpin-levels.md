@@ -30,20 +30,22 @@ Goals are from the design doc: **Treasure** (the chest's relic and the coin targ
 
 ## 1. The Jungle Temple (free)
 
-**New ground: hanging vines and ledges.** Nib climbs a vine up or down by walking into it (tap-to-go: tap the top or bottom). **Material:** water, coins, boulders. **Blot:** the plain Blot. **Pin:** plain pins, and pins that block each other.
+**Built** (games/inkpin/src/level, all ten tested by the solver bot in test/chapter1.test.ts).
+
+**New ground: hanging vines and ledges.** Tap a vine to climb to that spot; tap a floor to step off (keys: up/down on a vine). **Material:** water, coins, boulders (roll, plug drains, squash what they land on), drains. **Guards:** the boar (stomp it or wash it), the porcupine (spiky: wash it or drop a boulder on it), and the Great Boar boss. **Pin:** plain pins, and pins that block each other.
 
 | # | Name | Goal | What happens |
 |---|---|---|---|
-| 1 | The Door | Treasure | Tutorial: one pin between Nib and the chest. Walk and hop a lip; a vine leads up to a few bonus coins |
-| 2 | Gold Rush | Loot | Coins pour down; pull in the order that keeps them out of the drain, then walk back and forth to pick them up |
-| 3 | The Rain Cistern | Treasure | Let the water in and Nib floats up to a ledge too high to climb. A boulder must plug the drain first |
-| 4 | The Blot | Treasure | Wash the Blot away before opening Nib's way. Nib waits on a vine, out of reach, while it comes |
+| 1 | The Door | Treasure | Tutorial: one pin between Nib and the chest, a lip to hop, a vine up to a ledge of bonus coins |
+| 2 | Gold Rush | Loot | A hopper of gold over a ramp to the drain: pull the ramp first and the gold falls into the hall |
+| 3 | The Rain Cistern | Treasure | Drop the boulder into the drain, then let the rain tank in; Nib floats up to the chest's ledge and dives for the gold |
+| 4 | The Guard | Treasure | The boar guards the chest: pull the ramp, then the water, then Nib's gate. Opened early, Nib can wait up the vine |
 | 5 | The Gold Vault | Loot | The prototype: lava above the water, gold above the lava |
-| 6 | Pin Over Pin | Treasure | Crossed pins: only one is free to move first, and the obvious one isn't |
-| 7 | The Well of Vines | Treasure | Two screens deep. Climb down a well of vines; get off the vine before the water pours down its shaft |
-| 8 | The Flooded Stair | Loot | Remix: Blots, boulders and gold, and the water has to reach two rooms |
-| 9 | Torches Out | Treasure | Lights out: only Nib's lamp and the torches light the room |
-| 10 | The Idol Hall | Boss | The Big Blot fills the hall floor. Climb to the top ledge, then bring every drop of water down onto it at once |
+| 6 | Pin Over Pin | Treasure | The gold's pin is stuck behind the boulder's; Nib's door opens onto a porcupine pit. Boulder first |
+| 7 | The Well of Vines | Treasure | Two screens deep (the camera follows Nib): floors joined by vines; send the water down before Nib, or the boar waits at the bottom |
+| 8 | The Flooded Stair | Loot | A boar and a porcupine down a stair; plug the drain before the gold or the water comes in |
+| 9 | Torches Out | Treasure | Lights out: plug the drain, flood the boar's side, then open Nib's door |
+| 10 | The Idol Hall | Boss | The Great Boar waits under Nib's ledge, too big to stomp. Let both tanks into the cistern over it, then open it: only the whole flood washes it away |
 
 ## 2. The Volcano Shrine
 
@@ -202,7 +204,7 @@ Goals are from the design doc: **Treasure** (the chest's relic and the coin targ
 
 | Ruin | New engine work |
 |---|---|
-| 1 | Vines to climb, boulders, the drain |
+| 1 | Vines to climb, boulders, the drain, dark levels, tall levels, the boss (built) |
 | 2 | Crumbling ledges, gate pins |
 | 3 | Pressure plates and doors, sand, gas, blasts, cracked walls, chain pins |
 | 4 | Ice floors and sliding, ice blocks, frost, keys and lock pins |

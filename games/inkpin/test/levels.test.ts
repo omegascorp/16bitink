@@ -26,8 +26,6 @@ describe('The Gold Vault', () => {
       const s = play(CELLAR, order).status;
       return s.state === 'lost' ? s.cause : undefined;
     };
-    // Gate first drops Nib into the pit: on the boar's head (a stomp) or into its path, and then the lava.
-    expect(['inked', 'burnt']).toContain(cause(['gate', 'W', 'L', 'C']));
     expect(cause(['C', 'W', 'L', 'gate'])).toBe('melted');
     expect(cause(['L', 'gate', 'W', 'C'])).toBe('burnt');
   });

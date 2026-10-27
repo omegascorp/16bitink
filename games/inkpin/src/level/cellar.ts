@@ -1,20 +1,18 @@
 import type { LevelDef } from '../logic/level';
 import { COIN, LAVA, WATER } from '../logic/particles';
+import { CH1, PIN_T, T } from './common';
 
 /**
- * The prototype level: the gold vault under the Jungle Temple. Nib waits in a closet behind the gate pin; a Blot
+ * Level 5, the first prototype: the gold vault under the Jungle Temple. Nib waits in a closet behind the gate pin; a Blot
  * waits in the pit below the chest's shelf. Water stands in the left shaft;
  * in the right one coins sit above lava. Releasing the coins first drops
  * them in the lava, opening the gate first lets the Blot in or drops Nib
  * into an empty pit, and the lava must meet the water before Nib walks.
  * Winning orders: W, L, C, gate (or L before W).
  */
-const T = 8;
-const PIN_T = 7;
-
 export const CELLAR: LevelDef = {
   id: 'cellar',
-  chapter: 'Chapter 1 · The Jungle Temple',
+  chapter: CH1,
   name: 'The Gold Vault',
   goal: 'Take the chest and pick up 200 coins',
   rooms: [

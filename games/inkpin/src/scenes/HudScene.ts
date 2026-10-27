@@ -1,8 +1,7 @@
 import Phaser from 'phaser';
 import { INK, PAPER, RED } from '../art/palette';
 import type { SoundBoard } from '../audio/sfx';
-import { CELLAR } from '../level/cellar';
-import { hudTake, readControls, type ControlMode, type HudState, type Result } from './GameScene';
+import { hudTake, readControls, type ControlMode, type HudState, type LevelInfo, type Result } from './GameScene';
 import { DPR, screenSize } from './hidpi';
 
 const FONT = 'Caveat';
@@ -13,9 +12,11 @@ const TIPS: Record<ControlMode, string> = {
 const CONTROL_LABEL: Record<ControlMode, string> = { tap: 'Move: tap to go  ⇄', stick: 'Move: joystick  ⇄' };
 const CAUSE_TEXT: Record<string, { title: string; line: string }> = {
   burnt: { title: 'Too hot!', line: 'Nib walked into the lava. Cool it with water first.' },
-  inked: { title: 'Caught!', line: 'The inky boar got Nib. Soak it with water, or jump on its head.' },
-  pricked: { title: 'Ouch, spikes!', line: 'Spiky guards can’t be stomped. Wash them away instead.' },
+  inked: { title: 'Caught!', line: 'A guard got Nib. Wash it away with water, or jump on a boar’s head.' },
+  pricked: { title: 'Ouch, spikes!', line: 'Porcupines can’t be stomped. Wash them away, or drop a boulder on them.' },
   melted: { title: 'The gold melted!', line: 'Coins that touch lava are gone, and too few are left.' },
+  drained: { title: 'Down the drain!', line: 'Too much gold washed away. Plug the drain first.' },
+  crushed: { title: 'Bonk!', line: 'A boulder came down on Nib. Keep out from under it.' },
   fell: { title: 'Whoops!', line: 'Nib fell out of the temple.' },
 };
 
@@ -40,6 +41,11 @@ export class HudScene extends Phaser.Scene {
   /** Shown once the goal is met: Nib may leave now or stay for the rest of the gold. */
   private leaveButton!: Phaser.GameObjects.Text;
   private goalShown = false;
+  /** Level picker: back, "Level n / 10", on. */
+  private levelPrev!: Phaser.GameObjects.Text;
+  private levelLabel!: Phaser.GameObjects.Text;
+  private levelNext!: Phaser.GameObjects.Text;
+  private info: LevelInfo | null = null;
 
   constructor() {
     super('hud');
@@ -53,9 +59,9 @@ export class HudScene extends Phaser.Scene {
     this.cameras.main.setOrigin(0).setZoom(DPR);
     const text = (size: number, color = INK, bold = true): Phaser.GameObjects.Text =>
       this.add.text(0, 0, '', { fontFamily: FONT, fontSize: `${size}px`, fontStyle: bold ? '700' : '500', color, padding: { x: 4, y: 2 } }).setResolution(DPR);
-    this.chapter = text(17, '#7a5a2e').setText(CELLAR.chapter);
-    this.title = text(34).setText(CELLAR.name);
-    this.goal = text(20, INK, false).setText(CELLAR.goal);
+    this.chapter = text(17, '#7a5a2e');
+    this.title = text(34);
+    this.goal = text(20, INK, false);
     this.coin = this.add.image(0, 0, 'coins', 0).setScale(0.5);
     this.count = text(26);
     this.chestIcon = this.add.image(0, 0, 'chest-closed').setScale(0.24);
@@ -89,6 +95,20 @@ export class HudScene extends Phaser.Scene {
       this.game.events.emit('cmd:leave');
     });
     this.buttons = [this.button('↺', () => this.game.events.emit('cmd:restart')), this.button('?', () => this.game.events.emit('cmd:hint'))];
+    const chip = (label: string, onTap: () => void): Phaser.GameObjects.Text => {
+      const t = text(22, INK).setText(label).setBackgroundColor('rgba(255,250,240,0.85)').setPadding(9, 1, 9, 1);
+      t.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
+        hudTake(p);
+        this.sfx.unlock();
+        if (!t.alpha || t.alpha < 0.5) return;
+        this.sfx.play('tap');
+        onTap();
+      });
+      return t;
+    };
+    this.levelPrev = chip('‹', () => this.goLevel(-1));
+    this.levelNext = chip('›', () => this.goLevel(1));
+    this.levelLabel = text(18, INK, false).setBackgroundColor('rgba(255,250,240,0.85)').setPadding(8, 3, 8, 3);
     this.layout();
     this.scale.on('resize', this.layout, this);
     this.game.events.on('hud:state', this.onState, this);
@@ -97,6 +117,8 @@ export class HudScene extends Phaser.Scene {
     this.game.events.on('stick:show', this.stickShow, this);
     this.game.events.on('stick:move', this.stickMove, this);
     this.game.events.on('stick:hide', this.stickHide, this);
+    const info = this.registry.get('levelInfo') as LevelInfo | undefined;
+    if (info) this.onReset(info);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off('resize', this.layout, this);
       this.game.events.off('hud:state', this.onState, this);
@@ -145,6 +167,11 @@ export class HudScene extends Phaser.Scene {
     this.chestIcon.setPosition(chestX, countY);
     this.chestTick.setPosition(chestX + 8, countY + 4);
     this.controlChip.setPosition(x, narrow ? 76 : 86).setFontSize(narrow ? 16 : 18);
+    // The level picker sits beside the controls chip; on phones, under it.
+    const navY = narrow ? 108 : 86;
+    this.levelPrev.setPosition(narrow ? x : x + this.controlChip.width + 10, navY - 2);
+    this.levelLabel.setPosition(this.levelPrev.x + this.levelPrev.width + 4, navY).setFontSize(narrow ? 16 : 18);
+    this.levelNext.setPosition(this.levelLabel.x + this.levelLabel.width + 4, navY - 2);
     const touch = this.sys.game.device.input.touch;
     this.jumpButton.setPosition(width - 52, height - 130).setVisible(touch && this.controls === 'stick');
     // Centred, but clear of the jump button in the bottom-right corner.
@@ -195,12 +222,33 @@ export class HudScene extends Phaser.Scene {
     this.tweens.add({ targets: this.tip, alpha: 0, delay: 4500, duration: 600, onComplete: () => this.tip.setVisible(false) });
   }
 
-  private onReset(): void {
+  /** Steps to the level before or after this one, if it's open. */
+  private goLevel(step: -1 | 1): void {
+    const info = this.info;
+    if (!info) return;
+    const to = info.index + step;
+    if (to < 0 || to >= info.count || to > info.unlocked) return;
+    this.game.events.emit('cmd:level', to);
+  }
+
+  private onReset(info?: LevelInfo): void {
+    if (info) {
+      this.info = info;
+      const { level } = info;
+      this.chapter.setText(level.chapter);
+      this.title.setText(level.name);
+      this.goal.setText(level.goal);
+      this.levelLabel.setText(`Level ${info.index + 1} / ${info.count}`);
+      this.levelPrev.setAlpha(info.index > 0 ? 1 : 0.3);
+      this.levelNext.setAlpha(info.index < Math.min(info.unlocked, info.count - 1) ? 1 : 0.3);
+      this.chestIcon.setVisible(level.chest !== undefined);
+      this.layout();
+    }
     this.goalShown = false;
     this.tweens.killTweensOf(this.leaveButton);
     this.leaveButton.setVisible(false).setScale(1);
     this.tweens.killTweensOf(this.tip);
-    this.tip.setText(TIPS[this.controls]);
+    this.tip.setText(this.info?.level.tip ?? TIPS[this.controls]);
     this.card?.destroy();
     this.card = null;
     this.tip.setVisible(true).setAlpha(0.92);
@@ -230,14 +278,15 @@ export class HudScene extends Phaser.Scene {
     this.leaveButton.setVisible(false);
     const { width, height } = screenSize(this.scale);
     const w = Math.min(380, width - 32);
-    const h = r.won ? 320 : 200;
+    const h = r.won ? (r.next !== null ? 370 : 320) : 200;
     const bg = this.add.graphics();
     bg.fillStyle(0x000000, 0.12).fillRoundedRect(-w / 2 + 6, -h / 2 + 8, w, h, 14);
     bg.fillStyle(Phaser.Display.Color.HexStringToColor(PAPER).color, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 14);
     bg.lineStyle(3, 0x26316a, 1).strokeRoundedRect(-w / 2, -h / 2, w, h, 14);
     const cause = r.cause ? CAUSE_TEXT[r.cause] : undefined;
     const title = this.add.text(0, -h / 2 + 18, r.won ? 'Nib made it!' : cause?.title ?? 'Oh no!', { fontFamily: FONT, fontSize: '44px', fontStyle: '700', color: r.won ? INK : RED, padding: { x: 8, y: 2 } }).setOrigin(0.5, 0).setResolution(DPR);
-    const lineText = r.won ? `The idol and ${r.coins} of ${r.total} coins.\nBank: ${r.bank.coins.toLocaleString('en-US')} coins · ${r.bank.idols} ${r.bank.idols === 1 ? 'idol' : 'idols'}` : cause?.line ?? '';
+    const haul = r.hasChest ? `The idol and ${r.coins} of ${r.total} coins.` : `${r.coins} of ${r.total} coins.`;
+    const lineText = r.won ? `${haul}\nBank: ${r.bank.coins.toLocaleString('en-US')} coins · ${r.bank.idols} ${r.bank.idols === 1 ? 'idol' : 'idols'}` : cause?.line ?? '';
     const line = this.add.text(0, -h / 2 + 76, lineText, { fontFamily: FONT, fontSize: '23px', color: INK, align: 'center', wordWrap: { width: w - 40 } }).setOrigin(0.5, 0).setResolution(DPR);
     const parts: Phaser.GameObjects.GameObject[] = [bg, title, line];
     if (r.won) {
@@ -245,7 +294,7 @@ export class HudScene extends Phaser.Scene {
       const labels = ['done', 'every coin', 'first try'];
       labels.forEach((label, i) => {
         const x = (i - 1) * 96;
-        const y0 = 14;
+        const y0 = r.next !== null ? -24 : 14;
         const got = [true, r.allCoins, r.firstTry][i]!;
         const blot = this.add.graphics();
         blot.fillStyle(got ? 0x26316a : 0xd8d0bf, 1).fillCircle(x, y0 + 26, 17).fillCircle(x + 12, y0 + 18, 6).fillCircle(x - 13, y0 + 34, 5);
@@ -253,13 +302,24 @@ export class HudScene extends Phaser.Scene {
         parts.push(blot, t);
       });
     }
-    const again = this.add.text(0, h / 2 - 34, r.won ? 'Play again' : 'Try again', { fontFamily: FONT, fontSize: '30px', fontStyle: '700', color: '#ffffff', backgroundColor: r.won ? INK : RED, padding: { x: 18, y: 2 } }).setOrigin(0.5).setResolution(DPR);
+    const next = r.won ? r.next : null;
+    const again = this.add.text(0, h / 2 - 34, r.won ? 'Play again' : 'Try again', { fontFamily: FONT, fontSize: next !== null ? '24px' : '30px', fontStyle: '700', color: next !== null ? INK : '#ffffff', backgroundColor: next !== null ? undefined : r.won ? INK : RED, padding: { x: 18, y: 2 } }).setOrigin(0.5).setResolution(DPR);
     again.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
       hudTake(p);
       this.sfx.play('tap');
       this.game.events.emit('cmd:restart');
     });
     parts.push(again);
+    if (next !== null) {
+      // The way on: the next level, big; playing this one again is the small choice under it.
+      const on = this.add.text(0, h / 2 - 84, 'Next level  ➜', { fontFamily: FONT, fontSize: '32px', fontStyle: '700', color: '#ffffff', backgroundColor: '#2f7a3a', padding: { x: 20, y: 3 } }).setOrigin(0.5).setResolution(DPR);
+      on.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
+        hudTake(p);
+        this.sfx.play('tap');
+        this.game.events.emit('cmd:level', next);
+      });
+      parts.push(on);
+    }
     // In the upper part of the screen: the camera has zoomed in on Nib below it.
     this.card = this.add.container(width / 2, this.cardY(h), parts).setScale(0.7).setAlpha(0);
     this.card.setData('h', h);

@@ -6,7 +6,8 @@ import { mix, rgba } from './wash';
 /**
  * The Jungle Temple's guard: a stout, grumpy little boar. Round, with no
  * spikes, so Nib can stomp it. Faces right, centred on its collision circle, feet at
- * y = 22.
+ * y = 22. The Great Boar, the chapter's boss, is the same beast painted
+ * bigger (`size`) and crowned with temple gold.
  */
 export const BOAR_FRAME = { w: 76, h: 72, ox: 38, oy: 38 } as const;
 export type BoarMood = 'grump' | 'scared';
@@ -17,9 +18,9 @@ const HIDE_DARK = '#4f321f';
 const SNOUT = '#d79a86';
 const TUSK = '#fbf3df';
 
-export function paintBoar(mood: BoarMood, boil: number): HTMLCanvasElement {
-  const { canvas, ctx } = makeCanvas(BOAR_FRAME.w * ART_RES, BOAR_FRAME.h * ART_RES);
-  ctx.scale(ART_RES, ART_RES);
+export function paintBoar(mood: BoarMood, boil: number, size = 1, crown = false): HTMLCanvasElement {
+  const { canvas, ctx } = makeCanvas(Math.round(BOAR_FRAME.w * ART_RES * size), Math.round(BOAR_FRAME.h * ART_RES * size));
+  ctx.scale(ART_RES * size, ART_RES * size);
   ctx.translate(BOAR_FRAME.ox, BOAR_FRAME.oy);
   const pen = new Pen(ctx, 500 + boil * 13, 0.55);
   const scared = mood === 'scared';
@@ -33,7 +34,24 @@ export function paintBoar(mood: BoarMood, boil: number): HTMLCanvasElement {
   paintLeg(pen, -8 + step, HIDE_DARK);
   paintLeg(pen, 13 - step, HIDE_DARK);
   paintHead(pen, ctx, body, scared);
+  if (crown) paintCrown(pen, ctx);
   return canvas;
+}
+
+/** A band of temple gold between the ears, with three points and a green stone. */
+function paintCrown(pen: Pen, ctx: CanvasRenderingContext2D): void {
+  const crown = [{ x: 4, y: -11 }, { x: 5, y: -19 }, { x: 8.5, y: -14 }, { x: 12, y: -22 }, { x: 15.5, y: -14 }, { x: 19, y: -19 }, { x: 20, y: -10 }];
+  const g = ctx.createLinearGradient(0, -22, 0, -10);
+  g.addColorStop(0, '#fbe7a1');
+  g.addColorStop(1, '#c08a24');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  crown.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+  ctx.closePath();
+  ctx.fill();
+  pen.stroke([...crown, crown[0]!], 1, INK, 0.9, false);
+  pen.dot(12, -14.5, 1.8, '#3f9a6a');
+  pen.dot(11.5, -15, 0.6, '#ffffff', 0.8);
 }
 
 function paintShadow(ctx: CanvasRenderingContext2D): void {
