@@ -1,7 +1,9 @@
-import { boulder, circleContact, CRUSH_SPEED, separate, stepBoulder, type Boulder } from './boulders';
+import { climbable, loadVine, saveVine, stepVine, vine, type Vine, type VineEvent, type VineSave } from './vines';
+import { bodyContact, boulder, CRUSH_SPEED, separate, stepBody, type Boulder } from './boulders';
 import { capsuleContact, segSegDistance, type Contact, type Seg } from './geom';
-import type { DrainDef, FillDef, LevelDef, PinDef, VineDef } from './level';
-import { COIN, GRAIN_R, GRAVITY, Grains, LAVA, STEPS_PER_SECOND, STONE, WATER, type GrainEvent } from './particles';
+import { drainGrains, type DrainedCoin } from './drains';
+import type { FillDef, LevelDef, PinDef } from './level';
+import { COIN, GRAIN_R, GRAVITY, Grains, LAVA, STEPS_PER_SECOND, STONE, WATER, type GrainEvent, type GrainsSave } from './particles';
 
 /**
  * One level in play: the grains, the pins, Nib and the Blots, and the rules
@@ -21,6 +23,10 @@ const BLOT_SIGHT_X = 220;
 const BLOT_SIGHT_Y = 50;
 /** Steps a patrolling Blot pushes against something before it turns round. */
 const BLOT_TURN_STEPS = 30;
+/** A guard that can't get at Nib paces off this long (steps) before it turns to glare again, like a bull. */
+const PACE_STEPS = 90;
+/** Net headway (px) that counts as getting somewhere: a guard jittering against a wall moves every step but gets nowhere. */
+const HEADWAY = 4;
 /** Nib must be falling at least this fast (px per step) to stomp a guard, and bounces off at this share of a jump. */
 const STOMP_SPEED = 0.4;
 const STOMP_BOUNCE = 0.75;
@@ -43,6 +49,8 @@ const CHEST_REACH_ABOVE = 90;
 const CHEST_REACH_BELOW = 24;
 /** The world counts as settled once nothing moves faster than this (px per step). */
 const SETTLED_SPEED = 0.35;
+/** Grains that may still jiggle in a settled world (water squeezed between a resting boulder and a wall). */
+const SETTLED_STRAYS = 6;
 /** How far past its length a pin must slide to be clear: its ring. */
 const PIN_RING_CLEAR = 28;
 /** Steps the grains run before a level starts, to settle against the pins. */
@@ -96,6 +104,8 @@ export type WorldEvent =
   | { readonly type: 'drained'; readonly x: number; readonly y: number }
   | { readonly type: 'splash'; readonly x: number; readonly y: number }
   | { readonly type: 'chest'; readonly x: number; readonly y: number }
+  | VineEvent
+  | { readonly type: 'crateBurnt'; readonly x: number; readonly y: number }
   | { readonly type: 'jump' };
 
 export interface Creature {
@@ -123,13 +133,38 @@ export interface Blot extends Creature {
   /** Set when it's gone: washed away or dried to smoke. */
   gone: BlotEnd | null;
   goneAt: number;
-  /** Steps it has walked without getting anywhere: it turns round. */
+  /** Steps it has walked without getting anywhere (from `anchor`): it turns round. */
   stuck: number;
+  /** Where it was when it last got somewhere. */
+  anchor: number;
+  /** Steps left pacing away, having found it can't get at Nib (a wall, an edge, a ledge too high). */
+  pacing: number;
 }
 
 export interface PinState {
   readonly def: PinDef;
   pulledAt: number | null;
+}
+
+/** Everything that changes in a World as it plays, to wind back to (a heart lost). */
+export interface WorldSave {
+  readonly grains: GrainsSave;
+  readonly pulled: readonly (number | null)[];
+  readonly nib: Creature;
+  readonly blots: readonly Blot[];
+  readonly boulders: readonly Boulder[];
+  readonly coinsCollected: number;
+  readonly chestTaken: boolean;
+  readonly goalMet: boolean;
+  readonly steps: number;
+  readonly status: Status;
+  readonly quietSteps: number;
+  readonly order: NibOrder;
+  readonly stalled: number;
+  /** The vine Nib holds, by index. */
+  readonly climbing: number | null;
+  readonly vines: readonly VineSave[];
+  readonly goldLostTo: 'melted' | 'drained';
 }
 
 export class World {
@@ -138,6 +173,8 @@ export class World {
   readonly nib: Creature;
   readonly blots: Blot[];
   readonly boulders: Boulder[];
+  /** The vines as they are now: grown, still seeds, or burnt. */
+  readonly vines: Vine[];
   readonly coinsTotal: number;
   coinsCollected = 0;
   /** True once Nib has opened the chest and taken its treasure. */
@@ -160,7 +197,7 @@ export class World {
   private segs: Seg[] = [];
   private readonly contact: Contact = { nx: 0, ny: 0, depth: 0 };
   /** The vine Nib is holding, if any. */
-  private climbing: VineDef | null = null;
+  private climbing: Vine | null = null;
   /** What took the gold that's gone, for the loss: lava or the drain. */
   private goldLostTo: 'melted' | 'drained' = 'melted';
   /** Below this, Nib has fallen out of the level. */
@@ -172,8 +209,9 @@ export class World {
     for (const f of level.fills) fill(this.grains, f);
     this.pins = level.pins.map((def) => ({ def, pulledAt: null }));
     this.nib = creature(level.nib.x, level.nib.y, NIB_R, 1);
-    this.blots = level.blots.map((b) => ({ ...creature(b.x, b.y, b.boss ? BOSS_R : BLOT_R, -1), spiky: b.spiky ?? false, boss: b.boss ?? false, soaked: 0, gone: null, goneAt: 0, stuck: 0 }));
-    this.boulders = (level.boulders ?? []).map((b) => boulder(b.x, b.y));
+    this.blots = level.blots.map((b) => ({ ...creature(b.x, b.y, b.boss ? BOSS_R : BLOT_R, -1), spiky: b.spiky ?? false, boss: b.boss ?? false, soaked: 0, gone: null, goneAt: 0, stuck: 0, anchor: b.x, pacing: 0 }));
+    this.boulders = [...(level.boulders ?? []).map((b) => boulder(b.x, b.y)), ...(level.crates ?? []).map((c) => boulder(c.x, c.y, true))];
+    this.vines = (level.vines ?? []).map(vine);
     this.floorY = Math.max(...level.rooms.flatMap((r) => r.map(([, y]) => y))) + 70;
     this.rebuildSegs();
     // Let everything settle against the pins before play starts, so a level
@@ -184,6 +222,7 @@ export class World {
       this.grains.step(this.segs, scratch);
       this.drain();
       this.moveBoulders();
+      this.growVines();
     }
     this.events.length = 0;
     this.coinsTotal = this.grains.countOf(COIN);
@@ -192,6 +231,54 @@ export class World {
   /** Coins still in play plus those in Nib's sack. */
   get treasure(): number {
     return this.coinsCollected + this.grains.countOf(COIN);
+  }
+
+  /** A copy of the level as it is now, to wind back to with `load`. */
+  save(): WorldSave {
+    return {
+      grains: this.grains.save(),
+      pulled: this.pins.map((p) => p.pulledAt),
+      nib: { ...this.nib },
+      blots: this.blots.map((b) => ({ ...b })),
+      boulders: this.boulders.map((b) => ({ ...b })),
+      coinsCollected: this.coinsCollected,
+      chestTaken: this.chestTaken,
+      goalMet: this.goalMet,
+      steps: this.steps,
+      status: this.status,
+      quietSteps: this.quietSteps,
+      order: this.order,
+      stalled: this.stalled,
+      climbing: this.climbing ? this.vines.indexOf(this.climbing) : null,
+      vines: this.vines.map(saveVine),
+      goldLostTo: this.goldLostTo,
+    };
+  }
+
+  /** Winds the level back to a saved moment: the grains, the pins, Nib, the guards, the boulders and the score. */
+  load(s: WorldSave): void {
+    this.grains.load(s.grains);
+    this.pins.forEach((p, i) => (p.pulledAt = s.pulled[i] ?? null));
+    Object.assign(this.nib, s.nib);
+    this.blots.forEach((b, i) => Object.assign(b, s.blots[i]));
+    this.boulders.forEach((b, i) => Object.assign(b, s.boulders[i]));
+    this.coinsCollected = s.coinsCollected;
+    this.chestTaken = s.chestTaken;
+    this.goalMet = s.goalMet;
+    this.steps = s.steps;
+    this.status = s.status;
+    this.quietSteps = s.quietSteps;
+    this.order = s.order;
+    this.stalled = s.stalled;
+    this.vines.forEach((v, i) => {
+      const saved = s.vines[i];
+      if (saved) loadVine(v, saved);
+    });
+    this.climbing = s.climbing === null ? null : (this.vines[s.climbing] ?? null);
+    this.goldLostTo = s.goldLostTo;
+    this.pending = [];
+    this.events.length = 0;
+    this.rebuildSegs();
   }
 
   /** Tells Nib what to do. */
@@ -301,6 +388,7 @@ export class World {
     if (this.events.some((e) => e.type === 'melt')) this.goldLostTo = 'melted';
     this.drain();
     this.moveBoulders();
+    this.growVines();
     for (const b of this.blots) if (!b.gone) this.moveBlot(b);
     this.moveNib();
     this.judge();
@@ -314,35 +402,36 @@ export class World {
   private drain(): void {
     const drains = this.level.drains;
     if (!drains?.length) return;
-    const g = this.grains;
-    for (let i = 0; i < g.count; i++) {
-      const k = g.kind[i];
-      if (k === STONE || k === 0) continue;
-      const d = drains.find((d) => inBox(d, g.x[i]!, g.y[i]!));
-      if (!d) continue;
-      g.remove(i);
-      if (k === COIN) {
-        this.goldLostTo = 'drained';
-        this.events.push({ type: 'drained', x: g.x[i]!, y: g.y[i]! });
-      }
-    }
+    const lost: DrainedCoin[] = [];
+    drainGrains(drains, this.boulders, this.grains, lost);
+    if (lost.length) this.goldLostTo = 'drained';
+    this.events.push(...lost);
   }
 
   private moveBoulders(): void {
     const bs = this.boulders;
-    for (const b of bs) stepBoulder(b, this.segs, this.grains, this.contact);
-    for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) separate(bs[i]!, bs[j]!);
+    for (const b of bs) if (stepBody(b, this.segs, this.grains, this.contact)) this.events.push({ type: 'crateBurnt', x: b.x, y: b.y });
+    for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) if (!bs[i]!.gone && !bs[j]!.gone) separate(bs[i]!, bs[j]!);
+  }
+
+  /** Seeds drink and grow, lava burns vines; Nib lets go of one that burns. */
+  private growVines(): void {
+    for (const v of this.vines) stepVine(v, this.grains, this.events);
+    if (this.climbing?.burnt) {
+      this.climbing = null;
+      if (this.order.kind === 'climb') this.order = { kind: 'stay' };
+    }
   }
 
   /** The vine within Nib's reach, if any. */
-  private vineAt(): VineDef | null {
+  private vineAt(): Vine | null {
     const nib = this.nib;
-    return this.level.vines?.find((v) => Math.abs(v.x - nib.x) < VINE_GRAB * 2 && nib.y > v.top - nib.r - 8 && nib.y < v.bottom - nib.r + 8) ?? null;
+    return this.vines.find((v) => climbable(v) && Math.abs(v.x - nib.x) < VINE_GRAB * 2 && nib.y > v.top - nib.r - 8 && nib.y < v.bottom - nib.r + 8) ?? null;
   }
 
   /** The vine a tap at (x, y) lands on, if any. */
-  private vineNear(x: number, y: number): VineDef | null {
-    return this.level.vines?.find((v) => Math.abs(v.x - x) < VINE_TAP && y > v.top - 70 && y < v.bottom + 30) ?? null;
+  private vineNear(x: number, y: number): Vine | null {
+    return this.vines.find((v) => climbable(v) && Math.abs(v.x - x) < VINE_TAP && y > v.top - 70 && y < v.bottom + 30) ?? null;
   }
 
   /**
@@ -380,7 +469,7 @@ export class World {
   }
 
   /** A tap on a vine: walk to it, take hold, and climb to the spot tapped. */
-  private gotoVine(vine: VineDef, y: number): void {
+  private gotoVine(vine: Vine, y: number): void {
     const nib = this.nib;
     const holding = this.climbing === vine;
     const within = Math.abs(nib.x - vine.x) < VINE_GRAB && nib.y > vine.top - nib.r - 8 && nib.y < vine.bottom - nib.r + 8;
@@ -411,21 +500,26 @@ export class World {
     const nib = this.nib;
     // The boss keeps its eyes on Nib wherever it is, and waits below.
     const seesNib = b.boss ? Math.abs(nib.x - b.x) < BOSS_SIGHT_X : Math.abs(nib.x - b.x) < BLOT_SIGHT_X && Math.abs(nib.y - b.y) < BLOT_SIGHT_Y;
-    if (seesNib) {
+    if (b.pacing > 0) b.pacing--;
+    if (seesNib && b.pacing === 0) {
       b.facing = Math.sign(nib.x - b.x) || b.facing;
-      // At an edge it stops and waits rather than walking off.
-      if (this.edgeAhead(b)) {
-        this.moveCreature(b, 0, false);
-        this.soak(b);
-        return;
+      // Blocked on the way to Nib (an edge, a wall, a ledge too high): it paces off, then comes back to glare.
+      if (this.edgeAhead(b) || b.stuck > BLOT_TURN_STEPS) {
+        b.facing = -b.facing;
+        b.stuck = 0;
+        b.anchor = b.x;
+        b.pacing = PACE_STEPS;
       }
     } else if (b.stuck > BLOT_TURN_STEPS || this.edgeAhead(b)) {
       b.facing = -b.facing;
       b.stuck = 0;
+      b.anchor = b.x;
     }
-    const before = b.x;
     this.moveCreature(b, b.facing * BLOT_WALK, false);
-    b.stuck = Math.abs(b.x - before) < 0.1 ? b.stuck + 1 : 0;
+    if (Math.abs(b.x - b.anchor) > HEADWAY) {
+      b.anchor = b.x;
+      b.stuck = 0;
+    } else b.stuck++;
     this.soak(b);
   }
 
@@ -511,7 +605,7 @@ export class World {
       });
       // Boulders are solid too, and one coming down fast squashes what it lands on.
       for (const b of this.boulders) {
-        if (!circleContact(b.x, b.y, b.r, c.x, c.y, c.r, k)) continue;
+        if (!bodyContact(b, c.x, c.y, c.r, k)) continue;
         if (b.vy > CRUSH_SPEED && b.y < c.y - c.r * 0.5) {
           if (isNib) this.lose('crushed');
           else this.blotGone(c as Blot, 'stomped');
@@ -616,7 +710,7 @@ export class World {
     g.near(x, y, r + GRAIN_R, (i) => {
       if (g.kind[i] === STONE) hit = true;
     });
-    return hit || this.boulders.some((b) => circleContact(b.x, b.y, b.r, x, y, r, k));
+    return hit || this.boulders.some((b) => bodyContact(b, x, y, r, k));
   }
 
   private resolve(c: Creature, k: Contact): void {
@@ -664,7 +758,7 @@ export class World {
       this.status = { state: 'won' };
       return;
     }
-    const moving = this.grains.maxSpeed() > SETTLED_SPEED || Math.hypot(nib.vx, nib.vy) > SETTLED_SPEED * 0.5 || this.boulders.some((b) => Math.hypot(b.vx, b.vy) > SETTLED_SPEED);
+    const moving = this.grains.countFasterThan(SETTLED_SPEED) > SETTLED_STRAYS || Math.hypot(nib.vx, nib.vy) > SETTLED_SPEED * 0.5 || this.boulders.some((b) => Math.hypot(b.vx, b.vy) > SETTLED_SPEED);
     this.quietSteps = moving ? 0 : this.quietSteps + 1;
   }
 
@@ -680,10 +774,6 @@ export class World {
     // With the goal met, a mishap only cuts the visit short: Nib keeps the loot.
     this.status = this.goalMet ? { state: 'won' } : { state: 'lost', cause };
   }
-}
-
-function inBox(d: DrainDef, x: number, y: number): boolean {
-  return x > d.x0 && x < d.x1 && y > d.y0 && y < d.y1;
 }
 
 function creature(x: number, y: number, r: number, facing: number): Creature {

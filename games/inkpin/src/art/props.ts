@@ -104,38 +104,90 @@ export function paintChest(open: boolean): HTMLCanvasElement {
 /** A coin, seen at an angle `turn` (0 face-on .. 1 edge-on), 14 board px across. */
 export const COIN_SIZE = 16;
 
+/**
+ * A gold coin, crisp and round so a heap reads as coins: a raised rim round
+ * a flat face with a stamped diamond, its milled edge showing as it turns
+ * (`turn` 0 = face on, 1 = edge on).
+ */
 export function paintCoin(turn: number): HTMLCanvasElement {
   const { canvas, ctx } = makeCanvas(COIN_SIZE * ART_RES, COIN_SIZE * ART_RES);
   ctx.scale(ART_RES, ART_RES);
-  ctx.translate(COIN_SIZE / 2, COIN_SIZE / 2);
-  const pen = new Pen(ctx, 13 + Math.round(turn * 10), 0.2);
-  const rx = 6.4 * (1 - turn * 0.6);
-  // The rim: the coin's edge showing below its face.
-  pen.fill(ellipse(0.6 * turn, 0.9, rx, 6.4, 16), GOLD_DARK, 1);
-  const face = ellipse(0, 0, rx, 6.4, 16);
-  const g = ctx.createRadialGradient(-rx * 0.4, -2.4, 0.5, 0, 0, 7);
-  g.addColorStop(0, GOLD_LIGHT);
-  g.addColorStop(0.55, GOLD);
-  g.addColorStop(1, mix(GOLD, GOLD_DARK, 0.6));
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  face.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
-  ctx.closePath();
-  ctx.fill();
-  // Embossed ring and mark.
-  if (turn < 0.8) {
-    ctx.strokeStyle = rgba(GOLD_DARK, 0.7);
-    ctx.lineWidth = 0.7;
+  const R = 6.4;
+  const rx = R * (1 - turn * 0.72);
+  const thick = 0.8 + turn * 2.2;
+  ctx.translate(COIN_SIZE / 2 - thick / 2, COIN_SIZE / 2);
+  const oval = (x: number, sx: number, sy: number): void => {
     ctx.beginPath();
-    ctx.ellipse(0, 0, rx * 0.68, 4.3, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, 0, Math.max(0.3, sx), sy, 0, 0, Math.PI * 2);
+  };
+  // The milled edge: the coin's thickness, stacked behind its face.
+  ctx.fillStyle = GOLD_DARK;
+  oval(thick, rx, R);
+  ctx.fill();
+  ctx.fillRect(0, -R, thick, R * 2);
+  ctx.strokeStyle = rgba(mix(GOLD_DARK, INK, 0.5), 0.55);
+  ctx.lineWidth = 0.45;
+  for (let k = -5; k <= 5; k++) {
+    const y = (k / 6) * R;
+    const x = rx * Math.sqrt(Math.max(0, 1 - (y / R) ** 2));
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + thick, y);
     ctx.stroke();
-    if (turn < 0.5) {
-      pen.hair([{ x: 0, y: -2.2 }, { x: 0, y: 2.2 }], 0.9, GOLD_DARK, 0.8);
-      pen.hair([{ x: -1.4 * (1 - turn), y: -0.6 }, { x: 1.4 * (1 - turn), y: 0.6 }], 0.7, GOLD_DARK, 0.6);
-    }
   }
-  edge(ctx, face, 1.1, mix(GOLD_DARK, INK, 0.45));
-  pen.dot(-rx * 0.45, -2.8, 0.9, '#ffffff', 0.85);
+  // The face: bright metal, lit from the top left.
+  const g = ctx.createLinearGradient(-rx, -R, rx, R);
+  g.addColorStop(0, GOLD_LIGHT);
+  g.addColorStop(0.45, GOLD);
+  g.addColorStop(1, mix(GOLD, GOLD_DARK, 0.55));
+  ctx.fillStyle = g;
+  oval(0, rx, R);
+  ctx.fill();
+  // The raised rim: a groove inside it, lit on the far side and shaded on the near.
+  ctx.lineWidth = 0.8;
+  ctx.strokeStyle = rgba(GOLD_DARK, 0.85);
+  oval(0, rx * 0.72, R * 0.72);
+  ctx.stroke();
+  ctx.strokeStyle = rgba('#fff6d0', 0.8);
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, Math.max(0.3, rx * 0.86), R * 0.86, 0, Math.PI * 0.95, Math.PI * 1.6);
+  ctx.stroke();
+  // The stamp: a small diamond, struck in.
+  if (turn < 0.6) {
+    const d = 2.1;
+    const w = d * (1 - turn * 0.72);
+    ctx.fillStyle = rgba(GOLD_DARK, 0.75);
+    ctx.beginPath();
+    ctx.moveTo(0, -d);
+    ctx.lineTo(w, 0);
+    ctx.lineTo(0, d);
+    ctx.lineTo(-w, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = rgba(GOLD_LIGHT, 0.9);
+    ctx.beginPath();
+    ctx.moveTo(0, -d);
+    ctx.lineTo(-w, 0);
+    ctx.lineTo(-w * 0.35, 0);
+    ctx.lineTo(0, -d * 0.4);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // Ink outline round face and edge, and a glint.
+  ctx.strokeStyle = mix(GOLD_DARK, INK, 0.55);
+  ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, Math.max(0.3, rx), R, 0, Math.PI * 0.5, Math.PI * 1.5);
+  ctx.ellipse(thick, 0, Math.max(0.3, rx), R, 0, Math.PI * 1.5, Math.PI * 2.5);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.globalAlpha = 0.9;
+  ctx.beginPath();
+  ctx.ellipse(-rx * 0.42, -R * 0.5, Math.max(0.3, rx * 0.16), 0.9, -0.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
   return canvas;
 }
 
@@ -264,5 +316,39 @@ export function paintIdol(): HTMLCanvasElement {
   for (const a of [-0.5, 0, 0.5]) pen.stroke([{ x: Math.sin(a) * 5, y: -15 }, { x: Math.sin(a) * 9, y: -20 }], 1.6, GOLD, 1, false);
   pen.hair([{ x: -6, y: 6 }, { x: 6, y: 6 }], 0.8, GOLD_DARK, 0.8);
   pen.dot(-5, -12, 1.1, '#ffffff', 0.8);
+  return canvas;
+}
+
+/** A heart (a life): a red watercolour heart in ink, or an empty pencilled one once it's lost. */
+export const HEART_SIZE = 30;
+
+export function paintHeart(full: boolean): HTMLCanvasElement {
+  const S = HEART_SIZE;
+  const { canvas, ctx } = makeCanvas(S * ART_RES, S * ART_RES);
+  ctx.scale(ART_RES, ART_RES);
+  ctx.translate(S / 2, S / 2);
+  const pen = new Pen(ctx, full ? 31 : 37, 0.4);
+  const shape: { x: number; y: number }[] = [];
+  for (let i = 0; i < 40; i++) {
+    const t = (i / 40) * Math.PI * 2;
+    // The classic heart curve, scaled to the frame.
+    shape.push({ x: 16 * Math.sin(t) ** 3 * 0.78, y: -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * 0.78 + 1 });
+  }
+  if (full) {
+    const g = ctx.createRadialGradient(-4, -5, 1, 0, 0, 15);
+    g.addColorStop(0, '#f08a7a');
+    g.addColorStop(0.6, '#c8402f');
+    g.addColorStop(1, '#8e2a20');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    shape.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+    ctx.closePath();
+    ctx.fill();
+    pen.dot(-5, -5, 2.2, '#ffffff', 0.7);
+    pen.stroke([...shape, shape[0]!], 1.6, INK, 0.95);
+  } else {
+    pen.fill(shape, '#efe6d2', 0.6);
+    pen.stroke([...shape, shape[0]!], 1.3, '#8a8578', 0.85);
+  }
   return canvas;
 }

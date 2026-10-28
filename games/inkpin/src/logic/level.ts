@@ -21,12 +21,14 @@ export type Room = readonly (readonly [number, number])[];
 
 /**
  * A hanging vine Nib climbs. `top` is the floor Nib steps onto at its upper
- * end (a ledge), `bottom` the floor at its foot.
+ * end (a ledge), `bottom` the floor at its foot. Lava burns a vine away.
  */
 export interface VineDef {
   readonly x: number;
   readonly top: number;
   readonly bottom: number;
+  /** Starts as a seed at its foot, and grows up to `top` once water reaches it. */
+  readonly seed?: boolean;
 }
 
 /** A grate in the floor: liquid and coins that reach the box beneath it are gone. */
@@ -79,6 +81,8 @@ export interface LevelDef {
   readonly vines?: readonly VineDef[];
   /** Round stones that roll, plug drains and squash what they land on. */
   readonly boulders?: readonly { readonly x: number; readonly y: number }[];
+  /** Wooden crates: they float on water (Nib can ride one), squash what they land on, and burn in lava. */
+  readonly crates?: readonly { readonly x: number; readonly y: number }[];
   readonly drains?: readonly DrainDef[];
   /** Lights out: only Nib's lamp, the torches and lava light the room. */
   readonly dark?: boolean;

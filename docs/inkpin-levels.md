@@ -30,22 +30,24 @@ Goals are from the design doc: **Treasure** (the chest's relic and the coin targ
 
 ## 1. The Jungle Temple (free)
 
-**Built** (games/inkpin/src/level, all ten tested by the solver bot in test/chapter1.test.ts).
+**Built** (games/inkpin/src/level; each level has its own test, test/wide-<id>.test.ts, where the solver bot plays its hint to a win and its tempting wrong orders to the losses they're meant to be).
 
-**New ground: hanging vines and ledges.** Tap a vine to climb to that spot; tap a floor to step off (keys: up/down on a vine). **Material:** water, coins, boulders (roll, plug drains, squash what they land on), drains. **Guards:** the boar (stomp it or wash it), the porcupine (spiky: wash it or drop a boulder on it), and the Great Boar boss. **Pin:** plain pins, and pins that block each other.
+Every level is 2–3 screens wide or two screens tall, with 3–5 puzzle stages (about 60–90 s to play), at most ~700 grains for phones. Each level has its own signature idea, and no two stages in a level use the same trick. The boulder-in-a-drain plug appears only in levels 3, 5 and 10; washing a guard with water at most once per level.
 
-| # | Name | Goal | What happens |
-|---|---|---|---|
-| 1 | The Door | Treasure | Tutorial: one pin between Nib and the chest, a lip to hop, a vine up to a ledge of bonus coins |
-| 2 | Gold Rush | Loot | A hopper of gold over a ramp to the drain: pull the ramp first and the gold falls into the hall |
-| 3 | The Rain Cistern | Treasure | Drop the boulder into the drain, then let the rain tank in; Nib floats up to the chest's ledge and dives for the gold |
-| 4 | The Guard | Treasure | The boar guards the chest: pull the ramp, then the water, then Nib's gate. Opened early, Nib can wait up the vine |
-| 5 | The Gold Vault | Loot | The prototype: lava above the water, gold above the lava |
-| 6 | Pin Over Pin | Treasure | The gold's pin is stuck behind the boulder's; Nib's door opens onto a porcupine pit. Boulder first |
-| 7 | The Well of Vines | Treasure | Two screens deep (the camera follows Nib): floors joined by vines; send the water down before Nib, or the boar waits at the bottom |
-| 8 | The Flooded Stair | Loot | A boar and a porcupine down a stair; plug the drain before the gold or the water comes in |
-| 9 | Torches Out | Treasure | Lights out: plug the drain, flood the boar's side, then open Nib's door |
-| 10 | The Idol Hall | Boss | The Great Boar waits under Nib's ledge, too big to stomp. Let both tanks into the cistern over it, then open it: only the whole flood washes it away |
+**New ground: hanging vines and ledges.** Tap a vine to climb to that spot; tap a floor to step off (keys: up/down on a vine). **Material:** water, lava (melts gold, burns Nib, guards, vines and crates; water turns it to stone), coins, boulders (roll, plug drains, squash what they land on), **seeds** (water grows a seed into a climbable vine), **crates** (float on water and ride its current, a flat top to stand on, squash what they land on, burn in lava), drains. **Guards:** the boar (stomp, wash, burn or squash it), the porcupine (spiky: never stomp it), and the Great Boar boss. A guard that can't get at Nib paces off and comes back to glare. **Pin:** plain pins, and pins that block each other.
+
+| # | Name | Goal | Signature | What happens |
+|---|---|---|---|---|
+| 1 | The Door | Treasure | The first seed | Tutorial, can't be lost: the door, gold rain from a hopper, a seed watered into the vine up a wall too tall to climb, and a deep door to the chest |
+| 2 | Gold Rush | Loot | Gold routing, the first lava | Ramps before hoppers, a trough of pins that lock each other, a trapdoor to leave shut until the gold is picked up, and a lava pit to cool to stone before the gold drops on it |
+| 3 | The Rain Cistern | Treasure | The first crate | The boulder plugs the cistern's drain and the rain floats Nib up; a sluice fills a narrow pit (an overflow holds the water at one height) and its crate floats up as the step to a ledge; a hopper over a ramp |
+| 4 | The Guard | Treasure | Three ways past a guard | Lava burns the first boar and water cools it to stone (water first freezes the lava in its tank); water washes the second; a crate drops on a porcupine and stays as the step out of its pit |
+| 5 | The Gold Vault | Loot | Lava | A moat to bridge with stone before the gold comes, a tank of lava under water that burns a porcupine, a boulder plug, and the vault: water must grow the seed to the chest and wall off the lava before the lava comes, or it burns the seed |
+| 6 | Pin Over Pin | Treasure | Pin order, crate barricades | A crate dropped on a porcupine fills its pit as a bridge; a boar's cell door before its water; gold before its ramp; a crate wedged in the way that a trickle of lava burns away, gate shut until it's gone |
+| 7 | The Well of Vines | Treasure | Seeds | Two screens tall: one tank waters four seeds on the way down the well; cap the lava over the top seed with stone first, and open the hatch only once the basin seeds have drunk |
+| 8 | The Flooded Stair | Loot | Crate rafts | One flood down the stair: it carries a crate into a slot as a bridge, floats another up a well as the step to a ledge, and a third crate drops on a porcupine |
+| 9 | Torches Out | Treasure | Lava as light | Lights out: glowing lava cooled into a step, a seed grown in the dark up to a shelf, and lava poured down a shaft onto a porcupine, then cooled with the water above it |
+| 10 | The Idol Hall | Boss | The finale | A crate lowered on draining water as a bridge, a lava moat turned to stone before the gold, a seed grown up to the boss hall; then the Great Boar: both tanks into the cistern over it, then open it, and only the whole flood washes it away |
 
 ## 2. The Volcano Shrine
 
@@ -204,13 +206,13 @@ Goals are from the design doc: **Treasure** (the chest's relic and the coin targ
 
 | Ruin | New engine work |
 |---|---|
-| 1 | Vines to climb, boulders, the drain, dark levels, tall levels, the boss (built) |
+| 1 | Vines to climb, seeds that grow vines, floating crates, boulders, the drain, dark levels, wide and tall levels, the boss (built) |
 | 2 | Crumbling ledges, gate pins |
 | 3 | Pressure plates and doors, sand, gas, blasts, cracked walls, chain pins |
 | 4 | Ice floors and sliding, ice blocks, frost, keys and lock pins |
 | 5 | Wooden platforms, acid, spring pins |
 | 6 | Lifts, scales, water wheels, trapdoors, turn pins |
-| 7 | Seeds and vines, bending leaves, fire, weight pins |
-| 8 | Sea gates and tides, floating barrels, bombs and fuses, fuse pins |
+| 7 | Bending leaves, fire, weight pins (seeds are built in ruin 1; here they grow sideways and bridge gaps) |
+| 8 | Sea gates and tides, bombs and fuses, fuse pins (floating crates are built in ruin 1; barrels add rolling) |
 | 9 | Fans, balloons, flying Blots, balloon pins |
 | 10 | Three-screen levels |

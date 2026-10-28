@@ -1,24 +1,34 @@
 import { describe, expect, it } from 'vitest';
 import { CELLAR } from '../src/level/cellar';
+import type { Stop } from '../src/logic/level';
 import { World } from '../src/logic/world';
-import { permutations, play } from './solver';
+import { createRng } from '../src/logic/rng';
+import { play } from './solver';
 
 describe('The Gold Vault', () => {
-  const orders = permutations(CELLAR.pins.map((p) => p.id));
-  const runs = orders.map((order) => play(CELLAR, order));
-  const wins = runs.filter((r) => r.status.state === 'won');
+  /** A shuffled pull order, the same every run. */
+  const shuffled = (seed: number): string[] => {
+    const rng = createRng(seed);
+    const ids = CELLAR.pins.map((p) => p.id);
+    for (let i = ids.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [ids[i], ids[j]] = [ids[j]!, ids[i]!];
+    }
+    return ids;
+  };
+  const runs = [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => play(CELLAR, shuffled(seed)));
 
-  it('can be won, and the hint’s order wins', () => {
-    expect(wins.length).toBeGreaterThan(0);
+  it('the hint’s order wins', () => {
     expect(play(CELLAR, CELLAR.solution).status.state).toBe('won');
   });
 
   it('is not won by pulling at random: most orders lose', () => {
+    const wins = runs.filter((r) => r.status.state === 'won');
     expect(wins.length / runs.length).toBeLessThan(0.3);
   });
 
   it('every order ends the level, one way or the other', () => {
-    expect(runs.every((r) => r.status.state !== 'playing')).toBe(true);
+    expect(runs.every((r) => !r.possible || r.status.state !== 'playing')).toBe(true);
   });
 
   it('loses the obvious ways', () => {
@@ -26,31 +36,38 @@ describe('The Gold Vault', () => {
       const s = play(CELLAR, order).status;
       return s.state === 'lost' ? s.cause : undefined;
     };
-    expect(cause(['C', 'W', 'L', 'gate'])).toBe('melted');
-    expect(cause(['L', 'gate', 'W', 'C'])).toBe('burnt');
+    // The gold into the moat before the water has made it stone.
+    expect(cause(['C1', 'W1'])).toBe('melted');
+    // The vault's lava before its water: it spills over the seed, and Nib waiting by it.
+    expect(cause(['W1', 'C1', 'L2', 'W2', 'G1', 'B3', 'G2', 'C3', 'L', 'W', 'C'])).toBe('burnt');
   });
 }, 120_000);
 
 describe('the treasure', () => {
-  /** Pulls a winning order with the given waits, then walks Nib across the room and back. */
+  /** Pulls the given order with the given waits, walking Nib along the stops (and up the vine) after each pull, and back. */
   const visit = (order: readonly string[], waits: readonly number[]): World => {
     const w = new World(CELLAR);
+    const stops = CELLAR.stops ?? [];
+    const walk = (list: readonly Stop[]): void => {
+      for (const s of list) {
+        w.command(s.y === undefined ? { kind: 'goto', x: s.x } : { kind: 'goto', x: s.x, y: s.y });
+        for (let s = 0; s < 1500 && !w.finished; s++) {
+          w.step();
+          if (w.nibOrder.kind === 'stay') break;
+        }
+      }
+    };
     order.forEach((id, i) => {
       w.pull(id);
       for (let s = 0; s < waits[i]!; s++) w.step();
+      walk(stops);
     });
-    for (const x of [650, 60, 650]) {
-      w.command({ kind: 'goto', x });
-      for (let s = 0; s < 1200 && !w.finished; s++) {
-        w.step();
-        if (w.nibOrder.kind === 'stay') break;
-      }
-    }
+    walk([...stops].reverse());
     return w;
   };
 
   it('stays open after the goal, so the rest of the gold can be picked up, until Nib leaves', () => {
-    const w = visit(CELLAR.solution, [500, 500, 500, 500]);
+    const w = visit(CELLAR.solution, CELLAR.solution.map(() => 500));
     expect(w.goalMet).toBe(true);
     expect(w.coinsCollected).toBeGreaterThan(CELLAR.coinsNeeded);
     if (!w.finished) {
@@ -65,19 +82,17 @@ describe('the treasure', () => {
     expect(w.status.state).toBe('playing');
   });
 
-  // However long the player waits between pulls, lava never walls off the
-  // chest and no gold is left stuck where Nib can't reach it.
-  const timings: [string[], number[]][] = [
-    [['L', 'W', 'C', 'gate'], [293, 296, 994, 348]],
-    [['W', 'L', 'C', 'gate'], [1069, 382, 393, 1115]],
-    [['W', 'L', 'C', 'gate'], [604, 397, 1004, 1000]],
-    [['L', 'W', 'C', 'gate'], [250, 700, 300, 250]],
-    [['W', 'L', 'C', 'gate'], [300, 300, 300, 300]],
+  // However long the player waits between pulls, lava never burns the vine
+  // to the chest and no gold is left stuck where Nib can't reach it.
+  const timings: [string[], number][] = [
+    [CELLAR.solution.slice(), 300],
+    [CELLAR.solution.slice(), 1000],
+    [['W1', 'C1', 'L2', 'W2', 'G1', 'B3', 'G2', 'W', 'C3', 'L', 'C'], 400],
   ];
-  it.each(timings)('reaches the chest and nearly every coin: %j after %j steps', (order, waits) => {
-    const w = visit(order, waits);
+  it.each(timings)('reaches the chest and nearly every coin: %j, %i steps between pulls', (order, wait) => {
+    const w = visit(order, order.map(() => wait));
     expect(w.chestTaken).toBe(true);
-    expect(w.coinsCollected).toBeGreaterThanOrEqual(w.coinsTotal - 8);
+    expect(w.coinsCollected).toBeGreaterThanOrEqual(w.coinsTotal - 20);
   });
 }, 120_000);
 
@@ -113,26 +128,27 @@ describe('the simulation', () => {
 
 describe('pins', () => {
   it('a pin in the way stops another pin sliding out, until it is pulled itself', () => {
-    // The gate pulled upwards would slide into the water pin.
-    const upward = { ...CELLAR, pins: CELLAR.pins.map((p) => (p.id === 'gate' ? { ...p, ay: 966, by: 1138 } : p)) };
-    const w = new World(upward);
-    expect(w.pull('gate')).toBe(false);
+    // The vault's gold pin slides out through the lava's.
+    const w = new World(CELLAR);
+    expect(w.pull('C')).toBe(false);
     w.step();
-    expect(w.events).toContainEqual({ type: 'blocked', id: 'gate', by: 'W' });
-    expect(w.pull('W')).toBe(true);
-    expect(w.pull('gate')).toBe(true);
+    expect(w.events).toContainEqual({ type: 'blocked', id: 'C', by: 'L' });
+    expect(w.pull('L')).toBe(true);
+    expect(w.pull('C')).toBe(true);
   });
 
   it('pins that only touch at their tips do not block each other', () => {
+    // The moat's water and gold pins overlap at their tips and slide apart.
     const w = new World(CELLAR);
-    expect(w.pull('W')).toBe(true);
-    expect(w.pull('L')).toBe(true);
+    expect(w.pull('C1')).toBe(true);
+    expect(w.pull('W1')).toBe(true);
   });
 });
 
 describe('Blots', () => {
   it('patrol back and forth while Nib is out of sight', () => {
-    const w = new World(CELLAR);
+    // A boar on the porcupine hall's floor, far from Nib.
+    const w = new World({ ...CELLAR, blots: [{ x: 700, y: 1150 }] });
     const blot = w.blots[0]!;
     let lo = blot.x;
     let hi = blot.x;
@@ -162,7 +178,8 @@ describe('Blots', () => {
   };
 
   it('is stomped flat when Nib lands on its head, and Nib bounces off', () => {
-    const w = dropOnGuard(CELLAR);
+    const smooth = { ...CELLAR, blots: CELLAR.blots.map((b) => ({ ...b, spiky: false })) };
+    const w = dropOnGuard(smooth);
     expect(w.blots[0]!.gone).toBe('stomped');
     expect(w.status.state).toBe('playing');
     expect(w.nib.vy).toBeLessThan(0);

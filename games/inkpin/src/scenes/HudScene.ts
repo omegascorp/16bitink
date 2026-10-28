@@ -1,10 +1,13 @@
 import Phaser from 'phaser';
 import { INK, PAPER, RED } from '../art/palette';
 import type { SoundBoard } from '../audio/sfx';
-import { hudTake, readControls, type ControlMode, type HudState, type LevelInfo, type Result } from './GameScene';
+import { hudTake, readControls, type ControlMode } from './controls';
+import { HEARTS, type HudState, type LevelInfo, type Result } from './GameScene';
 import { DPR, screenSize } from './hidpi';
 
 const FONT = 'Caveat';
+/** Hearts' size in the bar (the texture is painted at twice its size). */
+const HEART_SCALE = 0.44;
 const TIPS: Record<ControlMode, string> = {
   tap: 'Tap a pin to pull it. Tap the floor to send Nib there, tap Nib to jump.',
   stick: 'Tap a pin to pull it. Drag anywhere to walk Nib; jump with the button (keyboard: arrows and Space).',
@@ -41,11 +44,12 @@ export class HudScene extends Phaser.Scene {
   /** Shown once the goal is met: Nib may leave now or stay for the rest of the gold. */
   private leaveButton!: Phaser.GameObjects.Text;
   private goalShown = false;
-  /** Level picker: back, "Level n / 10", on. */
-  private levelPrev!: Phaser.GameObjects.Text;
+  /** Back to the map, and which level this is. */
+  private mapChip!: Phaser.GameObjects.Text;
   private levelLabel!: Phaser.GameObjects.Text;
-  private levelNext!: Phaser.GameObjects.Text;
   private info: LevelInfo | null = null;
+  private hearts: Phaser.GameObjects.Image[] = [];
+  private shownHearts = HEARTS;
 
   constructor() {
     super('hud');
@@ -65,6 +69,7 @@ export class HudScene extends Phaser.Scene {
     this.coin = this.add.image(0, 0, 'coins', 0).setScale(0.5);
     this.count = text(26);
     this.chestIcon = this.add.image(0, 0, 'chest-closed').setScale(0.24);
+    this.hearts = Array.from({ length: HEARTS }, () => this.add.image(0, 0, 'heart').setScale(HEART_SCALE));
     this.chestTick = text(26, '#2f7a3a').setText('✓').setOrigin(0.5).setVisible(false);
     this.controls = readControls();
     this.controlChip = text(18, INK, false).setText(CONTROL_LABEL[this.controls]).setBackgroundColor('rgba(255,250,240,0.85)').setPadding(10, 3, 10, 3);
@@ -100,20 +105,19 @@ export class HudScene extends Phaser.Scene {
       t.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
         hudTake(p);
         this.sfx.unlock();
-        if (!t.alpha || t.alpha < 0.5) return;
         this.sfx.play('tap');
         onTap();
       });
       return t;
     };
-    this.levelPrev = chip('‹', () => this.goLevel(-1));
-    this.levelNext = chip('›', () => this.goLevel(1));
+    this.mapChip = chip('‹ Map', () => this.game.events.emit('cmd:map'));
     this.levelLabel = text(18, INK, false).setBackgroundColor('rgba(255,250,240,0.85)').setPadding(8, 3, 8, 3);
     this.layout();
     this.scale.on('resize', this.layout, this);
     this.game.events.on('hud:state', this.onState, this);
     this.game.events.on('hud:result', this.showResult, this);
     this.game.events.on('hud:reset', this.onReset, this);
+    this.game.events.on('hud:rewind', this.onRewind, this);
     this.game.events.on('stick:show', this.stickShow, this);
     this.game.events.on('stick:move', this.stickMove, this);
     this.game.events.on('stick:hide', this.stickHide, this);
@@ -124,6 +128,7 @@ export class HudScene extends Phaser.Scene {
       this.game.events.off('hud:state', this.onState, this);
       this.game.events.off('hud:result', this.showResult, this);
       this.game.events.off('hud:reset', this.onReset, this);
+      this.game.events.off('hud:rewind', this.onRewind, this);
       this.game.events.off('stick:show', this.stickShow, this);
       this.game.events.off('stick:move', this.stickMove, this);
       this.game.events.off('stick:hide', this.stickHide, this);
@@ -159,19 +164,21 @@ export class HudScene extends Phaser.Scene {
     this.buttons.forEach((b, i) => b.setPosition(right - 24 - i * 56, 34));
     // The coin count sits left of the buttons; on phones, under them.
     const countRight = narrow ? right - 4 : right - 24 - 56 * 2 + 6;
-    const countY = narrow ? 72 : 34;
+    const countY = narrow ? 80 : 34;
     this.count.setOrigin(1, 0.5).setPosition(countRight, countY);
     this.coin.setPosition(countRight - this.count.width - 14, countY);
     // The chest goal sits just left of the coins.
     const chestX = countRight - this.count.width - 44;
     this.chestIcon.setPosition(chestX, countY);
     this.chestTick.setPosition(chestX + 8, countY + 4);
+    // The hearts, left of the chest (or of the coins, on a Loot level).
+    const heartsRight = (this.chestIcon.visible ? chestX - 26 : countRight - this.count.width - 34) - 4;
+    this.hearts.forEach((h, i) => h.setPosition(heartsRight - (HEARTS - 1 - i) * 27, countY));
     this.controlChip.setPosition(x, narrow ? 76 : 86).setFontSize(narrow ? 16 : 18);
-    // The level picker sits beside the controls chip; on phones, under it.
+    // The way back to the map sits beside the controls chip; on phones, under it.
     const navY = narrow ? 108 : 86;
-    this.levelPrev.setPosition(narrow ? x : x + this.controlChip.width + 10, navY - 2);
-    this.levelLabel.setPosition(this.levelPrev.x + this.levelPrev.width + 4, navY).setFontSize(narrow ? 16 : 18);
-    this.levelNext.setPosition(this.levelLabel.x + this.levelLabel.width + 4, navY - 2);
+    this.mapChip.setPosition(narrow ? x : x + this.controlChip.width + 10, navY - 2).setFontSize(narrow ? 19 : 22);
+    this.levelLabel.setPosition(this.mapChip.x + this.mapChip.width + 6, navY).setFontSize(narrow ? 16 : 18);
     const touch = this.sys.game.device.input.touch;
     this.jumpButton.setPosition(width - 52, height - 130).setVisible(touch && this.controls === 'stick');
     // Centred, but clear of the jump button in the bottom-right corner.
@@ -188,6 +195,7 @@ export class HudScene extends Phaser.Scene {
   }
 
   private onState(s: HudState): void {
+    if (s.hearts < this.shownHearts) this.popHearts(s.hearts);
     if (s.goal && !this.goalShown) this.showGoal();
     if (s.goal) {
       const leave = `Leave with ${s.coins} coins  ➜`;
@@ -222,15 +230,6 @@ export class HudScene extends Phaser.Scene {
     this.tweens.add({ targets: this.tip, alpha: 0, delay: 4500, duration: 600, onComplete: () => this.tip.setVisible(false) });
   }
 
-  /** Steps to the level before or after this one, if it's open. */
-  private goLevel(step: -1 | 1): void {
-    const info = this.info;
-    if (!info) return;
-    const to = info.index + step;
-    if (to < 0 || to >= info.count || to > info.unlocked) return;
-    this.game.events.emit('cmd:level', to);
-  }
-
   private onReset(info?: LevelInfo): void {
     if (info) {
       this.info = info;
@@ -239,12 +238,15 @@ export class HudScene extends Phaser.Scene {
       this.title.setText(level.name);
       this.goal.setText(level.goal);
       this.levelLabel.setText(`Level ${info.index + 1} / ${info.count}`);
-      this.levelPrev.setAlpha(info.index > 0 ? 1 : 0.3);
-      this.levelNext.setAlpha(info.index < Math.min(info.unlocked, info.count - 1) ? 1 : 0.3);
       this.chestIcon.setVisible(level.chest !== undefined);
       this.layout();
     }
     this.goalShown = false;
+    this.shownHearts = HEARTS;
+    for (const h of this.hearts) {
+      this.tweens.killTweensOf(h);
+      h.setTexture('heart').setScale(HEART_SCALE).setAlpha(1);
+    }
     this.tweens.killTweensOf(this.leaveButton);
     this.leaveButton.setVisible(false).setScale(1);
     this.tweens.killTweensOf(this.tip);
@@ -256,6 +258,29 @@ export class HudScene extends Phaser.Scene {
     this.chestTick.setVisible(false);
     this.chestIcon.setTexture('chest-closed');
     this.stickHide();
+  }
+
+  /** Hearts from `left` on are lost: each bursts and is left an empty outline. */
+  private popHearts(left: number): void {
+    for (let i = left; i < this.shownHearts; i++) {
+      // The rightmost heart goes first.
+      const h = this.hearts[i];
+      if (!h) continue;
+      this.tweens.add({ targets: h, scale: HEART_SCALE * 1.8, alpha: 0, duration: 260, ease: 'Quad.out', onComplete: () => {
+        h.setTexture('heart-empty').setScale(HEART_SCALE * 0.6).setAlpha(1);
+        this.tweens.add({ targets: h, scale: HEART_SCALE, duration: 220, ease: 'Back.out' });
+      } });
+    }
+    this.shownHearts = left;
+  }
+
+  /** A heart spent: say what happened and that the level went back. */
+  private onRewind(r: { hearts: number; cause: string }): void {
+    const title = CAUSE_TEXT[r.cause]?.title ?? 'Oops!';
+    const left = r.hearts === 1 ? 'Last heart!' : `${r.hearts} hearts left.`;
+    this.tweens.killTweensOf(this.tip);
+    this.tip.setText(`${title} Back to before that pin. ${left}`).setVisible(true).setAlpha(0.9);
+    this.tweens.add({ targets: this.tip, alpha: 0, delay: 3200, duration: 600, onComplete: () => this.tip.setVisible(false) });
   }
 
   private stickShow(at: { x: number; y: number }): void {
@@ -278,7 +303,7 @@ export class HudScene extends Phaser.Scene {
     this.leaveButton.setVisible(false);
     const { width, height } = screenSize(this.scale);
     const w = Math.min(380, width - 32);
-    const h = r.won ? (r.next !== null ? 370 : 320) : 200;
+    const h = r.won ? (r.next !== null ? 370 : 330) : 236;
     const bg = this.add.graphics();
     bg.fillStyle(0x000000, 0.12).fillRoundedRect(-w / 2 + 6, -h / 2 + 8, w, h, 14);
     bg.fillStyle(Phaser.Display.Color.HexStringToColor(PAPER).color, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 14);
@@ -294,7 +319,7 @@ export class HudScene extends Phaser.Scene {
       const labels = ['done', 'every coin', 'first try'];
       labels.forEach((label, i) => {
         const x = (i - 1) * 96;
-        const y0 = r.next !== null ? -24 : 14;
+        const y0 = -24;
         const got = [true, r.allCoins, r.firstTry][i]!;
         const blot = this.add.graphics();
         blot.fillStyle(got ? 0x26316a : 0xd8d0bf, 1).fillCircle(x, y0 + 26, 17).fillCircle(x + 12, y0 + 18, 6).fillCircle(x - 13, y0 + 34, 5);
@@ -303,13 +328,21 @@ export class HudScene extends Phaser.Scene {
       });
     }
     const next = r.won ? r.next : null;
-    const again = this.add.text(0, h / 2 - 34, r.won ? 'Play again' : 'Try again', { fontFamily: FONT, fontSize: next !== null ? '24px' : '30px', fontStyle: '700', color: next !== null ? INK : '#ffffff', backgroundColor: next !== null ? undefined : r.won ? INK : RED, padding: { x: 18, y: 2 } }).setOrigin(0.5).setResolution(DPR);
+    const again = this.add.text(next !== null ? -60 : 0, h / 2 - (next !== null ? 34 : 70), r.won ? 'Play again' : 'Try again', { fontFamily: FONT, fontSize: next !== null ? '24px' : '30px', fontStyle: '700', color: next !== null ? INK : '#ffffff', backgroundColor: next !== null ? undefined : r.won ? INK : RED, padding: { x: 18, y: 2 } }).setOrigin(0.5).setResolution(DPR);
     again.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
       hudTake(p);
       this.sfx.play('tap');
       this.game.events.emit('cmd:restart');
     });
     parts.push(again);
+    // Back to the map: beside "Play again" under the way on, or under the main button.
+    const map = this.add.text(next !== null ? 70 : 0, h / 2 - 32, '‹ Map', { fontFamily: FONT, fontSize: '24px', fontStyle: '700', color: INK, padding: { x: 14, y: 2 } }).setOrigin(0.5).setResolution(DPR);
+    map.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
+      hudTake(p);
+      this.sfx.play('tap');
+      this.game.events.emit('cmd:map');
+    });
+    parts.push(map);
     if (next !== null) {
       // The way on: the next level, big; playing this one again is the small choice under it.
       const on = this.add.text(0, h / 2 - 84, 'Next level  ➜', { fontFamily: FONT, fontSize: '32px', fontStyle: '700', color: '#ffffff', backgroundColor: '#2f7a3a', padding: { x: 20, y: 3 } }).setOrigin(0.5).setResolution(DPR);

@@ -1,5 +1,6 @@
-import type { DrainDef, LevelDef, Room, VineDef } from '../logic/level';
+import type { DrainDef, LevelDef, Room } from '../logic/level';
 import { createRng, type Rng } from '../logic/rng';
+import { barWalls, outerRuns } from '../logic/rooms';
 import { ART_RES, GOLD, GOLD_DARK, GRASS, INK, MOSS, PAPER, ROCK, ROCK_DARK, TEMPLE, TEMPLE_DARK, WOOD_DARK } from './palette';
 import { ellipse, makeCanvas, Pen, type Pt } from './pen';
 import { mix, rgba } from './wash';
@@ -210,24 +211,29 @@ export function paintGrassTile(): HTMLCanvasElement {
   return canvas;
 }
 
-/** The level's board: transparent except for the rooms cut into the rock and what's in them. */
-export function paintBoard(level: LevelDef): HTMLCanvasElement {
-  const { x: vx, y: vy, w, h } = level.view;
+/** Board px across one tile of a board: a wide level's board is painted in tiles, each a texture small enough for a phone. */
+export const BOARD_TILE = 1024;
+
+/**
+ * One tile of the level's board, from `x0` (board px) for `w` px across:
+ * transparent except for the rooms cut into the rock and what's in them.
+ * Every tile paints the whole board (seeded the same) through its window,
+ * so neighbouring tiles join without a seam.
+ */
+export function paintBoard(level: LevelDef, x0 = level.view.x, w = level.view.w): HTMLCanvasElement {
+  const { y: vy, h } = level.view;
   const { canvas, ctx } = makeCanvas(Math.round(w * ART_RES), Math.round(h * ART_RES));
   ctx.scale(ART_RES, ART_RES);
-  ctx.translate(-vx, -vy);
+  ctx.translate(-x0, -vy);
   const pen = new Pen(ctx, 7, 0.7);
   paintTempleTop(ctx, pen, level.rooms);
-  paintRooms(ctx, pen, level.rooms, vy + h);
+  paintRooms(ctx, pen, level.rooms, vy + h, level.view.x + level.view.w);
   for (const d of level.drains ?? []) paintDrain(ctx, pen, level.rooms, d);
-  for (const i of level.bars) {
-    const s = level.walls[i];
-    if (s) paintBar(ctx, pen, s.ax, s.ay, s.bx, s.by, s.t);
-  }
+  for (const s of barWalls(level)) paintBar(ctx, pen, s.ax, s.ay, s.bx, s.by, s.t);
   for (const t of level.torches) paintTorchBracket(ctx, pen, t.x, t.y);
   // Hanging vines for decoration only where there are none to climb, so the two are never confused.
+  // (The climbing vines are their own pictures: they grow from seeds and burn.)
   if (!level.vines?.length) paintVines(pen, level.rooms);
-  (level.vines ?? []).forEach((v, i) => paintClimbingVine(ctx, pen, v, i));
   return canvas;
 }
 
@@ -249,44 +255,6 @@ function paintDrain(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Roo
   ctx.restore();
 }
 
-/**
- * A vine Nib climbs: two thick strands twisted round each other from a knot
- * at the ledge down to the floor, with broad leaves, so it reads as a rope
- * to grab, not as decoration.
- */
-function paintClimbingVine(ctx: CanvasRenderingContext2D, pen: Pen, v: VineDef, seed: number): void {
-  const rng = createRng(70 + seed);
-  const top = v.top - 30;
-  const len = v.bottom - top;
-  const strand = (phase: number): Pt[] => {
-    const pts: Pt[] = [];
-    for (let y = 0; y <= len; y += 6) pts.push({ x: v.x + Math.sin(y / 22 + phase) * 4.5, y: top + y });
-    return pts;
-  };
-  const dark = mix(MOSS, INK, 0.45);
-  for (const phase of [0, Math.PI]) {
-    const pts = strand(phase);
-    pen.stroke(pts, 4.6, INK, 0.9, false);
-    pen.stroke(pts, 3.2, phase ? dark : mix(MOSS, INK, 0.2), 1, false);
-  }
-  // Leaves in pairs down its length, bigger towards the bottom.
-  for (let y = 14; y < len - 6; y += 20 + rng() * 10) {
-    const side = rng() < 0.5 ? -1 : 1;
-    const s = 6 + (y / len) * 4;
-    const p = { x: v.x + Math.sin(y / 22) * 4.5, y: top + y };
-    const leaf = [p, { x: p.x + side * s, y: p.y - s * 0.6 }, { x: p.x + side * s * 1.8, y: p.y + s * 0.2 }, { x: p.x + side * s * 0.8, y: p.y + s * 0.5 }];
-    pen.fill(leaf, rng() < 0.5 ? MOSS : mix(MOSS, '#ffffff', 0.22), 1);
-    pen.stroke([...leaf, leaf[0]!], 0.8, INK, 0.75, false);
-    pen.hair([p, { x: p.x + side * s * 1.4, y: p.y }], 0.6, dark, 0.7);
-  }
-  // The knot where it's tied off at the top.
-  ctx.fillStyle = mix(MOSS, INK, 0.3);
-  ctx.beginPath();
-  ctx.arc(v.x, top, 5.5, 0, Math.PI * 2);
-  ctx.fill();
-  pen.circle(v.x, top, 5.5, 1.2, INK);
-}
-
 function roomPath(rooms: readonly Room[]): Path2D {
   const path = new Path2D();
   for (const room of rooms) {
@@ -296,7 +264,14 @@ function roomPath(rooms: readonly Room[]): Path2D {
   return path;
 }
 
-function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Room[], bottom: number): void {
+/** The stretches of the rooms' edges that face the rock, as one path: shading along it never marks where two rooms join. */
+function outerPath(rooms: readonly Room[]): Path2D {
+  const path = new Path2D();
+  for (const run of outerRuns(rooms)) run.forEach((p, i) => (i === 0 ? path.moveTo(p.x, p.y) : path.lineTo(p.x, p.y)));
+  return path;
+}
+
+function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Room[], bottom: number, right: number): void {
   const union = roomPath(rooms);
   // A rim of shade cut into the rock, then the ink outline; the room fill goes
   // over both, so only their outer halves show and shared edges vanish.
@@ -313,20 +288,22 @@ function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Roo
   ctx.fill(union);
   ctx.save();
   ctx.clip(union);
-  paintTempleStone(ctx, pen, bottom);
+  paintTempleStone(ctx, pen, bottom, right);
   paintFrieze(ctx, pen, rooms);
-  // Depth: soft shade along every edge, and the cellar darker towards the top.
+  // Depth: soft shade along every outer edge, and the cellar darker towards the top.
   ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  const outer = outerPath(rooms);
   for (let k = 0; k < 4; k++) {
     ctx.strokeStyle = rgba(ROCK_DARK, 0.09);
     ctx.lineWidth = 40 - k * 9;
-    ctx.stroke(union);
+    ctx.stroke(outer);
   }
   const shade = ctx.createLinearGradient(0, 300, 0, Math.min(bottom, 1240));
   shade.addColorStop(0, rgba('#5b4a3a', 0.1));
   shade.addColorStop(1, rgba('#5b4a3a', 0));
   ctx.fillStyle = shade;
-  ctx.fillRect(-40, 300, 840, bottom - 300);
+  ctx.fillRect(-40, 300, right + 80, bottom - 300);
   ctx.restore();
   for (const room of rooms) {
     // Cobwebs in the top corners of the tall rooms.
@@ -337,12 +314,11 @@ function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Roo
     cobweb(pen, Math.min(...xs) + 6, top + 6, 1);
     cobweb(pen, Math.max(...xs) - 6, top + 6, -1);
   }
-  // A wobbly second pass over the outline, for the hand.
-  for (const room of rooms) {
-    room.forEach(([x, y], i) => {
-      const [nx, ny] = room[(i + 1) % room.length]!;
-      pen.hair([{ x, y }, { x: (x + nx) / 2, y: (y + ny) / 2 }, { x: nx, y: ny }], 1.6, INK, 0.45);
-    });
+  // A wobbly second pass over the outline, for the hand: only where it faces the rock, so rooms join without a seam.
+  for (const run of outerRuns(rooms)) {
+    const a = run[0]!;
+    const b = run[run.length - 1]!;
+    pen.hair([a, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, b], 1.6, INK, 0.45);
   }
 }
 
@@ -351,13 +327,13 @@ function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Roo
  * heights, each with its own wash, a lit top edge and a shaded bottom one,
  * a few cracked, and moss creeping over the lower ones.
  */
-function paintTempleStone(ctx: CanvasRenderingContext2D, pen: Pen, bottom: number): void {
+function paintTempleStone(ctx: CanvasRenderingContext2D, pen: Pen, bottom: number, right: number): void {
   const rng = createRng(5);
   let y = 300;
   while (y < bottom + 30) {
     const bh = 34 + Math.floor(rng() * 3) * 8;
     let x = -40 - rng() * 60;
-    while (x < 780) {
+    while (x < right + 60) {
       const bw = 56 + rng() * 70;
       const t = rng();
       const base = t < 0.15 ? mix(TEMPLE, TEMPLE_DARK, 0.55) : mix(TEMPLE, TEMPLE_DARK, t * 0.3);

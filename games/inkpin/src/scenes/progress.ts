@@ -31,33 +31,61 @@ export function addToBank(coins: number, idols: number): Bank {
   return next;
 }
 
-/** Which levels the player has opened and won. */
+/** A level's best: its blots (done, every coin, first try) and the most coins carried out. */
+export interface LevelRecord {
+  readonly blots: number;
+  readonly coins: number;
+  readonly allCoins: boolean;
+  readonly firstTry: boolean;
+}
+
+/** The levels won, by id. A level opens once the one before it is won. */
 export interface Progress {
-  /** Levels 0..unlocked are open to play. */
-  readonly unlocked: number;
-  /** Ids of the levels won. */
-  readonly won: readonly string[];
+  readonly levels: Readonly<Record<string, LevelRecord>>;
 }
 
 const KEY = 'inkpin.progress';
 
+function isRecord(v: unknown): v is LevelRecord {
+  if (!v || typeof v !== 'object') return false;
+  const r = v as Record<string, unknown>;
+  return typeof r.blots === 'number' && typeof r.coins === 'number' && typeof r.allCoins === 'boolean' && typeof r.firstTry === 'boolean';
+}
+
 export function readProgress(): Progress {
   try {
     const raw = JSON.parse(window.localStorage.getItem(KEY) ?? 'null') as unknown;
-    if (raw && typeof raw === 'object' && 'unlocked' in raw && 'won' in raw) {
-      const { unlocked, won } = raw as { unlocked: unknown; won: unknown };
-      if (typeof unlocked === 'number' && Array.isArray(won) && won.every((w) => typeof w === 'string')) return { unlocked, won: won as string[] };
+    if (raw && typeof raw === 'object' && 'levels' in raw) {
+      const levels: Record<string, LevelRecord> = {};
+      for (const [id, rec] of Object.entries((raw as { levels: Record<string, unknown> }).levels ?? {})) if (isRecord(rec)) levels[id] = rec;
+      return { levels };
+    }
+    // The first save kept only the ids won: each counts as done.
+    if (raw && typeof raw === 'object' && 'won' in raw && Array.isArray((raw as { won: unknown }).won)) {
+      const levels: Record<string, LevelRecord> = {};
+      for (const id of (raw as { won: unknown[] }).won) if (typeof id === 'string') levels[id] = { blots: 1, coins: 0, allCoins: false, firstTry: false };
+      return { levels };
     }
   } catch {
     // Storage blocked or garbled: start from the first level.
   }
-  return { unlocked: 0, won: [] };
+  return { levels: {} };
 }
 
-/** Records a win, opening the next level. */
-export function markWon(index: number, id: string): Progress {
+/** True when level `index` of the play order can be played: the first, or the one after a won level. */
+export function isOpen(progress: Progress, order: readonly string[], index: number): boolean {
+  if (index <= 0) return true;
+  const before = order[index - 1];
+  return before !== undefined && progress.levels[before] !== undefined;
+}
+
+/** Records a win, keeping the best of this and earlier ones. */
+export function recordWin(id: string, coins: number, allCoins: boolean, firstTry: boolean): Progress {
   const old = readProgress();
-  const next = { unlocked: Math.max(old.unlocked, index + 1), won: old.won.includes(id) ? old.won : [...old.won, id] };
+  const was = old.levels[id];
+  const best = { allCoins: allCoins || (was?.allCoins ?? false), firstTry: firstTry || (was?.firstTry ?? false) };
+  const rec: LevelRecord = { ...best, coins: Math.max(coins, was?.coins ?? 0), blots: 1 + (best.allCoins ? 1 : 0) + (best.firstTry ? 1 : 0) };
+  const next: Progress = { levels: { ...old.levels, [id]: rec } };
   try {
     window.localStorage.setItem(KEY, JSON.stringify(next));
   } catch {

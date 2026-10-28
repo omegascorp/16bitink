@@ -4,9 +4,10 @@ import { SoundBoard } from './audio/sfx';
 import { GameScene } from './scenes/GameScene';
 import { DPR } from './scenes/hidpi';
 import { HudScene } from './scenes/HudScene';
+import { MenuScene } from './scenes/MenuScene';
 
 export interface MountOptions {
-  /** The level to open at (0-based), if it's open. */
+  /** Opens straight into this level (0-based) instead of the map. */
   readonly level?: number;
   /** Opens every level, for testing. */
   readonly unlockAll?: boolean;
@@ -28,12 +29,13 @@ export function mount(parent: HTMLElement, options: MountOptions = {}): { readon
     render: { antialias: true, antialiasGL: false, roundPixels: false, powerPreference: 'high-performance', maxTextures: 8 },
     input: { activePointers: 2 },
     audio: { noAudio: true },
-    scene: [GameScene, HudScene],
+    scene: [MenuScene, GameScene, HudScene],
   });
   const sfx = new SoundBoard();
   game.registry.set('sfx', sfx);
   game.registry.set('unlockAll', options.unlockAll ?? false);
-  if (options.level !== undefined) game.registry.set('level', options.level);
+  // Straight into a level (the dev page's ?level=), else the Atlas map first.
+  if (options.level !== undefined) game.registry.set('startLevel', options.level);
   const resizer = new ResizeObserver(() => {
     const next = cssSize();
     const w = Math.round(next.width * DPR);

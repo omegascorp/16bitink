@@ -69,7 +69,7 @@ Cartoon only, as everywhere on 16bit.ink: no blood and nothing gross. A beaten g
 
 ## Rules
 
-- **Board:** a cut-away room drawn on paper, 720 × 1280 and upright, because pin puzzles are shafts and chambers stacked on top of each other. On a phone held upright it fills the screen. On a computer it sits in the middle of the page, with the level's name, blots and buttons in the margins. Tall levels scroll, and you can drag the board to look before you pull.
+- **Board:** a cut-away ruin drawn on paper. A level is a chain of rooms 2–3 screens wide or two screens tall, with 3–5 puzzle stages, about 60–90 s to play. The camera opens on the chest's end for a moment, then follows Nib, leading the way Nib faces; drag (or scroll) to look around, and it holds there until Nib moves on. At most ~700 grains per level, so phones keep up.
 - **Pins:** golden pins with a ring on the end. Tap a pin, or drag it out the way its ring points, and it slides out. Whatever it held starts to fall at once.
 - **Materials** are simulated as grains (water, lava, gold, sand, gas, acid) and solid bodies (boulders, gems, bombs, keys, ice blocks, Nib and the Blots). Every material's behaviour is in the next table, and none of them ever changes it.
 - **Mixing:**
@@ -77,15 +77,17 @@ Cartoon only, as everywhere on 16bit.ink: no blood and nothing gross. A beaten g
   - A flame meeting gas makes a blast that breaks cracked walls.
   - Lava melts ice, and frost freezes still water.
   - Water dilutes acid until it's harmless.
-  - Water makes seeds grow, and fire burns vines.
+  - Water makes seeds grow (a seed drinks the water that reaches it, then grows into a vine to its ledge), and lava or fire burns vines.
+  - Crates float on water and ride its current, and burn in lava.
 - **Treasure:** coins pour like grains, and gems fall as single pieces. They count once they reach Nib's sack or the chest beside Nib. Treasure lost in lava, down a drain or off the board is gone.
 - **Failing:** Nib is touched by lava, fire, acid, gas or a Blot, or crushed by a falling boulder. Some goals fail in other ways too: a Loot level fails when too little treasure is left to reach its target. Nib shows the cause in a cartoon pose, then the restart button appears.
-- **Restart:** one tap or R, under a second. There are no lives or energy to spend.
+- **Hearts:** three per level, as in the other games. A loss costs a heart: the funny fail plays, then the level winds back to just before the last pin pulled, with a note saying what happened. Losing the last heart ends the level.
+- **Restart:** one tap or R, under a second. Hearts refill on every try; there's no energy to spend.
 - **Hints:** free and unlimited. A hint shows the next pin with a number. After three failures in a row the hint button wiggles. A level finished with a hint can't earn the "first try" blot.
 - **Ink blots (stars):**
   1. **Done:** Nib is safe and the goal is met.
   2. **Every treasure:** all the gems, and 95 of every 100 coins. A few always splash.
-  3. **First try:** no restarts and no hints. Chapter 1 asks for this from level 3 on.
+  3. **First try:** no restarts, no hints and no heart lost. Chapter 1 asks for this from level 3 on.
 
 ## Treasure and the bank
 
@@ -204,7 +206,7 @@ All ten levels of Chapter 1 ([inkpin-levels.md](inkpin-levels.md)) in `games/ink
 
 ## The map
 
-The Ink Atlas itself, open on the table: ten ruins drawn on old paper with a dotted trail between them, from the Jungle Temple to the Dragon's Hoard. Each level is a lit window. Chapters not built yet are pencil drafts, and the full game's chapters are painted but locked until bought.
+The Ink Atlas itself, open on the table: ten ruins drawn on one long page of old paper with a trail between them, from the Jungle Temple at the foot to the Dragon's Hoard at the top (built: games/inkpin/src/scenes/MenuScene.ts, scenes/map/, art/atlas*.ts). Each level is a medallion that turns to a gold coin once won, with its blots beside it; a red ring marks the next level, and after a win Nib walks the trail to it. Tapping a level opens a card with a preview, its goal, the best result and Play. Chapters not built yet are pencil sketches ("still being drawn"), and the full game's chapters are painted but locked until bought.
 
 ## Art
 

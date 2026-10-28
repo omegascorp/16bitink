@@ -1,24 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { LEVELS } from '../src/level';
-import { CISTERN } from '../src/level/cistern';
 import { DOOR } from '../src/level/door';
-import { GOLD_RUSH } from '../src/level/goldRush';
-import { GUARD } from '../src/level/guard';
 import { IDOL_HALL } from '../src/level/idolHall';
-import { PIN_OVER_PIN } from '../src/level/pinOverPin';
-import { STAIR } from '../src/level/stair';
-import { TORCHES } from '../src/level/torches';
-import { WELL } from '../src/level/well';
 import type { LevelDef } from '../src/logic/level';
+import { inRooms as inRoomsOf, outerRuns, standsInTheOpen } from '../src/logic/rooms';
 import { World } from '../src/logic/world';
-import { play } from './solver';
 
-/** How a pull order ends: 'won', the loss cause, 'playing' (stuck), or 'blocked' (a pin couldn't come out). */
-const outcome = (level: LevelDef, order: readonly string[], patient = false): string => {
-  const r = play(level, order, patient);
-  if (!r.possible) return 'blocked';
-  return r.status.state === 'lost' ? r.status.cause : r.status.state;
-};
+const inRooms = (level: LevelDef, x: number, y: number): boolean => inRoomsOf(level.rooms, x, y);
 
 describe('Chapter 1', () => {
   it('has ten levels with their own ids, each opening at rest', () => {
@@ -31,23 +19,29 @@ describe('Chapter 1', () => {
     }
   });
 
-  // Each level: its hint's order wins, and the tempting wrong orders lose the way the level means.
-  const cases: [LevelDef, [string[], string[]][], boolean?][] = [
-    [DOOR, []],
-    [GOLD_RUSH, [[['A', 'B', 'G'], ['drained']]]],
-    [CISTERN, [[['W', 'S'], ['drained']]]],
-    [GUARD, [[['G', 'R', 'W'], ['inked']], [['W', 'R', 'G'], ['inked']], [['R', 'G', 'W'], ['inked']]]],
-    [PIN_OVER_PIN, [[['N', 'B', 'C'], ['pricked']], [['C', 'B', 'N'], ['blocked']]]],
-    [WELL, [[['G', 'W', 'C'], ['inked']], [['C', 'G', 'W'], ['inked']]]],
-    [STAIR, [[['C', 'K', 'W', 'N'], ['drained']], [['N', 'K', 'W', 'C'], ['inked']]]],
-    [TORCHES, [[['N', 'K', 'W'], ['inked']], [['W', 'N', 'K'], ['drained', 'playing']]]],
-    // The boss: Nib waits on the ledge. Opening the cistern before both tanks are in it never beats the boar.
-    [IDOL_HALL, [[['R', 'A', 'B', 'C'], ['playing', 'inked']], [['A', 'R', 'B', 'C'], ['playing', 'inked']]], true],
-  ];
-  it.each(cases.map(([level, losses, patient]) => [level.name, level, losses, patient ?? false] as const))('%s', (_name, level, losses, patient) => {
-    expect(outcome(level, level.solution, patient)).toBe('won');
-    for (const [order, causes] of losses) expect(causes).toContain(outcome(level, order, patient));
+  it('draws every wall: the lip in The Door stands in the open, so it is painted as a bar', () => {
+    const lip = DOOR.walls[5]!;
+    expect(standsInTheOpen(DOOR.rooms, lip)).toBe(true);
+    expect(standsInTheOpen(DOOR.rooms, DOOR.walls[1]!)).toBe(false); // the left wall is the room's own edge
   });
+
+  it('leaves no seam where two rooms join', () => {
+    // The Door's first two rooms share the edge x = 680 below the second room's bar (y 800 to 1100).
+    const seam = outerRuns(DOOR.rooms).some((run) => run.some((p) => Math.abs(p.x - 680) < 1 && p.y > 810 && p.y < 1090));
+    expect(seam).toBe(false);
+  });
+
+  it('starts with every grain inside the rooms (no fill spilling into the rock)', () => {
+    for (const level of LEVELS) {
+      const w = new World(level);
+      const g = w.grains;
+      const outside: string[] = [];
+      for (let i = 0; i < g.count; i++) if (!inRooms(level, g.x[i]!, g.y[i]!)) outside.push(`${g.x[i]!.toFixed(0)},${g.y[i]!.toFixed(0)}`);
+      expect(outside, level.name).toEqual([]);
+    }
+  });
+
+  // Each level's own wins and tempting losses are in test/wide-<level>.test.ts.
 }, 300_000);
 
 describe('vines', () => {
@@ -100,3 +94,24 @@ describe('the boss', () => {
     expect(boss.gone).toBe(null);
   });
 }, 300_000);
+
+describe('hearts', () => {
+  it('winds the level back exactly: replaying from a save gives the same world', () => {
+    const level = LEVELS[3]!;
+    const w = new World(level);
+    for (let s = 0; s < 200; s++) w.step();
+    const save = w.save();
+    const run = (): string => {
+      w.pull(level.solution[0]!);
+      for (let s = 0; s < 600; s++) w.step();
+      const g = w.grains;
+      let sum = 0;
+      for (let i = 0; i < g.count; i++) sum += g.x[i]! * 3 + g.y[i]! * 7 + g.kind[i]!;
+      return `${g.count}:${sum.toFixed(4)}:${w.nib.x.toFixed(4)}:${w.coinsCollected}:${w.pins.filter((p) => p.pulledAt !== null).length}`;
+    };
+    const first = run();
+    w.load(save);
+    expect(w.pins.every((p) => p.pulledAt === null)).toBe(true);
+    expect(run()).toBe(first);
+  });
+});

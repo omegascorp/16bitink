@@ -49,6 +49,13 @@ const COIN_REST = 0.1;
  * is pulled, something fast comes by, or a creature pushes it.
  */
 const SLEEP_STEPS = 60;
+/**
+ * A surface steeper than this (its normal's upward part below it, about 30°)
+ * is a slope: coins on it slide freely, with this share of their usual grip,
+ * and are never damped to rest or put to sleep there.
+ */
+const SLOPE_NY = -0.86;
+const COIN_SLOPE_GRIP = 0.25;
 const WAKE_SPEED = 0.6;
 const STILL_SPEED = 0.12;
 /**
@@ -66,7 +73,7 @@ const RESTING_SPEED = 0.3;
 const TOUCH = GRAIN_R * 2 + 1.5;
 /** The board, padded: grains past it are gone. */
 const MIN_X = -40;
-const MAX_X = 760;
+const MAX_X = 2240;
 const MIN_Y = -40;
 const MAX_Y = 2400;
 const CELL = H;
@@ -79,6 +86,23 @@ export type GrainEvent =
   | { readonly type: 'steam'; readonly x: number; readonly y: number }
   | { readonly type: 'melt'; readonly x: number; readonly y: number }
   | { readonly type: 'lost'; readonly kind: Kind };
+
+/** A saved copy of the grains (see Grains.save). */
+export interface GrainsSave {
+  readonly count: number;
+  readonly nextId: number;
+  readonly x: Float64Array;
+  readonly y: Float64Array;
+  readonly vx: Float64Array;
+  readonly vy: Float64Array;
+  readonly px: Float64Array;
+  readonly py: Float64Array;
+  readonly kind: Uint8Array;
+  readonly age: Uint16Array;
+  readonly id: Uint16Array;
+  readonly set: Uint8Array;
+  readonly still: Uint8Array;
+}
 
 export class Grains {
   count = 0;
@@ -95,6 +119,8 @@ export class Grains {
   /** 1 for grains holding still: stone that has set (for good), coins asleep (until woken). */
   readonly set: Uint8Array;
   private readonly still: Uint8Array;
+  /** 1 for a coin lying on a slope this step (set in collide, read in updateVelocities). */
+  private readonly sloped: Uint8Array;
   private readonly px: Float64Array;
   private readonly py: Float64Array;
   private readonly cellStart = new Int32Array(COLS * ROWS + 1);
@@ -116,6 +142,7 @@ export class Grains {
     this.age = new Uint16Array(capacity);
     this.set = new Uint8Array(capacity);
     this.still = new Uint8Array(capacity);
+    this.sloped = new Uint8Array(capacity);
     this.id = new Uint16Array(capacity);
     this.cellOf = new Int32Array(capacity);
     this.sorted = new Int32Array(capacity);
@@ -167,14 +194,15 @@ export class Grains {
   }
 
   /** The fastest live moving grain's speed, in px per step. */
-  maxSpeed(): number {
-    let m = 0;
+  /** How many loose grains move faster than `speed` (px per step). */
+  countFasterThan(speed: number): number {
+    const s2 = speed * speed;
+    let n = 0;
     for (let i = 0; i < this.count; i++) {
       if (this.kind[i] === DEAD || this.held(i)) continue;
-      const s = this.vx[i]! * this.vx[i]! + this.vy[i]! * this.vy[i]!;
-      if (s > m) m = s;
+      if (this.vx[i]! * this.vx[i]! + this.vy[i]! * this.vy[i]! > s2) n++;
     }
-    return Math.sqrt(m);
+    return n;
   }
 
   /** Calls `fn` with every live grain within `r` of (x, y). Uses the hash from the last step. */
@@ -328,16 +356,20 @@ export class Grains {
     const c = this.contact;
     for (let i = 0; i < this.count; i++) {
       const k = this.kind[i];
+      this.sloped[i] = 0;
       if (k === DEAD || this.held(i)) continue;
       for (const s of segs) {
         if (!capsuleContact(s, this.x[i]!, this.y[i]!, GRAIN_R, c)) continue;
         this.x[i] = this.x[i]! + c.nx * c.depth;
         this.y[i] = this.y[i]! + c.ny * c.depth;
+        // Coins slide down a steep slope instead of creeping: less grip there.
+        const slope = k === COIN && c.ny < 0 && c.ny > SLOPE_NY;
+        if (slope) this.sloped[i] = 1;
         // Friction: hold back the sliding part of this step's move.
         const mx = this.x[i]! - this.px[i]!;
         const my = this.y[i]! - this.py[i]!;
         const along = mx * -c.ny + my * c.nx;
-        const f = FRICTION[k!]! * along;
+        const f = FRICTION[k!]! * along * (slope ? COIN_SLOPE_GRIP : 1);
         this.x[i] = this.x[i]! + c.ny * f;
         this.y[i] = this.y[i]! - c.nx * f;
       }
@@ -355,7 +387,7 @@ export class Grains {
       if (k === LAVA && this.vy[i]! < -LAVA_RISE) this.vy[i] = -LAVA_RISE;
       // Coins at rest settle instead of jostling in place, then fall asleep.
       if (k === COIN) {
-        const resting = this.vx[i]! * this.vx[i]! + this.vy[i]! * this.vy[i]! < COIN_REST * COIN_REST;
+        const resting = !this.sloped[i] && this.vx[i]! * this.vx[i]! + this.vy[i]! * this.vy[i]! < COIN_REST * COIN_REST;
         if (resting) {
           this.vx[i] = this.vx[i]! * 0.3;
           this.vy[i] = this.vy[i]! * 0.3;
@@ -447,6 +479,36 @@ export class Grains {
       w++;
     }
     this.count = w;
+  }
+
+  /** A copy of every grain's state, to wind back to (see `load`). */
+  save(): GrainsSave {
+    const n = this.count;
+    return {
+      count: n,
+      nextId: this.nextId,
+      x: this.x.slice(0, n), y: this.y.slice(0, n), vx: this.vx.slice(0, n), vy: this.vy.slice(0, n),
+      px: this.px.slice(0, n), py: this.py.slice(0, n),
+      kind: this.kind.slice(0, n), age: this.age.slice(0, n), id: this.id.slice(0, n), set: this.set.slice(0, n), still: this.still.slice(0, n),
+    };
+  }
+
+  /** Winds every grain back to a saved state. */
+  load(s: GrainsSave): void {
+    this.count = s.count;
+    this.nextId = s.nextId;
+    this.x.set(s.x);
+    this.y.set(s.y);
+    this.vx.set(s.vx);
+    this.vy.set(s.vy);
+    this.px.set(s.px);
+    this.py.set(s.py);
+    this.kind.set(s.kind);
+    this.age.set(s.age);
+    this.id.set(s.id);
+    this.set.set(s.set);
+    this.still.set(s.still);
+    this.buildHash();
   }
 
   /** Marks grain i gone (a coin Nib picked up, a drop pushed off the board). */

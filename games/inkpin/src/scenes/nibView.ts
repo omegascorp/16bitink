@@ -20,6 +20,8 @@ export class NibView {
   private ending: 'won' | 'lost' | null = null;
   private mark: NibMark = 'dizzy';
   private walkClock = 0;
+  /** The coins spilled by a fail, cleared by a rewind. */
+  private spilled: Phaser.GameObjects.Image[] = [];
 
   constructor(private readonly scene: Phaser.Scene, private readonly layer: Phaser.GameObjects.Layer) {
     this.sack = scene.add.image(0, 0, 'sack').setScale(S);
@@ -63,6 +65,21 @@ export class NibView {
     this.lantern.setPosition(x + off.lantern.x * sx, y + off.lantern.y);
   }
 
+  /** After a rewind: Nib back on its feet, the sack and lantern back in its paws. */
+  reset(): void {
+    const { scene } = this;
+    this.ending = null;
+    scene.tweens.killTweensOf([this.body, this.sack, this.lantern]);
+    this.body.setScale(S).setAngle(0);
+    this.sack.setAngle(0);
+    this.lantern.setAngle(0);
+    for (const c of this.spilled) {
+      scene.tweens.killTweensOf(c);
+      c.destroy();
+    }
+    this.spilled = [];
+  }
+
   /** The win: Nib cheers and hops. */
   cheer(): void {
     this.ending = 'won';
@@ -90,6 +107,7 @@ export class NibView {
     for (let i = 0; i < 7; i++) {
       const coin = scene.add.image(this.sack.x, this.sack.y - 6, 'coins', i % 4).setScale(S);
       this.layer.add(coin);
+      this.spilled.push(coin);
       const tx = this.sack.x + away * (20 + i * 9) + (i % 2 ? 6 : -6);
       scene.tweens.add({ targets: coin, x: tx, duration: 520 + i * 40, ease: 'Linear' });
       scene.tweens.add({ targets: coin, y: this.sack.y - 30 - (i % 3) * 10, duration: 220 + i * 15, ease: 'Quad.out', yoyo: false, onComplete: () => {
