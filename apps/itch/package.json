@@ -1,0 +1,28 @@
+{
+  "name": "@16bitink/itch",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "vite dev --port 5180",
+    "cover": "node scripts/cover.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "dependencies": {
+    "@16bitink/game-sdk": "workspace:*",
+    "@16bitink/inkcrab": "workspace:*",
+    "@16bitink/inkfish": "workspace:*",
+    "@16bitink/inkgecko": "workspace:*",
+    "@16bitink/inkmine": "workspace:*",
+    "@16bitink/inksnake": "workspace:*"
+  },
+  "devDependencies": {
+    "playwright-core": "1.56.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
+  }
+}

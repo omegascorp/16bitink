@@ -47,3 +47,7 @@ Each page: an opening answer of 60 words at most naming our game and the classic
 - No mass template pages: Google's scaled content abuse policy targets pages made mainly to rank. A few hand-checked pages instead.
 - Post history pages where the fans are (r/flashgames, r/HoMM3): AI answers cite Reddit heavily.
 - Every two weeks, ask ChatGPT, Perplexity and Google AI Mode the same searches and note whether we're cited.
+
+## Audits
+
+Seven checklists from Bevizio's free SEO pack (MIT) live in `.claude/skills/`: technical SEO, indexing and crawl health, duplicate intent, content opportunities, internal linking, freshness, and the growth-stage gate (we're early stage, under ~300 search clicks a month, so new pages beat polishing old ones). Run the technical and indexing checks after any deploy that adds pages. Their first run (Oct 29, 2026) found About/Terms/Privacy pointing their canonical at `/about.html` and the About page claiming the art was drawn on paper; both fixed.

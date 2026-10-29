@@ -9,6 +9,7 @@ games/inkfish       Phaser 4 game package: client game (src/) + server-only paid
 games/inkcrab       Second game (prototype): hermit crab trading up through shells; design in docs/inkcrab-design.md
 games/inkmine       Third game: planet-hopping miner, chapter 1 free, chapters 2-3 (Mycel, Brine) in the $4.99 full game; design in docs/inkmine-design.md
 games/inkgecko      Fourth game: Zuma/Luxor-style marble shooter, in the catalog since Oct 22, all 10 chapters built (1 free; 2–10 the full game: Pond, Greenhouse, Orchard, Rockery, Allotment, Wild Meadow, Old Barn, Ruins, Night Garden); design in docs/inkgecko-design.md
+apps/itch           itch.io editions: any game's free chapter as an uploadable zip + cover (`pnpm --filter @16bitink/itch build inkfish`); listing guide in docs/itch-playbook.md
 docs/               Research, tech & monetization decisions, art pipeline
 ```
 

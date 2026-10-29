@@ -3,7 +3,7 @@ import '../styles/global.css';
 import Logo from '../components/Logo.astro';
 import Account from '../components/Account.astro';
 import { appleTouchIcon } from '../lib/manifest';
-import { jsonLdScript } from '../lib/seo';
+import { canonicalUrl, jsonLdScript } from '../lib/seo';
 import caveat from '../assets/fonts/caveat.woff2?url';
 import sourceSerif from '../assets/fonts/source-serif-4.woff2?url';
 import silkscreen from '../assets/fonts/silkscreen.woff2?url';
@@ -18,7 +18,7 @@ interface Props {
   jsonLd?: readonly unknown[];
 }
 const { title, description, image = '/covers/inkfish.png', user, jsonLd = [] } = Astro.props;
-const canonical = new URL(Astro.url.pathname, Astro.site);
+const canonical = canonicalUrl(Astro.url.pathname, Astro.site!);
 const ogImage = new URL(image, Astro.site);
 ---
 <!doctype html>

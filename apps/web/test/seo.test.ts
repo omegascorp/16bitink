@@ -1,9 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { findGame, listedGames, playableGames } from '../src/data/games';
-import { fansOfLine, gameFaq, gameJsonLd, gameTitle, jsonLdScript, robotsTxt, siteJsonLd, sitemapXml } from '../src/lib/seo';
+import { canonicalUrl, fansOfLine, gameFaq, gameJsonLd, gameTitle, jsonLdScript, robotsTxt, siteJsonLd, sitemapXml } from '../src/lib/seo';
 
 const SITE = new URL('https://16bit.ink');
 const inkfish = findGame('inkfish')!;
+
+describe('canonical URL', () => {
+  it('drops the .html that pages built as files get, so it matches the sitemap', () => {
+    expect(canonicalUrl('/about.html', SITE).href).toBe('https://16bit.ink/about');
+    expect(canonicalUrl('/terms.html', SITE).href).toBe('https://16bit.ink/terms');
+    expect(canonicalUrl('/index.html', SITE).href).toBe('https://16bit.ink/');
+  });
+
+  it('leaves clean paths alone', () => {
+    expect(canonicalUrl('/', SITE).href).toBe('https://16bit.ink/');
+    expect(canonicalUrl('/games-like/zuma', SITE).href).toBe('https://16bit.ink/games-like/zuma');
+  });
+});
 
 describe('robots.txt', () => {
   const robots = robotsTxt(SITE);

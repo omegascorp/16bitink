@@ -19,6 +19,14 @@ export function robotsTxt(site: URL): string {
   return ['User-agent: *', ...PRIVATE_PATHS.map((p) => `Disallow: ${p}`), '', `Sitemap: ${new URL('/sitemap.xml', site)}`, ''].join('\n');
 }
 
+/**
+ * The page's one URL. `build.format: 'file'` gives prerendered pages an
+ * `/about.html` pathname, but they're linked and listed as `/about`.
+ */
+export function canonicalUrl(pathname: string, site: URL): URL {
+  return new URL(pathname.replace(/(^|\/)index\.html$/, '$1').replace(/\.html$/, ''), site);
+}
+
 const lastChanged = (game: CatalogGame): string | undefined => game.updated ?? game.released;
 
 const urlEntry = (loc: URL, lastmod?: string): string => `  <url><loc>${loc}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`;
