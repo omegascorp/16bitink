@@ -1,5 +1,6 @@
 ---
-import { playableGames, type CatalogGame } from '../../data/games';
+import { homeGames, playableGames, type CatalogGame } from '../../data/games';
+import { PASS, passPitch, passRiseNote } from '../../data/pass';
 import { appleTouchIcon } from '../../lib/manifest';
 import { GAME_VERSIONS } from '../../games/versions';
 import { coverSrcset, coverVariant } from '../../lib/covers';
@@ -16,6 +17,9 @@ const theme = game.theme ?? { paper: '#f4eddc', ink: '#1b1a1f', accent: '#1f3f8a
 const version = GAME_VERSIONS[game.slug];
 const cover = game.cover ?? '/covers/inkfish.png';
 const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean).join('&');
+// The pass, offered next to the game when a player taps "Unlock" (lib/client/buyChooser.ts).
+// Static pages: the count is the games out at build time, and every Sunday's release deploys.
+const gameCount = Math.max(homeGames(new Date()).length, 1);
 ---
 <!doctype html>
 <html lang="en">
@@ -38,7 +42,7 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
     <link href={`https://fonts.googleapis.com/css2?${fontFamilies}&display=swap`} rel="stylesheet" />
   </head>
   <body style={`--paper:${theme.paper};--ink:${theme.ink};--accent:${theme.accent}`}>
-    <div id="stage" aria-label={`${game.title} game`} data-game={game.slug} data-price={game.price ?? ''} data-fonts={JSON.stringify(game.fonts?.await ?? [])}>
+    <div id="stage" aria-label={`${game.title} game`} data-game={game.slug} data-title={game.title} data-price={game.price ?? ''} data-pass-price={PASS.price} data-pass-pitch={passPitch(gameCount)} data-pass-note={passRiseNote(gameCount) ?? ''} data-fonts={JSON.stringify(game.fonts?.await ?? [])}>
       <div id="splash">
         <p class="brand"><span class="bits">16bit</span><span class="ink">.ink</span></p>
         <!-- What you're about to play, while there's room for it (not on a phone held sideways). Usually cached from the home page. -->
@@ -145,6 +149,37 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
       .version {
         position: absolute; right: 14px; bottom: 10px; margin: 0;
         font-family: 'Silkscreen', monospace; font-size: 0.7rem; color: var(--ink); opacity: 0.55;
+      }
+      /* "This game or every game?", over the game when a player taps Unlock (lib/client/buyChooser.ts). */
+      .buy-chooser {
+        box-sizing: border-box; width: min(420px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto;
+        padding: 20px 20px 14px; color: var(--ink); background: var(--paper);
+        border: 3px solid var(--ink); border-radius: 4px; box-shadow: 4px 5px 0 var(--ink);
+        font-family: Georgia, serif; user-select: none; -webkit-user-select: none;
+      }
+      .buy-chooser::backdrop { background: rgb(20 18 24 / 0.55); }
+      .buy-chooser-title { margin: 0 0 12px; font: 700 2.2rem/1 'Caveat', cursive; color: var(--accent); text-align: center; }
+      .buy-choice {
+        position: relative; display: flex; flex-direction: column; gap: 2px; width: 100%; margin: 0 0 12px; padding: 12px 14px;
+        text-align: left; font: inherit; color: var(--ink); background: var(--paper); cursor: pointer;
+        border: 3px solid var(--ink); border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; box-shadow: 3px 4px 0 var(--ink);
+      }
+      .buy-choice:active { transform: translate(2px, 3px); box-shadow: none; }
+      .buy-choice:focus-visible { outline: 3px dashed var(--accent); outline-offset: 4px; }
+      .buy-choice-pass { color: var(--paper); background: var(--accent); }
+      .buy-choice-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+      .buy-choice-name { font: 700 1.7rem/1.05 'Caveat', cursive; }
+      .buy-choice-price { font: 0.95rem 'Silkscreen', monospace; white-space: nowrap; }
+      .buy-choice-line { font-size: 0.92rem; line-height: 1.3; }
+      .buy-choice-pass .buy-choice-line:first-of-type { font-weight: 700; }
+      .buy-choice-sticker {
+        position: absolute; top: -12px; right: 14px; padding: 2px 8px; transform: rotate(3deg);
+        font: 0.7rem 'Silkscreen', monospace; color: var(--ink); background: #f3d34a; border: 2px solid var(--ink);
+      }
+      .buy-chooser-note { margin: 2px 0 8px; font-size: 0.85rem; text-align: center; opacity: 0.8; }
+      .buy-chooser-close {
+        display: block; margin: 0 auto; padding: 6px 14px; cursor: pointer;
+        font: 700 1.4rem 'Caveat', cursive; color: var(--ink); background: none; border: 0; text-decoration: underline;
       }
     </style>
   </body>

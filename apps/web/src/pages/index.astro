@@ -2,10 +2,12 @@
 import Base from '../layouts/Base.astro';
 import GameSpread from '../components/GameSpread.astro';
 import PartnerAd from '../components/PartnerAd.astro';
+import PassCard from '../components/PassCard.astro';
 import SundaySignup from '../components/SundaySignup.astro';
 import { homeGames, isNew } from '../data/games';
 import { currentUser, ownedGameSlugs } from '../lib/owner';
 import { siteJsonLd } from '../lib/seo';
+import { sundayReader } from '../lib/sunday';
 
 // Rendered per request, so owners see "Play" instead of "Play free".
 export const prerender = false;
@@ -26,6 +28,8 @@ try {
   // The home page must always load: fall back to "Play free" and let the header look up the user in the browser.
   console.error('[home] ownership check failed', err);
 }
+const reader = await sundayReader(user);
+const ownedListed = games.filter((g) => owned.has(g.slug)).length;
 Astro.response.headers.set('cache-control', 'private, no-store');
 ---
 <Base
@@ -51,18 +55,30 @@ Astro.response.headers.set('cache-control', 'private, no-store');
       <li>Free to start</li>
       <li>No download</li>
       <li>No sign-up</li>
+      <li>No in-game ads</li>
     </ul>
   </div>
   <!-- Only the newest wears the sticker: two "New!" games would compete with this week's. -->
   <div class="games">
     {games.map((game, i) => <GameSpread game={game} owned={owned.has(game.slug)} position={i + 1} featured={i === 0} fresh={i === 0 && isNew(game, now)} />)}
   </div>
+  <!-- After the covers, where the whole catalog has just been seen: every game for one price, and an email when the next one is out.
+       Side by side when there's room; either one fills the row alone (the pass is gone once every game is owned, the email once signed up). -->
+  <div class="closing">
+    {ownedListed < games.length && <PassCard gameCount={games.length} ownedCount={ownedListed} />}
+    <SundaySignup reader={reader} />
+  </div>
   <!-- Anyone who has bought a game sees no ads. -->
   {owned.size === 0 && <PartnerAd />}
-  <SundaySignup />
 </Base>
 
 <style>
+  .closing {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+    gap: 40px 48px; align-items: stretch; margin-top: 72px;
+  }
+  /* The row spaces the cards; their own outer margins are for when they stand alone. */
+  .closing > :global(.paper-card) { margin: 0; }
   .hero { margin: 8px 0 44px; }
   .intro { margin: 0; font-size: clamp(1.9rem, 4vw, 2.5rem); font-weight: 700; color: var(--ink); }
   .weekly { color: var(--blue-ink); white-space: nowrap; }

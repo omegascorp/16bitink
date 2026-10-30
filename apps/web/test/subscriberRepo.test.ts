@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { connectDb, disconnectDb } from '../src/lib/db/connection';
 import { Subscriber } from '../src/lib/db/subscriberModel';
-import { countNewSubscribers, countSubscribers, listSubscribers, subscribe, unsubscribe } from '../src/lib/db/subscriberRepo';
+import { countNewSubscribers, countSubscribers, isSubscribed, listSubscribers, subscribe, unsubscribe, unsubscribeEmail } from '../src/lib/db/subscriberRepo';
 
 // Integration test: needs a throwaway MongoDB, e.g.
 // MONGODB_TEST_URI=mongodb://localhost:27017/16bitink_test pnpm test
@@ -19,6 +19,19 @@ describe.skipIf(!uri)('Sunday email list (MongoDB)', () => {
   afterAll(async () => {
     await Subscriber.deleteMany({});
     await disconnectDb();
+  });
+
+  it('takes an address off by the address itself (a signed-in player)', async () => {
+    await subscribe('a@example.com', '/', NOW);
+    expect(await unsubscribeEmail('a@example.com')).toBe(true);
+    expect(await isSubscribed('a@example.com')).toBe(false);
+    expect(await unsubscribeEmail('a@example.com')).toBe(false);
+  });
+
+  it('knows whether an address is on the list', async () => {
+    expect(await isSubscribed('a@example.com')).toBe(false);
+    await subscribe('a@example.com', '/', NOW);
+    expect(await isSubscribed('a@example.com')).toBe(true);
   });
 
   it('adds an address once, keeping where it first signed up', async () => {

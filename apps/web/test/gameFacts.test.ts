@@ -3,7 +3,7 @@ import { INKCRAB_PAID_BEACHES } from '@16bitink/inkcrab/content';
 import { INKFISH_FULL_CHAPTERS } from '@16bitink/inkfish/content';
 import { INKGECKO_PAID_CHAPTERS } from '@16bitink/inkgecko/content';
 import { findGame, playableGames, type CatalogGame } from '../src/data/games';
-import { chapterTiles, formatDay, gameDates, gameSize } from '../src/lib/gameFacts';
+import { chapterTiles, formatDay, freeLine, gameDates, gameSize } from '../src/lib/gameFacts';
 
 const game = (fields: Partial<CatalogGame>): CatalogGame => ({ slug: 'x', title: 'X', tagline: '', description: [], status: 'playable', ...fields });
 
@@ -67,5 +67,20 @@ describe('catalog sizes', () => {
     expect(findGame('inkfish')?.size).toEqual({ chapters: INKFISH_FULL_CHAPTERS.length + 1, levels: INKFISH_FULL_CHAPTERS.flatMap((c) => c.levels).length + DEMO_LEVELS });
     expect(findGame('inkcrab')?.size).toEqual({ chapters: INKCRAB_PAID_BEACHES.length + 1, levels: INKCRAB_PAID_BEACHES.flat().length + DEMO_LEVELS });
     expect(findGame('inkgecko')?.size).toEqual({ chapters: INKGECKO_PAID_CHAPTERS.length + 1, levels: INKGECKO_PAID_CHAPTERS.flat().length + DEMO_LEVELS });
+  });
+});
+
+describe('freeLine', () => {
+  it('puts the free levels next to how many there are', () => {
+    expect(freeLine(game({ demo: '10 levels free', size: { chapters: 10, levels: 100 } }))).toBe('10 of 100 levels free');
+  });
+
+  it('keeps the demo as written when levels are not counted', () => {
+    expect(freeLine(game({ demo: 'First world free', size: { chapters: 10, ready: 3 } }))).toBe('First world free');
+    expect(freeLine(game({ demo: '10 levels free' }))).toBe('10 levels free');
+  });
+
+  it('says the first chapter is free when the game does not say', () => {
+    expect(freeLine(game({}))).toBe('First chapter free');
   });
 });

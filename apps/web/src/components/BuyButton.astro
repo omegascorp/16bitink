@@ -2,15 +2,20 @@
 interface Props {
   game: string;
   label: string;
+  /** Sells the All Games Pass instead, offered on `game`'s page (or, as `game` "all", on the home page). */
+  pass?: boolean;
+  /** Where the offer is, for the stats. */
+  where?: 'page' | 'home';
 }
-const { game, label } = Astro.props;
+const { game, label, pass = false, where = 'page' } = Astro.props;
 ---
-<buy-button data-game={game}>
-  <button type="button" class="btn btn-red">{label}</button>
+<buy-button data-game={game} data-pass={pass ? 'true' : undefined} data-where={where}>
+  <button type="button" class={pass ? 'btn btn-ink' : 'btn btn-red'}>{label}</button>
   <p class="buy-error" role="alert" hidden></p>
 </buy-button>
 
 <script>
+  import { PASS } from '../data/pass';
   import { BUY_PARAM, isPendingBuy } from '../lib/buyFlow';
   import { buyFullGame, startCheckout } from '../lib/client/checkout';
 
@@ -24,6 +29,8 @@ const { game, label } = Astro.props;
       const button = this.querySelector('button');
       const error = this.querySelector<HTMLElement>('.buy-error');
       const game = this.dataset.game ?? '';
+      const pass = this.dataset.pass === 'true';
+      const where = this.dataset.where === 'home' ? 'home' : 'page';
       if (!button) return;
       const run = async (buy: (game: string) => Promise<{ error?: string }>): Promise<void> => {
         button.disabled = true;
@@ -35,13 +42,13 @@ const { game, label } = Astro.props;
         }
         button.disabled = false;
       };
-      button.addEventListener('click', () => void run((g) => buyFullGame(g, 'page')));
-      if (isPendingBuy(window.location.search, game)) {
+      button.addEventListener('click', () => void run((g) => buyFullGame(g, where, pass)));
+      if (isPendingBuy(window.location.search, pass ? PASS.slug : game)) {
         // Dropped first so Back or a reload never re-opens checkout.
         const url = new URL(window.location.href);
         url.searchParams.delete(BUY_PARAM);
         history.replaceState(null, '', url);
-        void run(startCheckout);
+        void run((g) => startCheckout(g, pass));
       }
     }
   }

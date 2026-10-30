@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import BuyButton from '../../components/BuyButton.astro';
+import PassCard from '../../components/PassCard.astro';
 import GameStats from '../../components/GameStats.astro';
 import PartnerAd from '../../components/PartnerAd.astro';
 import SundaySignup from '../../components/SundaySignup.astro';
@@ -10,6 +11,7 @@ import { coverSrcset, coverVariant, loopSources } from '../../lib/covers';
 import { currentUser, ownedGameSlugs } from '../../lib/owner';
 import { signInPageUrl } from '../../lib/buyFlow';
 import { fansOfLine, faqJsonLd, gameFaq, gameJsonLd, gameTitle } from '../../lib/seo';
+import { sundayReader } from '../../lib/sunday';
 
 // Rendered per request, so owners and signed-in players see their own page
 // from the first paint (no flash of the free version).
@@ -35,6 +37,7 @@ try {
   // The sales page must always load: fall back to the signed-out free version.
   console.error('[games] ownership check failed', err);
 }
+const reader = await sundayReader(user);
 Astro.response.headers.set('cache-control', 'private, no-store');
 const faq = gameFaq(game);
 const fansOf = fansOfLine(game);
@@ -44,6 +47,8 @@ const site = Astro.site ?? Astro.url;
 const cover = game.cover ?? '/covers/inkfish.png';
 // Where a player lands on leaving a game: the other games, newest first, one tap from playing.
 const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
+// The pass is offered wherever a game is: whoever holds it owns this game, so never sees it.
+const gameCount = others.length + 1;
 ---
 <Base title={gameTitle(game)} description={game.description[0] ?? game.tagline} image={game.cover} user={user} jsonLd={[gameJsonLd(game, site), faqJsonLd(faq)]}>
   <article class="game">
@@ -83,6 +88,7 @@ const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
       ) : (
         <p class="one-time"><strong>One-time purchase.</strong> Pay once and the full game is yours to keep: no subscription, no ads, nothing more to buy. Refunds within 14 days, see the <a href="/terms#refunds">terms</a>.</p>
       )}
+      {forSale && !owned && <PassCard gameCount={gameCount} game={game.slug} />}
       <p class="cancelled" hidden>Checkout cancelled. No charge was made.</p>
       {forSale && !owned && !user && <p class="restore">Bought it already? <a href={signInPageUrl(`/games/${game.slug}`)} data-restore={game.slug}>Sign in</a> with the email on your receipt to unlock it here.</p>}
       {forSale && !owned && <p class="restore">Got a key? <a href="/redeem">Redeem it here</a>.</p>}
@@ -138,7 +144,7 @@ const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
       ))}
     </dl>
   </section>
-  <SundaySignup />
+  <SundaySignup reader={reader} />
 </Base>
 
 <script>

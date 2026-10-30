@@ -18,6 +18,8 @@ const Seconds = z.number().finite().min(0).max(4 * 3600);
 const Level = { level: z.string().min(1).max(40), n: z.number().int().min(1).max(500), name: z.string().max(80).optional() };
 const At = z.number().finite();
 /** The game's own version (its package.json), so stats can be told apart by release. */
+/** The buy was for the All Games Pass; `game` is the game it was offered on. */
+const Pass = { pass: z.literal(true).optional() };
 const Version = { version: z.string().regex(/^[0-9A-Za-z.+-]{1,40}$/).optional() };
 const Path = z.string().regex(/^\/[^\s]{0,199}$/);
 /** Milliseconds, e.g. on a page or waiting for a game; a day is far longer than any real one. */
@@ -33,8 +35,8 @@ export const LOAD_STAGES = ['download', 'mount', 'boot'] as const;
 export const READY_STAGES = ['ready', 'stall'] as const;
 /** Which part of a home page game card was clicked: the cover, the game's name, the play button or the "About the game" link. */
 export const HOME_CLICK_TARGETS = ['cover', 'title', 'play', 'about'] as const;
-/** Where a buy was tapped: one of a game's own offers, the game's page on the site, or a game too old to say. */
-export const BUY_PLACES = [...OFFER_PLACES, 'page', 'unknown'] as const;
+/** Where a buy was tapped: one of a game's own offers, the game's page on the site, the home page (the pass), or a game too old to say. */
+export const BUY_PLACES = [...OFFER_PLACES, 'page', 'home', 'unknown'] as const;
 /** Where a sign-in was tapped: a game's "save your progress", the site header, or "Bought it already?" on a game page; then, on the sign-in page, the way chosen. */
 export const SIGN_IN_PLACES = ['save', 'header', 'restore', 'google', 'email'] as const;
 
@@ -57,10 +59,10 @@ const Event = z.discriminatedUnion('type', [
   z.object({ type: z.literal('play_time'), at: At, game: Game, seconds: z.number().finite().min(0).max(MAX_PLAY_TIME_SECONDS), ...Version }),
   /** The steps toward a purchase: a game showed its offer, a buy or sign-in was tapped, Stripe's checkout opened or couldn't. */
   z.object({ type: z.literal('offer_view'), at: At, game: Game, where: z.enum(OFFER_PLACES), ...Version }),
-  z.object({ type: z.literal('buy_click'), at: At, game: Game, where: z.enum(BUY_PLACES), signedIn: z.boolean(), ...Version }),
+  z.object({ type: z.literal('buy_click'), at: At, game: Game, where: z.enum(BUY_PLACES), signedIn: z.boolean(), ...Pass, ...Version }),
   z.object({ type: z.literal('signin_click'), at: At, game: Game.optional(), where: z.enum(SIGN_IN_PLACES) }),
-  z.object({ type: z.literal('checkout_open'), at: At, game: Game }),
-  z.object({ type: z.literal('checkout_fail'), at: At, game: Game, error: ErrorText }),
+  z.object({ type: z.literal('checkout_open'), at: At, game: Game, ...Pass }),
+  z.object({ type: z.literal('checkout_fail'), at: At, game: Game, error: ErrorText, ...Pass }),
   /** The browser installed the site as an app. */
   z.object({ type: z.literal('app_install'), at: At }),
   z.object({ type: z.literal('level_start'), at: At, game: Game, ...Level, ...Version }),
@@ -181,6 +183,8 @@ export interface StoredEvent extends Visit {
   readonly where?: string;
   /** Whether the player was signed in when they tapped buy. */
   readonly signedIn?: boolean;
+  /** Buy and checkout steps for the All Games Pass. */
+  readonly pass?: true;
   /** A page opened as the installed app. */
   readonly app?: true;
 }

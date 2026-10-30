@@ -4,6 +4,7 @@
  * so a new game is listed the day it ships.
  */
 
+import { PASS } from '../data/pass';
 import { COMPANY } from '../data/company';
 import { findGame, isPurchasable, listedGames, type CatalogGame } from '../data/games';
 import { FLASH_GAMES, FLASH_PAGE } from '../data/flashGames';
@@ -136,7 +137,10 @@ export function gameFaq(game: CatalogGame): readonly FaqEntry[] {
       q: 'Does my progress save?',
       a: 'Yes, in your browser, as you play. Sign in with Google or your email if you want to carry on from the same place on another device.',
     },
-    { q: 'Are there more games like this?', a: 'Yes. 16bit.ink releases a new small game every Sunday, all in the same pen-and-ink style.' },
+    {
+      q: 'Are there more games like this?',
+      a: `Yes. 16bit.ink releases a new small game every Sunday, all in the same pen-and-ink style.${isPurchasable(game) ? ` The ${PASS.title} unlocks all of them, and every game still to come, for a one-time ${PASS.price}.` : ''}`,
+    },
   ];
 }
 

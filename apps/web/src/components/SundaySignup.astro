@@ -4,41 +4,71 @@
  * out. A plain form post that comes back to this page (see /api/subscribe),
  * so it works without scripts. Only on pages rendered per request, which
  * read how the sign-up went from the address.
+ *
+ * Signed in (`reader`), it's one tap with the account's address, and it
+ * stays hidden once that address is on the list.
  */
+import type { SundayReader } from '../lib/sunday';
+
+interface Props {
+  reader?: SundayReader | null;
+  /** The page to come back to, when it needs more than its path (e.g. "/purchase/thanks?game=all"). */
+  from?: string;
+  /** Replaces the opening line, e.g. for a pass owner whose new games unlock by themselves. */
+  pitch?: string;
+}
+const { reader = null, from = Astro.url.pathname, pitch } = Astro.props;
+
 const MESSAGES: Record<string, { readonly text: string; readonly ok: boolean }> = {
   done: { text: 'You’re on the list. See you on Sunday!', ok: true },
   invalid: { text: 'That doesn’t look like an email address. Try again?', ok: false },
   error: { text: 'Something went wrong on our side. Please try again in a minute.', ok: false },
 };
 const outcome = MESSAGES[Astro.url.searchParams.get('sunday') ?? ''];
+const hidden = reader?.subscribed === true && !outcome;
 ---
-<section id="sunday" class="sunday paper-card" aria-labelledby="sunday-title">
-  <h2 id="sunday-title">A new game every Sunday</h2>
-  {outcome?.ok ? (
-    <p class="sunday-done" role="status">{outcome.text}</p>
-  ) : (
-    <>
-      <p>Leave your email and we’ll send one short note when the week’s new game is out. Nothing else, and every email has an unsubscribe link. See the <a href="/privacy#sunday-email">privacy policy</a>.</p>
-      {outcome && <p class="sunday-error" role="alert">{outcome.text}</p>}
-      <form class="sunday-form" method="post" action="/api/subscribe">
-        <input type="hidden" name="from" value={Astro.url.pathname} />
-        <label for="sunday-email" class="visually-hidden">Email address</label>
-        <input id="sunday-email" name="email" type="email" required maxlength="254" placeholder="you@example.com" autocomplete="email" />
-        <!-- Only bots fill this in: people never see it. -->
-        <div class="sunday-hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off" /></label></div>
-        <button class="btn btn-ink" type="submit">Tell me on Sunday</button>
-      </form>
-    </>
-  )}
-</section>
+{!hidden && (
+  <section id="sunday" class="sunday paper-card" aria-labelledby="sunday-title">
+    <p class="pixel-label sunday-kicker">Sunday email</p>
+    <h2 id="sunday-title">A new game every Sunday</h2>
+    {outcome?.ok ? (
+      <p class="sunday-done" role="status">{outcome.text}</p>
+    ) : (
+      <>
+        {reader ? (
+          <p>{pitch ?? 'Want to know when it’s out?'} We’ll email <strong>{reader.email}</strong> once on Sunday, when the new game is up. Nothing else, and every email has an unsubscribe link. See the <a href="/privacy#sunday-email">privacy policy</a>.</p>
+        ) : (
+          <p>{pitch ? `${pitch} ` : ''}Leave your email and we’ll send one short note when the week’s new game is out. Nothing else, and every email has an unsubscribe link. See the <a href="/privacy#sunday-email">privacy policy</a>.</p>
+        )}
+        {outcome && <p class="sunday-error" role="alert">{outcome.text}</p>}
+        <form class="sunday-form" method="post" action="/api/subscribe">
+          <input type="hidden" name="from" value={from} />
+          {reader ? (
+            <input type="hidden" name="email" value={reader.email} />
+          ) : (
+            <>
+              <label for="sunday-email" class="visually-hidden">Email address</label>
+              <input id="sunday-email" name="email" type="email" required maxlength="254" placeholder="you@example.com" autocomplete="email" />
+            </>
+          )}
+          <!-- Only bots fill this in: people never see it. -->
+          <div class="sunday-hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off" /></label></div>
+          <button class="btn btn-ink" type="submit">{reader ? 'Email me new games' : 'Tell me on Sunday'}</button>
+        </form>
+      </>
+    )}
+  </section>
+)}
 
 <style>
-  .sunday { margin-top: 72px; transform: rotate(0.3deg); }
-  .sunday h2 { margin-bottom: 0.2em; }
-  .sunday p { margin: 0 0 12px; max-width: 62ch; }
+  /* A column with the button at the bottom, so it lines up with a card beside it (see the home page). */
+  .sunday { display: flex; flex-direction: column; margin-top: 72px; transform: rotate(0.3deg); }
+  .sunday-kicker { margin: 0; color: var(--red-ink); }
+  .sunday h2 { margin: 4px 0 8px; font-size: clamp(1.8rem, 3.4vw, 2.3rem); line-height: 1.05; }
+  .sunday p { margin: 0 0 12px; max-width: 62ch; overflow-wrap: anywhere; }
   .sunday-done { font-family: var(--font-hand); font-size: 1.7rem; color: var(--blue-ink); }
   .sunday-error { color: var(--red-ink); }
-  .sunday-form { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+  .sunday-form { display: flex; flex-wrap: wrap; gap: 12px; margin-top: auto; padding-top: 4px; }
   .sunday-form input[type='email'] {
     flex: 1 1 260px; min-width: 0; max-width: 380px; font: inherit;
     padding: 10px 12px; background: var(--paper); color: var(--ink); border: 2px solid var(--ink); border-radius: 4px;

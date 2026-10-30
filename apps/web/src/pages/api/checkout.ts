@@ -1,18 +1,28 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { findGame, isPurchasable } from '../../data/games';
+import { findGame } from '../../data/games';
+import { findProduct } from '../../lib/products';
 import { checkoutParams } from '../../lib/checkoutParams';
 import { optionalEnv } from '../../lib/env';
 import { fail, isSameOrigin, json } from '../../lib/http';
-import { currentUser } from '../../lib/owner';
+import { currentUser, ownership } from '../../lib/owner';
 import { stripeClient } from '../../lib/stripe';
 
 export const prerender = false;
 
-const Body = z.object({ game: z.string().regex(/^[a-z0-9-]{1,40}$/) });
+const Slug = z.string().regex(/^[a-z0-9-]{1,40}$/);
+/** `game`: what to buy, a game or the pass. `from`: the game it was offered on, to come back to on cancel. */
+const Body = z.object({ game: Slug, from: Slug.optional() });
+
+/** Where a cancelled checkout lands: the game's page it was offered on, else the home page. */
+function returnPath(product: string, from: string | undefined): string {
+  const back = [from, product].find((slug) => slug !== undefined && findGame(slug)?.status === 'playable');
+  return back ? `/games/${back}` : '/';
+}
 
 /**
- * Creates a Stripe Checkout Session for a one-time full-game unlock.
+ * Creates a Stripe Checkout Session for a one-time unlock: a game's full
+ * version, or the All Games Pass.
  * Only for a signed-in user: the purchase is tied to their account from the
  * start, so it can't be stranded on a browser or under a different email.
  */
@@ -20,12 +30,14 @@ export const POST: APIRoute = async ({ request, url, cookies }) => {
   if (!isSameOrigin(request)) return fail(403, 'Cross-origin request rejected');
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return fail(400, 'Invalid request');
-  const game = findGame(parsed.data.game);
-  if (!isPurchasable(game)) return fail(404, 'This game is not for sale');
+  const game = findProduct(parsed.data.game);
+  if (!game) return fail(404, 'This game is not for sale');
 
   try {
     const user = await currentUser(cookies);
     if (!user) return fail(401, 'Sign in with Google to buy the full game.');
+    // Never charge twice: a game is owned already with the pass, and the pass is never sold again.
+    if (await ownership(cookies, game.slug, url)) return fail(409, 'You already own this. Reload the page to play.');
     const stripe = stripeClient();
     const prices = await stripe.prices.list({ lookup_keys: [game.stripeLookupKey], active: true, limit: 1 });
     const price = prices.data[0];
@@ -33,7 +45,7 @@ export const POST: APIRoute = async ({ request, url, cookies }) => {
     // A recurring price would turn the unlock into a subscription: refuse it.
     if (price.type !== 'one_time') throw new Error(`Price "${game.stripeLookupKey}" must be one-time, not ${price.type}`);
     const session = await stripe.checkout.sessions.create(checkoutParams({
-      priceId: price.id, game: game.slug, title: game.title, origin: url.origin,
+      priceId: price.id, game: game.slug, title: game.title, returnTo: returnPath(game.slug, parsed.data.from), origin: url.origin,
       automaticTax: optionalEnv('STRIPE_AUTOMATIC_TAX') === 'true',
       user: { email: user.email, userId: user.userId },
     }));

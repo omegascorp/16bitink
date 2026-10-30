@@ -1,0 +1,51 @@
+---
+/**
+ * The All Games Pass offer: every game, and every future one, for one
+ * one-time price. On a game page (`game` set: a cancelled checkout comes
+ * back there) and on the home page (`game` unset). Never shown to someone
+ * who holds the pass: they own every game, so the pages leave it out.
+ */
+import BuyButton from './BuyButton.astro';
+import { PASS, passPitch, passRiseNote } from '../data/pass';
+
+interface Props {
+  /** Games out now. */
+  gameCount: number;
+  /** How many of them the visitor owns already (home page). */
+  ownedCount?: number;
+  /** The game page it's on; unset on the home page. */
+  game?: string;
+}
+const { gameCount, ownedCount = 0, game } = Astro.props;
+const riseNote = passRiseNote(gameCount);
+const heading = ownedCount > 0 ? `You have ${ownedCount} of ${gameCount}. Get the rest + every future game` : passPitch(gameCount);
+---
+<aside class="pass paper-card" aria-labelledby="pass-title">
+  <p class="pixel-label pass-kicker">{PASS.title}</p>
+  <h2 id="pass-title">{heading}</h2>
+  <p>Every game on 16bit.ink, and every one still to come: a new game every Sunday, unlocked for you the day it comes out. One-time purchase, {PASS.price}. No subscription, no ads.</p>
+  {riseNote && <p class="pass-note">{riseNote}. Buy it now and every game after that is still yours.</p>}
+  {game
+    ? <BuyButton game={game} pass label={`Get every game · ${PASS.price}`} />
+    : <BuyButton game={PASS.slug} pass where="home" label={`Get every game · ${PASS.price}`} />}
+  {!game && <p class="pass-cancelled" hidden>Checkout cancelled. No charge was made.</p>}
+</aside>
+
+{!game && (
+  <script>
+    if (new URLSearchParams(location.search).get('checkout') === 'cancelled') {
+      document.querySelector<HTMLElement>('.pass-cancelled')?.removeAttribute('hidden');
+    }
+  </script>
+)}
+
+<style>
+  /* A column with the button at the bottom, so it lines up with a card beside it (see the home page). */
+  .pass { display: flex; flex-direction: column; margin: 22px 0 14px; transform: rotate(-0.4deg); }
+  .pass-kicker { margin: 0; color: var(--red-ink); }
+  .pass h2 { margin: 4px 0 8px; font-size: clamp(1.8rem, 3.4vw, 2.3rem); line-height: 1.05; color: var(--blue-ink); }
+  .pass p { margin: 0 0 12px; max-width: 62ch; }
+  .pass .pass-note { font-size: 0.92rem; color: var(--ink-soft); }
+  .pass .pass-cancelled { margin: 10px 0 0; color: var(--red-ink); }
+  .pass :global(buy-button) { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 4px; }
+</style>

@@ -49,6 +49,7 @@ const eventSchema = new Schema<StoredEvent>(
     slot: Number,
     where: String,
     signedIn: Boolean,
+    pass: Boolean,
     app: Boolean,
   },
   {

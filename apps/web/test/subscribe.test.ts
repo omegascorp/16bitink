@@ -28,6 +28,10 @@ describe('sign-up return path', () => {
   it('drops any query the page had', () => {
     expect(signupReturnPath('/games/inkfish?via=fish', 'done')).toBe('/games/inkfish?sunday=done#sunday');
   });
+
+  it('keeps which purchase a thank-you page is about', () => {
+    expect(signupReturnPath('/purchase/thanks?game=all&via=x', 'done')).toBe('/purchase/thanks?game=all&sunday=done#sunday');
+  });
 });
 
 describe('subscriber export', () => {

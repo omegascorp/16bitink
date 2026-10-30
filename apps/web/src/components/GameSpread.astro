@@ -1,7 +1,7 @@
 ---
 import { isPurchasable, type CatalogGame } from '../data/games';
 import { coverSrcset, coverVariant, loopSources } from '../lib/covers';
-import GameStats from './GameStats.astro';
+import { freeLine } from '../lib/gameFacts';
 
 interface Props {
   game: CatalogGame;
@@ -19,7 +19,9 @@ const playLabel = owned ? 'Play' : 'Play free';
 const cover = game.cover ?? '/covers/inkfish.png';
 // Featured: about 60% of the 1100px column on desktop; otherwise half of it.
 const sizes = featured ? '(min-width: 900px) 660px, calc(100vw - 32px)' : '(min-width: 900px) 530px, calc(100vw - 32px)';
-const terms = owned ? '' : isPurchasable(game) ? `${game.demo ?? 'First chapter free'}, no sign-up. Full game ${game.price}, one-time. ` : 'Free demo, full game coming soon. ';
+// Only what differs per game: how big it is and how much plays free ("10 of 100 levels free"). Sign-up, in-game ads
+// and the price are said once for the page (the ticks above the list, the pass card below it) and on each game's own page.
+const terms = owned ? '' : isPurchasable(game) ? `${freeLine(game)} · ` : 'Free demo, full game coming soon · ';
 ---
 <article class:list={['spread', { featured }]} data-game={game.slug} data-slot={position}>
   <a href={play} class="cover" aria-label={`${playLabel}: ${game.title}${fresh ? ' (new this week)' : ''}`} data-click="cover">
@@ -44,7 +46,6 @@ const terms = owned ? '' : isPurchasable(game) ? `${game.demo ?? 'First chapter 
   <div class="caption">
     <h2><a class="title" href={play} data-click="title">{game.title}</a></h2>
     <p class="tagline">{game.tagline}</p>
-    <div class="numbers"><GameStats game={game} owned={owned} large={featured} compact /></div>
     {featured && game.description[0] && <p class="blurb">{game.description[0]}</p>}
     <a class="btn btn-ink play" href={play} data-click="play">{playLabel}</a>
     <p class="terms">{terms}<a href={`/games/${game.slug}`} data-click="about">About the game</a></p>
@@ -111,7 +112,6 @@ const terms = owned ? '' : isPurchasable(game) ? `${game.demo ?? 'First chapter 
   }
   .title { color: var(--blue-ink); text-decoration: none; text-shadow: 0 0 10px var(--paper), 0 0 4px var(--paper); }
   .tagline { grid-column: 1; margin: 4px 0 0; font-family: var(--font-hand); font-size: 1.5rem; line-height: 1.2; }
-  .numbers { grid-column: 1 / -1; }
   .blurb { grid-column: 1 / -1; margin: 14px 0 0; max-width: 46ch; }
   .play { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 1.6rem; min-height: 52px; padding-inline: 26px; }
   .terms { grid-column: 1 / -1; margin: 14px 0 0; color: var(--ink-soft); font-size: 0.9rem; }
