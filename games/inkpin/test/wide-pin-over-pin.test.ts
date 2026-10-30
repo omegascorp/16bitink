@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PIN_OVER_PIN } from '../src/level/pinOverPin';
+import type { Stop } from '../src/logic/level';
+import { STEPS_PER_SECOND } from '../src/logic/particles';
 import { World } from '../src/logic/world';
 import { play } from './solver';
 
@@ -10,63 +12,76 @@ const outcome = (order: readonly string[]): string => {
   return r.status.state === 'lost' ? r.status.cause : r.status.state;
 };
 
-/** Plays an order like the solver's eager bot, noting what the crates and guards went through. */
-const playEvents = (order: readonly string[]): { world: World; events: Set<string> } => {
+/**
+ * Plays the hint step for step the way the bot does (test/solver.ts's play),
+ * and also reports how the guards went and whether the crate burnt.
+ */
+function watchSolution(): { won: boolean; seconds: number; ends: string[]; crateBurnt: boolean; coins: number } {
   const w = new World(PIN_OVER_PIN);
-  const events = new Set<string>();
+  let crateBurnt = false;
   const run = (steps: number): void => {
     for (let s = 0; s < steps && !w.finished; s++) {
       w.step();
-      for (const e of w.events) events.add(e.type);
+      if (w.events.some((e) => e.type === 'crateBurnt')) crateBurnt = true;
       if (s > 30 && w.settled && w.nibOrder.kind === 'stay') break;
     }
   };
-  for (const id of order) {
-    w.pull(id);
-    run(960);
-    for (const s of PIN_OVER_PIN.stops ?? []) {
-      w.command({ kind: 'goto', x: s.x });
-      run(960);
+  const stops = PIN_OVER_PIN.stops ?? [];
+  const visit = (list: readonly Stop[], steps: number): void => {
+    for (const s of list) {
+      if (w.finished) return;
+      w.command(s.y === undefined ? { kind: 'goto', x: s.x } : { kind: 'goto', x: s.x, y: s.y });
+      run(steps);
     }
+  };
+  for (const id of PIN_OVER_PIN.solution) {
+    w.pull(id);
+    run(STEPS_PER_SECOND * 8);
+    visit(stops, STEPS_PER_SECOND * 8);
   }
-  return { world: w, events };
-};
+  const back = [...stops].reverse();
+  visit([...back, ...stops, ...back, ...stops], (STEPS_PER_SECOND * 25) / 4);
+  w.leave();
+  return { won: w.status.state === 'won', seconds: w.steps / STEPS_PER_SECOND, ends: w.blots.map((b) => b.gone ?? 'alive'), crateBurnt, coins: w.coinsCollected };
+}
 
-describe('Pin Over Pin, four rooms wide', () => {
-  it('is won by the hint’s order, and takes the bot at least a minute', () => {
-    const r = play(PIN_OVER_PIN, PIN_OVER_PIN.solution);
-    expect(r.status.state).toBe('won');
-    expect(r.steps / 120).toBeGreaterThanOrEqual(60);
+describe('Pin Over Pin, wide', () => {
+  it('is won by its hint in a minute or more: the boar washed, the porcupine scorched, the crate burnt', () => {
+    const r = watchSolution();
+    expect(r.won).toBe(true);
+    expect(r.seconds).toBeGreaterThanOrEqual(60);
+    expect(r.ends).toEqual(['washed', 'scorched']);
+    expect(r.crateBurnt).toBe(true);
+    expect(r.coins).toBeGreaterThanOrEqual(PIN_OVER_PIN.coinsNeeded);
   });
 
-  it('drops the first crate on the porcupine as a bridge, and burns the second away with the lava', () => {
-    const { world, events } = playEvents(PIN_OVER_PIN.solution);
-    expect(world.blots[0]!.gone).toBe('stomped');
-    expect(events.has('crateBurnt')).toBe(true);
-    expect(world.boulders[0]!.gone).toBe(false);
-    expect(world.boulders[1]!.gone).toBe(true);
-    expect(world.chestTaken).toBe(true);
+  it('keeps to the grain budget', () => {
+    expect(PIN_OVER_PIN.fills.reduce((n, f) => n + f.count, 0)).toBeLessThanOrEqual(700);
   });
 
-  it('walks Nib into the porcupine’s pit if the door opens before the crate drops', () => {
-    expect(['pricked', 'inked']).toContain(outcome(['N', 'B', 'C', 'J2', 'W2', 'G1', 'C3', 'R3', 'C4', 'L4', 'G3']));
+  it('jams pins behind pins in the next room', () => {
+    // The water's pin runs into the lava tank's side; the porcupine's gate into the gold shelf.
+    const w = new World(PIN_OVER_PIN);
+    expect(w.blockedBy(PIN_OVER_PIN.pins.find((p) => p.id === 'W')!)).toBe('P');
+    expect(w.blockedBy(PIN_OVER_PIN.pins.find((p) => p.id === 'E')!)).toBe('G');
+    expect(outcome(['W'])).toBe('blocked');
+    expect(outcome(['E'])).toBe('blocked');
   });
 
-  it('lets the boar out onto Nib if the gate opens before the cell', () => {
-    expect(outcome(['B', 'N', 'C', 'G1', 'J2', 'W2', 'C3', 'R3', 'C4', 'L4', 'G3'])).toBe('inked');
-  });
-
-  it('drops the gold into the drain if the ramp goes first', () => {
-    expect(outcome(['B', 'N', 'C', 'J2', 'W2', 'G1', 'R3', 'C3', 'C4', 'L4', 'G3'])).toBe('drained');
-  });
-
-  it('pours the lava onto Nib if the last gate opens before the barricade burns', () => {
-    expect(outcome(['B', 'N', 'C', 'J2', 'W2', 'G1', 'C3', 'R3', 'C4', 'G3', 'L4'])).toBe('burnt');
-  });
-
-  it('keeps each pin behind the one in its way', () => {
-    expect(outcome(['B', 'N', 'C', 'J2', 'W2', 'G1', 'C3', 'C4'])).toBe('blocked');
-    expect(outcome(['B', 'N', 'C', 'J2', 'W2', 'G1', 'C3', 'R3', 'L4'])).toBe('blocked');
-    expect(outcome(['C'])).toBe('blocked');
+  it.each([
+    // The tempting lava before the drain's lid: it pools against the porcupine's gate, and Nib walks down into it.
+    [['P', 'W', 'K', 'N', 'G', 'L', 'S', 'E'], 'burnt'],
+    // The gold dropped by the gate before the lid: the pooled lava seeps under the gate onto it.
+    [['G', 'P', 'W', 'S', 'K', 'N', 'L', 'E'], 'melted'],
+    // The gate lifted with the lava pooled against it: it runs out over the gold.
+    [['P', 'G', 'E', 'S', 'W', 'K', 'N', 'L'], 'melted'],
+    // The cell opened before the water: the boar comes out to Nib's gate, and the water runs off down the drain.
+    [['S', 'P', 'K', 'W', 'N', 'G', 'L', 'E'], 'inked'],
+    // Nib's gate, then the cell, before the water: the boar comes out at Nib.
+    [['N', 'S', 'P', 'K', 'W', 'G', 'L', 'E'], 'inked'],
+    // The barricade's lava last: Nib is waiting at the crate, under the chute.
+    [['S', 'P', 'W', 'K', 'N', 'G', 'E', 'L'], 'burnt'],
+  ])('%j loses: %s', (order, cause) => {
+    expect(outcome(order)).toBe(cause);
   });
 }, 120_000);

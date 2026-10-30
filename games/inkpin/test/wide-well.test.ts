@@ -2,21 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { WELL } from '../src/level/well';
 import { LAVA, STEPS_PER_SECOND, STONE } from '../src/logic/particles';
 import { World } from '../src/logic/world';
+import { playNoting } from './audit';
 import { play } from './solver';
 
-/** How a pull order ends: 'won', the loss cause, 'playing' (stuck), or 'blocked'. */
-const outcome = (order: readonly string[], patient = false): string => {
-  const r = play(WELL, order, patient);
-  if (!r.possible) return 'blocked';
-  return r.status.state === 'lost' ? r.status.cause : r.status.state;
-};
-
-/** Pulls the pins in order, letting each settle, with Nib kept in its room: the world after. */
+/** Pulls the pins in order, letting each settle (the drop takes a while), with Nib kept in his corner: the world after. */
 const pullAll = (order: readonly string[]): World => {
   const w = new World(WELL);
   for (const id of order) {
     w.pull(id);
-    for (let s = 0; s < 1500; s++) w.step();
+    for (let s = 0; s < 4000; s++) w.step();
   }
   return w;
 };
@@ -26,6 +20,9 @@ const FIRST = 0;
 const WAY_UP = 1;
 const GOLD = 2;
 const TOP = 3;
+
+/** Nib climbs up into the porcupine: it pricks him, or he lands on its spikes. */
+const PORCUPINE = ['inked', 'pricked'];
 
 describe('The Well of Vines, wide', () => {
   it('is won by its hint, and takes the bot at least a minute', () => {
@@ -38,7 +35,7 @@ describe('The Well of Vines, wide', () => {
     expect(WELL.fills.reduce((n, f) => n + f.count, 0)).toBeLessThanOrEqual(700);
   });
 
-  // The signature: one tank grows all four seeds, and the cup sets the lava to stone first.
+  // The signature: one tank grows all four seeds and washes the porcupine, and the cup sets the lava to stone first.
   it('grows every seed from the one tank, and the lava sets to stone', () => {
     const w = pullAll(WELL.solution);
     expect(w.vines.map((v) => v.grown)).toEqual([1, 1, 1, 1]);
@@ -48,28 +45,46 @@ describe('The Well of Vines, wide', () => {
     expect(w.blots[0]!.gone).toBe('washed');
   });
 
-  it('keeps the tank shut until the lava is let go', () => {
-    expect(outcome(['W', 'K', 'L', 'D', 'N'])).toBe('blocked');
+  // The taps in either order, the gold any time, the cistern before or after the tank.
+  it.each([[['K', 'L', 'X', 'W', 'H', 'D', 'B']], [['B', 'K', 'L', 'H', 'W', 'X', 'D']]])('is won by %j too', (order) => {
+    expect(play(WELL, order).status.state).toBe('won');
   });
 
-  // The lava before its cup: it pours down the shaft and burns the top seed; Nib can't reach the chest.
-  it('burns the top seed when the lava goes first', () => {
-    expect(pullAll(['L']).vines[TOP]!.burnt).toBe(true);
-    expect(outcome(['L', 'K', 'W', 'D', 'N'])).not.toBe('won');
+  // The tempting tank, with L still in: it all goes down the drop to the first vine, and the porcupine is dry.
+  it('sends the whole tank down the drop when L is still in', () => {
+    const w = pullAll(['B', 'W']);
+    expect(w.vines[FIRST]!.grown).toBe(1);
+    expect(w.vines[TOP]!.grown).toBe(0);
+    expect(w.blots[0]!.gone).toBeNull();
   });
 
-  // The hatch before the water: it all runs through, and the basin's seeds stay seeds.
-  it('runs the water straight through an open hatch', () => {
-    const w = pullAll(['K', 'L', 'D', 'W']);
+  // Amounts: the side tap lets out only the top of the tank, too little to fill the sump and spill over onto the porcupine.
+  it("doesn't wash the porcupine with the side tap's share alone", () => {
+    const w = pullAll(['B', 'K', 'L', 'X', 'H']);
+    expect(w.vines[TOP]!.grown).toBe(1);
     expect(w.vines[WAY_UP]!.grown).toBe(0);
     expect(w.vines[GOLD]!.grown).toBe(0);
-    expect(outcome(['K', 'L', 'D', 'W', 'N'])).toBe('playing');
+    expect(w.blots[0]!.gone).toBeNull();
   });
 
-  // Nib's door before the hatch: the porcupine is still in its dry pit, and the first seed hasn't grown.
-  it('sends Nib into the porcupine before the basin comes down', () => {
-    const w = pullAll(['K', 'L', 'W']);
-    expect(w.vines[FIRST]!.grown).toBe(0);
-    expect(['pricked', 'inked']).toContain(outcome(['K', 'L', 'W', 'N', 'D']));
+  // The lava before its cup: it burns the top seed and melts the coins by it.
+  it('burns the top seed when the lava goes first', () => {
+    const w = pullAll(['L']);
+    expect(w.vines[TOP]!.burnt).toBe(true);
   });
-}, 300_000);
+
+  // Each tempting wrong order, the pull it goes wrong on, and how it ends (as the audit plays it).
+  it.each([
+    ['the big tank first: down the drop', ['W', 'K', 'L', 'X', 'H', 'D', 'B'], 'W', PORCUPINE],
+    ['the gold, then the tank: down the drop', ['B', 'W', 'K', 'L', 'X', 'H', 'D'], 'W', PORCUPINE],
+    ['the side tap before L: down the drop', ['B', 'K', 'X', 'L', 'W', 'H', 'D'], 'X', PORCUPINE],
+    ['the lava before its cup', ['L', 'K', 'W', 'X', 'H', 'D', 'B'], 'L', ['melted']],
+    ['the hatch open under an open cistern: straight through', ['B', 'K', 'L', 'H', 'D', 'W', 'X'], 'W', PORCUPINE],
+    ['the hatch before the cistern: straight through', ['B', 'K', 'L', 'W', 'X', 'D', 'H'], 'H', PORCUPINE],
+    ["the side tap's share alone, then the hatch", ['B', 'K', 'L', 'X', 'H', 'D', 'W'], 'D', PORCUPINE],
+  ])('%s: %j', (_name, order, at, causes) => {
+    const e = playNoting(WELL, order);
+    expect(e.at).toBe(at);
+    expect(causes).toContain(e.end);
+  });
+}, 600_000);

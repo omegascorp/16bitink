@@ -39,15 +39,102 @@ Every level is 2–3 screens wide or two screens tall, with 3–5 puzzle stages 
 | # | Name | Goal | Signature | What happens |
 |---|---|---|---|---|
 | 1 | The Door | Treasure | The first seed | Tutorial, can't be lost: the door, gold rain from a hopper, a seed watered into the vine up a wall too tall to climb, and a deep door to the chest |
-| 2 | Gold Rush | Loot | Gold routing, the first lava | Ramps before hoppers, a trough of pins that lock each other, a trapdoor to leave shut until the gold is picked up, and a lava pit to cool to stone before the gold drops on it |
-| 3 | The Rain Cistern | Treasure | The first crate | The boulder plugs the cistern's drain and the rain floats Nib up; a sluice fills a narrow pit (an overflow holds the water at one height) and its crate floats up as the step to a ledge; a hopper over a ramp |
-| 4 | The Guard | Treasure | Three ways past a guard | Lava burns the first boar and water cools it to stone (water first freezes the lava in its tank); water washes the second; a crate drops on a porcupine and stays as the step out of its pit |
-| 5 | The Gold Vault | Loot | Lava | A moat to bridge with stone before the gold comes, a tank of lava under water that burns a porcupine, a boulder plug, and the vault: water must grow the seed to the chest and wall off the lava before the lava comes, or it burns the seed |
-| 6 | Pin Over Pin | Treasure | Pin order, crate barricades | A crate dropped on a porcupine fills its pit as a bridge; a boar's cell door before its water; gold before its ramp; a crate wedged in the way that a trickle of lava burns away, gate shut until it's gone |
-| 7 | The Well of Vines | Treasure | Seeds | Two screens tall: one tank waters four seeds on the way down the well; cap the lava over the top seed with stone first, and open the hatch only once the basin seeds have drunk |
-| 8 | The Flooded Stair | Loot | Crate rafts | One flood down the stair: it carries a crate into a slot as a bridge, floats another up a well as the step to a ledge, and a third crate drops on a porcupine |
-| 9 | Torches Out | Treasure | Lava as light | Lights out: glowing lava cooled into a step, a seed grown in the dark up to a shelf, and lava poured down a shaft onto a porcupine, then cooled with the water above it |
-| 10 | The Idol Hall | Boss | The finale | A crate lowered on draining water as a bridge, a lava moat turned to stone before the gold, a seed grown up to the boss hall; then the Great Boar: both tanks into the cistern over it, then open it, and only the whole flood washes it away |
+| 2 | Gold Rush | Loot | Gold routing, the first lava | A ramp to pull before its hopper, a trough of pins that lock each other (curb, then trough, then hopper), a trapdoor to leave shut until its gold is picked up (a vine leads back up the shaft), and a lava pit to cool to stone before the last hopper's gold drops on it |
+| 3 | The Rain Cistern | Treasure | The first crate, one tank of rain | The rain does every job: the boulder rolls out to plug the drain before the rain floats Nib (and the gold) out of the cistern; the sluice then washes away the porcupine in its tunnel (open it with Nib still down there and it walks in); drop the crate into the pit before Nib goes down, and the water floats it up as the step to the ledge; the overflow grows the vine to the chest |
+| 4 | The Guard | Treasure | Three ways past a guard | The big water tank over the first boar is the trap: lava first burns the boar, then the water cools it to stone and waits in the hall; the dam sends it on to wash the second boar, and only then Nib's gate (pinned shut by the lava's pin) opens; a crate drops on a porcupine and stays as the step out of its pit |
+| 5 | The Gold Vault | Loot | Lava with two jobs, the pen floor | A boulder over the spot where Nib waits rolls into the drain dip before the gold pours; a porcupine's pen floor drops it into a lava pit, and the pit's door sends that lava down the chute to the vault, so water the hoard and the seed first or it melts the gold; Nib follows the lava down |
+| 6 | Pin Over Pin | Treasure | Pins that block across rooms | Each pin is jammed by one in the next room: the cell's water by the lava tank hanging past the drop, the porcupine's gate by the gold shelf in the chest's room. Lift the drain's lid before the lava (or it pools at the gate, seeps onto the gold and burns Nib), wash the boar in its cell before opening it, drop the gold before the gate, and burn the crate barricade with its lava trickle before Nib gets there |
+| 7 | The Well of Vines | Treasure | Seeds, one tank | Two screens tall: cap the lava with its cup, then pull the long pin that holds it, since that same pin tips both of the tank's taps down a drop to the first vine (and Nib climbs into a dry porcupine). Then let the cistern into the sump to wash the porcupine and water the seeds, and only then open the hatch to the first vine |
+| 8 | The Flooded Stair | Loot | Crate rafts, the boulder run | One flood down the stair wedges a crate in a slot as the bridge and floats another up a well as the step; a boulder runs down its track, a shaft and a trapdoor onto a porcupine, so drop it before Nib waits under it; the lava tank over the porcupine is a trap that melts the gold |
+| 9 | Torches Out | Treasure | Lava as light, the pen floor | Lights out: drop the porcupine from its pen into the glowing sump (after letting its gold out), then cool the sump to stone and drop into the dark; past the gate, water the gold pit before its lava lamp, which washes its porcupine and turns the lamp into a stone step to the chest; a seed grown by a lava bowl's glow |
+| 10 | The Idol Hall | Boss | Save the water | The great tank over the lava moat is the only flood: its side door sends it down the aqueduct to the Great Boar's cistern, and only the well's last water goes on the moat and the seed. The floor pin first spends it all and the boar wins. The moat's gold after the stone, a crate dropped into the tunnel's slot as a bridge, then the cistern opened on the boar all at once |
+
+### Round 3: puzzle depth (Oct 30, 2026)
+
+**What the review found.** The levels are long, but each stage is a 1–2 pin puzzle, and most of them are the same one: deal with the danger, then open Nib's gate. Once a player learns "gate pin last", most stages solve themselves. The stages don't affect each other, so a 90-second level is 3–5 small puzzles in a row. Four tricks are each used in 3–4 levels: the stacked lava-then-water tank over a guard (4, 5, 9), a crate dropped on a porcupine (4, 6, 8), a lava moat cooled to stone before the gold (2, 5, 9, 10) and a ramp before the hopper (2, 3, 6). The difficulty runs backwards: levels 2, 5 and 6 have 10–12 pins, then the Remix (8) has 3 and Lights out (9) has 4.
+
+**The audit** (`AUDIT=all pnpm test audit`, test/audit.ts) plays every pull order of a level with up to 5 pins, or 60 sampled orders above that, like the solver's eager player. It reports the win share and the **lessons**: each loss is counted as "the pin pulled just before it" plus its cause. Few lessons, or one lesson behind most losses, means the level teaches one thing.
+
+| Level | Pins | Wins | Lessons | Biggest lesson | Notes |
+|---|---|---|---|---|---|
+| 1 The Door | 4 | 100% | 0 | — | The tutorial, can't be lost (on purpose) |
+| 2 Gold Rush | 10 | 2% | 7 | 32% | Good spread, but harsh for level 2 |
+| 3 The Rain Cistern | 5 | 8% | 2 | 67% | 32% of orders end stuck (nothing happens) |
+| 4 The Guard | 6 | 7% | 5 | 78% | Most losses: gate G opened too early |
+| 5 The Gold Vault | 12 | 2% | 11 | 15% | Hard and varied, but nearly every loss is "burnt" |
+| 6 Pin Over Pin | 11 | 8% | 4 | 55% | Most losses: Nib's door onto the porcupine pit |
+| 7 The Well of Vines | 5 | 1% | 2 | 92% | Nearly every loss: Nib's door too early; 21% stuck |
+| 8 The Flooded Stair | 3 | 67% | 2 | 50% | Pull at random and you usually win |
+| 9 Torches Out | 4 | 4% | 5 | 30% | Few pins; its trick repeats levels 4 and 5 |
+| 10 The Idol Hall | 9 | 7% | 4 | 74% | Most losses: the gold melts; 35% stuck |
+
+(Baseline on Oct 30, 2026, before round 3. Win share is of the orders whose pins could all come out.)
+
+**After round 3** (Oct 31, 2026): every level meets the targets below.
+
+| Level | Pins | Wins | Lessons | Biggest lesson | Stuck |
+|---|---|---|---|---|---|
+| 2 Gold Rush | 9 | 5% | 6 | 43% | 0% |
+| 3 The Rain Cistern | 4 | 4% | 5 | 48% | 0% |
+| 4 The Guard | 5 | 7% | 6 | 36% | 0% |
+| 5 The Gold Vault | 6 | 2% | 5 | 33% | 2% |
+| 6 Pin Over Pin | 8 | 8% | 6 | 27% | 0% |
+| 7 The Well of Vines | 7 | 3% | 7 | 31% | 0% |
+| 8 The Flooded Stair | 8 | 10% | 10 | 35% | 0% |
+| 9 Torches Out | 7 | 5% | 8 | 33% | 0% |
+| 10 The Idol Hall | 6 | 5% | 4 | 32% | 0% |
+
+The audit's player is eager: after every pull it walks Nib on along the level, so it loses more often than a patient player. Low win shares on levels 2–3 mostly mean "don't walk under the boulder yet", not that the order is hard to find. Playtest whether levels 3, 5 and 7 feel too hard.
+
+**Known follow-ups from round 3**
+- Engine: sinking stone can push water grains past a pin (The Guard works around it by sitting its water tank right on the lava); a vine that finishes growing after Nib reaches its foot isn't climbed by a tap until tapped again; water creeps on gentle slopes, so channels need about 12°; guards never dry off, so stray drops slowly wash one.
+- The Idol Hall: opening the cistern within about 2.5 s of the flood reaching it lets the boar live (a timing loss, though the filling is in plain view).
+- The Flooded Stair has a pin that is never pulled in a winning order (the lava tank), a first for the game.
+- Art: the new aqueducts, chutes, baffles and cisterns are drawn as plain stone bars; they need their own look so the routes read at a glance.
+
+**Rules for round 3**
+
+1. **Stages depend on each other** (level 3 on). At least one link in every level: one supply needed in two places, a later stage's pour that passes through an earlier room, or a pin in one room that blocks a pin in another.
+2. **At most one "Nib's gate" pin per level** (a pin whose only job is to hold Nib back). Where Nib waits, or what he stands on, does that job instead.
+3. **Each trick in at most two levels.** Seeds are Nib's ground in this ruin and can appear more often, but each time with a twist (shared water, lava nearby, in the dark).
+4. **A tempting wrong pin** from level 4 on: the most obvious pull (the big tank over the danger, the pin nearest Nib) is a trap.
+5. **Every wrong order ends in a funny fail,** never a silent dead end where nothing happens.
+6. **Targets** (from the audit): win share at most 35% on levels 2–3 and at most 15% from level 4; at least 3 lessons on levels 2–3 and at least 4 from level 4; no lesson behind more than half the losses; at most 10% of orders stuck.
+7. **Kept from round 2:** 2–3 screens wide or two tall, 3–5 stages, 60–90 s, at most ~700 grains, every level can be finished with tap-to-go, washing a guard at most once per level, the boulder-in-a-drain plug only in levels 3, 5 and 10.
+
+**Tricks and where they live**
+
+| Trick | Levels |
+|---|---|
+| Stacked tank over a guard: lava first, then the water cools it | 4 |
+| A crate dropped on a porcupine fills its pit | 4 |
+| A lava moat cooled to stone before the gold | 2, 10 |
+| A ramp before the hopper | 2 |
+| A crate floats up as a step | 3, 8 |
+| A crate settles in a slot as a bridge | 8, 10 |
+| A boulder plugs a drain | 3, 5, 10 |
+| Lava burns a crate barricade | 6 |
+| **New: the pen floor.** A guard paces a pin-floored pen; pull the floor and it drops into lava, deep water or a sealed pit | 5, 9 |
+| **New: one source, two jobs.** A ramp or a blocking pin decides where a pour goes, and one tank is just enough for both jobs if they come in the right order | 3, 7, 10 |
+| **New: the boulder run.** A boulder rolls along floors you open for it and squashes a guard at the end, and Nib stays out of its way | 8 |
+| **New: pins that block across rooms.** A pin in a late room blocks one in an early room, so the order spans the whole level | 6 |
+| **New: save it for later.** Spending a tank early leaves too little for the end | 10 |
+| **New: read it, then cool it.** Lava is the only light, so cooling it darkens the room you still have to cross | 9 |
+
+**The plan, level by level**
+
+| # | Level | Change |
+|---|---|---|
+| 1 | The Door | Unchanged: the tutorial can't be lost |
+| 2 | Gold Rush | Light: hit the targets, keep its tricks (ramps, the trough, the trapdoor, the first lava) |
+| 3 | The Rain Cistern | Fix the dead end (an early sluice now ends in a fail); replace the ramp-and-hopper stage; make the rain's second job matter |
+| 4 | The Guard | One gate instead of two; tie the stages together (the second boar's water is also what the first stage needs) |
+| 5 | The Gold Vault | Replace the moat and the stacked tank with the pen floor and lava with two jobs; keep the boulder plug and the vault |
+| 6 | Pin Over Pin | Crossed pins across the whole level; drop the crate-on-porcupine and the ramp; keep the lava-burnt barricade |
+| 7 | The Well of Vines | One tank for four seeds, with just enough water, a way to waste it and a tempting first pull; 7+ pins |
+| 8 | The Flooded Stair | Rebuild as the real remix: the flood carries crates (step, bridge), a boulder run, lava; 8+ pins |
+| 9 | Torches Out | Rebuild around the dark: read the room, then cool the lava that lights it; the pen floor; a seed in the dark; 7+ pins |
+| 10 | The Idol Hall | Save the water: the boss needs every drop, so the approach is solved without spending it (or by routing it on to the boss) |
 
 ## 2. The Volcano Shrine
 

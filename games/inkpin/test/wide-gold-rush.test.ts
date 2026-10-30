@@ -41,17 +41,35 @@ describe('Gold Rush, wide', () => {
 
   it.each([
     // The hall: the hopper before its ramp pours the gold down the chute.
-    [['A', 'B', 'G', 'C', 'R', 'H', 'T', 'W', 'F', 'K'], 'drained'],
+    [['A', 'B', 'C', 'R', 'H', 'T', 'W', 'F', 'K'], 'drained'],
     // The trough: open the curb with the gold on the trough and it runs into the drain.
-    [['C', 'H', 'R', 'B', 'A', 'G', 'T', 'W', 'F', 'K'], 'drained'],
+    [['C', 'H', 'R', 'B', 'A', 'T', 'W', 'F', 'K'], 'drained'],
+    // The trough's hopper after the curb but before the trough: the gold slides straight into the drain.
+    [['B', 'A', 'C', 'H', 'R', 'T', 'W', 'F', 'K'], 'drained'],
     // The trapdoor before its gold: the gold falls down the shaft into the grate.
-    [['F', 'T', 'B', 'A', 'G', 'C', 'R', 'H', 'W', 'K'], 'drained'],
+    [['F', 'T', 'B', 'A', 'C', 'R', 'H', 'W', 'K'], 'drained'],
     // The trapdoor before the water: Nib drops down and walks into the lava pit.
-    [['B', 'A', 'G', 'C', 'R', 'H', 'T', 'F', 'W', 'K'], 'burnt'],
+    [['B', 'A', 'C', 'R', 'H', 'T', 'F', 'W', 'K'], 'burnt'],
+    // The same, with the trapdoor opened before Nib could get to it: the curb lets him through.
+    [['B', 'A', 'F', 'C', 'R', 'H', 'T', 'W', 'K'], 'burnt'],
     // The last hopper before the water: its gold falls into the lava and melts.
-    [['B', 'A', 'G', 'C', 'R', 'H', 'T', 'K', 'W', 'F'], 'melted'],
+    [['B', 'A', 'C', 'R', 'H', 'T', 'K', 'W', 'F'], 'melted'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome(order)).toBe(cause);
+  });
+
+  it.each([
+    // The water first, before anything else, and the trapdoor's gold before the hall's.
+    [['W', 'B', 'A', 'C', 'R', 'H', 'T', 'F', 'K']],
+    [['T', 'B', 'A', 'C', 'R', 'H', 'W', 'F', 'K']],
+    // Down the trapdoor before the hall's and the trough's gold: Nib climbs the shaft's vine back up for it.
+    [['C', 'T', 'B', 'R', 'W', 'K', 'A', 'F', 'H']],
+  ])('%j wins too', (order) => {
+    expect(outcome(order)).toBe('won');
+  });
+
+  it('stays within the grain budget', () => {
+    expect(GOLD_RUSH.fills.reduce((n, f) => n + f.count, 0)).toBeLessThanOrEqual(700);
   });
 
   it('keeps the trough in until the curb is out', () => {

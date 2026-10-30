@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GUARD } from '../src/level/guard';
 import type { Stop } from '../src/logic/level';
-import { STEPS_PER_SECOND, STONE } from '../src/logic/particles';
+import { LAVA, STEPS_PER_SECOND, STONE } from '../src/logic/particles';
 import { World } from '../src/logic/world';
 import { play } from './solver';
 
@@ -36,7 +36,7 @@ function watchSolution(): { won: boolean; seconds: number; ends: string[]; stone
   for (const id of GUARD.solution) {
     w.pull(id);
     run(STEPS_PER_SECOND * 8);
-    if (id === 'C') stone = w.grains.countOf(STONE);
+    if (id === 'W') stone = w.grains.countOf(STONE);
     visit(stops, STEPS_PER_SECOND * 8);
   }
   const back = [...stops].reverse();
@@ -51,8 +51,8 @@ describe('The Guard, wide', () => {
     expect(r.won).toBe(true);
     expect(r.seconds).toBeGreaterThanOrEqual(60);
     expect(r.ends).toEqual(['scorched', 'washed', 'stomped']);
-    // The water turned the lava pool to stone.
-    expect(r.stone).toBeGreaterThan(60);
+    // The water turned the whole lava pool to stone.
+    expect(r.stone).toBe(GUARD.fills.find((f) => f.kind === LAVA)?.count);
   });
 
   it('keeps to the grain budget', () => {
@@ -60,14 +60,20 @@ describe('The Guard, wide', () => {
   });
 
   it.each([
-    // The water before the lava: the lava sets as stone in its tank, and the first boar lives.
-    [['C', 'L', 'G', 'V', 'K', 'H'], 'inked'],
-    // Nib's gate on the hot pool: Nib walks into the lava.
-    [['L', 'G', 'C', 'V', 'K', 'H'], 'burnt'],
-    // The second gate before the second boar's water.
-    [['L', 'C', 'G', 'H', 'V', 'K'], 'inked'],
+    // The big water over the boar first: the lava sets as stone in its tank, holds the water up, and the boar lives.
+    [['W', 'L', 'D', 'K', 'G'], 'inked'],
+    // Nib's gate on the hot pool: the lava runs into Nib's corner.
+    [['L', 'G', 'W', 'D', 'K'], 'burnt'],
+    // The dam before the water has cooled the pool: the lava runs on and melts the second hall's gold.
+    [['L', 'D', 'W', 'K', 'G'], 'melted'],
+    // The dam open before the lava comes: it runs straight through to the gold.
+    [['D', 'L', 'W', 'K', 'G'], 'melted'],
+    // Nib's gate before the dam: the water runs into Nib's corner, below the stone, and too little reaches the second boar.
+    [['L', 'W', 'K', 'G', 'D'], 'inked'],
     // On to the chest before the crate: Nib drops onto the porcupine.
-    [['L', 'C', 'G', 'V', 'H', 'K'], 'pricked'],
+    [['L', 'W', 'D', 'G', 'K'], 'pricked'],
+    // Nib's gate first: it can't slide up past the lava's pin.
+    [['G', 'L', 'W', 'D', 'K'], 'blocked'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome(order)).toBe(cause);
   });

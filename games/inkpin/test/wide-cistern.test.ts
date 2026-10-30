@@ -14,19 +14,20 @@ const outcome = (order: readonly string[]): string => {
 
 /**
  * Plays the hint step for step the way the bot does (test/solver.ts's play),
- * and also reports how high the crate rose and how far right Nib got. With
- * `tail` off it stops after the pulls, before the bot's last sweeps.
+ * and also reports how high the crate rose from the bottom of its pit, how far right Nib got, whether
+ * the porcupine was washed away and whether the seed grew. With `tail` off
+ * it stops after the pulls, before the bot's last sweeps.
  */
-function watch(level: LevelDef, order = level.solution, tail = true): { won: boolean; seconds: number; crateRose: number; farthest: number } {
+function watch(level: LevelDef, order = level.solution, tail = true): { won: boolean; seconds: number; crateRose: number; farthest: number; washed: boolean; grown: boolean } {
   const w = new World(level);
   const crate = w.boulders.find((b) => b.crate);
-  const startY = crate?.y ?? 0;
-  let topY = startY;
+  // The crate's lowest point: the bottom of the pit, once it has been dropped in.
+  let lowest = crate?.y ?? 0;
   let farthest = w.nib.x;
   const run = (steps: number): void => {
     for (let s = 0; s < steps && !w.finished; s++) {
       w.step();
-      if (crate) topY = Math.min(topY, crate.y);
+      if (crate) lowest = Math.max(lowest, crate.y);
       farthest = Math.max(farthest, w.nib.x);
       if (s > 30 && w.settled && w.nibOrder.kind === 'stay') break;
     }
@@ -49,49 +50,64 @@ function watch(level: LevelDef, order = level.solution, tail = true): { won: boo
     visit([...back, ...stops, ...back, ...stops], (STEPS_PER_SECOND * 25) / 4);
     w.leave();
   }
-  return { won: w.status.state === 'won', seconds: w.steps / STEPS_PER_SECOND, crateRose: startY - topY, farthest };
+  return {
+    won: w.status.state === 'won',
+    seconds: w.steps / STEPS_PER_SECOND,
+    crateRose: lowest - (crate?.y ?? 0),
+    farthest,
+    washed: w.blots.every((b) => b.gone === 'washed'),
+    grown: w.vines.every((v) => v.grown >= 1),
+  };
 }
 
 describe('The Rain Cistern, wide', () => {
-  it('is won by its hint in a minute or more, the crate floating up the pit as a step', () => {
+  it('is won by its hint in a minute or more: the sluice washes the porcupine away, the crate floats up and the overflow grows the vine', () => {
     const r = watch(CISTERN);
     expect(r.won).toBe(true);
     expect(r.seconds).toBeGreaterThanOrEqual(60);
     expect(r.crateRose).toBeGreaterThan(100);
+    expect(r.washed).toBe(true);
+    expect(r.grown).toBe(true);
   });
 
-  it('needs the crate: without it Nib never gets up to the ledge', () => {
-    // The ledge starts past the pit's far wall (x 1204).
-    expect(watch(CISTERN, ['S', 'W', 'X'], false).farthest).toBeGreaterThan(1300);
-    expect(watch({ ...CISTERN, crates: [] }, ['S', 'W', 'X'], false).farthest).toBeLessThan(1204);
+  it('needs the crate: without it Nib never gets up to the ledge past the pit', () => {
+    // The ledge starts past the pit's far wall (x 1034).
+    expect(watch(CISTERN, CISTERN.solution, false).farthest).toBeGreaterThan(1300);
+    expect(watch({ ...CISTERN, crates: [] }, ['S', 'W', 'X'], false).farthest).toBeLessThan(1034);
   });
 
-  it('floats the crate up as a step while Nib waits in the lock room (the overflow holds the water there)', () => {
+  it('can be played patiently too: Nib waits on the lock room floor, then steps onto the crate as it floats up', () => {
     const w = new World(CISTERN);
     const run = (n: number): void => {
-      for (let s = 0; s < n; s++) w.step();
+      for (let s = 0; s < n && !w.finished; s++) w.step();
     };
-    const go = (x: number): void => {
-      w.command({ kind: 'goto', x });
-      for (let s = 0; s < 3000; s++) {
+    const go = (x: number, y?: number): void => {
+      w.command(y === undefined ? { kind: 'goto', x } : { kind: 'goto', x, y });
+      for (let s = 0; s < 4000 && !w.finished; s++) {
         w.step();
         if (s > 20 && w.nibOrder.kind === 'stay') break;
       }
     };
     w.pull('S');
     run(400);
+    w.pull('C');
+    run(300);
     w.pull('W');
     run(900);
     go(500);
-    go(1000);
+    go(860);
     w.pull('X');
     run(16 * STEPS_PER_SECOND);
     const crate = w.boulders.find((b) => b.crate)!;
-    // Afloat at about the floor's height (it bobs a little), and Nib gets over it onto the ledge.
+    // Afloat at about the lock room floor's height (it bobs a little): a step up from the floor, and on up to the ledge.
     expect(crate.y).toBeGreaterThan(1240);
     expect(crate.y).toBeLessThan(1300);
-    go(1300);
-    expect(w.nib.x).toBeGreaterThan(1290);
+    go(1250);
+    expect(w.nib.x).toBeGreaterThan(1200);
+    go(1634, 1254);
+    go(1760);
+    expect(w.chestTaken).toBe(true);
+    expect(w.goalMet).toBe(true);
   });
 
   it('keeps to the grain budget', () => {
@@ -99,12 +115,16 @@ describe('The Rain Cistern, wide', () => {
   });
 
   it.each([
-    // The rain before the cistern's boulder: the gold runs down its drain.
-    [['W', 'S', 'X', 'R', 'G'], 'drained'],
-    // The sluice before the rain: the water runs out as it comes in, and Nib stays down the cistern.
-    [['S', 'X', 'W', 'R', 'G'], 'playing'],
-    // The hopper before its ramp: the gold slides down to the ramp's drain.
-    [['S', 'W', 'X', 'G', 'R'], 'drained'],
+    // The rain before the boulder: the gold runs down the open drain.
+    [['W', 'S', 'C', 'X'], 'drained'],
+    // The sluice while Nib is still down the cistern: the porcupine walks in.
+    [['S', 'X', 'C', 'W'], 'inked'],
+    [['X', 'S', 'C', 'W'], 'inked'],
+    // Nib waits by the sluice, right under the boulder's niche, and the boulder comes down on him.
+    [['C', 'S', 'W', 'X'], 'crushed'],
+    // The crate dropped once Nib is down in the pit (dry, or swimming in it).
+    [['S', 'W', 'C', 'X'], 'crushed'],
+    [['S', 'W', 'X', 'C'], 'crushed'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome(order)).toBe(cause);
   });

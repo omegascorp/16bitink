@@ -3,137 +3,106 @@ import { COIN, LAVA, WATER } from '../logic/particles';
 import { CH1, PIN_T, T } from './common';
 
 /**
- * Level 5, Loot, the lava level: the gold vault under the Jungle Temple,
- * four rooms down a stair, each a drop below the last.
- * 1. The moat: lava between Nib and the way on, a little water and the gold
- *    over it. Water first makes a stone bridge; gold first melts.
- * 2. The porcupine pit: one tank, water over lava, above the pit. Lava first
- *    burns the porcupine, then the water sets it to stone; water first cools
- *    the lava in the tank and the porcupine lives. Open the gate early and
- *    Nib walks into the pit.
- * 3. The drain: a ramp runs the gold into a drain dip. Drop the boulder in
- *    the dip first, then the gold.
- * 4. The vault: the chest is up on a ledge, and the only way up is a seed in
- *    a basin under it. The gold's pin is stuck behind the lava's, and the
- *    lava pours onto the slope down into the basin. Water first grows the
- *    vine and fills the basin, and the lava sets to stone on the slope, a
- *    wall between it and the vine; lava first runs down into the dry basin
- *    and burns the seed (and Nib, waiting by it).
- * Winning order: W1, C1, L2, W2, G1, B3, G2, C3, W, L, C (W may come earlier,
- * so long as it is before L; R3 can stand in for B3).
+ * Level 5, Loot, the lava level: the gold vault under the Jungle Temple.
+ * One pit of lava does two jobs, and Nib follows it down: it scorches the
+ * porcupine in the pen over it, then runs down the chute into the vault,
+ * where it melts the hoard unless the vault's water got there first.
+ * 1. Nib's hall: the boulder hangs over the spot by the pen's door where
+ *    Nib waits; dropped (B), it rolls down the floor into the drain dip and
+ *    plugs it. The gold's hopper (C) runs down a ramp into that dip: gold
+ *    before the boulder goes down the drain, and a boulder dropped once Nib
+ *    has walked over to the door lands on him.
+ * 2. The pen: a porcupine paces a pen whose floor is a pin (F), over a pit
+ *    of lava; the pen’s door G is the gate in Nib’s way (the tempting
+ *    pull, the door straight ahead). Pull the floor and the porcupine drops into
+ *    the lava. Open the door first and it comes out at Nib; open it with the
+ *    lava still in the pit and Nib walks into it. Let the lava out (D, the
+ *    pit's door) before the floor and the porcupine drops into an empty pit,
+ *    and Nib drops in on top of it.
+ * 3. The vault: the hoard lies in a pit at the foot of the chute, beside the
+ *    step where the seed grows up to the chest's ledge. Water it (W) before
+ *    the lava comes: the lava sets to stone in the water, a wall between it
+ *    and the gold and the vine. Lava first runs into the dry pit and melts
+ *    the hoard.
+ * Nib goes the lava's way: through the pen, the pit and down the chute.
+ * Winning order: B, C, F, W, D, G (B first; C any time before G; W any time
+ * before D).
  */
 export const CELLAR: LevelDef = {
   id: 'cellar',
   chapter: CH1,
   name: 'The Gold Vault',
-  goal: 'Take the chest and pick up 230 coins',
+  goal: 'Take the chest and pick up 170 coins',
   rooms: [
-    // 1. the moat
-    [[40, 470], [620, 470], [620, 760], [510, 760], [510, 820], [290, 820], [290, 760], [40, 760]],
-    // 2. the porcupine pit
-    [[620, 680], [800, 680], [800, 880], [1180, 880], [1180, 1180], [1000, 1180], [1000, 1244], [880, 1244], [880, 1180], [620, 1180]],
-    // 3. the drain
-    [[1180, 1100], [1260, 1100], [1260, 1260], [1720, 1260], [1720, 1600], [1456, 1600], [1456, 1630], [1384, 1630], [1384, 1600], [1180, 1600]],
-    // 4. the vault
-    [[1720, 1050], [2140, 1050], [2140, 1400], [1986, 1400], [1986, 1616], [1850, 1616], [1744, 1580], [1744, 1600], [1720, 1600]],
+    // 1. Nib's hall, with the drain
+    [[40, 420], [1000, 420], [1000, 730], [712, 760], [712, 790], [640, 790], [640, 760], [40, 760]],
+    // 2. the pen, and the lava pit under it
+    [[1000, 570], [1200, 570], [1200, 885], [1000, 815]],
+    // 3. the chute and the vault
+    [[1200, 760], [2140, 760], [2140, 1080], [1880, 1080], [1880, 1250], [1812, 1250], [1812, 1350], [1660, 1350], [1660, 1290], [1600, 1290], [1200, 885]],
   ],
   walls: [
-    // 1. the moat
-    { ax: 40, ay: 470, bx: 620, by: 470, t: T }, // 0 ceiling
-    { ax: 40, ay: 470, bx: 40, by: 760, t: T }, // 1 left wall
-    { ax: 40, ay: 760, bx: 290, by: 760, t: T }, // 2 Nib's floor
-    { ax: 290, ay: 760, bx: 290, by: 820, t: T }, // 3 the moat
-    { ax: 290, ay: 820, bx: 510, by: 820, t: T }, // 4
-    { ax: 510, ay: 820, bx: 510, by: 760, t: T }, // 5
-    { ax: 510, ay: 760, bx: 620, by: 760, t: T }, // 6 floor past the moat
-    { ax: 620, ay: 470, bx: 620, by: 680, t: T }, // 7 over the way down
-    { ax: 290, ay: 470, bx: 290, by: 600, t: T }, // 8 the water tank
-    { ax: 400, ay: 470, bx: 400, by: 600, t: T }, // 9 between water and gold
-    { ax: 510, ay: 470, bx: 510, by: 600, t: T }, // 10 the gold tank
-    // 2. the porcupine pit
-    { ax: 620, ay: 680, bx: 800, by: 680, t: T }, // 11 ceiling over the drop
-    { ax: 800, ay: 680, bx: 800, by: 880, t: T }, // 12
-    { ax: 800, ay: 880, bx: 1180, by: 880, t: T }, // 13 hall ceiling
-    { ax: 1180, ay: 880, bx: 1180, by: 1100, t: T }, // 14 over the way down
-    { ax: 620, ay: 760, bx: 620, by: 1180, t: T }, // 15 left wall
-    { ax: 620, ay: 1180, bx: 880, by: 1180, t: T }, // 16 hall floor, with the porcupine's pit
-    { ax: 880, ay: 1180, bx: 880, by: 1244, t: T }, // 17
-    { ax: 880, ay: 1244, bx: 1000, by: 1244, t: T }, // 18
-    { ax: 1000, ay: 1244, bx: 1000, by: 1180, t: T }, // 19
-    { ax: 1000, ay: 1180, bx: 1180, by: 1180, t: T }, // 20
-    { ax: 880, ay: 880, bx: 880, by: 1010, t: T }, // 21 the tank: water over lava
-    { ax: 1000, ay: 880, bx: 1000, by: 1010, t: T }, // 22
-    // 3. the drain
-    { ax: 1180, ay: 1100, bx: 1260, by: 1100, t: T }, // 23 over the drop
-    { ax: 1260, ay: 1100, bx: 1260, by: 1260, t: T }, // 24
-    { ax: 1260, ay: 1260, bx: 1720, by: 1260, t: T }, // 25 ceiling
-    { ax: 1180, ay: 1180, bx: 1180, by: 1600, t: T }, // 26 left wall
-    { ax: 1180, ay: 1600, bx: 1384, by: 1600, t: T }, // 27 floor, with the drain dip
-    { ax: 1384, ay: 1600, bx: 1384, by: 1630, t: T }, // 28
-    { ax: 1456, ay: 1600, bx: 1456, by: 1630, t: T }, // 29
-    { ax: 1384, ay: 1630, bx: 1412, by: 1630, t: T }, // 30
-    { ax: 1428, ay: 1630, bx: 1456, by: 1630, t: T }, // 31
-    { ax: 1456, ay: 1600, bx: 1744, by: 1600, t: T }, // 32 floor into the vault
-    { ax: 1382, ay: 1260, bx: 1382, by: 1392, t: T }, // 33 the boulder's alcove
-    { ax: 1458, ay: 1260, bx: 1458, by: 1392, t: T }, // 34
-    { ax: 1488, ay: 1260, bx: 1488, by: 1362, t: T }, // 35 the gold's hopper
-    { ax: 1620, ay: 1260, bx: 1620, by: 1362, t: T }, // 36
-    // 4. the vault
-    { ax: 1720, ay: 1050, bx: 1720, by: 1450, t: T }, // 37 over the way in
-    { ax: 1720, ay: 1050, bx: 2140, by: 1050, t: T }, // 38 ceiling
-    { ax: 2140, ay: 1050, bx: 2140, by: 1400, t: T }, // 39 right wall
-    { ax: 1986, ay: 1400, bx: 2140, by: 1400, t: T }, // 40 the chest's ledge
-    { ax: 1986, ay: 1400, bx: 1986, by: 1616, t: T }, // 41 its face
-    { ax: 1850, ay: 1616, bx: 1986, by: 1616, t: T }, // 42 the seed's basin
-    { ax: 1744, ay: 1580, bx: 1850, by: 1616, t: T }, // 43 the floor, down into the basin
-    { ax: 1744, ay: 1600, bx: 1744, by: 1572, t: T }, // 44 a curb that keeps the water in the basin
-    { ax: 1812, ay: 1050, bx: 1812, by: 1250, t: T }, // 45 the lava's tank, over the slope
-    { ax: 1860, ay: 1050, bx: 1860, by: 1250, t: T }, // 46
-    { ax: 1920, ay: 1050, bx: 1920, by: 1212, t: T }, // 47 the water's tank, over the seed
-    { ax: 1980, ay: 1050, bx: 1980, by: 1212, t: T }, // 48
-    { ax: 1996, ay: 1050, bx: 1996, by: 1250, t: T }, // 49 the gold's hopper, over the ledge
-    // A curb that keeps the gold back from the vault, and lips that keep it in the moat.
-    { ax: 1630, ay: 1600, bx: 1630, by: 1570, t: T }, // 50
-    { ax: 290, ay: 726, bx: 290, by: 760, t: T }, // 51
-    { ax: 510, ay: 726, bx: 510, by: 760, t: T }, // 52
+    // 1. Nib's hall
+    { ax: 40, ay: 420, bx: 1000, by: 420, t: T }, // 0 ceiling
+    { ax: 40, ay: 420, bx: 40, by: 760, t: T }, // 1 left wall
+    { ax: 40, ay: 760, bx: 640, by: 760, t: T }, // 2 floor, with the drain dip
+    { ax: 640, ay: 760, bx: 640, by: 790, t: T }, // 3
+    { ax: 640, ay: 790, bx: 668, by: 790, t: T }, // 4
+    { ax: 684, ay: 790, bx: 712, by: 790, t: T }, // 5
+    { ax: 712, ay: 790, bx: 712, by: 760, t: T }, // 6
+    { ax: 712, ay: 760, bx: 1000, by: 730, t: T }, // 7 the floor up to the pen's door
+    { ax: 1000, ay: 420, bx: 1000, by: 632, t: T }, // 8 over the pen's door
+    { ax: 590, ay: 760, bx: 590, by: 730, t: T }, // 9 a curb that keeps the gold by the dip
+    { ax: 930, ay: 420, bx: 930, by: 492, t: T }, // 10 the boulder's alcove, over the pen's door
+    { ax: 744, ay: 420, bx: 744, by: 522, t: T }, // 11 the gold's hopper
+    { ax: 876, ay: 420, bx: 876, by: 522, t: T }, // 12
+    { ax: 868, ay: 538, bx: 740, by: 674, t: T }, // 13 its ramp, down into the dip
+    // 2. the pen and the pit
+    { ax: 1000, ay: 570, bx: 1200, by: 570, t: T }, // 14 the pen's ceiling
+    { ax: 1200, ay: 570, bx: 1200, by: 776, t: T }, // 15 its right wall, down to the pit's door
+    { ax: 1000, ay: 730, bx: 1000, by: 815, t: T }, // 16 the pit's left wall
+    { ax: 1000, ay: 815, bx: 1200, by: 885, t: T }, // 17 its floor, down to its door
+    // 3. the chute and the vault
+    { ax: 1200, ay: 760, bx: 2140, by: 760, t: T }, // 18 ceiling
+    { ax: 2140, ay: 760, bx: 2140, by: 1080, t: T }, // 19 right wall
+    { ax: 1200, ay: 885, bx: 1600, by: 1290, t: T }, // 20 the chute
+    { ax: 1600, ay: 1290, bx: 1660, by: 1290, t: T }, // 21 the foot of the chute
+    { ax: 1880, ay: 1250, bx: 1880, by: 1080, t: T }, // 22 the chest's ledge
+    { ax: 1880, ay: 1080, bx: 2140, by: 1080, t: T }, // 23
+    { ax: 1754, ay: 760, bx: 1754, by: 960, t: T }, // 24 the water's tank, over the seed
+    { ax: 1874, ay: 760, bx: 1874, by: 960, t: T }, // 25
+    { ax: 1660, ay: 1290, bx: 1660, by: 1350, t: T }, // 26 the hoard's pit, beside the chute's foot
+    { ax: 1660, ay: 1350, bx: 1812, by: 1350, t: T }, // 27
+    { ax: 1812, ay: 1350, bx: 1812, by: 1250, t: T }, // 28 the seed's step
+    { ax: 1812, ay: 1250, bx: 1880, by: 1250, t: T }, // 29
   ],
-  bars: [8, 9, 10, 21, 22, 33, 34, 35, 36, 44, 45, 46, 47, 48, 49, 50, 51, 52],
+  bars: [9, 10, 11, 12, 13, 24, 25],
   pins: [
-    { id: 'W1', ax: 274, ay: 608, bx: 406, by: 608, t: PIN_T },
-    { id: 'C1', ax: 530, ay: 608, bx: 396, by: 608, t: PIN_T },
-    { id: 'G1', ax: 598, ay: 780, bx: 598, by: 688, t: PIN_T },
-    { id: 'W2', ax: 862, ay: 930, bx: 1008, by: 930, t: PIN_T },
-    { id: 'L2', ax: 862, ay: 1010, bx: 1008, by: 1010, t: PIN_T },
-    { id: 'G2', ax: 1158, ay: 1200, bx: 1158, by: 1108, t: PIN_T },
-    { id: 'B3', ax: 1362, ay: 1400, bx: 1470, by: 1400, t: PIN_T },
-    { id: 'C3', ax: 1640, ay: 1370, bx: 1480, by: 1370, t: PIN_T },
-    { id: 'R3', ax: 1484, ay: 1514, bx: 1612, by: 1378, t: PIN_T },
-    // The vault: the gold's pin slides out through the lava's.
-    { id: 'W', ax: 1904, ay: 1220, bx: 1988, by: 1220, t: PIN_T },
-    { id: 'L', ax: 1868, ay: 1258, bx: 1804, by: 1258, t: PIN_T },
-    { id: 'C', ax: 1990, ay: 1258, bx: 2152, by: 1258, t: PIN_T },
+    // The boulder hangs over the spot where Nib waits at the pen's door.
+    { id: 'B', ax: 912, ay: 500, bx: 996, by: 500, t: PIN_T },
+    { id: 'C', ax: 724, ay: 530, bx: 884, by: 530, t: PIN_T },
+    // The pen's door, its floor, and the pit's door (it slides down).
+    { id: 'G', ax: 1000, ay: 640, bx: 1000, by: 724, t: PIN_T },
+    { id: 'F', ax: 1220, ay: 730, bx: 992, by: 730, t: PIN_T },
+    { id: 'D', ax: 1200, ay: 893, bx: 1200, by: 776, t: PIN_T },
+    { id: 'W', ax: 1734, ay: 968, bx: 1894, by: 968, t: PIN_T },
   ],
   fills: [
-    { kind: LAVA, x0: 298, x1: 502, y1: 812, count: 70 },
-    { kind: WATER, x0: 298, x1: 392, y1: 600, count: 10 },
-    { kind: COIN, x0: 408, x1: 502, y1: 600, count: 100 },
-    { kind: WATER, x0: 888, x1: 992, y1: 923, count: 10 },
-    { kind: LAVA, x0: 888, x1: 992, y1: 1003, count: 50 },
-    { kind: COIN, x0: 1496, x1: 1612, y1: 1362, count: 110 },
-    { kind: WATER, x0: 1928, x1: 1972, y1: 1212, count: 60 },
-    { kind: LAVA, x0: 1820, x1: 1852, y1: 1250, count: 32 },
-    { kind: COIN, x0: 2004, x1: 2132, y1: 1250, count: 70 },
+    { kind: COIN, x0: 752, x1: 868, y1: 522, count: 110 },
+    { kind: LAVA, x0: 1008, x1: 1192, y1: 806, count: 50 },
+    { kind: WATER, x0: 1762, x1: 1866, y1: 960, count: 160 },
+    { kind: COIN, x0: 1668, x1: 1804, y1: 1342, count: 80 },
   ],
-  boulders: [{ x: 1420, y: 1366 }],
+  boulders: [{ x: 965, y: 466 }],
   // Anything that gets down into the dip is gone, unless the boulder fills it.
-  drains: [{ x0: 1392, x1: 1448, y0: 1606, y1: 1670 }],
+  drains: [{ x0: 648, x1: 704, y0: 766, y1: 830 }],
   nib: { x: 100, y: 728 },
-  blots: [{ x: 940, y: 1214, spiky: true }],
-  vines: [{ x: 1950, top: 1392, bottom: 1608, seed: true }],
-  chest: { x: 2100, y: 1370 },
-  coinsNeeded: 230,
-  solution: ['W1', 'C1', 'L2', 'W2', 'G1', 'B3', 'G2', 'C3', 'W', 'L', 'C'],
-  stops: [{ x: 340 }, { x: 560 }, { x: 1130 }, { x: 1670 }, { x: 1950, y: 1380 }, { x: 2100 }],
-  torches: [{ x: 160, y: 640 }, { x: 700, y: 900 }, { x: 990, y: 1060 }, { x: 1320, y: 1480 }, { x: 1790, y: 1160 }, { x: 1790, y: 1480 }, { x: 2090, y: 1160 }],
-  view: { x: 0, y: 190, w: 2180, h: 1520 },
+  blots: [{ x: 1100, y: 700, spiky: true }],
+  vines: [{ x: 1846, top: 1072, bottom: 1242, seed: true }],
+  chest: { x: 2100, y: 1050 },
+  coinsNeeded: 170,
+  solution: ['B', 'C', 'F', 'W', 'D', 'G'],
+  stops: [{ x: 420 }, { x: 676 }, { x: 960 }, { x: 1720 }, { x: 1846, y: 1060 }, { x: 2100 }],
+  torches: [{ x: 160, y: 560 }, { x: 420, y: 560 }, { x: 1100, y: 640 }, { x: 1500, y: 880 }, { x: 1960, y: 900 }, { x: 2060, y: 900 }],
+  view: { x: 0, y: 330, w: 2180, h: 1060 },
 };

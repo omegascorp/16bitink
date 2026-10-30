@@ -3,135 +3,135 @@ import { COIN, LAVA, WATER } from '../logic/particles';
 import { CH1, PIN_T, T } from './common';
 
 /**
- * Level 6: crossed pins. A pin can't slide out through another pin, so in
- * every room the question is which pin is really free first.
- * 1. The crate bridge: the gold's pin is stuck behind the pin holding a
- *    crate, and Nib's door opens straight away, onto a pit with a porcupine
- *    in it. Drop the crate first: it squashes the porcupine and fills the pit
- *    as a bridge, and frees the gold's pin.
- * 2. The boar's cell: the water's pin is stuck behind the cell door. Open
- *    the cell while Nib's gate is still shut, wash the boar, then the gate.
- *    Gate first, and the boar comes out at Nib.
- * 3. The ramp under the gold's hopper: gold first, and it slides down to
- *    Nib; pull the ramp first and the gold falls into the drain under it.
- * 4. The barricade: a crate is wedged under a low roof in the way to the
- *    chest. The second gold's pin is stuck behind the ramp, and the lava's
- *    pin behind the gold's. A little lava runs down a chute beside the crate,
- *    burns it away and drains into a sump under the floor. Keep the gate shut
- *    till then: open it first and Nib walks up to the crate, under the chute.
- * Winning order: B, N, C, J2, W2, G1, C3, R3, C4, L4, G3 (N may also come
- * after C).
+ * Level 6: pins that block across rooms. Each stage's pin is jammed by a pin
+ * in the next room along (a pin slides out past its ring by its own length,
+ * and a pin still in that path stops it), so the order runs back and forth
+ * across the whole level instead of room by room. The top floor (Nib's
+ * corner and the boar's cell) ends at a drop onto the porcupine's slope,
+ * which runs down to its gate and the chest's room.
+ * 1. The boar's cell: the boar is shut in beside Nib's gate N, under a tank
+ *    of water W. Water first, with the cell door K still shut: it comes down
+ *    through a funnel, pools in the cell and washes the boar. Open the cell
+ *    first and the boar comes out to glare at Nib's gate, and the water runs
+ *    out of the open cell into the drain at its door; open Nib's gate and
+ *    then the cell, and the boar comes out at Nib. But W can't slide out yet:
+ *    it runs into P, the pin that is the far side of the lava tank hanging
+ *    past the top floor's edge.
+ * 2. The lava, the tempting pin (it frees the water and is aimed right at
+ *    the porcupine): P pours the lava down the slope; it scorches the
+ *    porcupine and runs down to the drain under its lid S. With the lid still
+ *    in, it pools against the porcupine's gate E and seeps under it onto the
+ *    gold, and Nib walks down into it. Pull the lid first.
+ * 3. The porcupine's gate can't lift: its pin runs into the pin G of the gold
+ *    shelf in the chest's room. Drop the gold first (it lands just past the
+ *    gate); lift the gate with lava pooled against it, and the lava runs out
+ *    over the gold.
+ * 4. The barricade: a crate wedged under a low roof in the way to the chest.
+ *    A trickle of lava (L) down a chute beside it burns it away and drains
+ *    into a sump under the floor. Pull it while Nib waits at the crate, under
+ *    the chute, and it pours onto him.
+ * Winning order: S, P, W, K, N, G, L, E (S before P, P before W before K, G
+ * before E, L before Nib reaches the crate; N any time).
  */
 export const PIN_OVER_PIN: LevelDef = {
   id: 'pin-over-pin',
   chapter: CH1,
   name: 'Pin Over Pin',
-  goal: 'Take the chest and pick up 190 coins',
-  tip: 'A pin can’t slide out through another pin.',
+  goal: 'Take the chest and pick up 110 coins',
+  tip: 'A pin can’t slide out through another pin, even one in the next room.',
   rooms: [
-    // 1. the porcupine pit, and 2. the boar's cell
-    [[40, 600], [490, 600], [490, 440], [680, 440], [680, 700], [1180, 700], [1180, 1100], [448, 1100], [448, 1160], [372, 1160], [372, 1100], [40, 1100]],
-    // 3. the ramp, and 4. the barricade, with the lava's sump under it
     [
-      [1180, 1000], [1260, 1000], [1260, 1230], [2120, 1230], [2120, 1500], [1888, 1500], [1888, 1530], [1940, 1530], [1940, 1580],
-      [1800, 1580], [1800, 1530], [1840, 1530], [1840, 1500], [1516, 1500], [1516, 1530], [1444, 1530], [1444, 1500], [1180, 1500],
+      [40, 560], [1500, 560], [1500, 1100], [2120, 1100], [2120, 1480], [1888, 1480], [1888, 1510], [1940, 1510], [1940, 1560],
+      [1800, 1560], [1800, 1510], [1840, 1510], [1840, 1480], [1620, 1480], [1536, 1442], [1536, 1480], [1490, 1480], [1490, 1440],
+      [1180, 1330], [1180, 1300], [1040, 1300], [1040, 1000], [40, 1000],
     ],
   ],
   walls: [
-    // 1. the porcupine pit
-    { ax: 40, ay: 600, bx: 40, by: 1100, t: T }, // 0 left wall
-    { ax: 40, ay: 600, bx: 490, by: 600, t: T }, // 1 ceiling
-    { ax: 490, ay: 440, bx: 490, by: 700, t: T }, // 2 the hopper's side
-    { ax: 490, ay: 440, bx: 680, by: 440, t: T }, // 3 hopper ceiling
-    { ax: 680, ay: 440, bx: 680, by: 700, t: T }, // 4 the hopper's right side
-    { ax: 680, ay: 700, bx: 680, by: 990, t: T }, // 5 over Nib's gate into the boar's room
-    { ax: 448, ay: 1100, bx: 1180, by: 1100, t: T }, // 6 floor, right of the pit, on into the boar's room
-    { ax: 448, ay: 1100, bx: 448, by: 1160, t: T }, // 7 the porcupine's pit
-    { ax: 372, ay: 1160, bx: 448, by: 1160, t: T }, // 8
-    { ax: 372, ay: 1100, bx: 372, by: 1160, t: T }, // 9
-    { ax: 40, ay: 1100, bx: 372, by: 1100, t: T }, // 10 floor, left of the pit
-    { ax: 372, ay: 600, bx: 372, by: 700, t: T }, // 11 the boulder's alcove
-    { ax: 448, ay: 600, bx: 448, by: 700, t: T }, // 12
-    { ax: 200, ay: 600, bx: 200, by: 870, t: T }, // 13 over Nib's door
-    // 2. the boar's cell
-    { ax: 680, ay: 700, bx: 1180, by: 700, t: T }, // 14 ceiling
-    { ax: 1180, ay: 700, bx: 1180, by: 1000, t: T }, // 15 over the way down
-    { ax: 920, ay: 700, bx: 920, by: 852, t: T }, // 16 the water tank
-    { ax: 1160, ay: 700, bx: 1160, by: 852, t: T }, // 17
-    { ax: 1150, ay: 1100, bx: 1150, by: 1070, t: T }, // 18 curbs that keep the water in
-    { ax: 740, ay: 1100, bx: 740, by: 1070, t: T }, // 19
-    // 3. the ramp
-    { ax: 1180, ay: 1000, bx: 1260, by: 1000, t: T }, // 20 over the drop
-    { ax: 1260, ay: 1000, bx: 1260, by: 1230, t: T }, // 21
-    { ax: 1260, ay: 1230, bx: 2120, by: 1230, t: T }, // 22 ceiling
-    { ax: 1180, ay: 1100, bx: 1180, by: 1500, t: T }, // 23 left wall
-    { ax: 1180, ay: 1500, bx: 1444, by: 1500, t: T }, // 24 floor, with the drain dip
-    { ax: 1444, ay: 1500, bx: 1444, by: 1530, t: T }, // 25
-    { ax: 1516, ay: 1500, bx: 1516, by: 1530, t: T }, // 26
-    { ax: 1444, ay: 1530, bx: 1472, by: 1530, t: T }, // 27
-    { ax: 1488, ay: 1530, bx: 1516, by: 1530, t: T }, // 28
-    { ax: 1516, ay: 1500, bx: 1840, by: 1500, t: T }, // 29 floor on to the barricade
-    { ax: 1420, ay: 1230, bx: 1420, by: 1340, t: T }, // 30 the gold's hopper
-    { ax: 1540, ay: 1230, bx: 1540, by: 1340, t: T }, // 31
-    { ax: 1664, ay: 1230, bx: 1664, by: 1360, t: T }, // 32 the second hopper
-    { ax: 1744, ay: 1230, bx: 1744, by: 1360, t: T }, // 33
-    // 4. the barricade
-    { ax: 2120, ay: 1230, bx: 2120, by: 1500, t: T }, // 34 right wall
-    { ax: 1888, ay: 1500, bx: 2120, by: 1500, t: T }, // 35 floor past the crate, to the chest
-    { ax: 1840, ay: 1500, bx: 1840, by: 1530, t: T }, // 36 the slot down to the sump
-    { ax: 1888, ay: 1500, bx: 1888, by: 1530, t: T }, // 37
-    { ax: 1800, ay: 1530, bx: 1840, by: 1530, t: T }, // 38 the sump
-    { ax: 1888, ay: 1530, bx: 1940, by: 1530, t: T }, // 39
-    { ax: 1800, ay: 1530, bx: 1800, by: 1580, t: T }, // 40
-    { ax: 1940, ay: 1530, bx: 1940, by: 1580, t: T }, // 41
-    { ax: 1800, ay: 1580, bx: 1940, by: 1580, t: T }, // 42
-    { ax: 1780, ay: 1428, bx: 1832, by: 1428, t: T }, // 43 the low roof over the crate
-    { ax: 1888, ay: 1428, bx: 1960, by: 1428, t: T }, // 44
-    { ax: 1832, ay: 1290, bx: 1832, by: 1428, t: T }, // 45 the lava's chute, beside the crate
-    { ax: 1888, ay: 1290, bx: 1888, by: 1428, t: T }, // 46
+    { ax: 40, ay: 560, bx: 1500, by: 560, t: T }, // 0 ceiling
+    { ax: 40, ay: 560, bx: 40, by: 1000, t: T }, // 1 left wall
+    { ax: 40, ay: 1000, bx: 1100, by: 1000, t: T }, // 2 the top floor, out to its edge
+    { ax: 340, ay: 560, bx: 340, by: 858, t: T }, // 3 over Nib's gate
+    { ax: 460, ay: 560, bx: 460, by: 852, t: T }, // 4 over the cell door
+    { ax: 700, ay: 560, bx: 700, by: 760, t: T }, // 5 the cell's water tank
+    { ax: 940, ay: 560, bx: 940, by: 760, t: T }, // 6
+    { ax: 980, ay: 1000, bx: 980, by: 960, t: T }, // 7 the cell's curb
+    { ax: 700, ay: 778, bx: 806, by: 850, t: T }, // 8 the tank's funnel: the water comes down a little at a time
+    { ax: 940, ay: 778, bx: 834, by: 850, t: T }, // 9
+    // The lava tank hanging past the top floor's edge; its pin is its right side.
+    { ax: 1110, ay: 560, bx: 1110, by: 840, t: T }, // 10
+    { ax: 1110, ay: 840, bx: 1222, by: 840, t: T }, // 11
+    // Down the drop: the ledge Nib lands on, and the porcupine's slope down to the drain.
+    { ax: 1040, ay: 1000, bx: 1040, by: 1300, t: T }, // 12
+    { ax: 1040, ay: 1300, bx: 1180, by: 1300, t: T }, // 13
+    { ax: 1180, ay: 1300, bx: 1180, by: 1330, t: T }, // 14
+    { ax: 1180, ay: 1330, bx: 1490, by: 1440, t: T }, // 15
+    { ax: 1490, ay: 1440, bx: 1490, by: 1480, t: T }, // 16 the drain under the lid
+    { ax: 1490, ay: 1480, bx: 1536, by: 1480, t: T }, // 17
+    { ax: 1536, ay: 1480, bx: 1536, by: 1442, t: T }, // 18
+    { ax: 1166, ay: 1300, bx: 1166, by: 1290, t: T }, // 19 a lip at the ledge's edge
+    { ax: 1560, ay: 1100, bx: 1560, by: 1292, t: T }, // 20 over the porcupine's gate
+    // The chest's room, under its low roof.
+    { ax: 1500, ay: 560, bx: 1500, by: 1100, t: T }, // 21
+    { ax: 1500, ay: 1100, bx: 2120, by: 1100, t: T }, // 22
+    { ax: 2120, ay: 1100, bx: 2120, by: 1480, t: T }, // 23
+    { ax: 1536, ay: 1442, bx: 1620, by: 1480, t: T }, // 24 under the gate, on into the chest's room
+    { ax: 1620, ay: 1480, bx: 1840, by: 1480, t: T }, // 25
+    { ax: 1840, ay: 1480, bx: 1840, by: 1510, t: T }, // 26 the slot down to the sump
+    { ax: 1888, ay: 1480, bx: 1888, by: 1510, t: T }, // 27
+    { ax: 1800, ay: 1510, bx: 1840, by: 1510, t: T }, // 28 the sump
+    { ax: 1888, ay: 1510, bx: 1940, by: 1510, t: T }, // 29
+    { ax: 1800, ay: 1510, bx: 1800, by: 1560, t: T }, // 30
+    { ax: 1940, ay: 1510, bx: 1940, by: 1560, t: T }, // 31
+    { ax: 1800, ay: 1560, bx: 1940, by: 1560, t: T }, // 32
+    { ax: 1888, ay: 1480, bx: 2120, by: 1480, t: T }, // 33 on to the chest
+    { ax: 1780, ay: 1408, bx: 1832, by: 1408, t: T }, // 34 the low roof over the crate
+    { ax: 1888, ay: 1408, bx: 1960, by: 1408, t: T }, // 35
+    { ax: 1832, ay: 1100, bx: 1832, by: 1408, t: T }, // 36 the lava's chute, beside the crate
+    { ax: 1888, ay: 1100, bx: 1888, by: 1408, t: T }, // 37
+    // The gold shelf over the porcupine's gate.
+    { ax: 1580, ay: 1100, bx: 1580, by: 1232, t: T }, // 38
+    { ax: 1690, ay: 1100, bx: 1690, by: 1232, t: T }, // 39
+    { ax: 1760, ay: 1480, bx: 1760, by: 1468, t: T }, // 40 a lip that keeps the gold from the slot
   ],
-  bars: [5, 11, 12, 13, 16, 17, 18, 19, 30, 31, 32, 33, 43, 44, 45, 46],
+  bars: [3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 20, 34, 35, 36, 37, 38, 39, 40],
   pins: [
-    { id: 'N', ax: 200, ay: 878, bx: 200, by: 1094, t: PIN_T },
-    { id: 'B', ax: 350, ay: 700, bx: 458, by: 700, t: PIN_T },
-    { id: 'C', ax: 480, ay: 700, bx: 674, by: 700, t: PIN_T },
-    { id: 'G1', ax: 700, ay: 1120, bx: 700, by: 998, t: PIN_T },
-    { id: 'J2', ax: 900, ay: 1120, bx: 900, by: 872, t: PIN_T },
-    { id: 'W2', ax: 912, ay: 860, bx: 1168, by: 860, t: PIN_T },
-    { id: 'C3', ax: 1560, ay: 1348, bx: 1412, by: 1348, t: PIN_T },
-    { id: 'R3', ax: 1400, ay: 1494, bx: 1544, by: 1350, t: PIN_T },
-    // The gate slides down into the floor.
-    { id: 'G3', ax: 1640, ay: 1520, bx: 1640, by: 1420, t: PIN_T },
-    { id: 'C4', ax: 1620, ay: 1368, bx: 1752, by: 1368, t: PIN_T },
-    { id: 'L4', ax: 1816, ay: 1372, bx: 1896, by: 1372, t: PIN_T },
+    { id: 'N', ax: 340, ay: 866, bx: 340, by: 994, t: PIN_T },
+    { id: 'K', ax: 460, ay: 860, bx: 460, by: 994, t: PIN_T },
+    // The water's pin slides right, into the lava tank's.
+    { id: 'W', ax: 1098, ay: 768, bx: 692, by: 768, t: PIN_T },
+    { id: 'P', ax: 1222, ay: 706, bx: 1222, by: 846, t: PIN_T },
+    { id: 'S', ax: 1480, ay: 1440, bx: 1546, by: 1440, t: PIN_T },
+    // The porcupine's gate hangs short of the floor, so lava runs under it; it slides up, into the gold shelf's pin.
+    { id: 'E', ax: 1560, ay: 1300, bx: 1560, by: 1424, t: PIN_T },
+    { id: 'G', ax: 1566, ay: 1240, bx: 1700, by: 1240, t: PIN_T },
+    { id: 'L', ax: 1816, ay: 1352, bx: 1896, by: 1352, t: PIN_T },
   ],
   fills: [
-    { kind: COIN, x0: 498, x1: 672, y1: 693, count: 100 },
-    { kind: WATER, x0: 928, x1: 1152, y1: 852, count: 100 },
-    { kind: COIN, x0: 1428, x1: 1532, y1: 1340, count: 90 },
-    { kind: COIN, x0: 1672, x1: 1736, y1: 1360, count: 30 },
-    { kind: LAVA, x0: 1840, x1: 1880, y1: 1365, count: 12 },
+    { kind: WATER, x0: 708, x1: 932, y1: 761, count: 110 },
+    { kind: LAVA, x0: 1118, x1: 1214, y1: 833, count: 60 },
+    { kind: LAVA, x0: 1840, x1: 1880, y1: 1345, count: 12 },
+    { kind: COIN, x0: 1588, x1: 1682, y1: 1233, count: 60 },
+    { kind: COIN, x0: 130, x1: 270, y1: 992, count: 30 },
+    { kind: COIN, x0: 1050, x1: 1156, y1: 1292, count: 30 },
   ],
-  crates: [
-    // Held over the porcupine's pit, and wedged under the low roof in the way to the chest.
-    { x: 410, y: 666 },
-    { x: 1892, y: 1466 },
-  ],
-  // Anything that gets down into the dip is gone. Water Nib splashes over
-  // the boar room's curb runs away by the way down.
+  // Wedged under the low roof in the way to the chest.
+  crates: [{ x: 1892, y: 1446 }],
+  // Water that runs out of the open cell, or over its curb, is gone; so is
+  // whatever reaches the drain under the porcupine's lid.
   drains: [
-    { x0: 1158, x1: 1200, y0: 1060, y1: 1100 },
-    { x0: 1452, x1: 1508, y0: 1506, y1: 1570 },
+    { x0: 404, x1: 450, y0: 940, y1: 996 },
+    { x0: 988, x1: 1110, y0: 900, y1: 996 },
+    { x0: 1498, x1: 1528, y0: 1446, y1: 1476 },
   ],
-  nib: { x: 110, y: 1068 },
+  nib: { x: 100, y: 968 },
   blots: [
-    { x: 410, y: 1130, spiky: true },
-    { x: 1040, y: 1070 },
+    { x: 760, y: 968 },
+    { x: 1300, y: 1332, spiky: true },
   ],
-  chest: { x: 2070, y: 1470 },
-  coinsNeeded: 190,
-  solution: ['B', 'N', 'C', 'J2', 'W2', 'G1', 'C3', 'R3', 'C4', 'L4', 'G3'],
-  stops: [{ x: 300 }, { x: 1100 }, { x: 1330 }, { x: 1600 }, { x: 1760 }, { x: 2070 }],
-  torches: [{ x: 120, y: 700 }, { x: 290, y: 820 }, { x: 560, y: 820 }, { x: 800, y: 900 }, { x: 1340, y: 1300 }, { x: 1610, y: 1300 }, { x: 2020, y: 1340 }],
-  view: { x: 0, y: 190, w: 2160, h: 1440 },
+  chest: { x: 2070, y: 1450 },
+  coinsNeeded: 110,
+  solution: ['S', 'P', 'W', 'K', 'N', 'G', 'L', 'E'],
+  stops: [{ x: 900 }, { x: 1600 }, { x: 2070 }],
+  torches: [{ x: 160, y: 760 }, { x: 400, y: 760 }, { x: 1300, y: 640 }, { x: 1120, y: 1200 }, { x: 1400, y: 1200 }, { x: 1760, y: 1250 }, { x: 2040, y: 1250 }],
+  view: { x: 0, y: 500, w: 2160, h: 1100 },
 };

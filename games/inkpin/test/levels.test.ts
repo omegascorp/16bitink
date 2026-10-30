@@ -36,10 +36,10 @@ describe('The Gold Vault', () => {
       const s = play(CELLAR, order).status;
       return s.state === 'lost' ? s.cause : undefined;
     };
-    // The gold into the moat before the water has made it stone.
-    expect(cause(['C1', 'W1'])).toBe('melted');
-    // The vault's lava before its water: it spills over the seed, and Nib waiting by it.
-    expect(cause(['W1', 'C1', 'L2', 'W2', 'G1', 'B3', 'G2', 'C3', 'L', 'W', 'C'])).toBe('burnt');
+    // The gold before the boulder has plugged the drain.
+    expect(cause(['C', 'B'])).toBe('drained');
+    // The pit's lava down to the vault before its water: it melts the hoard.
+    expect(cause(['B', 'C', 'F', 'D', 'W', 'G'])).toBe('melted');
   });
 }, 120_000);
 
@@ -87,7 +87,7 @@ describe('the treasure', () => {
   const timings: [string[], number][] = [
     [CELLAR.solution.slice(), 300],
     [CELLAR.solution.slice(), 1000],
-    [['W1', 'C1', 'L2', 'W2', 'G1', 'B3', 'G2', 'W', 'C3', 'L', 'C'], 400],
+    [['B', 'W', 'F', 'C', 'D', 'G'], 400],
   ];
   it.each(timings)('reaches the chest and nearly every coin: %j, %i steps between pulls', (order, wait) => {
     const w = visit(order, order.map(() => wait));
@@ -100,7 +100,7 @@ describe('the simulation', () => {
   it('is deterministic: the same pulls give the same world', () => {
     const run = (): string => {
       const w = new World(CELLAR);
-      for (const id of ['W', 'L']) {
+      for (const id of ['W', 'D']) {
         w.pull(id);
         for (let s = 0; s < 400; s++) w.step();
       }
@@ -127,28 +127,44 @@ describe('the simulation', () => {
 });
 
 describe('pins', () => {
+  /** The vault with two test pins in Nib's hall: A slides out left, B (upright) stands across its way. */
+  const crossed = {
+    ...CELLAR,
+    pins: [
+      ...CELLAR.pins,
+      { id: 'A', ax: 300, ay: 600, bx: 400, by: 600, t: 7 },
+      { id: 'X', ax: 250, ay: 650, bx: 250, by: 550, t: 7 },
+      { id: 'Y', ax: 500, ay: 600, bx: 400, by: 600, t: 7 },
+    ],
+  };
+
   it('a pin in the way stops another pin sliding out, until it is pulled itself', () => {
-    // The vault's gold pin slides out through the lava's.
-    const w = new World(CELLAR);
-    expect(w.pull('C')).toBe(false);
+    const w = new World(crossed);
+    expect(w.pull('A')).toBe(false);
     w.step();
-    expect(w.events).toContainEqual({ type: 'blocked', id: 'C', by: 'L' });
-    expect(w.pull('L')).toBe(true);
-    expect(w.pull('C')).toBe(true);
+    expect(w.events).toContainEqual({ type: 'blocked', id: 'A', by: 'X' });
+    expect(w.pull('X')).toBe(true);
+    expect(w.pull('A')).toBe(true);
   });
 
   it('pins that only touch at their tips do not block each other', () => {
-    // The moat's water and gold pins overlap at their tips and slide apart.
+    // A and Y meet tip to tip and slide apart.
+    const w = new World(crossed);
+    expect(w.pull('X')).toBe(true);
+    expect(w.pull('A')).toBe(true);
+    expect(w.pull('Y')).toBe(true);
+  });
+
+  it('the boulder’s pin is clear of the pen door’s way up', () => {
     const w = new World(CELLAR);
-    expect(w.pull('C1')).toBe(true);
-    expect(w.pull('W1')).toBe(true);
+    expect(w.pull('G')).toBe(true);
   });
 });
 
 describe('Blots', () => {
   it('patrol back and forth while Nib is out of sight', () => {
-    // A boar on the porcupine hall's floor, far from Nib.
-    const w = new World({ ...CELLAR, blots: [{ x: 700, y: 1150 }] });
+    // A boar on the chest's ledge, far from Nib.
+    const w = new World({ ...CELLAR, blots: [{ x: 2000, y: 1050 }] });
     const blot = w.blots[0]!;
     let lo = blot.x;
     let hi = blot.x;

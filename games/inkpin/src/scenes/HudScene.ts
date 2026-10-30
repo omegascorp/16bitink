@@ -19,7 +19,7 @@ const CAUSE_TEXT: Record<string, { title: string; line: string }> = {
   pricked: { title: 'Ouch, spikes!', line: 'Porcupines can’t be stomped. Wash them away, or drop a boulder on them.' },
   melted: { title: 'The gold melted!', line: 'Coins that touch lava are gone, and too few are left.' },
   drained: { title: 'Down the drain!', line: 'Too much gold washed away. Plug the drain first.' },
-  crushed: { title: 'Bonk!', line: 'A boulder came down on Nib. Keep out from under it.' },
+  crushed: { title: 'Bonk!', line: 'A boulder or a crate came down on Nib. Keep out from under it.' },
   fell: { title: 'Whoops!', line: 'Nib fell out of the temple.' },
 };
 

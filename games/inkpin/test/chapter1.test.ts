@@ -67,10 +67,11 @@ describe('vines', () => {
 });
 
 describe('the boss', () => {
-  // However long the player waits between pulls, filling the cistern first washes the Great Boar away.
+  // However long the player waits between pulls, sending the great tank down the aqueduct into the
+  // cistern first (A, then the tank's last water on the moat, W) and then opening it washes the Great Boar away.
   it.each([300, 500, 800, 1100])('falls to the full flood with %i steps between pulls', (wait) => {
     const w = new World(IDOL_HALL);
-    for (const id of ['B', 'A', 'R']) {
+    for (const id of ['A', 'W', 'R']) {
       w.pull(id);
       for (let s = 0; s < wait; s++) w.step();
     }
