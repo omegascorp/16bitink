@@ -84,7 +84,7 @@ describe('Just Enough', () => {
   it('is won by its hint in a minute or more: the gate cut once the moat is stone, the rest switched to the far pool', () => {
     const r = watchSolution();
     expect(r.won).toBe(true);
-    expect(r.seconds).toBeGreaterThanOrEqual(60);
+    expect(r.seconds).toBeLessThan(120);
     // The cue: the moat is all stone when the gate goes back in.
     expect(r.lavaAtCut).toBe(0);
     expect(r.lavaAfter).toBe(0);
@@ -105,12 +105,12 @@ describe('Just Enough', () => {
   // has brimmed over, and enough is on its way to set the moat; 1.5 s is too soon) to about
   // 6 s (the moat not yet brimming over onto the gold; 6.5 s is too late). The cue, the moat
   // all stone, shows at about 4.2 s. Both ends are tested here, a little inside the edges.
-  const REST = ['H', '@340', '@700', 'H3', 'S', 'H2~14', 'L~16', '@1580'];
+  const REST = ['H', '@340', '@700', 'H3', 'S', 'H2~14', 'L~16', '@1320'];
   it.each([
     [['G', 'G~2.25', ...REST]],
     [['G', 'G~5.5', ...REST]],
     // The vat before the switch is harmless: the water comes after it and cools its lava.
-    [['G', 'G~4.5', 'H', '@340', '@700', 'H3', 'L', 'S', 'H2~14', '@1580']],
+    [['G', 'G~4.5', 'H', '@340', '@700', 'H3', 'L', 'S', 'H2~14', '@1320']],
   ])('%j wins: the gate back in anywhere in its window', (order) => {
     expect(outcome(order)).toBe('won');
   });

@@ -56,7 +56,7 @@ export const EMBER_LIGHT: LevelDef = {
     // Nib's shelf, his pit, the bath and the den above them.
     [[40, 480], [1000, 480], [1000, 930], [700, 930], [700, 1000], [410, 1000], [410, 1040], [300, 1040], [300, 780], [40, 780]],
     // The armadillo's hall, down from the den, with the landing.
-    [[1000, 860], [1860, 860], [1860, 1200], [1200, 1200], [1200, 1140], [1000, 1140]],
+    [[1000, 860], [1760, 860], [1760, 1200], [1200, 1200], [1200, 1140], [1000, 1140]],
   ],
   walls: [
     { ax: 40, ay: 480, bx: 1000, by: 480, t: T }, // 0 ceiling
@@ -70,11 +70,11 @@ export const EMBER_LIGHT: LevelDef = {
     { ax: 700, ay: 930, bx: 1000, by: 930, t: T }, // 8 the den
     { ax: 1000, ay: 480, bx: 1000, by: 860, t: T }, // 9 over the way down to the hall
     { ax: 1000, ay: 930, bx: 1000, by: 1140, t: T }, // 10 the hall's left wall
-    { ax: 1000, ay: 860, bx: 1860, by: 860, t: T }, // 11 the hall's ceiling
-    { ax: 1860, ay: 860, bx: 1860, by: 1200, t: T }, // 12 right wall
+    { ax: 1000, ay: 860, bx: 1760, by: 860, t: T }, // 11 the hall's ceiling
+    { ax: 1760, ay: 860, bx: 1760, by: 1200, t: T }, // 12 right wall
     { ax: 1000, ay: 1140, bx: 1200, by: 1140, t: T }, // 13 the landing
     { ax: 1200, ay: 1140, bx: 1200, by: 1200, t: T }, // 14 its edge: too high for the armadillo
-    { ax: 1200, ay: 1200, bx: 1860, by: 1200, t: T }, // 15 the armadillo's floor, to the chest
+    { ax: 1200, ay: 1200, bx: 1760, by: 1200, t: T }, // 15 the armadillo's floor, to the chest
     { ax: 384, ay: 560, bx: 384, by: 760, t: T }, // 16 the big tank, over the sill
     { ax: 540, ay: 560, bx: 540, by: 760, t: T }, // 17
     { ax: 1240, ay: 970, bx: 1240, by: 1040, t: T }, // 18 the brazier
@@ -111,16 +111,16 @@ export const EMBER_LIGHT: LevelDef = {
   nib: { x: 100, y: 756 },
   blots: [
     { x: 650, y: 966, animal: 'salamander' },
-    { x: 1740, y: 1170, animal: 'armadillo' },
+    { x: 1640, y: 1170, animal: 'armadillo' },
   ],
-  chest: { x: 1820, y: 1176 },
+  chest: { x: 1720, y: 1176 },
   coinsNeeded: 45,
   solution: ['S', 'K', 'V', 'H', 'W', 'Q~3', 'G'],
-  stops: [{ x: 355 }, { x: 560 }, { x: 850 }, { x: 1100 }, { x: 1450 }, { x: 1800 }],
+  stops: [{ x: 355 }, { x: 560 }, { x: 850 }, { x: 1100 }, { x: 1450 }, { x: 1700 }],
   torches: [
     { x: 120, y: 720 },
     { x: 1100, y: 1080 },
-    { x: 1790, y: 1130 },
+    { x: 1690, y: 1130 },
   ],
-  view: { x: 0, y: 440, w: 1900, h: 820 },
+  view: { x: 0, y: 440, w: 1800, h: 820 },
 };

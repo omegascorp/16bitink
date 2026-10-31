@@ -22,7 +22,7 @@ const WELL_L = 1100;
 const WELL_R = 1250;
 const WELL_BOTTOM = 1170;
 const CHEST_FLOOR = WALK;
-const END = 1640;
+const END = 1380;
 /** The cistern over the moat: its gate G is the hole in its floor at the right end, its side door S opens onto the aqueduct. */
 const CIS_L = 300;
 const CIS_R = 560;
@@ -144,8 +144,8 @@ export const JUST_ENOUGH: LevelDef = {
   blots: [],
   chest: { x: END - 60, y: CHEST_FLOOR - 30 },
   coinsNeeded: 114,
-  solution: ['G', 'G~4.5', 'H', '@340', '@700', 'H3', 'S', 'H2~14', 'L~16', '@1580'],
+  solution: ['G', 'G~4.5', 'H', '@340', '@700', 'H3', 'S', 'H2~14', 'L~16', '@1320'],
   stops: [],
-  torches: [{ x: 120, y: 880 }, { x: 240, y: 640 }, { x: 660, y: 920 }, { x: 1020, y: 960 }, { x: 1320, y: 960 }, { x: 1600, y: 940 }],
+  torches: [{ x: 120, y: 880 }, { x: 240, y: 640 }, { x: 660, y: 920 }, { x: 1020, y: 960 }, { x: 1320, y: 960 }, { x: 1340, y: 940 }],
   view: { x: 0, y: 460, w: END + 40, h: 760 },
 };

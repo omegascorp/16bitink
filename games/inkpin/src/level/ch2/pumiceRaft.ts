@@ -39,8 +39,8 @@ import { CH2, PIN_T, T } from '../common';
  *    the hopper's gold has to come over on the raft.
  * 6. The vault hopper: Y drops the vault's 20 coins from a hopper by the
  *    door. It is harmless alone (the coins wait on the floor), so a wrong
- *    order that starts with it loses later, at D; but pulled last, Nib has to walk back
- *    from the chest for the gold.
+ *    order that starts with it loses later, at D; but pulled last, the gold drops behind
+ *    Nib on his way to the chest, and he turns back for it.
  * The stages hang together: the raft has to come before its cargo, the cargo
  * before the ferry, the one river is the ferry's road and the vault's danger,
  * and the one tank that cools it must wait for the raft to have gone through.
@@ -55,7 +55,7 @@ export const PUMICE_RAFT: LevelDef = {
   tip: 'A pumice raft floats on lava and never burns, but it only moves while the lava flows. Let it run to bring the raft, then ride it.',
   rooms: [
     [[40, 360], [860, 360], [860, 916], [660, 916], [660, 1026], [860, 1026], [860, 1060], [560, 1060], [560, 1000], [200, 1000], [200, 760], [40, 760]],
-    [[860, 700], [2900, 700], [2900, 1030], [960, 1030], [960, 1060], [860, 1060]],
+    [[860, 700], [1300, 700], [1300, 1030], [960, 1030], [960, 1060], [860, 1060]],
   ],
   walls: [
     { ax: 40, ay: 360, bx: 860, by: 360, t: T }, // 0 ceiling
@@ -70,10 +70,10 @@ export const PUMICE_RAFT: LevelDef = {
     { ax: 660, ay: 916, bx: 660, by: 1026, t: T }, // 9 the basin's far side
     { ax: 660, ay: 1026, bx: 852, by: 1026, t: T }, // 10 the culvert under the landing
     { ax: 860, ay: 360, bx: 860, by: 700, t: T }, // 11 over the vault door
-    { ax: 860, ay: 700, bx: 2900, by: 700, t: T }, // 12 vault ceiling
-    { ax: 2900, ay: 700, bx: 2900, by: 1030, t: T }, // 13
+    { ax: 860, ay: 700, bx: 1300, by: 700, t: T }, // 12 vault ceiling
+    { ax: 1300, ay: 700, bx: 1300, by: 1030, t: T }, // 13
     { ax: 960, ay: 1060, bx: 960, by: 1030, t: T }, // 14 the vault's step
-    { ax: 960, ay: 1030, bx: 2900, by: 1030, t: T }, // 15 the vault floor
+    { ax: 960, ay: 1030, bx: 1300, by: 1030, t: T }, // 15 the vault floor
     { ax: 304, ay: 560, bx: 304, by: 650, t: T }, // 16 the water tank over Nib's shelf
     { ax: 346, ay: 560, bx: 346, by: 650, t: T }, // 17
     { ax: 426, ay: 420, bx: 426, by: 512, t: T }, // 18 the gold hopper over the dock
@@ -101,10 +101,10 @@ export const PUMICE_RAFT: LevelDef = {
   rafts: [{ x: 352, y: 880 }],
   nib: { x: 80, y: 728 },
   blots: [],
-  chest: { x: 2860, y: 1000 },
+  chest: { x: 1250, y: 1000 },
   coinsNeeded: 48,
   solution: ['D', 'G', 'M', 'W', 'X', 'Y'],
-  stops: [{ x: 760 }, { x: 1100 }, { x: 1500 }, { x: 1900 }, { x: 2300 }, { x: 2600 }, { x: 2860 }],
-  torches: [{ x: 120, y: 660 }, { x: 620, y: 640 }, { x: 760, y: 820 }, { x: 1100, y: 800 }, { x: 1440, y: 800 }, { x: 1720, y: 800 }, { x: 2000, y: 800 }, { x: 2300, y: 800 }, { x: 2580, y: 800 }],
-  view: { x: 0, y: 340, w: 2940, h: 760 },
+  stops: [{ x: 760 }, { x: 1040 }, { x: 1250 }],
+  torches: [{ x: 120, y: 660 }, { x: 620, y: 640 }, { x: 760, y: 820 }, { x: 1180, y: 800 }],
+  view: { x: 0, y: 340, w: 1340, h: 760 },
 };

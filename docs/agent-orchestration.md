@@ -88,7 +88,7 @@ The shared brief says:
 - **Measure** with the lab, never with probe tests. Audit only when a version is ready.
 - **Start with a ≤ 5-call review:** each pin's obvious job, the order a reader would try first, which reading checks fail.
 - **Targets:** the chapter's row of the curve. Also:
-  - hint 60–120 s, ≤ 700 grains, none outside the rooms
+  - hint about 25–120 s from the puzzle itself, no empty floor to walk; ≤ 700 grains, none outside the rooms
   - waits in the solution under ~10 s
   - no wrong order ending 'stuck' or 'playing'
 - **Never lower a test's threshold to fit the level.** Never run `git checkout`, `git restore` or `git stash`. Don't commit.
@@ -104,7 +104,8 @@ The shared brief says:
 ## Review checklist (the coordinator, for each report)
 
 - [ ] Every target in the curve's row met, as printed by the lab, not just "PASS" in prose.
-- [ ] Test thresholds unchanged (hint ≥ 60 s and the like). A lowered threshold means sending it back.
+- [ ] Test thresholds unchanged (win share, lessons and the like). A lowered threshold means sending it back.
+- [ ] No empty space: no room or long floor Nib only walks through, and no walking added to lengthen the hint (a player found 1,800 px of it in Level 12).
 - [ ] No decoy pins (a pin never in any win, except the one allowed trap), and no pin that only adds walking.
 - [ ] Solution waits under ~10 s, each shown by the board. A hint that is mostly waits is padding.
 - [ ] Every wrong order loses for a named, visible cause. No 'stuck' or 'playing' rows.

@@ -28,5 +28,9 @@ describe('Chapter 2', () => {
     for (const level of LEVELS) for (const guard of level.blots) expect(guard.animal, level.name).toBeDefined();
   });
 
+  it('draws only walls that exist as stone bars (a bad index breaks the board art)', () => {
+    for (const level of LEVELS) expect(level.bars.filter((b) => !level.walls[b]), level.name).toEqual([]);
+  });
+
   // Each level's own wins and tempting losses are in test/ch2-<level>.test.ts.
 }, 300_000);

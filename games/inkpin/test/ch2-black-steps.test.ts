@@ -8,23 +8,25 @@ import { play } from './solver';
 
 declare const process: { readonly env: Readonly<Record<string, string | undefined>> };
 
-/** Nib's walk from the shelf to the foot of the black steps, as the hint walks it. */
-const DOWN = ['@1100', '@1500', '@1800', '@2060', '@1800', '@1600'];
-/** And from the gate to the chest. */
-const HOME = ['@1200', '@600', '@260'];
+/** Nib's walks, as the hint walks them: over the first ledge, over the lid to the gate, and to the chest. */
+const BRIDGE = '@760';
+const LID = '@1340';
+const HOME = '@860';
 
-/** How a pull order ends: 'won', the loss cause, 'playing' (stuck), or 'blocked'. */
+/** How a pull order ends: 'won', the loss cause, 'stuck' (nothing more happens), or 'blocked'. */
 const outcome = (order: readonly string[]): string => {
   const r = play(LEVEL, order);
   if (!r.possible) return 'blocked';
-  return r.status.state === 'lost' ? r.status.cause : r.status.state;
+  if (r.status.state === 'lost') return r.status.cause;
+  return r.status.state === 'playing' ? 'stuck' : r.status.state;
 };
 
 describe('Black Steps', () => {
-  it('is won by its hint in a minute or more', () => {
+  it('is won by its hint in 25-120 s', () => {
     const r = play(LEVEL, LEVEL.solution);
     expect(r.status.state).toBe('won');
-    expect(r.steps / STEPS_PER_SECOND).toBeGreaterThanOrEqual(60);
+    expect(r.steps / STEPS_PER_SECOND).toBeGreaterThanOrEqual(25);
+    expect(r.steps / STEPS_PER_SECOND).toBeLessThan(120);
   });
 
   it('keeps to the grain budget', () => {
@@ -43,25 +45,31 @@ describe('Black Steps', () => {
     expect(w.status.state).toBe('playing');
   });
 
-  it('wins with the hopper before the gold, and with the water first', () => {
-    expect(outcome(['H', 'C', '@900', ...DOWN, 'V', 'W', 'G', ...HOME])).toBe('won');
-    expect(outcome(['C', '@900', 'H', ...DOWN, 'W', 'V', 'G', ...HOME])).toBe('won');
+  it('wins with both hoppers before the first walk, with the water close behind the lava, and with Nib waiting at the gate', () => {
+    expect(outcome(['H', 'C', BRIDGE, LID, 'V', 'W', 'G', HOME])).toBe('won');
+    expect(outcome(['C', BRIDGE, 'H', LID, 'V', 'W~1', 'G', HOME])).toBe('won');
+    expect(outcome(['C', BRIDGE, 'H', LID, 'V', 'W', HOME, 'G', HOME])).toBe('won');
   });
 
   it.each([
-    // The lava before Nib has walked over the second ledge: it pours through the hole onto the cellar's gold.
-    [['V', 'C', '@900', 'H', ...DOWN, 'W', 'G', ...HOME], 'melted'],
-    // The lid's hopper after Nib has crossed: its gold falls to the slab and the lava melts it.
-    [['C', '@900', ...DOWN, 'H', 'V', 'W', 'G', ...HOME], 'melted'],
-    // The tanks poured while Nib waits short of the second ledge: the water goes through the hole, the lava has no water to set it.
-    [['C', '@900', 'W', ...DOWN, 'V', 'H', 'G', ...HOME], 'stuck'],
-    // The gate before the water and the lava: Nib walks into the armadillo.
-    [['C', '@900', 'H', ...DOWN, 'G', ...HOME, 'V', 'W'], 'inked'],
-    // The gate on the hot lava, before the water.
-    [['C', '@900', 'H', ...DOWN, 'V', 'G', ...HOME, 'W'], 'burnt'],
+    // The obvious orders: the water first sets the lava in its own tank, so the armadillo lives.
+    [['C', BRIDGE, 'H', LID, 'W', 'V', 'G', HOME], 'inked'],
+    [['C', 'W', 'V', 'H', 'G', BRIDGE, LID, HOME], 'inked'],
+    // Both tanks top-down before the lid has fallen: the stone spills into the cellar, the armadillo lives.
+    [['C', BRIDGE, 'H', 'W', 'V', LID, 'G', HOME], 'inked'],
+    // Walk first: the bridge falls into the crack, and the gold after it.
+    [['H', BRIDGE, 'C', LID, 'V', 'W', 'G', HOME], 'drained'],
+    // The lid's hopper after Nib has crossed: its gold goes down the shaft's crack.
+    [['C', BRIDGE, LID, 'H', 'V', 'W', 'G', HOME], 'drained'],
+    [['C', BRIDGE, LID, 'V', 'W', 'H', 'G', HOME], 'drained'],
+    // The lava before the lid is down: it pours through the hole onto the cellar's gold.
+    [['C', BRIDGE, 'H', 'V', LID, 'W', 'G', HOME], 'melted'],
+    // The gate first: the armadillo comes for Nib as he lands.
+    [['C', BRIDGE, 'H', 'G', LID, 'V', 'W', HOME], 'inked'],
+    // The gate on the hot lava, before the water: it runs out round Nib's feet.
+    [['C', BRIDGE, 'H', LID, 'V', 'G', 'W', HOME], 'burnt'],
   ])('%j loses: %s', (order, cause) => {
-    const got = outcome(order);
-    expect(got === 'playing' ? 'stuck' : got).toBe(cause);
+    expect(outcome(order)).toBe(cause);
   });
 
   if (process.env.AUDIT) it('audit', () => console.log('AUDIT ' + JSON.stringify(audit(LEVEL))), 3_600_000);

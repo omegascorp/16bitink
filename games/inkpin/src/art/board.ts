@@ -541,9 +541,10 @@ function cobweb(pen: Pen, x: number, y: number, dir: number): void {
 
 /** A stone bar between two rooms: a rounded slab, lit along one edge, with hatched shade. */
 function paintBar(ctx: CanvasRenderingContext2D, pen: Pen, ax: number, ay: number, bx: number, by: number, t: number, stone: string): void {
+  // A zero-length bar is a round stud: give it any direction.
   const len = Math.hypot(bx - ax, by - ay);
-  const ux = (bx - ax) / len;
-  const uy = (by - ay) / len;
+  const ux = len ? (bx - ax) / len : 1;
+  const uy = len ? (by - ay) / len : 0;
   const nx = -uy * t;
   const ny = ux * t;
   // Round caps: half circles behind A and beyond B, joined by the long sides.

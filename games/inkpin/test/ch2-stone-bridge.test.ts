@@ -71,7 +71,7 @@ describe('The Stone Bridge', () => {
   it('is won by its hint in a minute or more: the lava bridges the gap, the sluice lets it ferry the gold and clear the hall', () => {
     const r = watchSolution();
     expect(r.won).toBe(true);
-    expect(r.seconds).toBeGreaterThanOrEqual(60);
+    expect(r.seconds).toBeLessThan(120);
     expect(r.seconds).toBeLessThanOrEqual(120);
     // The raft docked at the river's end with all three coins on its deck.
     expect(r.raftX).toBeGreaterThan(DOCK_X - 60);

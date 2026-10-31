@@ -62,7 +62,8 @@ describe('The Pumice Raft', () => {
   it('is won by its hint: the raft comes to Nib, takes the hopper\'s gold aboard, carries him over, and the river is cooled behind him', () => {
     const r = watchSolution();
     expect(r.won).toBe(true);
-    expect(r.seconds).toBeGreaterThanOrEqual(60);
+    // The vault is only as long as its gold and chest: no stretch of floor Nib just walks.
+    expect(r.seconds).toBeLessThan(60);
     // D: the raft has come out of its cave to the dock under Nib's shelf.
     expect(r.raft[0]).toBeGreaterThan(420);
     expect(r.raft[0]).toBeLessThan(480);
