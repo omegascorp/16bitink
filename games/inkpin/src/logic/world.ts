@@ -37,6 +37,22 @@ const CHEST_REACH_BELOW = 24;
 const SETTLED_SPEED = 0.35;
 /** Grains that may still jiggle in a settled world (water squeezed between a resting boulder and a wall). */
 const SETTLED_STRAYS = 6;
+/**
+ * Grains this close (px) to a resting ruby's edge, or lava this close to a
+ * live guard's, jiggle for good (the ruby shoves them, a salamander wades):
+ * the settle check leaves them out.
+ */
+const STIR_REACH = GRAIN_R * 4;
+/** A salamander wading stirs its lava pool this far (px) past its edge. */
+const WADE_REACH = 100;
+/**
+ * A grain slower than JIGGLE_MAX whose velocity, averaged with this keep per
+ * step (about 10 steps), stays under DRIFT_SPEED is shaking in place (a deep
+ * tank's pressure), not flowing: the settle check leaves it out too.
+ */
+const DRIFT_KEEP = 0.9;
+const DRIFT_SPEED = SETTLED_SPEED * 0.5;
+const JIGGLE_MAX = 1;
 /** How far past its length a pin must slide to be clear: its ring. */
 const PIN_RING_CLEAR = 28;
 /** Steps the grains run before a level starts, to settle against the pins. */
@@ -141,6 +157,11 @@ export class World {
   /** What happened during the last step, for the scene's effects and sounds. */
   readonly events: WorldEvent[] = [];
   private quietSteps = 0;
+  /** Where each ruby was last step, for the settle check. */
+  private readonly rubyWas = new Map<number, readonly [number, number]>();
+  /** Each grain's averaged velocity, by grain id, for the settle check (see DRIFT_KEEP). */
+  private driftX = new Float64Array(0);
+  private driftY = new Float64Array(0);
   private order: NibOrder = { kind: 'stay' };
   /** Steps a 'goto' has made no headway (a wall, a pin in the way): it gives up. */
   private stalled = 0;
@@ -673,13 +694,59 @@ export class World {
       this.status = { state: 'won' };
       return;
     }
+    const rubiesMoved = this.rubiesMoved();
+    this.trackDrift();
     const moving =
-      this.grains.countFasterThan(SETTLED_SPEED) > SETTLED_STRAYS ||
+      rubiesMoved ||
+      this.grains.countFasterThan(SETTLED_SPEED, (i) => this.stirred(i)) > SETTLED_STRAYS ||
       Math.hypot(nib.vx, nib.vy) > SETTLED_SPEED * 0.5 ||
       this.boulders.some((b) => !b.gone && Math.hypot(b.vx, b.vy) > SETTLED_SPEED) ||
-      this.ledges.some(ledgeMoving) ||
-      this.rubies.some((r) => inPlay(r) && Math.hypot(r.vx, r.vy) > SETTLED_SPEED);
+      this.ledges.some(ledgeMoving);
     this.quietSteps = moving ? 0 : this.quietSteps + 1;
+  }
+
+  /**
+   * True when a ruby in play moved more than SETTLED_SPEED this step. Its
+   * own speed won't do: one pressed against coins or on a slope keeps a
+   * speed while going nowhere.
+   */
+  private rubiesMoved(): boolean {
+    let moved = false;
+    for (const r of this.rubies) {
+      const was = this.rubyWas.get(r.id);
+      if (inPlay(r) && (!was || Math.hypot(r.x - was[0], r.y - was[1]) > SETTLED_SPEED)) moved = true;
+      this.rubyWas.set(r.id, [r.x, r.y]);
+    }
+    return moved;
+  }
+
+  private trackDrift(): void {
+    const g = this.grains;
+    if (this.driftX.length < g.capacity) {
+      this.driftX = new Float64Array(Math.max(g.capacity, 1024));
+      this.driftY = new Float64Array(Math.max(g.capacity, 1024));
+    }
+    for (let i = 0; i < g.count; i++) {
+      const id = g.id[i]!;
+      if (id >= this.driftX.length) continue;
+      this.driftX[id] = this.driftX[id]! * DRIFT_KEEP + g.vx[i]! * (1 - DRIFT_KEEP);
+      this.driftY[id] = this.driftY[id]! * DRIFT_KEEP + g.vy[i]! * (1 - DRIFT_KEEP);
+    }
+  }
+
+  /** A moving grain the settle check leaves out: jiggling in place, by a ruby in play or a raft, or lava by a live guard (see STIR_REACH). */
+  private stirred(i: number): boolean {
+    const g = this.grains;
+    const x = g.x[i]!;
+    const y = g.y[i]!;
+    const id = g.id[i]!;
+    if (id < this.driftX.length && Math.hypot(g.vx[i]!, g.vy[i]!) < JIGGLE_MAX && Math.hypot(this.driftX[id]!, this.driftY[id]!) < DRIFT_SPEED) return true;
+    for (const r of this.rubies) if (inPlay(r) && Math.hypot(x - r.x, y - r.y) < RUBY_R + STIR_REACH) return true;
+    if (g.kind[i] === COIN) return false;
+    for (const b of this.boulders) if (b.raft && !b.gone && Math.abs(x - b.x) < b.hw + STIR_REACH && Math.abs(y - b.y) < b.hh + STIR_REACH) return true;
+    if (g.kind[i] !== LAVA) return false;
+    for (const b of this.blots) if (!b.gone && Math.hypot(x - b.x, y - b.y) < b.r + WADE_REACH) return true;
+    return false;
   }
 
   /** Nib coming down on top of a guard, as in the old platformers: it lands on its head. */

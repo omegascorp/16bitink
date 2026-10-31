@@ -26,6 +26,8 @@ export interface Run {
  * The order is in steps (see parseStep): a step is a tap, a pull or (on a
  * gate that's out) a push back in. A step with a wait, 'G~1.5', comes that
  * long after the step before it, with no settling or walking in between.
+ * A walk step, '@2060', sends Nib to x = 2060 and lets things settle (no
+ * stops after it).
  */
 export function play(level: LevelDef, order: readonly string[], patient = false, onStep?: (w: World, stepIndex: number) => void): Run {
   const w = new World(level);
@@ -45,8 +47,17 @@ export function play(level: LevelDef, order: readonly string[], patient = false,
   };
   const steps = order.map(parseStep);
   for (let i = 0; i < steps.length; i++) {
-    const { id, wait } = steps[i]!;
+    const { id, wait, walk } = steps[i]!;
     if (wait !== null) for (let s = Math.round(wait * STEPS_PER_SECOND); s > 0 && !w.finished; s--) w.step();
+    if (walk !== undefined) {
+      if (!w.finished) {
+        w.command({ kind: 'goto', x: walk });
+        run(MAX_WAIT);
+      }
+      onStep?.(w, i);
+      if (w.finished) break;
+      continue;
+    }
     if (!w.finished && !w.tap(id)) return { order, status: w.status, treasure: w.treasure, steps: w.steps, possible: false };
     // The next step comes on a timer: no settling, no walking until it's done.
     if (steps[i + 1]?.wait != null) continue;

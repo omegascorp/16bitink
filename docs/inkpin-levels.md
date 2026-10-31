@@ -28,6 +28,51 @@ Nib walks, jumps (about 55 px), climbs a ledge up to about 44 px and swims. Each
 
 Goals are from the design doc: **Treasure** (the chest's relic and the coin target, the default), **Loot**, **Clear**, **Escort** and **Boss**.
 
+## The difficulty curve
+
+Levels are numbered straight through the game: chapter 2 is levels 11–20, chapter 10 is 91–100. Every level must meet its row before it ships. The audit (test/audit.ts) and the lab (test/lab.test.ts, `AUDIT=1`) print the numbers.
+
+**Later chapters are deeper, not bigger.** Every level stays 2–3 screens wide (or two tall), at most ~700 grains, 3–5 stages, a hint of 60–120 s, and can be finished with tap-to-go. Bigger boards are harder to read on a phone, slower to simulate and dearer to build, and they add walking, not thinking.
+
+| Chapters | Levels | Pins | What each level asks | Win share (levels 1–3 / 4–10 of the chapter) | Lessons | Top lesson | Late losses |
+|---|---|---|---|---|---|---|---|
+| 1 | 1–10 | 4–6 | one new thing, with materials already known | ≤ 35% / ≤ 15% | ≥ 3 / ≥ 4 | ≤ 50% | — |
+| 2–3 | 11–30 | 5–7 | the new thing working against a second one | ≤ 20% / ≤ 10% | ≥ 4 / ≥ 5 | ≤ 45% | ≥ 50% |
+| 4–6 | 31–60 | 6–7 | two mechanics interlocked in every stage | ≤ 15% / ≤ 8% | ≥ 5 / ≥ 6 | ≤ 40% | ≥ 60% |
+| 7–10 | 61–100 | 6–8 | earlier chapters' mechanics as full stages; gates timed off the board are normal; one level per chapter where a single pin does two jobs | ≤ 10% / ≤ 6% | ≥ 6 | ≤ 40% | ≥ 60% |
+
+Stuck (all pins out, nothing happens) is at most 10% everywhere. **Late losses** are the losses that come from the second pull or later. A level that mostly loses on the first pull teaches its answer at once.
+
+**The reading checks** (from chapter 2 on). The audit plays random orders, but a person reads the board. Chapter 2 met its audit targets, and its first playtest (Oct 31, 2026) still finished all ten levels with one mistake. So every level must also pass these:
+1. **The obvious orders lose.** Pulling the pin nearest Nib first, and pulling left to right, both lose. The lab prints both.
+2. **Every pin has more than one visible effect,** or its timing depends on another room. A pin whose one job is plain from the board is a free step.
+3. **At least one wrong order looks right until late:** it gets through two or more stages before it fails.
+4. **The winning order isn't the order of the rooms.** Somewhere the player must act in a room ahead of Nib, or come back to an earlier one.
+
+**The sawtooth inside a chapter.**
+- Level 1 is a breather, easier than the boss before it, but still at its chapter's row.
+- Levels 4–7 build up.
+- Level 8 (the remix) is the hardest normal level.
+- Level 9 changes how you see the board.
+- Level 10, the boss, is the chapter's peak.
+
+**Ways to add depth without size:**
+- a second tempting wrong pin
+- one supply needed in two places (cool the moat *and* wash the guard with one tank)
+- a pin whose right moment is shown in another room
+- a loss that looks like a win until late
+- a gate used twice
+- a body (raft, slab, boulder) that has a job in two stages
+
+**Not this:**
+- more rooms
+- more grains
+- pins that only hold Nib back (at most one per level)
+- a tighter stopwatch
+- hidden information the board doesn't show
+
+**Hard, but not blocking.** Hearts (a loss winds back one pull), free hints and instant restarts keep every level finishable. The "first try" ink blot (no restart, no hint, no heart lost) is where the real challenge lives, so it grows harder as the levels deepen.
+
 ## 1. The Jungle Temple (free)
 
 **Built** (games/inkpin/src/level; each level has its own test, test/wide-<id>.test.ts, where the solver bot plays its hint to a win and its tempting wrong orders to the losses they're meant to be).
@@ -171,16 +216,16 @@ The audit's player is eager: after every pull it walks Nib on along the level, s
 
 | # | Name | Goal | Signature | What happens |
 |---|---|---|---|---|
-| 11 | Black Steps | Treasure | Crumbling ledges | Meet the place, with only Chapter 1's materials: Nib picks his way down a cliff of ledges that fall behind him. One ledge's slab must land in the channel below (to hold back the water the gold rides on), and the ledge the gold crosses must still be up when it pours |
-| 12 | The Pumice Raft | Treasure | Rafts on lava | A lava river between Nib and the chest, and a raft moored upstream: let the lava run to carry the raft to Nib's bank, ride it over, and cool the river behind him only once he's off |
-| 13 | The Stone Bridge | Treasure | Pour your own floor | Nib needs a floor across a gap: lead a tank of lava into it and cool it there, while the raft ferries the gold over the rest of the lava, which must stay hot to carry it |
-| 14 | Salamander Springs | Clear | The fireproof guard | Salamanders bathe in lava pools, and lava doesn't trouble them. Wash every one away with one tank that also has to cool the pool between Nib and the last one; the obvious pull, lava on a salamander, just gives it a warm bath |
-| 15 | The Ruby Hoard | Loot | Rubies through the fire | Fire rubies and gold in one hopper: split them, rubies straight through the lava river, gold onto a raft and round; an armadillo guards the landing |
-| 16 | Just Enough | Treasure | The gate pin | Cut the water once the moat is stone, or the rest washes the gold into the drain; the same tank's second job is the far pool, so push the gate back in and send the rest down the other channel |
-| 17 | The Caldera | Treasure | Two screens down | A crater two screens deep on one-way ledges: pour a stair of stone for the way down (no vines here), and choose which ledges fall where |
-| 18 | Fire and Flood | Loot | Remix | Gates, rafts, salamanders, ledges and rubies: a slab dropped to dam the lava, a gate that switches the flood, a raft that carries the hoard |
-| 19 | Ember Light | Treasure | Living light | Lights out: salamanders glow like embers, so the guard is the lamp. Use its light to cross, and wash it only last; the rubies glint where the lava has been |
-| 20 | The Fire Idol | Boss | Meter it, save it | The Old Salamander bathes in the Fire Idol's lava bowl, fed by three mouths; meter the water through gates to cool each mouth, and keep enough of the flood for the boss |
+| 11 | Black Steps | Treasure | Crumbling ledges | Meet the place, with only Chapter 1's materials: Nib picks his way down a cliff of ledges that fall behind him. Five pins: the gold (C) must pour while the first ledge is up, and a second hopper (H) over the lid ledge must pour before Nib crosses it (afterwards its gold falls to the seat and melts). Pour the tanks before the lid slab is down and they go through the hole. The lava and water make a stone step in the pen; water alone strands Nib. The hint scripts Nib's walks (`@x`). **Audit (2026-10-31): win 5%, 2 lessons, top 51% — not yet at the row** |
+| 12 | The Pumice Raft | Treasure | Rafts on lava, raft cargo | A lava river between Nib and the chest, and a raft moored upstream: let the lava run to bring the raft to Nib's bank, drop the gold hopper onto it while it is docked (too early or too late and the lava melts it), ride it over, and cool the river from the tank on Nib's shelf only once he's off. The dam also holds Nib on his shelf, so any pull before it drops him onto the surge; the obvious first pull, that tank, is the trap. A last hopper in the long vault sends Nib back from the chest for the gold |
+| 13 | The Stone Bridge | Treasure | Pour your own floor | Nib needs a floor across a gap: lead a tank of lava into it and cool it there, while the raft ferries the gold over the rest of the lava, which must stay hot to carry it. A sluice at the river's end (narrower than the raft) lets the lava on to scorch the hall's armadillo, and the hall's gold must wait until the lava has come and gone (5 pins; audit 2% wins, 13 lessons, 59% late losses) |
+| 14 | Salamander Springs | Clear | The fireproof guard | Salamanders bathe in lava pools, and lava doesn't trouble them. Wash every one away with one tank that also has to cool the pool between Nib and the last one; the obvious pull, lava on a salamander, just gives it a warm bath. The cistern is split: its small side tank (pin D) must wash the back salamander first, then W pours the big tank on the other two; W first leaves the back one alive |
+| 15 | The Ruby Hoard | Loot | Rubies through the fire | Fire rubies and gold in one hopper: split them, rubies straight through the lava river, gold onto a raft and round; the hopper's left door R spills the water onto the landing to wash the armadillo and must go before the water (and after the gold has gone); lava poured before the water loses; an armadillo guards the landing |
+| 16 | Just Enough | Treasure | The gate pin | Cut the water once the moat is stone (a window of about 2–6 s), or the rest washes the shelf's gold into the drain; two hoppers wait on it (the nearest one melts in the hot moat). The same tank's second job is the far well: the side door sends the rest of the water there, but it is not enough to float Nib, so a lava vat tipped into that water builds the last step; the vat's lava is hot until the water cools it, so the well's gold must not fall on it |
+| 17 | The Caldera | Treasure | Two screens down | A crater two screens deep on one-way ledges: pour a stair of stone for the way down (no vines here), and choose which ledges fall where. Seven pins: the shelf tank T must be pulled first, ahead of Nib, to wash the chest's guard; two gold hoppers (K, J) both wait for the lake tank W |
+| 18 | Fire and Flood | Loot | Remix | Gates, rafts, salamanders, ledges and rubies: a slab dropped to dam the lava, a gate that switches the flood, a raft that carries the hoard (8 pins; audit 2% wins, 6 lessons, 25% top, 69% late losses; hint 105 s with the two hoppers pulled first) |
+| 19 | Ember Light | Treasure | Living light | Lights out: salamanders glow like embers, so the guard is the lamp. Use its light to cross, and wash it only last; the rubies glint where the lava has been. Two tanks over the bath: the wash is small and leaves it hot, the second finishes it to stone; the gold bowl sits in the lava's reach |
+| 20 | The Fire Idol | Boss | Meter it, save it | The Old Salamander bathes in the Fire Idol's lava bowl, fed by three mouths; meter the water through gates to cool each mouth, and keep enough of the flood for the boss. The pit is wide, so Nib can't reach the boss's back: an unwashed boss inks him. One extra pin, the tunnel door |
 
 ## 3. The Desert Tomb
 

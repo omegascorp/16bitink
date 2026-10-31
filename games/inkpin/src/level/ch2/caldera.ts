@@ -26,11 +26,15 @@ import { CH2, PIN_T, T } from '../common';
  *    waiting for him at the bottom. (A pile of coins on the scree, under the
  *    last ledge's far end, is the reason to step off that end.)
  * 4. The lake: the crater's floor is a lake of lava between the bank and the
- *    chest's shelf. Its tank W sets it to stone, and only then may the
- *    hopper K drop the gold onto it (into the hot lake, the gold melts). Down
- *    the crater before the lake is set, and Nib walks off the bank into it.
- * Winning orders: V before C, C before N; W before K and before N (the hint:
- * V, C, W, K, N; W and K may come any time, N may come before K).
+ *    chest's shelf. Its tank W sets it to stone. Two hoppers feed the gold: K
+ *    over the lake's left and J, right above it; either drops its gold into
+ *    the hot lake and it melts, so both wait for W. Down the crater before
+ *    the lake is set, and Nib walks off the bank into it.
+ * 5. The shelf: a second armadillo guards the chest, behind a curb. Its tank T
+ *    (the pin farthest from Nib, pulled ahead of him) washes it away. Forget
+ *    T and the guard inks him at the chest, after every other stage is won.
+ * Winning orders: V before C, C before N; W before K, J and N; T before N
+ * (the hint: T, V, C, W, K, J, N; K and J in either order, N may come before J).
  */
 export const CALDERA: LevelDef = {
   id: 'caldera',
@@ -74,26 +78,35 @@ export const CALDERA: LevelDef = {
     { ax: 752, ay: 2000, bx: 1170, by: 2000, t: T }, // 24
     { ax: 1170, ay: 1930, bx: 1170, by: 2000, t: T }, // 25 the scree, too high a step for the armadillo
     { ax: 1170, ay: 1930, bx: 1540, by: 1930, t: T }, // 26
-    { ax: 480, ay: 1700, bx: 480, by: 1820, t: T }, // 27 the lake's tank
+    { ax: 560, ay: 1700, bx: 560, by: 1820, t: T }, // 27 the lake's tank
     { ax: 680, ay: 1700, bx: 680, by: 1820, t: T }, // 28
     { ax: 320, ay: 1660, bx: 320, by: 1800, t: T }, // 29 the gold's hopper
     { ax: 460, ay: 1660, bx: 460, by: 1800, t: T }, // 30
+    { ax: 70, ay: 1480, bx: 70, by: 1620, t: T }, // 31 the shelf's tank
+    { ax: 230, ay: 1480, bx: 230, by: 1620, t: T }, // 32
+    { ax: 472, ay: 1460, bx: 472, by: 1592, t: T }, // 34 the second hopper, over the lake
+    { ax: 552, ay: 1460, bx: 552, by: 1592, t: T }, // 35
+    { ax: 296, ay: 1972, bx: 296, by: 2000, t: T }, // 33 the shelf's curb, a step Nib and the guard can climb
   ],
-  bars: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 27, 28, 29, 30],
+  bars: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 27, 28, 29, 30, 31, 32, 33, 34, 35],
   pins: [
     { id: 'N', ax: 680, ay: 792, bx: 680, by: 708, t: PIN_T },
     { id: 'V', ax: 770, ay: 688, bx: 712, by: 688, t: PIN_T },
     { id: 'C', ax: 1038, ay: 528, bx: 822, by: 528, t: PIN_T },
-    { id: 'W', ax: 688, ay: 1828, bx: 472, by: 1828, t: PIN_T },
+    { id: 'W', ax: 688, ay: 1828, bx: 552, by: 1828, t: PIN_T },
     { id: 'K', ax: 312, ay: 1808, bx: 468, by: 1808, t: PIN_T },
+    { id: 'J', ax: 464, ay: 1600, bx: 560, by: 1600, t: PIN_T },
+    { id: 'T', ax: 238, ay: 1628, bx: 62, by: 1628, t: PIN_T },
   ],
   fills: [
     { kind: LAVA, x0: 720, x1: 770, y1: 680, count: 80 },
     { kind: LAVA, x0: 662, x1: 770, y1: 540, count: 85 },
     { kind: WATER, x0: 838, x1: 1012, y1: 520, count: 100 },
     { kind: LAVA, x0: 308, x1: 692, y1: 2042, count: 70 },
-    { kind: WATER, x0: 488, x1: 672, y1: 1820, count: 70 },
-    { kind: COIN, x0: 328, x1: 452, y1: 1800, count: 60 },
+    { kind: WATER, x0: 568, x1: 672, y1: 1820, count: 70 },
+    { kind: WATER, x0: 78, x1: 222, y1: 1620, count: 50 },
+    { kind: COIN, x0: 328, x1: 452, y1: 1800, count: 30 },
+    { kind: COIN, x0: 480, x1: 544, y1: 1600, count: 30 },
     { kind: COIN, x0: 1474, x1: 1532, y1: 1922, count: 12 }, // on the scree, under the last ledge's far end
   ],
   ledges: [
@@ -102,10 +115,10 @@ export const CALDERA: LevelDef = {
   ],
   drains: [{ x0: 726, x1: 744, y0: 1996, y1: 2040 }],
   nib: { x: 610, y: 768 },
-  blots: [{ x: 950, y: 1970, animal: 'armadillo' }],
+  blots: [{ x: 950, y: 1970, animal: 'armadillo' }, { x: 210, y: 1970, animal: 'armadillo' }],
   chest: { x: 150, y: 1960 },
   coinsNeeded: 60,
-  solution: ['V', 'C', 'W', 'K', 'N'],
+  solution: ['T', 'V', 'C', 'W', 'K', 'J', 'N'],
   stops: [{ x: 640 }, { x: 1100 }, { x: 1420 }, { x: 1510 }, { x: 900 }, { x: 400 }, { x: 150 }],
   torches: [{ x: 600, y: 700 }, { x: 1200, y: 760 }, { x: 1440, y: 1060 }, { x: 260, y: 1420 }, { x: 900, y: 1820 }, { x: 1360, y: 1800 }, { x: 140, y: 1860 }],
   view: { x: 0, y: 200, w: 1580, h: 2000 },

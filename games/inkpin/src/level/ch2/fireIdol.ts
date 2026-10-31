@@ -19,7 +19,7 @@ const SHAFT_X0 = 920;
 const SHAFT_X1 = CROWN_X1;
 /** The bath: its floor, its far wall, and the ledge past it (under the shaft too), a little higher. */
 const BATH_Y = 1300;
-const BATH_X1 = 1040;
+const BATH_X1 = SHAFT_X1;
 const RIM_Y = 1270;
 /** The low tunnel from the ledge past the far rim to the chest: Nib fits under its roof, the Old Salamander doesn't. */
 const TUNNEL_X1 = 1320;
@@ -70,8 +70,19 @@ const mouth = (m: Mouth, y: number) => [
  * 4. The bath and the chest: once the last jaw is out, Nib walks into the
  *    bath, swims it if it's flooded, and goes on through a tunnel too low for
  *    the boss to the chest. Before the flood the bath is still hot lava.
- * Winning order: A, A again once the third mouth steams, then F and the jaws
- * in any order, with F before the last jaw (the hint: A, A~7, F, J1, J2, J3).
+ * 5. The pit has a stair of three steps (Nib walks it, the boss climbs it), so
+ *    a boss left unwashed comes up for Nib in the hall: the flood must come
+ *    before the last jaw. The gold is split: some on the third jaw, most in the hall.
+ * 6. The tunnel door (K), the one pin that only holds Nib back: it shuts the
+ *    tunnel to the chest, out before or after the flood. The pit is as wide as
+ *    the flood shaft, and Nib drops in at its near end with the Old Salamander
+ *    at the far end: an unwashed boss walks up to him and inks him (he can't
+ *    reach its back from the floor). The only way to the chest is through it.
+ * Wrong orders: F first or J1 first (burnt), the gate back in too soon (melted
+ * or burnt), never (inked: too little flood left for the boss), J2 or J3 before
+ * the gate (melted).
+ * Winning order: A, A again once the third mouth steams, then K, F and the jaws
+ * in any order, with F before the last jaw (the hint: A, A~7, K, F, J1, J2, J3).
  */
 export const FIRE_IDOL: LevelDef = {
   id: 'fire-idol',
@@ -85,7 +96,7 @@ export const FIRE_IDOL: LevelDef = {
     [[CROWN_X0, BROW_TOP], [SHAFT_X0, BROW_TOP], [SHAFT_X0, 330], [CROWN_X1, 330], [CROWN_X1, CROWN_Y], [CROWN_X0, CROWN_Y]],
     // The idol's face with its stair of jaws, the flood shaft, and the hall with the bath.
     [
-      [300, 560], [CROWN_X0, 560], [CROWN_X0, CROWN_Y], [SHAFT_X1, CROWN_Y], [SHAFT_X1, TUNNEL_TOP], [TUNNEL_X1, TUNNEL_TOP], [TUNNEL_X1, 960], [1500, 960], [1500, RIM_Y], [BATH_X1, RIM_Y], [BATH_X1, BATH_Y], [SHAFT_X0, BATH_Y],
+      [300, 560], [CROWN_X0, 560], [CROWN_X0, CROWN_Y], [SHAFT_X1, CROWN_Y], [SHAFT_X1, TUNNEL_TOP], [TUNNEL_X1, TUNNEL_TOP], [TUNNEL_X1, 960], [1500, 960], [1500, RIM_Y], [BATH_X1, RIM_Y], [BATH_X1, BATH_Y], [1000, BATH_Y], [1000, 1267], [960, 1267], [960, 1233], [SHAFT_X0, 1233],
       [SHAFT_X0, YB], [300, YB],
     ],
   ],
@@ -112,19 +123,26 @@ export const FIRE_IDOL: LevelDef = {
     { ax: SHAFT_X0, ay: CROWN_Y + 8, bx: SHAFT_X0, by: 1100, t: T }, // 24
     // The hall floor, the bath, the ledge past it and the tunnel to the chest.
     { ax: 300, ay: YB, bx: SHAFT_X0, by: YB, t: T }, // 25
-    { ax: SHAFT_X0, ay: YB, bx: SHAFT_X0, by: BATH_Y, t: T }, // 26
-    { ax: SHAFT_X0, ay: BATH_Y, bx: BATH_X1, by: BATH_Y, t: T }, // 27
+    { ax: SHAFT_X0, ay: YB, bx: SHAFT_X0, by: 1233, t: T }, // 26 the stair down into the pit: three steps Nib walks and the Old Salamander climbs
+    { ax: 1000, ay: BATH_Y, bx: BATH_X1, by: BATH_Y, t: T }, // 27
     { ax: BATH_X1, ay: BATH_Y, bx: BATH_X1, by: RIM_Y, t: T }, // 28
     { ax: BATH_X1, ay: RIM_Y, bx: 1500, by: RIM_Y, t: T }, // 29 the ledge, the tunnel's floor and the chest's
     { ax: SHAFT_X1, ay: TUNNEL_TOP, bx: TUNNEL_X1, by: TUNNEL_TOP, t: T }, // 30 the tunnel's roof: Nib fits under it, the boss doesn't
     { ax: TUNNEL_X1, ay: 960, bx: TUNNEL_X1, by: TUNNEL_TOP, t: T }, // 31
     { ax: TUNNEL_X1, ay: 960, bx: 1500, by: 960, t: T }, // 32 the shrine's ceiling
     { ax: 1500, ay: 960, bx: 1500, by: RIM_Y, t: T }, // 33
+    { ax: SHAFT_X0, ay: 1233, bx: 960, by: 1233, t: T }, // 34 the stair
+    { ax: 960, ay: 1233, bx: 960, by: 1267, t: T }, // 35
+    { ax: 960, ay: 1267, bx: 1000, by: 1267, t: T }, // 36
+    { ax: 1000, ay: 1267, bx: 1000, by: BATH_Y, t: T }, // 37
+    { ax: 880, ay: YB - 24, bx: 906, by: YB - 24, t: T }, // 38 the sill at the stair's head: a lip that holds a hot pool in the hall
+    { ax: 880, ay: YB - 24, bx: 880, by: YB, t: T }, // 39
   ],
   bars: [3, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
   pins: [
     { id: 'A', ax: CROWN_X0 - 8, ay: CROWN_Y + 8, bx: GATE_X1 + 8, by: CROWN_Y + 8, t: PIN_T, gate: true },
     { id: 'F', ax: CROWN_X1 + 8, ay: CROWN_Y + 8, bx: SHAFT_X0 - 8, by: CROWN_Y + 8, t: PIN_T },
+    { id: 'K', ax: 1240, ay: RIM_Y + 8, bx: 1240, by: TUNNEL_TOP, t: PIN_T },
     { id: 'J1', ax: 292, ay: Y1 + 8, bx: M1.x1 + 8, by: Y1 + 8, t: PIN_T },
     { id: 'J2', ax: M1.x0 - 8, ay: Y2 + 8, bx: M2.x1 + 8, by: Y2 + 8, t: PIN_T },
     { id: 'J3', ax: M2.x0 - 8, ay: Y3 + 8, bx: M3.x1 + 8, by: Y3 + 8, t: PIN_T },
@@ -135,15 +153,16 @@ export const FIRE_IDOL: LevelDef = {
     { kind: LAVA, x0: M1.x0 + DAM + 8, x1: M1.x1 - 8, y1: Y1, count: 12 },
     { kind: LAVA, x0: M2.x0 + DAM + 8, x1: M2.x1 - 8, y1: Y2, count: 12 },
     { kind: LAVA, x0: M3.x0 + DAM + 8, x1: M3.x1 - 8, y1: Y3, count: 12 },
-    { kind: LAVA, x0: SHAFT_X0 + 8, x1: BATH_X1 - 8, y1: BATH_Y - 8, count: 20 },
-    { kind: COIN, x0: M2.x0 + 4, x1: M3.x0 - 8, y1: Y3, count: 40 },
+    { kind: LAVA, x0: 1008, x1: BATH_X1 - 8, y1: BATH_Y - 8, count: 14 },
+    { kind: COIN, x0: M2.x0 + 4, x1: M3.x0 - 8, y1: Y3, count: 14 },
+    { kind: COIN, x0: 430, x1: 640, y1: YB, count: 26 },
   ],
   drains: [{ x0: 858, x1: SHAFT_X0 - 8, y0: 1040, y1: 1160 }],
   nib: { x: 380, y: Y1 - 24 },
-  blots: [{ x: 980, y: BATH_Y - 48, boss: true, animal: 'salamander' }],
+  blots: [{ x: 1070, y: BATH_Y - 48, boss: true, animal: 'salamander' }],
   chest: { x: 1440, y: RIM_Y },
   coinsNeeded: 36,
-  solution: ['A', 'A~7', 'F', 'J1', 'J2', 'J3'],
+  solution: ['A', 'A~7', 'K', 'F', 'J1', 'J2', 'J3'],
   stops: [{ x: 420 }, { x: 520 }, { x: 640 }, { x: 760 }, { x: 1440 }],
   torches: [
     { x: 340, y: 620 },

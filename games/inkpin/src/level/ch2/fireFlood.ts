@@ -62,7 +62,7 @@ const EAST = 1640;
  *    tempting "more lava for the raft": pulled first, it pours onto him
  *    before he has set off. Once he has gone it is harmless, its lava runs
  *    down the shaft over the slab into the pool.
- * Winning order: G, W, G~1.5 (back in), L, N, D, H, V; the flood (G, W, G back
+ * Winning order (the hint): H, V~0.5, G, W, G~1.5 (back in), L, N, D; the flood (G, W, G back
  * in) and L in either order before N and D, as long as some pull comes
  * before L so Nib has walked over the ledge; H and V any time; T any time but first.
  */
@@ -183,8 +183,8 @@ export const FIRE_AND_FLOOD: LevelDef = {
   nib: { x: 100, y: 536 },
   blots: [{ x: 1125, y: BATH - 31, animal: 'salamander' }],
   coinsNeeded: 110,
-  solution: ['G', 'W', 'G~1.5', 'L', 'N', 'D', 'H', 'V'],
-  stops: [{ x: 870 }, { x: 1115 }, { x: 1360 }, { x: 1540 }, { x: 1250 }, { x: 750 }],
+  solution: ['H', 'V~0.5', 'G', 'W', 'G~1.5', 'L', 'N', 'D'],
+  stops: [{ x: 870 }, { x: 1540 }, { x: 750 }],
   torches: [{ x: 120, y: 480 }, { x: 420, y: 470 }, { x: 860, y: 520 }, { x: 1010, y: 690 }, { x: 1470, y: 690 }, { x: 960, y: 1090 }, { x: 1420, y: 1090 }],
   view: { x: 0, y: 360, w: EAST + 40, h: VAULT - 320 },
 };

@@ -19,8 +19,8 @@ const DRAIN_BOTTOM = 1100;
 /** The walk on to the far pool's well, and the chest's floor past it. */
 const WALK = 1060;
 const WELL_L = 1100;
-const WELL_R = 1170;
-const WELL_BOTTOM = 1160;
+const WELL_R = 1250;
+const WELL_BOTTOM = 1170;
 const CHEST_FLOOR = WALK;
 const END = 1640;
 /** The cistern over the moat: its gate G is the hole in its floor at the right end, its side door S opens onto the aqueduct. */
@@ -35,35 +35,44 @@ const BOWL_RIM = 780;
 const BOWL_BOTTOM = 880;
 
 /**
- * Level 6: the gate pin, on its own. One cistern of water has two jobs, and
- * its floor is a gate: it goes back in, so how much water each job gets is
- * the puzzle.
+ * Level 16: the gate pin, with one tank behind three jobs and two more
+ * hoppers waiting on it. The cistern's floor is a gate: it goes back in, so
+ * how much water each job gets is the puzzle.
  * 1. The moat: the cistern hangs over a lava moat between Nib and the gold.
- *    Its gate G pours into a bowl, and only once the bowl brims
- *    over does the water reach the moat and set it to stone. Cut it too soon
- *    (before the bowl brims over) and the moat stays hot: Nib walks into it.
- * 2. The gold's shelf: past the moat's lip, the gold lies on a shelf over a
- *    slope down to a drain. Leave the gate out and the moat fills up, brims
- *    over the lip and washes the gold down the drain. The cue to push the
- *    gate back in is on the board: the moat has gone black, all stone (about
- *    4.2 s after the pull; the window runs from about 2 s to 9 s).
- * 3. The hopper H, right over the moat and nearest Nib, is the tempting pin:
- *    its gold drops straight into the moat, and melts there unless the moat
- *    is already stone.
- * 4. The switch: the cistern's side door S. With the gate back in, the floor
- *    leads the rest of the water out of S and down the aqueduct to the far
- *    pool's well, which Nib can't climb out of until it floats him up to the
- *    chest's floor. Open S first and, with the gate in, the whole cistern
- *    runs off to the well: the moat stays hot, and Nib walks into it.
- * Winning order: G, then G back in once the moat is stone, then H and S in
- * either order (G, G~4.5, H, S is the hint).
+ *    Its gate G pours into a bowl, and only once the bowl brims over does the
+ *    water reach the moat and set it to stone. Cut it too soon (before the
+ *    bowl brims over) and the moat stays hot: Nib walks into it.
+ * 2. The gold's shelf: past the moat's lip, gold lies on a shelf over a slope
+ *    down to a drain. Leave the gate out and the moat fills up, brims over
+ *    the lip and washes the gold down the drain. The cue to push the gate back
+ *    in is on the board: the moat has gone black, all stone (about 4.2 s after
+ *    the pull; the window runs from about 2 s to about 6 s).
+ * 3. The hoppers: H, right over the moat and nearest Nib, is the tempting pin:
+ *    its gold drops straight into the moat and melts there unless the moat is
+ *    already stone. H3 drops a second pile on the shelf, which the overflow
+ *    would wash away too if the gate stayed out.
+ * 4. The far well: the switch S (the cistern's side door) leads the rest of
+ *    the water down the aqueduct into the well past the drain. That is not
+ *    quite enough to float Nib out (the well is deep), so the lava vat L over
+ *    the well's chest-side half is the other half: its lava turns to stone in
+ *    the water and builds the step up to the chest's floor. H2, the gold over
+ *    the well's near half, must fall onto water or dry stone, never hot lava.
+ *    L is a pull that is harmless early on its own (the water comes after it
+ *    and cools it), but its lava is hot until then, so H2 dropped on it
+ *    melts ('melted'). Open S before the gate has been cut and the cistern
+ *    runs off to the well: the moat stays hot, and H's gold melts.
+ * Winning order: G, then G back in once the moat is stone (2 to 6 s), then H
+ * and H3, S, H2, L (L before S works too). The hint: G, G~4.5, H, walk to the
+ * moat's gold, walk to the shelf, H3, S, H2 after the water has flowed, L,
+ * then the walk to the chest. No stops: Nib stays on his floor between pulls,
+ * so a wrong first pull loses to the board, not to the bot's walking.
  */
 export const JUST_ENOUGH: LevelDef = {
   id: 'just-enough',
   chapter: CH2,
   ruin: 'volcano',
   name: 'Just Enough',
-  goal: 'Take the chest and pick up 82 coins',
+  goal: 'Take the chest and pick up 114 coins',
   tip: 'A gate pin goes back in! Tap it again to cut the water: once the moat is stone, before it brims over onto the gold.',
   rooms: [
     [
@@ -104,26 +113,39 @@ export const JUST_ENOUGH: LevelDef = {
     { ax: 396, ay: 800, bx: 396, by: 880, t: T }, // 25
     { ax: 312, ay: 800, bx: 396, by: 800, t: T }, // 26 its roof, which keeps the bowl's spill out
     { ax: MOAT_R - 24, ay: STEP_Y, bx: MOAT_R, by: STEP_Y, t: T }, // 27 a step out of the moat
+    // The lava vat over the well's left half, and the gold's hopper over its right half.
+    { ax: 1190, ay: 840, bx: 1190, by: 968, t: T }, // 28
+    { ax: 1244, ay: 840, bx: 1244, by: 968, t: T }, // 29
+    { ax: 620, ay: 812, bx: 620, by: 880, t: T }, // 32 the shelf's hopper
+    { ax: 692, ay: 812, bx: 692, by: 880, t: T }, // 33
+    { ax: 1124, ay: 880, bx: 1124, by: 988, t: T }, // 30
+    { ax: 1176, ay: 880, bx: 1176, by: 988, t: T }, // 31
   ],
-  bars: [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27],
+  bars: [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33],
   pins: [
     { id: 'G', ax: HOLE_L - 8, ay: GATE_Y + 4, bx: CIS_R + 8, by: GATE_Y + 4, t: PIN_T, gate: true },
     { id: 'S', ax: CIS_R, ay: GATE_Y - 72, bx: CIS_R, by: GATE_Y - 2, t: PIN_T },
     { id: 'H', ax: 304, ay: 888, bx: 404, by: 888, t: PIN_T },
+    { id: 'H3', ax: 702, ay: 888, bx: 610, by: 888, t: PIN_T },
+    { id: 'L', ax: 1252, ay: 976, bx: 1184, by: 976, t: PIN_T },
+    { id: 'H2', ax: 1180, ay: 996, bx: 1116, by: 996, t: PIN_T },
   ],
   fills: [
     { kind: WATER, x0: CIS_L + 8, x1: CIS_R - 8, y1: GATE_Y - 26, count: 440 },
     { kind: LAVA, x0: MOAT_L + 8, x1: MOAT_R - 8, y1: MOAT_BOTTOM - 8, count: 56 },
     { kind: COIN, x0: 320, x1: 388, y1: 880, count: 36 },
-    { kind: COIN, x0: MOAT_R + 8, x1: 740, y1: SHELF - 8, count: 50 },
+    { kind: COIN, x0: MOAT_R + 8, x1: 700, y1: SHELF - 8, count: 40 },
+    { kind: LAVA, x0: 1194, x1: 1240, y1: 968, count: 56 },
+    { kind: COIN, x0: 628, x1: 684, y1: 880, count: 14 },
+    { kind: COIN, x0: 1132, x1: 1168, y1: 988, count: 30 },
   ],
   drains: [{ x0: DRAIN_L + 8, x1: DRAIN_R - 8, y0: 1064, y1: DRAIN_BOTTOM + 30 }],
   nib: { x: 100, y: NIB_FLOOR - 32 },
   blots: [],
   chest: { x: END - 60, y: CHEST_FLOOR - 30 },
-  coinsNeeded: 82,
-  solution: ['G', 'G~4.5', 'H', 'S'],
-  stops: [{ x: 310 }, { x: 740 }, { x: (WELL_L + WELL_R) / 2 }, { x: END - 60 }],
+  coinsNeeded: 114,
+  solution: ['G', 'G~4.5', 'H', '@340', '@700', 'H3', 'S', 'H2~14', 'L~16', '@1580'],
+  stops: [],
   torches: [{ x: 120, y: 880 }, { x: 240, y: 640 }, { x: 660, y: 920 }, { x: 1020, y: 960 }, { x: 1320, y: 960 }, { x: 1600, y: 940 }],
   view: { x: 0, y: 460, w: END + 40, h: 760 },
 };

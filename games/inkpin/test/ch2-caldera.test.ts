@@ -70,18 +70,19 @@ describe('The Caldera', () => {
   });
 
   // Other winning orders: the gold and the lake any time after each other, Nib's door only once the stair is stone.
-  it.each([[['V', 'C', 'W', 'N', 'K']], [['W', 'K', 'V', 'C', 'N']]])('is won by %j too', (order) => {
+  it.each([[['T', 'V', 'C', 'W', 'J', 'K', 'N']], [['T', 'V', 'C', 'W', 'K', 'N', 'J']]])('is won by %j too', (order) => {
     expect(play(CALDERA, order).status.state).toBe('won');
   });
 
   // Each tempting wrong order, the pull it goes wrong on, and how it ends (as the audit plays it).
   it.each([
-    ["Nib's door first: he drops into the empty mould, and the vent pours on him", ['N', 'V', 'C', 'W', 'K'], 'V', ['burnt']],
-    ['the door on the hot moulds', ['V', 'N', 'C', 'W', 'K'], 'N', ['burnt']],
-    ['the rain before the vent: the empty moulds drink it, and the armadillo stays dry', ['C', 'V', 'W', 'K', 'N'], 'N', ARMADILLO],
-    ['the gold into the hot lake', ['K', 'V', 'C', 'W', 'N'], 'K', ['melted']],
-    ['the gold before the lake is set, once the stair is done', ['V', 'C', 'K', 'W', 'N'], 'K', ['melted']],
-    ['down the crater before the lake is set: no way back up', ['V', 'C', 'N', 'W', 'K'], 'N', ['burnt']],
+    ["Nib's door first: he drops into the empty mould, and the vent pours on him", ['N', 'V', 'C', 'W', 'K', 'J', 'T'], 'V', ['burnt']],
+    ['the door on the hot moulds', ['T', 'V', 'N', 'C', 'W', 'K', 'J'], 'N', ['burnt']],
+    ['the rain before the vent: the empty moulds drink it, and the armadillo stays dry', ['C', 'V', 'T', 'W', 'K', 'J', 'N'], 'N', ARMADILLO],
+    ['the lake hopper before the lake is set (four stages in)', ['T', 'V', 'C', 'J', 'W', 'K', 'N'], 'J', ['melted']],
+    ['the gold into the hot lake', ['K', 'T', 'V', 'C', 'W', 'J', 'N'], 'K', ['melted']],
+    ['down the crater before the lake is set: no way back up', ['T', 'V', 'C', 'N', 'W', 'K', 'J'], 'N', ['burnt']],
+    ["the shelf's tank forgotten: the guard at the chest inks him", ['V', 'C', 'W', 'K', 'J', 'N', 'T'], 'N', ['inked']],
   ])('%s: %j', (_name, order, at, causes) => {
     const e = playNoting(CALDERA, order);
     expect(e.at).toBe(at);

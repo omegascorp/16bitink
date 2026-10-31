@@ -30,12 +30,19 @@ import { CH2, PIN_T, T } from '../common';
  *    - V first: the water sets the lava in the brazier, which holds it for
  *      good, and the armadillo waits for Nib (inked or pricked).
  *    - H before K: the brazier's lava runs over the gold (melted).
+    - H before V: the bowl sits near the brazier, so the gold drops onto the
+      hot lava on the floor (melted); it must wait for the stone.
  *    - G before K and V: Nib walks into the armadillo or the hot lava.
+ *    - The wash is only part of it: W's tank is small, and the bath is left
+ *      hot. The small tank over the bath's far end (Q) finishes it to stone,
+ *      and it has to come after the wash, with a few seconds for the stone
+ *      to set (too long a wait and the salamander gets over). Without Q, G
+ *      lets the salamander (inked) or the lava (burnt) out.
  * The stages are tied by G: it opens the whole way down at once, so the
  * hall has to be made safe while Nib is still shut in his pit, and the
  * wash has to wait for the salamander, which only comes once Nib is down.
- * Winning order: S, K, V, H, W, G (S before W; K before V and H; V before
- * G; W before G).
+ * Winning order: S, K, V, H, W, Q, G (S before W; W before Q; K before V and H; V before
+ * H; V before G; W before G).
  */
 export const EMBER_LIGHT: LevelDef = {
   id: 'ember-light',
@@ -74,24 +81,28 @@ export const EMBER_LIGHT: LevelDef = {
     { ax: 1360, ay: 970, bx: 1360, by: 1040, t: T }, // 19
     { ax: 1240, ay: 880, bx: 1240, by: 950, t: T }, // 20 the small tank over the brazier
     { ax: 1360, ay: 880, bx: 1360, by: 950, t: T }, // 21
-    { ax: 1600, ay: 940, bx: 1600, by: 1040, t: T }, // 22 the gold's bowl
-    { ax: 1700, ay: 940, bx: 1700, by: 1040, t: T }, // 23
+    { ax: 1440, ay: 940, bx: 1440, by: 1040, t: T }, // 22 the gold's bowl
+    { ax: 1540, ay: 940, bx: 1540, by: 1040, t: T }, // 23
+    { ax: 600, ay: 560, bx: 600, by: 760, t: T }, // 24 the small tank, over the bath's far end
+    { ax: 690, ay: 560, bx: 690, by: 760, t: T }, // 25
   ],
-  bars: [16, 17, 18, 19, 20, 21, 22, 23],
+  bars: [16, 17, 18, 19, 20, 21, 22, 23, 24, 25],
   pins: [
     { id: 'S', ax: 292, ay: 704, bx: 292, by: 774, t: PIN_T },
     { id: 'G', ax: 410, ay: 932, bx: 410, by: 998, t: PIN_T },
     { id: 'W', ax: 376, ay: 768, bx: 548, by: 768, t: PIN_T },
-    { id: 'K', ax: 1368, ay: 1048, bx: 1232, by: 1048, t: PIN_T },
+    { id: 'K', ax: 1232, ay: 1048, bx: 1368, by: 1048, t: PIN_T },
     { id: 'V', ax: 1232, ay: 958, bx: 1368, by: 958, t: PIN_T },
-    { id: 'H', ax: 1708, ay: 1048, bx: 1592, by: 1048, t: PIN_T },
+    { id: 'Q', ax: 698, ay: 768, bx: 592, by: 768, t: PIN_T },
+    { id: 'H', ax: 1548, ay: 1048, bx: 1432, by: 1048, t: PIN_T },
   ],
   fills: [
-    { kind: WATER, x0: 392, x1: 532, y1: 760, count: 115 },
+    { kind: WATER, x0: 392, x1: 532, y1: 760, count: 18 },
+    { kind: WATER, x0: 608, x1: 682, y1: 760, count: 55 },
     { kind: LAVA, x0: 418, x1: 692, y1: 992, count: 54 },
     { kind: LAVA, x0: 1248, x1: 1352, y1: 1040, count: 60 },
     { kind: WATER, x0: 1248, x1: 1352, y1: 950, count: 16 },
-    { kind: COIN, x0: 1608, x1: 1692, y1: 1040, count: 30 },
+    { kind: COIN, x0: 1448, x1: 1532, y1: 1040, count: 30 },
   ],
   rubies: [
     { x: 560, y: 980 },
@@ -104,7 +115,7 @@ export const EMBER_LIGHT: LevelDef = {
   ],
   chest: { x: 1820, y: 1176 },
   coinsNeeded: 45,
-  solution: ['S', 'K', 'V', 'H', 'W', 'G'],
+  solution: ['S', 'K', 'V', 'H', 'W', 'Q~3', 'G'],
   stops: [{ x: 355 }, { x: 560 }, { x: 850 }, { x: 1100 }, { x: 1450 }, { x: 1800 }],
   torches: [
     { x: 120, y: 720 },

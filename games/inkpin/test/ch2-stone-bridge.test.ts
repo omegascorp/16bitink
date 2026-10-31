@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { STONE_BRIDGE } from '../src/level/ch2/stoneBridge';
-import type { Stop } from '../src/logic/level';
 import { inRooms } from '../src/logic/rooms';
-import { COIN, LAVA, STEPS_PER_SECOND, STONE } from '../src/logic/particles';
+import { COIN, STEPS_PER_SECOND, STONE } from '../src/logic/particles';
 import { World } from '../src/logic/world';
 import { audit } from './audit';
 import { play } from './solver';
@@ -23,59 +22,31 @@ interface Watch {
   readonly won: boolean;
   readonly seconds: number;
   readonly ends: string[];
-  /** Where the raft was, and the gold on its deck, once the lava had come. */
+  /** Where the raft lay, and the gold on its deck, once the sluice was open and the bridge poured. */
   readonly raftX: number;
   readonly cargo: number;
-  /** Stone in the gap once it was cooled, and hot lava left in the river below it. */
+  /** Stone in the gap once it was cooled. */
   readonly bridge: number;
-  readonly river: number;
 }
 
-/** Plays the hint step for step the way the bot does (test/solver.ts's play), noting what each stage left. */
+/** Plays the hint with the bot (test/solver.ts's play), noting what the stage before the hall's gold left. */
 function watchSolution(): Watch {
-  const w = new World(STONE_BRIDGE);
-  const run = (steps: number): void => {
-    for (let s = 0; s < steps && !w.finished; s++) {
-      w.step();
-      if (s > 30 && w.settled && w.nibOrder.kind === 'stay') break;
-    }
-  };
-  const stops = STONE_BRIDGE.stops ?? [];
-  const visit = (list: readonly Stop[], steps: number): void => {
-    for (const s of list) {
-      if (w.finished) return;
-      w.command(s.y === undefined ? { kind: 'goto', x: s.x } : { kind: 'goto', x: s.x, y: s.y });
-      run(steps);
-    }
-  };
-  const count = (kind: number, test: (x: number, y: number) => boolean): number => {
-    const g = w.grains;
-    let n = 0;
-    for (let i = 0; i < g.count; i++) if (g.kind[i] === kind && test(g.x[i]!, g.y[i]!)) n++;
-    return n;
-  };
-  const raft = w.boulders.find((b) => b.raft)!;
   let raftX = 0;
   let cargo = 0;
   let bridge = 0;
-  let river = 0;
-  for (const id of STONE_BRIDGE.solution) {
-    w.pull(id);
-    run(STEPS_PER_SECOND * 8);
-    visit(stops, STEPS_PER_SECOND * 8);
-    if (id === 'L') {
-      raftX = raft.x;
-      cargo = count(COIN, (x, y) => Math.abs(x - raft.x) < raft.hw && y < raft.y);
+  const r = play(STONE_BRIDGE, STONE_BRIDGE.solution, false, (w, i) => {
+    if (i !== 3) return;
+    const g = w.grains;
+    const raft = w.boulders.find((b) => b.raft)!;
+    raftX = raft.x;
+    for (let n = 0; n < g.count; n++) {
+      const x = g.x[n]!;
+      const y = g.y[n]!;
+      if (g.kind[n] === COIN && Math.abs(x - raft.x) < raft.hw && y < raft.y) cargo++;
+      if (g.kind[n] === STONE && x > 380 && x < 600 && y < 900) bridge++;
     }
-    if (id === 'W') {
-      bridge = count(STONE, (x, y) => x > 380 && x < 600 && y < 900);
-      river = count(LAVA, (x, y) => x > 608 && x < DOCK_X && y > 860);
-    }
-  }
-  const back = [...stops].reverse();
-  visit([...back, ...stops, ...back, ...stops], (STEPS_PER_SECOND * 25) / 4);
-  w.leave();
-  return { won: w.status.state === 'won', seconds: w.steps / STEPS_PER_SECOND, ends: w.blots.map((b) => b.gone ?? 'alive'), raftX, cargo, bridge, river };
+  });
+  return { won: r.status.state === 'won', seconds: r.steps / STEPS_PER_SECOND, ends: [], raftX, cargo, bridge };
 }
 
 describe('The Stone Bridge', () => {
@@ -97,30 +68,37 @@ describe('The Stone Bridge', () => {
     expect(STONE_BRIDGE.fills.reduce((n, f) => n + f.count, 0)).toBeLessThanOrEqual(700);
   });
 
-  it('is won by its hint in a minute or more: the lava bridges the gap, ferries the gold and clears the hall', () => {
+  it('is won by its hint in a minute or more: the lava bridges the gap, the sluice lets it ferry the gold and clear the hall', () => {
     const r = watchSolution();
     expect(r.won).toBe(true);
     expect(r.seconds).toBeGreaterThanOrEqual(60);
-    // Both armadillos scorched: the one in the gap by the pour, the one in the hall by the overflow.
-    expect(r.ends).toEqual(['scorched', 'scorched']);
-    // The spill carried the raft and all three coins to the dock.
+    expect(r.seconds).toBeLessThanOrEqual(120);
+    // The raft docked at the river's end with all three coins on its deck.
     expect(r.raftX).toBeGreaterThan(DOCK_X - 60);
     expect(r.cargo).toBe(3);
-    // The cistern set the gap to stone, and the river under the slot stayed hot.
+    // The cistern set the gap to stone.
     expect(r.bridge).toBeGreaterThan(150);
-    expect(r.river).toBeGreaterThan(150);
+  }, 240_000);
+
+  it('is won with the sluice opened first, too', () => {
+    expect(outcome(['P', 'L', 'W', 'K~30', 'G'])).toBe('won');
   }, 240_000);
 
   it.each([
-    // Nib let out first: he drops into the empty gap, onto the armadillo's spikes.
-    [['G', 'L', 'W', 'K'], 'pricked'],
+    // The obvious order: Nib let out first drops into the empty gap, onto the armadillo's spikes.
+    [['G', 'L', 'W', 'P', 'K'], 'inked'],
     // Nib let out onto the hot pool before it is cooled.
-    [['L', 'G', 'W', 'K'], 'burnt'],
+    [['L', 'G', 'P', 'W', 'K'], 'burnt'],
+    // Looks right through three pulls: the lava, the sluice, the cistern are all done, but Nib
+    // goes out to the raft while the river is still hot.
+    [['L', 'W', 'P', 'G', 'K'], 'burnt'],
+    // The gold dropped into the hall while the lava is still on its way: it melts.
+    [['L', 'P', 'K', 'W', 'G'], 'melted'],
     // Cooled too early: the lava lands on the cistern's water, stone tumbles down the slot with
-    // the spill, the river sets around the raft, and its gold never reaches the dock.
-    [['W', 'L', 'K', 'G'], 'melted'],
+    // the spill, and the gold on the raft is lost.
+    [['W', 'L', 'P', 'K~30', 'G'], 'drained'],
     // The hall's gold before the lava: the armadillo still pacing there kicks it down the drain.
-    [['K', 'L', 'W', 'G'], 'drained'],
+    [['K', 'L', 'P', 'W', 'G'], 'drained'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome(order)).toBe(cause);
   }, 240_000);

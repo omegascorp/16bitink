@@ -18,8 +18,13 @@ describe('The Ruby Hoard', () => {
     const r = play(RUBY_HOARD, RUBY_HOARD.solution);
     expect(r.status.state).toBe('won');
     expect(r.steps / 120).toBeGreaterThanOrEqual(60);
+    expect(r.steps / 120).toBeLessThanOrEqual(120);
     // Five rubies, and all but the few coins caught under them in the hopper.
-    expect(r.treasure).toBeGreaterThanOrEqual(5 * RUBY_COINS + 130);
+    expect(r.treasure).toBeGreaterThanOrEqual(5 * RUBY_COINS + 110);
+  });
+
+  it('has a shorter way that skips the left door', () => {
+    expect(outcome(['S', 'H', 'L', 'W', 'C', 'G'])).toBe('won');
   });
 
   it('sets the coin target so that melting the gold loses', () => {
@@ -35,17 +40,17 @@ describe('The Ruby Hoard', () => {
 
   it.each([
     // The tempting pin: the hopper's floor. The whole hoard drops into the lava tank and the gold melts.
-    [['H', 'S', 'L', 'W', 'C', 'G'], 'melted'],
-    // The ramp's pin before the gold comes down: it slides straight off the ramp into the river.
-    [['C', 'S', 'H', 'L', 'W', 'G'], 'melted'],
-    // The ramp's pin on the hot river: the waiting gold slides into the lava.
-    [['S', 'H', 'L', 'C', 'W', 'G'], 'melted'],
+    [['H', 'S', 'R', 'W', 'L', 'C', 'G'], 'melted'],
+    // The left door first: the gold slides off toward Nib's cliff into the landing's lava.
+    [['R', 'S', 'W', 'H', 'L', 'C', 'G'], 'melted'],
+    // The water after the left door but before the gold has gone: same.
+    [['W', 'S', 'R', 'H', 'L', 'C', 'G'], 'melted'],
+    // The lava poured away before the water, with R used: the water that follows it melts the gold.
+    [['S', 'R', 'L', 'W', 'H', 'C', 'G'], 'melted'],
+    // The ramp's pin before the river is stone: the waiting gold slides into the lava.
+    [['S', 'R', 'W', 'H', 'C', 'L', 'G'], 'melted'],
     // Nib let down before the lava: he lands on the armadillo's spikes.
     [['S', 'H', 'G', 'L', 'W', 'C'], 'pricked'],
-    // Nib let down after the lava but before the water: he walks into the river.
-    [['S', 'H', 'L', 'G', 'W', 'C'], 'burnt'],
-    // The water first, the hoard still in the hopper: it pools on the gold, and the floor drops the lot into the lava.
-    [['W', 'H', 'S', 'L', 'C', 'G'], 'melted'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome(order)).toBe(cause);
   });

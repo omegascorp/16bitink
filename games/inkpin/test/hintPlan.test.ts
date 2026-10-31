@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hintsNow, planSteps, stepsDone, type Done } from '../src/scenes/hintPlan';
+import { hintsNow, planSteps, stepsDone, walkDone, WALK_REACH, type Done } from '../src/scenes/hintPlan';
 import { lossText } from '../src/scenes/lossLines';
 
 describe('the hint plan', () => {
@@ -35,6 +35,23 @@ describe('the hint plan', () => {
 
   it('numbers the steps up to the first timed one', () => {
     expect(hintsNow(plan, 0, 0).map((m) => `${m.n}${m.id}`)).toEqual(['1W', '2G']);
+  });
+});
+
+describe('a walk in the hint', () => {
+  const plan = planSteps(['C', '@2060', 'V'], new Set());
+
+  it("reads '@x' as a walk to x", () => {
+    expect(plan[1]).toEqual({ id: '@2060', act: 'walk', wait: null, x: 2060 });
+  });
+
+  it('numbers the walk with the rest, and marks it done once Nib gets there', () => {
+    expect(hintsNow(plan, 1, 0).map((m) => `${m.n}${m.act}`)).toEqual(['1walk', '2pull']);
+    expect(walkDone(plan, 1, 2060 - WALK_REACH - 1)).toBeNull();
+    expect(walkDone(plan, 1, 2060 - WALK_REACH + 1)?.id).toBe('@2060');
+    // Only while it's the next step.
+    expect(walkDone(plan, 0, 2060)).toBeNull();
+    expect(stepsDone(plan, [{ id: 'C', act: 'pull', step: 5 }, { id: '@2060', act: 'walk', step: 90 }])).toBe(2);
   });
 });
 

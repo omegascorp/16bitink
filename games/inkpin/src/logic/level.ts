@@ -116,7 +116,8 @@ export interface LevelDef {
   /**
    * A winning order, for the hint, in steps (see parseStep): 'W' pulls W
    * (or pushes the gate W back in if it's out), 'W~1.5' does that 1.5 s
-   * after the step before instead of once things settle.
+   * after the step before instead of once things settle, '@2060' walks Nib
+   * to x = 2060 (and waits until things settle).
    */
   readonly solution: readonly string[];
   /**
@@ -130,17 +131,28 @@ export interface LevelDef {
   readonly view: { readonly x: number; readonly y: number; readonly w: number; readonly h: number };
 }
 
-/** One step of a solution or a test order: a pin to tap, and how long after the step before (s), or null to wait until things settle. */
+/**
+ * One step of a solution or a test order: a pin to tap, and how long after
+ * the step before (s), or null to wait until things settle. A walk step
+ * ('@2060') has `walk`, the x Nib walks to; its id is the step's text.
+ */
 export interface Step {
   readonly id: string;
   readonly wait: number | null;
+  readonly walk?: number;
 }
 
-/** Reads a step: 'W' (once things settle) or 'W~1.5' (1.5 s after the step before). */
+/** Reads a step: 'W' (once things settle), 'W~1.5' (1.5 s after the step before), '@2060' (walk Nib to x = 2060). */
 export function parseStep(step: string): Step {
   const at = step.lastIndexOf('~');
-  if (at < 0) return { id: step, wait: null };
-  const wait = Number(step.slice(at + 1));
-  if (!Number.isFinite(wait) || wait < 0) throw new Error(`Bad step "${step}": the wait must be seconds, as in "W~1.5"`);
-  return { id: step.slice(0, at), wait };
+  const head = at < 0 ? step : step.slice(0, at);
+  let wait: number | null = null;
+  if (at >= 0) {
+    wait = Number(step.slice(at + 1));
+    if (!Number.isFinite(wait) || wait < 0) throw new Error(`Bad step "${step}": the wait must be seconds, as in "W~1.5"`);
+  }
+  if (!head.startsWith('@')) return { id: head, wait };
+  const walk = Number(head.slice(1));
+  if (head.length < 2 || !Number.isFinite(walk)) throw new Error(`Bad step "${step}": a walk is '@' and an x, as in "@2060"`);
+  return { id: head, wait, walk };
 }

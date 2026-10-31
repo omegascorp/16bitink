@@ -4,7 +4,7 @@ import type { LevelDef } from '../src/logic/level';
 import { COIN, LAVA, STEPS_PER_SECOND, STONE, WATER } from '../src/logic/particles';
 import { inRooms } from '../src/logic/rooms';
 import { World } from '../src/logic/world';
-import { audit } from './audit';
+import { audit, obviousOrders } from './audit';
 import { play } from './solver';
 
 declare const process: { readonly env: Readonly<Record<string, string | undefined>> };
@@ -20,6 +20,17 @@ const CELL = 20;
 
 const orderText = (order: readonly string[]): string => order.join(',');
 const sec = (steps: number): string => (steps / STEPS_PER_SECOND).toFixed(1);
+
+const KIND_NAME: Record<number, string> = { [WATER]: 'water', [LAVA]: 'lava', [COIN]: 'coin', [STONE]: 'stone' };
+
+/** The rows world.ts's fill packs: every 10 px across from x0 + 6 to x1 - 6, odd rows offset 5, rows 9 px apart from y1 - 8 up. */
+function rowsOf(f: LevelDef['fills'][number]): number {
+  const per = (offset: number): number => Math.max(0, Math.floor((f.x1 - 6 - (f.x0 + 6 + offset)) / 10) + 1);
+  let left = f.count;
+  let rows = 0;
+  while (left > 0 && rows < 1000) left -= per((rows++ % 2) * 5);
+  return rows;
+}
 
 /** A world with the grains settled, as the player sees the start. */
 function settled(level: LevelDef): World {
@@ -89,17 +100,36 @@ function runOrder(level: LevelDef, order: readonly string[], steps: boolean): st
   return [`${orderText(order)} → ${status}  t=${sec(r.steps)}s  coins=${r.treasure}/${level.coinsNeeded}`, ...out];
 }
 
+/** One row of "## The difficulty curve" in docs/inkpin-levels.md: [levels 1–3 of the chapter, levels 4–10]. */
+interface CurveRow {
+  readonly fromChapter: number;
+  readonly maxWin: readonly [number, number];
+  readonly minLessons: readonly [number, number];
+  readonly maxTop: number;
+  readonly minLate: number;
+}
+
+const CURVE: readonly CurveRow[] = [
+  { fromChapter: 1, maxWin: [0.35, 0.15], minLessons: [3, 4], maxTop: 0.5, minLate: 0 },
+  { fromChapter: 2, maxWin: [0.2, 0.1], minLessons: [4, 5], maxTop: 0.45, minLate: 0.5 },
+  { fromChapter: 4, maxWin: [0.15, 0.08], minLessons: [5, 6], maxTop: 0.4, minLate: 0.6 },
+  { fromChapter: 7, maxWin: [0.1, 0.06], minLessons: [6, 6], maxTop: 0.4, minLate: 0.6 },
+];
+
 function auditLine(level: LevelDef): string[] {
   const a = audit(level);
-  const pos = (CHAPTERS.find((c) => c.includes(level))?.indexOf(level) ?? 0) + 1;
-  const early = pos <= 3;
+  const chapter = CHAPTERS.findIndex((c) => c.includes(level)) + 1;
+  const pos = (CHAPTERS[chapter - 1]?.indexOf(level) ?? 0) + 1;
+  const row = [...CURVE].reverse().find((r) => chapter >= r.fromChapter) ?? CURVE[0]!;
+  const k = pos <= 3 ? 0 : 1;
   const lessons = Object.entries(a.lessons).sort((x, y) => y[1] - x[1]);
-  const maxWin = early ? 0.35 : 0.15;
-  const minLessons = early ? 3 : 4;
-  const checks = [a.winShare <= maxWin, lessons.length >= minLessons, a.topLessonShare <= 0.5, a.stuckShare <= 0.1];
+  const maxWin = row.maxWin[k];
+  const minLessons = row.minLessons[k];
+  const obviousLose = chapter < 2 || (a.obvious.nearest !== 'won' && a.obvious.leftToRight !== 'won');
+  const checks = [a.winShare <= maxWin, lessons.length >= minLessons, a.topLessonShare <= row.maxTop, a.stuckShare <= 0.1, a.lateLossShare >= row.minLate, obviousLose];
   const pct = (n: number): string => `${Math.round(n * 100)}%`;
   return [
-    `audit (level ${pos} of chapter): tried ${a.tried}  win ${pct(a.winShare)} (<=${pct(maxWin)})  lessons ${lessons.length} (>=${minLessons})  top ${pct(a.topLessonShare)} (<=50%)  stuck ${pct(a.stuckShare)} (<=10%)  blocked ${pct(a.blockedShare)}  ${checks.every(Boolean) ? 'PASS' : 'FAIL'}`,
+    `audit (chapter ${chapter}, level ${pos} of it; curve row from chapter ${row.fromChapter}): tried ${a.tried}  win ${pct(a.winShare)} (<=${pct(maxWin)})  lessons ${lessons.length} (>=${minLessons})  top ${pct(a.topLessonShare)} (<=${pct(row.maxTop)})  stuck ${pct(a.stuckShare)} (<=10%)  late losses ${pct(a.lateLossShare)} (>=${pct(row.minLate)})  blocked ${pct(a.blockedShare)}  obvious: nearest ${a.obvious.nearest}, left-to-right ${a.obvious.leftToRight} (must lose)  ${checks.every(Boolean) ? 'PASS' : 'FAIL'}`,
     ...lessons.slice(0, 5).map(([k, n]) => `    ${n}x ${k}`),
   ];
 }
@@ -113,10 +143,20 @@ describe.skipIf(!env.LAB)('level lab', () => {
     if (env.BOARD) out.push(...board(level, w));
     const orders = [level.solution.slice(), ...(env.ORDERS ?? '').split('|').filter(Boolean).map((o) => o.split(','))];
     orders.forEach((o, i) => out.push(...runOrder(level, o, !!env.STEPS).map((l, j) => (i === 0 && j === 0 ? `hint: ${l}` : l))));
+    const obv = obviousOrders(level);
+    out.push(...runOrder(level, obv.nearest, false).map((l) => `obvious, nearest first: ${l}`));
+    out.push(...runOrder(level, obv.leftToRight, false).map((l) => `obvious, left to right: ${l}`));
     if (env.AUDIT) out.push(...auditLine(level));
     const g = new World(level).grains;
     const outside = Array.from({ length: g.count }, (_, i) => i).filter((i) => !inRooms(level.rooms, g.x[i]!, g.y[i]!));
     out.push(`grains: ${outside.length} start outside the rooms; total ${g.count}/${GRAIN_LIMIT}${g.count > GRAIN_LIMIT ? ' OVER' : ''}`);
+    // Grain ids follow the fills in order: name each fill that starts grains in the rock.
+    let first = 0;
+    level.fills.forEach((f, k) => {
+      const n = outside.filter((i) => g.id[i]! >= first && g.id[i]! < first + f.count).length;
+      if (n) out.push(`  fill ${k} (${KIND_NAME[f.kind]} x ${f.x0}..${f.x1}, y1 ${f.y1}, count ${f.count}) overflows: ${n} grains start outside the rooms (it packs ${rowsOf(f)} rows up to y ${f.y1 - 8 - (rowsOf(f) - 1) * 9})`);
+      first += f.count;
+    });
     console.log(out.join('\n'));
     expect(out.length).toBeGreaterThan(0);
   });

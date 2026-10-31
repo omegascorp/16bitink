@@ -12,7 +12,11 @@ const FULL_UP_TO = 5;
 const SAMPLE = 60;
 /** With gate pins: every order up to this many, else a fixed sample. */
 const FULL_GATED_UP_TO = 120;
-/** When the audit pushes a gate back in after pulling it: never, or this many seconds after the pull. */
+/**
+ * When the audit pushes a gate back in after pulling it: never, or this many
+ * seconds after the pull. Each gate also tries the solution's own wait for
+ * it, and half and twice that (see pushBacksFor).
+ */
 const PUSH_BACKS: readonly (number | null)[] = [null, 0.75, 1.5, 3];
 
 /** How one pull order ended, and which pull it went wrong on. */
@@ -28,6 +32,8 @@ export interface Ending {
    * any order starting the same way ends the same.
    */
   readonly prefix?: string;
+  /** For a loss: true when it came after the order's second tap or later (not on its first). */
+  readonly late?: boolean;
 }
 
 /**
@@ -53,14 +59,20 @@ export function playNoting(level: LevelDef, order: readonly string[]): Ending {
     }
   };
   let last = '';
+  let taps = 0;
+  const late = (): boolean => taps >= 2;
   for (let i = 0; i < steps.length; i++) {
-    const { id, wait } = steps[i]!;
+    const { id, wait, walk } = steps[i]!;
     if (wait !== null) for (let s = Math.round(wait * STEPS_PER_SECOND); s > 0 && !w.finished; s--) w.step();
-    if (!w.finished) {
+    if (walk !== undefined && !w.finished) {
+      w.command({ kind: 'goto', x: walk });
+      run(MAX_WAIT);
+    } else if (!w.finished) {
       const pin = w.pins.find((p) => p.def.id === id);
       const pushing = pin?.def.gate === true && pin.pulledAt !== null;
       if (!w.tap(id)) return { order, end: pushing ? 'jammed' : 'blocked', at: id, prefix: prefixKey(order, i) };
       last = pushing ? `${id}↩` : id;
+      taps++;
       const next = steps[i + 1];
       if (next?.wait != null) continue;
       run(MAX_WAIT);
@@ -69,14 +81,14 @@ export function playNoting(level: LevelDef, order: readonly string[]): Ending {
     if (w.finished) {
       const s = w.status;
       const lost = s.state === 'lost';
-      return { order, end: lost ? s.cause : s.state, at: lost ? last : '', prefix: lost ? prefixKey(order, i) : undefined };
+      return { order, end: lost ? s.cause : s.state, at: lost ? last : '', prefix: lost ? prefixKey(order, i) : undefined, late: lost && late() };
     }
   }
   const back = [...stops].reverse();
   visit([...back, ...stops, ...back, ...stops], MAX_TAIL / 4);
   w.leave();
   const s = w.status;
-  if (s.state === 'lost') return { order, end: s.cause, at: last };
+  if (s.state === 'lost') return { order, end: s.cause, at: last, late: late() };
   return { order, end: s.state === 'won' ? 'won' : 'stuck', at: '' };
 }
 
@@ -99,8 +111,50 @@ function prefixKey(order: readonly string[], i: number): string {
   return [...order.slice(0, i + 1), next !== undefined && parseStep(next).wait !== null ? next : ''].join();
 }
 
-/** The orders the audit tries: all of them for a few pins, else the hint and a seeded sample. */
+/**
+ * The solution's walk steps ('@x'), each with how many pins the solution
+ * has pulled before it: the audit keeps them there in every order it tries.
+ */
+function walksOf(level: LevelDef): { readonly step: string; readonly after: number }[] {
+  const pulled = new Set<string>();
+  const out: { step: string; after: number }[] = [];
+  for (const s of level.solution) {
+    const st = parseStep(s);
+    if (st.walk !== undefined) out.push({ step: s, after: pulled.size });
+    else pulled.add(st.id);
+  }
+  return out;
+}
+
+/** Puts the solution's walks into an order, each after as many first pulls as in the solution. */
+function withWalks(order: readonly string[], walks: ReturnType<typeof walksOf>): string[] {
+  if (!walks.length) return order.slice();
+  const out: string[] = [];
+  const pulled = new Set<string>();
+  const place = (): void => {
+    for (const w of walks) if (w.after === pulled.size && !out.includes(w.step)) out.push(w.step);
+  };
+  place();
+  for (const s of order) {
+    out.push(s);
+    const { id } = parseStep(s);
+    if (!pulled.has(id)) {
+      pulled.add(id);
+      place();
+    }
+  }
+  for (const w of walks) if (!out.includes(w.step)) out.push(w.step);
+  return out;
+}
+
+/** The orders the audit tries: all of them for a few pins, else the hint and a seeded sample; the solution's walks stay in place. */
 export function ordersFor(level: LevelDef): string[][] {
+  const walks = walksOf(level);
+  const hint = level.solution.join();
+  return pinOrders(level).map((o) => (o.join() === hint ? o : withWalks(o, walks)));
+}
+
+function pinOrders(level: LevelDef): string[][] {
   const ids = level.pins.map((p) => p.id);
   if (level.pins.some((p) => p.gate)) return gatedOrders(level);
   if (ids.length <= FULL_UP_TO) return permutations(ids);
@@ -125,13 +179,14 @@ export function ordersFor(level: LevelDef): string[][] {
 function gatedOrders(level: LevelDef): string[][] {
   const ids = level.pins.map((p) => p.id);
   const gates = level.pins.filter((p) => p.gate).map((p) => p.id);
+  const backsOf = gates.map((g) => pushBacksFor(level, g));
   const build = (perm: readonly string[], backs: readonly (number | null)[]): string[] =>
     perm.flatMap((id) => {
       const d = backs[gates.indexOf(id)];
       return d === undefined || d === null ? [id] : [id, `${id}~${d}`];
     });
-  const choices = (n: number): (number | null)[][] => (n === 0 ? [[]] : choices(n - 1).flatMap((c) => PUSH_BACKS.map((d) => [...c, d])));
-  const total = permutations(ids).length * PUSH_BACKS.length ** gates.length;
+  const choices = (n: number): (number | null)[][] => (n === 0 ? [[]] : choices(n - 1).flatMap((c) => backsOf[n - 1]!.map((d) => [...c, d])));
+  const total = permutations(ids).length * backsOf.reduce((n, b) => n * b.length, 1);
   if (total <= FULL_GATED_UP_TO) return permutations(ids).flatMap((perm) => choices(gates.length).map((backs) => build(perm, backs)));
   const rng = createRng(ids.length * 7919 + gates.length * 104729 + level.id.length);
   const seen = new Set<string>([level.solution.join()]);
@@ -139,7 +194,7 @@ function gatedOrders(level: LevelDef): string[][] {
   while (out.length < SAMPLE) {
     const o = build(
       shuffled(ids, rng),
-      gates.map(() => PUSH_BACKS[Math.floor(rng() * PUSH_BACKS.length)]!),
+      backsOf.map((b) => b[Math.floor(rng() * b.length)]!),
     );
     if (!seen.has(o.join())) {
       seen.add(o.join());
@@ -147,6 +202,48 @@ function gatedOrders(level: LevelDef): string[][] {
     }
   }
   return out;
+}
+
+/** A gate's push-back delays: PUSH_BACKS, plus each wait the solution pushes it back after, and half and twice that. */
+export function pushBacksFor(level: LevelDef, gate: string): (number | null)[] {
+  const out = new Set<number | null>(PUSH_BACKS);
+  let pulled = false;
+  for (const s of level.solution) {
+    const { id, wait } = parseStep(s);
+    if (id !== gate) continue;
+    if (pulled && wait !== null) for (const d of [wait / 2, wait, wait * 2]) out.add(Math.round(d * 100) / 100);
+    pulled = !pulled;
+  }
+  return [...out];
+}
+
+/** The pin's midpoint. */
+const mid = (p: LevelDef['pins'][number]): { x: number; y: number } => ({ x: (p.ax + p.bx) / 2, y: (p.ay + p.by) / 2 });
+
+/**
+ * The two orders a reader tries first: the pins nearest Nib's start first
+ * (by distance to each pin's midpoint), and left to right (by midpoint x).
+ * With gates, each gate is pushed back in as the solution does it (its push
+ * step, with its wait, right after the pull). The solution's walks stay in place.
+ */
+export function obviousOrders(level: LevelDef): { readonly nearest: string[]; readonly leftToRight: string[] } {
+  const pushOf = new Map<string, string>();
+  const out = new Set<string>();
+  for (const s of level.solution) {
+    const { id } = parseStep(s);
+    if (!level.pins.find((p) => p.id === id)?.gate) continue;
+    if (out.has(id)) {
+      pushOf.set(id, s);
+      out.delete(id);
+    } else out.add(id);
+  }
+  const walks = walksOf(level);
+  const build = (pins: LevelDef['pins'][number][]): string[] => withWalks(pins.flatMap((p) => (pushOf.has(p.id) ? [p.id, pushOf.get(p.id)!] : [p.id])), walks);
+  const d = (p: LevelDef['pins'][number]): number => Math.hypot(mid(p).x - level.nib.x, mid(p).y - level.nib.y);
+  return {
+    nearest: build([...level.pins].sort((a, b) => d(a) - d(b))),
+    leftToRight: build([...level.pins].sort((a, b) => mid(a).x - mid(b).x)),
+  };
 }
 
 export interface Audit {
@@ -161,6 +258,10 @@ export interface Audit {
   readonly lessons: Record<string, number>;
   /** The biggest single lesson's share of all losses. */
   readonly topLessonShare: number;
+  /** The share of losses that came on the order's second tap or later (not on its first). */
+  readonly lateLossShare: number;
+  /** How the two orders a reader tries first end (see obviousOrders): 'won', a loss cause, 'stuck', 'blocked' or 'jammed'. */
+  readonly obvious: { readonly nearest: string; readonly leftToRight: string };
 }
 
 /**
@@ -183,6 +284,7 @@ export function audit(level: LevelDef): Audit {
   const lessons: Record<string, number> = {};
   for (const e of losses) lessons[`${e.at}:${e.end}`] = (lessons[`${e.at}:${e.end}`] ?? 0) + 1;
   const top = Math.max(0, ...Object.values(lessons));
+  const obv = obviousOrders(level);
   return {
     id: level.id,
     pins: level.pins.length,
@@ -192,5 +294,7 @@ export function audit(level: LevelDef): Audit {
     stuckShare: possible.length ? possible.filter((e) => e.end === 'stuck').length / possible.length : 0,
     lessons,
     topLessonShare: losses.length ? top / losses.length : 0,
+    lateLossShare: losses.length ? losses.filter((e) => e.late).length / losses.length : 0,
+    obvious: { nearest: playNoting(level, obv.nearest).end, leftToRight: playNoting(level, obv.leftToRight).end },
   };
 }

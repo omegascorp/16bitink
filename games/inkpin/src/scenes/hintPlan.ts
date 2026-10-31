@@ -6,9 +6,12 @@ import { parseStep } from '../logic/level';
  * come up twice in a solution: first it's pulled, then pushed back in.
  */
 
-export type Act = 'pull' | 'push';
+export type Act = 'pull' | 'push' | 'walk';
 
-/** What the player did: a pin pulled or a gate pushed, and the world step it happened at. */
+/** A walk step is done once Nib is this close (px) to its x. */
+export const WALK_REACH = 24;
+
+/** What the player did: a pin pulled, a gate pushed or a walk made, and the world step it happened at. */
 export interface Done {
   readonly id: string;
   readonly act: Act;
@@ -20,6 +23,8 @@ export interface PlanStep {
   readonly act: Act;
   /** Seconds after the step before (null: once things settle). */
   readonly wait: number | null;
+  /** For a walk: the x Nib walks to. */
+  readonly x?: number;
 }
 
 /** A step to number on the board: `n` counts from 1 over the steps left. */
@@ -27,11 +32,12 @@ export interface HintMark extends PlanStep {
   readonly n: number;
 }
 
-/** The solution as acts: a gate's id is a pull while it's in and a push while it's out. */
+/** The solution as acts: a gate's id is a pull while it's in and a push while it's out; '@x' is a walk. */
 export function planSteps(solution: readonly string[], gates: ReadonlySet<string>): PlanStep[] {
   const out = new Set<string>();
   return solution.map((s) => {
-    const { id, wait } = parseStep(s);
+    const { id, wait, walk } = parseStep(s);
+    if (walk !== undefined) return { id, act: 'walk' as const, wait, x: walk };
     const act: Act = gates.has(id) && out.has(id) ? 'push' : 'pull';
     if (gates.has(id)) {
       if (act === 'pull') out.add(id);
@@ -65,4 +71,10 @@ export function hintsNow(plan: readonly PlanStep[], doneCount: number, sinceLast
     marks.push({ ...step, n: k - doneCount + 1 });
   }
   return marks;
+}
+
+/** The walk the player should make now, if the next step is one and Nib has got there: the scene notes it as done. */
+export function walkDone(plan: readonly PlanStep[], doneCount: number, nibX: number): PlanStep | null {
+  const step = plan[doneCount];
+  return step?.act === 'walk' && step.x !== undefined && Math.abs(nibX - step.x) <= WALK_REACH ? step : null;
 }

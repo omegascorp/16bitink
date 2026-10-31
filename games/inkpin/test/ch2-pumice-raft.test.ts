@@ -16,7 +16,7 @@ const outcome = (order: readonly string[]): string => {
 };
 
 /** The landing's near edge: the raft is over once its middle is this far along. */
-const LANDING = 590;
+const LANDING = 570;
 
 /**
  * Plays the hint as the bot does (test/solver.ts's play), and notes where
@@ -59,16 +59,18 @@ function watchSolution(): { won: boolean; seconds: number; raft: number[]; nib: 
 }
 
 describe('The Pumice Raft', () => {
-  it('is won by its hint in a minute or more: the raft comes to Nib, carries him over, and the river is cooled behind him', () => {
+  it('is won by its hint: the raft comes to Nib, takes the hopper\'s gold aboard, carries him over, and the river is cooled behind him', () => {
     const r = watchSolution();
     expect(r.won).toBe(true);
     expect(r.seconds).toBeGreaterThanOrEqual(60);
     // D: the raft has come out of its cave to the dock under Nib's shelf.
-    expect(r.raft[0]).toBeGreaterThan(410);
-    expect(r.raft[0]).toBeLessThan(470);
+    expect(r.raft[0]).toBeGreaterThan(420);
+    expect(r.raft[0]).toBeLessThan(480);
+    // G: the hopper's gold has landed on the docked raft and Nib has it.
+    expect(Math.abs(r.raft[1]! - r.raft[0]!)).toBeLessThan(20);
     // M: it has carried Nib over to the landing, standing on it.
-    expect(r.raft[1]).toBeGreaterThan(LANDING);
-    expect(Math.abs(r.nib[1]! - r.raft[1]!)).toBeLessThan(40);
+    expect(r.raft[2]).toBeGreaterThan(LANDING);
+    expect(Math.abs(r.nib[2]! - r.raft[2]!)).toBeLessThan(40);
     // W: the whole river, cave to culvert, set to stone.
     expect(r.lava).toBe(0);
     expect(r.stone).toBe(PUMICE_RAFT.fills.filter((f) => f.kind === LAVA).reduce((n, f) => n + f.count, 0));
@@ -81,18 +83,26 @@ describe('The Pumice Raft', () => {
   });
 
   it.each([
-    // The post before the dam: the raft is still in its cave, and Nib walks out along the run into the hot basin.
-    [['M', 'D', 'W', 'X'], 'burnt'],
-    // The water first: it pours into the empty dock, Nib wades in after it, and the cave's lava comes in on top of him.
-    [['W', 'D', 'M', 'X'], 'burnt'],
-    // The water with the raft docked: the dock sets with the raft in it, and Nib walks out into the basin, still hot behind the post.
-    [['D', 'W', 'M', 'X'], 'burnt'],
-    // The vault on the hot river: the lava pours through the culvert into the vault after Nib.
-    [['D', 'M', 'X', 'W'], 'burnt'],
-    // The vault first, then the water with Nib still on the docked raft: it settles into the cooling lava with him.
-    [['D', 'X', 'W', 'M'], 'burnt'],
+    // The post before the dam: nothing to ride, and Nib, held at the dam till then, drops in on the surge.
+    [['M', 'D', 'G', 'W', 'X', 'Y'], 'burnt'],
     // The vault first of all: no raft, and Nib walks off his shelf into the dock.
-    [['X', 'D', 'M', 'W'], 'burnt'],
+    [['X', 'D', 'G', 'M', 'W', 'Y'], 'burnt'],
+    // The water first (the obvious first pull, nearest Nib): it pours into the empty dock, and the cave's lava comes in on top of Nib.
+    [['W', 'D', 'G', 'M', 'X', 'Y'], 'burnt'],
+    // The hopper before the dam: the gold falls on the empty dock, and the lava that follows melts it.
+    [['G', 'D', 'M', 'W', 'X', 'Y'], 'melted'],
+    // The raft sent off before its cargo: the gold falls into the lava behind it and melts.
+    [['D', 'M', 'G', 'W', 'X', 'Y'], 'melted'],
+    // The water with the raft docked (it sets the dock, and the basin, behind the post, stays hot): Nib walks out into it.
+    [['D', 'W', 'G', 'M', 'X', 'Y'], 'burnt'],
+    // The water after the cargo but before the ferry: the same, looks right until the post goes.
+    [['D', 'G', 'W', 'M', 'X', 'Y'], 'burnt'],
+    // The vault on the hot river before the ferry: the lava pours through the culvert and the raft is stranded.
+    [['D', 'G', 'X', 'M', 'W', 'Y'], 'burnt'],
+    // The vault on the hot river after the ferry: the lava pours through the culvert into the vault after Nib.
+    [['D', 'G', 'M', 'X', 'W', 'Y'], 'burnt'],
+    // The vault hopper first: harmless itself, but Nib waits at the dam, and jumps into the lava the moment it runs.
+    [['Y', 'D', 'G', 'M', 'W', 'X'], 'burnt'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome(order)).toBe(cause);
   });

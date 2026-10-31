@@ -1,5 +1,5 @@
 import { boxPush, MAX_SPEED, settle, type Boulder } from './boulders';
-import { capsuleContact, type Contact, type Seg } from './geom';
+import { capsuleContact, segSegDistance, type Contact, type Seg } from './geom';
 import { COIN, GRAIN_R, GRAVITY, LAVA, STONE, WATER, type Grains } from './particles';
 
 /**
@@ -31,6 +31,9 @@ export const RAFT_DRIFT = 0.7;
 const SLIDE = 0.8;
 /** Liquid on its deck runs off toward the nearer end this fast (px per step): the deck stays dry to stand on. */
 const SHED = 1;
+/** Gold on the deck: a push up deeper than this (px) wakes it (something landed); the deck's grip on it each step. */
+const CARGO_WAKE = 1;
+const CARGO_GRIP = 0.5;
 /** Circles along its length that stand for it against walls: about every 6 px. */
 const RIBS = 9;
 
@@ -67,7 +70,23 @@ export function stepRaft(b: Boulder, segs: readonly Seg[], g: Grains, k: Contact
   b.y += b.vy;
   let floored = false;
   const span = b.hw - b.hh;
+  // Walls last: set stone (lava cooling round it) never pushes it through a floor.
   for (let pass = 0; pass < 2; pass++) {
+    g.near(b.x, b.y, Math.hypot(b.hw + GRAIN_R, b.hh + GRAIN_R), (i) => {
+      if (g.kind[i] !== STONE) return;
+      const p = boxPush(b.x, b.y, b.hw, b.hh, g.x[i]!, g.y[i]!, GRAIN_R);
+      if (!p) return;
+      const d = Math.hypot(p.x, p.y) || 1;
+      // Stone that set inside its box, or over its deck, rests on it and holds it. Shoved out by it, a raft
+      // wedged on a wall went through the wall or the floor and out of the world.
+      if (d > GRAIN_R) return;
+      k.nx = -p.x / d;
+      k.ny = -p.y / d;
+      k.depth = d;
+      if (k.ny > 0.3) return;
+      if (k.ny < -0.5) floored = true;
+      settle(b, k);
+    });
     for (const s of segs) {
       for (let r = 0; r < RIBS; r++) {
         const off = -span + (2 * span * r) / (RIBS - 1);
@@ -76,29 +95,20 @@ export function stepRaft(b: Boulder, segs: readonly Seg[], g: Grains, k: Contact
         settle(b, k);
       }
     }
-    g.near(b.x, b.y, Math.hypot(b.hw + GRAIN_R, b.hh + GRAIN_R), (i) => {
-      if (g.kind[i] !== STONE) return;
-      const p = boxPush(b.x, b.y, b.hw, b.hh, g.x[i]!, g.y[i]!, GRAIN_R);
-      if (!p) return;
-      const d = Math.hypot(p.x, p.y) || 1;
-      k.nx = -p.x / d;
-      k.ny = -p.y / d;
-      k.depth = d;
-      if (k.ny < -0.5) floored = true;
-      settle(b, k);
-    });
   }
   if (floored) b.vx *= SLIDE;
-  pushRaftGrains(b, g);
+  pushRaftGrains(b, g, segs);
 }
 
 /**
  * Pushes the loose grains out of the raft's box. Liquid beside it goes out
  * sideways, never up onto the deck (bobbing and drifting would scoop it up
- * there, under Nib's feet), and what's on the deck runs off its ends. Gold
- * stays put on the deck: it's cargo.
+ * there, under Nib's feet), unless a wall or pin is in the way: then it goes
+ * under. What's on the deck runs off its ends. Gold stays put on the deck:
+ * it's cargo. It rests there (the deck takes its fall and holds it), so it
+ * falls asleep and rides.
  */
-function pushRaftGrains(b: Boulder, g: Grains): void {
+function pushRaftGrains(b: Boulder, g: Grains, segs: readonly Seg[]): void {
   const deck = b.y - b.hh;
   g.near(b.x, b.y, Math.hypot(b.hw + GRAIN_R * 3, b.hh + GRAIN_R * 3), (i) => {
     const kind = g.kind[i];
@@ -108,10 +118,20 @@ function pushRaftGrains(b: Boulder, g: Grains): void {
     if (kind !== COIN && Math.abs(dx) < b.hw && g.y[i]! < deck && g.y[i]! > deck - GRAIN_R * 3) g.x[i] = g.x[i]! + side * SHED;
     const p = boxPush(b.x, b.y, b.hw, b.hh, g.x[i]!, g.y[i]!, GRAIN_R);
     if (!p) return;
+    if (kind === COIN && p.y < 0 && Math.abs(dx) < b.hw) {
+      if (-p.y > CARGO_WAKE) g.wake(i);
+      g.y[i] = g.y[i]! + p.y;
+      if (g.vy[i]! > 0) g.vy[i] = 0;
+      g.vx[i] = g.vx[i]! * CARGO_GRIP;
+      return;
+    }
     if (kind === COIN) g.wake(i);
-    if (p.y < 0 && g.y[i]! >= deck) {
-      // Beside it, not on it: out to the side.
-      g.x[i] = b.x + side * (b.hw + GRAIN_R);
+    if (kind !== COIN && p.y < 0 && g.y[i]! >= deck) {
+      // Beside it, not on it: out to the side, or under it past a wall or pin.
+      const to = b.x + side * (b.hw + GRAIN_R);
+      const path: Seg = { ax: g.x[i]!, ay: g.y[i]!, bx: to, by: g.y[i]!, t: 0 };
+      if (segs.some((s) => segSegDistance(path, s) === 0)) g.y[i] = b.y + b.hh + GRAIN_R;
+      else g.x[i] = to;
       return;
     }
     g.x[i] = g.x[i]! + p.x;

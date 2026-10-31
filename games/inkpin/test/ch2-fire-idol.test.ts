@@ -73,23 +73,28 @@ function watchSolution(): { won: boolean; seconds: number; hot: number[]; flood:
 /** The gate's window, in seconds after it was pulled: the third mouth has just steamed, and late, with the crown low but still enough. */
 const WINDOW = [6, 10];
 
+/** The tunnel door (K) only holds Nib back: out before or after the flood, the order still wins. */
+const DOOR_LATE: readonly string[] = ['A', 'A~7', 'F', 'K', 'J1', 'J2', 'J3'];
+
 /** Tempting wrong orders, and how each loses. */
 const LOSSES: readonly (readonly [readonly string[], string])[] = [
-  // The tempting pin: the flood, right over the boss. It washes the Old Salamander away, but the crown is spent:
-  // the gate pours nothing on the mouths, and the first jaw drops Nib beside a mouthful of lava.
-  [['F', 'A', 'A~6', 'J1', 'J2', 'J3'], 'burnt'],
+  // The tempting pin: the flood, right over the boss. The crown is spent: the gate pours nothing on the mouths,
+  // and the first jaw drops Nib beside a mouthful of lava.
+  [['F', 'A', 'A~6', 'K', 'J1', 'J2', 'J3'], 'burnt'],
   // The jaw under Nib first: the first mouth is still hot.
-  [['J1', 'A', 'A~6', 'F', 'J2', 'J3'], 'burnt'],
+  [['J1', 'A', 'A~6', 'K', 'F', 'J2', 'J3'], 'burnt'],
   // The gate back in too soon: only the first mouth set, and the second pours its lava on the idol's gold.
-  [['A', 'A~1.5', 'F', 'J1', 'J2', 'J3'], 'melted'],
-  // A little later, but still before the third mouth steamed: its lava lands on Nib's way to the bath.
-  [['A', 'A~4', 'F', 'J1', 'J2', 'J3'], 'burnt'],
-  // The gate never pushed back: the crown runs away down the sump, and there's no flood left for the boss.
-  [['A', 'F', 'J1', 'J2', 'J3'], 'inked'],
-  // Nib all the way down before the flood: the bath is still hot lava.
-  [['A', 'A~6', 'J1', 'J2', 'J3', 'F'], 'burnt'],
+  [['A', 'A~1.5', 'K', 'F', 'J1', 'J2', 'J3'], 'melted'],
+  // The gate never pushed back, the flood pulled at once: too little left to wash the Old Salamander, who is waiting in the bath.
+  [['A', 'F', 'K', 'J1', 'J2', 'J3'], 'inked'],
+  // The flood before the gate, with the tunnel door out: the crown is spent before the mouths are cooled.
+  [['K', 'F', 'A', 'A~6', 'J1', 'J2', 'J3'], 'burnt'],
   // The middle jaw before the gate: its hot mouth melts the gold under it.
-  [['J2', 'A', 'A~6', 'F', 'J1', 'J3'], 'melted'],
+  [['J2', 'A', 'A~6', 'K', 'F', 'J1', 'J3'], 'melted'],
+  // Nib all the way down before the flood: the Old Salamander climbs the stair to him.
+  [['A', 'A~6', 'K', 'J1', 'J2', 'J3', 'F'], 'inked'],
+  // The gate pushed back far too late: the crown is nearly dry, and the boss isn't washed.
+  [['A', 'A~16', 'K', 'F', 'J1', 'J2', 'J3'], 'inked'],
 ];
 
 describe('The Fire Idol', () => {
@@ -123,7 +128,11 @@ describe('The Fire Idol', () => {
 
   // The gate's window: once the third mouth steams (the earliest win), and late, with the crown low but still enough.
   it.each(WINDOW)('wins with the gate back in after %f s', (wait) => {
-    expect(outcome(['A', `A~${wait}`, 'F', 'J1', 'J2', 'J3'])).toBe('won');
+    expect(outcome(['A', `A~${wait}`, 'K', 'F', 'J1', 'J2', 'J3'])).toBe('won');
+  });
+
+  it('wins with the tunnel door pulled after the flood too', () => {
+    expect(outcome(DOOR_LATE)).toBe('won');
   });
 
   it.each(LOSSES)('%j loses: %s', (order, cause) => {

@@ -60,6 +60,9 @@ export interface GuardHost {
   blotGone(b: Blot, how: BlotEnd): void;
 }
 
+/** How high (px) over the boss's back Nib still counts as on it: a stomp's bounce. */
+const ON_BACK_AIR = 50;
+
 export function blot(def: GuardDef): Blot {
   const animal = def.animal ?? (def.spiky ? 'porcupine' : 'boar');
   const spiky = def.spiky ?? (animal === 'porcupine' || animal === 'armadillo');
@@ -101,12 +104,19 @@ export function moveBlot(b: Blot, w: GuardHost, footing: number): void {
     b.stuck = 0;
     b.anchor = b.x;
   }
-  w.moveCreature(b, b.facing * BLOT_WALK, false);
+  // With Nib on its back the boss holds still (following him under his feet, it would bounce him for ever), so he can walk off.
+  w.moveCreature(b, onBack(b, nib) ? 0 : b.facing * BLOT_WALK, false);
   if (Math.abs(b.x - b.anchor) > HEADWAY) {
     b.anchor = b.x;
     b.stuck = 0;
   } else b.stuck++;
   soak(b, w);
+}
+
+/** True when Nib is on the boss's back (on it, or bouncing just over it). */
+function onBack(b: Blot, nib: Creature): boolean {
+  const above = b.y - nib.y;
+  return b.boss && Math.abs(nib.x - b.x) < b.r + nib.r && above > b.r * 0.5 && above < b.r + nib.r + ON_BACK_AIR;
 }
 
 /** Water soaks into a guard until it washes away; the boss dries off as it goes. */

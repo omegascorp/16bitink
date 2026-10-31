@@ -194,13 +194,13 @@ export class Grains {
   }
 
   /** The fastest live moving grain's speed, in px per step. */
-  /** How many loose grains move faster than `speed` (px per step). */
-  countFasterThan(speed: number): number {
+  /** How many loose grains move faster than `speed` (px per step), leaving out those `skip` names. */
+  countFasterThan(speed: number, skip?: (i: number) => boolean): number {
     const s2 = speed * speed;
     let n = 0;
     for (let i = 0; i < this.count; i++) {
       if (this.kind[i] === DEAD || this.held(i)) continue;
-      if (this.vx[i]! * this.vx[i]! + this.vy[i]! * this.vy[i]! > s2) n++;
+      if (this.vx[i]! * this.vx[i]! + this.vy[i]! * this.vy[i]! > s2 && !skip?.(i)) n++;
     }
     return n;
   }

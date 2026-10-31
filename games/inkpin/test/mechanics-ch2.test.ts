@@ -68,6 +68,13 @@ describe('steps', () => {
     expect(parseStep('G~1.5')).toEqual({ id: 'G', wait: 1.5 });
     expect(() => parseStep('G~soon')).toThrow();
   });
+
+  it("reads a walk step: '@2060' walks Nib to x = 2060", () => {
+    expect(parseStep('@2060')).toEqual({ id: '@2060', wait: null, walk: 2060 });
+    expect(parseStep('@640~2')).toEqual({ id: '@640', wait: 2, walk: 640 });
+    expect(() => parseStep('@')).toThrow();
+    expect(() => parseStep('@here')).toThrow();
+  });
 });
 
 describe('gate pins', { timeout: 120_000 }, () => {

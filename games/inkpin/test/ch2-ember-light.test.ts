@@ -20,7 +20,7 @@ const outcome = (order: readonly string[]): string => {
  * and notes where the salamander was when the water came, how it went, and
  * how much lava was left once the tank had poured.
  */
-function watchSolution(): { won: boolean; seconds: number; salamanderAtW: number; end: string; lavaAfterW: number; rubies: boolean } {
+function watchSolution(): { won: boolean; seconds: number; salamanderAtW: number; end: string; lavaAfterQ: number; rubies: boolean } {
   const w = new World(EMBER_LIGHT);
   const run = (steps: number): void => {
     for (let s = 0; s < steps && !w.finished; s++) {
@@ -37,12 +37,13 @@ function watchSolution(): { won: boolean; seconds: number; salamanderAtW: number
     }
   };
   let salamanderAtW = 0;
-  let lavaAfterW = -1;
-  for (const { id } of EMBER_LIGHT.solution.map(parseStep)) {
+  let lavaAfterQ = -1;
+  for (const { id, wait } of EMBER_LIGHT.solution.map(parseStep)) {
     if (id === 'W') salamanderAtW = w.blots[0]!.x;
     w.tap(id);
     run(STEPS_PER_SECOND * 8);
-    if (id === 'W') lavaAfterW = w.grains.countOf(LAVA);
+    if (wait) run(STEPS_PER_SECOND * wait);
+    if (id === 'Q') lavaAfterQ = w.grains.countOf(LAVA);
     visit(stops, STEPS_PER_SECOND * 8);
   }
   const back = [...stops].reverse();
@@ -53,7 +54,7 @@ function watchSolution(): { won: boolean; seconds: number; salamanderAtW: number
     seconds: w.steps / STEPS_PER_SECOND,
     salamanderAtW,
     end: w.blots[0]!.gone ?? 'alive',
-    lavaAfterW,
+    lavaAfterQ,
     rubies: w.rubies.every((r) => r.taken),
   };
 }
@@ -62,12 +63,14 @@ describe('Ember Light', () => {
   it('is won by its hint in a minute or more: the salamander comes to the sill, and the water washes it there', () => {
     const r = watchSolution();
     expect(r.won).toBe(true);
-    expect(r.seconds).toBeGreaterThanOrEqual(60);
+    const lab = play(EMBER_LIGHT, EMBER_LIGHT.solution);
+    expect(lab.status.state).toBe('won');
+    expect(lab.steps / STEPS_PER_SECOND).toBeGreaterThanOrEqual(60);
     // It came across the bath to Nib's sill (x 410) before the water came.
     expect(r.salamanderAtW).toBeLessThan(520);
     expect(r.end).toBe('washed');
-    // The bath set to stone (the brazier's lava was cooled before).
-    expect(r.lavaAfterW).toBe(0);
+    // The washing water alone leaves lava; the small tank's water finishes the bath to stone.
+    expect(r.lavaAfterQ).toBe(0);
     // The rubies it pushed to the sill were dug out of the stone.
     expect(r.rubies).toBe(true);
   });
@@ -85,14 +88,18 @@ describe('Ember Light', () => {
     [['S', 'G', 'K', 'V', 'H', 'W'], 'burnt'],
     // The door before Nib is even down: the lava fills the pit he drops into.
     [['G', 'S', 'K', 'V', 'H', 'W'], 'burnt'],
+    // The wash alone leaves the bath hot: the second tank was never pulled, and G lets the salamander out.
+    [['S', 'K', 'V', 'H', 'W', 'G', 'Q'], 'inked'],
     // The hall's water before its brazier: the lava sets in the brazier, and the armadillo waits for Nib.
     [['S', 'V', 'K', 'H', 'W', 'G'], 'inked'],
     // The gold before the brazier: the lava pours over it.
     [['S', 'H', 'K', 'V', 'W', 'G'], 'melted'],
-    // Out of the pit with the brazier's lava still hot on the hall floor: Nib walks into it.
-    [['S', 'K', 'W', 'G', 'V', 'H'], 'burnt'],
-    // Out of the pit with the armadillo still pacing the hall.
-    [['S', 'W', 'G', 'K', 'V', 'H'], 'inked'],
+    // The gold right after the brazier, before the water: it drops onto the hot lava that has run to the bowl.
+    [['S', 'K', 'H', 'V', 'W', 'G'], 'melted'],
+    // Out of the pit with the hall's water not yet pulled: the armadillo is waiting.
+    [['S', 'K', 'W', 'G', 'V', 'H'], 'inked'],
+    // Out of the pit with the bath still hot and the armadillo pacing the hall.
+    [['S', 'W', 'G', 'K', 'V', 'H'], 'burnt'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome(order)).toBe(cause);
   });
