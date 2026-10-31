@@ -34,6 +34,11 @@ export interface Ending {
   readonly prefix?: string;
   /** For a loss: true when it came after the order's second tap or later (not on its first). */
   readonly late?: boolean;
+  /** Taps made when it ended, and the steps it took (for the lab's deepest wrong orders). */
+  readonly taps?: number;
+  readonly steps?: number;
+  /** For 'stuck': true when things were still moving at the end (a timeout, 'playing'), not settled. */
+  readonly playing?: boolean;
 }
 
 /**
@@ -81,15 +86,15 @@ export function playNoting(level: LevelDef, order: readonly string[]): Ending {
     if (w.finished) {
       const s = w.status;
       const lost = s.state === 'lost';
-      return { order, end: lost ? s.cause : s.state, at: lost ? last : '', prefix: lost ? prefixKey(order, i) : undefined, late: lost && late() };
+      return { order, end: lost ? s.cause : s.state, at: lost ? last : '', prefix: lost ? prefixKey(order, i) : undefined, late: lost && late(), taps, steps: w.steps };
     }
   }
   const back = [...stops].reverse();
   visit([...back, ...stops, ...back, ...stops], MAX_TAIL / 4);
   w.leave();
   const s = w.status;
-  if (s.state === 'lost') return { order, end: s.cause, at: last, late: late() };
-  return { order, end: s.state === 'won' ? 'won' : 'stuck', at: '' };
+  if (s.state === 'lost') return { order, end: s.cause, at: last, late: late(), taps, steps: w.steps };
+  return { order, end: s.state === 'won' ? 'won' : 'stuck', at: '', playing: s.state !== 'won' && w.calm < 20 };
 }
 
 function shuffled<T>(items: readonly T[], rng: () => number): T[] {
@@ -218,7 +223,7 @@ export function pushBacksFor(level: LevelDef, gate: string): (number | null)[] {
 }
 
 /** The pin's midpoint. */
-const mid = (p: LevelDef['pins'][number]): { x: number; y: number } => ({ x: (p.ax + p.bx) / 2, y: (p.ay + p.by) / 2 });
+export const mid = (p: LevelDef['pins'][number]): { x: number; y: number } => ({ x: (p.ax + p.bx) / 2, y: (p.ay + p.by) / 2 });
 
 /**
  * The two orders a reader tries first: the pins nearest Nib's start first
@@ -226,7 +231,8 @@ const mid = (p: LevelDef['pins'][number]): { x: number; y: number } => ({ x: (p.
  * With gates, each gate is pushed back in as the solution does it (its push
  * step, with its wait, right after the pull). The solution's walks stay in place.
  */
-export function obviousOrders(level: LevelDef): { readonly nearest: string[]; readonly leftToRight: string[] } {
+/** An order that taps the pins in this order, each gate pushed back as the solution does it, with the solution's walks in place. */
+export function orderOf(level: LevelDef, pins: readonly LevelDef['pins'][number][]): string[] {
   const pushOf = new Map<string, string>();
   const out = new Set<string>();
   for (const s of level.solution) {
@@ -237,12 +243,14 @@ export function obviousOrders(level: LevelDef): { readonly nearest: string[]; re
       out.delete(id);
     } else out.add(id);
   }
-  const walks = walksOf(level);
-  const build = (pins: LevelDef['pins'][number][]): string[] => withWalks(pins.flatMap((p) => (pushOf.has(p.id) ? [p.id, pushOf.get(p.id)!] : [p.id])), walks);
+  return withWalks(pins.flatMap((p) => (pushOf.has(p.id) ? [p.id, pushOf.get(p.id)!] : [p.id])), walksOf(level));
+}
+
+export function obviousOrders(level: LevelDef): { readonly nearest: string[]; readonly leftToRight: string[] } {
   const d = (p: LevelDef['pins'][number]): number => Math.hypot(mid(p).x - level.nib.x, mid(p).y - level.nib.y);
   return {
-    nearest: build([...level.pins].sort((a, b) => d(a) - d(b))),
-    leftToRight: build([...level.pins].sort((a, b) => mid(a).x - mid(b).x)),
+    nearest: orderOf(level, [...level.pins].sort((x, y) => d(x) - d(y))),
+    leftToRight: orderOf(level, [...level.pins].sort((x, y) => mid(x).x - mid(y).x)),
   };
 }
 
@@ -260,6 +268,12 @@ export interface Audit {
   readonly topLessonShare: number;
   /** The share of losses that came on the order's second tap or later (not on its first). */
   readonly lateLossShare: number;
+  /** Of the orders whose pins could all come out: those still moving at the end (timeouts), a part of stuckShare. */
+  readonly playingShare: number;
+  /** The first five orders ending stuck (settled) and playing (timed out). */
+  readonly deadEnds: { readonly stuck: readonly string[]; readonly playing: readonly string[] };
+  /** The three losses that came at the latest tap: order, tap index, cause, time (steps). */
+  readonly deepest: readonly { readonly order: string; readonly tap: number; readonly end: string; readonly steps: number }[];
   /** How the two orders a reader tries first end (see obviousOrders): 'won', a loss cause, 'stuck', 'blocked' or 'jammed'. */
   readonly obvious: { readonly nearest: string; readonly leftToRight: string };
 }
@@ -296,5 +310,14 @@ export function audit(level: LevelDef): Audit {
     topLessonShare: losses.length ? top / losses.length : 0,
     lateLossShare: losses.length ? losses.filter((e) => e.late).length / losses.length : 0,
     obvious: { nearest: playNoting(level, obv.nearest).end, leftToRight: playNoting(level, obv.leftToRight).end },
+    playingShare: possible.length ? possible.filter((e) => e.end === 'stuck' && e.playing).length / possible.length : 0,
+    deadEnds: {
+      stuck: possible.filter((e) => e.end === 'stuck' && !e.playing).slice(0, 5).map((e) => e.order.join()),
+      playing: possible.filter((e) => e.end === 'stuck' && e.playing).slice(0, 5).map((e) => e.order.join()),
+    },
+    deepest: [...losses]
+      .sort((a, b) => (b.taps ?? 0) - (a.taps ?? 0) || (b.steps ?? 0) - (a.steps ?? 0))
+      .slice(0, 3)
+      .map((e) => ({ order: e.order.join(), tap: e.taps ?? 0, end: e.end, steps: e.steps ?? 0 })),
   };
 }

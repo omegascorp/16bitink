@@ -4,6 +4,7 @@ import { barWalls, outerRuns } from '../logic/rooms';
 import { ART_RES, BASALT, BASALT_DARK, BASALT_LIGHT, EMBER, GOLD, GOLD_DARK, GRASS, INK, MOSS, PAPER, ROCK, ROCK_DARK, TEMPLE, TEMPLE_DARK, WOOD_DARK } from './palette';
 import { ellipse, makeCanvas, Pen, type Pt } from './pen';
 import { paintBasaltStone, paintBrazier, paintFlameFrieze, paintShrineTop } from './volcano';
+import { SAND, SAND_DARK } from './tomb';
 import { mix, rgba } from './wash';
 
 /**
@@ -230,9 +231,21 @@ export function paintBoard(level: LevelDef, x0 = level.view.x, w = level.view.w)
   const volcano = level.ruin === 'volcano';
   if (volcano) paintShrineTop(ctx, pen, level.rooms, GROUND_Y);
   else paintTempleTop(ctx, pen, level.rooms);
-  paintRooms(ctx, pen, level.rooms, vy + h, level.view.x + level.view.w, volcano);
+  paintRooms(ctx, pen, level.rooms, vy + h, level.view.x + level.view.w, volcano, level.ruin === 'tomb');
   for (const d of level.drains ?? []) paintDrain(ctx, pen, level.rooms, d);
-  for (const s of barWalls(level)) paintBar(ctx, pen, s.ax, s.ay, s.bx, s.by, s.t, volcano ? BASALT_LIGHT : ROCK);
+  for (const s of barWalls(level)) paintBar(ctx, pen, s.ax, s.ay, s.bx, s.by, s.t, volcano ? BASALT_LIGHT : level.ruin === 'tomb' ? SAND_DARK : ROCK);
+  // A cracked bar shows its cracks: a blast breaks it.
+  for (const i of level.cracked ?? []) {
+    const s = level.walls[i];
+    if (!s) continue;
+    const n = Math.max(2, Math.round(Math.hypot(s.bx - s.ax, s.by - s.ay) / 30));
+    for (let k = 0; k < n; k++) {
+      const u = (k + 0.5) / n;
+      const x = s.ax + (s.bx - s.ax) * u;
+      const y = s.ay + (s.by - s.ay) * u;
+      pen.hair([{ x: x - s.t * 0.8, y: y - 3 }, { x: x - 1, y: y + 1 }, { x: x + 2, y: y - 2 }, { x: x + s.t * 0.8, y: y + 3 }], 1.1, INK, 0.85);
+    }
+  }
   for (const t of level.torches) (volcano ? paintBrazier : paintTorchBracket)(ctx, pen, t.x, t.y);
   // Hanging vines for decoration only where there are none to climb, so the two are never confused.
   // (The climbing vines are their own pictures: they grow from seeds and burn.) No vines in the volcano.
@@ -274,7 +287,7 @@ function outerPath(rooms: readonly Room[]): Path2D {
   return path;
 }
 
-function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Room[], bottom: number, right: number, volcano: boolean): void {
+function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Room[], bottom: number, right: number, volcano: boolean, tomb = false): void {
   const union = roomPath(rooms);
   // A rim of shade cut into the rock, then the ink outline; the room fill goes
   // over both, so only their outer halves show and shared edges vanish.
@@ -287,7 +300,7 @@ function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Roo
   ctx.lineWidth = 9;
   ctx.stroke(union);
   ctx.restore();
-  ctx.fillStyle = volcano ? BASALT : TEMPLE;
+  ctx.fillStyle = volcano ? BASALT : tomb ? SAND : TEMPLE;
   ctx.fill(union);
   ctx.save();
   ctx.clip(union);

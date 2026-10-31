@@ -31,7 +31,7 @@ export const BOSS_DRY = 10;
 const BOSS_SIGHT_X = 320;
 
 /** How a guard is beaten: washed away, scorched, or stomped flat. */
-export type BlotEnd = 'washed' | 'scorched' | 'stomped';
+export type BlotEnd = 'washed' | 'scorched' | 'stomped' | 'blasted';
 
 export interface Blot extends Creature {
   readonly spiky: boolean;
@@ -47,6 +47,10 @@ export interface Blot extends Creature {
   anchor: number;
   /** Steps left pacing away, having found it can't get at Nib (a wall, an edge, a ledge too high). */
   pacing: number;
+  /** A rain frog puffed up in gas, floating (see frog.ts). */
+  puffed: boolean;
+  /** Steps a puffed frog has had too little gas round it. */
+  thin: number;
 }
 
 /** What a guard needs of the world it walks in. */
@@ -67,7 +71,7 @@ export function blot(def: GuardDef): Blot {
   const animal = def.animal ?? (def.spiky ? 'porcupine' : 'boar');
   const spiky = def.spiky ?? (animal === 'porcupine' || animal === 'armadillo');
   const r = def.boss ? BOSS_R : BLOT_R;
-  return { x: def.x, y: def.y, vx: 0, vy: 0, r, grounded: false, air: 0, wet: 0, facing: -1, spiky, boss: def.boss ?? false, animal, soaked: 0, gone: null, goneAt: 0, stuck: 0, anchor: def.x, pacing: 0 };
+  return { x: def.x, y: def.y, vx: 0, vy: 0, r, grounded: false, air: 0, wet: 0, facing: -1, spiky, boss: def.boss ?? false, animal, soaked: 0, gone: null, goneAt: 0, stuck: 0, anchor: def.x, pacing: 0, puffed: false, thin: 0 };
 }
 
 /**

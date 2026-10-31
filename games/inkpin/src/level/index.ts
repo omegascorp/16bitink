@@ -20,17 +20,12 @@ import { STAIR } from './stair';
 import { TORCHES } from './torches';
 import { WELL } from './well';
 
-/** The Ink Atlas's ruins, one chapter each, in the order Nib visits them. */
+/** The Ink Atlas's five ruins, one chapter each (50 levels in all), in the order Nib visits them. */
 export const CHAPTER_NAMES: readonly string[] = [
   'The Jungle Temple',
   'The Volcano Shrine',
   'The Desert Tomb',
   'The Frozen Monastery',
-  'The Alchemist’s Ruin',
-  'The Clockwork Citadel',
-  'The Lost City in the Canopy',
-  'The Pirate King’s Sea Cave',
-  'The Cloud Fortress',
   'The Dragon’s Hoard',
 ];
 
@@ -54,8 +49,14 @@ export const CHAPTER_2: readonly LevelDef[] = [
   FIRE_IDOL,
 ];
 
+/**
+ * Chapter 3, the Desert Tomb, in order: levels 21–30, added one file at a
+ * time from src/level/ch3/. While it's empty the chapter is a draft on the map.
+ */
+export const CHAPTER_3: readonly LevelDef[] = [];
+
 /** The built chapters' levels, by chapter; a chapter with none is still a draft on the map. */
-export const CHAPTERS: readonly (readonly LevelDef[])[] = [CHAPTER_1, CHAPTER_2];
+export const CHAPTERS: readonly (readonly LevelDef[])[] = [CHAPTER_1, CHAPTER_2, CHAPTER_3];
 
 /** Every built level in play order: a level opens once the one before it is won, across chapters. */
 export const LEVELS: readonly LevelDef[] = CHAPTERS.flat();

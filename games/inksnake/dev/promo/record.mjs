@@ -45,6 +45,7 @@ if (from !== null && to !== null && to <= from) throw new Error('--to must come 
  */
 const VARIANTS = [
   { name: 'inksnake-sea-krait', query: '&short=krait', start: 0 },
+  { name: 'inksnake-python-croc', query: '&short=python', start: 0 },
 ];
 const chosen = only ? VARIANTS.filter((v) => v.name.includes(only)) : VARIANTS.filter((v) => !v.onlyByName);
 if (chosen.length === 0) throw new Error(`No variant name contains "${only}": ${VARIANTS.map((v) => v.name).join(', ')}`);

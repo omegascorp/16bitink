@@ -1,7 +1,7 @@
 import { bodyContact, CRUSH_SPEED, type Boulder } from './boulders';
 import { capsuleContact, segSegDistance, type Contact, type Seg } from './geom';
 import { fireproof, hauls, type Blot, type BlotEnd } from './guards';
-import { COIN, GRAIN_R, GRAVITY, LAVA, STONE, WATER, type Grains } from './particles';
+import { COIN, GAS, GRAIN_R, GRAVITY, LAVA, STONE, WATER, type Grains } from './particles';
 import { inPlay, RUBY_R, shove, type Ruby } from './rubies';
 import type { Vine } from './vines';
 import type { LossCause } from './world';
@@ -35,7 +35,11 @@ export interface Creature {
 export const FOOTING_STEPS = 8;
 /** Climbing speed on a vine (px per step). */
 const CLIMB_SPEED = 0.8;
-/** The highest step a creature climbs without stopping (px): a raccoon hauls itself up a ledge. */
+/**
+ * The step-up probe (px): a raccoon hauls itself up a ledge. Rounded wall caps
+ * let more through, so Nib really climbs steps up to 60 px (62 stops him) and
+ * the hauling guards 58. Levels are tuned to that: don't change it.
+ */
 const STEP_UP = 44;
 /** How far past its body Nib picks coins up (px). */
 const PICKUP_REACH = 8;
@@ -162,7 +166,8 @@ export function moveCreature(m: Mover, c: Creature, walk: number, isNib: boolean
   // Everything loose makes way; Nib pockets the coins within reach.
   g.near(c.x, c.y, c.r + GRAIN_R + (isNib ? PICKUP_REACH : 0), (i) => {
     const kind = g.kind[i];
-    if (kind === STONE) return;
+    // Creatures walk through gas (Nib breathes it: see fire.ts).
+    if (kind === STONE || kind === GAS) return;
     if (kind === COIN && isNib && Math.hypot(g.x[i]! - c.x, g.y[i]! - c.y) < c.r + GRAIN_R + PICKUP_REACH) {
       m.collect(i);
       return;

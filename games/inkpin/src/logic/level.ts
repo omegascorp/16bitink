@@ -2,9 +2,55 @@ import type { Seg } from './geom';
 import type { Kind } from './particles';
 
 /** The ruin a level is in, for the art, the sounds and the loss lines. */
-export type Ruin = 'jungle' | 'volcano';
-/** The guards' animals: a boar and a porcupine (spiky) in the jungle, a salamander (fireproof) and an armadillo (spiky) at the volcano. */
-export type GuardAnimal = 'boar' | 'porcupine' | 'salamander' | 'armadillo';
+export type Ruin = 'jungle' | 'volcano' | 'tomb';
+/**
+ * The guards' animals: a boar and a porcupine (spiky) in the jungle, a
+ * salamander (fireproof) and an armadillo (spiky) at the volcano, the rain
+ * frog (it puffs up and floats on gas) and the old toad (the tomb's boss) in the tomb.
+ */
+export type GuardAnimal = 'boar' | 'porcupine' | 'salamander' | 'armadillo' | 'frog' | 'toad';
+
+/**
+ * A pressure plate (chapter 3): a carved slab flush with the floor whose top
+ * is `y`. It weighs what is in its zone, x0..x1 by y - 40..y, and goes down
+ * at `need` (default 25: Nib alone, or 25 grains).
+ */
+export interface PlateDef {
+  readonly id: string;
+  readonly x0: number;
+  readonly x1: number;
+  readonly y: number;
+  readonly need?: number;
+}
+
+/**
+ * A stone door (chapter 3): a capsule like a pin. Open, it has slid toward
+ * its ring end (ax, ay) by its own length, into the rock. It is open while
+ * its plate is down (or, with `invert`, while it's up).
+ */
+export interface DoorDef extends Seg {
+  readonly id: string;
+  readonly plate: string;
+  readonly invert?: boolean;
+}
+
+/**
+ * A barrier between Nib and his goal (a door, or a cracked wall by index):
+ * once everything is out and settled, the level is lost as 'sealed' while it
+ * stands with Nib on its far side. `side` is the goal's side of it.
+ */
+export interface SealDef {
+  readonly door?: string;
+  readonly wall?: number;
+  readonly side: 'left' | 'right' | 'up' | 'down';
+}
+
+/** The boss's breath (the Tomb Guardian): every `every` s, `count` gas grains, never more than `max` in play. */
+export interface BreathDef {
+  readonly every: number;
+  readonly count: number;
+  readonly max: number;
+}
 
 /** A crumbling basalt ledge, x0..x1 along its top surface y; its slab is LEDGE_T * 2 thick below that. */
 export interface LedgeDef {
@@ -26,7 +72,7 @@ export interface FillDef {
   readonly kind: Kind;
   readonly x0: number;
   readonly x1: number;
-  /** The bottom of the block (the pin it rests on). */
+  /** The bottom of the block (the pin it rests on). For GAS, the underside of its lid: gas packs downward from y1 + 8. */
   readonly y1: number;
   readonly count: number;
 }
@@ -111,6 +157,18 @@ export interface LevelDef {
   readonly rafts?: readonly { readonly x: number; readonly y: number }[];
   /** Fire rubies: gems lava can't hurt. Each counts RUBY_COINS toward the coin target and the bank. */
   readonly rubies?: readonly { readonly x: number; readonly y: number }[];
+  /** Pressure plates (chapter 3). */
+  readonly plates?: readonly PlateDef[];
+  /** Stone doors, each worked by one plate (chapter 3). */
+  readonly doors?: readonly DoorDef[];
+  /** The doors and cracked walls between Nib and his goal: shut on him, they end the level as 'sealed'. */
+  readonly seals?: readonly SealDef[];
+  /** Fire bowls standing on the floor at y; the flame is a circle at (x, y - 34), r 12. Water douses one for good. */
+  readonly braziers?: readonly { readonly x: number; readonly y: number }[];
+  /** Wall indices a blast breaks (each must also be in `bars`). */
+  readonly cracked?: readonly number[];
+  /** The boss's gas breath (level 30). */
+  readonly breath?: BreathDef;
   /** The Clear goal: every guard must be gone (as well as the chest, if any, and the coins) before the goal is met. */
   readonly clear?: boolean;
   /**

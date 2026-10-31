@@ -13,7 +13,9 @@ export const WATER = 1;
 export const LAVA = 2;
 export const COIN = 3;
 export const STONE = 4;
-export type Kind = typeof DEAD | typeof WATER | typeof LAVA | typeof COIN | typeof STONE;
+/** Tomb gas (chapter 3): a liquid that falls up. It pools under ceilings, rises through water, and burns. */
+export const GAS = 5;
+export type Kind = typeof DEAD | typeof WATER | typeof LAVA | typeof COIN | typeof STONE | typeof GAS;
 
 /** Simulation steps per second. */
 export const STEPS_PER_SECOND = 120;
@@ -23,6 +25,11 @@ export const GRAIN_R = 6;
 const H = 22;
 /** Gravity in px per step². */
 export const GRAVITY = 0.075;
+/** Gas falls up, gently, and never rises faster than GAS_RISE (px per step). */
+export const GAS_GRAVITY = -0.035;
+const GAS_RISE = 2.5;
+/** How hard gas trades places with a heavier grain just above it (px per step, at contact). */
+const GAS_BUOY = 0.6;
 /** Neighbour density a resting liquid settles at (about one grain every 11 px). */
 const REST = 1.7;
 const STIFF = 0.9;
@@ -30,16 +37,16 @@ const STIFF_NEAR = 2.4;
 /** Fastest a grain moves in a step: below a pin's thickness, so nothing tunnels. */
 const MAX_SPEED = 7;
 /** Velocity kept per step (the rest is lost to drag), by kind. */
-const KEEP: Record<number, number> = { [WATER]: 0.996, [LAVA]: 0.985, [COIN]: 0.985, [STONE]: 0.97 };
+const KEEP: Record<number, number> = { [WATER]: 0.996, [LAVA]: 0.985, [COIN]: 0.985, [STONE]: 0.97, [GAS]: 0.99 };
 /** Share of sliding speed lost against a wall each step, by kind. */
-const FRICTION: Record<number, number> = { [WATER]: 0.02, [LAVA]: 0.06, [COIN]: 0.2, [STONE]: 0.3 };
+const FRICTION: Record<number, number> = { [WATER]: 0.02, [LAVA]: 0.06, [COIN]: 0.2, [STONE]: 0.3, [GAS]: 0.02 };
 /**
  * Mass by kind: heavier grains sink through lighter ones. New stone is gravel,
  * heaviest of all: it sinks and spreads into a flat bed, then sets solid once
  * it has been still for SET_STEPS, so stone always ends up as a level floor
  * however the lava arrived.
  */
-const MASS: Record<number, number> = { [WATER]: 1, [LAVA]: 1.4, [COIN]: 2.2, [STONE]: 3 };
+const MASS: Record<number, number> = { [WATER]: 1, [LAVA]: 1.4, [COIN]: 2.2, [STONE]: 3, [GAS]: 0.4 };
 const SET_STEPS = 40;
 /** Coins slower than this are damped hard, so a heap of gold lies still. */
 const COIN_REST = 0.1;
@@ -102,6 +109,7 @@ export interface GrainsSave {
   readonly id: Uint16Array;
   readonly set: Uint8Array;
   readonly still: Uint8Array;
+  readonly burn: Uint8Array;
 }
 
 export class Grains {
@@ -119,6 +127,8 @@ export class Grains {
   /** 1 for grains holding still: stone that has set (for good), coins asleep (until woken). */
   readonly set: Uint8Array;
   private readonly still: Uint8Array;
+  /** Gas only: 0 unburnt, else the steps it has burnt for (see fire.ts). */
+  readonly burn: Uint8Array;
   /** 1 for a coin lying on a slope this step (set in collide, read in updateVelocities). */
   private readonly sloped: Uint8Array;
   private readonly px: Float64Array;
@@ -142,6 +152,7 @@ export class Grains {
     this.age = new Uint16Array(capacity);
     this.set = new Uint8Array(capacity);
     this.still = new Uint8Array(capacity);
+    this.burn = new Uint8Array(capacity);
     this.sloped = new Uint8Array(capacity);
     this.id = new Uint16Array(capacity);
     this.cellOf = new Int32Array(capacity);
@@ -160,6 +171,7 @@ export class Grains {
     this.age[i] = 0;
     this.set[i] = 0;
     this.still[i] = 0;
+    this.burn[i] = 0;
   }
 
   /** True for grains that hold still this step: set stone and sleeping coins. */
@@ -226,6 +238,11 @@ export class Grains {
     }
   }
 
+  /** Builds the neighbour hash for near() without stepping (a level's start, before the first step). */
+  rehash(): void {
+    this.buildHash();
+  }
+
   /** One fixed step against the given walls and pins. Reactions and losses are appended to `events`. */
   step(segs: readonly Seg[], events: GrainEvent[]): void {
     this.integrate();
@@ -248,7 +265,7 @@ export class Grains {
       this.px[i] = this.x[i]!;
       this.py[i] = this.y[i]!;
       let vx = this.vx[i]!;
-      let vy = this.vy[i]! + GRAVITY;
+      let vy = this.vy[i]! + (k === GAS ? GAS_GRAVITY : GRAVITY);
       const s = vx * vx + vy * vy;
       if (s > MAX_SPEED * MAX_SPEED) {
         const f = MAX_SPEED / Math.sqrt(s);
@@ -336,11 +353,21 @@ export class Grains {
         }
         const push = p * q + pNear * q * q;
         const kj = this.kind[j]!;
+        // Gas seeps up between sleeping coins without waking the heap: it is never trapped under one.
+        if (ki === GAS && kj === COIN && this.set[j]) continue;
         if (fast && kj === COIN && this.set[j]) this.wake(j);
         if (this.held(j)) {
           this.x[i] = this.x[i]! - dx * push;
           this.y[i] = this.y[i]! - dy * push;
           continue;
+        }
+        // Gas never clings to another kind (no surface tension between them): it leaves a pool's surface.
+        if ((ki === GAS) !== (kj === GAS) && push < 0) continue;
+        // Gas is buoyant: it trades places with the heavier grain above it, so it bubbles up through a pool.
+        if (ki === GAS && kj !== GAS && dy < 0) {
+          const lift = GAS_BUOY * q;
+          this.y[i] = this.y[i]! - lift;
+          this.y[j] = this.y[j]! + lift;
         }
         const mj = MASS[kj]!;
         const shareJ = mi / (mi + mj);
@@ -385,6 +412,7 @@ export class Grains {
       this.vy[i] = (this.y[i]! - this.py[i]!) * keep;
       // Lava is thick: stone sinking through it or water landing on it can't fling it up a wall.
       if (k === LAVA && this.vy[i]! < -LAVA_RISE) this.vy[i] = -LAVA_RISE;
+      if (k === GAS && this.vy[i]! < -GAS_RISE) this.vy[i] = -GAS_RISE;
       // Coins at rest settle instead of jostling in place, then fall asleep.
       if (k === COIN) {
         const resting = !this.sloped[i] && this.vx[i]! * this.vx[i]! + this.vy[i]! * this.vy[i]! < COIN_REST * COIN_REST;
@@ -474,6 +502,7 @@ export class Grains {
         this.age[w] = this.age[i]!;
         this.set[w] = this.set[i]!;
         this.still[w] = this.still[i]!;
+        this.burn[w] = this.burn[i]!;
         this.id[w] = this.id[i]!;
       }
       w++;
@@ -489,7 +518,7 @@ export class Grains {
       nextId: this.nextId,
       x: this.x.slice(0, n), y: this.y.slice(0, n), vx: this.vx.slice(0, n), vy: this.vy.slice(0, n),
       px: this.px.slice(0, n), py: this.py.slice(0, n),
-      kind: this.kind.slice(0, n), age: this.age.slice(0, n), id: this.id.slice(0, n), set: this.set.slice(0, n), still: this.still.slice(0, n),
+      kind: this.kind.slice(0, n), age: this.age.slice(0, n), id: this.id.slice(0, n), set: this.set.slice(0, n), still: this.still.slice(0, n), burn: this.burn.slice(0, n),
     };
   }
 
@@ -508,6 +537,7 @@ export class Grains {
     this.id.set(s.id);
     this.set.set(s.set);
     this.still.set(s.still);
+    this.burn.set(s.burn);
     this.buildHash();
   }
 

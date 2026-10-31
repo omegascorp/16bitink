@@ -1,6 +1,6 @@
 # InkPin: the levels
 
-All 100 levels at a glance: 10 ruins with 10 levels each. The ruins, materials, Blots, pins and bosses come from [inkpin-design.md](inkpin-design.md); this page says what each level asks. Names and puzzles are drafts: the solver bot decides the final layouts.
+All 50 levels at a glance: 5 ruins with 10 levels each. The ruins, materials, Blots, pins and bosses come from [inkpin-design.md](inkpin-design.md); this page says what each level asks. Names and puzzles are drafts: the solver bot decides the final layouts.
 
 ## How movement fits in
 
@@ -30,7 +30,7 @@ Goals are from the design doc: **Treasure** (the chest's relic and the coin targ
 
 ## The difficulty curve
 
-Levels are numbered straight through the game: chapter 2 is levels 11–20, chapter 10 is 91–100. Every level must meet its row before it ships. The audit (test/audit.ts) and the lab (test/lab.test.ts, `AUDIT=1`) print the numbers.
+Levels are numbered straight through the game: chapter 2 is levels 11–20, chapter 5 is 41–50. Every level must meet its row before it ships. The audit (test/audit.ts) and the lab (test/lab.test.ts, `AUDIT=1`) print the numbers.
 
 **Later chapters are deeper, not bigger.** Every level stays 2–3 screens wide (or two tall), at most ~700 grains, 3–5 stages, a hint of about 25–120 s (from the puzzle, never from empty floor to walk), and can be finished with tap-to-go. Bigger boards are harder to read on a phone, slower to simulate and dearer to build, and they add walking, not thinking.
 
@@ -38,8 +38,10 @@ Levels are numbered straight through the game: chapter 2 is levels 11–20, chap
 |---|---|---|---|---|---|---|---|
 | 1 | 1–10 | 4–6 | one new thing, with materials already known | ≤ 35% / ≤ 15% | ≥ 3 / ≥ 4 | ≤ 50% | — |
 | 2–3 | 11–30 | 5–7 | the new thing working against a second one | ≤ 20% / ≤ 10% | ≥ 4 / ≥ 5 | ≤ 45% | ≥ 50% |
-| 4–6 | 31–60 | 6–7 | two mechanics interlocked in every stage | ≤ 15% / ≤ 8% | ≥ 5 / ≥ 6 | ≤ 40% | ≥ 60% |
-| 7–10 | 61–100 | 6–8 | earlier chapters' mechanics as full stages; gates timed off the board are normal; one level per chapter where a single pin does two jobs | ≤ 10% / ≤ 6% | ≥ 6 | ≤ 40% | ≥ 60% |
+| 4 | 31–40 | 6–7 | two mechanics interlocked in every stage | ≤ 15% / ≤ 8% | ≥ 5 / ≥ 6 | ≤ 40% | ≥ 60% |
+| 5 (the finale) | 41–50 | 6–8 | chain pins, and earlier chapters' mechanics as full stages; gates timed off the board are normal; one level per chapter where a single pin does two jobs | ≤ 10% / ≤ 6% | ≥ 6 | ≤ 40% | ≥ 60% |
+
+The lab's CURVE in test/lab.test.ts has the same four rows (`fromChapter` 1, 2, 4, 5).
 
 Stuck (all pins out, nothing happens) is at most 10% everywhere. **Late losses** are the losses that come from the second pull or later. A level that mostly loses on the first pull teaches its answer at once.
 
@@ -234,7 +236,7 @@ The audit's player is eager: after every pull it walks Nib on along the level, s
 - **Pressure plates and stone doors** (the new ground). A carved sun-disc plate in the floor holds its door open while enough weight sits on it: Nib, a guard, water, gold, stone, a boulder, a raft or a slab. Some doors work the other way: they drop shut while their plate is weighed. Nib's own step is a pull, and the gold he needs is weight he takes away. A barrier that shuts Nib out ends the level as **'sealed'**, never as a silent dead end.
 - **Tomb gas and fire** (the new material). Green gas rises instead of falling, pools under ceilings and in domes, and leaves through vents in the roof. Nib can't breathe it (**'gassed'**). A flame (a fire bowl, or any lava) lights all the gas that touches it, and the flash (**'blasted'**) breaks cracked walls, cracks ledges and beats any guard, Nib included. Water puts a fire bowl out for good. So water now has a third job (cool, wash, douse), and lava has a new one: it's a spark.
 
-Dropped from the old plan (Oct 31, 2026): sand ramps, chain pins and the fennec escort. At most two new mechanics per chapter, and the ones that stayed make every pin do more. The design doc's chain pins move to a later chapter or out (see the open questions in [inkpin-ch3-engine.md](inkpin-ch3-engine.md)).
+Dropped from the old plan (Oct 31, 2026): sand ramps, chain pins and the fennec escort. At most two new mechanics per chapter, and the ones that stayed make every pin do more. Chain pins move to Chapter 5, and Escort to Chapter 4, where the remix levels first need it (user, Oct 31, 2026).
 
 | | Chapter 2, the Volcano Shrine | Chapter 3, the Desert Tomb |
 |---|---|---|
@@ -289,7 +291,7 @@ Chapter 3 shares chapter 2's row of the curve (5–7 pins; win ≤ 20% / ≤ 10%
 
 ## 4. The Frozen Monastery
 
-**New ground: ice floors.** Nib slides until something stops him: a wall, an ice block or a pin still in, so pins become stoppers. Frozen pools are floors to walk on. **Material:** ice (frost freezes still water into blocks; lava melts them). **Blot:** the Frost Blot (frozen solid, so water does nothing until it's thawed). **Pin:** the lock pin (a falling key opens it).
+**New ground: ice floors.** This is also where the **Escort** goal is built: level 38, the Snow Monkey, is the first Escort. Nib slides until something stops him: a wall, an ice block or a pin still in, so pins become stoppers. Frozen pools are floors to walk on. **Material:** ice (frost freezes still water into blocks; lava melts them). **Blot:** the Frost Blot (frozen solid, so water does nothing until it's thawed). **Pin:** the lock pin (a falling key opens it).
 
 | # | Name | Goal | What happens |
 |---|---|---|---|
@@ -304,107 +306,33 @@ Chapter 3 shares chapter 2's row of the curve (5–7 pins; win ≤ 20% / ≤ 10%
 | 39 | Candle Hall | Treasure | Lights out: candles melt the ice near them, and the dark ice is still slippery |
 | 40 | The Ice Wyrm | Boss | The Wyrm freezes every pool on its breath; pull between breaths |
 
-## 5. The Alchemist's Ruin
 
-**New ground: wooden scaffolds** that acid eats, so Nib drops down through holes you open (routes go down, one way). **Material:** acid (eats wood, stone, Blots and Nib; water dilutes it). **Blot:** the Sponge Blot (soaks up water and grows; only acid or lava shrinks it). **Pin:** the spring pin (snaps back in after 2 seconds).
+## 5. The Dragon's Hoard
 
-| # | Name | Goal | What happens |
-|---|---|---|---|
-| 41 | The Fallen Tower | Treasure | Scaffolds and trapdoors: Nib can drop down but never climb back, so go down in the right order |
-| 42 | Green Drops | Treasure | Acid eats the wooden floor under the chest and drops it to Nib |
-| 43 | Dilute | Treasure | Thin the acid with water until it's safe for Nib to wade through |
-| 44 | Sponge Blot | Clear | The Sponge Blot drinks the water and grows; shrink it with acid |
-| 45 | The Gold Flasks | Loot | Acid can't eat gold: let it cut channels for the coins to run to Nib |
-| 46 | Spring Loaded | Treasure | A spring pin lets only a short pour through, just enough for the job |
-| 47 | The Tower Stair | Treasure | Two screens: climb up while the acid you release eats the stair behind you |
-| 48 | The Owl | Escort | Remix: free the alchemist's owl from a cage of wood, without the acid reaching it |
-| 49 | Glow Flasks | Treasure | Lights out: only the bubbling flasks glow |
-| 50 | The Cauldron Blot | Boss | It boils over in waves of three colours; send each wave the material it fears |
-
-## 6. The Clockwork Citadel
-
-**New ground: lifts and trapdoors** moved by weight and pins, never by timers. Nib rides a lift; his own weight sends it down, and water or coins in the other bucket bring it up. **Material:** mechanisms (water wheels, scales, counterweights). **Blot:** the Clockwork Blot (marches on a beat). **Pin:** the turn pin (a platform swings a quarter turn).
+**New ground: the deep vault.** Each level remixes two or three earlier ruins (chapters 1–4) as full stages on the way down to the hoard, and every level stays 2–3 screens wide or two tall: deeper, not bigger, with no empty floor. **Material:** everything from chapters 1–4. **Blot:** every Blot from chapters 1–4. **Pin:** the **chain pin**, the only new one. Two pins sit on one chain: pull either and both come out. A chain links rooms far apart, so one pull changes two places. It is introduced gradually: one chain in level 41, a chain against a wrong pin in 42, a chain that must be pulled early in 43, and from 45 on chains work beside the gate and lock pins.
 
 | # | Name | Goal | What happens |
 |---|---|---|---|
-| 51 | The Gatehouse | Treasure | A counterweight lift: fill its other bucket with water to lift Nib to the chest |
-| 52 | The Water Wheel | Treasure | Water turning the wheel opens the gate, for as long as it flows |
-| 53 | Balance | Treasure | Scales: put just enough weight on one pan to raise Nib on the other |
-| 54 | Clockwork Blot | Clear | It marches on a beat; drop a boulder where it will be |
-| 55 | The Mint | Loot | Coins ride a wheel of buckets up to Nib's level, and a wrong pull spills them |
-| 56 | Quarter Turn | Treasure | A turn pin swings a platform and tips everything on it, Nib included if he's standing there |
-| 57 | The Great Shaft | Treasure | Two screens of lifts; each one needs the right weight |
-| 58 | The Brass Bird | Escort | Remix: free a wind-up bird from a gearbox cage, then ride out together |
-| 59 | Night Shift | Treasure | Lights out: lamps on the lifts light the shaft as they move |
-| 60 | The Pendulum | Boss | A giant pendulum swings through the shaft; pull on the right swing |
+| 41 | The Last Page | Treasure | The Atlas page opens the mountain door. One chain pin: pulling it opens a gate below and lets a tank pour into the seeds above, so the vines grow while Nib is still down there |
+| 42 | Fire and Ice | Treasure | Volcano and Monastery: lava, ice floors and crumbling ledges. A chain ties the lava vat's pin to the frost tank's, so the pin that melts one path freezes another |
+| 43 | Powder and Plates | Treasure | Tomb: blasts, gas, plates and doors. A chain links the roof vent to the door Nib shelters behind; pull it too early and he is sealed in, too late and he is gassed |
+| 44 | The Ink Guard | Clear | One of every guard from chapters 1–4 (boar, porcupine, salamander, armadillo, rain frog and the monastery's guard), each beaten by its own material. One chain pin sends a single pour to two guards in different rooms |
+| 45 | The Hoard | Loot | The biggest pour of gold in the game, through every kind of room. Two hoppers far apart hang on one chain, so one pull starts both streams |
+| 46 | Chain Gang | Treasure | Gate, lock and chain pins in one puzzle. Two chains cross each other's rooms, so the order of pulls matters more than which pin is which |
+| 47 | The Long Climb | Treasure | Two screens tall: up through every kind of ground, with a chain pin at the bottom that changes a ledge at the top |
+| 48 | The Atlas Friends | Escort | Remix: free the snow monkey from level 38, caught again by the dragon's keepers, and a fennec kit caged beside it (a desert fox cub, the Desert Tomb's lost friend). Each cage hangs on a chain pin, so freeing one can drop or lift the other's floor |
+| 49 | Dragon's Breath | Treasure | Lights out: only the dragon's distant fire lights the vault |
+| 50 | The Ink Dragon | Boss | Two screens tall: it breathes fire down the vault on a rhythm as Nib climbs to the hoard; a chain pin lets one pull put out the fire in two places |
 
-## 7. The Lost City in the Canopy
+## Idea bank (cut Oct 31, 2026)
 
-**New ground: vines you grow and leaf platforms** that bend down under weight (Nib, water or coins) and spring back. **Material:** seeds (water grows vines into bridges and ladders; fire burns them). **Blot:** the Thorn Blot (water and boulders bounce off; only fire works). **Pin:** the weight pin (pulls itself once enough weight piles on its plate).
+The user's new default for level games is 10 free + 40 paid, so ruins 5–9 of the old plan were cut. Their ideas wait here for a sequel or a future game.
 
-| # | Name | Goal | What happens |
-|---|---|---|---|
-| 61 | The Treetop Gate | Treasure | Leaf platforms: Nib's weight lowers a leaf to the next branch; a pour of water lowers it further |
-| 62 | Green Shoots | Treasure | Water a seed and it grows into a ladder up to the chest |
-| 63 | Burn the Bridge | Treasure | Grow one vine to cross, then burn it so the Blot can't follow |
-| 64 | Thorn Blot | Clear | Only fire ends a Thorn Blot, and fire also burns your vines |
-| 65 | The Canopy Coffers | Loot | Gold rains through the branches; catch it on leaves that bend toward Nib |
-| 66 | Heavy | Treasure | A weight pin pops out by itself once enough coins land on its plate |
-| 67 | The Great Tree | Treasure | Two screens: grow a ladder up the trunk, one watering at a time |
-| 68 | The Tree Frog | Escort | Remix: free a tree frog from a thorn cage, without burning its branch |
-| 69 | Fireflies | Treasure | Lights out: fireflies light the room and scatter from water |
-| 70 | The Snapweed | Boss | A giant plant that eats Blots; wash every Blot into its mouth before it turns to Nib |
-
-## 8. The Sea Cave of the Pirate King
-
-**New ground: tides and floating barrels.** Sea-gate pins raise or lower the water in a room, and Nib floats up with it to reach high decks; barrels float as rafts. **Material:** bombs and powder kegs. **Blot:** the Shell Blot (only a blast cracks it). **Pin:** the fuse pin (burns away when a flame reaches it; water puts the fuse out).
-
-| # | Name | Goal | What happens |
-|---|---|---|---|
-| 71 | Low Tide | Treasure | Open the sea gate, the cave floods, and Nib floats up to the deck where the chest is |
-| 72 | Powder | Treasure | A bomb's blast breaks the wall and pushes everything, including the coins |
-| 73 | The Wreck | Treasure | Douse one fuse and light another to blow the right hole in the hull |
-| 74 | Shell Blot | Clear | Only a blast cracks a Shell Blot; get the bomb to it, not to Nib |
-| 75 | The Pirate King's Chest | Loot | Barrels of gold float in on the tide; break them where Nib can gather the coins |
-| 76 | Slow Fuse | Treasure | A fuse pin burns away when the flame reaches it, unless the water gets there first |
-| 77 | The Mast | Treasure | Two screens up a sunken mast: raise the tide room by room to float Nib to the crow's nest |
-| 78 | The Parrot | Escort | Remix: free the Pirate King's parrot from its cage on a sinking deck |
-| 79 | Lantern Below Decks | Treasure | Lights out: lit by a swinging lantern and the sparks of fuses |
-| 80 | The Kraken Blot | Boss | Its tentacles push pins back in; blast the tentacles first |
-
-## 9. The Cloud Fortress
-
-**New ground: wind.** Fans, switched by pins, push Nib sideways and carry him over a gap while they blow. **Material:** balloons and wind (balloons lift, fans blow grains and gas sideways). **Blot:** the Bat Blot (flies over gaps; only falling water or a blast brings it down). **Pin:** the balloon pin.
-
-| # | Name | Goal | What happens |
-|---|---|---|---|
-| 81 | The Windy Wall | Treasure | A fan carries Nib over the gap while it blows; pull the pin that stops it once he's over |
-| 82 | Up and Away | Treasure | A balloon lifts a crate (or Nib) to the ledge above |
-| 83 | Crosswind | Treasure | The fan blows the water sideways into the room the Blot is in |
-| 84 | Bat Blot | Clear | The Bat Blot flies over the gap; drop the water on it as it passes |
-| 85 | The Sky Vault | Loot | Fans blow the pouring gold away from the edge of the fortress and toward Nib |
-| 86 | Tied Down | Treasure | A balloon pin: pull it and the balloon lifts the cage it's tied to |
-| 87 | The Tower Above the Clouds | Treasure | Two screens up, from balloon to balloon |
-| 88 | The Mountain Goat | Escort | Remix: free a mountain goat from a tower cage and float it down |
-| 89 | Night Sky | Treasure | Lights out: lightning flashes show the room for an instant |
-| 90 | The Thunderhead | Boss | Its lightning strikes the tallest metal thing on its beat; lead it with keys and coins |
-
-## 10. The Dragon's Hoard
-
-**New ground: all of it.** Each level remixes two earlier ruins on the way down to the hoard. **Material:** everything. **Blot:** every Blot. **Pin:** every pin.
-
-| # | Name | Goal | What happens |
-|---|---|---|---|
-| 91 | The Last Page | Treasure | The Atlas page opens the mountain door: vines, ledges and lifts |
-| 92 | Fire and Ice | Treasure | Volcano and Monastery: lava, ice floors and crumbling ledges |
-| 93 | Powder and Gas | Treasure | Tomb and Sea Cave: blasts, tides and plates |
-| 94 | The Ink Guard | Clear | One of every Blot, each needing its own material |
-| 95 | The Hoard | Loot | The biggest pour of gold in the game, through every kind of room |
-| 96 | Every Pin | Treasure | Gate, chain, lock, spring, turn, weight, fuse and balloon pins in one puzzle |
-| 97 | The Long Climb | Treasure | Three screens tall: up through every kind of ground |
-| 98 | The Atlas Friends | Escort | Remix: free all the friends from earlier chapters, who were caught again |
-| 99 | Dragon's Breath | Treasure | Lights out: only the dragon's distant fire lights the vault |
-| 100 | The Ink Dragon | Boss | Three screens tall: it breathes fire down the vault on a rhythm as Nib climbs to the hoard |
+- **The Alchemist's Ruin:** wooden scaffolds, acid, Sponge Blot, spring pins. Best idea: the Gold Flasks, where acid can't eat gold, so it cuts channels for the coins to run to Nib.
+- **The Clockwork Citadel:** lifts, scales, water wheels, trapdoors, turn pins. Best idea: the Great Shaft, two screens of lifts where each one needs the right weight.
+- **The Lost City in the Canopy:** bending leaves, seeds that grow sideways, fire, weight pins. Best idea: Heavy, a weight pin that pops out by itself once enough coins land on its plate.
+- **The Sea Cave of the Pirate King:** tides, barrels, bombs, fuse pins. Best idea: the Mast, where you raise the tide room by room to float Nib up a sunken mast.
+- **The Cloud Fortress:** fans, wind, balloons, flying Blots, balloon pins. Best idea: Tied Down, a balloon pin that lifts the cage it is tied to.
 
 ## What each ruin needs built
 
@@ -412,11 +340,6 @@ Chapter 3 shares chapter 2's row of the curve (5–7 pins; win ≤ 20% / ≤ 10%
 |---|---|
 | 1 | Vines to climb, seeds that grow vines, floating crates, boulders, the drain, dark levels, wide and tall levels, the boss (built) |
 | 2 | Crumbling ledges and slabs, gate pins, pumice rafts, fire rubies, the salamander (fireproof) and armadillo, the Clear goal, basalt art |
-| 3 | Pressure plates and stone doors (inverse doors, the 'sealed' loss), tomb gas (rises, roof vents, 'gassed'), fire bowls and blasts (cracked walls, ledges cracked by a blast, 'blasted'), the rain frog (floats on gas), the Tomb Guardian's gas breath, sandstone art. Contract: [inkpin-ch3-engine.md](inkpin-ch3-engine.md). Sand, chain pins and Escort dropped (Oct 31, 2026) |
-| 4 | Ice floors and sliding, ice blocks, frost, keys and lock pins |
-| 5 | Wooden platforms, acid, spring pins |
-| 6 | Lifts, scales, water wheels, trapdoors, turn pins |
-| 7 | Bending leaves, fire, weight pins (seeds are built in ruin 1; here they grow sideways and bridge gaps) |
-| 8 | Sea gates and tides, bombs and fuses, fuse pins (floating crates are built in ruin 1; barrels add rolling) |
-| 9 | Fans, balloons, flying Blots, balloon pins |
-| 10 | Three-screen levels |
+| 3 | Pressure plates and stone doors (inverse doors, the 'sealed' loss), tomb gas (rises, roof vents, 'gassed'), fire bowls and blasts (cracked walls, ledges cracked by a blast, 'blasted'), the rain frog (floats on gas), the Tomb Guardian's gas breath, sandstone art. Contract: [inkpin-ch3-engine.md](inkpin-ch3-engine.md). Sand dropped; chain pins moved to ruin 5 and Escort to ruin 4 (Oct 31, 2026) |
+| 4 | Ice floors and sliding, ice blocks, frost, keys and lock pins, the Escort goal (a freed animal friend who follows Nib; first used by level 38) |
+| 5 | Chain pins (two pins on one chain: pull either and both come out; a chain links rooms far apart, so one pull changes two places), the dragon boss, the Escort follow-up (level 48 frees friends from earlier chapters, who were caught again) |

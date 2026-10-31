@@ -10,6 +10,9 @@ What we've learned about InkFish's long-form YouTube videos (16:9, not looping),
 | "InkFish Level 1", thumbnail check 2026-10-11 to 10-13 | | **1.1%** on 1.6K impressions | | | | | |
 | *Fish Get Weirder the Deeper You Go… Until They Can't*, posted 2026-10-17, checked 2026-10-18 (~1 day) | 5:45 | **4.3%** on 6,838 impressions | 32.3% (1:51 average) | 413 | 377 | 4 | +3 |
 | "InkFish Level 1", same export | 61s | 1.1% on 2,374 impressions | 30% | 128 | 63 | 2 | 0 |
+| *Fish Get Weirder the Deeper You Go…*, export of 2026-10-31 (14 days) | 5:45 | 4.3% on 15,127 impressions | 33.4% (1:55) | 1,377 | 904 | 10 | +6 |
+| *Fish Eat Fish Size Comparison… But Every Animal Is Real*, posted 2026-10-25, export of 2026-10-31 (6 days) | 4:35 | **6.56%** on 94,477 impressions | 30.8% (1:24) | **10,000** | 8,077 | 44 | +28 |
+| *Sea Monsters Size Comparison… But Every One Is Real*, posted 2026-10-30, export of 2026-10-31 (~1 day) | 4:38 | 4.62% on 7,947 impressions | **35.6%** (1:38) | 559 | 457 | 8 | +4 |
 
 ### Tests in flight
 

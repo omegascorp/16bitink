@@ -12,6 +12,8 @@ const GAP_MS: Record<Sfx, number> = { pull: 60, blocked: 150, jump: 120, stomp: 
 
 /** The ruins with a sound bed of their own (the jungle has none yet). */
 export type Bed = 'jungle' | 'volcano';
+/** The bed a ruin plays: the tomb borrows the volcano's (its fire channels) until it has its own. */
+export const bedOf = (ruin: 'jungle' | 'volcano' | 'tomb'): Bed => (ruin === 'tomb' ? 'volcano' : ruin);
 
 export class SoundBoard {
   private ctx: AudioContext | null = null;

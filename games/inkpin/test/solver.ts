@@ -29,11 +29,15 @@ export interface Run {
  * A walk step, '@2060', sends Nib to x = 2060 and lets things settle (no
  * stops after it).
  */
-export function play(level: LevelDef, order: readonly string[], patient = false, onStep?: (w: World, stepIndex: number) => void): Run {
+export function play(level: LevelDef, order: readonly string[], patient = false, onStep?: (w: World, stepIndex: number) => void, onTick?: (w: World) => void): Run {
   const w = new World(level);
+  const tick = (): void => {
+    w.step();
+    onTick?.(w);
+  };
   const run = (steps: number): void => {
     for (let s = 0; s < steps && !w.finished; s++) {
-      w.step();
+      tick();
       if (s > 30 && w.settled && w.nibOrder.kind === 'stay') break;
     }
   };
@@ -48,7 +52,7 @@ export function play(level: LevelDef, order: readonly string[], patient = false,
   const steps = order.map(parseStep);
   for (let i = 0; i < steps.length; i++) {
     const { id, wait, walk } = steps[i]!;
-    if (wait !== null) for (let s = Math.round(wait * STEPS_PER_SECOND); s > 0 && !w.finished; s--) w.step();
+    if (wait !== null) for (let s = Math.round(wait * STEPS_PER_SECOND); s > 0 && !w.finished; s--) tick();
     if (walk !== undefined) {
       if (!w.finished) {
         w.command({ kind: 'goto', x: walk });

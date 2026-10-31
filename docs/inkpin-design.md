@@ -1,6 +1,6 @@
 # InkPin: design
 
-The pin puzzle from the mobile ads, made into a whole game. Nib, a raccoon who explores ancient ruins, goes after the treasure of ten lost ruins. Water, lava, gold and ink monsters wait behind golden pins, and you pull them in the right order so Nib gets the treasure and gets out. There are no menus to manage, no town to build and no ads: 100 pin puzzles, a new material in each chapter.
+The pin puzzle from the mobile ads, made into a whole game. Nib, a raccoon who explores ancient ruins, goes after the treasure of five lost ruins. Water, lava, gold and ink monsters wait behind golden pins, and you pull them in the right order so Nib gets the treasure and gets out. There are no menus to manage, no town to build and no ads: 50 pin puzzles, a new material in each chapter.
 
 Started Oct 27, 2026. Seventh game on 16bit.ink. Why this format won is in [game-ideas.md](game-ideas.md#1-the-real-game-from-the-fake-ads-current-direction).
 
@@ -30,7 +30,7 @@ Runners-up: **InkHeist**, which has no conflicts but is darker in tone, and **In
 
 ## The legend
 
-Nib found the **Ink Atlas**, an old explorer's map of ten lost ruins, each with a treasure vault. When Nib opened it the ink got loose: every Blot is a drop of the Atlas's ink, sitting in the ruins and guarding the gold. Each ruin holds a page of the Atlas, and the last page leads to the Dragon's Hoard.
+Nib found the **Ink Atlas**, an old explorer's map of five lost ruins, each with a treasure vault. When Nib opened it the ink got loose: every Blot is a drop of the Atlas's ink, sitting in the ruins and guarding the gold. Each ruin holds a page of the Atlas, and the last page leads to the Dragon's Hoard.
 
 ## Nib
 
@@ -47,7 +47,7 @@ A switch under the level's goal flips between them and remembers the choice. The
 **Our own explorer.** The look is the classic adventure explorer, never a copy of a famous one: no braid, no twin pistols. "Tomb Raider" and "Lara Croft" are trademarks, so they never go in our titles, art or ads; our copy says "ruin explorer".
 
 - **Water is safe for Nib.** Nib gets soggy and keeps going, and floats on deep water.
-- **Lava, fire, acid, gas and Blots are not.** Any of them touching Nib ends the level.
+- **Lava, fire, gas and Blots are not.** Any of them touching Nib ends the level.
 - **Falling things:** a boulder or a bomb landing on Nib ends the level. Coins and gems landing on Nib are welcome.
 - Nib climbs a ledge up to about 44 px and jumps about 55 px, never a pit wall. Each ruin adds one new kind of ground (vines, crumbling ledges, ice floors, lifts, tides, wind…), listed in [inkpin-levels.md](inkpin-levels.md).
 
@@ -63,7 +63,6 @@ The enemies are **guards**: grumpy animals that watch over each ruin's treasure 
 | Water | It gets soaked, squeals and is swept off in a splash. Most guards need about their own size in water |
 | Lava or fire | Its bottom gets singed and it rockets off in a puff of smoke |
 | A boulder or a bomb | It's flattened like a stomp |
-| Acid (chapter 5) | It flees, fizzing |
 
 Cartoon only, as everywhere on 16bit.ink: no blood and nothing gross. A beaten guard always just squashes or runs off in a puff.
 
@@ -71,16 +70,15 @@ Cartoon only, as everywhere on 16bit.ink: no blood and nothing gross. A beaten g
 
 - **Board:** a cut-away ruin drawn on paper. A level is a chain of rooms 2–3 screens wide or two screens tall, with 3–5 puzzle stages, about 60–90 s to play. The camera opens on the chest's end for a moment, then follows Nib, leading the way Nib faces; drag (or scroll) to look around, and it holds there until Nib moves on. At most ~700 grains per level, so phones keep up.
 - **Pins:** golden pins with a ring on the end. Tap a pin, or drag it out the way its ring points, and it slides out. Whatever it held starts to fall at once.
-- **Materials** are simulated as grains (water, lava, gold, sand, gas, acid) and solid bodies (boulders, gems, bombs, keys, ice blocks, Nib and the Blots). Every material's behaviour is in the next table, and none of them ever changes it.
+- **Materials** are simulated as grains (water, lava, gold, sand, gas) and solid bodies (boulders, gems, bombs, keys, ice blocks, Nib and the Blots). Every material's behaviour is in the next table, and none of them ever changes it.
 - **Mixing:**
   - Water and lava make stone, with a puff of steam. One part water turns one part lava to stone, and whatever lava is left over keeps flowing.
   - A flame meeting gas makes a blast that breaks cracked walls.
   - Lava melts ice, and frost freezes still water.
-  - Water dilutes acid until it's harmless.
   - Water makes seeds grow (a seed drinks the water that reaches it, then grows into a vine to its ledge), and lava or fire burns vines.
   - Crates float on water and ride its current, and burn in lava.
 - **Treasure:** coins pour like grains, and gems fall as single pieces. They count once they reach Nib's sack or the chest beside Nib. Treasure lost in lava, down a drain or off the board is gone.
-- **Failing:** Nib is touched by lava, fire, acid, gas or a Blot, or crushed by a falling boulder. Some goals fail in other ways too: a Loot level fails when too little treasure is left to reach its target. Nib shows the cause in a cartoon pose, then the restart button appears.
+- **Failing:** Nib is touched by lava, fire, gas or a Blot, or crushed by a falling boulder. Some goals fail in other ways too: a Loot level fails when too little treasure is left to reach its target. Nib shows the cause in a cartoon pose, then the restart button appears.
 - **Hearts:** three per level, as in the other games. A loss costs a heart: the funny fail plays, then the level winds back to just before the last pin pulled, with a note saying what happened. Losing the last heart ends the level.
 - **Restart:** one tap or R, under a second. Hearts refill on every try; there's no energy to spend.
 - **Hints:** free and unlimited. A hint shows the next pin with a number. After three failures in a row the hint button wiggles. A level finished with a hint can't earn the "first try" blot.
@@ -104,7 +102,7 @@ The game has no ads and nothing to buy with money, so the gold can't be an in-ga
 1. **Nib's camp and museum (recommended, with 2).** Each ruin's relics go on the shelves of Nib's explorer camp, which fills up as the Ink Atlas does. Gold restores the camp bit by bit (tent, then hut, then museum), a tiny joke on the house-renovation games the pin ads come from.
 2. **Explorer gear, for looks only.** Gold buys hats, outfits, lamps and backpacks for Nib. Cosmetic only, so a level is never easier because you have more gold.
 3. **Helpers in puzzles** (an extra rewind, a peek through a wall). Not recommended: hints are already free, and buying help works against the "first try" blot.
-4. **Nothing to spend on:** the bank is just a score, a running total across the ten ruins.
+4. **Nothing to spend on:** the bank is just a score, a running total across the five ruins.
 
 ## Goals
 
@@ -126,35 +124,27 @@ Each chapter brings one new kind of pin, taught on its own on level 6.
 |---|---|---|
 | 1 | **Plain pin** | Pull it once and it's gone. |
 | 2 | **Gate pin** | Tap it again to push it back in. It cuts a flow mid-pour, so amounts become the puzzle. |
-| 3 | **Chain pins** | Two pins on one chain: pull either one and both come out. |
+| 3 | *(none)* | No new pin: plates and doors are the new ground. Gates come back. |
 | 4 | **Lock pin** | It won't move until a key falls into its lock. Keys fall like gems. |
-| 5 | **Spring pin** | It snaps back in after 2 seconds, so only some of a flow gets through. |
-| 6 | **Turn pin** | Pulling it lets a platform swing a quarter turn, which tips whatever is on it. |
-| 7 | **Weight pin** | It pulls itself out when enough weight piles on its plate: water, coins or a boulder. |
-| 8 | **Fuse pin** | It holds until a flame reaches it, then burns away. Water puts the fuse out. |
-| 9 | **Balloon pin** | It holds a balloon down. Pull it, and the balloon lifts whatever is tied to it. |
-| 10 | All of them | — |
+| 5 | **Chain pins** (the Dragon's Hoard) | Two pins on one chain: pull either one and both come out. A chain links rooms far apart. Moved here from chapter 3 (Oct 31, 2026). |
 
 ## Chapters
 
-A different ancient ruin each chapter, each with its treasure vault, a new material, a new Blot and a boss. Chapter 1 is free. Chapters 2–10 are the full game, and the server sends their levels to owners only, as in InkGecko.
+A different ancient ruin each chapter, each with its treasure vault, a new material, a new Blot and a boss. Chapter 1 is free. Chapters 2–5 are the full game, and the server sends their levels to owners only, as in InkGecko.
 
 | # | Ruin | New material (level 2) | New Blot (level 4) | Boss |
 |---|---|---|---|---|
 | 1 | **The Jungle Temple**: stone blocks, moss, vines, carved glyphs, torches | Water, gold coins, boulders | **Blot:** patrols its room and goes for Nib on sight | **The Big Blot**, which fills the idol hall's floor; flood it with every drop at once while Nib waits up high |
 | 2 | **The Volcano Shrine**: black basalt, a fire idol, rivers of lava below | **Pumice rafts and fire rubies:** rafts float on lava and ferry Nib and the gold; rubies are gems lava can't hurt. Lava, known from chapter 1, becomes a builder (redesigned Oct 31, 2026: [inkpin-levels.md](inkpin-levels.md#2-the-volcano-shrine)) | **Salamander:** fireproof, wades through lava; only water, a boulder or a falling slab beats it (and the armoured **armadillo**) | **The Old Salamander** in the Fire Idol's lava bowl, fed by three mouths; meter the water through gate pins |
-| 3 | **The Desert Tomb**: sandstone, sealed burial chambers, painted walls | **Tomb gas:** green, rises instead of falling, and Nib can't breathe it. A torch turns it into a blast that breaks cracked walls | **Puff Blot:** floats up on gas | **The Tomb Guardian**, a Blot in a stone coffin that breathes gas at Nib; light its breath to bring its own wall down on it |
+| 3 | **The Desert Tomb**: sandstone, sealed burial chambers, painted walls | **Tomb gas:** green, rises instead of falling, and Nib can't breathe it. A fire bowl or lava turns it into a blast that breaks cracked walls; plates and stone doors | **Rain frog:** puffs up and floats on gas | **The Tomb Guardian**, an old toad in a painted coffin that breathes gas at Nib; light its breath under the lid to bring the lid down on it |
 | 4 | **The Frozen Monastery**: a mountain monastery under the ice, prayer bells, icicles | **Ice:** frost freezes still water into blocks that slide and push; lava melts them back | **Frost Blot:** frozen solid, so water does nothing until it's thawed | **The Ice Wyrm**, which freezes every pool on its beat; time pulls between its breaths |
-| 5 | **The Alchemist's Ruin**: a tumbled tower of glass, copper and bubbling flasks | **Acid:** eats wood, stone and Blots (and Nib); water dilutes it | **Sponge Blot:** soaks up water and grows; only acid or lava shrinks it | **The Cauldron Blot**, which boils over in waves of three colours; send each wave the material it fears |
-| 6 | **The Clockwork Citadel**: bronze gears, chains and water wheels of a lost engineering city | **Mechanisms:** water wheels open gates, scales tip under weight, counterweights lift floors | **Clockwork Blot:** marches on a fixed beat, so you can predict it | **The Pendulum**, which swings through the shaft; pull on the right swing |
-| 7 | **The Lost City in the Canopy**: a stepped city swallowed by giant trees | **Seeds:** water grows vines into bridges and ladders; fire burns them | **Thorn Blot:** water and boulders bounce off it; only fire works | **The Snapweed**, a giant plant that eats Blots; wash every Blot into its mouth before it turns to Nib |
-| 8 | **The Sea Cave of the Pirate King**: a wrecked galleon inside a sea cave | **Bombs and powder kegs:** a flame lights the fuse, the blast pushes everything and breaks walls; water puts fuses out | **Shell Blot:** armoured; only a blast cracks it | **The Kraken Blot**, whose tentacles push pins back in; blast the tentacles first |
-| 9 | **The Cloud Fortress**: a ruined fortress on a peak above the clouds | **Balloons and wind:** balloons lift, fans blow grains and gas sideways | **Bat Blot:** flies over gaps; only falling water or a blast brings it down | **The Thunderhead**, a storm cloud whose lightning strikes the tallest metal thing on its beat; lead it with keys and coins |
-| 10 | **The Dragon's Hoard**: the lost city under the mountain, where the Atlas's last page leads | Everything, in the biggest rooms | Every Blot | **The Ink Dragon**, three screens tall, made of the Atlas's last ink, which breathes fire on a rhythm down the vault as Nib climbs to the hoard |
+| 5 | **The Dragon's Hoard**: the lost city under the mountain, where the Atlas's last page leads | Everything, in the biggest rooms | Every Blot | **The Ink Dragon**, three screens tall, made of the Atlas's last ink, which breathes fire on a rhythm down the vault as Nib climbs to the hoard |
+
+The first plan had ten ruins (Alchemist's Ruin, Clockwork Citadel, Lost City in the Canopy, Pirate King's Sea Cave, Cloud Fortress). On Oct 31, 2026 the game was cut to five ruins and 50 levels (10 free + 40 paid); the cut ruins' ideas, materials and pins (acid, spring, turn, weight, fuse and balloon pins) wait in the "Idea bank" of [inkpin-levels.md](inkpin-levels.md#idea-bank-cut-oct-31-2026).
 
 ## Level structure
 
-Each chapter has 10 levels on the same arc, so each new idea arrives on its own and then mixes with the old ones. Every level has one goal and one twist, and the tenth is the boss.
+Each of the five chapters has 10 levels on the same arc, so each new idea arrives on its own and then mixes with the old ones. Every level has one goal and one twist, and the tenth is the boss.
 
 | Level | Role | Twist |
 |---|---|---|
@@ -171,7 +161,7 @@ Each chapter has 10 levels on the same arc, so each new idea arrives on its own 
 
 ## The levels
 
-Every level of all ten ruins, with what it asks and the new ground each ruin brings, is in [inkpin-levels.md](inkpin-levels.md). Chapter 1, the Jungle Temple, is free and teaches the basics the ads made famous, then goes deeper than any ad by level 8.
+Every level of all five ruins, with what it asks and the new ground each ruin brings, is in [inkpin-levels.md](inkpin-levels.md). Chapter 1, the Jungle Temple, is free and teaches the basics the ads made famous, then goes deeper than any ad by level 8.
 
 ## The prototype (Oct 27, 2026)
 
@@ -206,13 +196,13 @@ All ten levels of Chapter 1 ([inkpin-levels.md](inkpin-levels.md)) in `games/ink
 
 ## The map
 
-The Ink Atlas itself, open on the table: ten ruins drawn on one long page of old paper with a trail between them, from the Jungle Temple at the foot to the Dragon's Hoard at the top (built: games/inkpin/src/scenes/MenuScene.ts, scenes/map/, art/atlas*.ts). Each level is a medallion that turns to a gold coin once won, with its blots beside it; a red ring marks the next level, and after a win Nib walks the trail to it. Tapping a level opens a card with a preview, its goal, the best result and Play. Chapters not built yet are pencil sketches ("still being drawn"), and the full game's chapters are painted but locked until bought.
+The Ink Atlas itself, open on the table: five ruins drawn on one long page of old paper with a trail between them, from the Jungle Temple at the foot to the Dragon's Hoard at the top (built: games/inkpin/src/scenes/MenuScene.ts, scenes/map/, art/atlas*.ts). Each level is a medallion that turns to a gold coin once won, with its blots beside it; a red ring marks the next level, and after a win Nib walks the trail to it. Tapping a level opens a card with a preview, its goal, the best result and Play. Chapters not built yet are pencil sketches ("still being drawn"), and the full game's chapters are painted but locked until bought.
 
 ## Art
 
 The house ballpoint notebook style: blue ink lines, watercolour washes on paper, painterly rather than doodled (see [art-pipeline.md](art-pipeline.md)). Rooms are seen side-on, in cut-away.
 
-- **Liquids:** each liquid's grains are drawn into one layer, blurred and cut at a threshold so they merge into a smooth body, then given a pen outline and a watercolour fill: blue water, orange-red lava with a darker crust, green gas that's semi-transparent, pale acid. This is the look that has to sell the game in a short.
+- **Liquids:** each liquid's grains are drawn into one layer, blurred and cut at a threshold so they merge into a smooth body, then given a pen outline and a watercolour fill: blue water, orange-red lava with a darker crust, green gas that's semi-transparent. This is the look that has to sell the game in a short.
 - **Pins:** gold with an ink outline and a shine. A pulled pin flies out with a little spin and fades.
 - **Nib and Blots:** baked sprites in the line-boil frames, with poses for waiting, walking, cheering, soggy, sooty and inked.
 - **Ruins:** each level's rooms painted once onto a board texture, in that ruin's stone (dressed blocks and moss in the Jungle Temple, basalt in the Volcano Shrine, sandstone in the Desert Tomb…), with carvings, vines, cobwebs and torch brackets. Torch flames flicker on top with a warm glow.
@@ -240,7 +230,7 @@ Synthesized, as in the other games:
 
 ## Selling it
 
-- **Free and paid:** chapter 1 (10 levels) is free. The other 9 chapters are a $4.99 one-time purchase, with no ads and nothing else to buy. Hints are free.
+- **Free and paid:** chapter 1 (10 levels) is free; the game is 5 ruins and 50 levels. The other 4 chapters (40 levels) are a $4.99 one-time purchase, with no ads and nothing else to buy. Hints are free.
 - **Search page:** "The pin puzzle from the ads, without the ads", in the "games like" pattern ([seo-playbook.md](seo-playbook.md)). Brand names (Homescapes, Hero Wars) appear only in its text, as comparisons, never in our title, art or ads.
 - **Shorts:** the ads' own hook ("which pin first?") with the real game and a funny fail. The obvious pin is wrong, then the right order plays. Every frame is real gameplay, which is the opposite of the ads that got banned.
 

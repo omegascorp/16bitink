@@ -108,6 +108,11 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * stargazer (the fish in the sand that eats whatever swims over it),
  * orcaliver (orcas eat only a great white's liver), bobbit (a worm whose jaws
  * can slice a fish in half), seastar (a starfish eats with its stomach outside its body).
+ * The batch of 2026-10-31, from that day's export (whales, size contrast and a
+ * twist inside the swallow won): brydes (a Bryde's whale opens its mouth at
+ * the surface and waits for the fish to drift in), diver (a Cape Cod diver
+ * spent about forty seconds inside a humpback's mouth), seal (a young Cape fur
+ * seal hunts blue sharks: the prey becomes the predator).
  * They're loaded lazily (import() on demand).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
@@ -413,6 +418,21 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
     await loadCaptionFont();
     const { createStargazer } = await import('./stargazer/render');
     return withCredit(createStargazer(ctx), ctx, PAPER_ON_DARK);
+  },
+  brydes: async () => {
+    await loadCaptionFont();
+    const { createBrydes } = await import('./brydes/render');
+    return withCredit(createBrydes(ctx), ctx, PAPER_ON_DARK);
+  },
+  diver: async () => {
+    await loadCaptionFont();
+    const { createDiver } = await import('./diver/render');
+    return withCredit(createDiver(ctx), ctx, PAPER_ON_DARK);
+  },
+  seal: async () => {
+    await loadCaptionFont();
+    const { createSeal } = await import('./seal/render');
+    return withCredit(createSeal(ctx), ctx, PAPER_ON_DARK);
   },
   orcaliver: async () => {
     await loadCaptionFont();

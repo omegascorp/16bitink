@@ -255,8 +255,8 @@ Then the "Design around this" bullets for what surprised you. Chapter 3 bans vin
 
 ---
 
-## Open questions for the user
+## Open questions (settled by the user, Oct 31, 2026)
 
-1. **Chain pins.** They're dropped from Chapter 3 to keep to two new mechanics. Do they move to a later chapter, or out? inkpin-design.md's pin table still lists them for chapter 3.
-2. **Escort.** Level 28 is now a Treasure remix, because Escort (a caged friend who follows Nib) isn't built, and it would be a third new mechanic. Should the fennec come back in a later chapter's engine pass?
-3. **The rain frog.** It's a real Namib desert frog that puffs up round. It stands in for the design doc's "Puff Blot", and a big old toad is the boss. Is that the right animal, and the right look?
+1. **The rain frog** is the guard and an old toad is the boss, as designed.
+2. **Chain pins are kept.** They move to Chapter 5, the Dragon's Hoard (the finale, levels 41–50): two pins on one chain, pull either one and both come out, and a chain links rooms far apart. inkpin-design.md's pin table lists them there. Not built in this pass.
+3. **Escort** (the fennec) comes back in Chapter 4, built in that chapter's engine pass and first used by level 38. Level 28 stays a Treasure remix. Not built in this pass.

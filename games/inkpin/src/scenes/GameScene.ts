@@ -5,7 +5,7 @@ import { BOAR_FRAME } from '../art/boar';
 import { CHEST_FRAME, FLAME_FRAME } from '../art/props';
 import { LiquidPainter, LIQUID_RES } from '../art/liquid';
 import { VOLCANO_SKY_TOP_HEX } from '../art/volcanoSurround';
-import type { SoundBoard } from '../audio/sfx';
+import { bedOf, type SoundBoard } from '../audio/sfx';
 import { LEVELS } from '../level';
 import type { GuardAnimal, LevelDef } from '../logic/level';
 import { COIN, STEPS_PER_SECOND } from '../logic/particles';
@@ -20,6 +20,7 @@ import { LevelCamera } from './levelCamera';
 import { addToBank, isOpen, readBank, readProgress, recordWin, type Bank } from './progress';
 import { PinsView } from './pinsView';
 import { ShrineView } from './shrineView';
+import { TombView } from './tombView';
 import { bakeBoard, bakeTextures, COIN_TURNS, guardKey, guardKind, surroundKeys } from './textures';
 
 const S = 1 / ART_RES;
@@ -125,6 +126,7 @@ export class GameScene extends Phaser.Scene {
   private blots: Phaser.GameObjects.Image[] = [];
   private bodies!: BodiesView;
   private shrine!: ShrineView;
+  private tomb!: TombView;
   private dark: DarkLayer | null = null;
   private index = 0;
   private camera!: LevelCamera;
@@ -159,7 +161,8 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     this.index = levelIndex(this.registry);
-    const level = LEVELS[this.index]!;
+    // The dev page's sampler (?sample=tomb) plays a level that is in no chapter.
+    const level = (this.registry.get('sampleLevel') as LevelDef | undefined) ?? LEVELS[this.index]!;
     const old = this.registry.get('session') as Session | undefined;
     this.session = old?.level === level.id ? old : { level: level.id, tries: 0, hinted: false };
     this.session.tries++;
@@ -200,13 +203,14 @@ export class GameScene extends Phaser.Scene {
       this.blots.push(img);
       this.world0.add(img);
     }
+    this.tomb = new TombView(this, this.world0, this.world, this.fx, () => this.sfx);
     this.pins = new PinsView(this, this.world0, this.world);
     this.nib = new NibView(this, this.world0);
     if (level.dark) this.dark = new DarkLayer(this, this.world0, level);
     if (this.session.hinted) this.pins.showHint();
     this.checkpoint = this.world.save();
     this.checkpointMark = 0;
-    this.sfx.bed(level.ruin ?? 'jungle');
+    this.sfx.bed(bedOf(level.ruin ?? 'jungle'));
     this.camera = new LevelCamera(this, level);
     this.camera.fit(this.world.nib, true);
     this.press = null;
@@ -336,6 +340,7 @@ export class GameScene extends Phaser.Scene {
     this.chest?.setTexture(this.world.chestTaken ? 'chest-open' : 'chest-closed').setScale(S);
     this.bodies.resync();
     this.shrine.resync();
+    this.tomb.resync();
     this.nib.reset();
   }
 
@@ -392,6 +397,7 @@ export class GameScene extends Phaser.Scene {
     });
     this.bodies.update();
     this.shrine.update(time);
+    this.tomb.update(time);
     this.pins.updateHints();
     this.dark?.paint(this.world, time);
   }
@@ -470,7 +476,25 @@ export class GameScene extends Phaser.Scene {
         case 'washed':
         case 'scorched':
         case 'stomped':
+        case 'blasted':
           this.blotGone(e.type, e.x, e.y);
+          break;
+        case 'blast':
+          this.tomb.blast(e.x, e.y);
+          break;
+        case 'wallBroken':
+          this.tomb.broken(e.index, e.x, e.y);
+          break;
+        case 'doused':
+          this.tomb.doused(e.x, e.y);
+          break;
+        case 'doorOpen':
+        case 'doorShut':
+        case 'plateDown':
+          this.sfx.play('gate', 0.6);
+          break;
+        case 'doorBlocked':
+          this.sfx.play('blocked');
           break;
         default:
           break;

@@ -1,3 +1,4 @@
+import type { LevelDef } from './logic/level';
 import Phaser from 'phaser';
 import { PAPER } from './art/palette';
 import { SoundBoard } from './audio/sfx';
@@ -9,6 +10,8 @@ import { MenuScene } from './scenes/MenuScene';
 export interface MountOptions {
   /** Opens straight into this level (0-based) instead of the map. */
   readonly level?: number;
+  /** The dev page's sampler: opens straight into this level, which isn't in any chapter (Chapter 3's engine parts). */
+  readonly sample?: LevelDef;
   /** Opens every level, for testing. */
   readonly unlockAll?: boolean;
 }
@@ -35,7 +38,8 @@ export function mount(parent: HTMLElement, options: MountOptions = {}): { readon
   game.registry.set('sfx', sfx);
   game.registry.set('unlockAll', options.unlockAll ?? false);
   // Straight into a level (the dev page's ?level=), else the Atlas map first.
-  if (options.level !== undefined) game.registry.set('startLevel', options.level);
+  if (options.sample) game.registry.set('sampleLevel', options.sample);
+  if (options.level !== undefined || options.sample) game.registry.set('startLevel', options.level ?? 0);
   const resizer = new ResizeObserver(() => {
     const next = cssSize();
     const w = Math.round(next.width * DPR);

@@ -1,13 +1,16 @@
 import Phaser from 'phaser';
 import { DarkPainter, DARK_RES, type Light } from '../art/dark';
 import type { LevelDef } from '../logic/level';
-import { LAVA } from '../logic/particles';
+import { GAS, LAVA } from '../logic/particles';
 import type { World } from '../logic/world';
 
 /** Light radii in the dark (board px): Nib's lamp, a torch, a lava grain, a pin's ring. */
 const LAMP_R = 190;
 const TORCH_R = 130;
 const LAVA_LIGHT_R = 46;
+/** A fire bowl's light, and a gas grain's faint glow (board px). */
+const BOWL_R = 220;
+const GAS_LIGHT_R = 30;
 const PIN_GLINT_R = 34;
 /** A salamander's ember glow: a living light, smaller than a torch (the Old Salamander's bigger). */
 const EMBER_R = 84;
@@ -47,6 +50,14 @@ export class DarkLayer {
       if (g.kind[i] !== LAVA || i % 3 !== 0) continue;
       lights.push({ x: g.x[i]!, y: g.y[i]!, r: LAVA_LIGHT_R, power: 0.7 });
       lava++;
+    }
+    // The tomb: a lit fire bowl lights the room round it; gas glows faintly; burning gas flashes.
+    for (const b of w.bowls) if (b.lit) lights.push({ x: b.x, y: b.y - 34, r: BOWL_R * (0.95 + Math.sin(time / 150 + b.x) * 0.05), power: 0.95 });
+    let gas = 0;
+    for (let i = 0; i < g.count && gas < LAVA_LIGHTS; i++) {
+      if (g.kind[i] !== GAS || i % 3 !== 0) continue;
+      lights.push({ x: g.x[i]!, y: g.y[i]!, r: g.burn[i]! > 0 ? BOWL_R * 0.6 : GAS_LIGHT_R, power: g.burn[i]! > 0 ? 1 : 0.25 });
+      gas++;
     }
     this.painter.paint(lights);
     this.tex.refresh();

@@ -9,6 +9,8 @@ import { LEDGE_T } from '../logic/ledges';
 import { RAFT_HH, RAFT_HW } from '../logic/rafts';
 import { RUBY_R } from '../logic/rubies';
 import { paintLantern, paintNib, paintSack, type NibMark, type NibPose } from '../art/nib';
+import { paintBowl, paintDoor, paintFrog, paintPlate, paintRubble } from '../art/tomb';
+import { doorKey, plateKey, rubbleKey } from './tombView';
 import { BOIL } from '../art/palette';
 import { paintBoar } from '../art/boar';
 import { paintBoulder } from '../art/boulder';
@@ -23,7 +25,7 @@ import { ART_RES } from '../art/palette';
 
 /** Every drawing baked into a texture once; later scenes reuse them. */
 export const NIB_POSES: readonly NibPose[] = ['stand', 'walk0', 'walk1', 'walk2', 'walk3', 'swim', 'cheer'];
-export const NIB_MARKS: readonly NibMark[] = ['soot', 'ink', 'tears', 'dizzy'];
+export const NIB_MARKS: readonly NibMark[] = ['soot', 'ink', 'tears', 'dizzy', 'gas'];
 export const COIN_TURNS = [0, 0.08, 0.2, 0.4] as const;
 
 export const nibKey = (pose: NibPose, boil: number): string => `nib-${pose}-${boil}`;
@@ -37,14 +39,16 @@ export const pinKey = (pin: PinDef, lit: boolean): string => `pin-${pin.gate ? '
  * jungle's boss, painted this much bigger); the salamander, the armadillo
  * and the Old Salamander (the volcano's boss).
  */
-export type GuardKind = 'boar' | 'porcupine' | 'boss' | 'salamander' | 'armadillo' | 'oldSalamander';
+export type GuardKind = 'boar' | 'porcupine' | 'boss' | 'salamander' | 'armadillo' | 'oldSalamander' | 'frog' | 'frogPuffed' | 'toad';
 export const BOSS_SCALE = BOSS_R / BLOT_R;
 export const guardKey = (kind: GuardKind, scared: boolean, boil: number): string => `guard-${kind}-${scared ? 'scared' : 'grump'}-${boil}`;
 
 /** Which picture a guard gets: its animal, or its chapter's boss. */
-export function guardKind(b: { readonly boss: boolean; readonly animal: GuardAnimal }): GuardKind {
-  if (b.boss) return b.animal === 'salamander' ? 'oldSalamander' : 'boss';
-  return b.animal;
+export function guardKind(b: { readonly boss: boolean; readonly animal: GuardAnimal; readonly puffed?: boolean }): GuardKind {
+  if (b.boss) return b.animal === 'salamander' ? 'oldSalamander' : b.animal === 'toad' ? 'toad' : 'boss';
+  if (b.animal === 'frog') return b.puffed ? 'frogPuffed' : 'frog';
+  // The old toad is the tomb's boss only; a plain one wears the frog's picture.
+  return b.animal === 'toad' ? 'frog' : b.animal;
 }
 
 /** The surroundings' tiles for a ruin: rock, sky and ground strip. */
@@ -70,6 +74,12 @@ function paintGuard(kind: GuardKind, scared: boolean, boil: number): HTMLCanvasE
       return paintArmadillo(mood, boil);
     case 'oldSalamander':
       return paintSalamander(mood, boil, BOSS_SCALE, true);
+    case 'frog':
+      return paintFrog(mood, boil, false);
+    case 'frogPuffed':
+      return paintFrog(mood, boil, true);
+    case 'toad':
+      return paintFrog(mood, boil, false, BOSS_SCALE, true);
   }
 }
 
@@ -78,7 +88,10 @@ const JUNGLE_GUARDS: readonly GuardKind[] = ['boar', 'porcupine', 'boss'];
 
 function levelGuards(level: LevelDef | undefined): GuardKind[] {
   const kinds = new Set<GuardKind>(JUNGLE_GUARDS);
-  for (const b of level?.blots ?? []) kinds.add(guardKind({ boss: b.boss ?? false, animal: b.animal ?? (b.spiky ? 'porcupine' : 'boar') }));
+  for (const b of level?.blots ?? []) {
+    kinds.add(guardKind({ boss: b.boss ?? false, animal: b.animal ?? (b.spiky ? 'porcupine' : 'boar') }));
+    if (b.animal === 'frog' && !b.boss) kinds.add('frogPuffed');
+  }
   return [...kinds];
 }
 
@@ -112,6 +125,21 @@ export function bakeTextures(scene: Phaser.Scene, level?: LevelDef): void {
   if (level?.ledges?.length) add('crumb', paintCrumb);
   for (const l of level?.ledges ?? []) add(slabKey(l), () => paintSlab(l.x1 - l.x0, LEDGE_T * 2));
   add('crate', () => paintCrate(BOULDER_R));
+  if (level?.ruin === 'tomb') {
+    add('bowl-lit', () => paintBowl(true));
+    add('bowl-out', () => paintBowl(false));
+    for (const p of level.plates ?? []) for (const down of [false, true]) add(plateKey(p.x1 - p.x0, down), () => paintPlate(p.x1 - p.x0, down));
+    for (const d of level.doors ?? []) {
+      const len = Math.hypot(d.bx - d.ax, d.by - d.ay);
+      add(doorKey(len, d.t), () => paintDoor(len, d.t * 2));
+    }
+    for (const i of level.cracked ?? []) {
+      const s = level.walls[i];
+      if (!s) continue;
+      const len = Math.hypot(s.bx - s.ax, s.by - s.ay);
+      add(rubbleKey(len, s.t), () => paintRubble(len, s.t * 2));
+    }
+  }
   add('seed', paintSeed);
   add('heart', () => paintHeart(true));
   add('heart-empty', () => paintHeart(false));

@@ -68,3 +68,94 @@ Chapter 2 bans vines, seeds, crates, boars and porcupines.
 Every run prints the hint's result and time, the two obvious orders (nearest pins to Nib first; left to right by pin midpoint; gates pushed back as the solution does) and how they end, the grain count, and any overflowing fill. `AUDIT=1` adds the audit line. One play costs ~4 s of CPU; a full audit takes minutes, so audit at the end.
 Audit fields: `winShare, lessons, topLessonShare, stuckShare, blockedShare`, plus `lateLossShare` (share of losses that came on the order's second tap or later; higher means the wrong turns are deeper) and `obvious {nearest, leftToRight}` (how those two orders end). Gate push-backs are sampled at {never, 0.75, 1.5, 3 s} plus the solution's own wait for that gate, and half and twice it.
 Run only your own tests (`npx vitest run test/ch2-<id>`) and `npx tsc --noEmit -p .` at the end.
+
+
+## Chapter 3: the Desert Tomb (engine pass, Oct 31, 2026)
+
+Everything above still holds. Measured numbers below come from `test/measure-ch3.test.ts` (`MEASURE=1 npx vitest run test/measure-ch3 --silent=false`) and `test/mechanics-ch3.test.ts`.
+
+### Files
+- Level: `games/inkpin/src/level/ch3/<name>.ts`, `chapter: CH3`, `ruin: 'tomb'`, registered in `CHAPTER_3` in `src/level/index.ts` (Level 21… numbers run on by themselves). Test: `test/ch3-<id>.test.ts`, shaped like the ch2 ones. `test/chapter3.test.ts` checks every ch3 level (rooms, budget with `breath.max`, cracked walls in `bars`, seals and doors naming real things).
+- **Shortest example to copy: `src/level/ch3/sampler.ts`** (the engine sampler: a plate under a boulder, a door, a gas pit, a dome with a puffed frog, two fire bowls, a cracked bar, seals). It is in no chapter; play it at the dev page with `?sample=tomb`.
+- Small test rooms: `test/tomb-room.ts` (`tombRoom`, `vent`).
+
+### New LevelDef fields
+- `plates?: { id, x0, x1, y, need? }[]`: a plate's top is `y` (the floor's top); it weighs its zone x0..x1 by y − 40..y. `need` defaults to 25.
+- `doors?: { id, ax, ay, bx, by, t: T, plate, invert? }[]`: a capsule like a pin; open = slid toward (ax, ay) by its own length (into the rock, or along a wall). Open while its plate is down (`invert`: while it's up). Doors start where their plate puts them at the start (before the 3 s pre-settle).
+- `seals?: { door?: id; wall?: index; side: 'left'|'right'|'up'|'down' }[]`: `side` is the goal's side of the barrier.
+- `braziers?: { x, y }[]`: a fire bowl standing on the floor at y; its flame is a circle at (x, y − 34), r 12. All start lit.
+- `cracked?: number[]`: wall indices a blast breaks; each must also be in `bars`.
+- `breath?: { every, count, max }` (the boss; **not built yet**, see below).
+- `fills` with `kind: GAS`: `y1` is the **underside of the lid** (the pin or ceiling above it); rows pack **downward** from y1 + 8, 9 px apart, same columns as other fills. A gas fill needs a lid or ceiling above it, or it rises during the pre-settle.
+- New loss causes: `'gassed'`, `'blasted'`, `'sealed'`. New guard end: `'blasted'`. Guard animals `'frog'` (rain frog) and `'toad'` (boss only).
+- Chapter 3 bans vines, seeds, crates, boars and porcupines, like Chapter 2.
+
+### Plates and doors (measured)
+- Weights: water, lava, coin or stone grain 1 (centre in the zone), gas 0, ruby 3, Nib or a guard standing in it 30 (a puffed frog 0), the boss 100, a boulder 40, a raft 20 (its deck cargo counts by its own grains), a down slab over half the span 40. Down at ≥ `need`; up after 30 steps (0.25 s) below it.
+- **The zone is only 40 px tall: a 100-px pit holds at most ~34–40 water of weight**, however much more you pour. 25 water in a 100-px pit: 25; 40: 33; 60: 34. Plan `need` ≤ 30 for water.
+- Open floor: water runs off. 25/40/60 water dropped ~280 px onto a 100-px plate on open floor peak at 25/37/38 and settle to 5–6: the plate goes down for a moment, then up. **Water holds a plate only in a pit.**
+- First grain to plate down: 0.07–0.09 s.
+- **Leaking plates are fast.** A pit with a grate (a `drain` box at the pit floor): 40 water over a 30-px grate: down 0.82 s after the pull, up 0.25 s later; 80 water over 30 px: up 0.28 s later; 60 over a 12-px grate: 0.44 s; 80 over 12 px: 0.72 s, and its door shut again 1.55 s after the plate went down. For "a few seconds", use a grate ≤ 12 px and keep the pour coming (a gate), or a deeper supply.
+- A boulder rolled off a ledge at walking speed into a 100-px pit stopped 24 px past the pit's middle: weight 40.
+- A raft aground on a plate: 20; with 20 coins on its deck: 32. A raft alone needs `need: 20`.
+- A frog dropped on a plate: 30 (down). Nib alone: 30.
+- Doors open at 2 px/step and shut at 1: 60 px: 0.24 s open / 0.49 s shut; 80: 0.33 / 0.66; 120: 0.49 / 0.99. With Nib walking off a plate, the plate is up 0.53 s after he starts walking (his walk off + 0.25 s hold).
+- A 100-px door in front of a 180-px tank of 240 water: Nib on its plate 0.5 s let 149 grains through; 1 s, 169 (it shuts 1.5 s after he steps off). **A door is not a fine meter**; use a gate pin to meter.
+- A shutting door waits for Nib, a live guard, a boulder or raft, a ruby or a slab in its way (`waiting`), and goes on when it's clear. Grains in its path are pushed aside. An opening door waits on a pin still in its path (event `doorBlocked`).
+- A door is a seg for everything (gas too). Blasts don't break doors.
+
+### The 'sealed' loss
+Lost `'sealed'` when: every plain pin is out and every gate has been pulled at least once; everything but Nib has been still for 1 s (Nib walking doesn't reset it); the goal isn't met; and some `seals` barrier stands (a door not fully open, a cracked wall not broken) with Nib on its far side from `side` (compared with the barrier's midpoint).
+- **Don't list a door Nib opens himself by standing on a plate**: with all pins out and him on the wrong side, it seals him even though he could walk onto the plate.
+- A level with no `seals` never seals: a shut-out order ends 'stuck' as before.
+
+### Tomb gas (measured)
+- `GAS` grains fall up (gravity −0.035, up to 2.5 px/step). Free rise **~300 px/s**: gas crosses a room in a second, so Nib can't outrun it, and gas reaches the roof long before anything else moves.
+- Rises through water: 30 gas under 124 px of water were all above the surface 0.88 s after their lid opened. Water falls through gas.
+- 100 gas under a flat 300-px ceiling settle **48 px deep** (5 rows: rows ≈ count ÷ ((width − 12) ÷ 10 + 1), 9 px apart, from the ceiling down). A dome's lips must hang deeper than that, or it spills round them.
+- A 40-px roof vent (`drain` box in a chimney, plugged by a pin): half of 100 gas gone in 3.0 s, all but 2 in 5.5 s. Gas drifts toward the vent along the ceiling.
+- Gas seeps up through a coin heap (sleeping coins never trap it): 40 gas under 80 dropped coins were all out in 1.3 s. Gas goes round a raft: 1 of 30 left under it after 5 s.
+- A resting dome counts as settled for the bot within 0.2 s.
+- **A closed dome is a diving bell: rising water does not squeeze gas out under its lip.** Water 93 px over the lip of a 160-px dome spilled 0–3 of 60 gas. Gas leaves a dome only upward: through a vent, a flue or a door in its roof, or by burning. (This changes level 22's "the flood squeezes the gas out": make the flood lift the gas pool up a flue or stair whose mouth is in the dome's roof, behind a pin.)
+- **Nib**: lost `'gassed'` with ≥ 3 gas grains within 30 px of his centre at once, or any touching him 20 steps in a row. One stray grain is safe. He walks under a resting dome's lip safely (measured with 24 px between the lip and his head): the gas stays above the lip.
+- Creatures walk through gas (they don't push it); bodies, rubies and slabs push it aside like water.
+
+### Fire bowls, ignition and blasts (measured)
+- A gas grain touching a lit flame (within 18 px of its centre) or any lava (13.5 px) burns 8 steps then is gone; from its 2nd step it lights all gas within 16 px. **120 gas in a 160-px dome burnt out in 0.25 s from one spark.** Gas across a wall or pin (≥ 26 px apart) doesn't catch: the fire follows connection.
+- **Blast reach** (each burning grain, any step it burns): a cracked bar breaks when its centre line is within **48 px** (40 + its t 8); Nib is blasted with his centre within **~60 px** (64 measured fine); any guard (boar, salamander, armadillo, frog: fireproof isn't blastproof) within 40 px of its edge; an 'up' ledge within 48 px starts cracking (0.4 s wobble, then falls as before). Only along a line no wall, pin, door or ledge blocks: no blast round a corner. The boss, water, lava, coins, stone, rubies, boulders, rafts, plates, doors, pins and bowls are untouched.
+- **Keep Nib ≥ 70 px from any gas that can burn**, and his route ≥ 70 px below a dome that a flame can reach.
+- Dousing: one water grain touching a lit flame puts it out for good (the grain is used up, steam, event `doused`). 3 water dropped 210 px onto a bowl doused it in 0.65 s. Lava and coins don't affect a bowl.
+- A gas dome just clear of a flame (2 rows above a flame 30 px below the ceiling) lights the moment more gas deepens it (the sampler does this).
+- Dark levels: a lit bowl lights ~220 px; gas glows faintly (~30 px); burning gas flashes.
+
+### The rain frog (measured)
+- A guard with a boar's rules (r 22, stompable, washes at 260, burns in lava, squashed by slabs and boulders, blasted). With ≥ 6 gas within 30 px it puffs (`frogPuff`) on that step, stops walking and floats up at up to 0.8 px/step: **79 px/s** measured, drifting with the gas round it; it's held under ceilings, pins, ledges and doors (it rested at 22 px under a ceiling). Puffed it weighs nothing and still inks Nib on touch.
+- With < 2 gas within 30 px for 30 steps it goes flat (`frogDrop`) and falls like any creature.
+- **Vent to drop: 6.0 s** for a 120-gas dome over a 40-px vent, and the frog **drifted 101 px toward the vent** while it waited (it drops near the vent, not where it floated). Its fall drifted another 44 px. Dropped ~180 px into a 45-px pool, it washed 1.2 s after the drop.
+- **A frog only rides gas that pools under a roof.** In a rising column the gas (300 px/s) outruns it (96 px/s): it puffs, falls behind, goes flat and drops back. Start floating frogs inside a resting dome.
+- An unpuffed frog walks through thin gas (< 6 grains near).
+
+### Lab: new lines and their targets
+Every lab run now also prints (for every level; the old lines are unchanged):
+- `obvious, route order`: the pins in the order the hint's walk first comes within 150 px of each (in y on tall levels). **Must lose.**
+- `drop-one: decoys [...] trap [...]`: a pin whose taps you can leave out of the solution and still win is a decoy (**target: none**); the one allowed trap is a pin no win uses.
+- `walk-only: X s of the hint's Y s (Z%) … longest stretch S s`: Nib walking while nothing else moves. **Target ≤ 20%, no stretch over 3 s.**
+- A `WARNING` when gas comes within 40 px of a decorative torch during the hint.
+- With `AUDIT=1`: `dead ends: stuck X% … playing Y% …` (settled dead ends vs timeouts still moving, with the first five orders of each; **target 0 for both**; the audit line's `stuck` is still the two together) and `deepest wrong orders` (the three losses at the latest tap, with tap, cause and time).
+- `ROBUST=1`: the solution with the default stops, the stops reversed, each `~t` wait at ±25% and each `'@x'` walk at ±40 px. A win only some give is fragile.
+- The grain total adds the boss's `breath.max`. The board map (`BOARD=1`) draws `o` gas, `%` cracked walls, `P` plates, `|` doors, `F` flames.
+- The audit counts 'gassed', 'blasted' and 'sealed' as lessons like any loss.
+
+### Not built yet
+- **The boss (level 30)**: `breath` is in LevelDef and the budget, but the Tomb Guardian's breathing, the coffin lid and its tests are a later engine pass. The toad draws (a big warty frog) and stays put as any boss.
+- The painterly tomb art: plates, doors, bowls, rubble, gas and the frog are pen-and-ink placeholders; the walls use the temple's stone.
+
+### Design around this (Chapter 3)
+- Gas is fast (300 px/s up) and the fire is instant (a dome in 0.25 s): the board's drama is in the order, not in timing.
+- A plate's zone is 40 px tall: water weighs at most ~35 in a 100-px pit, and only in a pit.
+- Leaking plates leak in under a second with a 30-px grate; use ≤ 12 px.
+- Closed domes are diving bells: gas leaves only upward (vents, flues, roof doors) or by burning.
+- Floating frogs drift toward the vent before they drop: put the pool or plate under the vent, not under where the frog starts.
+- A blast reaches 48 px to a cracked bar's centre line and ~60 px to Nib's centre, through open air only.
+- Gas fills hang from their lid: `y1` is the lid's underside, rows go down.
+- `seals` must not name a door Nib holds open by standing on its plate.

@@ -8,6 +8,10 @@ import { blot, moveBlot, type Blot, type BlotEnd } from './guards';
 import { ledge, ledgeMoving, ledgeSeg, loadLedge, noteNib, saveLedge, stepSlab, type Ledge, type LedgeEvent, type LedgeSave } from './ledges';
 import type { FillDef, GuardAnimal, LevelDef, PinDef } from './level';
 import { COIN, GRAIN_R, Grains, LAVA, STEPS_PER_SECOND, type GrainEvent, type GrainsSave } from './particles';
+import { burn, gasOnNib, type Bowl, type FireEvent, type FireWorld } from './fire';
+import { stepFrog, type FrogEvent } from './frog';
+import { doors, doorSegs, doorsMoving, loadTomb, plates, saveTomb, sealedOut, snapDoors, stepPlates, weighPlates, type DoorState, type PlateState, type TombEvent, type TombSave, type TombWorld } from './tomb';
+import { fill } from './fill';
 import { raft, stepRaft } from './rafts';
 import { inPlay, ruby, RUBY_COINS, RUBY_R, saveRuby, separateRubies, stepRuby, type Ruby, type RubyEvent, type RubySave } from './rubies';
 
@@ -63,73 +67,11 @@ const JUMP_SPEED = 2.9;
 const GOTO_PATIENCE = 40;
 /** A slab pressing this far (px) into a creature on the ground squashes it, however slowly it comes down. */
 const SLAB_PRESS = 6;
+/** The world (Nib aside) must have been settled this long, with every pin out, before a shut barrier seals the level. */
+const SEAL_STEPS = STEPS_PER_SECOND;
 
-export type LossCause = 'burnt' | 'inked' | 'pricked' | 'melted' | 'drained' | 'crushed' | 'fell';
-
-/**
- * What the player has told Nib to do: stay put, walk one way (arrow keys,
- * joystick), climb a vine up or down, or go to a spot (a tap: on the floor,
- * or on a vine, when it has a height).
- */
-export type NibOrder =
-  | { readonly kind: 'stay' }
-  | { readonly kind: 'walk'; readonly dir: -1 | 1 }
-  | { readonly kind: 'climb'; readonly dir: -1 | 1 }
-  | { readonly kind: 'goto'; readonly x: number; readonly y?: number };
-/** A loss to a guard (caught or pricked) says which animal, when the level names it (chapter 2 on), for the loss line. */
-export type Status = { readonly state: 'playing' } | { readonly state: 'won' } | { readonly state: 'lost'; readonly cause: LossCause; readonly by?: GuardAnimal };
-
-export type WorldEvent =
-  | GrainEvent
-  | { readonly type: 'pull'; readonly id: string }
-  | { readonly type: 'blocked'; readonly id: string; readonly by: string }
-  | { readonly type: 'gateIn'; readonly id: string }
-  | { readonly type: 'gateJammed'; readonly id: string }
-  | { readonly type: 'collect'; readonly id: number; readonly x: number; readonly y: number }
-  | { readonly type: 'goal' }
-  | { readonly type: 'washed'; readonly x: number; readonly y: number }
-  | { readonly type: 'scorched'; readonly x: number; readonly y: number }
-  | { readonly type: 'stomped'; readonly x: number; readonly y: number }
-  | { readonly type: 'bonk'; readonly x: number; readonly y: number }
-  | { readonly type: 'drained'; readonly x: number; readonly y: number }
-  | { readonly type: 'splash'; readonly x: number; readonly y: number }
-  | { readonly type: 'chest'; readonly x: number; readonly y: number }
-  | VineEvent
-  | { readonly type: 'crateBurnt'; readonly x: number; readonly y: number }
-  | LedgeEvent
-  | RubyEvent
-  | { readonly type: 'jump' };
-
-export interface PinState {
-  readonly def: PinDef;
-  pulledAt: number | null;
-  /** The step a gate pin last went back in, for the art; null if it never has. */
-  pushedAt: number | null;
-}
-
-/** Everything that changes in a World as it plays, to wind back to (a heart lost). */
-export interface WorldSave {
-  readonly grains: GrainsSave;
-  readonly pulled: readonly (number | null)[];
-  readonly pushed: readonly (number | null)[];
-  readonly nib: Creature;
-  readonly blots: readonly Blot[];
-  readonly boulders: readonly Boulder[];
-  readonly coinsCollected: number;
-  readonly chestTaken: boolean;
-  readonly goalMet: boolean;
-  readonly steps: number;
-  readonly status: Status;
-  readonly quietSteps: number;
-  readonly order: NibOrder;
-  readonly stalled: number;
-  /** The vine Nib holds, by index. */
-  readonly climbing: number | null;
-  readonly vines: readonly VineSave[];
-  readonly ledges: readonly LedgeSave[];
-  readonly rubies: readonly RubySave[];
-  readonly goldLostTo: 'melted' | 'drained';
-}
+export type { LossCause, NibOrder, Status, WorldEvent, PinState, WorldSave } from './worldTypes';
+import type { LossCause, NibOrder, PinState, Status, WorldEvent, WorldSave } from './worldTypes';
 
 export class World {
   readonly grains: Grains;
@@ -142,6 +84,11 @@ export class World {
   /** The crumbling ledges, up or fallen. */
   readonly ledges: Ledge[];
   readonly rubies: Ruby[];
+  /** The tomb's pressure plates and stone doors, fire bowls, and which walls a blast has broken (by wall index). */
+  readonly plates: PlateState[];
+  readonly doors: DoorState[];
+  readonly bowls: Bowl[];
+  readonly broken: boolean[];
   /** Coins and rubies (at RUBY_COINS each) in play when the level opens. */
   readonly coinsTotal: number;
   coinsCollected = 0;
@@ -157,6 +104,10 @@ export class World {
   /** What happened during the last step, for the scene's effects and sounds. */
   readonly events: WorldEvent[] = [];
   private quietSteps = 0;
+  /** Steps everything but Nib has been settled (for 'sealed', and the lab's walk-only time). */
+  private calmSteps = 0;
+  /** Steps in a row gas has touched Nib. */
+  private gasTouch = 0;
   /** Where each ruby was last step, for the settle check. */
   private readonly rubyWas = new Map<number, readonly [number, number]>();
   /** Each grain's averaged velocity, by grain id, for the settle check (see DRIFT_KEEP). */
@@ -180,7 +131,7 @@ export class World {
 
   constructor(readonly level: LevelDef) {
     const total = level.fills.reduce((n, f) => n + f.count, 0);
-    this.grains = new Grains(total + 16);
+    this.grains = new Grains(total + 128 + (level.breath?.max ?? 0));
     for (const f of level.fills) fill(this.grains, f);
     this.pins = level.pins.map((def) => ({ def, pulledAt: null, pushedAt: null }));
     this.nib = creature(level.nib.x, level.nib.y, NIB_R, 1);
@@ -189,6 +140,10 @@ export class World {
     this.vines = (level.vines ?? []).map(vine);
     this.ledges = (level.ledges ?? []).map(ledge);
     this.rubies = (level.rubies ?? []).map((r, i) => ruby(i, r.x, r.y));
+    this.plates = plates(level);
+    this.doors = doors(level);
+    this.bowls = (level.braziers ?? []).map((b) => ({ x: b.x, y: b.y, lit: true }));
+    this.broken = level.walls.map(() => false);
     const segs = (): readonly Seg[] => this.segs;
     this.mover = {
       grains: this.grains,
@@ -204,6 +159,12 @@ export class World {
       takeRuby: (r) => this.takeRuby(r),
     };
     this.floorY = Math.max(...level.rooms.flatMap((r) => r.map(([, y]) => y))) + 70;
+    if (this.plates.length) {
+      // Doors start where their plates, as laid out, put them.
+      this.grains.rehash();
+      stepPlates(this.plates, this.tombWorld(), []);
+      snapDoors(this.doors, this.plates);
+    }
     this.rebuildSegs();
     // Let everything settle against the pins before play starts, so a level
     // opens at rest: still pools, coins asleep.
@@ -253,6 +214,11 @@ export class World {
       ledges: this.ledges.map(saveLedge),
       rubies: this.rubies.map(saveRuby),
       goldLostTo: this.goldLostTo,
+      tomb: saveTomb(this.plates, this.doors),
+      bowls: this.bowls.map((b) => b.lit),
+      broken: this.broken.slice(),
+      gasTouch: this.gasTouch,
+      calmSteps: this.calmSteps,
     };
   }
 
@@ -285,6 +251,11 @@ export class World {
     this.rubies.forEach((r, i) => Object.assign(r, s.rubies[i]));
     this.climbing = s.climbing === null ? null : (this.vines[s.climbing] ?? null);
     this.goldLostTo = s.goldLostTo;
+    loadTomb(this.plates, this.doors, s.tomb);
+    this.bowls.forEach((b, i) => (b.lit = s.bowls[i] ?? b.lit));
+    this.broken.forEach((_, i) => (this.broken[i] = s.broken[i] ?? false));
+    this.gasTouch = s.gasTouch;
+    this.calmSteps = s.calmSteps;
     this.pending = [];
     this.events.length = 0;
     this.rebuildSegs();
@@ -431,18 +402,50 @@ export class World {
     this.grains.step(this.segs, this.events as GrainEvent[]);
     if (this.events.some((e) => e.type === 'melt')) this.goldLostTo = 'melted';
     this.drain();
+    this.burn();
     this.moveBoulders();
     this.moveSlabs();
     this.moveRubies();
     this.growVines();
-    for (const b of this.blots) if (!b.gone) moveBlot(b, this, FOOTING_STEPS);
+    for (const b of this.blots) if (!b.gone && !stepFrog(b, this.grains, this.segs, this.contact, this.events as FrogEvent[])) moveBlot(b, this, FOOTING_STEPS);
     this.moveNib();
     this.ledges.forEach((l, i) => noteNib(l, i, this.nibOn(l), this.steps, this.events));
+    if (this.plates.length && weighPlates(this.plates, this.doors, this.tombWorld(), this.events as TombEvent[])) this.rebuildSegs();
     this.judge();
   }
 
+  /** The walls still standing (a blast breaks cracked ones). */
+  get standingWalls(): readonly Seg[] {
+    return this.level.cracked?.length ? this.level.walls.filter((_, i) => !this.broken[i]) : this.level.walls;
+  }
+
   private rebuildSegs(): void {
-    this.segs = [...this.level.walls, ...this.pins.filter((p) => p.pulledAt === null).map((p) => p.def), ...this.ledges.map(ledgeSeg)];
+    this.segs = [...this.standingWalls, ...this.pins.filter((p) => p.pulledAt === null).map((p) => p.def), ...this.ledges.map(ledgeSeg), ...doorSegs(this.doors)];
+  }
+
+  /** The plates and doors: what the plates weigh, and the doors they work. */
+  private tombWorld(): TombWorld {
+    const pinsIn = this.pins.filter((p) => p.pulledAt === null).map((p) => p.def);
+    return { grains: this.grains, nib: this.nib, blots: this.blots, boulders: this.boulders, rubies: this.rubies, ledges: this.ledges, pinsIn, contact: this.contact, footing: FOOTING_STEPS };
+  }
+
+  /** Fire bowls, lava sparks and burning gas; and gas on Nib. */
+  private burn(): void {
+    const fw: FireWorld = {
+      grains: this.grains,
+      bowls: this.bowls,
+      walls: this.level.walls,
+      cracked: this.level.cracked ?? [],
+      broken: this.broken,
+      ledges: this.ledges,
+      segs: this.segs,
+      nib: this.nib,
+      blots: this.blots,
+      steps: this.steps,
+      lose: (cause) => this.lose(cause),
+      blotGone: (b, how) => this.blotGone(b, how),
+    };
+    if (burn(fw, this.events as FireEvent[])) this.rebuildSegs();
   }
 
   /** Grains, and rubies, in an open drain's box are gone down it. */
@@ -501,7 +504,7 @@ export class World {
    */
   private moveSlabs(): void {
     if (!this.ledges.some((l) => l.state === 'cracking' || l.state === 'falling')) return;
-    const statics = [...this.level.walls, ...this.pins.filter((p) => p.pulledAt === null).map((p) => p.def)];
+    const statics = [...this.standingWalls, ...this.pins.filter((p) => p.pulledAt === null).map((p) => p.def), ...doorSegs(this.doors)];
     const w = { statics, ledges: this.ledges, bodies: this.boulders, grains: this.grains };
     this.ledges.forEach((l, i) => {
       const y = l.y;
@@ -663,6 +666,7 @@ export class World {
     if (this.finished) return;
     const nib = this.nib;
     if (nib.y > this.floorY) return this.lose('fell');
+    if (this.gassed()) return this.lose('gassed');
     for (const b of this.blots) {
       if (b.gone) continue;
       if (this.stomps(b)) {
@@ -696,13 +700,34 @@ export class World {
     }
     const rubiesMoved = this.rubiesMoved();
     this.trackDrift();
-    const moving =
+    const busy =
       rubiesMoved ||
       this.grains.countFasterThan(SETTLED_SPEED, (i) => this.stirred(i)) > SETTLED_STRAYS ||
-      Math.hypot(nib.vx, nib.vy) > SETTLED_SPEED * 0.5 ||
       this.boulders.some((b) => !b.gone && Math.hypot(b.vx, b.vy) > SETTLED_SPEED) ||
-      this.ledges.some(ledgeMoving);
+      this.ledges.some(ledgeMoving) ||
+      doorsMoving(this.doors, this.plates) ||
+      this.blots.some((b) => b.puffed && !b.gone);
+    const moving = busy || Math.hypot(nib.vx, nib.vy) > SETTLED_SPEED * 0.5;
     this.quietSteps = moving ? 0 : this.quietSteps + 1;
+    this.calmSteps = busy ? 0 : this.calmSteps + 1;
+    if (this.level.seals?.length && this.calmSteps >= SEAL_STEPS && this.pinsDone() && sealedOut(this.level.seals, this.doors, this.level.walls, this.broken, nib)) this.lose('sealed');
+  }
+
+  /** Steps everything but Nib has been settled: nothing flows, rolls, falls, floats or slides. */
+  get calm(): number {
+    return this.calmSteps;
+  }
+
+  /** Every plain pin out, and every gate pulled at least once (in or out now: its final state). */
+  private pinsDone(): boolean {
+    return this.pins.every((p) => (p.def.gate ? p.pulledAt !== null || p.pushedAt !== null : p.pulledAt !== null));
+  }
+
+  /** Gas on Nib: GAS_CROWD grains at once, or any for GAS_STEPS in a row. */
+  private gassed(): boolean {
+    const r = gasOnNib(this.grains, this.nib, this.gasTouch);
+    this.gasTouch = r.touch;
+    return r.gassed;
   }
 
   /**
@@ -756,7 +781,7 @@ export class World {
     return !this.climbing && nib.vy > STOMP_SPEED && above > b.r * 0.7 && Math.abs(b.x - nib.x) < b.r + nib.r * 0.6 && Math.hypot(b.x - nib.x, b.y - nib.y) < b.r + nib.r;
   }
 
-  private lose(cause: LossCause, by?: GuardAnimal): void {
+  lose(cause: LossCause, by?: GuardAnimal): void {
     if (this.finished) return;
     // With the goal met, a mishap only cuts the visit short: Nib keeps the loot.
     this.status = this.goalMet ? { state: 'won' } : by ? { state: 'lost', cause, by } : { state: 'lost', cause };
@@ -765,19 +790,5 @@ export class World {
   /** The guard's animal for the loss line, when its level names one (chapter 1's don't, and their losses stay as they were). */
   private animalOf(b: Blot): GuardAnimal | undefined {
     return this.level.blots[this.blots.indexOf(b)]?.animal;
-  }
-}
-
-/** Packs a block of grains in staggered rows, from its bottom up. */
-function fill(g: Grains, f: FillDef): void {
-  const gap = 10;
-  const rowH = 9;
-  let placed = 0;
-  for (let row = 0; placed < f.count; row++) {
-    const offset = (row % 2) * (gap / 2);
-    for (let x = f.x0 + GRAIN_R + offset; x <= f.x1 - GRAIN_R && placed < f.count; x += gap) {
-      g.add(f.kind, x, f.y1 - GRAIN_R - 2 - row * rowH);
-      placed++;
-    }
   }
 }

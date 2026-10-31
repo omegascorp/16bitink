@@ -42,6 +42,8 @@ The Opus coordinator caught these and sent the workers back. A Sonnet coordinato
 
 ## Model per role
 
+**Default for every sub-agent, in every kind of work (games, shorts, long-form, research, docs): Sonnet**, set explicitly with `model: "sonnet"` on the agent call, since an agent with no model inherits the coordinator's Opus. Easy, well-specified jobs use Sonnet (or Haiku for pure chores): fact-checks and web research, voice prep and transcription, building a short from a written brief and beat plan, content from a kit, tools, doc and table updates, running tests. Use Opus for an agent only when the job needs judgment that's hard to check afterwards (design, engine work, an escalation after two failed rounds), and say why when you launch it. (The user, 2026-10-31.)
+
 | Role | Model | Why |
 |---|---|---|
 | Design (the chapter plan, new mechanics, the difficulty curve, a game's concept) | Opus, in the coordinator or one agent | Judgment; done once |

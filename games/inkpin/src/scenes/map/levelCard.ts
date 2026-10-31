@@ -15,7 +15,7 @@ const CARD_W = 420;
 const PREVIEW = { w: 340, h: 250 } as const;
 const GRAIN_COLOR: Record<number, number> = { [WATER]: 0x6f9fcf, [LAVA]: 0xe8782a, [COIN]: 0xe2b33c, [STONE]: 0x8f857a };
 /** Each guard's colour in the preview, by animal. */
-const GUARD_COLOR: Record<GuardAnimal, number> = { boar: 0x8b5e3c, porcupine: 0x4a3a2c, salamander: 0x2a2430, armadillo: 0xa88f6c };
+const GUARD_COLOR: Record<GuardAnimal, number> = { boar: 0x8b5e3c, porcupine: 0x4a3a2c, salamander: 0x2a2430, armadillo: 0xa88f6c, frog: 0xc79a52, toad: 0x8a8a5a };
 
 export interface LevelCardOpts {
   readonly level: LevelDef;

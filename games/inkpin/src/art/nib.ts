@@ -17,7 +17,7 @@ export const NIB_FRAME = { w: 128, h: 116, ox: 64, oy: 66 } as const;
 
 export type NibPose = 'stand' | 'walk0' | 'walk1' | 'walk2' | 'walk3' | 'swim' | 'cheer' | 'shock';
 /** What a failed level leaves on Nib's face and fur. */
-export type NibMark = 'none' | 'soot' | 'ink' | 'tears' | 'dizzy';
+export type NibMark = 'none' | 'soot' | 'ink' | 'tears' | 'dizzy' | 'gas';
 
 export interface NibLook {
   readonly pose: NibPose;
@@ -441,6 +441,17 @@ function paintMark(pen: Pen, ctx: CanvasRenderingContext2D, mark: NibMark, boil:
       pen.fill(splat, BLOT_INK, 0.92);
       pen.stroke([{ x, y: y + r * 0.6 }, { x: x + 0.5, y: y + r * 0.6 + 5 + rng() * 5 }], 2.2, BLOT_INK, 0.9, false);
       pen.dot(x - r * 0.3, y - r * 0.3, r * 0.22, '#ffffff', 0.4);
+    }
+  } else if (mark === 'gas') {
+    // Green in the face from the tomb gas, and coughing out little green puffs.
+    const g = ctx.createRadialGradient(14, -6, 0, 14, -6, 20);
+    g.addColorStop(0, 'rgba(110,170,70,0.55)');
+    g.addColorStop(1, 'rgba(110,170,70,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(-6, -26, 40, 40);
+    for (const [px, py, r] of [[34, 4, 4], [40, -2, 3], [45, -8, 2.2]] as const) {
+      pen.fill(ellipse(px + boil, py, r, r * 0.8, 10), '#9fd27a', 0.7);
+      pen.circle(px + boil, py, r, 0.6, '#4f7a34');
     }
   } else if (mark === 'tears') {
     // Two streams of tears.

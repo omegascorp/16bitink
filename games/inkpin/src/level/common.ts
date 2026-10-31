@@ -5,3 +5,5 @@ export const CH2 = 'Chapter 2 · The Volcano Shrine';
 /** Half the thickness of walls and of pins. */
 export const T = 8;
 export const PIN_T = 7;
+/** Shared by the Desert Tomb's levels. */
+export const CH3 = 'Chapter 3 · The Desert Tomb';
