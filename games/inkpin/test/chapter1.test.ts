@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LEVELS } from '../src/level';
+import { CHAPTER_1 as LEVELS } from '../src/level';
 import { DOOR } from '../src/level/door';
 import { IDOL_HALL } from '../src/level/idolHall';
 import type { LevelDef } from '../src/logic/level';

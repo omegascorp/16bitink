@@ -5,7 +5,9 @@ import { COIN, GRAIN_R, GRAVITY, LAVA, STONE, WATER, type Grains } from './parti
  * Boulders: round stones that roll down slopes, sink through water and
  * coins, plug a drain they settle in, and squash whatever they land on.
  * Crates are the wooden kind: square to stand on, they float on water, ride
- * its current, and burn away in lava.
+ * its current, and burn away in lava. Rafts are pumice: a wide flat slab of
+ * stone so full of air that it floats on lava as well as water, and never
+ * burns (see rafts.ts).
  */
 
 export const BOULDER_R = 26;
@@ -17,7 +19,7 @@ const ROLL_KEEP = 0.995;
 const SINK = 0.35;
 const WATER_DRAG = 0.97;
 /** Fastest a boulder falls or rolls (px per step), so it lands where it drops instead of skipping off. */
-const MAX_SPEED = 6;
+export const MAX_SPEED = 6;
 /**
  * How far past its sides a crate feels the water (px): it pushes grains out
  * to its sides plus a grain's radius, so it must look further than that.
@@ -43,15 +45,25 @@ export interface Boulder {
   angle: number;
   /** A wooden crate rather than a stone. */
   readonly crate: boolean;
+  /** A pumice raft: a wide box that floats on lava and water. */
+  readonly raft: boolean;
+  /** Half the width and half the height of a box (a crate or a raft); a boulder's are its radius. */
+  readonly hw: number;
+  readonly hh: number;
   /** Burnt away (a crate in lava): out of play. */
   gone: boolean;
 }
 
 export function boulder(x: number, y: number, crate = false): Boulder {
-  return { x, y, vx: 0, vy: 0, r: BOULDER_R, angle: 0, crate, gone: false };
+  return { x, y, vx: 0, vy: 0, r: BOULDER_R, angle: 0, crate, raft: false, hw: BOULDER_R, hh: BOULDER_R, gone: false };
 }
 
-/** Steps a boulder or a crate; a crate that touches lava burns away (reported with true). */
+/** True for the square-cornered bodies: crates and rafts. */
+export function isBox(b: Boulder): boolean {
+  return b.crate || b.raft;
+}
+
+/** Steps a boulder or a crate (rafts: see rafts.ts); a crate that touches lava burns away (reported with true). */
 export function stepBody(b: Boulder, segs: readonly Seg[], g: Grains, k: Contact): boolean {
   if (b.gone) return false;
   if (!b.crate) {
@@ -141,12 +153,12 @@ export function stepBoulder(b: Boulder, segs: readonly Seg[], g: Grains, k: Cont
   pushGrains(b, g);
 }
 
-/** Pushes the loose grains out of a boulder's way (out of a crate's square). */
-function pushGrains(b: Boulder, g: Grains): void {
-  const reach = b.r + GRAIN_R;
-  g.near(b.x, b.y, reach * (b.crate ? Math.SQRT2 : 1), (i) => {
+/** Pushes the loose grains out of a boulder's way (out of a crate's or a raft's box). */
+export function pushGrains(b: Boulder, g: Grains): void {
+  const reach = b.raft ? Math.hypot(b.hw + GRAIN_R, b.hh + GRAIN_R) : (b.r + GRAIN_R) * (b.crate ? Math.SQRT2 : 1);
+  g.near(b.x, b.y, reach, (i) => {
     if (g.kind[i] === STONE) return;
-    const out = b.crate ? boxPush(b.x, b.y, b.r, g.x[i]!, g.y[i]!, GRAIN_R) : roundPush(b.x, b.y, b.r, g.x[i]!, g.y[i]!, GRAIN_R);
+    const out = isBox(b) ? boxPush(b.x, b.y, b.hw, b.hh, g.x[i]!, g.y[i]!, GRAIN_R) : roundPush(b.x, b.y, b.r, g.x[i]!, g.y[i]!, GRAIN_R);
     if (!out) return;
     if (g.kind[i] === COIN) g.wake(i);
     g.x[i] = g.x[i]! + out.x;
@@ -162,28 +174,28 @@ function roundPush(cx: number, cy: number, cr: number, x: number, y: number, r: 
   return push > 0 ? { x: (dx / d) * push, y: (dy / d) * push } : null;
 }
 
-/** How far to move the circle (x, y, r) out of the square of half-size `h` at (cx, cy). */
-function boxPush(cx: number, cy: number, h: number, x: number, y: number, r: number): { x: number; y: number } | null {
+/** How far to move the circle (x, y, r) out of the box of half-size `hw` by `hh` at (cx, cy). */
+export function boxPush(cx: number, cy: number, hw: number, hh: number, x: number, y: number, r: number): { x: number; y: number } | null {
   const dx = x - cx;
   const dy = y - cy;
-  const ox = h + r - Math.abs(dx);
-  const oy = h + r - Math.abs(dy);
+  const ox = hw + r - Math.abs(dx);
+  const oy = hh + r - Math.abs(dy);
   if (ox <= 0 || oy <= 0) return null;
   // Past a corner: push out along the line from the corner.
-  if (Math.abs(dx) > h && Math.abs(dy) > h) {
-    const kx = dx - Math.sign(dx) * h;
-    const ky = dy - Math.sign(dy) * h;
+  if (Math.abs(dx) > hw && Math.abs(dy) > hh) {
+    const kx = dx - Math.sign(dx) * hw;
+    const ky = dy - Math.sign(dy) * hh;
     const d = Math.hypot(kx, ky) || 1;
     return d < r ? { x: (kx / d) * (r - d), y: (ky / d) * (r - d) } : null;
   }
   return ox < oy ? { x: Math.sign(dx || 1) * ox, y: 0 } : { x: 0, y: Math.sign(dy || 1) * oy };
 }
 
-/** Pushes the circle (x, y, r) out of a boulder (round) or a crate (square): writes the push into `out`. */
+/** Pushes the circle (x, y, r) out of a boulder (round) or a crate or raft (a box): writes the push into `out`. */
 export function bodyContact(b: Boulder, x: number, y: number, r: number, out: Contact): boolean {
   if (b.gone) return false;
-  if (!b.crate) return circleContact(b.x, b.y, b.r, x, y, r, out);
-  const p = boxPush(b.x, b.y, b.r, x, y, r);
+  if (!isBox(b)) return circleContact(b.x, b.y, b.r, x, y, r, out);
+  const p = boxPush(b.x, b.y, b.hw, b.hh, x, y, r);
   if (!p) return false;
   const d = Math.hypot(p.x, p.y) || 1;
   out.nx = p.x / d;
@@ -194,6 +206,7 @@ export function bodyContact(b: Boulder, x: number, y: number, r: number, out: Co
 
 /** Two boulders never overlap: each moves half the way apart. */
 export function separate(a: Boulder, b: Boulder): void {
+  if (a.raft || b.raft) return separateBoxes(a, b);
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const d = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -205,6 +218,40 @@ export function separate(a: Boulder, b: Boulder): void {
   a.y -= uy * push * 0.5;
   b.x += ux * push * 0.5;
   b.y += uy * push * 0.5;
+}
+
+/**
+ * A raft and another body part along the axis they overlap least, as boxes
+ * (a boulder as its square): a raft is too long to part as a circle.
+ */
+function separateBoxes(a: Boulder, b: Boulder): void {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const ox = a.hw + b.hw - Math.abs(dx);
+  const oy = a.hh + b.hh - Math.abs(dy);
+  if (ox <= 0 || oy <= 0) return;
+  if (ox < oy) {
+    const p = Math.sign(dx || 1) * ox * 0.5;
+    a.x -= p;
+    b.x += p;
+    return;
+  }
+  const p = Math.sign(dy || 1) * oy * 0.5;
+  a.y -= p;
+  b.y += p;
+  // Resting one on the other: the lower one stops the upper one's fall.
+  const upper = dy > 0 ? a : b;
+  if (upper.vy > 0) upper.vy = 0;
+}
+
+/** How far over a body's top a rider may be and still ride (px): a raft sinking with the lava drops out from under it a little. */
+const RIDE_GAP = 8;
+
+/** True when a circle (x, y, r) rests on top of a box body: it rides along when the body moves. */
+export function standsOn(b: Boulder, x: number, y: number, r: number): boolean {
+  if (b.gone || !isBox(b)) return false;
+  const top = b.y - b.hh;
+  return Math.abs(x - b.x) < b.hw + r * 0.5 && y < top && Math.abs(y + r - top) < RIDE_GAP;
 }
 
 /** Pushes the circle (x, y, r) out of the circle (ox, oy, or): writes the push into `out`. */
@@ -221,7 +268,7 @@ export function circleContact(ox: number, oy: number, or: number, x: number, y: 
   return true;
 }
 
-function settle(b: Boulder, k: Contact): void {
+export function settle(b: Boulder, k: Contact): void {
   b.x += k.nx * k.depth;
   b.y += k.ny * k.depth;
   const vn = b.vx * k.nx + b.vy * k.ny;

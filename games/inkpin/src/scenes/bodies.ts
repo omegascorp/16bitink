@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { VINE_FOOT } from '../art/vine';
 import { ART_RES } from '../art/palette';
+import type { Boulder } from '../logic/boulders';
 import type { World } from '../logic/world';
 import type { Effects } from './effects';
 import { vineKey } from './textures';
@@ -11,11 +12,15 @@ const BURN_MS = 700;
 /** Puffs of smoke along a burning vine, every this far (board px). */
 const SMOKE_EVERY = 60;
 
+/** A riding raft leans this much (radians) per px per step it drifts: it reads as afloat. */
+const RAFT_LEAN = 0.05;
+
 /**
  * The things in a level besides the grains and the creatures: the boulders
- * rolling, the crates bobbing on the water, and the vines, which grow from
- * their seeds and burn away in lava. Drawn behind the liquids, so a crate
- * sits half under the water.
+ * rolling (basalt ones in the volcano), the crates and pumice rafts bobbing
+ * on the water and the lava, and the vines, which grow from their seeds and
+ * burn away in lava. Drawn behind the liquids, so a crate or a raft sits
+ * half under.
  */
 export class BodiesView {
   private readonly boulders: Phaser.GameObjects.Image[];
@@ -26,7 +31,9 @@ export class BodiesView {
     // A vine's picture reaches VINE_FOOT below its foot; the seed sits in a crack in the floor.
     this.vines = world.vines.map((v) => scene.add.image(v.x, v.bottom + VINE_FOOT, vineKey(v.def)).setScale(S).setOrigin(0.5, 1));
     this.seeds = world.vines.map((v) => (v.def.seed ? scene.add.image(v.x, v.bottom + 4, 'seed').setScale(S).setOrigin(0.5, 1) : null));
-    this.boulders = world.boulders.map((b) => scene.add.image(b.x, b.y, b.crate ? 'crate' : 'boulder').setScale(S));
+    const basalt = world.level.ruin === 'volcano';
+    const key = (b: Boulder): string => (b.raft ? 'raft' : b.crate ? 'crate' : basalt ? 'boulder-basalt' : 'boulder');
+    this.boulders = world.boulders.map((b) => scene.add.image(b.x, b.y, key(b)).setScale(S));
     layer.add([...this.vines, ...this.seeds.filter((s): s is Phaser.GameObjects.Image => s !== null), ...this.boulders]);
     this.resync();
   }
@@ -36,7 +43,7 @@ export class BodiesView {
     this.world.boulders.forEach((b, i) => {
       const img = this.boulders[i];
       if (!img || b.gone) return;
-      img.setPosition(b.x, b.y).setRotation(b.crate ? 0 : b.angle);
+      img.setPosition(b.x, b.y).setRotation(b.raft ? Math.max(-0.04, Math.min(0.04, b.vx * RAFT_LEAN)) : b.crate ? 0 : b.angle);
     });
     this.world.vines.forEach((v, i) => {
       const img = this.vines[i];

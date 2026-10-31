@@ -9,8 +9,8 @@ const S = 1 / ART_RES;
 export class Effects {
   constructor(private readonly scene: Phaser.Scene, private readonly layer: Phaser.GameObjects.Layer, private readonly sfx: () => SoundBoard) {}
 
-  /** A soft puff of steam or smoke drifting up. */
-  puff(kind: 'steam' | 'smoke', x: number, y: number): void {
+  /** A soft puff of steam, smoke or stone dust drifting up. */
+  puff(kind: 'steam' | 'smoke' | 'dust', x: number, y: number): void {
     const { scene } = this;
     const p = scene.add.image(x, y, kind).setScale(S * (0.6 + Math.random() * 0.5)).setAlpha(0.9);
     this.layer.add(p);

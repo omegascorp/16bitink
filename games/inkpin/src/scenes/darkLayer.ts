@@ -9,6 +9,9 @@ const LAMP_R = 190;
 const TORCH_R = 130;
 const LAVA_LIGHT_R = 46;
 const PIN_GLINT_R = 34;
+/** A salamander's ember glow: a living light, smaller than a torch (the Old Salamander's bigger). */
+const EMBER_R = 84;
+const OLD_EMBER_R = 120;
 /** Most lava grains that each give off light: enough for a glow, cheap to draw. */
 const LAVA_LIGHTS = 80;
 
@@ -27,11 +30,17 @@ export class DarkLayer {
     layer.add(scene.add.image(view.x, view.y, 'dark').setOrigin(0).setScale(1 / DARK_RES));
   }
 
-  /** Nib's lamp, the torches (flickering), a glint on each pin still in, and the glow of lava. */
+  /** Nib's lamp, the torches (flickering), a glint on each pin still in, the salamanders' embers, and the glow of lava. */
   paint(w: World, time: number): void {
     const lights: Light[] = [{ x: w.nib.x, y: w.nib.y - 8, r: LAMP_R, power: 1 }];
     w.level.torches.forEach((t, i) => lights.push({ x: t.x, y: t.y - 14, r: TORCH_R * (0.94 + Math.sin(time / 170 + i * 1.7) * 0.06), power: 0.95 }));
     for (const p of w.pins) if (p.pulledAt === null) lights.push({ x: p.def.ax, y: p.def.ay, r: PIN_GLINT_R, power: 0.8 });
+    w.blots.forEach((b, i) => {
+      if (b.gone || b.animal !== 'salamander') return;
+      // It glows like an ember, breathing slowly; a soaked one barely.
+      const breath = 0.92 + Math.sin(time / 420 + i * 2.1) * 0.08;
+      lights.push({ x: b.x, y: b.y - 4, r: (b.boss ? OLD_EMBER_R : EMBER_R) * breath, power: b.wet > 0 ? 0.4 : 0.85 });
+    });
     const g = w.grains;
     let lava = 0;
     for (let i = 0; i < g.count && lava < LAVA_LIGHTS; i++) {

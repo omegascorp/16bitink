@@ -36,3 +36,15 @@ export const RED = '#b3322b';
 export const ART_RES = 2;
 /** Line-boil frames per drawing. */
 export const BOIL = 3;
+
+/** The Volcano Shrine: black-violet basalt, ember cracks, ash and cinders. */
+export const BASALT = '#4a4257';
+export const BASALT_DARK = '#2b2533';
+export const BASALT_LIGHT = '#6c6180';
+export const EMBER = '#e2562b';
+export const EMBER_LIGHT = '#ffb653';
+export const ASH = '#8f8782';
+export const ASH_DARK = '#5a514f';
+/** Pumice: pale, porous, grey-ochre. */
+export const PUMICE = '#d8ccae';
+export const PUMICE_DARK = '#a3967a';

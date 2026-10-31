@@ -1,8 +1,9 @@
 import type { DrainDef, LevelDef, Room } from '../logic/level';
 import { createRng, type Rng } from '../logic/rng';
 import { barWalls, outerRuns } from '../logic/rooms';
-import { ART_RES, GOLD, GOLD_DARK, GRASS, INK, MOSS, PAPER, ROCK, ROCK_DARK, TEMPLE, TEMPLE_DARK, WOOD_DARK } from './palette';
+import { ART_RES, BASALT, BASALT_DARK, BASALT_LIGHT, EMBER, GOLD, GOLD_DARK, GRASS, INK, MOSS, PAPER, ROCK, ROCK_DARK, TEMPLE, TEMPLE_DARK, WOOD_DARK } from './palette';
 import { ellipse, makeCanvas, Pen, type Pt } from './pen';
+import { paintBasaltStone, paintBrazier, paintFlameFrieze, paintShrineTop } from './volcano';
 import { mix, rgba } from './wash';
 
 /**
@@ -226,14 +227,16 @@ export function paintBoard(level: LevelDef, x0 = level.view.x, w = level.view.w)
   ctx.scale(ART_RES, ART_RES);
   ctx.translate(-x0, -vy);
   const pen = new Pen(ctx, 7, 0.7);
-  paintTempleTop(ctx, pen, level.rooms);
-  paintRooms(ctx, pen, level.rooms, vy + h, level.view.x + level.view.w);
+  const volcano = level.ruin === 'volcano';
+  if (volcano) paintShrineTop(ctx, pen, level.rooms, GROUND_Y);
+  else paintTempleTop(ctx, pen, level.rooms);
+  paintRooms(ctx, pen, level.rooms, vy + h, level.view.x + level.view.w, volcano);
   for (const d of level.drains ?? []) paintDrain(ctx, pen, level.rooms, d);
-  for (const s of barWalls(level)) paintBar(ctx, pen, s.ax, s.ay, s.bx, s.by, s.t);
-  for (const t of level.torches) paintTorchBracket(ctx, pen, t.x, t.y);
+  for (const s of barWalls(level)) paintBar(ctx, pen, s.ax, s.ay, s.bx, s.by, s.t, volcano ? BASALT_LIGHT : ROCK);
+  for (const t of level.torches) (volcano ? paintBrazier : paintTorchBracket)(ctx, pen, t.x, t.y);
   // Hanging vines for decoration only where there are none to climb, so the two are never confused.
-  // (The climbing vines are their own pictures: they grow from seeds and burn.)
-  if (!level.vines?.length) paintVines(pen, level.rooms);
+  // (The climbing vines are their own pictures: they grow from seeds and burn.) No vines in the volcano.
+  if (!volcano && !level.vines?.length) paintVines(pen, level.rooms);
   return canvas;
 }
 
@@ -271,41 +274,48 @@ function outerPath(rooms: readonly Room[]): Path2D {
   return path;
 }
 
-function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Room[], bottom: number, right: number): void {
+function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Room[], bottom: number, right: number, volcano: boolean): void {
   const union = roomPath(rooms);
   // A rim of shade cut into the rock, then the ink outline; the room fill goes
   // over both, so only their outer halves show and shared edges vanish.
   ctx.save();
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = rgba(ROCK_DARK, 0.45);
+  ctx.strokeStyle = volcano ? rgba('#1d171f', 0.5) : rgba(ROCK_DARK, 0.45);
   ctx.lineWidth = 22;
   ctx.stroke(union);
   ctx.strokeStyle = INK;
   ctx.lineWidth = 9;
   ctx.stroke(union);
   ctx.restore();
-  ctx.fillStyle = TEMPLE;
+  ctx.fillStyle = volcano ? BASALT : TEMPLE;
   ctx.fill(union);
   ctx.save();
   ctx.clip(union);
-  paintTempleStone(ctx, pen, bottom, right);
-  paintFrieze(ctx, pen, rooms);
-  // Depth: soft shade along every outer edge, and the cellar darker towards the top.
+  if (volcano) {
+    paintBasaltStone(ctx, pen, bottom, right);
+    paintFlameFrieze(ctx, pen, rooms);
+  } else {
+    paintTempleStone(ctx, pen, bottom, right);
+    paintFrieze(ctx, pen, rooms);
+  }
+  // Depth: soft shade along every outer edge, and the cellar darker towards the top
+  // (in the volcano, warmer towards the bottom, where the fire is).
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   const outer = outerPath(rooms);
   for (let k = 0; k < 4; k++) {
-    ctx.strokeStyle = rgba(ROCK_DARK, 0.09);
+    ctx.strokeStyle = volcano ? rgba(BASALT_DARK, 0.16) : rgba(ROCK_DARK, 0.09);
     ctx.lineWidth = 40 - k * 9;
     ctx.stroke(outer);
   }
   const shade = ctx.createLinearGradient(0, 300, 0, Math.min(bottom, 1240));
-  shade.addColorStop(0, rgba('#5b4a3a', 0.1));
-  shade.addColorStop(1, rgba('#5b4a3a', 0));
+  shade.addColorStop(0, volcano ? rgba(EMBER, 0) : rgba('#5b4a3a', 0.1));
+  shade.addColorStop(1, volcano ? rgba(EMBER, 0.08) : rgba('#5b4a3a', 0));
   ctx.fillStyle = shade;
   ctx.fillRect(-40, 300, right + 80, bottom - 300);
   ctx.restore();
   for (const room of rooms) {
+    if (volcano) break;
     // Cobwebs in the top corners of the tall rooms.
     const ys = room.map(([, y]) => y);
     const top = Math.min(...ys);
@@ -530,7 +540,7 @@ function cobweb(pen: Pen, x: number, y: number, dir: number): void {
 }
 
 /** A stone bar between two rooms: a rounded slab, lit along one edge, with hatched shade. */
-function paintBar(ctx: CanvasRenderingContext2D, pen: Pen, ax: number, ay: number, bx: number, by: number, t: number): void {
+function paintBar(ctx: CanvasRenderingContext2D, pen: Pen, ax: number, ay: number, bx: number, by: number, t: number, stone: string): void {
   const len = Math.hypot(bx - ax, by - ay);
   const ux = (bx - ax) / len;
   const uy = (by - ay) / len;
@@ -559,8 +569,8 @@ function paintBar(ctx: CanvasRenderingContext2D, pen: Pen, ax: number, ay: numbe
   ctx.fill();
   ctx.restore();
   const g = ctx.createLinearGradient(ax - nx, ay - ny, ax + nx, ay + ny);
-  g.addColorStop(0, mix(ROCK, '#ffffff', 0.3));
-  g.addColorStop(1, mix(ROCK, ROCK_DARK, 0.55));
+  g.addColorStop(0, mix(stone, '#ffffff', 0.3));
+  g.addColorStop(1, mix(stone, stone === ROCK ? ROCK_DARK : BASALT_DARK, 0.55));
   ctx.fillStyle = g;
   path();
   ctx.fill();

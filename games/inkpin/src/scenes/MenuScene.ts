@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { INK, PAPER_HEX } from '../art/palette';
 import { PENCIL } from '../art/atlas';
 import type { SoundBoard } from '../audio/sfx';
-import { CHAPTER_NAMES, LEVELS, LEVELS_PER_CHAPTER } from '../level';
+import { CHAPTER_NAMES, CHAPTERS, LEVELS, LEVELS_PER_CHAPTER } from '../level';
 import { DPR, screenSize } from './hidpi';
 import { computeMapLayout, MAP, regionAt, type MapLayout, type MapNode } from './map/layout';
 import { LevelCard } from './map/levelCard';
@@ -78,11 +78,15 @@ export class MenuScene extends Phaser.Scene {
     this.progress = readProgress();
     bakeTextures(this);
     const order = LEVELS.map((l) => l.id);
-    this.layout = computeMapLayout(CHAPTER_NAMES.map((name, c) => ({
-      name,
-      built: c === 0,
-      levelIds: c === 0 ? order : Array.from({ length: LEVELS_PER_CHAPTER }, (_, i) => `draft-${c + 1}-${i + 1}`),
-    })));
+    // A chapter with levels is painted and played; an empty one is still a pencil draft.
+    this.layout = computeMapLayout(CHAPTER_NAMES.map((name, c) => {
+      const levels = CHAPTERS[c] ?? [];
+      return {
+        name,
+        built: levels.length > 0,
+        levelIds: levels.length > 0 ? levels.map((l) => l.id) : Array.from({ length: LEVELS_PER_CHAPTER }, (_, i) => `draft-${c + 1}-${i + 1}`),
+      };
+    }));
     const { states, current } = mapStates(order, this.progress, this.registry.get('unlockAll') === true);
     this.currentNode = this.layout.nodes.find((n) => n.levelId === current) ?? this.layout.nodes[0]!;
 
@@ -198,7 +202,7 @@ export class MenuScene extends Phaser.Scene {
     this.sfx.unlock();
     this.sfx.play('tap');
     this.card = new LevelCard(this, this.uiLayer, this.ui, {
-      level, chapter: hit.node.region + 1, number: hit.node.local + 1, record: this.progress.levels[level.id],
+      level, chapter: hit.node.region + 1, number: hit.node.index + 1, record: this.progress.levels[level.id],
       onPlay: () => this.play(index),
     }, () => {
       this.card = null;
@@ -240,9 +244,10 @@ export class MenuScene extends Phaser.Scene {
     if (r !== this.region) {
       this.region = r;
       this.caption.setText(`Chapter ${r + 1} · ${CHAPTER_NAMES[r] ?? ''}`);
-      if (r === 0) {
-        const won = LEVELS.filter((l) => this.progress.levels[l.id]).length;
-        this.tally.setText(`${won} / ${LEVELS.length} won`);
+      const levels = CHAPTERS[r] ?? [];
+      if (levels.length > 0) {
+        const won = levels.filter((l) => this.progress.levels[l.id]).length;
+        this.tally.setText(`${won} / ${levels.length} won`);
       } else this.tally.setText('Still being drawn');
     }
     const ny = this.walker.position.y;

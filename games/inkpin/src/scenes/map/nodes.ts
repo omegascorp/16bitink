@@ -99,7 +99,7 @@ export function buildNodes(
       layer.add(halo);
       current = halo;
     }
-    text(n.x, n.y, String(n.local + 1), 28, state === 'done' ? INK : reachable ? INK : PENCIL);
+    text(n.x, n.y, String(n.index + 1), 28, state === 'done' ? INK : reachable ? INK : PENCIL);
     // Name and blots towards the middle of the page, where there's room.
     const side = n.x >= MAP.mid ? -1 : 1;
     const lx = n.x + side * (r + 16);

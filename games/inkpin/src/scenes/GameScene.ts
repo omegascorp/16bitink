@@ -2,14 +2,14 @@ import Phaser from 'phaser';
 import { GRASS_H, GROUND_Y, SKY_H } from '../art/board';
 import { ART_RES, BOIL, PAPER_HEX } from '../art/palette';
 import { BOAR_FRAME } from '../art/boar';
-import { CHEST_FRAME, FLAME_FRAME, PIN_RING } from '../art/props';
+import { CHEST_FRAME, FLAME_FRAME } from '../art/props';
 import { LiquidPainter, LIQUID_RES } from '../art/liquid';
+import { VOLCANO_SKY_TOP_HEX } from '../art/volcanoSurround';
 import type { SoundBoard } from '../audio/sfx';
 import { LEVELS } from '../level';
-import { segDistance } from '../logic/geom';
-import type { LevelDef, PinDef } from '../logic/level';
+import type { GuardAnimal, LevelDef } from '../logic/level';
 import { COIN, STEPS_PER_SECOND } from '../logic/particles';
-import { World, type Blot, type BlotEnd, type WorldEvent, type WorldSave } from '../logic/world';
+import { World, type BlotEnd, type WorldEvent, type WorldSave } from '../logic/world';
 import { DPR, screenSize } from './hidpi';
 import { NibView } from './nibView';
 import { hudTook, readControls, saveControls, type ControlMode } from './controls';
@@ -18,14 +18,14 @@ import { BodiesView } from './bodies';
 import { Effects } from './effects';
 import { LevelCamera } from './levelCamera';
 import { addToBank, isOpen, readBank, readProgress, recordWin, type Bank } from './progress';
-import { bakeBoard, bakeTextures, COIN_TURNS, guardKey, pinKey, type GuardKind } from './textures';
+import { PinsView } from './pinsView';
+import { ShrineView } from './shrineView';
+import { bakeBoard, bakeTextures, COIN_TURNS, guardKey, guardKind, surroundKeys } from './textures';
 
 const S = 1 / ART_RES;
 const STEP_MS = 1000 / STEPS_PER_SECOND;
 /** Most simulation steps run in one frame, so a slow phone slows the game down rather than freezing. */
 const MAX_STEPS_PER_FRAME = 5;
-/** A tap this close to a pin (in board px) pulls it: generous, for fingers. */
-const PIN_REACH = 34;
 /** Joystick: how far (CSS px) a drag must go before Nib walks, and its full throw. */
 const STICK_DEAD = 14;
 const STICK_RANGE = 46;
@@ -38,7 +38,7 @@ const CLIMB_KEY: Record<string, -1 | 1> = { ArrowUp: -1, w: -1, W: -1, ArrowDown
 const COIN_HOLD = 2;
 /** How far the surroundings reach past the board on each side (a multiple of the tiles' sizes). */
 const SURROUND = 2048;
-/** The sky's colour above its tile: the tile's top edge. */
+/** The sky's colour above its tile: the tile's top edge (the jungle's, and the volcano's dusk). */
 const SKY_TOP_HEX = 0xc3d4d8;
 /** A press that moves further than this (CSS px) is a drag to look around, not a tap. */
 const DRAG_LOOK = 10;
@@ -69,6 +69,8 @@ export interface Result {
   /** The next level's index, when there is one and it's open. */
   readonly next: number | null;
   readonly cause?: string;
+  /** The guard that caught or pricked Nib, for the loss line. */
+  readonly by?: GuardAnimal;
   /** Coins Nib picked up. */
   readonly coins: number;
   readonly total: number;
@@ -111,10 +113,6 @@ export function openUpTo(registry: Phaser.Data.DataManager): number {
   return i;
 }
 
-function guardKind(b: Blot): GuardKind {
-  return b.boss ? 'boss' : b.spiky ? 'porcupine' : 'boar';
-}
-
 /** The level in play: steps the world at a fixed rate and draws it. */
 export class GameScene extends Phaser.Scene {
   private world!: World;
@@ -126,21 +124,22 @@ export class GameScene extends Phaser.Scene {
   private nib!: NibView;
   private blots: Phaser.GameObjects.Image[] = [];
   private bodies!: BodiesView;
+  private shrine!: ShrineView;
   private dark: DarkLayer | null = null;
   private index = 0;
   private camera!: LevelCamera;
   private fx!: Effects;
   /** A press on the board that isn't the joystick: a tap when it lifts, or a drag to look around. */
   private press: { id: number; x: number; y: number; moved: boolean; pin: string | null } | null = null;
-  private pins = new Map<string, Phaser.GameObjects.Image>();
-  private hints: Phaser.GameObjects.Text[] = [];
+  private pins!: PinsView;
   private chest: Phaser.GameObjects.Image | null = null;
-  private hover: string | null = null;
   private acc = 0;
   private ended = false;
   private hearts = HEARTS;
-  /** The level just before the last pin pulled: a lost heart winds back to here. */
+  /** The level just before the last pin pulled (or gate pushed): a lost heart winds back to here. */
   private checkpoint!: WorldSave;
+  /** How many taps the hint had seen by then. */
+  private checkpointMark = 0;
   /** True while a lost heart's fail plays, before the rewind. */
   private rewinding = false;
   private session!: Session;
@@ -170,11 +169,8 @@ export class GameScene extends Phaser.Scene {
     this.hearts = HEARTS;
     this.rewinding = false;
     this.acc = 0;
-    this.hover = null;
     this.blots = [];
     this.dark = null;
-    this.hints = [];
-    this.pins.clear();
     this.cameras.main.setBackgroundColor(PAPER_HEX);
     bakeTextures(this, level);
     this.world0 = this.add.layer();
@@ -184,6 +180,7 @@ export class GameScene extends Phaser.Scene {
     for (const tile of bakeBoard(this, level)) this.world0.add(this.add.image(tile.x, view.y, tile.key).setOrigin(0).setScale(S));
     this.addTorches();
     this.bodies = new BodiesView(this, this.world0, this.world, this.fx);
+    this.shrine = new ShrineView(this, this.world0, this.world, this.fx, () => this.sfx);
     // The liquids: a canvas redrawn each frame, at half the board's resolution.
     this.liquid = new LiquidPainter(view.x, view.y, view.w, view.h);
     if (this.textures.exists('liquid')) this.textures.remove('liquid');
@@ -203,16 +200,19 @@ export class GameScene extends Phaser.Scene {
       this.blots.push(img);
       this.world0.add(img);
     }
-    for (const pin of level.pins) this.addPin(pin);
+    this.pins = new PinsView(this, this.world0, this.world);
     this.nib = new NibView(this, this.world0);
     if (level.dark) this.dark = new DarkLayer(this, this.world0, level);
-    if (this.session.hinted) this.showHint();
+    if (this.session.hinted) this.pins.showHint();
     this.checkpoint = this.world.save();
+    this.checkpointMark = 0;
+    this.sfx.bed(level.ruin ?? 'jungle');
     this.camera = new LevelCamera(this, level);
     this.camera.fit(this.world.nib, true);
     this.press = null;
     this.scale.on('resize', this.refit, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.sfx.bed(null);
       this.scale.off('resize', this.refit, this);
       this.game.events.off('cmd:restart', this.restart, this);
       this.game.events.off('cmd:hint', this.onHint, this);
@@ -258,11 +258,13 @@ export class GameScene extends Phaser.Scene {
     const left = Math.floor((view.x - SURROUND) / SURROUND) * SURROUND;
     const width = Math.ceil((view.x + view.w + SURROUND - left) / SURROUND) * SURROUND;
     const skyTop = GROUND_Y - SKY_H;
-    const top = this.add.rectangle(left, skyTop - SURROUND, width, SURROUND + 2, SKY_TOP_HEX).setOrigin(0);
-    const sky = this.add.tileSprite(left, skyTop, width, SKY_H, 'sky-tile').setOrigin(0);
+    const ruin = this.world.level.ruin ?? 'jungle';
+    const keys = surroundKeys(ruin);
+    const top = this.add.rectangle(left, skyTop - SURROUND, width, SURROUND + 2, ruin === 'volcano' ? VOLCANO_SKY_TOP_HEX : SKY_TOP_HEX).setOrigin(0);
+    const sky = this.add.tileSprite(left, skyTop, width, SKY_H, keys.sky).setOrigin(0);
     // Tiles start on a whole number of tiles from the origin, so they line up with nothing in between.
-    const rock = this.add.tileSprite(left, GROUND_Y, width, SURROUND * 2, 'rock-tile').setOrigin(0).setTileScale(S, S);
-    const grass = this.add.tileSprite(left, GROUND_Y - GRASS_H / 2, width, GRASS_H, 'grass-tile').setOrigin(0).setTileScale(S, S);
+    const rock = this.add.tileSprite(left, GROUND_Y, width, SURROUND * 2, keys.rock).setOrigin(0).setTileScale(S, S);
+    const grass = this.add.tileSprite(left, GROUND_Y - GRASS_H / 2, width, GRASS_H, keys.ground).setOrigin(0).setTileScale(S, S);
     this.world0.add([top, sky, rock, grass]);
   }
 
@@ -275,15 +277,6 @@ export class GameScene extends Phaser.Scene {
       this.tweens.add({ targets: glow, alpha: 0.7, scale: 1.45, duration: 180 + n * 23, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
       this.time.addEvent({ delay: 110 + n * 7, loop: true, callback: () => flame.setTexture(`flame-${Math.floor(Math.random() * 3)}`) });
     }
-  }
-
-  private addPin(pin: PinDef): void {
-    const len = Math.hypot(pin.bx - pin.ax, pin.by - pin.ay);
-    const w = len + PIN_RING * 2 + 4;
-    const img = this.add.image(pin.ax, pin.ay, pinKey(pin, false)).setScale(S).setOrigin((PIN_RING + 2) / w, 0.5);
-    img.setRotation(Math.atan2(pin.by - pin.ay, pin.bx - pin.ax));
-    this.pins.set(pin.id, img);
-    this.world0.add(img);
   }
 
   /** One image per coin, by the coin's id (coins are only ever lost, never added, until a rewind). */
@@ -301,10 +294,14 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Pulls a pin for the player, keeping the level as it was just before as the checkpoint. */
-  private tryPull(id: string): void {
+  /** Pulls a pin (or pushes a gate back in) for the player, keeping the level as it was just before as the checkpoint. */
+  private tryTap(id: string): void {
     const before = this.world.save();
-    if (this.world.pull(id)) this.checkpoint = before;
+    const mark = this.pins.mark;
+    if (this.world.tap(id)) {
+      this.checkpoint = before;
+      this.checkpointMark = mark;
+    }
   }
 
   /**
@@ -323,26 +320,23 @@ export class GameScene extends Phaser.Scene {
       this.world.load(this.checkpoint);
       this.resync();
       this.rewinding = false;
-      this.game.events.emit('hud:rewind', { hearts: this.hearts, cause: status.cause });
+      this.game.events.emit('hud:rewind', { hearts: this.hearts, cause: status.cause, by: status.by });
     });
   }
 
   /** After a rewind: everything on screen back in step with the world. */
   private resync(): void {
-    this.tweens.killTweensOf([...this.blots, ...this.pins.values(), ...(this.chest ? [this.chest] : [])]);
+    this.tweens.killTweensOf([...this.blots, ...(this.chest ? [this.chest] : [])]);
     this.addCoins();
     this.world.blots.forEach((b, i) => {
       const img = this.blots[i];
       img?.setScale(S).setAlpha(1).setAngle(0).clearTint().setVisible(!b.gone).setPosition(b.x, b.y);
     });
-    for (const p of this.world.pins) {
-      const img = this.pins.get(p.def.id);
-      if (img && p.pulledAt === null) img.setPosition(p.def.ax, p.def.ay).setAlpha(1).setScale(S).setTexture(pinKey(p.def, false));
-    }
+    this.pins.resync(this.checkpointMark);
     this.chest?.setTexture(this.world.chestTaken ? 'chest-open' : 'chest-closed').setScale(S);
     this.bodies.resync();
+    this.shrine.resync();
     this.nib.reset();
-    if (this.session.hinted) this.showHint();
   }
 
   private refit(): void {
@@ -397,6 +391,8 @@ export class GameScene extends Phaser.Scene {
       img.setTexture(guardKey(guardKind(b), b.wet > 0, boil));
     });
     this.bodies.update();
+    this.shrine.update(time);
+    this.pins.updateHints();
     this.dark?.paint(this.world, time);
   }
 
@@ -407,11 +403,32 @@ export class GameScene extends Phaser.Scene {
       switch (e.type) {
         case 'pull':
           this.sfx.play('pull');
-          this.pullPin(e.id);
+          this.pins.pulled(e.id);
+          break;
+        case 'gateIn':
+          this.sfx.play('gate');
+          this.pins.pushed(e.id);
           break;
         case 'blocked':
           this.sfx.play('blocked');
-          this.showBlocked(e.id, e.by);
+          this.pins.blocked(e.id, e.by);
+          break;
+        case 'gateJammed':
+          // Something is in the gate's slot: it jolts and won't go in.
+          this.sfx.play('blocked');
+          this.pins.blocked(e.id, null);
+          break;
+        case 'crack':
+          this.shrine.cracked(e.index);
+          break;
+        case 'slabDown':
+          this.shrine.landed(e.index);
+          break;
+        case 'ruby':
+          this.shrine.taken(e.id, e.x, e.y);
+          break;
+        case 'rubyLost':
+          this.shrine.lost(e.id);
           break;
         case 'steam':
           if (steam++ % 3 === 0) this.puff('steam', e.x, e.y);
@@ -461,38 +478,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private pullPin(id: string): void {
-    const img = this.pins.get(id);
-    const def = this.world.level.pins.find((p) => p.id === id);
-    if (!img || !def) return;
-    // It slides out the way its ring points, and fades.
-    const len = Math.hypot(def.bx - def.ax, def.by - def.ay);
-    const ux = (def.ax - def.bx) / len;
-    const uy = (def.ay - def.by) / len;
-    this.tweens.add({ targets: img, x: img.x + ux * (len + 30), y: img.y + uy * (len + 30), alpha: 0, duration: 380, ease: 'Cubic.in' });
-    for (const h of this.hints) if (h.getData('pin') === id) h.destroy();
-  }
-
-  /** A pin that can't come out: it jolts towards its ring and back, and the pin in its way lights up. */
-  private showBlocked(id: string, by: string): void {
-    const img = this.pins.get(id);
-    const def = this.world.level.pins.find((p) => p.id === id);
-    const blocker = this.pins.get(by);
-    if (!img || !def || !blocker) return;
-    const len = Math.hypot(def.bx - def.ax, def.by - def.ay) || 1;
-    const ux = (def.ax - def.bx) / len;
-    const uy = (def.ay - def.by) / len;
-    const home = { x: def.ax, y: def.ay };
-    this.tweens.killTweensOf(img);
-    img.setPosition(home.x, home.y);
-    this.tweens.add({ targets: img, x: home.x + ux * 7, y: home.y + uy * 7, duration: 70, yoyo: true, repeat: 1, ease: 'Quad.out', onComplete: () => img.setPosition(home.x, home.y) });
-    blocker.setTexture(this.pinTexture(by, true));
-    this.tweens.add({ targets: blocker, scale: S * 1.06, duration: 120, yoyo: true, repeat: 1, onComplete: () => {
-      blocker.setScale(S);
-      if (this.hover !== by) blocker.setTexture(this.pinTexture(by, false));
-    } });
-  }
-
   /** A picked-up coin hops into Nib's backpack. */
   private flyCoin(id: number, x: number, y: number): void {
     const c = this.coins.get(id);
@@ -512,25 +497,9 @@ export class GameScene extends Phaser.Scene {
     if (img && b) this.fx.guardGone(img, guardKey(guardKind(b), true, 0), how, x, y);
   }
 
-  /** The texture for the pin `id`, plain or lit. */
-  private pinTexture(id: string, lit: boolean): string {
-    const def = this.world.pins.find((p) => p.def.id === id)?.def;
-    return def ? pinKey(def, lit) : '__MISSING';
-  }
-
+  /** The pin under a screen point: one still in, or a gate parked out. */
   private pinAt(px: number, py: number): string | null {
-    const wp = this.cameras.main.getWorldPoint(px, py);
-    let best: string | null = null;
-    let bestD = PIN_REACH;
-    for (const p of this.world.pins) {
-      if (p.pulledAt !== null) continue;
-      const d = Math.min(segDistance(p.def, wp.x, wp.y), Math.hypot(wp.x - p.def.ax, wp.y - p.def.ay) - 4);
-      if (d < bestD) {
-        bestD = d;
-        best = p.def.id;
-      }
-    }
-    return best;
+    return this.pins.pinAt(this.cameras.main.getWorldPoint(px, py));
   }
 
   private onPointerDown(p: Phaser.Input.Pointer): void {
@@ -561,10 +530,10 @@ export class GameScene extends Phaser.Scene {
     if (this.keyDir === 0) this.world.command({ kind: 'stay' });
   }
 
-  /** A tap on the board: pulls the pin under it, or (tap to go) jumps Nib or sends it there. */
+  /** A tap on the board: pulls the pin under it (or pushes a gate back in), or (tap to go) jumps Nib or sends it there. */
   private tap(p: Phaser.Input.Pointer, pin: string | null): void {
     if (pin) {
-      this.tryPull(pin);
+      this.tryTap(pin);
       return;
     }
     if (this.controls !== 'tap') return;
@@ -645,11 +614,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     const id = this.world.finished ? null : this.pinAt(p.x, p.y);
-    if (id === this.hover) return;
-    if (this.hover) this.pins.get(this.hover)?.setTexture(this.pinTexture(this.hover, false));
-    if (id) this.pins.get(id)?.setTexture(this.pinTexture(id, true));
-    this.hover = id;
-    this.input.setDefaultCursor(id ? 'pointer' : 'default');
+    if (this.pins.setHover(id)) this.input.setDefaultCursor(id ? 'pointer' : 'default');
   }
 
   private onKey(e: KeyboardEvent): void {
@@ -682,9 +647,9 @@ export class GameScene extends Phaser.Scene {
     else if (e.key === 'r' || e.key === 'R') this.restart();
     else if (e.key === 'h' || e.key === 'H') this.onHint();
     else if (/^[1-9]$/.test(e.key)) {
-      // Number keys pull the pins in the order the level lists them.
+      // Number keys pull the pins in the order the level lists them (and push a gate that's out back in).
       const pin = this.world.pins[Number(e.key) - 1];
-      if (pin) this.tryPull(pin.def.id);
+      if (pin) this.tryTap(pin.def.id);
     }
   }
 
@@ -705,24 +670,10 @@ export class GameScene extends Phaser.Scene {
     if (chest && this.chest) this.fx.openChest(this.chest, chest, this.world.nib);
   }
 
+  /** Numbers the steps left of a winning order over their pins. */
   private onHint(): void {
     this.session.hinted = true;
-    this.showHint();
-  }
-
-  /** Numbers the pins still in, in a winning order. */
-  private showHint(): void {
-    for (const h of this.hints) h.destroy();
-    this.hints = [];
-    const left = this.world.level.solution.filter((id) => this.world.pins.find((p) => p.def.id === id)?.pulledAt === null);
-    left.forEach((id, n) => {
-      const def = this.world.level.pins.find((p) => p.id === id);
-      if (!def) return;
-      const t = this.add.text(def.ax, def.ay, String(n + 1), { fontFamily: 'Caveat', fontSize: '34px', fontStyle: '700', color: '#ffffff', backgroundColor: '#b3322b', padding: { x: 7, y: 0 } });
-      t.setOrigin(0.5).setResolution(DPR * 2).setData('pin', id);
-      this.world0.add(t);
-      this.hints.push(t);
-    });
+    this.pins.showHint();
   }
 
   private finish(): void {
@@ -752,6 +703,7 @@ export class GameScene extends Phaser.Scene {
       hasChest: w.level.chest !== undefined,
       next,
       cause: status.state === 'lost' ? status.cause : undefined,
+      by: status.state === 'lost' ? status.by : undefined,
       allCoins: allTreasure,
       firstTry,
       coins: w.coinsCollected,

@@ -75,6 +75,8 @@ export function readProgress(): Progress {
 /** True when level `index` of the play order can be played: the first, or the one after a won level. */
 export function isOpen(progress: Progress, order: readonly string[], index: number): boolean {
   if (index <= 0) return true;
+  // The order runs on across chapters: chapter 2's first level opens after chapter 1's last.
+  // TODO paywall: chapter 2 on is the full game; check ownership here once it's sold.
   const before = order[index - 1];
   return before !== undefined && progress.levels[before] !== undefined;
 }

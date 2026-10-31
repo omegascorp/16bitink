@@ -4,15 +4,23 @@
  * sound has a minimum gap so a pour of a hundred grains doesn't become a
  * hundred sounds.
  */
-export type Sfx = 'pull' | 'blocked' | 'jump' | 'stomp' | 'sizzle' | 'coin' | 'splash' | 'squelch' | 'win' | 'fail' | 'tap';
+import { VolcanoBed } from './bed';
 
-const GAP_MS: Record<Sfx, number> = { pull: 60, blocked: 150, jump: 120, stomp: 120, sizzle: 140, coin: 45, splash: 220, squelch: 200, win: 500, fail: 500, tap: 60 };
+export type Sfx = 'pull' | 'blocked' | 'jump' | 'stomp' | 'sizzle' | 'coin' | 'splash' | 'squelch' | 'win' | 'fail' | 'tap' | 'gate' | 'crack' | 'thud' | 'ruby';
+
+const GAP_MS: Record<Sfx, number> = { pull: 60, blocked: 150, jump: 120, stomp: 120, sizzle: 140, coin: 45, splash: 220, squelch: 200, win: 500, fail: 500, tap: 60, gate: 80, crack: 120, thud: 160, ruby: 60 };
+
+/** The ruins with a sound bed of their own (the jungle has none yet). */
+export type Bed = 'jungle' | 'volcano';
 
 export class SoundBoard {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private noise: AudioBuffer | null = null;
   private readonly lastAt = new Map<Sfx, number>();
+  /** The ruin's bed asked for (it starts once sound is unlocked), and the one playing. */
+  private wantBed: Bed | null = null;
+  private playing: VolcanoBed | null = null;
   muted = false;
 
   /** Call from a pointer or key event. */
@@ -21,6 +29,25 @@ export class SoundBoard {
       void this.ctx.resume();
       return;
     }
+    this.open();
+    this.startBed();
+  }
+
+  /** Plays a ruin's background bed under the effects (null stops it): rumbling and bubbling in the volcano. */
+  bed(name: Bed | null): void {
+    this.wantBed = name;
+    this.startBed();
+  }
+
+  private startBed(): void {
+    const want = this.wantBed === 'volcano' ? 'volcano' : null;
+    if ((this.playing !== null) === (want !== null)) return;
+    this.playing?.stop();
+    this.playing = null;
+    if (want && this.ctx && this.master && this.noise) this.playing = new VolcanoBed(this.ctx, this.master, this.noise);
+  }
+
+  private open(): void {
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return;
     this.ctx = new Ctor();
@@ -84,6 +111,29 @@ export class SoundBoard {
       case 'win':
         [523, 659, 784, 1047].forEach((f, i) => this.tone(f, f, 0.18, 0.16, 'triangle', t + i * 0.1));
         break;
+      case 'gate':
+        // A gate pin going home: a slide, then a solid two-part click.
+        this.hiss(0.09, 2400, 0.08, t);
+        this.tone(1100, 900, 0.04, 0.16, 'square', t + 0.08);
+        this.tone(700, 520, 0.06, 0.14, 'triangle', t + 0.12);
+        break;
+      case 'crack':
+        // Stone giving way: a sharp snap and a gritty trickle.
+        this.hiss(0.05, 3200, 0.22, t);
+        this.tone(240, 90, 0.08, 0.18, 'square', t);
+        this.hiss(0.4, 1500, 0.08, t + 0.05);
+        break;
+      case 'thud':
+        // A slab landing: a deep thump and a cloud of grit.
+        this.tone(110, 38, 0.35, 0.4, 'sine', t);
+        this.tone(70, 40, 0.25, 0.25, 'triangle', t);
+        this.hiss(0.35, 500, 0.16, t + 0.02);
+        break;
+      case 'ruby':
+        // A glassy chime, brighter and rounder than a coin's.
+        [1568, 2093, 2637].forEach((f, i) => this.tone(f, f, 0.32, 0.07, 'sine', t + i * 0.05));
+        this.tone(4186, 4186, 0.12, 0.03, 'sine', t + 0.12);
+        break;
       case 'fail':
         // A cartoon "wah-wah": two sliding notes down.
         this.tone(440, 330, 0.28, 0.18, 'square', t);
@@ -125,6 +175,8 @@ export class SoundBoard {
   }
 
   destroy(): void {
+    this.playing?.stop();
+    this.playing = null;
     void this.ctx?.close();
     this.ctx = null;
   }

@@ -138,20 +138,49 @@ The audit's player is eager: after every pull it walks Nib on along the level, s
 
 ## 2. The Volcano Shrine
 
-**New ground: crumbling basalt ledges** that fall once Nib steps off them, so routes go one way, and **stone bridges** Nib makes himself by cooling lava. **Material:** lava. **Blot:** the Ember Blot (lava can't hurt it, only water). **Pin:** the gate pin (tap again to push it back in).
+**Redesigned (Oct 31, 2026).** Chapter 1 already teaches lava (it melts gold, burns Nib, guards and crates, and water cools it to stone), so the old plan, with lava as the new material, would have been the jungle again in black stone. The Volcano Shrine now changes all four things a chapter can change, and leaves the jungle's tools behind: no vines, seeds, crates, boars or porcupines.
 
-| # | Name | Goal | What happens |
-|---|---|---|---|
-| 1 | Black Steps | Treasure | Crumbling ledges: every ledge Nib leaves falls, so plan the route before walking it |
-| 2 | First Fire | Treasure | A lava moat between Nib and the chest; pour water on it and walk across the new stone |
-| 3 | The Stone Bridge | Treasure | Cool the lava where Nib needs a floor while keeping the gold away from the rest of it |
-| 4 | Ember Blot | Clear | An Ember Blot bathes in lava; only water ends it |
-| 5 | The Molten Hoard | Loot | Gold above a river of lava: cool a channel for it first |
-| 6 | Just Enough | Treasure | A gate pin: cut the water once the lava is stone, or the rest washes the gold into the drain |
-| 7 | The Caldera | Treasure | Two screens down a crater on one-way ledges, pouring your own bridges on the way |
-| 8 | Fire and Flood | Loot | Remix: lava, gates, Ember Blots and crumbling ledges |
-| 9 | Ember Light | Treasure | Lights out: only the lava glows, and cooling it makes the room darker |
-| 10 | The Fire Idol | Boss | The idol pours lava from three mouths in turn; cool each one with just enough water from gate pins |
+| | Chapter 1, the Jungle Temple | Chapter 2, the Volcano Shrine |
+|---|---|---|
+| **Ground** | Vines and ledges: routes go both ways | **Crumbling basalt ledges:** a ledge cracks and falls once Nib steps off it. Routes go one way, Nib's own steps become triggers like pins, and the fallen slab is a tool (it squashes a guard, plugs a channel or lies as a step below) |
+| **Materials** | Water, lava as a danger, coins, boulders, seeds, crates | **Pumice rafts** float on lava (and water) and never burn: Nib rides them across lava rivers, and they ferry gold. **Fire rubies** are gems that lava can't hurt, so they go through the lava while the gold must go round it. **Lava as a builder:** pour it where Nib needs a floor, then cool it into a bridge or a stair |
+| **Guards** | The boar (stomp it) and the porcupine (spiky); lava, water or a crate beats either | **The salamander:** fireproof. It wades through lava to get at Nib, so lava no longer solves a guard; only water, a boulder or a falling slab does, and the same scarce water also has to cool the lava. **The armadillo:** armoured (never stomp it), but lava, water and falling stone beat it. Boss: **the Old Salamander** in the Fire Idol's bath |
+| **Pin** | Plain pins, pins that block pins | **The gate pin:** tap it again to push it back in. Puzzles ask *how much* as well as *which first*: cut the water once the lava is stone, share one tank between two jobs, switch a pour from one channel to another |
+| **Puzzle types** | Which order; where Nib waits | **How much** (gates), **which way** (one-way ledges, so plan the route before walking it), **build it** (pour your own floor), **ferry it** (rafts across lava) |
+
+**Gate pins and tap-to-go.** A gate's right moment is always shown by the board, never a stopwatch: "when the moat is stone", "when the basin's lip is wet". The window is at least about 1.5 s wide, and the hint says when to tap. A gate can't be pushed back into Nib, a guard or a body.
+
+**Rules** (round 3's rules carry over: stages depend on each other, at most one gate holding only Nib, a tempting wrong pin from level 4, every wrong order ends in a funny fail, the audit targets, 2–3 screens, 3–5 stages, 60–90 s, at most ~700 grains, tap-to-go):
+
+1. A Chapter 2 level's signature is one of this chapter's ideas; Chapter 1's tricks may appear only as a supporting stage, at most one per level.
+2. Washing a guard with water at most twice per level (salamanders need water, so once is too few for this chapter), and never twice the same way.
+3. Each trick in the table below lives only in the levels it lists.
+
+| Trick | Levels |
+|---|---|
+| A one-way route: plan the walk, because every ledge Nib leaves falls | 1, 7 |
+| The slab as a tool: drop a ledge (by stepping off it) to squash a guard, plug a channel or make a step below | 1, 8 |
+| The raft ferry: lava must flow to bring the raft to Nib, then carry him over | 2, 8 |
+| Raft cargo: a raft carries the gold (or a guard) across the lava | 3, 5 |
+| Pour your own floor: lead lava into a gap, then cool it into a bridge or a stair | 3, 7 |
+| The fireproof guard: the salamander crosses lava to reach Nib; only water stops it | 4, 9, 10 |
+| Rubies through the fire, gold around it | 5 |
+| Meter the water with a gate: just enough to cool, not enough to wash the gold away | 6, 10 |
+| The switch: a gate pushed back in sends the next pour down another channel | 6, 8 |
+| Living light: a glowing salamander is the light in the dark, so wash it last | 9 |
+
+| # | Name | Goal | Signature | What happens |
+|---|---|---|---|---|
+| 11 | Black Steps | Treasure | Crumbling ledges | Meet the place, with only Chapter 1's materials: Nib picks his way down a cliff of ledges that fall behind him. One ledge's slab must land in the channel below (to hold back the water the gold rides on), and the ledge the gold crosses must still be up when it pours |
+| 12 | The Pumice Raft | Treasure | Rafts on lava | A lava river between Nib and the chest, and a raft moored upstream: let the lava run to carry the raft to Nib's bank, ride it over, and cool the river behind him only once he's off |
+| 13 | The Stone Bridge | Treasure | Pour your own floor | Nib needs a floor across a gap: lead a tank of lava into it and cool it there, while the raft ferries the gold over the rest of the lava, which must stay hot to carry it |
+| 14 | Salamander Springs | Clear | The fireproof guard | Salamanders bathe in lava pools, and lava doesn't trouble them. Wash every one away with one tank that also has to cool the pool between Nib and the last one; the obvious pull, lava on a salamander, just gives it a warm bath |
+| 15 | The Ruby Hoard | Loot | Rubies through the fire | Fire rubies and gold in one hopper: split them, rubies straight through the lava river, gold onto a raft and round; an armadillo guards the landing |
+| 16 | Just Enough | Treasure | The gate pin | Cut the water once the moat is stone, or the rest washes the gold into the drain; the same tank's second job is the far pool, so push the gate back in and send the rest down the other channel |
+| 17 | The Caldera | Treasure | Two screens down | A crater two screens deep on one-way ledges: pour a stair of stone for the way down (no vines here), and choose which ledges fall where |
+| 18 | Fire and Flood | Loot | Remix | Gates, rafts, salamanders, ledges and rubies: a slab dropped to dam the lava, a gate that switches the flood, a raft that carries the hoard |
+| 19 | Ember Light | Treasure | Living light | Lights out: salamanders glow like embers, so the guard is the lamp. Use its light to cross, and wash it only last; the rubies glint where the lava has been |
+| 20 | The Fire Idol | Boss | Meter it, save it | The Old Salamander bathes in the Fire Idol's lava bowl, fed by three mouths; meter the water through gates to cool each mouth, and keep enough of the flood for the boss |
 
 ## 3. The Desert Tomb
 
@@ -159,16 +188,16 @@ The audit's player is eager: after every pull it walks Nib on along the level, s
 
 | # | Name | Goal | What happens |
 |---|---|---|---|
-| 1 | The Sealed Door | Treasure | Nib can hold the door open by standing on its plate, but then he can't go through it. Pour sand on the plate instead |
-| 2 | Bad Air | Treasure | Gas rises up the shaft; vent it up the chimney, away from Nib's path |
-| 3 | The Blasting Chamber | Treasure | Lead the gas to a torch and the blast breaks the cracked wall to the chest |
-| 4 | Puff Blot | Clear | The Puff Blot rides the gas; vent the gas and it sinks into the water |
-| 5 | The Burial Gold | Loot | Gold sealed in three chambers; blast them open in an order that doesn't bury the coins |
-| 6 | Chained | Treasure | Chain pins: pulling one also pulls its twin across the room |
-| 7 | The Deep Shaft | Treasure | Two screens tall: build sand ramps with each pour to climb up to the chest |
-| 8 | The Fennec | Escort | Remix: free a fennec fox from a cage with a plate-lock door, and bring it out |
-| 9 | Lamp in the Tomb | Treasure | Lights out: the gas glows faintly green, so you see where it is, not where it goes |
-| 10 | The Tomb Guardian | Boss | The Guardian breathes gas at Nib; light its breath to bring its own wall down on it |
+| 21 | The Sealed Door | Treasure | Nib can hold the door open by standing on its plate, but then he can't go through it. Pour sand on the plate instead |
+| 22 | Bad Air | Treasure | Gas rises up the shaft; vent it up the chimney, away from Nib's path |
+| 23 | The Blasting Chamber | Treasure | Lead the gas to a torch and the blast breaks the cracked wall to the chest |
+| 24 | Puff Blot | Clear | The Puff Blot rides the gas; vent the gas and it sinks into the water |
+| 25 | The Burial Gold | Loot | Gold sealed in three chambers; blast them open in an order that doesn't bury the coins |
+| 26 | Chained | Treasure | Chain pins: pulling one also pulls its twin across the room |
+| 27 | The Deep Shaft | Treasure | Two screens tall: build sand ramps with each pour to climb up to the chest |
+| 28 | The Fennec | Escort | Remix: free a fennec fox from a cage with a plate-lock door, and bring it out |
+| 29 | Lamp in the Tomb | Treasure | Lights out: the gas glows faintly green, so you see where it is, not where it goes |
+| 30 | The Tomb Guardian | Boss | The Guardian breathes gas at Nib; light its breath to bring its own wall down on it |
 
 ## 4. The Frozen Monastery
 
@@ -176,16 +205,16 @@ The audit's player is eager: after every pull it walks Nib on along the level, s
 
 | # | Name | Goal | What happens |
 |---|---|---|---|
-| 1 | The Bell Court | Treasure | Ice floors: pull pins in the order that stops Nib's slide by the chest, not past it |
-| 2 | Frost | Treasure | Frost freezes the pool into a block that slides into the gap and becomes Nib's floor |
-| 3 | Thaw | Treasure | Lava melts the ice wall but also the floor; pick which melts first |
-| 4 | Frost Blot | Clear | Thaw the Frost Blot with a little lava, then wash it away |
-| 5 | The Monks' Treasury | Loot | The coins slide on ice too; sweep the room in one long slide to catch them |
-| 6 | The Key | Treasure | A lock pin: drop the key down the right shaft to open it |
-| 7 | The Icefall | Treasure | Two screens of icy slopes and frozen pools; slide down from ledge to ledge |
-| 8 | The Snow Monkey | Escort | Remix: free a snow monkey frozen into the ice, without melting the floor under Nib |
-| 9 | Candle Hall | Treasure | Lights out: candles melt the ice near them, and the dark ice is still slippery |
-| 10 | The Ice Wyrm | Boss | The Wyrm freezes every pool on its breath; pull between breaths |
+| 31 | The Bell Court | Treasure | Ice floors: pull pins in the order that stops Nib's slide by the chest, not past it |
+| 32 | Frost | Treasure | Frost freezes the pool into a block that slides into the gap and becomes Nib's floor |
+| 33 | Thaw | Treasure | Lava melts the ice wall but also the floor; pick which melts first |
+| 34 | Frost Blot | Clear | Thaw the Frost Blot with a little lava, then wash it away |
+| 35 | The Monks' Treasury | Loot | The coins slide on ice too; sweep the room in one long slide to catch them |
+| 36 | The Key | Treasure | A lock pin: drop the key down the right shaft to open it |
+| 37 | The Icefall | Treasure | Two screens of icy slopes and frozen pools; slide down from ledge to ledge |
+| 38 | The Snow Monkey | Escort | Remix: free a snow monkey frozen into the ice, without melting the floor under Nib |
+| 39 | Candle Hall | Treasure | Lights out: candles melt the ice near them, and the dark ice is still slippery |
+| 40 | The Ice Wyrm | Boss | The Wyrm freezes every pool on its breath; pull between breaths |
 
 ## 5. The Alchemist's Ruin
 
@@ -193,16 +222,16 @@ The audit's player is eager: after every pull it walks Nib on along the level, s
 
 | # | Name | Goal | What happens |
 |---|---|---|---|
-| 1 | The Fallen Tower | Treasure | Scaffolds and trapdoors: Nib can drop down but never climb back, so go down in the right order |
-| 2 | Green Drops | Treasure | Acid eats the wooden floor under the chest and drops it to Nib |
-| 3 | Dilute | Treasure | Thin the acid with water until it's safe for Nib to wade through |
-| 4 | Sponge Blot | Clear | The Sponge Blot drinks the water and grows; shrink it with acid |
-| 5 | The Gold Flasks | Loot | Acid can't eat gold: let it cut channels for the coins to run to Nib |
-| 6 | Spring Loaded | Treasure | A spring pin lets only a short pour through, just enough for the job |
-| 7 | The Tower Stair | Treasure | Two screens: climb up while the acid you release eats the stair behind you |
-| 8 | The Owl | Escort | Remix: free the alchemist's owl from a cage of wood, without the acid reaching it |
-| 9 | Glow Flasks | Treasure | Lights out: only the bubbling flasks glow |
-| 10 | The Cauldron Blot | Boss | It boils over in waves of three colours; send each wave the material it fears |
+| 41 | The Fallen Tower | Treasure | Scaffolds and trapdoors: Nib can drop down but never climb back, so go down in the right order |
+| 42 | Green Drops | Treasure | Acid eats the wooden floor under the chest and drops it to Nib |
+| 43 | Dilute | Treasure | Thin the acid with water until it's safe for Nib to wade through |
+| 44 | Sponge Blot | Clear | The Sponge Blot drinks the water and grows; shrink it with acid |
+| 45 | The Gold Flasks | Loot | Acid can't eat gold: let it cut channels for the coins to run to Nib |
+| 46 | Spring Loaded | Treasure | A spring pin lets only a short pour through, just enough for the job |
+| 47 | The Tower Stair | Treasure | Two screens: climb up while the acid you release eats the stair behind you |
+| 48 | The Owl | Escort | Remix: free the alchemist's owl from a cage of wood, without the acid reaching it |
+| 49 | Glow Flasks | Treasure | Lights out: only the bubbling flasks glow |
+| 50 | The Cauldron Blot | Boss | It boils over in waves of three colours; send each wave the material it fears |
 
 ## 6. The Clockwork Citadel
 
@@ -210,16 +239,16 @@ The audit's player is eager: after every pull it walks Nib on along the level, s
 
 | # | Name | Goal | What happens |
 |---|---|---|---|
-| 1 | The Gatehouse | Treasure | A counterweight lift: fill its other bucket with water to lift Nib to the chest |
-| 2 | The Water Wheel | Treasure | Water turning the wheel opens the gate, for as long as it flows |
-| 3 | Balance | Treasure | Scales: put just enough weight on one pan to raise Nib on the other |
-| 4 | Clockwork Blot | Clear | It marches on a beat; drop a boulder where it will be |
-| 5 | The Mint | Loot | Coins ride a wheel of buckets up to Nib's level, and a wrong pull spills them |
-| 6 | Quarter Turn | Treasure | A turn pin swings a platform and tips everything on it, Nib included if he's standing there |
-| 7 | The Great Shaft | Treasure | Two screens of lifts; each one needs the right weight |
-| 8 | The Brass Bird | Escort | Remix: free a wind-up bird from a gearbox cage, then ride out together |
-| 9 | Night Shift | Treasure | Lights out: lamps on the lifts light the shaft as they move |
-| 10 | The Pendulum | Boss | A giant pendulum swings through the shaft; pull on the right swing |
+| 51 | The Gatehouse | Treasure | A counterweight lift: fill its other bucket with water to lift Nib to the chest |
+| 52 | The Water Wheel | Treasure | Water turning the wheel opens the gate, for as long as it flows |
+| 53 | Balance | Treasure | Scales: put just enough weight on one pan to raise Nib on the other |
+| 54 | Clockwork Blot | Clear | It marches on a beat; drop a boulder where it will be |
+| 55 | The Mint | Loot | Coins ride a wheel of buckets up to Nib's level, and a wrong pull spills them |
+| 56 | Quarter Turn | Treasure | A turn pin swings a platform and tips everything on it, Nib included if he's standing there |
+| 57 | The Great Shaft | Treasure | Two screens of lifts; each one needs the right weight |
+| 58 | The Brass Bird | Escort | Remix: free a wind-up bird from a gearbox cage, then ride out together |
+| 59 | Night Shift | Treasure | Lights out: lamps on the lifts light the shaft as they move |
+| 60 | The Pendulum | Boss | A giant pendulum swings through the shaft; pull on the right swing |
 
 ## 7. The Lost City in the Canopy
 
@@ -227,16 +256,16 @@ The audit's player is eager: after every pull it walks Nib on along the level, s
 
 | # | Name | Goal | What happens |
 |---|---|---|---|
-| 1 | The Treetop Gate | Treasure | Leaf platforms: Nib's weight lowers a leaf to the next branch; a pour of water lowers it further |
-| 2 | Green Shoots | Treasure | Water a seed and it grows into a ladder up to the chest |
-| 3 | Burn the Bridge | Treasure | Grow one vine to cross, then burn it so the Blot can't follow |
-| 4 | Thorn Blot | Clear | Only fire ends a Thorn Blot, and fire also burns your vines |
-| 5 | The Canopy Coffers | Loot | Gold rains through the branches; catch it on leaves that bend toward Nib |
-| 6 | Heavy | Treasure | A weight pin pops out by itself once enough coins land on its plate |
-| 7 | The Great Tree | Treasure | Two screens: grow a ladder up the trunk, one watering at a time |
-| 8 | The Tree Frog | Escort | Remix: free a tree frog from a thorn cage, without burning its branch |
-| 9 | Fireflies | Treasure | Lights out: fireflies light the room and scatter from water |
-| 10 | The Snapweed | Boss | A giant plant that eats Blots; wash every Blot into its mouth before it turns to Nib |
+| 61 | The Treetop Gate | Treasure | Leaf platforms: Nib's weight lowers a leaf to the next branch; a pour of water lowers it further |
+| 62 | Green Shoots | Treasure | Water a seed and it grows into a ladder up to the chest |
+| 63 | Burn the Bridge | Treasure | Grow one vine to cross, then burn it so the Blot can't follow |
+| 64 | Thorn Blot | Clear | Only fire ends a Thorn Blot, and fire also burns your vines |
+| 65 | The Canopy Coffers | Loot | Gold rains through the branches; catch it on leaves that bend toward Nib |
+| 66 | Heavy | Treasure | A weight pin pops out by itself once enough coins land on its plate |
+| 67 | The Great Tree | Treasure | Two screens: grow a ladder up the trunk, one watering at a time |
+| 68 | The Tree Frog | Escort | Remix: free a tree frog from a thorn cage, without burning its branch |
+| 69 | Fireflies | Treasure | Lights out: fireflies light the room and scatter from water |
+| 70 | The Snapweed | Boss | A giant plant that eats Blots; wash every Blot into its mouth before it turns to Nib |
 
 ## 8. The Sea Cave of the Pirate King
 
@@ -244,16 +273,16 @@ The audit's player is eager: after every pull it walks Nib on along the level, s
 
 | # | Name | Goal | What happens |
 |---|---|---|---|
-| 1 | Low Tide | Treasure | Open the sea gate, the cave floods, and Nib floats up to the deck where the chest is |
-| 2 | Powder | Treasure | A bomb's blast breaks the wall and pushes everything, including the coins |
-| 3 | The Wreck | Treasure | Douse one fuse and light another to blow the right hole in the hull |
-| 4 | Shell Blot | Clear | Only a blast cracks a Shell Blot; get the bomb to it, not to Nib |
-| 5 | The Pirate King's Chest | Loot | Barrels of gold float in on the tide; break them where Nib can gather the coins |
-| 6 | Slow Fuse | Treasure | A fuse pin burns away when the flame reaches it, unless the water gets there first |
-| 7 | The Mast | Treasure | Two screens up a sunken mast: raise the tide room by room to float Nib to the crow's nest |
-| 8 | The Parrot | Escort | Remix: free the Pirate King's parrot from its cage on a sinking deck |
-| 9 | Lantern Below Decks | Treasure | Lights out: lit by a swinging lantern and the sparks of fuses |
-| 10 | The Kraken Blot | Boss | Its tentacles push pins back in; blast the tentacles first |
+| 71 | Low Tide | Treasure | Open the sea gate, the cave floods, and Nib floats up to the deck where the chest is |
+| 72 | Powder | Treasure | A bomb's blast breaks the wall and pushes everything, including the coins |
+| 73 | The Wreck | Treasure | Douse one fuse and light another to blow the right hole in the hull |
+| 74 | Shell Blot | Clear | Only a blast cracks a Shell Blot; get the bomb to it, not to Nib |
+| 75 | The Pirate King's Chest | Loot | Barrels of gold float in on the tide; break them where Nib can gather the coins |
+| 76 | Slow Fuse | Treasure | A fuse pin burns away when the flame reaches it, unless the water gets there first |
+| 77 | The Mast | Treasure | Two screens up a sunken mast: raise the tide room by room to float Nib to the crow's nest |
+| 78 | The Parrot | Escort | Remix: free the Pirate King's parrot from its cage on a sinking deck |
+| 79 | Lantern Below Decks | Treasure | Lights out: lit by a swinging lantern and the sparks of fuses |
+| 80 | The Kraken Blot | Boss | Its tentacles push pins back in; blast the tentacles first |
 
 ## 9. The Cloud Fortress
 
@@ -261,16 +290,16 @@ The audit's player is eager: after every pull it walks Nib on along the level, s
 
 | # | Name | Goal | What happens |
 |---|---|---|---|
-| 1 | The Windy Wall | Treasure | A fan carries Nib over the gap while it blows; pull the pin that stops it once he's over |
-| 2 | Up and Away | Treasure | A balloon lifts a crate (or Nib) to the ledge above |
-| 3 | Crosswind | Treasure | The fan blows the water sideways into the room the Blot is in |
-| 4 | Bat Blot | Clear | The Bat Blot flies over the gap; drop the water on it as it passes |
-| 5 | The Sky Vault | Loot | Fans blow the pouring gold away from the edge of the fortress and toward Nib |
-| 6 | Tied Down | Treasure | A balloon pin: pull it and the balloon lifts the cage it's tied to |
-| 7 | The Tower Above the Clouds | Treasure | Two screens up, from balloon to balloon |
-| 8 | The Mountain Goat | Escort | Remix: free a mountain goat from a tower cage and float it down |
-| 9 | Night Sky | Treasure | Lights out: lightning flashes show the room for an instant |
-| 10 | The Thunderhead | Boss | Its lightning strikes the tallest metal thing on its beat; lead it with keys and coins |
+| 81 | The Windy Wall | Treasure | A fan carries Nib over the gap while it blows; pull the pin that stops it once he's over |
+| 82 | Up and Away | Treasure | A balloon lifts a crate (or Nib) to the ledge above |
+| 83 | Crosswind | Treasure | The fan blows the water sideways into the room the Blot is in |
+| 84 | Bat Blot | Clear | The Bat Blot flies over the gap; drop the water on it as it passes |
+| 85 | The Sky Vault | Loot | Fans blow the pouring gold away from the edge of the fortress and toward Nib |
+| 86 | Tied Down | Treasure | A balloon pin: pull it and the balloon lifts the cage it's tied to |
+| 87 | The Tower Above the Clouds | Treasure | Two screens up, from balloon to balloon |
+| 88 | The Mountain Goat | Escort | Remix: free a mountain goat from a tower cage and float it down |
+| 89 | Night Sky | Treasure | Lights out: lightning flashes show the room for an instant |
+| 90 | The Thunderhead | Boss | Its lightning strikes the tallest metal thing on its beat; lead it with keys and coins |
 
 ## 10. The Dragon's Hoard
 
@@ -278,23 +307,23 @@ The audit's player is eager: after every pull it walks Nib on along the level, s
 
 | # | Name | Goal | What happens |
 |---|---|---|---|
-| 1 | The Last Page | Treasure | The Atlas page opens the mountain door: vines, ledges and lifts |
-| 2 | Fire and Ice | Treasure | Volcano and Monastery: lava, ice floors and crumbling ledges |
-| 3 | Powder and Gas | Treasure | Tomb and Sea Cave: blasts, tides and plates |
-| 4 | The Ink Guard | Clear | One of every Blot, each needing its own material |
-| 5 | The Hoard | Loot | The biggest pour of gold in the game, through every kind of room |
-| 6 | Every Pin | Treasure | Gate, chain, lock, spring, turn, weight, fuse and balloon pins in one puzzle |
-| 7 | The Long Climb | Treasure | Three screens tall: up through every kind of ground |
-| 8 | The Atlas Friends | Escort | Remix: free all the friends from earlier chapters, who were caught again |
-| 9 | Dragon's Breath | Treasure | Lights out: only the dragon's distant fire lights the vault |
-| 10 | The Ink Dragon | Boss | Three screens tall: it breathes fire down the vault on a rhythm as Nib climbs to the hoard |
+| 91 | The Last Page | Treasure | The Atlas page opens the mountain door: vines, ledges and lifts |
+| 92 | Fire and Ice | Treasure | Volcano and Monastery: lava, ice floors and crumbling ledges |
+| 93 | Powder and Gas | Treasure | Tomb and Sea Cave: blasts, tides and plates |
+| 94 | The Ink Guard | Clear | One of every Blot, each needing its own material |
+| 95 | The Hoard | Loot | The biggest pour of gold in the game, through every kind of room |
+| 96 | Every Pin | Treasure | Gate, chain, lock, spring, turn, weight, fuse and balloon pins in one puzzle |
+| 97 | The Long Climb | Treasure | Three screens tall: up through every kind of ground |
+| 98 | The Atlas Friends | Escort | Remix: free all the friends from earlier chapters, who were caught again |
+| 99 | Dragon's Breath | Treasure | Lights out: only the dragon's distant fire lights the vault |
+| 100 | The Ink Dragon | Boss | Three screens tall: it breathes fire down the vault on a rhythm as Nib climbs to the hoard |
 
 ## What each ruin needs built
 
 | Ruin | New engine work |
 |---|---|
 | 1 | Vines to climb, seeds that grow vines, floating crates, boulders, the drain, dark levels, wide and tall levels, the boss (built) |
-| 2 | Crumbling ledges, gate pins |
+| 2 | Crumbling ledges and slabs, gate pins, pumice rafts, fire rubies, the salamander (fireproof) and armadillo, the Clear goal, basalt art |
 | 3 | Pressure plates and doors, sand, gas, blasts, cracked walls, chain pins |
 | 4 | Ice floors and sliding, ice blocks, frost, keys and lock pins |
 | 5 | Wooden platforms, acid, spring pins |

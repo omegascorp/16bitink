@@ -3,7 +3,10 @@ import { INK, PAPER, RED } from '../art/palette';
 import type { SoundBoard } from '../audio/sfx';
 import { hudTake, readControls, type ControlMode } from './controls';
 import { HEARTS, type HudState, type LevelInfo, type Result } from './GameScene';
+import { chapterPlace } from './chapters';
 import { DPR, screenSize } from './hidpi';
+import { lossText } from './lossLines';
+import type { GuardAnimal } from '../logic/level';
 
 const FONT = 'Caveat';
 /** Hearts' size in the bar (the texture is painted at twice its size). */
@@ -12,16 +15,9 @@ const TIPS: Record<ControlMode, string> = {
   tap: 'Tap a pin to pull it. Tap the floor to send Nib there, tap Nib to jump.',
   stick: 'Tap a pin to pull it. Drag anywhere to walk Nib; jump with the button (keyboard: arrows and Space).',
 };
+/** The volcano's first tip, for its levels that have none of their own: its gates and ledges are new. */
+const VOLCANO_TIP = 'Striped gate pins go back in: tap one again to push it home. Ledges crumble once Nib steps off them.';
 const CONTROL_LABEL: Record<ControlMode, string> = { tap: 'Move: tap to go  ⇄', stick: 'Move: joystick  ⇄' };
-const CAUSE_TEXT: Record<string, { title: string; line: string }> = {
-  burnt: { title: 'Too hot!', line: 'Nib walked into the lava. Cool it with water first.' },
-  inked: { title: 'Caught!', line: 'A guard got Nib. Wash it away with water, or jump on a boar’s head.' },
-  pricked: { title: 'Ouch, spikes!', line: 'Porcupines can’t be stomped. Wash them away, or drop a boulder on them.' },
-  melted: { title: 'The gold melted!', line: 'Coins that touch lava are gone, and too few are left.' },
-  drained: { title: 'Down the drain!', line: 'Too much gold washed away. Plug the drain first.' },
-  crushed: { title: 'Bonk!', line: 'A boulder or a crate came down on Nib. Keep out from under it.' },
-  fell: { title: 'Whoops!', line: 'Nib fell out of the temple.' },
-};
 
 /** The interface over the board: the level's name and goal, the coin count, buttons, and the result card. */
 export class HudScene extends Phaser.Scene {
@@ -79,7 +75,7 @@ export class HudScene extends Phaser.Scene {
       this.sfx.play('tap');
       this.controls = this.controls === 'tap' ? 'stick' : 'tap';
       this.controlChip.setText(CONTROL_LABEL[this.controls]);
-      this.tip.setText(TIPS[this.controls]);
+      this.tip.setText(this.firstTip());
       this.game.events.emit('cmd:controls', this.controls);
       this.layout();
     });
@@ -237,7 +233,8 @@ export class HudScene extends Phaser.Scene {
       this.chapter.setText(level.chapter);
       this.title.setText(level.name);
       this.goal.setText(level.goal);
-      this.levelLabel.setText(`Level ${info.index + 1} / ${info.count}`);
+      const place = chapterPlace(level.id);
+      this.levelLabel.setText(`Level ${place ? place.level : info.index + 1}`);
       this.chestIcon.setVisible(level.chest !== undefined);
       this.layout();
     }
@@ -250,7 +247,7 @@ export class HudScene extends Phaser.Scene {
     this.tweens.killTweensOf(this.leaveButton);
     this.leaveButton.setVisible(false).setScale(1);
     this.tweens.killTweensOf(this.tip);
-    this.tip.setText(this.info?.level.tip ?? TIPS[this.controls]);
+    this.tip.setText(this.firstTip());
     this.card?.destroy();
     this.card = null;
     this.tip.setVisible(true).setAlpha(0.92);
@@ -258,6 +255,12 @@ export class HudScene extends Phaser.Scene {
     this.chestTick.setVisible(false);
     this.chestIcon.setTexture('chest-closed');
     this.stickHide();
+  }
+
+  /** The level's own tip, else the volcano's, else how to play. */
+  private firstTip(): string {
+    const level = this.info?.level;
+    return level?.tip ?? (level?.ruin === 'volcano' ? VOLCANO_TIP : TIPS[this.controls]);
   }
 
   /** Hearts from `left` on are lost: each bursts and is left an empty outline. */
@@ -275,8 +278,8 @@ export class HudScene extends Phaser.Scene {
   }
 
   /** A heart spent: say what happened and that the level went back. */
-  private onRewind(r: { hearts: number; cause: string }): void {
-    const title = CAUSE_TEXT[r.cause]?.title ?? 'Oops!';
+  private onRewind(r: { hearts: number; cause: string; by?: GuardAnimal }): void {
+    const title = lossText(r.cause, r.by, this.info?.level.ruin)?.title ?? 'Oops!';
     const left = r.hearts === 1 ? 'Last heart!' : `${r.hearts} hearts left.`;
     this.tweens.killTweensOf(this.tip);
     this.tip.setText(`${title} Back to before that pin. ${left}`).setVisible(true).setAlpha(0.9);
@@ -308,7 +311,7 @@ export class HudScene extends Phaser.Scene {
     bg.fillStyle(0x000000, 0.12).fillRoundedRect(-w / 2 + 6, -h / 2 + 8, w, h, 14);
     bg.fillStyle(Phaser.Display.Color.HexStringToColor(PAPER).color, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 14);
     bg.lineStyle(3, 0x26316a, 1).strokeRoundedRect(-w / 2, -h / 2, w, h, 14);
-    const cause = r.cause ? CAUSE_TEXT[r.cause] : undefined;
+    const cause = lossText(r.cause, r.by, this.info?.level.ruin);
     const title = this.add.text(0, -h / 2 + 18, r.won ? 'Nib made it!' : cause?.title ?? 'Oh no!', { fontFamily: FONT, fontSize: '44px', fontStyle: '700', color: r.won ? INK : RED, padding: { x: 8, y: 2 } }).setOrigin(0.5, 0).setResolution(DPR);
     const haul = r.hasChest ? `The idol and ${r.coins} of ${r.total} coins.` : `${r.coins} of ${r.total} coins.`;
     const lineText = r.won ? `${haul}\nBank: ${r.bank.coins.toLocaleString('en-US')} coins · ${r.bank.idols} ${r.bank.idols === 1 ? 'idol' : 'idols'}` : cause?.line ?? '';

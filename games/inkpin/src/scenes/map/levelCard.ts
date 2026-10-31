@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { ART_RES, INK, PAPER } from '../../art/palette';
-import type { LevelDef } from '../../logic/level';
+import type { GuardAnimal, LevelDef } from '../../logic/level';
+import { LEDGE_T } from '../../logic/ledges';
+import { inPlay, RUBY_R } from '../../logic/rubies';
 import { COIN, LAVA, STONE, WATER } from '../../logic/particles';
 import { World } from '../../logic/world';
 import type { LevelRecord } from '../progress';
@@ -12,6 +14,8 @@ const SOFT_INK = '#4a463e';
 const CARD_W = 420;
 const PREVIEW = { w: 340, h: 250 } as const;
 const GRAIN_COLOR: Record<number, number> = { [WATER]: 0x6f9fcf, [LAVA]: 0xe8782a, [COIN]: 0xe2b33c, [STONE]: 0x8f857a };
+/** Each guard's colour in the preview, by animal. */
+const GUARD_COLOR: Record<GuardAnimal, number> = { boar: 0x8b5e3c, porcupine: 0x4a3a2c, salamander: 0x2a2430, armadillo: 0xa88f6c };
 
 export interface LevelCardOpts {
   readonly level: LevelDef;
@@ -98,7 +102,7 @@ function preview(scene: Phaser.Scene, level: LevelDef, cy: number): Phaser.GameO
   const { view } = level;
   const c = scene.add.container(0, cy);
   const frame = scene.add.graphics();
-  frame.fillStyle(0xcdbfa6, 1).fillRect(-w / 2, -h / 2, w, h);
+  frame.fillStyle(level.ruin === 'volcano' ? 0x5c5157 : 0xcdbfa6, 1).fillRect(-w / 2, -h / 2, w, h);
   // The board's tiles, each cropped to the part of the rooms it holds.
   const board = bakeBoard(scene, level).map((t) => {
     const cx0 = Math.max(x0, t.x) - t.x;
@@ -114,11 +118,21 @@ function preview(scene: Phaser.Scene, level: LevelDef, cy: number): Phaser.GameO
     if (p.y > h / 2) continue;
     g.fillStyle(GRAIN_COLOR[gr.kind[i]!] ?? 0x888888, 1).fillCircle(p.x, p.y, Math.max(1.2, 6 * k));
   }
+  for (const l of world.ledges) {
+    const a = at(l.x0, l.y);
+    g.fillStyle(0x6c6180, 1).fillRect(a.x, a.y, (l.x1 - l.x0) * k, Math.max(2, LEDGE_T * 2 * k)).lineStyle(1, 0x26316a, 1).strokeRect(a.x, a.y, (l.x1 - l.x0) * k, Math.max(2, LEDGE_T * 2 * k));
+  }
   for (const pin of level.pins) {
     const a = at(pin.ax, pin.ay);
     const b = at(pin.bx, pin.by);
-    g.lineStyle(Math.max(2, pin.t * 2 * k), 0xd9a531, 1).lineBetween(a.x, a.y, b.x, b.y);
+    // A gate pin is striped red, as on the board.
+    g.lineStyle(Math.max(2, pin.t * 2 * k), pin.gate ? 0xb3322b : 0xd9a531, 1).lineBetween(a.x, a.y, b.x, b.y);
     g.lineStyle(1.4, 0x26316a, 1).strokeCircle(a.x, a.y, Math.max(3, 12 * k));
+  }
+  for (const r of world.rubies) {
+    if (!inPlay(r)) continue;
+    const p = at(r.x, r.y);
+    g.fillStyle(0xd8283c, 1).fillCircle(p.x, p.y, Math.max(1.6, RUBY_R * k));
   }
   for (const v of world.vines) {
     const foot = at(v.x, v.bottom);
@@ -127,12 +141,15 @@ function preview(scene: Phaser.Scene, level: LevelDef, cy: number): Phaser.GameO
   }
   for (const b of world.boulders) {
     const p = at(b.x, b.y);
-    if (b.crate) g.fillStyle(0xa8774a, 1).fillRect(p.x - b.r * k, p.y - b.r * k, b.r * 2 * k, b.r * 2 * k).lineStyle(1, 0x26316a, 1).strokeRect(p.x - b.r * k, p.y - b.r * k, b.r * 2 * k, b.r * 2 * k);
-    else g.fillStyle(0xa79b88, 1).fillCircle(p.x, p.y, b.r * k).lineStyle(1, 0x26316a, 1).strokeCircle(p.x, p.y, b.r * k);
+    if (b.raft) g.fillStyle(0xd8ccae, 1).fillRect(p.x - b.hw * k, p.y - b.hh * k, b.hw * 2 * k, b.hh * 2 * k).lineStyle(1, 0x26316a, 1).strokeRect(p.x - b.hw * k, p.y - b.hh * k, b.hw * 2 * k, b.hh * 2 * k);
+    else if (b.crate) g.fillStyle(0xa8774a, 1).fillRect(p.x - b.r * k, p.y - b.r * k, b.r * 2 * k, b.r * 2 * k).lineStyle(1, 0x26316a, 1).strokeRect(p.x - b.r * k, p.y - b.r * k, b.r * 2 * k, b.r * 2 * k);
+    else g.fillStyle(level.ruin === 'volcano' ? 0x4a4257 : 0xa79b88, 1).fillCircle(p.x, p.y, b.r * k).lineStyle(1, 0x26316a, 1).strokeCircle(p.x, p.y, b.r * k);
   }
   for (const b of world.blots) {
     const p = at(b.x, b.y);
-    g.fillStyle(b.spiky ? 0x4a3a2c : 0x8b5e3c, 1).fillCircle(p.x, p.y, b.r * k);
+    g.fillStyle(GUARD_COLOR[b.animal], 1).fillCircle(p.x, p.y, b.r * k);
+    // A salamander's orange spots, so it reads as one even this small.
+    if (b.animal === 'salamander') g.fillStyle(0xf2a52a, 1).fillCircle(p.x - b.r * k * 0.3, p.y - b.r * k * 0.2, Math.max(0.8, b.r * k * 0.25)).fillCircle(p.x + b.r * k * 0.3, p.y + b.r * k * 0.1, Math.max(0.8, b.r * k * 0.2));
   }
   if (level.chest) {
     const p = at(level.chest.x, level.chest.y);

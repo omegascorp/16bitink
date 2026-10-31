@@ -4,6 +4,7 @@ import { GOLD, INK, MOSS, TEMPLE, TEMPLE_DARK } from './palette';
 import { ellipse, Pen, type Pt } from './pen';
 import { mix, rgba } from './wash';
 import { paintDraftRuin } from './atlasDrafts';
+import { paintVolcanoLands, paintVolcanoShrine } from './atlasVolcano';
 
 /**
  * The Ink Atlas, the map Nib follows: an old page of cream paper with
@@ -68,14 +69,17 @@ export function paintAtlasChunk(ctx: CanvasRenderingContext2D, layout: MapLayout
   paintFibres(ctx, layout, y0, y1);
   for (const r of layout.regions) {
     if (r.bottom + 200 < y0 || r.top - 200 > y1) continue;
-    if (r.chapter.built) paintJungle(ctx, pen, layout, r);
-    else paintSketches(pen, layout, r);
+    if (!r.chapter.built) paintSketches(pen, layout, r);
+    else if (r.index === 1) paintVolcanoLands(ctx, pen, layout, r);
+    else paintJungle(ctx, pen, layout, r);
   }
   paintTrail(ctx, layout, y0, y1);
   for (const r of layout.regions) {
-    if (r.ruin.y + 160 < y0 || r.ruin.y - 160 > y1) continue;
-    if (r.chapter.built) paintTemple(ctx, pen, r.ruin);
-    else paintDraftRuin(pen, r.index, r.ruin);
+    // The volcano's plume reaches higher than the other ruins.
+    if (r.ruin.y + 160 < y0 || r.ruin.y - 300 > y1) continue;
+    if (!r.chapter.built) paintDraftRuin(pen, r.index, r.ruin);
+    else if (r.index === 1) paintVolcanoShrine(ctx, pen, r.ruin);
+    else paintTemple(ctx, pen, r.ruin);
   }
   // Inside what a phone shows of the page (about 760 px across its middle).
   const compass = { x: W - 220, y: layout.height - 150 };
@@ -168,7 +172,7 @@ function paintTrail(ctx: CanvasRenderingContext2D, layout: MapLayout, y0: number
 }
 
 /** True when a spot is clear of the trail by `gap` px (sampled). */
-function offTrail(layout: MapLayout, x: number, y: number, gap: number): boolean {
+export function offTrail(layout: MapLayout, x: number, y: number, gap: number): boolean {
   const pts = layout.path.pts;
   for (let i = 0; i < pts.length; i += 3) {
     const p = pts[i]!;
@@ -338,7 +342,7 @@ function paintTemple(ctx: CanvasRenderingContext2D, pen: Pen, at: Pt): void {
 }
 
 /** Straight ink lines through the points (masonry wants hard corners, which the pen would round off). */
-function inkLines(ctx: CanvasRenderingContext2D, pts: readonly Pt[], width: number, closed: boolean): void {
+export function inkLines(ctx: CanvasRenderingContext2D, pts: readonly Pt[], width: number, closed: boolean): void {
   ctx.save();
   ctx.strokeStyle = rgba(INK, 0.92);
   ctx.lineWidth = width;
