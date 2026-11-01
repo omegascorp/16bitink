@@ -94,7 +94,7 @@ export const BLASTING_CHAMBER: LevelDef = {
     { id: 'X', ax: 1188, ay: 120, bx: 1124, by: 120, t: PIN_T }, // the cistern's plug, over the far bowl: the trap
   ],
   fills: [
-    { kind: WATER, x0: 962, x1: 1008, y1: 524, count: 8 }, // one douses the near bowl, the rest waits on the lid to set the lava
+    { kind: WATER, x0: 962, x1: 1008, y1: 524, count: 20 }, // one douses the near bowl, the rest waits on the lid: enough that early lava sets on it into a plug ('sealed'), not past the gold
     { kind: WATER, x0: 476, x1: 544, y1: 442, count: 40 }, // washes the armadillo out, then fills the pen for Nib to swim
     { kind: GAS, x0: 1018, x1: 1120, y1: 707, count: 60 }, // held from above: rows pack down from under the lid
     { kind: LAVA, x0: 898, x1: 1004, y1: 380, count: 220 }, // more than the mouth holds over a shut lid: unset, it brims over onto the gold or Nib

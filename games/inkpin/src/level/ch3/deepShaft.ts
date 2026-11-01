@@ -118,7 +118,7 @@ export const DEEP_SHAFT: LevelDef = {
   ],
   fills: [
     { kind: GAS, x0: 100, x1: 292, y1: 1568, count: 150 }, // the well, held from above: rows pack down from under its roof
-    { kind: WATER, x0: 932, x1: 978, y1: 844, count: 30 }, // the cistern: puts the bowl out, then wets the pit
+    { kind: WATER, x0: 928, x1: 982, y1: 844, count: 45 }, // the cistern: puts the bowl out, then wets the pit (enough to set the whole vat)
     { kind: LAVA, x0: 524, x1: 597, y1: 1040, count: 90 }, // the vat: the pit's step
     { kind: COIN, x0: 598, x1: 637, y1: 1016, count: 18 }, // the hopper's gold clears the lava step together
   ],

@@ -1,5 +1,5 @@
 import type { LevelDef } from '../../logic/level';
-import { COIN, GAS, WATER } from '../../logic/particles';
+import { COIN, GAS, LAVA, WATER } from '../../logic/particles';
 import { CH3, PIN_T, T } from '../common';
 
 /**
@@ -25,6 +25,9 @@ import { CH3, PIN_T, T } from '../common';
  * he drops through the gas ('gassed'); out before the flood, the dam pours
  * down his hole into the grate where he lands, the pool stays dry, and his
  * walk ends at the bottom of it ('sealed').
+ * The trap: T, the little oil lamp hung over the burial niche, the chest's
+ * gold beneath it. Its lava pours straight onto the gold ('melted') wherever
+ * it falls; what misses pools hot on the floor Nib crosses.
  * Winning order: G, A, W, U, B, S (B may come before the flood: the flood
  * washes the frog in its dry pool).
  */
@@ -97,8 +100,10 @@ export const PUFF_FROG: LevelDef = {
     { ax: 500, ay: 820, bx: 592, by: 820, t: T }, // 47 a step up from the crypt: the water stays out
     { ax: 592, ay: 820, bx: 592, by: 840, t: T }, // 48
     { ax: 968, ay: 540, bx: 1000, by: 540, t: T }, // 49 the gallery's roof right of the dam
+    { ax: 540, ay: 720, bx: 540, by: 762, t: T }, // 50 the oil lamp's tank, hung over the burial niche
+    { ax: 580, ay: 720, bx: 580, by: 762, t: T }, // 51
   ],
-  bars: [9, 10, 39, 43, 44],
+  bars: [9, 10, 39, 43, 44, 50, 51],
   cracked: [43],
   pins: [
     { id: 'G', ax: 696, ay: 840, bx: 628, by: 840, t: PIN_T }, // the gas pit's lid in the crypt's floor
@@ -107,6 +112,7 @@ export const PUFF_FROG: LevelDef = {
     { id: 'U', ax: 976, ay: 540, bx: 888, by: 540, t: PIN_T }, // the dam: the well's floor, in the gallery's roof
     { id: 'B', ax: 838, ay: 700, bx: 894, by: 700, t: PIN_T }, // the frog dome's vent
     { id: 'S', ax: 976, ay: 700, bx: 888, by: 700, t: PIN_T }, // Nib's pin, the floor of his pit and the frog dome's roof
+    { id: 'T', ax: 586, ay: 762, bx: 544, by: 762, t: PIN_T }, // the trap: the oil lamp's floor, over the chest's gold
   ],
   drains: [
     { x0: 1300, x1: 1360, y0: 280, y1: 330 }, // vent A
@@ -121,6 +127,7 @@ export const PUFF_FROG: LevelDef = {
     { kind: GAS, x0: 608, x1: 672, y1: 708, count: 12 }, // the bowl's dome by the bar, round frog 3
     { kind: GAS, x0: 628, x1: 692, y1: 848, count: 30 }, // the crypt's gas pit
     { kind: COIN, x0: 512, x1: 584, y1: 812, count: 10 }, // the chest-room reward, past the cracked bar
+    { kind: LAVA, x0: 546, x1: 574, y1: 756, count: 12 }, // the oil lamp's oil, over the niche
   ],
   nib: { x: 932, y: 669 },
   blots: [

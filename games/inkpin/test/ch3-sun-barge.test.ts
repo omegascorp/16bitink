@@ -44,9 +44,17 @@ describe('The Sun Barge', () => {
     expect(SUN_BARGE.fills.reduce((n, f) => n + f.count, 0)).toBeLessThanOrEqual(700);
   });
 
-  // Draft blocker: S is physically blocked by V. Keep the intended loss as an expected failure until the level is rebuilt.
-  it.fails('S first lets the frog ink Nib', () => {
-    expect(outcome(['S', 'V', 'U', 'C', 'G', 'K', 'R', '@1460'])).toBe('inked');
+  it.each([
+    // S is the canal's west plug: out first, the canal runs into the gangway's grate and the frog's vent drops it on the dry bed, where it hops to Nib.
+    [['S', 'V', 'U', 'C', 'G', 'K', 'R', '@1460'], 'inked'],
+    // The same with the dam before the vent: no surge, and the frog still lands dry.
+    [['S', 'U', 'V', 'C', 'G', 'K', 'R', '@1460'], 'inked'],
+    // The obvious order (nearest pin first, and left to right): the canal drained, the frog inks Nib on the dry bed.
+    [['S', 'V', 'U', 'G', 'C', 'K', 'R', '@1310'], 'inked'],
+    // The dam first: the canal drains, the frog's vent drops it on the dry bed, and Nib's walk into the vault meets it ('inked').
+    [['U', 'V', 'G', 'R', 'C', 'K', 'S', '@1310'], 'inked'],
+  ])('%j loses: %s', (order, cause) => {
+    expect(outcome(order)).toBe(cause);
   });
 
   if (process.env.AUDIT) it('audit', async () => console.log('AUDIT ' + JSON.stringify((await import('./audit')).audit(SUN_BARGE))), 3_600_000);

@@ -26,7 +26,10 @@ import { CH3, PIN_T, T } from '../common';
  *    and sets it. R's rubies, dropped into the hot gutter, sink and are held
  *    by the stone; dropped on the new stone they roll on to the drain
  *    ('drained'). K's gold must wait for the stone ('melted').
- * 5. S lets Nib go to the trapdoor, under the frog's vent.
+ * 5. S is the gangway gate, the canal's west plug: out before U it drains the
+ *    canal into the gangway's grate, so the surge never carries the barge to
+ *    its plate (the trapdoor never opens, 'sealed') and the frog's vent drops
+ *    it on the dry bed, where it hops to Nib ('inked').
  * Winning order: V, G, R, U, C, K, S, walk (V, G and R in any order).
  */
 export const SUN_BARGE: LevelDef = {
@@ -36,7 +39,7 @@ export const SUN_BARGE: LevelDef = {
   name: 'The Sun Barge',
   goal: 'Open the sun trapdoor, blast the cracked wall and pick up 40 coins',
   rooms: [
-    [[40, 330], [200, 330], [200, 230], [210, 230], [210, 170], [250, 170], [250, 230], [600, 230], [600, 440], [40, 440]], // the gangway, the canal and the frog's dome
+    [[40, 330], [200, 330], [200, 230], [340, 230], [340, 170], [380, 170], [380, 230], [600, 230], [600, 440], [380, 438], [200, 444], [40, 444]], // the gangway, the canal and the frog's dome
     [[600, 300], [712, 300], [712, 600], [600, 600]], // the berth
     [[570, 560], [600, 560], [600, 652], [570, 643]], // the berth's grate pipes
     [[712, 560], [742, 560], [742, 679], [712, 673]],
@@ -50,18 +53,18 @@ export const SUN_BARGE: LevelDef = {
   walls: [
     { ax: 40, ay: 330, bx: 200, by: 330, t: T }, // 0 the gangway's roof
     { ax: 40, ay: 330, bx: 40, by: 440, t: T }, // 1
-    { ax: 40, ay: 440, bx: 380, by: 440, t: T }, // 2 the gangway and the canal's bed
+    { ax: 40, ay: 444, bx: 200, by: 444, t: T }, // 2 the gangway's floor, a touch under the canal's bed (the canal's west bed slopes down to it)
     { ax: 460, ay: 440, bx: 600, by: 440, t: T }, // 3 ... past the trapdoor (it slides open along here)
     { ax: 200, ay: 230, bx: 200, by: 330, t: T }, // 4 the canal's end, over S
-    { ax: 200, ay: 230, bx: 210, by: 230, t: T }, // 5 the dome's roof
-    { ax: 250, ay: 230, bx: 600, by: 230, t: T }, // 6
-    { ax: 210, ay: 170, bx: 210, by: 230, t: T }, // 7 the frog's vent, right over S: S can't lift until it's open
-    { ax: 250, ay: 170, bx: 250, by: 230, t: T }, // 8
-    { ax: 210, ay: 170, bx: 250, by: 170, t: T }, // 9
+    { ax: 200, ay: 230, bx: 340, by: 230, t: T }, // 5 the dome's roof
+    { ax: 380, ay: 230, bx: 600, by: 230, t: T }, // 6
+    { ax: 340, ay: 170, bx: 340, by: 230, t: T }, // 7 the frog's vent, beside S's pull and over the trapdoor's approach: a dry canal leaves the frog on Nib's road
+    { ax: 380, ay: 170, bx: 380, by: 230, t: T }, // 8
+    { ax: 340, ay: 170, bx: 380, by: 170, t: T }, // 9
     { ax: 200, ay: 230, bx: 200, by: 238, t: T }, // 10 the dome's corner over S
     { ax: 560, ay: 230, bx: 560, by: 290, t: T }, // 11 the dome's lip
     { ax: 600, ay: 230, bx: 600, by: 384, t: T }, // 12 the canal's far end, over the dam
-    { ax: 600, ay: 440, bx: 600, by: 570, t: T }, // 13 the berth, under the dam; its grate at the foot, away from the barge
+    { ax: 600, ay: 440, bx: 600, by: 560, t: T }, // 13 the berth, under the dam; its grate at the foot, away from the barge
     { ax: 600, ay: 600, bx: 712, by: 600, t: T }, // 14 the berth's floor: the sun plate
     { ax: 570, ay: 560, bx: 570, by: 643, t: T }, // 15 the grate's pipe, right over the bowl
     { ax: 712, ay: 300, bx: 712, by: 570, t: T }, // 16 a second grate at the far foot: the barge can only stop one
@@ -102,25 +105,27 @@ export const SUN_BARGE: LevelDef = {
     { ax: 712, ay: 600, bx: 712, by: 673, t: T }, // 51 the far grate's pipe
     { ax: 742, ay: 560, bx: 742, by: 679, t: T }, // 52
     { ax: 712, ay: 560, bx: 742, by: 560, t: T }, // 53
+    { ax: 200, ay: 444, bx: 380, by: 438, t: T }, // 54 the canal's west bed, sloping down to S's opening, so the drained canal runs dry under the frog's vent
   ],
   bars: [11, 18, 19, 28, 45, 46, 47, 48, 49],
   cracked: [28],
   pins: [
-    { id: 'V', ax: 258, ay: 230, bx: 202, by: 230, t: PIN_T }, // the frog dome's vent, across S's way out
+    { id: 'V', ax: 388, ay: 230, bx: 334, by: 230, t: PIN_T }, // the frog dome's vent, over the trapdoor's approach
     { id: 'G', ax: 658, ay: 800, bx: 610, by: 800, t: PIN_T }, // the gas funnel's mouth in the crypt floor
     { id: 'R', ax: 1076, ay: 778, bx: 1024, by: 778, t: PIN_T }, // the ruby hopper's floor
     { id: 'U', ax: 600, ay: 392, bx: 600, by: 436, t: PIN_T }, // the dam: the canal's low gap into the berth
     { id: 'C', ax: 704, ay: 388, bx: 618, by: 388, t: PIN_T }, // the barge's gold hopper's floor
     { id: 'K', ax: 884, ay: 778, bx: 946, by: 778, t: PIN_T }, // the vault gold hopper's floor
-    { id: 'S', ax: 200, ay: 338, bx: 200, by: 436, t: PIN_T }, // Nib's stop, the canal's end
+    { id: 'S', ax: 200, ay: 338, bx: 200, by: 436, t: PIN_T }, // the gangway gate: the canal's west plug, and Nib's stop
   ],
   drains: [
-    { x0: 214, x1: 246, y0: 176, y1: 222 }, // the frog's vent
-    { x0: 650, x1: 662, y0: 582, y1: 592 }, // the berth's floor grate: the barge settles dry
-    { x0: 1066, x1: 1100, y0: 844, y1: 862 }, // the vault's drain, past the gutter
+    { x0: 44, x1: 196, y0: 396, y1: 444 }, // the gangway's floor grate: S is the canal's west plug, and the canal (and any pool of it) runs out here
+    { x0: 344, x1: 376, y0: 176, y1: 222 }, // the frog's vent
+    { x0: 644, x1: 672, y0: 580, y1: 594 }, // the berth's floor grate: the leak (and the barge's gold, if dropped early) runs down to the bowl and the gutter
+    { x0: 1064, x1: 1100, y0: 844, y1: 864 }, // the vault's drain at the gutter's rim: the overflow vanishes at once, and a ruby resting on the new stone rolls down it ('drained')
   ],
   fills: [
-    { kind: WATER, x0: 208, x1: 592, y1: 432, count: 150 }, // the canal
+    { kind: WATER, x0: 208, x1: 592, y1: 432, count: 110 }, // the canal
     { kind: GAS, x0: 208, x1: 552, y1: 238, count: 60 }, // the frog's dome
     { kind: GAS, x0: 596, x1: 672, y1: 848, count: 40 }, // the crypt's funnel: it rises to the mouth in the pre-settle
     { kind: LAVA, x0: 868, x1: 1052, y1: 902, count: 70 }, // the gutter

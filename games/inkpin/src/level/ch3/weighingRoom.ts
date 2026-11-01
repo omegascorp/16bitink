@@ -105,11 +105,12 @@ export const WEIGHING_ROOM: LevelDef = {
     { id: 'D', ax: 988, ay: 360, bx: 1036, by: 360, t: PIN_T }, // the trap: the little cistern's floor, over the bowl
   ],
   fills: [
-    { kind: WATER, x0: 104, x1: 208, y1: 683, count: 120 },
+    { kind: WATER, x0: 100, x1: 212, y1: 683, count: 150 },
     { kind: COIN, x0: 548, x1: 622, y1: 793, count: 28 },
     { kind: GAS, x0: 638, x1: 728, y1: 807, count: 90 },
     { kind: COIN, x0: 904, x1: 944, y1: 781, count: 24 },
     { kind: WATER, x0: 1002, x1: 1028, y1: 353, count: 10 },
+    { kind: COIN, x0: 282, x1: 330, y1: 1008, count: 10 }, // the builders' tribute in the pan's west corner: a swim off the road
   ],
   nib: { x: 460, y: 857 },
   blots: [{ x: 950, y: 450, animal: 'salamander' }],
