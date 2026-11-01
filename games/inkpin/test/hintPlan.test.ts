@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { hintsNow, planSteps, stepsDone, walkDone, WALK_REACH, type Done } from '../src/scenes/hintPlan';
+import { CHAPTERS, CHAPTER_3_DRAFTS } from '../src/level';
+import { parseStep } from '../src/logic/level';
+import { hintsNow, planProgress, planSteps, stepsDone, walkDone, WALK_REACH, type Done } from '../src/scenes/hintPlan';
 import { lossText } from '../src/scenes/lossLines';
 
 describe('the hint plan', () => {
@@ -23,6 +25,20 @@ describe('the hint plan', () => {
     ];
     expect(stepsDone(plan, done)).toBe(2);
     expect(stepsDone(plan, [...done, { id: 'G', act: 'push', step: 40 }])).toBe(3);
+    expect(planProgress(plan, done).lastStep).toBe(30);
+  });
+
+  it('recognizes a required pin already pulled in another winning order', () => {
+    const independent = planSteps(['W', 'H', 'S'], new Set());
+    expect(stepsDone(independent, [
+      { id: 'H', act: 'pull', step: 5 },
+      { id: 'W', act: 'pull', step: 10 },
+    ])).toBe(2);
+    expect(planProgress(independent, [
+      { id: 'H', act: 'pull', step: 5 },
+      { id: 'W', act: 'pull', step: 10 },
+      { id: 'X', act: 'pull', step: 20 },
+    ]).lastStep).toBe(10);
   });
 
   it('keeps a timed step and everything after it back until its moment', () => {
@@ -52,6 +68,20 @@ describe('a walk in the hint', () => {
     // Only while it's the next step.
     expect(walkDone(plan, 0, 2060)).toBeNull();
     expect(stepsDone(plan, [{ id: 'C', act: 'pull', step: 5 }, { id: '@2060', act: 'walk', step: 90 }])).toBe(2);
+  });
+
+  it('keeps a stacked walk on its destination floor', () => {
+    const stacked = planSteps(['C', '@2060', 'V'], new Set(), [720]);
+    expect(stacked[1]).toMatchObject({ x: 2060, y: 720 });
+    expect(walkDone(stacked, 1, 2060, 900)).toBeNull();
+    expect(walkDone(stacked, 1, 2060, 720)?.id).toBe('@2060');
+  });
+
+  it('locates every designed walk in the built and drafted routes', () => {
+    for (const level of [...CHAPTERS.flat(), ...CHAPTER_3_DRAFTS]) {
+      const walks = level.solution.filter((step) => parseStep(step).walk !== undefined);
+      if (walks.length) expect(level.walkHeights?.length, level.name).toBe(walks.length);
+    }
   });
 });
 

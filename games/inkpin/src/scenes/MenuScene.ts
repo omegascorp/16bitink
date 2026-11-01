@@ -78,13 +78,16 @@ export class MenuScene extends Phaser.Scene {
     this.progress = readProgress();
     bakeTextures(this);
     const order = LEVELS.map((l) => l.id);
-    // A chapter with levels is painted and played; an empty one is still a pencil draft.
+    // Built levels are playable; planned slots remain pencil drafts within a partial chapter.
     this.layout = computeMapLayout(CHAPTER_NAMES.map((name, c) => {
       const levels = CHAPTERS[c] ?? [];
       return {
         name,
         built: levels.length > 0,
-        levelIds: levels.length > 0 ? levels.map((l) => l.id) : Array.from({ length: LEVELS_PER_CHAPTER }, (_, i) => `draft-${c + 1}-${i + 1}`),
+        levelIds: [
+          ...levels.map((l) => l.id),
+          ...Array.from({ length: Math.max(0, LEVELS_PER_CHAPTER - levels.length) }, (_, i) => `draft-${c + 1}-${levels.length + i + 1}`),
+        ],
       };
     }));
     const { states, current } = mapStates(order, this.progress, this.registry.get('unlockAll') === true);
@@ -247,7 +250,7 @@ export class MenuScene extends Phaser.Scene {
       const levels = CHAPTERS[r] ?? [];
       if (levels.length > 0) {
         const won = levels.filter((l) => this.progress.levels[l.id]).length;
-        this.tally.setText(`${won} / ${levels.length} won`);
+        this.tally.setText(`${won} / ${Math.max(levels.length, LEVELS_PER_CHAPTER)} won${levels.length < LEVELS_PER_CHAPTER ? ` · ${LEVELS_PER_CHAPTER - levels.length} being drawn` : ''}`);
       } else this.tally.setText('Still being drawn');
     }
     const ny = this.walker.position.y;

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { CHAPTER_3_DRAFTS, CHAPTERS, LEVELS } from '../src/level';
+import { CHAPTER_3_DRAFTS, LEVELS } from '../src/level';
 import type { LevelDef } from '../src/logic/level';
 import { COIN, GAS, LAVA, STEPS_PER_SECOND, STONE, WATER } from '../src/logic/particles';
 import { inRooms } from '../src/logic/rooms';
 import { World } from '../src/logic/world';
 import { audit, obviousOrders } from './audit';
+import { curveCheck } from './curve';
 import { auditLines, hintLines, robustLines } from './labLines';
 import { play } from './solver';
 
@@ -111,44 +112,16 @@ function runOrder(level: LevelDef, order: readonly string[], steps: boolean): st
   return [`${orderText(order)} → ${status}  t=${sec(r.steps)}s  coins=${r.treasure}/${level.coinsNeeded}`, ...out];
 }
 
-/** One row of "## The difficulty curve" in docs/inkpin-levels.md: [levels 1–3 of the chapter, levels 4–10]. */
-interface CurveRow {
-  readonly fromChapter: number;
-  readonly maxWin: readonly [number, number];
-  readonly minLessons: readonly [number, number];
-  readonly maxTop: number;
-  readonly minLate: number;
-}
-
-const CURVE: readonly CurveRow[] = [
-  { fromChapter: 1, maxWin: [0.35, 0.15], minLessons: [3, 4], maxTop: 0.5, minLate: 0 },
-  { fromChapter: 2, maxWin: [0.2, 0.1], minLessons: [4, 5], maxTop: 0.45, minLate: 0.5 },
-  { fromChapter: 4, maxWin: [0.15, 0.08], minLessons: [5, 6], maxTop: 0.4, minLate: 0.6 },
-  { fromChapter: 5, maxWin: [0.1, 0.06], minLessons: [6, 6], maxTop: 0.4, minLate: 0.6 },
-];
-
-/** Chapter 3's first three levels, which use the curve's 1–3 row even while they are drafts. */
-const CH3_OPENERS: readonly string[] = ['sealed-door', 'bad-air', 'blasting-chamber'];
-
-function auditLine(level: LevelDef): string[] {
+function auditLine(level: LevelDef): { lines: string[]; failures: readonly string[] } {
   const a = audit(level);
-  const listed = CHAPTERS.findIndex((c) => c.includes(level)) + 1;
-  // A Chapter 3 draft isn't listed yet: it is chapter 3, and its place comes from its id (21–23 open the chapter).
-  const chapter = listed || 3;
-  const pos = listed ? (CHAPTERS[chapter - 1]?.indexOf(level) ?? 0) + 1 : CH3_OPENERS.includes(level.id) ? 1 : 4;
-  const row = [...CURVE].reverse().find((r) => chapter >= r.fromChapter) ?? CURVE[0]!;
-  const k = pos <= 3 ? 0 : 1;
+  const { chapter, pos, row, maxWin, minLessons, failures } = curveCheck(level, a);
   const lessons = Object.entries(a.lessons).sort((x, y) => y[1] - x[1]);
-  const maxWin = row.maxWin[k];
-  const minLessons = row.minLessons[k];
-  const obviousLose = chapter < 2 || (a.obvious.nearest !== 'won' && a.obvious.leftToRight !== 'won');
-  const checks = [a.winShare <= maxWin, lessons.length >= minLessons, a.topLessonShare <= row.maxTop, a.stuckShare <= 0.1, a.lateLossShare >= row.minLate, obviousLose];
   const pct = (n: number): string => `${Math.round(n * 100)}%`;
-  return [
-    `audit (chapter ${chapter}, level ${pos} of it; curve row from chapter ${row.fromChapter}): tried ${a.tried}  win ${pct(a.winShare)} (<=${pct(maxWin)})  lessons ${lessons.length} (>=${minLessons})  top ${pct(a.topLessonShare)} (<=${pct(row.maxTop)})  stuck ${pct(a.stuckShare)} (<=10%)  late losses ${pct(a.lateLossShare)} (>=${pct(row.minLate)})  blocked ${pct(a.blockedShare)}  obvious: nearest ${a.obvious.nearest}, left-to-right ${a.obvious.leftToRight} (must lose)  ${checks.every(Boolean) ? 'PASS' : 'FAIL'}`,
+  return { failures, lines: [
+    `audit (chapter ${chapter}, level ${pos} of it; curve row from chapter ${row.fromChapter}): tried ${a.tried}  win ${pct(a.winShare)} (<=${pct(maxWin)})  lessons ${lessons.length} (>=${minLessons})  top ${pct(a.topLessonShare)} (<=${pct(row.maxTop)})  stuck ${pct(a.stuckShare)} (<=10%)  late losses ${pct(a.lateLossShare)} (>=${pct(row.minLate)})  blocked ${pct(a.blockedShare)}  obvious: nearest ${a.obvious.nearest}, left-to-right ${a.obvious.leftToRight} (must lose)  ${failures.length === 0 ? 'PASS' : 'FAIL'}`,
     ...lessons.slice(0, 5).map(([k, n]) => `    ${n}x ${k}`),
     ...auditLines(a),
-  ];
+  ] };
 }
 
 describe.skipIf(!env.LAB)('level lab', () => {
@@ -167,7 +140,8 @@ describe.skipIf(!env.LAB)('level lab', () => {
     out.push(...runOrder(level, obv.leftToRight, false).map((l) => `obvious, left to right: ${l}`));
     out.push(...hintLines(level));
     if (env.ROBUST) out.push(...robustLines(level));
-    if (env.AUDIT) out.push(...auditLine(level));
+    const curve = env.AUDIT ? auditLine(level) : null;
+    if (curve) out.push(...curve.lines);
     const g = new World(level).grains;
     const outside = Array.from({ length: g.count }, (_, i) => i).filter((i) => !inRooms(level.rooms, g.x[i]!, g.y[i]!));
     // The boss's breath counts toward the budget at its cap.
@@ -181,6 +155,7 @@ describe.skipIf(!env.LAB)('level lab', () => {
       first += f.count;
     });
     console.log(out.join('\n'));
+    if (curve) expect(curve.failures, `${level.name} misses the difficulty curve`).toEqual([]);
     expect(out.length).toBeGreaterThan(0);
   });
 });

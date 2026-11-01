@@ -82,6 +82,7 @@ export function buildNodes(
     if (state === 'draft') {
       g.lineStyle(1.4, PENCIL_HEX, 0.55);
       ring(g, n.x, n.y, r - 8, 700 + n.index);
+      text(n.x, n.y, String(n.index + 1), 23, PENCIL);
       continue;
     }
     const reachable = state !== 'closed';

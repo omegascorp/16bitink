@@ -118,6 +118,7 @@ export const TOMB_GUARDIAN: LevelDef = {
   chest: { x: 1320, y: VAULT - 24 },
   coinsNeeded: 26,
   solution: ['M', 'C', 'F', 'S', '@800', 'W~5', 'U', '@1320'],
+  walkHeights: [706, 788],
   stops: [],
   torches: [{ x: 160, y: 520 }, { x: 1320, y: 700 }],
   view: { x: 80, y: 440, w: 1300, h: 460 },

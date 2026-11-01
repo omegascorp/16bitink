@@ -145,6 +145,7 @@ export const JUST_ENOUGH: LevelDef = {
   chest: { x: END - 60, y: CHEST_FLOOR - 30 },
   coinsNeeded: 114,
   solution: ['G', 'G~4.5', 'H', '@340', '@700', 'H3', 'S', 'H2~14', 'L~16', '@1320'],
+  walkHeights: [1023, 1004, 1028],
   stops: [],
   torches: [{ x: 120, y: 880 }, { x: 240, y: 640 }, { x: 660, y: 920 }, { x: 1020, y: 960 }, { x: 1320, y: 960 }, { x: 1340, y: 940 }],
   view: { x: 0, y: 460, w: END + 40, h: 760 },

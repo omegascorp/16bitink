@@ -138,6 +138,7 @@ export const SUN_BARGE: LevelDef = {
   seals: [{ door: 'D', side: 'down' }, { wall: 28, side: 'right' }],
   braziers: [{ x: 586, y: 694 }],
   solution: ['V', 'G', 'R', 'U', 'C', 'K', 'S', '@1310'],
+  walkHeights: [838],
   stops: [{ x: 420 }],
   torches: [{ x: 120, y: 380 }, { x: 1200, y: 760 }],
   view: { x: 0, y: 140, w: 1390, h: 800 },

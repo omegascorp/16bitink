@@ -59,18 +59,10 @@ export const CHAPTER_2: readonly LevelDef[] = [
   FIRE_IDOL,
 ];
 
-/**
- * Chapter 3, the Desert Tomb, in order: levels 21–30, added one file at a
- * time from src/level/ch3/. While it's empty the chapter is a draft on the map.
- */
-/**
- * Only finished levels are listed: an unfinished one would take a later level's
- * number (a draft boss showed as "Level 27"). Drafts that miss the curve, kept
- * for their rebuild and not played: PUFF_FROG (24), BURIAL_GOLD (25),
- * TOMB_GUARDIAN (30). See docs/inkpin-ch3-status.md.
- */
+/** Chapter 3's playable levels, 21–27. The remaining three have draft map slots. */
 export const CHAPTER_3: readonly LevelDef[] = [SEALED_DOOR, BAD_AIR, BLASTING_CHAMBER, PUFF_FROG, BURIAL_GOLD, WEIGHING_ROOM, DEEP_SHAFT];
-export const CHAPTER_3_DRAFTS: readonly LevelDef[] = [TOMB_GUARDIAN, LAMP_IN_THE_TOMB, SUN_BARGE];
+/** Built for iteration, but not playable until their level and curve checks pass. */
+export const CHAPTER_3_DRAFTS: readonly LevelDef[] = [SUN_BARGE, LAMP_IN_THE_TOMB, TOMB_GUARDIAN];
 
 /** The built chapters' levels, by chapter; a chapter with none is still a draft on the map. */
 export const CHAPTERS: readonly (readonly LevelDef[])[] = [CHAPTER_1, CHAPTER_2, CHAPTER_3];

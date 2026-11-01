@@ -131,6 +131,7 @@ export const WEIGHING_ROOM: LevelDef = {
   chest: { x: 1310, y: 936 },
   coinsNeeded: 46,
   solution: ['W', 'H', 'S', 'X', '@860', 'K', '@1310'],
+  walkHeights: [976, 936],
   stops: [],
   torches: [{ x: 370, y: 790 }, { x: 1100, y: 880 }],
   view: { x: 40, y: 250, w: 1370, h: 810 },

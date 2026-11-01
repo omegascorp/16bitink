@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CHAPTER_3 as LEVELS } from '../src/level';
+import { parseStep } from '../src/logic/level';
 import { inRooms } from '../src/logic/rooms';
 import { World } from '../src/logic/world';
 
@@ -13,6 +14,7 @@ describe('Chapter 3', () => {
       expect(level.ruin, level.name).toBe('tomb');
       const w = new World(level);
       expect(w.status.state, level.name).toBe('playing');
+      expect(w.coinsTotal, `${level.name}: coin blot`).toBeGreaterThan(0);
       expect(w.coinsTotal, level.name).toBeGreaterThanOrEqual(level.coinsNeeded);
     }
   });
@@ -28,6 +30,13 @@ describe('Chapter 3', () => {
 
   it('gives every guard its animal (for the art and the loss line)', () => {
     for (const level of LEVELS) for (const guard of level.blots) expect(guard.animal, level.name).toBeDefined();
+  });
+
+  it('places every stacked walk hint on a destination floor', () => {
+    for (const level of LEVELS) {
+      const walks = level.solution.filter((step) => parseStep(step).walk !== undefined);
+      expect(level.walkHeights?.length, level.name).toBe(walks.length);
+    }
   });
 
   it('draws only walls that exist as stone bars (a bad index breaks the board art)', () => {

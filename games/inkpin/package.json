@@ -9,6 +9,7 @@
   },
   "scripts": {
     "test": "vitest run",
+    "test:curve": "AUDIT=all vitest run test/audit.test.ts --testTimeout=3600000",
     "typecheck": "tsc --noEmit",
     "dev": "vite dev --port 5203 --host"
   },

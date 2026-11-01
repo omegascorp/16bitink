@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LEVELS } from '../src/level';
 import { audit } from './audit';
+import { curveCheck } from './curve';
 
 /**
  * The puzzle audit, off by default (it plays dozens of orders per level):
@@ -18,5 +19,6 @@ describe.skipIf(levels.length === 0)('puzzle audit', () => {
     const a = audit(level);
     console.log(`AUDIT ${JSON.stringify(a)}`);
     expect(a.tried).toBeGreaterThan(0);
+    expect(curveCheck(level, a).failures, `${level.name} misses the difficulty curve`).toEqual([]);
   });
 }, 3_600_000);

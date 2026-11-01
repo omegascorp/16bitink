@@ -6,7 +6,7 @@ import { CHEST_FRAME, FLAME_FRAME } from '../art/props';
 import { LiquidPainter, LIQUID_RES } from '../art/liquid';
 import { VOLCANO_SKY_TOP_HEX } from '../art/volcanoSurround';
 import { bedOf, type SoundBoard } from '../audio/sfx';
-import { LEVELS } from '../level';
+import { CHAPTER_NAMES, LEVELS, LEVELS_PER_CHAPTER } from '../level';
 import type { GuardAnimal, LevelDef } from '../logic/level';
 import { COIN, STEPS_PER_SECOND } from '../logic/particles';
 import { World, type BlotEnd, type WorldEvent, type WorldSave } from '../logic/world';
@@ -69,6 +69,8 @@ export interface Result {
   readonly hasChest: boolean;
   /** The next level's index, when there is one and it's open. */
   readonly next: number | null;
+  /** The playable order ends before the Atlas's planned levels do. */
+  readonly moreComing: boolean;
   readonly cause?: string;
   /** The guard that caught or pricked Nib, for the loss line. */
   readonly by?: GuardAnimal;
@@ -723,7 +725,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.closeUp(w.nib.x, w.nib.y);
     const won = status.state === 'won';
-    const allTreasure = w.coinsCollected >= Math.ceil(w.coinsTotal * 0.95);
+    const allTreasure = w.coinsTotal > 0 && w.coinsCollected >= Math.ceil(w.coinsTotal * 0.95);
     const firstTry = this.session.tries === 1 && !this.session.hinted && this.hearts === HEARTS;
     if (won) recordWin(w.level.id, w.coinsCollected, allTreasure, firstTry);
     const next = won && this.index + 1 < LEVELS.length ? this.index + 1 : null;
@@ -731,6 +733,7 @@ export class GameScene extends Phaser.Scene {
       won,
       hasChest: w.level.chest !== undefined,
       next,
+      moreComing: won && next === null && LEVELS.length < CHAPTER_NAMES.length * LEVELS_PER_CHAPTER,
       cause: status.state === 'lost' ? status.cause : undefined,
       by: status.state === 'lost' ? status.by : undefined,
       allCoins: allTreasure,

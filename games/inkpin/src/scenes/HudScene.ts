@@ -329,6 +329,7 @@ export class HudScene extends Phaser.Scene {
         const t = this.add.text(x, y0 + 50, label, { fontFamily: FONT, fontSize: '19px', color: got ? INK : '#9a927f' }).setOrigin(0.5, 0).setResolution(DPR);
         parts.push(blot, t);
       });
+      if (r.moreComing) parts.push(this.add.text(0, 65, 'More levels are being drawn', { fontFamily: FONT, fontSize: '22px', color: INK }).setOrigin(0.5).setResolution(DPR));
     }
     const next = r.won ? r.next : null;
     const again = this.add.text(next !== null ? -60 : 0, h / 2 - (next !== null ? 34 : 70), r.won ? 'Play again' : 'Try again', { fontFamily: FONT, fontSize: next !== null ? '24px' : '30px', fontStyle: '700', color: next !== null ? INK : '#ffffff', backgroundColor: next !== null ? undefined : r.won ? INK : RED, padding: { x: 18, y: 2 } }).setOrigin(0.5).setResolution(DPR);

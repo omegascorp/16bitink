@@ -49,4 +49,8 @@ describe('The Tomb Guardian', () => {
   it('wins with the cover pulled after Nib is in sight, before the second breath', () => {
     expect(outcome(['M', 'C', 'S', '@800', 'F', 'W~5', 'U', '@1320'])).toBe('won');
   });
+
+  it('ends a permanently shut route even while the boss keeps breathing', () => {
+    expect(outcome(['M', 'U', 'F', 'S', '@800', 'W', 'C', '@1320'])).toBe('sealed');
+  });
 }, 300_000);

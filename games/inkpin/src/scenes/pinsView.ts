@@ -6,7 +6,7 @@ import type { PinDef } from '../logic/level';
 import { STEPS_PER_SECOND } from '../logic/particles';
 import type { World } from '../logic/world';
 import { DPR } from './hidpi';
-import { hintsNow, planSteps, stepsDone, walkDone, type Act, type Done, type PlanStep } from './hintPlan';
+import { hintsNow, planProgress, planSteps, walkDone, type Act, type Done, type PlanStep } from './hintPlan';
 import { pinKey } from './textures';
 
 const S = 1 / ART_RES;
@@ -37,7 +37,7 @@ export class PinsView {
   constructor(private readonly scene: Phaser.Scene, private readonly layer: Phaser.GameObjects.Layer, private readonly world: World) {
     for (const pin of world.level.pins) this.add(pin);
     const gates = new Set(world.level.pins.filter((p) => p.gate).map((p) => p.id));
-    this.plan = planSteps(world.level.solution, gates);
+    this.plan = planSteps(world.level.solution, gates, world.level.walkHeights);
   }
 
   private add(pin: PinDef): void {
@@ -154,12 +154,11 @@ export class PinsView {
 
   /** Each frame while hinted: renumbers when a step is done or a timed step's moment comes. */
   updateHints(): void {
-    if (!this.hinted) return;
-    // A walk is done when Nib gets there (while it's the next step).
-    const walk = walkDone(this.plan, stepsDone(this.plan, this.done), this.world.nib.x);
+    // Record walks even before the player asks for a hint.
+    const walk = walkDone(this.plan, planProgress(this.plan, this.done).count, this.world.nib.x, this.world.nib.y);
     if (walk) this.note(walk.id, 'walk');
-    const k = stepsDone(this.plan, this.done);
-    const last = this.done.length ? this.done[this.done.length - 1]!.step : 0;
+    if (!this.hinted) return;
+    const { count: k, lastStep: last } = planProgress(this.plan, this.done);
     const marks = hintsNow(this.plan, k, (this.world.steps - last) / STEPS_PER_SECOND);
     const key = `${k}:${marks.length}`;
     if (key === this.shown) return;
@@ -168,8 +167,8 @@ export class PinsView {
     this.hints = [];
     for (const m of marks) {
       if (m.act === 'walk' && m.x !== undefined) {
-        // A walk is marked on Nib's floor, at its x.
-        const t = this.scene.add.text(m.x, this.world.nib.y + this.world.nib.r - 14, `${m.n} walk here`, { fontFamily: 'Caveat', fontSize: '24px', fontStyle: '700', color: '#ffffff', backgroundColor: '#b3322b', padding: { x: 6, y: 0 } });
+        // On a stacked board, use the destination floor rather than Nib's current floor.
+        const t = this.scene.add.text(m.x, (m.y ?? this.world.nib.y) + this.world.nib.r - 14, `${m.n} walk here`, { fontFamily: 'Caveat', fontSize: '24px', fontStyle: '700', color: '#ffffff', backgroundColor: '#b3322b', padding: { x: 6, y: 0 } });
         t.setOrigin(0.5, 1).setResolution(DPR * 2);
         this.layer.add(t);
         this.hints.push(t);

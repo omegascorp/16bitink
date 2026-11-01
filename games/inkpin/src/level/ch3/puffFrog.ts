@@ -1,5 +1,5 @@
 import type { LevelDef } from '../../logic/level';
-import { GAS, WATER } from '../../logic/particles';
+import { COIN, GAS, WATER } from '../../logic/particles';
 import { CH3, PIN_T, T } from '../common';
 
 /**
@@ -120,6 +120,7 @@ export const PUFF_FROG: LevelDef = {
     { kind: GAS, x0: 808, x1: 962, y1: 708, count: 34 }, // the frog dome, round frog 2 and under Nib
     { kind: GAS, x0: 608, x1: 672, y1: 708, count: 12 }, // the bowl's dome by the bar, round frog 3
     { kind: GAS, x0: 628, x1: 692, y1: 848, count: 30 }, // the crypt's gas pit
+    { kind: COIN, x0: 512, x1: 584, y1: 812, count: 10 }, // the chest-room reward, past the cracked bar
   ],
   nib: { x: 932, y: 669 },
   blots: [
@@ -128,12 +129,13 @@ export const PUFF_FROG: LevelDef = {
     { x: 640, y: 730, animal: 'frog' },
   ],
   chest: { x: 556, y: 788 },
-  coinsNeeded: 0,
+  coinsNeeded: 8,
   plates: [{ id: 'P', x0: 1278, x1: 1392, y: 534 }],
   doors: [{ id: 'D', ax: 1560, ay: 474, bx: 1560, by: 400, t: T, plate: 'P' }],
   seals: [{ wall: 43, side: 'left' }, { wall: 36, side: 'up' }], // the bar, and the dry pool Nib can't climb out of
   braziers: [{ x: 720, y: 764 }],
   solution: ['G', 'A', 'W', 'U', 'B', 'S', '@556'],
+  walkHeights: [789],
   stops: [],
   torches: [],
   view: { x: 460, y: 100, w: 1340, h: 880 },

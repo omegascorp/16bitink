@@ -115,6 +115,7 @@ export const SEALED_DOOR: LevelDef = {
   chest: { x: 1140, y: 938 },
   coinsNeeded: 42,
   solution: ['C', 'B', 'W', '@528', 'G', 'V', '@1140'],
+  walkHeights: [882, 928],
   stops: [],
   torches: [{ x: 170, y: 760 }, { x: 1310, y: 820 }],
   view: { x: 75, y: 408, w: 1320, h: 620 },

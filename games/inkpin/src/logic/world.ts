@@ -50,6 +50,8 @@ const PRESETTLE_STEPS = STEPS_PER_SECOND * 3;
 const JUMP_SPEED = 2.9;
 /** Steps a 'goto' may make no headway before Nib gives up and stays. */
 const GOTO_PATIENCE = 40;
+/** A still-shut boss route ends after this long even if endless breath keeps the board moving. */
+const BREATH_SEAL_STEPS = STEPS_PER_SECOND * 20;
 /** A slab pressing this far (px) into a creature on the ground squashes it, however slowly it comes down. */
 const SLAB_PRESS = 6;
 
@@ -91,6 +93,7 @@ export class World {
   private calmSteps = 0;
   /** When the board has come to rest for the 'sealed' loss (see seal.ts). */
   private readonly seal = new SealWatch();
+  private breathingSealSteps = 0;
   /** The Tomb Guardian's breath: its beat, and the grains it has in play (see breath.ts). */
   private readonly breath: BreathState = newBreath();
   /** Steps in a row gas has touched Nib. */
@@ -209,6 +212,7 @@ export class World {
       gasTouch: this.gasTouch,
       calmSteps: this.calmSteps,
       seal: [this.seal.calm, this.seal.lull],
+      breathingSealSteps: this.breathingSealSteps,
       breath: saveBreath(this.breath),
     };
   }
@@ -248,6 +252,7 @@ export class World {
     this.gasTouch = s.gasTouch;
     this.calmSteps = s.calmSteps;
     [this.seal.calm, this.seal.lull] = s.seal ?? [s.calmSteps, 0];
+    this.breathingSealSteps = s.breathingSealSteps ?? 0;
     loadBreath(this.breath, s.breath);
     this.pending = [];
     this.events.length = 0;
@@ -329,6 +334,7 @@ export class World {
     this.quietSteps = 0;
     this.calmSteps = 0;
     this.seal.restart();
+    this.breathingSealSteps = 0;
     return true;
   }
 
@@ -360,6 +366,7 @@ export class World {
     this.quietSteps = 0;
     this.calmSteps = 0;
     this.seal.restart();
+    this.breathingSealSteps = 0;
     return true;
   }
 
@@ -723,7 +730,9 @@ export class World {
     this.calmSteps = busy ? 0 : this.calmSteps + 1;
     if (!this.level.seals?.length) return;
     this.seal.step(bodiesMoving, stir, this.plates);
-    if (this.seal.due && this.pinsDone() && sealedOut(this.level.seals, this.doors, this.level.walls, this.broken, nib)) this.lose('sealed');
+    const blocked = this.pinsDone() && sealedOut(this.level.seals, this.doors, this.level.walls, this.broken, nib);
+    this.breathingSealSteps = blocked && this.level.breath && this.blots.some((b) => b.boss && !b.gone) && this.bowls.every((b) => !b.lit) ? this.breathingSealSteps + 1 : 0;
+    if (blocked && (this.seal.due || this.breathingSealSteps >= BREATH_SEAL_STEPS)) this.lose('sealed');
   }
 
   /** How swollen the Tomb Guardian's throat is (0..1), the tell before each breath. */

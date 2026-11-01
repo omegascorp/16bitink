@@ -120,7 +120,7 @@ export const DEEP_SHAFT: LevelDef = {
     { kind: GAS, x0: 100, x1: 292, y1: 1568, count: 150 }, // the well, held from above: rows pack down from under its roof
     { kind: WATER, x0: 932, x1: 978, y1: 844, count: 30 }, // the cistern: puts the bowl out, then wets the pit
     { kind: LAVA, x0: 524, x1: 597, y1: 1040, count: 90 }, // the vat: the pit's step
-    { kind: COIN, x0: 604, x1: 637, y1: 1016, count: 18 }, // the hopper's gold
+    { kind: COIN, x0: 598, x1: 637, y1: 1016, count: 18 }, // the hopper's gold clears the lava step together
   ],
   nib: { x: 126, y: 1476 },
   blots: [],
@@ -132,6 +132,7 @@ export const DEEP_SHAFT: LevelDef = {
   chest: { x: 1010, y: 1080 },
   coinsNeeded: 14,
   solution: ['B', 'G', 'S', 'X', '@440~0.5', 'L', 'K', '@720~0.5', '@1010'],
+  walkHeights: [1338, 1206, 1071],
   stops: [],
   torches: [{ x: 80, y: 1450 }, { x: 1040, y: 900 }],
   view: { x: 40, y: 690, w: 1060, h: 1000 },

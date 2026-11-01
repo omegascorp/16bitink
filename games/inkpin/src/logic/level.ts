@@ -178,6 +178,8 @@ export interface LevelDef {
    * to x = 2060 (and waits until things settle).
    */
   readonly solution: readonly string[];
+  /** Destination centre y for each walk in `solution`, in walk order, when floors overlap in x. */
+  readonly walkHeights?: readonly number[];
   /**
    * For the test bot: where an eager player sends Nib after each pull, in
    * order, and back and forth at the end. Defaults to the chest.

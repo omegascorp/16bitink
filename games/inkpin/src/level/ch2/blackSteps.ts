@@ -128,6 +128,7 @@ export const BLACK_STEPS: LevelDef = {
   chest: { x: 860, y: 1150 },
   coinsNeeded: 80,
   solution: ['C', '@760', 'H', '@1340', 'V', 'W', 'G', '@860'],
+  walkHeights: [508, 1220, 1148],
   stops: [],
   torches: [
     { x: 240, y: 400 },

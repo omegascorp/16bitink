@@ -90,5 +90,7 @@ export interface WorldSave {
   readonly calmSteps: number;
   /** The 'sealed' check's calm and lull steps (see seal.ts); older saves have none. */
   readonly seal?: readonly [number, number];
+  /** How long a live boss has breathed while every pulled pin still leaves the route sealed. */
+  readonly breathingSealSteps?: number;
   readonly breath: BreathState;
 }

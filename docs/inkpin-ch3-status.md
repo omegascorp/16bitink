@@ -1,38 +1,29 @@
-# InkPin Chapter 3 status (handover)
+# InkPin Chapter 3 status (Nov 1, 2026)
 
-Where the Desert Tomb build stands, so a fresh coordinator session can pick it up. Workflow: [agent-orchestration.md](agent-orchestration.md). Brief for level agents: [inkpin-level-brief.md](inkpin-level-brief.md). Engine reference: [inkpin-level-kit.md](inkpin-level-kit.md).
+The playable order in `games/inkpin/src/level/index.ts` is levels 21–27. The map reserves slots 28–30 as drafts, counts wins against ten planned tomb levels, and tells a player who finishes level 27 that more levels are being drawn. The built files for 28 The Sun Barge, 29 Lamp in the Tomb, and 30 The Tomb Guardian are in `CHAPTER_3_DRAFTS`; they are not in the playable order.
 
-## Done (Nov 1, 2026)
-- Engine: plates, doors, 'sealed', gas, fire bowls, blasts, the rain frog, the Tomb Guardian boss (breath, coffin lid), lab and audit lines (decoys, walk-only, dead ends, ROBUST). Two engine passes; numbers in the kit.
-- Levels 21 The Sealed Door, 22 Bad Air, 23 The Blasting Chamber: built by Opus, every curve target passes. They are the worked examples for the rest.
-- Harness fix: the bot and the audit wait 2 s for 'sealed' on levels with `seals`.
+## Playable levels still needing design work
 
-## Too small (user, Nov 1, 2026)
-The user said "the levels are shrinking": levels 21–23 are 620–840 px wide, against Chapter 1's 1600–2200 and Chapter 2's 1300–2100. They need rebuilding at Chapter 2's size with more stages (the kit's rule 6 now sets a floor of ~1300 px wide). The drafts 24–26 and 30 are small too, and are no longer listed in CHAPTER_3 (a draft boss showed as "Level 27" and couldn't be won); they sit in CHAPTER_3_DRAFTS.
+The full puzzle curve is an explicit failing gate: `cd games/inkpin && npm run test:curve`. The audit and `LAB=<id> AUDIT=1` now fail their tests when a numeric curve target is missed. A passing chapter test or winning hint does not imply that the curve passes.
 
-## Drafts that miss (Nov 1, 2026)
-Built, registered and playable, with their own tests passing, but short of the curve. Each row in docs/inkpin-levels.md says what's missing.
-- 24 The Puff Frog (Sonnet, 2 rounds): top lesson 86% (the floor frog inks Nib), stuck 7%, 5 pins.
-- 25 The Burial Gold (Sonnet): 3 pins (the gas gate G is pulled six times), no audit run.
-- 26 The Weighing Room (Sonnet): 3 pins, the trap T does nothing, no audit run.
-- 30 The Tomb Guardian (Opus): 4 pins, every loss 'sealed', 17% stuck. The boss fight itself works (beat, breath, blast, lid).
-Why: the design rows chain timed mechanics the engine can't carry reliably (frogs dropping in order, gas metered by a gate, breath drifting to a gap). Levels 21–23 passed once built on the kit's tested patterns.
+| Level | Current result | Next design work |
+| --- | --- | --- |
+| 23 The Blasting Chamber | Largest loss lesson 47%, above the 45% chapter limit. A fresh lab measured its hinted win at 27.6 s; the older 18 s note is stale. | Add a distinct, readable way to lose in wrong orders without breaking the blast and lava step. |
+| 24 The Puff Frog | Largest loss lesson 61.1%, above 45%. The hinted route wins in about 47 s and collects all 10 newly placed chest-room coins. | Give S-early orders another genuine outcome or redesign its frog/vent dependency; most wrong orders currently teach `S:gassed`. |
+| 26 The Weighing Room | The curve passes, but the hinted win is 19.8 s, below the roughly 25 s design target. | Add meaningful puzzle interaction after playtesting; padding the route with an idle timer would not meet the design goal. |
+| 27 The Deep Shaft | Largest loss lesson 46.55%, above 45%. A hopper placement adjustment makes the hinted win collect all 18 coins. | Diversify a few `L:melted` wrong orders while keeping the 27.9 s winning route and its other loss lessons. |
 
-## Next (waiting on the user)
-Recommended: the user playtests 21–23; rows 24–30 are rewritten around the proven patterns (closet plate, sealing door, top-down venting, bowl at a shelf tip, lava step; frogs and the breath as single clear moments, not timing chains); then Opus builds 24–30 (~250–300k each). Then wrap-up: full suite, tsc, browser check, docs rows, the user's playtest.
+## Draft levels
 
-## For the user's playtest
-- Level 27 (The Deep Shaft): top lesson 47% against 45% (an earlier run passed at 45%); otherwise 12 lessons, robust 12/12. S (the shelter's door) has only one job. ~1000 px tall, not 1500: switchback stairs can't be climbed.
-- Level 26 (The Weighing Room): passes every target, but every loss is 'sealed' (each with its own visible cause: a door drops, the gas leaks, the bowl goes out). H and W still work in either order.
-- Level 24 (The Puff Frog): top lesson 61% against 45%. Pulling Nib's floor S before the frog dome is vented drops him into the gas, the one loss that happens on the pull itself. Every other target passes (win 10%, 6 lessons, late 83%, no dead ends, robust 4/4). Accepted for playtest; a fix needs a second instant loss (e.g. a low frog dome).
-- Level 23 (full size): top lesson 47% against 45% after two Opus rounds; the left hall is roomy (gold, an armadillo pen, one tank under a tall empty wall). Accepted for playtest rather than a third round, once the sealed fix clears its one stuck order.
-- Level 22: the two vent pins (T, U) work in either order; four rounds couldn't make them order-dependent. Merge them if it reads as a decoy.
-- Level 22's hint is 15.5 s and level 23's 18 s: short, but all puzzle.
-- Level 21: win share is at the 20% limit; V before W still wins.
-- Level 23: one order (G,W,X,L,S) times out instead of losing; there is no 'blasted' loss.
+- **28 The Sun Barge:** the original S pin blocks the obvious S-first pull. Its draft audit also found too many blocked and stuck orders. It should stay out of the playable list until the pin and wrong-order curve are repaired and retested.
+- **29 Lamp in the Tomb:** its most recent audit passed the numeric curve and its hinted route wins with 30/30 coins. The hint is 22.5 s, below the design target; it still needs level tests and a playtest before promotion.
+- **30 The Tomb Guardian:** after the boss seal timeout correction, a fresh audit reports 2% wins, 8 lessons, 36% largest lesson, 0% stuck and 0% timed-out wrong orders. Its hinted route wins in 60.2 s. It remains a draft while 28–29 are unfinished.
 
-## Engine
-Three engine passes done (the last on Nov 1: settling waits for frogs, creeping and burning gas; pin blocking corrected in the kit). Open: water trapped under freshly set stone can churn for 28–55 s and delay 'sealed'.
+## Engine and UI work completed
 
-## What it cost
-Design 173k · engine passes 384k + 297k + pass 3 · Sonnet first builds of 21–23 (all missed) ~612k · Opus builds of 21–23 ~987k · drafts 24 (222k), 25 (303k), 26 (371k), 30 (292k). About 4.2M+ tokens so far for the engine, three finished levels and four drafts.
+- Walk hints use the destination floor as well as horizontal position. Built and draft routes with walks carry measured destination heights. Already-pulled pins in a valid alternative order no longer hold the hint sequence back.
+- Level 24 has a coin reward; an empty level cannot earn the every-coin blot.
+- The Tomb Guardian's continuously breathing, permanently sealed wrong orders resolve as `sealed` once all pins are done and its fire bowls are out.
+- The map shows planned tomb slots 28–30 as numbered drafts and the tally as wins out of ten.
+
+The level-by-level design and historical rounds remain in [inkpin-levels.md](inkpin-levels.md). The engine reference is [inkpin-level-kit.md](inkpin-level-kit.md).
