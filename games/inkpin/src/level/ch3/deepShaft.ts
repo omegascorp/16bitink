@@ -9,10 +9,10 @@ import { CH3, PIN_T, T } from '../common';
  * well's gas up to the fire bowl by the vault, and the fire runs back
  * down it.
  * 1. The boulder: B drops it onto the cracked chute in the roof, and it
- *    rolls down into the eye closet. Its weight holds the eye door at the
+ *    rolls down into the ankh closet. Its weight holds the ankh door at the
  *    head of the stair down. After the blast the chute is broken: the
  *    boulder drops through the roof and rolls down the stair onto Nib
- *    ('crushed'), and the eye door stays up ('sealed').
+ *    ('crushed'), and the ankh door stays up ('sealed').
  * 2. The blast: G frees the well. The gas rises, runs up under the roof
  *    and pools by the cracked bar, where it lights at the bowl. The bar
  *    breaks, and so does the chute. S, the stone across the shelter's
@@ -52,7 +52,7 @@ export const DEEP_SHAFT: LevelDef = {
     [[984, 830], [1080, 830], [1080, 1104], [984, 1104]], // the vault
     [[520, 870], [601, 870], [601, 1046], [520, 1092]], // the lava vat L
     [[601, 930], [640, 930], [640, 1022], [601, 1046]], // the gold hopper K
-    [[650, 860], [850, 860], [850, 935], [800, 958], [700, 1016], [650, 1016]], // the boulder's ledge and the eye closet
+    [[650, 860], [850, 860], [850, 935], [800, 958], [700, 1016], [650, 1016]], // the boulder's ledge and the ankh closet
     [[926, 700], [984, 700], [984, 850], [926, 884]], // the cistern X
   ],
   walls: [
@@ -91,7 +91,7 @@ export const DEEP_SHAFT: LevelDef = {
     { ax: 984, ay: 1104, bx: 1080, by: 1104, t: T }, // 32 the vault's floor
     { ax: 164, ay: 1300, bx: 556, by: 1071, t: T }, // 33 the shaft's roof, rising to the vault
     { ax: 640, ay: 1022, bx: 650, by: 1016, t: T }, // 34
-    { ax: 650, ay: 1016, bx: 700, by: 1016, t: T }, // 35 the eye closet's floor
+    { ax: 650, ay: 1016, bx: 700, by: 1016, t: T }, // 35 the ankh closet's floor
     { ax: 700, ay: 1016, bx: 800, by: 958, t: T }, // 36 the cracked chute: the boulder's way into the closet
     { ax: 800, ay: 958, bx: 926, by: 884, t: T }, // 37 the roof on up to the cistern
     { ax: 984, ay: 858, bx: 984, by: 1094, t: T }, // 38 the cracked bar to the vault
@@ -100,7 +100,7 @@ export const DEEP_SHAFT: LevelDef = {
     { ax: 926, ay: 700, bx: 926, by: 884, t: T }, // 41 the cistern X
     { ax: 926, ay: 700, bx: 984, by: 700, t: T }, // 42
     { ax: 984, ay: 700, bx: 984, by: 830, t: T }, // 43
-    { ax: 650, ay: 940, bx: 650, by: 1016, t: T }, // 44 the eye closet's back wall: Nib never gets up here
+    { ax: 650, ay: 940, bx: 650, by: 1016, t: T }, // 44 the ankh closet's back wall: Nib never gets up here
     { ax: 940, ay: 946, bx: 964, by: 946, t: T }, // 45 the bowl's shelf, the bowl at its tip
     { ax: 520, ay: 870, bx: 520, by: 1092, t: T }, // 46 the lava vat: more than the pit holds
     { ax: 601, ay: 870, bx: 601, by: 1040, t: T }, // 47 the vat's side and the hopper's
@@ -132,7 +132,6 @@ export const DEEP_SHAFT: LevelDef = {
   chest: { x: 1010, y: 1080 },
   coinsNeeded: 14,
   solution: ['B', 'G', 'S', 'X', '@440~0.5', 'L', 'K', '@720~0.5', '@1010'],
-  walkHeights: [1338, 1206, 1071],
   stops: [],
   torches: [{ x: 80, y: 1450 }, { x: 1040, y: 900 }],
   view: { x: 40, y: 690, w: 1060, h: 1000 },

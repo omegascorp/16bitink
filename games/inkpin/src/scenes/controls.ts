@@ -4,7 +4,17 @@ import type Phaser from 'phaser';
 export type ControlMode = 'tap' | 'stick';
 const CONTROLS_KEY = 'inkpin.controls';
 
+/** A computer with a mouse: Nib walks by keyboard or a click, and there's no joystick to choose. */
+export function isDesktop(): boolean {
+  try {
+    return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  } catch {
+    return false;
+  }
+}
+
 export function readControls(): ControlMode {
+  if (isDesktop()) return 'tap';
   try {
     return window.localStorage.getItem(CONTROLS_KEY) === 'stick' ? 'stick' : 'tap';
   } catch {

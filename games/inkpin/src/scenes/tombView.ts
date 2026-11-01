@@ -1,11 +1,14 @@
 import Phaser from 'phaser';
 import { ART_RES } from '../art/palette';
 import { FLAME_FRAME } from '../art/props';
+import { mix } from '../art/wash';
+import type { Pt } from '../art/pen';
 import { STONE_PAD, TOMB_GREEN } from '../art/tomb';
 import { linkBox, plateDiscX, plateRoutes } from '../art/tombLinks';
-import { frameOrigin, lintelOrigin, PLATE_DISC_DY, PLATE_DISC_R, PLATE_PT, PLATE_PX, plateMark } from '../art/tombMarks';
+import { frameOrigin, lintelOrigin, type PlateMark, NOTCH_H, NOTCH_W, PLATE_GIVE, PLATE_PT, PLATE_PX, PLATE_SINK, PLATE_SLAB, PLATE_TOP, plateMark, plateNotches, SLAB_PAD } from '../art/tombMarks';
 import type { SoundBoard } from '../audio/sfx';
 import { FLAME_UP } from '../logic/fire';
+import { segDistance } from '../logic/geom';
 import { GAS } from '../logic/particles';
 import type { DoorDef, LevelDef } from '../logic/level';
 import { doorSeg, PLATE_NEED } from '../logic/tomb';
@@ -21,7 +24,11 @@ const FIRE_CORE = 0xfff0a0;
 /** How long a blast's flash lasts (ms). */
 const FLASH_MS = 260;
 
-export const plateKey = (w: number, mark: number, down: boolean, discX: number): string => `plate-${Math.round(w)}-${mark}-${Math.round(discX)}-${down ? 'down' : 'up'}`;
+/** A plate's slab: its width, mark, lit or not, and where its symbol sits. */
+export const plateKey = (w: number, mark: number, lit: boolean, glyphX: number): string => `plate-${Math.round(w)}-${mark}-${Math.round(glyphX)}-${lit ? 'lit' : 'dim'}`;
+export const socketKey = (w: number): string => `plate-socket-${Math.round(w)}`;
+/** The bead of light that runs along a groove. */
+export const pulseKey = (mark: number): string => `groove-pulse-${mark}`;
 /** The angle a door lies at, from its ring end A to its shut end B. */
 export const doorTurn = (d: { ax: number; ay: number; bx: number; by: number }): number => Math.atan2(d.by - d.ay, d.bx - d.ax);
 export const doorKey = (len: number, t: number, mark: number, inverse: boolean, turn: number, lit: boolean): string =>
@@ -35,23 +42,77 @@ export const rubbleKey = (len: number, t: number): string => `rubble-${Math.roun
 
 /** How fast a groove's glow follows its plate (share of the gap per frame). */
 const GLOW_EASE = 0.18;
+/** How fast a slab follows its weight down or up (share of the gap per frame). */
+const SINK_EASE = 0.25;
+/** A pulse's speed along its groove (px/ms), and its shortest and longest run (ms). */
+const PULSE_SPEED = 0.7;
+const PULSE_MIN = 350;
+const PULSE_MAX = 1300;
+/** A tapped plate or door: how long it wiggles (ms), how far (px), and how long its groove stays lit (ms). */
+const WIGGLE_MS = 420;
+const WIGGLE_PX = 2;
+const POKE_GLOW_MS = 1100;
+/** How far outside a plate or door a tap still finds it (px). */
+const POKE_REACH = 8;
 const hex = (c: string): number => Phaser.Display.Color.HexStringToColor(c).color;
 
+/** A groove's polyline, with its length, for a pulse to run along. */
+interface Route {
+  readonly pts: readonly Pt[];
+  readonly cum: readonly number[];
+  readonly len: number;
+}
+
+function route(pts: readonly Pt[]): Route {
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1]! + Math.hypot(pts[i]!.x - pts[i - 1]!.x, pts[i]!.y - pts[i - 1]!.y));
+  return { pts, cum, len: cum[cum.length - 1] ?? 0 };
+}
+
+/** The point `d` px along a route. */
+function along(r: Route, d: number): Pt {
+  for (let i = 1; i < r.pts.length; i++) {
+    if (d <= r.cum[i]! || i === r.pts.length - 1) {
+      const a = r.pts[i - 1]!;
+      const b = r.pts[i]!;
+      const seg = r.cum[i]! - r.cum[i - 1]! || 1;
+      const u = Math.max(0, Math.min(1, (d - r.cum[i - 1]!) / seg));
+      return { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u };
+    }
+  }
+  return r.pts[0] ?? { x: 0, y: 0 };
+}
+
+/** A wiggle's offset (px) `t` ms into it: a quick shake that dies away. */
+const wiggle = (t: number): number => (t < 0 || t > WIGGLE_MS ? 0 : WIGGLE_PX * Math.sin(t * 0.075) * (1 - t / WIGGLE_MS));
+
 /**
- * The Desert Tomb's things on the board: the plates (stone tiles that sink
- * and light their symbol when weighed, and fill toward it as weight builds),
- * the grooves from each plate to its doors (lit while it is down), the stone
- * doors (they slide in their frames, under a lintel), the fire bowls (lit,
- * or doused and smoking), the rubble of a broken wall, the gas (a
- * translucent green glow over each grain, orange while it burns) and a
- * blast's flash. Drawn over the liquids, except the grooves: those are cut
- * in the wall behind everything.
+ * The Desert Tomb's things on the board: the plates (stone slabs set in
+ * the floor, whose weight notches light as weight lands, and which sink
+ * and light their symbol when full), the grooves from each plate to its
+ * doors (lit while it is down, with a bead of light running along them
+ * whenever it goes down or up), the stone doors (they slide in their
+ * frames, under a lintel), the fire bowls (lit, or doused and smoking), the
+ * rubble of a broken wall, the gas (a translucent green glow over each
+ * grain, orange while it burns) and a blast's flash. Drawn over the
+ * liquids, except the grooves: those are cut in the wall behind everything.
+ * A tap on a plate or a door (`poke`) shakes it and lights its groove.
  */
 export class TombView {
-  private readonly plates: Phaser.GameObjects.Image[];
-  private readonly discs: number[];
+  private readonly sockets: Phaser.GameObjects.Image[];
+  private readonly slabs: Phaser.GameObjects.Image[];
+  private readonly glyphs: number[];
+  private readonly notches: number[][];
+  private readonly sinks: number[];
+  private readonly wasDown: boolean[];
   private readonly gauge: Phaser.GameObjects.Graphics;
   private readonly links: (Phaser.GameObjects.Image | null)[];
+  private readonly routes: Route[][];
+  private readonly pulses: Phaser.GameObjects.Image[][];
+  private readonly pulseAt: number[];
+  private readonly glowUntil: number[];
+  private readonly plateShake: number[];
+  private readonly doorShake: number[];
   private readonly frames: Phaser.GameObjects.Image[];
   private readonly doors: Phaser.GameObjects.Image[];
   private readonly lintels: Phaser.GameObjects.Image[];
@@ -60,22 +121,40 @@ export class TombView {
   private readonly rubble = new Map<number, Phaser.GameObjects.Image>();
   private readonly gas: Phaser.GameObjects.Graphics;
   private lastSmoke = 0;
+  private now = 0;
 
   constructor(private readonly scene: Phaser.Scene, private readonly layer: Phaser.GameObjects.Layer, private readonly world: World, private readonly fx: Effects, private readonly sfx: () => SoundBoard) {
     const level = world.level;
-    this.discs = world.plates.map((_, i) => plateDiscX(level, i, PLATE_DISC_R, PLATE_DISC_DY));
-    this.plates = world.plates.map((p, i) => scene.add.image(p.def.x0 - PLATE_PX, p.def.y - PLATE_PT, plateKey(p.def.x1 - p.def.x0, i, false, this.discs[i]!)).setOrigin(0).setScale(S));
+    const width = (i: number): number => (world.plates[i]?.def.x1 ?? 0) - (world.plates[i]?.def.x0 ?? 0);
+    this.glyphs = world.plates.map((_, i) => plateDiscX(level, i));
+    this.notches = world.plates.map((_, i) => plateNotches(width(i), this.glyphs[i]!));
+    this.sinks = world.plates.map(() => 0);
+    this.wasDown = world.plates.map((p) => p.down);
+    this.pulseAt = world.plates.map(() => -Infinity);
+    this.glowUntil = world.plates.map(() => -Infinity);
+    this.plateShake = world.plates.map(() => -Infinity);
+    this.doorShake = world.doors.map(() => -Infinity);
+    this.sockets = world.plates.map((p, i) => scene.add.image(p.def.x0 - PLATE_PX, p.def.y + PLATE_TOP - PLATE_PT, socketKey(width(i))).setOrigin(0).setScale(S));
+    this.slabs = world.plates.map((p, i) => scene.add.image(p.def.x0 - SLAB_PAD, p.def.y + PLATE_TOP - SLAB_PAD, plateKey(width(i), i, false, this.glyphs[i]!)).setOrigin(0).setScale(S));
     this.gauge = scene.add.graphics();
-    // The grooves: carved, and a lit copy over them; both behind everything but the board.
-    const behind: Phaser.GameObjects.Image[] = [];
+    // The grooves: carved, a lit copy over them, and the beads of light; all behind everything but the board.
+    const behind: Phaser.GameObjects.GameObject[] = [];
+    this.routes = world.plates.map((_, i) => plateRoutes(level, i).map(route));
     this.links = world.plates.map((_, i) => {
-      if (!plateRoutes(level, i).length) return null;
+      if (!this.routes[i]!.length) return null;
       const box = linkBox(level, i);
       behind.push(scene.add.image(box.x, box.y, linkKey(level.id, i, false)).setOrigin(0).setScale(S));
       const lit = scene.add.image(box.x, box.y, linkKey(level.id, i, true)).setOrigin(0).setScale(S).setAlpha(0);
       behind.push(lit);
       return lit;
     });
+    this.pulses = this.routes.map((rs, i) =>
+      rs.map(() => {
+        const img = scene.add.image(0, 0, pulseKey(i)).setScale(S).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
+        behind.push(img);
+        return img;
+      }),
+    );
     this.frames = world.doors.map((d) => {
       const o = frameOrigin(d.len, d.def.t);
       return scene.add.image(d.def.ax, d.def.ay, frameKey(d.len, d.def.t)).setOrigin(o.x, o.y).setScale(S).setRotation(doorTurn(d.def));
@@ -96,7 +175,7 @@ export class TombView {
     }
     this.gas = scene.add.graphics();
     if (behind.length) layer.addAt(behind, this.behindIndex());
-    layer.add([...this.plates, this.gauge, ...this.bowls, ...this.flames, ...this.rubble.values(), ...this.frames, ...this.doors, ...this.lintels, this.gas]);
+    layer.add([...this.sockets, ...this.slabs, this.gauge, ...this.bowls, ...this.flames, ...this.rubble.values(), ...this.frames, ...this.doors, ...this.lintels, this.gas]);
     this.resync();
   }
 
@@ -114,28 +193,61 @@ export class TombView {
     return at;
   }
 
+  /**
+   * A tap at (x, y) on a plate or a door (pins are checked first): it
+   * shakes, and its plate's groove lights with a bead of light running to
+   * its doors. True when it found one.
+   */
+  poke(x: number, y: number): boolean {
+    const w = this.world;
+    const plate = w.plates.findIndex((p) => x >= p.def.x0 - POKE_REACH && x <= p.def.x1 + POKE_REACH && y >= p.def.y + PLATE_TOP - POKE_REACH - 6 && y <= p.def.y + PLATE_TOP + PLATE_SLAB + POKE_REACH);
+    let lights = plate;
+    if (plate >= 0) {
+      this.plateShake[plate] = this.now;
+    } else {
+      const door = w.doors.findIndex((d) => d.open < d.len && segDistance(doorSeg(d), x, y) <= d.def.t + POKE_REACH);
+      if (door < 0) return false;
+      this.doorShake[door] = this.now;
+      lights = w.plates.findIndex((p) => p.def.id === w.doors[door]!.def.plate);
+    }
+    if (lights >= 0) {
+      this.glowUntil[lights] = this.now + POKE_GLOW_MS;
+      this.pulseAt[lights] = this.now;
+    }
+    this.sfx().play('thud', 0.35);
+    return true;
+  }
+
   /** Follows the world each frame. */
   update(time: number): void {
     const w = this.world;
+    const snap = time === 0;
+    this.now = time;
     this.gauge.clear();
     w.plates.forEach((p, i) => {
       const width = p.def.x1 - p.def.x0;
-      const discX = this.discs[i] ?? width / 2;
-      this.plates[i]?.setTexture(plateKey(width, i, p.down, discX));
-      // Weight building toward `need`: the disc fills like a dial, so "almost" shows.
+      const mark = plateMark(i);
+      // Weight building toward `need`: the notches light one by one, and the slab gives a little.
       const need = p.def.need ?? PLATE_NEED;
       const f = Math.min(1, p.weight / need);
-      if (!p.down && f > 0.02) {
-        const mark = plateMark(i);
-        const cx = p.def.x0 + discX;
-        const cy = p.def.y + PLATE_DISC_DY;
-        this.gauge.fillStyle(hex(mark.glow), 0.65).beginPath().slice(cx, cy, PLATE_DISC_R - 0.6, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2, false).closePath().fillPath();
-        this.gauge.lineStyle(1, hex(mark.tint), 0.9).strokeCircle(cx, cy, PLATE_DISC_R);
+      const target = p.down ? PLATE_SINK : f * PLATE_GIVE;
+      const sink = snap ? target : this.sinks[i]! + (target - this.sinks[i]!) * SINK_EASE;
+      this.sinks[i] = sink;
+      const dx = wiggle(time - this.plateShake[i]!);
+      const top = p.def.y + PLATE_TOP + sink;
+      this.slabs[i]?.setTexture(plateKey(width, i, p.down, this.glyphs[i]!)).setPosition(p.def.x0 - SLAB_PAD + dx, top - SLAB_PAD);
+      this.paintNotches(i, p.down, f, p.def.x0 + dx, top, mark);
+      // Down or up: a bead of light runs from the plate to its doors.
+      if (p.down !== this.wasDown[i]) {
+        this.wasDown[i] = p.down;
+        if (!snap) this.pulseAt[i] = time;
       }
+      this.runPulses(i, time);
       const lit = this.links[i];
       if (lit) {
-        const target = p.down ? 0.85 + 0.15 * Math.sin(time / 260) : 0;
-        lit.setAlpha(time === 0 ? target : lit.alpha + (target - lit.alpha) * GLOW_EASE);
+        const held = time < this.glowUntil[i]!;
+        const glow = p.down ? 0.85 + 0.15 * Math.sin(time / 260) : held ? 0.75 : 0;
+        lit.setAlpha(snap ? glow : lit.alpha + (glow - lit.alpha) * GLOW_EASE);
       }
     });
     w.doors.forEach((d, i) => {
@@ -145,7 +257,9 @@ export class TombView {
       const lit = w.plates.find((p) => p.def.id === d.def.plate)?.down ?? false;
       img.setTexture(this.doorTexture(d.def, d.len, lit));
       const s = doorSeg(d);
-      img.setPosition((s.ax + s.bx) / 2, (s.ay + s.by) / 2).setVisible(d.open < d.len);
+      // A tapped door shakes across its own length.
+      const k = wiggle(time - this.doorShake[i]!) / (d.len || 1);
+      img.setPosition((s.ax + s.bx) / 2 - (s.by - s.ay) * k, (s.ay + s.by) / 2 + (s.bx - s.ax) * k).setVisible(d.open < d.len);
       // The part slid back past the lintel is in the rock: hidden.
       const cut = Math.max(0, d.open) * ART_RES;
       img.setCrop(cut, 0, Math.max(1, img.frame.width - cut), img.frame.height);
@@ -158,6 +272,40 @@ export class TombView {
       if (!b.lit && smoke) this.fx.puff('smoke', b.x, b.y - 26);
     });
     this.paintGas();
+  }
+
+  /** A plate's weight notches: lit in order as weight builds; all of them once it is down. */
+  private paintNotches(i: number, down: boolean, f: number, x0: number, top: number, mark: PlateMark): void {
+    const xs = this.notches[i] ?? [];
+    if (!xs.length) return;
+    const lit = down ? xs.length : Math.min(xs.length - 1, Math.floor(f * xs.length + 1e-6));
+    if (lit <= 0) return;
+    const halo = hex(mark.glow);
+    const c = hex(mix(mark.tint, mark.glow, 0.3));
+    const y = top + PLATE_SLAB / 2 - NOTCH_H / 2;
+    for (let k = 0; k < lit; k++) {
+      const x = x0 + xs[k]! - NOTCH_W / 2;
+      this.gauge.fillStyle(halo, 0.55).fillRect(x - 1.4, y - 1.4, NOTCH_W + 2.8, NOTCH_H + 2.8);
+      this.gauge.fillStyle(c, 1).fillRect(x, y, NOTCH_W, NOTCH_H);
+      this.gauge.fillStyle(0xfffbe8, 0.75).fillRect(x + NOTCH_W * 0.35, y + 1.5, NOTCH_W * 0.3, NOTCH_H - 3);
+    }
+  }
+
+  /** A plate's beads of light, each running the length of its groove. */
+  private runPulses(i: number, time: number): void {
+    const imgs = this.pulses[i] ?? [];
+    this.routes[i]?.forEach((r, k) => {
+      const img = imgs[k];
+      if (!img) return;
+      const dur = Math.max(PULSE_MIN, Math.min(PULSE_MAX, r.len / PULSE_SPEED));
+      const u = (time - this.pulseAt[i]!) / dur;
+      if (!(u >= 0 && u <= 1)) {
+        img.setVisible(false);
+        return;
+      }
+      const q = along(r, u * r.len);
+      img.setVisible(true).setPosition(q.x, q.y).setAlpha(u < 0.1 ? u * 10 : u > 0.85 ? (1 - u) / 0.15 : 1);
+    });
   }
 
   /** The gas: a soft green glow over each grain; orange and bright while it burns. */
@@ -207,6 +355,10 @@ export class TombView {
   /** After a rewind. */
   resync(): void {
     const w = this.world;
+    w.plates.forEach((p, i) => {
+      this.wasDown[i] = p.down;
+      this.pulseAt[i] = -Infinity;
+    });
     w.bowls.forEach((b, i) => this.bowls[i]?.setTexture(b.lit ? 'bowl-lit' : 'bowl-out'));
     for (const [i, img] of this.rubble) img.setVisible(w.broken[i] ?? false);
     this.update(0);

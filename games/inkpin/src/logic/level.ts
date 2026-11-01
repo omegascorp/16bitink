@@ -172,14 +172,12 @@ export interface LevelDef {
   /** The Clear goal: every guard must be gone (as well as the chest, if any, and the coins) before the goal is met. */
   readonly clear?: boolean;
   /**
-   * A winning order, for the hint, in steps (see parseStep): 'W' pulls W
+   * A winning order, for the lab and the tests, in steps (see parseStep): 'W' pulls W
    * (or pushes the gate W back in if it's out), 'W~1.5' does that 1.5 s
    * after the step before instead of once things settle, '@2060' walks Nib
    * to x = 2060 (and waits until things settle).
    */
   readonly solution: readonly string[];
-  /** Destination centre y for each walk in `solution`, in walk order, when floors overlap in x. */
-  readonly walkHeights?: readonly number[];
   /**
    * For the test bot: where an eager player sends Nib after each pull, in
    * order, and back and forth at the end. Defaults to the chest.

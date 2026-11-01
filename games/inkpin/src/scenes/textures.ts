@@ -10,10 +10,10 @@ import { RAFT_HH, RAFT_HW } from '../logic/rafts';
 import { RUBY_R } from '../logic/rubies';
 import { paintLantern, paintNib, paintSack, type NibMark, type NibPose } from '../art/nib';
 import { paintBowl, paintFrog, paintRubble } from '../art/tomb';
-import { paintLinks, plateDiscX, plateRoutes } from '../art/tombLinks';
+import { paintLinks, paintPulse, plateDiscX, plateRoutes } from '../art/tombLinks';
 import { paintDuneTile } from '../art/tombStone';
-import { paintDoor, paintDoorFrame, paintLintel, paintPlate, PLATE_DISC_DY, PLATE_DISC_R, plateMark } from '../art/tombMarks';
-import { doorKey, doorMark, doorTurn, frameKey, lintelKey, linkKey, plateKey, rubbleKey } from './tombView';
+import { paintDoor, paintDoorFrame, paintLintel, paintPlateSlab, paintPlateSocket, plateMark } from '../art/tombMarks';
+import { doorKey, doorMark, doorTurn, frameKey, lintelKey, linkKey, plateKey, pulseKey, rubbleKey, socketKey } from './tombView';
 import { BOIL } from '../art/palette';
 import { paintBoar } from '../art/boar';
 import { paintBoulder } from '../art/boulder';
@@ -136,11 +136,14 @@ export function bakeTextures(scene: Phaser.Scene, level?: LevelDef): void {
     add('bowl-lit', () => paintBowl(true));
     add('bowl-out', () => paintBowl(false));
     (level.plates ?? []).forEach((p, i) => {
-      const disc = plateDiscX(level, i, PLATE_DISC_R, PLATE_DISC_DY);
-      for (const down of [false, true]) add(plateKey(p.x1 - p.x0, i, down, disc), () => paintPlate(p.x1 - p.x0, plateMark(i), down, disc));
+      const w = p.x1 - p.x0;
+      const glyphX = plateDiscX(level, i);
+      add(socketKey(w), () => paintPlateSocket(w));
+      for (const lit of [false, true]) add(plateKey(w, i, lit, glyphX), () => paintPlateSlab(w, plateMark(i), lit, glyphX));
       if (!plateRoutes(level, i).length) return;
-      // The grooves to its doors: each level's own, carved and lit.
+      // The grooves to its doors: each level's own, carved and lit, and the bead of light that runs along them.
       for (const lit of [false, true]) add(linkKey(level.id, i, lit), () => paintLinks(level, i, lit));
+      add(pulseKey(i), () => paintPulse(plateMark(i)));
     });
     for (const d of level.doors ?? []) {
       const len = Math.hypot(d.bx - d.ax, d.by - d.ay);

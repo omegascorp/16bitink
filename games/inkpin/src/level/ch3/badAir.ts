@@ -132,7 +132,6 @@ export const BAD_AIR: LevelDef = {
   doors: [{ id: 'D', ax: 1130, ay: 804, bx: 1130, by: 888, t: T, plate: 'A' }],
   seals: [{ door: 'D', side: 'right' }],
   solution: ['V', 'G', '@700~1.5', 'F', '@920~1', '@1010', 'K', '@1346'],
-  walkHeights: [753, 604, 856, 968],
   stops: [],
   torches: [{ x: 140, y: 712 }, { x: 1050, y: 860 }, { x: 1350, y: 930 }],
   view: { x: 60, y: 420, w: 1350, h: 600 },

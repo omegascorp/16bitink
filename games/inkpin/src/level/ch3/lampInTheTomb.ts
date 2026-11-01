@@ -149,7 +149,6 @@ export const LAMP_IN_THE_TOMB: LevelDef = {
   chest: { x: 940, y: RAISED - 32 },
   coinsNeeded: 24,
   solution: ['W', 'B', '@410', '@750', 'A', 'C', 'K', '@620~0.5', '@960'],
-  walkHeights: [728, 728, 1013, 1018],
   stops: [],
   torches: [],
   view: { x: 170, y: 0, w: 860, h: 1180 },

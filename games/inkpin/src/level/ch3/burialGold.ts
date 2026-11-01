@@ -170,7 +170,6 @@ export const BURIAL_GOLD: LevelDef = {
   ],
   braziers: [{ x: 462, y: 616 }],
   solution: ['G', 'L', 'W', 'K', 'S', '@1000'],
-  walkHeights: [1170],
   stops: [],
   torches: [{ x: 220, y: 700 }, { x: 1180, y: 760 }],
   view: { x: 50, y: 420, w: 1300, h: 860 },

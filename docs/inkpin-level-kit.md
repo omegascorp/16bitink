@@ -256,8 +256,8 @@ Worked boards from `test/patterns-ch3.test.ts`, each tested with these numbers (
 - Water let out first, with lava landing on it, is mostly used up setting it (39 of 60 gone): water you want left over must come after the lava.
 - A plug under set stone doesn't drain it: the stone bridges the hole.
 - A cistern whose floor is level with the stone drains slowly (the levels even out): raise its floor above the stone.
-- Plate symbols are chosen by the art (sun first, then moon, scarab, eye, by order in `plates`), not by the doc's names: name plates in the header by their symbol on screen.
+- Plate symbols are chosen by the art (ankh first, then scarab, eye, feather, by order in `plates`), not by the doc's names: name plates in the header by their symbol on screen. (Sun and moon were dropped on Nov 1, 2026: players read them as light.) A plate is drawn as a stone slab set in the floor, its symbol carved and painted in its tint, with weight notches either side that light as weight lands (all lit = down); its doors have the same symbol cut in their face, an inverse door's struck through in red. Only pins are gold with a ring. A tap on a plate or door shakes it and lights its groove; the HUD then says once per level that plates open with weight.
 - A cracked bar can't be a basin's back wall: once it breaks, the water runs out. A 16-px lip doesn't hold water dropped ~70 px; 32 px does.
 - A salamander dropped into a shallow pan doesn't reliably wash: give it a pool.
-- Tips name plates by what the player sees: the sun, the moon, the slashed sun (inverse door), not the doc's names.
+- Tips name plates by what the player sees: the ankh, the scarab, the struck-through ankh (inverse door), not the doc's names.
 - Switchback stairs don't work: a 44-px step needs ~124 px of headroom near a turn, more than the flight above leaves. Use one diagonal stair, or a shaft Nib drops down.

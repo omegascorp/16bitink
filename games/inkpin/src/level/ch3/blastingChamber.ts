@@ -112,7 +112,6 @@ export const BLASTING_CHAMBER: LevelDef = {
   chest: { x: 1240, y: 588 },
   coinsNeeded: 24,
   solution: ['W', 'G', 'T', '@862', 'L', 'K', 'S', '@1240'],
-  walkHeights: [596, 588],
   stops: [],
   torches: [{ x: 300, y: 470 }, { x: 720, y: 470 }],
   view: { x: 60, y: 40, w: 1300, h: 770 },

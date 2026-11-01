@@ -49,7 +49,7 @@ describe('The Sun Barge', () => {
     [['S', 'V', 'U', 'G', 'C', 'K', '@440', '@1215'], 'melted'],
     // K before the dam: the gutter is still lava when the gold drops.
     [['V', 'K', 'G', 'U', 'C', 'S', '@440', '@1215'], 'melted'],
-    // The gold first: it falls into the empty berth and down its grate, the barge alone is too light, and the sun trapdoor stays shut over Nib.
+    // The gold first: it falls into the empty berth and down its grate, the barge alone is too light, and the ankh trapdoor stays shut over Nib.
     [['C', 'G', 'V', 'U', 'S', 'K', '@440', '@1215'], 'sealed'],
     // The dam before the frog's vent: V lies across U's slide, so U can't come out.
     [['U', 'V', 'G', 'C', 'K', 'S', '@440', '@1215'], 'blocked'],

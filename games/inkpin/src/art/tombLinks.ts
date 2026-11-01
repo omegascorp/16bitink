@@ -3,7 +3,7 @@ import { ART_RES, INK } from './palette';
 import { ellipse, makeCanvas, Pen, type Pt } from './pen';
 import { SAND_DARK, SAND_LIGHT } from './tomb';
 import { inside } from './tombStone';
-import { plateMark, type PlateMark } from './tombMarks';
+import { PLATE_GLYPH_DY, plateGlyphR, plateMark, type PlateMark } from './tombMarks';
 import { mix, rgba } from './wash';
 
 /**
@@ -70,7 +70,7 @@ export function linkRoute(level: LevelDef, plateIndex: number, d: DoorDef): Pt[]
   if (!p) return [];
   const { end, vertical } = doorEnd(p, d);
   const up = end.y < p.y;
-  const disc = { x: p.x0 + plateDiscX(level, plateIndex), y: up ? p.y - 2 : p.y + PLATE_DROP + 8 };
+  const disc = { x: p.x0 + plateDiscX(level, plateIndex), y: up ? p.y - 2 : p.y + PLATE_DROP + 4 };
   const routes: Pt[][] = [];
   if (end.x > p.x0 + 6 && end.x < p.x1 - 6) routes.push([{ x: end.x, y: disc.y }, end]);
   const sx = end.x < p.x0 ? p.x0 - 6 : p.x1 + 6;
@@ -97,13 +97,15 @@ export function linkRoute(level: LevelDef, plateIndex: number, d: DoorDef): Pt[]
 }
 
 /**
- * Where a plate's symbol disc sits, from the plate's left end: as near the
+ * Where a plate's carved symbol sits, from the plate's left end: as near the
  * middle as it can be without a pin lying over it (pins are drawn on top).
  */
-export function plateDiscX(level: LevelDef, plateIndex: number, r = 13, dy = 8): number {
+export function plateDiscX(level: LevelDef, plateIndex: number): number {
   const p = level.plates?.[plateIndex];
   if (!p) return 0;
   const w = p.x1 - p.x0;
+  const r = plateGlyphR(w) + 2;
+  const dy = PLATE_GLYPH_DY;
   const y = p.y + dy;
   // Room left between the disc's edge and the nearest pin.
   const room = (x: number): number =>
@@ -201,11 +203,12 @@ function paintGroove(ctx: CanvasRenderingContext2D, pen: Pen, pts: readonly Pt[]
     const ny = ((b.x - a.x) / len) * 6.6;
     for (const s of [-1, 1]) pen.hair([{ x: a.x + nx * s, y: a.y + ny * s }, { x: b.x + nx * s, y: b.y + ny * s }], 1.3, INK, 0.85);
   }
-  // A little round socket at each end.
-  for (const q of [start, end]) {
-    pen.fill(ellipse(q.x, q.y, 6.5, 6.5, 14), mix(mark.tint, INK, 0.35), 0.85);
-    pen.circle(q.x, q.y, 6.8, 1.3, INK);
-  }
+  // Its door end: a short carved stop across the channel, not a round knob.
+  const a = pts[pts.length - 2] ?? start;
+  const len = Math.hypot(end.x - a.x, end.y - a.y) || 1;
+  const nx = (-(end.y - a.y) / len) * 6.6;
+  const ny = ((end.x - a.x) / len) * 6.6;
+  pen.hair([{ x: end.x + nx, y: end.y + ny }, { x: end.x - nx, y: end.y - ny }], 1.3, INK, 0.85);
 }
 
 /** A plate's grooves, dark (carved) or lit (glowing in its mark's colour), over `linkBox`. */
@@ -217,5 +220,20 @@ export function paintLinks(level: LevelDef, plateIndex: number, lit: boolean): H
   const pen = new Pen(ctx, 610 + plateIndex, 0.3);
   const mark = plateMark(plateIndex);
   for (const pts of plateRoutes(level, plateIndex)) paintGroove(ctx, pen, pts, mark, lit);
+  return canvas;
+}
+
+/** The bead of light that runs along a plate's groove when it goes down or up, or is tapped: a soft spot in its mark's glow. Centred. */
+export function paintPulse(mark: PlateMark): HTMLCanvasElement {
+  const R = 16;
+  const { canvas, ctx } = makeCanvas(R * 2 * ART_RES, R * 2 * ART_RES);
+  ctx.scale(ART_RES, ART_RES);
+  const g = ctx.createRadialGradient(R, R, 0, R, R, R);
+  g.addColorStop(0, rgba('#ffffff', 1));
+  g.addColorStop(0.25, rgba(mark.glow, 0.95));
+  g.addColorStop(0.6, rgba(mark.glow, 0.35));
+  g.addColorStop(1, rgba(mark.glow, 0));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, R * 2, R * 2);
   return canvas;
 }

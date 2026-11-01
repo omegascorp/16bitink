@@ -9,7 +9,7 @@ import { CH3, PIN_T, T } from '../common';
  *
  * Four stages on 1320 x 620: Nib's ledge over the lava moat, the two-bay
  * closet hung over the moat, the vault door with a lava dip behind it, and
- * the vault with its drain. Sun plate P is the closet's whole floor, out of
+ * the vault with its drain. Ankh plate P is the closet's whole floor, out of
  * Nib's reach (the kit's pattern 1), with nothing lying over it. Its weight
  * holds two stone doors up: the vault door D (between Nib and the chest) and
  * the hatch H in the boulder's shaft.
@@ -42,7 +42,7 @@ export const SEALED_DOOR: LevelDef = {
   ruin: 'tomb',
   name: 'The Sealed Door',
   goal: 'Open the vault door, take the chest and pick up 42 coins',
-  tip: 'Weight on the sun plate holds its doors open. Take the weight off, and they shut.',
+  tip: 'Weight on the ankh plate holds its doors open, and its notches light as it fills. Take the weight off, and they shut.',
   rooms: [
     [[120, 700], [380, 700], [380, 814], [580, 814], [580, 720], [796, 720], [796, 760], [1350, 760], [1350, 970], [1050, 970], [1050, 900], [1020, 900], [1020, 960], [900, 960], [900, 868], [790, 868], [790, 898], [720, 898], [720, 960], [260, 960], [260, 880], [120, 880]],
     [[380, 460], [460, 460], [460, 806], [380, 806]],
@@ -115,7 +115,6 @@ export const SEALED_DOOR: LevelDef = {
   chest: { x: 1140, y: 938 },
   coinsNeeded: 42,
   solution: ['C', 'B', 'W', '@528', 'G', 'V', '@1140'],
-  walkHeights: [882, 928],
   stops: [],
   torches: [{ x: 170, y: 760 }, { x: 1310, y: 820 }],
   view: { x: 75, y: 408, w: 1320, h: 620 },

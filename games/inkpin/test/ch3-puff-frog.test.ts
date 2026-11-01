@@ -7,16 +7,12 @@ declare const process: { readonly env: Readonly<Record<string, string | undefine
 
 /** How a pull order ends: 'won', the loss cause, 'stuck'/'playing', or 'blocked'. */
 const outcome = (order: readonly string[]): string => {
-  const r = play(PUFF_FROG, order);
+  const r = play(PUFF_FROG, order, false);
   if (!r.possible) return 'blocked';
   return r.status.state === 'lost' ? r.status.cause : r.status.state;
 };
 
 describe('The Puff Frog', () => {
-  it('also wins with the frog dome vented before the flood (the flood washes the frog in its pool)', () => {
-    expect(outcome(['G', 'B', 'A', 'W', 'U', 'S', '@556'])).toBe('won');
-  });
-
   it('is won by its hint: blast the crypt, drop the plate frog, flood, open the dam, drop the pool frog, then go', () => {
     const r = play(PUFF_FROG, PUFF_FROG.solution);
     expect(r.possible).toBe(true);
@@ -28,18 +24,32 @@ describe('The Puff Frog', () => {
     expect(PUFF_FROG.fills.reduce((n, f) => n + f.count, 0)).toBeLessThanOrEqual(700);
   });
 
-  // These orders shut Nib out (the bar stands, or the pool stays dry), but 'sealed' needs every pin out and the last one is the trap T, whose oil melts the gold: so they end 'melted'.
   it.each([
-    // Nib's pin first (nearest, and leftmost of his own): he drops through the frog dome's gas.
-    [['S', 'B', 'U', 'G', 'A', 'W', '@556'], 'gassed'],
+    // The lamp once the gas pit is open: its oil drips into the pit and stays there.
+    [['G', 'T', 'A', 'W', 'U', 'B', 'S', '@524']],
+    // ... and after the flood it sets to stone in the pit's water.
+    [['G', 'A', 'W', 'U', 'B', 'T', 'S', '@524']],
+    // The flood doused the bowl, but the lamp's oil, falling through the pooled gas, lights it instead.
+    [['A', 'W', 'U', 'G', 'T', 'B', 'S', '@524']],
+  ])('%j wins: the lamp is harmless once the pit is open, and lights the gas a doused bowl cannot', (order) => {
+    expect(outcome([...order])).toBe('won');
+  });
+
+  it.each([
+    // The lamp first (leftmost, and the trap): its oil runs down the lid, under the bar, onto the gold.
+    [['T', 'G', 'A', 'W', 'U', 'B', 'S', '@524'], 'melted'],
+    // Nib's pin first (nearest, and his own): he drops through the frog dome's gas.
+    [['S', 'B', 'U', 'G', 'A', 'W', 'T', '@524'], 'gassed'],
     // Nib's pin before the frog dome's vent: the same.
-    [['G', 'A', 'W', 'U', 'S', 'B', '@556'], 'gassed'],
-    // The flood before the crypt: it douses the bowl, the gas pools unlit and the bar stands.
-    [['A', 'W', 'U', 'G', 'B', 'S', 'T', '@556'], 'melted'],
-    // Nib's pin before the flood: the dam pours down his hole, the frog's pool stays dry, and he walks into it.
-    [['G', 'B', 'U', 'S', 'A', 'W', 'T', '@556'], 'melted'],
+    [['G', 'A', 'W', 'U', 'S', 'B', 'T', '@524'], 'gassed'],
+    // The frog dome before the flood: frog 2 lands on the dry pool's plate, the gallery's door shuts, and the pool stays dry.
+    [['G', 'B', 'A', 'W', 'U', 'S', 'T', '@524'], 'sealed'],
+    // ... the same with the dam opened between them.
+    [['G', 'A', 'W', 'B', 'U', 'S', 'T', '@524'], 'sealed'],
+    // Nib's pin before the flood (after the frog): he and the frog wait in a dry pool.
+    [['G', 'B', 'U', 'S', 'A', 'W', 'T', '@524'], 'sealed'],
     // The cistern before the plate frog: the sluice is shut, the flood leaks away, and the pool stays dry.
-    [['W', 'A', 'G', 'U', 'B', 'S', 'T', '@556'], 'melted'],
+    [['W', 'A', 'G', 'U', 'B', 'S', 'T', '@524'], 'sealed'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome([...order])).toBe(cause);
   });

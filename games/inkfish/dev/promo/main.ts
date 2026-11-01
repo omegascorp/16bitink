@@ -113,6 +113,10 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * the surface and waits for the fish to drift in), diver (a Cape Cod diver
  * spent about forty seconds inside a humpback's mouth), seal (a young Cape fur
  * seal hunts blue sharks: the prey becomes the predator).
+ * The batch of 2026-11-01: sealion (a humpback catches a sea lion in its
+ * mouth by mistake, and it slips out), leopard (a leopard seal brings Paul
+ * Nicklen penguins for four days), croc (Brutus the saltwater crocodile eats a
+ * bull shark), orcasave (a humpback lifts a seal out of the water, away from orcas).
  * They're loaded lazily (import() on demand).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
@@ -434,6 +438,30 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
     if (params.has('kit')) return (await import('./seal/kit')).createSealKit(ctx);
     const { createSeal } = await import('./seal/render');
     return withCredit(createSeal(ctx), ctx, PAPER_ON_DARK);
+  },
+  sealion: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./sealion/kit')).createSealionKit(ctx);
+    const { createSealion } = await import('./sealion/render');
+    return withCredit(createSealion(ctx), ctx, PAPER_ON_DARK);
+  },
+  leopard: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./leopard/kit')).createLeopardKit(ctx);
+    const { createLeopard } = await import('./leopard/render');
+    return withCredit(createLeopard(ctx), ctx, PAPER_ON_DARK);
+  },
+  croc: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./croc/kit')).createCrocKit(ctx);
+    const { createCroc } = await import('./croc/render');
+    return withCredit(createCroc(ctx), ctx, PAPER_ON_DARK);
+  },
+  orcasave: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./orcasave/kit')).createOrcasaveKit(ctx);
+    const { createOrcasave } = await import('./orcasave/render');
+    return withCredit(createOrcasave(ctx), ctx, PAPER_ON_DARK);
   },
   orcaliver: async () => {
     await loadCaptionFont();

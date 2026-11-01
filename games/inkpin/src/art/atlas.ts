@@ -4,6 +4,7 @@ import { GOLD, INK, MOSS, TEMPLE, TEMPLE_DARK } from './palette';
 import { ellipse, Pen, type Pt } from './pen';
 import { mix, rgba } from './wash';
 import { paintDraftRuin } from './atlasDrafts';
+import { paintTombLands, paintTombShrine } from './atlasTomb';
 import { paintVolcanoLands, paintVolcanoShrine } from './atlasVolcano';
 
 /**
@@ -69,17 +70,19 @@ export function paintAtlasChunk(ctx: CanvasRenderingContext2D, layout: MapLayout
   paintFibres(ctx, layout, y0, y1);
   for (const r of layout.regions) {
     if (r.bottom + 200 < y0 || r.top - 200 > y1) continue;
-    if (!r.chapter.built) paintSketches(pen, layout, r);
-    else if (r.index === 1) paintVolcanoLands(ctx, pen, layout, r);
-    else paintJungle(ctx, pen, layout, r);
+    if (r.index === 0 && r.chapter.built) paintJungle(ctx, pen, layout, r);
+    else if (r.index === 1 && r.chapter.built) paintVolcanoLands(ctx, pen, layout, r);
+    else if (r.index === 2 && r.chapter.built) paintTombLands(ctx, pen, layout, r);
+    else paintSketches(pen, layout, r);
   }
   paintTrail(ctx, layout, y0, y1);
   for (const r of layout.regions) {
     // The volcano's plume reaches higher than the other ruins.
     if (r.ruin.y + 160 < y0 || r.ruin.y - 300 > y1) continue;
-    if (!r.chapter.built) paintDraftRuin(pen, r.index, r.ruin);
-    else if (r.index === 1) paintVolcanoShrine(ctx, pen, r.ruin);
-    else paintTemple(ctx, pen, r.ruin);
+    if (r.index === 0 && r.chapter.built) paintTemple(ctx, pen, r.ruin);
+    else if (r.index === 1 && r.chapter.built) paintVolcanoShrine(ctx, pen, r.ruin);
+    else if (r.index === 2 && r.chapter.built) paintTombShrine(ctx, pen, r.ruin);
+    else paintDraftRuin(pen, r.index, r.ruin);
   }
   // Inside what a phone shows of the page (about 760 px across its middle).
   const compass = { x: W - 220, y: layout.height - 150 };

@@ -18,11 +18,19 @@ const outcome = (order: readonly string[]): string => {
 /** The landing's near edge: the raft is over once its middle is this far along. */
 const LANDING = 570;
 
+/** A hint step: 'Y~1.5' is Y, tapped 1.5 s after the step before, with no settling or walking between. */
+const parse = (step: string): { id: string; wait: number | null } => {
+  const [id = '', wait] = step.split('~');
+  return { id, wait: wait === undefined ? null : Number(wait) };
+};
+
 /**
- * Plays the hint as the bot does (test/solver.ts's play), and notes where
- * the raft and Nib were after each pull, and how much lava is left.
+ * Plays the hint as the bot does (test/solver.ts's play), but lets Nib idle
+ * `idle` steps (120 a second) before pull number `at` (a player who looks
+ * first, or pulls late), and notes where the raft and Nib were after each
+ * pull, and how much lava is left.
  */
-function watchSolution(): { won: boolean; seconds: number; raft: number[]; nib: number[]; lava: number; stone: number; raftY: number } {
+function playHint(idle = 0, at = -1): { won: boolean; cause: string; seconds: number; raft: number[]; nib: number[]; lava: number; stone: number; raftY: number } {
   const w = new World(PUMICE_RAFT);
   const run = (steps: number): void => {
     for (let s = 0; s < steps && !w.finished; s++) {
@@ -41,68 +49,47 @@ function watchSolution(): { won: boolean; seconds: number; raft: number[]; nib: 
   const raft: number[] = [];
   const nib: number[] = [];
   const r = w.boulders[0]!;
-  let lava = 0;
-  let stone = 0;
-  for (const id of PUMICE_RAFT.solution) {
+  const steps = PUMICE_RAFT.solution.map(parse);
+  steps.forEach(({ id, wait }, i) => {
+    if (w.finished) return;
+    if (i === at) for (let s = 0; s < idle && !w.finished; s++) w.step();
+    if (wait !== null) for (let s = Math.round(wait * STEPS_PER_SECOND); s > 0 && !w.finished; s--) w.step();
     w.pull(id);
+    // The next step comes on a timer: no settling, no walking until it is due.
+    if (steps[i + 1]?.wait != null) return;
     run(STEPS_PER_SECOND * 8);
     raft.push(r.x);
     nib.push(w.nib.x);
     visit(stops, STEPS_PER_SECOND * 8);
-  }
-  const back = [...stops].reverse();
-  visit([...back, ...stops, ...back, ...stops], (STEPS_PER_SECOND * 25) / 4);
-  w.leave();
-  lava = w.grains.countOf(LAVA);
-  stone = w.grains.countOf(STONE);
-  return { won: w.status.state === 'won', seconds: w.steps / STEPS_PER_SECOND, raft, nib, lava, stone, raftY: r.y };
-}
-
-/**
- * Plays the hint as the bot does, but lets Nib idle `idle` steps (120 a
- * second) before pull number `at`: a player who looks first, or pulls late.
- */
-function playWithIdle(idle: number, at: number): string {
-  const w = new World(PUMICE_RAFT);
-  const run = (steps: number): void => {
-    for (let s = 0; s < steps && !w.finished; s++) {
-      w.step();
-      if (s > 30 && w.settled && w.nibOrder.kind === 'stay') break;
-    }
-  };
-  const stops = PUMICE_RAFT.stops ?? [];
-  const visit = (list: readonly Stop[], steps: number): void => {
-    for (const s of list) {
-      if (w.finished) return;
-      w.command({ kind: 'goto', x: s.x });
-      run(steps);
-    }
-  };
-  PUMICE_RAFT.solution.forEach((id, i) => {
-    if (w.finished) return;
-    if (i === at) for (let s = 0; s < idle && !w.finished; s++) w.step();
-    w.pull(id);
-    run(STEPS_PER_SECOND * 8);
-    visit(stops, STEPS_PER_SECOND * 8);
   });
   const back = [...stops].reverse();
   visit([...back, ...stops, ...back, ...stops], (STEPS_PER_SECOND * 25) / 4);
+  const lava = w.grains.countOf(LAVA);
+  const stone = w.grains.countOf(STONE);
   w.leave();
-  return w.status.state === 'lost' ? w.status.cause : w.status.state;
+  return {
+    won: w.status.state === 'won',
+    cause: w.status.state === 'lost' ? w.status.cause : w.status.state,
+    seconds: w.steps / STEPS_PER_SECOND,
+    raft,
+    nib,
+    lava,
+    stone,
+    raftY: r.y,
+  };
 }
 
 describe('The Pumice Raft', () => {
   // Idle steps are 1/120 s: 8 is 1/15 s, 240 is 2 s.
   describe.each([0, 1, 2, 4, 8, 12, 20, 30, 60, 100, 144, 240])('hint with %i idle steps', (idle) => {
     it.each([0, 1, 2, 3, 4, 5].filter((at) => idle > 0 || at === 0))('before pull %i it wins', (at) => {
-      expect(playWithIdle(idle, at)).toBe('won');
+      expect(playHint(idle, at).cause).toBe('won');
     });
   });
 
   it('is won by its hint: the raft comes to Nib, takes the hopper\'s gold aboard, carries him over, and the river is cooled behind him', () => {
-    const r = watchSolution();
+    const r = playHint();
     expect(r.won).toBe(true);
-    // The vault is only as long as its gold and chest: no stretch of floor Nib just walks.
     expect(r.seconds).toBeLessThan(60);
     // D: the raft has come out of its cave to the dock under Nib's shelf.
     expect(r.raft[0]).toBeGreaterThan(420);
@@ -112,7 +99,7 @@ describe('The Pumice Raft', () => {
     // M: it has carried Nib over to the landing, standing on it.
     expect(r.raft[2]).toBeGreaterThan(LANDING);
     expect(Math.abs(r.nib[2]! - r.raft[2]!)).toBeLessThan(40);
-    // W: the whole river, cave to culvert, set to stone.
+    // W, then Y: the whole river, cave to culvert, and the vault's gutter, set to stone.
     expect(r.lava).toBe(0);
     expect(r.stone).toBe(PUMICE_RAFT.fills.filter((f) => f.kind === LAVA).reduce((n, f) => n + f.count, 0));
     // And the raft is still there, set in the stone.
@@ -142,13 +129,20 @@ describe('The Pumice Raft', () => {
     [['D', 'G', 'X', 'M', 'W', 'Y'], 'burnt'],
     // The vault on the hot river after the ferry: the lava pours through the culvert into the vault after Nib.
     [['D', 'G', 'M', 'X', 'W', 'Y'], 'burnt'],
+    // The vault's tank last, after the door (the order a player tries first): Nib walks into the hot gutter across the vault floor.
+    [['D', 'G', 'M', 'W', 'X', 'Y'], 'burnt'],
+    // The vault's tank never pulled: the same gutter, the same fate.
+    [['D', 'G', 'M', 'W', 'X'], 'burnt'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome(order)).toBe(cause);
   });
 
-  // The vault hopper is harmless whenever it is pulled: its gold waits on the vault floor. First of all, it still wins.
-  it('is won with the vault hopper first', () => {
-    expect(outcome(['Y', 'D', 'G', 'M', 'W', 'X'])).toBe('won');
+  // The vault's tank only has to come before Nib reaches the gutter: its water sets the gutter and waits. Pulled first of all, or before the door, it still wins.
+  it.each([
+    [['Y', 'D', 'G', 'M', 'W', 'X']],
+    [['D', 'G', 'M', 'W', 'Y', 'X']],
+  ])('%j wins', (order) => {
+    expect(outcome(order)).toBe('won');
   });
 
   if (process.env.AUDIT) it('audit', () => console.log('AUDIT ' + JSON.stringify(audit(PUMICE_RAFT))), 3_600_000);

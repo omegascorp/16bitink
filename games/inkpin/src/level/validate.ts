@@ -154,9 +154,6 @@ export function parseLevel(v: unknown): LevelDef {
       fail(at, err instanceof Error ? err.message : 'bad step');
     }
   }, { required: true, max: MAX_STEPS });
-  items(v, 'walkHeights', w, (n, at) => {
-    if (!isNum(n)) fail(at, 'not a number');
-  });
   items(v, 'stops', w, (s, at) => {
     if (!isObj(s)) fail(at, 'not a stop');
     nums(s, ['x'], at);

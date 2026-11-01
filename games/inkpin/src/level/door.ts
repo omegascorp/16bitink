@@ -20,7 +20,7 @@ export const DOOR: LevelDef = {
   chapter: CH1,
   name: 'The Door',
   goal: 'Grow the vine, take the chest and pick up 100 coins',
-  tip: 'Tap a pin to pull it, then tap the floor to send Nib there. Water makes a seed grow into a vine: tap a vine to climb it.',
+  tip: 'Water makes a seed grow into a vine, and Nib can climb it.',
   rooms: [
     [[40, 600], [680, 600], [680, 1100], [40, 1100]],
     [[680, 520], [1240, 520], [1240, 1100], [680, 1100]],

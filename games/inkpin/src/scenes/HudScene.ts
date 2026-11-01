@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { INK, PAPER, RED } from '../art/palette';
 import type { SoundBoard } from '../audio/sfx';
-import { hudTake, readControls, type ControlMode } from './controls';
+import { hudTake, isDesktop, readControls, type ControlMode } from './controls';
 import { HEARTS, type HudState, type LevelInfo, type Result } from './GameScene';
 import { chapterPlace } from './chapters';
 import { DPR, screenSize } from './hidpi';
@@ -16,6 +16,8 @@ const TIPS: Record<ControlMode, string> = {
   tap: 'Tap a pin to pull it. Tap the floor to send Nib there, tap Nib to jump.',
   stick: 'Tap a pin to pull it. Drag anywhere to walk Nib; jump with the button (keyboard: arrows and Space).',
 };
+/** How to play with a keyboard and mouse: shown on the first level, as there's no controls chip on a computer. */
+const DESKTOP_TIP = 'Click a pin to pull it. Walk Nib with ← → (or click the floor), Space to jump, ↑ ↓ to climb.';
 /** The volcano's first tip, for its levels that have none of their own: its gates and ledges are new. */
 const VOLCANO_TIP = 'Striped gate pins go back in: tap one again to push it home. Ledges crumble once Nib steps off them.';
 const CONTROL_LABEL: Record<ControlMode, string> = { tap: 'Move: tap to go  ⇄', stick: 'Move: joystick  ⇄' };
@@ -69,7 +71,8 @@ export class HudScene extends Phaser.Scene {
     this.hearts = Array.from({ length: HEARTS }, () => this.add.image(0, 0, 'heart').setScale(HEART_SCALE));
     this.chestTick = text(26, '#2f7a3a').setText('✓').setOrigin(0.5).setVisible(false);
     this.controls = readControls();
-    this.controlChip = text(18, INK, false).setText(CONTROL_LABEL[this.controls]).setBackgroundColor('rgba(255,250,240,0.85)').setPadding(10, 3, 10, 3);
+    // On a computer the keyboard and a click both move Nib, so there's no mode to choose.
+    this.controlChip = text(18, INK, false).setText(CONTROL_LABEL[this.controls]).setBackgroundColor('rgba(255,250,240,0.85)').setPadding(10, 3, 10, 3).setVisible(!isDesktop());
     this.controlChip.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
       hudTake(p);
       this.sfx.unlock();
@@ -96,7 +99,7 @@ export class HudScene extends Phaser.Scene {
       this.sfx.play('tap');
       this.game.events.emit('cmd:leave');
     });
-    this.buttons = [this.button('↺', () => this.game.events.emit('cmd:restart')), this.button('?', () => this.game.events.emit('cmd:hint'))];
+    this.buttons = [this.button('↺', () => this.game.events.emit('cmd:restart'))];
     const chip = (label: string, onTap: () => void): Phaser.GameObjects.Text => {
       const t = text(22, INK).setText(label).setBackgroundColor('rgba(255,250,240,0.85)').setPadding(9, 1, 9, 1);
       t.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
@@ -115,6 +118,7 @@ export class HudScene extends Phaser.Scene {
     this.game.events.on('hud:result', this.showResult, this);
     this.game.events.on('hud:reset', this.onReset, this);
     this.game.events.on('hud:rewind', this.onRewind, this);
+    this.game.events.on('hud:note', this.onNote, this);
     this.game.events.on('stick:show', this.stickShow, this);
     this.game.events.on('stick:move', this.stickMove, this);
     this.game.events.on('stick:hide', this.stickHide, this);
@@ -126,6 +130,7 @@ export class HudScene extends Phaser.Scene {
       this.game.events.off('hud:result', this.showResult, this);
       this.game.events.off('hud:reset', this.onReset, this);
       this.game.events.off('hud:rewind', this.onRewind, this);
+      this.game.events.off('hud:note', this.onNote, this);
       this.game.events.off('stick:show', this.stickShow, this);
       this.game.events.off('stick:move', this.stickMove, this);
       this.game.events.off('stick:hide', this.stickHide, this);
@@ -160,7 +165,7 @@ export class HudScene extends Phaser.Scene {
     const right = width - 14;
     this.buttons.forEach((b, i) => b.setPosition(right - 24 - i * 56, 34));
     // The coin count sits left of the buttons; on phones, under them.
-    const countRight = narrow ? right - 4 : right - 24 - 56 * 2 + 6;
+    const countRight = narrow ? right - 4 : right - 24 - 56 * this.buttons.length + 6;
     const countY = narrow ? 80 : 34;
     this.count.setOrigin(1, 0.5).setPosition(countRight, countY);
     this.coin.setPosition(countRight - this.count.width - 14, countY);
@@ -174,8 +179,9 @@ export class HudScene extends Phaser.Scene {
     this.controlChip.setPosition(x, narrow ? 76 : 86).setFontSize(narrow ? 16 : 18);
     // The way back to the map sits beside the controls chip; on phones, under it.
     const navY = narrow ? 108 : 86;
-    this.mapChip.setPosition(narrow ? x : x + this.controlChip.width + 10, navY - 2).setFontSize(narrow ? 19 : 22);
-    this.levelLabel.setPosition(this.mapChip.x + this.mapChip.width + 6, navY).setFontSize(narrow ? 16 : 18);
+    const besideChip = this.controlChip.visible ? this.controlChip.width + 10 : 0;
+    this.mapChip.setPosition(narrow ? x : x + besideChip, this.controlChip.visible ? navY - 2 : 84).setFontSize(narrow ? 19 : 22);
+    this.levelLabel.setPosition(this.mapChip.x + this.mapChip.width + 6, this.mapChip.y + 2).setFontSize(narrow ? 16 : 18);
     const touch = this.sys.game.device.input.touch;
     this.jumpButton.setPosition(width - 52, height - 130).setVisible(touch && this.controls === 'stick');
     // Centred, but clear of the jump button in the bottom-right corner.
@@ -258,10 +264,12 @@ export class HudScene extends Phaser.Scene {
     this.stickHide();
   }
 
-  /** The level's own tip, else the volcano's, else how to play. */
+  /** The level's own tip, else the volcano's, else how to play; the first level leads with how to play. */
   private firstTip(): string {
     const level = this.info?.level;
-    return level?.tip ?? (level?.ruin === 'volcano' ? VOLCANO_TIP : TIPS[this.controls]);
+    const howTo = isDesktop() ? DESKTOP_TIP : TIPS[this.controls];
+    if (this.info?.index === 0) return level?.tip ? `${howTo}\n${level.tip}` : howTo;
+    return level?.tip ?? (level?.ruin === 'volcano' ? VOLCANO_TIP : howTo);
   }
 
   /** Hearts from `left` on are lost: each bursts and is left an empty outline. */
@@ -285,6 +293,14 @@ export class HudScene extends Phaser.Scene {
     this.tweens.killTweensOf(this.tip);
     this.tip.setText(`${title} Back to before that pin. ${left}`).setVisible(true).setAlpha(0.9);
     this.tweens.add({ targets: this.tip, alpha: 0, delay: 3200, duration: 600, onComplete: () => this.tip.setVisible(false) });
+  }
+
+  /** A line about what was just tapped (the plates' rule), shown for a few seconds. */
+  private onNote(line: string): void {
+    this.tweens.killTweensOf(this.tip);
+    // 0.9, not 0.92: the level's own tip fades once play starts; this one keeps its time.
+    this.tip.setText(line).setVisible(true).setAlpha(0.9);
+    this.tweens.add({ targets: this.tip, alpha: 0, delay: 5000, duration: 600, onComplete: () => this.tip.setVisible(false) });
   }
 
   private stickShow(at: { x: number; y: number }): void {

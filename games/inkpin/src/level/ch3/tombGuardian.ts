@@ -22,9 +22,9 @@ const TOAD_X = 980;
  * 2. The breath: Nib walks over into the nook, in the toad's sight. With the
  *    cover F out, the next breath rises past the fire bowl and lights; the
  *    blast cracks the lid and breaks the cracked lip between the nook and the
- *    coffin. The lid falls on the toad ('stomped') and lands on the sun plate.
+ *    coffin. The lid falls on the toad ('stomped') and lands on the ankh plate.
  * 3. The flood: W's tank falls into the open coffin; the lid and the water
- *    together weigh the sun plate and the sun door to the vault rises. The
+ *    together weigh the ankh plate and the ankh door to the vault rises. The
  *    overflow runs over the sill into the frog's dip.
  * 4. The frog: U vents the frog's dome and it drops into the full dip and
  *    washes. Nib drops into the coffin, swims out through the door and takes
@@ -60,10 +60,10 @@ export const TOMB_GUARDIAN: LevelDef = {
     { ax: 720, ay: 656, bx: 816, by: 656, t: T }, // 5 the nook's low roof
     { ax: 720, ay: 738, bx: 900, by: 738, t: T }, // 6 the nook's floor
     { ax: 900, ay: 738, bx: 900, by: 868, t: T }, // 7 the coffin
-    { ax: 900, ay: 868, bx: 1058, by: 868, t: T }, // 8 the coffin's floor: the eye plate
+    { ax: 900, ay: 868, bx: 1058, by: 868, t: T }, // 8 the coffin's floor: the ankh plate
     { ax: 846, ay: 448, bx: 846, by: 668, t: 22 }, // 9 the thick cracked lip between the nook and the coffin (Nib stays 76 px from the gas behind it)
     { ax: 860, ay: 440, bx: 1058, by: 440, t: T }, // 10 the hall's roof
-    { ax: 1058, ay: 440, bx: 1058, by: 712, t: T }, // 11 the coffin's far side, over the eye door
+    { ax: 1058, ay: 440, bx: 1058, by: 712, t: T }, // 11 the coffin's far side, over the ankh door
     { ax: 1058, ay: 790, bx: 1058, by: 868, t: T }, // 12 the sill under it
     { ax: 868, ay: 646, bx: 878, by: 646, t: T }, // 13 the fire bowl's shelf, its tip under the flame
     { ax: 876, ay: 440, bx: 876, by: 548, t: T }, // 14 W's tank
@@ -118,7 +118,6 @@ export const TOMB_GUARDIAN: LevelDef = {
   chest: { x: 1320, y: VAULT - 24 },
   coinsNeeded: 26,
   solution: ['M', 'C', 'F', 'S', '@800', 'W~5', 'U', '@1320'],
-  walkHeights: [706, 788],
   stops: [],
   torches: [{ x: 160, y: 520 }, { x: 1320, y: 700 }],
   view: { x: 80, y: 440, w: 1300, h: 460 },

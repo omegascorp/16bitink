@@ -16,7 +16,7 @@ import { CH3, PIN_T, T } from '../common';
  *    out of the berth's east wall and down the east pipe to the vault's lava
  *    gutter, which it sets; the rest leaks out of 14-px slots at both feet,
  *    the west one down onto the crypt's bowl. Alone the barge is too light:
- *    C's gold on its deck makes the weight that opens the sun trapdoor D in
+ *    C's gold on its deck makes the weight that opens the ankh trapdoor D in
  *    the canal's bed, Nib's way down. C before U: the gold falls into the
  *    empty berth and down its grate, and D stays shut over Nib ('sealed').
  * 3. The crypt: G opens the gas funnel under the crypt's roof. The gas
@@ -34,7 +34,7 @@ export const SUN_BARGE: LevelDef = {
   chapter: CH3,
   ruin: 'tomb',
   name: 'The Sun Barge',
-  goal: 'Open the sun trapdoor, blast the cracked wall and pick up 40 coins',
+  goal: 'Open the ankh trapdoor, blast the cracked wall and pick up 40 coins',
   rooms: [
     [[40, 330], [200, 330], [200, 270], [540, 222], [540, 170], [576, 170], [576, 220], [640, 220], [640, 280], [600, 280], [600, 440], [380, 438], [200, 444], [40, 444]], // the gangway, the canal and the frog's dome
     [[600, 300], [704, 300], [704, 600], [600, 600]], // the berth
@@ -62,7 +62,7 @@ export const SUN_BARGE: LevelDef = {
     { ax: 600, ay: 280, bx: 640, by: 280, t: T }, // 11 the flue's floor: U is the dam and this vent's plug at once, so the dam vents the dome too
     { ax: 600, ay: 280, bx: 600, by: 384, t: T }, // 12 the canal's far end, between the flue and the dam
     { ax: 600, ay: 440, bx: 600, by: 570, t: T }, // 13 the berth, under the dam; it stops 14 px above the floor: the leak's slot (too low for the barge) into the pipe
-    { ax: 600, ay: 600, bx: 704, by: 600, t: T }, // 14 the berth's floor: the sun plate
+    { ax: 600, ay: 600, bx: 704, by: 600, t: T }, // 14 the berth's floor: the ankh plate
     { ax: 570, ay: 560, bx: 570, by: 643, t: T }, // 15 the grate's pipe, right over the bowl
     { ax: 704, ay: 300, bx: 704, by: 512, t: T }, // 16 the berth's far wall (88 px across, so the barge always docks within 8 px: no gap for its gold), its foot a 14-px slot too
     { ax: 600, ay: 300, bx: 704, by: 300, t: T }, // 17
@@ -142,7 +142,6 @@ export const SUN_BARGE: LevelDef = {
   seals: [{ door: 'D', side: 'down' }, { wall: 28, side: 'right' }],
   braziers: [{ x: 586, y: 694 }],
   solution: ['V', 'G', 'U', 'C~6', 'K', 'S', '@440', '@1215'],
-  walkHeights: [768, 838],
   stops: [],
   torches: [{ x: 120, y: 380 }, { x: 1150, y: 760 }],
   view: { x: 0, y: 140, w: 1310, h: 800 },

@@ -80,18 +80,22 @@ export interface Result {
   /** Coins Nib picked up. */
   readonly coins: number;
   readonly total: number;
-  /** The blots: every coin (95 of 100) picked up, and won without a retry or hint. */
+  /** The blots: every coin (95 of 100) picked up, and won without a retry. */
   readonly allCoins: boolean;
   readonly firstTry: boolean;
   readonly bank: Bank;
 }
 
-/** Shared between restarts: how many tries this level has had, and whether a hint was used. */
+/** Shared between restarts: how many tries this level has had. */
 interface Session {
   readonly level: string;
   tries: number;
-  hinted: boolean;
+  /** The plates' line ("they open with weight") has been shown on this level. */
+  plateNote?: boolean;
 }
+
+/** Shown once per level, the first time a plate or a door is tapped. */
+export const PLATE_NOTE = 'Plates open with weight, not a tap: drop something heavy on one to fill its notches, and the doors with its symbol open.';
 
 /** What the interface needs to know about the level just started. */
 export interface LevelInfo {
@@ -145,14 +149,12 @@ export class GameScene extends Phaser.Scene {
   private hearts = HEARTS;
   /** The level just before the last pin pulled (or gate pushed): a lost heart winds back to here. */
   private checkpoint!: WorldSave;
-  /** How many taps the hint had seen by then. */
-  private checkpointMark = 0;
   /** True while a lost heart's fail plays, before the rewind. */
   private rewinding = false;
   private session!: Session;
   private controls: ControlMode = 'tap';
   /** The joystick while a drag is held: where it started (screen px) and the direction it gives. */
-  private stick: { id: number; x: number; y: number; dir: -1 | 0 | 1; climb: -1 | 0 | 1 } | null = null;
+  private stick: { id: number; x: number; y: number; dir: -1 | 0 | 1; climb: -1 | 0 | 1; walked: boolean } | null = null;
   private keyDir: -1 | 0 | 1 = 0;
   private climbKey: -1 | 0 | 1 = 0;
 
@@ -169,7 +171,7 @@ export class GameScene extends Phaser.Scene {
     // The dev page's sampler (?sample=tomb) plays a level that is in no chapter.
     const level = (this.registry.get('sampleLevel') as LevelDef | undefined) ?? LEVELS[this.index]!;
     const old = this.registry.get('session') as Session | undefined;
-    this.session = old?.level === level.id ? old : { level: level.id, tries: 0, hinted: false };
+    this.session = old?.level === level.id ? old : { level: level.id, tries: 0 };
     this.session.tries++;
     this.registry.set('session', this.session);
     this.world = new World(level);
@@ -212,9 +214,7 @@ export class GameScene extends Phaser.Scene {
     this.pins = new PinsView(this, this.world0, this.world);
     this.nib = new NibView(this, this.world0);
     if (level.dark) this.dark = new DarkLayer(this, this.world0, level);
-    if (this.session.hinted) this.pins.showHint();
     this.checkpoint = this.world.save();
-    this.checkpointMark = 0;
     this.sfx.bed(bedOf(level.ruin ?? 'jungle'));
     this.camera = new LevelCamera(this, level);
     this.camera.fit(this.world.nib, true);
@@ -224,7 +224,6 @@ export class GameScene extends Phaser.Scene {
       this.sfx.bed(null);
       this.scale.off('resize', this.refit, this);
       this.game.events.off('cmd:restart', this.restart, this);
-      this.game.events.off('cmd:hint', this.onHint, this);
       this.game.events.off('cmd:controls', this.onControls, this);
       this.game.events.off('cmd:jump', this.onJump, this);
       this.game.events.off('cmd:leave', this.onLeave, this);
@@ -245,7 +244,6 @@ export class GameScene extends Phaser.Scene {
     this.game.events.on('cmd:controls', this.onControls, this);
     this.game.events.on('cmd:jump', this.onJump, this);
     this.game.events.on('cmd:restart', this.restart, this);
-    this.game.events.on('cmd:hint', this.onHint, this);
     this.game.events.on('cmd:leave', this.onLeave, this);
     this.game.events.on('cmd:level', this.onLevel, this);
     this.game.events.on('cmd:map', this.onMap, this);
@@ -306,11 +304,7 @@ export class GameScene extends Phaser.Scene {
   /** Pulls a pin (or pushes a gate back in) for the player, keeping the level as it was just before as the checkpoint. */
   private tryTap(id: string): void {
     const before = this.world.save();
-    const mark = this.pins.mark;
-    if (this.world.tap(id)) {
-      this.checkpoint = before;
-      this.checkpointMark = mark;
-    }
+    if (this.world.tap(id)) this.checkpoint = before;
   }
 
   /**
@@ -341,7 +335,7 @@ export class GameScene extends Phaser.Scene {
       const img = this.blots[i];
       img?.setScale(S).setAlpha(1).setAngle(0).clearTint().setVisible(!b.gone).setPosition(b.x, b.y);
     });
-    this.pins.resync(this.checkpointMark);
+    this.pins.resync();
     this.chest?.setTexture(this.world.chestTaken ? 'chest-open' : 'chest-closed').setScale(S);
     this.bodies.resync();
     this.shrine.resync();
@@ -405,7 +399,6 @@ export class GameScene extends Phaser.Scene {
     this.bodies.update();
     this.shrine.update(time);
     this.tomb.update(time);
-    this.pins.updateHints();
     this.dark?.paint(this.world, time);
   }
 
@@ -544,7 +537,7 @@ export class GameScene extends Phaser.Scene {
     const looking = this.camera.scrolling && p.y / DPR < screenSize(this.scale).height * LOOK_ZONE;
     if (this.controls === 'stick' && !pin && !looking) {
       // Joystick: a drag off the pins walks Nib.
-      this.stick = { id: p.id, x: p.x, y: p.y, dir: 0, climb: 0 };
+      this.stick = { id: p.id, x: p.x, y: p.y, dir: 0, climb: 0, walked: false };
       this.game.events.emit('stick:show', { x: p.x / DPR, y: p.y / DPR });
       return;
     }
@@ -559,6 +552,8 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (!this.stick || this.stick.id !== p.id) return;
+    // A joystick press that never walked is a tap: it may be on a plate or a door.
+    if (!this.stick.walked && !this.world.finished) this.pokeTomb(p);
     this.stick = null;
     this.game.events.emit('stick:hide');
     if (this.keyDir === 0) this.world.command({ kind: 'stay' });
@@ -570,6 +565,8 @@ export class GameScene extends Phaser.Scene {
       this.tryTap(pin);
       return;
     }
+    // A plate or a door answers the tap, and Nib still goes there in tap mode.
+    this.pokeTomb(p);
     if (this.controls !== 'tap') return;
     const wp = this.cameras.main.getWorldPoint(p.x, p.y);
     if (Math.hypot(wp.x - this.world.nib.x, wp.y - this.world.nib.y) < NIB_TAP) {
@@ -578,6 +575,14 @@ export class GameScene extends Phaser.Scene {
     }
     this.world.command({ kind: 'goto', x: wp.x, y: wp.y });
     this.markSpot(wp.x);
+  }
+
+  /** A tap on a plate or a door: it shakes and lights its groove; the first time on a level, the HUD says how plates work. */
+  private pokeTomb(p: Phaser.Input.Pointer): void {
+    const wp = this.cameras.main.getWorldPoint(p.x, p.y);
+    if (!this.tomb.poke(wp.x, wp.y) || this.session.plateNote) return;
+    this.session.plateNote = true;
+    this.game.events.emit('hud:note', PLATE_NOTE);
   }
 
   /** A small ink cross on the floor where Nib was sent, fading. */
@@ -630,6 +635,7 @@ export class GameScene extends Phaser.Scene {
         const climb: -1 | 1 = dy < 0 ? -1 : 1;
         if (this.stick.climb !== climb) {
           this.stick.climb = climb;
+          this.stick.walked = true;
           this.stick.dir = 0;
           this.world.command({ kind: 'climb', dir: climb });
         }
@@ -642,6 +648,7 @@ export class GameScene extends Phaser.Scene {
       const dir: -1 | 0 | 1 = dx > STICK_DEAD ? 1 : dx < -STICK_DEAD ? -1 : 0;
       if (dir !== this.stick.dir) {
         this.stick.dir = dir;
+        if (dir !== 0) this.stick.walked = true;
         this.walk(dir);
       }
       this.game.events.emit('stick:move', { dx: Phaser.Math.Clamp(dx, -STICK_RANGE, STICK_RANGE) });
@@ -679,7 +686,6 @@ export class GameScene extends Phaser.Scene {
     }
     if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') this.onMap();
     else if (e.key === 'r' || e.key === 'R') this.restart();
-    else if (e.key === 'h' || e.key === 'H') this.onHint();
     else if (/^[1-9]$/.test(e.key)) {
       // Number keys pull the pins in the order the level lists them (and push a gate that's out back in).
       const pin = this.world.pins[Number(e.key) - 1];
@@ -704,12 +710,6 @@ export class GameScene extends Phaser.Scene {
     if (chest && this.chest) this.fx.openChest(this.chest, chest, this.world.nib);
   }
 
-  /** Numbers the steps left of a winning order over their pins. */
-  private onHint(): void {
-    this.session.hinted = true;
-    this.pins.showHint();
-  }
-
   private finish(): void {
     this.ended = true;
     const w = this.world;
@@ -729,7 +729,7 @@ export class GameScene extends Phaser.Scene {
     this.closeUp(w.nib.x, w.nib.y);
     const won = status.state === 'won';
     const allTreasure = w.coinsTotal > 0 && w.coinsCollected >= Math.ceil(w.coinsTotal * 0.95);
-    const firstTry = this.session.tries === 1 && !this.session.hinted && this.hearts === HEARTS;
+    const firstTry = this.session.tries === 1 && this.hearts === HEARTS;
     if (won) recordWin(w.level.id, w.coinsCollected, allTreasure, firstTry);
     const next = won && this.index + 1 < LEVELS.length ? this.index + 1 : null;
     const host = getHost();

@@ -7,7 +7,7 @@ import { CH3, PIN_T, T } from '../common';
  * where a single pin does two jobs. The pan of the tomb's great scale is a
  * long pit whose floor is the scales plate P. Its grooves run to two doors:
  * the vault door A (open while the pan is weighed) and the cistern's sluice C
- * (its sign upside down: open while the pan is bare). So whatever weighs the
+ * (its ankh struck through: open while the pan is bare). So whatever weighs the
  * pan first decides whether the water can still come in.
  * Four stages on 1370 x 810: the cistern and its sluice, the scale hall
  * (Nib's nook, the gold bin and gas cup, K's hopper), the shaft up to the
@@ -42,7 +42,7 @@ export const WEIGHING_ROOM: LevelDef = {
   ruin: 'tomb',
   name: 'The Weighing Room',
   goal: 'Break into the vault, take the chest and pick up 46 coins',
-  tip: 'Weight on the sun pan holds the vault door open. The sluice with the slashed sun works the other way: it is open only while the pan is bare.',
+  tip: 'Weight on the ankh pan holds the vault door open. The sluice with the struck-through ankh works the other way: it is open only while the pan is bare.',
   rooms: [
     [[96, 536], [216, 536], [216, 690], [96, 690]], // the cistern
     [[996, 280], [1030, 280], [1030, 360], [996, 360]], // the little cistern over the bowl
@@ -132,7 +132,6 @@ export const WEIGHING_ROOM: LevelDef = {
   chest: { x: 1310, y: 936 },
   coinsNeeded: 46,
   solution: ['W', 'H', 'S', 'X', '@860', 'K', '@1310'],
-  walkHeights: [976, 936],
   stops: [],
   torches: [{ x: 370, y: 790 }, { x: 1100, y: 880 }],
   view: { x: 40, y: 250, w: 1370, h: 810 },
