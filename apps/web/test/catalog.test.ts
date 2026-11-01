@@ -17,7 +17,7 @@ describe('catalog', () => {
   });
 
   it('lists every game for sale, so the admin panel can unlock it and make keys for it', () => {
-    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko', 'inksnake']);
+    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko', 'inksnake', 'inkpin']);
   });
 
   it('is out from the start of its release day (UTC), or always when undated', () => {
@@ -31,11 +31,13 @@ describe('catalog', () => {
   it('lists InkGecko on the home page from its release day, Oct 22 (UTC), and every other playable game before', () => {
     expect(listedGames(new Date('2026-10-21T23:59:59Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine']);
     expect(listedGames(new Date('2026-10-22T00:00:00Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko']);
+    expect(listedGames(new Date('2026-11-01T00:00:00Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko', 'inksnake', 'inkpin']);
   });
 
   it('puts the newest game first on the home page, so this week\'s game is the featured one', () => {
     expect(homeGames(new Date('2026-10-21T23:59:59Z')).map((g) => g.slug)).toEqual(['inkmine', 'inkcrab', 'inkfish']);
     expect(homeGames(new Date('2026-10-22T00:00:00Z')).map((g) => g.slug)).toEqual(['inkgecko', 'inkmine', 'inkcrab', 'inkfish']);
+    expect(homeGames(new Date('2026-11-01T00:00:00Z')).map((g) => g.slug)).toEqual(['inkpin', 'inksnake', 'inkgecko', 'inkmine', 'inkcrab', 'inkfish']);
   });
 
   it('orders newest first, keeping catalog order for a shared day and undated games last', () => {

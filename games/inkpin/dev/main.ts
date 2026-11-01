@@ -12,6 +12,14 @@ const asked = Number(new URLSearchParams(window.location.search).get('level'));
 const params = new URLSearchParams(window.location.search);
 const draft = CHAPTER_3_DRAFTS.find((l) => l.id === params.get('draft'));
 const sample = draft ?? (params.get('sample') === 'tomb' ? TOMB_SAMPLER : undefined);
-const handle = mount(parent, { unlockAll: true, level: asked >= 1 ? asked - 1 : undefined, sample });
+// A stub host, as the other games' dev pages build it: open like an owner, storage in this browser.
+const handle = mount(parent, {
+  unlocked: true,
+  allLevelsOpen: true,
+  storage: window.localStorage,
+  loadContent: () => Promise.reject(new Error('No paid content in the dev harness')),
+  onBuy: () => alert('Checkout would open here'),
+  onExit: () => alert('Exit to catalog'),
+}, { level: asked >= 1 ? asked - 1 : undefined, sample });
 // Exposed for automated smoke tests only.
 (window as unknown as { __game: unknown }).__game = handle.phaser;

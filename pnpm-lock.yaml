@@ -183,6 +183,9 @@ importers:
       '@16bitink/inkmine':
         specifier: workspace:*
         version: link:../../games/inkmine
+      '@16bitink/inkpin':
+        specifier: workspace:*
+        version: link:../../games/inkpin
       '@16bitink/inksnake':
         specifier: workspace:*
         version: link:../../games/inksnake
