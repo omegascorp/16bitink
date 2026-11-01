@@ -6,6 +6,8 @@ import { World, type Status } from '../src/logic/world';
 const MAX_WAIT = STEPS_PER_SECOND * 8;
 /** Longest it lets the level play out after the last pull. */
 const MAX_TAIL = STEPS_PER_SECOND * 25;
+/** How long it waits at the end of a level with seals, so a shut-out Nib is 'sealed' (the world needs 1 s of calm). */
+const SEAL_TAIL = STEPS_PER_SECOND * 2;
 
 export interface Run {
   readonly order: readonly string[];
@@ -73,6 +75,9 @@ export function play(level: LevelDef, order: readonly string[], patient = false,
   const back = [...stops].reverse();
   const sweep = level.stops ? [...back, ...stops, ...back, ...stops] : [{ x: level.nib.x }, ...stops, { x: level.nib.x }, ...stops];
   visit(sweep, MAX_TAIL / 4);
+  // A level with seals loses 'sealed' only after a second of calm (SEAL_STEPS):
+  // with no stops to sweep, the bot would leave first. Wait like a player looking on.
+  if (level.seals?.length) for (let s = 0; s < SEAL_TAIL && !w.finished; s++) tick();
   w.leave();
   return { order, status: w.status, treasure: w.treasure, steps: w.steps, possible: true };
 }

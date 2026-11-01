@@ -58,7 +58,8 @@ The Opus coordinator caught these and sent the workers back. A Sonnet coordinato
 
 1. **Design (Opus coordinator, short session).** Write the chapter's design rows and any new mechanics' contract into the game's docs. End the session.
 2. **Engine (one Opus agent).** Implement the contract. Measure every quirk. Update the kit, keep the lab working, and keep earlier chapters' tests passing. No content agents start until this is done.
-3. **Content (Sonnet agents, 3–4 at a time).** Each gets the content brief below. Run them in batches: the simulations are CPU-heavy, and more at once slows every agent.
+3. **Content (Sonnet agents, 3–4 at a time).** When a chapter brings new mechanics, have Opus build its first 2–3 levels (the ones that introduce them), then give those finished levels to the Sonnet agents as worked examples. In Chapter 3 all three Sonnet first builds of the new mechanics (plates, gas, blasts) missed: with no level showing how a mechanic reads on a board, they fought the engine instead of designing. Chapter 2's Sonnet deepening worked because the mechanics already had worked levels.
+   Each gets the content brief below. Run them in batches: the simulations are CPU-heavy, and more at once slows every agent.
 4. **Review gate (Opus coordinator).** Check each report against the review checklist below.
    - Send it back once with precise asks, about 20–25 more calls.
    - After a second miss, park it.

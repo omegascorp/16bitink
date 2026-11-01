@@ -63,11 +63,14 @@ export function isBox(b: Boulder): boolean {
   return b.crate || b.raft;
 }
 
-/** Steps a boulder or a crate (rafts: see rafts.ts); a crate that touches lava burns away (reported with true). */
-export function stepBody(b: Boulder, segs: readonly Seg[], g: Grains, k: Contact): boolean {
+/**
+ * Steps a boulder or a crate (rafts: see rafts.ts); a crate that touches lava burns away (reported with true).
+ * `calm`: grains a resting boulder pushes out lose their speed into it (see stopInward); chapter 1 is tuned without it.
+ */
+export function stepBody(b: Boulder, segs: readonly Seg[], g: Grains, k: Contact, calm = false): boolean {
   if (b.gone) return false;
   if (!b.crate) {
-    stepBoulder(b, segs, g, k);
+    stepBoulder(b, segs, g, k, calm);
     return false;
   }
   return stepCrate(b, segs, g, k);
@@ -122,7 +125,7 @@ function stepCrate(b: Boulder, segs: readonly Seg[], g: Grains, k: Contact): boo
 }
 
 /** One step: falls, rolls, and pushes the loose grains out of its way. Walls, pins and stone hold it. */
-export function stepBoulder(b: Boulder, segs: readonly Seg[], g: Grains, k: Contact): void {
+export function stepBoulder(b: Boulder, segs: readonly Seg[], g: Grains, k: Contact, calm = false): void {
   let wet = 0;
   g.near(b.x, b.y, b.r + GRAIN_R, (i) => {
     if (g.kind[i] === WATER) wet++;
@@ -150,12 +153,16 @@ export function stepBoulder(b: Boulder, segs: readonly Seg[], g: Grains, k: Cont
     });
   }
   b.angle += (b.x - fromX) / b.r;
-  pushGrains(b, g);
+  pushGrains(b, g, calm);
 }
 
+/** A round boulder slower than this (px per step) is resting: grains it pushes out lose their speed into it (see stopInward). */
+const REST_SPEED = 0.05;
+
 /** Pushes the loose grains out of a boulder's way (out of a crate's or a raft's box). */
-export function pushGrains(b: Boulder, g: Grains): void {
+export function pushGrains(b: Boulder, g: Grains, calm = false): void {
   const reach = b.raft ? Math.hypot(b.hw + GRAIN_R, b.hh + GRAIN_R) : (b.r + GRAIN_R) * (b.crate ? Math.SQRT2 : 1);
+  const resting = calm && !isBox(b) && Math.hypot(b.vx, b.vy) < REST_SPEED;
   g.near(b.x, b.y, reach, (i) => {
     if (g.kind[i] === STONE) return;
     const out = isBox(b) ? boxPush(b.x, b.y, b.hw, b.hh, g.x[i]!, g.y[i]!, GRAIN_R) : roundPush(b.x, b.y, b.r, g.x[i]!, g.y[i]!, GRAIN_R);
@@ -163,7 +170,25 @@ export function pushGrains(b: Boulder, g: Grains): void {
     if (g.kind[i] === COIN) g.wake(i);
     g.x[i] = g.x[i]! + out.x;
     g.y[i] = g.y[i]! + out.y;
+    if (resting) stopInward(g, i, out.x, out.y);
   });
+}
+
+/**
+ * A grain pushed out of a round boulder loses the part of its velocity that
+ * points back into it. Without this, a grain wedged under a boulder resting
+ * on a floor (a boulder in a water pit) bounces between the two at 7–8 px
+ * per step for good, and stirs the whole pool: it never settles.
+ */
+function stopInward(g: Grains, i: number, ox: number, oy: number): void {
+  const d = Math.hypot(ox, oy);
+  if (d < 1e-9) return;
+  const nx = ox / d;
+  const ny = oy / d;
+  const vn = g.vx[i]! * nx + g.vy[i]! * ny;
+  if (vn >= 0) return;
+  g.vx[i] = g.vx[i]! - vn * nx;
+  g.vy[i] = g.vy[i]! - vn * ny;
 }
 
 function roundPush(cx: number, cy: number, cr: number, x: number, y: number, r: number): { x: number; y: number } | null {

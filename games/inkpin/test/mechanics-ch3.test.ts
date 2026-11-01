@@ -164,6 +164,14 @@ describe("the 'sealed' loss", { timeout: 120_000 }, () => {
     expect(w.status).toEqual({ state: 'lost', cause: 'sealed' });
   });
 
+  it("waits for the last pull to play out: a calm board before it doesn't seal Nib in at once", () => {
+    const w = new World(vault(false));
+    run(w, 600);
+    w.pull('P');
+    run(w, 60);
+    expect(w.status.state).toBe('playing');
+  });
+
   it("never 'sealed' while a pin is still in", () => {
     const w = new World(vault(true));
     w.pull('P');
@@ -365,5 +373,32 @@ describe('the rain frog', { timeout: 120_000 }, () => {
     const n = new World(tombRoom({ blots: [{ x: 80, y: 600, animal: 'frog' }] }));
     run(n, 240);
     expect(n.status).toEqual({ state: 'lost', cause: 'inked', by: 'frog' });
+  });
+});
+
+describe("the bot waits out 'sealed'", { timeout: 120_000 }, () => {
+  /**
+   * Level 21's 32% 'stuck' (Nov 1, 2026): with `stops: []` the bot left the
+   * level ~30 steps after the board settled, before the world's 1 s of calm
+   * that 'sealed' needs. A leaky pit (the kit's pattern 2) with no stops:
+   * G leaks the plate, the door shuts, S lets Nib out on the wrong side.
+   */
+  it("ends a shut-out order with no stops as 'sealed', not still playing", () => {
+    const level = tombRoom({
+      walls: [...tombRoom({}).walls, { ax: 342, ay: 840, bx: 342, by: 900, t: T }, { ax: 458, ay: 840, bx: 458, by: 900, t: T }, { ax: 600, ay: 300, bx: 600, by: FLOOR - 92, t: T }],
+      pins: [
+        { id: 'G', ax: 300, ay: 884, bx: 420, by: 884, t: 7 },
+        { id: 'S', ax: 540, ay: 760, bx: 540, by: 884, t: 7 },
+      ],
+      fills: [{ kind: WATER, x0: 350, x1: 450, y1: 877, count: 50 }],
+      plates: [{ id: 'A', x0: 350, x1: 450, y: FLOOR, need: 20 }],
+      doors: [{ id: 'D', ax: 600, ay: FLOOR - 92, bx: 600, by: FLOOR + 8, t: T, plate: 'A' }],
+      drains: [{ x0: 394, x1: 406, y0: 884, y1: 905 }],
+      seals: [{ door: 'D', side: 'right' }],
+      nib: { x: 500, y: FLOOR - 24 },
+      chest: { x: 700, y: FLOOR - 24 },
+      stops: [],
+    });
+    expect(play(level, ['G', 'S']).status).toEqual({ state: 'lost', cause: 'sealed' });
   });
 });

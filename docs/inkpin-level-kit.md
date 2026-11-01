@@ -72,7 +72,7 @@ Run only your own tests (`npx vitest run test/ch2-<id>`) and `npx tsc --noEmit -
 
 ## Chapter 3: the Desert Tomb (engine pass, Oct 31, 2026)
 
-Everything above still holds. Measured numbers below come from `test/measure-ch3.test.ts` (`MEASURE=1 npx vitest run test/measure-ch3 --silent=false`) and `test/mechanics-ch3.test.ts`.
+Everything above still holds. Measured numbers below come from `test/measure-ch3.test.ts` (`MEASURE=1 npx vitest run test/measure-ch3 --silent=false`), `test/mechanics-ch3.test.ts`, `test/boss-ch3.test.ts` and `test/patterns-ch3.test.ts` (the worked boards below; `--silent=false` prints their times).
 
 ### Files
 - Level: `games/inkpin/src/level/ch3/<name>.ts`, `chapter: CH3`, `ruin: 'tomb'`, registered in `CHAPTER_3` in `src/level/index.ts` (Level 21… numbers run on by themselves). Test: `test/ch3-<id>.test.ts`, shaped like the ch2 ones. `test/chapter3.test.ts` checks every ch3 level (rooms, budget with `breath.max`, cracked walls in `bars`, seals and doors naming real things).
@@ -85,7 +85,7 @@ Everything above still holds. Measured numbers below come from `test/measure-ch3
 - `seals?: { door?: id; wall?: index; side: 'left'|'right'|'up'|'down' }[]`: `side` is the goal's side of the barrier.
 - `braziers?: { x, y }[]`: a fire bowl standing on the floor at y; its flame is a circle at (x, y − 34), r 12. All start lit.
 - `cracked?: number[]`: wall indices a blast breaks; each must also be in `bars`.
-- `breath?: { every, count, max }` (the boss; **not built yet**, see below).
+- `breath?: { every, count, max }`: the Tomb Guardian's breath (level 30, see "The Tomb Guardian" below). Always set it on the boss level: the engine defaults to `{ every: 5, count: 24, max: 120 }` without it, but the budget test only counts a `breath` you write.
 - `fills` with `kind: GAS`: `y1` is the **underside of the lid** (the pin or ceiling above it); rows pack **downward** from y1 + 8, 9 px apart, same columns as other fills. A gas fill needs a lid or ceiling above it, or it rises during the pre-settle.
 - New loss causes: `'gassed'`, `'blasted'`, `'sealed'`. New guard end: `'blasted'`. Guard animals `'frog'` (rain frog) and `'toad'` (boss only).
 - Chapter 3 bans vines, seeds, crates, boars and porcupines, like Chapter 2.
@@ -103,6 +103,11 @@ Everything above still holds. Measured numbers below come from `test/measure-ch3
 - A 100-px door in front of a 180-px tank of 240 water: Nib on its plate 0.5 s let 149 grains through; 1 s, 169 (it shuts 1.5 s after he steps off). **A door is not a fine meter**; use a gate pin to meter.
 - A shutting door waits for Nib, a live guard, a boulder or raft, a ruby or a slab in its way (`waiting`), and goes on when it's clear. Grains in its path are pushed aside. An opening door waits on a pin still in its path (event `doorBlocked`).
 - A door is a seg for everything (gas too). Blasts don't break doors.
+- **A door closes slowly** (~1.1 s for a 132-px door, 1 px/step), so a plate on Nib's own route lets him step off it and slip under before it shuts. **A plate Nib must not hold has to be out of his reach**: a closet whose wall comes right down to the floor, or a ≥ 66-px step (pattern 1 below).
+- Doors start where their plates put them *before* the 3 s pre-settle. A fill that only settles onto a plate during the pre-settle opens its door in the first moments of play (0.42 s for 50 water in a pit): size it to lie in the zone at the start if the door must start open.
+- A pin lying across a pit's floor (a grate's plug) lifts the water out of the 40-px zone: 50 water over such a pin weigh only ~26. Use `need: 20` there.
+- A drain box swallows coins (and rubies) like water; a boulder resting in a pit can plug the pit's grate (the box counts as plugged when the boulder's circle reaches into it; level 21's boulder in the corner of its pit did).
+- Stone from a set lava pool is loose gravel and swells ~19 px as it sets: size the lava to leave a bridge near the floor. Too little leaves a standing pool on top that never settles.
 
 ### The 'sealed' loss
 Lost `'sealed'` when: every plain pin is out and every gate has been pulled at least once; everything but Nib has been still for 1 s (Nib walking doesn't reset it); the goal isn't met; and some `seals` barrier stands (a door not fully open, a cracked wall not broken) with Nib on its far side from `side` (compared with the barrier's midpoint).
@@ -113,15 +118,25 @@ Lost `'sealed'` when: every plain pin is out and every gate has been pulled at l
 - `GAS` grains fall up (gravity −0.035, up to 2.5 px/step). Free rise **~300 px/s**: gas crosses a room in a second, so Nib can't outrun it, and gas reaches the roof long before anything else moves.
 - Rises through water: 30 gas under 124 px of water were all above the surface 0.88 s after their lid opened. Water falls through gas.
 - 100 gas under a flat 300-px ceiling settle **48 px deep** (5 rows: rows ≈ count ÷ ((width − 12) ÷ 10 + 1), 9 px apart, from the ceiling down). A dome's lips must hang deeper than that, or it spills round them.
-- A 40-px roof vent (`drain` box in a chimney, plugged by a pin): half of 100 gas gone in 3.0 s, all but 2 in 5.5 s. Gas drifts toward the vent along the ceiling.
+- A 40-px roof vent (`drain` box in a chimney, plugged by a pin): half of 100 gas gone in 3.0 s, all but 2 in 5.5 s. A 60-px vent: half in 2.2 s, all but 2 in 4.1 s. Gas drifts toward the vent along the ceiling. Level 22: a 40-px vent was too slow for its winning order at 110 gas; 60 px worked.
+- **A gas pool under a flat ceiling spreads about 5 px per grain, two rows deep, centred where its column arrives**, not to a single layer across the whole roof: 30 gas covered ~140 px, 60 ~290 px, 100 ~510 px (deepest centre 18 px under the ceiling). Anything that must reach the gas (a bowl, a frog) has to be inside that width, or the dome has to be narrow enough that the gas fills it to the wall.
+- A dome or gallery spills gas back down only if its capacity is clearly below the gas count (level 22: 110 gas into a ~35-gas gallery).
+- Gas rising past any pocket with a roof (the underside of a vat's floor pin, a shelf) fills it: level 23 lost ~10 of 72 grains under its lava vat.
 - Gas seeps up through a coin heap (sleeping coins never trap it): 40 gas under 80 dropped coins were all out in 1.3 s. Gas goes round a raft: 1 of 30 left under it after 5 s.
 - A resting dome counts as settled for the bot within 0.2 s.
+- **Settling with drains and boulders (second engine pass).** Draining was never the problem: 80 water poured into a 100-px pit over a 32-px grate settles in 2.6 s, over a 12-px grate in 3.4 s. What kept level 21 from settling was **a boulder resting in a water pit**: grains wedged under it bounced between it and the floor at 7–8 px/step and stirred the pool for good, so the bot waited its 8 s cap at every stop. From chapter 3 on (any level with a `ruin` other than the jungle), grains a resting boulder pushes out lose their speed into it: a boulder in an 80- or 130-water pit now settles in 2.2–3.1 s. Level 21's hint went from 94.6 s to 23.0 s. Chapters 1–2 are unchanged (chapter 2 has no boulders; the jungle keeps the old rule).
 - **A closed dome is a diving bell: rising water does not squeeze gas out under its lip.** Water 93 px over the lip of a 160-px dome spilled 0–3 of 60 gas. Gas leaves a dome only upward: through a vent, a flue or a door in its roof, or by burning. (This changes level 22's "the flood squeezes the gas out": make the flood lift the gas pool up a flue or stair whose mouth is in the dome's roof, behind a pin.)
 - **Nib**: lost `'gassed'` with ≥ 3 gas grains within 30 px of his centre at once, or any touching him 20 steps in a row. One stray grain is safe. He walks under a resting dome's lip safely (measured with 24 px between the lip and his head): the gas stays above the lip.
 - Creatures walk through gas (they don't push it); bodies, rubies and slabs push it aside like water.
 
 ### Fire bowls, ignition and blasts (measured)
-- A gas grain touching a lit flame (within 18 px of its centre) or any lava (13.5 px) burns 8 steps then is gone; from its 2nd step it lights all gas within 16 px. **120 gas in a 160-px dome burnt out in 0.25 s from one spark.** Gas across a wall or pin (≥ 26 px apart) doesn't catch: the fire follows connection.
+- **A flame lights gas whose centre is within 24 px of the flame's centre** (`IGNITE_REACH`: the flame's 12 px plus a grain's width; it was 18, touching, before the second pass). Lava lights gas it touches (13.5 px). A burning grain burns 8 steps then is gone; from its 2nd step it lights all gas within 16 px. **120 gas in a 160-px dome burnt out in 0.25 s from one spark.** Gas across a wall or pin (≥ 26 px apart) doesn't catch: the fire follows connection. Water touching the flame (18 px) douses it first: a doused bowl lights nothing, even gas already in reach.
+- **Where a bowl lights (measured):**
+  - *Beside a rising column:* gas rises dead straight (no sideways spread), so the flame's centre must be within **24 px of the column's outermost grain centres** (~18 px out from the column's wall face). 30 px out it never lit.
+  - *Under a pool:* with one row of gas, the flame's centre must be ≤ **24 px** under the ceiling's underside; with two rows, ≤ **36 px**; 42 px never lit.
+  - *On a shelf in the gas's way:* the shelf turns the gas round its end, so the bowl must stand **at the shelf's tip** (the shelf's end ≤ 4 px past the flame's centre). A shelf reaching 8 px or more past the flame: never lit. Level 23's "bowl on a mid-column shelf" is this.
+  - The column takes ~1 s to rise 300 px past a bowl, then lights at once.
+- **Level 23's mystery, solved (a rule, not a bug).** With 30–60 water in a wider, taller tank the far bowl stayed lit and all 72 gas were there, unburnt: water doesn't damp gas or douse a far bowl. The water in the well pushed the rising column sideways; ~10 grains caught under the lava vat's floor pin, and the other ~62 pooled two rows deep over x 500–840 (5 px per grain) and stopped short of the far bowl at x 858, whose flame sat right at the pool's end. With 18 water the column hit the roof nearer the bowl and it lit. Put the far bowl well inside the pool's width from where the column arrives, or end the dome with a wall just past the bowl so the gas has to reach it.
 - **Blast reach** (each burning grain, any step it burns): a cracked bar breaks when its centre line is within **48 px** (40 + its t 8); Nib is blasted with his centre within **~60 px** (64 measured fine); any guard (boar, salamander, armadillo, frog: fireproof isn't blastproof) within 40 px of its edge; an 'up' ledge within 48 px starts cracking (0.4 s wobble, then falls as before). Only along a line no wall, pin, door or ledge blocks: no blast round a corner. The boss, water, lava, coins, stone, rubies, boulders, rafts, plates, doors, pins and bowls are untouched.
 - **Keep Nib ≥ 70 px from any gas that can burn**, and his route ≥ 70 px below a dome that a flame can reach.
 - Dousing: one water grain touching a lit flame puts it out for good (the grain is used up, steam, event `doused`). 3 water dropped 210 px onto a bowl doused it in 0.65 s. Lava and coins don't affect a bowl.
@@ -146,9 +161,30 @@ Every lab run now also prints (for every level; the old lines are unchanged):
 - The grain total adds the boss's `breath.max`. The board map (`BOARD=1`) draws `o` gas, `%` cracked walls, `P` plates, `|` doors, `F` flames.
 - The audit counts 'gassed', 'blasted' and 'sealed' as lessons like any loss.
 
-### Not built yet
-- **The boss (level 30)**: `breath` is in LevelDef and the budget, but the Tomb Guardian's breathing, the coffin lid and its tests are a later engine pass. The toad draws (a big warty frog) and stays put as any boss.
-- The painterly tomb art: plates, doors, bowls, rubble, gas and the frog are pen-and-ink placeholders; the walls use the temple's stone.
+### The Tomb Guardian (the boss, level 30)
+- `blots: [{ x, y, animal: 'toad', boss: true }]`: radius 40 (≥ 80 px headroom), **stays in its coffin** (never walks; it only turns to face Nib). Nib touching it is `inked`, as with any guard. Plus `breath: { every, count, max }` on the level (written out; see above).
+- **The beat** starts at the first pull: it breathes at first pull + `every`, + 2·`every`, … (5, 10, 15 s with the defaults). While Nib is out of its sight (**≥ 320 px sideways**, any height) it holds that breath and the beat keeps time. **Its throat swells for the 1 s before each breath** (the tell; `world.breathSwell`, 0..1; the placeholder art puffs the whole toad up 12%).
+- **A breath**: `count` gas grains from its edge toward Nib's centre, in rows of 4 (10 px apart, fanned ±20°) every 6 steps (24 grains in 0.3 s), at 1.5 px/step; then they rise like any gas. Event `breath`.
+- **The cap**: never more than `max` breath grains in play; burnt and vented ones free up room. Measured (every 2 s, count 24, max 50, nothing burning): 24, 24, then 2, then none.
+- **Where it pools**: Nib on the floor beside the coffin, a 200-px lid (a ledge) 150 px above the mouth: all 24 grains within 30 px under the lid **1.47 s** after the breath, two rows deep, **on Nib's side** of the lid (x 321..433 of a lid at 300..500, the toad at 400). The breath leans toward Nib before it rises.
+- **The lid**: a blast cracks an 'up' ledge within 48 px (0.4 s wobble, then it falls). Measured: the lid fell ~110 px onto the toad **0.84 s after the blast** and beat it (`stomped`: the slab squash already beats the boss, nothing was added; the Fire Idol still passes). A slab lands on any wall under it: a bowl's shelf inside the coffin must stand clear of the lid's fall (the test's lid is x 330..500 with the bowl's shelf at 291..312, its bowl at the shelf's tip, the flame 22 px under the lid and beside the lid's end, where the breath spills up past it).
+- **Lava at its mouth** (a cup on Nib's side) lights each breath as it comes out: it burns low, and the lid 150 px up stays up. That's a wrong order with a reason. Lava touching the toad's body scorches it like any guard: keep the cup ≥ 10 px off it.
+- Gas and blasts never hurt it. Water washes it only as a dropped column (the boss's soak).
+- Tests: `test/boss-ch3.test.ts` (`MEASURE=1` prints the numbers above).
+
+### How each mechanic reads on a board
+Worked boards from `test/patterns-ch3.test.ts`, each tested with these numbers (room 40..760 × 300..900, floor top 892, door D a 100-px door at x 600 that plate A holds open).
+1. **A plate Nib must not touch.** Plate A (x 56..150) sits in a closet whose wall comes right down to the floor (x 160, y 650..892); a boulder on pin B (y 712, 180 px up) drops into it. Nib can walk up to the closet wall all day and the plate weighs 0. Pull B: the boulder is on the plate 0.53 s later (weight 40) and the door is fully open 0.41 s after that. Never put such a plate on Nib's route: he steps off it and the slow door lets him through.
+2. **A door that seals Nib in.** Plate A (need 20) is the floor of a 100-px pit holding 50 water; pin G lies across the pit floor plugging a 12-px grate. Door D stands between Nib (held by pin S) and the chest; `seals: [{ door: 'D', side: 'right' }]`. S first: he walks through. G first: the pit leaks, the plate goes up 1.5 s later and the door is shut 0.82 s after that; pulling S then ends `'sealed'` 1.0 s later (all pins out, board still). No `seals` entry, and the same order would end 'stuck'.
+3. **Gas vented top-down.** 100 gas under a 300-px dome whose lips hang 50 px (the gas is 48 px deep); a chimney in its roof with a drain box 40..90 px up, plugged by pin V across the gap. Pull V: a 40-px vent empties half the dome in 3.0 s and all but 2 in 5.5 s; a 60-px vent, 2.2 s and 4.1 s. Nothing spills under the lips. Nib can stand under the dome's lip the whole time.
+4. **A bowl lights a gas pocket and breaks a cracked bar.** A 300-px dome from a lip at x 400 to a cracked bar at x 700 (in `bars` and `cracked`); a bowl at the tip of a 32-px shelf off the bar, its flame centre 22 px under the ceiling; pin G is the lid of a 100-px gas pit in the floor holding 60 gas (7 rows hanging from the lid: keep the pit ≥ 80 px deep, or the fill starts in the rock). Pull G: the gas rises, spreads two rows deep and reaches the flame 2.6 s later; the bar breaks 0.07 s after that. Nib 300 px away on the floor is safe.
+5. **A frog dropped onto a plate.** A puffed frog floats at x 300 in 120 gas under a 300-px dome (x 250..550) with a 40-px roof vent at x 380..420. Plate A is the floor of a 200-px pit, 60 px deep, right under the vent. Pull V: the frog drifts to the vent (x ~400) while the gas leaves, drops 6.0 s after the pull, lands in the pit 0.7 s later, and can't walk out: weight 30, the door stays open. **On an open floor it lands, walks off the plate and the door shuts again**: a frog's plate needs a pit. Into water instead: a pool under the vent washes it ~1.2 s after it drops.
+
+### Level notes from the first builds (levels 21–23)
+- With no `stops`, the bot walks Nib toward the chest after every tap (so he can be standing on a trapdoor pin before it's pulled). Set `stops: []` and script the walks with `'@x'` steps when that matters.
+- The first draft of level 21 waited ~24 s per pull on a boulder churning its pit (fixed: see settling above).
+- For levels with `seals`, the bot and the audit wait up to 2 s after the last step for 'sealed' (it needs 1 s of calm). Before Nov 1, 2026 they left too soon and counted sealed orders 'stuck'; re-audit any level measured before then.
+- Level 23's blast depended on where the gas column hit the roof (see the mystery above): check a blast level's win at both ends of its fills and tanks, and with `ROBUST=1`.
 
 ### Design around this (Chapter 3)
 - Gas is fast (300 px/s up) and the fire is instant (a dome in 0.25 s): the board's drama is in the order, not in timing.
@@ -159,3 +195,19 @@ Every lab run now also prints (for every level; the old lines are unchanged):
 - A blast reaches 48 px to a cracked bar's centre line and ~60 px to Nib's centre, through open air only.
 - Gas fills hang from their lid: `y1` is the lid's underside, rows go down.
 - `seals` must not name a door Nib holds open by standing on its plate.
+- A flame reaches 24 px: beside a column it must nearly touch the gas; under a pool, ≤ 24 px below the ceiling (one row) or ≤ 36 (two). A bowl on a shelf stands at the shelf's tip.
+- Gas pools ~5 px wide per grain, two rows deep, where its column lands: a far bowl past that never lights.
+- A frog dropped on a plate walks off it unless the plate is in a pit (60 px deep held it).
+- Plates Nib mustn't hold go in a closet or behind a ≥ 66-px step: a slow door lets him slip through otherwise.
+- The boss's breath leans toward Nib and pools on his side of the lid; put the bowl (or the trap) there, clear of the lid's fall.
+- Drains swallow lava too (150 lava fell to 85 in ~5 s through a 30-px grate), not only water, coins and rubies.
+- One spark doesn't always burn a whole pool: in a 300-px dome with the flame 22 px under the roof, the edge lit 63 px short of a cracked bar and the bar held. Keep the dome narrow (≤ ~250 px for 60 gas) and the flame where the pool reaches before it lights (30 px under the roof worked).
+- A gate can't meter a small tank: 18 water left a full-width gate in ~0.5 s (the gate numbers above are for 240 water).
+- One spare water grain anywhere in a pit sets all the lava poured into it later: a pit can't keep water for a second job.
+- 'sealed' fires only once the board is calm 1 s: water trapped under new stone, or a puddle round Nib, keeps it churning, and the audit can count that order 'stuck'. Leave little spare water, and run spills away from Nib.
+- Steps need headroom: Nib can't climb even a 34-px step if a ceiling or ceiling corner is within ~60 px above his head (43 px failed, ≥ 60 climbed).
+- A puffed frog stays puffed 1–2 s or more after its pocket vents, and the settle check ignores it, so the next pull fires while it still floats; under a chimney it can float up and stay puffed for good. A frog can't carry a pin order between two quick pulls.
+- A gas gallery in front of a vault needs the vault's ceiling lower than its own (a lip): with matching ceilings the gas spreads into the vault when the door opens and thins below lethal.
+- Pins set in a flue's side walls slide up through the roof line; keep them short and low, or the roof-vent pin blocks them.
+- A gentle lava pour (a 22-px spout) doesn't splash: unset lava reaches past its pit only when the vat holds more than the pit.
+- A flame's 18-px douse reach counts from the water's real position after the pre-settle, which a tank wall's face shifts by up to 6 px: measure in the lab, don't trust the fill's x.

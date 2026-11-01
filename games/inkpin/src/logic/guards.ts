@@ -28,7 +28,7 @@ export const BLOT_SOAK = 260;
 /** The boss soaks up far more, and dries off as it goes, so only a flood all at once washes it away. */
 export const BOSS_SOAK = 70;
 export const BOSS_DRY = 10;
-const BOSS_SIGHT_X = 320;
+export const BOSS_SIGHT_X = 320;
 
 /** How a guard is beaten: washed away, scorched, or stomped flat. */
 export type BlotEnd = 'washed' | 'scorched' | 'stomped' | 'blasted';
@@ -109,13 +109,17 @@ export function moveBlot(b: Blot, w: GuardHost, footing: number): void {
     b.anchor = b.x;
   }
   // With Nib on its back the boss holds still (following him under his feet, it would bounce him for ever), so he can walk off.
-  w.moveCreature(b, onBack(b, nib) ? 0 : b.facing * BLOT_WALK, false);
+  // The old toad never leaves its coffin: it only turns to face him.
+  w.moveCreature(b, onBack(b, nib) || stays(b) ? 0 : b.facing * BLOT_WALK, false);
   if (Math.abs(b.x - b.anchor) > HEADWAY) {
     b.anchor = b.x;
     b.stuck = 0;
   } else b.stuck++;
   soak(b, w);
 }
+
+/** The Tomb Guardian (the toad boss) stays in its coffin. */
+const stays = (b: Blot): boolean => b.boss && b.animal === 'toad';
 
 /** True when Nib is on the boss's back (on it, or bouncing just over it). */
 function onBack(b: Blot, nib: Creature): boolean {

@@ -209,3 +209,16 @@ export function drawMotionLines(ctx: CanvasRenderingContext2D, from: Pt, dir: Pt
   }
   ctx.restore();
 }
+
+/** A burst of small bubbles flying out of the bite at each thrash (`age` 0 .. 1 through one thrash). */
+export function drawBurst(ctx: CanvasRenderingContext2D, from: Pt, age: number): void {
+  const rng = createRng(733);
+  for (let i = 0; i < 9; i++) {
+    const a = -Math.PI / 2 + (rng() - 0.5) * 2.6;
+    const speed = 110 + rng() * 120;
+    const r = 4 + rng() * 9;
+    const u = age;
+    const d = speed * Math.sqrt(u);
+    drawBubble(ctx, from.x + Math.cos(a) * d, from.y + Math.sin(a) * d - 60 * u * u, r * (0.6 + 0.6 * u), Math.max(0, 1 - u * 1.1));
+  }
+}

@@ -1,6 +1,7 @@
 import type { VineEvent, VineSave } from './vines';
 import type { Boulder } from './boulders';
 import type { Creature } from './creatures';
+import type { BreathState } from './breath';
 import type { Blot } from './guards';
 import type { LedgeEvent, LedgeSave } from './ledges';
 import type { GuardAnimal, PinDef } from './level';
@@ -87,4 +88,5 @@ export interface WorldSave {
   readonly broken: readonly boolean[];
   readonly gasTouch: number;
   readonly calmSteps: number;
+  readonly breath: BreathState;
 }

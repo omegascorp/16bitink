@@ -21,6 +21,13 @@ export const BLAST_R = 40;
 /** A fire bowl's flame: a circle this far above the floor it stands on, and this big. */
 export const FLAME_UP = 34;
 export const FLAME_R = 12;
+/**
+ * A flame lights gas whose centre is this close to its centre (px): a grain's
+ * width clear of the flame's edge, not just touching it. Gas rises in a
+ * straight column and pools a row or two deep, so at touching distance a bowl
+ * beside a column, or a little low under a thin pool, never caught.
+ */
+export const IGNITE_REACH = FLAME_R + GRAIN_R * 2;
 /** Nib is gassed by this many gas grains touching him at once, or by any for GAS_STEPS in a row. */
 export const GAS_CROWD = 3;
 export const GAS_STEPS = 20;
@@ -60,7 +67,7 @@ export interface FireWorld {
 
 export const flameY = (b: { readonly y: number }): number => b.y - FLAME_UP;
 
-/** Water douses a lit bowl (the grain boils away); a lit bowl lights the gas that reaches its flame. */
+/** Water touching a lit flame douses it (the grain boils away); a lit bowl lights the gas within IGNITE_REACH of its flame. */
 export function stepBowls(w: FireWorld, events: FireEvent[]): void {
   const g = w.grains;
   for (const b of w.bowls) {
@@ -69,16 +76,19 @@ export function stepBowls(w: FireWorld, events: FireEvent[]): void {
     let douse = -1;
     g.near(b.x, fy, FLAME_R + GRAIN_R, (i) => {
       if (g.kind[i] === WATER && douse < 0) douse = i;
-      else if (g.kind[i] === GAS && g.burn[i] === 0) {
-        g.burn[i] = 1;
-        events.push({ type: 'ignite', x: g.x[i]!, y: g.y[i]! });
-      }
     });
+    // Water first: a doused flame lights nothing, even gas already within reach.
     if (douse >= 0) {
       b.lit = false;
       g.remove(douse);
       events.push({ type: 'doused', x: b.x, y: fy }, { type: 'steam', x: b.x, y: fy });
+      continue;
     }
+    g.near(b.x, fy, IGNITE_REACH, (i) => {
+      if (g.kind[i] !== GAS || g.burn[i] !== 0) return;
+      g.burn[i] = 1;
+      events.push({ type: 'ignite', x: g.x[i]!, y: g.y[i]! });
+    });
   }
 }
 

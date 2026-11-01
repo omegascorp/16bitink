@@ -74,6 +74,16 @@ export function paintBody(d: Draw, b: BodySide, shape: readonly Pt[]): void {
     if (st <= 0.02) continue;
     pen.fill([top[i]!, top[i + 1]!, bot[i + 1]!, bot[i]!], OLIVE.skin, Math.min(0.85, st));
   }
+  // Round over the meal: shade towards its top and down its lower flank, a lit band between.
+  const upper = across(b, -0.62);
+  const lower = across(b, 0.2);
+  const belly = across(b, 0.6);
+  for (let i = 0; i + 1 < b.spine.length; i++) {
+    const st = Math.max(b.stretch[i]!, b.stretch[i + 1]!);
+    if (st <= 0.05) continue;
+    pen.fill([top[i]!, top[i + 1]!, upper[i + 1]!, upper[i]!], OLIVE.deep, 0.3 * st);
+    pen.fill([lower[i]!, lower[i + 1]!, belly[i + 1]!, belly[i]!], OLIVE.deep, 0.28 * st);
+  }
   // Scales: staggered rows over the back and flank, the same size however far the skin is pulled.
   const n = upright(b.spine);
   const every = Math.max(1, Math.round(SCALE_STEP / Math.max(0.5, Math.hypot(b.spine[1]!.x - b.spine[0]!.x, b.spine[1]!.y - b.spine[0]!.y))));

@@ -12,7 +12,7 @@ import { TEMPO, WORDS, type Word } from './words';
 export const TEXT = {
   place: { y: 350, size: 104 },
   placeSouth: { y: 445, size: 96 },
-  whiteTag: { y: 800, size: 92 },
+  whiteTag: { y: 960, size: 92 },
   count: { y: 640, size: 250 },
   clock: { y: 700, size: 100 },
   feetSeal: { y: 520, size: 92 },

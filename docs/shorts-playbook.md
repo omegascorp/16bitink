@@ -428,6 +428,8 @@ The pipeline is in `games/inkfish/dev/promo/`. Each short has its own folder (`b
 
 To add one, register it in `main.ts` (as `?short=<name>`) and in `record.mjs`'s variant list. Preview at `/promo.html?short=<name>` (`&t=4.2` freezes a moment) and record with `pnpm --filter @16bitink/inkfish promo -- --only <name>`. Record when nothing else is editing files under `dev/`: Vite hot-reloads the page on any edit, and a reload mid-recording fails with "Execution context was destroyed". Loop length must be a whole number of video frames (30 fps) and of line-boil cycles (0.375s), which means a **multiple of 1.5s** (12s, 18s, 21s, 22.5s…).
 
+**Art quality bar (2026-11-01).** The main animals must match the painted animals in `foodchain/art/` (greatWhite.ts, orca.ts, blueWhale.ts) and `seal/art/` (capeFurSeal.ts, blueShark.ts): layered gradient washes, countershading, a realistic eye with a catchlight (no cartoon whites), thin interior ink and a firm but not heavy outline. Reuse them where the species fits. Flat fills with thick black outlines, and the game's small mesh sprites blown up, read as low quality: the user rejected #82's first two cuts for exactly that. Brief build agents to reuse or match these files and to show a side-by-side kit view of each new animal next to the great white.
+
 **Narrated shorts** (`mates/` is the example):
 
 1. Write the script so it ends mid-sentence and the first line finishes it. Fact-check every claim first.

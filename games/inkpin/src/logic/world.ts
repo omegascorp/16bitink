@@ -2,6 +2,7 @@ import { climbable, loadVine, saveVine, stepVine, vine, type Vine, type VineEven
 import { boulder, CRUSH_SPEED, separate, standsOn, stepBody, type Boulder } from './boulders';
 import { capsuleContact, segSegDistance, type Contact, type Seg } from './geom';
 import { creature, FOOTING_STEPS, moveCreature, overlaps, type Creature, type Mover } from './creatures';
+import { breather, breathOf, loadBreath, newBreath, saveBreath, stepBreath, swell, type BreathEvent, type BreathState } from './breath';
 import { drainGrains, drainsOpen, inDrain, type DrainedCoin } from './drains';
 import { clearSlot, jammed } from './gates';
 import { blot, moveBlot, type Blot, type BlotEnd } from './guards';
@@ -12,6 +13,7 @@ import { burn, gasOnNib, type Bowl, type FireEvent, type FireWorld } from './fir
 import { stepFrog, type FrogEvent } from './frog';
 import { doors, doorSegs, doorsMoving, loadTomb, plates, saveTomb, sealedOut, snapDoors, stepPlates, weighPlates, type DoorState, type PlateState, type TombEvent, type TombSave, type TombWorld } from './tomb';
 import { fill } from './fill';
+import { Drift, SETTLED_SPEED, stirred } from './settle';
 import { raft, stepRaft } from './rafts';
 import { inPlay, ruby, RUBY_COINS, RUBY_R, saveRuby, separateRubies, stepRuby, type Ruby, type RubyEvent, type RubySave } from './rubies';
 
@@ -37,26 +39,8 @@ const VINE_TAP = 40;
 const CHEST_REACH_X = 44;
 const CHEST_REACH_ABOVE = 90;
 const CHEST_REACH_BELOW = 24;
-/** The world counts as settled once nothing moves faster than this (px per step). */
-const SETTLED_SPEED = 0.35;
 /** Grains that may still jiggle in a settled world (water squeezed between a resting boulder and a wall). */
 const SETTLED_STRAYS = 6;
-/**
- * Grains this close (px) to a resting ruby's edge, or lava this close to a
- * live guard's, jiggle for good (the ruby shoves them, a salamander wades):
- * the settle check leaves them out.
- */
-const STIR_REACH = GRAIN_R * 4;
-/** A salamander wading stirs its lava pool this far (px) past its edge. */
-const WADE_REACH = 100;
-/**
- * A grain slower than JIGGLE_MAX whose velocity, averaged with this keep per
- * step (about 10 steps), stays under DRIFT_SPEED is shaking in place (a deep
- * tank's pressure), not flowing: the settle check leaves it out too.
- */
-const DRIFT_KEEP = 0.9;
-const DRIFT_SPEED = SETTLED_SPEED * 0.5;
-const JIGGLE_MAX = 1;
 /** How far past its length a pin must slide to be clear: its ring. */
 const PIN_RING_CLEAR = 28;
 /** Steps the grains run before a level starts, to settle against the pins. */
@@ -106,13 +90,14 @@ export class World {
   private quietSteps = 0;
   /** Steps everything but Nib has been settled (for 'sealed', and the lab's walk-only time). */
   private calmSteps = 0;
+  /** The Tomb Guardian's breath: its beat, and the grains it has in play (see breath.ts). */
+  private readonly breath: BreathState = newBreath();
   /** Steps in a row gas has touched Nib. */
   private gasTouch = 0;
   /** Where each ruby was last step, for the settle check. */
   private readonly rubyWas = new Map<number, readonly [number, number]>();
-  /** Each grain's averaged velocity, by grain id, for the settle check (see DRIFT_KEEP). */
-  private driftX = new Float64Array(0);
-  private driftY = new Float64Array(0);
+  /** Each grain's averaged velocity, for the settle check (see settle.ts). */
+  private readonly drift = new Drift();
   private order: NibOrder = { kind: 'stay' };
   /** Steps a 'goto' has made no headway (a wall, a pin in the way): it gives up. */
   private stalled = 0;
@@ -124,6 +109,8 @@ export class World {
   private climbing: Vine | null = null;
   /** What took the gold that's gone, for the loss: lava or the drain. */
   private goldLostTo: 'melted' | 'drained' = 'melted';
+  /** Grains a resting boulder pushes out lose their speed into it, so a boulder in a pool lets it settle (chapter 3 on; the jungle levels are tuned without). */
+  private readonly calmBoulders: boolean;
   /** Below this, Nib has fallen out of the level. */
   private readonly floorY: number;
   /** What creatures.ts moves Nib and the guards against. */
@@ -131,7 +118,7 @@ export class World {
 
   constructor(readonly level: LevelDef) {
     const total = level.fills.reduce((n, f) => n + f.count, 0);
-    this.grains = new Grains(total + 128 + (level.breath?.max ?? 0));
+    this.grains = new Grains(total + 128 + (breathOf(level)?.max ?? 0));
     for (const f of level.fills) fill(this.grains, f);
     this.pins = level.pins.map((def) => ({ def, pulledAt: null, pushedAt: null }));
     this.nib = creature(level.nib.x, level.nib.y, NIB_R, 1);
@@ -158,6 +145,7 @@ export class World {
       collect: (i) => this.collect(i),
       takeRuby: (r) => this.takeRuby(r),
     };
+    this.calmBoulders = level.ruin !== undefined && level.ruin !== 'jungle';
     this.floorY = Math.max(...level.rooms.flatMap((r) => r.map(([, y]) => y))) + 70;
     if (this.plates.length) {
       // Doors start where their plates, as laid out, put them.
@@ -219,6 +207,7 @@ export class World {
       broken: this.broken.slice(),
       gasTouch: this.gasTouch,
       calmSteps: this.calmSteps,
+      breath: saveBreath(this.breath),
     };
   }
 
@@ -256,6 +245,7 @@ export class World {
     this.broken.forEach((_, i) => (this.broken[i] = s.broken[i] ?? false));
     this.gasTouch = s.gasTouch;
     this.calmSteps = s.calmSteps;
+    loadBreath(this.breath, s.breath);
     this.pending = [];
     this.events.length = 0;
     this.rebuildSegs();
@@ -328,10 +318,13 @@ export class World {
       return false;
     }
     pin.pulledAt = this.steps;
+    this.breath.start ??= this.steps;
     this.rebuildSegs();
     this.grains.wakeAll();
     this.pending.push({ type: 'pull', id });
+    // A pull starts things moving: the board has to settle again before a shut door counts as sealing Nib in.
     this.quietSteps = 0;
+    this.calmSteps = 0;
     return true;
   }
 
@@ -361,6 +354,7 @@ export class World {
     this.rebuildSegs();
     this.pending.push({ type: 'gateIn', id });
     this.quietSteps = 0;
+    this.calmSteps = 0;
     return true;
   }
 
@@ -403,6 +397,7 @@ export class World {
     if (this.events.some((e) => e.type === 'melt')) this.goldLostTo = 'melted';
     this.drain();
     this.burn();
+    stepBreath(this.breath, breathOf(this.level), breather(this.blots), this.nib, this.grains, this.steps, this.events as BreathEvent[]);
     this.moveBoulders();
     this.moveSlabs();
     this.moveRubies();
@@ -480,7 +475,7 @@ export class World {
     const before = bs.map((b) => b.x);
     for (const b of bs) {
       if (b.raft) stepRaft(b, this.segs, this.grains, this.contact);
-      else if (stepBody(b, this.segs, this.grains, this.contact)) this.events.push({ type: 'crateBurnt', x: b.x, y: b.y });
+      else if (stepBody(b, this.segs, this.grains, this.contact, this.calmBoulders)) this.events.push({ type: 'crateBurnt', x: b.x, y: b.y });
     }
     for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) if (!bs[i]!.gone && !bs[j]!.gone) separate(bs[i]!, bs[j]!);
     bs.forEach((b, i) => this.carry(b, b.x - before[i]!));
@@ -699,10 +694,11 @@ export class World {
       return;
     }
     const rubiesMoved = this.rubiesMoved();
-    this.trackDrift();
+    this.drift.track(this.grains);
+    const stir = { grains: this.grains, drift: this.drift, rubies: this.rubies, boulders: this.boulders, blots: this.blots };
     const busy =
       rubiesMoved ||
-      this.grains.countFasterThan(SETTLED_SPEED, (i) => this.stirred(i)) > SETTLED_STRAYS ||
+      this.grains.countFasterThan(SETTLED_SPEED, (i) => stirred(stir, i)) > SETTLED_STRAYS ||
       this.boulders.some((b) => !b.gone && Math.hypot(b.vx, b.vy) > SETTLED_SPEED) ||
       this.ledges.some(ledgeMoving) ||
       doorsMoving(this.doors, this.plates) ||
@@ -711,6 +707,11 @@ export class World {
     this.quietSteps = moving ? 0 : this.quietSteps + 1;
     this.calmSteps = busy ? 0 : this.calmSteps + 1;
     if (this.level.seals?.length && this.calmSteps >= SEAL_STEPS && this.pinsDone() && sealedOut(this.level.seals, this.doors, this.level.walls, this.broken, nib)) this.lose('sealed');
+  }
+
+  /** How swollen the Tomb Guardian's throat is (0..1), the tell before each breath. */
+  get breathSwell(): number {
+    return swell(this.breath, breathOf(this.level), breather(this.blots), this.nib, this.steps);
   }
 
   /** Steps everything but Nib has been settled: nothing flows, rolls, falls, floats or slides. */
@@ -743,35 +744,6 @@ export class World {
       this.rubyWas.set(r.id, [r.x, r.y]);
     }
     return moved;
-  }
-
-  private trackDrift(): void {
-    const g = this.grains;
-    if (this.driftX.length < g.capacity) {
-      this.driftX = new Float64Array(Math.max(g.capacity, 1024));
-      this.driftY = new Float64Array(Math.max(g.capacity, 1024));
-    }
-    for (let i = 0; i < g.count; i++) {
-      const id = g.id[i]!;
-      if (id >= this.driftX.length) continue;
-      this.driftX[id] = this.driftX[id]! * DRIFT_KEEP + g.vx[i]! * (1 - DRIFT_KEEP);
-      this.driftY[id] = this.driftY[id]! * DRIFT_KEEP + g.vy[i]! * (1 - DRIFT_KEEP);
-    }
-  }
-
-  /** A moving grain the settle check leaves out: jiggling in place, by a ruby in play or a raft, or lava by a live guard (see STIR_REACH). */
-  private stirred(i: number): boolean {
-    const g = this.grains;
-    const x = g.x[i]!;
-    const y = g.y[i]!;
-    const id = g.id[i]!;
-    if (id < this.driftX.length && Math.hypot(g.vx[i]!, g.vy[i]!) < JIGGLE_MAX && Math.hypot(this.driftX[id]!, this.driftY[id]!) < DRIFT_SPEED) return true;
-    for (const r of this.rubies) if (inPlay(r) && Math.hypot(x - r.x, y - r.y) < RUBY_R + STIR_REACH) return true;
-    if (g.kind[i] === COIN) return false;
-    for (const b of this.boulders) if (b.raft && !b.gone && Math.abs(x - b.x) < b.hw + STIR_REACH && Math.abs(y - b.y) < b.hh + STIR_REACH) return true;
-    if (g.kind[i] !== LAVA) return false;
-    for (const b of this.blots) if (!b.gone && Math.hypot(x - b.x, y - b.y) < b.r + WADE_REACH) return true;
-    return false;
   }
 
   /** Nib coming down on top of a guard, as in the old platformers: it lands on its head. */

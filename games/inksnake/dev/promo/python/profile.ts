@@ -54,15 +54,15 @@ export function crocHalf(u: number): number {
 /**
  * The croc's track, from beyond its tail tip (top left, the tail curled up)
  * round to the hips, through the mouth and on down the python's neck and
- * body, which runs off to the right, turns towards the camera and comes back
- * across the foreground mud and off the left edge. The croc slides along it
- * as it goes in (the body's turn is off screen).
+ * body, which runs to the right edge, turns towards the camera and comes back
+ * across the foreground mud in an S and off the left edge. The croc slides
+ * along it as it goes in.
  */
 export const TRACK = route([
   { x: 146, y: 82 }, { x: 126, y: 84 }, { x: 103, y: 92 }, { x: 78, y: 98 }, { x: 54, y: 106 }, { x: 36, y: 122 }, { x: 29, y: 142 }, { x: 33, y: 160 },
-  { x: 48, y: 170 }, { x: 70, y: 172 }, { x: 95, y: 172 }, { x: RIM.x, y: RIM.y }, { x: 146, y: 172 }, { x: 178, y: 182 }, { x: 208, y: 194 },
-  { x: 228, y: 208 }, { x: 224, y: 224 }, { x: 200, y: 231 }, { x: 150, y: 234 }, { x: 100, y: 236 }, { x: 50, y: 233 }, { x: 10, y: 229 },
-  { x: -40, y: 231 }, { x: -120, y: 233 },
+  { x: 48, y: 170 }, { x: 70, y: 172 }, { x: 95, y: 172 }, { x: RIM.x, y: RIM.y }, { x: 146, y: 173 }, { x: 172, y: 181 }, { x: 191, y: 195 },
+  { x: 198, y: 211 }, { x: 190, y: 225 }, { x: 168, y: 233 }, { x: 140, y: 238 }, { x: 110, y: 234 }, { x: 82, y: 224 }, { x: 54, y: 222 },
+  { x: 28, y: 232 }, { x: 4, y: 242 }, { x: -40, y: 246 }, { x: -120, y: 248 },
 ], 1);
 export const S_RIM = nearestS(TRACK, RIM);
 /** Where the body leaves the view on the left (the track's end, near enough). */

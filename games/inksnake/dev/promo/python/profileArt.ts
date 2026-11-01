@@ -195,7 +195,7 @@ function neckSide(shot: HookShot): BodySide {
 }
 
 /** Where the neck turns off the right of the view and the body comes back across the foreground. */
-const S_TURN = S_RIM + 125;
+const S_TURN = S_RIM + 100;
 
 /** The neck's top and bottom edges from the lips on. */
 function neckEdges(shot: HookShot, head: Head): { after: Pt[]; below: Pt[] } {
@@ -333,7 +333,7 @@ function drawContact(d: Draw, shot: HookShot): void {
   const out = Math.min(1, Math.max(0, (RIM.x - 8 - hips.x) / 20)) * (1 - shot.fold);
   if (out > 0) d.pen.fill(oval(hips.x, GROUND + 1.5, 24, 3.2, 28), '#0a0705', 0.45 * out);
   d.pen.fill(oval(RIM.x + 4, GROUND + 1, 16, 2.4, 24), '#0a0705', 0.4);
-  d.pen.fill(oval(96, 247, 120, 3.6, 40), '#0a0705', 0.5);
+  d.pen.fill(oval(96, 248, 120, 3.6, 40), '#0a0705', 0.45);
 }
 
 /** Water glints, twinkling in place in whole cycles a loop. */

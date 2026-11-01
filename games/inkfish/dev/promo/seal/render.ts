@@ -2,8 +2,9 @@ import { INK, makeCanvas, PAPER } from '../../../src/art/pen';
 import { BOIL_FRAMES } from '../../../src/art/textures';
 import { CAPTION_FONT, drawTextLine, type TextInk } from '../captions';
 import { VIDEO, type Short } from '../short';
-import { makeSprite } from '../sprites';
+import { prepare as prepareGreatWhite } from '../foodchain/art/greatWhite';
 import { renderSealAudio } from './audio';
+import { prepareFigures } from './figures';
 import { drawAmbient, drawRays, makeWater, RED } from './scene';
 import { drawBars, drawBite, drawChase, drawPeek, drawSurface, drawTug } from './scenes';
 import { captionAt, TEXT } from './script';
@@ -60,20 +61,35 @@ function drawGrade(ctx: CanvasRenderingContext2D, t: number): void {
   }
 }
 
+/** While the picture flips over it is a card: an inked paper edge round it. */
+function drawCardEdge(ctx: CanvasRenderingContext2D, card: number): void {
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, card * 3);
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = PAPER;
+  ctx.lineWidth = 34;
+  ctx.strokeRect(0, 0, VIDEO.width, VIDEO.height);
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 10;
+  ctx.strokeRect(-17, -17, VIDEO.width + 34, VIDEO.height + 34);
+  ctx.restore();
+}
+
 export function createSeal(ctx: CanvasRenderingContext2D): Short {
   const water = makeWater();
-  const sprites = { white: makeSprite('shark', 4, 'heavy') };
+  void prepareGreatWhite();
+  prepareFigures();
   const layer = makeCanvas(VIDEO.width, VIDEO.height);
   const world = makeCanvas(VIDEO.width, VIDEO.height);
 
   const drawScene = (id: SceneId, t: number, boil: number): void => {
     switch (id) {
       case 'bite': return drawBite(layer.ctx, t, boil);
-      case 'surface': return drawSurface(layer.ctx, sprites, t, boil);
+      case 'surface': return drawSurface(layer.ctx, t, boil);
       case 'chase': return drawChase(layer.ctx, t, boil);
       case 'tug': return drawTug(layer.ctx, t, boil);
       case 'bars': return drawBars(layer.ctx, t, boil);
-      case 'peek': return drawPeek(layer.ctx, sprites, t, boil);
+      case 'peek': return drawPeek(layer.ctx, t, boil);
     }
   };
 
@@ -104,6 +120,7 @@ export function createSeal(ctx: CanvasRenderingContext2D): Short {
     ctx.scale(cam.zoom, cam.zoom);
     ctx.translate(-VIDEO.width / 2, -800);
     ctx.drawImage(world.canvas, 0, 0);
+    if (cam.card > 0.01) drawCardEdge(ctx, cam.card);
     ctx.restore();
     wash(ctx, 'source-over', '#ffffff', flashAt(t));
     drawCaption(ctx, t);

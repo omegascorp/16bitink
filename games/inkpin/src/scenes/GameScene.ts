@@ -394,6 +394,8 @@ export class GameScene extends Phaser.Scene {
       if (!img || b.gone) return;
       img.setPosition(b.x, b.y).setFlipX(b.facing < 0);
       img.setTexture(guardKey(guardKind(b), b.wet > 0, boil));
+      // The Tomb Guardian's throat swells before each breath: the tell (placeholder: the whole toad puffs a little).
+      if (b.boss && b.animal === 'toad') img.setScale(S * (1 + 0.12 * this.world.breathSwell));
     });
     this.bodies.update();
     this.shrine.update(time);
@@ -487,6 +489,9 @@ export class GameScene extends Phaser.Scene {
           break;
         case 'doused':
           this.tomb.doused(e.x, e.y);
+          break;
+        case 'breath':
+          this.sfx.play('squelch', 0.5);
           break;
         case 'doorOpen':
         case 'doorShut':

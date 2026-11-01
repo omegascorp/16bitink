@@ -9,6 +9,9 @@ import { PUMICE_RAFT } from './ch2/pumiceRaft';
 import { RUBY_HOARD } from './ch2/rubyHoard';
 import { SPRINGS } from './ch2/springs';
 import { STONE_BRIDGE } from './ch2/stoneBridge';
+import { BAD_AIR } from './ch3/badAir';
+import { BLASTING_CHAMBER } from './ch3/blastingChamber';
+import { SEALED_DOOR } from './ch3/sealedDoor';
 import { CELLAR } from './cellar';
 import { CISTERN } from './cistern';
 import { DOOR } from './door';
@@ -53,7 +56,7 @@ export const CHAPTER_2: readonly LevelDef[] = [
  * Chapter 3, the Desert Tomb, in order: levels 21–30, added one file at a
  * time from src/level/ch3/. While it's empty the chapter is a draft on the map.
  */
-export const CHAPTER_3: readonly LevelDef[] = [];
+export const CHAPTER_3: readonly LevelDef[] = [SEALED_DOOR, BAD_AIR, BLASTING_CHAMBER];
 
 /** The built chapters' levels, by chapter; a chapter with none is still a draft on the map. */
 export const CHAPTERS: readonly (readonly LevelDef[])[] = [CHAPTER_1, CHAPTER_2, CHAPTER_3];

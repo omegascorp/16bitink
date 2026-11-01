@@ -431,6 +431,7 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   },
   seal: async () => {
     await loadCaptionFont();
+    if (params.has('kit')) return (await import('./seal/kit')).createSealKit(ctx);
     const { createSeal } = await import('./seal/render');
     return withCredit(createSeal(ctx), ctx, PAPER_ON_DARK);
   },
