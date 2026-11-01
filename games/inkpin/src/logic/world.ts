@@ -11,9 +11,10 @@ import type { FillDef, GuardAnimal, LevelDef, PinDef } from './level';
 import { COIN, GRAIN_R, Grains, LAVA, STEPS_PER_SECOND, type GrainEvent, type GrainsSave } from './particles';
 import { burn, gasOnNib, type Bowl, type FireEvent, type FireWorld } from './fire';
 import { stepFrog, type FrogEvent } from './frog';
+import { SealWatch } from './seal';
 import { doors, doorSegs, doorsMoving, loadTomb, plates, saveTomb, sealedOut, snapDoors, stepPlates, weighPlates, type DoorState, type PlateState, type TombEvent, type TombSave, type TombWorld } from './tomb';
 import { fill } from './fill';
-import { Drift, SETTLED_SPEED, stirred } from './settle';
+import { Drift, SETTLED_SPEED, stirred, tombBusy } from './settle';
 import { raft, stepRaft } from './rafts';
 import { inPlay, ruby, RUBY_COINS, RUBY_R, saveRuby, separateRubies, stepRuby, type Ruby, type RubyEvent, type RubySave } from './rubies';
 
@@ -51,8 +52,6 @@ const JUMP_SPEED = 2.9;
 const GOTO_PATIENCE = 40;
 /** A slab pressing this far (px) into a creature on the ground squashes it, however slowly it comes down. */
 const SLAB_PRESS = 6;
-/** The world (Nib aside) must have been settled this long, with every pin out, before a shut barrier seals the level. */
-const SEAL_STEPS = STEPS_PER_SECOND;
 
 export type { LossCause, NibOrder, Status, WorldEvent, PinState, WorldSave } from './worldTypes';
 import type { LossCause, NibOrder, PinState, Status, WorldEvent, WorldSave } from './worldTypes';
@@ -90,6 +89,8 @@ export class World {
   private quietSteps = 0;
   /** Steps everything but Nib has been settled (for 'sealed', and the lab's walk-only time). */
   private calmSteps = 0;
+  /** When the board has come to rest for the 'sealed' loss (see seal.ts). */
+  private readonly seal = new SealWatch();
   /** The Tomb Guardian's breath: its beat, and the grains it has in play (see breath.ts). */
   private readonly breath: BreathState = newBreath();
   /** Steps in a row gas has touched Nib. */
@@ -207,6 +208,7 @@ export class World {
       broken: this.broken.slice(),
       gasTouch: this.gasTouch,
       calmSteps: this.calmSteps,
+      seal: [this.seal.calm, this.seal.lull],
       breath: saveBreath(this.breath),
     };
   }
@@ -245,6 +247,7 @@ export class World {
     this.broken.forEach((_, i) => (this.broken[i] = s.broken[i] ?? false));
     this.gasTouch = s.gasTouch;
     this.calmSteps = s.calmSteps;
+    [this.seal.calm, this.seal.lull] = s.seal ?? [s.calmSteps, 0];
     loadBreath(this.breath, s.breath);
     this.pending = [];
     this.events.length = 0;
@@ -325,6 +328,7 @@ export class World {
     // A pull starts things moving: the board has to settle again before a shut door counts as sealing Nib in.
     this.quietSteps = 0;
     this.calmSteps = 0;
+    this.seal.restart();
     return true;
   }
 
@@ -355,6 +359,7 @@ export class World {
     this.pending.push({ type: 'gateIn', id });
     this.quietSteps = 0;
     this.calmSteps = 0;
+    this.seal.restart();
     return true;
   }
 
@@ -405,7 +410,11 @@ export class World {
     for (const b of this.blots) if (!b.gone && !stepFrog(b, this.grains, this.segs, this.contact, this.events as FrogEvent[])) moveBlot(b, this, FOOTING_STEPS);
     this.moveNib();
     this.ledges.forEach((l, i) => noteNib(l, i, this.nibOn(l), this.steps, this.events));
-    if (this.plates.length && weighPlates(this.plates, this.doors, this.tombWorld(), this.events as TombEvent[])) this.rebuildSegs();
+    // A door moving takes its floor (or its stop) away: wake what sleeps on it, as a pull does.
+    if (this.plates.length && weighPlates(this.plates, this.doors, this.tombWorld(), this.events as TombEvent[])) {
+      this.rebuildSegs();
+      this.grains.wakeAll();
+    }
     this.judge();
   }
 
@@ -440,7 +449,11 @@ export class World {
       lose: (cause) => this.lose(cause),
       blotGone: (b, how) => this.blotGone(b, how),
     };
-    if (burn(fw, this.events as FireEvent[])) this.rebuildSegs();
+    // A broken bar (or a cracked ledge) leaves what slept on it in the air: wake it, as a pull does.
+    if (burn(fw, this.events as FireEvent[])) {
+      this.rebuildSegs();
+      this.grains.wakeAll();
+    }
   }
 
   /** Grains, and rubies, in an open drain's box are gone down it. */
@@ -620,6 +633,9 @@ export class World {
   /** A guard is beaten: it goes, and the scene shows how. (For guards.ts.) */
   blotGone(b: Blot, how: BlotEnd): void {
     b.gone = how;
+    // A frog blasted or washed while puffed goes as it is: it no longer floats (nor reads as puffed).
+    b.puffed = false;
+    b.thin = 0;
     b.goneAt = this.steps;
     this.events.push({ type: how, x: b.x, y: b.y });
   }
@@ -696,17 +712,18 @@ export class World {
     const rubiesMoved = this.rubiesMoved();
     this.drift.track(this.grains);
     const stir = { grains: this.grains, drift: this.drift, rubies: this.rubies, boulders: this.boulders, blots: this.blots };
-    const busy =
+    const bodiesMoving =
       rubiesMoved ||
-      this.grains.countFasterThan(SETTLED_SPEED, (i) => stirred(stir, i)) > SETTLED_STRAYS ||
       this.boulders.some((b) => !b.gone && Math.hypot(b.vx, b.vy) > SETTLED_SPEED) ||
       this.ledges.some(ledgeMoving) ||
-      doorsMoving(this.doors, this.plates) ||
-      this.blots.some((b) => b.puffed && !b.gone);
+      doorsMoving(this.doors, this.plates);
+    const busy = bodiesMoving || this.grains.countFasterThan(SETTLED_SPEED, (i) => stirred(stir, i)) > SETTLED_STRAYS || tombBusy(stir);
     const moving = busy || Math.hypot(nib.vx, nib.vy) > SETTLED_SPEED * 0.5;
     this.quietSteps = moving ? 0 : this.quietSteps + 1;
     this.calmSteps = busy ? 0 : this.calmSteps + 1;
-    if (this.level.seals?.length && this.calmSteps >= SEAL_STEPS && this.pinsDone() && sealedOut(this.level.seals, this.doors, this.level.walls, this.broken, nib)) this.lose('sealed');
+    if (!this.level.seals?.length) return;
+    this.seal.step(bodiesMoving, stir, this.plates);
+    if (this.seal.due && this.pinsDone() && sealedOut(this.level.seals, this.doors, this.level.walls, this.broken, nib)) this.lose('sealed');
   }
 
   /** How swollen the Tomb Guardian's throat is (0..1), the tell before each breath. */

@@ -12,7 +12,7 @@ Don't read engine sources. If the kit is wrong or missing something, measure it 
 
 **Lab, not probe tests:** `cd games/inkpin && LAB=<id> [ORDERS="A,B|B,A"] [BOARD=1] [STEPS=1] [AUDIT=1] npx vitest run test/lab --silent=false --testTimeout=3600000`. A play costs ~4 s CPU, an audit minutes: audit only a version you think is ready.
 
-**Register** your level in `CHAPTER_3` in src/level/index.ts at its place in the chapter (21 first … 30 last). Other agents edit the same list: re-read the file right before your edit and change only your own line.
+**Register** your level in src/level/index.ts: in `CHAPTER_3` at its place (21 first … 30 last) **only once every target passes**; until then it stays in `CHAPTER_3_DRAFTS`, which the game doesn't list (an unfinished draft once showed up as the wrong level number and couldn't be won). Other agents edit the same file: re-read it right before your edit and change only your own entry.
 
 **Targets** (your place in the chapter = number − 20):
 | Place | Pins | Win share | Lessons | Top lesson | Late losses | Stuck/playing |
@@ -25,7 +25,10 @@ Also: the four reading checks (the lab prints the obvious orders: both must lose
 - Never lower a threshold in a test to fit the level.
 - No decoy pins: every pin is in the win and matters to the order, except at most one tempting trap that the design names.
 - No padding: no `~` wait over ~10 s, no walks or stops added for time.
+- **Board size like Chapters 1–2:** view ≥ ~1300 px wide (or ≥ ~1000 tall for a tall level). Never shrink the board to make tuning easier, and never pad it to reach the width: a long empty channel or corridor counts as empty space (level 23's 800-px aqueduct was sent back); the user noticed Chapter 3's first boards shrinking to 620–840 px.
 - No empty space: every room and stretch of floor has a job (a pin, liquid, gas, guard, coin, plate or route choice). Players notice floor they only walk.
+- **Plates and doors in full view:** no pin, bar or wall lying over a plate's tile or a door's boss (level 21's plate hid under pin G and read as nothing). Leave the groove between a plate and its doors a clear route through open wall.
+- **Readable at a glance:** a player who has never seen the level must be able to tell what each piece does from the board alone (the user couldn't read level 21's plate and doors). Give a new mechanic's first level a plain `tip`; keep links (plate → its doors) visible; check your board in the browser once, with one screenshot: `http://localhost:5203/dev/?level=N` for a listed level, `http://localhost:5203/dev/?draft=<id>` for one still in the drafts.
 - Every wrong order loses for a visible, funny cause; none ends 'stuck' or 'playing'.
 - Not fragile: the win survives the lab's shifted-timing replay; script walks with `'@x'` steps.
 - Leave a few coins of slack in `coinsNeeded`.

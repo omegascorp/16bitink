@@ -31,8 +31,8 @@ export class BodiesView {
     // A vine's picture reaches VINE_FOOT below its foot; the seed sits in a crack in the floor.
     this.vines = world.vines.map((v) => scene.add.image(v.x, v.bottom + VINE_FOOT, vineKey(v.def)).setScale(S).setOrigin(0.5, 1));
     this.seeds = world.vines.map((v) => (v.def.seed ? scene.add.image(v.x, v.bottom + 4, 'seed').setScale(S).setOrigin(0.5, 1) : null));
-    const basalt = world.level.ruin === 'volcano';
-    const key = (b: Boulder): string => (b.raft ? 'raft' : b.crate ? 'crate' : basalt ? 'boulder-basalt' : 'boulder');
+    const stone = world.level.ruin === 'volcano' ? 'boulder-basalt' : world.level.ruin === 'tomb' ? 'boulder-sandstone' : 'boulder';
+    const key = (b: Boulder): string => (b.raft ? 'raft' : b.crate ? 'crate' : stone);
     this.boulders = world.boulders.map((b) => scene.add.image(b.x, b.y, key(b)).setScale(S));
     layer.add([...this.vines, ...this.seeds.filter((s): s is Phaser.GameObjects.Image => s !== null), ...this.boulders]);
     this.resync();

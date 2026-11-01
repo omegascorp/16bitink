@@ -178,6 +178,54 @@ describe("the 'sealed' loss", { timeout: 120_000 }, () => {
     run(w, 1800);
     expect(w.status.state).toBe('playing');
   });
+
+  /**
+   * A shut door D at x 600 (its plate A, far right, carries nothing), Nib on
+   * the wrong side of it, and a guard that moves for good on his side: the
+   * guard's own motion never keeps the board from rest (Level 24's report,
+   * Nov 1, 2026). X is a pin to pull, so every pin is out.
+   */
+  const shutIn = (extra: Partial<LevelDef>): LevelDef =>
+    tombRoom({
+      ...extra,
+      walls: [...BASE, { ax: 600, ay: 300, bx: 600, by: FLOOR - 92, t: T }, ...(extra.walls ?? [])],
+      pins: [{ id: 'X', ax: 60, ay: 400, bx: 140, by: 400, t: 7 }],
+      plates: [{ id: 'A', x0: 650, x1: 740, y: FLOOR }],
+      doors: [door()],
+      seals: [{ door: 'D', side: 'right' }],
+    });
+
+  it("a guard pacing for good behind a shut door: 'sealed'", () => {
+    // A boar on a shelf, turning at its ends, for ever.
+    const w = new World(shutIn({ walls: [{ ax: 200, ay: 700, bx: 500, by: 700, t: T }], blots: [{ x: 350, y: 678 }] }));
+    run(w, 120);
+    w.pull('X');
+    const xs: number[] = [];
+    for (let s = 0; s < 1800 && !w.finished; s++) {
+      w.step();
+      xs.push(w.blots[0]!.x);
+    }
+    expect(w.status).toEqual({ state: 'lost', cause: 'sealed' });
+    expect(w.blots[0]!.gone).toBeNull();
+    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(20);
+  });
+
+  it("a puffed frog floating for good (no vent over it) behind a shut door: 'sealed'", () => {
+    // A cup upside down (x 160..280, its roof at y 500) holds a pocket of gas, and the frog floats in it.
+    const cup = [
+      { ax: 160, ay: 500, bx: 280, by: 500, t: T },
+      { ax: 160, ay: 500, bx: 160, by: 580, t: T },
+      { ax: 280, ay: 500, bx: 280, by: 580, t: T },
+    ];
+    const w = new World(shutIn({ walls: cup, fills: [{ kind: GAS, x0: 160, x1: 280, y1: 508, count: 120 }], blots: [{ x: 220, y: 560, animal: 'frog' }] }));
+    run(w, 240);
+    expect(w.blots[0]!.puffed).toBe(true);
+    w.pull('X');
+    run(w, 1800);
+    expect(w.status).toEqual({ state: 'lost', cause: 'sealed' });
+    expect(w.blots[0]!.puffed).toBe(true);
+    expect(w.blots[0]!.gone).toBeNull();
+  });
 });
 
 describe('tomb gas', { timeout: 120_000 }, () => {
@@ -283,6 +331,23 @@ describe('fire bowls and blasts', { timeout: 120_000 }, () => {
     expect(count(w, GAS, (x) => x < 400)).toBe(0);
     expect(count(w, GAS, (x) => x > 400)).toBe(20);
     expect(w.broken[5]).toBe(false);
+  });
+
+  it('wakes the gold asleep on a cracked bar when the blast breaks it: it falls with no pin pulled', () => {
+    const lid = BASE.length + 3;
+    const w = new World(tombRoom({
+      // A closed cup of gas whose lid is a cracked bar, with coins asleep on the lid.
+      walls: [...BASE, { ax: 300, ay: 500, bx: 300, by: 600, t: T }, { ax: 500, ay: 500, bx: 500, by: 600, t: T }, { ax: 300, ay: 600, bx: 500, by: 600, t: T }, { ax: 300, ay: 500, bx: 500, by: 500, t: T }],
+      bars: [lid],
+      cracked: [lid],
+      fills: [{ kind: GAS, x0: 308, x1: 492, y1: 508, count: 30 }, { kind: COIN, x0: 320, x1: 480, y1: 492, count: 8 }],
+    }));
+    run(w, 360);
+    expect(count(w, COIN, (_, y) => y < 500)).toBe(8);
+    w.grains.burn[0] = 1;
+    run(w, 240);
+    expect(w.broken[lid]).toBe(true);
+    expect(count(w, COIN, (_, y) => y < 500)).toBe(0);
   });
 
   it('cracks an up ledge, beats every guard animal (the salamander too), blasts Nib, and leaves gold, rubies, rafts and the boss be', () => {
@@ -400,5 +465,65 @@ describe("the bot waits out 'sealed'", { timeout: 120_000 }, () => {
       stops: [],
     });
     expect(play(level, ['G', 'S']).status).toEqual({ state: 'lost', cause: 'sealed' });
+  });
+});
+
+describe('pins that cross', { timeout: 120_000 }, () => {
+  // Level 24's report: two pins on one line whose slide paths cross. A pulled pin is gone at once,
+  // so only a pin still in, lying in the path, blocks: paths that merely cross never do.
+  const W = { id: 'W', ax: 172, ay: 560, bx: 88, by: 560, t: 7 }; // slides right, its path x 172..284
+  const F = { id: 'F', ax: 310, ay: 560, bx: 406, by: 560, t: 7 }; // slides left, its path x 310..198
+  it('slide paths that cross (bodies clear of them) never block, in either order', () => {
+    for (const order of [['W', 'F'], ['F', 'W']]) {
+      const w = new World(tombRoom({ pins: [W, F] }));
+      expect(order.map((id) => w.pull(id))).toEqual([true, true]);
+    }
+  });
+  it("a pin still in, lying in the other's path, blocks it until it is out", () => {
+    const near = { id: 'N', ax: 356, ay: 560, bx: 260, by: 560, t: 7 }; // slides right; its body x 260..356 lies in W's path
+    const w = new World(tombRoom({ pins: [W, near] }));
+    expect(w.pull('W')).toBe(false);
+    w.step();
+    expect(w.events).toContainEqual({ type: 'blocked', id: 'W', by: 'N' });
+    expect(w.pull('N')).toBe(true);
+    expect(w.pull('W')).toBe(true);
+  });
+});
+
+describe('the settle check waits for the tomb (third engine pass)', { timeout: 120_000 }, () => {
+  /** A 40-px gas pit (x 380..420) in the floor under the pin G, the room's roof 590 px above. */
+  const pitOf = (n: number): Partial<LevelDef> => ({
+    walls: [...BASE, { ax: 372, ay: 812, bx: 372, by: 900, t: T }, { ax: 428, ay: 812, bx: 428, by: 900, t: T }],
+    pins: [{ id: 'G', ax: 360, ay: 820, bx: 440, by: 820, t: T }],
+    fills: [{ kind: GAS, x0: 380, x1: 420, y1: 828, count: n }],
+  });
+  it('a few gas grains still rising keep it busy (gas going somewhere gets no stray allowance)', () => {
+    const w = new World(tombRoom(pitOf(5)));
+    run(w, 60);
+    w.pull('G');
+    run(w, 30); // the bot looks from 30 steps after a pull
+    expect(stepsWhile(w, () => w.settled, 6 * STEPS_PER_SECOND)).toBeGreaterThan(0);
+    expect(count(w, GAS, (_, y) => y < 340)).toBe(5);
+  });
+  it('burning gas keeps it busy', () => {
+    const w = new World(tombRoom(pitOf(5)));
+    run(w, 60);
+    w.pull('G');
+    stepsWhile(w, () => w.settled, 6 * STEPS_PER_SECOND);
+    w.grains.burn[0] = 1;
+    w.step();
+    expect(w.settled).toBe(false);
+    expect(stepsWhile(w, () => w.settled, STEPS_PER_SECOND)).toBeGreaterThan(0);
+    expect(count(w, GAS)).toBe(0);
+  });
+  it('a dropped frog keeps it busy until it lands', () => {
+    const v = vent(500);
+    const w = new World(tombRoom({ walls: [...BASE, ...v.walls], pins: [v.pin], drains: [v.drain], fills: [{ kind: GAS, x0: 250, x1: 550, y1: 508, count: 60 }], blots: [{ x: 300, y: 540, animal: 'frog' }] }));
+    run(w, 120);
+    expect(w.blots[0]!.puffed).toBe(true);
+    w.pull('V');
+    expect(stepsUntil(w, 'frogDrop', 10 * STEPS_PER_SECOND)).toBeGreaterThan(0);
+    expect(stepsWhile(w, () => w.settled, 4 * STEPS_PER_SECOND)).toBeGreaterThan(0);
+    expect(w.blots[0]!.y).toBeGreaterThan(FLOOR - 30);
   });
 });

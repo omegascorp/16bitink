@@ -5,6 +5,7 @@ import { ART_RES, BASALT, BASALT_DARK, BASALT_LIGHT, EMBER, GOLD, GOLD_DARK, GRA
 import { ellipse, makeCanvas, Pen, type Pt } from './pen';
 import { paintBasaltStone, paintBrazier, paintFlameFrieze, paintShrineTop } from './volcano';
 import { SAND, SAND_DARK } from './tomb';
+import { paintCrackedBar, paintSandDrifts, paintTombFrieze, paintTombStone } from './tombStone';
 import { mix, rgba } from './wash';
 
 /**
@@ -230,26 +231,19 @@ export function paintBoard(level: LevelDef, x0 = level.view.x, w = level.view.w)
   const pen = new Pen(ctx, 7, 0.7);
   const volcano = level.ruin === 'volcano';
   if (volcano) paintShrineTop(ctx, pen, level.rooms, GROUND_Y);
-  else paintTempleTop(ctx, pen, level.rooms);
+  else paintTempleTop(ctx, pen, level.rooms, level.ruin === 'tomb');
   paintRooms(ctx, pen, level.rooms, vy + h, level.view.x + level.view.w, volcano, level.ruin === 'tomb');
   for (const d of level.drains ?? []) paintDrain(ctx, pen, level.rooms, d);
   for (const s of barWalls(level)) paintBar(ctx, pen, s.ax, s.ay, s.bx, s.by, s.t, volcano ? BASALT_LIGHT : level.ruin === 'tomb' ? SAND_DARK : ROCK);
-  // A cracked bar shows its cracks: a blast breaks it.
+  // A cracked bar shows a web of cracks, unlike any plain wall: a blast breaks it.
   for (const i of level.cracked ?? []) {
     const s = level.walls[i];
-    if (!s) continue;
-    const n = Math.max(2, Math.round(Math.hypot(s.bx - s.ax, s.by - s.ay) / 30));
-    for (let k = 0; k < n; k++) {
-      const u = (k + 0.5) / n;
-      const x = s.ax + (s.bx - s.ax) * u;
-      const y = s.ay + (s.by - s.ay) * u;
-      pen.hair([{ x: x - s.t * 0.8, y: y - 3 }, { x: x - 1, y: y + 1 }, { x: x + 2, y: y - 2 }, { x: x + s.t * 0.8, y: y + 3 }], 1.1, INK, 0.85);
-    }
+    if (s) paintCrackedBar(ctx, pen, s, 40 + i);
   }
   for (const t of level.torches) (volcano ? paintBrazier : paintTorchBracket)(ctx, pen, t.x, t.y);
   // Hanging vines for decoration only where there are none to climb, so the two are never confused.
-  // (The climbing vines are their own pictures: they grow from seeds and burn.) No vines in the volcano.
-  if (!volcano && !level.vines?.length) paintVines(pen, level.rooms);
+  // (The climbing vines are their own pictures: they grow from seeds and burn.) No vines in the volcano or the tomb.
+  if (!volcano && level.ruin !== 'tomb' && !level.vines?.length) paintVines(pen, level.rooms);
   return canvas;
 }
 
@@ -307,6 +301,10 @@ function paintRooms(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Roo
   if (volcano) {
     paintBasaltStone(ctx, pen, bottom, right);
     paintFlameFrieze(ctx, pen, rooms);
+  } else if (tomb) {
+    paintTombStone(ctx, pen, bottom, right);
+    paintTombFrieze(ctx, pen, rooms);
+    paintSandDrifts(ctx, pen, rooms);
   } else {
     paintTempleStone(ctx, pen, bottom, right);
     paintFrieze(ctx, pen, rooms);
@@ -495,7 +493,7 @@ function straight(ctx: CanvasRenderingContext2D, pts: readonly Pt[], width: numb
 }
 
 /** The top of the temple poking out of the jungle floor above the rooms: two stepped tiers and a broken column. */
-function paintTempleTop(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Room[]): void {
+function paintTempleTop(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly Room[], tomb = false): void {
   const tall = rooms.filter((r) => {
     const ys = r.map(([, y]) => y);
     return Math.max(...ys) - Math.min(...ys) >= 400;
@@ -530,7 +528,8 @@ function paintTempleTop(ctx: CanvasRenderingContext2D, pen: Pen, rooms: readonly
   for (const fx of [-4, 0, 4]) pen.hair([{ x: cx + fx, y: ct - 2 }, { x: cx + fx, y: ct - 36 }], 0.7, INK, 0.45);
   straight(ctx, col, 1.6, true);
   const rng = createRng(3);
-  for (let x = x0; x < x1; x += 18) if (rng() < 0.5) moss(ctx, pen, rng, x, GROUND_Y - 20, 14);
+  // (No moss on the desert tomb.)
+  if (!tomb) for (let x = x0; x < x1; x += 18) if (rng() < 0.5) moss(ctx, pen, rng, x, GROUND_Y - 20, 14);
   // A golden glint on the top step: treasure below.
   pen.dot(x1 - 70, GROUND_Y - 46, 2.4, GOLD);
   pen.circle(x1 - 70, GROUND_Y - 46, 2.4, 0.7, GOLD_DARK);

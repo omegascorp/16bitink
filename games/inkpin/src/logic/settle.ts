@@ -1,6 +1,8 @@
 import type { Boulder } from './boulders';
 import type { Blot } from './guards';
-import { COIN, GRAIN_R, LAVA, type Grains } from './particles';
+import { FOOTING_STEPS } from './creatures';
+import { gasRound, PUFF_GAS } from './frog';
+import { COIN, GAS, GRAIN_R, LAVA, type Grains } from './particles';
 import { inPlay, RUBY_R, type Ruby } from './rubies';
 
 /**
@@ -46,6 +48,12 @@ export class Drift {
     }
   }
 
+  /** Grain i's averaged speed (px per step): how fast it is going somewhere, its shaking left out. */
+  pace(g: Grains, i: number): number {
+    const id = g.id[i]!;
+    return id < this.x.length ? Math.hypot(this.x[id]!, this.y[id]!) : 0;
+  }
+
   /** True when grain i is shaking in place: slow now, and its averaged velocity slower still. */
   jiggles(g: Grains, i: number): boolean {
     const id = g.id[i]!;
@@ -73,5 +81,75 @@ export function stirred(w: StirWorld, i: number): boolean {
   for (const b of w.boulders) if (b.raft && !b.gone && Math.abs(x - b.x) < b.hw + STIR_REACH && Math.abs(y - b.y) < b.hh + STIR_REACH) return true;
   if (g.kind[i] !== LAVA) return false;
   for (const b of w.blots) if (!b.gone && Math.hypot(x - b.x, y - b.y) < b.r + WADE_REACH) return true;
+  return false;
+}
+
+/**
+ * A gas grain whose averaged speed (see Drift) is over this (px per step,
+ * 72 px/s) is going somewhere: rising, or at the front of a pool creeping
+ * along a roof. A deep, pressed mass of gas (a well under its lid) churns
+ * slower than this for good.
+ */
+export const GAS_FLOW = 0.6;
+
+/**
+ * Tomb things still about to happen (chapter 3), which the stray allowance
+ * would miss: any gas burning, any gas grain still flowing (GAS_FLOW: the few
+ * grains at the front of a pool creeping along a roof are all the pool's
+ * movement), and a rain frog puffed (floating, drifting or waiting to drop),
+ * falling, or in water washing away. The earlier chapters have no gas or frogs.
+ */
+export function tombBusy(w: StirWorld): boolean {
+  for (const b of w.blots) if (b.animal === 'frog' && !b.gone && (b.puffed || b.air > FOOTING_STEPS || b.wet > 0)) return true;
+  return gasBusy(w);
+}
+
+/** Any gas burning, or any gas grain still flowing (see GAS_FLOW). */
+function gasBusy(w: StirWorld): boolean {
+  const g = w.grains;
+  const s2 = SETTLED_SPEED * SETTLED_SPEED;
+  for (let i = 0; i < g.count; i++) {
+    if (g.kind[i] !== GAS) continue;
+    if (g.burn[i]! > 0) return true;
+    if (g.vx[i]! * g.vx[i]! + g.vy[i]! * g.vy[i]! > s2 && w.drift.pace(g, i) > GAS_FLOW) return true;
+  }
+  return false;
+}
+
+/**
+ * The 'sealed' loss's version of tombBusy (see seal.ts): a live guard's own
+ * motion never counts, only a body on its way somewhere. Busy: any guard
+ * (the boss aside) falling, or in water washing away (it may land on, or
+ * leave, a plate); a puffed frog adrift (moving, or its gas thinning: it is
+ * about to drop); and gas burning or flowing. A guard pacing, or a frog
+ * floating still in gas that stays, is calm.
+ */
+export function sealBusy(w: StirWorld): boolean {
+  for (const b of w.blots) {
+    if (b.gone || b.boss) continue;
+    if (b.puffed ? adrift(b, w) : b.air > FOOTING_STEPS || b.wet > 0) return true;
+  }
+  return gasBusy(w);
+}
+
+/** A puffed frog drifting, or with too little gas round it to stay up for good. */
+function adrift(b: Blot, w: StirWorld): boolean {
+  return b.thin > 0 || Math.hypot(b.vx, b.vy) > SETTLED_SPEED || gasRound(b, w.grains) < PUFF_GAS;
+}
+
+/**
+ * A moving grain the 'sealed' check leaves out: one the settle check leaves
+ * out (see stirred), or one a live guard on its feet or afloat shoves as it
+ * goes (within STIR_REACH of its edge): a frog pacing its puddle churns it
+ * for good.
+ */
+export function sealStirred(w: StirWorld, i: number): boolean {
+  if (stirred(w, i)) return true;
+  const g = w.grains;
+  if (g.kind[i] === COIN) return false;
+  const x = g.x[i]!;
+  const y = g.y[i]!;
+  // Afloat counts too: the boss bobbing in a pool it never washes in (filled slowly) churns it for good.
+  for (const b of w.blots) if (!b.gone && (b.puffed || b.air <= FOOTING_STEPS || b.wet > 0) && Math.hypot(x - b.x, y - b.y) < b.r + STIR_REACH) return true;
   return false;
 }

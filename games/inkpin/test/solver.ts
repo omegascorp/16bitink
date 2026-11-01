@@ -6,8 +6,22 @@ import { World, type Status } from '../src/logic/world';
 const MAX_WAIT = STEPS_PER_SECOND * 8;
 /** Longest it lets the level play out after the last pull. */
 const MAX_TAIL = STEPS_PER_SECOND * 25;
-/** How long it waits at the end of a level with seals, so a shut-out Nib is 'sealed' (the world needs 1 s of calm). */
-const SEAL_TAIL = STEPS_PER_SECOND * 2;
+/**
+ * The wait at the end of a level with seals, so a shut-out Nib is 'sealed'
+ * (the world needs 1 s of calm, or a 5 s lull: see seal.ts): at least
+ * SEAL_TAIL, then on while the board still moves (a flood draining away),
+ * up to SEAL_TAIL_MAX.
+ */
+const SEAL_TAIL = STEPS_PER_SECOND * 6;
+const SEAL_TAIL_MAX = STEPS_PER_SECOND * 20;
+
+/** Waits like a player looking on, until Nib is 'sealed' or the board has been calm a second (it won't seal now) or the time is up. */
+export function waitOutSeal(w: World, tick: () => void): void {
+  for (let s = 0; s < SEAL_TAIL_MAX && !w.finished; s++) {
+    if (s >= SEAL_TAIL && w.calm > STEPS_PER_SECOND) return;
+    tick();
+  }
+}
 
 export interface Run {
   readonly order: readonly string[];
@@ -75,9 +89,9 @@ export function play(level: LevelDef, order: readonly string[], patient = false,
   const back = [...stops].reverse();
   const sweep = level.stops ? [...back, ...stops, ...back, ...stops] : [{ x: level.nib.x }, ...stops, { x: level.nib.x }, ...stops];
   visit(sweep, MAX_TAIL / 4);
-  // A level with seals loses 'sealed' only after a second of calm (SEAL_STEPS):
+  // A level with seals loses 'sealed' only after a second of calm, or a 5 s lull (see seal.ts):
   // with no stops to sweep, the bot would leave first. Wait like a player looking on.
-  if (level.seals?.length) for (let s = 0; s < SEAL_TAIL && !w.finished; s++) tick();
+  if (level.seals?.length) waitOutSeal(w, tick);
   w.leave();
   return { order, status: w.status, treasure: w.treasure, steps: w.steps, possible: true };
 }

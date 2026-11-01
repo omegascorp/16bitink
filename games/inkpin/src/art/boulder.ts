@@ -1,17 +1,22 @@
 import { createRng } from '../logic/rng';
 import { ART_RES, BASALT, BASALT_DARK, BASALT_LIGHT, INK, MOSS, ROCK, ROCK_DARK } from './palette';
 import { ellipse, makeCanvas, Pen } from './pen';
+import { SAND, SAND_DARK, SAND_LIGHT } from './tomb';
 import { mix, rgba } from './wash';
 
 /**
  * A temple boulder: a rough round stone with cracks and a cap of moss,
  * centred. It turns as it rolls. In the volcano it's basalt instead: dark,
- * pitted with gas holes, and bare (nothing grows on it there).
+ * pitted with gas holes, and bare (nothing grows on it there). In the
+ * desert tomb it's weathered sandstone: warm, wind-scoured and bare.
  */
+export type BoulderStone = 'temple' | 'basalt' | 'sandstone';
 export const BOULDER_FRAME = { w: 64, h: 64 } as const;
 
-export function paintBoulder(r: number, basalt = false): HTMLCanvasElement {
-  const [light, mid, dark] = basalt ? [BASALT_LIGHT, BASALT, BASALT_DARK] : [ROCK, ROCK, ROCK_DARK];
+export function paintBoulder(r: number, stone: BoulderStone = 'temple'): HTMLCanvasElement {
+  const basalt = stone === 'basalt';
+  const sand = stone === 'sandstone';
+  const [light, mid, dark] = basalt ? [BASALT_LIGHT, BASALT, BASALT_DARK] : sand ? [SAND_LIGHT, SAND, SAND_DARK] : [ROCK, ROCK, ROCK_DARK];
   const { canvas, ctx } = makeCanvas(BOULDER_FRAME.w * ART_RES, BOULDER_FRAME.h * ART_RES);
   ctx.scale(ART_RES, ART_RES);
   ctx.translate(BOULDER_FRAME.w / 2, BOULDER_FRAME.h / 2);
@@ -37,6 +42,12 @@ export function paintBoulder(r: number, basalt = false): HTMLCanvasElement {
     if (basalt) {
       // A lit rim on the top left: the dark stone still has to read as round.
       pen.hair(ellipse(0, 0, r - 2.5, r - 2.5, 36).slice(16, 26), 1.6, mix(BASALT_LIGHT, '#ffffff', 0.35), 0.6);
+      return;
+    }
+    if (sand) {
+      // Wind-scoured bands across it, and grit in the hollows: no moss in the desert.
+      for (const k of [-0.45, -0.1, 0.3, 0.62]) pen.hair([{ x: -r, y: r * k }, { x: -r * 0.3, y: r * (k + 0.06) }, { x: r * 0.4, y: r * (k - 0.03) }, { x: r, y: r * (k + 0.05) }], 0.9, mix(SAND_DARK, '#7a5a32', 0.5), 0.55);
+      for (let i = 0; i < 12; i++) pen.dot((rng() - 0.3) * r * 1.4, r * (0.2 + rng() * 0.7), 0.6, rgba('#7a5a32', 0.6));
       return;
     }
     for (let i = 0; i < 9; i++) {

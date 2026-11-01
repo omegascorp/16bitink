@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHAPTERS, LEVELS } from '../src/level';
+import { CHAPTER_3_DRAFTS, CHAPTERS, LEVELS } from '../src/level';
 import type { LevelDef } from '../src/logic/level';
 import { COIN, GAS, LAVA, STEPS_PER_SECOND, STONE, WATER } from '../src/logic/particles';
 import { inRooms } from '../src/logic/rooms';
@@ -24,13 +24,19 @@ const sec = (steps: number): string => (steps / STEPS_PER_SECOND).toFixed(1);
 
 const KIND_NAME: Record<number, string> = { [WATER]: 'water', [LAVA]: 'lava', [COIN]: 'coin', [STONE]: 'stone', [GAS]: 'gas' };
 
-/** The rows world.ts's fill packs: every 10 px across from x0 + 6 to x1 - 6, odd rows offset 5, rows 9 px apart from y1 - 8 up. */
+/** The rows world.ts's fill packs: every 10 px across from x0 + 6 to x1 - 6, odd rows offset 5, rows 9 px apart from y1 - 8 up (gas: from y1 + 8 down, hanging from its lid). */
 function rowsOf(f: LevelDef['fills'][number]): number {
   const per = (offset: number): number => Math.max(0, Math.floor((f.x1 - 6 - (f.x0 + 6 + offset)) / 10) + 1);
   let left = f.count;
   let rows = 0;
   while (left > 0 && rows < 1000) left -= per((rows++ % 2) * 5);
   return rows;
+}
+
+/** Where a fill's rows end: up from y1 for grains that fall, down from its lid for gas. */
+function packEnd(f: LevelDef['fills'][number]): string {
+  const span = (rowsOf(f) - 1) * 9;
+  return f.kind === GAS ? `down from its lid to y ${f.y1 + 8 + span}` : `up to y ${f.y1 - 8 - span}`;
 }
 
 /** A world with the grains settled, as the player sees the start. */
@@ -121,10 +127,15 @@ const CURVE: readonly CurveRow[] = [
   { fromChapter: 5, maxWin: [0.1, 0.06], minLessons: [6, 6], maxTop: 0.4, minLate: 0.6 },
 ];
 
+/** Chapter 3's first three levels, which use the curve's 1–3 row even while they are drafts. */
+const CH3_OPENERS: readonly string[] = ['sealed-door', 'bad-air', 'blasting-chamber'];
+
 function auditLine(level: LevelDef): string[] {
   const a = audit(level);
-  const chapter = CHAPTERS.findIndex((c) => c.includes(level)) + 1;
-  const pos = (CHAPTERS[chapter - 1]?.indexOf(level) ?? 0) + 1;
+  const listed = CHAPTERS.findIndex((c) => c.includes(level)) + 1;
+  // A Chapter 3 draft isn't listed yet: it is chapter 3, and its place comes from its id (21–23 open the chapter).
+  const chapter = listed || 3;
+  const pos = listed ? (CHAPTERS[chapter - 1]?.indexOf(level) ?? 0) + 1 : CH3_OPENERS.includes(level.id) ? 1 : 4;
   const row = [...CURVE].reverse().find((r) => chapter >= r.fromChapter) ?? CURVE[0]!;
   const k = pos <= 3 ? 0 : 1;
   const lessons = Object.entries(a.lessons).sort((x, y) => y[1] - x[1]);
@@ -142,8 +153,10 @@ function auditLine(level: LevelDef): string[] {
 
 describe.skipIf(!env.LAB)('level lab', () => {
   it('reports on the level', () => {
-    const level = LEVELS.find((l) => l.id === env.LAB);
-    if (!level) throw new Error(`no level "${env.LAB}"; ids: ${LEVELS.map((l) => l.id).join(' ')}`);
+    // Drafts too: a level is only listed once it passes, and the lab is how it gets there.
+    const all = [...LEVELS, ...CHAPTER_3_DRAFTS];
+    const level = all.find((l) => l.id === env.LAB);
+    if (!level) throw new Error(`no level "${env.LAB}"; ids: ${all.map((l) => l.id).join(' ')}`);
     const w = settled(level);
     const out: string[] = [header(level, w)];
     if (env.BOARD) out.push(...board(level, w));
@@ -164,7 +177,7 @@ describe.skipIf(!env.LAB)('level lab', () => {
     let first = 0;
     level.fills.forEach((f, k) => {
       const n = outside.filter((i) => g.id[i]! >= first && g.id[i]! < first + f.count).length;
-      if (n) out.push(`  fill ${k} (${KIND_NAME[f.kind]} x ${f.x0}..${f.x1}, y1 ${f.y1}, count ${f.count}) overflows: ${n} grains start outside the rooms (it packs ${rowsOf(f)} rows up to y ${f.y1 - 8 - (rowsOf(f) - 1) * 9})`);
+      if (n) out.push(`  fill ${k} (${KIND_NAME[f.kind]} x ${f.x0}..${f.x1}, y1 ${f.y1}, count ${f.count}) overflows: ${n} grains start outside the rooms (it packs ${rowsOf(f)} rows ${packEnd(f)})`);
       first += f.count;
     });
     console.log(out.join('\n'));

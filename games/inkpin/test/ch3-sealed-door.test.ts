@@ -22,17 +22,21 @@ describe('The Sealed Door', () => {
     expect(SEALED_DOOR.fills.reduce((n, f) => n + f.count, 0)).toBeLessThanOrEqual(700);
   });
 
+  it('is full size', () => {
+    expect(SEALED_DOOR.view.w).toBeGreaterThanOrEqual(1300);
+  });
+
   it.each([
     // The greedy grab before the boulder: the gold leaves the plate, both doors drop, the boulder lands on the shut hatch.
-    [['W', 'G', 'C', '@358', 'B', 'V', '@740'], 'sealed'],
-    // Left to right: the boulder waits on the shut hatch, then G lets the gold drip straight through: the plate never goes down.
-    [['W', 'B', 'G', '@358', 'C', 'V', '@740'], 'sealed'],
-    // The flood first, then the grab: the same seal after a flood has crossed the bridge.
-    [['C', 'W', 'G', '@358', 'B', 'V', '@740'], 'sealed'],
-    // The gold let out before the moat is cooled: it falls into the lava.
-    [['C', 'G', 'W', '@358', 'B', 'V', '@740'], 'melted'],
-    // Nib walks out before the tank has set the moat.
-    [['C', 'B', 'V', '@358', 'W', 'G', '@740'], 'burnt'],
+    [['C', 'W', 'G', '@528', 'B', 'V', '@1140'], 'sealed'],
+    // The gold let out before the flood: it falls into the hot moat (nearest first and left to right both start this way).
+    [['B', 'C', 'G', '@528', 'W', 'V', '@1140'], 'melted'],
+    // The flood before the gold: the shut door holds it, it runs back off the sill and down its grate, and the dip stays hot.
+    [['W', 'B', 'C', '@528', 'G', 'V', '@1140'], 'burnt'],
+    // V before the flood: its gold falls into the hot moat.
+    [['V', 'C', 'B', '@528', 'W', 'G', '@1140'], 'melted'],
+    // The plug first: the hopper's coins drip straight through the slot and never weigh the plate.
+    [['G', 'W', 'B', '@528', 'C', 'V', '@1140'], 'sealed'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome(order)).toBe(cause);
   });

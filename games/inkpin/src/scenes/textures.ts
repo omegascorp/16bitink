@@ -9,8 +9,11 @@ import { LEDGE_T } from '../logic/ledges';
 import { RAFT_HH, RAFT_HW } from '../logic/rafts';
 import { RUBY_R } from '../logic/rubies';
 import { paintLantern, paintNib, paintSack, type NibMark, type NibPose } from '../art/nib';
-import { paintBowl, paintDoor, paintFrog, paintPlate, paintRubble } from '../art/tomb';
-import { doorKey, plateKey, rubbleKey } from './tombView';
+import { paintBowl, paintFrog, paintRubble } from '../art/tomb';
+import { paintLinks, plateDiscX, plateRoutes } from '../art/tombLinks';
+import { paintDuneTile } from '../art/tombStone';
+import { paintDoor, paintDoorFrame, paintLintel, paintPlate, PLATE_DISC_DY, PLATE_DISC_R, plateMark } from '../art/tombMarks';
+import { doorKey, doorMark, doorTurn, frameKey, lintelKey, linkKey, plateKey, rubbleKey } from './tombView';
 import { BOIL } from '../art/palette';
 import { paintBoar } from '../art/boar';
 import { paintBoulder } from '../art/boulder';
@@ -53,7 +56,9 @@ export function guardKind(b: { readonly boss: boolean; readonly animal: GuardAni
 
 /** The surroundings' tiles for a ruin: rock, sky and ground strip. */
 export const surroundKeys = (ruin: Ruin): { rock: string; sky: string; ground: string } =>
-  ruin === 'volcano' ? { rock: 'rock-tile-volcano', sky: 'sky-tile-volcano', ground: 'ground-tile-volcano' } : { rock: 'rock-tile', sky: 'sky-tile', ground: 'grass-tile' };
+  ruin === 'volcano'
+    ? { rock: 'rock-tile-volcano', sky: 'sky-tile-volcano', ground: 'ground-tile-volcano' }
+    : { rock: 'rock-tile', sky: 'sky-tile', ground: ruin === 'tomb' ? 'ground-tile-tomb' : 'grass-tile' };
 /** A slab's texture, by its width: ledges share nothing but the look. */
 export const slabKey = (l: LedgeDef): string => `slab-${Math.round(l.x1 - l.x0)}`;
 export const rubyKey = (glint: number): string => `ruby-${glint}`;
@@ -119,19 +124,31 @@ export function bakeTextures(scene: Phaser.Scene, level?: LevelDef): void {
     for (const scared of [false, true]) for (const kind of guards) add(guardKey(kind, scared, b), () => paintGuard(kind, scared, b));
   }
   add('boulder', () => paintBoulder(BOULDER_R));
-  if (volcano) add('boulder-basalt', () => paintBoulder(BOULDER_R, true));
+  if (volcano) add('boulder-basalt', () => paintBoulder(BOULDER_R, 'basalt'));
+  if (level?.ruin === 'tomb') add('boulder-sandstone', () => paintBoulder(BOULDER_R, 'sandstone'));
   if (level?.rafts?.length) add('raft', () => paintRaft(RAFT_HW, RAFT_HH));
   if (level?.rubies?.length) for (let g = 0; g < RUBY_GLINTS; g++) add(rubyKey(g), () => paintRuby(RUBY_R, g));
   if (level?.ledges?.length) add('crumb', paintCrumb);
   for (const l of level?.ledges ?? []) add(slabKey(l), () => paintSlab(l.x1 - l.x0, LEDGE_T * 2));
   add('crate', () => paintCrate(BOULDER_R));
   if (level?.ruin === 'tomb') {
+    add(surroundKeys('tomb').ground, paintDuneTile);
     add('bowl-lit', () => paintBowl(true));
     add('bowl-out', () => paintBowl(false));
-    for (const p of level.plates ?? []) for (const down of [false, true]) add(plateKey(p.x1 - p.x0, down), () => paintPlate(p.x1 - p.x0, down));
+    (level.plates ?? []).forEach((p, i) => {
+      const disc = plateDiscX(level, i, PLATE_DISC_R, PLATE_DISC_DY);
+      for (const down of [false, true]) add(plateKey(p.x1 - p.x0, i, down, disc), () => paintPlate(p.x1 - p.x0, plateMark(i), down, disc));
+      if (!plateRoutes(level, i).length) return;
+      // The grooves to its doors: each level's own, carved and lit.
+      for (const lit of [false, true]) add(linkKey(level.id, i, lit), () => paintLinks(level, i, lit));
+    });
     for (const d of level.doors ?? []) {
       const len = Math.hypot(d.bx - d.ax, d.by - d.ay);
-      add(doorKey(len, d.t), () => paintDoor(len, d.t * 2));
+      const mark = doorMark(level, d.plate);
+      const inverse = d.invert ?? false;
+      for (const lit of [false, true]) add(doorKey(len, d.t, mark, inverse, doorTurn(d), lit), () => paintDoor(len, d.t * 2, plateMark(mark), inverse, doorTurn(d), lit));
+      add(frameKey(len, d.t), () => paintDoorFrame(len, d.t));
+      add(lintelKey(d.t, mark), () => paintLintel(d.t, plateMark(mark)));
     }
     for (const i of level.cracked ?? []) {
       const s = level.walls[i];

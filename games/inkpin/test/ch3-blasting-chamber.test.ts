@@ -12,7 +12,7 @@ const outcome = (order: readonly string[]): string => {
 };
 
 describe('The Blasting Chamber', () => {
-  it('is won by its hint: douse the near bowl, blast the bar with the well, set the lava on the waiting water, then go', () => {
+  it('is won by its hint: douse the near bowl, blast the bar with the well, set the lava on the waiting water, drop the gold, then go', () => {
     const r = play(BLASTING_CHAMBER, BLASTING_CHAMBER.solution);
     expect(r.possible).toBe(true);
     expect(r.status.state).toBe('won');
@@ -24,20 +24,18 @@ describe('The Blasting Chamber', () => {
   });
 
   it.each([
-    // Nib's pin first (nearest, and leftmost): he drops into the well's mouth and the gas comes up round him.
-    [['S', 'W', 'G', 'L', 'X'], 'gassed'],
-    // The well before the tank: the gas lights at the near bowl, low in the mouth, and the lava fills the
-    // dry well hot; Nib walks into it.
-    [['G', 'L', 'W', 'S', 'X'], 'burnt'],
-    // The vat before the well: its lava lands on the lid and runs over the far lip onto the gold.
-    [['W', 'L', 'G', 'S', 'X'], 'melted'],
-    // The near bowl burns the gas, then the lava fills the empty well hot and Nib walks into it.
-    [['G', 'L', 'S', 'W', 'X'], 'burnt'],
-    // The far bowl's cistern (the trap) first: the gas pools unlit and the bar stands; X's water runs off
-    // into the mouth with the rest, and the lava still brims over the far lip onto the gold.
-    [['X', 'W', 'G', 'L', 'S'], 'melted'],
-    // Two stages right, then Nib goes before the lava: he drops into the empty well and the lava lands on him.
-    [['W', 'G', 'S', 'L', 'X'], 'burnt'],
+    // The obvious orders (nearest first, and left to right): the gold drops into the empty mouth and the lava lands on it.
+    [['T', 'S', 'K', '@862', 'W', 'L', 'G', '@1240', 'X'], 'melted'],
+    // No wash: Nib walks into the armadillo's pen.
+    [['W', 'G', 'L', '@862', 'K', 'S', 'T', '@1240'], 'pricked'],
+    // The vat first: its lava brims over the mouth's far lip, and the gold dropped later melts in it.
+    [['L', 'W', 'G', '@862', 'T', 'K', 'S', '@1240'], 'melted'],
+    // The well before the water arrives: the gas lights low at the near bowl and the bar stands.
+    [['G', 'W', 'T', '@862', 'L', 'K', 'S', '@1240', 'X'], 'sealed'],
+    // The gold before the lava: it lies in the mouth and the lava lands on it.
+    [['W', 'G', 'T', '@862', 'K', 'L', 'S', '@1240', 'X'], 'melted'],
+    // The trap late: its water fills the bowl's basin, the plate drops and the vault door shuts.
+    [['W', 'G', 'T', '@862', 'L', 'K', 'X', 'S', '@1240'], 'sealed'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome(order)).toBe(cause);
   });

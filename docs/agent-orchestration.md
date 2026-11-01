@@ -67,7 +67,7 @@ The Opus coordinator caught these and sent the workers back. A Sonnet coordinato
 6. **Wrap-up (Sonnet or Haiku).** Full suite, tsc, doc tables, then a short browser check of each level by the coordinator.
 7. **Playtest by the user.** Their notes outrank the audit; Chapter 2 passed its audit and was still too easy.
 
-Before fanning out more than a few agents, say what it will cost and ask.
+Don't stop to ask about cost before each step: the user wants it optimized, not negotiated. Proceed with the cheapest setup that works, and report costs in the summaries between batches.
 
 ## Content agent brief (template)
 
@@ -113,6 +113,8 @@ The shared brief says:
 - [ ] Solution waits under ~10 s, each shown by the board. A hint that is mostly waits is padding.
 - [ ] Every wrong order loses for a named, visible cause. No 'stuck' or 'playing' rows.
 - [ ] Not fragile: the win doesn't depend on one exact stops list or timing. If it does, ask for walk steps (`'@x'`) or a sturdier layout.
+- [ ] Readable: look at one screenshot as a first-time player. Can you tell what each piece does, and what each pin will do? (Level 21 passed every audit target and the user still couldn't tell what its doors and plate were.)
+- [ ] Board size matches the chapters before it (InkPin: ≥ ~1300 px wide). Agents shrink boards to make tuning easier.
 - [ ] The header comment matches what the level now does.
 - [ ] An engine bug in a report goes to an engine agent (or is noted for the next engine pass), not into a workaround in the level.
 

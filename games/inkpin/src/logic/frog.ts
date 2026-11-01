@@ -22,16 +22,22 @@ const DRIFT_REACH = 40;
 
 export type FrogEvent = { readonly type: 'frogPuff'; readonly x: number; readonly y: number } | { readonly type: 'frogDrop'; readonly x: number; readonly y: number };
 
+/** Gas grains round a frog: PUFF_GAS or more puff it up, fewer than THIN let it go flat. */
+export function gasRound(b: Blot, g: Grains): number {
+  let near = 0;
+  g.near(b.x, b.y, b.r + PUFF_REACH, (i) => {
+    if (g.kind[i] === GAS) near++;
+  });
+  return near;
+}
+
 /**
  * One step of a frog's puff: it puffs up in gas and floats, or goes flat.
  * Returns true while it floats (the world doesn't walk it this step).
  */
 export function stepFrog(b: Blot, g: Grains, segs: readonly Seg[], k: Contact, events: FrogEvent[]): boolean {
   if (b.animal !== 'frog' || b.gone) return false;
-  let near = 0;
-  g.near(b.x, b.y, b.r + PUFF_REACH, (i) => {
-    if (g.kind[i] === GAS) near++;
-  });
+  const near = gasRound(b, g);
   if (!b.puffed) {
     if (near < PUFF_GAS) return false;
     b.puffed = true;

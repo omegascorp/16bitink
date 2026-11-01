@@ -88,5 +88,7 @@ export interface WorldSave {
   readonly broken: readonly boolean[];
   readonly gasTouch: number;
   readonly calmSteps: number;
+  /** The 'sealed' check's calm and lull steps (see seal.ts); older saves have none. */
+  readonly seal?: readonly [number, number];
   readonly breath: BreathState;
 }

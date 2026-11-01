@@ -2,13 +2,11 @@ import { parseStep, type LevelDef, type Stop } from '../src/logic/level';
 import { createRng } from '../src/logic/rng';
 import { STEPS_PER_SECOND } from '../src/logic/particles';
 import { World } from '../src/logic/world';
-import { permutations } from './solver';
+import { permutations, waitOutSeal } from './solver';
 
 /** Longest the bot waits for things to settle after a pull (as in solver.ts). */
 const MAX_WAIT = STEPS_PER_SECOND * 8;
 const MAX_TAIL = STEPS_PER_SECOND * 25;
-/** The end-of-level wait for levels with seals (see solver.ts). */
-const SEAL_TAIL = STEPS_PER_SECOND * 2;
 /** Up to this many pins, every order is tried; above it, a fixed sample. */
 const FULL_UP_TO = 5;
 const SAMPLE = 60;
@@ -93,8 +91,8 @@ export function playNoting(level: LevelDef, order: readonly string[]): Ending {
   }
   const back = [...stops].reverse();
   visit([...back, ...stops, ...back, ...stops], MAX_TAIL / 4);
-  // As in solver.ts: a level with seals needs a second of calm to end 'sealed'; wait it out before leaving.
-  if (level.seals?.length) for (let s = 0; s < SEAL_TAIL && !w.finished; s++) w.step();
+  // As in solver.ts: a level with seals needs a second of calm (or a 5 s lull) to end 'sealed'; wait it out before leaving.
+  if (level.seals?.length) waitOutSeal(w, () => w.step());
   w.leave();
   const s = w.status;
   if (s.state === 'lost') return { order, end: s.cause, at: last, late: late(), taps, steps: w.steps };
