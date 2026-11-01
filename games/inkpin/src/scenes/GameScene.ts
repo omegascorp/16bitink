@@ -6,7 +6,8 @@ import { CHEST_FRAME, FLAME_FRAME } from '../art/props';
 import { LiquidPainter, LIQUID_RES } from '../art/liquid';
 import { VOLCANO_SKY_TOP_HEX } from '../art/volcanoSurround';
 import { bedOf, type SoundBoard } from '../audio/sfx';
-import { CHAPTER_NAMES, LEVELS, LEVELS_PER_CHAPTER } from '../level';
+import { getHost } from '../host';
+import { CHAPTER_NAMES, isFreeEnd, LEVELS, LEVELS_PER_CHAPTER } from '../level';
 import type { GuardAnimal, LevelDef } from '../logic/level';
 import { COIN, STEPS_PER_SECOND } from '../logic/particles';
 import { World, type BlotEnd, type WorldEvent, type WorldSave } from '../logic/world';
@@ -71,6 +72,8 @@ export interface Result {
   readonly next: number | null;
   /** The playable order ends before the Atlas's planned levels do. */
   readonly moreComing: boolean;
+  /** Won the last free level without the full game: the result offers it. */
+  readonly offer?: string;
   readonly cause?: string;
   /** The guard that caught or pricked Nib, for the loss line. */
   readonly by?: GuardAnimal;
@@ -729,11 +732,14 @@ export class GameScene extends Phaser.Scene {
     const firstTry = this.session.tries === 1 && !this.session.hinted && this.hearts === HEARTS;
     if (won) recordWin(w.level.id, w.coinsCollected, allTreasure, firstTry);
     const next = won && this.index + 1 < LEVELS.length ? this.index + 1 : null;
+    const host = getHost();
+    const offer = won && next === null && isFreeEnd(w.level.id) && host && !host.unlocked ? host.price : undefined;
     const result: Result = {
       won,
       hasChest: w.level.chest !== undefined,
       next,
-      moreComing: won && next === null && LEVELS.length < CHAPTER_NAMES.length * LEVELS_PER_CHAPTER,
+      ...(offer ? { offer } : {}),
+      moreComing: won && next === null && !offer && LEVELS.length < CHAPTER_NAMES.length * LEVELS_PER_CHAPTER,
       cause: status.state === 'lost' ? status.cause : undefined,
       by: status.state === 'lost' ? status.by : undefined,
       allCoins: allTreasure,

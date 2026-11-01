@@ -2,15 +2,21 @@ import Phaser from 'phaser';
 import { INK, PAPER_HEX } from '../art/palette';
 import { PENCIL } from '../art/atlas';
 import type { SoundBoard } from '../audio/sfx';
-import { CHAPTER_NAMES, CHAPTERS, LEVELS, LEVELS_PER_CHAPTER } from '../level';
+import { getFullError, getHost, trackOffer } from '../host';
+import { BUILT_CHAPTERS, CHAPTER_NAMES, CHAPTERS, FREE_CHAPTERS, LEVELS, LEVELS_PER_CHAPTER } from '../level';
+import { loadPaidChapters } from './BootScene';
 import { DPR, screenSize } from './hidpi';
 import { computeMapLayout, MAP, regionAt, type MapLayout, type MapNode } from './map/layout';
+import { ChapterCard } from './map/chapterCard';
 import { LevelCard } from './map/levelCard';
 import { MapView } from './map/mapView';
-import { buildNodes, mapStates, type NodeHit } from './map/nodes';
+import { buildNodes, mapStates, type NodeHit, type NodeState } from './map/nodes';
 import { NibWalker } from './map/walker';
 import { readProgress, type Progress } from './progress';
 import { bakeTextures } from './textures';
+
+/** playable: installed; locked: the full game's, not installed here; draft: not built yet. */
+type ChapterKind = 'playable' | 'locked' | 'draft';
 
 const FONT = 'Caveat';
 const SOFT_INK = '#4a463e';
@@ -43,7 +49,9 @@ export class MenuScene extends Phaser.Scene {
   private focusY = 0;
   private targetY = 0;
   private drag: { y: number; target: number; moved: boolean; lastY: number; lastT: number; vel: number } | null = null;
-  private card: LevelCard | null = null;
+  private card: LevelCard | ChapterCard | null = null;
+  /** Per chapter: what the player can do with it. */
+  private kinds: ChapterKind[] = [];
   private caption!: Phaser.GameObjects.Text;
   private tally!: Phaser.GameObjects.Text;
   private nibButton!: Phaser.GameObjects.Text;
@@ -78,19 +86,26 @@ export class MenuScene extends Phaser.Scene {
     this.progress = readProgress();
     bakeTextures(this);
     const order = LEVELS.map((l) => l.id);
-    // Built levels are playable; planned slots remain pencil drafts within a partial chapter.
+    // Installed levels are playable; the full game's chapters are locked until installed; the rest remain pencil drafts.
+    this.kinds = CHAPTER_NAMES.map((_, c) => ((CHAPTERS[c]?.length ?? 0) > 0 ? 'playable' : c >= FREE_CHAPTERS && c < BUILT_CHAPTERS ? 'locked' : 'draft'));
+    const lockedIds = (c: number): string[] => Array.from({ length: LEVELS_PER_CHAPTER }, (_, i) => `locked-${c + 1}-${i + 1}`);
     this.layout = computeMapLayout(CHAPTER_NAMES.map((name, c) => {
       const levels = CHAPTERS[c] ?? [];
+      const locked = this.kinds[c] === 'locked';
       return {
         name,
-        built: levels.length > 0,
-        levelIds: [
+        built: levels.length > 0 || locked,
+        levelIds: locked ? lockedIds(c) : [
           ...levels.map((l) => l.id),
           ...Array.from({ length: Math.max(0, LEVELS_PER_CHAPTER - levels.length) }, (_, i) => `draft-${c + 1}-${levels.length + i + 1}`),
         ],
       };
     }));
-    const { states, current } = mapStates(order, this.progress, this.registry.get('unlockAll') === true);
+    const { states: playStates, current } = mapStates(order, this.progress, this.registry.get('unlockAll') === true);
+    const states = new Map<string, NodeState>(playStates);
+    this.kinds.forEach((kind, c) => {
+      if (kind === 'locked') for (const id of lockedIds(c)) states.set(id, 'locked');
+    });
     this.currentNode = this.layout.nodes.find((n) => n.levelId === current) ?? this.layout.nodes[0]!;
 
     const screen = screenSize(this.scale);
@@ -188,12 +203,17 @@ export class MenuScene extends Phaser.Scene {
         world.add(this.add.text(r.ruin.x, y, s, { fontFamily: FONT, fontSize: `${size}px`, fontStyle: '700', color, stroke: '#f6eedb', strokeThickness: 6, padding: { x: 6, y: 4 } }).setOrigin(0.5).setResolution(textRes));
       };
       add(r.ruin.y + 96, r.chapter.name, 32, built ? INK : PENCIL);
-      add(r.ruin.y + 126, built ? `Chapter ${r.index + 1}` : `Chapter ${r.index + 1} · still being drawn`, 19, built ? SOFT_INK : PENCIL);
+      const note = this.kinds[r.index] === 'locked' ? ' · full game' : built ? '' : ' · still being drawn';
+      add(r.ruin.y + 126, `Chapter ${r.index + 1}${note}`, 19, built ? SOFT_INK : PENCIL);
     }
   }
 
   private tapNode(hit: NodeHit): void {
     if (this.drag?.moved || this.card || this.walker.walking) return;
+    if (hit.state === 'locked') {
+      this.chapterCard(hit.node.region);
+      return;
+    }
     if (hit.state === 'closed') {
       this.sfx.play('blocked');
       this.cameras.main.shake(120, 0.002);
@@ -210,6 +230,33 @@ export class MenuScene extends Phaser.Scene {
     }, () => {
       this.card = null;
     });
+  }
+
+  /** The note on a chapter this player can't play: the full game's offer, a retry, or "on the way". */
+  private chapterCard(c: number): void {
+    const host = getHost();
+    const title = CHAPTER_NAMES[c] ?? `Chapter ${c + 1}`;
+    const close = (): void => {
+      this.card = null;
+    };
+    const locked = this.kinds[c] === 'locked';
+    this.sfx.play('tap');
+    if (locked && host?.unlocked) {
+      // An owner whose chapters failed to load: try again.
+      this.card = new ChapterCard(this, this.uiLayer, this.ui, {
+        title, lines: [getFullError() ?? 'Your full game is still on its way.'],
+        // The player may have gone into a level while it loads: only redraw a map that is still showing.
+        action: { label: 'Try again', run: () => void loadPaidChapters().then(() => this.scene.isActive() && this.scene.restart()) },
+      }, close);
+    } else if (locked && host?.price) {
+      this.card = new ChapterCard(this, this.uiLayer, this.ui, {
+        title, lines: [`Chapters 2–${BUILT_CHAPTERS} are the full game:`, 'the Volcano Shrine and the Desert Tomb,', 'and more ruins as free updates.'],
+        action: { label: `Unlock · ${host.price}`, run: () => host.onBuy('locked') },
+      }, close);
+      trackOffer('locked');
+    } else {
+      this.card = new ChapterCard(this, this.uiLayer, this.ui, { title, lines: ['Still being drawn.', 'New chapters arrive as free updates.'] }, close);
+    }
   }
 
   private play(index: number): void {
@@ -248,7 +295,8 @@ export class MenuScene extends Phaser.Scene {
       this.region = r;
       this.caption.setText(`Chapter ${r + 1} · ${CHAPTER_NAMES[r] ?? ''}`);
       const levels = CHAPTERS[r] ?? [];
-      if (levels.length > 0) {
+      if (this.kinds[r] === 'locked') this.tally.setText('Full game');
+      else if (levels.length > 0) {
         const won = levels.filter((l) => this.progress.levels[l.id]).length;
         this.tally.setText(`${won} / ${Math.max(levels.length, LEVELS_PER_CHAPTER)} won${levels.length < LEVELS_PER_CHAPTER ? ` · ${LEVELS_PER_CHAPTER - levels.length} being drawn` : ''}`);
       } else this.tally.setText('Still being drawn');

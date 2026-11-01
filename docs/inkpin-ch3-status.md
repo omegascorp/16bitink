@@ -1,6 +1,6 @@
 # InkPin Chapter 3 status (Nov 1, 2026)
 
-The playable order in `games/inkpin/src/level/index.ts` is levels 21–27. The map reserves slots 28–30 as drafts, counts wins against ten planned tomb levels, and tells a player who finishes level 27 that more levels are being drawn. The built files for 28 The Sun Barge, 29 Lamp in the Tomb, and 30 The Tomb Guardian are in `CHAPTER_3_DRAFTS`; they are not in the playable order.
+All ten tomb levels (21–30) are playable, in `CHAPTER_3` in `games/inkpin/src/level/paid.ts`. Chapters 2–3 are the paid full game: the server sends them only to owners (`/api/content/inkpin`), and `DEV_UNLOCK` on localhost counts as owning it. `CHAPTER_3_DRAFTS` is empty.
 
 ## Playable levels still needing design work
 
@@ -9,21 +9,19 @@ The full puzzle curve is an explicit failing gate: `cd games/inkpin && npm run t
 | Level | Current result | Next design work |
 | --- | --- | --- |
 | 23 The Blasting Chamber | Largest loss lesson 47%, above the 45% chapter limit. A fresh lab measured its hinted win at 27.6 s; the older 18 s note is stale. | Add a distinct, readable way to lose in wrong orders without breaking the blast and lava step. |
-| 24 The Puff Frog | Largest loss lesson 61.1%, above 45%. The hinted route wins in about 47 s and collects all 10 newly placed chest-room coins. | Give S-early orders another genuine outcome or redesign its frog/vent dependency; most wrong orders currently teach `S:gassed`. |
-| 26 The Weighing Room | The curve passes, but the hinted win is 19.8 s, below the roughly 25 s design target. | Add meaningful puzzle interaction after playtesting; padding the route with an idle timer would not meet the design goal. |
-| 27 The Deep Shaft | Largest loss lesson 46.55%, above 45%. A hopper placement adjustment makes the hinted win collect all 18 coins. | Diversify a few `L:melted` wrong orders while keeping the 27.9 s winning route and its other loss lessons. |
-
-## Draft levels
-
-- **28 The Sun Barge:** the original S pin blocks the obvious S-first pull. Its draft audit also found too many blocked and stuck orders. It should stay out of the playable list until the pin and wrong-order curve are repaired and retested.
-- **29 Lamp in the Tomb:** its most recent audit passed the numeric curve and its hinted route wins with 30/30 coins. The hint is 22.5 s, below the design target; it still needs level tests and a playtest before promotion.
-- **30 The Tomb Guardian:** after the boss seal timeout correction, a fresh audit reports 2% wins, 8 lessons, 36% largest lesson, 0% stuck and 0% timed-out wrong orders. Its hinted route wins in 60.2 s. It remains a draft while 28–29 are unfinished.
+| 24 The Puff Frog | Lessons 2 (≥ 5) and top lesson 63% (≤ 45%): the wrong orders teach only `T:melted` and `S:gassed`. Its lamp tank was moved into the roof (Nov 1): the tank hung over the chest-room floor and the hint ended 'stuck', and its lava started above the roof. Hint wins in 47.2 s. | Give S-early orders another genuine outcome or redesign its frog/vent dependency. |
+| 26 The Weighing Room | The curve passes, but the hinted win is 27.2 s. The cistern's roof was raised (Nov 1) so its water starts inside the room. | Add meaningful puzzle interaction after playtesting. |
+| 27 The Deep Shaft | The curve passes (top lesson 45%, at the limit) after the cistern's roof and fill were fixed (Nov 1) so its water starts inside the room. Hint wins in 29.8 s. | Diversify a few `L:melted` wrong orders. |
+| 28 The Sun Barge | Promoted Nov 1 below the curve after three rounds (two Sonnet, one Opus escalation). The hint wins in 40.3 s, ROBUST 8/8, no stuck or playing orders, no decoys. Audit: `win 3% lessons 3 top 95% late 76% blocked 35%` FAIL; the nearest-first obvious order is 'blocked'. | K before U melts the gold at once and is the first mistake in 36 of 38 losses; C and G show only at the end ('sealed'). Give C, G and S immediate losses (or make K's melt slower), and give V a frog lesson instead of blocking U's slide (the frog dropped after U lands ~300 px from Nib's route). |
+| 29 Lamp in the Tomb | Curve passes (`win 2% lessons 5 top 42% late 85%`), hint 26.8 s, 12 tests. | Pulling A before Nib crosses the crumbling ledge still wins; the design meant 'burnt'. |
+| 30 The Tomb Guardian | Curve passes (`win 2% lessons 8 top 36% late 71%`), hint 60.2 s. ROBUST 7/8: the eager player who walks into the coffin as the lid falls is 'crushed' (kept: a visible loss). | Playtest. |
 
 ## Engine and UI work completed
 
 - Walk hints use the destination floor as well as horizontal position. Built and draft routes with walks carry measured destination heights. Already-pulled pins in a valid alternative order no longer hold the hint sequence back.
 - Level 24 has a coin reward; an empty level cannot earn the every-coin blot.
 - The Tomb Guardian's continuously breathing, permanently sealed wrong orders resolve as `sealed` once all pins are done and its fire bowls are out.
-- The map shows planned tomb slots 28–30 as numbered drafts and the tally as wins out of ten.
+- Chapters 2–3 are locked on the map for players who don't own the game ("Unlock" card); level 10's result offers the full game.
+- Level 12 (Chapter 2) docks its raft flush in a berth, so its hint wins whatever the delay before a pull (79 idle cases in its test).
 
 The level-by-level design and historical rounds remain in [inkpin-levels.md](inkpin-levels.md). The engine reference is [inkpin-level-kit.md](inkpin-level-kit.md).

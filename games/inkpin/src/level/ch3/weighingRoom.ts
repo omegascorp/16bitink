@@ -44,7 +44,7 @@ export const WEIGHING_ROOM: LevelDef = {
   goal: 'Break into the vault, take the chest and pick up 46 coins',
   tip: 'Weight on the sun pan holds the vault door open. The sluice with the slashed sun works the other way: it is open only while the pan is bare.',
   rooms: [
-    [[96, 560], [216, 560], [216, 690], [96, 690]], // the cistern
+    [[96, 536], [216, 536], [216, 690], [96, 690]], // the cistern
     [[996, 280], [1030, 280], [1030, 360], [996, 360]], // the little cistern over the bowl
     [[80, 690], [216, 690], [216, 700], [264, 700], [264, 776], [80, 744]], // the basin and the sluice
     [
@@ -53,9 +53,9 @@ export const WEIGHING_ROOM: LevelDef = {
     ], // the scale hall, the shaft, the crypt and the vault
   ],
   walls: [
-    { ax: 96, ay: 560, bx: 96, by: 690, t: T }, // 0 the cistern
-    { ax: 216, ay: 560, bx: 216, by: 700, t: T }, // 1
-    { ax: 96, ay: 560, bx: 216, by: 560, t: T }, // 2
+    { ax: 96, ay: 536, bx: 96, by: 690, t: T }, // 0 the cistern
+    { ax: 216, ay: 536, bx: 216, by: 700, t: T }, // 1
+    { ax: 96, ay: 536, bx: 216, by: 536, t: T }, // 2
     { ax: 80, ay: 690, bx: 80, by: 744, t: T }, // 3 the basin
     { ax: 80, ay: 744, bx: 264, by: 776, t: T }, // 4 the basin's floor, down to the sluice
     { ax: 216, ay: 700, bx: 330, by: 700, t: T }, // 5 the roof over the sluice and the channel

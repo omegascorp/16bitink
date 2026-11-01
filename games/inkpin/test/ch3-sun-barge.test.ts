@@ -45,14 +45,14 @@ describe('The Sun Barge', () => {
   });
 
   it.each([
-    // S is the canal's west plug: out first, the canal runs into the gangway's grate and the frog's vent drops it on the dry bed, where it hops to Nib.
-    [['S', 'V', 'U', 'C', 'G', 'K', 'R', '@1460'], 'inked'],
-    // The same with the dam before the vent: no surge, and the frog still lands dry.
-    [['S', 'U', 'V', 'C', 'G', 'K', 'R', '@1460'], 'inked'],
-    // The obvious order (nearest pin first, and left to right): the canal drained, the frog inks Nib on the dry bed.
-    [['S', 'V', 'U', 'G', 'C', 'K', 'R', '@1310'], 'inked'],
-    // The dam first: the canal drains, the frog's vent drops it on the dry bed, and Nib's walk into the vault meets it ('inked').
-    [['U', 'V', 'G', 'R', 'C', 'K', 'S', '@1310'], 'inked'],
+    // The obvious order, left to right: S first runs the canal out of the gangway's grate, so there is no surge and no leak, and K's gold falls into the hot gutter.
+    [['S', 'V', 'U', 'G', 'C', 'K', '@440', '@1215'], 'melted'],
+    // K before the dam: the gutter is still lava when the gold drops.
+    [['V', 'K', 'G', 'U', 'C', 'S', '@440', '@1215'], 'melted'],
+    // The gold first: it falls into the empty berth and down its grate, the barge alone is too light, and the sun trapdoor stays shut over Nib.
+    [['C', 'G', 'V', 'U', 'S', 'K', '@440', '@1215'], 'sealed'],
+    // The dam before the frog's vent: V lies across U's slide, so U can't come out.
+    [['U', 'V', 'G', 'C', 'K', 'S', '@440', '@1215'], 'blocked'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome(order)).toBe(cause);
   });

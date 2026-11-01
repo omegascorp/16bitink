@@ -92,9 +92,11 @@ const T1 = add(904, HALL, 904, 890);
  *    floor, and A's gas never lights ('sealed'). No water, and Nib drops into
  *    the lava ('burnt'). K's hopper drops the gold onto the stone; before C,
  *    into hot lava ('melted').
- * The trap: T, the lava vat that "lights the treasury", pours its lava over
- *    the raised floor between the gold and the chest, and Nib walks into it
- *    ('burnt'), wherever it comes.
+ * The trap: T, the lava vat (60 grains) that "lights the treasury", pours its
+ *    lava over the raised floor between the gold and the chest: Nib walks into
+ *    it ('burnt') wherever it is pulled before K, and the gold melts ('melted')
+ *    when it is pulled after K. B's pit holds 150 gas grains: the dense gas
+ *    takes ~6 s to clear the flue, so Nib waits in the gallery before he drops.
  * Winning order: W, B, walk down and across the ledge, A, C, K, walk.
  */
 export const LAMP_IN_THE_TOMB: LevelDef = {
@@ -130,13 +132,13 @@ export const LAMP_IN_THE_TOMB: LevelDef = {
   ],
   drains: [{ x0: 808, x1: 832, y0: 28, y1: 92 }], // the roof vent at the duct's top end
   fills: [
-    { kind: GAS, x0: SX0, x1: SX1, y1: GALLERY + 7, count: 60 }, // under the trapdoor
+    { kind: GAS, x0: SX0, x1: SX1, y1: GALLERY + 7, count: 150 }, // under the trapdoor
     { kind: GAS, x0: AX0, x1: AX1, y1: HALL + 7, count: 45 }, // pocket A
     { kind: WATER, x0: 456, x1: 480, y1: 288, count: 6 }, // W: douses the upper bowl
     { kind: WATER, x0: 578, x1: 620, y1: 556, count: 20 }, // C: sets the pool
     { kind: LAVA, x0: 444, x1: 524, y1: 892, count: 36 }, // the pit under the ledge
     { kind: LAVA, x0: 612, x1: 792, y1: TREASURY - 8, count: 80 }, // the treasury's pool
-    { kind: LAVA, x0: 832, x1: 896, y1: 889, count: 40 }, // the trap's vat
+    { kind: LAVA, x0: 832, x1: 896, y1: 889, count: 60 }, // the trap's vat
     { kind: COIN, x0: 636, x1: 676, y1: 556, count: 30 }, // K's gold
   ],
   nib: { x: 340, y: GALLERY - 32 },

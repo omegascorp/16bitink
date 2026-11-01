@@ -6,6 +6,7 @@ import { HEARTS, type HudState, type LevelInfo, type Result } from './GameScene'
 import { chapterPlace } from './chapters';
 import { DPR, screenSize } from './hidpi';
 import { lossText } from './lossLines';
+import { getHost, trackOffer } from '../host';
 import type { GuardAnimal } from '../logic/level';
 
 const FONT = 'Caveat';
@@ -306,7 +307,8 @@ export class HudScene extends Phaser.Scene {
     this.leaveButton.setVisible(false);
     const { width, height } = screenSize(this.scale);
     const w = Math.min(380, width - 32);
-    const h = r.won ? (r.next !== null ? 370 : 330) : 236;
+    const way = r.next !== null || r.offer !== undefined;
+    const h = r.won ? (way ? 370 : 330) : 236;
     const bg = this.add.graphics();
     bg.fillStyle(0x000000, 0.12).fillRoundedRect(-w / 2 + 6, -h / 2 + 8, w, h, 14);
     bg.fillStyle(Phaser.Display.Color.HexStringToColor(PAPER).color, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 14);
@@ -332,7 +334,8 @@ export class HudScene extends Phaser.Scene {
       if (r.moreComing) parts.push(this.add.text(0, 65, 'More levels are being drawn', { fontFamily: FONT, fontSize: '22px', color: INK }).setOrigin(0.5).setResolution(DPR));
     }
     const next = r.won ? r.next : null;
-    const again = this.add.text(next !== null ? -60 : 0, h / 2 - (next !== null ? 34 : 70), r.won ? 'Play again' : 'Try again', { fontFamily: FONT, fontSize: next !== null ? '24px' : '30px', fontStyle: '700', color: next !== null ? INK : '#ffffff', backgroundColor: next !== null ? undefined : r.won ? INK : RED, padding: { x: 18, y: 2 } }).setOrigin(0.5).setResolution(DPR);
+    if (r.offer) trackOffer('free_end');
+    const again = this.add.text(way ? -60 : 0, h / 2 - (way ? 34 : 70), r.won ? 'Play again' : 'Try again', { fontFamily: FONT, fontSize: way ? '24px' : '30px', fontStyle: '700', color: way ? INK : '#ffffff', backgroundColor: way ? undefined : r.won ? INK : RED, padding: { x: 18, y: 2 } }).setOrigin(0.5).setResolution(DPR);
     again.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
       hudTake(p);
       this.sfx.play('tap');
@@ -340,7 +343,7 @@ export class HudScene extends Phaser.Scene {
     });
     parts.push(again);
     // Back to the map: beside "Play again" under the way on, or under the main button.
-    const map = this.add.text(next !== null ? 70 : 0, h / 2 - 32, '‹ Map', { fontFamily: FONT, fontSize: '24px', fontStyle: '700', color: INK, padding: { x: 14, y: 2 } }).setOrigin(0.5).setResolution(DPR);
+    const map = this.add.text(way ? 70 : 0, h / 2 - 32, '‹ Map', { fontFamily: FONT, fontSize: '24px', fontStyle: '700', color: INK, padding: { x: 14, y: 2 } }).setOrigin(0.5).setResolution(DPR);
     map.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
       hudTake(p);
       this.sfx.play('tap');
@@ -356,6 +359,16 @@ export class HudScene extends Phaser.Scene {
         this.game.events.emit('cmd:level', next);
       });
       parts.push(on);
+    }
+    if (r.offer) {
+      // The free levels are done: the full game is the way on.
+      const buy = this.add.text(0, h / 2 - 84, `Full game · ${r.offer}`, { fontFamily: FONT, fontSize: '32px', fontStyle: '700', color: '#ffffff', backgroundColor: '#2f7a3a', padding: { x: 20, y: 3 } }).setOrigin(0.5).setResolution(DPR);
+      buy.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
+        hudTake(p);
+        this.sfx.play('tap');
+        getHost()?.onBuy('free_end');
+      });
+      parts.push(buy);
     }
     // In the upper part of the screen: the camera has zoomed in on Nib below it.
     this.card = this.add.container(width / 2, this.cardY(h), parts).setScale(0.7).setAlpha(0);

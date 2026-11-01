@@ -1,24 +1,4 @@
 import type { LevelDef } from '../logic/level';
-import { BLACK_STEPS } from './ch2/blackSteps';
-import { CALDERA } from './ch2/caldera';
-import { EMBER_LIGHT } from './ch2/emberLight';
-import { FIRE_AND_FLOOD } from './ch2/fireFlood';
-import { FIRE_IDOL } from './ch2/fireIdol';
-import { JUST_ENOUGH } from './ch2/justEnough';
-import { PUMICE_RAFT } from './ch2/pumiceRaft';
-import { RUBY_HOARD } from './ch2/rubyHoard';
-import { SPRINGS } from './ch2/springs';
-import { STONE_BRIDGE } from './ch2/stoneBridge';
-import { BAD_AIR } from './ch3/badAir';
-import { BLASTING_CHAMBER } from './ch3/blastingChamber';
-import { BURIAL_GOLD } from './ch3/burialGold';
-import { DEEP_SHAFT } from './ch3/deepShaft';
-import { LAMP_IN_THE_TOMB } from './ch3/lampInTheTomb';
-import { PUFF_FROG } from './ch3/puffFrog';
-import { SEALED_DOOR } from './ch3/sealedDoor';
-import { SUN_BARGE } from './ch3/sunBarge';
-import { TOMB_GUARDIAN } from './ch3/tombGuardian';
-import { WEIGHING_ROOM } from './ch3/weighingRoom';
 import { CELLAR } from './cellar';
 import { CISTERN } from './cistern';
 import { DOOR } from './door';
@@ -42,30 +22,31 @@ export const CHAPTER_NAMES: readonly string[] = [
 /** Levels planned in each chapter. */
 export const LEVELS_PER_CHAPTER = 10;
 
+/** Chapters free to everyone; the rest are the full game, fetched from the server for owners. */
+export const FREE_CHAPTERS = 1;
+/** Chapters built so far (free and paid): the map shows the paid ones locked, the rest as pencil drafts. */
+export const BUILT_CHAPTERS = 3;
+
 /** Chapter 1, the Jungle Temple, in order. */
 export const CHAPTER_1: readonly LevelDef[] = [DOOR, GOLD_RUSH, CISTERN, GUARD, CELLAR, PIN_OVER_PIN, WELL, STAIR, TORCHES, IDOL_HALL];
 
-/** Chapter 2, the Volcano Shrine, in order. */
-export const CHAPTER_2: readonly LevelDef[] = [
-  BLACK_STEPS,
-  PUMICE_RAFT,
-  STONE_BRIDGE,
-  SPRINGS,
-  RUBY_HOARD,
-  JUST_ENOUGH,
-  CALDERA,
-  FIRE_AND_FLOOD,
-  EMBER_LIGHT,
-  FIRE_IDOL,
-];
+/**
+ * The built chapters' levels, by chapter, that this player has installed:
+ * Chapter 1 always, plus the paid chapters once fetched (see installPaidChapters).
+ * A live binding, so every importer sees the paid chapters once they arrive.
+ */
+export let CHAPTERS: readonly (readonly LevelDef[])[] = [CHAPTER_1];
 
-/** Chapter 3's playable levels, 21–27. The remaining three have draft map slots. */
-export const CHAPTER_3: readonly LevelDef[] = [SEALED_DOOR, BAD_AIR, BLASTING_CHAMBER, PUFF_FROG, BURIAL_GOLD, WEIGHING_ROOM, DEEP_SHAFT];
-/** Built for iteration, but not playable until their level and curve checks pass. */
-export const CHAPTER_3_DRAFTS: readonly LevelDef[] = [SUN_BARGE, LAMP_IN_THE_TOMB, TOMB_GUARDIAN];
+/** Every installed level in play order: a level opens once the one before it is won, across chapters. */
+export let LEVELS: readonly LevelDef[] = CHAPTERS.flat();
 
-/** The built chapters' levels, by chapter; a chapter with none is still a draft on the map. */
-export const CHAPTERS: readonly (readonly LevelDef[])[] = [CHAPTER_1, CHAPTER_2, CHAPTER_3];
+/** Installs the full game's chapters (already validated, see validate.ts) after Chapter 1. */
+export function installPaidChapters(chapters: readonly (readonly LevelDef[])[]): void {
+  CHAPTERS = [CHAPTER_1, ...chapters];
+  LEVELS = CHAPTERS.flat();
+}
 
-/** Every built level in play order: a level opens once the one before it is won, across chapters. */
-export const LEVELS: readonly LevelDef[] = CHAPTERS.flat();
+/** The last free level: finishing it offers the full game. */
+export function isFreeEnd(id: string): boolean {
+  return CHAPTER_1[CHAPTER_1.length - 1]?.id === id;
+}

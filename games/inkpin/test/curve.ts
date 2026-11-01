@@ -1,4 +1,4 @@
-import { CHAPTERS } from '../src/level';
+import { ALL_CHAPTERS as CHAPTERS } from '../src/level/paid';
 import type { LevelDef } from '../src/logic/level';
 import type { Audit } from './audit';
 

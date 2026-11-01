@@ -58,7 +58,47 @@ function watchSolution(): { won: boolean; seconds: number; raft: number[]; nib: 
   return { won: w.status.state === 'won', seconds: w.steps / STEPS_PER_SECOND, raft, nib, lava, stone, raftY: r.y };
 }
 
+/**
+ * Plays the hint as the bot does, but lets Nib idle `idle` steps (120 a
+ * second) before pull number `at`: a player who looks first, or pulls late.
+ */
+function playWithIdle(idle: number, at: number): string {
+  const w = new World(PUMICE_RAFT);
+  const run = (steps: number): void => {
+    for (let s = 0; s < steps && !w.finished; s++) {
+      w.step();
+      if (s > 30 && w.settled && w.nibOrder.kind === 'stay') break;
+    }
+  };
+  const stops = PUMICE_RAFT.stops ?? [];
+  const visit = (list: readonly Stop[], steps: number): void => {
+    for (const s of list) {
+      if (w.finished) return;
+      w.command({ kind: 'goto', x: s.x });
+      run(steps);
+    }
+  };
+  PUMICE_RAFT.solution.forEach((id, i) => {
+    if (w.finished) return;
+    if (i === at) for (let s = 0; s < idle && !w.finished; s++) w.step();
+    w.pull(id);
+    run(STEPS_PER_SECOND * 8);
+    visit(stops, STEPS_PER_SECOND * 8);
+  });
+  const back = [...stops].reverse();
+  visit([...back, ...stops, ...back, ...stops], (STEPS_PER_SECOND * 25) / 4);
+  w.leave();
+  return w.status.state === 'lost' ? w.status.cause : w.status.state;
+}
+
 describe('The Pumice Raft', () => {
+  // Idle steps are 1/120 s: 8 is 1/15 s, 240 is 2 s.
+  describe.each([0, 1, 2, 4, 8, 12, 20, 30, 60, 100, 144, 240])('hint with %i idle steps', (idle) => {
+    it.each([0, 1, 2, 3, 4, 5].filter((at) => idle > 0 || at === 0))('before pull %i it wins', (at) => {
+      expect(playWithIdle(idle, at)).toBe('won');
+    });
+  });
+
   it('is won by its hint: the raft comes to Nib, takes the hopper\'s gold aboard, carries him over, and the river is cooled behind him', () => {
     const r = watchSolution();
     expect(r.won).toBe(true);
@@ -102,10 +142,13 @@ describe('The Pumice Raft', () => {
     [['D', 'G', 'X', 'M', 'W', 'Y'], 'burnt'],
     // The vault on the hot river after the ferry: the lava pours through the culvert into the vault after Nib.
     [['D', 'G', 'M', 'X', 'W', 'Y'], 'burnt'],
-    // The vault hopper first: harmless itself, but Nib waits at the dam, and jumps into the lava the moment it runs.
-    [['Y', 'D', 'G', 'M', 'W', 'X'], 'burnt'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome(order)).toBe(cause);
+  });
+
+  // The vault hopper is harmless whenever it is pulled: its gold waits on the vault floor. First of all, it still wins.
+  it('is won with the vault hopper first', () => {
+    expect(outcome(['Y', 'D', 'G', 'M', 'W', 'X'])).toBe('won');
   });
 
   if (process.env.AUDIT) it('audit', () => console.log('AUDIT ' + JSON.stringify(audit(PUMICE_RAFT))), 3_600_000);

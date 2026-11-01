@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LEVELS } from '../src/level';
+import { ALL_LEVELS as LEVELS } from '../src/level/paid';
 import { audit } from './audit';
 import { curveCheck } from './curve';
 

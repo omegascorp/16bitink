@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHAPTERS, CHAPTER_3_DRAFTS } from '../src/level';
+import { ALL_CHAPTERS as CHAPTERS, CHAPTER_3_DRAFTS } from '../src/level/paid';
 import { parseStep } from '../src/logic/level';
 import { hintsNow, planProgress, planSteps, stepsDone, walkDone, WALK_REACH, type Done } from '../src/scenes/hintPlan';
 import { lossText } from '../src/scenes/lossLines';

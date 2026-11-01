@@ -14,9 +14,10 @@ const PENCIL_HEX = 0x8a8578;
 
 /**
  * done: won; current: where Nib waits, the next to play; open: playable;
- * closed: not reached yet; draft: its chapter isn't built yet.
+ * closed: not reached yet; locked: in the full game, which this player hasn't
+ * got; draft: its chapter isn't built yet.
  */
-export type NodeState = 'done' | 'current' | 'open' | 'closed' | 'draft';
+export type NodeState = 'done' | 'current' | 'open' | 'closed' | 'locked' | 'draft';
 
 /** Each level's state, and the level Nib waits at: the first open one not won, else the last won. */
 export function mapStates(order: readonly string[], progress: Progress, allOpen: boolean): { states: Map<string, NodeState>; current: string } {
@@ -85,7 +86,7 @@ export function buildNodes(
       text(n.x, n.y, String(n.index + 1), 23, PENCIL);
       continue;
     }
-    const reachable = state !== 'closed';
+    const reachable = state !== 'closed' && state !== 'locked';
     const kind: StopKind = state === 'done' ? 'gold' : reachable ? 'paper' : 'faded';
     const key = `stop-${kind}`;
     if (!scene.textures.exists(key)) scene.textures.addCanvas(key, paintStop(kind, r));

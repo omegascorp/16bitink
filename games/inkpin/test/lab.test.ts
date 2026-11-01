@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHAPTER_3_DRAFTS, LEVELS } from '../src/level';
+import { ALL_LEVELS as LEVELS, CHAPTER_3_DRAFTS } from '../src/level/paid';
 import type { LevelDef } from '../src/logic/level';
 import { COIN, GAS, LAVA, STEPS_PER_SECOND, STONE, WATER } from '../src/logic/particles';
 import { inRooms } from '../src/logic/rooms';

@@ -53,7 +53,7 @@ export const DEEP_SHAFT: LevelDef = {
     [[520, 870], [601, 870], [601, 1046], [520, 1092]], // the lava vat L
     [[601, 930], [640, 930], [640, 1022], [601, 1046]], // the gold hopper K
     [[650, 860], [850, 860], [850, 935], [800, 958], [700, 1016], [650, 1016]], // the boulder's ledge and the eye closet
-    [[926, 760], [984, 760], [984, 850], [926, 884]], // the cistern X
+    [[926, 700], [984, 700], [984, 850], [926, 884]], // the cistern X
   ],
   walls: [
     { ax: 52, ay: 1416, bx: 164, by: 1416, t: T }, // 0 the shelter's roof
@@ -97,9 +97,9 @@ export const DEEP_SHAFT: LevelDef = {
     { ax: 984, ay: 858, bx: 984, by: 1094, t: T }, // 38 the cracked bar to the vault
     { ax: 984, ay: 830, bx: 1080, by: 830, t: T }, // 39 the vault
     { ax: 1080, ay: 830, bx: 1080, by: 1104, t: T }, // 40
-    { ax: 926, ay: 760, bx: 926, by: 884, t: T }, // 41 the cistern X
-    { ax: 926, ay: 760, bx: 984, by: 760, t: T }, // 42
-    { ax: 984, ay: 760, bx: 984, by: 830, t: T }, // 43
+    { ax: 926, ay: 700, bx: 926, by: 884, t: T }, // 41 the cistern X
+    { ax: 926, ay: 700, bx: 984, by: 700, t: T }, // 42
+    { ax: 984, ay: 700, bx: 984, by: 830, t: T }, // 43
     { ax: 650, ay: 940, bx: 650, by: 1016, t: T }, // 44 the eye closet's back wall: Nib never gets up here
     { ax: 940, ay: 946, bx: 964, by: 946, t: T }, // 45 the bowl's shelf, the bowl at its tip
     { ax: 520, ay: 870, bx: 520, by: 1092, t: T }, // 46 the lava vat: more than the pit holds
@@ -118,7 +118,7 @@ export const DEEP_SHAFT: LevelDef = {
   ],
   fills: [
     { kind: GAS, x0: 100, x1: 292, y1: 1568, count: 150 }, // the well, held from above: rows pack down from under its roof
-    { kind: WATER, x0: 928, x1: 982, y1: 844, count: 45 }, // the cistern: puts the bowl out, then wets the pit (enough to set the whole vat)
+    { kind: WATER, x0: 932, x1: 976, y1: 840, count: 45 }, // the cistern: puts the bowl out, then wets the pit (enough to set the whole vat)
     { kind: LAVA, x0: 524, x1: 597, y1: 1040, count: 90 }, // the vat: the pit's step
     { kind: COIN, x0: 598, x1: 637, y1: 1016, count: 18 }, // the hopper's gold clears the lava step together
   ],

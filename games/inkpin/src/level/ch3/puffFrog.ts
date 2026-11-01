@@ -47,7 +47,7 @@ export const PUFF_FROG: LevelDef = {
     [[600, 700], [970, 700], [970, 846], [896, 834], [896, 960], [816, 960], [816, 840], [600, 840]], // the crypt and the frog's pool
     [[846, 662], [886, 662], [886, 700], [846, 700]], // vent B
     [[620, 840], [700, 840], [700, 910], [620, 910]], // the crypt's gas pit
-    [[500, 720], [600, 720], [600, 840], [500, 840]], // the chest's room
+    [[500, 720], [534, 720], [534, 684], [586, 684], [586, 720], [600, 720], [600, 840], [500, 840]], // the chest's room, and the lamp's tank in its roof
   ],
   walls: [
     { ax: 1560, ay: 120, bx: 1560, by: 396, t: T }, // 0 the cistern, down to the sluice
@@ -95,15 +95,17 @@ export const PUFF_FROG: LevelDef = {
     { ax: 620, ay: 910, bx: 700, by: 910, t: T }, // 42
     { ax: 600, ay: 700, bx: 600, by: 840, t: T }, // 43 the cracked bar to the chest
     { ax: 716, ay: 772, bx: 746, by: 772, t: T }, // 44 the bowl's shelf under the pipe, its tip under the flame
-    { ax: 500, ay: 720, bx: 600, by: 720, t: T }, // 45 the chest's room
+    { ax: 500, ay: 720, bx: 534, by: 720, t: T }, // 45 the chest's room
     { ax: 500, ay: 720, bx: 500, by: 820, t: T }, // 46
     { ax: 500, ay: 820, bx: 592, by: 820, t: T }, // 47 a step up from the crypt: the water stays out
     { ax: 592, ay: 820, bx: 592, by: 840, t: T }, // 48
     { ax: 968, ay: 540, bx: 1000, by: 540, t: T }, // 49 the gallery's roof right of the dam
-    { ax: 540, ay: 720, bx: 540, by: 762, t: T }, // 50 the oil lamp's tank, hung over the burial niche
-    { ax: 580, ay: 720, bx: 580, by: 762, t: T }, // 51
+    { ax: 534, ay: 684, bx: 534, by: 732, t: T }, // 50 the oil lamp's tank, set in the roof over the burial niche (Nib walks under it)
+    { ax: 586, ay: 684, bx: 586, by: 732, t: T }, // 51
+    { ax: 534, ay: 684, bx: 586, by: 684, t: T }, // 52 the tank's roof
+    { ax: 586, ay: 720, bx: 600, by: 720, t: T }, // 53 the chest room's roof, right of the tank
   ],
-  bars: [9, 10, 39, 43, 44, 50, 51],
+  bars: [9, 10, 39, 43, 44, 50, 51, 52, 53],
   cracked: [43],
   pins: [
     { id: 'G', ax: 696, ay: 840, bx: 628, by: 840, t: PIN_T }, // the gas pit's lid in the crypt's floor
@@ -112,7 +114,7 @@ export const PUFF_FROG: LevelDef = {
     { id: 'U', ax: 976, ay: 540, bx: 888, by: 540, t: PIN_T }, // the dam: the well's floor, in the gallery's roof
     { id: 'B', ax: 838, ay: 700, bx: 894, by: 700, t: PIN_T }, // the frog dome's vent
     { id: 'S', ax: 976, ay: 700, bx: 888, by: 700, t: PIN_T }, // Nib's pin, the floor of his pit and the frog dome's roof
-    { id: 'T', ax: 586, ay: 762, bx: 544, by: 762, t: PIN_T }, // the trap: the oil lamp's floor, over the chest's gold
+    { id: 'T', ax: 592, ay: 732, bx: 528, by: 732, t: PIN_T }, // the trap: the oil lamp's floor, over the chest's gold
   ],
   drains: [
     { x0: 1300, x1: 1360, y0: 280, y1: 330 }, // vent A
@@ -127,7 +129,7 @@ export const PUFF_FROG: LevelDef = {
     { kind: GAS, x0: 608, x1: 672, y1: 708, count: 12 }, // the bowl's dome by the bar, round frog 3
     { kind: GAS, x0: 628, x1: 692, y1: 848, count: 30 }, // the crypt's gas pit
     { kind: COIN, x0: 512, x1: 584, y1: 812, count: 10 }, // the chest-room reward, past the cracked bar
-    { kind: LAVA, x0: 546, x1: 574, y1: 756, count: 12 }, // the oil lamp's oil, over the niche
+    { kind: LAVA, x0: 540, x1: 580, y1: 734, count: 12 }, // the oil lamp's oil, over the niche
   ],
   nib: { x: 932, y: 669 },
   blots: [

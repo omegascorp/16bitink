@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHAPTER_3 as LEVELS } from '../src/level';
+import { CHAPTER_3 as LEVELS } from '../src/level/paid';
 import { parseStep } from '../src/logic/level';
 import { inRooms } from '../src/logic/rooms';
 import { World } from '../src/logic/world';

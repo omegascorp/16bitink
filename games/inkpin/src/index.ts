@@ -3,7 +3,9 @@ import type { LevelDef } from './logic/level';
 import Phaser from 'phaser';
 import { PAPER } from './art/palette';
 import { SoundBoard } from './audio/sfx';
-import { useStorage } from './host';
+import { useHost, useStorage } from './host';
+import { installPaidChapters } from './level';
+import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 import { DPR } from './scenes/hidpi';
 import { HudScene } from './scenes/HudScene';
@@ -17,6 +19,8 @@ export interface MountOptions {
   readonly sample?: LevelDef;
   /** Opens every level, for testing. */
   readonly unlockAll?: boolean;
+  /** The dev page's way in: the paid chapters, installed as they are instead of being fetched. Never set by the site. */
+  readonly paid?: readonly (readonly LevelDef[])[];
 }
 
 /** Mounts InkPin into `parent`, filling it and following its size. */
@@ -35,14 +39,19 @@ export function mount(parent: HTMLElement, host: GameHost, options: MountOptions
     render: { antialias: true, antialiasGL: false, roundPixels: false, powerPreference: 'high-performance', maxTextures: 8 },
     input: { activePointers: 2 },
     audio: { noAudio: true },
-    scene: [MenuScene, GameScene, HudScene],
+    scene: [BootScene, MenuScene, GameScene, HudScene],
   });
   const sfx = new SoundBoard();
   game.registry.set('sfx', sfx);
   game.registry.set('unlockAll', options.unlockAll ?? host.allLevelsOpen === true);
   useStorage(host.storage);
-  // The site's splash stays up until the first frame is drawn, so it lifts onto a finished picture.
-  if (host.loading) game.events.once(Phaser.Core.Events.POST_RENDER, () => host.loading?.ready());
+  useHost(host);
+  // Whatever an earlier mount installed goes: this player's chapters are fetched (or passed in) afresh.
+  installPaidChapters(options.paid ?? []);
+  if (options.paid) {
+    game.registry.set('paidInstalled', true);
+  }
+  // The site's splash stays up until the boot step has fetched the full game and the first screen is drawn.
   // Straight into a level (the dev page's ?level=), else the Atlas map first.
   if (options.sample) game.registry.set('sampleLevel', options.sample);
   if (options.level !== undefined || options.sample) game.registry.set('startLevel', options.level ?? 0);
