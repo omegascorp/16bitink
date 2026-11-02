@@ -1,5 +1,5 @@
 import { createRng } from '../logic/rng';
-import type { MapLayout } from '../scenes/map/layout';
+import { acrossPage, MAP, perWidth, type MapLayout } from '../scenes/map/layout';
 import { GOLD, INK, MOSS, TEMPLE, TEMPLE_DARK } from './palette';
 import { Pen, type Pt } from './pen';
 import { mix, rgba } from './wash';
@@ -35,8 +35,8 @@ function stains(layout: MapLayout): Stain[] {
   if (cached) return cached;
   const rng = createRng(17);
   const list: Stain[] = [];
-  const n = Math.round(layout.height / 90);
-  for (let i = 0; i < n; i++) list.push({ x: rng() * layout.width, y: rng() * layout.height, r: 40 + rng() * 160, a: 0.04 + rng() * 0.08 });
+  const n = perWidth(layout, Math.round(layout.height / 90));
+  for (let i = 0; i < n; i++) list.push({ x: acrossPage(layout, rng()), y: rng() * layout.height, r: 40 + rng() * 160, a: 0.04 + rng() * 0.08 });
   stainCache.set(layout, list);
   return list;
 }
@@ -69,10 +69,11 @@ function features(layout: MapLayout): Feature[] {
 
 /** Paints the page between world y0 and y0 + h (the context already maps world px). */
 export function paintAtlasChunk(ctx: CanvasRenderingContext2D, layout: MapLayout, y0: number, h: number): void {
-  const W = layout.width;
+  const L = layout.left;
+  const R = L + layout.width;
   const y1 = y0 + h;
   ctx.fillStyle = PAGE;
-  ctx.fillRect(0, y0, W, h);
+  ctx.fillRect(L, y0, layout.width, h);
   for (const s of stains(layout)) {
     if (s.y + s.r < y0 || s.y - s.r > y1) continue;
     const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r);
@@ -83,14 +84,14 @@ export function paintAtlasChunk(ctx: CanvasRenderingContext2D, layout: MapLayout
     ctx.fillRect(s.x - s.r, s.y - s.r, s.r * 2, s.r * 2);
   }
   // Darker, foxed edges of the page.
-  for (const [x, dir] of [[0, 1], [W, -1]] as const) {
+  for (const [x, dir] of [[L, 1], [R, -1]] as const) {
     const g = ctx.createLinearGradient(x, 0, x + dir * 90, 0);
     g.addColorStop(0, rgba('#a88a5a', 0.35));
     g.addColorStop(1, rgba('#a88a5a', 0));
     ctx.fillStyle = g;
     ctx.fillRect(dir > 0 ? x : x - 90, y0, 90, h);
   }
-  paintGrid(ctx, W, y0, y1);
+  paintGrid(ctx, L, R, y0, y1);
   paintFibres(ctx, layout, y0, y1);
   for (const f of features(layout)) {
     if (f.bottom < y0 || f.top > y1) continue;
@@ -108,18 +109,17 @@ export function paintAtlasChunk(ctx: CanvasRenderingContext2D, layout: MapLayout
     else paintDraftRuin(pen, r.index, r.ruin);
   }
   // Inside what a phone shows of the page (about 760 px across its middle).
-  const compass = { x: W - 220, y: layout.height - 150 };
+  const compass = { x: R - 220, y: layout.height - 150 };
   if (compass.y + 90 > y0 && compass.y - 90 < y1) paintCompass(ctx, new Pen(ctx, 77, 0.6), compass);
 }
 
 /** Paper grain: fine flecks and short fibres, and the creases where the page was folded. */
 function paintFibres(ctx: CanvasRenderingContext2D, layout: MapLayout, y0: number, y1: number): void {
-  const W = layout.width;
   // Seeded per 256 px band of the page, so bands baked apart still match.
   for (let band = Math.floor(y0 / 256); band * 256 < y1; band++) {
     const rng = createRng(4000 + band);
-    for (let i = 0; i < 260; i++) {
-      const x = rng() * W;
+    for (let i = 0; i < perWidth(layout, 260); i++) {
+      const x = acrossPage(layout, rng());
       const y = band * 256 + rng() * 256;
       const dark = rng() < 0.6;
       ctx.fillStyle = dark ? rgba('#8a6f45', 0.08 + rng() * 0.1) : rgba('#fffaf0', 0.35);
@@ -151,16 +151,17 @@ function paintFibres(ctx: CanvasRenderingContext2D, layout: MapLayout, y0: numbe
     ctx.stroke();
     ctx.restore();
   };
-  crease(W / 2, y0, W / 2, y1);
-  for (let y = Math.ceil(y0 / 1400) * 1400; y < y1; y += 1400) crease(0, y, W, y);
+  crease(MAP.mid, y0, MAP.mid, y1);
+  for (let y = Math.ceil(y0 / 1400) * 1400; y < y1; y += 1400) crease(layout.left, y, layout.left + layout.width, y);
 }
 
 /** A faint hand-ruled grid of the old surveyor. */
-function paintGrid(ctx: CanvasRenderingContext2D, W: number, y0: number, y1: number): void {
+function paintGrid(ctx: CanvasRenderingContext2D, L: number, R: number, y0: number, y1: number): void {
   ctx.save();
   ctx.strokeStyle = rgba('#8a7a5a', 0.13);
   ctx.lineWidth = 1;
-  for (let x = 125; x < W; x += 250) {
+  // Lined up with x = 125 on every page width, so a wider page only adds lines.
+  for (let x = 125 - Math.ceil((125 - L) / 250) * 250; x < R; x += 250) {
     ctx.beginPath();
     ctx.moveTo(x, y0);
     ctx.lineTo(x, y1);
@@ -168,8 +169,8 @@ function paintGrid(ctx: CanvasRenderingContext2D, W: number, y0: number, y1: num
   }
   for (let y = Math.ceil(y0 / 250) * 250; y < y1; y += 250) {
     ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(W, y);
+    ctx.moveTo(L, y);
+    ctx.lineTo(R, y);
     ctx.stroke();
   }
   ctx.restore();

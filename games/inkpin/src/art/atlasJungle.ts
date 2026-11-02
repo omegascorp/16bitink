@@ -1,5 +1,5 @@
+import { acrossPage, perWidth, type MapRegion } from '../scenes/map/layout';
 import { createRng } from '../logic/rng';
-import type { MapRegion } from '../scenes/map/layout';
 import { groundWashes, Layer, type Plan, regionSpan, regionWeight } from './atlasPlace';
 import { blob, contourHatch, deform, glow, type Rng, trace, wash } from './atlasWash';
 import { INK } from './palette';
@@ -39,8 +39,8 @@ export function planJungle(plan: Plan, r: MapRegion): void {
   if (r.index === 0) plan.add(Layer.Water, layout.height, r.top - 140, layout.height, (ctx, seed) => paintRiver(ctx, new Pen(ctx, seed, 0.6), r.top - 120, layout.height + 40));
   const offRiver = riverKeepOut(r);
   // Hills, under the forests.
-  for (let i = 0; i < 9; i++) {
-    const x = 60 + rng() * (layout.width - 120);
+  for (let i = 0; i < perWidth(layout, 9); i++) {
+    const x = acrossPage(layout, rng(), 60);
     const y = span.top + rng() * (span.bottom - span.top);
     const w = 70 + rng() * 60;
     const h = 30 + rng() * 22;
@@ -48,16 +48,16 @@ export function planJungle(plan: Plan, r: MapRegion): void {
     plan.add(Layer.Detail, y, y - h - 10, y + 12, (ctx, seed) => hill(ctx, new Pen(ctx, seed, 0.6), x, y, w, h, createRng(seed)));
   }
   // Forests: dense clumps hugging the page's sides and filling the trail's bends.
-  for (let i = 0; i < 34; i++) {
+  for (let i = 0; i < perWidth(layout, 34); i++) {
     const side = i % 3 === 2 ? rng() : i % 2 ? rng() * 0.28 : 0.72 + rng() * 0.28;
-    const cx = 40 + side * (layout.width - 80);
+    const cx = acrossPage(layout, side, 40);
     const cy = span.top + rng() * (span.bottom - span.top);
     if (rng() > weight(cy)) continue;
     forest(plan, rng, cx, cy, 70 + rng() * 80, 45 + rng() * 45, weight, offRiver);
   }
   // Lone trees, palms and bushes between.
-  for (let i = 0; i < 150; i++) {
-    const x = 30 + rng() * (layout.width - 60);
+  for (let i = 0; i < perWidth(layout, 150); i++) {
+    const x = acrossPage(layout, rng(), 30);
     const y = span.top + rng() * (span.bottom - span.top);
     const s = 11 + rng() * 10;
     const kind = rng();

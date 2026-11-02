@@ -1,5 +1,5 @@
+import { acrossPage, perWidth, type MapRegion } from '../scenes/map/layout';
 import { createRng } from '../logic/rng';
-import type { MapRegion } from '../scenes/map/layout';
 import { inkLines } from './atlas';
 import { groundWashes, Layer, type Plan, regionSpan, regionWeight } from './atlasPlace';
 import { blob, glow, type Rng, trace, wash } from './atlasWash';
@@ -62,8 +62,8 @@ export function planVolcano(plan: Plan, r: MapRegion): void {
     mountain(ctx, pen, lavaX(srcY) - 6, srcY + 18, 92, 118, rr, 'crater');
   });
   // Fields of black basalt, cracked, embers glowing in the cracks.
-  for (let i = 0; i < 14; i++) {
-    const x = 50 + rng() * (layout.width - 100);
+  for (let i = 0; i < perWidth(layout, 14); i++) {
+    const x = acrossPage(layout, rng(), 50);
     const y = span.top + rng() * (span.bottom - span.top);
     const w = 55 + rng() * 60;
     const h = 22 + rng() * 22;
@@ -71,9 +71,9 @@ export function planVolcano(plan: Plan, r: MapRegion): void {
     plan.add(Layer.Detail, y, y - h - 6, y + h + 6, (ctx, seed) => basaltField(ctx, new Pen(ctx, seed, 0.4), x, y, w, h, createRng(seed)));
   }
   // Ranges of peaks: a few each, the far ones first.
-  for (let i = 0; i < 22; i++) {
+  for (let i = 0; i < perWidth(layout, 22); i++) {
     const side = i % 3 === 2 ? rng() : i % 2 ? rng() * 0.25 : 0.62 + rng() * 0.2;
-    const cx = 40 + side * (layout.width - 80);
+    const cx = acrossPage(layout, side, 40);
     const cy = span.top + 80 + rng() * (span.bottom - span.top - 80);
     if (rng() > weight(cy) * 1.1) continue;
     const peaks = 2 + Math.floor(rng() * 4);
@@ -99,8 +99,8 @@ export function planVolcano(plan: Plan, r: MapRegion): void {
     }
   }
   // Groves of charred trees; towards the jungle a few still have leaves.
-  for (let i = 0; i < 18; i++) {
-    const cx = 40 + rng() * (layout.width - 80);
+  for (let i = 0; i < perWidth(layout, 18); i++) {
+    const cx = acrossPage(layout, rng(), 40);
     const cy = span.top + rng() * (span.bottom - span.top);
     if (rng() > weight(cy)) continue;
     const n = 3 + Math.floor(rng() * 5);
@@ -114,8 +114,8 @@ export function planVolcano(plan: Plan, r: MapRegion): void {
     }
   }
   // Steam vents, cinder rocks and lone dead trees between.
-  for (let i = 0; i < 90; i++) {
-    const x = 40 + rng() * (layout.width - 80);
+  for (let i = 0; i < perWidth(layout, 90); i++) {
+    const x = acrossPage(layout, rng(), 40);
     const y = span.top + rng() * (span.bottom - span.top);
     const roll = rng();
     if (rng() > weight(y) || !clear.ok(x, y, 12, 14, 40) || !offLava(x, y, 46)) continue;
@@ -125,7 +125,7 @@ export function planVolcano(plan: Plan, r: MapRegion): void {
   }
   // A stand of basalt columns.
   for (let tries = 0; tries < 30; tries++) {
-    const x = 60 + rng() * (layout.width - 120);
+    const x = acrossPage(layout, rng(), 60);
     const y = r.top + 200 + rng() * (r.bottom - r.top - 500);
     if (!clear.ok(x, y, 50, 60, 30) || !offLava(x, y, 100)) continue;
     plan.add(Layer.Standing, y, y - 70, y + 10, (ctx, seed) => columns(ctx, new Pen(ctx, seed, 0.4), x, y, createRng(seed)));

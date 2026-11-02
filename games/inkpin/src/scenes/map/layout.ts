@@ -53,6 +53,9 @@ export interface MapNode {
 }
 
 export interface MapLayout {
+  /** World x of the page's left edge: 0 on a phone, less on a wide screen, where the page grows either side of the trail. */
+  readonly left: number;
+  /** The page's full width, from `left`. */
   readonly width: number;
   readonly height: number;
   readonly regions: readonly MapRegion[];
@@ -67,7 +70,11 @@ function swingX(region: number, local: number): number {
   return MAP.mid + MAP.swing * Math.sin(local * 1.05 + region * 0.9 + 0.6);
 }
 
-export function computeMapLayout(chapters: readonly MapChapter[]): MapLayout {
+/**
+ * `pageWidth` is how wide the page should be (at least MAP.width): wider
+ * screens get a wider page, grown evenly either side, so no table shows.
+ */
+export function computeMapLayout(chapters: readonly MapChapter[], pageWidth: number = MAP.width): MapLayout {
   if (chapters.length === 0) throw new Error('computeMapLayout: no chapters');
   const heights = chapters.map((c) => MAP.head + Math.max(0, c.levelIds.length - 1) * MAP.nodeGap + MAP.tail);
   const height = MAP.margin * 2 + heights.reduce((a, b) => a + b, 0);
@@ -92,7 +99,18 @@ export function computeMapLayout(chapters: readonly MapChapter[]): MapLayout {
   });
   control.push({ x: MAP.mid, y: bottom - 30 }, { x: MAP.mid, y: 40 });
   const path = buildPath(control);
-  return { width: MAP.width, height, regions, nodes, path, nodeS: nodes.map((n) => nearestS(path, n)) };
+  const width = Math.max(MAP.width, Math.ceil(pageWidth));
+  return { left: (MAP.width - width) / 2, width, height, regions, nodes, path, nodeS: nodes.map((n) => nearestS(path, n)) };
+}
+
+/** World x a fraction `t` across the page, `inset` in from its edges. */
+export function acrossPage(layout: MapLayout, t: number, inset = 0): number {
+  return layout.left + inset + t * (layout.width - inset * 2);
+}
+
+/** How many of something this page holds, for `n` on a page MAP.width wide. */
+export function perWidth(layout: MapLayout, n: number): number {
+  return Math.round((n * layout.width) / MAP.width);
 }
 
 export function trailPoint(layout: MapLayout, s: number): Pt {

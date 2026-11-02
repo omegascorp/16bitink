@@ -1,5 +1,5 @@
+import { acrossPage, perWidth, type MapRegion } from '../scenes/map/layout';
 import { createRng } from '../logic/rng';
-import type { MapRegion } from '../scenes/map/layout';
 import { inkLines } from './atlas';
 import { dune, mesa, rippleField, SANDS } from './atlasDesert';
 import { groundWashes, Layer, type Plan, regionSpan, regionWeight } from './atlasPlace';
@@ -42,8 +42,8 @@ export function planTomb(plan: Plan, r: MapRegion): void {
   groundWashes(plan, r, SANDS, 0.26, rng);
   plan.add(Layer.Water, r.top, r.top, r.bottom, (ctx, seed) => paintWadi(ctx, new Pen(ctx, seed, 0.5), r));
   // Wind-combed sand in the open stretches.
-  for (let i = 0; i < 26; i++) {
-    const x = 40 + rng() * (layout.width - 80);
+  for (let i = 0; i < perWidth(layout, 26); i++) {
+    const x = acrossPage(layout, rng(), 40);
     const y = span.top + rng() * (span.bottom - span.top);
     const w = 50 + rng() * 80;
     const h = 14 + rng() * 22;
@@ -51,9 +51,9 @@ export function planTomb(plan: Plan, r: MapRegion): void {
     plan.add(Layer.Detail, y, y - h - 4, y + h + 4, (ctx, seed) => rippleField(new Pen(ctx, seed, 0.4), x, y, w, h, createRng(seed)));
   }
   // Mesas, in twos and threes, a few rocks at their feet.
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < perWidth(layout, 9); i++) {
     const side = i % 2 ? rng() * 0.25 : 0.75 + rng() * 0.25;
-    const cx = 40 + side * (layout.width - 80);
+    const cx = acrossPage(layout, side, 40);
     const cy = span.top + 80 + rng() * (span.bottom - span.top - 80);
     if (rng() > weight(cy)) continue;
     const n = 1 + Math.floor(rng() * 3);
@@ -68,9 +68,9 @@ export function planTomb(plan: Plan, r: MapRegion): void {
     }
   }
   // Dunes, in fields of a few, staggered in rows like waves; the biggest on the page's sides.
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < perWidth(layout, 40); i++) {
     const side = i % 3 === 2 ? rng() : i % 2 ? rng() * 0.3 : 0.7 + rng() * 0.3;
-    const cx = 40 + side * (layout.width - 80);
+    const cx = acrossPage(layout, side, 40);
     const cy = span.top + 40 + rng() * (span.bottom - span.top - 80);
     if (rng() > weight(cy)) continue;
     const n = 2 + Math.floor(rng() * 4);
@@ -84,8 +84,8 @@ export function planTomb(plan: Plan, r: MapRegion): void {
     }
   }
   // Rocks and scrub between.
-  for (let i = 0; i < 40; i++) {
-    const x = 40 + rng() * (layout.width - 80);
+  for (let i = 0; i < perWidth(layout, 40); i++) {
+    const x = acrossPage(layout, rng(), 40);
     const y = span.top + 20 + rng() * (span.bottom - span.top - 40);
     if (rng() > weight(y)) continue;
     if (rng() < 0.55) {
@@ -100,7 +100,7 @@ export function planTomb(plan: Plan, r: MapRegion): void {
   }
   // A ruined colonnade, half buried.
   for (let tries = 0; tries < 40; tries++) {
-    const x = 60 + rng() * (layout.width - 120);
+    const x = acrossPage(layout, rng(), 60);
     const y = r.top + 160 + rng() * (r.bottom - r.top - 520);
     if (!clear.ok(x, y, 60, 40, 24) || !offWadi(x, y, 100)) continue;
     plan.add(Layer.Standing, y, y - 40, y + 20, (ctx, seed) => colonnade(ctx, new Pen(ctx, seed, 0.4), x, y, createRng(seed)));

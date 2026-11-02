@@ -9,6 +9,8 @@ const CHUNK = 1024;
 const OVERLAP = 2;
 /** Bands kept either side of the view; anything further is freed. */
 const KEEP = 1;
+/** The widest band texture, px: phones' GPUs refuse larger ones, so a very wide page bakes a little softer. */
+const MAX_TEXTURE = 4096;
 
 /**
  * The Atlas page, baked in horizontal bands around the camera and freed
@@ -18,14 +20,17 @@ const KEEP = 1;
 export class MapView {
   private readonly chunks = new Map<number, Phaser.GameObjects.Image>();
   private readonly count: number;
+  /** Texture px per world px. */
+  private readonly res: number;
 
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly layout: MapLayout,
     private readonly layer: Phaser.GameObjects.Layer,
-    /** Texture px per world px. */
-    private readonly res: number,
+    /** Texture px per world px wanted (less if the page is very wide). */
+    res: number,
   ) {
+    this.res = Math.min(res, MAX_TEXTURE / layout.width);
     this.count = Math.ceil(layout.height / CHUNK);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroy());
   }
@@ -60,12 +65,12 @@ export class MapView {
     const h = Math.min(CHUNK + OVERLAP * 2, this.layout.height - y0);
     const { canvas, ctx } = makeCanvas(Math.ceil(this.layout.width * this.res), Math.ceil(h * this.res));
     ctx.scale(this.res, this.res);
-    ctx.translate(0, -y0);
+    ctx.translate(-this.layout.left, -y0);
     paintAtlasChunk(ctx, this.layout, y0, h);
     this.free(i);
     // A plain image texture: addCanvas would keep a second, read-back copy.
     this.scene.textures.addImage(this.key(i), canvas as unknown as HTMLImageElement);
-    const img = this.scene.add.image(0, y0, this.key(i)).setOrigin(0).setDisplaySize(this.layout.width, h);
+    const img = this.scene.add.image(this.layout.left, y0, this.key(i)).setOrigin(0).setDisplaySize(this.layout.width, h);
     this.layer.add(img);
     this.layer.sendToBack(img);
     this.chunks.set(i, img);

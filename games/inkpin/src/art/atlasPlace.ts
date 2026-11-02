@@ -175,7 +175,7 @@ export function groundWashes(plan: Plan, r: MapRegion, colors: readonly string[]
   const { layout } = plan;
   const span = regionSpan(layout, r);
   for (let y = span.top + 40; y < span.bottom; y += 190) {
-    for (let x = -60; x < layout.width + 100; x += 230) {
+    for (let x = layout.left - 60; x < layout.left + layout.width + 100; x += 230) {
       const cx = x + (rng() - 0.5) * 140;
       const cy = y + (rng() - 0.5) * 120;
       const rr = 140 + rng() * 130;

@@ -1,5 +1,5 @@
+import { acrossPage, perWidth, type MapRegion } from '../scenes/map/layout';
 import { createRng } from '../logic/rng';
-import type { MapRegion } from '../scenes/map/layout';
 import { Layer, type Plan, regionSpan, regionWeight } from './atlasPlace';
 import { glow } from './atlasWash';
 import { ellipse, Pen, type Pt } from './pen';
@@ -78,17 +78,17 @@ export function planDrafts(plan: Plan, r: MapRegion): void {
   const weight = (y: number): number => regionWeight(layout, r, y);
   const hoard = (r.index - 1) % DRAFTS.length === 3;
   // Graphite smudges, where the side of the pencil went over the page.
-  for (let i = 0; i < 16; i++) {
-    const x = rng() * layout.width;
+  for (let i = 0; i < perWidth(layout, 16); i++) {
+    const x = acrossPage(layout, rng());
     const y = span.top + rng() * (span.bottom - span.top);
     const rr = 60 + rng() * 90;
     if (rng() > weight(y)) continue;
     plan.add(Layer.Ground, y, y - rr, y + rr, (ctx) => glow(ctx, x, y, rr, LEAD, 0.06));
   }
   // Ranges.
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < perWidth(layout, 16); i++) {
     const side = i % 3 === 2 ? rng() : i % 2 ? rng() * 0.25 : 0.72 + rng() * 0.25;
-    const cx = 40 + side * (layout.width - 80);
+    const cx = acrossPage(layout, side, 40);
     const cy = span.top + 60 + rng() * (span.bottom - span.top - 60);
     if (rng() > weight(cy)) continue;
     const n = 2 + Math.floor(rng() * 3);
@@ -102,8 +102,8 @@ export function planDrafts(plan: Plan, r: MapRegion): void {
     }
   }
   // Pines (or, by the hoard, dead stumps and scattered coins), in little stands.
-  for (let i = 0; i < 18; i++) {
-    const cx = 40 + rng() * (layout.width - 80);
+  for (let i = 0; i < perWidth(layout, 18); i++) {
+    const cx = acrossPage(layout, rng(), 40);
     const cy = span.top + rng() * (span.bottom - span.top);
     if (rng() > weight(cy)) continue;
     const n = 2 + Math.floor(rng() * 5);
@@ -117,7 +117,7 @@ export function planDrafts(plan: Plan, r: MapRegion): void {
   }
   // A landmark of the chapter: a frozen lake, or the dragon in the sky.
   for (let tries = 0; tries < 40; tries++) {
-    const x = 80 + rng() * (layout.width - 160);
+    const x = acrossPage(layout, rng(), 80);
     const y = r.top + 120 + rng() * (r.bottom - r.top - 500);
     if (!clear.ok(x, y, 70, 50, 20)) continue;
     plan.add(Layer.Standing, y, y - 90, y + 40, (ctx, seed) => (hoard ? pencilDragon(new Pen(ctx, seed, 0.5), x, y) : pencilLake(new Pen(ctx, seed, 0.5), x, y, createRng(seed))));

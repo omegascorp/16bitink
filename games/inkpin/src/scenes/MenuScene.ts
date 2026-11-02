@@ -90,6 +90,9 @@ export class MenuScene extends Phaser.Scene {
     // Installed levels are playable; the full game's chapters are locked until installed; the rest remain pencil drafts.
     this.kinds = CHAPTER_NAMES.map((_, c) => ((CHAPTERS[c]?.length ?? 0) > 0 ? 'playable' : c >= FREE_CHAPTERS && c < BUILT_CHAPTERS ? 'locked' : 'draft'));
     const lockedIds = (c: number): string[] => Array.from({ length: LEVELS_PER_CHAPTER }, (_, i) => `locked-${c + 1}-${i + 1}`);
+    // The page grows to the screen's width, so no table shows either side of it.
+    const screen = screenSize(this.scale);
+    this.zoom = Phaser.Math.Clamp(Math.min(screen.width / FIT.w, screen.height / FIT.h), 0.45, 1);
     this.layout = computeMapLayout(CHAPTER_NAMES.map((name, c) => {
       const levels = CHAPTERS[c] ?? [];
       const locked = this.kinds[c] === 'locked';
@@ -101,7 +104,7 @@ export class MenuScene extends Phaser.Scene {
           ...Array.from({ length: Math.max(0, LEVELS_PER_CHAPTER - levels.length) }, (_, i) => `draft-${c + 1}-${levels.length + i + 1}`),
         ],
       };
-    }));
+    }), screen.width / this.zoom + 2);
     const { states: playStates, current } = mapStates(order, this.progress, this.registry.get('unlockAll') === true);
     const states = new Map<string, NodeState>(playStates);
     this.kinds.forEach((kind, c) => {
@@ -109,18 +112,17 @@ export class MenuScene extends Phaser.Scene {
     });
     this.currentNode = this.layout.nodes.find((n) => n.levelId === current) ?? this.layout.nodes[0]!;
 
-    const screen = screenSize(this.scale);
-    this.zoom = Phaser.Math.Clamp(Math.min(screen.width / FIT.w, screen.height / FIT.h), 0.45, 1);
     const cam = this.cameras.main.setZoom(this.zoom * DPR).setBackgroundColor(TABLE_HEX);
     const textRes = DPR * Math.max(1, this.zoom) * 1.5;
     const table = this.add.layer();
     // The page's shadow on the table, and a darker grain of wood either side.
     const desk = this.add.graphics();
+    const L = this.layout.left;
     const W = this.layout.width;
     const H = this.layout.height;
-    desk.fillStyle(0x4a3220, 1).fillRect(-3000, -2000, 3000, H + 4000).fillRect(W, -2000, 3000, H + 4000);
-    for (let x = -1400; x < W + 1400; x += 46) desk.lineStyle(2, 0x3f2a1a, 0.35).lineBetween(x, -2000, x + 30, H + 2000);
-    desk.fillStyle(0x000000, 0.35).fillRect(10, 14, W, H);
+    desk.fillStyle(0x4a3220, 1).fillRect(L - 3000, -2000, 3000, H + 4000).fillRect(L + W, -2000, 3000, H + 4000);
+    for (let x = L - 1400; x < L + W + 1400; x += 46) desk.lineStyle(2, 0x3f2a1a, 0.35).lineBetween(x, -2000, x + 30, H + 2000);
+    desk.fillStyle(0x000000, 0.35).fillRect(L + 10, 14, W, H);
     table.add(desk);
     const paint = this.add.layer();
     const world = this.add.layer();
