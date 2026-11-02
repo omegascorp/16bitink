@@ -8,13 +8,15 @@ import { MORAY_ART } from '../../src/art/chapters/reefCrittersMoray';
 import { KRAIT_ART } from '../../src/art/chapters/reefSnake';
 import { PAPER } from '../../src/art/palette';
 import { createKrait } from './krait/render';
+import { createPython } from './python/render';
 
 /**
  * Dev-only promo video page for InkSnake, 1080x1920. Every short is a
  * seamless loop, narrated (an ElevenLabs voice with word-by-word captions)
  * with a quiet "InkSnake · 16bit.ink" credit after the payoff (credit.ts),
  * drawn with the game's own art. ?short= picks krait (the banded sea krait
- * swallows eels whole, chapter 6's reef). ?short=kit shows the shared
+ * swallows eels whole, chapter 6's reef) or python (the olive python and the
+ * freshwater crocodile, Lake Moondarra). ?short=kit shows the shared
  * sprites. Plays live; ?t=4.2 freezes one moment. `pnpm promo`
  * (dev/promo/record.mjs) drives window.promo frame by frame to make the
  * video files.
@@ -75,6 +77,7 @@ const narrated = (create: (c: CanvasRenderingContext2D) => Short, dark = false) 
 const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   kit: async () => createKit(),
   krait: narrated(createKrait, true),
+  python: narrated(createPython, true),
 };
 
 const name = params.get('short') ?? 'kit';

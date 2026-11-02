@@ -8,6 +8,7 @@
 import { INKCRAB_PAID_BEACHES } from '@16bitink/inkcrab/content';
 import { INKFISH_FULL_CHAPTERS } from '@16bitink/inkfish/content';
 import { INKGECKO_PAID_CHAPTERS } from '@16bitink/inkgecko/content';
+import { INKPIN_PAID_CHAPTERS } from '@16bitink/inkpin/content';
 import { INKMINE_PAID_PLANETS } from '@16bitink/inkmine/content';
 import { INKSNAKE_PAID_CHAPTERS } from '@16bitink/inksnake/content';
 
@@ -17,4 +18,5 @@ export const PAID_CONTENT: Readonly<Record<string, unknown>> = {
   inkmine: INKMINE_PAID_PLANETS,
   inkgecko: INKGECKO_PAID_CHAPTERS,
   inksnake: INKSNAKE_PAID_CHAPTERS,
+  inkpin: INKPIN_PAID_CHAPTERS,
 };

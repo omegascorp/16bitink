@@ -273,6 +273,48 @@ export const GAMES: readonly CatalogGame[] = [
     ],
   },
   {
+    slug: 'inkpin',
+    title: 'InkPin',
+    tagline: 'Pull the pins. Get the gold. Get out.',
+    kind: 'pin puzzle game',
+    fansOf: {
+      games: ['Pull the Pin', 'Homescapes'],
+      how: 'It is the pin puzzle from those mobile ads: pull golden pins in the right order so the treasure flows to the hero and the danger misses him. Here it is the whole game — 50 pin puzzles, no town to renovate, no ad after every pull. Every level is read-it-then-pull: water, lava, gold and the guards always do the same thing, so a loss comes from your order, never from luck.',
+    },
+    genre: ['Puzzle', 'Casual'],
+    short: 'pin',
+    description: [
+      'The pin puzzle from the mobile ads, made into a whole game — and without the ads. Nib, a raccoon ruin explorer, goes after the treasure of five lost ruins: pull the golden pins in the right order so the gold pours down to him and the lava, bad air and the ruins’ animal guards never touch him.',
+      'Everything is simulated for real: water cools lava into stone, gas blasts cracked walls, coins pour like sand. Gate pins push back in to cut a flow mid-pour, pins block pins, and some rooms are two screens tall. Get the relic, sweep the room for gold, and get Nib out.',
+    ],
+    status: 'playable',
+    cover: '/covers/inkpin.png',
+    loop: true,
+    released: '2026-11-01',
+    updated: '2026-11-01',
+    size: { chapters: 5, ready: 3, levels: 50 },
+    demo: '10 levels free',
+    price: '$4.99',
+    stripeLookupKey: 'inkpin_full',
+    theme: { paper: '#f5f0e1', ink: '#26316a', accent: '#c8402f' },
+    icon: 'inkpin',
+    orientation: 'landscape',
+    fonts: { googleCss: 'family=Caveat:wght@500;700', await: ['32px Caveat'] },
+    features: [
+      'Chapter 1 free: 10 levels in the Jungle Temple, no sign-up',
+      'Full game: the Volcano Shrine and the Desert Tomb now, with more ruins on the way as free updates',
+      'Guards in every ruin: boars, porcupines, salamanders, armadillos and frogs',
+      'One-time purchase: no subscription, no ads, no energy timers',
+    ],
+    controls: [
+      'Tap or click a pin, or drag it along its ring: pull it',
+      'Tap the floor: Nib walks there; tap Nib: jump',
+      'Arrows / A D: walk; Space: jump; ↑ ↓: climb a vine',
+      'R or ↺: restart',
+      'Esc / P / ❚❚: pause · M / ♪: sound on/off',
+    ],
+  },
+  {
     slug: 'pixel-quill',
     title: 'Untitled #2',
     tagline: 'Still in the sketchbook.',
@@ -339,3 +381,36 @@ export function newestFirst(games: readonly CatalogGame[]): CatalogGame[] {
 
 /** The home page's games: this week's game first (the featured one), then the rest newest first. */
 export const homeGames = (now: Date): CatalogGame[] => newestFirst(listedGames(now));
+
+/**
+ * The game most people play, set by hand from `traffic`. On 2026-11-02, over 30 days,
+ * 235 of 342 players played InkFish, more than three times the next game (InkSnake, 70).
+ */
+export const MOST_PLAYED = 'inkfish';
+
+/** What a top card on the home page says about its game. `latest` is the newest game once its new week is over. */
+export type HomeLabel = 'new' | 'latest' | 'popular';
+
+export interface HomeCard {
+  readonly game: CatalogGame;
+  readonly label: HomeLabel;
+}
+
+export interface HomeListings {
+  /** The newest game, then the most played (one card when they are the same game). */
+  readonly top: readonly HomeCard[];
+  /** Every other listed game, newest first. */
+  readonly rest: readonly CatalogGame[];
+}
+
+/** The home page: two labelled games at the top, then the rest. */
+export function homeListings(now: Date): HomeListings {
+  const [newest, ...others] = homeGames(now);
+  if (!newest) return { top: [], rest: [] };
+  const popular = others.find((g) => g.slug === MOST_PLAYED);
+  const top: HomeCard[] = [
+    { game: newest, label: isNew(newest, now) ? 'new' : 'latest' },
+    ...(popular ? [{ game: popular, label: 'popular' as const }] : []),
+  ];
+  return { top, rest: others.filter((g) => g !== popular) };
+}

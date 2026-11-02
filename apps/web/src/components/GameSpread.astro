@@ -1,5 +1,5 @@
 ---
-import { isPurchasable, type CatalogGame } from '../data/games';
+import { isPurchasable, type CatalogGame, type HomeLabel } from '../data/games';
 import { coverSrcset, coverVariant, loopSources } from '../lib/covers';
 import { freeLine } from '../lib/gameFacts';
 
@@ -8,23 +8,26 @@ interface Props {
   owned?: boolean;
   /** Place in the home page list, 1 at the top: tagged on click analytics. */
   position: number;
-  /** The first game: full width on wide screens, with its description beside the cover. */
+  /** One of the top games: its description under the cover. */
   featured?: boolean;
-  /** Out this past week: a "New!" sticker on the cover. */
-  fresh?: boolean;
+  /** Why it is at the top: a sticker on the cover. */
+  label?: HomeLabel;
 }
-const { game, owned = false, position, featured = false, fresh = false } = Astro.props;
+const { game, owned = false, position, featured = false, label } = Astro.props;
 const play = `/play/${game.slug}`;
 const playLabel = owned ? 'Play' : 'Play free';
 const cover = game.cover ?? '/covers/inkfish.png';
-// Featured: about 60% of the 1100px column on desktop; otherwise half of it.
-const sizes = featured ? '(min-width: 900px) 660px, calc(100vw - 32px)' : '(min-width: 900px) 530px, calc(100vw - 32px)';
+// Half of the 1100px column on desktop.
+const sizes = '(min-width: 900px) 530px, calc(100vw - 32px)';
+// "Most played" is from real play counts (MOST_PLAYED); "New this week" while it is new, then "Newest".
+const STICKERS: Record<HomeLabel, string> = { new: 'New this week', latest: 'Newest', popular: 'Most played' };
+const sticker = label && STICKERS[label];
 // Only what differs per game: how big it is and how much plays free ("10 of 100 levels free"). Sign-up, in-game ads
 // and the price are said once for the page (the ticks above the list, the pass card below it) and on each game's own page.
 const terms = owned ? '' : isPurchasable(game) ? `${freeLine(game)} · ` : 'Free demo, full game coming soon · ';
 ---
 <article class:list={['spread', { featured }]} data-game={game.slug} data-slot={position}>
-  <a href={play} class="cover" aria-label={`${playLabel}: ${game.title}${fresh ? ' (new this week)' : ''}`} data-click="cover">
+  <a href={play} class="cover" aria-label={`${playLabel}: ${game.title}${sticker ? ` (${sticker.toLowerCase()})` : ''}`} data-click="cover">
     <picture>
       <source type="image/avif" srcset={coverSrcset(cover, 'avif')} sizes={sizes} />
       <source type="image/webp" srcset={coverSrcset(cover, 'webp')} sizes={sizes} />
@@ -39,7 +42,7 @@ const terms = owned ? '' : isPurchasable(game) ? `${freeLine(game)} · ` : 'Free
         {loopSources(game.slug).map((s) => <source src={s.src} type={s.type} />)}
       </video>
     )}
-    {fresh && <span class="new" aria-hidden="true">New!</span>}
+    {sticker && <span class:list={['sticker', label]} aria-hidden="true">{sticker}</span>}
     <!-- Phones only: the play button below the cover can sit under the fold, so the cover says it plays too. -->
     <span class="badge btn btn-ink" aria-hidden="true">▶ {playLabel}</span>
   </a>
@@ -96,8 +99,8 @@ const terms = owned ? '' : isPurchasable(game) ? `${freeLine(game)} · ` : 'Free
   }
   .cover video.on { opacity: 1; }
   @media (prefers-reduced-motion: no-preference) {
-    /* Line boil, the wobble the games use: always on the featured cover, on the others while pointed at. One at a time keeps phones cool. */
-    .featured .cover img, .cover:hover img { filter: url(#boil); }
+    /* Line boil, the wobble the games use: always on the first cover, on the others while pointed at. One at a time keeps phones cool. */
+    .spread[data-slot="1"] .cover img, .cover:hover img { filter: url(#boil); }
     /* Hidden under a playing loop: no point redrawing the wobble 8 times a second. */
     .spread .cover:has(video.on) img { filter: none; }
   }
@@ -116,14 +119,16 @@ const terms = owned ? '' : isPurchasable(game) ? `${freeLine(game)} · ` : 'Free
   .play { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 1.6rem; min-height: 52px; padding-inline: 26px; }
   .terms { grid-column: 1 / -1; margin: 14px 0 0; color: var(--ink-soft); font-size: 0.9rem; }
 
-  /* A red-ink sticker slapped on the corner. */
-  .new {
+  /* An ink sticker slapped on the corner: red for new, blue for most played. */
+  .sticker {
     position: absolute; left: -14px; top: 22px; z-index: 2; padding: 2px 14px 4px;
     font-family: var(--font-hand); font-size: 1.7rem; font-weight: 700; line-height: 1;
-    color: var(--red-ink); background: var(--paper-2); border: 2.5px solid var(--red-ink);
+    --sticker-ink: var(--red-ink);
+    color: var(--sticker-ink); background: var(--paper-2); border: 2.5px solid var(--sticker-ink);
     border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; transform: rotate(-8deg);
     box-shadow: 2px 3px 0 rgba(27, 26, 31, 0.25);
   }
+  .sticker.popular { --sticker-ink: var(--blue-ink); transform: rotate(-5deg); }
 
   .badge { display: none; z-index: 1; }
   @media (max-width: 620px) {
@@ -140,12 +145,4 @@ const terms = owned ? '' : isPurchasable(game) ? `${freeLine(game)} · ` : 'Free
     .play { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 18px; }
   }
 
-  /* Wide screens: the featured game takes the whole row, cover left and its pitch beside it. */
-  @media (min-width: 900px) {
-    .featured { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 40px; align-items: center; }
-    .featured .caption { display: flex; flex-direction: column; align-items: flex-start; padding: 0; }
-    .featured h2 { margin: 0; font-size: clamp(4.4rem, 7vw, 5.6rem); }
-    .featured .tagline { font-size: 1.75rem; }
-    .featured .play { align-self: flex-start; margin-top: 22px; font-size: 1.9rem; min-height: 60px; padding-inline: 34px; }
-  }
 </style>

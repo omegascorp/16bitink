@@ -4,7 +4,7 @@ import GameSpread from '../components/GameSpread.astro';
 import PartnerAd from '../components/PartnerAd.astro';
 import PassCard from '../components/PassCard.astro';
 import SundaySignup from '../components/SundaySignup.astro';
-import { homeGames, isNew } from '../data/games';
+import { homeGames, homeListings } from '../data/games';
 import { currentUser, ownedGameSlugs } from '../lib/owner';
 import { siteJsonLd } from '../lib/seo';
 import { sundayReader } from '../lib/sunday';
@@ -13,8 +13,9 @@ import { sundayReader } from '../lib/sunday';
 export const prerender = false;
 
 const now = new Date();
-// A game dated ahead appears here on its release day, with no deploy, and takes the featured
-// top slot from the week's earlier game: the newest first, so this week's game is never at the bottom.
+// Two games at the top: the newest (a game dated ahead takes this slot on its release day, with
+// no deploy) and the most played. Then the rest, newest first.
+const { top, rest } = homeListings(now);
 const games = homeGames(now);
 const titles = games.map((g) => g.title);
 const named = titles.length > 1 ? `${titles.slice(0, -1).join(', ')} and ${titles.at(-1)}` : titles.join('');
@@ -58,10 +59,18 @@ Astro.response.headers.set('cache-control', 'private, no-store');
       <li>No in-game ads</li>
     </ul>
   </div>
-  <!-- Only the newest wears the sticker: two "New!" games would compete with this week's. -->
+  <!-- Each top card says why it is there; the rest wear no sticker, so the two labels don't compete with more. -->
   <div class="games">
-    {games.map((game, i) => <GameSpread game={game} owned={owned.has(game.slug)} position={i + 1} featured={i === 0} fresh={i === 0 && isNew(game, now)} />)}
+    {top.map(({ game, label }, i) => <GameSpread game={game} owned={owned.has(game.slug)} position={i + 1} featured label={label} />)}
   </div>
+  {rest.length > 0 && (
+    <section class="more" aria-labelledby="more-games">
+      <h2 id="more-games" class="more-title">More games</h2>
+      <div class="games">
+        {rest.map((game, i) => <GameSpread game={game} owned={owned.has(game.slug)} position={top.length + i + 1} />)}
+      </div>
+    </section>
+  )}
   <!-- After the covers, where the whole catalog has just been seen: every game for one price, and an email when the next one is out.
        Side by side when there's room; either one fills the row alone (the pass is gone once every game is owned, the email once signed up). -->
   <div class="closing">
@@ -96,10 +105,15 @@ Astro.response.headers.set('cache-control', 'private, no-store');
     .perks { gap: 0 9px; font-size: 1.12rem; }
     .perks li { gap: 3px; }
   }
-  /* One under another on phones; on wide screens the first game takes a row, then two side by side. */
+  /* One under another on phones; two side by side on wide screens. */
   .games { display: grid; grid-template-columns: minmax(0, 1fr); gap: 64px 48px; }
   @media (min-width: 900px) {
     .games { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 80px 48px; }
-    .games > :global(.featured) { grid-column: 1 / -1; }
+  }
+  .more { margin-top: 88px; }
+  .more-title { margin: 0 0 40px; font-family: var(--font-hand); font-size: 2.4rem; font-weight: 700; color: var(--ink); transform: rotate(-1deg); }
+  @media (max-width: 620px) {
+    .more { margin-top: 64px; }
+    .more-title { margin-bottom: 28px; font-size: 2rem; }
   }
 </style>
