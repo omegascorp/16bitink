@@ -1,16 +1,19 @@
 import { createRng } from '../logic/rng';
-import type { MapLayout, MapRegion } from '../scenes/map/layout';
-import { inkLines, offTrail } from './atlas';
+import type { MapRegion } from '../scenes/map/layout';
+import { inkLines } from './atlas';
+import { dune, mesa, rippleField, SANDS } from './atlasDesert';
+import { groundWashes, Layer, type Plan, regionSpan, regionWeight } from './atlasPlace';
 import { GOLD, INK } from './palette';
-import { ellipse, type Pen, type Pt } from './pen';
+import { ellipse, Pen, type Pt } from './pen';
 import { SAND, SAND_DARK, SAND_LIGHT } from './tomb';
 import { mix, rgba } from './wash';
 
 /**
  * The Desert Tomb's band of the Ink Atlas, painted once its chapter is
- * built: dunes washed in sand and rippled by the wind, a dry riverbed with
- * a small oasis pool and date palms, a few rocks and a half-buried column;
- * and at its foot the pyramid and obelisk, inked and washed in sandstone.
+ * built: sand washed over the ground in ochre and rose, long dune ridges
+ * in staggered fields, wind-combed flats, red mesas, a dry riverbed with
+ * an oasis pool and date palms, scrub, rocks and a ruined colonnade; and
+ * at its foot the pyramid and obelisk, inked and washed in sandstone.
  * Placed in world px and seeded by place, as the rest of the page.
  */
 
@@ -24,86 +27,97 @@ function wadiX(y: number): number {
   return 170 + Math.sin(y / 140) * 36 + Math.sin(y / 53) * 7;
 }
 
-export function paintTombLands(ctx: CanvasRenderingContext2D, pen: Pen, layout: MapLayout, r: MapRegion): void {
+/** Clear of the dry riverbed. */
+export function wadiKeepOut(r: MapRegion): (x: number, y: number, gap: number) => boolean {
+  return (x, y, gap) => y < r.top || y > r.bottom || Math.abs(x - wadiX(y)) >= gap;
+}
+
+export function planTomb(plan: Plan, r: MapRegion): void {
+  const { layout, clear } = plan;
+  const span = regionSpan(layout, r);
   const rng = createRng(700 + r.index);
-  // Sand: warm washes all over the band, a few ochre and rosy ones among them.
-  for (let i = 0; i < 70; i++) {
-    const x = rng() * layout.width;
-    const y = r.top + rng() * (r.bottom - r.top);
-    const rr = 45 + rng() * 85;
-    const c = rng() < 0.25 ? '#d9a064' : SAND;
-    const g = ctx.createRadialGradient(x, y, 0, x, y, rr);
-    g.addColorStop(0, rgba(c, 0.3));
-    g.addColorStop(1, rgba(c, 0));
-    ctx.fillStyle = g;
-    ctx.fillRect(x - rr, y - rr, rr * 2, rr * 2);
-  }
-  paintWadi(ctx, pen, r);
-  const place = (x: number, y: number, gap: number, w = 0): boolean =>
-    offTrail(layout, x, y, gap) && !besideLabel(layout, x, y, w) && Math.hypot(x - r.ruin.x, y - r.ruin.y) >= 190 + w && Math.abs(x - wadiX(y)) >= 60;
-  // Dunes first (the biggest, so everything else sits on them), then the small things.
-  for (let i = 0; i < 80; i++) {
+  const weight = (y: number): number => regionWeight(layout, r, y);
+  const offWadi = wadiKeepOut(r);
+  // Sand: warm glazes all over, ochre and rose among them.
+  groundWashes(plan, r, SANDS, 0.26, rng);
+  plan.add(Layer.Water, r.top, r.top, r.bottom, (ctx, seed) => paintWadi(ctx, new Pen(ctx, seed, 0.5), r));
+  // Wind-combed sand in the open stretches.
+  for (let i = 0; i < 26; i++) {
     const x = 40 + rng() * (layout.width - 80);
-    const y = r.top + 20 + rng() * (r.bottom - r.top - 40);
-    const w = 55 + rng() * 55;
-    const h = 20 + rng() * 20;
-    if (place(x, y, 60 + w * 0.4, w)) dune(ctx, pen, x, y, w, h, rng);
+    const y = span.top + rng() * (span.bottom - span.top);
+    const w = 50 + rng() * 80;
+    const h = 14 + rng() * 22;
+    if (rng() > weight(y) || !clear.trail(x, y, 30 + h) || !offWadi(x, y, w + 30)) continue;
+    plan.add(Layer.Detail, y, y - h - 4, y + h + 4, (ctx, seed) => rippleField(new Pen(ctx, seed, 0.4), x, y, w, h, createRng(seed)));
   }
-  for (let i = 0; i < 70; i++) {
+  // Mesas, in twos and threes, a few rocks at their feet.
+  for (let i = 0; i < 9; i++) {
+    const side = i % 2 ? rng() * 0.25 : 0.75 + rng() * 0.25;
+    const cx = 40 + side * (layout.width - 80);
+    const cy = span.top + 80 + rng() * (span.bottom - span.top - 80);
+    if (rng() > weight(cy)) continue;
+    const n = 1 + Math.floor(rng() * 3);
+    for (let k = 0; k < n; k++) {
+      const w = 24 + rng() * 26;
+      const h = 26 + rng() * 22;
+      const x = cx + (k - (n - 1) / 2) * 60 + (rng() - 0.5) * 20;
+      const y = cy + (rng() - 0.5) * 50;
+      if (!clear.ok(x, y, w * 1.2, h + w * 0.35, 26) || !offWadi(x, y, w + 50)) continue;
+      plan.add(Layer.Standing, y, y - h - w * 0.4, y + 10, (ctx, seed) => mesa(ctx, new Pen(ctx, seed, 0.4), x, y, w, h, createRng(seed)));
+      if (rng() < 0.6) plan.add(Layer.Standing, y + 14, y, y + 20, (ctx, seed) => rocks(ctx, new Pen(ctx, seed, 0.4), x + w + 12, y + 14, createRng(seed)));
+    }
+  }
+  // Dunes, in fields of a few, staggered in rows like waves; the biggest on the page's sides.
+  for (let i = 0; i < 40; i++) {
+    const side = i % 3 === 2 ? rng() : i % 2 ? rng() * 0.3 : 0.7 + rng() * 0.3;
+    const cx = 40 + side * (layout.width - 80);
+    const cy = span.top + 40 + rng() * (span.bottom - span.top - 80);
+    if (rng() > weight(cy)) continue;
+    const n = 2 + Math.floor(rng() * 4);
+    for (let k = 0; k < n; k++) {
+      const w = 34 + rng() * 40;
+      const h = w * (0.4 + rng() * 0.25);
+      const x = cx + (k % 2 ? 0.5 : -0.4) * w + (rng() - 0.5) * 50;
+      const y = cy + (k - n / 2) * h * 1.3 + (rng() - 0.5) * 10;
+      if (!clear.ok(x, y, w, h, 22) || !offWadi(x, y, w + 40)) continue;
+      plan.add(Layer.Standing, y, y - h - 4, y + 6, (ctx, seed) => dune(ctx, new Pen(ctx, seed, 0.4), x, y, w, h, createRng(seed)));
+    }
+  }
+  // Rocks and scrub between.
+  for (let i = 0; i < 40; i++) {
     const x = 40 + rng() * (layout.width - 80);
-    const y = r.top + rng() * (r.bottom - r.top);
-    const roll = rng();
-    const s = 5 + rng() * 6;
-    if (!place(x, y, 60)) continue;
-    if (roll < 0.5) rocks(ctx, pen, x, y, rng);
-    else if (roll < 0.62) column(ctx, pen, x, y, 11 + rng() * 5);
-    else if (roll < 0.8) scrub(pen, x, y, s);
-    else ripples(pen, x, y, 14 + rng() * 16, rng);
+    const y = span.top + 20 + rng() * (span.bottom - span.top - 40);
+    if (rng() > weight(y)) continue;
+    if (rng() < 0.55) {
+      if (clear.ok(x, y, 16, 14, 34) && offWadi(x, y, 40)) plan.add(Layer.Standing, y, y - 14, y + 4, (ctx, seed) => rocks(ctx, new Pen(ctx, seed, 0.4), x, y, createRng(seed)));
+    } else if (clear.ok(x, y, 10, 12, 34)) plan.add(Layer.Detail, y, y - 12, y + 3, (ctx, seed) => scrub(new Pen(ctx, seed, 0.4), x, y, 6 + (seed % 4)));
+  }
+  // Scrub along the wadi.
+  for (let i = 0; i < 26; i++) {
+    const y = r.top + 80 + rng() * (r.bottom - r.top - 160);
+    const x = wadiX(y) + (rng() < 0.5 ? -1 : 1) * (26 + rng() * 22);
+    if (clear.ok(x, y, 8, 10, 20)) plan.add(Layer.Detail, y, y - 12, y + 3, (ctx, seed) => scrub(new Pen(ctx, seed, 0.4), x, y, 5 + (seed % 5)));
+  }
+  // A ruined colonnade, half buried.
+  for (let tries = 0; tries < 40; tries++) {
+    const x = 60 + rng() * (layout.width - 120);
+    const y = r.top + 160 + rng() * (r.bottom - r.top - 520);
+    if (!clear.ok(x, y, 60, 40, 24) || !offWadi(x, y, 100)) continue;
+    plan.add(Layer.Standing, y, y - 40, y + 20, (ctx, seed) => colonnade(ctx, new Pen(ctx, seed, 0.4), x, y, createRng(seed)));
+    break;
   }
 }
 
-/** True for a spot where a level's name is written: to the side of the trail, a little way along it. */
-function besideLabel(layout: MapLayout, x: number, y: number, w: number): boolean {
-  return layout.path.pts.some((p, i) => i % 3 === 0 && Math.abs(p.y - y) < 22 && x + w > p.x - 170 && x - w < p.x + 190);
-}
 
-/** One crescent dune: lit on its windward left, hatched in the lee, rippled by the wind. */
-function dune(ctx: CanvasRenderingContext2D, pen: Pen, x: number, y: number, w: number, h: number, rng: () => number): void {
-  const ridge: Pt[] = [];
-  for (let k = 0; k <= 10; k++) {
-    const t = k / 10;
-    ridge.push({ x: x - w + 2 * w * t, y: y - h * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.75)), 1.1) });
-  }
-  const body = [...ridge, { x: x + w * 0.9, y: y + 3 }, { x: x, y: y + 6 }, { x: x - w * 0.9, y: y + 3 }];
-  const g = ctx.createLinearGradient(x - w, y - h, x + w, y);
-  g.addColorStop(0, rgba(SAND_LIGHT, 0.9));
-  g.addColorStop(0.55, rgba(SAND, 0.75));
-  g.addColorStop(1, rgba(SAND_DARK, 0.7));
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  body.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
-  ctx.closePath();
-  ctx.fill();
-  // Lee side: the shaded slope after the crest, hatched.
-  const crest = ridge.findIndex((p) => p.y === Math.min(...ridge.map((q) => q.y)));
-  const lee = [...ridge.slice(Math.max(0, crest)), { x: x + w * 0.9, y: y + 3 }, { x: x + w * 0.1, y: y + 5 }];
-  pen.hatch(lee, 3, 1.05, 0.9, { color: SAND_DARK, alpha: 0.85 });
-  pen.hair(ridge, 1.2, INK, 0.62);
-  // Wind ripples on the windward slope.
-  for (let k = 0; k < 3; k++) {
-    const ry = y - h * 0.2 + k * 2.6;
-    const rx = x - w * (0.55 - k * 0.12);
-    pen.hair([{ x: rx, y: ry }, { x: rx + w * 0.25, y: ry - 1.4 }, { x: rx + w * 0.5, y: ry }], 0.8, SAND_DARK, 0.65);
-  }
-  if (rng() < 0.4) pen.hair([{ x: x - w * 0.9, y: y + 4 }, { x: x, y: y + 6 }, { x: x + w * 0.9, y: y + 4 }], 0.9, rgba(INK, 0.5), 0.5);
-}
-
-/** A few short wind-ripple strokes on flat sand. */
-function ripples(pen: Pen, x: number, y: number, w: number, rng: () => number): void {
-  for (let k = 0; k < 3; k++) {
-    const o = k * 4.5;
-    pen.hair([{ x: x - w / 2 + k * 3, y: y + o }, { x: x + (rng() - 0.5) * 3, y: y + o - 1.8 }, { x: x + w / 2 - k * 3, y: y + o }], 0.9, SAND_DARK, 0.75);
-  }
+/** Four columns in a row, broken to different heights, a fallen lintel across two of them. */
+function colonnade(ctx: CanvasRenderingContext2D, pen: Pen, x: number, y: number, rng: () => number): void {
+  for (let k = 0; k < 4; k++) column(ctx, pen, x - 39 + k * 26, y + (k % 2) * 2, 12 + rng() * 22);
+  // The lintel, fallen in front of them.
+  const ly = y + 10;
+  const lintel = [{ x: x - 30, y: ly - 6 }, { x: x + 12, y: ly - 3 }, { x: x + 12, y: ly + 4 }, { x: x - 30, y: ly + 1 }];
+  pen.fill(lintel, mix(SAND, SAND_DARK, 0.35), 1);
+  pen.hatch(lintel, 2.4, 1.1, 0.6, { color: SAND_DARK, alpha: 0.6 });
+  inkLines(ctx, lintel, 1, true);
 }
 
 /** A dry thorn tuft. */
@@ -145,6 +159,7 @@ function paintWadi(ctx: CanvasRenderingContext2D, pen: Pen, r: MapRegion): void 
   const rng = createRng(731);
   for (let k = 2; k < n - 1; k += 2) {
     const p = bed[k]!;
+    if (width(k) < 0.55) continue;
     if (rng() < 0.6) pen.dot(p.x + (rng() - 0.5) * 16 * width(k), p.y, 1.3 + rng(), SAND_DARK, 0.8);
     else pen.hair([{ x: p.x - 5, y: p.y }, { x: p.x, y: p.y + 2 }, { x: p.x + 6, y: p.y - 1 }], 0.8, SAND_DARK, 0.7);
   }

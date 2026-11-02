@@ -54,7 +54,8 @@ export class MenuScene extends Phaser.Scene {
   private kinds: ChapterKind[] = [];
   private caption!: Phaser.GameObjects.Text;
   private tally!: Phaser.GameObjects.Text;
-  private nibButton!: Phaser.GameObjects.Text;
+  private nibButton!: Phaser.GameObjects.Container;
+  private nibLabel!: Phaser.GameObjects.Text;
   private region = -1;
   private progress!: Progress;
   private currentNode!: MapNode;
@@ -275,17 +276,41 @@ export class MenuScene extends Phaser.Scene {
     this.uiLayer.add(bar);
     const text = (x: number, y: number, s: string, size: number, color = INK): Phaser.GameObjects.Text =>
       this.add.text(x, y, s, { fontFamily: FONT, fontSize: `${size}px`, fontStyle: '700', color, padding: { x: 6, y: 3 } }).setOrigin(0.5).setResolution(DPR * 1.5);
-    if (w >= 640) this.uiLayer.add(text(96, TOP_BAR / 2, 'The Ink Atlas', 30));
-    this.caption = text(w / 2, TOP_BAR / 2 - 11, '', 26);
-    this.tally = text(w / 2, TOP_BAR / 2 + 15, '', 17, SOFT_INK);
-    this.nibButton = text(w - 70, h - 40, 'Nib ↓', 24).setBackgroundColor('#fffaf0').setPadding(14, 4, 14, 4).setInteractive({ useHandCursor: true });
-    this.nibButton.on('pointerup', () => {
+    const narrow = w < 640;
+    if (!narrow) this.uiLayer.add(text(96, TOP_BAR / 2, 'The Ink Atlas', 30));
+    // Back to 16bit.ink: top right on a computer, top left on a phone (where the title is hidden).
+    const exit = this.pill(narrow ? 44 : w - 58, TOP_BAR / 2, 'Exit', () => getHost()?.onExit());
+    // On a phone the caption centres in the room right of Exit.
+    const cx = narrow ? (w + 84) / 2 : w / 2;
+    this.caption = text(cx, TOP_BAR / 2 - 11, '', narrow ? 22 : 26);
+    this.tally = text(cx, TOP_BAR / 2 + 15, '', narrow ? 15 : 17, SOFT_INK);
+    this.nibButton = this.pill(w - 62, h - 40, 'Nib ↓', () => {
       this.targetY = this.clampY(this.walker.position.y - 40);
     });
+    this.nibLabel = this.nibButton.list[1] as Phaser.GameObjects.Text;
     const blots = Object.values(this.progress.levels).reduce((n, r) => n + r.blots, 0);
     const g = this.add.graphics();
     g.fillStyle(0x26316a, 0.85).fillCircle(30, h - 34, 11).fillCircle(39, h - 43, 4).fillCircle(21, h - 25, 3);
-    this.uiLayer.add([this.caption, this.tally, this.nibButton, g, text(48, h - 34, `${blots} / ${LEVELS.length * 3}`, 24).setOrigin(0, 0.5).setStroke('#fffaf0', 5)]);
+    this.uiLayer.add([this.caption, this.tally, exit, this.nibButton, g, text(48, h - 34, `${blots} / ${LEVELS.length * 3}`, 24).setOrigin(0, 0.5).setStroke('#fffaf0', 5)]);
+  }
+
+  /** A small paper button with an ink rim, like the level's own buttons. */
+  private pill(x: number, y: number, label: string, onTap: () => void): Phaser.GameObjects.Container {
+    const t = this.add.text(0, 0, label, { fontFamily: FONT, fontSize: '24px', fontStyle: '700', color: INK, padding: { x: 4, y: 2 } }).setOrigin(0.5).setResolution(DPR * 1.5);
+    const bw = Math.max(72, t.width + 26);
+    const bh = 42;
+    const g = this.add.graphics();
+    g.fillStyle(0x000000, 0.14).fillRoundedRect(-bw / 2 + 2, -bh / 2 + 3, bw, bh, 12);
+    g.fillStyle(0xfffaf0, 1).fillRoundedRect(-bw / 2, -bh / 2, bw, bh, 12);
+    g.lineStyle(2.5, 0x26316a, 1).strokeRoundedRect(-bw / 2, -bh / 2, bw, bh, 12);
+    const c = this.add.container(x, y, [g, t]).setSize(bw, bh).setInteractive({ useHandCursor: true });
+    c.on('pointerup', () => {
+      if (this.drag?.moved || this.card) return;
+      this.sfx.play('tap');
+      this.tweens.add({ targets: c, scale: 0.9, duration: 70, yoyo: true });
+      onTap();
+    });
+    return c;
   }
 
   /** The caption follows the chapter in view; the Nib button shows when Nib is off screen. */
@@ -303,7 +328,7 @@ export class MenuScene extends Phaser.Scene {
     }
     const ny = this.walker.position.y;
     this.nibButton.setVisible(Math.abs(ny - this.focusY) > half * 0.8 && !this.following);
-    this.nibButton.setText(ny > this.focusY ? 'Nib ↓' : 'Nib ↑');
+    this.nibLabel.setText(ny > this.focusY ? 'Nib ↓' : 'Nib ↑');
   }
 
   private bindInput(): void {

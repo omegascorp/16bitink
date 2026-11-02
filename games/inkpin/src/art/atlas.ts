@@ -1,11 +1,13 @@
 import { createRng } from '../logic/rng';
-import type { MapLayout, MapRegion } from '../scenes/map/layout';
+import type { MapLayout } from '../scenes/map/layout';
 import { GOLD, INK, MOSS, TEMPLE, TEMPLE_DARK } from './palette';
-import { ellipse, Pen, type Pt } from './pen';
+import { Pen, type Pt } from './pen';
 import { mix, rgba } from './wash';
-import { paintDraftRuin } from './atlasDrafts';
-import { paintTombLands, paintTombShrine } from './atlasTomb';
-import { paintVolcanoLands, paintVolcanoShrine } from './atlasVolcano';
+import { paintDraftRuin, planDrafts } from './atlasDrafts';
+import { paintTree, planJungle, riverKeepOut, TREE_DARK } from './atlasJungle';
+import { biomeOf, Clearance, type Feature, Plan } from './atlasPlace';
+import { paintTombShrine, planTomb, wadiKeepOut } from './atlasTomb';
+import { lavaKeepOut, paintVolcanoShrine, planVolcano } from './atlasVolcano';
 
 /**
  * The Ink Atlas, the map Nib follows: an old page of cream paper with
@@ -18,9 +20,6 @@ import { paintVolcanoLands, paintVolcanoShrine } from './atlasVolcano';
 const PAGE = '#efe3c3';
 const PAGE_DARK = '#d9c49a';
 export const PENCIL = '#8a8578';
-const TREE = '#5f8a46';
-const TREE_DARK = '#3f6233';
-const RIVER = '#8fbad6';
 
 interface Stain {
   readonly x: number;
@@ -42,11 +41,36 @@ function stains(layout: MapLayout): Stain[] {
   return list;
 }
 
+/** Everything on the page outside the paper, the trail and the ruins: planned once per layout, painted band by band. */
+const featureCache = new WeakMap<MapLayout, Feature[]>();
+function features(layout: MapLayout): Feature[] {
+  const cached = featureCache.get(layout);
+  if (cached) return cached;
+  const clear = new Clearance(layout);
+  // Rivers and lava first, so no land plants a tree in the next one's lava.
+  for (const r of layout.regions) {
+    const biome = biomeOf(r);
+    if (biome === 'jungle') clear.avoid(riverKeepOut(r));
+    else if (biome === 'ash') clear.avoid(lavaKeepOut(r));
+    else if (biome === 'sand') clear.avoid(wadiKeepOut(r));
+  }
+  const plan = new Plan(layout, clear);
+  for (const r of layout.regions) {
+    const biome = biomeOf(r);
+    if (biome === 'jungle') planJungle(plan, r);
+    else if (biome === 'ash') planVolcano(plan, r);
+    else if (biome === 'sand') planTomb(plan, r);
+    else planDrafts(plan, r);
+  }
+  const list = [...plan.list].sort((a, b) => a.layer - b.layer || a.y - b.y);
+  featureCache.set(layout, list);
+  return list;
+}
+
 /** Paints the page between world y0 and y0 + h (the context already maps world px). */
 export function paintAtlasChunk(ctx: CanvasRenderingContext2D, layout: MapLayout, y0: number, h: number): void {
   const W = layout.width;
   const y1 = y0 + h;
-  const pen = new Pen(ctx, 3 + Math.floor(y0 / 97), 0.6);
   ctx.fillStyle = PAGE;
   ctx.fillRect(0, y0, W, h);
   for (const s of stains(layout)) {
@@ -68,17 +92,16 @@ export function paintAtlasChunk(ctx: CanvasRenderingContext2D, layout: MapLayout
   }
   paintGrid(ctx, W, y0, y1);
   paintFibres(ctx, layout, y0, y1);
-  for (const r of layout.regions) {
-    if (r.bottom + 200 < y0 || r.top - 200 > y1) continue;
-    if (r.index === 0 && r.chapter.built) paintJungle(ctx, pen, layout, r);
-    else if (r.index === 1 && r.chapter.built) paintVolcanoLands(ctx, pen, layout, r);
-    else if (r.index === 2 && r.chapter.built) paintTombLands(ctx, pen, layout, r);
-    else paintSketches(pen, layout, r);
+  for (const f of features(layout)) {
+    if (f.bottom < y0 || f.top > y1) continue;
+    f.paint(ctx, f.seed);
   }
   paintTrail(ctx, layout, y0, y1);
   for (const r of layout.regions) {
     // The volcano's plume reaches higher than the other ruins.
     if (r.ruin.y + 160 < y0 || r.ruin.y - 300 > y1) continue;
+    // Each ruin keeps its own pen, so where two bands cut it the halves still match.
+    const pen = new Pen(ctx, 50 + r.index, 0.6);
     if (r.index === 0 && r.chapter.built) paintTemple(ctx, pen, r.ruin);
     else if (r.index === 1 && r.chapter.built) paintVolcanoShrine(ctx, pen, r.ruin);
     else if (r.index === 2 && r.chapter.built) paintTombShrine(ctx, pen, r.ruin);
@@ -86,7 +109,7 @@ export function paintAtlasChunk(ctx: CanvasRenderingContext2D, layout: MapLayout
   }
   // Inside what a phone shows of the page (about 760 px across its middle).
   const compass = { x: W - 220, y: layout.height - 150 };
-  if (compass.y + 90 > y0 && compass.y - 90 < y1) paintCompass(ctx, pen, compass);
+  if (compass.y + 90 > y0 && compass.y - 90 < y1) paintCompass(ctx, new Pen(ctx, 77, 0.6), compass);
 }
 
 /** Paper grain: fine flecks and short fibres, and the creases where the page was folded. */
@@ -159,6 +182,16 @@ function paintTrail(ctx: CanvasRenderingContext2D, layout: MapLayout, y0: number
   const built = (y: number): boolean => layout.regions.some((r) => r.chapter.built && y >= r.top - 40 && (r.index === 0 || y <= r.bottom + 60));
   ctx.save();
   ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  // A pale, trodden path under the dashes, so they read over forest and ash.
+  const near = pts.filter((p) => p.y > y0 - 20 && p.y < y1 + 20 && built(p.y));
+  if (near.length > 1) {
+    ctx.strokeStyle = rgba('#f6eedb', 0.3);
+    ctx.lineWidth = 11;
+    ctx.beginPath();
+    near.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+    ctx.stroke();
+  }
   for (let i = 0; i + 3 < pts.length; i += 5) {
     const a = pts[i]!;
     const b = pts[i + 3]!;
@@ -172,132 +205,6 @@ function paintTrail(ctx: CanvasRenderingContext2D, layout: MapLayout, y0: number
     ctx.stroke();
   }
   ctx.restore();
-}
-
-/** True when a spot is clear of the trail by `gap` px (sampled). */
-export function offTrail(layout: MapLayout, x: number, y: number, gap: number): boolean {
-  const pts = layout.path.pts;
-  for (let i = 0; i < pts.length; i += 3) {
-    const p = pts[i]!;
-    if (Math.abs(p.y - y) < gap && Math.hypot(p.x - x, p.y - y) < gap) return false;
-  }
-  return true;
-}
-
-/** The jungle around the temple's chapter: a river and clumps of painted trees, clear of the trail. */
-function paintJungle(ctx: CanvasRenderingContext2D, pen: Pen, layout: MapLayout, r: MapRegion): void {
-  const rng = createRng(100 + r.index);
-  // A river winding down the left of the band.
-  const river: Pt[] = [];
-  // It runs off the page at the foot of the first chapter, and fades into the next band at the top.
-  const foot = r.index === 0 ? layout.height + 40 : r.bottom;
-  for (let y = r.top - 120; y <= foot; y += 30) river.push({ x: 150 + Math.sin(y / 170) * 30, y });
-  const along = (w: number, color: string): void => {
-    ctx.save();
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = color;
-    ctx.lineWidth = w;
-    ctx.beginPath();
-    river.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
-    ctx.stroke();
-    ctx.restore();
-  };
-  // Muddy banks, then the water: a deep middle under a paler edge, and glints.
-  along(46, rgba('#a8936a', 0.35));
-  along(32, rgba(RIVER, 0.85));
-  along(16, rgba(mix(RIVER, '#3f6f99', 0.45), 0.6));
-  pen.hair(river.map((p) => ({ x: p.x - 16, y: p.y })), 1.3, INK, 0.55);
-  pen.hair(river.map((p) => ({ x: p.x + 16, y: p.y })), 1.3, INK, 0.55);
-  for (let k = 2; k < river.length - 2; k += 3) {
-    const p = river[k]!;
-    pen.hair([{ x: p.x - 4, y: p.y }, { x: p.x + 3, y: p.y + 6 }], 1.1, '#ffffff', 0.7);
-    // Reeds on the banks.
-    const side = k % 2 ? -1 : 1;
-    for (let r = 0; r < 3; r++) pen.hair([{ x: p.x + side * (18 + r * 3), y: p.y + 6 }, { x: p.x + side * (20 + r * 4), y: p.y - 8 - r * 3 }], 0.9, TREE_DARK, 0.75);
-  }
-  // Undergrowth: soft green washes and fern scribbles all over the band.
-  for (let i = 0; i < 60; i++) {
-    const x = rng() * layout.width;
-    const y = r.top + rng() * (r.bottom - r.top);
-    if (!offTrail(layout, x, y, 50)) continue;
-    const rr = 30 + rng() * 60;
-    const g = ctx.createRadialGradient(x, y, 0, x, y, rr);
-    g.addColorStop(0, rgba(TREE, 0.16));
-    g.addColorStop(1, rgba(TREE, 0));
-    ctx.fillStyle = g;
-    ctx.fillRect(x - rr, y - rr, rr * 2, rr * 2);
-    if (rng() < 0.5) for (let f = 0; f < 4; f++) pen.hair([{ x, y }, { x: x + (f - 1.5) * 6, y: y - 10 - rng() * 6 }], 0.9, TREE_DARK, 0.5);
-  }
-  for (let i = 0; i < 120; i++) {
-    const x = 40 + rng() * (layout.width - 80);
-    const y = r.top + rng() * (r.bottom - r.top);
-    if (!offTrail(layout, x, y, 80) || Math.hypot(x - r.ruin.x, y - r.ruin.y) < 150 || Math.abs(x - (150 + Math.sin(y / 170) * 30)) < 34) continue;
-    paintTree(ctx, pen, x, y, 14 + rng() * 12, rng);
-  }
-}
-
-function paintTree(ctx: CanvasRenderingContext2D, pen: Pen, x: number, y: number, s: number, rng: () => number): void {
-  if (rng() < 0.35) {
-    // A palm: a curved trunk and a fan of fronds.
-    const top = { x: x + s * 0.4, y: y - s * 1.8 };
-    pen.stroke([{ x, y }, { x: x + s * 0.3, y: y - s }, top], 2.2, mix('#8a6a44', INK, 0.2), 0.95, false);
-    for (let k = 0; k < 6; k++) {
-      const a = -Math.PI + (k / 5) * Math.PI + (rng() - 0.5) * 0.2;
-      const tip = { x: top.x + Math.cos(a) * s * 1.1, y: top.y + Math.sin(a) * s * 0.6 + s * 0.3 };
-      const leaf = [top, { x: (top.x + tip.x) / 2, y: (top.y + tip.y) / 2 - s * 0.25 }, tip, { x: (top.x + tip.x) / 2, y: (top.y + tip.y) / 2 + s * 0.1 }];
-      pen.fill(leaf, k % 2 ? TREE : mix(TREE, '#ffffff', 0.15), 1);
-      pen.hair([top, tip], 0.8, INK, 0.7);
-    }
-    return;
-  }
-  // A jungle tree: one canopy of lobes washed in together, lit from the top left, with ink only
-  // on the lobes' upper edges and hatching in the shade underneath.
-  const lobes = 3 + Math.floor(rng() * 4);
-  const parts: { x: number; y: number; r: number }[] = [];
-  for (let k = 0; k < lobes; k++) parts.push({ x: x + (rng() - 0.5) * s * 1.3, y: y - s * 0.85 + (rng() - 0.5) * s * 0.7, r: s * (0.45 + rng() * 0.3) });
-  ctx.fillStyle = rgba('#3d3226', 0.2);
-  ctx.beginPath();
-  ctx.ellipse(x + s * 0.2, y + 3, s * 1.1, s * 0.28, 0, 0, Math.PI * 2);
-  ctx.fill();
-  pen.stroke([{ x: x - 1, y }, { x: x + 1, y: y - s * 0.6 }], 2.6, '#5b3d24', 1, false);
-  const g = ctx.createRadialGradient(x - s * 0.5, y - s * 1.3, s * 0.1, x, y - s * 0.7, s * 1.5);
-  g.addColorStop(0, mix(TREE, '#e8f0b0', 0.35));
-  g.addColorStop(0.55, TREE);
-  g.addColorStop(1, TREE_DARK);
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  for (const p of parts) {
-    ctx.moveTo(p.x + p.r, p.y);
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-  }
-  ctx.fill();
-  for (const p of parts) {
-    // Only the upper part of each lobe gets a line, and only where it isn't inside another lobe.
-    const arc: Pt[] = [];
-    for (let a = Math.PI * 1.05; a <= Math.PI * 1.95; a += 0.15) {
-      const q = { x: p.x + Math.cos(a) * p.r, y: p.y + Math.sin(a) * p.r };
-      if (parts.some((o) => o !== p && Math.hypot(q.x - o.x, q.y - o.y) < o.r - 1)) {
-        if (arc.length > 1) pen.hair(arc.splice(0), 1.1, INK, 0.7);
-        arc.length = 0;
-      } else arc.push(q);
-    }
-    if (arc.length > 1) pen.hair(arc, 1.1, INK, 0.7);
-  }
-  // Shade under the canopy, hatched.
-  for (const p of parts) pen.hatch(ellipse(p.x + p.r * 0.2, p.y + p.r * 0.45, p.r * 0.75, p.r * 0.4, 12), 3.2, 0.9, 0.6, { color: TREE_DARK, alpha: 0.55 });
-}
-
-/** A few pencil marks for a chapter still being drawn: hills and scribbled trees. */
-function paintSketches(pen: Pen, layout: MapLayout, r: MapRegion): void {
-  const rng = createRng(300 + r.index);
-  for (let i = 0; i < 14; i++) {
-    const x = 60 + rng() * (layout.width - 120);
-    const y = r.top + rng() * (r.bottom - r.top);
-    if (!offTrail(layout, x, y, 90) || Math.hypot(x - r.ruin.x, y - r.ruin.y) < 160) continue;
-    const w = 30 + rng() * 50;
-    pen.hair([{ x: x - w, y }, { x: x - w * 0.3, y: y - w * 0.45 }, { x: x + w * 0.2, y: y - w * 0.2 }, { x: x + w, y }], 1.2, PENCIL, 0.55);
-  }
 }
 
 /** The Jungle Temple, painted: a stepped stone pyramid with a shrine on top, vines and palms. */
@@ -339,9 +246,8 @@ function paintTemple(ctx: CanvasRenderingContext2D, pen: Pen, at: Pt): void {
   pen.dot(x, base - 8, 2.4, GOLD);
   // Vines down the left flank, and two palms beside it.
   pen.hair([{ x: x - 70, y: base + 60 }, { x: x - 64, y: base + 90 }, { x: x - 78, y: base + 120 }], 1.6, TREE_DARK, 0.9);
-  const rng = createRng(9);
-  paintTree(ctx, pen, x - 145, y + 62, 26, () => 0.1);
-  paintTree(ctx, pen, x + 150, y + 64, 24, rng);
+  paintTree(ctx, pen, x - 145, y + 62, 26, 'palm', createRng(8));
+  paintTree(ctx, pen, x + 150, y + 64, 24, 'broad', createRng(9));
 }
 
 /** Straight ink lines through the points (masonry wants hard corners, which the pen would round off). */

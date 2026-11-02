@@ -324,7 +324,7 @@ export class HudScene extends Phaser.Scene {
     const { width, height } = screenSize(this.scale);
     const w = Math.min(380, width - 32);
     const way = r.next !== null || r.offer !== undefined;
-    const h = r.won ? (way ? 370 : 330) : 236;
+    const h = r.won ? (r.offer ? 396 : way ? 370 : 330) : 236;
     const bg = this.add.graphics();
     bg.fillStyle(0x000000, 0.12).fillRoundedRect(-w / 2 + 6, -h / 2 + 8, w, h, 14);
     bg.fillStyle(Phaser.Display.Color.HexStringToColor(PAPER).color, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 14);
@@ -347,6 +347,7 @@ export class HudScene extends Phaser.Scene {
         const t = this.add.text(x, y0 + 50, label, { fontFamily: FONT, fontSize: '19px', color: got ? INK : '#9a927f' }).setOrigin(0.5, 0).setResolution(DPR);
         parts.push(blot, t);
       });
+      if (r.offer) parts.push(this.add.text(0, 74, 'The Volcano and the Tomb wait in the full game', { fontFamily: FONT, fontSize: '21px', color: INK, align: 'center', wordWrap: { width: w - 32 } }).setOrigin(0.5).setResolution(DPR));
       if (r.moreComing) parts.push(this.add.text(0, 65, 'More levels are being drawn', { fontFamily: FONT, fontSize: '22px', color: INK }).setOrigin(0.5).setResolution(DPR));
     }
     const next = r.won ? r.next : null;
