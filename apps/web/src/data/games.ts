@@ -381,3 +381,36 @@ export function newestFirst(games: readonly CatalogGame[]): CatalogGame[] {
 
 /** The home page's games: this week's game first (the featured one), then the rest newest first. */
 export const homeGames = (now: Date): CatalogGame[] => newestFirst(listedGames(now));
+
+/**
+ * The game most people play, set by hand from `traffic`. On 2026-11-02, over 30 days,
+ * 235 of 342 players played InkFish, more than three times the next game (InkSnake, 70).
+ */
+export const MOST_PLAYED = 'inkfish';
+
+/** What a top card on the home page says about its game. `latest` is the newest game once its new week is over. */
+export type HomeLabel = 'new' | 'latest' | 'popular';
+
+export interface HomeCard {
+  readonly game: CatalogGame;
+  readonly label: HomeLabel;
+}
+
+export interface HomeListings {
+  /** The newest game, then the most played (one card when they are the same game). */
+  readonly top: readonly HomeCard[];
+  /** Every other listed game, newest first. */
+  readonly rest: readonly CatalogGame[];
+}
+
+/** The home page: two labelled games at the top, then the rest. */
+export function homeListings(now: Date): HomeListings {
+  const [newest, ...others] = homeGames(now);
+  if (!newest) return { top: [], rest: [] };
+  const popular = others.find((g) => g.slug === MOST_PLAYED);
+  const top: HomeCard[] = [
+    { game: newest, label: isNew(newest, now) ? 'new' : 'latest' },
+    ...(popular ? [{ game: popular, label: 'popular' as const }] : []),
+  ];
+  return { top, rest: others.filter((g) => g !== popular) };
+}
