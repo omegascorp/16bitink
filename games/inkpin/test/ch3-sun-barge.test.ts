@@ -20,7 +20,7 @@ const snap = (w: World, i: number): string => {
   const raft = w.boulders.find((b) => b.raft);
   const p = w.plates[0]!;
   const r = (v: number): number => Math.round(v);
-  return `#${i} nib(${r(w.nib.x)},${r(w.nib.y)}) plate ${p.weight}${p.down ? ' down' : ''} door ${r(w.doors[0]!.open)} bowl ${w.bowls[0]!.lit ? 'lit' : 'out'} bar ${w.broken[28] ? 'broken' : 'stands'} raft ${raft ? `(${r(raft.x)},${r(raft.y)})` : '-'} frogs ${w.blots.map((b) => `(${r(b.x)},${r(b.y)}${b.puffed ? ' puffed' : ''}${b.gone ? ' ' + b.gone : ''})`).join(' ')} rubies ${w.rubies.map((b) => `(${r(b.x)},${r(b.y)})`).join(' ')} water ${n(WATER)} lava ${n(LAVA)} stone ${n(STONE)} coin ${n(COIN)} gas ${n(GAS)} ${w.status.state}${w.status.state === 'lost' ? ':' + w.status.cause : ''}`;
+  return `#${i} nib(${r(w.nib.x)},${r(w.nib.y)}) plate ${p.weight}${p.down ? ' down' : ''} door ${r(w.doors[0]!.open)} bowl ${w.bowls[0]!.lit ? 'lit' : 'out'} bar ${w.broken[31] ? 'broken' : 'stands'} raft ${raft ? `(${r(raft.x)},${r(raft.y)})` : '-'} frogs ${w.blots.map((b) => `(${r(b.x)},${r(b.y)}${b.puffed ? ' puffed' : ''}${b.gone ? ' ' + b.gone : ''})`).join(' ')} rubies ${w.rubies.map((b) => `(${r(b.x)},${r(b.y)})`).join(' ')} water ${n(WATER)} lava ${n(LAVA)} stone ${n(STONE)} coin ${n(COIN)} gas ${n(GAS)} ${w.status.state}${w.status.state === 'lost' ? ':' + w.status.cause : ''}`;
 };
 
 describe('The Sun Barge', () => {
@@ -45,16 +45,28 @@ describe('The Sun Barge', () => {
   });
 
   it.each([
-    // The obvious order, left to right: S first runs the canal out of the gangway's grate, so there is no surge and no leak, and K's gold falls into the hot gutter.
-    [['S', 'V', 'U', 'G', 'C', 'K', '@440', '@1215'], 'melted'],
-    // K before the dam: the gutter is still lava when the gold drops.
-    [['V', 'K', 'G', 'U', 'C', 'S', '@440', '@1215'], 'melted'],
-    // The gold first: it falls into the empty berth and down its grate, the barge alone is too light, and the ankh trapdoor stays shut over Nib.
-    [['C', 'G', 'V', 'U', 'S', 'K', '@440', '@1215'], 'sealed'],
-    // The dam before the frog's vent: V lies across U's slide, so U can't come out.
-    [['U', 'V', 'G', 'C', 'K', 'S', '@440', '@1215'], 'blocked'],
+    // The obvious order, nearest Nib first: the dam before the gas, so the berth's leak puts the bowl out and the cracked bar stands.
+    [['V', 'U', 'C', 'G', 'K', 'S', '@440', '@1215'], 'sealed'],
+    // The vault's gold first: no surge and no cistern water has set the gutter yet, and the gold falls into the lava.
+    [['K', 'V', 'G', 'U', 'C~6', 'S', '@440', '@1215'], 'melted'],
+    // The barge's gold before the dam: it falls into the empty berth and out of its grate, the barge alone is too light, and both ankh doors stay shut.
+    [['V', 'G', 'C', 'U', 'K', 'S', '@440', '@1215'], 'sealed'],
+    // The frog's vent after the dam: the canal has run dry, so the frog lands on the bare shelf instead of in water, and waits on Nib's way.
+    [['G', 'U', 'V', 'C~6', 'K', 'S', '@440', '@1215'], 'inked'],
+    // The frog never vented: it floats in its low bell right over Nib's way and inks him as he walks under it.
+    [['G', 'U', 'C~6', 'K', 'S', '@440', '@1215'], 'inked'],
   ])('%j loses: %s', (order, cause) => {
     expect(outcome(order)).toBe(cause);
+  });
+
+  it.each([
+    // S first: the cistern's water sets the gutter, so the vault's gold is safe even before the dam.
+    ['S', 'K', 'V', 'G', 'U', 'C~6', '@440', '@1215'],
+    // The barge's gold at both ends of the wait for the barge to dock.
+    ['V', 'G', 'U', 'C~4.5', 'K', 'S', '@440', '@1215'],
+    ['V', 'G', 'U', 'C~7.5', 'K', 'S', '@440', '@1215'],
+  ])('%j wins', (...order) => {
+    expect(outcome(order)).toBe('won');
   });
 
   if (process.env.AUDIT) it('audit', async () => console.log('AUDIT ' + JSON.stringify((await import('./audit')).audit(SUN_BARGE))), 3_600_000);
