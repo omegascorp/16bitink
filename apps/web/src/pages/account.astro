@@ -5,6 +5,7 @@ import { ensurePlayerId } from '../lib/db/userRepo';
 import { currentUser } from '../lib/owner';
 import { formatPlayerId } from '../lib/playerId';
 import { signInPageUrl } from '../lib/buyFlow';
+import { sundayReader } from '../lib/sunday';
 
 export const prerender = false;
 
@@ -21,6 +22,15 @@ try {
 } catch (err) {
   console.error('[account] could not load the player id', err);
 }
+// The Sunday email: on or off, from here as easily as it was joined (one tap).
+const reader = await sundayReader(session);
+const SUNDAY_MESSAGES: Record<string, { readonly text: string; readonly ok: boolean }> = {
+  done: { text: 'You’re on the list. See you on Sunday!', ok: true },
+  off: { text: 'You’re off the list. No more Sunday emails.', ok: true },
+  error: { text: 'Something went wrong on our side. Please try again in a minute.', ok: false },
+  invalid: { text: 'Something went wrong on our side. Please try again in a minute.', ok: false },
+};
+const sundayOutcome = SUNDAY_MESSAGES[Astro.url.searchParams.get('sunday') ?? ''];
 ---
 <Base title="Your account | 16bit.ink" description="Your 16bit.ink account." user={user}>
   <meta name="robots" content="noindex" slot="head" />
@@ -40,6 +50,29 @@ try {
       Need help with a game? Send us this ID instead of your email.
       It identifies your account to us but says nothing about who you are.
     </p>
+    {reader && (
+      <div id="sunday" class="sunday-setting">
+        <p class="pixel-label">Sunday email</p>
+        {sundayOutcome && <p class:list={['sunday-outcome', { failed: !sundayOutcome.ok }]} role={sundayOutcome.ok ? 'status' : 'alert'}>{sundayOutcome.text}</p>}
+        {reader.subscribed ? (
+          <>
+            <p>We email <strong>{reader.email}</strong> once on Sunday, when a new game is out.</p>
+            <form method="post" action="/api/unsubscribe">
+              <button class="btn" type="submit">Stop the Sunday email</button>
+            </form>
+          </>
+        ) : (
+          <>
+            <p>Get one short email on Sunday, when a new game is out. Nothing else, and you can stop it here any time.</p>
+            <form method="post" action="/api/subscribe">
+              <input type="hidden" name="from" value="/account" />
+              <input type="hidden" name="email" value={reader.email} />
+              <button class="btn btn-ink" type="submit">Email me new games</button>
+            </form>
+          </>
+        )}
+      </div>
+    )}
   </section>
 </Base>
 
@@ -73,4 +106,8 @@ try {
   .player-id .btn { padding: 8px 16px; font-size: 1.2rem; }
   .player-id-error { color: var(--red-ink); }
   .player-id-note { color: var(--ink-soft); }
+  .sunday-setting { margin-top: 28px; padding-top: 22px; border-top: 2px dashed var(--ink-faint); overflow-wrap: anywhere; }
+  .sunday-setting p { margin: 0 0 12px; }
+  .sunday-outcome { font-family: var(--font-hand); font-size: 1.5rem; color: var(--blue-ink); }
+  .sunday-outcome.failed { font-family: inherit; font-size: inherit; color: var(--red-ink); }
 </style>

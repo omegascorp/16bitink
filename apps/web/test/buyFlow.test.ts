@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { googleSignInUrl, isPendingBuy, signInPageUrl, signInToBuyUrl, signInUrl } from '../src/lib/buyFlow';
+import { googleSignInUrl, isPendingBuy, pendingBuy, signInPageUrl, signInToBuyUrl, signInUrl } from '../src/lib/buyFlow';
 import { safeReturnPath } from '../src/lib/google';
 
 describe('buy flow', () => {
@@ -28,5 +28,12 @@ describe('buy flow', () => {
     expect(isPendingBuy('?buy=inkcrab', 'inkfish')).toBe(false);
     expect(isPendingBuy('', 'inkfish')).toBe(false);
     expect(isPendingBuy('?other=1', 'inkfish')).toBe(false);
+  });
+
+  it('resumes the pass from any game, and tells it apart from the game', () => {
+    expect(pendingBuy('?buy=all', 'inkfish', 'all')).toBe('pass');
+    expect(pendingBuy('?buy=inkfish', 'inkfish', 'all')).toBe('game');
+    expect(pendingBuy('?buy=inkcrab', 'inkfish', 'all')).toBeNull();
+    expect(pendingBuy('', 'inkfish', 'all')).toBeNull();
   });
 });

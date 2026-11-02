@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { playableGames } from '../../data/games';
+import { PASS } from '../../data/pass';
 import { currentAdmin } from '../../lib/adminAuth';
 import { grantedGamesFor } from '../../lib/db/grantRepo';
 import { findPurchasesForUsers } from '../../lib/db/purchaseRepo';
@@ -26,7 +27,8 @@ const { users, total } = await listUsers({ search, page, perPage: PER_PAGE });
 const [purchases, grants] = await Promise.all([findPurchasesForUsers(users.map((u) => u.id)), grantedGamesFor(users.map((u) => u.id))]);
 const opts = { allowTestMode: isLocalHost(Astro.url.hostname) };
 const rows = users.map((u) => ({ ...u, library: libraryOf(purchasesOf(u.id, purchases), grants.get(u.id) ?? [], opts) }));
-const games = playableGames();
+// The pass first: it unlocks every game below, and every future one.
+const games = [{ slug: PASS.slug, title: PASS.title }, ...playableGames()];
 const here = Astro.url.pathname + Astro.url.search;
 const pages = Math.max(1, Math.ceil(total / PER_PAGE));
 const pageHref = (p: number): string => `/admin?${new URLSearchParams({ ...(search ? { q: search } : {}), page: String(p) })}`;

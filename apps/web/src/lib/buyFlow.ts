@@ -24,7 +24,13 @@ export function signInToBuyUrl(pathname: string, game: string): string {
   return signInUrl(`${pathname}?${BUY_PARAM}=${encodeURIComponent(game)}`);
 }
 
-/** True when the page was opened to resume buying `game` after sign-in. */
+/** What the page was opened to resume buying for `game` after sign-in: the game, the pass, or nothing. */
+export function pendingBuy(search: string, game: string, passSlug: string): 'game' | 'pass' | null {
+  const buy = new URLSearchParams(search).get(BUY_PARAM);
+  return buy === game ? 'game' : buy === passSlug ? 'pass' : null;
+}
+
+/** True when the page was opened to resume buying `game` (or the pass, by its slug) after sign-in. */
 export function isPendingBuy(search: string, game: string): boolean {
   return new URLSearchParams(search).get(BUY_PARAM) === game;
 }

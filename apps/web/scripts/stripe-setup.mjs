@@ -39,6 +39,15 @@ const PRODUCTS = [
     currency: 'usd',
   },
   {
+    // The All Games Pass (src/data/pass.ts). To raise its price later, create the new price on this
+    // product in the dashboard and transfer the lookup key to it; then update PRODUCTS here to match.
+    lookupKey: 'all_games_pass',
+    name: 'All Games Pass',
+    description: 'Every game on 16bit.ink, and every game released after you buy it, unlocked the day it comes out. One-time purchase, no subscription.',
+    unitAmount: 1499,
+    currency: 'usd',
+  },
+  {
     lookupKey: 'inksnake_full',
     name: 'InkSnake: Full Game',
     description: 'The full InkSnake game on 16bit.ink: all 100 levels with 10 snakes in 10 places. One-time purchase, no subscription.',

@@ -166,6 +166,40 @@ importers:
 
   .: {}
 
+  apps/itch:
+    dependencies:
+      '@16bitink/game-sdk':
+        specifier: workspace:*
+        version: link:../../packages/game-sdk
+      '@16bitink/inkcrab':
+        specifier: workspace:*
+        version: link:../../games/inkcrab
+      '@16bitink/inkfish':
+        specifier: workspace:*
+        version: link:../../games/inkfish
+      '@16bitink/inkgecko':
+        specifier: workspace:*
+        version: link:../../games/inkgecko
+      '@16bitink/inkmine':
+        specifier: workspace:*
+        version: link:../../games/inkmine
+      '@16bitink/inksnake':
+        specifier: workspace:*
+        version: link:../../games/inksnake
+    devDependencies:
+      playwright-core:
+        specifier: 1.56.1
+        version: 1.56.1
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite:
+        specifier: ^8.3.2
+        version: 8.3.2(@types/node@24.19.1)(esbuild@0.28.1)(yaml@2.9.1)
+      vitest:
+        specifier: ^5.0.3
+        version: 5.0.3(@types/node@24.19.1)(@vitest/coverage-v8@5.0.3)(vite@8.3.2(@types/node@24.19.1))
+
   apps/web:
     dependencies:
       '@16bitink/game-sdk':

@@ -11,21 +11,19 @@ interface Props {
   game: CatalogGame;
   /** Owners see no free tile: every chapter is theirs. */
   owned?: boolean;
-  /** Bigger numbers, for a game page or the featured card. */
+  /** Bigger numbers, for a game page. */
   large?: boolean;
-  /** Home page cards: only the level count, no chapter tiles or dates. */
-  compact?: boolean;
 }
-const { game, owned = false, large = false, compact = false } = Astro.props;
+const { game, owned = false, large = false } = Astro.props;
 const size = gameSize(game);
 const dates = gameDates(game, new Date());
 // Every game's demo is its first chapter.
 const tiles = size ? chapterTiles(size, owned ? 0 : 1) : [];
 const coming = size ? size.chapters - size.ready : 0;
 ---
-{size && (!compact || size.levels) && (
+{size && (
   <div class:list={['stats', { large }]}>
-    {!compact && <div class="stat">
+    <div class="stat">
       <p class="figure">
         {coming > 0 ? <><b>{size.ready}</b><span class="of">/{size.chapters}</span></> : <b>{size.chapters}</b>}
         <span class="unit">chapters</span>
@@ -34,7 +32,7 @@ const coming = size ? size.chapters - size.ready : 0;
         {tiles.map((tile, i) => <i class={tile} style={`--tilt:${((i * 7) % 5) - 2}deg`}></i>)}
         {coming > 0 && <span class="coming-note">+{coming} coming</span>}
       </p>
-    </div>}
+    </div>
     {size.levels && (
       <div class="stat">
         <p class="figure"><b>{size.levels}</b><span class="unit">levels</span></p>
@@ -42,7 +40,7 @@ const coming = size ? size.chapters - size.ready : 0;
     )}
   </div>
 )}
-{!compact && (dates.released || dates.updated) && (
+{(dates.released || dates.updated) && (
   <p class="dates">
     {dates.released && <span>Out {dates.released}</span>}
     {dates.updated && <span>Updated {dates.updated}</span>}

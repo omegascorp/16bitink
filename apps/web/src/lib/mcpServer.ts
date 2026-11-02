@@ -126,10 +126,10 @@ export function buildMcpServer(admin: McpAdmin, origin: string): McpServer {
     title: 'Purchase funnel',
     description: 'How far players get toward buying, over the last N days. `levels`: per game, players who reached and beat each level in order '
       + '(InkMine: each story goal), so you can see how many reach the end of the free part. `steps`: where games showed the full-game offer '
-      + '(offer_view: free_end, map, locked, guide), buy taps (buy_click, by place: those, "page" for the game\'s page on the site, "unknown" '
-      + 'for a game too old to say; signedIn false means sign-in comes first), sign-in taps (signin_click: save, header, restore; then on the sign-in page, google or email for the way chosen), Stripe '
-      + 'checkouts opened and failed (checkout_open, checkout_fail with the reason) and app installs; `times` and distinct `visitors` each. '
-      + 'Also sales, new accounts (admins left out), new email subscribers, visitors who opened the installed app, and visitors per browser: '
+      + '(offer_view: free_end, map, locked, guide), buy taps (buy_click, by place: those, "page" for the game\'s page on the site, "home" for the pass on the home page (game "all"), "unknown" '
+      + 'for a game too old to say; signedIn false means sign-in comes first; pass true means the All Games Pass, bought from that game\'s offer), sign-in taps (signin_click: save, header, restore; then on the sign-in page, google or email for the way chosen), Stripe '
+      + 'checkouts opened and failed (checkout_open, checkout_fail with the reason; pass as above) and app installs; `times` and distinct `visitors` each. '
+      + 'Also sales (game "all" is the All Games Pass), new accounts (admins left out), new email subscribers, visitors who opened the installed app, and visitors per browser: '
       + '"Facebook app", "Instagram app" and "TikTok app" are in-app browsers, where Google refuses to sign anyone in. Steps, installs and '
       + 'in-app browsers are recorded from 2026-10-23; before that, in-app visits count as Chrome or Safari.',
     inputSchema: { days: z.number().int().min(1).max(365).optional().describe('How many days back (default 7)') },

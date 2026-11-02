@@ -3,6 +3,8 @@ import type { Short } from './short';
 import { createDescent } from './descent/render';
 import { createKit } from './foodchain/kit';
 import { createFoodchain } from './foodchain/render';
+import { createSeamonstersKit } from './seamonsters/kit';
+import { createSeamonsters } from './seamonsters/render';
 import { createSwallowyou } from './swallowyou/render';
 
 /**
@@ -11,7 +13,9 @@ import { createSwallowyou } from './swallowyou/render';
  * to it once. ?video= picks one: descent ("fish get weirder the deeper you
  * go… until they can't", the default), foodchain ("fish eat fish size
  * comparison… but every animal is real"), foodchain-kit (its drawings) or
- * swallowyou ("every ocean animal that could swallow you… only one actually could"). Plays live; ?t=95 freezes one moment.
+ * swallowyou ("every ocean animal that could swallow you… only one actually could"),
+ * seamonsters ("sea monsters size comparison… but every one is real") or
+ * seamonsters-kit (its new drawings). Plays live; ?t=95 freezes one moment.
  * `pnpm promo -- --only long` (dev/promo/record.mjs) records it frame by frame.
  */
 const canvas = document.getElementById('promo') as HTMLCanvasElement;
@@ -40,6 +44,14 @@ const VIDEOS: Readonly<Record<string, () => Promise<Short>>> = {
   swallowyou: async () => {
     await loadCaptionFont();
     return createSwallowyou(ctx);
+  },
+  seamonsters: async () => {
+    await loadCaptionFont();
+    return createSeamonsters(ctx);
+  },
+  'seamonsters-kit': async () => {
+    await loadCaptionFont();
+    return createSeamonstersKit(ctx, params.get('only'));
   },
 };
 

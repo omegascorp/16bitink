@@ -23,6 +23,17 @@ export async function unsubscribe(token: string): Promise<boolean> {
   return res.deletedCount === 1;
 }
 
+/** Takes this (normalized) address off the list: a signed-in player leaving from their account. Returns whether it was on it. */
+export async function unsubscribeEmail(email: string): Promise<boolean> {
+  const res = await Subscriber.deleteOne({ email });
+  return res.deletedCount === 1;
+}
+
+/** Whether this (normalized) address is on the list. */
+export async function isSubscribed(email: string): Promise<boolean> {
+  return (await Subscriber.exists({ email }).exec()) !== null;
+}
+
 export async function countSubscribers(): Promise<number> {
   return Subscriber.countDocuments().exec();
 }

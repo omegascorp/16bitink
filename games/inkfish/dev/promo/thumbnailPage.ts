@@ -1,13 +1,14 @@
 import { drawGuides, drawThumbnail, THUMBNAIL_IDS, type ThumbnailId } from './thumbnail';
 import { DESCENT_THUMBNAILS, drawDescentThumbnail, type DescentThumbnail } from './descent/thumbnails';
 import { drawFoodchainThumbnail, FOODCHAIN_THUMBNAILS, type FoodchainThumbnail } from './foodchain/thumbnails';
+import { drawSeamonstersThumbnail, SEAMONSTERS_THUMBNAILS, type SeamonstersThumbnail } from './seamonsters/thumbnails';
 import { drawSwallowyouThumbnail, SWALLOWYOU_THUMBNAILS, type SwallowyouThumbnail } from './swallowyou/thumbnails';
 
 /**
  * Dev-only page for the YouTube thumbnails (1280x720). ?set= picks the video:
  * level1 (the default: ?v=hunter|glowup|run) or descent, the first long-form
- * video (?v=split|line|layers), foodchain, the second (?v=split|nest|wrong|lunch), or swallowyou, the third
- * (?v=throat|lineup|inside). ?guides outlines the duration badge's corner.
+ * video (?v=split|line|layers), foodchain, the second (?v=split|nest|wrong|lunch), swallowyou, the third
+ * (?v=throat|lineup|inside), or seamonsters, the fourth (?v=legend|lineup|eye). ?guides outlines the duration badge's corner.
  * `pnpm thumbnail` saves them all as PNGs.
  */
 const SETS: Readonly<Record<string, { readonly ids: readonly string[]; readonly draw: (ctx: CanvasRenderingContext2D, id: string) => void | Promise<void> }>> = {
@@ -15,6 +16,7 @@ const SETS: Readonly<Record<string, { readonly ids: readonly string[]; readonly 
   descent: { ids: DESCENT_THUMBNAILS, draw: (c, id) => drawDescentThumbnail(c, id as DescentThumbnail) },
   foodchain: { ids: FOODCHAIN_THUMBNAILS, draw: (c, id) => drawFoodchainThumbnail(c, id as FoodchainThumbnail) },
   swallowyou: { ids: SWALLOWYOU_THUMBNAILS, draw: (c, id) => drawSwallowyouThumbnail(c, id as SwallowyouThumbnail) },
+  seamonsters: { ids: SEAMONSTERS_THUMBNAILS, draw: (c, id) => drawSeamonstersThumbnail(c, id as SeamonstersThumbnail) },
 };
 const canvas = document.getElementById('thumbnail') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;

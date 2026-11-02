@@ -42,6 +42,8 @@ describe.skipIf(!uri)('steps toward a purchase (MongoDB)', () => {
       // c buys from the game page signed in; checkout opens once and fails once.
       ev('c', 'buy_click', { where: 'page', signedIn: true }, 'inkcrab'),
       ev('c', 'checkout_open', {}, 'inkcrab'), ev('c', 'checkout_fail', { error: 'Network error.' }, 'inkcrab'),
+      // c then buys the pass from the same page: counted apart from the game.
+      ev('c', 'buy_click', { where: 'page', signedIn: true, pass: true }, 'inkcrab'),
       // Sign-ins, one with no game; an install.
       ev('d', 'signin_click', { where: 'header' }, null), ev('a', 'signin_click', { where: 'save' }),
       ev('e', 'app_install', {}, null),
@@ -50,14 +52,15 @@ describe.skipIf(!uri)('steps toward a purchase (MongoDB)', () => {
       { ...ev('z', 'buy_click', { where: 'page', signedIn: false }), ts: new Date('2026-09-01T00:00:00Z') },
     ]);
     expect(await actionStats(RANGE)).toEqual([
-      { event: 'app_install', game: null, where: null, signedIn: null, error: null, times: 1, visitors: 1 },
-      { event: 'buy_click', game: 'inkcrab', where: 'page', signedIn: true, error: null, times: 1, visitors: 1 },
-      { event: 'buy_click', game: 'inkfish', where: 'free_end', signedIn: false, error: null, times: 1, visitors: 1 },
-      { event: 'checkout_fail', game: 'inkcrab', where: null, signedIn: null, error: 'Network error.', times: 1, visitors: 1 },
-      { event: 'checkout_open', game: 'inkcrab', where: null, signedIn: null, error: null, times: 1, visitors: 1 },
-      { event: 'offer_view', game: 'inkfish', where: 'free_end', signedIn: null, error: null, times: 3, visitors: 2 },
-      { event: 'signin_click', game: null, where: 'header', signedIn: null, error: null, times: 1, visitors: 1 },
-      { event: 'signin_click', game: 'inkfish', where: 'save', signedIn: null, error: null, times: 1, visitors: 1 },
+      { event: 'app_install', game: null, where: null, signedIn: null, pass: null, error: null, times: 1, visitors: 1 },
+      { event: 'buy_click', game: 'inkcrab', where: 'page', signedIn: true, pass: null, error: null, times: 1, visitors: 1 },
+      { event: 'buy_click', game: 'inkcrab', where: 'page', signedIn: true, pass: true, error: null, times: 1, visitors: 1 },
+      { event: 'buy_click', game: 'inkfish', where: 'free_end', signedIn: false, pass: null, error: null, times: 1, visitors: 1 },
+      { event: 'checkout_fail', game: 'inkcrab', where: null, signedIn: null, pass: null, error: 'Network error.', times: 1, visitors: 1 },
+      { event: 'checkout_open', game: 'inkcrab', where: null, signedIn: null, pass: null, error: null, times: 1, visitors: 1 },
+      { event: 'offer_view', game: 'inkfish', where: 'free_end', signedIn: null, pass: null, error: null, times: 3, visitors: 2 },
+      { event: 'signin_click', game: null, where: 'header', signedIn: null, pass: null, error: null, times: 1, visitors: 1 },
+      { event: 'signin_click', game: 'inkfish', where: 'save', signedIn: null, pass: null, error: null, times: 1, visitors: 1 },
     ]);
   });
 

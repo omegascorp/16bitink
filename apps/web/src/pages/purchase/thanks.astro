@@ -1,21 +1,35 @@
 ---
 import Base from '../../layouts/Base.astro';
+import SundaySignup from '../../components/SundaySignup.astro';
 import { findGame } from '../../data/games';
-import { ownership } from '../../lib/owner';
+import { isPass, PASS } from '../../data/pass';
+import { currentUser, ownership } from '../../lib/owner';
+import { sundayReader } from '../../lib/sunday';
 import { COMPANY } from '../../data/company';
 
 export const prerender = false;
 
-const game = findGame(Astro.url.searchParams.get('game') ?? '');
-const owned = game ? (await ownership(Astro.cookies, game.slug, Astro.url)) !== null : false;
+const slug = Astro.url.searchParams.get('game') ?? '';
+const pass = isPass(slug);
+const game = pass ? null : findGame(slug);
+const owned = pass || game ? (await ownership(Astro.cookies, slug, Astro.url)) !== null : false;
+// Right after paying, the buyer is signed in: one tap puts them on the Sunday list.
+const reader = owned ? await sundayReader(await currentUser(Astro.cookies)) : null;
 Astro.response.headers.set('cache-control', 'no-store');
+const title = !owned ? 'Purchase' : pass ? `Thanks! ${PASS.title} unlocked` : `Thanks! ${game!.title} unlocked`;
 ---
-<Base title={owned && game ? `Thanks! ${game.title} unlocked` : 'Purchase'} description="Purchase confirmation">
+<Base title={title} description="Purchase confirmation">
   <section class="paper-card narrow tape">
-    {owned && game ? (
+    {owned && pass ? (
       <>
         <h1>Thank you!</h1>
-        <p>The full version of <strong>{game.title}</strong> is unlocked on this browser. It was a one-time purchase, so there is nothing more to pay, ever. Your Stripe receipt is on its way to your inbox. It's saved to your Google account, so to play on another device, just sign in there with the same account.</p>
+        <p>Your <strong>{PASS.title}</strong> is active: every game on 16bit.ink is unlocked, and so is every game still to come. Each Sunday's new game is yours the day it comes out, with nothing more to pay, ever. Your Stripe receipt is on its way to your inbox. It's saved to your account, so to play on another device, just sign in there with the same account.</p>
+        <a class="btn btn-ink" href="/">Pick a game</a>
+      </>
+    ) : owned && game ? (
+      <>
+        <h1>Thank you!</h1>
+        <p>The full version of <strong>{game.title}</strong> is unlocked on this browser. It was a one-time purchase, so there is nothing more to pay, ever. Your Stripe receipt is on its way to your inbox. It's saved to your account, so to play on another device, just sign in there with the same account.</p>
         <a class="btn btn-ink" href={`/play/${game.slug}`}>Play the full game</a>
       </>
     ) : (
@@ -26,4 +40,11 @@ Astro.response.headers.set('cache-control', 'no-store');
       </>
     )}
   </section>
+  {owned && (
+    <SundaySignup
+      reader={reader}
+      from={`/purchase/thanks?game=${slug}`}
+      pitch={pass ? 'Your pass unlocks each new game by itself. Want to know when it lands?' : undefined}
+    />
+  )}
 </Base>

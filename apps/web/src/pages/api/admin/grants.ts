@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { findGame } from '../../../data/games';
+import { isPass } from '../../../data/pass';
 import { currentAdmin } from '../../../lib/adminAuth';
 import { adminReturnPath } from '../../../lib/admins';
 import { grantGame, revokeGame } from '../../../lib/db/grantRepo';
@@ -17,7 +18,7 @@ const Form = z.object({
   return: z.string().max(500).optional(),
 });
 
-/** An admin unlocks a game for a user, or takes a granted one back. A plain form post: answers with a redirect to the admin page. */
+/** An admin unlocks a game (or the All Games Pass) for a user, or takes a granted one back. A plain form post: answers with a redirect to the admin page. */
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!isSameOrigin(request)) return fail(403, 'Cross-origin request rejected');
   try {
@@ -27,7 +28,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const form = Form.safeParse(Object.fromEntries(await request.formData().catch(() => new FormData())));
     if (!form.success) return fail(400, 'Invalid request');
     const { action, userId, game } = form.data;
-    if (findGame(game)?.status !== 'playable') return fail(404, 'Unknown game');
+    if (!isPass(game) && findGame(game)?.status !== 'playable') return fail(404, 'Unknown game');
     if ((await findRole(userId)) === null) return fail(404, 'Unknown user');
     if (action === 'grant') await grantGame(userId, game, admin.userId);
     else await revokeGame(userId, game);

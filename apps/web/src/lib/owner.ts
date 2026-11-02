@@ -1,5 +1,6 @@
 import type { AstroCookies } from 'astro';
 import { playableGames } from '../data/games';
+import { PASS } from '../data/pass';
 import { devUnlockAllowed, isLocalHost } from './devUnlock';
 import { entitlementCookie, verifyEntitlement, type EntitlementClaims } from './entitlement';
 import { optionalEnv, requireSecret } from './env';
@@ -51,7 +52,8 @@ export async function accountGames(email: string, userId: UserId, url: URL): Pro
  */
 export async function claimBrowserPurchases(cookies: AstroCookies, userId: UserId): Promise<number> {
   const secret = requireSecret('ENTITLEMENT_SECRET');
-  const owned = await Promise.all(playableGames().map((g) => verifyEntitlement(cookies.get(entitlementCookie(g.slug))?.value, g.slug, secret)));
+  const products = [...playableGames().map((g) => g.slug), PASS.slug];
+  const owned = await Promise.all(products.map((slug) => boughtHere(cookies, slug, secret)));
   const claimed = await Promise.all(owned.flatMap((c) => (c ? [claimPurchase(c.s, userId)] : [])));
   return claimed.filter(Boolean).length;
 }
@@ -67,10 +69,24 @@ async function accountOwns(user: UserSession, game: string, url: URL): Promise<b
   }
 }
 
+/** The ownership cookie this browser holds for `slug` (a game or the pass), if authentic. */
+const boughtHere = (cookies: AstroCookies, slug: string, secret: string): Promise<EntitlementClaims | null> =>
+  verifyEntitlement(cookies.get(entitlementCookie(slug))?.value, slug, secret);
+
+/** A purchase made on this browser that covers `game`: its own, or the pass (unless since refunded). */
+async function boughtOnBrowser(cookies: AstroCookies, game: string, secret: string): Promise<EntitlementClaims | null> {
+  for (const slug of game === PASS.slug ? [game] : [game, PASS.slug]) {
+    const bought = await boughtHere(cookies, slug, secret);
+    // Claims always name the game asked about, even when the pass is what owns it.
+    if (bought && !(await refunded(bought.s))) return { ...bought, g: game };
+  }
+  return null;
+}
+
 /**
- * Whether `game` is owned on this browser: a purchase made here (its own
- * cookie, unless since refunded), or a signed-in user who bought it or
- * was granted it by an admin.
+ * Whether `game` (or the pass, by its slug) is owned on this browser: a
+ * purchase made here (its own cookie or the pass's, unless since refunded),
+ * or a signed-in user who bought it or the pass, or was granted either by an admin.
  * Locally, DEV_UNLOCK=true in .env makes every game owned without a
  * purchase (localhost only).
  */
@@ -78,9 +94,8 @@ export async function ownership(cookies: AstroCookies, game: string, url: URL): 
   if (devUnlockAllowed(optionalEnv('DEV_UNLOCK'), url.hostname)) {
     return { v: 2, g: game, s: 'dev_unlock', iat: nowSec() };
   }
-  const secret = requireSecret('ENTITLEMENT_SECRET');
-  const bought = await verifyEntitlement(cookies.get(entitlementCookie(game))?.value, game, secret);
-  if (bought) return (await refunded(bought.s)) ? null : bought;
+  const bought = await boughtOnBrowser(cookies, game, requireSecret('ENTITLEMENT_SECRET'));
+  if (bought) return bought;
   const user = await currentUser(cookies);
   if (!user) return null;
   return (await accountOwns(user, game, url)) ? { v: 2, g: game, s: `user:${user.userId}`, iat: user.iat } : null;
@@ -89,6 +104,8 @@ export async function ownership(cookies: AstroCookies, game: string, url: URL): 
 /** The slugs of every playable game owned on this browser (see `ownership`). */
 export async function ownedGameSlugs(cookies: AstroCookies, url: URL): Promise<Set<string>> {
   const games = playableGames();
+  // The pass owns them all: one check instead of one per game.
+  if (await ownership(cookies, PASS.slug, url)) return new Set(games.map((game) => game.slug));
   const claims = await Promise.all(games.map((game) => ownership(cookies, game.slug, url)));
   return new Set(games.filter((_, i) => claims[i] !== null).map((game) => game.slug));
 }

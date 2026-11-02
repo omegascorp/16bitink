@@ -16,7 +16,7 @@ import { ANIMALS, CROC_EYES, FLORIDA, ICE_WALK, SEAL, sectionStart, T, TESTS, VI
  * that grows as the animals do.
  */
 
-type Extra = 'thump' | 'ding' | 'pft' | 'heart' | 'boing' | 'shimmer' | 'swell' | 'tick';
+export type Extra = 'thump' | 'ding' | 'pft' | 'heart' | 'boing' | 'shimmer' | 'swell' | 'tick';
 
 export interface Cue {
   readonly id: SfxId | Extra;
@@ -138,7 +138,7 @@ export const CUES: readonly Cue[] = [
 ];
 
 /** The ones the game has no sound for, in the same soft synth style. */
-const EXTRA: Readonly<Record<Extra, (ctx: OfflineAudioContext, out: AudioNode, t: number, p: number) => void>> = {
+export const EXTRA: Readonly<Record<Extra, (ctx: OfflineAudioContext, out: AudioNode, t: number, p: number) => void>> = {
   // A rubber stamp slammed down.
   thump: (ctx, out, t, p) => {
     osc(ctx, out, { t, type: 'sine', from: 150 * p, to: 48 * p, dur: 0.24, gain: 0.8, attack: 0.002 });
@@ -207,7 +207,7 @@ const EXTRA: Readonly<Record<Extra, (ctx: OfflineAudioContext, out: AudioNode, t
   },
 };
 
-function env(ctx: OfflineAudioContext, out: AudioNode, t: number, peak: number, attack: number, dur: number): GainNode {
+export function env(ctx: OfflineAudioContext, out: AudioNode, t: number, peak: number, attack: number, dur: number): GainNode {
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(peak, t + attack);
@@ -216,7 +216,7 @@ function env(ctx: OfflineAudioContext, out: AudioNode, t: number, peak: number, 
   return g;
 }
 
-function osc(ctx: OfflineAudioContext, out: AudioNode, o: { t: number; type: OscillatorType; from: number; to?: number; dur: number; gain: number; attack?: number }): void {
+export function osc(ctx: OfflineAudioContext, out: AudioNode, o: { t: number; type: OscillatorType; from: number; to?: number; dur: number; gain: number; attack?: number }): void {
   const n = ctx.createOscillator();
   n.type = o.type;
   n.frequency.setValueAtTime(o.from, o.t);
@@ -226,7 +226,7 @@ function osc(ctx: OfflineAudioContext, out: AudioNode, o: { t: number; type: Osc
   n.stop(o.t + o.dur + 0.05);
 }
 
-function noise(ctx: OfflineAudioContext, out: AudioNode, o: { t: number; dur: number; gain: number; type: BiquadFilterType; from: number; to?: number; q?: number; attack?: number }): void {
+export function noise(ctx: OfflineAudioContext, out: AudioNode, o: { t: number; dur: number; gain: number; type: BiquadFilterType; from: number; to?: number; q?: number; attack?: number }): void {
   const buf = ctx.createBuffer(1, Math.ceil(RATE * (o.dur + 0.1)), RATE);
   const data = buf.getChannelData(0);
   let seed = Math.round(o.t * 1000) + 7;
