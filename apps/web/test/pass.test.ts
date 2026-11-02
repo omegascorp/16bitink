@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { playableGames } from '../src/data/games';
-import { PASS, PASS_NEXT_STEP, passPitch, passRiseNote } from '../src/data/pass';
+import { PASS } from '../src/data/pass';
 import { findProduct } from '../src/lib/products';
 import { libraryOf, playableFrom } from '../src/lib/library';
 import { purchaseFromSession, type CheckoutSessionLike, type PurchaseRecord } from '../src/lib/purchases';
@@ -13,8 +13,8 @@ const purchase = (patch: Partial<PurchaseRecord>): PurchaseRecord => ({
 const everyGame = (): string[] => playableGames().map((g) => g.slug).sort();
 
 describe('the All Games Pass', () => {
-  it('is for sale next to every game for sale, and nothing else is', () => {
-    expect(findProduct(PASS.slug)).toBe(PASS);
+  it('is no longer for sale; games still are', () => {
+    expect(findProduct(PASS.slug)).toBeUndefined();
     expect(findProduct('inkfish')?.stripeLookupKey).toBe('inkfish_full');
     expect(findProduct('nope')).toBeUndefined();
   });
@@ -33,18 +33,11 @@ describe('the All Games Pass', () => {
     expect(playableFrom(libraryOf([purchase({ status: 'refunded' })], [], { allowTestMode: false }))).toEqual([]);
   });
 
-  it('is recorded from its checkout like a game', () => {
+  it('is still recorded from a checkout opened before it left the store', () => {
     const session: CheckoutSessionLike = {
       id: 'cs_live_9', status: 'complete', payment_status: 'paid', amount_total: 1499, currency: 'usd', livemode: true, created: 1_800_000_000,
       metadata: { game: PASS.slug }, customer_details: { email: 'a@example.com' }, client_reference_id: null, customer: null, payment_intent: 'pi_9',
     };
     expect(purchaseFromSession(session)).toMatchObject({ game: PASS.slug, amount: 1499 });
-  });
-
-  it('pitches every future game, and says when the price next goes up', () => {
-    expect(passPitch(5)).toBe('All 5 games + every future game');
-    expect(PASS_NEXT_STEP).not.toBeNull();
-    expect(passRiseNote(5)).toBe(`Goes up to ${PASS_NEXT_STEP!.price} at ${PASS_NEXT_STEP!.atGames} games`);
-    expect(passRiseNote(PASS_NEXT_STEP!.atGames)).toBeNull();
   });
 });

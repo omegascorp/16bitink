@@ -51,20 +51,18 @@ describe('POST /api/checkout', () => {
     }));
   });
 
-  it('sells the pass by its own price, returning to the game it was offered on', async () => {
+  it('no longer sells the All Games Pass', async () => {
     currentUser.mockResolvedValue({ email: 'fish@example.com', userId: '65f0c0ffee0000000000aa01' });
-    const res = await call({ game: 'all', from: 'inkcrab' });
-    expect(res.status).toBe(200);
-    expect(listPrices).toHaveBeenCalledWith(expect.objectContaining({ lookup_keys: ['all_games_pass'] }));
-    expect(createSession).toHaveBeenCalledWith(expect.objectContaining({
-      metadata: { game: 'all' }, cancel_url: 'https://16bit.ink/games/inkcrab?checkout=cancelled',
-    }));
+    expect((await call({ game: 'all', from: 'inkcrab' })).status).toBe(404);
+    expect(createSession).not.toHaveBeenCalled();
   });
 
-  it('ignores a return game that is not in the catalog', async () => {
+  it('returns to the game it was bought from, and ignores a return game not in the catalog', async () => {
     currentUser.mockResolvedValue({ email: 'fish@example.com', userId: '65f0c0ffee0000000000aa01' });
-    await call({ game: 'all', from: 'nope' });
-    expect(createSession).toHaveBeenCalledWith(expect.objectContaining({ cancel_url: 'https://16bit.ink/?checkout=cancelled' }));
+    await call({ game: 'inkfish', from: 'inkcrab' });
+    expect(createSession).toHaveBeenLastCalledWith(expect.objectContaining({ cancel_url: 'https://16bit.ink/games/inkcrab?checkout=cancelled' }));
+    await call({ game: 'inkfish', from: 'nope' });
+    expect(createSession).toHaveBeenLastCalledWith(expect.objectContaining({ cancel_url: 'https://16bit.ink/games/inkfish?checkout=cancelled' }));
   });
 
   it('refuses something that is not for sale', async () => {
@@ -74,10 +72,10 @@ describe('POST /api/checkout', () => {
 
   it('never sells what the buyer already owns', async () => {
     currentUser.mockResolvedValue({ email: 'fish@example.com', userId: '65f0c0ffee0000000000aa01' });
-    ownership.mockResolvedValue({ v: 2, g: 'all', s: 'cs_1', iat: 1 });
-    const res = await call({ game: 'all', from: 'inkfish' });
+    ownership.mockResolvedValue({ v: 2, g: 'inkfish', s: 'cs_1', iat: 1 });
+    const res = await call({ game: 'inkfish' });
     expect(res.status).toBe(409);
-    expect(ownership).toHaveBeenCalledWith(expect.anything(), 'all', expect.any(URL));
+    expect(ownership).toHaveBeenCalledWith(expect.anything(), 'inkfish', expect.any(URL));
     expect(createSession).not.toHaveBeenCalled();
   });
 });

@@ -18,7 +18,7 @@ const Seconds = z.number().finite().min(0).max(4 * 3600);
 const Level = { level: z.string().min(1).max(40), n: z.number().int().min(1).max(500), name: z.string().max(80).optional() };
 const At = z.number().finite();
 /** The game's own version (its package.json), so stats can be told apart by release. */
-/** The buy was for the All Games Pass; `game` is the game it was offered on. */
+/** The buy was for the All Games Pass (sold until November 2, 2026); `game` is the game it was offered on. Kept so old events still read. */
 const Pass = { pass: z.literal(true).optional() };
 const Version = { version: z.string().regex(/^[0-9A-Za-z.+-]{1,40}$/).optional() };
 const Path = z.string().regex(/^\/[^\s]{0,199}$/);

@@ -1,7 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
 import BuyButton from '../../components/BuyButton.astro';
-import PassCard from '../../components/PassCard.astro';
 import GameStats from '../../components/GameStats.astro';
 import PartnerAd from '../../components/PartnerAd.astro';
 import SundaySignup from '../../components/SundaySignup.astro';
@@ -47,8 +46,6 @@ const site = Astro.site ?? Astro.url;
 const cover = game.cover ?? '/covers/inkfish.png';
 // Where a player lands on leaving a game: the other games, newest first, one tap from playing.
 const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
-// The pass is offered wherever a game is: whoever holds it owns this game, so never sees it.
-const gameCount = others.length + 1;
 ---
 <Base title={gameTitle(game)} description={game.description[0] ?? game.tagline} image={game.cover} user={user} jsonLd={[gameJsonLd(game, site), faqJsonLd(faq)]}>
   <article class="game">
@@ -88,7 +85,6 @@ const gameCount = others.length + 1;
       ) : (
         <p class="one-time"><strong>One-time purchase.</strong> Pay once and the full game is yours to keep: no subscription, no ads, nothing more to buy. Refunds within 14 days, see the <a href="/terms#refunds">terms</a>.</p>
       )}
-      {forSale && !owned && <PassCard gameCount={gameCount} game={game.slug} />}
       <p class="cancelled" hidden>Checkout cancelled. No charge was made.</p>
       {forSale && !owned && !user && <p class="restore">Bought it already? <a href={signInPageUrl(`/games/${game.slug}`)} data-restore={game.slug}>Sign in</a> with the email on your receipt to unlock it here.</p>}
       {forSale && !owned && <p class="restore">Got a key? <a href="/redeem">Redeem it here</a>.</p>}

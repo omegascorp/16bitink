@@ -2,7 +2,6 @@
 import Base from '../layouts/Base.astro';
 import GameSpread from '../components/GameSpread.astro';
 import PartnerAd from '../components/PartnerAd.astro';
-import PassCard from '../components/PassCard.astro';
 import SundaySignup from '../components/SundaySignup.astro';
 import { homeGames, homeListings } from '../data/games';
 import { currentUser, ownedGameSlugs } from '../lib/owner';
@@ -30,7 +29,6 @@ try {
   console.error('[home] ownership check failed', err);
 }
 const reader = await sundayReader(user);
-const ownedListed = games.filter((g) => owned.has(g.slug)).length;
 Astro.response.headers.set('cache-control', 'private, no-store');
 ---
 <Base
@@ -71,10 +69,8 @@ Astro.response.headers.set('cache-control', 'private, no-store');
       </div>
     </section>
   )}
-  <!-- After the covers, where the whole catalog has just been seen: every game for one price, and an email when the next one is out.
-       Side by side when there's room; either one fills the row alone (the pass is gone once every game is owned, the email once signed up). -->
+  <!-- After the covers, where the whole catalog has just been seen: an email when the next one is out. -->
   <div class="closing">
-    {ownedListed < games.length && <PassCard gameCount={games.length} ownedCount={ownedListed} />}
     <SundaySignup reader={reader} />
   </div>
   <!-- Anyone who has bought a game sees no ads. -->

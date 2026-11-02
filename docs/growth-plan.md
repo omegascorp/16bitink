@@ -41,7 +41,7 @@ From the admin MCP (`traffic`, `funnel`) and the Meta Ads account, last 28 days 
 | Measure players per video, not views | **Yes** | It's the number that's been missing |
 | Email ask inside the game | **Yes, first** | It's the only way back for in-app-browser players. Ask on game over and after level 3, not only at the end of the free chapter, which almost nobody reaches |
 | Test when the offer appears | **Later** (week 4) | Retention first |
-| Cap the All Games Pass's "every future game" | **No** | Its price already steps up with the catalog (`PASS_NEXT_STEP`: $19.99 at 10 games), and nobody has bought it yet |
+| Cap the All Games Pass's "every future game" | **Removed it instead** (November 2) | A one-time pass with every future game would turn each buyer into a member for life who never subscribes. See "Pricing" |
 | More SEO pages | **Pause** | Six "games like" pages are live since October 27. Let Search Console show which queries get impressions first |
 | Paid ads as low priority | **No: fix them now** | They're already our biggest source, and the only one where we control the traffic |
 | Rethink the weekly cadence | **Keep weekly** (owner) | But each Sunday's game now gets an email to past players and a post on every channel |
@@ -136,13 +136,38 @@ A level with the same seed for everyone each day, a score, and a "beat my score"
 2. Compare channels by returning players and sales, not visits. Keep the two best and drop the rest.
 3. Raise the ad budget only if players from ads come back and some buy.
 
+## Pricing
+
+**Now (from November 2, 2026):** each game is $4.99, a one-time purchase, after a free first chapter. There's no bundle.
+
+- **The price is on every game's start screen,** under the title: "10 levels free · Full game $4.99, one-time" (InkMine says "First world free"). It's plain text, never a button, so "Tap to play" stays the only tap before playing. Players who own the game see "Full game · unlocked". Until now the offer showed only at the end of the free chapter, which 6 of 331 players reached in October.
+- **The All Games Pass is no longer sold.** Nobody had bought it. It stays in the code as something admins can grant (`/admin`), to unlock everything for someone; anyone who held it would keep it, and the terms say so. Archive its Stripe price (`all_games_pass`) in the dashboard.
+- **Don't measure the start-screen price as an A/B test.** At about 330 players a month, 1 sale against 3 is noise. Watch `buy_click` by `where` and the sales count instead.
+
+**Later: a subscription (owner's long-term direction, October–November 2026).** Monthly revenue and returning customers last longer than one-time sales, and "a new game every Sunday" is the steady new content a subscription needs. It waits because:
+
+1. A subscription doesn't create returning players; returning players create subscriptions. Today almost nobody comes back, so subscribers would cancel after the first month.
+2. It's a harder ask than $4.99 once, and willingness to pay even that isn't proven yet (1 sale in October).
+3. It needs Stripe Billing, a customer portal, failed-payment and cancel flows, and an answer to EU VAT on recurring sales (Stripe Tax vs a merchant of record is still open). It also changes the "one-time purchase, no ads" promise.
+
+**Start building it when most of these hold** (check in the first Saturday log of December):
+
+| Number | Trigger |
+|---|---|
+| Players who come back on day 7 | 10–15% |
+| Sunday email list | 300+ |
+| One-time sales a month | 15–20 |
+| Games in the catalog | 10+ |
+
+**Shape when it comes:** keep each game at $4.99 one-time next to the subscription ("$4.99 for this game forever, or about $2.99 a month for every game and each Sunday's new one"). The one-time price makes the subscription look like a deal, and it keeps buyers who won't subscribe. Never sell a one-time "every future game" product again.
+
 ## The Meta pixel (not now)
 
 What it would add: Meta could aim the ad at people likely to start a game, instead of people likely to click. What it costs: a third-party script on every page, a privacy policy change, and cookie consent in the EU. With $5 a day of spend, the gain is small. Reconsider only if spend passes about $300 a month and the players from ads stop playing.
 
 ## Not doing in November
 
-Guest checkout, CrazyGames and Poki, changes to the All Games Pass, new SEO pages, and more cold email.
+Guest checkout, CrazyGames and Poki, a subscription (see "Pricing"), new SEO pages, and more cold email.
 
 ## Weekly log
 

@@ -11,7 +11,7 @@ import { stripeClient } from '../../lib/stripe';
 export const prerender = false;
 
 const Slug = z.string().regex(/^[a-z0-9-]{1,40}$/);
-/** `game`: what to buy, a game or the pass. `from`: the game it was offered on, to come back to on cancel. */
+/** `game`: the game to buy. `from`: the game it was offered on, to come back to on cancel. */
 const Body = z.object({ game: Slug, from: Slug.optional() });
 
 /** Where a cancelled checkout lands: the game's page it was offered on, else the home page. */
@@ -21,8 +21,7 @@ function returnPath(product: string, from: string | undefined): string {
 }
 
 /**
- * Creates a Stripe Checkout Session for a one-time unlock: a game's full
- * version, or the All Games Pass.
+ * Creates a Stripe Checkout Session for a one-time unlock of a game's full version.
  * Only for a signed-in user: the purchase is tied to their account from the
  * start, so it can't be stranded on a browser or under a different email.
  */
@@ -36,7 +35,7 @@ export const POST: APIRoute = async ({ request, url, cookies }) => {
   try {
     const user = await currentUser(cookies);
     if (!user) return fail(401, 'Sign in with Google to buy the full game.');
-    // Never charge twice: a game is owned already with the pass, and the pass is never sold again.
+    // Never charge twice: a game is owned already when bought, granted, or held through an old pass.
     if (await ownership(cookies, game.slug, url)) return fail(409, 'You already own this. Reload the page to play.');
     const stripe = stripeClient();
     const prices = await stripe.prices.list({ lookup_keys: [game.stripeLookupKey], active: true, limit: 1 });

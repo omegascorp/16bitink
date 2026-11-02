@@ -1,9 +1,7 @@
 import { isGameModule, isOfferPlace, type GameModule, type KeyValueStore } from '@16bitink/game-sdk';
 import { GAME_LOADERS } from '../../games/loaders';
-import { PASS } from '../../data/pass';
-import { BUY_PARAM, pendingBuy, signInUrl } from '../buyFlow';
+import { BUY_PARAM, isPendingBuy, signInUrl } from '../buyFlow';
 import { flushAnalytics, gameTag, track, trackGameEvent, trackPlayTime, trackSignIn, type LoadStage } from './analytics';
-import { chooseBuy, type ChooserText } from './buyChooser';
 import { buyFullGame, fetchMe, startCheckout } from './checkout';
 import { createLoadingBar } from './loadingBar';
 import { accountProgress } from './progress';
@@ -103,10 +101,10 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
 
   // Start the ownership check and engine download while the player reads the splash.
   const accessP = checkAccess(game);
+  void accessP.then(({ unlocked }) => showOwned(unlocked));
   const progressP = accountProgress(game);
   const meP = fetchMe();
-  const pending = pendingBuy(window.location.search, game, PASS.slug);
-  if (pending) void resumeBuy(game, pending === 'pass', status, accessP);
+  if (isPendingBuy(window.location.search, game)) void resumeBuy(game, status, accessP);
   // The stats follow each press of play: how long until it showed, or how it failed or was left.
   let tag = gameTag(game, undefined);
   let attempt: Attempt | null = null;
@@ -179,7 +177,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
         loadContent: () => getJson<unknown>(`/api/content/${encodeURIComponent(game)}`),
         onBuy: (where) => {
           if (document.fullscreenElement) void document.exitFullscreen();
-          void offerBuy(game, isOfferPlace(where) ? where : 'unknown', chooserText(stage));
+          void offerBuy(game, isOfferPlace(where) ? where : 'unknown');
         },
         onSignIn: () => {
           if (document.fullscreenElement) void document.exitFullscreen();
@@ -228,35 +226,32 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
   });
 }
 
-/** The pass offer's words, from the play page (see play/[slug].astro); null when the page has none. */
-function chooserText(stage: HTMLElement): ChooserText | null {
-  const d = stage.dataset;
-  if (!d.title || !d.price || !d.passPrice || !d.passPitch) return null;
-  return { title: d.title, price: d.price, passTitle: PASS.title, passPrice: d.passPrice, passPitch: d.passPitch, ...(d.passNote ? { passNote: d.passNote } : {}) };
+/** The splash's price line, once ownership is known: "unlocked" for an owner, else the price (also when the check failed). */
+function showOwned(unlocked: boolean): void {
+  const price = document.getElementById('price');
+  if (!price) return;
+  price.textContent = unlocked ? 'Full game · unlocked' : (price.dataset.text ?? '');
+  price.removeAttribute('aria-busy');
 }
 
-/** A game's "Unlock" was tapped: the player picks this game or the pass, then signs in and pays. */
-async function offerBuy(game: string, where: Parameters<typeof buyFullGame>[1], text: ChooserText | null): Promise<void> {
-  const choice = text ? await chooseBuy(text) : 'game';
-  if (!choice) return;
-  const result = await buyFullGame(game, where, choice === 'pass');
+/** A game's "Unlock" was tapped: sign in, then pay. */
+async function offerBuy(game: string, where: Parameters<typeof buyFullGame>[1]): Promise<void> {
+  const result = await buyFullGame(game, where);
   if (result.error) alert(result.error);
 }
 
 /**
- * Back from signing in with a purchase pending (the game, or the pass): go
- * straight on to checkout. The marker is dropped first so Back or a reload
- * never re-opens checkout.
+ * Back from signing in with a purchase pending: go straight on to checkout.
+ * The marker is dropped first so Back or a reload never re-opens checkout.
  */
-async function resumeBuy(game: string, pass: boolean, status: HTMLElement, accessP: Promise<Access>): Promise<void> {
+async function resumeBuy(game: string, status: HTMLElement, accessP: Promise<Access>): Promise<void> {
   const url = new URL(window.location.href);
   url.searchParams.delete(BUY_PARAM);
   history.replaceState(null, '', url);
-  // Signing in can reveal an earlier purchase of this game (or the pass): never charge twice.
-  // Owning this game alone doesn't hold the pass; checkout itself refuses a pass already owned, and says so.
-  if (!pass && (await accessP).unlocked) return;
+  // Signing in can reveal an earlier purchase of this game: never charge twice.
+  if ((await accessP).unlocked) return;
   status.textContent = 'Taking you to checkout…';
-  const result = await startCheckout(game, pass);
+  const result = await startCheckout(game);
   status.textContent = result.error ?? '';
 }
 

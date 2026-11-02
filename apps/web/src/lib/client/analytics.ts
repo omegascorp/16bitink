@@ -26,10 +26,6 @@ interface GameTag {
   readonly version?: string;
 }
 
-/** Buying the All Games Pass rather than the game itself: `game` is then the game it was offered on. */
-interface PassTag {
-  readonly pass?: true;
-}
 
 type Event =
   | { readonly type: 'pageview'; readonly path: string; readonly ref?: string; readonly app?: true }
@@ -42,14 +38,14 @@ type Event =
   | ({ readonly type: 'game_ready'; readonly ms: number; readonly stage: 'ready' | 'stall' } & GameTag)
   | ({ readonly type: 'load_fail'; readonly ms: number; readonly stage: LoadStage; readonly error: string } & GameTag)
   | ({ readonly type: 'load_abandon'; readonly ms: number; readonly pct: number } & GameTag)
-  | ({ readonly type: 'buy_click'; readonly where: BuyPlace; readonly signedIn: boolean } & PassTag & GameTag)
+  | ({ readonly type: 'buy_click'; readonly where: BuyPlace; readonly signedIn: boolean } & GameTag)
   | { readonly type: 'signin_click'; readonly where: SignInPlace; readonly game?: string }
-  | ({ readonly type: 'checkout_open'; readonly game: string } & PassTag)
-  | ({ readonly type: 'checkout_fail'; readonly game: string; readonly error: string } & PassTag)
+  | { readonly type: 'checkout_open'; readonly game: string }
+  | { readonly type: 'checkout_fail'; readonly game: string; readonly error: string }
   | { readonly type: 'app_install' }
   | (GameEvent & GameTag);
 
-/** Where a buy was tapped: one of the game's own offers, the game's page, the home page (the pass, as game "all"), or a game too old to say. */
+/** Where a buy was tapped: one of the game's own offers, the game's page, the home page, or a game too old to say. */
 export type BuyPlace = OfferPlace | 'page' | 'home' | 'unknown';
 /** Where a sign-in was tapped: a game's "save your progress", the site header, or "Bought it already?"; then, on the sign-in page, the way chosen. */
 export type SignInPlace = 'save' | 'header' | 'restore' | 'google' | 'email';
@@ -200,11 +196,9 @@ export function trackGameEvent(tag: GameTag, e: GameEvent): void {
   if (event) track(event);
 }
 
-const passTag = (pass: boolean): PassTag => (pass ? { pass: true } : {});
-
-/** A buy offer was taken, from a game or the game's page; `pass`: for the All Games Pass. */
-export function trackBuy(game: string, where: BuyPlace, signedIn: boolean, pass = false): void {
-  track({ type: 'buy_click', game, where, signedIn, ...passTag(pass) });
+/** A buy offer was taken, from a game or the game's page. */
+export function trackBuy(game: string, where: BuyPlace, signedIn: boolean): void {
+  track({ type: 'buy_click', game, where, signedIn });
 }
 
 /** A sign-in was tapped; the page may be about to leave (for Google or the sign-in page), so the event goes now. */
@@ -214,9 +208,9 @@ export function trackSignIn(where: SignInPlace, game?: string): void {
 }
 
 /** Stripe's checkout is opening (the page leaves next, so the event goes now), or couldn't, and why. */
-export function trackCheckout(game: string, error?: string, pass = false): void {
-  if (error) track({ type: 'checkout_fail', game, error: (error.trim() || 'Unknown error').slice(0, 200), ...passTag(pass) });
-  else track({ type: 'checkout_open', game, ...passTag(pass) });
+export function trackCheckout(game: string, error?: string): void {
+  if (error) track({ type: 'checkout_fail', game, error: (error.trim() || 'Unknown error').slice(0, 200) });
+  else track({ type: 'checkout_open', game });
   flushAnalytics(true);
 }
 
