@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Rect, SceneryArt } from '../src/art/pixel/scenery';
 import { FIELD_RECT, WORLD } from '../src/scenes/battle/pixelLayout';
-import { composeScenery, HORIZON_Y, type Area, type Pixels } from '../src/scenes/battle/pixelScenery';
+import { CLOUD_BAND, CLOUD_PERIOD, composeClouds, composeScenery, composeSky, HORIZON_Y, type Area, type Pixels } from '../src/scenes/battle/pixelScenery';
 
 /** A tiny atlas: each part is a solid block of its own colour, so the output shows which part went where. */
 const COLOURS = {
@@ -99,5 +99,27 @@ describe('battle scenery', () => {
         if (c === COLOURS.cloud.join()) expect(wy).toBeLessThan(HORIZON_Y - 40);
       }
     }
+  });
+
+  it('loops the cloud strip, and sky + drifting clouds + front at drift 0 is the flattened backdrop', () => {
+    const tile = composeClouds(atlas(), ART, 9);
+    expect(tile.w).toBe(CLOUD_PERIOD);
+    // Above the mountains the flattened backdrop is only sky and clouds: clouds wherever the tile has them.
+    const area: Area = { x: -CLOUD_PERIOD / 2, y: CLOUD_BAND.top, w: CLOUD_PERIOD * 2, h: HORIZON_Y - 150 - CLOUD_BAND.top };
+    const all = composeScenery(atlas(), ART, area, 9);
+    const sky = composeSky(ART, area);
+    const front = composeScenery(atlas(), ART, area, 9, 'front');
+    let clouds = 0;
+    for (let y = 0; y < area.h; y += 3) {
+      for (let x = 0; x < area.w; x += 3) {
+        const wx = area.x + x;
+        const t = at(tile, ((wx % CLOUD_PERIOD) + CLOUD_PERIOD) % CLOUD_PERIOD, y);
+        const want = t[3] === 255 ? t : at(sky, x, y);
+        if (t[3] === 255) clouds++;
+        expect(at(all, x, y)).toEqual(want);
+        expect(at(front, x, y)[3]).toBe(0);
+      }
+    }
+    expect(clouds).toBeGreaterThan(0);
   });
 });

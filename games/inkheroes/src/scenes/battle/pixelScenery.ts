@@ -62,6 +62,13 @@ const LAYERS: readonly Layer[] = [
   { kind: 'stone', cell: { w: 80, h: 64 }, rows: [H + 10, Number.MAX_SAFE_INTEGER], p: 0.12, jitter: { x: 34, y: 26 }, clearOfPlay: true },
   { kind: 'bush', cell: { w: 96, h: 80 }, rows: [H + 30, Number.MAX_SAFE_INTEGER], p: 0.4, jitter: { x: 36, y: 30 }, clearOfPlay: true },
 ];
+/** Cloud cells repeat after this many, so the cloud strip loops (wider than any normal screen) and can drift. */
+const CLOUD_CELLS = 12;
+const CLOUD_LAYER = LAYERS.findIndex((l) => l.kind === 'cloud');
+/** Width of one loop of the cloud strip, world pixels. */
+export const CLOUD_PERIOD = LAYERS[CLOUD_LAYER]!.cell.w * CLOUD_CELLS;
+/** World rows the cloud strip covers (its clouds' bottoms land in the cloud layer's rows). */
+export const CLOUD_BAND = { top: H - 480, bottom: H - 40 } as const;
 /** The landmark stands once, behind the trees at the middle of the world. */
 const LANDMARK_AT = { x: WORLD.w / 2, y: H + 1 } as const;
 /** Parts wider or taller than this still reach the area from a cell outside it. */
@@ -122,12 +129,14 @@ function skyRow(stops: readonly (readonly [number, readonly [number, number, num
   return { a: last, b: last, t: 0 };
 }
 
-/** The sky above the horizon (an ordered dither between its colour stops), bare ground below. */
-function paintBase(out: Pixels, area: Area, art: SceneryArt): void {
+/** The sky above the horizon (an ordered dither between its colour stops), bare ground below;
+ * with `sky` false the sky rows stay clear (the sky and clouds are drawn behind). */
+function paintBase(out: Pixels, area: Area, art: SceneryArt, sky = true): void {
   const stops = art.sky.map(([h, c]) => [h, hexRgb(c)] as const);
   const ground = hexRgb(art.ground);
   for (let j = 0; j < out.h; j++) {
     const y = area.y + j;
+    if (!sky && y < H) continue;
     const row = y >= H ? { a: ground, b: ground, t: 0 } : skyRow(stops, H - y);
     for (let i = 0, d = j * out.w * 4; i < out.w; i++, d += 4) {
       const x = area.x + i;
@@ -155,14 +164,17 @@ function paintLayer(out: Pixels, area: Area, atlas: Pixels, art: SceneryArt, lay
   const top = Math.max(layer.rows[0], area.y - layer.jitter.y);
   const bottom = Math.min(layer.rows[1], area.y + area.h + REACH);
   const landmark = art.parts.landmark?.[0];
+  const density = art.density?.[layer.kind] ?? 1;
   for (let cy = Math.floor(top / ch); cy * ch < bottom; cy++) {
     const mid = cy * ch + ch / 2;
     if (mid < layer.rows[0] || mid >= layer.rows[1]) continue;
     for (let cx = Math.floor((area.x - REACH) / cw); cx * cw < area.x + area.w + REACH; cx++) {
-      const rnd = (k: number): number => cellRandom(seed, index, cx, cy, k);
+      // Clouds hash their cell modulo the loop, so the strip repeats exactly every CLOUD_PERIOD.
+      const hx = layer.kind === 'cloud' ? ((cx % CLOUD_CELLS) + CLOUD_CELLS) % CLOUD_CELLS : cx;
+      const rnd = (k: number): number => cellRandom(seed, index, hx, cy, k);
       const centre = { x: cx * cw + cw / 2, y: mid };
       const inField = centre.x >= FIELD_RECT.x && centre.x < FIELD_RECT.x + FIELD_RECT.w && centre.y >= FIELD_RECT.y && centre.y < FIELD_RECT.y + FIELD_RECT.h;
-      if (rnd(0) >= (inField ? layer.pField ?? layer.p : layer.p)) continue;
+      if (rnd(0) >= (inField ? layer.pField ?? layer.p : layer.p) * density) continue;
       const r = parts[Math.floor(rnd(1) * parts.length)]!;
       const fx = Math.round(cx * cw + cw / 2 + (rnd(2) * 2 - 1) * layer.jitter.x);
       const fy = Math.max(layer.rows[0], (layer.minTop ?? -Infinity) + r[3], Math.round(mid + (rnd(3) * 2 - 1) * layer.jitter.y));
@@ -176,10 +188,38 @@ function paintLayer(out: Pixels, area: Area, atlas: Pixels, art: SceneryArt, lay
   }
 }
 
-/** The backdrop for `area` of the world, composed from `art`'s parts (atlas pixels) for `seed`. */
-export function composeScenery(atlas: Pixels, art: SceneryArt, area: Area, seed: number): Pixels {
-  const out: Pixels = { data: new Uint8ClampedArray(area.w * area.h * 4), w: area.w, h: area.h };
+function blank(area: Area): Pixels {
+  return { data: new Uint8ClampedArray(area.w * area.h * 4), w: area.w, h: area.h };
+}
+
+/**
+ * The backdrop for `area` of the world, composed from `art`'s parts (atlas
+ * pixels) for `seed`: everything, flattened (`'all'`, clouds where they are
+ * at the start), or everything but the sky and clouds (`'front'`, clear
+ * above the horizon), to lay over composeSky and a drifting composeClouds.
+ */
+export function composeScenery(atlas: Pixels, art: SceneryArt, area: Area, seed: number, part: 'all' | 'front' = 'all'): Pixels {
+  const out = blank(area);
+  paintBase(out, area, art, part === 'all');
+  LAYERS.forEach((layer, i) => {
+    if (part === 'front' && layer.kind === 'cloud') return;
+    paintLayer(out, area, atlas, art, layer, i, seed);
+  });
+  return out;
+}
+
+/** The bare sky (and ground colour below the horizon) for `area`: the back of a layered backdrop. */
+export function composeSky(art: SceneryArt, area: Area): Pixels {
+  const out = blank(area);
   paintBase(out, area, art);
-  LAYERS.forEach((layer, i) => paintLayer(out, area, atlas, art, layer, i, seed));
+  return out;
+}
+
+/** One loop of the cloud strip: CLOUD_PERIOD wide over CLOUD_BAND's rows, clear between clouds,
+ * its right edge running on into its left (tile it and slide it to make the clouds drift). */
+export function composeClouds(atlas: Pixels, art: SceneryArt, seed: number): Pixels {
+  const area = { x: 0, y: CLOUD_BAND.top, w: CLOUD_PERIOD, h: CLOUD_BAND.bottom - CLOUD_BAND.top };
+  const out = blank(area);
+  paintLayer(out, area, atlas, art, LAYERS[CLOUD_LAYER]!, CLOUD_LAYER, seed);
   return out;
 }

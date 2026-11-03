@@ -1,0 +1,115 @@
+{
+ "_doc": "Sand (desert) scenery parts. See dev/pixel/scenery.py.",
+ "sky": {
+  "stops": [
+   [
+    300,
+    "#766251"
+   ],
+   [
+    120,
+    "#8d7a66"
+   ],
+   [
+    64,
+    "#a39079"
+   ],
+   [
+    24,
+    "#b8a790"
+   ]
+  ]
+ },
+ "groundColour": {
+  "from": "../../bg960/sand-ground.png",
+  "rows": [
+   120,
+   300
+  ]
+ },
+ "parts": {
+  "cloud": [
+   {
+    "sheet": "clouds-lite.png",
+    "minArea": 80
+   },
+   {
+    "sheet": "clouds-b.png",
+    "minArea": 80
+   }
+  ],
+  "far": [
+   {
+    "sheet": "far-c.png",
+    "whole": true
+   },
+   {
+    "sheet": "far-e.png",
+    "whole": true
+   },
+   {
+    "sheet": "far-a-haze.png",
+    "whole": true
+   }
+  ],
+  "hill": [
+   {
+    "sheet": "hills.png",
+    "cropBottom": 2,
+    "merge": 0,
+    "minArea": 400
+   }
+  ],
+  "tree": [
+   {
+    "sheet": "trees-mix.png",
+    "maxHeight": 70,
+    "minArea": 30,
+    "merge": 0
+   }
+  ],
+  "patch": [
+   {
+    "sheet": "../../bg960/sand-ground.png",
+    "rows": [
+     110,
+     330
+    ],
+    "cols": [
+     230,
+     768
+    ],
+    "count": 28,
+    "size": [
+     96,
+     168
+    ]
+   }
+  ],
+  "tuft": [
+   {
+    "sheet": "tiny.png",
+    "minArea": 20
+   }
+  ],
+  "stone": [
+   {
+    "sheet": "stones-b.png",
+    "minArea": 20
+   }
+  ],
+  "bush": [
+   {
+    "sheet": "bush-1.png",
+    "whole": true
+   },
+   {
+    "sheet": "bush-2.png",
+    "whole": true
+   }
+  ]
+ },
+ "density": {
+  "cloud": 0.55
+ }
+}

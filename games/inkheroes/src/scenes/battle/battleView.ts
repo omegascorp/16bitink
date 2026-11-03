@@ -96,7 +96,7 @@ export class BattleView {
   constructor(private readonly scene: Phaser.Scene, private readonly cams: BattleCameras, state: BattleState, terrain: string, seed: number, heroes: readonly [boolean, boolean], private readonly opts: ViewOpts = {}) {
     const layer = cams.world;
     this.backdrop = new Backdrop(scene, backdropSource(terrain, seed), DEPTH.bg);
-    layer.add(this.backdrop.image);
+    for (const o of this.backdrop.objects) layer.add(o);
     this.backdrop.fit(cams.margin());
     this.paintGrid();
     bufferTexture(scene, MARKS_KEY, this.marks);
@@ -395,6 +395,7 @@ export class BattleView {
 
   /** Every unit's and hero's animation. */
   update(delta: number): void {
+    this.backdrop.update(delta);
     for (const u of this.units.values()) u.fig.update(delta);
     for (const h of this.heroes) h?.update(delta);
   }

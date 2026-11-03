@@ -1,0 +1,110 @@
+{
+ "_doc": "Which sheets hold which scenery parts (see dev/pixel/scenery.py). Paths are relative to this folder.",
+ "sky": {
+  "stops": [
+   [
+    300,
+    "#565149"
+   ],
+   [
+    120,
+    "#6e665c"
+   ],
+   [
+    64,
+    "#958a7c"
+   ],
+   [
+    24,
+    "#b9a58b"
+   ]
+  ]
+ },
+ "groundColour": {
+  "from": "../../bg960/rough-ground.png",
+  "rows": [
+   200,
+   340
+  ]
+ },
+ "parts": {
+  "cloud": [
+   {
+    "sheet": "clouds-b.png",
+    "minArea": 80
+   }
+  ],
+  "far": [
+   {
+    "sheet": "mountains-a.png",
+    "whole": true
+   },
+   {
+    "sheet": "mountains-b.png",
+    "whole": true
+   },
+   {
+    "sheet": "mountains-c.png",
+    "whole": true
+   }
+  ],
+  "hill": [
+   {
+    "sheet": "hills.png",
+    "cropBottom": 16,
+    "merge": 0,
+    "minArea": 400
+   }
+  ],
+  "tree": [
+   {
+    "sheet": "trees-c.png",
+    "maxHeight": 60,
+    "minArea": 30,
+    "merge": 0
+   }
+  ],
+  "patch": [
+   {
+    "sheet": "../../bg960/rough-ground.png",
+    "rows": [
+     200,
+     340
+    ],
+    "count": 28,
+    "size": [
+     96,
+     120
+    ]
+   }
+  ],
+  "tuft": [
+   {
+    "sheet": "tiny.png",
+    "minArea": 20
+   }
+  ],
+  "stone": [
+   {
+    "sheet": "stones-grey.png",
+    "minArea": 20
+   }
+  ],
+  "bush": [
+   {
+    "sheet": "bush-1.png",
+    "whole": true
+   },
+   {
+    "sheet": "bush-2.png",
+    "whole": true
+   }
+  ]
+ },
+ "density": {
+  "tuft": 0.35,
+  "bush": 0.6,
+  "stone": 0.6,
+  "cloud": 0.55
+ }
+}

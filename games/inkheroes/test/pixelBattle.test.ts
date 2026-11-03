@@ -135,3 +135,18 @@ describe('extended backdrop', () => {
     expect(row(3)).toEqual([0, 0, 0, 255, 255]);
   });
 });
+
+describe('battle cursors', () => {
+  it('points the sword the way the blow travels, to the nearest eighth', async () => {
+    const { swordDir } = await import('../src/scenes/battle/battleCursors');
+    expect(swordDir(1, 0)).toBe('e');
+    expect(swordDir(-1, 0)).toBe('w');
+    expect(swordDir(0, -1)).toBe('n');
+    expect(swordDir(0, 1)).toBe('s');
+    // Hex neighbours: half a hex across and a row (42 px) up or down.
+    expect(swordDir(22, -42)).toBe('ne');
+    expect(swordDir(-22, -42)).toBe('nw');
+    expect(swordDir(22, 42)).toBe('se');
+    expect(swordDir(-22, 42)).toBe('sw');
+  });
+});

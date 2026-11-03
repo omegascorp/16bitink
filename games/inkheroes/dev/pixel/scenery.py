@@ -1,7 +1,7 @@
 # Builds a terrain's battle scenery: the separate parts the backdrop is composed from at run
 # time (src/scenes/battle/pixelScenery.ts), so every battle's background is laid out fresh
 # for the screen and never repeats.
-#   python3 dev/pixel/scenery.py <terrain> [...]
+#   python3 dev/pixel/scenery.py          (rebuilds every terrain that has a scenery.json)
 # reads  dev/pixel/parts/<terrain>/scenery.json  (which sheets hold which kind of part)
 # writes src/art/pixel/scenery/<terrain>.png     (one atlas of every part)
 #        src/art/pixel/scenery.ts                (rects by kind, sky gradient, ground colour)
@@ -21,6 +21,7 @@ HERE = Path(__file__).parent
 GAME = HERE.parents[1]
 OUT = GAME / 'src' / 'art' / 'pixel' / 'scenery'
 KINDS = ('cloud', 'mountain', 'far', 'hill', 'tree', 'landmark', 'patch', 'tuft', 'stone', 'bush')
+TAPERED = ('far', 'hill', 'mountain')  # ranges whose ends are sloped down (see taper)
 MERGE = 2  # islands closer than this are one sprite (a tree's crown and trunk)
 ATLAS_W = 1024
 BAYER = np.array([0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]).reshape(4, 4) / 16
@@ -55,11 +56,25 @@ def islands(mask: np.ndarray, merge: int) -> list[np.ndarray]:
     return [(label == i) & mask for i in range(1, n + 1)]
 
 
-def cut_sheet(path: Path, spec: dict) -> list[np.ndarray]:
+def taper(opaque: np.ndarray) -> np.ndarray:
+    """Slopes a range's two ends down to its bottom row at 45 degrees, so where one
+    sprite ends over the sky its outline comes down like a hillside, not a cut."""
+    h, w = opaque.shape
+    yy, xx = np.mgrid[0:h, 0:w]
+    edge = np.minimum(xx, w - 1 - xx)  # px from the nearer side
+    return opaque & (h - 1 - yy <= edge)
+
+
+def cut_sheet(path: Path, spec: dict, kind: str = '') -> list[np.ndarray]:
     im = np.array(Image.open(path).convert('RGBA'))
     if spec.get('cropBottom'):
         im = im[:im.shape[0] - spec['cropBottom']]
+    if spec.get('haze'):  # fade a too-vivid far range toward the sky colour, by `amount`
+        to = np.array([int(spec['haze']['to'][i:i + 2], 16) for i in (1, 3, 5)], dtype=float)
+        im[..., :3] = np.round(im[..., :3] * (1 - spec['haze']['amount']) + to * spec['haze']['amount']).astype(np.uint8)
     opaque = im[..., 3] >= 128
+    if spec.get('taper', kind in TAPERED):
+        opaque = taper(opaque)
     im[..., 3] = np.where(opaque, 255, 0)
     parts = [opaque] if spec.get('whole') else islands(opaque, spec.get('merge', MERGE))
     out = []
@@ -80,7 +95,8 @@ def cut_patches(path: Path, spec: dict, rng: np.random.Generator) -> list[np.nda
     so overlapping pieces blend without new colours."""
     src = np.array(Image.open(path).convert('RGB'))
     a, b = spec.get('rows', (0, src.shape[0]))
-    src = src[a:b]
+    c0, c1 = spec.get('cols', (0, src.shape[1]))
+    src = src[a:b, c0:c1]
     lo, hi = spec.get('size', (96, 160))
     rim = spec.get('rim', 14)
     out = []
@@ -131,7 +147,7 @@ def build(terrain: str) -> dict:
         assert kind in KINDS, kind
         for sheet in sheets:
             src = (folder / sheet['sheet']).resolve()
-            cut = cut_patches(src, sheet, rng) if kind == 'patch' else cut_sheet(src, sheet)
+            cut = cut_patches(src, sheet, rng) if kind == 'patch' else cut_sheet(src, sheet, kind)
             sprites += [(kind, s) for s in cut]
     atlas, rects = pack(sprites)
     OUT.mkdir(parents=True, exist_ok=True)
@@ -141,7 +157,7 @@ def build(terrain: str) -> dict:
     base = '#%02x%02x%02x' % tuple(np.median(ground[a:b].reshape(-1, 3), axis=0).astype(int))
     counts = {k: sum(1 for r in rects if r[0] == k) for k in KINDS}
     print(terrain, atlas.shape[1], 'x', atlas.shape[0], counts)
-    return {'sky': spec['sky']['stops'], 'ground': base, 'rects': rects}
+    return {'sky': spec['sky']['stops'], 'ground': base, 'rects': rects, 'density': spec.get('density', {})}
 
 
 def write_manifest(done: dict[str, dict]) -> None:
@@ -159,6 +175,8 @@ def write_manifest(done: dict[str, dict]) -> None:
               "  /** The bare ground under the patches. */",
               "  readonly ground: string;",
               "  readonly parts: Readonly<Partial<Record<SceneryKind, readonly Rect[]>>>;",
+              "  /** Per-kind multiplier on how often a part appears (a busy ground wants fewer tufts). */",
+              "  readonly density?: Readonly<Partial<Record<SceneryKind, number>>>;",
               "}", "",
               "export const SCENERY: Readonly<Record<string, SceneryArt>> = {"]
     for t, d in done.items():
@@ -171,11 +189,15 @@ def write_manifest(done: dict[str, dict]) -> None:
             rs = [r for r in d['rects'] if r[0] == k]
             if rs:
                 lines.append(f"      {k}: [" + ', '.join(f"[{x}, {y}, {w}, {h}]" for _, x, y, w, h in rs) + "],")
-        lines += ["    },", "  },"]
+        lines.append("    },")
+        if d['density']:
+            lines.append("    density: { " + ', '.join(f"{k}: {v}" for k, v in d['density'].items()) + " },")
+        lines.append("  },")
     lines.append("};")
     (OUT.parent / 'scenery.ts').write_text('\n'.join(lines) + '\n')
 
 
 if __name__ == '__main__':
-    terrains = sys.argv[1:] or sorted(p.name for p in (HERE / 'parts').iterdir() if (p / 'scenery.json').exists())
+    # Always every terrain, so the one manifest never loses a terrain another run built.
+    terrains = sorted(p.name for p in (HERE / 'parts').iterdir() if (p / 'scenery.json').exists())
     write_manifest({t: build(t) for t in terrains})

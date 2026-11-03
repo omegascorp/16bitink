@@ -10,14 +10,16 @@ import { chooseAction } from '../logic/battleAi';
 import { cantCast, spellAmount } from '../logic/battleSpells';
 import type { Action, BattleState, Stack } from '../logic/battleTypes';
 import { creature } from '../logic/creatures';
-import { damageRange, hurt, speedOf } from '../logic/damage';
+import { damageRange, hurt, RANGE_PENALTY_DISTANCE, speedOf } from '../logic/damage';
 import { footprintAt, isWide, occupiedHexes, shotDistance } from '../logic/footprint';
 import type { Hex } from '../logic/hex';
 import { tileIndex } from '../logic/map';
 import { SPELLS, type SpellId } from '../logic/spells';
 import { openCard } from './CardScene';
 import { BattleCameras } from './battle/battleCameras';
+import { BattleCursors, swordDir, type CursorKind } from './battle/battleCursors';
 import { BattleView, type ViewOpts } from './battle/battleView';
+import { unitCardSpec } from './battle/unitCard';
 import { loadBattleArt } from './battle/pixelAssets';
 import { FIELD_RECT, hexAtPx, hexPx } from './battle/pixelLayout';
 import { crispText, viewSize } from './hidpi';
@@ -62,7 +64,14 @@ interface BattleData {
 }
 
 /** What tapping a hex would do now, and the hexes to light for it: where the unit would stand, and the hex it would strike. */
-type Intent = { action: Action; text: string; key: string; landing?: readonly Hex[]; struck?: readonly Hex[] } | null;
+type Intent = { action: Action; text: string; key: string; landing?: readonly Hex[]; struck?: readonly Hex[]; cursor?: CursorKind; info?: Stack } | null;
+
+/** The way a blow from hex `from` into hex `to` travels on screen, as a sword cursor direction. */
+function swordDirBetween(from: Hex, to: Hex): ReturnType<typeof swordDir> {
+  const a = hexPx(from);
+  const b = hexPx(to);
+  return swordDir(b.x - a.x, b.y - a.y);
+}
 
 /**
  * A battle with a map monster. The player taps lit hexes to move and enemies
@@ -73,6 +82,7 @@ export class BattleScene extends Phaser.Scene {
   private session: Session | null = null;
   private sandbox: SandboxBattle | null = null;
   private cams!: BattleCameras;
+  private cursors!: BattleCursors;
   /** How many turn-order slots fit the bar as laid out. */
   private orderMax = ORDER_MAX;
   private monsterId = '';
@@ -144,9 +154,12 @@ export class BattleScene extends Phaser.Scene {
     this.buildBar();
     this.layout();
     this.scale.on('resize', this.layout, this);
+    this.cursors = new BattleCursors(this.game.canvas);
+    this.input.mouse?.disableContextMenu();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off('resize', this.layout, this);
       this.view.destroy();
+      this.cursors.reset();
     });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.hover(p));
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.tap(p));
@@ -265,6 +278,7 @@ export class BattleScene extends Phaser.Scene {
 
   private async perform(action: Action): Promise<void> {
     if (this.busy) return;
+    this.cursors.set(null);
     const before = this.state;
     let step: ReturnType<typeof act>;
     try {
@@ -335,25 +349,38 @@ export class BattleScene extends Phaser.Scene {
       if (why) return { action: { type: 'wait' }, text: why, key: 'no' };
       const amount = spellAmount(this.state, 0, this.casting);
       const extra = def.target === 'enemy' && amount ? `: ${amount} damage, ${hurt(target, amount).kills} fall` : '';
-      return { action: { type: 'cast', spell: this.casting, target: target.id }, text: `Cast ${def.name} on the ${creature(target.creature).plural}${extra}`, key: `cast-${target.id}` };
+      return { action: { type: 'cast', spell: this.casting, target: target.id }, text: `Cast ${def.name} on the ${creature(target.creature).plural}${extra}`, key: `cast-${target.id}`, cursor: 'cast' };
     }
     if (target && target.side !== me.side) {
       const name = creature(target.creature).plural;
       if (canShoot(this.state, me)) {
         const d = shotDistance(me, target);
-        return { action: { type: 'shoot', target: target.id }, text: `Shoot the ${name}: ${this.preview(me, target, { ranged: true, distance: d, moved: 0 })}${d > 7 ? ' (far: half damage)' : ''}`, key: `shoot-${target.id}` };
+        const far = d > RANGE_PENALTY_DISTANCE;
+        return { action: { type: 'shoot', target: target.id }, text: `Shoot the ${name}: ${this.preview(me, target, { ranged: true, distance: d, moved: 0 })}${far ? ' (far: half damage)' : ''}`, key: `shoot-${target.id}`, cursor: far ? 'shootFar' : 'shoot' };
       }
       const o = this.bestOption(p, target);
-      if (!o) return { action: { type: 'wait' }, text: `The ${name} are out of reach`, key: 'no' };
+      if (!o) return this.infoIntent(target, `The ${name} are out of reach · click for their stats`);
       return {
         action: { type: 'attack', target: target.id, from: o.from }, text: `Attack the ${name}: ${this.preview(me, target, { ranged: false, distance: 1, moved: o.steps })}`,
         key: `attack-${target.id}-${o.from}-${o.struck}`, landing: o.hexes, struck: [o.struck],
+        cursor: `sword-${swordDirBetween(o.contact, o.struck)}`,
       };
     }
+    if (target) return this.infoIntent(target, `${target.count} ${creature(target.creature).plural} · click for their stats`);
     // A tap on any hex the unit could cover moves it there (a tail spot gives its head).
     const head = target ? null : moveHeadFor(this.state, h);
     if (head === null) return null;
-    return { action: { type: 'move', to: head }, text: 'Move here', key: `move-${head}`, landing: footprintAt(head, isWide(me.creature), me.side) ?? [head] };
+    return { action: { type: 'move', to: head }, text: 'Move here', key: `move-${head}`, landing: footprintAt(head, isWide(me.creature), me.side) ?? [head], cursor: 'move' };
+  }
+
+  /** Hovering a unit there's nothing to do to: the "?" cursor, and a click shows its stats. */
+  private infoIntent(target: Stack, text: string): Intent {
+    return { action: { type: 'wait' }, text, key: `info-${target.id}`, cursor: 'info', info: target };
+  }
+
+  /** Opens a unit's stats card. */
+  private showUnit(s: Stack): void {
+    openCard(this, unitCardSpec(this.state, s));
   }
 
   /** "12–18 damage, 1–2 fall" */
@@ -381,8 +408,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private hover(p: Phaser.Input.Pointer): void {
-    if (p.wasTouch || this.busy) return;
+    if (p.wasTouch) return;
+    if (this.busy) {
+      this.cursors.set(null);
+      return;
+    }
     const i = this.intent(p);
+    this.cursors.set(i?.cursor ?? null);
     if (this.mine()) {
       this.marks(this.hexAt(p), i);
       const a = activeStack(this.state)!;
@@ -391,8 +423,20 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private tap(p: Phaser.Input.Pointer): void {
-    if (this.busy || !this.mine() || this.scene.isActive('Card')) return;
+    if (this.scene.isActive('Card')) return;
+    // A right click on any unit shows its stats, whoever's turn it is (as in Heroes 3).
+    if (p.rightButtonReleased()) {
+      const h = this.hexAt(p);
+      const s = h === null ? undefined : stackAt(this.state, h);
+      if (s) this.showUnit(s);
+      return;
+    }
+    if (this.busy || !this.mine()) return;
     const i = this.intent(p);
+    if (i?.info) {
+      this.showUnit(i.info);
+      return;
+    }
     if (!i || i.key === 'no') {
       if (i) this.status.setText(i.text);
       return;

@@ -1,0 +1,108 @@
+{
+ "_doc": "Swamp scenery parts (see dev/pixel/scenery.py). Paths relative to this folder.",
+ "sky": {
+  "stops": [
+   [
+    300,
+    "#5c6356"
+   ],
+   [
+    120,
+    "#6e7566"
+   ],
+   [
+    64,
+    "#808a7c"
+   ],
+   [
+    24,
+    "#909b8c"
+   ]
+  ]
+ },
+ "groundColour": {
+  "from": "../../bg960/swamp-ground.png",
+  "rows": [
+   140,
+   300
+  ]
+ },
+ "parts": {
+  "cloud": [
+   {
+    "sheet": "clouds.png",
+    "minArea": 80
+   }
+  ],
+  "far": [
+   {
+    "sheet": "far-c.png",
+    "whole": true
+   },
+   {
+    "sheet": "far-a.png",
+    "whole": true
+   },
+   {
+    "sheet": "far-e.png",
+    "whole": true
+   }
+  ],
+  "hill": [
+   {
+    "sheet": "hills2.png",
+    "cropBottom": 26,
+    "merge": 0,
+    "minArea": 400
+   }
+  ],
+  "tree": [
+   {
+    "sheet": "trees-small.png",
+    "maxHeight": 60,
+    "minArea": 30,
+    "merge": 0
+   }
+  ],
+  "patch": [
+   {
+    "sheet": "../../bg960/swamp-ground.png",
+    "rows": [
+     110,
+     330
+    ],
+    "count": 28,
+    "size": [
+     96,
+     168
+    ]
+   }
+  ],
+  "tuft": [
+   {
+    "sheet": "tiny.png",
+    "minArea": 20
+   }
+  ],
+  "stone": [
+   {
+    "sheet": "stones-b.png",
+    "minArea": 20,
+    "merge": 0
+   }
+  ],
+  "bush": [
+   {
+    "sheet": "bush-1.png",
+    "whole": true
+   },
+   {
+    "sheet": "bush-2.png",
+    "whole": true
+   }
+  ]
+ },
+ "density": {
+  "cloud": 0.55
+ }
+}

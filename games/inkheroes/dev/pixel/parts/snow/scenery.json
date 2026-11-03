@@ -1,0 +1,101 @@
+{
+ "sky": {
+  "stops": [
+   [
+    300,
+    "#7f8892"
+   ],
+   [
+    120,
+    "#8e98a3"
+   ],
+   [
+    64,
+    "#a3adb6"
+   ],
+   [
+    24,
+    "#b5bfc6"
+   ]
+  ]
+ },
+ "groundColour": {
+  "from": "../../bg960/snow-ground.png",
+  "rows": [
+   150,
+   300
+  ]
+ },
+ "parts": {
+  "cloud": [
+   {
+    "sheet": "clouds.png",
+    "minArea": 80
+   }
+  ],
+  "far": [
+   {
+    "sheet": "mountains-c.png",
+    "whole": true
+   },
+   {
+    "sheet": "mountains-e.png",
+    "whole": true
+   }
+  ],
+  "hill": [
+   {
+    "sheet": "hills-e.png",
+    "merge": 2,
+    "minArea": 400
+   }
+  ],
+  "tree": [
+   {
+    "sheet": "trees-small.png",
+    "maxHeight": 60,
+    "minArea": 30,
+    "merge": 0
+   }
+  ],
+  "patch": [
+   {
+    "sheet": "../../bg960/snow-ground.png",
+    "rows": [
+     120,
+     300
+    ],
+    "count": 28,
+    "size": [
+     96,
+     160
+    ]
+   }
+  ],
+  "tuft": [
+   {
+    "sheet": "tiny.png",
+    "minArea": 20
+   }
+  ],
+  "stone": [
+   {
+    "sheet": "stones.png",
+    "minArea": 20
+   }
+  ],
+  "bush": [
+   {
+    "sheet": "bush-2.png",
+    "whole": true
+   },
+   {
+    "sheet": "bush-3.png",
+    "whole": true
+   }
+  ]
+ },
+ "density": {
+  "cloud": 0.55
+ }
+}
