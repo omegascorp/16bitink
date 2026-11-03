@@ -1,41 +1,68 @@
-import { runInSlices } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
-import { FIELD_H, FIELD_W, HEX, FIELD_PAD } from '../art/battlefield';
 import { CREATURE_RES, FRAME_H, GROUND_Y } from '../art/creatures/types';
-import { BACKDROP, BANNER, UI, UI_HEX } from '../art/palette';
+import { BANNER, UI, UI_HEX } from '../art/palette';
 import type { PlateKind } from '../art/uiArtParts';
-import { heroFigure, poseJobs, TEX, type Figure } from '../art/textures';
+import { TEX } from '../art/textures';
 import { getSound } from '../host';
 import { afterBattle, battleSides, gridOf } from '../logic/adventure';
-import { act, activeStack, alive, canShoot, createBattle, experienceFor, moves, stackById, strikeFrom } from '../logic/battle';
+import { act, activeStack, alive, canShoot, createBattle, experienceFor, moveHeadFor, occupiableHexes, stackAt, strikeFrom, strikeOptions, type BattleSide, type StrikeOption } from '../logic/battle';
 import { chooseAction } from '../logic/battleAi';
 import { cantCast, spellAmount } from '../logic/battleSpells';
 import type { Action, BattleState, Stack } from '../logic/battleTypes';
 import { creature } from '../logic/creatures';
 import { damageRange, hurt, speedOf } from '../logic/damage';
-import { distance, hexUnder, type Hex } from '../logic/hex';
+import { footprintAt, isWide, occupiedHexes, shotDistance } from '../logic/footprint';
+import type { Hex } from '../logic/hex';
 import { tileIndex } from '../logic/map';
 import { SPELLS, type SpellId } from '../logic/spells';
 import { openCard } from './CardScene';
-import { BattleView } from './battle/battleView';
-import { screenScene, toView, viewSize } from './hidpi';
+import { BattleCameras } from './battle/battleCameras';
+import { BattleView, type ViewOpts } from './battle/battleView';
+import { loadBattleArt } from './battle/pixelAssets';
+import { FIELD_RECT, hexAtPx, hexPx } from './battle/pixelLayout';
+import { crispText, viewSize } from './hidpi';
 import type { MapScene } from './MapScene';
 import { Session } from './session';
 import { loadingText } from './ui';
 import { paintedButton, title } from './uiPaint';
 
+/** The action bar with the turn order over the buttons, below the field when the screen has that much spare height, CSS px. */
 const BAR_H = 96;
+/** The turn order's height (its portraits stand over their discs), CSS px. */
+const ORDER_ROW = 44;
+const BTN = { w: 108, h: 42, gap: 8 } as const;
+/** Turn-order slots: spacing, and how many at most. */
+const ORDER_STEP = 44;
+const ORDER_MAX = 9;
 /** Pause before an AI unit acts, so the player can follow. */
 const AI_DELAY = 380;
+
+/** A battle set up directly, without a map (the dev sandbox). */
+export interface SandboxBattle {
+  readonly attacker: BattleSide;
+  readonly defender: BattleSide;
+  readonly seed: number;
+  readonly terrain: string;
+  readonly heroes: readonly [boolean, boolean];
+  /** Keep the obstacles the battle rolled. */
+  readonly obstacles: boolean;
+  /** Run turns (the AI plays side 1; `auto` plays side 0 too); otherwise the field stays still for review. */
+  readonly play: boolean;
+  readonly auto: boolean;
+  readonly view?: ViewOpts;
+  /** Called once the field is drawn. */
+  readonly onReady?: () => void;
+}
 
 interface BattleData {
   readonly monsterId: string;
   /** The site the monster guarded, taken on a win. */
   readonly then?: string;
+  readonly sandbox?: SandboxBattle;
 }
 
-/** What tapping a hex would do now. */
-type Intent = { action: Action; text: string; key: string; from?: Hex | null } | null;
+/** What tapping a hex would do now, and the hexes to light for it: where the unit would stand, and the hex it would strike. */
+type Intent = { action: Action; text: string; key: string; landing?: readonly Hex[]; struck?: readonly Hex[] } | null;
 
 /**
  * A battle with a map monster. The player taps lit hexes to move and enemies
@@ -43,7 +70,11 @@ type Intent = { action: Action; text: string; key: string; from?: Hex | null } |
  * AI plays the other side. Auto plays the player's side too.
  */
 export class BattleScene extends Phaser.Scene {
-  private session!: Session;
+  private session: Session | null = null;
+  private sandbox: SandboxBattle | null = null;
+  private cams!: BattleCameras;
+  /** How many turn-order slots fit the bar as laid out. */
+  private orderMax = ORDER_MAX;
   private monsterId = '';
   private then: string | undefined;
   private state!: BattleState;
@@ -67,45 +98,49 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(data: BattleData): void {
-    screenScene(this);
-    this.cameras.main.setBackgroundColor(BACKDROP);
-    this.session = Session.get(this);
+    crispText(this);
+    this.cams = new BattleCameras(this);
+    this.sandbox = data.sandbox ?? null;
+    this.session = this.sandbox ? null : Session.get(this);
     this.monsterId = data.monsterId;
     this.then = data.then;
     this.busy = false;
     this.aiPending = false;
-    this.auto = false;
+    this.auto = this.sandbox?.auto ?? false;
     this.casting = null;
     this.pending = null;
     this.live = false;
-    const adv = this.session.adv;
-    const sides = battleSides(adv, data.monsterId);
+    const { sides, terrain, heroes } = this.setup(data);
     const start = createBattle(sides.attacker, sides.defender, sides.seed);
-    this.state = start.state;
-    // The fighters' poses are painted as the battle opens (once; they're kept for the next).
-    const figures: Figure[] = [...new Set(this.state.stacks.map((s) => s.creature)), heroFigure('player')];
-    const jobs = poseJobs(this, figures, ['idle', 'walk', 'attack']);
-    if (!jobs.length) {
-      this.begin(sides.seed);
-      return;
-    }
+    this.state = this.sandbox && !this.sandbox.obstacles ? { ...start.state, obstacles: [] } : start.state;
     const v = viewSize(this);
     const label = loadingText(this, v.width / 2, v.height / 2, 'the armies form up…', 32);
-    void runInSlices(jobs).then(() => {
+    this.cams.hud.add(label);
+    void loadBattleArt(this, this.state.stacks.map((s) => s.creature), terrain).then(() => {
       if (!this.sys.isActive()) return;
       label.destroy();
-      this.begin(sides.seed);
+      this.begin(terrain, sides.seed, heroes);
     });
   }
 
-  /** Lays out the field and the bar, wires the input and starts the first turn. */
-  private begin(seed: number): void {
-    const adv = this.session.adv;
-    const g = gridOf(this.session.def);
+  /** The two sides, the ground and who has a hero: from the map (the monster fought) or the sandbox. */
+  private setup(data: BattleData): { sides: { attacker: BattleSide; defender: BattleSide; seed: number }; terrain: string; heroes: readonly [boolean, boolean] } {
+    const sb = this.sandbox;
+    if (sb) return { sides: sb, terrain: sb.terrain, heroes: sb.heroes };
+    const session = this.session!;
+    const adv = session.adv;
+    const sides = battleSides(adv, data.monsterId);
+    const g = gridOf(session.def);
     const terrain = g.terrain[tileIndex(g, adv.hero.x, adv.hero.y)]!;
-    this.view = new BattleView(this, this.state, terrain === 'water' ? 'grass' : terrain, seed, [true, false]);
+    return { sides, terrain: terrain === 'water' ? 'grass' : terrain, heroes: [!!sides.attacker.hero, !!sides.defender.hero] };
+  }
+
+  /** Lays out the field and the bar, wires the input and starts the first turn. */
+  private begin(terrain: string, seed: number, heroes: readonly [boolean, boolean]): void {
+    this.view = new BattleView(this, this.cams, this.state, terrain, seed, heroes, this.sandbox?.view);
     this.live = true;
     this.status = title(this, 0, 4, '', 18, { color: UI.text }).setOrigin(0.5, 0);
+    this.cams.hud.add(this.status);
     this.buildBar();
     this.layout();
     this.scale.on('resize', this.layout, this);
@@ -120,9 +155,20 @@ export class BattleScene extends Phaser.Scene {
     kb?.on('keydown-D', () => this.playerAct({ type: 'defend' }));
     kb?.on('keydown-C', () => this.openSpells());
     kb?.on('keydown-A', () => this.toggleAuto());
-    const m = this.view.root;
-    m.setAlpha(0);
-    this.tweens.add({ targets: m, alpha: 1, duration: 300 });
+    if (this.sandbox && !this.sandbox.play) {
+      // Review: the field holds still, the first unit lit.
+      this.drawOrder();
+      this.marks();
+      const a = activeStack(this.state);
+      if (a) this.status.setText(`${creature(a.creature).plural} (${a.count})`);
+      this.sandbox.onReady?.();
+      return;
+    }
+    if (this.sandbox) this.sandbox.onReady?.();
+    else {
+      this.cams.world.setAlpha(0);
+      this.tweens.add({ targets: this.cams.world, alpha: 1, duration: 300 });
+    }
     void this.next();
   }
 
@@ -131,35 +177,49 @@ export class BattleScene extends Phaser.Scene {
   }
 
   /**
-   * The field as big as the screen allows: the buttons in a bar along the
-   * bottom, or, on a short screen (a phone held sideways), in a column on
-   * the right without the turn order.
+   * The pixel world at its whole-number zoom, centred. With room to spare
+   * below it (a phone held upright) the bar goes there, the turn order over
+   * the buttons; otherwise the buttons stand in the field's lower side
+   * margins under the heroes, as in Heroes 3, and the turn order and the
+   * messages go in the backdrop band over the field.
    */
   private layout(): void {
+    this.cams.refit();
+    this.view.fitBackdrop();
     const v = viewSize(this);
-    const short = v.height < 520 && v.width > v.height;
-    this.status.setPosition(v.width / 2, 2);
-    if (short) {
-      const col = 128;
-      const s = Math.min((v.width - col) / FIELD_W, (v.height - 34) / FIELD_H);
-      this.view.root.setScale(s).setPosition((v.width - col - FIELD_W * s) / 2, 30);
+    const r = this.cams.rect();
+    if (v.height - (r.y + r.h) >= BAR_H) {
+      this.status.setPosition(v.width / 2, r.y >= 28 ? r.y - 26 : 2);
+      const y = Math.min(r.y + r.h + 4 + BAR_H / 2, v.height - BAR_H / 2);
+      this.bar.setPosition(v.width / 2, y).setScale(Math.min(1, v.width / 760));
+      [-300, -180, -60, 240].forEach((x, i) => this.buttons[i]!.setPosition(x, 22).setScale(1));
+      this.order.setPosition(0, -22).setScale(1);
+      this.orderMax = ORDER_MAX;
+    } else {
+      this.status.setPosition(v.width / 2, r.y + 2);
       this.bar.setPosition(0, 0).setScale(1);
-      const step = Math.min(54, (v.height - 20) / this.buttons.length);
-      this.buttons.forEach((b, i) => b.setPosition(v.width - col / 2, 10 + step * (i + 0.5)).setScale(Math.min(1, step / 50)));
-      // No room for the turn order beside the status line: the active unit is lit on the field instead.
-      this.order.setVisible(false);
-      return;
+      // Each lower corner of the screen, between its edge and the field's, under the hero.
+      const zone = r.x + FIELD_RECT.x * r.k;
+      const s = Phaser.Math.Clamp((zone - 8) / BTN.w, 0.6, 1);
+      const bottom = v.height - 8;
+      const half = Math.ceil(this.buttons.length / 2);
+      this.buttons.forEach((b, i) => {
+        const right = i >= half;
+        const row = right ? this.buttons.length - 1 - i : half - 1 - i;
+        const y = bottom - (BTN.h / 2 + row * (BTN.h + BTN.gap)) * s;
+        b.setPosition(right ? v.width - zone / 2 : zone / 2, y).setScale(s);
+      });
+      // The turn order under the messages, in the band over the field.
+      const os = Phaser.Math.Clamp((FIELD_RECT.y * r.k - 30) / ORDER_ROW, 0.6, 1);
+      this.order.setPosition(v.width / 2, r.y + 30 + (ORDER_ROW / 2) * os).setScale(os);
+      this.orderMax = Phaser.Math.Clamp(Math.floor((FIELD_RECT.w * r.k) / (ORDER_STEP * os)), 0, ORDER_MAX);
     }
-    const s = Math.min(v.width / FIELD_W, (v.height - BAR_H - 34) / FIELD_H);
-    this.view.root.setScale(s).setPosition((v.width - FIELD_W * s) / 2, 30);
-    this.bar.setPosition(v.width / 2, v.height - BAR_H / 2).setScale(Math.min(1, v.width / 760));
-    [-300, -180, -60, 240].forEach((x, i) => this.buttons[i]!.setPosition(x, 22).setScale(1));
-    this.order.setPosition(0, -22).setScale(1).setVisible(true);
+    if (this.state) this.drawOrder();
   }
 
   private buildBar(): void {
     const btn = (x: number, label: string, fn: () => void, kind: PlateKind = 'plain'): Phaser.GameObjects.Container =>
-      paintedButton(this, x, 22, label, fn, { width: 108, height: 42, size: 15, kind });
+      paintedButton(this, x, 22, label, fn, { width: BTN.w, height: BTN.h, size: 15, kind });
     this.order = this.add.container(0, -22);
     this.autoBtn = btn(240, 'Auto', () => this.toggleAuto(), 'crown');
     this.buttons = [
@@ -169,6 +229,7 @@ export class BattleScene extends Phaser.Scene {
       this.autoBtn,
     ];
     this.bar = this.add.container(0, 0, [this.order, ...this.buttons]);
+    this.cams.hud.add(this.bar);
   }
 
   private mine(): boolean {
@@ -245,19 +306,19 @@ export class BattleScene extends Phaser.Scene {
   }
 
   /** Lights the active unit, where it can go and whom it can hit. */
-  private marks(hover: Hex | null = null, from: Hex | null = null): void {
+  private marks(hover: Hex | null = null, intent: Intent = null): void {
     const a = activeStack(this.state);
     if (!a) return;
     const mine = this.mine();
-    const reach = mine ? [...moves(this.state).keys()].filter((h) => h !== a.hex) : [];
-    const targets = mine ? this.state.stacks.filter((s) => s.side !== a.side && alive(s) && (canShoot(this.state, a) || strikeFrom(this.state, s).size > 0)).map((s) => s.hex) : [];
-    this.view.showMarks({ active: a.hex, reach, targets, hover, from });
+    // Every hex a move could cover (a two-hex unit's tails included), and every hex of each enemy it can hit.
+    const reach = mine ? [...occupiableHexes(this.state)] : [];
+    const targets = mine ? this.state.stacks.filter((s) => s.side !== a.side && alive(s) && (canShoot(this.state, a) || strikeFrom(this.state, s).size > 0)).flatMap(occupiedHexes) : [];
+    this.view.showMarks({ active: occupiedHexes(a), reach, targets, hover, landing: intent?.landing, struck: intent?.struck });
   }
 
   private hexAt(p: Phaser.Input.Pointer): Hex | null {
-    const v = toView(p.x, p.y);
-    const f = this.view.toField(v.x, v.y);
-    return hexUnder(f.x - FIELD_PAD.x, f.y - FIELD_PAD.y, HEX);
+    const w = this.cams.toWorld(p.x, p.y);
+    return hexAtPx(Math.floor(w.x), Math.floor(w.y));
   }
 
   /** What tapping this point would do, with its preview text. */
@@ -266,7 +327,7 @@ export class BattleScene extends Phaser.Scene {
     const me = activeStack(this.state)!;
     const h = this.hexAt(p);
     if (h === null) return null;
-    const target = this.state.stacks.find((s) => alive(s) && s.hex === h);
+    const target = stackAt(this.state, h);
     if (this.casting) {
       if (!target) return null;
       const why = cantCast(this.state, 0, this.casting, target);
@@ -279,16 +340,20 @@ export class BattleScene extends Phaser.Scene {
     if (target && target.side !== me.side) {
       const name = creature(target.creature).plural;
       if (canShoot(this.state, me)) {
-        const d = distance(me.hex, target.hex);
+        const d = shotDistance(me, target);
         return { action: { type: 'shoot', target: target.id }, text: `Shoot the ${name}: ${this.preview(me, target, { ranged: true, distance: d, moved: 0 })}${d > 7 ? ' (far: half damage)' : ''}`, key: `shoot-${target.id}` };
       }
-      const from = this.bestFrom(p, target);
-      if (from === null) return { action: { type: 'wait' }, text: `The ${name} are out of reach`, key: 'no' };
-      const moved = strikeFrom(this.state, target).get(from) ?? 0;
-      return { action: { type: 'attack', target: target.id, from }, text: `Attack the ${name}: ${this.preview(me, target, { ranged: false, distance: 1, moved })}`, key: `attack-${target.id}-${from}`, from };
+      const o = this.bestOption(p, target);
+      if (!o) return { action: { type: 'wait' }, text: `The ${name} are out of reach`, key: 'no' };
+      return {
+        action: { type: 'attack', target: target.id, from: o.from }, text: `Attack the ${name}: ${this.preview(me, target, { ranged: false, distance: 1, moved: o.steps })}`,
+        key: `attack-${target.id}-${o.from}-${o.struck}`, landing: o.hexes, struck: [o.struck],
+      };
     }
-    if (!target && moves(this.state).has(h) && h !== me.hex) return { action: { type: 'move', to: h }, text: 'Move here', key: `move-${h}` };
-    return null;
+    // A tap on any hex the unit could cover moves it there (a tail spot gives its head).
+    const head = target ? null : moveHeadFor(this.state, h);
+    if (head === null) return null;
+    return { action: { type: 'move', to: head }, text: 'Move here', key: `move-${head}`, landing: footprintAt(head, isWide(me.creature), me.side) ?? [head] };
   }
 
   /** "12–18 damage, 1–2 fall" */
@@ -299,20 +364,17 @@ export class BattleScene extends Phaser.Scene {
     return `${r.min === r.max ? r.min : `${r.min}–${r.max}`} damage, ${k0 === k1 ? k0 : `${k0}–${k1}`} fall`;
   }
 
-  /** Of the hexes the active unit can strike `target` from, the one nearest the pointer. */
-  private bestFrom(p: Phaser.Input.Pointer, target: Stack): Hex | null {
-    const options = [...strikeFrom(this.state, target).keys()];
-    if (options.length === 0) return null;
-    const v = toView(p.x, p.y);
-    const f = this.view.toField(v.x, v.y);
-    let best = options[0]!;
+  /** Of the places the active unit can strike `target` from, the one whose touching hex is nearest the pointer. */
+  private bestOption(p: Phaser.Input.Pointer, target: Stack): StrikeOption | null {
+    const f = this.cams.toWorld(p.x, p.y);
+    let best: StrikeOption | null = null;
     let bd = Infinity;
-    for (const h of options) {
-      const c = this.view.root ? { ...hexCentre(h) } : { x: 0, y: 0 };
+    for (const o of strikeOptions(this.state, target)) {
+      const c = hexPx(o.contact);
       const d = Math.hypot(c.x - f.x, c.y - f.y);
       if (d < bd) {
         bd = d;
-        best = h;
+        best = o;
       }
     }
     return best;
@@ -322,7 +384,7 @@ export class BattleScene extends Phaser.Scene {
     if (p.wasTouch || this.busy) return;
     const i = this.intent(p);
     if (this.mine()) {
-      this.marks(this.hexAt(p), i?.from ?? null);
+      this.marks(this.hexAt(p), i);
       const a = activeStack(this.state)!;
       this.status.setText(i?.text ?? (this.casting ? `Choose a target for ${SPELLS[this.casting].name}` : `${creature(a.creature).plural} (${a.count}): your move`));
     }
@@ -338,7 +400,7 @@ export class BattleScene extends Phaser.Scene {
     // On touch, the first tap shows what would happen; a second tap on the same thing does it.
     if (p.wasTouch && this.pending !== i.key) {
       this.pending = i.key;
-      this.marks(this.hexAt(p), i.from ?? null);
+      this.marks(this.hexAt(p), i);
       this.status.setText(`${i.text} · tap again`);
       return;
     }
@@ -391,17 +453,26 @@ export class BattleScene extends Phaser.Scene {
     const live = this.state.stacks.filter((s) => alive(s) && !s.acted);
     const fresh = live.filter((s) => !s.waited).sort((a, b) => speedOf(b) - speedOf(a));
     const waited = live.filter((s) => s.waited).sort((a, b) => speedOf(a) - speedOf(b));
-    [...fresh, ...waited].slice(0, 9).forEach((s, i) => {
-      const x = -320 + i * 44;
+    const shown = [...fresh, ...waited].slice(0, this.orderMax);
+    shown.forEach((s, i) => {
+      // Centred on the order's position.
+      const x = (i - (shown.length - 1) / 2) * ORDER_STEP;
       const bg = this.add.circle(x, 0, 19, parseInt((s.side === 0 ? BANNER.player : BANNER.neutral).slice(1), 16), i === 0 ? 0.85 : 0.45).setStrokeStyle(i === 0 ? 2.5 : 1, UI_HEX.gilt, i === 0 ? 1 : 0.6);
-      const img = this.add.image(x, 16, TEX.creature(s.creature, 0)).setOrigin(0.5, GROUND_Y / FRAME_H).setScale(0.3 / CREATURE_RES);
-      this.order.add([bg, img]);
+      this.order.add(bg);
+      // The painted portrait made at boot (the turn order keeps the ink figures until the HUD's pixel pass).
+      const key = TEX.creature(s.creature, 0);
+      if (this.textures.exists(key)) this.order.add(this.add.image(x, 16, key).setOrigin(0.5, GROUND_Y / FRAME_H).setScale(0.3 / CREATURE_RES));
     });
   }
 
   private finish(): void {
     const won = this.state.winner === 0;
-    const adv = this.session.adv;
+    if (!this.session) {
+      openCard(this, { title: won ? 'Victory!' : 'Defeat', body: 'Sandbox battle over.', buttons: [{ label: 'Again', onClick: () => this.scene.restart() }] });
+      return;
+    }
+    const session = this.session;
+    const adv = session.adv;
     const lost = adv.hero.army.map((slot, i) => {
       const st = this.state.stacks.find((x) => x.side === 0 && x.slot === i);
       return slot && st ? { name: creature(slot.creature).plural, n: st.startCount - st.count } : null;
@@ -409,7 +480,7 @@ export class BattleScene extends Phaser.Scene {
     const xp = experienceFor(this.state, 0);
     getSound(this)?.play(won ? 'win' : 'lose');
     const done = (): void => {
-      this.session.set(afterBattle(this.session.adv, this.session.def, this.monsterId, this.state, this.then));
+      session.set(afterBattle(session.adv, session.def, this.monsterId, this.state, this.then));
       this.scene.stop();
       (this.scene.get('Map') as MapScene).back();
     };
@@ -422,11 +493,3 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 }
-
-/** A hex's centre on the field, in field units. */
-function hexCentre(h: Hex): { x: number; y: number } {
-  return fieldPointOf(h);
-}
-
-import { fieldPoint as fieldPointOf } from '../art/battlefield';
-void stackById;

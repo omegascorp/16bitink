@@ -4,7 +4,7 @@ import { act, activeStack, canShoot, createBattle, experienceFor, moves, stackBy
 import { chooseAction } from '../src/logic/battleAi';
 import type { BattleHero, BattleState } from '../src/logic/battleTypes';
 import { damageFactor, damageRange, hurt } from '../src/logic/damage';
-import { distance, hexAt, neighbours } from '../src/logic/hex';
+import { COLS, colOf, distance, hexAt, neighbours, ROWS, rowOf } from '../src/logic/hex';
 
 const hero = (o: Partial<BattleHero> = {}): BattleHero => ({ name: 'Rowan', attack: 0, defense: 0, power: 1, mana: 20, spells: ['magicArrow', 'bless', 'haste'], skills: {}, morale: 0, luck: 0, ...o });
 
@@ -74,10 +74,29 @@ describe('turns', () => {
       { hero: null, army: armyOf([{ creature: 'wolf', count: 4 }]) },
       3,
     );
-    expect(state.stacks.filter((s) => s.side === 0).every((s) => s.hex % 13 === 0)).toBe(true);
-    expect(state.stacks.filter((s) => s.side === 1).every((s) => s.hex % 13 === 12)).toBe(true);
+    // Two-hex units (griffin, wolf) stand one column in, their back hex on the edge.
+    expect(state.stacks.filter((s) => s.side === 0).map((s) => [s.creature, s.hex % COLS])).toEqual([['spearman', 0], ['griffin', 1]]);
+    expect(state.stacks.filter((s) => s.side === 1).every((s) => s.hex % COLS === COLS - 2)).toBe(true);
     // Wolf (7) before Griffin (6) before Spearman (4).
     expect(activeStack(state)?.creature).toBe('wolf');
+  });
+
+  it('uses H3’s 15 × 11 field, loose formation rows and middle-column obstacles', () => {
+    const army = (n: number) => armyOf(Array.from({ length: n }, () => ({ creature: 'spearman' as const, count: 1 })));
+    const rows = (n: number) => createBattle({ hero: null, army: army(n) }, { hero: null, army: army(n) }, 2).state.stacks.filter((s) => s.side === 0).map((s) => rowOf(s.hex));
+    expect([COLS, ROWS]).toEqual([15, 11]);
+    expect(rows(1)).toEqual([5]);
+    expect(rows(2)).toEqual([2, 8]);
+    expect(rows(4)).toEqual([0, 4, 6, 10]);
+    expect(rows(7)).toEqual([0, 2, 4, 5, 6, 8, 10]);
+    const right = createBattle({ hero: null, army: army(3) }, { hero: null, army: army(3) }, 2).state.stacks.filter((s) => s.side === 1);
+    expect(right.map((s) => colOf(s.hex))).toEqual([14, 14, 14]);
+    for (let seed = 1; seed <= 50; seed++) {
+      const { obstacles } = createBattle({ hero: null, army: army(7) }, { hero: null, army: army(7) }, seed).state;
+      expect(obstacles.length).toBeGreaterThanOrEqual(3);
+      expect(obstacles.length).toBeLessThanOrEqual(7);
+      for (const h of obstacles) expect(colOf(h) >= 3 && colOf(h) <= COLS - 4).toBe(true);
+    }
   });
 
   it('sends a waiting unit to the end of the round, and starts a new round after', () => {

@@ -9,13 +9,17 @@ User's choices (Oct 24): the name **InkHeroes**; a **classic fantasy** world clo
 ## Pillars
 
 1. **H3's loop, in short maps.** Explore, fight, take mines, build one thing a day, hire the week's troops. Each map takes 20–40 minutes and has a single clear goal.
-2. **H3's battles, phone-sized.** The same damage formula, retaliation, shooters, flyers, morale and luck, on a 13 × 9 field where every unit takes one hex.
+2. **H3's battles, phone-sized.** The same damage formula, retaliation, shooters, flyers, morale and luck, on H3's 15 × 11 field where most units take one hex and the big ones two.
 3. **Every number shows.** Hovering an attack shows the damage and kills it will do; hovering a monster shows its size word ("a pack of wolves"); a building says what it needs.
 4. **No lost evening.** The game saves at the start of every day; losing a battle offers that day again.
 
 ## Art direction
 
-User's choice (Oct 24): dark colours and serious drawings, like the original H3. We take its mood, never its art or names. The bar is still a pen line over a professional painting, never a doodle.
+**Nov 3, 2026: replaced by pixel art.** The user found the painted ink style didn't suit the game and chose PixelLab-generated pixel art, style B (painterly shading, selective outline, warm light from the left), at 32-bit density. Every screen is a locked native canvas shown only at whole-number zoom. The battle is 960×540 (×2 on 1080p and 1440p, ×4 on 4K) so H3's exact battlefield fits: 15 × 11 hexes of 44 × 52 px with 42 px rows, units at H3's size relative to a hex, two-hex units for the griffin, centaur, Companion and wolf (user, Nov 3). Battle backgrounds are composed at run time from separate parts (`src/scenes/battle/pixelScenery.ts`), never a fixed picture: a dithered sky gradient with cloud sprites, pale mountain ranges, hills and a tree line on the horizon, then ground patches cut from the terrain's ground painting, with tufts, stones and bushes on top (stones and bushes kept off the hex field and the heroes). Placement is hashed from the battle seed and each grid cell, so every battle looks different, any screen size is covered (whole-number zoom can show almost twice the world), and a resize only adds scenery at the edges. Parts per terrain: `dev/pixel/parts/<terrain>/scenery.json` → `dev/pixel/scenery.py` → one atlas + `src/art/pixel/scenery.ts` (user, Nov 3). Terrains without parts yet fall back to 1408×1056 quilted paintings (`dev/pixel/quilt.py`); fixed paintings were rejected because they ran out on wide screens and looked repetitive. Every sprite is generated at its final size; nothing is scaled or rotated. The comparison and tests are on https://claude.ai/artifact/MGj5H2bNeRrYkroBbt6dfg. The battle screen moves first; the map, town and menu keep the painted art below until their pass. Sources and tools are in `games/inkheroes/dev/pixel/`.
+
+**Theme (Nov 3):** the Crown becomes a Greek faction, the first civilization of the "mythic civilizations" direction: historical troops at the low tiers, creatures of Greek myth above them. Rules, stats and internal ids stay the same; only names and art change.
+
+The painted style (Oct 24, superseded): dark colours and serious drawings, like the original H3. We take its mood, never its art or names. The bar is still a pen line over a professional painting, never a doodle.
 
 - **Light and value.** Warm late-afternoon light from the upper left. Everything is 30–45 % darker than a storybook. Shadows go umber or violet, not grey. Highlights are small and warm. Nothing is pure white.
 - **Colour.** Deep old-master colours: olive and emerald greens, umber and ochre earth, ultramarine, oxblood, brass, warm grey stone, walnut wood. The palette is in `src/art/palette.ts`. No pastels, mint or candy colours.
@@ -84,9 +88,10 @@ Gold, wood, ore, mercury, sulfur, crystal, gems. Mines a day: sawmill 2 wood, or
 
 ## Battles
 
-- **Field:** 13 columns × 9 rows of hexes, rows staggered; the attacker's army lines up in the left column, the defender's in the right. 2–5 obstacles (rocks, stumps) in the middle columns, from the map tile's seed.
+- **Field:** 15 columns × 11 rows of hexes (H3's playable area), rows staggered; the attacker's army lines up in the left column, the defender's in the right, on H3's loose-formation rows (VCMI's table: 1 stack row 5; 2: 2, 8; 3: 2, 5, 8; 4: 0, 4, 6, 10; 5: 0, 2, 5, 8, 10; 6: 0, 2, 4, 6, 8, 10; 7: 0, 2, 4, 5, 6, 8, 10). 3–7 obstacles (rocks, stumps) in columns 3–11, from the map tile's seed.
 - **Turn order:** highest speed first; ties go to the attacker in round 1, then alternate. Each unit may move, attack, **wait** (act again at the end of the round, slowest first) or **defend** (+20% Defense, at least +1, until its next turn).
 - **Walking** units go round others and obstacles; **flying** units reach any free hex within their speed.
+- **Two-hex units** (Griffin, Centaur, Companion, Wolf; `wide` in `creatures.ts`), as H3/VCMI's double-wide: the unit stands on its head hex and the hex behind it in the same row (the attacker faces right, so its tail is to the left; the defender's to the right). Facing never changes. They start one column in, tail on the edge column. Both hexes must be free and on the field at every step (walkers) or where they land (flyers); speed counts head steps, so a wide unit can't slip through a one-hex gap in a wall that runs along a row. Anyone may strike them from beside either hex, and either hex counts for "an enemy next to a shooter". A wide unit strikes from any spot where its head or its tail touches the target; with only the tail touching it turns round to strike and back after (animation only, VCMI's isToReverse). Shot range counts from the shooter's head to the target's nearest hex. Code: `src/logic/footprint.ts`.
 - **Melee:** move next to the target and strike. The target **retaliates** once a round, after the first strike only.
 - **Shooting:** shooters fire at any enemy unless an enemy stands next to them; −50% damage beyond 7 hexes; −50% in melee. Ranged hits aren't answered. Shots run out.
 - **Damage:** base = (random between min and max) × count. If Attack > Defense: +5% a point, at most +300%. If Defense > Attack: −2.5% a point, at most −70%. Bonuses (Offense or Archery, luck's ×2) add; penalties (range, melee for shooters, Armorer, Shield) multiply. At least 1. Damage kills from the top creature down.
@@ -111,19 +116,19 @@ Gold, wood, ore, mercury, sulfur, crystal, gems. Mines a day: sawmill 2 wood, or
 
 ## Factions
 
-### The Crown (chapter 1)
+### The Olympian League (chapter 1)
 
-A walled hill town of knights, archers and griffin riders.
+Greek city-states under the old gods: hoplites and slingers at the bottom, the beasts of myth at the top. (Internal faction id `crown`; the internal unit ids in brackets are unchanged, so saves keep working.)
 
-| Lvl | Unit | Att | Def | Damage | HP | Speed | Growth | Cost | Notes |
+| Lvl | Unit (id) | Att | Def | Damage | HP | Speed | Growth | Cost | Notes |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | Spearman | 4 | 5 | 1–3 | 10 | 4 | 14 | 60 | |
-| 2 | Bowman | 6 | 3 | 2–3 | 10 | 4 | 9 | 100 | Shoots, 12 shots |
-| 3 | Griffin | 8 | 8 | 3–6 | 25 | 6 | 7 | 200 | Flies, retaliates twice a round |
-| 4 | Swordsman | 10 | 12 | 6–9 | 35 | 5 | 4 | 300 | |
-| 5 | Monk | 12 | 7 | 10–12 | 30 | 5 | 3 | 400 | Shoots, 12 shots |
-| 6 | Lancer | 15 | 15 | 15–25 | 100 | 7 | 2 | 1000 | Charge: +5% damage a hex moved |
-| 7 | Seraph | 20 | 20 | 50 | 200 | 12 | 1 | 3000 + 1 gem | Flies, +1 morale to the army |
+| 1 | Hoplite (spearman) | 4 | 5 | 1–3 | 10 | 4 | 14 | 60 | |
+| 2 | Slinger (bowman) | 6 | 3 | 2–3 | 10 | 4 | 9 | 100 | Shoots, 12 shots |
+| 3 | Griffin (griffin) | 8 | 8 | 3–6 | 25 | 6 | 7 | 200 | Flies, retaliates twice a round |
+| 4 | Minotaur (swordsman) | 10 | 12 | 6–9 | 35 | 5 | 4 | 300 | |
+| 5 | Centaur (monk) | 12 | 7 | 10–12 | 30 | 5 | 3 | 400 | Shoots, 12 shots |
+| 6 | Companion (lancer) | 15 | 15 | 15–25 | 100 | 7 | 2 | 1000 | Charge: +5% damage a hex moved. Alexander-style heavy cavalry |
+| 7 | Titan (seraph) | 20 | 20 | 50 | 200 | 12 | 1 | 3000 + 1 gem | Flies (strides over the field), +1 morale to the army |
 
 Upgrades come in a later chapter.
 
@@ -131,11 +136,11 @@ Upgrades come in a later chapter.
 
 | Unit | Lvl | Att | Def | Damage | HP | Speed | Notes |
 |---|---|---|---|---|---|---|---|
-| Goblin | 1 | 4 | 2 | 1–2 | 5 | 5 | |
-| Skeleton | 1 | 5 | 4 | 1–3 | 6 | 4 | Undead (no morale) |
-| Wolf | 2 | 6 | 3 | 2–4 | 10 | 7 | |
-| Bandit | 2 | 8 | 3 | 2–4 | 10 | 6 | Strikes unanswered (no retaliation) |
-| Ogre | 4 | 13 | 7 | 6–12 | 40 | 4 | |
+| Satyr (goblin) | 1 | 4 | 2 | 1–2 | 5 | 5 | |
+| Spartoi (skeleton) | 1 | 5 | 4 | 1–3 | 6 | 4 | Undead (no morale): skeleton warriors grown from dragon's teeth |
+| Wolf (wolf) | 2 | 6 | 3 | 2–4 | 10 | 7 | |
+| Brigand (bandit) | 2 | 8 | 3 | 2–4 | 10 | 6 | Strikes unanswered (no retaliation) |
+| Cyclops (ogre) | 4 | 13 | 7 | 6–12 | 40 | 4 | |
 
 A map monster splits into about √count stacks in battle, at most 4 (4 goblins make 2 stacks, 10 wolves 3).
 
@@ -211,4 +216,4 @@ The adventure is saved in localStorage after every action, and a copy is kept at
 
 ## Not yet
 
-Taking towns (the "capture" goal has no code path yet: map 2 needs it), several heroes and the tavern’s hire, artifacts, the marketplace's trade, upgrades, two-hex units, tactics, sieges with walls, the rival AI (map 3), random maps.
+Taking towns (the "capture" goal has no code path yet: map 2 needs it), several heroes and the tavern’s hire, artifacts, the marketplace's trade, upgrades, tactics, sieges with walls, the rival AI (map 3), random maps.

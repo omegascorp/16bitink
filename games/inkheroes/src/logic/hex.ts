@@ -1,9 +1,11 @@
 /**
- * The battlefield: 13 × 9 pointy-top hexes in staggered rows (odd rows sit
- * half a hex to the right), indexed col + row × COLS as in VCMI.
+ * The battlefield: 15 × 11 pointy-top hexes in staggered rows (odd rows sit
+ * half a hex to the right), indexed col + row × COLS. That is H3's playable
+ * area: VCMI's 17 × 11 without the two hero columns, so our column c is
+ * VCMI's x = c + 1.
  */
-export const COLS = 13;
-export const ROWS = 9;
+export const COLS = 15;
+export const ROWS = 11;
 export const HEX_COUNT = COLS * ROWS;
 
 export type Hex = number;
@@ -65,17 +67,31 @@ export function hexUnder(x: number, y: number, size: number): Hex | null {
   return bestD <= size ? best : null;
 }
 
+/** Maps a two-hex unit's head hex to its tail (null when the tail would leave the field). */
+export type TailOf = (head: Hex) => Hex | null;
+
+/** Whether a unit can stand with its head on `h`: every hex it would cover is free (VCMI's AccessibilityInfo::accessible). */
+function fits(h: Hex, blocked: ReadonlySet<Hex>, tail?: TailOf): boolean {
+  if (blocked.has(h)) return false;
+  if (!tail) return true;
+  const t = tail(h);
+  return t !== null && !blocked.has(t);
+}
+
 /**
  * Hexes a unit standing on `from` can reach within `speed` steps: by walking
  * round `blocked` hexes, or (flying) any free hex within that distance.
  * Returns each reachable hex with its step count; `from` itself is 0.
+ * A two-hex unit passes `tail`: positions are head hexes, steps count head
+ * moves, and both hexes must be free at every step (walkers) or on landing
+ * (flyers), as in VCMI's makeBFS / getFlyingReachability.
  */
-export function reachable(from: Hex, speed: number, blocked: ReadonlySet<Hex>, flies: boolean): Map<Hex, number> {
+export function reachable(from: Hex, speed: number, blocked: ReadonlySet<Hex>, flies: boolean, tail?: TailOf): Map<Hex, number> {
   const out = new Map<Hex, number>([[from, 0]]);
   if (flies) {
     for (let h = 0; h < HEX_COUNT; h++) {
       const d = distance(from, h);
-      if (h !== from && d <= speed && !blocked.has(h)) out.set(h, d);
+      if (h !== from && d <= speed && fits(h, blocked, tail)) out.set(h, d);
     }
     return out;
   }
@@ -84,7 +100,7 @@ export function reachable(from: Hex, speed: number, blocked: ReadonlySet<Hex>, f
     const next: Hex[] = [];
     for (const h of frontier) {
       for (const n of neighbours(h)) {
-        if (out.has(n) || blocked.has(n)) continue;
+        if (out.has(n) || !fits(n, blocked, tail)) continue;
         out.set(n, step);
         next.push(n);
       }
@@ -94,8 +110,8 @@ export function reachable(from: Hex, speed: number, blocked: ReadonlySet<Hex>, f
   return out;
 }
 
-/** The walking route from `from` to `to` round `blocked` (excluding `from`), or [] if none. */
-export function route(from: Hex, to: Hex, blocked: ReadonlySet<Hex>): Hex[] {
+/** The walking route of head hexes from `from` to `to` round `blocked` (excluding `from`), or [] if none. */
+export function route(from: Hex, to: Hex, blocked: ReadonlySet<Hex>, tail?: TailOf): Hex[] {
   if (from === to) return [];
   const prev = new Map<Hex, Hex>([[from, from]]);
   let frontier = [from];
@@ -103,7 +119,7 @@ export function route(from: Hex, to: Hex, blocked: ReadonlySet<Hex>): Hex[] {
     const next: Hex[] = [];
     for (const h of frontier) {
       for (const n of neighbours(h)) {
-        if (prev.has(n) || (blocked.has(n) && n !== to)) continue;
+        if (prev.has(n) || (!fits(n, blocked, tail) && n !== to)) continue;
         prev.set(n, h);
         next.push(n);
       }

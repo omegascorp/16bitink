@@ -1,0 +1,105 @@
+{
+ "_doc": "Which sheets hold which scenery parts (see dev/pixel/scenery.py). Paths are relative to this folder.",
+ "sky": {
+  "_doc": "[rows above the horizon, colour]: dithered from one stop to the next; the top stop carries on up",
+  "stops": [
+   [
+    300,
+    "#a86a4c"
+   ],
+   [
+    120,
+    "#c1815a"
+   ],
+   [
+    64,
+    "#ba937a"
+   ],
+   [
+    24,
+    "#b3b2a6"
+   ]
+  ]
+ },
+ "groundColour": {
+  "from": "../../bg960/grass-ground.png",
+  "rows": [
+   120,
+   300
+  ]
+ },
+ "parts": {
+  "cloud": [
+   {
+    "sheet": "clouds.png",
+    "minArea": 80
+   }
+  ],
+  "far": [
+   {
+    "sheet": "mountains-b.png",
+    "whole": true
+   },
+   {
+    "sheet": "mountains-d.png",
+    "whole": true
+   },
+   {
+    "sheet": "mountains-e.png",
+    "whole": true
+   }
+  ],
+  "hill": [
+   {
+    "sheet": "hills.png",
+    "cropBottom": 14,
+    "merge": 0,
+    "minArea": 400
+   }
+  ],
+  "tree": [
+   {
+    "sheet": "trees-small.png",
+    "maxHeight": 60,
+    "minArea": 30,
+    "merge": 0
+   }
+  ],
+  "patch": [
+   {
+    "sheet": "../../bg960/grass-ground.png",
+    "rows": [
+     110,
+     330
+    ],
+    "count": 28,
+    "size": [
+     96,
+     168
+    ]
+   }
+  ],
+  "tuft": [
+   {
+    "sheet": "tiny.png",
+    "minArea": 20
+   }
+  ],
+  "stone": [
+   {
+    "sheet": "stones-b.png",
+    "minArea": 20
+   }
+  ],
+  "bush": [
+   {
+    "sheet": "bush-1.png",
+    "whole": true
+   },
+   {
+    "sheet": "bush-3.png",
+    "whole": true
+   }
+  ]
+ }
+}

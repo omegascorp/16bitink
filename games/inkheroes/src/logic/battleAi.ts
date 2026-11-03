@@ -3,6 +3,7 @@ import type { Action, BattleState, Stack } from './battleTypes';
 import { creature } from './creatures';
 import { damageRange, killsBy } from './damage';
 import { distance, type Hex } from './hex';
+import { occupiedHexes, shotDistance } from './footprint';
 
 const average = (r: { min: number; max: number }): number => (r.min + r.max) / 2;
 
@@ -23,7 +24,7 @@ export function chooseAction(state: BattleState): Action {
   if (!me) throw new Error('no active stack');
   const enemies = state.stacks.filter((s) => s.side !== me.side && alive(s));
   if (canShoot(state, me)) {
-    const best = maxBy(enemies, (e) => worth(e, average(damageRange(state, me, e, { ranged: true, distance: distance(me.hex, e.hex), moved: 0 }))));
+    const best = maxBy(enemies, (e) => worth(e, average(damageRange(state, me, e, { ranged: true, distance: shotDistance(me, e), moved: 0 }))));
     if (best) return { type: 'shoot', target: best.id };
   }
   let bestStrike: { action: Action; score: number } | null = null;
@@ -41,7 +42,9 @@ export function chooseAction(state: BattleState): Action {
   if (bestStrike) return bestStrike.action;
   // Shooters with no shots left, or nothing in reach: close in.
   const reach = [...moves(state).keys()].filter((h) => h !== me.hex);
-  const nearest = (h: Hex): number => Math.min(...enemies.map((e) => distance(h, e.hex)));
+  // Steps from a head hex to the nearest hex of any enemy (two-hex enemies count both).
+  const enemyHexes = enemies.flatMap(occupiedHexes);
+  const nearest = (h: Hex): number => Math.min(...enemyHexes.map((e) => distance(h, e)));
   const go = minBy(reach, nearest);
   if (go !== null && nearest(go) < nearest(me.hex)) return { type: 'move', to: go };
   return { type: 'defend' };

@@ -1,0 +1,479 @@
+<title>InkHeroes Art Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+  /* Layout: one reading column; art panels break out to a wider frame, each labelled like a museum plate. */
+  :root {
+    --bg: #15110d;          /* the game's own backdrop */
+    --panel: #201913;
+    --rule: #3a2e22;
+    --fg: #efe4c8;          /* parchment */
+    --muted: #b3a385;
+    --gold: #d9a94a;
+    --blue: #6f93d8;
+    --bad: #d8735e;
+    --display: "Pixelify Sans", "Courier New", monospace;
+    --body: "EB Garamond", Georgia, "Times New Roman", serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font: 19px/1.55 var(--body); padding-inline: 16px; padding-block: 40px 72px; }
+  main { max-width: 1040px; margin: 0 auto; display: grid; gap: 56px; }
+  .prose { max-width: 680px; }
+  h1, h2, h3 { font-family: var(--display); font-weight: 700; text-wrap: balance; margin: 0; line-height: 1.15; }
+  h1 { font-size: clamp(34px, 6vw, 56px); color: var(--gold); letter-spacing: 0.01em; }
+  h2 { font-size: 28px; color: var(--fg); }
+  h3 { font-size: 20px; font-weight: 500; }
+  p { margin: 0; }
+  .stack { display: grid; gap: 14px; }
+  .eyebrow { font: 500 13px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .lede { font-size: 22px; color: var(--fg); }
+  code, .mono { font-family: var(--mono); font-size: 0.78em; color: var(--gold); }
+  ul.how { margin: 0; padding-left: 1.1em; display: grid; gap: 8px; }
+  ul.how li::marker { color: var(--gold); }
+
+  .plate { display: grid; gap: 10px; }
+  .plate .frame { background: #0c0a08; border: 1px solid var(--rule); padding: 10px; overflow-x: auto; }
+  .plate canvas, .plate img { display: block; margin: 0 auto; }
+  .plate img { width: 100%; height: auto; }
+  .caption { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; justify-content: space-between; }
+  .caption .name { font: 700 18px var(--display); }
+  .caption .meta { font: 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .note { color: var(--muted); font-size: 17px; max-width: 680px; }
+
+  .tag { font: 500 12px var(--display); letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border: 1px solid currentColor; }
+  .tag.now { color: var(--muted); }
+  .tag.pick { color: var(--gold); }
+
+  .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+  .pair > * { min-width: 0; }
+  .verdict { font: 500 14px var(--display); letter-spacing: 0.06em; }
+  .verdict.good { color: var(--gold); }
+  .verdict.bad { color: var(--bad); }
+
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0; border-top: 1px solid var(--rule); }
+  .opt { padding: 20px 20px 22px 0; border-bottom: 1px solid var(--rule); display: grid; gap: 8px; align-content: start; min-width: 0; }
+  .opt + .opt { padding-left: 20px; border-left: 1px solid var(--rule); }
+  @media (max-width: 620px) { .opt + .opt { padding-left: 0; border-left: 0; } }
+  .opt .letter { font: 700 32px var(--display); color: var(--gold); line-height: 1; }
+  .opt dl { margin: 4px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 16px; }
+  .opt dt { font: 500 12px var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+  .opt dd { margin: 0; }
+
+  .seg { display: inline-flex; border: 1px solid var(--rule); }
+  .seg button { font: 500 15px var(--display); letter-spacing: 0.04em; color: var(--muted); background: transparent; border: 0; padding: 8px 16px; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--rule); }
+  .seg button[aria-pressed="true"] { background: var(--gold); color: #15110d; }
+  .seg button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .trio > * { min-width: 0; }
+  .specs { overflow-x: auto; }
+  .specs table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 16px; font-variant-numeric: tabular-nums; }
+  .specs th, .specs td { text-align: left; padding: 9px 14px 9px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  .specs th { font: 500 12px var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .specs td:first-child { color: var(--muted); }
+  .specs .hi { color: var(--gold); }
+  .specs .warn { color: var(--bad); }
+  .plate img.px { width: auto; max-width: none; image-rendering: pixelated; }
+  .gen { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; font-size: 16px; }
+  .gen li { border-top: 1px solid var(--rule); padding-top: 8px; }
+  .gen b { display: block; font: 700 22px var(--display); color: var(--gold); font-variant-numeric: tabular-nums; }
+  .rec { border-left: 3px solid var(--gold); padding: 4px 0 4px 18px; display: grid; gap: 10px; max-width: 720px; }
+</style>
+
+<main>
+  <header class="stack prose">
+    <span class="eyebrow">InkHeroes · art direction test · 3 Nov 2026</span>
+    <h1>InkHeroes Art Directions</h1>
+    <p class="lede">Yes, pixel art can keep one pixel density everywhere. Below is the same battle drawn on a locked grid at 16-bit, 32-bit and 64-bit density, and in an ink palette, next to the current painted art. New: the same battle made with PixelLab, a pixel-art generator, at all three densities (<a href="#pixellab" style="color:var(--gold)">option E</a>).</p>
+  </header>
+
+  <section class="stack prose">
+    <h2>How the density stays locked</h2>
+    <ul class="how">
+      <li><strong>One native canvas.</strong> The whole game renders at a fixed low resolution (16-bit: <span class="mono">320×180</span>, 32-bit: <span class="mono">640×360</span>, 64-bit: <span class="mono">1280×720</span>).</li>
+      <li><strong>Whole-number upscaling only.</strong> That canvas is enlarged ×2, ×3, ×4… to fill the screen, never ×2.5. Leftover space becomes a letterbox. Phaser: <span class="mono">pixelArt: true</span>, <span class="mono">roundPixels: true</span>, integer zoom.</li>
+      <li><strong>Every sprite authored on that grid.</strong> No sprite is scaled, rotated or drawn at a sub-pixel position. Bigger creatures get more pixels, not bigger pixels.</li>
+      <li><strong>Every asset made at its final size.</strong> Whether drawn in code (option A) or generated by PixelLab (option E), each sprite is produced at the density it is shown at, with one light direction and outline rule, so 15+ creatures still look like one set.</li>
+    </ul>
+  </section>
+
+  <section class="stack">
+    <div class="stack prose">
+      <span class="eyebrow">The comparison</span>
+      <h2>Same battle, several looks</h2>
+    </div>
+
+    <figure class="plate" style="margin:0">
+      <div class="frame"><img src="{{IMG_BATTLE}}" alt="Current InkHeroes battle: a dark brown field with small painted wolves, a pikeman, an archer and a mounted hero" width="1280" height="720"></div>
+      <figcaption class="caption"><span class="name">Now · painted ink battle <span class="tag now">current</span></span><span class="meta">smooth, any scale</span></figcaption>
+      <p class="note">The units are small and close in tone to the brown ground, so the field reads as one muddy surface. The menu (below) has a richer painting, so the two screens don't feel like one game.</p>
+    </figure>
+
+    <figure class="plate" style="margin:0">
+      <div class="caption"><span class="name">A · Pixel art at three densities</span>
+        <span class="seg" role="group" aria-label="Pixel density">
+          <button type="button" id="d1" data-s="1" aria-pressed="false">16-bit</button>
+          <button type="button" id="d2" data-s="2" aria-pressed="true">32-bit</button>
+          <button type="button" id="d4" data-s="4" aria-pressed="false">64-bit</button>
+        </span></div>
+      <div class="frame"><canvas id="density" aria-label="Pixel-art battle: a knight hero, a griffin stack of 8 and two wolf stacks of 12 and 9 on a green hex field below a castle"></canvas></div>
+      <figcaption class="caption"><span class="meta" id="density-meta"></span><span class="meta">same size on screen, whole-number scale</span></figcaption>
+      <p class="note">Switch densities; the picture stays the same size, only the pixels shrink. The shapes are identical at every density so the comparison is fair. A real 32-bit or 64-bit set would also add detail per creature (faces, mail, feathers), and that extra detail is where most of the extra work goes.</p>
+    </figure>
+
+    <div class="stack">
+      <span class="eyebrow">Close-up: the griffin stack</span>
+      <div class="trio">
+        <figure class="plate" style="margin:0"><div class="frame"><canvas id="zoom1" aria-label="Griffin at 16-bit density"></canvas></div><figcaption class="caption"><span class="name">16-bit</span><span class="meta">1 px per unit</span></figcaption></figure>
+        <figure class="plate" style="margin:0"><div class="frame"><canvas id="zoom2" aria-label="Griffin at 32-bit density"></canvas></div><figcaption class="caption"><span class="name">32-bit</span><span class="meta">2×2 px per unit</span></figcaption></figure>
+        <figure class="plate" style="margin:0"><div class="frame"><canvas id="zoom4" aria-label="Griffin at 64-bit density"></canvas></div><figcaption class="caption"><span class="name">64-bit</span><span class="meta">4×4 px per unit</span></figcaption></figure>
+      </div>
+    </div>
+
+    <div class="specs">
+      <table>
+        <thead><tr><th></th><th>16-bit</th><th>32-bit</th><th>64-bit (hi-bit)</th></tr></thead>
+        <tbody>
+          <tr><td>Native size</td><td>320×180</td><td class="hi">640×360</td><td>1280×720</td></tr>
+          <tr><td>Hero height</td><td>37 px</td><td>74 px</td><td>148 px</td></tr>
+          <tr><td>Shades per colour</td><td>4</td><td>7</td><td>13</td></tr>
+          <tr><td>Colours on screen</td><td id="c1">–</td><td id="c2">–</td><td id="c4">–</td></tr>
+          <tr><td>Scale to 1080p</td><td>×6</td><td class="hi">×3</td><td class="warn">×1.5: breaks the grid</td></tr>
+          <tr><td>Scale to 1440p / 4K</td><td>×8 / ×12</td><td>×4 / ×6</td><td>×2 / ×3</td></tr>
+          <tr><td>Feels like</td><td>SNES and Mega Drive strategy games</td><td>Late 2D console and PC era</td><td>Modern hi-bit indies</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">The 64-bit consoles were 3D, so there is no classic 64-bit pixel art. Here it means modern hi-bit: four times the 16-bit density. At 1280×720 a pixel is barely visible on a phone, and a 1080p screen needs a ×1.5 scale, which breaks the locked grid.</p>
+
+    <figure class="plate" style="margin:0">
+      <div class="frame"><canvas id="inky" aria-label="The same battle in a sepia ink palette, with only the banners in blue and red"></canvas></div>
+      <figcaption class="caption"><span class="name">B · Ink pixel art (16-bit)</span><span class="meta" data-scale="inky"></span></figcaption>
+      <p class="note">The same sprites and code, only the palette swapped: parchment, iron-gall ink, and blue and red washes for the banners. Closest to the 16bit.ink name and the pen-and-ink brand, but neutral monsters and terrain blend together.</p>
+    </figure>
+
+    <figure class="plate" style="margin:0">
+      <div class="frame"><img src="{{IMG_MENU}}" alt="Current InkHeroes menu: an oil-painted valley with a castle under storm clouds and three chapter cards" width="1280" height="720"></div>
+      <figcaption class="caption"><span class="name">Now · painted menu <span class="tag now">current</span></span><span class="meta">for reference</span></figcaption>
+    </figure>
+  </section>
+
+  <section class="stack" id="pixellab">
+    <div class="stack prose">
+      <span class="eyebrow">New · PixelLab test</span>
+      <h2>E · Generated pixel art at three densities</h2>
+      <p class="note">The code-drawn sprites above looked like programmer art, so this is the same battle with every sprite and background made by PixelLab (painterly style, selective outline). Each one is generated at its final size and pasted 1:1 on the grid: nothing scaled, rotated or flipped. The hex grid and count badges are drawn in code, as the game would draw them.</p>
+    </div>
+
+    <figure class="plate" style="margin:0">
+      <div class="caption"><span class="name">E · PixelLab pixel art <span class="tag pick">new</span></span>
+        <span class="seg" role="group" aria-label="PixelLab density">
+          <button type="button" data-pl="16" aria-pressed="false">16-bit</button>
+          <button type="button" data-pl="32" aria-pressed="true">32-bit</button>
+          <button type="button" data-pl="64" aria-pressed="false">64-bit</button>
+        </span></div>
+      <div class="frame"><img class="px" id="pl-img" src="{{IMG_PL32}}" alt="PixelLab battle at 32-bit: a blue knight hero, a griffin stack of 8 and two grey wolf stacks of 12 and 9 on a hex meadow below mountains and a castle" width="640" height="360"></div>
+      <figcaption class="caption"><span class="meta" id="pl-meta"></span><span class="meta">whole-number scale</span></figcaption>
+      <p class="note" id="pl-note"></p>
+    </figure>
+
+    <div class="stack">
+      <span class="eyebrow">Close-up: the griffin, same size on screen</span>
+      <div class="trio">
+        <figure class="plate" style="margin:0"><div class="frame"><img class="px pl-zoom" data-k="4" src="{{IMG_G16}}" alt="Griffin sprite, 48×40 pixels" width="48" height="40"></div><figcaption class="caption"><span class="name">16-bit</span><span class="meta">48×40 · 48 colours</span></figcaption></figure>
+        <figure class="plate" style="margin:0"><div class="frame"><img class="px pl-zoom" data-k="2" src="{{IMG_G32}}" alt="Griffin sprite, 96×80 pixels" width="96" height="80"></div><figcaption class="caption"><span class="name">32-bit</span><span class="meta">96×80 · 72 colours</span></figcaption></figure>
+        <figure class="plate" style="margin:0"><div class="frame"><img class="px pl-zoom" data-k="1" src="{{IMG_G64}}" alt="Griffin sprite, 192×160 pixels" width="192" height="160"></div><figcaption class="caption"><span class="name">64-bit</span><span class="meta">192×160 · 70 colours</span></figcaption></figure>
+      </div>
+    </div>
+
+    <div class="specs">
+      <table>
+        <thead><tr><th></th><th>16-bit</th><th>32-bit</th><th>64-bit (hi-bit)</th></tr></thead>
+        <tbody>
+          <tr><td>Native screen</td><td>320×180</td><td class="hi">640×360</td><td>1280×720 (shown: a 640×360 close-up)</td></tr>
+          <tr><td>Hero / griffin height</td><td>37 / 36 px</td><td>76 / 76 px</td><td>152 / 143 px</td></tr>
+          <tr><td>Colours on screen</td><td>221</td><td>336</td><td>232 (close-up)</td></tr>
+          <tr><td>Generations used</td><td>6 (2 re-rolls)</td><td>5 (1 re-roll)</td><td>5 (1 re-roll)</td></tr>
+          <tr><td>Full background</td><td>1 generation</td><td class="hi">1 generation</td><td class="warn">4+ tiles; one image tops out near 680×384</td></tr>
+          <tr><td>Quality</td><td>Clean, iconic; wolf came out plain</td><td class="hi">Best balance; reads like a finished game</td><td>Richest detail; knight drifts to a 3/4 pose</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="stack prose">
+      <h3>Grid and palette check</h3>
+      <ul class="how">
+        <li><strong>Grid: passes.</strong> All 12 sprites and backgrounds are true 1:1 pixels (no hidden 2×2 blocks), with hard 1-bit edges (no soft alpha), placed at whole-pixel offsets.</li>
+        <li><strong>Palette: not shared.</strong> Each generation brings its own 41–84 colours, so a scene has 220–340. They still look like one set because the prompt fixes the style and light. Forcing one 64-colour palette afterwards ruined the sprites (the griffin turned olive). A real shared palette has to be set at generation time, through PixelLab's palette option on its Pro tools.</li>
+        <li><strong>Consistency took re-rolls.</strong> 4 of 16 images were redone. The first background drew a fake game HUD, the first 16-bit knight lost its blue, the first 16-bit wolf was muddy, and the first 64-bit background turned into a dark forest. The fast model takes no style reference, so the style holds only through the prompt.</li>
+      </ul>
+      <ul class="gen" aria-label="PixelLab spend">
+        <li><b>20 / 40</b>trial generations used, including 6 for the style pick</li>
+        <li><b>1 job</b>at a time on the trial, about 30–90 s each</li>
+        <li><b>~1 h</b>for the whole test, mostly waiting</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="stack" id="roster">
+    <div class="stack prose">
+      <span class="eyebrow">Mythic Civilizations · roster test</span>
+      <h2>Greek faction: myth only, or history + myth?</h2>
+      <p class="note">The same Greek faction two ways, in the option E style at 32-bit. Tiers 4–7 (centaur, minotaur, cyclops, titan) are the same in both, so the real difference is tiers 1–3, which are the units a player sees most in chapter 1. The battle shows an early army (tiers 1–3 plus a minotaur) against the same wolves on the same background.</p>
+    </div>
+
+    <figure class="plate" style="margin:0">
+      <div class="frame"><img class="px fit32" src="{{IMG_GLM}}" alt="Myth-only Greek army: a satyr stack of 20, a harpy stack of 12, a griffin stack of 8 and 3 minotaurs facing two wolf stacks below a Greek temple" width="640" height="360"></div>
+      <figcaption class="caption"><span class="name">Myth only</span><span class="meta">satyr · harpy · griffin · minotaur</span></figcaption>
+    </figure>
+    <figure class="plate" style="margin:0">
+      <div class="frame"><img class="px fit32" src="{{IMG_GLX}}" alt="History-plus-myth Greek army: a slinger stack of 20, a hoplite stack of 12, a Spartan stack of 8 and 3 minotaurs facing two wolf stacks below a Greek temple" width="640" height="360"></div>
+      <figcaption class="caption"><span class="name">History + myth</span><span class="meta">slinger · hoplite · Spartan · minotaur</span></figcaption>
+    </figure>
+
+    <figure class="plate" style="margin:0">
+      <div class="frame"><img class="px fit32" src="{{IMG_LUM}}" alt="Myth-only roster, tiers 1 to 7: satyr, harpy, griffin, centaur (failed), minotaur, cyclops, titan" width="640" height="180"></div>
+      <figcaption class="caption"><span class="name">Myth only, tiers 1–7</span><span class="meta">blue = differs · gold = shared</span></figcaption>
+    </figure>
+    <figure class="plate" style="margin:0">
+      <div class="frame"><img class="px fit32" src="{{IMG_LUX}}" alt="History-plus-myth roster, tiers 1 to 7: slinger, hoplite, Spartan, centaur (failed), minotaur, cyclops, titan" width="640" height="180"></div>
+      <figcaption class="caption"><span class="name">History + myth, tiers 1–7</span><span class="meta">the dimmed centaur failed 3 times</span></figcaption>
+      <p class="note">The centaur failed on every try: both PixelLab models drew a man riding a horse. It's dimmed here and left out of the battle.</p>
+    </figure>
+
+    <div class="specs">
+      <table>
+        <thead><tr><th></th><th>Myth only</th><th>History + myth</th></tr></thead>
+        <tbody>
+          <tr><td>Says "Greece" at a glance</td><td class="warn">No: satyr, harpy and griffin could be any fantasy game</td><td class="hi">Yes: crests, bronze shields, red cloaks</td></tr>
+          <tr><td>Telling stacks apart</td><td class="hi">Easy: walker, flyer, four-legged beast</td><td class="warn">Harder: three bronze men; hoplite and Spartan are near twins</td></tr>
+          <tr><td>Sense of power growth</td><td>Flat: monsters from tier 1</td><td class="hi">Strong: soldiers, then legends</td></tr>
+          <tr><td>Fits "characters are creatures"</td><td class="hi">Yes</td><td>Partly: tiers 1–3 are people</td></tr>
+          <tr><td>Marketing hook</td><td>"Monsters of myth"</td><td class="hi">"Spartans with a cyclops"</td></tr>
+          <tr><td>Right on first try</td><td class="warn">1 of 3 new units (satyr and harpy re-rolled)</td><td class="hi">3 of 3 soldiers</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Across the nine new units, all 3 soldiers came out right the first time. 3 of 6 mythic creatures needed a re-roll or failed outright, and every one of those was a human-animal hybrid. Single-body monsters (minotaur, cyclops, titan) were fine. This test used 15 generations; 5 trial generations are left.</p>
+  </section>
+
+  <section class="stack">
+    <div class="stack prose">
+      <span class="eyebrow">Why it matters</span>
+      <h2>Locked grid vs mixed density</h2>
+      <p class="note">The same three sprites. On the right are the three common mistakes: a sprite drawn at a different size (chunky pixels), one rotated with smoothing (blurry), and one shrunk by a fraction (lost pixels).</p>
+    </div>
+    <div class="pair">
+      <figure class="plate" style="margin:0">
+        <div class="frame"><canvas id="locked" aria-label="Knight, griffin and wolf all on one pixel grid"></canvas></div>
+        <figcaption class="caption"><span class="verdict good">Locked: one grid</span><span class="meta">every sprite ×1</span></figcaption>
+      </figure>
+      <figure class="plate" style="margin:0">
+        <div class="frame"><canvas id="mixed" aria-label="Knight drawn twice as large, griffin rotated and blurred, wolf shrunk with missing pixels"></canvas></div>
+        <figcaption class="caption"><span class="verdict bad">Mixed: three densities</span><span class="meta">×2 · rotated · ×0.75</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="stack">
+    <div class="stack prose">
+      <span class="eyebrow">Other directions</span>
+      <h2>Four options that fit a Heroes-style game</h2>
+    </div>
+    <div class="options">
+      <article class="opt">
+        <span class="letter">A</span>
+        <h3>Pixel art (16, 32 or 64-bit)</h3>
+        <p>The look of the 90s strategy games this genre came from. Units stay readable, and every creature shares one grid, palette and light.</p>
+        <dl><dt>Fit</dt><dd>Strongest for the genre and the 16bit.ink name</dd><dt>Cost</dt><dd>Redraw all art on the grid; more detail per step up</dd></dl>
+      </article>
+      <article class="opt">
+        <span class="letter">B</span>
+        <h3>Ink pixel art</h3>
+        <p>Option A's sprites in sepia, ink and two washes. Looks like an engraved field manual.</p>
+        <dl><dt>Fit</dt><dd>Matches the brand; weaker readability in battle</dd><dt>Cost</dt><dd>Same as A; a palette swap of it</dd></dl>
+      </article>
+      <article class="opt">
+        <span class="letter">C</span>
+        <h3>Woodcut storybook</h3>
+        <p>Bold black contours, flat colour fills and carved hatching, like an illustrated chronicle. No washes or soft gradients.</p>
+        <dl><dt>Fit</dt><dd>Keeps the ink identity, reads like a board game</dd><dt>Cost</dt><dd>Lowest: same vector code, simpler fills</dd></dl>
+      </article>
+      <article class="opt">
+        <span class="letter">D</span>
+        <h3>Tabletop miniatures</h3>
+        <p>Units are painted figures on round bases, the map is a printed game board with tokens, and battles happen on a felt hex mat.</p>
+        <dl><dt>Fit</dt><dd>Natural for turn-based play; most distinct look</dd><dt>Cost</dt><dd>High: needs a strong lighting model</dd></dl>
+      </article>
+      <article class="opt">
+        <span class="letter">E</span>
+        <h3>Generated pixel art (PixelLab)</h3>
+        <p>Option A's locked grid, but every sprite and background comes from PixelLab instead of code. Looks like a finished 90s-style strategy game.</p>
+        <dl><dt>Fit</dt><dd>Strongest look so far; style holds through the prompt only</dd><dt>Cost</dt><dd>~1 generation per still; animation and a shared palette need a paid plan</dd></dl>
+      </article>
+    </div>
+  </section>
+
+  <section class="rec">
+    <span class="eyebrow">Recommendation</span>
+    <h2>Go with E: PixelLab at 32-bit (640×360)</h2>
+    <p>The generated sprites fix what was wrong with option A: they read as real game art. 32-bit is still the right density. A full 640×360 background is a single generation, units have room for faces and armour, and the screen scales by a whole number to 1080p, 1440p and 4K. 16-bit looks great too and would be cheaper to animate, so keep it as the fallback. 64-bit has the richest detail, but a 1280×720 background needs four or more stitched tiles and 1080p screens need a ×1.5 scale.</p>
+    <p>Before redrawing the game, test two open questions on the battle screen: animation (idle, attack and death for three units) and a shared palette set at generation time. Both need a paid PixelLab plan; the trial runs one job at a time and has 20 generations left.</p>
+  </section>
+
+  <section class="stack">
+    <div class="stack prose">
+      <span class="eyebrow">For social media</span>
+      <h2>Four looks in one picture</h2>
+      <p class="note">2568×1598 PNG, saved as <span class="mono">promo/inkheroes-art-styles.png</span> in the repo: the current art, code-drawn 32-bit, PixelLab 16-bit and PixelLab 32-bit. Each panel is 1280×720 at a whole-number scale (×1, ×2, ×4, ×2).</p>
+    </div>
+    <figure class="plate" style="margin:0">
+      <div class="frame"><img src="{{IMG_SOCIAL}}" alt="Four panels: the current painted InkHeroes battle, the code-drawn 32-bit pixel battle, and the PixelLab battle at 16-bit and 32-bit" width="2568" height="1598"></div>
+    </figure>
+  </section>
+</main>
+
+<script>
+{{PIXEL_JS}}
+</script>
+<script>
+(() => {
+  const P = window.InkPixel;
+  const dpr = () => window.devicePixelRatio || 1;
+  const art = { 1: P.makeArt(1), 2: P.makeArt(2), 4: P.makeArt(4) };
+  const native = {};
+  for (const S of [1, 2, 4]) native[S] = P.toCanvas(art[S].battle(), P.themeAt(P.SIXTEEN, S));
+  const inky = P.toCanvas(art[1].battle(), P.INKY);
+  for (const S of [1, 2, 4]) document.getElementById(`c${S}`).textContent = native[S].colourCount;
+
+  // Device pixels available inside a frame.
+  const room = (c) => Math.max(1, (c.parentElement.clientWidth - 20) * dpr());
+
+  // Draws src (or a region of it) at k device pixels per art pixel.
+  function paint(c, src, k, sx = 0, sy = 0, sw = src.width, sh = src.height) {
+    c.width = sw * k; c.height = sh * k;
+    c.style.width = `${(sw * k) / dpr()}px`; c.style.height = `${(sh * k) / dpr()}px`;
+    const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
+    x.drawImage(src, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  }
+
+  let current = 2;
+  function drawDensity() {
+    const c = document.getElementById('density');
+    // m device px per 64-bit pixel, so 16-bit gets 4m and 32-bit 2m: same size on screen.
+    const m = Math.max(1, Math.floor(room(c) / (P.W * 4)));
+    const k = (4 / current) * m;
+    paint(c, native[current], k);
+    document.getElementById('density-meta').textContent = `${P.W * current}×${P.H * current} native · ${native[current].colourCount} colours · ×${k} device px`;
+  }
+  for (const b of document.querySelectorAll('.seg button[data-s]')) {
+    b.addEventListener('click', () => {
+      current = Number(b.dataset.s);
+      for (const o of document.querySelectorAll('.seg button[data-s]')) o.setAttribute('aria-pressed', String(o === b));
+      drawDensity();
+    });
+  }
+
+  function drawZooms() {
+    const [x0, y0, w, h] = [84, 114, 48, 40];
+    const c4 = document.getElementById('zoom4');
+    const m = Math.max(1, Math.floor(room(c4) / (w * 4)));
+    for (const S of [1, 2, 4]) paint(document.getElementById(`zoom${S}`), native[S], (4 / S) * m, x0 * S, y0 * S, w * S, h * S);
+  }
+
+  function drawInky() {
+    const c = document.getElementById('inky');
+    const k = Math.max(1, Math.min(Math.floor(room(c) / P.W), Math.round(6 * dpr())));
+    paint(c, inky, k);
+    document.querySelector('[data-scale="inky"]').textContent = `320×180 native · ×${k} device px`;
+  }
+
+  // Density demo: a strip of grass with the three 16-bit figures.
+  const field = art[1].buf(P.W, P.H); art[1].ground(field);
+  const strip = P.toCanvas(field, P.SIXTEEN);
+  const fig = {
+    knight: P.toCanvas(art[1].FIG.knight, P.SIXTEEN),
+    griffin: P.toCanvas(art[1].FIG.griffin, P.SIXTEEN),
+    wolf: P.toCanvas(art[1].FIG.wolfL, P.SIXTEEN),
+  };
+  const DW = 150, DH = 72;
+  function drawDemo(id, mixed) {
+    const c = document.getElementById(id), k = Math.max(1, Math.min(Math.floor(room(c) / DW), Math.round(5 * dpr())));
+    c.width = DW * k; c.height = DH * k;
+    c.style.width = `${(DW * k) / dpr()}px`; c.style.height = `${(DH * k) / dpr()}px`;
+    const x = c.getContext('2d');
+    x.imageSmoothingEnabled = false;
+    x.fillStyle = P.SIXTEEN.grass[1]; x.fillRect(0, 0, c.width, c.height);
+    x.drawImage(strip, 0, 108, DW, DH, 0, 0, DW * k, DH * k);
+    const put = (img, footX, footY, s) => x.drawImage(img, Math.round((footX - (img.width * s) / 2) * k), Math.round((footY - img.height * s) * k), img.width * s * k, img.height * s * k);
+    if (!mixed) {
+      put(fig.knight, 22, 64, 1); put(fig.griffin, 72, 64, 1); put(fig.wolf, 124, 60, 1);
+      return;
+    }
+    put(fig.knight, 24, 70, 2);
+    x.save();
+    x.imageSmoothingEnabled = true;
+    x.translate(76 * k, 50 * k); x.rotate(-0.22);
+    x.drawImage(fig.griffin, (-fig.griffin.width / 2) * k, (-fig.griffin.height / 2) * k, fig.griffin.width * k, fig.griffin.height * k);
+    x.restore();
+    // Shrunk by 0.75 on a whole-pixel grid: some rows and columns simply vanish.
+    const s = 0.75, w = Math.round(fig.wolf.width * s), h = Math.round(fig.wolf.height * s);
+    const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = h;
+    const t = tmp.getContext('2d'); t.imageSmoothingEnabled = false; t.drawImage(fig.wolf, 0, 0, w, h);
+    x.drawImage(tmp, Math.round((126 - w / 2) * k), Math.round((60 - h) * k), w * k, h * k);
+  }
+
+  function draw() { drawDensity(); drawZooms(); drawInky(); drawDemo('locked', false); drawDemo('mixed', true); }
+  draw();
+  let t;
+  addEventListener('resize', () => { clearTimeout(t); t = setTimeout(draw, 120); });
+})();
+</script>
+<script>
+// PixelLab section: whole-number scale only, sized so all three densities match on screen.
+(() => {
+  const SRC = { 16: '{{IMG_PL16}}', 32: '{{IMG_PL32}}', 64: '{{IMG_PL64}}' };
+  const INFO = {
+    16: { k: 2, meta: '320×180 native · 221 colours', note: 'The whole screen at 16-bit. Clean and iconic, like a SNES strategy game; the wolf came out plainer than the other two units.' },
+    32: { k: 1, meta: '640×360 native · 336 colours', note: 'The whole screen at 32-bit. The background is one generation, and the units have room for faces, armour and fur.' },
+    64: { k: 1, meta: '640×360 close-up of a 1280×720 screen · 232 colours', note: 'A quarter of the 64-bit screen (griffin and the first wolf stack). One image tops out near 680×384, so a full 1280×720 background would need four or more tiles.' },
+  };
+  const dpr = () => window.devicePixelRatio || 1;
+  const img = document.getElementById('pl-img');
+  let cur = 32;
+  // m device px per 32-bit pixel; 16-bit gets 2m, so the battle keeps its size.
+  function draw() {
+    const room = Math.max(1, (img.parentElement.clientWidth - 20) * dpr());
+    const m = Math.max(1, Math.floor(room / 640));
+    const k = INFO[cur].k * m;
+    const w = cur === 16 ? 320 : 640, h = cur === 16 ? 180 : 360;
+    img.style.width = `${(w * k) / dpr()}px`; img.style.height = `${(h * k) / dpr()}px`;
+    document.getElementById('pl-meta').textContent = `${INFO[cur].meta} · ×${k} device px`;
+    document.getElementById('pl-note').textContent = INFO[cur].note;
+    for (const f of document.querySelectorAll('.fit32')) {
+      const fk = Math.max(1, Math.floor(((f.parentElement.clientWidth - 20) * dpr()) / 640));
+      f.style.width = `${(640 * fk) / dpr()}px`;
+      f.style.height = `${(Number(f.getAttribute('height')) * fk) / dpr()}px`;
+    }
+    for (const z of document.querySelectorAll('.pl-zoom')) {
+      const zk = Number(z.dataset.k) * Math.max(1, Math.floor(((z.parentElement.clientWidth - 20) * dpr()) / 192));
+      z.style.width = `${(z.naturalWidth || z.width) * zk / dpr()}px`;
+      z.style.height = `${(z.naturalHeight || z.height) * zk / dpr()}px`;
+    }
+  }
+  for (const b of document.querySelectorAll('.seg button[data-pl]')) {
+    b.addEventListener('click', () => {
+      cur = Number(b.dataset.pl);
+      for (const o of document.querySelectorAll('.seg button[data-pl]')) o.setAttribute('aria-pressed', String(o === b));
+      img.src = SRC[cur];
+      img.alt = img.alt.replace(/at \d+-bit/, `at ${cur}-bit`);
+      draw();
+    });
+  }
+  draw();
+  let t;
+  addEventListener('resize', () => { clearTimeout(t); t = setTimeout(draw, 120); });
+})();
+</script>
