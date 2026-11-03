@@ -1,20 +1,15 @@
 import Phaser from 'phaser';
 import type { Stack } from '../../logic/battleTypes';
-import { PX_TEX, unitArt } from './pixelAssets';
+import { faceOf, PX_TEX, unitArt } from './pixelAssets';
 import { drawPortrait, EDGE, FACE, RIMS, SLOT, SLOT_GAP, type RimName } from './pixelFrames';
 import { PixelBuffer } from './pixelRaster';
 import type { Pixels } from './pixelScenery';
-import { putBuffer, texturePixels } from './pixelUi';
+import { putBuffer } from './pixelUi';
 
 /** The active unit's marker under its portrait: a small gold arrow, this tall. */
 const MARKER_H = 4;
 
-/** The square of the idle frame round the face (the frame's middle if the art has no face point). */
-function faceCrop(scene: Phaser.Scene, creature: string): Pixels {
-  const art = unitArt(creature);
-  const c = art.face ?? { x: Math.floor(art.w / 2), y: Math.floor(art.h / 3) };
-  return texturePixels(scene, PX_TEX.unit(creature, 'idle'), { x: c.x - FACE / 2, y: c.y - FACE / 2, w: FACE, h: FACE });
-}
+const faceCrop = (scene: Phaser.Scene, creature: string): Pixels => faceOf(scene, PX_TEX.unit(creature, 'idle'), unitArt(creature));
 
 /** The gold arrow under the active portrait, pointing up at it, outlined. */
 function drawMarker(): PixelBuffer {

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { ICONS, SPELL_ICONS, STAT_ICONS, type IconName, type StatName } from '../../art/pixel/ui';
+import { ICONS, LAUREL, RESOURCE_ICONS, SPELL_ICONS, STAT_ICONS, type IconName, type StatName } from '../../art/pixel/ui';
+import type { Resource } from '../../logic/resources';
 import type { SpellId } from '../../logic/spells';
 import { drawFrame, FILLS, type FrameLook, type RimName } from './pixelFrames';
 import type { PixelBuffer, Rgba } from './pixelRaster';
@@ -19,6 +20,8 @@ export const UI_TEX = {
   icon: (i: IconName) => `pxui-icon-${i}`,
   stat: (s: StatName) => `pxui-stat-${s}`,
   spell: (s: SpellId) => `pxui-spell-${s}`,
+  res: (r: Resource) => `pxui-res-${r}`,
+  laurel: 'pxui-laurel',
 } as const;
 
 /** Text colours: the body's warm cream, the titles' gold, and the shared dark outline. */
@@ -40,6 +43,8 @@ export function loadUiArt(scene: Phaser.Scene): string[] {
     ...(Object.entries(ICONS) as [IconName, string][]).map(([n, url]): [string, string] => [UI_TEX.icon(n), url]),
     ...(Object.entries(STAT_ICONS) as [StatName, string][]).map(([n, url]): [string, string] => [UI_TEX.stat(n), url]),
     ...(Object.entries(SPELL_ICONS) as [SpellId, string][]).map(([n, url]): [string, string] => [UI_TEX.spell(n), url]),
+    ...(Object.entries(RESOURCE_ICONS) as [Resource, string][]).map(([n, url]): [string, string] => [UI_TEX.res(n), url]),
+    [UI_TEX.laurel, LAUREL],
   ];
   for (const [key, url] of all) if (!scene.textures.exists(key)) scene.load.image(key, url);
   return all.map(([key]) => key);

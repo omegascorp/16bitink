@@ -12,7 +12,7 @@ await server.listen();
 const browser = await chromium.launch({ channel: 'chrome' });
 try {
   const base = server.resolvedUrls.local[0].replace(/\/$/, '');
-  const page = await browser.newPage({ viewport: { width: Number(width), height: Number(height) } });
+  const page = await browser.newPage({ viewport: { width: Number(width), height: Number(height) }, deviceScaleFactor: Number(process.env.DPR ?? 1) });
   page.on('pageerror', (e) => console.error('pageerror', e.message));
   page.on('console', (m) => { if (m.type() === 'error') console.error('console', m.text()); });
   await page.goto(`${base}/index.html?reset`);

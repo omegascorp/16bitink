@@ -1,8 +1,5 @@
-import { runInSlices } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
-import { TILE } from '../art/terrain';
-import { chunkJobs, dropChunks, heroFigure, poseJobs } from '../art/textures';
 import { getSound } from '../host';
 import { gridOf, guardAt, isSeen, objectCovering, planPath, stepHero, type Adventure } from '../logic/adventure';
 import { creature, sizeWord } from '../logic/creatures';
@@ -10,17 +7,22 @@ import { MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
 import type { PathStep } from '../logic/path';
 import { SPELLS } from '../logic/spells';
 import { openPrompt } from './cards';
-import { DPR, screenZoom, toView } from './hidpi';
-import { MapWorld } from './map/mapWorld';
+import { DPR, toView } from './hidpi';
+import { loadMapArt } from './map/pixelMapArt';
+import { PixelMapWorld } from './map/pixelMapWorld';
+import { GROUND_BORDER, MAP_TILE as TILE } from './map/pixelGround';
+import { pixelZoom } from './pixelScreen';
 import { Session } from './session';
 import { loadingText } from './ui';
 
 /** A press that moves further than this (CSS px) is a drag, not a tap. */
 const DRAG = 8;
-/** A tile's size on screen, CSS px: about an eighth of the screen's short side, within these bounds. */
-const TILE_PX = { min: 34, max: 60 } as const;
 /** Milliseconds a hero takes per 100 movement points. */
 const STEP_MS = 150;
+/** How far the zoom may step from the screen's own pixel size, either way. */
+const ZOOM_STEPS = 1;
+/** A pinch must grow or shrink the finger gap this much to step the zoom. */
+const PINCH_STEP = 1.35;
 
 /**
  * The adventure map: the painted ground, sites, monsters and the hero.
@@ -29,11 +31,15 @@ const STEP_MS = 150;
  */
 export class MapScene extends Phaser.Scene {
   private session!: Session;
-  private world!: MapWorld;
+  private world!: PixelMapWorld;
+  /** Device pixels per art pixel: a whole number, so the art stays on its grid. */
+  private k = 2;
+  /** The world point at the middle of the screen; the camera scrolls by whole pixels round it. */
+  private view = { x: 0, y: 0 };
   private path: PathStep[] | null = null;
   private walking = false;
   private press: { x: number; y: number; sx: number; sy: number; moved: boolean } | null = null;
-  private pinch: { dist: number; zoom: number } | null = null;
+  private pinch: { dist: number; k: number } | null = null;
   private ready = false;
 
   constructor() {
@@ -47,15 +53,10 @@ export class MapScene extends Phaser.Scene {
     this.walking = false;
     this.cameras.main.setBackgroundColor(BACKDROP);
     const label = loadingText(this, 0, 0, 'unrolling the map…', 30);
-    this.cameras.main.centerOn(0, 0).setZoom(DPR);
-    dropChunks(this, this.session.def.id);
-    // The map's ground, the hero's gallop for riding across it, and everyone's idle loop.
+    this.cameras.main.setOrigin(0.5).centerOn(0, 0).setZoom(DPR);
+    // The map's art, the hero's ride and everyone's idle loop.
     const monsters = [...new Set(this.session.def.objects.flatMap((o) => (o.kind === 'monster' && o.creature ? [o.creature] : [])))];
-    void runInSlices([
-      ...chunkJobs(this, this.session.def),
-      ...poseJobs(this, [heroFigure('player')], ['idle', 'walk']),
-      ...poseJobs(this, monsters, ['idle']),
-    ]).then(() => {
+    void loadMapArt(this, monsters).then(() => {
       // The scene may have been left while its ground was painting.
       if (!this.sys.isActive()) return;
       label.destroy();
@@ -65,11 +66,9 @@ export class MapScene extends Phaser.Scene {
 
   private build(): void {
     const { def } = this.session;
-    const g = gridOf(def);
-    this.world = new MapWorld(this, def, this.session.adv);
-    const cam = this.cameras.main;
-    cam.setBounds(-TILE * 2, -TILE * 2, (g.w + 4) * TILE, (g.h + 4) * TILE);
-    this.fitZoom();
+    this.world = new PixelMapWorld(this, def, this.session.adv);
+    this.cameras.main.setOrigin(0).setRoundPixels(true);
+    this.k = pixelZoom(this.scale);
     this.centreOnHero();
     this.scale.on('resize', this.fitZoom, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', this.fitZoom, this));
@@ -87,25 +86,35 @@ export class MapScene extends Phaser.Scene {
     if (this.ready) this.world.update(delta);
   }
 
-  /** A zoom that shows a sensible number of tiles on any screen, keeping the same spot in the middle. */
+  /** A new screen keeps the same spot in the middle at the screen's own pixel size. */
   private fitZoom(): void {
-    const cam = this.cameras.main;
-    const mid = { x: cam.midPoint.x, y: cam.midPoint.y };
-    const short = Math.min(this.scale.width, this.scale.height) / DPR;
-    const px = Phaser.Math.Clamp(short / 8, TILE_PX.min, TILE_PX.max);
-    cam.setZoom(Math.max(this.minZoom(), (px / TILE) * DPR));
-    if (this.ready) cam.centerOn(mid.x, mid.y);
+    this.k = pixelZoom(this.scale);
+    this.applyView();
   }
 
-  /** Never zoom out past the whole map. */
-  private minZoom(): number {
+  /** The zooms allowed on this screen, device pixels per art pixel. */
+  private zoomRange(): { min: number; max: number } {
+    const base = pixelZoom(this.scale);
+    return { min: Math.max(1, base - ZOOM_STEPS), max: base + ZOOM_STEPS };
+  }
+
+  /** Points the camera at `view` (kept inside the map and its border), scrolled by whole art pixels. */
+  private applyView(): void {
     const g = gridOf(this.session.def);
-    return Math.min(this.scale.width / ((g.w + 4) * TILE), this.scale.height / ((g.h + 4) * TILE));
+    const cam = this.cameras.main;
+    const vw = this.scale.width / this.k;
+    const vh = this.scale.height / this.k;
+    const lo = -GROUND_BORDER * TILE;
+    const span = { w: (g.w + GROUND_BORDER * 2) * TILE, h: (g.h + GROUND_BORDER * 2) * TILE };
+    const clamp = (v: number, size: number, view: number): number => (view >= size ? lo + size / 2 : Phaser.Math.Clamp(v, lo + view / 2, lo + size - view / 2));
+    this.view = { x: clamp(this.view.x, span.w, vw), y: clamp(this.view.y, span.h, vh) };
+    cam.setZoom(this.k).setScroll(Math.round(this.view.x - vw / 2), Math.round(this.view.y - vh / 2));
   }
 
   centreOnHero(): void {
     const h = this.session.adv.hero;
-    this.cameras.main.centerOn((h.x + 0.5) * TILE, (h.y + 0.5) * TILE);
+    this.view = { x: (h.x + 0.5) * TILE, y: (h.y + 0.5) * TILE };
+    this.applyView();
   }
 
   private wireInput(): void {
@@ -114,12 +123,12 @@ export class MapScene extends Phaser.Scene {
       const pointers = this.input.manager.pointers.filter((q) => q.isDown);
       if (pointers.length >= 2) {
         const [a, b] = pointers;
-        this.pinch = { dist: Phaser.Math.Distance.Between(a!.x, a!.y, b!.x, b!.y), zoom: this.cameras.main.zoom };
+        this.pinch = { dist: Phaser.Math.Distance.Between(a!.x, a!.y, b!.x, b!.y), k: this.k };
         this.press = null;
         return;
       }
       const v = toView(p.x, p.y);
-      this.press = { x: v.x, y: v.y, sx: this.cameras.main.scrollX, sy: this.cameras.main.scrollY, moved: false };
+      this.press = { x: v.x, y: v.y, sx: this.view.x, sy: this.view.y, moved: false };
     });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       if (this.pinch) {
@@ -127,7 +136,8 @@ export class MapScene extends Phaser.Scene {
         if (pointers.length >= 2) {
           const [a, b] = pointers;
           const d = Phaser.Math.Distance.Between(a!.x, a!.y, b!.x, b!.y);
-          this.zoomTo(this.pinch.zoom * (d / this.pinch.dist));
+          const steps = Math.round(Math.log(d / this.pinch.dist) / Math.log(PINCH_STEP));
+          this.zoomTo(this.pinch.k + steps);
         }
         return;
       }
@@ -138,8 +148,9 @@ export class MapScene extends Phaser.Scene {
       const v = toView(p.x, p.y);
       if (!this.press.moved && Math.hypot(v.x - this.press.x, v.y - this.press.y) > DRAG) this.press.moved = true;
       if (this.press.moved) {
-        const z = screenZoom(this.cameras.main);
-        this.cameras.main.setScroll(this.press.sx - (v.x - this.press.x) / z, this.press.sy - (v.y - this.press.y) / z);
+        const z = this.k / DPR;
+        this.view = { x: this.press.sx - (v.x - this.press.x) / z, y: this.press.sy - (v.y - this.press.y) / z };
+        this.applyView();
       }
     });
     const release = (p: Phaser.Input.Pointer): void => {
@@ -156,7 +167,7 @@ export class MapScene extends Phaser.Scene {
     this.input.on('pointerup', release);
     this.input.on('pointerupoutside', release);
     this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => {
-      if (!this.blocked()) this.zoomTo(this.cameras.main.zoom * (dy > 0 ? 0.9 : 1.1));
+      if (!this.blocked()) this.zoomTo(this.k + (dy > 0 ? -1 : 1));
     });
     const kb = this.input.keyboard;
     kb?.on('keydown-SPACE', () => !this.blocked() && this.events.emit('end-day'));
@@ -164,9 +175,13 @@ export class MapScene extends Phaser.Scene {
     kb?.on('keydown-H', () => this.centreOnHero());
   }
 
-  private zoomTo(z: number): void {
-    const max = 2.4 * DPR;
-    this.cameras.main.setZoom(Phaser.Math.Clamp(z, this.minZoom(), max));
+  /** Steps to zoom `k` (whole, within the range), keeping the middle of the screen where it is. */
+  private zoomTo(k: number): void {
+    const r = this.zoomRange();
+    const next = Phaser.Math.Clamp(Math.round(k), r.min, r.max);
+    if (next === this.k) return;
+    this.k = next;
+    this.applyView();
   }
 
   /** Map input waits while the hero walks or a card, the town or a battle is open. */
@@ -274,12 +289,16 @@ export class MapScene extends Phaser.Scene {
     this.showPrompts();
   }
 
+  /** Glides the view to the hero when the hero nears the screen's edge. */
   private followHero(): void {
-    const cam = this.cameras.main;
-    const h = this.world.hero;
-    const view = cam.worldView;
-    const margin = Math.min(view.width, view.height) * 0.25;
-    if (h.x < view.x + margin || h.x > view.right - margin || h.y < view.y + margin || h.y > view.bottom - margin) cam.pan(h.x, h.y, 300, 'Sine.easeInOut');
+    const h = this.world.heroFeet;
+    const vw = this.scale.width / this.k;
+    const vh = this.scale.height / this.k;
+    const margin = Math.min(vw, vh) * 0.25;
+    const dx = Math.abs(h.x - this.view.x);
+    const dy = Math.abs(h.y - this.view.y);
+    if (dx < vw / 2 - margin && dy < vh / 2 - margin) return;
+    this.tweens.add({ targets: this.view, x: h.x, y: h.y, duration: 300, ease: 'Sine.easeInOut', onUpdate: () => this.applyView() });
   }
 
   startBattle(monsterId: string, then?: string): void {
@@ -298,6 +317,7 @@ export class MapScene extends Phaser.Scene {
 
   /** Called by the battle and the town when they close. */
   back(): void {
+    this.events.emit('status', '');
     this.scene.wake();
     this.scene.wake('MapHud');
     this.world.sync(this.session.adv);

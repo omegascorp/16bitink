@@ -5,7 +5,9 @@ import type { BackdropSource } from './pixelBackdrop';
 import type { PixelBuffer, Rgba } from './pixelRaster';
 import { drawBadge } from './pixelRaster';
 import { loadUiFont } from './pixelFont';
-import { loadUiArt } from './pixelUi';
+import { loadUiArt, texturePixels } from './pixelUi';
+import { FACE } from './pixelFrames';
+import type { Pixels } from './pixelScenery';
 
 /**
  * The pixel battle's textures: the manifest's PNG strips and backgrounds
@@ -31,6 +33,12 @@ export const PX_TEX = {
 /** The art for a creature, or the first one as a stand-in (an id the manifest doesn't know yet). */
 export function unitArt(id: string): UnitArt {
   return UNIT_ART[id] ?? Object.values(UNIT_ART)[0]!;
+}
+
+/** The FACE square of an idle strip's first frame round the art's face point (the frame's upper middle if it has none). */
+export function faceOf(scene: Phaser.Scene, key: string, art: UnitArt): Pixels {
+  const c = art.face ?? { x: Math.floor(art.w / 2), y: Math.floor(art.h / 3) };
+  return texturePixels(scene, key, { x: c.x - FACE / 2, y: c.y - FACE / 2, w: FACE, h: FACE });
 }
 
 /** The battle hero's art (both sides use the player's for now). */
