@@ -3,6 +3,7 @@
 // Every frame strip is `frames` frames of w x h laid left to right, facing right.
 // footX/footY: the pixel under the unit's feet, which goes on the hex centre.
 // strike: the attack frame where the blow lands or the shot leaves; shotFrom: projectile start.
+// face: the centre of the unit's face in its idle frame, for the turn order's portrait.
 import spearmanIdle from './units/spearman-idle.png?url';
 import spearmanWalk from './units/spearman-walk.png?url';
 import spearmanAttack from './units/spearman-attack.png?url';
@@ -63,6 +64,8 @@ export interface UnitArt {
   readonly strike: number;
   readonly shotFrom?: { readonly x: number; readonly y: number };
   readonly flies?: boolean;
+  /** The centre of the face in the idle frame: the turn order's portrait is cut round it. */
+  readonly face?: { readonly x: number; readonly y: number };
   readonly url: Readonly<Record<Pose, string>>;
 }
 
@@ -79,64 +82,76 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
   spearman: {
     name: 'Hoplite', w: 96, h: 96, footX: 30, footY: 90,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 35, y: 36 },
     url: { idle: spearmanIdle, walk: spearmanWalk, attack: spearmanAttack },
   },
   bowman: {
     name: 'Slinger', w: 96, h: 96, footX: 33, footY: 90,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
     shotFrom: { x: 70, y: 48 },
+    face: { x: 40, y: 41 },
     url: { idle: bowmanIdle, walk: bowmanWalk, attack: bowmanAttack },
   },
   griffin: {
     name: 'Griffin', w: 128, h: 112, footX: 52, footY: 106,
     frames: { idle: 4, walk: 4, attack: 8 }, strike: 3,
     flies: true,
+    face: { x: 88, y: 62 },
     url: { idle: griffinIdle, walk: griffinWalk, attack: griffinAttack },
   },
   swordsman: {
     name: 'Minotaur', w: 112, h: 112, footX: 53, footY: 106,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 63, y: 40 },
     url: { idle: swordsmanIdle, walk: swordsmanWalk, attack: swordsmanAttack },
   },
   monk: {
     name: 'Centaur', w: 128, h: 112, footX: 50, footY: 106,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
     shotFrom: { x: 96, y: 50 },
+    face: { x: 65, y: 41 },
     url: { idle: monkIdle, walk: monkWalk, attack: monkAttack },
   },
   lancer: {
     name: 'Companion', w: 128, h: 112, footX: 58, footY: 106,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
+    face: { x: 60, y: 37 },
     url: { idle: lancerIdle, walk: lancerWalk, attack: lancerAttack },
   },
   seraph: {
     name: 'Titan', w: 144, h: 136, footX: 62, footY: 128,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 66, y: 39 },
     url: { idle: seraphIdle, walk: seraphWalk, attack: seraphAttack },
   },
   goblin: {
     name: 'Satyr', w: 96, h: 96, footX: 38, footY: 90,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 39, y: 41 },
     url: { idle: goblinIdle, walk: goblinWalk, attack: goblinAttack },
   },
   skeleton: {
     name: 'Spartoi', w: 96, h: 96, footX: 39, footY: 90,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 48, y: 39 },
     url: { idle: skeletonIdle, walk: skeletonWalk, attack: skeletonAttack },
   },
   wolf: {
     name: 'Wolf', w: 112, h: 96, footX: 46, footY: 90,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 81, y: 48 },
     url: { idle: wolfIdle, walk: wolfWalk, attack: wolfAttack },
   },
   bandit: {
     name: 'Brigand', w: 96, h: 96, footX: 37, footY: 90,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
+    face: { x: 56, y: 38 },
     url: { idle: banditIdle, walk: banditWalk, attack: banditAttack },
   },
   ogre: {
     name: 'Cyclops', w: 128, h: 120, footX: 57, footY: 112,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 55, y: 45 },
     url: { idle: ogreIdle, walk: ogreWalk, attack: ogreAttack },
   },
 };
@@ -146,6 +161,7 @@ export const HERO_ART: Readonly<Record<string, UnitArt>> = {
   player: {
     name: 'Strategos', w: 144, h: 136, footX: 55, footY: 130,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 59, y: 29 },
     url: { idle: hero_playerIdle, walk: hero_playerWalk, attack: hero_playerAttack },
   },
 };

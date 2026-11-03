@@ -9,6 +9,7 @@ import { startAdventure } from '../src/logic/adventure';
 import { armyOf } from '../src/logic/army';
 import { CREATURE_IDS, type CreatureId } from '../src/logic/creatures';
 import { toBattleHero } from '../src/logic/hero';
+import { SPELL_IDS } from '../src/logic/spells';
 import type { Pose } from '../src/art/pixel/manifest';
 import { BattleScene, type SandboxBattle } from '../src/scenes/BattleScene';
 import { CardScene } from '../src/scenes/CardScene';
@@ -35,7 +36,9 @@ function army(spec: string | null, fallback: string): ReturnType<typeof armyOf> 
 }
 
 const anim = q.get('anim');
-const hero = toBattleHero(startAdventure(ASHFORD).hero);
+const startHero = toBattleHero(startAdventure(ASHFORD).hero);
+// ?spells=all gives the hero every spell and mana to spare (to review the spellbook).
+const hero = q.get('spells') === 'all' ? { ...startHero, spells: [...SPELL_IDS], mana: 40 } : startHero;
 const heroes = flag('hero', true);
 const sandbox: SandboxBattle = {
   attacker: { hero, army: army(q.get('a'), 'spearman:20,bowman:12,griffin:8,swordsman:3') },

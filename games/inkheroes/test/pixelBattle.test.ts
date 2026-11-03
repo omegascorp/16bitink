@@ -91,6 +91,12 @@ describe('world fit', () => {
     expect(fitWorld(1400, 900)).toMatchObject({ k: 1, x: 220, y: 180 });
   });
 
+  it('can stand the world on the bottom edge, the spare height above it', () => {
+    const f = fitWorld(3024, 1502, 'bottom');
+    expect(f).toMatchObject({ k: 2, x: 552, y: 422, margin: { top: 211, bottom: 0 } });
+    expect(f.y + WORLD.h * f.k).toBe(1502);
+  });
+
   it('snaps the offset to whole native pixels and covers the whole canvas', () => {
     for (const [w, h] of [[2576, 1279], [1921, 1083], [1280, 720], [844, 390], [390, 844]] as const) {
       const f = fitWorld(w, h);

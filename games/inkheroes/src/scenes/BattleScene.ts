@@ -1,8 +1,4 @@
 import Phaser from 'phaser';
-import { CREATURE_RES, FRAME_H, GROUND_Y } from '../art/creatures/types';
-import { BANNER, UI, UI_HEX } from '../art/palette';
-import type { PlateKind } from '../art/uiArtParts';
-import { TEX } from '../art/textures';
 import { getSound } from '../host';
 import { afterBattle, battleSides, gridOf } from '../logic/adventure';
 import { act, activeStack, alive, canShoot, createBattle, experienceFor, moveHeadFor, occupiableHexes, stackAt, strikeFrom, strikeOptions, type BattleSide, type StrikeOption } from '../logic/battle';
@@ -15,27 +11,19 @@ import { footprintAt, isWide, occupiedHexes, shotDistance } from '../logic/footp
 import type { Hex } from '../logic/hex';
 import { tileIndex } from '../logic/map';
 import { SPELLS, type SpellId } from '../logic/spells';
-import { openCard } from './CardScene';
 import { BattleCameras } from './battle/battleCameras';
 import { BattleCursors, swordDir, type CursorKind } from './battle/battleCursors';
+import { BattleHud } from './battle/battleHud';
 import { BattleView, type ViewOpts } from './battle/battleView';
-import { unitCardSpec } from './battle/unitCard';
-import { loadBattleArt } from './battle/pixelAssets';
-import { FIELD_RECT, hexAtPx, hexPx } from './battle/pixelLayout';
+import { unitInfo } from './battle/unitCard';
+import { backdropSource, loadBattleArt } from './battle/pixelAssets';
+import { texturePixels } from './battle/pixelUi';
+import { hexAtPx, hexPx } from './battle/pixelLayout';
 import { crispText, viewSize } from './hidpi';
 import type { MapScene } from './MapScene';
 import { Session } from './session';
 import { loadingText } from './ui';
-import { paintedButton, title } from './uiPaint';
 
-/** The action bar with the turn order over the buttons, below the field when the screen has that much spare height, CSS px. */
-const BAR_H = 96;
-/** The turn order's height (its portraits stand over their discs), CSS px. */
-const ORDER_ROW = 44;
-const BTN = { w: 108, h: 42, gap: 8 } as const;
-/** Turn-order slots: spacing, and how many at most. */
-const ORDER_STEP = 44;
-const ORDER_MAX = 9;
 /** Pause before an AI unit acts, so the player can follow. */
 const AI_DELAY = 380;
 
@@ -83,8 +71,7 @@ export class BattleScene extends Phaser.Scene {
   private sandbox: SandboxBattle | null = null;
   private cams!: BattleCameras;
   private cursors!: BattleCursors;
-  /** How many turn-order slots fit the bar as laid out. */
-  private orderMax = ORDER_MAX;
+  private hud!: BattleHud;
   private monsterId = '';
   private then: string | undefined;
   private state!: BattleState;
@@ -97,11 +84,6 @@ export class BattleScene extends Phaser.Scene {
   private auto = false;
   private casting: SpellId | null = null;
   private pending: string | null = null;
-  private status!: Phaser.GameObjects.Text;
-  private order!: Phaser.GameObjects.Container;
-  private bar!: Phaser.GameObjects.Container;
-  private buttons: Phaser.GameObjects.Container[] = [];
-  private autoBtn!: Phaser.GameObjects.Container;
 
   constructor() {
     super('Battle');
@@ -147,11 +129,17 @@ export class BattleScene extends Phaser.Scene {
 
   /** Lays out the field and the bar, wires the input and starts the first turn. */
   private begin(terrain: string, seed: number, heroes: readonly [boolean, boolean]): void {
-    this.view = new BattleView(this, this.cams, this.state, terrain, seed, heroes, this.sandbox?.view);
+    this.hud = new BattleHud(this, this.cams, {
+      wait: () => this.playerAct({ type: 'wait' }),
+      defend: () => this.playerAct({ type: 'defend' }),
+      spell: () => this.openSpells(),
+      auto: () => this.toggleAuto(),
+    });
+    this.hud.setAuto(this.auto);
+    const src = backdropSource(terrain, seed);
+    if ('scenery' in src) this.hud.setScenery({ atlas: texturePixels(this, src.atlasKey), art: src.scenery, seed });
+    this.view = new BattleView(this, this.cams, this.state, terrain, seed, heroes, (x, y, text, ink, big) => this.hud.float(x, y, text, ink, big), this.sandbox?.view);
     this.live = true;
-    this.status = title(this, 0, 4, '', 18, { color: UI.text }).setOrigin(0.5, 0);
-    this.cams.hud.add(this.status);
-    this.buildBar();
     this.layout();
     this.scale.on('resize', this.layout, this);
     this.cursors = new BattleCursors(this.game.canvas);
@@ -159,10 +147,14 @@ export class BattleScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off('resize', this.layout, this);
       this.view.destroy();
+      this.hud.destroy();
       this.cursors.reset();
     });
-    this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.hover(p));
-    this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.tap(p));
+    // A pointer over a button (or a card) is the interface's, not the field's.
+    this.input.on('pointermove', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => (over.length ? this.cursors.set(null) : this.hover(p)));
+    this.input.on('pointerup', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
+      if (!over.length) this.tap(p);
+    });
     const kb = this.input.keyboard;
     kb?.on('keydown-W', () => this.playerAct({ type: 'wait' }));
     kb?.on('keydown-D', () => this.playerAct({ type: 'defend' }));
@@ -173,7 +165,7 @@ export class BattleScene extends Phaser.Scene {
       this.drawOrder();
       this.marks();
       const a = activeStack(this.state);
-      if (a) this.status.setText(`${creature(a.creature).plural} (${a.count})`);
+      if (a) this.hud.setStatus(`${creature(a.creature).plural} (${a.count})`);
       this.sandbox.onReady?.();
       return;
     }
@@ -189,60 +181,12 @@ export class BattleScene extends Phaser.Scene {
     if (this.live) this.view.update(delta);
   }
 
-  /**
-   * The pixel world at its whole-number zoom, centred. With room to spare
-   * below it (a phone held upright) the bar goes there, the turn order over
-   * the buttons; otherwise the buttons stand in the field's lower side
-   * margins under the heroes, as in Heroes 3, and the turn order and the
-   * messages go in the backdrop band over the field.
-   */
+  /** The pixel world at its whole-number zoom, centred, its background to the canvas's edges, and the interface round it. */
   private layout(): void {
     this.cams.refit();
     this.view.fitBackdrop();
-    const v = viewSize(this);
-    const r = this.cams.rect();
-    if (v.height - (r.y + r.h) >= BAR_H) {
-      this.status.setPosition(v.width / 2, r.y >= 28 ? r.y - 26 : 2);
-      const y = Math.min(r.y + r.h + 4 + BAR_H / 2, v.height - BAR_H / 2);
-      this.bar.setPosition(v.width / 2, y).setScale(Math.min(1, v.width / 760));
-      [-300, -180, -60, 240].forEach((x, i) => this.buttons[i]!.setPosition(x, 22).setScale(1));
-      this.order.setPosition(0, -22).setScale(1);
-      this.orderMax = ORDER_MAX;
-    } else {
-      this.status.setPosition(v.width / 2, r.y + 2);
-      this.bar.setPosition(0, 0).setScale(1);
-      // Each lower corner of the screen, between its edge and the field's, under the hero.
-      const zone = r.x + FIELD_RECT.x * r.k;
-      const s = Phaser.Math.Clamp((zone - 8) / BTN.w, 0.6, 1);
-      const bottom = v.height - 8;
-      const half = Math.ceil(this.buttons.length / 2);
-      this.buttons.forEach((b, i) => {
-        const right = i >= half;
-        const row = right ? this.buttons.length - 1 - i : half - 1 - i;
-        const y = bottom - (BTN.h / 2 + row * (BTN.h + BTN.gap)) * s;
-        b.setPosition(right ? v.width - zone / 2 : zone / 2, y).setScale(s);
-      });
-      // The turn order under the messages, in the band over the field.
-      const os = Phaser.Math.Clamp((FIELD_RECT.y * r.k - 30) / ORDER_ROW, 0.6, 1);
-      this.order.setPosition(v.width / 2, r.y + 30 + (ORDER_ROW / 2) * os).setScale(os);
-      this.orderMax = Phaser.Math.Clamp(Math.floor((FIELD_RECT.w * r.k) / (ORDER_STEP * os)), 0, ORDER_MAX);
-    }
+    this.hud.layout();
     if (this.state) this.drawOrder();
-  }
-
-  private buildBar(): void {
-    const btn = (x: number, label: string, fn: () => void, kind: PlateKind = 'plain'): Phaser.GameObjects.Container =>
-      paintedButton(this, x, 22, label, fn, { width: BTN.w, height: BTN.h, size: 15, kind });
-    this.order = this.add.container(0, -22);
-    this.autoBtn = btn(240, 'Auto', () => this.toggleAuto(), 'crown');
-    this.buttons = [
-      btn(-300, 'Wait', () => this.playerAct({ type: 'wait' })),
-      btn(-180, 'Defend', () => this.playerAct({ type: 'defend' })),
-      btn(-60, 'Spell', () => this.openSpells(), 'crown'),
-      this.autoBtn,
-    ];
-    this.bar = this.add.container(0, 0, [this.order, ...this.buttons]);
-    this.cams.hud.add(this.bar);
   }
 
   private mine(): boolean {
@@ -262,7 +206,7 @@ export class BattleScene extends Phaser.Scene {
       if (this.aiPending) return;
       this.aiPending = true;
       this.marks();
-      this.status.setText(`${creature(a.creature).plural} act`);
+      this.hud.setStatus(`${creature(a.creature).plural} act`);
       await new Promise((r) => this.time.delayedCall(AI_DELAY, r));
       this.aiPending = false;
       // Auto may have been switched off during the pause: then it's the player's move after all.
@@ -272,7 +216,7 @@ export class BattleScene extends Phaser.Scene {
       else void this.next();
       return;
     }
-    this.status.setText(`${creature(a.creature).plural} (${a.count}): your move`);
+    this.hud.setStatus(`${creature(a.creature).plural} (${a.count}): your move`);
     this.marks();
   }
 
@@ -285,7 +229,7 @@ export class BattleScene extends Phaser.Scene {
       step = act(before, action);
     } catch {
       // An action that isn't allowed now changes nothing, and the battle stays ready for the next.
-      this.status.setText('That can’t be done now');
+      this.hud.setStatus('That can’t be done now');
       return;
     }
     this.busy = true;
@@ -305,9 +249,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playerAct(action: Action): void {
-    if (this.busy || !this.mine()) return;
+    if (this.busy || !this.mine() || this.hud.modal) return;
     if (action.type === 'wait' && activeStack(this.state)?.waited) {
-      this.status.setText('Already waited this round: move, attack or defend');
+      this.hud.setStatus('Already waited this round: move, attack or defend');
       return;
     }
     void this.perform(action);
@@ -315,7 +259,7 @@ export class BattleScene extends Phaser.Scene {
 
   private toggleAuto(): void {
     this.auto = !this.auto;
-    (this.autoBtn.list[1] as Phaser.GameObjects.Text).setText(this.auto ? 'Stop' : 'Auto');
+    this.hud.setAuto(this.auto);
     if (this.auto && !this.busy && !this.aiPending) void this.next();
   }
 
@@ -380,7 +324,7 @@ export class BattleScene extends Phaser.Scene {
 
   /** Opens a unit's stats card. */
   private showUnit(s: Stack): void {
-    openCard(this, unitCardSpec(this.state, s));
+    this.hud.openUnit(unitInfo(this.state, s));
   }
 
   /** "12–18 damage, 1–2 fall" */
@@ -418,12 +362,12 @@ export class BattleScene extends Phaser.Scene {
     if (this.mine()) {
       this.marks(this.hexAt(p), i);
       const a = activeStack(this.state)!;
-      this.status.setText(i?.text ?? (this.casting ? `Choose a target for ${SPELLS[this.casting].name}` : `${creature(a.creature).plural} (${a.count}): your move`));
+      this.hud.setStatus(i?.text ?? (this.casting ? `Choose a target for ${SPELLS[this.casting].name}` : `${creature(a.creature).plural} (${a.count}): your move`));
     }
   }
 
   private tap(p: Phaser.Input.Pointer): void {
-    if (this.scene.isActive('Card')) return;
+    if (this.hud.modal) return;
     // A right click on any unit shows its stats, whoever's turn it is (as in Heroes 3).
     if (p.rightButtonReleased()) {
       const h = this.hexAt(p);
@@ -438,14 +382,14 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     if (!i || i.key === 'no') {
-      if (i) this.status.setText(i.text);
+      if (i) this.hud.setStatus(i.text);
       return;
     }
     // On touch, the first tap shows what would happen; a second tap on the same thing does it.
     if (p.wasTouch && this.pending !== i.key) {
       this.pending = i.key;
       this.marks(this.hexAt(p), i);
-      this.status.setText(`${i.text} · tap again`);
+      this.hud.setStatus(`${i.text} · tap again`);
       return;
     }
     if (i.action.type === 'cast') {
@@ -468,51 +412,36 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private openSpells(): void {
-    if (this.busy || !this.mine()) return;
+    if (this.busy || !this.mine() || this.hud.modal) return;
     const hero = this.state.heroes[0];
     if (!hero || hero.spells.length === 0) {
-      this.status.setText('Your hero has no spells');
+      this.hud.setStatus('Your hero has no spells');
       return;
     }
-    openCard(this, {
-      title: `Spellbook · ${hero.mana} mana`,
-      body: this.state.cast[0] ? 'Your hero has already cast a spell this round.' : 'Cast one spell a round; your unit still takes its turn.',
-      buttons: [
-        ...hero.spells.map((id) => {
-          const why = cantCast(this.state, 0, id, null);
-          return { label: `${SPELLS[id].name} · ${SPELLS[id].mana} mana`, note: why ?? SPELLS[id].says, kind: why ? 'plain' as const : 'crown' as const, onClick: () => {
-            if (why) return;
-            this.casting = id;
-            this.status.setText(`Choose a target for ${SPELLS[id].name}`);
-          } };
-        }),
-        { label: 'Close', kind: 'plain', onClick: () => undefined },
-      ],
+    this.hud.openBook({
+      mana: hero.mana,
+      spells: hero.spells,
+      why: (id) => cantCast(this.state, 0, id, null),
+      onPick: (id) => {
+        this.casting = id;
+        this.hud.setStatus(`Choose a target for ${SPELLS[id].name}`);
+      },
+      note: this.state.cast[0] ? 'Your hero has already cast a spell this round.' : 'Cast one spell a round; your unit still takes its turn.',
     });
   }
 
-  /** The units still to act this round, in order, along the bar. */
+  /** The units still to act this round, in order: the turn order's faces. */
   private drawOrder(): void {
-    this.order.removeAll(true);
     const live = this.state.stacks.filter((s) => alive(s) && !s.acted);
     const fresh = live.filter((s) => !s.waited).sort((a, b) => speedOf(b) - speedOf(a));
     const waited = live.filter((s) => s.waited).sort((a, b) => speedOf(a) - speedOf(b));
-    const shown = [...fresh, ...waited].slice(0, this.orderMax);
-    shown.forEach((s, i) => {
-      // Centred on the order's position.
-      const x = (i - (shown.length - 1) / 2) * ORDER_STEP;
-      const bg = this.add.circle(x, 0, 19, parseInt((s.side === 0 ? BANNER.player : BANNER.neutral).slice(1), 16), i === 0 ? 0.85 : 0.45).setStrokeStyle(i === 0 ? 2.5 : 1, UI_HEX.gilt, i === 0 ? 1 : 0.6);
-      this.order.add(bg);
-      // The painted portrait made at boot (the turn order keeps the ink figures until the HUD's pixel pass).
-      const key = TEX.creature(s.creature, 0);
-      if (this.textures.exists(key)) this.order.add(this.add.image(x, 16, key).setOrigin(0.5, GROUND_Y / FRAME_H).setScale(0.3 / CREATURE_RES));
-    });
+    this.hud.setOrder([...fresh, ...waited]);
   }
 
   private finish(): void {
     const won = this.state.winner === 0;
     if (!this.session) {
-      openCard(this, { title: won ? 'Victory!' : 'Defeat', body: 'Sandbox battle over.', buttons: [{ label: 'Again', onClick: () => this.scene.restart() }] });
+      this.hud.openCard({ title: won ? 'Victory!' : 'Defeat', body: 'Sandbox battle over.', buttons: [{ label: 'Again', onClick: () => this.scene.restart() }] });
       return;
     }
     const session = this.session;
@@ -528,7 +457,7 @@ export class BattleScene extends Phaser.Scene {
       this.scene.stop();
       (this.scene.get('Map') as MapScene).back();
     };
-    openCard(this, {
+    this.hud.openCard({
       title: won ? 'Victory!' : 'Defeat',
       body: won
         ? `${lost.length ? `Fallen: ${lost.map((l) => `${l.n} ${l.name}`).join(', ')}.` : 'Not one of yours fell.'}\n+${xp} experience`

@@ -4,6 +4,8 @@ import { SCENERY } from '../../art/pixel/scenery';
 import type { BackdropSource } from './pixelBackdrop';
 import type { PixelBuffer, Rgba } from './pixelRaster';
 import { drawBadge } from './pixelRaster';
+import { loadUiFont } from './pixelFont';
+import { loadUiArt } from './pixelUi';
 
 /**
  * The pixel battle's textures: the manifest's PNG strips and backgrounds
@@ -74,19 +76,23 @@ export function loadBattleArt(scene: Phaser.Scene, creatures: readonly string[],
   if (SCENERY[bg]) image(PX_TEX.scenery(bg), SCENERY[bg]!.url);
   else image(PX_TEX.bg(bg), BATTLE_BG[bg]!);
   for (const [kind, art] of Object.entries(OBSTACLE_ART)) image(PX_TEX.obstacle(kind), art.url);
+  keys.push(...loadUiArt(scene));
   makeCodeTextures(scene);
   const done = (): void => keys.forEach((k) => nearest(scene, k));
+  // The UI's pixel font loads beside the textures; a failure leaves the fallback face, not a stuck battle.
+  const font = loadUiFont().catch((e: unknown) => console.warn('battle UI font failed to load', e));
   if (!scene.load.list.size) {
     done();
-    return Promise.resolve();
+    return font;
   }
-  return new Promise((resolve) => {
+  const art = new Promise<void>((resolve) => {
     scene.load.once(Phaser.Loader.Events.COMPLETE, () => {
       done();
       resolve();
     });
     scene.load.start();
   });
+  return Promise.all([art, font]).then(() => undefined);
 }
 
 /** A texture from a pixel buffer (replacing one of the same key). */

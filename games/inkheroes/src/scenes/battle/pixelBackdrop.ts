@@ -10,7 +10,7 @@ const SKY_KEY = 'px-battle-sky';
 const CLOUD_KEY = 'px-battle-clouds';
 /** Margins grow in steps of this many native pixels, so a resize rarely rebuilds the texture. */
 const STEP = 32;
-/** How fast the clouds drift right, native pixels a second (moved a whole pixel at a time). */
+/** How fast the clouds drift right, native pixels a second. */
 const CLOUD_SPEED = 3;
 
 /** What the backdrop is made from: a terrain's scenery parts (laid out per battle) or a fixed painting. */
@@ -30,13 +30,16 @@ function pixelsOf(scene: Phaser.Scene, key: string): Pixels {
   return { data: ctx.getImageData(0, 0, img.width, img.height).data, w: img.width, h: img.height };
 }
 
-/** Puts `p` into the canvas texture `key` (replacing it), filtered NEAREST. */
-function putTexture(scene: Phaser.Scene, key: string, p: Pixels): void {
+/** Puts `p` into the canvas texture `key` (replacing it), filtered NEAREST, or with `smooth`
+ * Phaser's smooth pixel art (pixels stay square, only their edges blend), so it can move by
+ * fractions of a pixel without stepping or blurring. */
+function putTexture(scene: Phaser.Scene, key: string, p: Pixels, smooth = false): void {
   if (scene.textures.exists(key)) scene.textures.remove(key);
   const tex = scene.textures.createCanvas(key, p.w, p.h)!;
   tex.context.putImageData(new ImageData(new Uint8ClampedArray(p.data), p.w, p.h), 0, 0);
   tex.refresh();
-  tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+  if (smooth) tex.setSmoothPixelArt(true);
+  else tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
 }
 
 /**
@@ -44,7 +47,8 @@ function putTexture(scene: Phaser.Scene, key: string, p: Pixels): void {
  * screen round it. From scenery parts it is composed for exactly the area
  * the screen shows (a wider screen gets more scenery, never stretched or
  * repeated), in three layers back to front: the sky, a looping strip of
- * clouds that drifts slowly by whole pixels, and everything else. From a
+ * clouds that drifts slowly and smoothly (by fractions of a pixel, its pixels
+ * kept square), and everything else. From a
  * painting (a terrain without parts) the painting is centred on the world
  * and its edge rows and columns repeat outward. Textures are native
  * (NEAREST) and rebuilt only when the canvas needs wider margins.
@@ -60,7 +64,7 @@ export class Backdrop {
   private readonly src: Pixels;
   /** A painting's top-left in the world: centred, from its size (never stretched). */
   private readonly at: { x: number; y: number };
-  /** Native pixels the clouds have drifted (fractional; drawn whole). */
+  /** Native pixels the clouds have drifted. */
   private drift = 0;
 
   constructor(private readonly scene: Phaser.Scene, private readonly source: BackdropSource, depth: number) {
@@ -68,7 +72,7 @@ export class Backdrop {
     this.src = pixelsOf(scene, scenery ? source.atlasKey : source.paintingKey);
     this.at = scenery ? { x: 0, y: 0 } : { x: Math.floor((WORLD.w - this.src.w) / 2), y: Math.floor((WORLD.h - this.src.h) / 2) };
     if (scenery) {
-      putTexture(scene, CLOUD_KEY, composeClouds(this.src, source.scenery, source.seed));
+      putTexture(scene, CLOUD_KEY, composeClouds(this.src, source.scenery, source.seed), true);
       this.sky = scene.add.image(0, 0, '__DEFAULT').setOrigin(0).setDepth(depth);
       this.clouds = scene.add.tileSprite(0, CLOUD_BAND.top, WORLD.w, CLOUD_BAND.bottom - CLOUD_BAND.top, CLOUD_KEY).setOrigin(0).setDepth(depth);
     }
@@ -100,14 +104,13 @@ export class Backdrop {
   /** Drifts the clouds (call every frame). */
   update(delta: number): void {
     if (!this.clouds) return;
-    const before = Math.floor(this.drift);
     this.drift = (this.drift + (CLOUD_SPEED * delta) / 1000) % CLOUD_PERIOD;
-    if (Math.floor(this.drift) !== before) this.placeClouds();
+    this.placeClouds();
   }
 
   /** The cloud strip's scroll: its loop starts at world x = drift, so the clouds move right. */
   private placeClouds(): void {
-    const x = (((-this.margin.left - Math.floor(this.drift)) % CLOUD_PERIOD) + CLOUD_PERIOD) % CLOUD_PERIOD;
+    const x = (((-this.margin.left - this.drift) % CLOUD_PERIOD) + CLOUD_PERIOD) % CLOUD_PERIOD;
     this.clouds!.setTilePosition(x, 0);
   }
 

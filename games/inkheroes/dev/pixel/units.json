@@ -1,5 +1,5 @@
 {
- "_doc": "Battle art sources. src = the generated still (facing right) that becomes frame 0; canvas = the animation canvas it is padded onto (feet `foot` px above the bottom, body shifted `dx` px from centre); prompts drive animate_image_pixminimax; strike = attack frame where the blow lands or the shot leaves; shot = where a projectile starts, in canvas px. Paths are relative to games/inkheroes/dev/.",
+ "_doc": "Battle art sources. src = the generated still (facing right) that becomes frame 0; canvas = the animation canvas it is padded onto (feet `foot` px above the bottom, body shifted `dx` px from centre); prompts drive animate_image_pixminimax; strike = attack frame where the blow lands or the shot leaves; shot = where a projectile starts, in canvas px. Paths are relative to games/inkheroes/dev/. face = the centre of the unit's face in its idle frame (canvas px), for the 24 x 24 turn-order portrait.",
  "units": {
   "spearman": {
    "name": "Hoplite",
@@ -12,7 +12,11 @@
    "dx": -8,
    "subject": "an ancient greek hoplite with bronze helmet, round bronze shield and spear",
    "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
-   "strike": 4
+   "strike": 4,
+   "face": [
+    35,
+    36
+   ]
   },
   "bowman": {
    "name": "Slinger",
@@ -29,6 +33,10 @@
    "shot": [
     70,
     48
+   ],
+   "face": [
+    40,
+    41
    ]
   },
   "griffin": {
@@ -53,7 +61,11 @@
      2,
      1
     ]
-   }
+   },
+   "face": [
+    88,
+    62
+   ]
   },
   "swordsman": {
    "name": "Minotaur",
@@ -66,7 +78,11 @@
    "dx": -8,
    "subject": "a huge bull-headed minotaur with a double-headed labrys axe",
    "attack": "axe chop attack: raises the double axe high over the horns and brings it down hard in front to the right, then lifts it back to the starting pose; hooves stay in place",
-   "strike": 3
+   "strike": 3,
+   "face": [
+    63,
+    40
+   ]
   },
   "monk": {
    "name": "Centaur",
@@ -83,6 +99,10 @@
    "shot": [
     96,
     50
+   ],
+   "face": [
+    65,
+    41
    ]
   },
   "lancer": {
@@ -97,7 +117,11 @@
    "subject": "a greek companion cavalryman with a long lance on a white-grey warhorse",
    "walk": "galloping in place loop: the horse gallops with legs reaching and gathering, the rider rocks with the stride, stays in the same spot, ends back at the starting pose",
    "attack": "lance charge attack: the horse surges forward, the rider drives the long lance hard to the right, then the horse settles back to the starting pose",
-   "strike": 2
+   "strike": 2,
+   "face": [
+    60,
+    37
+   ]
   },
   "seraph": {
    "name": "Titan",
@@ -111,7 +135,11 @@
    "subject": "a colossal golden-armoured titan holding a crackling lightning bolt",
    "walk": "slow heavy striding in place loop: huge legs lift and plant, cloak sways, stays in the same spot, ends back at the starting pose",
    "attack": "lightning strike attack: raises the lightning bolt high, crackling brighter, then hurls it down and forward to the right with a flash, then returns to the starting pose; feet stay planted",
-   "strike": 4
+   "strike": 4,
+   "face": [
+    66,
+    39
+   ]
   },
   "goblin": {
    "name": "Satyr",
@@ -124,7 +152,11 @@
    "dx": -6,
    "subject": "a satyr with goat legs, small horns, a short spear and a small shield",
    "attack": "quick spear jab attack: hops forward on goat legs and jabs the short spear to the right, then skips back to the starting pose",
-   "strike": 3
+   "strike": 3,
+   "face": [
+    39,
+    41
+   ]
   },
   "skeleton": {
    "name": "Spartoi",
@@ -137,7 +169,11 @@
    "dx": -6,
    "subject": "a skeleton warrior with a bronze crested helmet, round shield and short sword",
    "attack": "sword slash attack: raises the short sword and slashes forward to the right with a rattle of bones, then recovers to the starting pose; feet stay in place",
-   "strike": 3
+   "strike": 3,
+   "face": [
+    48,
+    39
+   ]
   },
   "wolf": {
    "name": "Wolf",
@@ -152,7 +188,11 @@
    "subject": "a snarling grey wolf",
    "walk": "trotting in place loop: four legs trot in rhythm, head low, tail streams, stays in the same spot, ends back at the starting pose",
    "attack": "bite attack: crouches, leaps forward to the right with jaws snapping, then lands back in the starting pose",
-   "strike": 3
+   "strike": 3,
+   "face": [
+    81,
+    48
+   ]
   },
   "bandit": {
    "name": "Brigand",
@@ -165,7 +205,11 @@
    "dx": -6,
    "subject": "a hooded greek brigand with a curved sword and a dagger",
    "attack": "sneak attack: darts forward to the right and slashes with the curved sword then stabs with the dagger, then springs back to the starting pose",
-   "strike": 2
+   "strike": 2,
+   "face": [
+    56,
+    38
+   ]
   },
   "ogre": {
    "name": "Cyclops",
@@ -178,7 +222,11 @@
    "dx": -6,
    "subject": "a one-eyed grey cyclops giant holding a boulder over his head",
    "attack": "boulder smash attack: lifts the boulder higher, then slams it down in front to the right, then picks it back up into the starting pose; feet stay planted",
-   "strike": 4
+   "strike": 4,
+   "face": [
+    55,
+    45
+   ]
   }
  },
  "heroes": {
@@ -202,7 +250,11 @@
    "subject": "a greek general in a gilded bronze helmet with a blue crest on a black warhorse",
    "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
    "attack": "spell casting: the rider raises the sword to the sky, it flashes with golden light, then lowers it to the starting pose; the horse stays in place",
-   "strike": 4
+   "strike": 4,
+   "face": [
+    59,
+    29
+   ]
   }
  },
  "defaults": {

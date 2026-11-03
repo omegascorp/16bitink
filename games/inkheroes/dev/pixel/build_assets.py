@@ -128,6 +128,8 @@ def unit_entry(uid: str, spec: dict, defaults: dict, imports: list[str]) -> str:
         lines.append(f"    shotFrom: {{ x: {shot[0]}, y: {shot[1]} }},")
     if spec.get('flies'):
         lines.append('    flies: true,')
+    if spec.get('face'):
+        lines.append(f"    face: {{ x: {spec['face'][0]}, y: {spec['face'][1]} }},")
     lines.append(f"    url: {{ idle: {var(uid, 'idle')}, walk: {var(uid, 'walk')}, attack: {var(uid, 'attack')} }},")
     lines.append('  },')
     print(f'{uid:10s} {w}x{h} frames {frames} animated: {done or "none"}')
@@ -173,6 +175,7 @@ def main() -> None:
 // Every frame strip is `frames` frames of w x h laid left to right, facing right.
 // footX/footY: the pixel under the unit's feet, which goes on the hex centre.
 // strike: the attack frame where the blow lands or the shot leaves; shotFrom: projectile start.
+// face: the centre of the unit's face in its idle frame, for the turn order's portrait.
 {chr(10).join(imports)}
 
 export type Pose = 'idle' | 'walk' | 'attack';
@@ -187,6 +190,8 @@ export interface UnitArt {{
   readonly strike: number;
   readonly shotFrom?: {{ readonly x: number; readonly y: number }};
   readonly flies?: boolean;
+  /** The centre of the face in the idle frame: the turn order's portrait is cut round it. */
+  readonly face?: {{ readonly x: number; readonly y: number }};
   readonly url: Readonly<Record<Pose, string>>;
 }}
 

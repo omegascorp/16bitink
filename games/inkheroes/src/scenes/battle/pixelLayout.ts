@@ -113,16 +113,18 @@ export interface WorldFit {
 
 /**
  * The largest whole zoom that fits (or, only when even 1× doesn't, the
- * largest fraction), centred. At a whole zoom the offset is snapped to whole
- * native pixels, so the world camera scrolls by whole pixels as it fills
- * the canvas round the world.
+ * largest fraction), centred across; down the screen centred, or (`bottom`)
+ * standing on the canvas's bottom edge so the spare height goes to the sky
+ * above. At a whole zoom the offset is snapped to whole native pixels, so
+ * the world camera scrolls by whole pixels as it fills the canvas round the
+ * world.
  */
-export function fitWorld(w: number, h: number): WorldFit {
+export function fitWorld(w: number, h: number, alignY: 'center' | 'bottom' = 'center'): WorldFit {
   const fit = Math.min(w / WORLD.w, h / WORLD.h);
   const k = fit >= 1 ? Math.floor(fit) : fit;
   const snap = (v: number): number => (fit >= 1 ? Math.floor(v / k) * k : Math.floor(v));
   const x = snap((w - WORLD.w * k) / 2);
-  const y = snap((h - WORLD.h * k) / 2);
+  const y = snap(alignY === 'bottom' ? h - WORLD.h * k : (h - WORLD.h * k) / 2);
   return {
     k, x, y,
     margin: {

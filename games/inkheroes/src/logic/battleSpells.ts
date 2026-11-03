@@ -15,7 +15,8 @@ export function cantCast(state: BattleState, side: Side, spell: SpellId, target:
   if (hero.mana < def.mana) return 'Not enough mana';
   if (!target) return null;
   if (!alive(target)) return 'Nothing there';
-  if ((def.target === 'enemy') !== (target.side !== side)) return def.target === 'enemy' ? 'Cast it on an enemy' : 'Cast it on your own unit';
+  if (def.target !== 'any' && (def.target === 'enemy') !== (target.side !== side)) return def.target === 'enemy' ? 'Cast it on an enemy' : 'Cast it on your own unit';
+  if (spell === 'dispel' && target.effects.length === 0) return 'No spells on it to lift';
   if (creature(target.creature).undead && (spell === 'bless' || spell === 'bloodlust')) return 'The undead are immune';
   return null;
 }
@@ -47,6 +48,8 @@ export function castSpell(state: BattleState, side: Side, spell: SpellId, target
     s = update(s, targetId, () => r.stack);
   } else if (spell === 'cure') {
     s = update(s, targetId, (x) => ({ ...heal(x, amount), effects: x.effects.filter((e) => !BAD_EFFECTS.includes(e.kind)) }));
+  } else if (spell === 'dispel') {
+    s = update(s, targetId, (x) => ({ ...x, effects: [] }));
   }
   if (def.effect) {
     const kind = def.effect;

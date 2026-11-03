@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import type { Pose } from '../../art/pixel/manifest';
-import { DISPLAY, UI } from '../../art/palette';
 import { getSound } from '../../host';
 import { alive, stackById } from '../../logic/battle';
 import type { BattleEvent, BattleState, Stack } from '../../logic/battleTypes';
@@ -14,6 +13,7 @@ import { FIGURE_DEPTH, PixelFigure } from './pixelFigure';
 import { Backdrop } from './pixelBackdrop';
 import { feetOn, feetPx, HERO_FEET, hexPx, WORLD } from './pixelLayout';
 import { PixelBuffer, type Rgba } from './pixelRaster';
+import { INK } from './pixelUi';
 
 const GRID_KEY = 'px-battle-grid';
 const MARKS_KEY = 'px-battle-marks';
@@ -70,6 +70,9 @@ export interface Marks {
   readonly struck?: readonly Hex[];
 }
 
+/** Shows a message rising from a native world point (the HUD's float); `big` for round changes. */
+export type Floater = (x: number, y: number, text: string, ink: Rgba, big?: boolean) => void;
+
 /** Review switches for the dev sandbox. */
 export interface ViewOpts {
   /** Every figure loops this pose instead of the battle's own. */
@@ -82,7 +85,7 @@ export interface ViewOpts {
  * Draws a battle in the native 960 × 540 pixel world: the terrain's
  * background, a pixel-exact hex grid and highlights, the heroes in the top
  * corners, every unit (feet on its hex centre, sorted by row) with its count
- * badge, and the animations of each event. Messages float up in the HUD.
+ * badge, and the animations of each event. Messages float up through the HUD's `floater`.
  */
 export class BattleView {
   private readonly units = new Map<number, UnitSprite>();
@@ -93,7 +96,7 @@ export class BattleView {
   private readonly extras: Phaser.GameObjects.GameObject[] = [];
   private readonly backdrop: Backdrop;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly cams: BattleCameras, state: BattleState, terrain: string, seed: number, heroes: readonly [boolean, boolean], private readonly opts: ViewOpts = {}) {
+  constructor(private readonly scene: Phaser.Scene, private readonly cams: BattleCameras, state: BattleState, terrain: string, seed: number, heroes: readonly [boolean, boolean], private readonly floater: Floater, private readonly opts: ViewOpts = {}) {
     const layer = cams.world;
     this.backdrop = new Backdrop(scene, backdropSource(terrain, seed), DEPTH.bg);
     for (const o of this.backdrop.objects) layer.add(o);
@@ -207,7 +210,7 @@ export class BattleView {
         const t = this.units.get(ev.target)!;
         await this.playStrike(a, t, ev.ranged, stackById(after, ev.stack), stackById(after, ev.target));
         this.hit(t.fig);
-        this.floatAt(t.fig, `−${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}${ev.lucky ? '  Lucky!' : ''}`, ev.retaliation ? '#e09a5a' : '#ff6a52');
+        this.floatAt(t.fig, `−${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}${ev.lucky ? '  Lucky!' : ''}`, ev.retaliation ? INK.retaliation : INK.damage);
         await this.wait(260);
         this.syncOne(after, ev.target);
         return;
@@ -219,25 +222,25 @@ export class BattleView {
         if (caster) await new Promise<void>((resolve) => void caster.attack(resolve));
         await this.flash(t.fig);
         const def = SPELLS[ev.spell];
-        this.floatAt(t.fig, ev.amount && def.target === 'enemy' ? `${def.name}: −${ev.amount}${ev.kills ? `  ${ev.kills} fall` : ''}` : def.name, '#9fc0ff');
+        this.floatAt(t.fig, ev.amount && def.target === 'enemy' ? `${def.name}: −${ev.amount}${ev.kills ? `  ${ev.kills} fall` : ''}` : def.name, INK.spell);
         this.syncOne(after, ev.target);
         await this.wait(200);
         return;
       }
       case 'wait':
       case 'defend': {
-        this.floatAt(this.units.get(ev.stack)!.fig, ev.type === 'wait' ? 'waits' : 'defends', UI.text);
+        this.floatAt(this.units.get(ev.stack)!.fig, ev.type === 'wait' ? 'waits' : 'defends', INK.text);
         await this.wait(250);
         return;
       }
       case 'morale': {
-        this.floatAt(this.units.get(ev.stack)!.fig, ev.good ? 'High morale! Again!' : 'Low morale: falters', ev.good ? '#b8e08a' : '#ff6a52', 10);
+        this.floatAt(this.units.get(ev.stack)!.fig, ev.good ? 'High morale! Again!' : 'Low morale: falters', ev.good ? INK.good : INK.damage, 10);
         await this.wait(450);
         return;
       }
       case 'round': {
         if (ev.round > 1) {
-          this.float(WORLD.w / 2, WORLD.h / 2, `Round ${ev.round}`, UI.title, 34);
+          this.floater(WORLD.w / 2, WORLD.h / 2, `Round ${ev.round}`, INK.title, true);
           await this.wait(350);
         }
         return;
@@ -341,17 +344,8 @@ export class BattleView {
     }
   }
 
-  private floatAt(fig: PixelFigure, text: string, color: string, extra = 0): void {
-    this.float(fig.feet.x, fig.feet.y - Math.round(fig.art.footY * FLOAT_ABOVE) - extra, text, color);
-  }
-
-  /** A message rising from a native world point, drawn crisp in the HUD. */
-  float(x: number, y: number, text: string, color: string, size = 20): void {
-    const at = this.cams.toScreen(x, y);
-    const t = this.scene.add.text(at.x, at.y, text, { fontFamily: DISPLAY, fontStyle: '700', padding: { x: 8, y: 4 }, fontSize: `${size}px`, color, stroke: '#140b07', strokeThickness: Math.max(3, size * 0.16) }).setOrigin(0.5);
-    t.setShadow(0, 2, 'rgba(0,0,0,0.6)', 3, true, true);
-    this.cams.hud.add(t);
-    this.scene.tweens.add({ targets: t, y: at.y - 36, alpha: 0, delay: 500, duration: 900, ease: 'Sine.easeIn', onComplete: () => t.destroy() });
+  private floatAt(fig: PixelFigure, text: string, ink: Rgba, extra = 0): void {
+    this.floater(fig.feet.x, fig.feet.y - Math.round(fig.art.footY * FLOAT_ABOVE) - extra, text, ink);
   }
 
   /** A walker or a lunge: straight there, whole pixels every frame. */

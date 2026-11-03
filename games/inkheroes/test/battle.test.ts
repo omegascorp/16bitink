@@ -5,6 +5,11 @@ import { chooseAction } from '../src/logic/battleAi';
 import type { BattleHero, BattleState } from '../src/logic/battleTypes';
 import { damageFactor, damageRange, hurt } from '../src/logic/damage';
 import { COLS, colOf, distance, hexAt, neighbours, ROWS, rowOf } from '../src/logic/hex';
+import { SCHOOLS, SPELL_IDS, SPELLS, type SpellSchool } from '../src/logic/spells';
+
+/** A school's spells in the book's order: by level, then cost. */
+const schoolSpellIds = (school: SpellSchool): string[] =>
+  SPELL_IDS.filter((id) => SPELLS[id].school === school).sort((a, b) => SPELLS[a].level - SPELLS[b].level || SPELLS[a].mana - SPELLS[b].mana || a.localeCompare(b));
 
 const hero = (o: Partial<BattleHero> = {}): BattleHero => ({ name: 'Rowan', attack: 0, defense: 0, power: 1, mana: 20, spells: ['magicArrow', 'bless', 'haste'], skills: {}, morale: 0, luck: 0, ...o });
 
@@ -174,6 +179,27 @@ describe('fighting', () => {
     expect(step.state.heroes[0]!.mana).toBe(15);
     expect(step.state.active).toBe(state.active);
     expect(() => act(step.state, { type: 'cast', spell: 'magicArrow', target: goblins.id })).toThrow(/Already cast/);
+  });
+
+  it('Dispel lifts every spell from a unit of either side, and needs one there to lift', () => {
+    let { state } = createBattle({ hero: hero({ spells: ['dispel'] }), army: armyOf([{ creature: 'spearman', count: 5 }]) }, { hero: null, army: armyOf([{ creature: 'goblin', count: 20 }]) }, 19);
+    state = clear(state);
+    while (activeStack(state)!.side !== 0) state = act(state, { type: 'defend' }).state;
+    const goblins = state.stacks.find((s) => s.side === 1)!;
+    expect(() => act(state, { type: 'cast', spell: 'dispel', target: goblins.id })).toThrow(/No spells/);
+    const hasted = update(state, goblins.id, (x) => ({ ...x, effects: [{ kind: 'haste' as const, rounds: 2 }] }));
+    const step = act(hasted, { type: 'cast', spell: 'dispel', target: goblins.id });
+    expect(stackById(step.state, goblins.id).effects).toEqual([]);
+    expect(step.state.heroes[0]!.mana).toBe(15);
+  });
+
+  it('sorts spells into common magic and Olympian Favor, every divine power with its god', () => {
+    for (const def of Object.values(SPELLS)) {
+      expect(SCHOOLS.map((s) => s.id)).toContain(def.school);
+      if (def.school === 'olympian') expect(def.god).toBeDefined();
+      else expect(def.god).toBeUndefined();
+    }
+    expect(schoolSpellIds('olympian')).toEqual(['bless', 'bloodlust', 'lightningBolt']);
   });
 
   it('the AI fights a battle to the end, and the winner earns the dead enemies’ HP', () => {
