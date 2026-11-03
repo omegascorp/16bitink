@@ -11,7 +11,7 @@ import { FRESHWATER_CROC_ART } from './croc';
  * plain olive-brown with the spots and the stripe painted out; the
  * freshwater croc is croc.ts; the lake is board.ts.
  */
-const OLIVE: AnacondaTone = {
+export const OLIVE: AnacondaTone = {
   ...ANACONDA_TONE,
   wash: ['#b3a460', '#968848', '#7a6f3a', '#5e552c', '#403a1e'],
   ground: '#7a6f3a',

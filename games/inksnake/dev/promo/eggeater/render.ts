@@ -79,7 +79,7 @@ function squeezeMarks(d: ReturnType<typeof makeDraw>, m: BodyModel, t: number): 
   }
 }
 
-function drawWorld(ctx: CanvasRenderingContext2D, t: number, boil: number): void {
+export function drawWorld(ctx: CanvasRenderingContext2D, t: number, boil: number): void {
   const cam = cameraAt(t);
   const shake = shakeAt(t);
   const m = modelAt(t);
