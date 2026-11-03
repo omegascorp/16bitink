@@ -8,6 +8,7 @@ import { MORAY_ART } from '../../src/art/chapters/reefCrittersMoray';
 import { KRAIT_ART } from '../../src/art/chapters/reefSnake';
 import { PAPER } from '../../src/art/palette';
 import { createKrait } from './krait/render';
+import { createEggeater } from './eggeater/render';
 import { createPython } from './python/render';
 
 /**
@@ -16,7 +17,8 @@ import { createPython } from './python/render';
  * with a quiet "InkSnake · 16bit.ink" credit after the payoff (credit.ts),
  * drawn with the game's own art. ?short= picks krait (the banded sea krait
  * swallows eels whole, chapter 6's reef) or python (the olive python and the
- * freshwater crocodile, Lake Moondarra). ?short=kit shows the shared
+ * freshwater crocodile, Lake Moondarra) or eggeater (the common egg-eater
+ * swallowing an egg wider than its head, savanna). ?short=kit shows the shared
  * sprites. Plays live; ?t=4.2 freezes one moment. `pnpm promo`
  * (dev/promo/record.mjs) drives window.promo frame by frame to make the
  * video files.
@@ -78,6 +80,7 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   kit: async () => createKit(),
   krait: narrated(createKrait, true),
   python: narrated(createPython, true),
+  eggeater: narrated(createEggeater),
 };
 
 const name = params.get('short') ?? 'kit';

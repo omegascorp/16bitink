@@ -117,6 +117,10 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * mouth by mistake, and it slips out), leopard (a leopard seal brings Paul
  * Nicklen penguins for four days), croc (Brutus the saltwater crocodile eats a
  * bull shark), orcasave (a humpback lifts a seal out of the water, away from orcas).
+ * The batch of 2026-11-03: polarshark (the slowest shark had part of a young
+ * polar bear's jaw in its stomach), echidna (a tiger shark coughs up a whole
+ * echidna while being tagged), hagfish (a hagfish slimes a shark's gills and
+ * the shark lets go).
  * They're loaded lazily (import() on demand).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
@@ -462,6 +466,24 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
     if (params.has('kit')) return (await import('./orcasave/kit')).createOrcasaveKit(ctx);
     const { createOrcasave } = await import('./orcasave/render');
     return withCredit(createOrcasave(ctx), ctx, PAPER_ON_DARK);
+  },
+  polarshark: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./polarshark/kit')).createPolarsharkKit(ctx);
+    const { createPolarshark } = await import('./polarshark/render');
+    return withCredit(createPolarshark(ctx), ctx, PAPER_ON_DARK);
+  },
+  echidna: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./echidna/kit')).createEchidnaKit(ctx);
+    const { createEchidna } = await import('./echidna/render');
+    return withCredit(createEchidna(ctx), ctx, PAPER_ON_DARK);
+  },
+  hagfish: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./hagfish/kit')).createHagfishKit(ctx);
+    const { createHagfish } = await import('./hagfish/render');
+    return withCredit(createHagfish(ctx), ctx, PAPER_ON_DARK);
   },
   orcaliver: async () => {
     await loadCaptionFont();
