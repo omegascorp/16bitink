@@ -78,7 +78,7 @@ export const MAP_SITES: Readonly<Partial<Record<SiteArt, MapSprite>>> = {
   'mercCamp': { url: siteMercCamp, w: 78, h: 82, footX: 39, footY: 81 },
   'watchtower': { url: siteWatchtower, w: 62, h: 103, footX: 31, footY: 102 },
   'windmill': { url: siteWindmill, w: 74, h: 95, footX: 37, footY: 94 },
-  'stables': { url: siteStables, w: 104, h: 57, footX: 52, footY: 56 },
+  'stables': { url: siteStables, w: 108, h: 38, footX: 54, footY: 37 },
   'standingStone': { url: siteStandingStone, w: 53, h: 63, footX: 26, footY: 62 },
   'shrine': { url: siteShrine, w: 51, h: 53, footX: 25, footY: 52 },
   'chest': { url: siteChest, w: 42, h: 45, footX: 21, footY: 44 },

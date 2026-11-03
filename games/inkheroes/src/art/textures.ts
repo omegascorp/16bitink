@@ -8,8 +8,6 @@ import { drawHero } from './heroArt';
 import { BANNER } from './palette';
 import { makeCanvas, releaseScratch, shrink } from './pen';
 import { drawResourceIcon } from './sites';
-import { drawTownGround, TOWN_ART } from './townscape';
-import { PIECE_SLOT, SLOTS, TOWN_PIECES, TOWN_RES, TOWN_VIEW, type TownPiece } from './townscape/types';
 
 export type BannerKey = keyof typeof BANNER;
 /** Anything with poses: a creature, or a hero under a banner. */
@@ -23,8 +21,6 @@ export const TEX = {
   creature: (id: CreatureId, f: number) => `fig-${id}-idle-${f}`,
   hero: (banner: BannerKey, f: number) => `fig-hero-${banner}-idle-${f}`,
   icon: (r: Resource) => `res-${r}`,
-  townGround: 'town-ground',
-  town: (piece: TownPiece) => `town-${piece}`,
 } as const;
 
 export const ICON_RES = 3;
@@ -67,7 +63,7 @@ export function poseJobs(scene: Phaser.Scene, figures: readonly Figure[], kinds:
   return jobs.length ? [...jobs, () => releaseScratch()] : [];
 }
 
-/** Everything drawn once at boot for the painted town: every creature and hero standing, and the resource icons. */
+/** Everything drawn once at boot: every creature and hero standing, and the resource icons. */
 export function textureJobs(scene: Phaser.Scene): SliceJob[] {
   return [
     // Every figure standing (the rest of its idle loop is painted when a map or battle needs it).
@@ -79,20 +75,3 @@ export function textureJobs(scene: Phaser.Scene): SliceJob[] {
     () => releaseScratch(),
   ];
 }
-
-/** The town screen's paintings not drawn yet: its ground, then each of `pieces` (painted the first time the town opens). */
-export function townJobs(scene: Phaser.Scene, pieces: readonly TownPiece[]): SliceJob[] {
-  const ground: SliceJob = () => bake(scene, TEX.townGround, TOWN_VIEW.w, TOWN_VIEW.h, TOWN_RES, (ctx) => drawTownGround(ctx, 7));
-  const jobs = [
-    ...(scene.textures.exists(TEX.townGround) ? [] : [ground]),
-    ...pieces.filter((p) => !scene.textures.exists(TEX.town(p))).map((piece): SliceJob => () => {
-      const fr = SLOTS[PIECE_SLOT[piece]].frame;
-      bake(scene, TEX.town(piece), fr.w, fr.h, TOWN_RES, (ctx) => {
-        ctx.translate(fr.ox, fr.oy);
-        TOWN_ART[piece](ctx, 500 + TOWN_PIECES.indexOf(piece) * 11);
-      });
-    }),
-  ];
-  return jobs.length ? [...jobs, () => releaseScratch()] : [];
-}
-

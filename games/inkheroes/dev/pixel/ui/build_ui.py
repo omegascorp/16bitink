@@ -25,7 +25,7 @@ GAME = HERE.parents[2]
 OUT = GAME / 'src' / 'art' / 'pixel' / 'ui'
 TS = GAME / 'src' / 'art' / 'pixel' / 'ui.ts'
 
-ICONS = ('wait', 'defend', 'spell', 'auto', 'endDay', 'town', 'menu')
+ICONS = ('wait', 'defend', 'spell', 'auto', 'endDay', 'town', 'menu', 'hall', 'recruit', 'leave')
 STATS = ('attack', 'defense', 'shots', 'damage', 'health', 'left', 'speed', 'mana')
 RESOURCES = ('gold', 'wood', 'ore', 'mercury', 'sulfur', 'crystal', 'gems')
 SPELLS = ('magicArrow', 'haste', 'slow', 'stoneSkin', 'cure', 'dispel', 'lightningBolt', 'bless', 'bloodlust')

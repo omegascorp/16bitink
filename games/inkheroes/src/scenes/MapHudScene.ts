@@ -2,26 +2,24 @@ import Phaser from 'phaser';
 import { getHost, getSound } from '../host';
 import { calendar, type Adventure } from '../logic/adventure';
 import { CLASSES, dailyMp, maxMana } from '../logic/hero';
-import { RESOURCES } from '../logic/resources';
-import { badgeTexture, faceOf, heroArt, PX_TEX, unitArt } from './battle/pixelAssets';
-import { drawFrame, drawPortrait, FILLS, SLOT, SLOT_GAP } from './battle/pixelFrames';
+import { faceOf, heroArt, PX_TEX } from './battle/pixelAssets';
+import { drawPortrait, FILLS, SLOT } from './battle/pixelFrames';
 import { PixelButton, PixelFrame, putBuffer, TextLabel, UI_TEX } from './battle/pixelUi';
 import { openCard } from './CardScene';
 import { toMenu } from './cards';
+import { ArmyRow, ARMY_ROW_W } from './hud/armyRow';
+import { PurseRow, PURSE_BAR_H } from './hud/purseRow';
 import type { MapScene } from './MapScene';
 import { pixelUiCamera } from './pixelScreen';
 import { Session } from './session';
 
-/** The purse bar's height and the room each amount takes (gold runs to five figures), UI pixels. */
-const BAR_H = 22;
-const PURSE_W = { gold: 62, other: 48 } as const;
+const BAR_H = PURSE_BAR_H;
 /** The hero panel: padding, the army's seven slots, the buttons beside it. */
 const PAD = 6;
-const ARMY = 7;
 const BTN = { w: 56, gap: 3 } as const;
 const LINE = 15;
 const PANEL_H = PAD + LINE + 2 + LINE + 3 + SLOT + PAD;
-const PANEL_W = PAD + SLOT + 6 + ARMY * (SLOT + SLOT_GAP) - SLOT_GAP + PAD;
+const PANEL_W = PAD + SLOT + 6 + ARMY_ROW_W + PAD;
 /** The status plate's padding. */
 const PLATE_PAD = { x: 6, y: 2 } as const;
 /** How far a note rises and how long it stays, UI pixels and ms. */
@@ -38,8 +36,7 @@ export class MapHudScene extends Phaser.Scene {
   private session!: Session;
   private size = { w: 0, h: 0, k: 1 };
   private bar: PixelFrame | null = null;
-  private purse: TextLabel[] = [];
-  private purseIcons: Phaser.GameObjects.Image[] = [];
+  private purse!: PurseRow;
   private date!: TextLabel;
   private status!: TextLabel;
   private plate: PixelFrame | null = null;
@@ -49,9 +46,9 @@ export class MapHudScene extends Phaser.Scene {
   private panel!: Phaser.GameObjects.Container;
   private panelFrame!: PixelFrame;
   private portrait!: Phaser.GameObjects.Image;
-  private slots: { img: Phaser.GameObjects.Image; badge: Phaser.GameObjects.Image }[] = [];
+  private army!: ArmyRow;
   private buttons: PixelButton[] = [];
-  private faceKeys = new Map<string, string>();
+  private heroKey = '';
   private owned: { destroy(): void }[] = [];
   private narrow = false;
 
@@ -61,12 +58,8 @@ export class MapHudScene extends Phaser.Scene {
 
   create(): void {
     this.session = Session.get(this);
-    this.purse = [];
-    this.purseIcons = [];
-    this.slots = [];
     this.buttons = [];
     this.owned = [];
-    this.faceKeys = new Map();
     this.bar = null;
     this.plate = null;
     const fit = pixelUiCamera(this, (size) => {
@@ -95,20 +88,15 @@ export class MapHudScene extends Phaser.Scene {
       for (const o of this.owned) o.destroy();
       this.bar?.destroy();
       this.plate?.destroy();
-      for (const k of this.faceKeys.values()) if (this.textures.exists(k)) this.textures.remove(k);
+      if (this.textures.exists(this.heroKey)) this.textures.remove(this.heroKey);
     });
     this.layout();
     this.refresh(this.session.adv);
   }
 
   private buildTop(): void {
-    RESOURCES.forEach((r) => {
-      this.purseIcons.push(this.add.image(0, 0, UI_TEX.res(r)).setOrigin(0).setDepth(1));
-      const t = new TextLabel(this, { align: 'left', anchor: { x: 0, y: 0 } });
-      t.img.setDepth(1);
-      this.purse.push(t);
-      this.owned.push(t);
-    });
+    this.purse = new PurseRow(this, 1);
+    this.owned.push(this.purse);
     this.date = new TextLabel(this, { kind: 'title', align: 'right', anchor: { x: 1, y: 0 } });
     this.date.img.setDepth(1);
     this.owned.push(this.date);
@@ -119,7 +107,8 @@ export class MapHudScene extends Phaser.Scene {
     this.owned.push(this.panelFrame);
     const parts: Phaser.GameObjects.GameObject[] = [this.panelFrame.img];
     // The hero's face; a tap brings the view back to the hero.
-    this.portrait = this.add.image(PAD, PAD, this.heroFace()).setOrigin(0).setInteractive();
+    this.heroKey = this.heroFace();
+    this.portrait = this.add.image(PAD, PAD, this.heroKey).setOrigin(0).setInteractive();
     this.portrait.on('pointerup', () => (this.scene.get('Map') as MapScene).centreOnHero());
     parts.push(this.portrait);
     const textX = PAD + SLOT + 6;
@@ -133,15 +122,9 @@ export class MapHudScene extends Phaser.Scene {
     this.owned.push(this.heroLine, this.moveLine, this.manaLine);
     parts.push(this.heroLine.img, moveIcon, this.moveLine.img, manaIcon, this.manaLine.img);
     const slotY = PANEL_H - PAD - SLOT;
-    const empty = putBuffer(this, drawFrame(SLOT, SLOT, { rim: 'dim', fill: FILLS.portrait }));
-    this.faceKeys.set('empty', empty);
-    for (let i = 0; i < ARMY; i++) {
-      const x = textX + i * (SLOT + SLOT_GAP);
-      const img = this.add.image(x, slotY, empty).setOrigin(0);
-      const badge = this.add.image(x + SLOT - 1, slotY + SLOT - 1, '__DEFAULT').setOrigin(1, 1);
-      this.slots.push({ img, badge });
-      parts.push(img, badge);
-    }
+    this.army = new ArmyRow(this).setPosition(textX, slotY);
+    this.owned.push(this.army);
+    parts.push(this.army.root);
     const map = (): MapScene => this.scene.get('Map') as MapScene;
     const specs = [
       { label: 'End day', icon: 'endDay' as const, rim: 'gold' as const, onClick: () => this.endDay() },
@@ -164,27 +147,12 @@ export class MapHudScene extends Phaser.Scene {
     return putBuffer(this, drawPortrait(faceOf(this, PX_TEX.hero(h.id, 'idle'), h.art), 'player', false, false));
   }
 
-  /** A creature's face in the army (kept for the next refresh). */
-  private creatureFace(id: string): string {
-    let key = this.faceKeys.get(id);
-    if (!key) {
-      key = putBuffer(this, drawPortrait(faceOf(this, PX_TEX.unit(id, 'idle'), unitArt(id)), 'player', false, false));
-      this.faceKeys.set(id, key);
-    }
-    return key;
-  }
-
   private layout(): void {
     const { w, h } = this.size;
     this.bar?.destroy();
     this.bar = new PixelFrame(this, w + 4, BAR_H, { rim: 'bronze', fill: [28, 20, 14, 240] }).setPosition(-2, -2);
     this.bar.img.setDepth(0);
-    let x = 6;
-    RESOURCES.forEach((r, i) => {
-      this.purseIcons[i]!.setPosition(x, Math.floor((BAR_H - 2 - 16) / 2) - 1);
-      this.purse[i]!.setPosition(x + 19, Math.floor((BAR_H - 2 - LINE) / 2));
-      x += r === 'gold' ? PURSE_W.gold : PURSE_W.other;
-    });
+    const x = this.purse.place(6, 0);
     // A narrow screen moves the date under the bar.
     const below = w < x + 150;
     this.date.setPosition(w - 6, below ? BAR_H + 2 : Math.floor((BAR_H - 2 - LINE) / 2));
@@ -225,19 +193,13 @@ export class MapHudScene extends Phaser.Scene {
   }
 
   private refresh(adv: Adventure): void {
-    RESOURCES.forEach((r, i) => this.purse[i]!.setText(String(adv.purse[r])));
+    this.purse.set(adv.purse);
     this.date.setText(calendar(adv.day));
     const h = adv.hero;
     this.heroLine.setText(`${h.name}, ${CLASSES[h.heroClass].name} · level ${h.level}`);
     this.moveLine.setText(`${Math.floor(h.mp / 100)}/${Math.floor(dailyMp(h) / 100)}`);
     this.manaLine.setText(`${h.mana}/${maxMana(h)}`);
-    h.army.forEach((slot, i) => {
-      const s = this.slots[i];
-      if (!s) return;
-      s.img.setTexture(slot ? this.creatureFace(slot.creature) : this.faceKeys.get('empty')!);
-      s.badge.setVisible(!!slot);
-      if (slot) s.badge.setTexture(badgeTexture(this, 0, slot.count));
-    });
+    this.army.set(h.army);
   }
 
   private endDay(): void {

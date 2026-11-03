@@ -10,6 +10,9 @@ import iconAuto from './ui/icon-auto.png?url';
 import iconEndDay from './ui/icon-endDay.png?url';
 import iconTown from './ui/icon-town.png?url';
 import iconMenu from './ui/icon-menu.png?url';
+import iconHall from './ui/icon-hall.png?url';
+import iconRecruit from './ui/icon-recruit.png?url';
+import iconLeave from './ui/icon-leave.png?url';
 import statAttack from './ui/stat-attack.png?url';
 import statDefense from './ui/stat-defense.png?url';
 import statShots from './ui/stat-shots.png?url';
@@ -36,7 +39,7 @@ import resCrystal from './ui/res-crystal.png?url';
 import resGems from './ui/res-gems.png?url';
 import laurel from './ui/laurel.png?url';
 
-export type IconName = 'wait' | 'defend' | 'spell' | 'auto' | 'endDay' | 'town' | 'menu';
+export type IconName = 'wait' | 'defend' | 'spell' | 'auto' | 'endDay' | 'town' | 'menu' | 'hall' | 'recruit' | 'leave';
 
 export const ICONS: Readonly<Record<IconName, string>> = {
   wait: iconWait,
@@ -46,6 +49,9 @@ export const ICONS: Readonly<Record<IconName, string>> = {
   endDay: iconEndDay,
   town: iconTown,
   menu: iconMenu,
+  hall: iconHall,
+  recruit: iconRecruit,
+  leave: iconLeave,
 };
 
 export type StatName = 'attack' | 'defense' | 'shots' | 'damage' | 'health' | 'left' | 'speed' | 'mana';

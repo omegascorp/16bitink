@@ -42,7 +42,7 @@ SITES = {
     'mercCamp': ('sites/mercCamp-c.png', None),
     'watchtower': ('sites/watchtower.png', None),
     'windmill': ('sites/windmill-c.png', None),
-    'stables': ('sites/stables-e.png', None),
+    'stables': ('sites/stables-l.png', None),
     'standingStone': ('sites/standingStone.png', None),
     'shrine': ('sites/shrine.png', None),
     'chest': ('sites/chest.png', None),
