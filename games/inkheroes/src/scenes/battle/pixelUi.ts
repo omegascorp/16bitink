@@ -203,6 +203,8 @@ export interface ButtonOpts {
   /** A second, dimmer line under the label. */
   readonly note?: string;
   readonly icon?: IconName;
+  /** A picture at the left, the label beside it (a town in the map's list). */
+  readonly picture?: { readonly key: string; readonly scale: number };
   /** The icon over the label (the action buttons) instead of beside it. */
   readonly stacked?: boolean;
   readonly rim?: RimName;
@@ -210,6 +212,9 @@ export interface ButtonOpts {
   readonly primary?: boolean;
   readonly onClick: () => void;
 }
+
+/** How far a button's picture sits from its edge and from its label. */
+const PICTURE_PAD = 4;
 
 type ButtonState = 'idle' | 'hover' | 'down' | 'off';
 const FILL_OF: Record<ButtonState, Rgba> = { idle: FILLS.button, hover: FILLS.hover, down: FILLS.pressed, off: FILLS.pressed };
@@ -244,6 +249,11 @@ export class PixelButton {
       icon.setPosition(Math.floor((w - icon.width) / 2), top);
       this.label.setPosition(Math.floor(w / 2), top + icon.height + Math.floor(this.label.height / 2), { x: 0.5, y: 0.5 });
       parts.push(icon, this.label.img);
+    } else if (opts.picture) {
+      const pic = scene.add.image(PICTURE_PAD, 0, opts.picture.key).setOrigin(0).setScale(opts.picture.scale);
+      pic.setY(Math.floor((h - pic.displayHeight) / 2));
+      this.label.setPosition(PICTURE_PAD + Math.ceil(pic.displayWidth) + PICTURE_PAD, Math.floor(h / 2));
+      parts.push(pic, this.label.img);
     } else this.layoutRow(icon, parts);
     this.face = scene.add.container(0, 0, parts);
     this.root = scene.add.container(0, 0, [this.frame, this.face]);

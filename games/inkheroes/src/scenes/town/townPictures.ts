@@ -66,6 +66,37 @@ export function standOn(back: Pixels, sprite: Pixels, w: number, h: number, foot
 }
 
 /**
+ * `src` shrunk `by` times by averaging each block, weighted by how opaque
+ * each pixel is. Softer than shrinkMode but it keeps a busy picture readable
+ * at a very small size (the town list's pictures).
+ */
+export function shrinkSmooth(src: Pixels, by: number): Pixels {
+  const w = Math.max(1, Math.floor(src.w / by));
+  const h = Math.max(1, Math.floor(src.h / by));
+  const out = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const sum = [0, 0, 0, 0];
+      for (let dy = 0; dy < by; dy++) {
+        for (let dx = 0; dx < by; dx++) {
+          const i = ((y * by + dy) * src.w + x * by + dx) * 4;
+          const a = src.data[i + 3]!;
+          sum[0]! += src.data[i]! * a;
+          sum[1]! += src.data[i + 1]! * a;
+          sum[2]! += src.data[i + 2]! * a;
+          sum[3]! += a;
+        }
+      }
+      if (!sum[3]) continue;
+      const o = (y * w + x) * 4;
+      for (let c = 0; c < 3; c++) out[o + c] = Math.round(sum[c]! / sum[3]!);
+      out[o + 3] = Math.round(sum[3]! / (by * by));
+    }
+  }
+  return { data: out, w, h };
+}
+
+/**
  * `src` shrunk `by` times keeping it crisp: each block takes its most
  * common colour (near colours counted together, then averaged), kept where
  * at least half the block is opaque. A big picture shrinks into a small

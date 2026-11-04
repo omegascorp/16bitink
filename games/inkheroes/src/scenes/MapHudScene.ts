@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getHost, getSound } from '../host';
-import { calendar, unfinished, type Adventure } from '../logic/adventure';
+import { calendar, playerTowns, unfinished, type Adventure } from '../logic/adventure';
 import { CLASSES, dailyMp, maxMana, withinMana } from '../logic/hero';
 import { tilesOf } from '../logic/map';
 import { faceOf, heroArt, PX_TEX } from './battle/pixelAssets';
@@ -11,6 +11,8 @@ import { toMenu } from './cards';
 import { ArmyRow, ARMY_ROW_W } from './hud/armyRow';
 import { freeSlot, releaseSlot, takeSlot } from './hud/noteStack';
 import { PurseRow, PURSE_BAR_H } from './hud/purseRow';
+import { TownList } from './hud/townList';
+import { MAP_TEX } from './map/pixelMapArt';
 import type { MapScene } from './MapScene';
 import { pixelUiCamera } from './pixelScreen';
 import { Session } from './session';
@@ -18,7 +20,10 @@ import { Session } from './session';
 const BAR_H = PURSE_BAR_H;
 /** The hero panel: padding, the army's seven slots, the buttons beside it. */
 const PAD = 6;
-const BTN = { w: 56, gap: 3 } as const;
+const BTN = { w: 60, gap: 3 } as const;
+const BUTTONS = 2;
+/** The buttons' width, and the town list's above them. */
+const BUTTONS_W = BUTTONS * (BTN.w + BTN.gap);
 const LINE = 15;
 const PANEL_H = PAD + LINE + 2 + LINE + 3 + SLOT + PAD;
 const PANEL_W = PAD + SLOT + 6 + ARMY_ROW_W + PAD;
@@ -34,7 +39,8 @@ const NOTE_GAP = 2;
  * The map's interface, as pixel art on the art's grid (the battle's kit):
  * the purse and the date along the top, a status line for what's under the
  * pointer, and the hero's panel (face, level, moves and mana, the army's
- * faces with their counts) with End day, Town and the menu beside it.
+ * faces with their counts) with End day and the menu beside it, and the
+ * player's towns listed above those two.
  */
 export class MapHudScene extends Phaser.Scene {
   private session!: Session;
@@ -52,6 +58,7 @@ export class MapHudScene extends Phaser.Scene {
   private portrait!: Phaser.GameObjects.Image;
   private army!: ArmyRow;
   private buttons: PixelButton[] = [];
+  private towns!: TownList;
   private heroKey = '';
   private owned: { destroy(): void }[] = [];
   private narrow = false;
@@ -134,10 +141,14 @@ export class MapHudScene extends Phaser.Scene {
     this.army = new ArmyRow(this).setPosition(textX, slotY);
     this.owned.push(this.army);
     parts.push(this.army.root);
-    const map = (): MapScene => this.scene.get('Map') as MapScene;
+    this.towns = new TownList(this, BUTTONS_W - BTN.gap, {
+      textureOf: (t) => MAP_TEX.town(`${this.session.def.id}-${t.id}`),
+      onOpen: (id) => (this.scene.get('Map') as MapScene).openTown(id),
+    });
+    this.owned.push(this.towns);
+    parts.push(this.towns.root);
     const specs = [
       { label: 'End day', icon: 'endDay' as const, rim: 'gold' as const, onClick: () => this.endDay() },
-      { label: 'Town', icon: 'town' as const, onClick: () => map().openTown() },
       { label: 'Menu', icon: 'menu' as const, onClick: () => this.menu() },
     ];
     specs.forEach((b, i) => {
@@ -166,12 +177,15 @@ export class MapHudScene extends Phaser.Scene {
     const below = w < x + 150;
     this.date.setPosition(w - 6, below ? BAR_H + 2 : Math.floor((BAR_H - 2 - LINE) / 2));
     // Wide: the buttons beside the panel. Narrow (a phone): the buttons in a row above it.
-    const total = PANEL_W + 3 * (BTN.w + BTN.gap);
+    const total = PANEL_W + BUTTONS_W;
     this.narrow = w < total + 4;
     this.buttons.forEach((b, i) => {
-      if (this.narrow) b.setPosition(PANEL_W - (3 - i) * (BTN.w + BTN.gap) + BTN.gap, -PANEL_H - BTN.gap);
+      if (this.narrow) b.setPosition(PANEL_W - (BUTTONS - i) * (BTN.w + BTN.gap) + BTN.gap, -PANEL_H - BTN.gap);
       else b.setPosition(PANEL_W + BTN.gap + i * (BTN.w + BTN.gap), 0);
     });
+    // The towns stand on the buttons, growing upwards.
+    const [first] = this.buttons;
+    this.towns.root.setPosition(first!.root.x, first!.root.y - BTN.gap);
     this.panel.setPosition(this.narrow ? Math.floor((w - PANEL_W) / 2) : w - total - 2, h - PANEL_H - 2);
     this.setStatus(this.status?.text ?? '');
   }
@@ -180,11 +194,12 @@ export class MapHudScene extends Phaser.Scene {
   private setStatus(text: string): void {
     if (!this.status) return;
     const { w, h } = this.size;
-    const total = PANEL_W + 3 * (BTN.w + BTN.gap);
-    const room = w - total - 12;
+    const room = w - PANEL_W - BUTTONS_W - 12;
     const narrow = this.narrow || room < 160;
     const above = h - 2 - PANEL_H - (this.narrow ? PANEL_H + BTN.gap : 0) - 4;
-    this.status.setWrap(narrow ? w - 24 : room - PLATE_PAD.x * 2).setText(text);
+    // Above the panel it stays clear of the towns, which rise on that side.
+    const clear = this.panel.x + this.towns.root.x - 8;
+    this.status.setWrap((narrow ? clear : room) - PLATE_PAD.x * 2).setText(text);
     this.status.img.setVisible(!!text).setDepth(2);
     this.plate?.img.setVisible(!!text);
     if (!text) return;
@@ -209,6 +224,7 @@ export class MapHudScene extends Phaser.Scene {
     this.moveLine.setText(`${tilesOf(h.mp)}/${tilesOf(dailyMp(h))}`);
     this.manaLine.setText(`${h.mana}/${maxMana(h)}`);
     this.army.set(h.army);
+    this.towns.set(playerTowns(adv));
   }
 
   /** The hero's sheet, as Heroes 3's hero screen. */

@@ -333,11 +333,13 @@ export class MapScene extends Phaser.Scene {
     this.scene.sleep();
   }
 
-  openTown(): void {
+  /** Opens town `townId`, or the one the hero is in, or the first. */
+  openTown(townId?: string): void {
     if (this.blocked()) return;
     this.setPath(null);
     this.scene.sleep('MapHud');
-    this.scene.launch('Town');
+    // Always an object: a launch with no data keeps the last town opened.
+    this.scene.launch('Town', { townId });
     this.scene.sleep();
   }
 
