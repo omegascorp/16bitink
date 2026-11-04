@@ -51,11 +51,11 @@ export const THORNWOOD: MapDef = {
     'TgggggggggTggggggg~~ggPggPTTgPggTPTgggPP',
     'TTTTTTTTTTTTTTTTTTTTPPPPPPPPPPPPPPPPPPPP',
   ],
-  town: { id: 'millbrook-town', name: 'Millbrook', x: 8, y: 9, built: ['villageHall', 'fort', 'tavern', 'guardhouse', 'archeryRange', 'blacksmith'], guild: ['bless', 'stoneSkin', 'slow', 'haste', 'cure'] },
+  town: { id: 'millbrook-town', name: 'Millbrook', x: 8, y: 9, built: ['villageHall', 'fort', 'tavern', 'guardhouse', 'archeryRange'], guild: ['bless', 'stoneSkin', 'slow', 'haste', 'cure'] },
   towns: [
     {
       id: 'thornwood-town', name: 'Thornwood', x: 31, y: 15,
-      built: ['villageHall', 'townHall', 'fort', 'tavern', 'blacksmith', 'guardhouse', 'barracks'],
+      built: ['villageHall', 'townHall', 'fort', 'tavern', 'guardhouse', 'barracks'],
       guild: ['bless', 'bloodlust', 'slow', 'haste', 'dispel'],
       garrison: [{ creature: 'bandit', count: 18 }, { creature: 'ogre', count: 5 }, { creature: 'bandit', count: 14 }, { creature: 'wolf', count: 12 }],
     },

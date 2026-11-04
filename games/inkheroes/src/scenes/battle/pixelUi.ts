@@ -250,7 +250,7 @@ export class PixelButton {
     });
   }
 
-  /** Icon then label, centred together (a note line goes under the label, both left-aligned beside the icon). */
+  /** Icon then label, centred together (a note line goes under the label: beside the icon, or each centred with none). */
   private layoutRow(icon: Phaser.GameObjects.Image | null, parts: Phaser.GameObjects.GameObject[]): void {
     const { w, h } = this.opts;
     const textW = Math.max(this.label.width, this.note?.width ?? 0);
@@ -262,8 +262,10 @@ export class PixelButton {
       parts.push(icon);
     }
     if (this.note) {
-      this.label.setPosition(left + iconW, mid - Math.ceil(this.label.height / 2) + 1);
-      this.note.setPosition(left + iconW, mid + Math.floor(this.note.height / 2));
+      // Beside an icon both lines start at its edge; with none, each is centred.
+      const at = (lw: number): number => (icon ? left + iconW : Math.floor((w - lw) / 2));
+      this.label.setPosition(at(this.label.width), mid - Math.ceil(this.label.height / 2) + 1);
+      this.note.setPosition(at(this.note.width), mid + Math.floor(this.note.height / 2));
       parts.push(this.label.img, this.note.img);
     } else {
       this.label.setPosition(left + iconW, mid);

@@ -178,40 +178,42 @@ A map monster splits into about √count stacks in battle, at most 4 (4 goblins 
 |---|---|---|---|
 | Village Hall | (built) | | 500 gold a day |
 | Town Hall | 2500 | Tavern | 1000 gold a day |
-| City Hall | 5000 | Town Hall, Marketplace, Blacksmith, Mage Guild 1 | 2000 gold a day |
+| City Hall | 5000 | Town Hall, Marketplace, Mage Guild 1 | 2000 gold a day |
 | Capitol | 10000 | City Hall, Castle | 4000 gold a day |
 | Fort | 5000, 20 wood, 20 ore | | Walls; needed for dwellings |
 | Citadel | 2500, 5 ore | Fort | +50% growth |
 | Castle | 5000, 10 wood, 10 ore | Citadel | +100% growth |
 | Tavern | 500, 5 wood | | +1 morale when defending the town |
-| Blacksmith | 1000, 5 wood | | (sells war machines, later) |
+| Blacksmith | 1000, 5 wood | | Sells war machines (from map 3; nothing needs it) |
 | Marketplace | 500, 5 wood | | Trade resources |
 | Mage Guild 1 | 2000, 5 wood, 5 ore | | 3 level-1 spells, a spellbook for 500 |
 | Mage Guild 2 | 1000, 5 wood, 5 ore, 4 each rare | Mage Guild 1 | 2 level-2 spells |
-| Guardhouse (Spearmen) | 1000, 5 ore | Fort | |
-| Archery Range (Bowmen) | 1000, 5 wood, 5 ore | Guardhouse | |
+| Guardhouse (Hoplites) | 1000, 5 ore | Fort | |
+| Archery Range (Slingers) | 1000, 5 wood, 5 ore | Guardhouse | |
 | Griffin Tower | 1000, 5 ore | Barracks | |
-| Barracks (Swordsmen) | 2000, 5 ore | Guardhouse, Blacksmith | |
-| Monastery (Monks) | 3000, 5 wood, 5 ore, 2 each rare | Mage Guild 1, Barracks | |
+| Barracks (Minotaurs) | 2000, 5 ore | Guardhouse | |
+| Monastery (Centaurs) | 3000, 5 wood, 5 ore, 2 each rare | Mage Guild 1, Barracks | |
 | Stables | 2000, 10 wood | Barracks | +400 movement for a hero leaving town |
-| Tiltyard (Lancers) | 5000, 20 wood | Stables | |
-| Seraph Spire | 20000, 10 each rare | Monastery | |
+| Tiltyard (Companions) | 5000, 20 wood | Stables | |
+| Seraph Spire (Titans) | 20000, 10 each rare | Monastery | |
 
-**The campaign opens the town map by map** (`src/level/unlocks.ts`): each map can build what the maps before it opened, and adds more. The hall shows the rest greyed, as "Later map".
+**The campaign opens the town map by map** (`src/level/unlocks.ts`): each map can build what the maps before it opened, and adds more, and nothing open needs a building from a later map. The hall shows the rest greyed, as "Later map". The Blacksmith waits for map 3: war machines matter once battles get hard (the rival hero), and an early building that only unlocks another one teaches nothing.
+
+**Map 1 guides the building.** Its `advice` order (Town Hall, Barracks, Archery Range, Citadel, Griffin Tower, Mage Guild) frames the next one in the hall in gold, and rings the Hall button until it is opened.
 
 | Map | Opens |
 |---|---|
-| 1 Ashford | Village Hall, Town Hall, Fort, Citadel, Tavern, Blacksmith, Mage Guild, the Guardhouse, Archery Range, Griffin Tower and Barracks |
+| 1 Ashford | Village Hall, Town Hall, Fort, Citadel, Tavern, Mage Guild, the Guardhouse, Archery Range, Griffin Tower and Barracks |
 | 2 Thornwood | City Hall, Marketplace, the guild's 2nd floor, Stables, Monastery, the first upgrades of lines 1–4 |
-| 3 The Black Banner | Castle, Tiltyard, Centaur Grove, the second upgrades of lines 1–4 |
+| 3 The Black Banner | Castle, Blacksmith (war machines), Tiltyard, Centaur Grove, the second upgrades of lines 1–4 |
 | Later | Capitol, Seraph Spire, the rest of the upgrades of lines 5–7 |
 
-**The upgrade tree.** Each dwelling upgrades twice. The first upgrade needs the dwelling (and the one support named); the second needs the first and the Citadel (lines 1–4) or the Castle (lines 5–7).
+**The upgrade tree.** Each dwelling upgrades twice. The first upgrade needs the dwelling (and any support named); the second needs the first and the Citadel (lines 1–4) or the Castle (lines 5–7).
 
 | Line | Dwelling | Upgrade (needs) | Second upgrade (needs) |
 |---|---|---|---|
-| 1 Hoplites | Guardhouse | Phalanx Yard: 1000, 5 ore (Blacksmith) | Agoge: 2000, 5 ore (Citadel) |
-| 2 Slingers | Archery Range | Peltast Camp: 1000, 5 wood (Blacksmith) | Cretan Range: 2000, 5 wood, 5 ore (Citadel) |
+| 1 Hoplites | Guardhouse | Phalanx Yard: 1000, 5 ore | Agoge: 2000, 5 ore (Citadel) |
+| 2 Slingers | Archery Range | Peltast Camp: 1000, 5 wood | Cretan Range: 2000, 5 wood, 5 ore (Citadel) |
 | 3 Griffins | Griffin Tower | Griffin Aerie: 1000, 5 ore | Golden Aerie: 3000, 5 ore, 2 crystal (Citadel) |
 | 4 Minotaurs | Barracks | Labyrinth: 2000, 5 ore, 2 crystal | Great Labyrinth: 3000, 10 ore, 3 crystal (Citadel) |
 | 5 Centaurs | Monastery | Centaur Grove: 2000, 5 wood, 2 each rare (Mage Guild 2nd floor) | Chiron's Cave: 4000, 5 wood, 3 each rare (Castle) |
@@ -230,9 +232,9 @@ Three short maps on the Crown's northern border, taught one idea at a time.
 | 2 | **Thornwood** | 40 × 32 | Take the bandits' fort at Thornwood (a garrisoned neutral town) | Taking a town, two towns, a shrine, a windmill |
 | 3 | **The Black Banner** | 48 × 36 | Beat the rival lord and take his town | A rival AI hero with a town, racing for mines |
 
-Map 1's hero is **Rowan**, a Knight: Attack 2, Defense 2, Spell Power 1, Knowledge 1, basic Leadership, a spellbook with Magic Arrow. Army: 18 Spearmen, 7 Bowmen. Town Ashford: Village Hall, Fort, Tavern, Guardhouse; its Mage Guild teaches Wisdom of Athena, Shield and Slow. Off on this map: City Hall, Capitol, Castle, Marketplace, the guild's 2nd floor, Monastery, Stables, Tiltyard, Seraph Spire. Starting purse: 7500 gold, 15 wood, 15 ore, 3 of each rare. The ogres (8, growing 10% a week) hold the west end of the old bridge; the river can only be crossed there.
+Map 1's hero is **Rowan**, a Knight: Attack 2, Defense 2, Spell Power 1, Knowledge 1, basic Leadership, a spellbook with Magic Arrow. Army: 18 Hoplites, 7 Slingers. Town Ashford: Village Hall, Fort, Tavern, Guardhouse; its Mage Guild teaches Wisdom of Athena, Shield and Slow. Off on this map: City Hall, Capitol, Castle, Marketplace, the guild's 2nd floor, Monastery, Stables, Tiltyard, Seraph Spire. Starting purse: 7500 gold, 15 wood, 15 ore, 3 of each rare. The ogres (8, growing 10% a week) hold the west end of the old bridge; the river can only be crossed there.
 
-Map 2, **Thornwood** (40 × 32): Rowan starts in **Millbrook** (Village Hall, Fort, Tavern, Guardhouse, Archery Range, Blacksmith) with 24 Hoplites, 10 Slingers and 3 Griffins, 10000 gold, 20 wood, 20 ore, 5 of each rare. A river runs down the middle, crossed only by the north bridge (16 wolves) and the south bridge (24 spartoi). East of it is Thornwood forest: a cyclops-guarded gold mine, a crystal windmill, a shrine of Fury of Ares, a watchtower and brigand camps. **Thornwood** town (Village Hall, Town Hall, Fort, Tavern, Blacksmith, Guardhouse, Barracks) is held by 32 Brigands, 5 Cyclopes and 12 Wolves. Taking it wins the map. The Citadel and the second upgrades of lines 1–4 are on; the Castle, Capitol, Tiltyard and Seraph Spire are off. Par 28 days.
+Map 2, **Thornwood** (40 × 32): Rowan starts in **Millbrook** (Village Hall, Fort, Tavern, Guardhouse, Archery Range) with 24 Hoplites, 10 Slingers and 3 Griffins, 10000 gold, 20 wood, 20 ore, 5 of each rare. A river runs down the middle, crossed only by the north bridge (16 wolves) and the south bridge (24 spartoi). East of it is Thornwood forest: a cyclops-guarded gold mine, a crystal windmill, a shrine of Fury of Ares, a watchtower and brigand camps. **Thornwood** town (Village Hall, Town Hall, Fort, Tavern, Guardhouse, Barracks) is held by 32 Brigands, 5 Cyclopes and 12 Wolves. Taking it wins the map. The Citadel and the second upgrades of lines 1–4 are on; the Castle, Capitol, Tiltyard and Seraph Spire are off. Par 28 days.
 
 **Several towns.** A map can have more towns than the player's first. Each one is neutral until a hero beats its garrison at the gate (an empty one is just walked into); then it is the player's, with its own buildings, stock and garrison. It pays its income and fills its dwellings every week. The town screen shows the town the hero stands in, else the player's first.
 

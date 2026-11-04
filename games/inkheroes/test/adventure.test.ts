@@ -12,7 +12,7 @@ import { dailyMp, levelFor, nextLevelUp, xpForLevel } from '../src/logic/hero';
 import { passable, tileIndex } from '../src/logic/map';
 import { objectFootprint, townFootprint } from '../src/logic/objects';
 import { findPath } from '../src/logic/path';
-import { advisedNext, bestUnit, build, cantBuild, growthOf, hire, upgradable, upgradeCost, upgradeStacks, weekly } from '../src/logic/town';
+import { advisedNext, bestUnit, build, cantBuild, growthOf, hire, upgradeCost, upgradeSlot, upgradeTo, weekly } from '../src/logic/town';
 import { BUILDINGS, BUILDING_IDS } from '../src/logic/buildings';
 import { creature, lineOf, lineUnits, tierOf } from '../src/logic/creatures';
 
@@ -226,12 +226,13 @@ describe('towns', () => {
   const start = startAdventure(ASHFORD);
 
   it('builds one thing a day when its needs are met', () => {
-    expect(cantBuild(start.towns[0]!, 'barracks', start.purse, ASHFORD.off)).toMatch(/Blacksmith/);
+    expect(cantBuild(start.towns[0]!, 'griffinTower', start.purse, ASHFORD.off)).toMatch(/Barracks/);
     expect(cantBuild(start.towns[0]!, 'cityHall', start.purse, ASHFORD.off)).toBe('Not on this map');
-    const r = build(start.towns[0]!, 'blacksmith', start.purse, ASHFORD.off);
-    expect(r.purse.gold).toBe(start.purse.gold - 1000);
-    expect(cantBuild(r.town, 'barracks', r.purse, ASHFORD.off)).toBe('Already built today');
-    expect(cantBuild(weekly(r.town), 'barracks', r.purse, ASHFORD.off)).toBeNull();
+    expect(cantBuild(start.towns[0]!, 'blacksmith', start.purse, ASHFORD.off)).toBe('Not on this map');
+    const r = build(start.towns[0]!, 'barracks', start.purse, ASHFORD.off);
+    expect(r.purse.gold).toBe(start.purse.gold - 2000);
+    expect(cantBuild(r.town, 'griffinTower', r.purse, ASHFORD.off)).toBe('Already built today');
+    expect(cantBuild(weekly(r.town), 'griffinTower', r.purse, ASHFORD.off)).toBeNull();
   });
 
   it('a new dwelling opens with a week’s growth; walls add to growth', () => {
@@ -309,10 +310,10 @@ describe('three levels of every unit', () => {
 
   it('builds the tree in order: the dwelling, its upgrade, then the second upgrade behind the walls', () => {
     const off: never[] = [];
-    expect(cantBuild(withBuilt(), 'guardhouse2', rich, off)).toMatch(/Blacksmith/);
-    expect(cantBuild(withBuilt('blacksmith'), 'guardhouse2', rich, off)).toBeNull();
-    expect(cantBuild(withBuilt('blacksmith', 'guardhouse2'), 'guardhouse3', rich, off)).toMatch(/Citadel/);
-    expect(cantBuild(withBuilt('blacksmith', 'guardhouse2', 'citadel'), 'guardhouse3', rich, off)).toBeNull();
+    expect(cantBuild(withBuilt(), 'guardhouse3', rich, off)).toMatch(/Phalanx Yard/);
+    expect(cantBuild(withBuilt(), 'guardhouse2', rich, off)).toBeNull();
+    expect(cantBuild(withBuilt('guardhouse2'), 'guardhouse3', rich, off)).toMatch(/Citadel/);
+    expect(cantBuild(withBuilt('guardhouse2', 'citadel'), 'guardhouse3', rich, off)).toBeNull();
     // Every upgrade needs the step below it.
     for (const id of BUILDING_IDS) {
       const d = BUILDINGS[id].dwelling;
@@ -323,7 +324,7 @@ describe('three levels of every unit', () => {
   });
 
   it('hires the best level built from the line’s one stock, which an upgrade doesn’t refill', () => {
-    const town = withBuilt('blacksmith');
+    const town = withBuilt();
     const up = build(town, 'guardhouse2', rich, []).town;
     expect(up.stock.spearman).toBe(town.stock.spearman);
     expect(bestUnit(up, 'spearman')).toBe('spearman2');
@@ -335,19 +336,21 @@ describe('three levels of every unit', () => {
     expect(weekly(up).stock.spearman).toBe(up.stock.spearman! + growthOf(up, 'spearman'));
   });
 
-  it('upgrades whole stacks in the town for the difference in price', () => {
-    const town = withBuilt('blacksmith', 'guardhouse2', 'citadel', 'guardhouse3');
+  it('upgrades a company in the town to the best level built, for the difference in price', () => {
+    const town = withBuilt('guardhouse2', 'citadel', 'guardhouse3');
     expect(upgradeCost('spearman', 'spearman3', 18)).toEqual({ gold: 18 * 40 });
+    expect(upgradeTo(town, 'spearman')).toBe('spearman3');
+    expect(upgradeTo(town, 'spearman3')).toBeNull();
+    expect(upgradeTo(withBuilt(), 'spearman')).toBeNull();
     const army = start.hero.army;
-    expect(upgradable(town, 'spearman', army)).toEqual({ count: 18, cost: { gold: 720 } });
-    const r = upgradeStacks(town, 'spearman', army, rich);
+    const r = upgradeSlot(town, army, 0, rich)!;
     expect(r.army[0]).toEqual({ creature: 'spearman3', count: 18 });
+    expect(r.army[1]).toEqual(army[1]);
     expect(r.purse.gold).toBe(rich.gold - 720);
-    expect(r.upgraded).toBe(18);
-    // Not enough gold: the stack stays as it was.
-    const poor = upgradeStacks(town, 'spearman', army, { ...rich, gold: 100 });
-    expect(poor.army[0]).toEqual(army[0]);
-    expect(poor.upgraded).toBe(0);
+    // Not enough gold, nothing to raise it to, or an empty slot: no upgrade.
+    expect(upgradeSlot(town, army, 0, { ...rich, gold: 100 })).toBeNull();
+    expect(upgradeSlot(town, army, 1, rich)).toBeNull();
+    expect(upgradeSlot(town, army, 5, rich)).toBeNull();
   });
 });
 
@@ -408,6 +411,11 @@ describe('the campaign', () => {
     // Later maps only ever add.
     for (let n = 2; n <= UNLOCKS.length; n++) expect([...openBy(n - 1)].every((b) => openBy(n).has(b))).toBe(true);
     expect(openBy(1).has('guardhouse2')).toBe(false);
+    // Whatever a map opens needs only what's open by then: no building waits on a later map's.
+    for (let n = 1; n <= UNLOCKS.length; n++) for (const b of openBy(n)) for (const need of BUILDINGS[b].needs) expect(openBy(n).has(need), `map ${n}: ${b} needs ${need}`).toBe(true);
+    // The Blacksmith (war machines) waits for map 3.
+    expect(openBy(2).has('blacksmith')).toBe(false);
+    expect(openBy(3).has('blacksmith')).toBe(true);
     expect(openBy(2).has('guardhouse2')).toBe(true);
   });
 

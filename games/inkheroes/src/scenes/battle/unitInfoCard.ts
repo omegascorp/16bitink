@@ -14,13 +14,23 @@ export interface PictureScenery {
   readonly seed: number;
 }
 
+/** A button above Close (Upgrade, in a town): off when it can't be pressed now. */
+export interface InfoButton {
+  readonly label: string;
+  readonly note?: string;
+  readonly enabled?: boolean;
+  readonly onClick: () => void;
+}
+
 /** The picture, the stat column, padding and gaps, UI pixels. */
 const PIC = 112;
 const COL_W = 156;
 const ROW_H = 16;
 const PAD = 9;
 const GAP = 6;
-const BTN_H = 22;
+const BTN_H = 30;
+/** A button with a note line under its label. */
+const BTN_NOTE_H = 42;
 /** Where the picture's scene is taken from: a stretch of the world off the field's left, its horizon this far down the picture. */
 const SCENE_AT = { x: -200, horizon: 58 } as const;
 /** How fast the unit's idle frames turn over, ms. */
@@ -40,7 +50,7 @@ export class UnitInfoCard {
   private readonly timer: Phaser.Time.TimerEvent | null = null;
   private closed = false;
 
-  constructor(private readonly scene: Phaser.Scene, parent: Phaser.GameObjects.Container, info: UnitInfo, scenery: PictureScenery | null, screen: { w: number; h: number }, private readonly onClose: () => void) {
+  constructor(private readonly scene: Phaser.Scene, parent: Phaser.GameObjects.Container, info: UnitInfo, scenery: PictureScenery | null, screen: { w: number; h: number }, private readonly onClose: () => void, buttons: readonly InfoButton[] = []) {
     getSound(scene)?.play('card');
     const inner = PIC + 4 + GAP + COL_W;
     const w = inner + PAD * 2;
@@ -50,7 +60,8 @@ export class UnitInfoCard {
     const notes = new TextLabel(scene, { wrap: inner - 10, anchor: { x: 0.5, y: 0 } }).setText(info.notes.length ? info.notes.join(' · ') : 'No special abilities');
     const notesH = notes.height + 8;
     const bodyH = Math.max(PIC + 4, info.rows.length * ROW_H + 4);
-    const h = PAD + title.height + GAP + 5 + GAP + bodyH + GAP + notesH + GAP + BTN_H + PAD;
+    const heights = buttons.map((b) => (b.note ? BTN_NOTE_H : BTN_H));
+    const h = PAD + title.height + GAP + 5 + GAP + bodyH + GAP + notesH + GAP + heights.reduce((a, b) => a + b + GAP, 0) + BTN_H + PAD;
     const left = Math.floor((screen.w - w) / 2);
     const top = Math.max(2, Math.floor((screen.h - h) / 2));
     const panel = new PixelFrame(scene, w, h, { rim: 'bronze', thick: 2, fill: [34, 24, 17, 246], studs: true }).setPosition(left, top);
@@ -94,6 +105,14 @@ export class UnitInfoCard {
     notes.setPosition(cx, y + 4);
     parts.push(notesWell.img, notes.img);
     y += notesH + GAP;
+    buttons.forEach((b, i) => {
+      const btn = new PixelButton(scene, { w: inner, h: heights[i]!, label: b.label, note: b.note, onClick: () => { this.close(); b.onClick(); } });
+      btn.setPosition(x0, y);
+      btn.setEnabled(b.enabled ?? true);
+      parts.push(btn.root);
+      this.owned.push(btn);
+      y += heights[i]! + GAP;
+    });
     const close = new PixelButton(scene, { w: inner, h: BTN_H, label: 'Close', rim: 'gold', onClick: () => this.close() });
     close.setPosition(x0, y);
     parts.push(close.root);

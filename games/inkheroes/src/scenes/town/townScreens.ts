@@ -5,13 +5,15 @@ import type { Town } from '../../logic/town';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
 import { creature, type CreatureId } from '../../logic/creatures';
 import { SPELLS } from '../../logic/spells';
-import { advisedNext, bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, SPELLBOOK_COST, stockOf } from '../../logic/town';
+import { advisedNext, bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, hireable, SPELLBOOK_COST, stockOf } from '../../logic/town';
+import { describeAmount } from '../../logic/resources';
 import { PX_TEX, unitArt } from '../battle/pixelAssets';
 import { drawFrame, drawPicture, FILLS, inkBox, pictureOffset, type RimName } from '../battle/pixelFrames';
 import type { Rgba } from '../battle/pixelRaster';
 import { composeScenery, HORIZON_Y, type Pixels } from '../battle/pixelScenery';
-import { INK, PixelFrame, PixelImage, TextLabel, texturePixels, UI_TEX } from '../battle/pixelUi';
+import { INK, PixelButton, PixelFrame, PixelImage, TextLabel, texturePixels, UI_TEX } from '../battle/pixelUi';
 import { TOWN_TEX, townScenery } from './pixelTownView';
+import { GoldHalo } from './goldHalo';
 import { fitFactor, shrinkPixels, standOn } from './townPictures';
 import { buildingArt, ledgerOf } from './townStage';
 import type { Drawn, GridSpec } from './townWindow';
@@ -20,7 +22,7 @@ const TERRAIN = 'grass';
 /** A ledger card: the building's picture, its name, its state on a coloured bar. */
 const HALL_CARD = { w: 160, h: 122, pic: { w: 152, h: 76 } } as const;
 /** A muster card: the creature on its picture, then its name, numbers, cost and how many wait. */
-const FORT_CARD = { w: 260, h: 112, pic: { w: 100, h: 104 } } as const;
+const FORT_CARD = { w: 260, h: 146, pic: { w: 100, h: 104 }, btn: { y: 112, h: 30 } } as const;
 const GUILD_CARD = { w: 260, h: 62 } as const;
 const LINE = 15;
 const CARD_FILL: Rgba = [44, 31, 21, 255];
@@ -35,8 +37,8 @@ const STATE: Record<Ledger, { fill: Rgba; word: string }> = {
   short: { fill: [104, 38, 28, 255], word: 'Short' },
   campaign: { fill: [46, 40, 36, 255], word: 'Later map' },
 };
-/** The bar of the advised next building, when it can be built today. */
-const ADVISED: { fill: Rgba; word: string } = { fill: [196, 146, 36, 255], word: 'Build next' };
+/** The bar of the advised next building, when it can be built today: as green as any, its gold halo marks it. */
+const ADVISED: { fill: Rgba; word: string } = { ...STATE.ready, word: 'Build next' };
 
 function stateOf(adv: Adventure, town: Town, id: BuildingId, off: readonly BuildingId[]): Ledger {
   const why = cantBuild(town, id, adv.purse, off);
@@ -51,6 +53,8 @@ function stateOf(adv: Adventure, town: Town, id: BuildingId, off: readonly Build
 export interface ScreenActions {
   pickBuilding(id: BuildingId): void;
   pickDwelling(id: CreatureId): void;
+  /** Hires as many of `id` as the stock and purse allow. */
+  hireAll(id: CreatureId): void;
   buyBook(): void;
 }
 
@@ -64,11 +68,10 @@ function card(scene: Phaser.Scene, x: number, y: number, w: number, h: number, o
   return { parts: [frame.img], owned: [frame] };
 }
 
-/** A gold halo around a card, w × h at (x, y), breathing so the eye finds it. */
+/** A gold halo around a card, w × h at (x, y). */
 function glow(scene: Phaser.Scene, x: number, y: number, w: number, h: number): Drawn {
-  const halo = new PixelImage(scene, drawFrame(w + 6, h + 6, { rim: 'gold', fill: null })).setPosition(x - 3, y - 3);
-  const tween = scene.tweens.add({ targets: halo.img, alpha: { from: 1, to: 0.25 }, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-  return { parts: [halo.img], owned: [{ destroy: () => tween.remove() }, halo] };
+  const halo = new GoldHalo(scene, w, h).setPosition(x, y);
+  return { parts: [halo.img], owned: [halo] };
 }
 
 /** A strip of the grass country, w × h, its horizon `horizon` rows down. */
@@ -158,7 +161,7 @@ export function fortScreen(scene: Phaser.Scene, adv: Adventure, town: Town, act:
     count: homes.length,
     maxCols: 3,
     empty: 'No dwellings yet: build a Guardhouse (it needs a Fort) to hire troops.',
-    note: toHero ? `Hired troops join ${adv.hero.name}. Tap a card to hire.` : waits,
+    note: toHero ? `Hired troops join ${adv.hero.name}. Tap a card to hire fewer.` : waits,
     draw: (i, x, y) => {
       // The line's best level built: what its card shows and hires.
       const id = bestUnit(town, homes[i]!) ?? homes[i]!;
@@ -176,6 +179,17 @@ export function fortScreen(scene: Phaser.Scene, adv: Adventure, town: Town, act:
       ];
       const gold = scene.add.image(tx, y + 24 + LINE * 3 + 4, UI_TEX.res('gold')).setOrigin(0);
       const extra = Object.entries(cr.cost).filter(([r]) => r !== 'gold').map(([r, n]) => ` + ${n} ${r}`).join('');
+      // Hire: every one the stock and the purse allow, in one tap.
+      const can = hireable(town, id, adv.purse);
+      const total = Object.fromEntries(Object.entries(cr.cost).map(([r, n]) => [r, (n ?? 0) * can]));
+      const hireBtn = new PixelButton(scene, {
+        w: FORT_CARD.w - 8,
+        h: FORT_CARD.btn.h,
+        label: can > 0 ? `Hire ${can} for ${describeAmount(total)}` : stockOf(town, id) === 0 ? 'None left this week' : 'Not enough to hire one',
+        onClick: () => act.hireAll(id),
+      });
+      hireBtn.setPosition(x + 4, y + FORT_CARD.btn.y);
+      hireBtn.setEnabled(can > 0);
       return merge(
         card(scene, x, y, FORT_CARD.w, FORT_CARD.h, () => act.pickDwelling(id)),
         framed(scene, creaturePicture(scene, id, i), x + 3, y + 3),
@@ -184,6 +198,7 @@ export function fortScreen(scene: Phaser.Scene, adv: Adventure, town: Town, act:
         { parts: [gold], owned: [] },
         label(scene, `${cr.cost.gold ?? 0}${extra} each`, tx + 19, y + 24 + LINE * 3 + 5),
         label(scene, `${stockOf(town, id)} to hire · +${growthOf(town, id)} a week`, tx, y + 24 + LINE * 4 + 6, { ink: INK.good }),
+        { parts: [hireBtn.root], owned: [hireBtn] },
       );
     },
   };

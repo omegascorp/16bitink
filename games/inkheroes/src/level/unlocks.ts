@@ -8,11 +8,11 @@ import { BUILDING_IDS, type BuildingId } from '../logic/buildings';
  */
 export const UNLOCKS: readonly (readonly BuildingId[])[] = [
   // Map 1: the walls, a hall, the guild's first floor, the four lowest dwellings.
-  ['villageHall', 'townHall', 'fort', 'citadel', 'tavern', 'blacksmith', 'mageGuild1', 'guardhouse', 'archeryRange', 'griffinTower', 'barracks'],
+  ['villageHall', 'townHall', 'fort', 'citadel', 'tavern', 'mageGuild1', 'guardhouse', 'archeryRange', 'griffinTower', 'barracks'],
   // Map 2: the first upgrades of those four, the centaurs, the market and the guild's second floor.
   ['cityHall', 'marketplace', 'mageGuild2', 'stables', 'monastery', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2'],
-  // Map 3: the Castle, the second upgrades of the first four, the companions and the centaurs' first upgrade.
-  ['castle', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3'],
+  // Map 3: the Castle, the second upgrades of the first four, the companions, the centaurs' first upgrade, and the Blacksmith's war machines.
+  ['castle', 'blacksmith', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3'],
 ];
 
 /** The buildings open by map `n` (1-based). */

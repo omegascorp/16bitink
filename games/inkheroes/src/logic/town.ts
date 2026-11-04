@@ -102,38 +102,20 @@ export function upgradeCost(from: CreatureId, to: CreatureId, count: number): Am
   return Object.fromEntries(RESOURCES.map((r) => [r, Math.max(0, (b[r] ?? 0) - (a[r] ?? 0)) * count]).filter(([, n]) => (n as number) > 0));
 }
 
-/**
- * Every stack of `base`'s line in `army` below the town's best level, raised
- * to it, whole stacks only, in slot order while the purse lasts. Returns the
- * army, the purse and how many units were upgraded.
- */
-export function upgradeStacks(t: Town, base: CreatureId, army: Army, p: Purse): { army: Army; purse: Purse; upgraded: number } {
-  const best = bestUnit(t, base);
-  let purse = p;
-  let upgraded = 0;
-  const next = army.map((s) => {
-    if (!best || !s || lineOf(s.creature) !== base || tierOf(s.creature) >= tierOf(best)) return s;
-    const cost = upgradeCost(s.creature, best, s.count);
-    if (!canAfford(purse, cost)) return s;
-    purse = pay(purse, cost);
-    upgraded += s.count;
-    return { creature: best, count: s.count };
-  });
-  return { army: next, purse, upgraded };
+/** What `id` can be raised to in this town: its line's best level built, when that's higher. */
+export function upgradeTo(t: Town, id: CreatureId): CreatureId | null {
+  const best = bestUnit(t, lineOf(id));
+  return best && tierOf(best) > tierOf(id) ? best : null;
 }
 
-/** The stacks of `base`'s line in `army` that the town could upgrade, and what all of them would cost. */
-export function upgradable(t: Town, base: CreatureId, army: Army): { count: number; cost: Amount } {
-  const best = bestUnit(t, base);
-  let count = 0;
-  let cost: Amount = {};
-  for (const s of army) {
-    if (!best || !s || lineOf(s.creature) !== base || tierOf(s.creature) >= tierOf(best)) continue;
-    count += s.count;
-    const c = upgradeCost(s.creature, best, s.count);
-    cost = Object.fromEntries(RESOURCES.map((r) => [r, (cost[r] ?? 0) + (c[r] ?? 0)]).filter(([, n]) => (n as number) > 0));
-  }
-  return { count, cost };
+/** The company in slot `i` of `army` raised to its line's best level built, for the difference in price; null when it can't be. */
+export function upgradeSlot(t: Town, army: Army, i: number, p: Purse): { army: Army; purse: Purse } | null {
+  const s = army[i];
+  const to = s ? upgradeTo(t, s.creature) : null;
+  if (!s || !to) return null;
+  const cost = upgradeCost(s.creature, to, s.count);
+  if (!canAfford(p, cost)) return null;
+  return { army: army.map((x, j) => (j === i ? { creature: to, count: s.count } : x)), purse: pay(p, cost) };
 }
 
 /** The spells a guild of this town teaches now. */

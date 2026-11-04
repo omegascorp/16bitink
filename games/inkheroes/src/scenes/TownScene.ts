@@ -8,14 +8,17 @@ import { BUILDINGS, type BuildingId } from '../logic/buildings';
 import { creature, type CreatureId } from '../logic/creatures';
 import { canAfford, describeAmount, pay } from '../logic/resources';
 import { lineOf } from '../logic/creatures';
-import { build, cantBuild, growthOf, hire, hireable, SPELLBOOK_COST, stockOf, upgradable, upgradeStacks } from '../logic/town';
+import { advisedNext, build, cantBuild, growthOf, hire, hireable, SPELLBOOK_COST, stockOf, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
+import { PX_TEX } from './battle/pixelAssets';
 import { FILLS } from './battle/pixelFrames';
-import { PixelFrame, TextLabel } from './battle/pixelUi';
+import { PixelFrame, TextLabel, texturePixels } from './battle/pixelUi';
+import { armyUnitInfo } from './battle/unitCard';
+import { UnitInfoCard, type InfoButton } from './battle/unitInfoCard';
 import { openCard, type CardButton } from './CardScene';
 import type { MapScene } from './MapScene';
 import { pixelUiCamera } from './pixelScreen';
 import { Session } from './session';
-import { loadTownArt, PixelTownView } from './town/pixelTownView';
+import { loadTownArt, PixelTownView, townScenery } from './town/pixelTownView';
 import { HEAD, TownBar, type SlotRef, type TownScreen } from './town/townBar';
 import { fortScreen, guildScreen, hallScreen, type ScreenActions } from './town/townScreens';
 import { STAGE } from './town/townStage';
@@ -24,7 +27,7 @@ import { TownWindow } from './town/townWindow';
 /** A press that moves further than this (UI px) is a drag, not a tap. */
 const DRAG = 6;
 /** Depths: the townscape, a screen over it, the strip, messages. */
-const DEPTH = { window: 30, bar: 50, toast: 70 } as const;
+const DEPTH = { window: 30, bar: 50, toast: 70, info: 90 } as const;
 /** How long a message stays, and how long it takes to fade, ms. */
 const TOAST = { ms: 2600, fade: 500, pad: { x: 8, y: 3 } } as const;
 
@@ -60,7 +63,13 @@ export class TownScene extends Phaser.Scene {
   private bar: TownBar | null = null;
   private window: TownWindow | null = null;
   private screen: TownScreen | null = null;
+  /** Whether the hall's been opened this visit (the guide stops pointing at it). */
+  private hallSeen = false;
   private picked: SlotRef | null = null;
+  /** A company's info card, while it's open. */
+  private info: { card: UnitInfoCard; layer: Phaser.GameObjects.Container } | null = null;
+  /** Whether this visit has said how to see a company's card. */
+  private toldInfo = false;
   private fresh: BuildingId | undefined;
   /** How far the stage is panned from centre (a screen narrower than the town). */
   private panX = 0;
@@ -82,6 +91,7 @@ export class TownScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(BACKDROP);
     this.picked = null;
     this.screen = null;
+    this.hallSeen = false;
     this.fresh = undefined;
     this.ready = false;
     this.panX = 0;
@@ -94,12 +104,15 @@ export class TownScene extends Phaser.Scene {
       if (this.ready) this.drawAll();
     });
     this.size = fit();
-    this.input.keyboard?.on('keydown-ESC', () => (this.screen ? this.openScreen(null) : this.leave()));
+    this.info = null;
+    this.toldInfo = false;
+    this.input.keyboard?.on('keydown-ESC', () => (this.info ? this.info.card.close() : this.screen ? this.openScreen(null) : this.leave()));
     this.wirePan();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.view?.destroy();
       this.window?.destroy();
       this.bar?.destroy();
+      this.info?.card.close();
       for (const t of this.toastParts) t.destroy();
     });
     void loadTownArt(this).then(() => {
@@ -162,6 +175,7 @@ export class TownScene extends Phaser.Scene {
     if (!this.bar) return;
     this.bar.layout(this.size.w, this.size.h);
     this.bar.refresh(this.session.adv, this.town(), this.picked);
+    this.beckon();
     this.drawView();
     this.drawWindow();
   }
@@ -177,7 +191,12 @@ export class TownScene extends Phaser.Scene {
   }
 
   private screenActions(): ScreenActions {
-    return { pickBuilding: (id) => this.buildingCard(id), pickDwelling: (id) => this.recruitCard(id), buyBook: () => this.buyBook() };
+    return {
+      pickBuilding: (id) => this.buildingCard(id),
+      pickDwelling: (id) => this.recruitCard(id),
+      hireAll: (id) => this.hire(id, hireable(this.town(), id, this.session.adv.purse)),
+      buyBook: () => this.buyBook(),
+    };
   }
 
   private drawWindow(): void {
@@ -193,13 +212,23 @@ export class TownScene extends Phaser.Scene {
   private openScreen(s: TownScreen | null): void {
     if (s && s !== this.screen) getSound(this)?.play('card');
     this.screen = s;
+    if (s === 'hall') this.hallSeen = true;
+    this.beckon();
     this.drawWindow();
   }
 
   /** The purse, armies and any open screen show the session's latest state. */
   private refresh(): void {
     this.bar?.refresh(this.session.adv, this.town(), this.picked);
+    this.beckon();
     this.drawWindow();
+  }
+
+  /** On a map that teaches the town, ring the Hall button until it's opened, while the advised building can go up today. */
+  private beckon(): void {
+    const { adv, def } = this.session;
+    const next = advisedNext(this.town(), def.advice ?? [], def.off);
+    this.bar?.beckonHall(!this.hallSeen && next !== null && !cantBuild(this.town(), next, adv.purse, def.off));
   }
 
   private leave(): void {
@@ -240,9 +269,6 @@ export class TownScene extends Phaser.Scene {
     const buttons: CardButton[] = [];
     if (can > 0) buttons.push({ label: `Hire ${can}`, note: describeAmount(Object.fromEntries(Object.entries(cr.cost).map(([r, n]) => [r, (n ?? 0) * can]))), onClick: () => this.hire(id, can) });
     if (can > 1) buttons.push({ label: 'Hire 1', kind: 'plain', onClick: () => this.hire(id, 1) });
-    // Lower levels of this line in the hero's army or the garrison can be raised to it here.
-    const up = this.upgradableHere(id);
-    if (up.count > 0) buttons.push({ label: `Upgrade ${up.count} to ${cr.plural}`, note: describeAmount(up.cost), kind: 'crown', onClick: () => this.upgrade(id) });
     buttons.push({ label: 'Close', kind: 'plain', onClick: () => undefined });
     const why = stock === 0 ? 'None left this week.' : can === 0 ? 'Not enough gold to hire one.' : '';
     openCard(this, { title: cr.plural, body: `${stock} to hire, ${describeAmount(cr.cost)} each, +${growthOf(town, id)} a week.${why ? `\n${why}` : ''}`, buttons });
@@ -279,33 +305,45 @@ export class TownScene extends Phaser.Scene {
     }
   }
 
-  /** The armies in town this line can be upgraded in: the visiting hero's and the garrison. */
-  private upgradableHere(id: CreatureId): { count: number; cost: Record<string, number> } {
+  /** A company's card, as in battle: its stats and abilities, and Upgrade when this town has built a higher level of its line. */
+  private unitCard(ref: SlotRef): void {
     const adv = this.session.adv;
-    const line = lineOf(id);
     const town = this.town(adv);
-    const armies = [...(this.visiting(adv) ? [adv.hero.army] : []), town.garrison];
-    const all = armies.map((a) => upgradable(town, line, a));
-    const cost: Record<string, number> = {};
-    for (const u of all) for (const [r, n] of Object.entries(u.cost)) cost[r] = (cost[r] ?? 0) + (n ?? 0);
-    return { count: all.reduce((n, u) => n + u.count, 0), cost };
+    const army = ref.army === 'hero' ? adv.hero.army : town.garrison;
+    const s = army[ref.i];
+    if (!s) return;
+    const to = upgradeTo(town, s.creature);
+    const buttons: InfoButton[] = [];
+    if (to) {
+      const cost = upgradeCost(s.creature, to, s.count);
+      const can = canAfford(adv.purse, cost);
+      buttons.push({ label: `Upgrade to ${creature(to).plural}`, note: can ? describeAmount(cost) : `Needs ${describeAmount(cost)}`, enabled: can, onClick: () => this.upgrade(ref) });
+    }
+    const layer = this.add.container(0, 0).setDepth(DEPTH.info);
+    const scenery = { atlas: texturePixels(this, PX_TEX.scenery('grass')), art: townScenery(), seed: ref.i + 3 };
+    const card = new UnitInfoCard(this, layer, armyUnitInfo(s.creature, s.count), scenery, this.size, () => {
+      layer.destroy();
+      this.info = null;
+    }, buttons);
+    this.info = { card, layer };
   }
 
-  /** Raises every stack of `id`'s line in town to `id` (whole stacks, while the purse lasts): the hero's first, then the garrison's. */
-  private upgrade(id: CreatureId): void {
+  /** Raises the company at `ref` to its line's best level built here, for the difference in price. */
+  private upgrade(ref: SlotRef): void {
     const adv = this.session.adv;
-    const line = lineOf(id);
     const town = this.town(adv);
-    const hero = this.visiting(adv) ? upgradeStacks(town, line, adv.hero.army, adv.purse) : { army: adv.hero.army, purse: adv.purse, upgraded: 0 };
-    const garrison = upgradeStacks(town, line, town.garrison, hero.purse);
-    const upgraded = hero.upgraded + garrison.upgraded;
-    if (!upgraded) {
+    const army = ref.army === 'hero' ? adv.hero.army : town.garrison;
+    const from = army[ref.i];
+    const r = upgradeSlot(town, army, ref.i, adv.purse);
+    if (!from || !r) {
       this.toast('Not enough resources to upgrade them');
       return;
     }
-    this.session.set(withTown({ ...adv, purse: garrison.purse, hero: { ...adv.hero, army: hero.army } }, { ...town, garrison: garrison.army }));
+    const hero = ref.army === 'hero' ? { ...adv.hero, army: r.army } : adv.hero;
+    const garrison = ref.army === 'garrison' ? r.army : town.garrison;
+    this.session.set(withTown({ ...adv, purse: r.purse, hero }, { ...town, garrison }));
     getSound(this)?.play('hire');
-    this.toast(`${upgraded} upgraded to ${creature(id).plural}`);
+    this.toast(`${from.count} upgraded to ${creature(r.army[ref.i]!.creature).plural}`);
     this.refresh();
   }
 
@@ -333,10 +371,19 @@ export class TownScene extends Phaser.Scene {
       const isHero = ref.i === HEAD && ref.army === heroRow;
       if (isHero || (ref.i !== HEAD && (ref.army === 'garrison' || heroRow === 'hero') && armyOf(ref.army)[ref.i])) this.picked = ref;
       this.refresh();
+      if (this.picked && this.picked.i !== HEAD && !this.toldInfo) {
+        this.toldInfo = true;
+        this.toast('Tap it again to see its card and upgrade it, or tap a slot to move it there');
+      }
       return;
     }
     const from = this.picked;
     this.picked = null;
+    if (from.i !== HEAD && from.army === ref.army && from.i === ref.i) {
+      this.refresh();
+      this.unitCard(ref);
+      return;
+    }
     if (from.i === HEAD) {
       if (ref.army !== from.army) this.moveHero(from.army);
       else this.refresh();

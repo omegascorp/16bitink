@@ -4,6 +4,7 @@ import type { Town } from '../../logic/town';
 import { has, income } from '../../logic/town';
 import { faceOf, heroArt, PX_TEX } from '../battle/pixelAssets';
 import { drawFrame, drawPortrait, FILLS, SLOT } from '../battle/pixelFrames';
+import { GoldHalo } from './goldHalo';
 import { INK, PixelButton, PixelFrame, PixelImage, TextLabel, UI_TEX } from '../battle/pixelUi';
 import { ArmyRow, ARMY_ROW_W } from '../hud/armyRow';
 import { PurseRow, PURSE_BAR_H, PURSE_ROW_W } from '../hud/purseRow';
@@ -62,6 +63,9 @@ export class TownBar {
   private readonly garrison: ArmyRow;
   private readonly visitor: ArmyRow;
   private readonly buttons: PixelButton[];
+  /** The ring around the Hall button while the guide points there. */
+  private hallHalo: GoldHalo | null = null;
+  private beckoning = false;
   private narrow = false;
   private armiesAt = { x: 0, y: 0 };
   /** Where the strip begins on screen. */
@@ -117,6 +121,9 @@ export class TownBar {
     const actions = this.actions;
     for (const b of this.buttons) b.destroy();
     this.buttons.length = 0;
+    this.hallHalo?.destroy();
+    this.hallHalo = new GoldHalo(this.scene, BTN.w, h).setVisible(this.beckoning);
+    this.hallHalo.img.setDepth(this.depth + 1);
     const specs = [
       { label: 'Hall', icon: 'hall' as const, onClick: () => actions.open('hall') },
       { label: 'Fort', icon: 'recruit' as const, onClick: () => actions.open('fort') },
@@ -150,6 +157,8 @@ export class TownBar {
     this.date.img.setVisible(w - end > 150);
     if (narrow) this.layoutNarrow(w);
     else this.layoutWide(w);
+    const hall = this.buttons[0];
+    if (hall) this.hallHalo?.setPosition(hall.root.x, hall.root.y);
     return this.top;
   }
 
@@ -220,7 +229,14 @@ export class TownBar {
     this.buttons[2]?.setEnabled(has(t, 'mageGuild1'));
   }
 
+  /** Rings the Hall button (the guide's next step is in there), or stops. */
+  beckonHall(on: boolean): void {
+    this.beckoning = on;
+    this.hallHalo?.setVisible(on);
+  }
+
   destroy(): void {
+    this.hallHalo?.destroy();
     for (const o of this.owned) o.destroy();
     for (const b of this.buttons) b.destroy();
     this.purse.destroy();

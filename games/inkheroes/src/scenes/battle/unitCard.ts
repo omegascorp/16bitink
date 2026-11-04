@@ -1,6 +1,6 @@
 import type { StatName } from '../../art/pixel/ui';
 import type { BattleState, Stack } from '../../logic/battleTypes';
-import { creature } from '../../logic/creatures';
+import { creature, tierOf, type CreatureId } from '../../logic/creatures';
 import { attackOf, defenseOf, speedOf } from '../../logic/damage';
 import { SPELLS } from '../../logic/spells';
 
@@ -27,9 +27,9 @@ function stat(now: number, base: number): string {
   return now === base ? `${base}` : `${base} (${now})`;
 }
 
-/** What a stack's traits mean, in a few words each. */
-function traits(s: Stack): string[] {
-  const c = creature(s.creature);
+/** What a creature's traits mean, in a few words each. */
+function traitsOf(id: CreatureId): string[] {
+  const c = creature(id);
   const out: string[] = [];
   if (c.flies) out.push('Flies');
   if (c.shots) out.push('Shoots');
@@ -37,8 +37,12 @@ function traits(s: Stack): string[] {
   if (c.noRetaliation) out.push('Strikes are never answered');
   if ((c.retaliations ?? 1) > 1) out.push(`Answers ${c.retaliations} strikes a round`);
   if (c.charge) out.push('Charges: +5% damage a hex moved');
-  if (s.defending) out.push('Defending');
   return out;
+}
+
+/** What a stack's traits mean, and whether it's defending. */
+function traits(s: Stack): string[] {
+  return [...traitsOf(s.creature), ...(s.defending ? ['Defending'] : [])];
 }
 
 /** A stack's info card: its stats with the battle's changes, its abilities and the spells on it. */
@@ -58,4 +62,18 @@ export function unitInfo(state: BattleState, s: Stack): UnitInfo {
     return `${spell?.name ?? e.kind}: ${e.rounds} round${e.rounds === 1 ? '' : 's'}`;
   });
   return { name: s.count === 1 ? c.name : c.plural, creature: s.creature, count: s.count, side: s.side, rows, notes: [...traits(s), ...spells] };
+}
+
+/** A company's info card out of battle (in a town or an army): its own stats, its level and abilities. */
+export function armyUnitInfo(id: CreatureId, count: number): UnitInfo {
+  const c = creature(id);
+  const rows: StatRow[] = [
+    { stat: 'attack', label: 'Attack', value: `${c.attack}` },
+    { stat: 'defense', label: 'Defense', value: `${c.defense}` },
+    ...(c.shots ? [{ stat: 'shots' as const, label: 'Shots', value: `${c.shots}` }] : []),
+    { stat: 'damage', label: 'Damage', value: c.minDmg === c.maxDmg ? `${c.minDmg}` : `${c.minDmg}–${c.maxDmg}` },
+    { stat: 'health', label: 'Health', value: `${c.hp}` },
+    { stat: 'speed', label: 'Speed', value: `${c.speed}` },
+  ];
+  return { name: count === 1 ? c.name : c.plural, creature: id, count, side: 0, rows, notes: [`Level ${tierOf(id)} of 3`, ...traitsOf(id)] };
 }
