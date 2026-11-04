@@ -121,6 +121,10 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * polar bear's jaw in its stomach), echidna (a tiger shark coughs up a whole
  * echidna while being tagged), hagfish (a hagfish slimes a shark's gills and
  * the shark lets go).
+ * The batch of 2026-11-04: orcastomach (the remains of 13 porpoises and 14
+ * seals in one orca's stomach, Denmark 1861), alvin (a swordfish stabs the
+ * submersible Alvin, 1967), pigeons (wels catfish lunge onto gravel to take
+ * pigeons, Albi).
  * They're loaded lazily (import() on demand).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
@@ -484,6 +488,24 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
     if (params.has('kit')) return (await import('./hagfish/kit')).createHagfishKit(ctx);
     const { createHagfish } = await import('./hagfish/render');
     return withCredit(createHagfish(ctx), ctx, PAPER_ON_DARK);
+  },
+  orcastomach: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./orcastomach/kit')).createOrcastomachKit(ctx);
+    const { createOrcastomach } = await import('./orcastomach/render');
+    return withCredit(createOrcastomach(ctx), ctx, PAPER_ON_DARK);
+  },
+  alvin: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./alvin/kit')).createAlvinKit(ctx);
+    const { createAlvin } = await import('./alvin/render');
+    return withCredit(createAlvin(ctx), ctx, PAPER_ON_DARK);
+  },
+  pigeons: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./pigeons/kit')).createPigeonsKit(ctx);
+    const { createPigeons } = await import('./pigeons/render');
+    return withCredit(createPigeons(ctx), ctx, PAPER_ON_DARK);
   },
   orcaliver: async () => {
     await loadCaptionFont();

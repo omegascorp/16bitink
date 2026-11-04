@@ -10,6 +10,7 @@ import { PAPER } from '../../src/art/palette';
 import { createKrait } from './krait/render';
 import { createEggeater } from './eggeater/render';
 import { createPython } from './python/render';
+import { createSpidertail } from './spidertail/render';
 
 /**
  * Dev-only promo video page for InkSnake, 1080x1920. Every short is a
@@ -18,8 +19,9 @@ import { createPython } from './python/render';
  * drawn with the game's own art. ?short= picks krait (the banded sea krait
  * swallows eels whole, chapter 6's reef) or python (the olive python and the
  * freshwater crocodile, Lake Moondarra) or eggeater (the common egg-eater
- * swallowing an egg wider than its head, savanna). ?short=kit shows the shared
- * sprites. Plays live; ?t=4.2 freezes one moment. `pnpm promo`
+ * swallowing an egg wider than its head, savanna) or spidertail (the
+ * spider-tailed horned viper's fake spider, chapter 7's mountains). ?short=kit
+ * shows the shared sprites. Plays live; ?t=4.2 freezes one moment. `pnpm promo`
  * (dev/promo/record.mjs) drives window.promo frame by frame to make the
  * video files.
  */
@@ -81,6 +83,7 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   krait: narrated(createKrait, true),
   python: narrated(createPython, true),
   eggeater: narrated(createEggeater),
+  spidertail: narrated(createSpidertail),
 };
 
 const name = params.get('short') ?? 'kit';
