@@ -8,11 +8,12 @@ import { BUILDINGS, type BuildingId } from '../logic/buildings';
 import { creature, MACHINES, type CreatureId, type MachineId } from '../logic/creatures';
 import { canAfford, describeAmount, pay } from '../logic/resources';
 import { lineOf } from '../logic/creatures';
-import { advisedNext, build, cantBuild, growthOf, hire, hireable, hireAll, SPELLBOOK_COST, stockOf, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
+import { tilesOf } from '../logic/map';
+import { advisedNext, build, cantBuild, growthOf, hire, hireable, hireAll, SPELLBOOK_COST, stockOf, upgradeAll, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
 import { PX_TEX } from './battle/pixelAssets';
 import { FILLS } from './battle/pixelFrames';
 import { PixelFrame, TextLabel, texturePixels } from './battle/pixelUi';
-import { armyUnitInfo } from './battle/unitCard';
+import { armyUnitInfo, dwellingPreview } from './battle/unitCard';
 import { UnitInfoCard, type InfoButton } from './battle/unitInfoCard';
 import { openCard, type CardButton } from './CardScene';
 import type { MapScene } from './MapScene';
@@ -20,7 +21,7 @@ import { pixelUiCamera } from './pixelScreen';
 import { Session } from './session';
 import { loadTownArt, PixelTownView, townScenery } from './town/pixelTownView';
 import { HEAD, TownBar, type SlotRef, type TownScreen } from './town/townBar';
-import { fortScreen, guildScreen, hallScreen, type ScreenActions } from './town/townScreens';
+import { fortScreen, guildScreen, hallScreen, upgradableArmies, type ScreenActions } from './town/townScreens';
 import { STAGE } from './town/townStage';
 import { TownWindow } from './town/townWindow';
 
@@ -196,6 +197,7 @@ export class TownScene extends Phaser.Scene {
       pickDwelling: (id) => this.recruitCard(id),
       hireAll: (id) => this.hire(id, hireable(this.town(), id, this.session.adv.purse)),
       hireEverything: () => this.hireEverything(),
+      upgradeEverything: () => this.upgradeEverything(),
       buyBook: () => this.buyBook(),
     };
   }
@@ -289,7 +291,10 @@ export class TownScene extends Phaser.Scene {
     const cost = Object.keys(def.cost).length ? `Costs ${describeAmount(def.cost)}.` : 'Costs nothing.';
     const state = !why ? 'The masons are ready.' : why === 'Built' ? 'Built.' : why === 'Not enough resources' ? 'Not enough resources yet.' : why === 'Not on this map' ? 'It opens on a later map of the campaign.' : `${why}.`;
     const buttons: CardButton[] = why ? [{ label: 'Close', kind: 'plain', onClick: () => undefined }] : [{ label: 'Build', onClick: () => this.tryBuild(id) }, { label: 'Not now', kind: 'plain', onClick: () => undefined }];
-    openCard(this, { title: def.name, body: `${saysOf(id)}.\n${cost}\n${state}`, buttons });
+    const preview = dwellingPreview(id) ?? undefined;
+    // With a picture of what it hires, the card needn't say "Hires ..." as well.
+    const perk = def.travel ? { icon: 'speed' as const, text: `+${tilesOf(def.travel)} tiles` } : undefined;
+    openCard(this, { title: def.name, body: preview ? `${cost}\n${state}` : `${saysOf(id)}.\n${cost}\n${state}`, buttons, preview, perk });
   }
 
   /** A dwelling's card from the fort: how many wait and what they cost, and the hire buttons. */
@@ -394,6 +399,23 @@ export class TownScene extends Phaser.Scene {
     this.session.set(withTown({ ...adv, purse: r.purse, hero }, { ...town, garrison }));
     getSound(this)?.play('hire');
     this.toast(`${from.count} upgraded to ${creature(r.army[ref.i]!.creature).plural}`);
+    this.refresh();
+  }
+
+  /** Every company here the purse affords, the strongest first, up to its line's best level built. */
+  private upgradeEverything(): void {
+    const adv = this.session.adv;
+    const town = this.town(adv);
+    const toHero = this.visiting(adv);
+    const r = upgradeAll(town, upgradableArmies(adv, town), adv.purse);
+    if (!r.upgraded) {
+      this.toast('Not enough resources to upgrade them');
+      return;
+    }
+    const hero = toHero ? { ...adv.hero, army: r.armies[0]! } : adv.hero;
+    this.session.set(withTown({ ...adv, purse: r.purse, hero }, { ...town, garrison: r.armies[r.armies.length - 1]! }));
+    getSound(this)?.play('hire');
+    this.toast(`${r.upgraded} ${r.upgraded === 1 ? 'unit' : 'units'} upgraded`);
     this.refresh();
   }
 

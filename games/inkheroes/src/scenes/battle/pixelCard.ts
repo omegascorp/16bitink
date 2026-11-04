@@ -15,6 +15,8 @@ const BTN_NOTE_H = 42;
 const RULE_H = 5;
 /** The laurels a won map shows: their size and the gap between them. */
 const LAUREL = { size: 24, gap: 6 } as const;
+/** Between a perk's icon and its words. */
+const PERK_GAP = 3;
 
 /**
  * The battle's card (a unit's stats, the spellbook, the result) as pixel
@@ -45,8 +47,11 @@ export class PixelCard {
         b.onClick();
       },
     }));
+    const perkText = spec.perk ? new TextLabel(scene, { kind: 'title', align: 'left', anchor: { x: 0, y: 0 } }).setText(spec.perk.text) : null;
+    const perkIcon = spec.perk ? scene.add.image(0, 0, UI_TEX.stat(spec.perk.icon)).setOrigin(0) : null;
+    const perkH = perkText && perkIcon ? Math.max(perkIcon.height, perkText.height) + GAP : 0;
     const laurelsH = spec.blots !== undefined ? LAUREL.size + GAP * 2 : 0;
-    const h = PAD + title.height + GAP + RULE_H + GAP + body.height + GAP * 2 + laurelsH + buttons.reduce((a, b) => a + b.height + GAP, 0) - GAP + PAD;
+    const h = PAD + title.height + GAP + RULE_H + GAP + perkH + body.height + GAP * 2 + laurelsH + buttons.reduce((a, b) => a + b.height + GAP, 0) - GAP + PAD;
     const left = Math.floor((screen.w - w) / 2);
     const top = Math.max(2, Math.floor((screen.h - h) / 2));
     const panel = new PixelFrame(scene, w, h, { rim: 'bronze', thick: 2, fill: [34, 24, 17, 246], studs: true }).setPosition(left, top);
@@ -56,6 +61,12 @@ export class PixelCard {
     y += title.height + GAP;
     rule.setPosition(cx, y);
     y += RULE_H + GAP;
+    if (perkText && perkIcon) {
+      const rowW = perkIcon.width + PERK_GAP + perkText.width;
+      perkIcon.setPosition(cx - Math.floor(rowW / 2), y);
+      perkText.setPosition(cx - Math.floor(rowW / 2) + perkIcon.width + PERK_GAP, y + Math.floor((perkIcon.height - perkText.height) / 2));
+      y += perkH;
+    }
     body.setPosition(cx, y);
     y += body.height + GAP * 2;
     // Laurels won (bright) out of three (the rest dark).
@@ -73,8 +84,8 @@ export class PixelCard {
       b.setPosition(left + PAD, y);
       y += b.height + GAP;
     }
-    this.owned.push(panel, title, rule, body, ...buttons);
-    this.root = scene.add.container(0, 0, [shade, panel.img, rule.img, title.img, body.img, ...laurels, ...buttons.map((b) => b.root)]);
+    this.owned.push(panel, title, rule, body, ...(perkText ? [perkText] : []), ...buttons);
+    this.root = scene.add.container(0, 0, [shade, panel.img, rule.img, title.img, ...(perkText && perkIcon ? [perkIcon, perkText.img] : []), body.img, ...laurels, ...buttons.map((b) => b.root)]);
     parent.add(this.root);
   }
 

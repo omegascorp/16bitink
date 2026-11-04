@@ -1,3 +1,4 @@
+import { STABLES_MP, tilesOf } from './map';
 import type { Adventure } from './adventure';
 import { gainedXp } from './hero';
 import { CHEST_XP, MINE_NAMES, MINE_OUTPUT, ONCE_PER_HERO, type MapObject } from './objects';
@@ -64,7 +65,7 @@ export function visitSite(adv: Adventure, o: MapObject): VisitResult {
     case 'stables': {
       const week = weekOf(adv.day);
       if (o.week === week) return { adv: message(adv, 'Stables', 'The horses are resting. Come back next week.'), notes: [] };
-      return { adv: setObj({ ...adv, hero: { ...hero, mp: hero.mp + 400 } }, o.id, { week }), notes: ['+400 movement'] };
+      return { adv: setObj({ ...adv, hero: { ...hero, mp: hero.mp + STABLES_MP } }, o.id, { week }), notes: [`+${tilesOf(STABLES_MP)} tiles`] };
     }
     case 'town':
     case 'monster':

@@ -5,8 +5,8 @@ import { MAP_TILE } from './pixelGround';
 
 /**
  * Where the map's cover stands: trees and pines a few to a tile, mountain
- * ranges laid along each row's run of mountain tiles in two- and three-tile
- * pieces, a boulder on a rock tile, a bridge across each run of bridge
+ * ranges laid along each row's run of mountain tiles in two-tile peaks and
+ * three-tile ranges, a boulder on a rock tile, a bridge across each run of bridge
  * tiles. Positions are feet, map pixels (a tile is MAP_TILE). No Phaser
  * here, so it can be tested.
  */
@@ -73,8 +73,10 @@ export function coverPlacements(g: Grid, seed: number): CoverPlacement[] {
       if (bridge) out.push({ kind: 'bridge', pick: 0, x: Math.round(((tx + end) / 2) * MAP_TILE), y: ty * MAP_TILE + FOOT + 2, flip: false });
       else {
         let at = tx;
+        // Picks count up along a run, so neighbours differ; where they start is the run's own.
+        const start = Math.floor(cellRandom(seed, tx, ty, 39) * 1000);
         mountainPieces(end - tx).forEach((n, i) => {
-          out.push({ kind: 'mountain', pick: n >= 3 ? 0 : 1, x: Math.round((at + n / 2) * MAP_TILE), y: ty * MAP_TILE + FOOT + 2, flip: cellRandom(seed, at, ty, 40 + i) < 0.5 });
+          out.push({ kind: n >= 3 ? 'mountain' : 'peak', pick: start + i, x: Math.round((at + n / 2) * MAP_TILE), y: ty * MAP_TILE + FOOT + 2, flip: cellRandom(seed, at, ty, 40 + i) < 0.5 });
           at += n;
         });
       }

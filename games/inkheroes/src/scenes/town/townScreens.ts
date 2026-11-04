@@ -1,11 +1,12 @@
 import type Phaser from 'phaser';
 import { TOWN_ART } from '../../art/pixel/town';
 import { heroInGarrison, heroTown, heroVisiting, type Adventure } from '../../logic/adventure';
+import type { Army } from '../../logic/army';
 import type { Town } from '../../logic/town';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
 import { creature, type CreatureId } from '../../logic/creatures';
 import { SPELLS } from '../../logic/spells';
-import { advisedNext, bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, hireable, hireAll, SPELLBOOK_COST, stockOf } from '../../logic/town';
+import { advisedNext, bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, hireable, hireAll, SPELLBOOK_COST, stockOf, upgradeAll } from '../../logic/town';
 import { describeAmount, RESOURCES } from '../../logic/resources';
 import { PX_TEX, unitArt } from '../battle/pixelAssets';
 import { drawFrame, drawPicture, FILLS, inkBox, pictureOffset, type RimName } from '../battle/pixelFrames';
@@ -16,7 +17,7 @@ import { TOWN_TEX, townScenery } from './pixelTownView';
 import { GoldHalo } from './goldHalo';
 import { fitFactor, shrinkPixels, standOn } from './townPictures';
 import { buildingArt, ledgerOf } from './townStage';
-import type { Drawn, GridSpec } from './townWindow';
+import type { Drawn, FootButton, GridSpec } from './townWindow';
 
 const TERRAIN = 'grass';
 /** A ledger card: the building's picture, its name, its state on a coloured bar. */
@@ -57,6 +58,8 @@ export interface ScreenActions {
   hireAll(id: CreatureId): void;
   /** Hires every unit of every dwelling the purse affords. */
   hireEverything(): void;
+  /** Upgrades every company here the purse affords. */
+  upgradeEverything(): void;
   buyBook(): void;
 }
 
@@ -152,6 +155,21 @@ function stat(scene: Phaser.Scene, icon: Parameters<typeof UI_TEX.stat>[0], text
   return merge({ parts: [img], owned: [] }, label(scene, text, x + 19, y));
 }
 
+/** The companies Upgrade all reaches: the garrison, and the army of a hero visiting the town. */
+export function upgradableArmies(adv: Adventure, town: Town): Army[] {
+  return heroVisiting(adv, town) ? [adv.hero.army, town.garrison] : [town.garrison];
+}
+
+/** Upgrade all, when any company here can be raised: what one tap does, greyed out when the purse reaches none of them. */
+function upgradeAllButton(adv: Adventure, town: Town, act: ScreenActions): FootButton[] {
+  const r = upgradeAll(town, upgradableArmies(adv, town), adv.purse);
+  if (!r.eligible) return [];
+  const spent = Object.fromEntries(RESOURCES.map((res) => [res, adv.purse[res] - r.purse[res]]).filter(([, n]) => (n as number) > 0));
+  if (!r.upgraded) return [{ label: `Upgrade all: ${r.eligible} units`, note: 'Not enough resources', enabled: false, onClick: () => act.upgradeEverything() }];
+  const label = r.upgraded < r.eligible ? `Upgrade ${r.upgraded} of ${r.eligible} units` : `Upgrade all: ${r.upgraded} units`;
+  return [{ label, note: describeAmount(spent), onClick: () => act.upgradeEverything() }];
+}
+
 /** The fort: a card for each dwelling built, its creature, numbers and how many wait to be hired. */
 export function fortScreen(scene: Phaser.Scene, adv: Adventure, town: Town, act: ScreenActions): GridSpec {
   const homes = dwellings(town);
@@ -168,7 +186,10 @@ export function fortScreen(scene: Phaser.Scene, adv: Adventure, town: Town, act:
     maxCols: 3,
     empty: 'No dwellings yet: build a Guardhouse (it needs a Fort) to hire troops.',
     note: toHero ? `Hired troops join ${adv.hero.name}. Tap a card to hire fewer.` : waits,
-    button: all.hired.length ? { label: `Hire all: ${count} units for ${describeAmount(spent)}`, onClick: () => act.hireEverything() } : undefined,
+    buttons: [
+      ...(all.hired.length ? [{ label: `Hire all: ${count} units`, note: describeAmount(spent), onClick: () => act.hireEverything() }] : []),
+      ...upgradeAllButton(adv, town, act),
+    ],
     draw: (i, x, y) => {
       // The line's best level built: what its card shows and hires.
       const id = bestUnit(town, homes[i]!) ?? homes[i]!;
@@ -224,7 +245,7 @@ export function guildScreen(scene: Phaser.Scene, adv: Adventure, town: Town, act
     maxCols: 2,
     empty: 'Build the Mage Guild to learn spells here.',
     note,
-    button: here && !hero.hasBook ? { label: `Buy a spellbook: ${SPELLBOOK_COST} gold`, onClick: () => act.buyBook() } : undefined,
+    buttons: here && !hero.hasBook ? [{ label: `Buy a spellbook: ${SPELLBOOK_COST} gold`, onClick: () => act.buyBook() }] : [],
     draw: (i, x, y) => {
       const s = SPELLS[spells[i]!];
       const niche = new PixelImage(scene, drawFrame(30, 30, { rim: 'gold', fill: FILLS.portrait })).setPosition(x + 6, y + 6);

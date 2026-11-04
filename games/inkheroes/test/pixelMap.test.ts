@@ -82,11 +82,30 @@ describe('map cover', () => {
     }
   });
 
+  it('draws no two neighbouring pieces of a range alike', () => {
+    const grid = parseGrid(['M'.repeat(24)]);
+    const wide = coverPlacements(grid, 3).filter((c) => c.kind === 'mountain');
+    expect(wide.length).toBeGreaterThan(4);
+    for (let i = 1; i < wide.length; i++) expect(wide[i]!.pick).not.toBe(wide[i - 1]!.pick);
+  });
+
+  it('gives different ranges different sprites, seed by seed', () => {
+    const grid = parseGrid(['M'.repeat(24), 'g'.repeat(24), 'M'.repeat(24)]);
+    const firstPicks = [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => coverPlacements(grid, seed).find((c) => c.kind === 'mountain')!.pick);
+    expect(new Set(firstPicks).size).toBeGreaterThan(1);
+  });
+
+  it('stands a two-tile piece on the narrow peaks and a three-tile one on the wide ranges', () => {
+    const cover = coverPlacements(parseGrid(['MMMMM']), 3);
+    expect(cover.filter((c) => c.kind === 'mountain')).toHaveLength(1);
+    expect(cover.filter((c) => c.kind === 'peak')).toHaveLength(1);
+  });
+
   it('places trees on forest tiles, a range on mountain runs and one bridge per crossing', () => {
     const grid = parseGrid(['MMMMM', 'gTgPg', '==bb=']);
     const cover = coverPlacements(grid, 3);
     const kinds = (k: string): number => cover.filter((c) => c.kind === k).length;
-    expect(kinds('mountain')).toBe(2);
+    expect(kinds('mountain') + kinds('peak')).toBe(2);
     expect(kinds('bridge')).toBe(1);
     expect(kinds('tree')).toBeGreaterThanOrEqual(1);
     expect(kinds('pine')).toBeGreaterThanOrEqual(1);

@@ -1,4 +1,4 @@
-import { activeStack, alive, canShoot, moves, strikeFrom } from './battle';
+import { activeStack, alive, answers, canShoot, isStone, moves, strikeFrom, struckBy } from './battle';
 import type { Action, BattleState, Stack } from './battleTypes';
 import { creature } from './creatures';
 import { damageRange, killsBy } from './damage';
@@ -14,10 +14,21 @@ function worth(target: Stack, damage: number): number {
   return Math.min(total, damage) * (1 + c.level * 0.15);
 }
 
+/** The trade one blow on `e` makes: damage dealt, less what's answered, plus what a chance of stone would spare. */
+function tradeOn(state: BattleState, me: Stack, e: Stack, moved: number): number {
+  const dealt = average(damageRange(state, me, e, { ranged: false, distance: 1, moved }));
+  const left = { ...e, count: e.count - killsBy(e, dealt) };
+  const threat = left.count > 0 ? worth(me, average(damageRange(state, left, me, { ranged: false, distance: 1, moved: 0 }))) : 0;
+  const back = answers(me, e) ? threat : 0;
+  const stone = isStone(e) ? 0 : (creature(me.creature).petrify ?? 0) * threat;
+  return worth(e, dealt) - back * 0.8 + stone;
+}
+
 /**
  * The neutral AI, after VCMI's StupidAI: a shooter shoots the target it hurts
  * most; otherwise hit the reachable enemy that gives the best trade (damage
- * dealt minus damage taken back); otherwise walk towards the nearest enemy.
+ * dealt minus damage taken back, over every stack a cleaver would hit from
+ * that hex); otherwise walk towards the nearest enemy.
  */
 export function chooseAction(state: BattleState): Action {
   const me = activeStack(state);
@@ -31,12 +42,7 @@ export function chooseAction(state: BattleState): Action {
   let bestStrike: { action: Action; score: number } | null = null;
   for (const e of enemies) {
     for (const [from, moved] of strikeFrom(state, e)) {
-      const dealt = average(damageRange(state, me, e, { ranged: false, distance: 1, moved }));
-      const left = { ...e, count: e.count - killsBy(e, dealt) };
-      const back = left.count > 0 && e.retaliationsLeft > 0 && !creature(me.creature).noRetaliation
-        ? worth(me, average(damageRange(state, left, me, { ranged: false, distance: 1, moved: 0 })))
-        : 0;
-      const score = worth(e, dealt) - back * 0.8 - moved * 0.01;
+      const score = struckBy(state, me, e, from).reduce((n, x) => n + tradeOn(state, me, x, moved), 0) - moved * 0.01;
       if (!bestStrike || score > bestStrike.score) bestStrike = { action: { type: 'attack', target: e.id, from }, score };
     }
   }

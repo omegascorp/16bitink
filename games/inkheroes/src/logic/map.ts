@@ -42,6 +42,12 @@ export const tileIndex = (g: Grid, x: number, y: number): number => x + y * g.w;
 /** Movement points to leave a tile of each ground (H3). */
 export const TERRAIN_COST: Readonly<Record<Terrain, number>> = { grass: 100, dirt: 100, rough: 125, sand: 150, snow: 150, swamp: 175, water: Infinity };
 export const ROAD_COST = 50;
+/** Movement points to a tile of plain ground: what a player counts, as points mean nothing on screen. */
+export const TILE_MP = 100;
+/** What a Stables adds to a hero's day. */
+export const STABLES_MP = 400;
+/** `mp` movement points as tiles of plain ground. */
+export const tilesOf = (mp: number): number => Math.floor(mp / TILE_MP);
 
 const BLOCKING: readonly Cover[] = ['tree', 'pine', 'mountain', 'rock'];
 

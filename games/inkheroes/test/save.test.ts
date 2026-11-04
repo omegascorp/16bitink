@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ASHFORD } from '../src/level/borderMarch';
+import { ASHFORD, THORNWOOD } from '../src/level/borderMarch';
 import { mapById } from '../src/level/maps';
 import { answerPrompt, endDay, queueLevelUps, startAdventure } from '../src/logic/adventure';
 import { blotsFor, loadAdventure, mergeProgress, parseAdventure, parseProgress, recordWin, saveAdventure } from '../src/logic/save';
@@ -45,6 +45,20 @@ describe('saving', () => {
     const moved = { ...adv, objects: adv.objects.map((o) => ({ ...o, x: 0, y: 0, kind: 'chest', gold: 999999 })) };
     const parsed = parseAdventure(JSON.parse(JSON.stringify(moved)), ASHFORD)!;
     expect(parsed.objects).toEqual(ASHFORD.objects);
+  });
+
+  it('loads a save from before a map gained a monster, with the monster on the map', () => {
+    const adv = startAdventure(THORNWOOD);
+    const old = { ...adv, objects: adv.objects.filter((o) => o.id !== 'road-boars') };
+    const parsed = parseAdventure(JSON.parse(JSON.stringify(old)), THORNWOOD)!;
+    expect(parsed).not.toBeNull();
+    expect(parsed.objects.find((o) => o.id === 'road-boars')).toMatchObject({ creature: 'boar', count: 5 });
+  });
+
+  it('still refuses a save missing anything but a monster', () => {
+    const adv = startAdventure(THORNWOOD);
+    const old = { ...adv, objects: adv.objects.filter((o) => o.id !== 'pile-gold-1') };
+    expect(parseAdventure(JSON.parse(JSON.stringify(old)), THORNWOOD)).toBeNull();
   });
 
   it('keeps the best result per map and merges two devices', () => {

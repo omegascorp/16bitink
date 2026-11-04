@@ -21,7 +21,10 @@ export const FLAGS: Partial<Record<TownArt, readonly FlagSpot[]>> = {
   'walls-castle': [{ x: 119, y: 4, w: 14, h: 10 }, { x: 44, y: 85, w: 13, h: 9 }, { x: 194, y: 86, w: 13, h: 9 }, { x: 122, y: 124, w: 13, h: 9, over: true }],
   'walls-citadel': [{ x: 113, y: 4, w: 19, h: 14 }, { x: 40, y: 37, w: 18, h: 14 }, { x: 188, y: 37, w: 18, h: 14 }, { x: 113, y: 69, w: 19, h: 14, over: true }],
   'hall-capitol': [{ x: 112, y: 6, w: 11, h: 10 }],
-  'wall-tower': [{ x: 30, y: 2, w: 9, h: 10 }],
+  'corner-front': [{ x: 70, y: 2, w: 9, h: 10 }],
+  'corner-back': [{ x: 70, y: 2, w: 10, h: 10 }],
+  'corner-left': [{ x: 30, y: 2, w: 10, h: 10 }],
+  'corner-right': [{ x: 70, y: 2, w: 9, h: 10 }],
   tiltyard: [{ x: 100, y: 1, w: 19, h: 9 }],
 };
 

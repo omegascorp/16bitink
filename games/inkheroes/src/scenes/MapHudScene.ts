@@ -2,12 +2,14 @@ import Phaser from 'phaser';
 import { getHost, getSound } from '../host';
 import { calendar, unfinished, type Adventure } from '../logic/adventure';
 import { CLASSES, dailyMp, maxMana } from '../logic/hero';
+import { tilesOf } from '../logic/map';
 import { faceOf, heroArt, PX_TEX } from './battle/pixelAssets';
 import { drawPortrait, FILLS, SLOT } from './battle/pixelFrames';
 import { PixelButton, PixelFrame, putBuffer, TextLabel, UI_TEX } from './battle/pixelUi';
 import { openCard } from './CardScene';
 import { toMenu } from './cards';
 import { ArmyRow, ARMY_ROW_W } from './hud/armyRow';
+import { freeSlot, releaseSlot, takeSlot } from './hud/noteStack';
 import { PurseRow, PURSE_BAR_H } from './hud/purseRow';
 import type { MapScene } from './MapScene';
 import { pixelUiCamera } from './pixelScreen';
@@ -25,6 +27,8 @@ const PLATE_PAD = { x: 6, y: 2 } as const;
 /** How far a note rises and how long it stays, UI pixels and ms. */
 const NOTE_RISE = 24;
 const NOTE_MS = 1500;
+/** The gap between two notes on screen at once, UI pixels. */
+const NOTE_GAP = 2;
 
 /**
  * The map's interface, as pixel art on the art's grid (the battle's kit):
@@ -51,6 +55,8 @@ export class MapHudScene extends Phaser.Scene {
   private heroKey = '';
   private owned: { destroy(): void }[] = [];
   private narrow = false;
+  /** Lines of the note stack in use. */
+  private noteSlots: number[] = [];
 
   constructor() {
     super('MapHud');
@@ -62,6 +68,7 @@ export class MapHudScene extends Phaser.Scene {
     this.owned = [];
     this.bar = null;
     this.plate = null;
+    this.noteSlots = [];
     const fit = pixelUiCamera(this, (size) => {
       this.size = size;
       this.layout();
@@ -197,7 +204,7 @@ export class MapHudScene extends Phaser.Scene {
     this.date.setText(calendar(adv.day));
     const h = adv.hero;
     this.heroLine.setText(`${h.name}, ${CLASSES[h.heroClass].name} · level ${h.level}`);
-    this.moveLine.setText(`${Math.floor(h.mp / 100)}/${Math.floor(dailyMp(h) / 100)}`);
+    this.moveLine.setText(`${tilesOf(h.mp)}/${tilesOf(dailyMp(h))}`);
     this.manaLine.setText(`${h.mana}/${maxMana(h)}`);
     this.army.set(h.army);
   }
@@ -231,10 +238,12 @@ export class MapHudScene extends Phaser.Scene {
     void map.showRival(before, report).then(() => map.showPrompts());
   }
 
-  /** A note rising from the middle of the screen ("+5 wood"), in gold. */
+  /** A note rising from the middle of the screen ("+5 wood"), in gold, below any still showing. */
   private note(text: string): void {
     const label = new TextLabel(this, { kind: 'title', anchor: { x: 0.5, y: 0.5 } }).setText(text);
-    const at = { x: Math.floor(this.size.w / 2), y: Math.floor(this.size.h * 0.4) };
+    const slot = freeSlot(this.noteSlots);
+    this.noteSlots = takeSlot(this.noteSlots, slot);
+    const at = { x: Math.floor(this.size.w / 2), y: Math.floor(this.size.h * 0.4) + slot * (label.height + NOTE_GAP) };
     label.setPosition(at.x, at.y);
     label.img.setDepth(3);
     this.tweens.addCounter({
@@ -244,7 +253,10 @@ export class MapHudScene extends Phaser.Scene {
         label.setPosition(at.x, Math.round(at.y - NOTE_RISE * u));
         label.img.setAlpha(u < 0.5 ? 1 : 1 - (u - 0.5) / 0.5);
       },
-      onComplete: () => label.destroy(),
+      onComplete: () => {
+        this.noteSlots = releaseSlot(this.noteSlots, slot);
+        label.destroy();
+      },
     });
   }
 

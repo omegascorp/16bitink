@@ -1,12 +1,12 @@
 import Phaser from 'phaser';
 import type { Pose } from '../../art/pixel/manifest';
 import { getSound } from '../../host';
-import { alive, stackById } from '../../logic/battle';
+import { alive, isStone, stackById } from '../../logic/battle';
 import type { BattleEvent, BattleState, Stack } from '../../logic/battleTypes';
 import { createRng } from '../../logic/rng';
 import { HEX_COUNT, type Hex } from '../../logic/hex';
 import { SPELLS } from '../../logic/spells';
-import { facesTarget, footprintAt, isWide, occupiedHexes } from '../../logic/footprint';
+import { adjacent, facesTarget, footprintAt, isWide, occupiedHexes } from '../../logic/footprint';
 import type { BattleCameras } from './battleCameras';
 import { badgeTexture, backdropSource, bufferTexture, heroArt, obstacleArt, PX_TEX, unitArt } from './pixelAssets';
 import { FIGURE_DEPTH, PixelFigure } from './pixelFigure';
@@ -43,6 +43,8 @@ const FLY_LIFT = 20;
 const STONE_ARC = 14;
 /** Where floats rise from: this share of the art's height above the feet. */
 const FLOAT_ABOVE = 0.6;
+/** A stack turned to stone, until its lost turn: a tint only multiplies, so a cold blue is what cancels the art's warm colours to grey. */
+const STONE_TINT = 0x7388b0;
 
 /** The hexes a stack stands on, head first: a two-hex unit is stood centred between its head and tail. */
 function stackHexes(s: Stack): readonly Hex[] {
@@ -89,6 +91,8 @@ export interface ViewOpts {
  */
 export class BattleView {
   private readonly units = new Map<number, UnitSprite>();
+  /** Done once the last melee striker is back from its lunge. */
+  private recovered: Promise<void> = Promise.resolve();
   /** Each side's hero beside the field, if it has one. */
   private readonly heroes: (PixelFigure | null)[] = [null, null];
   private readonly obstacles: Phaser.GameObjects.Image[] = [];
@@ -161,6 +165,8 @@ export class BattleView {
       const p = stackFeet(s);
       u.fig.setFeet(p.x, p.y);
       u.fig.sprite.setVisible(alive(s)).setAlpha(1);
+      if (isStone(s)) u.fig.sprite.setTint(STONE_TINT);
+      else u.fig.sprite.clearTint();
       this.setBadge(u, s.count, alive(s));
     }
     if (this.opts.feet) this.markFeet(state);
@@ -248,6 +254,11 @@ export class BattleView {
         await this.wait(450);
         return;
       }
+      case 'stone': {
+        this.floatAt(this.units.get(ev.stack)!.fig, ev.lost ? 'Stone: loses its turn' : 'Turned to stone!', INK.damage, 10);
+        await this.wait(450);
+        return;
+      }
       case 'round': {
         if (ev.round > 1) {
           this.floater(WORLD.w / 2, WORLD.h / 2, `Round ${ev.round}`, INK.title, true);
@@ -261,6 +272,8 @@ export class BattleView {
   }
 
   private async playMove(id: number, path: readonly Hex[], flies: boolean, from: Stack): Promise<void> {
+    // A swooper flies off right after its strike: let the lunge finish first.
+    await this.recovered;
     const u = this.units.get(id)!;
     u.badge.setVisible(false);
     u.fig.walk();
@@ -294,7 +307,8 @@ export class BattleView {
     const natural = striker.side === 1;
     if (ranged) {
       if (t.fig.feet.x !== a.fig.feet.x) a.fig.face(t.fig.feet.x < a.fig.feet.x);
-    } else a.fig.face(facesTarget(striker.side, occupiedHexes(striker), occupiedHexes(target)) ? natural : !natural);
+    } else if (!adjacent(striker, target)) a.fig.face(t.fig.feet.x < a.fig.feet.x); // `after` has a swooper home already: go by the sprites.
+    else a.fig.face(facesTarget(striker.side, occupiedHexes(striker), occupiedHexes(target)) ? natural : !natural);
     const home = { ...a.fig.feet };
     const lunge = { x: home.x + (t.fig.feet.x - home.x) * LUNGE, y: home.y + (t.fig.feet.y - home.y) * LUNGE };
     if (!ranged) void this.glide(a.fig, lunge, Math.max(120, a.fig.msToStrike()), 'Quad.easeIn');
@@ -304,7 +318,7 @@ export class BattleView {
     await blow;
     // The slingers throw stones; their upgrades (javelins, bows) and the centaurs loose arrows.
     if (ranged) await this.projectile(a.fig, t.fig, striker.creature !== 'bowman');
-    else void swing.then(() => this.glide(a.fig, home, 200, 'Quad.easeOut'));
+    else this.recovered = swing.then(() => this.glide(a.fig, home, 200, 'Quad.easeOut'));
     void swing.then(() => a.fig.face(facing));
   }
 

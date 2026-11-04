@@ -39,7 +39,8 @@ const RECIPES: Readonly<Record<CursorKind, { readonly src: string; readonly t: T
   info: { src: infoUrl, t: {}, tip: null },
   cast: { src: wandUrl, t: {}, tip: VEC.ne },
   shoot: { src: arrowUrl, t: {}, tip: VEC.ne },
-  shootFar: { src: arrowBrokenUrl, t: {}, tip: VEC.ne },
+  // Snapped, its head hangs down to the right: that is where it aims.
+  shootFar: { src: arrowBrokenUrl, t: {}, tip: VEC.se },
   'sword-e': { src: swordEUrl, t: {}, tip: VEC.e },
   'sword-w': { src: swordEUrl, t: { flipX: true }, tip: VEC.w },
   'sword-n': { src: swordEUrl, t: { turn: -1 }, tip: VEC.n },

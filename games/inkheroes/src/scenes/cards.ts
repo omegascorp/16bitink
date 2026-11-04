@@ -59,11 +59,10 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
       title: 'Victory!',
       body: `${session.def.goal.text[0]!.toUpperCase()}${session.def.goal.text.slice(1)}: done in ${days} ${days === 1 ? 'day' : 'days'}.\n${days <= session.def.parDays ? 'Within the par of ' : 'Par was '}${session.def.parDays} days${adv.lostStacks === 0 ? ', and not one company lost.' : '.'}${end}`,
       blots,
-      buttons: [
-        ...(next ? [{ label: `Ride on to ${next.name}`, onClick: () => rideOnward(scene, session) }] : []),
-        // A part left here won rides on when the chapter is continued from the menu.
-        { label: 'Back to the campaign', kind: next ? 'plain' as const : undefined, onClick: () => toMenu(scene, session, null) },
-      ],
+      // One way on: from the next part the map's own menu still leads back to the campaign.
+      buttons: [next
+        ? { label: `Ride on to ${next.name}`, onClick: () => rideOnward(scene, session) }
+        : { label: 'Back to the campaign', onClick: () => toMenu(scene, session, null) }],
     });
     return;
   }

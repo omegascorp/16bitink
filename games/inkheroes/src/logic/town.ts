@@ -143,6 +143,28 @@ export function upgradeSlot(t: Town, army: Army, i: number, p: Purse): { army: A
   return { army: army.map((x, j) => (j === i ? { creature: to, count: s.count } : x)), purse: pay(p, cost) };
 }
 
+/**
+ * Every company in `armies` that `t` can raise, the strongest first, so the
+ * purse goes to the best troops; one it can't afford waits at its level.
+ * `upgraded` and `eligible` count units: done, and what could be with the gold.
+ */
+export function upgradeAll(t: Town, armies: readonly Army[], p: Purse): { armies: Army[]; purse: Purse; upgraded: number; eligible: number } {
+  const slots = armies
+    .flatMap((army, a) => army.flatMap((s, i) => (s && upgradeTo(t, s.creature) ? [{ a, i, level: creature(s.creature).level, count: s.count }] : [])))
+    .sort((x, y) => y.level - x.level);
+  let next = [...armies];
+  let purse = p;
+  let upgraded = 0;
+  for (const { a, i, count } of slots) {
+    const r = upgradeSlot(t, next[a]!, i, purse);
+    if (!r) continue;
+    next = next.map((army, j) => (j === a ? r.army : army));
+    purse = r.purse;
+    upgraded += count;
+  }
+  return { armies: next, purse, upgraded, eligible: slots.reduce((n, s) => n + s.count, 0) };
+}
+
 /** The spells a guild of this town teaches now. */
 export function guildSpells(t: Town): SpellId[] {
   const floors = has(t, 'mageGuild2') ? 2 : has(t, 'mageGuild1') ? 1 : 0;

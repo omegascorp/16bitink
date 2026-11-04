@@ -63,13 +63,15 @@ PIECES = {
     # The city round them, always there: houses and the fountain.
     **{f'house-{k}': (f'house-{k}.png', None) for k in 'abcdef'},
     'fountain': ('fountain.png', None),
-    # The city's walls: a straight section running down to the right (turrets at both ends), a round corner tower, the gatehouse.
+    # The city's walls: a straight section running down to the right (turrets at both ends), the plain length that fills
+    # a short edge, the gatehouse, and the four corners, each a tower painted as one with its two walls (see corner/).
     'wall': ('wall-a.png', None),
-    'wall-tower': ('wall-tower.png', None),
+    'wall-stub': ('wall-stub.png', None),
     'wall-gate': ('wall-gate.png', None),
+    **{n: (f'{n}.png', None) for n in ('corner-front', 'corner-back', 'corner-left', 'corner-left-rear', 'corner-right', 'corner-right-rear')},
 }
 # Pieces whose base runs along an edge of the city, and the slope it is sheared to (the city's 2:1 edges).
-SHEAR = {'wall': 0.5, 'wall-gate': 0.5}
+SHEAR = {'wall': 0.5, 'wall-stub': 0.5, 'wall-gate': 0.5}
 # The streets' paving, already drawn at the town's isometric angle (tiled as it is).
 PAVING = 'paving.png'
 

@@ -55,11 +55,14 @@ SITES = {
 MOUNDED = {art for art, (src, _) in SITES.items() if src.startswith('iso/') and art != 'town'}
 SOIL_MAX = 10
 COVER = {
-    'tree': ['cover/split/tree-0.png', 'cover/split/tree-1.png', 'cover/split/tree-3.png', 'cover/split/tree-5.png',
+    # tree-5 is left out: its sheet cut the crown off down the right side.
+    'tree': ['cover/split/tree-0.png', 'cover/split/tree-1.png', 'cover/split/tree-3.png',
              'cover/split/tree-6.png', 'cover/split/tree-7.png', 'cover/split/tree-8.png', 'cover/split/tree-9.png'],
     'pine': ['cover/split/tree-2.png', 'cover/split/tree-4.png'],
     'olive': ['cover/split/small-2.png', 'cover/split/small-3.png', 'cover/split/small-4.png', 'cover/split/small-5.png'],
-    'mountain': ['cover/mountain-b.png', 'cover/mountain-c.png'],
+    # edit_image_pixen from mountain-b (range-a, b, c), then from range-a (the rest), to keep one rock style.
+    'mountain': ['cover/range-a.png', 'cover/range-b.png', 'cover/range-c.png', 'cover/range-f.png'],
+    'peak': ['cover/peak-c.png', 'cover/peak-d.png'],
     'rock': ['cover/rock-a.png'],
     'bridge': ['cover/bridge.png'],
 }

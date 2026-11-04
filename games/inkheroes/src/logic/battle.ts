@@ -4,11 +4,11 @@ import { creature, type CreatureId } from './creatures';
 import { hexAt, reachable, route, type Hex, COLS, ROWS } from './hex';
 import { adjacent, around, covers, facesTarget, footprintAt, headOf, isWide, occupiedHexes, shotDistance, tailFn, touching } from './footprint';
 import { roll, rollInt } from './rng';
-import { hurt, rollDamage, speedOf } from './damage';
+import { heal, hurt, rollDamage, speedOf } from './damage';
 import { castSpell } from './battleSpells';
-import { activeStack, alive, stackById, update, winnerOf } from './battleCore';
+import { activeStack, alive, isStone, stackById, update, winnerOf } from './battleCore';
 
-export { activeStack, alive, stackById, update, winnerOf };
+export { activeStack, alive, isStone, stackById, update, winnerOf };
 
 export interface BattleSide {
   readonly hero: BattleHero | null;
@@ -214,7 +214,8 @@ export function act(state: BattleState, action: Action): Step {
       const steps = strikeFrom(s, target).get(action.from);
       if (steps === undefined) throw new Error('cannot strike from there');
       if (action.from !== me.hex) s = moveTo(s, me, action.from, events);
-      s = melee(s, me.id, target.id, steps, events);
+      s = melee(s, me.id, target.id, action.from, steps, events);
+      s = swoopHome(s, me, events);
       break;
     }
     case 'shoot': {
@@ -254,15 +255,39 @@ function moveTo(s: BattleState, me: Stack, to: Hex, events: BattleEvent[]): Batt
   return update(s, me.id, (x) => ({ ...x, hex: to }));
 }
 
-function melee(s: BattleState, a: number, d: number, moved: number, events: BattleEvent[]): BattleState {
-  let next = strike(s, a, d, { ranged: false, distance: 1, moved }, false, events);
-  const att = stackById(next, a);
-  const def = stackById(next, d);
-  if (alive(def) && alive(att) && def.retaliationsLeft > 0 && !creature(att.creature).noRetaliation) {
-    next = strike(next, d, a, { ranged: false, distance: 1, moved: 0 }, true, events);
-    next = update(next, d, (x) => ({ ...x, retaliationsLeft: x.retaliationsLeft - 1 }));
-  }
-  return next;
+/** Whom a melee blow from head hex `from` lands on: the target, and for a cleaver every other enemy beside it there. */
+export function struckBy(state: BattleState, me: Stack, target: Stack, from: Hex): Stack[] {
+  if (!creature(me.creature).cleave) return [target];
+  const hexes = footprintAt(from, isWide(me.creature), me.side) ?? [from];
+  return [target, ...state.stacks.filter((o) => o.id !== target.id && isEnemy(me, o) && touching(hexes, occupiedHexes(o)))];
+}
+
+/** Whether `def` would answer a melee strike from `att`. */
+export function answers(att: Stack, def: Stack): boolean {
+  return def.retaliationsLeft > 0 && !isStone(def) && !creature(att.creature).noRetaliation;
+}
+
+/** A melee strike: every blow lands first, then each stack struck that still can answers once. */
+function melee(s: BattleState, a: number, d: number, from: Hex, moved: number, events: BattleEvent[]): BattleState {
+  const struck = struckBy(s, stackById(s, a), stackById(s, d), from).map((x) => x.id);
+  const ctx = { ranged: false, distance: 1, moved };
+  const hit = struck.reduce((st, id) => strike(st, a, id, ctx, false, events), s);
+  return struck.reduce((st, id) => answer(st, a, id, events), hit);
+}
+
+function answer(s: BattleState, a: number, d: number, events: BattleEvent[]): BattleState {
+  const att = stackById(s, a);
+  const def = stackById(s, d);
+  if (!alive(att) || !alive(def) || !answers(att, def)) return s;
+  const next = strike(s, d, a, { ranged: false, distance: 1, moved: 0 }, true, events);
+  return update(next, d, (x) => ({ ...x, retaliationsLeft: x.retaliationsLeft - 1 }));
+}
+
+/** After a strike, a swooper flies back to where `start` shows it began, if it lived, isn't stone and the hex is free. */
+function swoopHome(s: BattleState, start: Stack, events: BattleEvent[]): BattleState {
+  const bird = stackById(s, start.id);
+  if (!creature(bird.creature).swoop || !alive(bird) || isStone(bird) || bird.hex === start.hex) return s;
+  return blockedFor(s, bird.id).has(start.hex) ? s : moveTo(s, bird, start.hex, events);
 }
 
 function strike(s: BattleState, a: number, d: number, ctx: { ranged: boolean; distance: number; moved: number }, retaliation: boolean, events: BattleEvent[]): BattleState {
@@ -271,14 +296,26 @@ function strike(s: BattleState, a: number, d: number, ctx: { ranged: boolean; di
   const r = rollDamage(s, att, def, ctx, s.seed);
   const { stack, kills } = hurt(def, r.damage);
   events.push({ type: 'strike', stack: a, target: d, damage: r.damage, kills, lucky: r.lucky, retaliation, ranged: ctx.ranged });
-  return { ...update(s, d, () => stack), seed: r.seed };
+  const next = { ...update(s, d, () => stack), seed: r.seed };
+  return ctx.ranged ? next : petrify(next, att, d, events);
+}
+
+/** A petrifying strike that landed may turn its living target to stone (a roll only when it could). */
+function petrify(s: BattleState, att: Stack, d: number, events: BattleEvent[]): BattleState {
+  const chance = creature(att.creature).petrify;
+  if (!chance || !alive(stackById(s, d))) return s;
+  const r = roll(s.seed);
+  const next = { ...s, seed: r.seed };
+  if (r.value >= chance) return next;
+  events.push({ type: 'stone', stack: d, lost: false });
+  return update(next, d, (x) => ({ ...x, effects: [...x.effects.filter((e) => e.kind !== 'stone'), { kind: 'stone', rounds: 1 }] }));
 }
 
 /** After a move or strike: a good-morale extra turn, or the turn passes. */
 function afterAction(s: BattleState, id: number, events: BattleEvent[]): Step {
   const me = stackById(s, id);
   const ended = winnerOf(s);
-  if (ended === null && alive(me) && !me.moraleUsed) {
+  if (ended === null && alive(me) && !me.moraleUsed && !isStone(me)) {
     const m = moraleFor(s, me);
     const r = roll(s.seed);
     s = { ...s, seed: r.seed };
@@ -312,6 +349,12 @@ export function advance(s: BattleState, events: BattleEvent[]): Step {
     }
     // A unit's Defend lasts until its own next turn.
     s = update(s, next.id, (x) => ({ ...x, defending: false }));
+    if (isStone(next)) {
+      events.push({ type: 'stone', stack: next.id, lost: true });
+      s = update(s, next.id, (x) => ({ ...x, acted: true, effects: x.effects.filter((e) => e.kind !== 'stone') }));
+      continue;
+    }
+    s = regrow(s, next, events);
     const m = moraleFor(s, next);
     if (m < 0 && !next.waited) {
       const r = roll(s.seed);
@@ -325,6 +368,14 @@ export function advance(s: BattleState, events: BattleEvent[]): Step {
     events.push({ type: 'turn', stack: next.id });
     return { state: { ...s, active: next.id }, events };
   }
+}
+
+/** A regrowing stack's top creature heals as its turn starts (once a round: not again after a wait). */
+function regrow(s: BattleState, st: Stack, events: BattleEvent[]): BattleState {
+  const amount = Math.min(creature(st.creature).regen ?? 0, creature(st.creature).hp - st.topHp);
+  if (amount <= 0 || st.waited) return s;
+  events.push({ type: 'heal', stack: st.id, target: st.id, amount });
+  return update(s, st.id, (x) => heal(x, amount));
 }
 
 function pickNext(s: BattleState): Stack | null {
@@ -348,7 +399,8 @@ function newRound(s: BattleState): BattleState {
       waited: false,
       moraleUsed: false,
       retaliationsLeft: creature(x.creature).retaliations ?? 1,
-      effects: x.effects.map((e) => ({ ...e, rounds: e.rounds - 1 })).filter((e) => e.rounds > 0),
+      // Stone doesn't wear off with the round: it lasts until the stack's lost turn (see advance).
+      effects: x.effects.map((e) => (e.kind === 'stone' ? e : { ...e, rounds: e.rounds - 1 })).filter((e) => e.rounds > 0),
     })),
   };
 }

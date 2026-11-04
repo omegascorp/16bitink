@@ -64,7 +64,20 @@ export const SITE_NAMES: Readonly<Record<ObjectKind, string>> = {
   windmill: 'Windmill', stables: 'Stables', monster: 'Monster',
 };
 
-/** Tiles a town covers besides its gate (x, y): three wide, two deep, gate in the middle of the front row. */
+/** A town's inner tiles besides its gate (x, y): three wide, two deep, gate in the middle of the front row. */
+const TOWN_CORE: readonly (readonly [number, number])[] = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0]];
+/** The rest of the ground its walled picture stands on: the side towers on the row behind the gate, the back wall behind that. */
+const TOWN_WALLS: readonly (readonly [number, number])[] = [[-3, -1], [-2, -1], [2, -1], [3, -1], [-1, -2], [0, -2], [1, -2]];
+
+const offsetBy = (x: number, y: number, tiles: readonly (readonly [number, number])[]): { x: number; y: number }[] =>
+  tiles.map(([dx, dy]) => ({ x: x + dx, y: y + dy }));
+
+/** Inside the town proper. A hero is never here, even in a game saved before the walls blocked their whole picture. */
+export function townCore(x: number, y: number): { x: number; y: number }[] {
+  return offsetBy(x, y, TOWN_CORE);
+}
+
+/** Tiles a town blocks besides its gate (x, y): all the ground under its picture, so nothing stands behind its walls. */
 export function townFootprint(x: number, y: number): { x: number; y: number }[] {
-  return [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0]].map(([dx, dy]) => ({ x: x + dx!, y: y + dy! }));
+  return offsetBy(x, y, [...TOWN_CORE, ...TOWN_WALLS]);
 }

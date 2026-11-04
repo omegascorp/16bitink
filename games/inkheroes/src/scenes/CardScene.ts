@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
+import type { StatName } from '../art/pixel/ui';
 import type { PlateKind } from '../art/uiArtParts';
+import { PixelBuildCard, previewReady, type CardView } from './battle/pixelBuildCard';
 import { PixelCard } from './battle/pixelCard';
+import type { DwellingPreview } from './battle/unitCard';
 import { pixelUiCamera } from './pixelScreen';
 
 export interface CardButton {
@@ -15,8 +18,12 @@ export interface CardSpec {
   readonly title: string;
   readonly body: string;
   readonly buttons: readonly CardButton[];
+  /** What it gives, picked out in gold with its icon above the text. */
+  readonly perk?: { readonly icon: StatName; readonly text: string };
   /** Laurels to show (victory), out of 3. */
   readonly blots?: number;
+  /** A building that hires a unit: its picture and stats (or the old and new unit of an upgrade) go above the text. */
+  readonly preview?: DwellingPreview;
 }
 
 /**
@@ -30,16 +37,17 @@ export class CardScene extends Phaser.Scene {
   }
 
   create(spec: CardSpec): void {
-    let card: PixelCard | null = null;
+    let card: CardView | null = null;
     // Two taps in one frame must not answer the card twice (stop() only takes effect next frame).
     let answered = false;
     const root = this.add.container(0, 0);
     const draw = (size: { w: number; h: number }, quiet: boolean): void => {
       card?.dispose();
-      card = new PixelCard(this, root, spec, size, () => {
+      const done = (): void => {
         answered = true;
         this.scene.stop();
-      }, quiet);
+      };
+      card = spec.preview && previewReady(this, spec.preview) ? new PixelBuildCard(this, root, spec, spec.preview, size, done, quiet) : new PixelCard(this, root, spec, size, done, quiet);
     };
     const fit = pixelUiCamera(this, (size) => {
       if (!answered) draw(size, true);

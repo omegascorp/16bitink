@@ -88,6 +88,18 @@ import ballistaAttack from './units/ballista-attack.png?url';
 import tentIdle from './units/tent-idle.png?url';
 import tentWalk from './units/tent-walk.png?url';
 import tentAttack from './units/tent-attack.png?url';
+import boarIdle from './units/boar-idle.png?url';
+import boarWalk from './units/boar-walk.png?url';
+import boarAttack from './units/boar-attack.png?url';
+import stymphalianIdle from './units/stymphalian-idle.png?url';
+import stymphalianWalk from './units/stymphalian-walk.png?url';
+import stymphalianAttack from './units/stymphalian-attack.png?url';
+import hydraIdle from './units/hydra-idle.png?url';
+import hydraWalk from './units/hydra-walk.png?url';
+import hydraAttack from './units/hydra-attack.png?url';
+import basiliskIdle from './units/basilisk-idle.png?url';
+import basiliskWalk from './units/basilisk-walk.png?url';
+import basiliskAttack from './units/basilisk-attack.png?url';
 import hero_playerIdle from './units/hero_player-idle.png?url';
 import hero_playerWalk from './units/hero_player-walk.png?url';
 import hero_playerAttack from './units/hero_player-attack.png?url';
@@ -307,6 +319,31 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     frames: { idle: 4, walk: 1, attack: 8 }, strike: 3,
     face: { x: 57, y: 74 },
     url: { idle: tentIdle, walk: tentWalk, attack: tentAttack },
+  },
+  boar: {
+    name: 'Erymanthian Boar', w: 128, h: 104, footX: 50, footY: 98,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 76, y: 62 },
+    url: { idle: boarIdle, walk: boarWalk, attack: boarAttack },
+  },
+  stymphalian: {
+    name: 'Stymphalian Bird', w: 128, h: 112, footX: 46, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    flies: true,
+    face: { x: 88, y: 66 },
+    url: { idle: stymphalianIdle, walk: stymphalianWalk, attack: stymphalianAttack },
+  },
+  hydra: {
+    name: 'Lernaean Hydra', w: 164, h: 112, footX: 52, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 96, y: 40 },
+    url: { idle: hydraIdle, walk: hydraWalk, attack: hydraAttack },
+  },
+  basilisk: {
+    name: 'Basilisk', w: 120, h: 80, footX: 50, footY: 74,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 82, y: 46 },
+    url: { idle: basiliskIdle, walk: basiliskWalk, attack: basiliskAttack },
   },
 };
 

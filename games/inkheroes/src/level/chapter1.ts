@@ -84,7 +84,7 @@ export const ASHFORD_LAND: MapDef = {
     { id: 'fire-north', kind: 'campfire', x: 8, y: 2, gold: 500, resource: 'wood', amount: 5 },
     { id: 'fire-road', kind: 'campfire', x: 16, y: 13, gold: 600, resource: 'ore', amount: 4 },
     { id: 'pile-wood-1', kind: 'pile', x: 3, y: 7, resource: 'wood', amount: 7 },
-    { id: 'pile-ore-1', kind: 'pile', x: 9, y: 4, resource: 'ore', amount: 6 },
+    { id: 'pile-ore-1', kind: 'pile', x: 10, y: 3, resource: 'ore', amount: 6 },
     { id: 'pile-gold-1', kind: 'pile', x: 14, y: 6, resource: 'gold', amount: 750 },
     { id: 'pile-gems', kind: 'pile', x: 28, y: 3, resource: 'gems', amount: 5 },
     { id: 'pile-crystal', kind: 'pile', x: 23, y: 7, resource: 'crystal', amount: 4 },

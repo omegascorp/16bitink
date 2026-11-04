@@ -12,7 +12,7 @@ import { dailyMp, levelFor, nextLevelUp, xpForLevel } from '../src/logic/hero';
 import { passable, tileIndex } from '../src/logic/map';
 import { objectFootprint, townFootprint } from '../src/logic/objects';
 import { findPath } from '../src/logic/path';
-import { advisedNext, bestUnit, build, cantBuild, growthOf, hire, hireAll, upgradeCost, upgradeSlot, upgradeTo, weekly } from '../src/logic/town';
+import { advisedNext, bestUnit, build, cantBuild, growthOf, hire, hireAll, upgradeAll, upgradeCost, upgradeSlot, upgradeTo, weekly } from '../src/logic/town';
 import { BUILDINGS, BUILDING_IDS } from '../src/logic/buildings';
 import { creature, lineOf, lineUnits, tierOf } from '../src/logic/creatures';
 
@@ -368,6 +368,61 @@ describe('three levels of every unit', () => {
     expect(upgradeSlot(town, army, 0, { ...rich, gold: 100 })).toBeNull();
     expect(upgradeSlot(town, army, 1, rich)).toBeNull();
     expect(upgradeSlot(town, army, 5, rich)).toBeNull();
+  });
+
+  it('sends a hero who starts the day in a town with Stables on with 4 more tiles, and no one else', () => {
+    const town = start.towns[0]!;
+    const at = { ...start, hero: { ...start.hero, x: town.x, y: town.y } };
+    const stabled = { ...at, towns: [withBuilt('stables'), ...at.towns.slice(1)] };
+    expect(endDay(stabled).hero.mp).toBe(dailyMp(start.hero) + 400);
+    expect(endDay(at).hero.mp).toBe(dailyMp(start.hero));
+    // Out on the map, the Stables back home are no help; the next morning there, the bonus comes again rather than adding up.
+    expect(endDay({ ...stabled, hero: { ...stabled.hero, x: town.x + 9, y: town.y + 9 } }).hero.mp).toBe(dailyMp(start.hero));
+    expect(endDay(endDay(stabled)).hero.mp).toBe(dailyMp(start.hero) + 400);
+    expect(endDay(stabled).prompts.at(-1)).toMatchObject({ text: expect.stringContaining('+4 tiles') });
+    expect(BUILDINGS.stables.says).toContain('4 tiles');
+  });
+
+  it('upgrades every company it can in one go, in every army, the strongest first while the purse lasts', () => {
+    const town = withBuilt('guardhouse2', 'archeryRange2', 'griffinTower2');
+    const hero = armyOf([{ creature: 'spearman', count: 10 }, { creature: 'griffin', count: 2 }, { creature: 'boar', count: 3 }]);
+    const garrison = armyOf([{ creature: 'bowman', count: 4 }, { creature: 'spearman2', count: 5 }]);
+    const price = (from: 'spearman' | 'griffin' | 'bowman', to: 'spearman2' | 'griffin2' | 'bowman2', n: number): number => upgradeCost(from, to, n).gold ?? 0;
+    const spearmen = price('spearman', 'spearman2', 10);
+    const griffins = price('griffin', 'griffin2', 2);
+    const bowmen = price('bowman', 'bowman2', 4);
+
+    const all = upgradeAll(town, [hero, garrison], rich);
+    expect(all.armies[0]![0]).toEqual({ creature: 'spearman2', count: 10 });
+    expect(all.armies[0]![1]).toEqual({ creature: 'griffin2', count: 2 });
+    // A neutral has no dwelling here, and a company at the top level has nowhere to go.
+    expect(all.armies[0]![2]).toEqual({ creature: 'boar', count: 3 });
+    expect(all.armies[1]![0]).toEqual({ creature: 'bowman2', count: 4 });
+    expect(all.armies[1]![1]).toEqual({ creature: 'spearman2', count: 5 });
+    expect(all.upgraded).toBe(16);
+    expect(all.eligible).toBe(16);
+    expect(all.purse.gold).toBe(rich.gold - spearmen - griffins - bowmen);
+    expect(hero[0]).toEqual({ creature: 'spearman', count: 10 }); // the armies given are left as they were
+
+    // Gold for the griffins and not the rest: the best troops go first, and the others wait.
+    const some = upgradeAll(town, [hero, garrison], { ...rich, gold: griffins + 1 });
+    expect(some.armies[0]![1]).toEqual({ creature: 'griffin2', count: 2 });
+    expect(some.armies[0]![0]).toEqual(hero[0]);
+    expect(some.upgraded).toBe(2);
+    expect(some.eligible).toBe(16);
+    expect(some.purse.gold).toBe(1);
+
+    // Dearer companies skipped, a cheaper one still taken.
+    const cheapest = Math.min(spearmen, griffins, bowmen);
+    const skip = upgradeAll(town, [hero, garrison], { ...rich, gold: cheapest });
+    expect(skip.upgraded).toBeGreaterThan(0);
+    expect(skip.purse.gold).toBe(0);
+
+    const broke = upgradeAll(town, [hero, garrison], { ...rich, gold: 0 });
+    expect(broke.upgraded).toBe(0);
+    expect(broke.eligible).toBe(16);
+    expect(broke.armies).toEqual([hero, garrison]);
+    expect(upgradeAll(withBuilt(), [hero, garrison], rich).eligible).toBe(0);
   });
 });
 

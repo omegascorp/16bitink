@@ -51,7 +51,7 @@ describe('fixes from the first review', () => {
     const hero = { ...adv.hero, mp: 99999, mana: 999, skills: { leadership: 3 as const } };
     const p = roundTrip({ ...adv, hero, prompts: [{ kind: 'levelUp', offer: { level: 50, primary: 'attack', choices: ['leadership'] } }] })!;
     expect(p.prompts).toEqual([]);
-    expect(p.hero.mp).toBeLessThanOrEqual(2000);
+    expect(p.hero.mp).toBeLessThanOrEqual(2400);
     expect(p.hero.mana).toBe(maxMana(p.hero));
   });
 

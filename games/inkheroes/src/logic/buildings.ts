@@ -1,4 +1,5 @@
 import type { CreatureId } from './creatures';
+import { ROAD_COST, STABLES_MP, tilesOf } from './map';
 import type { Amount } from './resources';
 
 export const BUILDING_IDS = [
@@ -20,6 +21,8 @@ export interface BuildingDef {
   readonly income?: number;
   /** Extra weekly growth for every dwelling (fraction of base). */
   readonly growth?: number;
+  /** Movement points it adds to a hero's day. */
+  readonly travel?: number;
 }
 
 /** The Crown's buildings. Numbers in docs/inkheroes-design.md. */
@@ -41,7 +44,7 @@ export const BUILDINGS: Readonly<Record<BuildingId, BuildingDef>> = {
   griffinTower: { name: 'Griffin Tower', cost: { gold: 1000, ore: 5 }, needs: ['barracks'], says: 'Hires Griffins', dwelling: 'griffin' },
   barracks: { name: 'Barracks', cost: { gold: 2000, ore: 5 }, needs: ['guardhouse'], says: 'Hires Minotaurs', dwelling: 'swordsman' },
   monastery: { name: 'Monastery', cost: { gold: 3000, wood: 5, ore: 5, mercury: 2, sulfur: 2, crystal: 2, gems: 2 }, needs: ['mageGuild1', 'barracks'], says: 'Hires Centaurs', dwelling: 'monk' },
-  stables: { name: 'Stables', cost: { gold: 2000, wood: 10 }, needs: ['barracks'], says: '+400 movement for a hero leaving town' },
+  stables: { name: 'Stables', cost: { gold: 2000, wood: 10 }, needs: ['barracks'], says: `A hero who starts the day here travels ${tilesOf(STABLES_MP)} tiles further (${STABLES_MP / ROAD_COST} by road)`, travel: STABLES_MP },
   tiltyard: { name: 'Tiltyard', cost: { gold: 5000, wood: 20 }, needs: ['stables'], says: 'Hires Companions', dwelling: 'lancer' },
   seraphSpire: { name: 'Seraph Spire', cost: { gold: 20000, mercury: 10, sulfur: 10, crystal: 10, gems: 10 }, needs: ['monastery'], says: 'Hires Titans', dwelling: 'seraph' },
   // The upgrade tree: a first upgrade needs its dwelling (and a support), a second the first and the Citadel (lines 1-4) or the Castle (5-7).

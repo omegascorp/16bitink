@@ -56,7 +56,7 @@ Gold, wood, ore, mercury, sulfur, crystal, gems. Mines a day: sawmill 2 wood, or
 | Standing stone | +1000 experience (once per hero) |
 | Wayside shrine | Teaches a spell (needs a spellbook) |
 | Windmill | 3–6 of a rare resource each week |
-| Stables | +400 movement today and a free day's rest for horses (once a week) |
+| Stables | +4 tiles of travel today (once a week) |
 | Mine | Daily income once taken |
 
 ## Heroes
@@ -93,7 +93,7 @@ Gold, wood, ore, mercury, sulfur, crystal, gems. Mines a day: sawmill 2 wood, or
 - **Field:** 15 columns × 11 rows of hexes (H3's playable area), rows staggered; the attacker's army lines up in the left column, the defender's in the right, on H3's loose-formation rows (VCMI's table: 1 stack row 5; 2: 2, 8; 3: 2, 5, 8; 4: 0, 4, 6, 10; 5: 0, 2, 5, 8, 10; 6: 0, 2, 4, 6, 8, 10; 7: 0, 2, 4, 5, 6, 8, 10). 3–7 obstacles (rocks, stumps) in columns 3–11, from the map tile's seed.
 - **Turn order:** highest speed first; ties go to the attacker in round 1, then alternate. Each unit may move, attack, **wait** (act again at the end of the round, slowest first) or **defend** (+20% Defense, at least +1, until its next turn).
 - **Walking** units go round others and obstacles; **flying** units reach any free hex within their speed.
-- **Two-hex units** (Griffin, Centaur, Companion, Wolf; `wide` in `creatures.ts`), as H3/VCMI's double-wide: the unit stands on its head hex and the hex behind it in the same row (the attacker faces right, so its tail is to the left; the defender's to the right). Facing never changes. They start one column in, tail on the edge column. Both hexes must be free and on the field at every step (walkers) or where they land (flyers); speed counts head steps, so a wide unit can't slip through a one-hex gap in a wall that runs along a row. Anyone may strike them from beside either hex, and either hex counts for "an enemy next to a shooter". A wide unit strikes from any spot where its head or its tail touches the target; with only the tail touching it turns round to strike and back after (animation only, VCMI's isToReverse). Shot range counts from the shooter's head to the target's nearest hex. Code: `src/logic/footprint.ts`.
+- **Two-hex units** (Griffin, Centaur, Companion, Wolf, Boar, Hydra; `wide` in `creatures.ts`), as H3/VCMI's double-wide: the unit stands on its head hex and the hex behind it in the same row (the attacker faces right, so its tail is to the left; the defender's to the right). Facing never changes. They start one column in, tail on the edge column. Both hexes must be free and on the field at every step (walkers) or where they land (flyers); speed counts head steps, so a wide unit can't slip through a one-hex gap in a wall that runs along a row. Anyone may strike them from beside either hex, and either hex counts for "an enemy next to a shooter". A wide unit strikes from any spot where its head or its tail touches the target; with only the tail touching it turns round to strike and back after (animation only, VCMI's isToReverse). Shot range counts from the shooter's head to the target's nearest hex. Code: `src/logic/footprint.ts`.
 - **Melee:** move next to the target and strike. The target **retaliates** once a round, after the first strike only.
 - **Shooting:** shooters fire at any enemy unless an enemy stands next to them; −50% damage beyond 7 hexes; −50% in melee. Ranged hits aren't answered. Shots run out.
 - **Damage:** base = (random between min and max) × count. If Attack > Defense: +5% a point, at most +300%. If Defense > Attack: −2.5% a point, at most −70%. Bonuses (Offense or Archery, luck's ×2) add; penalties (range, melee for shooters, Armorer, Shield) multiply. At least 1. Damage kills from the top creature down.
@@ -101,7 +101,7 @@ Gold, wood, ore, mercury, sulfur, crystal, gems. Mines a day: sawmill 2 wood, or
 - **Luck:** each point gives a 1-in-24 chance of double damage.
 - **Spells:** the hero casts one spell a round, in place of nobody's turn (a button). Timed spells last Spell Power rounds (at least 1).
 - **Ending:** one side has no units left. The winner gets XP = the sum of the HP of the enemy creatures killed. The losing hero's map is lost (chapter 1 has one hero), and the game offers that day again.
-- **Neutral AI:** a shooter shoots the target it can hurt most; otherwise it attacks the reachable enemy with the best (damage dealt − damage taken back); otherwise it walks towards the nearest enemy.
+- **Neutral AI:** a shooter shoots the target it can hurt most; otherwise it attacks the reachable enemy with the best (damage dealt − damage taken back); otherwise it walks towards the nearest enemy. A hydra adds up the trade over every stack it would hit from that hex, so it looks for a hex touching more enemies; a basilisk counts the chance of stone in favour of a stack not yet stone. A stack of stone gives no answer, so it counts as a free blow.
 
 ## Spells
 
@@ -137,7 +137,7 @@ Greek city-states under the old gods: hoplites and slingers at the bottom, the b
 | 6 | Companion (lancer) | 15 | 15 | 15–25 | 100 | 7 | 2 | 1000 | Charge: +5% damage a hex moved. Alexander-style heavy cavalry |
 | 7 | Titan (seraph) | 20 | 20 | 50 | 200 | 12 | 1 | 3000 + 1 gem | Flies (strides over the field), +1 morale to the army |
 
-Every unit comes in **three levels** (H3 has two): the base unit and two upgrades of it, the same creature better armed. Each dwelling upgrades twice; all three levels hire from the dwelling's one weekly stock, and the Fort hires the best level built. A stack already in the army upgrades in the town (in the Fort, from that unit's card) for the difference in cost.
+Every unit comes in **three levels** (H3 has two): the base unit and two upgrades of it, the same creature better armed. Each dwelling upgrades twice; all three levels hire from the dwelling's one weekly stock, and the Fort hires the best level built. A stack already in the army upgrades in the town (in the Fort, from that unit's card) for the difference in cost; Upgrade all in the Fort does every company in the town at once (the hero's and the garrison's), the strongest first while the purse lasts.
 
 | Line | Level 2 (id) | Att | Def | Damage | HP | Speed | Cost | Level 3 (id) | Att | Def | Damage | HP | Speed | Cost |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -160,6 +160,16 @@ Upgrades keep the line's traits (shots, flight, two hexes, charge, the Titan's m
 | Wolf (wolf) | 2 | 6 | 3 | 2–4 | 10 | 7 | |
 | Brigand (bandit) | 2 | 8 | 3 | 2–4 | 10 | 6 | Strikes unanswered (no retaliation) |
 | Cyclops (ogre) | 4 | 13 | 7 | 6–12 | 40 | 4 | |
+| Erymanthian Boar (boar) | 3 | 9 | 6 | 3–6 | 24 | 6 | Two hexes. Charges, as the Companion: +5% damage a hex moved. From map 2 |
+| Stymphalian Bird (stymphalian) | 2 | 8 | 3 | 2–4 | 8 | 9 | Flies. **Swoop:** after a melee strike and any answer it flies back to the hex it started from, if it lived, isn't stone and the hex is free. From map 2 |
+| Basilisk (basilisk) | 3 | 8 | 9 | 3–5 | 22 | 5 | **Petrify 25%:** a melee strike that lands, an answer included, may turn a living target to stone. From map 3 |
+| Lernaean Hydra (hydra) | 5 | 13 | 10 | 8–12 | 60 | 5 | Two hexes. **Cleave:** its melee strike hits every enemy stack beside it. **Regen 10:** its top creature heals up to 10 HP as its turn starts. From map 3 |
+
+Map 1 meets the first five; every map after it brings new neutrals that fight differently. Growth and cost (they have no dwelling yet; the numbers set their strength for the rival): Boar 6 a week, 180 gold; Bird 8, 120; Basilisk 6, 200; Hydra 3, 600.
+
+- **Cleave:** the blows all land first, target first, then each stack struck that still can answers once, as its retaliations allow; the answers stop if they kill the hydra. Its own retaliation is one blow, at the striker alone.
+- **Regen:** once a round (not again after a wait); never over full, never raises the dead; no regrowth on a turn lost to stone.
+- **Stone:** a stack effect (`stone`) that lasts until the stack's next turn, which it loses. A stone stack doesn't answer strikes and doesn't swoop; a second stone is still one lost turn. Healing and Dispel lift it.
 
 A map monster splits into about √count stacks in battle, at most 4 (4 goblins make 2 stacks, 10 wolves 3).
 
@@ -193,7 +203,7 @@ A map monster splits into about √count stacks in battle, at most 4 (4 goblins 
 | Griffin Tower | 1000, 5 ore | Barracks | |
 | Barracks (Minotaurs) | 2000, 5 ore | Guardhouse | |
 | Monastery (Centaurs) | 3000, 5 wood, 5 ore, 2 each rare | Mage Guild 1, Barracks | |
-| Stables | 2000, 10 wood | Barracks | +400 movement for a hero leaving town |
+| Stables | 2000, 10 wood | Barracks | A hero who starts the day here travels 4 tiles further (8 by road) |
 | Tiltyard (Companions) | 5000, 20 wood | Stables | |
 | Seraph Spire (Titans) | 20000, 10 each rare | Monastery | |
 
@@ -234,9 +244,9 @@ Three parts on the Crown's northern border, taught one idea at a time, played as
 
 Map 1's hero is **Rowan**, a Knight: Attack 2, Defense 2, Spell Power 1, Knowledge 1, basic Leadership, a spellbook with Magic Arrow. Army: 18 Hoplites, 7 Slingers. Town Ashford: Village Hall, Fort, Tavern, Guardhouse; its Mage Guild teaches Wisdom of Athena, Shield and Slow. Off on this map: City Hall, Capitol, Castle, Marketplace, the guild's 2nd floor, Monastery, Stables, Tiltyard, Seraph Spire. Starting purse: 7500 gold, 15 wood, 15 ore, 3 of each rare. The ogres (8, growing 10% a week) hold the west end of the old bridge; the river can only be crossed there.
 
-Part 2, **Thornwood** (its land 40 × 32, east of Ashford's): Rowan rides on from the old bridge (played fresh, with nothing won before it, he waits on the north road at the forest's edge with 24 Hoplites, 10 Slingers and 3 Griffins, 10000 gold, 20 wood, 20 ore, 5 of each rare). A river runs down the middle, crossed only by the north bridge (16 wolves) and the south bridge (24 spartoi). East of it is Thornwood forest: a cyclops-guarded gold mine, a crystal windmill, a shrine of Fury of Ares, a watchtower and brigand camps. **Thornwood** town (Village Hall, Town Hall, Fort, Tavern, Guardhouse, Barracks) is held by 32 Brigands, 5 Cyclopes and 12 Wolves. Taking it wins the map. The Citadel and the second upgrades of lines 1–4 are on; the Castle, Capitol, Tiltyard and Seraph Spire are off. Par 28 days.
+Part 2, **Thornwood** (its land 40 × 32, east of Ashford's): Rowan rides on from the old bridge (played fresh, with nothing won before it, he waits on the north road at the forest's edge with 24 Hoplites, 10 Slingers and 3 Griffins, 10000 gold, 20 wood, 20 ore, 5 of each rare). A river runs down the middle, crossed only by the north bridge (16 wolves) and the south bridge (24 spartoi). East of it is Thornwood forest: a cyclops-guarded gold mine, a crystal windmill, a shrine of Fury of Ares, a watchtower and brigand camps. **Thornwood** town (Village Hall, Town Hall, Fort, Tavern, Guardhouse, Barracks) is held by 32 Brigands, 5 Cyclopes and 12 Wolves. Boars and Stymphalian Birds, new on this map, are met from the first screens: west of the river birds at the wood pile and the gold pile, boars at the sawmill, on the road by the campfire and at the ore pit, with satyrs at the standing stone and spartoi at the stables; east of it boars at the windmill and the shrine, birds at the crystal and the forest chest. Taking it wins the map. The Citadel and the second upgrades of lines 1–4 are on; the Castle, Capitol, Tiltyard and Seraph Spire are off. Par 28 days.
 
-Map 3, **The Black Banner** (48 × 36, the last free map, par 35 days): Rowan holds **Eudora** in the south-west (Village and Town Hall, Fort, Citadel, Tavern, Guardhouse, Archery Range, Barracks, Mage Guild; a garrison of 14 Hoplites and 6 Slingers) with 28 Hoplites, 12 Slingers, 5 Griffins and 2 Minotaurs. **Kassander**, the rival lord, rides out of **Korax** in the north-east with 24 Hoplites, 10 Slingers, 4 Griffins and a Ballista. Two ridges split the map into Eudora's vale, the lakelands in the middle (the gold mine, the gem pond and the crystal cavern, guarded) and the Black Banner's rough hills; the western ridge's two passes are held by brigands and wolves. Taking Korax wins; losing Eudora (the last town) loses.
+Map 3, **The Black Banner** (48 × 36, the last free map, par 35 days): Rowan holds **Eudora** in the south-west (Village and Town Hall, Fort, Citadel, Tavern, Guardhouse, Archery Range, Barracks, Mage Guild; a garrison of 14 Hoplites and 6 Slingers) with 28 Hoplites, 12 Slingers, 5 Griffins and 2 Minotaurs. **Kassander**, the rival lord, rides out of **Korax** in the north-east with 24 Hoplites, 10 Slingers, 4 Griffins and a Ballista. Two ridges split the map into Eudora's vale, the lakelands in the middle (the gold mine, the gem pond and the crystal cavern, guarded) and the Black Banner's rough hills; the western ridge's two passes are held by brigands and wolves. New on this map: a small Basilisk group at Eudora's ore pit, more at the sulfur and the alchemist's lab, and Hydras guarding the better prizes (the Thunderbolt shrine, the gems, the lake chest). Taking Korax wins; losing Eudora (the last town) loses.
 
 **The rival lord** (`src/logic/rival.ts`) plays after the night, by the same rules as the player. His town builds one building a day from his order and hires into his hero when he is home (or into its garrison, keeping 3000 gold for him). His hero rides for what is worth most for the days it takes: piles, chests and mines (ours above all), monsters under 40% of his strength, our town when its garrison (and our hero, if within 12 tiles) is under half his strength, our hero when he is 1.3× stronger, and home to hire (by what he could hire there) or to defend when our hero comes near and is strong. He fights monsters at once (an auto battle). When he attacks our hero, or a town of ours with only its garrison in it, the night's card says so and the player plays the battle. His moves show on tiles the player has seen. Beaten, he is gone for good; his town keeps its garrison.
 

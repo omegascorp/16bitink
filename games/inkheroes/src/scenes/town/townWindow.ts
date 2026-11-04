@@ -8,7 +8,16 @@ export interface Drawn {
   readonly owned: { destroy(): void }[];
 }
 
-/** A window's content: a grid of same-size cells, a line under them, and an optional button. */
+/** A button under a window's grid (`enabled: false` shows it greyed, for what the purse can't reach yet). */
+export interface FootButton {
+  readonly label: string;
+  /** A second line under the label: a price, which can run long (labels don't wrap). */
+  readonly note?: string;
+  readonly onClick: () => void;
+  readonly enabled?: boolean;
+}
+
+/** A window's content: a grid of same-size cells, a line under them, and any buttons. */
 export interface GridSpec {
   readonly title: string;
   readonly cell: { readonly w: number; readonly h: number };
@@ -19,7 +28,7 @@ export interface GridSpec {
   /** Shown when there are no cells. */
   readonly empty?: string;
   readonly note?: string;
-  readonly button?: { readonly label: string; readonly onClick: () => void };
+  readonly buttons?: readonly FootButton[];
 }
 
 const PAD = 8;
@@ -29,6 +38,10 @@ const RULE_H = 5;
 const HEAD = PAD + LINE + 3 + RULE_H + 6;
 const NAV = { w: 30, h: 20 } as const;
 const BTN_H = 30;
+const BTN_NOTE_H = 42;
+const BTN_W = 240;
+/** Two buttons share a row only when each stays this wide; narrower, their labels wouldn't fit, so they stack. */
+const BTN_MIN_W = 190;
 const CLOSE = { w: 50, h: 18 } as const;
 const FILL = [34, 24, 17, 248] as const;
 
@@ -60,7 +73,12 @@ export class TownWindow {
     const cols = Math.max(1, Math.min(spec.maxCols, spec.count || 1, Math.floor((maxW - PAD * 2 + GAP) / (spec.cell.w + GAP))));
     const gridW = cols * (spec.cell.w + GAP) - GAP;
     const note = spec.note ? new TextLabel(scene, { wrap: Math.max(gridW, 200), anchor: { x: 0.5, y: 0 }, ink: INK.dim }).setText(spec.note) : null;
-    const footH = (note ? note.height + 4 : 0) + (spec.button ? BTN_H + 4 : 0);
+    const buttons = spec.buttons ?? [];
+    const footW = Math.min(maxW, Math.max(gridW, 220, note?.width ?? 0) + PAD * 2) - PAD * 2;
+    const inRow = buttons.length > 1 && (footW - GAP * (buttons.length - 1)) / buttons.length >= BTN_MIN_W;
+    const btnRows = inRow ? 1 : buttons.length;
+    const btnH = buttons.some((b) => b.note) ? BTN_NOTE_H : BTN_H;
+    const footH = (note ? note.height + 4 : 0) + btnRows * (btnH + 4);
     const roomRows = Math.max(1, Math.floor((area.h - 8 - HEAD - PAD - footH - NAV.h - 4 + GAP) / (spec.cell.h + GAP)));
     const rows = Math.min(roomRows, Math.max(1, Math.ceil(spec.count / cols)));
     this.cols = cols;
@@ -69,7 +87,7 @@ export class TownWindow {
     const navH = this.pages > 1 ? NAV.h + 4 : 0;
     const emptyLabel = spec.count === 0 && spec.empty ? new TextLabel(scene, { wrap: 220, anchor: { x: 0.5, y: 0 } }).setText(spec.empty) : null;
     const gridH = spec.count ? rows * (spec.cell.h + GAP) - GAP : (emptyLabel?.height ?? 0) + 8;
-    const w = Math.min(maxW, Math.max(gridW, 220, (note?.width ?? 0)) + PAD * 2);
+    const w = footW + PAD * 2;
     const h = HEAD + gridH + 6 + navH + footH + PAD;
     this.left = Math.floor((area.w - w) / 2);
     const top = Math.max(4, Math.floor((area.h - h) / 2));
@@ -108,13 +126,16 @@ export class TownWindow {
       this.objects.push(note.img);
       y += note.height + 4;
     }
-    if (spec.button) {
-      const bw = Math.min(this.innerW, 240);
-      const btn = new PixelButton(scene, { w: bw, h: BTN_H, label: spec.button.label, rim: 'gold', onClick: spec.button.onClick });
-      btn.setPosition(this.left + Math.floor((gridW - bw) / 2), y);
+    const bw = Math.min(inRow ? Math.floor((footW - GAP * (buttons.length - 1)) / buttons.length) : footW, BTN_W);
+    const rowW = inRow ? buttons.length * bw + (buttons.length - 1) * GAP : bw;
+    buttons.forEach((b, i) => {
+      const btn = new PixelButton(scene, { w: bw, h: btnH, label: b.label, note: b.note, rim: 'gold', onClick: b.onClick });
+      btn.setEnabled(b.enabled ?? true);
+      const x = this.left + Math.floor((gridW - rowW) / 2) + (inRow ? i * (bw + GAP) : 0);
+      btn.setPosition(x, inRow ? y : y + i * (btnH + 4));
       this.owned.push(btn);
       this.objects.push(btn.root);
-    }
+    });
     // Same depth, so the list's order decides: the frame first, everything on it after.
     for (const o of this.objects) {
       (o as unknown as Phaser.GameObjects.Components.Depth).setDepth(depth + 1);

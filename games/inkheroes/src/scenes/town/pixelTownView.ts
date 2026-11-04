@@ -12,7 +12,8 @@ import { CITY_SEED } from './cityRender';
 import { paintCity } from './townGround';
 import { flagTextures, FlyingFlags } from './flyingFlags';
 import { CHIMNEYS, ChimneySmoke } from './townSmoke';
-import { cityWalls, wallPieces } from './townWalls';
+import { FLAGS } from './townFlags';
+import { cityWalls, CORNER_TOWERS, wallPieces } from './townWalls';
 import { TOWN_TEX } from './townTex';
 import { cityTrees, emptyPlots, STAGE, STAGE_HORIZON, STAGE_SHOWN, stagePieces, toGrid, type Plot, type StagePiece } from './townStage';
 
@@ -89,17 +90,15 @@ export class PixelTownView {
     ground.on('pointerup', (p: Phaser.Input.Pointer) => this.tapGround(p));
     // The city's walls: the back ones behind everything in it, the front ones before it.
     // The towers are drawn still and their flags fly over them.
-    const tower = TOWN_TEX.piece('wall-tower');
-    const stillTower = flagTextures(scene, 'wall-tower')?.still ?? tower;
-    const walls = cityWalls((k) => texturePixels(scene, k === tower ? stillTower : k));
+    const still = new Map(CORNER_TOWERS.map((art) => [TOWN_TEX.piece(art), flagTextures(scene, art)?.still ?? TOWN_TEX.piece(art)]));
+    const walls = cityWalls((k) => texturePixels(scene, still.get(k) ?? k));
     const backKey = putBuffer(scene, walls.back);
     const frontKey = putBuffer(scene, walls.front);
     this.keys.push(backKey, frontKey);
     this.root.add(scene.add.image(0, 0, backKey).setOrigin(0));
     const pieces = wallPieces();
-    const towers = (list: typeof pieces.back) => list.filter((w) => w.art === 'wall-tower');
-    const inFront = new Set(towers(pieces.front).map((w) => `${w.x},${w.y}`));
-    for (const w of towers(pieces.back)) if (!inFront.has(`${w.x},${w.y}`)) this.root.add(this.flying.fly('wall-tower', w.x, w.y).flags);
+    const flagsOf = (list: typeof pieces.back) => list.filter((w) => w.art in FLAGS).flatMap((w) => this.flying.fly(w.art, w.x, w.y).flags);
+    for (const flag of flagsOf(pieces.back)) this.root.add(flag);
     this.label = new TextLabel(scene, { kind: 'title', outline: true, anchor: { x: 0.5, y: 1 } });
     const sprites: { y: number; obj: Phaser.GameObjects.Image | Phaser.GameObjects.Image[] }[] = stagePieces(built).map((p) => ({ y: p.spot.y, obj: this.sprite(p) }));
     for (const t of cityTrees(this.bare.map((b) => b.plot), SEED)) {
@@ -120,7 +119,7 @@ export class PixelTownView {
       this.smoke.push(new ChimneySmoke(scene, air, { x, y: p.spot.y - s.h + flue.y }));
     }
     this.root.add(scene.add.image(0, 0, frontKey).setOrigin(0));
-    for (const w of towers(pieces.front)) this.root.add(this.flying.fly('wall-tower', w.x, w.y).flags);
+    for (const flag of flagsOf(pieces.front)) this.root.add(flag);
     this.label.img.setVisible(false);
     this.root.add(this.label.img);
   }

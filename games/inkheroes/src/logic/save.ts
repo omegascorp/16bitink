@@ -5,8 +5,8 @@ import { ARMY_SLOTS, type Army, type ArmySlot } from './army';
 import { BUILDINGS, isBuildingId, type BuildingId } from './buildings';
 import { isCreatureId, lineOf, MACHINES, type CreatureId } from './creatures';
 import { dailyMp, levelFor, maxMana, PRIMARIES } from './hero';
-import { passable } from './map';
-import { CHEST_XP, townFootprint, type MapObject } from './objects';
+import { passable, STABLES_MP } from './map';
+import { CHEST_XP, townCore, type MapObject } from './objects';
 import { RESOURCES, type Purse } from './resources';
 import { isSkillId, MAX_SKILLS, SKILL_IDS, type Rank } from './skills';
 import { isSpellId, type SpellId } from './spells';
@@ -14,8 +14,8 @@ import type { Town } from './town';
 
 /** Most cards a save may hold waiting. */
 const MAX_PROMPTS = 20;
-/** The most a hero can have left today beyond a day's movement (the Stables). */
-const MP_BONUS = 400;
+/** The most a hero can have left today beyond a day's movement (a town's Stables, and one on the road). */
+const MP_BONUS = STABLES_MP * 2;
 
 /** Best result on one map. */
 export interface MapRecord {
@@ -129,7 +129,7 @@ export function parseAdventure(raw: unknown, def: MapDef): Adventure | null {
   if (!h || !ts.every((t) => !!t) || !objs) return null;
   if (!passable(g, h.x, h.y)) return null;
   // Not inside a town's walls (its gate is fine), nor on a monster.
-  if (ts.some((t) => townFootprint(t!.x, t!.y).some((f) => f.x === h.x && f.y === h.y))) return null;
+  if (ts.some((t) => townCore(t!.x, t!.y).some((f) => f.x === h.x && f.y === h.y))) return null;
   if (objs.some((o) => o.kind === 'monster' && !o.gone && o.x === h.x && o.y === h.y)) return null;
   const kept = prompts.map((x) => parsePrompt(x, objs)).filter((x): x is Prompt => !!x).slice(0, MAX_PROMPTS);
   const rival = parseRival(raw.rival, def);
@@ -237,6 +237,11 @@ function parseObjects(raw: readonly unknown[], def: MapDef): MapObject[] | null 
   const out: MapObject[] = [];
   for (const base of def.objects) {
     const s = byId.get(base.id);
+    // A monster the map gained after this save was made joins it fresh; anything else missing means a bad save.
+    if (!s && base.kind === 'monster') {
+      out.push(base);
+      continue;
+    }
     if (!s) return null;
     const ownable = base.kind === 'mine' || base.kind === 'town';
     const owner = ownable && (s.owner === 'player' || s.owner === 'neutral' || s.owner === 'rival') ? s.owner : base.owner;

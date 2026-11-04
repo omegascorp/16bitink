@@ -37,7 +37,8 @@ export interface SpellDef {
   readonly says: string;
 }
 
-export type EffectKind = 'bless' | 'stoneSkin' | 'bloodlust' | 'haste' | 'slow';
+/** `stone` is no spell: a basilisk's strike puts it on a stack, for one lost turn (see battle.ts). */
+export type EffectKind = 'bless' | 'stoneSkin' | 'bloodlust' | 'haste' | 'slow' | 'stone';
 
 export const SPELLS: Readonly<Record<SpellId, SpellDef>> = {
   magicArrow: { id: 'magicArrow', name: 'Magic Arrow', level: 1, mana: 5, target: 'enemy', school: 'common', perPower: 10, base: 10, says: 'A bolt of force: 10 × power + 10 damage' },
@@ -51,5 +52,5 @@ export const SPELLS: Readonly<Record<SpellId, SpellDef>> = {
   bloodlust: { id: 'bloodlust', name: 'Fury of Ares', level: 1, mana: 5, target: 'friend', school: 'olympian', god: 'ares', effect: 'bloodlust', says: '+3 Attack in melee' },
 };
 
-export const BAD_EFFECTS: readonly EffectKind[] = ['slow'];
+export const BAD_EFFECTS: readonly EffectKind[] = ['slow', 'stone'];
 export const isSpellId = (v: unknown): v is SpellId => typeof v === 'string' && (SPELL_IDS as readonly string[]).includes(v);

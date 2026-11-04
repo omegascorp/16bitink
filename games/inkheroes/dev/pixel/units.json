@@ -547,6 +547,80 @@
     57,
     74
    ]
+  },
+  "boar": {
+   "name": "Erymanthian Boar",
+   "src": "pixel/src/boar.png",
+   "canvas": [
+    128,
+    104
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a huge dark brown wild boar with big ivory tusks",
+   "walk": "trotting in place loop: four legs trot heavily, head low, tail flicks, stays in the same spot, ends back at the starting pose",
+   "attack": "charge attack: lowers its head and tusks, lunges forward to the right and gores with the tusks, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    76,
+    62
+   ]
+  },
+  "stymphalian": {
+   "name": "Stymphalian Bird",
+   "src": "pixel/src/stymphalian.png",
+   "flies": true,
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a large crane-like bird with bronze metallic feathers and a long sharp bronze beak, flying",
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose",
+   "attack": "dive attack: beats its wings once, lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    88,
+    66
+   ]
+  },
+  "hydra": {
+   "name": "Lernaean Hydra",
+   "src": "pixel/src/hydra.png",
+   "flip": true,
+   "canvas": [
+    164,
+    112
+   ],
+   "foot": 6,
+   "dx": -24,
+   "subject": "a green-black water serpent hydra with five necks and five snarling snake heads",
+   "walk": "slithering in place loop: the five necks sway in turn, the coiled body shifts, stays in the same spot, ends back at the starting pose",
+   "attack": "strike attack: the heads rear back then lash forward to the right biting together, then sway back to the starting pose",
+   "strike": 3,
+   "face": [
+    96,
+    40
+   ]
+  },
+  "basilisk": {
+   "name": "Basilisk",
+   "src": "pixel/src/basilisk.png",
+   "canvas": [
+    120,
+    80
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a heavy scaled crested lizard basilisk, low to the ground",
+   "walk": "crawling in place loop: four short legs step in rhythm, body sways, tail swings, stays in the same spot, ends back at the starting pose",
+   "attack": "bite attack: rears its head back, lunges forward to the right with jaws open, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    82,
+    46
+   ]
   }
  },
  "heroes": {

@@ -22,8 +22,8 @@ function duel(a: CreatureId, d: CreatureId, at: Hex, dt: Hex, active: 0 | 1 = 0,
 const side = (s: BattleState, k: 0 | 1) => s.stacks.find((x) => x.side === k)!;
 
 describe('two-hex units: occupancy', () => {
-  it('flags the griffin, centaur, companion and wolf as wide (with their upgrades), nobody else', () => {
-    expect([...new Set(CREATURE_IDS.filter(isWide).map(lineOf))].sort()).toEqual(['griffin', 'lancer', 'monk', 'wolf']);
+  it('flags the griffin, centaur, companion, wolf, boar and hydra as wide (with their upgrades), nobody else', () => {
+    expect([...new Set(CREATURE_IDS.filter(isWide).map(lineOf))].sort()).toEqual(['boar', 'griffin', 'hydra', 'lancer', 'monk', 'wolf']);
   });
 
   it('a wide unit covers its head and the hex behind it: left for the attacker, right for the defender', () => {

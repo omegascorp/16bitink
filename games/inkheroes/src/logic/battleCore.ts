@@ -3,6 +3,8 @@ import { creature } from './creatures';
 
 /** Small shared helpers over a battle's state. */
 export const alive = (s: Stack): boolean => s.count > 0;
+/** Turned to stone: it won't answer a strike, and loses its next turn. */
+export const isStone = (s: Stack): boolean => s.effects.some((e) => e.kind === 'stone');
 export const stackById = (state: BattleState, id: number): Stack => {
   const s = state.stacks.find((x) => x.id === id);
   if (!s) throw new Error(`no stack ${id}`);

@@ -78,6 +78,8 @@ export type BattleEvent =
   | { readonly type: 'defend'; readonly stack: number }
   | { readonly type: 'heal'; readonly stack: number; readonly target: number; readonly amount: number }
   | { readonly type: 'morale'; readonly stack: number; readonly good: boolean }
+  /** A stack turned to stone, or (`lost`) the turn that costs it. */
+  | { readonly type: 'stone'; readonly stack: number; readonly lost: boolean }
   | { readonly type: 'turn'; readonly stack: number }
   | { readonly type: 'round'; readonly round: number }
   | { readonly type: 'end'; readonly winner: Side };

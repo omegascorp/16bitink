@@ -4,7 +4,7 @@ import { experienceFor, machinesLeft, survivors } from './battle';
 import type { BattleSide } from './battle';
 import type { BattleState } from './battleTypes';
 import { applyLevelUp, dailyMp, gainedXp, maxMana, nextLevelUp, sightOf, toBattleHero, type Hero, type LevelUp } from './hero';
-import { parseGrid, tileIndex, type Grid } from './map';
+import { parseGrid, STABLES_MP, tileIndex, tilesOf, type Grid } from './map';
 import { creature, type MachineId } from './creatures';
 import { MINE_NAMES, MINE_OUTPUT, objectFootprint, townFootprint, type MapObject } from './objects';
 import { canStep, findPath, type PathStep, type Terrainview } from './path';
@@ -177,7 +177,7 @@ export const rivalAt = (adv: Adventure, x: number, y: number): boolean => {
 export function terrainView(adv: Adventure, def: MapDef, who: 'player' | 'rival' = 'player'): Terrainview {
   const g = gridOf(def);
   const inside = (t: { x: number; y: number }): boolean => t.x >= 0 && t.y >= 0 && t.x < g.w && t.y < g.h;
-  const solid = new Set(adv.towns.flatMap((town) => townFootprint(town.x, town.y)).map((t) => tileIndex(g, t.x, t.y)));
+  const solid = new Set(adv.towns.flatMap((town) => townFootprint(town.x, town.y)).filter(inside).map((t) => tileIndex(g, t.x, t.y)));
   const stopAt = new Set<number>();
   const visit = new Set<number>();
   for (const o of liveObjects(adv)) {
@@ -329,7 +329,7 @@ export function endDay(adv: Adventure): Adventure {
   const regen = Math.max(1, skillValue(h.skills, 'mysticism'));
   const here = heroTown(adv);
   const inTown = !!here && has(here, 'mageGuild1');
-  const hero = { ...h, mp: dailyMp(h), mana: inTown ? Math.max(h.mana, maxMana(h)) : Math.min(maxMana(h), h.mana + regen) };
+  const hero = { ...h, mp: dailyMp(h) + (here && has(here, 'stables') ? STABLES_MP : 0), mana: inTown ? Math.max(h.mana, maxMana(h)) : Math.min(maxMana(h), h.mana + regen) };
   const towns = adv.towns.map((t) => (newWeek ? weekly(t) : { ...t, builtToday: false }));
   const objects = newWeek
     ? adv.objects.map((o) => (o.kind === 'monster' && !o.gone ? { ...o, count: Math.min(MAX_MONSTER, Math.round((o.count ?? 1) * 1.1)) } : o))
@@ -351,7 +351,8 @@ export function dayReport(before: Adventure, after: Adventure): string {
   if (mines.length) lines.push(`${mines.join(', ')}.`);
   const h = after.hero;
   const mana = h.mana - before.hero.mana;
-  lines.push(`${h.name} is rested: ${Math.floor(h.mp / 100)} moves${mana > 0 ? `, +${mana} mana (${h.mana}/${maxMana(h)})` : ''}.`);
+  lines.push(`${h.name} is rested: ${tilesOf(h.mp)} tiles of travel${mana > 0 ? `, +${mana} mana (${h.mana}/${maxMana(h)})` : ''}.`);
+  if (h.mp > dailyMp(h)) lines.push(`Fresh horses from the Stables: +${tilesOf(h.mp - dailyMp(h))} tiles today.`);
   if (dayOfWeek(after.day) === 1) {
     const recruits = towns.flatMap((t) => {
       const list = dwellings(t).map((d) => `+${growthOf(t, d)} ${creature(d).plural}`);

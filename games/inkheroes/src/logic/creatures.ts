@@ -28,6 +28,14 @@ export interface CreatureDef {
   readonly retaliations?: number;
   /** +5% damage for each hex moved before a melee strike. */
   readonly charge?: boolean;
+  /** After a melee strike it flies back to the hex it started from, if it lived and the hex is free. */
+  readonly swoop?: boolean;
+  /** Its melee strike hits every enemy stack beside it. */
+  readonly cleave?: boolean;
+  /** At the start of each of its turns its top creature heals this many HP. */
+  readonly regen?: number;
+  /** The chance a melee strike that lands turns the target to stone, losing it its next turn. */
+  readonly petrify?: number;
   /** Raises its own army's morale. */
   readonly morale?: number;
   /** Takes two hexes on the battlefield: its head and the one behind it (H3's double-wide). */
@@ -75,6 +83,11 @@ export const CREATURES = {
   ballista: def({ id: 'ballista', name: 'Ballista', plural: 'Ballistas', faction: 'machine', level: 4, attack: 10, defense: 10, minDmg: 10, maxDmg: 15, hp: 250, speed: 1, growth: 0, cost: { gold: 1500 }, shots: 24, machine: 'shooter', retaliations: 0 }),
   tent: def({ id: 'tent', name: 'First Aid Tent', plural: 'First Aid Tents', faction: 'machine', level: 1, attack: 0, defense: 0, minDmg: 0, maxDmg: 0, hp: 75, speed: 1, growth: 0, cost: { gold: 750 }, machine: 'healer', heals: 25, retaliations: 0 }),
   ogre: def({ id: 'ogre', name: 'Cyclops', plural: 'Cyclopes', faction: 'neutral', level: 4, attack: 13, defense: 7, minDmg: 6, maxDmg: 12, hp: 40, speed: 4, growth: 4, cost: { gold: 300 } }),
+  // Each map after the first brings new neutrals, each with a way of fighting of its own (docs/inkheroes-design.md).
+  boar: def({ id: 'boar', name: 'Erymanthian Boar', plural: 'Erymanthian Boars', faction: 'neutral', level: 3, attack: 9, defense: 6, minDmg: 3, maxDmg: 6, hp: 24, speed: 6, growth: 6, cost: { gold: 180 }, charge: true, wide: true }),
+  stymphalian: def({ id: 'stymphalian', name: 'Stymphalian Bird', plural: 'Stymphalian Birds', faction: 'neutral', level: 2, attack: 8, defense: 3, minDmg: 2, maxDmg: 4, hp: 8, speed: 9, growth: 8, cost: { gold: 120 }, flies: true, swoop: true }),
+  hydra: def({ id: 'hydra', name: 'Lernaean Hydra', plural: 'Lernaean Hydras', faction: 'neutral', level: 5, attack: 13, defense: 10, minDmg: 8, maxDmg: 12, hp: 60, speed: 5, growth: 3, cost: { gold: 600 }, wide: true, cleave: true, regen: 10 }),
+  basilisk: def({ id: 'basilisk', name: 'Basilisk', plural: 'Basilisks', faction: 'neutral', level: 3, attack: 8, defense: 9, minDmg: 3, maxDmg: 5, hp: 22, speed: 5, growth: 6, cost: { gold: 200 }, petrify: 0.25 }),
 } as const;
 
 export type CreatureId =
@@ -82,6 +95,7 @@ export type CreatureId =
   | 'spearman2' | 'spearman3' | 'bowman2' | 'bowman3' | 'griffin2' | 'griffin3' | 'swordsman2' | 'swordsman3'
   | 'monk2' | 'monk3' | 'lancer2' | 'lancer3' | 'seraph2' | 'seraph3'
   | 'goblin' | 'skeleton' | 'wolf' | 'bandit' | 'ogre'
+  | 'boar' | 'stymphalian' | 'hydra' | 'basilisk'
   | 'ballista' | 'tent';
 export const CREATURE_IDS = Object.keys(CREATURES) as CreatureId[];
 
@@ -110,9 +124,13 @@ export function sizeWord(count: number): string {
   return (SIZE_WORDS.find(([min]) => count >= min) ?? SIZE_WORDS[SIZE_WORDS.length - 1]!)[1];
 }
 
+/** What a creature's ways of fighting add to its plain stats. */
+const traitsWorth = (c: CreatureDef): number =>
+  (c.shots ? 1.3 : 1) * (c.flies ? 1.15 : 1) * (c.charge ? 1.1 : 1) * (c.swoop ? 1.1 : 1) * (c.cleave ? 1.25 : 1) * (c.regen ? 1.15 : 1) * (1 + (c.petrify ?? 0));
+
 /** A rough fighting strength, for the AI and for monsters' join/flee checks. */
 export function strengthOf(id: CreatureId, count: number): number {
   const c = creature(id);
   const dmg = (c.minDmg + c.maxDmg) / 2;
-  return count * Math.sqrt(c.hp * dmg * (1 + (c.attack + c.defense) / 20)) * (c.shots ? 1.3 : 1) * (c.flies ? 1.15 : 1);
+  return count * Math.sqrt(c.hp * dmg * (1 + (c.attack + c.defense) / 20)) * traitsWorth(c);
 }

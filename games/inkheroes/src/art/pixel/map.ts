@@ -40,7 +40,6 @@ import tree3 from './map/tree-3.png?url';
 import tree4 from './map/tree-4.png?url';
 import tree5 from './map/tree-5.png?url';
 import tree6 from './map/tree-6.png?url';
-import tree7 from './map/tree-7.png?url';
 import pine0 from './map/pine-0.png?url';
 import pine1 from './map/pine-1.png?url';
 import olive0 from './map/olive-0.png?url';
@@ -49,6 +48,10 @@ import olive2 from './map/olive-2.png?url';
 import olive3 from './map/olive-3.png?url';
 import mountain0 from './map/mountain-0.png?url';
 import mountain1 from './map/mountain-1.png?url';
+import mountain2 from './map/mountain-2.png?url';
+import mountain3 from './map/mountain-3.png?url';
+import peak0 from './map/peak-0.png?url';
+import peak1 from './map/peak-1.png?url';
 import rock0 from './map/rock-0.png?url';
 import bridge0 from './map/bridge-0.png?url';
 
@@ -60,7 +63,7 @@ export interface MapSprite {
   readonly footY: number;
 }
 
-export type MapCover = 'tree' | 'pine' | 'olive' | 'mountain' | 'rock' | 'bridge';
+export type MapCover = 'tree' | 'pine' | 'olive' | 'mountain' | 'peak' | 'rock' | 'bridge';
 
 /** Top-down ground swatches by terrain, sampled in irregular patches (water and snow are drawn in code). */
 export const MAP_GROUND: Readonly<Partial<Record<string, string>>> = {
@@ -111,11 +114,10 @@ export const MAP_COVER: Readonly<Record<MapCover, readonly MapSprite[]>> = {
     { url: tree0, w: 60, h: 90, footX: 30, footY: 89 },
     { url: tree1, w: 55, h: 70, footX: 27, footY: 69 },
     { url: tree2, w: 55, h: 70, footX: 27, footY: 69 },
-    { url: tree3, w: 48, h: 70, footX: 24, footY: 69 },
-    { url: tree4, w: 28, h: 96, footX: 14, footY: 95 },
-    { url: tree5, w: 28, h: 94, footX: 14, footY: 93 },
-    { url: tree6, w: 27, h: 94, footX: 13, footY: 93 },
-    { url: tree7, w: 23, h: 94, footX: 11, footY: 93 },
+    { url: tree3, w: 28, h: 96, footX: 14, footY: 95 },
+    { url: tree4, w: 28, h: 94, footX: 14, footY: 93 },
+    { url: tree5, w: 27, h: 94, footX: 13, footY: 93 },
+    { url: tree6, w: 23, h: 94, footX: 11, footY: 93 },
   ],
   pine: [
     { url: pine0, w: 46, h: 97, footX: 23, footY: 96 },
@@ -128,8 +130,14 @@ export const MAP_COVER: Readonly<Record<MapCover, readonly MapSprite[]>> = {
     { url: olive3, w: 30, h: 32, footX: 15, footY: 31 },
   ],
   mountain: [
-    { url: mountain0, w: 130, h: 96, footX: 65, footY: 95 },
-    { url: mountain1, w: 90, h: 89, footX: 45, footY: 88 },
+    { url: mountain0, w: 131, h: 95, footX: 65, footY: 94 },
+    { url: mountain1, w: 130, h: 95, footX: 65, footY: 94 },
+    { url: mountain2, w: 134, h: 60, footX: 67, footY: 59 },
+    { url: mountain3, w: 131, h: 86, footX: 65, footY: 85 },
+  ],
+  peak: [
+    { url: peak0, w: 87, h: 80, footX: 43, footY: 79 },
+    { url: peak1, w: 87, h: 75, footX: 43, footY: 74 },
   ],
   rock: [
     { url: rock0, w: 58, h: 38, footX: 29, footY: 37 },
