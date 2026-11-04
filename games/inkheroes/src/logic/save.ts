@@ -1,3 +1,4 @@
+import { BAG_SIZE, ITEM_IDS, ITEMS, SLOTS, type Gear, type ItemId } from './items';
 import type { KeyValueStore } from '@16bitink/game-sdk';
 import type { HeroDef, MapDef } from '../level/types';
 import { DEFEND, gridOf, MAX_MONSTER, queueLevelUps, RIVAL, type Adventure, type Prompt, type RivalState } from './adventure';
@@ -195,8 +196,21 @@ function parseHero(raw: Record<string, unknown>, def: MapDef, h: HeroDef = def.h
     attack: raw.attack as number, defense: raw.defense as number, power: raw.power as number, knowledge: raw.knowledge as number,
     mana: raw.mana, xp: raw.xp, level: Math.min(raw.level, levelFor(raw.xp)), skills, spells: [...new Set(raw.spells)], hasBook: raw.hasBook, army, mp: raw.mp, visited: raw.visited as string[],
     ...(machines.length ? { machines } : {}),
+    ...parseGear(raw),
   };
   return { ...hero, mana: Math.min(hero.mana, maxMana(hero)), mp: Math.min(hero.mp, dailyMp(hero) + MP_BONUS) };
+}
+
+const isItemId = (x: unknown): x is ItemId => typeof x === 'string' && (ITEM_IDS as readonly string[]).includes(x);
+
+/** A saved hero's gear and bag: a piece only in its own slot, the bag no bigger than it can be (older saves have neither). */
+function parseGear(raw: Record<string, unknown>): { gear?: Gear; bag?: ItemId[] } {
+  const gear = isObj(raw.gear) ? Object.fromEntries(SLOTS.flatMap((s) => {
+    const id = (raw.gear as Record<string, unknown>)[s];
+    return isItemId(id) && ITEMS[id].slot === s ? [[s, id]] : [];
+  })) as Gear : {};
+  const bag = Array.isArray(raw.bag) ? raw.bag.filter(isItemId).slice(0, BAG_SIZE) : [];
+  return { ...(Object.keys(gear).length ? { gear } : {}), ...(bag.length ? { bag } : {}) };
 }
 
 /** A saved town on the map's town `t` (its place, name and guild come from the map). The first town is always the player's. */
@@ -255,7 +269,7 @@ function parseObjects(raw: readonly unknown[], def: MapDef): MapObject[] | null 
 /** A saved card: messages as text; a chest only for a real, unopened chest, with what that chest holds. */
 function parsePrompt(raw: unknown, objects: readonly MapObject[]): Prompt | null {
   if (!isObj(raw)) return null;
-  if (raw.kind === 'message' && typeof raw.title === 'string' && typeof raw.text === 'string') return { kind: 'message', title: raw.title.slice(0, 200), text: raw.text.slice(0, 2000) };
+  if (raw.kind === 'message' && typeof raw.title === 'string' && typeof raw.text === 'string') return { kind: 'message', title: raw.title.slice(0, 200), text: raw.text.slice(0, 2000), ...(isItemId(raw.item) ? { item: raw.item } : {}) };
   if (raw.kind === 'chest' && typeof raw.id === 'string') {
     const chest = objects.find((o) => o.id === raw.id && o.kind === 'chest' && !o.gone);
     if (!chest) return null;

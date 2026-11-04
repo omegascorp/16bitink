@@ -5,6 +5,7 @@ import { partDays } from '../logic/chapter';
 import { PRIMARY_NAMES } from '../logic/hero';
 import { blotsFor } from '../logic/save';
 import { RANK_NAMES, SKILLS } from '../logic/skills';
+import { UI_TEX } from './battle/pixelUi';
 import { openCard } from './CardScene';
 import { Session } from './session';
 
@@ -20,7 +21,7 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
   };
   const first = adv.prompts[0];
   if (first?.kind === 'message') {
-    openCard(scene, { title: first.title, body: first.text, buttons: [{ label: 'On we go', onClick: () => next() }] });
+    openCard(scene, { title: first.title, body: first.text, picture: first.item ? UI_TEX.item(first.item) : undefined, buttons: [{ label: 'On we go', onClick: () => next() }] });
     return;
   }
   if (first?.kind === 'chest') {
@@ -28,7 +29,7 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
       title: 'Treasure Chest',
       body: 'An old iron-bound chest, full of coin. Keep the gold, or give it to the villages along the road and learn from their stories?',
       buttons: [
-        { label: `Keep ${first.gold} gold`, onClick: () => next('gold') },
+        { label: `Keep ${first.gold} gold`, kind: 'crown', onClick: () => next('gold') },
         { label: `Take ${first.xp} experience`, kind: 'crown', onClick: () => next('xp') },
       ],
     });
@@ -43,7 +44,7 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
       buttons: o.choices.length
         ? o.choices.map((id, i) => {
           const rank = (hero.skills[id] ?? 0) + 1;
-          return { label: `${RANK_NAMES[rank]} ${SKILLS[id].name}`, note: SKILLS[id].says(SKILLS[id].values[rank - 1]!), kind: i === 0 ? 'primary' as const : 'crown' as const, onClick: () => next(id) };
+          return { label: `${RANK_NAMES[rank]} ${SKILLS[id].name}`, note: SKILLS[id].says(SKILLS[id].values[rank - 1]!), kind: 'crown' as const, onClick: () => next(id) };
         })
         : [{ label: 'On we go', onClick: () => next() }],
     });

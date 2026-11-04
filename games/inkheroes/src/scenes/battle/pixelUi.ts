@@ -1,8 +1,9 @@
+import type { ItemId } from '../../logic/items';
 import Phaser from 'phaser';
-import { ICONS, LAUREL, RESOURCE_ICONS, SPELL_ICONS, STAT_ICONS, type IconName, type StatName } from '../../art/pixel/ui';
+import { ICONS, ITEM_ICONS, LAUREL, RESOURCE_ICONS, SLOT_ICONS, SPELL_ICONS, STAT_ICONS, type IconName, type SlotIcon, type StatName } from '../../art/pixel/ui';
 import type { Resource } from '../../logic/resources';
 import type { SpellId } from '../../logic/spells';
-import { drawFrame, FILLS, type FrameLook, type RimName } from './pixelFrames';
+import { drawFrame, FILLS, PRIMARY_FILLS, type FrameLook, type RimName } from './pixelFrames';
 import type { PixelBuffer, Rgba } from './pixelRaster';
 import { renderPixelText, wrapLines, type PixelTextStyle } from './pixelFont';
 import type { Pixels } from './pixelScenery';
@@ -17,6 +18,8 @@ import type { Pixels } from './pixelScenery';
  */
 
 export const UI_TEX = {
+  item: (id: ItemId) => `pxui-item-${id}`,
+  slot: (s: SlotIcon) => `pxui-slot-${s}`,
   icon: (i: IconName) => `pxui-icon-${i}`,
   stat: (s: StatName) => `pxui-stat-${s}`,
   spell: (s: SpellId) => `pxui-spell-${s}`,
@@ -43,6 +46,8 @@ export function loadUiArt(scene: Phaser.Scene): string[] {
     ...(Object.entries(ICONS) as [IconName, string][]).map(([n, url]): [string, string] => [UI_TEX.icon(n), url]),
     ...(Object.entries(STAT_ICONS) as [StatName, string][]).map(([n, url]): [string, string] => [UI_TEX.stat(n), url]),
     ...(Object.entries(SPELL_ICONS) as [SpellId, string][]).map(([n, url]): [string, string] => [UI_TEX.spell(n), url]),
+    ...(Object.entries(ITEM_ICONS) as [ItemId, string][]).map(([n, url]): [string, string] => [UI_TEX.item(n), url]),
+    ...(Object.entries(SLOT_ICONS) as [SlotIcon, string][]).map(([n, url]): [string, string] => [UI_TEX.slot(n), url]),
     ...(Object.entries(RESOURCE_ICONS) as [Resource, string][]).map(([n, url]): [string, string] => [UI_TEX.res(n), url]),
     [UI_TEX.laurel, LAUREL],
   ];
@@ -201,11 +206,14 @@ export interface ButtonOpts {
   /** The icon over the label (the action buttons) instead of beside it. */
   readonly stacked?: boolean;
   readonly rim?: RimName;
+  /** The main action: filled amber. */
+  readonly primary?: boolean;
   readonly onClick: () => void;
 }
 
 type ButtonState = 'idle' | 'hover' | 'down' | 'off';
 const FILL_OF: Record<ButtonState, Rgba> = { idle: FILLS.button, hover: FILLS.hover, down: FILLS.pressed, off: FILLS.pressed };
+const PRIMARY_FILL_OF: Record<ButtonState, Rgba> = { idle: PRIMARY_FILLS.button, hover: PRIMARY_FILLS.hover, down: PRIMARY_FILLS.pressed, off: FILLS.pressed };
 
 /**
  * A framed button: an icon and a label (and an optional note line), lit on
@@ -223,11 +231,11 @@ export class PixelButton {
 
   constructor(private readonly scene: Phaser.Scene, private readonly opts: ButtonOpts) {
     const { w, h } = opts;
-    const look = (s: ButtonState): FrameLook => ({ rim: s === 'off' ? 'dim' : s === 'hover' ? 'gold' : opts.rim ?? 'bronze', fill: FILL_OF[s], sheen: s !== 'down' && s !== 'off' });
+    const look = (s: ButtonState): FrameLook => ({ rim: s === 'off' ? 'dim' : s === 'hover' ? 'gold' : opts.rim ?? 'bronze', fill: (opts.primary ? PRIMARY_FILL_OF : FILL_OF)[s], sheen: s !== 'down' && s !== 'off' });
     this.keys = { idle: putBuffer(scene, drawFrame(w, h, look('idle'))), hover: putBuffer(scene, drawFrame(w, h, look('hover'))), down: putBuffer(scene, drawFrame(w, h, look('down'))), off: putBuffer(scene, drawFrame(w, h, look('off'))) };
     this.frame = scene.add.image(0, 0, this.keys.idle).setOrigin(0);
     this.label = new TextLabel(scene, { anchor: { x: 0, y: 0.5 }, align: 'left' }).setText(opts.label);
-    this.note = opts.note ? new TextLabel(scene, { anchor: { x: 0, y: 0.5 }, align: 'left', ink: INK.dim, wrap: w - 12 }).setText(opts.note) : null;
+    this.note = opts.note ? new TextLabel(scene, { anchor: { x: 0, y: 0.5 }, align: 'left', ink: opts.primary ? INK.text : INK.dim, wrap: w - 12 }).setText(opts.note) : null;
     const parts: Phaser.GameObjects.GameObject[] = [];
     const icon = opts.icon ? scene.add.image(0, 0, UI_TEX.icon(opts.icon)).setOrigin(0) : null;
     if (icon && opts.stacked) {

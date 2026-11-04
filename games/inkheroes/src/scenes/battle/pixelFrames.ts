@@ -37,6 +37,19 @@ export const FILLS = {
   portrait: [26, 30, 44, 255],
 } as const satisfies Record<string, Rgba>;
 
+/** A primary button's fills: warm amber, so the card's main action stands out from the wood of the rest. */
+export const PRIMARY_FILLS = {
+  button: [136, 84, 26, 255],
+  hover: [164, 106, 36, 255],
+  pressed: [100, 62, 20, 255],
+} as const satisfies Record<string, Rgba>;
+
+/** How a card draws button `i` of its `kind`: the first is the main action unless it says otherwise; a 'crown' is one of several equal choices. */
+export function cardButtonLook(kind: 'primary' | 'crown' | 'plain' | undefined, i: number): { rim: RimName; primary: boolean } {
+  const k = kind ?? (i === 0 ? 'primary' : 'plain');
+  return { rim: k === 'plain' ? 'bronze' : 'gold', primary: k === 'primary' };
+}
+
 export interface FrameLook {
   readonly rim: RimName;
   /** Rim width in pixels: 1 for small things, 2 for panels. */
@@ -135,6 +148,64 @@ function shade(c: Rgba, by: number): Rgba {
   return [Math.round(c[0] * by), Math.round(c[1] * by), Math.round(c[2] * by), c[3]];
 }
 
+/** A socket's leather: its well from top (in shadow) to bottom (catching the light), the line under the bevel, and its rivets. */
+const WELL = { top: [30, 21, 15], bottom: [62, 45, 30], edge: [14, 9, 6, 255], lip: [84, 62, 40, 255] } as const;
+/** How far the grain strays either way, and how far the corners darken. */
+const GRAIN = 4;
+const VIGNETTE = 0.3;
+/** The bevel is this thick on a slot big enough to carry it. */
+const BIG_SOCKET = 60;
+
+/** The same small speckle at (x, y) every time. */
+const grainAt = (x: number, y: number): number => (((x * 73) ^ (y * 151) ^ (x * y * 19)) % (GRAIN * 2 + 1)) - GRAIN;
+
+/**
+ * A slot for a piece of gear or a unit's face, size × size: a well of dark
+ * leather sunk into the panel, lit from above, in a bevel of `rim` with a
+ * gold rivet at each corner.
+ */
+export function drawSocket(size: number, rim: RimName): PixelBuffer {
+  const b = new PixelBuffer(size, size);
+  const r = RIMS[rim];
+  const bevel = size >= BIG_SOCKET ? 2 : 1;
+  const last = size - 1;
+  const inset = 1 + bevel;
+  const mid = last / 2;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const out = Math.min(x, y, last - x, last - y);
+      if (out === 0) {
+        b.put(x, y, WELL.edge);
+        continue;
+      }
+      if (out <= bevel) {
+        // Lit from the top left: the bevel's upper half against the diagonal, shaded below it.
+        const upper = x + y < last;
+        b.put(x, y, upper ? (out === 1 ? r.light : r.mid) : r.dark);
+        continue;
+      }
+      const t = y / last;
+      const away = (Math.max(Math.abs(x - mid), Math.abs(y - mid)) / mid) ** 2;
+      // The bevel's shadow falls on the top and left of the well; its far edge catches the light.
+      const fall = x - inset < 3 || y - inset < 3 ? 0.72 + 0.09 * Math.min(x - inset, y - inset) : 1;
+      if (x === last - inset || y === last - inset) {
+        b.put(x, y, WELL.lip);
+        continue;
+      }
+      const tone = (i: number): number => Math.round((WELL.top[i]! + (WELL.bottom[i]! - WELL.top[i]!) * t) * fall * (1 - VIGNETTE * away)) + grainAt(x, y);
+      b.put(x, y, [Math.max(0, tone(0)), Math.max(0, tone(1)), Math.max(0, tone(2)), 255]);
+    }
+  }
+  const g = RIMS.gold;
+  for (const [cx, cy] of [[1, 1], [last - 2, 1], [1, last - 2], [last - 2, last - 2]] as const) {
+    b.put(cx, cy, g.light);
+    b.put(cx + 1, cy, g.mid);
+    b.put(cx, cy + 1, g.mid);
+    b.put(cx + 1, cy + 1, g.dark);
+  }
+  return b;
+}
+
 /**
  * One turn-order portrait from a FACE × FACE crop: the side's colour round
  * the face (gold for the unit about to act), the face looking the way its
@@ -142,7 +213,7 @@ function shade(c: Rgba, by: number): Rgba {
  * has waited.
  */
 export function drawPortrait(face: Pixels, rim: RimName, mirrored: boolean, waited: boolean): PixelBuffer {
-  const b = drawFrame(SLOT, SLOT, { rim, fill: FILLS.portrait });
+  const b = drawSocket(SLOT, rim);
   for (let y = 0; y < FACE; y++) {
     for (let x = 0; x < FACE; x++) {
       const i = (y * face.w + x) * 4;

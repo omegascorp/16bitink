@@ -278,6 +278,34 @@ Oct 24 (fourth session): the whole game was repainted dark and serious after H3 
 
 The adventure is saved in localStorage after every action, and a copy is kept at the start of each day (so a lost battle can replay the day). Progress (maps won, blots) is saved and merged like the other games.
 
+## Items, the hero sheet and several heroes (planned, user Nov 4)
+
+Built in three stages: the hero sheet, then items, then several heroes. Stage 1's sheet opens from the hero panel on the map (as H3's hero screen): stats, skills, spells, experience and army.
+
+**Slots: 11, and a 20-item bag.** Armor is always part of a set: helm, cuirass, bracers, belt, greaves, boots. Never in a set: weapon, shield, amulet, two rings. Layout as a classic RPG's paper doll (body in the centre, slots round it, bag below).
+
+| Quality | Share of drops | Each piece gives | Set bonus |
+|---|---|---|---|
+| Gray | 50% | +1 to one stat | None |
+| Green | 30% | +1, plus a small perk | At 2, 4 and 6 pieces |
+| Blue | 14% | +2 | At 2, 4 and 6 pieces |
+| Purple | 6% | +3 | At 2, 4 and 6 pieces |
+| Gold (legendary) | Hidden, never a drop | +3, plus a unique power | At 2, 4 and 6 pieces |
+
+A set has one fixed colour, all six pieces share it: two sets a colour, Greek themes. Boots carry movement, belts the army (morale, troops).
+
+**Where items come from.** About 1 monster group in 2 drops one (stronger groups better ones), and chests and the rival do too: about 35 items a chapter. Drops are fixed by the map's seed, so replaying a day can't reroll them. A drop leans to a piece missing from a set already started. Spare items sell at the Marketplace.
+
+**Built so far (Nov 4): the gray Bronze set on map 1.** Rowan is a fighter, so map 1 holds one set, and fixed drops so every player meets it the same way: Goblins, Bronze Helm (+1 Defense); Pit wolves, War Sandals (+1 Attack); Graveyard, Bronze Bracers (+1 Attack); Glade wolves, War Belt (+1 Morale); Mill goblins, Bronze Greaves (+1 Defense); the ogres, Bronze Cuirass (+1 Defense), which rides on to map 2. A new piece goes on at once in an empty slot, else into the bag; a full bag leaves it behind. Planned next: the gray Leather set and weapons on map 2, and the gray Linen set with the second hero. Gear changes the four stats, morale, luck, sight and travel in `src/logic/items.ts`; a stack of travel starts the next morning. The sheet is two tabs on every screen (Hero, Gear), so the gear can be drawn at double size; only the smallest screens fall back to single size (`src/scenes/hud/gearLayout.ts`).
+
+**Items last the chapter.** They carry from map to map within it. The next chapter is another faction with a fresh hero: items and progress don't carry over.
+
+**Legendary (gold) items: not in the first run.** Hidden on the map, so finding one takes time and resources: a puzzle leads to the place (it can almost never be found by accident), an action there unlocks it, and a strong enemy has to be beaten for the piece.
+
+**Several heroes** start on **map 2**: the land jumps from 32 × 24 to 72 × 32, home is 40 tiles behind and a hero rides about 15 a day, and the player has learned to run two before the rival on map 3. Two heroes who meet exchange items and troops.
+
+**The rival is a player like any other.** It wears items, finds them, hires heroes, and a beaten rival drops one. Keep a side's state (heroes, purse, towns) the same for every side and every action a pure function of a side, so multiplayer can be added later. Nothing is built for multiplayer now.
+
 ## Not yet
 
-Several heroes and the tavern’s hire, artifacts, the marketplace's trade, tactics, sieges with walls, the rival AI (map 3), random maps.
+The marketplace's trade, tactics, sieges with walls, random maps.

@@ -1,3 +1,4 @@
+import { gainItem, itemSays, ITEMS, SET_NAMES, type ItemId } from './items';
 import type { HeroDef, MapDef } from '../level/types';
 import { armyMorale, armyOf, isEmptyArmy, moveAll, splitMonster, type Army } from './army';
 import { experienceFor, machinesLeft, survivors } from './battle';
@@ -17,7 +18,7 @@ import { visitSite } from './visits';
 export type Prompt =
   | { readonly kind: 'chest'; readonly id: string; readonly gold: number; readonly xp: number }
   | { readonly kind: 'levelUp'; readonly offer: LevelUp }
-  | { readonly kind: 'message'; readonly title: string; readonly text: string };
+  | { readonly kind: 'message'; readonly title: string; readonly text: string; readonly item?: ItemId };
 
 export type Status = 'playing' | 'won' | 'lost';
 
@@ -420,7 +421,8 @@ export function afterBattle(played: Adventure, def: MapDef, id: string, battle: 
   const xp = gainedXp(adv.hero, experienceFor(battle, 0));
   const hero = { ...adv.hero, army: garrisoned ? adv.hero.army : army, xp: adv.hero.xp + xp, mana: battle.heroes[0]?.mana ?? adv.hero.mana, machines: machinesLeft(battle, 0) as MachineId[] };
   const objects = adv.objects.map((o) => (o.id === id ? { ...o, gone: true } : o));
-  let next: Adventure = { ...adv, hero, objects, lostStacks: adv.lostStacks + lost };
+  const beaten = adv.objects.find((o) => o.id === id && !o.gone);
+  let next: Adventure = claimDrop({ ...adv, hero, objects, lostStacks: adv.lostStacks + lost }, beaten?.drop);
   if (garrisoned) next = withTown(next, { ...garrisoned, garrison: army });
   const town = townById(next, id);
   // The rival lord beaten, in the field or at his town's gate: he rides no more.
@@ -432,6 +434,16 @@ export function afterBattle(played: Adventure, def: MapDef, id: string, battle: 
   const site = then ? liveObjects(next).find((o) => o.id === then) : undefined;
   if (site && site.kind !== 'monster' && !guardAt(next, site.x, site.y)) next = visitSite(next, site).adv;
   return checkGoal(queueLevelUps(next), def);
+}
+
+/** What a beaten monster left, on the hero or in the bag, and the card that shows it. */
+function claimDrop(adv: Adventure, id: ItemId | undefined): Adventure {
+  if (!id) return adv;
+  const got = gainItem(adv.hero, id);
+  const end = got.worn ? `${adv.hero.name} puts it on.` : got.kept ? 'It goes in the bag.' : 'The bag is full, so it stays behind.';
+  const { name, set } = ITEMS[id];
+  const prompt: Prompt = { kind: 'message', title: name, text: `${itemSays(id)}${set ? ` · ${SET_NAMES[set]}` : ''}\n${end}`, item: id };
+  return { ...adv, hero: got.hero, prompts: [...adv.prompts, prompt] };
 }
 
 /** The rival lord is gone from the map; his towns still stand. */

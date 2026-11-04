@@ -1,3 +1,5 @@
+import { gearBonus, withGear, type Gear, type ItemId } from './items';
+import { TILE_MP } from './map';
 import { armyMorale, slowest, type Army } from './army';
 import type { BattleHero } from './battleTypes';
 import { rollInt } from './rng';
@@ -33,6 +35,10 @@ export interface Hero {
   readonly visited: readonly string[];
   /** War machines bought at a Blacksmith (one of each). */
   readonly machines?: readonly MachineId[];
+  /** What they wear, by slot. */
+  readonly gear?: Gear;
+  /** Spare pieces carried. */
+  readonly bag?: readonly ItemId[];
 }
 
 interface ClassDef {
@@ -68,26 +74,31 @@ export function levelFor(xp: number): number {
   return level;
 }
 
-export const maxMana = (h: Hero): number => Math.floor(h.knowledge * 10 * (1 + skillValue(h.skills, 'intelligence')));
+export const maxMana = (h: Hero): number => Math.floor(withGear(h).knowledge * 10 * (1 + skillValue(h.skills, 'intelligence')));
+
+/** `h` with no more mana than they can hold (after a change of gear). */
+export const withinMana = (h: Hero): Hero => ({ ...h, mana: Math.min(h.mana, maxMana(h)) });
 
 /** Movement points a day by the army's slowest unit (H3's table), with Logistics. */
 const MP_BY_SPEED = [1300, 1360, 1430, 1500, 1560, 1630, 1700, 1760, 1830, 1900, 1960, 2000];
 
 export function dailyMp(h: Hero): number {
   const s = Math.max(3, slowest(h.army));
-  return Math.floor(MP_BY_SPEED[Math.min(s, MP_BY_SPEED.length - 1)]! * (1 + skillValue(h.skills, 'logistics')));
+  return Math.floor(MP_BY_SPEED[Math.min(s, MP_BY_SPEED.length - 1)]! * (1 + skillValue(h.skills, 'logistics'))) + (gearBonus(h).travel ?? 0) * TILE_MP;
 }
 
-export const sightOf = (h: Hero): number => 5 + skillValue(h.skills, 'scouting');
+export const sightOf = (h: Hero): number => 5 + skillValue(h.skills, 'scouting') + (gearBonus(h).sight ?? 0);
 
 /** Experience after Learning. */
 export const gainedXp = (h: Hero, xp: number): number => Math.floor(xp * (1 + skillValue(h.skills, 'learning')));
 
 export function toBattleHero(h: Hero): BattleHero {
+  const geared = withGear(h);
+  const worn = gearBonus(h);
   return {
-    name: h.name, attack: h.attack, defense: h.defense, power: h.power, mana: h.mana,
+    name: h.name, attack: geared.attack, defense: geared.defense, power: geared.power, mana: h.mana,
     spells: h.hasBook ? h.spells : [], skills: h.skills,
-    morale: skillValue(h.skills, 'leadership'), luck: skillValue(h.skills, 'luck'),
+    morale: skillValue(h.skills, 'leadership') + (worn.morale ?? 0), luck: skillValue(h.skills, 'luck') + (worn.luck ?? 0),
   };
 }
 

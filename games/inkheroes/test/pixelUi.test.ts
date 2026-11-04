@@ -4,7 +4,7 @@ import { armyOf } from '../src/logic/army';
 import { createBattle } from '../src/logic/battle';
 import type { BattleHero } from '../src/logic/battleTypes';
 import { creature } from '../src/logic/creatures';
-import { bookSize, drawBook, drawFrame, drawPicture, drawPortrait, drawRibbon, drawRule, EDGE, FACE, FILLS, pageOrigin, pictureOffset, RIBBONS, RIMS, SLOT } from '../src/scenes/battle/pixelFrames';
+import { bookSize, drawBook, drawFrame, drawPicture, drawPortrait, drawSocket, drawRibbon, drawRule, EDGE, FACE, FILLS, pageOrigin, pictureOffset, RIBBONS, RIMS, SLOT } from '../src/scenes/battle/pixelFrames';
 import type { PixelBuffer } from '../src/scenes/battle/pixelRaster';
 import type { Pixels } from '../src/scenes/battle/pixelScenery';
 import { unitInfo } from '../src/scenes/battle/unitCard';
@@ -52,7 +52,7 @@ describe('turn-order portraits', () => {
     const left = drawPortrait(face, 'player', false, false);
     expect(left.w).toBe(SLOT);
     expect(at(left, 2, 2)).toEqual([200, 40, 30, 255]);
-    expect(at(left, 3, 2)).toEqual([...FILLS.portrait]);
+    expect(at(left, 3, 2)).toEqual(at(drawSocket(SLOT, 'player'), 3, 2));
     const right = drawPortrait(face, 'enemy', true, false);
     expect(at(right, 2 + FACE - 1, 2)).toEqual([200, 40, 30, 255]);
     expect(at(right, 1, 10)).toEqual([...RIMS.enemy.light]);

@@ -4,6 +4,7 @@ import type { PlateKind } from '../art/uiArtParts';
 import { PixelBuildCard, previewReady, type CardView } from './battle/pixelBuildCard';
 import { PixelCard } from './battle/pixelCard';
 import type { DwellingPreview } from './battle/unitCard';
+import { PixelHeroSheet, type SheetSource } from './hud/pixelHeroSheet';
 import { pixelUiCamera } from './pixelScreen';
 
 export interface CardButton {
@@ -18,6 +19,10 @@ export interface CardSpec {
   readonly title: string;
   readonly body: string;
   readonly buttons: readonly CardButton[];
+  /** The hero sheet: drawn in place of the text, with this face and army. */
+  readonly sheet?: SheetSource;
+  /** A picture above the text (a texture key): a piece of gear just won. */
+  readonly picture?: string;
   /** What it gives, picked out in gold with its icon above the text. */
   readonly perk?: { readonly icon: StatName; readonly text: string };
   /** Laurels to show (victory), out of 3. */
@@ -47,7 +52,7 @@ export class CardScene extends Phaser.Scene {
         answered = true;
         this.scene.stop();
       };
-      card = spec.preview && previewReady(this, spec.preview) ? new PixelBuildCard(this, root, spec, spec.preview, size, done, quiet) : new PixelCard(this, root, spec, size, done, quiet);
+      card = spec.sheet ? new PixelHeroSheet(this, root, spec, spec.sheet, size, done, quiet) : spec.preview && previewReady(this, spec.preview) ? new PixelBuildCard(this, root, spec, spec.preview, size, done, quiet) : new PixelCard(this, root, spec, size, done, quiet);
     };
     const fit = pixelUiCamera(this, (size) => {
       if (!answered) draw(size, true);

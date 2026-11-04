@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { getHost, getSound } from '../host';
 import { calendar, unfinished, type Adventure } from '../logic/adventure';
-import { CLASSES, dailyMp, maxMana } from '../logic/hero';
+import { CLASSES, dailyMp, maxMana, withinMana } from '../logic/hero';
 import { tilesOf } from '../logic/map';
 import { faceOf, heroArt, PX_TEX } from './battle/pixelAssets';
 import { drawPortrait, FILLS, SLOT } from './battle/pixelFrames';
@@ -113,10 +113,12 @@ export class MapHudScene extends Phaser.Scene {
     this.panelFrame = new PixelFrame(this, PANEL_W, PANEL_H, { rim: 'bronze', thick: 2, fill: [34, 24, 17, 246], studs: true });
     this.owned.push(this.panelFrame);
     const parts: Phaser.GameObjects.GameObject[] = [this.panelFrame.img];
-    // The hero's face; a tap brings the view back to the hero.
+    // The panel opens the hero's sheet; its army slots sit on top and pass the tap through.
+    this.panelFrame.img.setInteractive();
+    this.panelFrame.img.on('pointerup', () => this.openHero());
     this.heroKey = this.heroFace();
     this.portrait = this.add.image(PAD, PAD, this.heroKey).setOrigin(0).setInteractive();
-    this.portrait.on('pointerup', () => (this.scene.get('Map') as MapScene).centreOnHero());
+    this.portrait.on('pointerup', () => this.openHero());
     parts.push(this.portrait);
     const textX = PAD + SLOT + 6;
     this.heroLine = new TextLabel(this, { kind: 'title', align: 'left', anchor: { x: 0, y: 0 } }).setPosition(textX, PAD);
@@ -151,7 +153,7 @@ export class MapHudScene extends Phaser.Scene {
   /** The hero's face, cut 1:1 from the battle figure's idle frame. */
   private heroFace(): string {
     const h = heroArt();
-    return putBuffer(this, drawPortrait(faceOf(this, PX_TEX.hero(h.id, 'idle'), h.art), 'player', false, false));
+    return putBuffer(this, drawPortrait(faceOf(this, PX_TEX.hero(h.id, 'idle'), h.art), 'bronze', false, false));
   }
 
   private layout(): void {
@@ -207,6 +209,25 @@ export class MapHudScene extends Phaser.Scene {
     this.moveLine.setText(`${tilesOf(h.mp)}/${tilesOf(dailyMp(h))}`);
     this.manaLine.setText(`${h.mana}/${maxMana(h)}`);
     this.army.set(h.army);
+  }
+
+  /** The hero's sheet, as Heroes 3's hero screen. */
+  private openHero(): void {
+    const map = this.scene.get('Map') as MapScene;
+    if (map.blocked()) return;
+    openCard(this, {
+      title: this.session.adv.hero.name,
+      body: '',
+      sheet: {
+        face: this.heroKey,
+        hero: () => this.session.adv.hero,
+        change: (next) => this.session.set({ ...this.session.adv, hero: withinMana(next) }),
+      },
+      buttons: [
+        { label: 'Show on map', kind: 'plain', onClick: () => map.centreOnHero() },
+        { label: 'Close', kind: 'plain', onClick: () => undefined },
+      ],
+    });
   }
 
   /** Ends the day, asking first when the hero could still move or a town could still build. */

@@ -3,7 +3,7 @@ import { calendar, heroInGarrison, heroVisiting, type Adventure } from '../../lo
 import type { Town } from '../../logic/town';
 import { has, income } from '../../logic/town';
 import { faceOf, heroArt, PX_TEX } from '../battle/pixelAssets';
-import { drawFrame, drawPortrait, FILLS, SLOT } from '../battle/pixelFrames';
+import { drawPortrait, drawSocket, SLOT } from '../battle/pixelFrames';
 import { GoldHalo } from './goldHalo';
 import { INK, PixelButton, PixelFrame, PixelImage, TextLabel, UI_TEX } from '../battle/pixelUi';
 import { ArmyRow, ARMY_ROW_W } from '../hud/armyRow';
@@ -83,21 +83,21 @@ export class TownBar {
     const tapHead = (img: Phaser.GameObjects.Image, row: () => SlotRef['army']): void => {
       img.setInteractive().on('pointerup', () => actions.pickSlot({ army: row(), i: HEAD }));
     };
-    const crestFrame = new PixelImage(scene, drawFrame(SLOT, SLOT, { rim: 'gold', fill: FILLS.portrait }));
+    const crestFrame = new PixelImage(scene, drawSocket(SLOT, 'gold'));
     const crestIcon = scene.add.image(SLOT / 2, SLOT / 2, UI_TEX.icon('town'));
     this.owned.push(crestFrame);
     tapHead(crestFrame.img, () => 'garrison');
     this.crest = scene.add.container(0, 0, [crestFrame.img, crestIcon]).setDepth(depth + 1);
     const hero = heroArt();
     const heroFace = faceOf(scene, PX_TEX.hero(hero.id, 'idle'), hero.art);
-    const face = new PixelImage(scene, drawPortrait(heroFace, 'player', false, false));
+    const face = new PixelImage(scene, drawPortrait(heroFace, 'bronze', false, false));
     const lit = new PixelImage(scene, drawPortrait(heroFace, 'gold', false, false));
     this.owned.push(face, lit);
     this.heroFace = face.img.setDepth(depth + 1);
     this.heroLit = lit.img.setDepth(depth + 1);
     tapHead(this.heroFace, () => this.heroRow);
     tapHead(this.heroLit, () => this.heroRow);
-    this.emptyFace = new PixelImage(scene, drawFrame(SLOT, SLOT, { rim: 'dim', fill: FILLS.portrait }));
+    this.emptyFace = new PixelImage(scene, drawSocket(SLOT, 'bronze'));
     this.emptyFace.img.setDepth(depth + 1);
     tapHead(this.emptyFace.img, () => 'hero');
     this.owned.push(this.emptyFace);

@@ -1,3 +1,4 @@
+import type { ItemId } from './items';
 import type { CreatureId } from './creatures';
 import type { Resource } from './resources';
 import type { SpellId } from './spells';
@@ -23,6 +24,8 @@ export interface MapObject {
   /** Monster: who and how many. */
   readonly creature?: CreatureId;
   readonly count?: number;
+  /** Monster: the piece it leaves when beaten. */
+  readonly drop?: ItemId;
   /** Shrine: the spell it teaches. */
   readonly spell?: SpellId;
   /** Mines and towns: who flies the flag. */

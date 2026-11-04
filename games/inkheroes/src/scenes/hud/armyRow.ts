@@ -1,7 +1,7 @@
 import type Phaser from 'phaser';
 import { ARMY_SLOTS, type Army } from '../../logic/army';
 import { badgeTexture, faceOf, PX_TEX, unitArt } from '../battle/pixelAssets';
-import { drawFrame, drawPortrait, FILLS, SLOT, SLOT_GAP, type RimName } from '../battle/pixelFrames';
+import { drawPortrait, drawSocket, SLOT, SLOT_GAP, type RimName } from '../battle/pixelFrames';
 import { putBuffer } from '../battle/pixelUi';
 
 /** How wide a row of seven slots is, UI pixels. */
@@ -37,7 +37,7 @@ export class ArmyRow {
     const id = `empty-${rim}`;
     let key = this.keys.get(id);
     if (!key) {
-      key = putBuffer(this.scene, drawFrame(SLOT, SLOT, { rim, fill: FILLS.portrait }));
+      key = putBuffer(this.scene, drawSocket(SLOT, rim));
       this.keys.set(id, key);
     }
     return key;
@@ -57,8 +57,8 @@ export class ArmyRow {
   set(army: Army | null, lit: number | null = null): void {
     this.slots.forEach((s, i) => {
       const slot = army?.[i] ?? null;
-      const rim: RimName = i === lit ? 'gold' : army ? 'player' : 'dim';
-      s.img.setTexture(slot ? this.face(slot.creature, rim) : this.empty(i === lit ? 'gold' : 'dim'));
+      const rim: RimName = i === lit ? 'gold' : army ? 'bronze' : 'dim';
+      s.img.setTexture(slot ? this.face(slot.creature, rim) : this.empty(rim));
       s.badge.setVisible(!!slot);
       if (slot) s.badge.setTexture(badgeTexture(this.scene, 0, slot.count));
     });

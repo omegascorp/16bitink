@@ -1,3 +1,4 @@
+import { gainItem } from './items';
 import type { MapDef } from '../level/types';
 import {
   calendar, checkGoal, DEFEND, guardAt, heroInGarrison, liveObjects, playerArmy, RIVAL, rivalHero, terrainView, townAt, withTown, type Adventure,
@@ -271,7 +272,9 @@ function fight(adv: Adventure, hero: Hero, army: Army, id: string): { adv: Adven
     const foes = army.find((s) => s)?.creature;
     return { adv: withRival(adv, null), won: false, notes: [`${hero.name} fell in battle${foes ? ` against the ${creature(foes).plural}` : ''}. His banner is down for good.`] };
   }
-  const after = { ...hero, army: survivors(end, 0, hero.army), machines: machinesLeft(end, 0) as MachineId[] };
+  const drop = adv.objects.find((o) => o.id === id)?.drop;
+  const fought = { ...hero, army: survivors(end, 0, hero.army), machines: machinesLeft(end, 0) as MachineId[] };
+  const after = drop ? gainItem(fought, drop).hero : fought;
   const objects = adv.objects.map((o) => (o.id === id ? { ...o, gone: true } : o));
   return { adv: { ...withRival(adv, after), objects }, won: true, notes: [] };
 }

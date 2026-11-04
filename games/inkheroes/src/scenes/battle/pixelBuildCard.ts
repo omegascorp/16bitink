@@ -3,7 +3,7 @@ import { getSound } from '../../host';
 import { creature, type CreatureId } from '../../logic/creatures';
 import type { CardSpec } from '../CardScene';
 import { PX_TEX, unitArt } from './pixelAssets';
-import { drawFrame, drawPicture, drawRule, inkBox, pictureOffset } from './pixelFrames';
+import { cardButtonLook, drawFrame, drawPicture, drawRule, inkBox, pictureOffset } from './pixelFrames';
 import { PixelBuffer, type Rgba } from './pixelRaster';
 import { composeScenery, HORIZON_Y } from './pixelScenery';
 import { INK, PixelButton, PixelFrame, PixelImage, putBuffer, TextLabel, texturePixels, UI_TEX } from './pixelUi';
@@ -227,7 +227,7 @@ export class PixelBuildCard implements CardView {
     const bh = Math.max(...spec.buttons.map((b) => (b.note ? BTN_NOTE_H : BTN_H)));
     const buttons = spec.buttons.map((b, i) => own(new PixelButton(scene, {
       w: bw, h: side ? bh : b.note ? BTN_NOTE_H : BTN_H, label: b.label, note: b.note,
-      rim: (b.kind ?? (i === 0 ? 'primary' : 'plain')) === 'plain' ? 'bronze' : 'gold',
+      ...cardButtonLook(b.kind, i),
       onClick: () => {
         if (this.closed) return;
         this.close();
