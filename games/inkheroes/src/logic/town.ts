@@ -35,6 +35,11 @@ export function cantBuild(t: Town, b: BuildingId, p: Purse, off: readonly Buildi
 }
 
 /** Builds `b`: the town and the purse after paying. A new dwelling opens with a week's growth. */
+/** The first building of `order` this town hasn't built and the map allows, or null when it's all done. */
+export function advisedNext(t: Town, order: readonly BuildingId[], off: readonly BuildingId[]): BuildingId | null {
+  return order.find((b) => !has(t, b) && !off.includes(b)) ?? null;
+}
+
 export function build(t: Town, b: BuildingId, p: Purse, off: readonly BuildingId[]): { town: Town; purse: Purse } {
   const why = cantBuild(t, b, p, off);
   if (why) throw new Error(why);

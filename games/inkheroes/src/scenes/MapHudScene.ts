@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getHost, getSound } from '../host';
-import { calendar, type Adventure } from '../logic/adventure';
+import { calendar, unfinished, type Adventure } from '../logic/adventure';
 import { CLASSES, dailyMp, maxMana } from '../logic/hero';
 import { faceOf, heroArt, PX_TEX } from './battle/pixelAssets';
 import { drawPortrait, FILLS, SLOT } from './battle/pixelFrames';
@@ -202,9 +202,26 @@ export class MapHudScene extends Phaser.Scene {
     this.army.set(h.army);
   }
 
+  /** Ends the day, asking first when the hero could still move or a town could still build. */
   private endDay(): void {
     const map = this.scene.get('Map') as MapScene;
     if (map.blocked()) return;
+    const left = unfinished(this.session.adv, this.session.def);
+    if (!left.length) {
+      this.closeDay(map);
+      return;
+    }
+    openCard(this, {
+      title: 'End the day?',
+      body: left.join('\n'),
+      buttons: [
+        { label: 'End the day', onClick: () => this.closeDay(map) },
+        { label: 'Not yet', kind: 'plain', onClick: () => undefined },
+      ],
+    });
+  }
+
+  private closeDay(map: MapScene): void {
     getSound(this)?.play('day');
     map.clearPath();
     this.session.endDay();

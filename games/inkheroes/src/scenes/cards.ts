@@ -1,10 +1,13 @@
 import type Phaser from 'phaser';
+import { getHost } from '../host';
+import { nextMap } from '../level/maps';
+import type { MapDef } from '../level/types';
 import { answerPrompt } from '../logic/adventure';
 import { PRIMARY_NAMES } from '../logic/hero';
 import { blotsFor } from '../logic/save';
 import { RANK_NAMES, SKILLS } from '../logic/skills';
 import { openCard } from './CardScene';
-import type { Session } from './session';
+import { Session } from './session';
 
 /**
  * The cards the map shows from the adventure's state: its waiting prompts
@@ -48,12 +51,17 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
     return;
   }
   if (adv.status === 'won') {
+    const next = nextMap(session.def);
     const blots = blotsFor(adv.day, session.def.parDays, adv.lostStacks);
     openCard(scene, {
       title: 'Victory!',
       body: `${session.def.goal.text[0]!.toUpperCase()}${session.def.goal.text.slice(1)}: done, on day ${adv.day}.\n${adv.day <= session.def.parDays ? 'Within the par of ' : 'Par was '}${session.def.parDays} days${adv.lostStacks === 0 ? ', and not one company lost.' : '.'}`,
       blots,
-      buttons: [{ label: 'Back to the campaign', onClick: () => toMenu(scene, session, null) }],
+      buttons: [
+        // The campaign goes on: the next map opens with this win.
+        ...(next ? [{ label: `On to ${next.name}`, onClick: () => playNext(scene, next) }] : []),
+        { label: 'Back to the campaign', kind: next ? 'plain' as const : undefined, onClick: () => toMenu(scene, session, null) },
+      ],
     });
     return;
   }
@@ -70,6 +78,13 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
       ],
     });
   }
+}
+
+/** Leaves the map won for the next one in the campaign. */
+function playNext(scene: Phaser.Scene, def: MapDef): void {
+  for (const key of ['MapHud', 'Card', 'Town', 'Battle']) if (key !== scene.scene.key) scene.scene.stop(key);
+  Session.begin(scene, getHost(scene), def);
+  scene.scene.start('Map');
 }
 
 /** Leaves the map for the campaign menu. */

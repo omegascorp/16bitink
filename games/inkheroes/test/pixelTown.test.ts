@@ -56,7 +56,9 @@ describe('town city layout', () => {
     expect(l).not.toContain('villageHall');
     expect(l).not.toContain('mageGuild2');
     expect(ledgerOf([...BUILDING_IDS], BUILD_ORDER, [])).toContain('capitol');
-    expect(ledgerOf([], BUILD_ORDER, ['tiltyard'])).not.toContain('tiltyard');
+    // A building for a later map still shows, after everything this map can build.
+    const later = ledgerOf([], BUILD_ORDER, ['tiltyard']);
+    expect(later[later.length - 1]).toBe('tiltyard');
   });
 });
 

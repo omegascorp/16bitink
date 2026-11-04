@@ -197,6 +197,15 @@ A map monster splits into about √count stacks in battle, at most 4 (4 goblins 
 | Tiltyard (Lancers) | 5000, 20 wood | Stables | |
 | Seraph Spire | 20000, 10 each rare | Monastery | |
 
+**The campaign opens the town map by map** (`src/level/unlocks.ts`): each map can build what the maps before it opened, and adds more. The hall shows the rest greyed, as "Later map".
+
+| Map | Opens |
+|---|---|
+| 1 Ashford | Village Hall, Town Hall, Fort, Citadel, Tavern, Blacksmith, Mage Guild, the Guardhouse, Archery Range, Griffin Tower and Barracks |
+| 2 Thornwood | City Hall, Marketplace, the guild's 2nd floor, Stables, Monastery, the first upgrades of lines 1–4 |
+| 3 The Black Banner | Castle, Tiltyard, Centaur Grove, the second upgrades of lines 1–4 |
+| Later | Capitol, Seraph Spire, the rest of the upgrades of lines 5–7 |
+
 **The upgrade tree.** Each dwelling upgrades twice. The first upgrade needs the dwelling (and the one support named); the second needs the first and the Citadel (lines 1–4) or the Castle (lines 5–7).
 
 | Line | Dwelling | Upgrade (needs) | Second upgrade (needs) |

@@ -10,7 +10,8 @@ import { MINE_NAMES, MINE_OUTPUT, objectFootprint, townFootprint, type MapObject
 import { canStep, findPath, type PathStep, type Terrainview } from './path';
 import { addTo, purse, type Purse } from './resources';
 import { skillValue, type SkillId } from './skills';
-import { dwellings, growthOf, has, income, weekly, type Town } from './town';
+import { BUILDING_IDS } from './buildings';
+import { cantBuild, dwellings, growthOf, has, income, weekly, type Town } from './town';
 import { visitSite } from './visits';
 
 export type Prompt =
@@ -236,6 +237,29 @@ export function dailyIncome(adv: Adventure): Purse {
   return p;
 }
 
+/** Whether the hero has the movement for at least one more step today (to any open tile beside it). */
+export function canStillMove(adv: Adventure, def: MapDef): boolean {
+  if (heroInGarrison(adv)) return false;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue;
+      const path = planPath(adv, def, adv.hero.x + dx, adv.hero.y + dy);
+      if (path?.[0] && path[0].day === 0) return true;
+    }
+  }
+  return false;
+}
+
+/** What the player could still do today: lines for the card that asks before the day ends (none: end it at once). */
+export function unfinished(adv: Adventure, def: MapDef): string[] {
+  const out: string[] = [];
+  if (canStillMove(adv, def)) out.push(`${adv.hero.name} can still move today.`);
+  for (const t of playerTowns(adv)) {
+    if (BUILDING_IDS.some((b) => !cantBuild(t, b, adv.purse, def.off))) out.push(`${t.name} can still build today.`);
+  }
+  return out;
+}
+
 /** End of the day: income, rested heroes, and on a new week the dwellings fill and monsters grow. */
 export function endDay(adv: Adventure): Adventure {
   const day = adv.day + 1;
@@ -320,9 +344,10 @@ export function checkGoal(adv: Adventure, def: MapDef): Adventure {
 /** Adds a level-up card if the hero has the experience for one and none is waiting. */
 export function queueLevelUps(adv: Adventure): Adventure {
   if (adv.prompts.some((p) => p.kind === 'levelUp')) return adv;
-  const r = nextLevelUp(adv.hero, adv.seed);
+  // Each level's offer comes from the map's seed and that level alone (the seed never moves), so a reload deals the same one again.
+  const r = nextLevelUp(adv.hero, (adv.seed ^ Math.imul(adv.hero.level + 1, 0x9e3779b1)) >>> 0);
   if (!r) return adv;
-  return { ...adv, seed: r.seed, prompts: [...adv.prompts, { kind: 'levelUp', offer: r.offer }] };
+  return { ...adv, prompts: [...adv.prompts, { kind: 'levelUp', offer: r.offer }] };
 }
 
 /** Answers the first card. `choice` is the chest's 'gold' / 'xp', or the skill picked on a level-up. */

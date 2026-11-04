@@ -186,7 +186,7 @@ export class TownScene extends Phaser.Scene {
     if (!this.screen || !this.bar) return;
     const adv = this.session.adv;
     const act = this.screenActions();
-    const spec = this.screen === 'hall' ? hallScreen(this, adv, this.town(), this.session.def.off, act) : this.screen === 'fort' ? fortScreen(this, adv, this.town(), act) : guildScreen(this, adv, this.town(), act);
+    const spec = this.screen === 'hall' ? hallScreen(this, adv, this.town(), this.session.def.off, act, this.session.def.advice) : this.screen === 'fort' ? fortScreen(this, adv, this.town(), act) : guildScreen(this, adv, this.town(), act);
     this.window = new TownWindow(this, spec, { w: this.size.w, h: this.bar.top }, () => this.openScreen(null), DEPTH.window);
   }
 
@@ -225,7 +225,7 @@ export class TownScene extends Phaser.Scene {
     const def = BUILDINGS[id];
     const why = cantBuild(this.town(), id, adv.purse, this.session.def.off);
     const cost = Object.keys(def.cost).length ? `Costs ${describeAmount(def.cost)}.` : 'Costs nothing.';
-    const state = !why ? 'The masons are ready.' : why === 'Built' ? 'Built.' : why === 'Not enough resources' ? 'Not enough resources yet.' : `${why}.`;
+    const state = !why ? 'The masons are ready.' : why === 'Built' ? 'Built.' : why === 'Not enough resources' ? 'Not enough resources yet.' : why === 'Not on this map' ? 'It opens on a later map of the campaign.' : `${why}.`;
     const buttons: CardButton[] = why ? [{ label: 'Close', kind: 'plain', onClick: () => undefined }] : [{ label: 'Build', onClick: () => this.tryBuild(id) }, { label: 'Not now', kind: 'plain', onClick: () => undefined }];
     openCard(this, { title: def.name, body: `${saysOf(id)}.\n${cost}\n${state}`, buttons });
   }

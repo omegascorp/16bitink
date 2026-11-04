@@ -1,4 +1,5 @@
 import type { MapDef } from './types';
+import { lockedOn } from './unlocks';
 
 /**
  * Chapter 1, map 2: Thornwood. Brigands under a cyclops chief have taken
@@ -65,8 +66,8 @@ export const THORNWOOD: MapDef = {
     army: [{ creature: 'spearman', count: 24 }, { creature: 'bowman', count: 10 }, { creature: 'griffin', count: 3 }],
   },
   purse: { gold: 10000, wood: 20, ore: 20, mercury: 5, sulfur: 5, crystal: 5, gems: 5 },
-  // The second upgrades open behind a Citadel here; the Castle and the top dwellings wait for map 3.
-  off: ['capitol', 'castle', 'tiltyard', 'seraphSpire'],
+  // What the campaign has opened by this map (src/level/unlocks.ts).
+  off: lockedOn(2),
   seed: 2207,
   objects: [
     // Mines.

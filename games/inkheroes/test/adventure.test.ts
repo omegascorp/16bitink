@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { ASHFORD } from '../src/level/chapter1';
-import { MAPS } from '../src/level/maps';
+import { isOpen, MAPS, nextMap } from '../src/level/maps';
+import { openBy, UNLOCKS } from '../src/level/unlocks';
 import { THORNWOOD } from '../src/level/thornwood';
 import type { MapDef } from '../src/level/types';
-import { afterBattle, answerPrompt, heroTown, playerTowns, townById, battleSides, dailyIncome, endDay, garrisonHero, withTown, gridOf, heroInGarrison, heroVisiting, isSeen, leadOut, objectAt, planPath, startAdventure, stepHero, type Adventure } from '../src/logic/adventure';
+import { afterBattle, answerPrompt, unfinished, heroTown, playerTowns, townById, battleSides, dailyIncome, endDay, garrisonHero, withTown, gridOf, heroInGarrison, heroVisiting, isSeen, leadOut, objectAt, planPath, startAdventure, stepHero, type Adventure } from '../src/logic/adventure';
 import { armyOf, moveAll } from '../src/logic/army';
 import { act, createBattle } from '../src/logic/battle';
 import { chooseAction } from '../src/logic/battleAi';
@@ -11,7 +12,7 @@ import { dailyMp, levelFor, nextLevelUp, xpForLevel } from '../src/logic/hero';
 import { passable, tileIndex } from '../src/logic/map';
 import { objectFootprint, townFootprint } from '../src/logic/objects';
 import { findPath } from '../src/logic/path';
-import { bestUnit, build, cantBuild, growthOf, hire, upgradable, upgradeCost, upgradeStacks, weekly } from '../src/logic/town';
+import { advisedNext, bestUnit, build, cantBuild, growthOf, hire, upgradable, upgradeCost, upgradeStacks, weekly } from '../src/logic/town';
 import { BUILDINGS, BUILDING_IDS } from '../src/logic/buildings';
 import { creature, lineOf, lineUnits, tierOf } from '../src/logic/creatures';
 
@@ -394,5 +395,55 @@ describe('taking a town (Thornwood)', () => {
     expect(r.town).toBe(true);
     expect(townById(r.adv, 'thornwood-town')!.owner).toBe('player');
     expect(r.adv.status).toBe('won');
+  });
+});
+
+describe('the campaign', () => {
+  it('opens the town map by map: each map’s towns start with only what the campaign has opened', () => {
+    for (const def of MAPS) {
+      const open = openBy(def.n);
+      for (const t of towns(def)) for (const b of t.built) expect(open.has(b), `${def.id} ${t.id} ${b}`).toBe(true);
+      expect(def.off.every((b) => !open.has(b))).toBe(true);
+    }
+    // Later maps only ever add.
+    for (let n = 2; n <= UNLOCKS.length; n++) expect([...openBy(n - 1)].every((b) => openBy(n).has(b))).toBe(true);
+    expect(openBy(1).has('guardhouse2')).toBe(false);
+    expect(openBy(2).has('guardhouse2')).toBe(true);
+  });
+
+  it('opens each map once the one before it is won, and leads from one to the next', () => {
+    expect(isOpen(ASHFORD, {})).toBe(true);
+    expect(isOpen(THORNWOOD, {})).toBe(false);
+    expect(isOpen(THORNWOOD, { ashford: { blots: 1 } })).toBe(true);
+    expect(nextMap(ASHFORD)).toBe(THORNWOOD);
+    expect(MAPS.map((m) => m.n)).toEqual(MAPS.map((_, i) => i + 1));
+  });
+
+  it('guides the first map’s building, one advised step at a time, each one buildable in turn', () => {
+    const order = ASHFORD.advice!;
+    expect(order.length).toBeGreaterThan(0);
+    let town = startAdventure(ASHFORD).towns[0]!;
+    const rich = { gold: 1e6, wood: 999, ore: 999, mercury: 99, sulfur: 99, crystal: 99, gems: 99 };
+    for (const id of order) {
+      expect(ASHFORD.off).not.toContain(id);
+      expect(advisedNext(town, order, ASHFORD.off)).toBe(id);
+      expect(cantBuild(town, id, rich, ASHFORD.off)).toBeNull();
+      town = { ...build(town, id, rich, ASHFORD.off).town, builtToday: false };
+    }
+    expect(advisedNext(town, order, ASHFORD.off)).toBeNull();
+    // Built out of order, it skips what's done.
+    const ahead = { ...startAdventure(ASHFORD).towns[0]!, built: [...startAdventure(ASHFORD).towns[0]!.built, order[0]!] };
+    expect(advisedNext(ahead, order, ASHFORD.off)).toBe(order[1]);
+  });
+});
+
+describe('ending the day', () => {
+  it('names what could still be done: moves left, a building the town can afford today', () => {
+    const adv = { ...startAdventure(ASHFORD), prompts: [] };
+    expect(unfinished(adv, ASHFORD)).toEqual(['Rowan can still move today.', 'Ashford can still build today.']);
+    const tired = { ...adv, hero: { ...adv.hero, mp: 0 } };
+    expect(unfinished(tired, ASHFORD)).toEqual(['Ashford can still build today.']);
+    const done = withTown(tired, { ...tired.towns[0]!, builtToday: true });
+    expect(unfinished(done, ASHFORD)).toEqual([]);
   });
 });

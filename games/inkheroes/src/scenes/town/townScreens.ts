@@ -5,9 +5,9 @@ import type { Town } from '../../logic/town';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
 import { creature, type CreatureId } from '../../logic/creatures';
 import { SPELLS } from '../../logic/spells';
-import { bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, SPELLBOOK_COST, stockOf } from '../../logic/town';
+import { advisedNext, bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, SPELLBOOK_COST, stockOf } from '../../logic/town';
 import { PX_TEX, unitArt } from '../battle/pixelAssets';
-import { drawFrame, drawPicture, FILLS, inkBox, pictureOffset } from '../battle/pixelFrames';
+import { drawFrame, drawPicture, FILLS, inkBox, pictureOffset, type RimName } from '../battle/pixelFrames';
 import type { Rgba } from '../battle/pixelRaster';
 import { composeScenery, HORIZON_Y, type Pixels } from '../battle/pixelScenery';
 import { INK, PixelFrame, PixelImage, TextLabel, texturePixels, UI_TEX } from '../battle/pixelUi';
@@ -25,15 +25,18 @@ const GUILD_CARD = { w: 260, h: 62 } as const;
 const LINE = 15;
 const CARD_FILL: Rgba = [44, 31, 21, 255];
 
-/** A ledger card's state, the colour of its bar and the word on it. */
-type Ledger = 'built' | 'ready' | 'later' | 'locked' | 'short';
+/** A ledger card's state, the colour of its bar and the word on it: what can be built now is the one lit (green), what's done is quiet. */
+type Ledger = 'built' | 'ready' | 'later' | 'locked' | 'short' | 'campaign';
 const STATE: Record<Ledger, { fill: Rgba; word: string }> = {
-  built: { fill: [56, 96, 44, 255], word: 'Built' },
-  ready: { fill: [150, 108, 30, 255], word: 'Build' },
+  built: { fill: [74, 66, 56, 255], word: 'Done' },
+  ready: { fill: [58, 120, 46, 255], word: 'Build' },
   later: { fill: [84, 70, 52, 255], word: 'Tomorrow' },
   locked: { fill: [104, 38, 28, 255], word: 'Needs more' },
   short: { fill: [104, 38, 28, 255], word: 'Short' },
+  campaign: { fill: [46, 40, 36, 255], word: 'Later map' },
 };
+/** The bar of the advised next building, when it can be built today. */
+const ADVISED: { fill: Rgba; word: string } = { fill: [196, 146, 36, 255], word: 'Build next' };
 
 function stateOf(adv: Adventure, town: Town, id: BuildingId, off: readonly BuildingId[]): Ledger {
   const why = cantBuild(town, id, adv.purse, off);
@@ -41,6 +44,7 @@ function stateOf(adv: Adventure, town: Town, id: BuildingId, off: readonly Build
   if (why === 'Built') return 'built';
   if (why === 'Already built today') return 'later';
   if (why === 'Not enough resources') return 'short';
+  if (why === 'Not on this map') return 'campaign';
   return 'locked';
 }
 
@@ -51,13 +55,20 @@ export interface ScreenActions {
 }
 
 /** A card's frame and a zone over it for taps. */
-function card(scene: Phaser.Scene, x: number, y: number, w: number, h: number, onTap?: () => void): Drawn {
-  const frame = new PixelFrame(scene, w, h, { rim: 'bronze', fill: CARD_FILL }).setPosition(x, y);
+function card(scene: Phaser.Scene, x: number, y: number, w: number, h: number, onTap?: () => void, rim: RimName = 'bronze'): Drawn {
+  const frame = new PixelFrame(scene, w, h, { rim, fill: CARD_FILL }).setPosition(x, y);
   if (onTap) {
     frame.img.setInteractive({ useHandCursor: true });
     frame.img.on('pointerup', onTap);
   }
   return { parts: [frame.img], owned: [frame] };
+}
+
+/** A gold halo around a card, w × h at (x, y), breathing so the eye finds it. */
+function glow(scene: Phaser.Scene, x: number, y: number, w: number, h: number): Drawn {
+  const halo = new PixelImage(scene, drawFrame(w + 6, h + 6, { rim: 'gold', fill: null })).setPosition(x - 3, y - 3);
+  const tween = scene.tweens.add({ targets: halo.img, alpha: { from: 1, to: 0.25 }, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  return { parts: [halo.img], owned: [{ destroy: () => tween.remove() }, halo] };
 }
 
 /** A strip of the grass country, w × h, its horizon `horizon` rows down. */
@@ -83,15 +94,21 @@ function label(scene: Phaser.Scene, text: string, x: number, y: number, opts: Co
 }
 
 /** The hall: a card for each building on this map (its next step for an upgrade), coloured by whether it can be built today. */
-export function hallScreen(scene: Phaser.Scene, adv: Adventure, town: Town, off: readonly BuildingId[], act: ScreenActions): GridSpec {
+export function hallScreen(scene: Phaser.Scene, adv: Adventure, town: Town, off: readonly BuildingId[], act: ScreenActions, advice: readonly BuildingId[] = []): GridSpec {
   const ids = ledgerOf(town.built, BUILD_ORDER, off);
+  // On a map that teaches the town, its next advised building is framed in gold.
+  const next = advisedNext(town, advice, off);
   const { pic } = HALL_CARD;
   return {
     title: `${town.name}: the hall`,
     cell: HALL_CARD,
     count: ids.length,
     maxCols: 5,
-    note: town.builtToday ? 'Built today: the masons start again tomorrow.' : 'One building a day. Tap a card to see what it costs.',
+    note: town.builtToday
+      ? 'Built today: the masons start again tomorrow.'
+      : next
+        ? `Advised next: ${BUILDINGS[next].name}, framed in gold. One building a day.`
+        : 'One building a day. Tap a card to see what it costs.',
     draw: (i, x, y) => {
       const id = ids[i]!;
       const art = buildingArt(id);
@@ -99,10 +116,12 @@ export function hallScreen(scene: Phaser.Scene, adv: Adventure, town: Town, off:
       const by = fitFactor(s.w, s.h, pic.w - 8, pic.h - 6);
       const sprite = shrinkPixels(texturePixels(scene, TOWN_TEX.piece(art)), by);
       const picture = standOn(countryside(scene, pic.w, pic.h, pic.h - 26, i + 3), sprite, pic.w, pic.h, 4);
-      const st = STATE[stateOf(adv, town, id, off)];
+      const state = stateOf(adv, town, id, off);
+      const st = id === next && state === 'ready' ? ADVISED : STATE[state];
       const bar = new PixelFrame(scene, pic.w, 18, { rim: 'dim', fill: st.fill }).setPosition(x + 4, y + HALL_CARD.h - 22);
       return merge(
-        card(scene, x, y, HALL_CARD.w, HALL_CARD.h, () => act.pickBuilding(id)),
+        id === next ? glow(scene, x, y, HALL_CARD.w, HALL_CARD.h) : { parts: [], owned: [] },
+        card(scene, x, y, HALL_CARD.w, HALL_CARD.h, () => act.pickBuilding(id), id === next ? 'gold' : 'bronze'),
         framed(scene, picture, x + 3, y + 3),
         label(scene, BUILDINGS[id].name, x + Math.floor(HALL_CARD.w / 2), y + pic.h + 7, { kind: 'title', anchor: { x: 0.5, y: 0 }, align: 'center' }),
         { parts: [bar.img], owned: [bar] },

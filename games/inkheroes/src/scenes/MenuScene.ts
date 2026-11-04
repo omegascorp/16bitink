@@ -3,7 +3,7 @@ import { MAP_VIGNETTES } from '../art/pixel/map';
 import { SCENERY } from '../art/pixel/scenery';
 import { BACKDROP } from '../art/palette';
 import { getHost } from '../host';
-import { MAPS } from '../level/maps';
+import { isOpen, MAPS, previousMap } from '../level/maps';
 import type { MapDef } from '../level/types';
 import { calendar } from '../logic/adventure';
 import { loadProgress } from '../logic/save';
@@ -189,20 +189,22 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private mapCard(x: number, y: number, item: Item, records: ReturnType<typeof loadProgress>['maps'], resumed: Session | null): Phaser.GameObjects.Container {
-    const draft = 'planned' in item;
+    // A planned map, or one the campaign hasn't opened yet (the map before it isn't won): shown dim, without Play.
+    const locked = 'def' in item && !isOpen(item.def, records) && resumed?.def.id !== item.def.id;
+    const draft = 'planned' in item || locked;
     const parts: Phaser.GameObjects.GameObject[] = [];
     const frame = new PixelImage(this, drawFrame(CARD_W, CARD_H, { rim: draft ? 'dim' : 'bronze', thick: 2, fill: [34, 24, 17, 240], studs: !draft }));
     parts.push(frame.img);
     this.owned.push(frame);
-    const vid = draft ? item.planned.vignette : item.def.id;
+    const vid = 'planned' in item ? item.planned.vignette : item.def.id;
     const pic = new PixelImage(this, drawFrame(PIC.w + 4, PIC.h + 4, { rim: draft ? 'dim' : 'gold', fill: FILLS.portrait })).setPosition(CARD_PAD, CARD_PAD);
     parts.push(pic.img);
     this.owned.push(pic);
     if (MAP_VIGNETTES[vid]) parts.push(this.add.image(CARD_PAD + 2, CARD_PAD + 2, MAP_TEX.vignette(vid)).setOrigin(0).setAlpha(draft ? 0.5 : 1));
     const cx = Math.floor(CARD_W / 2);
     let ty = CARD_PAD + PIC.h + 4 + 6;
-    const name = draft ? item.planned.name : `${item.def.n}. ${item.def.name}`;
-    const goal = draft ? `${item.planned.goal}.` : `${item.def.goal.text[0]!.toUpperCase()}${item.def.goal.text.slice(1)}.`;
+    const name = 'planned' in item ? item.planned.name : `${item.def.n}. ${item.def.name}`;
+    const goal = 'planned' in item ? `${item.planned.goal}.` : `${item.def.goal.text[0]!.toUpperCase()}${item.def.goal.text.slice(1)}.`;
     const title = new TextLabel(this, { kind: 'title', ink: draft ? INK.dim : INK.title, wrap: CARD_W - CARD_PAD * 2, anchor: { x: 0.5, y: 0 } }).setText(name).setPosition(cx, ty);
     ty += 15 + 3;
     const body = new TextLabel(this, { ink: draft ? INK.dim : INK.text, wrap: CARD_W - CARD_PAD * 2 - 6, anchor: { x: 0.5, y: 0 } }).setText(goal).setPosition(cx, ty);
@@ -210,7 +212,8 @@ export class MenuScene extends Phaser.Scene {
     parts.push(title.img, body.img);
     const laurelY = CARD_H - CARD_PAD - BTN_H - 6 - 24;
     if (draft) {
-      const soon = new TextLabel(this, { ink: INK.dim, anchor: { x: 0.5, y: 0 } }).setText('Coming soon').setPosition(cx, CARD_H - CARD_PAD - BTN_H + 4);
+      const before = 'def' in item ? previousMap(item.def) : undefined;
+      const soon = new TextLabel(this, { ink: INK.dim, anchor: { x: 0.5, y: 0 } }).setText(locked && before ? `Win ${before.name} to open` : 'Coming soon').setPosition(cx, CARD_H - CARD_PAD - BTN_H + 4);
       this.owned.push(soon);
       parts.push(soon.img);
     } else {

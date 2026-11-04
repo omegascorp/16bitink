@@ -8,8 +8,9 @@ import { PixelButton, PixelFrame, PixelImage, TextLabel, UI_TEX } from './pixelU
 const MAX_W = 280;
 const PAD = 9;
 const GAP = 5;
-const BTN_H = 22;
-const BTN_NOTE_H = 34;
+/** Buttons stand tall enough to tap comfortably (a note line adds a row). */
+const BTN_H = 30;
+const BTN_NOTE_H = 42;
 /** The rule's height. */
 const RULE_H = 5;
 /** The laurels a won map shows: their size and the gap between them. */

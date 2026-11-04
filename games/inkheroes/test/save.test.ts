@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ASHFORD } from '../src/level/chapter1';
 import { mapById } from '../src/level/maps';
-import { answerPrompt, endDay, startAdventure } from '../src/logic/adventure';
+import { answerPrompt, endDay, queueLevelUps, startAdventure } from '../src/logic/adventure';
 import { blotsFor, loadAdventure, mergeProgress, parseAdventure, parseProgress, recordWin, saveAdventure } from '../src/logic/save';
 
 function memoryStore(): { getItem(k: string): string | null; setItem(k: string, v: string): void } {
@@ -15,6 +15,17 @@ describe('saving', () => {
     const adv = endDay(answerPrompt(startAdventure(ASHFORD)));
     saveAdventure(store, { current: adv, dayStart: adv });
     expect(loadAdventure(store, mapById)?.current).toEqual(adv);
+  });
+
+  it('deals the same level-up offer again after a reload', () => {
+    const store = memoryStore();
+    const start = { ...startAdventure(ASHFORD), prompts: [] };
+    const adv = queueLevelUps({ ...start, hero: { ...start.hero, xp: 1000 } });
+    const offer = adv.prompts.find((p) => p.kind === 'levelUp');
+    expect(offer).toBeDefined();
+    saveAdventure(store, { current: adv, dayStart: adv });
+    const reloaded = loadAdventure(store, mapById)!.current;
+    expect(reloaded.prompts.find((p) => p.kind === 'levelUp')).toEqual(offer);
   });
 
   it('rejects tampered saves rather than playing them', () => {

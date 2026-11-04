@@ -189,25 +189,24 @@ const LADDERS: readonly (readonly BuildingId[])[] = [
 ];
 
 /**
- * The hall's ledger, as Heroes III's: a card per building on this map, an
- * upgrade ladder as one card showing its next step (its top once all is
- * built), in the build order.
+ * The hall's ledger, as Heroes III's: a card per building, an upgrade
+ * ladder as one card showing its next step (its top once all is built), in
+ * the build order. Buildings this map has off still show (greyed, for a
+ * later map), the ones it opens first.
  */
 export function ledgerOf(built: readonly BuildingId[], order: readonly BuildingId[], off: readonly BuildingId[]): BuildingId[] {
   const out: BuildingId[] = [];
   for (const id of order) {
-    if (off.includes(id)) continue;
     const ladder = LADDERS.find((l) => l.includes(id));
     if (!ladder) {
       out.push(id);
       continue;
     }
     if (ladder[0] !== id) continue;
-    const open = ladder.filter((b) => !off.includes(b));
-    const next = open.find((b) => !built.includes(b)) ?? open[open.length - 1];
-    if (next) out.push(next);
+    out.push(ladder.find((b) => !built.includes(b)) ?? ladder[ladder.length - 1]!);
   }
-  return out;
+  const later = (b: BuildingId): number => (off.includes(b) && !built.includes(b) ? 1 : 0);
+  return out.map((b, i) => ({ b, i })).sort((p, q) => later(p.b) - later(q.b) || p.i - q.i).map((p) => p.b);
 }
 
 /** Trees in the garden round the city's edge and on the plots not built on yet: how likely a tile grows one, and which kinds. */
