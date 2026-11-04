@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { ASHFORD } from '../src/level/chapter1';
 import { MAPS } from '../src/level/maps';
 import type { MapDef } from '../src/level/types';
-import { afterBattle, answerPrompt, battleSides, dailyIncome, endDay, gridOf, isSeen, objectAt, planPath, startAdventure, stepHero, type Adventure } from '../src/logic/adventure';
-import { armyOf } from '../src/logic/army';
+import { afterBattle, answerPrompt, battleSides, dailyIncome, endDay, garrisonHero, gridOf, heroInGarrison, heroVisiting, isSeen, leadOut, objectAt, planPath, startAdventure, stepHero, type Adventure } from '../src/logic/adventure';
+import { armyOf, moveAll } from '../src/logic/army';
 import { act, createBattle } from '../src/logic/battle';
 import { chooseAction } from '../src/logic/battleAi';
 import { dailyMp, levelFor, nextLevelUp, xpForLevel } from '../src/logic/hero';
@@ -217,5 +217,41 @@ describe('towns', () => {
     expect(r.purse.gold).toBe(start.purse.gold - 600);
     expect(r.town.stock.spearman).toBe(4);
     expect(() => hire(start.town, 'spearman', 15, start.purse, start.hero.army)).toThrow();
+  });
+});
+
+describe('the whole army moving between hero and garrison', () => {
+  const start = startAdventure(ASHFORD);
+  const inTown: Adventure = { ...start, hero: { ...start.hero, x: start.town.x, y: start.town.y } };
+
+  it('merges like companies and refuses when the row has no room', () => {
+    const src = armyOf([{ creature: 'spearman', count: 5 }, { creature: 'bowman', count: 2 }]);
+    const dst = armyOf([{ creature: 'bowman', count: 3 }, null, { creature: 'monk', count: 1 }]);
+    const r = moveAll(src, dst)!;
+    expect(r.src.every((s) => !s)).toBe(true);
+    expect(r.dst.slice(0, 3)).toEqual([{ creature: 'bowman', count: 5 }, { creature: 'spearman', count: 5 }, { creature: 'monk', count: 1 }]);
+    const full = armyOf(['griffin', 'swordsman', 'monk', 'lancer', 'seraph', 'goblin', 'ogre'].map((c) => ({ creature: c as 'griffin', count: 1 })));
+    expect(moveAll(src, full)).toBeNull();
+    expect(moveAll(armyOf([{ creature: 'monk', count: 4 }]), full)!.dst[2]).toEqual({ creature: 'monk', count: 5 });
+  });
+
+  it('the hero goes into the garrison with every company, and leads it all out again', () => {
+    const town = { ...inTown.town, garrison: armyOf([{ creature: 'bowman', count: 4 }]) };
+    const held = garrisonHero({ ...inTown, town })!;
+    expect(heroInGarrison(held)).toBe(true);
+    expect(heroVisiting(held)).toBe(false);
+    expect(held.hero.army.every((s) => !s)).toBe(true);
+    expect(held.town.garrison[0]).toEqual({ creature: 'bowman', count: 11 });
+    expect(held.town.garrison[1]).toEqual({ creature: 'spearman', count: 18 });
+    const out = leadOut(held);
+    expect(heroVisiting(out)).toBe(true);
+    expect(out.town.garrison.every((s) => !s)).toBe(true);
+    expect(out.hero.army.slice(0, 2)).toEqual(held.town.garrison.slice(0, 2));
+  });
+
+  it('only a hero standing in the town, with room for them, can go into the garrison', () => {
+    expect(garrisonHero(start)).toBeNull();
+    const full = armyOf(['griffin', 'swordsman', 'monk', 'lancer', 'seraph', 'goblin', 'ogre'].map((c) => ({ creature: c as 'griffin', count: 1 })));
+    expect(garrisonHero({ ...inTown, town: { ...inTown.town, garrison: full } })).toBeNull();
   });
 });

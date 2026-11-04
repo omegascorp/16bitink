@@ -11,7 +11,8 @@ import { heroArt, nearest, PX_TEX, unitArt } from './battle/pixelAssets';
 import { FIGURE_DEPTH, PixelFigure } from './battle/pixelFigure';
 import { drawFrame, drawRule, FILLS } from './battle/pixelFrames';
 import { renderPixelText } from './battle/pixelFont';
-import { composeScenery, HORIZON_Y } from './battle/pixelScenery';
+import { DriftingScenery } from './battle/driftingScenery';
+import { HORIZON_Y } from './battle/pixelScenery';
 import { INK, PixelButton, PixelImage, putBuffer, TextLabel, texturePixels, UI_TEX } from './battle/pixelUi';
 import { openCard } from './CardScene';
 import { loadMenuArt, MAP_TEX } from './map/pixelMapArt';
@@ -55,6 +56,9 @@ export class MenuScene extends Phaser.Scene {
   private figures: PixelFigure[] = [];
   private layer: Phaser.GameObjects.Layer | null = null;
   private ready = false;
+  private country: DriftingScenery | null = null;
+  /** How far the clouds have drifted (kept when the menu is redrawn). */
+  private drift = 0;
 
   constructor() {
     super('Menu');
@@ -84,9 +88,13 @@ export class MenuScene extends Phaser.Scene {
 
   update(_t: number, delta: number): void {
     for (const f of this.figures) f.update(delta);
+    this.country?.update(delta);
   }
 
   private clear(): void {
+    if (this.country) this.drift = this.country.drift;
+    this.country?.destroy();
+    this.country = null;
     for (const o of this.owned) o.destroy();
     for (const f of this.figures) f.destroy();
     for (const k of this.keys) if (this.textures.exists(k)) this.textures.remove(k);
@@ -155,10 +163,8 @@ export class MenuScene extends Phaser.Scene {
     const { w, h } = this.size;
     const atlas = texturePixels(this, PX_TEX.scenery(TERRAIN));
     const top = HORIZON_Y - Math.floor(h * HORIZON_AT);
-    const scene = composeScenery(atlas, SCENERY[TERRAIN]!, { x: 480 - Math.floor(w / 2), y: top, w, h }, SCENERY_SEED);
-    const key = putBuffer(this, scene);
-    this.keys.push(key);
-    this.add.image(0, 0, key).setOrigin(0).setDepth(0);
+    // The sky, its clouds drifting as in a battle, and the country in front.
+    this.country = new DriftingScenery(this, { atlas, art: SCENERY[TERRAIN]!, seed: SCENERY_SEED, area: { x: 480 - Math.floor(w / 2), y: top, w, h }, at: { x: 0, y: 0 }, depth: 0, drift: this.drift });
   }
 
   /** The army on the grass either side of the cards (`clear`: where the cards end, and their left edge), facing in. */

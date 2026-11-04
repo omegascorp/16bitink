@@ -6,6 +6,7 @@ import { REG } from './host';
 import { BattleScene } from './scenes/BattleScene';
 import { BootScene } from './scenes/BootScene';
 import { CardScene } from './scenes/CardScene';
+import { LoadingScene } from './scenes/LoadingScene';
 import { MapHudScene } from './scenes/MapHudScene';
 import { MapScene } from './scenes/MapScene';
 import { MenuScene } from './scenes/MenuScene';
@@ -29,7 +30,7 @@ export function mount(parent: HTMLElement, host: GameHost): GameHandle & { reado
     render: { antialias: true, antialiasGL: false, roundPixels: false, mipmapFilter: 'LINEAR_MIPMAP_LINEAR', powerPreference: 'high-performance', maxTextures: 8 },
     input: { activePointers: 3 },
     audio: { noAudio: true },
-    scene: [BootScene, MenuScene, MapScene, MapHudScene, TownScene, BattleScene, CardScene],
+    scene: [BootScene, MenuScene, MapScene, MapHudScene, TownScene, BattleScene, CardScene, LoadingScene],
   });
   game.registry.set(REG.host, host);
   const sound = new SoundBoard(host.storage);

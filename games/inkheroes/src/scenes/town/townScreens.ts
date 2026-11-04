@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import { TOWN_ART } from '../../art/pixel/town';
-import { heroInTown, type Adventure } from '../../logic/adventure';
+import { heroInGarrison, heroInTown, heroVisiting, type Adventure } from '../../logic/adventure';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
 import { creature, type CreatureId } from '../../logic/creatures';
 import { SPELLS } from '../../logic/spells';
@@ -130,14 +130,15 @@ function stat(scene: Phaser.Scene, icon: Parameters<typeof UI_TEX.stat>[0], text
 /** The fort: a card for each dwelling built, its creature, numbers and how many wait to be hired. */
 export function fortScreen(scene: Phaser.Scene, adv: Adventure, act: ScreenActions): GridSpec {
   const homes = dwellings(adv.town);
-  const toHero = heroInTown(adv);
+  const toHero = heroVisiting(adv);
+  const waits = heroInGarrison(adv) ? `${adv.hero.name} holds the garrison: hired troops join it.` : `${adv.hero.name} is away: hired troops wait in the garrison.`;
   return {
     title: `${adv.town.name}: the fort`,
     cell: FORT_CARD,
     count: homes.length,
     maxCols: 3,
     empty: 'No dwellings yet: build a Guardhouse (it needs a Fort) to hire troops.',
-    note: toHero ? `Hired troops join ${adv.hero.name}. Tap a card to hire.` : `${adv.hero.name} is away: hired troops wait in the garrison.`,
+    note: toHero ? `Hired troops join ${adv.hero.name}. Tap a card to hire.` : waits,
     draw: (i, x, y) => {
       const id = homes[i]!;
       const cr = creature(id);

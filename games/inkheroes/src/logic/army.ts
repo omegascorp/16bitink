@@ -64,6 +64,13 @@ export function moveSlot(src: Army, from: number, dst: Army, to: number, same: b
   return { src: nextSrc, dst: setSlot(dst, to, a) };
 }
 
+/** Every company of `src` moved into `dst`, merging like ones; null when `dst` hasn't the room for them all. */
+export function moveAll(src: Army, dst: Army): { src: Army; dst: Army } | null {
+  let out: Army | null = dst;
+  for (const s of src) if (s && out) out = addTroops(out, s.creature, s.count);
+  return out ? { src: emptyArmy(), dst: out } : null;
+}
+
 /** The speed of the army's slowest unit (it sets a hero's daily movement). */
 export function slowest(a: Army): number {
   const speeds = a.filter((s): s is ArmySlot => !!s).map((s) => creature(s.creature).speed);

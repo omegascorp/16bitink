@@ -51,7 +51,7 @@ export const TOWN_ART: Readonly<Record<TownArt, TownSprite>> = {
   'guild-1': { url: p7, w: 106, h: 191 },
   'guild-2': { url: p8, w: 116, h: 218 },
   'tavern': { url: p9, w: 148, h: 129 },
-  'blacksmith': { url: p10, w: 144, h: 137 },
+  'blacksmith': { url: p10, w: 144, h: 118 },
   'marketplace': { url: p11, w: 158, h: 126 },
   'guardhouse': { url: p12, w: 128, h: 133 },
   'archeryRange': { url: p13, w: 142, h: 123 },

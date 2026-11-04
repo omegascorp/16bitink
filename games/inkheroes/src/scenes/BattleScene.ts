@@ -19,10 +19,10 @@ import { unitInfo } from './battle/unitCard';
 import { backdropSource, loadBattleArt } from './battle/pixelAssets';
 import { texturePixels } from './battle/pixelUi';
 import { hexAtPx, hexPx } from './battle/pixelLayout';
-import { crispText, viewSize } from './hidpi';
+import { crispText } from './hidpi';
 import type { MapScene } from './MapScene';
+import { coverWhileLoading } from './LoadingScene';
 import { Session } from './session';
-import { loadingText } from './ui';
 
 /** Pause before an AI unit acts, so the player can follow. */
 const AI_DELAY = 380;
@@ -105,14 +105,14 @@ export class BattleScene extends Phaser.Scene {
     const { sides, terrain, heroes } = this.setup(data);
     const start = createBattle(sides.attacker, sides.defender, sides.seed);
     this.state = this.sandbox && !this.sandbox.obstacles ? { ...start.state, obstacles: [] } : start.state;
-    const v = viewSize(this);
-    const label = loadingText(this, v.width / 2, v.height / 2, 'the armies form up…', 32);
-    this.cams.hud.add(label);
-    void loadBattleArt(this, this.state.stacks.map((s) => s.creature), terrain).then(() => {
-      if (!this.sys.isActive()) return;
-      label.destroy();
-      this.begin(terrain, sides.seed, heroes);
-    });
+    // The loading screen stays up until every fighter's poses and the ground are in and laid out.
+    const cover = coverWhileLoading(this, 'the armies form up…');
+    void loadBattleArt(this, this.state.stacks.map((s) => s.creature), terrain)
+      .then(() => cover.laying('the armies take the field…'))
+      .then(() => {
+        if (this.sys.isActive()) this.begin(terrain, sides.seed, heroes);
+        cover.close();
+      });
   }
 
   /** The two sides, the ground and who has a hero: from the map (the monster fought) or the sandbox. */

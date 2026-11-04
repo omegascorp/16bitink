@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BUILDING_IDS, type BuildingId } from '../src/logic/buildings';
 import { BUILD_ORDER } from '../src/logic/town';
 import { paintCity } from '../src/scenes/town/townGround';
-import { fitFactor, shrinkPixels, standOn } from '../src/scenes/town/townPictures';
+import { fitFactor, puffPixels, shrinkPixels, standOn } from '../src/scenes/town/townPictures';
 import { buildingArt, CITY, emptyPlots, housePlots, ledgerOf, LOTS, stagePieces, toGrid, toStage, type Plot } from '../src/scenes/town/townStage';
 
 const overlaps = (p: Plot, q: Plot): boolean => p.a < q.a + q.n && q.a < p.a + p.n && p.b < q.b + q.n && q.b < p.b + p.n;
@@ -95,5 +95,18 @@ describe('town ground', () => {
     expect(at(Math.round(edge.x), Math.round(edge.y))).toBe(60);
     const front = toStage(CITY, CITY);
     expect(out.data[((Math.round(front.y) - 4) * area.w + Math.round(front.x) - 20) * 4 + 3]).toBe(255);
+  });
+});
+
+describe('town smoke', () => {
+  it('draws each puff as a round disc, lit on the top left and shaded on the bottom right', () => {
+    for (const r of [1, 2, 3, 4]) {
+      const b = puffPixels(r);
+      expect(b.w).toBe(r * 2 + 1);
+      const at = (x: number, y: number): readonly number[] => [...b.data.subarray((y * b.w + x) * 4, (y * b.w + x) * 4 + 4)];
+      expect(at(r, r)[3]).toBe(255);
+      expect(at(0, 0)[3]).toBe(0);
+      if (r > 1) expect(at(r - 1, r - 1)[0]!).toBeGreaterThan(at(r + 1, r + 1)[0]!);
+    }
   });
 });

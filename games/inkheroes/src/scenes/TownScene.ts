@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getSound } from '../host';
-import { enterTown, heroInTown } from '../logic/adventure';
+import { enterTown, garrisonHero, heroInGarrison, heroInTown, heroVisiting, leadOut } from '../logic/adventure';
 import { moveSlot, type Army } from '../logic/army';
 import { BUILDINGS, type BuildingId } from '../logic/buildings';
 import { creature, type CreatureId } from '../logic/creatures';
@@ -14,7 +14,7 @@ import type { MapScene } from './MapScene';
 import { pixelUiCamera } from './pixelScreen';
 import { Session } from './session';
 import { loadTownArt, PixelTownView } from './town/pixelTownView';
-import { TownBar, type SlotRef, type TownScreen } from './town/townBar';
+import { HEAD, TownBar, type SlotRef, type TownScreen } from './town/townBar';
 import { fortScreen, guildScreen, hallScreen, type ScreenActions } from './town/townScreens';
 import { STAGE } from './town/townStage';
 import { TownWindow } from './town/townWindow';
@@ -46,7 +46,8 @@ function saysOf(id: BuildingId): string {
  * (the hall its ledger, the walls and dwellings the fort's muster, the
  * guild its spells), over the strip with the town's lines, the garrison
  * and the visiting hero, the buttons and the purse. One building a day;
- * troops move between garrison and hero slot by slot.
+ * troops move between garrison and hero slot by slot, or the hero moves
+ * into the garrison (or out of it) with every company.
  */
 export class TownScene extends Phaser.Scene {
   private session!: Session;
@@ -101,7 +102,11 @@ export class TownScene extends Phaser.Scene {
     });
   }
 
-  /** Dragging the townscape sideways pans it when it's wider than the screen. */
+  update(_t: number, delta: number): void {
+    this.view?.update(delta);
+  }
+
+    /** Dragging the townscape sideways pans it when it's wider than the screen. */
   private wirePan(): void {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       const x = p.x / this.size.k;
@@ -141,8 +146,9 @@ export class TownScene extends Phaser.Scene {
 
   private drawView(): void {
     if (!this.bar) return;
+    const drift = this.view?.drift;
     this.view?.destroy();
-    this.view = new PixelTownView(this, this.session.adv.town.built, { w: this.size.w, h: this.bar.top + 2 }, { onPick: (id, built) => this.pickBuilding(id, built), fresh: this.fresh });
+    this.view = new PixelTownView(this, this.session.adv.town.built, { w: this.size.w, h: this.bar.top + 2 }, { onPick: (id, built) => this.pickBuilding(id, built), fresh: this.fresh, drift });
     this.fresh = undefined;
     this.panX = this.clampPan(this.panX);
     this.placeView();
@@ -234,7 +240,7 @@ export class TownScene extends Phaser.Scene {
 
   private hire(id: CreatureId, n: number): void {
     const adv = this.session.adv;
-    const toHero = heroInTown(adv);
+    const toHero = heroVisiting(adv);
     try {
       const r = hire(adv.town, id, n, adv.purse, toHero ? adv.hero.army : adv.town.garrison);
       const town = toHero ? r.town : { ...r.town, garrison: r.army };
@@ -256,18 +262,33 @@ export class TownScene extends Phaser.Scene {
     this.refresh();
   }
 
-  /** First tap picks a company; the second moves it there (merging like units, swapping others). */
+  /**
+   * First tap picks a company, or the hero by their face; the second moves
+   * it there (merging like units, swapping others). The hero moves to the
+   * other row with every company, if they all fit there.
+   */
   private pickSlot(ref: SlotRef): void {
     const adv = this.session.adv;
-    if (ref.army === 'hero' && !heroInTown(adv)) return;
+    const heroRow: SlotRef['army'] | null = heroVisiting(adv) ? 'hero' : heroInGarrison(adv) ? 'garrison' : null;
     const armyOf = (a: SlotRef['army']): Army => (a === 'hero' ? adv.hero.army : adv.town.garrison);
     if (!this.picked) {
-      if (armyOf(ref.army)[ref.i]) this.picked = ref;
+      const isHero = ref.i === HEAD && ref.army === heroRow;
+      if (isHero || (ref.i !== HEAD && (ref.army === 'garrison' || heroRow === 'hero') && armyOf(ref.army)[ref.i])) this.picked = ref;
       this.refresh();
       return;
     }
     const from = this.picked;
     this.picked = null;
+    if (from.i === HEAD) {
+      if (ref.army !== from.army) this.moveHero(from.army);
+      else this.refresh();
+      return;
+    }
+    // A company dropped on a face, or on the visitor's row with no hero there, stays put.
+    if (ref.i === HEAD || (ref.army === 'hero' && heroRow !== 'hero')) {
+      this.refresh();
+      return;
+    }
     const same = from.army === ref.army;
     const r = moveSlot(armyOf(from.army), from.i, armyOf(ref.army), ref.i, same, from.army === 'hero');
     if (!r) {
@@ -278,6 +299,18 @@ export class TownScene extends Phaser.Scene {
     const hero = from.army === 'hero' ? r.src : ref.army === 'hero' ? r.dst : adv.hero.army;
     const garrison = from.army === 'garrison' ? r.src : ref.army === 'garrison' ? r.dst : adv.town.garrison;
     this.session.set({ ...adv, hero: { ...adv.hero, army: hero }, town: { ...adv.town, garrison } });
+    this.refresh();
+  }
+
+  /** The hero in row `from` moves to the other one, every company with them. */
+  private moveHero(from: SlotRef['army']): void {
+    const adv = this.session.adv;
+    const next = from === 'hero' ? garrisonHero(adv) : leadOut(adv);
+    if (!next) this.toast(`No room in the garrison for all of ${adv.hero.name}'s companies`);
+    else {
+      this.session.set(next);
+      getSound(this)?.play('card');
+    }
     this.refresh();
   }
 

@@ -128,3 +128,23 @@ export function cropToInk(src: Pixels): Pixels {
   for (let y = 0; y < h; y++) out.set(src.data.subarray(((t + y) * src.w + l) * 4, ((t + y) * src.w + l + w) * 4), y * w * 4);
   return { data: out, w, h };
 }
+
+const PUFF_LIT: Rgba = [222, 220, 214, 255];
+const PUFF_MID: Rgba = [186, 184, 180, 255];
+const PUFF_DARK: Rgba = [146, 144, 142, 255];
+
+/** A puff of radius `r`: a disc lit from the top left, shaded down to the right. */
+export function puffPixels(r: number): PixelBuffer {
+  const d = r * 2 + 1;
+  const b = new PixelBuffer(d, d);
+  for (let y = 0; y < d; y++) {
+    for (let x = 0; x < d; x++) {
+      const dx = x - r;
+      const dy = y - r;
+      if (dx * dx + dy * dy > r * r + r * 0.6) continue;
+      const light = -(dx + dy) / Math.max(1, r);
+      b.put(x, y, light > 0.35 ? PUFF_LIT : light < -0.35 ? PUFF_DARK : PUFF_MID);
+    }
+  }
+  return b;
+}

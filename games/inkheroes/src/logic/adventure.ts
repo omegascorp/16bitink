@@ -1,5 +1,5 @@
 import type { MapDef } from '../level/types';
-import { armyMorale, armyOf, splitMonster } from './army';
+import { armyMorale, armyOf, isEmptyArmy, moveAll, splitMonster } from './army';
 import { survivors, experienceFor } from './battle';
 import type { BattleSide } from './battle';
 import type { BattleState } from './battleTypes';
@@ -94,6 +94,27 @@ export const objectAt = (adv: Adventure, x: number, y: number): MapObject | unde
 export const objectCovering = (adv: Adventure, x: number, y: number): MapObject | undefined =>
   objectAt(adv, x, y) ?? liveObjects(adv).find((o) => objectFootprint(o).some((t) => t.x === x && t.y === y));
 export const heroInTown = (adv: Adventure): boolean => adv.hero.x === adv.town.x && adv.hero.y === adv.town.y;
+/**
+ * A hero in the town's garrison: standing in it with no companies of their
+ * own (they all joined the garrison). Only that move leaves a hero with
+ * nobody while the map is being played; losing a battle ends it.
+ */
+export const heroInGarrison = (adv: Adventure): boolean => heroInTown(adv) && isEmptyArmy(adv.hero.army);
+/** A hero visiting the town: in it, leading their own army (the town screen's bottom row). */
+export const heroVisiting = (adv: Adventure): boolean => heroInTown(adv) && !isEmptyArmy(adv.hero.army);
+
+/** The visiting hero goes into the garrison, every company with them (merged with like ones); null when it hasn't the room. */
+export function garrisonHero(adv: Adventure): Adventure | null {
+  if (!heroVisiting(adv)) return null;
+  const r = moveAll(adv.hero.army, adv.town.garrison);
+  return r ? { ...adv, hero: { ...adv.hero, army: r.src }, town: { ...adv.town, garrison: r.dst } } : null;
+}
+
+/** The hero in the garrison steps out to visit, leading the whole garrison. */
+export function leadOut(adv: Adventure): Adventure {
+  if (!heroInGarrison(adv)) return adv;
+  return { ...adv, hero: { ...adv.hero, army: adv.town.garrison }, town: { ...adv.town, garrison: armyOf([]) } };
+}
 
 /** The monster whose guard zone covers (x, y): the 8 tiles round it. */
 export function guardAt(adv: Adventure, x: number, y: number): MapObject | undefined {

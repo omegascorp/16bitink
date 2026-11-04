@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getSound } from '../host';
-import { gridOf, guardAt, isSeen, objectCovering, planPath, stepHero, type Adventure } from '../logic/adventure';
+import { gridOf, guardAt, heroInGarrison, isSeen, objectCovering, planPath, stepHero, type Adventure } from '../logic/adventure';
 import { creature, sizeWord } from '../logic/creatures';
 import { MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
 import type { PathStep } from '../logic/path';
@@ -11,9 +11,9 @@ import { DPR, toView } from './hidpi';
 import { loadMapArt } from './map/pixelMapArt';
 import { PixelMapWorld } from './map/pixelMapWorld';
 import { GROUND_BORDER, MAP_TILE as TILE } from './map/pixelGround';
+import { coverWhileLoading } from './LoadingScene';
 import { pixelZoom } from './pixelScreen';
 import { Session } from './session';
-import { loadingText } from './ui';
 
 /** A press that moves further than this (CSS px) is a drag, not a tap. */
 const DRAG = 8;
@@ -52,16 +52,17 @@ export class MapScene extends Phaser.Scene {
     this.path = null;
     this.walking = false;
     this.cameras.main.setBackgroundColor(BACKDROP);
-    const label = loadingText(this, 0, 0, 'unrolling the map…', 30);
-    this.cameras.main.setOrigin(0.5).centerOn(0, 0).setZoom(DPR);
+    // The loading screen stays up until the map's art is in and its ground painted.
+    const cover = coverWhileLoading(this, 'unrolling the map…');
     // The map's art, the hero's ride and everyone's idle loop.
     const monsters = [...new Set(this.session.def.objects.flatMap((o) => (o.kind === 'monster' && o.creature ? [o.creature] : [])))];
-    void loadMapArt(this, monsters).then(() => {
-      // The scene may have been left while its ground was painting.
-      if (!this.sys.isActive()) return;
-      label.destroy();
-      this.build();
-    });
+    void loadMapArt(this, monsters)
+      .then(() => cover.laying('painting the land…'))
+      .then(() => {
+        // The scene may have been left while its art was loading.
+        if (this.sys.isActive()) this.build();
+        cover.close();
+      });
   }
 
   private build(): void {
@@ -231,6 +232,12 @@ export class MapScene extends Phaser.Scene {
       this.setPath(null);
       return;
     }
+    // A hero in the garrison has no companies to travel with: they lead them out from the town first.
+    if (heroInGarrison(adv)) {
+      this.setPath(null);
+      this.events.emit('status', `${adv.hero.name} is in the garrison: lead the army out in the town`);
+      return;
+    }
     // A tap anywhere on an object's picture heads for the object itself.
     const o = objectCovering(adv, x, y);
     this.setPath(planPath(adv, def, o?.x ?? x, o?.y ?? y));
@@ -327,7 +334,7 @@ export class MapScene extends Phaser.Scene {
   /** Starts the fight with a monster guarding the hero's tile, if any (when no card is waiting). */
   private fightIfGuarded(): boolean {
     const adv = this.session.adv;
-    if (adv.status !== 'playing' || adv.prompts.length) return false;
+    if (adv.status !== 'playing' || adv.prompts.length || heroInGarrison(adv)) return false;
     const guard = guardAt(adv, adv.hero.x, adv.hero.y);
     if (!guard) return false;
     this.startBattle(guard.id);

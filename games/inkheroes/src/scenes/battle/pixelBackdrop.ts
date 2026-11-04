@@ -11,7 +11,7 @@ const CLOUD_KEY = 'px-battle-clouds';
 /** Margins grow in steps of this many native pixels, so a resize rarely rebuilds the texture. */
 const STEP = 32;
 /** How fast the clouds drift right, native pixels a second. */
-const CLOUD_SPEED = 3;
+export const CLOUD_SPEED = 3;
 
 /** What the backdrop is made from: a terrain's scenery parts (laid out per battle) or a fixed painting. */
 export type BackdropSource =
@@ -33,7 +33,7 @@ function pixelsOf(scene: Phaser.Scene, key: string): Pixels {
 /** Puts `p` into the canvas texture `key` (replacing it), filtered NEAREST, or with `smooth`
  * Phaser's smooth pixel art (pixels stay square, only their edges blend), so it can move by
  * fractions of a pixel without stepping or blurring. */
-function putTexture(scene: Phaser.Scene, key: string, p: Pixels, smooth = false): void {
+export function putTexture(scene: Phaser.Scene, key: string, p: Pixels, smooth = false): void {
   if (scene.textures.exists(key)) scene.textures.remove(key);
   const tex = scene.textures.createCanvas(key, p.w, p.h)!;
   tex.context.putImageData(new ImageData(new Uint8ClampedArray(p.data), p.w, p.h), 0, 0);

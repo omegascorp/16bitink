@@ -4,11 +4,13 @@ import { SCENERY, type SceneryArt } from '../../art/pixel/scenery';
 import { TOWN_ART } from '../../art/pixel/town';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
 import { nearest, PX_TEX } from '../battle/pixelAssets';
-import { composeScenery, HORIZON_Y, type Pixels } from '../battle/pixelScenery';
+import { DriftingScenery } from '../battle/driftingScenery';
+import { HORIZON_Y, type Pixels } from '../battle/pixelScenery';
 import { putBuffer, TextLabel, texturePixels } from '../battle/pixelUi';
 import { loadMapArt, MAP_TEX } from '../map/pixelMapArt';
 import { CITY_SEED } from './cityRender';
 import { paintCity } from './townGround';
+import { CHIMNEYS, ChimneySmoke } from './townSmoke';
 import { cityWalls } from './townWalls';
 import { TOWN_TEX } from './townTex';
 import { cityTrees, emptyPlots, STAGE, STAGE_HORIZON, STAGE_SHOWN, stagePieces, toGrid, type Plot, type StagePiece } from './townStage';
@@ -41,20 +43,25 @@ export interface TownViewOpts {
   readonly onPick: (building: BuildingId, built: boolean) => void;
   /** Just built: rises into place. */
   readonly fresh?: BuildingId;
+  /** How far the clouds have drifted already (the view before this one's `drift`). */
+  readonly drift?: number;
 }
 
 /**
  * The townscape: the grass country composed for the screen's width with
  * the city on it (see townStage), its buildings, houses and trees back to
  * front. A building lightens and names itself under the pointer; a tap on
- * it, or on a bare plot, picks it. Pan it with setLeft when the stage is
- * wider than the screen.
+ * it, or on a bare plot, picks it. The clouds drift and the chimneys
+ * smoke, as in a battle (call update every frame). Pan it with setLeft
+ * when the stage is wider than the screen.
  */
 export class PixelTownView {
   readonly root: Phaser.GameObjects.Container;
   private readonly keys: string[] = [];
   private readonly label: TextLabel;
   private readonly bare: { plot: Plot; building: BuildingId }[];
+  private readonly country: DriftingScenery;
+  private readonly smoke: ChimneySmoke[] = [];
 
   constructor(private readonly scene: Phaser.Scene, built: readonly BuildingId[], area: { w: number; h: number }, private readonly opts: TownViewOpts) {
     this.bare = emptyPlots(built);
@@ -63,11 +70,20 @@ export class PixelTownView {
     const span = Math.max(area.w, STAGE.w);
     const x0 = -Math.floor((span - STAGE.w) / 2);
     this.root = scene.add.container(0, top);
-    const key = putBuffer(scene, this.composeGround({ x: x0, y: -top, w: span, h: area.h }));
-    this.keys.push(key);
-    const ground = scene.add.image(x0, -top, key).setOrigin(0).setInteractive();
+    // As the battle's backdrop: the sky, a looping strip of clouds drifting over it, and the countryside with the city painted on it.
+    const stageArea = { x: x0, y: -top, w: span, h: area.h };
+    this.country = new DriftingScenery(scene, {
+      atlas: texturePixels(scene, PX_TEX.scenery(TERRAIN)),
+      art: townScenery(),
+      seed: SEED,
+      area: { ...stageArea, y: stageArea.y - STAGE_HORIZON + HORIZON_Y },
+      at: { x: x0, y: -top },
+      into: this.root,
+      paint: (front) => this.paintGround(front, stageArea),
+      drift: opts.drift,
+    });
+    const ground = this.country.front.setInteractive();
     ground.on('pointerup', (p: Phaser.Input.Pointer) => this.tapGround(p));
-    this.root.add(ground);
     // The city's walls: the back ones behind everything in it, the front ones before it.
     const walls = cityWalls((k) => texturePixels(scene, k));
     const backKey = putBuffer(scene, walls.back);
@@ -82,19 +98,33 @@ export class PixelTownView {
     }
     sprites.sort((a, b) => a.y - b.y);
     for (const s of sprites) this.root.add(s.obj);
+    // Smoke rises over the roofs, behind the front walls.
+    const air = scene.add.container(0, 0);
+    this.root.add(air);
+    for (const p of stagePieces(built)) {
+      const flue = CHIMNEYS[p.art];
+      if (!flue) continue;
+      const s = TOWN_ART[p.art];
+      const left = p.spot.x - Math.floor(s.w / 2);
+      const x = p.spot.flip ? left + s.w - 1 - flue.x : left + flue.x;
+      this.smoke.push(new ChimneySmoke(scene, air, { x, y: p.spot.y - s.h + flue.y }));
+    }
     this.root.add(scene.add.image(0, 0, frontKey).setOrigin(0));
     this.label.img.setVisible(false);
     this.root.add(this.label.img);
   }
 
-  private composeGround(area: { x: number; y: number; w: number; h: number }): Pixels {
-    const atlas = texturePixels(this.scene, PX_TEX.scenery(TERRAIN));
-    const out = composeScenery(atlas, townScenery(), { ...area, y: area.y - STAGE_HORIZON + HORIZON_Y }, SEED);
+  /** The city's ground (its square, streets and bare plots) painted over the countryside's `out` of `area`. */
+  private paintGround(out: Pixels, area: { x: number; y: number; w: number; h: number }): void {
     paintCity(out, area, {
       paving: texturePixels(this.scene, TOWN_TEX.paving),
       grass: texturePixels(this.scene, MAP_TEX.ground('grass')),
     }, this.bare.map((b) => b.plot));
-    return out;
+  }
+
+  /** Stage pixels the clouds have drifted (carry it into the next view). */
+  get drift(): number {
+    return this.country.drift;
   }
 
   /** A tap on the ground: a bare plot offers its building. */
@@ -131,13 +161,21 @@ export class PixelTownView {
     return img;
   }
 
+  /** Drifts the clouds and the smoke (call every frame). */
+  update(delta: number): void {
+    this.country.update(delta);
+    for (const s of this.smoke) s.update(delta);
+  }
+
   /** Puts the stage's left edge at screen x `left` (whole pixels). */
   setLeft(left: number): void {
     this.root.setX(Math.round(left));
   }
 
   destroy(): void {
+    for (const s of this.smoke) s.destroy();
     this.label.destroy();
+    this.country.destroy();
     this.root.destroy();
     for (const k of this.keys) if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
   }

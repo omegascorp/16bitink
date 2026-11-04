@@ -5,8 +5,9 @@ import { FIGURE_DEPTH, PixelFigure } from './battle/pixelFigure';
 import { FILLS } from './battle/pixelFrames';
 import { renderPixelText } from './battle/pixelFont';
 import { PixelBuffer, type Rgba } from './battle/pixelRaster';
-import { composeScenery, HORIZON_Y } from './battle/pixelScenery';
-import { PixelFrame, PixelImage, putBuffer, TextLabel, texturePixels } from './battle/pixelUi';
+import { DriftingScenery } from './battle/driftingScenery';
+import { HORIZON_Y } from './battle/pixelScenery';
+import { PixelFrame, PixelImage, TextLabel, texturePixels } from './battle/pixelUi';
 import { drawWordmark } from './menu/wordmark';
 import { townScenery } from './town/pixelTownView';
 
@@ -45,13 +46,13 @@ export function loadLoadingArt(scene: Phaser.Scene): Promise<void> {
 
 /**
  * The game's loading screen in its pixel art: the grass country under a
- * clear sky, the gold wordmark, a bronze bar filling with gold and the
+ * clear sky, its clouds drifting, the gold wordmark, a bronze bar filling with gold and the
  * hero riding along it as it fills, the step named under it. UI pixels at
  * the UI camera's whole zoom; call update() every frame for the ride.
  */
 export class PixelLoading {
   private readonly owned: { destroy(): void }[] = [];
-  private readonly keys: string[] = [];
+  private readonly country: DriftingScenery;
   private readonly layer: Phaser.GameObjects.Layer;
   private readonly rider: PixelFigure;
   private readonly label: TextLabel;
@@ -59,13 +60,10 @@ export class PixelLoading {
   private bar = { x: 0, y: 0, w: 0 };
   private shown = 0;
 
-  constructor(private readonly scene: Phaser.Scene, size: { w: number; h: number }, text: string) {
+  constructor(private readonly scene: Phaser.Scene, size: { w: number; h: number }, text: string, drift = 0) {
     const { w, h } = size;
     const horizon = Math.floor(h * HORIZON_AT);
-    const ground = composeScenery(texturePixels(scene, PX_TEX.scenery(TERRAIN)), townScenery(), { x: 0, y: HORIZON_Y - horizon, w, h }, SEED);
-    const key = putBuffer(scene, ground);
-    this.keys.push(key);
-    scene.add.image(0, 0, key).setOrigin(0).setDepth(0);
+    this.country = new DriftingScenery(scene, { atlas: texturePixels(scene, PX_TEX.scenery(TERRAIN)), art: townScenery(), seed: SEED, area: { x: 0, y: HORIZON_Y - horizon, w, h }, at: { x: 0, y: 0 }, depth: 0, drift });
     const mask = renderPixelText({ lines: ['INKHEROES'] }, { ink: [255, 255, 255, 255] });
     const scale = Math.max(2, Math.min(5, Math.floor((w - 24) / mask.w)));
     const mark = new PixelImage(scene, drawWordmark(mask, scale), { x: 0.5, y: 0.5 }).setPosition(Math.floor(w / 2), Math.floor(h * MARK_AT));
@@ -115,8 +113,14 @@ export class PixelLoading {
     this.rider.sprite.setDepth(FIGURE_DEPTH);
   }
 
+  /** How far the clouds have drifted (carry it into a redrawn screen). */
+  get drift(): number {
+    return this.country.drift;
+  }
+
   update(delta: number): void {
     this.rider.update(delta);
+    this.country.update(delta);
   }
 
   destroy(): void {
@@ -124,7 +128,7 @@ export class PixelLoading {
     for (const o of this.owned) o.destroy();
     this.rider.destroy();
     this.layer.destroy();
-    for (const k of this.keys) if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
+    this.country.destroy();
   }
 }
 
