@@ -230,7 +230,7 @@ function parseTown(raw: Record<string, unknown>, t: { id: string; name: string; 
   // Stock is kept by line (every level of a line hires from its base's).
   const lines = new Set(built.map((b) => BUILDINGS[b].dwelling).filter((d): d is CreatureId => !!d).map(lineOf));
   const stock = Object.fromEntries(Object.entries(raw.stock).filter(([k]) => lines.has(k as CreatureId))) as Partial<Record<CreatureId, number>>;
-  return { id: t.id, name: t.name, owner, x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, guild: t.guild };
+  return { id: t.id, name: t.name, owner, x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, guild: t.guild, ...(raw.ally === true && owner === 'neutral' ? { ally: true } : {}) };
 }
 
 /** The saved buildings the map allows and whose needs are met (the town's starting ones always). */

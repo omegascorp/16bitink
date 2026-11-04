@@ -208,6 +208,7 @@ export class MapScene extends Phaser.Scene {
     const town = adv.towns.find((t) => Math.abs(x - t.x) <= 1 && (y === t.y || y === t.y - 1));
     if (town) {
       if (town.owner === 'player') return `${town.name}: your town`;
+      if (town.ally) return `${town.name}: its gates will open to you`;
       // A town not ours: who holds it, the way a monster is named.
       const lord = town.owner === 'rival' ? ` (${foe ? `${foe.name}'s` : 'the Black Banner\'s'} town${foe && foe.x === town.x && foe.y === town.y ? `, and ${foe.name} is in it` : ''})` : '';
       return `${town.name}${lord}: held by ${armyWords(town.garrison)}${town.id === def.goal.target ? ' (your goal)' : ''}`;

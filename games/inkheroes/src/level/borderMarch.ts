@@ -85,7 +85,7 @@ const rival = BLACK_BANNER_LAND.rival!;
 export const BLACK_BANNER: MapDef = {
   ...BLACK_BANNER_LAND,
   intro: [
-    'Thornwood is free, and its foresters show you a trail south through the trees, down to Eudora. Eudora has kept its gates shut against the Black Banner; it opens them to you, and it is yours to build in and hire from.',
+    'Thornwood is free, and its foresters show you a trail south through the trees, down to Eudora. Eudora has kept its gates shut against the Black Banner. Ride down to it, and it opens them to you: yours to build in and hire from.',
     'Kassander of Korax flies a black banner with a red raven, and he serves no crown. He builds and hires as you do, takes the mines, and will come for your towns when he thinks he can win. Beat him to the lakelands, then take Korax.',
     'Build a Blacksmith: a Ballista and a First Aid Tent from it ride with your hero into every battle.',
   ],
@@ -94,7 +94,7 @@ export const BLACK_BANNER: MapDef = {
   town: ASHFORD.town,
   towns: [
     ...THORNWOOD.towns!,
-    { ...at(BLACK_BANNER_LAND.town, AT.blackBanner), garrison: BLACK_BANNER_LAND.town.garrison ?? [], owner: 'player' },
+    { ...at(BLACK_BANNER_LAND.town, AT.blackBanner), garrison: BLACK_BANNER_LAND.town.garrison ?? [], owner: 'player', waits: true },
     ...bannerTowns.map((t) => at(t, AT.blackBanner)),
   ],
   hero: heroAt(BLACK_BANNER_LAND.hero, AT.blackBanner),

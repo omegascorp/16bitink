@@ -47,6 +47,8 @@ export interface MapDef {
     readonly garrison: readonly ArmySlot[];
     /** Held by the map's rival lord, or the player's from the start (else neutral). */
     readonly owner?: 'rival' | 'player';
+    /** Ridden on into from the part before, it waits for the hero as an ally instead, so a new town isn't simply handed over. */
+    readonly waits?: boolean;
   }[];
   readonly hero: HeroDef;
   /** A rival lord: an AI hero who rides out from the map's rival-held towns. */

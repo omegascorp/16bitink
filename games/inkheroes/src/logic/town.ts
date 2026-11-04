@@ -19,6 +19,8 @@ export interface Town {
   readonly garrison: Army;
   /** Spells its mage guild teaches, floor by floor (from the map). */
   readonly guild: readonly SpellId[];
+  /** A neutral town on our side: it opens its gates to our hero, and its garrison joins us. */
+  readonly ally?: boolean;
 }
 
 export const has = (t: Town, b: BuildingId): boolean => t.built.includes(b);

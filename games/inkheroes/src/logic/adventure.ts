@@ -228,7 +228,7 @@ export function stepHero(adv: Adventure, def: MapDef, step: PathStep, goal?: { x
   if (rivalAt(adv, step.x, step.y)) return { adv, stop: true, battle: gate ? gate.id : RIVAL, notes: [] };
   if (!canStep(step, adv.hero.mp)) return { adv, stop: true, notes: [] };
   // A town not ours: its garrison must be beaten from beside the gate (an empty one is just walked into).
-  if (gate && gate.owner !== 'player' && !isEmptyArmy(gate.garrison)) return { adv, stop: true, battle: gate.id, notes: [] };
+  if (gate && gate.owner !== 'player' && !gate.ally && !isEmptyArmy(gate.garrison)) return { adv, stop: true, battle: gate.id, notes: [] };
   if (target) {
     const guard = guardAt(adv, target.x, target.y);
     if (guard) return { adv, stop: true, battle: guard.id, then: target.id, notes: [] };
@@ -238,7 +238,7 @@ export function stepHero(adv: Adventure, def: MapDef, step: PathStep, goal?: { x
   const hero = { ...adv.hero, x: step.x, y: step.y, mp: Math.max(0, adv.hero.mp - step.cost) };
   let next = revealAround({ ...adv, hero }, def, step.x, step.y, sightOf(hero));
   if (gate) {
-    if (gate.owner !== 'player') next = takeTown(next, gate.id);
+    if (gate.owner !== 'player') next = gate.ally ? joinTown(next, gate) : takeTown(next, gate.id);
     return { adv: checkGoal(enterTown(next), def), stop: true, town: true, notes: [] };
   }
   // A guarded tile is fought for first (as H3).
@@ -255,6 +255,12 @@ export function stepHero(adv: Adventure, def: MapDef, step: PathStep, goal?: { x
 export function takeTown(adv: Adventure, id: string): Adventure {
   const town = townById(adv, id);
   return town ? withTown(adv, { ...town, owner: 'player', garrison: armyOf([]) }) : adv;
+}
+
+/** An ally opens its gates: the town is the player's, garrison and all. */
+function joinTown(adv: Adventure, { ally: _ally, ...town }: Town): Adventure {
+  const text = `${town.name} has held out against the Black Banner, and now it stands with you: its garrison, its buildings and its dwellings are yours.`;
+  return withTown({ ...adv, prompts: [...adv.prompts, { kind: 'message', title: `${town.name} opens its gates`, text }] }, { ...town, owner: 'player' });
 }
 
 /** A hero entering its town learns the guild's spells (with a spellbook). */

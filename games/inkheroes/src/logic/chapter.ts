@@ -16,10 +16,15 @@ export function rideOn(adv: Adventure, from: MapDef, next: MapDef): Adventure {
   const have = new Set(adv.objects.map((o) => o.id));
   const objects = [...adv.objects, ...next.objects.filter((o) => !have.has(o.id))];
   // The towns in the part's order (a save reads them in that order): those held already as they are, the new ones as the part sets them.
-  const towns = [next.town, ...(next.towns ?? [])].map((spec): Town => adv.towns.find((t) => t.id === spec.id) ?? weekly({
-    id: spec.id, name: spec.name, owner: (spec as { owner?: Town['owner'] }).owner ?? 'neutral', x: spec.x, y: spec.y, built: spec.built,
-    builtToday: false, stock: {}, garrison: armyOf(spec.garrison ?? []), guild: spec.guild,
-  }));
+  const towns = [next.town, ...(next.towns ?? [])].map((spec): Town => {
+    const held = adv.towns.find((t) => t.id === spec.id);
+    if (held) return held;
+    const { owner, waits } = spec as { owner?: Town['owner']; waits?: boolean };
+    return weekly({
+      id: spec.id, name: spec.name, owner: waits ? 'neutral' : owner ?? 'neutral', x: spec.x, y: spec.y, built: spec.built,
+      builtToday: false, stock: {}, garrison: armyOf(spec.garrison ?? []), guild: spec.guild, ...(waits ? { ally: true } : {}),
+    });
+  });
   const rival = adv.rival ?? (next.rival ? { hero: heroFromDef(next.rival.hero), purse: purse(next.rival.purse) } : undefined);
   // Nothing the last part left waiting is fought in the next.
   const { rivalFight: _fight, ...rest } = adv;
@@ -36,8 +41,8 @@ export function rideOn(adv: Adventure, from: MapDef, next: MapDef): Adventure {
     begun: adv.day,
     ...(rival ? { rival } : {}),
   };
-  // The hero looks about the newly opened land, and so does each new town of ours.
-  const fresh = towns.filter((t) => t.owner === 'player' && !adv.towns.some((o) => o.id === t.id));
+  // The hero looks about the newly opened land, and so does each new town on our side.
+  const fresh = towns.filter((t) => (t.owner === 'player' || t.ally) && !adv.towns.some((o) => o.id === t.id));
   return fresh.reduce((a, t) => revealAround(a, next, t.x, t.y, 5), revealAround(opened, next, adv.hero.x, adv.hero.y, sightOf(adv.hero)));
 }
 

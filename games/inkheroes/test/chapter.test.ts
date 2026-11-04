@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ASHFORD, BLACK_BANNER, THORNWOOD } from '../src/level/borderMarch';
 import { MAPS } from '../src/level/maps';
-import { gridOf, isSeen, playerTowns, startAdventure, townById, withTown, type Adventure } from '../src/logic/adventure';
+import { gridOf, isSeen, playerTowns, startAdventure, stepHero, townById, withTown, type Adventure } from '../src/logic/adventure';
 import { armyOf } from '../src/logic/army';
 import { partDays, rideOn } from '../src/logic/chapter';
 import { passable } from '../src/logic/map';
@@ -70,15 +70,37 @@ describe('the chapter as one land', () => {
     expect(partDays(startAdventure(ASHFORD))).toBe(1);
   });
 
-  it('rides on into the Black Banner: Eudora opens its gates, and the rival lord rides', () => {
+  const blackBanner = (): Adventure => {
     const tw = rideOn(ashfordWon(), ASHFORD, THORNWOOD);
     const taken = withTown({ ...tw, status: 'won', day: 20 }, { ...townById(tw, 'thornwood-town')!, owner: 'player', garrison: armyOf([]) });
-    const next = rideOn(taken, THORNWOOD, BLACK_BANNER);
+    return rideOn(taken, THORNWOOD, BLACK_BANNER);
+  };
+
+  it('rides on into the Black Banner: the rival lord rides, and Eudora waits for the hero', () => {
+    const next = blackBanner();
     expect(next.mapId).toBe('blackBanner');
-    expect(playerTowns(next).map((t) => t.name)).toEqual(['Ashford', 'Thornwood', 'Eudora']);
+    expect(playerTowns(next).map((t) => t.name)).toEqual(['Ashford', 'Thornwood']);
+    expect(townById(next, 'eudora-town')).toMatchObject({ owner: 'neutral', ally: true });
     expect(townById(next, 'korax-town')!.owner).toBe('rival');
     expect(next.rival?.hero?.name).toBe('Kassander');
     expect(isSeen(next, BLACK_BANNER, townById(next, 'eudora-town')!.x, townById(next, 'eudora-town')!.y)).toBe(true);
     expect(parseAdventure(JSON.parse(JSON.stringify(next)), BLACK_BANNER)).toEqual(next);
+  });
+
+  it('opens Eudora to the hero without a fight, and its garrison joins', () => {
+    const next = blackBanner();
+    const eudora = townById(next, 'eudora-town')!;
+    const beside = { ...next, hero: { ...next.hero, x: eudora.x, y: eudora.y + 1, mp: 1000 } };
+    const r = stepHero(beside, BLACK_BANNER, { x: eudora.x, y: eudora.y, cost: 100, straight: 100, day: 0 });
+    expect(r.battle).toBeUndefined();
+    expect(playerTowns(r.adv).map((t) => t.name)).toEqual(['Ashford', 'Thornwood', 'Eudora']);
+    const joined = townById(r.adv, 'eudora-town')!;
+    expect(joined.ally).toBeUndefined();
+    expect(joined.garrison).toEqual(eudora.garrison);
+    expect(r.adv.prompts.at(-1)).toMatchObject({ kind: 'message', title: 'Eudora opens its gates' });
+  });
+
+  it('still starts a fresh map 3 at home in Eudora', () => {
+    expect(townById(startAdventure(BLACK_BANNER), 'eudora-town')).toMatchObject({ owner: 'player' });
   });
 });
