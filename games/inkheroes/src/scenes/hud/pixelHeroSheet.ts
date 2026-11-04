@@ -1,14 +1,18 @@
 import type Phaser from 'phaser';
 import { getSound } from '../../host';
 import type { Hero } from '../../logic/hero';
+import { moveSlot, splitSlot } from '../../logic/army';
 import { cardButtonLook, drawRule, SLOT } from '../battle/pixelFrames';
 import type { CardView } from '../battle/pixelBuildCard';
 import { INK, PixelButton, PixelFrame, PixelImage, TextLabel, UI_TEX } from '../battle/pixelUi';
 import type { CardSpec } from '../CardScene';
-import { ArmyRow, ARMY_ROW_W } from './armyRow';
+import { ArmyDrag } from './armyDrag';
+import { ArmyRow } from './armyRow';
+import { armyRowW, fitSlot, HERO_SLOT } from './armySlots';
 import { gearLayout } from './gearLayout';
 import { drawGear, type GearHost, type GearPick } from './gearPanel';
 import { heroSheet, type HeroSheet, type SheetRow } from './heroSheetData';
+import { SplitPicker } from './splitPicker';
 
 /** A column's width at its widest, the padding, and the spaces between parts, UI pixels. */
 const COL_W = 230;
@@ -22,6 +26,8 @@ const BAR_H = 4;
 const BTN_H = 30;
 const BAR_BACK = 0x160e09;
 const BAR_FILL = 0xf8d26e;
+/** A company carried over the sheet stays above it. */
+const CARRIED_DEPTH = 100;
 
 /** Two columns need this much screen; narrower, they stack. */
 const TWO_COLUMNS = COL_W * 2 + GAP * 2 + PAD * 2 + 8;
@@ -29,8 +35,12 @@ const TWO_COLUMNS = COL_W * 2 + GAP * 2 + PAD * 2 + 8;
 const WORDY_H = 680;
 /** Below this height the army can't have a row of its own. */
 const ROOMY_H = 440;
+/** A column that stands alone, or beside the army on a short screen, at its widest. */
+const WIDE_COL = 340;
 /** The width it takes to put the army in the right column instead. */
-const ARMY_COLUMNS = ARMY_ROW_W * 2 + GAP * 2 + PAD * 2 + 8;
+const ARMY_COLUMNS = armyRowW(SLOT) * 2 + GAP * 2 + PAD * 2 + 8;
+/** The line under the army: a hint, or Split beside it. */
+const ARMY_FOOT = { gap: 4, h: 24, split: 70 } as const;
 const TAB = { h: 22, gap: 4 } as const;
 /** The card's height round the tab's content: padding, the tabs and the buttons. */
 const CHROME_H = PAD * 3 + TAB.h + GAP + BTN_H;
@@ -45,8 +55,9 @@ export interface SheetSource {
 /**
  * The hero's sheet, as Heroes 3's hero screen on the battle's pixel card:
  * their face, level and experience, the four stats saying what each does,
- * travel, mana, morale, luck and sight, skills, spells and the army, and
- * their gear on a tab of its own, where it has room to be drawn big.
+ * travel, mana, morale, luck and sight, skills, spells and the army, whose
+ * companies can be moved, merged and split here, and their gear on a tab of
+ * its own, where it has room to be drawn big.
  */
 export class PixelHeroSheet implements CardView {
   private readonly root: Phaser.GameObjects.Container;
@@ -56,6 +67,9 @@ export class PixelHeroSheet implements CardView {
   private closed = false;
   private tab: 'hero' | 'gear' = 'hero';
   private pick: GearPick | null = null;
+  /** The army's slot picked, to move or split. */
+  private company: number | null = null;
+  private splitter: SplitPicker | null = null;
 
   constructor(private readonly scene: Phaser.Scene, parent: Phaser.GameObjects.Container, private readonly spec: CardSpec, private readonly source: SheetSource, private readonly screen: { w: number; h: number }, private readonly onClose: () => void, quiet = false) {
     if (!quiet) getSound(scene)?.play('card');
@@ -83,7 +97,8 @@ export class PixelHeroSheet implements CardView {
     const data = heroSheet(hero);
     const tight = screen.h < ROOMY_H && screen.w >= ARMY_COLUMNS;
     const two = tight || screen.w >= TWO_COLUMNS;
-    const col = tight ? ARMY_ROW_W : two ? COL_W : Math.min(COL_W + 40, screen.w - 8 - PAD * 2);
+    const room = screen.w - 8 - PAD * 2;
+    const col = tight ? Math.min(WIDE_COL, Math.floor((room - GAP * 2) / 2)) : two ? COL_W : Math.min(WIDE_COL, room);
     const heroW = two ? col * 2 + GAP * 2 : col;
     const layout = gearLayout({ w: screen.w - 8 - PAD * 2, h: screen.h - 4 - CHROME_H });
     const inner = this.tab === 'gear' ? layout.w : heroW;
@@ -137,6 +152,7 @@ export class PixelHeroSheet implements CardView {
         w, h: TAB.h, label: tab === 'hero' ? 'Hero' : 'Gear', rim: this.tab === tab ? 'gold' : 'bronze', primary: this.tab === tab,
         onClick: () => {
           this.tab = tab;
+          this.company = null;
           this.draw();
         },
       });
@@ -160,12 +176,91 @@ export class PixelHeroSheet implements CardView {
     right = this.heading(second, right + GAP, col, 'Spells');
     right = this.text(second, right, col, data.spellsNote ?? data.spells.map((s) => s.name).join(' · '));
     const armyTop = (tight ? right : Math.max(left, right)) + GAP;
-    const army = new ArmyRow(this.scene);
-    army.set(hero.army);
-    army.setPosition(tight ? second : x + Math.floor((heroW - ARMY_ROW_W) / 2), armyTop);
-    this.owned.push(army);
-    this.body.add(army.root);
-    return Math.max(left, armyTop + SLOT);
+    const slot = fitSlot(tight ? col : heroW);
+    const rowW = armyRowW(slot);
+    const armyX = tight ? second : x + Math.floor((heroW - rowW) / 2);
+    this.armyRow(hero, slot, armyX, armyTop);
+    return Math.max(left, this.armyFoot(hero, armyX, armyTop + slot + ARMY_FOOT.gap, rowW));
+  }
+
+  /** The army, its companies moved by a tap on each slot or a drag between them. */
+  private armyRow(hero: Hero, slot: number, x: number, y: number): void {
+    const row = new ArmyRow(this.scene, slot);
+    row.set(hero.army, this.company);
+    row.setPosition(x, y);
+    this.owned.push(row);
+    this.body.add(row.root);
+    new ArmyDrag<number>(this.scene, {
+      depth: CARRIED_DEPTH,
+      canCarry: (i) => !!this.source.hero().army[i],
+      tap: (i) => this.tapCompany(i),
+      drop: (from, to) => this.moveCompany(from, to),
+    }).watch(row, (i) => i);
+  }
+
+  /** What to do next, and Split for a company of more than one. Returns the y below. */
+  private armyFoot(hero: Hero, x: number, y: number, w: number): number {
+    const picked = this.company === null ? null : hero.army[this.company];
+    const canSplit = !!picked && picked.count > 1;
+    if (canSplit) {
+      const btn = new PixelButton(this.scene, { w: ARMY_FOOT.split, h: ARMY_FOOT.h, label: 'Split', rim: 'gold', onClick: () => this.openSplit() });
+      btn.setEnabled(hero.army.includes(null));
+      btn.setPosition(x + w - ARMY_FOOT.split, y);
+      this.owned.push(btn);
+      this.body.add(btn.root);
+    }
+    const hint = picked ? 'Tap a slot to move them' : 'Drag a company, or tap it, to move it';
+    this.label({ align: 'left', anchor: { x: 0, y: 0 }, ink: INK.dim, wrap: w - (canSplit ? ARMY_FOOT.split + 4 : 0) }, hint, x, y + 4);
+    return y + ARMY_FOOT.h;
+  }
+
+  /** The first tap picks a company, the second moves it there; a tap on the same one lets go. */
+  private tapCompany(i: number): void {
+    const from = this.company;
+    if (from === null) this.company = this.source.hero().army[i] ? i : null;
+    else if (from === i) this.company = null;
+    else {
+      this.moveCompany(from, i);
+      return;
+    }
+    this.draw();
+  }
+
+  private moveCompany(from: number, to: number): void {
+    const hero = this.source.hero();
+    this.company = null;
+    const r = moveSlot(hero.army, from, hero.army, to, true, true);
+    if (r) {
+      getSound(this.scene)?.play('card');
+      this.source.change({ ...hero, army: r.src });
+    }
+    this.draw();
+  }
+
+  private openSplit(): void {
+    const at = this.company;
+    const company = at === null ? null : this.source.hero().army[at];
+    if (at === null || !company || this.splitter) return;
+    this.splitter = new SplitPicker(this.scene, {
+      id: company.creature, count: company.count, screen: this.screen, depth: CARRIED_DEPTH, parent: this.root,
+      onSplit: (n) => {
+        this.closeSplit();
+        const hero = this.source.hero();
+        const r = splitSlot(hero.army, at, n);
+        if (!r) return;
+        // The new company stays picked, so a tap sends it where it's wanted.
+        this.company = r.at;
+        getSound(this.scene)?.play('card');
+        this.source.change({ ...hero, army: r.army });
+        this.draw();
+      },
+      onClose: () => this.closeSplit(),
+    });
+  }
+
+  private closeSplit(): void {
+    this.splitter?.destroy();
+    this.splitter = null;
   }
 
   private label(opts: ConstructorParameters<typeof TextLabel>[1], text: string, x: number, y: number): TextLabel {
@@ -178,12 +273,13 @@ export class PixelHeroSheet implements CardView {
   /** The face, name and class, and the experience bar under them. Returns the y below. */
   private head(x: number, y: number, w: number, data: HeroSheet, face: string): number {
     this.body.add(this.scene.add.image(x, y, face).setOrigin(0));
-    const tx = x + SLOT + 6;
-    this.label({ kind: 'title', align: 'left', anchor: { x: 0, y: 0 } }, data.name, tx, y);
-    this.label({ align: 'left', anchor: { x: 0, y: 0 } }, data.title, tx, y + LINE);
-    const barY = y + SLOT + 4 + LINE;
-    this.label({ align: 'left', anchor: { x: 0, y: 0 }, ink: INK.dim }, 'Experience', x, y + SLOT + 3);
-    this.label({ align: 'right', anchor: { x: 1, y: 0 } }, data.xp.value, x + w, y + SLOT + 3);
+    const tx = x + HERO_SLOT + 6;
+    const textY = y + Math.floor((HERO_SLOT - LINE * 2) / 2);
+    this.label({ kind: 'title', align: 'left', anchor: { x: 0, y: 0 } }, data.name, tx, textY);
+    this.label({ align: 'left', anchor: { x: 0, y: 0 } }, data.title, tx, textY + LINE);
+    const barY = y + HERO_SLOT + 4 + LINE;
+    this.label({ align: 'left', anchor: { x: 0, y: 0 }, ink: INK.dim }, 'Experience', x, y + HERO_SLOT + 3);
+    this.label({ align: 'right', anchor: { x: 1, y: 0 } }, data.xp.value, x + w, y + HERO_SLOT + 3);
     this.body.add(this.scene.add.rectangle(x, barY, w, BAR_H, BAR_BACK).setOrigin(0));
     this.body.add(this.scene.add.rectangle(x, barY, Math.round(w * data.xp.part), BAR_H, BAR_FILL).setOrigin(0));
     return barY + BAR_H;
@@ -232,6 +328,7 @@ export class PixelHeroSheet implements CardView {
   dispose(): void {
     if (this.closed) return;
     this.closed = true;
+    this.closeSplit();
     this.clear();
     this.root.destroy();
   }

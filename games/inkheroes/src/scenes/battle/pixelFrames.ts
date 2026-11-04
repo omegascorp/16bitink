@@ -1,5 +1,6 @@
 import { PixelBuffer, type Rgba } from './pixelRaster';
 import type { Pixels } from './pixelScenery';
+import { FACE } from './pixelFaces';
 
 /**
  * The battle UI's frames, drawn pixel by pixel at any size (nothing is
@@ -136,10 +137,11 @@ export function drawRule(w: number): PixelBuffer {
   return b;
 }
 
-/** A face, cut 1:1 from the unit's idle frame (art pixels, never scaled). */
-export const FACE = 32;
-/** A turn-order portrait: its frame round the face, and the gap between portraits. */
-export const SLOT = FACE + 4;
+export { FACE };
+/** A portrait's frame round its face: the turn order's are this size. */
+const FRAME = 4;
+export const SLOT = FACE + FRAME;
+/** The gap between portraits. */
 export const SLOT_GAP = 2;
 /** How much a unit that has waited is darkened. */
 const WAITED_SHADE = 0.55;
@@ -212,14 +214,17 @@ export function drawSocket(size: number, rim: RimName): PixelBuffer {
  * unit does on the field (the right-hand side's mirrored), darker once it
  * has waited.
  */
-export function drawPortrait(face: Pixels, rim: RimName, mirrored: boolean, waited: boolean): PixelBuffer {
-  const b = drawSocket(SLOT, rim);
-  for (let y = 0; y < FACE; y++) {
-    for (let x = 0; x < FACE; x++) {
+export function drawPortrait(face: Pixels, rim: RimName, mirrored: boolean, waited: boolean, slot: number = SLOT): PixelBuffer {
+  const b = drawSocket(slot, rim);
+  // A narrow frame's cut sits in the middle of the well.
+  const left = Math.floor((slot - face.w) / 2);
+  const top = Math.floor((slot - face.h) / 2);
+  for (let y = 0; y < face.h; y++) {
+    for (let x = 0; x < face.w; x++) {
       const i = (y * face.w + x) * 4;
       if (face.data[i + 3]! < 128) continue;
       const c: Rgba = [face.data[i]!, face.data[i + 1]!, face.data[i + 2]!, 255];
-      b.put(2 + (mirrored ? FACE - 1 - x : x), 2 + y, waited ? shade(c, WAITED_SHADE) : c);
+      b.put(left + (mirrored ? face.w - 1 - x : x), top + y, waited ? shade(c, WAITED_SHADE) : c);
     }
   }
   return b;

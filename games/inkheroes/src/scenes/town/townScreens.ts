@@ -6,7 +6,7 @@ import type { Town } from '../../logic/town';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
 import { creature, type CreatureId } from '../../logic/creatures';
 import { SPELLS } from '../../logic/spells';
-import { advisedNext, bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, hireable, hireAll, SPELLBOOK_COST, stockOf, upgradeAll } from '../../logic/town';
+import { bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, hireable, hireAll, SPELLBOOK_COST, stockOf, suggestBuilding, upgradeAll } from '../../logic/town';
 import { describeAmount, RESOURCES } from '../../logic/resources';
 import { PX_TEX, unitArt } from '../battle/pixelAssets';
 import { drawFrame, drawPicture, FILLS, inkBox, pictureOffset, type RimName } from '../battle/pixelFrames';
@@ -14,6 +14,7 @@ import type { Rgba } from '../battle/pixelRaster';
 import { composeScenery, HORIZON_Y, type Pixels } from '../battle/pixelScenery';
 import { INK, PixelButton, PixelFrame, PixelImage, TextLabel, texturePixels, UI_TEX } from '../battle/pixelUi';
 import { TOWN_TEX, townScenery } from './pixelTownView';
+import { buildButton, PLATE } from './buildPlate';
 import { GoldHalo } from './goldHalo';
 import { fitFactor, shrinkPixels, standOn } from './townPictures';
 import { buildingArt, ledgerOf } from './townStage';
@@ -38,8 +39,8 @@ const STATE: Record<Ledger, { fill: Rgba; word: string }> = {
   short: { fill: [104, 38, 28, 255], word: 'Short' },
   campaign: { fill: [46, 40, 36, 255], word: 'Later map' },
 };
-/** The bar of the advised next building, when it can be built today: as green as any, its gold halo marks it. */
-const ADVISED: { fill: Rgba; word: string } = { ...STATE.ready, word: 'Build next' };
+/** The bar of the suggested building, when it can be built today: as green as any, its gold halo marks it. */
+const SUGGESTED: { fill: Rgba; word: string } = { ...STATE.ready, word: 'Build next' };
 
 function stateOf(adv: Adventure, town: Town, id: BuildingId, off: readonly BuildingId[]): Ledger {
   const why = cantBuild(town, id, adv.purse, off);
@@ -53,6 +54,8 @@ function stateOf(adv: Adventure, town: Town, id: BuildingId, off: readonly Build
 
 export interface ScreenActions {
   pickBuilding(id: BuildingId): void;
+  /** Builds it, with no card in between. */
+  build(id: BuildingId): void;
   pickDwelling(id: CreatureId): void;
   /** Hires as many of `id` as the stock and purse allow. */
   hireAll(id: CreatureId): void;
@@ -101,31 +104,36 @@ function label(scene: Phaser.Scene, text: string, x: number, y: number, opts: Co
   return { parts: [t.img], owned: [t] };
 }
 
-/** The hall: a card for each building on this map (its next step for an upgrade), coloured by whether it can be built today. */
-export function hallScreen(scene: Phaser.Scene, adv: Adventure, town: Town, off: readonly BuildingId[], act: ScreenActions, advice: readonly BuildingId[] = []): GridSpec {
-  const ids = ledgerOf(town.built, BUILD_ORDER, off);
-  // On a map that teaches the town, its next advised building is framed in gold.
-  const next = advisedNext(town, advice, off);
+/** A building standing in the grass country, w × h. */
+function buildingPicture(scene: Phaser.Scene, id: BuildingId, w: number, h: number, seed: number): Pixels {
+  const art = buildingArt(id);
+  const s = TOWN_ART[art];
+  const by = fitFactor(s.w, s.h, w - 8, h - 6);
+  const sprite = shrinkPixels(texturePixels(scene, TOWN_TEX.piece(art)), by);
+  return standOn(countryside(scene, w, h, h - 26, seed), sprite, w, h, 4);
+}
+
+/** The picture on the suggestion's plate. */
+export const platePicture = (scene: Phaser.Scene, id: BuildingId): Pixels => buildingPicture(scene, id, PLATE.pic.w, PLATE.pic.h, 3);
+
+/** The hall: the suggested building first and framed in gold, then a card for each on this map (its next step for an upgrade), coloured by whether it can be built today. */
+export function hallScreen(scene: Phaser.Scene, adv: Adventure, town: Town, off: readonly BuildingId[], act: ScreenActions): GridSpec {
+  const next = suggestBuilding(town, adv.purse, off);
+  const ids = [...(next ? [next] : []), ...ledgerOf(town.built, BUILD_ORDER, off).filter((b) => b !== next)];
   const { pic } = HALL_CARD;
+  const btn = next ? buildButton(town, next, adv.purse) : null;
   return {
     title: `${town.name}: the hall`,
     cell: HALL_CARD,
     count: ids.length,
     maxCols: 5,
-    note: town.builtToday
-      ? 'Built today: the masons start again tomorrow.'
-      : next
-        ? `Advised next: ${BUILDINGS[next].name}, framed in gold. One building a day.`
-        : 'One building a day. Tap a card to see what it costs.',
+    note: town.builtToday ? 'Built today: the masons start again tomorrow.' : 'One building a day. Tap a card to see what it costs.',
+    buttons: next && btn ? [{ label: btn.ready ? `Build ${BUILDINGS[next].name}` : `Next: ${BUILDINGS[next].name}`, note: btn.ready ? btn.note : `${btn.label}: ${btn.note}`, enabled: btn.ready, primary: true, onClick: () => act.build(next) }] : [],
     draw: (i, x, y) => {
       const id = ids[i]!;
-      const art = buildingArt(id);
-      const s = TOWN_ART[art];
-      const by = fitFactor(s.w, s.h, pic.w - 8, pic.h - 6);
-      const sprite = shrinkPixels(texturePixels(scene, TOWN_TEX.piece(art)), by);
-      const picture = standOn(countryside(scene, pic.w, pic.h, pic.h - 26, i + 3), sprite, pic.w, pic.h, 4);
+      const picture = buildingPicture(scene, id, pic.w, pic.h, i + 3);
       const state = stateOf(adv, town, id, off);
-      const st = id === next && state === 'ready' ? ADVISED : STATE[state];
+      const st = id === next && state === 'ready' ? SUGGESTED : STATE[state];
       const bar = new PixelFrame(scene, pic.w, 18, { rim: 'dim', fill: st.fill }).setPosition(x + 4, y + HALL_CARD.h - 22);
       return merge(
         id === next ? glow(scene, x, y, HALL_CARD.w, HALL_CARD.h) : { parts: [], owned: [] },

@@ -3,43 +3,53 @@ import { calendar, heroInGarrison, heroVisiting, type Adventure } from '../../lo
 import type { Town } from '../../logic/town';
 import { has, income } from '../../logic/town';
 import { faceOf, heroArt, PX_TEX } from '../battle/pixelAssets';
-import { drawPortrait, drawSocket, SLOT } from '../battle/pixelFrames';
-import { GoldHalo } from './goldHalo';
+import { drawPortrait, drawSocket } from '../battle/pixelFrames';
 import { INK, PixelButton, PixelFrame, PixelImage, TextLabel, UI_TEX } from '../battle/pixelUi';
-import { ArmyRow, ARMY_ROW_W } from '../hud/armyRow';
+import { ArmyDrag } from '../hud/armyDrag';
+import { ArmyRow } from '../hud/armyRow';
+import { armyRowW } from '../hud/armySlots';
 import { PurseRow, PURSE_BAR_H, PURSE_ROW_W } from '../hud/purseRow';
+import { armiesW, armyH, BTN, BUTTONS_GRID_W, BUTTONS_W, GAP, HEAD_GAP, LINE, NARROW_ROUND, PAD, ROW_GAP, stripLayout } from './stripLayout';
 
 export type TownScreen = 'hall' | 'fort' | 'guild';
 /** A slot of a row; `i` HEAD is the row's head (the crest or the hero's face): picking the hero there moves them with every company. */
 export type SlotRef = { readonly army: 'hero' | 'garrison'; readonly i: number };
 export const HEAD = -1;
 
+/** The parts of the strip drawn at the slot's size. */
+interface StripFaces {
+  readonly crest: Phaser.GameObjects.Container;
+  readonly heroFace: Phaser.GameObjects.Image;
+  /** The hero's face lit (picked). */
+  readonly heroLit: Phaser.GameObjects.Image;
+  readonly emptyFace: PixelImage;
+  readonly garrison: ArmyRow;
+  readonly visitor: ArmyRow;
+  readonly owned: { destroy(): void }[];
+}
+
 export interface TownBarActions {
   open(screen: TownScreen): void;
   leave(): void;
   pickSlot(ref: SlotRef): void;
+  /** Whether the company at `ref` can be dragged. */
+  canCarry(ref: SlotRef): boolean;
+  /** A company was dragged from one slot onto another. */
+  dropSlot(from: SlotRef, to: SlotRef): void;
+  /** Split the picked company. */
+  split(): void;
 }
 
-const PAD = 6;
-const GAP = 8;
-const LINE = 15;
-const ROW_GAP = 4;
-const ARMY_H = SLOT * 2 + ROW_GAP;
-/** The armies: a face (the town's crest, the hero) then the seven slots. */
-const ARMIES_W = SLOT + 6 + ARMY_ROW_W;
-const TOWN_W = 150;
-const BTN = { w: 56, gap: 3, narrowH: 48 } as const;
-const BUTTONS_W = 4 * (BTN.w + BTN.gap) - BTN.gap;
-const WIDE_W = TOWN_W + GAP + ARMIES_W + GAP + BUTTONS_W;
+const SPLIT = { w: 100, h: 30 } as const;
 const PANEL_FILL = [34, 24, 17, 246] as const;
 
 /**
  * The strip along the town screen's bottom, after Heroes III's: the town's
  * name, income and building for the day; the garrison over the visiting
  * hero, slot by slot (tap one, then another, to move troops; tap the
- * hero's face, then the other row, to move the hero with every company);
- * Hall, Fort,
- * Guild and Leave; under it all the purse and the date. On a narrow screen
+ * hero's face, then the other row, to move the hero with every company,
+ * or drag a company there; a picked company can be split); Hall, Fort,
+ * Guild and Leave, two by two; under it all the purse and the date. On a narrow screen
  * the buttons and the town's lines stack above the armies.
  */
 export class TownBar {
@@ -52,21 +62,17 @@ export class TownBar {
   private readonly incomeLine: TextLabel;
   private readonly status: TextLabel;
   private readonly goldIcon: Phaser.GameObjects.Image;
-  private readonly crest: Phaser.GameObjects.Container;
-  private readonly heroFace: Phaser.GameObjects.Image;
-  /** The hero's face lit (picked). */
-  private readonly heroLit: Phaser.GameObjects.Image;
+  /** What's drawn at the slot's size: remade when it changes. */
+  private faces: StripFaces | null = null;
+  private readonly drag: ArmyDrag<SlotRef>;
+  private readonly splitBtn: PixelButton;
+  private slot = 0;
   /** The row the hero heads: the visitor's, or the garrison's. */
   private heroRow: SlotRef['army'] = 'hero';
-  private readonly emptyFace: PixelImage;
   private readonly away: TextLabel;
-  private readonly garrison: ArmyRow;
-  private readonly visitor: ArmyRow;
   private readonly buttons: PixelButton[];
-  /** The ring around the Hall button while the guide points there. */
-  private hallHalo: GoldHalo | null = null;
-  private beckoning = false;
   private narrow = false;
+  private buttonsH = 0;
   private armiesAt = { x: 0, y: 0 };
   /** Where the strip begins on screen. */
   top = 0;
@@ -79,35 +85,16 @@ export class TownBar {
     this.status = this.text({ align: 'left', anchor: { x: 0, y: 0 }, ink: INK.dim });
     this.away = this.text({ align: 'center', anchor: { x: 0.5, y: 0.5 }, ink: INK.dim });
     this.goldIcon = scene.add.image(0, 0, UI_TEX.res('gold')).setOrigin(0).setDepth(depth + 1);
-    // The town's crest heads the garrison, or the hero's face when the hero is in it; the hero's face heads the visitor's row (an empty frame while away).
-    const tapHead = (img: Phaser.GameObjects.Image, row: () => SlotRef['army']): void => {
-      img.setInteractive().on('pointerup', () => actions.pickSlot({ army: row(), i: HEAD }));
-    };
-    const crestFrame = new PixelImage(scene, drawSocket(SLOT, 'gold'));
-    const crestIcon = scene.add.image(SLOT / 2, SLOT / 2, UI_TEX.icon('town'));
-    this.owned.push(crestFrame);
-    tapHead(crestFrame.img, () => 'garrison');
-    this.crest = scene.add.container(0, 0, [crestFrame.img, crestIcon]).setDepth(depth + 1);
-    const hero = heroArt();
-    const heroFace = faceOf(scene, PX_TEX.hero(hero.id, 'idle'), hero.art);
-    const face = new PixelImage(scene, drawPortrait(heroFace, 'bronze', false, false));
-    const lit = new PixelImage(scene, drawPortrait(heroFace, 'gold', false, false));
-    this.owned.push(face, lit);
-    this.heroFace = face.img.setDepth(depth + 1);
-    this.heroLit = lit.img.setDepth(depth + 1);
-    tapHead(this.heroFace, () => this.heroRow);
-    tapHead(this.heroLit, () => this.heroRow);
-    this.emptyFace = new PixelImage(scene, drawSocket(SLOT, 'bronze'));
-    this.emptyFace.img.setDepth(depth + 1);
-    tapHead(this.emptyFace.img, () => 'hero');
-    this.owned.push(this.emptyFace);
-    this.garrison = new ArmyRow(scene, (i) => actions.pickSlot({ army: 'garrison', i }));
-    this.visitor = new ArmyRow(scene, (i) => actions.pickSlot({ army: 'hero', i }));
-    this.garrison.root.setDepth(depth + 1);
-    this.visitor.root.setDepth(depth + 1);
-    this.owned.push(this.garrison, this.visitor);
+    this.drag = new ArmyDrag<SlotRef>(scene, {
+      depth: depth + 40,
+      canCarry: (r) => actions.canCarry(r),
+      tap: (r) => actions.pickSlot(r),
+      drop: (from, to) => actions.dropSlot(from, to),
+    });
+    this.splitBtn = new PixelButton(scene, { w: SPLIT.w, h: SPLIT.h, label: 'Split', rim: 'gold', onClick: () => actions.split() });
+    this.splitBtn.root.setDepth(depth + 1).setVisible(false);
     this.buttons = [];
-    this.makeButtons(ARMY_H);
+    this.makeButtons(BTN.narrowH);
   }
 
   private text(opts: ConstructorParameters<typeof TextLabel>[1]): TextLabel {
@@ -121,9 +108,6 @@ export class TownBar {
     const actions = this.actions;
     for (const b of this.buttons) b.destroy();
     this.buttons.length = 0;
-    this.hallHalo?.destroy();
-    this.hallHalo = new GoldHalo(this.scene, BTN.w, h).setVisible(this.beckoning);
-    this.hallHalo.img.setDepth(this.depth + 1);
     const specs = [
       { label: 'Hall', icon: 'hall' as const, onClick: () => actions.open('hall') },
       { label: 'Fort', icon: 'recruit' as const, onClick: () => actions.open('fort') },
@@ -137,12 +121,59 @@ export class TownBar {
     }
   }
 
+  /** The crest, the hero's face and both rows, `slot` pixels across. */
+  private makeFaces(slot: number): void {
+    const { scene, depth, actions } = this;
+    this.dropFaces();
+    const owned: { destroy(): void }[] = [];
+    // The town's crest heads the garrison, or the hero's face when the hero is in it; the hero's face heads the visitor's row (an empty frame while away).
+    const tapHead = (img: Phaser.GameObjects.Image, row: () => SlotRef['army']): void => {
+      img.setInteractive().on('pointerup', () => actions.pickSlot({ army: row(), i: HEAD }));
+    };
+    const crestFrame = new PixelImage(scene, drawSocket(slot, 'gold'));
+    const crestIcon = scene.add.image(slot / 2, slot / 2, UI_TEX.icon('town'));
+    tapHead(crestFrame.img, () => 'garrison');
+    const crest = scene.add.container(0, 0, [crestFrame.img, crestIcon]).setDepth(depth + 1);
+    const hero = heroArt();
+    const cut = faceOf(scene, PX_TEX.hero(hero.id, 'idle'), hero.art, slot - 4);
+    const face = new PixelImage(scene, drawPortrait(cut, 'bronze', false, false, slot));
+    const lit = new PixelImage(scene, drawPortrait(cut, 'gold', false, false, slot));
+    face.img.setDepth(depth + 1);
+    lit.img.setDepth(depth + 1);
+    tapHead(face.img, () => this.heroRow);
+    tapHead(lit.img, () => this.heroRow);
+    const emptyFace = new PixelImage(scene, drawSocket(slot, 'bronze'));
+    emptyFace.img.setDepth(depth + 1);
+    tapHead(emptyFace.img, () => 'hero');
+    const garrison = new ArmyRow(scene, slot);
+    const visitor = new ArmyRow(scene, slot);
+    garrison.root.setDepth(depth + 1);
+    visitor.root.setDepth(depth + 1);
+    this.drag.watch(garrison, (i) => ({ army: 'garrison', i }));
+    this.drag.watch(visitor, (i) => ({ army: 'hero', i }));
+    owned.push(crestFrame, face, lit, emptyFace, garrison, visitor);
+    this.faces = { crest, heroFace: face.img, heroLit: lit.img, emptyFace, garrison, visitor, owned };
+    this.slot = slot;
+  }
+
+  private dropFaces(): void {
+    if (!this.faces) return;
+    this.drag.forget(this.faces.garrison);
+    this.drag.forget(this.faces.visitor);
+    for (const o of this.faces.owned) o.destroy();
+    this.faces.crest.destroy(true);
+    this.faces = null;
+  }
+
   /** Lays the strip out for a `w` × `h` screen; where its top lands. */
   layout(w: number, h: number): number {
-    const narrow = w < WIDE_W + PAD * 2 + 8;
-    if (narrow !== this.narrow) this.makeButtons(narrow ? BTN.narrowH : ARMY_H);
+    const { narrow, slot, townW } = stripLayout(w, h, PURSE_BAR_H);
+    if (slot !== this.slot) this.makeFaces(slot);
+    const buttonsH = narrow ? BTN.narrowH : slot;
+    if (narrow !== this.narrow || buttonsH !== this.buttonsH) this.makeButtons(buttonsH);
     this.narrow = narrow;
-    const barH = narrow ? PAD + BTN.narrowH + ROW_GAP + LINE * 2 + ROW_GAP + ARMY_H + PAD : PAD + ARMY_H + PAD;
+    this.buttonsH = buttonsH;
+    const barH = narrow ? NARROW_ROUND + armyH(slot) : PAD + armyH(slot) + PAD;
     const purseTop = h - PURSE_BAR_H + 2;
     this.top = purseTop - barH;
     this.frame?.destroy();
@@ -156,92 +187,96 @@ export class TownBar {
     this.date.setPosition(w - 6, purseTop + Math.floor((PURSE_BAR_H - 2 - LINE) / 2));
     this.date.img.setVisible(w - end > 150);
     if (narrow) this.layoutNarrow(w);
-    else this.layoutWide(w);
-    const hall = this.buttons[0];
-    if (hall) this.hallHalo?.setPosition(hall.root.x, hall.root.y);
+    else this.layoutWide(w, townW);
     return this.top;
   }
 
-  private layoutWide(w: number): void {
-    const left = Math.floor((w - WIDE_W) / 2);
+  private layoutWide(w: number, townW: number): void {
+    const armies = armiesW(this.slot);
+    const left = Math.floor((w - (townW + GAP + armies + GAP + BUTTONS_GRID_W)) / 2);
     const y = this.top + PAD;
     this.name.setPosition(left, y);
     this.goldIcon.setPosition(left, y + LINE + 4);
     this.incomeLine.setPosition(left + 19, y + LINE + 5);
-    this.status.setWrap(TOWN_W).setPosition(left, y + LINE * 2 + 9);
-    this.placeArmies(left + TOWN_W + GAP, y);
-    const bx = left + TOWN_W + GAP + ARMIES_W + GAP;
-    this.buttons.forEach((b, i) => b.setPosition(bx + i * (BTN.w + BTN.gap), y));
+    this.status.setWrap(townW).setPosition(left, y + LINE * 2 + 9);
+    this.splitBtn.setPosition(left, y + armyH(this.slot) - SPLIT.h);
+    this.placeArmies(left + townW + GAP, y);
+    // Two by two, in line with the armies' rows.
+    const bx = left + townW + GAP + armies + GAP;
+    this.buttons.forEach((b, i) => b.setPosition(bx + (i % 2) * (BTN.w + BTN.gap), y + Math.floor(i / 2) * (this.slot + ROW_GAP)));
   }
 
   private layoutNarrow(w: number): void {
+    const armies = armiesW(this.slot);
     let y = this.top + PAD;
     const bx = Math.floor((w - BUTTONS_W) / 2);
     this.buttons.forEach((b, i) => b.setPosition(bx + i * (BTN.w + BTN.gap), y));
     y += BTN.narrowH + ROW_GAP;
-    const left = Math.floor((w - ARMIES_W) / 2);
+    const left = Math.floor((w - armies) / 2);
     this.name.setPosition(left, y);
-    this.goldIcon.setPosition(left + ARMIES_W - 96, y - 1);
-    this.incomeLine.setPosition(left + ARMIES_W - 77, y);
-    this.status.setWrap(ARMIES_W).setPosition(left, y + LINE);
+    this.goldIcon.setPosition(left + armies - 96, y - 1);
+    this.incomeLine.setPosition(left + armies - 77, y);
+    this.status.setWrap(armies - SPLIT.w - 4).setPosition(left, y + LINE);
+    this.splitBtn.setPosition(left + armies - SPLIT.w, y + LINE * 2 - SPLIT.h);
     this.placeArmies(left, y + LINE * 2 + ROW_GAP);
   }
 
   private placeArmies(x: number, y: number): void {
+    const f = this.faces!;
+    const vy = y + this.slot + ROW_GAP;
     this.armiesAt = { x, y };
-    this.crest.setPosition(x, y);
-    this.garrison.setPosition(x + SLOT + 6, y);
-    const vy = y + SLOT + ROW_GAP;
+    f.crest.setPosition(x, y);
+    f.garrison.setPosition(x + this.slot + HEAD_GAP, y);
     this.placeHero();
-    this.emptyFace.setPosition(x, vy);
-    this.visitor.setPosition(x + SLOT + 6, vy);
-    this.away.setPosition(x + SLOT + 6 + Math.floor(ARMY_ROW_W / 2), vy + Math.floor(SLOT / 2));
+    f.emptyFace.setPosition(x, vy);
+    f.visitor.setPosition(x + this.slot + HEAD_GAP, vy);
+    this.away.setPosition(x + this.slot + HEAD_GAP + Math.floor(armyRowW(this.slot) / 2), vy + Math.floor(this.slot / 2));
   }
 
   /** The hero's face at the head of the row the hero is in. */
   private placeHero(): void {
     const { x, y } = this.armiesAt;
-    const hy = this.heroRow === 'garrison' ? y : y + SLOT + ROW_GAP;
-    this.heroFace.setPosition(x, hy);
-    this.heroLit.setPosition(x, hy);
+    const f = this.faces!;
+    const hy = this.heroRow === 'garrison' ? y : y + this.slot + ROW_GAP;
+    f.heroFace.setPosition(x, hy);
+    f.heroLit.setPosition(x, hy);
   }
 
-  /** Shows town `t`'s lines and armies (the hero's row only when the hero is in it). */
+  /** Shows town `t`'s lines and armies (the hero's row only when the hero is in it); `picked` lit, with Split when it can be split. */
   refresh(adv: Adventure, t: Town, picked: SlotRef | null): void {
+    const f = this.faces!;
     this.purse.set(adv.purse);
     this.date.setText(calendar(adv.day));
     this.name.setText(t.name);
     this.incomeLine.setText(`+${income(t)} a day`);
-    this.status.setText(t.builtToday ? 'Built today: more tomorrow' : 'One building a day');
     const here = heroVisiting(adv, t);
     const held = heroInGarrison(adv, t);
     this.heroRow = held ? 'garrison' : 'hero';
     this.placeHero();
     const heroPicked = picked?.i === HEAD;
-    this.garrison.set(t.garrison, picked?.army === 'garrison' ? picked.i : null);
-    this.visitor.set(here ? adv.hero.army : null, here && picked?.army === 'hero' ? picked.i : null);
-    this.visitor.root.setAlpha(here ? 1 : 0.5);
-    this.crest.setVisible(!held);
-    this.heroFace.setVisible((here || held) && !heroPicked);
-    this.heroLit.setVisible((here || held) && heroPicked);
-    this.emptyFace.img.setVisible(!here);
+    const army = picked?.army === 'garrison' ? t.garrison : adv.hero.army;
+    const company = picked && !heroPicked ? army[picked.i] ?? null : null;
+    this.status.setText(company ? 'Tap a slot to move them' : t.builtToday ? 'Built today: more tomorrow' : 'One building a day');
+    this.splitBtn.root.setVisible(!!company && company.count > 1);
+    this.splitBtn.setEnabled(army.includes(null));
+    f.garrison.set(t.garrison, picked?.army === 'garrison' ? picked.i : null);
+    f.visitor.set(here ? adv.hero.army : null, here && picked?.army === 'hero' ? picked.i : null);
+    f.visitor.root.setAlpha(here ? 1 : 0.5);
+    f.crest.setVisible(!held);
+    f.heroFace.setVisible((here || held) && !heroPicked);
+    f.heroLit.setVisible((here || held) && heroPicked);
+    f.emptyFace.img.setVisible(!here);
     this.away.setText(held ? `${adv.hero.name} is in the garrison` : `${adv.hero.name} is away`).img.setVisible(!here);
     this.buttons[2]?.setEnabled(has(t, 'mageGuild1'));
   }
 
-  /** Rings the Hall button (the guide's next step is in there), or stops. */
-  beckonHall(on: boolean): void {
-    this.beckoning = on;
-    this.hallHalo?.setVisible(on);
-  }
-
   destroy(): void {
-    this.hallHalo?.destroy();
+    this.dropFaces();
     for (const o of this.owned) o.destroy();
     for (const b of this.buttons) b.destroy();
+    this.splitBtn.destroy();
     this.purse.destroy();
     this.goldIcon.destroy();
-    this.crest.destroy();
     this.frame?.destroy();
     this.purseFrame?.destroy();
   }

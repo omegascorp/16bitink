@@ -52,8 +52,6 @@ export const ASHFORD_LAND: MapDef = {
   purse: { gold: 7500, wood: 15, ore: 15, mercury: 3, sulfur: 3, crystal: 3, gems: 3 },
   // What the campaign has opened by this map (src/level/unlocks.ts).
   off: lockedOn(1),
-  // The first map teaches the town: income first, then the best troops, more of them and their growth, then spells.
-  advice: ['townHall', 'barracks', 'archeryRange', 'citadel', 'griffinTower', 'mageGuild1'],
   seed: 1024,
   objects: [
     // Mines.

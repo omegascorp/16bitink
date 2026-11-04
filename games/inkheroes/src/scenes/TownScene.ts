@@ -3,13 +3,13 @@ import { BACKDROP } from '../art/palette';
 import { getSound } from '../host';
 import { buyMachine, cantBuyMachine, enterTown, garrisonHero, heroInGarrison, heroTown, heroVisiting, leadOut, playerTowns, townById, withTown, type Adventure } from '../logic/adventure';
 import type { Town } from '../logic/town';
-import { moveSlot, type Army } from '../logic/army';
+import { moveSlot, splitSlot, type Army } from '../logic/army';
 import { BUILDINGS, type BuildingId } from '../logic/buildings';
 import { creature, MACHINES, type CreatureId, type MachineId } from '../logic/creatures';
 import { canAfford, describeAmount, pay } from '../logic/resources';
 import { lineOf } from '../logic/creatures';
 import { tilesOf } from '../logic/map';
-import { advisedNext, build, cantBuild, growthOf, hire, hireable, hireAll, SPELLBOOK_COST, stockOf, upgradeAll, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
+import { build, cantBuild, growthOf, hire, hireable, hireAll, SPELLBOOK_COST, stockOf, suggestBuilding, upgradeAll, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
 import { PX_TEX } from './battle/pixelAssets';
 import { FILLS } from './battle/pixelFrames';
 import { PixelFrame, TextLabel, texturePixels } from './battle/pixelUi';
@@ -18,17 +18,19 @@ import { UnitInfoCard, type InfoButton } from './battle/unitInfoCard';
 import { openCard, type CardButton } from './CardScene';
 import type { MapScene } from './MapScene';
 import { pixelUiCamera } from './pixelScreen';
+import { SplitPicker } from './hud/splitPicker';
 import { Session } from './session';
+import { BuildPlate } from './town/buildPlate';
 import { loadTownArt, PixelTownView, townScenery } from './town/pixelTownView';
 import { HEAD, TownBar, type SlotRef, type TownScreen } from './town/townBar';
-import { fortScreen, guildScreen, hallScreen, upgradableArmies, type ScreenActions } from './town/townScreens';
+import { fortScreen, guildScreen, hallScreen, platePicture, upgradableArmies, type ScreenActions } from './town/townScreens';
 import { STAGE } from './town/townStage';
 import { TownWindow } from './town/townWindow';
 
 /** A press that moves further than this (UI px) is a drag, not a tap. */
 const DRAG = 6;
-/** Depths: the townscape, a screen over it, the strip, messages. */
-const DEPTH = { window: 30, bar: 50, toast: 70, info: 90 } as const;
+/** Depths: the townscape, the suggestion on it, a screen over them, the strip, messages. */
+const DEPTH = { plate: 20, window: 30, bar: 50, toast: 70, info: 90 } as const;
 /** How long a message stays, and how long it takes to fade, ms. */
 const TOAST = { ms: 2600, fade: 500, pad: { x: 8, y: 3 } } as const;
 
@@ -63,12 +65,13 @@ export class TownScene extends Phaser.Scene {
   private view: PixelTownView | null = null;
   private bar: TownBar | null = null;
   private window: TownWindow | null = null;
+  private plate: BuildPlate | null = null;
   private screen: TownScreen | null = null;
-  /** Whether the hall's been opened this visit (the guide stops pointing at it). */
-  private hallSeen = false;
   private picked: SlotRef | null = null;
   /** A company's info card, while it's open. */
   private info: { card: UnitInfoCard; layer: Phaser.GameObjects.Container } | null = null;
+  /** The company being split, while its picker is open. */
+  private splitter: SplitPicker | null = null;
   /** Whether this visit has said how to see a company's card. */
   private toldInfo = false;
   private fresh: BuildingId | undefined;
@@ -92,13 +95,13 @@ export class TownScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(BACKDROP);
     this.picked = null;
     this.screen = null;
-    this.hallSeen = false;
     this.fresh = undefined;
     this.ready = false;
     this.panX = 0;
     this.view = null;
     this.bar = null;
     this.window = null;
+    this.plate = null;
     this.toastParts = [];
     const fit = pixelUiCamera(this, (size) => {
       this.size = size;
@@ -106,20 +109,23 @@ export class TownScene extends Phaser.Scene {
     });
     this.size = fit();
     this.info = null;
+    this.splitter = null;
     this.toldInfo = false;
-    this.input.keyboard?.on('keydown-ESC', () => (this.info ? this.info.card.close() : this.screen ? this.openScreen(null) : this.leave()));
+    this.input.keyboard?.on('keydown-ESC', () => (this.splitter ? this.closeSplit() : this.info ? this.info.card.close() : this.screen ? this.openScreen(null) : this.leave()));
     this.wirePan();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.view?.destroy();
       this.window?.destroy();
+      this.plate?.destroy();
       this.bar?.destroy();
       this.info?.card.close();
+      this.closeSplit();
       for (const t of this.toastParts) t.destroy();
     });
     void loadTownArt(this).then(() => {
       if (!this.sys.isActive()) return;
       this.ready = true;
-      this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r) }, DEPTH.bar);
+      this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r), canCarry: (r) => this.canPick(r), dropSlot: (from, to) => this.moveCompany(from, to), split: () => this.openSplit() }, DEPTH.bar);
       this.drawAll();
     });
   }
@@ -176,9 +182,29 @@ export class TownScene extends Phaser.Scene {
     if (!this.bar) return;
     this.bar.layout(this.size.w, this.size.h);
     this.bar.refresh(this.session.adv, this.town(), this.picked);
-    this.beckon();
     this.drawView();
+    this.drawPlate();
     this.drawWindow();
+  }
+
+  /** The suggestion at the top of the town, as things stand; none once the town is finished. */
+  private drawPlate(): void {
+    this.plate?.destroy();
+    this.plate = null;
+    const { adv, def } = this.session;
+    const town = this.town();
+    const id = suggestBuilding(town, adv.purse, def.off);
+    // A screen open over the town has its own say (the hall leads with the same building).
+    if (!id || this.screen) return;
+    this.plate = new BuildPlate(this, {
+      town, id, purse: adv.purse, picture: platePicture(this, id), area: this.size, depth: DEPTH.plate,
+      onBuild: () => {
+        if (!this.dragged) this.tryBuild(id);
+      },
+      onInfo: () => {
+        if (!this.dragged) this.buildingCard(id);
+      },
+    });
   }
 
   private drawView(): void {
@@ -194,6 +220,7 @@ export class TownScene extends Phaser.Scene {
   private screenActions(): ScreenActions {
     return {
       pickBuilding: (id) => this.buildingCard(id),
+      build: (id) => this.tryBuild(id),
       pickDwelling: (id) => this.recruitCard(id),
       hireAll: (id) => this.hire(id, hireable(this.town(), id, this.session.adv.purse)),
       hireEverything: () => this.hireEverything(),
@@ -208,30 +235,22 @@ export class TownScene extends Phaser.Scene {
     if (!this.screen || !this.bar) return;
     const adv = this.session.adv;
     const act = this.screenActions();
-    const spec = this.screen === 'hall' ? hallScreen(this, adv, this.town(), this.session.def.off, act, this.session.def.advice) : this.screen === 'fort' ? fortScreen(this, adv, this.town(), act) : guildScreen(this, adv, this.town(), act);
+    const spec = this.screen === 'hall' ? hallScreen(this, adv, this.town(), this.session.def.off, act) : this.screen === 'fort' ? fortScreen(this, adv, this.town(), act) : guildScreen(this, adv, this.town(), act);
     this.window = new TownWindow(this, spec, { w: this.size.w, h: this.bar.top }, () => this.openScreen(null), DEPTH.window);
   }
 
   private openScreen(s: TownScreen | null): void {
     if (s && s !== this.screen) getSound(this)?.play('card');
     this.screen = s;
-    if (s === 'hall') this.hallSeen = true;
-    this.beckon();
+    this.drawPlate();
     this.drawWindow();
   }
 
   /** The purse, armies and any open screen show the session's latest state. */
   private refresh(): void {
     this.bar?.refresh(this.session.adv, this.town(), this.picked);
-    this.beckon();
+    this.drawPlate();
     this.drawWindow();
-  }
-
-  /** On a map that teaches the town, ring the Hall button until it's opened, while the advised building can go up today. */
-  private beckon(): void {
-    const { adv, def } = this.session;
-    const next = advisedNext(this.town(), def.advice ?? [], def.off);
-    this.bar?.beckonHall(!this.hallSeen && next !== null && !cantBuild(this.town(), next, adv.purse, def.off));
   }
 
   private leave(): void {
@@ -429,19 +448,29 @@ export class TownScene extends Phaser.Scene {
     this.refresh();
   }
 
+  /** The row the hero is in, if they're here. */
+  private heroRow(adv: Adventure = this.session.adv): SlotRef['army'] | null {
+    return this.visiting(adv) ? 'hero' : this.held(adv) ? 'garrison' : null;
+  }
+
+  private armyAt(a: SlotRef['army'], adv: Adventure = this.session.adv): Army {
+    return a === 'hero' ? adv.hero.army : this.town(adv).garrison;
+  }
+
+  /** Whether there's a company at `ref` the player can take. */
+  private canPick(ref: SlotRef): boolean {
+    return ref.i !== HEAD && (ref.army === 'garrison' || this.heroRow() === 'hero') && !!this.armyAt(ref.army)[ref.i];
+  }
+
   /**
    * First tap picks a company, or the hero by their face; the second moves
    * it there (merging like units, swapping others). The hero moves to the
    * other row with every company, if they all fit there.
    */
   private pickSlot(ref: SlotRef): void {
-    const adv = this.session.adv;
-    const town = this.town(adv);
-    const heroRow: SlotRef['army'] | null = this.visiting(adv) ? 'hero' : this.held(adv) ? 'garrison' : null;
-    const armyOf = (a: SlotRef['army']): Army => (a === 'hero' ? adv.hero.army : town.garrison);
     if (!this.picked) {
-      const isHero = ref.i === HEAD && ref.army === heroRow;
-      if (isHero || (ref.i !== HEAD && (ref.army === 'garrison' || heroRow === 'hero') && armyOf(ref.army)[ref.i])) this.picked = ref;
+      const isHero = ref.i === HEAD && ref.army === this.heroRow();
+      if (isHero || this.canPick(ref)) this.picked = ref;
       this.refresh();
       if (this.picked && this.picked.i !== HEAD && !this.toldInfo) {
         this.toldInfo = true;
@@ -461,21 +490,66 @@ export class TownScene extends Phaser.Scene {
       else this.refresh();
       return;
     }
+    this.moveCompany(from, ref);
+  }
+
+  /** The company at `from` onto the slot at `to`: merged with its like, swapped with another. */
+  private moveCompany(from: SlotRef, to: SlotRef): void {
+    const adv = this.session.adv;
+    const town = this.town(adv);
+    this.picked = null;
     // A company dropped on a face, or on the visitor's row with no hero there, stays put.
-    if (ref.i === HEAD || (ref.army === 'hero' && heroRow !== 'hero')) {
+    if (to.i === HEAD || (to.army === 'hero' && this.heroRow(adv) !== 'hero')) {
       this.refresh();
       return;
     }
-    const same = from.army === ref.army;
-    const r = moveSlot(armyOf(from.army), from.i, armyOf(ref.army), ref.i, same, from.army === 'hero');
+    const same = from.army === to.army;
+    const r = moveSlot(this.armyAt(from.army, adv), from.i, this.armyAt(to.army, adv), to.i, same, from.army === 'hero');
     if (!r) {
       if (from.army === 'hero' && !same) this.toast('A hero must keep at least one company');
       this.refresh();
       return;
     }
-    const hero = from.army === 'hero' ? r.src : ref.army === 'hero' ? r.dst : adv.hero.army;
-    const garrison = from.army === 'garrison' ? r.src : ref.army === 'garrison' ? r.dst : town.garrison;
+    const hero = from.army === 'hero' ? r.src : to.army === 'hero' ? r.dst : adv.hero.army;
+    const garrison = from.army === 'garrison' ? r.src : to.army === 'garrison' ? r.dst : town.garrison;
     this.session.set(withTown({ ...adv, hero: { ...adv.hero, army: hero } }, { ...town, garrison }));
+    getSound(this)?.play('card');
+    this.refresh();
+  }
+
+  /** The picker for the company picked. */
+  private openSplit(): void {
+    const ref = this.picked;
+    const company = ref ? this.armyAt(ref.army)[ref.i] : null;
+    if (!ref || !company || this.splitter) return;
+    getSound(this)?.play('card');
+    this.splitter = new SplitPicker(this, {
+      id: company.creature, count: company.count, screen: this.size, depth: DEPTH.info,
+      onSplit: (n) => this.splitCompany(ref, n),
+      onClose: () => this.closeSplit(),
+    });
+  }
+
+  private closeSplit(): void {
+    this.splitter?.destroy();
+    this.splitter = null;
+  }
+
+  /** `n` of the company at `ref` become a new one, picked so a tap sends it where it's wanted. */
+  private splitCompany(ref: SlotRef, n: number): void {
+    this.closeSplit();
+    const adv = this.session.adv;
+    const town = this.town(adv);
+    const r = splitSlot(this.armyAt(ref.army, adv), ref.i, n);
+    if (!r) {
+      this.toast('No free slot to split into');
+      return;
+    }
+    const hero = ref.army === 'hero' ? { ...adv.hero, army: r.army } : adv.hero;
+    const garrison = ref.army === 'garrison' ? r.army : town.garrison;
+    this.session.set(withTown({ ...adv, hero }, { ...town, garrison }));
+    this.picked = { army: ref.army, i: r.at };
+    getSound(this)?.play('card');
     this.refresh();
   }
 

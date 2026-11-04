@@ -30,6 +30,11 @@ export function affordable(p: Purse, cost: Amount): number {
   return limits.length === 0 ? Infinity : Math.min(...limits);
 }
 
+/** What the purse still lacks of `cost`: only the resources short, by how much. */
+export function shortfall(p: Purse, cost: Amount): Amount {
+  return Object.fromEntries(RESOURCES.map((r) => [r, (cost[r] ?? 0) - p[r]] as const).filter(([, n]) => n > 0));
+}
+
 /** "2500 gold, 5 ore" */
 export function describeAmount(a: Amount): string {
   return RESOURCES.filter((r) => (a[r] ?? 0) !== 0).map((r) => `${a[r]} ${r}`).join(', ');

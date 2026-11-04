@@ -7,7 +7,7 @@ import type { PixelBuffer, Rgba } from './pixelRaster';
 import { drawBadge } from './pixelRaster';
 import { loadUiFont } from './pixelFont';
 import { loadUiArt, texturePixels } from './pixelUi';
-import { FACE } from './pixelFrames';
+import { FACE, faceBox } from './pixelFaces';
 import type { Pixels } from './pixelScenery';
 
 /**
@@ -37,10 +37,9 @@ export function unitArt(id: string): UnitArt {
   return UNIT_ART[id] ?? (isCreatureId(id) ? UNIT_ART[lineOf(id)] : undefined) ?? Object.values(UNIT_ART)[0]!;
 }
 
-/** The FACE square of an idle strip's first frame round the art's face point (the frame's upper middle if it has none). */
-export function faceOf(scene: Phaser.Scene, key: string, art: UnitArt): Pixels {
-  const c = art.face ?? { x: Math.floor(art.w / 2), y: Math.floor(art.h / 3) };
-  return texturePixels(scene, key, { x: c.x - FACE / 2, y: c.y - FACE / 2, w: FACE, h: FACE });
+/** The square of an idle strip's first frame round the art's face point (see faceBox), `size` across. */
+export function faceOf(scene: Phaser.Scene, key: string, art: UnitArt, size: number = FACE): Pixels {
+  return texturePixels(scene, key, faceBox(art, size));
 }
 
 /** A hero's art: the player's ('player') or the rival lord's ('rival'), falling back to the player's. */

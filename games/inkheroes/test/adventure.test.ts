@@ -12,7 +12,7 @@ import { dailyMp, levelFor, nextLevelUp, xpForLevel } from '../src/logic/hero';
 import { passable, tileIndex } from '../src/logic/map';
 import { objectFootprint, townFootprint } from '../src/logic/objects';
 import { findPath } from '../src/logic/path';
-import { advisedNext, bestUnit, build, cantBuild, growthOf, hire, hireAll, upgradeAll, upgradeCost, upgradeSlot, upgradeTo, weekly } from '../src/logic/town';
+import { bestUnit, build, cantBuild, growthOf, hire, hireAll, upgradeAll, upgradeCost, upgradeSlot, upgradeTo, weekly } from '../src/logic/town';
 import { BUILDINGS, BUILDING_IDS } from '../src/logic/buildings';
 import { creature, lineOf, lineUnits, tierOf } from '../src/logic/creatures';
 
@@ -497,23 +497,6 @@ describe('the campaign', () => {
     expect(isOpen(THORNWOOD, { ashford: { blots: 1 } })).toBe(true);
     expect(nextMap(ASHFORD)).toBe(THORNWOOD);
     expect(MAPS.map((m) => m.n)).toEqual(MAPS.map((_, i) => i + 1));
-  });
-
-  it('guides the first map’s building, one advised step at a time, each one buildable in turn', () => {
-    const order = ASHFORD.advice!;
-    expect(order.length).toBeGreaterThan(0);
-    let town = startAdventure(ASHFORD).towns[0]!;
-    const rich = { gold: 1e6, wood: 999, ore: 999, mercury: 99, sulfur: 99, crystal: 99, gems: 99 };
-    for (const id of order) {
-      expect(ASHFORD.off).not.toContain(id);
-      expect(advisedNext(town, order, ASHFORD.off)).toBe(id);
-      expect(cantBuild(town, id, rich, ASHFORD.off)).toBeNull();
-      town = { ...build(town, id, rich, ASHFORD.off).town, builtToday: false };
-    }
-    expect(advisedNext(town, order, ASHFORD.off)).toBeNull();
-    // Built out of order, it skips what's done.
-    const ahead = { ...startAdventure(ASHFORD).towns[0]!, built: [...startAdventure(ASHFORD).towns[0]!.built, order[0]!] };
-    expect(advisedNext(ahead, order, ASHFORD.off)).toBe(order[1]);
   });
 });
 

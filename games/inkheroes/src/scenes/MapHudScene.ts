@@ -4,11 +4,11 @@ import { calendar, playerTowns, unfinished, type Adventure } from '../logic/adve
 import { CLASSES, dailyMp, maxMana, withinMana } from '../logic/hero';
 import { tilesOf } from '../logic/map';
 import { faceOf, heroArt, PX_TEX } from './battle/pixelAssets';
-import { drawPortrait, FILLS, SLOT } from './battle/pixelFrames';
+import { drawPortrait, FILLS } from './battle/pixelFrames';
 import { PixelButton, PixelFrame, putBuffer, TextLabel, UI_TEX } from './battle/pixelUi';
 import { openCard } from './CardScene';
 import { toMenu } from './cards';
-import { ArmyRow, ARMY_ROW_W } from './hud/armyRow';
+import { HERO_SLOT } from './hud/armySlots';
 import { freeSlot, releaseSlot, takeSlot } from './hud/noteStack';
 import { PurseRow, PURSE_BAR_H } from './hud/purseRow';
 import { TownList } from './hud/townList';
@@ -18,15 +18,16 @@ import { pixelUiCamera } from './pixelScreen';
 import { Session } from './session';
 
 const BAR_H = PURSE_BAR_H;
-/** The hero panel: padding, the army's seven slots, the buttons beside it. */
+/** The hero panel: padding, the words beside the face, the buttons beside it. */
 const PAD = 6;
 const BTN = { w: 60, gap: 3 } as const;
 const BUTTONS = 2;
 /** The buttons' width, and the town list's above them. */
 const BUTTONS_W = BUTTONS * (BTN.w + BTN.gap);
 const LINE = 15;
-const PANEL_H = PAD + LINE + 2 + LINE + 3 + SLOT + PAD;
-const PANEL_W = PAD + SLOT + 6 + ARMY_ROW_W + PAD;
+const TEXT_W = 190;
+const PANEL_H = PAD + HERO_SLOT + PAD;
+const PANEL_W = PAD + HERO_SLOT + 6 + TEXT_W + PAD;
 /** The status plate's padding. */
 const PLATE_PAD = { x: 6, y: 2 } as const;
 /** How far a note rises and how long it stays, UI pixels and ms. */
@@ -38,9 +39,8 @@ const NOTE_GAP = 2;
 /**
  * The map's interface, as pixel art on the art's grid (the battle's kit):
  * the purse and the date along the top, a status line for what's under the
- * pointer, and the hero's panel (face, level, moves and mana, the army's
- * faces with their counts) with End day and the menu beside it, and the
- * player's towns listed above those two.
+ * pointer, and the hero's panel (face, level, moves and mana) with End day
+ * and the menu beside it, and the player's towns listed above those two.
  */
 export class MapHudScene extends Phaser.Scene {
   private session!: Session;
@@ -56,7 +56,6 @@ export class MapHudScene extends Phaser.Scene {
   private panel!: Phaser.GameObjects.Container;
   private panelFrame!: PixelFrame;
   private portrait!: Phaser.GameObjects.Image;
-  private army!: ArmyRow;
   private buttons: PixelButton[] = [];
   private towns!: TownList;
   private heroKey = '';
@@ -120,16 +119,18 @@ export class MapHudScene extends Phaser.Scene {
     this.panelFrame = new PixelFrame(this, PANEL_W, PANEL_H, { rim: 'bronze', thick: 2, fill: [34, 24, 17, 246], studs: true });
     this.owned.push(this.panelFrame);
     const parts: Phaser.GameObjects.GameObject[] = [this.panelFrame.img];
-    // The panel opens the hero's sheet; its army slots sit on top and pass the tap through.
+    // The panel opens the hero's sheet.
     this.panelFrame.img.setInteractive();
     this.panelFrame.img.on('pointerup', () => this.openHero());
     this.heroKey = this.heroFace();
     this.portrait = this.add.image(PAD, PAD, this.heroKey).setOrigin(0).setInteractive();
     this.portrait.on('pointerup', () => this.openHero());
     parts.push(this.portrait);
-    const textX = PAD + SLOT + 6;
-    this.heroLine = new TextLabel(this, { kind: 'title', align: 'left', anchor: { x: 0, y: 0 } }).setPosition(textX, PAD);
-    const statY = PAD + LINE + 2;
+    const textX = PAD + HERO_SLOT + 6;
+    // The two lines centred beside the face.
+    const textY = Math.floor((PANEL_H - LINE * 2 - 2) / 2);
+    this.heroLine = new TextLabel(this, { kind: 'title', align: 'left', anchor: { x: 0, y: 0 } }).setPosition(textX, textY);
+    const statY = textY + LINE + 2;
     const moveIcon = this.add.image(textX, statY - 1, UI_TEX.stat('speed')).setOrigin(0);
     this.moveLine = new TextLabel(this, { align: 'left', anchor: { x: 0, y: 0 } }).setPosition(textX + 19, statY);
     const manaX = textX + 96;
@@ -137,10 +138,6 @@ export class MapHudScene extends Phaser.Scene {
     this.manaLine = new TextLabel(this, { align: 'left', anchor: { x: 0, y: 0 } }).setPosition(manaX + 19, statY);
     this.owned.push(this.heroLine, this.moveLine, this.manaLine);
     parts.push(this.heroLine.img, moveIcon, this.moveLine.img, manaIcon, this.manaLine.img);
-    const slotY = PANEL_H - PAD - SLOT;
-    this.army = new ArmyRow(this).setPosition(textX, slotY);
-    this.owned.push(this.army);
-    parts.push(this.army.root);
     this.towns = new TownList(this, BUTTONS_W - BTN.gap, {
       textureOf: (t) => MAP_TEX.town(`${this.session.def.id}-${t.id}`),
       onOpen: (id) => (this.scene.get('Map') as MapScene).openTown(id),
@@ -164,7 +161,7 @@ export class MapHudScene extends Phaser.Scene {
   /** The hero's face, cut 1:1 from the battle figure's idle frame. */
   private heroFace(): string {
     const h = heroArt();
-    return putBuffer(this, drawPortrait(faceOf(this, PX_TEX.hero(h.id, 'idle'), h.art), 'bronze', false, false));
+    return putBuffer(this, drawPortrait(faceOf(this, PX_TEX.hero(h.id, 'idle'), h.art, HERO_SLOT - 4), 'bronze', false, false, HERO_SLOT));
   }
 
   private layout(): void {
@@ -223,7 +220,6 @@ export class MapHudScene extends Phaser.Scene {
     this.heroLine.setText(`${h.name}, ${CLASSES[h.heroClass].name} · level ${h.level}`);
     this.moveLine.setText(`${tilesOf(h.mp)}/${tilesOf(dailyMp(h))}`);
     this.manaLine.setText(`${h.mana}/${maxMana(h)}`);
-    this.army.set(h.army);
     this.towns.set(playerTowns(adv));
   }
 

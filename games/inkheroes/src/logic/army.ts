@@ -64,6 +64,14 @@ export function moveSlot(src: Army, from: number, dst: Army, to: number, same: b
   return { src: nextSrc, dst: setSlot(dst, to, a) };
 }
 
+/** `count` of the company in slot `i` split off into the first free slot (`at`); null when either side would be empty or there's no free slot. */
+export function splitSlot(a: Army, i: number, count: number): { army: Army; at: number } | null {
+  const s = a[i];
+  const at = a.indexOf(null);
+  if (!s || at < 0 || count < 1 || count >= s.count) return null;
+  return { army: setSlot(setSlot(a, i, { creature: s.creature, count: s.count - count }), at, { creature: s.creature, count }), at };
+}
+
 /** Every company of `src` moved into `dst`, merging like ones; null when `dst` hasn't the room for them all. */
 export function moveAll(src: Army, dst: Army): { src: Army; dst: Army } | null {
   let out: Army | null = dst;

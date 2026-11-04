@@ -60,8 +60,6 @@ export interface MapDef {
   readonly grant?: Amount;
   /** Buildings switched off on this map. */
   readonly off: readonly BuildingId[];
-  /** A build order to teach the town: the hall marks the next of these not yet built. */
-  readonly advice?: readonly BuildingId[];
   readonly seed: number;
 }
 

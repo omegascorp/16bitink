@@ -15,6 +15,8 @@ export interface FootButton {
   readonly note?: string;
   readonly onClick: () => void;
   readonly enabled?: boolean;
+  /** The window's main action: filled amber. */
+  readonly primary?: boolean;
 }
 
 /** A window's content: a grid of same-size cells, a line under them, and any buttons. */
@@ -129,7 +131,7 @@ export class TownWindow {
     const bw = Math.min(inRow ? Math.floor((footW - GAP * (buttons.length - 1)) / buttons.length) : footW, BTN_W);
     const rowW = inRow ? buttons.length * bw + (buttons.length - 1) * GAP : bw;
     buttons.forEach((b, i) => {
-      const btn = new PixelButton(scene, { w: bw, h: btnH, label: b.label, note: b.note, rim: 'gold', onClick: b.onClick });
+      const btn = new PixelButton(scene, { w: bw, h: btnH, label: b.label, note: b.note, rim: 'gold', primary: b.primary, onClick: b.onClick });
       btn.setEnabled(b.enabled ?? true);
       const x = this.left + Math.floor((gridW - rowW) / 2) + (inRow ? i * (bw + GAP) : 0);
       btn.setPosition(x, inRow ? y : y + i * (btnH + 4));

@@ -2,7 +2,7 @@ import { addTroops, type Army } from './army';
 import { BUILDINGS, BUILDING_IDS, type BuildingId } from './buildings';
 import { creature, lineOf, tierOf, type CreatureId } from './creatures';
 import type { Owner } from './objects';
-import { affordable, canAfford, pay, RESOURCES, type Amount, type Purse } from './resources';
+import { affordable, canAfford, pay, RESOURCES, shortfall, type Amount, type Purse } from './resources';
 import type { SpellId } from './spells';
 
 export interface Town {
@@ -34,12 +34,27 @@ export function cantBuild(t: Town, b: BuildingId, p: Purse, off: readonly Buildi
   return null;
 }
 
-/** Builds `b`: the town and the purse after paying. A new dwelling opens with a week's growth. */
-/** The first building of `order` this town hasn't built and the map allows, or null when it's all done. */
-export function advisedNext(t: Town, order: readonly BuildingId[], off: readonly BuildingId[]): BuildingId | null {
-  return order.find((b) => !has(t, b) && !off.includes(b)) ?? null;
+/** The building `b` starts from: itself, or the first thing still in its way; null when the map keeps it out of reach. */
+function firstStep(t: Town, b: BuildingId, off: readonly BuildingId[]): BuildingId | null {
+  if (off.includes(b)) return null;
+  const steps = BUILDINGS[b].needs.filter((n) => !has(t, n)).map((n) => firstStep(t, n, off));
+  if (steps.includes(null)) return null;
+  return steps[0] ?? b;
 }
 
+/**
+ * What to build next, so a player who'd rather not choose never has to: the
+ * first step of the plan this map allows, null once the town is finished.
+ * It waits for gold, which comes every day, but passes over what the purse
+ * has no wood, ore or rare goods for, which might never come.
+ */
+export function suggestBuilding(t: Town, p: Purse, off: readonly BuildingId[]): BuildingId | null {
+  const steps = BUILD_PLAN.filter((b) => !has(t, b)).flatMap((b) => firstStep(t, b, off) ?? []);
+  const inReach = (b: BuildingId): boolean => Object.keys(shortfall(p, BUILDINGS[b].cost)).every((r) => r === 'gold');
+  return steps.find(inReach) ?? steps[0] ?? null;
+}
+
+/** Builds `b`: the town and the purse after paying. A new dwelling opens with a week's growth. */
 export function build(t: Town, b: BuildingId, p: Purse, off: readonly BuildingId[]): { town: Town; purse: Purse } {
   const why = cantBuild(t, b, p, off);
   if (why) throw new Error(why);
@@ -175,3 +190,11 @@ export const SPELLBOOK_COST = 500;
 
 /** Buildings in the order the town screen lists them. */
 export const BUILD_ORDER: readonly BuildingId[] = BUILDING_IDS;
+
+/** The order a town grows in: income, the best troops, their growth, spells, then upgrades; whatever else there is comes last. */
+export const BUILD_PLAN: readonly BuildingId[] = [...new Set<BuildingId>([
+  'townHall', 'barracks', 'archeryRange', 'citadel', 'griffinTower', 'mageGuild1',
+  'guardhouse2', 'archeryRange2', 'barracks2', 'griffinTower2', 'cityHall', 'stables', 'monastery',
+  'castle', 'guardhouse3', 'archeryRange3', 'barracks3', 'griffinTower3', 'blacksmith', 'tiltyard',
+  ...BUILD_ORDER,
+])];
