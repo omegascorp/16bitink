@@ -20,6 +20,8 @@ const BTN = { w: 56, h: 54, gap: 3 } as const;
 const BAR_H = 4 + TurnOrder.height + 4 + BTN.h + 4;
 /** The bar's buttons stand in one row: the UI is zoomed so that row fits. */
 const BAR_W = 4 * BTN.w + 3 * BTN.gap + 8;
+/** The testing cheat's button, in the top right corner. */
+const WIN_BTN = { w: 44, h: 22, margin: 4 } as const;
 /** Turn-order portraits shown at most. */
 const ORDER_MAX = 10;
 /** The status line's plate: padding round the text, and the plate's height. */
@@ -33,6 +35,8 @@ export interface HudActions {
   readonly wait: () => void;
   readonly defend: () => void;
   readonly spell: () => void;
+  /** Testing cheats only: wins the battle. */
+  readonly win?: () => void;
   readonly auto: () => void;
 }
 
@@ -52,6 +56,7 @@ export class BattleHud {
   private readonly status: TextLabel;
   private plate: PixelFrame | null = null;
   private readonly order: TurnOrder;
+  private winBtn: PixelButton | null = null;
   private readonly buttons: PixelButton[];
   private readonly autoBtn: PixelButton;
   private shown: readonly Stack[] = [];
@@ -64,13 +69,17 @@ export class BattleHud {
   private orderAt = { x: 0, y: 0 };
   private statusWrap: number = WORLD.w;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly cams: BattleCameras, actions: HudActions) {
+  constructor(private readonly scene: Phaser.Scene, private readonly cams: BattleCameras, actions: HudActions, canCast: boolean) {
     this.status = new TextLabel(scene, { anchor: { x: 0.5, y: 0 } });
     this.order = new TurnOrder(scene);
     const btn = (label: string, icon: IconName, onClick: () => void): PixelButton => new PixelButton(scene, { w: BTN.w, h: BTN.h, label, icon, stacked: true, onClick });
     this.autoBtn = btn('Auto', 'auto', actions.auto);
-    this.buttons = [btn('Wait', 'wait', actions.wait), btn('Defend', 'defend', actions.defend), btn('Spell', 'spell', actions.spell), this.autoBtn];
+    this.buttons = [btn('Wait', 'wait', actions.wait), btn('Defend', 'defend', actions.defend), ...(canCast ? [btn('Spell', 'spell', actions.spell)] : []), this.autoBtn];
     cams.ui.add([this.order.root, this.status.img, ...this.buttons.map((b) => b.root)]);
+    if (actions.win) {
+      this.winBtn = new PixelButton(scene, { w: WIN_BTN.w, h: WIN_BTN.h, label: 'Win', rim: 'gold', onClick: actions.win });
+      cams.ui.add(this.winBtn.root);
+    }
     this.layout();
   }
 
@@ -86,6 +95,7 @@ export class BattleHud {
     const barK = Math.max(1, Math.floor(this.scene.scale.width / BAR_W));
     if (below >= BAR_H * barK) this.layoutBar(barK);
     else this.layoutSides();
+    this.winBtn?.setPosition(this.cams.uiSize().w - WIN_BTN.w - WIN_BTN.margin, WIN_BTN.margin);
     this.redraw();
     if (this.card) this.card.close();
   }
@@ -105,12 +115,10 @@ export class BattleHud {
     this.statusWrap = FIELD_RECT.w;
     // Each pair side by side under its hero, standing on the field's bottom edge.
     const bottom = at(0, FIELD_RECT.y + FIELD_RECT.h).y;
-    const half = this.buttons.length / 2;
-    const pairW = half * BTN.w + (half - 1) * BTN.gap;
-    this.buttons.forEach((b, i) => {
-      const side = i < half ? 0 : 1;
-      const col = at(HERO_FEET[side].x, 0).x - Math.floor(pairW / 2);
-      b.setPosition(col + (i % half) * (BTN.w + BTN.gap), bottom - BTN.h);
+    [this.buttons.slice(0, 2), this.buttons.slice(2)].forEach((row, side) => {
+      const rowW = row.length * BTN.w + (row.length - 1) * BTN.gap;
+      const col = at(HERO_FEET[side as 0 | 1].x, 0).x - Math.floor(rowW / 2);
+      row.forEach((b, i) => b.setPosition(col + i * (BTN.w + BTN.gap), bottom - BTN.h));
     });
     this.orderMax = Math.min(ORDER_MAX, Math.floor((FIELD_RECT.w + SLOT_GAP) / (SLOT + SLOT_GAP)));
   }
@@ -222,5 +230,6 @@ export class BattleHud {
     this.plate?.destroy();
     this.order.destroy();
     for (const b of this.buttons) b.destroy();
+    this.winBtn?.destroy();
   }
 }

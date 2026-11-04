@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getSound } from '../host';
 import { buyMachine, cantBuyMachine, enterTown, garrisonHero, heroInGarrison, heroTown, heroVisiting, leadOut, playerTowns, townById, withTown, type Adventure } from '../logic/adventure';
+import { gainItem } from '../logic/items';
+import type { SpellId } from '../logic/spells';
 import type { Town } from '../logic/town';
 import { moveSlot, splitSlot, type Army } from '../logic/army';
 import { BUILDINGS, type BuildingId } from '../logic/buildings';
@@ -9,7 +11,7 @@ import { creature, MACHINES, type CreatureId, type MachineId } from '../logic/cr
 import { canAfford, describeAmount, pay } from '../logic/resources';
 import { lineOf } from '../logic/creatures';
 import { tilesOf } from '../logic/map';
-import { build, cantBuild, growthOf, hire, hireable, hireAll, SPELLBOOK_COST, stockOf, suggestBuilding, upgradeAll, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
+import { build, cantBuild, growthOf, hire, hireable, hireAll, SPELLBOOK_COST, SPELLBOOK_SOLD, stockOf, suggestBuilding, upgradeAll, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
 import { PX_TEX } from './battle/pixelAssets';
 import { FILLS } from './battle/pixelFrames';
 import { PixelFrame, TextLabel, texturePixels } from './battle/pixelUi';
@@ -23,8 +25,9 @@ import { Session } from './session';
 import { BuildPlate } from './town/buildPlate';
 import { loadTownArt, PixelTownView, townScenery } from './town/pixelTownView';
 import { HEAD, TownBar, type SlotRef, type TownScreen } from './town/townBar';
-import { fortScreen, guildScreen, hallScreen, platePicture, upgradableArmies, type ScreenActions } from './town/townScreens';
+import { fortScreen, hallScreen, platePicture, upgradableArmies, type ScreenActions } from './town/townScreens';
 import { STAGE } from './town/townStage';
+import { GuildRoom } from './town/guildRoom';
 import { TownWindow } from './town/townWindow';
 
 /** A press that moves further than this (UI px) is a drag, not a tap. */
@@ -64,7 +67,9 @@ export class TownScene extends Phaser.Scene {
   private size = { w: 0, h: 0, k: 1 };
   private view: PixelTownView | null = null;
   private bar: TownBar | null = null;
-  private window: TownWindow | null = null;
+  private window: TownWindow | GuildRoom | null = null;
+  /** The spell being read in the guild. */
+  private guildPick: SpellId | null = null;
   private plate: BuildPlate | null = null;
   private screen: TownScreen | null = null;
   private picked: SlotRef | null = null;
@@ -125,7 +130,7 @@ export class TownScene extends Phaser.Scene {
     void loadTownArt(this).then(() => {
       if (!this.sys.isActive()) return;
       this.ready = true;
-      this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r), canCarry: (r) => this.canPick(r), dropSlot: (from, to) => this.moveCompany(from, to), split: () => this.openSplit() }, DEPTH.bar);
+      this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r), canCarry: (r) => this.canPick(r), dropSlot: (from, to) => this.moveCompany(from, to), split: () => this.openSplit(), off: () => this.session.def.off }, DEPTH.bar);
       this.drawAll();
     });
   }
@@ -225,7 +230,6 @@ export class TownScene extends Phaser.Scene {
       hireAll: (id) => this.hire(id, hireable(this.town(), id, this.session.adv.purse)),
       hireEverything: () => this.hireEverything(),
       upgradeEverything: () => this.upgradeEverything(),
-      buyBook: () => this.buyBook(),
     };
   }
 
@@ -235,8 +239,19 @@ export class TownScene extends Phaser.Scene {
     if (!this.screen || !this.bar) return;
     const adv = this.session.adv;
     const act = this.screenActions();
-    const spec = this.screen === 'hall' ? hallScreen(this, adv, this.town(), this.session.def.off, act) : this.screen === 'fort' ? fortScreen(this, adv, this.town(), act) : guildScreen(this, adv, this.town(), act);
-    this.window = new TownWindow(this, spec, { w: this.size.w, h: this.bar.top }, () => this.openScreen(null), DEPTH.window);
+    const area = { w: this.size.w, h: this.bar.top };
+    if (this.screen === 'guild') {
+      this.window = new GuildRoom(this, adv, this.town(), this.guildPick, area, { close: () => this.openScreen(null), buy: () => this.buyBook(), pick: (id) => this.pickSpell(id) }, DEPTH.window);
+      return;
+    }
+    const spec = this.screen === 'hall' ? hallScreen(this, adv, this.town(), this.session.def.off, act) : fortScreen(this, adv, this.town(), act);
+    this.window = new TownWindow(this, spec, area, () => this.openScreen(null), DEPTH.window);
+  }
+
+  private pickSpell(id: SpellId): void {
+    if (id === this.guildPick) return;
+    this.guildPick = id;
+    this.drawWindow();
   }
 
   private openScreen(s: TownScreen | null): void {
@@ -444,7 +459,7 @@ export class TownScene extends Phaser.Scene {
       this.toast(`A spellbook costs ${SPELLBOOK_COST} gold`);
       return;
     }
-    this.session.set(enterTown({ ...adv, purse: pay(adv.purse, { gold: SPELLBOOK_COST }), hero: { ...adv.hero, hasBook: true } }));
+    this.session.set(enterTown({ ...adv, purse: pay(adv.purse, { gold: SPELLBOOK_COST }), hero: gainItem(adv.hero, SPELLBOOK_SOLD).hero }));
     this.refresh();
   }
 

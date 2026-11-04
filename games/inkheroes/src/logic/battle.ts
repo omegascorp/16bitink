@@ -405,6 +405,11 @@ function newRound(s: BattleState): BattleState {
   };
 }
 
+/** The testing cheat: every enemy company falls at once and the player's side has won. */
+export function conquer(s: BattleState): BattleState {
+  return { ...s, stacks: s.stacks.map((st) => (st.side === 1 ? { ...st, count: 0 } : st)), active: null, winner: 0 };
+}
+
 /** Experience the winner earns: the HP of every enemy creature killed (H3). */
 export function experienceFor(s: BattleState, side: Side): number {
   return s.stacks.filter((x) => x.side !== side).reduce((n, x) => n + (x.startCount - x.count) * creature(x.creature).hp, 0);

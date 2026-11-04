@@ -1,6 +1,6 @@
 import type { ItemId } from '../../logic/items';
 import Phaser from 'phaser';
-import { ICONS, ITEM_ICONS, LAUREL, RESOURCE_ICONS, SLOT_ICONS, SPELL_ICONS, STAT_ICONS, type IconName, type SlotIcon, type StatName } from '../../art/pixel/ui';
+import { GUILD_ROOM, ICONS, ITEM_ICONS, LAUREL, RESOURCE_ICONS, SLOT_ICONS, SPELL_ART, SPELL_ICONS, STAT_ICONS, type IconName, type SlotIcon, type StatName } from '../../art/pixel/ui';
 import type { Resource } from '../../logic/resources';
 import type { SpellId } from '../../logic/spells';
 import { drawFrame, FILLS, PRIMARY_FILLS, type FrameLook, type RimName } from './pixelFrames';
@@ -23,6 +23,8 @@ export const UI_TEX = {
   icon: (i: IconName) => `pxui-icon-${i}`,
   stat: (s: StatName) => `pxui-stat-${s}`,
   spell: (s: SpellId) => `pxui-spell-${s}`,
+  spellArt: (s: SpellId) => `pxui-spellArt-${s}`,
+  guildRoom: 'pxui-guildRoom',
   res: (r: Resource) => `pxui-res-${r}`,
   laurel: 'pxui-laurel',
 } as const;
@@ -46,6 +48,8 @@ export function loadUiArt(scene: Phaser.Scene): string[] {
     ...(Object.entries(ICONS) as [IconName, string][]).map(([n, url]): [string, string] => [UI_TEX.icon(n), url]),
     ...(Object.entries(STAT_ICONS) as [StatName, string][]).map(([n, url]): [string, string] => [UI_TEX.stat(n), url]),
     ...(Object.entries(SPELL_ICONS) as [SpellId, string][]).map(([n, url]): [string, string] => [UI_TEX.spell(n), url]),
+    ...(Object.entries(SPELL_ART) as [SpellId, string][]).map(([n, url]): [string, string] => [UI_TEX.spellArt(n), url]),
+    [UI_TEX.guildRoom, GUILD_ROOM],
     ...(Object.entries(ITEM_ICONS) as [ItemId, string][]).map(([n, url]): [string, string] => [UI_TEX.item(n), url]),
     ...(Object.entries(SLOT_ICONS) as [SlotIcon, string][]).map(([n, url]): [string, string] => [UI_TEX.slot(n), url]),
     ...(Object.entries(RESOURCE_ICONS) as [Resource, string][]).map(([n, url]): [string, string] => [UI_TEX.res(n), url]),

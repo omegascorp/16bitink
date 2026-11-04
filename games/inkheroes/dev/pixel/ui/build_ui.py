@@ -27,8 +27,8 @@ TS = GAME / 'src' / 'art' / 'pixel' / 'ui.ts'
 
 ICONS = ('wait', 'defend', 'spell', 'auto', 'endDay', 'town', 'menu', 'hall', 'recruit', 'leave')
 STATS = ('attack', 'defense', 'shots', 'damage', 'health', 'left', 'speed', 'mana', 'power', 'knowledge', 'morale', 'luck', 'sight')
-ITEMS = ('bronzeHelm', 'bronzeCuirass', 'bronzeBracers', 'warBelt', 'bronzeGreaves', 'warSandals')
-SLOT_ICONS = ('helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring')
+ITEMS = ('bronzeHelm', 'bronzeCuirass', 'bronzeBracers', 'warBelt', 'bronzeGreaves', 'warSandals', 'noviceSpellbook', 'oracleSpellbook', 'alexandrianCodex')
+SLOT_ICONS = ('helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring', 'book')
 RESOURCES = ('gold', 'wood', 'ore', 'mercury', 'sulfur', 'crystal', 'gems')
 SPELLS = ('magicArrow', 'haste', 'slow', 'stoneSkin', 'cure', 'dispel', 'lightningBolt', 'bless', 'bloodlust')
 FONT_SRC = HERE / 'fonts' / 'ark-pixel-12px-proportional-latin.otf.woff2'
@@ -51,6 +51,7 @@ def main() -> None:
         shutil.copyfile(HERE / 'stats' / f'stat-{stat}.png', OUT / f'stat-{stat}.png')
     for spell in SPELLS:
         shutil.copyfile(HERE / 'spells' / f'{spell}.png', OUT / f'spell-{spell}.png')
+        shutil.copyfile(HERE / 'spells64' / f'{spell}.png', OUT / f'spellArt-{spell}.png')
     for item in ITEMS:
         shutil.copyfile(HERE / 'items' / f'{item}.png', OUT / f'item-{item}.png')
     for slot in SLOT_ICONS:
@@ -58,6 +59,7 @@ def main() -> None:
     for res in RESOURCES:
         shutil.copyfile(HERE / 'res' / f'res-{res}.png', OUT / f'res-{res}.png')
     shutil.copyfile(HERE / 'laurel.png', OUT / 'laurel.png')
+    shutil.copyfile(HERE / 'guild' / 'room.png', OUT / 'guildRoom.png')
     cap = lambda i: i[0].upper() + i[1:]  # noqa: E731
     imports = [f"import icon{cap(i)} from './ui/icon-{i}.png?url';" for i in ICONS]
     imports += [f"import stat{i.title()} from './ui/stat-{i}.png?url';" for i in STATS]
@@ -65,6 +67,9 @@ def main() -> None:
     stat_rows = [f"  {i}: stat{i.title()}," for i in STATS]
     imports += [f"import spell{i[0].upper() + i[1:]} from './ui/spell-{i}.png?url';" for i in SPELLS]
     spell_rows = [f"  {i}: spell{i[0].upper() + i[1:]}," for i in SPELLS]
+    imports += [f"import spellArt{i[0].upper() + i[1:]} from './ui/spellArt-{i}.png?url';" for i in SPELLS]
+    imports += ["import guildRoom from './ui/guildRoom.png?url';"]
+    spell_art_rows = [f"  {i}: spellArt{i[0].upper() + i[1:]}," for i in SPELLS]
     imports += [f"import item{cap(i)} from './ui/item-{i}.png?url';" for i in ITEMS]
     item_rows = [f"  {i}: item{cap(i)}," for i in ITEMS]
     imports += [f"import slot{cap(i)} from './ui/slot-{i}.png?url';" for i in SLOT_ICONS]
@@ -95,6 +100,14 @@ export const STAT_ICONS: Readonly<Record<StatName, string>> = {{
 export const SPELL_ICONS: Readonly<Record<SpellId, string>> = {{
 {chr(10).join(spell_rows)}
 }};
+
+/** The guild's spell paintings (64 x 64). */
+export const SPELL_ART: Readonly<Record<SpellId, string>> = {{
+{chr(10).join(spell_art_rows)}
+}};
+
+/** The guild's library (768 x 340). */
+export const GUILD_ROOM = guildRoom;
 
 /** The gear's item icons (64 x 64). */
 export const ITEM_ICONS: Readonly<Record<ItemId, string>> = {{

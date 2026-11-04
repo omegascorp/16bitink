@@ -7,7 +7,7 @@ export type Owner = 'player' | 'neutral' | 'rival';
 
 export type ObjectKind =
   | 'town' | 'mine' | 'pile' | 'chest' | 'campfire'
-  | 'mercCamp' | 'watchtower' | 'standingStone' | 'shrine' | 'windmill' | 'stables'
+  | 'mercCamp' | 'watchtower' | 'standingStone' | 'shrine' | 'windmill' | 'stables' | 'spellbook'
   | 'monster';
 
 /** A thing on the map. Fields beyond kind/x/y depend on the kind. */
@@ -26,7 +26,9 @@ export interface MapObject {
   readonly count?: number;
   /** Monster: the piece it leaves when beaten. */
   readonly drop?: ItemId;
-  /** Shrine: the spell it teaches. */
+  /** Spellbook: the book itself. */
+  readonly item?: ItemId;
+  /** Shrine or spellbook: the spell it teaches. */
   readonly spell?: SpellId;
   /** Mines and towns: who flies the flag. */
   readonly owner?: Owner;
@@ -37,7 +39,7 @@ export interface MapObject {
 }
 
 /** Things that vanish once visited. */
-export const PICKUPS: readonly ObjectKind[] = ['pile', 'chest', 'campfire'];
+export const PICKUPS: readonly ObjectKind[] = ['pile', 'chest', 'campfire', 'spellbook'];
 /** Sites drawn a building tall: they also block the tile behind their own. */
 const TALL: readonly ObjectKind[] = ['mine', 'mercCamp', 'watchtower', 'windmill', 'stables'];
 
@@ -64,7 +66,7 @@ export const CHEST_XP: Readonly<Record<number, number>> = { 1000: 500, 1500: 100
 export const SITE_NAMES: Readonly<Record<ObjectKind, string>> = {
   town: 'Town', mine: 'Mine', pile: 'Pile', chest: 'Treasure Chest', campfire: 'Campfire',
   mercCamp: 'Mercenary Camp', watchtower: 'Old Watchtower', standingStone: 'Standing Stone', shrine: 'Wayside Shrine',
-  windmill: 'Windmill', stables: 'Stables', monster: 'Monster',
+  windmill: 'Windmill', stables: 'Stables', spellbook: 'Spellbook Altar', monster: 'Monster',
 };
 
 /** The tiles right round a town's gate (x, y), which no hero has ever been able to stand on. */

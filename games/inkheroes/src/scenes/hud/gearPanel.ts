@@ -1,16 +1,20 @@
 import type Phaser from 'phaser';
 import type { SlotIcon } from '../../art/pixel/ui';
 import type { Hero } from '../../logic/hero';
-import { BAG_SIZE, ITEMS, itemSays, SET_NAMES, takeOff, wear, type ItemId, type Slot } from '../../logic/items';
-import { drawSocket } from '../battle/pixelFrames';
+import { BAG_SIZE, itemDef, itemQuality, itemSays, QUALITY_NAMES, SET_NAMES, takeOff, wear, type ItemId, type Quality, type Slot } from '../../logic/items';
+import { drawSocket, type RimName } from '../battle/pixelFrames';
 import { INK, PixelButton, putBuffer, TextLabel, UI_TEX } from '../battle/pixelUi';
 import type { GearCell, GearLayout } from './gearLayout';
 
 const BTN = { w: 92, h: 28 } as const;
+const BTN_GAP = 6;
+
+/** A piece's grade shows in its frame. */
+export const QUALITY_RIM: Readonly<Record<Quality, RimName>> = { gray: 'bronze', green: 'green', blue: 'player', purple: 'purple', gold: 'gold' };
 
 /** A slot's full name, for the line under the panel. */
 const FULL: Readonly<Record<Slot, string>> = {
-  helm: 'Helm', cuirass: 'Cuirass', bracers: 'Bracers', belt: 'Belt', greaves: 'Greaves', boots: 'Boots', weapon: 'Weapon', shield: 'Shield', amulet: 'Amulet', ring1: 'Ring', ring2: 'Ring',
+  helm: 'Helm', cuirass: 'Cuirass', bracers: 'Bracers', belt: 'Belt', greaves: 'Greaves', boots: 'Boots', weapon: 'Weapon', shield: 'Shield', amulet: 'Amulet', ring1: 'Ring', ring2: 'Ring', book: 'Spellbook',
 };
 
 /** What's picked on the panel: a slot on the body, or a place in the bag. */
@@ -31,7 +35,7 @@ export function pickedItem(hero: Hero, pick: GearPick | null): ItemId | undefine
 }
 
 function cell(host: GearHost, at: GearCell, layout: GearLayout, item: ItemId | undefined, picked: boolean, onTap: () => void, ghost?: SlotIcon): void {
-  const key = putBuffer(host.scene, drawSocket(layout.cell, picked ? 'gold' : 'bronze'));
+  const key = putBuffer(host.scene, drawSocket(layout.cell, picked ? 'gold' : item ? QUALITY_RIM[itemQuality(item)] : 'bronze'));
   host.keys.push(key);
   const frame = host.scene.add.image(at.x, at.y, key).setOrigin(0).setInteractive();
   frame.on('pointerup', onTap);
@@ -41,8 +45,8 @@ function cell(host: GearHost, at: GearCell, layout: GearLayout, item: ItemId | u
   if (texture) host.body.add(host.scene.add.image(mid.x, mid.y, texture).setScale(layout.scale / 2));
 }
 
-function line(host: GearHost, text: string, x: number, y: number, ink: typeof INK[keyof typeof INK]): void {
-  const l = new TextLabel(host.scene, { align: 'left', anchor: { x: 0, y: 0 }, ink }).setText(text).setPosition(x, y);
+function line(host: GearHost, text: string, x: number, y: number, ink: typeof INK[keyof typeof INK], wrap?: number): void {
+  const l = new TextLabel(host.scene, { align: 'left', anchor: { x: 0, y: 0 }, ink, ...(wrap ? { wrap } : {}) }).setText(text).setPosition(x, y);
   host.owned.push(l);
   host.body.add(l.img);
 }
@@ -71,9 +75,9 @@ function detail(host: GearHost, at: GearCell, w: number, hero: Hero, pick: GearP
     line(host, pick && 'slot' in pick ? `${FULL[pick.slot]}: nothing worn` : 'Tap a piece to see what it gives', x, y + 6, INK.dim);
     return;
   }
-  const def = ITEMS[item];
+  const def = itemDef(item);
   line(host, def.name, x, y, INK.title);
-  line(host, `${itemSays(item)}${def.set ? ` · ${SET_NAMES[def.set]}` : ''}`, x, y + 15, INK.dim);
+  line(host, `${QUALITY_NAMES[def.quality]}: ${itemSays(item)}${def.set ? ` · ${SET_NAMES[def.set]}` : ''}`, x, y + 15, INK.dim, w - BTN.w - BTN_GAP);
   const next = pick && 'slot' in pick ? takeOff(hero, pick.slot) : wear(hero, (pick as { bag: number }).bag);
   const btn = new PixelButton(host.scene, { w: BTN.w, h: BTN.h, label: pick && 'slot' in pick ? 'Take off' : 'Wear', onClick: () => on.change(next) });
   btn.setPosition(x + w - BTN.w, y);

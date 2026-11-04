@@ -7,10 +7,10 @@ import { BUILDING_IDS, type BuildingId } from '../logic/buildings';
  * is how a town grows its full tree.
  */
 export const UNLOCKS: readonly (readonly BuildingId[])[] = [
-  // Map 1: the walls, a hall, the guild's first floor, the four lowest dwellings.
-  ['villageHall', 'townHall', 'fort', 'citadel', 'tavern', 'mageGuild1', 'guardhouse', 'archeryRange', 'griffinTower', 'barracks'],
-  // Map 2: the first upgrades of those four, the centaurs, the market and the guild's second floor.
-  ['cityHall', 'marketplace', 'mageGuild2', 'stables', 'monastery', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2'],
+  // Map 1: the walls, a hall, the four lowest dwellings. No magic yet: Rowan finds a spellbook on map 2.
+  ['villageHall', 'townHall', 'fort', 'citadel', 'tavern', 'guardhouse', 'archeryRange', 'griffinTower', 'barracks'],
+  // Map 2: the first upgrades of those four, the centaurs, the market and both floors of the guild.
+  ['cityHall', 'marketplace', 'mageGuild1', 'mageGuild2', 'stables', 'monastery', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2'],
   // Map 3: the Castle, the second upgrades of the first four, the companions, the centaurs' first upgrade, and the Blacksmith's war machines.
   ['castle', 'blacksmith', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3'],
 ];

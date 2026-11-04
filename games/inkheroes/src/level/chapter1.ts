@@ -43,10 +43,10 @@ export const ASHFORD_LAND: MapDef = {
     'TggTggTggTggTggTggTggTggT~~ggggP',
     'TTTTTTTTTTTTTTTTTTTTTTTTT~~TTTTT',
   ],
-  town: { id: 'ashford-town', name: 'Ashford', x: 6, y: 5, built: ['villageHall', 'fort', 'tavern', 'guardhouse'], guild: ['bless', 'stoneSkin', 'slow'] },
+  town: { id: 'ashford-town', name: 'Ashford', x: 6, y: 5, built: ['villageHall', 'fort', 'tavern', 'guardhouse'], guild: ['bless', 'stoneSkin', 'slow', 'haste', 'cure'] },
   hero: {
     id: 'rowan', name: 'Rowan', heroClass: 'knight', x: 6, y: 6,
-    attack: 2, defense: 2, power: 1, knowledge: 1, skills: { leadership: 1 }, spells: ['magicArrow'], hasBook: true,
+    attack: 2, defense: 2, power: 1, knowledge: 1, skills: { leadership: 1 }, spells: [],
     army: [{ creature: 'spearman', count: 18 }, { creature: 'bowman', count: 7 }],
   },
   purse: { gold: 7500, wood: 15, ore: 15, mercury: 3, sulfur: 3, crystal: 3, gems: 3 },
@@ -72,7 +72,6 @@ export const ASHFORD_LAND: MapDef = {
     { id: 'merc-camp', kind: 'mercCamp', x: 16, y: 4 },
     { id: 'watchtower', kind: 'watchtower', x: 22, y: 14 },
     { id: 'stone', kind: 'standingStone', x: 11, y: 18 },
-    { id: 'shrine', kind: 'shrine', x: 8, y: 12, spell: 'haste' },
     { id: 'windmill', kind: 'windmill', x: 15, y: 15, resource: 'crystal', amount: 4 },
     { id: 'stables', kind: 'stables', x: 17, y: 7 },
     // Treasure.
@@ -80,6 +79,8 @@ export const ASHFORD_LAND: MapDef = {
     { id: 'chest-swamp', kind: 'chest', x: 3, y: 20, gold: 1000 },
     { id: 'chest-east', kind: 'chest', x: 29, y: 6, gold: 2000 },
     { id: 'fire-north', kind: 'campfire', x: 8, y: 2, gold: 500, resource: 'wood', amount: 5 },
+    // Was a shrine: the id stays, as saves list the sites a hero has visited.
+    { id: 'shrine', kind: 'campfire', x: 8, y: 12, gold: 500, resource: 'ore', amount: 3 },
     { id: 'fire-road', kind: 'campfire', x: 16, y: 13, gold: 600, resource: 'ore', amount: 4 },
     { id: 'pile-wood-1', kind: 'pile', x: 3, y: 7, resource: 'wood', amount: 7 },
     { id: 'pile-ore-1', kind: 'pile', x: 10, y: 3, resource: 'ore', amount: 6 },

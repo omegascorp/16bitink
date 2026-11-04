@@ -52,7 +52,7 @@ describe('saving', () => {
     const old = { ...adv, objects: adv.objects.filter((o) => o.id !== 'road-boars') };
     const parsed = parseAdventure(JSON.parse(JSON.stringify(old)), THORNWOOD)!;
     expect(parsed).not.toBeNull();
-    expect(parsed.objects.find((o) => o.id === 'road-boars')).toMatchObject({ creature: 'boar', count: 5 });
+    expect(parsed.objects.find((o) => o.id === 'road-boars')).toMatchObject({ creature: 'boar', count: 10 });
   });
 
   it('still refuses a save missing anything but a monster', () => {

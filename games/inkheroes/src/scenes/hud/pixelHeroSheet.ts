@@ -173,8 +173,10 @@ export class PixelHeroSheet implements CardView {
     left = this.lines(x, left + GAP, col, data.lines);
     let right = this.heading(second, two ? top : left + GAP, col, 'Skills');
     right = this.text(second, right, col, data.skills.length ? data.skills.map((s) => `${s.name}: ${s.says}`).join('\n') : 'No skills yet: they come with new levels');
-    right = this.heading(second, right + GAP, col, 'Spells');
-    right = this.text(second, right, col, data.spellsNote ?? data.spells.map((s) => s.name).join(' · '));
+    if (data.magic) {
+      right = this.heading(second, right + GAP, col, 'Spells');
+      right = this.text(second, right, col, data.spellsNote ?? data.spells.map((s) => s.name).join(' · '));
+    }
     const armyTop = (tight ? right : Math.max(left, right)) + GAP;
     const slot = fitSlot(tight ? col : heroW);
     const rowW = armyRowW(slot);

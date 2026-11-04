@@ -14,6 +14,8 @@ if (!parent) throw new Error('#game missing');
 const handle = mount(parent, {
   unlocked: __DEV_UNLOCK__,
   allLevelsOpen: __DEV_ALL_LEVELS__,
+  // This harness has no accounts, so the flag alone stands for an admin.
+  cheats: __DEV_ALL_LEVELS__,
   storage: window.localStorage,
   loadContent: async () => JSON.parse(JSON.stringify((await import('../content/paid')).INKHEROES_PAID_MAPS)) as unknown,
   onBuy: () => alert('Checkout would open here'),

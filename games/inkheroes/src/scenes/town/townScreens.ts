@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import { TOWN_ART } from '../../art/pixel/town';
 import { heroInGarrison, heroTown, heroVisiting, type Adventure } from '../../logic/adventure';
 import type { Army } from '../../logic/army';
+import { hasSpellbook } from '../../logic/items';
 import type { Town } from '../../logic/town';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
 import { creature, type CreatureId } from '../../logic/creatures';
@@ -25,7 +26,6 @@ const TERRAIN = 'grass';
 const HALL_CARD = { w: 160, h: 122, pic: { w: 152, h: 76 } } as const;
 /** A muster card: the creature on its picture, then its name, numbers, cost and how many wait. */
 const FORT_CARD = { w: 260, h: 146, pic: { w: 100, h: 104 }, btn: { y: 112, h: 30 } } as const;
-const GUILD_CARD = { w: 260, h: 62 } as const;
 const LINE = 15;
 const CARD_FILL: Rgba = [44, 31, 21, 255];
 
@@ -63,7 +63,6 @@ export interface ScreenActions {
   hireEverything(): void;
   /** Upgrades every company here the purse affords. */
   upgradeEverything(): void;
-  buyBook(): void;
 }
 
 /** A card's frame and a zone over it for taps. */
@@ -235,35 +234,6 @@ export function fortScreen(scene: Phaser.Scene, adv: Adventure, town: Town, act:
         label(scene, `${cr.cost.gold ?? 0}${extra} each`, tx + 19, y + 24 + LINE * 3 + 5),
         label(scene, `${stockOf(town, id)} to hire · +${growthOf(town, id)} a week`, tx, y + 24 + LINE * 4 + 6, { ink: INK.good }),
         { parts: [hireBtn.root], owned: [hireBtn] },
-      );
-    },
-  };
-}
-
-/** The mage guild: the spells it teaches, and a spellbook for a hero without one. */
-export function guildScreen(scene: Phaser.Scene, adv: Adventure, town: Town, act: ScreenActions): GridSpec {
-  const spells = guildSpells(town);
-  const hero = adv.hero;
-  const here = heroTown(adv)?.id === town.id;
-  const note = !here ? `${hero.name} learns these on entering the town with a spellbook.` : hero.hasBook ? `${hero.name} has learned them all.` : `${hero.name} needs a spellbook to learn them.`;
-  return {
-    title: has(town, 'mageGuild2') ? 'Mage Guild, two floors' : 'Mage Guild',
-    cell: GUILD_CARD,
-    count: spells.length,
-    maxCols: 2,
-    empty: 'Build the Mage Guild to learn spells here.',
-    note,
-    buttons: here && !hero.hasBook ? [{ label: `Buy a spellbook: ${SPELLBOOK_COST} gold`, onClick: () => act.buyBook() }] : [],
-    draw: (i, x, y) => {
-      const s = SPELLS[spells[i]!];
-      const niche = new PixelImage(scene, drawFrame(30, 30, { rim: 'gold', fill: FILLS.portrait })).setPosition(x + 6, y + 6);
-      const icon = scene.add.image(x + 9, y + 9, UI_TEX.spell(s.id)).setOrigin(0);
-      return merge(
-        card(scene, x, y, GUILD_CARD.w, GUILD_CARD.h),
-        { parts: [niche.img, icon], owned: [niche] },
-        label(scene, s.name, x + 42, y + 4, { kind: 'title' }),
-        label(scene, `Level ${s.level} · ${s.mana} mana`, x + 42 + Math.max(70, s.name.length * 7), y + 5, { ink: INK.dim }),
-        label(scene, s.says, x + 42, y + 22, { wrap: GUILD_CARD.w - 48 }),
       );
     },
   };

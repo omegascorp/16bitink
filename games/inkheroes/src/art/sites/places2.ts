@@ -185,6 +185,7 @@ function stables(d: Draw, rng: Rng): void {
 export const PLACES_B = {
   standingStone: small(standingStone, 13, runeGlow),
   shrine: small(shrine, 13, candleGlow),
+  spellbook: small(shrine, 13, candleGlow),
   windmill: mine(windmill, 26),
   stables: mine(stables, 38),
 } as const;

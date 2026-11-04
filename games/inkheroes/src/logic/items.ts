@@ -1,13 +1,14 @@
 import type { Hero } from './hero';
 
 /** What a hero wears: armor (always part of a set), and the pieces that never are. */
-export const SLOTS = ['helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring1', 'ring2'] as const;
+export const SLOTS = ['helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring1', 'ring2', 'book'] as const;
 export type Slot = (typeof SLOTS)[number];
 
 /** How many spare pieces a hero carries. */
 export const BAG_SIZE = 20;
 
 export type Quality = 'gray' | 'green' | 'blue' | 'purple' | 'gold';
+export const QUALITY_NAMES: Readonly<Record<Quality, string>> = { gray: 'Common', green: 'Uncommon', blue: 'Rare', purple: 'Epic', gold: 'Legendary' };
 export type GearStat = 'attack' | 'defense' | 'power' | 'knowledge' | 'morale' | 'luck' | 'sight' | 'travel';
 
 export const GEAR_STAT_NAMES: Readonly<Record<GearStat, string>> = {
@@ -33,13 +34,22 @@ export const ITEMS = {
   warBelt: { name: 'War Belt', slot: 'belt', quality: 'gray', set: 'bronze', gives: { morale: 1 } },
   bronzeGreaves: { name: 'Bronze Greaves', slot: 'greaves', quality: 'gray', set: 'bronze', gives: { defense: 1 } },
   warSandals: { name: 'War Sandals', slot: 'boots', quality: 'gray', set: 'bronze', gives: { attack: 1 } },
+  noviceSpellbook: { name: 'Novice’s Spellbook', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
+  oracleSpellbook: { name: 'Oracle’s Spellbook', slot: 'book', quality: 'green', gives: { knowledge: 1, power: 1 } },
+  alexandrianCodex: { name: 'Alexandrian Codex', slot: 'book', quality: 'blue', gives: { knowledge: 2, power: 1 } },
 } as const satisfies Record<string, ItemDef>;
 
 export type ItemId = keyof typeof ITEMS;
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
 export type Gear = Readonly<Partial<Record<Slot, ItemId>>>;
 
-const itemDef = (id: ItemId): ItemDef => ITEMS[id];
+export const itemDef = (id: ItemId): ItemDef => ITEMS[id];
+
+/** A piece's grade. */
+export const itemQuality = (id: ItemId): Quality => itemDef(id).quality;
+
+/** Whether `h` wears a spellbook: without one a hero has no magic at all. */
+export const hasSpellbook = (h: Pick<Hero, 'gear'>): boolean => !!h.gear?.book;
 
 /** What a piece gives, in words: "+1 Defense". */
 export const itemSays = (id: ItemId): string => (Object.entries(itemDef(id).gives) as [GearStat, number][]).map(([s, n]) => `+${n} ${GEAR_STAT_NAMES[s]}`).join(', ');

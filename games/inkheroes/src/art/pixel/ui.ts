@@ -36,12 +36,25 @@ import spellDispel from './ui/spell-dispel.png?url';
 import spellLightningBolt from './ui/spell-lightningBolt.png?url';
 import spellBless from './ui/spell-bless.png?url';
 import spellBloodlust from './ui/spell-bloodlust.png?url';
+import spellArtMagicArrow from './ui/spellArt-magicArrow.png?url';
+import spellArtHaste from './ui/spellArt-haste.png?url';
+import spellArtSlow from './ui/spellArt-slow.png?url';
+import spellArtStoneSkin from './ui/spellArt-stoneSkin.png?url';
+import spellArtCure from './ui/spellArt-cure.png?url';
+import spellArtDispel from './ui/spellArt-dispel.png?url';
+import spellArtLightningBolt from './ui/spellArt-lightningBolt.png?url';
+import spellArtBless from './ui/spellArt-bless.png?url';
+import spellArtBloodlust from './ui/spellArt-bloodlust.png?url';
+import guildRoom from './ui/guildRoom.png?url';
 import itemBronzeHelm from './ui/item-bronzeHelm.png?url';
 import itemBronzeCuirass from './ui/item-bronzeCuirass.png?url';
 import itemBronzeBracers from './ui/item-bronzeBracers.png?url';
 import itemWarBelt from './ui/item-warBelt.png?url';
 import itemBronzeGreaves from './ui/item-bronzeGreaves.png?url';
 import itemWarSandals from './ui/item-warSandals.png?url';
+import itemNoviceSpellbook from './ui/item-noviceSpellbook.png?url';
+import itemOracleSpellbook from './ui/item-oracleSpellbook.png?url';
+import itemAlexandrianCodex from './ui/item-alexandrianCodex.png?url';
 import slotHelm from './ui/slot-helm.png?url';
 import slotCuirass from './ui/slot-cuirass.png?url';
 import slotBracers from './ui/slot-bracers.png?url';
@@ -52,6 +65,7 @@ import slotWeapon from './ui/slot-weapon.png?url';
 import slotShield from './ui/slot-shield.png?url';
 import slotAmulet from './ui/slot-amulet.png?url';
 import slotRing from './ui/slot-ring.png?url';
+import slotBook from './ui/slot-book.png?url';
 import resGold from './ui/res-gold.png?url';
 import resWood from './ui/res-wood.png?url';
 import resOre from './ui/res-ore.png?url';
@@ -106,6 +120,22 @@ export const SPELL_ICONS: Readonly<Record<SpellId, string>> = {
   bloodlust: spellBloodlust,
 };
 
+/** The guild's spell paintings (64 x 64). */
+export const SPELL_ART: Readonly<Record<SpellId, string>> = {
+  magicArrow: spellArtMagicArrow,
+  haste: spellArtHaste,
+  slow: spellArtSlow,
+  stoneSkin: spellArtStoneSkin,
+  cure: spellArtCure,
+  dispel: spellArtDispel,
+  lightningBolt: spellArtLightningBolt,
+  bless: spellArtBless,
+  bloodlust: spellArtBloodlust,
+};
+
+/** The guild's library (768 x 340). */
+export const GUILD_ROOM = guildRoom;
+
 /** The gear's item icons (64 x 64). */
 export const ITEM_ICONS: Readonly<Record<ItemId, string>> = {
   bronzeHelm: itemBronzeHelm,
@@ -114,9 +144,12 @@ export const ITEM_ICONS: Readonly<Record<ItemId, string>> = {
   warBelt: itemWarBelt,
   bronzeGreaves: itemBronzeGreaves,
   warSandals: itemWarSandals,
+  noviceSpellbook: itemNoviceSpellbook,
+  oracleSpellbook: itemOracleSpellbook,
+  alexandrianCodex: itemAlexandrianCodex,
 };
 
-export type SlotIcon = 'helm' | 'cuirass' | 'bracers' | 'belt' | 'greaves' | 'boots' | 'weapon' | 'shield' | 'amulet' | 'ring';
+export type SlotIcon = 'helm' | 'cuirass' | 'bracers' | 'belt' | 'greaves' | 'boots' | 'weapon' | 'shield' | 'amulet' | 'ring' | 'book';
 
 /** The silhouettes in empty gear slots (64 x 64). */
 export const SLOT_ICONS: Readonly<Record<SlotIcon, string>> = {
@@ -130,6 +163,7 @@ export const SLOT_ICONS: Readonly<Record<SlotIcon, string>> = {
   shield: slotShield,
   amulet: slotAmulet,
   ring: slotRing,
+  book: slotBook,
 };
 
 /** The purse's resource icons (16 x 16). */

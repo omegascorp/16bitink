@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { getHost, getSound } from '../host';
 import { calendar, playerTowns, unfinished, type Adventure } from '../logic/adventure';
 import { CLASSES, dailyMp, maxMana, withinMana } from '../logic/hero';
+import { hasSpellbook } from '../logic/items';
 import { tilesOf } from '../logic/map';
 import { faceOf, heroArt, PX_TEX } from './battle/pixelAssets';
 import { drawPortrait, FILLS } from './battle/pixelFrames';
@@ -53,6 +54,7 @@ export class MapHudScene extends Phaser.Scene {
   private heroLine!: TextLabel;
   private moveLine!: TextLabel;
   private manaLine!: TextLabel;
+  private manaIcon!: Phaser.GameObjects.Image;
   private panel!: Phaser.GameObjects.Container;
   private panelFrame!: PixelFrame;
   private portrait!: Phaser.GameObjects.Image;
@@ -134,10 +136,10 @@ export class MapHudScene extends Phaser.Scene {
     const moveIcon = this.add.image(textX, statY - 1, UI_TEX.stat('speed')).setOrigin(0);
     this.moveLine = new TextLabel(this, { align: 'left', anchor: { x: 0, y: 0 } }).setPosition(textX + 19, statY);
     const manaX = textX + 96;
-    const manaIcon = this.add.image(manaX, statY - 1, UI_TEX.stat('mana')).setOrigin(0);
+    this.manaIcon = this.add.image(manaX, statY - 1, UI_TEX.stat('mana')).setOrigin(0);
     this.manaLine = new TextLabel(this, { align: 'left', anchor: { x: 0, y: 0 } }).setPosition(manaX + 19, statY);
     this.owned.push(this.heroLine, this.moveLine, this.manaLine);
-    parts.push(this.heroLine.img, moveIcon, this.moveLine.img, manaIcon, this.manaLine.img);
+    parts.push(this.heroLine.img, moveIcon, this.moveLine.img, this.manaIcon, this.manaLine.img);
     this.towns = new TownList(this, BUTTONS_W - BTN.gap, {
       textureOf: (t) => MAP_TEX.town(`${this.session.def.id}-${t.id}`),
       onOpen: (id) => (this.scene.get('Map') as MapScene).openTown(id),
@@ -219,7 +221,8 @@ export class MapHudScene extends Phaser.Scene {
     const h = adv.hero;
     this.heroLine.setText(`${h.name}, ${CLASSES[h.heroClass].name} · level ${h.level}`);
     this.moveLine.setText(`${tilesOf(h.mp)}/${tilesOf(dailyMp(h))}`);
-    this.manaLine.setText(`${h.mana}/${maxMana(h)}`);
+    this.manaLine.setText(`${h.mana}/${maxMana(h)}`).img.setVisible(hasSpellbook(h));
+    this.manaIcon.setVisible(hasSpellbook(h));
     this.towns.set(playerTowns(adv));
   }
 

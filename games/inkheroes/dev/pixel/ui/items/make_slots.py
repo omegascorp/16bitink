@@ -11,7 +11,7 @@ OUT = HERE / 'slots'
 TONES = (((30, 22, 15, 255), 0), ((52, 38, 26, 255), 70), ((76, 57, 39, 255), 140))
 SOURCES = {
     'helm': 'bronzeHelm', 'cuirass': 'bronzeCuirass', 'bracers': 'bronzeBracers', 'belt': 'warBelt', 'greaves': 'bronzeGreaves', 'boots': 'warSandals',
-    'weapon': 'ghost/weapon', 'shield': 'ghost/shield', 'amulet': 'ghost/amulet', 'ring': 'ghost/ring',
+    'weapon': 'ghost/weapon', 'shield': 'ghost/shield', 'amulet': 'ghost/amulet', 'ring': 'ghost/ring', 'book': 'noviceSpellbook',
 }
 
 

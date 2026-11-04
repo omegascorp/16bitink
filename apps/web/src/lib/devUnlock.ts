@@ -14,3 +14,8 @@ export function isLocalHost(hostname: string): boolean {
 export function devUnlockAllowed(flag: string | undefined, hostname: string): boolean {
   return flag === 'true' && isLocalHost(hostname);
 }
+
+/** Game cheats go one step past DEV_ALL_LEVELS' two locks: they're for a signed-in admin only. */
+export function devCheatsAllowed(flag: string | undefined, hostname: string, role: string | null): boolean {
+  return devUnlockAllowed(flag, hostname) && role === 'admin';
+}

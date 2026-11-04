@@ -5,17 +5,17 @@ import { startAdventure } from '../src/logic/adventure';
 import { rideOn } from '../src/logic/chapter';
 import { dailyMp, maxMana, sightOf, toBattleHero } from '../src/logic/hero';
 import { loadAdventure, saveAdventure } from '../src/logic/save';
-import { BAG_SIZE, gainItem, gearBonus, ITEMS, SLOTS, takeOff, wear, withGear } from '../src/logic/items';
+import { BAG_SIZE, gainItem, gearBonus, ITEM_IDS, itemDef, ITEMS, SLOTS, takeOff, wear, withGear } from '../src/logic/items';
 import { gearLayout } from '../src/scenes/hud/gearLayout';
 
 const hero = startAdventure(ASHFORD).hero;
 
 describe('items', () => {
   it('has the six pieces of the gray Bronze set, one for each armor slot', () => {
-    const bronze = Object.values(ITEMS).filter((i) => i.set === 'bronze');
+    const bronze = ITEM_IDS.map(itemDef).filter((i) => i.set === 'bronze');
     expect(bronze.map((i) => i.slot).sort()).toEqual(['belt', 'boots', 'bracers', 'cuirass', 'greaves', 'helm']);
     expect(bronze.every((i) => i.quality === 'gray')).toBe(true);
-    expect(SLOTS).toHaveLength(11);
+    expect(SLOTS).toHaveLength(12);
   });
 
   it('adds up what a hero wears, and nothing from the bag', () => {
@@ -78,7 +78,7 @@ describe('items', () => {
     expect(drops.map((o) => [o.id, o.drop])).toEqual(expect.arrayContaining([['goblins', 'bronzeHelm'], ['ogres', 'bronzeCuirass']]));
     expect(new Set(drops.map((o) => o.drop)).size).toBe(6);
     expect(drops).toHaveLength(6);
-    expect(BLACK_BANNER.objects.filter((o) => o.drop)).toHaveLength(6);
+    expect(BLACK_BANNER.objects.filter((o) => o.drop)).toHaveLength(8);
   });
 });
 

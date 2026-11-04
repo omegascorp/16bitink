@@ -1,3 +1,4 @@
+import type { ItemId } from './items';
 import { addTroops, type Army } from './army';
 import { BUILDINGS, BUILDING_IDS, type BuildingId } from './buildings';
 import { creature, lineOf, tierOf, type CreatureId } from './creatures';
@@ -187,6 +188,8 @@ export function guildSpells(t: Town): SpellId[] {
 }
 
 export const SPELLBOOK_COST = 500;
+/** What a Mage Guild sells for that. */
+export const SPELLBOOK_SOLD: ItemId = 'noviceSpellbook';
 
 /** Buildings in the order the town screen lists them. */
 export const BUILD_ORDER: readonly BuildingId[] = BUILDING_IDS;

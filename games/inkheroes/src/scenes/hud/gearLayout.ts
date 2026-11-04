@@ -15,11 +15,11 @@ type Grid = Readonly<Record<Slot, readonly [number, number]>>;
 const DOLLS: Readonly<Record<Doll, { readonly cols: number; readonly rows: number; readonly at: Grid }>> = {
   tall: {
     cols: 3, rows: 5,
-    at: { helm: [1, 0], amulet: [2, 0], weapon: [0, 1], cuirass: [1, 1], shield: [2, 1], bracers: [0, 2], belt: [1, 2], ring1: [0, 3], greaves: [1, 3], ring2: [2, 3], boots: [1, 4] },
+    at: { helm: [1, 0], amulet: [2, 0], weapon: [0, 1], cuirass: [1, 1], shield: [2, 1], bracers: [0, 2], belt: [1, 2], ring1: [0, 3], greaves: [1, 3], ring2: [2, 3], boots: [1, 4], book: [2, 2] },
   },
   broad: {
     cols: 4, rows: 3,
-    at: { weapon: [0, 0], helm: [1, 0], amulet: [2, 0], shield: [3, 0], bracers: [0, 1], cuirass: [1, 1], belt: [2, 1], ring1: [3, 1], greaves: [1, 2], boots: [2, 2], ring2: [3, 2] },
+    at: { weapon: [0, 0], helm: [1, 0], amulet: [2, 0], shield: [3, 0], bracers: [0, 1], cuirass: [1, 1], belt: [2, 1], ring1: [3, 1], greaves: [1, 2], boots: [2, 2], ring2: [3, 2], book: [0, 2] },
   },
 };
 

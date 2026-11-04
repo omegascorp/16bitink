@@ -1,4 +1,4 @@
-import { gearBonus, withGear, type Gear, type ItemId } from './items';
+import { gearBonus, hasSpellbook, withGear, type Gear, type ItemId } from './items';
 import { TILE_MP } from './map';
 import { armyMorale, slowest, type Army } from './army';
 import type { BattleHero } from './battleTypes';
@@ -27,7 +27,6 @@ export interface Hero {
   readonly level: number;
   readonly skills: Skills;
   readonly spells: readonly SpellId[];
-  readonly hasBook: boolean;
   readonly army: Army;
   /** Movement points left today. */
   readonly mp: number;
@@ -97,13 +96,17 @@ export function toBattleHero(h: Hero): BattleHero {
   const worn = gearBonus(h);
   return {
     name: h.name, attack: geared.attack, defense: geared.defense, power: geared.power, mana: h.mana,
-    spells: h.hasBook ? h.spells : [], skills: h.skills,
+    spells: hasSpellbook(h) ? h.spells : [], skills: h.skills,
     morale: skillValue(h.skills, 'leadership') + (worn.morale ?? 0), luck: skillValue(h.skills, 'luck') + (worn.luck ?? 0),
   };
 }
 
 /** Morale shown on the hero card: Leadership plus the army's make-up. */
 export const heroMorale = (h: Hero): number => Math.max(-3, Math.min(3, skillValue(h.skills, 'leadership') + armyMorale(h.army)));
+
+/** What only matters to a hero with a spellbook. */
+const MAGIC_PRIMARIES: readonly Primary[] = ['power', 'knowledge'];
+const MAGIC_SKILLS: readonly SkillId[] = ['wisdom', 'intelligence', 'mysticism', 'sorcery'];
 
 /** What a level-up offers: the primary skill it raises and up to two secondary skills to choose from. */
 export interface LevelUp {
@@ -116,13 +119,17 @@ export interface LevelUp {
 export function nextLevelUp(h: Hero, seed: number): { offer: LevelUp; seed: number } | null {
   if (levelFor(h.xp) <= h.level) return null;
   const cls = CLASSES[h.heroClass];
-  const p = rollInt(seed, 1, 100);
+  // Without a spellbook nothing feeds magic: the rolls fall on Attack and Defense, the offers on the other skills.
+  const book = hasSpellbook(h);
+  const weights = cls.weights.map((w, i) => (book || !MAGIC_PRIMARIES.includes(PRIMARIES[i]!) ? w : 0));
+  const p = rollInt(seed, 1, weights.reduce((a, b) => a + b, 0));
   let acc = 0;
-  const primary = PRIMARIES.find((_, i) => (acc += cls.weights[i]!) >= p.value) ?? 'attack';
+  const primary = PRIMARIES.find((_, i) => (acc += weights[i]!) >= p.value) ?? 'attack';
   let s = p.seed;
-  const upgrades = SKILL_IDS.filter((id) => h.skills[id] && h.skills[id]! < 3);
+  const offered = SKILL_IDS.filter((id) => book || !MAGIC_SKILLS.includes(id));
+  const upgrades = offered.filter((id) => h.skills[id] && h.skills[id]! < 3);
   const held = SKILL_IDS.filter((id) => h.skills[id]).length;
-  const fresh = held < MAX_SKILLS ? SKILL_IDS.filter((id) => !h.skills[id]) : [];
+  const fresh = held < MAX_SKILLS ? offered.filter((id) => !h.skills[id]) : [];
   const pick = (pool: readonly SkillId[]): SkillId | null => {
     if (pool.length === 0) return null;
     // Favoured skills are three times as likely.

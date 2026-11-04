@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import { getSound } from '../host';
+import { getHost, getSound } from '../host';
 import { afterBattle, battleSides, DEFEND, gridOf } from '../logic/adventure';
-import { act, activeStack, alive, canShoot, createBattle, experienceFor, moveHeadFor, occupiableHexes, stackAt, strikeFrom, strikeOptions, type BattleSide, type StrikeOption } from '../logic/battle';
+import { act, activeStack, alive, canShoot, conquer, createBattle, experienceFor, moveHeadFor, occupiableHexes, stackAt, strikeFrom, strikeOptions, type BattleSide, type StrikeOption } from '../logic/battle';
 import { chooseAction } from '../logic/battleAi';
 import { cantCast, spellAmount } from '../logic/battleSpells';
 import type { Action, BattleState, Stack } from '../logic/battleTypes';
@@ -134,7 +134,8 @@ export class BattleScene extends Phaser.Scene {
       defend: () => this.playerAct({ type: 'defend' }),
       spell: () => this.openSpells(),
       auto: () => this.toggleAuto(),
-    });
+      ...(getHost(this)?.cheats && this.session ? { win: () => this.cheatWin() } : {}),
+    }, !!this.state.heroes[0]?.spells.length);
     this.hud.setAuto(this.auto);
     const src = backdropSource(terrain, seed);
     if ('scenery' in src) this.hud.setScenery({ atlas: texturePixels(this, src.atlasKey), art: src.scenery, seed });
@@ -260,6 +261,15 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     void this.perform(action);
+  }
+
+  /** The testing cheat: on the player's turn, the battle ends in a win. */
+  private cheatWin(): void {
+    if (this.state.winner !== null || this.busy || this.hud.modal) return;
+    this.auto = false;
+    this.hud.setAuto(false);
+    this.state = conquer(this.state);
+    this.finish();
   }
 
   private toggleAuto(): void {
@@ -419,10 +429,7 @@ export class BattleScene extends Phaser.Scene {
   private openSpells(): void {
     if (this.busy || !this.mine() || this.hud.modal) return;
     const hero = this.state.heroes[0];
-    if (!hero || hero.spells.length === 0) {
-      this.hud.setStatus('Your hero has no spells');
-      return;
-    }
+    if (!hero || hero.spells.length === 0) return;
     this.hud.openBook({
       mana: hero.mana,
       spells: hero.spells,

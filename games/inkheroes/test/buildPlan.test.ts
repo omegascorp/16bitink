@@ -27,15 +27,16 @@ describe('the build suggestion', () => {
     expect(new Set(steps).size).toBe(steps.length);
   });
 
-  it('starts the first map with income, then the best troops, their growth, then spells', () => {
+  it('starts the first map with income, then the best troops and their growth, and has nothing more to suggest', () => {
     let town = firstTown(0);
     const steps = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 5; i++) {
       const next = suggestBuilding(town, RICH, ASHFORD.off)!;
       steps.push(next);
       town = { ...build(town, next, RICH, ASHFORD.off).town, builtToday: false };
     }
-    expect(steps).toEqual(['townHall', 'barracks', 'archeryRange', 'citadel', 'griffinTower', 'mageGuild1']);
+    expect(steps).toEqual(['townHall', 'barracks', 'archeryRange', 'citadel', 'griffinTower']);
+    expect(suggestBuilding(town, RICH, ASHFORD.off)).toBeNull();
   });
 
   it('keeps its suggestion after the day’s building is up, for tomorrow', () => {

@@ -70,13 +70,13 @@ export const BLACK_BANNER_LAND: MapDef = {
   ],
   hero: {
     id: 'rowan', name: 'Rowan', heroClass: 'knight', x: 8, y: 28,
-    attack: 3, defense: 3, power: 1, knowledge: 2, skills: { leadership: 1, archery: 1 }, spells: ['magicArrow', 'bless'], hasBook: true,
+    attack: 3, defense: 3, power: 1, knowledge: 2, skills: { leadership: 1, archery: 1 }, spells: ['magicArrow', 'bless'], gear: { book: 'noviceSpellbook' },
     army: [{ creature: 'spearman', count: 28 }, { creature: 'bowman', count: 12 }, { creature: 'griffin', count: 5 }, { creature: 'swordsman', count: 2 }],
   },
   rival: {
     hero: {
       id: 'kassander', name: 'Kassander', heroClass: 'knight', x: 39, y: 8,
-      attack: 3, defense: 2, power: 1, knowledge: 1, skills: { leadership: 1 }, spells: [], hasBook: false,
+      attack: 3, defense: 2, power: 1, knowledge: 1, skills: { leadership: 1 }, spells: [],
       army: [{ creature: 'spearman', count: 24 }, { creature: 'bowman', count: 10 }, { creature: 'griffin', count: 4 }],
       machines: ['ballista'],
     },
@@ -116,7 +116,7 @@ export const BLACK_BANNER_LAND: MapDef = {
     { id: 'bridge-spartoi', kind: 'monster', x: 28, y: 21, creature: 'skeleton', count: 22 },
     { id: 'lake-basilisks', kind: 'monster', x: 27, y: 27, creature: 'basilisk', count: 9 },
     { id: 'gems-hydras', kind: 'monster', x: 27, y: 5, creature: 'hydra', count: 3 },
-    { id: 'shrine-hydras', kind: 'monster', x: 23, y: 2, creature: 'hydra', count: 3 },
+    { id: 'shrine-hydras', kind: 'monster', x: 23, y: 2, creature: 'hydra', count: 3, drop: 'alexandrianCodex' },
     { id: 'chest-hydras', kind: 'monster', x: 27, y: 32, creature: 'hydra', count: 4 },
     { id: 'windmill', kind: 'windmill', x: 30, y: 21, resource: 'crystal', amount: 4 },
     { id: 'shrine', kind: 'shrine', x: 23, y: 1, spell: 'lightningBolt' },

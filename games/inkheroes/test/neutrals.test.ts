@@ -407,6 +407,30 @@ describe('each map brings new enemies', () => {
     }
   });
 
+  it('steps up from map 1: its book guard outdoes the ogres, its east every group before it', () => {
+    const power = (o: { creature?: CreatureId; count?: number }): number => strengthOf(o.creature!, o.count ?? 1);
+    const ogres = power(ASHFORD.objects.find((o) => o.id === 'ogres')!);
+    expect(power(THORNWOOD_LAND.objects.find((o) => o.id === 'book-birds')!)).toBeGreaterThan(ogres);
+    const east = THORNWOOD_LAND.objects.filter((o) => o.kind === 'monster' && o.x > 20).map(power);
+    expect(Math.min(...east)).toBeGreaterThan(ogres);
+  });
+
+  it('is cheap on the way for a strong army riding on from map 1, and the garrison makes it pay', () => {
+    const army = armyOf([{ creature: 'spearman', count: 60 }, { creature: 'bowman', count: 34 }, { creature: 'griffin', count: 14 }, { creature: 'swordsman', count: 8 }]);
+    const base = startAdventure(THORNWOOD);
+    const adv = { ...base, hero: { ...base.hero, army, attack: 4, defense: 5 } };
+    const units = (a: readonly ({ count: number } | null)[]): number => a.reduce((t, x) => t + (x?.count ?? 0), 0);
+    const lost = (id: string): number => {
+      const { attacker, defender } = battleSides(adv, id);
+      const ends = [101, 202, 303, 404].map((seed) => autoBattle(attacker, defender, seed));
+      for (const end of ends) expect(end.winner, id).toBe(0);
+      const left = (s: (typeof ends)[number]): number => units(s.stacks.filter((x) => x.side === 0));
+      return ends.reduce((t, e) => t + (units(army) - left(e)) / units(army), 0) / ends.length;
+    };
+    expect(lost('gate-brigands')).toBeLessThan(0.1);
+    expect(lost('thornwood-town')).toBeGreaterThan(0.12);
+  });
+
   it('rises towards the goal: Thornwood’s east is stronger than its west, and the garrison the strongest of all', () => {
     const power = (o: { creature?: CreatureId; count?: number }): number => strengthOf(o.creature!, o.count ?? 1);
     const mean = (xs: readonly number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;

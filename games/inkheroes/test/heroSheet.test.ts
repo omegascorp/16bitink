@@ -1,17 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { ASHFORD } from '../src/level/borderMarch';
 import { startAdventure } from '../src/logic/adventure';
-import { xpForLevel } from '../src/logic/hero';
+import { xpForLevel, type Hero } from '../src/logic/hero';
 import { heroSheet } from '../src/scenes/hud/heroSheetData';
 
-const hero = startAdventure(ASHFORD).hero;
+// A hero with a spellbook: the sheet leaves magic out without one.
+const hero: Hero = { ...startAdventure(ASHFORD).hero, gear: { book: 'noviceSpellbook' } };
 
 describe('the hero sheet', () => {
   it('names the hero and shows the four stats with what each one does', () => {
     const s = heroSheet({ ...hero, attack: 5, defense: 3, power: 2, knowledge: 4 });
     expect(s.name).toBe(hero.name);
     expect(s.title).toBe('Knight · level 1');
-    expect(s.stats.map((r) => [r.label, r.value])).toEqual([['Attack', '5'], ['Defense', '3'], ['Spell Power', '2'], ['Knowledge', '4']]);
+    expect(s.stats.map((r) => [r.label, r.value])).toEqual([['Attack', '5'], ['Defense', '3'], ['Spell Power', '2'], ['Knowledge', '5 (+1)']]);
     expect(s.stats.every((r) => r.says.length > 0)).toBe(true);
     expect(s.stats[3]!.says).toContain('10 mana');
   });
@@ -42,12 +43,12 @@ describe('the hero sheet', () => {
   });
 
   it('lists skills by rank with what they do, and spells only with a book', () => {
-    const s = heroSheet({ ...hero, skills: { leadership: 2 }, spells: ['magicArrow'], hasBook: true });
+    const s = heroSheet({ ...hero, skills: { leadership: 2 }, spells: ['magicArrow'] });
     expect(s.skills).toEqual([{ name: 'Advanced Leadership', says: '+2 morale' }]);
     expect(s.spells).toEqual([{ id: 'magicArrow', name: 'Magic Arrow' }]);
     expect(s.spellsNote).toBeNull();
-    const none = heroSheet({ ...hero, hasBook: false, spells: ['magicArrow'] });
+    const none = heroSheet({ ...hero, gear: {}, spells: ['magicArrow'] });
     expect(none.spells).toEqual([]);
-    expect(none.spellsNote).toBe('No spellbook yet');
+    expect(none.magic).toBe(false);
   });
 });

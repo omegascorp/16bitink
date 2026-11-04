@@ -47,6 +47,7 @@ SITES = {
     'stables': ('iso/stables.png', None),
     'standingStone': ('iso/standingStone.png', None),
     'shrine': ('iso/shrine.png', None),
+    'spellbook': ('iso/spellbook.png', None),
     'chest': ('sites/chest.png', None),
     'campfire': ('sites/campfire.png', None),
     **{f'pile-{r}': (f'sites/pile-{r}.png', None) for r in ('gold', 'wood', 'ore', 'mercury', 'sulfur', 'crystal', 'gems')},

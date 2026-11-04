@@ -1,4 +1,4 @@
-import { gainItem, itemSays, ITEMS, SET_NAMES, type ItemId } from './items';
+import { gainItem, hasSpellbook, itemDef, itemQuality, itemSays, QUALITY_NAMES, SET_NAMES, type ItemId } from './items';
 import type { HeroDef, MapDef } from '../level/types';
 import { armyMorale, armyOf, isEmptyArmy, moveAll, splitMonster, type Army } from './army';
 import { experienceFor, machinesLeft, survivors } from './battle';
@@ -79,8 +79,8 @@ export function heroFromDef(h: HeroDef): Hero {
   const hero: Hero = {
     id: h.id, name: h.name, heroClass: h.heroClass, x: h.x, y: h.y,
     attack: h.attack, defense: h.defense, power: h.power, knowledge: h.knowledge,
-    mana: h.knowledge * 10, xp: 0, level: 1, skills: h.skills, spells: h.spells, hasBook: h.hasBook,
-    army: armyOf(h.army), mp: 0, visited: [], ...(h.machines?.length ? { machines: h.machines } : {}),
+    mana: h.knowledge * 10, xp: 0, level: 1, skills: h.skills, spells: h.spells,
+    army: armyOf(h.army), mp: 0, visited: [], ...(h.machines?.length ? { machines: h.machines } : {}), ...(h.gear ? { gear: h.gear } : {}),
   };
   return { ...hero, mp: dailyMp(hero) };
 }
@@ -261,7 +261,7 @@ export function takeTown(adv: Adventure, id: string): Adventure {
 export function enterTown(adv: Adventure): Adventure {
   const { hero } = adv;
   const town = heroTown(adv);
-  if (!town || !hero.hasBook) return adv;
+  if (!town || !hasSpellbook(hero)) return adv;
   const floors = has(town, 'mageGuild2') ? 5 : has(town, 'mageGuild1') ? 3 : 0;
   const learn = town.guild.slice(0, floors).filter((s) => !hero.spells.includes(s));
   return learn.length ? { ...adv, hero: { ...hero, spells: [...hero.spells, ...learn] } } : adv;
@@ -441,8 +441,8 @@ function claimDrop(adv: Adventure, id: ItemId | undefined): Adventure {
   if (!id) return adv;
   const got = gainItem(adv.hero, id);
   const end = got.worn ? `${adv.hero.name} puts it on.` : got.kept ? 'It goes in the bag.' : 'The bag is full, so it stays behind.';
-  const { name, set } = ITEMS[id];
-  const prompt: Prompt = { kind: 'message', title: name, text: `${itemSays(id)}${set ? ` · ${SET_NAMES[set]}` : ''}\n${end}`, item: id };
+  const { name, set } = itemDef(id);
+  const prompt: Prompt = { kind: 'message', title: name, text: `${QUALITY_NAMES[itemQuality(id)]}: ${itemSays(id)}${set ? ` · ${SET_NAMES[set]}` : ''}\n${end}`, item: id };
   return { ...adv, hero: got.hero, prompts: [...adv.prompts, prompt] };
 }
 

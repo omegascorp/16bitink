@@ -67,6 +67,7 @@ export const THORNWOOD: MapDef = {
   intro: [
     'The ogres are gone and the old bridge is open again. The north road runs on east, into Thornwood forest.',
     'Across the next river, brigands and their cyclops chief have taken Thornwood, the timber town. Take it back from its garrison, and its dwellings will be yours to hire from.',
+    'Near the road a spellbook lies on a marble altar, and Stymphalian birds have nested round it. Win it, and magic is yours. Your towns can raise a Mage Guild now too.',
   ],
   rows: cut(72, 32),
   seed: SEED,

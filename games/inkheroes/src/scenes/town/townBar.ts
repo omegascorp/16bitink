@@ -1,5 +1,6 @@
 import type Phaser from 'phaser';
 import { calendar, heroInGarrison, heroVisiting, type Adventure } from '../../logic/adventure';
+import type { BuildingId } from '../../logic/buildings';
 import type { Town } from '../../logic/town';
 import { has, income } from '../../logic/town';
 import { faceOf, heroArt, PX_TEX } from '../battle/pixelAssets';
@@ -38,6 +39,8 @@ export interface TownBarActions {
   dropSlot(from: SlotRef, to: SlotRef): void;
   /** Split the picked company. */
   split(): void;
+  /** What this map keeps closed. */
+  off(): readonly BuildingId[];
 }
 
 const SPLIT = { w: 100, h: 30 } as const;
@@ -268,6 +271,7 @@ export class TownBar {
     f.emptyFace.img.setVisible(!here);
     this.away.setText(held ? `${adv.hero.name} is in the garrison` : `${adv.hero.name} is away`).img.setVisible(!here);
     this.buttons[2]?.setEnabled(has(t, 'mageGuild1'));
+    this.buttons[2]?.root.setVisible(!this.actions.off().includes('mageGuild1'));
   }
 
   destroy(): void {

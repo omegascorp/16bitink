@@ -11,7 +11,7 @@ import { CHEST_XP, townCore, type MapObject } from './objects';
 import { RESOURCES, type Purse } from './resources';
 import { isSkillId, MAX_SKILLS, SKILL_IDS, type Rank } from './skills';
 import { isSpellId, type SpellId } from './spells';
-import type { Town } from './town';
+import { SPELLBOOK_SOLD, type Town } from './town';
 
 /** Most cards a save may hold waiting. */
 const MAX_PROMPTS = 20;
@@ -185,7 +185,6 @@ function parseHero(raw: Record<string, unknown>, def: MapDef, h: HeroDef = def.h
   if (Object.keys(raw.skills).length > MAX_SKILLS) return null;
   if (!Array.isArray(raw.spells) || !raw.spells.every(isSpellId)) return null;
   if (!Array.isArray(raw.visited) || !raw.visited.every((v) => typeof v === 'string' && def.objects.some((o) => o.id === v))) return null;
-  if (typeof raw.hasBook !== 'boolean') return null;
   const army = parseArmy(raw.army);
   if (!army) return null;
   // War machines: one of each at most (older saves have none).
@@ -194,11 +193,16 @@ function parseHero(raw: Record<string, unknown>, def: MapDef, h: HeroDef = def.h
   const hero = {
     id: h.id, name: h.name, heroClass: h.heroClass, x: raw.x, y: raw.y,
     attack: raw.attack as number, defense: raw.defense as number, power: raw.power as number, knowledge: raw.knowledge as number,
-    mana: raw.mana, xp: raw.xp, level: Math.min(raw.level, levelFor(raw.xp)), skills, spells: [...new Set(raw.spells)], hasBook: raw.hasBook, army, mp: raw.mp, visited: raw.visited as string[],
+    mana: raw.mana, xp: raw.xp, level: Math.min(raw.level, levelFor(raw.xp)), skills, spells: [...new Set(raw.spells)], army, mp: raw.mp, visited: raw.visited as string[],
     ...(machines.length ? { machines } : {}),
-    ...parseGear(raw),
+    ...bookFromFlag(raw, parseGear(raw)),
   };
   return { ...hero, mana: Math.min(hero.mana, maxMana(hero)), mp: Math.min(hero.mp, dailyMp(hero) + MP_BONUS) };
+}
+
+/** A hero saved when a spellbook was only a flag has the guild's book now. */
+function bookFromFlag(raw: Record<string, unknown>, worn: { gear?: Gear; bag?: ItemId[] }): { gear?: Gear; bag?: ItemId[] } {
+  return raw.hasBook === true && !worn.gear?.book ? { ...worn, gear: { ...worn.gear, book: SPELLBOOK_SOLD } } : worn;
 }
 
 const isItemId = (x: unknown): x is ItemId => typeof x === 'string' && (ITEM_IDS as readonly string[]).includes(x);

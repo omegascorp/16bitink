@@ -21,6 +21,7 @@ import siteWindmill from './map/site-windmill.png?url';
 import siteStables from './map/site-stables.png?url';
 import siteStandingStone from './map/site-standingStone.png?url';
 import siteShrine from './map/site-shrine.png?url';
+import siteSpellbook from './map/site-spellbook.png?url';
 import siteChest from './map/site-chest.png?url';
 import siteCampfire from './map/site-campfire.png?url';
 import sitePileGold from './map/site-pile-gold.png?url';
@@ -90,6 +91,7 @@ export const MAP_SITES: Readonly<Partial<Record<SiteArt, MapSprite>>> = {
   'stables': { url: siteStables, w: 104, h: 78, footX: 52, footY: 77 },
   'standingStone': { url: siteStandingStone, w: 70, h: 83, footX: 35, footY: 82 },
   'shrine': { url: siteShrine, w: 82, h: 78, footX: 41, footY: 77 },
+  'spellbook': { url: siteSpellbook, w: 76, h: 73, footX: 38, footY: 72 },
   'chest': { url: siteChest, w: 42, h: 45, footX: 21, footY: 44 },
   'campfire': { url: siteCampfire, w: 54, h: 43, footX: 27, footY: 42 },
   'pile-gold': { url: sitePileGold, w: 48, h: 30, footX: 24, footY: 29 },

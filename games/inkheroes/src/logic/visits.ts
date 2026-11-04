@@ -1,6 +1,7 @@
 import { STABLES_MP, tilesOf } from './map';
 import type { Adventure } from './adventure';
-import { gainedXp } from './hero';
+import { gainedXp, maxMana } from './hero';
+import { gainItem, hasSpellbook, itemSays, ITEMS, QUALITY_NAMES } from './items';
 import { CHEST_XP, MINE_NAMES, MINE_OUTPUT, ONCE_PER_HERO, type MapObject } from './objects';
 import { addTo } from './resources';
 import { SPELLS } from './spells';
@@ -52,9 +53,21 @@ export function visitSite(adv: Adventure, o: MapObject): VisitResult {
     }
     case 'shrine': {
       const spell = o.spell!;
-      if (!hero.hasBook) return { adv: message(adv, 'Wayside Shrine', `A prayer to ${SPELLS[spell].name} is carved here, but your hero has no spellbook to write it in.`), notes: [] };
+      if (!hasSpellbook(hero)) return { adv: message(adv, 'Wayside Shrine', `A prayer to ${SPELLS[spell].name} is carved here, but your hero has no spellbook to write it in.`), notes: [] };
       if (hero.spells.includes(spell)) return { adv: message({ ...adv, hero: visited }, 'Wayside Shrine', `Your hero already knows ${SPELLS[spell].name}.`), notes: [] };
       return { adv: message({ ...adv, hero: { ...visited, spells: [...hero.spells, spell] } }, 'Wayside Shrine', `Your hero copies ${SPELLS[spell].name} into the spellbook.\n${SPELLS[spell].says}.`), notes: [`Learned ${SPELLS[spell].name}`] };
+    }
+    case 'spellbook': {
+      const spell = SPELLS[o.spell!];
+      const item = ITEMS[o.item!];
+      const first = !hasSpellbook(hero);
+      const got = gainItem(hero, o.item!);
+      const known = hero.spells.includes(spell.id);
+      const raised = { ...got.hero, spells: known ? hero.spells : [...hero.spells, spell.id] };
+      const end = first ? 'Press Spell in battle to cast. A Mage Guild teaches more.' : got.kept ? 'It goes in the bag: wear it from the hero\'s Gear tab.' : 'The bag is full, so it stays behind.';
+      const text = [`${hero.name} takes up the ${item.name}. ${QUALITY_NAMES[item.quality]}: ${itemSays(o.item!)}.`, ...(known ? [] : [`Its first page teaches ${spell.name}: ${spell.says}.`]), end].join('\n');
+      const found = gone({ ...adv, hero: first ? { ...raised, mana: maxMana(raised) } : raised }, o.id);
+      return { adv: { ...found, prompts: [...found.prompts, { kind: 'message', title: item.name, text, item: o.item! }] }, notes: known ? [] : [`Learned ${spell.name}`] };
     }
     case 'windmill': {
       const week = weekOf(adv.day);

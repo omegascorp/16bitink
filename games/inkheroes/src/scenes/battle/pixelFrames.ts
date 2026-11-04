@@ -25,6 +25,8 @@ export const RIMS = {
   player: { light: [160, 186, 240, 255], mid: [72, 98, 184, 255], dark: [30, 42, 98, 255] },
   enemy: { light: [244, 178, 124, 255], mid: [176, 84, 48, 255], dark: [88, 34, 20, 255] },
   dim: { light: [150, 136, 112, 255], mid: [106, 94, 76, 255], dark: [60, 52, 42, 255] },
+  green: { light: [176, 226, 140, 255], mid: [84, 156, 76, 255], dark: [34, 84, 44, 255] },
+  purple: { light: [214, 170, 240, 255], mid: [136, 80, 184, 255], dark: [66, 34, 104, 255] },
 } as const satisfies Record<string, Rim>;
 export type RimName = keyof typeof RIMS;
 

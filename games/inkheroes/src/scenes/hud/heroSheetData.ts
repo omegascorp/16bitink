@@ -1,7 +1,7 @@
 import { armyMorale } from '../../logic/army';
 import { CLASSES, dailyMp, maxMana, sightOf, xpForLevel, type Hero } from '../../logic/hero';
 import { tilesOf } from '../../logic/map';
-import { gearBonus, withGear } from '../../logic/items';
+import { gearBonus, hasSpellbook, withGear } from '../../logic/items';
 import { RANK_NAMES, skillValue, SKILLS, type SkillId } from '../../logic/skills';
 import { SPELLS, type SpellId } from '../../logic/spells';
 import type { StatName } from '../../art/pixel/ui';
@@ -24,6 +24,8 @@ export interface HeroSheet {
   readonly lines: readonly SheetRow[];
   readonly skills: readonly { readonly name: string; readonly says: string }[];
   readonly spells: readonly { readonly id: SpellId; readonly name: string }[];
+  /** Whether the hero has a spellbook: without one the sheet says nothing of spells. */
+  readonly magic: boolean;
   /** Said in place of the spells when there are none to show. */
   readonly spellsNote: string | null;
 }
@@ -40,7 +42,8 @@ export function heroSheet(h: Hero): HeroSheet {
   const to = xpForLevel(h.level + 1);
   const geared = withGear(h);
   const worn = gearBonus(h);
-  const spells = h.hasBook ? h.spells.map((id) => ({ id, name: SPELLS[id].name })) : [];
+  const magic = hasSpellbook(h);
+  const spells = magic ? h.spells.map((id) => ({ id, name: SPELLS[id].name })) : [];
   return {
     name: h.name,
     title: `${CLASSES[h.heroClass].name} · level ${h.level}`,
@@ -48,12 +51,14 @@ export function heroSheet(h: Hero): HeroSheet {
     stats: [
       { icon: 'attack', label: 'Attack', value: withWorn(geared.attack, worn.attack), says: 'Adds to the Attack of all your units' },
       { icon: 'defense', label: 'Defense', value: withWorn(geared.defense, worn.defense), says: 'Adds to the Defense of all your units' },
-      { icon: 'power', label: 'Spell Power', value: withWorn(geared.power, worn.power), says: 'Makes your spells stronger' },
-      { icon: 'knowledge', label: 'Knowledge', value: withWorn(geared.knowledge, worn.knowledge), says: 'Each point gives 10 mana' },
+      ...(magic ? [
+        { icon: 'power', label: 'Spell Power', value: withWorn(geared.power, worn.power), says: 'Makes your spells stronger' },
+        { icon: 'knowledge', label: 'Knowledge', value: withWorn(geared.knowledge, worn.knowledge), says: 'Each point gives 10 mana' },
+      ] as const : []),
     ],
     lines: [
       { icon: 'speed', label: 'Movement', value: `${tilesOf(h.mp)} / ${tilesOf(dailyMp(h))} tiles` },
-      { icon: 'mana', label: 'Mana', value: `${h.mana} / ${maxMana(h)}` },
+      ...(magic ? [{ icon: 'mana', label: 'Mana', value: `${h.mana} / ${maxMana(h)}` } as const] : []),
       { icon: 'morale', label: 'Morale', value: signed(skillValue(h.skills, 'leadership') + armyMorale(h.army) + (worn.morale ?? 0)) },
       { icon: 'luck', label: 'Luck', value: signed(skillValue(h.skills, 'luck') + (worn.luck ?? 0)) },
       { icon: 'sight', label: 'Sight', value: `${sightOf(h)} tiles` },
@@ -63,6 +68,7 @@ export function heroSheet(h: Hero): HeroSheet {
       says: SKILLS[id].says(SKILLS[id].values[rank - 1]!),
     })),
     spells,
-    spellsNote: h.hasBook ? (spells.length ? null : 'No spells learned yet') : 'No spellbook yet',
+    magic,
+    spellsNote: spells.length ? null : 'No spells learned yet',
   };
 }
