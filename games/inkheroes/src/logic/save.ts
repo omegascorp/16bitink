@@ -4,6 +4,7 @@ import type { HeroDef, MapDef } from '../level/types';
 import { DEFEND, gridOf, MAX_MONSTER, queueLevelUps, RIVAL, type Adventure, type Prompt, type RivalState } from './adventure';
 import { ARMY_SLOTS, type Army, type ArmySlot } from './army';
 import { BUILDINGS, isBuildingId, type BuildingId } from './buildings';
+import { parseDayReport } from './dayReport';
 import { isCreatureId, lineOf, MACHINES, type CreatureId } from './creatures';
 import { dailyMp, levelFor, maxMana, PRIMARIES } from './hero';
 import { passable, STABLES_MP } from './map';
@@ -273,7 +274,10 @@ function parseObjects(raw: readonly unknown[], def: MapDef): MapObject[] | null 
 /** A saved card: messages as text; a chest only for a real, unopened chest, with what that chest holds. */
 function parsePrompt(raw: unknown, objects: readonly MapObject[]): Prompt | null {
   if (!isObj(raw)) return null;
-  if (raw.kind === 'message' && typeof raw.title === 'string' && typeof raw.text === 'string') return { kind: 'message', title: raw.title.slice(0, 200), text: raw.text.slice(0, 2000), ...(isItemId(raw.item) ? { item: raw.item } : {}) };
+  if (raw.kind === 'message' && typeof raw.title === 'string' && typeof raw.text === 'string') {
+    const report = parseDayReport(raw.report);
+    return { kind: 'message', title: raw.title.slice(0, 200), text: raw.text.slice(0, 2000), ...(isItemId(raw.item) ? { item: raw.item } : {}), ...(report ? { report } : {}) };
+  }
   if (raw.kind === 'chest' && typeof raw.id === 'string') {
     const chest = objects.find((o) => o.id === raw.id && o.kind === 'chest' && !o.gone);
     if (!chest) return null;

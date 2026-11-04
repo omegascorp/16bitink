@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { getHost, getSound } from '../host';
 import { afterBattle, battleSides, DEFEND, gridOf } from '../logic/adventure';
-import { act, activeStack, alive, canShoot, conquer, createBattle, experienceFor, moveHeadFor, occupiableHexes, stackAt, strikeFrom, strikeOptions, type BattleSide, type StrikeOption } from '../logic/battle';
+import { act, activeStack, alive, canShoot, conquer, createBattle, experienceFor, moveHeadFor, occupiableHexes, stackAt, strikeChoices, strikeFrom, type BattleSide, type StrikeOption } from '../logic/battle';
 import { chooseAction } from '../logic/battleAi';
 import { cantCast, spellAmount } from '../logic/battleSpells';
 import type { Action, BattleState, Stack } from '../logic/battleTypes';
@@ -355,7 +355,7 @@ export class BattleScene extends Phaser.Scene {
     const f = this.cams.toWorld(p.x, p.y);
     let best: StrikeOption | null = null;
     let bd = Infinity;
-    for (const o of strikeOptions(this.state, target)) {
+    for (const o of strikeChoices(this.state, target)) {
       const c = hexPx(o.contact);
       const d = Math.hypot(c.x - f.x, c.y - f.y);
       if (d < bd) {

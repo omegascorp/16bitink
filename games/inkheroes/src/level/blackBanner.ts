@@ -14,10 +14,10 @@ export const BLACK_BANNER_LAND: MapDef = {
   n: 3,
   intro: [
     'Kassander of Korax flies a black banner with a red raven, and he serves no crown. His riders already hold the hills east of the lakes.',
-    'He builds and hires as you do, takes the mines, and will come for Eudora when he thinks he can win. Beat him to the lakelands, then take Korax.',
+    'He builds and hires as you do, takes the mines, and will come for Eudora when he thinks he can win. Beat him to the lakelands, take Korax, and hunt him down.',
     'Build a Blacksmith in Eudora: a Ballista and a First Aid Tent from it ride with your hero into every battle.',
   ],
-  goal: { kind: 'capture', target: 'korax-town', text: 'take Korax, the Black Banner\'s town' },
+  goal: { kind: 'overthrow', target: 'korax-town', text: 'take Korax and beat Kassander' },
   parDays: 35,
   rows: [
     'TMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMP',

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { armyOf } from '../src/logic/army';
-import { act, canShoot, createBattle, moveHeadFor, moves, occupiableHexes, stackAt, stackById, strikeFrom, strikeOptions } from '../src/logic/battle';
+import { act, canShoot, createBattle, moveHeadFor, moves, occupiableHexes, stackAt, stackById, strikeChoices, strikeFrom, strikeOptions } from '../src/logic/battle';
 import { chooseAction } from '../src/logic/battleAi';
 import type { BattleState } from '../src/logic/battleTypes';
 import { CREATURE_IDS, lineOf, type CreatureId } from '../src/logic/creatures';
@@ -196,5 +196,29 @@ describe('two-hex units: AI', () => {
     }
     expect(state.winner).not.toBeNull();
     expect(turns).toBeGreaterThan(3);
+  });
+});
+
+describe('striking a foe the unit already stands beside', () => {
+  const spot = hexAt(5, 5);
+
+  it('strikes from where it stands, whichever side of the foe was aimed at', () => {
+    const s = duel('spearman', 'goblin', spot, hexAt(6, 5));
+    const goblin = side(s, 1);
+    expect(strikeOptions(s, goblin).length).toBeGreaterThan(1);
+    expect(strikeChoices(s, goblin).map((o) => o.from)).toEqual([spot]);
+    const after = act(s, { type: 'attack', target: goblin.id, from: spot }).state;
+    expect(side(after, 0).hex).toBe(spot);
+    expect(side(after, 1).count).toBeLessThan(goblin.count);
+  });
+
+  it('keeps every side to choose from when the foe has to be walked to', () => {
+    const s = duel('spearman', 'goblin', hexAt(3, 5), hexAt(6, 5));
+    expect(strikeChoices(s, side(s, 1))).toEqual(strikeOptions(s, side(s, 1)));
+  });
+
+  it('keeps a wide unit where it stands too', () => {
+    const s = duel('griffin', 'goblin', spot, hexAt(6, 5));
+    expect(strikeChoices(s, side(s, 1)).map((o) => o.from)).toEqual([spot]);
   });
 });

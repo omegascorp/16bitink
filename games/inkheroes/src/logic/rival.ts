@@ -1,7 +1,7 @@
 import { gainItem } from './items';
 import type { MapDef } from '../level/types';
 import {
-  calendar, checkGoal, dayOfWeek, DEFEND, guardAt, heroInGarrison, incomeOf, liveObjects, playerArmy, RIVAL, rivalHero, terrainView, townAt, withTown, type Adventure,
+  calendar, checkGoal, dayOfWeek, DEFEND, guardAt, heroInGarrison, incomeOf, liveObjects, playerArmy, RIVAL, rivalHero, revealAround, terrainView, townAt, withTown, type Adventure,
 } from './adventure';
 import { armyMorale, armyOf, isEmptyArmy, splitMonster, type Army } from './army';
 import { act, createBattle, machinesLeft, survivors, type BattleSide } from './battle';
@@ -47,6 +47,8 @@ const SAFE = { monster: 0.4, guard: 0.5, town: 0.5, hero: 1 / 1.3 } as const;
 /** How close (tiles) our hero must come to his town, stronger than this share of his army, for him to ride home. */
 const THREAT = { tiles: 12, share: 0.7 } as const;
 
+/** How far round the rival the land shows when scouts find him, tiles. */
+const SIGHTED = 3;
 /** The share of the days before a part opens that the rival has had at home. */
 const HEAD_START = 0.5;
 
@@ -84,7 +86,25 @@ export function rivalTurn(adv: Adventure, def: MapDef): { adv: Adventure; report
     if (r.fight) return { adv: withNews(next, notes, r.fight), report: { path, notes, fight: r.fight } };
     if (!r.stopped) break;
   }
-  return { adv: withNews(checkGoal(next, def), notes), report: { path, notes } };
+  const after = sighted(checkGoal(next, def), def);
+  const told = [...notes, ...after.notes];
+  return { adv: withNews(after.adv, told), report: { path, notes: told } };
+}
+
+/** With no town left he has nowhere to hide: each night the scouts find him, on the map and on the day's card. */
+function sighted(adv: Adventure, def: MapDef): { adv: Adventure; notes: string[] } {
+  const foe = rivalHero(adv);
+  if (!foe || adv.status !== 'playing' || adv.towns.some((t) => t.owner === 'rival')) return { adv, notes: [] };
+  const tiles = Math.max(Math.abs(foe.x - adv.hero.x), Math.abs(foe.y - adv.hero.y));
+  const where = `${tiles} ${tiles === 1 ? 'tile' : 'tiles'} ${compass(foe.x - adv.hero.x, foe.y - adv.hero.y)} of ${adv.hero.name}`;
+  return { adv: revealAround(adv, def, foe.x, foe.y, SIGHTED), notes: [`Scouts saw ${foe.name} ${where}.`] };
+}
+
+/** The way a step of (dx, dy) on the map points, in words. */
+function compass(dx: number, dy: number): string {
+  const ns = Math.abs(dy) * 2 < Math.abs(dx) ? '' : dy < 0 ? 'north' : 'south';
+  const ew = Math.abs(dx) * 2 < Math.abs(dy) ? '' : dx < 0 ? 'west' : 'east';
+  return ns && ew ? `${ns}-${ew}` : ns || ew;
 }
 
 /**
@@ -111,7 +131,7 @@ function withNews(adv: Adventure, notes: readonly string[], fight?: string): Adv
     const last = prompts[prompts.length - 1];
     const day = calendar(adv.day);
     prompts = last?.kind === 'message' && last.title === day
-      ? [...prompts.slice(0, -1), { ...last, text: `${last.text}\n${notes.join('\n')}` }]
+      ? [...prompts.slice(0, -1), { ...last, text: [last.text, ...notes].filter(Boolean).join('\n') }]
       : [...prompts, { kind: 'message', title: 'The Black Banner', text: notes.join('\n') }];
   }
   if (!fight || !foe) return { ...adv, prompts };

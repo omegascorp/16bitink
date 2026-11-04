@@ -3,7 +3,7 @@ import { ASHFORD } from '../src/level/borderMarch';
 import { MAPS } from '../src/level/maps';
 import { startAdventure } from '../src/logic/adventure';
 import { BUILDING_IDS, BUILDINGS } from '../src/logic/buildings';
-import { purse, shortfall } from '../src/logic/resources';
+import { briefAmount, purse, shortfall, type Amount } from '../src/logic/resources';
 import { build, cantBuild, suggestBuilding, type Town } from '../src/logic/town';
 import { ledgerOf } from '../src/scenes/town/townStage';
 
@@ -90,5 +90,27 @@ describe('what a purse is short of', () => {
 
   it('is empty when the purse covers it', () => {
     expect(shortfall(purse({ gold: 2500 }), { gold: 2500 })).toEqual({});
+  });
+});
+
+describe('a price on a button', () => {
+  /** Every part of every building's price, and each short by one: all a button can be asked to show. */
+  const prices = BUILDING_IDS.flatMap((id) => {
+    const cost = Object.entries(BUILDINGS[id].cost) as [keyof Amount, number][];
+    return Array.from({ length: 2 ** cost.length }, (_, mask) => cost.filter((_, i) => mask & (1 << i))).filter((part) => part.length).flatMap((part): Amount[] => [
+      Object.fromEntries(part),
+      Object.fromEntries(part.map(([r, n]) => [r, Math.max(1, n - 1)])),
+    ]);
+  });
+
+  it('always fits one line', () => {
+    for (const p of prices) expect(briefAmount(p).length).toBeLessThanOrEqual(17);
+  });
+
+  it('names both parts when they fit, and counts the rest when they do not', () => {
+    expect(briefAmount({ gold: 1970, wood: 7 })).toBe('1970 gold, 7 wood');
+    expect(briefAmount({ gold: 10000, wood: 20 })).toBe('10000 gold +1');
+    expect(briefAmount({ mercury: 10, gems: 5 })).toBe('10 mercury +1');
+    expect(briefAmount({ gold: 3000, wood: 5, ore: 5, gems: 2 })).toBe('3000 gold +3 more');
   });
 });

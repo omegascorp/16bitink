@@ -21,6 +21,8 @@ import { openCard, type CardButton } from './CardScene';
 import type { MapScene } from './MapScene';
 import { pixelUiCamera } from './pixelScreen';
 import { SplitPicker } from './hud/splitPicker';
+import { TownList } from './hud/townList';
+import { MAP_TEX } from './map/pixelMapArt';
 import { Session } from './session';
 import { BuildPlate } from './town/buildPlate';
 import { loadTownArt, PixelTownView, townScenery } from './town/pixelTownView';
@@ -34,6 +36,8 @@ import { TownWindow } from './town/townWindow';
 const DRAG = 6;
 /** Depths: the townscape, the suggestion on it, a screen over them, the strip, messages. */
 const DEPTH = { plate: 20, window: 30, bar: 50, toast: 70, info: 90 } as const;
+/** The list of towns on the right of the town, above the strip: as wide as the map's, and how far it keeps from the edge and the strip. */
+const TOWNS = { w: 120, gap: 4 } as const;
 /** How long a message stays, and how long it takes to fade, ms. */
 const TOAST = { ms: 2600, fade: 500, pad: { x: 8, y: 3 } } as const;
 
@@ -71,6 +75,8 @@ export class TownScene extends Phaser.Scene {
   /** The spell being read in the guild. */
   private guildPick: SpellId | null = null;
   private plate: BuildPlate | null = null;
+  /** The player's towns, a tap away from each other. */
+  private towns: TownList | null = null;
   private screen: TownScreen | null = null;
   private picked: SlotRef | null = null;
   /** A company's info card, while it's open. */
@@ -107,6 +113,7 @@ export class TownScene extends Phaser.Scene {
     this.bar = null;
     this.window = null;
     this.plate = null;
+    this.towns = null;
     this.toastParts = [];
     const fit = pixelUiCamera(this, (size) => {
       this.size = size;
@@ -122,6 +129,7 @@ export class TownScene extends Phaser.Scene {
       this.view?.destroy();
       this.window?.destroy();
       this.plate?.destroy();
+      this.towns?.destroy();
       this.bar?.destroy();
       this.info?.card.close();
       this.closeSplit();
@@ -189,7 +197,20 @@ export class TownScene extends Phaser.Scene {
     this.bar.refresh(this.session.adv, this.town(), this.picked);
     this.drawView();
     this.drawPlate();
+    this.drawTowns();
     this.drawWindow();
+  }
+
+  /** The other towns to go to, with no window in the way; with one town there is nowhere to go. */
+  private drawTowns(): void {
+    const { adv, def } = this.session;
+    const towns = playerTowns(adv);
+    this.towns ??= new TownList(this, TOWNS.w, {
+      textureOf: (t) => MAP_TEX.town(`${def.id}-${t.id}`),
+      onOpen: (townId) => this.scene.restart({ townId }),
+    });
+    this.towns.set(towns.length > 1 ? towns : [], this.townId);
+    this.towns.root.setDepth(DEPTH.plate).setPosition(this.size.w - TOWNS.w - TOWNS.gap, this.bar!.top - TOWNS.gap).setVisible(!this.screen);
   }
 
   /** The suggestion at the top of the town, as things stand; none once the town is finished. */
@@ -258,6 +279,7 @@ export class TownScene extends Phaser.Scene {
     if (s && s !== this.screen) getSound(this)?.play('card');
     this.screen = s;
     this.drawPlate();
+    this.drawTowns();
     this.drawWindow();
   }
 
@@ -265,6 +287,7 @@ export class TownScene extends Phaser.Scene {
   private refresh(): void {
     this.bar?.refresh(this.session.adv, this.town(), this.picked);
     this.drawPlate();
+    this.drawTowns();
     this.drawWindow();
   }
 

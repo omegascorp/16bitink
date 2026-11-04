@@ -188,6 +188,13 @@ export function strikeOptions(state: BattleState, target: Stack): StrikeOption[]
   return out;
 }
 
+/** The places a tap can strike `target` from: standing beside it, the unit stays where it is; otherwise any side of it. */
+export function strikeChoices(state: BattleState, target: Stack): StrikeOption[] {
+  const options = strikeOptions(state, target);
+  const here = options.filter((o) => o.steps === 0);
+  return here.length ? here : options;
+}
+
 /** The head hexes the active unit can strike `target` from, with steps walked to get there. */
 export function strikeFrom(state: BattleState, target: Stack): Map<Hex, number> {
   return new Map(strikeOptions(state, target).map((o) => [o.from, o.steps]));

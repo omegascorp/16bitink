@@ -13,8 +13,6 @@ const BTN_H = 30;
 const BTN_NOTE_H = 42;
 /** The rule's height. */
 const RULE_H = 5;
-/** The laurels a won map shows: their size and the gap between them. */
-const LAUREL = { size: 24, gap: 6 } as const;
 /** Between a perk's icon and its words. */
 const PERK_GAP = 3;
 
@@ -52,8 +50,7 @@ export class PixelCard {
     const perkH = perkText && perkIcon ? Math.max(perkIcon.height, perkText.height) + GAP : 0;
     const picture = spec.picture ? scene.add.image(0, 0, spec.picture).setOrigin(0.5, 0) : null;
     const pictureH = picture ? picture.height + GAP : 0;
-    const laurelsH = spec.blots !== undefined ? LAUREL.size + GAP * 2 : 0;
-    const h = PAD + title.height + GAP + RULE_H + GAP + pictureH + perkH + body.height + GAP * 2 + laurelsH + buttons.reduce((a, b) => a + b.height + GAP, 0) - GAP + PAD;
+    const h = PAD + title.height + GAP + RULE_H + GAP + pictureH + perkH + body.height + GAP * 2 + buttons.reduce((a, b) => a + b.height + GAP, 0) - GAP + PAD;
     const left = Math.floor((screen.w - w) / 2);
     const top = Math.max(2, Math.floor((screen.h - h) / 2));
     const panel = new PixelFrame(scene, w, h, { rim: 'bronze', thick: 2, fill: [34, 24, 17, 246], studs: true }).setPosition(left, top);
@@ -75,23 +72,12 @@ export class PixelCard {
     }
     body.setPosition(cx, y);
     y += body.height + GAP * 2;
-    // Laurels won (bright) out of three (the rest dark).
-    const laurels: Phaser.GameObjects.Image[] = [];
-    if (spec.blots !== undefined) {
-      const row = 3 * LAUREL.size + 2 * LAUREL.gap;
-      for (let i = 0; i < 3; i++) {
-        const img = scene.add.image(cx - Math.floor(row / 2) + i * (LAUREL.size + LAUREL.gap), y, UI_TEX.laurel).setOrigin(0);
-        if (i >= spec.blots) img.setTint(0x3a2c20).setAlpha(0.8);
-        laurels.push(img);
-      }
-      y += laurelsH;
-    }
     for (const b of buttons) {
       b.setPosition(left + PAD, y);
       y += b.height + GAP;
     }
     this.owned.push(panel, title, rule, body, ...(perkText ? [perkText] : []), ...buttons);
-    this.root = scene.add.container(0, 0, [shade, panel.img, rule.img, title.img, ...(picture ? [picture] : []), ...(perkText && perkIcon ? [perkIcon, perkText.img] : []), body.img, ...laurels, ...buttons.map((b) => b.root)]);
+    this.root = scene.add.container(0, 0, [shade, panel.img, rule.img, title.img, ...(picture ? [picture] : []), ...(perkText && perkIcon ? [perkIcon, perkText.img] : []), body.img, ...buttons.map((b) => b.root)]);
     parent.add(this.root);
   }
 

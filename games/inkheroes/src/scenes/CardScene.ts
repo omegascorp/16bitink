@@ -4,6 +4,8 @@ import type { PlateKind } from '../art/uiArtParts';
 import { PixelBuildCard, previewReady, type CardView } from './battle/pixelBuildCard';
 import { PixelCard } from './battle/pixelCard';
 import type { DwellingPreview } from './battle/unitCard';
+import type { DayReport } from '../logic/dayReport';
+import { PixelDayCard } from './hud/dayCard';
 import { PixelHeroSheet, type SheetSource } from './hud/pixelHeroSheet';
 import { pixelUiCamera } from './pixelScreen';
 
@@ -25,15 +27,15 @@ export interface CardSpec {
   readonly picture?: string;
   /** What it gives, picked out in gold with its icon above the text. */
   readonly perk?: { readonly icon: StatName; readonly text: string };
-  /** Laurels to show (victory), out of 3. */
-  readonly blots?: number;
   /** A building that hires a unit: its picture and stats (or the old and new unit of an upgrade) go above the text. */
   readonly preview?: DwellingPreview;
+  /** What the night brought: drawn as the day card, the text beneath it as news. */
+  readonly report?: DayReport;
 }
 
 /**
  * A card over the map, the town or the menu, as the battle's pixel card on
- * the art's grid: a title, some text, laurels for a won map, its buttons.
+ * the art's grid: a title, some text, its buttons.
  * Any button closes the card before running its action.
  */
 export class CardScene extends Phaser.Scene {
@@ -52,7 +54,7 @@ export class CardScene extends Phaser.Scene {
         answered = true;
         this.scene.stop();
       };
-      card = spec.sheet ? new PixelHeroSheet(this, root, spec, spec.sheet, size, done, quiet) : spec.preview && previewReady(this, spec.preview) ? new PixelBuildCard(this, root, spec, spec.preview, size, done, quiet) : new PixelCard(this, root, spec, size, done, quiet);
+      card = spec.sheet ? new PixelHeroSheet(this, root, spec, spec.sheet, size, done, quiet) : spec.report ? new PixelDayCard(this, root, spec, spec.report, size, done, quiet) : spec.preview && previewReady(this, spec.preview) ? new PixelBuildCard(this, root, spec, spec.preview, size, done, quiet) : new PixelCard(this, root, spec, size, done, quiet);
     };
     const fit = pixelUiCamera(this, (size) => {
       if (!answered) draw(size, true);

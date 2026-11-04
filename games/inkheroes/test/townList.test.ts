@@ -31,4 +31,9 @@ describe('townListKey', () => {
     expect(townListKey(one)).not.toBe(townListKey([...one, town('b', [])]));
     expect(townListKey(one)).not.toBe(townListKey([town('a', ['fort', 'tavern'])]));
   });
+
+  it('changes when another town is the one open', () => {
+    const two = [town('a', []), town('b', [])];
+    expect(townListKey(two, 'a')).not.toBe(townListKey(two, 'b'));
+  });
 });

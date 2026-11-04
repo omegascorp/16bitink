@@ -32,15 +32,16 @@ export class TownList {
     this.root = scene.add.container(0, 0);
   }
 
-  set(towns: readonly Town[]): void {
-    const key = townListKey(towns);
+  /** Shows `towns`; `here`, on the town screen, is the one open: framed in gold, and a tap on it does nothing. */
+  set(towns: readonly Town[], here?: string): void {
+    const key = townListKey(towns, here);
     if (key === this.shown) return;
     this.shown = key;
     this.clear();
     towns.forEach((t, i) => {
       const picture = putBuffer(this.scene, shrinkSmooth(texturePixels(this.scene, this.host.textureOf(t)), PICTURE_SHRINK));
       this.pictures.push(picture);
-      const row = new PixelButton(this.scene, { w: this.w, h: TOWN_ROW_H, label: t.name, picture: { key: picture, scale: PICTURE_SCALE }, onClick: () => this.host.onOpen(t.id) });
+      const row = new PixelButton(this.scene, { w: this.w, h: TOWN_ROW_H, label: t.name, picture: { key: picture, scale: PICTURE_SCALE }, ...(t.id === here ? { rim: 'gold' as const } : {}), onClick: () => t.id !== here && this.host.onOpen(t.id) });
       row.setPosition(0, -(towns.length - i) * (TOWN_ROW_H + ROW_GAP) + ROW_GAP);
       this.rows.push(row);
       this.root.add(row.root);

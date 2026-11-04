@@ -3,7 +3,6 @@ import { nextMap } from '../level/maps';
 import { answerPrompt, playerTowns } from '../logic/adventure';
 import { partDays } from '../logic/chapter';
 import { PRIMARY_NAMES } from '../logic/hero';
-import { blotsFor } from '../logic/save';
 import { RANK_NAMES, SKILLS } from '../logic/skills';
 import { UI_TEX } from './battle/pixelUi';
 import { openCard } from './CardScene';
@@ -21,7 +20,7 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
   };
   const first = adv.prompts[0];
   if (first?.kind === 'message') {
-    openCard(scene, { title: first.title, body: first.text, picture: first.item ? UI_TEX.item(first.item) : undefined, buttons: [{ label: 'On we go', onClick: () => next() }] });
+    openCard(scene, { title: first.title, body: first.text, picture: first.item ? UI_TEX.item(first.item) : undefined, report: first.report, buttons: [{ label: 'On we go', onClick: () => next() }] });
     return;
   }
   if (first?.kind === 'chest') {
@@ -53,13 +52,11 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
   if (adv.status === 'won') {
     const next = nextMap(session.def);
     const days = partDays(adv);
-    const blots = blotsFor(days, session.def.parDays, adv.lostStacks);
     // The last part built: the chapter is done. Otherwise the land opens further and the hero rides on.
     const end = next ? `\nThe road goes on: ${next.name} lies ahead.` : '\nThe Border March is won: that is the end of chapter 1.';
     openCard(scene, {
       title: 'Victory!',
-      body: `${session.def.goal.text[0]!.toUpperCase()}${session.def.goal.text.slice(1)}: done in ${days} ${days === 1 ? 'day' : 'days'}.\n${days <= session.def.parDays ? 'Within the par of ' : 'Par was '}${session.def.parDays} days${adv.lostStacks === 0 ? ', and not one company lost.' : '.'}${end}`,
-      blots,
+      body: `${session.def.goal.text[0]!.toUpperCase()}${session.def.goal.text.slice(1)}: done in ${days} ${days === 1 ? 'day' : 'days'}${adv.lostStacks === 0 ? ', and not one company lost' : ''}.${end}`,
       // One way on: from the next part the map's own menu still leads back to the campaign.
       buttons: [next
         ? { label: `Ride on to ${next.name}`, onClick: () => rideOnward(scene, session) }

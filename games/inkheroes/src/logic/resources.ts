@@ -39,3 +39,15 @@ export function shortfall(p: Purse, cost: Amount): Amount {
 export function describeAmount(a: Amount): string {
   return RESOURCES.filter((r) => (a[r] ?? 0) !== 0).map((r) => `${a[r]} ${r}`).join(', ');
 }
+
+/** How many characters of a price fit one line of a button: a second line spills out of it. */
+const BRIEF = 17;
+
+/** A price short enough for a button: "2000 gold, 5 ore", or the first part and a count: "3000 gold +6 more", "10000 gold +1". */
+export function briefAmount(a: Amount): string {
+  const whole = describeAmount(a);
+  if (whole.length <= BRIEF) return whole;
+  const [first, ...rest] = whole.split(', ');
+  const counted = `${first} +${rest.length}`;
+  return `${counted} more`.length <= BRIEF ? `${counted} more` : counted;
+}

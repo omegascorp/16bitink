@@ -1,20 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { ASHFORD } from '../src/level/borderMarch';
+import { ASHFORD, BLACK_BANNER } from '../src/level/borderMarch';
 import { isOpen, MAPS, nextMap } from '../src/level/maps';
 import { openBy, UNLOCKS } from '../src/level/unlocks';
 import { THORNWOOD } from '../src/level/borderMarch';
 import type { MapDef } from '../src/level/types';
 import { afterBattle, answerPrompt, unfinished, heroTown, playerTowns, townById, battleSides, dailyIncome, endDay, garrisonHero, withTown, gridOf, heroInGarrison, heroVisiting, isSeen, leadOut, objectAt, planPath, startAdventure, stepHero, type Adventure } from '../src/logic/adventure';
 import { armyOf, moveAll } from '../src/logic/army';
+import type { DayReport } from '../src/logic/dayReport';
 import { act, createBattle } from '../src/logic/battle';
 import { chooseAction } from '../src/logic/battleAi';
 import { dailyMp, levelFor, nextLevelUp, xpForLevel } from '../src/logic/hero';
-import { passable, tileIndex } from '../src/logic/map';
+import { passable, tileIndex, tilesOf } from '../src/logic/map';
 import { objectFootprint, townFootprint } from '../src/logic/objects';
 import { findPath } from '../src/logic/path';
 import { bestUnit, build, cantBuild, growthOf, hire, hireAll, upgradeAll, upgradeCost, upgradeSlot, upgradeTo, weekly } from '../src/logic/town';
-import { BUILDINGS, BUILDING_IDS } from '../src/logic/buildings';
-import { creature, lineOf, lineUnits, tierOf } from '../src/logic/creatures';
+import { BUILDINGS, BUILDING_IDS, type BuildingId } from '../src/logic/buildings';
+import { creature, lineOf, lineUnits, tierOf, type CreatureId } from '../src/logic/creatures';
 
 /** Walks a planned path to its end (or until something stops the hero). */
 function walk(adv: Adventure, def: MapDef, x: number, y: number): { adv: Adventure; battle?: string; town?: boolean } {
@@ -177,17 +178,36 @@ describe('the adventure', () => {
     const owned = { ...start, objects: start.objects.map((o) => (o.kind === 'mine' && o.resource === 'wood' ? { ...o, owner: 'player' as const } : o)) };
     const day2 = endDay(owned);
     expect(day2.prompts).toHaveLength(1);
-    const report = day2.prompts[0] as { kind: string; title: string; text: string };
-    expect(report).toMatchObject({ kind: 'message', title: 'Month 1, Week 1, Day 2' });
-    expect(report.text).toContain(`${start.towns[0]!.name} pays ${dailyIncome(owned).gold} gold`);
-    expect(report.text).toMatch(/Sawmill: \+\d+ wood/);
-    expect(report.text).toContain(`${start.hero.name} is rested`);
+    const prompt = day2.prompts[0] as { kind: string; title: string; report: DayReport };
+    expect(prompt).toMatchObject({ kind: 'message', title: 'Month 1, Week 1, Day 2', text: '' });
+    const { report } = prompt;
+    expect(report.income).toEqual(dailyIncome(owned));
+    expect(report.sources).toEqual([{ kind: 'town', label: start.towns[0]!.name, gold: dailyIncome(owned).gold }]);
+    expect(report.hero).toMatchObject({ name: start.hero.name, tiles: tilesOf(day2.hero.mp), horses: 0 });
+    expect(report.week).toBeUndefined();
     let adv: Adventure = start;
     for (let d = 1; d < 8; d++) adv = { ...endDay(adv), prompts: [] };
-    const week = endDay({ ...adv, day: 7 });
-    const text = (week.prompts[0] as { text: string }).text;
-    expect(text).toContain('A new week');
-    expect(text).toMatch(/\+14 Hoplites/);
+    const week = (endDay({ ...adv, day: 7 }).prompts[0] as { report: DayReport }).report.week;
+    expect(week?.recruits[0]?.town).toBe(start.towns[0]!.name);
+    expect(week?.recruits[0]?.units).toContainEqual({ creature: 'spearman', count: 14 });
+  });
+
+  it('lists a week\'s recruits by level, whatever order the dwellings went up in', () => {
+    const start = { ...startAdventure(ASHFORD), prompts: [] };
+    const [town, ...rest] = start.towns;
+    const built = (...ids: BuildingId[]): typeof town => ({ ...town!, built: [...town!.built.filter((b) => !BUILDINGS[b].dwelling), ...ids] });
+    const week = (t: NonNullable<typeof town>): CreatureId[] => (endDay({ ...start, day: 7, towns: [t, ...rest] }).prompts[0] as { report: DayReport }).report.week!.recruits[0]!.units.map((u) => u.creature);
+    expect(week(built('barracks', 'guardhouse', 'griffinTower', 'archeryRange')!)).toEqual(['spearman', 'bowman', 'griffin', 'swordsman']);
+  });
+
+  it('the day report counts the gold of every source: towns, gold mines and estates', () => {
+    const start = { ...startAdventure(ASHFORD), prompts: [] };
+    const mines = start.objects.map((o) => (o.kind === 'mine' ? { ...o, resource: 'gold' as const, owner: 'player' as const } : o));
+    const adv = { ...start, objects: mines, hero: { ...start.hero, skills: { ...start.hero.skills, estates: 1 as const } } };
+    const { report } = endDay(adv).prompts[0] as { report: DayReport };
+    expect(report.sources.map((s) => s.kind)).toEqual(['town', 'mines', 'estates']);
+    expect(report.sources.reduce((n, s) => n + s.gold, 0)).toBe(report.income.gold);
+    expect(report.sources[1]!.label).toMatch(/^Gold mines? ?(×\d+)?$/);
   });
 
   it('a treasure chest offers gold or experience', () => {
@@ -203,6 +223,49 @@ describe('the adventure', () => {
     expect(xp.prompts[0]).toMatchObject({ kind: 'levelUp' });
     const levelled = answerPrompt(xp, (xp.prompts[0] as unknown as { offer: { choices: string[] } }).offer.choices[0] as never);
     expect(levelled.hero.level).toBe(2);
+  });
+});
+
+describe('fighting from where the hero stands', () => {
+  const start = (): Adventure => ({ ...startAdventure(BLACK_BANNER), prompts: [] });
+  const tired = (a: Adventure, x: number, y: number): Adventure => ({ ...a, hero: { ...a.hero, x, y, mp: 0 } });
+
+  it('takes a monster beside a hero with no movement left, today', () => {
+    const a = start();
+    const o = a.objects.find((x) => x.id === 'vale-satyrs')!;
+    const s = tired(a, o.x - 1, o.y);
+    const [step, ...more] = planPath(s, BLACK_BANNER, o.x, o.y)!;
+    expect(more).toEqual([]);
+    expect(step).toMatchObject({ day: 0, cost: 0 });
+    expect(stepHero(s, BLACK_BANNER, step!).battle).toBe(o.id);
+  });
+
+  it('takes a held town from beside its gate', () => {
+    const a = start();
+    const korax = townById(a, 'korax-town')!;
+    const away = { ...a, rival: { ...a.rival!, hero: { ...a.rival!.hero!, x: 60, y: 50 } } };
+    const s = tired(away, korax.x, korax.y + 1);
+    const [step] = planPath(s, BLACK_BANNER, korax.x, korax.y)!;
+    expect(stepHero(s, BLACK_BANNER, step!).battle).toBe(korax.id);
+  });
+
+  it('takes the monster guarding a site beside the hero', () => {
+    const a = start();
+    const mine = a.objects.find((x) => x.kind === 'mine' && x.x === 48 && x.y === 38)!;
+    const s = tired(a, mine.x, mine.y + 1);
+    const guard = a.objects.find((x) => x.id === 'mine-cyclopes')!;
+    expect(guard).toBeTruthy();
+    const [step] = planPath(s, BLACK_BANNER, mine.x, mine.y) ?? [];
+    expect(step).toMatchObject({ day: 0 });
+    expect(stepHero(s, BLACK_BANNER, step!, mine).battle).toBe(guard.id);
+  });
+
+  it('still waits for tomorrow to walk onto open ground or take an unguarded site', () => {
+    const a = start();
+    const open = { x: a.hero.x, y: a.hero.y + 1 };
+    expect(planPath(tired(a, a.hero.x, a.hero.y), BLACK_BANNER, open.x, open.y)![0]!.day).toBe(1);
+    const pile = a.objects.find((x) => x.id === 'pile-gold-3')!;
+    expect(planPath(tired(a, pile.x - 1, pile.y), BLACK_BANNER, pile.x, pile.y)![0]!.day).toBe(1);
   });
 });
 
@@ -379,7 +442,7 @@ describe('three levels of every unit', () => {
     // Out on the map, the Stables back home are no help; the next morning there, the bonus comes again rather than adding up.
     expect(endDay({ ...stabled, hero: { ...stabled.hero, x: town.x + 9, y: town.y + 9 } }).hero.mp).toBe(dailyMp(start.hero));
     expect(endDay(endDay(stabled)).hero.mp).toBe(dailyMp(start.hero) + 400);
-    expect(endDay(stabled).prompts.at(-1)).toMatchObject({ text: expect.stringContaining('+4 tiles') });
+    expect(endDay(stabled).prompts.at(-1)).toMatchObject({ report: { hero: { horses: 4 } } });
     expect(BUILDINGS.stables.says).toContain('4 tiles');
   });
 

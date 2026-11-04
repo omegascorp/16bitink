@@ -14,7 +14,8 @@ import { HORIZON_Y } from './battle/pixelScenery';
 import { PixelImage, TextLabel, texturePixels } from './battle/pixelUi';
 import { openCard } from './CardScene';
 import { loadMenuArt } from './map/pixelMapArt';
-import { chapterCard, chapterCardHeight, CHAPTER_CARD_W, type ChapterCardSpec } from './menu/chapterCard';
+import { chapterCard, chapterCardHeight, chapterCardWidth, type ChapterCardSpec } from './menu/chapterCard';
+import { spreadCard } from './menu/chapterProgress';
 import { drawWordmark } from './menu/wordmark';
 import { pixelUiCamera } from './pixelScreen';
 import { Session } from './session';
@@ -29,7 +30,7 @@ const TERRAIN = 'grass';
  * The campaign, as pixel art on the art's grid like the battle: a landscape
  * composed from the battle's grass scenery under the game's gold wordmark,
  * Continue, and chapter 1's maps as framed cards with their pictures and
- * the laurels won. The army musters on the grass either side, breathing.
+ * how far this game has come. The army musters on the grass either side, breathing.
  */
 export class MenuScene extends Phaser.Scene {
   private size = { w: 0, h: 0, k: 1 };
@@ -100,7 +101,7 @@ export class MenuScene extends Phaser.Scene {
     // The wordmark: as big as the screen's width allows.
     const mask = renderPixelText({ lines: ['INKHEROES'] }, { ink: [255, 255, 255, 255] });
     const scale = Math.max(2, Math.min(5, Math.floor((w - 24) / mask.w)));
-    const spec: ChapterCardSpec = {
+    const tall: ChapterCardSpec = {
       parts: MAPS, records: progress.maps,
       playing: resumed ? { def: resumed.def, when: calendar(resumed.adv.day) } : null,
       onPlay: () => this.play(resumed),
@@ -109,6 +110,7 @@ export class MenuScene extends Phaser.Scene {
     // The title and the chapter's card as one block, centred in the screen above the muster.
     const markH = mask.h * scale + 7;
     const head = markH + 2 + 15 + 12;
+    const spec = { ...tall, wide: spreadCard(head + chapterCardHeight(tall), chapterCardWidth({ ...tall, wide: true }), { w, h }) };
     const blockH = head + chapterCardHeight(spec);
     const top = Math.max(8, Math.floor((h - MUSTER_FOOT - blockH) / 2) - 10);
     const mark = new PixelImage(this, drawWordmark(mask, scale), { x: 0.5, y: 0 }).setPosition(Math.floor(w / 2), top);
@@ -117,7 +119,7 @@ export class MenuScene extends Phaser.Scene {
     this.owned.push(mark, chapter, rule);
     ui.add([mark.img, chapter.img, rule.img]);
     const y = top + mark.height + 2 + chapter.height + 12;
-    const left = Math.floor((w - CHAPTER_CARD_W) / 2);
+    const left = Math.floor((w - chapterCardWidth(spec)) / 2);
     ui.add(chapterCard(this, this.owned, spec).setPosition(left, y));
     this.muster({ bottom: y + chapterCardHeight(spec), left });
   }
@@ -162,7 +164,7 @@ export class MenuScene extends Phaser.Scene {
   private startOver(resumed: Session): void {
     openCard(this, {
       title: 'Start the chapter over?',
-      body: `Your game on ${resumed.def.name} (${calendar(resumed.adv.day)}) will be lost. The laurels you have won stay.`,
+      body: `Your game on ${resumed.def.name} (${calendar(resumed.adv.day)}) will be lost.`,
       buttons: [
         { label: 'Start over', onClick: () => {
           resumed.abandon(this);

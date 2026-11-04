@@ -1,6 +1,6 @@
 import type { ItemId } from '../../logic/items';
 import Phaser from 'phaser';
-import { GUILD_ROOM, ICONS, ITEM_ICONS, LAUREL, RESOURCE_ICONS, SLOT_ICONS, SPELL_ART, SPELL_ICONS, STAT_ICONS, type IconName, type SlotIcon, type StatName } from '../../art/pixel/ui';
+import { GUILD_ROOM, ICONS, ITEM_ICONS, RESOURCE_ICONS, SLOT_ICONS, SPELL_ART, SPELL_ICONS, STAT_ICONS, type IconName, type SlotIcon, type StatName } from '../../art/pixel/ui';
 import type { Resource } from '../../logic/resources';
 import type { SpellId } from '../../logic/spells';
 import { drawFrame, FILLS, PRIMARY_FILLS, type FrameLook, type RimName } from './pixelFrames';
@@ -26,7 +26,6 @@ export const UI_TEX = {
   spellArt: (s: SpellId) => `pxui-spellArt-${s}`,
   guildRoom: 'pxui-guildRoom',
   res: (r: Resource) => `pxui-res-${r}`,
-  laurel: 'pxui-laurel',
 } as const;
 
 /** Text colours: the body's warm cream, the titles' gold, and the shared dark outline. */
@@ -53,7 +52,6 @@ export function loadUiArt(scene: Phaser.Scene): string[] {
     ...(Object.entries(ITEM_ICONS) as [ItemId, string][]).map(([n, url]): [string, string] => [UI_TEX.item(n), url]),
     ...(Object.entries(SLOT_ICONS) as [SlotIcon, string][]).map(([n, url]): [string, string] => [UI_TEX.slot(n), url]),
     ...(Object.entries(RESOURCE_ICONS) as [Resource, string][]).map(([n, url]): [string, string] => [UI_TEX.res(n), url]),
-    [UI_TEX.laurel, LAUREL],
   ];
   for (const [key, url] of all) if (!scene.textures.exists(key)) scene.load.image(key, url);
   return all.map(([key]) => key);

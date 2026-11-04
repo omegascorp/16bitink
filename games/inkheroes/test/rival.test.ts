@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BLACK_BANNER } from '../src/level/borderMarch';
-import { afterBattle, battleSides, DEFEND, endDay, RIVAL, startAdventure, stepHero, townById, withTown, type Adventure } from '../src/logic/adventure';
+import { afterBattle, battleSides, checkGoal, DEFEND, endDay, isSeen, playerTowns, RIVAL, startAdventure, stepHero, takeTown, townById, withTown, type Adventure } from '../src/logic/adventure';
 import { armyOf } from '../src/logic/army';
 import { createBattle } from '../src/logic/battle';
 import type { BattleState } from '../src/logic/battleTypes';
@@ -33,6 +33,13 @@ function wonBy(adv: Adventure, id: string, side: 0 | 1): BattleState {
 }
 
 describe('the rival lord', () => {
+  it('puts the night\'s news on the day card, under its report', () => {
+    const start = { ...startAdventure(def), prompts: [] };
+    const adv = withTown(start, { ...townById(start, korax)!, owner: 'player' });
+    const [day] = rivalTurn(endDay(adv), def).adv.prompts;
+    expect(day).toMatchObject({ kind: 'message', text: expect.stringMatching(/^Scouts saw Kassander/), report: { hero: { name: adv.hero.name } } });
+  });
+
   it('starts in his town with his army, purse and ballista; his town flies his banner', () => {
     const adv = startAdventure(def);
     expect(adv.rival?.hero?.name).toBe('Kassander');
@@ -124,6 +131,71 @@ describe('the rival lord', () => {
     const start = startAdventure(def);
     const end = autoBattle(battleSides(start, RIVAL === 'rival' ? korax : korax).defender, { hero: null, army: armyOf([{ creature: 'goblin', count: 10 }]) }, 7);
     expect(end.winner).toBe(0);
+  });
+});
+
+describe('winning the Black Banner takes Korax and Kassander both', () => {
+  /** Kassander out in the field, by the hills south of Korax. */
+  const riding = (adv: Adventure): Adventure => ({ ...adv, rival: { ...adv.rival!, hero: { ...adv.rival!.hero!, x: 60, y: 50 } } });
+
+  it('goes on when Korax falls with him still riding, and tells the player to hunt him', () => {
+    const start = riding(startAdventure(def));
+    const taken = afterBattle(start, def, korax, wonBy(start, korax, 0));
+    expect(townById(taken, korax)!.owner).toBe('player');
+    expect(taken.status).toBe('playing');
+    expect(taken.prompts.find((p) => p.kind === 'message' && p.title === 'Korax is yours')).toHaveProperty('text', expect.stringContaining('Hunt him down'));
+  });
+
+  it('is won when he is then beaten in the field', () => {
+    const start = takeTown(riding(startAdventure(def)), korax);
+    const end = afterBattle(start, def, RIVAL, wonBy(start, RIVAL, 0));
+    expect(end.rival!.hero).toBeNull();
+    expect(end.status).toBe('won');
+  });
+
+  it('goes on when he is beaten first, and is won when Korax falls after', () => {
+    const start = riding(startAdventure(def));
+    const beaten = afterBattle(start, def, RIVAL, wonBy(start, RIVAL, 0));
+    expect(beaten.status).toBe('playing');
+    const end = afterBattle(beaten, def, korax, wonBy(beaten, korax, 0));
+    expect(end.status).toBe('won');
+  });
+
+  it('is won when he dies storming a town of ours', () => {
+    const start = takeTown(riding(startAdventure(def)), korax);
+    const id = DEFEND + eudora;
+    const held = withTown(start, { ...townById(start, eudora)!, garrison: armyOf([{ creature: 'spearman', count: 50 }]) });
+    expect(afterBattle(held, def, id, wonBy(held, id, 0)).status).toBe('won');
+  });
+
+  it('is not lost with a town: only the last one ends it', () => {
+    const start = startAdventure(def);
+    const fell = withTown(start, { ...townById(start, eudora)!, owner: 'rival' });
+    expect(playerTowns(fell).length).toBeGreaterThan(0);
+    expect(checkGoal(fell, def).status).toBe('playing');
+  });
+});
+
+describe('Kassander with no town left', () => {
+  const homeless = (at: { x: number; y: number }): Adventure => {
+    const start = takeTown(startAdventure(def), korax);
+    return { ...start, explored: '0'.repeat(start.explored.length), rival: { ...start.rival!, hero: { ...start.rival!.hero!, ...at, mp: 0, army: armyOf([{ creature: 'spearman', count: 1 }]) } } };
+  };
+
+  it('shows on the map each night, and the day\'s card says where', () => {
+    const night = rivalTurn(endDay(homeless({ x: 44, y: 56 })), def);
+    const foe = night.adv.rival!.hero!;
+    expect(isSeen(night.adv, def, foe.x, foe.y)).toBe(true);
+    expect(night.report.notes.at(-1)).toMatch(/^Scouts saw Kassander \d+ tiles (north|south|east|west)/);
+  });
+
+  it('stays hidden while he has a town to go home to', () => {
+    const start = startAdventure(def);
+    const hidden = { ...start, explored: '0'.repeat(start.explored.length) };
+    const night = rivalTurn(endDay(hidden), def);
+    const foe = night.adv.rival!.hero!;
+    expect(night.report.notes.some((n) => n.startsWith('Scouts'))).toBe(false);
+    expect(isSeen(night.adv, def, foe.x, foe.y)).toBe(false);
   });
 });
 

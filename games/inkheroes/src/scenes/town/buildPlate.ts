@@ -1,7 +1,7 @@
 import type Phaser from 'phaser';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
 import { tilesOf } from '../../logic/map';
-import { describeAmount, shortfall, type Amount, type Purse } from '../../logic/resources';
+import { briefAmount, shortfall, type Purse } from '../../logic/resources';
 import { creature } from '../../logic/creatures';
 import type { Town } from '../../logic/town';
 import { drawFrame } from '../battle/pixelFrames';
@@ -13,21 +13,12 @@ import { GoldHalo } from './goldHalo';
 export const PLATE = { w: 384, pad: 5, gutter: 6, pic: { w: 76, h: 56 }, btn: { w: 116, h: 48 }, narrowBelow: 330 } as const;
 const FILL = [34, 24, 17, 246] as const;
 const LINE = 15;
-/** How many resources a price names before the rest are counted: a button has room for two, the building's card has them all. */
-const NAMED = 2;
-
-/** A price short enough for a button: "2000 gold, 5 ore", or "3000 gold +6 more". */
-function briefAmount(a: Amount): string {
-  const n = Object.keys(a).length;
-  return n <= NAMED ? describeAmount(a) : `${describeAmount({ gold: a.gold })} +${n - 1} more`;
-}
-
 /** What the button says: Build and its price, or what stands in the way today. */
 export function buildButton(town: Town, id: BuildingId, purse: Purse): { label: string; note: string; ready: boolean } {
   const cost = BUILDINGS[id].cost;
   const short = shortfall(purse, cost);
   if (town.builtToday) return { label: 'Tomorrow', note: 'One building a day', ready: false };
-  if (Object.keys(short).length) return { label: 'Saving up', note: `Needs ${briefAmount(short)}`, ready: false };
+  if (Object.keys(short).length) return { label: 'Still needs', note: briefAmount(short), ready: false };
   return { label: 'Build', note: briefAmount(cost) || 'Free', ready: true };
 }
 

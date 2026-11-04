@@ -10,6 +10,16 @@ function memoryStore(): { getItem(k: string): string | null; setItem(k: string, 
 }
 
 describe('saving', () => {
+  it('keeps a waiting day card, and a card saved as plain text before there were reports', () => {
+    const store = memoryStore();
+    const day = endDay(answerPrompt(startAdventure(ASHFORD)));
+    saveAdventure(store, { current: day, dayStart: day });
+    expect(loadAdventure(store, mapById)?.current.prompts).toEqual(day.prompts);
+    const old = { ...day, prompts: [{ kind: 'message' as const, title: 'Month 1, Week 1, Day 2', text: 'Ashford pays 500 gold.' }] };
+    saveAdventure(store, { current: old, dayStart: old });
+    expect(loadAdventure(store, mapById)?.current.prompts).toEqual(old.prompts);
+  });
+
   it('round-trips an adventure through storage', () => {
     const store = memoryStore();
     const adv = endDay(answerPrompt(startAdventure(ASHFORD)));

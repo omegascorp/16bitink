@@ -10,7 +10,9 @@ import type { SpellId } from '../logic/spells';
 
 export type Goal =
   | { readonly kind: 'defeat'; readonly target: string; readonly text: string }
-  | { readonly kind: 'capture'; readonly target: string; readonly text: string };
+  | { readonly kind: 'capture'; readonly target: string; readonly text: string }
+  /** Town `target` taken and the map's rival lord beaten, in either order. */
+  | { readonly kind: 'overthrow'; readonly target: string; readonly text: string };
 
 /** A hand-made campaign map. */
 export interface MapDef {
