@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ASHFORD, BLACK_BANNER, THORNWOOD } from '../src/level/borderMarch';
 import { MAPS } from '../src/level/maps';
-import { gridOf, isSeen, playerTowns, startAdventure, stepHero, townById, withTown, type Adventure } from '../src/logic/adventure';
+import { gridOf, isSeen, playerTowns, planPath, rivalHero, startAdventure, stepHero, townById, withTown, type Adventure } from '../src/logic/adventure';
 import { armyOf } from '../src/logic/army';
-import { partDays, rideOn } from '../src/logic/chapter';
-import { passable } from '../src/logic/map';
+import { openLand, partDays, rideOn } from '../src/logic/chapter';
+import { strengthOf } from '../src/logic/creatures';
+import { passable, tileIndex } from '../src/logic/map';
+import type { MapObject } from '../src/logic/objects';
+import { armyStrength } from '../src/logic/rival';
 import { parseAdventure } from '../src/logic/save';
 
 /** Ashford won on day 9: the hero by the old bridge with a grown army, a barracks built, a mine taken, the ogres gone. */
@@ -17,6 +20,81 @@ function ashfordWon(): Adventure {
     hero: { ...start.hero, x: 24, y: 12, level: 3, xp: 3000, attack: 4, army: armyOf([{ creature: 'spearman', count: 40 }, { creature: 'swordsman', count: 6 }]) },
   }, { ...town, built: [...town.built, 'townHall', 'barracks'], garrison: armyOf([{ creature: 'bowman', count: 9 }]) });
 }
+
+/** Thornwood won on `day` with every monster behind the hero beaten: Rowan at its gate. */
+function thornwoodWon(day: number): Adventure {
+  const start = startAdventure(THORNWOOD);
+  return withTown({
+    ...start, day, status: 'won', prompts: [],
+    objects: start.objects.map((o) => (o.kind === 'monster' ? { ...o, gone: true } : o)),
+    hero: { ...start.hero, x: 63, y: 16 },
+  }, { ...townById(start, 'thornwood-town')!, owner: 'player' });
+}
+
+const midpoint = (xs: readonly number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;
+const groups = (objects: readonly MapObject[]): number[] => objects.filter((o) => o.kind === 'monster').map((o) => strengthOf(o.creature!, o.count ?? 1));
+
+describe('the way into the Black Banner', () => {
+  it('is a road the hero can see from the moment the part opens, right down to Eudora', () => {
+    const next = rideOn(thornwoodWon(30), THORNWOOD, BLACK_BANNER);
+    const g = gridOf(BLACK_BANNER);
+    for (let y = 31; y <= 40; y++) {
+      expect(g.cover[tileIndex(g, 38, y)]).toBe('road');
+      expect(isSeen(next, BLACK_BANNER, 38, y)).toBe(true);
+    }
+    expect(isSeen(next, BLACK_BANNER, 37, 50)).toBe(true);
+    expect(isSeen(next, BLACK_BANNER, 32, 61)).toBe(true);
+    // Only the way: the hills beyond the ridge stay dark.
+    expect(isSeen(next, BLACK_BANNER, 63, 40)).toBe(false);
+  });
+
+  it('leads a hero from Thornwood to Eudora along it', () => {
+    const next = rideOn(thornwoodWon(30), THORNWOOD, BLACK_BANNER);
+    const path = planPath({ ...next, hero: { ...next.hero, mp: 1500 } }, BLACK_BANNER, 32, 59);
+    expect(path).not.toBeNull();
+    expect(path!.some((s) => s.x === 38 && s.y === 32)).toBe(true);
+  });
+
+  it('changes nothing when shown again', () => {
+    const next = rideOn(thornwoodWon(30), THORNWOOD, BLACK_BANNER);
+    expect(openLand(next, BLACK_BANNER).explored).toBe(next.explored);
+  });
+
+  it('lights up a game saved before the way was shown', () => {
+    const old = { ...rideOn(thornwoodWon(30), THORNWOOD, BLACK_BANNER) };
+    const dark = { ...old, explored: '0'.repeat(old.explored.length) };
+    expect(isSeen(openLand(dark, BLACK_BANNER), BLACK_BANNER, 38, 35)).toBe(true);
+  });
+});
+
+describe('the Black Banner, ridden on into', () => {
+  it('finds Kassander as far on as the days gone by', () => {
+    const early = rideOn(thornwoodWon(22), THORNWOOD, BLACK_BANNER);
+    const late = rideOn(thornwoodWon(44), THORNWOOD, BLACK_BANNER);
+    const fresh = armyStrength(armyOf(BLACK_BANNER.rival!.hero.army));
+    expect(armyStrength(rivalHero(early)!.army)).toBeGreaterThan(fresh * 2);
+    expect(armyStrength(rivalHero(late)!.army)).toBeGreaterThan(armyStrength(rivalHero(early)!.army) * 1.5);
+    expect(townById(late, 'korax-town')!.built.length).toBeGreaterThan(BLACK_BANNER.towns!.find((t) => t.id === 'korax-town')!.built.length);
+  });
+
+  it('leaves the hero, the purse and the day alone while he catches up', () => {
+    const won = thornwoodWon(30);
+    const next = rideOn(won, THORNWOOD, BLACK_BANNER);
+    expect(next.day).toBe(30);
+    expect(next.hero.army).toEqual(won.hero.army);
+    expect(next.purse.gold).toBe(won.purse.gold + BLACK_BANNER.grant!.gold!);
+    expect(rivalHero(next)).toMatchObject({ x: BLACK_BANNER.rival!.hero.x, y: BLACK_BANNER.rival!.hero.y });
+  });
+
+  it('is no easier than the part before it', () => {
+    const part2 = THORNWOOD.objects.filter((o) => !ASHFORD.objects.some((p) => p.id === o.id));
+    const part3 = BLACK_BANNER.objects.filter((o) => !THORNWOOD.objects.some((p) => p.id === o.id));
+    expect(midpoint(groups(part3))).toBeGreaterThan(midpoint(groups(part2)));
+    expect(Math.max(...groups(part3))).toBeGreaterThan(Math.max(...groups(part2)));
+    const garrison = (id: string): number => armyStrength(armyOf(BLACK_BANNER.towns!.find((t) => t.id === id)!.garrison));
+    expect(garrison('korax-town')).toBeGreaterThan(garrison('thornwood-town') * 1.5);
+  });
+});
 
 describe('the chapter as one land', () => {
   it('cuts every part from the same land: each one starts at the same corner and holds the one before it', () => {

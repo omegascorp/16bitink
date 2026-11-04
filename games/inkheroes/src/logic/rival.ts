@@ -1,7 +1,7 @@
 import { gainItem } from './items';
 import type { MapDef } from '../level/types';
 import {
-  calendar, checkGoal, DEFEND, guardAt, heroInGarrison, liveObjects, playerArmy, RIVAL, rivalHero, terrainView, townAt, withTown, type Adventure,
+  calendar, checkGoal, dayOfWeek, DEFEND, guardAt, heroInGarrison, incomeOf, liveObjects, playerArmy, RIVAL, rivalHero, terrainView, townAt, withTown, type Adventure,
 } from './adventure';
 import { armyMorale, armyOf, isEmptyArmy, splitMonster, type Army } from './army';
 import { act, createBattle, machinesLeft, survivors, type BattleSide } from './battle';
@@ -12,7 +12,7 @@ import { dailyMp, toBattleHero, type Hero } from './hero';
 import { MINE_NAMES, type MapObject } from './objects';
 import { canStep, findPath, type PathStep } from './path';
 import { addTo } from './resources';
-import { bestUnit, build, cantBuild, dwellings, hireable, hireAll, type Town } from './town';
+import { bestUnit, build, cantBuild, dwellings, hireable, hireAll, weekly, type Town } from './town';
 
 /**
  * The rival lord's turn, played after the night: his towns build and hire,
@@ -46,6 +46,9 @@ const RESERVE = 3000;
 const SAFE = { monster: 0.4, guard: 0.5, town: 0.5, hero: 1 / 1.3 } as const;
 /** How close (tiles) our hero must come to his town, stronger than this share of his army, for him to ride home. */
 const THREAT = { tiles: 12, share: 0.7 } as const;
+
+/** The share of the days before a part opens that the rival has had at home. */
+const HEAD_START = 0.5;
 
 /** A rough fighting strength of an army. */
 export const armyStrength = (army: Army): number => army.reduce((n, s) => n + (s ? strengthOf(s.creature, s.count) : 0), 0);
@@ -82,6 +85,22 @@ export function rivalTurn(adv: Adventure, def: MapDef): { adv: Adventure; report
     if (!r.stopped) break;
   }
   return { adv: withNews(checkGoal(next, def), notes), report: { path, notes } };
+}
+
+/**
+ * The days before a part opens, played by the rival at home: he has been
+ * paid, built and hired under the same rules while the player was busy
+ * elsewhere, for HEAD_START of those days (he came to Korax after the player
+ * set out), so he keeps close behind whenever the player gets there.
+ */
+export function headStart(adv: Adventure, def: MapDef): Adventure {
+  let next = adv;
+  for (let day = 2; day <= Math.round(adv.day * HEAD_START); day++) {
+    const rival = next.rival!;
+    const towns = next.towns.map((t) => (t.owner !== 'rival' ? t : dayOfWeek(day) === 1 ? weekly(t) : { ...t, builtToday: false }));
+    next = rivalTowns({ ...next, towns, rival: { ...rival, purse: addTo(rival.purse, incomeOf(next, 'rival')) } }, def);
+  }
+  return next;
 }
 
 /** The rival's news on the day's card (or a card of its own), and the fight he starts, announced and waiting. */

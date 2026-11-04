@@ -61,6 +61,8 @@ export interface MapDef {
   readonly purse: Amount;
   /** What the Crown sends when the chapter rides on into this part (a part played straight on from the one before keeps its purse). */
   readonly grant?: Amount;
+  /** The way into this part from the last: the land along it is seen from the start, and the map flies along it once the part's card is read. */
+  readonly opening?: { readonly text: string; readonly way: readonly { readonly x: number; readonly y: number }[] };
   /** Buildings switched off on this map. */
   readonly off: readonly BuildingId[];
   readonly seed: number;

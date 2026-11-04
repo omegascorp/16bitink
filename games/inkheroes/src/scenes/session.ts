@@ -5,7 +5,7 @@ import { mapById, nextMap } from '../level/maps';
 import type { MapDef } from '../level/types';
 import { commitProgress } from '../logic/accountSave';
 import { endDay, startAdventure, type Adventure } from '../logic/adventure';
-import { partDays, rideOn } from '../logic/chapter';
+import { openLand, partDays, rideOn } from '../logic/chapter';
 import { rivalTurn, type RivalReport } from '../logic/rival';
 import { blotsFor, loadAdventure, loadProgress, recordWin, saveAdventure } from '../logic/save';
 
@@ -18,6 +18,8 @@ const KEY = 'session';
  */
 export class Session extends Phaser.Events.EventEmitter {
   private startedAt = Date.now();
+  /** A part just opened: the map has its way to show. */
+  private wayToShow = false;
 
   private constructor(private readonly host: GameHost, readonly def: MapDef, private current: Adventure, private dayStart: Adventure, private readonly partStart: Adventure) {
     super();
@@ -36,12 +38,15 @@ export class Session extends Phaser.Events.EventEmitter {
     const def = mapById(saved.current.mapId)!;
     if (saved.current.status === 'won') {
       const next = nextMap(def);
-      return next ? Session.open(scene, host, next, rideOn(saved.current, def, next)) : null;
+      return next ? Session.open(scene, host, next, rideOn(saved.current, def, next), true) : null;
     }
     // Closed on the defeat card: come back to this morning, as "Replay the day" would.
     const current = saved.current.status === 'lost' ? saved.dayStart : saved.current;
     if (current.status !== 'playing') return null;
-    const s = new Session(host, def, current, saved.dayStart, saved.partStart ?? saved.dayStart);
+    // A game saved before its part's way was shown sees it now.
+    const lit = openLand(current, def);
+    const s = new Session(host, def, lit, openLand(saved.dayStart, def), openLand(saved.partStart ?? saved.dayStart, def));
+    s.wayToShow = lit.explored !== current.explored;
     scene.registry.set(KEY, s);
     return s;
   }
@@ -53,11 +58,12 @@ export class Session extends Phaser.Events.EventEmitter {
   /** The chapter rides on from this part, won, into the next: the same land, opened further, with all that was won. */
   rideOn(scene: Phaser.Scene): Session | null {
     const next = nextMap(this.def);
-    return next && this.current.status === 'won' ? Session.open(scene, this.host, next, rideOn(this.current, this.def, next)) : null;
+    return next && this.current.status === 'won' ? Session.open(scene, this.host, next, rideOn(this.current, this.def, next), true) : null;
   }
 
-  private static open(scene: Phaser.Scene, host: GameHost, def: MapDef, adv: Adventure): Session {
+  private static open(scene: Phaser.Scene, host: GameHost, def: MapDef, adv: Adventure, opened = false): Session {
     const s = new Session(host, def, adv, adv, adv);
+    s.wayToShow = opened;
     s.save();
     scene.registry.set(KEY, s);
     trackGame(scene, { type: 'level_start', level: def.id, n: def.n, name: def.name });
@@ -66,6 +72,13 @@ export class Session extends Phaser.Events.EventEmitter {
 
   get adv(): Adventure {
     return this.current;
+  }
+
+  /** The way the part just opened, for the map to show once. */
+  takeOpening(): MapDef['opening'] {
+    const show = this.wayToShow;
+    this.wayToShow = false;
+    return show ? this.def.opening : undefined;
   }
 
   set(adv: Adventure): void {

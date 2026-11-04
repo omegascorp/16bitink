@@ -3,7 +3,11 @@ import { gridOf, heroFromDef, revealAround, type Adventure } from './adventure';
 import { armyOf } from './army';
 import { sightOf } from './hero';
 import { addTo, purse } from './resources';
+import { headStart } from './rival';
 import { weekly, type Town } from './town';
+
+/** How far either side of a newly opened way the land shows, tiles. */
+const WAY_SIGHT = 4;
 
 /**
  * A chapter is one land played straight through: winning a part opens the
@@ -43,7 +47,21 @@ export function rideOn(adv: Adventure, from: MapDef, next: MapDef): Adventure {
   };
   // The hero looks about the newly opened land, and so does each new town on our side.
   const fresh = towns.filter((t) => (t.owner === 'player' || t.ally) && !adv.towns.some((o) => o.id === t.id));
-  return fresh.reduce((a, t) => revealAround(a, next, t.x, t.y, 5), revealAround(opened, next, adv.hero.x, adv.hero.y, sightOf(adv.hero)));
+  const seen = openLand(fresh.reduce((a, t) => revealAround(a, next, t.x, t.y, 5), revealAround(opened, next, adv.hero.x, adv.hero.y, sightOf(adv.hero))), next);
+  return adv.rival === undefined && seen.rival ? headStart(seen, next) : seen;
+}
+
+/** The land along the way the part opened, seen (seeing it again changes nothing). */
+export function openLand(adv: Adventure, def: MapDef): Adventure {
+  const way = def.opening?.way ?? [];
+  return way.slice(1).reduce((seen, to, i) => {
+    const from = way[i]!;
+    const steps = Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y));
+    return Array.from({ length: steps + 1 }, (_, n) => n).reduce(
+      (a, n) => revealAround(a, def, Math.round(from.x + ((to.x - from.x) * n) / steps), Math.round(from.y + ((to.y - from.y) * n) / steps), WAY_SIGHT),
+      seen,
+    );
+  }, adv);
 }
 
 /** The days played in this part (its par counts these). */

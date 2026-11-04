@@ -28,11 +28,18 @@ const AT: Readonly<Record<'ashford' | 'thornwood' | 'blackBanner', Place>> = {
 const WORLD = { w: 72, h: 68 } as const;
 /** Between the lands: open water (it is never walked, and costs nothing to draw). */
 const SEA = '~';
+/** The forest trail: from the south road, west of the river, down through the gap to the vale's own road. */
+const TRAIL_X = AT.thornwood.x + 6;
+const TRAIL: readonly Place[] = [
+  ...[26, 27, 28, 29, 30].map((y) => ({ x: TRAIL_X + 1, y })),
+  ...[30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40].map((y) => ({ x: TRAIL_X, y })),
+];
 /** Where the lands meet: the north road on from the old bridge, and the forest trail down to the Black Banner's vale. */
 const CARVE: readonly (Place & { readonly ch: string })[] = [
   ...[0, 1, 2, 3, 4, 5, 6, 7].map((x) => ({ x: AT.thornwood.x + x, y: 12, ch: '=' })),
   ...[4, 5, 6].map((x) => ({ x: AT.thornwood.x + x, y: 31, ch: 'g' })),
   ...[12, 13, 14].map((x) => ({ x: AT.blackBanner.x + x, y: AT.blackBanner.y, ch: 'g' })),
+  ...TRAIL.map((p) => ({ ...p, ch: '#' })),
 ];
 /** One seed for the whole land, so its woods and ground look the same in every part. */
 const SEED = ASHFORD_LAND.seed;
@@ -85,7 +92,7 @@ const rival = BLACK_BANNER_LAND.rival!;
 export const BLACK_BANNER: MapDef = {
   ...BLACK_BANNER_LAND,
   intro: [
-    'Thornwood is free, and its foresters show you a trail south through the trees, down to Eudora. Eudora has kept its gates shut against the Black Banner. Ride down to it, and it opens them to you: yours to build in and hire from.',
+    'Thornwood is free, and its foresters show you an old trail: it leaves the south road west of the river and runs down through the trees to Eudora. Eudora has kept its gates shut against the Black Banner. Ride down to it, and it opens them to you: yours to build in and hire from.',
     'Kassander of Korax flies a black banner with a red raven, and he serves no crown. He builds and hires as you do, takes the mines, and will come for your towns when he thinks he can win. Beat him to the lakelands, then take Korax.',
     'Build a Blacksmith: a Ballista and a First Aid Tent from it ride with your hero into every battle.',
   ],
@@ -100,5 +107,9 @@ export const BLACK_BANNER: MapDef = {
   hero: heroAt(BLACK_BANNER_LAND.hero, AT.blackBanner),
   rival: { ...rival, hero: heroAt(rival.hero, AT.blackBanner) },
   grant: { gold: 3000, wood: 5, ore: 5, mercury: 2, sulfur: 2, crystal: 2, gems: 2 },
+  opening: {
+    text: 'The forest trail south, down to Eudora',
+    way: [{ x: TRAIL_X, y: 30 }, { x: TRAIL_X, y: 41 }, { x: TRAIL_X - 1, y: 61 }, { x: BLACK_BANNER_LAND.town.x + AT.blackBanner.x, y: 61 }],
+  },
   objects: [...THORNWOOD.objects, ...placed(BLACK_BANNER_LAND.objects, AT.blackBanner, 'banner', THORNWOOD.objects)],
 };

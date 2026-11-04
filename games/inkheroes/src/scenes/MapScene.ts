@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getSound } from '../host';
+import type { MapDef } from '../level/types';
 import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, planPath, rivalHero, stepHero, type Adventure } from '../logic/adventure';
 import type { Army } from '../logic/army';
 import { creature, sizeWord, type CreatureId } from '../logic/creatures';
@@ -23,6 +24,8 @@ import { Session } from './session';
 const DRAG = 8;
 /** How fast the view catches a hero it lost sight of, map pixels a millisecond (the ride's pace or better). */
 const CATCH_UP = 1;
+/** How fast the view flies along a newly opened way, map pixels a millisecond, how long it rests at each stop, and how much faster it comes home. */
+const FLIGHT = { speed: 0.8, rest: 450, home: 2 } as const;
 /** How far the zoom may step from the screen's own pixel size, either way. */
 const ZOOM_STEPS = 1;
 /** A pinch must grow or shrink the finger gap this much to step the zoom. */
@@ -212,7 +215,7 @@ export class MapScene extends Phaser.Scene {
   }
 
   private hover(p: Phaser.Input.Pointer): void {
-    if (!this.ready) return;
+    if (!this.ready || this.walking) return;
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
     const x = Math.floor(w.x / TILE);
     const y = Math.floor(w.y / TILE);
@@ -424,8 +427,47 @@ export class MapScene extends Phaser.Scene {
       this.startBattle(adv.rivalFight);
       return;
     }
+    const opening = !adv.prompts.length && adv.status === 'playing' ? this.session.takeOpening() : undefined;
+    if (opening) {
+      this.flyAlong(opening);
+      return;
+    }
     // No "is a card open" guard: a card that just closed is still active until the next frame, and openCard replaces any open card.
     openPrompt(this, this.session);
+  }
+
+  /** Flies the view along the way a part opened and back to the hero; a tap cuts it short. */
+  private flyAlong({ text, way }: NonNullable<MapDef['opening']>): void {
+    const centre = (t: { x: number; y: number }): { x: number; y: number } => ({ x: (t.x + 0.5) * TILE, y: (t.y + 0.5) * TILE });
+    const stops = [...way.map(centre), centre(this.session.adv.hero)];
+    const eye = { ...this.view };
+    let from = eye;
+    const legs = stops.map((to, i) => {
+      const home = i === stops.length - 1;
+      const duration = Phaser.Math.Distance.BetweenPoints(from, to) / (FLIGHT.speed * (home ? FLIGHT.home : 1));
+      from = to;
+      return { ...to, duration, hold: home ? 0 : FLIGHT.rest, ease: 'Sine.easeInOut', onUpdate: () => this.lookAt(eye) };
+    });
+    const land = (): void => {
+      this.input.off('pointerdown', cut);
+      this.walking = false;
+      this.events.emit('status', '');
+      this.centreOnHero();
+    };
+    const flight = this.tweens.chain({ targets: eye, tweens: legs, onComplete: land });
+    const cut = (): void => {
+      flight.stop();
+      land();
+    };
+    this.walking = true;
+    this.setPath(null);
+    this.events.emit('status', text);
+    this.input.once('pointerdown', cut);
+  }
+
+  private lookAt(at: { x: number; y: number }): void {
+    this.view = { ...at };
+    this.applyView();
   }
 
   /** Shows the rival lord riding his path, on the tiles the player has seen (he slips through the rest unseen). */
