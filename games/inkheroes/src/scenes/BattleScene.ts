@@ -12,7 +12,6 @@ import type { Hex } from '../logic/hex';
 import { tileIndex } from '../logic/map';
 import { SPELLS, type SpellId } from '../logic/spells';
 import { BattleCameras } from './battle/battleCameras';
-import { BattleCursors, swordDir, type CursorKind } from './battle/battleCursors';
 import { BattleHud } from './battle/battleHud';
 import { BattleView, type ViewOpts } from './battle/battleView';
 import { unitInfo } from './battle/unitCard';
@@ -22,6 +21,7 @@ import { hexAtPx, hexPx } from './battle/pixelLayout';
 import { crispText } from './hidpi';
 import type { MapScene } from './MapScene';
 import { coverWhileLoading } from './LoadingScene';
+import { PixelCursors, swordDir, type CursorKind } from './pixelCursors';
 import { Session } from './session';
 
 /** Pause before an AI unit acts, so the player can follow. */
@@ -70,7 +70,7 @@ export class BattleScene extends Phaser.Scene {
   private session: Session | null = null;
   private sandbox: SandboxBattle | null = null;
   private cams!: BattleCameras;
-  private cursors!: BattleCursors;
+  private cursors!: PixelCursors;
   private hud!: BattleHud;
   private monsterId = '';
   private then: string | undefined;
@@ -143,7 +143,7 @@ export class BattleScene extends Phaser.Scene {
     this.live = true;
     this.layout();
     this.scale.on('resize', this.layout, this);
-    this.cursors = new BattleCursors(this.game.canvas);
+    this.cursors = new PixelCursors(this.game.canvas);
     this.input.mouse?.disableContextMenu();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off('resize', this.layout, this);

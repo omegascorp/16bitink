@@ -4,6 +4,7 @@ import { getSound } from '../host';
 import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, planPath, rivalHero, stepHero, type Adventure } from '../logic/adventure';
 import type { Army } from '../logic/army';
 import { creature, sizeWord, type CreatureId } from '../logic/creatures';
+import { intentAt, type MapIntent } from '../logic/mapIntent';
 import { MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
 import type { PathStep } from '../logic/path';
 import type { RivalReport } from '../logic/rival';
@@ -14,17 +15,21 @@ import { loadMapArt } from './map/pixelMapArt';
 import { PixelMapWorld } from './map/pixelMapWorld';
 import { GROUND_BORDER, MAP_TILE as TILE } from './map/pixelGround';
 import { coverWhileLoading } from './LoadingScene';
+import { PixelCursors, type CursorKind } from './pixelCursors';
 import { pixelZoom } from './pixelScreen';
 import { Session } from './session';
 
 /** A press that moves further than this (CSS px) is a drag, not a tap. */
 const DRAG = 8;
-/** Milliseconds a hero takes per 100 movement points. */
-const STEP_MS = 150;
+/** How fast the view catches a hero it lost sight of, map pixels a millisecond (the ride's pace or better). */
+const CATCH_UP = 1;
 /** How far the zoom may step from the screen's own pixel size, either way. */
 const ZOOM_STEPS = 1;
 /** A pinch must grow or shrink the finger gap this much to step the zoom. */
 const PINCH_STEP = 1.35;
+
+/** The cursor that says what a tap would do. */
+const CURSOR: Readonly<Record<MapIntent, CursorKind>> = { move: 'move', attack: 'attack', visit: 'visit' };
 
 /**
  * The adventure map: the painted ground, sites, monsters and the hero.
@@ -43,6 +48,9 @@ export class MapScene extends Phaser.Scene {
   private press: { x: number; y: number; sx: number; sy: number; moved: boolean } | null = null;
   private pinch: { dist: number; k: number } | null = null;
   private ready = false;
+  private cursors!: PixelCursors;
+  /** The tile and the state the cursor was last worked out for: a path is only searched when one changes. */
+  private aim: { x: number; y: number; adv: Adventure } | null = null;
 
   constructor() {
     super('Map');
@@ -78,6 +86,14 @@ export class MapScene extends Phaser.Scene {
     const onChange = (adv: Adventure): void => this.world.sync(adv);
     this.session.on('change', onChange);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.session.off('change', onChange));
+    this.cursors = new PixelCursors(this.game.canvas);
+    this.aim = null;
+    const plainCursor = (): void => this.clearCursor();
+    this.events.on(Phaser.Scenes.Events.SLEEP, plainCursor);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off(Phaser.Scenes.Events.SLEEP, plainCursor);
+      this.clearCursor();
+    });
     this.wireInput();
     this.scene.launch('MapHud');
     this.ready = true;
@@ -86,7 +102,10 @@ export class MapScene extends Phaser.Scene {
   }
 
   update(_t: number, delta: number): void {
-    if (this.ready) this.world.update(delta);
+    if (!this.ready) return;
+    this.world.update(delta);
+    if (this.world.heroRiding) this.followHero(delta);
+    if (this.blocked()) this.clearCursor();
   }
 
   /** A new screen keeps the same spot in the middle at the screen's own pixel size. */
@@ -195,7 +214,25 @@ export class MapScene extends Phaser.Scene {
   private hover(p: Phaser.Input.Pointer): void {
     if (!this.ready) return;
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
-    this.events.emit('status', this.describe(Math.floor(w.x / TILE), Math.floor(w.y / TILE)));
+    const x = Math.floor(w.x / TILE);
+    const y = Math.floor(w.y / TILE);
+    this.events.emit('status', this.describe(x, y));
+    this.aimCursor(x, y);
+  }
+
+  /** Shows what a tap on the tile would do. */
+  private aimCursor(x: number, y: number): void {
+    const { adv, def } = this.session;
+    if (this.blocked() || (this.aim?.x === x && this.aim.y === y && this.aim.adv === adv)) return;
+    this.aim = { x, y, adv };
+    const intent = intentAt(adv, def, x, y);
+    this.cursors.set(intent && CURSOR[intent]);
+  }
+
+  /** Back to the ordinary pointer: something covers the map, or the pointer left it for the HUD. */
+  clearCursor(): void {
+    this.aim = null;
+    this.cursors.set(null);
   }
 
   /** What the player sees at a tile, for the status line. */
@@ -231,7 +268,7 @@ export class MapScene extends Phaser.Scene {
     const foe = rivalHero(this.session.adv);
     if (foe && foe.x === x && foe.y === y && isSeen(this.session.adv, this.session.def, x, y) && !heroInGarrison(this.session.adv)) {
       const end = this.path?.[this.path.length - 1];
-      if (end && end.x === x && end.y === y) void this.walk(this.path!);
+      if (end && end.x === x && end.y === y) this.walk(this.path!);
       else this.setPath(planPath(this.session.adv, this.session.def, x, y));
       this.events.emit('status', this.describe(x, y));
       return;
@@ -241,7 +278,7 @@ export class MapScene extends Phaser.Scene {
     this.events.emit('status', this.describe(x, y));
     const on = isSeen(adv, def, x, y) ? objectCovering(adv, x, y) : undefined;
     if (end && ((end.x === x && end.y === y) || (on && end.x === on.x && end.y === on.y))) {
-      void this.walk(this.path!);
+      this.walk(this.path!);
       return;
     }
     if (x === adv.hero.x && y === adv.hero.y && heroTown(adv)) {
@@ -268,64 +305,81 @@ export class MapScene extends Phaser.Scene {
     this.world.showPath(path);
   }
 
-  /** Walks the planned path a step at a time, stopping for sites, monsters, the town or the day's end. */
-  private async walk(path: readonly PathStep[]): Promise<void> {
+  /** Rides the planned path, stopping for sites, monsters, the town or the day's end. */
+  private walk(path: readonly PathStep[]): void {
     this.walking = true;
     this.world.startRide();
     this.setPath(null);
-    let rest = [...path];
-    const goal = path[path.length - 1];
-    for (const step of path) {
-      const r = stepHero(this.session.adv, this.session.def, step, goal);
-      if (r.battle && r.adv === this.session.adv) {
-        this.walking = false;
-        this.world.stopRide(true);
-        this.world.faceHero(step.x);
-        this.startBattle(r.battle, r.then);
-        return;
-      }
-      if (r.adv === this.session.adv) break;
-      // A step onto an object is a visit from beside it: the hero turns to it and stays.
-      const visit = r.adv.hero.x !== step.x || r.adv.hero.y !== step.y;
-      if (visit) this.world.faceHero(step.x);
-      else await this.world.walkHero(step.x, step.y, (STEP_MS * step.cost) / 100);
-      getSound(this)?.play('step');
-      this.session.set(r.adv);
-      this.followHero();
-      if (r.notes.length) getSound(this)?.play('pickup');
-      for (const n of r.notes) this.events.emit('note', n, step.x, step.y);
-      rest = rest.slice(1);
-      if (r.battle) {
-        this.walking = false;
-        this.world.stopRide(true);
-        this.startBattle(r.battle, r.then);
-        return;
-      }
-      if (r.town) {
-        this.walking = false;
-        this.world.stopRide(true);
-        this.openTown();
-        return;
-      }
-      if (r.stop) break;
-    }
-    this.walking = false;
-    this.world.stopRide();
-    // Keep showing what's left for tomorrow.
-    if (rest.length) this.setPath(planPath(this.session.adv, this.session.def, rest[rest.length - 1]!.x, rest[rest.length - 1]!.y));
-    this.showPrompts();
+    this.stride(path, 0);
   }
 
-  /** Glides the view to the hero when the hero nears the screen's edge. */
-  private followHero(): void {
+  /** Takes step `i` and, as the hero gets there, the next: the ride itself calls it, so no frame is lost at a tile. */
+  private stride(path: readonly PathStep[], i: number): void {
+    const step = path[i];
+    if (!step) {
+      this.endWalk([]);
+      return;
+    }
+    const r = stepHero(this.session.adv, this.session.def, step, path[path.length - 1]);
+    if (r.adv === this.session.adv) {
+      if (!r.battle) {
+        this.endWalk(path.slice(i));
+        return;
+      }
+      this.halt();
+      this.world.faceHero(step.x);
+      this.startBattle(r.battle, r.then);
+      return;
+    }
+    const arrive = (): void => {
+      getSound(this)?.play('step');
+      this.session.set(r.adv);
+      if (r.notes.length) getSound(this)?.play('pickup');
+      for (const n of r.notes) this.events.emit('note', n, step.x, step.y);
+      if (r.battle) {
+        this.halt();
+        this.startBattle(r.battle, r.then);
+      } else if (r.town) {
+        this.halt();
+        this.openTown();
+      } else if (r.stop) this.endWalk(path.slice(i + 1));
+      else this.stride(path, i + 1);
+    };
+    // A step onto an object is a visit from beside it: the hero turns to it and stays.
+    if (r.adv.hero.x === step.x && r.adv.hero.y === step.y) this.world.walkHero(step.x, step.y, arrive);
+    else {
+      this.world.faceHero(step.x);
+      arrive();
+    }
+  }
+
+  /** Stops at once, for a scene about to open. */
+  private halt(): void {
+    this.walking = false;
+    this.world.stopRide(true);
+  }
+
+  /** The ride is over: what's `rest` stays planned for tomorrow. */
+  private endWalk(rest: readonly PathStep[]): void {
+    this.walking = false;
+    this.world.stopRide();
+    const end = rest[rest.length - 1];
+    if (end) this.setPath(planPath(this.session.adv, this.session.def, end.x, end.y));
+    this.showPrompts();
+    // The pointer has not moved, but what lies under it may have changed.
+    if (!this.session.adv.prompts.length) this.hover(this.input.activePointer);
+  }
+
+  /** Keeps the hero inside the middle of the screen: past its edge the view moves with the rider, pixel for pixel. */
+  private followHero(delta: number): void {
     const h = this.world.heroFeet;
     const vw = this.scale.width / this.k;
     const vh = this.scale.height / this.k;
     const margin = Math.min(vw, vh) * 0.25;
-    const dx = Math.abs(h.x - this.view.x);
-    const dy = Math.abs(h.y - this.view.y);
-    if (dx < vw / 2 - margin && dy < vh / 2 - margin) return;
-    this.tweens.add({ targets: this.view, x: h.x, y: h.y, duration: 300, ease: 'Sine.easeInOut', onUpdate: () => this.applyView() });
+    const reach = delta * CATCH_UP;
+    const pull = (over: number, free: number): number => Phaser.Math.Clamp(over > free ? over - free : over < -free ? over + free : 0, -reach, reach);
+    this.view = { x: this.view.x + pull(h.x - this.view.x, vw / 2 - margin), y: this.view.y + pull(h.y - this.view.y, vh / 2 - margin) };
+    this.applyView();
   }
 
   startBattle(monsterId: string, then?: string): void {
@@ -383,10 +437,7 @@ export class MapScene extends Phaser.Scene {
     const { def } = this.session;
     this.walking = true;
     this.world.placeRival(before);
-    for (const t of report.path) {
-      if (isSeen(before, def, t.x, t.y)) await this.world.walkRival(t.x, t.y, STEP_MS);
-      else this.world.hideRival();
-    }
+    await this.world.rideRival(report.path, (x, y) => isSeen(before, def, x, y));
     this.walking = false;
     this.world.sync(this.session.adv);
   }

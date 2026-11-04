@@ -80,6 +80,22 @@ def clean_strip(strip: Image.Image, w: int) -> Image.Image:
     return out
 
 
+def locked_strip(strip: Image.Image, w: int, shifts: list[int]) -> tuple[Image.Image, int]:
+    """Holds a walk's body still: each frame moves by its `shifts` entry, plus
+    the smallest margin that keeps them all on the canvas. Returns the strip and the margin."""
+    frames = [strip.crop((i * w, 0, (i + 1) * w, strip.height)) for i in range(len(shifts))]
+    boxes = [(f.getbbox(), dx) for f, dx in zip(frames, shifts)]
+    low = max(-(box[0] + dx) for box, dx in boxes)
+    high = min(w - (box[2] + dx) for box, dx in boxes)
+    if low > high:
+        raise SystemExit(f'the locked walk does not fit the {w} px canvas (margin {low}..{high})')
+    margin = max(low, min(0, high))
+    out = Image.new('RGBA', strip.size, (0, 0, 0, 0))
+    for i, (frame, dx) in enumerate(zip(frames, shifts)):
+        out.paste(frame, (i * w + dx + margin, 0))
+    return out, margin
+
+
 def foot_x(im: Image.Image) -> int:
     x0, y0, x1, y1 = im.getbbox()
     a = im.getchannel('A').load()
@@ -93,6 +109,7 @@ def unit_entry(uid: str, spec: dict, defaults: dict, imports: list[str]) -> str:
     still.save(PIX / 'pad' / f'{uid}.png')
     w, h = spec['canvas']
     frames, done = {}, []
+    walk_margin = 0
     for pose in POSES:
         src = PIX / 'anim' / f'{uid}-{pose}.png'
         dst = OUT / 'units' / f'{uid}-{pose}.png'
@@ -110,7 +127,10 @@ def unit_entry(uid: str, spec: dict, defaults: dict, imports: list[str]) -> str:
             strip = Image.open(src)
             if strip.height != h or strip.width % w:
                 raise SystemExit(f'{src}: {strip.size} is not a strip of {w}x{h} frames')
-            clean_strip(strip.convert('RGBA'), w).save(dst)
+            clean = clean_strip(strip.convert('RGBA'), w)
+            if pose == 'walk' and spec.get('walkLock'):
+                clean, walk_margin = locked_strip(clean, w, spec['walkLock'])
+            clean.save(dst)
             frames[pose] = strip.width // w
             done.append(pose)
         else:
@@ -128,6 +148,8 @@ def unit_entry(uid: str, spec: dict, defaults: dict, imports: list[str]) -> str:
         lines.append(f"    shotFrom: {{ x: {shot[0]}, y: {shot[1]} }},")
     if spec.get('flies'):
         lines.append('    flies: true,')
+    if walk_margin:
+        lines.append(f"    walkFootX: {foot_x(still) + walk_margin},")
     if spec.get('face'):
         lines.append(f"    face: {{ x: {spec['face'][0]}, y: {spec['face'][1]} }},")
     lines.append(f"    url: {{ idle: {var(uid, 'idle')}, walk: {var(uid, 'walk')}, attack: {var(uid, 'attack')} }},")
@@ -190,6 +212,8 @@ export interface UnitArt {{
   readonly strike: number;
   readonly shotFrom?: {{ readonly x: number; readonly y: number }};
   readonly flies?: boolean;
+  /** The walk's own foot column, where its frames were moved to hold the body still. */
+  readonly walkFootX?: number;
   /** The centre of the face in the idle frame: the turn order's portrait is cut round it. */
   readonly face?: {{ readonly x: number; readonly y: number }};
   readonly url: Readonly<Record<Pose, string>>;

@@ -127,6 +127,8 @@ export interface UnitArt {
   readonly strike: number;
   readonly shotFrom?: { readonly x: number; readonly y: number };
   readonly flies?: boolean;
+  /** The walk's own foot column, where its frames were moved to hold the body still. */
+  readonly walkFootX?: number;
   /** The centre of the face in the idle frame: the turn order's portrait is cut round it. */
   readonly face?: { readonly x: number; readonly y: number };
   readonly url: Readonly<Record<Pose, string>>;
@@ -352,12 +354,14 @@ export const HERO_ART: Readonly<Record<string, UnitArt>> = {
   player: {
     name: 'Strategos', w: 144, h: 136, footX: 55, footY: 130,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    walkFootX: 64,
     face: { x: 59, y: 29 },
     url: { idle: hero_playerIdle, walk: hero_playerWalk, attack: hero_playerAttack },
   },
   rival: {
     name: 'Kassander', w: 144, h: 136, footX: 50, footY: 130,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    walkFootX: 54,
     face: { x: 55, y: 27 },
     url: { idle: hero_rivalIdle, walk: hero_rivalWalk, attack: hero_rivalAttack },
   },

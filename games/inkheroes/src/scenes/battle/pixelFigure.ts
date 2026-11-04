@@ -80,9 +80,9 @@ export class PixelFigure {
     if (!this.held) this.set('idle', IDLE_FPS);
   }
 
-  walk(): void {
+  walk(fps = WALK_FPS): void {
     this.finishAttack();
-    if (!this.held) this.set('walk', WALK_FPS);
+    if (!this.held) this.set('walk', fps);
   }
 
   /** How long the attack takes to reach its strike frame, ms. */
@@ -183,9 +183,10 @@ export class PixelFigure {
    */
   private place(): void {
     const a = this.art;
+    const foot = this.pose === 'walk' ? a.walkFootX ?? a.footX : a.footX;
     this.sprite
       .setFlipX(this.left)
-      .setDisplayOrigin(this.left ? a.w - 1 - a.footX : a.footX, a.footY)
+      .setDisplayOrigin(this.left ? a.w - 1 - foot : foot, a.footY)
       .setPosition(this.feet.x + this.nudge, this.feet.y - this.lift)
       .setDepth(FIGURE_DEPTH + this.feet.y);
   }

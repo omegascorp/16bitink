@@ -17,10 +17,13 @@ import type { BuildingId } from '../../logic/buildings';
 import { renderMapTown, type CityArt } from '../town/cityRender';
 import { TOWN_TEX } from '../town/townTex';
 import { MAP_TEX, siteArtOf, siteSprite } from './pixelMapArt';
-import { composeFog, composeGround, GROUND_BORDER, groundSize, MAP_TILE } from './pixelGround';
+import { composeFog, composeGround, fogPieces, GROUND_BORDER, MAP_TILE, touchedPieces, type PixelRect } from './pixelGround';
+import { Ride, RIDE_FPS } from './ride';
 
 /** Ground chunks are cut this many pixels square (a texture each). */
 const CHUNK_PX = 768;
+/** The fog is cut into squares this many pixels wide (a texture each): a step redraws only those it touches. */
+const FOG_PIECE_PX = 480;
 /** Feet stand this far down a tile. */
 const FOOT_Y = 44;
 /** Over every figure and site: the planned path, then the fog. */
@@ -104,13 +107,15 @@ export class PixelMapWorld {
   private readonly hero: PixelFigure;
   /** The rival lord's figure, on a map that has one; shown only on tiles the player has seen. */
   private readonly rival: PixelFigure | null;
-  private rivalRiding = false;
+  private readonly heroRide: Ride;
+  private readonly rivalRide: Ride;
   private readonly pathMarks: Phaser.GameObjects.Image[] = [];
   private readonly markKeys: Record<string, string>;
-  private readonly fogTex: Phaser.Textures.CanvasTexture;
+  private readonly fog = new Map<PixelRect, Phaser.Textures.CanvasTexture>();
+  /** What the fog was last drawn for. */
+  private fogDrawn = '';
   private readonly chunkKeys: string[] = [];
   private flagKeys: Partial<Record<Owner, string>> = {};
-  private walking = false;
   /** Pictures that stand on a tile and wait in the fog until it is seen: trees, rocks and towns with their flags. */
   private readonly shrouded: { readonly obj: { setVisible(v: boolean): unknown }; readonly x: number; readonly y: number }[] = [];
   /** Each town's picture and the buildings it was drawn with (it is redrawn as the town grows). */
@@ -141,18 +146,28 @@ export class PixelMapWorld {
     const ra = heroArt('rival');
     this.rival = r ? new PixelFigure(scene, this.layer, ra.art, (pose) => PX_TEX.hero(ra.id, pose), tileFeet(r.x, r.y), true) : null;
     if (this.rival) this.figures.push(this.rival);
+    this.heroRide = new Ride((x, y) => this.hero.setFeet(x, y));
+    this.rivalRide = new Ride((x, y) => this.rival?.setFeet(x, y));
     this.markKeys = {
       dot: putBuffer(scene, drawMark('dot', PATH_TODAY)), ring: putBuffer(scene, drawMark('ring', PATH_LATER)),
       crossToday: putBuffer(scene, drawMark('cross', PATH_TODAY)), crossLater: putBuffer(scene, drawMark('cross', PATH_LATER)),
     };
-    const size = groundSize(g);
-    const key = MAP_TEX.fog(def.id);
-    if (scene.textures.exists(key)) scene.textures.remove(key);
-    this.fogTex = scene.textures.createCanvas(key, size.w, size.h)!;
-    this.fogTex.setFilter(Phaser.Textures.FilterMode.NEAREST);
-    this.layer.add(scene.add.image(-GROUND_BORDER * MAP_TILE, -GROUND_BORDER * MAP_TILE, key).setOrigin(0).setDepth(FOG_DEPTH));
+    this.addFog();
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroy());
     this.sync(adv);
+  }
+
+  /** The fog's pieces, empty until the first sync draws them. */
+  private addFog(): void {
+    const off = -GROUND_BORDER * MAP_TILE;
+    fogPieces(gridOf(this.def), FOG_PIECE_PX).forEach((rect, i) => {
+      const key = `${MAP_TEX.fog(this.def.id)}-${i}`;
+      if (this.scene.textures.exists(key)) this.scene.textures.remove(key);
+      const tex = this.scene.textures.createCanvas(key, rect.w, rect.h)!;
+      tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+      this.layer.add(this.scene.add.image(off + rect.x, off + rect.y, key).setOrigin(0).setDepth(FOG_DEPTH));
+      this.fog.set(rect, tex);
+    });
   }
 
   /** The map's ground, composed once and cut into chunk textures. */
@@ -249,8 +264,8 @@ export class PixelMapWorld {
       if (flag) flag.setTexture(this.flagKey(o.owner === 'player' ? 'player' : o.owner === 'rival' ? 'rival' : 'neutral')).setVisible(seen(o.x, o.y));
     }
     for (const s of this.shrouded) s.obj.setVisible(seen(s.x, s.y));
-    if (!this.walking) this.placeHero(adv.hero.x, adv.hero.y);
-    if (!this.rivalRiding) this.placeRival(adv);
+    if (!this.heroRide.moving) this.placeHero(adv.hero.x, adv.hero.y);
+    if (!this.rivalRide.moving) this.placeRival(adv);
     for (const t of adv.towns) {
       this.flags.get(`town-${t.id}`)?.setTexture(this.flagKey(t.owner));
       const drawn = this.townImgs.get(t.id);
@@ -272,36 +287,32 @@ export class PixelMapWorld {
     this.rival.sprite.setVisible(!!r && isSeen(adv, this.def, r.x, r.y));
   }
 
-  hideRival(): void {
-    this.rival?.sprite.setVisible(false);
-  }
-
-  /** Slides the rival lord one step into sight, riding; resolves when he gets there. */
-  walkRival(x: number, y: number, ms: number): Promise<void> {
+  /** Rides the rival lord along `tiles`: seen, he gallops; unseen, he slips through the fog. Resolves at the end. */
+  rideRival(tiles: readonly { x: number; y: number }[], seen: (x: number, y: number) => boolean): Promise<void> {
     const fig = this.rival;
     if (!fig) return Promise.resolve();
-    const to = tileFeet(x, y);
-    // Out of the fog: he appears on the tile he comes from.
-    if (!fig.sprite.visible) {
-      fig.sprite.setVisible(true);
-      return Promise.resolve(fig.setFeet(to.x, to.y));
-    }
-    const from = { ...fig.feet };
-    if (to.x !== from.x) fig.face(to.x < from.x);
-    fig.walk();
-    this.rivalRiding = true;
-    const at = { t: 0 };
+    fig.walk(RIDE_FPS);
     return new Promise((resolve) => {
-      this.scene.tweens.add({
-        targets: at, t: 1, duration: ms, ease: 'Linear',
-        onUpdate: () => fig.setFeet(from.x + (to.x - from.x) * at.t, from.y + (to.y - from.y) * at.t),
-        onComplete: () => {
-          fig.setFeet(to.x, to.y);
+      const next = (i: number): void => {
+        const t = tiles[i];
+        if (!t) {
           fig.idle();
-          this.rivalRiding = false;
           resolve();
-        },
-      });
+          return;
+        }
+        const to = tileFeet(t.x, t.y);
+        const sees = seen(t.x, t.y);
+        // Coming out of the fog he simply appears on the tile.
+        if (!sees || !fig.sprite.visible) {
+          fig.sprite.setVisible(sees);
+          fig.setFeet(to.x, to.y);
+          next(i + 1);
+          return;
+        }
+        if (to.x !== fig.feet.x) fig.face(to.x < fig.feet.x);
+        this.rivalRide.go(fig.feet, to, () => next(i + 1));
+      };
+      next(0);
     });
   }
 
@@ -315,8 +326,13 @@ export class PixelMapWorld {
     this.hero.setFeet(f.x, f.y);
   }
 
+  /** Whether the hero is between two tiles. */
+  get heroRiding(): boolean {
+    return this.heroRide.moving;
+  }
+
   startRide(): void {
-    this.hero.walk();
+    this.hero.walk(RIDE_FPS);
   }
 
   stopRide(_now = false): void {
@@ -329,24 +345,12 @@ export class PixelMapWorld {
     if (Math.abs(cx - this.hero.feet.x) > 1) this.hero.face(cx < this.hero.feet.x);
   }
 
-  /** Slides the hero one step, on whole pixels; resolves when it gets there. */
-  walkHero(x: number, y: number, ms: number): Promise<void> {
+  /** Rides the hero one tile and calls `arrive` there, within the same frame, so the next tile follows without a pause. */
+  walkHero(x: number, y: number, arrive: () => void): void {
     const to = tileFeet(x, y);
-    const from = { ...this.hero.feet };
+    const from = this.hero.feet;
     if (to.x !== from.x) this.hero.face(to.x < from.x);
-    const at = { t: 0 };
-    this.walking = true;
-    return new Promise((resolve) => {
-      this.scene.tweens.add({
-        targets: at, t: 1, duration: ms, ease: 'Linear',
-        onUpdate: () => this.hero.setFeet(from.x + (to.x - from.x) * at.t, from.y + (to.y - from.y) * at.t),
-        onComplete: () => {
-          this.hero.setFeet(to.x, to.y);
-          this.walking = false;
-          resolve();
-        },
-      });
-    });
+    this.heroRide.go(from, to, arrive);
   }
 
   /** The planned path: green dots for today, red rings for later days, a cross at its end. */
@@ -366,18 +370,27 @@ export class PixelMapWorld {
     });
   }
 
+  /** Redraws the parts of the fog that what was just explored reaches. */
   private drawFog(adv: Adventure): void {
-    const fog = composeFog(gridOf(this.def), adv.explored, hexRgb(BACKDROP));
-    this.fogTex.context.putImageData(new ImageData(fog.data as Uint8ClampedArray<ArrayBuffer>, fog.w, fog.h), 0, 0);
-    this.fogTex.refresh();
+    const g = gridOf(this.def);
+    const touched = touchedPieces(g, [...this.fog.keys()], this.fogDrawn, adv.explored);
+    this.fogDrawn = adv.explored;
+    for (const { piece, part } of touched) {
+      const fog = composeFog(g, adv.explored, hexRgb(BACKDROP), part);
+      const tex = this.fog.get(piece)!;
+      tex.context.putImageData(new ImageData(fog.data as Uint8ClampedArray<ArrayBuffer>, fog.w, fog.h), part.x - piece.x, part.y - piece.y);
+      tex.refresh();
+    }
   }
 
   update(delta: number): void {
+    this.heroRide.update(delta);
+    this.rivalRide.update(delta);
     for (const f of this.figures) f.update(delta);
   }
 
   private destroy(): void {
-    for (const k of [...this.chunkKeys, ...Object.values(this.markKeys), ...Object.values(this.flagKeys)]) if (k && this.scene.textures.exists(k)) this.scene.textures.remove(k);
+    for (const k of [...this.chunkKeys, ...Object.values(this.markKeys), ...Object.values(this.flagKeys), ...[...this.fog.values()].map((t) => t.key)]) if (k && this.scene.textures.exists(k)) this.scene.textures.remove(k);
   }
 }
 

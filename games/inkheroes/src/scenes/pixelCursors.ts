@@ -1,24 +1,28 @@
-import arrowUrl from '../../art/pixel/cursors/arrow.png?url';
-import arrowBrokenUrl from '../../art/pixel/cursors/arrow-broken.png?url';
-import bootUrl from '../../art/pixel/cursors/boot.png?url';
-import infoUrl from '../../art/pixel/cursors/info.png?url';
-import swordEUrl from '../../art/pixel/cursors/sword-e.png?url';
-import swordNeUrl from '../../art/pixel/cursors/sword-ne.png?url';
-import wandUrl from '../../art/pixel/cursors/wand.png?url';
+import arrowUrl from '../art/pixel/cursors/arrow.png?url';
+import arrowBrokenUrl from '../art/pixel/cursors/arrow-broken.png?url';
+import bootUrl from '../art/pixel/cursors/boot.png?url';
+import gauntletUrl from '../art/pixel/cursors/gauntlet.png?url';
+import infoUrl from '../art/pixel/cursors/info.png?url';
+import longswordUrl from '../art/pixel/cursors/longsword.png?url';
+import swordEUrl from '../art/pixel/cursors/sword-e.png?url';
+import swordNeUrl from '../art/pixel/cursors/sword-ne.png?url';
+import wandUrl from '../art/pixel/cursors/wand.png?url';
 
 /**
- * The battle's mouse cursors, as in Heroes 3: a boot where the unit can
- * walk, a sword pointing the way the blow comes in (from the hex the unit
+ * The game's mouse cursors, as in Heroes 3. In battle: a boot where the unit
+ * can walk, a sword pointing the way the blow comes in (from the hex the unit
  * would strike from), an arrow for a full-damage shot and a broken arrow for
  * a far one, a question mark over a unit (click for its stats) and a wand
- * over a spell's target. Pixel art: each comes from one of five sprites, flipped or
- * turned a quarter for the other sword directions (pixel-exact), and is
- * shown at its own size on 1× screens and doubled, unsmoothed, on 2×.
+ * over a spell's target. On the map, all pointing the same way, up and left:
+ * the boot where the hero can ride, a longsword where the ride ends in a
+ * fight, and a gauntlet over what the hero can take or enter. Pixel art: each comes from a sprite, flipped or turned a
+ * quarter for the other sword directions (pixel-exact), and is shown at its
+ * own size on 1× screens and doubled, unsmoothed, on 2×.
  */
 
 /** Which way a sword points, by compass (n = up the screen). */
 export type SwordDir = 'e' | 'ne' | 'n' | 'nw' | 'w' | 'sw' | 's' | 'se';
-export type CursorKind = 'move' | 'shoot' | 'shootFar' | 'info' | 'cast' | `sword-${SwordDir}`;
+export type CursorKind = 'move' | 'attack' | 'visit' | 'shoot' | 'shootFar' | 'info' | 'cast' | `sword-${SwordDir}`;
 
 const DIRS: readonly SwordDir[] = ['e', 'ne', 'n', 'nw', 'w', 'sw', 's', 'se'];
 const VEC: Readonly<Record<SwordDir, readonly [number, number]>> = {
@@ -36,6 +40,8 @@ type Transform = { readonly flipX?: boolean; readonly flipY?: boolean; readonly 
 /** How each cursor is made from its sprite, and which way its hotspot (the tip) points. */
 const RECIPES: Readonly<Record<CursorKind, { readonly src: string; readonly t: Transform; readonly tip: readonly [number, number] | null }>> = {
   move: { src: bootUrl, t: {}, tip: null },
+  attack: { src: longswordUrl, t: {}, tip: VEC.nw },
+  visit: { src: gauntletUrl, t: {}, tip: VEC.nw },
   info: { src: infoUrl, t: {}, tip: null },
   cast: { src: wandUrl, t: {}, tip: VEC.ne },
   shoot: { src: arrowUrl, t: {}, tip: VEC.ne },
@@ -123,7 +129,7 @@ async function buildCursors(): Promise<Map<CursorKind, { set: string; plain: str
 }
 
 /** Sets the canvas's cursor; `null` is the ordinary pointer. Cursors appear once their images load. */
-export class BattleCursors {
+export class PixelCursors {
   private cursors: Map<CursorKind, { set: string; plain: string }> | null = null;
   private current: CursorKind | null = null;
 
@@ -134,7 +140,7 @@ export class BattleCursors {
         this.apply();
       })
       .catch((e: unknown) => {
-        // Without the images the battle still plays with the ordinary pointer.
+        // Without the images the game still plays with the ordinary pointer.
         console.warn(e instanceof Error ? e.message : e);
       });
   }
@@ -145,7 +151,7 @@ export class BattleCursors {
     this.apply();
   }
 
-  /** Back to the ordinary pointer (leaving the battle). */
+  /** Back to the ordinary pointer (leaving the scene). */
   reset(): void {
     this.current = null;
     this.canvas.style.cursor = '';

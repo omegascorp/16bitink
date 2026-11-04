@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseGrid } from '../src/logic/map';
 import { coverPlacements, mountainPieces } from '../src/scenes/map/mapCover';
-import { composeFog, composeGround, distanceInside, GROUND_BORDER, groundSize, MAP_TILE, valueNoise } from '../src/scenes/map/pixelGround';
+import { composeFog, composeGround, distanceInside, fogPieces, GROUND_BORDER, groundSize, MAP_TILE, touchedPieces, valueNoise } from '../src/scenes/map/pixelGround';
 import { drawWordmark } from '../src/scenes/menu/wordmark';
 import type { Pixels } from '../src/scenes/battle/pixelScenery';
 
@@ -70,6 +70,47 @@ describe('map ground', () => {
     const row = Array.from({ length: 48 }, (_, i) => px(fog, ...at(96 + i - 24, 30))[3]);
     expect(row).toContain(0);
     expect(row).toContain(255);
+  });
+});
+
+describe('fog pieces', () => {
+  const grid = parseGrid(Array.from({ length: 20 }, () => 'g'.repeat(30)));
+  const none = '0'.repeat(600);
+  const pieces = fogPieces(grid, 480);
+  const seen = (...tiles: number[]): string => tiles.reduce((s, i) => s.slice(0, i) + '1' + s.slice(i + 1), none);
+
+  it('covers the ground exactly', () => {
+    const { w, h } = groundSize(grid);
+    expect(pieces.reduce((n, p) => n + p.w * p.h, 0)).toBe(w * h);
+  });
+
+  it('draws in pieces the same picture as a whole', () => {
+    const explored = seen(0, 1, 30, 215, 216, 245, 370);
+    const whole = composeFog(grid, explored, [10, 20, 30]);
+    for (const p of pieces) {
+      const part = composeFog(grid, explored, [10, 20, 30], p);
+      for (let y = 0; y < p.h; y += 7) {
+        const from = ((p.y + y) * whole.w + p.x) * 4;
+        expect(Array.from(part.data.subarray(y * p.w * 4, (y + 1) * p.w * 4))).toEqual(Array.from(whole.data.subarray(from, from + p.w * 4)));
+      }
+    }
+  });
+
+  it('redraws only what a change reaches, and all of it', () => {
+    const before = seen(215);
+    const after = seen(215, 216);
+    const touched = touchedPieces(grid, pieces, before, after);
+    expect(touched.length).toBeLessThan(5);
+    const a = composeFog(grid, before, [1, 1, 1]);
+    const b = composeFog(grid, after, [1, 1, 1]);
+    const painted = new Set<number>();
+    for (const { part } of touched) {
+      expect(part.w * part.h).toBeLessThanOrEqual(144 * 144);
+      for (let y = part.y; y < part.y + part.h; y++) for (let x = part.x; x < part.x + part.w; x++) painted.add(y * a.w + x);
+    }
+    for (let i = 0; i < a.w * a.h; i++) if (a.data[i * 4 + 3] !== b.data[i * 4 + 3]) expect(painted.has(i)).toBe(true);
+    expect(touchedPieces(grid, pieces, after, after)).toEqual([]);
+    expect(touchedPieces(grid, pieces, '', after)).toHaveLength(pieces.length);
   });
 });
 

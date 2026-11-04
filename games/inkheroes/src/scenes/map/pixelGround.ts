@@ -74,6 +74,14 @@ const signed = (seed: number, x: number, y: number, scale: number): number => va
 const RANK: Readonly<Record<Terrain, number>> = { water: 0, swamp: 1, sand: 2, dirt: 3, grass: 4, rough: 5, snow: 6 };
 
 /** The ground image's size, px: the map plus its border all round. */
+/** A block of ground pixels. */
+export interface PixelRect {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
 export function groundSize(g: Grid): { w: number; h: number } {
   return { w: (g.w + GROUND_BORDER * 2) * MAP_TILE, h: (g.h + GROUND_BORDER * 2) * MAP_TILE };
 }
@@ -323,16 +331,16 @@ export function composeGround(spec: GroundSpec): Pixels {
  * a tile (explored-ness eased between tile centres, then thresholded by a
  * Bayer pattern so every pixel is either fog or clear).
  */
-export function composeFog(g: Grid, explored: string, colour: Rgb): Pixels {
-  const { w, h } = groundSize(g);
+export function composeFog(g: Grid, explored: string, colour: Rgb, rect?: PixelRect): Pixels {
+  const { x: x0, y: y0, w, h } = rect ?? { x: 0, y: 0, ...groundSize(g) };
   const data = new Uint8ClampedArray(w * h * 4);
   const off = GROUND_BORDER * MAP_TILE;
   const seen = (tx: number, ty: number): number => (tx >= 0 && ty >= 0 && tx < g.w && ty < g.h && explored[tx + ty * g.w] === '1' ? 1 : 0);
-  for (let y = 0; y < h; y++) {
+  for (let y = y0; y < y0 + h; y++) {
     const fy = (y - off) / MAP_TILE - 0.5;
     const ty = Math.floor(fy);
     const ay = fy - ty;
-    for (let x = 0; x < w; x++) {
+    for (let x = x0; x < x0 + w; x++) {
       const fx = (x - off) / MAP_TILE - 0.5;
       const tx = Math.floor(fx);
       const ax = fx - tx;
@@ -345,7 +353,7 @@ export function composeFog(g: Grid, explored: string, colour: Rgb): Pixels {
       // Sharpen the ramp so the fade spans about half a tile.
       const s = Math.max(0, Math.min(1, (v - 0.25) * 2));
       if (s > bayer(x, y)) continue;
-      const o = (y * w + x) * 4;
+      const o = ((y - y0) * w + x - x0) * 4;
       data[o] = colour[0];
       data[o + 1] = colour[1];
       data[o + 2] = colour[2];
@@ -353,4 +361,38 @@ export function composeFog(g: Grid, explored: string, colour: Rgb): Pixels {
     }
   }
   return { data, w, h };
+}
+
+/** The ground cut into squares of `size` pixels, so the fog can be redrawn a piece at a time. */
+export function fogPieces(g: Grid, size: number): PixelRect[] {
+  const { w, h } = groundSize(g);
+  const out: PixelRect[] = [];
+  for (let y = 0; y < h; y += size) {
+    for (let x = 0; x < w; x += size) out.push({ x, y, w: Math.min(size, w - x), h: Math.min(size, h - y) });
+  }
+  return out;
+}
+
+/** Each piece a change of what is explored reaches, with the part of it to redraw: a tile's edge fades over half the tile beside it. */
+export function touchedPieces(g: Grid, pieces: readonly PixelRect[], before: string, after: string): { piece: PixelRect; part: PixelRect }[] {
+  if (before.length !== after.length) return pieces.map((piece) => ({ piece, part: piece }));
+  const parts = new Map<PixelRect, PixelRect>();
+  for (let i = 0; i < after.length; i++) {
+    if (before[i] === after[i]) continue;
+    const left = (i % g.w + GROUND_BORDER - 1) * MAP_TILE;
+    const top = (Math.floor(i / g.w) + GROUND_BORDER - 1) * MAP_TILE;
+    const reach = MAP_TILE * 3;
+    for (const p of pieces) {
+      const x0 = Math.max(left, p.x);
+      const y0 = Math.max(top, p.y);
+      const x1 = Math.min(left + reach, p.x + p.w);
+      const y1 = Math.min(top + reach, p.y + p.h);
+      if (x0 >= x1 || y0 >= y1) continue;
+      const had = parts.get(p);
+      const hx = had ? Math.min(had.x, x0) : x0;
+      const hy = had ? Math.min(had.y, y0) : y0;
+      parts.set(p, { x: hx, y: hy, w: Math.max(had ? had.x + had.w : x1, x1) - hx, h: Math.max(had ? had.y + had.h : y1, y1) - hy });
+    }
+  }
+  return [...parts].map(([piece, part]) => ({ piece, part }));
 }

@@ -93,6 +93,8 @@ export class MapHudScene extends Phaser.Scene {
     map.events.on('status', onStatus);
     map.events.on('note', onNote);
     map.events.on('end-day', onEnd);
+    // Over the HUD the map no longer hears the pointer: its cursor must not stay behind.
+    this.input.on('pointermove', (_p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => over.length && map.clearCursor());
     const onChange = (adv: Adventure): void => this.refresh(adv);
     this.session.on('change', onChange);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {

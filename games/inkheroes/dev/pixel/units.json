@@ -1,5 +1,5 @@
 {
- "_doc": "Battle art sources. src = the generated still (facing right) that becomes frame 0; canvas = the animation canvas it is padded onto (feet `foot` px above the bottom, body shifted `dx` px from centre); prompts drive animate_image_pixminimax; strike = attack frame where the blow lands or the shot leaves; shot = where a projectile starts, in canvas px. Paths are relative to games/inkheroes/dev/. face = the centre of the unit's face in its idle frame (canvas px), for the 24 x 24 turn-order portrait.",
+ "_doc": "Battle art sources. src = the generated still (facing right) that becomes frame 0; canvas = the animation canvas it is padded onto (feet `foot` px above the bottom, body shifted `dx` px from centre); prompts drive animate_image_pixminimax; strike = attack frame where the blow lands or the shot leaves; shot = where a projectile starts, in canvas px. Paths are relative to games/inkheroes/dev/. face = the centre of the unit's face in its idle frame (canvas px), for the 24 x 24 turn-order portrait. walkLock = how far each walk frame is shifted sideways so the body holds still (a gallop the generator let surge back and forth).",
  "units": {
   "spearman": {
    "name": "Hoplite",
@@ -645,6 +645,7 @@
    "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
    "attack": "spell casting: the rider raises the sword to the sky, it flashes with golden light, then lowers it to the starting pose; the horse stays in place",
    "strike": 4,
+   "walkLock": [0, -5, -10, -15, -19, -15, -9, 0],
    "face": [
     59,
     29
@@ -663,6 +664,7 @@
    "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
    "attack": "spell casting: the rider raises the sword to the sky, it flashes with red light, then lowers it to the starting pose; the horse stays in place",
    "strike": 4,
+   "walkLock": [0, -3, -5, -7, -7, -6, -2, 1],
    "face": [
     55,
     27

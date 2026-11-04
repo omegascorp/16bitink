@@ -144,7 +144,7 @@ describe('extended backdrop', () => {
 
 describe('battle cursors', () => {
   it('points the sword the way the blow travels, to the nearest eighth', async () => {
-    const { swordDir } = await import('../src/scenes/battle/battleCursors');
+    const { swordDir } = await import('../src/scenes/pixelCursors');
     expect(swordDir(1, 0)).toBe('e');
     expect(swordDir(-1, 0)).toBe('w');
     expect(swordDir(0, -1)).toBe('n');
