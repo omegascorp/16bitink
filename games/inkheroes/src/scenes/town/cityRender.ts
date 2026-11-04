@@ -3,9 +3,9 @@ import { TOWN_ART, type TownArt } from '../../art/pixel/town';
 import type { BuildingId } from '../../logic/buildings';
 import type { Pixels } from '../battle/pixelScenery';
 import { paintCity, type GroundSwatches } from './townGround';
-import { cropToInk, shrinkMode } from './townPictures';
+import { cropToInk, inkBox, shrinkMode } from './townPictures';
 import { cityTrees, emptyPlots, STAGE, stagePieces } from './townStage';
-import { WALL_SHADE, wallPieces, type WallPiece } from './townWalls';
+import { GATE_DOOR, wallPieces, type WallPiece } from './townWalls';
 
 
 /** The seed the town screen grows its trees with (so the map's town has the same ones). */
@@ -13,9 +13,17 @@ export const CITY_SEED = 7717;
 /** The map's town: the city's ground and positions shrink this many times, its buildings, houses, trees and walls only ART_SHRINK times, so it packs into a dense little city. */
 export const MAP_TOWN_SHRINK = 4;
 const ART_SHRINK = 2;
+/** Room left above the shrunk city: the back tower and tall keeps, at their larger scale, stand higher than its ground. */
+const HEADROOM = 24;
+
+/** The map's town, and where its gatehouse doorstep is in the picture: that stands on the town's gate tile. */
+export interface MapTown {
+  readonly city: Pixels;
+  readonly door: { readonly x: number; readonly y: number };
+}
 
 /** Copies `src`'s opaque pixels onto `out` with its top-left at (x, y), mirrored if asked. */
-function stamp(out: Pixels, src: Pixels, x: number, y: number, flip = false, shade = 1): void {
+function stamp(out: Pixels, src: Pixels, x: number, y: number, flip = false): void {
   for (let sy = 0; sy < src.h; sy++) {
     const ty = y + sy;
     if (ty < 0 || ty >= out.h) continue;
@@ -25,9 +33,9 @@ function stamp(out: Pixels, src: Pixels, x: number, y: number, flip = false, sha
       const s = (sy * src.w + (flip ? src.w - 1 - sx : sx)) * 4;
       if (src.data[s + 3]! < 128) continue;
       const d = (ty * out.w + tx) * 4;
-      out.data[d] = Math.round(src.data[s]! * shade);
-      out.data[d + 1] = Math.round(src.data[s + 1]! * shade);
-      out.data[d + 2] = Math.round(src.data[s + 2]! * shade);
+      out.data[d] = src.data[s]!;
+      out.data[d + 1] = src.data[s + 1]!;
+      out.data[d + 2] = src.data[s + 2]!;
       out.data[d + 3] = 255;
     }
   }
@@ -47,11 +55,13 @@ export interface CityArt {
  * ground shrinks MAP_TOWN_SHRINK times and every sprite only ART_SHRINK
  * times, so the same city packs tight. No Phaser here, so it can be tested.
  */
-export function renderMapTown(built: readonly BuildingId[], art: CityArt): Pixels {
+export function renderMapTown(built: readonly BuildingId[], art: CityArt): MapTown {
   const full: Pixels = { data: new Uint8ClampedArray(STAGE.w * STAGE.h * 4), w: STAGE.w, h: STAGE.h };
   const bare = emptyPlots(built).map((b) => b.plot);
   paintCity(full, { x: 0, y: 0, w: STAGE.w, h: STAGE.h }, art.swatches, bare);
-  const out = shrinkMode(full, MAP_TOWN_SHRINK);
+  const ground = shrinkMode(full, MAP_TOWN_SHRINK);
+  const out: Pixels = { data: new Uint8ClampedArray(ground.w * (ground.h + HEADROOM) * 4), w: ground.w, h: ground.h + HEADROOM };
+  out.data.set(ground.data, HEADROOM * ground.w * 4);
   const small = new Map<string, Pixels>();
   const shrunk = (key: string, src: () => Pixels): Pixels => {
     let p = small.get(key);
@@ -62,11 +72,11 @@ export function renderMapTown(built: readonly BuildingId[], art: CityArt): Pixel
     return p;
   };
   /** A sprite whose feet (bottom middle) are at stage (fx, fy). */
-  const put = (p: Pixels, fx: number, fy: number, flip = false, shade = 1): void =>
-    stamp(out, p, Math.round(fx / MAP_TOWN_SHRINK - p.w / 2), Math.round(fy / MAP_TOWN_SHRINK - p.h), flip, shade);
+  const put = (p: Pixels, fx: number, fy: number, flip = false): void =>
+    stamp(out, p, Math.round(fx / MAP_TOWN_SHRINK - p.w / 2), Math.round(fy / MAP_TOWN_SHRINK - p.h) + HEADROOM, flip);
   const wall = (w: WallPiece): void => {
     const s = TOWN_ART[w.art];
-    put(shrunk(w.art, () => art.piece(w.art)), w.x + s.w / 2, w.y + s.h, w.flip, w.shade ? WALL_SHADE : 1);
+    put(shrunk(w.art, () => art.piece(w.art)), w.x + s.w / 2, w.y + s.h);
   };
   const walls = wallPieces();
   for (const w of walls.back) wall(w);
@@ -80,5 +90,11 @@ export function renderMapTown(built: readonly BuildingId[], art: CityArt): Pixel
   sprites.sort((a, b) => a.y - b.y);
   for (const s of sprites) s.draw();
   for (const w of walls.front) wall(w);
-  return cropToInk(out);
+  const box = inkBox(out)!;
+  const gate = walls.front.find((w) => w.art === 'wall-gate')!;
+  const s = TOWN_ART[gate.art];
+  // Where `put` drew the gatehouse, then the doorstep within it, at the sprites' scale.
+  const doorX = Math.round((gate.x + s.w / 2) / MAP_TOWN_SHRINK + (GATE_DOOR.x - s.w / 2) / ART_SHRINK);
+  const doorY = Math.round((gate.y + s.h) / MAP_TOWN_SHRINK + (GATE_DOOR.y - s.h) / ART_SHRINK) + HEADROOM;
+  return { city: cropToInk(out), door: { x: doorX - box.l, y: doorY - box.t } };
 }

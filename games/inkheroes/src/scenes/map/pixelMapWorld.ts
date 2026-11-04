@@ -195,18 +195,19 @@ export class PixelMapWorld {
       tree: (k, i) => px(MAP_TEX.cover(k, i)),
       swatches: { paving: px(TOWN_TEX.paving), grass: px(MAP_TEX.ground('grass')) },
     };
-    const city = renderMapTown(built, art);
+    const { city, door } = renderMapTown(built, art);
     const key = putBuffer(this.scene, city, MAP_TEX.town(`${this.def.id}-${id}`));
-    return { key, sprite: { w: city.w, h: city.h, footX: Math.floor(city.w / 2), footY: city.h - 1 } };
+    return { key, sprite: { w: city.w, h: city.h, footX: door.x, footY: door.y } };
   }
 
   private addTown(t: Town): void {
     const s = this.townSprite(t.id, t.built);
     const feet = tileFeet(t.x, t.y);
-    const img = this.place(s.key, s.sprite, feet.x, feet.y + 14, FIGURE_DEPTH + feet.y);
+    // The gatehouse's doorstep stands on the gate tile, so the roads that end there lead to the door.
+    const img = this.place(s.key, s.sprite, feet.x, feet.y, FIGURE_DEPTH + feet.y);
     this.townImgs.set(t.id, { img, built: t.built.join() });
     // The flag flies from the keep at the back of the walled city.
-    this.addFlag(`town-${t.id}`, t.owner, feet.x + 2, feet.y + 14 - s.sprite.h + 8, FIGURE_DEPTH + feet.y + 1);
+    this.addFlag(`town-${t.id}`, t.owner, feet.x - s.sprite.footX + Math.floor(s.sprite.w / 2) + 2, feet.y - s.sprite.footY + 8, FIGURE_DEPTH + feet.y + 1);
     this.shrouded.push({ obj: img, x: t.x, y: t.y }, { obj: this.flags.get(`town-${t.id}`)!, x: t.x, y: t.y });
   }
 
@@ -258,7 +259,7 @@ export class PixelMapWorld {
       drawn.built = t.built.join();
       const s = this.townSprite(t.id, t.built);
       const feet = tileFeet(t.x, t.y);
-      drawn.img.setTexture(s.key).setDisplayOrigin(s.sprite.footX, s.sprite.footY).setPosition(feet.x, feet.y + 14);
+      drawn.img.setTexture(s.key).setDisplayOrigin(s.sprite.footX, s.sprite.footY).setPosition(feet.x, feet.y);
     }
     this.drawFog(adv);
   }

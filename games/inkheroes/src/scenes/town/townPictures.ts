@@ -138,7 +138,7 @@ export function shrinkMode(src: Pixels, by: number): Pixels {
 }
 
 /** `src` cut to its opaque pixels. */
-export function cropToInk(src: Pixels): Pixels {
+export function inkBox(src: Pixels): { l: number; t: number; w: number; h: number } | null {
   let l = src.w;
   let t = src.h;
   let r = -1;
@@ -152,9 +152,14 @@ export function cropToInk(src: Pixels): Pixels {
       b = Math.max(b, y);
     }
   }
-  if (r < l) return { data: new Uint8ClampedArray(4), w: 1, h: 1 };
-  const w = r - l + 1;
-  const h = b - t + 1;
+  return r < l ? null : { l, t, w: r - l + 1, h: b - t + 1 };
+}
+
+/** `src` cut down to its ink. */
+export function cropToInk(src: Pixels): Pixels {
+  const box = inkBox(src);
+  if (!box) return { data: new Uint8ClampedArray(4), w: 1, h: 1 };
+  const { l, t, w, h } = box;
   const out = new Uint8ClampedArray(w * h * 4);
   for (let y = 0; y < h; y++) out.set(src.data.subarray(((t + y) * src.w + l) * 4, ((t + y) * src.w + l + w) * 4), y * w * 4);
   return { data: out, w, h };

@@ -67,10 +67,13 @@ export const SITE_NAMES: Readonly<Record<ObjectKind, string>> = {
   windmill: 'Windmill', stables: 'Stables', monster: 'Monster',
 };
 
-/** A town's inner tiles besides its gate (x, y): three wide, two deep, gate in the middle of the front row. */
+/** The tiles right round a town's gate (x, y), which no hero has ever been able to stand on. */
 const TOWN_CORE: readonly (readonly [number, number])[] = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0]];
-/** The rest of the ground its walled picture stands on: the side towers on the row behind the gate, the back wall behind that. */
-const TOWN_WALLS: readonly (readonly [number, number])[] = [[-3, -1], [-2, -1], [2, -1], [3, -1], [-1, -2], [0, -2], [1, -2]];
+/**
+ * The rest of the ground its picture stands on. The picture is a diamond with the gate halfway up its front-left wall, so
+ * it spreads to the right of the gate: the city, its right, front and back towers, and the back walls.
+ */
+const TOWN_WALLS: readonly (readonly [number, number])[] = [[2, 0], [3, 0], [4, 0], [2, -1], [3, -1], [4, -1], [1, 1], [0, -2], [1, -2], [2, -2], [1, -3]];
 
 const offsetBy = (x: number, y: number, tiles: readonly (readonly [number, number])[]): { x: number; y: number }[] =>
   tiles.map(([dx, dy]) => ({ x: x + dx, y: y + dy }));

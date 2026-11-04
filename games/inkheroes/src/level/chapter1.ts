@@ -23,7 +23,7 @@ export const ASHFORD_LAND: MapDef = {
     'TggggggggggggggRggggggggg~~grrgP',
     'TgggggggggggggggggTTTTggg~~grrPP',
     'TTggggggggggggggggTgTTggg~~grrgP',
-    'TTggggggggggggggggTgTTgg~~~ggggP',
+    'TTgggg=gggggggggggTgTTgg~~~ggggP',
     'Tggggg=gggggRgggggggTggg~~~gggPP',
     'Tggggg=ggggggggggggggggg~~~ggggP',
     'TTgggg========gggggggggg~~~ggggP',
@@ -57,7 +57,7 @@ export const ASHFORD_LAND: MapDef = {
   seed: 1024,
   objects: [
     // Mines.
-    { id: 'sawmill', kind: 'mine', x: 10, y: 6, resource: 'wood', owner: 'neutral' },
+    { id: 'sawmill', kind: 'mine', x: 11, y: 6, resource: 'wood', owner: 'neutral' },
     { id: 'ore-pit', kind: 'mine', x: 3, y: 14, resource: 'ore', owner: 'neutral' },
     { id: 'gold-mine', kind: 'mine', x: 20, y: 18, resource: 'gold', owner: 'neutral' },
     // Monsters.

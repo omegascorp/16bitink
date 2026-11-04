@@ -8,9 +8,10 @@ import { parseAdventure } from '../src/logic/save';
 const has = (tiles: readonly { x: number; y: number }[], x: number, y: number): boolean => tiles.some((t) => t.x === x && t.y === y);
 
 describe('a town blocks the ground its picture stands on', () => {
-  it('reaches both corner towers on the row behind the gate', () => {
-    expect(has(townFootprint(6, 5), 3, 4)).toBe(true);
-    expect(has(townFootprint(6, 5), 9, 4)).toBe(true);
+  it('reaches its left, right and front towers, the picture spreading to the right of the gate', () => {
+    expect(has(townFootprint(6, 5), 5, 5)).toBe(true);
+    expect(has(townFootprint(6, 5), 10, 5)).toBe(true);
+    expect(has(townFootprint(6, 5), 7, 6)).toBe(true);
   });
 
   it('never blocks its own gate or the tiles in front of it', () => {
@@ -23,6 +24,14 @@ describe('a town blocks the ground its picture stands on', () => {
   });
 
   for (const def of MAPS) {
+    it(`${def.id}: a road reaches every town's gate from the south, past its walls`, () => {
+      for (const town of [def.town, ...(def.towns ?? [])]) {
+        expect('=#b').toContain(def.rows[town.y + 1]![town.x]);
+        expect('=#b', `${town.name}'s gate`).toContain(def.rows[town.y]![town.x]);
+        for (const t of townFootprint(town.x, town.y)) expect('=#b', `${town.name} ${t.x},${t.y}`).not.toContain(def.rows[t.y]?.[t.x] ?? '.');
+      }
+    });
+
     it(`${def.id}: no object stands inside a town`, () => {
       const towns = [def.town, ...(def.towns ?? [])];
       for (const town of towns) for (const t of townFootprint(town.x, town.y)) expect(def.objects.filter((o) => o.x === t.x && o.y === t.y).map((o) => o.id)).toEqual([]);
@@ -47,12 +56,12 @@ describe('a game saved before the walls grew', () => {
   };
 
   it('still loads with the hero on a tile the walls now cover', () => {
-    expect(parseAdventure(standingAt(9, 4), ASHFORD)).not.toBeNull();
+    expect(parseAdventure(standingAt(9, 5), ASHFORD)).not.toBeNull();
   });
 
   it('lets that hero ride out', () => {
-    const adv = parseAdventure(standingAt(9, 4), ASHFORD)!;
-    expect(planPath(adv, ASHFORD, 11, 4)).not.toBeNull();
+    const adv = parseAdventure(standingAt(9, 5), ASHFORD)!;
+    expect(planPath(adv, ASHFORD, 12, 4)).not.toBeNull();
   });
 
   it('still refuses a hero inside the town', () => {

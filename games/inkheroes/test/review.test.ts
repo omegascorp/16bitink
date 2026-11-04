@@ -20,7 +20,7 @@ describe('fixes from the first review', () => {
 
   it('a guarded site is fought for first and only visited after the win', () => {
     let adv = fresh();
-    const path = planPath(adv, ASHFORD, 10, 6)!;
+    const path = planPath(adv, ASHFORD, 11, 6)!;
     let battle: string | undefined;
     let then: string | undefined;
     for (const step of path) {

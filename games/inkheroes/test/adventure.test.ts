@@ -115,7 +115,7 @@ describe('the adventure', () => {
     adv = walk(adv, ASHFORD, 3, 7).adv;
     expect(adv.purse.wood).toBe(wood + 7);
     expect(objectAt(adv, 3, 7)).toBeUndefined();
-    adv = walk(endDay(adv), ASHFORD, 10, 6).adv;
+    adv = walk(endDay(adv), ASHFORD, 11, 6).adv;
     expect(adv.objects.find((o) => o.id === 'sawmill')!.owner).toBe('player');
     expect(dailyIncome(adv)).toMatchObject({ gold: 500, wood: 2 });
   });
@@ -128,15 +128,15 @@ describe('the adventure', () => {
     adv = walk(adv, ASHFORD, 3, 7).adv;
     expect(Math.max(Math.abs(adv.hero.x - 3), Math.abs(adv.hero.y - 7))).toBe(1);
     // The sawmill is flagged from beside it; its back tile can't be walked onto.
-    adv = walk(endDay(adv), ASHFORD, 10, 6).adv;
+    adv = walk(endDay(adv), ASHFORD, 11, 6).adv;
     expect(adv.objects.find((o) => o.id === 'sawmill')!.owner).toBe('player');
-    expect(adv.hero.x === 10 && adv.hero.y === 6).toBe(false);
-    expect(planPath(adv, ASHFORD, 10, 5)).toBeNull();
+    expect(adv.hero.x === 11 && adv.hero.y === 6).toBe(false);
+    expect(planPath(adv, ASHFORD, 11, 5)).toBeNull();
   });
 
   it('a monster’s guard zone starts a fight, and winning clears it and pays experience', () => {
     const adv = { ...startAdventure(ASHFORD), prompts: [] };
-    const r = walk(adv, ASHFORD, 10, 6);
+    const r = walk(adv, ASHFORD, 11, 6);
     expect(r.battle).toBe('goblins');
     const sides = battleSides(r.adv, 'goblins');
     let b = createBattle(sides.attacker, sides.defender, sides.seed).state;

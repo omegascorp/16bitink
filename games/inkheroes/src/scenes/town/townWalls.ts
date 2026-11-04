@@ -4,99 +4,77 @@ import { TOWN_TEX } from './townTex';
 import { CITY, STAGE, toStage } from './townStage';
 
 /**
- * The city's walls, from PixelLab's pieces at the town's angle: straight
- * sections (turrets at both ends, overlapping into one curtain) along all
- * four edges of the raised square, a corner on each of its points, and the
- * gatehouse halfway down the front-left wall. A corner is one painted piece:
- * a round tower standing on the ground where the two walls meet, with the
- * walls' last lengths running into its sides. A section runs down to the
- * right; mirrored (and shaded, as that face turns from the light) it runs
- * up to the right. The back walls are drawn behind the city, the front ones
- * in front of it, each into a stage-sized buffer. A side corner comes in two
- * parts, as its rear wall stands behind the city.
+ * The city's walls: PixelLab's parts, all repainted in one call from one
+ * masonry so they match (see dev/pixel/town/sheet). Every edge of the raised
+ * square is laid end to end along its foot line: a corner's own length of
+ * wall, straight sections with turrets on the joins, and a corner's wall,
+ * with the gatehouse in the middle of the front-left edge. The lengths add
+ * up to the edge exactly. A corner is one painted piece: a round tower on the
+ * point where the two walls meet, with their last lengths built into it; a
+ * side corner comes in two parts, as its rear wall stands behind the city.
+ * The back walls are drawn behind the city, the front ones in front of it,
+ * each into a stage-sized buffer, and each list runs far to near: a wall
+ * leaves the turret behind it and ends in the one before it, so a nearer
+ * piece has to be drawn over the one it leaves.
  */
 
-/** Where a section's base meets the edge: rows down from its top at its left column (it falls half a row a column). */
-const WALL_BASE_Y = 40;
-/** How far along each section starts after the one before (its end turret overlaps the next one's). */
-const WALL_STEP = 98;
-/** A stub's base, as WALL_BASE_Y. */
-const STUB_BASE_Y = 31;
-/** How far the turret of the section after a stub overlaps the stub's end. */
-const STUB_TUCK = 12;
-const GATE_BASE_Y = 71;
-/** Where along the front-left edge the gate stands. */
-const GATE_AT = 0.5;
-/** How far the sections either side of the gate tuck under its end turrets. */
-const GATE_TUCK = 12;
+/** How far along the foot line a corner's own wall, a section and the gatehouse reach. */
+const STUB_LEN = 68;
+const SECTION_LEN = 94;
+const GATE_LEN = 188;
+/** Sections on an edge, and either side of the gatehouse. */
+const SECTIONS = 4;
+const GATE_SIDE_SECTIONS = 1;
+/** Where the arch's doorstep is in the gatehouse's sprite: halfway along its foot. */
+export const GATE_DOOR = { x: -8 + GATE_LEN / 2, y: 56 + GATE_LEN / 4 } as const;
+/** Where each length's foot line starts in its sprite, from dev/pixel/town/sheet/parts.json. */
+const FOOT = {
+  wall: { x: 15, y: 62 },
+  'wall-up': { x: 25, y: 109 },
+  'wall-gate': { x: -8, y: 56 },
+} as const;
 /** Where the walls' foot lines meet in each corner's sprite, from dev/pixel/town/corner/cut_corner.py. */
-const CORNER_POINT = {
-  'corner-front': { x: 68, y: 96 },
-  'corner-back': { x: 68, y: 96 },
-  'corner-left': { x: 28, y: 96 },
-  'corner-left-rear': { x: -30, y: 64 },
-  'corner-right': { x: 68, y: 96 },
-  'corner-right-rear': { x: 68, y: 65 },
+export const CORNER_POINT = {
+  'corner-front': { x: 60, y: 99 },
+  'corner-back': { x: 80, y: 99 },
+  'corner-left': { x: 29, y: 99 },
+  'corner-left-rear': { x: -27, y: 71 },
+  'corner-right': { x: 80, y: 99 },
+  'corner-right-rear': { x: 60, y: 72 },
 } as const;
 type CornerArt = keyof typeof CORNER_POINT;
 /** The corners, each with the tower and flag. */
 export const CORNER_TOWERS = ['corner-front', 'corner-back', 'corner-left', 'corner-right'] as const;
-/** How much darker a face turned from the light is. */
-export const WALL_SHADE = 0.82;
 
-/** One piece of wall on the stage: its art, top-left, mirrored, shaded. */
+/** One piece of wall on the stage: its art and top-left. */
 export interface WallPiece {
   readonly art: TownArt;
   readonly x: number;
   readonly y: number;
-  readonly flip: boolean;
-  readonly shade: boolean;
 }
 
 type Point = { readonly x: number; readonly y: number };
 
-/** The edge from `a` (left) to `b` (right), as y at any x. */
-const edgeOf = (a: Point, b: Point): ((at: number) => number) => (at) => a.y + ((at - a.x) * (b.y - a.y)) / (b.x - a.x);
+/** The point `along` the edge from `a` (left) to `b` (right), measured across the screen from `a`. */
+function onEdge(a: Point, b: Point, along: number): Point {
+  return { x: a.x + along, y: a.y + (along * (b.y - a.y)) / (b.x - a.x) };
+}
 
-/** A length of wall with its left end at x0 on the edge from `a` to `b`, mirrored and shaded if the edge rises to the right. */
-function laid(art: 'wall' | 'wall-stub', baseY: number, a: Point, b: Point, x0: number): WallPiece {
+/** A length of wall whose foot line starts at `at`. */
+function laid(art: keyof typeof FOOT, at: Point): WallPiece {
+  return { art, x: Math.round(at.x - FOOT[art].x), y: Math.round(at.y - FOOT[art].y) };
+}
+
+/** `count` sections along the edge from `a` to `b`, from `start` across, in drawing order (the further ones first). */
+function sections(a: Point, b: Point, start: number, count: number): WallPiece[] {
   const down = b.y > a.y;
-  const edge = edgeOf(a, b);
-  // Down to the right: the base's left end is on the edge. Up to the right (mirrored): its right end is.
-  const y = down ? edge(x0) - baseY : edge(x0 + TOWN_ART[art].w - 1) - baseY;
-  return { art, x: Math.round(x0), y: Math.round(y), flip: !down, shade: !down };
-}
-
-/** Sections along the edge from `a` (left) to `b` (right), the last one ending at `b`. */
-function run(a: Point, b: Point): WallPiece[] {
-  const w = TOWN_ART.wall.w;
-  const out: WallPiece[] = [];
-  for (let x = a.x; x < b.x - 8; x += WALL_STEP) out.push(laid('wall', WALL_BASE_Y, a, b, Math.min(x, b.x - w)));
-  // Up to the right, the far (right) sections are further back: draw them first.
-  return b.y > a.y ? out : out.reverse();
-}
-
-/** The wall along an edge from the end of a corner's own wall, at the end(s) named, the sections' turrets overlapping it. */
-function curtain(a: Point, b: Point, stubs: { readonly start: boolean; readonly end: boolean } = { start: true, end: true }): WallPiece[] {
-  const w = TOWN_ART['wall-stub'].w;
-  const reach = w - STUB_TUCK;
-  const edge = edgeOf(a, b);
-  const at = (x: number): Point => ({ x, y: edge(x) });
-  const from = (n: number): number => (stubs.start ? a.x + reach * n : a.x);
-  const to = (n: number): number => (stubs.end ? b.x - reach * n : b.x);
-  // Too short for two sections to sit a full step apart: a stub after the corner takes up the slack, so one section spans the rest.
-  const lengths = to(1) - from(1) < TOWN_ART.wall.w + WALL_STEP / 2 ? 2 : 1;
-  const stubsPast = Array.from({ length: lengths - 1 }, (_, i) => i + 1);
-  return [
-    ...(stubs.start ? stubsPast.map((i) => laid('wall-stub', STUB_BASE_Y, a, b, a.x + reach * i)) : []),
-    ...(stubs.end ? stubsPast.map((i) => laid('wall-stub', STUB_BASE_Y, a, b, b.x - w - reach * i)) : []),
-    ...run(at(from(lengths)), at(to(lengths))),
-  ];
+  const out = Array.from({ length: count }, (_, i) => laid(down ? 'wall' : 'wall-up', onEdge(a, b, start + i * SECTION_LEN)));
+  return down ? out : out.reverse();
 }
 
 function cornerAt(art: CornerArt, p: Point): WallPiece {
   const at = CORNER_POINT[art];
-  return { art, x: Math.round(p.x - at.x), y: Math.round(p.y - at.y), flip: false, shade: false };
+  return { art, x: Math.round(p.x - at.x), y: Math.round(p.y - at.y) };
 }
 
 /** Every wall piece: the back walls (behind the city) and the front ones (before it), each in drawing order. */
@@ -105,17 +83,10 @@ export function wallPieces(): { back: WallPiece[]; front: WallPiece[] } {
   const L = toStage(0, CITY);
   const R = toStage(CITY, 0);
   const F = toStage(CITY, CITY);
-  const gate = TOWN_ART['wall-gate'];
-  const gx = L.x + (F.x - L.x) * GATE_AT - gate.w / 2;
-  const gy = L.y + (gx - L.x) / 2 - GATE_BASE_Y;
-  // The front-left edge in two runs that meet the gate's end turrets, so no hole is left either side of it.
-  const onEdge = (x: number): Point => ({ x, y: L.y + (x - L.x) * ((F.y - L.y) / (F.x - L.x)) });
-  const toGate = curtain(L, onEdge(gx + GATE_TUCK), { start: true, end: false });
-  const fromGate = curtain(onEdge(gx + gate.w - GATE_TUCK), F, { start: false, end: true });
-  const gatePiece: WallPiece = { art: 'wall-gate', x: Math.round(gx), y: Math.round(gy), flip: false, shade: false };
-  // The corners first: the sections' end turrets stand over the ends of their walls.
-  const back = [cornerAt('corner-back', B), cornerAt('corner-left-rear', L), cornerAt('corner-right-rear', R), ...curtain(L, B), ...curtain(B, R)];
-  const front = [cornerAt('corner-left', L), cornerAt('corner-right', R), cornerAt('corner-front', F), ...toGate, ...fromGate, gatePiece, ...curtain(F, R)];
+  const afterGate = STUB_LEN + GATE_SIDE_SECTIONS * SECTION_LEN + GATE_LEN;
+  const gate = laid('wall-gate', onEdge(L, F, STUB_LEN + GATE_SIDE_SECTIONS * SECTION_LEN));
+  const back = [cornerAt('corner-back', B), ...sections(L, B, STUB_LEN, SECTIONS), ...sections(B, R, STUB_LEN, SECTIONS), cornerAt('corner-left-rear', L), cornerAt('corner-right-rear', R)];
+  const front = [cornerAt('corner-left', L), cornerAt('corner-right', R), ...sections(L, F, STUB_LEN, GATE_SIDE_SECTIONS), gate, ...sections(L, F, afterGate, GATE_SIDE_SECTIONS), ...sections(F, R, STUB_LEN, SECTIONS), cornerAt('corner-front', F)];
   return { back, front };
 }
 
@@ -126,13 +97,12 @@ function stamp(out: Pixels, src: Pixels, p: WallPiece): void {
     for (let sx = 0; sx < src.w; sx++) {
       const tx = p.x + sx;
       if (tx < 0 || tx >= out.w) continue;
-      const s = (sy * src.w + (p.flip ? src.w - 1 - sx : sx)) * 4;
+      const s = (sy * src.w + sx) * 4;
       if (src.data[s + 3]! < 128) continue;
       const d = (ty * out.w + tx) * 4;
-      const by = p.shade ? WALL_SHADE : 1;
-      out.data[d] = Math.round(src.data[s]! * by);
-      out.data[d + 1] = Math.round(src.data[s + 1]! * by);
-      out.data[d + 2] = Math.round(src.data[s + 2]! * by);
+      out.data[d] = src.data[s]!;
+      out.data[d + 1] = src.data[s + 1]!;
+      out.data[d + 2] = src.data[s + 2]!;
       out.data[d + 3] = 255;
     }
   }
