@@ -3,6 +3,7 @@ import { MAP_COVER } from '../../art/pixel/map';
 import { BACKDROP } from '../../art/palette';
 import type { MapDef } from '../../level/types';
 import { gridOf, liveObjects, type Adventure } from '../../logic/adventure';
+import type { Town } from '../../logic/town';
 import type { Terrain } from '../../logic/map';
 import type { MapObject, Owner } from '../../logic/objects';
 import type { PathStep } from '../../logic/path';
@@ -106,8 +107,8 @@ export class PixelMapWorld {
   private readonly chunkKeys: string[] = [];
   private flagKeys: Partial<Record<Owner, string>> = {};
   private walking = false;
-  private townImg: Phaser.GameObjects.Image | null = null;
-  private townBuilt = '';
+  /** Each town's picture and the buildings it was drawn with (it is redrawn as the town grows). */
+  private readonly townImgs = new Map<string, { img: Phaser.GameObjects.Image; built: string }>();
 
   constructor(private readonly scene: Phaser.Scene, private readonly def: MapDef, adv: Adventure) {
     this.layer = scene.add.layer();
@@ -122,7 +123,7 @@ export class PixelMapWorld {
       const depth = p.kind === 'bridge' ? FIGURE_DEPTH - 1 : FIGURE_DEPTH + p.y;
       this.place(MAP_TEX.cover(p.kind, i), s, p.x, p.y, depth, p.flip);
     }
-    this.addTown(adv);
+    for (const t of adv.towns) this.addTown(t);
     for (const o of def.objects) this.addObject(o);
     const h = heroArt();
     const feet = tileFeet(adv.hero.x, adv.hero.y);
@@ -175,7 +176,7 @@ export class PixelMapWorld {
   }
 
   /** The town as its own screen shows it: the city for what is built, shrunk to a map sprite (redrawn as it grows). */
-  private townSprite(built: readonly BuildingId[]): { key: string; sprite: { w: number; h: number; footX: number; footY: number } } {
+  private townSprite(id: string, built: readonly BuildingId[]): { key: string; sprite: { w: number; h: number; footX: number; footY: number } } {
     const px = (key: string): Pixels => texturePixels(this.scene, key);
     const art: CityArt = {
       piece: (a) => px(TOWN_TEX.piece(a)),
@@ -183,18 +184,16 @@ export class PixelMapWorld {
       swatches: { paving: px(TOWN_TEX.paving), grass: px(MAP_TEX.ground('grass')) },
     };
     const city = renderMapTown(built, art);
-    const key = putBuffer(this.scene, city, MAP_TEX.town(this.def.id));
+    const key = putBuffer(this.scene, city, MAP_TEX.town(`${this.def.id}-${id}`));
     return { key, sprite: { w: city.w, h: city.h, footX: Math.floor(city.w / 2), footY: city.h - 1 } };
   }
 
-  private addTown(adv: Adventure): void {
-    const t = adv.town;
-    const s = this.townSprite(t.built);
-    this.townBuilt = t.built.join();
+  private addTown(t: Town): void {
+    const s = this.townSprite(t.id, t.built);
     const feet = tileFeet(t.x, t.y);
-    this.townImg = this.place(s.key, s.sprite, feet.x, feet.y + 14, FIGURE_DEPTH + feet.y);
+    this.townImgs.set(t.id, { img: this.place(s.key, s.sprite, feet.x, feet.y + 14, FIGURE_DEPTH + feet.y), built: t.built.join() });
     // The flag flies from the keep at the back of the walled city.
-    this.addFlag('town', 'player', feet.x + 2, feet.y + 14 - s.sprite.h + 8, FIGURE_DEPTH + feet.y + 1);
+    this.addFlag(`town-${t.id}`, t.owner, feet.x + 2, feet.y + 14 - s.sprite.h + 8, FIGURE_DEPTH + feet.y + 1);
   }
 
   private flagKey(owner: Owner): string {
@@ -234,12 +233,15 @@ export class PixelMapWorld {
       if (flag) flag.setTexture(this.flagKey(o.owner === 'player' ? 'player' : o.owner === 'rival' ? 'rival' : 'neutral'));
     }
     if (!this.walking) this.placeHero(adv.hero.x, adv.hero.y);
-    if (adv.town.built.join() !== this.townBuilt && this.townImg) {
+    for (const t of adv.towns) {
+      this.flags.get(`town-${t.id}`)?.setTexture(this.flagKey(t.owner));
+      const drawn = this.townImgs.get(t.id);
+      if (!drawn || drawn.built === t.built.join()) continue;
       // Built in town: the map's town grows with it.
-      this.townBuilt = adv.town.built.join();
-      const s = this.townSprite(adv.town.built);
-      const feet = tileFeet(adv.town.x, adv.town.y);
-      this.townImg.setTexture(s.key).setDisplayOrigin(s.sprite.footX, s.sprite.footY).setPosition(feet.x, feet.y + 14);
+      drawn.built = t.built.join();
+      const s = this.townSprite(t.id, t.built);
+      const feet = tileFeet(t.x, t.y);
+      drawn.img.setTexture(s.key).setDisplayOrigin(s.sprite.footX, s.sprite.footY).setPosition(feet.x, feet.y + 14);
     }
     this.drawFog(adv);
   }

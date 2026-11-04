@@ -32,6 +32,16 @@ export interface MapDef {
     readonly built: readonly BuildingId[];
     readonly guild: readonly SpellId[];
   };
+  /** The map's other towns, neutral and held by a garrison until a hero beats it and takes them. */
+  readonly towns?: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly x: number;
+    readonly y: number;
+    readonly built: readonly BuildingId[];
+    readonly guild: readonly SpellId[];
+    readonly garrison: readonly ArmySlot[];
+  }[];
   readonly hero: {
     readonly id: string;
     readonly name: string;

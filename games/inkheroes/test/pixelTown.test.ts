@@ -110,3 +110,26 @@ describe('town smoke', () => {
     }
   });
 });
+
+describe('town flags', () => {
+  it('lifts a flag out of its sprite and waves it from a still pole to a swinging tip', async () => {
+    const { cutFlags, FLAG_FRAMES } = await import('../src/scenes/town/townFlags');
+    // A 12 × 8 sprite: a pole in column 0, a blue flag 8 × 4 right of it at the top.
+    const w = 12;
+    const h = 8;
+    const data = new Uint8ClampedArray(w * h * 4);
+    const put = (x: number, y: number, c: readonly number[]): void => data.set(c, (y * w + x) * 4);
+    for (let y = 0; y < h; y++) put(0, y, [120, 80, 40, 255]);
+    for (let y = 0; y < 4; y++) for (let x = 1; x < 9; x++) put(x, y, [40, 70, 200, 255]);
+    const cut = cutFlags({ data, w, h }, [{ x: 1, y: 0, w: 8, h: 4 }]);
+    const alpha = (p: { data: Uint8ClampedArray; w: number }, x: number, y: number): number => p.data[(y * p.w + x) * 4 + 3]!;
+    expect(alpha(cut.still, 0, 0)).toBe(255);
+    expect(alpha(cut.still, 4, 1)).toBe(0);
+    const [flag] = cut.flags;
+    expect(flag!.frames).toHaveLength(FLAG_FRAMES);
+    const column = (f: { data: Uint8ClampedArray; w: number; h: number }, x: number): number[] => Array.from({ length: f.h }, (_, y) => alpha(f, x, y));
+    // The cloth by the pole holds still; its tip moves between frames.
+    expect(new Set(flag!.frames.map((f) => column(f, 0).join())).size).toBe(1);
+    expect(new Set(flag!.frames.map((f) => column(f, 7).join())).size).toBeGreaterThan(1);
+  });
+});

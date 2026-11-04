@@ -1,12 +1,14 @@
 import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getSound } from '../host';
-import { enterTown, garrisonHero, heroInGarrison, heroInTown, heroVisiting, leadOut } from '../logic/adventure';
+import { enterTown, garrisonHero, heroInGarrison, heroTown, heroVisiting, leadOut, playerTowns, townById, withTown, type Adventure } from '../logic/adventure';
+import type { Town } from '../logic/town';
 import { moveSlot, type Army } from '../logic/army';
 import { BUILDINGS, type BuildingId } from '../logic/buildings';
 import { creature, type CreatureId } from '../logic/creatures';
 import { canAfford, describeAmount, pay } from '../logic/resources';
-import { build, cantBuild, growthOf, hire, hireable, SPELLBOOK_COST } from '../logic/town';
+import { lineOf } from '../logic/creatures';
+import { build, cantBuild, growthOf, hire, hireable, SPELLBOOK_COST, stockOf, upgradable, upgradeStacks } from '../logic/town';
 import { FILLS } from './battle/pixelFrames';
 import { PixelFrame, TextLabel } from './battle/pixelUi';
 import { openCard, type CardButton } from './CardScene';
@@ -31,6 +33,8 @@ const OPENS: Partial<Record<BuildingId, TownScreen>> = {
   villageHall: 'hall', townHall: 'hall', cityHall: 'hall', capitol: 'hall',
   fort: 'fort', citadel: 'fort', castle: 'fort',
   guardhouse: 'fort', archeryRange: 'fort', griffinTower: 'fort', barracks: 'fort', monastery: 'fort', tiltyard: 'fort', seraphSpire: 'fort',
+  guardhouse2: 'fort', archeryRange2: 'fort', griffinTower2: 'fort', barracks2: 'fort', monastery2: 'fort', tiltyard2: 'fort', seraphSpire2: 'fort',
+  guardhouse3: 'fort', archeryRange3: 'fort', griffinTower3: 'fort', barracks3: 'fort', monastery3: 'fort', tiltyard3: 'fort', seraphSpire3: 'fort',
   mageGuild1: 'guild', mageGuild2: 'guild',
 };
 
@@ -64,13 +68,17 @@ export class TownScene extends Phaser.Scene {
   private dragged = false;
   private toastParts: { destroy(): void }[] = [];
   private ready = false;
+  /** The town shown: the one the hero stands in, else the player's first. */
+  private townId = '';
 
   constructor() {
     super('Town');
   }
 
-  create(): void {
+  create(data?: { townId?: string }): void {
     this.session = Session.get(this);
+    const adv = this.session.adv;
+    this.townId = data?.townId ?? heroTown(adv)?.id ?? playerTowns(adv)[0]!.id;
     this.cameras.main.setBackgroundColor(BACKDROP);
     this.picked = null;
     this.screen = null;
@@ -106,7 +114,21 @@ export class TownScene extends Phaser.Scene {
     this.view?.update(delta);
   }
 
-    /** Dragging the townscape sideways pans it when it's wider than the screen. */
+    /** The town shown, as it is now. */
+  private town(adv: Adventure = this.session.adv): Town {
+    return townById(adv, this.townId)!;
+  }
+
+  /** The hero is in this town (not another), leading their army (visiting) or in its garrison. */
+  private visiting(adv: Adventure = this.session.adv): boolean {
+    return heroVisiting(adv, this.town(adv));
+  }
+
+  private held(adv: Adventure = this.session.adv): boolean {
+    return heroInGarrison(adv, this.town(adv));
+  }
+
+  /** Dragging the townscape sideways pans it when it's wider than the screen. */
   private wirePan(): void {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       const x = p.x / this.size.k;
@@ -139,7 +161,7 @@ export class TownScene extends Phaser.Scene {
   private drawAll(): void {
     if (!this.bar) return;
     this.bar.layout(this.size.w, this.size.h);
-    this.bar.refresh(this.session.adv, this.picked);
+    this.bar.refresh(this.session.adv, this.town(), this.picked);
     this.drawView();
     this.drawWindow();
   }
@@ -148,7 +170,7 @@ export class TownScene extends Phaser.Scene {
     if (!this.bar) return;
     const drift = this.view?.drift;
     this.view?.destroy();
-    this.view = new PixelTownView(this, this.session.adv.town.built, { w: this.size.w, h: this.bar.top + 2 }, { onPick: (id, built) => this.pickBuilding(id, built), fresh: this.fresh, drift });
+    this.view = new PixelTownView(this, this.town().built, { w: this.size.w, h: this.bar.top + 2 }, { onPick: (id, built) => this.pickBuilding(id, built), fresh: this.fresh, drift });
     this.fresh = undefined;
     this.panX = this.clampPan(this.panX);
     this.placeView();
@@ -164,7 +186,7 @@ export class TownScene extends Phaser.Scene {
     if (!this.screen || !this.bar) return;
     const adv = this.session.adv;
     const act = this.screenActions();
-    const spec = this.screen === 'hall' ? hallScreen(this, adv, this.session.def.off, act) : this.screen === 'fort' ? fortScreen(this, adv, act) : guildScreen(this, adv, act);
+    const spec = this.screen === 'hall' ? hallScreen(this, adv, this.town(), this.session.def.off, act) : this.screen === 'fort' ? fortScreen(this, adv, this.town(), act) : guildScreen(this, adv, this.town(), act);
     this.window = new TownWindow(this, spec, { w: this.size.w, h: this.bar.top }, () => this.openScreen(null), DEPTH.window);
   }
 
@@ -176,7 +198,7 @@ export class TownScene extends Phaser.Scene {
 
   /** The purse, armies and any open screen show the session's latest state. */
   private refresh(): void {
-    this.bar?.refresh(this.session.adv, this.picked);
+    this.bar?.refresh(this.session.adv, this.town(), this.picked);
     this.drawWindow();
   }
 
@@ -201,7 +223,7 @@ export class TownScene extends Phaser.Scene {
   private buildingCard(id: BuildingId): void {
     const adv = this.session.adv;
     const def = BUILDINGS[id];
-    const why = cantBuild(adv.town, id, adv.purse, this.session.def.off);
+    const why = cantBuild(this.town(), id, adv.purse, this.session.def.off);
     const cost = Object.keys(def.cost).length ? `Costs ${describeAmount(def.cost)}.` : 'Costs nothing.';
     const state = !why ? 'The masons are ready.' : why === 'Built' ? 'Built.' : why === 'Not enough resources' ? 'Not enough resources yet.' : `${why}.`;
     const buttons: CardButton[] = why ? [{ label: 'Close', kind: 'plain', onClick: () => undefined }] : [{ label: 'Build', onClick: () => this.tryBuild(id) }, { label: 'Not now', kind: 'plain', onClick: () => undefined }];
@@ -212,23 +234,27 @@ export class TownScene extends Phaser.Scene {
   private recruitCard(id: CreatureId): void {
     const adv = this.session.adv;
     const cr = creature(id);
-    const stock = adv.town.stock[id] ?? 0;
-    const can = hireable(adv.town, id, adv.purse);
+    const town = this.town();
+    const stock = stockOf(town, id);
+    const can = hireable(town, id, adv.purse);
     const buttons: CardButton[] = [];
     if (can > 0) buttons.push({ label: `Hire ${can}`, note: describeAmount(Object.fromEntries(Object.entries(cr.cost).map(([r, n]) => [r, (n ?? 0) * can]))), onClick: () => this.hire(id, can) });
     if (can > 1) buttons.push({ label: 'Hire 1', kind: 'plain', onClick: () => this.hire(id, 1) });
+    // Lower levels of this line in the hero's army or the garrison can be raised to it here.
+    const up = this.upgradableHere(id);
+    if (up.count > 0) buttons.push({ label: `Upgrade ${up.count} to ${cr.plural}`, note: describeAmount(up.cost), kind: 'crown', onClick: () => this.upgrade(id) });
     buttons.push({ label: 'Close', kind: 'plain', onClick: () => undefined });
     const why = stock === 0 ? 'None left this week.' : can === 0 ? 'Not enough gold to hire one.' : '';
-    openCard(this, { title: cr.plural, body: `${stock} to hire, ${describeAmount(cr.cost)} each, +${growthOf(adv.town, id)} a week.${why ? `\n${why}` : ''}`, buttons });
+    openCard(this, { title: cr.plural, body: `${stock} to hire, ${describeAmount(cr.cost)} each, +${growthOf(town, id)} a week.${why ? `\n${why}` : ''}`, buttons });
   }
 
   private tryBuild(id: BuildingId): void {
     const adv = this.session.adv;
     const def = BUILDINGS[id];
-    if (cantBuild(adv.town, id, adv.purse, this.session.def.off)) return;
-    const r = build(adv.town, id, adv.purse, this.session.def.off);
-    let next = { ...adv, town: r.town, purse: r.purse };
-    if (heroInTown(next)) next = enterTown(next);
+    if (cantBuild(this.town(), id, adv.purse, this.session.def.off)) return;
+    const r = build(this.town(), id, adv.purse, this.session.def.off);
+    let next = withTown({ ...adv, purse: r.purse }, r.town);
+    if (heroTown(next)?.id === this.townId) next = enterTown(next);
     getSound(this)?.play('build');
     this.session.set(next);
     // Close the ledger so the new building can be seen rising.
@@ -240,16 +266,47 @@ export class TownScene extends Phaser.Scene {
 
   private hire(id: CreatureId, n: number): void {
     const adv = this.session.adv;
-    const toHero = heroVisiting(adv);
+    const toHero = this.visiting(adv);
+    const here = this.town(adv);
     try {
-      const r = hire(adv.town, id, n, adv.purse, toHero ? adv.hero.army : adv.town.garrison);
+      const r = hire(here, id, n, adv.purse, toHero ? adv.hero.army : here.garrison);
       const town = toHero ? r.town : { ...r.town, garrison: r.army };
-      this.session.set({ ...adv, town, purse: r.purse, hero: toHero ? { ...adv.hero, army: r.army } : adv.hero });
+      this.session.set(withTown({ ...adv, purse: r.purse, hero: toHero ? { ...adv.hero, army: r.army } : adv.hero }, town));
       getSound(this)?.play('hire');
       this.refresh();
     } catch (err) {
       this.toast(err instanceof Error && err.message === 'No room in the army' ? 'No room: the army has seven companies already' : 'Cannot hire that many');
     }
+  }
+
+  /** The armies in town this line can be upgraded in: the visiting hero's and the garrison. */
+  private upgradableHere(id: CreatureId): { count: number; cost: Record<string, number> } {
+    const adv = this.session.adv;
+    const line = lineOf(id);
+    const town = this.town(adv);
+    const armies = [...(this.visiting(adv) ? [adv.hero.army] : []), town.garrison];
+    const all = armies.map((a) => upgradable(town, line, a));
+    const cost: Record<string, number> = {};
+    for (const u of all) for (const [r, n] of Object.entries(u.cost)) cost[r] = (cost[r] ?? 0) + (n ?? 0);
+    return { count: all.reduce((n, u) => n + u.count, 0), cost };
+  }
+
+  /** Raises every stack of `id`'s line in town to `id` (whole stacks, while the purse lasts): the hero's first, then the garrison's. */
+  private upgrade(id: CreatureId): void {
+    const adv = this.session.adv;
+    const line = lineOf(id);
+    const town = this.town(adv);
+    const hero = this.visiting(adv) ? upgradeStacks(town, line, adv.hero.army, adv.purse) : { army: adv.hero.army, purse: adv.purse, upgraded: 0 };
+    const garrison = upgradeStacks(town, line, town.garrison, hero.purse);
+    const upgraded = hero.upgraded + garrison.upgraded;
+    if (!upgraded) {
+      this.toast('Not enough resources to upgrade them');
+      return;
+    }
+    this.session.set(withTown({ ...adv, purse: garrison.purse, hero: { ...adv.hero, army: hero.army } }, { ...town, garrison: garrison.army }));
+    getSound(this)?.play('hire');
+    this.toast(`${upgraded} upgraded to ${creature(id).plural}`);
+    this.refresh();
   }
 
   private buyBook(): void {
@@ -269,8 +326,9 @@ export class TownScene extends Phaser.Scene {
    */
   private pickSlot(ref: SlotRef): void {
     const adv = this.session.adv;
-    const heroRow: SlotRef['army'] | null = heroVisiting(adv) ? 'hero' : heroInGarrison(adv) ? 'garrison' : null;
-    const armyOf = (a: SlotRef['army']): Army => (a === 'hero' ? adv.hero.army : adv.town.garrison);
+    const town = this.town(adv);
+    const heroRow: SlotRef['army'] | null = this.visiting(adv) ? 'hero' : this.held(adv) ? 'garrison' : null;
+    const armyOf = (a: SlotRef['army']): Army => (a === 'hero' ? adv.hero.army : town.garrison);
     if (!this.picked) {
       const isHero = ref.i === HEAD && ref.army === heroRow;
       if (isHero || (ref.i !== HEAD && (ref.army === 'garrison' || heroRow === 'hero') && armyOf(ref.army)[ref.i])) this.picked = ref;
@@ -297,8 +355,8 @@ export class TownScene extends Phaser.Scene {
       return;
     }
     const hero = from.army === 'hero' ? r.src : ref.army === 'hero' ? r.dst : adv.hero.army;
-    const garrison = from.army === 'garrison' ? r.src : ref.army === 'garrison' ? r.dst : adv.town.garrison;
-    this.session.set({ ...adv, hero: { ...adv.hero, army: hero }, town: { ...adv.town, garrison } });
+    const garrison = from.army === 'garrison' ? r.src : ref.army === 'garrison' ? r.dst : town.garrison;
+    this.session.set(withTown({ ...adv, hero: { ...adv.hero, army: hero } }, { ...town, garrison }));
     this.refresh();
   }
 

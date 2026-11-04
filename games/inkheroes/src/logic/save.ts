@@ -3,13 +3,14 @@ import type { MapDef } from '../level/types';
 import { gridOf, MAX_MONSTER, queueLevelUps, type Adventure, type Prompt } from './adventure';
 import { ARMY_SLOTS, type Army, type ArmySlot } from './army';
 import { BUILDINGS, isBuildingId, type BuildingId } from './buildings';
-import { isCreatureId, type CreatureId } from './creatures';
+import { isCreatureId, lineOf, type CreatureId } from './creatures';
 import { dailyMp, levelFor, maxMana, PRIMARIES } from './hero';
 import { passable } from './map';
 import { CHEST_XP, townFootprint, type MapObject } from './objects';
 import { RESOURCES, type Purse } from './resources';
 import { isSkillId, MAX_SKILLS, SKILL_IDS, type Rank } from './skills';
-import { isSpellId } from './spells';
+import { isSpellId, type SpellId } from './spells';
+import type { Town } from './town';
 
 /** Most cards a save may hold waiting. */
 const MAX_PROMPTS = 20;
@@ -111,23 +112,26 @@ export function loadAdventure(store: KeyValueStore | undefined, defs: (id: strin
 export function parseAdventure(raw: unknown, def: MapDef): Adventure | null {
   if (!isObj(raw) || raw.mapId !== def.id) return null;
   const g = gridOf(def);
-  const { day, seed, purse, hero, town, objects, explored, status, prompts, lostStacks } = raw;
+  const { day, seed, purse, hero, objects, explored, status, prompts, lostStacks } = raw;
+  // Saves from before a map could hold several towns keep the one as `town`.
+  const towns = Array.isArray(raw.towns) ? raw.towns : [raw.town];
   if (!isInt(day, 1, 100000) || !isInt(seed, 0, 2 ** 32) || !isInt(lostStacks, 0, 10000)) return null;
   if (status !== 'playing' && status !== 'won' && status !== 'lost') return null;
   if (typeof explored !== 'string' || explored.length !== g.w * g.h || !/^[01]*$/.test(explored)) return null;
   const p = parsePurse(purse);
-  if (!p || !isObj(hero) || !isObj(town) || !Array.isArray(objects) || !Array.isArray(prompts)) return null;
+  const specs = [def.town, ...(def.towns ?? [])];
+  if (!p || !isObj(hero) || towns.length !== specs.length || !towns.every(isObj) || !Array.isArray(objects) || !Array.isArray(prompts)) return null;
   const h = parseHero(hero, def);
-  const t = parseTown(town, def);
+  const ts = towns.map((t, i) => parseTown(t as Record<string, unknown>, specs[i]!, i === 0, def));
   const objs = parseObjects(objects, def);
-  if (!h || !t || !objs) return null;
+  if (!h || !ts.every((t) => !!t) || !objs) return null;
   if (!passable(g, h.x, h.y)) return null;
-  // Not inside the town's walls (its gate is fine), nor on a monster.
-  if (townFootprint(t.x, t.y).some((f) => f.x === h.x && f.y === h.y)) return null;
+  // Not inside a town's walls (its gate is fine), nor on a monster.
+  if (ts.some((t) => townFootprint(t!.x, t!.y).some((f) => f.x === h.x && f.y === h.y))) return null;
   if (objs.some((o) => o.kind === 'monster' && !o.gone && o.x === h.x && o.y === h.y)) return null;
   const kept = prompts.map((x) => parsePrompt(x, objs)).filter((x): x is Prompt => !!x).slice(0, MAX_PROMPTS);
   // Level-ups are never read from a save: they're dealt again from the hero's experience.
-  return queueLevelUps({ mapId: def.id, day, seed, purse: p, hero: h, town: t, objects: objs, explored, status, prompts: kept, lostStacks });
+  return queueLevelUps({ mapId: def.id, day, seed, purse: p, hero: h, towns: ts as Town[], objects: objs, explored, status, prompts: kept, lostStacks });
 }
 
 function parsePurse(raw: unknown): Purse | null {
@@ -172,21 +176,24 @@ function parseHero(raw: Record<string, unknown>, def: MapDef): Adventure['hero']
   return { ...hero, mana: Math.min(hero.mana, maxMana(hero)), mp: Math.min(hero.mp, dailyMp(hero) + MP_BONUS) };
 }
 
-function parseTown(raw: Record<string, unknown>, def: MapDef): Adventure['town'] | null {
+/** A saved town on the map's town `t` (its place, name and guild come from the map). The first town is always the player's. */
+function parseTown(raw: Record<string, unknown>, t: { id: string; name: string; x: number; y: number; built: readonly BuildingId[]; guild: readonly SpellId[] }, first: boolean, def: MapDef): Town | null {
   if (!Array.isArray(raw.built) || !raw.built.every(isBuildingId) || typeof raw.builtToday !== 'boolean' || !isObj(raw.stock)) return null;
   if (!Object.entries(raw.stock).every(([k, v]) => isCreatureId(k) && isInt(v, 0, 1e6))) return null;
+  const owner = first ? 'player' : raw.owner;
+  if (owner !== 'player' && owner !== 'neutral') return null;
   const garrison = parseArmy(raw.garrison);
   if (!garrison) return null;
-  const t = def.town;
-  const built = buildable(raw.built, def);
-  const dwellings = new Set(built.map((b) => BUILDINGS[b].dwelling).filter(Boolean));
-  const stock = Object.fromEntries(Object.entries(raw.stock).filter(([k]) => dwellings.has(k as CreatureId))) as Partial<Record<CreatureId, number>>;
-  return { id: t.id, name: t.name, owner: 'player', x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, guild: t.guild };
+  const built = buildable(raw.built, t.built, def);
+  // Stock is kept by line (every level of a line hires from its base's).
+  const lines = new Set(built.map((b) => BUILDINGS[b].dwelling).filter((d): d is CreatureId => !!d).map(lineOf));
+  const stock = Object.fromEntries(Object.entries(raw.stock).filter(([k]) => lines.has(k as CreatureId))) as Partial<Record<CreatureId, number>>;
+  return { id: t.id, name: t.name, owner, x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, guild: t.guild };
 }
 
-/** The saved buildings the map allows and whose needs are met (the map's starting ones always). */
-function buildable(raw: readonly BuildingId[], def: MapDef): BuildingId[] {
-  let kept = new Set<BuildingId>(def.town.built);
+/** The saved buildings the map allows and whose needs are met (the town's starting ones always). */
+function buildable(raw: readonly BuildingId[], start: readonly BuildingId[], def: MapDef): BuildingId[] {
+  let kept = new Set<BuildingId>(start);
   const wanted = new Set(raw.filter((b) => !def.off.includes(b)));
   for (let grew = true; grew;) {
     grew = false;

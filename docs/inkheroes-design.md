@@ -137,7 +137,19 @@ Greek city-states under the old gods: hoplites and slingers at the bottom, the b
 | 6 | Companion (lancer) | 15 | 15 | 15–25 | 100 | 7 | 2 | 1000 | Charge: +5% damage a hex moved. Alexander-style heavy cavalry |
 | 7 | Titan (seraph) | 20 | 20 | 50 | 200 | 12 | 1 | 3000 + 1 gem | Flies (strides over the field), +1 morale to the army |
 
-Upgrades come in a later chapter.
+Every unit comes in **three levels** (H3 has two): the base unit and two upgrades of it, the same creature better armed. Each dwelling upgrades twice; all three levels hire from the dwelling's one weekly stock, and the Fort hires the best level built. A stack already in the army upgrades in the town (in the Fort, from that unit's card) for the difference in cost.
+
+| Line | Level 2 (id) | Att | Def | Damage | HP | Speed | Cost | Level 3 (id) | Att | Def | Damage | HP | Speed | Cost |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | Phalangite (spearman2) | 6 | 6 | 2–3 | 12 | 5 | 80 | Spartan (spearman3) | 7 | 8 | 2–4 | 15 | 5 | 100, answers 2 strikes a round |
+| 2 | Peltast (bowman2) | 6 | 4 | 2–4 | 10 | 6 | 130, 16 shots | Cretan Archer (bowman3) | 8 | 5 | 3–4 | 12 | 6 | 160, 20 shots |
+| 3 | War Griffin (griffin2) | 9 | 9 | 3–6 | 25 | 9 | 240, answers 3 | Golden Griffin (griffin3) | 10 | 10 | 4–7 | 30 | 10 | 290, answers 4 |
+| 4 | Minotaur Guard (swordsman2) | 12 | 13 | 6–10 | 40 | 6 | 360 | Minotaur Lord (swordsman3) | 14 | 14 | 7–11 | 45 | 6 | 430, strikes unanswered |
+| 5 | Centaur Marksman (monk2) | 12 | 9 | 10–12 | 30 | 7 | 450, 16 shots | Centaur Sage (monk3) | 14 | 10 | 11–13 | 35 | 7 | 520, 20 shots, +1 morale |
+| 6 | Royal Companion (lancer2) | 16 | 16 | 20–25 | 100 | 9 | 1200 | Cataphract (lancer3) | 18 | 18 | 22–28 | 120 | 10 | 1500 |
+| 7 | Elder Titan (seraph2) | 22 | 22 | 50–55 | 240 | 14 | 3600 + 2 gems | Titan Lord (seraph3) | 26 | 24 | 55–60 | 280 | 16 | 4400 + 3 gems |
+
+Upgrades keep the line's traits (shots, flight, two hexes, charge, the Titan's morale).
 
 ### Neutrals (chapter 1)
 
@@ -185,6 +197,20 @@ A map monster splits into about √count stacks in battle, at most 4 (4 goblins 
 | Tiltyard (Lancers) | 5000, 20 wood | Stables | |
 | Seraph Spire | 20000, 10 each rare | Monastery | |
 
+**The upgrade tree.** Each dwelling upgrades twice. The first upgrade needs the dwelling (and the one support named); the second needs the first and the Citadel (lines 1–4) or the Castle (lines 5–7).
+
+| Line | Dwelling | Upgrade (needs) | Second upgrade (needs) |
+|---|---|---|---|
+| 1 Hoplites | Guardhouse | Phalanx Yard: 1000, 5 ore (Blacksmith) | Agoge: 2000, 5 ore (Citadel) |
+| 2 Slingers | Archery Range | Peltast Camp: 1000, 5 wood (Blacksmith) | Cretan Range: 2000, 5 wood, 5 ore (Citadel) |
+| 3 Griffins | Griffin Tower | Griffin Aerie: 1000, 5 ore | Golden Aerie: 3000, 5 ore, 2 crystal (Citadel) |
+| 4 Minotaurs | Barracks | Labyrinth: 2000, 5 ore, 2 crystal | Great Labyrinth: 3000, 10 ore, 3 crystal (Citadel) |
+| 5 Centaurs | Monastery | Centaur Grove: 2000, 5 wood, 2 each rare (Mage Guild 2nd floor) | Chiron's Cave: 4000, 5 wood, 3 each rare (Castle) |
+| 6 Companions | Tiltyard | Royal Tiltyard: 4000, 10 wood | Cataphract Lists: 6000, 10 wood, 10 ore, 5 crystal (Castle) |
+| 7 Titans | Seraph Spire | Elder Spire: 15000, 5 each rare (Mage Guild 2nd floor) | Olympus Gate: 25000, 10 each rare (Castle) |
+
+In the townscape an upgraded dwelling stands in its own place in the city, replacing the one before it.
+
 ## Chapter 1: The Border March (free)
 
 Three short maps on the Crown's northern border, taught one idea at a time.
@@ -196,6 +222,10 @@ Three short maps on the Crown's northern border, taught one idea at a time.
 | 3 | **The Black Banner** | 48 × 36 | Beat the rival lord and take his town | A rival AI hero with a town, racing for mines |
 
 Map 1's hero is **Rowan**, a Knight: Attack 2, Defense 2, Spell Power 1, Knowledge 1, basic Leadership, a spellbook with Magic Arrow. Army: 18 Spearmen, 7 Bowmen. Town Ashford: Village Hall, Fort, Tavern, Guardhouse; its Mage Guild teaches Wisdom of Athena, Shield and Slow. Off on this map: City Hall, Capitol, Castle, Marketplace, the guild's 2nd floor, Monastery, Stables, Tiltyard, Seraph Spire. Starting purse: 7500 gold, 15 wood, 15 ore, 3 of each rare. The ogres (8, growing 10% a week) hold the west end of the old bridge; the river can only be crossed there.
+
+Map 2, **Thornwood** (40 × 32): Rowan starts in **Millbrook** (Village Hall, Fort, Tavern, Guardhouse, Archery Range, Blacksmith) with 24 Hoplites, 10 Slingers and 3 Griffins, 10000 gold, 20 wood, 20 ore, 5 of each rare. A river runs down the middle, crossed only by the north bridge (16 wolves) and the south bridge (24 spartoi). East of it is Thornwood forest: a cyclops-guarded gold mine, a crystal windmill, a shrine of Fury of Ares, a watchtower and brigand camps. **Thornwood** town (Village Hall, Town Hall, Fort, Tavern, Blacksmith, Guardhouse, Barracks) is held by 32 Brigands, 5 Cyclopes and 12 Wolves. Taking it wins the map. The Citadel and the second upgrades of lines 1–4 are on; the Castle, Capitol, Tiltyard and Seraph Spire are off. Par 28 days.
+
+**Several towns.** A map can have more towns than the player's first. Each one is neutral until a hero beats its garrison at the gate (an empty one is just walked into); then it is the player's, with its own buildings, stock and garrison. It pays its income and fills its dwellings every week. The town screen shows the town the hero stands in, else the player's first.
 
 ### Laurels (stars)
 
@@ -223,4 +253,4 @@ The adventure is saved in localStorage after every action, and a copy is kept at
 
 ## Not yet
 
-Taking towns (the "capture" goal has no code path yet: map 2 needs it), several heroes and the tavern’s hire, artifacts, the marketplace's trade, upgrades, tactics, sieges with walls, the rival AI (map 3), random maps.
+Several heroes and the tavern’s hire, artifacts, the marketplace's trade, tactics, sieges with walls, the rival AI (map 3), random maps.

@@ -1,5 +1,6 @@
 import type Phaser from 'phaser';
 import { calendar, heroInGarrison, heroVisiting, type Adventure } from '../../logic/adventure';
+import type { Town } from '../../logic/town';
 import { has, income } from '../../logic/town';
 import { faceOf, heroArt, PX_TEX } from '../battle/pixelAssets';
 import { drawFrame, drawPortrait, FILLS, SLOT } from '../battle/pixelFrames';
@@ -196,15 +197,15 @@ export class TownBar {
     this.heroLit.setPosition(x, hy);
   }
 
-  refresh(adv: Adventure, picked: SlotRef | null): void {
-    const t = adv.town;
+  /** Shows town `t`'s lines and armies (the hero's row only when the hero is in it). */
+  refresh(adv: Adventure, t: Town, picked: SlotRef | null): void {
     this.purse.set(adv.purse);
     this.date.setText(calendar(adv.day));
     this.name.setText(t.name);
     this.incomeLine.setText(`+${income(t)} a day`);
     this.status.setText(t.builtToday ? 'Built today: more tomorrow' : 'One building a day');
-    const here = heroVisiting(adv);
-    const held = heroInGarrison(adv);
+    const here = heroVisiting(adv, t);
+    const held = heroInGarrison(adv, t);
     this.heroRow = held ? 'garrison' : 'hero';
     this.placeHero();
     const heroPicked = picked?.i === HEAD;

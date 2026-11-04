@@ -4,6 +4,8 @@ import type { Amount } from './resources';
 export const BUILDING_IDS = [
   'villageHall', 'townHall', 'cityHall', 'capitol', 'fort', 'citadel', 'castle', 'tavern', 'blacksmith', 'marketplace', 'mageGuild1', 'mageGuild2',
   'guardhouse', 'archeryRange', 'griffinTower', 'barracks', 'monastery', 'stables', 'tiltyard', 'seraphSpire',
+  'guardhouse2', 'guardhouse3', 'archeryRange2', 'archeryRange3', 'griffinTower2', 'griffinTower3', 'barracks2', 'barracks3',
+  'monastery2', 'monastery3', 'tiltyard2', 'tiltyard3', 'seraphSpire2', 'seraphSpire3',
 ] as const;
 export type BuildingId = (typeof BUILDING_IDS)[number];
 
@@ -12,6 +14,7 @@ export interface BuildingDef {
   readonly cost: Amount;
   readonly needs: readonly BuildingId[];
   readonly says: string;
+  /** The unit it hires (an upgraded dwelling hires its line's upgrade, from the line's one stock). */
   readonly dwelling?: CreatureId;
   /** Gold a day (halls replace each other's income: the best counts). */
   readonly income?: number;
@@ -41,6 +44,21 @@ export const BUILDINGS: Readonly<Record<BuildingId, BuildingDef>> = {
   stables: { name: 'Stables', cost: { gold: 2000, wood: 10 }, needs: ['barracks'], says: '+400 movement for a hero leaving town' },
   tiltyard: { name: 'Tiltyard', cost: { gold: 5000, wood: 20 }, needs: ['stables'], says: 'Hires Lancers', dwelling: 'lancer' },
   seraphSpire: { name: 'Seraph Spire', cost: { gold: 20000, mercury: 10, sulfur: 10, crystal: 10, gems: 10 }, needs: ['monastery'], says: 'Hires Seraphs', dwelling: 'seraph' },
+  // The upgrade tree: a first upgrade needs its dwelling (and a support), a second the first and the Citadel (lines 1-4) or the Castle (5-7).
+  guardhouse2: { name: 'Phalanx Yard', cost: { gold: 1000, ore: 5 }, needs: ['guardhouse', 'blacksmith'], says: 'Hires Phalangites', dwelling: 'spearman2' },
+  guardhouse3: { name: 'Agoge', cost: { gold: 2000, ore: 5 }, needs: ['guardhouse2', 'citadel'], says: 'Hires Spartans', dwelling: 'spearman3' },
+  archeryRange2: { name: 'Peltast Camp', cost: { gold: 1000, wood: 5 }, needs: ['archeryRange', 'blacksmith'], says: 'Hires Peltasts', dwelling: 'bowman2' },
+  archeryRange3: { name: 'Cretan Range', cost: { gold: 2000, wood: 5, ore: 5 }, needs: ['archeryRange2', 'citadel'], says: 'Hires Cretan Archers', dwelling: 'bowman3' },
+  griffinTower2: { name: 'Griffin Aerie', cost: { gold: 1000, ore: 5 }, needs: ['griffinTower'], says: 'Hires War Griffins', dwelling: 'griffin2' },
+  griffinTower3: { name: 'Golden Aerie', cost: { gold: 3000, ore: 5, crystal: 2 }, needs: ['griffinTower2', 'citadel'], says: 'Hires Golden Griffins', dwelling: 'griffin3' },
+  barracks2: { name: 'Labyrinth', cost: { gold: 2000, ore: 5, crystal: 2 }, needs: ['barracks'], says: 'Hires Minotaur Guards', dwelling: 'swordsman2' },
+  barracks3: { name: 'Great Labyrinth', cost: { gold: 3000, ore: 10, crystal: 3 }, needs: ['barracks2', 'citadel'], says: 'Hires Minotaur Lords', dwelling: 'swordsman3' },
+  monastery2: { name: 'Centaur Grove', cost: { gold: 2000, wood: 5, mercury: 2, sulfur: 2, crystal: 2, gems: 2 }, needs: ['monastery', 'mageGuild2'], says: 'Hires Centaur Marksmen', dwelling: 'monk2' },
+  monastery3: { name: 'Chiron’s Cave', cost: { gold: 4000, wood: 5, mercury: 3, sulfur: 3, crystal: 3, gems: 3 }, needs: ['monastery2', 'castle'], says: 'Hires Centaur Sages', dwelling: 'monk3' },
+  tiltyard2: { name: 'Royal Tiltyard', cost: { gold: 4000, wood: 10 }, needs: ['tiltyard'], says: 'Hires Royal Companions', dwelling: 'lancer2' },
+  tiltyard3: { name: 'Cataphract Lists', cost: { gold: 6000, wood: 10, ore: 10, crystal: 5 }, needs: ['tiltyard2', 'castle'], says: 'Hires Cataphracts', dwelling: 'lancer3' },
+  seraphSpire2: { name: 'Elder Spire', cost: { gold: 15000, mercury: 5, sulfur: 5, crystal: 5, gems: 5 }, needs: ['seraphSpire', 'mageGuild2'], says: 'Hires Elder Titans', dwelling: 'seraph2' },
+  seraphSpire3: { name: 'Olympus Gate', cost: { gold: 25000, mercury: 10, sulfur: 10, crystal: 10, gems: 10 }, needs: ['seraphSpire2', 'castle'], says: 'Hires Titan Lords', dwelling: 'seraph3' },
 };
 
 export const isBuildingId = (v: unknown): v is BuildingId => typeof v === 'string' && (BUILDING_IDS as readonly string[]).includes(v);

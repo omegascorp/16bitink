@@ -292,7 +292,8 @@ export class BattleView {
     const blow = new Promise<void>((resolve) => (struck = resolve));
     const swing = a.fig.attack(struck);
     await blow;
-    if (ranged) await this.projectile(a.fig, t.fig, striker.creature === 'monk');
+    // The slingers throw stones; their upgrades (javelins, bows) and the centaurs loose arrows.
+    if (ranged) await this.projectile(a.fig, t.fig, striker.creature !== 'bowman');
     else void swing.then(() => this.glide(a.fig, home, 200, 'Quad.easeOut'));
     void swing.then(() => a.fig.face(facing));
   }

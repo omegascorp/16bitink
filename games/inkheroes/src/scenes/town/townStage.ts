@@ -67,20 +67,27 @@ interface Lot {
 
 const one = (id: BuildingId & TownArt): readonly (readonly [TownArt, BuildingId])[] => [[id, id]];
 
+/** A dwelling and its two upgrades, best first: each upgrade drawn as `<dwelling>-2` / `-3` (its own art once made, else the dwelling's). */
+const dwelling = (id: BuildingId & TownArt): readonly (readonly [TownArt, BuildingId])[] =>
+  ([3, 2] as const).map((n) => {
+    const art = `${id}-${n}`;
+    return [art in TOWN_ART ? (art as TownArt) : id, `${id}${n}` as BuildingId] as const;
+  }).concat([[id, id]]);
+
 export const LOTS: readonly Lot[] = [
   { plot: { a: 4, b: 4, n: 8 }, ladder: [['walls-castle', 'castle'], ['walls-citadel', 'citadel'], ['walls-fort', 'fort']] },
-  { plot: { a: 2, b: 16, n: 3 }, ladder: one('seraphSpire') },
-  { plot: { a: 15, b: 2, n: 6 }, ladder: one('monastery') },
+  { plot: { a: 2, b: 16, n: 3 }, ladder: dwelling('seraphSpire') },
+  { plot: { a: 15, b: 2, n: 6 }, ladder: dwelling('monastery') },
   { plot: { a: 14, b: 14, n: 7 }, ladder: [['hall-capitol', 'capitol'], ['hall-city', 'cityHall'], ['hall-town', 'townHall'], ['hall-village', 'villageHall']] },
   { plot: { a: 22, b: 9, n: 4 }, ladder: [['guild-2', 'mageGuild2'], ['guild-1', 'mageGuild1']] },
-  { plot: { a: 7, b: 22, n: 6 }, ladder: one('barracks') },
-  { plot: { a: 2, b: 24, n: 4 }, ladder: one('griffinTower') },
-  { plot: { a: 24, b: 2, n: 6 }, ladder: one('tiltyard') },
+  { plot: { a: 7, b: 22, n: 6 }, ladder: dwelling('barracks') },
+  { plot: { a: 2, b: 24, n: 4 }, ladder: dwelling('griffinTower') },
+  { plot: { a: 24, b: 2, n: 6 }, ladder: dwelling('tiltyard') },
   { plot: { a: 14, b: 24, n: 5 }, ladder: one('tavern') },
   { plot: { a: 9, b: 28, n: 4 }, ladder: one('blacksmith') },
-  { plot: { a: 21, b: 26, n: 4 }, ladder: one('guardhouse') },
+  { plot: { a: 21, b: 26, n: 4 }, ladder: dwelling('guardhouse') },
   { plot: { a: 24, b: 20, n: 5 }, ladder: one('marketplace') },
-  { plot: { a: 27, b: 14, n: 5 }, ladder: one('archeryRange') },
+  { plot: { a: 27, b: 14, n: 5 }, ladder: dwelling('archeryRange') },
   { plot: { a: 27, b: 8, n: 5 }, ladder: one('stables') },
 ];
 /** The square before the hall. */
@@ -178,6 +185,7 @@ const LADDERS: readonly (readonly BuildingId[])[] = [
   ['villageHall', 'townHall', 'cityHall', 'capitol'],
   ['fort', 'citadel', 'castle'],
   ['mageGuild1', 'mageGuild2'],
+  ...(['guardhouse', 'archeryRange', 'griffinTower', 'barracks', 'monastery', 'tiltyard', 'seraphSpire'] as const).map((d) => [d, `${d}2`, `${d}3`] as BuildingId[]),
 ];
 
 /**

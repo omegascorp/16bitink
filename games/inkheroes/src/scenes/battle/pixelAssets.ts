@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BATTLE_BG, HERO_ART, OBSTACLE_ART, UNIT_ART, type Pose, type StillArt, type UnitArt } from '../../art/pixel/manifest';
 import { SCENERY } from '../../art/pixel/scenery';
+import { isCreatureId, lineOf } from '../../logic/creatures';
 import type { BackdropSource } from './pixelBackdrop';
 import type { PixelBuffer, Rgba } from './pixelRaster';
 import { drawBadge } from './pixelRaster';
@@ -31,8 +32,9 @@ export const PX_TEX = {
 } as const;
 
 /** The art for a creature, or the first one as a stand-in (an id the manifest doesn't know yet). */
+/** A unit's battle art: its own, or (an upgrade not drawn yet) its line's base unit's. */
 export function unitArt(id: string): UnitArt {
-  return UNIT_ART[id] ?? Object.values(UNIT_ART)[0]!;
+  return UNIT_ART[id] ?? (isCreatureId(id) ? UNIT_ART[lineOf(id)] : undefined) ?? Object.values(UNIT_ART)[0]!;
 }
 
 /** The FACE square of an idle strip's first frame round the art's face point (the frame's upper middle if it has none). */

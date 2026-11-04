@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getSound } from '../host';
-import { gridOf, guardAt, heroInGarrison, isSeen, objectCovering, planPath, stepHero, type Adventure } from '../logic/adventure';
-import { creature, sizeWord } from '../logic/creatures';
+import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, planPath, stepHero, type Adventure } from '../logic/adventure';
+import { creature, sizeWord, type CreatureId } from '../logic/creatures';
 import { MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
 import type { PathStep } from '../logic/path';
 import { SPELLS } from '../logic/spells';
@@ -201,7 +201,16 @@ export class MapScene extends Phaser.Scene {
     const { adv, def } = this.session;
     const g = gridOf(def);
     if (x < 0 || y < 0 || x >= g.w || y >= g.h || !isSeen(adv, def, x, y)) return '';
-    if (Math.abs(x - adv.town.x) <= 1 && (y === adv.town.y || y === adv.town.y - 1)) return `${adv.town.name}: your town`;
+    const town = adv.towns.find((t) => Math.abs(x - t.x) <= 1 && (y === t.y || y === t.y - 1));
+    if (town) {
+      if (town.owner === 'player') return `${town.name}: your town`;
+      // A town not ours: who holds it, the way a monster is named.
+      const held = new Map<CreatureId, number>();
+      for (const s of town.garrison) if (s) held.set(s.creature, (held.get(s.creature) ?? 0) + s.count);
+      const parts = [...held].map(([c, n]) => `${sizeWord(n)} ${creature(c).plural}`);
+      const by = parts.length ? parts.slice(0, -1).join(', ') + (parts.length > 1 ? ' and ' : '') + parts[parts.length - 1] : 'nobody';
+      return `${town.name}: held by ${by}${town.id === def.goal.target ? ' (your goal)' : ''}`;
+    }
     const o = objectCovering(adv, x, y);
     if (!o) return '';
     if (o.kind === 'monster') {
@@ -224,7 +233,7 @@ export class MapScene extends Phaser.Scene {
       void this.walk(this.path!);
       return;
     }
-    if (x === adv.hero.x && y === adv.hero.y && x === adv.town.x && y === adv.town.y) {
+    if (x === adv.hero.x && y === adv.hero.y && heroTown(adv)) {
       this.openTown();
       return;
     }

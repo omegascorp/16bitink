@@ -49,7 +49,9 @@ export const ASHFORD: MapDef = {
     army: [{ creature: 'spearman', count: 18 }, { creature: 'bowman', count: 7 }],
   },
   purse: { gold: 7500, wood: 15, ore: 15, mercury: 3, sulfur: 3, crystal: 3, gems: 3 },
-  off: ['cityHall', 'capitol', 'castle', 'marketplace', 'mageGuild2', 'monastery', 'stables', 'tiltyard', 'seraphSpire'],
+  // Map 1 teaches the first upgrade only: every second upgrade waits for a later map.
+  off: ['cityHall', 'capitol', 'castle', 'marketplace', 'mageGuild2', 'monastery', 'stables', 'tiltyard', 'seraphSpire',
+    'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3', 'monastery3', 'tiltyard3', 'seraphSpire3'],
   seed: 1024,
   objects: [
     // Mines.

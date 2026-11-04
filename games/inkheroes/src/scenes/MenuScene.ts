@@ -22,7 +22,6 @@ import { Session } from './session';
 
 /** Maps planned for chapter 1 but not built yet, shown as drafts. */
 const PLANNED: readonly { name: string; goal: string; vignette: string }[] = [
-  { name: 'Thornwood', goal: 'Take the bandits’ fort at Thornwood', vignette: 'thornwood' },
   { name: 'The Black Banner', goal: 'Beat the rival lord and take his town', vignette: 'blackBanner' },
 ];
 

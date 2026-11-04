@@ -10,8 +10,9 @@ import { putBuffer, TextLabel, texturePixels } from '../battle/pixelUi';
 import { loadMapArt, MAP_TEX } from '../map/pixelMapArt';
 import { CITY_SEED } from './cityRender';
 import { paintCity } from './townGround';
+import { flagTextures, FlyingFlags } from './flyingFlags';
 import { CHIMNEYS, ChimneySmoke } from './townSmoke';
-import { cityWalls } from './townWalls';
+import { cityWalls, wallPieces } from './townWalls';
 import { TOWN_TEX } from './townTex';
 import { cityTrees, emptyPlots, STAGE, STAGE_HORIZON, STAGE_SHOWN, stagePieces, toGrid, type Plot, type StagePiece } from './townStage';
 
@@ -62,9 +63,11 @@ export class PixelTownView {
   private readonly bare: { plot: Plot; building: BuildingId }[];
   private readonly country: DriftingScenery;
   private readonly smoke: ChimneySmoke[] = [];
+  private readonly flying: FlyingFlags;
 
   constructor(private readonly scene: Phaser.Scene, built: readonly BuildingId[], area: { w: number; h: number }, private readonly opts: TownViewOpts) {
     this.bare = emptyPlots(built);
+    this.flying = new FlyingFlags(scene);
     // The stage's top STAGE_SHOWN rows fill the area (more sky on a taller one); the countryside reaches to the sides.
     const top = area.h - STAGE_SHOWN;
     const span = Math.max(area.w, STAGE.w);
@@ -85,13 +88,20 @@ export class PixelTownView {
     const ground = this.country.front.setInteractive();
     ground.on('pointerup', (p: Phaser.Input.Pointer) => this.tapGround(p));
     // The city's walls: the back ones behind everything in it, the front ones before it.
-    const walls = cityWalls((k) => texturePixels(scene, k));
+    // The towers are drawn still and their flags fly over them.
+    const tower = TOWN_TEX.piece('wall-tower');
+    const stillTower = flagTextures(scene, 'wall-tower')?.still ?? tower;
+    const walls = cityWalls((k) => texturePixels(scene, k === tower ? stillTower : k));
     const backKey = putBuffer(scene, walls.back);
     const frontKey = putBuffer(scene, walls.front);
     this.keys.push(backKey, frontKey);
     this.root.add(scene.add.image(0, 0, backKey).setOrigin(0));
+    const pieces = wallPieces();
+    const towers = (list: typeof pieces.back) => list.filter((w) => w.art === 'wall-tower');
+    const inFront = new Set(towers(pieces.front).map((w) => `${w.x},${w.y}`));
+    for (const w of towers(pieces.back)) if (!inFront.has(`${w.x},${w.y}`)) this.root.add(this.flying.fly('wall-tower', w.x, w.y).flags);
     this.label = new TextLabel(scene, { kind: 'title', outline: true, anchor: { x: 0.5, y: 1 } });
-    const sprites: { y: number; obj: Phaser.GameObjects.Image }[] = stagePieces(built).map((p) => ({ y: p.spot.y, obj: this.sprite(p) }));
+    const sprites: { y: number; obj: Phaser.GameObjects.Image | Phaser.GameObjects.Image[] }[] = stagePieces(built).map((p) => ({ y: p.spot.y, obj: this.sprite(p) }));
     for (const t of cityTrees(this.bare.map((b) => b.plot), SEED)) {
       const s = MAP_COVER[t.kind][t.pick]!;
       sprites.push({ y: t.y, obj: scene.add.image(t.x - s.footX, t.y - s.footY, MAP_TEX.cover(t.kind, t.pick)).setOrigin(0) });
@@ -110,6 +120,7 @@ export class PixelTownView {
       this.smoke.push(new ChimneySmoke(scene, air, { x, y: p.spot.y - s.h + flue.y }));
     }
     this.root.add(scene.add.image(0, 0, frontKey).setOrigin(0));
+    for (const w of towers(pieces.front)) this.root.add(this.flying.fly('wall-tower', w.x, w.y).flags);
     this.label.img.setVisible(false);
     this.root.add(this.label.img);
   }
@@ -136,13 +147,15 @@ export class PixelTownView {
     if (hit) this.opts.onPick(hit.building, false);
   }
 
-  private sprite(p: StagePiece): Phaser.GameObjects.Image {
+  /** A piece's sprite, and its flags flying over it. */
+  private sprite(p: StagePiece): Phaser.GameObjects.Image[] {
     const s = TOWN_ART[p.art];
     const x = p.spot.x - Math.floor(s.w / 2);
     const y = p.spot.y - s.h;
-    const img = this.scene.add.image(x, y, TOWN_TEX.piece(p.art)).setOrigin(0).setFlipX(!!p.spot.flip);
+    const fly = this.flying.fly(p.art, x, y, !!p.spot.flip);
+    const img = this.scene.add.image(x, y, fly.key).setOrigin(0).setFlipX(!!p.spot.flip);
     const building = p.building;
-    if (!building) return img;
+    if (!building) return [img, ...fly.flags];
     img.setInteractive({ pixelPerfect: true, alphaTolerance: 128, useHandCursor: true });
     img.on('pointerover', () => {
       img.setTint(LIFT).setTintMode(Phaser.TintModes.ADD);
@@ -156,14 +169,17 @@ export class PixelTownView {
     img.on('pointerup', () => this.opts.onPick(building, true));
     if (building === this.opts.fresh) {
       img.setAlpha(0).setY(y + RISE.px);
-      this.scene.tweens.add({ targets: img, alpha: 1, y, duration: RISE.ms, ease: 'Cubic.easeOut', onUpdate: () => img.setY(Math.round(img.y)) });
+      // Its flags are run up once it stands.
+      for (const f of fly.flags) f.setVisible(false);
+      this.scene.tweens.add({ targets: img, alpha: 1, y, duration: RISE.ms, ease: 'Cubic.easeOut', onUpdate: () => img.setY(Math.round(img.y)), onComplete: () => fly.flags.forEach((f) => f.setVisible(true)) });
     }
-    return img;
+    return [img, ...fly.flags];
   }
 
   /** Drifts the clouds and the smoke (call every frame). */
   update(delta: number): void {
     this.country.update(delta);
+    this.flying.update(delta);
     for (const s of this.smoke) s.update(delta);
   }
 

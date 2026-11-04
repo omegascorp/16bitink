@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import { FRAME_H } from '../art/creatures/types';
-import type { CreatureId } from '../logic/creatures';
+import { lineOf, type CreatureId } from '../logic/creatures';
 
 /**
  * How a figure carries itself while it travels, on top of its painted walk
@@ -38,7 +38,7 @@ const SPECS: Readonly<Record<GaitStyle, GaitSpec>> = {
   fly: { period: 430, hop: 2, sway: 1, lean: 6, pitch: 0, squash: 0, falls: 0 },
 };
 
-const STYLE: Readonly<Record<CreatureId | 'hero', GaitStyle>> = {
+const STYLE: Readonly<Partial<Record<CreatureId | 'hero', GaitStyle>>> = {
   hero: 'gallop', lancer: 'gallop',
   spearman: 'walk', bowman: 'walk', swordsman: 'walk', monk: 'walk', skeleton: 'walk',
   goblin: 'trot', bandit: 'trot',
@@ -47,7 +47,8 @@ const STYLE: Readonly<Record<CreatureId | 'hero', GaitStyle>> = {
   griffin: 'fly', seraph: 'fly',
 };
 
-export const gaitOf = (id: CreatureId | 'hero'): GaitStyle => STYLE[id];
+/** A unit's gait: its own, or its line's (an upgrade moves as its base). */
+export const gaitOf = (id: CreatureId | 'hero'): GaitStyle => STYLE[id] ?? STYLE[id === 'hero' ? 'hero' : lineOf(id)]!;
 
 /** Walk frames a second for each gait (six frames make a stride). */
 export const WALK_FPS: Readonly<Record<GaitStyle, number>> = { walk: 12, trot: 14, stomp: 10, bound: 14, gallop: 12, fly: 14 };

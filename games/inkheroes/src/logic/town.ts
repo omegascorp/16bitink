@@ -1,8 +1,8 @@
 import { addTroops, type Army } from './army';
 import { BUILDINGS, BUILDING_IDS, type BuildingId } from './buildings';
-import { creature, type CreatureId } from './creatures';
+import { creature, lineOf, tierOf, type CreatureId } from './creatures';
 import type { Owner } from './objects';
-import { affordable, canAfford, pay, type Purse } from './resources';
+import { affordable, canAfford, pay, RESOURCES, type Amount, type Purse } from './resources';
 import type { SpellId } from './spells';
 
 export interface Town {
@@ -13,7 +13,7 @@ export interface Town {
   readonly y: number;
   readonly built: readonly BuildingId[];
   readonly builtToday: boolean;
-  /** Units waiting to be hired, by creature. */
+  /** Units waiting to be hired, by line (its base creature): every level of a line hires from it. */
   readonly stock: Readonly<Partial<Record<CreatureId, number>>>;
   readonly garrison: Army;
   /** Spells its mage guild teaches, floor by floor (from the map). */
@@ -41,7 +41,9 @@ export function build(t: Town, b: BuildingId, p: Purse, off: readonly BuildingId
   const def = BUILDINGS[b];
   const built = [...t.built, b];
   const next = { ...t, built, builtToday: true };
-  const stock = def.dwelling ? { ...t.stock, [def.dwelling]: (t.stock[def.dwelling] ?? 0) + growthOf(next, def.dwelling) } : t.stock;
+  // A new dwelling opens with a week's growth; upgrading it hires better units from the same stock.
+  const opens = def.dwelling && tierOf(def.dwelling) === 1;
+  const stock = opens ? { ...t.stock, [def.dwelling!]: (t.stock[def.dwelling!] ?? 0) + growthOf(next, def.dwelling!) } : t.stock;
   return { town: { ...next, stock }, purse: pay(p, def.cost) };
 }
 
@@ -49,13 +51,23 @@ export function income(t: Town): number {
   return Math.max(0, ...t.built.map((b) => BUILDINGS[b].income ?? 0));
 }
 
-/** A dwelling's weekly growth, with the walls' bonus. */
+/** A line's weekly growth (`id`: any of its levels), with the walls' bonus. */
 export function growthOf(t: Town, id: CreatureId): number {
   const bonus = t.built.reduce((n, b) => n + (BUILDINGS[b].growth ?? 0), 0);
-  return Math.floor(creature(id).growth * (1 + bonus));
+  return Math.floor(creature(lineOf(id)).growth * (1 + bonus));
 }
 
-export const dwellings = (t: Town): CreatureId[] => t.built.map((b) => BUILDINGS[b].dwelling).filter((d): d is CreatureId => !!d);
+/** The lines the town hires, by their base units, in the order their dwellings were built. */
+export const dwellings = (t: Town): CreatureId[] => [...new Set(t.built.map((b) => BUILDINGS[b].dwelling).filter((d): d is CreatureId => !!d).map(lineOf))];
+
+/** The best level of `base`'s line the town hires (its highest dwelling built), or null when it hires none. */
+export function bestUnit(t: Town, base: CreatureId): CreatureId | null {
+  const units = t.built.map((b) => BUILDINGS[b].dwelling).filter((d): d is CreatureId => !!d && lineOf(d) === base);
+  return units.length ? units.reduce((a, b) => (tierOf(b) > tierOf(a) ? b : a)) : null;
+}
+
+/** The units waiting in `id`'s line. */
+export const stockOf = (t: Town, id: CreatureId): number => t.stock[lineOf(id)] ?? 0;
 
 /** Monday: every dwelling gains a week's growth (unhired units stay). */
 export function weekly(t: Town): Town {
@@ -66,7 +78,7 @@ export function weekly(t: Town): Town {
 
 /** How many of `id` the player can hire now: stock and purse permitting. */
 export function hireable(t: Town, id: CreatureId, p: Purse): number {
-  return Math.min(t.stock[id] ?? 0, affordable(p, creature(id).cost));
+  return Math.min(stockOf(t, id), affordable(p, creature(id).cost));
 }
 
 /** Hires `count` of `id` into `army` (the visiting hero's, or the garrison). */
@@ -74,7 +86,49 @@ export function hire(t: Town, id: CreatureId, count: number, p: Purse, army: Arm
   if (count <= 0 || count > hireable(t, id, p)) throw new Error('cannot hire that many');
   const next = addTroops(army, id, count);
   if (!next) throw new Error('No room in the army');
-  return { town: { ...t, stock: { ...t.stock, [id]: (t.stock[id] ?? 0) - count } }, purse: pay(p, creature(id).cost, count), army: next };
+  const line = lineOf(id);
+  return { town: { ...t, stock: { ...t.stock, [line]: stockOf(t, id) - count } }, purse: pay(p, creature(id).cost, count), army: next };
+}
+
+/** What upgrading `count` of `from` to `to` costs: the difference in their prices. */
+export function upgradeCost(from: CreatureId, to: CreatureId, count: number): Amount {
+  const a = creature(from).cost;
+  const b = creature(to).cost;
+  return Object.fromEntries(RESOURCES.map((r) => [r, Math.max(0, (b[r] ?? 0) - (a[r] ?? 0)) * count]).filter(([, n]) => (n as number) > 0));
+}
+
+/**
+ * Every stack of `base`'s line in `army` below the town's best level, raised
+ * to it, whole stacks only, in slot order while the purse lasts. Returns the
+ * army, the purse and how many units were upgraded.
+ */
+export function upgradeStacks(t: Town, base: CreatureId, army: Army, p: Purse): { army: Army; purse: Purse; upgraded: number } {
+  const best = bestUnit(t, base);
+  let purse = p;
+  let upgraded = 0;
+  const next = army.map((s) => {
+    if (!best || !s || lineOf(s.creature) !== base || tierOf(s.creature) >= tierOf(best)) return s;
+    const cost = upgradeCost(s.creature, best, s.count);
+    if (!canAfford(purse, cost)) return s;
+    purse = pay(purse, cost);
+    upgraded += s.count;
+    return { creature: best, count: s.count };
+  });
+  return { army: next, purse, upgraded };
+}
+
+/** The stacks of `base`'s line in `army` that the town could upgrade, and what all of them would cost. */
+export function upgradable(t: Town, base: CreatureId, army: Army): { count: number; cost: Amount } {
+  const best = bestUnit(t, base);
+  let count = 0;
+  let cost: Amount = {};
+  for (const s of army) {
+    if (!best || !s || lineOf(s.creature) !== base || tierOf(s.creature) >= tierOf(best)) continue;
+    count += s.count;
+    const c = upgradeCost(s.creature, best, s.count);
+    cost = Object.fromEntries(RESOURCES.map((r) => [r, (cost[r] ?? 0) + (c[r] ?? 0)]).filter(([, n]) => (n as number) > 0));
+  }
+  return { count, cost };
 }
 
 /** The spells a guild of this town teaches now. */

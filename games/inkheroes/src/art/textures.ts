@@ -2,7 +2,7 @@ import type { SliceJob } from '@16bitink/game-sdk';
 import type Phaser from 'phaser';
 import { CREATURE_IDS, type CreatureId } from '../logic/creatures';
 import { RESOURCES, type Resource } from '../logic/resources';
-import { CREATURE_ART } from './creatures';
+import { creatureArt } from './creatures';
 import { CREATURE_RES, FRAME_H, FRAME_W, GROUND_Y, POSE_FRAMES, poseAt, type PoseKind } from './creatures/types';
 import { drawHero } from './heroArt';
 import { BANNER } from './palette';
@@ -49,7 +49,7 @@ function figureJob(scene: Phaser.Scene, fig: Figure, kind: PoseKind, i: number):
     // The pen is reseeded a frame at a time, so the lines shimmer as the figure moves.
     const pose = poseAt(kind, i);
     if (fig.startsWith('hero-')) drawHero(ctx, 4242, i % 3, BANNER[fig.slice(5) as BannerKey], pose);
-    else CREATURE_ART[fig as CreatureId](ctx, 1000 + CREATURE_IDS.indexOf(fig as CreatureId) * 17, i % 3, pose);
+    else creatureArt(fig as CreatureId)(ctx, 1000 + CREATURE_IDS.indexOf(fig as CreatureId) * 17, i % 3, pose);
   });
 }
 

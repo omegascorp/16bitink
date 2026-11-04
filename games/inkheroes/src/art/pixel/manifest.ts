@@ -40,6 +40,48 @@ import banditAttack from './units/bandit-attack.png?url';
 import ogreIdle from './units/ogre-idle.png?url';
 import ogreWalk from './units/ogre-walk.png?url';
 import ogreAttack from './units/ogre-attack.png?url';
+import spearman2Idle from './units/spearman2-idle.png?url';
+import spearman2Walk from './units/spearman2-walk.png?url';
+import spearman2Attack from './units/spearman2-attack.png?url';
+import spearman3Idle from './units/spearman3-idle.png?url';
+import spearman3Walk from './units/spearman3-walk.png?url';
+import spearman3Attack from './units/spearman3-attack.png?url';
+import bowman2Idle from './units/bowman2-idle.png?url';
+import bowman2Walk from './units/bowman2-walk.png?url';
+import bowman2Attack from './units/bowman2-attack.png?url';
+import bowman3Idle from './units/bowman3-idle.png?url';
+import bowman3Walk from './units/bowman3-walk.png?url';
+import bowman3Attack from './units/bowman3-attack.png?url';
+import griffin2Idle from './units/griffin2-idle.png?url';
+import griffin2Walk from './units/griffin2-walk.png?url';
+import griffin2Attack from './units/griffin2-attack.png?url';
+import griffin3Idle from './units/griffin3-idle.png?url';
+import griffin3Walk from './units/griffin3-walk.png?url';
+import griffin3Attack from './units/griffin3-attack.png?url';
+import swordsman2Idle from './units/swordsman2-idle.png?url';
+import swordsman2Walk from './units/swordsman2-walk.png?url';
+import swordsman2Attack from './units/swordsman2-attack.png?url';
+import swordsman3Idle from './units/swordsman3-idle.png?url';
+import swordsman3Walk from './units/swordsman3-walk.png?url';
+import swordsman3Attack from './units/swordsman3-attack.png?url';
+import monk2Idle from './units/monk2-idle.png?url';
+import monk2Walk from './units/monk2-walk.png?url';
+import monk2Attack from './units/monk2-attack.png?url';
+import monk3Idle from './units/monk3-idle.png?url';
+import monk3Walk from './units/monk3-walk.png?url';
+import monk3Attack from './units/monk3-attack.png?url';
+import lancer2Idle from './units/lancer2-idle.png?url';
+import lancer2Walk from './units/lancer2-walk.png?url';
+import lancer2Attack from './units/lancer2-attack.png?url';
+import lancer3Idle from './units/lancer3-idle.png?url';
+import lancer3Walk from './units/lancer3-walk.png?url';
+import lancer3Attack from './units/lancer3-attack.png?url';
+import seraph2Idle from './units/seraph2-idle.png?url';
+import seraph2Walk from './units/seraph2-walk.png?url';
+import seraph2Attack from './units/seraph2-attack.png?url';
+import seraph3Idle from './units/seraph3-idle.png?url';
+import seraph3Walk from './units/seraph3-walk.png?url';
+import seraph3Attack from './units/seraph3-attack.png?url';
 import hero_playerIdle from './units/hero_player-idle.png?url';
 import hero_playerWalk from './units/hero_player-walk.png?url';
 import hero_playerAttack from './units/hero_player-attack.png?url';
@@ -153,6 +195,96 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
     face: { x: 55, y: 45 },
     url: { idle: ogreIdle, walk: ogreWalk, attack: ogreAttack },
+  },
+  spearman2: {
+    name: 'Phalangite', w: 96, h: 96, footX: 32, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 35, y: 36 },
+    url: { idle: spearman2Idle, walk: spearman2Walk, attack: spearman2Attack },
+  },
+  spearman3: {
+    name: 'Spartan', w: 96, h: 96, footX: 30, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 35, y: 36 },
+    url: { idle: spearman3Idle, walk: spearman3Walk, attack: spearman3Attack },
+  },
+  bowman2: {
+    name: 'Peltast', w: 96, h: 96, footX: 39, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    shotFrom: { x: 70, y: 48 },
+    face: { x: 40, y: 41 },
+    url: { idle: bowman2Idle, walk: bowman2Walk, attack: bowman2Attack },
+  },
+  bowman3: {
+    name: 'Cretan Archer', w: 96, h: 96, footX: 37, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    shotFrom: { x: 70, y: 48 },
+    face: { x: 40, y: 41 },
+    url: { idle: bowman3Idle, walk: bowman3Walk, attack: bowman3Attack },
+  },
+  griffin2: {
+    name: 'War Griffin', w: 128, h: 112, footX: 52, footY: 106,
+    frames: { idle: 4, walk: 4, attack: 8 }, strike: 3,
+    flies: true,
+    face: { x: 88, y: 62 },
+    url: { idle: griffin2Idle, walk: griffin2Walk, attack: griffin2Attack },
+  },
+  griffin3: {
+    name: 'Golden Griffin', w: 128, h: 112, footX: 52, footY: 106,
+    frames: { idle: 4, walk: 4, attack: 8 }, strike: 3,
+    flies: true,
+    face: { x: 88, y: 62 },
+    url: { idle: griffin3Idle, walk: griffin3Walk, attack: griffin3Attack },
+  },
+  swordsman2: {
+    name: 'Minotaur Guard', w: 112, h: 112, footX: 49, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 63, y: 40 },
+    url: { idle: swordsman2Idle, walk: swordsman2Walk, attack: swordsman2Attack },
+  },
+  swordsman3: {
+    name: 'Minotaur Lord', w: 112, h: 112, footX: 52, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 63, y: 40 },
+    url: { idle: swordsman3Idle, walk: swordsman3Walk, attack: swordsman3Attack },
+  },
+  monk2: {
+    name: 'Centaur Marksman', w: 128, h: 112, footX: 50, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    shotFrom: { x: 96, y: 50 },
+    face: { x: 65, y: 41 },
+    url: { idle: monk2Idle, walk: monk2Walk, attack: monk2Attack },
+  },
+  monk3: {
+    name: 'Centaur Sage', w: 128, h: 112, footX: 52, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    shotFrom: { x: 96, y: 50 },
+    face: { x: 65, y: 41 },
+    url: { idle: monk3Idle, walk: monk3Walk, attack: monk3Attack },
+  },
+  lancer2: {
+    name: 'Royal Companion', w: 128, h: 112, footX: 59, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
+    face: { x: 60, y: 37 },
+    url: { idle: lancer2Idle, walk: lancer2Walk, attack: lancer2Attack },
+  },
+  lancer3: {
+    name: 'Cataphract', w: 128, h: 112, footX: 62, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
+    face: { x: 60, y: 37 },
+    url: { idle: lancer3Idle, walk: lancer3Walk, attack: lancer3Attack },
+  },
+  seraph2: {
+    name: 'Elder Titan', w: 144, h: 136, footX: 60, footY: 128,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 66, y: 39 },
+    url: { idle: seraph2Idle, walk: seraph2Walk, attack: seraph2Attack },
+  },
+  seraph3: {
+    name: 'Titan Lord', w: 144, h: 136, footX: 62, footY: 128,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 66, y: 39 },
+    url: { idle: seraph3Idle, walk: seraph3Walk, attack: seraph3Attack },
   },
 };
 

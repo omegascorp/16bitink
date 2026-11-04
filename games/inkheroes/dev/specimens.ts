@@ -1,4 +1,4 @@
-import { CREATURE_ART } from '../src/art/creatures';
+import { creatureArt } from '../src/art/creatures';
 import { CREATURE_RES, FRAME_H, FRAME_W, GROUND_Y } from '../src/art/creatures/types';
 import { makeCanvas } from '../src/art/pen';
 import { CREATURE_IDS, type CreatureId } from '../src/logic/creatures';
@@ -28,7 +28,7 @@ function creatureCanvas(id: CreatureId, f: number, display: number, flip = false
     ctx.scale(-1, 1);
   }
   ctx.translate(FRAME_W / 2, GROUND_Y);
-  CREATURE_ART[id](ctx, 101, f);
+  creatureArt(id)(ctx, 101, f);
   canvas.style.width = `${display}px`;
   canvas.style.height = `${(display * FRAME_H) / FRAME_W}px`;
   return canvas;
@@ -66,7 +66,7 @@ if (poses) {
         ctx.translate(FRAME_W / 2, GROUND_Y);
         const pose = poseAt(kind, i);
         if (id === 'hero') drawHero(ctx, 101, i % 3, BANNER.player, pose);
-        else CREATURE_ART[id](ctx, 101, i % 3, pose);
+        else creatureArt(id)(ctx, 101, i % 3, pose);
         canvas.style.width = `${size}px`;
         figure(r, `t ${pose.t.toFixed(2)}`, canvas);
       }

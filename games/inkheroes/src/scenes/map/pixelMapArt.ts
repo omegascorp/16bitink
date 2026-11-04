@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { MAP_COVER, MAP_GROUND, MAP_SITES, MAP_VIGNETTES, type MapCover, type MapSprite } from '../../art/pixel/map';
 import { UNIT_ART } from '../../art/pixel/manifest';
 import type { SiteArt } from '../../art/sites/types';
+import { CREATURE_IDS } from '../../logic/creatures';
 import type { MapObject } from '../../logic/objects';
 import { heroArt, nearest, POSES, PX_TEX, unitArt } from '../battle/pixelAssets';
 import { loadUiFont } from '../battle/pixelFont';
@@ -64,8 +65,8 @@ export function loadMapArt(scene: Phaser.Scene, creatures: readonly string[], wo
     keys.push(key);
     if (!scene.textures.exists(key)) scene.load.spritesheet(key, url, { frameWidth: w, frameHeight: h });
   };
-  // Every creature's idle strip: the map's monsters stand in it, the army's faces are cut from it.
-  for (const id of new Set([...creatures, ...Object.keys(UNIT_ART)])) {
+  // Every creature's idle strip (an upgrade not drawn yet borrows its line's): the map's monsters stand in it, the army's faces are cut from it.
+  for (const id of new Set([...creatures, ...Object.keys(UNIT_ART), ...CREATURE_IDS])) {
     const art = unitArt(id);
     sheet(PX_TEX.unit(id, 'idle'), art.url.idle, art.w, art.h);
   }

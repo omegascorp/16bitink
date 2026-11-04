@@ -1,4 +1,4 @@
-import type { CreatureId } from '../../logic/creatures';
+import { lineOf, type CreatureId } from '../../logic/creatures';
 import { drawSpearman } from './spearman';
 import { drawBowman } from './bowman';
 import { drawGriffin } from './griffin';
@@ -13,8 +13,10 @@ import { drawBandit } from './bandit';
 import { drawOgre } from './ogre';
 import type { CreatureDrawer } from './types';
 
-/** Every creature's drawing (see types.ts for the contract). */
-export const CREATURE_ART: Readonly<Record<CreatureId, CreatureDrawer>> = {
+type BaseId = Exclude<CreatureId, `${string}2` | `${string}3`>;
+
+/** Every base creature's drawing (see types.ts for the contract); an upgrade is drawn as its line's base. */
+export const CREATURE_ART: Readonly<Record<BaseId, CreatureDrawer>> = {
   spearman: drawSpearman,
   bowman: drawBowman,
   griffin: drawGriffin,
@@ -28,3 +30,6 @@ export const CREATURE_ART: Readonly<Record<CreatureId, CreatureDrawer>> = {
   bandit: drawBandit,
   ogre: drawOgre,
 };
+
+/** The drawing for `id`: an upgrade is drawn as its line's base. */
+export const creatureArt = (id: CreatureId): CreatureDrawer => CREATURE_ART[lineOf(id) as BaseId];

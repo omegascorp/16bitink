@@ -1,10 +1,11 @@
 import type Phaser from 'phaser';
 import { TOWN_ART } from '../../art/pixel/town';
-import { heroInGarrison, heroInTown, heroVisiting, type Adventure } from '../../logic/adventure';
+import { heroInGarrison, heroTown, heroVisiting, type Adventure } from '../../logic/adventure';
+import type { Town } from '../../logic/town';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
 import { creature, type CreatureId } from '../../logic/creatures';
 import { SPELLS } from '../../logic/spells';
-import { BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, SPELLBOOK_COST } from '../../logic/town';
+import { bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, SPELLBOOK_COST, stockOf } from '../../logic/town';
 import { PX_TEX, unitArt } from '../battle/pixelAssets';
 import { drawFrame, drawPicture, FILLS, inkBox, pictureOffset } from '../battle/pixelFrames';
 import type { Rgba } from '../battle/pixelRaster';
@@ -34,8 +35,8 @@ const STATE: Record<Ledger, { fill: Rgba; word: string }> = {
   short: { fill: [104, 38, 28, 255], word: 'Short' },
 };
 
-function stateOf(adv: Adventure, id: BuildingId, off: readonly BuildingId[]): Ledger {
-  const why = cantBuild(adv.town, id, adv.purse, off);
+function stateOf(adv: Adventure, town: Town, id: BuildingId, off: readonly BuildingId[]): Ledger {
+  const why = cantBuild(town, id, adv.purse, off);
   if (!why) return 'ready';
   if (why === 'Built') return 'built';
   if (why === 'Already built today') return 'later';
@@ -82,15 +83,15 @@ function label(scene: Phaser.Scene, text: string, x: number, y: number, opts: Co
 }
 
 /** The hall: a card for each building on this map (its next step for an upgrade), coloured by whether it can be built today. */
-export function hallScreen(scene: Phaser.Scene, adv: Adventure, off: readonly BuildingId[], act: ScreenActions): GridSpec {
-  const ids = ledgerOf(adv.town.built, BUILD_ORDER, off);
+export function hallScreen(scene: Phaser.Scene, adv: Adventure, town: Town, off: readonly BuildingId[], act: ScreenActions): GridSpec {
+  const ids = ledgerOf(town.built, BUILD_ORDER, off);
   const { pic } = HALL_CARD;
   return {
-    title: `${adv.town.name}: the hall`,
+    title: `${town.name}: the hall`,
     cell: HALL_CARD,
     count: ids.length,
     maxCols: 5,
-    note: adv.town.builtToday ? 'Built today: the masons start again tomorrow.' : 'One building a day. Tap a card to see what it costs.',
+    note: town.builtToday ? 'Built today: the masons start again tomorrow.' : 'One building a day. Tap a card to see what it costs.',
     draw: (i, x, y) => {
       const id = ids[i]!;
       const art = buildingArt(id);
@@ -98,7 +99,7 @@ export function hallScreen(scene: Phaser.Scene, adv: Adventure, off: readonly Bu
       const by = fitFactor(s.w, s.h, pic.w - 8, pic.h - 6);
       const sprite = shrinkPixels(texturePixels(scene, TOWN_TEX.piece(art)), by);
       const picture = standOn(countryside(scene, pic.w, pic.h, pic.h - 26, i + 3), sprite, pic.w, pic.h, 4);
-      const st = STATE[stateOf(adv, id, off)];
+      const st = STATE[stateOf(adv, town, id, off)];
       const bar = new PixelFrame(scene, pic.w, 18, { rim: 'dim', fill: st.fill }).setPosition(x + 4, y + HALL_CARD.h - 22);
       return merge(
         card(scene, x, y, HALL_CARD.w, HALL_CARD.h, () => act.pickBuilding(id)),
@@ -128,19 +129,20 @@ function stat(scene: Phaser.Scene, icon: Parameters<typeof UI_TEX.stat>[0], text
 }
 
 /** The fort: a card for each dwelling built, its creature, numbers and how many wait to be hired. */
-export function fortScreen(scene: Phaser.Scene, adv: Adventure, act: ScreenActions): GridSpec {
-  const homes = dwellings(adv.town);
-  const toHero = heroVisiting(adv);
-  const waits = heroInGarrison(adv) ? `${adv.hero.name} holds the garrison: hired troops join it.` : `${adv.hero.name} is away: hired troops wait in the garrison.`;
+export function fortScreen(scene: Phaser.Scene, adv: Adventure, town: Town, act: ScreenActions): GridSpec {
+  const homes = dwellings(town);
+  const toHero = heroVisiting(adv, town);
+  const waits = heroInGarrison(adv, town) ? `${adv.hero.name} holds the garrison: hired troops join it.` : `${adv.hero.name} is away: hired troops wait in the garrison.`;
   return {
-    title: `${adv.town.name}: the fort`,
+    title: `${town.name}: the fort`,
     cell: FORT_CARD,
     count: homes.length,
     maxCols: 3,
     empty: 'No dwellings yet: build a Guardhouse (it needs a Fort) to hire troops.',
     note: toHero ? `Hired troops join ${adv.hero.name}. Tap a card to hire.` : waits,
     draw: (i, x, y) => {
-      const id = homes[i]!;
+      // The line's best level built: what its card shows and hires.
+      const id = bestUnit(town, homes[i]!) ?? homes[i]!;
       const cr = creature(id);
       const tx = x + FORT_CARD.pic.w + 10;
       const cols = [tx, tx + 74];
@@ -162,20 +164,20 @@ export function fortScreen(scene: Phaser.Scene, adv: Adventure, act: ScreenActio
         ...stats,
         { parts: [gold], owned: [] },
         label(scene, `${cr.cost.gold ?? 0}${extra} each`, tx + 19, y + 24 + LINE * 3 + 5),
-        label(scene, `${adv.town.stock[id] ?? 0} to hire · +${growthOf(adv.town, id)} a week`, tx, y + 24 + LINE * 4 + 6, { ink: INK.good }),
+        label(scene, `${stockOf(town, id)} to hire · +${growthOf(town, id)} a week`, tx, y + 24 + LINE * 4 + 6, { ink: INK.good }),
       );
     },
   };
 }
 
 /** The mage guild: the spells it teaches, and a spellbook for a hero without one. */
-export function guildScreen(scene: Phaser.Scene, adv: Adventure, act: ScreenActions): GridSpec {
-  const spells = guildSpells(adv.town);
+export function guildScreen(scene: Phaser.Scene, adv: Adventure, town: Town, act: ScreenActions): GridSpec {
+  const spells = guildSpells(town);
   const hero = adv.hero;
-  const here = heroInTown(adv);
+  const here = heroTown(adv)?.id === town.id;
   const note = !here ? `${hero.name} learns these on entering the town with a spellbook.` : hero.hasBook ? `${hero.name} has learned them all.` : `${hero.name} needs a spellbook to learn them.`;
   return {
-    title: has(adv.town, 'mageGuild2') ? 'Mage Guild, two floors' : 'Mage Guild',
+    title: has(town, 'mageGuild2') ? 'Mage Guild, two floors' : 'Mage Guild',
     cell: GUILD_CARD,
     count: spells.length,
     maxCols: 2,

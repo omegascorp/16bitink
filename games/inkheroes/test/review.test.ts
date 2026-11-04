@@ -65,12 +65,12 @@ describe('fixes from the first review', () => {
     const adv = fresh();
     const p = roundTrip({
       ...adv,
-      town: { ...adv.town, built: [...adv.town.built, 'capitol'], stock: { ...adv.town.stock, seraph: 50 } },
+      towns: [{ ...adv.towns[0]!, built: [...adv.towns[0]!.built, 'capitol'], stock: { ...adv.towns[0]!.stock, seraph: 50 } }],
       objects: adv.objects.map((o) => (o.id === 'ogres' ? { ...o, count: 999999 } : o.kind === 'pile' ? { ...o, count: 5 } : o)),
       prompts: [{ kind: 'chest', id: 'goblins', gold: 999999, xp: 999999 }],
     })!;
-    expect(p.town.built).not.toContain('capitol');
-    expect(p.town.stock.seraph).toBeUndefined();
+    expect(p.towns[0]!.built).not.toContain('capitol');
+    expect(p.towns[0]!.stock.seraph).toBeUndefined();
     expect(p.objects.find((o) => o.id === 'ogres')!.count).toBeLessThanOrEqual(4000);
     expect(p.objects.find((o) => o.kind === 'pile')!.count).toBeUndefined();
     expect(p.prompts).toEqual([]);
@@ -91,7 +91,7 @@ describe('fixes from the first review', () => {
 
   it('a dwelling built after the Citadel opens with the boosted growth', () => {
     const adv = fresh();
-    const town = { ...adv.town, built: [...adv.town.built, 'citadel' as const] };
+    const town = { ...adv.towns[0]!, built: [...adv.towns[0]!.built, 'citadel' as const] };
     expect(build(town, 'archeryRange', adv.purse, ASHFORD.off).town.stock.bowman).toBe(13);
   });
 });

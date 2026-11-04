@@ -227,6 +227,286 @@
     55,
     45
    ]
+  },
+  "spearman2": {
+   "name": "Phalangite",
+   "src": "pixel/src/spearman2.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a greek phalangite with a very long sarissa pike, crested bronze helmet and linen corselet",
+   "attack": "sarissa thrust attack: lowers the long pike, lunges forward thrusting it hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    35,
+    36
+   ]
+  },
+  "spearman3": {
+   "name": "Spartan",
+   "src": "pixel/src/spearman3.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a spartan warrior in a red cloak with a Corinthian helmet with a tall red crest, bronze shield with a lambda and a spear",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    35,
+    36
+   ]
+  },
+  "bowman2": {
+   "name": "Peltast",
+   "src": "pixel/src/bowman2.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a greek peltast skirmisher with a crescent wicker shield and a javelin",
+   "attack": "javelin throw attack: leans back, hurls the javelin forward to the right with a snap of the arm, then recovers; feet stay in place",
+   "strike": 5,
+   "shot": [
+    70,
+    48
+   ],
+   "face": [
+    40,
+    41
+   ]
+  },
+  "bowman3": {
+   "name": "Cretan Archer",
+   "src": "pixel/src/bowman3.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a cretan archer with a recurved bow, leather cap and a quiver",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
+   "strike": 5,
+   "shot": [
+    70,
+    48
+   ],
+   "face": [
+    40,
+    41
+   ]
+  },
+  "griffin2": {
+   "name": "War Griffin",
+   "src": "pixel/src/griffin2.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "flies": true,
+   "subject": "a griffin in bronze barding armour and a bronze chamfron",
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose",
+   "attack": "pounce attack: rears up, beats its wings once and lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "walkFrom": {
+    "pose": "attack",
+    "frames": [
+     0,
+     1,
+     2,
+     1
+    ]
+   },
+   "face": [
+    88,
+    62
+   ]
+  },
+  "griffin3": {
+   "name": "Golden Griffin",
+   "src": "pixel/src/griffin3.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "flies": true,
+   "subject": "a griffin with golden feathers and a laurel collar",
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose",
+   "attack": "pounce attack: rears up, beats its wings once and lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "walkFrom": {
+    "pose": "attack",
+    "frames": [
+     0,
+     1,
+     2,
+     1
+    ]
+   },
+   "face": [
+    88,
+    62
+   ]
+  },
+  "swordsman2": {
+   "name": "Minotaur Guard",
+   "src": "pixel/src/swordsman2.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a huge bull-headed minotaur in a bronze breastplate with a double-headed axe",
+   "attack": "axe chop attack: raises the double axe high over the horns and brings it down hard in front to the right, then lifts it back to the starting pose; hooves stay in place",
+   "strike": 3,
+   "face": [
+    63,
+    40
+   ]
+  },
+  "swordsman3": {
+   "name": "Minotaur Lord",
+   "src": "pixel/src/swordsman3.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a huge black minotaur with gilded horns, crested helmet and a great labrys",
+   "attack": "axe chop attack: raises the double axe high over the horns and brings it down hard in front to the right, then lifts it back to the starting pose; hooves stay in place",
+   "strike": 3,
+   "face": [
+    63,
+    40
+   ]
+  },
+  "monk2": {
+   "name": "Centaur Marksman",
+   "src": "pixel/src/monk2.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a centaur marksman in leather armour drawing a composite bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, the bow snaps forward, then reaches for a new arrow and returns to the starting pose; hooves stay in place",
+   "strike": 3,
+   "shot": [
+    96,
+    50
+   ],
+   "face": [
+    65,
+    41
+   ]
+  },
+  "monk3": {
+   "name": "Centaur Sage",
+   "src": "pixel/src/monk3.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an elder centaur with a white beard, laurel wreath and golden bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, the bow snaps forward, then reaches for a new arrow and returns to the starting pose; hooves stay in place",
+   "strike": 3,
+   "shot": [
+    96,
+    50
+   ],
+   "face": [
+    65,
+    41
+   ]
+  },
+  "lancer2": {
+   "name": "Royal Companion",
+   "src": "pixel/src/lancer2.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a royal companion cavalryman with a purple cloak and plumed Boeotian helmet on a white-grey warhorse",
+   "walk": "galloping in place loop: the horse gallops with legs reaching and gathering, the rider rocks with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "lance charge attack: the horse surges forward, the rider drives the long lance hard to the right, then the horse settles back to the starting pose",
+   "strike": 2,
+   "face": [
+    60,
+    37
+   ]
+  },
+  "lancer3": {
+   "name": "Cataphract",
+   "src": "pixel/src/lancer3.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a cataphract heavy cavalryman, rider and horse both in scale armour",
+   "walk": "galloping in place loop: the horse gallops with legs reaching and gathering, the rider rocks with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "lance charge attack: the horse surges forward, the rider drives the long lance hard to the right, then the horse settles back to the starting pose",
+   "strike": 2,
+   "face": [
+    60,
+    37
+   ]
+  },
+  "seraph2": {
+   "name": "Elder Titan",
+   "src": "pixel/src/seraph2.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 8,
+   "dx": -8,
+   "subject": "a colossal titan in bronze armour holding a glowing staff",
+   "walk": "slow heavy striding in place loop: huge legs lift and plant, cloak sways, stays in the same spot, ends back at the starting pose",
+   "attack": "staff strike attack: raises the glowing staff high, the glow flares brighter, then slams it down and forward to the right with a flash, then returns to the starting pose; feet stay planted",
+   "strike": 4,
+   "face": [
+    66,
+    39
+   ]
+  },
+  "seraph3": {
+   "name": "Titan Lord",
+   "src": "pixel/src/seraph3.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 8,
+   "dx": -8,
+   "subject": "a colossal titan in golden armour crowned with storm clouds and lightning",
+   "walk": "slow heavy striding in place loop: huge legs lift and plant, cloak sways, stays in the same spot, ends back at the starting pose",
+   "attack": "lightning strike attack: raises the lightning bolt high, crackling brighter, then hurls it down and forward to the right with a flash, then returns to the starting pose; feet stay planted",
+   "strike": 4,
+   "face": [
+    66,
+    39
+   ]
   }
  },
  "heroes": {
