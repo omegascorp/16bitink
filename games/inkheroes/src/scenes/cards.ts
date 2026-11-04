@@ -43,7 +43,7 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
       buttons: o.choices.length
         ? o.choices.map((id, i) => {
           const rank = (hero.skills[id] ?? 0) + 1;
-          return { label: `${RANK_NAMES[rank]} ${SKILLS[id].name}`, note: SKILLS[id].says(SKILLS[id].values[rank - 1]!), kind: 'crown' as const, onClick: () => next(id) };
+          return { label: `${RANK_NAMES[rank]} ${SKILLS[id].name}`, note: SKILLS[id].says(SKILLS[id].values[rank - 1]!), picture: UI_TEX.skill(id), kind: 'crown' as const, onClick: () => next(id) };
         })
         : [{ label: 'On we go', onClick: () => next() }],
     });

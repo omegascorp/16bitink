@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ASHFORD } from '../src/level/borderMarch';
 import { startAdventure } from '../src/logic/adventure';
 import { xpForLevel, type Hero } from '../src/logic/hero';
+import { skillGrid } from '../src/scenes/hud/skillGrid';
 import { heroSheet } from '../src/scenes/hud/heroSheetData';
 
 // A hero with a spellbook: the sheet leaves magic out without one.
@@ -44,11 +45,24 @@ describe('the hero sheet', () => {
 
   it('lists skills by rank with what they do, and spells only with a book', () => {
     const s = heroSheet({ ...hero, skills: { leadership: 2 }, spells: ['magicArrow'] });
-    expect(s.skills).toEqual([{ name: 'Advanced Leadership', says: '+2 morale' }]);
+    expect(s.skills).toEqual([{ id: 'leadership', rank: 'Advanced', name: 'Leadership', says: '+2 morale' }]);
     expect(s.spells).toEqual([{ id: 'magicArrow', name: 'Magic Arrow' }]);
     expect(s.spellsNote).toBeNull();
     const none = heroSheet({ ...hero, gear: {}, spells: ['magicArrow'] });
     expect(none.spells).toEqual([]);
     expect(none.magic).toBe(false);
+  });
+});
+
+describe('skillGrid', () => {
+  it('stacks skills with their words', () => {
+    expect(skillGrid(2, 230, true)).toEqual({ cells: [{ x: 0, y: 0 }, { x: 0, y: 34 }], h: 68 });
+  });
+
+  it('puts two to a row on a short screen, in half the height', () => {
+    const g = skillGrid(3, 230, false);
+    expect(g.cells).toEqual([{ x: 0, y: 0 }, { x: 119, y: 0 }, { x: 0, y: 34 }]);
+    expect(g.h).toBe(68);
+    expect(skillGrid(8, 230, false).h).toBe(skillGrid(4, 230, true).h);
   });
 });

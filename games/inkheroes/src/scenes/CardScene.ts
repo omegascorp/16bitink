@@ -13,6 +13,8 @@ export interface CardButton {
   readonly label: string;
   /** A second line under the label (a skill's effect). */
   readonly note?: string;
+  /** A picture at its left (a texture key): a skill's icon. */
+  readonly picture?: string;
   readonly kind?: PlateKind;
   readonly onClick: () => void;
 }

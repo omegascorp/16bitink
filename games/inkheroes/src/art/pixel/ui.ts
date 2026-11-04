@@ -3,6 +3,7 @@
 // the spellbook's spell icons (24 x 24) and the gear's item icons (64 x 64).
 import type { ItemId } from '../../logic/items';
 import type { Resource } from '../../logic/resources';
+import type { SkillId } from '../../logic/skills';
 import type { SpellId } from '../../logic/spells';
 import iconWait from './ui/icon-wait.png?url';
 import iconDefend from './ui/icon-defend.png?url';
@@ -27,6 +28,20 @@ import statKnowledge from './ui/stat-knowledge.png?url';
 import statMorale from './ui/stat-morale.png?url';
 import statLuck from './ui/stat-luck.png?url';
 import statSight from './ui/stat-sight.png?url';
+import skillLogistics from './ui/skill-logistics.png?url';
+import skillPathfinding from './ui/skill-pathfinding.png?url';
+import skillOffense from './ui/skill-offense.png?url';
+import skillArchery from './ui/skill-archery.png?url';
+import skillArmorer from './ui/skill-armorer.png?url';
+import skillLeadership from './ui/skill-leadership.png?url';
+import skillLuck from './ui/skill-luck.png?url';
+import skillWisdom from './ui/skill-wisdom.png?url';
+import skillIntelligence from './ui/skill-intelligence.png?url';
+import skillMysticism from './ui/skill-mysticism.png?url';
+import skillSorcery from './ui/skill-sorcery.png?url';
+import skillEstates from './ui/skill-estates.png?url';
+import skillScouting from './ui/skill-scouting.png?url';
+import skillLearning from './ui/skill-learning.png?url';
 import spellMagicArrow from './ui/spell-magicArrow.png?url';
 import spellHaste from './ui/spell-haste.png?url';
 import spellSlow from './ui/spell-slow.png?url';
@@ -106,6 +121,24 @@ export const STAT_ICONS: Readonly<Record<StatName, string>> = {
   morale: statMorale,
   luck: statLuck,
   sight: statSight,
+};
+
+/** The hero's skills (32 x 32). */
+export const SKILL_ICONS: Readonly<Record<SkillId, string>> = {
+  logistics: skillLogistics,
+  pathfinding: skillPathfinding,
+  offense: skillOffense,
+  archery: skillArchery,
+  armorer: skillArmorer,
+  leadership: skillLeadership,
+  luck: skillLuck,
+  wisdom: skillWisdom,
+  intelligence: skillIntelligence,
+  mysticism: skillMysticism,
+  sorcery: skillSorcery,
+  estates: skillEstates,
+  scouting: skillScouting,
+  learning: skillLearning,
 };
 
 export const SPELL_ICONS: Readonly<Record<SpellId, string>> = {

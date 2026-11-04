@@ -1,7 +1,8 @@
 import type { ItemId } from '../../logic/items';
 import Phaser from 'phaser';
-import { GUILD_ROOM, ICONS, ITEM_ICONS, RESOURCE_ICONS, SLOT_ICONS, SPELL_ART, SPELL_ICONS, STAT_ICONS, type IconName, type SlotIcon, type StatName } from '../../art/pixel/ui';
+import { GUILD_ROOM, ICONS, ITEM_ICONS, RESOURCE_ICONS, SKILL_ICONS, SLOT_ICONS, SPELL_ART, SPELL_ICONS, STAT_ICONS, type IconName, type SlotIcon, type StatName } from '../../art/pixel/ui';
 import type { Resource } from '../../logic/resources';
+import type { SkillId } from '../../logic/skills';
 import type { SpellId } from '../../logic/spells';
 import { drawFrame, FILLS, PRIMARY_FILLS, type FrameLook, type RimName } from './pixelFrames';
 import type { PixelBuffer, Rgba } from './pixelRaster';
@@ -22,6 +23,7 @@ export const UI_TEX = {
   slot: (s: SlotIcon) => `pxui-slot-${s}`,
   icon: (i: IconName) => `pxui-icon-${i}`,
   stat: (s: StatName) => `pxui-stat-${s}`,
+  skill: (s: SkillId) => `pxui-skill-${s}`,
   spell: (s: SpellId) => `pxui-spell-${s}`,
   spellArt: (s: SpellId) => `pxui-spellArt-${s}`,
   guildRoom: 'pxui-guildRoom',
@@ -46,6 +48,7 @@ export function loadUiArt(scene: Phaser.Scene): string[] {
   const all: [string, string][] = [
     ...(Object.entries(ICONS) as [IconName, string][]).map(([n, url]): [string, string] => [UI_TEX.icon(n), url]),
     ...(Object.entries(STAT_ICONS) as [StatName, string][]).map(([n, url]): [string, string] => [UI_TEX.stat(n), url]),
+    ...(Object.entries(SKILL_ICONS) as [SkillId, string][]).map(([n, url]): [string, string] => [UI_TEX.skill(n), url]),
     ...(Object.entries(SPELL_ICONS) as [SpellId, string][]).map(([n, url]): [string, string] => [UI_TEX.spell(n), url]),
     ...(Object.entries(SPELL_ART) as [SpellId, string][]).map(([n, url]): [string, string] => [UI_TEX.spellArt(n), url]),
     [UI_TEX.guildRoom, GUILD_ROOM],
@@ -205,7 +208,7 @@ export interface ButtonOpts {
   /** A second, dimmer line under the label. */
   readonly note?: string;
   readonly icon?: IconName;
-  /** A picture at the left, the label beside it (a town in the map's list). */
+  /** A picture at the left, the label and any note beside it (a town in the map's list, a skill to learn). */
   readonly picture?: { readonly key: string; readonly scale: number };
   /** The icon over the label (the action buttons) instead of beside it. */
   readonly stacked?: boolean;
@@ -242,7 +245,9 @@ export class PixelButton {
     this.keys = { idle: putBuffer(scene, drawFrame(w, h, look('idle'))), hover: putBuffer(scene, drawFrame(w, h, look('hover'))), down: putBuffer(scene, drawFrame(w, h, look('down'))), off: putBuffer(scene, drawFrame(w, h, look('off'))) };
     this.frame = scene.add.image(0, 0, this.keys.idle).setOrigin(0);
     this.label = new TextLabel(scene, { anchor: { x: 0, y: 0.5 }, align: 'left' }).setText(opts.label);
-    this.note = opts.note ? new TextLabel(scene, { anchor: { x: 0, y: 0.5 }, align: 'left', ink: opts.primary ? INK.text : INK.dim, wrap: w - 12 }).setText(opts.note) : null;
+    const pic = opts.picture ? scene.add.image(PICTURE_PAD, 0, opts.picture.key).setOrigin(0).setScale(opts.picture.scale) : null;
+    const textX = pic ? PICTURE_PAD + Math.ceil(pic.displayWidth) + PICTURE_PAD : 0;
+    this.note = opts.note ? new TextLabel(scene, { anchor: { x: 0, y: 0.5 }, align: 'left', ink: opts.primary ? INK.text : INK.dim, wrap: pic ? w - textX - PICTURE_PAD : w - 12 }).setText(opts.note) : null;
     const parts: Phaser.GameObjects.GameObject[] = [];
     const icon = opts.icon ? scene.add.image(0, 0, UI_TEX.icon(opts.icon)).setOrigin(0) : null;
     if (icon && opts.stacked) {
@@ -251,11 +256,10 @@ export class PixelButton {
       icon.setPosition(Math.floor((w - icon.width) / 2), top);
       this.label.setPosition(Math.floor(w / 2), top + icon.height + Math.floor(this.label.height / 2), { x: 0.5, y: 0.5 });
       parts.push(icon, this.label.img);
-    } else if (opts.picture) {
-      const pic = scene.add.image(PICTURE_PAD, 0, opts.picture.key).setOrigin(0).setScale(opts.picture.scale);
+    } else if (pic) {
       pic.setY(Math.floor((h - pic.displayHeight) / 2));
-      this.label.setPosition(PICTURE_PAD + Math.ceil(pic.displayWidth) + PICTURE_PAD, Math.floor(h / 2));
-      parts.push(pic, this.label.img);
+      parts.push(pic);
+      this.layoutLines(textX, parts);
     } else this.layoutRow(icon, parts);
     this.face = scene.add.container(0, 0, parts);
     this.root = scene.add.container(0, 0, [this.frame, this.face]);
@@ -281,14 +285,20 @@ export class PixelButton {
       icon.setPosition(left, mid - Math.floor(icon.height / 2));
       parts.push(icon);
     }
+    // Beside an icon both lines start at its edge; with none, each is centred.
+    this.layoutLines((lw) => (icon ? left + iconW : Math.floor((w - lw) / 2)), parts);
+  }
+
+  /** The label, with any note under it, each starting where `at` says. */
+  private layoutLines(at: number | ((lineW: number) => number), parts: Phaser.GameObjects.GameObject[]): void {
+    const x = (lw: number): number => (typeof at === 'number' ? at : at(lw));
+    const mid = Math.floor(this.opts.h / 2);
     if (this.note) {
-      // Beside an icon both lines start at its edge; with none, each is centred.
-      const at = (lw: number): number => (icon ? left + iconW : Math.floor((w - lw) / 2));
-      this.label.setPosition(at(this.label.width), mid - Math.ceil(this.label.height / 2) + 1);
-      this.note.setPosition(at(this.note.width), mid + Math.floor(this.note.height / 2));
+      this.label.setPosition(x(this.label.width), mid - Math.ceil(this.label.height / 2) + 1);
+      this.note.setPosition(x(this.note.width), mid + Math.floor(this.note.height / 2));
       parts.push(this.label.img, this.note.img);
     } else {
-      this.label.setPosition(left + iconW, mid);
+      this.label.setPosition(x(this.label.width), mid);
       parts.push(this.label.img);
     }
   }

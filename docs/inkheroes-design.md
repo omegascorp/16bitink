@@ -265,7 +265,11 @@ Map 3, **The Black Banner** (48 × 36, the last free map, par 35 days): Rowan ho
 
 The menu shows **this game**: each part before the one in play says Won, the one in play says In play, the rest wait dim. What earlier games won doesn't count: after Start over the chapter reads from part 1 again. With no game in play it shows Won throughout only if the whole chapter was won. Continue is the one main button, Start the chapter over a plain one under it.
 
-### The day card
+### Skill icons
+
+Every skill has a 32 px icon, each its own object so none repeats an icon the game already uses (spells, stats, gear). The level-up card puts it at the left of each choice. The hero sheet lists icon, rank and name, and what the skill does, one to a row; under 680 px of screen height it goes two to a row with only the name and rank, since eight rows would not fit.
+
+## The day card
 
 The morning's card is an infographic, built from a report the night leaves on the prompt (older saves keep their text card): the totals with their icons; a bar per source of gold, each town by name, then gold mines and estates, measured against the biggest; the hero's face with the tiles to ride and a mana gauge; on the first day of a week, each town's fresh recruits as faces with counts, lowest level first so the columns line up, and that the wilds have grown; then the rival's news. On a short, wide screen it spreads into two columns.
 

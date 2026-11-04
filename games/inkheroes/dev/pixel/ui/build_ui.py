@@ -3,8 +3,9 @@
   python3 dev/pixel/ui/build_ui.py
 
 Action icons (icon-*.png, 32 x 32), the unit card's stat icons
-(stats/stat-*.png, 16 x 16) and the spellbook's spell icons (spells/<id>.png,
-24 x 24, named by spell id), all PixelLab create_image_pixen, are copied to
+(stats/stat-*.png, 16 x 16), the spellbook's spell icons (spells/<id>.png,
+24 x 24, named by spell id) and the skill icons (skills/<id>.png, 32 x 32,
+named by skill id), all PixelLab create_image_pixen, are copied to
 src/art/pixel/ui/ and listed in src/art/pixel/ui.ts.
 
 The text font is Ark Pixel 12 proportional (OFL, fonts/ark-pixel-OFL.txt), a
@@ -30,6 +31,7 @@ STATS = ('attack', 'defense', 'shots', 'damage', 'health', 'left', 'speed', 'man
 ITEMS = ('bronzeHelm', 'bronzeCuirass', 'bronzeBracers', 'warBelt', 'bronzeGreaves', 'warSandals', 'noviceSpellbook', 'oracleSpellbook', 'alexandrianCodex')
 SLOT_ICONS = ('helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring', 'book')
 RESOURCES = ('gold', 'wood', 'ore', 'mercury', 'sulfur', 'crystal', 'gems')
+SKILLS = ('logistics', 'pathfinding', 'offense', 'archery', 'armorer', 'leadership', 'luck', 'wisdom', 'intelligence', 'mysticism', 'sorcery', 'estates', 'scouting', 'learning')
 SPELLS = ('magicArrow', 'haste', 'slow', 'stoneSkin', 'cure', 'dispel', 'lightningBolt', 'bless', 'bloodlust')
 FONT_SRC = HERE / 'fonts' / 'ark-pixel-12px-proportional-latin.otf.woff2'
 # Latin (with its extensions and Vietnamese), Greek, Cyrillic, general punctuation, euro, arrows, minus, times.
@@ -49,6 +51,8 @@ def main() -> None:
         shutil.copyfile(HERE / f'icon-{icon}.png', OUT / f'icon-{icon}.png')
     for stat in STATS:
         shutil.copyfile(HERE / 'stats' / f'stat-{stat}.png', OUT / f'stat-{stat}.png')
+    for skill in SKILLS:
+        shutil.copyfile(HERE / 'skills' / f'{skill}.png', OUT / f'skill-{skill}.png')
     for spell in SPELLS:
         shutil.copyfile(HERE / 'spells' / f'{spell}.png', OUT / f'spell-{spell}.png')
         shutil.copyfile(HERE / 'spells64' / f'{spell}.png', OUT / f'spellArt-{spell}.png')
@@ -65,6 +69,8 @@ def main() -> None:
     imports += [f"import stat{i.title()} from './ui/stat-{i}.png?url';" for i in STATS]
     rows = [f"  {i}: icon{cap(i)}," for i in ICONS]
     stat_rows = [f"  {i}: stat{i.title()}," for i in STATS]
+    imports += [f"import skill{cap(i)} from './ui/skill-{i}.png?url';" for i in SKILLS]
+    skill_rows = [f"  {i}: skill{cap(i)}," for i in SKILLS]
     imports += [f"import spell{i[0].upper() + i[1:]} from './ui/spell-{i}.png?url';" for i in SPELLS]
     spell_rows = [f"  {i}: spell{i[0].upper() + i[1:]}," for i in SPELLS]
     imports += [f"import spellArt{i[0].upper() + i[1:]} from './ui/spellArt-{i}.png?url';" for i in SPELLS]
@@ -82,6 +88,7 @@ def main() -> None:
 // the spellbook's spell icons (24 x 24) and the gear's item icons (64 x 64).
 import type {{ ItemId }} from '../../logic/items';
 import type {{ Resource }} from '../../logic/resources';
+import type {{ SkillId }} from '../../logic/skills';
 import type {{ SpellId }} from '../../logic/spells';
 {chr(10).join(imports)}
 
@@ -95,6 +102,11 @@ export type StatName = {' | '.join(repr(i) for i in STATS)};
 
 export const STAT_ICONS: Readonly<Record<StatName, string>> = {{
 {chr(10).join(stat_rows)}
+}};
+
+/** The hero's skills (32 x 32). */
+export const SKILL_ICONS: Readonly<Record<SkillId, string>> = {{
+{chr(10).join(skill_rows)}
 }};
 
 export const SPELL_ICONS: Readonly<Record<SpellId, string>> = {{

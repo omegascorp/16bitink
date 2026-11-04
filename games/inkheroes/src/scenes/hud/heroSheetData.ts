@@ -22,7 +22,7 @@ export interface HeroSheet {
   /** The four stats, each saying what it does. */
   readonly stats: readonly (SheetRow & { readonly says: string })[];
   readonly lines: readonly SheetRow[];
-  readonly skills: readonly { readonly name: string; readonly says: string }[];
+  readonly skills: readonly { readonly id: SkillId; readonly rank: string; readonly name: string; readonly says: string }[];
   readonly spells: readonly { readonly id: SpellId; readonly name: string }[];
   /** Whether the hero has a spellbook: without one the sheet says nothing of spells. */
   readonly magic: boolean;
@@ -64,7 +64,9 @@ export function heroSheet(h: Hero): HeroSheet {
       { icon: 'sight', label: 'Sight', value: `${sightOf(h)} tiles` },
     ],
     skills: (Object.entries(h.skills) as [SkillId, 1 | 2 | 3][]).filter(([, rank]) => rank > 0).map(([id, rank]) => ({
-      name: `${RANK_NAMES[rank]} ${SKILLS[id].name}`,
+      id,
+      rank: RANK_NAMES[rank],
+      name: SKILLS[id].name,
       says: SKILLS[id].says(SKILLS[id].values[rank - 1]!),
     })),
     spells,

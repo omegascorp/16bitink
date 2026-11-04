@@ -12,6 +12,7 @@ import { armyRowW, fitSlot, HERO_SLOT } from './armySlots';
 import { gearLayout } from './gearLayout';
 import { drawGear, type GearHost, type GearPick } from './gearPanel';
 import { heroSheet, type HeroSheet, type SheetRow } from './heroSheetData';
+import { SKILL_ICON, skillGrid } from './skillGrid';
 import { SplitPicker } from './splitPicker';
 
 /** A column's width at its widest, the padding, and the spaces between parts, UI pixels. */
@@ -31,7 +32,7 @@ const CARRIED_DEPTH = 100;
 
 /** Two columns need this much screen; narrower, they stack. */
 const TWO_COLUMNS = COL_W * 2 + GAP * 2 + PAD * 2 + 8;
-/** One column needs this much height to say what each stat does. */
+/** It takes this much height for each stat and skill to say what it does. */
 const WORDY_H = 680;
 /** Below this height the army can't have a row of its own. */
 const ROOMY_H = 440;
@@ -172,7 +173,7 @@ export class PixelHeroSheet implements CardView {
     left = this.stats(x, left + GAP, col, data, !two && this.screen.h < WORDY_H);
     left = this.lines(x, left + GAP, col, data.lines);
     let right = this.heading(second, two ? top : left + GAP, col, 'Skills');
-    right = this.text(second, right, col, data.skills.length ? data.skills.map((s) => `${s.name}: ${s.says}`).join('\n') : 'No skills yet: they come with new levels');
+    right = this.skills(second, right, col, data);
     if (data.magic) {
       right = this.heading(second, right + GAP, col, 'Spells');
       right = this.text(second, right, col, data.spellsNote ?? data.spells.map((s) => s.name).join(' · '));
@@ -302,6 +303,22 @@ export class PixelHeroSheet implements CardView {
       at += brief ? LINE : LINE * 2 + 1;
     }
     return at;
+  }
+
+  /** Each skill's icon, with its name and what it does; on a short screen, two to a row with its name and rank. Returns the y below. */
+  private skills(x: number, y: number, w: number, data: HeroSheet): number {
+    if (!data.skills.length) return this.text(x, y, w, 'No skills yet: they come with new levels');
+    const wordy = this.screen.h >= WORDY_H;
+    const grid = skillGrid(data.skills.length, w, wordy);
+    data.skills.forEach((s, i) => {
+      const cell = grid.cells[i]!;
+      const tx = x + cell.x + SKILL_ICON + ICON_GAP;
+      const top = y + cell.y + Math.floor((SKILL_ICON - LINE * 2) / 2);
+      this.body.add(this.scene.add.image(x + cell.x, y + cell.y, UI_TEX.skill(s.id)).setOrigin(0));
+      this.label({ align: 'left', anchor: { x: 0, y: 0 } }, wordy ? `${s.rank} ${s.name}` : s.name, tx, top);
+      this.label({ align: 'left', anchor: { x: 0, y: 0 }, ink: INK.dim }, wordy ? s.says : s.rank, tx, top + LINE);
+    });
+    return y + grid.h;
   }
 
   private lines(x: number, y: number, w: number, rows: readonly SheetRow[]): number {
