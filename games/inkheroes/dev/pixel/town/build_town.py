@@ -49,9 +49,46 @@ PIECES = {
     # The city round them, always there: houses and the fountain.
     **{f'house-{k}': (f'house-{k}.png', None) for k in 'abcdef'},
     'fountain': ('fountain.png', None),
+    # The city's walls: a straight section running down to the right (turrets at both ends), a round corner tower, the gatehouse.
+    'wall': ('wall-a.png', None),
+    'wall-tower': ('wall-tower.png', None),
+    'wall-gate': ('wall-gate.png', None),
 }
+# Pieces whose base runs along an edge of the city, and the slope it is sheared to (the city's 2:1 edges).
+SHEAR = {'wall': 0.5, 'wall-gate': 0.5}
 # The streets' paving, already drawn at the town's isometric angle (tiled as it is).
 PAVING = 'paving.png'
+
+
+def base_line(im: Image.Image) -> tuple[float, float]:
+    """The slope and intercept of a sprite's lowest opaque row across its middle half (its base along the edge)."""
+    px = im.load()
+    w, h = im.size
+    pts = []
+    for x in range(w // 4, w * 3 // 4):
+        ys = [y for y in range(h) if px[x, y][3]]
+        if ys:
+            pts.append((x, max(ys)))
+    n = len(pts)
+    mx = sum(p[0] for p in pts) / n
+    my = sum(p[1] for p in pts) / n
+    k = sum((p[0] - mx) * (p[1] - my) for p in pts) / sum((p[0] - mx) ** 2 for p in pts)
+    return k, my - k * mx
+
+
+def sheared(im: Image.Image, slope: float) -> Image.Image:
+    """Shifts whole columns so the sprite's base runs at `slope`."""
+    k, _ = base_line(im)
+    w, h = im.size
+    shift = [round((slope - k) * x) for x in range(w)]
+    lo, hi = min(shift), max(shift)
+    out = Image.new('RGBA', (w, h + hi - lo), (0, 0, 0, 0))
+    src, dst = im.load(), out.load()
+    for x in range(w):
+        for y in range(h):
+            if src[x, y][3]:
+                dst[x, y + shift[x] - lo] = src[x, y]
+    return out.crop(out.getbbox())
 
 
 def main() -> None:
@@ -59,6 +96,10 @@ def main() -> None:
     imports, entries = [], []
     for i, (name, (src, rows)) in enumerate(PIECES.items()):
         im = trimmed(HERE / 'iso' / src, rows)
+        if name in SHEAR:
+            im = sheared(im, SHEAR[name])
+            k, c = base_line(im)
+            print(f'  {name} base: slope {k:.3f}, at x=0 y={c:.1f}')
         im.save(OUT / f'{name}.png')
         imports.append(f"import p{i} from './town/{name}.png?url';")
         entries.append(f"  '{name}': {{ url: p{i}, w: {im.width}, h: {im.height} }},")

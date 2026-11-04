@@ -32,23 +32,28 @@ GROUND = {
     'sand': ('ground/sand2.png', 12),
     'swamp': ('ground/swamp2.png', 12),
 }
-# site art -> (source, rows kept from the top or None for all)
+# site art -> (source, rows kept from the top or None for all). The buildings are
+# iso/: "<site>, seen in three-quarter view from above, the front and the left side
+# both visible, standing on a small round grassy mound with soft natural edges, no
+# square base, no block of earth" (view side), the town's angle; their mound's
+# earth rim is cut off (soil()) so the grass sits on the map's ground.
 SITES = {
-    'town': ('sites/town-f.png', None),
-    'mine-gold': ('sites/mine-gold-b.png', None),
-    'mine-wood': ('sites/mine-wood.png', None),
-    'mine-ore': ('sites/mine-ore-c.png', None),
-    'mine-gems': ('sites/mine-gems.png', None),
-    'mercCamp': ('sites/mercCamp-c.png', None),
-    'watchtower': ('sites/watchtower.png', None),
-    'windmill': ('sites/windmill-c.png', None),
-    'stables': ('sites/stables-l.png', None),
-    'standingStone': ('sites/standingStone.png', None),
-    'shrine': ('sites/shrine.png', None),
+    # The town as the town screen shows it: a render of its walled city, redrawn by img2img (town-city.png), the mountain behind cut away.
+    'town': ('iso/town-city-clean.png', None),
+    **{f'mine-{r}': (f'iso/mine-{r}-b.png', None) for r in ('gold', 'wood', 'ore', 'gems', 'mercury', 'sulfur', 'crystal')},
+    'mercCamp': ('iso/mercCamp.png', None),
+    'watchtower': ('iso/watchtower.png', None),
+    'windmill': ('iso/windmill.png', None),
+    'stables': ('iso/stables.png', None),
+    'standingStone': ('iso/standingStone.png', None),
+    'shrine': ('iso/shrine.png', None),
     'chest': ('sites/chest.png', None),
     'campfire': ('sites/campfire.png', None),
     **{f'pile-{r}': (f'sites/pile-{r}.png', None) for r in ('gold', 'wood', 'ore', 'mercury', 'sulfur', 'crystal', 'gems')},
 }
+# Sites drawn on a mound whose earth rim is cut off.
+MOUNDED = {art for art, (src, _) in SITES.items() if src.startswith('iso/') and art != 'town'}
+SOIL_MAX = 10
 COVER = {
     'tree': ['cover/split/tree-0.png', 'cover/split/tree-1.png', 'cover/split/tree-3.png', 'cover/split/tree-5.png',
              'cover/split/tree-6.png', 'cover/split/tree-7.png', 'cover/split/tree-8.png', 'cover/split/tree-9.png'],
@@ -60,8 +65,6 @@ COVER = {
 }
 # The campaign menu's map pictures, by map (or planned map) id.
 VIGNETTES = ('ashford', 'thornwood', 'blackBanner')
-# The town's hill runs off the canvas at the bottom: from this row its sides are cut back into a mound and outlined.
-TOWN_TAPER = 128
 EDGE = (34, 24, 16, 255)
 
 
@@ -79,23 +82,29 @@ def trimmed(path: Path, rows: int | None = None) -> Image.Image:
     return im.crop(box) if box else im
 
 
-def taper(im: Image.Image, start: int) -> Image.Image:
-    """Cuts the rows from `start` down back from both sides (a slope), then outlines the new edge."""
+def is_soil(c: tuple[int, int, int, int]) -> bool:
+    r, g, b, a = c
+    return a > 0 and (r + g + b < 140 or (r > g + 6 and r > b + 12 and r + g + b < 470))
+
+
+def soil(im: Image.Image) -> Image.Image:
+    """Cuts the earth rim from under a mound (up to SOIL_MAX rows a column, from the bottom up), then outlines the new bottom edge."""
     im = im.copy()
     px = im.load()
     w, h = im.size
-    for y in range(start, h):
-        t = int((y - start) * 0.9)
-        for x in range(w):
-            if x < t or x >= w - t:
-                px[x, y] = (0, 0, 0, 0)
-    out = im.copy()
-    o = out.load()
-    for y in range(start - 2, h):
-        for x in range(w):
-            if px[x, y][3] and any(not (0 <= x + dx < w and 0 <= y + dy < h) or not px[x + dx, y + dy][3] for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
-                o[x, y] = EDGE
-    return out
+    for x in range(w):
+        y = h - 1
+        while y >= 0 and px[x, y][3] == 0:
+            y -= 1
+        cut = 0
+        while y >= 0 and cut < SOIL_MAX and is_soil(px[x, y]):
+            px[x, y] = (0, 0, 0, 0)
+            y -= 1
+            cut += 1
+        if cut and y >= 0 and px[x, y][3]:
+            px[x, y] = EDGE
+    box = im.getbbox()
+    return im.crop(box) if box else im
 
 
 def ident(name: str) -> str:
@@ -124,7 +133,7 @@ def main() -> None:
 
     def site(art: str, src: str, rows: int | None) -> Image.Image:
         im = trimmed(HERE / src, rows)
-        return taper(im, TOWN_TAPER - (Image.open(HERE / src).height - im.height)) if art == 'town' else im
+        return soil(im) if art in MOUNDED else im
 
     site_rows = [f"  '{art}': {sprite(f'site-{art}', site(art, src, rows))}," for art, (src, rows) in SITES.items()]
     vignette_rows = []

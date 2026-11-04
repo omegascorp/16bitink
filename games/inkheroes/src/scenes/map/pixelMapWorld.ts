@@ -12,6 +12,9 @@ import { PixelBuffer, type Rgba } from '../battle/pixelRaster';
 import type { Pixels } from '../battle/pixelScenery';
 import { putBuffer, texturePixels } from '../battle/pixelUi';
 import { coverPlacements } from './mapCover';
+import type { BuildingId } from '../../logic/buildings';
+import { renderMapTown, type CityArt } from '../town/cityRender';
+import { TOWN_TEX } from '../town/townTex';
 import { MAP_TEX, siteArtOf, siteSprite } from './pixelMapArt';
 import { composeFog, composeGround, GROUND_BORDER, groundSize, MAP_TILE } from './pixelGround';
 
@@ -103,6 +106,8 @@ export class PixelMapWorld {
   private readonly chunkKeys: string[] = [];
   private flagKeys: Partial<Record<Owner, string>> = {};
   private walking = false;
+  private townImg: Phaser.GameObjects.Image | null = null;
+  private townBuilt = '';
 
   constructor(private readonly scene: Phaser.Scene, private readonly def: MapDef, adv: Adventure) {
     this.layer = scene.add.layer();
@@ -169,13 +174,27 @@ export class PixelMapWorld {
     return img;
   }
 
+  /** The town as its own screen shows it: the city for what is built, shrunk to a map sprite (redrawn as it grows). */
+  private townSprite(built: readonly BuildingId[]): { key: string; sprite: { w: number; h: number; footX: number; footY: number } } {
+    const px = (key: string): Pixels => texturePixels(this.scene, key);
+    const art: CityArt = {
+      piece: (a) => px(TOWN_TEX.piece(a)),
+      tree: (k, i) => px(MAP_TEX.cover(k, i)),
+      swatches: { paving: px(TOWN_TEX.paving), grass: px(MAP_TEX.ground('grass')) },
+    };
+    const city = renderMapTown(built, art);
+    const key = putBuffer(this.scene, city, MAP_TEX.town(this.def.id));
+    return { key, sprite: { w: city.w, h: city.h, footX: Math.floor(city.w / 2), footY: city.h - 1 } };
+  }
+
   private addTown(adv: Adventure): void {
     const t = adv.town;
-    const s = siteSprite('town');
-    if (!s) return;
+    const s = this.townSprite(t.built);
+    this.townBuilt = t.built.join();
     const feet = tileFeet(t.x, t.y);
-    this.place(s.key, s.sprite, feet.x, feet.y + 14, FIGURE_DEPTH + feet.y);
-    this.addFlag('town', 'player', feet.x + Math.floor(s.sprite.w * 0.3), feet.y - s.sprite.h + 10, FIGURE_DEPTH + feet.y + 1);
+    this.townImg = this.place(s.key, s.sprite, feet.x, feet.y + 14, FIGURE_DEPTH + feet.y);
+    // The flag flies from the keep at the back of the walled city.
+    this.addFlag('town', 'player', feet.x + 2, feet.y + 14 - s.sprite.h + 8, FIGURE_DEPTH + feet.y + 1);
   }
 
   private flagKey(owner: Owner): string {
@@ -215,6 +234,13 @@ export class PixelMapWorld {
       if (flag) flag.setTexture(this.flagKey(o.owner === 'player' ? 'player' : o.owner === 'rival' ? 'rival' : 'neutral'));
     }
     if (!this.walking) this.placeHero(adv.hero.x, adv.hero.y);
+    if (adv.town.built.join() !== this.townBuilt && this.townImg) {
+      // Built in town: the map's town grows with it.
+      this.townBuilt = adv.town.built.join();
+      const s = this.townSprite(adv.town.built);
+      const feet = tileFeet(adv.town.x, adv.town.y);
+      this.townImg.setTexture(s.key).setDisplayOrigin(s.sprite.footX, s.sprite.footY).setPosition(feet.x, feet.y + 14);
+    }
     this.drawFog(adv);
   }
 

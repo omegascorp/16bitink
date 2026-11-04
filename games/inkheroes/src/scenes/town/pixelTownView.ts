@@ -1,49 +1,39 @@
 import Phaser from 'phaser';
-import { MAP_COVER, type MapCover } from '../../art/pixel/map';
+import { MAP_COVER } from '../../art/pixel/map';
 import { SCENERY, type SceneryArt } from '../../art/pixel/scenery';
-import { TOWN_ART, TOWN_PAVING, type TownArt } from '../../art/pixel/town';
+import { TOWN_ART } from '../../art/pixel/town';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
 import { nearest, PX_TEX } from '../battle/pixelAssets';
-import { cellRandom, composeScenery, HORIZON_Y, type Pixels } from '../battle/pixelScenery';
+import { composeScenery, HORIZON_Y, type Pixels } from '../battle/pixelScenery';
 import { putBuffer, TextLabel, texturePixels } from '../battle/pixelUi';
 import { loadMapArt, MAP_TEX } from '../map/pixelMapArt';
+import { CITY_SEED } from './cityRender';
 import { paintCity } from './townGround';
-import { CITY, emptyPlots, isGarden, STAGE, STAGE_HORIZON, STAGE_SHOWN, stagePieces, toGrid, toStage, type Plot, type StagePiece } from './townStage';
+import { cityWalls } from './townWalls';
+import { TOWN_TEX } from './townTex';
+import { cityTrees, emptyPlots, STAGE, STAGE_HORIZON, STAGE_SHOWN, stagePieces, toGrid, type Plot, type StagePiece } from './townStage';
 
-export const TOWN_TEX = {
-  piece: (a: TownArt) => `pxt-${a}`,
-  paving: 'pxt-paving',
-} as const;
+export { TOWN_TEX };
 
 const TERRAIN = 'grass';
-const SEED = 7717;
+const SEED = CITY_SEED;
 /** A clear day over the town (the battle's grass sky is a sunset, too orange for half a screen of it). */
 const TOWN_SKY: readonly (readonly [number, string])[] = [[420, '#4f82bd'], [220, '#6e9dcf'], [90, '#9dbfdc'], [24, '#cfd3c4']];
 /** A building under the pointer brightens by this much (added to its colours). */
 const LIFT = 0x262018;
 /** How far a new building rises into place, and how long it takes. */
 const RISE = { px: 10, ms: 700 } as const;
-/** Trees in the garden round the city's edge: how likely a tile grows one, and which kinds. */
-const TREE_CHANCE = 0.45;
-const PLOT_TREE_CHANCE = 0.16;
-const TREE_KINDS: readonly MapCover[] = ['tree', 'olive', 'pine', 'olive'];
 
 /** The grass scenery under the town's sky (the countryside and the pictures on the town's screens). */
 export function townScenery(): SceneryArt {
   return { ...SCENERY[TERRAIN]!, sky: TOWN_SKY };
 }
 
-/** Loads the town's sprites and paving, the grass scenery for its countryside and the map's art (grass, earth and trees, faces, icons, font). */
+/** Loads the grass scenery for the town's countryside and the map's art (the town's sprites and paving with it, grass and trees, faces, icons, font). */
 export function loadTownArt(scene: Phaser.Scene): Promise<void> {
-  const keys = (Object.keys(TOWN_ART) as TownArt[]).map((a) => {
-    const key = TOWN_TEX.piece(a);
-    if (!scene.textures.exists(key)) scene.load.image(key, TOWN_ART[a].url);
-    return key;
-  });
-  if (!scene.textures.exists(TOWN_TEX.paving)) scene.load.image(TOWN_TEX.paving, TOWN_PAVING);
   const atlas = PX_TEX.scenery(TERRAIN);
   if (!scene.textures.exists(atlas)) scene.load.image(atlas, SCENERY[TERRAIN]!.url);
-  return loadMapArt(scene, []).then(() => [...keys, TOWN_TEX.paving, atlas].forEach((k) => nearest(scene, k)));
+  return loadMapArt(scene, []).then(() => nearest(scene, atlas));
 }
 
 export interface TownViewOpts {
@@ -51,29 +41,6 @@ export interface TownViewOpts {
   readonly onPick: (building: BuildingId, built: boolean) => void;
   /** Just built: rises into place. */
   readonly fresh?: BuildingId;
-}
-
-interface Tree {
-  readonly kind: MapCover;
-  readonly pick: number;
-  readonly x: number;
-  readonly y: number;
-}
-
-/** The trees in the city's garden verge and on the plots not built on yet, the same every time. */
-function cityTrees(bare: readonly Plot[]): Tree[] {
-  const out: Tree[] = [];
-  const onBare = (i: number, j: number): boolean => bare.some((p) => i > p.a && j > p.b && i < p.a + p.n - 1 && j < p.b + p.n - 1);
-  for (let i = 0; i < CITY; i++) {
-    for (let j = 0; j < CITY; j++) {
-      const chance = isGarden(i, j) ? TREE_CHANCE : onBare(i, j) ? PLOT_TREE_CHANCE : 0;
-      if (cellRandom(SEED, i, j, 1) >= chance) continue;
-      const kind = TREE_KINDS[Math.floor(cellRandom(SEED, i, j, 2) * TREE_KINDS.length)]!;
-      const at = toStage(i + 0.5, j + 1);
-      out.push({ kind, pick: Math.floor(cellRandom(SEED, i, j, 3) * MAP_COVER[kind].length), x: Math.round(at.x), y: Math.round(at.y) });
-    }
-  }
-  return out;
 }
 
 /**
@@ -101,14 +68,21 @@ export class PixelTownView {
     const ground = scene.add.image(x0, -top, key).setOrigin(0).setInteractive();
     ground.on('pointerup', (p: Phaser.Input.Pointer) => this.tapGround(p));
     this.root.add(ground);
+    // The city's walls: the back ones behind everything in it, the front ones before it.
+    const walls = cityWalls((k) => texturePixels(scene, k));
+    const backKey = putBuffer(scene, walls.back);
+    const frontKey = putBuffer(scene, walls.front);
+    this.keys.push(backKey, frontKey);
+    this.root.add(scene.add.image(0, 0, backKey).setOrigin(0));
     this.label = new TextLabel(scene, { kind: 'title', outline: true, anchor: { x: 0.5, y: 1 } });
     const sprites: { y: number; obj: Phaser.GameObjects.Image }[] = stagePieces(built).map((p) => ({ y: p.spot.y, obj: this.sprite(p) }));
-    for (const t of cityTrees(this.bare.map((b) => b.plot))) {
+    for (const t of cityTrees(this.bare.map((b) => b.plot), SEED)) {
       const s = MAP_COVER[t.kind][t.pick]!;
       sprites.push({ y: t.y, obj: scene.add.image(t.x - s.footX, t.y - s.footY, MAP_TEX.cover(t.kind, t.pick)).setOrigin(0) });
     }
     sprites.sort((a, b) => a.y - b.y);
     for (const s of sprites) this.root.add(s.obj);
+    this.root.add(scene.add.image(0, 0, frontKey).setOrigin(0));
     this.label.img.setVisible(false);
     this.root.add(this.label.img);
   }

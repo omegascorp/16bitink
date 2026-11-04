@@ -6,6 +6,7 @@ import type { MapObject } from '../../logic/objects';
 import { heroArt, nearest, POSES, PX_TEX, unitArt } from '../battle/pixelAssets';
 import { loadUiFont } from '../battle/pixelFont';
 import { loadUiArt } from '../battle/pixelUi';
+import { queueTownArt } from '../town/townTex';
 
 /**
  * The adventure map's textures: the ground swatches, site and cover
@@ -21,6 +22,7 @@ export const MAP_TEX = {
   chunk: (map: string, i: number) => `pxm-chunk-${map}-${i}`,
   fog: (map: string) => `pxm-fog-${map}`,
   vignette: (id: string) => `pxm-vignette-${id}`,
+  town: (map: string) => `pxm-town-${map}`,
 } as const;
 
 /** The art a map object is drawn with (monsters and the town are drawn apart). */
@@ -55,6 +57,8 @@ export function loadMapArt(scene: Phaser.Scene, creatures: readonly string[], wo
     for (const [t, url] of Object.entries(MAP_GROUND)) if (url) image(MAP_TEX.ground(t), url);
     for (const [art, s] of Object.entries(MAP_SITES) as [SiteArt, MapSprite][]) image(MAP_TEX.site(art), s.url);
     for (const [kind, list] of Object.entries(MAP_COVER) as [MapCover, readonly MapSprite[]][]) list.forEach((s, i) => image(MAP_TEX.cover(kind, i), s.url));
+    // The town's own sprites: the map draws its town from the city the town screen shows.
+    keys.push(...queueTownArt(scene));
   }
   const sheet = (key: string, url: string, w: number, h: number): void => {
     keys.push(key);

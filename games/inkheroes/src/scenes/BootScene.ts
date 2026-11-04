@@ -1,51 +1,68 @@
-import { runInSlices, type LoadingReporter } from '@16bitink/game-sdk';
+import type { LoadingReporter } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
-import { textureJobs } from '../art/textures';
 import { getHost } from '../host';
 import { pullFromAccount } from '../logic/accountSave';
-import { screenScene, viewSize } from './hidpi';
+import { loadUiFont } from './battle/pixelFont';
+import { loadMenuArt } from './map/pixelMapArt';
+import { loadLoadingArt, PixelLoading } from './pixelLoading';
+import { pixelUiCamera } from './pixelScreen';
 import { loadingText } from './ui';
-import { uiTextureJobs } from './uiPaint';
 
-/** Share of the site's loading bar spent drawing the art. */
-const DRAWN_AT = 0.92;
+/** Share of the bar the art fills (the rest is the account's progress and opening the menu). */
+const ART_SHARE = 0.9;
 
-/** Draws every sprite (a slice at a time), pulls account progress, then opens the menu. */
+/**
+ * Loads the pixel font and the loading screen's own art, shows the loading
+ * screen (and hides the site's), then loads the campaign menu's art with
+ * the bar, pulls account progress and opens the menu.
+ */
 export class BootScene extends Phaser.Scene {
+  private screen: PixelLoading | null = null;
+
   constructor() {
     super('Boot');
   }
 
   create(): void {
-    screenScene(this);
     this.cameras.main.setBackgroundColor(BACKDROP);
-    const { width, height } = viewSize(this);
-    const label = 'raising the banners…';
-    loadingText(this, width / 2, height / 2, label, 32);
+    this.screen = null;
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.screen?.destroy();
+      this.screen = null;
+    });
     const loading = getHost(this).loading;
-    loading?.progress(0, label);
-    void this.boot(label).catch((err: unknown) => {
+    loading?.progress(0, 'raising the banners…');
+    void this.boot(loading).catch((err: unknown) => {
       console.error('[inkheroes] boot failed', err);
       loading?.failed?.(err instanceof Error ? err.message : String(err));
+      this.screen?.destroy();
+      this.screen = null;
       this.children.removeAll(true);
-      loadingText(this, width / 2, height / 2, 'Your browser could not draw the game. Try another browser.', 26);
+      this.cameras.main.setZoom(1).setScroll(0, 0);
+      loadingText(this, this.scale.width / 2, this.scale.height / 2, 'Your browser could not draw the game. Try another browser.', 26);
       this.game.events.once(Phaser.Core.Events.POST_RENDER, () => loading?.ready());
     });
   }
 
-  private async boot(label: string): Promise<void> {
-    const loading = getHost(this).loading;
-    await runInSlices([...textureJobs(this), ...uiTextureJobs(this)], { onProgress: (f) => loading?.progress(f * DRAWN_AT, label) });
+  update(_t: number, delta: number): void {
+    this.screen?.update(delta);
+  }
+
+  private async boot(loading: LoadingReporter | undefined): Promise<void> {
+    await Promise.all([loadUiFont(), loadLoadingArt(this)]);
+    loading?.progress(0.1, 'raising the banners…');
+    const fit = pixelUiCamera(this);
+    this.screen = new PixelLoading(this, fit(), 'raising the banners…');
+    // Our own screen is up from the next frame: the site's can go.
+    if (loading) this.game.events.once(Phaser.Core.Events.POST_RENDER, () => loading.ready());
+    const onProgress = (f: number): void => this.screen?.setProgress(f * ART_SHARE);
+    this.load.on(Phaser.Loader.Events.PROGRESS, onProgress);
+    await loadMenuArt(this);
+    this.load.off(Phaser.Loader.Events.PROGRESS, onProgress);
+    this.screen.setProgress(ART_SHARE, 'unrolling the map…');
     await pullFromAccount(getHost(this));
-    loading?.progress(DRAWN_AT, 'unrolling the map…');
-    if (loading) readyOnFirstFrame(this, 'Menu', loading);
+    this.screen.setProgress(1);
     this.scene.start('Menu');
   }
-}
-
-function readyOnFirstFrame(scene: Phaser.Scene, key: string, loading: LoadingReporter): void {
-  scene.scene.get(key).events.once(Phaser.Scenes.Events.CREATE, () => {
-    scene.game.events.once(Phaser.Core.Events.POST_RENDER, () => loading.ready());
-  });
 }

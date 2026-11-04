@@ -12,6 +12,9 @@ import siteMineGold from './map/site-mine-gold.png?url';
 import siteMineWood from './map/site-mine-wood.png?url';
 import siteMineOre from './map/site-mine-ore.png?url';
 import siteMineGems from './map/site-mine-gems.png?url';
+import siteMineMercury from './map/site-mine-mercury.png?url';
+import siteMineSulfur from './map/site-mine-sulfur.png?url';
+import siteMineCrystal from './map/site-mine-crystal.png?url';
 import siteMercCamp from './map/site-mercCamp.png?url';
 import siteWatchtower from './map/site-watchtower.png?url';
 import siteWindmill from './map/site-windmill.png?url';
@@ -70,17 +73,20 @@ export const MAP_GROUND: Readonly<Partial<Record<string, string>>> = {
 
 /** Each site's sprite. Mines not drawn yet borrow the gold mine. */
 export const MAP_SITES: Readonly<Partial<Record<SiteArt, MapSprite>>> = {
-  'town': { url: siteTown, w: 224, h: 166, footX: 112, footY: 165 },
-  'mine-gold': { url: siteMineGold, w: 86, h: 77, footX: 43, footY: 76 },
-  'mine-wood': { url: siteMineWood, w: 84, h: 81, footX: 42, footY: 80 },
-  'mine-ore': { url: siteMineOre, w: 87, h: 90, footX: 43, footY: 89 },
-  'mine-gems': { url: siteMineGems, w: 83, h: 56, footX: 41, footY: 55 },
-  'mercCamp': { url: siteMercCamp, w: 78, h: 82, footX: 39, footY: 81 },
-  'watchtower': { url: siteWatchtower, w: 62, h: 103, footX: 31, footY: 102 },
-  'windmill': { url: siteWindmill, w: 74, h: 95, footX: 37, footY: 94 },
-  'stables': { url: siteStables, w: 108, h: 38, footX: 54, footY: 37 },
-  'standingStone': { url: siteStandingStone, w: 53, h: 63, footX: 26, footY: 62 },
-  'shrine': { url: siteShrine, w: 51, h: 53, footX: 25, footY: 52 },
+  'town': { url: siteTown, w: 222, h: 116, footX: 111, footY: 115 },
+  'mine-gold': { url: siteMineGold, w: 102, h: 76, footX: 51, footY: 75 },
+  'mine-wood': { url: siteMineWood, w: 104, h: 87, footX: 52, footY: 86 },
+  'mine-ore': { url: siteMineOre, w: 98, h: 74, footX: 49, footY: 73 },
+  'mine-gems': { url: siteMineGems, w: 100, h: 76, footX: 50, footY: 75 },
+  'mine-mercury': { url: siteMineMercury, w: 96, h: 72, footX: 48, footY: 71 },
+  'mine-sulfur': { url: siteMineSulfur, w: 92, h: 82, footX: 46, footY: 81 },
+  'mine-crystal': { url: siteMineCrystal, w: 94, h: 83, footX: 47, footY: 82 },
+  'mercCamp': { url: siteMercCamp, w: 98, h: 76, footX: 49, footY: 75 },
+  'watchtower': { url: siteWatchtower, w: 75, h: 104, footX: 37, footY: 103 },
+  'windmill': { url: siteWindmill, w: 83, h: 97, footX: 41, footY: 96 },
+  'stables': { url: siteStables, w: 104, h: 78, footX: 52, footY: 77 },
+  'standingStone': { url: siteStandingStone, w: 70, h: 83, footX: 35, footY: 82 },
+  'shrine': { url: siteShrine, w: 82, h: 78, footX: 41, footY: 77 },
   'chest': { url: siteChest, w: 42, h: 45, footX: 21, footY: 44 },
   'campfire': { url: siteCampfire, w: 54, h: 43, footX: 27, footY: 42 },
   'pile-gold': { url: sitePileGold, w: 48, h: 30, footX: 24, footY: 29 },

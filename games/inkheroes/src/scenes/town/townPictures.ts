@@ -64,3 +64,67 @@ export function standOn(back: Pixels, sprite: Pixels, w: number, h: number, foot
   }
   return out;
 }
+
+/**
+ * `src` shrunk `by` times keeping it crisp: each block takes its most
+ * common colour (near colours counted together, then averaged), kept where
+ * at least half the block is opaque. A big picture shrinks into a small
+ * sprite that still reads as the same place (the map's town).
+ */
+export function shrinkMode(src: Pixels, by: number): Pixels {
+  const w = Math.max(1, Math.floor(src.w / by));
+  const h = Math.max(1, Math.floor(src.h / by));
+  const out = new Uint8ClampedArray(w * h * 4);
+  const counts = new Map<number, { n: number; r: number; g: number; b: number }>();
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      counts.clear();
+      let opaque = 0;
+      for (let dy = 0; dy < by; dy++) {
+        for (let dx = 0; dx < by; dx++) {
+          const i = ((y * by + dy) * src.w + x * by + dx) * 4;
+          if (src.data[i + 3]! < 128) continue;
+          opaque++;
+          const r = src.data[i]!;
+          const g = src.data[i + 1]!;
+          const b = src.data[i + 2]!;
+          const key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+          const c = counts.get(key) ?? { n: 0, r: 0, g: 0, b: 0 };
+          counts.set(key, { n: c.n + 1, r: c.r + r, g: c.g + g, b: c.b + b });
+        }
+      }
+      if (opaque * 2 < by * by) continue;
+      let best = { n: 0, r: 0, g: 0, b: 0 };
+      for (const c of counts.values()) if (c.n > best.n) best = c;
+      const o = (y * w + x) * 4;
+      out[o] = Math.round(best.r / best.n);
+      out[o + 1] = Math.round(best.g / best.n);
+      out[o + 2] = Math.round(best.b / best.n);
+      out[o + 3] = 255;
+    }
+  }
+  return { data: out, w, h };
+}
+
+/** `src` cut to its opaque pixels. */
+export function cropToInk(src: Pixels): Pixels {
+  let l = src.w;
+  let t = src.h;
+  let r = -1;
+  let b = -1;
+  for (let y = 0; y < src.h; y++) {
+    for (let x = 0; x < src.w; x++) {
+      if (src.data[(y * src.w + x) * 4 + 3]! < 128) continue;
+      l = Math.min(l, x);
+      t = Math.min(t, y);
+      r = Math.max(r, x);
+      b = Math.max(b, y);
+    }
+  }
+  if (r < l) return { data: new Uint8ClampedArray(4), w: 1, h: 1 };
+  const w = r - l + 1;
+  const h = b - t + 1;
+  const out = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < h; y++) out.set(src.data.subarray(((t + y) * src.w + l) * 4, ((t + y) * src.w + l + w) * 4), y * w * 4);
+  return { data: out, w, h };
+}

@@ -1,4 +1,6 @@
+import { MAP_COVER, type MapCover } from '../../art/pixel/map';
 import { TOWN_ART, type TownArt } from '../../art/pixel/town';
+import { cellRandom } from '../battle/pixelScenery';
 import type { BuildingId } from '../../logic/buildings';
 
 /**
@@ -196,6 +198,34 @@ export function ledgerOf(built: readonly BuildingId[], order: readonly BuildingI
     const open = ladder.filter((b) => !off.includes(b));
     const next = open.find((b) => !built.includes(b)) ?? open[open.length - 1];
     if (next) out.push(next);
+  }
+  return out;
+}
+
+/** Trees in the garden round the city's edge and on the plots not built on yet: how likely a tile grows one, and which kinds. */
+const TREE_CHANCE = 0.45;
+const PLOT_TREE_CHANCE = 0.16;
+const TREE_KINDS: readonly MapCover[] = ['tree', 'olive', 'pine', 'olive'];
+
+export interface Tree {
+  readonly kind: MapCover;
+  readonly pick: number;
+  readonly x: number;
+  readonly y: number;
+}
+
+/** The city's trees, the same every time for `seed`: feet on the stage. */
+export function cityTrees(bare: readonly Plot[], seed: number): Tree[] {
+  const out: Tree[] = [];
+  const onBare = (i: number, j: number): boolean => bare.some((p) => i > p.a && j > p.b && i < p.a + p.n - 1 && j < p.b + p.n - 1);
+  for (let i = 0; i < CITY; i++) {
+    for (let j = 0; j < CITY; j++) {
+      const chance = isGarden(i, j) ? TREE_CHANCE : onBare(i, j) ? PLOT_TREE_CHANCE : 0;
+      if (cellRandom(seed, i, j, 1) >= chance) continue;
+      const kind = TREE_KINDS[Math.floor(cellRandom(seed, i, j, 2) * TREE_KINDS.length)]!;
+      const at = toStage(i + 0.5, j + 1);
+      out.push({ kind, pick: Math.floor(cellRandom(seed, i, j, 3) * MAP_COVER[kind].length), x: Math.round(at.x), y: Math.round(at.y) });
+    }
   }
   return out;
 }

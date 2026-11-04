@@ -26,6 +26,9 @@ import p23 from './town/house-d.png?url';
 import p24 from './town/house-e.png?url';
 import p25 from './town/house-f.png?url';
 import p26 from './town/fountain.png?url';
+import p27 from './town/wall.png?url';
+import p28 from './town/wall-tower.png?url';
+import p29 from './town/wall-gate.png?url';
 import paving from './town/paving.png?url';
 
 /** One town sprite: its url and size; it stands on the middle of its bottom row. */
@@ -35,7 +38,7 @@ export interface TownSprite {
   readonly h: number;
 }
 
-export type TownArt = 'hall-village' | 'hall-town' | 'hall-city' | 'hall-capitol' | 'walls-fort' | 'walls-citadel' | 'walls-castle' | 'guild-1' | 'guild-2' | 'tavern' | 'blacksmith' | 'marketplace' | 'guardhouse' | 'archeryRange' | 'griffinTower' | 'barracks' | 'monastery' | 'stables' | 'tiltyard' | 'seraphSpire' | 'house-a' | 'house-b' | 'house-c' | 'house-d' | 'house-e' | 'house-f' | 'fountain';
+export type TownArt = 'hall-village' | 'hall-town' | 'hall-city' | 'hall-capitol' | 'walls-fort' | 'walls-citadel' | 'walls-castle' | 'guild-1' | 'guild-2' | 'tavern' | 'blacksmith' | 'marketplace' | 'guardhouse' | 'archeryRange' | 'griffinTower' | 'barracks' | 'monastery' | 'stables' | 'tiltyard' | 'seraphSpire' | 'house-a' | 'house-b' | 'house-c' | 'house-d' | 'house-e' | 'house-f' | 'fountain' | 'wall' | 'wall-tower' | 'wall-gate';
 
 export const TOWN_ART: Readonly<Record<TownArt, TownSprite>> = {
   'hall-village': { url: p0, w: 138, h: 109 },
@@ -65,6 +68,9 @@ export const TOWN_ART: Readonly<Record<TownArt, TownSprite>> = {
   'house-e': { url: p24, w: 96, h: 126 },
   'house-f': { url: p25, w: 122, h: 115 },
   'fountain': { url: p26, w: 90, h: 79 },
+  'wall': { url: p27, w: 123, h: 92 },
+  'wall-tower': { url: p28, w: 56, h: 106 },
+  'wall-gate': { url: p29, w: 144, h: 136 },
 };
 
 /** The streets' paving swatch (isometric already; tiled as it is). */
