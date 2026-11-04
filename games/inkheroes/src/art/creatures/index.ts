@@ -13,7 +13,7 @@ import { drawBandit } from './bandit';
 import { drawOgre } from './ogre';
 import type { CreatureDrawer } from './types';
 
-type BaseId = Exclude<CreatureId, `${string}2` | `${string}3`>;
+type BaseId = Exclude<CreatureId, `${string}2` | `${string}3` | 'ballista' | 'tent'>;
 
 /** Every base creature's drawing (see types.ts for the contract); an upgrade is drawn as its line's base. */
 export const CREATURE_ART: Readonly<Record<BaseId, CreatureDrawer>> = {
@@ -32,4 +32,4 @@ export const CREATURE_ART: Readonly<Record<BaseId, CreatureDrawer>> = {
 };
 
 /** The drawing for `id`: an upgrade is drawn as its line's base. */
-export const creatureArt = (id: CreatureId): CreatureDrawer => CREATURE_ART[lineOf(id) as BaseId];
+export const creatureArt = (id: CreatureId): CreatureDrawer => CREATURE_ART[lineOf(id) as BaseId] ?? CREATURE_ART.spearman; // war machines have no painted drawing

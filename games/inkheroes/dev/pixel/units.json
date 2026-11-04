@@ -507,6 +507,46 @@
     66,
     39
    ]
+  },
+  "ballista": {
+   "name": "Ballista",
+   "src": "pixel/src/ballista.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "a greek wooden ballista bolt-thrower war machine on a two-wheeled frame with bronze fittings, aimed to the right, no crew",
+   "idle": "idle loop: the machine stands still, its taut ropes tremble very slightly, ends back at the starting pose",
+   "attack": "firing: the arms snap forward and a bolt flies off to the right, the frame recoils a little, then the arms are drawn back to the starting pose",
+   "strike": 2,
+   "shot": [
+    76,
+    49
+   ],
+   "face": [
+    62,
+    52
+   ]
+  },
+  "tent": {
+   "name": "First Aid Tent",
+   "src": "pixel/src/tent.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "a small greek field-hospital tent of white linen on wooden poles with red-brown trim, a bronze bowl and rolled bandages by its door",
+   "idle": "idle loop: the linen flaps gently in the wind, ends back at the starting pose",
+   "attack": "healing: a soft golden glow rises from the tent door with a few sparkles, then fades back to the starting pose",
+   "strike": 3,
+   "face": [
+    57,
+    74
+   ]
   }
  },
  "heroes": {
@@ -534,6 +574,24 @@
    "face": [
     59,
     29
+   ]
+  },
+  "rival": {
+   "name": "Kassander",
+   "src": "pixel/src/hero_rival.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a rival greek warlord in a blackened bronze helmet with a tall red crest on a pale grey warhorse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the sword to the sky, it flashes with red light, then lowers it to the starting pose; the horse stays in place",
+   "strike": 4,
+   "face": [
+    55,
+    27
    ]
   }
  },

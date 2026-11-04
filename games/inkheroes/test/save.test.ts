@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ASHFORD } from '../src/level/chapter1';
+import { ASHFORD } from '../src/level/borderMarch';
 import { mapById } from '../src/level/maps';
 import { answerPrompt, endDay, queueLevelUps, startAdventure } from '../src/logic/adventure';
 import { blotsFor, loadAdventure, mergeProgress, parseAdventure, parseProgress, recordWin, saveAdventure } from '../src/logic/save';

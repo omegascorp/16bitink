@@ -2,12 +2,14 @@ import type { MapDef } from './types';
 import { lockedOn } from './unlocks';
 
 /**
- * Chapter 1, map 2: Thornwood. Brigands under a cyclops chief have taken
- * Thornwood, the timber town in the forest across the river. Rowan rides
- * from Millbrook to take it back: the first map with two towns, and a town
- * to take from its garrison.
+ * Chapter 1's second land: Thornwood, east of Ashford's (see borderMarch.ts,
+ * which places it, and its town and hero, in the chapter). Brigands under a
+ * cyclops chief have taken Thornwood, the timber town in the forest across
+ * the river: the first part with two towns, and a town to take from its
+ * garrison. In its own tiles; its `town` (Millbrook) is not used, as the
+ * chapter's home town is Ashford.
  */
-export const THORNWOOD: MapDef = {
+export const THORNWOOD_LAND: MapDef = {
   id: 'thornwood',
   name: 'Thornwood',
   n: 2,

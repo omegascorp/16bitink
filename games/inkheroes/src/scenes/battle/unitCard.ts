@@ -31,8 +31,10 @@ function stat(now: number, base: number): string {
 function traitsOf(id: CreatureId): string[] {
   const c = creature(id);
   const out: string[] = [];
+  if (c.machine) out.push('War machine: never moves, acts by itself');
+  if (c.machine === 'healer') out.push(`Heals up to ${c.heals} a round`);
   if (c.flies) out.push('Flies');
-  if (c.shots) out.push('Shoots');
+  if (c.shots) out.push(c.machine ? 'Shoots, even with an enemy beside it' : 'Shoots');
   if (c.undead) out.push('Undead');
   if (c.noRetaliation) out.push('Strikes are never answered');
   if ((c.retaliations ?? 1) > 1) out.push(`Answers ${c.retaliations} strikes a round`);

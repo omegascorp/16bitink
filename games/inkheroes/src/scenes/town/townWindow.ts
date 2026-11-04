@@ -28,7 +28,7 @@ const LINE = 15;
 const RULE_H = 5;
 const HEAD = PAD + LINE + 3 + RULE_H + 6;
 const NAV = { w: 30, h: 20 } as const;
-const BTN_H = 22;
+const BTN_H = 30;
 const CLOSE = { w: 50, h: 18 } as const;
 const FILL = [34, 24, 17, 248] as const;
 

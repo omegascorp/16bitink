@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ASHFORD } from '../src/level/chapter1';
+import { ASHFORD } from '../src/level/borderMarch';
 import { afterBattle, endDay, planPath, startAdventure, stepHero, type Adventure } from '../src/logic/adventure';
 import { armyOf } from '../src/logic/army';
 import { act, createBattle } from '../src/logic/battle';

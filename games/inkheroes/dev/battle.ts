@@ -4,7 +4,7 @@ import { BACKDROP } from '../src/art/palette';
 import { poseJobs } from '../src/art/textures';
 import { SoundBoard } from '../src/audio/sound';
 import { REG } from '../src/host';
-import { ASHFORD } from '../src/level/chapter1';
+import { ASHFORD } from '../src/level/borderMarch';
 import { startAdventure } from '../src/logic/adventure';
 import { armyOf } from '../src/logic/army';
 import { CREATURE_IDS, type CreatureId } from '../src/logic/creatures';

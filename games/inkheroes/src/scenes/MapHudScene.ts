@@ -224,9 +224,11 @@ export class MapHudScene extends Phaser.Scene {
   private closeDay(map: MapScene): void {
     getSound(this)?.play('day');
     map.clearPath();
-    this.session.endDay();
+    const before = this.session.adv;
+    const report = this.session.endDay();
     map.centreOnHero();
-    map.showPrompts();
+    // The rival's ride is shown where the player can see it, then the night's cards.
+    void map.showRival(before, report).then(() => map.showPrompts());
   }
 
   /** A note rising from the middle of the screen ("+5 wood"), in gold. */
@@ -256,10 +258,8 @@ export class MapHudScene extends Phaser.Scene {
       buttons: [
         { label: 'Back to the map', onClick: () => undefined },
         { label: sound?.muted ? 'Sound: off' : 'Sound: on', kind: 'plain', onClick: () => sound?.setMuted(!sound.muted) },
-        { label: 'Start this map again', kind: 'plain', onClick: () => {
-          const def = this.session.def;
-          this.session.abandon(this, 'quit');
-          Session.begin(this, getHost(this), def);
+        { label: `Start ${this.session.def.name} again`, kind: 'plain', onClick: () => {
+          this.session.restartPart();
           this.scene.stop();
           this.scene.get('Map').scene.restart();
         } },

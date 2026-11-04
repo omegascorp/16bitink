@@ -22,6 +22,7 @@ function worth(target: Stack, damage: number): number {
 export function chooseAction(state: BattleState): Action {
   const me = activeStack(state);
   if (!me) throw new Error('no active stack');
+  if (creature(me.creature).machine) return machineAction(state, me);
   const enemies = state.stacks.filter((s) => s.side !== me.side && alive(s));
   if (canShoot(state, me)) {
     const best = maxBy(enemies, (e) => worth(e, average(damageRange(state, me, e, { ranged: true, distance: shotDistance(me, e), moved: 0 }))));
@@ -47,6 +48,26 @@ export function chooseAction(state: BattleState): Action {
   const nearest = (h: Hex): number => Math.min(...enemyHexes.map((e) => distance(h, e)));
   const go = minBy(reach, nearest);
   if (go !== null && nearest(go) < nearest(me.hex)) return { type: 'move', to: go };
+  return { type: 'defend' };
+}
+
+/**
+ * A war machine's turn (they act by themselves, on either side): the
+ * Ballista shoots the enemy it hurts most; the First Aid Tent heals its
+ * side's most wounded top creature; with nothing to do, they stand.
+ */
+export function machineAction(state: BattleState, me: Stack): Action {
+  const c = creature(me.creature);
+  if (c.machine === 'shooter' && canShoot(state, me)) {
+    const enemies = state.stacks.filter((s) => s.side !== me.side && alive(s));
+    const best = maxBy(enemies, (e) => worth(e, average(damageRange(state, me, e, { ranged: true, distance: shotDistance(me, e), moved: 0 }))) * (creature(e.creature).machine ? 0.5 : 1));
+    if (best) return { type: 'shoot', target: best.id };
+  }
+  if (c.machine === 'healer') {
+    const hurt = state.stacks.filter((s) => s.side === me.side && alive(s) && !creature(s.creature).machine && s.topHp < creature(s.creature).hp);
+    const most = maxBy(hurt, (s) => (creature(s.creature).hp - s.topHp) * (1 + creature(s.creature).level * 0.15));
+    if (most) return { type: 'heal', target: most.id };
+  }
   return { type: 'defend' };
 }
 

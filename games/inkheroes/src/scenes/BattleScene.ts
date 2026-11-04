@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getSound } from '../host';
-import { afterBattle, battleSides, gridOf } from '../logic/adventure';
+import { afterBattle, battleSides, DEFEND, gridOf } from '../logic/adventure';
 import { act, activeStack, alive, canShoot, createBattle, experienceFor, moveHeadFor, occupiableHexes, stackAt, strikeFrom, strikeOptions, type BattleSide, type StrikeOption } from '../logic/battle';
 import { chooseAction } from '../logic/battleAi';
 import { cantCast, spellAmount } from '../logic/battleSpells';
@@ -191,7 +191,12 @@ export class BattleScene extends Phaser.Scene {
 
   private mine(): boolean {
     const a = activeStack(this.state);
-    return !!a && a.side === 0 && !this.auto;
+    return !!a && a.side === 0 && !this.auto && !this.byItself(a);
+  }
+
+  /** Whose turn plays itself: the enemy's, a war machine's, or all under Auto. */
+  private byItself(a: Stack): boolean {
+    return a.side === 1 || this.auto || !!creature(a.creature).machine;
   }
 
   /** Runs the next turn: the AI's (or Auto's), or waits for the player. */
@@ -202,7 +207,7 @@ export class BattleScene extends Phaser.Scene {
     }
     this.drawOrder();
     const a = activeStack(this.state)!;
-    if (a.side === 1 || this.auto) {
+    if (this.byItself(a)) {
       if (this.aiPending) return;
       this.aiPending = true;
       this.marks();
@@ -212,7 +217,7 @@ export class BattleScene extends Phaser.Scene {
       // Auto may have been switched off during the pause: then it's the player's move after all.
       const now = activeStack(this.state);
       if (this.state.winner !== null || !now || this.busy) return;
-      if (now.side === 1 || this.auto) await this.perform(chooseAction(this.state));
+      if (this.byItself(now)) await this.perform(chooseAction(this.state));
       else void this.next();
       return;
     }
@@ -461,7 +466,7 @@ export class BattleScene extends Phaser.Scene {
       title: won ? 'Victory!' : 'Defeat',
       body: won
         ? `${lost.length ? `Fallen: ${lost.map((l) => `${l.n} ${l.name}`).join(', ')}.` : 'Not one of yours fell.'}\n+${xp} experience`
-        : `${adv.hero.name}'s army is beaten.`,
+        : this.monsterId.startsWith(DEFEND) ? `The garrison is beaten, and the town falls.` : `${adv.hero.name}'s army is beaten.`,
       buttons: [{ label: won ? 'Back to the map' : 'Go on', onClick: done }],
     });
   }

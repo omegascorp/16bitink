@@ -1,0 +1,137 @@
+import type { MapDef } from './types';
+import { lockedOn } from './unlocks';
+
+/**
+ * Chapter 1, map 3: The Black Banner. Kassander, a lord who serves no
+ * crown, rides out from Korax under a black banner with a red raven. Rowan
+ * holds Eudora across the ridge. Between them lie the lakelands and their
+ * mines: the first map with a rival lord who builds, hires, takes mines and
+ * comes for Rowan's town, and the last map of the free chapter.
+ */
+export const BLACK_BANNER_LAND: MapDef = {
+  id: 'blackBanner',
+  name: 'The Black Banner',
+  n: 3,
+  intro: [
+    'Kassander of Korax flies a black banner with a red raven, and he serves no crown. His riders already hold the hills east of the lakes.',
+    'He builds and hires as you do, takes the mines, and will come for Eudora when he thinks he can win. Beat him to the lakelands, then take Korax.',
+    'Build a Blacksmith in Eudora: a Ballista and a First Aid Tent from it ride with your hero into every battle.',
+  ],
+  goal: { kind: 'capture', target: 'korax-town', text: 'take Korax, the Black Banner\'s town' },
+  parDays: 35,
+  rows: [
+    'TMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMP',
+    'TgggggggggggggggggMMTTTdTTTTddMMrrrrrrrrrrrrrrrP',
+    'TgggggggggggggggggMMTTTdTTTTTdMMrrPrrrMPrrrrrrrP',
+    'TgTggTggTggTTgggggMMTTTddTTTdTMMrrrrrPPPrrrrrrrP',
+    'TggggTTTTTTTTggggTMMgTdddTTTddMMrrrrPPPMPrrPrPrP',
+    'TTgggTTTTTTTTTgRggMMggddddddddMMrrrrPrrrrrrrrrPP',
+    'TgggggTTTTTTTgggTgMMggTdddddddMMrrrrrrrrrrrrrrPP',
+    'TggggggTTTTTTgggggMMggddddddTdMMrrrrPrrrrrrrrrPP',
+    'TgggggTgTTTTTRggRgggg=====#==dMMrrrrrrrrrrrrrrrP',
+    'TgggggTggTTTT########=dddddd#dMMP=======rrrrrrrP',
+    'TggggTRTTTTTT#ggggggTTTddddd=dMMP=MPrrr=rPrrrrrP',
+    'TgggggggRTTTT#gggggMMTTddddd=dddP=MrPPP=PMPrrPPP',
+    'TggggggggTTTT#gggggMMTTTTddd=dddR=rMPMP=MPPPPrrP',
+    'TgggggTgggggg#gggggMMTTTTRdd======rrPPP=MPMrrrrP',
+    'TgggTTgTgggTg#gggggMMTTTT~dd=dddrrrrrPr=PRrrrPrP',
+    'TgggTTTTggggg#TgggTMMTT~~~~~=dMMrrRrrrr=rrrrrrrP',
+    'TgTTTTTTggggg#gggggMMgT~~~~~#TMMrrrrrrr=rrPrPrrP',
+    'TgggTTTgTgggg#gggggMMg~~~~~~bdMMrrrrrrr=rrPrrPrP',
+    'TgggTTTTTgggg#gggggMMg~~~~~~bRMMMrrrrrr=rrrrPrrP',
+    'TgTgggggTgggg#RggggMMg~~~~~~bddMMrrrPMP=rrrrrrrP',
+    'Tgggggggggggg#ggggTMMgd~~~~~=ddMMPrP====rrrrrrPP',
+    'TggggggggTggg#TTTTgMMTd~~~~~=ddMMrrr=PRrrrrrrrrP',
+    'TTggggggggggg#TTTTTMMgddd~dd=dTMMsss=PssPPPssssP',
+    'TggggTTgggggg#TTTTTgg==####==ddMMsss=sPPMMPPsssP',
+    'Tgggggggggggg########=dTTTTT=ddMMsss=sssPMPssssP',
+    'Tgggggggggggg#gTTTggggTTTTTT=ddMMsss=ssssPsPsssP',
+    'TTTgRTggggggg#gTTTgMMMTTTTTd=ddPssPs=sssssssPMPP',
+    'TTTTTgggggggg#ggggggMMTTTTdd=dddssss=sssssssMPMP',
+    'TTTTTTgg######ggggggMMddTddd==#======PPPsPssPPPP',
+    'TTTTggggggggggggggggMMddddddddddssssPPMPMPPPPPsP',
+    'TTTTwwwwwggggRggTgggMMdddddddddMMssssMPMMPMMsssP',
+    'TTTTwwwwwgggggggggggMMdddddddddMMsssssssMMPssPsP',
+    'TTTTTwwwwgggggggggTgMMddRddddddMMPssssssssssssPP',
+    'TTTTTwwwwggTgggTTgggMMdddddddddMMssssssPsssssssP',
+    'TTTTwwwwwgggTgTgggggMMdddddTdTdMMsssssPsPssssssP',
+    'TTTTTTTTTTTTTTTTTTTTTPPPPPPPPPPPPPPPPPPPPPPPPPPP',
+  ],
+  town: { id: 'eudora-town', name: 'Eudora', x: 8, y: 27, built: ['villageHall', 'townHall', 'fort', 'citadel', 'tavern', 'guardhouse', 'archeryRange', 'barracks', 'mageGuild1'], guild: ['bless', 'stoneSkin', 'slow', 'haste', 'cure'],
+    garrison: [{ creature: 'spearman', count: 14 }, { creature: 'bowman', count: 6 }],
+  },
+  towns: [
+    {
+      id: 'korax-town', name: 'Korax', x: 39, y: 8, owner: 'rival',
+      built: ['villageHall', 'townHall', 'fort', 'tavern', 'guardhouse', 'archeryRange'],
+      guild: ['bloodlust', 'slow', 'magicArrow', 'haste', 'dispel'],
+      garrison: [{ creature: 'spearman', count: 16 }, { creature: 'bowman', count: 8 }],
+    },
+  ],
+  hero: {
+    id: 'rowan', name: 'Rowan', heroClass: 'knight', x: 8, y: 28,
+    attack: 3, defense: 3, power: 1, knowledge: 2, skills: { leadership: 1, archery: 1 }, spells: ['magicArrow', 'bless'], hasBook: true,
+    army: [{ creature: 'spearman', count: 28 }, { creature: 'bowman', count: 12 }, { creature: 'griffin', count: 5 }, { creature: 'swordsman', count: 2 }],
+  },
+  rival: {
+    hero: {
+      id: 'kassander', name: 'Kassander', heroClass: 'knight', x: 39, y: 8,
+      attack: 3, defense: 2, power: 1, knowledge: 1, skills: { leadership: 1 }, spells: [], hasBook: false,
+      army: [{ creature: 'spearman', count: 24 }, { creature: 'bowman', count: 10 }, { creature: 'griffin', count: 4 }],
+      machines: ['ballista'],
+    },
+    // His builds, one a day while his purse allows: troops first, then their growth and upgrades.
+    build: ['barracks', 'citadel', 'griffinTower', 'guardhouse2', 'archeryRange2', 'barracks2', 'griffinTower2', 'mageGuild1', 'guardhouse3', 'archeryRange3', 'castle'],
+    purse: { gold: 6000, wood: 15, ore: 15, mercury: 3, sulfur: 3, crystal: 3, gems: 3 },
+  },
+  purse: { gold: 9000, wood: 20, ore: 20, mercury: 5, sulfur: 5, crystal: 5, gems: 5 },
+  // What the campaign has opened by this map (src/level/unlocks.ts).
+  off: lockedOn(3),
+  seed: 3301,
+  objects: [
+    // West: Eudora's vale.
+    { id: 'sawmill', kind: 'mine', x: 3, y: 21, resource: 'wood', owner: 'neutral' },
+    { id: 'ore-pit', kind: 'mine', x: 10, y: 31, resource: 'ore', owner: 'neutral' },
+    { id: 'vale-satyrs', kind: 'monster', x: 11, y: 25, creature: 'goblin', count: 16 },
+    { id: 'wood-wolves', kind: 'monster', x: 3, y: 13, creature: 'wolf', count: 10 },
+    { id: 'mill-spartoi', kind: 'monster', x: 4, y: 22, creature: 'skeleton', count: 14 },
+    { id: 'merc-camp', kind: 'mercCamp', x: 16, y: 13 },
+    { id: 'stone', kind: 'standingStone', x: 2, y: 4 },
+    { id: 'chest-wood', kind: 'chest', x: 2, y: 1, gold: 1500 },
+    { id: 'fire-vale', kind: 'campfire', x: 15, y: 31, gold: 600, resource: 'wood', amount: 5 },
+    { id: 'pile-wood-1', kind: 'pile', x: 2, y: 9, resource: 'wood', amount: 8 },
+    { id: 'pile-ore-1', kind: 'pile', x: 14, y: 18, resource: 'ore', amount: 8 },
+    { id: 'pile-gold-1', kind: 'pile', x: 9, y: 33, resource: 'gold', amount: 1000 },
+    // The passes through the western ridge.
+    { id: 'north-pass-brigands', kind: 'monster', x: 19, y: 9, creature: 'bandit', count: 18 },
+    { id: 'south-pass-wolves', kind: 'monster', x: 20, y: 24, creature: 'wolf', count: 16 },
+    // The lakelands between: the mines both lords want.
+    { id: 'gold-mine', kind: 'mine', x: 24, y: 6, resource: 'gold', owner: 'neutral' },
+    { id: 'mine-cyclopes', kind: 'monster', x: 25, y: 7, creature: 'ogre', count: 6 },
+    { id: 'crystal-cavern', kind: 'mine', x: 26, y: 30, resource: 'crystal', owner: 'neutral' },
+    { id: 'cavern-wolves', kind: 'monster', x: 25, y: 31, creature: 'wolf', count: 14 },
+    { id: 'gem-pond', kind: 'mine', x: 26, y: 12, resource: 'gems', owner: 'neutral' },
+    { id: 'pond-brigands', kind: 'monster', x: 27, y: 13, creature: 'bandit', count: 14 },
+    { id: 'bridge-spartoi', kind: 'monster', x: 28, y: 21, creature: 'skeleton', count: 22 },
+    { id: 'windmill', kind: 'windmill', x: 30, y: 21, resource: 'crystal', amount: 4 },
+    { id: 'shrine', kind: 'shrine', x: 23, y: 1, spell: 'lightningBolt' },
+    { id: 'watchtower', kind: 'watchtower', x: 22, y: 22 },
+    { id: 'chest-lake', kind: 'chest', x: 27, y: 33, gold: 2000 },
+    { id: 'pile-gems', kind: 'pile', x: 28, y: 4, resource: 'gems', amount: 5 },
+    { id: 'pile-sulfur', kind: 'pile', x: 27, y: 26, resource: 'sulfur', amount: 5 },
+    { id: 'pile-mercury', kind: 'pile', x: 22, y: 32, resource: 'mercury', amount: 5 },
+    { id: 'pile-gold-2', kind: 'pile', x: 24, y: 10, resource: 'gold', amount: 1500 },
+    // The Black Banner's lands.
+    { id: 'korax-sawmill', kind: 'mine', x: 44, y: 10, resource: 'wood', owner: 'rival' },
+    { id: 'korax-ore-pit', kind: 'mine', x: 35, y: 6, resource: 'ore', owner: 'rival' },
+    { id: 'alchemist', kind: 'mine', x: 42, y: 27, resource: 'mercury', owner: 'neutral' },
+    { id: 'sulfur-dune', kind: 'mine', x: 37, y: 32, resource: 'sulfur', owner: 'neutral' },
+    { id: 'pine-wolves', kind: 'monster', x: 43, y: 16, creature: 'wolf', count: 12 },
+    { id: 'dune-brigands', kind: 'monster', x: 38, y: 31, creature: 'bandit', count: 16 },
+    { id: 'stables', kind: 'stables', x: 44, y: 20 },
+    { id: 'chest-crags', kind: 'chest', x: 45, y: 2, gold: 1000 },
+    { id: 'pile-ore-2', kind: 'pile', x: 34, y: 17, resource: 'ore', amount: 8 },
+    { id: 'pile-wood-2', kind: 'pile', x: 45, y: 13, resource: 'wood', amount: 8 },
+    { id: 'pile-gold-3', kind: 'pile', x: 38, y: 24, resource: 'gold', amount: 1000 },
+  ],
+};

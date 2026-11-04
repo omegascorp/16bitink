@@ -1,9 +1,9 @@
 import type { KeyValueStore } from '@16bitink/game-sdk';
-import type { MapDef } from '../level/types';
-import { gridOf, MAX_MONSTER, queueLevelUps, type Adventure, type Prompt } from './adventure';
+import type { HeroDef, MapDef } from '../level/types';
+import { DEFEND, gridOf, MAX_MONSTER, queueLevelUps, RIVAL, type Adventure, type Prompt, type RivalState } from './adventure';
 import { ARMY_SLOTS, type Army, type ArmySlot } from './army';
 import { BUILDINGS, isBuildingId, type BuildingId } from './buildings';
-import { isCreatureId, lineOf, type CreatureId } from './creatures';
+import { isCreatureId, lineOf, MACHINES, type CreatureId } from './creatures';
 import { dailyMp, levelFor, maxMana, PRIMARIES } from './hero';
 import { passable } from './map';
 import { CHEST_XP, townFootprint, type MapObject } from './objects';
@@ -82,10 +82,11 @@ export function saveProgress(store: KeyValueStore | undefined, p: Progress): voi
   writeJson(store, PROGRESS_KEY, p);
 }
 
-/** The map in play: as it is now, and as it was when today began (a lost battle replays the day). */
+/** The map in play: as it is now, as it was when today began (a lost battle replays the day), and when this part of the chapter began. */
 export interface AdventureSave {
   readonly current: Adventure;
   readonly dayStart: Adventure;
+  readonly partStart?: Adventure;
 }
 
 export function saveAdventure(store: KeyValueStore | undefined, save: AdventureSave | null): void {
@@ -101,7 +102,8 @@ export function loadAdventure(store: KeyValueStore | undefined, defs: (id: strin
   if (!def) return null;
   const current = parseAdventure(raw.current, def);
   const dayStart = parseAdventure(raw.dayStart, def);
-  return current && dayStart ? { current, dayStart } : null;
+  const partStart = raw.partStart === undefined ? null : parseAdventure(raw.partStart, def);
+  return current && dayStart ? { current, dayStart, ...(partStart ? { partStart } : {}) } : null;
 }
 
 /**
@@ -130,8 +132,27 @@ export function parseAdventure(raw: unknown, def: MapDef): Adventure | null {
   if (ts.some((t) => townFootprint(t!.x, t!.y).some((f) => f.x === h.x && f.y === h.y))) return null;
   if (objs.some((o) => o.kind === 'monster' && !o.gone && o.x === h.x && o.y === h.y)) return null;
   const kept = prompts.map((x) => parsePrompt(x, objs)).filter((x): x is Prompt => !!x).slice(0, MAX_PROMPTS);
+  const rival = parseRival(raw.rival, def);
+  if (def.rival && rival === undefined) return null;
+  // A fight the rival started waits only while he rides, against our hero or a town of ours.
+  const fight = typeof raw.rivalFight === 'string' && rival?.hero && (raw.rivalFight === RIVAL || ts.some((t) => DEFEND + t!.id === raw.rivalFight && t!.owner === 'player')) ? raw.rivalFight : undefined;
   // Level-ups are never read from a save: they're dealt again from the hero's experience.
-  return queueLevelUps({ mapId: def.id, day, seed, purse: p, hero: h, towns: ts as Town[], objects: objs, explored, status, prompts: kept, lostStacks });
+  return queueLevelUps({
+    mapId: def.id, day, seed, purse: p, hero: h, towns: ts as Town[], objects: objs, explored, status, prompts: kept, lostStacks,
+    ...(isInt(raw.begun, 2, day) ? { begun: raw.begun } : {}),
+    ...(rival ? { rival } : {}), ...(fight ? { rivalFight: fight } : {}),
+  });
+}
+
+/** The rival's saved state on a map with a rival (undefined: unreadable), null hero once beaten. */
+function parseRival(raw: unknown, def: MapDef): RivalState | null | undefined {
+  if (!def.rival) return null;
+  if (!isObj(raw)) return undefined;
+  const p = parsePurse(raw.purse);
+  if (!p) return undefined;
+  if (raw.hero === null) return { hero: null, purse: p };
+  const hero = isObj(raw.hero) ? parseHero(raw.hero, def, def.rival.hero) : null;
+  return hero ? { hero, purse: p } : undefined;
 }
 
 function parsePurse(raw: unknown): Purse | null {
@@ -155,7 +176,7 @@ export function parseArmy(raw: unknown): Army | null {
   return out;
 }
 
-function parseHero(raw: Record<string, unknown>, def: MapDef): Adventure['hero'] | null {
+function parseHero(raw: Record<string, unknown>, def: MapDef, h: HeroDef = def.hero): Adventure['hero'] | null {
   const g = gridOf(def);
   if (!isInt(raw.x, 0, g.w - 1) || !isInt(raw.y, 0, g.h - 1)) return null;
   if (!PRIMARIES.every((k) => isInt(raw[k], 0, 999)) || !isInt(raw.mana, 0, 99999) || !isInt(raw.xp, 0) || !isInt(raw.level, 1, 999) || !isInt(raw.mp, 0, 99999)) return null;
@@ -166,12 +187,14 @@ function parseHero(raw: Record<string, unknown>, def: MapDef): Adventure['hero']
   if (typeof raw.hasBook !== 'boolean') return null;
   const army = parseArmy(raw.army);
   if (!army) return null;
+  // War machines: one of each at most (older saves have none).
+  const machines = Array.isArray(raw.machines) ? MACHINES.filter((m) => (raw.machines as unknown[]).includes(m)) : [];
   const skills = Object.fromEntries(SKILL_IDS.filter((k) => (raw.skills as Record<string, unknown>)[k]).map((k) => [k, (raw.skills as Record<string, Rank>)[k]]));
-  const h = def.hero;
   const hero = {
     id: h.id, name: h.name, heroClass: h.heroClass, x: raw.x, y: raw.y,
     attack: raw.attack as number, defense: raw.defense as number, power: raw.power as number, knowledge: raw.knowledge as number,
     mana: raw.mana, xp: raw.xp, level: Math.min(raw.level, levelFor(raw.xp)), skills, spells: [...new Set(raw.spells)], hasBook: raw.hasBook, army, mp: raw.mp, visited: raw.visited as string[],
+    ...(machines.length ? { machines } : {}),
   };
   return { ...hero, mana: Math.min(hero.mana, maxMana(hero)), mp: Math.min(hero.mp, dailyMp(hero) + MP_BONUS) };
 }
@@ -180,8 +203,9 @@ function parseHero(raw: Record<string, unknown>, def: MapDef): Adventure['hero']
 function parseTown(raw: Record<string, unknown>, t: { id: string; name: string; x: number; y: number; built: readonly BuildingId[]; guild: readonly SpellId[] }, first: boolean, def: MapDef): Town | null {
   if (!Array.isArray(raw.built) || !raw.built.every(isBuildingId) || typeof raw.builtToday !== 'boolean' || !isObj(raw.stock)) return null;
   if (!Object.entries(raw.stock).every(([k, v]) => isCreatureId(k) && isInt(v, 0, 1e6))) return null;
-  const owner = first ? 'player' : raw.owner;
-  if (owner !== 'player' && owner !== 'neutral') return null;
+  // Any town can change hands; a save from before owners were kept has the first town as the player's.
+  const owner = raw.owner === 'player' || raw.owner === 'neutral' || raw.owner === 'rival' ? raw.owner : first ? 'player' : null;
+  if (!owner) return null;
   const garrison = parseArmy(raw.garrison);
   if (!garrison) return null;
   const built = buildable(raw.built, t.built, def);
@@ -192,7 +216,7 @@ function parseTown(raw: Record<string, unknown>, t: { id: string; name: string; 
 }
 
 /** The saved buildings the map allows and whose needs are met (the town's starting ones always). */
-function buildable(raw: readonly BuildingId[], start: readonly BuildingId[], def: MapDef): BuildingId[] {
+export function buildable(raw: readonly BuildingId[], start: readonly BuildingId[], def: MapDef): BuildingId[] {
   let kept = new Set<BuildingId>(start);
   const wanted = new Set(raw.filter((b) => !def.off.includes(b)));
   for (let grew = true; grew;) {

@@ -1,6 +1,6 @@
 import type { Amount } from './resources';
 
-export type Faction = 'crown' | 'neutral';
+export type Faction = 'crown' | 'neutral' | 'machine';
 
 export interface CreatureDef {
   readonly id: CreatureId;
@@ -35,6 +35,10 @@ export interface CreatureDef {
   /** An upgrade: the line's base unit, and which of its three levels this is (2 or 3; a base unit is 1). */
   readonly line?: CreatureId;
   readonly tier?: 2 | 3;
+  /** A war machine bought at the Blacksmith: it never moves, acts by itself, and a side left with only machines has lost. */
+  readonly machine?: 'shooter' | 'healer';
+  /** A healer's most a turn, HP. */
+  readonly heals?: number;
 }
 
 const def = <T extends CreatureDef>(c: T): T => c;
@@ -67,6 +71,9 @@ export const CREATURES = {
   skeleton: def({ id: 'skeleton', name: 'Spartoi', plural: 'Spartoi', faction: 'neutral', level: 1, attack: 5, defense: 4, minDmg: 1, maxDmg: 3, hp: 6, speed: 4, growth: 12, cost: { gold: 60 }, undead: true }),
   wolf: def({ id: 'wolf', name: 'Wolf', plural: 'Wolves', faction: 'neutral', level: 2, attack: 6, defense: 3, minDmg: 2, maxDmg: 4, hp: 10, speed: 7, growth: 8, cost: { gold: 100 }, wide: true }),
   bandit: def({ id: 'bandit', name: 'Brigand', plural: 'Brigands', faction: 'neutral', level: 2, attack: 8, defense: 3, minDmg: 2, maxDmg: 4, hp: 10, speed: 6, growth: 8, cost: { gold: 100 }, noRetaliation: true }),
+  // War machines (the Blacksmith's): one each, standing at the back of the hero's side.
+  ballista: def({ id: 'ballista', name: 'Ballista', plural: 'Ballistas', faction: 'machine', level: 4, attack: 10, defense: 10, minDmg: 10, maxDmg: 15, hp: 250, speed: 1, growth: 0, cost: { gold: 1500 }, shots: 24, machine: 'shooter', retaliations: 0 }),
+  tent: def({ id: 'tent', name: 'First Aid Tent', plural: 'First Aid Tents', faction: 'machine', level: 1, attack: 0, defense: 0, minDmg: 0, maxDmg: 0, hp: 75, speed: 1, growth: 0, cost: { gold: 750 }, machine: 'healer', heals: 25, retaliations: 0 }),
   ogre: def({ id: 'ogre', name: 'Cyclops', plural: 'Cyclopes', faction: 'neutral', level: 4, attack: 13, defense: 7, minDmg: 6, maxDmg: 12, hp: 40, speed: 4, growth: 4, cost: { gold: 300 } }),
 } as const;
 
@@ -74,10 +81,15 @@ export type CreatureId =
   | 'spearman' | 'bowman' | 'griffin' | 'swordsman' | 'monk' | 'lancer' | 'seraph'
   | 'spearman2' | 'spearman3' | 'bowman2' | 'bowman3' | 'griffin2' | 'griffin3' | 'swordsman2' | 'swordsman3'
   | 'monk2' | 'monk3' | 'lancer2' | 'lancer3' | 'seraph2' | 'seraph3'
-  | 'goblin' | 'skeleton' | 'wolf' | 'bandit' | 'ogre';
+  | 'goblin' | 'skeleton' | 'wolf' | 'bandit' | 'ogre'
+  | 'ballista' | 'tent';
 export const CREATURE_IDS = Object.keys(CREATURES) as CreatureId[];
 
 export const creature = (id: CreatureId): CreatureDef => CREATURES[id];
+/** The war machines, in the order they stand. */
+export const MACHINES = ['ballista', 'tent'] as const satisfies readonly CreatureId[];
+export type MachineId = (typeof MACHINES)[number];
+export const isMachine = (id: CreatureId): boolean => !!creature(id).machine;
 export const isCreatureId = (v: unknown): v is CreatureId => typeof v === 'string' && (CREATURE_IDS as string[]).includes(v);
 
 /** The base unit of `id`'s line (itself for a base unit). */

@@ -1,4 +1,5 @@
 import type { BattleState, Side, Stack } from './battleTypes';
+import { creature } from './creatures';
 
 /** Small shared helpers over a battle's state. */
 export const alive = (s: Stack): boolean => s.count > 0;
@@ -13,10 +14,11 @@ export function update(s: BattleState, id: number, f: (x: Stack) => Stack): Batt
   return { ...s, stacks: s.stacks.map((x) => (x.id === id ? f(x) : x)) };
 }
 
-/** The side left standing, or null while both still have units. */
+/** The side left standing, or null while both still have units (war machines alone don't hold the field). */
 export function winnerOf(s: BattleState): Side | null {
-  const left = s.stacks.some((x) => x.side === 0 && alive(x));
-  const right = s.stacks.some((x) => x.side === 1 && alive(x));
+  const holds = (side: Side): boolean => s.stacks.some((x) => x.side === side && alive(x) && !creature(x.creature).machine);
+  const left = holds(0);
+  const right = holds(1);
   if (left && right) return null;
   return left ? 0 : 1;
 }

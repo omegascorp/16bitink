@@ -5,8 +5,8 @@ import type { Town } from '../../logic/town';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
 import { creature, type CreatureId } from '../../logic/creatures';
 import { SPELLS } from '../../logic/spells';
-import { advisedNext, bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, hireable, SPELLBOOK_COST, stockOf } from '../../logic/town';
-import { describeAmount } from '../../logic/resources';
+import { advisedNext, bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, hireable, hireAll, SPELLBOOK_COST, stockOf } from '../../logic/town';
+import { describeAmount, RESOURCES } from '../../logic/resources';
 import { PX_TEX, unitArt } from '../battle/pixelAssets';
 import { drawFrame, drawPicture, FILLS, inkBox, pictureOffset, type RimName } from '../battle/pixelFrames';
 import type { Rgba } from '../battle/pixelRaster';
@@ -55,6 +55,8 @@ export interface ScreenActions {
   pickDwelling(id: CreatureId): void;
   /** Hires as many of `id` as the stock and purse allow. */
   hireAll(id: CreatureId): void;
+  /** Hires every unit of every dwelling the purse affords. */
+  hireEverything(): void;
   buyBook(): void;
 }
 
@@ -154,6 +156,10 @@ function stat(scene: Phaser.Scene, icon: Parameters<typeof UI_TEX.stat>[0], text
 export function fortScreen(scene: Phaser.Scene, adv: Adventure, town: Town, act: ScreenActions): GridSpec {
   const homes = dwellings(town);
   const toHero = heroVisiting(adv, town);
+  // Hire all: what one tap would hire across every dwelling, and its price.
+  const all = hireAll(town, toHero ? adv.hero.army : town.garrison, adv.purse);
+  const count = all.hired.reduce((n, h) => n + h.count, 0);
+  const spent = Object.fromEntries(RESOURCES.map((r) => [r, adv.purse[r] - all.purse[r]]).filter(([, n]) => (n as number) > 0));
   const waits = heroInGarrison(adv, town) ? `${adv.hero.name} holds the garrison: hired troops join it.` : `${adv.hero.name} is away: hired troops wait in the garrison.`;
   return {
     title: `${town.name}: the fort`,
@@ -162,6 +168,7 @@ export function fortScreen(scene: Phaser.Scene, adv: Adventure, town: Town, act:
     maxCols: 3,
     empty: 'No dwellings yet: build a Guardhouse (it needs a Fort) to hire troops.',
     note: toHero ? `Hired troops join ${adv.hero.name}. Tap a card to hire fewer.` : waits,
+    button: all.hired.length ? { label: `Hire all: ${count} units for ${describeAmount(spent)}`, onClick: () => act.hireEverything() } : undefined,
     draw: (i, x, y) => {
       // The line's best level built: what its card shows and hires.
       const id = bestUnit(town, homes[i]!) ?? homes[i]!;

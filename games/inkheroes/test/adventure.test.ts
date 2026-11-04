@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { ASHFORD } from '../src/level/chapter1';
+import { ASHFORD } from '../src/level/borderMarch';
 import { isOpen, MAPS, nextMap } from '../src/level/maps';
 import { openBy, UNLOCKS } from '../src/level/unlocks';
-import { THORNWOOD } from '../src/level/thornwood';
+import { THORNWOOD } from '../src/level/borderMarch';
 import type { MapDef } from '../src/level/types';
 import { afterBattle, answerPrompt, unfinished, heroTown, playerTowns, townById, battleSides, dailyIncome, endDay, garrisonHero, withTown, gridOf, heroInGarrison, heroVisiting, isSeen, leadOut, objectAt, planPath, startAdventure, stepHero, type Adventure } from '../src/logic/adventure';
 import { armyOf, moveAll } from '../src/logic/army';
@@ -12,7 +12,7 @@ import { dailyMp, levelFor, nextLevelUp, xpForLevel } from '../src/logic/hero';
 import { passable, tileIndex } from '../src/logic/map';
 import { objectFootprint, townFootprint } from '../src/logic/objects';
 import { findPath } from '../src/logic/path';
-import { advisedNext, bestUnit, build, cantBuild, growthOf, hire, upgradeCost, upgradeSlot, upgradeTo, weekly } from '../src/logic/town';
+import { advisedNext, bestUnit, build, cantBuild, growthOf, hire, hireAll, upgradeCost, upgradeSlot, upgradeTo, weekly } from '../src/logic/town';
 import { BUILDINGS, BUILDING_IDS } from '../src/logic/buildings';
 import { creature, lineOf, lineUnits, tierOf } from '../src/logic/creatures';
 
@@ -336,6 +336,23 @@ describe('three levels of every unit', () => {
     expect(weekly(up).stock.spearman).toBe(up.stock.spearman! + growthOf(up, 'spearman'));
   });
 
+  it('hires all it can in one go: the best level of each line, the strongest lines first while the gold lasts', () => {
+    const town = { ...withBuilt('guardhouse2', 'archeryRange', 'barracks'), stock: { spearman: 14, bowman: 9, swordsman: 4 } };
+    const army = start.hero.army;
+    const all = hireAll(town, army, rich);
+    expect(all.hired.map((h) => h.id)).toEqual(['swordsman', 'bowman', 'spearman2']);
+    expect(all.hired.every((h) => h.count === (town.stock as Record<string, number>)[lineOf(h.id)])).toBe(true);
+    expect(all.town.stock.spearman).toBe(0);
+    // Gold for the Minotaurs only: the lesser lines wait.
+    const cost = creature('swordsman').cost.gold! * town.stock.swordsman!;
+    const some = hireAll(town, army, { ...rich, gold: cost + 10 });
+    expect(some.hired).toEqual([{ id: 'swordsman', count: town.stock.swordsman }]);
+    expect(some.purse.gold).toBe(10);
+    // An army with no room for a new kind: that kind waits in its dwelling.
+    const full = armyOf(['goblin', 'skeleton', 'wolf', 'bandit', 'ogre', 'griffin', 'monk'].map((c) => ({ creature: c as never, count: 1 })));
+    expect(hireAll(town, full, rich).hired).toEqual([]);
+  });
+
   it('upgrades a company in the town to the best level built, for the difference in price', () => {
     const town = withBuilt('guardhouse2', 'citadel', 'guardhouse3');
     expect(upgradeCost('spearman', 'spearman3', 18)).toEqual({ gold: 18 * 40 });
@@ -358,13 +375,13 @@ describe('taking a town (Thornwood)', () => {
   /** Thornwood with no monsters, the hero beside the town's gate with a big army. */
   const beside = (): Adventure => {
     const adv = peaceful(startAdventure(THORNWOOD));
-    return { ...adv, hero: { ...adv.hero, x: 31, y: 16, mp: 5000, army: armyOf([{ creature: 'seraph', count: 10 }]) } };
+    return { ...adv, hero: { ...adv.hero, x: 63, y: 16, mp: 5000, army: armyOf([{ creature: 'seraph', count: 10 }]) } };
   };
 
-  it('starts with two towns, only Millbrook the player’s, and Thornwood held by its garrison', () => {
+  it('starts with two towns, only Ashford the player’s, and Thornwood held by its garrison', () => {
     const adv = startAdventure(THORNWOOD);
     expect(adv.towns.map((t) => t.owner)).toEqual(['player', 'neutral']);
-    expect(playerTowns(adv).map((t) => t.name)).toEqual(['Millbrook']);
+    expect(playerTowns(adv).map((t) => t.name)).toEqual(['Ashford']);
     expect(townById(adv, 'thornwood-town')!.garrison.filter(Boolean)).toHaveLength(4);
     // Only the player's towns pay.
     expect(dailyIncome(adv).gold).toBe(500);
@@ -372,9 +389,9 @@ describe('taking a town (Thornwood)', () => {
 
   it('a garrison bars the gate: beating it takes the town, the hero rides in, and the map is won', () => {
     const adv = beside();
-    const r = stepHero(adv, THORNWOOD, { x: 31, y: 15, cost: 100, straight: 100, day: 0 });
+    const r = stepHero(adv, THORNWOOD, { x: 63, y: 15, cost: 100, straight: 100, day: 0 });
     expect(r.battle).toBe('thornwood-town');
-    expect(r.adv.hero.x).toBe(31);
+    expect(r.adv.hero.x).toBe(63);
     expect(r.adv.hero.y).toBe(16);
     const sides = battleSides(r.adv, 'thornwood-town');
     let b = createBattle(sides.attacker, sides.defender, sides.seed).state;
@@ -393,7 +410,7 @@ describe('taking a town (Thornwood)', () => {
   it('an empty town is walked into and taken without a fight', () => {
     const adv = beside();
     const empty = withTown(adv, { ...townById(adv, 'thornwood-town')!, garrison: armyOf([]) });
-    const r = stepHero(empty, THORNWOOD, { x: 31, y: 15, cost: 100, straight: 100, day: 0 });
+    const r = stepHero(empty, THORNWOOD, { x: 63, y: 15, cost: 100, straight: 100, day: 0 });
     expect(r.battle).toBeUndefined();
     expect(r.town).toBe(true);
     expect(townById(r.adv, 'thornwood-town')!.owner).toBe('player');

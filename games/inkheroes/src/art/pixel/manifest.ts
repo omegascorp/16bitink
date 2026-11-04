@@ -82,9 +82,18 @@ import seraph2Attack from './units/seraph2-attack.png?url';
 import seraph3Idle from './units/seraph3-idle.png?url';
 import seraph3Walk from './units/seraph3-walk.png?url';
 import seraph3Attack from './units/seraph3-attack.png?url';
+import ballistaIdle from './units/ballista-idle.png?url';
+import ballistaWalk from './units/ballista-walk.png?url';
+import ballistaAttack from './units/ballista-attack.png?url';
+import tentIdle from './units/tent-idle.png?url';
+import tentWalk from './units/tent-walk.png?url';
+import tentAttack from './units/tent-attack.png?url';
 import hero_playerIdle from './units/hero_player-idle.png?url';
 import hero_playerWalk from './units/hero_player-walk.png?url';
 import hero_playerAttack from './units/hero_player-attack.png?url';
+import hero_rivalIdle from './units/hero_rival-idle.png?url';
+import hero_rivalWalk from './units/hero_rival-walk.png?url';
+import hero_rivalAttack from './units/hero_rival-attack.png?url';
 import bgGrass from './battle/bg-grass.png?url';
 import bgDirt from './battle/bg-dirt.png?url';
 import bgRough from './battle/bg-rough.png?url';
@@ -286,15 +295,34 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 66, y: 39 },
     url: { idle: seraph3Idle, walk: seraph3Walk, attack: seraph3Attack },
   },
+  ballista: {
+    name: 'Ballista', w: 96, h: 96, footX: 41, footY: 90,
+    frames: { idle: 4, walk: 1, attack: 8 }, strike: 2,
+    shotFrom: { x: 76, y: 49 },
+    face: { x: 62, y: 52 },
+    url: { idle: ballistaIdle, walk: ballistaWalk, attack: ballistaAttack },
+  },
+  tent: {
+    name: 'First Aid Tent', w: 96, h: 96, footX: 50, footY: 90,
+    frames: { idle: 4, walk: 1, attack: 8 }, strike: 3,
+    face: { x: 57, y: 74 },
+    url: { idle: tentIdle, walk: tentWalk, attack: tentAttack },
+  },
 };
 
-/** The hero standing beside the field. The rival uses the same art for now. */
+/** The hero standing beside the field. Keyed by the ids in units.json `heroes`. */
 export const HERO_ART: Readonly<Record<string, UnitArt>> = {
   player: {
     name: 'Strategos', w: 144, h: 136, footX: 55, footY: 130,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
     face: { x: 59, y: 29 },
     url: { idle: hero_playerIdle, walk: hero_playerWalk, attack: hero_playerAttack },
+  },
+  rival: {
+    name: 'Kassander', w: 144, h: 136, footX: 50, footY: 130,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 55, y: 27 },
+    url: { idle: hero_rivalIdle, walk: hero_rivalWalk, attack: hero_rivalAttack },
   },
 };
 

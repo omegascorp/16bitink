@@ -106,9 +106,10 @@ export class BattleView {
     this.addStill(scene.add.image(0, 0, MARKS_KEY).setOrigin(0).setDepth(DEPTH.marks));
     this.addStill(scene.add.image(0, 0, GRID_KEY).setOrigin(0).setDepth(DEPTH.grid));
     this.placeObstacles(state.obstacles, seed);
-    const hero = heroArt();
     heroes.forEach((has, side) => {
       if (!has) return;
+      // Side 1's hero is always the rival lord (monsters and garrisons fight without one).
+      const hero = heroArt(side === 1 ? 'rival' : 'player');
       const fig = new PixelFigure(scene, layer, hero.art, (pose) => PX_TEX.hero(hero.id, pose), HERO_FEET[side as 0 | 1], side === 1);
       if (opts.pose) fig.hold(opts.pose);
       this.heroes[side] = fig;
@@ -230,6 +231,15 @@ export class BattleView {
       case 'wait':
       case 'defend': {
         this.floatAt(this.units.get(ev.stack)!.fig, ev.type === 'wait' ? 'waits' : 'defends', INK.text);
+        await this.wait(250);
+        return;
+      }
+      case 'heal': {
+        const tent = this.units.get(ev.stack)!;
+        const t = this.units.get(ev.target)!;
+        await new Promise<void>((resolve) => void tent.fig.attack(resolve));
+        this.floatAt(t.fig, ev.amount ? `+${ev.amount} health` : 'tended', INK.good);
+        this.syncOne(after, ev.target);
         await this.wait(250);
         return;
       }

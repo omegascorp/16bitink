@@ -1,5 +1,6 @@
 import type { ArmySlot } from '../logic/army';
 import type { BuildingId } from '../logic/buildings';
+import type { MachineId } from '../logic/creatures';
 import type { HeroClass } from '../logic/hero';
 import type { MapObject } from '../logic/objects';
 import type { Amount } from '../logic/resources';
@@ -31,6 +32,8 @@ export interface MapDef {
     readonly y: number;
     readonly built: readonly BuildingId[];
     readonly guild: readonly SpellId[];
+    /** Troops holding it on day one (none if left out). */
+    readonly garrison?: readonly ArmySlot[];
   };
   /** The map's other towns, neutral and held by a garrison until a hero beats it and takes them. */
   readonly towns?: readonly {
@@ -41,26 +44,41 @@ export interface MapDef {
     readonly built: readonly BuildingId[];
     readonly guild: readonly SpellId[];
     readonly garrison: readonly ArmySlot[];
+    /** Held by the map's rival lord, or the player's from the start (else neutral). */
+    readonly owner?: 'rival' | 'player';
   }[];
-  readonly hero: {
-    readonly id: string;
-    readonly name: string;
-    readonly heroClass: HeroClass;
-    readonly x: number;
-    readonly y: number;
-    readonly attack: number;
-    readonly defense: number;
-    readonly power: number;
-    readonly knowledge: number;
-    readonly skills: Skills;
-    readonly spells: readonly SpellId[];
-    readonly hasBook: boolean;
-    readonly army: readonly ArmySlot[];
+  readonly hero: HeroDef;
+  /** A rival lord: an AI hero who rides out from the map's rival-held towns. */
+  readonly rival?: {
+    readonly hero: HeroDef;
+    /** What the rival builds, in order, one a day while the purse allows. */
+    readonly build: readonly BuildingId[];
+    readonly purse: Amount;
   };
   readonly purse: Amount;
+  /** What the Crown sends when the chapter rides on into this part (a part played straight on from the one before keeps its purse). */
+  readonly grant?: Amount;
   /** Buildings switched off on this map. */
   readonly off: readonly BuildingId[];
   /** A build order to teach the town: the hall marks the next of these not yet built. */
   readonly advice?: readonly BuildingId[];
   readonly seed: number;
+}
+
+/** A hero as a map places it. */
+export interface HeroDef {
+  readonly id: string;
+  readonly name: string;
+  readonly heroClass: HeroClass;
+  readonly x: number;
+  readonly y: number;
+  readonly attack: number;
+  readonly defense: number;
+  readonly power: number;
+  readonly knowledge: number;
+  readonly skills: Skills;
+  readonly spells: readonly SpellId[];
+  readonly hasBook: boolean;
+  readonly army: readonly ArmySlot[];
+  readonly machines?: readonly MachineId[];
 }

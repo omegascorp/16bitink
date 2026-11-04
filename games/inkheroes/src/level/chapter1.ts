@@ -7,7 +7,7 @@ import { lockedOn } from './unlocks';
  * A tutorial in one map: moving, a first fight, piles and mines, building
  * and hiring, then the warband.
  */
-export const ASHFORD: MapDef = {
+export const ASHFORD_LAND: MapDef = {
   id: 'ashford',
   name: 'Ashford',
   n: 1,

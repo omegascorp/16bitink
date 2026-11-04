@@ -48,7 +48,7 @@ const STYLE: Readonly<Partial<Record<CreatureId | 'hero', GaitStyle>>> = {
 };
 
 /** A unit's gait: its own, or its line's (an upgrade moves as its base). */
-export const gaitOf = (id: CreatureId | 'hero'): GaitStyle => STYLE[id] ?? STYLE[id === 'hero' ? 'hero' : lineOf(id)]!;
+export const gaitOf = (id: CreatureId | 'hero'): GaitStyle => STYLE[id] ?? STYLE[id === 'hero' ? 'hero' : lineOf(id)] ?? 'walk';
 
 /** Walk frames a second for each gait (six frames make a stride). */
 export const WALK_FPS: Readonly<Record<GaitStyle, number>> = { walk: 12, trot: 14, stomp: 10, bound: 14, gallop: 12, fly: 14 };

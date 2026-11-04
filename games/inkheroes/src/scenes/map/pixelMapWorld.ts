@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { MAP_COVER } from '../../art/pixel/map';
 import { BACKDROP } from '../../art/palette';
 import type { MapDef } from '../../level/types';
-import { gridOf, liveObjects, type Adventure } from '../../logic/adventure';
+import { gridOf, isSeen, liveObjects, type Adventure } from '../../logic/adventure';
 import type { Town } from '../../logic/town';
 import type { Terrain } from '../../logic/map';
 import type { MapObject, Owner } from '../../logic/objects';
@@ -25,7 +25,8 @@ const CHUNK_PX = 768;
 const FOOT_Y = 44;
 /** Over every figure and site: the planned path, then the fog. */
 const PATH_DEPTH = 1e6;
-const FOG_DEPTH = 2e6;
+/** The fog lies on the ground, under every figure: what stands on a seen tile shows whole (a tree's crown over the fog too), the rest is hidden until seen. */
+const FOG_DEPTH = FIGURE_DEPTH - 0.5;
 /** The planned path: reachable today (green, as in H3) and on later days (red). */
 const PATH_TODAY: Rgba = [143, 216, 96, 255];
 const PATH_LATER: Rgba = [224, 87, 74, 255];
@@ -101,12 +102,17 @@ export class PixelMapWorld {
   private readonly flags = new Map<string, Phaser.GameObjects.Image>();
   private readonly figures: PixelFigure[] = [];
   private readonly hero: PixelFigure;
+  /** The rival lord's figure, on a map that has one; shown only on tiles the player has seen. */
+  private readonly rival: PixelFigure | null;
+  private rivalRiding = false;
   private readonly pathMarks: Phaser.GameObjects.Image[] = [];
   private readonly markKeys: Record<string, string>;
   private readonly fogTex: Phaser.Textures.CanvasTexture;
   private readonly chunkKeys: string[] = [];
   private flagKeys: Partial<Record<Owner, string>> = {};
   private walking = false;
+  /** Pictures that stand on a tile and wait in the fog until it is seen: trees, rocks and towns with their flags. */
+  private readonly shrouded: { readonly obj: { setVisible(v: boolean): unknown }; readonly x: number; readonly y: number }[] = [];
   /** Each town's picture and the buildings it was drawn with (it is redrawn as the town grows). */
   private readonly townImgs = new Map<string, { img: Phaser.GameObjects.Image; built: string }>();
 
@@ -121,7 +127,9 @@ export class PixelMapWorld {
       const s = list[i]!;
       // The bridge lies flat under whoever crosses it.
       const depth = p.kind === 'bridge' ? FIGURE_DEPTH - 1 : FIGURE_DEPTH + p.y;
-      this.place(MAP_TEX.cover(p.kind, i), s, p.x, p.y, depth, p.flip);
+      const img = this.place(MAP_TEX.cover(p.kind, i), s, p.x, p.y, depth, p.flip);
+      // A bridge lies under the fog with the ground; everything else waits to be seen.
+      if (p.kind !== 'bridge') this.shrouded.push({ obj: img, x: Math.floor(p.x / MAP_TILE), y: Math.floor(p.y / MAP_TILE) });
     }
     for (const t of adv.towns) this.addTown(t);
     for (const o of def.objects) this.addObject(o);
@@ -129,6 +137,10 @@ export class PixelMapWorld {
     const feet = tileFeet(adv.hero.x, adv.hero.y);
     this.hero = new PixelFigure(scene, this.layer, h.art, (pose) => PX_TEX.hero(h.id, pose), feet, false);
     this.figures.push(this.hero);
+    const r = adv.rival?.hero;
+    const ra = heroArt('rival');
+    this.rival = r ? new PixelFigure(scene, this.layer, ra.art, (pose) => PX_TEX.hero(ra.id, pose), tileFeet(r.x, r.y), true) : null;
+    if (this.rival) this.figures.push(this.rival);
     this.markKeys = {
       dot: putBuffer(scene, drawMark('dot', PATH_TODAY)), ring: putBuffer(scene, drawMark('ring', PATH_LATER)),
       crossToday: putBuffer(scene, drawMark('cross', PATH_TODAY)), crossLater: putBuffer(scene, drawMark('cross', PATH_LATER)),
@@ -191,9 +203,11 @@ export class PixelMapWorld {
   private addTown(t: Town): void {
     const s = this.townSprite(t.id, t.built);
     const feet = tileFeet(t.x, t.y);
-    this.townImgs.set(t.id, { img: this.place(s.key, s.sprite, feet.x, feet.y + 14, FIGURE_DEPTH + feet.y), built: t.built.join() });
+    const img = this.place(s.key, s.sprite, feet.x, feet.y + 14, FIGURE_DEPTH + feet.y);
+    this.townImgs.set(t.id, { img, built: t.built.join() });
     // The flag flies from the keep at the back of the walled city.
     this.addFlag(`town-${t.id}`, t.owner, feet.x + 2, feet.y + 14 - s.sprite.h + 8, FIGURE_DEPTH + feet.y + 1);
+    this.shrouded.push({ obj: img, x: t.x, y: t.y }, { obj: this.flags.get(`town-${t.id}`)!, x: t.x, y: t.y });
   }
 
   private flagKey(owner: Owner): string {
@@ -227,12 +241,15 @@ export class PixelMapWorld {
   /** Brings every drawing in line with the state. */
   sync(adv: Adventure): void {
     const live = new Set(liveObjects(adv).map((o) => o.id));
-    for (const [id, obj] of this.sprites) obj.setVisible(live.has(id));
+    const seen = (x: number, y: number): boolean => isSeen(adv, this.def, x, y);
     for (const o of adv.objects) {
+      this.sprites.get(o.id)?.setVisible(live.has(o.id) && seen(o.x, o.y));
       const flag = this.flags.get(o.id);
-      if (flag) flag.setTexture(this.flagKey(o.owner === 'player' ? 'player' : o.owner === 'rival' ? 'rival' : 'neutral'));
+      if (flag) flag.setTexture(this.flagKey(o.owner === 'player' ? 'player' : o.owner === 'rival' ? 'rival' : 'neutral')).setVisible(seen(o.x, o.y));
     }
+    for (const s of this.shrouded) s.obj.setVisible(seen(s.x, s.y));
     if (!this.walking) this.placeHero(adv.hero.x, adv.hero.y);
+    if (!this.rivalRiding) this.placeRival(adv);
     for (const t of adv.towns) {
       this.flags.get(`town-${t.id}`)?.setTexture(this.flagKey(t.owner));
       const drawn = this.townImgs.get(t.id);
@@ -244,6 +261,47 @@ export class PixelMapWorld {
       drawn.img.setTexture(s.key).setDisplayOrigin(s.sprite.footX, s.sprite.footY).setPosition(feet.x, feet.y + 14);
     }
     this.drawFog(adv);
+  }
+
+  /** The rival lord where `adv` has him: shown if he rides and the player has seen his tile. */
+  placeRival(adv: Adventure): void {
+    const r = adv.rival?.hero;
+    if (!this.rival) return;
+    if (r) this.rival.setFeet(tileFeet(r.x, r.y).x, tileFeet(r.x, r.y).y);
+    this.rival.sprite.setVisible(!!r && isSeen(adv, this.def, r.x, r.y));
+  }
+
+  hideRival(): void {
+    this.rival?.sprite.setVisible(false);
+  }
+
+  /** Slides the rival lord one step into sight, riding; resolves when he gets there. */
+  walkRival(x: number, y: number, ms: number): Promise<void> {
+    const fig = this.rival;
+    if (!fig) return Promise.resolve();
+    const to = tileFeet(x, y);
+    // Out of the fog: he appears on the tile he comes from.
+    if (!fig.sprite.visible) {
+      fig.sprite.setVisible(true);
+      return Promise.resolve(fig.setFeet(to.x, to.y));
+    }
+    const from = { ...fig.feet };
+    if (to.x !== from.x) fig.face(to.x < from.x);
+    fig.walk();
+    this.rivalRiding = true;
+    const at = { t: 0 };
+    return new Promise((resolve) => {
+      this.scene.tweens.add({
+        targets: at, t: 1, duration: ms, ease: 'Linear',
+        onUpdate: () => fig.setFeet(from.x + (to.x - from.x) * at.t, from.y + (to.y - from.y) * at.t),
+        onComplete: () => {
+          fig.setFeet(to.x, to.y);
+          fig.idle();
+          this.rivalRiding = false;
+          resolve();
+        },
+      });
+    });
   }
 
   /** The hero's feet, map pixels. */

@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getSound } from '../host';
-import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, planPath, stepHero, type Adventure } from '../logic/adventure';
+import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, planPath, rivalHero, stepHero, type Adventure } from '../logic/adventure';
+import type { Army } from '../logic/army';
 import { creature, sizeWord, type CreatureId } from '../logic/creatures';
 import { MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
 import type { PathStep } from '../logic/path';
+import type { RivalReport } from '../logic/rival';
 import { SPELLS } from '../logic/spells';
 import { openPrompt } from './cards';
 import { DPR, toView } from './hidpi';
@@ -201,15 +203,14 @@ export class MapScene extends Phaser.Scene {
     const { adv, def } = this.session;
     const g = gridOf(def);
     if (x < 0 || y < 0 || x >= g.w || y >= g.h || !isSeen(adv, def, x, y)) return '';
+    const foe = rivalHero(adv);
+    if (foe && foe.x === x && foe.y === y && !adv.towns.some((t) => t.x === x && t.y === y)) return `${foe.name} of the Black Banner, leading ${armyWords(foe.army)}`;
     const town = adv.towns.find((t) => Math.abs(x - t.x) <= 1 && (y === t.y || y === t.y - 1));
     if (town) {
       if (town.owner === 'player') return `${town.name}: your town`;
       // A town not ours: who holds it, the way a monster is named.
-      const held = new Map<CreatureId, number>();
-      for (const s of town.garrison) if (s) held.set(s.creature, (held.get(s.creature) ?? 0) + s.count);
-      const parts = [...held].map(([c, n]) => `${sizeWord(n)} ${creature(c).plural}`);
-      const by = parts.length ? parts.slice(0, -1).join(', ') + (parts.length > 1 ? ' and ' : '') + parts[parts.length - 1] : 'nobody';
-      return `${town.name}: held by ${by}${town.id === def.goal.target ? ' (your goal)' : ''}`;
+      const lord = town.owner === 'rival' ? ` (${foe ? `${foe.name}'s` : 'the Black Banner\'s'} town${foe && foe.x === town.x && foe.y === town.y ? `, and ${foe.name} is in it` : ''})` : '';
+      return `${town.name}${lord}: held by ${armyWords(town.garrison)}${town.id === def.goal.target ? ' (your goal)' : ''}`;
     }
     const o = objectCovering(adv, x, y);
     if (!o) return '';
@@ -225,6 +226,15 @@ export class MapScene extends Phaser.Scene {
   }
 
   private tap(x: number, y: number): void {
+    // Tapping the rival lord heads for him (the walk ends in the fight).
+    const foe = rivalHero(this.session.adv);
+    if (foe && foe.x === x && foe.y === y && isSeen(this.session.adv, this.session.def, x, y) && !heroInGarrison(this.session.adv)) {
+      const end = this.path?.[this.path.length - 1];
+      if (end && end.x === x && end.y === y) void this.walk(this.path!);
+      else this.setPath(planPath(this.session.adv, this.session.def, x, y));
+      this.events.emit('status', this.describe(x, y));
+      return;
+    }
     const { adv, def } = this.session;
     const end = this.path?.[this.path.length - 1];
     this.events.emit('status', this.describe(x, y));
@@ -350,14 +360,44 @@ export class MapScene extends Phaser.Scene {
     return true;
   }
 
-  /** Opens the first waiting card, if any. */
+  /** Opens the first waiting card, if any; with none left, the fight the rival started. */
   showPrompts(): void {
+    const adv = this.session.adv;
+    if (!adv.prompts.length && adv.status === 'playing' && adv.rivalFight) {
+      this.startBattle(adv.rivalFight);
+      return;
+    }
     // No "is a card open" guard: a card that just closed is still active until the next frame, and openCard replaces any open card.
     openPrompt(this, this.session);
+  }
+
+  /** Shows the rival lord riding his path, on the tiles the player has seen (he slips through the rest unseen). */
+  async showRival(before: Adventure, report: RivalReport): Promise<void> {
+    if (!this.ready || !report.path.length) {
+      this.world.sync(this.session.adv);
+      return;
+    }
+    const { def } = this.session;
+    this.walking = true;
+    this.world.placeRival(before);
+    for (const t of report.path) {
+      if (isSeen(before, def, t.x, t.y)) await this.world.walkRival(t.x, t.y, STEP_MS);
+      else this.world.hideRival();
+    }
+    this.walking = false;
+    this.world.sync(this.session.adv);
   }
 
   /** Clears a planned path (the HUD calls it when the day ends). */
   clearPath(): void {
     this.setPath(null);
   }
+}
+
+/** "lots of Hoplites and several Slingers": an army as the map names it, like a monster. */
+function armyWords(army: Army): string {
+  const held = new Map<CreatureId, number>();
+  for (const s of army) if (s) held.set(s.creature, (held.get(s.creature) ?? 0) + s.count);
+  const parts = [...held].map(([c, n]) => `${sizeWord(n)} ${creature(c).plural}`);
+  return parts.length ? parts.slice(0, -1).join(', ') + (parts.length > 1 ? ' and ' : '') + parts[parts.length - 1] : 'nobody';
 }

@@ -65,6 +65,8 @@ export type Action =
   | { readonly type: 'shoot'; readonly target: number }
   | { readonly type: 'wait' }
   | { readonly type: 'defend' }
+  /** A First Aid Tent's turn: heals the top creature of a stack of its own side. */
+  | { readonly type: 'heal'; readonly target: number }
   | { readonly type: 'cast'; readonly spell: SpellId; readonly target: number };
 
 /** What happened, in order, for the battle scene to animate. */
@@ -74,6 +76,7 @@ export type BattleEvent =
   | { readonly type: 'spell'; readonly side: Side; readonly spell: SpellId; readonly target: number; readonly amount: number; readonly kills: number }
   | { readonly type: 'wait'; readonly stack: number }
   | { readonly type: 'defend'; readonly stack: number }
+  | { readonly type: 'heal'; readonly stack: number; readonly target: number; readonly amount: number }
   | { readonly type: 'morale'; readonly stack: number; readonly good: boolean }
   | { readonly type: 'turn'; readonly stack: number }
   | { readonly type: 'round'; readonly round: number }

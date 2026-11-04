@@ -1,6 +1,6 @@
 import type { Army } from './army';
 import type { Action, BattleEvent, BattleHero, BattleState, Side, Stack, Step } from './battleTypes';
-import { creature } from './creatures';
+import { creature, type CreatureId } from './creatures';
 import { hexAt, reachable, route, type Hex, COLS, ROWS } from './hex';
 import { adjacent, around, covers, facesTarget, footprintAt, headOf, isWide, occupiedHexes, shotDistance, tailFn, touching } from './footprint';
 import { roll, rollInt } from './rng';
@@ -15,7 +15,12 @@ export interface BattleSide {
   readonly army: Army;
   /** Morale from the army's make-up (see armyMorale). */
   readonly armyMorale?: number;
+  /** The hero's war machines (one of each at most). */
+  readonly machines?: readonly CreatureId[];
 }
+
+/** The rows war machines stand on, at the back of their side: rows no formation uses. */
+const MACHINE_ROWS: readonly number[] = [3, 7];
 
 /** Rows each army of 1–7 stacks lines up on: H3's loose formation (VCMI gameConfig.json layouts.default, 11 rows). */
 const FORMATION: readonly (readonly number[])[] = [[], [5], [2, 8], [2, 5, 8], [0, 4, 6, 10], [0, 2, 5, 8, 10], [0, 2, 4, 6, 8, 10], [0, 2, 4, 5, 6, 8, 10]];
@@ -39,6 +44,15 @@ export function createBattle(attacker: BattleSide, defender: BattleSide, seed: n
       stacks.push({
         id: stacks.length, side: s as Side, creature: slot!.creature, count: slot!.count, startCount: slot!.count, topHp: c.hp,
         hex: hexAt(col, rows[k]!), shots: c.shots ?? 0, retaliationsLeft: c.retaliations ?? 1, slot: i,
+        acted: false, waited: false, defending: false, moraleUsed: false, effects: [],
+      });
+    });
+    // War machines stand on the side's edge column, out of the formation; slot -1, -2 (they aren't army slots).
+    (side.machines ?? []).slice(0, MACHINE_ROWS.length).forEach((m, k) => {
+      const c = creature(m);
+      stacks.push({
+        id: stacks.length, side: s as Side, creature: m, count: 1, startCount: 1, topHp: c.hp,
+        hex: hexAt(s === 0 ? 0 : COLS - 1, MACHINE_ROWS[k]!), shots: c.shots ?? 0, retaliationsLeft: 0, slot: -1 - k,
         acted: false, waited: false, defending: false, moraleUsed: false, effects: [],
       });
     });
@@ -122,6 +136,8 @@ const isEnemy = (a: Stack, b: Stack): boolean => a.side !== b.side && alive(b);
 /** Whether a stack can shoot now: it has shots and no enemy stands next to either of its hexes. */
 export function canShoot(state: BattleState, s: Stack): boolean {
   if (!creature(s.creature).shots || s.shots <= 0) return false;
+  // A ballista shoots even with an enemy beside it.
+  if (creature(s.creature).machine) return true;
   return !state.stacks.some((o) => isEnemy(s, o) && adjacent(s, o));
 }
 
@@ -216,6 +232,16 @@ export function act(state: BattleState, action: Action): Step {
     case 'defend': {
       events.push({ type: 'defend', stack: me.id });
       return advance(update(s, me.id, (x) => ({ ...x, defending: true, acted: true })), events);
+    }
+    case 'heal': {
+      const target = stackById(s, action.target);
+      const most = creature(me.creature).heals ?? 0;
+      if (!most || target.side !== me.side || !alive(target) || creature(target.creature).machine) throw new Error('cannot heal that');
+      const r = rollInt(s.seed, Math.ceil(most / 2), most);
+      const amount = Math.min(r.value, creature(target.creature).hp - target.topHp);
+      events.push({ type: 'heal', stack: me.id, target: target.id, amount });
+      s = update({ ...s, seed: r.seed }, target.id, (x) => ({ ...x, topHp: x.topHp + amount }));
+      return advance(update(s, me.id, (x) => ({ ...x, acted: true })), events);
     }
   }
   return afterAction(s, me.id, events);
@@ -330,6 +356,11 @@ function newRound(s: BattleState): BattleState {
 /** Experience the winner earns: the HP of every enemy creature killed (H3). */
 export function experienceFor(s: BattleState, side: Side): number {
   return s.stacks.filter((x) => x.side !== side).reduce((n, x) => n + (x.startCount - x.count) * creature(x.creature).hp, 0);
+}
+
+/** The war machines a side still has standing, to put back with its hero. */
+export function machinesLeft(s: BattleState, side: Side): CreatureId[] {
+  return s.stacks.filter((x) => x.side === side && x.slot < 0 && alive(x)).map((x) => x.creature);
 }
 
 /** What's left of a side's army, slot by slot, to put back on the map. */

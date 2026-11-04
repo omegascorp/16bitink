@@ -1,14 +1,14 @@
 import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getSound } from '../host';
-import { enterTown, garrisonHero, heroInGarrison, heroTown, heroVisiting, leadOut, playerTowns, townById, withTown, type Adventure } from '../logic/adventure';
+import { buyMachine, cantBuyMachine, enterTown, garrisonHero, heroInGarrison, heroTown, heroVisiting, leadOut, playerTowns, townById, withTown, type Adventure } from '../logic/adventure';
 import type { Town } from '../logic/town';
 import { moveSlot, type Army } from '../logic/army';
 import { BUILDINGS, type BuildingId } from '../logic/buildings';
-import { creature, type CreatureId } from '../logic/creatures';
+import { creature, MACHINES, type CreatureId, type MachineId } from '../logic/creatures';
 import { canAfford, describeAmount, pay } from '../logic/resources';
 import { lineOf } from '../logic/creatures';
-import { advisedNext, build, cantBuild, growthOf, hire, hireable, SPELLBOOK_COST, stockOf, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
+import { advisedNext, build, cantBuild, growthOf, hire, hireable, hireAll, SPELLBOOK_COST, stockOf, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
 import { PX_TEX } from './battle/pixelAssets';
 import { FILLS } from './battle/pixelFrames';
 import { PixelFrame, TextLabel, texturePixels } from './battle/pixelUi';
@@ -195,6 +195,7 @@ export class TownScene extends Phaser.Scene {
       pickBuilding: (id) => this.buildingCard(id),
       pickDwelling: (id) => this.recruitCard(id),
       hireAll: (id) => this.hire(id, hireable(this.town(), id, this.session.adv.purse)),
+      hireEverything: () => this.hireEverything(),
       buyBook: () => this.buyBook(),
     };
   }
@@ -243,9 +244,37 @@ export class TownScene extends Phaser.Scene {
       this.buildingCard(id);
       return;
     }
+    if (id === 'blacksmith') {
+      this.smithyCard();
+      return;
+    }
     const opens = OPENS[id];
     if (opens) this.openScreen(opens);
     else this.toast(`${BUILDINGS[id].name}: ${saysOf(id).toLowerCase()}`);
+  }
+
+  /** The Blacksmith's wares: a Ballista and a First Aid Tent for the visiting hero, one of each. */
+  private smithyCard(): void {
+    const adv = this.session.adv;
+    const lines = MACHINES.map((m) => {
+      const c = creature(m);
+      const why = cantBuyMachine(adv, m);
+      return `${c.name}, ${c.cost.gold} gold: ${m === 'ballista' ? 'shoots the enemy every round' : `heals up to ${c.heals} a round`}${why ? ` (${why})` : ''}.`;
+    });
+    const buttons: CardButton[] = MACHINES.filter((m) => !cantBuyMachine(adv, m)).map((m) => ({
+      label: `Buy a ${creature(m).name}`, note: `${creature(m).cost.gold} gold`, onClick: () => this.buyMachine(m),
+    }));
+    buttons.push({ label: 'Close', kind: 'plain', onClick: () => undefined });
+    openCard(this, { title: 'Blacksmith', body: `War machines ride with the hero and act by themselves in battle.\n${lines.join('\n')}`, buttons });
+  }
+
+  private buyMachine(m: MachineId): void {
+    const adv = this.session.adv;
+    if (cantBuyMachine(adv, m)) return;
+    this.session.set(buyMachine(adv, m));
+    getSound(this)?.play('hire');
+    this.toast(`${adv.hero.name} has a ${creature(m).name} now`);
+    this.refresh();
   }
 
   /** A building's card from the hall: what it does and costs, and Build when it can be built today. */
@@ -253,6 +282,10 @@ export class TownScene extends Phaser.Scene {
     const adv = this.session.adv;
     const def = BUILDINGS[id];
     const why = cantBuild(this.town(), id, adv.purse, this.session.def.off);
+    if (id === 'blacksmith' && why === 'Built') {
+      this.smithyCard();
+      return;
+    }
     const cost = Object.keys(def.cost).length ? `Costs ${describeAmount(def.cost)}.` : 'Costs nothing.';
     const state = !why ? 'The masons are ready.' : why === 'Built' ? 'Built.' : why === 'Not enough resources' ? 'Not enough resources yet.' : why === 'Not on this map' ? 'It opens on a later map of the campaign.' : `${why}.`;
     const buttons: CardButton[] = why ? [{ label: 'Close', kind: 'plain', onClick: () => undefined }] : [{ label: 'Build', onClick: () => this.tryBuild(id) }, { label: 'Not now', kind: 'plain', onClick: () => undefined }];
@@ -303,6 +336,23 @@ export class TownScene extends Phaser.Scene {
     } catch (err) {
       this.toast(err instanceof Error && err.message === 'No room in the army' ? 'No room: the army has seven companies already' : 'Cannot hire that many');
     }
+  }
+
+  /** Every dwelling's troops the purse affords, strongest first, into the visiting hero's army (else the garrison). */
+  private hireEverything(): void {
+    const adv = this.session.adv;
+    const toHero = this.visiting(adv);
+    const here = this.town(adv);
+    const r = hireAll(here, toHero ? adv.hero.army : here.garrison, adv.purse);
+    if (!r.hired.length) {
+      this.toast('Nothing to hire that you can afford');
+      return;
+    }
+    const town = toHero ? r.town : { ...r.town, garrison: r.army };
+    this.session.set(withTown({ ...adv, purse: r.purse, hero: toHero ? { ...adv.hero, army: r.army } : adv.hero }, town));
+    getSound(this)?.play('hire');
+    this.toast(`Hired ${r.hired.map((h) => `${h.count} ${creature(h.id).plural}`).join(', ')}`);
+    this.refresh();
   }
 
   /** A company's card, as in battle: its stats and abilities, and Upgrade when this town has built a higher level of its line. */

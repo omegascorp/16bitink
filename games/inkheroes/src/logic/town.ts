@@ -95,6 +95,31 @@ export function hire(t: Town, id: CreatureId, count: number, p: Purse, army: Arm
   return { town: { ...t, stock: { ...t.stock, [line]: stockOf(t, id) - count } }, purse: pay(p, creature(id).cost, count), army: next };
 }
 
+/**
+ * Hires every unit `t` has that the purse affords (beyond `keep` gold) into
+ * `army`, the strongest lines first, so the gold goes to the best troops; a
+ * kind with no room in the army waits in its dwelling.
+ */
+export function hireAll(t: Town, army: Army, p: Purse, keep = 0): { town: Town; army: Army; purse: Purse; hired: { id: CreatureId; count: number }[] } {
+  let town = t;
+  let a = army;
+  let purse = p;
+  const hired: { id: CreatureId; count: number }[] = [];
+  for (const base of [...dwellings(t)].sort((x, y) => creature(y).level - creature(x).level)) {
+    const id = bestUnit(town, base);
+    if (!id) continue;
+    const spare = { ...purse, gold: Math.max(0, purse.gold - keep) };
+    const n = hireable(town, id, spare);
+    if (n <= 0 || !addTroops(a, id, n)) continue;
+    const r = hire(town, id, n, spare, a);
+    town = r.town;
+    a = r.army;
+    purse = { ...r.purse, gold: r.purse.gold + Math.min(keep, purse.gold) };
+    hired.push({ id, count: n });
+  }
+  return { town, army: a, purse, hired };
+}
+
 /** What upgrading `count` of `from` to `to` costs: the difference in their prices. */
 export function upgradeCost(from: CreatureId, to: CreatureId, count: number): Amount {
   const a = creature(from).cost;

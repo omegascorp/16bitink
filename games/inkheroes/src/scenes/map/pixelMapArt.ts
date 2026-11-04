@@ -70,8 +70,10 @@ export function loadMapArt(scene: Phaser.Scene, creatures: readonly string[], wo
     const art = unitArt(id);
     sheet(PX_TEX.unit(id, 'idle'), art.url.idle, art.w, art.h);
   }
-  const hero = heroArt();
-  for (const pose of POSES) sheet(PX_TEX.hero(hero.id, pose), hero.art.url[pose], hero.art.w, hero.art.h);
+  for (const who of ['player', 'rival'] as const) {
+    const hero = heroArt(who);
+    for (const pose of POSES) sheet(PX_TEX.hero(hero.id, pose), hero.art.url[pose], hero.art.w, hero.art.h);
+  }
   keys.push(...loadUiArt(scene));
   const font = loadUiFont().catch((e: unknown) => console.warn('map UI font failed to load', e));
   const done = (): void => keys.forEach((k) => nearest(scene, k));

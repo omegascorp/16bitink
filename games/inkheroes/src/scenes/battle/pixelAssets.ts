@@ -43,9 +43,9 @@ export function faceOf(scene: Phaser.Scene, key: string, art: UnitArt): Pixels {
   return texturePixels(scene, key, { x: c.x - FACE / 2, y: c.y - FACE / 2, w: FACE, h: FACE });
 }
 
-/** The battle hero's art (both sides use the player's for now). */
-export function heroArt(): { id: string; art: UnitArt } {
-  const id = HERO_ART.player ? 'player' : Object.keys(HERO_ART)[0]!;
+/** A hero's art: the player's ('player') or the rival lord's ('rival'), falling back to the player's. */
+export function heroArt(who: 'player' | 'rival' = 'player'): { id: string; art: UnitArt } {
+  const id = HERO_ART[who] ? who : HERO_ART.player ? 'player' : Object.keys(HERO_ART)[0]!;
   return { id, art: HERO_ART[id]! };
 }
 
@@ -80,8 +80,10 @@ export function loadBattleArt(scene: Phaser.Scene, creatures: readonly string[],
     const art = unitArt(id);
     for (const pose of POSES) sheet(PX_TEX.unit(id, pose), art.url[pose], art);
   }
-  const hero = heroArt();
-  for (const pose of POSES) sheet(PX_TEX.hero(hero.id, pose), hero.art.url[pose], hero.art);
+  for (const who of ['player', 'rival'] as const) {
+    const hero = heroArt(who);
+    for (const pose of POSES) sheet(PX_TEX.hero(hero.id, pose), hero.art.url[pose], hero.art);
+  }
   const bg = backdropTerrain(terrain);
   if (SCENERY[bg]) image(PX_TEX.scenery(bg), SCENERY[bg]!.url);
   else image(PX_TEX.bg(bg), BATTLE_BG[bg]!);

@@ -1,8 +1,7 @@
 import type Phaser from 'phaser';
-import { getHost } from '../host';
 import { nextMap } from '../level/maps';
-import type { MapDef } from '../level/types';
-import { answerPrompt } from '../logic/adventure';
+import { answerPrompt, playerTowns } from '../logic/adventure';
+import { partDays } from '../logic/chapter';
 import { PRIMARY_NAMES } from '../logic/hero';
 import { blotsFor } from '../logic/save';
 import { RANK_NAMES, SKILLS } from '../logic/skills';
@@ -52,14 +51,17 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
   }
   if (adv.status === 'won') {
     const next = nextMap(session.def);
-    const blots = blotsFor(adv.day, session.def.parDays, adv.lostStacks);
+    const days = partDays(adv);
+    const blots = blotsFor(days, session.def.parDays, adv.lostStacks);
+    // The last part built: the chapter is done. Otherwise the land opens further and the hero rides on.
+    const end = next ? `\nThe road goes on: ${next.name} lies ahead.` : '\nThe Border March is won: that is the end of chapter 1.';
     openCard(scene, {
       title: 'Victory!',
-      body: `${session.def.goal.text[0]!.toUpperCase()}${session.def.goal.text.slice(1)}: done, on day ${adv.day}.\n${adv.day <= session.def.parDays ? 'Within the par of ' : 'Par was '}${session.def.parDays} days${adv.lostStacks === 0 ? ', and not one company lost.' : '.'}`,
+      body: `${session.def.goal.text[0]!.toUpperCase()}${session.def.goal.text.slice(1)}: done in ${days} ${days === 1 ? 'day' : 'days'}.\n${days <= session.def.parDays ? 'Within the par of ' : 'Par was '}${session.def.parDays} days${adv.lostStacks === 0 ? ', and not one company lost.' : '.'}${end}`,
       blots,
       buttons: [
-        // The campaign goes on: the next map opens with this win.
-        ...(next ? [{ label: `On to ${next.name}`, onClick: () => playNext(scene, next) }] : []),
+        ...(next ? [{ label: `Ride on to ${next.name}`, onClick: () => rideOnward(scene, session) }] : []),
+        // A part left here won rides on when the chapter is continued from the menu.
         { label: 'Back to the campaign', kind: next ? 'plain' as const : undefined, onClick: () => toMenu(scene, session, null) },
       ],
     });
@@ -68,7 +70,7 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
   if (adv.status === 'lost') {
     openCard(scene, {
       title: 'Defeat',
-      body: `${adv.hero.name}'s army has been beaten. Try this day again with a different plan?`,
+      body: `${playerTowns(adv).length ? `${adv.hero.name}'s army has been beaten.` : 'Your last town has fallen.'} Try this day again with a different plan?`,
       buttons: [
         { label: 'Replay the day', onClick: () => {
           session.replayDay();
@@ -80,16 +82,16 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
   }
 }
 
-/** Leaves the map won for the next one in the campaign. */
-function playNext(scene: Phaser.Scene, def: MapDef): void {
+/** The part won, the land opens further and the hero rides straight on. */
+function rideOnward(scene: Phaser.Scene, session: Session): void {
   for (const key of ['MapHud', 'Card', 'Town', 'Battle']) if (key !== scene.scene.key) scene.scene.stop(key);
-  Session.begin(scene, getHost(scene), def);
+  session.rideOn(scene);
   scene.scene.start('Map');
 }
 
-/** Leaves the map for the campaign menu. */
-export function toMenu(scene: Phaser.Scene, session: Session, result: 'lose' | 'quit' | null): void {
-  if (result) session.abandon(scene, result);
+/** Leaves the map for the campaign menu (the game is kept: a lost day comes back to its morning). */
+export function toMenu(scene: Phaser.Scene, session: Session, result: 'lose' | null): void {
+  if (result) session.leaveLost(scene);
   for (const key of ['Map', 'MapHud', 'Card', 'Town', 'Battle']) if (key !== scene.scene.key) scene.scene.stop(key);
   scene.scene.start('Menu');
 }
