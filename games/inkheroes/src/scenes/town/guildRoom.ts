@@ -3,19 +3,15 @@ import type { Adventure } from '../../logic/adventure';
 import { itemQuality } from '../../logic/items';
 import { guildSpells, type Town } from '../../logic/town';
 import { SPELLS, type SpellId } from '../../logic/spells';
-import { drawRule, drawSocket } from '../battle/pixelFrames';
-import { INK, PixelButton, PixelFrame, PixelImage, putBuffer, TextLabel, UI_TEX } from '../battle/pixelUi';
+import { INK, PixelButton, UI_TEX } from '../battle/pixelUi';
 import { QUALITY_RIM } from '../hud/gearPanel';
 import { bookStand, spellFacts, spellNote } from './guildData';
-import { guildLayout, ROOM, type GuildCell, type GuildLayout } from './guildLayout';
+import { guildLayout, type GuildCell, type GuildLayout } from './guildLayout';
+import { roomIn, TownRoom } from './townRoom';
 
-const CLOSE = { w: 50, h: 18 } as const;
 const LINE = 15;
 const BUY_H = 42;
 const BUY_W = 110;
-const PLATE = [34, 24, 17, 226] as const;
-const FILL = [34, 24, 17, 255] as const;
-const ROOM_SHADE = 0.28;
 const BOOK = 64;
 const BOOK_SOCKET = BOOK + 4;
 const ROOMY_STAND = 190;
@@ -33,72 +29,16 @@ export interface GuildActions {
  * and on a stand the spellbook itself, the guild's for sale or the hero's.
  * Tapping outside closes it.
  */
-export class GuildRoom {
-  private readonly root: Phaser.GameObjects.Container;
-  private readonly owned: { destroy(): void }[] = [];
-  private readonly keys: string[] = [];
-
-  constructor(private readonly scene: Phaser.Scene, adv: Adventure, private readonly town: Town, picked: SpellId | null, area: { w: number; h: number }, private readonly act: GuildActions, depth: number) {
+export class GuildRoom extends TownRoom {
+  constructor(scene: Phaser.Scene, adv: Adventure, private readonly town: Town, picked: SpellId | null, area: { w: number; h: number }, private readonly act: GuildActions, depth: number) {
     const spells = guildSpells(town);
-    const room = { w: area.w - 8, h: area.h - 8 };
-    const l = guildLayout(room, spells.length);
-    const x = Math.floor((area.w - l.w) / 2);
-    const y = Math.max(4, Math.floor((area.h - l.h) / 2));
-    const shade = scene.add.rectangle(0, 0, area.w, area.h, 0x0a0604, 0.5).setOrigin(0).setDepth(depth).setInteractive();
-    shade.on('pointerup', () => act.close());
-    this.owned.push(shade);
-    this.root = scene.add.container(x, y).setDepth(depth + 1);
-    this.drawRoom(l);
+    const l = guildLayout(roomIn(area), spells.length);
+    super(scene, area, l, { title: 'Mage Guild', art: UI_TEX.guildRoom }, () => act.close(), depth);
     const pick = picked && spells.includes(picked) ? picked : spells[0] ?? null;
     spells.forEach((id, i) => this.tile(l, l.tiles[i]!, id, id === pick, adv));
     for (const f of l.floors) this.label(f.text, f.x, f.y, { align: 'left', anchor: { x: 0, y: 0 }, ink: INK.title });
     if (pick) this.detail(l, adv, pick);
     this.stand(l, adv);
-  }
-
-  /** The window, the library behind everything (as much of it as fits, the shelves' middle first), and the title. */
-  private drawRoom(l: GuildLayout): void {
-    const { scene } = this;
-    const panel = new PixelFrame(scene, l.w, l.h, { rim: 'bronze', thick: 2, fill: FILL, studs: true });
-    panel.img.setInteractive();
-    const inner = { w: l.w - 4, h: Math.min(l.h - 4, ROOM.h) };
-    const crop = { x: Math.floor((ROOM.w - inner.w) / 2), y: Math.floor((ROOM.h - inner.h) / 2) };
-    const art = scene.add.image(2 - crop.x, 2 - crop.y, UI_TEX.guildRoom).setOrigin(0).setCrop(crop.x, crop.y, inner.w, inner.h);
-    const dim = scene.add.rectangle(2, 2, inner.w, inner.h, 0x0a0604, ROOM_SHADE).setOrigin(0);
-    this.root.add([panel.img, art, dim]);
-    this.owned.push(panel);
-    const title = this.label('Mage Guild', Math.floor(l.w / 2), 7, { kind: 'title', outline: true, anchor: { x: 0.5, y: 0 } });
-    const rule = new PixelImage(scene, drawRule(title.width + 40), { x: 0.5, y: 0 }).setPosition(Math.floor(l.w / 2), 8 + title.height);
-    this.root.add(rule.img);
-    this.owned.push(rule);
-    const close = new PixelButton(scene, { w: CLOSE.w, h: CLOSE.h, label: 'Close', onClick: () => this.act.close() });
-    close.setPosition(l.w - CLOSE.w - 6, 6);
-    this.root.add(close.root);
-    this.owned.push(close);
-  }
-
-  private label(text: string, x: number, y: number, opts: ConstructorParameters<typeof TextLabel>[1]): TextLabel {
-    const t = new TextLabel(this.scene, opts).setText(text).setPosition(x, y);
-    this.root.add(t.img);
-    this.owned.push(t);
-    return t;
-  }
-
-  private plate(x: number, y: number, w: number, h: number, rim: 'bronze' | 'gold' = 'bronze'): PixelFrame {
-    const p = new PixelFrame(this.scene, w, h, { rim, fill: PLATE }).setPosition(x, y);
-    this.root.add(p.img);
-    this.owned.push(p);
-    return p;
-  }
-
-  /** `texture` in a frame `size` across, shown at `scale` of its 64 pixels. */
-  private socket(x: number, y: number, size: number, rim: Parameters<typeof drawSocket>[1], texture: string, scale: number): Phaser.GameObjects.Image {
-    const key = putBuffer(this.scene, drawSocket(size, rim));
-    this.keys.push(key);
-    const frame = this.scene.add.image(x, y, key).setOrigin(0);
-    const icon = this.scene.add.image(x + Math.floor(size / 2), y + Math.floor(size / 2), texture).setScale(scale);
-    this.root.add([frame, icon]);
-    return frame;
   }
 
   private tile(l: GuildLayout, at: GuildCell, id: SpellId, picked: boolean, adv: Adventure): void {
@@ -161,11 +101,5 @@ export class GuildRoom {
       this.root.add(buy.root);
       this.owned.push(buy);
     }
-  }
-
-  destroy(): void {
-    for (const o of this.owned) o.destroy();
-    this.root.destroy();
-    for (const k of this.keys) if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
   }
 }

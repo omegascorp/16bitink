@@ -4,6 +4,8 @@ const PAD = 8;
 const GAP = 6;
 const HEAD = 28;
 const TILE_W = 90;
+/** A shop's tile: its name and price take a line each. */
+const WARE_W = 124;
 const NAME_H = 30;
 const FLOOR_H = 15;
 const DETAIL_H = 52;
@@ -43,12 +45,13 @@ interface Shape {
   readonly icon: GuildIcon;
   /** Each floor on its own row under its name; else every spell in one row. */
   readonly floors: boolean;
+  readonly tileW?: number;
 }
 
 function arrange(room: { w: number; h: number }, count: number, shape: Shape): GuildLayout {
-  const { side, icon, floors } = shape;
+  const { side, icon, floors, tileW = TILE_W } = shape;
   const w = Math.min(ROOM.w, room.w);
-  const tile = { w: TILE_W, h: icon + FRAME + 4 + NAME_H };
+  const tile = { w: tileW, h: icon + FRAME + 4 + NAME_H };
   const left = side ? w - STAND_W - GAP - PAD : w - PAD;
   const region = left - PAD;
   const fit = Math.max(1, Math.floor((region + GAP) / (tile.w + GAP)));
@@ -93,6 +96,23 @@ export function guildLayout(room: { w: number; h: number }, count: number): Guil
     { side: true, icon: 32, floors: false },
     { side: false, icon: 32, floors: false },
   ];
-  const options = shapes.map((s) => arrange(room, count, s));
+  return roomiest(room, count, shapes);
+}
+
+/** The roomiest layout of a shop's `count` wares that fits `room`, in the same parts as the guild's. */
+export function wareLayout(room: { w: number; h: number }, count: number): GuildLayout {
+  const shapes: readonly Shape[] = [
+    { side: true, icon: 64, floors: false, tileW: WARE_W },
+    { side: false, icon: 64, floors: false, tileW: WARE_W },
+    { side: true, icon: 32, floors: false, tileW: WARE_W },
+    { side: false, icon: 32, floors: false, tileW: WARE_W },
+  ];
+  // A stand beside wares stacked in a column leaves their words too little room.
+  const inRow = (l: GuildLayout): boolean => !l.stand.side || l.tiles.every((t) => t.y === l.tiles[0]!.y);
+  return roomiest(room, count, shapes, inRow);
+}
+
+function roomiest(room: { w: number; h: number }, count: number, shapes: readonly Shape[], ok: (l: GuildLayout) => boolean = () => true): GuildLayout {
+  const options = shapes.map((s) => arrange(room, count, s)).filter(ok);
   return options.find((o) => o.h <= room.h) ?? options[options.length - 1]!;
 }

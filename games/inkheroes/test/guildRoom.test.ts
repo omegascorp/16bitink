@@ -6,7 +6,8 @@ import { armyOf } from '../src/logic/army';
 import type { Hero } from '../src/logic/hero';
 import { addTo } from '../src/logic/resources';
 import { bookStand, spellFacts, spellNote } from '../src/scenes/town/guildData';
-import { guildLayout, ROOM } from '../src/scenes/town/guildLayout';
+import { guildLayout, ROOM, wareLayout } from '../src/scenes/town/guildLayout';
+import { firstWare, heroMachine, wareOf } from '../src/scenes/town/smithData';
 
 // The room above the strip, as each screen leaves it.
 const ROOMS = [[1504, 492], [1016, 500], [836, 238], [659, 235], [382, 490], [352, 300]] as const;
@@ -113,5 +114,72 @@ describe('the testing cheat', () => {
 
   it('leaves nothing more to play', () => {
     expect(() => act(conquer(state), { type: 'wait' })).toThrow();
+  });
+});
+
+describe('the Blacksmith’s room', () => {
+  // The room above the strip, with the fifth button on a landscape phone that stacks.
+  const SHOP_ROOMS = [...ROOMS, [659, 165]] as const;
+  for (const [w, h] of SHOP_ROOMS) {
+    it(`fits two machines in ${w} x ${h}`, () => {
+      const l = wareLayout({ w, h }, 2);
+      expect(l.h).toBeLessThanOrEqual(h);
+      expect(l.w).toBeLessThanOrEqual(Math.min(w, ROOM.w));
+      expect(l.tile.w).toBeGreaterThanOrEqual(120);
+      for (const t of l.tiles) {
+        expect(t.x + l.tile.w).toBeLessThanOrEqual(l.stand.side ? l.stand.x : l.w);
+        expect(t.y + l.tile.h).toBeLessThanOrEqual(l.detail.y);
+      }
+      expect(l.detail.y + l.detail.h).toBeLessThanOrEqual(l.h);
+      expect(l.stand.y + l.stand.h).toBeLessThanOrEqual(l.h);
+    });
+  }
+
+  it('never stacks the wares beside the stand, where their words would not fit', () => {
+    for (const [w, h] of SHOP_ROOMS) {
+      const l = wareLayout({ w, h }, 2);
+      expect(l.detail.w).toBeGreaterThanOrEqual(300);
+    }
+  });
+
+  const inTown = (gear: Hero['gear'], gold = 10000): Adventure => {
+    const adv = startAdventure(ASHFORD);
+    const town = { ...adv.towns[0]!, built: [...adv.towns[0]!.built, 'blacksmith' as const] };
+    return { ...adv, towns: [town, ...adv.towns.slice(1)], hero: { ...adv.hero, x: town.x, y: town.y, gear }, purse: addTo(adv.purse, { gold: gold - adv.purse.gold }) };
+  };
+
+  it('sells to a hero in town with no machine', () => {
+    const adv = inTown({});
+    const w = wareOf(adv, adv.towns[0]!, 'catapult');
+    expect(w).toMatchObject({ name: 'Catapult', price: '1500 gold', grade: 'Common', owned: false, buy: { enabled: true } });
+  });
+
+  it('says a finer machine replaces the one the hero has', () => {
+    const adv = inTown({ machine: 'catapult' });
+    const town = adv.towns[0]!;
+    expect(wareOf(adv, town, 'catapult')).toMatchObject({ owned: true, buy: null });
+    expect(wareOf(adv, town, 'catapult2').note).toBe('Replaces the Catapult, which goes to the bag');
+  });
+
+  it('greys Buy when the purse falls short', () => {
+    const adv = inTown({}, 100);
+    expect(wareOf(adv, adv.towns[0]!, 'catapult')).toMatchObject({ note: 'Not enough gold', buy: { enabled: false } });
+  });
+
+  it('shows the wares but sells nothing while the hero is away', () => {
+    const adv = inTown({});
+    const away = { ...adv, hero: { ...adv.hero, x: adv.hero.x + 3 } };
+    expect(wareOf(away, away.towns[0]!, 'catapult')).toMatchObject({ buy: null, note: `${adv.hero.name} must be here to buy it` });
+  });
+
+  it('opens on the first machine the hero doesn’t have', () => {
+    const adv = inTown({ machine: 'catapult' });
+    const wares = (['catapult', 'catapult2'] as const).map((m) => wareOf(adv, adv.towns[0]!, m));
+    expect(firstWare(wares)?.item).toBe('catapult2');
+  });
+
+  it('names what the hero brings', () => {
+    expect(heroMachine(inTown({}))).toEqual({ item: null, name: 'No war machine' });
+    expect(heroMachine(inTown({ machine: 'catapult2' }))).toEqual({ item: 'catapult2', name: 'Bronze Catapult' });
   });
 });

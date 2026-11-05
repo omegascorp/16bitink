@@ -6,8 +6,8 @@ import { FIGURE_DEPTH } from './pixelFigure';
 const tex = (key: string): string => `px-siege-${key}`;
 
 /** Ground pieces of the wall, there in every state. */
-const FIXED = ['wall0', 'wall2', 'wall3', 'wall7', 'wall8', 'wall10'] as const;
-/** The moat and bridge lie on the ground, under the grid and the figures. */
+const FIXED = ['wallNorthInner', 'wallSouthInner', 'gateLink', 'gateTurret', 'farWall', 'nearWall'] as const;
+/** The court, moat and bridge lie on the ground, under the grid and the figures. */
 const GROUND_DEPTH = 0.5;
 /** A stone's flight, ms, and how high it arcs, native pixels. */
 const FLIGHT_MS = 620;
@@ -17,7 +17,7 @@ const DUST = { count: 14, spread: 26, rise: 22, ms: 420, tint: 0xd8c4a0 } as con
 
 /** Where a stone lands on each part, native pixels. */
 const PART_AT: Readonly<Record<SiegePart, { x: number; y: number }>> = {
-  wallNorth: { x: 667, y: 110 }, wallGateNorth: { x: 601, y: 226 }, gate: { x: 579, y: 262 }, wallGateSouth: { x: 601, y: 310 }, wallSouth: { x: 667, y: 436 },
+  wallNorth: { x: 667, y: 110 }, wallGateNorth: { x: 601, y: 226 }, gate: { x: 556, y: 262 }, wallGateSouth: { x: 601, y: 310 }, wallSouth: { x: 667, y: 436 },
   keep: { x: 799, y: 160 }, towerNorth: { x: 689, y: 62 }, towerSouth: { x: 689, y: 470 },
 };
 
@@ -35,21 +35,27 @@ export function siegeArt(): { key: string; url: string }[] {
  */
 export class SiegeView {
   private readonly parts = new Map<string, Phaser.GameObjects.Image>();
-  private readonly rubble: Phaser.GameObjects.Image[] = [];
+  private readonly keepShadow: Phaser.GameObjects.Image;
+  /** Every piece placed. */
+  private readonly images: Phaser.GameObjects.Image[] = [];
   private readonly full: Siege['parts'];
   private readonly bridge: Phaser.GameObjects.Image | null;
 
   constructor(private readonly scene: Phaser.Scene, private readonly layer: Phaser.GameObjects.Layer, siege: Siege) {
     this.full = siege.parts;
     if (siege.moat) this.place('moat', GROUND_DEPTH);
+    // The court lies over the moat's inner bank, so a breach opens on paving.
+    this.place('court', GROUND_DEPTH);
+    this.keepShadow = this.place('keepShadow', GROUND_DEPTH);
     this.bridge = siege.moat ? this.place('bridge', GROUND_DEPTH) : null;
-    for (const k of FIXED) this.place(k);
-    for (const w of WALLS) {
-      this.parts.set(w, this.place(`${w}-2`));
-      this.rubble.push(this.place(`${w}-rubble`).setName(w));
-    }
+    for (const k of FIXED) this.place(`${k}-2`);
+    for (const w of WALLS) this.parts.set(w, this.place(`${w}-2`));
     this.parts.set('gate', this.place('gate-1'));
-    for (const t of TOWERS) if (t in siege.parts) this.parts.set(t, this.place(`${t}-1`));
+    // A tower with no place at this town's level still stands, unmanned: the painted walls end on it.
+    for (const t of TOWERS) {
+      const tower = this.place(`${t}-1`);
+      if (t in siege.parts) this.parts.set(t, tower);
+    }
     this.show(siege);
   }
 
@@ -57,6 +63,7 @@ export class SiegeView {
     const p = SIEGE_ART[key]!;
     const img = this.scene.add.image(p.x, p.y, tex(key)).setOrigin(0).setDepth(depth ?? FIGURE_DEPTH + p.foot);
     this.layer.add(img);
+    this.images.push(img);
     return img;
   }
 
@@ -68,7 +75,7 @@ export class SiegeView {
     }
     this.swap('gate', `gate-${standing(siege, 'gate') ? 1 : 0}`);
     for (const t of TOWERS) if (t in siege.parts) this.swap(t, `${t}-${standing(siege, t) ? 1 : 0}`);
-    for (const r of this.rubble) r.setVisible(!standing(siege, r.name as SiegePart));
+    this.keepShadow.setVisible(standing(siege, 'keep'));
     this.bridge?.setVisible(!standing(siege, 'gate'));
   }
 
@@ -113,8 +120,6 @@ export class SiegeView {
   }
 
   destroy(): void {
-    for (const img of this.parts.values()) img.destroy();
-    for (const img of this.rubble) img.destroy();
-    this.bridge?.destroy();
+    for (const img of this.images) img.destroy();
   }
 }

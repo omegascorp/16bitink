@@ -15,6 +15,7 @@ import iconMenu from './ui/icon-menu.png?url';
 import iconHall from './ui/icon-hall.png?url';
 import iconRecruit from './ui/icon-recruit.png?url';
 import iconLeave from './ui/icon-leave.png?url';
+import iconSmith from './ui/icon-smith.png?url';
 import statAttack from './ui/stat-attack.png?url';
 import statDefense from './ui/stat-defense.png?url';
 import statShots from './ui/stat-shots.png?url';
@@ -61,6 +62,7 @@ import spellArtLightningBolt from './ui/spellArt-lightningBolt.png?url';
 import spellArtBless from './ui/spellArt-bless.png?url';
 import spellArtBloodlust from './ui/spellArt-bloodlust.png?url';
 import guildRoom from './ui/guildRoom.png?url';
+import smithRoom from './ui/smithRoom.png?url';
 import itemBronzeHelm from './ui/item-bronzeHelm.png?url';
 import itemBronzeCuirass from './ui/item-bronzeCuirass.png?url';
 import itemBronzeBracers from './ui/item-bronzeBracers.png?url';
@@ -94,7 +96,7 @@ import resCrystal from './ui/res-crystal.png?url';
 import resGems from './ui/res-gems.png?url';
 import laurel from './ui/laurel.png?url';
 
-export type IconName = 'wait' | 'defend' | 'spell' | 'auto' | 'endDay' | 'town' | 'menu' | 'hall' | 'recruit' | 'leave';
+export type IconName = 'wait' | 'defend' | 'spell' | 'auto' | 'endDay' | 'town' | 'menu' | 'hall' | 'recruit' | 'leave' | 'smith';
 
 export const ICONS: Readonly<Record<IconName, string>> = {
   wait: iconWait,
@@ -107,6 +109,7 @@ export const ICONS: Readonly<Record<IconName, string>> = {
   hall: iconHall,
   recruit: iconRecruit,
   leave: iconLeave,
+  smith: iconSmith,
 };
 
 export type StatName = 'attack' | 'defense' | 'shots' | 'damage' | 'health' | 'left' | 'speed' | 'mana' | 'power' | 'knowledge' | 'morale' | 'luck' | 'sight';
@@ -172,6 +175,9 @@ export const SPELL_ART: Readonly<Record<SpellId, string>> = {
 
 /** The guild's library (768 x 340). */
 export const GUILD_ROOM = guildRoom;
+
+/** The Blacksmith's forge (768 x 340). */
+export const SMITH_ROOM = smithRoom;
 
 /** The gear's item icons (64 x 64). */
 export const ITEM_ICONS: Readonly<Record<ItemId, string>> = {

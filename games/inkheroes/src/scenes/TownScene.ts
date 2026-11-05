@@ -8,7 +8,7 @@ import type { Town } from '../logic/town';
 import { moveSlot, splitSlot, type Army } from '../logic/army';
 import { BUILDINGS, type BuildingId } from '../logic/buildings';
 import { canManTower, creature, type CreatureId } from '../logic/creatures';
-import { itemDef, itemSays, SOLD_MACHINES, type SoldMachine } from '../logic/items';
+import { itemDef, type SoldMachine } from '../logic/items';
 import { canAfford, describeAmount, pay } from '../logic/resources';
 import { lineOf } from '../logic/creatures';
 import { tilesOf } from '../logic/map';
@@ -32,12 +32,15 @@ import { HEAD, TownBar, type SlotRef, type TownScreen } from './town/townBar';
 import { fortScreen, hallScreen, platePicture, upgradableArmies, type ScreenActions } from './town/townScreens';
 import { STAGE } from './town/townStage';
 import { GuildRoom } from './town/guildRoom';
+import { SmithRoom } from './town/smithRoom';
 import { TownWindow } from './town/townWindow';
 
 /** A press that moves further than this (UI px) is a drag, not a tap. */
 const DRAG = 6;
 /** Depths: the townscape, the suggestion on it, a screen over them, the strip, messages. */
-const DEPTH = { plate: 20, window: 30, bar: 50, toast: 70, info: 90 } as const;
+const DEPTH = { plate: 20, window: 30, bar: 50, coveringWindow: 60, toast: 70, info: 90 } as const;
+/** Below this much town over the strip, a building's room covers the strip: its Buy and words wouldn't fit above it. */
+const ROOM_MIN_H = 173;
 /** The list of towns on the right of the town, above the strip: as wide as the map's, and how far it keeps from the edge and the strip. */
 const TOWNS = { w: 120, gap: 4 } as const;
 /** The testing cheat's button, on the right just under the build plate, which takes the whole top of a phone. */
@@ -52,7 +55,7 @@ const OPENS: Partial<Record<BuildingId, TownScreen>> = {
   guardhouse: 'fort', archeryRange: 'fort', griffinTower: 'fort', barracks: 'fort', monastery: 'fort', tiltyard: 'fort', seraphSpire: 'fort',
   guardhouse2: 'fort', archeryRange2: 'fort', griffinTower2: 'fort', barracks2: 'fort', monastery2: 'fort', tiltyard2: 'fort', seraphSpire2: 'fort',
   guardhouse3: 'fort', archeryRange3: 'fort', griffinTower3: 'fort', barracks3: 'fort', monastery3: 'fort', tiltyard3: 'fort', seraphSpire3: 'fort',
-  mageGuild1: 'guild', mageGuild2: 'guild',
+  mageGuild1: 'guild', mageGuild2: 'guild', blacksmith: 'smith',
 };
 
 /** What a building does, in words (a dwelling names the creature it hires by its name in this game). */
@@ -75,9 +78,11 @@ export class TownScene extends Phaser.Scene {
   private size = { w: 0, h: 0, k: 1 };
   private view: PixelTownView | null = null;
   private bar: TownBar | null = null;
-  private window: TownWindow | GuildRoom | null = null;
+  private window: TownWindow | GuildRoom | SmithRoom | null = null;
   /** The spell being read in the guild. */
   private guildPick: SpellId | null = null;
+  /** The machine being looked at in the Blacksmith. */
+  private smithPick: SoldMachine | null = null;
   private plate: BuildPlate | null = null;
   /** The player's towns, a tap away from each other. */
   private towns: TownList | null = null;
@@ -150,7 +155,7 @@ export class TownScene extends Phaser.Scene {
     void loadTownArt(this).then(() => {
       if (!this.sys.isActive()) return;
       this.ready = true;
-      this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r), canCarry: (r) => this.canPick(r), dropSlot: (from, to) => this.moveCompany(from, to), split: () => this.openSplit(), off: () => this.session.def.off }, DEPTH.bar);
+      this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r), canCarry: (r) => this.canPick(r), dropSlot: (from, to) => this.moveCompany(from, to), split: () => this.openSplit() }, DEPTH.bar);
       this.drawAll();
     });
   }
@@ -205,7 +210,7 @@ export class TownScene extends Phaser.Scene {
 
   private drawAll(): void {
     if (!this.bar) return;
-    this.bar.layout(this.size.w, this.size.h);
+    this.bar.layout(this.size.w, this.size.h, this.town());
     this.bar.refresh(this.session.adv, this.town(), this.picked);
     this.drawView();
     this.drawPlate();
@@ -294,8 +299,15 @@ export class TownScene extends Phaser.Scene {
     const adv = this.session.adv;
     const act = this.screenActions();
     const area = { w: this.size.w, h: this.bar.top };
+    const covers = area.h < ROOM_MIN_H;
+    const room = covers ? this.size : area;
+    const depth = covers ? DEPTH.coveringWindow : DEPTH.window;
     if (this.screen === 'guild') {
-      this.window = new GuildRoom(this, adv, this.town(), this.guildPick, area, { close: () => this.openScreen(null), buy: () => this.buyBook(), pick: (id) => this.pickSpell(id) }, DEPTH.window);
+      this.window = new GuildRoom(this, adv, this.town(), this.guildPick, room, { close: () => this.openScreen(null), buy: () => this.buyBook(), pick: (id) => this.pickSpell(id) }, depth);
+      return;
+    }
+    if (this.screen === 'smith') {
+      this.window = new SmithRoom(this, adv, this.town(), this.smithPick, room, { close: () => this.openScreen(null), buy: (m) => this.buyMachine(m), pick: (m) => this.pickWare(m) }, depth);
       return;
     }
     const spec = this.screen === 'hall' ? hallScreen(this, adv, this.town(), this.session.def.off, act) : fortScreen(this, adv, this.town(), act);
@@ -305,6 +317,12 @@ export class TownScene extends Phaser.Scene {
   private pickSpell(id: SpellId): void {
     if (id === this.guildPick) return;
     this.guildPick = id;
+    this.drawWindow();
+  }
+
+  private pickWare(m: SoldMachine): void {
+    if (m === this.smithPick) return;
+    this.smithPick = m;
     this.drawWindow();
   }
 
@@ -336,26 +354,9 @@ export class TownScene extends Phaser.Scene {
       this.buildingCard(id);
       return;
     }
-    if (id === 'blacksmith') {
-      this.smithyCard();
-      return;
-    }
     const opens = OPENS[id];
     if (opens) this.openScreen(opens);
     else this.toast(`${BUILDINGS[id].name}: ${saysOf(id).toLowerCase()}`);
-  }
-
-  /** The Blacksmith's wares for the visiting hero: each a piece of gear, a finer one replacing what they have. */
-  private smithyCard(): void {
-    const adv = this.session.adv;
-    const buttons: CardButton[] = SOLD_MACHINES.flatMap((m) => {
-      const why = cantBuyMachine(adv, m);
-      if (why && why !== 'Not enough gold') return [];
-      return [{ label: itemDef(m).name, note: `${creature(m).cost.gold} gold · ${itemSays(m)}`, picture: UI_TEX.item(m), pictureScale: 0.5, kind: 'crown' as const, onClick: () => this.buyMachine(m) }];
-    });
-    buttons.push({ label: 'Close', kind: 'plain', onClick: () => undefined });
-    const stands = buttons.length > 1 ? 'Only a war machine can break a town’s walls. It rides with the hero and works by itself in battle.' : cantBuyMachine(adv, 'catapult') ?? '';
-    openCard(this, { title: 'Blacksmith', body: stands, buttons });
   }
 
   private buyMachine(m: SoldMachine): void {
@@ -377,7 +378,7 @@ export class TownScene extends Phaser.Scene {
     const def = BUILDINGS[id];
     const why = cantBuild(this.town(), id, adv.purse, this.session.def.off);
     if (id === 'blacksmith' && why === 'Built') {
-      this.smithyCard();
+      this.openScreen('smith');
       return;
     }
     const cost = Object.keys(def.cost).length ? `Costs ${describeAmount(def.cost)}.` : 'Costs nothing.';

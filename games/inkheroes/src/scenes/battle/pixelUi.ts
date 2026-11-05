@@ -1,6 +1,6 @@
 import type { ItemId } from '../../logic/items';
 import Phaser from 'phaser';
-import { GUILD_ROOM, ICONS, ITEM_ICONS, RESOURCE_ICONS, SKILL_ICONS, SLOT_ICONS, SPELL_ART, SPELL_ICONS, STAT_ICONS, type IconName, type SlotIcon, type StatName } from '../../art/pixel/ui';
+import { GUILD_ROOM, SMITH_ROOM, ICONS, ITEM_ICONS, RESOURCE_ICONS, SKILL_ICONS, SLOT_ICONS, SPELL_ART, SPELL_ICONS, STAT_ICONS, type IconName, type SlotIcon, type StatName } from '../../art/pixel/ui';
 import type { Resource } from '../../logic/resources';
 import type { SkillId } from '../../logic/skills';
 import type { SpellId } from '../../logic/spells';
@@ -27,6 +27,7 @@ export const UI_TEX = {
   spell: (s: SpellId) => `pxui-spell-${s}`,
   spellArt: (s: SpellId) => `pxui-spellArt-${s}`,
   guildRoom: 'pxui-guildRoom',
+  smithRoom: 'pxui-smithRoom',
   res: (r: Resource) => `pxui-res-${r}`,
 } as const;
 
@@ -52,6 +53,7 @@ export function loadUiArt(scene: Phaser.Scene): string[] {
     ...(Object.entries(SPELL_ICONS) as [SpellId, string][]).map(([n, url]): [string, string] => [UI_TEX.spell(n), url]),
     ...(Object.entries(SPELL_ART) as [SpellId, string][]).map(([n, url]): [string, string] => [UI_TEX.spellArt(n), url]),
     [UI_TEX.guildRoom, GUILD_ROOM],
+    [UI_TEX.smithRoom, SMITH_ROOM],
     ...(Object.entries(ITEM_ICONS) as [ItemId, string][]).map(([n, url]): [string, string] => [UI_TEX.item(n), url]),
     ...(Object.entries(SLOT_ICONS) as [SlotIcon, string][]).map(([n, url]): [string, string] => [UI_TEX.slot(n), url]),
     ...(Object.entries(RESOURCE_ICONS) as [Resource, string][]).map(([n, url]): [string, string] => [UI_TEX.res(n), url]),

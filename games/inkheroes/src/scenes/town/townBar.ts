@@ -1,9 +1,9 @@
 import type Phaser from 'phaser';
+import type { IconName } from '../../art/pixel/ui';
 import { calendar, heroInGarrison, heroVisiting, type Adventure } from '../../logic/adventure';
-import type { BuildingId } from '../../logic/buildings';
 import type { Town } from '../../logic/town';
 import { MAX_TOWERS } from '../../logic/siege';
-import { has, income, towerPlaces, towersOf } from '../../logic/town';
+import { income, towerPlaces, towersOf } from '../../logic/town';
 import { faceOf, heroArt, PX_TEX } from '../battle/pixelAssets';
 import { drawPortrait, drawSocket } from '../battle/pixelFrames';
 import { INK, PixelButton, PixelFrame, PixelImage, TextLabel, UI_TEX } from '../battle/pixelUi';
@@ -11,9 +11,9 @@ import { ArmyDrag } from '../hud/armyDrag';
 import { ArmyRow } from '../hud/armyRow';
 import { armyRowW, armyRowOf } from '../hud/armySlots';
 import { PurseRow, PURSE_BAR_H, PURSE_ROW_W } from '../hud/purseRow';
-import { armiesW, armyH, BTN, BUTTONS_GRID_W, BUTTONS_W, GAP, HEAD_GAP, LINE, NARROW_ROUND, PAD, ROW_GAP, stripLayout } from './stripLayout';
+import { armiesW, armyH, BTN, buttonGrid, buttonsGridW, buttonsW, cellsW, GAP, HEAD_GAP, LINE, NARROW_ROUND, PAD, ROW_GAP, stripLayout, townButtons, type TownButton } from './stripLayout';
 
-export type TownScreen = 'hall' | 'fort' | 'guild';
+export type TownScreen = 'hall' | 'fort' | 'guild' | 'smith';
 /** A slot of a row; `i` HEAD is the row's head (the crest or the hero's face): picking the hero there moves them with every company. */
 export type SlotRef = { readonly army: 'hero' | 'garrison' | 'tower'; readonly i: number };
 export const HEAD = -1;
@@ -43,8 +43,6 @@ export interface TownBarActions {
   dropSlot(from: SlotRef, to: SlotRef): void;
   /** Split the picked company. */
   split(): void;
-  /** What this map keeps closed. */
-  off(): readonly BuildingId[];
 }
 
 const SPLIT = { w: 100, h: 30 } as const;
@@ -58,8 +56,9 @@ const PANEL_FILL = [34, 24, 17, 246] as const;
  * hero, slot by slot (tap one, then another, to move troops; tap the
  * hero's face, then the other row, to move the hero with every company,
  * or drag a company there; a picked company can be split); Hall, Fort,
- * Guild and Leave, two by two; under it all the purse and the date. On a narrow screen
- * the buttons and the town's lines stack above the armies.
+ * the Guild and the Blacksmith once built, and Leave, in two rows; under it
+ * all the purse and the date. On a narrow screen the buttons and the town's
+ * lines stack above the armies.
  */
 export class TownBar {
   private readonly owned: { destroy(): void }[] = [];
@@ -85,7 +84,8 @@ export class TownBar {
   private towersHidden = false;
   private readonly buttons: PixelButton[];
   private narrow = false;
-  private buttonsH = 0;
+  /** What the buttons were last made for. */
+  private buttonsKey = '';
   private armiesAt = { x: 0, y: 0 };
   /** Where the strip begins on screen. */
   top = 0;
@@ -109,7 +109,6 @@ export class TownBar {
     this.splitBtn = new PixelButton(scene, { w: SPLIT.w, h: SPLIT.h, label: 'Split', rim: 'gold', onClick: () => actions.split() });
     this.splitBtn.root.setDepth(depth + 1).setVisible(false);
     this.buttons = [];
-    this.makeButtons(BTN.narrowH);
   }
 
   private text(opts: ConstructorParameters<typeof TextLabel>[1]): TextLabel {
@@ -119,21 +118,24 @@ export class TownBar {
     return t;
   }
 
-  private makeButtons(h: number): void {
+  private makeButtons(names: readonly TownButton[], h: number, narrow: boolean): void {
     const actions = this.actions;
     for (const b of this.buttons) b.destroy();
     this.buttons.length = 0;
-    const specs = [
-      { label: 'Hall', icon: 'hall' as const, onClick: () => actions.open('hall') },
-      { label: 'Fort', icon: 'recruit' as const, onClick: () => actions.open('fort') },
-      { label: 'Guild', icon: 'spell' as const, onClick: () => actions.open('guild') },
-      { label: 'Leave', icon: 'leave' as const, rim: 'gold' as const, onClick: () => actions.leave() },
-    ];
-    for (const s of specs) {
-      const btn = new PixelButton(this.scene, { w: BTN.w, h, label: s.label, icon: s.icon, stacked: true, rim: s.rim, onClick: s.onClick });
+    const specs: Readonly<Record<TownButton, { label: string; icon: IconName; rim?: 'gold'; onClick(): void }>> = {
+      hall: { label: 'Hall', icon: 'hall', onClick: () => actions.open('hall') },
+      fort: { label: 'Fort', icon: 'recruit', onClick: () => actions.open('fort') },
+      guild: { label: 'Guild', icon: 'spell', onClick: () => actions.open('guild') },
+      smith: { label: 'Smith', icon: 'smith', onClick: () => actions.open('smith') },
+      leave: { label: 'Leave', icon: 'leave', rim: 'gold', onClick: () => actions.leave() },
+    };
+    const grid = buttonGrid(names.length);
+    names.forEach((name, i) => {
+      const s = specs[name];
+      const btn = new PixelButton(this.scene, { w: narrow ? BTN.w : cellsW(grid[i]!.span), h, label: s.label, icon: s.icon, stacked: true, rim: s.rim, onClick: s.onClick });
       btn.root.setDepth(this.depth + 1);
       this.buttons.push(btn);
-    }
+    });
   }
 
   /** The crest, the hero's face and both rows, `slot` pixels across. */
@@ -186,14 +188,16 @@ export class TownBar {
     this.faces = null;
   }
 
-  /** Lays the strip out for a `w` × `h` screen; where its top lands. */
-  layout(w: number, h: number): number {
-    const { narrow, slot, townW } = stripLayout(w, h, PURSE_BAR_H);
+  /** Lays the strip out for town `t` on a `w` × `h` screen; where its top lands. */
+  layout(w: number, h: number, t: Town): number {
+    const names = townButtons(t.built);
+    const { narrow, slot, townW } = stripLayout(w, h, PURSE_BAR_H, names.length);
     if (slot !== this.slot) this.makeFaces(slot);
     const buttonsH = narrow ? BTN.narrowH : slot;
-    if (narrow !== this.narrow || buttonsH !== this.buttonsH) this.makeButtons(buttonsH);
+    const key = `${names.join()}:${buttonsH}:${narrow}`;
+    if (key !== this.buttonsKey) this.makeButtons(names, buttonsH, narrow);
+    this.buttonsKey = key;
     this.narrow = narrow;
-    this.buttonsH = buttonsH;
     const barH = narrow ? NARROW_ROUND + armyH(slot) : PAD + armyH(slot) + PAD;
     const purseTop = h - PURSE_BAR_H + 2;
     this.top = purseTop - barH;
@@ -214,7 +218,8 @@ export class TownBar {
 
   private layoutWide(w: number, townW: number): void {
     const armies = armiesW(this.slot);
-    const left = Math.floor((w - (townW + GAP + armies + GAP + BUTTONS_GRID_W)) / 2);
+    const count = this.buttons.length;
+    const left = Math.floor((w - (townW + GAP + armies + GAP + buttonsGridW(count))) / 2);
     const y = this.top + PAD;
     this.name.setPosition(left, y);
     this.goldIcon.setPosition(left, y + LINE + 4);
@@ -222,15 +227,16 @@ export class TownBar {
     this.status.setWrap(townW).setPosition(left, y + LINE * 2 + 9);
     this.splitBtn.setPosition(left, y + armyH(this.slot) - SPLIT.h);
     this.placeArmies(left + townW + GAP, y);
-    // Two by two, in line with the armies' rows.
+    // In line with the armies' rows.
     const bx = left + townW + GAP + armies + GAP;
-    this.buttons.forEach((b, i) => b.setPosition(bx + (i % 2) * (BTN.w + BTN.gap), y + Math.floor(i / 2) * (this.slot + ROW_GAP)));
+    const grid = buttonGrid(count);
+    this.buttons.forEach((b, i) => b.setPosition(bx + grid[i]!.col * (BTN.w + BTN.gap), y + grid[i]!.row * (this.slot + ROW_GAP)));
   }
 
   private layoutNarrow(w: number): void {
     const armies = armiesW(this.slot);
     let y = this.top + PAD;
-    const bx = Math.floor((w - BUTTONS_W) / 2);
+    const bx = Math.floor((w - buttonsW(this.buttons.length)) / 2);
     this.buttons.forEach((b, i) => b.setPosition(bx + i * (BTN.w + BTN.gap), y));
     y += BTN.narrowH + ROW_GAP;
     const left = Math.floor((w - armies) / 2);
@@ -311,8 +317,6 @@ export class TownBar {
     f.heroLit.setVisible((here || held) && heroPicked);
     f.emptyFace.img.setVisible(!here);
     this.away.setText(held ? `${adv.hero.name} is in the garrison` : `${adv.hero.name} is away`).img.setVisible(!here);
-    this.buttons[2]?.setEnabled(has(t, 'mageGuild1'));
-    this.buttons[2]?.root.setVisible(!this.actions.off().includes('mageGuild1'));
   }
 
   destroy(): void {

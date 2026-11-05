@@ -3,7 +3,7 @@ import { UNIT_ART } from '../src/art/pixel/manifest';
 import { armyOf, moveSlot, splitSlot } from '../src/logic/army';
 import { faceBox, FACE } from '../src/scenes/battle/pixelFaces';
 import { armyRowW, fitSlot, splitCount } from '../src/scenes/hud/armySlots';
-import { stripLayout } from '../src/scenes/town/stripLayout';
+import { buttonGrid, buttonsGridW, buttonsW, stripLayout, townButtons } from '../src/scenes/town/stripLayout';
 
 const army = armyOf([{ creature: 'spearman', count: 10 }, { creature: 'bowman', count: 1 }]);
 
@@ -114,5 +114,34 @@ describe('the town’s strip', () => {
       const { narrow, slot, townW } = stripLayout(w, 800, 22);
       if (!narrow) expect(townW + 8 + (slot * 8 + 6 + 12) + 8 + 115 + 12).toBeLessThanOrEqual(w);
     }
+  });
+
+  it('shows the Guild and the Blacksmith only once they stand', () => {
+    expect(townButtons([])).toEqual(['hall', 'fort', 'leave']);
+    expect(townButtons(['mageGuild1'])).toEqual(['hall', 'fort', 'guild', 'leave']);
+    expect(townButtons(['blacksmith'])).toEqual(['hall', 'fort', 'smith', 'leave']);
+    expect(townButtons(['mageGuild1', 'blacksmith', 'tavern'])).toEqual(['hall', 'fort', 'guild', 'smith', 'leave']);
+  });
+
+  it('leaves no hole in the grid: the last button takes what is left of its row', () => {
+    expect(buttonGrid(3)).toEqual([{ col: 0, row: 0, span: 1 }, { col: 1, row: 0, span: 1 }, { col: 0, row: 1, span: 2 }]);
+    expect(buttonGrid(4)[3]).toEqual({ col: 1, row: 1, span: 1 });
+    expect(buttonGrid(5).at(-1)).toEqual({ col: 1, row: 1, span: 2 });
+  });
+
+  it('never runs off the screen with all five buttons', () => {
+    expect(buttonsGridW(4)).toBe(115);
+    expect(buttonsGridW(5)).toBe(174);
+    for (let w = 320; w < 1600; w += 7) {
+      const { narrow, slot, townW } = stripLayout(w, 800, 22, 5);
+      if (narrow) expect(buttonsW(5)).toBeLessThanOrEqual(w);
+      else expect(townW + 8 + (slot * 8 + 6 + 12) + 8 + buttonsGridW(5) + 12).toBeLessThanOrEqual(w);
+    }
+  });
+
+  it('keeps a landscape phone low with four buttons or fewer', () => {
+    expect(stripLayout(667, 375, 22, 3).narrow).toBe(false);
+    expect(stripLayout(667, 375, 22, 4).narrow).toBe(false);
+    expect(stripLayout(844, 390, 22, 5).narrow).toBe(false);
   });
 });
