@@ -41,7 +41,7 @@ Each is modular: it's rendered alone, and the game swaps its state in place. Key
 | `wallNorth`, `wallSouth` | 2 whole, 1 cracked, 0 breached | The breakable stretches |
 | `wallGateNorth`, `wallGateSouth` | 2, 1, 0 | The round towers either side of the gate. These are the game's two stretches beside the gate |
 | `gate` | 1 whole, 0 broken | The gatehouse: two square turrets on the gate's hex with the passage between them |
-| `keep`, `towerNorth`, `towerSouth` | 1, 0 | The towers companies stand on |
+| `keep`, `towerNorth`, `towerSouth` | 1, 0 | The towers companies stand on. The keep includes its steps |
 | `wallNorthInner`, `wallSouthInner`, `wallSouthEnd`, `farWall` | 2 | Never break |
 | `nearWall` | 2 | The wall along the field's bottom edge, nearest the viewer. Never breaks, and the game shows it see-through |
 
@@ -76,6 +76,7 @@ Ask for the surface only, and list what must not change. The sentence about stay
 - **The near wall stands in front of the bottom row.** It would hide those figures, so `ghost` in `install.py` bakes its transparency into the sprite: 34% for the face, 50% for the walk and battlements, so its line still reads. It sorts over every figure, so it's cut around the south tower rather than drawn over it. `COURT_END` stops the court at its foot.
 - **Keep the model's outline.** `sheets.py` takes only colour from the painting. PixelLab drifts and redraws edges a little, and the model's outline keeps everything on the hexes.
 - **Sorting is art direction.** `SORT` in `install.py` sets where each part sits among the figures. It isn't always its true foot: the upper arm and the gate sort early, or a figure outside them would be hidden. The keep and south tower sort just behind the company standing on them.
+- **The keep stands behind the last column (user), level with the gate,** so it hides no one and can stay tall. A company needs a hex, so the keep holds `hexAt(14, 5)`, the outermost hex of its row, and its steps cover that hex so the block makes sense on screen. The defender's hero stood there, so at a siege it stands below the keep (`heroFeet`). The formation row on that hex starts one column forward (`KEEP_ROW`).
 - **Keep the corner towers low.** The north tower's company must stay on a 16:9 screen, whose top edge is `y = 0`. The south tower stands a row past the arm's last hex, so its foot may run off the screen, which is fine (user). It stays low so it doesn't hide the court hex behind it. Its hex is still row 10's, which `src/logic/siege.ts` calls `towerSouth`.
 - **The bridge is the gate's only moving part.** `SiegeView` lowers it when a defender's path crosses the gate or the bridge (`throughGate`), keeps it down while anyone stands there, and leaves it down once the gate falls. It shows at a town with no moat too, or a gate opening there couldn't be seen.
 - **The moat is painted around the gate.** It bows out to the west at the gate's row, so the gatehouse stands in its inner edge and the bridge's end lands on the far bank. It stops at `y = 540`, above the south tower's foot, which only tall phones see.

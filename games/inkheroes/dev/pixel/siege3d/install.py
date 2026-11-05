@@ -33,7 +33,7 @@ SOUTH_TOWER = (709, 549)
 # the near wall sorts on its true foot, over every figure; it's cut around the south tower instead (`ghost`).
 SORT = {
     'farWall': 30, 'towerNorth': 40, 'wallNorth': 86, 'wallNorthInner': 128, 'wallGateNorth': 212,
-    'gate': 254, 'keep': 297, 'wallGateSouth': 346, 'wallSouthInner': 382, 'wallSouth': 466, 'wallSouthEnd': 507, 'towerSouth': 509, 'nearWall': 560,
+    'gate': 140, 'keep': 297, 'wallGateSouth': 346, 'wallSouthInner': 382, 'wallSouth': 466, 'wallSouthEnd': 507, 'towerSouth': 509, 'nearWall': 560,
 }
 # Where a piece lies flat on the ground it needs only these.
 MOAT_AT = (508, 40)
@@ -56,6 +56,9 @@ FAR_END = 16
 NEAR_FACE_Y = 508
 NEAR_TOP_ALPHA = 0.5
 NEAR_FACE_ALPHA = 0.34
+# The keep's steps, west of its body, came back from the painting nearly white: warmed to sit on the court's stone.
+STEPS_END_X = 820
+STEPS_TONE = np.array([0.82, 0.74, 0.6])
 # The court stops at the near wall's foot.
 COURT_END = 559
 
@@ -146,6 +149,13 @@ def ghost(im: Image.Image, at: tuple[int, int], tower: Image.Image, tower_at: tu
     return Image.fromarray(a.astype(np.uint8))
 
 
+def warm_steps(im: Image.Image, x: int) -> Image.Image:
+    """The keep with its steps toned down, `x` being its left edge in the world."""
+    a = np.array(im, dtype=float)
+    a[:, :STEPS_END_X - x, :3] *= STEPS_TONE
+    return Image.fromarray(a.astype(np.uint8))
+
+
 def main(castle: str) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     for f in OUT.glob('*.png'):
@@ -155,6 +165,8 @@ def main(castle: str) -> None:
         part = key.rsplit('-', 1)[0]
         im = Image.open(HERE / 'out' / castle / 'painted' / f'{key}.png').convert('RGBA')
         at = (p['wx'], p['wy'])
+        if part == 'keep':
+            im = warm_steps(im, at[0])
         if part in ('farWall', 'nearWall'):
             im, at = long_far_wall(im, at)
         if part == 'nearWall':
