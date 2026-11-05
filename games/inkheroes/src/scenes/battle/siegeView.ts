@@ -6,19 +6,21 @@ import { FIGURE_DEPTH } from './pixelFigure';
 const tex = (key: string): string => `px-siege-${key}`;
 
 /** Ground pieces of the wall, there in every state. */
-const FIXED = ['wallNorthInner', 'wallSouthInner', 'gateLink', 'gateTurret', 'farWall', 'nearWall'] as const;
+const FIXED = ['wallNorthInner', 'wallSouthInner', 'wallSouthEnd', 'farWall', 'nearWall'] as const;
 /** The court, moat and bridge lie on the ground, under the grid and the figures. */
 const GROUND_DEPTH = 0.5;
 /** A stone's flight, ms, and how high it arcs, native pixels. */
 const FLIGHT_MS = 620;
 const ARC = 90;
+/** How long the bridge takes to lower or lift, ms. */
+const BRIDGE_MS = 280;
 const SHAKE = { ms: 90, strength: 0.004 } as const;
 const DUST = { count: 14, spread: 26, rise: 22, ms: 420, tint: 0xd8c4a0 } as const;
 
 /** Where a stone lands on each part, native pixels. */
 const PART_AT: Readonly<Record<SiegePart, { x: number; y: number }>> = {
-  wallNorth: { x: 667, y: 110 }, wallGateNorth: { x: 601, y: 226 }, gate: { x: 556, y: 262 }, wallGateSouth: { x: 601, y: 310 }, wallSouth: { x: 667, y: 436 },
-  keep: { x: 799, y: 160 }, towerNorth: { x: 689, y: 62 }, towerSouth: { x: 689, y: 470 },
+  wallNorth: { x: 667, y: 110 }, wallGateNorth: { x: 601, y: 226 }, gate: { x: 578, y: 250 }, wallGateSouth: { x: 601, y: 310 }, wallSouth: { x: 667, y: 436 },
+  keep: { x: 799, y: 160 }, towerNorth: { x: 689, y: 62 }, towerSouth: { x: 709, y: 520 },
 };
 
 export const partAt = (part: SiegePart): { x: number; y: number } => PART_AT[part];
@@ -39,7 +41,12 @@ export class SiegeView {
   /** Every piece placed. */
   private readonly images: Phaser.GameObjects.Image[] = [];
   private readonly full: Siege['parts'];
-  private readonly bridge: Phaser.GameObjects.Image | null;
+  /** The bridge, hinged at the gatehouse. The door faces away from this view, so the bridge is what shows the gate open. */
+  private readonly bridge: Phaser.GameObjects.Image;
+  private gateUp = true;
+  /** Someone stands in the gateway, so it can't shut. */
+  private held = false;
+  private open = false;
 
   constructor(private readonly scene: Phaser.Scene, private readonly layer: Phaser.GameObjects.Layer, siege: Siege) {
     this.full = siege.parts;
@@ -47,7 +54,8 @@ export class SiegeView {
     // The court lies over the moat's inner bank, so a breach opens on paving.
     this.place('court', GROUND_DEPTH);
     this.keepShadow = this.place('keepShadow', GROUND_DEPTH);
-    this.bridge = siege.moat ? this.place('bridge', GROUND_DEPTH) : null;
+    this.bridge = this.place('bridge', GROUND_DEPTH);
+    this.bridge.setOrigin(1, 0).setX(this.bridge.x + this.bridge.width).setScale(0, 1).setVisible(false);
     for (const k of FIXED) this.place(`${k}-2`);
     for (const w of WALLS) this.parts.set(w, this.place(`${w}-2`));
     this.parts.set('gate', this.place('gate-1'));
@@ -67,7 +75,7 @@ export class SiegeView {
     return img;
   }
 
-  /** Each part as `siege` has it: whole, cracked or down, the bridge lying once the gate has gone. */
+  /** Each part as `siege` has it: whole, cracked or down, the bridge lying once the gate has gone or someone is in the gateway. */
   show(siege: Siege): void {
     for (const w of WALLS) {
       const left = siege.parts[w] ?? 0;
@@ -76,7 +84,37 @@ export class SiegeView {
     this.swap('gate', `gate-${standing(siege, 'gate') ? 1 : 0}`);
     for (const t of TOWERS) if (t in siege.parts) this.swap(t, `${t}-${standing(siege, t) ? 1 : 0}`);
     this.keepShadow.setVisible(standing(siege, 'keep'));
-    this.bridge?.setVisible(!standing(siege, 'gate'));
+    this.gateUp = standing(siege, 'gate');
+    this.settle();
+  }
+
+  /** Tells the view whether someone stands in the gateway. */
+  hold(held: boolean): void {
+    this.held = held;
+    this.settle();
+  }
+
+  /** Lowers the bridge for a defender on their way through. Resolves once it's down. */
+  openGate(): Promise<void> {
+    return this.swing(true);
+  }
+
+  private settle(): void {
+    void this.swing(!this.gateUp || this.held);
+  }
+
+  private swing(open: boolean): Promise<void> {
+    if (open === this.open) return Promise.resolve();
+    this.open = open;
+    this.scene.tweens.killTweensOf(this.bridge);
+    this.bridge.setVisible(true);
+    return new Promise((resolve) => this.scene.tweens.add({
+      targets: this.bridge, scaleX: open ? 1 : 0, duration: BRIDGE_MS, ease: open ? 'Quad.easeIn' : 'Quad.easeOut',
+      onComplete: () => {
+        this.bridge.setVisible(open);
+        resolve();
+      },
+    }));
   }
 
   private swap(part: string, key: string): void {
@@ -120,6 +158,7 @@ export class SiegeView {
   }
 
   destroy(): void {
+    this.scene.tweens.killTweensOf(this.bridge);
     for (const img of this.images) img.destroy();
   }
 }

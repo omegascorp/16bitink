@@ -33,20 +33,21 @@ BANNER = stone_colour(0.03, 0.52, 0.42)
 BRONZE = stone_colour(0.09, 0.46, 0.44)
 IRON = np.array([0.2, 0.2, 0.24])
 WALL = dict(h=58.0, t=26.0)
-GATE = dict(a=(518.0, 273.0), b=(597.0, 313.0), h=86.0, t=30.0, half=17.0, spring=32.0)
+# The gatehouse stands in the line of the wall, on the gate's hex: two square turrets with the passage running east to west between them.
+# Its door faces the attacker, which this view sees edge-on, so a shut gate can't be seen: the game lowers a bridge when it opens.
+GATE = dict(x0=556.0, x1=600.0, north=252.0, south=344.0, half=20.0, h=92.0, roof=54.0)
 DRUM = dict(r=26.0, h=84.0)
-TURRET = dict(r=16.0, h=98.0)
-TOWER = dict(r=30.0, h=96.0)
-# The north tower stops low enough for its company to stay on a 16:9 screen.
-NORTH_TOWER = dict(r=30.0, h=66.0)
+# The corner towers stay low: the north one for its company to stay on a 16:9 screen, the south one to leave the court's last rows in sight.
+TOWER = dict(r=30.0, h=66.0)
 KEEP = dict(r=38.0, h=150.0)
 FAR = dict(y=70.0, h=52.0, t=20.0, x1=1100.0)
-# The wall nearest the viewer, along the field's bottom edge. It starts at the south tower's side and the game shows it see-through.
-NEAR = dict(y=526.0, h=52.0, t=20.0, x0=707.0, x1=1100.0)
+# The wall nearest the viewer, below the field's bottom row. It starts at the south tower and the game shows it see-through.
+NEAR = dict(y=550.0, h=52.0, t=20.0, x0=730.0, x1=1100.0)
 # A point in the court: a wall's battlements go on the side away from it.
 INSIDE = (900.0, 300.0)
-NORTH_DRUM = (W[4][0] + 8.0, W[4][1] - 6.0)
-SOUTH_DRUM = (W[6][0] + 8.0, W[6][1] + 4.0)
+# The round towers stand back from the gatehouse's line, so the south one leaves its turrets in sight. The arms still end where they did, inside them.
+NORTH_DRUM = (W[4][0] + 20.0, W[4][1] - 6.0)
+SOUTH_DRUM = (W[6][0] + 20.0, W[6][1] + 4.0)
 # A round tower's foot is squashed north to south: the field shows the ground at full depth, which would make its top a full circle.
 ROUND = 0.58
 KEEP_AT = (hex_x(14, 3), hex_y(3))
@@ -54,7 +55,7 @@ KEEP_AT = (hex_x(14, 3), hex_y(3))
 PARTS = {
     'wallNorth': (2, 1, 0), 'wallSouth': (2, 1, 0), 'wallGateNorth': (2, 1, 0), 'wallGateSouth': (2, 1, 0),
     'gate': (1, 0), 'keep': (1, 0), 'towerNorth': (1, 0), 'towerSouth': (1, 0),
-    'wallNorthInner': (2,), 'wallSouthInner': (2,), 'gateLink': (2,), 'gateTurret': (2,), 'farWall': (2,), 'nearWall': (2,),
+    'wallNorthInner': (2,), 'wallSouthInner': (2,), 'wallSouthEnd': (2,), 'farWall': (2,), 'nearWall': (2,),
 }
 
 
@@ -184,65 +185,43 @@ def rubble(m: Mesh, x: float, y: float, spread: float, n: int, seed: int) -> Non
         m.box(x + math.cos(th) * d, y + math.sin(th) * d * 0.62, 3 + height, 7 + r.random() * 9, 5 + r.random() * 6, 4 + r.random() * 4, r.random() * 6, col(0.8 + r.random() * 0.3), (r.uniform(-0.35, 0.35), r.uniform(-0.35, 0.35)))
 
 
-def gate(m: Mesh, state: int) -> None:
-    """The gate: a thick stretch of wall with a real passage through it, its face turned to the attacker."""
-    A, B, h, t, half, spring = GATE['a'], GATE['b'], GATE['h'], GATE['t'], GATE['half'], GATE['spring']
-    dx, dy = B[0] - A[0], B[1] - A[1]
-    length = math.hypot(dx, dy)
-    a = math.atan2(dy, dx)
-    mid = length * 0.5
-    broken = state == 0
-    edge = jagged(41, lambda u: h * 0.62 + 16 * abs(2 * u - 1), 22)
+def turret(m: Mesh, x0: float, x1: float, y0: float, y1: float, h: float, seed: int, keep) -> None:
+    """A square turret: a thick stretch of wall with battlements all round."""
+    y = (y0 + y1) / 2
+    wall(m, (x0, y), (x1, y), h, y1 - y0, seed=seed, keep=keep, merlons=False)
+    r = random.Random(seed)
+    span = x1 - x0
+    u = 2.0
+    while u < span - 4:
+        if keep((u + 4) / span, h + 8):
+            for edge in (y0 + 2.5, y1 - 2.5):
+                m.box(x0 + u + 4, edge, h + 7, 8.5, 5, 12, 0.0, col(0.95 + r.random() * 0.1))
+        u += 13
+    for x in (x0 + 2.5, x1 - 2.5):
+        if keep((x - x0) / span, h + 8):
+            m.box(x, y, h + 7, 5, 8, 12, 0.0, col(0.95 + r.random() * 0.1))
 
-    def in_arch(u: float, z: float) -> bool:
-        return abs(u - mid) < half + 3 and z < spring + math.sqrt(max(0.0, (half + 3) ** 2 - (u - mid) ** 2))
-    wall(m, A, B, h, t, seed=9, hole=in_arch, keep=(lambda u, z: z < edge(u)) if broken else (lambda u, z: True), merlons=not broken)
-    ux, uy = dx / length, dy / length
-    nx, ny = -uy, ux
-    at = lambda u, n: (A[0] + ux * u + nx * n, A[1] + uy * u + ny * n)  # noqa: E731
-    # The arch's ring of cut stones, standing proud of the face.
-    for i in range(14):
-        th = i / 13 * math.pi
-        if broken and 3 < i < 9:
-            continue
-        x, y = at(mid + math.cos(th) * (half + 2.5), t / 2 + 0.8)
-        m.box(x, y, spring + math.sin(th) * (half + 2.5), 6.5, 4, 7, a, col(1.16), (0, 0))
-    # The passage: its floor, its sides and its dark far end.
-    fx, fy = at(mid, 0)
-    m.box(fx, fy, 1, half * 2 + 6, t, 2, a, col(0.5))
-    for side in (-1, 1):
-        sx, sy = at(mid + side * (half + 1.5), 0)
-        m.box(sx, sy, spring / 2 + 2, 3, t, spring + 4, a, col(0.46))
-    bx, by = at(mid, -t / 2 + 1.5)
-    m.box(bx, by, spring / 2 + 8, half * 2 + 6, 3, spring + 16, a, np.array([0.1, 0.075, 0.06]) if not broken else np.array([0.16, 0.12, 0.09]))
+
+def gate(m: Mesh, state: int) -> None:
+    """The gatehouse: two turrets, the road's stone floor between them, and over it a low roof with the portcullis's slot."""
+    x0, x1, north, south, half, h, roof = (GATE[k] for k in ('x0', 'x1', 'north', 'south', 'half', 'h', 'roof'))
+    mid = (north + south) / 2
+    x = (x0 + x1) / 2
+    broken = state == 0
+    edge = jagged(41, lambda u: h * 0.36 + 20 * abs(2 * u - 1), 22)
+    keep = (lambda u, z: z < edge(u)) if broken else (lambda u, z: True)
+    turret(m, x0, x1, north, mid - half, h, 9, keep)
+    turret(m, x0, x1, mid + half, south, h, 10, keep)
+    m.box(x, mid, 1, x1 - x0, half * 2, 2, 0.0, col(0.5))
     if broken:
-        x, y = at(mid, t / 2 + 12)
-        rubble(m, x, y, 40, 60, 77)
+        rubble(m, x, mid + 20, 36, 60, 77)
         return
-    px, py = at(mid, t / 2 - 5)
-    for i in range(-3, 4):
-        m.box(px + ux * i * 6, py + uy * i * 6, spring / 2 + 8, 1.8, 2, spring + 14, a, IRON)
-    for j in range(6):
-        m.box(px, py, 5 + j * 9, half * 2, 2, 1.8, a, IRON)
-    # The Greek front: a pediment over the arch, a frieze, pilasters.
-    gx, gy = at(mid, t / 2 + 1)
-    base = spring + half + 8
-    pale = col(1.14)
-    span = 28
-    tri = [(gx - ux * span, gy - uy * span, base), (gx + ux * span, gy + uy * span, base), (gx, gy, base + 14)]
-    m.face(tri, pale, np.array([gx - nx * 4, gy - ny * 4, base]))
-    m.box(gx, gy, base - 2, 60, 5, 4, a, col(1.18))
-    for side in (-1, 1):
-        cx, cy = at(mid + side * 24, t / 2 + 1.5)
-        z = 4.0
-        while z < base - 4:
-            m.box(cx, cy, z, 5, 4, 7.2, a, col(1.08))
-            z += 8
-    # Two banners either side of the pediment.
-    for side in (-1, 1):
-        cx, cy = at(mid + side * 33, t / 2 + 1.2)
-        top, bottom = h - 2, h - 40
-        m.face([(cx - ux * 4, cy - uy * 4, top), (cx + ux * 4, cy + uy * 4, top), (cx + ux * 4, cy + uy * 4, bottom + 5), (cx, cy, bottom), (cx - ux * 4, cy - uy * 4, bottom + 5)], BANNER, np.array([cx - nx * 3, cy - ny * 3, top]))
+    # Deep in the gap between the turrets, so it reads as the dark of the passage.
+    wall(m, (x, mid - half), (x, mid + half), roof, x1 - x0, seed=11, merlons=False, tone=0.42)
+    m.box(x, mid - half + 1, (roof + h - 8) / 2, x1 - x0 - 4, 2, h - 8 - roof, 0.0, np.array([0.13, 0.1, 0.08]))
+    # A banner on the south turret, the one face of the gatehouse this view sees.
+    top, bottom, y = h - 4, h - 46, south + 0.8
+    m.face([(x - 7, y, top), (x + 7, y, top), (x + 7, y, bottom + 7), (x, y, bottom), (x - 7, y, bottom + 7)], BANNER, np.array([x, y - 3, top]))
 
 
 def stretch_keep(state: int, h: float, seed: int):
@@ -278,8 +257,11 @@ def line(a, b, t: float) -> tuple[float, float]:
     return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
 
 
-NORTH_ARM = (W[0], NORTH_DRUM)
-SOUTH_ARM = (SOUTH_DRUM, W[10])
+NORTH_ARM = (W[0], (W[4][0] + 8.0, W[4][1] - 6.0))
+SOUTH_ARM = ((W[6][0] + 8.0, W[6][1] + 4.0), W[10])
+# The south tower stands a row past the arm's last hex, in line with it, so its foot may run off a 16:9 screen.
+SOUTH_END = 1.25
+SOUTH_TOWER = line(*SOUTH_ARM, SOUTH_END)
 
 
 def build(name: str, state: int) -> Mesh:
@@ -300,10 +282,8 @@ def build(name: str, state: int) -> Mesh:
         if state == 0:
             x, y = line(*SOUTH_ARM, 0.74)
             rubble(m, x, y + 6, 40, 70, 32)
-    elif name == 'gateLink':
-        wall(m, GATE['a'], NORTH_DRUM, GATE['h'] - 8, 22, seed=25)
-    elif name == 'gateTurret':
-        tower(m, GATE['a'], TURRET['r'], TURRET['h'], seed=40)
+    elif name == 'wallSouthEnd':
+        wall(m, line(*SOUTH_ARM, 0.95), line(*SOUTH_ARM, SOUTH_END - 0.05), h, t, seed=28)
     elif name == 'gate':
         gate(m, state)
     elif name == 'farWall':
@@ -311,7 +291,7 @@ def build(name: str, state: int) -> Mesh:
     elif name == 'nearWall':
         wall(m, (NEAR['x0'], NEAR['y']), (NEAR['x1'], NEAR['y']), NEAR['h'], NEAR['t'], seed=27)
     else:
-        p, o = {'wallGateNorth': (NORTH_DRUM, DRUM), 'wallGateSouth': (SOUTH_DRUM, DRUM), 'towerNorth': (W[0], NORTH_TOWER), 'towerSouth': (W[10], TOWER), 'keep': (KEEP_AT, KEEP)}[name]
+        p, o = {'wallGateNorth': (NORTH_DRUM, DRUM), 'wallGateSouth': (SOUTH_DRUM, DRUM), 'towerNorth': (W[0], TOWER), 'towerSouth': (SOUTH_TOWER, TOWER), 'keep': (KEEP_AT, KEEP)}[name]
         full = PARTS[name][0]
         damage = 2 if state == full else 0 if state == 0 else 1
         tower(m, p, o['r'], o['h'], seed=len(name) * 7, keep=tower_keep(damage, o['h'], len(name) * 13))

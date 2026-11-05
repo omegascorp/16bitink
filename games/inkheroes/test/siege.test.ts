@@ -5,7 +5,7 @@ import { chooseAction } from '../src/logic/battleAi';
 import type { BattleHero, BattleState, Stack } from '../src/logic/battleTypes';
 import { damageRange } from '../src/logic/damage';
 import { colOf, hexAt, HEX_COUNT, neighbours, type Hex } from '../src/logic/hex';
-import { BRIDGE, fortification, HAND_STRIKES, insideWalls, moatFor, PART_HEX, raiseWalls, shotOverWall, standing, strikeByHand, strikesLeft, wallsAgainst, type Siege } from '../src/logic/siege';
+import { BRIDGE, fortification, HAND_STRIKES, insideWalls, moatFor, PART_HEX, throughGate, raiseWalls, shotOverWall, standing, strikeByHand, strikesLeft, wallsAgainst, type Siege } from '../src/logic/siege';
 import { canManTower } from '../src/logic/creatures';
 import { manTowers, towerPlaces } from '../src/logic/town';
 
@@ -166,6 +166,18 @@ describe('the Catapult', () => {
     expect(blows).toBeGreaterThan(10);
     expect(Object.values(st.siege!.parts).every((n) => n === 0)).toBe(true);
     expect([...walkable(st.siege!, 0)].some(insideWalls)).toBe(true);
+  });
+});
+
+describe('the way through the gate', () => {
+  it('is the gate and the bridge before it', () => {
+    expect(throughGate([PART_HEX.gate])).toBe(true);
+    expect(throughGate([hexAt(13, 5), BRIDGE])).toBe(true);
+  });
+
+  it('is no other ground, however near', () => {
+    expect(throughGate([])).toBe(false);
+    expect(throughGate([PART_HEX.wallGateNorth, PART_HEX.wallGateSouth, hexAt(12, 5)])).toBe(false);
   });
 });
 

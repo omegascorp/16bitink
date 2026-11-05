@@ -70,7 +70,7 @@ export function feetOn(hexes: readonly Hex[]): { x: number; y: number } {
 }
 
 /** Where a company stands on each tower (TOWERS' order): on its top, far above its hex. */
-export const TOWER_FEET: readonly { readonly x: number; readonly y: number }[] = [{ x: 799, y: 52 }, { x: 689, y: 10 }, { x: 689, y: 400 }];
+export const TOWER_FEET: readonly { readonly x: number; readonly y: number }[] = [{ x: 799, y: 52 }, { x: 689, y: 10 }, { x: 709, y: 471 }];
 /** How far round those feet a tap counts as a tap on the tower's company. */
 const TOWER_REACH = { x: 22, up: 56, down: 8 } as const;
 

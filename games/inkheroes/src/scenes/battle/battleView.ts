@@ -4,7 +4,7 @@ import { getSound } from '../../host';
 import { alive, isStone, playerSide, stackById } from '../../logic/battle';
 import type { BattleEvent, BattleState, Stack } from '../../logic/battleTypes';
 import { createRng } from '../../logic/rng';
-import type { SiegePart } from '../../logic/siege';
+import { throughGate, type SiegePart } from '../../logic/siege';
 import { HEX_COUNT, type Hex } from '../../logic/hex';
 import { SPELLS } from '../../logic/spells';
 import { adjacent, facesTarget, footprintAt, isWide, occupiedHexes } from '../../logic/footprint';
@@ -191,6 +191,7 @@ export class BattleView {
       else u.fig.sprite.clearTint();
       this.setBadge(u, s.count, alive(s));
     }
+    this.walls?.hold(state.stacks.some((s) => alive(s) && throughGate(occupiedHexes(s))));
     if (state.siege) this.walls?.show(state.siege);
     if (this.opts.feet) this.markFeet(state);
   }
@@ -340,6 +341,7 @@ export class BattleView {
     await this.recovered;
     const u = this.units.get(id)!;
     u.badge.setVisible(false);
+    if (!flies && throughGate(path)) await this.walls?.openGate();
     u.fig.walk();
     // The sprite follows the footprint: a two-hex unit's midpoint as its head steps along the path.
     const feetAt = (head: Hex): { x: number; y: number } => feetOn(footprintAt(head, isWide(from.creature), from.side) ?? [head]);

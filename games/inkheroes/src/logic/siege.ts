@@ -107,6 +107,9 @@ export function moatFor(s: Siege, side: Side): Set<Hex> {
   return new Set(MOAT.filter((h) => h !== BRIDGE || (standing(s, 'gate') && side === 0)));
 }
 
+/** Whether `hexes` lie on the way through the gate: its own hex or the bridge before it. */
+export const throughGate = (hexes: readonly Hex[]): boolean => hexes.includes(PART_HEX.gate) || hexes.includes(BRIDGE);
+
 /** Whether `h` lies behind the wall's line. */
 export const insideWalls = (h: Hex): boolean => colOf(h) > WALL_COL[rowOf(h)]!;
 

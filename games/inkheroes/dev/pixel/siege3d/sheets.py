@@ -1,7 +1,7 @@
 """Packs a castle's rendered parts onto 512 x 512 sheets for PixelLab, and cuts the painted sheets back up.
 
   python3 dev/pixel/siege3d/sheets.py pack greek                  out/greek/sheet-N.png + sheets.json
-  python3 dev/pixel/siege3d/sheets.py pack greek gateLink nearWall  only these parts, on sheets of their own, the rest kept
+  python3 dev/pixel/siege3d/sheets.py pack greek gate nearWall  only these parts, on sheets of their own, the rest kept
   python3 dev/pixel/siege3d/sheets.py cut greek                   paint/greek/sheet-N.png -> out/greek/painted/<piece>.png
 
 PixelLab repaints up to 512 x 512 and drifts by a few pixels, so each piece is found again on its sheet by its own
@@ -27,7 +27,7 @@ def pack(castle: str, *parts: str) -> None:
     out = HERE / 'out' / castle
     pieces = json.loads((out / 'pieces.json').read_text())
     chosen = [k for k in pieces if not parts or k.rsplit('-', 1)[0] in parts]
-    kept = {k: p for k, p in json.loads((out / 'sheets.json').read_text()).items() if k not in chosen} if parts else {}
+    kept = {k: p for k, p in json.loads((out / 'sheets.json').read_text()).items() if k in pieces and k not in chosen} if parts else {}
     first = 1 + max((p['sheet'] for p in kept.values()), default=-1)
     items = []
     for key in chosen:

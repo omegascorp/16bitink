@@ -25,6 +25,7 @@ hex_y = lambda r: 88 + 42 * r  # noqa: E731
 WALL_COL = [12, 11, 11, 10, 10, 9, 10, 10, 11, 11, 12]
 WALL = [(hex_x(c, r), hex_y(r)) for r, c in enumerate(WALL_COL)]
 GATE_ROW = 5
+SOUTH_TOWER = (709, 549)
 
 # The ground line each part sorts on among the figures. It isn't always its true foot: the upper arm and the gate sort
 # early, or a figure outside them would be hidden; the back wall and north tower sort behind the arm that runs to them;
@@ -32,11 +33,11 @@ GATE_ROW = 5
 # the near wall sorts on its true foot, over every figure; it's cut around the south tower instead (`ghost`).
 SORT = {
     'farWall': 30, 'towerNorth': 40, 'wallNorth': 86, 'wallNorthInner': 128, 'wallGateNorth': 212, 'keep': 213,
-    'gateLink': 240, 'gateTurret': 250, 'gate': 254, 'wallGateSouth': 346, 'wallSouthInner': 382, 'wallSouth': 466, 'towerSouth': 509, 'nearWall': 536,
+    'gate': 254, 'wallGateSouth': 346, 'wallSouthInner': 382, 'wallSouth': 466, 'wallSouthEnd': 507, 'towerSouth': 509, 'nearWall': 560,
 }
 # Where a piece lies flat on the ground it needs only these.
 MOAT_AT = (508, 40)
-BRIDGE_AT = (504, 281)
+BRIDGE_AT = (504, 285)
 # The court's painting: placed so its road starts at the gate; plain paving past it, for wide screens.
 COURT_AT = (560, -82)
 COURT_H = 652
@@ -52,11 +53,11 @@ BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]])
 FAR_RUN = 60
 FAR_END = 16
 # The near wall is see-through, so the figures behind it stay in sight: its top reads firmest, as the line of the wall.
-NEAR_FACE_Y = 484
+NEAR_FACE_Y = 508
 NEAR_TOP_ALPHA = 0.5
 NEAR_FACE_ALPHA = 0.34
 # The court stops at the near wall's foot.
-COURT_END = 535
+COURT_END = 559
 
 pieces: list[tuple[str, tuple[int, int], float]] = []
 
@@ -71,9 +72,12 @@ def inner_edge(sy: float) -> float:
     """Where the court starts at screen height `sy`: the wall's line, and the gate's back between the drums."""
     if WALL[GATE_ROW - 1][1] <= sy <= WALL[GATE_ROW + 1][1]:
         return WALL[GATE_ROW][0] + 2
-    if sy <= WALL[0][1] or sy >= WALL[-1][1]:
+    line = [*WALL, SOUTH_TOWER]
+    if sy <= WALL[0][1]:
         return WALL[0][0]
-    for (ax, ay), (bx, by) in zip(WALL, WALL[1:]):
+    if sy >= SOUTH_TOWER[1]:
+        return SOUTH_TOWER[0]
+    for (ax, ay), (bx, by) in zip(line, line[1:]):
         if ay <= sy <= by:
             return ax + (bx - ax) * (sy - ay) / (by - ay)
     return WALL[0][0]
