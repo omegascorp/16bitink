@@ -125,6 +125,7 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * seals in one orca's stomach, Denmark 1861), alvin (a swordfish stabs the
  * submersible Alvin, 1967), pigeons (wels catfish lunge onto gravel to take
  * pigeons, Albi).
+ * orcaflip (orcas flip juvenile whale sharks belly-up, Gulf of California, 2024).
  * They're loaded lazily (import() on demand).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
@@ -506,6 +507,12 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
     if (params.has('kit')) return (await import('./pigeons/kit')).createPigeonsKit(ctx);
     const { createPigeons } = await import('./pigeons/render');
     return withCredit(createPigeons(ctx), ctx, PAPER_ON_DARK);
+  },
+  orcaflip: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./orcaflip/kit')).createOrcaflipKit(ctx);
+    const { createOrcaflip } = await import('./orcaflip/render');
+    return withCredit(createOrcaflip(ctx), ctx, PAPER_ON_DARK);
   },
   orcaliver: async () => {
     await loadCaptionFont();

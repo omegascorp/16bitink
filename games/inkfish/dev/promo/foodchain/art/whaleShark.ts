@@ -128,6 +128,16 @@ const RIDGES: readonly { readonly from: number; readonly f0: number; readonly f1
 ];
 /** Where the white belly starts, down the flank. */
 const BELLY_LINE = 0.66;
+/** How much further up the flank it starts in the `whiteBelly` sprites. */
+const WHITE_BELLY_RISE = 0.1;
+/** Shading across the body, back to belly, with the light on the back (the usual) and on the belly (`whiteBelly`, for a shark upside down). */
+const BELLY_DOWN_SHADE: readonly (readonly [number, string])[] = [
+  [0, 'rgba(238,243,242,0.3)'], [0.18, 'rgba(238,243,242,0.06)'], [0.45, 'rgba(15,21,28,0.1)'],
+  [0.72, 'rgba(15,21,28,0.3)'], [0.9, 'rgba(15,21,28,0.42)'], [1, 'rgba(15,21,28,0.3)'],
+];
+const BELLY_UP_SHADE: readonly (readonly [number, string])[] = [
+  [0, 'rgba(15,21,28,0.3)'], [0.3, 'rgba(15,21,28,0.12)'], [0.5, 'rgba(15,21,28,0.03)'], [0.62, 'rgba(238,243,242,0)'], [1, 'rgba(255,250,240,0.2)'],
+];
 
 // ---------------------------------------------------------------- shape helpers
 
@@ -326,7 +336,7 @@ function gills(pen: Pen): void {
 }
 
 /** Lines that follow the belly's curve, shading the underside; and a band of hatching where the flank turns under, away from the light. */
-function bellyLines(pen: Pen): void {
+function bellyLines(pen: Pen, white: boolean): void {
   for (let r = 1; r <= 7; r++) {
     const pts: Pt[] = [];
     for (let x = -260 - pen.rng() * 40; x > -1990 + r * 10; x -= 24) {
@@ -338,7 +348,7 @@ function bellyLines(pen: Pen): void {
   const band: Pt[] = [];
   for (let x = -120; x > -2000; x -= 30) band.push(flank(x, 0.5));
   for (let x = -2000; x < -120; x += 30) band.push(flank(x, 0.74));
-  pen.hatch(band, 9, -1.15, 0.9, { alpha: 0.13 });
+  pen.hatch(band, 9, -1.15, 0.9, { alpha: white ? 0.05 : 0.13 });
 }
 
 /** Big soft blotches of darker and lighter wash, so the skin isn't one flat tone. */
@@ -366,7 +376,8 @@ function eye(pen: Pen): void {
   pen.hair(spline([{ x: SPIRACLE.x - 7, y: SPIRACLE.y + 2 }, { x: SPIRACLE.x, y: SPIRACLE.y - 4 }, { x: SPIRACLE.x + 7, y: SPIRACLE.y + 1 }], 4), 1.4, INK, 0.9);
 }
 
-function paintBody(ctx: CanvasRenderingContext2D, seed: number): void {
+/** `white`: the variant for a shark seen belly-up, the light on its belly: near-paper white, the line a little further up the flank, the shading turned over. */
+function paintBody(ctx: CanvasRenderingContext2D, seed: number, white = false): void {
   const pen = new Pen(ctx, seed, W);
   // The midline fins, behind the outline.
   paintFin(pen, DORSAL, { x: -1040, y: -200 }, { x: -1196, y: -470 }, [DORSAL.slice(1, -1)], 10);
@@ -385,25 +396,23 @@ function paintBody(ctx: CanvasRenderingContext2D, seed: number): void {
     // The white belly, its edge soft and ragged, washed on in a few thin layers.
     for (let layer = 0; layer < 4; layer++) {
       const knots: Pt[] = [];
-      for (let x = 60; x > -2090; x -= 70) knots.push(flank(x, BELLY_LINE + 0.05 - layer * 0.025 + pen.jitter(0.03) + 0.4 * Math.max(0, (-1550 - x) / 450)));
-      pen.fill([...spline(knots, 6), { x: -2090, y: 400 }, { x: 60, y: 400 }], PAPER_FILL, 0.3);
+      const line = BELLY_LINE + 0.05 - layer * 0.025 - (white ? WHITE_BELLY_RISE : 0);
+      for (let x = 60; x > -2090; x -= 70) knots.push(flank(x, line + pen.jitter(0.03) + 0.4 * Math.max(0, (-1550 - x) / 450)));
+      pen.fill([...spline(knots, 6), { x: -2090, y: 400 }, { x: 60, y: 400 }], PAPER_FILL, white ? 0.7 : 0.3);
     }
   });
   // The tail stock darkens into the tail (and the offset wash leaves no paper edge where they meet).
   pen.clipped(BODY, () => pen.fill([{ x: -1990, y: -80 }, { x: -2040, y: -80 }, { x: -2040, y: 80 }, { x: -1990, y: 80 }], WASH, 0.88));
   linearShade(ctx, BODY, { x: -1800, y: 0 }, { x: -2010, y: 0 }, [[0, 'rgba(54,67,79,0)'], [1, 'rgba(54,67,79,0.75)']]);
   // The light from above: lit across the back, the core shadow low on the flank, a little light bounced back under the belly.
-  flankShade(ctx, BODY, 60, -2020, [
-    [0, 'rgba(238,243,242,0.3)'], [0.18, 'rgba(238,243,242,0.06)'], [0.45, 'rgba(15,21,28,0.1)'],
-    [0.72, 'rgba(15,21,28,0.3)'], [0.9, 'rgba(15,21,28,0.42)'], [1, 'rgba(15,21,28,0.3)'],
-  ]);
+  flankShade(ctx, BODY, 60, -2020, white ? BELLY_UP_SHADE : BELLY_DOWN_SHADE);
   pen.clipped(BODY, () => {
     // The broad snout turns away from the light.
     linearShade(ctx, BODY, { x: -90, y: 0 }, { x: 14, y: 0 }, [[0, 'rgba(15,21,28,0)'], [1, 'rgba(15,21,28,0.34)']]);
     ridges(pen);
     gills(pen);
-    bellyLines(pen);
-    pen.stipple(BODY, 5200, (_x, y) => 0.1 + 0.4 * Math.max(0, Math.min(1, (y + 40) / 240)), 1.2, INK);
+    bellyLines(pen, white);
+    pen.stipple(BODY, 5200, (_x, y) => (white ? 0.06 : 0.1 + 0.4 * Math.max(0, Math.min(1, (y + 40) / 240))), 1.2, INK);
     // The light along the top of the head and back.
     for (let k = 1; k <= 2; k++) pen.hair(BACK.filter((p) => p.x < -30 && p.x > -1800).map((p) => ({ x: p.x, y: p.y + 6 + k * 9 })), 3 - k * 0.8, LIGHT, 0.3 - k * 0.1);
     // A fold of skin over the throat.
@@ -453,7 +462,7 @@ function paintTail(ctx: CanvasRenderingContext2D, seed: number): void {
 }
 
 /** The lower jaw, shut: white under the chin, spotted along its side, the lower lip inked. */
-function paintJaw(ctx: CanvasRenderingContext2D, seed: number): void {
+function paintJaw(ctx: CanvasRenderingContext2D, seed: number, white = false): void {
   const pen = new Pen(ctx, seed, W * 0.8);
   pen.fill(JAW, PAPER_FILL, 1);
   pen.clipped(JAW, () => {
@@ -462,10 +471,11 @@ function paintJaw(ctx: CanvasRenderingContext2D, seed: number): void {
       const x = -12 - i * 18 + pen.jitter(4);
       pen.fill(ellipse(x, edgeAt(LOWER_LIP, x) + 10 + pen.jitter(3), 3.4, 3, 8), PALE, 0.6);
     }
-    const under = [...CHIN.map((p) => ({ x: p.x, y: p.y - 18 - Math.max(0, p.x) })), { x: -280, y: 160 }, { x: 30, y: 160 }];
-    pen.fill(under, PAPER_FILL, 0.84);
+    const under = [...CHIN.map((p) => ({ x: p.x, y: p.y - (white ? 30 : 18) - Math.max(0, p.x) })), { x: -280, y: 160 }, { x: 30, y: 160 }];
+    pen.fill(under, PAPER_FILL, white ? 0.97 : 0.84);
   });
-  linearShade(ctx, JAW, { x: 0, y: 12 }, { x: 0, y: 112 }, [[0, 'rgba(238,243,242,0.12)'], [0.6, 'rgba(15,21,28,0.18)'], [1, 'rgba(15,21,28,0.42)']]);
+  const shade = white ? 0.25 : 1;
+  linearShade(ctx, JAW, { x: 0, y: 12 }, { x: 0, y: 112 }, [[0, 'rgba(238,243,242,0.12)'], [0.6, `rgba(15,21,28,${0.18 * shade})`], [1, `rgba(15,21,28,${0.42 * shade})`]]);
   pen.clipped(JAW, () => {
     for (let k = 1; k <= 3; k++) pen.hair(CHIN.map((p) => ({ x: p.x - 2, y: p.y - k * 7 })), 1, INK, 0.45 - k * 0.1);
   });
@@ -511,6 +521,8 @@ interface Sprites {
 }
 
 let sprites: Sprites | null = null;
+/** The `whiteBelly` body and jaw, baked only for a short that shows the shark upside down. */
+let whiteSprites: Pick<Sprites, 'body' | 'jaw'> | null = null;
 
 const seedOf = (f: number): number => 4201 + f * 977;
 
@@ -537,17 +549,39 @@ function ensure(): Sprites {
   return sprites;
 }
 
+function ensureWhite(): Pick<Sprites, 'body' | 'jaw'> {
+  const frames = Array.from({ length: BOIL_FRAMES }, (_, f) => f);
+  whiteSprites ??= {
+    body: frames.map((f) => sheet(BODY_BOX, (ctx) => paintBody(ctx, seedOf(f), true))),
+    jaw: frames.map((f) => sheet(JAW_BOX, (ctx) => paintJaw(ctx, seedOf(f) + 29, true))),
+  };
+  return whiteSprites;
+}
+
 export async function prepare(): Promise<void> {
   ensure();
 }
 
 // ---------------------------------------------------------------- drawing (local px; the caller's transform is set up in enter())
 
+/** A blow to the flank: the body pushed in around local x, the struck edge by `depth`, the far edge by a third of it. */
+export interface WhaleSharkDent {
+  /** Local px along the body (the snout at 0, the tail negative). */
+  readonly x: number;
+  /** Local px; positive pushes the back in towards the belly, negative the belly in towards the back. */
+  readonly depth: number;
+  /** Half-width of the dent, local px. */
+  readonly width: number;
+}
+
 export interface WhaleSharkPose {
   /** 0 shut .. 1 gaping wide, filter-feeding. */
   readonly gape?: number;
   /** Tail-beat phase, radians. */
   readonly tail?: number;
+  /** Paint the belly and throat near paper white, lit (for a shark seen upside down). */
+  readonly whiteBelly?: boolean;
+  readonly dent?: WhaleSharkDent;
 }
 
 const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
@@ -560,6 +594,41 @@ function blit(ctx: CanvasRenderingContext2D, c: HTMLCanvasElement, box: Box): vo
 function flexAt(x: number, phase: number): number {
   const b = clamp01((x - BEND_FROM) / (TAIL_PIVOT.x - BEND_FROM));
   return FLEX * b * b * Math.sin(phase - 2.2 * b);
+}
+
+const dentAt = (d: WhaleSharkDent, x: number): number => d.depth * Math.exp(-(((x - d.x) / d.width) ** 2));
+/** How far a dent moves the back and the belly at x: the struck edge the whole way, the far edge a third. */
+const dentEdges = (d: WhaleSharkDent, x: number): { readonly back: number; readonly belly: number } => {
+  const m = dentAt(d, x);
+  return d.depth > 0 ? { back: m, belly: m / 3 } : { back: m / 3, belly: m };
+};
+
+/** The body in thin strips, each stretched so its back and belly move with the dent (and the tail stock with the beat). */
+function drawDentedBody(ctx: CanvasRenderingContext2D, c: HTMLCanvasElement, phase: number, dent: WhaleSharkDent): void {
+  const k = 1 / RES;
+  const step = 4;
+  for (let sx = 0; sx < c.width; sx += step) {
+    const w = Math.min(step, c.width - sx);
+    const x = BODY_BOX.x0 + (sx + w / 2) * k;
+    const [top, bottom] = [topAt(x), bottomAt(x)];
+    const { back, belly } = dentEdges(dent, x);
+    const stretch = (bottom + belly - top - back) / (bottom - top);
+    const y0 = top + back + (BODY_BOX.y0 - top) * stretch + flexAt(x, phase);
+    ctx.drawImage(c, sx, 0, w, c.height, BODY_BOX.x0 + sx * k, y0, w * k + 0.6, c.height * k * stretch);
+  }
+}
+
+/** Creases in the skin, following the dent. */
+function dentCreases(pen: Pen, d: WhaleSharkDent): void {
+  const side = d.depth > 0 ? 1 : -1;
+  for (let r = 1; r <= 3; r++) {
+    const line = Array.from({ length: 13 }, (_, i) => {
+      const x = d.x + (i / 12 - 0.5) * d.width * (2.5 - r * 0.3);
+      const { back, belly } = dentEdges(d, x);
+      return { x, y: side > 0 ? topAt(x) + back + r * 17 : bottomAt(x) + belly - r * 17 };
+    });
+    pen.hair(line, 2.6, INK, 0.55 - r * 0.12);
+  }
 }
 
 function drawBody(ctx: CanvasRenderingContext2D, c: HTMLCanvasElement, phase: number): void {
@@ -681,6 +750,7 @@ function enter(ctx: CanvasRenderingContext2D, x: number, y: number, length: numb
 /** Snout at +x of the local frame: centre (x, y) in screen px, `length` = snout to tail tip in screen px, `angle` radians, `flip` mirrors vertically, `t` seconds. */
 export function drawWhaleShark(ctx: CanvasRenderingContext2D, x: number, y: number, length: number, angle: number, t: number, pose: WhaleSharkPose = {}, flip = false): void {
   const s = ensure();
+  const paint = pose.whiteBelly ? ensureWhite() : s;
   const boil = Math.floor(t * BOIL_FPS + 1e-9) % BOIL_FRAMES;
   const gape = clamp01(pose.gape ?? 0);
   const phase = pose.tail ?? 0;
@@ -695,10 +765,15 @@ export function drawWhaleShark(ctx: CanvasRenderingContext2D, x: number, y: numb
   ctx.translate(HINGE.x, HINGE.y);
   ctx.rotate(gape * GAPE_MAX);
   ctx.translate(-HINGE.x, -HINGE.y);
-  blit(ctx, s.jaw[boil]!, JAW_BOX);
+  blit(ctx, paint.jaw[boil]!, JAW_BOX);
   ctx.restore();
   drawTail(ctx, s.tail[boil]!, phase);
-  drawBody(ctx, s.body[boil]!, phase);
+  if (pose.dent) {
+    drawDentedBody(ctx, paint.body[boil]!, phase, pose.dent);
+    dentCreases(pen, pose.dent);
+  } else {
+    drawBody(ctx, paint.body[boil]!, phase);
+  }
   if (gape > 0.002) drawFarLip(pen, gape);
   ctx.restore();
 }
