@@ -20,7 +20,7 @@ const DUST = { count: 14, spread: 26, rise: 22, ms: 420, tint: 0xd8c4a0 } as con
 /** Where a stone lands on each part, native pixels. */
 const PART_AT: Readonly<Record<SiegePart, { x: number; y: number }>> = {
   wallNorth: { x: 667, y: 110 }, wallGateNorth: { x: 601, y: 226 }, gate: { x: 578, y: 250 }, wallGateSouth: { x: 601, y: 310 }, wallSouth: { x: 667, y: 436 },
-  keep: { x: 799, y: 160 }, towerNorth: { x: 689, y: 62 }, towerSouth: { x: 709, y: 520 },
+  keep: { x: 858, y: 230 }, towerNorth: { x: 689, y: 62 }, towerSouth: { x: 709, y: 520 },
 };
 
 export const partAt = (part: SiegePart): { x: number; y: number } => PART_AT[part];

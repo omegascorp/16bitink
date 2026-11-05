@@ -7,6 +7,7 @@ import { damageRange } from '../src/logic/damage';
 import { colOf, hexAt, HEX_COUNT, neighbours, type Hex } from '../src/logic/hex';
 import { BRIDGE, fortification, HAND_STRIKES, insideWalls, moatFor, PART_HEX, throughGate, raiseWalls, shotOverWall, standing, strikeByHand, strikesLeft, wallsAgainst, type Siege } from '../src/logic/siege';
 import { canManTower } from '../src/logic/creatures';
+import { occupiedHexes } from '../src/logic/footprint';
 import { manTowers, towerPlaces } from '../src/logic/town';
 
 const hero = (): BattleHero => ({ name: 'H', attack: 0, defense: 0, power: 1, mana: 0, spells: [], skills: {}, morale: 0, luck: 0 });
@@ -58,6 +59,19 @@ describe('the walls', () => {
     expect(wallsAgainst(s, 0)).toContain(PART_HEX.gate);
     expect(wallsAgainst(s, 1)).not.toContain(PART_HEX.gate);
     expect(walkable(s, 1, hexAt(14, 5)).has(hexAt(0, 5))).toBe(true);
+  });
+
+  it('put the keep behind the last column, in the middle of the field', () => {
+    expect(PART_HEX.keep).toBe(hexAt(14, 5));
+  });
+
+  it('never start a company on the keep’s hex, however many or wide', () => {
+    for (let n = 1; n <= 7; n++) {
+      for (const id of ['spearman', 'griffin'] as const) {
+        const st = siege({}, { army: armyOf(Array.from({ length: n }, () => ({ creature: id, count: 5 }))) });
+        expect(st.stacks.filter((x) => x.side === 1).flatMap(occupiedHexes)).not.toContain(PART_HEX.keep);
+      }
+    }
   });
 
   it('leave room inside for every row of a formation', () => {

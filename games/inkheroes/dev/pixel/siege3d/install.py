@@ -32,8 +32,8 @@ SOUTH_TOWER = (709, 549)
 # the keep and south tower sort just behind the company on them, which sorts on its hex (TOWER_SORT in battleView.ts);
 # the near wall sorts on its true foot, over every figure; it's cut around the south tower instead (`ghost`).
 SORT = {
-    'farWall': 30, 'towerNorth': 40, 'wallNorth': 86, 'wallNorthInner': 128, 'wallGateNorth': 212, 'keep': 213,
-    'gate': 254, 'wallGateSouth': 346, 'wallSouthInner': 382, 'wallSouth': 466, 'wallSouthEnd': 507, 'towerSouth': 509, 'nearWall': 560,
+    'farWall': 30, 'towerNorth': 40, 'wallNorth': 86, 'wallNorthInner': 128, 'wallGateNorth': 212,
+    'gate': 254, 'keep': 297, 'wallGateSouth': 346, 'wallSouthInner': 382, 'wallSouth': 466, 'wallSouthEnd': 507, 'towerSouth': 509, 'nearWall': 560,
 }
 # Where a piece lies flat on the ground it needs only these.
 MOAT_AT = (508, 40)

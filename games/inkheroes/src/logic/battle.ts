@@ -1,7 +1,7 @@
 import type { Army } from './army';
 import type { Action, BattleEvent, BattleHero, BattleState, Side, Stack, Step } from './battleTypes';
 import { creature, type CreatureId, type MachineId } from './creatures';
-import { hexAt, reachable, route, type Hex, COLS, ROWS } from './hex';
+import { hexAt, reachable, rowOf, route, type Hex, COLS, ROWS } from './hex';
 import { adjacent, around, covers, facesTarget, footprintAt, headOf, isWide, occupiedHexes, shotDistance, tailFn, touching } from './footprint';
 import { roll, rollInt } from './rng';
 import { heal, hurt, rollDamage, speedOf } from './damage';
@@ -30,8 +30,8 @@ export interface SiegeSetup {
 
 /** Where a besieging hero's war machine stands, on their edge column: a row no formation uses. */
 const MACHINE_ROW = 9;
-/** The formation row the keep stands in front of, on its way back from the wall. */
-const KEEP_ROW = 2;
+/** The formation row the keep's hex lies on, at the back of the field. */
+const KEEP_ROW = rowOf(PART_HEX.keep);
 /** A company on a tower counts from this slot, apart from the army's: towers are their own row in a town. */
 export const TOWER_SLOT = 100;
 
@@ -56,7 +56,7 @@ export function createBattle(attacker: BattleSide, defender: BattleSide, seed: n
     const rows = FORMATION[slots.length]!;
     slots.forEach(({ slot, i }, k) => {
       const c = creature(slot!.creature);
-      // Behind the walls, the row the keep would hide stands a column forward.
+      // Behind the walls, the row on the keep's hex stands a column forward.
       const forward = walls && s === 1 && rows[k] === KEEP_ROW ? 1 : 0;
       const col = s === 0 ? (c.wide ? 1 : 0) : (c.wide ? COLS - 2 : COLS - 1) - forward;
       stacks.push({

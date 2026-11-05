@@ -12,7 +12,7 @@ import type { BattleCameras } from './battleCameras';
 import { badgeTexture, backdropSource, bufferTexture, heroArt, obstacleArt, PX_TEX, unitArt } from './pixelAssets';
 import { FIGURE_DEPTH, PixelFigure } from './pixelFigure';
 import { Backdrop } from './pixelBackdrop';
-import { feetOn, feetPx, HERO_FEET, hexPx, TOWER_FEET, WORLD } from './pixelLayout';
+import { feetOn, feetPx, heroFeet, hexPx, TOWER_FEET, WORLD } from './pixelLayout';
 import { PixelBuffer, type Rgba } from './pixelRaster';
 import { INK } from './pixelUi';
 import { partAt, SiegeView } from './siegeView';
@@ -134,7 +134,7 @@ export class BattleView {
       if (!has) return;
       // The other side's hero is always the rival lord (monsters and garrisons fight without one).
       const hero = heroArt(side === this.me ? 'player' : 'rival');
-      const fig = new PixelFigure(scene, layer, hero.art, (pose) => PX_TEX.hero(hero.id, pose), HERO_FEET[side as 0 | 1], side === 1);
+      const fig = new PixelFigure(scene, layer, hero.art, (pose) => PX_TEX.hero(hero.id, pose), heroFeet(side as 0 | 1, !!state.siege), side === 1);
       if (opts.pose) fig.hold(opts.pose);
       this.heroes[side] = fig;
     });

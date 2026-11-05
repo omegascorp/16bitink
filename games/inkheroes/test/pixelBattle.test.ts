@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { COLS, HEX_COUNT, ROWS, hexAt, neighbours } from '../src/logic/hex';
-import { feetOn, feetPx, FEET_OFFSET, FIELD_RECT, fitWorld, hexAtPx, hexPx, HEX_PX, WORLD } from '../src/scenes/battle/pixelLayout';
+import { feetOn, feetPx, FEET_OFFSET, FIELD_RECT, fitWorld, HERO_FEET, heroFeet, hexAtPx, hexPx, HEX_PX, TOWER_FEET, WORLD } from '../src/scenes/battle/pixelLayout';
 import { badgeSize, clampExtend, drawBadge, HEX_STAMP, linePixels } from '../src/scenes/battle/pixelRaster';
 
 describe('pixel battle layout', () => {
@@ -154,5 +154,14 @@ describe('battle cursors', () => {
     expect(swordDir(-22, -42)).toBe('nw');
     expect(swordDir(22, 42)).toBe('se');
     expect(swordDir(-22, 42)).toBe('sw');
+  });
+});
+
+describe('the heroes at a siege', () => {
+  it('keeps the defender clear of the keep, and the attacker where it stands in the open', () => {
+    const keep = TOWER_FEET[0]!;
+    expect(heroFeet(1, true).y).toBeGreaterThan(keep.y + 200);
+    expect(heroFeet(1, false)).toEqual(HERO_FEET[1]);
+    expect(heroFeet(0, true)).toEqual(HERO_FEET[0]);
   });
 });

@@ -50,7 +50,9 @@ NORTH_DRUM = (W[4][0] + 20.0, W[4][1] - 6.0)
 SOUTH_DRUM = (W[6][0] + 20.0, W[6][1] + 4.0)
 # A round tower's foot is squashed north to south: the field shows the ground at full depth, which would make its top a full circle.
 ROUND = 0.58
-KEEP_AT = (hex_x(14, 3), hex_y(3))
+# The keep stands behind the last column, level with the gate, so it hides no one. Its steps cover the hex it holds on the field.
+KEEP_AT = (858.0, hex_y(5))
+KEEP_HEX = (hex_x(14, 5), hex_y(5))
 # Every part and its states: 2 whole, 1 cracked, 0 down (a gate, keep or tower has only whole and down).
 PARTS = {
     'wallNorth': (2, 1, 0), 'wallSouth': (2, 1, 0), 'wallGateNorth': (2, 1, 0), 'wallGateSouth': (2, 1, 0),
@@ -253,6 +255,16 @@ def tower_keep(damage: int, h: float, seed: int):
     return keep
 
 
+def steps(m: Mesh) -> None:
+    """The keep's steps, climbing east from its hex to its door."""
+    x, y = KEEP_HEX
+    r = random.Random(61)
+    for i in range(5):
+        run = KEEP_AT[0] - 26 - (x - 20) - i * 9
+        z = 2 + i * 3
+        m.box(x - 20 + i * 9 + run / 2, y, z, run, 40 - i * 2, 3, 0.0, col(0.9 + r.random() * 0.14))
+
+
 def line(a, b, t: float) -> tuple[float, float]:
     return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
 
@@ -295,6 +307,8 @@ def build(name: str, state: int) -> Mesh:
         full = PARTS[name][0]
         damage = 2 if state == full else 0 if state == 0 else 1
         tower(m, p, o['r'], o['h'], seed=len(name) * 7, keep=tower_keep(damage, o['h'], len(name) * 13))
+        if name == 'keep':
+            steps(m)
         if state == 0:
             rubble(m, p[0] + 4, p[1] + 10, o['r'] * 1.6, 50, len(name))
     return m

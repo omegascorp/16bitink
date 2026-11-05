@@ -24,6 +24,8 @@ export const FEET_OFFSET = { x: 0, y: 6 } as const;
 /** Where each side's hero stands (feet), in the side margins beside the field, native pixels. */
 const HERO_LEFT = { x: 70, y: 300 } as const;
 const HERO_RIGHT = { x: 890, y: 300 } as const;
+/** At a siege the keep stands in the right margin, so the defender's hero stands below it. */
+const HERO_RIGHT_SIEGE = { x: 890, y: 440 } as const;
 
 /** The hex's measurements: width, height, half width, corner-to-centre height (tip), side-corner height (side), row pitch. */
 export const HEX_PX = { w: HEX_W, h: HEX_H, half: HEX_W / 2, tip: HEX_H / 2, side: HEX_PITCH - HEX_H / 2, pitch: HEX_PITCH } as const;
@@ -45,6 +47,8 @@ export const FIELD_RECT = { x: FIELD_ORIGIN.x - HEX_PX.half, y: FIELD_TOP, w: FI
 
 /** Where each side's hero stands. */
 export const HERO_FEET: readonly [{ x: number; y: number }, { x: number; y: number }] = [HERO_LEFT, HERO_RIGHT];
+/** Where a side's hero stands in this battle. */
+export const heroFeet = (side: 0 | 1, siege: boolean): { x: number; y: number } => (siege && side === 1 ? HERO_RIGHT_SIEGE : HERO_FEET[side]);
 
 /** A hex's centre in native pixels: where a unit's feet go. Odd rows sit half a hex to the right, as in hex.ts. */
 export function hexPx(h: Hex): { x: number; y: number } {
@@ -70,7 +74,7 @@ export function feetOn(hexes: readonly Hex[]): { x: number; y: number } {
 }
 
 /** Where a company stands on each tower (TOWERS' order): on its top, far above its hex. */
-export const TOWER_FEET: readonly { readonly x: number; readonly y: number }[] = [{ x: 799, y: 52 }, { x: 689, y: 10 }, { x: 709, y: 471 }];
+export const TOWER_FEET: readonly { readonly x: number; readonly y: number }[] = [{ x: 858, y: 136 }, { x: 689, y: 10 }, { x: 709, y: 471 }];
 /** How far round those feet a tap counts as a tap on the tower's company. */
 const TOWER_REACH = { x: 22, up: 56, down: 8 } as const;
 

@@ -38,7 +38,7 @@ const wallHex = (row: number): Hex => hexAt(WALL_COL[row]!, row);
 /** The hex of each part. A tower's hex stays blocked even when it falls; the wall's corners under the outer towers are always solid. */
 export const PART_HEX: Readonly<Record<SiegePart, Hex>> = {
   wallNorth: wallHex(1), wallGateNorth: wallHex(4), gate: wallHex(GATE_ROW), wallGateSouth: wallHex(6), wallSouth: wallHex(9),
-  keep: hexAt(14, 3), towerNorth: wallHex(0), towerSouth: wallHex(10),
+  keep: hexAt(14, GATE_ROW), towerNorth: wallHex(0), towerSouth: wallHex(10),
 };
 
 /** The hexes of the wall no catapult can open. */
