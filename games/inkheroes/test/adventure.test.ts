@@ -500,7 +500,7 @@ describe('taking a town (Thornwood)', () => {
     const adv = startAdventure(THORNWOOD);
     expect(adv.towns.map((t) => t.owner)).toEqual(['player', 'neutral']);
     expect(playerTowns(adv).map((t) => t.name)).toEqual(['Ashford']);
-    expect(townById(adv, 'thornwood-town')!.garrison.filter(Boolean)).toHaveLength(4);
+    expect(townById(adv, 'thornwood-town')!.garrison.filter(Boolean)).toHaveLength(5);
     // Only the player's towns pay.
     expect(dailyIncome(adv).gold).toBe(500);
   });
@@ -548,9 +548,9 @@ describe('the campaign', () => {
     expect(openBy(1).has('guardhouse2')).toBe(false);
     // Whatever a map opens needs only what's open by then: no building waits on a later map's.
     for (let n = 1; n <= UNLOCKS.length; n++) for (const b of openBy(n)) for (const need of BUILDINGS[b].needs) expect(openBy(n).has(need), `map ${n}: ${b} needs ${need}`).toBe(true);
-    // The Blacksmith (war machines) waits for map 3.
-    expect(openBy(2).has('blacksmith')).toBe(false);
-    expect(openBy(3).has('blacksmith')).toBe(true);
+    // The Blacksmith opens ahead of the first siege, on map 2.
+    expect(openBy(1).has('blacksmith')).toBe(false);
+    expect(openBy(2).has('blacksmith')).toBe(true);
     expect(openBy(2).has('guardhouse2')).toBe(true);
   });
 

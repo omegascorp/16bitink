@@ -1,5 +1,6 @@
 import type { CreatureId } from './creatures';
 import type { Hex } from './hex';
+import type { Siege, SiegePart } from './siege';
 import type { Skills } from './skills';
 import type { EffectKind, SpellId } from './spells';
 
@@ -30,6 +31,8 @@ export interface Stack {
   /** Had its good-morale extra turn this round. */
   readonly moraleUsed: boolean;
   readonly effects: readonly Effect[];
+  /** Up on this tower (its index in TOWERS): it shoots from there, out of reach of any blow, until the tower falls. */
+  readonly tower?: number;
 }
 
 /** What a hero brings to a battle. */
@@ -57,6 +60,8 @@ export interface BattleState {
   readonly cast: readonly [boolean, boolean];
   readonly seed: number;
   readonly winner: Side | null;
+  /** The walls, in a battle at a fortified town. */
+  readonly siege?: Siege;
 }
 
 export type Action =
@@ -65,8 +70,10 @@ export type Action =
   | { readonly type: 'shoot'; readonly target: number }
   | { readonly type: 'wait' }
   | { readonly type: 'defend' }
-  /** A First Aid Tent's turn: heals the top creature of a stack of its own side. */
-  | { readonly type: 'heal'; readonly target: number }
+  /** A Catapult's turn: where the stone lands is the dice's. */
+  | { readonly type: 'catapult' }
+  /** Strikes the gate or a tower by hand from head hex `from`, walking there first. */
+  | { readonly type: 'bash'; readonly part: SiegePart; readonly from: Hex }
   | { readonly type: 'cast'; readonly spell: SpellId; readonly target: number };
 
 /** What happened, in order, for the battle scene to animate. */
@@ -80,6 +87,14 @@ export type BattleEvent =
   | { readonly type: 'morale'; readonly stack: number; readonly good: boolean }
   /** A stack turned to stone, or (`lost`) the turn that costs it. */
   | { readonly type: 'stone'; readonly stack: number; readonly lost: boolean }
+  /** A stone from a catapult: `blows` 0 is a miss. */
+  | { readonly type: 'siege'; readonly stack: number; readonly part: SiegePart; readonly blows: number; readonly down: boolean }
+  /** A company struck `part` by hand: `left` strikes more bring it down. */
+  | { readonly type: 'bash'; readonly stack: number; readonly part: SiegePart; readonly left: number }
+  /** A walker in the moat. */
+  | { readonly type: 'moat'; readonly stack: number; readonly damage: number; readonly kills: number }
+  /** A tower fell: the company on it stands on the ground at `to`. */
+  | { readonly type: 'fall'; readonly stack: number; readonly to: Hex }
   | { readonly type: 'turn'; readonly stack: number }
   | { readonly type: 'round'; readonly round: number }
   | { readonly type: 'end'; readonly winner: Side };

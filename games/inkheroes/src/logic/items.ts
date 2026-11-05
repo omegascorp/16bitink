@@ -1,13 +1,15 @@
+import { creature, type MachineId } from './creatures';
 import type { Hero } from './hero';
 
 /** What a hero wears: armor (always part of a set), and the pieces that never are. */
-export const SLOTS = ['helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring1', 'ring2', 'book'] as const;
+export const SLOTS = ['helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring1', 'ring2', 'book', 'machine'] as const;
 export type Slot = (typeof SLOTS)[number];
 
 /** How many spare pieces a hero carries. */
 export const BAG_SIZE = 20;
 
-export type Quality = 'gray' | 'green' | 'blue' | 'purple' | 'gold';
+export const QUALITIES = ['gray', 'green', 'blue', 'purple', 'gold'] as const;
+export type Quality = (typeof QUALITIES)[number];
 export const QUALITY_NAMES: Readonly<Record<Quality, string>> = { gray: 'Common', green: 'Uncommon', blue: 'Rare', purple: 'Epic', gold: 'Legendary' };
 export type GearStat = 'attack' | 'defense' | 'power' | 'knowledge' | 'morale' | 'luck' | 'sight' | 'travel';
 
@@ -22,6 +24,8 @@ export interface ItemDef {
   /** The set it belongs to (gray sets give no set bonus). */
   readonly set?: string;
   readonly gives: Readonly<Partial<Record<GearStat, number>>>;
+  /** A war machine: the unit that stands on the field for it. */
+  readonly machine?: MachineId;
 }
 
 export const SET_NAMES: Readonly<Record<string, string>> = { bronze: 'Bronze set' };
@@ -37,6 +41,9 @@ export const ITEMS = {
   noviceSpellbook: { name: 'Novice’s Spellbook', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
   oracleSpellbook: { name: 'Oracle’s Spellbook', slot: 'book', quality: 'green', gives: { knowledge: 1, power: 1 } },
   alexandrianCodex: { name: 'Alexandrian Codex', slot: 'book', quality: 'blue', gives: { knowledge: 2, power: 1 } },
+  catapult: { name: 'Catapult', slot: 'machine', quality: 'gray', gives: {}, machine: 'catapult' },
+  catapult2: { name: 'Bronze Catapult', slot: 'machine', quality: 'green', gives: {}, machine: 'catapult2' },
+  catapult3: { name: 'Syracusan Catapult', slot: 'machine', quality: 'blue', gives: {}, machine: 'catapult3' },
 } as const satisfies Record<string, ItemDef>;
 
 export type ItemId = keyof typeof ITEMS;
@@ -45,14 +52,40 @@ export type Gear = Readonly<Partial<Record<Slot, ItemId>>>;
 
 export const itemDef = (id: ItemId): ItemDef => ITEMS[id];
 
+/** What the Blacksmith sells; finer machines are prizes. */
+export const SOLD_MACHINES = ['catapult', 'catapult2'] as const satisfies readonly ItemId[];
+export type SoldMachine = (typeof SOLD_MACHINES)[number];
+
 /** A piece's grade. */
 export const itemQuality = (id: ItemId): Quality => itemDef(id).quality;
 
 /** Whether `h` wears a spellbook: without one a hero has no magic at all. */
 export const hasSpellbook = (h: Pick<Hero, 'gear'>): boolean => !!h.gear?.book;
 
+/** A machine in words: "Breaks walls: 2 stones a round". */
+function machineSays(id: MachineId): string {
+  const { throws, crit } = creature(id).stones!;
+  return `Breaks walls: ${throws === 1 ? '1 stone' : `${throws} stones`} a round${crit > 0.5 ? ', hits harder' : ''}`;
+}
+
 /** What a piece gives, in words: "+1 Defense". */
-export const itemSays = (id: ItemId): string => (Object.entries(itemDef(id).gives) as [GearStat, number][]).map(([s, n]) => `+${n} ${GEAR_STAT_NAMES[s]}`).join(', ');
+export function itemSays(id: ItemId): string {
+  const { machine, gives } = itemDef(id);
+  return machine ? machineSays(machine) : (Object.entries(gives) as [GearStat, number][]).map(([s, n]) => `+${n} ${GEAR_STAT_NAMES[s]}`).join(', ');
+}
+
+/** The war machine `h` brings to a siege, if any. */
+export function machineOf(h: Pick<Hero, 'gear'>): MachineId | undefined {
+  const id = h.gear?.machine;
+  return id ? itemDef(id).machine : undefined;
+}
+
+/** Whether `h` already has `id` or a finer piece for its slot. */
+export function hasAsGood(h: Pick<Hero, 'gear' | 'bag'>, id: ItemId): boolean {
+  const { slot, quality } = itemDef(id);
+  const rank = (q: Quality): number => QUALITIES.indexOf(q);
+  return [h.gear?.[slot], ...(h.bag ?? [])].some((x) => !!x && itemDef(x).slot === slot && rank(itemDef(x).quality) >= rank(quality));
+}
 
 /** What everything `h` wears adds up to. */
 export function gearBonus(h: Pick<Hero, 'gear'>): Partial<Record<GearStat, number>> {

@@ -37,6 +37,9 @@ export class TurnOrder {
   private readonly faces = new Map<string, Pixels>();
   private readonly markerKey: string;
 
+  /** The player's side, whose rims are theirs. */
+  private me = 0;
+
   constructor(private readonly scene: Phaser.Scene) {
     this.root = scene.add.container(0, 0);
     this.markerKey = putBuffer(scene, drawMarker());
@@ -53,7 +56,8 @@ export class TurnOrder {
   }
 
   /** Shows `stacks` (in turn order, the active one first) centred on x, top at y. */
-  show(stacks: readonly Stack[], cx: number, y: number): void {
+  show(stacks: readonly Stack[], cx: number, y: number, me: number = 0): void {
+    this.me = me;
     this.root.removeAll(true);
     const left = Math.round(cx - Math.floor(TurnOrder.width(stacks.length) / 2));
     stacks.forEach((s, i) => {
@@ -68,7 +72,7 @@ export class TurnOrder {
   }
 
   private portrait(s: Stack, active: boolean): string {
-    const rim: RimName = active ? 'gold' : s.side === 0 ? 'player' : 'enemy';
+    const rim: RimName = active ? 'gold' : s.side === this.me ? 'player' : 'enemy';
     const id = `${s.creature}|${s.side}|${rim}|${s.waited ? 1 : 0}`;
     let key = this.keys.get(id);
     if (!key) {

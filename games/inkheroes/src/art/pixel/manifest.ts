@@ -82,12 +82,15 @@ import seraph2Attack from './units/seraph2-attack.png?url';
 import seraph3Idle from './units/seraph3-idle.png?url';
 import seraph3Walk from './units/seraph3-walk.png?url';
 import seraph3Attack from './units/seraph3-attack.png?url';
-import ballistaIdle from './units/ballista-idle.png?url';
-import ballistaWalk from './units/ballista-walk.png?url';
-import ballistaAttack from './units/ballista-attack.png?url';
-import tentIdle from './units/tent-idle.png?url';
-import tentWalk from './units/tent-walk.png?url';
-import tentAttack from './units/tent-attack.png?url';
+import catapultIdle from './units/catapult-idle.png?url';
+import catapultWalk from './units/catapult-walk.png?url';
+import catapultAttack from './units/catapult-attack.png?url';
+import catapult2Idle from './units/catapult2-idle.png?url';
+import catapult2Walk from './units/catapult2-walk.png?url';
+import catapult2Attack from './units/catapult2-attack.png?url';
+import catapult3Idle from './units/catapult3-idle.png?url';
+import catapult3Walk from './units/catapult3-walk.png?url';
+import catapult3Attack from './units/catapult3-attack.png?url';
 import boarIdle from './units/boar-idle.png?url';
 import boarWalk from './units/boar-walk.png?url';
 import boarAttack from './units/boar-attack.png?url';
@@ -309,18 +312,26 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 66, y: 39 },
     url: { idle: seraph3Idle, walk: seraph3Walk, attack: seraph3Attack },
   },
-  ballista: {
-    name: 'Ballista', w: 96, h: 96, footX: 41, footY: 90,
-    frames: { idle: 4, walk: 1, attack: 8 }, strike: 2,
-    shotFrom: { x: 76, y: 49 },
-    face: { x: 62, y: 52 },
-    url: { idle: ballistaIdle, walk: ballistaWalk, attack: ballistaAttack },
-  },
-  tent: {
-    name: 'First Aid Tent', w: 96, h: 96, footX: 50, footY: 90,
+  catapult: {
+    name: 'Catapult', w: 96, h: 96, footX: 44, footY: 90,
     frames: { idle: 4, walk: 1, attack: 8 }, strike: 3,
-    face: { x: 57, y: 74 },
-    url: { idle: tentIdle, walk: tentWalk, attack: tentAttack },
+    shotFrom: { x: 70, y: 16 },
+    face: { x: 44, y: 62 },
+    url: { idle: catapultIdle, walk: catapultWalk, attack: catapultAttack },
+  },
+  catapult2: {
+    name: 'Bronze Catapult', w: 96, h: 96, footX: 44, footY: 90,
+    frames: { idle: 4, walk: 1, attack: 8 }, strike: 3,
+    shotFrom: { x: 70, y: 16 },
+    face: { x: 44, y: 62 },
+    url: { idle: catapult2Idle, walk: catapult2Walk, attack: catapult2Attack },
+  },
+  catapult3: {
+    name: 'Syracusan Catapult', w: 96, h: 96, footX: 44, footY: 90,
+    frames: { idle: 4, walk: 1, attack: 8 }, strike: 3,
+    shotFrom: { x: 70, y: 16 },
+    face: { x: 44, y: 62 },
+    url: { idle: catapult3Idle, walk: catapult3Walk, attack: catapult3Attack },
   },
   boar: {
     name: 'Erymanthian Boar', w: 128, h: 104, footX: 50, footY: 98,

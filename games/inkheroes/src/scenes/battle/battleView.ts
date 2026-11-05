@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import type { Pose } from '../../art/pixel/manifest';
 import { getSound } from '../../host';
-import { alive, isStone, stackById } from '../../logic/battle';
+import { alive, isStone, playerSide, stackById } from '../../logic/battle';
 import type { BattleEvent, BattleState, Stack } from '../../logic/battleTypes';
 import { createRng } from '../../logic/rng';
+import type { SiegePart } from '../../logic/siege';
 import { HEX_COUNT, type Hex } from '../../logic/hex';
 import { SPELLS } from '../../logic/spells';
 import { adjacent, facesTarget, footprintAt, isWide, occupiedHexes } from '../../logic/footprint';
@@ -11,10 +12,13 @@ import type { BattleCameras } from './battleCameras';
 import { badgeTexture, backdropSource, bufferTexture, heroArt, obstacleArt, PX_TEX, unitArt } from './pixelAssets';
 import { FIGURE_DEPTH, PixelFigure } from './pixelFigure';
 import { Backdrop } from './pixelBackdrop';
-import { feetOn, feetPx, HERO_FEET, hexPx, WORLD } from './pixelLayout';
+import { feetOn, feetPx, HERO_FEET, hexPx, TOWER_FEET, WORLD } from './pixelLayout';
 import { PixelBuffer, type Rgba } from './pixelRaster';
 import { INK } from './pixelUi';
+import { partAt, SiegeView } from './siegeView';
 
+/** How far above the part struck by hand its message floats, native pixels. */
+const STRIKE_FLOAT = 44;
 const GRID_KEY = 'px-battle-grid';
 const MARKS_KEY = 'px-battle-marks';
 /** Layer depths: the ground, its grid and highlights, then figures by row (FIGURE_DEPTH + y), then badges and shots over all. */
@@ -51,8 +55,19 @@ function stackHexes(s: Stack): readonly Hex[] {
   return occupiedHexes(s);
 }
 
-/** Where a stack's feet go. */
-const stackFeet = (s: Stack): { x: number; y: number } => feetOn(stackHexes(s));
+/** Where a stack's feet go: on its hex, or up on its tower. */
+const stackFeet = (s: Stack): { x: number; y: number } => (s.tower === undefined ? feetOn(stackHexes(s)) : TOWER_FEET[s.tower]!);
+
+/** The ground line a company on a tower sorts on: just in front of the tower's own. */
+const TOWER_SORT = 2;
+/** Where a landed company's fall begins and how long it takes, ms. */
+const FALL_MS = 420;
+
+/** What the cards and floats call each part of a town's walls. */
+const SIEGE_NAMES: Readonly<Record<SiegePart, string>> = {
+  wallNorth: 'The north wall', wallGateNorth: 'The wall by the gate', wallGateSouth: 'The wall by the gate', wallSouth: 'The south wall',
+  gate: 'The gate', keep: 'The keep', towerNorth: 'The north tower', towerSouth: 'The south tower',
+};
 
 interface UnitSprite {
   readonly fig: PixelFigure;
@@ -99,6 +114,9 @@ export class BattleView {
   private readonly marks = new PixelBuffer(WORLD.w, WORLD.h);
   private readonly extras: Phaser.GameObjects.GameObject[] = [];
   private readonly backdrop: Backdrop;
+  private readonly walls: SiegeView | null = null;
+  /** The side the player plays: theirs are the navy badges, and their hero the player's. */
+  private readonly me: number;
 
   constructor(private readonly scene: Phaser.Scene, private readonly cams: BattleCameras, state: BattleState, terrain: string, seed: number, heroes: readonly [boolean, boolean], private readonly floater: Floater, private readonly opts: ViewOpts = {}) {
     const layer = cams.world;
@@ -110,10 +128,12 @@ export class BattleView {
     this.addStill(scene.add.image(0, 0, MARKS_KEY).setOrigin(0).setDepth(DEPTH.marks));
     this.addStill(scene.add.image(0, 0, GRID_KEY).setOrigin(0).setDepth(DEPTH.grid));
     this.placeObstacles(state.obstacles, seed);
+    this.me = playerSide(state);
+    if (state.siege) this.walls = new SiegeView(scene, layer, state.siege);
     heroes.forEach((has, side) => {
       if (!has) return;
-      // Side 1's hero is always the rival lord (monsters and garrisons fight without one).
-      const hero = heroArt(side === 1 ? 'rival' : 'player');
+      // The other side's hero is always the rival lord (monsters and garrisons fight without one).
+      const hero = heroArt(side === this.me ? 'player' : 'rival');
       const fig = new PixelFigure(scene, layer, hero.art, (pose) => PX_TEX.hero(hero.id, pose), HERO_FEET[side as 0 | 1], side === 1);
       if (opts.pose) fig.hold(opts.pose);
       this.heroes[side] = fig;
@@ -153,7 +173,8 @@ export class BattleView {
     const art = unitArt(s.creature);
     const fig = new PixelFigure(this.scene, this.cams.world, art, (pose) => PX_TEX.unit(s.creature, pose), stackFeet(s), s.side === 1);
     if (this.opts.pose) fig.hold(this.opts.pose);
-    const badge = this.scene.add.image(0, 0, badgeTexture(this.scene, s.side, s.count)).setOrigin(0).setDepth(DEPTH.badge);
+    if (s.tower !== undefined) fig.sortOn(hexPx(s.hex).y + TOWER_SORT);
+    const badge = this.scene.add.image(0, 0, badgeTexture(this.scene, s.side === this.me ? 0 : 1, s.count)).setOrigin(0).setDepth(DEPTH.badge);
     this.cams.world.add(badge);
     this.units.set(s.id, { fig, badge, side: s.side });
   }
@@ -164,17 +185,19 @@ export class BattleView {
       const u = this.units.get(s.id)!;
       const p = stackFeet(s);
       u.fig.setFeet(p.x, p.y);
+      if (s.tower === undefined) u.fig.sortOn(null);
       u.fig.sprite.setVisible(alive(s)).setAlpha(1);
       if (isStone(s)) u.fig.sprite.setTint(STONE_TINT);
       else u.fig.sprite.clearTint();
       this.setBadge(u, s.count, alive(s));
     }
+    if (state.siege) this.walls?.show(state.siege);
     if (this.opts.feet) this.markFeet(state);
   }
 
   /** The count badge at the unit's lower front corner: right of the feet facing right, left of them facing left. */
   private setBadge(u: UnitSprite, count: number, visible: boolean): void {
-    u.badge.setTexture(badgeTexture(this.scene, u.side, count));
+    u.badge.setTexture(badgeTexture(this.scene, u.side === this.me ? 0 : 1, count));
     const { x, y } = u.fig.feet;
     const left = u.side === 1;
     u.badge.setPosition(left ? x - BADGE_AT.x - u.badge.width + 1 : x + BADGE_AT.x, y + BADGE_AT.y).setVisible(visible);
@@ -234,6 +257,49 @@ export class BattleView {
         await this.wait(200);
         return;
       }
+      case 'siege': {
+        const cat = this.units.get(ev.stack)!;
+        const swing = cat.fig.attack();
+        await this.wait(cat.fig.msToStrike());
+        getSound(this.scene)?.play('shoot');
+        await this.walls?.hurl(cat.fig.shotPoint(), ev.part, PX_TEX.stone, ev.blows === 0);
+        getSound(this.scene)?.play('hit');
+        if (after.siege) this.walls?.show(after.siege);
+        this.floater(WORLD.w / 2, 40, ev.blows === 0 ? 'The stone goes wide' : ev.down ? `${SIEGE_NAMES[ev.part]} falls!` : `${SIEGE_NAMES[ev.part]} is hit`, ev.down ? INK.title : INK.text);
+        await swing;
+        await this.wait(200);
+        return;
+      }
+      case 'bash': {
+        const u = this.units.get(ev.stack)!;
+        const struck = new Promise<void>((resolve) => void u.fig.attack(resolve));
+        await struck;
+        getSound(this.scene)?.play('hit');
+        this.walls?.jolt(ev.part);
+        if (after.siege) this.walls?.show(after.siege);
+        const at = partAt(ev.part);
+        this.floater(at.x, at.y - STRIKE_FLOAT, ev.left ? `${SIEGE_NAMES[ev.part]} shudders: ${ev.left} more ${ev.left === 1 ? 'strike' : 'strikes'}` : `${SIEGE_NAMES[ev.part]} falls!`, ev.left ? INK.text : INK.title);
+        await this.wait(260);
+        return;
+      }
+      case 'moat': {
+        const u = this.units.get(ev.stack)!;
+        this.hit(u.fig);
+        this.floatAt(u.fig, `Moat: −${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}`, INK.damage);
+        this.syncOne(after, ev.stack);
+        await this.wait(350);
+        return;
+      }
+      case 'fall': {
+        const u = this.units.get(ev.stack)!;
+        const to = feetOn(footprintAt(ev.to, isWide(stackById(after, ev.stack).creature), stackById(after, ev.stack).side) ?? [ev.to]);
+        u.badge.setVisible(false);
+        u.fig.sortOn(null);
+        await this.glide(u.fig, to, FALL_MS, 'Quad.easeIn');
+        this.floatAt(u.fig, 'The tower falls!', INK.damage);
+        await this.wait(250);
+        return;
+      }
       case 'wait':
       case 'defend': {
         this.floatAt(this.units.get(ev.stack)!.fig, ev.type === 'wait' ? 'waits' : 'defends', INK.text);
@@ -241,10 +307,8 @@ export class BattleView {
         return;
       }
       case 'heal': {
-        const tent = this.units.get(ev.stack)!;
         const t = this.units.get(ev.target)!;
-        await new Promise<void>((resolve) => void tent.fig.attack(resolve));
-        this.floatAt(t.fig, ev.amount ? `+${ev.amount} health` : 'tended', INK.good);
+        this.floatAt(t.fig, `+${ev.amount} health`, INK.good);
         this.syncOne(after, ev.target);
         await this.wait(250);
         return;
@@ -426,6 +490,7 @@ export class BattleView {
     }
     for (const h of this.heroes) h?.destroy();
     for (const o of this.extras) o.destroy();
+    this.walls?.destroy();
     this.backdrop.destroy();
     for (const key of [GRID_KEY, MARKS_KEY]) if (this.scene.textures.exists(key)) this.scene.textures.remove(key);
   }

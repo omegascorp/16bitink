@@ -1,11 +1,12 @@
 import type Phaser from 'phaser';
 import { nextMap } from '../level/maps';
-import { answerPrompt, playerTowns } from '../logic/adventure';
+import { answerPrompt, playerTowns, type Adventure } from '../logic/adventure';
 import { partDays } from '../logic/chapter';
 import { PRIMARY_NAMES } from '../logic/hero';
 import { RANK_NAMES, SKILLS } from '../logic/skills';
+import { has, type Town } from '../logic/town';
 import { UI_TEX } from './battle/pixelUi';
-import { openCard } from './CardScene';
+import { openCard, type CardSpec } from './CardScene';
 import { Session } from './session';
 
 /**
@@ -77,6 +78,21 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
       ],
     });
   }
+}
+
+/** The hero is about to storm walls with no war machine: what it's for, where to get one, and what going without costs. */
+export function wallsCard(town: Town, adv: Adventure, storm: () => void): CardSpec {
+  const smith = playerTowns(adv).find((t) => has(t, 'blacksmith'));
+  const buy = smith ? `The Blacksmith in ${smith.name} sells them.` : 'Build a Blacksmith in a town of yours to buy one.';
+  return {
+    title: `The walls of ${town.name}`,
+    body: `Walls stop your army, and only a war machine can break them. A Catapult rides with you as gear and brings them down. ${buy}\nWithout one, your troops must hack through the gate by hand, under fire.`,
+    picture: UI_TEX.item('catapult'),
+    buttons: [
+      { label: 'Not yet', kind: 'crown', onClick: () => undefined },
+      { label: 'Storm it now', kind: 'plain', onClick: storm },
+    ],
+  };
 }
 
 /** The part won, the land opens further and the hero rides straight on. */

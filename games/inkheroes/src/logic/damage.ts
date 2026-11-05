@@ -1,6 +1,7 @@
 import type { BattleState, Stack } from './battleTypes';
 import { creature } from './creatures';
 import { roll } from './rng';
+import { shotOverWall } from './siege';
 import { skillValue } from './skills';
 
 /** Beyond this many hexes shots do half damage (H3: 10, on a bigger field). */
@@ -31,6 +32,12 @@ export function speedOf(s: Stack): number {
   return has(s, 'slow') ? Math.floor(base * 0.75) : base;
 }
 
+/** Whether a shot does half damage for the stone in its way: a company up on a tower, or a wall between. */
+export function inCover(state: BattleState, a: Stack, d: Stack): boolean {
+  if (d.tower !== undefined) return true;
+  return !!state.siege && a.tower === undefined && shotOverWall(state.siege, a.hex, d.hex);
+}
+
 /**
  * H3's multiplier on base damage: Attack over Defense +5% a point (to +300%),
  * Defense over Attack −2.5% a point (to −70%); bonuses add, penalties multiply.
@@ -48,6 +55,7 @@ export function damageFactor(state: BattleState, a: Stack, d: Stack, ctx: Strike
   if (def > att) lower *= 1 - Math.min(0.7, 0.025 * (def - att));
   lower *= 1 - skillValue(state.heroes[d.side]?.skills ?? {}, 'armorer');
   if (ctx.ranged && ctx.distance > RANGE_PENALTY_DISTANCE) lower *= 0.5;
+  if (ctx.ranged && inCover(state, a, d)) lower *= 0.5;
   if (!ctx.ranged && creature(a.creature).shots) lower *= 0.5;
   return raise * lower;
 }

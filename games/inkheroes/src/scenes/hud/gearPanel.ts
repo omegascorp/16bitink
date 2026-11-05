@@ -14,7 +14,7 @@ export const QUALITY_RIM: Readonly<Record<Quality, RimName>> = { gray: 'bronze',
 
 /** A slot's full name, for the line under the panel. */
 const FULL: Readonly<Record<Slot, string>> = {
-  helm: 'Helm', cuirass: 'Cuirass', bracers: 'Bracers', belt: 'Belt', greaves: 'Greaves', boots: 'Boots', weapon: 'Weapon', shield: 'Shield', amulet: 'Amulet', ring1: 'Ring', ring2: 'Ring', book: 'Spellbook',
+  helm: 'Helm', cuirass: 'Cuirass', bracers: 'Bracers', belt: 'Belt', greaves: 'Greaves', boots: 'Boots', weapon: 'Weapon', shield: 'Shield', amulet: 'Amulet', ring1: 'Ring', ring2: 'Ring', book: 'Spellbook', machine: 'War Machine',
 };
 
 /** What's picked on the panel: a slot on the body, or a place in the bag. */
@@ -68,11 +68,14 @@ export function drawGear(host: GearHost, x: number, y: number, layout: GearLayou
   detail(host, moved(layout.detail), layout.detail.w, hero, pick, on);
 }
 
+/** What an empty slot says; the war machine's is where a hero learns what it's for. */
+const emptySlot = (slot: Slot): string => (slot === 'machine' ? 'No war machine: buy one at a Blacksmith to break town walls' : `${FULL[slot]}: nothing worn`);
+
 function detail(host: GearHost, at: GearCell, w: number, hero: Hero, pick: GearPick | null, on: { change(h: Hero): void }): void {
   const { x, y } = at;
   const item = pickedItem(hero, pick);
   if (!item) {
-    line(host, pick && 'slot' in pick ? `${FULL[pick.slot]}: nothing worn` : 'Tap a piece to see what it gives', x, y + 6, INK.dim);
+    line(host, pick && 'slot' in pick ? emptySlot(pick.slot) : 'Tap a piece to see what it gives', x, y + 6, INK.dim, w);
     return;
   }
   const def = itemDef(item);

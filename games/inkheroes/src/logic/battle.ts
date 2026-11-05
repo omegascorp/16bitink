@@ -1,76 +1,104 @@
 import type { Army } from './army';
 import type { Action, BattleEvent, BattleHero, BattleState, Side, Stack, Step } from './battleTypes';
-import { creature, type CreatureId } from './creatures';
+import { creature, type CreatureId, type MachineId } from './creatures';
 import { hexAt, reachable, route, type Hex, COLS, ROWS } from './hex';
 import { adjacent, around, covers, facesTarget, footprintAt, headOf, isWide, occupiedHexes, shotDistance, tailFn, touching } from './footprint';
 import { roll, rollInt } from './rng';
 import { heal, hurt, rollDamage, speedOf } from './damage';
 import { castSpell } from './battleSpells';
-import { activeStack, alive, isStone, stackById, update, winnerOf } from './battleCore';
+import { activeStack, alive, isStone, onGround, playerSide, stackById, targetable, update, winnerOf } from './battleCore';
+import { aimFor, batter, moatFor, MOAT_DAMAGE, nearestFree, PART_HEX, raiseWalls, standing, strikeByHand, strikesLeft, TOWERS, wallsAgainst, type Fortification, type Siege, type SiegePart } from './siege';
 
-export { activeStack, alive, isStone, stackById, update, winnerOf };
+export { activeStack, alive, isStone, onGround, playerSide, stackById, targetable, update, winnerOf };
 
 export interface BattleSide {
   readonly hero: BattleHero | null;
   readonly army: Army;
   /** Morale from the army's make-up (see armyMorale). */
   readonly armyMorale?: number;
-  /** The hero's war machines (one of each at most). */
-  readonly machines?: readonly CreatureId[];
+  /** The hero's war machine, which comes along when they lay siege. */
+  readonly machine?: MachineId;
+  /** The companies up on a town's towers, place by place (the defender of a siege). */
+  readonly towers?: Army;
 }
 
-/** The rows war machines stand on, at the back of their side: rows no formation uses. */
-const MACHINE_ROWS: readonly number[] = [3, 7];
+/** A battle at a fortified town: its walls, and the side the player plays. */
+export interface SiegeSetup {
+  readonly fort: Fortification;
+  readonly me: Side;
+}
+
+/** Where a besieging hero's war machine stands, on their edge column: a row no formation uses. */
+const MACHINE_ROW = 9;
+/** The formation row the keep stands in front of, on its way back from the wall. */
+const KEEP_ROW = 2;
+/** A company on a tower counts from this slot, apart from the army's: towers are their own row in a town. */
+export const TOWER_SLOT = 100;
 
 /** Rows each army of 1–7 stacks lines up on: H3's loose formation (VCMI gameConfig.json layouts.default, 11 rows). */
 const FORMATION: readonly (readonly number[])[] = [[], [5], [2, 8], [2, 5, 8], [0, 4, 6, 10], [0, 2, 5, 8, 10], [0, 2, 4, 6, 8, 10], [0, 2, 4, 5, 6, 8, 10]];
 
-/** Obstacles a battle gets (2–5 on the old 13 × 9 field, scaled by area), and the columns they keep to. */
-const OBSTACLES = { min: 3, max: 7, firstCol: 3, lastCol: COLS - 4 } as const;
+/** Obstacles a battle gets (2–5 on the old 13 × 9 field, scaled by area), and the columns they keep to; at a siege they stay clear of the moat. */
+const OBSTACLES = { min: 3, max: 7, firstCol: 3, lastCol: COLS - 4, siegeLastCol: 6 } as const;
 
 /**
  * A new battle: the attacker lines up in the left column, the defender in the
  * right, with a few obstacles between. A two-hex unit's head stands one column
- * in so its tail sits on the edge column (VCMI's start positions).
+ * in so its tail sits on the edge column (VCMI's start positions). At a
+ * siege the walls stand on the right: the attacker brings their war machine,
+ * if they have one, and the defender's companies take their towers.
  */
-export function createBattle(attacker: BattleSide, defender: BattleSide, seed: number): Step {
+export function createBattle(attacker: BattleSide, defender: BattleSide, seed: number, siege?: SiegeSetup): Step {
   const stacks: Stack[] = [];
+  const walls: Siege | undefined = siege ? raiseWalls(siege.fort, siege.me) : undefined;
   [attacker, defender].forEach((side, s) => {
     const slots = side.army.map((slot, i) => ({ slot, i })).filter((x) => x.slot && x.slot.count > 0);
     const rows = FORMATION[slots.length]!;
     slots.forEach(({ slot, i }, k) => {
       const c = creature(slot!.creature);
-      const col = s === 0 ? (c.wide ? 1 : 0) : c.wide ? COLS - 2 : COLS - 1;
+      // Behind the walls, the row the keep would hide stands a column forward.
+      const forward = walls && s === 1 && rows[k] === KEEP_ROW ? 1 : 0;
+      const col = s === 0 ? (c.wide ? 1 : 0) : (c.wide ? COLS - 2 : COLS - 1) - forward;
       stacks.push({
         id: stacks.length, side: s as Side, creature: slot!.creature, count: slot!.count, startCount: slot!.count, topHp: c.hp,
         hex: hexAt(col, rows[k]!), shots: c.shots ?? 0, retaliationsLeft: c.retaliations ?? 1, slot: i,
         acted: false, waited: false, defending: false, moraleUsed: false, effects: [],
       });
     });
-    // War machines stand on the side's edge column, out of the formation; slot -1, -2 (they aren't army slots).
-    (side.machines ?? []).slice(0, MACHINE_ROWS.length).forEach((m, k) => {
-      const c = creature(m);
-      stacks.push({
-        id: stacks.length, side: s as Side, creature: m, count: 1, startCount: 1, topHp: c.hp,
-        hex: hexAt(s === 0 ? 0 : COLS - 1, MACHINE_ROWS[k]!), shots: c.shots ?? 0, retaliationsLeft: 0, slot: -1 - k,
-        acted: false, waited: false, defending: false, moraleUsed: false, effects: [],
+    if (!walls) return;
+    // Slot -1: it isn't an army slot.
+    if (s === 0 && side.machine) stacks.push(machineStack(stacks.length, 0, side.machine, hexAt(0, MACHINE_ROW), -1));
+    if (s === 1) {
+      (side.towers ?? []).slice(0, TOWERS.length).forEach((slot, i) => {
+        if (!slot || slot.count <= 0 || !standing(walls, TOWERS[i]!)) return;
+        const c = creature(slot.creature);
+        stacks.push({
+          id: stacks.length, side: 1, creature: slot.creature, count: slot.count, startCount: slot.count, topHp: c.hp,
+          hex: PART_HEX[TOWERS[i]!], shots: c.shots ?? 0, retaliationsLeft: 0, slot: TOWER_SLOT + i, tower: i,
+          acted: false, waited: false, defending: false, moraleUsed: false, effects: [],
+        });
       });
-    });
+    }
   });
-  const { obstacles, seed: next } = placeObstacles(seed, new Set(stacks.flatMap(occupiedHexes)));
+  const { obstacles, seed: next } = placeObstacles(seed, new Set(stacks.flatMap(occupiedHexes)), !!walls);
   // The army's make-up adds to its hero's morale (a hero-less monster side has none).
   const heroes = [attacker, defender].map((side) => (side.hero ? { ...side.hero, morale: side.hero.morale + (side.armyMorale ?? 0) } : null));
-  const state: BattleState = { round: 1, stacks, obstacles, heroes: [heroes[0]!, heroes[1]!], active: null, cast: [false, false], seed: next, winner: null };
+  const state: BattleState = { round: 1, stacks, obstacles, heroes: [heroes[0]!, heroes[1]!], active: null, cast: [false, false], seed: next, winner: null, ...(walls ? { siege: walls } : {}) };
   return advance(state, [{ type: 'round', round: 1 }]);
 }
 
+function machineStack(id: number, side: Side, m: MachineId, hex: Hex, slot: number): Stack {
+  const c = creature(m);
+  return { id, side, creature: m, count: 1, startCount: 1, topHp: c.hp, hex, shots: c.shots ?? 0, retaliationsLeft: 0, slot, acted: false, waited: false, defending: false, moraleUsed: false, effects: [] };
+}
+
 /** 3–7 obstacles in the middle columns (three clear columns on each side), never on a unit's hex. */
-function placeObstacles(seed: number, taken: ReadonlySet<Hex>): { obstacles: Hex[]; seed: number } {
+function placeObstacles(seed: number, taken: ReadonlySet<Hex>, siege: boolean): { obstacles: Hex[]; seed: number } {
   const n = rollInt(seed, OBSTACLES.min, OBSTACLES.max);
   let s = n.seed;
   const out = new Set<Hex>();
   while (out.size < n.value) {
-    const c = rollInt(s, OBSTACLES.firstCol, OBSTACLES.lastCol);
+    const c = rollInt(s, OBSTACLES.firstCol, siege ? OBSTACLES.siegeLastCol : OBSTACLES.lastCol);
     const r = rollInt(c.seed, 0, ROWS - 1);
     s = r.seed;
     const h = hexAt(c.value, r.value);
@@ -80,9 +108,10 @@ function placeObstacles(seed: number, taken: ReadonlySet<Hex>): { obstacles: Hex
 }
 
 
-/** Hexes a unit can't enter: obstacles and both hexes of every other living unit. */
+/** Hexes a unit can't enter: obstacles, both hexes of every other living unit, and the walls closed to its side. */
 export function blockedFor(state: BattleState, self: number): Set<Hex> {
-  return new Set([...state.obstacles, ...state.stacks.filter((s) => alive(s) && s.id !== self).flatMap(occupiedHexes)]);
+  const walls = state.siege ? wallsAgainst(state.siege, stackById(state, self).side) : [];
+  return new Set([...state.obstacles, ...walls, ...state.stacks.filter((s) => alive(s) && s.id !== self).flatMap(occupiedHexes)]);
 }
 
 /**
@@ -92,8 +121,11 @@ export function blockedFor(state: BattleState, self: number): Set<Hex> {
 export function moves(state: BattleState): Map<Hex, number> {
   const s = activeStack(state);
   if (!s) return new Map();
-  return reachable(s.hex, speedOf(s), blockedFor(state, s.id), !!creature(s.creature).flies, tailFn(s.creature, s.side));
+  if (s.tower !== undefined) return new Map([[s.hex, 0]]);
+  return reachable(s.hex, speedOf(s), blockedFor(state, s.id), !!creature(s.creature).flies, tailFn(s.creature, s.side), moatOf(state, s.side));
 }
+
+const moatOf = (state: BattleState, side: Side): Set<Hex> => (state.siege ? moatFor(state.siege, side) : new Set());
 
 /** The living stack covering `h` (either hex of a two-hex unit), if any. */
 export function stackAt(state: BattleState, h: Hex): Stack | undefined {
@@ -131,14 +163,14 @@ export function moveHeadFor(state: BattleState, h: Hex): Hex | null {
   return head !== null && head !== s.hex && reach.has(head) ? head : null;
 }
 
-const isEnemy = (a: Stack, b: Stack): boolean => a.side !== b.side && alive(b);
+const isEnemy = (a: Stack, b: Stack): boolean => a.side !== b.side && alive(b) && targetable(b);
 
 /** Whether a stack can shoot now: it has shots and no enemy stands next to either of its hexes. */
 export function canShoot(state: BattleState, s: Stack): boolean {
   if (!creature(s.creature).shots || s.shots <= 0) return false;
-  // A ballista shoots even with an enemy beside it.
-  if (creature(s.creature).machine) return true;
-  return !state.stacks.some((o) => isEnemy(s, o) && adjacent(s, o));
+  // A company up on a tower shoots even with an enemy beside it.
+  if (s.tower !== undefined) return true;
+  return !state.stacks.some((o) => isEnemy(s, o) && onGround(o) && adjacent(s, o));
 }
 
 /** One place the active unit can strike a target from. */
@@ -164,10 +196,14 @@ export interface StrikeOption {
  * its tail there (head one hex forward).
  */
 export function strikeOptions(state: BattleState, target: Stack): StrikeOption[] {
+  return onGround(target) ? contactOptions(state, occupiedHexes(target)) : [];
+}
+
+/** Where the active unit can strike the hexes `targetHexes` from. */
+function contactOptions(state: BattleState, targetHexes: readonly Hex[]): StrikeOption[] {
   const me = activeStack(state);
   if (!me) return [];
   const wide = isWide(me.creature);
-  const targetHexes = occupiedHexes(target);
   const reach = moves(state);
   const heads = new Set<Hex>();
   for (const h of around(targetHexes)) {
@@ -186,6 +222,14 @@ export function strikeOptions(state: BattleState, target: Stack): StrikeOption[]
     out.push({ from, steps, hexes, contact, struck, reversed: !facesTarget(me.side, hexes, targetHexes) });
   }
   return out;
+}
+
+/** Where the active unit can strike the gate or a tower by hand from: any attacker can, while it stands. */
+export function handOptions(state: BattleState, part: SiegePart): StrikeOption[] {
+  const me = activeStack(state);
+  const siege = state.siege;
+  if (!me || !siege || me.side !== 0 || !standing(siege, part) || creature(me.creature).machine) return [];
+  return contactOptions(state, [PART_HEX[part]]);
 }
 
 /** The places a tap can strike `target` from: standing beside it, the unit stays where it is; otherwise any side of it. */
@@ -229,7 +273,19 @@ export function act(state: BattleState, action: Action): Step {
       const target = stackById(s, action.target);
       if (!isEnemy(me, target) || !canShoot(s, me)) throw new Error('cannot shoot');
       s = strike(s, me.id, target.id, { ranged: true, distance: shotDistance(me, target), moved: 0 }, false, events);
-      s = update(s, me.id, (x) => ({ ...x, shots: x.shots - 1 }));
+      // A tower's stores don't run out.
+      if (me.tower === undefined) s = update(s, me.id, (x) => ({ ...x, shots: x.shots - 1 }));
+      break;
+    }
+    case 'catapult': {
+      const throws = creature(me.creature).stones?.throws ?? 0;
+      const thrown = Array.from({ length: throws }).reduce<BattleState>((st) => hurl(st, me, events), s);
+      return advance(update(thrown, me.id, (x) => ({ ...x, acted: true })), events);
+    }
+    case 'bash': {
+      if (!handOptions(s, action.part).some((o) => o.from === action.from)) throw new Error('cannot reach that from there');
+      if (action.from !== me.hex) s = moveTo(s, me, action.from, events);
+      s = bash(s, me.id, action.part, events);
       break;
     }
     case 'wait': {
@@ -241,32 +297,73 @@ export function act(state: BattleState, action: Action): Step {
       events.push({ type: 'defend', stack: me.id });
       return advance(update(s, me.id, (x) => ({ ...x, defending: true, acted: true })), events);
     }
-    case 'heal': {
-      const target = stackById(s, action.target);
-      const most = creature(me.creature).heals ?? 0;
-      if (!most || target.side !== me.side || !alive(target) || creature(target.creature).machine) throw new Error('cannot heal that');
-      const r = rollInt(s.seed, Math.ceil(most / 2), most);
-      const amount = Math.min(r.value, creature(target.creature).hp - target.topHp);
-      events.push({ type: 'heal', stack: me.id, target: target.id, amount });
-      s = update({ ...s, seed: r.seed }, target.id, (x) => ({ ...x, topHp: x.topHp + amount }));
-      return advance(update(s, me.id, (x) => ({ ...x, acted: true })), events);
-    }
   }
   return afterAction(s, me.id, events);
 }
 
 function moveTo(s: BattleState, me: Stack, to: Hex, events: BattleEvent[]): BattleState {
   const flies = !!creature(me.creature).flies;
-  const path = flies ? [to] : route(me.hex, to, blockedFor(s, me.id), tailFn(me.creature, me.side));
+  const path = flies ? [to] : route(me.hex, to, blockedFor(s, me.id), tailFn(me.creature, me.side), moatOf(s, me.side));
   events.push({ type: 'move', stack: me.id, path, flies });
-  return update(s, me.id, (x) => ({ ...x, hex: to }));
+  return intoMoat(update(s, me.id, (x) => ({ ...x, hex: to })), me.id, events);
+}
+
+/** A unit that ends a move in the moat is hurt there, each time it enters. */
+function intoMoat(s: BattleState, id: number, events: BattleEvent[]): BattleState {
+  const st = stackById(s, id);
+  const moat = moatOf(s, st.side);
+  if (!occupiedHexes(st).some((h) => moat.has(h))) return s;
+  const { stack, kills } = hurt(st, MOAT_DAMAGE);
+  events.push({ type: 'moat', stack: id, damage: MOAT_DAMAGE, kills });
+  return update(s, id, () => stack);
+}
+
+/** A company strikes `part` by hand; a walker that ended up in the moat may not live to. */
+function bash(s: BattleState, id: number, part: SiegePart, events: BattleEvent[]): BattleState {
+  if (!alive(stackById(s, id))) return s;
+  const siege = strikeByHand(s.siege!, part);
+  const left = strikesLeft(siege, part);
+  events.push({ type: 'bash', stack: id, part, left });
+  return left > 0 ? { ...s, siege } : towerFalls({ ...s, siege }, part, events);
+}
+
+/** A stone at the walls: the part it flies at is a weighted draw, then a roll for a miss, a blow or two. */
+function hurl(s: BattleState, me: Stack, events: BattleEvent[]): BattleState {
+  const siege = s.siege;
+  const aims = siege ? aimFor(siege) : [];
+  const stones = creature(me.creature).stones;
+  if (!siege || !aims.length || !stones) return s;
+  const total = aims.reduce((n, a) => n + a.weight, 0);
+  const pick = roll(s.seed);
+  const hit = roll(pick.seed);
+  let left = pick.value * total;
+  const part: SiegePart = aims.find((a) => (left -= a.weight) < 0)?.part ?? aims[aims.length - 1]!.part;
+  const blows = hit.value < stones.miss ? 0 : hit.value < stones.miss + stones.crit ? 2 : 1;
+  const next = batter(siege, part, blows);
+  const down = blows > 0 && !standing(next, part);
+  events.push({ type: 'siege', stack: me.id, part, blows, down });
+  const after = { ...s, siege: next, seed: hit.seed };
+  return down ? towerFalls(after, part, events) : after;
+}
+
+/** A tower down: the company on it, if any, lands on the ground and fights on from there. */
+function towerFalls(s: BattleState, part: SiegePart, events: BattleEvent[]): BattleState {
+  const i = (TOWERS as readonly SiegePart[]).indexOf(part);
+  const st = s.stacks.find((x) => x.tower === i && alive(x));
+  if (!st) return s;
+  const taken = blockedFor(s, st.id);
+  const wide = isWide(st.creature);
+  const to = nearestFree(st.hex, wide ? new Set([...taken, st.hex]) : taken);
+  if (to === null) return update(s, st.id, ({ tower: _down, ...x }) => x);
+  events.push({ type: 'fall', stack: st.id, to });
+  return update(s, st.id, ({ tower: _down, ...x }) => ({ ...x, hex: to }));
 }
 
 /** Whom a melee blow from head hex `from` lands on: the target, and for a cleaver every other enemy beside it there. */
 export function struckBy(state: BattleState, me: Stack, target: Stack, from: Hex): Stack[] {
   if (!creature(me.creature).cleave) return [target];
   const hexes = footprintAt(from, isWide(me.creature), me.side) ?? [from];
-  return [target, ...state.stacks.filter((o) => o.id !== target.id && isEnemy(me, o) && touching(hexes, occupiedHexes(o)))];
+  return [target, ...state.stacks.filter((o) => o.id !== target.id && isEnemy(me, o) && onGround(o) && touching(hexes, occupiedHexes(o)))];
 }
 
 /** Whether `def` would answer a melee strike from `att`. */
@@ -414,7 +511,8 @@ function newRound(s: BattleState): BattleState {
 
 /** The testing cheat: every enemy company falls at once and the player's side has won. */
 export function conquer(s: BattleState): BattleState {
-  return { ...s, stacks: s.stacks.map((st) => (st.side === 1 ? { ...st, count: 0 } : st)), active: null, winner: 0 };
+  const me = playerSide(s);
+  return { ...s, stacks: s.stacks.map((st) => (st.side !== me ? { ...st, count: 0 } : st)), active: null, winner: me };
 }
 
 /** Experience the winner earns: the HP of every enemy creature killed (H3). */
@@ -422,9 +520,14 @@ export function experienceFor(s: BattleState, side: Side): number {
   return s.stacks.filter((x) => x.side !== side).reduce((n, x) => n + (x.startCount - x.count) * creature(x.creature).hp, 0);
 }
 
-/** The war machines a side still has standing, to put back with its hero. */
-export function machinesLeft(s: BattleState, side: Side): CreatureId[] {
-  return s.stacks.filter((x) => x.side === side && x.slot < 0 && alive(x)).map((x) => x.creature);
+/** What's left of the companies on a town's towers, place by place: back up there, whether their tower fell or not. */
+export function towerSurvivors(s: BattleState, side: Side, towers: Army): Army {
+  return towers.map((slot, i) => {
+    if (!slot) return null;
+    const st = s.stacks.find((x) => x.side === side && x.slot === TOWER_SLOT + i);
+    if (!st) return slot;
+    return st.count > 0 ? { creature: slot.creature, count: st.count } : null;
+  });
 }
 
 /** What's left of a side's army, slot by slot, to put back on the map. */

@@ -1,6 +1,5 @@
 import type { ArmySlot } from '../logic/army';
 import type { BuildingId } from '../logic/buildings';
-import type { MachineId } from '../logic/creatures';
 import type { HeroClass } from '../logic/hero';
 import type { Gear } from '../logic/items';
 import type { MapObject } from '../logic/objects';
@@ -86,5 +85,4 @@ export interface HeroDef {
   /** What they wear from the start: a `book` is what gives them magic. */
   readonly gear?: Gear;
   readonly army: readonly ArmySlot[];
-  readonly machines?: readonly MachineId[];
 }

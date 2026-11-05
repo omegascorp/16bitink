@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { SCENERY } from '../art/pixel/scenery';
 import { BACKDROP } from '../art/palette';
-import { getHost } from '../host';
+import { getHost, getSound } from '../host';
 import { MAPS } from '../level/maps';
 import { calendar } from '../logic/adventure';
 import { loadProgress } from '../logic/save';
@@ -48,6 +48,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    getSound(this)?.music('map');
     this.cameras.main.setBackgroundColor(BACKDROP);
     this.ready = false;
     this.owned = [];

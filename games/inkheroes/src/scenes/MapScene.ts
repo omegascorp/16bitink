@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getSound } from '../host';
 import type { MapDef } from '../level/types';
-import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, planPath, rivalHero, stepHero, type Adventure } from '../logic/adventure';
+import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, planPath, rivalHero, stepHero, wallsToStorm, type Adventure } from '../logic/adventure';
 import type { Army } from '../logic/army';
 import { creature, sizeWord, type CreatureId } from '../logic/creatures';
 import { intentAt, type MapIntent } from '../logic/mapIntent';
@@ -10,7 +10,8 @@ import { MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
 import type { PathStep } from '../logic/path';
 import type { RivalReport } from '../logic/rival';
 import { SPELLS } from '../logic/spells';
-import { openPrompt } from './cards';
+import { openCard } from './CardScene';
+import { openPrompt, wallsCard } from './cards';
 import { DPR, toView } from './hidpi';
 import { loadMapArt } from './map/pixelMapArt';
 import { PixelMapWorld } from './map/pixelMapWorld';
@@ -60,6 +61,7 @@ export class MapScene extends Phaser.Scene {
   }
 
   create(): void {
+    getSound(this)?.music('map');
     this.session = Session.get(this);
     this.ready = false;
     this.path = null;
@@ -385,7 +387,12 @@ export class MapScene extends Phaser.Scene {
     this.applyView();
   }
 
-  startBattle(monsterId: string, then?: string): void {
+  startBattle(monsterId: string, then?: string, warned = false): void {
+    const walls = warned ? undefined : wallsToStorm(this.session.adv, monsterId);
+    if (walls) {
+      openCard(this, wallsCard(walls, this.session.adv, () => this.startBattle(monsterId, then, true)));
+      return;
+    }
     this.scene.sleep('MapHud');
     this.scene.launch('Battle', { monsterId, then });
     this.scene.sleep();
@@ -404,6 +411,7 @@ export class MapScene extends Phaser.Scene {
   /** Called by the battle and the town when they close. */
   back(): void {
     this.events.emit('status', '');
+    getSound(this)?.music('map');
     this.scene.wake();
     this.scene.wake('MapHud');
     this.world.sync(this.session.adv);

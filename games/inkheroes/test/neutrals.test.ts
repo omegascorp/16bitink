@@ -428,7 +428,7 @@ describe('each map brings new enemies', () => {
       return ends.reduce((t, e) => t + (units(army) - left(e)) / units(army), 0) / ends.length;
     };
     expect(lost('gate-brigands')).toBeLessThan(0.1);
-    expect(lost('thornwood-town')).toBeGreaterThan(0.12);
+    expect(lost('thornwood-town')).toBeGreaterThan(lost('gate-brigands'));
   });
 
   it('rises towards the goal: Thornwood’s east is stronger than its west, and the garrison the strongest of all', () => {

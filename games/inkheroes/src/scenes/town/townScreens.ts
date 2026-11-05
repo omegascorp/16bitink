@@ -7,7 +7,7 @@ import type { Town } from '../../logic/town';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
 import { creature, type CreatureId } from '../../logic/creatures';
 import { SPELLS } from '../../logic/spells';
-import { bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, hireable, hireAll, SPELLBOOK_COST, stockOf, suggestBuilding, upgradeAll } from '../../logic/town';
+import { bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, hireable, hireAll, SPELLBOOK_COST, stockOf, suggestBuilding, towersOf, upgradeAll } from '../../logic/town';
 import { describeAmount, RESOURCES } from '../../logic/resources';
 import { PX_TEX, unitArt } from '../battle/pixelAssets';
 import { drawFrame, drawPicture, FILLS, inkBox, pictureOffset, type RimName } from '../battle/pixelFrames';
@@ -162,9 +162,9 @@ function stat(scene: Phaser.Scene, icon: Parameters<typeof UI_TEX.stat>[0], text
   return merge({ parts: [img], owned: [] }, label(scene, text, x + 19, y));
 }
 
-/** The companies Upgrade all reaches: the garrison, and the army of a hero visiting the town. */
+/** The companies Upgrade all reaches: the army of a hero visiting the town, the garrison, and the towers, last. */
 export function upgradableArmies(adv: Adventure, town: Town): Army[] {
-  return heroVisiting(adv, town) ? [adv.hero.army, town.garrison] : [town.garrison];
+  return [...(heroVisiting(adv, town) ? [adv.hero.army] : []), town.garrison, towersOf(town)];
 }
 
 /** Upgrade all, when any company here can be raised: what one tap does, greyed out when the purse reaches none of them. */

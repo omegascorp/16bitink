@@ -15,6 +15,8 @@ export interface CardButton {
   readonly note?: string;
   /** A picture at its left (a texture key): a skill's icon. */
   readonly picture?: string;
+  /** How it's drawn: a gear icon, painted at 64 px, shows at half to fit the button. */
+  readonly pictureScale?: number;
   readonly kind?: PlateKind;
   readonly onClick: () => void;
 }

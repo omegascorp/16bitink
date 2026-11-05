@@ -69,6 +69,17 @@ export function feetOn(hexes: readonly Hex[]): { x: number; y: number } {
   return { x: Math.round(x) + FEET_OFFSET.x, y: Math.round(y) + FEET_OFFSET.y };
 }
 
+/** Where a company stands on each tower (TOWERS' order): on its top, far above its hex. */
+export const TOWER_FEET: readonly { readonly x: number; readonly y: number }[] = [{ x: 799, y: 112 }, { x: 689, y: 38 }, { x: 689, y: 434 }];
+/** How far round those feet a tap counts as a tap on the tower's company. */
+const TOWER_REACH = { x: 22, up: 56, down: 8 } as const;
+
+/** The tower whose company stands under a native point, or null. */
+export function towerAtPx(x: number, y: number): number | null {
+  const i = TOWER_FEET.findIndex((t) => Math.abs(x - t.x) <= TOWER_REACH.x && y >= t.y - TOWER_REACH.up && y <= t.y + TOWER_REACH.down);
+  return i < 0 ? null : i;
+}
+
 /** Whether (dx, dy) from a hex's centre lies inside it (its edges included). */
 export function inHex(dx: number, dy: number): boolean {
   const ax = Math.abs(dx);

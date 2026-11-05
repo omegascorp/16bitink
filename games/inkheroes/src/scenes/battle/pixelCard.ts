@@ -38,7 +38,7 @@ export class PixelCard {
     const body = new TextLabel(scene, { wrap: inner, anchor: { x: 0.5, y: 0 } }).setText(spec.body);
     const buttons = spec.buttons.map((b, i) => new PixelButton(scene, {
       w: inner, h: b.note ? BTN_NOTE_H : BTN_H, label: b.label, note: b.note,
-      ...(b.picture ? { picture: { key: b.picture, scale: 1 } } : {}),
+      ...(b.picture ? { picture: { key: b.picture, scale: b.pictureScale ?? 1 } } : {}),
       ...cardButtonLook(b.kind, i),
       onClick: () => {
         if (this.closed) return;

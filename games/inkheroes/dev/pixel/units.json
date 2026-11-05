@@ -508,46 +508,9 @@
     39
    ]
   },
-  "ballista": {
-   "name": "Ballista",
-   "src": "pixel/src/ballista.png",
-   "canvas": [
-    96,
-    96
-   ],
-   "foot": 6,
-   "dx": 0,
-   "subject": "a greek wooden ballista bolt-thrower war machine on a two-wheeled frame with bronze fittings, aimed to the right, no crew",
-   "idle": "idle loop: the machine stands still, its taut ropes tremble very slightly, ends back at the starting pose",
-   "attack": "firing: the arms snap forward and a bolt flies off to the right, the frame recoils a little, then the arms are drawn back to the starting pose",
-   "strike": 2,
-   "shot": [
-    76,
-    49
-   ],
-   "face": [
-    62,
-    52
-   ]
-  },
-  "tent": {
-   "name": "First Aid Tent",
-   "src": "pixel/src/tent.png",
-   "canvas": [
-    96,
-    96
-   ],
-   "foot": 6,
-   "dx": 0,
-   "subject": "a small greek field-hospital tent of white linen on wooden poles with red-brown trim, a bronze bowl and rolled bandages by its door",
-   "idle": "idle loop: the linen flaps gently in the wind, ends back at the starting pose",
-   "attack": "healing: a soft golden glow rises from the tent door with a few sparkles, then fades back to the starting pose",
-   "strike": 3,
-   "face": [
-    57,
-    74
-   ]
-  },
+  "catapult": {"name": "Catapult", "src": "pixel/src/catapult.png", "canvas": [96, 96], "foot": 6, "dx": 0, "subject": "an ancient greek wooden catapult on a four-wheeled timber frame, no crew", "idle": "idle loop: the machine stands still, the stone at the end of the arm sways very slightly on its rope, ends back at the starting pose", "attack": "firing: the long throwing arm whips over the top and flings the stone away to the right, then swings back", "strike": 3, "shot": [70, 16], "face": [44, 62]},
+  "catapult2": {"name": "Bronze Catapult", "src": "pixel/src/catapult2.png", "canvas": [96, 96], "foot": 6, "dx": 0, "subject": "an ancient greek wooden catapult on a four-wheeled timber frame, no crew", "idle": "idle loop: the machine stands still, the stone at the end of the arm sways very slightly on its rope, ends back at the starting pose", "attack": "firing: the long throwing arm whips over the top and flings the stone away to the right, then swings back", "strike": 3, "shot": [70, 16], "face": [44, 62]},
+  "catapult3": {"name": "Syracusan Catapult", "src": "pixel/src/catapult3.png", "canvas": [96, 96], "foot": 6, "dx": 0, "subject": "an ancient greek wooden catapult on a four-wheeled timber frame, no crew", "idle": "idle loop: the machine stands still, the stone at the end of the arm sways very slightly on its rope, ends back at the starting pose", "attack": "firing: the long throwing arm whips over the top and flings the stone away to the right, then swings back", "strike": 3, "shot": [70, 16], "face": [44, 62]},
   "boar": {
    "name": "Erymanthian Boar",
    "src": "pixel/src/boar.png",

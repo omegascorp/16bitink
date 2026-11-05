@@ -7,8 +7,9 @@ import { REG } from '../src/host';
 import { ASHFORD } from '../src/level/borderMarch';
 import { startAdventure } from '../src/logic/adventure';
 import { armyOf } from '../src/logic/army';
-import { CREATURE_IDS, type CreatureId } from '../src/logic/creatures';
+import { CREATURE_IDS, MACHINES, type CreatureId } from '../src/logic/creatures';
 import { toBattleHero } from '../src/logic/hero';
+import { fortification } from '../src/logic/siege';
 import { SPELL_IDS } from '../src/logic/spells';
 import type { Pose } from '../src/art/pixel/manifest';
 import { BattleScene, type SandboxBattle } from '../src/scenes/BattleScene';
@@ -20,6 +21,7 @@ import { uiTextureJobs } from '../src/scenes/uiPaint';
 //   /battle.html?a=spearman:20,bowman:12,griffin:8,swordsman:3&b=wolf:12,wolf:9&terrain=grass&obstacles=1
 //   &anim=idle|walk|attack   every unit (and hero) loops that pose
 //   &hero=0                  no heroes          &feet=1   a magenta dot on each occupied hex centre
+//   &siege=fort|citadel|castle   walls round b; &machine=catapult2 gives a that war machine; &towers=bowman:8,bowman2:4 mans them; &me=1 plays the defender
 //   &play=1                  run turns (the AI plays b; &auto=1 plays a too)   &seed=7
 // Sets window.__ready once the field is drawn (for dev/snap.mjs).
 await Promise.all(['700 32px Cinzel', '32px "EB Garamond"', '600 32px "EB Garamond"'].map((f) => document.fonts.load(f))).catch(() => undefined);
@@ -40,9 +42,12 @@ const startHero = toBattleHero(startAdventure(ASHFORD).hero);
 // ?spells=all gives the hero every spell and mana to spare (to review the spellbook).
 const hero = q.get('spells') === 'all' ? { ...startHero, spells: [...SPELL_IDS], mana: 40 } : startHero;
 const heroes = flag('hero', true);
+const walls = q.get('siege');
+const fort = walls ? fortification(['fort', ...(walls === 'fort' ? [] : ['citadel']), ...(walls === 'castle' ? ['castle'] : [])]) : null;
 const sandbox: SandboxBattle = {
-  attacker: { hero, army: army(q.get('a'), 'spearman:20,bowman:12,griffin:8,swordsman:3') },
-  defender: { hero: heroes ? hero : null, army: army(q.get('b'), 'wolf:12,wolf:9') },
+  attacker: { hero, army: army(q.get('a'), 'spearman:20,bowman:12,griffin:8,swordsman:3'), machine: MACHINES.find((m) => m === q.get('machine')) },
+  defender: { hero: heroes ? hero : null, army: army(q.get('b'), 'wolf:12,wolf:9'), towers: q.get('towers') ? army(q.get('towers'), '') : undefined },
+  siege: fort ? { fort, me: q.get('me') === '1' ? 1 : 0 } : undefined,
   seed: Number(q.get('seed') ?? 7) >>> 0,
   terrain: q.get('terrain') ?? 'grass',
   heroes: [heroes, heroes],

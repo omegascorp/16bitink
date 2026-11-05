@@ -1,4 +1,4 @@
-import { alive, stackById, update, winnerOf } from './battleCore';
+import { alive, stackById, targetable, update, winnerOf } from './battleCore';
 import type { BattleEvent, BattleState, Side, Stack, Step } from './battleTypes';
 import { creature } from './creatures';
 import { heal, hurt } from './damage';
@@ -14,7 +14,7 @@ export function cantCast(state: BattleState, side: Side, spell: SpellId, target:
   if (!hero.spells.includes(spell)) return 'Spell not known';
   if (hero.mana < def.mana) return 'Not enough mana';
   if (!target) return null;
-  if (!alive(target)) return 'Nothing there';
+  if (!alive(target) || !targetable(target)) return 'Nothing there';
   if (def.target !== 'any' && (def.target === 'enemy') !== (target.side !== side)) return def.target === 'enemy' ? 'Cast it on an enemy' : 'Cast it on your own unit';
   if (spell === 'dispel' && target.effects.length === 0) return 'No spells on it to lift';
   if (creature(target.creature).undead && (spell === 'bless' || spell === 'bloodlust')) return 'The undead are immune';

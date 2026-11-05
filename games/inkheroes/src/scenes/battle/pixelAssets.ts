@@ -6,6 +6,7 @@ import type { BackdropSource } from './pixelBackdrop';
 import type { PixelBuffer, Rgba } from './pixelRaster';
 import { drawBadge } from './pixelRaster';
 import { loadUiFont } from './pixelFont';
+import { siegeArt } from './siegeView';
 import { loadUiArt, texturePixels } from './pixelUi';
 import { FACE, faceBox } from './pixelFaces';
 import type { Pixels } from './pixelScenery';
@@ -65,7 +66,7 @@ export function nearest(scene: Phaser.Scene, key: string): void {
 }
 
 /** Loads what a battle needs and isn't loaded yet; resolves once every texture is in and filtered NEAREST. */
-export function loadBattleArt(scene: Phaser.Scene, creatures: readonly string[], terrain: string): Promise<void> {
+export function loadBattleArt(scene: Phaser.Scene, creatures: readonly string[], terrain: string, siege = false): Promise<void> {
   const keys: string[] = [];
   const sheet = (key: string, url: string, art: UnitArt): void => {
     keys.push(key);
@@ -87,6 +88,7 @@ export function loadBattleArt(scene: Phaser.Scene, creatures: readonly string[],
   if (SCENERY[bg]) image(PX_TEX.scenery(bg), SCENERY[bg]!.url);
   else image(PX_TEX.bg(bg), BATTLE_BG[bg]!);
   for (const [kind, art] of Object.entries(OBSTACLE_ART)) image(PX_TEX.obstacle(kind), art.url);
+  if (siege) for (const { key, url } of siegeArt()) image(key, url);
   keys.push(...loadUiArt(scene));
   makeCodeTextures(scene);
   const done = (): void => keys.forEach((k) => nearest(scene, k));

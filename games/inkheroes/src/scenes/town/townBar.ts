@@ -2,19 +2,20 @@ import type Phaser from 'phaser';
 import { calendar, heroInGarrison, heroVisiting, type Adventure } from '../../logic/adventure';
 import type { BuildingId } from '../../logic/buildings';
 import type { Town } from '../../logic/town';
-import { has, income } from '../../logic/town';
+import { MAX_TOWERS } from '../../logic/siege';
+import { has, income, towerPlaces, towersOf } from '../../logic/town';
 import { faceOf, heroArt, PX_TEX } from '../battle/pixelAssets';
 import { drawPortrait, drawSocket } from '../battle/pixelFrames';
 import { INK, PixelButton, PixelFrame, PixelImage, TextLabel, UI_TEX } from '../battle/pixelUi';
 import { ArmyDrag } from '../hud/armyDrag';
 import { ArmyRow } from '../hud/armyRow';
-import { armyRowW } from '../hud/armySlots';
+import { armyRowW, armyRowOf } from '../hud/armySlots';
 import { PurseRow, PURSE_BAR_H, PURSE_ROW_W } from '../hud/purseRow';
 import { armiesW, armyH, BTN, BUTTONS_GRID_W, BUTTONS_W, GAP, HEAD_GAP, LINE, NARROW_ROUND, PAD, ROW_GAP, stripLayout } from './stripLayout';
 
 export type TownScreen = 'hall' | 'fort' | 'guild';
 /** A slot of a row; `i` HEAD is the row's head (the crest or the hero's face): picking the hero there moves them with every company. */
-export type SlotRef = { readonly army: 'hero' | 'garrison'; readonly i: number };
+export type SlotRef = { readonly army: 'hero' | 'garrison' | 'tower'; readonly i: number };
 export const HEAD = -1;
 
 /** The parts of the strip drawn at the slot's size. */
@@ -26,6 +27,9 @@ interface StripFaces {
   readonly emptyFace: PixelImage;
   readonly garrison: ArmyRow;
   readonly visitor: ArmyRow;
+  /** The tower places, on a tab over the strip. */
+  readonly towers: ArmyRow;
+  readonly towersFrame: PixelFrame;
   readonly owned: { destroy(): void }[];
 }
 
@@ -44,6 +48,8 @@ export interface TownBarActions {
 }
 
 const SPLIT = { w: 100, h: 30 } as const;
+/** The tab holding the tower places: its padding, and the width its word takes. */
+const TAB = { pad: 4, label: 50 } as const;
 const PANEL_FILL = [34, 24, 17, 246] as const;
 
 /**
@@ -73,6 +79,10 @@ export class TownBar {
   /** The row the hero heads: the visitor's, or the garrison's. */
   private heroRow: SlotRef['army'] = 'hero';
   private readonly away: TextLabel;
+  private readonly towersLabel: TextLabel;
+  /** Whether the town has any tower places, and nothing's open over the strip. */
+  private towersShown = false;
+  private towersHidden = false;
   private readonly buttons: PixelButton[];
   private narrow = false;
   private buttonsH = 0;
@@ -87,6 +97,8 @@ export class TownBar {
     this.incomeLine = this.text({ align: 'left', anchor: { x: 0, y: 0 } });
     this.status = this.text({ align: 'left', anchor: { x: 0, y: 0 }, ink: INK.dim });
     this.away = this.text({ align: 'center', anchor: { x: 0.5, y: 0.5 }, ink: INK.dim });
+    this.towersLabel = this.text({ align: 'left', anchor: { x: 0, y: 0.5 } });
+    this.towersLabel.setText('Towers');
     this.goldIcon = scene.add.image(0, 0, UI_TEX.res('gold')).setOrigin(0).setDepth(depth + 1);
     this.drag = new ArmyDrag<SlotRef>(scene, {
       depth: depth + 40,
@@ -154,8 +166,13 @@ export class TownBar {
     visitor.root.setDepth(depth + 1);
     this.drag.watch(garrison, (i) => ({ army: 'garrison', i }));
     this.drag.watch(visitor, (i) => ({ army: 'hero', i }));
-    owned.push(crestFrame, face, lit, emptyFace, garrison, visitor);
-    this.faces = { crest, heroFace: face.img, heroLit: lit.img, emptyFace, garrison, visitor, owned };
+    const towers = new ArmyRow(scene, slot, MAX_TOWERS);
+    towers.root.setDepth(depth + 1);
+    this.drag.watch(towers, (i) => ({ army: 'tower', i }));
+    const towersFrame = new PixelFrame(scene, TAB.pad * 2 + TAB.label + armyRowOf(slot), slot + TAB.pad * 2, { rim: 'bronze', fill: PANEL_FILL });
+    towersFrame.img.setDepth(depth);
+    owned.push(crestFrame, face, lit, emptyFace, garrison, visitor, towers, towersFrame);
+    this.faces = { crest, heroFace: face.img, heroLit: lit.img, emptyFace, garrison, visitor, towers, towersFrame, owned };
     this.slot = slot;
   }
 
@@ -163,6 +180,7 @@ export class TownBar {
     if (!this.faces) return;
     this.drag.forget(this.faces.garrison);
     this.drag.forget(this.faces.visitor);
+    this.drag.forget(this.faces.towers);
     for (const o of this.faces.owned) o.destroy();
     this.faces.crest.destroy(true);
     this.faces = null;
@@ -234,6 +252,25 @@ export class TownBar {
     f.emptyFace.setPosition(x, vy);
     f.visitor.setPosition(x + this.slot + HEAD_GAP, vy);
     this.away.setPosition(x + this.slot + HEAD_GAP + Math.floor(armyRowW(this.slot) / 2), vy + Math.floor(this.slot / 2));
+    // The tab stands on the strip's top edge, over the left of the armies (the list of towns has the right).
+    const tabX = x;
+    const tabY = this.top - this.slot - TAB.pad * 2 + 2;
+    f.towersFrame.setPosition(tabX, tabY);
+    this.towersLabel.setPosition(tabX + TAB.pad + 2, tabY + TAB.pad + Math.floor(this.slot / 2));
+    f.towers.setPosition(tabX + TAB.pad + TAB.label, tabY + TAB.pad);
+  }
+
+  /** Hides the tower tab while a window is open over the town. */
+  setTowersHidden(hidden: boolean): void {
+    this.towersHidden = hidden;
+    this.showTowers();
+  }
+
+  private showTowers(): void {
+    const on = this.towersShown && !this.towersHidden;
+    this.faces?.towers.root.setVisible(on);
+    this.faces?.towersFrame.img.setVisible(on);
+    this.towersLabel.img.setVisible(on);
   }
 
   /** The hero's face at the head of the row the hero is in. */
@@ -257,14 +294,18 @@ export class TownBar {
     this.heroRow = held ? 'garrison' : 'hero';
     this.placeHero();
     const heroPicked = picked?.i === HEAD;
-    const army = picked?.army === 'garrison' ? t.garrison : adv.hero.army;
+    const army = picked?.army === 'garrison' ? t.garrison : picked?.army === 'tower' ? towersOf(t) : adv.hero.army;
     const company = picked && !heroPicked ? army[picked.i] ?? null : null;
     this.status.setText(company ? 'Tap a slot to move them' : t.builtToday ? 'Built today: more tomorrow' : 'One building a day');
-    this.splitBtn.root.setVisible(!!company && company.count > 1);
+    this.splitBtn.root.setVisible(!!company && company.count > 1 && picked?.army !== 'tower');
     this.splitBtn.setEnabled(army.includes(null));
     f.garrison.set(t.garrison, picked?.army === 'garrison' ? picked.i : null);
     f.visitor.set(here ? adv.hero.army : null, here && picked?.army === 'hero' ? picked.i : null);
     f.visitor.root.setAlpha(here ? 1 : 0.5);
+    const places = towerPlaces(t);
+    f.towers.set(towersOf(t), picked?.army === 'tower' ? picked.i : null, places);
+    this.towersShown = places > 0;
+    this.showTowers();
     f.crest.setVisible(!held);
     f.heroFace.setVisible((here || held) && !heroPicked);
     f.heroLit.setVisible((here || held) && heroPicked);

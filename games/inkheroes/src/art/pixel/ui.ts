@@ -70,6 +70,9 @@ import itemWarSandals from './ui/item-warSandals.png?url';
 import itemNoviceSpellbook from './ui/item-noviceSpellbook.png?url';
 import itemOracleSpellbook from './ui/item-oracleSpellbook.png?url';
 import itemAlexandrianCodex from './ui/item-alexandrianCodex.png?url';
+import itemCatapult from './ui/item-catapult.png?url';
+import itemCatapult2 from './ui/item-catapult2.png?url';
+import itemCatapult3 from './ui/item-catapult3.png?url';
 import slotHelm from './ui/slot-helm.png?url';
 import slotCuirass from './ui/slot-cuirass.png?url';
 import slotBracers from './ui/slot-bracers.png?url';
@@ -81,6 +84,7 @@ import slotShield from './ui/slot-shield.png?url';
 import slotAmulet from './ui/slot-amulet.png?url';
 import slotRing from './ui/slot-ring.png?url';
 import slotBook from './ui/slot-book.png?url';
+import slotMachine from './ui/slot-machine.png?url';
 import resGold from './ui/res-gold.png?url';
 import resWood from './ui/res-wood.png?url';
 import resOre from './ui/res-ore.png?url';
@@ -180,9 +184,12 @@ export const ITEM_ICONS: Readonly<Record<ItemId, string>> = {
   noviceSpellbook: itemNoviceSpellbook,
   oracleSpellbook: itemOracleSpellbook,
   alexandrianCodex: itemAlexandrianCodex,
+  catapult: itemCatapult,
+  catapult2: itemCatapult2,
+  catapult3: itemCatapult3,
 };
 
-export type SlotIcon = 'helm' | 'cuirass' | 'bracers' | 'belt' | 'greaves' | 'boots' | 'weapon' | 'shield' | 'amulet' | 'ring' | 'book';
+export type SlotIcon = 'helm' | 'cuirass' | 'bracers' | 'belt' | 'greaves' | 'boots' | 'weapon' | 'shield' | 'amulet' | 'ring' | 'book' | 'machine';
 
 /** The silhouettes in empty gear slots (64 x 64). */
 export const SLOT_ICONS: Readonly<Record<SlotIcon, string>> = {
@@ -197,6 +204,7 @@ export const SLOT_ICONS: Readonly<Record<SlotIcon, string>> = {
   amulet: slotAmulet,
   ring: slotRing,
   book: slotBook,
+  machine: slotMachine,
 };
 
 /** The purse's resource icons (16 x 16). */

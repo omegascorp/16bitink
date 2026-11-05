@@ -1,15 +1,16 @@
 import Phaser from 'phaser';
 import { getHost, getSound } from '../host';
-import { afterBattle, battleSides, DEFEND, gridOf } from '../logic/adventure';
-import { act, activeStack, alive, canShoot, conquer, createBattle, experienceFor, moveHeadFor, occupiableHexes, stackAt, strikeChoices, strikeFrom, type BattleSide, type StrikeOption } from '../logic/battle';
+import { afterBattle, battleSides, DEFEND, gridOf, type BattleSetup } from '../logic/adventure';
+import { act, activeStack, alive, canShoot, conquer, createBattle, experienceFor, handOptions, moveHeadFor, occupiableHexes, playerSide, stackAt, strikeChoices, strikeFrom, targetable, type BattleSide, type SiegeSetup, type StrikeOption } from '../logic/battle';
 import { chooseAction } from '../logic/battleAi';
 import { cantCast, spellAmount } from '../logic/battleSpells';
 import type { Action, BattleState, Stack } from '../logic/battleTypes';
 import { creature } from '../logic/creatures';
-import { damageRange, hurt, RANGE_PENALTY_DISTANCE, speedOf } from '../logic/damage';
+import { damageRange, hurt, inCover, RANGE_PENALTY_DISTANCE, speedOf } from '../logic/damage';
 import { footprintAt, isWide, occupiedHexes, shotDistance } from '../logic/footprint';
 import type { Hex } from '../logic/hex';
 import { tileIndex } from '../logic/map';
+import { moatFor, MOAT_DAMAGE, PART_HEX, standing, strikesLeft, TOWERS, type SiegePart } from '../logic/siege';
 import { SPELLS, type SpellId } from '../logic/spells';
 import { BattleCameras } from './battle/battleCameras';
 import { BattleHud } from './battle/battleHud';
@@ -17,7 +18,7 @@ import { BattleView, type ViewOpts } from './battle/battleView';
 import { unitInfo } from './battle/unitCard';
 import { backdropSource, loadBattleArt } from './battle/pixelAssets';
 import { texturePixels } from './battle/pixelUi';
-import { hexAtPx, hexPx } from './battle/pixelLayout';
+import { hexAtPx, hexPx, towerAtPx } from './battle/pixelLayout';
 import { crispText } from './hidpi';
 import type { MapScene } from './MapScene';
 import { coverWhileLoading } from './LoadingScene';
@@ -32,6 +33,8 @@ export interface SandboxBattle {
   readonly attacker: BattleSide;
   readonly defender: BattleSide;
   readonly seed: number;
+  /** Walls round the defender. */
+  readonly siege?: SiegeSetup;
   readonly terrain: string;
   readonly heroes: readonly [boolean, boolean];
   /** Keep the obstacles the battle rolled. */
@@ -90,6 +93,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(data: BattleData): void {
+    getSound(this)?.music('battle');
     crispText(this);
     this.cams = new BattleCameras(this);
     this.sandbox = data.sandbox ?? null;
@@ -103,11 +107,11 @@ export class BattleScene extends Phaser.Scene {
     this.pending = null;
     this.live = false;
     const { sides, terrain, heroes } = this.setup(data);
-    const start = createBattle(sides.attacker, sides.defender, sides.seed);
+    const start = createBattle(sides.attacker, sides.defender, sides.seed, sides.siege);
     this.state = this.sandbox && !this.sandbox.obstacles ? { ...start.state, obstacles: [] } : start.state;
     // The loading screen stays up until every fighter's poses and the ground are in and laid out.
     const cover = coverWhileLoading(this, 'the armies form up…');
-    void loadBattleArt(this, this.state.stacks.map((s) => s.creature), terrain)
+    void loadBattleArt(this, this.state.stacks.map((s) => s.creature), terrain, !!this.state.siege)
       .then(() => cover.laying('the armies take the field…'))
       .then(() => {
         if (this.sys.isActive()) this.begin(terrain, sides.seed, heroes);
@@ -116,7 +120,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   /** The two sides, the ground and who has a hero: from the map (the monster fought) or the sandbox. */
-  private setup(data: BattleData): { sides: { attacker: BattleSide; defender: BattleSide; seed: number }; terrain: string; heroes: readonly [boolean, boolean] } {
+  private setup(data: BattleData): { sides: BattleSetup; terrain: string; heroes: readonly [boolean, boolean] } {
     const sb = this.sandbox;
     if (sb) return { sides: sb, terrain: sb.terrain, heroes: sb.heroes };
     const session = this.session!;
@@ -135,7 +139,7 @@ export class BattleScene extends Phaser.Scene {
       spell: () => this.openSpells(),
       auto: () => this.toggleAuto(),
       ...(getHost(this)?.cheats && this.session ? { win: () => this.cheatWin() } : {}),
-    }, !!this.state.heroes[0]?.spells.length);
+    }, !!this.state.heroes[this.me]?.spells.length);
     this.hud.setAuto(this.auto);
     const src = backdropSource(terrain, seed);
     if ('scenery' in src) this.hud.setScenery({ atlas: texturePixels(this, src.atlasKey), art: src.scenery, seed });
@@ -190,14 +194,19 @@ export class BattleScene extends Phaser.Scene {
     if (this.state) this.drawOrder();
   }
 
+  /** The side the player plays: the right, when they hold a town's walls. */
+  private get me(): 0 | 1 {
+    return playerSide(this.state);
+  }
+
   private mine(): boolean {
     const a = activeStack(this.state);
-    return !!a && a.side === 0 && !this.auto && !this.byItself(a);
+    return !!a && a.side === this.me && !this.auto && !this.byItself(a);
   }
 
   /** Whose turn plays itself: the enemy's, a war machine's, or all under Auto. */
   private byItself(a: Stack): boolean {
-    return a.side === 1 || this.auto || !!creature(a.creature).machine;
+    return a.side !== this.me || this.auto || !!creature(a.creature).machine;
   }
 
   /** Runs the next turn: the AI's (or Auto's), or waits for the player. */
@@ -222,8 +231,15 @@ export class BattleScene extends Phaser.Scene {
       else void this.next();
       return;
     }
-    this.hud.setStatus(`${creature(a.creature).plural} (${a.count}): your move`);
+    this.hud.setStatus(this.moveLine(a));
     this.marks();
+  }
+
+  /** Whose move it is, and with the walls shut and no war machine to open them, the way through. */
+  private moveLine(a: Stack): string {
+    const line = `${creature(a.creature).plural} (${a.count}): your move`;
+    const sealed = this.state.siege && a.side === 0 && standing(this.state.siege, 'gate') && !this.state.stacks.some((s) => s.side === 0 && creature(s.creature).machine);
+    return sealed && !creature(a.creature).flies ? `${line} · no war machine: strike the gate by hand` : line;
   }
 
   private async perform(action: Action): Promise<void> {
@@ -285,13 +301,19 @@ export class BattleScene extends Phaser.Scene {
     const mine = this.mine();
     // Every hex a move could cover (a two-hex unit's tails included), and every hex of each enemy it can hit.
     const reach = mine ? [...occupiableHexes(this.state)] : [];
-    const targets = mine ? this.state.stacks.filter((s) => s.side !== a.side && alive(s) && (canShoot(this.state, a) || strikeFrom(this.state, s).size > 0)).flatMap(occupiedHexes) : [];
+    const foes = mine ? this.state.stacks.filter((s) => s.side !== a.side && alive(s) && targetable(s) && (canShoot(this.state, a) || strikeFrom(this.state, s).size > 0)).flatMap(occupiedHexes) : [];
+    const targets = mine && handOptions(this.state, 'gate').length ? [...foes, PART_HEX.gate] : foes;
     this.view.showMarks({ active: occupiedHexes(a), reach, targets, hover, landing: intent?.landing, struck: intent?.struck });
   }
 
   private hexAt(p: Phaser.Input.Pointer): Hex | null {
     const w = this.cams.toWorld(p.x, p.y);
-    return hexAtPx(Math.floor(w.x), Math.floor(w.y));
+    const x = Math.floor(w.x);
+    const y = Math.floor(w.y);
+    // A company on a tower stands far above its hex: the figure itself is what's tapped.
+    const up = towerAtPx(x, y);
+    const held = up === null ? undefined : this.state.stacks.find((s) => s.tower === up && alive(s));
+    return held ? held.hex : hexAtPx(x, y);
   }
 
   /** What tapping this point would do, with its preview text. */
@@ -303,20 +325,24 @@ export class BattleScene extends Phaser.Scene {
     const target = stackAt(this.state, h);
     if (this.casting) {
       if (!target) return null;
-      const why = cantCast(this.state, 0, this.casting, target);
+      const why = cantCast(this.state, this.me, this.casting, target);
       const def = SPELLS[this.casting];
       if (why) return { action: { type: 'wait' }, text: why, key: 'no' };
-      const amount = spellAmount(this.state, 0, this.casting);
+      const amount = spellAmount(this.state, this.me, this.casting);
       const extra = def.target === 'enemy' && amount ? `: ${amount} damage, ${hurt(target, amount).kills} fall` : '';
       return { action: { type: 'cast', spell: this.casting, target: target.id }, text: `Cast ${def.name} on the ${creature(target.creature).plural}${extra}`, key: `cast-${target.id}`, cursor: 'cast' };
     }
-    if (target && target.side !== me.side) {
+    if (target && target.side !== me.side && targetable(target)) {
       const name = creature(target.creature).plural;
       if (canShoot(this.state, me)) {
         const d = shotDistance(me, target);
         const far = d > RANGE_PENALTY_DISTANCE;
-        return { action: { type: 'shoot', target: target.id }, text: `Shoot the ${name}: ${this.preview(me, target, { ranged: true, distance: d, moved: 0 })}${far ? ' (far: half damage)' : ''}`, key: `shoot-${target.id}`, cursor: far ? 'shootFar' : 'shoot' };
+        const walled = inCover(this.state, me, target);
+        const note = [far ? 'far' : '', walled ? 'stone in the way' : ''].filter(Boolean).join(', ');
+        return { action: { type: 'shoot', target: target.id }, text: `Shoot the ${name}: ${this.preview(me, target, { ranged: true, distance: d, moved: 0 })}${note ? ` (${note}: half damage)` : ''}`, key: `shoot-${target.id}`, cursor: far || walled ? 'shootFar' : 'shoot' };
       }
+      const up = target.tower === undefined ? null : this.handIntent(p, me, TOWERS[target.tower]!, 'the tower');
+      if (up) return up;
       const o = this.bestOption(p, target);
       if (!o) return this.infoIntent(target, `The ${name} are out of reach · click for their stats`);
       return {
@@ -326,10 +352,29 @@ export class BattleScene extends Phaser.Scene {
       };
     }
     if (target) return this.infoIntent(target, `${target.count} ${creature(target.creature).plural} · click for their stats`);
+    if (h === PART_HEX.gate) {
+      const gate = this.handIntent(p, me, 'gate', 'the gate');
+      if (gate) return gate;
+    }
     // A tap on any hex the unit could cover moves it there (a tail spot gives its head).
     const head = target ? null : moveHeadFor(this.state, h);
     if (head === null) return null;
-    return { action: { type: 'move', to: head }, text: 'Move here', key: `move-${head}`, landing: footprintAt(head, isWide(me.creature), me.side) ?? [head], cursor: 'move' };
+    const wet = !creature(me.creature).flies || head === h ? this.state.siege && moatFor(this.state.siege, me.side).has(h) : false;
+    return { action: { type: 'move', to: head }, text: wet ? `Move into the moat: −${MOAT_DAMAGE} health` : 'Move here', key: `move-${head}`, landing: footprintAt(head, isWide(me.creature), me.side) ?? [head], cursor: 'move' };
+  }
+
+  /** The gate or a tower under the pointer of an attacker: a strike by hand, or word that it's too far. */
+  private handIntent(p: Phaser.Input.Pointer, me: Stack, part: SiegePart, name: string): Intent {
+    const siege = this.state.siege;
+    if (!siege || me.side !== 0 || !standing(siege, part) || creature(me.creature).machine) return null;
+    const o = this.nearestOption(p, handOptions(this.state, part));
+    if (!o) return { action: { type: 'wait' }, text: `${name[0]!.toUpperCase()}${name.slice(1)} is out of reach this turn`, key: 'no' };
+    const wet = moatFor(siege, me.side).has(o.from) && o.steps > 0;
+    const left = strikesLeft(siege, part);
+    return {
+      action: { type: 'bash', part, from: o.from }, text: `Strike ${name} by hand: ${left} ${left === 1 ? 'strike' : 'strikes'} to break it${wet ? ` (from the moat: −${MOAT_DAMAGE} health)` : ''}`,
+      key: `bash-${o.from}`, landing: o.hexes, struck: [o.struck], cursor: `sword-${swordDirBetween(o.contact, o.struck)}`,
+    };
   }
 
   /** Hovering a unit there's nothing to do to: the "?" cursor, and a click shows its stats. */
@@ -352,10 +397,14 @@ export class BattleScene extends Phaser.Scene {
 
   /** Of the places the active unit can strike `target` from, the one whose touching hex is nearest the pointer. */
   private bestOption(p: Phaser.Input.Pointer, target: Stack): StrikeOption | null {
+    return this.nearestOption(p, strikeChoices(this.state, target));
+  }
+
+  private nearestOption(p: Phaser.Input.Pointer, options: readonly StrikeOption[]): StrikeOption | null {
     const f = this.cams.toWorld(p.x, p.y);
     let best: StrikeOption | null = null;
     let bd = Infinity;
-    for (const o of strikeChoices(this.state, target)) {
+    for (const o of options) {
       const c = hexPx(o.contact);
       const d = Math.hypot(c.x - f.x, c.y - f.y);
       if (d < bd) {
@@ -377,7 +426,7 @@ export class BattleScene extends Phaser.Scene {
     if (this.mine()) {
       this.marks(this.hexAt(p), i);
       const a = activeStack(this.state)!;
-      this.hud.setStatus(i?.text ?? (this.casting ? `Choose a target for ${SPELLS[this.casting].name}` : `${creature(a.creature).plural} (${a.count}): your move`));
+      this.hud.setStatus(i?.text ?? (this.casting ? `Choose a target for ${SPELLS[this.casting].name}` : this.moveLine(a)));
     }
   }
 
@@ -428,17 +477,17 @@ export class BattleScene extends Phaser.Scene {
 
   private openSpells(): void {
     if (this.busy || !this.mine() || this.hud.modal) return;
-    const hero = this.state.heroes[0];
+    const hero = this.state.heroes[this.me];
     if (!hero || hero.spells.length === 0) return;
     this.hud.openBook({
       mana: hero.mana,
       spells: hero.spells,
-      why: (id) => cantCast(this.state, 0, id, null),
+      why: (id) => cantCast(this.state, this.me, id, null),
       onPick: (id) => {
         this.casting = id;
         this.hud.setStatus(`Choose a target for ${SPELLS[id].name}`);
       },
-      note: this.state.cast[0] ? 'Your hero has already cast a spell this round.' : 'Cast one spell a round; your unit still takes its turn.',
+      note: this.state.cast[this.me] ? 'Your hero has already cast a spell this round.' : 'Cast one spell a round; your unit still takes its turn.',
     });
   }
 
@@ -447,11 +496,11 @@ export class BattleScene extends Phaser.Scene {
     const live = this.state.stacks.filter((s) => alive(s) && !s.acted);
     const fresh = live.filter((s) => !s.waited).sort((a, b) => speedOf(b) - speedOf(a));
     const waited = live.filter((s) => s.waited).sort((a, b) => speedOf(a) - speedOf(b));
-    this.hud.setOrder([...fresh, ...waited]);
+    this.hud.setOrder([...fresh, ...waited], this.me);
   }
 
   private finish(): void {
-    const won = this.state.winner === 0;
+    const won = this.state.winner === this.me;
     if (!this.session) {
       this.hud.openCard({ title: won ? 'Victory!' : 'Defeat', body: 'Sandbox battle over.', buttons: [{ label: 'Again', onClick: () => this.scene.restart() }] });
       return;
@@ -459,10 +508,10 @@ export class BattleScene extends Phaser.Scene {
     const session = this.session;
     const adv = session.adv;
     const lost = adv.hero.army.map((slot, i) => {
-      const st = this.state.stacks.find((x) => x.side === 0 && x.slot === i);
+      const st = this.state.stacks.find((x) => x.side === this.me && x.slot === i);
       return slot && st ? { name: creature(slot.creature).plural, n: st.startCount - st.count } : null;
     }).filter((x): x is { name: string; n: number } => !!x && x.n > 0);
-    const xp = experienceFor(this.state, 0);
+    const xp = experienceFor(this.state, this.me);
     getSound(this)?.play(won ? 'win' : 'lose');
     const done = (): void => {
       session.set(afterBattle(session.adv, session.def, this.monsterId, this.state, this.then));

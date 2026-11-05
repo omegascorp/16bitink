@@ -1,5 +1,7 @@
 import type { KeyValueStore } from '@16bitink/game-sdk';
+import { MusicPlayer } from './music';
 import { synthesize } from './synth';
+import type { TrackId } from './tracks';
 
 export type SfxId = 'click' | 'step' | 'pickup' | 'flag' | 'build' | 'hire' | 'swing' | 'hit' | 'shoot' | 'spell' | 'death' | 'win' | 'lose' | 'card' | 'day';
 
@@ -19,6 +21,9 @@ const MIN_GAP_MS = 45;
 export class SoundBoard {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  private player: MusicPlayer | null = null;
+  /** The track the screen wants: it can't start before the player's first gesture. */
+  private track: TrackId | null = null;
   private mutedNow: boolean;
   private readonly last = new Map<SfxId, number>();
   private readonly unlock = (): void => this.start();
@@ -47,6 +52,12 @@ export class SoundBoard {
     }
   }
 
+  /** Sets the screen's background music, which loops until another takes over. */
+  music(id: TrackId | null): void {
+    this.track = id;
+    this.player?.play(id);
+  }
+
   play(id: SfxId): void {
     const ctx = this.ctx;
     if (!ctx || !this.master || this.mutedNow || ctx.state !== 'running') return;
@@ -65,6 +76,7 @@ export class SoundBoard {
     void this.ctx?.close().catch(() => undefined);
     this.ctx = null;
     this.master = null;
+    this.player = null;
   }
 
   private start(): void {
@@ -78,6 +90,8 @@ export class SoundBoard {
     this.master = this.ctx.createGain();
     this.master.gain.value = this.mutedNow ? 0 : MASTER;
     this.master.connect(this.ctx.destination);
+    this.player = new MusicPlayer(this.ctx, this.master);
+    this.player.play(this.track);
     if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => undefined);
   }
 }

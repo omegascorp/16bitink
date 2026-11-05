@@ -15,7 +15,7 @@ export const BLACK_BANNER_LAND: MapDef = {
   intro: [
     'Kassander of Korax flies a black banner with a red raven, and he serves no crown. His riders already hold the hills east of the lakes.',
     'He builds and hires as you do, takes the mines, and will come for Eudora when he thinks he can win. Beat him to the lakelands, take Korax, and hunt him down.',
-    'Build a Blacksmith in Eudora: a Ballista and a First Aid Tent from it ride with your hero into every battle.',
+    'Korax stands behind walls, and only a war machine can break them. Build a Blacksmith in Eudora and buy a Catapult before you march.',
   ],
   goal: { kind: 'overthrow', target: 'korax-town', text: 'take Korax and beat Kassander' },
   parDays: 35,
@@ -65,7 +65,7 @@ export const BLACK_BANNER_LAND: MapDef = {
       id: 'korax-town', name: 'Korax', x: 39, y: 8, owner: 'rival',
       built: ['villageHall', 'townHall', 'fort', 'tavern', 'guardhouse', 'archeryRange'],
       guild: ['bloodlust', 'slow', 'magicArrow', 'haste', 'dispel'],
-      garrison: [{ creature: 'spearman', count: 80 }, { creature: 'bowman', count: 50 }, { creature: 'griffin', count: 30 }, { creature: 'swordsman', count: 12 }],
+      garrison: [{ creature: 'spearman', count: 66 }, { creature: 'bowman', count: 42 }, { creature: 'griffin', count: 25 }, { creature: 'swordsman', count: 10 }],
     },
   ],
   hero: {
@@ -78,7 +78,7 @@ export const BLACK_BANNER_LAND: MapDef = {
       id: 'kassander', name: 'Kassander', heroClass: 'knight', x: 39, y: 8,
       attack: 5, defense: 5, power: 2, knowledge: 2, skills: { leadership: 1, archery: 1 }, spells: [],
       army: [{ creature: 'spearman', count: 24 }, { creature: 'bowman', count: 10 }, { creature: 'griffin', count: 4 }],
-      machines: ['ballista'],
+      gear: { machine: 'catapult' },
     },
     // His builds, one a day while his purse allows: troops first, then their growth and upgrades.
     build: ['barracks', 'citadel', 'griffinTower', 'guardhouse2', 'archeryRange2', 'barracks2', 'griffinTower2', 'mageGuild1', 'guardhouse3', 'archeryRange3', 'castle'],
@@ -117,7 +117,7 @@ export const BLACK_BANNER_LAND: MapDef = {
     { id: 'lake-basilisks', kind: 'monster', x: 27, y: 27, creature: 'basilisk', count: 28 },
     { id: 'gems-hydras', kind: 'monster', x: 27, y: 5, creature: 'hydra', count: 8 },
     { id: 'shrine-hydras', kind: 'monster', x: 23, y: 2, creature: 'hydra', count: 11, drop: 'alexandrianCodex' },
-    { id: 'chest-hydras', kind: 'monster', x: 27, y: 32, creature: 'hydra', count: 12 },
+    { id: 'chest-hydras', kind: 'monster', x: 27, y: 32, creature: 'hydra', count: 12, drop: 'catapult3' },
     { id: 'windmill', kind: 'windmill', x: 30, y: 21, resource: 'crystal', amount: 4 },
     { id: 'shrine', kind: 'shrine', x: 23, y: 1, spell: 'lightningBolt' },
     { id: 'watchtower', kind: 'watchtower', x: 22, y: 22 },

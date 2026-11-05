@@ -5,15 +5,17 @@ import { DEFEND, gridOf, MAX_MONSTER, queueLevelUps, RIVAL, type Adventure, type
 import { ARMY_SLOTS, type Army, type ArmySlot } from './army';
 import { BUILDINGS, isBuildingId, type BuildingId } from './buildings';
 import { parseDayReport } from './dayReport';
-import { isCreatureId, lineOf, MACHINES, type CreatureId } from './creatures';
+import { canManTower, isCreatureId, lineOf, type CreatureId } from './creatures';
 import { dailyMp, levelFor, maxMana, PRIMARIES } from './hero';
 import { passable, STABLES_MP } from './map';
 import { CHEST_XP, townCore, type MapObject } from './objects';
-import { RESOURCES, type Purse } from './resources';
+import { addTo, RESOURCES, type Purse } from './resources';
 import { isSkillId, MAX_SKILLS, SKILL_IDS, type Rank } from './skills';
 import { isSpellId, type SpellId } from './spells';
 import { SPELLBOOK_SOLD, type Town } from './town';
 
+/** What the war machines since cut from the game cost, gold. */
+const OLD_MACHINES: Readonly<Record<string, number>> = { ballista: 1500, tent: 750 };
 /** Most cards a save may hold waiting. */
 const MAX_PROMPTS = 20;
 /** The most a hero can have left today beyond a day's movement (a town's Stables, and one on the road). */
@@ -140,7 +142,7 @@ export function parseAdventure(raw: unknown, def: MapDef): Adventure | null {
   const fight = typeof raw.rivalFight === 'string' && rival?.hero && (raw.rivalFight === RIVAL || ts.some((t) => DEFEND + t!.id === raw.rivalFight && t!.owner === 'player')) ? raw.rivalFight : undefined;
   // Level-ups are never read from a save: they're dealt again from the hero's experience.
   return queueLevelUps({
-    mapId: def.id, day, seed, purse: p, hero: h, towns: ts as Town[], objects: objs, explored, status, prompts: kept, lostStacks,
+    mapId: def.id, day, seed, purse: refundMachines(hero, p), hero: h, towns: ts as Town[], objects: objs, explored, status, prompts: kept, lostStacks,
     ...(isInt(raw.begun, 2, day) ? { begun: raw.begun } : {}),
     ...(rival ? { rival } : {}), ...(fight ? { rivalFight: fight } : {}),
   });
@@ -188,14 +190,11 @@ function parseHero(raw: Record<string, unknown>, def: MapDef, h: HeroDef = def.h
   if (!Array.isArray(raw.visited) || !raw.visited.every((v) => typeof v === 'string' && def.objects.some((o) => o.id === v))) return null;
   const army = parseArmy(raw.army);
   if (!army) return null;
-  // War machines: one of each at most (older saves have none).
-  const machines = Array.isArray(raw.machines) ? MACHINES.filter((m) => (raw.machines as unknown[]).includes(m)) : [];
   const skills = Object.fromEntries(SKILL_IDS.filter((k) => (raw.skills as Record<string, unknown>)[k]).map((k) => [k, (raw.skills as Record<string, Rank>)[k]]));
   const hero = {
     id: h.id, name: h.name, heroClass: h.heroClass, x: raw.x, y: raw.y,
     attack: raw.attack as number, defense: raw.defense as number, power: raw.power as number, knowledge: raw.knowledge as number,
     mana: raw.mana, xp: raw.xp, level: Math.min(raw.level, levelFor(raw.xp)), skills, spells: [...new Set(raw.spells)], army, mp: raw.mp, visited: raw.visited as string[],
-    ...(machines.length ? { machines } : {}),
     ...bookFromFlag(raw, parseGear(raw)),
   };
   return { ...hero, mana: Math.min(hero.mana, maxMana(hero)), mp: Math.min(hero.mp, dailyMp(hero) + MP_BONUS) };
@@ -204,6 +203,12 @@ function parseHero(raw: Record<string, unknown>, def: MapDef, h: HeroDef = def.h
 /** A hero saved when a spellbook was only a flag has the guild's book now. */
 function bookFromFlag(raw: Record<string, unknown>, worn: { gear?: Gear; bag?: ItemId[] }): { gear?: Gear; bag?: ItemId[] } {
   return raw.hasBook === true && !worn.gear?.book ? { ...worn, gear: { ...worn.gear, book: SPELLBOOK_SOLD } } : worn;
+}
+
+/** A hero saved with a Ballista or a First Aid Tent gets their price back: both are gone from the game. */
+function refundMachines(hero: unknown, p: Purse): Purse {
+  const old = isObj(hero) && Array.isArray(hero.machines) ? hero.machines : [];
+  return addTo(p, { gold: old.reduce<number>((n, m) => n + (OLD_MACHINES[String(m)] ?? 0), 0) });
 }
 
 const isItemId = (x: unknown): x is ItemId => typeof x === 'string' && (ITEM_IDS as readonly string[]).includes(x);
@@ -231,7 +236,10 @@ function parseTown(raw: Record<string, unknown>, t: { id: string; name: string; 
   // Stock is kept by line (every level of a line hires from its base's).
   const lines = new Set(built.map((b) => BUILDINGS[b].dwelling).filter((d): d is CreatureId => !!d).map(lineOf));
   const stock = Object.fromEntries(Object.entries(raw.stock).filter(([k]) => lines.has(k as CreatureId))) as Partial<Record<CreatureId, number>>;
-  return { id: t.id, name: t.name, owner, x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, guild: t.guild, ...(raw.ally === true && owner === 'neutral' ? { ally: true } : {}) };
+  // Older saves have no towers; a company that can't stand on one comes down with its place lost.
+  const up = raw.towers === undefined ? null : parseArmy(raw.towers);
+  const towers = up?.some((s) => s && canManTower(s.creature)) ? { towers: up.map((s) => (s && canManTower(s.creature) ? s : null)) } : {};
+  return { id: t.id, name: t.name, owner, x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, ...towers, guild: t.guild, ...(raw.ally === true && owner === 'neutral' ? { ally: true } : {}) };
 }
 
 /** The saved buildings the map allows and whose needs are met (the town's starting ones always). */

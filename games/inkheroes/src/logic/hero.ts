@@ -5,7 +5,6 @@ import type { BattleHero } from './battleTypes';
 import { rollInt } from './rng';
 import { MAX_SKILLS, SKILL_IDS, skillValue, type Rank, type SkillId, type Skills } from './skills';
 import type { SpellId } from './spells';
-import type { MachineId } from './creatures';
 
 export type HeroClass = 'knight' | 'cleric';
 export type Primary = 'attack' | 'defense' | 'power' | 'knowledge';
@@ -32,8 +31,6 @@ export interface Hero {
   readonly mp: number;
   /** Ids of once-per-hero sites already visited. */
   readonly visited: readonly string[];
-  /** War machines bought at a Blacksmith (one of each). */
-  readonly machines?: readonly MachineId[];
   /** What they wear, by slot. */
   readonly gear?: Gear;
   /** Spare pieces carried. */

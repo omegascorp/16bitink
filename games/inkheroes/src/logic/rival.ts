@@ -1,18 +1,18 @@
-import { gainItem } from './items';
+import { gainItem, machineOf } from './items';
 import type { MapDef } from '../level/types';
 import {
   calendar, checkGoal, dayOfWeek, DEFEND, guardAt, heroInGarrison, incomeOf, liveObjects, playerArmy, RIVAL, rivalHero, revealAround, terrainView, townAt, withTown, type Adventure,
 } from './adventure';
 import { armyMorale, armyOf, isEmptyArmy, splitMonster, type Army } from './army';
-import { act, createBattle, machinesLeft, survivors, type BattleSide } from './battle';
+import { act, createBattle, survivors, type BattleSide } from './battle';
 import { chooseAction } from './battleAi';
 import type { BattleState } from './battleTypes';
-import { creature, strengthOf, type MachineId } from './creatures';
+import { creature, strengthOf } from './creatures';
 import { dailyMp, toBattleHero, type Hero } from './hero';
 import { MINE_NAMES, type MapObject } from './objects';
 import { canStep, findPath, type PathStep } from './path';
 import { addTo } from './resources';
-import { bestUnit, build, cantBuild, dwellings, hireable, hireAll, weekly, type Town } from './town';
+import { bestUnit, build, cantBuild, dwellings, hireable, hireAll, towersOf, undefended, weekly, type Town } from './town';
 
 /**
  * The rival lord's turn, played after the night: his towns build and hire,
@@ -64,7 +64,7 @@ export function autoBattle(attacker: BattleSide, defender: BattleSide, seed: num
   return st.winner === null ? { ...st, winner: 1 } : st;
 }
 
-const rivalSide = (h: Hero): BattleSide => ({ hero: toBattleHero(h), army: h.army, armyMorale: armyMorale(h.army), machines: h.machines ?? [] });
+const rivalSide = (h: Hero): BattleSide => ({ hero: toBattleHero(h), army: h.army, armyMorale: armyMorale(h.army), machine: machineOf(h) });
 
 /** `adv` with the rival's hero replaced (null: beaten). */
 const withRival = (adv: Adventure, hero: Hero | null): Adventure => ({ ...adv, rival: { ...adv.rival!, hero } });
@@ -226,7 +226,7 @@ function targets(adv: Adventure, def: MapDef, hero: Hero, mine: number): { x: nu
   for (const t of adv.towns.filter((x) => x.owner === 'player')) {
     // Our hero near the town would ride back to it: he counts as its defence.
     const heroNear = Math.max(Math.abs(adv.hero.x - t.x), Math.abs(adv.hero.y - t.y)) <= THREAT.tiles;
-    const held = armyStrength(t.garrison) + (heroNear ? ours : 0);
+    const held = armyStrength(t.garrison) + armyStrength(towersOf(t)) + (heroNear ? ours : 0);
     if (held < mine * SAFE.town) out.push({ x: t.x, y: t.y, value: VALUE.ourTown });
   }
   for (const t of adv.towns.filter((x) => x.owner === 'rival')) {
@@ -259,7 +259,7 @@ function ride(adv: Adventure, def: MapDef, route: Route): Ride {
     if (adv.hero.x === step.x && adv.hero.y === step.y) return { adv: next, walked, notes, stopped: true, fight: RIVAL };
     const gate = townAt(next, step.x, step.y);
     if (gate?.owner === 'player') {
-      if (!isEmptyArmy(gate.garrison)) return { adv: next, walked, notes, stopped: true, fight: DEFEND + gate.id };
+      if (!undefended(gate)) return { adv: next, walked, notes, stopped: true, fight: DEFEND + gate.id };
       next = checkGoal(withTown(withRival(next, { ...spent, x: step.x, y: step.y }), { ...gate, owner: 'rival', garrison: armyOf([]) }), def);
       walked.push(step);
       notes.push(`${hero.name} rode into ${gate.name}, and it flies his banner now.`);
@@ -312,7 +312,7 @@ function fight(adv: Adventure, hero: Hero, army: Army, id: string): { adv: Adven
     return { adv: withRival(adv, null), won: false, notes: [`${hero.name} fell in battle${foes ? ` against the ${creature(foes).plural}` : ''}. His banner is down for good.`] };
   }
   const drop = adv.objects.find((o) => o.id === id)?.drop;
-  const fought = { ...hero, army: survivors(end, 0, hero.army), machines: machinesLeft(end, 0) as MachineId[] };
+  const fought = { ...hero, army: survivors(end, 0, hero.army) };
   const after = drop ? gainItem(fought, drop).hero : fought;
   const objects = adv.objects.map((o) => (o.id === id ? { ...o, gone: true } : o));
   return { adv: { ...withRival(adv, after), objects }, won: true, notes: [] };

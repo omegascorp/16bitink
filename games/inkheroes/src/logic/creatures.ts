@@ -43,10 +43,10 @@ export interface CreatureDef {
   /** An upgrade: the line's base unit, and which of its three levels this is (2 or 3; a base unit is 1). */
   readonly line?: CreatureId;
   readonly tier?: 2 | 3;
-  /** A war machine bought at the Blacksmith: it never moves, acts by itself, and a side left with only machines has lost. */
-  readonly machine?: 'shooter' | 'healer';
-  /** A healer's most a turn, HP. */
-  readonly heals?: number;
+  /** A war machine bought at the Blacksmith: how its faction deals with walls. It never moves, acts by itself, and can't hold the field alone. */
+  readonly machine?: 'catapult';
+  /** A catapult's stones a round, and the chances each misses or lands a double blow. */
+  readonly stones?: { readonly throws: number; readonly miss: number; readonly crit: number };
 }
 
 const def = <T extends CreatureDef>(c: T): T => c;
@@ -79,9 +79,10 @@ export const CREATURES = {
   skeleton: def({ id: 'skeleton', name: 'Spartoi', plural: 'Spartoi', faction: 'neutral', level: 1, attack: 5, defense: 4, minDmg: 1, maxDmg: 3, hp: 6, speed: 4, growth: 12, cost: { gold: 60 }, undead: true }),
   wolf: def({ id: 'wolf', name: 'Wolf', plural: 'Wolves', faction: 'neutral', level: 2, attack: 6, defense: 3, minDmg: 2, maxDmg: 4, hp: 10, speed: 7, growth: 8, cost: { gold: 100 }, wide: true }),
   bandit: def({ id: 'bandit', name: 'Brigand', plural: 'Brigands', faction: 'neutral', level: 2, attack: 8, defense: 3, minDmg: 2, maxDmg: 4, hp: 10, speed: 6, growth: 8, cost: { gold: 100 }, noRetaliation: true }),
-  // War machines (the Blacksmith's): one each, standing at the back of the hero's side.
-  ballista: def({ id: 'ballista', name: 'Ballista', plural: 'Ballistas', faction: 'machine', level: 4, attack: 10, defense: 10, minDmg: 10, maxDmg: 15, hp: 250, speed: 1, growth: 0, cost: { gold: 1500 }, shots: 24, machine: 'shooter', retaliations: 0 }),
-  tent: def({ id: 'tent', name: 'First Aid Tent', plural: 'First Aid Tents', faction: 'machine', level: 1, attack: 0, defense: 0, minDmg: 0, maxDmg: 0, hp: 75, speed: 1, growth: 0, cost: { gold: 750 }, machine: 'healer', heals: 25, retaliations: 0 }),
+  // War machines (the Blacksmith's): each faction's own way past a town's walls. They stand out of reach at the back of the hero's side.
+  catapult: def({ id: 'catapult', name: 'Catapult', plural: 'Catapults', faction: 'machine', level: 1, attack: 0, defense: 10, minDmg: 0, maxDmg: 0, hp: 1000, speed: 20, growth: 0, cost: { gold: 1500 }, machine: 'catapult', stones: { throws: 1, miss: 0.1, crit: 0.3 }, retaliations: 0 }),
+  catapult2: def({ id: 'catapult2', name: 'Bronze Catapult', plural: 'Bronze Catapults', faction: 'machine', level: 2, attack: 0, defense: 10, minDmg: 0, maxDmg: 0, hp: 1000, speed: 20, growth: 0, cost: { gold: 3000 }, machine: 'catapult', stones: { throws: 1, miss: 0.05, crit: 0.6 }, retaliations: 0 }),
+  catapult3: def({ id: 'catapult3', name: 'Syracusan Catapult', plural: 'Syracusan Catapults', faction: 'machine', level: 3, attack: 0, defense: 10, minDmg: 0, maxDmg: 0, hp: 1000, speed: 20, growth: 0, cost: { gold: 5000 }, machine: 'catapult', stones: { throws: 2, miss: 0.05, crit: 0.6 }, retaliations: 0 }),
   ogre: def({ id: 'ogre', name: 'Cyclops', plural: 'Cyclopes', faction: 'neutral', level: 4, attack: 13, defense: 7, minDmg: 6, maxDmg: 12, hp: 40, speed: 4, growth: 4, cost: { gold: 300 } }),
   // Each map after the first brings new neutrals, each with a way of fighting of its own (docs/inkheroes-design.md).
   boar: def({ id: 'boar', name: 'Erymanthian Boar', plural: 'Erymanthian Boars', faction: 'neutral', level: 3, attack: 9, defense: 6, minDmg: 3, maxDmg: 6, hp: 24, speed: 6, growth: 6, cost: { gold: 180 }, charge: true, wide: true }),
@@ -96,14 +97,16 @@ export type CreatureId =
   | 'monk2' | 'monk3' | 'lancer2' | 'lancer3' | 'seraph2' | 'seraph3'
   | 'goblin' | 'skeleton' | 'wolf' | 'bandit' | 'ogre'
   | 'boar' | 'stymphalian' | 'hydra' | 'basilisk'
-  | 'ballista' | 'tent';
+  | 'catapult' | 'catapult2' | 'catapult3';
 export const CREATURE_IDS = Object.keys(CREATURES) as CreatureId[];
 
 export const creature = (id: CreatureId): CreatureDef => CREATURES[id];
-/** The war machines, in the order they stand. */
-export const MACHINES = ['ballista', 'tent'] as const satisfies readonly CreatureId[];
+/** The war machines, worst first. */
+export const MACHINES = ['catapult', 'catapult2', 'catapult3'] as const satisfies readonly CreatureId[];
 export type MachineId = (typeof MACHINES)[number];
 export const isMachine = (id: CreatureId): boolean => !!creature(id).machine;
+/** Whether a company can man a tower: a shooter that takes one hex. */
+export const canManTower = (id: CreatureId): boolean => !!creature(id).shots && !creature(id).wide && !creature(id).machine;
 export const isCreatureId = (v: unknown): v is CreatureId => typeof v === 'string' && (CREATURE_IDS as string[]).includes(v);
 
 /** The base unit of `id`'s line (itself for a base unit). */

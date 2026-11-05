@@ -32,6 +32,8 @@ export class PixelFigure {
   private frame: number;
   private clock: number;
   private fps = IDLE_FPS;
+  /** The ground line it sorts on, when it stands high above it (on a tower). */
+  private sortLine: number | null = null;
   /** A pose looped for review instead of the battle's own (the sandbox's anim=). */
   private held: Pose | null = null;
   private strike: (() => void) | null = null;
@@ -54,6 +56,12 @@ export class PixelFigure {
   /** Feet on (x, y), rounded to the pixel. */
   setFeet(x: number, y: number): void {
     this.feet = { x: Math.round(x), y: Math.round(y) };
+    this.place();
+  }
+
+  /** Sorts it among the figures by `y` instead of its feet (null: its feet again). */
+  sortOn(y: number | null): void {
+    this.sortLine = y;
     this.place();
   }
 
@@ -188,6 +196,6 @@ export class PixelFigure {
       .setFlipX(this.left)
       .setDisplayOrigin(this.left ? a.w - 1 - foot : foot, a.footY)
       .setPosition(this.feet.x + this.nudge, this.feet.y - this.lift)
-      .setDepth(FIGURE_DEPTH + this.feet.y);
+      .setDepth(FIGURE_DEPTH + (this.sortLine ?? this.feet.y));
   }
 }

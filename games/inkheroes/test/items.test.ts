@@ -15,7 +15,7 @@ describe('items', () => {
     const bronze = ITEM_IDS.map(itemDef).filter((i) => i.set === 'bronze');
     expect(bronze.map((i) => i.slot).sort()).toEqual(['belt', 'boots', 'bracers', 'cuirass', 'greaves', 'helm']);
     expect(bronze.every((i) => i.quality === 'gray')).toBe(true);
-    expect(SLOTS).toHaveLength(12);
+    expect(SLOTS).toHaveLength(13);
   });
 
   it('adds up what a hero wears, and nothing from the bag', () => {
@@ -78,7 +78,7 @@ describe('items', () => {
     expect(drops.map((o) => [o.id, o.drop])).toEqual(expect.arrayContaining([['goblins', 'bronzeHelm'], ['ogres', 'bronzeCuirass']]));
     expect(new Set(drops.map((o) => o.drop)).size).toBe(6);
     expect(drops).toHaveLength(6);
-    expect(BLACK_BANNER.objects.filter((o) => o.drop)).toHaveLength(8);
+    expect(BLACK_BANNER.objects.filter((o) => o.drop)).toHaveLength(9);
   });
 });
 
@@ -128,8 +128,16 @@ describe('the gear panel', () => {
 
   it('draws everything at double size wherever it fits', () => {
     expect(gearLayout({ w: 1300, h: 800 })).toMatchObject({ scale: 2, doll: 'tall' });
-    expect(gearLayout({ w: 818, h: 287 })).toMatchObject({ scale: 2, doll: 'broad' });
-    expect(gearLayout({ w: 364, h: 745 })).toMatchObject({ scale: 2, doll: 'broad' });
+    expect(gearLayout({ w: 818, h: 287 })).toMatchObject({ scale: 2, doll: 'square' });
+    expect(gearLayout({ w: 364, h: 745 })).toMatchObject({ scale: 2, doll: 'square' });
+    expect(gearLayout({ w: 364, h: 600 })).toMatchObject({ scale: 2, doll: 'broad' });
+  });
+
+  it('keeps a full bag: rows of the same length but for the last', () => {
+    expect(BAG_SIZE).toBe(20);
+    const { bag } = gearLayout({ w: 364, h: 745 });
+    const rows = [...new Set(bag.map((c) => c.y))];
+    expect(rows.map((y) => bag.filter((c) => c.y === y).length)).toEqual([5, 5, 5, 5]);
   });
 
   it('falls back to single size only on the smallest screens', () => {
@@ -138,7 +146,7 @@ describe('the gear panel', () => {
   });
 
   it('always fits the room it was given, and holds every slot and the whole bag', () => {
-    for (const [w, h] of [[1300, 800], [818, 287], [364, 745], [641, 272], [334, 540]] as const) {
+    for (const [w, h] of [[1300, 800], [818, 287], [364, 745], [364, 600], [641, 272], [334, 540]] as const) {
       const l = gearLayout({ w, h });
       expect(fits(l, w, h), `${w}x${h}`).toBe(true);
       expect(l.slots).toHaveLength(SLOTS.length);

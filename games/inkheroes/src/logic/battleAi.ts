@@ -1,9 +1,10 @@
-import { activeStack, alive, answers, canShoot, isStone, moves, strikeFrom, struckBy } from './battle';
+import { activeStack, alive, answers, canShoot, handOptions, isStone, moves, strikeFrom, struckBy, targetable } from './battle';
 import type { Action, BattleState, Stack } from './battleTypes';
 import { creature } from './creatures';
 import { damageRange, killsBy } from './damage';
-import { distance, type Hex } from './hex';
+import { distance, HEX_COUNT, neighbours, type Hex } from './hex';
 import { occupiedHexes, shotDistance } from './footprint';
+import { aimFor, insideWalls, moatFor, PART_HEX, standing, TOWERS, wallsAgainst, type SiegePart } from './siege';
 
 const average = (r: { min: number; max: number }): number => (r.min + r.max) / 2;
 
@@ -34,7 +35,7 @@ export function chooseAction(state: BattleState): Action {
   const me = activeStack(state);
   if (!me) throw new Error('no active stack');
   if (creature(me.creature).machine) return machineAction(state, me);
-  const enemies = state.stacks.filter((s) => s.side !== me.side && alive(s));
+  const enemies = foesOf(state, me);
   if (canShoot(state, me)) {
     const best = maxBy(enemies, (e) => worth(e, average(damageRange(state, me, e, { ranged: true, distance: shotDistance(me, e), moved: 0 }))));
     if (best) return { type: 'shoot', target: best.id };
@@ -42,39 +43,82 @@ export function chooseAction(state: BattleState): Action {
   let bestStrike: { action: Action; score: number } | null = null;
   for (const e of enemies) {
     for (const [from, moved] of strikeFrom(state, e)) {
+      if (leavesWalls(state, me, from)) continue;
       const score = struckBy(state, me, e, from).reduce((n, x) => n + tradeOn(state, me, x, moved), 0) - moved * 0.01;
       if (!bestStrike || score > bestStrike.score) bestStrike = { action: { type: 'attack', target: e.id, from }, score };
     }
   }
   if (bestStrike) return bestStrike.action;
+  // A garrison on foot holds its walls and lets the enemy come.
+  if (state.siege && me.side === 1 && !creature(me.creature).flies) return { type: 'defend' };
+  const stone = atTheStone(state, me);
+  if (stone) return stone;
   // Shooters with no shots left, or nothing in reach: close in.
   const reach = [...moves(state).keys()].filter((h) => h !== me.hex);
-  // Steps from a head hex to the nearest hex of any enemy (two-hex enemies count both).
-  const enemyHexes = enemies.flatMap(occupiedHexes);
-  const nearest = (h: Hex): number => Math.min(...enemyHexes.map((e) => distance(h, e)));
+  const nearest = stepsToFoe(state, me, enemies);
   const go = minBy(reach, nearest);
   if (go !== null && nearest(go) < nearest(me.hex)) return { type: 'move', to: go };
   return { type: 'defend' };
 }
 
+/** A garrison on foot fights from behind its walls: it doesn't open its gate to march out at a foe still outside them. */
+const leavesWalls = (state: BattleState, me: Stack, from: Hex): boolean => !!state.siege && me.side === 1 && !creature(me.creature).flies && !insideWalls(from);
+
+/** What a side with no war machine must break by hand: the gate while it shuts a walker out, then any tower still holding a company. */
+function stoneInTheWay(state: BattleState, me: Stack): SiegePart | null {
+  const siege = state.siege;
+  if (!siege || me.side !== 0 || state.stacks.some((s) => s.side === 0 && creature(s.creature).machine)) return null;
+  const onFoot = foesOf(state, me).filter((s) => s.tower === undefined);
+  if (!onFoot.length) return minBy(TOWERS.filter((t, i) => standing(siege, t) && state.stacks.some((s) => s.tower === i && alive(s))), (t) => distance(me.hex, PART_HEX[t]));
+  const shutOut = !creature(me.creature).flies && standing(siege, 'gate') && !stepsFrom(onFoot.flatMap(occupiedHexes), new Set(wallsAgainst(siege, 0))).has(me.hex);
+  return shutOut ? 'gate' : null;
+}
+
+/** With no war machine, a company breaks what stands in the way by hand, walking up to it first. */
+function atTheStone(state: BattleState, me: Stack): Action | null {
+  const part = stoneInTheWay(state, me);
+  if (!part) return null;
+  const strike = minBy(handOptions(state, part), (o) => o.steps);
+  if (strike) return { type: 'bash', part, from: strike.from };
+  const nearer = (h: Hex): number => distance(h, PART_HEX[part]);
+  const go = minBy([...moves(state).keys()], nearer);
+  return go !== null && nearer(go) < nearer(me.hex) ? { type: 'move', to: go } : null;
+}
+
+/** The foes a stack can aim at (all of them but a war machine). */
+const foesOf = (state: BattleState, me: Stack): Stack[] => state.stacks.filter((s) => s.side !== me.side && alive(s) && targetable(s));
+
 /**
- * A war machine's turn (they act by themselves, on either side): the
- * Ballista shoots the enemy it hurts most; the First Aid Tent heals its
- * side's most wounded top creature; with nothing to do, they stand.
+ * How far a head hex is from the nearest foe (two-hex foes count both). On
+ * open ground and for flyers, the straight distance; a walker at a siege
+ * counts its steps round the walls, and while they are closed waits for a
+ * breach on the near bank, out of the moat.
  */
+function stepsToFoe(state: BattleState, me: Stack, enemies: readonly Stack[]): (h: Hex) => number {
+  const hexes = enemies.flatMap(occupiedHexes);
+  const straight = (h: Hex): number => Math.min(...hexes.map((e) => distance(h, e)));
+  if (!state.siege || creature(me.creature).flies) return straight;
+  const steps = stepsFrom(hexes, new Set(wallsAgainst(state.siege, me.side)));
+  if (steps.has(me.hex)) return (h) => steps.get(h) ?? Infinity;
+  const moat = moatFor(state.siege, me.side);
+  return (h) => (moat.has(h) ? Infinity : straight(h));
+}
+
+/** Steps to every hex from the nearest of `from`, round `closed`. */
+function stepsFrom(from: readonly Hex[], closed: ReadonlySet<Hex>): Map<Hex, number> {
+  const out = new Map<Hex, number>(from.map((h) => [h, 0]));
+  let ring = [...from];
+  for (let step = 1; ring.length && step < HEX_COUNT; step++) {
+    const next = ring.flatMap(neighbours).filter((h) => !out.has(h) && !closed.has(h));
+    for (const h of next) out.set(h, step);
+    ring = next;
+  }
+  return out;
+}
+
+/** A war machine's turn: it hurls at the walls while any stand, then has nothing to do. */
 export function machineAction(state: BattleState, me: Stack): Action {
-  const c = creature(me.creature);
-  if (c.machine === 'shooter' && canShoot(state, me)) {
-    const enemies = state.stacks.filter((s) => s.side !== me.side && alive(s));
-    const best = maxBy(enemies, (e) => worth(e, average(damageRange(state, me, e, { ranged: true, distance: shotDistance(me, e), moved: 0 }))) * (creature(e.creature).machine ? 0.5 : 1));
-    if (best) return { type: 'shoot', target: best.id };
-  }
-  if (c.machine === 'healer') {
-    const hurt = state.stacks.filter((s) => s.side === me.side && alive(s) && !creature(s.creature).machine && s.topHp < creature(s.creature).hp);
-    const most = maxBy(hurt, (s) => (creature(s.creature).hp - s.topHp) * (1 + creature(s.creature).level * 0.15));
-    if (most) return { type: 'heal', target: most.id };
-  }
-  return { type: 'defend' };
+  return creature(me.creature).machine === 'catapult' && state.siege && aimFor(state.siege).length ? { type: 'catapult' } : { type: 'defend' };
 }
 
 function maxBy<T>(xs: readonly T[], f: (x: T) => number): T | null {

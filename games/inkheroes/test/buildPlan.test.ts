@@ -4,12 +4,29 @@ import { MAPS } from '../src/level/maps';
 import { startAdventure } from '../src/logic/adventure';
 import { BUILDING_IDS, BUILDINGS } from '../src/logic/buildings';
 import { briefAmount, purse, shortfall, type Amount } from '../src/logic/resources';
-import { build, cantBuild, suggestBuilding, type Town } from '../src/logic/town';
+import { build, buildAll, cantBuild, suggestBuilding, type Town } from '../src/logic/town';
 import { ledgerOf } from '../src/scenes/town/townStage';
 
 const RICH = purse({ gold: 1e7, wood: 9999, ore: 9999, mercury: 999, sulfur: 999, crystal: 999, gems: 999 });
 const firstTown = (n: number): Town => startAdventure(MAPS[n]!).towns[0]!;
 const withBuilt = (t: Town, ...more: Town['built']): Town => ({ ...t, built: [...t.built, ...more] });
+
+describe('the build-all cheat', () => {
+  it.each(MAPS.map((m, i) => [m.name, i] as const))('finishes the town %s allows, and no more', (_, n) => {
+    const { off } = MAPS[n]!;
+    const start = firstTown(n);
+    const town = buildAll(start, off);
+    expect(town.built.filter((b) => off.includes(b))).toEqual([]);
+    expect(suggestBuilding(town, RICH, off)).toBeNull();
+    expect(town.builtToday).toBe(start.builtToday);
+    expect(buildAll(town, off)).toBe(town);
+  });
+
+  it('opens each new dwelling with a week of growth', () => {
+    const town = firstTown(0);
+    expect(buildAll({ ...town, built: town.built.filter((b) => b !== 'guardhouse'), stock: {} }, MAPS[0]!.off).stock.spearman).toBeGreaterThan(0);
+  });
+});
 
 describe('the build suggestion', () => {
   it.each(MAPS.map((m, i) => [m.name, i] as const))('walks %s to a finished town, every step buildable that day', (_, n) => {

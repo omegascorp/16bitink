@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { machineOf } from '../src/logic/items';
 import { BLACK_BANNER } from '../src/level/borderMarch';
-import { afterBattle, battleSides, checkGoal, DEFEND, endDay, isSeen, playerTowns, RIVAL, startAdventure, stepHero, takeTown, townById, withTown, type Adventure } from '../src/logic/adventure';
+import { afterBattle, battleSides, checkGoal, DEFEND, endDay, isSeen, playerTowns, RIVAL, startAdventure, stepHero, takeTown, townById, wallsToStorm, withTown, type Adventure } from '../src/logic/adventure';
+import { undefended } from '../src/logic/town';
 import { armyOf } from '../src/logic/army';
 import { createBattle } from '../src/logic/battle';
 import type { BattleState } from '../src/logic/battleTypes';
@@ -28,7 +30,7 @@ function nights(adv: Adventure, days: number): { adv: Adventure; fight?: string;
 /** A battle `side` has won outright (the other side's stacks all gone). */
 function wonBy(adv: Adventure, id: string, side: 0 | 1): BattleState {
   const s = battleSides(adv, id);
-  const st = createBattle(s.attacker, s.defender, s.seed).state;
+  const st = createBattle(s.attacker, s.defender, s.seed, s.siege).state;
   return { ...st, winner: side, stacks: st.stacks.map((x) => (x.side === side ? x : { ...x, count: 0 })) };
 }
 
@@ -40,10 +42,10 @@ describe('the rival lord', () => {
     expect(day).toMatchObject({ kind: 'message', text: expect.stringMatching(/^Scouts saw Kassander/), report: { hero: { name: adv.hero.name } } });
   });
 
-  it('starts in his town with his army, purse and ballista; his town flies his banner', () => {
+  it('starts in his town with his army, purse and Catapult; his town flies his banner', () => {
     const adv = startAdventure(def);
     expect(adv.rival?.hero?.name).toBe('Kassander');
-    expect(adv.rival?.hero?.machines).toEqual(['ballista']);
+    expect(adv.rival?.hero?.gear?.machine).toBe('catapult');
     expect(townById(adv, korax)?.owner).toBe('rival');
     expect(adv.rival?.purse.gold).toBe(6000);
   });
@@ -87,12 +89,14 @@ describe('the rival lord', () => {
     const r = rivalTurn(held, def);
     expect(r.report.fight).toBe(DEFEND + eudora);
     const sides = battleSides(r.adv, DEFEND + eudora);
-    expect(sides.attacker.hero).toBeNull();
-    expect(sides.defender.hero?.name).toBe('Kassander');
-    const kept = afterBattle(r.adv, def, DEFEND + eudora, wonBy(r.adv, DEFEND + eudora, 0));
+    // Eudora has a Fort: he has the left, the walls and the player the right.
+    expect(sides.attacker.hero?.name).toBe('Kassander');
+    expect(sides.defender.hero).toBeNull();
+    expect(sides.siege?.me).toBe(1);
+    const kept = afterBattle(r.adv, def, DEFEND + eudora, wonBy(r.adv, DEFEND + eudora, 1));
     expect(kept.rival!.hero).toBeNull();
     expect(townById(kept, eudora)!.owner).toBe('player');
-    const fell = afterBattle(r.adv, def, DEFEND + eudora, wonBy(r.adv, DEFEND + eudora, 1));
+    const fell = afterBattle(r.adv, def, DEFEND + eudora, wonBy(r.adv, DEFEND + eudora, 0));
     expect(townById(fell, eudora)!.owner).toBe('rival');
     expect(fell.rival!.hero!.x).toBe(town.x);
     expect(fell.status).toBe('lost');
@@ -106,7 +110,7 @@ describe('the rival lord', () => {
     const r = rivalTurn(adv, def);
     expect(r.report.fight).toBe(RIVAL);
     const sides = battleSides(r.adv, RIVAL);
-    expect(sides.defender.machines).toEqual(['ballista']);
+    expect(sides.defender.machine).toBe('catapult');
     const won = afterBattle(r.adv, def, RIVAL, wonBy(r.adv, RIVAL, 0));
     expect(won.rival!.hero).toBeNull();
     expect(won.prompts.some((p) => p.kind === 'message' && /Kassander/.test(p.title))).toBe(true);
@@ -165,7 +169,7 @@ describe('winning the Black Banner takes Korax and Kassander both', () => {
     const start = takeTown(riding(startAdventure(def)), korax);
     const id = DEFEND + eudora;
     const held = withTown(start, { ...townById(start, eudora)!, garrison: armyOf([{ creature: 'spearman', count: 50 }]) });
-    expect(afterBattle(held, def, id, wonBy(held, id, 0)).status).toBe('won');
+    expect(afterBattle(held, def, id, wonBy(held, id, 1)).status).toBe('won');
   });
 
   it('is not lost with a town: only the last one ends it', () => {
@@ -200,23 +204,76 @@ describe('Kassander with no town left', () => {
 });
 
 describe('the Blacksmith', () => {
-  it('sells the visiting hero one Ballista and one First Aid Tent, which ride into battle with them', async () => {
+  it('sells the visiting hero a Catapult as gear, which rides with them and is never lost', async () => {
     const { buyMachine, cantBuyMachine } = await import('../src/logic/adventure');
     const start = startAdventure(def);
     const town = townById(start, eudora)!;
-    expect(cantBuyMachine(start, 'ballista')).toMatch(/Blacksmith/);
+    expect(cantBuyMachine(start, 'catapult')).toMatch(/Blacksmith/);
     const smithy = withTown({ ...start, hero: { ...start.hero, x: town.x, y: town.y } }, { ...town, built: [...town.built, 'blacksmith'] });
-    expect(cantBuyMachine(smithy, 'ballista')).toBeNull();
-    const one = buyMachine(smithy, 'ballista');
+    expect(cantBuyMachine(smithy, 'catapult')).toBeNull();
+    const one = buyMachine(smithy, 'catapult');
     expect(one.purse.gold).toBe(smithy.purse.gold - 1500);
-    expect(cantBuyMachine(one, 'ballista')).toMatch(/already/);
-    const both = buyMachine(one, 'tent');
-    expect(both.hero.machines).toEqual(['ballista', 'tent']);
-    expect(battleSides(both, 'north-pass-brigands').attacker.machines).toEqual(['ballista', 'tent']);
-    // A machine lost in battle is gone: the hero keeps only what still stands.
-    const st = createBattle(battleSides(both, 'north-pass-brigands').attacker, battleSides(both, 'north-pass-brigands').defender, 1).state;
-    const won = { ...st, winner: 0 as const, stacks: st.stacks.map((x) => (x.side === 1 || x.creature === 'tent' ? { ...x, count: 0 } : x)) };
-    expect(afterBattle(both, def, 'north-pass-brigands', won).hero.machines).toEqual(['ballista']);
+    expect(one.hero.gear?.machine).toBe('catapult');
+    expect(cantBuyMachine(one, 'catapult')).toMatch(/as good/);
+    expect(battleSides(one, 'north-pass-brigands').attacker.machine).toBe('catapult');
+    const st = createBattle(battleSides(one, 'north-pass-brigands').attacker, battleSides(one, 'north-pass-brigands').defender, 1).state;
+    const won = { ...st, winner: 0 as const, stacks: st.stacks.map((x) => (x.side === 1 ? { ...x, count: 0 } : x)) };
+    expect(machineOf(afterBattle(one, def, 'north-pass-brigands', won).hero)).toBe('catapult');
+  });
+
+  it('sells a finer grade over a lesser one, which goes to the bag', async () => {
+    const { buyMachine, cantBuyMachine } = await import('../src/logic/adventure');
+    const start = startAdventure(def);
+    const town = townById(start, eudora)!;
+    const smithy = withTown({ ...start, purse: { ...start.purse, gold: 9000 }, hero: { ...start.hero, x: town.x, y: town.y } }, { ...town, built: [...town.built, 'blacksmith'] });
+    const better = buyMachine(buyMachine(smithy, 'catapult'), 'catapult2');
+    expect(better.hero.gear?.machine).toBe('catapult2');
+    expect(better.hero.bag).toEqual(['catapult']);
+    expect(cantBuyMachine(better, 'catapult')).toMatch(/as good/);
+    expect(battleSides(better, 'north-pass-brigands').attacker.machine).toBe('catapult2');
+  });
+});
+
+describe('a siege on the map', () => {
+  it('warns of walls only when the hero has no war machine', () => {
+    const start = startAdventure(def);
+    expect(wallsToStorm(start, korax)?.id).toBe(korax);
+    expect(wallsToStorm({ ...start, hero: { ...start.hero, gear: { ...start.hero.gear, machine: 'catapult' } } }, korax)).toBeUndefined();
+    expect(wallsToStorm(start, 'north-pass-brigands')).toBeUndefined();
+  });
+
+  it('mans an enemy town from its garrison, leaving the shooters out of the ground fight', () => {
+    const s = battleSides(startAdventure(def), korax);
+    expect(s.siege?.me).toBe(0);
+    expect(s.defender.towers?.filter(Boolean).map((t) => t!.creature)).toEqual(['bowman']);
+    expect(s.defender.army.some((a) => a?.creature === 'bowman')).toBe(false);
+  });
+
+  it('holds our hero’s town from the right, with our own towers, and brings them back after', () => {
+    const start = startAdventure(def);
+    const town = townById(start, eudora)!;
+    const towers = armyOf([{ creature: 'bowman', count: 9 }]);
+    const foe = { ...start.rival!.hero!, x: town.x, y: town.y + 1 };
+    const adv = withTown({ ...start, hero: { ...start.hero, x: town.x, y: town.y, gear: { ...start.hero.gear, machine: 'catapult' as const } }, rival: { ...start.rival!, hero: foe } }, { ...town, towers });
+    const s = battleSides(adv, RIVAL);
+    expect(s.siege?.me).toBe(1);
+    expect(s.attacker.hero?.name).toBe('Kassander');
+    const st = createBattle(s.attacker, s.defender, s.seed, s.siege).state;
+    // Our Catapult has nothing to do from inside; his comes.
+    expect(st.stacks.some((x) => x.side === 1 && x.creature === 'catapult')).toBe(false);
+    expect(st.stacks.some((x) => x.side === 0 && x.creature === 'catapult')).toBe(true);
+    const up = st.stacks.find((x) => x.tower !== undefined)!;
+    const won = { ...st, winner: 1 as const, stacks: st.stacks.map((x) => (x.side === 0 ? { ...x, count: 0 } : x.id === up.id ? { ...x, count: 4 } : x)) };
+    const after = afterBattle(adv, def, RIVAL, won);
+    expect(after.hero.gear?.machine).toBe('catapult');
+    expect(townById(after, eudora)!.towers?.[0]).toEqual({ creature: 'bowman', count: 4 });
+  });
+
+  it('counts the towers as defenders: a town with only them isn’t walked into', () => {
+    const start = startAdventure(def);
+    const town = townById(start, eudora)!;
+    expect(undefended({ ...town, garrison: armyOf([]), towers: armyOf([{ creature: 'bowman', count: 1 }]) })).toBe(false);
+    expect(undefended({ ...town, garrison: armyOf([]) })).toBe(true);
   });
 });
 
@@ -226,13 +283,20 @@ describe('saving a map with a rival', () => {
     const start = startAdventure(def);
     const town = townById(start, eudora)!;
     const hero = { ...start.rival!.hero!, x: start.hero.x + 2, y: start.hero.y, army: armyOf([{ creature: 'swordsman', count: 40 }]) };
-    const adv = { ...start, hero: { ...start.hero, machines: ['tent' as const], army: armyOf([{ creature: 'spearman', count: 3 }]) }, rival: { ...start.rival!, hero } };
+    const adv = { ...start, hero: { ...start.hero, gear: { ...start.hero.gear, machine: 'catapult2' as const }, army: armyOf([{ creature: 'spearman', count: 3 }]) }, rival: { ...start.rival!, hero } };
     const r = rivalTurn(adv, def).adv;
     expect(r.rivalFight).toBe(RIVAL);
     const back = parseAdventure(JSON.parse(JSON.stringify(r)), def)!;
     expect(back.rivalFight).toBe(RIVAL);
     expect(back.rival).toEqual(r.rival);
-    expect(back.hero.machines).toEqual(['tent']);
+    expect(machineOf(back.hero)).toBe('catapult2');
+    // The war machines since cut from the game come back as their price in gold; towers keep their companies.
+    const old = JSON.parse(JSON.stringify(r));
+    old.hero.machines = ['ballista', 'tent'];
+    old.towns[0].towers = armyOf([{ creature: 'bowman', count: 3 }]);
+    const loaded = parseAdventure(old, def)!;
+    expect(loaded.purse.gold).toBe(r.purse.gold + 2250);
+    expect(loaded.towns[0]!.towers?.[0]).toEqual({ creature: 'bowman', count: 3 });
     // A town he took stays his.
     const fell = withTown(r, { ...town, owner: 'rival' });
     expect(townById(parseAdventure(JSON.parse(JSON.stringify(fell)), def)!, eudora)!.owner).toBe('rival');

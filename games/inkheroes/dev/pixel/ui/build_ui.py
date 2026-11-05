@@ -28,8 +28,8 @@ TS = GAME / 'src' / 'art' / 'pixel' / 'ui.ts'
 
 ICONS = ('wait', 'defend', 'spell', 'auto', 'endDay', 'town', 'menu', 'hall', 'recruit', 'leave')
 STATS = ('attack', 'defense', 'shots', 'damage', 'health', 'left', 'speed', 'mana', 'power', 'knowledge', 'morale', 'luck', 'sight')
-ITEMS = ('bronzeHelm', 'bronzeCuirass', 'bronzeBracers', 'warBelt', 'bronzeGreaves', 'warSandals', 'noviceSpellbook', 'oracleSpellbook', 'alexandrianCodex')
-SLOT_ICONS = ('helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring', 'book')
+ITEMS = ('bronzeHelm', 'bronzeCuirass', 'bronzeBracers', 'warBelt', 'bronzeGreaves', 'warSandals', 'noviceSpellbook', 'oracleSpellbook', 'alexandrianCodex', 'catapult', 'catapult2', 'catapult3')
+SLOT_ICONS = ('helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring', 'book', 'machine')
 RESOURCES = ('gold', 'wood', 'ore', 'mercury', 'sulfur', 'crystal', 'gems')
 SKILLS = ('logistics', 'pathfinding', 'offense', 'archery', 'armorer', 'leadership', 'luck', 'wisdom', 'intelligence', 'mysticism', 'sorcery', 'estates', 'scouting', 'learning')
 SPELLS = ('magicArrow', 'haste', 'slow', 'stoneSkin', 'cure', 'dispel', 'lightningBolt', 'bless', 'bloodlust')

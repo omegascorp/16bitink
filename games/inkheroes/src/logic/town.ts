@@ -1,9 +1,10 @@
 import type { ItemId } from './items';
-import { addTroops, type Army } from './army';
+import { addTroops, armyOf, emptyArmy, isEmptyArmy, type Army, type ArmySlot } from './army';
 import { BUILDINGS, BUILDING_IDS, type BuildingId } from './buildings';
-import { creature, lineOf, tierOf, type CreatureId } from './creatures';
+import { canManTower, creature, lineOf, strengthOf, tierOf, type CreatureId } from './creatures';
 import type { Owner } from './objects';
 import { affordable, canAfford, pay, RESOURCES, shortfall, type Amount, type Purse } from './resources';
+import { fortification } from './siege';
 import type { SpellId } from './spells';
 
 export interface Town {
@@ -17,6 +18,8 @@ export interface Town {
   /** Units waiting to be hired, by line (its base creature): every level of a line hires from it. */
   readonly stock: Readonly<Partial<Record<CreatureId, number>>>;
   readonly garrison: Army;
+  /** The companies placed on its towers, place by place; only one-hex shooters go up there. */
+  readonly towers?: Army;
   /** Spells its mage guild teaches, floor by floor (from the map). */
   readonly guild: readonly SpellId[];
   /** A neutral town on our side: it opens its gates to our hero, and its garrison joins us. */
@@ -24,6 +27,22 @@ export interface Town {
 }
 
 export const has = (t: Town, b: BuildingId): boolean => t.built.includes(b);
+
+/** The tower places the town's Fort, Citadel and Castle have opened. */
+export const towerPlaces = (t: Pick<Town, 'built'>): number => fortification(t.built)?.places ?? 0;
+export const towersOf = (t: Pick<Town, 'towers'>): Army => t.towers ?? emptyArmy();
+/** Nobody at all to bar the gate: no garrison, and no one on the towers. */
+export const undefended = (t: Pick<Town, 'garrison' | 'towers'>): boolean => isEmptyArmy(t.garrison) && isEmptyArmy(towersOf(t));
+
+/** How an army with no one to place them for it mans `places` towers: its strongest one-hex shooters go up, the rest fight on the ground. */
+export function manTowers(army: Army, places: number): { army: Army; towers: Army } {
+  const shooters = army.filter((s): s is ArmySlot => !!s && canManTower(s.creature)).sort((a, b) => strengthOf(b.creature, b.count) - strengthOf(a.creature, a.count));
+  const up = shooters.slice(0, places);
+  // A garrison of nothing but shooters keeps one on the ground, to hold the gate.
+  const left = army.filter((s) => s && !up.includes(s));
+  const towers = left.length ? up : up.slice(1);
+  return { army: army.map((s) => (s && towers.includes(s) ? null : s)), towers: armyOf(towers) };
+}
 
 /** Why `b` can't be built now, or null when it can. */
 export function cantBuild(t: Town, b: BuildingId, p: Purse, off: readonly BuildingId[]): string | null {
@@ -68,6 +87,17 @@ export function build(t: Town, b: BuildingId, p: Purse, off: readonly BuildingId
   const opens = def.dwelling && tierOf(def.dwelling) === 1;
   const stock = opens ? { ...t.stock, [def.dwelling!]: (t.stock[def.dwelling!] ?? 0) + growthOf(next, def.dwelling!) } : t.stock;
   return { town: { ...next, stock }, purse: pay(p, def.cost) };
+}
+
+/**
+ * The testing cheat: every building this map allows goes up at once and free,
+ * each dwelling opening with its week's growth as usual. The same town back when nothing is left.
+ */
+export function buildAll(t: Town, off: readonly BuildingId[]): Town {
+  const next = BUILD_ORDER.find((b) => !has(t, b) && !off.includes(b) && BUILDINGS[b].needs.every((n) => has(t, n)));
+  if (!next) return t;
+  const free = Object.fromEntries(RESOURCES.map((r) => [r, Infinity])) as Purse;
+  return buildAll({ ...build({ ...t, builtToday: false }, next, free, off).town, builtToday: t.builtToday }, off);
 }
 
 export function income(t: Town): number {
@@ -198,8 +228,8 @@ export const BUILD_ORDER: readonly BuildingId[] = BUILDING_IDS;
 
 /** The order a town grows in: income, the best troops, their growth, spells, then upgrades; whatever else there is comes last. */
 export const BUILD_PLAN: readonly BuildingId[] = [...new Set<BuildingId>([
-  'townHall', 'barracks', 'archeryRange', 'citadel', 'griffinTower', 'mageGuild1',
+  'townHall', 'barracks', 'archeryRange', 'citadel', 'griffinTower', 'mageGuild1', 'blacksmith',
   'guardhouse2', 'archeryRange2', 'barracks2', 'griffinTower2', 'cityHall', 'stables', 'monastery',
-  'castle', 'guardhouse3', 'archeryRange3', 'barracks3', 'griffinTower3', 'blacksmith', 'tiltyard',
+  'castle', 'guardhouse3', 'archeryRange3', 'barracks3', 'griffinTower3', 'tiltyard',
   ...BUILD_ORDER,
 ])];

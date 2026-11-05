@@ -8,18 +8,22 @@ const BAG_LABEL = 16;
 const DETAIL_H = 46;
 const SPACE = 12;
 
-type Doll = 'tall' | 'broad';
+type Doll = 'tall' | 'square' | 'broad';
 type Grid = Readonly<Record<Slot, readonly [number, number]>>;
 
-/** The slots round the body. Tall needs the room; broad keeps the armor in the middle on a low screen. */
+/** The slots round the body, with the war machine apart from them. Tall needs the room; square suits a low screen; broad a short, narrow one. */
 const DOLLS: Readonly<Record<Doll, { readonly cols: number; readonly rows: number; readonly at: Grid }>> = {
   tall: {
     cols: 3, rows: 5,
-    at: { helm: [1, 0], amulet: [2, 0], weapon: [0, 1], cuirass: [1, 1], shield: [2, 1], bracers: [0, 2], belt: [1, 2], ring1: [0, 3], greaves: [1, 3], ring2: [2, 3], boots: [1, 4], book: [2, 2] },
+    at: { helm: [1, 0], amulet: [2, 0], weapon: [0, 1], cuirass: [1, 1], shield: [2, 1], bracers: [0, 2], belt: [1, 2], ring1: [0, 3], greaves: [1, 3], ring2: [2, 3], boots: [1, 4], book: [2, 2], machine: [2, 4] },
+  },
+  square: {
+    cols: 4, rows: 4,
+    at: { weapon: [0, 0], helm: [1, 0], amulet: [2, 0], shield: [3, 0], bracers: [0, 1], cuirass: [1, 1], belt: [2, 1], ring1: [3, 1], greaves: [1, 2], boots: [2, 2], ring2: [3, 2], book: [0, 2], machine: [0, 3] },
   },
   broad: {
-    cols: 4, rows: 3,
-    at: { weapon: [0, 0], helm: [1, 0], amulet: [2, 0], shield: [3, 0], bracers: [0, 1], cuirass: [1, 1], belt: [2, 1], ring1: [3, 1], greaves: [1, 2], boots: [2, 2], ring2: [3, 2], book: [0, 2] },
+    cols: 5, rows: 3,
+    at: { weapon: [0, 0], helm: [1, 0], amulet: [2, 0], shield: [3, 0], bracers: [0, 1], cuirass: [1, 1], belt: [2, 1], ring1: [3, 1], greaves: [1, 2], boots: [2, 2], ring2: [3, 2], book: [0, 2], machine: [4, 1] },
   },
 };
 
@@ -72,6 +76,6 @@ function arrange(scale: 1 | 2, doll: Doll, bagCols: number, place: 'beside' | 'b
 
 /** The roomiest layout that fits `room`: double size where it can be, single on the smallest screens. */
 export function gearLayout(room: { w: number; h: number }): GearLayout {
-  const options = [arrange(2, 'tall', 5, 'beside', false), arrange(2, 'broad', 7, 'beside', true), arrange(2, 'broad', 5, 'below', true)];
+  const options = [arrange(2, 'tall', 5, 'beside', false), arrange(2, 'square', 7, 'beside', false), arrange(2, 'square', 5, 'below', true), arrange(2, 'broad', 5, 'below', true)];
   return options.find((l) => l.w <= room.w && l.h <= room.h) ?? arrange(1, 'tall', 5, 'beside', true);
 }

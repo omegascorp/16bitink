@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { fortification } from '../src/logic/siege';
 import { armyOf, splitMonster } from '../src/logic/army';
-import { act, activeStack, canShoot, createBattle, experienceFor, machinesLeft, moves, stackById, strikeFrom, survivors, update } from '../src/logic/battle';
+import { act, activeStack, canShoot, createBattle, experienceFor, moves, stackById, strikeFrom, survivors, update } from '../src/logic/battle';
 import { chooseAction } from '../src/logic/battleAi';
 import type { BattleHero, BattleState } from '../src/logic/battleTypes';
 import { damageFactor, damageRange, hurt } from '../src/logic/damage';
@@ -228,51 +229,34 @@ describe('monsters', () => {
 
 describe('war machines', () => {
   const sides = () => createBattle(
-    { hero: hero(), army: armyOf([{ creature: 'spearman', count: 10 }]), machines: ['ballista', 'tent'] },
+    { hero: hero(), army: armyOf([{ creature: 'spearman', count: 10 }]), machine: 'catapult' },
     { hero: null, army: armyOf([{ creature: 'goblin', count: 30 }]) },
     3,
+    { fort: fortification(['fort'])!, me: 0 },
   );
 
+  it('stay at home when there are no walls to break', () => {
+    const open = createBattle({ hero: hero(), army: armyOf([{ creature: 'spearman', count: 10 }]), machine: 'catapult' }, { hero: null, army: armyOf([{ creature: 'goblin', count: 30 }]) }, 3);
+    expect(open.state.stacks.some((s) => s.slot < 0)).toBe(false);
+  });
+
   it('stand at the back of their side, out of the formation, and never answer a strike', () => {
-    const { state } = sides();
-    const machines = state.stacks.filter((s) => s.slot < 0);
-    expect(machines.map((m) => m.creature)).toEqual(['ballista', 'tent']);
-    expect(machines.map((m) => [colOf(m.hex), rowOf(m.hex)])).toEqual([[0, 3], [0, 7]]);
-    expect(machines.every((m) => m.retaliationsLeft === 0 && m.side === 0)).toBe(true);
+    const [machine, ...more] = sides().state.stacks.filter((s) => s.slot < 0);
+    expect(more).toEqual([]);
+    expect([colOf(machine!.hex), rowOf(machine!.hex)]).toEqual([0, 9]);
+    expect(machine).toMatchObject({ creature: 'catapult', retaliationsLeft: 0, side: 0 });
   });
 
-  it('act by themselves: the ballista shoots, even with an enemy beside it; the tent heals the hurt', () => {
-    const { state } = sides();
-    const ballista = state.stacks.find((s) => s.creature === 'ballista')!;
-    const goblins = state.stacks.find((s) => s.creature === 'goblin')!;
-    // A goblin stack right next to the ballista: it still shoots.
-    const next = update(update(state, goblins.id, (g) => ({ ...g, hex: hexAt(1, 3) })), ballista.id, (b) => b);
-    const onBallista = { ...next, active: ballista.id };
-    expect(canShoot(onBallista, ballista)).toBe(true);
-    expect(chooseAction(onBallista)).toEqual({ type: 'shoot', target: goblins.id });
-    const tent = state.stacks.find((s) => s.creature === 'tent')!;
-    const spear = state.stacks.find((s) => s.creature === 'spearman')!;
-    const hurt = { ...update(state, spear.id, (s) => ({ ...s, topHp: 2 })), active: tent.id };
-    expect(chooseAction(hurt)).toEqual({ type: 'heal', target: spear.id });
-    const after = act(hurt, { type: 'heal', target: spear.id }).state;
-    const healed = stackById(after, spear.id).topHp;
-    expect(healed).toBeGreaterThan(2);
-    expect(healed).toBeLessThanOrEqual(10);
-    // Nobody hurt: the tent stands.
-    expect(chooseAction({ ...state, active: tent.id })).toEqual({ type: 'defend' });
-  });
-
-  it('cannot hold the field alone: a side left with only machines has lost, and survivors leave them out of the army', () => {
+  it('cannot hold the field alone: a side left with only a machine has lost, and survivors leave it out of the army', () => {
     const { state } = sides();
     const spear = state.stacks.find((s) => s.creature === 'spearman')!;
     const goblins = state.stacks.find((s) => s.creature === 'goblin')!;
     const struck = update(update(state, spear.id, (s) => ({ ...s, count: 1, topHp: 1 })), goblins.id, (g) => ({ ...g, hex: hexAt(1, 5) }));
-    // Goblins strike the last spearman: the machines still stand, but the battle is lost.
+    // Goblins strike the last spearman: the machine still stands, but the battle is lost.
     const g = stackById(struck, goblins.id);
     const from = [...strikeFrom({ ...struck, active: g.id }, stackById(struck, spear.id)).keys()][0]!;
     const end = act({ ...struck, active: g.id }, { type: 'attack', target: spear.id, from }).state;
     expect(end.winner).toBe(1);
     expect(survivors(end, 0, armyOf([{ creature: 'spearman', count: 10 }]))[0]).toBeNull();
-    expect(machinesLeft(end, 0)).toEqual(['ballista', 'tent']);
   });
 });

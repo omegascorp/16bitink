@@ -59,6 +59,8 @@ export class BattleHud {
   private winBtn: PixelButton | null = null;
   private readonly buttons: PixelButton[];
   private readonly autoBtn: PixelButton;
+  /** The side the player plays. */
+  private me = 0;
   private shown: readonly Stack[] = [];
   private card: PixelCard | UnitInfoCard | SpellBook | null = null;
   /** The battle's terrain parts, for the unit card's picture. */
@@ -160,9 +162,10 @@ export class BattleHud {
   }
 
   /** The turn order (the active unit first). */
-  setOrder(stacks: readonly Stack[]): void {
+  setOrder(stacks: readonly Stack[], me: number = this.me): void {
     this.shown = stacks;
-    this.order.show(stacks.slice(0, this.orderMax), this.orderAt.x, this.orderAt.y);
+    this.me = me;
+    this.order.show(stacks.slice(0, this.orderMax), this.orderAt.x, this.orderAt.y, me);
   }
 
   setAuto(on: boolean): void {

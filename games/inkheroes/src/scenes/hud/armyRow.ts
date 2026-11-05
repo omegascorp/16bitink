@@ -8,7 +8,7 @@ import { putBuffer } from '../battle/pixelUi';
 const FRAME = 4;
 
 /**
- * An army's seven slots as portraits in frames, each with its count (the
+ * An army's slots (seven, or the tower places) as portraits in frames, each with its count (the
  * town's garrison and visitor, the hero's sheet), `slot` pixels across. A
  * slot can be lit (picked). Portraits are cut once per creature and rim and
  * kept. Set `onPress` to hear a press on a slot (ArmyDrag does).
@@ -20,9 +20,9 @@ export class ArmyRow {
   private readonly slots: { img: Phaser.GameObjects.Image; badge: Phaser.GameObjects.Image }[] = [];
   private readonly keys = new Map<string, string>();
 
-  constructor(private readonly scene: Phaser.Scene, private readonly slot: number = SLOT) {
+  constructor(private readonly scene: Phaser.Scene, private readonly slot: number = SLOT, count: number = ARMY_SLOTS) {
     const parts: Phaser.GameObjects.GameObject[] = [];
-    for (let i = 0; i < ARMY_SLOTS; i++) {
+    for (let i = 0; i < count; i++) {
       const x = i * (slot + SLOT_GAP);
       const img = scene.add.image(x, 0, this.empty('dim')).setOrigin(0);
       const badge = scene.add.image(x + slot - 1, slot - 1, '__DEFAULT').setOrigin(1, 1).setVisible(false);
@@ -54,11 +54,11 @@ export class ArmyRow {
     return key;
   }
 
-  /** Shows `army` (null: seven dim empty slots), the `lit` slot in gold. */
-  set(army: Army | null, lit: number | null = null): void {
+  /** Shows `army` (null: dim empty slots), the `lit` slot in gold; slots from `open` on are dim, not there yet. */
+  set(army: Army | null, lit: number | null = null, open: number = Infinity): void {
     this.slots.forEach((s, i) => {
       const slot = army?.[i] ?? null;
-      const rim: RimName = i === lit ? 'gold' : army ? 'bronze' : 'dim';
+      const rim: RimName = i === lit ? 'gold' : army && i < open ? 'bronze' : 'dim';
       s.img.setTexture(slot ? this.face(slot.creature, rim) : this.empty(rim));
       s.badge.setVisible(!!slot);
       if (slot) s.badge.setTexture(badgeTexture(this.scene, 0, slot.count));

@@ -70,6 +70,15 @@ export function hexUnder(x: number, y: number, size: number): Hex | null {
 /** Maps a two-hex unit's head hex to its tail (null when the tail would leave the field). */
 export type TailOf = (head: Hex) => Hex | null;
 
+const NONE: ReadonlySet<Hex> = new Set();
+
+/** Whether a walker with its head on `h` is in a `stops` hex (either of its hexes). */
+function stopsAt(h: Hex, stops: ReadonlySet<Hex>, tail?: TailOf): boolean {
+  if (stops.has(h)) return true;
+  const t = tail?.(h);
+  return t !== null && t !== undefined && stops.has(t);
+}
+
 /** Whether a unit can stand with its head on `h`: every hex it would cover is free (VCMI's AccessibilityInfo::accessible). */
 function fits(h: Hex, blocked: ReadonlySet<Hex>, tail?: TailOf): boolean {
   if (blocked.has(h)) return false;
@@ -86,7 +95,7 @@ function fits(h: Hex, blocked: ReadonlySet<Hex>, tail?: TailOf): boolean {
  * moves, and both hexes must be free at every step (walkers) or on landing
  * (flyers), as in VCMI's makeBFS / getFlyingReachability.
  */
-export function reachable(from: Hex, speed: number, blocked: ReadonlySet<Hex>, flies: boolean, tail?: TailOf): Map<Hex, number> {
+export function reachable(from: Hex, speed: number, blocked: ReadonlySet<Hex>, flies: boolean, tail?: TailOf, stops: ReadonlySet<Hex> = NONE): Map<Hex, number> {
   const out = new Map<Hex, number>([[from, 0]]);
   if (flies) {
     for (let h = 0; h < HEX_COUNT; h++) {
@@ -102,7 +111,7 @@ export function reachable(from: Hex, speed: number, blocked: ReadonlySet<Hex>, f
       for (const n of neighbours(h)) {
         if (out.has(n) || !fits(n, blocked, tail)) continue;
         out.set(n, step);
-        next.push(n);
+        if (!stopsAt(n, stops, tail)) next.push(n);
       }
     }
     frontier = next;
@@ -110,8 +119,8 @@ export function reachable(from: Hex, speed: number, blocked: ReadonlySet<Hex>, f
   return out;
 }
 
-/** The walking route of head hexes from `from` to `to` round `blocked` (excluding `from`), or [] if none. */
-export function route(from: Hex, to: Hex, blocked: ReadonlySet<Hex>, tail?: TailOf): Hex[] {
+/** The walking route of head hexes from `from` to `to` round `blocked` and never on through a `stops` hex (excluding `from`), or [] if none. */
+export function route(from: Hex, to: Hex, blocked: ReadonlySet<Hex>, tail?: TailOf, stops: ReadonlySet<Hex> = NONE): Hex[] {
   if (from === to) return [];
   const prev = new Map<Hex, Hex>([[from, from]]);
   let frontier = [from];
@@ -121,7 +130,7 @@ export function route(from: Hex, to: Hex, blocked: ReadonlySet<Hex>, tail?: Tail
       for (const n of neighbours(h)) {
         if (prev.has(n) || (!fits(n, blocked, tail) && n !== to)) continue;
         prev.set(n, h);
-        next.push(n);
+        if (!stopsAt(n, stops, tail)) next.push(n);
       }
     }
     frontier = next;

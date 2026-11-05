@@ -1,20 +1,21 @@
 import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
-import { getSound } from '../host';
+import { getHost, getSound } from '../host';
 import { buyMachine, cantBuyMachine, enterTown, garrisonHero, heroInGarrison, heroTown, heroVisiting, leadOut, playerTowns, townById, withTown, type Adventure } from '../logic/adventure';
 import { gainItem } from '../logic/items';
 import type { SpellId } from '../logic/spells';
 import type { Town } from '../logic/town';
 import { moveSlot, splitSlot, type Army } from '../logic/army';
 import { BUILDINGS, type BuildingId } from '../logic/buildings';
-import { creature, MACHINES, type CreatureId, type MachineId } from '../logic/creatures';
+import { canManTower, creature, type CreatureId } from '../logic/creatures';
+import { itemDef, itemSays, SOLD_MACHINES, type SoldMachine } from '../logic/items';
 import { canAfford, describeAmount, pay } from '../logic/resources';
 import { lineOf } from '../logic/creatures';
 import { tilesOf } from '../logic/map';
-import { build, cantBuild, growthOf, hire, hireable, hireAll, SPELLBOOK_COST, SPELLBOOK_SOLD, stockOf, suggestBuilding, upgradeAll, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
+import { build, buildAll, cantBuild, growthOf, hire, hireable, hireAll, SPELLBOOK_COST, SPELLBOOK_SOLD, stockOf, suggestBuilding, towerPlaces, towersOf, upgradeAll, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
 import { PX_TEX } from './battle/pixelAssets';
 import { FILLS } from './battle/pixelFrames';
-import { PixelFrame, TextLabel, texturePixels } from './battle/pixelUi';
+import { PixelButton, PixelFrame, TextLabel, texturePixels, UI_TEX } from './battle/pixelUi';
 import { armyUnitInfo, dwellingPreview } from './battle/unitCard';
 import { UnitInfoCard, type InfoButton } from './battle/unitInfoCard';
 import { openCard, type CardButton } from './CardScene';
@@ -38,6 +39,8 @@ const DRAG = 6;
 const DEPTH = { plate: 20, window: 30, bar: 50, toast: 70, info: 90 } as const;
 /** The list of towns on the right of the town, above the strip: as wide as the map's, and how far it keeps from the edge and the strip. */
 const TOWNS = { w: 120, gap: 4 } as const;
+/** The testing cheat's button, on the right just under the build plate, which takes the whole top of a phone. */
+const CHEAT_BTN = { w: 64, h: 22, top: 78, margin: 4 } as const;
 /** How long a message stays, and how long it takes to fade, ms. */
 const TOAST = { ms: 2600, fade: 500, pad: { x: 8, y: 3 } } as const;
 
@@ -77,6 +80,8 @@ export class TownScene extends Phaser.Scene {
   private plate: BuildPlate | null = null;
   /** The player's towns, a tap away from each other. */
   private towns: TownList | null = null;
+  /** Testing cheats only: puts up everything this map allows. */
+  private cheatBtn: PixelButton | null = null;
   private screen: TownScreen | null = null;
   private picked: SlotRef | null = null;
   /** A company's info card, while it's open. */
@@ -100,6 +105,7 @@ export class TownScene extends Phaser.Scene {
   }
 
   create(data?: { townId?: string }): void {
+    getSound(this)?.music('townGreek');
     this.session = Session.get(this);
     const adv = this.session.adv;
     this.townId = data?.townId ?? heroTown(adv)?.id ?? playerTowns(adv)[0]!.id;
@@ -114,6 +120,7 @@ export class TownScene extends Phaser.Scene {
     this.window = null;
     this.plate = null;
     this.towns = null;
+    this.cheatBtn = null;
     this.toastParts = [];
     const fit = pixelUiCamera(this, (size) => {
       this.size = size;
@@ -130,6 +137,7 @@ export class TownScene extends Phaser.Scene {
       this.window?.destroy();
       this.plate?.destroy();
       this.towns?.destroy();
+      this.cheatBtn?.destroy();
       this.bar?.destroy();
       this.info?.card.close();
       this.closeSplit();
@@ -198,7 +206,17 @@ export class TownScene extends Phaser.Scene {
     this.drawView();
     this.drawPlate();
     this.drawTowns();
+    this.drawCheat();
     this.drawWindow();
+  }
+
+  /** The cheat's button, while there's something left to build and no window in the way. */
+  private drawCheat(): void {
+    if (!getHost(this)?.cheats) return;
+    this.cheatBtn ??= new PixelButton(this, { w: CHEAT_BTN.w, h: CHEAT_BTN.h, label: 'Build all', rim: 'gold', onClick: () => this.cheatBuildAll() });
+    const left = buildAll(this.town(), this.session.def.off) !== this.town();
+    this.cheatBtn.root.setDepth(DEPTH.plate).setVisible(left && !this.screen);
+    this.cheatBtn.setPosition(this.size.w - CHEAT_BTN.w - CHEAT_BTN.margin, CHEAT_BTN.top);
   }
 
   /** The other towns to go to, with no window in the way; with one town there is nowhere to go. */
@@ -211,6 +229,7 @@ export class TownScene extends Phaser.Scene {
     });
     this.towns.set(towns.length > 1 ? towns : [], this.townId);
     this.towns.root.setDepth(DEPTH.plate).setPosition(this.size.w - TOWNS.w - TOWNS.gap, this.bar!.top - TOWNS.gap).setVisible(!this.screen);
+    this.bar!.setTowersHidden(!!this.screen);
   }
 
   /** The suggestion at the top of the town, as things stand; none once the town is finished. */
@@ -312,27 +331,29 @@ export class TownScene extends Phaser.Scene {
     else this.toast(`${BUILDINGS[id].name}: ${saysOf(id).toLowerCase()}`);
   }
 
-  /** The Blacksmith's wares: a Ballista and a First Aid Tent for the visiting hero, one of each. */
+  /** The Blacksmith's wares for the visiting hero: each a piece of gear, a finer one replacing what they have. */
   private smithyCard(): void {
     const adv = this.session.adv;
-    const lines = MACHINES.map((m) => {
-      const c = creature(m);
+    const buttons: CardButton[] = SOLD_MACHINES.flatMap((m) => {
       const why = cantBuyMachine(adv, m);
-      return `${c.name}, ${c.cost.gold} gold: ${m === 'ballista' ? 'shoots the enemy every round' : `heals up to ${c.heals} a round`}${why ? ` (${why})` : ''}.`;
+      if (why && why !== 'Not enough gold') return [];
+      return [{ label: itemDef(m).name, note: `${creature(m).cost.gold} gold · ${itemSays(m)}`, picture: UI_TEX.item(m), pictureScale: 0.5, kind: 'crown' as const, onClick: () => this.buyMachine(m) }];
     });
-    const buttons: CardButton[] = MACHINES.filter((m) => !cantBuyMachine(adv, m)).map((m) => ({
-      label: `Buy a ${creature(m).name}`, note: `${creature(m).cost.gold} gold`, onClick: () => this.buyMachine(m),
-    }));
     buttons.push({ label: 'Close', kind: 'plain', onClick: () => undefined });
-    openCard(this, { title: 'Blacksmith', body: `War machines ride with the hero and act by themselves in battle.\n${lines.join('\n')}`, buttons });
+    const stands = buttons.length > 1 ? 'Only a war machine can break a town’s walls. It rides with the hero and works by itself in battle.' : cantBuyMachine(adv, 'catapult') ?? '';
+    openCard(this, { title: 'Blacksmith', body: stands, buttons });
   }
 
-  private buyMachine(m: MachineId): void {
+  private buyMachine(m: SoldMachine): void {
     const adv = this.session.adv;
-    if (cantBuyMachine(adv, m)) return;
+    const why = cantBuyMachine(adv, m);
+    if (why) {
+      this.toast(why);
+      return;
+    }
     this.session.set(buyMachine(adv, m));
     getSound(this)?.play('hire');
-    this.toast(`${adv.hero.name} has a ${creature(m).name} now`);
+    this.toast(`${adv.hero.name} has a ${itemDef(m).name} now`);
     this.refresh();
   }
 
@@ -385,6 +406,18 @@ export class TownScene extends Phaser.Scene {
     this.toast(`${def.name} built: ${saysOf(id).toLowerCase()}`);
   }
 
+  /** The testing cheat: the whole town goes up, free. */
+  private cheatBuildAll(): void {
+    const { adv, def } = this.session;
+    const town = buildAll(this.town(), def.off);
+    const built = town.built.length - this.town().built.length;
+    const next = withTown(adv, town);
+    getSound(this)?.play('build');
+    this.session.set(heroTown(next)?.id === this.townId ? enterTown(next) : next);
+    this.drawAll();
+    this.toast(`${built} buildings up, free`);
+  }
+
   private hire(id: CreatureId, n: number): void {
     const adv = this.session.adv;
     const toHero = this.visiting(adv);
@@ -421,8 +454,7 @@ export class TownScene extends Phaser.Scene {
   private unitCard(ref: SlotRef): void {
     const adv = this.session.adv;
     const town = this.town(adv);
-    const army = ref.army === 'hero' ? adv.hero.army : town.garrison;
-    const s = army[ref.i];
+    const s = this.armyAt(ref.army, adv)[ref.i];
     if (!s) return;
     const to = upgradeTo(town, s.creature);
     const buttons: InfoButton[] = [];
@@ -444,16 +476,14 @@ export class TownScene extends Phaser.Scene {
   private upgrade(ref: SlotRef): void {
     const adv = this.session.adv;
     const town = this.town(adv);
-    const army = ref.army === 'hero' ? adv.hero.army : town.garrison;
+    const army = this.armyAt(ref.army, adv);
     const from = army[ref.i];
     const r = upgradeSlot(town, army, ref.i, adv.purse);
     if (!from || !r) {
       this.toast('Not enough resources to upgrade them');
       return;
     }
-    const hero = ref.army === 'hero' ? { ...adv.hero, army: r.army } : adv.hero;
-    const garrison = ref.army === 'garrison' ? r.army : town.garrison;
-    this.session.set(withTown({ ...adv, purse: r.purse, hero }, { ...town, garrison }));
+    this.session.set(this.withRows({ ...adv, purse: r.purse }, { [ref.army]: r.army }));
     getSound(this)?.play('hire');
     this.toast(`${from.count} upgraded to ${creature(r.army[ref.i]!.creature).plural}`);
     this.refresh();
@@ -470,7 +500,8 @@ export class TownScene extends Phaser.Scene {
       return;
     }
     const hero = toHero ? { ...adv.hero, army: r.armies[0]! } : adv.hero;
-    this.session.set(withTown({ ...adv, purse: r.purse, hero }, { ...town, garrison: r.armies[r.armies.length - 1]! }));
+    const [garrison, towers] = r.armies.slice(-2);
+    this.session.set(withTown({ ...adv, purse: r.purse, hero }, { ...town, garrison: garrison!, towers: towers! }));
     getSound(this)?.play('hire');
     this.toast(`${r.upgraded} ${r.upgraded === 1 ? 'unit' : 'units'} upgraded`);
     this.refresh();
@@ -492,12 +523,19 @@ export class TownScene extends Phaser.Scene {
   }
 
   private armyAt(a: SlotRef['army'], adv: Adventure = this.session.adv): Army {
-    return a === 'hero' ? adv.hero.army : this.town(adv).garrison;
+    return a === 'hero' ? adv.hero.army : a === 'tower' ? towersOf(this.town(adv)) : this.town(adv).garrison;
+  }
+
+  /** `adv` with some of the town's rows replaced. */
+  private withRows(adv: Adventure, rows: Partial<Record<SlotRef['army'], Army>>): Adventure {
+    const town = this.town(adv);
+    const { hero, garrison, tower } = rows;
+    return withTown(hero ? { ...adv, hero: { ...adv.hero, army: hero } } : adv, { ...town, ...(garrison ? { garrison } : {}), ...(tower ? { towers: tower } : {}) });
   }
 
   /** Whether there's a company at `ref` the player can take. */
   private canPick(ref: SlotRef): boolean {
-    return ref.i !== HEAD && (ref.army === 'garrison' || this.heroRow() === 'hero') && !!this.armyAt(ref.army)[ref.i];
+    return ref.i !== HEAD && (ref.army !== 'hero' || this.heroRow() === 'hero') && !!this.armyAt(ref.army)[ref.i];
   }
 
   /**
@@ -506,6 +544,12 @@ export class TownScene extends Phaser.Scene {
    * other row with every company, if they all fit there.
    */
   private pickSlot(ref: SlotRef): void {
+    if (ref.army === 'tower' && ref.i >= towerPlaces(this.town())) {
+      this.picked = null;
+      this.toast(`Build a ${ref.i === 1 ? 'Citadel' : 'Castle'} to raise this tower`);
+      this.refresh();
+      return;
+    }
     if (!this.picked) {
       const isHero = ref.i === HEAD && ref.army === this.heroRow();
       if (isHero || this.canPick(ref)) this.picked = ref;
@@ -542,15 +586,25 @@ export class TownScene extends Phaser.Scene {
       return;
     }
     const same = from.army === to.army;
+    const going = this.armyAt(from.army, adv)[from.i];
+    const coming = this.armyAt(to.army, adv)[to.i];
+    const up = [...(to.army === 'tower' ? [going] : []), ...(from.army === 'tower' && coming?.creature !== going?.creature ? [coming] : [])];
+    if (to.army === 'tower' && to.i >= towerPlaces(town)) {
+      this.refresh();
+      return;
+    }
+    if (up.some((s) => s && !canManTower(s.creature))) {
+      this.toast('Only shooters that take one tile can stand on a tower');
+      this.refresh();
+      return;
+    }
     const r = moveSlot(this.armyAt(from.army, adv), from.i, this.armyAt(to.army, adv), to.i, same, from.army === 'hero');
     if (!r) {
       if (from.army === 'hero' && !same) this.toast('A hero must keep at least one company');
       this.refresh();
       return;
     }
-    const hero = from.army === 'hero' ? r.src : to.army === 'hero' ? r.dst : adv.hero.army;
-    const garrison = from.army === 'garrison' ? r.src : to.army === 'garrison' ? r.dst : town.garrison;
-    this.session.set(withTown({ ...adv, hero: { ...adv.hero, army: hero } }, { ...town, garrison }));
+    this.session.set(this.withRows(adv, { [from.army]: r.src, [to.army]: r.dst }));
     getSound(this)?.play('card');
     this.refresh();
   }
@@ -583,9 +637,7 @@ export class TownScene extends Phaser.Scene {
       this.toast('No free slot to split into');
       return;
     }
-    const hero = ref.army === 'hero' ? { ...adv.hero, army: r.army } : adv.hero;
-    const garrison = ref.army === 'garrison' ? r.army : town.garrison;
-    this.session.set(withTown({ ...adv, hero }, { ...town, garrison }));
+    this.session.set(this.withRows(adv, { [ref.army]: r.army }));
     this.picked = { army: ref.army, i: r.at };
     getSound(this)?.play('card');
     this.refresh();

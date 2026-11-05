@@ -94,7 +94,7 @@ export const BLACK_BANNER: MapDef = {
   intro: [
     'Thornwood is free, and its foresters show you an old trail: it leaves the south road west of the river and runs down through the trees to Eudora. Eudora has kept its gates shut against the Black Banner. Ride down to it, and it opens them to you: yours to build in and hire from.',
     'Kassander of Korax flies a black banner with a red raven, and he serves no crown. He builds and hires as you do, takes the mines, and will come for your towns when he thinks he can win. Beat him to the lakelands, take Korax, and hunt him down.',
-    'Build a Blacksmith: a Ballista and a First Aid Tent from it ride with your hero into every battle.',
+    'Korax stands behind higher walls than Thornwood’s. Your Catapult will have more to do there: a finer one breaks them faster.',
   ],
   rows: cut(72, 68),
   seed: SEED,

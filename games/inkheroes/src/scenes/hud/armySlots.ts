@@ -1,4 +1,5 @@
 import { ARMY_SLOTS } from '../../logic/army';
+import { MAX_TOWERS } from '../../logic/siege';
 import { SLOT, SLOT_GAP } from '../battle/pixelFrames';
 
 /** The hero's portrait on the map's panel and their sheet. */
@@ -8,6 +9,8 @@ export const SLOT_MAX = 60;
 
 /** How wide a row of seven slots is, UI pixels. */
 export const armyRowW = (slot: number): number => ARMY_SLOTS * (slot + SLOT_GAP) - SLOT_GAP;
+/** The row of a town's three tower places, `slot` pixels each. */
+export const armyRowOf = (slot: number): number => MAX_TOWERS * (slot + SLOT_GAP) - SLOT_GAP;
 
 /** The biggest slot whose row of seven fits `room` (even, so a cut sits square in it), and no smaller than the turn order's. */
 export function fitSlot(room: number): number {

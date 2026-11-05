@@ -1,7 +1,7 @@
 import type { MapDef } from '../level/types';
 import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, planPath, rivalAt, townAt, type Adventure } from './adventure';
-import { isEmptyArmy } from './army';
 import { inGrid } from './map';
+import { undefended } from './town';
 
 /** What a tap on a tile would have the hero do: ride there, end up in a fight, or take or enter something. */
 export type MapIntent = 'move' | 'attack' | 'visit';
@@ -19,6 +19,6 @@ export function intentAt(adv: Adventure, def: MapDef, x: number, y: number): Map
   if (rivalAt(adv, tx, ty)) return 'attack';
   if (o) return o.kind === 'monster' || guardAt(adv, o.x, o.y) ? 'attack' : 'visit';
   const gate = townAt(adv, x, y);
-  if (gate) return gate.owner !== 'player' && !gate.ally && !isEmptyArmy(gate.garrison) ? 'attack' : 'visit';
+  if (gate) return gate.owner !== 'player' && !gate.ally && !undefended(gate) ? 'attack' : 'visit';
   return guardAt(adv, x, y) ? 'attack' : 'move';
 }
