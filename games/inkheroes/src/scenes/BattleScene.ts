@@ -24,6 +24,7 @@ import type { MapScene } from './MapScene';
 import { coverWhileLoading } from './LoadingScene';
 import { PixelCursors, swordDir, type CursorKind } from './pixelCursors';
 import { Session } from './session';
+import { soundCard } from './soundCard';
 
 /** Pause before an AI unit acts, so the player can follow. */
 const AI_DELAY = 380;
@@ -137,6 +138,7 @@ export class BattleScene extends Phaser.Scene {
       wait: () => this.playerAct({ type: 'wait' }),
       defend: () => this.playerAct({ type: 'defend' }),
       spell: () => this.openSpells(),
+      sound: () => this.openSound(),
       auto: () => this.toggleAuto(),
       ...(getHost(this)?.cheats && this.session ? { win: () => this.cheatWin() } : {}),
     }, !!this.state.heroes[this.me]?.spells.length);
@@ -286,6 +288,11 @@ export class BattleScene extends Phaser.Scene {
     this.hud.setAuto(false);
     this.state = conquer(this.state);
     this.finish();
+  }
+
+  private openSound(): void {
+    const sound = getSound(this);
+    if (sound && !this.hud.modal) soundCard(sound, (spec) => this.hud.openCard(spec));
   }
 
   private toggleAuto(): void {

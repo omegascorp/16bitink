@@ -8,6 +8,7 @@ import { faceOf, heroArt, PX_TEX } from './battle/pixelAssets';
 import { drawPortrait, FILLS } from './battle/pixelFrames';
 import { PixelButton, PixelFrame, putBuffer, TextLabel, UI_TEX } from './battle/pixelUi';
 import { openCard } from './CardScene';
+import { soundCard } from './soundCard';
 import { toMenu } from './cards';
 import { HERO_SLOT } from './hud/armySlots';
 import { freeSlot, releaseSlot, takeSlot } from './hud/noteStack';
@@ -307,7 +308,7 @@ export class MapHudScene extends Phaser.Scene {
       body: `Goal: ${this.session.def.goal.text}.\n${calendar(this.session.adv.day)}. The game saves as you play.`,
       buttons: [
         { label: 'Back to the map', onClick: () => undefined },
-        { label: sound?.muted ? 'Sound: off' : 'Sound: on', kind: 'plain', onClick: () => sound?.setMuted(!sound.muted) },
+        ...(sound ? [{ label: 'Sound', kind: 'plain' as const, onClick: () => soundCard(sound, (spec) => openCard(this, spec)) }] : []),
         { label: `Start ${this.session.def.name} again`, kind: 'plain', onClick: () => {
           this.session.restartPart();
           this.scene.stop();

@@ -11,8 +11,9 @@ import { drawRule } from './battle/pixelFrames';
 import { renderPixelText } from './battle/pixelFont';
 import { DriftingScenery } from './battle/driftingScenery';
 import { HORIZON_Y } from './battle/pixelScenery';
-import { PixelImage, TextLabel, texturePixels } from './battle/pixelUi';
+import { PixelButton, PixelImage, TextLabel, texturePixels } from './battle/pixelUi';
 import { openCard } from './CardScene';
+import { SOUND_BTN, soundCard } from './soundCard';
 import { loadMenuArt } from './map/pixelMapArt';
 import { chapterCard, chapterCardHeight, chapterCardWidth, type ChapterCardSpec } from './menu/chapterCard';
 import { spreadCard } from './menu/chapterProgress';
@@ -123,6 +124,17 @@ export class MenuScene extends Phaser.Scene {
     const left = Math.floor((w - chapterCardWidth(spec)) / 2);
     ui.add(chapterCard(this, this.owned, spec).setPosition(left, y));
     this.muster({ bottom: y + chapterCardHeight(spec), left });
+    this.soundButton(ui);
+  }
+
+  /** The sound switches, in the corner. */
+  private soundButton(ui: Phaser.GameObjects.Container): void {
+    const sound = getSound(this);
+    if (!sound) return;
+    const btn = new PixelButton(this, { w: SOUND_BTN.w, h: SOUND_BTN.h, label: 'Sound', onClick: () => soundCard(sound, (spec) => openCard(this, spec)) });
+    btn.setPosition(this.size.w - SOUND_BTN.w - SOUND_BTN.margin, SOUND_BTN.margin);
+    this.owned.push(btn);
+    ui.add(btn.root);
   }
 
   /** The battle's grass scenery composed for the whole screen, the horizon half way down. */

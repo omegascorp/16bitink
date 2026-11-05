@@ -1,5 +1,6 @@
 import type { KeyValueStore } from '@16bitink/game-sdk';
 import { MusicPlayer } from './music';
+import { parseSettings, settingsWith, type SoundKind, type SoundSettings } from './soundSettings';
 import { synthesize } from './synth';
 import type { TrackId } from './tracks';
 
@@ -15,8 +16,9 @@ const MIN_GAP_MS = 45;
 
 /**
  * The game's sound, as the other games': one audio context per mounted game,
- * started on the first click or key, quiet while the tab is hidden, muted
- * when the player says so (remembered in storage).
+ * started on the first click or key, quiet while the tab is hidden. The
+ * player can switch music and effects off apart (remembered in storage);
+ * music that's off isn't even downloaded.
  */
 export class SoundBoard {
   private ctx: AudioContext | null = null;
@@ -24,7 +26,7 @@ export class SoundBoard {
   private player: MusicPlayer | null = null;
   /** The track the screen wants: it can't start before the player's first gesture. */
   private track: TrackId | null = null;
-  private mutedNow: boolean;
+  private settings: SoundSettings;
   private readonly last = new Map<SfxId, number>();
   private readonly unlock = (): void => this.start();
   private readonly onVisibility = (): void => {
@@ -33,20 +35,20 @@ export class SoundBoard {
   };
 
   constructor(private readonly store: KeyValueStore | undefined) {
-    this.mutedNow = readMuted(store);
+    this.settings = readSettings(store);
     for (const ev of UNLOCK_EVENTS) window.addEventListener(ev, this.unlock, { capture: true });
     document.addEventListener('visibilitychange', this.onVisibility);
   }
 
-  get muted(): boolean {
-    return this.mutedNow;
+  isOn(kind: SoundKind): boolean {
+    return this.settings[kind];
   }
 
-  setMuted(muted: boolean): void {
-    this.mutedNow = muted;
-    this.master?.gain.setTargetAtTime(muted ? 0 : MASTER, this.ctx?.currentTime ?? 0, 0.02);
+  setOn(kind: SoundKind, on: boolean): void {
+    this.settings = settingsWith(this.settings, kind, on);
+    if (kind === 'music') this.playTrack();
     try {
-      this.store?.setItem(SOUND_KEY, JSON.stringify({ muted }));
+      this.store?.setItem(SOUND_KEY, JSON.stringify(this.settings));
     } catch {
       // Storage full or blocked: the setting just won't survive a reload.
     }
@@ -55,12 +57,12 @@ export class SoundBoard {
   /** Sets the screen's background music, which loops until another takes over. */
   music(id: TrackId | null): void {
     this.track = id;
-    this.player?.play(id);
+    this.playTrack();
   }
 
   play(id: SfxId): void {
     const ctx = this.ctx;
-    if (!ctx || !this.master || this.mutedNow || ctx.state !== 'running') return;
+    if (!ctx || !this.master || !this.settings.effects || ctx.state !== 'running') return;
     const now = performance.now();
     if (now - (this.last.get(id) ?? -Infinity) < MIN_GAP_MS) return;
     this.last.set(id, now);
@@ -88,19 +90,22 @@ export class SoundBoard {
     if (!Ctor) return;
     this.ctx = new Ctor();
     this.master = this.ctx.createGain();
-    this.master.gain.value = this.mutedNow ? 0 : MASTER;
+    this.master.gain.value = MASTER;
     this.master.connect(this.ctx.destination);
     this.player = new MusicPlayer(this.ctx, this.master);
-    this.player.play(this.track);
+    this.playTrack();
     if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => undefined);
+  }
+
+  private playTrack(): void {
+    this.player?.play(this.settings.music ? this.track : null);
   }
 }
 
-function readMuted(store: KeyValueStore | undefined): boolean {
+function readSettings(store: KeyValueStore | undefined): SoundSettings {
   try {
-    const raw = store?.getItem(SOUND_KEY);
-    return !!raw && (JSON.parse(raw) as { muted?: unknown }).muted === true;
+    return parseSettings(store?.getItem(SOUND_KEY));
   } catch {
-    return false;
+    return parseSettings(null);
   }
 }

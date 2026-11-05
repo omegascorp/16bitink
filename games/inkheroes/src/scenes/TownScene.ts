@@ -25,6 +25,7 @@ import { SplitPicker } from './hud/splitPicker';
 import { TownList } from './hud/townList';
 import { MAP_TEX } from './map/pixelMapArt';
 import { Session } from './session';
+import { SOUND_BTN, soundCard } from './soundCard';
 import { BuildPlate } from './town/buildPlate';
 import { loadTownArt, PixelTownView, townScenery } from './town/pixelTownView';
 import { HEAD, TownBar, type SlotRef, type TownScreen } from './town/townBar';
@@ -82,6 +83,7 @@ export class TownScene extends Phaser.Scene {
   private towns: TownList | null = null;
   /** Testing cheats only: puts up everything this map allows. */
   private cheatBtn: PixelButton | null = null;
+  private soundBtn: PixelButton | null = null;
   private screen: TownScreen | null = null;
   private picked: SlotRef | null = null;
   /** A company's info card, while it's open. */
@@ -121,6 +123,7 @@ export class TownScene extends Phaser.Scene {
     this.plate = null;
     this.towns = null;
     this.cheatBtn = null;
+    this.soundBtn = null;
     this.toastParts = [];
     const fit = pixelUiCamera(this, (size) => {
       this.size = size;
@@ -138,6 +141,7 @@ export class TownScene extends Phaser.Scene {
       this.plate?.destroy();
       this.towns?.destroy();
       this.cheatBtn?.destroy();
+      this.soundBtn?.destroy();
       this.bar?.destroy();
       this.info?.card.close();
       this.closeSplit();
@@ -207,6 +211,7 @@ export class TownScene extends Phaser.Scene {
     this.drawPlate();
     this.drawTowns();
     this.drawCheat();
+    this.drawSound();
     this.drawWindow();
   }
 
@@ -217,6 +222,15 @@ export class TownScene extends Phaser.Scene {
     const left = buildAll(this.town(), this.session.def.off) !== this.town();
     this.cheatBtn.root.setDepth(DEPTH.plate).setVisible(left && !this.screen);
     this.cheatBtn.setPosition(this.size.w - CHEAT_BTN.w - CHEAT_BTN.margin, CHEAT_BTN.top);
+  }
+
+  /** The sound switches' button, level with the cheat's on the other side, while no window is in the way. */
+  private drawSound(): void {
+    const sound = getSound(this);
+    if (!sound) return;
+    this.soundBtn ??= new PixelButton(this, { w: SOUND_BTN.w, h: SOUND_BTN.h, label: 'Sound', onClick: () => soundCard(sound, (spec) => openCard(this, spec)) });
+    this.soundBtn.root.setDepth(DEPTH.plate).setVisible(!this.screen);
+    this.soundBtn.setPosition(SOUND_BTN.margin, CHEAT_BTN.top);
   }
 
   /** The other towns to go to, with no window in the way; with one town there is nowhere to go. */

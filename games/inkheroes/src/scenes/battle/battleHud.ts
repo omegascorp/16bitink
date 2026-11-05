@@ -11,6 +11,7 @@ import { LINE_H } from './pixelFont';
 import { FILLS, SLOT, SLOT_GAP } from './pixelFrames';
 import { TurnOrder } from './turnOrder';
 import type { UnitInfo } from './unitCard';
+import { SOUND_BTN } from '../soundCard';
 import { UnitInfoCard, type PictureScenery } from './unitInfoCard';
 import { SpellBook, type BookSpec } from './spellBook';
 
@@ -35,6 +36,7 @@ export interface HudActions {
   readonly wait: () => void;
   readonly defend: () => void;
   readonly spell: () => void;
+  readonly sound: () => void;
   /** Testing cheats only: wins the battle. */
   readonly win?: () => void;
   readonly auto: () => void;
@@ -57,6 +59,7 @@ export class BattleHud {
   private plate: PixelFrame | null = null;
   private readonly order: TurnOrder;
   private winBtn: PixelButton | null = null;
+  private readonly soundBtn: PixelButton;
   private readonly buttons: PixelButton[];
   private readonly autoBtn: PixelButton;
   /** The side the player plays. */
@@ -77,7 +80,8 @@ export class BattleHud {
     const btn = (label: string, icon: IconName, onClick: () => void): PixelButton => new PixelButton(scene, { w: BTN.w, h: BTN.h, label, icon, stacked: true, onClick });
     this.autoBtn = btn('Auto', 'auto', actions.auto);
     this.buttons = [btn('Wait', 'wait', actions.wait), btn('Defend', 'defend', actions.defend), ...(canCast ? [btn('Spell', 'spell', actions.spell)] : []), this.autoBtn];
-    cams.ui.add([this.order.root, this.status.img, ...this.buttons.map((b) => b.root)]);
+    this.soundBtn = new PixelButton(scene, { w: SOUND_BTN.w, h: SOUND_BTN.h, label: 'Sound', onClick: actions.sound });
+    cams.ui.add([this.order.root, this.status.img, this.soundBtn.root, ...this.buttons.map((b) => b.root)]);
     if (actions.win) {
       this.winBtn = new PixelButton(scene, { w: WIN_BTN.w, h: WIN_BTN.h, label: 'Win', rim: 'gold', onClick: actions.win });
       cams.ui.add(this.winBtn.root);
@@ -97,6 +101,7 @@ export class BattleHud {
     const barK = Math.max(1, Math.floor(this.scene.scale.width / BAR_W));
     if (below >= BAR_H * barK) this.layoutBar(barK);
     else this.layoutSides();
+    this.soundBtn.setPosition(SOUND_BTN.margin, SOUND_BTN.margin);
     this.winBtn?.setPosition(this.cams.uiSize().w - WIN_BTN.w - WIN_BTN.margin, WIN_BTN.margin);
     this.redraw();
     if (this.card) this.card.close();
