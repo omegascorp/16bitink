@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:curve": "AUDIT=all vitest run test/audit.test.ts --testTimeout=3600000",
     "typecheck": "tsc --noEmit",
-    "dev": "vite dev --port 5203 --host"
+    "dev": "vite dev --port 5203 --host",
+    "promo": "node dev/promo/record.mjs"
   },
   "dependencies": {
     "@16bitink/game-sdk": "workspace:*",
@@ -21,6 +22,7 @@
   "devDependencies": {
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "playwright-core": "1.56.1"
   }
 }

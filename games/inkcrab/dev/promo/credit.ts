@@ -13,19 +13,25 @@ const IN_AT = 0.4;
 /** Seconds before the loop point by which it is gone. */
 const GONE_BEFORE_S = 0.6;
 
+/** A short's own credit: its text, and how far through the loop it fades in (0..1). */
+export interface CreditOptions {
+  readonly text?: string;
+  readonly inAt?: number;
+}
+
 /** How much of the credit shows at loop time `t`. */
-export const creditAt = (t: number, loopSeconds: number): number =>
-  CREDIT.alpha * window01(t, IN_AT * loopSeconds, loopSeconds - GONE_BEFORE_S, FADE_S);
+export const creditAt = (t: number, loopSeconds: number, inAt: number = IN_AT): number =>
+  CREDIT.alpha * window01(t, inAt * loopSeconds, loopSeconds - GONE_BEFORE_S, FADE_S);
 
 /** The same short with the credit drawn over every frame. */
-export function withCredit(short: Short, ctx: CanvasRenderingContext2D, colours: TextInk = INK_ON_PAPER): Short {
+export function withCredit(short: Short, ctx: CanvasRenderingContext2D, colours: TextInk = INK_ON_PAPER, options: CreditOptions = {}): Short {
   const loop = short.loopSeconds;
   return {
     ...short,
     draw(seconds: number): void {
       short.draw(seconds);
-      const alpha = creditAt(((seconds % loop) + loop) % loop, loop);
-      if (alpha > 0) drawTextLine(ctx, CREDIT.text, VIDEO.width / 2, CREDIT.y, CREDIT.size, 700, alpha, colours);
+      const alpha = creditAt(((seconds % loop) + loop) % loop, loop, options.inAt);
+      if (alpha > 0) drawTextLine(ctx, options.text ?? CREDIT.text, VIDEO.width / 2, CREDIT.y, CREDIT.size, 700, alpha, colours);
     },
   };
 }

@@ -195,6 +195,41 @@ Median by format (shorts posted 10-25 to 10-30):
 7. **InkSnake travels, InkGecko doesn't.** #69 (a sea krait swallowing an eel) is the first game short above 70% since #21. InkGecko's two marble shorts opened at 31.7% and 44.2%: no more InkGecko shorts on this channel. Gameplay swallows hold viewers (#59 148.8% viewed) but get a smaller push than narrated ones (6.3k), and #48 "Part 2" stalled at 2.5k.
 8. **Still no returning audience** (625 returning against 132k new), and 1.15 views per viewer.
 
+**Site data of 2026-11-06** (the `traffic` and `funnel` tools, 7, 14 and 30 days). There's no YouTube export after 10-31, so #76–100 aren't measured yet.
+
+By game, from the 10-31 export (shorts only; my grouping by title):
+
+| Game | Shorts | Median stayed to watch | Median views | Total views |
+|---|---|---|---|---|
+| InkFish | 58 | 60.2% | 4,031 | 490,573 |
+| InkCrab | 9 | 51.3% | 1,524 | 17,021 |
+| InkSnake | 1 | 70.8% | 8,188 | 8,188 |
+| InkMine | 3 | 32.2% | 678 | 3,544 |
+| InkGecko | 2 | 38.0% | 1,311 | 2,622 |
+
+What a player is worth, last 14 days (small numbers):
+
+| Game | Players | Seconds per player | Went on to level 2 | Reached the free end | Sales |
+|---|---|---|---|---|---|
+| InkMine | 16 | 1,365 | 69% | 3 (19%) | 1 |
+| InkSnake | 75 | 280 | 59% | 4 (5%) | 0 |
+| InkFish | 83 | 315 | 63% | 2 (2%) | 1 |
+| InkCrab | 22 | 210 | 55% | 0 | 0 |
+| InkGecko | 25 | 129 | 12% | 0 | 0 |
+| InkPin | 5 | 205 | not recorded | not recorded | 0 |
+
+Where a visitor starts a game (30 days): `/play/<game>` 58% for InkFish and InkSnake, `/games/<game>` about 38%, the home page 19%.
+
+**What changed:**
+
+1. **YouTube is starting to send players:** 19 visits and 9 started games in the last 7 days, against 8 visits in the 23 days before. The cause isn't known. It's still tiny against the views.
+2. **No short has ever asked anyone to play.** The credit says "16bit.ink", which opens the home page, the worst landing. `16bit.ink/fish` and the other short links were built for videos, but no short showed one, and they got 0 visits in 30 days.
+3. **The channel link isn't tagged.** No `16bit.ink/yt` visits appear, so the `?via=yt` link in the growth plan isn't in place.
+4. **Views and buyers point at different games.** InkMine is the weakest on views and the best per player. Its failed shorts were space facts; none showed the game.
+5. **Three tracking and funnel problems:** InkPin sends no `level_start` or `level_end`, so its funnel is empty. InkGecko's level 1 was beaten by 13 players but only 3 started level 2, which looks more like a flow problem than difficulty. InkCrab's level 2 was beaten by 4 of 11.
+
+Batch #101–104 tests this: one short per game, with the short link in the credit and "tap the channel name" with an arrow in the last 3 seconds.
+
 ## What works so far
 
 1. **A hook the viewer already knows wins the first second.** "There's always a bigger fish" is a known meme, so it had the best stayed-to-watch (48%) and the most engaged views. Stayed-to-watch is the number that decides whether YouTube shows a short to more people.
@@ -418,6 +453,28 @@ The user shared ten popular shorts. Titles and view counts come from YouTube's p
 | 7 | **No stomach**, *"Your Goldfish Has No Stomach"* (bridge from the platypus) | Hard to show an absence: risk of a chart frame | Odd Danny, *The Platypus is WEIRD*, 28.7M | Goldfish and carp (cyprinids), wrasses and parrotfish have no stomach | Parrotfish and wrasse drawn |
 
 Skipped: *Something is going on in the Ocean* (10M) is the surfacing anglerfish, already our #1. *TOP 5 Biggest Fish* (96s list, 123k) and a 101s deep-sea compilation (2.3M) don't fit a single 13–18s fact; the glass squid on the compilation's thumbnail could be a later single short. *How Bug Goop Becomes Candy Coating* (34M) isn't about the ocean, and it breaks the no-gross-food rule.
+
+### Next topics by game (chosen 2026-11-06, from the site data above)
+
+Priority follows what a player is worth, then what the channel has shown it watches. "Checked" means the fact-check agent read the source on 2026-11-06.
+
+| # | Game | Topic | Format | Status |
+|---|---|---|---|---|
+| 1 | InkSnake | A python swallowed a radio-collared sun bear: the collar's signal came from its stomach | Narrated swallow + twist | Checked. About 7 m python (6.95 m, 59 kg when caught), adult female bear 23 kg, 30 July 1999, Fredriksson 2005. The killing wasn't seen; the signal showed no movement for 26 days. Don't say "beeping" or that it moved |
+| 2 | InkMine | The Rockslide giant under the Talus mesa wakes to noise too (second "Never…" short) | Game-first | Repeat only if #102 works |
+| 3 | InkMine | A dust storm on Talus: find cover or get sandblasted | Game-first challenge | Idea |
+| 4 | InkPin | "Which Pin?" series on lava and gas levels | Game-first, answerable question | Repeat only if #103 gets comments |
+| 5 | InkSnake | Hognose plays dead (chapter 2) | Narrated + the game's mechanic | Needs fact-check |
+| 6 | InkSnake | King cobra bites a python, then swallows it (chapter 9) | Narrated swallow | Sankar et al. 2021. Python about 1.5 m, cobra 2.5 m, already dead: never "swallowed alive" |
+| 7 | InkSnake | Flying snake glides between trees (chapter 5) | Action you can see | Docs say glide ~10–21 m; recheck |
+| 8 | InkGecko | Fish-scale gecko leaves its skin in the predator's mouth and regrows it | Escape twist (#71's format), not marbles | Checked. *Geckolepis*, Scherz et al. 2017. Say "most likely to escape": no live tests. Hold until level 2 is fixed |
+| 9 | InkGecko | A leopard gecko's dropped tail keeps moving, flipping up to 3 cm | Body part | Abstract only. Up to 30 min, Higham & Russell 2010. Same hold |
+| 10 | InkCrab | Raccoons and crabs (#36 was InkCrab's best) | Narrated | Needs a topic and fact-check |
+
+**Voiced versions, ready for credits:** both scripts passed the 2026-11-06 fact-check. Budget about 2,530 credits for 8 takes, plus Scribe.
+
+- **Boa:** *"[curious] This snake squeezes until the heart STOPS. [nervous] A boa feels a heartbeat… through its coils. [surprised] Scientists hid a fake heart in a dead rat! [excited] Left beating, the boa squeezed nearly TWICE as long. [sad] Switched off… [chuckles] it let go sooner. [mischievously] So it just waits, because"* Say boas only, never corn snakes or pythons (Boback et al. 2012).
+- **Coconut crab:** *"[excited] This crab took down a sleeping BIRD. [nervous] Middle of the night. A booby dozes on a low branch… [dramatically] and a coconut crab climbs up! [surprised] It grabs the wing, and SNAPS it! [sad] The bird falls… [excited] and five MORE crabs arrive. [mischievously] A scientist saw the whole thing, the night"* One observation, Chagos, March 2016. The paper (Laidre 2017) was paywalled, so this rests on three press reports. Never imply crabs do this regularly.
 
 ### Narrated topics waiting for credits (researched 2026-11-05, not yet fact-checked)
 

@@ -10,6 +10,7 @@ import { evenLoadout, prospectorLook } from '../../src/logic/gear';
 import { createTitan } from './titan/render';
 import { createPlants } from './plants/render';
 import { createHeavy } from './heavy/render';
+import { createLeviathan, LEVIATHAN_CREDIT } from './leviathan/render';
 
 /**
  * Dev-only promo video page for InkMine, 1080x1920. Every short is a
@@ -55,9 +56,9 @@ function createKit(): Short {
 }
 
 /** Each narrated short, built after the font loads, with the credit drawn over it (paper on dark for night and space scenes). */
-const narrated = (create: (c: CanvasRenderingContext2D) => Short, dark = false) => async (): Promise<Short> => {
+const narrated = (create: (c: CanvasRenderingContext2D) => Short, dark = false, credit?: string) => async (): Promise<Short> => {
   await loadCaptionFont();
-  return withCredit(create(ctx), ctx, dark ? PAPER_ON_DARK : undefined);
+  return withCredit(create(ctx), ctx, dark ? PAPER_ON_DARK : undefined, credit);
 };
 
 const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
@@ -65,6 +66,7 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   titan: narrated(createTitan, true),
   plants: narrated(createPlants, true),
   heavy: narrated(createHeavy, true),
+  leviathan: narrated(createLeviathan, true, LEVIATHAN_CREDIT),
 };
 
 const name = params.get('short') ?? 'kit';

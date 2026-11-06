@@ -17,15 +17,15 @@ const GONE_BEFORE_S = 0.6;
 export const creditAt = (t: number, loopSeconds: number): number =>
   CREDIT.alpha * window01(t, IN_AT * loopSeconds, loopSeconds - GONE_BEFORE_S, FADE_S);
 
-/** The same short with the credit drawn over every frame. */
-export function withCredit(short: Short, ctx: CanvasRenderingContext2D, colours: TextInk = INK_ON_PAPER): Short {
+/** The same short with the credit drawn over every frame; `text` swaps the wording for one short. */
+export function withCredit(short: Short, ctx: CanvasRenderingContext2D, colours: TextInk = INK_ON_PAPER, text: string = CREDIT.text): Short {
   const loop = short.loopSeconds;
   return {
     ...short,
     draw(seconds: number): void {
       short.draw(seconds);
       const alpha = creditAt(((seconds % loop) + loop) % loop, loop);
-      if (alpha > 0) drawTextLine(ctx, CREDIT.text, VIDEO.width / 2, CREDIT.y, CREDIT.size, 700, alpha, colours);
+      if (alpha > 0) drawTextLine(ctx, text, VIDEO.width / 2, CREDIT.y, CREDIT.size, 700, alpha, colours);
     },
   };
 }

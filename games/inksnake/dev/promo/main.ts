@@ -12,6 +12,8 @@ import { createEggeater } from './eggeater/render';
 import { createPython } from './python/render';
 import { createSpidertail } from './spidertail/render';
 import { createGulpHen } from './gulphen/render';
+import { createHeartbeat } from './heartbeat/render';
+import { CREDIT as HEARTBEAT_CREDIT } from './heartbeat/story';
 
 /**
  * Dev-only promo video page for InkSnake, 1080x1920. Every short is a
@@ -22,7 +24,8 @@ import { createGulpHen } from './gulphen/render';
  * freshwater crocodile, Lake Moondarra) or eggeater (the common egg-eater
  * swallowing an egg wider than its head, savanna) or spidertail (the
  * spider-tailed horned viper's fake spider, chapter 7's mountains) or gulphen
- * (gameplay, no voice: the corn snake swallows a hen). ?short=kit
+ * (gameplay, no voice: the corn snake swallows a hen) or heartbeat (no voice:
+ * the boa feels the rat's heart through its coils, then the game). ?short=kit
  * shows the shared sprites. Plays live; ?t=4.2 freezes one moment. `pnpm promo`
  * (dev/promo/record.mjs) drives window.promo frame by frame to make the
  * video files.
@@ -89,6 +92,10 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   gulphen: async () => {
     await loadCaptionFont();
     return createGulpHen(ctx);
+  },
+  heartbeat: async () => {
+    await loadCaptionFont();
+    return withCredit(createHeartbeat(ctx), ctx, undefined, HEARTBEAT_CREDIT);
   },
 };
 
