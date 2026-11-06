@@ -126,6 +126,10 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * submersible Alvin, 1967), pigeons (wels catfish lunge onto gravel to take
  * pigeons, Albi).
  * orcaflip (orcas flip juvenile whale sharks belly-up, Gulf of California, 2024).
+ * gulpshark (gameplay: the viperfish swallows a reef shark).
+ * gulpsquid (gameplay: the viperfish swallows a giant squid).
+ * gulpsword (gameplay: the viperfish swallows a swordfish, the sword last).
+ * gulppuffer (gameplay: a pufferfish inflates inside the viperfish).
  * They're loaded lazily (import() on demand).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
@@ -507,6 +511,26 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
     if (params.has('kit')) return (await import('./pigeons/kit')).createPigeonsKit(ctx);
     const { createPigeons } = await import('./pigeons/render');
     return withCredit(createPigeons(ctx), ctx, PAPER_ON_DARK);
+  },
+  gulpshark: async () => {
+    await loadCaptionFont();
+    const { createGulpShark } = await import('./gulpshark/render');
+    return createGulpShark(ctx);
+  },
+  gulpsquid: async () => {
+    await loadCaptionFont();
+    const { createGulpSquid } = await import('./gulpsquid/render');
+    return createGulpSquid(ctx);
+  },
+  gulpsword: async () => {
+    await loadCaptionFont();
+    const { createGulpSword } = await import('./gulpsword/render');
+    return createGulpSword(ctx);
+  },
+  gulppuffer: async () => {
+    await loadCaptionFont();
+    const { createGulpPuffer } = await import('./gulppuffer/render');
+    return createGulpPuffer(ctx);
   },
   orcaflip: async () => {
     await loadCaptionFont();
