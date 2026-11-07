@@ -23,7 +23,7 @@ import { AT as CRABBIRD_AT, LOOP_S as CRABBIRD_LOOP_S } from './crabbird/story';
  * (three hearts), redcrab (Christmas Island's march to the sea), snowcrab
  * (ten billion vanished), raccoon (it isn't washing its food), manowar
  * (the Portuguese man o' war is NOT a jellyfish) or crabbird (a coconut crab
- * takes down a sleeping booby, no voice). ?short=kit
+ * takes down a sleeping booby). ?short=kit
  * shows the shared sprites. Plays live; ?t=4.2 freezes one moment.
  * `pnpm promo` (dev/promo/record.mjs) drives window.promo frame by frame to
  * make the video files.
@@ -80,8 +80,8 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   snowcrab: narrated(createSnowCrab),
   raccoon: narrated(createRaccoon, true),
   manowar: narrated(createManowar),
-  // No voice; its credit waits for the game's own beach and names the short link.
-  crabbird: narrated(createCrabbird, false, { text: 'InkCrab · 16bit.ink/crab', inAt: (CRABBIRD_AT.gameIn + 0.05) / CRABBIRD_LOOP_S }),
+  // Its credit waits for the invitation at the end and names the short link.
+  crabbird: narrated(createCrabbird, true, { text: 'InkCrab · 16bit.ink/crab', inAt: (CRABBIRD_AT.ctaStart + 0.3) / CRABBIRD_LOOP_S }),
 };
 
 const name = params.get('short') ?? 'kit';

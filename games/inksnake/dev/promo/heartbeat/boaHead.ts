@@ -11,8 +11,7 @@ import type { SpriteArt } from '../../../src/art/types';
  * from the nostril through the eye and widening back to the jaw's corner, a
  * pale band over it, small irregular head scales (no big plates), pale lips
  * barred in brown and a silver-gold eye with a vertical pupil. Two sprites,
- * each hinged at its origin, so they can open round anything. Laid on the
- * same frame as gulphen's jaws, so its pink insides fit.
+ * each hinged at its origin.
  */
 export const JAW_ART = 45.5;
 

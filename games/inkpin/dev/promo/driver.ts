@@ -104,6 +104,12 @@ export class Driver {
     return this.game.scene.getScene('game') as SceneInternals;
   }
 
+  /** Where the boar stands on the board now, or null once it is gone. */
+  boar(): { x: number; y: number } | null {
+    const b = this.scene.world?.blots[0];
+    return b && !b.gone ? { x: b.x, y: b.y } : null;
+  }
+
   cycleTime(): number {
     return Math.max(0, this.frame) / FPS;
   }

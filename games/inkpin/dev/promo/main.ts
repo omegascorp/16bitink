@@ -54,7 +54,7 @@ async function createShort(): Promise<Short> {
         ctx.restore();
         drawWipeBand(ctx, wipe);
       }
-      drawOverlay(ctx, c);
+      drawOverlay(ctx, c, driver.boar());
     },
     async audio(start: number): Promise<Blob> {
       if (!cues) {
@@ -63,7 +63,8 @@ async function createShort(): Promise<Short> {
         for (let i = 0; i < LOOP_FRAMES; i++) driver.advanceTo(driver.frame + 1);
         cues = [...driver.cues];
       }
-      return renderAudio(cues, start);
+      const voice = await (await fetch(new URL('./whichpin/voice.mp3', import.meta.url))).arrayBuffer();
+      return renderAudio(cues, start, voice);
     },
   };
 }

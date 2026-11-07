@@ -25,13 +25,13 @@ export const LEVEL: LevelDef = GUARD;
 export const FPS = 30;
 /** Simulation steps the game takes per video frame (STEPS_PER_SECOND / FPS). */
 export const STEPS_PER_FRAME = 4;
-export const LOOP_S = 15;
+export const LOOP_S = 16.5;
 /** The cycle's start is this long before the video's: the opening wipe finishes at t = 0. */
 export const SHIFT_S = 0.5;
 /** An ink wipe sweeps the old board away in this long. */
 export const WIPE_S = 0.35;
 /** Cycle time of the wipe between the wrong try and the right one; the board is rebuilt there. */
-export const SWAP_C = 7.8;
+export const SWAP_C = 11.7;
 
 export type Segment = 'wrong' | 'right';
 /**
@@ -41,7 +41,7 @@ export type Segment = 'wrong' | 'right';
  * back under the tanks as the viewer reads the board, and is at the gate when
  * Nib comes out.
  */
-export const PRE_ROLL_S: Readonly<Record<Segment, number>> = { wrong: 5.25, right: 0 };
+export const PRE_ROLL_S: Readonly<Record<Segment, number>> = { wrong: 0.7, right: 0 };
 export type Action =
   | { readonly at: number; readonly kind: 'tap'; readonly pin: string }
   | { readonly at: number; readonly kind: 'goto'; readonly x: number; readonly y?: number }
@@ -64,17 +64,18 @@ export const RIGHT_FIRST = 'L';
  * the vine for the ledge's gold, then the water to cool the pool.
  */
 export const ACTIONS: Readonly<Record<Segment, readonly Action[]>> = {
+  // "Water first?" (video 8.7 s) ... "Bye, Nib." (the fail lands at about 10.4 s)
   wrong: [
-    { at: 3.4, kind: 'tap', pin: 'W' },
-    { at: 4.1, kind: 'tap', pin: 'L' },
-    { at: 4.7, kind: 'tap', pin: 'G' },
-    { at: 4.8, kind: 'goto', x: 700 },
+    { at: 9.2, kind: 'tap', pin: 'W' },
+    { at: 9.5, kind: 'tap', pin: 'L' },
+    { at: 9.75, kind: 'tap', pin: 'G' },
+    { at: 9.8, kind: 'goto', x: 700 },
   ],
+  // "...pull the LAVA first" (video 12.3 s) ... "big trouble" (the boar is scorched at about 13.4 s)
   right: [
-    { at: 1.0, kind: 'tap', pin: 'L' },
-    { at: 1.1, kind: 'goto', x: 176, y: 850 },
-    { at: 2.3, kind: 'tap', pin: 'W' },
-    { at: 3.9, kind: 'goto', x: 70 },
+    { at: 1.1, kind: 'tap', pin: 'L' },
+    { at: 1.2, kind: 'goto', x: 176, y: 850 },
+    { at: 2.05, kind: 'tap', pin: 'W' },
   ],
 };
 
@@ -95,11 +96,11 @@ export const LOOP_FRAMES = LOOP_S * FPS;
 /** Cycle times of the story's beats (checked against the real rules in test/promoPin.test.ts). */
 export const BEATS = {
   /** Nib is caught by the boar (the fail begins). */
-  failed: 5.85,
+  failed: 10.9,
   /** The lava has scorched the boar. */
-  scorched: SWAP_C + 2.2,
+  scorched: SWAP_C + 2.5,
   /** The last 3.0 s of the video: the call to action. */
-  ctaFrom: LOOP_S - SHIFT_S - 3.0 + SHIFT_S,
+  ctaFrom: LOOP_S - 3.0 + SHIFT_S,
 } as const;
 
 /** The frames of a segment's actions, in order, as [local frame, action]. */

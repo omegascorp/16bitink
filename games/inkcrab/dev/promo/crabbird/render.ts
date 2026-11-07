@@ -1,15 +1,16 @@
-import { drawTextLine, PAPER_ON_DARK, type TextInk } from '../captions';
-import { BOIL, RED } from '../../../src/art/palette';
+import { drawSpokenLine, drawTextLine, PAPER_ON_DARK, type TextInk } from '../captions';
+import { BOIL, PAPER_FILL } from '../../../src/art/palette';
 import { VIDEO, type Short } from '../short';
 import { boilAt } from '../sprites';
 import { type BoobyArt, drawBooby, makeBoobyArt } from './art/booby';
 import { type CrabArt, drawClaw, drawCrabBody, drawCrabFace, makeCrabArt } from './art/coconutCrab';
 import { renderCrabbirdAudio } from './audio';
-import { drawGameShot, type GameKit, makeGameKit } from './gameShot';
+import { drawGameCard, type GameCard, makeGameCard } from './card';
 import { drawArrow, drawDrift, drawEyePair, drawFeather, drawImpact, inkWash, makeLayer } from './marks';
-import { makeGroundShot, makeLeaves, makeSky, makeTree } from './scene';
+import { drawLowMoon, makeGroundShot, makeLeaves, makeSky, makeTree } from './scene';
 import {
-  AT, type BirdPose, type Cam, captionsAt, type CrabPose, CTA, ctaAt, EYE_PAIRS, groundBird, groundFeathers, LOOP_S, nightPoseOf, shotsAt, type Shot, snapFeathers, WING_AT,
+  AT, type BirdPose, type Cam, type CrabPose, CTA, ctaAt, EYE_PAIRS, groundBird, groundFeathers, groundLiftAt, LOOP_S, nightPoseOf, shotsAt, type Shot, SNAP_MARK, snapFeathers, snapMarkAt,
+  spokenAt, WING_AT,
 } from './story';
 
 /** Draws "This crab took down a bird" (story.ts has the choreography). */
@@ -18,10 +19,10 @@ interface Kit {
   readonly sky: HTMLCanvasElement;
   readonly tree: ReturnType<typeof makeTree>;
   readonly leaves: ReturnType<typeof makeLeaves>;
-  readonly ground: HTMLCanvasElement;
+  readonly ground: ReturnType<typeof makeGroundShot>;
   readonly crab: CrabArt;
   readonly bird: BoobyArt;
-  readonly game: GameKit;
+  readonly card: GameCard;
 }
 
 /** The sky stays almost still behind the camera. */
@@ -62,12 +63,17 @@ function drawNightWorld(ctx: CanvasRenderingContext2D, kit: Kit, cam: Cam, crab:
 }
 
 function drawGround(ctx: CanvasRenderingContext2D, kit: Kit, t: number, boil: number): void {
-  const push = 1 + 0.05 * Math.max(0, (t - AT.ground) / (AT.game - AT.ground));
+  const push = 1 + 0.05 * Math.max(0, (t - AT.ground) / (LOOP_S - AT.ground));
+  const lift = groundLiftAt(t);
+  ctx.fillStyle = '#02030a';
+  ctx.fillRect(0, 0, VIDEO.width, VIDEO.height);
   ctx.save();
-  ctx.translate(VIDEO.width / 2, 1100);
+  ctx.translate(VIDEO.width / 2, 1100 - lift);
   ctx.scale(push, push);
   ctx.translate(-VIDEO.width / 2, -1100);
-  ctx.drawImage(kit.ground, 0, 0);
+  ctx.drawImage(kit.ground.sky, 0, 0);
+  drawLowMoon(ctx, lift);
+  ctx.drawImage(kit.ground.land, 0, 0);
   [...EYE_PAIRS].sort((a, b) => a.y - b.y).forEach((p) => drawEyePair(ctx, p, t, boil));
   drawBooby(ctx, kit.bird, groundBird(t), boil);
   for (const f of groundFeathers(t)) drawFeather(ctx, f, 0.95);
@@ -79,22 +85,24 @@ function drawShot(ctx: CanvasRenderingContext2D, kit: Kit, shot: Shot, boil: num
   if (id === 'hook' || id === 'night') {
     const { cam, crab, bird } = nightPoseOf(shot);
     drawNightWorld(ctx, kit, cam, crab, bird, boil, id === 'hook' ? -1 : at, at);
-  } else if (id === 'ground') drawGround(ctx, kit, at, boil);
-  else drawGameShot(ctx, kit.game, at, boil);
+  } else drawGround(ctx, kit, at, boil);
 }
 
-const HOT: TextInk = { fill: '#ff5a3c', halo: '#0d1230' };
+const HOT = '#ff5a3c';
+const HOT_INK: TextInk = { fill: HOT, halo: '#0d1230' };
 
+/** The spoken line, word by word, and the big SNAP on its word. */
 function drawCaptions(ctx: CanvasRenderingContext2D, t: number): void {
-  for (const c of captionsAt(t)) drawTextLine(ctx, c.text, VIDEO.width / 2, c.y, c.size, 700, c.alpha, c.hot ? HOT : PAPER_ON_DARK);
+  for (const r of spokenAt(t)) drawSpokenLine(ctx, r.words, r.current, PAPER_ON_DARK, HOT, r.y, r.size, r.unsaid);
+  drawTextLine(ctx, 'SNAP', VIDEO.width / 2, SNAP_MARK.y, SNAP_MARK.size, 700, snapMarkAt(t), HOT_INK);
 }
 
-function drawCta(ctx: CanvasRenderingContext2D, t: number, boil: number): void {
+function drawCta(ctx: CanvasRenderingContext2D, kit: Kit, t: number, boil: number): void {
   const a = ctaAt(t);
   if (a <= 0) return;
-  const ink: TextInk = { fill: RED, halo: '#fff6e2' };
-  drawTextLine(ctx, '10 levels free', VIDEO.width / 2, CTA.y, CTA.size, 700, a, ink);
-  drawTextLine(ctx, 'tap the channel name', VIDEO.width / 2, CTA.subY, CTA.subSize, 700, a, { fill: '#26316a', halo: '#fff6e2' });
+  drawGameCard(ctx, kit.card, t, a, boil);
+  drawTextLine(ctx, '10 levels free', CTA.x, CTA.y, CTA.size, 700, a, { fill: PAPER_FILL, halo: '#0d1230' });
+  drawTextLine(ctx, 'tap the channel name', CTA.x, CTA.subY, CTA.subSize, 700, a, PAPER_ON_DARK);
   drawArrow(ctx, a, boil);
 }
 
@@ -107,7 +115,7 @@ export function createCrabbird(ctx: CanvasRenderingContext2D): Short {
     ground: makeGroundShot(),
     crab: makeCrabArt(boils),
     bird: makeBoobyArt(boils),
-    game: makeGameKit(),
+    card: makeGameCard(),
   };
   const layer = makeLayer();
   return {
@@ -129,7 +137,7 @@ export function createCrabbird(ctx: CanvasRenderingContext2D): Short {
         }
       }
       drawCaptions(ctx, t);
-      drawCta(ctx, t, boil);
+      drawCta(ctx, kit, t, boil);
     },
     audio: renderCrabbirdAudio,
   };

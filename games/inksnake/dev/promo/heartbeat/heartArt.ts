@@ -7,7 +7,7 @@ import { glaze } from '../../../src/art/snakes/cornPaint';
 /**
  * The heart: one plain, big red heart in washes and pen, the shape anyone
  * knows at a glance, lit from the upper left, with a soft gloss, hatching on
- * its shadow side and a thin dark line. `dead` is the same heart gone dark.
+ * its shadow side and a thin dark line.
  */
 const K = 2.9;
 const TILT = -0.1;
@@ -22,15 +22,12 @@ export const HEART_SHAPE: readonly Pt[] = Array.from({ length: 96 }, (_, i) => {
   return pt(x * Math.cos(TILT) - y * Math.sin(TILT), x * Math.sin(TILT) + y * Math.cos(TILT));
 });
 
-const STOPS = {
-  live: { hot: '#ff6a52', red: '#e01f26', deep: '#7c0c16', line: '#2c060c', gloss: 0.55, hatch: '#4a0810' },
-  dead: { hot: '#6a3236', red: '#4a1f26', deep: '#26101a', line: '#120608', gloss: 0.12, hatch: '#120608' },
-} as const;
+const C = { hot: '#ff6a52', red: '#e01f26', deep: '#7c0c16', line: '#2c060c', gloss: 0.55, hatch: '#4a0810' } as const;
 
-function drawHeart(d: Draw, pose: 'live' | 'dead'): void {
+function drawHeart(d: Draw): void {
   const { pen } = d;
   const { ctx } = pen;
-  const c = STOPS[pose];
+  const c = C;
   pen.fill(HEART_SHAPE, PAPER_FILL, 1);
   pen.clipped(HEART_SHAPE, () => {
     const g = ctx.createRadialGradient(-16, -18, 4, 2, 4, 66);
@@ -50,4 +47,4 @@ function drawHeart(d: Draw, pose: 'live' | 'dead'): void {
   pen.stroke(closed(HEART_SHAPE), 1.15, c.line, 1, false);
 }
 
-export const HEART: SpriteArt<'live' | 'dead'> = { frame: 130, res: 7, poses: ['live', 'dead'], draw: drawHeart };
+export const HEART: SpriteArt<'live'> = { frame: 130, res: 7, poses: ['live'], draw: drawHeart };

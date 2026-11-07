@@ -1,36 +1,43 @@
 import type { Pt } from '../../../src/art/pen';
 import { clamp01, curveAt, type Key, lerp, ramp, window01 } from '../short';
 import { spline } from './art/paint';
+import { inVoice, WORDS, type Word } from './words';
 
 /**
- * "This crab took down a bird": every beat as a pure function of time. One
- * night in March 2016 on the Chagos Archipelago a scientist watched a coconut
- * crab climb to a red-footed booby asleep on a low branch, break its wing and
- * bring it to the ground; five more crabs came within about 20 minutes. A
- * single observed event: nothing here says crabs usually do this.
+ * "This crab took down a bird", narrated: every beat as a pure function of
+ * time, timed from the voice's words (words.ts). One night in March 2016 on
+ * the Chagos Archipelago a scientist watched a coconut crab climb to a
+ * red-footed booby asleep on a low branch, break its wing and bring it to the
+ * ground; five more crabs came within about 20 minutes. A single observed
+ * event: nothing here says crabs usually do this.
  *
  * The hook (frame 1) is the instant before the snap, so the story rewinds to
  * the calm, climbs back to the same pose, and the last ink wash lands on it.
  */
-export const LOOP_S = 13.5;
+export const LOOP_S = 16.5;
 
-/** The beats, seconds into the loop. */
+/** When a word of the voiceover begins in the loop (`nth` for a word said more than once). */
+export function said(text: string, nth = 1): number {
+  const w = WORDS.filter((x) => x.text === text)[nth - 1];
+  if (!w) throw new Error(`The script has no "${text}" (${nth})`);
+  return inVoice(w.start);
+}
+
+/** The beats, seconds into the loop, each on its word. */
 export const AT = {
-  hookOut: 1.3,
-  calm: 1.6,
-  reach: 2.7,
-  climbEnd: 4.9,
-  snap: 5.4,
-  fall: 6.05,
-  ground: 6.95,
-  firstEyes: 7.75,
-  moreEyes: 8.3,
-  scientist: 9.25,
-  game: 10.45,
-  gameIn: 10.75,
-  ctaStart: 10.5,
+  hookOut: said('Middle') - 0.42,
+  reach: said('and') - 0.4,
+  climbEnd: said('It'),
+  grabs: said('grabs'),
+  wing: said('wing,'),
+  snap: said('SNAPS'),
+  fall: said('The') - 0.05,
+  ground: said('falls…') + 0.3,
+  firstEyes: said('and', 3) - 0.24,
+  moreEyes: said('five'),
+  ctaStart: LOOP_S - 3,
   ctaGone: LOOP_S - 0.6,
-  wash: 12.9,
+  wash: LOOP_S - 0.6,
 } as const;
 
 // ---------------------------------------------------------------- the set, world px (the hook frame is the world at 1:1)
@@ -163,7 +170,7 @@ export function climbAt(s: number): { x: number; y: number; heading: number } {
 /** How far along the climb the crab is. */
 const climbS = (t: number): number => curveAt([
   { t: AT.reach, at: 0, rate: 500 },
-  { t: 3.9, at: PATH_LEN * 0.56 },
+  { t: AT.reach + (AT.climbEnd - AT.reach) * 0.55, at: PATH_LEN * 0.56 },
   { t: AT.climbEnd, at: PATH_LEN, rate: 0 },
 ], t).at;
 
@@ -192,7 +199,7 @@ function climbFoot(i: number, s: number): Pt {
 function climbingCrab(t: number): CrabPose {
   const s = climbS(t);
   const b = climbAt(s);
-  const settle = ramp(t, 4.45, AT.climbEnd);
+  const settle = ramp(t, AT.climbEnd - 0.45, AT.climbEnd);
   const hook = hookCrab(t);
   const feet = HOOK_FEET.map((_, i) => {
     const f = climbFoot(i, s);
@@ -203,7 +210,8 @@ function climbingCrab(t: number): CrabPose {
     const w = toWorld(p, b);
     return { x: lerp(w.x, h.wrist.x, u), y: lerp(w.y, h.wrist.y, u) };
   };
-  const reach = ramp(t, 4.3, 5.05);
+  // The claw comes round on "grabs" and is about the wing on "wing".
+  const reach = ramp(t, AT.grabs - 0.22, AT.wing);
   return {
     ...b,
     feet,
@@ -216,11 +224,11 @@ function climbingCrab(t: number): CrabPose {
 /** The crab during the night shot; null before it's in reach of the frame. */
 export function nightCrab(t: number): CrabPose | null {
   if (t < AT.reach) return null;
-  const base = t < AT.climbEnd ? climbingCrab(t) : hookCrab(t);
-  if (t < AT.climbEnd) return base;
+  const base = climbingCrab(t);
+  if (t < AT.wing) return base;
   const shut = ramp(t, AT.snap - 0.09, AT.snap);
   const lunge = ramp(t, AT.snap - 0.14, AT.snap) * (1 - 0.7 * ramp(t, AT.snap + 0.25, AT.fall + 0.3));
-  const windUp = ramp(t, AT.climbEnd, AT.snap - 0.14) * (1 - shut);
+  const windUp = ramp(t, AT.wing, AT.snap - 0.14) * (1 - shut);
   return {
     ...base,
     bigClaw: {
@@ -263,7 +271,7 @@ export function nightBird(t: number): BirdPose {
 
 /** The bird on the ground, low-angle: it barely moves, its head sinking. */
 export function groundBird(t: number): BirdPose {
-  const u = ramp(t, AT.ground, AT.firstEyes + 0.6);
+  const u = ramp(t, AT.ground, AT.firstEyes + 0.9);
   return {
     x: 500, y: 1268, rotation: 0.05, scale: 0.98, neck: lerp(-0.12, -0.3, u), headTilt: lerp(0.08, 0.42, u), eye: 0.28, gape: 0.08, wing: 0, droop: 0.5,
     breath: 0.7 * Math.sin((t / 2.6) * Math.PI * 2), feetDown: false,
@@ -275,9 +283,9 @@ export function groundBird(t: number): BirdPose {
 const camKeys = (pick: (c: Cam) => number): readonly Key[] => {
   const CAMS: readonly (readonly [number, Cam])[] = [
     [AT.hookOut, { x: 704, y: 880, zoom: 1.36 }],
-    [2.6, { x: 700, y: 870, zoom: 1.3 }],
-    [3.5, { x: 470, y: 1130, zoom: 1 }],
-    [4.5, { x: 520, y: 1060, zoom: 1 }],
+    [said('low') - 0.1, { x: 700, y: 870, zoom: 1.26 }],
+    [AT.reach + 0.62, { x: 470, y: 1130, zoom: 1 }],
+    [AT.climbEnd - 0.5, { x: 520, y: 1060, zoom: 1 }],
     [AT.climbEnd, { x: 540, y: 960, zoom: 1 }],
     [AT.snap - 0.02, { x: 560, y: 950, zoom: 1.02 }],
     [AT.snap + 0.12, { x: 690, y: 900, zoom: 1.16 }],
@@ -359,63 +367,27 @@ export interface EyePair {
   readonly at: number;
 }
 
-/** The first crab's eyes, then the five that came. */
+/** The first crab's eyes, then the five that came, one by one along "five MORE crabs". */
 export const EYE_PAIRS: readonly EyePair[] = [
   { x: 195, y: 1088, size: 1.3, at: AT.firstEyes },
   { x: 884, y: 1072, size: 1.16, at: AT.moreEyes },
-  { x: 372, y: 950, size: 0.86, at: AT.moreEyes + 0.1 },
-  { x: 742, y: 930, size: 0.82, at: AT.moreEyes + 0.2 },
-  { x: 560, y: 870, size: 0.68, at: AT.moreEyes + 0.3 },
-  { x: 58, y: 930, size: 0.74, at: AT.moreEyes + 0.38 },
+  { x: 372, y: 950, size: 0.86, at: AT.moreEyes + 0.15 },
+  { x: 742, y: 930, size: 0.82, at: AT.moreEyes + 0.32 },
+  { x: 560, y: 870, size: 0.68, at: AT.moreEyes + 0.5 },
+  { x: 58, y: 930, size: 0.74, at: AT.moreEyes + 0.66 },
 ];
+
+/** How far the low shot has risen to clear the ground for the invitation, px. */
+export const groundLiftAt = (t: number): number => 270 * ramp(t, AT.ctaStart - 0.2, AT.ctaStart + 0.3);
 
 /** How far a pair has risen, 0 .. 1. */
 export const eyeRiseAt = (p: EyePair, t: number): number => ramp(t, p.at, p.at + 0.32);
 /** They edge in on the bird once they're up. */
 export const eyeCreepAt = (p: EyePair, t: number): number => clamp01((t - p.at) / 3) * 26;
 
-// ---------------------------------------------------------------- the game
-
-/** The game's crab eating and growing: where it is, how big, what it's wearing. */
-export interface GameState {
-  readonly x: number;
-  /** Screen px per drawing unit. */
-  readonly size: number;
-  /** The bump of a bite or of growing, 0 .. 1. */
-  readonly bump: number;
-  /** Food left, as x positions (eaten ones gone). */
-  readonly food: readonly { readonly x: number; readonly left: number }[];
-  /** 0 in the small shell .. 1 moved into the big one. */
-  readonly moved: number;
-  /** Which words of the line are said: index of the current one. */
-  readonly word: number;
-}
-
-const EATS: readonly { readonly t: number; readonly x: number }[] = [{ t: 11.0, x: 392 }, { t: 11.45, x: 486 }, { t: 11.9, x: 590 }];
-export const SHELL_X = 690;
-/** Where the old shell is left, and the bigger shell's size. */
-export const OLD_SHELL_X = 420;
-export const END_SIZE = 3.6;
-export const MOVE_AT = 12.28;
-const SIZES = [2.4, 2.85, 3.25, END_SIZE] as const;
-
-export function gameAt(t: number): GameState {
-  const eaten = EATS.filter((e) => t >= e.t).length;
-  const size = EATS.reduce((s, e, i) => lerp(s, SIZES[i + 1]!, ramp(t, e.t + 0.04, e.t + 0.2)), SIZES[0] as number);
-  const x = curveAt([
-    { t: 10.45, at: 90, rate: 260 }, { t: EATS[0]!.t, at: 262 }, { t: EATS[1]!.t, at: 340 }, { t: EATS[2]!.t, at: 412 }, { t: MOVE_AT, at: OLD_SHELL_X }, { t: MOVE_AT + 0.22, at: SHELL_X, rate: 0 },
-  ], t).at;
-  const bump = EATS.reduce((b, e) => Math.max(b, window01(t, e.t - 0.03, e.t + 0.24, 0.1)), 0);
-  const word = t < 10.95 ? -1 : t < 11.4 ? 0 : t < 11.82 ? 1 : t < 11.98 ? 2 : t < 12.14 ? 3 : t < 12.3 ? 4 : 5;
-  return {
-    x, size, bump, word, moved: ramp(t, MOVE_AT, MOVE_AT + 0.22),
-    food: EATS.map((e) => ({ x: e.x, left: 1 - ramp(t, e.t - 0.08, e.t + 0.02) })).slice(Math.max(0, eaten - 1)),
-  };
-}
-
 // ---------------------------------------------------------------- shots and washes
 
-export type ShotId = 'hook' | 'night' | 'ground' | 'game';
+export type ShotId = 'hook' | 'night' | 'ground';
 
 export interface Shot {
   readonly id: ShotId;
@@ -443,12 +415,10 @@ export function shotsAt(t: number): FrameState {
   if (t < AT.hookOut + WASH_S) return { under: { id: 'hook', at: t }, over: { id: 'night', at: t }, u: (t - AT.hookOut) / WASH_S, how: 'wash' };
   if (t < AT.ground) return still('night', t);
   if (t < AT.ground + CROSS_FADE_S) return { under: { id: 'night', at: t }, over: { id: 'ground', at: t }, u: (t - AT.ground) / CROSS_FADE_S, how: 'fade' };
-  if (t < AT.game) return still('ground', t);
-  if (t < AT.game + WASH_S) return { under: { id: 'ground', at: t }, over: { id: 'game', at: t }, u: (t - AT.game) / WASH_S, how: 'wash' };
-  if (t < AT.wash) return still('game', t);
+  if (t < AT.wash) return still('ground', t);
   const u = (t - AT.wash) / (LOOP_S - AT.wash);
   // The last wash lands exactly on frame 1.
-  return u >= 1 ? still('hook', t - LOOP_S) : { under: { id: 'game', at: t }, over: { id: 'hook', at: t - LOOP_S }, u, how: 'wash' };
+  return u >= 1 ? still('hook', t - LOOP_S) : { under: { id: 'ground', at: t }, over: { id: 'hook', at: t - LOOP_S }, u, how: 'wash' };
 }
 
 /** The crab, bird and camera of a night shot at its time (the hook is the same world, just before the snap). */
@@ -464,51 +434,72 @@ export const nightPoseOf = (shot: Shot): NightPose => (shot.id === 'hook'
 
 // ---------------------------------------------------------------- words
 
-export interface Caption {
-  readonly text: string;
+/** A row of the spoken caption: its words, which is being said, where and how big. */
+export interface SpokenRow {
+  readonly words: readonly string[];
+  /** Index of the word being said; -1 before its first word. */
+  readonly current: number;
   readonly y: number;
   readonly size: number;
-  readonly alpha: number;
-  readonly hot?: boolean;
+  /** How solid its words are before they're said. */
+  readonly unsaid: number;
 }
 
-/** Everything written over the night, by the time. The game's own line is in gameLineAt. */
-export function captionsAt(t: number): readonly Caption[] {
-  // Across the loop point the hook's words come in with the wash, on the finished frame at 0.
-  const hookIn = t > AT.wash ? ramp(t, LOOP_S - 0.25, LOOP_S) : 1;
-  const hook = t > AT.wash ? hookIn : 1 - ramp(t, AT.hookOut - 0.1, AT.hookOut + 0.12);
-  const lines: Caption[] = [
-    { text: 'THIS CRAB TOOK', y: 372, size: 156, alpha: hook },
-    { text: 'DOWN A BIRD', y: 510, size: 156, alpha: hook, hot: true },
-    { text: 'Middle of the night', y: 372, size: 128, alpha: window01(t, 1.68, 3.75, 0.25) },
-    { text: 'SNAP', y: 480, size: 290, alpha: window01(t, AT.snap, AT.fall + 0.3, 0.06), hot: true },
-    { text: '5 more arrived', y: 420, size: 150, alpha: window01(t, AT.moreEyes + 0.05, AT.scientist, 0.16) },
-    { text: 'A scientist watched it all.', y: 400, size: 104, alpha: window01(t, AT.scientist + 0.05, AT.game + 0.05, 0.16) },
-    { text: 'Chagos, 2016', y: 520, size: 104, alpha: window01(t, AT.scientist + 0.05, AT.game + 0.05, 0.16) },
-  ];
-  return lines.filter((c) => c.alpha > 0);
+/** How the script breaks into caption lines, by word count. The first two lines are the hook, shown together. */
+const LINE_WORDS = [4, 3, 4, 3, 4, 4, 2, 4, 3, 3, 4, 1, 3, 3, 2] as const;
+const HOOK_LINES = 2;
+const HOOK_ROWS = [{ y: 372, size: 146 }, { y: 506, size: 146 }] as const;
+const ROW = { y: 400, size: 126 } as const;
+
+export const LINES: readonly (readonly Word[])[] = LINE_WORDS.reduce<{ at: number; lines: (readonly Word[])[] }>(
+  (acc, n) => ({ at: acc.at + n, lines: [...acc.lines, WORDS.slice(acc.at, acc.at + n)] }),
+  { at: 0, lines: [] },
+).lines;
+
+const startOf = (line: readonly Word[]): number => inVoice(line[0]!.start);
+const currentIn = (line: readonly Word[], t: number): number => line.reduce((c, w, i) => (t >= inVoice(w.start) ? i : c), -1);
+const texts = (line: readonly Word[]): readonly string[] => line.map((w) => w.text);
+
+/** The spoken caption at time t: the hook's two rows up from frame 1, then one line at a time. */
+export function spokenAt(time: number): readonly SpokenRow[] {
+  const t = time >= LOOP_S ? time - LOOP_S : time;
+  if (t < startOf(LINES[HOOK_LINES]!)) {
+    return LINES.slice(0, HOOK_LINES).map((line, i) => ({
+      words: texts(line), current: i === 0 ? Math.max(0, currentIn(line, t)) : currentIn(line, t), unsaid: 1, ...HOOK_ROWS[i]!,
+    }));
+  }
+  const line = [...LINES].reverse().find((l) => t >= startOf(l))!;
+  return [{ words: texts(line), current: currentIn(line, t), unsaid: 0.55, ...ROW }];
 }
 
-export const GAME_LINE = ['Eat.', 'Grow.', 'Find', 'a', 'bigger', 'shell.'] as const;
+/** The big inked "SNAP", on the word. */
+export const SNAP_MARK = { y: 760, size: 300 } as const;
+export const snapMarkAt = (t: number): number => window01(t, AT.snap, AT.fall + 0.2, 0.05);
 
 // ---------------------------------------------------------------- the invitation at the end
 
 export const CTA_FADE_S = 0.3;
 export const CTA = {
-  y: 1136,
-  size: 148,
-  subY: 1228,
-  subSize: 84,
+  x: 372,
+  y: 1132,
+  size: 122,
+  subY: 1226,
+  subSize: 72,
   /** Arrow: a hand-inked curve, down and to the left, towards the channel name. */
   arrow: [{ x: 300, y: 1262 }, { x: 212, y: 1300 }, { x: 176, y: 1380 }, { x: 170, y: 1470 }] as readonly Pt[],
+  /** The small inked card of the game: its top-left corner, and size. */
+  card: { x: 700, y: 954, w: 326, h: 296 },
 } as const;
 
 /** How much of the invitation shows: only in the last 3 s, gone 0.6 s before the loop point. */
-export const ctaAt = (t: number): number => window01(t, AT.ctaStart + 0.25, AT.ctaGone, CTA_FADE_S);
+export const ctaAt = (t: number): number => window01(t, AT.ctaStart + 0.1, AT.ctaGone, CTA_FADE_S);
+
+/** The card's crab eating and growing: a size step on each bite. */
+export const cardCrabAt = (t: number): number => 1.05 + 0.13 * ramp(t, AT.ctaStart + 0.6, AT.ctaStart + 0.75) + 0.13 * ramp(t, AT.ctaStart + 1.3, AT.ctaStart + 1.45);
 
 /** Everything on screen at time t, as data: t = 0 and t = LOOP_S must match exactly. */
-export function stateAt(t: number): { readonly shots: FrameState; readonly pose: NightPose | null; readonly captions: readonly Caption[]; readonly cta: number } {
+export function stateAt(t: number): { readonly shots: FrameState; readonly pose: NightPose | null; readonly spoken: readonly SpokenRow[]; readonly snap: number; readonly cta: number } {
   const shots = shotsAt(t);
   const top = shots.over && shots.u >= 0.5 ? shots.over : shots.under;
-  return { shots, pose: top.id === 'hook' || top.id === 'night' ? nightPoseOf(top) : null, captions: captionsAt(t), cta: ctaAt(t) };
+  return { shots, pose: top.id === 'hook' || top.id === 'night' ? nightPoseOf(top) : null, spoken: spokenAt(t), snap: snapMarkAt(t), cta: ctaAt(t) };
 }

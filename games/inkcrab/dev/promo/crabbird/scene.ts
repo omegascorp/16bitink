@@ -209,33 +209,39 @@ export function makeLeaves(): { canvas: HTMLCanvasElement; x: number; y: number 
   return { canvas, x: box.x, y: box.y };
 }
 
+/** The low shot's moon, sinking more slowly than the ground rises so it stays clear of the words. */
+export function drawLowMoon(ctx: CanvasRenderingContext2D, lift: number): void {
+  const y = 610 + lift * 0.62;
+  blob(ctx, 790, y, 520, '#3f5aa8', 0.46);
+  blob(ctx, 790, y, 210, '#c7d6f6', 0.32);
+  ctx.fillStyle = '#ebe9dd';
+  ctx.beginPath();
+  ctx.arc(790, y, 84, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 /** The low shot, screen px: dark trees far off, a small moon, the ground rising close to the lens. */
-export function makeGroundShot(): HTMLCanvasElement {
+export function makeGroundShot(): { readonly sky: HTMLCanvasElement; readonly land: HTMLCanvasElement } {
   const { width: W, height: H } = VIDEO;
+  const { canvas: sky, ctx: skyCtx } = makeCanvas(W, H);
   const { canvas, ctx } = makeCanvas(W, H);
-  const g = ctx.createLinearGradient(0, 0, 0, H);
+  const g = skyCtx.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, '#04071a');
   g.addColorStop(0.42, '#0d1740');
   g.addColorStop(0.6, '#0b1236');
   g.addColorStop(1, '#02030a');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-  blob(ctx, 760, 610, 560, '#3f5aa8', 0.46);
-  blob(ctx, 760, 610, 220, '#c7d6f6', 0.32);
-  ctx.fillStyle = '#ebe9dd';
-  ctx.beginPath();
-  ctx.arc(760, 610, 92, 0, Math.PI * 2);
-  ctx.fill();
+  skyCtx.fillStyle = g;
+  skyCtx.fillRect(0, 0, W, H);
   const pen = new Pen(ctx, 3600, 2);
   const rnd = seeded(36);
   for (let i = 0; i < 90; i++) {
-    ctx.globalAlpha = 0.2 + rnd() * 0.5;
-    ctx.fillStyle = '#dfe8ff';
-    ctx.beginPath();
-    ctx.arc(rnd() * W, rnd() * 800, 0.8 + rnd() * 1.5, 0, Math.PI * 2);
-    ctx.fill();
+    skyCtx.globalAlpha = 0.2 + rnd() * 0.5;
+    skyCtx.fillStyle = '#dfe8ff';
+    skyCtx.beginPath();
+    skyCtx.arc(rnd() * W, rnd() * 800, 0.8 + rnd() * 1.5, 0, Math.PI * 2);
+    skyCtx.fill();
   }
-  ctx.globalAlpha = 1;
+  skyCtx.globalAlpha = 1;
   // The wood behind: a low, ragged wall of dark leaves.
   const wall: Pt[] = Array.from({ length: 74 }, (_, i) => ({ x: -20 + i * 15.4, y: 800 + 46 * Math.sin(i * 0.2) + 30 * Math.sin(i * 0.53 + 1) + 22 * Math.sin(i * 1.7) + rnd() * 34 }));
   const shape = [...spline(wall, 3), { x: W + 40, y: 1320 }, { x: -40, y: 1320 }];
@@ -245,7 +251,7 @@ export function makeGroundShot(): HTMLCanvasElement {
   ctx.fillStyle = wg;
   trace(ctx, shape);
   ctx.fill();
-  soft(ctx, spline(wall, 3).map((p) => ({ x: p.x, y: p.y + 5 })), 9, '#7c95d4', 0.3);
+  soft(ctx, spline(wall, 3).map((p) => ({ x: p.x, y: p.y + 5 })), 7, '#7c95d4', 0.13);
   for (let i = 0; i < 60; i++) leaf(ctx, pen, -20 + rnd() * (W + 40), 820 + rnd() * 90 - 40, 44 + rnd() * 50, rnd() * Math.PI * 2, 0.07);
   // The ground, close to the lens, leaf litter along its ridge.
   const ridge: Pt[] = Array.from({ length: 26 }, (_, i) => ({ x: -20 + i * 46, y: 1220 + 16 * Math.sin(i * 0.8) + 10 * Math.sin(i * 2.1) }));
@@ -263,5 +269,5 @@ export function makeGroundShot(): HTMLCanvasElement {
   });
   pen.stroke(spline(ridge, 5), 3.4, NIGHT_INK, 0.9, false);
   for (let i = 0; i < 18; i++) leaf(ctx, pen, rnd() * W, 1236 + rnd() * 90, 50 + rnd() * 50, -0.3 + rnd() * 0.6, 0.35);
-  return canvas;
+  return { sky, land: canvas };
 }

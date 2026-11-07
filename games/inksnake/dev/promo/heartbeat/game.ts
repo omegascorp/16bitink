@@ -8,6 +8,9 @@ import { HEART_AT } from './coils';
 import { HEART_W } from './heartArt';
 import { BLOOM_AT, coilProgress, GAME_AT, gameSqueeze, LOOP_S, preyGlow, pulseAt, ringAt } from './story';
 
+/** When the camera starts to sink onto the prey. */
+const SINK_AT = BLOOM_AT - 0.45;
+
 /**
  * The real game: chapter 1's "Rat Run", the board as the game paints it, the
  * corn snake (the game's strip and head, at game proportions) closing a loop
@@ -41,9 +44,9 @@ interface Cam {
 
 /** The rat at the upper middle, under the words; then it sinks to where frame 1's heart is, as the camera closes in. */
 function camAt(t: number): Cam {
-  const sink = ramp(t, 12.45, LOOP_S);
+  const sink = ramp(t, SINK_AT, LOOP_S);
   const zoom = lerp(ZOOM, 6.4, sink);
-  const y = lerp(750, HEART_AT.y, ramp(t, 12.45, BLOOM_AT + 0.25));
+  const y = lerp(750, HEART_AT.y, ramp(t, SINK_AT, BLOOM_AT + 0.25));
   return { x: RAT_AT.x + 0, y: RAT_AT.y - (y - VIDEO.height / 2) / zoom, zoom };
 }
 

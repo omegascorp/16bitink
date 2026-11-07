@@ -2,24 +2,37 @@ import { foldLoop, offlineMix, RATE, rotatedWav, surf } from '../audioKit';
 import type { SfxId } from '../../../src/audio/recipes';
 import { noise, noiseBuffer, synthesize, tone, type Voice } from '../../../src/audio/synth';
 import { ramp } from '../short';
-import { BLOCKS_AT, CAVE_AT, CHARGE_AT, EYE_OPEN_AT, EYE_TWITCH_AT, HIT_AT, LOOP_S, WAKE_AT } from './story';
+import { said } from './words';
+import { BLOCKS_AT, CHARGE_AT, DIG_FROM, EYE_OPEN_AT, EYE_TWITCH_AT, HIT_AT, LOOP_S, WAKE_AT } from './story';
 
 /**
- * The soundtrack, no voice and no music, from the game's own effects
+ * The soundtrack: the narrator (voice.mp3, from the loop's start, straight to
+ * the output) on top, and quiet under him the game's own effects
  * (mineSounds.ts: the drill's grind and crumble, the Leviathan's long low
  * swell, lower as it wakes) and a few built from the same synth pieces: the
  * chest thump of each block, the charge's rising rumble, the impact. The
- * water's hush drops out entirely for the silence before the eye. The
+ * water's hush drops out for the held breath before "Its eye opens!". The
  * rumble runs past the loop's end and folds back onto the start, up to the
  * impact, so the seam is inside one sound.
  */
 const TAIL_S = 3;
-const SFX_GAIN = 2.4;
-const WATER_GAIN = 0.34;
+const VOICE_URL = new URL('./voice.mp3', import.meta.url).href;
+/** The take peaks high: the voice sets the mix's peak. */
+const VOICE_GAIN = 0.8;
+/**
+ * Each phrase's lift (dB), from its first word: the take's quiet lines sit up
+ * to 10 dB under its loud ones, so this rides them back to within about 5 dB.
+ */
+const LIFTS: readonly (readonly [number, number])[] = [[0, 0], [5, 3], [8, 5], [13, 3], [19, 3], [21, 2], [23, 0], [30, 0], [34, 3]];
+/** The effects' master level, well under the voice. */
+const SFX_GAIN = 0.62;
+const WATER_GAIN = 0.1;
+/** The impact, kept below the voice it lands under. */
+const IMPACT_GAIN = 0.55;
 const WATER_SWELLS = 3;
 /** The mix's peak: AAC adds a little, so this lands near -4 dB in the video. */
 const PEAK = 10 ** (-4.0 / 20);
-/** The hush drops away as the last block goes, back when it charges. */
+/** The hush drops away after the last block, back as the eye opens. */
 const SILENT_FROM = BLOCKS_AT[4]! + 0.12;
 const SILENT_TO = EYE_OPEN_AT + 0.1;
 
@@ -39,7 +52,7 @@ function impact(v: Voice): void {
 }
 
 /** The charge's level over its length: in fast, climbing all the way, cut off by the impact. */
-const RUMBLE: readonly (readonly [number, number])[] = [[0, 0], [0.5, 0.4], [2.4, 0.62], [4.8, 0.76], [6.3, 0.95], [7, 1]];
+const RUMBLE: readonly (readonly [number, number])[] = [[0, 0], [0.4, 0.5], [1.2, 0.62], [2.2, 0.7], [3.2, 0.85], [LOOP_S + HIT_AT - CHARGE_AT, 1]];
 
 /**
  * The charge: rushing water and a sub rising together, then cut dead. The
@@ -73,6 +86,21 @@ function rumble(v: Voice): void {
   sub.stop(v.t + end + 0.1);
 }
 
+async function addVoice(ctx: OfflineAudioContext): Promise<void> {
+  const response = await fetch(VOICE_URL);
+  if (!response.ok) throw new Error(`${VOICE_URL}: ${response.status}`);
+  const voice = ctx.createBufferSource();
+  voice.buffer = await ctx.decodeAudioData(await response.arrayBuffer());
+  const level = ctx.createGain();
+  level.gain.setValueAtTime(VOICE_GAIN, 0);
+  for (const [word, db] of LIFTS) {
+    // Moved in the pause before the phrase, so no word swells.
+    level.gain.setTargetAtTime(VOICE_GAIN * 10 ** (db / 20), Math.max(0, said(word) - 0.18), 0.04);
+  }
+  voice.connect(level).connect(ctx.destination);
+  voice.start(0);
+}
+
 export async function renderLeviathanAudio(start = 0): Promise<Blob> {
   const { ctx, master, play } = offlineMix(LOOP_S + TAIL_S, SFX_GAIN);
   const at = (t: number): Voice => {
@@ -86,7 +114,7 @@ export async function renderLeviathanAudio(start = 0): Promise<Blob> {
 
   // The dig: the grind ticking away, each block a crumble and a thump, the notch on the bar a step higher.
   const lastBlock = BLOCKS_AT[BLOCKS_AT.length - 1]!;
-  for (let t = CAVE_AT + 0.25; t < lastBlock; t += 0.2) fx('grindHard', t, 0.92 + ((t * 7) % 1) * 0.12, 0.62, 0.22);
+  for (let t = DIG_FROM; t < lastBlock; t += 0.2) fx('grindHard', t, 0.92 + ((t * 7) % 1) * 0.12, 0.62, 0.22);
   BLOCKS_AT.forEach((b, k) => {
     fx('crumbleHard', b, 0.86 + k * 0.05, 1.2 + k * 0.14, 0.2);
     thump(at(b), k / 4);
@@ -104,10 +132,15 @@ export async function renderLeviathanAudio(start = 0): Promise<Blob> {
   // The charge, the jet firing up as the prospector runs, the impact past the loop point.
   rumble(at(LOOP_S + HIT_AT - RUMBLE[RUMBLE.length - 1]![0]));
   fx('swell', CHARGE_AT, 0.25, 4);
-  fx('swell', CHARGE_AT + 2.4, 0.25, 4);
+  fx('swell', CHARGE_AT + 1.3, 0.25, 4);
   fx('jetStart', CHARGE_AT + 0.05, 0.8, 1.2, 0.3);
-  impact(at(LOOP_S + HIT_AT));
+  const blow = at(LOOP_S + HIT_AT);
+  const blowLevel = ctx.createGain();
+  blowLevel.gain.value = IMPACT_GAIN;
+  blowLevel.connect(blow.out);
+  impact({ ...blow, out: blowLevel });
 
+  await addVoice(ctx);
   const loop = foldLoop(await ctx.startRendering(), LOOP_S);
   const water = surf(loop[0]!.length, WATER_SWELLS);
   /** The water's level at a sample: gone for the silence. */

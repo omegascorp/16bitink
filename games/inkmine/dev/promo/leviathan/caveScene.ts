@@ -4,12 +4,12 @@ import { mix, rgba } from '../../../src/art/paint';
 import { PAPER_FILL, RED } from '../../../src/art/palette';
 import { createRng } from '../../../src/logic/rng';
 import { drawTextLine, PAPER_ON_DARK } from '../captions';
-import { clamp01, lerp, ramp, smooth, VIDEO } from '../short';
+import { clamp01, lerp, ramp, VIDEO } from '../short';
 import { drawSprite } from '../sprites';
 import { bubblesIn, drawBubbles } from './bubbles';
 import { BLOCK, blockCorner, FLOOR_Y, makeBlock, makeCaveBack, makeRock, ROCK_INK, ROW_TOP, SHAFT_X } from './cave';
 import { FEET, type Figures } from './figures';
-import { BLOCKS_AT, CAVE_AT, digAt, hushAt, lightsAt, noiseAt, sceneAt, WAKE_AT, wrap } from './story';
+import { barAt, BLOCKS_AT, caveCameraAt, digAt, hushAt, lightsAt, noiseAt, sceneAt, wrap } from './story';
 
 /** Screen px per drawing unit in the wide shots: the giant nearly fills the width, its tail just out of frame. */
 const GIANT_SCALE = 3.3;
@@ -52,7 +52,7 @@ function drawNoiseBar(ctx: CanvasRenderingContext2D, t: number, boil: number): v
   }
   for (let i = 0; i < 4; i++) d.pen.stroke([shape[i]!, shape[(i + 1) % 4]!], 6, PAPER_FILL, 1, false);
   ctx.restore();
-  drawTextLine(ctx, 'NOISE', x + w / 2 + 8, y - 22, 66, 700, 1, hot > 0.5 ? { fill: '#ff8a6a', halo: '#0d1230' } : PAPER_ON_DARK);
+  drawTextLine(ctx, 'NOISE', x + w / 2 + 8, y - 22, 66, 700, ctx.globalAlpha, hot > 0.5 ? { fill: '#ff8a6a', halo: '#0d1230' } : PAPER_ON_DARK);
 }
 
 /** Bits of the block flying off and sinking in the water, for 1.4 s after it gives. */
@@ -144,15 +144,15 @@ export function makeCaveScene(figures: Figures): (ctx: CanvasRenderingContext2D,
   return (ctx, time, boil) => {
     const t = wrap(time);
     const waking = sceneAt(t) === 'wake';
-    const push = lerp(1, 1.05, smooth((t - CAVE_AT) / (WAKE_AT - CAVE_AT)));
+    const camera = caveCameraAt(t);
     const dig = digAt(t);
     const headY = ROW_TOP - FEET * FIGURE_SCALE + dig.row * BLOCK;
     const hush = hushAt(t);
     const buzz = hush > 0 || waking ? 0 : Math.sin(t * 90) * 2.2;
     ctx.save();
-    ctx.translate(690, 960);
-    ctx.scale(push, push);
-    ctx.translate(-690, -960);
+    ctx.translate(540, 960);
+    ctx.scale(camera.zoom, camera.zoom);
+    ctx.translate(-camera.x, -camera.y);
     ctx.drawImage(back, -60, -60);
     drawBubbles(ctx, bubblesIn(t, 12, 2.2, { x0: 0, x1: 1080, y0: 860, y1: 1300, rMin: 4, rMax: 11 }), 0.6);
     const giant = waking ? figures.stir : figures.sleep;
@@ -171,7 +171,8 @@ export function makeCaveScene(figures: Figures): (ctx: CanvasRenderingContext2D,
 
     ctx.save();
     ctx.globalCompositeOperation = 'multiply';
-    ctx.drawImage(darkCanvas, 0, 0);
+    // Past the frame's edges, whatever the camera is doing.
+    ctx.drawImage(darkCanvas, -120, -120, VIDEO.width + 240, VIDEO.height + 240);
     ctx.restore();
 
     if (waking) {
@@ -203,6 +204,12 @@ export function makeCaveScene(figures: Figures): (ctx: CanvasRenderingContext2D,
     drawSprite(ctx, hush > 0.5 || waking ? figures.idle : figures.drill, boil, { x, y, scale: FIGURE_SCALE });
     if (hush <= 0) drawRings(ctx, t, boil);
     ctx.restore();
-    drawNoiseBar(ctx, t, boil);
+    const bar = barAt(t);
+    if (bar > 0) {
+      ctx.save();
+      ctx.globalAlpha = bar;
+      drawNoiseBar(ctx, t, boil);
+      ctx.restore();
+    }
   };
 }

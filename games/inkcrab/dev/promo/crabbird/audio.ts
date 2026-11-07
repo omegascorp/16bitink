@@ -1,16 +1,19 @@
-import { foldLoop, offlineMix, RATE, rotatedWav } from '../audioKit';
+import { addVoice, foldLoop, offlineMix, RATE, rotatedWav } from '../audioKit';
 import { clamp01 } from '../short';
-import { AT, LOOP_S, MOVE_AT } from './story';
+import { AT, LOOP_S } from './story';
 
 /**
- * The soundtrack, made the way the game makes its sounds (filtered noise and
- * short pitch slides): night insects, a soft sleeping breath, legs scratching
- * bark, the snap, the fall, then silence, then clicking claws; the game's own
- * effects for its last three seconds. No music. The whole mix is normalised
- * so the peak sits at -4 dB.
+ * The soundtrack: the narrator (voice.mp3, starting with the loop) straight to
+ * the output, with the night quiet under him, made the way the game makes its
+ * sounds (filtered noise and short pitch slides): insects, a soft sleeping
+ * breath, legs scratching bark, the snap, the fall, clicking claws. No music.
+ * The whole mix is normalised so the peak sits at -4 dB.
  */
 const TAIL_S = 2;
 const PEAK = 10 ** (-4 / 20);
+const VOICE_URL = new URL('./voice.mp3', import.meta.url).href;
+/** The effects' level under the voice. */
+const UNDER_VOICE = 0.42;
 
 /** White noise from a fixed seed, so every render is identical. */
 function noiseBuffer(ctx: OfflineAudioContext): AudioBuffer {
@@ -100,24 +103,24 @@ function insects(frames: number): Float32Array[] {
 }
 
 export async function renderCrabbirdAudio(start = 0): Promise<Blob> {
-  const { ctx, play, master } = offlineMix(LOOP_S + TAIL_S, 1);
+  const { ctx, master } = offlineMix(LOOP_S + TAIL_S, UNDER_VOICE);
   const noise = noiseBuffer(ctx);
 
   // Sleep: a slow breath, in and out, through the hook and the calm.
-  for (let b = 0; b < 6; b++) {
+  for (let b = 0; b < 4; b++) {
     const t = 1.8 * b + 0.05;
-    if (t < AT.snap - 0.3) {
+    if (t < AT.reach) {
       burst(ctx, master, noise, { t, dur: 0.85, freq: 620, to: 900, gain: 0.15, q: 0.7, attack: 0.3 });
       burst(ctx, master, noise, { t: t + 0.9, dur: 0.8, freq: 800, to: 460, gain: 0.115, q: 0.7, attack: 0.25 });
     }
   }
   // Legs on bark, quickening as the crab climbs, a dry scratch per footfall.
-  for (let t = AT.reach + 0.1, i = 0; t < AT.climbEnd + 0.15; t += 0.19 - Math.min(0.06, i * 0.005), i++) {
+  for (let t = AT.reach + 0.1, i = 0; t < AT.climbEnd + 0.1; t += 0.2 - Math.min(0.06, i * 0.005), i++) {
     burst(ctx, master, noise, { t, dur: 0.075, freq: 2600 + (i % 4) * 460, gain: 0.24 + 0.014 * i, q: 2.4, pan: (i % 2 ? 0.4 : -0.3) });
     tone(ctx, master, t, 240 + (i % 3) * 40, 120, 0.05, 0.1, 'triangle');
   }
   // The claw winding up, a tiny creak.
-  burst(ctx, master, noise, { t: AT.climbEnd + 0.05, dur: 0.38, freq: 1400, to: 3400, gain: 0.06, q: 6, attack: 0.3 });
+  burst(ctx, master, noise, { t: AT.wing, dur: 0.38, freq: 1400, to: 3400, gain: 0.06, q: 6, attack: 0.3 });
   // The snap: a hard crack with a low body.
   burst(ctx, master, noise, { t: AT.snap, dur: 0.11, freq: 5200, gain: 0.36, q: 0.8, attack: 0.001 });
   burst(ctx, master, noise, { t: AT.snap, dur: 0.05, freq: 1800, gain: 0.28, q: 1.2, attack: 0.001 });
@@ -131,24 +134,19 @@ export async function renderCrabbirdAudio(start = 0): Promise<Blob> {
   burst(ctx, master, noise, { t: AT.ground, dur: 0.2, freq: 420, gain: 0.3, q: 0.7, attack: 0.002 });
   // Clicking claws: one crab, then many, closing in.
   const clicks: readonly (readonly [number, number])[] = [
-    [AT.firstEyes + 0.05, 0.42], [AT.firstEyes + 0.28, 0.36],
-    ...Array.from({ length: 22 }, (_, i) => [AT.moreEyes + i * 0.098 + (i % 3) * 0.024, 0.2 + 0.014 * i] as const),
+    [AT.firstEyes + 0.05, 0.42], [AT.firstEyes + 0.24, 0.36],
+    ...Array.from({ length: 34 }, (_, i) => [AT.moreEyes + i * 0.098 + (i % 3) * 0.024, 0.2 + 0.008 * i] as const),
   ];
   clicks.forEach(([t, gain], i) => {
     const pan = Math.sin(i * 2.4) * 0.7;
     burst(ctx, master, noise, { t, dur: 0.03, freq: 3100 + (i % 5) * 620, gain, q: 5, attack: 0.001, pan });
     tone(ctx, master, t, 1500 + (i % 4) * 330, 700, 0.022, gain * 0.5, 'triangle');
   });
-  // The game's own effects.
-  for (const t of [11.0, 11.45, 11.9]) {
-    play('eat', t, 1 + (t - 11) * 0.2, 1.1);
-    play('grow', t + 0.05, 1 + (t - 11) * 0.3, 0.75);
-  }
-  play('movein', MOVE_AT, 1, 1.2);
+  await addVoice(ctx, VOICE_URL);
 
   const loop = foldLoop(await ctx.startRendering(), LOOP_S);
   const bed = insects(loop[0]!.length);
-  const mixed = loop.map((ch, c) => ch.map((v, i) => v + bed[c]![i]!));
+  const mixed = loop.map((ch, c) => ch.map((v, i) => v + UNDER_VOICE * bed[c]![i]!));
   const peak = mixed.reduce((m, ch) => ch.reduce((p, v) => Math.max(p, Math.abs(v)), m), 1e-6);
   return rotatedWav(mixed.map((ch) => ch.map((v) => (v * PEAK) / peak)), LOOP_S, start);
 }

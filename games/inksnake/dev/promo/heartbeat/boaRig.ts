@@ -4,9 +4,8 @@ import { JAW_ART, type EyeState } from './boaHead';
 import type { Cast } from './cast';
 
 /**
- * The boa's side-on jaws, shared by the shots: two sprites hung from hinges
- * on the neck and pointing at the lips, so they open round anything; the
- * pink mouth between them, drawn behind what's in it.
+ * The boa's side-on head: two sprites hung from hinges on the neck and
+ * pointing at the lips, and the boa's body laid along a spine.
  */
 export interface Jaws {
   /** The middle of the mouth's rim, the way the head points and the head's length. */
@@ -52,29 +51,6 @@ function placeOf(j: Jaws): Place {
   return { hingeU: along(j.rim, a, -j.len, offU), hingeL: along(j.rim, a, -j.len, -offL), tipU: along(j.rim, a, 0, j.top), tipL: along(j.rim, a, 0, -j.bottom) };
 }
 
-/** The inside of the mouth, behind whatever is in it. */
-export function drawMouth(ctx: CanvasRenderingContext2D, j: Jaws): void {
-  if (j.top + j.bottom < 8) return;
-  const q = placeOf(j);
-  const back = { x: (q.hingeU.x + q.hingeL.x) / 2, y: (q.hingeU.y + q.hingeL.y) / 2 };
-  const front = { x: (q.tipU.x + q.tipL.x) / 2, y: (q.tipU.y + q.tipL.y) / 2 };
-  const g = ctx.createLinearGradient(back.x, back.y, front.x, front.y);
-  g.addColorStop(0, '#3a0f1a');
-  g.addColorStop(0.2, '#8a2f42');
-  g.addColorStop(0.6, '#d97f8c');
-  g.addColorStop(1, '#efb4b6');
-  ctx.save();
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.moveTo(q.hingeU.x, q.hingeU.y);
-  ctx.lineTo(q.tipU.x, q.tipU.y);
-  ctx.quadraticCurveTo(front.x + (back.x - front.x) * 0.28, front.y + (back.y - front.y) * 0.28, q.tipL.x, q.tipL.y);
-  ctx.lineTo(q.hingeL.x, q.hingeL.y);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
 function drawJaw(ctx: CanvasRenderingContext2D, sprite: Sprite, boil: number, hinge: Pt, tip: Pt, alpha: number): void {
   const rotation = Math.atan2(tip.y - hinge.y, tip.x - hinge.x);
   drawSprite(ctx, sprite, boil, { x: hinge.x, y: hinge.y, rotation, flip: -1, scale: Math.hypot(tip.x - hinge.x, tip.y - hinge.y) / JAW_ART, alpha });
@@ -83,10 +59,7 @@ function drawJaw(ctx: CanvasRenderingContext2D, sprite: Sprite, boil: number, hi
 /** The jaws over the neck and over whatever is in them. */
 export function drawJaws(ctx: CanvasRenderingContext2D, cast: Cast, boil: number, j: Jaws): void {
   const q = placeOf(j);
-  const open = Math.min(1, Math.max(0, (j.top + j.bottom - 12) / 70));
-  drawJaw(ctx, cast.floor, boil, q.hingeL, q.tipL, open);
   drawJaw(ctx, cast.lower, boil, q.hingeL, q.tipL, 1);
-  drawJaw(ctx, cast.roof, boil, q.hingeU, q.tipU, open);
   drawJaw(ctx, cast.upper[j.eye], boil, q.hingeU, q.tipU, 1);
 }
 

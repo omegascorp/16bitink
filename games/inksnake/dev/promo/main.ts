@@ -24,8 +24,8 @@ import { CREDIT as HEARTBEAT_CREDIT } from './heartbeat/story';
  * freshwater crocodile, Lake Moondarra) or eggeater (the common egg-eater
  * swallowing an egg wider than its head, savanna) or spidertail (the
  * spider-tailed horned viper's fake spider, chapter 7's mountains) or gulphen
- * (gameplay, no voice: the corn snake swallows a hen) or heartbeat (no voice:
- * the boa feels the rat's heart through its coils, then the game). ?short=kit
+ * (gameplay, no voice: the corn snake swallows a hen) or heartbeat (the boa
+ * feels a heart through its coils, and the fake-heart experiment, then the game). ?short=kit
  * shows the shared sprites. Plays live; ?t=4.2 freezes one moment. `pnpm promo`
  * (dev/promo/record.mjs) drives window.promo frame by frame to make the
  * video files.

@@ -228,7 +228,7 @@ Where a visitor starts a game (30 days): `/play/<game>` 58% for InkFish and InkS
 4. **Views and buyers point at different games.** InkMine is the weakest on views and the best per player. Its failed shorts were space facts; none showed the game.
 5. **Three tracking and funnel problems:** InkPin sends no `level_start` or `level_end`, so its funnel is empty. InkGecko's level 1 was beaten by 13 players but only 3 started level 2, which looks more like a flow problem than difficulty. InkCrab's level 2 was beaten by 4 of 11.
 
-Batch #101–104 tests this: one short per game, with the short link in the credit and "tap the channel name" with an arrow in the last 3 seconds.
+Batch #101–104 tests this: one short per game, narrated, with the short link in the credit and "tap the channel name" with an arrow at the end.
 
 ## What works so far
 
@@ -471,10 +471,12 @@ Priority follows what a player is worth, then what the channel has shown it watc
 | 9 | InkGecko | A leopard gecko's dropped tail keeps moving, flipping up to 3 cm | Body part | Abstract only. Up to 30 min, Higham & Russell 2010. Same hold |
 | 10 | InkCrab | Raccoons and crabs (#36 was InkCrab's best) | Narrated | Needs a topic and fact-check |
 
-**Voiced versions, ready for credits:** both scripts passed the 2026-11-06 fact-check. Budget about 2,530 credits for 8 takes, plus Scribe.
+**Scripts voiced for #101–104 (2026-11-06, Mark, eleven_v4).** Silent cuts are kept as `promo/*-silent.mp4`. #103's word timings are pause-based, not from Scribe (see its `words.ts`).
 
-- **Boa:** *"[curious] This snake squeezes until the heart STOPS. [nervous] A boa feels a heartbeat… through its coils. [surprised] Scientists hid a fake heart in a dead rat! [excited] Left beating, the boa squeezed nearly TWICE as long. [sad] Switched off… [chuckles] it let go sooner. [mischievously] So it just waits, because"* Say boas only, never corn snakes or pythons (Boback et al. 2012).
-- **Coconut crab:** *"[excited] This crab took down a sleeping BIRD. [nervous] Middle of the night. A booby dozes on a low branch… [dramatically] and a coconut crab climbs up! [surprised] It grabs the wing, and SNAPS it! [sad] The bird falls… [excited] and five MORE crabs arrive. [mischievously] A scientist saw the whole thing, the night"* One observation, Chagos, March 2016. The paper (Laidre 2017) was paywalled, so this rests on three press reports. Never imply crabs do this regularly.
+- **Boa:** *"This snake squeezes until the heart STOPS. A boa feels a heartbeat… through its coils. Scientists hid a fake heart in a dead rat! Left beating, the boa squeezed nearly TWICE as long. Switched off… it let go sooner. So it just waits, because"* Say boas only, never corn snakes or pythons (Boback et al. 2012).
+- **Coconut crab:** *"This crab took down a sleeping BIRD. Middle of the night. A booby dozes on a low branch… and a coconut crab climbs up! It grabs the wing, and SNAPS it! The bird falls… and five MORE crabs arrive. A scientist saw the whole thing, the night"* One observation, Chagos, March 2016. The paper (Laidre 2017) was paywalled, so this rests on three press reports. Never imply crabs do this regularly.
+- **Leviathan:** *"NEVER drill near this thing. It's the Leviathan, asleep in a flooded cave… Every block you drill makes noise. One more… one more… Its eye opens! You can't hurt it. You can only RUN! So, a little advice:"* Game facts only: it wakes and shoves you, and it doesn't swallow.
+- **InkPin:** *"Which pin would you pull first? One holds back water. One holds back LAVA. And Nib the raccoon is stuck with an angry boar… Water first? Bye, Nib. But pull the LAVA first… and that boar is in big trouble! So, one question:"*
 
 ### Narrated topics waiting for credits (researched 2026-11-05, not yet fact-checked)
 

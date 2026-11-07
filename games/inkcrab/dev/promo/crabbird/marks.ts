@@ -1,5 +1,4 @@
 import { makeCanvas, Pen, type Pt } from '../../../src/art/pen';
-import { RED } from '../../../src/art/palette';
 import { blob, inside, MOON_RIM, NIGHT_INK, seeded, soft, spline, trace } from './art/paint';
 import { VIDEO } from '../short';
 import { CTA, type EyePair, eyeCreepAt, eyeRiseAt, type Feather } from './story';
@@ -228,7 +227,7 @@ export function drawArrow(ctx: CanvasRenderingContext2D, alpha: number, boil: nu
   const head = (side: number): Pt => ({ x: tip.x + Math.cos(a + side * 2.5) * 78, y: tip.y + Math.sin(a + side * 2.5) * 78 });
   ctx.save();
   ctx.globalAlpha = alpha;
-  for (const [w, colour] of [[34, '#fff6e2'], [19, RED]] as const) {
+  for (const [w, colour] of [[34, '#0d1230'], [19, '#ff5a3c']] as const) {
     const pen = new Pen(ctx, 5300 + boil * 7, 1.6);
     pen.stroke(line, w, colour, 1, false);
     // Two firm, blunt strokes for the head, the pen pressed down.

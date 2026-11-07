@@ -1,53 +1,54 @@
 import { clamp01, curveAt, lerp, ramp, smooth, window01, type Key } from '../short';
 import { boilAt as kitBoilAt } from '../sprites';
+import { said } from './words';
 
 /**
- * "Never Drill Near This": every beat as a pure function of loop time, no
- * voice. The file opens on the end of the chase (the mouth, the tiny
- * prospector) and rolls straight into the slam the game really does (the
- * giant's body hits you and throws you; it never swallows anyone). Then the
- * quiet start: the prospector digs down at the sleeper's cave, the noise
- * climbing a block at a time, until one block too many. Silence, the eye,
- * the lights, the charge, and the chase lands back on frame 1.
- *
- *   CHASE   0.0–0.5   (the end of the chase, carried over the loop point)
- *   SLAM    0.5–1.35  side on: the awake body sweeps through and throws you
- *   CAVE    1.35–5.2  the quiet: five blocks, the noise bar rising
- *   EYE     5.2–6.45  cut in: the eye opens
- *   WAKE    6.45–7.2  side on again: lights come up along the flank
- *   CHASE   7.2–13.5  it charges out of the dark, mouth opening; the CTA from 10.5
+ * "Never Drill Near This", narrated: every beat as a pure function of loop
+ * time, cut on the words (words.ts). The file opens on the end of the chase
+ * (the mouth, the tiny prospector): "NEVER drill near this thing", and on
+ * "thing" the slam the game really does (its body hits you and throws you;
+ * it never swallows anyone). "It's the Leviathan, asleep in a flooded cave"
+ * is the sleeper close, pulling back to the shaft over its head; "Every block
+ * you drill makes noise" and each "One more…" take a block and jump the bar.
+ * "Its eye opens!" cuts in on the eye. "You can't hurt it" is the lights
+ * coming up, "You can only RUN!" the charge, and "So, a little advice:" lands
+ * on the frame-1 mouth with the CTA, the loop's first line finishing it.
  */
-export const LOOP_S = 13.5;
+export const LOOP_S = 15;
 
-export const SLAM_AT = 0.5;
-export const CAVE_AT = 1.35;
-export const EYE_AT = 5.2;
-export const WAKE_AT = 6.45;
-export const CHARGE_AT = 7.2;
-/** When the charge has grown into the held chase. */
-export const CHASE_AT = 9.6;
+/** Word indices in WORDS that beats are cut on. */
+const W = { thing: 4, its: 5, block: 14, drill: 16, noise: 18, more1: 20, more2: 22, itsEye: 23, eye: 24, opens: 25, cant: 26, run: 30, so: 34 } as const;
 
-/** The body meets the prospector (the impact), a little after the cut to the side view. */
-export const HIT_AT = 0.72;
+/** The body meets the prospector on "thing". */
+export const HIT_AT = said(W.thing);
+export const SLAM_AT = HIT_AT - 0.22;
+export const CAVE_AT = SLAM_AT + 0.85;
+export const EYE_AT = said(W.itsEye);
+export const WAKE_AT = said(W.cant);
+export const CHARGE_AT = said(W.run);
+/** "So, a little advice:": the charge has grown into the held mouth. */
+export const CHASE_AT = said(W.so);
 
-/** The five blocks that give, each louder than the one before; a held breath before the last. */
-export const BLOCKS_AT: readonly number[] = [1.8, 2.5, 3.15, 3.75, 4.7];
+/** The five blocks: on "block", "drill" and "noise", then each "more…", the bar jumping with every one. */
+export const BLOCKS_AT: readonly number[] = [said(W.block), said(W.drill), said(W.noise), said(W.more1), said(W.more2)];
+/** The prospector starts work as the pull-back ends. */
+export const DIG_FROM = said(W.block) - 0.55;
 /** Two blocks are already dug when we arrive, so the bar starts part way (each adds the game's 0.14). */
 export const NOISE_START = 0.28;
 export const NOISE_PER_BLOCK = 0.144;
 
-/** The upper lid: shut, a twitch, then wide. */
-export const EYE_TWITCH_AT = 5.55;
-export const EYE_OPEN_AT = 5.72;
-export const EYE_OPEN_S = 0.32;
+/** The upper lid: shut through "Its", a twitch on "eye", wide on "opens!". */
+export const EYE_TWITCH_AT = said(W.eye);
+export const EYE_OPEN_AT = said(W.opens);
+export const EYE_OPEN_S = 0.3;
 
 /** The CTA: the last 3.0 s, gone 0.6 s before the loop point. */
 export const CTA_FROM = LOOP_S - 3;
 export const CTA_TO = LOOP_S - 0.6;
 export const CTA_FADE_S = 0.3;
 
-/** The hook caption: up on frame 1, gone as the quiet starts, back only after the CTA has left. */
-export const HOOK_OFF_AT = 1;
+/** The hook caption: up on frame 1 through the line it says, back only after the CTA has left. */
+export const HOOK_OFF_AT = said(W.its) - 0.5;
 export const HOOK_OFF_S = 0.2;
 export const HOOK_BACK_AT = LOOP_S - 0.55;
 export const HOOK_BACK_S = 0.3;
@@ -77,16 +78,16 @@ export const chaseClock = (time: number): number => {
 const OVERRUN = LOOP_S + SLAM_AT;
 
 const HEAD_SCALE: readonly Key[] = [
-  { t: CHARGE_AT, at: 0.3, rate: 0.08 }, { t: 8.2, at: 0.42 }, { t: 9, at: 0.66 }, { t: CHASE_AT, at: 0.86 }, { t: 11, at: 0.91 }, { t: 12.4, at: 0.95 }, { t: LOOP_S, at: 1, rate: 0.09 }, { t: OVERRUN, at: 1.09, rate: 0.3 },
+  { t: CHARGE_AT, at: 0.3, rate: 0.2 }, { t: CHARGE_AT + 0.5, at: 0.52 }, { t: CHASE_AT, at: 0.88 }, { t: 14.2, at: 0.94 }, { t: LOOP_S, at: 1, rate: 0.09 }, { t: OVERRUN, at: 1.16, rate: 0.16 },
 ];
 const HEAD_X: readonly Key[] = [
-  { t: CHARGE_AT, at: 350, rate: 0 }, { t: 9, at: 480 }, { t: CHASE_AT, at: 545 }, { t: 11.5, at: 520 }, { t: LOOP_S, at: 540, rate: 0 }, { t: OVERRUN, at: 540, rate: 0 },
+  { t: CHARGE_AT, at: 350, rate: 0 }, { t: CHARGE_AT + 0.5, at: 450 }, { t: CHASE_AT, at: 545 }, { t: 14.2, at: 525 }, { t: LOOP_S, at: 540, rate: 0 }, { t: OVERRUN, at: 540, rate: 0 },
 ];
 const HEAD_Y: readonly Key[] = [
-  { t: CHARGE_AT, at: 660, rate: 0 }, { t: 9, at: 830 }, { t: CHASE_AT, at: 1010 }, { t: 11.5, at: 1050 }, { t: LOOP_S, at: 1060, rate: 0 }, { t: OVERRUN, at: 1064, rate: 0 },
+  { t: CHARGE_AT, at: 660, rate: 0 }, { t: CHARGE_AT + 0.5, at: 830 }, { t: CHASE_AT, at: 1030 }, { t: 14.2, at: 1050 }, { t: LOOP_S, at: 1060, rate: 0 }, { t: OVERRUN, at: 1066, rate: 0 },
 ];
 const GAPE: readonly Key[] = [
-  { t: CHARGE_AT, at: 0.08, rate: 0 }, { t: 7.5, at: 0.12 }, { t: 8.5, at: 0.74 }, { t: 9.4, at: 0.96 }, { t: 10, at: 1, rate: 0 }, { t: LOOP_S, at: 1, rate: 0 }, { t: OVERRUN, at: 1, rate: 0 },
+  { t: CHARGE_AT, at: 0.1, rate: 0 }, { t: CHARGE_AT + 0.75, at: 0.8 }, { t: CHASE_AT + 0.1, at: 1, rate: 0 }, { t: LOOP_S, at: 1, rate: 0 }, { t: OVERRUN, at: 1, rate: 0 },
 ];
 
 export interface HeadPose {
@@ -114,11 +115,12 @@ export function headAt(time: number): HeadPose {
   };
 }
 
+// Above y 1000 while the CTA is up, so the lines under them stay clear.
 const FLEE_X: readonly Key[] = [
-  { t: CHARGE_AT, at: 760, rate: -20 }, { t: 8.3, at: 690 }, { t: 9.2, at: 600 }, { t: 10.2, at: 430 }, { t: 11.3, at: 640 }, { t: 12.4, at: 500 }, { t: LOOP_S, at: 560, rate: 60 }, { t: OVERRUN, at: 640, rate: 240 },
+  { t: CHARGE_AT, at: 780, rate: -60 }, { t: CHASE_AT, at: 480 }, { t: 14.2, at: 640 }, { t: LOOP_S, at: 560, rate: -40 }, { t: OVERRUN, at: 640, rate: 120 },
 ];
 const FLEE_Y: readonly Key[] = [
-  { t: CHARGE_AT, at: 1120, rate: 0 }, { t: 8.6, at: 1160 }, { t: 9.6, at: 1010 }, { t: 10.4, at: 880 }, { t: 11.3, at: 830 }, { t: 12.4, at: 880 }, { t: LOOP_S, at: 960, rate: 40 }, { t: OVERRUN, at: 980, rate: 40 },
+  { t: CHARGE_AT, at: 800, rate: 0 }, { t: CHASE_AT, at: 870 }, { t: 14.2, at: 830 }, { t: LOOP_S, at: 960, rate: 40 }, { t: OVERRUN, at: 990, rate: 20 },
 ];
 
 export interface Flee {
@@ -155,9 +157,23 @@ export function shakeAt(time: number): { x: number; y: number } {
   const c = chaseClock(time);
   // It steadies for the beat around the loop point, so frame 1 is sharp and the last frame lands on it.
   const steady = lerp(0.05, 1, ramp(Math.abs(c - LOOP_S), 0.04, 0.32));
-  const k = steady * (7 + 12 * ramp(c, 8.4, CHASE_AT) * (0.75 + 0.25 * breath(c)) + 10 * ramp(c, LOOP_S, OVERRUN));
+  const k = steady * (7 + 12 * ramp(c, CHARGE_AT, CHASE_AT) * (0.75 + 0.25 * breath(c)) + 10 * ramp(c, LOOP_S, OVERRUN));
   return { x: k * Math.sin(c * 41), y: k * Math.cos(c * 53) };
 }
+
+/** The camera in the cave: close on the sleeper for "asleep in a flooded cave", back to the whole shot for the first block, a slow push from there. */
+const CAVE_ZOOM: readonly Key[] = [
+  { t: CAVE_AT, at: 1.58, rate: -0.03 }, { t: DIG_FROM - 0.7, at: 1.46 }, { t: DIG_FROM, at: 1, rate: 0 }, { t: WAKE_AT + 1.2, at: 1.05, rate: 0 },
+];
+export function caveCameraAt(time: number): { zoom: number; x: number; y: number } {
+  const t = wrap(time);
+  const zoom = curveAt(CAVE_ZOOM, t).at;
+  const back = ramp(t, DIG_FROM - 0.7, DIG_FROM);
+  return { zoom, x: lerp(640, 556, back), y: lerp(1078, 950, back) };
+}
+
+/** The noise bar comes up as the drill starts. */
+export const barAt = (time: number): number => ramp(wrap(time), DIG_FROM - 0.15, DIG_FROM + 0.15);
 
 /** Noise (0..1): the bar's fill, up a step with each block, as drill.ts's blocks are counted by the game. */
 export const blockT = (at: number, t: number): number => ramp(t, at, at + 0.16);
@@ -176,7 +192,7 @@ export function digAt(time: number): { row: number; work: number } {
   const row = BLOCKS_AT.reduce((sum, at) => sum + ramp(t, at + 0.02, at + 0.24), 0);
   const gone = BLOCKS_AT.filter((at) => t >= at).length;
   if (gone >= BLOCKS_AT.length) return { row, work: 0 };
-  const from = gone === 0 ? CAVE_AT : BLOCKS_AT[gone - 1]! + 0.24;
+  const from = gone === 0 ? DIG_FROM : BLOCKS_AT[gone - 1]! + 0.24;
   return { row, work: clamp01((t - from) / (BLOCKS_AT[gone]! - from)) };
 }
 

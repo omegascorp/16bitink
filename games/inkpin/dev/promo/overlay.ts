@@ -1,9 +1,10 @@
 import { INK, MOSS, PAPER, RED } from '../../src/art/palette';
 import { paintNib } from '../../src/art/nib';
 import { Pen, type Pt } from '../../src/art/pen';
+import { inVoice, PHRASES, WORDS } from './whichpin/words';
 import { drawCredit } from './credit';
-import { CAPTION_FONT, drawQuestion, drawTextLine } from './captions';
-import { ACTIONS, FPS, LOOP_S, PIN_NUMBERS, SEGMENT_START, SHIFT_S, SWAP_C, WIPE_S, segmentAt, wrapCycle, type Segment } from './plan';
+import { CAPTION_FONT, drawQuestion, drawTextLine, QUESTION } from './captions';
+import { ACTIONS, BEATS, FPS, LOOP_S, PIN_NUMBERS, SEGMENT_START, SHIFT_S, SWAP_C, WIPE_S, segmentAt, wrapCycle, type Segment } from './plan';
 import { clamp01, curveAt, ramp, VIDEO, type Key } from './short';
 
 /**
@@ -48,15 +49,43 @@ export interface OverlayState {
   readonly cta: number;
   /** Nib's close-up circle. */
   readonly inset: number;
+  readonly rings: { readonly water: number; readonly lava: number; readonly boar: number };
+  /** The phrase caption on screen (null: the fixed question) and the word being said. */
+  readonly caption: { readonly phrase: number; readonly word: number; readonly age: number } | null;
 }
 
 /** Video time of a cycle time. */
 const videoTime = (c: number): number => c - SHIFT_S;
 /** The video's last 3.0 s carry the call to action; it is gone 0.6 s before the loop point. */
 export const CTA = { from: LOOP_S - 3.0, fadeIn: 0.35, to: LOOP_S - 0.6, fadeOut: 0.4 } as const;
-const CREDIT_FROM = 8.8;
+const CREDIT_FROM = CTA.from;
 
 /** Hand paths: where the fingertip goes, as keys of cycle time. */
+/** Video times of what the narrator names (from the phrase windows in whichpin/words.ts). */
+const PH = {
+  water: { from: inVoice(PHRASES[1]!.start), to: inVoice(PHRASES[1]!.end) },
+  lava: { from: inVoice(PHRASES[2]!.start), to: inVoice(PHRASES[2]!.end) },
+  boar: { from: inVoice(PHRASES[3]!.start) + 1.7, to: inVoice(PHRASES[3]!.end) },
+} as const;
+
+/**
+ * The caption phrase on screen at video time v and the word being said in it,
+ * or null for the fixed question "Which pin first?" (while the first line is
+ * spoken, and from the end of the last line on, so the loop's seam is clean).
+ * A phrase stays up through the pause that follows it.
+ */
+function captionAt(v: number): { readonly phrase: number; readonly word: number; readonly age: number } | null {
+  let phrase = 0;
+  for (const [i, p] of PHRASES.entries()) if (v >= inVoice(p.start)) phrase = i;
+  const last = PHRASES.length - 1;
+  if (phrase === 0 || (phrase === last && v >= inVoice(PHRASES[last]!.end) + 0.25)) return null;
+  let word = 0;
+  WORDS.forEach((w, i) => {
+    if (w.phrase === phrase && v >= inVoice(w.start)) word = i;
+  });
+  return { phrase, word, age: v - inVoice(WORDS[word]!.start) };
+}
+
 const OFF: Pt = { x: -340, y: 820 };
 const HAND_KEYS: Readonly<Record<Segment, { readonly x: readonly Key[]; readonly y: readonly Key[] }>> = (() => {
   const at = (pts: readonly (readonly [number, Pt])[]): { x: Key[]; y: Key[] } => ({
@@ -69,8 +98,10 @@ const HAND_KEYS: Readonly<Record<Segment, { readonly x: readonly Key[]; readonly
   const g = toScreen(380, 980);
   const s = SWAP_C;
   return {
-    wrong: at([[1.5, OFF], [2.2, l], [2.65, g], [3.05, w], [3.3, w], [3.4, w], [3.7, w], [4.1, l], [4.7, g], [5.1, g], [5.6, OFF]]),
-    right: at([[s + 0.3, OFF], [s + 0.7, l], [s + 1.0, l], [s + 1.3, l], [s + 1.8, w], [s + 2.3, w], [s + 2.6, w], [s + 3.1, OFF]]),
+    // The wrong try: in as "Water first?" is about to be said, to the big water, then the lava and the gate.
+    wrong: at([[8.2, OFF], [8.75, w], [9.0, w], [9.2, w], [9.35, l], [9.5, l], [9.62, g], [9.75, g], [10.3, OFF]]),
+    // The right try: straight to the lava as "pull the LAVA first" ends, then the water.
+    right: at([[s + 0.4, OFF], [s + 0.9, l], [s + 1.1, l], [s + 1.4, l], [s + 1.9, w], [s + 2.05, w], [s + 2.15, w], [s + 2.5, OFF]]),
   };
 })();
 
@@ -109,11 +140,11 @@ export function overlayAt(c: number): OverlayState {
     hand = { x, y, alpha: Math.min(ramp(cc, first, first + 0.2), 1 - ramp(cc, last - 0.25, last)), press };
   }
 
-  const failedC = 5.55;
-  const checkC = SWAP_C + 2.3;
+  const failedC = BEATS.failed - 0.3;
+  const checkC = BEATS.scorched;
   let mark: OverlayState['mark'] = null;
-  if (cc >= failedC && cc < SWAP_C + 0.1) mark = { kind: 'wrong', u: (cc - failedC) / 0.2, alpha: 1 - ramp(cc, SWAP_C - 0.3, SWAP_C) };
-  else if (cc >= checkC && cc < 12.8) mark = { kind: 'right', u: (cc - checkC) / 0.25, alpha: 1 - ramp(cc, 12.2, 12.5) };
+  if (cc >= failedC && cc < SWAP_C + 0.2) mark = { kind: 'wrong', u: (cc - failedC) / 0.2, alpha: 1 - ramp(cc, SWAP_C - 0.1, SWAP_C + 0.15) };
+  else if (cc >= checkC && cc < 15.7) mark = { kind: 'right', u: (cc - checkC) / 0.25, alpha: 1 - ramp(cc, 15.3, 15.7) };
 
   const wipe = cc < WIPE_S ? cc / WIPE_S : cc >= SWAP_C && cc < SWAP_C + WIPE_S ? (cc - SWAP_C) / WIPE_S : null;
 
@@ -121,8 +152,14 @@ export function overlayAt(c: number): OverlayState {
   const vtt = vt < 0 ? vt + LOOP_S : vt;
   const cta = Math.min(ramp(vtt, CTA.from, CTA.from + CTA.fadeIn), 1 - ramp(vtt, CTA.to - CTA.fadeOut, CTA.to));
   const credit = Math.min(ramp(vtt, CREDIT_FROM, CREDIT_FROM + 0.4), 1 - ramp(vtt, CTA.to - CTA.fadeOut, CTA.to));
-  const inset = cc < 3.0 ? 1 : cc < 3.5 ? 1 - ramp(cc, 3.0, 3.5) : 0;
-  return { numbers, hand, mark, wipe, credit: Math.max(0, credit), cta: Math.max(0, cta), inset };
+  // Nib's close-up: in frame 1, and again as the narrator says "Nib the raccoon".
+  const v = vtt;
+  const inset = Math.max(1 - ramp(v, 1.0, 1.4), v > LOOP_S - 0.6 ? 1 : 0, ramp(v, 5.3, 5.5) * (1 - ramp(v, 6.9, 7.1)));
+  // Rings on what the narrator names: the water pin, the lava pin, the boar.
+  const ring = (from: number, to: number): number => ramp(v, from, from + 0.15) * (1 - ramp(v, to - 0.15, to));
+  const rings = { water: ring(PH.water.from, PH.water.to), lava: ring(PH.lava.from, PH.lava.to), boar: ring(PH.boar.from, PH.boar.to) };
+  const caption = captionAt(v);
+  return { numbers, hand, mark, wipe, credit: Math.max(0, credit), cta: Math.max(0, cta), inset: Math.min(1, Math.max(0, inset)), rings, caption };
 }
 
 /** Line-boil frame for the hand-inked marks: the pen redraws them three ways, seven times a second. */
@@ -214,11 +251,11 @@ function drawMark(ctx: CanvasRenderingContext2D, m: NonNullable<OverlayState['ma
   const grow = clamp01(m.u);
   const pop = 1 + 0.3 * (1 - clamp01(m.u * 2)) * (1 - clamp01(m.u * 2));
   const cx = 310;
-  const cy = 560;
+  const cy = 600;
   ctx.save();
   ctx.globalAlpha = m.alpha;
   ctx.translate(cx, cy);
-  ctx.scale(pop * 1.3, pop * 1.3);
+  ctx.scale(pop * 1.05, pop * 1.05);
   const part = (pts: readonly Pt[], from: number, to: number): Pt[] => {
     const f = clamp01((grow - from) / (to - from));
     const n = Math.max(2, Math.round(f * (pts.length - 1)) + 1);
@@ -344,8 +381,63 @@ function drawInset(ctx: CanvasRenderingContext2D, alpha: number, c: number): voi
   ctx.restore();
 }
 
-/** Paints the overlay for cycle time c onto a canvas that already holds the game's picture. `revealX` clips the board-bound marks to the new board during a wipe. */
-export function drawOverlay(ctx: CanvasRenderingContext2D, c: number): void {
+/** A pulsing hand-inked ring round something the narrator names. */
+function drawRing(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, colour: string, alpha: number, c: number): void {
+  const pulse = 1 + 0.06 * Math.sin(c * Math.PI * 6);
+  const pen = new Pen(ctx, 41 + boilOf(c) * 13, 2);
+  const pts: Pt[] = Array.from({ length: 44 }, (_, i) => {
+    const a = (i / 43) * Math.PI * 2 + 0.5;
+    return { x: x + Math.cos(a) * rx * pulse, y: y + Math.sin(a) * ry * pulse };
+  });
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  pen.stroke(pts, 22, PAPER, 0.9, false);
+  pen.stroke(pts, 11, colour, 1, false);
+  ctx.restore();
+}
+
+const WORD_INK: Readonly<Record<string, string>> = { 'water.': '#2d6db3', 'LAVA.': '#d4501a', 'LAVA': '#d4501a', 'boar…': '#8a4a1c', 'trouble!': '#b3322b' };
+const HIGHLIGHT = '#c8402f';
+/** The caption slot at the top: the question's place. One row at ONE_ROW size, or two rows when the phrase is too wide. */
+const CAPTION = { x: VIDEO.width / 2, y: QUESTION.y, size: 112, maxW: 980, rowSize: 96, rowY: [322, 408] } as const;
+
+/** The whole phrase, centred in the top slot, the word being said in colour and popped. */
+function drawPhrase(ctx: CanvasRenderingContext2D, c: NonNullable<OverlayState['caption']>): void {
+  const words = WORDS.map((w, i) => ({ w, i })).filter((x) => x.w.phrase === c.phrase);
+  const measure = (size: number, list: typeof words): number => {
+    ctx.save();
+    ctx.font = `700 ${size}px ${CAPTION_FONT}`;
+    const width = ctx.measureText(list.map((x) => x.w.text).join(' ')).width;
+    ctx.restore();
+    return width;
+  };
+  const oneRow = measure(CAPTION.size, words) <= CAPTION.maxW;
+  const half = Math.ceil(words.length / 2);
+  const rows = oneRow ? [words] : [words.slice(0, half), words.slice(half)];
+  const size = oneRow ? CAPTION.size : CAPTION.rowSize;
+  const u = clamp01(c.age / 0.12);
+  rows.forEach((row, r) => {
+    const y = oneRow ? CAPTION.y : CAPTION.rowY[r]!;
+    ctx.save();
+    ctx.font = `700 ${size}px ${CAPTION_FONT}`;
+    const space = ctx.measureText(' ').width;
+    const widths = row.map((x) => ctx.measureText(x.w.text).width);
+    const total = widths.reduce((a, b) => a + b, 0) + space * (row.length - 1);
+    ctx.restore();
+    let x = CAPTION.x - total / 2;
+    row.forEach((item, k) => {
+      const now = item.i === c.word;
+      const cx = x + widths[k]! / 2;
+      const pop = now ? 1 + 0.18 * (1 - u) * (1 - u) : 1;
+      const ink = now ? WORD_INK[item.w.text] ?? HIGHLIGHT : INK;
+      drawTextLine(ctx, item.w.text, cx, y, size * pop * (now ? 1.06 : 1), 700, 1, { fill: ink, halo: PAPER });
+      x += widths[k]! + space;
+    });
+  });
+}
+
+/** Paints the overlay for cycle time c onto a canvas that already holds the game's picture. `boar` is the boar's place on the board, for the ring. */
+export function drawOverlay(ctx: CanvasRenderingContext2D, c: number, boar: Pt | null = null): void {
   const o = overlayAt(c);
   const cc = wrapCycle(c);
   ctx.save();
@@ -360,10 +452,17 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, c: number): void {
     ctx.clip();
   }
   o.numbers.forEach((n, i) => drawNumber(ctx, n, cc, i + 1));
+  if (o.rings.water > 0) drawRing(ctx, DISC.W!.x, DISC.W!.y, DISC_R + 22, DISC_R + 22, '#2d6db3', o.rings.water, cc);
+  if (o.rings.lava > 0) drawRing(ctx, DISC.L!.x, DISC.L!.y, DISC_R + 22, DISC_R + 22, '#d4501a', o.rings.lava, cc);
+  if (o.rings.boar > 0 && boar) {
+    const b = toScreen(boar.x, boar.y);
+    drawRing(ctx, b.x, b.y - 28, 78, 64, '#b3322b', o.rings.boar, cc);
+  }
   if (o.inset > 0) drawInset(ctx, o.inset, cc);
   ctx.restore();
   if (o.hand) drawHand(ctx, o.hand);
-  drawQuestion(ctx);
+  if (o.caption) drawPhrase(ctx, o.caption);
+  else drawQuestion(ctx);
   if (o.mark) drawMark(ctx, o.mark, cc);
   if (o.credit > 0) drawCredit(ctx, o.credit);
   if (o.cta > 0) {

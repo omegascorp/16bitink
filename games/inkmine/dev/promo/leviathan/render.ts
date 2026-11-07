@@ -1,6 +1,7 @@
-import { drawTextLine, PAPER_ON_DARK } from '../captions';
+import { drawSpokenLine, drawTextLine, PAPER_ON_DARK, SPOKEN } from '../captions';
 import { VIDEO, type Short } from '../short';
 import { renderLeviathanAudio } from './audio';
+import { captionAt } from './captions';
 import { makeCaveScene } from './caveScene';
 import { makeChaseScene } from './chaseScene';
 import { drawCta } from './cta';
@@ -11,6 +12,11 @@ import { arrowAt, boilAt, ctaAt, darkAt, hookAt, LOOP_S, sceneAt, shakeAt, wrap,
 
 /** The credit for this short only: it names the game's own page. */
 export const LEVIATHAN_CREDIT = 'InkMine · 16bit.ink/mine';
+
+/** The word being said, in a red that holds up on the dark water. */
+const HOT = '#ff7a55';
+/** In the chase the spoken line sits up where the hook does: the CTA has the lower lines. */
+const CHASE_CAPTION_Y = 420;
 
 type SceneDraw = (ctx: CanvasRenderingContext2D, t: number, boil: number) => void;
 
@@ -42,8 +48,10 @@ export function createLeviathan(ctx: CanvasRenderingContext2D): Short {
       ctx.restore();
     }
     const hook = hookAt(t);
-    drawTextLine(ctx, 'NEVER DRILL', 540, 390, 160, 700, hook, PAPER_ON_DARK);
-    drawTextLine(ctx, 'NEAR THIS', 540, 520, 160, 700, hook, PAPER_ON_DARK);
+    drawTextLine(ctx, 'NEVER DRILL', 540, 385, 156, 700, hook, PAPER_ON_DARK);
+    drawTextLine(ctx, 'NEAR THIS THING', 540, 505, 126, 700, hook, PAPER_ON_DARK);
+    const now = captionAt(t);
+    if (now) drawSpokenLine(ctx, now.line.words.map((w) => w.text), now.word, PAPER_ON_DARK, HOT, sceneAt(t) === 'chase' ? CHASE_CAPTION_Y : SPOKEN.y);
     drawCta(ctx, ctaAt(t), arrowAt(t), boil);
   };
   return { loopSeconds: LOOP_S, draw, audio: renderLeviathanAudio };

@@ -3,6 +3,8 @@ import { foldLoop, peakTo, RATE, rotatedWav } from './audioKit';
 import type { Cue } from './driver';
 import { ACTIONS, LOOP_S, SEGMENT_START, SHIFT_S, SWAP_C, wrapCycle } from './plan';
 
+/** How loud the game's effects are against the voice. */
+const SFX_UNDER_VOICE = 0.3;
 /** The soundtrack peaks about this far below full scale. */
 const PEAK_DB = -4;
 /** The game's own minimum gap between two of the same sound (audio/sfx.ts GAP_MS), in seconds. */
@@ -95,7 +97,7 @@ function clockedAt(ctx: OfflineAudioContext, at: number): OfflineAudioContext {
 }
 
 /** Renders the loop's sounds as a WAV that starts `start` seconds in. */
-export async function renderAudio(cues: readonly Cue[], start: number): Promise<Blob> {
+export async function renderAudio(cues: readonly Cue[], start: number, voice: ArrayBuffer): Promise<Blob> {
   const ctx = new OfflineAudioContext(2, Math.ceil((LOOP_S + 2) * RATE), RATE);
   const noise = noiseBuffer(ctx);
   const bus = (level: number): GainNode => {
@@ -105,8 +107,9 @@ export async function renderAudio(cues: readonly Cue[], start: number): Promise<
     return g;
   };
   // The game's board plays through its own master (0.5 in the game); the timer's ticks and the finger's taps through a lower one.
-  const loud = bus(0.5);
-  const soft = bus(0.5 * 0.4);
+  // The game's sounds sit quietly under the voice.
+  const loud = bus(0.5 * SFX_UNDER_VOICE);
+  const soft = bus(0.5 * 0.4 * SFX_UNDER_VOICE);
   const board = new SoundBoard() as unknown as { ctx: unknown; master: unknown; noise: unknown; muted: boolean; lastAt: Map<Sfx, number>; play(name: Sfx, strength: number): void };
   board.noise = noise;
   board.muted = false;
@@ -127,6 +130,12 @@ export async function renderAudio(cues: readonly Cue[], start: number): Promise<
   rush('right', 'W', 1.6, 2800, 700, 0.5);
   whoosh(ctx, loud, noise, toVideoTime(0));
   whoosh(ctx, loud, noise, toVideoTime(SWAP_C));
+  // The narrator, straight to the output, from the loop's first moment.
+  const voiceBuf = await ctx.decodeAudioData(voice);
+  const talk = ctx.createBufferSource();
+  talk.buffer = voiceBuf;
+  talk.connect(ctx.destination);
+  talk.start(0);
   const rendered = await ctx.startRendering();
   const channels = foldLoop(rendered, LOOP_S);
   peakTo(channels, PEAK_DB);

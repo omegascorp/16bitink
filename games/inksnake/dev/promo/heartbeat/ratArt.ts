@@ -11,13 +11,8 @@ import type { SpriteArt } from '../../../src/art/types';
  * The game's brown rat (critters/rat.ts) walked round to the camera: the same
  * paint box and shaggy coat, from the side, facing +x, for the close shots.
  * Its eye is open or shut. Art units: nose at x = 72, rump at −70, the tail
- * running back to about −150 (nose to tail root is 142; the story's RAT_LEN
- * is drawn at PER_ART px to the unit).
+ * running back to about −150.
  */
-export const PER_ART = 5.4;
-/** The body's origin, world px back from the nose. */
-export const ORIGIN_A = 72 * PER_ART;
-
 const LOOK: RodentLook = {
   len: 130, wide: 62,
   fur: '#8a6a4b', warm: '#9c6936', back: '#56402d', pale: '#c2ab8d', deep: '#2f2219',

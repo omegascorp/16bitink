@@ -45,10 +45,11 @@ export const SPOKEN = { y: 1200, size: 96, maxWidth: 980 } as const;
  */
 export function drawSpokenLine(
   ctx: CanvasRenderingContext2D, words: readonly string[], current: number, colours: TextInk = INK_ON_PAPER, hot: string = RED, y: number = SPOKEN.y,
+  size: number = SPOKEN.size, unsaid = 0.55,
 ): void {
   if (words.length === 0) return;
   ctx.save();
-  ctx.font = `700 ${SPOKEN.size}px ${CAPTION_FONT}`;
+  ctx.font = `700 ${size}px ${CAPTION_FONT}`;
   const space = ctx.measureText(' ').width;
   const widths = words.map((w) => ctx.measureText(w).width);
   ctx.restore();
@@ -57,7 +58,7 @@ export function drawSpokenLine(
   let x = VIDEO.width / 2 - (total * k) / 2;
   words.forEach((w, i) => {
     const ink: TextInk = i === current ? { fill: hot, halo: colours.halo } : colours;
-    drawTextLine(ctx, w, x + (widths[i]! * k) / 2, y, SPOKEN.size * k, 700, i <= current ? 1 : 0.55, ink);
+    drawTextLine(ctx, w, x + (widths[i]! * k) / 2, y, size * k, 700, i <= current ? 1 : unsaid, ink);
     x += (widths[i]! + space) * k;
   });
 }

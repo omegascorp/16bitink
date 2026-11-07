@@ -5,18 +5,18 @@ import { makeCanvas, releaseScratch } from '../../../src/art/pen';
 import { CORN } from '../../../src/art/snakes/corn';
 import { CHAPTER_1 } from '../../../src/level/chapter1';
 import { BOARD } from '../../../src/level/types';
-import { SNAKE_INSIDE } from '../gulphen/snakeSide';
 import { VIDEO } from '../short';
 import { bakeSprite, bakeStrip, type Sprite, type Strip } from '../sprites';
 import { BOA_BODY, BOA_TAIL } from './boaArt';
 import { BOA_LOWER, BOA_UPPER } from './boaHead';
+import { BULB } from './bulbArt';
 import { HEART } from './heartArt';
 import { paintDark } from './night';
 import { RAT_SIDE } from './ratArt';
 
 /**
  * The short's cast, baked once at video size: the boa (its strips and its
- * side-on jaws), the rat from the side, the heart, the dark ground; and the
+ * side-on head), the rat from the side, the heart, the fake heart, the dark ground; and the
  * real game: chapter 1's "Rat Run" board painted as the game paints it, the
  * corn snake and the game's rat, seeds as textures.ts uses them.
  */
@@ -25,11 +25,10 @@ export interface Cast {
   readonly tail: Strip;
   readonly upper: Readonly<Record<'open' | 'squeeze', Sprite>>;
   readonly lower: Sprite;
-  readonly roof: Sprite;
-  readonly floor: Sprite;
   readonly tongue: Sprite;
   readonly rat: Readonly<Record<'open' | 'shut', Sprite>>;
-  readonly heart: Readonly<Record<'live' | 'dead', Sprite>>;
+  readonly heart: Readonly<Record<'live', Sprite>>;
+  readonly bulb: Sprite;
   readonly dark: HTMLCanvasElement;
   /** A frame-sized scratch: the coils as they stood, to veil across the heart. */
   readonly veil: HTMLCanvasElement;
@@ -83,11 +82,10 @@ export function bakeCast(): Cast {
     tail: bakeStrip(BOA_TAIL, 9, 22),
     upper: { open: bakeSprite(BOA_UPPER, 'open', 9, 340), squeeze: bakeSprite(BOA_UPPER, 'squeeze', 9, 340) },
     lower: bakeSprite(BOA_LOWER, 'jaw', 9, 350),
-    roof: bakeSprite(SNAKE_INSIDE, 'roof', 9, 360),
-    floor: bakeSprite(SNAKE_INSIDE, 'floor', 9, 360),
     tongue: bakeSprite(CORN.tongue, 'flick', 9, 320),
     rat: { open: bakeSprite(RAT_SIDE, 'open', 6, 400, RAT_LINE), shut: bakeSprite(RAT_SIDE, 'shut', 6, 400, RAT_LINE) },
-    heart: { live: bakeSprite(HEART, 'live', 7, 450), dead: bakeSprite(HEART, 'dead', 7, 450) },
+    heart: { live: bakeSprite(HEART, 'live', 7, 450) },
+    bulb: bakeSprite(BULB, 'bulb', 8, 470),
     dark: paintDark(VIDEO.width + 400, VIDEO.height + 400),
     veil: makeCanvas(VIDEO.width, VIDEO.height).canvas,
     game: bakeGame(),

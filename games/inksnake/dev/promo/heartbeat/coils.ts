@@ -1,13 +1,16 @@
 import { SNAKE_W } from '../../../src/art/types';
 import { VIDEO } from '../short';
 import { drawSprite, type Pt, type Strip } from '../sprites';
-import { axisOf, drawBoaBody, drawDark, drawJaws, drawMouth, type Jaws, zoomAbout } from './boaRig';
+import { axisOf, drawBoaBody, drawDark, drawJaws, type Jaws, zoomAbout } from './boaRig';
 import type { Cast } from './cast';
 import { HEART_SHAPE, HEART_W } from './heartArt';
+import { BULB_SHAPE, BULB_W, drawTube } from './bulbArt';
 import { route } from '../krait/path';
 import { drawVignette } from './night';
+import { drawClock } from '../krait/marks';
+import { drawSwitch } from './table';
 import {
-  coilGape, coilZoom, headSwing, heartAt, kickAt, lifeAt, ratEyeShut, ratSag, tightAt, tongueAt,
+  bulbShown, clockShown, clockTurns, coilZoom, heartAt, inExperiment, kickAt, OFF_AT, pulseAt, pumpAt, pumpOn, ratSag, switchFlip, switchShown, tightAt, tongueAt,
 } from './story';
 
 /**
@@ -24,6 +27,10 @@ const HEART_PX = 470;
 const BOW = 62;
 /** How much of the coils shows across the heart. */
 const VEIL = 0.13;
+/** The bulb on screen: much smaller than the heart, plainly a thing. */
+const BULB_PX = 250;
+/** Where the clock and the switch stand: in the dark over the boa's head. */
+const GAUGE = { x: 900, y: 560, r: 62 } as const;
 const SHADE = '12,7,8';
 
 export interface Band {
@@ -168,23 +175,16 @@ function drawTail(ctx: CanvasRenderingContext2D, cast: Cast, boil: number, wag: 
 function drawRat(ctx: CanvasRenderingContext2D, cast: Cast, boil: number, t: number, q: number): void {
   const scale = 6.2;
   const sag = ratSag(t);
-  const kick = kickAt(t);
+  const lifeless = inExperiment(t);
+  // Only a living rat jolts with its own heart; in the experiment it lies still, eyes closed.
+  const kick = lifeless ? 0 : pulseAt(t);
   const rot = -2.4 - 0.1 * sag + 0.05 * Math.max(0, q) + 0.035 * kick;
   const c = { x: 628 - 10 * sag, y: 882 + 64 * sag - 10 * Math.max(0, q) - 12 * kick };
-  const shut = ratEyeShut(t);
-  drawSprite(ctx, cast.rat.open, boil, { x: c.x, y: c.y, scale, rotation: rot, flip: -1 });
-  if (shut > 0) drawSprite(ctx, cast.rat.shut, boil, { x: c.x, y: c.y, scale, rotation: rot, flip: -1, alpha: shut });
+  drawSprite(ctx, lifeless ? cast.rat.shut : cast.rat.open, boil, { x: c.x, y: c.y, scale, rotation: rot, flip: -1 });
 }
 
-/** The boa's head, resting by the rat's and listening; it swings in and opens at the end. */
-function jawsAt(t: number): Jaws {
-  const swing = headSwing(t);
-  const gape = coilGape(t);
-  return {
-    rim: { x: 640 - 385 * swing, y: 690 - 16 * swing }, heading: Math.PI + 0.05 - 0.2 * swing, len: 336, neck: 150, hingeTop: 75, hingeBottom: 75,
-    top: 2 + gape, bottom: 2 + gape * 1.08, eye: 'open',
-  };
-}
+/** The boa's head, resting by the rat's. */
+const REST: Jaws = { rim: { x: 640, y: 690 }, heading: Math.PI + 0.05, len: 336, neck: 150, hingeTop: 75, hingeBottom: 75, top: 2, bottom: 2, eye: 'open' };
 
 function drawNeck(ctx: CanvasRenderingContext2D, cast: Cast, boil: number, j: Jaws): void {
   const a = axisOf(j.heading);
@@ -203,10 +203,9 @@ function drawTongue(ctx: CanvasRenderingContext2D, cast: Cast, boil: number, j: 
   drawSprite(ctx, cast.tongue, boil, { x: j.rim.x + a.e.x * (40 * out - 6), y: j.rim.y + a.e.y * (40 * out - 6) + 6, rotation: j.heading, scale: 5.4 });
 }
 
-function heartPath(scale: number): Path2D {
-  const k = (HEART_PX / HEART_W) * scale;
+function shapePath(shape: readonly Pt[], k: number): Path2D {
   const path = new Path2D();
-  HEART_SHAPE.forEach((p, i) => {
+  shape.forEach((p, i) => {
     const x = HEART_AT.x + p.x * k;
     const y = HEART_AT.y + p.y * k;
     if (i === 0) path.moveTo(x, y);
@@ -217,9 +216,9 @@ function heartPath(scale: number): Path2D {
 }
 
 /** The red light through the snake's skin. */
-function drawGlow(ctx: CanvasRenderingContext2D, glow: number, scale: number): void {
+function drawGlow(ctx: CanvasRenderingContext2D, glow: number, scale: number, size: number): void {
   if (glow <= 0) return;
-  const r = 470 * (0.7 + 0.3 * scale);
+  const r = 470 * size * (0.7 + 0.3 * scale);
   const g = ctx.createRadialGradient(HEART_AT.x, HEART_AT.y, 40, HEART_AT.x, HEART_AT.y, r);
   g.addColorStop(0, `rgba(255,44,30,${0.6 * glow})`);
   g.addColorStop(0.5, `rgba(250,36,26,${0.36 * glow})`);
@@ -232,27 +231,53 @@ function drawGlow(ctx: CanvasRenderingContext2D, glow: number, scale: number): v
   ctx.restore();
 }
 
-/** The heart inside the coils: laid over them, then the picture of the coils veiled back across it. */
+/** What the veil needs: the picture of the coils as they stand, before anything is laid over them. */
+function keepCoils(ctx: CanvasRenderingContext2D, cast: Cast): void {
+  const copy = cast.veil.getContext('2d')!;
+  copy.clearRect(0, 0, cast.veil.width, cast.veil.height);
+  copy.drawImage(ctx.canvas, 0, 0);
+}
+
+function veilOver(ctx: CanvasRenderingContext2D, cast: Cast, path: Path2D, alpha: number): void {
+  ctx.save();
+  ctx.clip(path);
+  ctx.resetTransform();
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(cast.veil, 0, 0);
+  ctx.restore();
+}
+
+/** The living heart inside the coils: laid over them, then the picture of the coils veiled back across it. */
 function drawHeart(ctx: CanvasRenderingContext2D, cast: Cast, boil: number, t: number): void {
   const h = heartAt(t);
-  if (h.alpha <= 0) return;
   const scale = (HEART_PX / HEART_W) * h.scale;
-  const { veil } = cast;
-  const copy = veil.getContext('2d')!;
-  copy.clearRect(0, 0, veil.width, veil.height);
-  copy.drawImage(ctx.canvas, 0, 0);
+  keepCoils(ctx, cast);
+  drawGlow(ctx, h.glow, h.scale, 1);
+  drawSprite(ctx, cast.heart.live, boil, { x: HEART_AT.x, y: HEART_AT.y, scale });
+  veilOver(ctx, cast, shapePath(HEART_SHAPE, scale), VEIL);
+}
+
+/** The bulb inside the coils, seen the same way, its tube running out past them. */
+function drawFakeHeart(ctx: CanvasRenderingContext2D, cast: Cast, boil: number, t: number): void {
+  const shown = bulbShown(t);
+  if (shown <= 0) return;
+  const pump = pumpAt(t);
+  const scale = (BULB_PX / BULB_W) * (1 + 0.14 * pump);
+  keepCoils(ctx, cast);
   ctx.save();
-  ctx.globalAlpha = h.alpha;
-  drawGlow(ctx, h.glow, h.scale);
-  drawSprite(ctx, cast.heart.dead, boil, { x: HEART_AT.x, y: HEART_AT.y, scale });
-  drawSprite(ctx, cast.heart.live, boil, { x: HEART_AT.x, y: HEART_AT.y, scale, alpha: h.life ** 0.8 });
-  ctx.save();
-  ctx.clip(heartPath(h.scale));
-  ctx.resetTransform();
-  ctx.globalAlpha = h.alpha * VEIL;
-  ctx.drawImage(veil, 0, 0);
+  ctx.globalAlpha = shown;
+  const running = pumpOn(t);
+  if (running) drawGlow(ctx, 0.3 + 0.5 * pump, 0.62, 0.7);
+  // The water in the tube stops with the switch.
+  drawTube(ctx, HEART_AT, [{ x: 760, y: 1120 }, { x: 980, y: 1190 }, { x: 1120, y: 1320 }], running ? t : OFF_AT, 13);
+  drawSprite(ctx, cast.bulb, boil, { x: HEART_AT.x, y: HEART_AT.y, scale });
   ctx.restore();
-  ctx.restore();
+  veilOver(ctx, cast, shapePath(BULB_SHAPE, scale), VEIL * shown);
+}
+
+function drawGauges(ctx: CanvasRenderingContext2D, t: number): void {
+  drawClock(ctx, GAUGE.x, GAUGE.y, GAUGE.r, clockTurns(t), clockShown(t));
+  drawSwitch(ctx, GAUGE.x, GAUGE.y, 1.5, switchFlip(t), switchShown(t));
 }
 
 /** The coil shot at t. */
@@ -260,19 +285,20 @@ export function drawCoilShot(ctx: CanvasRenderingContext2D, cast: Cast, t: numbe
   const q = tightAt(t);
   const coils = coilsAt(q);
   const kick = kickAt(t);
-  const j = jawsAt(t);
+  const fake = inExperiment(t);
   ctx.save();
   drawDark(ctx, cast.dark);
   zoomAbout(ctx, HEART_AT, coilZoom(t) * (1 + 0.014 * kick), 0, 7 * kick);
   for (const b of coils.back) drawBand(ctx, cast.body, boil, b, 0.5);
-  drawMouth(ctx, j);
   drawRat(ctx, cast, boil, t, q);
-  drawTail(ctx, cast, boil, 7 * Math.sin((t * Math.PI * 2) / 3));
-  drawNeck(ctx, cast, boil, j);
-  drawJaws(ctx, cast, boil, j);
-  drawTongue(ctx, cast, boil, j, tongueAt(t));
+  drawTail(ctx, cast, boil, 7 * Math.sin((t * Math.PI * 4) / 3));
+  drawNeck(ctx, cast, boil, REST);
+  drawJaws(ctx, cast, boil, REST);
+  drawTongue(ctx, cast, boil, REST, tongueAt(t));
   for (const b of [...coils.front].reverse()) drawBand(ctx, cast.body, boil, b);
-  drawHeart(ctx, cast, boil, t);
+  if (fake) drawFakeHeart(ctx, cast, boil, t);
+  else drawHeart(ctx, cast, boil, t);
   ctx.restore();
-  drawVignette(ctx, VIDEO.width, VIDEO.height, 0.34 + 0.56 * (1 - lifeAt(t)));
+  drawVignette(ctx, VIDEO.width, VIDEO.height, fake ? 0.5 : 0.34);
+  drawGauges(ctx, t);
 }

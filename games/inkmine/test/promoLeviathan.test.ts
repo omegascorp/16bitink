@@ -3,10 +3,12 @@ import { withCredit } from '../dev/promo/credit';
 import { VIDEO, type Short } from '../dev/promo/short';
 import { boilAt } from '../dev/promo/sprites';
 import { bubblesIn } from '../dev/promo/leviathan/bubbles';
+import { captionAt, LINES } from '../dev/promo/leviathan/captions';
 import { CTA } from '../dev/promo/leviathan/cta';
 import {
-  arrowAt, blocksGone, BLOCKS_AT, CAVE_AT, chaseClock, ctaAt, CTA_FROM, CTA_TO, darkAt, digAt, EYE_AT, eyeOpenAt, EYE_OPEN_AT, fleeAt, headAt, hookAt, HIT_AT, LOOP_S, noiseAt, sceneAt, shakeAt, slamAt, wrap,
+  arrowAt, blocksGone, BLOCKS_AT, CAVE_AT, caveCameraAt, CHARGE_AT, chaseClock, ctaAt, CTA_FROM, CTA_TO, darkAt, digAt, EYE_AT, eyeOpenAt, EYE_OPEN_AT, fleeAt, headAt, hookAt, HIT_AT, LOOP_S, noiseAt, sceneAt, shakeAt, slamAt, wrap,
 } from '../dev/promo/leviathan/story';
+import { TEMPO, WORDS } from '../dev/promo/leviathan/words';
 
 const FRAME = 1 / 30;
 const END = LOOP_S - 1e-7;
@@ -16,10 +18,48 @@ const stateAt = (t: number) => ({
   scene: sceneAt(t), clock: chaseClock(t), head: headAt(t), flee: fleeAt(t), shake: shakeAt(t), hook: hookAt(t), cta: ctaAt(t), arrow: arrowAt(t), dark: darkAt(t), boil: boilAt(t),
 });
 
-describe('promo short: never drill near this (no voice)', () => {
-  it('is 13.5 s, a multiple of 1.5 s (whole video frames and line-boil cycles)', () => {
-    expect(LOOP_S).toBe(13.5);
+describe('promo short: never drill near this (narrated)', () => {
+  it('is 15 s, a multiple of 1.5 s, and the voice ends about 0.3 s before the loop point', () => {
+    expect(LOOP_S).toBe(15);
     expect((LOOP_S / 1.5) % 1).toBe(0);
+    const end = WORDS[WORDS.length - 1]!.end / TEMPO;
+    expect(LOOP_S - end).toBeGreaterThan(0.25);
+    expect(LOOP_S - end).toBeLessThan(0.35);
+  });
+
+  it('the words run in order and the captions show the script from "It\'s the Leviathan" on', () => {
+    WORDS.forEach((w, i) => {
+      expect(w.end).toBeGreaterThan(w.start);
+      if (i > 0) expect(w.start).toBeGreaterThanOrEqual(WORDS[i - 1]!.end);
+    });
+    expect(LINES.flatMap((l) => l.words.map((w) => w.text)).join(' ')).toBe(WORDS.slice(5).map((w) => w.text).join(' '));
+    expect(captionAt(0)).toBeNull();
+    expect(captionAt(LOOP_S - 0.1)).toBeNull();
+    const line = captionAt(CHARGE_AT + 0.05)!.line;
+    expect(line.words.map((w) => w.text).join(' ')).toBe('You can only RUN!');
+  });
+
+  it('the picture matches the words', () => {
+    const at = (word: string, from = 0): number => {
+      const i = WORDS.findIndex((w, k) => k >= from && w.text === word);
+      return WORDS[i]!.start / TEMPO + 0.05;
+    };
+    expect(sceneAt(at('asleep'))).toBe('cave');
+    expect(caveCameraAt(at('asleep')).zoom).toBeGreaterThan(1.4);
+    // Each "more…" takes a block, the bar jumping.
+    for (const [word, from, n] of [['more…', 0, 4], ['more…', 21, 5]] as const) {
+      const t = at(word, from);
+      expect(noiseAt(t + 0.2) - noiseAt(t - 0.1)).toBeGreaterThan(0.1);
+      expect(blocksGone(t)).toBe(n);
+    }
+    expect(sceneAt(at('Its'))).toBe('eye');
+    expect(eyeOpenAt(at('Its'))).toBe(0);
+    expect(eyeOpenAt(at('opens!') + 0.35)).toBe(1);
+    expect(sceneAt(at('RUN!'))).toBe('chase');
+    expect(sceneAt(at('So,'))).toBe('chase');
+    expect(ctaAt(at('So,') + 0.2)).toBe(1);
+    expect(headAt(at('So,')).scale).toBeGreaterThan(0.85);
+    expect(headAt(at('So,') + 0.2).gape).toBeGreaterThan(0.95);
   });
 
   it('loops: the state at t=0 equals the state at t=LOOP_S', () => {
@@ -71,11 +111,12 @@ describe('promo short: never drill near this (no voice)', () => {
   });
 
   it('runs the beats in order', () => {
-    expect(sceneAt(0.6)).toBe('slam');
+    expect(sceneAt(0.6)).toBe('chase');
+    expect(sceneAt(1.7)).toBe('slam');
     expect(sceneAt(4)).toBe('cave');
-    expect(sceneAt(5.9)).toBe('eye');
-    expect(sceneAt(6.9)).toBe('wake');
-    expect(sceneAt(9)).toBe('chase');
+    expect(sceneAt(10.2)).toBe('eye');
+    expect(sceneAt(11.2)).toBe('wake');
+    expect(sceneAt(13)).toBe('chase');
     expect(CAVE_AT).toBeLessThan(BLOCKS_AT[0]!);
   });
 
@@ -88,7 +129,7 @@ describe('promo short: never drill near this (no voice)', () => {
     }
     expect(noiseAt(BLOCKS_AT[4]! + 0.3)).toBeGreaterThanOrEqual(0.99);
     expect(noiseAt(BLOCKS_AT[4]! + 0.3)).toBeLessThanOrEqual(1);
-    expect(blocksGone(1.5)).toBe(0);
+    expect(blocksGone(BLOCKS_AT[0]! - 0.1)).toBe(0);
     expect(blocksGone(EYE_AT)).toBe(5);
     expect(digAt(EYE_AT).row).toBeCloseTo(5, 5);
   });
@@ -113,8 +154,8 @@ describe('promo short: never drill near this (no voice)', () => {
       if (u < CTA_FROM || u >= CTA_TO) expect(ctaAt(u)).toBe(0);
       if (u < CTA_FROM) expect(arrowAt(u)).toBe(0);
     }
-    expect(ctaAt(11.5)).toBe(1);
-    expect(hookAt(11.5)).toBe(0);
+    expect(ctaAt(13.5)).toBe(1);
+    expect(hookAt(13.5)).toBe(0);
   });
 
   it('places the CTA where the Shorts UI leaves it clear', () => {
