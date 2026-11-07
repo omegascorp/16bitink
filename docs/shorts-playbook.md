@@ -230,6 +230,35 @@ Where a visitor starts a game (30 days): `/play/<game>` 58% for InkFish and InkS
 
 Batch #101–104 tests this: one short per game, narrated, with the short link in the credit and "tap the channel name" with an arrow at the end.
 
+**Export of 2026-11-07** (YouTube Studio, Content, lifetime; data to about 11-06, so #96 and #101 are about a day old). Channel: 1.56M views, +977 subscribers. The top of the channel and the shorts posted since the last export:
+
+| Video | Posted | Length | Stayed to watch | Avg % viewed | Views | Subs | Thumb CTR |
+|---|---|---|---|---|---|---|---|
+| #64 "This Whale's Mouthful Is Bigger Than Its Body 🐋" | 10-28 | 20s | **81.4%** | 102.1% | **224,320** | +169 | **13.5%** |
+| #96 "How Did That Fit A Whole Shark?!" (silent gameplay) | 11-06 | 13s | 75.4% | **156.2%** | **215,669** (one day) | +63 | 10.2% |
+| #72 "This Orca Swam Inside A Blue Whale's Mouth 🐋" | 10-30 | 20s | 73.0% | 92.4% | 65,501 | +62 | 5.3% |
+| #81 "This Snake Swallowed A Whole Crocodile 🐊" | 11-01 | 20s | 67.9% | 90.5% | 64,006 | +29 | 4.7% |
+| #82 "This Seal Hunts Sharks 🦭" | 11-01 | 20s | 63.5% | 99.4% | 42,625 | +69 | 7.8% |
+| #79 "This Whale Just Opens Its Mouth And Waits 🐋" | 11-01 | 20s | 70.2% | 99.2% | 37,926 | +55 | 8.8% |
+| #90 "This Snake Swallows Eggs Wider Than Its Head 🥚" | 11-04 | 19s | 71.9% | 108.7% | 35,548 | +37 | 6.3% |
+| #94 "This Snake's Tail Is A Fake Spider 🕷️" | 11-05 | 22s | 68.3% | 97.5% | 26,498 | +31 | 6.4% |
+| #88 tiger shark coughs up an echidna | 11-03 | 22s | 72.0% | 83.6% | 20,327 | +31 | 4.7% |
+| #95 orcas flip whale sharks | 11-05 | 20s | 66.5% | 87.4% | 19,142 | +12 | 9.1% |
+| #87 Greenland shark, polar bear | 11-03 | 20s | 62.2% | 89.9% | 14,030 | +6 | 3.9% |
+| #91 orca with 13 porpoises and 14 seals | 11-04 | 22s | 71.1% | 79.4% | 13,106 | +26 | 9.6% |
+| #89 hagfish slimes a shark | 11-03 | 20s | 67.6% | 93.6% | 12,170 | +9 | 5.1% |
+| #93 catfish hunt pigeons | 11-05 | 23s | 73.6% | 91.1% | 7,777 | +2 | 3.5% |
+| #92 swordfish stabs Alvin | 11-04 | 23s | 58.7% | 86.6% | 6,141 | +3 | 4.3% |
+| #101 boa feels the heartbeat (CTA test) | 11-06 | 17s | 59.2% | 99.0% | 2,328 (hours) | +2 | 9.9% |
+
+**What changed:**
+
+1. **Two shorts passed 200k.** #64 kept growing for ten days (34k → 224k) and is the first short past 81.1% stayed. #96, a silent 13s gameplay swallow, did 216k in a day, with 156% viewed: viewers replay it one and a half times. Its title names a famous meal ("A Whole Shark"), where "Part 2" and "Part 3" of the same format stalled at 3–8k.
+2. **The new goal is 1M views on one short.** The two formats that can get there are the ones above: the silent "How Did That Fit A ___?!" swallow (13s, huge rewatch) and the narrated giant swallow (whale or snake, 80%+ stayed). Batch #105–108 makes two of each.
+3. **Snakes travel:** InkSnake's narrated swallows (#81 croc 64k, #90 eggs 35.5k, #94 spider tail 26.5k) all held 68–72%, better than most fish shorts of the week.
+4. **Long titles and side stories still stall.** "Fish Stabbed A Submarine" (58.7%) and the Greenland shark's polar bear (62.2%) are the week's weakest: no gulp is seen.
+5. **Post the made gameplay swallows while #96 is hot:** #97 giant squid, #98 swordfish, #99 pufferfish and #100 chicken are made and unposted. #97 first.
+
 ## What works so far
 
 1. **A hook the viewer already knows wins the first second.** "There's always a bigger fish" is a known meme, so it had the best stayed-to-watch (48%) and the most engaged views. Stayed-to-watch is the number that decides whether YouTube shows a short to more people.
@@ -460,7 +489,7 @@ Priority follows what a player is worth, then what the channel has shown it watc
 
 | # | Game | Topic | Format | Status |
 |---|---|---|---|---|
-| 1 | InkSnake | A python swallowed a radio-collared sun bear: the collar's signal came from its stomach | Narrated swallow + twist | Checked. About 7 m python (6.95 m, 59 kg when caught), adult female bear 23 kg, 30 July 1999, Fredriksson 2005. The killing wasn't seen; the signal showed no movement for 26 days. Don't say "beeping" or that it moved |
+| 1 | InkSnake | A python swallowed a radio-collared sun bear: the collar's signal came from its stomach | Narrated swallow + twist | **Made as #107 (2026-11-07).** Rechecked: 6.95 m, 59 kg python; 23 kg bear; July 1999. The signal was still for about 4 hours, not 26 days. The snake was caught, the collar removed surgically, the snake released. Don't say "beeping" |
 | 2 | InkMine | The Rockslide giant under the Talus mesa wakes to noise too (second "Never…" short) | Game-first | Repeat only if #102 works |
 | 3 | InkMine | A dust storm on Talus: find cover or get sandblasted | Game-first challenge | Idea |
 | 4 | InkPin | "Which Pin?" series on lava and gas levels | Game-first, answerable question | Repeat only if #103 gets comments |

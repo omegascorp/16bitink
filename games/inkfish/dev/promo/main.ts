@@ -130,6 +130,9 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * gulpsquid (gameplay: the viperfish swallows a giant squid).
  * gulpsword (gameplay: the viperfish swallows a swordfish, the sword last).
  * gulppuffer (gameplay: a pufferfish inflates inside the viperfish).
+ * gulpgiant (gameplay: the viperfish swallows a giant sleeper shark).
+ * gulpoar (gameplay: the viperfish slurps down a whole oarfish).
+ * pelican (a zoo pelican in Japan tries to swallow a baby capybara).
  * They're loaded lazily (import() on demand).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
@@ -531,6 +534,21 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
     await loadCaptionFont();
     const { createGulpPuffer } = await import('./gulppuffer/render');
     return createGulpPuffer(ctx);
+  },
+  gulpgiant: async () => {
+    await loadCaptionFont();
+    const { createGulpGiant } = await import('./gulpgiant/render');
+    return createGulpGiant(ctx);
+  },
+  gulpoar: async () => {
+    await loadCaptionFont();
+    const { createGulpOar } = await import('./gulpoar/render');
+    return createGulpOar(ctx);
+  },
+  pelican: async () => {
+    await loadCaptionFont();
+    const { createPelican } = await import('./pelican/render');
+    return withCredit(createPelican(ctx), ctx);
   },
   orcaflip: async () => {
     await loadCaptionFont();

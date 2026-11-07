@@ -13,6 +13,8 @@ import { createPython } from './python/render';
 import { createSpidertail } from './spidertail/render';
 import { createGulpHen } from './gulphen/render';
 import { createHeartbeat } from './heartbeat/render';
+import { createPythonBear } from './pythonbear/render';
+import { CREDIT as PYTHON_BEAR_CREDIT } from './pythonbear/story';
 import { CREDIT as HEARTBEAT_CREDIT } from './heartbeat/story';
 
 /**
@@ -96,6 +98,10 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   heartbeat: async () => {
     await loadCaptionFont();
     return withCredit(createHeartbeat(ctx), ctx, undefined, HEARTBEAT_CREDIT);
+  },
+  pythonbear: async () => {
+    await loadCaptionFont();
+    return withCredit(createPythonBear(ctx), ctx, PAPER_ON_DARK, PYTHON_BEAR_CREDIT);
   },
 };
 
