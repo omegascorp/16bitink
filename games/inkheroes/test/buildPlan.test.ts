@@ -44,15 +44,16 @@ describe('the build suggestion', () => {
     expect(new Set(steps).size).toBe(steps.length);
   });
 
-  it('starts the first map with income, then the best troops and their growth, and has nothing more to suggest', () => {
+  it('starts the first map with income, then the best troops, then walls and growth, and has nothing more to suggest', () => {
     let town = firstTown(0);
     const steps = [];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       const next = suggestBuilding(town, RICH, ASHFORD.off)!;
       steps.push(next);
       town = { ...build(town, next, RICH, ASHFORD.off).town, builtToday: false };
     }
-    expect(steps).toEqual(['townHall', 'barracks', 'archeryRange', 'citadel', 'griffinTower']);
+    // Ashford has no walls at first: the Fort comes when the Citadel's growth calls for it.
+    expect(steps).toEqual(['townHall', 'barracks', 'archeryRange', 'fort', 'citadel', 'griffinTower']);
     expect(suggestBuilding(town, RICH, ASHFORD.off)).toBeNull();
   });
 
@@ -64,7 +65,7 @@ describe('the build suggestion', () => {
   it('goes for what stands in a building’s way first', () => {
     const bare = { ...firstTown(0), built: ['villageHall' as const] };
     expect(suggestBuilding(bare, RICH, [])).toBe('tavern');
-    expect(suggestBuilding(withBuilt(bare, 'tavern', 'townHall'), RICH, [])).toBe('fort');
+    expect(suggestBuilding(withBuilt(bare, 'tavern', 'townHall'), RICH, [])).toBe('guardhouse');
   });
 
   it('saves up for it when only gold is short: gold comes every day', () => {
@@ -87,7 +88,7 @@ describe('the build suggestion', () => {
     const def = MAPS[0]!;
     const next = suggestBuilding(firstTown(0), RICH, def.off)!;
     expect(def.off).not.toContain(next);
-    expect(suggestBuilding(withBuilt(firstTown(0), 'townHall', 'barracks', 'archeryRange', 'citadel', 'griffinTower', 'mageGuild1'), RICH, def.off)).toBeNull();
+    expect(suggestBuilding(withBuilt(firstTown(0), 'townHall', 'barracks', 'archeryRange', 'fort', 'citadel', 'griffinTower', 'mageGuild1'), RICH, def.off)).toBeNull();
   });
 
   it.each(MAPS.map((m, i) => [m.name, i] as const))('can always be found in the hall on %s', (_, n) => {

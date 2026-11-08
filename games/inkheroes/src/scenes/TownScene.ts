@@ -14,9 +14,11 @@ import { canAfford, describeAmount, pay } from '../logic/resources';
 import { lineOf } from '../logic/creatures';
 import { tilesOf } from '../logic/map';
 import { build, buildAll, cantBuild, growthOf, hire, hireable, hireAll, SPELLBOOK_COST, SPELLBOOK_SOLD, stockOf, suggestBuilding, towerPlaces, towersOf, upgradeAll, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
-import { PX_TEX } from './battle/pixelAssets';
-import { FILLS } from './battle/pixelFrames';
-import { PixelButton, PixelFrame, TextLabel, texturePixels, UI_TEX } from './battle/pixelUi';
+import { withinMana } from '../logic/hero';
+import { faceOf, heroArt, PX_TEX } from './battle/pixelAssets';
+import { drawPortrait, FILLS } from './battle/pixelFrames';
+import { PixelButton, PixelFrame, putBuffer, TextLabel, texturePixels, UI_TEX } from './battle/pixelUi';
+import { HERO_SLOT } from './hud/armySlots';
 import { armyUnitInfo, dwellingPreview } from './battle/unitCard';
 import { UnitInfoCard, type InfoButton } from './battle/unitInfoCard';
 import { openCard, type CardButton } from './CardScene';
@@ -48,6 +50,8 @@ const ROOM_MIN_H = 173;
 const TOWNS = { w: 120, gap: 4 } as const;
 /** The testing cheat's button, on the right just under the build plate, which takes the whole top of a phone. */
 const CHEAT_BTN = { w: 64, h: 22, top: 78, margin: 4 } as const;
+/** The texture of the hero's face on their sheet (one at a time, redrawn each time the sheet opens). */
+const SHEET_FACE = 'town-sheet-face';
 /** How long a message stays, and how long it takes to fade, ms. */
 const TOAST = { ms: 2600, fade: 500, pad: { x: 8, y: 3 } } as const;
 
@@ -635,10 +639,28 @@ export class TownScene extends Phaser.Scene {
     }
     if (from.i === HEAD) {
       if (ref.army !== from.army) this.moveHero(from.army);
+      else if (ref.i === HEAD) this.openHeroSheet();
       else this.refresh();
       return;
     }
     this.moveCompany(from, ref);
+  }
+
+  /** The hero's sheet (Hero and Gear tabs), as on the map: the second tap on the hero's face opens it. */
+  private openHeroSheet(): void {
+    const art = heroArt('player', this.session.adv.hero.id);
+    const face = putBuffer(this, drawPortrait(faceOf(this, PX_TEX.hero(art.id, 'idle'), art.art, HERO_SLOT - 4), 'bronze', false, false, HERO_SLOT), SHEET_FACE);
+    this.refresh();
+    openCard(this, {
+      title: this.session.adv.hero.name,
+      body: '',
+      sheet: {
+        face,
+        hero: () => this.session.adv.hero,
+        change: (next) => this.session.set({ ...this.session.adv, hero: withinMana(next) }),
+      },
+      buttons: [{ label: 'Close', kind: 'plain', onClick: () => this.refresh() }],
+    });
   }
 
   /** The company at `from` onto the slot at `to`: merged with its like, swapped with another. */

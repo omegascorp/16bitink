@@ -41,7 +41,7 @@ export const ASHFORD_LAND: MapDef = {
     'TggTggTggTggTggTggTggTggT~~ggggP',
     'TTTTTTTTTTTTTTTTTTTTTTTTT~~TTTTT',
   ],
-  town: { id: 'ashford-town', name: 'Ashford', x: 6, y: 5, built: ['villageHall', 'fort', 'tavern', 'guardhouse'], guild: ['bless', 'stoneSkin', 'slow', 'haste', 'cure'] },
+  town: { id: 'ashford-town', name: 'Ashford', x: 6, y: 5, built: ['villageHall', 'tavern', 'guardhouse'], guild: ['bless', 'stoneSkin', 'slow', 'haste', 'cure'] },
   hero: {
     id: 'rowan', name: 'Rowan', heroClass: 'knight', x: 6, y: 6,
     attack: 2, defense: 2, power: 1, knowledge: 1, skills: { leadership: 1 }, spells: [],

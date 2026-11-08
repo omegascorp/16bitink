@@ -29,6 +29,8 @@ interface StripFaces {
   readonly visitor: ArmyRow;
   /** The tower places, on a tab over the strip. */
   readonly towers: ArmyRow;
+  /** The tower's icon at the head of the tower places, in the crest's column. */
+  readonly towerHead: Phaser.GameObjects.Container;
   readonly towersFrame: PixelFrame;
   readonly owned: { destroy(): void }[];
 }
@@ -46,8 +48,8 @@ export interface TownBarActions {
 }
 
 const SPLIT = { w: 100, h: 30 } as const;
-/** The tab holding the tower places: its padding, and the width its word takes. */
-const TAB = { pad: 4, label: 50 } as const;
+/** The tab holding the tower places: its padding round the tower's icon and the places, which stand in the army rows' columns. */
+const TAB = { pad: 4 } as const;
 const PANEL_FILL = [34, 24, 17, 246] as const;
 
 /**
@@ -80,7 +82,6 @@ export class TownBar {
   /** The row the hero heads: the visitor's, or the garrison's. */
   private heroRow: SlotRef['army'] = 'hero';
   private readonly away: TextLabel;
-  private readonly towersLabel: TextLabel;
   /** Whether the town has any tower places, and nothing's open over the strip. */
   private towersShown = false;
   private towersHidden = false;
@@ -101,8 +102,6 @@ export class TownBar {
     this.incomeLine = this.text({ align: 'left', anchor: { x: 0, y: 0 } });
     this.status = this.text({ align: 'left', anchor: { x: 0, y: 0 }, ink: INK.dim });
     this.away = this.text({ align: 'center', anchor: { x: 0.5, y: 0.5 }, ink: INK.dim });
-    this.towersLabel = this.text({ align: 'left', anchor: { x: 0, y: 0.5 } });
-    this.towersLabel.setText('Towers');
     this.goldIcon = scene.add.image(0, 0, UI_TEX.res('gold')).setOrigin(0).setDepth(depth + 1);
     this.drag = new ArmyDrag<SlotRef>(scene, {
       depth: depth + 40,
@@ -176,10 +175,12 @@ export class TownBar {
     const towers = new ArmyRow(scene, slot, MAX_TOWERS);
     towers.root.setDepth(depth + 1);
     this.drag.watch(towers, (i) => ({ army: 'tower', i }));
-    const towersFrame = new PixelFrame(scene, TAB.pad * 2 + TAB.label + armyRowOf(slot), slot + TAB.pad * 2, { rim: 'bronze', fill: PANEL_FILL });
+    const towersFrame = new PixelFrame(scene, TAB.pad * 2 + slot + HEAD_GAP + armyRowOf(slot), slot + TAB.pad * 2, { rim: 'bronze', fill: PANEL_FILL });
     towersFrame.img.setDepth(depth);
-    owned.push(crestFrame, face, lit, emptyFace, garrison, visitor, towers, towersFrame);
-    this.faces = { crest, heroFace: face.img, heroLit: lit.img, emptyFace, garrison, visitor, towers, towersFrame, owned };
+    const towerFrame = new PixelImage(scene, drawSocket(slot, 'gold'));
+    const towerHead = scene.add.container(0, 0, [towerFrame.img, scene.add.image(slot / 2, slot / 2, UI_TEX.icon('tower'))]).setDepth(depth + 1);
+    owned.push(crestFrame, towerFrame, face, lit, emptyFace, garrison, visitor, towers, towersFrame);
+    this.faces = { crest, heroFace: face.img, heroLit: lit.img, emptyFace, garrison, visitor, towers, towerHead, towersFrame, owned };
     this.slot = slot;
   }
 
@@ -190,6 +191,7 @@ export class TownBar {
     this.drag.forget(this.faces.towers);
     for (const o of this.faces.owned) o.destroy();
     this.faces.crest.destroy(true);
+    this.faces.towerHead.destroy(true);
     this.faces = null;
   }
 
@@ -265,12 +267,11 @@ export class TownBar {
     f.emptyFace.setPosition(x, vy);
     f.visitor.setPosition(x + this.slot + HEAD_GAP, vy);
     this.away.setPosition(x + this.slot + HEAD_GAP + Math.floor(armyRowW(this.slot) / 2), vy + Math.floor(this.slot / 2));
-    // The tab stands on the strip's top edge, over the left of the armies (the list of towns has the right).
-    const tabX = x;
+    // The tab stands on the strip's top edge, over the left of the armies (the list of towns has the right): its icon over the crest, its places over the armies' first columns.
     const tabY = this.top - this.slot - TAB.pad * 2 + 2;
-    f.towersFrame.setPosition(tabX, tabY);
-    this.towersLabel.setPosition(tabX + TAB.pad + 2, tabY + TAB.pad + Math.floor(this.slot / 2));
-    f.towers.setPosition(tabX + TAB.pad + TAB.label, tabY + TAB.pad);
+    f.towersFrame.setPosition(x - TAB.pad, tabY);
+    f.towerHead.setPosition(x, tabY + TAB.pad);
+    f.towers.setPosition(x + this.slot + HEAD_GAP, tabY + TAB.pad);
   }
 
   /** Hides the tower tab while a window is open over the town. */
@@ -283,7 +284,7 @@ export class TownBar {
     const on = this.towersShown && !this.towersHidden;
     this.faces?.towers.root.setVisible(on);
     this.faces?.towersFrame.img.setVisible(on);
-    this.towersLabel.img.setVisible(on);
+    this.faces?.towerHead.setVisible(on);
   }
 
   /** The hero's face at the head of the row the hero is in. */

@@ -17,6 +17,7 @@ import iconRecruit from './ui/icon-recruit.png?url';
 import iconLeave from './ui/icon-leave.png?url';
 import iconSmith from './ui/icon-smith.png?url';
 import iconTavern from './ui/icon-tavern.png?url';
+import iconTower from './ui/icon-tower.png?url';
 import statAttack from './ui/stat-attack.png?url';
 import statDefense from './ui/stat-defense.png?url';
 import statShots from './ui/stat-shots.png?url';
@@ -97,7 +98,7 @@ import resCrystal from './ui/res-crystal.png?url';
 import resGems from './ui/res-gems.png?url';
 import laurel from './ui/laurel.png?url';
 
-export type IconName = 'wait' | 'defend' | 'spell' | 'auto' | 'endDay' | 'town' | 'menu' | 'hall' | 'recruit' | 'leave' | 'smith' | 'tavern';
+export type IconName = 'wait' | 'defend' | 'spell' | 'auto' | 'endDay' | 'town' | 'menu' | 'hall' | 'recruit' | 'leave' | 'smith' | 'tavern' | 'tower';
 
 export const ICONS: Readonly<Record<IconName, string>> = {
   wait: iconWait,
@@ -112,6 +113,7 @@ export const ICONS: Readonly<Record<IconName, string>> = {
   leave: iconLeave,
   smith: iconSmith,
   tavern: iconTavern,
+  tower: iconTower,
 };
 
 export type StatName = 'attack' | 'defense' | 'shots' | 'damage' | 'health' | 'left' | 'speed' | 'mana' | 'power' | 'knowledge' | 'morale' | 'luck' | 'sight';
