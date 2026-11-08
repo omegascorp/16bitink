@@ -1,4 +1,5 @@
 ---
+import GameTitle from '../../components/GameTitle.astro';
 import Base from '../../layouts/Base.astro';
 import { findGame, isPurchasable } from '../../data/games';
 import { FLASH_GAMES } from '../../data/flashGames';
@@ -42,7 +43,7 @@ const longDate = (day: string): string =>
         </picture>
       </a>
       <div>
-        <h2 id="pick-title"><span class="num">1.</span> {game.title}</h2>
+        <h2 id="pick-title"><span class="num">1.</span> <GameTitle game={game} /></h2>
         <p class="meta">16bit.ink, {game.released?.slice(0, 4)} · Web browser: computer, phone or tablet · {offer}</p>
         {page.oursWhy.map((p) => <p>{p}</p>)}
         <div class="actions">

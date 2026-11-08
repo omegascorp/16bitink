@@ -2,6 +2,7 @@
 import { isPurchasable, type CatalogGame, type HomeLabel } from '../data/games';
 import { coverSrcset, coverVariant, loopSources } from '../lib/covers';
 import { freeLine } from '../lib/gameFacts';
+import GameTitle from './GameTitle.astro';
 
 interface Props {
   game: CatalogGame;
@@ -47,7 +48,7 @@ const terms = owned ? '' : isPurchasable(game) ? `${freeLine(game)} · ` : 'Free
     <span class="badge btn btn-ink" aria-hidden="true">▶ {playLabel}</span>
   </a>
   <div class="caption">
-    <h2><a class="title" href={play} data-click="title">{game.title}</a></h2>
+    <h2><a class="title" href={play} data-click="title"><GameTitle game={game} /></a></h2>
     <p class="tagline">{game.tagline}</p>
     {featured && game.description[0] && <p class="blurb">{game.description[0]}</p>}
     <a class="btn btn-ink play" href={play} data-click="play">{playLabel}</a>
@@ -113,6 +114,8 @@ const terms = owned ? '' : isPurchasable(game) ? `${freeLine(game)} · ` : 'Free
     grid-column: 1; margin: -0.42em 0 0; position: relative; z-index: 1;
     font-size: clamp(3.4rem, 11vw, 4.6rem); line-height: 1; transform: rotate(-2deg); transform-origin: left bottom;
   }
+  /* Pixels tilted come out in steps: the pixel half of a title stands straight, as "16bit" does in the logo. */
+  .title :global(.pixel) { display: inline-block; transform: rotate(2deg); }
   .title { color: var(--blue-ink); text-decoration: none; text-shadow: 0 0 10px var(--paper), 0 0 4px var(--paper); }
   .tagline { grid-column: 1; margin: 4px 0 0; font-family: var(--font-hand); font-size: 1.5rem; line-height: 1.2; }
   .blurb { grid-column: 1 / -1; margin: 14px 0 0; max-width: 46ch; }

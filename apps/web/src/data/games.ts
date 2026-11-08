@@ -1,5 +1,8 @@
 export type GameStatus = 'playable' | 'sketching';
 
+/** How a game is drawn: its title is lettered to match, and the catalog will filter by it. */
+export type ArtStyle = 'ink' | 'pixel';
+
 /** Colours for the play page splash, matching the game's first screen. */
 export interface GameTheme {
   readonly paper: string;
@@ -34,6 +37,8 @@ export interface CatalogGame {
   readonly description: readonly string[];
   readonly status: GameStatus;
   readonly cover?: string;
+  /** How the game is drawn; ink when unset. */
+  readonly style?: ArtStyle;
   /** Has a silent gameplay loop in src/assets/loops/ (made by scripts/loops.mjs), played over the cover. */
   readonly loop?: boolean;
   /** Release day (YYYY-MM-DD, UTC): the home page marks a game "New" for NEW_FOR_DAYS from it. */
@@ -317,6 +322,7 @@ export const GAMES: readonly CatalogGame[] = [
   {
     slug: 'inkheroes',
     title: 'InkHeroes',
+    style: 'pixel',
     tagline: 'Raise an army. Build your towns. Win back the Border March.',
     kind: 'strategy game',
     fansOf: {

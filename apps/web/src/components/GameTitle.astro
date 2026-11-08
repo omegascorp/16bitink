@@ -1,0 +1,25 @@
+---
+import type { CatalogGame } from '../data/games';
+import { titleFont } from '../lib/titleFont';
+
+interface Props {
+  game: Pick<CatalogGame, 'title' | 'style'>;
+}
+const { game } = Astro.props;
+// Lettered in the game's art style; the heading around it sets the size (and an ink title's colour).
+const font = titleFont(game);
+---
+{font === 'pixel' ? <span class="pixel">{game.title}</span> : game.title}
+
+<style>
+  /* Declared here, not in global.css, so the play page (which doesn't load it) letters titles the same. Fetched only where a pixel title shows. */
+  @font-face {
+    font-family: 'Geist Pixel'; font-style: normal; font-weight: 400; font-display: swap;
+    src: url(../assets/fonts/geist-pixel-square.woff2) format('woff2');
+  }
+  /* Geist Pixel is far wider than Caveat at one size: scaled to take about the same room. Gold, from the game's own theme. */
+  .pixel {
+    font-family: 'Geist Pixel', ui-monospace, monospace; font-weight: 400; font-size: 0.82em; letter-spacing: 0;
+    color: var(--gold-ink, currentColor);
+  }
+</style>
