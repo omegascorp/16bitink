@@ -50,7 +50,7 @@ export interface ItemDef {
   readonly machine?: MachineId;
 }
 
-export const SET_NAMES: Readonly<Record<string, string>> = { bronze: 'Bronze set', linen: 'Linen set', faience: 'Faience set' };
+export const SET_NAMES: Readonly<Record<string, string>> = { bronze: 'Bronze set', linen: 'Linen set', faience: 'Faience set', scale: 'Scale set' };
 
 /** Every piece. Numbers in docs/inkheroes-design.md. */
 export const ITEMS = {
@@ -73,6 +73,13 @@ export const ITEMS = {
   scarabGirdle: { name: 'Scarab Girdle', slot: 'belt', quality: 'gray', set: 'faience', gives: { luck: 1 } },
   faienceAnklets: { name: 'Faience Anklets', slot: 'greaves', quality: 'gray', set: 'faience', gives: { knowledge: 1 } },
   reedSandals: { name: 'Reed Sandals', slot: 'boots', quality: 'gray', set: 'faience', gives: { knowledge: 1 } },
+  // Egypt's fighter's set (part 5): Paser's, as the Bronze set is Rowan's.
+  scaleHelm: { name: 'Scale Helm', slot: 'helm', quality: 'gray', set: 'scale', gives: { defense: 1 } },
+  scaleCoat: { name: 'Scale Coat', slot: 'cuirass', quality: 'gray', set: 'scale', gives: { defense: 1 } },
+  scaleBracers: { name: 'Scale Bracers', slot: 'bracers', quality: 'gray', set: 'scale', gives: { attack: 1 } },
+  captainsSash: { name: 'Captain’s Sash', slot: 'belt', quality: 'gray', set: 'scale', gives: { morale: 1 } },
+  scaleGreaves: { name: 'Scale Greaves', slot: 'greaves', quality: 'gray', set: 'scale', gives: { defense: 1 } },
+  chariotSandals: { name: 'Chariot Sandals', slot: 'boots', quality: 'gray', set: 'scale', gives: { attack: 1 } },
   noviceSpellbook: { name: 'Novice’s Spellbook', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
   // Egypt's spellbook: the same grade as the Greeks' first.
   novicePapyrus: { name: 'Novice’s Papyrus', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
@@ -81,6 +88,10 @@ export const ITEMS = {
   catapult: { name: 'Catapult', slot: 'machine', quality: 'gray', gives: {}, machine: 'catapult' },
   catapult2: { name: 'Bronze Catapult', slot: 'machine', quality: 'green', gives: {}, machine: 'catapult2' },
   catapult3: { name: 'Syracusan Catapult', slot: 'machine', quality: 'blue', gives: {}, machine: 'catapult3' },
+  // Egypt's war machine: an earthen ramp its workers raise against the wall (chapter 2, part 5).
+  ramp: { name: 'Earth Ramp', slot: 'machine', quality: 'gray', gives: {}, machine: 'ramp' },
+  ramp2: { name: 'Brick Ramp', slot: 'machine', quality: 'green', gives: {}, machine: 'ramp2' },
+  ramp3: { name: 'Ramp of the Pyramid Builders', slot: 'machine', quality: 'blue', gives: {}, machine: 'ramp3' },
 } as const satisfies Record<string, ItemDef>;
 
 export type ItemId = keyof typeof ITEMS;
@@ -90,7 +101,7 @@ export type Gear = Readonly<Partial<Record<Slot, ItemId>>>;
 export const itemDef = (id: ItemId): ItemDef => ITEMS[id];
 
 /** What the Blacksmith sells; finer machines are prizes. */
-export const SOLD_MACHINES = ['catapult', 'catapult2'] as const satisfies readonly ItemId[];
+export const SOLD_MACHINES = ['catapult', 'catapult2', 'ramp', 'ramp2'] as const satisfies readonly ItemId[];
 export type SoldMachine = (typeof SOLD_MACHINES)[number];
 
 /** A piece's grade. */
@@ -99,8 +110,10 @@ export const itemQuality = (id: ItemId): Quality => itemDef(id).quality;
 /** Whether `h` wears a spellbook: without one a hero has no magic at all. */
 export const hasSpellbook = (h: Pick<Hero, 'gear'>): boolean => !!h.gear?.book;
 
-/** A machine in words: "Breaks walls: 2 stones a round". */
+/** A machine in words: "Breaks walls: 2 stones a round", "A ramp where you choose, ready on round 3". */
 function machineSays(id: MachineId): string {
+  const ramp = creature(id).ramp;
+  if (ramp) return `A ramp up the wall where you choose, ready on round ${ramp.ready}${ramp.second ? `, and a second on round ${ramp.second}` : ''}`;
   const { throws, crit } = creature(id).stones!;
   return `Breaks walls: ${throws === 1 ? '1 stone' : `${throws} stones`} a round${crit > 0.5 ? ', hits harder' : ''}`;
 }

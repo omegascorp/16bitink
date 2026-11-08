@@ -32,10 +32,13 @@ import sitePileSulfur from './map/site-pile-sulfur.png?url';
 import sitePileCrystal from './map/site-pile-crystal.png?url';
 import sitePileGems from './map/site-pile-gems.png?url';
 import siteTownKemet from './map/site-town-kemet.png?url';
+import siteTownKemetRed from './map/site-town-kemet-red.png?url';
 import vignetteAshford from './map/vignette-ashford.png?url';
 import vignetteThornwood from './map/vignette-thornwood.png?url';
 import vignetteBlackBanner from './map/vignette-blackBanner.png?url';
 import vignetteNekhen from './map/vignette-nekhen.png?url';
+import vignetteAbu from './map/vignette-abu.png?url';
+import vignetteRedLand from './map/vignette-redLand.png?url';
 import tree0 from './map/tree-0.png?url';
 import tree1 from './map/tree-1.png?url';
 import tree2 from './map/tree-2.png?url';
@@ -108,12 +111,20 @@ export const MAP_SITES: Readonly<Partial<Record<SiteArt, MapSprite>>> = {
 /** Egypt's walled town (sandstone, pylons, an obelisk), drawn whole: it does not grow with the buildings as the Greek town does. */
 export const KEMET_TOWN: MapSprite = { url: siteTownKemet, w: 188, h: 116, footX: 94, footY: 115 };
 
+/** Nubt's look: the same town in darker red sandstone with red Set banners (same footprint, anchor and size as KEMET_TOWN). */
+export const KEMET_TOWN_RED: MapSprite = { url: siteTownKemetRed, w: 188, h: 116, footX: 94, footY: 115 };
+
+/** Towns with a picture of their own, by `look` (a town's `look` in a MapDef). */
+export const TOWN_LOOKS: Readonly<Record<string, MapSprite>> = { nubt: KEMET_TOWN_RED, kemetRed: KEMET_TOWN_RED };
+
 /** The campaign menu's picture of each map (192 x 96), by map or planned-map id. */
 export const MAP_VIGNETTES: Readonly<Record<string, string>> = {
   ashford: vignetteAshford,
   thornwood: vignetteThornwood,
   blackBanner: vignetteBlackBanner,
   nekhen: vignetteNekhen,
+  abu: vignetteAbu,
+  'red-land': vignetteRedLand,
 };
 
 /** Trees, mountains, boulders and the bridge, a few of each to vary. */

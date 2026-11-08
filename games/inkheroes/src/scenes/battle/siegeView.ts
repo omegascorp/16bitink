@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SIEGE_ART } from '../../art/pixel/siege';
 import { standing, TOWERS, WALLS, type Siege, type SiegePart } from '../../logic/siege';
 import { FIGURE_DEPTH } from './pixelFigure';
+import { rampArt, RampView, type RampLook } from './rampView';
 
 const tex = (key: string): string => `px-siege-${key}`;
 
@@ -27,7 +28,7 @@ export const partAt = (part: SiegePart): { x: number; y: number } => PART_AT[par
 
 /** The art a siege needs loaded: every piece, so a fall needs no load mid-battle. */
 export function siegeArt(): { key: string; url: string }[] {
-  return Object.entries(SIEGE_ART).map(([k, p]) => ({ key: tex(k), url: p.url }));
+  return [...Object.entries(SIEGE_ART).map(([k, p]) => ({ key: tex(k), url: p.url })), ...rampArt()];
 }
 
 /**
@@ -47,9 +48,12 @@ export class SiegeView {
   /** Someone stands in the gateway, so it can't shut. */
   private held = false;
   private open = false;
+  /** Egypt's ramps against the wall, if the attackers raise any. */
+  private readonly ramps: RampView;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly layer: Phaser.GameObjects.Layer, siege: Siege) {
+  constructor(private readonly scene: Phaser.Scene, private readonly layer: Phaser.GameObjects.Layer, siege: Siege, look: RampLook = 'earth') {
     this.full = siege.parts;
+    this.ramps = new RampView(scene, layer, look, (w) => FIGURE_DEPTH + Math.max(...Object.entries(SIEGE_ART).filter(([k]) => k.startsWith(`${w}-`) || k.startsWith(`${w}Inner-`)).map(([, p]) => p.foot)) - 1);
     if (siege.moat) this.place('moat', GROUND_DEPTH);
     // The court lies over the moat's inner bank, so a breach opens on paving.
     this.place('court', GROUND_DEPTH);
@@ -85,7 +89,13 @@ export class SiegeView {
     for (const t of TOWERS) if (t in siege.parts) this.swap(t, `${t}-${standing(siege, t) ? 1 : 0}`);
     this.keepShadow.setVisible(standing(siege, 'keep'));
     this.gateUp = standing(siege, 'gate');
+    this.ramps.show(siege.ramps ?? []);
     this.settle();
+  }
+
+  /** Workers' dust where a ramp is begun or grows. */
+  rampDust(part: SiegePart): void {
+    this.dust({ x: PART_AT[part].x - 30, y: PART_AT[part].y + 20 });
   }
 
   /** Tells the view whether someone stands in the gateway. */
@@ -160,5 +170,6 @@ export class SiegeView {
   destroy(): void {
     this.scene.tweens.killTweensOf(this.bridge);
     for (const img of this.images) img.destroy();
+    this.ramps.destroy();
   }
 }

@@ -58,6 +58,10 @@ export interface MapDef {
     readonly waits?: boolean;
     /** Its people (none: the Greeks'). */
     readonly faction?: TownFaction;
+    /** Both sides race for it from the part's third night (the rival rides for it then): it is never handed over, its garrison must be beaten. */
+    readonly race?: boolean;
+    /** Its own picture on the map (a key of TOWN_LOOKS in src/art/pixel/map.ts), when it isn't drawn as its people's town: Nubt flies Set's red banners. */
+    readonly look?: string;
   }[];
   readonly hero: HeroDef;
   /** A rival lord: an AI hero who rides out from the map's rival-held towns. */
@@ -66,6 +70,8 @@ export interface MapDef {
     /** What the rival builds, in order, one a day while the purse allows. */
     readonly build: readonly BuildingId[];
     readonly purse: Amount;
+    /** The share of the days before the part that he had at home (src/logic/rival.ts HEAD_START, 0.75, when left out). */
+    readonly headStart?: number;
   };
   readonly purse: Amount;
   /** What the Crown sends when the chapter rides on into this part (a part played straight on from the one before keeps its purse). */
@@ -74,6 +80,10 @@ export interface MapDef {
   readonly opening?: { readonly text: string; readonly way: readonly { readonly x: number; readonly y: number }[] };
   /** The heroes a Tavern of ours can hire on this map, in order (each one once; x and y are where they stand when hired). */
   readonly recruits?: readonly HeroDef[];
+  /** Set's sandstorms: every this many days of the part (its 4th, 8th…), sand costs double to cross for everyone, and the day card warns the morning before. */
+  readonly stormEvery?: number;
+  /** What the narrator tells as this part is won and the chapter rides on (a chapter's last part tells the chapter's ending instead). */
+  readonly won?: LineId;
   /** Buildings switched off on this map. */
   readonly off: readonly BuildingId[];
   readonly seed: number;

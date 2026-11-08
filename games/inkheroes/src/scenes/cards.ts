@@ -1,11 +1,13 @@
 import type Phaser from 'phaser';
+import { chapterEnd } from './chapterEnd';
 import { chapterById, isLoaded, nextMap, partsOf, type ChapterId } from '../level/maps';
-import { answerPrompt, ourHeroes, playerTowns, type Adventure } from '../logic/adventure';
+import { answerPrompt, playerTowns, type Adventure } from '../logic/adventure';
 import { getHost, trackOffer } from '../host';
 import { partDays } from '../logic/chapter';
 import { PRIMARY_NAMES } from '../logic/hero';
 import { RANK_NAMES, SKILLS } from '../logic/skills';
-import { has, type Town } from '../logic/town';
+import { buildingIn, has, type Town } from '../logic/town';
+import { buildingOf, FACTIONS, factionOf } from '../logic/factions';
 import { UI_TEX } from './battle/pixelUi';
 import { openCard, type CardSpec } from './CardScene';
 import { narrator } from './NarratorScene';
@@ -64,9 +66,11 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
     const days = partDays(adv);
     // Otherwise the land opens further and the hero rides on; after the last part built, the chapter's own card.
     const end = next ? `\nThe road goes on: ${next.name} lies ahead.` : '';
+    // A part's own ending, told as the chapter rides on (read here when it isn't heard).
+    const won = next && session.def.won ? (narrator(scene)?.say(session.def.won) ? '' : `\n\n${lineText(session.def.won)}`) : '';
     openCard(scene, {
       title: 'Victory!',
-      body: `${session.def.goal.text[0]!.toUpperCase()}${session.def.goal.text.slice(1)}: done in ${days} ${days === 1 ? 'day' : 'days'}${adv.lostStacks === 0 ? ', and not one company lost' : ''}.${end}`,
+      body: `${session.def.goal.text[0]!.toUpperCase()}${session.def.goal.text.slice(1)}: done in ${days} ${days === 1 ? 'day' : 'days'}${adv.lostStacks === 0 ? ', and not one company lost' : ''}.${end}${won}`,
       // One way on: from the next part the map's own menu still leads back to the campaign.
       buttons: [next
         ? { label: `Ride on to ${next.name}`, onClick: () => rideOnward(scene, session) }
@@ -91,12 +95,16 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
 
 /** The hero is about to storm walls with no war machine: what it's for, where to get one, and what going without costs. */
 export function wallsCard(town: Town, adv: Adventure, storm: () => void): CardSpec {
-  const smith = playerTowns(adv).find((t) => has(t, 'blacksmith'));
-  const buy = smith ? `The Blacksmith in ${smith.name} sells them.` : 'Build a Blacksmith in a town of yours to buy one.';
+  // In the hero's people's words: the Greeks' Catapult from a Blacksmith, Egypt's siege ramp from a Workshop.
+  const people = factionOf(adv.hero);
+  const words = FACTIONS[people].siege;
+  const smith = playerTowns(adv).find((t) => has(t, 'blacksmith') && factionOf(t) === people) ?? playerTowns(adv).find((t) => has(t, 'blacksmith'));
+  const shop = buildingOf(people, 'blacksmith').name;
+  const buy = smith ? `The ${buildingIn(smith, 'blacksmith').name} in ${smith.name} sells them.` : `Build a ${shop} in a town of yours to buy one.`;
   return {
     title: `The walls of ${town.name}`,
-    body: `Walls stop your army, and only a war machine can break them. A Catapult rides with you as gear and brings them down. ${buy}\nWithout one, your troops must hack through the gate by hand, under fire.`,
-    picture: UI_TEX.item('catapult'),
+    body: `${words.card} ${buy}\nWithout one, your troops must hack through the gate by hand, under fire.`,
+    picture: UI_TEX.item(words.item),
     buttons: [
       { label: 'Not yet', kind: 'crown', onClick: () => undefined },
       { label: 'Storm it now', kind: 'plain', onClick: storm },
@@ -111,35 +119,23 @@ export function wallsCard(town: Town, adv: Adventure, storm: () => void): CardSp
  * chapter 2: open to an owner, the full game's offer to anyone else.
  */
 function chapterDoneCard(scene: Phaser.Scene, session: Session): CardSpec {
-  const adv = session.adv;
   const chapter = session.chapter;
   const told = !!narrator(scene)?.say(chapter.ending);
-  const towns = playerTowns(adv).length;
-  const heroes = ourHeroes(adv).length;
-  const march = `${adv.day} days on the march, ${towns} ${towns === 1 ? 'town' : 'towns'} under your banner, ${heroes === 1 ? 'one hero' : `${heroes} heroes`} riding.`;
+  const end = chapterEnd(chapter, session.adv, told, isLoaded);
   const back = { label: 'Back to the campaign', kind: 'plain' as const, onClick: () => toMenu(scene, session, null) };
   const more = { label: 'More games', kind: 'plain' as const, onClick: () => getHost(scene).onExit() };
-  const story = told ? [] : [lineText(chapter.ending)];
-  if (chapter.n > 1) {
-    return {
-      title: `Chapter ${chapter.n}: ${chapter.name}, so far`,
-      body: [...story, march, `That is all of ${chapter.name} for now: its next parts are being made, and come to the full game as free updates.`, 'Thank you for playing!'].join('\n\n'),
-      buttons: [{ ...back, kind: 'crown' }, more],
-    };
-  }
+  const body = end.body.join('\n\n');
+  const next = end.next;
+  if (!next) return { title: end.title, body, buttons: [{ ...back, kind: 'crown' }, more] };
   const host = getHost(scene);
-  const next = chapterById('twoLands');
   const owned = isLoaded(next);
   if (!owned && host.price) trackOffer(scene, 'free_end');
-  const onward = owned
-    ? 'Chapter 2, The Two Lands, crosses to Egypt: a new people, Neferet the priestess of Isis, and Sacred Rites that curse, ward and raise the fallen. It waits for you now.'
-    : 'Chapter 2, The Two Lands, crosses to Egypt: a new people, Neferet the priestess of Isis, and Sacred Rites that curse, ward and raise the fallen. It is part of the full game.';
   return {
-    title: 'Chapter 1 complete',
-    body: [...story, march, onward, 'Thank you for playing!'].join('\n\n'),
+    title: end.title,
+    body,
     buttons: [
       owned
-        ? { label: 'On to chapter 2', kind: 'crown', onClick: () => startChapter(scene, next.id) }
+        ? { label: `On to chapter ${next.n}`, kind: 'crown', onClick: () => startChapter(scene, next.id) }
         : host.price
           ? { label: `Full game · ${host.price}`, kind: 'crown', onClick: () => host.onBuy('free_end') }
           : { ...back, kind: 'crown' },

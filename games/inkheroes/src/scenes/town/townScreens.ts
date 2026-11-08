@@ -1,11 +1,11 @@
 import type Phaser from 'phaser';
-import { TOWN_ART } from '../../art/pixel/town';
 import { heroInGarrison, heroTown, heroVisiting, type Adventure } from '../../logic/adventure';
 import type { Army } from '../../logic/army';
 import { hasSpellbook } from '../../logic/items';
 import type { Town } from '../../logic/town';
 import type { BuildingId } from '../../logic/buildings';
-import { creature, type CreatureId } from '../../logic/creatures';
+import { creature, type CreatureId, type TownFaction } from '../../logic/creatures';
+import { factionOf } from '../../logic/factions';
 import { SPELLS } from '../../logic/spells';
 import { bestUnit, buildingIn, buildOrderOf, cantBuild, dwellings, growthOf, guildSpells, has, hireable, hireAll, SPELLBOOK_COST, stockOf, suggestBuilding, towersOf, upgradeAll } from '../../logic/town';
 import { describeAmount, RESOURCES } from '../../logic/resources';
@@ -19,6 +19,7 @@ import { buildButton, PLATE } from './buildPlate';
 import { GoldHalo } from './goldHalo';
 import { fitFactor, shrinkPixels, standOn } from './townPictures';
 import { buildingArt, ledgerOf } from './townStage';
+import { spriteOf, townKit } from './townKit';
 import type { Drawn, FootButton, GridSpec } from './townWindow';
 
 const TERRAIN = 'grass';
@@ -82,9 +83,9 @@ function glow(scene: Phaser.Scene, x: number, y: number, w: number, h: number): 
 }
 
 /** A strip of the grass country, w × h, its horizon `horizon` rows down. */
-function countryside(scene: Phaser.Scene, w: number, h: number, horizon: number, seed: number): Pixels {
-  const atlas = texturePixels(scene, PX_TEX.scenery(TERRAIN));
-  return composeScenery(atlas, townScenery(), { x: 40 + seed * 37, y: HORIZON_Y - horizon, w, h }, seed);
+function countryside(scene: Phaser.Scene, w: number, h: number, horizon: number, seed: number, faction: TownFaction = 'crown'): Pixels {
+  const atlas = texturePixels(scene, PX_TEX.scenery(faction === 'kemet' ? 'sand' : TERRAIN));
+  return composeScenery(atlas, townScenery(faction), { x: 40 + seed * 37, y: HORIZON_Y - horizon, w, h }, seed);
 }
 
 /** A picture in a dim frame: `px` inside, at (x, y). */
@@ -104,16 +105,16 @@ function label(scene: Phaser.Scene, text: string, x: number, y: number, opts: Co
 }
 
 /** A building standing in the grass country, w × h. */
-function buildingPicture(scene: Phaser.Scene, id: BuildingId, w: number, h: number, seed: number): Pixels {
-  const art = buildingArt(id);
-  const s = TOWN_ART[art];
+function buildingPicture(scene: Phaser.Scene, id: BuildingId, w: number, h: number, seed: number, faction: TownFaction = 'crown'): Pixels {
+  const art = buildingArt(id, faction);
+  const s = spriteOf(townKit(faction), art);
   const by = fitFactor(s.w, s.h, w - 8, h - 6);
-  const sprite = shrinkPixels(texturePixels(scene, TOWN_TEX.piece(art)), by);
-  return standOn(countryside(scene, w, h, h - 26, seed), sprite, w, h, 4);
+  const sprite = shrinkPixels(texturePixels(scene, TOWN_TEX.piece(art, faction)), by);
+  return standOn(countryside(scene, w, h, h - 26, seed, faction), sprite, w, h, 4);
 }
 
 /** The picture on the suggestion's plate. */
-export const platePicture = (scene: Phaser.Scene, id: BuildingId): Pixels => buildingPicture(scene, id, PLATE.pic.w, PLATE.pic.h, 3);
+export const platePicture = (scene: Phaser.Scene, id: BuildingId, faction: TownFaction = 'crown'): Pixels => buildingPicture(scene, id, PLATE.pic.w, PLATE.pic.h, 3, faction);
 
 /** The hall: the suggested building first and framed in gold, then a card for each on this map (its next step for an upgrade), coloured by whether it can be built today. */
 export function hallScreen(scene: Phaser.Scene, adv: Adventure, town: Town, off: readonly BuildingId[], act: ScreenActions): GridSpec {
@@ -130,7 +131,7 @@ export function hallScreen(scene: Phaser.Scene, adv: Adventure, town: Town, off:
     buttons: next && btn ? [{ label: btn.ready ? `Build ${buildingIn(town, next).name}` : `Next: ${buildingIn(town, next).name}`, note: btn.ready ? btn.note : `${btn.label}: ${btn.note}`, enabled: btn.ready, primary: true, onClick: () => act.build(next) }] : [],
     draw: (i, x, y) => {
       const id = ids[i]!;
-      const picture = buildingPicture(scene, id, pic.w, pic.h, i + 3);
+      const picture = buildingPicture(scene, id, pic.w, pic.h, i + 3, factionOf(town));
       const state = stateOf(adv, town, id, off);
       const st = id === next && state === 'ready' ? SUGGESTED : STATE[state];
       const bar = new PixelFrame(scene, pic.w, 18, { rim: 'dim', fill: st.fill }).setPosition(x + 4, y + HALL_CARD.h - 22);

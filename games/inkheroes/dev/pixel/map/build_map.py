@@ -68,7 +68,7 @@ COVER = {
     'bridge': ['cover/bridge.png'],
 }
 # The campaign menu's map pictures, by map (or planned map) id.
-VIGNETTES = ('ashford', 'thornwood', 'blackBanner', 'nekhen')
+VIGNETTES = ('ashford', 'thornwood', 'blackBanner', 'nekhen', 'abu', 'redLand')
 EDGE = (34, 24, 16, 255)
 
 
@@ -141,6 +141,7 @@ def main() -> None:
 
     site_rows = [f"  '{art}': {sprite(f'site-{art}', site(art, src, rows))}," for art, (src, rows) in SITES.items()]
     kemet_town = sprite('site-town-kemet', trimmed(HERE / 'sites/town-kemet.png'))
+    kemet_town_red = sprite('site-town-kemet-red', trimmed(HERE / 'sites/town-kemet-red.png'))
     vignette_rows = []
     for v in VIGNETTES:
         Image.open(HERE / 'vignettes' / f'{v}.png').convert('RGBA').save(OUT / f'vignette-{v}.png')
@@ -178,6 +179,12 @@ export const MAP_SITES: Readonly<Partial<Record<SiteArt, MapSprite>>> = {{
 
 /** Egypt's walled town (sandstone, pylons, an obelisk), drawn whole: it does not grow with the buildings as the Greek town does. */
 export const KEMET_TOWN: MapSprite = {kemet_town};
+
+/** Nubt's look: the same town in darker red sandstone with red Set banners (same footprint, anchor and size as KEMET_TOWN). */
+export const KEMET_TOWN_RED: MapSprite = {kemet_town_red};
+
+/** Towns with a picture of their own, by `look` (a town's `look` in a MapDef). */
+export const TOWN_LOOKS: Readonly<Record<string, MapSprite>> = {{ nubt: KEMET_TOWN_RED, kemetRed: KEMET_TOWN_RED }};
 
 /** The campaign menu's picture of each map (192 x 96), by map or planned-map id. */
 export const MAP_VIGNETTES: Readonly<Record<string, string>> = {{

@@ -41,7 +41,8 @@ export function faceOf(scene: Phaser.Scene, key: string, art: UnitArt, size: num
 }
 
 /**
- * A hero's art: the rival lord's ('rival'), or a hero of the player's, by
+ * A hero's art: the rival lord's (by his id when he has art of his own,
+ * `HERO_ART.sethi`, else 'rival', Kassander), or a hero of the player's, by
  * their id when that hero has art of their own (`HERO_ART.ianthe`), else the
  * player's first hero's ('player', Rowan). Anything missing falls back to it.
  */
@@ -53,7 +54,7 @@ export function heroArt(who: 'player' | 'rival' = 'player', heroId?: string): { 
 /** Which of the drawn heroes (`drawn`, HERO_ART's keys) stands for `who`, or for player hero `heroId`. */
 export function heroArtId(drawn: readonly string[], who: 'player' | 'rival', heroId?: string): string {
   const has = (k: string): boolean => drawn.includes(k);
-  if (who === 'player' && heroId && heroId !== 'rival' && has(heroId)) return heroId;
+  if (heroId && heroId !== 'rival' && heroId !== 'player' && has(heroId)) return heroId;
   if (has(who)) return who;
   return has('player') ? 'player' : drawn[0]!;
 }

@@ -59,9 +59,11 @@ export interface CreatureDef {
   readonly line?: CreatureId;
   readonly tier?: 2 | 3;
   /** A war machine bought at the Blacksmith: how its faction deals with walls. It never moves, acts by itself, and can't hold the field alone. */
-  readonly machine?: 'catapult';
+  readonly machine?: 'catapult' | 'ramp';
   /** A catapult's stones a round, and the chances each misses or lands a double blow. */
   readonly stones?: { readonly throws: number; readonly miss: number; readonly crit: number };
+  /** A siege ramp: the round it is ready by, and (the finest) a second ramp's, at another stretch. */
+  readonly ramp?: { readonly ready: number; readonly second?: number };
 }
 
 const def = <T extends CreatureDef>(c: T): T => c;
@@ -98,6 +100,10 @@ export const CREATURES = {
   catapult: def({ id: 'catapult', name: 'Catapult', plural: 'Catapults', faction: 'machine', level: 1, attack: 0, defense: 10, minDmg: 0, maxDmg: 0, hp: 1000, speed: 20, growth: 0, cost: { gold: 1500 }, machine: 'catapult', stones: { throws: 1, miss: 0.1, crit: 0.3 }, retaliations: 0 }),
   catapult2: def({ id: 'catapult2', name: 'Bronze Catapult', plural: 'Bronze Catapults', faction: 'machine', level: 2, attack: 0, defense: 10, minDmg: 0, maxDmg: 0, hp: 1000, speed: 20, growth: 0, cost: { gold: 3000 }, machine: 'catapult', stones: { throws: 1, miss: 0.05, crit: 0.6 }, retaliations: 0 }),
   catapult3: def({ id: 'catapult3', name: 'Syracusan Catapult', plural: 'Syracusan Catapults', faction: 'machine', level: 3, attack: 0, defense: 10, minDmg: 0, maxDmg: 0, hp: 1000, speed: 20, growth: 0, cost: { gold: 5000 }, machine: 'catapult', stones: { throws: 2, miss: 0.05, crit: 0.6 }, retaliations: 0 }),
+  // Egypt's: workers raise an earthen ramp against a stretch of wall the player picks, and the army walks up it.
+  ramp: def({ id: 'ramp', name: 'Earth Ramp', plural: 'Earth Ramps', faction: 'machine', level: 1, attack: 0, defense: 10, minDmg: 0, maxDmg: 0, hp: 1000, speed: 20, growth: 0, cost: { gold: 1500 }, machine: 'ramp', ramp: { ready: 3 }, retaliations: 0 }),
+  ramp2: def({ id: 'ramp2', name: 'Brick Ramp', plural: 'Brick Ramps', faction: 'machine', level: 2, attack: 0, defense: 10, minDmg: 0, maxDmg: 0, hp: 1000, speed: 20, growth: 0, cost: { gold: 3000 }, machine: 'ramp', ramp: { ready: 2 }, retaliations: 0 }),
+  ramp3: def({ id: 'ramp3', name: 'Ramp of the Pyramid Builders', plural: 'Ramps of the Pyramid Builders', faction: 'machine', level: 3, attack: 0, defense: 10, minDmg: 0, maxDmg: 0, hp: 1000, speed: 20, growth: 0, cost: { gold: 5000 }, machine: 'ramp', ramp: { ready: 2, second: 3 }, retaliations: 0 }),
   ogre: def({ id: 'ogre', name: 'Cyclops', plural: 'Cyclopes', faction: 'neutral', level: 4, attack: 13, defense: 7, minDmg: 6, maxDmg: 12, hp: 40, speed: 4, growth: 4, cost: { gold: 300 } }),
   // Each map after the first brings new neutrals, each with a way of fighting of its own (docs/inkheroes-design.md).
   boar: def({ id: 'boar', name: 'Erymanthian Boar', plural: 'Erymanthian Boars', faction: 'neutral', level: 3, attack: 9, defense: 6, minDmg: 3, maxDmg: 6, hp: 24, speed: 6, growth: 6, cost: { gold: 180 }, charge: true, wide: true }),
@@ -132,6 +138,11 @@ export const CREATURES = {
   scorpion: def({ id: 'scorpion', name: 'Giant Scorpion', plural: 'Giant Scorpions', faction: 'neutral', level: 3, attack: 8, defense: 9, minDmg: 3, maxDmg: 6, hp: 22, speed: 5, growth: 6, cost: { gold: 200 }, poison: 0.1 }),
   crocodile: def({ id: 'crocodile', name: 'Nile Crocodile', plural: 'Nile Crocodiles', faction: 'neutral', level: 3, attack: 9, defense: 8, minDmg: 4, maxDmg: 6, hp: 26, speed: 4, growth: 6, cost: { gold: 200 }, wide: true, noRetaliation: true }),
   petsuchos: def({ id: 'petsuchos', name: 'Petsuchos', plural: 'Petsuchoi', faction: 'neutral', level: 6, attack: 16, defense: 14, minDmg: 15, maxDmg: 22, hp: 120, speed: 4, growth: 1, cost: { gold: 1500 }, wide: true, regen: 10 }),
+  // Part 5's desert (Abu): the cobra's spit poisons as the scorpion's sting, the lion charges.
+  cobra: def({ id: 'cobra', name: 'Spitting Cobra', plural: 'Spitting Cobras', faction: 'neutral', level: 2, attack: 7, defense: 4, minDmg: 2, maxDmg: 3, hp: 9, speed: 6, growth: 8, cost: { gold: 120 }, shots: 6, poison: 0.1 }),
+  lion: def({ id: 'lion', name: 'Desert Lion', plural: 'Desert Lions', faction: 'neutral', level: 4, attack: 12, defense: 9, minDmg: 6, maxDmg: 10, hp: 38, speed: 7, growth: 4, cost: { gold: 320 }, wide: true, charge: true }),
+  // Part 6's Red Land: the Serpent of Apep, coiled over the sunken tomb's prize; it poisons as the scorpion and heals as the Hydra.
+  apep: def({ id: 'apep', name: 'Serpent of Apep', plural: 'Serpents of Apep', faction: 'neutral', level: 6, attack: 17, defense: 13, minDmg: 14, maxDmg: 20, hp: 110, speed: 5, growth: 1, cost: { gold: 1500 }, wide: true, poison: 0.1, regen: 10 }),
 } as const;
 
 export type CreatureId =
@@ -140,16 +151,16 @@ export type CreatureId =
   | 'monk2' | 'monk3' | 'lancer2' | 'lancer3' | 'seraph2' | 'seraph3'
   | 'goblin' | 'skeleton' | 'wolf' | 'bandit' | 'ogre'
   | 'boar' | 'stymphalian' | 'hydra' | 'basilisk'
-  | 'catapult' | 'catapult2' | 'catapult3'
+  | 'catapult' | 'catapult2' | 'catapult3' | 'ramp' | 'ramp2' | 'ramp3'
   | 'levy' | 'nubian' | 'jackal' | 'chariot' | 'mummy' | 'sphinx' | 'bennu'
   | 'levy2' | 'levy3' | 'nubian2' | 'nubian3' | 'jackal2' | 'jackal3' | 'chariot2' | 'chariot3'
   | 'mummy2' | 'mummy3' | 'sphinx2' | 'sphinx3' | 'bennu2' | 'bennu3'
-  | 'hyena' | 'raider' | 'scorpion' | 'crocodile' | 'petsuchos';
+  | 'hyena' | 'raider' | 'scorpion' | 'crocodile' | 'petsuchos' | 'cobra' | 'lion' | 'apep';
 export const CREATURE_IDS = Object.keys(CREATURES) as CreatureId[];
 
 export const creature = (id: CreatureId): CreatureDef => CREATURES[id];
 /** The war machines, worst first. */
-export const MACHINES = ['catapult', 'catapult2', 'catapult3'] as const satisfies readonly CreatureId[];
+export const MACHINES = ['catapult', 'catapult2', 'catapult3', 'ramp', 'ramp2', 'ramp3'] as const satisfies readonly CreatureId[];
 export type MachineId = (typeof MACHINES)[number];
 export const isMachine = (id: CreatureId): boolean => !!creature(id).machine;
 /** Whether a company can man a tower: a shooter that takes one hex. */

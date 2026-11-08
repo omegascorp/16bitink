@@ -9,7 +9,7 @@ import { afflict, poisonTick, wound } from './battleTraits';
 import { castSpell } from './battleSpells';
 import { activeStack, alive, isStone, onGround, playerSide, stackById, targetable, update, winnerOf } from './battleCore';
 import { UNTIMED_EFFECTS } from './spells';
-import { aimFor, batter, moatFor, MOAT_DAMAGE, nearestFree, PART_HEX, raiseWalls, standing, strikeByHand, strikesLeft, TOWERS, wallsAgainst, type Fortification, type Siege, type SiegePart } from './siege';
+import { aimFor, batter, growRamps, moatFor, MOAT_DAMAGE, nearestFree, PART_HEX, raiseRamp, raiseWalls, standing, strikeByHand, strikesLeft, TOWERS, wallsAgainst, type Fortification, type Siege, type SiegePart } from './siege';
 
 export { activeStack, alive, isStone, onGround, playerSide, stackById, targetable, update, winnerOf };
 
@@ -285,6 +285,16 @@ export function act(state: BattleState, action: Action): Step {
       const thrown = Array.from({ length: throws }).reduce<BattleState>((st) => hurl(st, me, events), s);
       return advance(update(thrown, me.id, (x) => ({ ...x, acted: true })), events);
     }
+    case 'ramp': {
+      if (rampsToPlace(s) <= 0) throw new Error('no ramp to raise');
+      const need = rampNeed(me, s.siege!.ramps?.length ?? 0);
+      const siege = raiseRamp(s.siege!, action.part, need);
+      events.push({ type: 'ramp', stack: me.id, part: action.part, stage: 0, need });
+      const raised = { ...s, siege };
+      // The finest grade's workers begin their second ramp in the same turn.
+      if (rampsToPlace(raised) > 0) return { state: raised, events };
+      return advance(update(raised, me.id, (x) => ({ ...x, acted: true })), events);
+    }
     case 'bash': {
       if (!handOptions(s, action.part).some((o) => o.from === action.from)) throw new Error('cannot reach that from there');
       if (action.from !== me.hex) s = moveTo(s, me, action.from, events);
@@ -303,6 +313,21 @@ export function act(state: BattleState, action: Action): Step {
   }
   return afterAction(s, me.id, events);
 }
+
+/** How many ramps the active stack's workers still have to begin: a siege ramp's, in its first round only. */
+export function rampsToPlace(state: BattleState): number {
+  const me = activeStack(state);
+  const ramp = me ? creature(me.creature).ramp : undefined;
+  if (!me || !ramp || !state.siege || state.round !== 1) return 0;
+  const want = ramp.second ? 2 : 1;
+  return Math.max(0, want - (state.siege.ramps?.length ?? 0));
+}
+
+/** Rounds of growth ramp number `i` (0 the first) of `me`'s grade needs: begun in round 1, it grows at each round's start. */
+const rampNeed = (me: Stack, i: number): number => {
+  const ramp = creature(me.creature).ramp!;
+  return (i === 0 ? ramp.ready : ramp.second ?? ramp.ready) - 1;
+};
 
 function moveTo(s: BattleState, me: Stack, to: Hex, events: BattleEvent[]): BattleState {
   const flies = !!creature(me.creature).flies;
@@ -461,8 +486,9 @@ export function advance(s: BattleState, events: BattleEvent[]): Step {
   for (;;) {
     const next = pickNext(s);
     if (next === null) {
+      const before = s;
       s = newRound(s);
-      events.push({ type: 'round', round: s.round });
+      events.push({ type: 'round', round: s.round }, ...rampGrowth(before, s));
       continue;
     }
     // A unit's Defend lasts until its own next turn.
@@ -516,10 +542,20 @@ function pickNext(s: BattleState): Stack | null {
   return waiting[0] ?? null;
 }
 
+/** A ramp event for each ramp that grew between `before` and `after` (a new round's start), from the side's workers. */
+function rampGrowth(before: BattleState, after: BattleState): BattleEvent[] {
+  const workers = after.stacks.find((x) => creature(x.creature).ramp);
+  const was = before.siege?.ramps ?? [];
+  return (after.siege?.ramps ?? []).flatMap((r, i): BattleEvent[] =>
+    workers && r.stage !== was[i]?.stage ? [{ type: 'ramp', stack: workers.id, part: r.part, stage: r.stage, need: r.need }] : []);
+}
+
 function newRound(s: BattleState): BattleState {
   return {
     ...s,
     round: s.round + 1,
+    // Egypt's ramps grow a stage as each round begins.
+    ...(s.siege?.ramps?.length ? { siege: growRamps(s.siege) } : {}),
     cast: [false, false],
     stacks: s.stacks.map((x) => ({
       ...x,

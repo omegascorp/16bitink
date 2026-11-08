@@ -37,6 +37,8 @@ export interface ChapterDef {
   readonly slot?: string;
   /** What the narrator tells when its last part built is won. */
   readonly ending: LineId;
+  /** What the chapter is, for the card that ends the chapter before it ("Chapter 2, The Two Lands, …"). */
+  readonly teaser?: string;
 }
 
 const named = (m: MapDef): PartName => ({ id: m.id, n: m.n, name: m.name });
@@ -45,9 +47,10 @@ export const CHAPTERS: readonly ChapterDef[] = [
   { id: 'borderMarch', n: 1, name: 'The Border March', first: 1, last: 3, paid: false, parts: MAPS.map(named), ending: 'chapter-won', pitch: 'The Crown’s northern border, in three parts.' },
   {
     id: 'twoLands', n: 2, name: 'The Two Lands', first: 4, last: 6, paid: true, slot: 'twoLands',
-    parts: [{ id: 'nekhen', n: 4, name: 'Nekhen' }],
-    // Only part 4 is built: its ending is the chapter's, for now.
-    ending: 'nekhen-won',
+    parts: [{ id: 'nekhen', n: 4, name: 'Nekhen' }, { id: 'abu', n: 5, name: 'Abu' }, { id: 'red-land', n: 6, name: 'The Red Land' }],
+    // The Red Land's win ends the chapter: the Two Lands are one.
+    ending: 'twoLands-won',
+    teaser: 'crosses to Egypt: a new people, Neferet the priestess of Isis, and Sacred Rites that curse, ward and raise the fallen.',
     pitch: 'Egypt on the Nile, a new people, and Sacred Rites that curse, ward and raise the fallen.',
   },
 ];

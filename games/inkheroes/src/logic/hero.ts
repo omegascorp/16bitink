@@ -102,6 +102,7 @@ export function toBattleHero(h: Hero): BattleHero {
     name: h.name, attack: geared.attack, defense: geared.defense, power: geared.power, mana: h.mana,
     spells: hasSpellbook(h) ? h.spells : [], skills: h.skills, ...(h.ankhs ? { ankhs: h.ankhs } : {}),
     morale: skillValue(h.skills, 'leadership') + (worn.morale ?? 0), luck: skillValue(h.skills, 'luck') + (worn.luck ?? 0),
+    ...(h.faction ? { faction: h.faction } : {}),
   };
 }
 

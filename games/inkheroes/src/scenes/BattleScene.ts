@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { getHost, getSound } from '../host';
 import { afterBattle, battleSides, DEFEND, gridOf, type BattleSetup } from '../logic/adventure';
-import { act, activeStack, alive, canShoot, conquer, createBattle, experienceFor, handOptions, moveHeadFor, occupiableHexes, playerSide, stackAt, strikeChoices, strikeFrom, targetable, type BattleSide, type SiegeSetup, type StrikeOption } from '../logic/battle';
+import { act, activeStack, alive, canShoot, conquer, createBattle, experienceFor, handOptions, moveHeadFor, occupiableHexes, playerSide, rampsToPlace, stackAt, strikeChoices, strikeFrom, targetable, type BattleSide, type SiegeSetup, type StrikeOption } from '../logic/battle';
 import { chooseAction } from '../logic/battleAi';
 import { cantCast, spellAmount } from '../logic/battleSpells';
 import { pastWard } from '../logic/battleTraits';
@@ -11,7 +11,8 @@ import { damageRange, hurt, inCover, RANGE_PENALTY_DISTANCE, speedOf } from '../
 import { footprintAt, isWide, occupiedHexes, shotDistance } from '../logic/footprint';
 import type { Hex } from '../logic/hex';
 import { tileIndex } from '../logic/map';
-import { moatFor, MOAT_DAMAGE, PART_HEX, standing, strikesLeft, TOWERS, type SiegePart } from '../logic/siege';
+import { moatFor, MOAT_DAMAGE, PART_HEX, rampFoot, rampSpots, standing, strikesLeft, TOWERS, type SiegePart } from '../logic/siege';
+import { FACTIONS, factionOf } from '../logic/factions';
 import { SPELLS, type SpellId } from '../logic/spells';
 import { BattleCameras } from './battle/battleCameras';
 import { BattleHud } from './battle/battleHud';
@@ -147,7 +148,7 @@ export class BattleScene extends Phaser.Scene {
     this.hud.setAuto(this.auto);
     const src = backdropSource(terrain, seed);
     if ('scenery' in src) this.hud.setScenery({ atlas: texturePixels(this, src.atlasKey), art: src.scenery, seed });
-    this.view = new BattleView(this, this.cams, this.state, terrain, seed, heroes, (x, y, text, ink, big) => this.hud.float(x, y, text, ink, big), this.sandbox?.view ?? { heroId: this.session?.adv.hero.id });
+    this.view = new BattleView(this, this.cams, this.state, terrain, seed, heroes, (x, y, text, ink, big) => this.hud.float(x, y, text, ink, big), this.sandbox?.view ?? { heroId: this.session?.adv.hero.id, rivalId: this.session?.adv.rival?.hero?.id });
     this.live = true;
     this.layout();
     this.scale.on('resize', this.layout, this);
@@ -208,9 +209,9 @@ export class BattleScene extends Phaser.Scene {
     return !!a && a.side === this.me && !this.auto && !this.byItself(a);
   }
 
-  /** Whose turn plays itself: the enemy's, a war machine's, or all under Auto. */
+  /** Whose turn plays itself: the enemy's, a war machine's (but for where the player's ramp goes), or all under Auto. */
   private byItself(a: Stack): boolean {
-    return a.side !== this.me || this.auto || !!creature(a.creature).machine;
+    return a.side !== this.me || this.auto || (!!creature(a.creature).machine && rampsToPlace(this.state) === 0);
   }
 
   /** Runs the next turn: the AI's (or Auto's), or waits for the player. */
@@ -241,9 +242,13 @@ export class BattleScene extends Phaser.Scene {
 
   /** Whose move it is, and with the walls shut and no war machine to open them, the way through. */
   private moveLine(a: Stack): string {
+    if (rampsToPlace(this.state) > 0) {
+      const second = (this.state.siege?.ramps?.length ?? 0) > 0;
+      return `${creature(a.creature).name}: tap a lit stretch of wall to raise ${second ? 'the second ramp' : 'the ramp'} against it`;
+    }
     const line = `${creature(a.creature).plural} (${a.count}): your move`;
     const sealed = this.state.siege && a.side === 0 && standing(this.state.siege, 'gate') && !this.state.stacks.some((s) => s.side === 0 && creature(s.creature).machine);
-    return sealed && !creature(a.creature).flies ? `${line} · no war machine: strike the gate by hand` : line;
+    return sealed && !creature(a.creature).flies ? `${line} · ${FACTIONS[factionOf(this.state.heroes[0] ?? undefined)].siege.bare}` : line;
   }
 
   private async perform(action: Action): Promise<void> {
@@ -309,6 +314,12 @@ export class BattleScene extends Phaser.Scene {
     if (!a) return;
     const mine = this.mine();
     // Every hex a move could cover (a two-hex unit's tails included), and every hex of each enemy it can hit.
+    // The ramp's first turn: the stretches it can go against are lit.
+    if (mine && rampsToPlace(this.state) > 0) {
+      // The ground before each stretch, where the ramp's foot will stand (the wall's own hex is hidden behind it).
+      this.view.showMarks({ active: [], reach: [], targets: rampSpots(this.state.siege!).map(rampFoot), hover, landing: intent?.landing });
+      return;
+    }
     const reach = mine ? [...occupiableHexes(this.state)] : [];
     const foes = mine ? this.state.stacks.filter((s) => s.side !== a.side && alive(s) && targetable(s) && (canShoot(this.state, a) || strikeFrom(this.state, s).size > 0)).flatMap(occupiedHexes) : [];
     const targets = mine && handOptions(this.state, 'gate').length ? [...foes, PART_HEX.gate] : foes;
@@ -331,6 +342,7 @@ export class BattleScene extends Phaser.Scene {
     const me = activeStack(this.state)!;
     const h = this.hexAt(p);
     if (h === null) return null;
+    if (rampsToPlace(this.state) > 0) return this.rampIntent(h);
     const target = stackAt(this.state, h);
     if (this.casting) {
       if (!target) return null;
@@ -384,6 +396,17 @@ export class BattleScene extends Phaser.Scene {
       action: { type: 'bash', part, from: o.from }, text: `Strike ${name} by hand: ${left} ${left === 1 ? 'strike' : 'strikes'} to break it${wet ? ` (from the moat: −${MOAT_DAMAGE} health)` : ''}`,
       key: `bash-${o.from}`, landing: o.hexes, struck: [o.struck], cursor: `sword-${swordDirBetween(o.contact, o.struck)}`,
     };
+  }
+
+  /** The ramp's workers wait for a stretch: a lit one under the pointer is where it goes (the gate and towers can't take one). */
+  private rampIntent(h: Hex): Intent {
+    const part = rampSpots(this.state.siege!).find((w) => PART_HEX[w] === h || rampFoot(w) === h);
+    if (!part) return null;
+    const workers = activeStack(this.state)!;
+    const ready = creature(workers.creature).ramp!;
+    const second = (this.state.siege?.ramps?.length ?? 0) > 0;
+    const round = second ? ready.second ?? ready.ready : ready.ready;
+    return { action: { type: 'ramp', part }, text: `Raise ${second ? 'the second ramp' : 'the ramp'} here: ready on round ${round}`, key: `ramp-${part}`, landing: [rampFoot(part)], cursor: 'move' };
   }
 
   /** Hovering a unit there's nothing to do to: the "?" cursor, and a click shows its stats. */
@@ -503,7 +526,8 @@ export class BattleScene extends Phaser.Scene {
 
   /** The units still to act this round, in order: the turn order's faces. */
   private drawOrder(): void {
-    const live = this.state.stacks.filter((s) => alive(s) && !s.acted);
+    // A ramp's workers are no face in the order: the ramp shows on the wall.
+    const live = this.state.stacks.filter((s) => alive(s) && !s.acted && !(creature(s.creature).ramp && rampsToPlace(this.state) === 0));
     const fresh = live.filter((s) => !s.waited).sort((a, b) => speedOf(b) - speedOf(a));
     const waited = live.filter((s) => s.waited).sort((a, b) => speedOf(a) - speedOf(b));
     this.hud.setOrder([...fresh, ...waited], this.me);

@@ -499,16 +499,14 @@ describe('saves and the two peoples', () => {
 });
 
 describe('art not drawn yet', () => {
-  it('stands every Egypt unit in as a drawn one of the same level, tinted', () => {
+  it('draws every Egypt unit itself: no stand-in, no tint', () => {
     const egypt = CREATURE_IDS.filter((id) => creature(id).faction === 'kemet');
+    expect(egypt.length).toBe(21);
     for (const id of egypt) {
-      const from = standInFor(id);
-      expect(from, id).not.toBeNull();
-      expect(UNIT_ART[from!], id).toBeDefined();
-      expect(figureArt(id).tint, id).toBeDefined();
+      expect(UNIT_ART[id], id).toBeDefined();
+      expect(standInFor(id), id).toBeNull();
+      expect(figureArt(id).tint, id).toBeUndefined();
     }
-    expect(standInFor('levy2')).toBe('spearman2');
-    expect(standInFor('bennu3')).toBe('seraph3');
     expect(figureArt('spearman').tint).toBeUndefined();
   });
 

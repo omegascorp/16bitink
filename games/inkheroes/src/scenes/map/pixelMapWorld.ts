@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { KEMET_TOWN, MAP_COVER } from '../../art/pixel/map';
+import { KEMET_TOWN, MAP_COVER, TOWN_LOOKS } from '../../art/pixel/map';
 import { BACKDROP } from '../../art/palette';
 import type { MapDef } from '../../level/types';
 import { gridOf, isSeen, liveObjects, ourHeroes, type Adventure } from '../../logic/adventure';
@@ -154,7 +154,7 @@ export class PixelMapWorld {
     this.picked = adv.hero.id;
     for (const h of ourHeroes(adv)) this.addHero(h);
     const r = adv.rival?.hero;
-    const ra = heroArt('rival');
+    const ra = heroArt('rival', r?.id);
     this.rival = r ? new PixelFigure(scene, this.layer, ra.art, (pose) => PX_TEX.hero(ra.id, pose), tileFeet(r.x, r.y), true) : null;
     if (this.rival) this.figures.push(this.rival);
     this.heroRide = new Ride((x, y) => this.hero.setFeet(x, y));
@@ -215,6 +215,9 @@ export class PixelMapWorld {
 
   /** The town as its own screen shows it: the city for what is built, shrunk to a map sprite (redrawn as it grows). */
   private townSprite(id: string, built: readonly BuildingId[], kemet = false): { key: string; sprite: { w: number; h: number; footX: number; footY: number } } {
+    // A town with a picture of its own (Nubt's red banners), drawn whole.
+    const look = this.def.towns?.find((t) => t.id === id)?.look;
+    if (look && TOWN_LOOKS[look]) return { key: MAP_TEX.townLook(look), sprite: TOWN_LOOKS[look]! };
     // Egypt's town is drawn whole (walled, pylons, obelisk); it does not grow with the buildings.
     if (kemet) return { key: MAP_TEX.kemetTown, sprite: KEMET_TOWN };
     const px = (key: string): Pixels => texturePixels(this.scene, key);

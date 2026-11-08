@@ -1,0 +1,9 @@
+wall 652bf012-3478-4f0f-bffa-985c6475b287
+wall-up a737bf58-43c0-4ca3-9e11-f1a00ff166fe
+wall-gate 4c4badf5-684b-4f30-bad5-49abd1f483c7
+corner-front 56d41e74-6308-4770-ad85-0f6084e35653
+corner-back 360a7563-c33d-4407-bebd-77f43d8e3c61
+corner-left 4bdcf8d9-823b-4b43-a961-807fadc06882
+corner-right c4059d6e-7ff3-4c61-8a57-7a831799d580
+corner-left-rear ac026368-b217-4bf7-bcca-836187fbb21b
+corner-right-rear b7cc586b-b540-45b9-9320-786d5d76d6f9

@@ -29,7 +29,9 @@ function storyLines(adv: Adventure): LineId[] {
   if (adv.mapId === 'ashford') return ['part-thornwood'];
   if (adv.mapId === 'thornwood') return ['part-blackBanner'];
   if (adv.mapId === 'blackBanner') return bannerLines(adv);
-  if (adv.mapId === 'nekhen') return ['nekhen-won'];
+  if (adv.mapId === 'nekhen') return ['part-abu'];
+  if (adv.mapId === 'abu') return ['abu-won', 'part-redLand'];
+  if (adv.mapId === 'red-land') return ['twoLands-won'];
   return [];
 }
 

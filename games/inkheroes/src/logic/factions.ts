@@ -24,6 +24,20 @@ export interface FactionDef {
   readonly school: SpellSchool;
   /** The spellbook its guild sells. */
   readonly book: ItemId;
+  /** How it speaks of its war machine: the lesson of its chapter's first siege. */
+  readonly siege: SiegeWords;
+}
+
+/** A people's words for getting past walls (the Greeks' Catapult, Egypt's siege ramp). */
+export interface SiegeWords {
+  /** The machine the card on walls pictures. */
+  readonly item: ItemId;
+  /** What walls do and what the machine does about them, for that card. */
+  readonly card: string;
+  /** The empty War Machine slot. */
+  readonly slot: string;
+  /** The battle's status line, at walls with no machine. */
+  readonly bare: string;
 }
 
 export const TOWN_FACTIONS = ['crown', 'kemet'] as const satisfies readonly TownFaction[];
@@ -32,7 +46,13 @@ export const isTownFaction = (v: unknown): v is TownFaction => typeof v === 'str
 const GREEK_UNITS = Object.fromEntries(BUILDING_IDS.flatMap((b) => (BUILDINGS[b].dwelling ? [[b, BUILDINGS[b].dwelling!]] : [])));
 
 export const FACTIONS: Readonly<Record<TownFaction, FactionDef>> = {
-  crown: { name: 'the Olympian League', units: GREEK_UNITS, names: {}, needs: {}, says: {}, school: 'olympian', book: 'noviceSpellbook' },
+  crown: { name: 'the Olympian League', units: GREEK_UNITS, names: {}, needs: {}, says: {}, school: 'olympian', book: 'noviceSpellbook',
+    siege: {
+      item: 'catapult',
+      card: 'Walls stop your army, and only a war machine can break them. A Catapult rides with you as gear and brings them down.',
+      slot: 'No war machine: buy one at a Blacksmith to break town walls',
+      bare: 'no war machine: strike the gate by hand',
+    } },
   kemet: {
     name: 'the Two Lands',
     units: {
@@ -66,10 +86,16 @@ export const FACTIONS: Readonly<Record<TownFaction, FactionDef>> = {
     },
     says: {
       mageGuild1: 'Teaches 3 level-1 spells; sells a papyrus of spells',
-      blacksmith: 'Sells siege engines, which break town walls',
+      blacksmith: 'Sells siege ramps, which get an army over town walls',
     },
     school: 'rites',
     book: 'novicePapyrus',
+    siege: {
+      item: 'ramp',
+      card: 'Walls stop your army. A siege ramp rides with you as gear: at the start of the battle you choose a stretch of wall, its workers raise a ramp there that fills the moat, and in a round or two your army walks up it.',
+      slot: 'No war machine: buy a siege ramp at a Workshop to get over town walls',
+      bare: 'no siege ramp: strike the gate by hand',
+    },
   },
 };
 

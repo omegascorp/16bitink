@@ -141,7 +141,7 @@ def unit_entry(uid: str, spec: dict, defaults: dict, imports: list[str]) -> str:
     shot = spec.get('shot')
     lines = [
         f"  {uid}: {{",
-        f"    name: '{spec['name']}', w: {w}, h: {h}, footX: {foot_x(still)}, footY: {h - spec['foot']},",
+        f"    name: {json.dumps(spec['name'])}, w: {w}, h: {h}, footX: {foot_x(still)}, footY: {h - spec['foot']},",
         f"    frames: {{ idle: {frames['idle']}, walk: {frames['walk']}, attack: {frames['attack']} }}, strike: {strike},",
     ]
     if shot:

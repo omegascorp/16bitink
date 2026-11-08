@@ -154,10 +154,14 @@ function object(v: unknown, g: { w: number; h: number }): MapObject {
   return o as unknown as MapObject;
 }
 
-function town(v: unknown, g: { w: number; h: number }, other: boolean): MapDef['town'] & { owner?: 'rival' | 'player'; waits?: boolean } {
+const LOOK = /^[a-zA-Z][a-zA-Z0-9]{0,31}$/;
+
+function town(v: unknown, g: { w: number; h: number }, other: boolean): MapDef['town'] & { owner?: 'rival' | 'player'; waits?: boolean; race?: boolean; look?: string } {
   if (!isObj(v) || !int(v.x, 1, g.w - 1) || !int(v.y, 1, g.h - 1)) throw new Error('bad town');
   if (v.faction !== undefined && !isTownFaction(v.faction)) throw new Error('bad town people');
   if (other && v.owner !== undefined && v.owner !== 'rival' && v.owner !== 'player') throw new Error('bad town owner');
+  if (v.look !== undefined && (typeof v.look !== 'string' || !LOOK.test(v.look) || v.look in Object.prototype)) throw new Error('bad town look');
+  if (v.race !== undefined && v.race !== true) throw new Error('bad town race');
   return {
     id: id(v.id, 'town'), name: text(v.name, 'town name'), x: v.x, y: v.y,
     built: ids<BuildingId>(v.built, 60, 'built', isBuildingId), guild: ids<SpellId>(v.guild, 10, 'guild', isSpellId),
@@ -165,6 +169,18 @@ function town(v: unknown, g: { w: number; h: number }, other: boolean): MapDef['
     ...(v.faction !== undefined ? { faction: v.faction } : {}),
     ...(other && v.owner !== undefined ? { owner: v.owner as 'rival' | 'player' } : {}),
     ...(other && v.waits === true ? { waits: true } : {}),
+    ...(other && v.race === true ? { race: true } : {}),
+    ...(other && v.look !== undefined ? { look: v.look as string } : {}),
+  };
+}
+
+/** A map's rival lord: his hero, his build order and his purse. */
+function rival(v: unknown, g: { w: number; h: number }): NonNullable<MapDef['rival']> {
+  if (!isObj(v)) throw new Error('bad rival');
+  if (v.headStart !== undefined && (typeof v.headStart !== 'number' || !(v.headStart >= 0 && v.headStart <= 1))) throw new Error('bad rival head start');
+  return {
+    hero: hero(v.hero, g), build: ids<BuildingId>(v.build, 60, 'rival build', isBuildingId), purse: amount(v.purse, 'rival purse'),
+    ...(v.headStart !== undefined ? { headStart: v.headStart as number } : {}),
   };
 }
 
@@ -180,7 +196,8 @@ function map(v: unknown): MapDef {
   if (!int(n, 1, 99) || !CHAPTERS.some((c) => c.paid && n >= c.first && n <= c.last)) throw new Error('bad part number');
   if (!int(v.parDays, 1, 999) || !int(v.seed, 0, 2 ** 32)) throw new Error('bad map numbers');
   if (v.story !== undefined && !isLineId(v.story)) throw new Error('bad story');
-  if (v.rival !== undefined) throw new Error('a paid map with a rival needs its check here first');
+  if (v.won !== undefined && !isLineId(v.won)) throw new Error('bad won line');
+  if (v.stormEvery !== undefined && !int(v.stormEvery, 2, 28)) throw new Error('bad storms');
   if (v.opening !== undefined) {
     const o = v.opening;
     if (!isObj(o)) throw new Error('bad opening');
@@ -202,6 +219,9 @@ function map(v: unknown): MapDef {
     ...(v.grant !== undefined ? { grant: amount(v.grant, 'grant') } : {}),
     ...(v.opening !== undefined ? { opening: v.opening as MapDef['opening'] } : {}),
     ...(v.recruits !== undefined ? { recruits: list(v.recruits, 8, 'recruits', (h) => hero(h, g)) } : {}),
+    ...(v.rival !== undefined ? { rival: rival(v.rival, g) } : {}),
+    ...(v.stormEvery !== undefined ? { stormEvery: v.stormEvery as number } : {}),
+    ...(v.won !== undefined ? { won: v.won } : {}),
     off: ids<BuildingId>(v.off, 80, 'off', isBuildingId),
     seed: v.seed,
   };

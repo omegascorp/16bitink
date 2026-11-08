@@ -16,7 +16,7 @@ import { skillValue, type SkillId } from './skills';
 import { BUILDING_IDS } from './buildings';
 import { cantBuild, dwellings, growthOf, has, income, manTowers, towersOf, undefended, weekly, type Town } from './town';
 import { visitSite } from './visits';
-import { CHAPTER1, lineText, LINES, narrated, type LineId } from '../narration/lines';
+import { CHAPTER1, lineText, LINES, narrated, STORM_WORDS, type LineId } from '../narration/lines';
 
 export type Prompt =
   | { readonly kind: 'chest'; readonly id: string; readonly gold: number; readonly xp: number }
@@ -236,7 +236,20 @@ export function terrainView(adv: Adventure, def: MapDef, who: 'player' | 'rival'
   const met = who === 'player' ? [...(rivalHero(adv) ? [rivalHero(adv)!] : []), ...(adv.others ?? [])] : ourHeroes(adv);
   for (const h of met) visit.add(tileIndex(g, h.x, h.y));
   const mover = who === 'player' ? adv.hero : rivalHero(adv);
-  return { grid: g, solid, stopAt, visit, pathfinding: skillValue(mover?.skills ?? {}, 'pathfinding') };
+  return { grid: g, solid, stopAt, visit, pathfinding: skillValue(mover?.skills ?? {}, 'pathfinding'), ...(stormOn(def, adv, adv.day) ? { storm: true } : {}) };
+}
+
+/** Whether Set's storm blows on `day` of the map (its part's 4th, 8th… day with `stormEvery: 4`), for both sides alike. */
+export function stormOn(def: Pick<MapDef, 'stormEvery'>, adv: Pick<Adventure, 'begun'>, day: number): boolean {
+  const every = def.stormEvery;
+  return !!every && (day - (adv.begun ?? 1) + 1) % every === 0;
+}
+
+/** The day card's words about the weather: the storm today, or one rising for tomorrow. */
+function stormNews(def: Pick<MapDef, 'stormEvery'> | undefined, adv: Adventure): string {
+  if (!def) return '';
+  if (stormOn(def, adv, adv.day)) return STORM_WORDS.blowing;
+  return stormOn(def, adv, adv.day + 1) ? STORM_WORDS.rising : '';
 }
 
 export function planPath(adv: Adventure, def: MapDef, x: number, y: number): PathStep[] | null {
@@ -412,8 +425,8 @@ function asPicked(adv: Adventure, h: Hero): Adventure {
   return { ...adv, hero: h, others: [...(adv.others ?? []).filter((o) => o.id !== h.id), adv.hero] };
 }
 
-/** End of the day: income, rested heroes, and on a new week the dwellings fill and monsters grow. */
-export function endDay(adv: Adventure): Adventure {
+/** End of the day: income, rested heroes, and on a new week the dwellings fill and monsters grow; on a map with storms (`def`), the day card tells the weather. */
+export function endDay(adv: Adventure, def?: MapDef): Adventure {
   const day = adv.day + 1;
   const newWeek = dayOfWeek(day) === 1;
   const hero = rested(adv, adv.hero);
@@ -427,7 +440,7 @@ export function endDay(adv: Adventure): Adventure {
   const rival = r ? { hero: r.hero ? { ...r.hero, mp: dailyMp(r.hero) } : null, purse: addTo(r.purse, incomeOf(adv, 'rival')) } : undefined;
   // A hero waiting in a town takes the Ankh its temple makes on Monday.
   const next = takeAnkhs({ ...adv, day, hero, ...(others ? { others } : {}), towns, objects, purse: addTo(adv.purse, dailyIncome(adv)), ...(rival ? { rival } : {}) });
-  return { ...next, prompts: [...adv.prompts, { kind: 'message', title: calendar(day), text: '', report: dayReport(adv, next) }] };
+  return { ...next, prompts: [...adv.prompts, { kind: 'message', title: calendar(day), text: stormNews(def, next), report: dayReport(adv, next) }] };
 }
 
 /** A hero of ours after the night: moves back (more from a town's Stables), mana back (all of it in a town with a guild). */

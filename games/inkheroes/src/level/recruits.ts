@@ -15,3 +15,18 @@ export const IANTHE: HeroDef = {
 
 /** From part 2 on (the land grows too big for one hero to cover): one more hero for the chapter. */
 export const BORDER_RECRUITS: readonly HeroDef[] = [IANTHE];
+
+/**
+ * The Two Lands' second hero, hired from part 5 (Abu): Paser, a chariot
+ * captain, the fighter beside Neferet the mystic. No art of his own yet
+ * (the hero art falls back to the player's, as Neferet's did).
+ */
+export const PASER: HeroDef = {
+  id: 'paser', name: 'Paser', heroClass: 'knight', x: 0, y: 0, faction: 'kemet',
+  attack: 3, defense: 2, power: 1, knowledge: 1, skills: { offense: 1 }, spells: [],
+  army: [{ creature: 'levy', count: 15 }, { creature: 'chariot', count: 3 }],
+  blurb: 'A chariot captain of the southern road, first into any breach.',
+};
+
+/** From part 5 on: the chapter's second hero. */
+export const TWO_LANDS_RECRUITS: readonly HeroDef[] = [PASER];

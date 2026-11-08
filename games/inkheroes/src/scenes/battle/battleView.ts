@@ -4,6 +4,7 @@ import { getSound } from '../../host';
 import { alive, isStone, playerSide, stackById } from '../../logic/battle';
 import type { BattleEvent, BattleState, Stack } from '../../logic/battleTypes';
 import { createRng } from '../../logic/rng';
+import { creature } from '../../logic/creatures';
 import { throughGate, type SiegePart } from '../../logic/siege';
 import { HEX_COUNT, type Hex } from '../../logic/hex';
 import { SPELLS } from '../../logic/spells';
@@ -16,6 +17,7 @@ import { feetOn, feetPx, heroFeet, hexPx, TOWER_FEET, WORLD } from './pixelLayou
 import { PixelBuffer, type Rgba } from './pixelRaster';
 import { INK } from './pixelUi';
 import { partAt, SiegeView } from './siegeView';
+import { rampLook } from './rampView';
 
 /** How far above the part struck by hand its message floats, native pixels. */
 const STRIKE_FLOAT = 44;
@@ -101,6 +103,8 @@ export interface ViewOpts {
   readonly feet?: boolean;
   /** The id of the player's hero in this fight (the one picked on the map), for their own art. */
   readonly heroId?: string;
+  /** The rival lord's id, for his own art when he has it (Sethi). */
+  readonly rivalId?: string;
 }
 
 /**
@@ -134,11 +138,11 @@ export class BattleView {
     this.addStill(scene.add.image(0, 0, GRID_KEY).setOrigin(0).setDepth(DEPTH.grid));
     this.placeObstacles(state.obstacles, seed);
     this.me = playerSide(state);
-    if (state.siege) this.walls = new SiegeView(scene, layer, state.siege);
+    if (state.siege) this.walls = new SiegeView(scene, layer, state.siege, rampLook(state));
     heroes.forEach((has, side) => {
       if (!has) return;
       // The other side's hero is always the rival lord (monsters and garrisons fight without one).
-      const hero = side === this.me ? heroArt('player', opts.heroId) : heroArt('rival');
+      const hero = side === this.me ? heroArt('player', opts.heroId) : heroArt('rival', opts.rivalId);
       const fig = new PixelFigure(scene, layer, hero.art, (pose) => PX_TEX.hero(hero.id, pose), heroFeet(side as 0 | 1, !!state.siege), side === 1);
       if (opts.pose) fig.hold(opts.pose);
       this.heroes[side] = fig;
@@ -192,7 +196,8 @@ export class BattleView {
       u.fig.setFeet(p.x, p.y);
       if (s.tower === undefined) u.fig.sortOn(null);
       // A side whose hero fled has left the field with them.
-      const here = alive(s) && state.fled !== s.side;
+      // A ramp's workers are drawn as the ramp itself, on the wall.
+      const here = alive(s) && state.fled !== s.side && !creature(s.creature).ramp;
       u.fig.sprite.setVisible(here).setAlpha(1);
       if (isStone(s)) u.fig.sprite.setTint(STONE_TINT);
       else u.fig.restTint();
@@ -277,6 +282,16 @@ export class BattleView {
         this.floater(WORLD.w / 2, 40, ev.blows === 0 ? 'The stone goes wide' : ev.down ? `${SIEGE_NAMES[ev.part]} falls!` : `${SIEGE_NAMES[ev.part]} is hit`, ev.down ? INK.title : INK.text);
         await swing;
         await this.wait(200);
+        return;
+      }
+      case 'ramp': {
+        // The workers' turn (or a round's start): the ramp appears or grows a stage.
+        this.walls?.rampDust(ev.part);
+        if (after.siege) this.walls?.show(after.siege);
+        const done = ev.stage >= ev.need;
+        const at = partAt(ev.part);
+        this.floater(at.x - 30, at.y - STRIKE_FLOAT, ev.stage === 0 ? 'The workers begin a ramp' : done ? 'The ramp is ready!' : 'The ramp grows…', done ? INK.title : INK.text);
+        await this.wait(done ? 420 : 260);
         return;
       }
       case 'bash': {

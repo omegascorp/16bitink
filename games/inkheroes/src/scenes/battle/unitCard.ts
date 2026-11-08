@@ -36,6 +36,7 @@ function traitsOf(id: CreatureId): string[] {
   const out: string[] = [];
   if (c.machine) out.push('War machine: never moves, acts by itself');
   if (c.flies) out.push('Flies');
+  if (c.ramp) out.push(`Raises a ramp against the stretch of wall chosen, ready on round ${c.ramp.ready}${c.ramp.second ? ` (a second, elsewhere, on round ${c.ramp.second})` : ''}; it can’t be hit`);
   if (c.machine === 'catapult') out.push(`Brings down walls, towers and gates, ${c.stones!.throws === 1 ? '1 stone' : `${c.stones!.throws} stones`} a round; it can’t be hit`);
   if (c.shots) out.push('Shoots');
   if (c.undead) out.push('Undead');

@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { MAP_COVER } from '../../art/pixel/map';
 import { SCENERY, type SceneryArt } from '../../art/pixel/scenery';
-import { TOWN_ART } from '../../art/pixel/town';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
+import type { TownFaction } from '../../logic/creatures';
 import { nearest, PX_TEX } from '../battle/pixelAssets';
 import { DriftingScenery } from '../battle/driftingScenery';
 import { HORIZON_Y, type Pixels } from '../battle/pixelScenery';
@@ -11,15 +11,18 @@ import { loadMapArt, MAP_TEX } from '../map/pixelMapArt';
 import { CITY_SEED } from './cityRender';
 import { paintCity } from './townGround';
 import { flagTextures, FlyingFlags } from './flyingFlags';
-import { CHIMNEYS, ChimneySmoke } from './townSmoke';
-import { FLAGS } from './townFlags';
+import { chimneyOf, ChimneySmoke } from './townSmoke';
+import { flagsOf } from './townFlags';
+import { spriteOf, townKit, type TownKit } from './townKit';
 import { cityWalls, CORNER_TOWERS, wallPieces } from './townWalls';
-import { TOWN_TEX } from './townTex';
+import { queueTownArt, TOWN_TEX } from './townTex';
 import { cityTrees, emptyPlots, STAGE, STAGE_HORIZON, STAGE_SHOWN, stagePieces, toGrid, type Plot, type StagePiece } from './townStage';
 
 export { TOWN_TEX };
 
 const TERRAIN = 'grass';
+/** The scenery the country behind a city is drawn from: the Greek one's grass, Egypt's desert. */
+const terrainOf = (faction: TownFaction): string => (faction === 'kemet' ? 'sand' : TERRAIN);
 const SEED = CITY_SEED;
 /** A clear day over the town (the battle's grass sky is a sunset, too orange for half a screen of it). */
 const TOWN_SKY: readonly (readonly [number, string])[] = [[420, '#4f82bd'], [220, '#6e9dcf'], [90, '#9dbfdc'], [24, '#cfd3c4']];
@@ -29,15 +32,34 @@ const LIFT = 0x262018;
 const RISE = { px: 10, ms: 700 } as const;
 
 /** The grass scenery under the town's sky (the countryside and the pictures on the town's screens). */
-export function townScenery(): SceneryArt {
-  return { ...SCENERY[TERRAIN]!, sky: TOWN_SKY };
+export function townScenery(faction: TownFaction = 'crown'): SceneryArt {
+  return { ...SCENERY[terrainOf(faction)]!, sky: TOWN_SKY };
 }
 
 /** Loads the grass scenery for the town's countryside and the map's art (the town's sprites and paving with it, grass and trees, faces, icons, font). */
-export function loadTownArt(scene: Phaser.Scene): Promise<void> {
-  const atlas = PX_TEX.scenery(TERRAIN);
-  if (!scene.textures.exists(atlas)) scene.load.image(atlas, SCENERY[TERRAIN]!.url);
-  return loadMapArt(scene, []).then(() => nearest(scene, atlas));
+export function loadTownArt(scene: Phaser.Scene, faction: TownFaction = 'crown'): Promise<void> {
+  for (const t of new Set([TERRAIN, terrainOf(faction)])) {
+    const atlas = PX_TEX.scenery(t);
+    if (!scene.textures.exists(atlas)) scene.load.image(atlas, SCENERY[t]!.url);
+  }
+  return loadMapArt(scene, []).then(() => {
+    nearest(scene, PX_TEX.scenery(TERRAIN));
+    nearest(scene, PX_TEX.scenery(terrainOf(faction)));
+    if (faction === 'crown') return;
+    return new Promise<void>((done) => {
+      const keys = queueTownArt(scene, faction);
+      if (!scene.load.list.size) {
+        for (const k of keys) nearest(scene, k);
+        done();
+        return;
+      }
+      scene.load.once('complete', () => {
+        for (const k of keys) nearest(scene, k);
+        done();
+      });
+      scene.load.start();
+    });
+  });
 }
 
 export interface TownViewOpts {
@@ -49,6 +71,8 @@ export interface TownViewOpts {
   readonly drift?: number;
   /** What the town's people call a building (none: BUILDINGS' Greek names). */
   readonly nameOf?: (building: BuildingId) => string;
+  /** Whose city this is (none: the Greek one). */
+  readonly faction?: TownFaction;
 }
 
 /**
@@ -67,10 +91,14 @@ export class PixelTownView {
   private readonly country: DriftingScenery;
   private readonly smoke: ChimneySmoke[] = [];
   private readonly flying: FlyingFlags;
+  private readonly faction: TownFaction;
+  private readonly kit: TownKit;
 
   constructor(private readonly scene: Phaser.Scene, built: readonly BuildingId[], area: { w: number; h: number }, private readonly opts: TownViewOpts) {
-    this.bare = emptyPlots(built);
-    this.flying = new FlyingFlags(scene);
+    this.faction = opts.faction ?? 'crown';
+    this.kit = townKit(this.faction);
+    this.bare = emptyPlots(built, this.faction);
+    this.flying = new FlyingFlags(scene, this.faction);
     // The stage's top STAGE_SHOWN rows fill the area (more sky on a taller one); the countryside reaches to the sides.
     const top = area.h - STAGE_SHOWN;
     const span = Math.max(area.w, STAGE.w);
@@ -79,8 +107,8 @@ export class PixelTownView {
     // As the battle's backdrop: the sky, a looping strip of clouds drifting over it, and the countryside with the city painted on it.
     const stageArea = { x: x0, y: -top, w: span, h: area.h };
     this.country = new DriftingScenery(scene, {
-      atlas: texturePixels(scene, PX_TEX.scenery(TERRAIN)),
-      art: townScenery(),
+      atlas: texturePixels(scene, PX_TEX.scenery(terrainOf(this.faction))),
+      art: townScenery(this.faction),
       seed: SEED,
       area: { ...stageArea, y: stageArea.y - STAGE_HORIZON + HORIZON_Y },
       at: { x: x0, y: -top },
@@ -92,18 +120,24 @@ export class PixelTownView {
     ground.on('pointerup', (p: Phaser.Input.Pointer) => this.tapGround(p));
     // The city's walls: the back ones behind everything in it, the front ones before it.
     // The towers are drawn still and their flags fly over them.
-    const still = new Map(CORNER_TOWERS.map((art) => [TOWN_TEX.piece(art), flagTextures(scene, art)?.still ?? TOWN_TEX.piece(art)]));
-    const walls = cityWalls((k) => texturePixels(scene, still.get(k) ?? k));
+    const piece = (art: (typeof CORNER_TOWERS)[number]): string => TOWN_TEX.piece(art, this.faction);
+    const still = new Map(CORNER_TOWERS.map((art) => [piece(art), flagTextures(scene, art, this.faction)?.still ?? piece(art)]));
+    const walls = cityWalls((k) => texturePixels(scene, still.get(k) ?? k), this.faction);
     const backKey = putBuffer(scene, walls.back);
     const frontKey = putBuffer(scene, walls.front);
     this.keys.push(backKey, frontKey);
     this.root.add(scene.add.image(0, 0, backKey).setOrigin(0));
     const pieces = wallPieces();
-    const flagsOf = (list: typeof pieces.back) => list.filter((w) => w.art in FLAGS).flatMap((w) => this.flying.fly(w.art, w.x, w.y).flags);
-    for (const flag of flagsOf(pieces.back)) this.root.add(flag);
+    const flagsIn = (list: typeof pieces.back) => list.filter((w) => flagsOf(w.art, this.faction)).flatMap((w) => this.flying.fly(w.art, w.x, w.y).flags);
+    for (const flag of flagsIn(pieces.back)) this.root.add(flag);
     this.label = new TextLabel(scene, { kind: 'title', outline: true, anchor: { x: 0.5, y: 1 } });
-    const sprites: { y: number; obj: Phaser.GameObjects.Image | Phaser.GameObjects.Image[] }[] = stagePieces(built).map((p) => ({ y: p.spot.y, obj: this.sprite(p) }));
-    for (const t of cityTrees(this.bare.map((b) => b.plot), SEED)) {
+    const sprites: { y: number; obj: Phaser.GameObjects.Image | Phaser.GameObjects.Image[] }[] = stagePieces(built, this.faction).map((p) => ({ y: p.spot.y, obj: this.sprite(p) }));
+    for (const t of cityTrees(this.bare.map((b) => b.plot), SEED, this.faction)) {
+      if (t.piece) {
+        const s = spriteOf(this.kit, t.piece);
+        sprites.push({ y: t.y, obj: scene.add.image(t.x - Math.floor(s.w / 2), t.y - s.h, TOWN_TEX.piece(t.piece, this.faction)).setOrigin(0) });
+        continue;
+      }
       const s = MAP_COVER[t.kind][t.pick]!;
       sprites.push({ y: t.y, obj: scene.add.image(t.x - s.footX, t.y - s.footY, MAP_TEX.cover(t.kind, t.pick)).setOrigin(0) });
     }
@@ -112,16 +146,16 @@ export class PixelTownView {
     // Smoke rises over the roofs, behind the front walls.
     const air = scene.add.container(0, 0);
     this.root.add(air);
-    for (const p of stagePieces(built)) {
-      const flue = CHIMNEYS[p.art];
+    for (const p of stagePieces(built, this.faction)) {
+      const flue = chimneyOf(p.art, this.faction);
       if (!flue) continue;
-      const s = TOWN_ART[p.art];
+      const s = spriteOf(this.kit, p.art);
       const left = p.spot.x - Math.floor(s.w / 2);
       const x = p.spot.flip ? left + s.w - 1 - flue.x : left + flue.x;
       this.smoke.push(new ChimneySmoke(scene, air, { x, y: p.spot.y - s.h + flue.y }));
     }
     this.root.add(scene.add.image(0, 0, frontKey).setOrigin(0));
-    for (const flag of flagsOf(pieces.front)) this.root.add(flag);
+    for (const flag of flagsIn(pieces.front)) this.root.add(flag);
     this.label.img.setVisible(false);
     this.root.add(this.label.img);
   }
@@ -129,9 +163,9 @@ export class PixelTownView {
   /** The city's ground (its square, streets and bare plots) painted over the countryside's `out` of `area`. */
   private paintGround(out: Pixels, area: { x: number; y: number; w: number; h: number }): void {
     paintCity(out, area, {
-      paving: texturePixels(this.scene, TOWN_TEX.paving),
-      grass: texturePixels(this.scene, MAP_TEX.ground('grass')),
-    }, this.bare.map((b) => b.plot));
+      paving: texturePixels(this.scene, TOWN_TEX.pavingOf(this.faction)),
+      grass: texturePixels(this.scene, MAP_TEX.ground(this.kit.garden)),
+    }, this.bare.map((b) => b.plot), this.faction);
   }
 
   /** Stage pixels the clouds have drifted (carry it into the next view). */
@@ -150,7 +184,7 @@ export class PixelTownView {
 
   /** A piece's sprite, and its flags flying over it. */
   private sprite(p: StagePiece): Phaser.GameObjects.Image[] {
-    const s = TOWN_ART[p.art];
+    const s = spriteOf(this.kit, p.art);
     const x = p.spot.x - Math.floor(s.w / 2);
     const y = p.spot.y - s.h;
     const fly = this.flying.fly(p.art, x, y, !!p.spot.flip);

@@ -1,7 +1,7 @@
 import type { MapCover } from '../../art/pixel/map';
-import { TOWN_ART, type TownArt } from '../../art/pixel/town';
 import type { BuildingId } from '../../logic/buildings';
 import type { Pixels } from '../battle/pixelScenery';
+import { spriteOf, townKit, type PieceId } from './townKit';
 import { paintCity, type GroundSwatches } from './townGround';
 import { cropToInk, inkBox, shrinkMode } from './townPictures';
 import { cityTrees, emptyPlots, STAGE, stagePieces } from './townStage';
@@ -43,7 +43,7 @@ function stamp(out: Pixels, src: Pixels, x: number, y: number, flip = false): vo
 
 /** What the city is drawn from: a building's sprite, a tree's, the wall pieces', the ground's swatches. */
 export interface CityArt {
-  readonly piece: (art: TownArt) => Pixels;
+  readonly piece: (art: PieceId) => Pixels;
   readonly tree: (kind: MapCover, pick: number) => Pixels;
   readonly swatches: GroundSwatches;
 }
@@ -75,7 +75,7 @@ export function renderMapTown(built: readonly BuildingId[], art: CityArt): MapTo
   const put = (p: Pixels, fx: number, fy: number, flip = false): void =>
     stamp(out, p, Math.round(fx / MAP_TOWN_SHRINK - p.w / 2), Math.round(fy / MAP_TOWN_SHRINK - p.h) + HEADROOM, flip);
   const wall = (w: WallPiece): void => {
-    const s = TOWN_ART[w.art];
+    const s = spriteOf(townKit(), w.art);
     put(shrunk(w.art, () => art.piece(w.art)), w.x + s.w / 2, w.y + s.h);
   };
   const walls = wallPieces();
@@ -92,7 +92,7 @@ export function renderMapTown(built: readonly BuildingId[], art: CityArt): MapTo
   for (const w of walls.front) wall(w);
   const box = inkBox(out)!;
   const gate = walls.front.find((w) => w.art === 'wall-gate')!;
-  const s = TOWN_ART[gate.art];
+  const s = spriteOf(townKit(), gate.art);
   // Where `put` drew the gatehouse, then the doorstep within it, at the sprites' scale.
   const doorX = Math.round((gate.x + s.w / 2) / MAP_TOWN_SHRINK + (GATE_DOOR.x - s.w / 2) / ART_SHRINK);
   const doorY = Math.round((gate.y + s.h) / MAP_TOWN_SHRINK + (GATE_DOOR.y - s.h) / ART_SHRINK) + HEADROOM;

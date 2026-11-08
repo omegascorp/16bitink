@@ -1,6 +1,6 @@
-import type { CreatureId } from './creatures';
+import type { CreatureId, TownFaction } from './creatures';
 import type { Hex } from './hex';
-import type { Siege, SiegePart } from './siege';
+import type { Siege, SiegePart, WallPart } from './siege';
 import type { Skills } from './skills';
 import type { EffectKind, SpellId } from './spells';
 
@@ -58,6 +58,8 @@ export interface BattleHero {
   readonly luck: number;
   /** A lord with a town of his own to ride to: he can leave a lost battle (H3's retreat), giving up his army. */
   readonly canFlee?: boolean;
+  /** Their people (none: the Greeks'), for how the battle speaks of their war machine. */
+  readonly faction?: TownFaction;
 }
 
 export interface BattleState {
@@ -85,6 +87,8 @@ export type Action =
   | { readonly type: 'defend' }
   /** A Catapult's turn: where the stone lands is the dice's. */
   | { readonly type: 'catapult' }
+  /** A siege ramp's first turn: its workers begin a ramp against stretch `part` (the finest begins two, one action each). */
+  | { readonly type: 'ramp'; readonly part: WallPart }
   /** Strikes the gate or a tower by hand from head hex `from`, walking there first. */
   | { readonly type: 'bash'; readonly part: SiegePart; readonly from: Hex }
   | { readonly type: 'cast'; readonly spell: SpellId; readonly target: number }
@@ -111,6 +115,8 @@ export type BattleEvent =
   | { readonly type: 'stone'; readonly stack: number; readonly lost: boolean }
   /** A stone from a catapult: `blows` 0 is a miss. */
   | { readonly type: 'siege'; readonly stack: number; readonly part: SiegePart; readonly blows: number; readonly down: boolean }
+  /** A ramp begun (`stage` 0) or grown a stage at a round's start; done once `stage` reaches `need`. */
+  | { readonly type: 'ramp'; readonly stack: number; readonly part: WallPart; readonly stage: number; readonly need: number }
   /** A company struck `part` by hand: `left` strikes more bring it down. */
   | { readonly type: 'bash'; readonly stack: number; readonly part: SiegePart; readonly left: number }
   /** A walker in the moat. */

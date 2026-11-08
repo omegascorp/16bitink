@@ -740,6 +740,445 @@
     140,
     42
    ]
+  },
+  "cobra": {
+   "name": "Spitting Cobra",
+   "src": "pixel/src/cobra.png",
+   "canvas": [
+    104,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a reared sand-brown desert cobra with a spread hood",
+   "walk": "slithering in place loop: the coiled body shifts and glides in rhythm, the raised hood sways side to side, stays in the same spot, ends back at the starting pose",
+   "attack": "spitting attack: the cobra rears back, then snaps its head forward to the right with the mouth wide open and spits venom, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    62,
+    31
+   ],
+   "shot": [
+    70,
+    37
+   ]
+  },
+  "lion": {
+   "name": "Desert Lion",
+   "src": "pixel/src/lion.png",
+   "canvas": [
+    160,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a big tawny desert lion with a thick dark mane",
+   "walk": "prowling in place loop: four legs stride in rhythm, head low, tail swings, stays in the same spot, ends back at the starting pose",
+   "attack": "pounce attack: crouches, lunges forward to the right with a roar and claws out, swipes, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    112,
+    30
+   ]
+  },
+  "apep": {
+   "name": "Serpent of Apep",
+   "src": "pixel/src/apep.png",
+   "canvas": [
+    232,
+    120
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a colossal dark black-violet serpent with a faint red glow along its belly and glowing red eyes",
+   "walk": "slithering in place loop: the thick coils glide and shift in rhythm, the raised head sways side to side, stays in the same spot, ends back at the starting pose",
+   "attack": "striking attack: the serpent rears back, then lunges its head forward to the right with the fanged mouth wide open and bites, then settles back to the starting pose",
+   "strike": 2,
+   "face": [
+    130,
+    36
+   ]
+  },
+  "levy": {
+   "name": "Nile Levy",
+   "src": "pixel/src/levy.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an egyptian levy spearman with a spear and a round hide shield",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    36,
+    40
+   ]
+  },
+  "nubian": {
+   "name": "Nubian Archer",
+   "src": "pixel/src/nubian.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a nubian archer drawing a bow, with a white headband",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
+   "strike": 5,
+   "face": [
+    35,
+    45
+   ],
+   "shot": [
+    68,
+    51
+   ]
+  },
+  "jackal": {
+   "name": "Jackal Warrior",
+   "src": "pixel/src/jackal.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a jackal-headed egyptian temple guard with a spear and a khopesh at the hip",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    49,
+    45
+   ]
+  },
+  "chariot": {
+   "name": "War Chariot",
+   "src": "pixel/src/chariot.png",
+   "canvas": [
+    144,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an egyptian war chariot with an archer driver and two brown horses at the right front",
+   "attack": "charge attack: the horses surge forward, the archer in the car drives to the right, then the chariot settles back to the starting pose",
+   "strike": 2,
+   "face": [
+    30,
+    46
+   ],
+   "walk": "galloping in place loop: the horses gallop with legs reaching and gathering, the car rocks on its wheels, stays in the same spot, ends back at the starting pose"
+  },
+  "mummy": {
+   "name": "Mummy",
+   "src": "pixel/src/mummy.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an egyptian mummy warrior in linen bandages with a bronze khopesh",
+   "attack": "khopesh slash attack: raises the curved sword and slashes forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 3,
+   "face": [
+    41,
+    20
+   ]
+  },
+  "sphinx": {
+   "name": "Sphinx",
+   "src": "pixel/src/sphinx.png",
+   "canvas": [
+    144,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a standing egyptian sphinx, lion body with a pharaoh's head in a blue and gold nemes",
+   "attack": "pounce attack: crouches, lunges forward to the right with a roar and a swipe of the paw, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    90,
+    42
+   ],
+   "walk": "prowling in place loop: four legs stride in rhythm, head held high, tail swings, stays in the same spot, ends back at the starting pose"
+  },
+  "bennu": {
+   "name": "Bennu",
+   "src": "pixel/src/bennu.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a fiery heron-like bennu bird with a long beak and flame feathers, flying",
+   "attack": "dive attack: beats its wings once, lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    86,
+    50
+   ],
+   "flies": true,
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose"
+  },
+  "levy2": {
+   "name": "Khopesh Warrior",
+   "src": "pixel/src/levy2.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an egyptian warrior in a padded linen corselet with a curved bronze khopesh and a round shield",
+   "attack": "khopesh slash attack: raises the curved sword and slashes forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 3,
+   "face": [
+    37,
+    40
+   ]
+  },
+  "levy3": {
+   "name": "Shardana Guard",
+   "src": "pixel/src/levy3.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an egyptian guard in a horned bronze helmet with a disc, a round bronze shield and a long sword",
+   "attack": "sword thrust attack: draws the sword back, lunges forward thrusting hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 3,
+   "face": [
+    37,
+    38
+   ]
+  },
+  "nubian2": {
+   "name": "Medjay Archer",
+   "src": "pixel/src/nubian2.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a medjay archer in leather armour drawing a big bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
+   "strike": 5,
+   "face": [
+    35,
+    43
+   ],
+   "shot": [
+    68,
+    51
+   ]
+  },
+  "nubian3": {
+   "name": "Bowman of Ta-Seti",
+   "src": "pixel/src/nubian3.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a nubian bowman with tall ostrich plumes and gold armbands drawing a great bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
+   "strike": 4,
+   "face": [
+    35,
+    41
+   ],
+   "shot": [
+    68,
+    51
+   ]
+  },
+  "jackal2": {
+   "name": "Sentinel of Anubis",
+   "src": "pixel/src/jackal2.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a jackal-headed egyptian temple guard in bronze scale armour with a long spear",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    50,
+    45
+   ]
+  },
+  "jackal3": {
+   "name": "Hand of Anubis",
+   "src": "pixel/src/jackal3.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a jackal-headed egyptian temple guard in gilded black armour with a khopesh in each hand",
+   "attack": "twin khopesh attack: raises both curved swords and slashes down and forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 3,
+   "face": [
+    48,
+    45
+   ]
+  },
+  "chariot2": {
+   "name": "Royal Chariot",
+   "src": "pixel/src/chariot2.png",
+   "canvas": [
+    144,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a gilded egyptian chariot with an archer driver and two horses in caparisons at the right front",
+   "attack": "charge attack: the horses surge forward, the archer in the car drives to the right, then the chariot settles back to the starting pose",
+   "strike": 2,
+   "face": [
+    30,
+    46
+   ],
+   "walk": "galloping in place loop: the horses gallop with legs reaching and gathering, the car rocks on its wheels, stays in the same spot, ends back at the starting pose"
+  },
+  "chariot3": {
+   "name": "Chariot of Horus",
+   "src": "pixel/src/chariot3.png",
+   "canvas": [
+    144,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a solid gold egyptian chariot with a falcon standard and two plumed horses at the right front",
+   "attack": "charge attack: the horses surge forward, the archer in the car drives to the right, then the chariot settles back to the starting pose",
+   "strike": 2,
+   "face": [
+    27,
+    46
+   ],
+   "walk": "galloping in place loop: the horses gallop with legs reaching and gathering, the car rocks on its wheels, stays in the same spot, ends back at the starting pose"
+  },
+  "mummy2": {
+   "name": "Royal Mummy",
+   "src": "pixel/src/mummy2.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a royal mummy in a gold-banded wrap with gold amulets and a khopesh",
+   "attack": "khopesh slash attack: raises the curved sword and slashes forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 3,
+   "face": [
+    33,
+    20
+   ]
+  },
+  "mummy3": {
+   "name": "Pharaoh's Mummy",
+   "src": "pixel/src/mummy3.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a pharaoh's mummy with a gold death mask, blue and gold nemes, crook and flail",
+   "attack": "royal strike attack: raises the crook and flail and brings them down forward to the right, then lifts them back to the starting pose; feet stay in place",
+   "strike": 3,
+   "face": [
+    48,
+    24
+   ]
+  },
+  "sphinx2": {
+   "name": "Guardian Sphinx",
+   "src": "pixel/src/sphinx2.png",
+   "canvas": [
+    144,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a standing sphinx in bronze armour plates, lion body with a pharaoh's head",
+   "attack": "pounce attack: crouches, lunges forward to the right with a roar and a swipe of the paw, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    90,
+    42
+   ],
+   "walk": "prowling in place loop: four legs stride in rhythm, head held high, tail swings, stays in the same spot, ends back at the starting pose"
+  },
+  "sphinx3": {
+   "name": "Great Sphinx",
+   "src": "pixel/src/sphinx3.png",
+   "canvas": [
+    144,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a great sphinx with a gold nemes and a jewelled collar, lion body with a pharaoh's head",
+   "attack": "pounce attack: crouches, lunges forward to the right with a roar and a swipe of the paw, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    91,
+    42
+   ],
+   "walk": "prowling in place loop: four legs stride in rhythm, head held high, tail swings, stays in the same spot, ends back at the starting pose"
+  },
+  "bennu2": {
+   "name": "Golden Bennu",
+   "src": "pixel/src/bennu2.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a golden bennu bird with gold plumage and flame feather tips, flying",
+   "attack": "dive attack: beats its wings once, lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    88,
+    50
+   ],
+   "flies": true,
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose"
+  },
+  "bennu3": {
+   "name": "Bennu of Ra",
+   "src": "pixel/src/bennu3.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a bennu bird with a sun disc above its head and white-gold fire plumage, flying",
+   "attack": "dive attack: beats its wings once, lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    88,
+    51
+   ],
+   "flies": true,
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose"
   }
  },
  "heroes": {
@@ -869,6 +1308,52 @@
     -12,
     -9,
     -3
+   ]
+  },
+  "paser": {
+   "name": "Paser",
+   "src": "pixel/src/hero_paser.png",
+   "canvas": [
+    176,
+    172
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "an egyptian chariot captain in a blue and gold war crown and scale armor with a khopesh sword, on a bay horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "sword attack: the rider swings the sword up and across in a slash to the right, then lowers it to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    80,
+    30
+   ],
+   "walkLock": [
+    0,
+    -1,
+    -2,
+    -4,
+    -5,
+    -5,
+    -3,
+    0
+   ]
+  },
+  "sethi": {
+   "name": "Sethi",
+   "src": "pixel/src/hero_sethi.png",
+   "canvas": [
+    176,
+    172
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "an egyptian warlord in a tall red crown and dark red and black linen holding a staff topped with the head of the Set animal, on a black horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the Set staff to the sky, the staff flashes with red light, then lowers it to the starting pose; the horse stays in place",
+   "strike": 2,
+   "face": [
+    84,
+    52
    ]
   }
  },

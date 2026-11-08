@@ -27,6 +27,8 @@ export function rideOn(adv: Adventure, from: MapDef, next: MapDef): Adventure {
     return weekly({
       id: spec.id, name: spec.name, owner: waits ? 'neutral' : owner ?? 'neutral', x: spec.x, y: spec.y, built: spec.built,
       builtToday: false, stock: {}, garrison: armyOf(spec.garrison ?? []), guild: spec.guild, ...(waits ? { ally: true } : {}),
+      // Its people, as the map has them (Abu is Egypt's).
+      ...(spec.faction ? { faction: spec.faction } : {}),
     });
   });
   const rival = adv.rival ?? (next.rival ? { hero: heroFromDef(next.rival.hero), purse: purse(next.rival.purse) } : undefined);

@@ -19,7 +19,10 @@ export type LineId =
   | 'kassander-beaten'
   | 'chapter-won'
   | 'part-nekhen'
-  | 'nekhen-won';
+  | 'part-abu'
+  | 'abu-won'
+  | 'part-redLand'
+  | 'twoLands-won';
 
 export interface NarratedLine {
   /** Who's speaking, named on the strip. */
@@ -51,11 +54,25 @@ export const LINES: Readonly<Record<LineId, NarratedLine>> = {
   'kassander-beaten': told('Kassander is beaten', "[triumphant] Kassander falls! [solemn] The black banner is down… and it won't rise again."),
   'chapter-won': told('The Border March is free', "[warm, proud] The Border March is free! [storytelling] From Ashford's bridge to the walls of Korax, the Crown's roads are open again… [hopeful] and Rowan's name is known in every town along them."),
   'part-nekhen': told('Nekhen', "[grand, storytelling] Far to the south, where the Nile runs between two deserts, the flood is late this year. [ominous] The great sluice of the canal is shut… and the Petsuchos lies across it, the temple's own crocodile, gone wild, with its brood. [warm] Neferet, priestess of Isis, holds Nekhen on the west bank. Her rites can curse a foe, ward a friend… [hopeful] and, with an Ankh, raise the fallen! [resolute] Cross the river… and take the sluice back."),
-  'nekhen-won': told('The flood comes', "[triumphant] The Petsuchos is beaten, and the sluice swings open! [joyful] The water runs down the old canal, and the fields drink at last… [warm] In Nekhen they light lamps for Neferet tonight. [intrigued] But the flood brought word from downriver… and the Two Lands are not at peace yet."),
+  'part-abu': told('Abu', "[triumphant] The sluice is open, and the flood comes at last! [storytelling] Up the river road, at the First Cataract, the Nile breaks white over black granite… [grim] and Sand Raiders hold Abu, the island fort at the kingdom's southern gate. [sly] Its walls are high… but Egypt's builders don't break walls. They raise ramps against them! [resolute] Buy an Earth Ramp at your Workshop, choose your stretch of wall… and march straight up it. [warm] And Paser, a chariot captain, waits at your Tavern."),
+  'abu-won': told('The southern gate', "[triumphant] Abu is ours again, and the raiders scatter into the desert! [joyful] Boats run down from the cataract once more, heavy with granite and gold… [warm] Neferet watches the sunset from the island's walls. [ominous] But out in the Red Land, a lord with no love for Isis has heard the news… and he is calling his chariots."),
+  'part-redLand': told('The Red Land', "[grand, storytelling] Beyond the river lies Deshret, the Red Land… Set's own desert, where nothing green grows. [ominous] There Sethi, a lord who serves Set, has raised his red banner over Nubt, the city of gold! [grim] He rides with our own chariots and our own ramps… and he means to rule both lands. [urgent] Halfway across the sand, the caravan town of Gebtu still holds out. Whoever beats its garrison first holds the gold roads! [wry] And mind the sky: every few days, Set sends a storm. [resolute] Take Nubt… and bring Sethi down!"),
+  'twoLands-won': told('The Two Lands are one', "[triumphant] Sethi falls, and his red banner falls with him! [solemn] The Red Land and the Black Land answer to one crown now… [joyful] the Two Lands are one! [warm] From Nekhen's sluice to the gold of Nubt, the Nile runs free… [hopeful] and Neferet's name is sung on every boat that sails it."),
 };
 
 /** Chapter 1's places and people the lines name: a line is told only where its words are true. */
 export const CHAPTER1 = { eudora: 'eudora-town', korax: 'korax-town', kassander: 'kassander' } as const;
+/** Chapter 2's rival lord, his city and the town both race for (part 6, the Red Land). */
+export const CHAPTER2 = { redLand: 'red-land', sethi: 'sethi', nubt: 'nubt-town', gebtu: 'gebtu-town' } as const;
+
+/**
+ * Set's sandstorms (part 6, `MapDef.stormEvery`): the day card's words the
+ * morning before a storm, and on its day. Read, not told: no recording.
+ */
+export const STORM_WORDS = {
+  rising: 'A storm is rising in the east! Tomorrow Set’s sand will cost double to cross… but the roads will hold.',
+  blowing: 'Set’s storm howls across the desert! Every step on sand costs double today. Keep to the roads!',
+} as const;
 
 export const LINE_IDS = Object.keys(LINES) as LineId[];
 

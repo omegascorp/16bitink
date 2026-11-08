@@ -168,7 +168,7 @@ export class TownScene extends Phaser.Scene {
       this.closeSplit();
       for (const t of this.toastParts) t.destroy();
     });
-    void loadTownArt(this).then(() => {
+    void loadTownArt(this, factionOf(this.town())).then(() => {
       if (!this.sys.isActive()) return;
       this.ready = true;
       this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r), canCarry: (r) => this.canPick(r), dropSlot: (from, to) => this.moveCompany(from, to), split: () => this.openSplit() }, DEPTH.bar);
@@ -301,7 +301,7 @@ export class TownScene extends Phaser.Scene {
     // A screen open over the town has its own say (the hall leads with the same building).
     if (!id || this.screen) return;
     this.plate = new BuildPlate(this, {
-      town, id, purse: adv.purse, picture: platePicture(this, id), area: this.size, depth: DEPTH.plate,
+      town, id, purse: adv.purse, picture: platePicture(this, id, factionOf(town)), area: this.size, depth: DEPTH.plate,
       onBuild: () => {
         if (!this.dragged) this.tryBuild(id);
       },
@@ -315,7 +315,7 @@ export class TownScene extends Phaser.Scene {
     if (!this.bar) return;
     const drift = this.view?.drift;
     this.view?.destroy();
-    this.view = new PixelTownView(this, this.town().built, { w: this.size.w, h: this.bar.top + 2 }, { onPick: (id, built) => this.pickBuilding(id, built), fresh: this.fresh, drift, nameOf: (b) => buildingIn(this.town(), b).name });
+    this.view = new PixelTownView(this, this.town().built, { w: this.size.w, h: this.bar.top + 2 }, { faction: factionOf(this.town()), onPick: (id, built) => this.pickBuilding(id, built), fresh: this.fresh, drift, nameOf: (b) => buildingIn(this.town(), b).name });
     this.fresh = undefined;
     this.panX = this.clampPan(this.panX);
     this.placeView();

@@ -1,10 +1,10 @@
-import { activeStack, alive, answers, canShoot, handOptions, isStone, moves, strikeFrom, struckBy, targetable } from './battle';
+import { activeStack, alive, answers, canShoot, handOptions, isStone, moves, rampsToPlace, strikeFrom, struckBy, targetable } from './battle';
 import type { Action, BattleState, Side, Stack } from './battleTypes';
 import { creature, strengthOf } from './creatures';
 import { damageRange, killsBy } from './damage';
 import { distance, HEX_COUNT, neighbours, type Hex } from './hex';
 import { occupiedHexes, shotDistance } from './footprint';
-import { aimFor, insideWalls, moatFor, PART_HEX, standing, TOWERS, wallsAgainst, type SiegePart } from './siege';
+import { aimFor, insideWalls, moatFor, PART_HEX, rampDone, rampFoot, rampStretch, standing, TOWERS, wallsAgainst, type SiegePart, type TowerPart } from './siege';
 
 /** A lord who can leave the field does once his army is cut down this far and the enemy's is this much stronger. */
 const FLEE = { kept: 0.6, odds: 2 } as const;
@@ -89,12 +89,19 @@ export function chooseAction(state: BattleState): Action {
 /** A garrison on foot fights from behind its walls: it doesn't open its gate to march out at a foe still outside them. */
 const leavesWalls = (state: BattleState, me: Stack, from: Hex): boolean => !!state.siege && me.side === 1 && !creature(me.creature).flies && !insideWalls(from);
 
-/** What a side with no war machine must break by hand: the gate while it shuts a walker out, then any tower still holding a company. */
+/**
+ * What a side must break by hand: with no war machine, the gate while it
+ * shuts a walker out, then any tower still holding a company. A Catapult
+ * breaks both itself; a ramp opens no tower, so once only the towers' companies
+ * are left, they are struck down by hand (the gate never is: the ramp is the way in).
+ */
 function stoneInTheWay(state: BattleState, me: Stack): SiegePart | null {
   const siege = state.siege;
-  if (!siege || me.side !== 0 || state.stacks.some((s) => s.side === 0 && creature(s.creature).machine)) return null;
+  const machine = state.stacks.find((s) => s.side === 0 && creature(s.creature).machine);
+  if (!siege || me.side !== 0 || (machine && creature(machine.creature).machine === 'catapult')) return null;
   const onFoot = foesOf(state, me).filter((s) => s.tower === undefined);
   if (!onFoot.length) return minBy(TOWERS.filter((t, i) => standing(siege, t) && state.stacks.some((s) => s.tower === i && alive(s))), (t) => distance(me.hex, PART_HEX[t]));
+  if (machine) return null;
   const shutOut = !creature(me.creature).flies && standing(siege, 'gate') && !stepsFrom(onFoot.flatMap(occupiedHexes), new Set(wallsAgainst(siege, 0))).has(me.hex);
   return shutOut ? 'gate' : null;
 }
@@ -126,7 +133,10 @@ function stepsToFoe(state: BattleState, me: Stack, enemies: readonly Stack[]): (
   const steps = stepsFrom(hexes, new Set(wallsAgainst(state.siege, me.side)));
   if (steps.has(me.hex)) return (h) => steps.get(h) ?? Infinity;
   const moat = moatFor(state.siege, me.side);
-  return (h) => (moat.has(h) ? Infinity : straight(h));
+  // A ramp going up: wait near its foot, ready to go up it.
+  const ramp = me.side === 0 ? state.siege.ramps?.find((r) => !rampDone(r)) : undefined;
+  const toward = ramp ? (h: Hex): number => distance(h, rampFoot(ramp.part)) : straight;
+  return (h) => (moat.has(h) ? Infinity : toward(h));
 }
 
 /** Steps to every hex from the nearest of `from`, round `closed`. */
@@ -143,8 +153,13 @@ function stepsFrom(from: readonly Hex[], closed: ReadonlySet<Hex>): Map<Hex, num
 
 /** A war machine's turn: it hurls at the walls while any stand, then has nothing to do. */
 export function machineAction(state: BattleState, me: Stack): Action {
+  const part = rampsToPlace(state) > 0 && state.siege ? rampStretch(state.siege, mannedTowers(state)) : null;
+  if (part) return { type: 'ramp', part };
   return creature(me.creature).machine === 'catapult' && state.siege && aimFor(state.siege).length ? { type: 'catapult' } : { type: 'defend' };
 }
+
+/** The towers with a living company up on them. */
+const mannedTowers = (state: BattleState): TowerPart[] => TOWERS.filter((_, i) => state.stacks.some((s) => s.tower === i && alive(s)));
 
 function maxBy<T>(xs: readonly T[], f: (x: T) => number): T | null {
   let best: T | null = null;

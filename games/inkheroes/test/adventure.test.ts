@@ -4,7 +4,7 @@ import { isOpen, MAPS, nextMap } from '../src/level/maps';
 import { MACHINE_UNLOCKS, openBy, soldOn, UNLOCKS } from '../src/level/unlocks';
 import { THORNWOOD } from '../src/level/borderMarch';
 import type { MapDef } from '../src/level/types';
-import { NEKHEN } from '../src/level/twoLands';
+import { ABU, NEKHEN } from '../src/level/twoLands';
 import { afterBattle, answerPrompt, unfinished, heroTown, playerTowns, townById, battleSides, dailyIncome, endDay, garrisonHero, withTown, gridOf, heroInGarrison, heroVisiting, isSeen, leadOut, objectAt, planPath, startAdventure, stepHero, type Adventure } from '../src/logic/adventure';
 import { armyOf, moveAll } from '../src/logic/army';
 import type { DayReport } from '../src/logic/dayReport';
@@ -36,7 +36,7 @@ const peaceful = (adv: Adventure): Adventure => ({ ...adv, objects: adv.objects.
 
 describe('maps', () => {
   // Chapter 1's, and chapter 2's paid ones (only owners get those).
-  for (const def of [...MAPS, NEKHEN]) {
+  for (const def of [...MAPS, NEKHEN, ABU]) {
     it(`${def.id}: every site stands on open ground, ids are unique and the goal exists`, () => {
       const g = gridOf(def);
       const ids = new Set<string>();

@@ -125,6 +125,43 @@ def battle():
     print('battle.png', img.size)
 
 
+def roster_full():
+    # all 21 final units: base row + two upgrade rows, from the game's padded stills (dev/pixel/pad)
+    PAD = os.path.join(DEV, 'pixel', 'pad')
+    lines = [('levy', 'Nile Levy'), ('nubian', 'Nubian Archer'), ('jackal', 'Jackal Warrior'), ('chariot', 'War Chariot'),
+             ('mummy', 'Mummy'), ('sphinx', 'Sphinx'), ('bennu', 'Bennu')]
+    names = {'levy2': 'Khopesh Warrior', 'levy3': 'Shardana Guard', 'nubian2': 'Medjay Archer', 'nubian3': 'Bowman of Ta-Seti',
+             'jackal2': 'Sentinel of Anubis', 'jackal3': 'Hand of Anubis', 'chariot2': 'Royal Chariot', 'chariot3': 'Chariot of Horus',
+             'mummy2': 'Royal Mummy', 'mummy3': "Pharaoh's Mummy", 'sphinx2': 'Guardian Sphinx', 'sphinx3': 'Great Sphinx',
+             'bennu2': 'Golden Bennu', 'bennu3': 'Bennu of Ra'}
+    rows = [[(i, n) for i, n in lines],
+            [(i + '2', names[i + '2']) for i, _ in lines],
+            [(i + '3', names[i + '3']) for i, _ in lines]]
+    w, rh = 1100, 150
+    img = backdrop(w, rh * 3 + 10)
+    labels = []
+    for r, items in enumerate(rows):
+        ground = r * rh + 120
+        sprs = [sprite(f'{i}.png', PAD) for i, _ in items]
+        gap = (w - sum(s.width for s in sprs)) // (len(sprs) + 1)
+        x = gap
+        for (i, n), s in zip(items, sprs):
+            lift = 14 if i.startswith('bennu') else 0
+            paste_feet(img, s, x + s.width // 2, ground, lift)
+            labels.append((n, x + s.width // 2, ground))
+            x += s.width + gap
+    big = img.resize((img.width * 2, img.height * 2), Image.NEAREST)
+    d = ImageDraw.Draw(big)
+    f2 = font(15)
+    for n, cx, gy in labels:
+        d.text((cx * 2, gy * 2 + 14), n, font=f2, fill=(255, 240, 200, 255), anchor='mt', stroke_width=2, stroke_fill=(30, 18, 8, 255))
+    for r, lab in enumerate(('BASE', 'LEVEL 2 upgrades', 'LEVEL 3 upgrades')):
+        d.text((12, r * rh * 2 + 8), lab, font=font(18), fill=(255, 240, 200, 255), stroke_width=2, stroke_fill=(30, 18, 8, 255))
+    big.convert('RGB').save(os.path.join(HERE, 'roster-full.png'))
+    print('roster-full.png', big.size)
+
+
 if __name__ == '__main__':
     roster()
     battle()
+    roster_full()

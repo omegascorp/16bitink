@@ -1,5 +1,6 @@
 import type Phaser from 'phaser';
-import type { TownArt } from '../../art/pixel/town';
+import type { TownFaction } from '../../logic/creatures';
+import { townKit, type PieceId } from './townKit';
 import { putBuffer } from '../battle/pixelUi';
 import { puffPixels } from './townPictures';
 
@@ -10,9 +11,12 @@ import { puffPixels } from './townPictures';
  */
 
 /** Each chimney's flue in its sprite, pixels from the sprite's top-left (unmirrored). */
-export const CHIMNEYS: Partial<Record<TownArt, { readonly x: number; readonly y: number }>> = {
+export const CHIMNEYS: Partial<Record<PieceId, { readonly x: number; readonly y: number }>> = {
   blacksmith: { x: 86, y: 6 },
 };
+
+/** The flue of `art` in a people's city, if it has one. */
+export const chimneyOf = (art: PieceId, faction: TownFaction = 'crown'): { readonly x: number; readonly y: number } | undefined => (faction === 'kemet' ? townKit(faction).chimneys?.[art] : CHIMNEYS[art]);
 
 /** The puffs' radii as they swell, smallest first. */
 const RADII = [2, 3, 3, 4, 4, 5, 5, 6] as const;

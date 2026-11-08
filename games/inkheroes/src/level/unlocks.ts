@@ -23,6 +23,10 @@ export const UNLOCKS: readonly (readonly BuildingId[])[] = [
 export const TWO_LANDS_UNLOCKS: readonly (readonly BuildingId[])[] = [
   // Part 4, Nekhen: the halls and walls, the Tavern, the House of Life's first floor and Osiris's temple (the Rites and Ankhs are the part's lesson), the four lowest dwellings.
   ['villageHall', 'townHall', 'fort', 'citadel', 'tavern', 'mageGuild1', 'templeOsiris', 'guardhouse', 'archeryRange', 'griffinTower', 'barracks'],
+  // Part 5, Abu: the chapter's first siege, so the Workshop (the Earth Ramp); the market, the House of Life's second floor, the Storehouse, the Chariot Road, the embalmers, and the first upgrades of lines 1–4.
+  ['cityHall', 'marketplace', 'mageGuild2', 'blacksmith', 'storehouse', 'stables', 'monastery', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2'],
+  // Part 6, the Red Land (as the Black Banner opened Korax's tier): the Castle, the Treasury, the Sphinx Terrace (line 6), Per-Nefer (line 5's first upgrade), the second upgrades of lines 1–4. The Benben Stone waits for a later chapter.
+  ['castle', 'treasury', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3'],
 ];
 
 /** The buildings a chapter's `k`th part (1-based) can build: all its parts before it opened, and what it adds. */
@@ -47,5 +51,17 @@ export const MACHINE_UNLOCKS: readonly (readonly SoldMachine[])[] = [
   ['catapult2'],
 ];
 
-/** The machines on sale by map `n` (1-based), lesser first. */
-export const soldOn = (n: number): SoldMachine[] => MACHINE_UNLOCKS.slice(0, n).flat();
+/** Chapter 2's: Egypt's Workshop sells siege ramps, the Earth Ramp from part 5 (Abu, the chapter's first siege) and the Brick Ramp from part 6. */
+export const TWO_LANDS_MACHINE_UNLOCKS: readonly (readonly SoldMachine[])[] = [
+  // Part 4, Nekhen: no Workshop yet.
+  [],
+  ['ramp'],
+  ['ramp2'],
+];
+
+/** Where chapter 2's parts begin in the campaign's numbering. */
+const TWO_LANDS_FIRST = 4;
+
+/** The machines on sale by map `n` (1-based, campaign-wide), lesser first: each chapter's own, opened part by part. */
+export const soldOn = (n: number): SoldMachine[] =>
+  n >= TWO_LANDS_FIRST ? TWO_LANDS_MACHINE_UNLOCKS.slice(0, n - TWO_LANDS_FIRST + 1).flat() : MACHINE_UNLOCKS.slice(0, n).flat();

@@ -121,7 +121,7 @@ export class Session extends Phaser.Events.EventEmitter {
 
   /** The night: the day ends, then the rival lord rides (his news and any fight he starts wait on the cards). */
   endDay(): RivalReport {
-    const r = rivalTurn(endDay(this.current), this.def);
+    const r = rivalTurn(endDay(this.current, this.def), this.def);
     this.dayStart = r.adv;
     this.set(r.adv);
     return r.report;

@@ -90,10 +90,37 @@
     "recorded": null
   },
   {
-    "line": "nekhen-won",
-    "title": "The flood comes",
-    "text": "The Petsuchos is beaten, and the sluice swings open! The water runs down the old canal, and the fields drink at last… In Nekhen they light lamps for Neferet tonight. But the flood brought word from downriver… and the Two Lands are not at peace yet.",
-    "script": "[triumphant] The Petsuchos is beaten, and the sluice swings open! [joyful] The water runs down the old canal, and the fields drink at last… [warm] In Nekhen they light lamps for Neferet tonight. [intrigued] But the flood brought word from downriver… and the Two Lands are not at peace yet.",
+    "line": "part-abu",
+    "title": "Abu",
+    "text": "The sluice is open, and the flood comes at last! Up the river road, at the First Cataract, the Nile breaks white over black granite… and Sand Raiders hold Abu, the island fort at the kingdom's southern gate. Its walls are high… but Egypt's builders don't break walls. They raise ramps against them! Buy an Earth Ramp at your Workshop, choose your stretch of wall… and march straight up it. And Paser, a chariot captain, waits at your Tavern.",
+    "script": "[triumphant] The sluice is open, and the flood comes at last! [storytelling] Up the river road, at the First Cataract, the Nile breaks white over black granite… [grim] and Sand Raiders hold Abu, the island fort at the kingdom's southern gate. [sly] Its walls are high… but Egypt's builders don't break walls. They raise ramps against them! [resolute] Buy an Earth Ramp at your Workshop, choose your stretch of wall… and march straight up it. [warm] And Paser, a chariot captain, waits at your Tavern.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "abu-won",
+    "title": "The southern gate",
+    "text": "Abu is ours again, and the raiders scatter into the desert! Boats run down from the cataract once more, heavy with granite and gold… Neferet watches the sunset from the island's walls. But out in the Red Land, a lord with no love for Isis has heard the news… and he is calling his chariots.",
+    "script": "[triumphant] Abu is ours again, and the raiders scatter into the desert! [joyful] Boats run down from the cataract once more, heavy with granite and gold… [warm] Neferet watches the sunset from the island's walls. [ominous] But out in the Red Land, a lord with no love for Isis has heard the news… and he is calling his chariots.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "part-redLand",
+    "title": "The Red Land",
+    "text": "Beyond the river lies Deshret, the Red Land… Set's own desert, where nothing green grows. There Sethi, a lord who serves Set, has raised his red banner over Nubt, the city of gold! He rides with our own chariots and our own ramps… and he means to rule both lands. Halfway across the sand, the caravan town of Gebtu still holds out. Whoever beats its garrison first holds the gold roads! And mind the sky: every few days, Set sends a storm. Take Nubt… and bring Sethi down!",
+    "script": "[grand, storytelling] Beyond the river lies Deshret, the Red Land… Set's own desert, where nothing green grows. [ominous] There Sethi, a lord who serves Set, has raised his red banner over Nubt, the city of gold! [grim] He rides with our own chariots and our own ramps… and he means to rule both lands. [urgent] Halfway across the sand, the caravan town of Gebtu still holds out. Whoever beats its garrison first holds the gold roads! [wry] And mind the sky: every few days, Set sends a storm. [resolute] Take Nubt… and bring Sethi down!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "twoLands-won",
+    "title": "The Two Lands are one",
+    "text": "Sethi falls, and his red banner falls with him! The Red Land and the Black Land answer to one crown now… the Two Lands are one! From Nekhen's sluice to the gold of Nubt, the Nile runs free… and Neferet's name is sung on every boat that sails it.",
+    "script": "[triumphant] Sethi falls, and his red banner falls with him! [solemn] The Red Land and the Black Land answer to one crown now… [joyful] the Two Lands are one! [warm] From Nekhen's sluice to the gold of Nubt, the Nile runs free… [hopeful] and Neferet's name is sung on every boat that sails it.",
     "voice": "BNgbHR0DNeZixGQVzloa",
     "model": "eleven_v4",
     "recorded": null
