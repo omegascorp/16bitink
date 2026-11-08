@@ -16,7 +16,7 @@ import { heroListOrder } from './hud/heroListData';
 import { freeSlot, releaseSlot, takeSlot } from './hud/noteStack';
 import { PurseRow, PURSE_BAR_H } from './hud/purseRow';
 import { TownList } from './hud/townList';
-import { MAP_TEX } from './map/pixelMapArt';
+import { MAP_TEX, townTexOf } from './map/pixelMapArt';
 import type { MapScene } from './MapScene';
 import { mapRoom, type Box, type StripRoom } from './narrator/stripLayout';
 import { narrator, STRIP_EVENT } from './NarratorScene';
@@ -157,7 +157,7 @@ export class MapHudScene extends Phaser.Scene {
     this.owned.push(this.heroLine, this.moveLine, this.manaLine);
     parts.push(this.heroLine.img, moveIcon, this.moveLine.img, this.manaIcon, this.manaLine.img);
     this.towns = new TownList(this, BUTTONS_W - BTN.gap, {
-      textureOf: (t) => MAP_TEX.town(`${this.session.def.id}-${t.id}`),
+      textureOf: (t) => townTexOf(this.session.def, t),
       onOpen: (id) => (this.scene.get('Map') as MapScene).openTown(id),
     });
     this.owned.push(this.towns);

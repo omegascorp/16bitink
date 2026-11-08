@@ -464,10 +464,10 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     url: { idle: hyenaIdle, walk: hyenaWalk, attack: hyenaAttack },
   },
   raider: {
-    name: "Sand Raider", w: 104, h: 104, footX: 35, footY: 98,
+    name: "Sand Raider", w: 104, h: 104, footX: 45, footY: 98,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
-    shotFrom: { x: 84, y: 42 },
-    face: { x: 40, y: 31 },
+    shotFrom: { x: 90, y: 54 },
+    face: { x: 49, y: 22 },
     url: { idle: raiderIdle, walk: raiderWalk, attack: raiderAttack },
   },
   scorpion: {
@@ -483,9 +483,9 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     url: { idle: crocodileIdle, walk: crocodileWalk, attack: crocodileAttack },
   },
   petsuchos: {
-    name: "Petsuchos", w: 232, h: 120, footX: 70, footY: 114,
+    name: "Petsuchos", w: 184, h: 96, footX: 62, footY: 90,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
-    face: { x: 140, y: 42 },
+    face: { x: 146, y: 28 },
     url: { idle: petsuchosIdle, walk: petsuchosWalk, attack: petsuchosAttack },
   },
   cobra: {
@@ -508,7 +508,7 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     url: { idle: apepIdle, walk: apepWalk, attack: apepAttack },
   },
   levy: {
-    name: "Nile Levy", w: 96, h: 96, footX: 36, footY: 90,
+    name: "Nile Levy", w: 96, h: 96, footX: 42, footY: 90,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
     face: { x: 36, y: 40 },
     url: { idle: levyIdle, walk: levyWalk, attack: levyAttack },
@@ -527,9 +527,9 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     url: { idle: jackalIdle, walk: jackalWalk, attack: jackalAttack },
   },
   chariot: {
-    name: "War Chariot", w: 144, h: 112, footX: 59, footY: 106,
+    name: "War Chariot", w: 144, h: 112, footX: 49, footY: 106,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
-    face: { x: 30, y: 46 },
+    face: { x: 26, y: 23 },
     url: { idle: chariotIdle, walk: chariotWalk, attack: chariotAttack },
   },
   mummy: {
@@ -558,7 +558,7 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     url: { idle: levy2Idle, walk: levy2Walk, attack: levy2Attack },
   },
   levy3: {
-    name: "Shardana Guard", w: 96, h: 96, footX: 40, footY: 90,
+    name: "Shardana Guard", w: 96, h: 96, footX: 39, footY: 90,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
     face: { x: 37, y: 38 },
     url: { idle: levy3Idle, walk: levy3Walk, attack: levy3Attack },
@@ -590,15 +590,15 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     url: { idle: jackal3Idle, walk: jackal3Walk, attack: jackal3Attack },
   },
   chariot2: {
-    name: "Royal Chariot", w: 144, h: 112, footX: 59, footY: 106,
+    name: "Royal Chariot", w: 144, h: 112, footX: 48, footY: 106,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
-    face: { x: 30, y: 46 },
+    face: { x: 26, y: 23 },
     url: { idle: chariot2Idle, walk: chariot2Walk, attack: chariot2Attack },
   },
   chariot3: {
-    name: "Chariot of Horus", w: 144, h: 112, footX: 58, footY: 106,
+    name: "Chariot of Horus", w: 144, h: 112, footX: 49, footY: 106,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
-    face: { x: 27, y: 46 },
+    face: { x: 26, y: 23 },
     url: { idle: chariot3Idle, walk: chariot3Walk, attack: chariot3Attack },
   },
   mummy2: {

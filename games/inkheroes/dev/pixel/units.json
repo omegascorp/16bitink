@@ -679,12 +679,12 @@
    "attack": "bow attack: draws the bow string back, looses the arrow forward to the right, then lowers the bow; feet stay in place",
    "strike": 4,
    "face": [
-    40,
-    31
+    49,
+    22
    ],
    "shot": [
-    84,
-    42
+    90,
+    54
    ]
   },
   "scorpion": {
@@ -727,18 +727,18 @@
    "name": "Petsuchos",
    "src": "pixel/src/petsuchos.png",
    "canvas": [
-    232,
-    120
+    184,
+    96
    ],
    "foot": 6,
-   "dx": -16,
+   "dx": -4,
    "subject": "a gigantic dark green sacred crocodile with gold earrings and bracelets",
    "walk": "crawling in place loop: heavy legs step in rhythm, body sways, tail swings, stays in the same spot, ends back at the starting pose",
    "attack": "bite attack: rears back, lunges forward to the right with jaws wide open and snaps them shut, then settles back to the starting pose",
    "strike": 3,
    "face": [
-    140,
-    42
+    146,
+    28
    ]
   },
   "cobra": {
@@ -863,12 +863,12 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "an egyptian war chariot with an archer driver and two brown horses at the right front",
-   "attack": "charge attack: the horses surge forward, the archer in the car drives to the right, then the chariot settles back to the starting pose",
+   "subject": "an egyptian war chariot with a spear-and-shield warrior driver and two brown horses at the right front",
+   "attack": "charge attack: the horses surge forward at a gallop, the warrior in the car thrusts the long spear hard forward to the right, then the chariot settles back to the starting pose",
    "strike": 2,
    "face": [
-    30,
-    46
+    26,
+    23
    ],
    "walk": "galloping in place loop: the horses gallop with legs reaching and gathering, the car rocks on its wheels, stays in the same spot, ends back at the starting pose"
   },
@@ -1045,12 +1045,12 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "a gilded egyptian chariot with an archer driver and two horses in caparisons at the right front",
-   "attack": "charge attack: the horses surge forward, the archer in the car drives to the right, then the chariot settles back to the starting pose",
+   "subject": "a gilded egyptian royal chariot with a spear-and-shield warrior driver and two horses in red and gold caparisons at the right front",
+   "attack": "charge attack: the horses surge forward at a gallop, the warrior in the car thrusts the long spear hard forward to the right, then the chariot settles back to the starting pose",
    "strike": 2,
    "face": [
-    30,
-    46
+    26,
+    23
    ],
    "walk": "galloping in place loop: the horses gallop with legs reaching and gathering, the car rocks on its wheels, stays in the same spot, ends back at the starting pose"
   },
@@ -1063,12 +1063,12 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "a solid gold egyptian chariot with a falcon standard and two plumed horses at the right front",
-   "attack": "charge attack: the horses surge forward, the archer in the car drives to the right, then the chariot settles back to the starting pose",
+   "subject": "a solid gold egyptian chariot with a falcon emblem, a spear-and-shield warrior driver and two horses with blue and gold plumes at the right front",
+   "attack": "charge attack: the horses surge forward at a gallop, the warrior in the car thrusts the long spear hard forward to the right, then the chariot settles back to the starting pose",
    "strike": 2,
    "face": [
-    27,
-    46
+    26,
+    23
    ],
    "walk": "galloping in place loop: the horses gallop with legs reaching and gathering, the car rocks on its wheels, stays in the same spot, ends back at the starting pose"
   },

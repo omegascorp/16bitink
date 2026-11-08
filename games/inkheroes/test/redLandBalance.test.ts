@@ -176,5 +176,5 @@ describe('the Red Land, ridden on into from Abu', () => {
       const earth = rs.flatMap((r) => (r.atGate ? [siegeCost(r.atGate, 'ramp')] : []));
       console.info(`red ${style}: rides on day ${range(rs.map((r) => r.abu.day))}, rider ${range(rs.map((r) => Math.round(armyStrength(r.opened.hero.army))))}, Sethi ${range(rs.map((r) => Math.round(armyStrength(r.opened.rival!.hero!.army))))} (×${Math.min(...ratio).toFixed(2)}–${Math.max(...ratio).toFixed(2)}); Gebtu: rider part day ${range(race.flatMap((x) => (x[0] ? [x[0]] : [])))}, Sethi ${range(race.flatMap((x) => (x[1] ? [x[1]] : [])))} (calm: ${range(race.flatMap((x) => (x[2] ? [x[2]] : [])))} / ${range(race.flatMap((x) => (x[3] ? [x[3]] : [])))}); storms add ${range(storm)} days to the ride to Nubt; bot won ${won.length}/${rs.length} (part days ${range(won.map((r) => partDays(r.red.adv)))}), Nubt's siege cost ${range(nubt)}% (replayed: Earth Ramp ${range(earth)}%, Brick Ramp ${range(brick)}%), ended ${rs.map((r) => `${r.red.adv.status}@${partDays(r.red.adv)}[${r.red.fights.map((f) => `${f.id}:${Math.round(100 - (100 * f.after) / f.before)}`).join(" ")}]`).join(", ")}`);
     }
-  });
+  }, 600_000);
 });

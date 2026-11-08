@@ -573,6 +573,17 @@ So Sethi opens at about 1.4 to 1.7 times the army a rider brings (the doc's 1.35
 
 Of the 72 runs, 1 won, 48 lost (mostly Sethi beating the bot's hero in the field, or storming a town it left), 23 stalled at 60 days. The race and the storms are on target; Sethi opens at ×1.1 to 1.5 (a little under the ×1.35 to 1.7 asked for with the 0.6 head start); a Brick Ramp makes Nubt's siege cost 11 to 27%, but the bot never buys one (Nekhen's Workshop is two days back) and storms Nubt with its Earth Ramp, which loses. Still to try: the bot buying the Brick Ramp before the siege, and a bot that keeps out of Sethi's reach (he catches it in the open sand).
 
+**Calibration on chapter 1 (coordinator, Nov 8).** The same `wise` bot, with two more moves (before riding at the goal's walls it rides to a Workshop or Blacksmith of ours selling a better machine than its own; it never ends a day within a day's ride of the rival when he is 1.3 times stronger, falling back on its nearest town), plays the Black Banner under today's rules, ridden on from Ashford and Thornwood (`test/blackBannerBalance.test.ts`, only with BALANCE_SEEDS), and the Red Land again. 24 seeds × 3 styles, 60 days:
+
+| | Black Banner (Kassander at ride-on) | Won / lost / stalled | Red Land (Sethi at ride-on) | Won / lost / stalled |
+|---|---|---|---|---|
+| Rusher | ×0.76 to 2.26 | 0 / 9 / 15 | ×1.10 to 1.45 | 0 / 10 / 14 |
+| Steady | ×1.18 to 1.81 | 0 / 15 / 9 | ×0.50 to 2.01 | 0 / 3 / 21 |
+| Careful | ×1.10 to 1.47 | 0 / 15 / 9 | ×1.21 to 1.46 | 0 / 11 / 13 |
+| All 72 | | **0 / 39 / 33** | | **0 / 24 / 48** |
+
+So the bot doesn't win the Black Banner either since the Nov 8 hardening (its "all won" table is from Nov 4): the bot's tempo, not the Red Land, is what loses. By this measure the Red Land is no harder than the Black Banner (fewer losses, more stalls), so nothing was changed to close a gap. The race (rider part day 4 to 5, Sethi 6) and the storms (0 to 1 day) hold. No run got strong enough to ride at Nubt, so the new machine stop never bought a Brick Ramp in these runs. The Red Land's target is now "about the Black Banner's numbers" (coordinator), and it meets that. Making either part winnable by this bot is a bot question (it hires too slowly and stalls behind walls), not a map one.
+
 **Not met yet: the bot doesn't win the part** (before the coordinator's levers:) In 24 runs (8 seeds × 3 styles, `wise` bot: hires where the purse can buy a tenth of its army early in a week, keeps its two lowest lines as each town's garrison, keeps 6000 gold for hiring before building, falls back on a town when Sethi is near and strong, rides at Nubt while he is away, retakes towns and hunts him) none won in 60 days: 10 lost (Sethi beat the hero in the field or took the last town), the rest stalled. Why: Nubt hires its weekly growth into its garrison whenever Sethi is out (Kassander's rule, 3000 gold kept), so its garrison grows by roughly 500 to 800 a week and passes 5000 by part day 50, while the bot's army grows only when it rides the two days back to Nekhen. The levers left: Nubt's garrison hiring (a cap, or only while he is home), Sethi's head start for this part, Nubt's dwellings, or a bot that lives off Gebtu's and Nubt's dwellings once taken. Needs the user's call before more tuning.
 
 ## The day card

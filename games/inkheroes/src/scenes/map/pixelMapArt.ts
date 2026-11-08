@@ -3,6 +3,9 @@ import { KEMET_TOWN, MAP_COVER, MAP_GROUND, MAP_SITES, MAP_VIGNETTES, TOWN_LOOKS
 import { HERO_ART, UNIT_ART } from '../../art/pixel/manifest';
 import type { SiteArt } from '../../art/sites/types';
 import { CREATURE_IDS } from '../../logic/creatures';
+import { factionOf } from '../../logic/factions';
+import type { Town } from '../../logic/town';
+import type { MapDef } from '../../level/types';
 import type { MapObject } from '../../logic/objects';
 import { HERO_IDS, nearest, POSES, PX_TEX, unitArt } from '../battle/pixelAssets';
 import { loadUiFont } from '../battle/pixelFont';
@@ -27,6 +30,14 @@ export const MAP_TEX = {
   kemetTown: 'pxm-town-kemet',
   townLook: (look: string) => `pxm-town-look-${look}`,
 } as const;
+
+/** The texture a town is drawn with on the map (and shrunk for the town list): its own look, Egypt's town, or the city as built. */
+export function townTexOf(def: MapDef, t: Town): string {
+  const look = def.towns?.find((d) => d.id === t.id)?.look;
+  if (look && TOWN_LOOKS[look]) return MAP_TEX.townLook(look);
+  if (factionOf(t) === 'kemet') return MAP_TEX.kemetTown;
+  return MAP_TEX.town(`${def.id}-${t.id}`);
+}
 
 /** The art a map object is drawn with (monsters, towns and gear on the ground are drawn apart). */
 export function siteArtOf(o: MapObject): SiteArt | null {

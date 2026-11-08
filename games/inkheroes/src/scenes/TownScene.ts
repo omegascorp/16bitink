@@ -27,7 +27,7 @@ import type { MapScene } from './MapScene';
 import { pixelUiCamera } from './pixelScreen';
 import { SplitPicker } from './hud/splitPicker';
 import { TownList } from './hud/townList';
-import { MAP_TEX } from './map/pixelMapArt';
+import { MAP_TEX, townTexOf } from './map/pixelMapArt';
 import { Session } from './session';
 import { soldOn } from '../level/unlocks';
 import { SOUND_BTN, soundCard } from './soundCard';
@@ -283,7 +283,7 @@ export class TownScene extends Phaser.Scene {
     const { adv, def } = this.session;
     const towns = playerTowns(adv);
     this.towns ??= new TownList(this, TOWNS.w, {
-      textureOf: (t) => MAP_TEX.town(`${def.id}-${t.id}`),
+      textureOf: (t) => townTexOf(def, t),
       onOpen: (townId) => this.scene.restart({ townId }),
     });
     this.towns.set(towns.length > 1 ? towns : [], this.townId);
