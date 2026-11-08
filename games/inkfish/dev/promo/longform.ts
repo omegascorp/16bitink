@@ -1,5 +1,7 @@
 import { CAPTION_FONT } from './captions';
 import type { Short } from './short';
+import { createBitecompKit } from './bitecomp/kit';
+import { createBitecomp } from './bitecomp/render';
 import { createDescent } from './descent/render';
 import { createKit } from './foodchain/kit';
 import { createFoodchain } from './foodchain/render';
@@ -15,7 +17,8 @@ import { createSwallowyou } from './swallowyou/render';
  * comparison… but every animal is real"), foodchain-kit (its drawings) or
  * swallowyou ("every ocean animal that could swallow you… only one actually could"),
  * seamonsters ("sea monsters size comparison… but every one is real") or
- * seamonsters-kit (its new drawings). Plays live; ?t=95 freezes one moment.
+ * seamonsters-kit (its new drawings), bitecomp ("bite force comparison… but
+ * every number is real") or bitecomp-kit (its heads). Plays live; ?t=95 freezes one moment.
  * `pnpm promo -- --only long` (dev/promo/record.mjs) records it frame by frame.
  */
 const canvas = document.getElementById('promo') as HTMLCanvasElement;
@@ -52,6 +55,14 @@ const VIDEOS: Readonly<Record<string, () => Promise<Short>>> = {
   'seamonsters-kit': async () => {
     await loadCaptionFont();
     return createSeamonstersKit(ctx, params.get('only'));
+  },
+  bitecomp: async () => {
+    await loadCaptionFont();
+    return createBitecomp(ctx);
+  },
+  'bitecomp-kit': async () => {
+    await loadCaptionFont();
+    return createBitecompKit(ctx, params.get('only'));
   },
 };
 

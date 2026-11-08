@@ -12,7 +12,10 @@ import { createSnowCrab } from './snowcrab/render';
 import { createRaccoon } from './raccoon/render';
 import { createManowar } from './manowar/render';
 import { createCrabbird } from './crabbird/render';
+import { createBirdSnatch } from './birdsnatch/render';
+import { createHeronCrab } from './heroncrab/render';
 import { AT as CRABBIRD_AT, LOOP_S as CRABBIRD_LOOP_S } from './crabbird/story';
+import { AT as HERONCRAB_AT, LOOP_S as HERONCRAB_LOOP_S } from './heroncrab/story';
 
 /**
  * Dev-only promo video page for InkCrab, 1080x1920. Every short is a
@@ -82,6 +85,9 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   manowar: narrated(createManowar),
   // Its credit waits for the invitation at the end and names the short link.
   crabbird: narrated(createCrabbird, true, { text: 'InkCrab · 16bit.ink/crab', inAt: (CRABBIRD_AT.ctaStart + 0.3) / CRABBIRD_LOOP_S }),
+  birdsnatch: narrated(createBirdSnatch),
+  // Its credit waits for the invitation at the end and names the short link.
+  heroncrab: narrated(createHeronCrab, false, { text: 'InkCrab · 16bit.ink/crab', inAt: (HERONCRAB_AT.ctaStart + 0.3) / HERONCRAB_LOOP_S }),
 };
 
 const name = params.get('short') ?? 'kit';

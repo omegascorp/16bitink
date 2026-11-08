@@ -133,6 +133,7 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * gulpgiant (gameplay: the viperfish swallows a giant sleeper shark).
  * gulpoar (gameplay: the viperfish slurps down a whole oarfish).
  * pelican (a zoo pelican in Japan tries to swallow a baby capybara).
+ * ospreyshark (an osprey carries a shark that has a fish in its mouth, Florida 2018).
  * They're loaded lazily (import() on demand).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
@@ -549,6 +550,11 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
     await loadCaptionFont();
     const { createPelican } = await import('./pelican/render');
     return withCredit(createPelican(ctx), ctx);
+  },
+  ospreyshark: async () => {
+    await loadCaptionFont();
+    const { createOspreyShark } = await import('./ospreyshark/render');
+    return withCredit(createOspreyShark(ctx), ctx);
   },
   orcaflip: async () => {
     await loadCaptionFont();
