@@ -9,6 +9,8 @@ import type { LevelDef } from './types';
  * the next colour every few seconds (1), and the Rain charm, a shower that
  * pops every marble in a column (3). Tracks meander and loop through the
  * long grass; the gecko hops between millstones; tunnels are grassy banks.
+ * Then a twist a level (leaves, restless stones, a late burrow, gold, wind,
+ * no swaps, a blitz) and the Great Chameleon.
  */
 
 const par = (goal: number, speed: number): number => Math.round(((goal / 10) * 32) / speed * 0.55 + 20);
@@ -41,9 +43,9 @@ const PARSLEY: Pt[] = lasso(205, 125, 450);
 /** Level 5: a wavering row along the top and another along the bottom. */
 const FLOWERS_TOP: Pt[] = from({ x: -30, y: 110 }, meander(90, 1190, 100, 235, 2, 22, 3));
 const FLOWERS_LOW: Pt[] = from({ x: 1310, y: 510 }, meander(1190, 90, 510, 625, 2, 22, 3), 2);
-/** Level 10: two spirals wound into each other, egg-shaped. */
-const SUMMER_A: Pt[] = spiral(640, 390, 315, 225, 1.05, Math.PI * 0.3, 1, 1.75, 1.02);
-const SUMMER_B: Pt[] = spiral(640, 390, 315, 225, 1.05, Math.PI * 1.3, 1, 1.75, 1.02);
+/** Level 10: three wavering rows across the top of the meadow; the Great Chameleon walks its round below them. */
+const MIDSUMMER: Pt[] = from({ x: -30, y: 100 }, meander(100, 1180, 100, 300, 3, 20, 2.5));
+const CHAMELEON_ROUND: Pt[] = [{ x: 220, y: 470 }, { x: 640, y: 498 }, { x: 1060, y: 470 }, { x: 640, y: 442 }];
 
 export const CHAPTER_7: readonly LevelDef[] = [
   {
@@ -54,7 +56,7 @@ export const CHAPTER_7: readonly LevelDef[] = [
   {
     id: 'meadow-2', name: 'Poppies', shooter: RAIL,
     tracks: bridged([{ points: LASSO }]),
-    colours: 4, speed: 30, goal: 2900, par: par(2900, 30), charms: ['slow', 'reverse', 'burst', 'aim'], chameleons: 0.1,
+    colours: 4, speed: 30, goal: 2900, par: par(2900, 30), charms: ['slow', 'reverse', 'burst', 'aim'], chameleons: 0.1, leaves: 2,
   },
   {
     id: 'meadow-3', name: 'Rain Cloud', shooter: { kind: 'pivot', ...C },
@@ -64,36 +66,37 @@ export const CHAPTER_7: readonly LevelDef[] = [
   {
     id: 'meadow-4', name: 'The Stile', shooter: { kind: 'hop', pads: [{ x: 430, y: 600 }, { x: 850, y: 600 }] },
     tracks: [{ points: from({ x: 1310, y: 100 }, meander(1180, 100, 100, 430, 3, 28, 2)) }],
-    colours: 5, speed: 30, goal: 3100, par: par(3100, 30), charms: ALL, chameleons: 0.12,
+    colours: 5, speed: 28, goal: 3100, par: par(3100, 28), charms: ALL, chameleons: 0.12, restless: 7,
   },
   {
     id: 'meadow-5', name: 'Cornflowers', shooter: { kind: 'pivot', ...C, y: 378 },
-    tracks: [{ points: FLOWERS_TOP }, { points: FLOWERS_LOW }],
+    tracks: [{ points: FLOWERS_TOP }, { points: FLOWERS_LOW, opensAt: 0.35 }],
     colours: 5, speed: 22, goal: 3100, par: par(3100, 34), charms: ALL, chameleons: 0.12,
   },
   {
     id: 'meadow-6', name: 'Butterflies', shooter: RAIL,
     tracks: bridged([{ points: mirror(LASSO) }]),
-    colours: 5, speed: 31, goal: 3300, par: par(3300, 31), charms: ALL, chameleons: 0.13,
+    colours: 5, speed: 31, goal: 3300, par: par(3300, 31), charms: ALL, chameleons: 0.13, mode: { kind: 'gold', count: 7 },
   },
   {
     id: 'meadow-7', name: 'Mown Circle', shooter: { kind: 'hop', pads: [{ x: 420, y: 450 }, { x: 640, y: 330 }, { x: 860, y: 450 }] },
     tracks: [{ points: spiral(640, 400, 312, 250, 1.15, Math.PI, 1, 1.75, 1), tunnels: [{ from: 0.48, to: 0.58 }] }],
-    colours: 5, speed: 32, goal: 3400, par: par(3400, 32), charms: ALL, chameleons: 0.14,
+    colours: 5, speed: 30, goal: 3400, par: par(3400, 30), charms: ALL, chameleons: 0.14, wind: 360,
   },
   {
     id: 'meadow-8', name: 'Cow Parsley', shooter: { kind: 'pivot', x: 640, y: 600 },
     tracks: bridged([{ points: mirror(PARSLEY) }]),
-    colours: 5, speed: 30, goal: 3400, par: par(3400, 30), charms: ALL, chameleons: 0.14, twine: 0.08,
+    colours: 5, speed: 28, goal: 3400, par: par(3400, 28), charms: ALL, chameleons: 0.14, twine: 0.08, noSwap: true,
   },
   {
     id: 'meadow-9', name: 'Skylark', shooter: RAIL,
     tracks: [{ points: from({ x: 1310, y: 95 }, meander(1170, 110, 95, 500, 4, 18, 3)), tunnels: [{ from: 0.3, to: 0.36 }, { from: 0.62, to: 0.68 }] }],
-    colours: 5, speed: 38, goal: 3600, par: par(3600, 38), charms: ALL, chameleons: 0.15,
+    colours: 5, speed: 32, goal: 3600, par: 300, charms: ALL, chameleons: 0.15, mode: { kind: 'blitz', seconds: 180 },
   },
   {
-    id: 'meadow-10', name: 'Midsummer', shooter: { kind: 'hop', pads: [{ x: 440, y: 450 }, { x: 640, y: 340 }, { x: 840, y: 450 }] },
-    tracks: [{ points: SUMMER_A, tunnels: [{ from: 0.4, to: 0.5 }] }, { points: SUMMER_B, tunnels: [{ from: 0.4, to: 0.5 }] }],
-    colours: 5, speed: 27, goal: 4200, par: par(4200, 45), charms: ALL, chameleons: 0.16,
+    id: 'meadow-10', name: 'Midsummer', shooter: { kind: 'pivot', x: 640, y: 632 },
+    tracks: [{ points: MIDSUMMER, tunnels: [{ from: 0.4, to: 0.47 }] }],
+    colours: 5, speed: 28, goal: 4200, par: 190, charms: ALL, chameleons: 0.12,
+    boss: { kind: 'chameleon', hp: 9, spots: CHAMELEON_ROUND },
   },
 ];

@@ -230,40 +230,129 @@ export const GAMES: readonly CatalogGame[] = [
     ],
   },
   {
+    slug: 'inksnake',
+    title: 'InkSnake',
+    tagline: 'Eat. Grow. Coil round what you can\u2019t swallow.',
+    kind: 'snake game',
+    fansOf: {
+      games: ['Snake', 'Slither.io'],
+      how: 'Yes, it plays like the classic Snake: you steer a snake that never stops, eat to grow longer, and must never bite your own body. InkSnake adds real snakes and real hunters: prey too big to swallow has to be coiled round and squeezed, a hawk circles and dives, crows peck your tail, and each chapter is a new species with its own way of hunting.',
+    },
+    genre: ['Arcade', 'Action', 'Casual'],
+    short: 'snake',
+    description: [
+      'Snake, drawn in ballpoint pen, with real snakes. Steer a corn snake round a farm, swallowing mice and frogs whole: you can see each meal slide down its body as it grows longer. A rat is too big to swallow, so circle round it and squeeze.',
+      'Everything that hunts snakes is hunting you: crows peck your tail, a red-tailed hawk circles and dives, and the Old Tomcat waits at the end of the farm.',
+      'Then nine more snakes, each in its own place with its own trick: a hognose that plays dead, a sidewinder that buries itself in the dunes, an egg-eater in the savanna, a flying snake gliding between rainforest crowns, a sea krait holding its breath on the reef, a viper that lures birds with a spider on its tail, an adder warming itself on the heath, a king cobra that eats other snakes, and an anaconda in the flooded forest.',
+    ],
+    status: 'playable',
+    cover: '/covers/inksnake.png',
+    loop: true,
+    released: '2026-10-25',
+    updated: '2026-10-25',
+    size: { chapters: 10, levels: 100 },
+    demo: '10 levels free',
+    price: '$4.99',
+    stripeLookupKey: 'inksnake_full',
+    theme: { paper: '#f5f0e1', ink: '#26316a', accent: '#c8602c' },
+    icon: 'inksnake',
+    orientation: 'landscape',
+    fonts: { googleCss: 'family=Caveat:wght@500;700', await: ['32px Caveat'] },
+    features: [
+      'The farm free: 10 levels, no sign-up',
+      'Full game: 90 more levels with 9 more snakes, each in its own place with its own trick and its own boss',
+      'One-time purchase: no subscription, no ads, no energy timers',
+    ],
+    controls: [
+      'Mouse / finger: steer the head',
+      'Click, tap or Space: strike',
+      'E / Shift / the button: your snake\u2019s trick (play dead, bury, glide…)',
+      'Arrows / WASD: steer',
+      'Esc / P / ❚❚: pause',
+      'M / ♪: sound on/off',
+    ],
+  },
+  {
+    slug: 'inkpin',
+    title: 'InkPin',
+    tagline: 'Pull the pins. Get the gold. Get out.',
+    kind: 'pin puzzle game',
+    fansOf: {
+      games: ['Pull the Pin', 'Homescapes'],
+      how: 'It is the pin puzzle from those mobile ads: pull golden pins in the right order so the treasure flows to the hero and the danger misses him. Here it is the whole game — 50 pin puzzles, no town to renovate, no ad after every pull. Every level is read-it-then-pull: water, lava, gold and the guards always do the same thing, so a loss comes from your order, never from luck.',
+    },
+    genre: ['Puzzle', 'Casual'],
+    short: 'pin',
+    description: [
+      'The pin puzzle from the mobile ads, made into a whole game — and without the ads. Nib, a raccoon ruin explorer, goes after the treasure of five lost ruins: pull the golden pins in the right order so the gold pours down to him and the lava, bad air and the ruins’ animal guards never touch him.',
+      'Everything is simulated for real: water cools lava into stone, gas blasts cracked walls, coins pour like sand. Gate pins push back in to cut a flow mid-pour, pins block pins, and some rooms are two screens tall. Get the relic, sweep the room for gold, and get Nib out.',
+    ],
+    status: 'playable',
+    cover: '/covers/inkpin.png',
+    loop: true,
+    released: '2026-11-01',
+    updated: '2026-11-01',
+    size: { chapters: 5, ready: 3, levels: 50 },
+    demo: '10 levels free',
+    price: '$4.99',
+    stripeLookupKey: 'inkpin_full',
+    theme: { paper: '#f5f0e1', ink: '#26316a', accent: '#c8402f' },
+    icon: 'inkpin',
+    orientation: 'landscape',
+    fonts: { googleCss: 'family=Caveat:wght@500;700', await: ['32px Caveat'] },
+    features: [
+      'Chapter 1 free: 10 levels in the Jungle Temple, no sign-up',
+      'Full game: the Volcano Shrine and the Desert Tomb now, with more ruins on the way as free updates',
+      'Guards in every ruin: boars, porcupines, salamanders, armadillos and frogs',
+      'One-time purchase: no subscription, no ads, no energy timers',
+    ],
+    controls: [
+      'Tap or click a pin, or drag it along its ring: pull it',
+      'Tap the floor: Nib walks there; tap Nib: jump',
+      'Arrows / A D: walk; Space: jump; ↑ ↓: climb a vine',
+      'R or ↺: restart',
+      'Esc / P / ❚❚: pause · M / ♪: sound on/off',
+    ],
+  },
+  {
     slug: 'inkheroes',
     title: 'InkHeroes',
-    tagline: 'Raise an army. Build your town. Clear the march.',
+    tagline: 'Raise an army. Build your towns. Win back the Border March.',
     kind: 'strategy game',
     fansOf: {
       games: ['Heroes of Might and Magic III'],
-      how: 'Yes, it plays like Heroes III at heart: a hero rides across a map taking mines and treasure, your town builds one thing a day and hires each week’s troops, and fights happen on a hex field with retaliation, shooters, flyers, morale and luck. InkHeroes makes it short and phone-sized: hand-made maps of 20 to 40 minutes, each with one clear goal, and every number shown before you commit.',
+      how: 'Yes, it plays like Heroes III at heart: heroes ride across the map taking mines and treasure, your towns build one thing a day and hire each week’s troops, and fights happen on a hex field with retaliation, shooters, flyers, morale, luck, spells and sieges. InkHeroes makes it short and phone-sized: a campaign of hand-made maps with one clear goal each, a rival lord who races you for towns and retreats to fight another day, and every number shown before you commit.',
     },
     genre: ['Strategy', 'Turn-based', 'Fantasy'],
     short: 'heroes',
     description: [
-      'A turn-based strategy game drawn in pen and ink. Lead the knight Rowan across the Crown’s northern border: take sawmills and gold mines, open treasure chests, and fight goblins, wolves, bandits and skeletons on a hex battlefield.',
-      'Back in Ashford, build one thing a day, from a guardhouse and an archery range to a griffin tower and a mage guild, and watch each building rise in the painted town. Hire the week’s spearmen, bowmen and griffins, then march on the ogre warband holding the old bridge.',
+      'A turn-based strategy game in painted pixel art, set among the myths of ancient Greece. Lead the knight Rowan across the Border March: take sawmills and gold mines, open treasure chests, and fight satyrs, wolves, Stymphalian birds, cyclopes and hydras on a hex battlefield.',
+      'Grow your towns one building a day and hire Hoplites, Slingers, Griffins and Minotaurs. Find a spellbook, buy a Catapult to break town walls, gear your heroes and hire the priestess Ianthe to ride beside Rowan. Then race the rival lord Kassander for Eudora before you storm his fortress of Korax.',
+      'Early access: chapter 1, The Border March, is complete and free, three maps that grow into one land, with a narrator telling the story. More chapters, each a new people with its own heroes, troops and war machine, are being made.',
     ],
     status: 'playable',
     cover: '/covers/inkheroes.png',
     // Listed on the home page from this day (see isOut); its pages answer before that, for a look ahead of launch.
-    released: '2026-10-25',
-    updated: '2026-10-25',
-    size: { chapters: 1 },
-    demo: 'First map free',
+    released: '2026-11-08',
+    updated: '2026-11-08',
+    size: { chapters: 4, ready: 1 },
+    demo: 'Chapter 1 free',
     theme: { paper: '#15110d', ink: '#efe2c2', accent: '#d4a849' },
     icon: 'inkheroes',
     orientation: 'landscape',
     fonts: { googleCss: 'family=Caveat:wght@500;700&family=Cinzel:wght@500;600;700;800&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400', await: ['32px Caveat', '700 32px Cinzel', '32px "EB Garamond"', '600 32px "EB Garamond"'] },
     features: [
-      'Map 1 free: Ashford, a 20–40 minute campaign map, no sign-up',
-      'Heroes III-style battles on a hex field: retaliation, shooters, flyers, morale, luck and spells',
-      'A painted town that grows one building a day',
-      'More maps, a rival lord and new factions are on the way',
+      'Early access: chapter 1 complete and free, three campaign maps, no sign-up',
+      'Heroes III-style battles on a hex field: retaliation, shooters, flyers, morale, luck, spells and sieges',
+      'A rival lord who races you for towns, builds his own and retreats to fight again',
+      'Two heroes to lead, with gear sets, bigger bags and a Storehouse in every town',
+      'Painted towns that grow one building a day, and a narrator for the story',
+      'More chapters with new peoples are on the way',
     ],
     controls: [
       'Map: tap a tile to plan a path, tap it again to go; drag to pan, wheel or pinch to zoom',
       'Space or End day: end the day · T: open the town · H: back to the hero',
+      'Tap a hero’s face to pick them; ride into another of yours to trade troops and gear',
       'Battle: tap a lit hex to move, an enemy to attack (the side you tap is where you strike from)',
       'W: wait · D: defend · C: spellbook · A: auto-battle',
       '❚❚: pause · Esc: leave the town',
@@ -336,3 +425,36 @@ export function newestFirst(games: readonly CatalogGame[]): CatalogGame[] {
 
 /** The home page's games: this week's game first (the featured one), then the rest newest first. */
 export const homeGames = (now: Date): CatalogGame[] => newestFirst(listedGames(now));
+
+/**
+ * The game most people play, set by hand from `traffic`. On 2026-11-02, over 30 days,
+ * 235 of 342 players played InkFish, more than three times the next game (InkSnake, 70).
+ */
+export const MOST_PLAYED = 'inkfish';
+
+/** What a top card on the home page says about its game. `latest` is the newest game once its new week is over. */
+export type HomeLabel = 'new' | 'latest' | 'popular';
+
+export interface HomeCard {
+  readonly game: CatalogGame;
+  readonly label: HomeLabel;
+}
+
+export interface HomeListings {
+  /** The newest game, then the most played (one card when they are the same game). */
+  readonly top: readonly HomeCard[];
+  /** Every other listed game, newest first. */
+  readonly rest: readonly CatalogGame[];
+}
+
+/** The home page: two labelled games at the top, then the rest. */
+export function homeListings(now: Date): HomeListings {
+  const [newest, ...others] = homeGames(now);
+  if (!newest) return { top: [], rest: [] };
+  const popular = others.find((g) => g.slug === MOST_PLAYED);
+  const top: HomeCard[] = [
+    { game: newest, label: isNew(newest, now) ? 'new' : 'latest' },
+    ...(popular ? [{ game: popular, label: 'popular' as const }] : []),
+  ];
+  return { top, rest: others.filter((g) => g !== popular) };
+}

@@ -1,9 +1,10 @@
+import { LIVES } from '../logic/board';
 import { CHARMS, type CharmId } from '../logic/charms';
 import { COLOURS } from '../logic/colours';
 import { D } from '../logic/line';
 import { buildPath, type Pt } from '../logic/path';
 import { CHAPTER_1 } from './chapter1';
-import { BOARD, type LevelDef, type PillarDef, type ShooterDef, type Teach, type TrackDef, type TunnelDef } from './types';
+import { BOARD, BOSS_KINDS, type BossDef, type GoalDef, type LevelDef, type PillarDef, type ShooterDef, type Teach, type TrackDef, type TunnelDef } from './types';
 
 /** Caps on what the server may send. */
 const MAX_CHAPTERS = 20;
@@ -24,6 +25,8 @@ const MAX_HIDDEN = 0.5;
 /** Lily pads lie on the board, this far apart at least. */
 const PAD_APART = 80;
 const MAX_PILLARS = 8;
+const MAX_LEAVES = 4;
+const MAX_SPOTS = 8;
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const num = (v: unknown, lo: number, hi: number): v is number => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
@@ -80,7 +83,56 @@ function track(v: unknown): TrackDef {
     if (!inOrder(tunnels) || tunnels.some((c) => c.to > TUNNEL_END) || hidden > MAX_HIDDEN) throw new Error('bad tunnels');
   }
   if (raised && !inOrder(raised)) throw new Error('bad raised');
-  return { points, ...(tunnels ? { tunnels } : {}), ...(raised ? { raised } : {}) };
+  const opensAt = optNum(v.opensAt, 0, 0.7, 'opensAt');
+  const pace = optNum(v.pace, 0.5, 2, 'pace');
+  return {
+    points, ...(tunnels ? { tunnels } : {}), ...(raised ? { raised } : {}),
+    ...(opensAt !== undefined ? { opensAt } : {}), ...(pace !== undefined ? { pace } : {}),
+  };
+}
+
+/** An optional number in lo..hi. */
+function optNum(v: unknown, lo: number, hi: number, what: string): number | undefined {
+  if (v === undefined) return undefined;
+  if (!num(v, lo, hi)) throw new Error(`bad ${what}`);
+  return v;
+}
+
+/** An optional `true`/`false`. */
+function optBool(v: unknown, what: string): boolean | undefined {
+  if (v === undefined) return undefined;
+  if (typeof v !== 'boolean') throw new Error(`bad ${what}`);
+  return v;
+}
+
+function goal(v: unknown): GoalDef | undefined {
+  if (v === undefined) return undefined;
+  if (!isObj(v)) throw new Error('bad mode');
+  if ((v.kind === 'holdout' || v.kind === 'blitz') && num(v.seconds, 10, 600)) return { kind: v.kind, seconds: v.seconds };
+  if (v.kind === 'gold' && num(v.count, 1, 50) && Number.isInteger(v.count)) return { kind: 'gold', count: v.count };
+  throw new Error('bad mode');
+}
+
+function boss(v: unknown, tracks: number): BossDef | undefined {
+  if (v === undefined) return undefined;
+  if (!isObj(v) || !(BOSS_KINDS as readonly unknown[]).includes(v.kind) || !num(v.hp, 1, 60) || !Number.isInteger(v.hp)) throw new Error('bad boss');
+  if (!Array.isArray(v.spots) || v.spots.length > MAX_SPOTS) throw new Error('bad boss spots');
+  const line = optNum(v.line, 0, tracks - 1, 'boss line');
+  if (line !== undefined && !Number.isInteger(line)) throw new Error('bad boss line');
+  const spots = v.spots.map((p) => {
+    if (!isObj(p) || !num(p.x, 0, BOARD.w) || !num(p.y, 0, BOARD.h)) throw new Error('bad boss spot');
+    return { x: p.x, y: p.y };
+  });
+  // Only the tortoise walks a line instead of spots.
+  if (v.kind !== 'tortoise' && spots.length < 1) throw new Error('bad boss spots');
+  return { kind: v.kind as BossDef['kind'], hp: v.hp, spots, ...(line !== undefined ? { line } : {}) };
+}
+
+/** A wandering pivot gecko's loop. */
+function wander(v: unknown): LevelDef['wander'] {
+  if (v === undefined) return undefined;
+  if (!isObj(v) || !num(v.rx, 0, 200) || !num(v.ry, 0, 200) || !num(v.period, 2, 60)) throw new Error('bad wander');
+  return { rx: v.rx, ry: v.ry, period: v.period };
 }
 
 /** Broken columns on the board: a few, on it, of a sensible size. */
@@ -118,8 +170,16 @@ function level(v: unknown): LevelDef {
   const buds = share(v.buds, id);
   const stones = share(v.stones, id);
   if ((buds ?? 0) + (stones ?? 0) > MAX_SHARE) throw new Error(`${id}: too many buds and stones`);
+  const twist = twistOf(v, id, tracks.length);
+  const parsed = tracks.map(track);
+  // A level must have a burrow open from the start, or nothing would ever fill its bar.
+  if (parsed.every((t) => (t.opensAt ?? 0) > 0)) throw new Error(`${id}: every burrow starts shut`);
+  // The cat is only hurt off a wall and the lion only off a column: they need them.
+  if (twist.boss?.kind === 'cat' && walls !== true) throw new Error(`${id}: the cat needs walls`);
+  if (twist.boss?.kind === 'lion' && !pillars?.length) throw new Error(`${id}: the lion needs columns`);
+  if (twist.boss?.kind === 'tortoise' && twist.boss.line === undefined) throw new Error(`${id}: the tortoise needs a line`);
   return {
-    id, name, shooter: shooter(v.shooter), tracks: tracks.map(track), colours, speed, goal, par, charms,
+    id, name, shooter: shooter(v.shooter), tracks: parsed, colours, speed, goal, par, charms,
     ...(teach ? { teach: teach as Teach[] } : {}),
     ...(fruit !== undefined ? { fruit } : {}),
     ...(buds !== undefined ? { buds } : {}),
@@ -129,7 +189,33 @@ function level(v: unknown): LevelDef {
     ...(walls !== undefined ? { walls } : {}),
     ...(dark !== undefined ? { dark } : {}),
     ...(pillars ? { pillars } : {}),
+    ...twist,
   };
+}
+
+/** A level's twist, goal and boss, each checked (a bad one throws, naming the level). */
+function twistOf(v: Record<string, unknown>, id: string, tracks: number): Partial<LevelDef> {
+  try {
+    const out: Record<string, unknown> = {
+      wind: optNum(v.wind, 0, 1200, 'wind'),
+      surge: optNum(v.surge, 3, 60, 'surge'),
+      tide: optNum(v.tide, 3, 60, 'tide'),
+      noSwap: optBool(v.noSwap, 'noSwap'),
+      colourAt: optNum(v.colourAt, 0.1, 0.9, 'colourAt'),
+      leaves: optNum(v.leaves, 0, MAX_LEAVES, 'leaves'),
+      wander: wander(v.wander),
+      restless: optNum(v.restless, 2, 60, 'restless'),
+      charmy: optBool(v.charmy, 'charmy'),
+      lives: optNum(v.lives, 1, LIVES, 'lives'),
+      mode: goal(v.mode),
+      boss: boss(v.boss, tracks),
+    };
+    if (out.leaves !== undefined && !Number.isInteger(out.leaves)) throw new Error('bad leaves');
+    if (out.lives !== undefined && !Number.isInteger(out.lives)) throw new Error('bad lives');
+    return Object.fromEntries(Object.entries(out).filter(([, x]) => x !== undefined)) as Partial<LevelDef>;
+  } catch (e) {
+    throw new Error(`${id}: ${e instanceof Error ? e.message : 'bad twist'}`);
+  }
 }
 
 /** The full game's chapters from the server (untrusted): checked level by level, or thrown out whole. */

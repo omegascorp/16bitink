@@ -14,6 +14,11 @@ import { makeDraw } from './kit';
 import { drawGardenLantern, GARDEN_LANTERN_FRAME } from './nightLantern';
 import { drawCharmMark, drawCharmToken, drawMarble, drawSplash, MARBLE_FRAME, MARBLE_RES, SPLASH_FRAME, TOKEN_FRAME } from './marbleArt';
 import { ART_RES, BOIL, PAPER } from './palette';
+import { BOSS_ART } from './bosses';
+import { DRIFT_LEAF_FRAME, DRIFT_LEAF_RES, drawDriftLeaf, drawGilt, LEAF_WASHES } from './twistArt';
+import { fencePost, molehill } from './meadowThings';
+import { createRng } from '../logic/rng';
+import type { BossKind } from '../level/types';
 import { makeCanvas, releaseScratch, shrink } from './pen';
 import { BURROW_FRAME, drawBranch, drawBurrow, drawGround, drawPad, drawPadRing, drawRaised, drawTrack, drawTunnel, drawWell, WELL_FRAME } from './placesArt';
 import type { Pt } from './pen';
@@ -46,6 +51,12 @@ export const TEX = {
   rainSplash: 'rain-splash',
   /** A little garden lantern for the night garden (one beside each well), glowing or (lit = false) dark. */
   gardenLantern: (f: number, lit = true) => `garden-lantern-${lit ? 'lit' : 'dark'}-${f}`,
+  /** A drifting leaf (twist levels), in one of the autumn washes. */
+  leaf: (kind: number, f: number) => `drift-leaf-${kind}-${f}`,
+  /** A golden marble's gilt rim. */
+  gilt: (f: number) => `gilt-${f}`,
+  /** A boss in one of its poses (baked when its level starts). */
+  boss: (kind: string, pose: string, f: number) => `boss-${kind}-${pose}-${f}`,
   paper: 'paper',
   /** A level's ground, tracks and branch, drawn when the level starts. */
   board: (levelId: string) => `board-${levelId}`,
@@ -136,11 +147,46 @@ export function textureJobs(scene: Phaser.Scene): SliceJob[] {
     bake(TEX.sheen(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawSheen(makeDraw(ctx, 660 + f, f, 0)));
     bake(TEX.sheenRing(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawSheenRing(makeDraw(ctx, 664 + f, f, 0)));
     for (const lit of [true, false]) bake(TEX.gardenLantern(f, lit), GARDEN_LANTERN_FRAME, 3, (ctx) => drawGardenLantern(makeDraw(ctx, 680 + f, f, 0), lit));
+    LEAF_WASHES.forEach((wash, k) => bake(TEX.leaf(k, f), DRIFT_LEAF_FRAME, DRIFT_LEAF_RES, (ctx) => drawDriftLeaf(makeDraw(ctx, 690 + k * 10 + f, f, 0), wash)));
+    bake(TEX.gilt(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawGilt(makeDraw(ctx, 720 + f, f, 0)));
   }
   bake(TEX.bloom, SPLASH_FRAME, 2, (ctx) => drawBloom(makeDraw(ctx, 620, 0, 0)));
   bake(TEX.rainStreak, RAIN_STREAK_FRAME, RAIN_RES, (ctx) => drawRainStreak(makeDraw(ctx, 670, 0, 0)));
   bake(TEX.rainSplash, RAIN_SPLASH_FRAME, RAIN_RES, (ctx) => drawRainSplash(makeDraw(ctx, 672, 0, 0)));
   return jobs;
+}
+
+/** Paints a boss's every pose in every boil frame, once (when its level starts). */
+export function bakeBoss(scene: Phaser.Scene, kind: BossKind): void {
+  const art = BOSS_ART[kind];
+  art.poses.forEach((pose, i) => {
+    for (let f = 0; f < BOIL; f++) bakeNow(scene, TEX.boss(kind, pose, f), art.frame, art.res, (ctx) => art.draw(makeDraw(ctx, 900 + i * 10 + f, f, 0), pose));
+  });
+  releaseScratch();
+}
+
+/** Frees a boss's poses (leaving its level for another). */
+export function freeBoss(scene: Phaser.Scene, kind: BossKind): void {
+  for (const pose of BOSS_ART[kind].poses) for (let f = 0; f < BOIL; f++) freeTexture(scene, TEX.boss(kind, pose, f));
+}
+
+/** The ground under a boss's spots: molehills for the mole, lily pads for the frog, posts for the birds to perch on. */
+function drawBossStands(level: LevelDef, place: Place, draw: (seed: number) => ReturnType<typeof makeDraw>): void {
+  const boss = level.boss;
+  if (!boss) return;
+  const rng = createRng(4400 + boss.spots.length);
+  boss.spots.forEach((p, i) => {
+    const d = draw(740 + i);
+    if (boss.kind === 'mole') molehill(d, p, 46, rng);
+    else if (boss.kind === 'frog') drawPad(d, place, p.x, p.y);
+    else if (boss.kind === 'magpie' || boss.kind === 'owl') fencePost(d, p, 13, rng);
+  });
+}
+
+/** Where a boss's stands are painted: the ground keeps clear of them. */
+function bossStands(level: LevelDef): readonly Pt[] {
+  const b = level.boss;
+  return b && (b.kind === 'mole' || b.kind === 'frog' || b.kind === 'magpie' || b.kind === 'owl' || b.kind === 'lion' || b.kind === 'scarecrow') ? b.spots : [];
 }
 
 /** Draws a level's ground: its place, its tracks' grooves, and the branch or lily pads the gecko stands on. */
@@ -153,9 +199,10 @@ export function bakeBoard(scene: Phaser.Scene, level: LevelDef, place: Place): s
   const sh = level.shooter;
   // The branch a rail gecko runs along counts as a groove: nothing big may lie under it.
   const branch: Pt[] = sh.kind === 'rail' ? Array.from({ length: Math.ceil((sh.x1 - sh.x0 + 100) / 4) + 1 }, (_, i) => ({ x: sh.x0 - 50 + i * 4, y: sh.y + 4 })) : [];
-  const keep = { grooves: [...level.tracks.map((t) => buildPath(t.points).pts), ...(branch.length ? [branch] : [])], pads: sh.kind === 'hop' ? sh.pads : sh.kind === 'pivot' ? [{ x: sh.x, y: sh.y }] : [], pillars: level.pillars ?? [] };
+  const keep = { grooves: [...level.tracks.map((t) => buildPath(t.points).pts), ...(branch.length ? [branch] : [])], pads: [...(sh.kind === 'hop' ? sh.pads : sh.kind === 'pivot' ? [{ x: sh.x, y: sh.y }] : []), ...bossStands(level)], pillars: level.pillars ?? [] };
   drawGround(makeDraw(ctx, 600 + idSeed(level.id), 0, 0), place, BOARD.w, BOARD.h, keep);
   level.tracks.forEach((t, i) => drawTrack(makeDraw(ctx, 640 + i, 0, 0), buildPath(t.points).pts, place));
+  drawBossStands(level, place, (seed) => makeDraw(ctx, seed, 0, 0));
   const s = level.shooter;
   if (s.kind === 'rail') drawBranch(makeDraw(ctx, 680, 0, 0), s.x0 - 50, s.x1 + 50, s.y + 4);
   if (s.kind === 'hop') {

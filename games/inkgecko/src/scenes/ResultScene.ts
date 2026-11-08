@@ -6,6 +6,9 @@ import { screenScene, screenSize, viewSize } from './hidpi';
 import { GeckoPortrait } from './result/geckoPortrait';
 import { loseContent } from './result/loseContent';
 import { pickTip } from './result/tips';
+import { twistTexts } from '../level/twistText';
+import type { LevelDef } from '../level/types';
+import type { LossCause } from '../logic/board';
 import { WIN, winContent } from './result/winContent';
 import { inkButton, inkText } from './ui';
 import { cardFit, uprightScreen } from './uiLayout';
@@ -24,6 +27,8 @@ export interface ResultData {
   readonly previousBest?: number;
   /** How full the bar got, 0..1 (for a loss: how close it came). */
   readonly progress?: number;
+  /** How a loss came: a marble in the well, or a blitz's clock. */
+  readonly lostBy?: LossCause;
 }
 
 const SOFT_INK = '#4a463e';
@@ -76,7 +81,7 @@ export class ResultScene extends Phaser.Scene {
     const n = levelOrder().indexOf(def.id) + 1;
     card.add(inkText(this, TITLE_X, top + WIN.level, `Level ${n} · ${def.name}`, 23, SOFT_INK));
     if (data.won) winContent(this, card, data, def, top, TITLE_X);
-    else loseContent(this, card, data, top, TITLE_X, this.nextTip(def.shooter.kind));
+    else loseContent(this, card, data, top, TITLE_X, this.nextTip(def));
     const primary = this.buttons(card, data, top);
     const fit = cardFit(view, CARD, uprightScreen(css.width, css.height) ? 1.4 : 1);
     card.setScale(fit * 0.92).setAlpha(0).setY(view.height / 2 + 18);
@@ -107,11 +112,14 @@ export class ResultScene extends Phaser.Scene {
   }
 
   /** The tip after this loss, then the next one in turn. */
-  private nextTip(kind: Parameters<typeof pickTip>[1]): string {
+  /** A tip for the loss: every other one is about the level's own twist, if it has one. */
+  private nextTip(level: LevelDef): string {
     const next = (this.registry.get(TIP_TURN) as number | undefined) ?? 0;
     const turn = this.relaid ? Math.max(0, next - 1) : next;
     this.registry.set(TIP_TURN, turn + 1);
-    return pickTip(turn, kind, !this.sys.game.device.os.desktop);
+    const own = twistTexts(level);
+    if (own.length && turn % 2 === 0) return own[(turn / 2) % own.length]!.tip;
+    return pickTip(Math.floor(turn / (own.length ? 2 : 1)), level.shooter.kind, !this.sys.game.device.os.desktop);
   }
 
   /** Leaves for scene `key`, letting the held board go unless it's the game being started afresh. */

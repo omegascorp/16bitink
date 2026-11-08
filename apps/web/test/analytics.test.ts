@@ -135,6 +135,9 @@ describe('parseBatch', () => {
       { type: 'offer_view', at: 2, game: 'inkcrab', where: 'map' },
       { type: 'buy_click', at: 3, game: 'inkfish', where: 'free_end', signedIn: false, version: '1.0.0' },
       { type: 'buy_click', at: 4, game: 'inkcrab', where: 'page', signedIn: true },
+      { type: 'buy_click', at: 4, game: 'inkcrab', where: 'locked', signedIn: true, pass: true },
+      { type: 'checkout_open', at: 7, game: 'inkcrab', pass: true },
+      { type: 'buy_click', at: 4, game: 'all', where: 'home', signedIn: false, pass: true },
       { type: 'signin_click', at: 5, game: 'inkfish', where: 'save' },
       { type: 'signin_click', at: 6, where: 'header' },
       { type: 'checkout_open', at: 7, game: 'inkfish' },
@@ -142,7 +145,7 @@ describe('parseBatch', () => {
       { type: 'app_install', at: 9 },
       { type: 'pageview', at: 10, path: '/', app: true },
     ]));
-    expect(parsed?.events).toHaveLength(10);
+    expect(parsed?.events).toHaveLength(13);
   });
 
   it.each([
@@ -152,6 +155,7 @@ describe('parseBatch', () => {
     ['a buy without saying who was signed in', { type: 'buy_click', at: 1, game: 'inkfish', where: 'page' }],
     ['a sign-in from an unknown place', { type: 'signin_click', at: 1, where: 'popup' }],
     ['a checkout failure with no reason', { type: 'checkout_fail', at: 1, game: 'inkfish' }],
+    ['a buy that says it is not for the pass', { type: 'buy_click', at: 1, game: 'inkfish', where: 'page', signedIn: true, pass: false }],
     ['a page view marked as not the app', { type: 'pageview', at: 1, path: '/', app: false }],
   ])('rejects %s', (_label, event) => {
     expect(parseBatch(batch([event]))).toBeNull();

@@ -1,0 +1,55 @@
+# Build brief: long-form #5 "What's the biggest thing a snake can swallow?"
+
+For the engine agent. The script, moods and per-section picture notes are in `script.md` (read it all: the *italic* paragraphs are the shot list). Facts: `research.md`, `factcheck.md`. Narration: `voice.mp3` + `words.ts` (WORDS with section numbers, SECTIONS, VOICE_S). Reference long video to copy patterns from (timeline read off words, HUD, cards, audio, render): `games/inkfish/dev/promo/seamonsters/` (timeline.ts, hud.ts, cards.ts, render.ts, audio.ts, fx.ts) and `games/inkfish/dev/promo/foodchain/` (the stair-step counter). Read `docs/longform-playbook.md` (Retention, MrBeast stair-step) before designing beats.
+
+## Page and recording (already set up)
+
+- `games/inksnake/dev/longform.html` → `dev/promo/longform.ts`, `?video=swallow` calls `createSwallow(ctx)` from `swallow/render.ts` (currently a stub: replace it). It must return a `Short` (`dev/promo/short.ts`): `loopSeconds` = video length (VOICE_S + 5 s end card), `draw(t)`, `audio(start)` (WAV Blob).
+- Frames: `node dev/promo/snap.mjs --page longform.html <out dir under the scratchpad> "video=swallow" 3 31 95 …` (from `games/inksnake`). Contact-sheet them (ffmpeg tile) and Read the image to review.
+- Preview clip: `pnpm --filter @16bitink/inksnake promo -- --only long-swallow --from 95 --to 110`. Full record (≈25–30 min): `pnpm --filter @16bitink/inksnake promo -- --only long-swallow` → `promo/inksnake-long-swallow.mp4`. Nothing else may edit files under `dev/` while recording (Vite reload kills it).
+- Captions are NOT burned in (an .srt is uploaded): `node dev/promo/swallow/saveSrt.mjs`.
+
+## The look
+
+Top-down, the game's own view and art (`src/art`), baked big with `dev/promo/sprites.ts` (`bakeSprite`, `bakeStrip`, `drawBody`, `drawBodyShadow`, `lumpAt`, `taper`, `boilAt`; line boil at 8 fps). The python short (`dev/promo/python/`: snake.ts `drawPython`/`bodyOf`/`headOn`/`drawGulp`/`drawInside`, the krait short's `krait/path.ts` `route()`, `board.ts` painting a game board) already does exactly the core move: a snake along a route, its meal going into the gaping jaws and then showing faintly through the skin inside a bulge that slides down. Generalise that into one `swallower` (any SnakeArt + any meal sprite), don't rewrite it from scratch.
+
+Cast (all exist):
+- Snakes: corn `CORN` (src/art/snakes/corn.ts); olive python `anacondaArt(OLIVE)` (python/cast.ts); Burmese `BURMESE_PYTHON` and African rock `ROCK_PYTHON` (swallow/art/pythons.ts, being painted now); egg-eater `EGGEATER_ART` (src/art/chapters/savannaSnake.ts) top-down, plus the side view from the egg-eater short (`dev/promo/eggeater/`: headArt `drawHead`, bodyArt `paintTube`/`inkTube`, eggArt `drawEgg`/`drawShell`, fx `backbone`/`xrayRim`).
+- Meals: mouse `MOUSE` (src/art/critters/mouse.ts, 'idle'/'run0'); freshwater croc `FRESHWATER_CROC_ART` (python/croc.ts); fawn `FAWN`, deer `DEER`, hyena `HYENA` (swallow/art/*.ts, `MealArt` contract in art/index.ts: pose 'limp', `len` art units ↔ `cm` in life — scale every meal by cm so sizes are true); eggs: `GUINEA_EGG_ART` (savannaCrittersEggs.ts) / the short's `drawEgg`.
+- Grounds: the game's place painters `PlaceArt.ground(d, level)` for a board (see python/board.ts): farm (src/art/places/farm*.ts), flooded (Florida swamp and the Australian lake: blackwater + bank), savanna (`SAVANNA_PLACE`). Paint each board once at startup.
+- Kit page: `longform.html?video=swallow-kit` shows every drawing at real size.
+
+Real sizes (cm, use one world scale per shot, cm → px): corn snake 120 (≈3 wide), mouse 9; olive python 300 (≈9 wide), croc 100; Burmese 340 with the fawn (90), Burmese 450 with the deer (140), rock python 400 with the hyena (130); egg-eater 90 (≈2 wide), egg ≈5 wide. A lump's width = the meal's width, so the deer and hyena lumps are fat.
+
+No gore anywhere: meals go in whole, eyes shut, no blood, no bursting. The meal inside shows as a faint x-ray outline through the skin (multiply or a pale outline), never as a cut-away.
+
+## Structure (one beat per spoken cue; read every time off `words.ts` with a `said('word', nth)` helper — never hard-code seconds)
+
+- **0 Cold open.** Frame 1 is ACTION and must hold up as a thumbnail-like still: tight top-down on the Burmese python's lump with the deer x-ray inside, its jaws still round the deer's rump and hind legs, swamp ground; the counter slams "77 lb". On "not even the biggest", a darker, bigger hyena-lump body slides through behind. On "from a mouse… to a hyena", a fast fly-by of the whole line-up (see Line-up), small to huge. On "unhinge", a small jaw diagram gets a red ✗ stamp. On "barely three feet long", drop to a small dark shape coiled round an egg (the egg-eater, unnamed, in silhouette).
+- **1 Corn snake** (farm board). It slides in from the right, head first, and swallows the mouse; a small lump slides down. Counter "0.06 lb" with "1 oz · 28 g" under. Name card "CORN SNAKE · 3–4 ft". On "belly", an inset: the chequered black-and-white belly (CORN has `drawBelly`?) beside a painted cob of corn. On "go up… a LOT", whoosh into the line-up.
+- **2 Olive python + croc** (lake board). Map-pin card "Lake Moondarra, Queensland, Australia · 2014". The python coils round the croc (a loop of body round it, squeezing pulses), then swallows head first; long lump with the croc's x-ray. Counter → "≈ 6 lb" ("2.5 kg"). Name card "OLIVE PYTHON · ≈ 10 ft". "of course it was Australia": a small cheeky beat (the map pin wiggles / a stamp "AUSTRALIA").
+- **3 The game** (≈12 s). The game's farm level as the player sees it: the corn snake gliding, coiling round a rat and swallowing it, a lump going down, the game's HUD feel (no real UI needed); a title card "InkSnake" + "10 real snakes" + "free · 16bit.ink" (no URL other than the name). Then straight on.
+- **4 Burmese + fawn** (swamp board). Re-hook. Map pin "Collier County, Florida · 2015". The python with the fawn x-ray lump (show the end of the swallow: hooves disappearing). Counter → "35 lb". The balance card: a two-pan scale "SNAKE 31.5 lb" vs "FAWN 35 lb" that tips to the fawn, "111%". On "lower jaw": inset diagram of a snake skull seen from below/above, the two lower jaw halves (and upper bones) spreading apart with a stretchy band between them, then the left side creeping forward, then the right ("take turns"). On "SNORKEL": the windpipe tube poking forward under the prey (inset).
+- **5 Burmese + deer** (swamp board). "Remember the deer from the start?": back to frame 1's shot, now named. Map pin "Near Naples, Florida". Counter → "77 lb". Balance "SNAKE 115 lb" vs "DEER 77 lb", "67%". On "ten inches": a tape measure across the open jaws "10.2 in · 26 cm". On "a foot wide": a ghost deer outline swells to "≈ 120 lb". On "heart": an inset heart beating, swelling 40% (sync the heartbeat SFX). Name card "BURMESE PYTHON · 14.8 ft · 115 lb". A big zoom out over the line-up.
+- **6 Rock python + hyena** (savanna board). Map pin "Masai Mara, Kenya · 2017". The rock python with the hyena x-ray lump, the biggest lump yet. Counter → "≈ 150 lb" ("68 kg"). Name card "AFRICAN ROCK PYTHON · ≈ 13 ft". On "famous for laughing": a small "ha ha" in the game's handwriting that gets crossed out on "This one wasn't." Then the biggest zoom out: the whole line-up, the corn snake a speck at the left.
+- **7 Twist: egg-eater.** "So the biggest snake wins… right?": hold on the line-up with the rock python crowned; "Not even close": a record-scratch, the crown flips off. The counter's label flips from POUNDS to "MOUTH vs BODY". Cut to the egg-eater, side-on (the short's art in a 16:9 composition), jaws stretched round an egg; on "half an inch wide… two inches across": two measured bars "head ½ in · 1 cm", "mouth 2 in · 5 cm". On "TWICE": two circles of prey cross-section at the same weight, "Burmese python" vs "egg-eater", the second more than twice the area. On "spikes on its backbone crack the egg": x-ray of the neck, spines pressing in, crack (flash, crack SFX). On "spits out the shell, crushed flat": the flat shell drops out. On "barely three feet long": back to the line-up; the egg-eater (top-down, tiny, with an egg lump) gets a gold "#1" rosette.
+- **8 End.** The line-up, all lumps, "InkSnake · 16bit.ink" title in the left half; the right half kept clear for YouTube's end screen; hold 5 s after the last word, then end abruptly.
+
+## Recurring pieces
+
+- **Line-up** (the size comparison): a neutral strip of plain ground (or the savanna's dry grass) with a ruler in feet (metres under). Each snake lies in a gentle S, left to right in meal order, its lump in it, the meal's weight in a tag above ("0.06 lb", "≈ 6 lb", "35 lb", "77 lb", "≈ 150 lb"). After each step's scene, a 2–3 s beat where the new snake slides into its slot; camera eases in log space (zoom out) so the newest pair fills the frame then pulls back.
+- **Counter** (bottom centre, big, Caveat 700, ink with paper halo): pounds big, metric under; ticks up from the last value to the new one over ~1 s with a tick SFX; "≈" on estimates (croc, hyena).
+- **Name card** (bottom left), **map pin card** (top left, a small painted map with a pin + place + year), **balance** (right side). All in the game's pen-and-wash look on paper (`src/art/kit.ts` + `PAPER`, `INK` from palette; Caveat font via `CAPTION_FONT`). Keep the top-right and the lower-right corner clear of essentials in the last 5 s (end screen).
+- Change something on screen every 10–15 s. Every snake enters head first.
+
+## Sound (`audio.ts`)
+
+Voice (voice.mp3) straight to the output; under it, the game's synthesized SFX via `dev/promo/audioKit.ts` (look at `src/audio/recipes` for SfxId: gulp/swallow, tick, thump, hiss, crack, heartbeat if present; otherwise synthesize simply): a gulp on each lump, a tick per counter step, a clunk when the balance tips, the heartbeat under the heart inset, a crack for the egg; a quiet low drone bed that deepens a step with every meal. Keep SFX ~12–18 dB under the voice. The recorder normalises to −14 LUFS.
+
+## Code shape
+
+Small files (< 300 lines each), like seamonsters: `timeline.ts` (beats from words), `cast.ts` (bake everything once), `swallower.ts` (generic snake + meal + lump), `boards.ts` (grounds), `lineup.ts`, `hud.ts` (counter, name card, map pin), `cards.ts` (balance, jaw diagram, snorkel, tape measure, heart, circles, belly/corn), `twist.ts` (egg-eater side view), `open.ts` (cold open), `game.ts` (section 3), `render.ts`, `audio.ts`. Keep `npx tsc --noEmit -p .` clean (from games/inksnake). Bake heavy things once in `createSwallow`, not per frame; a frame should draw in well under 200 ms.
+
+## Review loop
+
+Review your own frames on contact sheets at every beat time (`said(...)` values), especially frame 0 (it is the first thing a viewer sees: it must read instantly as a giant snake swallowing a deer), each meal mid-swallow, each lump, the line-up, the twist. Fix anything that reads as a placeholder, a flat blob, a gory image, overlapping labels, or text off-frame.

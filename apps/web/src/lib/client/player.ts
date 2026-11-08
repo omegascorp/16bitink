@@ -1,6 +1,6 @@
 import { isGameModule, isOfferPlace, type GameModule, type KeyValueStore } from '@16bitink/game-sdk';
 import { GAME_LOADERS } from '../../games/loaders';
-import { isPendingBuy, BUY_PARAM, signInUrl } from '../buyFlow';
+import { BUY_PARAM, isPendingBuy, signInUrl } from '../buyFlow';
 import { flushAnalytics, gameTag, track, trackGameEvent, trackPlayTime, trackSignIn, type LoadStage } from './analytics';
 import { buyFullGame, fetchMe, startCheckout } from './checkout';
 import { createLoadingBar } from './loadingBar';
@@ -103,6 +103,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
 
   // Start the ownership check and engine download while the player reads the splash.
   const accessP = checkAccess(game);
+  void accessP.then(({ unlocked }) => showOwned(unlocked));
   const progressP = accountProgress(game);
   const meP = fetchMe();
   if (isPendingBuy(window.location.search, game)) void resumeBuy(game, status, accessP);
@@ -179,7 +180,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
         loadContent: () => getJson<unknown>(`/api/content/${encodeURIComponent(game)}`),
         onBuy: (where) => {
           if (document.fullscreenElement) void document.exitFullscreen();
-          void buyFullGame(game, isOfferPlace(where) ? where : 'unknown').then((r) => r.error && alert(r.error));
+          void offerBuy(game, isOfferPlace(where) ? where : 'unknown');
         },
         onSignIn: () => {
           if (document.fullscreenElement) void document.exitFullscreen();
@@ -228,15 +229,29 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
   });
 }
 
+/** The splash's price line, once ownership is known: "unlocked" for an owner, else the price (also when the check failed). */
+function showOwned(unlocked: boolean): void {
+  const price = document.getElementById('price');
+  if (!price) return;
+  price.textContent = unlocked ? 'Full game · unlocked' : (price.dataset.text ?? '');
+  price.removeAttribute('aria-busy');
+}
+
+/** A game's "Unlock" was tapped: sign in, then pay. */
+async function offerBuy(game: string, where: Parameters<typeof buyFullGame>[1]): Promise<void> {
+  const result = await buyFullGame(game, where);
+  if (result.error) alert(result.error);
+}
+
 /**
- * Back from Google sign-in with a purchase pending: go straight on to checkout.
+ * Back from signing in with a purchase pending: go straight on to checkout.
  * The marker is dropped first so Back or a reload never re-opens checkout.
  */
 async function resumeBuy(game: string, status: HTMLElement, accessP: Promise<Access>): Promise<void> {
   const url = new URL(window.location.href);
   url.searchParams.delete(BUY_PARAM);
   history.replaceState(null, '', url);
-  // Signing in can reveal an earlier purchase: never charge twice.
+  // Signing in can reveal an earlier purchase of this game: never charge twice.
   if ((await accessP).unlocked) return;
   status.textContent = 'Taking you to checkout…';
   const result = await startCheckout(game);

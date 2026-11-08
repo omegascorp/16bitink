@@ -166,6 +166,40 @@ importers:
 
   .: {}
 
+  apps/itch:
+    dependencies:
+      '@16bitink/game-sdk':
+        specifier: workspace:*
+        version: link:../../packages/game-sdk
+      '@16bitink/inkcrab':
+        specifier: workspace:*
+        version: link:../../games/inkcrab
+      '@16bitink/inkfish':
+        specifier: workspace:*
+        version: link:../../games/inkfish
+      '@16bitink/inkgecko':
+        specifier: workspace:*
+        version: link:../../games/inkgecko
+      '@16bitink/inkmine':
+        specifier: workspace:*
+        version: link:../../games/inkmine
+      '@16bitink/inksnake':
+        specifier: workspace:*
+        version: link:../../games/inksnake
+    devDependencies:
+      playwright-core:
+        specifier: 1.56.1
+        version: 1.56.1
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite:
+        specifier: ^8.3.2
+        version: 8.3.2(@types/node@24.19.1)(esbuild@0.28.1)(yaml@2.9.1)
+      vitest:
+        specifier: ^5.0.3
+        version: 5.0.3(@types/node@24.19.1)(@vitest/coverage-v8@5.0.3)(vite@8.3.2(@types/node@24.19.1))
+
   apps/web:
     dependencies:
       '@16bitink/game-sdk':
@@ -186,6 +220,12 @@ importers:
       '@16bitink/inkmine':
         specifier: workspace:*
         version: link:../../games/inkmine
+      '@16bitink/inkpin':
+        specifier: workspace:*
+        version: link:../../games/inkpin
+      '@16bitink/inksnake':
+        specifier: workspace:*
+        version: link:../../games/inksnake
       '@astrojs/node':
         specifier: ^11.1.6
         version: 11.1.6(astro@7.3.5(@types/node@24.19.1)(yaml@2.9.1))
@@ -201,6 +241,9 @@ importers:
       mongoose:
         specifier: ^9.10.3
         version: 9.10.3
+      nodemailer:
+        specifier: ^10.2.1
+        version: 10.2.1
       stripe:
         specifier: ^23.0.0
         version: 23.0.0(@types/node@24.19.1)
@@ -214,6 +257,9 @@ importers:
       '@types/node':
         specifier: ^24.19.1
         version: 24.19.1
+      '@types/nodemailer':
+        specifier: ^8.0.2
+        version: 8.0.2
       sharp:
         specifier: 0.35.4
         version: 0.35.4(@types/node@24.19.1)
@@ -335,6 +381,53 @@ importers:
       '@tabler/icons':
         specifier: ^3.49.0
         version: 3.49.0
+      phaser:
+        specifier: ^4.2.1
+        version: 4.2.1
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: ^5.0.3
+        version: 5.0.3(vitest@5.0.3)
+      playwright-core:
+        specifier: 1.56.1
+        version: 1.56.1
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite:
+        specifier: ^8.3.2
+        version: 8.3.2(@types/node@24.19.1)(esbuild@0.28.1)(yaml@2.9.1)
+      vitest:
+        specifier: ^5.0.3
+        version: 5.0.3(@types/node@24.19.1)(@vitest/coverage-v8@5.0.3)(vite@8.3.2(@types/node@24.19.1))
+
+  games/inkpin:
+    dependencies:
+      '@16bitink/game-sdk':
+        specifier: workspace:*
+        version: link:../../packages/game-sdk
+      phaser:
+        specifier: ^4.2.1
+        version: 4.2.1
+    devDependencies:
+      playwright-core:
+        specifier: 1.56.1
+        version: 1.56.1
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite:
+        specifier: ^8.3.2
+        version: 8.3.2(@types/node@24.19.1)(esbuild@0.28.1)(yaml@2.9.1)
+      vitest:
+        specifier: ^5.0.3
+        version: 5.0.3(@types/node@24.19.1)(@vitest/coverage-v8@5.0.3)(vite@8.3.2(@types/node@24.19.1))
+
+  games/inksnake:
+    dependencies:
+      '@16bitink/game-sdk':
+        specifier: workspace:*
+        version: link:../../packages/game-sdk
       phaser:
         specifier: ^4.2.1
         version: 4.2.1
@@ -1130,6 +1223,9 @@ packages:
 
   '@types/node@24.19.1':
     resolution: {integrity: sha512-aS3/DG0oM05K0RIXXP+hKjinGG5IgSSVGzswZxW3O0sS3pH4/fycXundUC9XsszgKCk4gHXylTEK6hyFxVxnoQ==}
+
+  '@types/nodemailer@8.0.2':
+    resolution: {integrity: sha512-c7M5ox8p0nEOfbJ2E9Qcmt8/QCu/VzsiAhzBiZbvky2PhKZDHpKB3sQHBM5MEZNkCfBOaS6S9//AGPRTNB7IaA==}
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
@@ -2098,6 +2194,10 @@ packages:
 
   node-mock-http@1.0.5:
     resolution: {integrity: sha512-KQyt/wLjG3TAc7DOUhpqWzgd4ERxR80JOlTK5VE5R1S12IaPVN5qkj4klBce9HPG1Njuup4Sb5bljaT34lIyjw==}
+
+  nodemailer@10.2.1:
+    resolution: {integrity: sha512-ZrDNsPFoDMwefNs7sJwrYiEJ/CG4ClJWDZv05iNJsEBWa8GRDry1QJHTJxsuTAY9eDDKjX4k+q3SxslXJOao7w==}
+    engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -3481,6 +3581,10 @@ snapshots:
     dependencies:
       undici-types: 7.24.6
 
+  '@types/nodemailer@8.0.2':
+    dependencies:
+      '@types/node': 24.19.1
+
   '@types/unist@3.0.3': {}
 
   '@types/webidl-conversions@7.0.3': {}
@@ -4438,6 +4542,8 @@ snapshots:
   node-fetch-native@1.6.7: {}
 
   node-mock-http@1.0.5: {}
+
+  nodemailer@10.2.1: {}
 
   normalize-path@3.0.0: {}
 

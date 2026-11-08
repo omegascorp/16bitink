@@ -7,6 +7,8 @@ import { shortLinkTarget } from './lib/shortLinks';
 const MINUTE = 60_000;
 const limiters: Record<LimitedRoute, RateLimiter> = {
   checkout: createRateLimiter({ limit: 10, windowMs: MINUTE }),
+  // Sign-in emails: a typo and a resend or two, not a mailing list (each address has its own limit too).
+  mail: createRateLimiter({ limit: 5, windowMs: MINUTE }),
   auth: createRateLimiter({ limit: 20, windowMs: MINUTE }),
   // Games save after each level; this leaves room for merge retries, not for spam.
   progress: createRateLimiter({ limit: 60, windowMs: MINUTE }),

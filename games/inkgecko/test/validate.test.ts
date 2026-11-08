@@ -36,6 +36,33 @@ describe('paid chapters from the server', () => {
     expect(() => tryLevel({ tracks: [{ points: POINTS, tunnels: [{ from: 0.5, to: 0.2 }] }] })).toThrow();
   });
 
+  it('keeps twists, goals and bosses, and throws out bad ones', () => {
+    const twisty = {
+      wind: 400, surge: 12, tide: 9, noSwap: true, colourAt: 0.5, leaves: 2, wander: { rx: 50, ry: 30, period: 9 }, restless: 6, charmy: true, lives: 1,
+      mode: { kind: 'gold', count: 6 }, boss: { kind: 'mole', hp: 6, spots: [{ x: 300, y: 300 }] },
+      tracks: [{ points: POINTS }, { points: POINTS, opensAt: 0.4, pace: 1.5 }],
+    };
+    expect((tryLevel(twisty) as unknown[][])[0]![0]).toMatchObject(twisty);
+    expect(() => tryLevel({ wind: -5 })).toThrow(/test-1/);
+    expect(() => tryLevel({ leaves: 1.5 })).toThrow();
+    expect(() => tryLevel({ mode: { kind: 'race', seconds: 30 } })).toThrow();
+    expect(() => tryLevel({ mode: { kind: 'blitz', seconds: 3 } })).toThrow();
+    expect(() => tryLevel({ boss: { kind: 'dragon', hp: 5, spots: [] } })).toThrow();
+    expect(() => tryLevel({ boss: { kind: 'mole', hp: 5, spots: [] } })).toThrow();
+    expect(() => tryLevel({ boss: { kind: 'tortoise', hp: 5, spots: [], line: 3 } })).toThrow();
+    expect(() => tryLevel({ tracks: [{ points: POINTS, opensAt: 0.95 }] })).toThrow();
+    expect(() => tryLevel({ noSwap: 'yes' })).toThrow();
+    expect(() => tryLevel({ lives: 5 })).toThrow();
+  });
+
+  it('throws out levels that could never be finished', () => {
+    expect(() => tryLevel({ tracks: [{ points: POINTS, opensAt: 0.3 }] })).toThrow(/shut/);
+    expect(() => tryLevel({ boss: { kind: 'cat', hp: 5, spots: [{ x: 200, y: 60 }] } })).toThrow(/walls/);
+    expect(() => tryLevel({ boss: { kind: 'lion', hp: 5, spots: [{ x: 640, y: 300 }] } })).toThrow(/columns/);
+    expect(() => tryLevel({ boss: { kind: 'tortoise', hp: 5, spots: [] } })).toThrow(/line/);
+    expect(tryLevel({ walls: true, boss: { kind: 'cat', hp: 5, spots: [{ x: 200, y: 60 }] } })).toHaveLength(1);
+  });
+
   it("won't take a free level's id: saves and unlocks are keyed by it", () => {
     expect(() => parseChapters(wire([CHAPTER_1]))).toThrow(/duplicate/);
     expect(() => tryLevel({ id: CHAPTER_1[3]!.id })).toThrow(/duplicate/);

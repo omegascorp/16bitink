@@ -30,10 +30,12 @@ export class Meter {
   private readonly flower: Phaser.GameObjects.Image;
   private readonly full: Phaser.GameObjects.Text;
   private shownScore = -1;
-  private shownLives = LIVES;
+  private shownLives: number;
   private wasFilled = false;
 
-  constructor(private readonly scene: Phaser.Scene) {
+  /** `lives`: the level's lives (a socket each; three unless it says otherwise). */
+  constructor(private readonly scene: Phaser.Scene, lives = LIVES) {
+    this.shownLives = lives;
     const x0 = -METER_W / 2;
     this.score = scene.add.text(x0 + SCORE_W, 0, '0', {
       fontFamily: HAND, fontSize: '26px', color: BLUE, stroke: PAPER_STROKE, strokeThickness: 5, padding: { x: 4, y: 4 },
@@ -42,8 +44,8 @@ export class Meter {
     this.bar = new VineBar(scene, barX, 0);
     this.flower = scene.add.image(barX + GROOVE.w + 2, -1, TEX.bloom).setScale(0).setVisible(false);
     const livesX = barX + GROOVE.w + GAP + LIFE_GAP / 2 + 2;
-    const sockets = Array.from({ length: LIVES }, (_, i) => scene.add.image(livesX + i * LIFE_GAP, 1, UI_TEX.socket).setScale(1 / UI_RES));
-    this.lives = Array.from({ length: LIVES }, (_, i) => scene.add.image(livesX + i * LIFE_GAP, 0, TEX.marble(LIFE_COLOUR, i % BOIL)).setScale(lifeScale()));
+    const sockets = Array.from({ length: lives }, (_, i) => scene.add.image(livesX + i * LIFE_GAP, 1, UI_TEX.socket).setScale(1 / UI_RES));
+    this.lives = Array.from({ length: lives }, (_, i) => scene.add.image(livesX + i * LIFE_GAP, 0, TEX.marble(LIFE_COLOUR, i % BOIL)).setScale(lifeScale()));
     this.full = scene.add.text(barX + GROOVE.w / 2, METER_H / 2 + 16, 'Bar full: pop the rest!', {
       fontFamily: HAND, fontSize: '20px', color: LEAF_INK, stroke: PAPER_STROKE, strokeThickness: 5, padding: { x: 4, y: 4 },
     }).setOrigin(0.5).setVisible(false);

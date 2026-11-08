@@ -1,0 +1,75 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { signInPageUrl } from '../../../lib/buyFlow';
+import { db } from '../../../lib/db';
+import { peekLink, redeemLink } from '../../../lib/db/emailSignInRepo';
+import { hashSecret } from '../../../lib/emailSignIn';
+import { finishSignIn } from '../../../lib/signIn';
+
+export const prerender = false;
+
+/**
+ * The link in the sign-in email. Opening it only asks "sign in as …?":
+ * mail scanners open links on their own, and must not use one up. The
+ * button posts the token back, which signs this browser in.
+ */
+Astro.response.headers.set('cache-control', 'no-store');
+// The token is in the address: never send it to other sites. Not
+// no-referrer, which also blanks the form's Origin and fails the CSRF check.
+Astro.response.headers.set('referrer-policy', 'same-origin');
+
+const EXPIRED = 'That sign-in link has expired or was already used. Ask for a new email.';
+let token = (Astro.url.searchParams.get('t') ?? '').slice(0, 100);
+let email: string | null = null;
+let error: string | null = null;
+let ret = '/';
+
+try {
+  if (Astro.request.method === 'POST') {
+    const form = await Astro.request.formData().catch(() => new FormData());
+    token = String(form.get('t') ?? '').slice(0, 100);
+    await db();
+    const now = new Date();
+    const redeemed = token ? await redeemLink(await hashSecret(token), now) : null;
+    if (redeemed) {
+      await finishSignIn(Astro.cookies, Astro.url, { kind: 'email', email: redeemed.email }, now);
+      return Astro.redirect(redeemed.ret, 303);
+    }
+    error = EXPIRED;
+  } else {
+    await db();
+    email = token ? await peekLink(await hashSecret(token), new Date()) : null;
+    if (!email) error = EXPIRED;
+  }
+} catch (err) {
+  console.error('[auth/email/verify] sign-in failed', err);
+  error = 'Something went wrong signing you in. Please try again.';
+}
+if (error) Astro.response.status = 400;
+---
+<Base title="Sign in | 16bit.ink" description="Finish signing in to 16bit.ink">
+  <meta name="robots" content="noindex" slot="head" />
+  <section class="paper-card narrow tape">
+    {error ? (
+      <>
+        <h1>Not signed in</h1>
+        <p>{error}</p>
+        <a class="btn btn-ink" href={signInPageUrl(ret)}>Sign in</a>
+      </>
+    ) : (
+      <>
+        <h1>Sign in</h1>
+        <p>Signing in as <strong>{email}</strong>.</p>
+        <p class="verify-warning">Only continue if you asked for this email yourself. If someone sent you this link, close this page: it would sign you in to their account.</p>
+        <form method="post" action="/auth/email/verify">
+          <input type="hidden" name="t" value={token} />
+          <button class="btn btn-ink" type="submit">Sign in to 16bit.ink</button>
+        </form>
+      </>
+    )}
+  </section>
+</Base>
+
+<style>
+  .verify-warning { font-size: 0.92rem; color: var(--ink-soft); }
+</style>

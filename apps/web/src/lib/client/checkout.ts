@@ -5,13 +5,13 @@ interface CheckoutResult {
   readonly error?: string;
 }
 
-/** Asks our server for a Stripe Checkout URL and navigates to it. */
+/** Asks our server for a Stripe Checkout URL for `game` and navigates to it. */
 export async function startCheckout(game: string): Promise<CheckoutResult> {
   try {
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ game }),
+      body: JSON.stringify({ game, from: game }),
     });
     const body = (await res.json().catch(() => null)) as { success?: boolean; data?: { url?: string }; error?: string } | null;
     const url = body?.data?.url;
@@ -57,8 +57,8 @@ export async function isSignedIn(): Promise<boolean | null> {
 }
 
 /**
- * Buying is the same for every game: sign in with Google, then pay.
- * Signed out, this leaves for Google; the page then resumes the purchase on return.
+ * Buying is the same for every game: sign in, then pay.
+ * Signed out, this leaves for the sign-in page; the page then resumes the purchase on return.
  * `where`: which offer the player took, for the stats.
  */
 export async function buyFullGame(game: string, where: BuyPlace): Promise<CheckoutResult> {

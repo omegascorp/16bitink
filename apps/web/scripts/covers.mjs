@@ -20,7 +20,7 @@ const WIDTHS = [640, 1200];
 const PAPER = '#f4eddc';
 const INK = '#1b1a1f';
 /** The home preview's order: the big one first. */
-const HOME_GAMES = ['inkfish', 'inkcrab', 'inkmine'];
+const HOME_GAMES = ['inkpin', 'inksnake', 'inkgecko'];
 
 const masters = (await readdir(COVERS)).filter((f) => /^[a-z0-9-]+\.png$/.test(f) && f !== 'home.png');
 if (masters.length === 0) throw new Error(`No cover PNGs in ${COVERS}`);

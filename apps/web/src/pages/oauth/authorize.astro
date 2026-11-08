@@ -5,6 +5,7 @@ import { findClient } from '../../lib/db/oauthRepo';
 import { findAdminEmail } from '../../lib/db/userRepo';
 import { parseAuthorize, redirectWith } from '../../lib/oauth';
 import { currentUser } from '../../lib/owner';
+import { signInPageUrl } from '../../lib/buyFlow';
 
 // Per request: who is signed in decides what this page shows.
 export const prerender = false;
@@ -36,7 +37,7 @@ if (!req) {
       clientName = client.name;
       registeredAt = client.createdAt.toISOString().slice(0, 16).replace('T', ' ');
       const session = await currentUser(Astro.cookies);
-      if (!session) return Astro.redirect(`/auth/google?return=${encodeURIComponent(`${Astro.url.pathname}${Astro.url.search}`)}`, 302);
+      if (!session) return Astro.redirect(signInPageUrl(`${Astro.url.pathname}${Astro.url.search}`), 302);
       signedIn = { name: session.name, email: session.email };
       adminEmail = await findAdminEmail(session.userId);
       if (!adminEmail) problem = 'Only 16bit.ink admins can connect apps to the admin tools.';

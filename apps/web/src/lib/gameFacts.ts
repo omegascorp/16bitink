@@ -28,6 +28,17 @@ export function gameSize(game: CatalogGame): GameSize | null {
   return { chapters, ready: Math.min(ready ?? chapters, chapters), levels: levels ?? null };
 }
 
+/**
+ * A home card's free line: "10 of 100 levels free" when the demo is counted in
+ * levels and the game's are known, else the demo as written.
+ */
+export function freeLine(game: CatalogGame): string {
+  const demo = game.demo ?? 'First chapter free';
+  const levels = gameSize(game)?.levels;
+  const free = /^(\d+) levels free$/.exec(demo)?.[1];
+  return free && levels ? `${free} of ${levels} levels free` : demo;
+}
+
 /** One chapter's tile: free to play, out (in the full game), or still in development. */
 export type ChapterTile = 'free' | 'out' | 'coming';
 

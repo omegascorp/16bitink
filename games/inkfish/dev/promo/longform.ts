@@ -1,12 +1,24 @@
 import { CAPTION_FONT } from './captions';
 import type { Short } from './short';
+import { createBitecompKit } from './bitecomp/kit';
+import { createBitecomp } from './bitecomp/render';
 import { createDescent } from './descent/render';
+import { createKit } from './foodchain/kit';
+import { createFoodchain } from './foodchain/render';
+import { createSeamonstersKit } from './seamonsters/kit';
+import { createSeamonsters } from './seamonsters/render';
+import { createSwallowyou } from './swallowyou/render';
 
 /**
  * Dev-only page for the long-form videos, 1920x1080. Unlike the shorts they
  * don't loop: `loopSeconds` is the video's length, and drawing runs from 0
  * to it once. ?video= picks one: descent ("fish get weirder the deeper you
- * go… until they can't", the default). Plays live; ?t=95 freezes one moment.
+ * go… until they can't", the default), foodchain ("fish eat fish size
+ * comparison… but every animal is real"), foodchain-kit (its drawings) or
+ * swallowyou ("every ocean animal that could swallow you… only one actually could"),
+ * seamonsters ("sea monsters size comparison… but every one is real") or
+ * seamonsters-kit (its new drawings), bitecomp ("bite force comparison… but
+ * every number is real") or bitecomp-kit (its heads). Plays live; ?t=95 freezes one moment.
  * `pnpm promo -- --only long` (dev/promo/record.mjs) records it frame by frame.
  */
 const canvas = document.getElementById('promo') as HTMLCanvasElement;
@@ -23,6 +35,34 @@ const VIDEOS: Readonly<Record<string, () => Promise<Short>>> = {
   descent: async () => {
     await loadCaptionFont();
     return createDescent(ctx);
+  },
+  foodchain: async () => {
+    await loadCaptionFont();
+    return createFoodchain(ctx);
+  },
+  'foodchain-kit': async () => {
+    await loadCaptionFont();
+    return createKit(ctx, params.get('only'));
+  },
+  swallowyou: async () => {
+    await loadCaptionFont();
+    return createSwallowyou(ctx);
+  },
+  seamonsters: async () => {
+    await loadCaptionFont();
+    return createSeamonsters(ctx);
+  },
+  'seamonsters-kit': async () => {
+    await loadCaptionFont();
+    return createSeamonstersKit(ctx, params.get('only'));
+  },
+  bitecomp: async () => {
+    await loadCaptionFont();
+    return createBitecomp(ctx);
+  },
+  'bitecomp-kit': async () => {
+    await loadCaptionFont();
+    return createBitecompKit(ctx, params.get('only'));
   },
 };
 

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>%TITLE%</title>
+  <!-- %FONTS% -->
+  <style>
+    :root { --paper: %PAPER%; --ink: %INK%; --accent: %ACCENT%; }
+    html, body { margin: 0; height: 100%; background: var(--paper); overflow: hidden; overscroll-behavior: none; }
+    #game {
+      position: fixed; inset: 0; touch-action: none;
+      user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+    }
+    #game canvas { display: block; }
+    #loading {
+      position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      background: var(--paper); color: var(--ink); font: 600 32px 'Caveat', cursive; transition: opacity 0.3s;
+    }
+    #loading.gone { opacity: 0; pointer-events: none; }
+    #loading .title { font-size: clamp(48px, 12vw, 96px); line-height: 0.9; color: var(--accent); }
+    #loading .bar {
+      width: min(320px, 70vw); height: 18px; box-sizing: border-box; overflow: hidden;
+      border: 3px solid var(--ink); border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; box-shadow: 3px 4px 0 var(--ink);
+    }
+    #loading .fill { height: 100%; width: 0; background: var(--accent); transition: width 0.2s; }
+    #loading .label { font-size: 24px; }
+  </style>
+</head>
+<body>
+  <div id="game" aria-label="%TITLE% game"></div>
+  <div id="loading"><div class="title">%TITLE%</div><div class="bar"><div class="fill"></div></div><div class="label">sharpening pens…</div></div>
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

@@ -4,7 +4,7 @@ import { Purchase } from '../src/lib/db/purchaseModel';
 import { User } from '../src/lib/db/userModel';
 import { OAuthToken } from '../src/lib/db/oauthModel';
 import { findAccessToken, issueTokens } from '../src/lib/db/oauthRepo';
-import { countNewUsers, ensurePlayerId, findRole, listUsers, signInGoogleUser, syncAdminRoles } from '../src/lib/db/userRepo';
+import { countNewUsers, ensurePlayerId, findRole, listUsers, signInEmailUser, signInGoogleUser, syncAdminRoles } from '../src/lib/db/userRepo';
 import { Grant } from '../src/lib/db/grantModel';
 import { grantedGames, grantedGamesFor, grantGame, revokeGame } from '../src/lib/db/grantRepo';
 import { isUserId } from '../src/lib/userId';
@@ -62,6 +62,51 @@ describe.skipIf(!uri)('users (MongoDB)', () => {
     const [a, b] = await Promise.all([signInGoogleUser(google, 'user', new Date()), signInGoogleUser(google, 'user', new Date())]);
     expect(a).toBe(b);
     expect(await User.countDocuments()).toBe(1);
+  });
+});
+
+describe.skipIf(!uri)('signing in by email (MongoDB)', () => {
+  const at = new Date('2026-10-24T00:00:00Z');
+
+  beforeEach(async () => {
+    await User.deleteMany({});
+  });
+
+  it('creates a user for a new address, named from it, and finds it again', async () => {
+    const id = await signInEmailUser('ink.fish@example.com', 'user', at);
+    expect(isUserId(id)).toBe(true);
+    expect(await signInEmailUser('ink.fish@example.com', 'user', new Date(at.getTime() + 1000))).toBe(id);
+    const user = await User.findById(id).lean().exec();
+    expect(user).toMatchObject({ email: 'ink.fish@example.com', name: 'Ink', role: 'user', lastSignInAt: new Date(at.getTime() + 1000) });
+    expect(user?.googleId).toBeUndefined();
+  });
+
+  it('signs in to the Google account with that address', async () => {
+    const googleUser = await signInGoogleUser(google, 'user', at);
+    expect(await signInEmailUser(google.email, 'user', at)).toBe(googleUser);
+    expect(await User.countDocuments()).toBe(1);
+    expect((await User.findById(googleUser).lean().exec())?.name).toBe('Ink');
+  });
+
+  it('a later Google sign-in with the same address joins the email account', async () => {
+    const emailUser = await signInEmailUser(google.email, 'user', at);
+    expect(await signInGoogleUser(google, 'user', new Date(at.getTime() + 1000))).toBe(emailUser);
+    expect(await User.countDocuments()).toBe(1);
+    expect(await User.findById(emailUser).lean().exec()).toMatchObject({ googleId: google.googleId, name: 'Ink' });
+  });
+
+  it('does not hand an email account that another Google account already claimed to a second one', async () => {
+    const emailUser = await signInEmailUser(google.email, 'user', at);
+    await signInGoogleUser(google, 'user', at);
+    const other = await signInGoogleUser({ ...google, googleId: 'someone-else' }, 'user', at);
+    expect(other).not.toBe(emailUser);
+  });
+
+  it('records the role it is given', async () => {
+    const id = await signInEmailUser('admin-test@example.com', 'admin', at);
+    expect(await findRole(id)).toBe('admin');
+    await signInEmailUser('admin-test@example.com', 'user', at);
+    expect(await findRole(id)).toBe('user');
   });
 });
 

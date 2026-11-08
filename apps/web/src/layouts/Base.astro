@@ -3,7 +3,7 @@ import '../styles/global.css';
 import Logo from '../components/Logo.astro';
 import Account from '../components/Account.astro';
 import { appleTouchIcon } from '../lib/manifest';
-import { jsonLdScript } from '../lib/seo';
+import { canonicalUrl, jsonLdScript } from '../lib/seo';
 import caveat from '../assets/fonts/caveat.woff2?url';
 import sourceSerif from '../assets/fonts/source-serif-4.woff2?url';
 import silkscreen from '../assets/fonts/silkscreen.woff2?url';
@@ -18,7 +18,7 @@ interface Props {
   jsonLd?: readonly unknown[];
 }
 const { title, description, image = '/covers/inkfish.png', user, jsonLd = [] } = Astro.props;
-const canonical = new URL(Astro.url.pathname, Astro.site);
+const canonical = canonicalUrl(Astro.url.pathname, Astro.site!);
 const ogImage = new URL(image, Astro.site);
 ---
 <!doctype html>
@@ -58,7 +58,7 @@ const ogImage = new URL(image, Astro.site);
     </main>
     <footer class="wrap site-footer">
       <span>© {new Date().getFullYear()} 16bit.ink</span>
-      <span class="links"><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a></span>
+      <span class="links"><a href="/games-like">Games like the classics</a><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a></span>
     </footer>
     <script>
       import { setAnalyticsOptOut, trackPageview } from '../lib/client/analytics';

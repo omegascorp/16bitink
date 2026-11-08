@@ -10,10 +10,14 @@ import { chromium } from 'playwright-core';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkg = path.resolve(here, '../..');
-/** Keep the ids in step with THUMBNAIL_IDS (thumbnail.ts) and DESCENT_THUMBNAILS (descent/thumbnails.ts). */
+/** Keep the ids in step with THUMBNAIL_IDS (thumbnail.ts), DESCENT_THUMBNAILS (descent/thumbnails.ts), FOODCHAIN_THUMBNAILS (foodchain/thumbnails.ts), SWALLOWYOU_THUMBNAILS (swallowyou/thumbnails.ts) SEAMONSTERS_THUMBNAILS (seamonsters/thumbnails.ts) and BITECOMP_THUMBNAILS (bitecomp/thumbnails.ts). */
 const SETS = {
   level1: { ids: ['hunter', 'glowup', 'run'], dir: 'promo', prefix: 'youtube-thumb-level1-', badge: '1:01' },
   descent: { ids: ['split', 'line', 'layers'], dir: 'promo/longform', prefix: '1 - thumb-', badge: '5:44' },
+  foodchain: { ids: ['split', 'nest', 'wrong', 'lunch'], dir: 'promo/longform', prefix: '2 - thumb-', badge: '4:34' },
+  swallowyou: { ids: ['throat', 'lineup', 'inside'], dir: 'promo/longform', prefix: '3 - thumb-', badge: '4:06' },
+  seamonsters: { ids: ['legend', 'lineup', 'eye'], dir: 'promo/longform', prefix: '4 - thumb-', badge: '4:37' },
+  bitecomp: { ids: ['split', 'rex', 'twist'], dir: 'promo/longform', prefix: '6 - thumb-', badge: '2:48' },
 };
 const setName = process.argv[2] ?? 'level1';
 const SET = SETS[setName];

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { getSound } from '../host';
 import { levelOrder } from '../level/levels';
 import { CHARM_NAMES } from '../logic/charms';
+import { goalNotes } from './hud/goalNotes';
 import type { GameScene } from './GameScene';
 import { screenScene, screenSize, toView, uiScaleOf, viewSize } from './hidpi';
 import { HintNote } from './hud/hintNote';
@@ -42,7 +43,7 @@ export class HudScene extends Phaser.Scene {
     this.pauseCard = null;
     const game = this.game2();
     this.tag = new LevelTag(this, `${this.levelNumber()} · ${game.level.name}`, game.level.par);
-    this.meter = new Meter(this);
+    this.meter = new Meter(this, game.board.maxLives);
     this.hint = new HintNote(this);
     this.pauseButton = roundButton(this, 0, 0, 'pause', () => this.togglePause());
     this.soundButton = roundButton(this, 0, 0, getSound(this)?.muted ? 'muted' : 'sound', () => this.toggleSound());
@@ -137,7 +138,7 @@ export class HudScene extends Phaser.Scene {
     const b = game.board;
     if (!b) return;
     this.meter.update(b.score, b.progress, b.filled, b.lives, time);
-    const charms = (Object.entries(b.timers) as [keyof typeof b.timers, number][]).filter(([, t]) => t > 0).map(([c, t]) => `${CHARM_NAMES[c]} ${Math.ceil(t)}s`);
+    const charms = [...goalNotes(b), ...(Object.entries(b.timers) as [keyof typeof b.timers, number][]).filter(([, t]) => t > 0).map(([c, t]) => `${CHARM_NAMES[c]} ${Math.ceil(t)}s`)];
     if (b.burstArmed) charms.push('Burst ready');
     if (b.dragonfly) charms.push('Dragonfly ready');
     this.tag.update(b.elapsed, b.danger > 0.85, charms);

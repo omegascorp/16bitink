@@ -9,3 +9,6 @@ coverage
 .DS_Store
 # Promo videos and social images rendered by each game's dev/promo and apps/web/scripts/social.mjs
 /promo
+
+games/inkheroes/dev/pixel/siege3d/out
+.*.tmp.mjs

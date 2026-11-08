@@ -93,6 +93,48 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * steals its stingers).
  * frogfish (it eats faster than you can blink) too: frame 1 is the gulp.
  * kraken (the real Kraken: a sperm whale with a giant squid in its jaws) too.
+ * The batch of 2026-10-25, from the export of that day (the narrated swallow
+ * and the giant mouth won): alpha (something ate a great white shark: Shark
+ * Alpha, 2003), octopus (the giant octopuses that ate the aquarium's sharks),
+ * bluewhale (a blue whale's mouthful is bigger than its body), leatherback
+ * (the leatherback's spiked throat), fringehead (sarcastic fringeheads fight
+ * mouth to mouth), cookiecutter (the tiny shark that bit submarines),
+ * sheepshead (the fish with human teeth).
+ * The batch of 2026-10-26 (seven more narrated swallows, two body-part tests):
+ * wreckfish (a wreckfish swallows a dogfish shark whole, 1,500 ft down),
+ * eelescape (swallowed eels escape out through the gills), orcawhale (an
+ * orca swims into a blue whale's mouth for its tongue), conesnail (a snail
+ * that swallows fish whole), wobbegong (a carpet shark swallows a 3-ft shark),
+ * stargazer (the fish in the sand that eats whatever swims over it),
+ * orcaliver (orcas eat only a great white's liver), bobbit (a worm whose jaws
+ * can slice a fish in half), seastar (a starfish eats with its stomach outside its body).
+ * The batch of 2026-10-31, from that day's export (whales, size contrast and a
+ * twist inside the swallow won): brydes (a Bryde's whale opens its mouth at
+ * the surface and waits for the fish to drift in), diver (a Cape Cod diver
+ * spent about forty seconds inside a humpback's mouth), seal (a young Cape fur
+ * seal hunts blue sharks: the prey becomes the predator).
+ * The batch of 2026-11-01: sealion (a humpback catches a sea lion in its
+ * mouth by mistake, and it slips out), leopard (a leopard seal brings Paul
+ * Nicklen penguins for four days), croc (Brutus the saltwater crocodile eats a
+ * bull shark), orcasave (a humpback lifts a seal out of the water, away from orcas).
+ * The batch of 2026-11-03: polarshark (the slowest shark had part of a young
+ * polar bear's jaw in its stomach), echidna (a tiger shark coughs up a whole
+ * echidna while being tagged), hagfish (a hagfish slimes a shark's gills and
+ * the shark lets go).
+ * The batch of 2026-11-04: orcastomach (the remains of 13 porpoises and 14
+ * seals in one orca's stomach, Denmark 1861), alvin (a swordfish stabs the
+ * submersible Alvin, 1967), pigeons (wels catfish lunge onto gravel to take
+ * pigeons, Albi).
+ * orcaflip (orcas flip juvenile whale sharks belly-up, Gulf of California, 2024).
+ * gulpshark (gameplay: the viperfish swallows a reef shark).
+ * gulpsquid (gameplay: the viperfish swallows a giant squid).
+ * gulpsword (gameplay: the viperfish swallows a swordfish, the sword last).
+ * gulppuffer (gameplay: a pufferfish inflates inside the viperfish).
+ * gulpgiant (gameplay: the viperfish swallows a giant sleeper shark).
+ * gulpoar (gameplay: the viperfish slurps down a whole oarfish).
+ * pelican (a zoo pelican in Japan tries to swallow a baby capybara).
+ * ospreyshark (an osprey carries a shark that has a fish in its mouth, Florida 2018).
+ * They're loaded lazily (import() on demand).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
  * shows the chain maths. `pnpm promo` (dev/promo/record.mjs) drives
@@ -332,6 +374,208 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   kayak: async () => {
     await loadCaptionFont();
     return withCredit(createKayak(ctx), ctx, PAPER_ON_DARK);
+  },
+  alpha: async () => {
+    await loadCaptionFont();
+    const { createAlpha } = await import('./alpha/render');
+    return withCredit(createAlpha(ctx), ctx, PAPER_ON_DARK);
+  },
+  octopus: async () => {
+    await loadCaptionFont();
+    const { createOctopus } = await import('./octopus/render');
+    return withCredit(createOctopus(ctx), ctx, PAPER_ON_DARK);
+  },
+  bluewhale: async () => {
+    await loadCaptionFont();
+    const { createBlueWhale } = await import('./bluewhale/render');
+    return withCredit(createBlueWhale(ctx), ctx, PAPER_ON_DARK);
+  },
+  leatherback: async () => {
+    await loadCaptionFont();
+    const { createLeatherback } = await import('./leatherback/render');
+    return withCredit(createLeatherback(ctx), ctx, PAPER_ON_DARK);
+  },
+  fringehead: async () => {
+    await loadCaptionFont();
+    const { createFringehead } = await import('./fringehead/render');
+    return withCredit(createFringehead(ctx), ctx, PAPER_ON_DARK);
+  },
+  cookiecutter: async () => {
+    await loadCaptionFont();
+    const { createCookiecutter } = await import('./cookiecutter/render');
+    return withCredit(createCookiecutter(ctx), ctx, PAPER_ON_DARK);
+  },
+  sheepshead: async () => {
+    await loadCaptionFont();
+    const { createSheepshead } = await import('./sheepshead/render');
+    return withCredit(createSheepshead(ctx), ctx, PAPER_ON_DARK);
+  },
+  wreckfish: async () => {
+    await loadCaptionFont();
+    const { createWreckfish } = await import('./wreckfish/render');
+    return withCredit(createWreckfish(ctx), ctx, PAPER_ON_DARK);
+  },
+  eelescape: async () => {
+    await loadCaptionFont();
+    const { createEelescape } = await import('./eelescape/render');
+    return withCredit(createEelescape(ctx), ctx, PAPER_ON_DARK);
+  },
+  orcawhale: async () => {
+    await loadCaptionFont();
+    const { createOrcawhale } = await import('./orcawhale/render');
+    return withCredit(createOrcawhale(ctx), ctx, PAPER_ON_DARK);
+  },
+  conesnail: async () => {
+    await loadCaptionFont();
+    const { createConesnail } = await import('./conesnail/render');
+    return withCredit(createConesnail(ctx), ctx, PAPER_ON_DARK);
+  },
+  wobbegong: async () => {
+    await loadCaptionFont();
+    const { createWobbegong } = await import('./wobbegong/render');
+    return withCredit(createWobbegong(ctx), ctx, PAPER_ON_DARK);
+  },
+  stargazer: async () => {
+    await loadCaptionFont();
+    const { createStargazer } = await import('./stargazer/render');
+    return withCredit(createStargazer(ctx), ctx, PAPER_ON_DARK);
+  },
+  brydes: async () => {
+    await loadCaptionFont();
+    const { createBrydes } = await import('./brydes/render');
+    return withCredit(createBrydes(ctx), ctx, PAPER_ON_DARK);
+  },
+  diver: async () => {
+    await loadCaptionFont();
+    const { createDiver } = await import('./diver/render');
+    return withCredit(createDiver(ctx), ctx, PAPER_ON_DARK);
+  },
+  seal: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./seal/kit')).createSealKit(ctx);
+    const { createSeal } = await import('./seal/render');
+    return withCredit(createSeal(ctx), ctx, PAPER_ON_DARK);
+  },
+  sealion: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./sealion/kit')).createSealionKit(ctx);
+    const { createSealion } = await import('./sealion/render');
+    return withCredit(createSealion(ctx), ctx, PAPER_ON_DARK);
+  },
+  leopard: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./leopard/kit')).createLeopardKit(ctx);
+    const { createLeopard } = await import('./leopard/render');
+    return withCredit(createLeopard(ctx), ctx, PAPER_ON_DARK);
+  },
+  croc: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./croc/kit')).createCrocKit(ctx);
+    const { createCroc } = await import('./croc/render');
+    return withCredit(createCroc(ctx), ctx, PAPER_ON_DARK);
+  },
+  orcasave: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./orcasave/kit')).createOrcasaveKit(ctx);
+    const { createOrcasave } = await import('./orcasave/render');
+    return withCredit(createOrcasave(ctx), ctx, PAPER_ON_DARK);
+  },
+  polarshark: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./polarshark/kit')).createPolarsharkKit(ctx);
+    const { createPolarshark } = await import('./polarshark/render');
+    return withCredit(createPolarshark(ctx), ctx, PAPER_ON_DARK);
+  },
+  echidna: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./echidna/kit')).createEchidnaKit(ctx);
+    const { createEchidna } = await import('./echidna/render');
+    return withCredit(createEchidna(ctx), ctx, PAPER_ON_DARK);
+  },
+  hagfish: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./hagfish/kit')).createHagfishKit(ctx);
+    const { createHagfish } = await import('./hagfish/render');
+    return withCredit(createHagfish(ctx), ctx, PAPER_ON_DARK);
+  },
+  orcastomach: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./orcastomach/kit')).createOrcastomachKit(ctx);
+    const { createOrcastomach } = await import('./orcastomach/render');
+    return withCredit(createOrcastomach(ctx), ctx, PAPER_ON_DARK);
+  },
+  alvin: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./alvin/kit')).createAlvinKit(ctx);
+    const { createAlvin } = await import('./alvin/render');
+    return withCredit(createAlvin(ctx), ctx, PAPER_ON_DARK);
+  },
+  pigeons: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./pigeons/kit')).createPigeonsKit(ctx);
+    const { createPigeons } = await import('./pigeons/render');
+    return withCredit(createPigeons(ctx), ctx, PAPER_ON_DARK);
+  },
+  gulpshark: async () => {
+    await loadCaptionFont();
+    const { createGulpShark } = await import('./gulpshark/render');
+    return createGulpShark(ctx);
+  },
+  gulpsquid: async () => {
+    await loadCaptionFont();
+    const { createGulpSquid } = await import('./gulpsquid/render');
+    return createGulpSquid(ctx);
+  },
+  gulpsword: async () => {
+    await loadCaptionFont();
+    const { createGulpSword } = await import('./gulpsword/render');
+    return createGulpSword(ctx);
+  },
+  gulppuffer: async () => {
+    await loadCaptionFont();
+    const { createGulpPuffer } = await import('./gulppuffer/render');
+    return createGulpPuffer(ctx);
+  },
+  gulpgiant: async () => {
+    await loadCaptionFont();
+    const { createGulpGiant } = await import('./gulpgiant/render');
+    return createGulpGiant(ctx);
+  },
+  gulpoar: async () => {
+    await loadCaptionFont();
+    const { createGulpOar } = await import('./gulpoar/render');
+    return createGulpOar(ctx);
+  },
+  pelican: async () => {
+    await loadCaptionFont();
+    const { createPelican } = await import('./pelican/render');
+    return withCredit(createPelican(ctx), ctx);
+  },
+  ospreyshark: async () => {
+    await loadCaptionFont();
+    const { createOspreyShark } = await import('./ospreyshark/render');
+    return withCredit(createOspreyShark(ctx), ctx);
+  },
+  orcaflip: async () => {
+    await loadCaptionFont();
+    if (params.has('kit')) return (await import('./orcaflip/kit')).createOrcaflipKit(ctx);
+    const { createOrcaflip } = await import('./orcaflip/render');
+    return withCredit(createOrcaflip(ctx), ctx, PAPER_ON_DARK);
+  },
+  orcaliver: async () => {
+    await loadCaptionFont();
+    const { createOrcaliver } = await import('./orcaliver/render');
+    return withCredit(createOrcaliver(ctx), ctx, PAPER_ON_DARK);
+  },
+  bobbit: async () => {
+    await loadCaptionFont();
+    const { createBobbit } = await import('./bobbit/render');
+    return withCredit(createBobbit(ctx), ctx, PAPER_ON_DARK);
+  },
+  seastar: async () => {
+    await loadCaptionFont();
+    const { createSeastar } = await import('./seastar/render');
+    return withCredit(createSeastar(ctx), ctx, PAPER_ON_DARK);
   },
 };
 

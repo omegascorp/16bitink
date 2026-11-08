@@ -5,7 +5,7 @@ import { INKGECKO_PAID_CHAPTERS } from '@16bitink/inkgecko/content';
 import { parseBeaches } from '../../../games/inkcrab/src/level/validate';
 import { parseChapters as parseGeckoChapters } from '../../../games/inkgecko/src/level/validate';
 import { parseChapters } from '../../../games/inkfish/src/levels/validate';
-import { findGame, GAMES, homeGames, isNew, isOut, isPurchasable, listedGames, newestFirst, playableGames, type CatalogGame } from '../src/data/games';
+import { findGame, GAMES, homeGames, homeListings, isNew, isOut, isPurchasable, listedGames, MOST_PLAYED, newestFirst, playableGames, type CatalogGame } from '../src/data/games';
 import { PAID_CONTENT } from '../src/games/content.server';
 import { GAME_LOADERS } from '../src/games/loaders';
 import { GAME_VERSIONS } from '../src/games/versions';
@@ -17,7 +17,7 @@ describe('catalog', () => {
   });
 
   it('lists every game for sale, so the admin panel can unlock it and make keys for it', () => {
-    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko', 'inkheroes']);
+    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko', 'inksnake', 'inkpin', 'inkheroes']);
   });
 
   it('is out from the start of its release day (UTC), or always when undated', () => {
@@ -31,17 +31,42 @@ describe('catalog', () => {
   it('lists InkGecko on the home page from its release day, Oct 22 (UTC), and every other playable game before', () => {
     expect(listedGames(new Date('2026-10-21T23:59:59Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine']);
     expect(listedGames(new Date('2026-10-22T00:00:00Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko']);
+    expect(listedGames(new Date('2026-11-01T00:00:00Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko', 'inksnake', 'inkpin']);
   });
 
-  it('lists InkHeroes from Sunday, Oct 25 (UTC), not the day before', () => {
-    expect(listedGames(new Date('2026-10-24T23:59:59Z')).map((g) => g.slug)).not.toContain('inkheroes');
-    expect(listedGames(new Date('2026-10-25T00:00:00Z')).map((g) => g.slug)).toContain('inkheroes');
+  it('lists InkHeroes from Sunday, Nov 8 (UTC), not the day before', () => {
+    expect(listedGames(new Date('2026-11-07T23:59:59Z')).map((g) => g.slug)).not.toContain('inkheroes');
+    expect(listedGames(new Date('2026-11-08T00:00:00Z')).map((g) => g.slug)).toContain('inkheroes');
   });
 
   it('puts the newest game first on the home page, so this week\'s game is the featured one', () => {
     expect(homeGames(new Date('2026-10-21T23:59:59Z')).map((g) => g.slug)).toEqual(['inkmine', 'inkcrab', 'inkfish']);
     expect(homeGames(new Date('2026-10-22T00:00:00Z')).map((g) => g.slug)).toEqual(['inkgecko', 'inkmine', 'inkcrab', 'inkfish']);
-    expect(homeGames(new Date('2026-10-25T00:00:00Z')).map((g) => g.slug)).toEqual(['inkheroes', 'inkgecko', 'inkmine', 'inkcrab', 'inkfish']);
+    expect(homeGames(new Date('2026-11-01T00:00:00Z')).map((g) => g.slug)).toEqual(['inkpin', 'inksnake', 'inkgecko', 'inkmine', 'inkcrab', 'inkfish']);
+    expect(homeGames(new Date('2026-11-08T00:00:00Z')).map((g) => g.slug)).toEqual(['inkheroes', 'inkpin', 'inksnake', 'inkgecko', 'inkmine', 'inkcrab', 'inkfish']);
+  });
+
+  it('heads the home page with the newest game and the most played one, each labelled, then the rest newest first', () => {
+    const home = homeListings(new Date('2026-11-02T12:00:00Z'));
+    expect(home.top.map((t) => [t.game.slug, t.label])).toEqual([['inkpin', 'new'], [MOST_PLAYED, 'popular']]);
+    expect(home.rest.map((g) => g.slug)).toEqual(['inksnake', 'inkgecko', 'inkmine', 'inkcrab']);
+  });
+
+  it('still calls the newest game the latest once its new week is over', () => {
+    const home = homeListings(new Date('2026-11-16T00:00:00Z'));
+    expect(home.top[0]).toMatchObject({ label: 'latest' });
+    expect(home.top[0]!.game.slug).toBe('inkheroes');
+  });
+
+  it('shows one top card when the newest game is also the most played', () => {
+    // InkFish alone was out on its release week.
+    const home = homeListings(new Date('2026-10-05T00:00:00Z'));
+    expect(home.top.map((t) => [t.game.slug, t.label])).toEqual([['inkfish', 'new']]);
+    expect(home.rest).toEqual([]);
+  });
+
+  it('names a most played game that is in the catalog', () => {
+    expect(playableGames().map((g) => g.slug)).toContain(MOST_PLAYED);
   });
 
   it('orders newest first, keeping catalog order for a shared day and undated games last', () => {

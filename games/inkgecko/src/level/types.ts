@@ -36,6 +36,37 @@ export interface TrackDef {
   readonly points: readonly Pt[];
   readonly tunnels?: readonly TunnelDef[];
   readonly raised?: readonly TunnelDef[];
+  /** Its burrow stays shut until the bar is this full, 0..0.7 (a late burrow). */
+  readonly opensAt?: number;
+  /** Its line rolls at this times the level's speed, 0.5..2 (one fast line, one slow). */
+  readonly pace?: number;
+}
+
+/**
+ * What the bar asks for. Without one, points fill it (the usual). Hold out:
+ * last `seconds` and the burrows shut. Blitz: fill it with points within
+ * `seconds` or the level is lost. Gold: pop `count` golden marbles.
+ */
+export type GoalDef =
+  | { readonly kind: 'holdout'; readonly seconds: number }
+  | { readonly kind: 'blitz'; readonly seconds: number }
+  | { readonly kind: 'gold'; readonly count: number };
+
+/** Each chapter's last level is a boss, one for each place. */
+export const BOSS_KINDS = ['mole', 'frog', 'snail', 'magpie', 'tortoise', 'scarecrow', 'chameleon', 'cat', 'lion', 'owl'] as const;
+export type BossKind = (typeof BOSS_KINDS)[number];
+
+/**
+ * A boss: beating it (its `hp` in hits) fills the bar and shuts the
+ * burrows. `spots` are where it goes (molehills, its lily pads, perches,
+ * the stops of its walk, or its one stand); the tortoise needs none, it
+ * leads line `line` instead.
+ */
+export interface BossDef {
+  readonly kind: BossKind;
+  readonly hp: number;
+  readonly spots: readonly Pt[];
+  readonly line?: number;
 }
 
 /** What a level's first-time hints teach. */
@@ -74,4 +105,31 @@ export interface LevelDef {
   readonly pillars?: readonly PillarDef[];
   /** Night: only what the gecko, the lanterns and the burrows light can be seen (the night garden). */
   readonly dark?: boolean;
+
+  // Each level's own twist (see logic/twists.ts); most levels have one.
+
+  /** Gusts of wind bend shots sideways, this hard (board px/s²), changing side now and then. */
+  readonly wind?: number;
+  /** Every this many seconds the lines lurch forward for a moment. */
+  readonly surge?: number;
+  /** Every this many seconds the lines draw back for a moment by themselves. */
+  readonly tide?: number;
+  /** The gecko can't swap the marble on its tail. */
+  readonly noSwap?: boolean;
+  /** The level's last colour only joins once the bar is this full, 0.2..0.8. */
+  readonly colourAt?: number;
+  /** This many big leaves drift across the board, stopping shots that hit them. */
+  readonly leaves?: number;
+  /** Pivot levels: the gecko paces a little loop round its spot, this wide and tall (board px) and this long a lap (s). */
+  readonly wander?: { readonly rx: number; readonly ry: number; readonly period: number };
+  /** Hop levels: a pad tips the gecko onto the next one after this many seconds on it. */
+  readonly restless?: number;
+  /** Charms turn up twice as often. */
+  readonly charmy?: boolean;
+  /** Lives for the level, if not the usual three. */
+  readonly lives?: number;
+  /** What fills the bar, if not points. */
+  readonly mode?: GoalDef;
+  /** The chapter's boss. */
+  readonly boss?: BossDef;
 }

@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { findGame } from '../../data/games';
+import { isPass, PASS } from '../../data/pass';
 import { isFulfillable } from '../../lib/fulfil';
 import { ENTITLEMENT_MAX_AGE, entitlementCookie, signEntitlement } from '../../lib/entitlement';
 import { isLocalHost } from '../../lib/devUnlock';
@@ -25,7 +26,9 @@ if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) {
 } else {
   try {
     const session = await stripeClient().checkout.sessions.retrieve(sessionId);
-    const game = findGame(session.metadata?.game ?? '');
+    const bought = session.metadata?.game ?? '';
+    // The pass, or a game: both get an ownership cookie under their own slug.
+    const game = isPass(bought) ? PASS : findGame(bought);
     // Test-mode (fake card) payments only count when testing on this machine.
     if (!isFulfillable(session, Date.now(), { allowTestMode: isLocalHost(Astro.url.hostname) }) || !game) {
       error = 'We could not confirm that payment yet. If you were charged, refresh this page in a minute.';

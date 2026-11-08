@@ -12,6 +12,8 @@ export const SFX_IDS = [
   'crystal', 'blossom', 'crack', 'thud', 'fruit',
   // Chapters 6–8: the Hedgehog setting off and nibbling, chameleons turning, Rain, a shot off a barn wall.
   'snuffle', 'munch', 'shift', 'rain', 'bounce',
+  // Twists and bosses: a gust of wind, a boss hit, the lion's roar, the owl's hoot, the frog's croak.
+  'gust', 'bosshit', 'roar', 'hoot', 'croak',
   // A marble dropping down the well's hole (each one, as the line drains away on a loss).
   'sink',
   // The line: pops (pitched up per combo link), a gap closing, parts meeting, bonuses.
@@ -38,6 +40,7 @@ export const MIN_GAP_MS: Readonly<Record<SfxId, number>> = {
   danger: 350, well: 500,
   filled: 1000, win: 1000, lose: 1000, click: 40,
   steps: 120, card: 80,
+  gust: 1500, bosshit: 120, roar: 1500, hoot: 1500, croak: 800,
 };
 
 /** Pitch for a pop: each combo link a step higher, up a major scale. */

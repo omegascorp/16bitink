@@ -16,6 +16,8 @@ import { inkfishArt } from './icons/inkfish.mjs';
 import { inkgeckoArt } from './icons/inkgecko.mjs';
 import { inkheroesArt } from './icons/inkheroes.mjs';
 import { inkmineArt } from './icons/inkmine.mjs';
+import { inkpinArt } from './icons/inkpin.mjs';
+import { inksnakeArt } from './icons/inksnake.mjs';
 import { INK, PAPER, SIZE, brandDrop, paper } from './icons/paper.mjs';
 
 const PUBLIC = join(dirname(fileURLToPath(import.meta.url)), '..', 'public');
@@ -30,6 +32,8 @@ const ICONS = {
   inkcrab: (opts) => inkcrabArt(opts),
   inkmine: (opts) => inkmineArt(opts),
   inkgecko: (opts) => inkgeckoArt(opts),
+  inksnake: (opts) => inksnakeArt(opts),
+  inkpin: (opts) => inkpinArt(opts),
   inkheroes: (opts) => inkheroesArt(opts),
 };
 

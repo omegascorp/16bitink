@@ -16,6 +16,11 @@ import { COLOURS } from '../src/logic/colours';
 import { D } from '../src/logic/line';
 import { TUNNEL_MAX, TUNNEL_MIN } from '../src/art/placesArt';
 import { buildPath, pointAt } from '../src/logic/path';
+import { wanderLoop } from '../src/logic/twists';
+import { twistTexts } from '../src/level/twistText';
+import { whatsNew } from '../src/scenes/map/levelInfo';
+import { BOSS_KINDS } from '../src/level/types';
+import { BOSS_R, SLEEVE } from '../src/logic/boss';
 
 /** Room between the gecko's centre and any track, and (more, for the stones round it) a well. */
 const GECKO_CLEAR = 120;
@@ -53,11 +58,73 @@ describe('chapter 2', () => {
   });
 });
 
-/** Where the gecko can stand: its spot, its pads, or along its branch. */
+/** Where the gecko can stand: its spot (or every step of its pacing), its pads, or along its branch. */
 const stands = (l: LevelDef): { x: number; y: number }[] | null => {
   const s = l.shooter;
-  return s.kind === 'pivot' ? [s] : s.kind === 'hop' ? [...s.pads] : null;
+  return s.kind === 'pivot' ? wanderLoop(l, s) : s.kind === 'hop' ? [...s.pads] : null;
 };
+
+const CHAPTERS = [CHAPTER_1, CHAPTER_2, CHAPTER_3, CHAPTER_4, CHAPTER_5, CHAPTER_6, CHAPTER_7, CHAPTER_8, CHAPTER_9, CHAPTER_10];
+
+describe('variety', () => {
+  it('every level brings something: a lesson, a twist, or a boss', () => {
+    CHAPTERS.flat().forEach((level, i, all) => {
+      const has = (level.teach?.length ?? 0) > 0 || twistTexts(level).length > 0 || whatsNew(level, all.slice(0, i)).length > 0;
+      expect(has, `${level.id} is plain`).toBe(true);
+    });
+  });
+
+  it('no twist comes twice in a chapter', () => {
+    for (const chapter of CHAPTERS) {
+      const seen = chapter.flatMap((l) => twistTexts(l).map((t) => t.card.replace(/\d+/g, '#')));
+      expect(new Set(seen).size, chapter[0]!.id).toBe(seen.length);
+    }
+  });
+
+  it('every chapter ends with its own boss', () => {
+    CHAPTERS.forEach((chapter, i) => {
+      expect(chapter[9]!.boss?.kind, chapter[9]!.id).toBe(BOSS_KINDS[i]);
+      expect(chapter.slice(0, 9).every((l) => !l.boss)).toBe(true);
+    });
+  });
+
+  it('the old template is broken: slots 5, 9 and 10 are not the same kind of level in every chapter', () => {
+    const twoTracks = (slot: number) => CHAPTERS.filter((c) => c[slot - 1]!.tracks.length > 1).length;
+    expect(twoTracks(5)).toBeLessThanOrEqual(6);
+    expect(twoTracks(9)).toBeLessThanOrEqual(6);
+    expect(twoTracks(10)).toBeLessThanOrEqual(3);
+  });
+
+  it('twists suit how the gecko stands', () => {
+    for (const level of CHAPTERS.flat()) {
+      if (level.wander) expect(level.shooter.kind, level.id).toBe('pivot');
+      if (level.restless) expect(level.shooter.kind, level.id).toBe('hop');
+      if (level.tracks.some((t) => t.opensAt)) expect(level.tracks.length, level.id).toBeGreaterThan(1);
+      if (level.boss?.kind === 'cat') expect(level.walls, level.id).toBe(true);
+      if (level.boss?.kind === 'lion') expect(level.pillars?.length, level.id).toBeGreaterThan(0);
+      if (level.boss?.kind === 'owl') expect(level.dark, level.id).toBe(true);
+    }
+  });
+});
+
+describe('boss arenas', () => {
+  for (const level of CHAPTERS.flat().filter((l) => l.boss)) {
+    it(`${level.id}: the boss has room, clear of the lines and the gecko`, () => {
+      const boss = level.boss!;
+      // The scarecrow's sleeves sweep round it; everyone else needs its own reach and a marble's.
+      const reach = boss.kind === 'scarecrow' ? SLEEVE.to + 12 : BOSS_R[boss.kind] + D * 1.5;
+      const spots = stands(level);
+      for (const b of boss.spots) {
+        for (const p of paths(level)) for (const q of p.pts) expect(Math.hypot(q.x - b.x, q.y - b.y), `${level.id} spot (${b.x}, ${b.y})`).toBeGreaterThan(reach);
+        if (spots) for (const g of spots) expect(Math.hypot(g.x - b.x, g.y - b.y), `${level.id} by the gecko`).toBeGreaterThan(BOSS_R[boss.kind] + 60);
+        expect(b.x).toBeGreaterThan(40);
+        expect(b.x).toBeLessThan(BOARD.w - 40);
+      }
+      if (boss.kind === 'tortoise') expect(boss.line).toBeLessThan(level.tracks.length);
+      else expect(boss.spots.length).toBeGreaterThan(0);
+    });
+  }
+});
 
 describe('crossings', () => {
   it('cross at a readable angle', () => {

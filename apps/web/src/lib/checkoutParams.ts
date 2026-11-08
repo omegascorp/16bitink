@@ -6,15 +6,18 @@ export const ONE_TIME_NOTE = 'One-time purchase: pay once and the full game is y
 
 interface CheckoutInput {
   readonly priceId: string;
+  /** What is bought: a game's slug. */
   readonly game: string;
   readonly title: string;
+  /** The page to come back to if the buyer cancels, e.g. "/games/inkfish". */
+  readonly returnTo: string;
   readonly origin: string;
   readonly automaticTax: boolean;
   /** The signed-in buyer: checkout requires one. */
   readonly user: { readonly email: string; readonly userId: UserId };
 }
 
-/** A Stripe Checkout Session for a one-time full-game unlock. */
+/** A Stripe Checkout Session for a one-time unlock of one game's full version. */
 export function checkoutParams(i: CheckoutInput): Stripe.Checkout.SessionCreateParams {
   return {
     mode: 'payment',
@@ -33,6 +36,6 @@ export function checkoutParams(i: CheckoutInput): Stripe.Checkout.SessionCreateP
     },
     metadata: { game: i.game },
     success_url: `${i.origin}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${i.origin}/games/${i.game}?checkout=cancelled`,
+    cancel_url: `${i.origin}${i.returnTo}?checkout=cancelled`,
   };
 }

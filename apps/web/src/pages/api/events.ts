@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { findGame } from '../../data/games';
+import { isPass } from '../../data/pass';
 import { MAX_BATCH_BYTES, parseBatch, readBody, toStoredEvents } from '../../lib/analytics';
 import { clientIp } from '../../lib/clientIp';
 import { db } from '../../lib/db';
@@ -10,7 +11,8 @@ import { parseUserAgent } from '../../lib/userAgent';
 
 export const prerender = false;
 
-const isPlayable = (slug: string): boolean => findGame(slug)?.status === 'playable';
+/** A game players can play, or the pass (bought from the home page, where there's no game to name). */
+const isPlayable = (slug: string): boolean => isPass(slug) || findGame(slug)?.status === 'playable';
 const accepted = (): Response => new Response(null, { status: 204, headers: { 'cache-control': 'no-store' } });
 
 /**

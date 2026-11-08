@@ -3,7 +3,6 @@ import { MARBLE_R, MARBLE_RES } from '../../art/marbleArt';
 import { BLUE, PAPER_HEX } from '../../art/palette';
 import { TEX } from '../../art/textures';
 import { getSound } from '../../host';
-import { LIVES } from '../../logic/board';
 import type { GameScene } from '../GameScene';
 import { clock, inkButton, inkText } from '../ui';
 import { freePaper, GROOVE, LIFE_R, paperCard, roundButton, softenBoard, UI_RES, UI_TEX, VineBar, type RoundButton } from '../uiPaint';
@@ -74,7 +73,7 @@ export class PauseCard {
     bar.set(b.progress);
     card.add(bar.root);
     const row = y + 80;
-    for (let i = 0; i < LIVES; i++) {
+    for (let i = 0; i < b.maxLives; i++) {
       const x = left + 14 + i * 30;
       card.add(s.add.image(x, row + 1, UI_TEX.socket).setScale(1.15 / UI_RES));
       if (i < b.lives) card.add(s.add.image(x, row, TEX.marble('green', i % 3)).setScale((LIFE_R * 1.15) / MARBLE_R / MARBLE_RES));

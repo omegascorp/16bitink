@@ -38,6 +38,20 @@ const PRODUCTS = [
     unitAmount: 499,
     currency: 'usd',
   },
+  {
+    lookupKey: 'inksnake_full',
+    name: 'InkSnake: Full Game',
+    description: 'The full InkSnake game on 16bit.ink: all 100 levels with 10 snakes in 10 places. One-time purchase, no subscription.',
+    unitAmount: 499,
+    currency: 'usd',
+  },
+  {
+    lookupKey: 'inkpin_full',
+    name: 'InkPin: Full Game',
+    description: 'The full InkPin game on 16bit.ink: the Volcano Shrine and the Desert Tomb after the free Jungle Temple, and every new ruin as a free update. One-time purchase, no subscription.',
+    unitAmount: 499,
+    currency: 'usd',
+  },
 ];
 
 const key = process.env.STRIPE_SECRET_KEY;

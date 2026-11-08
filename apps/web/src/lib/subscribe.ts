@@ -17,10 +17,16 @@ export function normalizeEmail(input: unknown): string | null {
 
 export type SignupOutcome = 'done' | 'invalid' | 'error';
 
+/** The one query parameter a page keeps through a sign-up: which purchase a thank-you page is about. */
+const KEPT_PARAMS = ['game'] as const;
+
 /** Back to the page the form was on (never off the site), saying how it went, scrolled to the form. */
 export function signupReturnPath(from: string | null, outcome: SignupOutcome): string {
-  const path = safeReturnPath(from).split(/[?#]/)[0] || '/';
-  return `${path}?sunday=${outcome}#sunday`;
+  const safe = safeReturnPath(from);
+  const path = safe.split(/[?#]/)[0] || '/';
+  const query = new URLSearchParams(safe.split('#')[0]!.split('?')[1] ?? '');
+  const kept = KEPT_PARAMS.flatMap((k) => { const v = query.get(k); return v && /^[a-z0-9-]{1,40}$/.test(v) ? [`${k}=${v}`] : []; });
+  return `${path}?${[...kept, `sunday=${outcome}`].join('&')}#sunday`;
 }
 
 /** The page a form was on, as stored with the address: a path on this site, at most 60 characters. */

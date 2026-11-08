@@ -1,5 +1,5 @@
 import { CAPTION_FONT, PAPER_ON_DARK } from './captions';
-import { withCredit } from './credit';
+import { type CreditOptions, withCredit } from './credit';
 import { boilAt, crabSprite, critterSprite, drawSprite, shellSprite } from './sprites';
 import { VIDEO, type Short } from './short';
 import { PAPER } from '../../src/art/palette';
@@ -11,6 +11,11 @@ import { createRedCrab } from './redcrab/render';
 import { createSnowCrab } from './snowcrab/render';
 import { createRaccoon } from './raccoon/render';
 import { createManowar } from './manowar/render';
+import { createCrabbird } from './crabbird/render';
+import { createBirdSnatch } from './birdsnatch/render';
+import { createHeronCrab } from './heroncrab/render';
+import { AT as CRABBIRD_AT, LOOP_S as CRABBIRD_LOOP_S } from './crabbird/story';
+import { AT as HERONCRAB_AT, LOOP_S as HERONCRAB_LOOP_S } from './heroncrab/story';
 
 /**
  * Dev-only promo video page for InkCrab, 1080x1920. Every short is a
@@ -19,8 +24,9 @@ import { createManowar } from './manowar/render';
  * ?short= picks one: chain (hermit crabs queue to swap shells), crabs
  * (evolution keeps making crabs), coconut (the coconut crab), octopus
  * (three hearts), redcrab (Christmas Island's march to the sea), snowcrab
- * (ten billion vanished), raccoon (it isn't washing its food) or manowar
- * (the Portuguese man o' war is NOT a jellyfish). ?short=kit
+ * (ten billion vanished), raccoon (it isn't washing its food), manowar
+ * (the Portuguese man o' war is NOT a jellyfish) or crabbird (a coconut crab
+ * takes down a sleeping booby). ?short=kit
  * shows the shared sprites. Plays live; ?t=4.2 freezes one moment.
  * `pnpm promo` (dev/promo/record.mjs) drives window.promo frame by frame to
  * make the video files.
@@ -62,9 +68,9 @@ function createKit(): Short {
 }
 
 /** Each narrated short, built after the font loads, with the credit drawn over it (paper on dark for night scenes). */
-const narrated = (create: (c: CanvasRenderingContext2D) => Short, dark = false) => async (): Promise<Short> => {
+const narrated = (create: (c: CanvasRenderingContext2D) => Short, dark = false, credit: CreditOptions = {}) => async (): Promise<Short> => {
   await loadCaptionFont();
-  return withCredit(create(ctx), ctx, dark ? PAPER_ON_DARK : undefined);
+  return withCredit(create(ctx), ctx, dark ? PAPER_ON_DARK : undefined, credit);
 };
 
 const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
@@ -77,6 +83,11 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   snowcrab: narrated(createSnowCrab),
   raccoon: narrated(createRaccoon, true),
   manowar: narrated(createManowar),
+  // Its credit waits for the invitation at the end and names the short link.
+  crabbird: narrated(createCrabbird, true, { text: 'InkCrab · 16bit.ink/crab', inAt: (CRABBIRD_AT.ctaStart + 0.3) / CRABBIRD_LOOP_S }),
+  birdsnatch: narrated(createBirdSnatch),
+  // Its credit waits for the invitation at the end and names the short link.
+  heroncrab: narrated(createHeronCrab, false, { text: 'InkCrab · 16bit.ink/crab', inAt: (HERONCRAB_AT.ctaStart + 0.3) / HERONCRAB_LOOP_S }),
 };
 
 const name = params.get('short') ?? 'kit';

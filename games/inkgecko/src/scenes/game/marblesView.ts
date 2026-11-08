@@ -3,6 +3,7 @@ import { MARBLE_RES } from '../../art/marbleArt';
 import { BOIL } from '../../art/palette';
 import { HEDGEHOG_RES, TWINE_CORD_W } from '../../art/propsFarm';
 import { DRAGONFLY_RES, FRUIT_RES, TEX } from '../../art/textures';
+import { DRIFT_LEAF_RES, LEAF_WASHES } from '../../art/twistArt';
 import { SHIFT_EVERY, type Board } from '../../logic/board';
 import { CHARM_FADES_AFTER } from '../../logic/charms';
 import { D } from '../../logic/line';
@@ -15,7 +16,7 @@ const BLINK_FOR = 3;
 const TOKEN_RES = 3;
 
 /** Marbles are drawn under the tunnel covers (5.5), except where carried over a crossing. */
-const DEPTH = { marble: 4, cord: 4.1, bud: 4.2, mark: 5, raised: 5.7, raisedCord: 5.72, raisedBud: 5.75, raisedMark: 5.8, hedgehog: 6.4 } as const;
+const DEPTH = { marble: 4, cord: 4.1, bud: 4.2, mark: 5, raised: 5.7, raisedCord: 5.72, raisedBud: 5.75, raisedMark: 5.8, hedgehog: 6.4, leaf: 6.65 } as const;
 /** The chameleons' ring shows over this last part of the wait before they turn, s. */
 const SHIFT_WARN = 1.2;
 /** The Hedgehog's two steps alternate this often, ms. */
@@ -31,6 +32,8 @@ interface Shown {
   /** A chameleon's sheen and the ring that shimmers before it turns. */
   sheen: Phaser.GameObjects.Image | null;
   ring: Phaser.GameObjects.Image | null;
+  /** A golden marble's gilt rim. */
+  gilt: Phaser.GameObjects.Image | null;
   s: number;
   seen: boolean;
 }
@@ -42,6 +45,7 @@ export class MarblesView {
   private readonly drops = new Map<number, Phaser.GameObjects.Image>();
   private readonly fruits = new Map<number, Phaser.GameObjects.Image>();
   private hedgehog: Phaser.GameObjects.Image | null = null;
+  private readonly leaves = new Map<number, Phaser.GameObjects.Image>();
 
   constructor(private readonly scene: Phaser.Scene) {}
 
@@ -58,7 +62,7 @@ export class MarblesView {
       for (const m of line.marbles) {
         let v = this.marbles.get(m.id);
         if (!v) {
-          v = { img: this.scene.add.image(0, 0, TEX.marble(m.colour, 0)).setScale(1 / MARBLE_RES), mark: null, bud: null, knot: null, cord: null, sheen: null, ring: null, s: m.s, seen: true };
+          v = { img: this.scene.add.image(0, 0, TEX.marble(m.colour, 0)).setScale(1 / MARBLE_RES), mark: null, bud: null, knot: null, cord: null, sheen: null, ring: null, gilt: null, s: m.s, seen: true };
           this.marbles.set(m.id, v);
         }
         v.seen = true;
@@ -74,13 +78,14 @@ export class MarblesView {
           .setScale(size / MARBLE_RES).setVisible(size > 0.05).setAlpha(Math.min(1, size * 1.5)).setDepth(up ? DEPTH.raised : DEPTH.marble);
         this.syncBud(v, m.bud === true, f, size, up);
         this.syncSheen(v, m.chameleon === true, f, size, up, board.shiftIn, time);
+        this.syncGilt(v, m.gold === true, f, size, up, time);
         this.syncMark(v, m.charm, m.charmAge, p, size, time);
         v.mark?.setDepth(up ? DEPTH.raisedMark : DEPTH.mark);
       }
     });
     for (const [id, v] of this.marbles) {
       if (v.seen) continue;
-      for (const o of [v.img, v.mark, v.bud, v.knot, v.cord, v.sheen, v.ring]) o?.destroy();
+      for (const o of [v.img, v.mark, v.bud, v.knot, v.cord, v.sheen, v.ring, v.gilt]) o?.destroy();
       this.marbles.delete(id);
     }
     this.syncTwine(board, time);
@@ -88,6 +93,40 @@ export class MarblesView {
     this.syncShots(board, time);
     this.syncDrops(board, time);
     this.syncFruit(board, time);
+    this.syncLeaves(board, time);
+  }
+
+  /** A golden marble's gilt rim, glinting as it rolls. */
+  private syncGilt(v: Shown, on: boolean, f: number, size: number, up: boolean, time: number): void {
+    if (!on) {
+      v.gilt?.destroy();
+      v.gilt = null;
+      return;
+    }
+    v.gilt ??= this.scene.add.image(0, 0, TEX.gilt(0));
+    const glint = 1 + Math.sin(time / 180 + v.s / 40) * 0.05;
+    v.gilt.setTexture(TEX.gilt(f)).setPosition(v.img.x, v.img.y).setScale((size * glint) / MARBLE_RES)
+      .setVisible(v.img.visible).setAlpha(v.img.alpha).setDepth((up ? DEPTH.raisedBud : DEPTH.bud) + 0.02);
+  }
+
+  /** Leaves drifting over the board (twist levels), turning as they go. */
+  private syncLeaves(board: Board, time: number): void {
+    const live = new Set<number>();
+    for (const leaf of board.twists.leaves) {
+      if (leaf.away > 0) continue;
+      live.add(leaf.id);
+      let img = this.leaves.get(leaf.id);
+      if (!img) {
+        img = this.scene.add.image(leaf.x, leaf.y, TEX.leaf(leaf.id % LEAF_WASHES.length, 0)).setScale(1 / DRIFT_LEAF_RES).setDepth(DEPTH.leaf);
+        this.leaves.set(leaf.id, img);
+      }
+      img.setTexture(TEX.leaf(leaf.id % LEAF_WASHES.length, Math.floor(time / 150) % BOIL)).setPosition(leaf.x, leaf.y).setRotation(leaf.angle);
+    }
+    for (const [id, img] of this.leaves) {
+      if (live.has(id)) continue;
+      img.destroy();
+      this.leaves.delete(id);
+    }
   }
 
   /** A bud closed over the marble, turning with it. */

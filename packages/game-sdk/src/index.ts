@@ -46,7 +46,7 @@ export interface GameHost {
   loadContent(): Promise<unknown>;
   /**
    * Starts the purchase flow for this game. The flow is the same for every
-   * game: a signed-out player signs in with Google first, then pays. Call it
+   * game: a signed-out player signs in (Google or email) first, then pays. Call it
    * when the player finishes the last free level (and from any unlock button).
    * `where` says which offer the player took, for the site's stats.
    */
@@ -54,7 +54,7 @@ export interface GameHost {
   /** True when a player is signed in, so the game can say whether buying needs a sign-in first. */
   readonly signedIn?: boolean;
   /**
-   * Signs in with Google so progress is saved to an account, then comes back
+   * Signs in (Google or email) so progress is saved to an account, then comes back
    * to the game; saves made signed out move to that account. Leaves the page,
    * so save first. Only offer it when `signedIn` is false, and never require it.
    */

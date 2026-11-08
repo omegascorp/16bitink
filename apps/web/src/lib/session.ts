@@ -32,14 +32,26 @@ export interface SignInFlow {
   readonly exp: number;
 }
 
+/** Between sending a sign-in email and typing its code: which email this browser asked for. */
+export interface EmailFlow {
+  readonly v: 1;
+  /** The `emailsignins` record (db/emailSignInRepo.ts). */
+  readonly id: string;
+  /** Shown back on the page: "we sent a code to …". */
+  readonly email: string;
+  readonly exp: number;
+}
+
 export const SESSION_COOKIE = 'ink_user';
 export const FLOW_COOKIE = 'ink_signin';
+export const EMAIL_FLOW_COOKIE = 'ink_email';
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 /** Time allowed on Google's account picker. */
 export const FLOW_MAX_AGE = 60 * 10;
 
 const SESSION = 'session';
 const FLOW = 'signin';
+const EMAIL_FLOW = 'email-signin';
 
 const isStr = (v: unknown): v is string => typeof v === 'string';
 
@@ -56,6 +68,12 @@ function isFlow(v: unknown): v is SignInFlow {
   return c.v === 1 && isStr(c.state) && isStr(c.nonce) && isStr(c.verifier) && isStr(c.ret) && typeof c.exp === 'number';
 }
 
+function isEmailFlow(v: unknown): v is EmailFlow {
+  if (typeof v !== 'object' || v === null) return false;
+  const c = v as Record<string, unknown>;
+  return c.v === 1 && isStr(c.id) && isStr(c.email) && typeof c.exp === 'number';
+}
+
 export const signSession = (s: UserSession, secret: string): Promise<string> => signToken(s, secret, SESSION);
 
 export async function verifySession(token: string | undefined, secret: string, nowSec: number): Promise<UserSession | null> {
@@ -68,4 +86,11 @@ export const signFlow = (f: SignInFlow, secret: string): Promise<string> => sign
 export async function verifyFlow(token: string | undefined, secret: string, nowSec: number): Promise<SignInFlow | null> {
   const f = await readToken(token, secret, FLOW);
   return isFlow(f) && f.exp > nowSec ? f : null;
+}
+
+export const signEmailFlow = (f: EmailFlow, secret: string): Promise<string> => signToken(f, secret, EMAIL_FLOW);
+
+export async function verifyEmailFlow(token: string | undefined, secret: string, nowSec: number): Promise<EmailFlow | null> {
+  const f = await readToken(token, secret, EMAIL_FLOW);
+  return isEmailFlow(f) && f.exp > nowSec ? f : null;
 }

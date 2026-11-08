@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { signEntitlement } from '../src/lib/entitlement';
-import { signFlow, signSession, verifyFlow, verifySession, type UserSession } from '../src/lib/session';
+import { signEmailFlow, signFlow, signSession, verifyEmailFlow, verifyFlow, verifySession, type UserSession } from '../src/lib/session';
 
 const SECRET = 'x'.repeat(40);
 const NOW = 1_800_000_000;
@@ -47,5 +47,20 @@ describe('sign-in flow tokens', () => {
 
   it('are not sessions', async () => {
     expect(await verifyFlow(await signSession(session, SECRET), SECRET, NOW)).toBeNull();
+  });
+});
+
+describe('email sign-in flow tokens', () => {
+  const flow = { v: 1, id: '65f0c0ffee0000000000aa02', email: 'fish@example.com', exp: NOW + 60 } as const;
+
+  it('round-trip while fresh, then expire', async () => {
+    const token = await signEmailFlow(flow, SECRET);
+    expect(await verifyEmailFlow(token, SECRET, NOW)).toEqual(flow);
+    expect(await verifyEmailFlow(token, SECRET, NOW + 61)).toBeNull();
+  });
+
+  it('are not sessions, and sessions are not them', async () => {
+    expect(await verifySession(await signEmailFlow(flow, SECRET), SECRET, NOW)).toBeNull();
+    expect(await verifyEmailFlow(await signSession(session, SECRET), SECRET, NOW)).toBeNull();
   });
 });

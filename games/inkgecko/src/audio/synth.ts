@@ -238,6 +238,32 @@ const RECIPES: Readonly<Record<SfxId, (v: Voice) => void>> = {
     tone(v, { type: 'sine', from: 900, to: 260, dur: 0.22, gain: 0.08 });
     noise(v, { dur: 0.05, gain: 0.12, filter: 'lowpass', from: 700, delay: 0.2 });
   },
+  // A gust: air rushing past, swelling and dying away.
+  gust: (v) => {
+    noise(v, { dur: 1.4, gain: 0.2, filter: 'bandpass', from: 500, to: 1400, q: 0.8, attack: 0.4 });
+    noise(v, { dur: 1.1, gain: 0.08, filter: 'highpass', from: 2500, to: 4000, attack: 0.5, delay: 0.15 });
+  },
+  // A boss hit: a soft thump and a squeak of surprise.
+  bosshit: (v) => {
+    tone(v, { from: 200, to: 90, dur: 0.14, gain: 0.3 });
+    noise(v, { dur: 0.08, gain: 0.2, filter: 'lowpass', from: 900 });
+    tone(v, { type: 'triangle', from: 900, to: 1400, dur: 0.1, gain: 0.08, delay: 0.06 });
+  },
+  // The stone lion's roar: a gravelly low growl.
+  roar: (v) => {
+    noise(v, { dur: 0.9, gain: 0.35, filter: 'lowpass', from: 420, to: 160, attack: 0.08 });
+    tone(v, { type: 'sawtooth', from: 110, to: 70, dur: 0.85, gain: 0.07, vibrato: { depth: 9, rate: 23 } });
+  },
+  // The owl: two soft hoots, the second longer and wavering.
+  hoot: (v) => {
+    tone(v, { from: 392, to: 370, dur: 0.22, gain: 0.16, attack: 0.04 });
+    tone(v, { from: 392, to: 350, dur: 0.55, gain: 0.16, attack: 0.05, delay: 0.38, vibrato: { depth: 8, rate: 7 } });
+  },
+  // The bullfrog's croak: a deep rubbery burp.
+  croak: (v) => {
+    tone(v, { type: 'sawtooth', from: 95, to: 80, dur: 0.32, gain: 0.08, vibrato: { depth: 14, rate: 32 } });
+    noise(v, { dur: 0.3, gain: 0.18, filter: 'bandpass', from: 300, q: 4 });
+  },
   // A pencil tick.
   click: (v) => noise(v, { dur: 0.03, gain: 0.25, filter: 'bandpass', from: 2800, q: 2 }),
   // Little feet on stone: four soft pats.
@@ -262,6 +288,7 @@ export const LEVEL: Readonly<Record<SfxId, number>> = {
   hop: 1.8, plop: 1.8, dragonfly: 2.8, rush: 1.6, steps: 1.4, card: 1.2,
   crystal: 2.2, blossom: 2, crack: 1.8, thud: 1.6, fruit: 2,
   snuffle: 1.8, munch: 1.6, shift: 2, rain: 2, bounce: 2, sink: 1.6,
+  gust: 1.4, bosshit: 2, roar: 1.8, hoot: 1.8, croak: 2,
 };
 
 export function synthesize(id: SfxId, v: Voice): void {

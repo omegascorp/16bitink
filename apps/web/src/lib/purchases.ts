@@ -1,4 +1,5 @@
 import { findGame } from '../data/games';
+import { isPass } from '../data/pass';
 import { isPaidSession, type FulfilOptions, type SessionLike } from './fulfil';
 import { isUserId, type UserId } from './userId';
 
@@ -12,6 +13,7 @@ export type PurchaseStatus = 'paid' | 'refunded' | 'disputed';
 export interface PurchaseRecord {
   /** Stripe Checkout Session id: the purchase's identity. */
   readonly sessionId: string;
+  /** A game's slug, or the pass's (see data/pass.ts). */
   readonly game: string;
   /** Lower-cased receipt email: a purchase made signed out goes to the user who signs in with it. */
   readonly email: string | null;
@@ -42,10 +44,10 @@ export interface CheckoutSessionLike extends SessionLike {
 
 const idOf = (v: string | { readonly id: string } | null): string | null => (v === null ? null : typeof v === 'string' ? v : v.id);
 
-/** The purchase this checkout made, or null when it bought nothing (unpaid, free, or not a catalog game). */
+/** The purchase this checkout made, or null when it bought nothing (unpaid, free, or neither a catalog game nor the pass). */
 export function purchaseFromSession(s: CheckoutSessionLike): PurchaseRecord | null {
   const game = s.metadata?.game;
-  if (!isPaidSession(s) || !game || !findGame(game)) return null;
+  if (!isPaidSession(s) || !game || !(isPass(game) || findGame(game))) return null;
   return {
     sessionId: s.id,
     game,
@@ -61,7 +63,7 @@ export function purchaseFromSession(s: CheckoutSessionLike): PurchaseRecord | nu
   };
 }
 
-/** The games these purchases still own (refunds and chargebacks drop out). */
+/** The games (and the pass) these purchases still own (refunds and chargebacks drop out). */
 export function ownedGames(records: readonly PurchaseRecord[], opts: FulfilOptions): string[] {
   const games = records.filter((r) => r.status === 'paid' && (r.livemode || opts.allowTestMode)).map((r) => r.game);
   return [...new Set(games)];
