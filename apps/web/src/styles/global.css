@@ -28,6 +28,8 @@
   --ink-faint: #a69c8a;
   --blue-ink: #1f3f8a;
   --red-ink: #a3342b;
+  /* Pixel titles: InkHeroes' gold, deepened to read on paper. */
+  --gold-ink: #8a5c0f;
   --tape: rgba(222, 205, 150, 0.7);
   --shadow: 3px 4px 0 rgba(27, 26, 31, 0.85);
   /* Hand-drawn underline for text links, in the lighter blue ink. */
@@ -48,6 +50,7 @@
     --ink-faint: #7d766a;
     --blue-ink: #8fb0f0;
     --red-ink: #f08a7f;
+    --gold-ink: #d4a849;
     --tape: rgba(140, 125, 80, 0.55);
     --shadow: 3px 4px 0 rgba(0, 0, 0, 0.7);
     --link-stroke: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 8' preserveAspectRatio='none'%3E%3Cpath d='M1 5.2C14 3.6 27 6.4 41 4.6S70 3.4 84 5.1 95 4 99 3.6' fill='none' stroke='%238fb0f0' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");

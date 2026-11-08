@@ -78,6 +78,11 @@ export interface GameHost {
    */
   readonly allLevelsOpen?: boolean;
   /**
+   * Local development only (DEV_ALL_LEVELS, for a signed-in admin on the
+   * site): the game may show its testing cheats, such as winning a battle.
+   */
+  readonly cheats?: boolean;
+  /**
    * Records a gameplay moment for the site's own analytics. Fire and
    * forget: it never throws and never blocks the game. Absent in dev
    * harnesses and tests.

@@ -25,16 +25,18 @@ interface Access {
   readonly unlocked: boolean;
   /** Local dev only: the server decides, from DEV_ALL_LEVELS on localhost. */
   readonly allLevelsOpen: boolean;
+  /** Local dev only: DEV_ALL_LEVELS on localhost, for a signed-in admin. */
+  readonly cheats: boolean;
 }
 
 async function checkAccess(game: string): Promise<Access> {
   try {
     const data = await getJson<Partial<Access>>(`/api/entitlement?game=${encodeURIComponent(game)}`);
-    return { unlocked: data.unlocked === true, allLevelsOpen: data.allLevelsOpen === true };
+    return { unlocked: data.unlocked === true, allLevelsOpen: data.allLevelsOpen === true, cheats: data.cheats === true };
   } catch (err) {
     // Offline or server hiccup: the free chapter still plays.
     console.warn('[16bit.ink] ownership check failed', err);
-    return { unlocked: false, allLevelsOpen: false };
+    return { unlocked: false, allLevelsOpen: false, cheats: false };
   }
 }
 
@@ -156,7 +158,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
     // Must be requested synchronously inside the click for browsers to allow it.
     const fs = goFullscreen(stage);
     try {
-      const [module, { unlocked, allLevelsOpen }, accountSaves, me] = await Promise.all([engineP, accessP, progressP, meP, fontP, fs]);
+      const [module, { unlocked, allLevelsOpen, cheats }, accountSaves, me] = await Promise.all([engineP, accessP, progressP, meP, fontP, fs]);
       bar.downloaded();
       step = 'mount';
       // Without knowing who is signed in, local saves can't be told apart: play on this browser's alone.
@@ -168,6 +170,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
       const handle = module.mount(stage, {
         unlocked,
         allLevelsOpen,
+        cheats,
         track: (event) => trackGameEvent(tag, event),
         loading: bar.reporter,
         storage: safeStorage(userId),

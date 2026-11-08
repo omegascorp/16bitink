@@ -1,0 +1,73 @@
+/**
+ * The narrator's lines (spec, "Narration"): each story moment that's told
+ * aloud has an id, and here, in one place, the script the voice reads,
+ * with its ElevenLabs v4 delivery tags in brackets. The subtitles (and the
+ * card the story falls back to) are the script with the tags taken out.
+ * The recording of line `id` is narration/<id>.mp3; narration/lines.json
+ * keeps what each recording said, so a script changed since is caught by
+ * test/narration.test.ts. Pure: no Phaser, no audio.
+ */
+
+export type LineId =
+  | 'part-ashford'
+  | 'part-thornwood'
+  | 'part-blackBanner'
+  | 'eudora-joins'
+  | 'eudora-lost'
+  | 'kassander-flees'
+  | 'korax-taken'
+  | 'kassander-beaten'
+  | 'chapter-won';
+
+export interface NarratedLine {
+  /** Who's speaking, named on the strip. */
+  readonly speaker: string;
+  /** The story card's title, for Read and for the card it falls back to. */
+  readonly title: string;
+  /** What the voice reads: the words with their delivery tags, as ElevenLabs v4 takes them. */
+  readonly script: string;
+}
+
+const NARRATOR_NAME = 'Narrator';
+
+const told = (title: string, script: string): NarratedLine => ({ speaker: NARRATOR_NAME, title, script });
+
+/**
+ * Every narrated line, hand-written for the voice: lively tags, "!" and
+ * "…", a change of mood every sentence or two, never [whispers].
+ * part-blackBanner was recorded first (Nov 8, 2026): keep its script word
+ * for word, or record it again.
+ */
+export const LINES: Readonly<Record<LineId, NarratedLine>> = {
+  'part-ashford': told('Ashford', '[warm, storytelling] Ogres have taken the old bridge on the north road… and no cart has crossed it in a week. [proud] Ashford is small, but its people are stubborn! [resolute] Hold the town, raise an army… and clear that bridge.'),
+  'part-thornwood': told('Thornwood', "[relieved] The ogres are gone, and the old bridge is open again! [storytelling] The north road runs on east… into Thornwood forest. [grim] Across the next river, brigands and their cyclops chief have taken the timber town. Take it back from its garrison, and its dwellings are yours. [intrigued] Near the road, a spellbook lies on a marble altar… guarded by Stymphalian birds. Win it, and magic is yours. [warm] And this land is too wide for one rider. Ianthe, a priestess of Athena, waits at your Tavern. Hire her… and she'll hold the roads behind you."),
+  'part-blackBanner': told('The Black Banner', "[grand, storytelling] Thornwood is free… and its foresters show Rowan an old trail, south, down through the trees. [mysterious] Somewhere below, a town called Eudora still keeps its gates shut against the Black Banner. [ominous] Kassander of Korax flies that banner, a red raven on black, and he serves no crown. [urgent] His riders want Eudora too. Get there first… or you'll be storming its walls! [wry] Beat him in the field, and he simply runs home and hires again. [resolute] So take Korax… then hunt him down!"),
+  'eudora-joins': told('Eudora opens its gates', "[joyful] Eudora's gates swing open! [warm] It held out against the Black Banner all this time… and now its walls, its garrison and its dwellings are yours."),
+  'eudora-lost': told('Eudora has fallen', "[dismayed] Too late… Kassander's riders reached Eudora first. [bitter] The red raven flies over its walls now. [determined] Take it back from him!"),
+  'kassander-flees': told('Kassander flees', "[scornful] Kassander turns his horse and runs! [wry] He's left his whole army on the field… [warning] but he'll hire another at home. Take his town, and he'll have nowhere left to run."),
+  'korax-taken': told('Korax is yours', '[triumphant] Korax is yours! [eager] Kassander has no town left to run to… and your scouts are on his trail. Hunt him down!'),
+  'kassander-beaten': told('Kassander is beaten', "[triumphant] Kassander falls! [solemn] The black banner is down… and it won't rise again."),
+  'chapter-won': told('The Border March is free', "[warm, proud] The Border March is free! [storytelling] From Ashford's bridge to the walls of Korax, the Crown's roads are open again… [hopeful] and Rowan's name is known in every town along them."),
+};
+
+/** Chapter 1's places and people the lines name: a line is told only where its words are true. */
+export const CHAPTER1 = { eudora: 'eudora-town', korax: 'korax-town', kassander: 'kassander' } as const;
+
+export const LINE_IDS = Object.keys(LINES) as LineId[];
+
+export const isLineId = (x: unknown): x is LineId => typeof x === 'string' && Object.hasOwn(LINES, x);
+
+/** The tags in a script: `[warm, storytelling]` and the like. */
+const TAG = /\[[^\]]*\]/g;
+
+/** A script's delivery tags, each as written inside its brackets. */
+export const tagsOf = (script: string): string[] => [...script.matchAll(TAG)].map((m) => m[0].slice(1, -1));
+
+/** What a script says: its words with the tags taken out, as the subtitles and the card show them. */
+export const spoken = (script: string): string => script.replace(TAG, ' ').replace(/\s+/g, ' ').trim();
+
+/** The words of line `id`. */
+export const lineText = (id: LineId): string => spoken(LINES[id].script);
+
+/** A story card's text and line, for a prompt that's told aloud. */
+export const narrated = (id: LineId): { readonly text: string; readonly line: LineId } => ({ text: lineText(id), line: id });

@@ -1,0 +1,12 @@
+bowman upload:b29a3f77-a58c-46ed-8b5e-91d9b1cbc31d
+griffin upload:cecf0cd3-e917-4626-8d74-798c937e2f3c
+swordsman upload:6202c767-fc68-47ca-88dc-032944346938
+monk upload:27058cef-7fe0-44ed-88cb-36dddb8b25ce
+lancer upload:fafe55e3-84e6-4cd2-869b-4b485e3a98cd
+seraph upload:b4eb5af9-6e9a-44ca-bd37-6caadcc271af
+goblin upload:d6c48cde-10b9-4200-b577-2dabc639af18
+skeleton upload:38381319-a8d5-4018-9437-b378308feca8
+wolf upload:70dff720-7b26-4f9b-a310-3a3b328aa44d
+bandit upload:b14b22ee-7dec-40a5-be80-ed65826eafa2
+ogre upload:cb83e54c-f8e9-4f04-897a-40d4ec4456b5
+{"ref":"upload:8fcd2f71-4bfb-438c-8237-59fee07ee04e","upload_id":"8fcd2f71-4bfb-438c-8237-59fee07ee04e","width":144,"height":136,"n_frames":1,"expires_in_days":3}

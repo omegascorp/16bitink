@@ -639,16 +639,14 @@ export const GAMES_LIKE: readonly GamesLikePage[] = [
     slug: 'heroes-of-might-and-magic-3',
     classic: 'Heroes of Might and Magic III',
     game: 'inkheroes',
-    // Written ahead of the game (on feat/inkheroes): remove once InkHeroes is in the catalog, and check its facts again then.
-    coming: 'InkHeroes',
     heading: 'Games like Heroes of Might and Magic III you can play today',
     description:
       'Miss Heroes of Might and Magic III? Play InkHeroes free in your browser with no ads, or try Olden Era, Songs of Conquest, Heroes V, King’s Bounty and more.',
     answer:
-      'If you miss Heroes of Might and Magic III, try InkHeroes: a hero rides a map taking mines and treasure, your town grows one building a day and hires each week’s troops, and battles are fought on hexes. Maps take 20 to 40 minutes, in any browser, with no ads. For more, try Olden Era and Songs of Conquest.',
+      'If you miss Heroes of Might and Magic III, try InkHeroes: a hero rides a map taking mines and treasure, your towns grow one building a day and hire each week’s troops, and battles are fought on hexes, sieges included. Its first chapter is free in any browser, with no ads. For more, try Olden Era and Songs of Conquest.',
     oursWhy: [
-      'InkHeroes plays like Heroes III at heart. A hero rides across the map taking sawmills and gold mines and opening treasure chests; back in town you build one thing a day, from a guardhouse to a griffin tower, and hire each week’s troops. Fights happen on a hex field with retaliation, shooters, flyers, morale, luck and spells.',
-      'What it changes is the length. Each map is hand-made, takes 20 to 40 minutes and has one clear goal, and every number is shown before you commit, so a whole map fits in a lunch break, on a phone too. The first map is free in any browser, with no ads, and more maps, a rival lord and new factions are on the way.',
+      'InkHeroes plays like Heroes III at heart. A hero rides across the map taking sawmills and gold mines and opening treasure chests; back in town you build one thing a day, from a guardhouse to a griffin tower, and hire each week’s troops. Fights happen on a hex field with retaliation, shooters, flyers, morale, luck and spells, and a Catapult brings down town walls.',
+      'What it changes is the size. Each map is hand-made with one clear goal, and every number is shown before you commit, so it plays well in short sittings, on a phone too. All of chapter 1, The Border March, is free in any browser with no ads: three maps that grow into one land, a second hero to hire, and a rival lord who races you for towns and retreats to fight again. It is in early access, and more chapters, each a new people with its own heroes and troops, are on the way.',
     ],
     alternatives: [
       {
@@ -703,11 +701,11 @@ export const GAMES_LIKE: readonly GamesLikePage[] = [
     compare: [
       { label: 'Made by', classic: 'New World Computing, published by 3DO, 1999', ours: '16bit.ink, 2026' },
       { label: 'Plays on', classic: 'Windows (GOG and Steam); phones only through the fan engine VCMI', ours: 'Any browser: computer, phone or tablet' },
-      { label: 'A map takes', classic: 'Hours on a big map', ours: '20 to 40 minutes, with one clear goal' },
-      { label: 'Towns', classic: 'Eight kinds, nine with Armageddon’s Blade', ours: 'One for now; more factions on the way' },
-      { label: 'Battles', classic: 'Hexes, with spells, morale and luck', ours: 'Hexes, with retaliation, shooters, flyers, morale, luck and spells' },
+      { label: 'A map is', classic: 'Hours on a big map', ours: 'Hand-made and short, with one clear goal' },
+      { label: 'Towns', classic: 'Eight kinds, nine with Armageddon’s Blade', ours: 'One people for now, the Greeks; more on the way' },
+      { label: 'Battles', classic: 'Hexes, with spells, morale and luck', ours: 'Hexes, with retaliation, shooters, flyers, morale, luck, spells and sieges' },
       { label: 'Ads', classic: 'None: it is a paid game', ours: 'None, ever' },
-      { label: 'Price', classic: 'Complete edition $9.99 on Steam', ours: 'First map free' },
+      { label: 'Price', classic: 'Complete edition $9.99 on Steam', ours: 'Chapter 1 free (early access)' },
     ],
     sections: [
       {
@@ -757,7 +755,7 @@ export const GAMES_LIKE: readonly GamesLikePage[] = [
     ],
     author: 'Hayk',
     published: '2026-10-27',
-    updated: '2026-10-27',
+    updated: '2026-11-08',
   },
 ];
 

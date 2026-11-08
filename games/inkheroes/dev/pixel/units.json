@@ -1,0 +1,682 @@
+{
+ "_doc": "Battle art sources. src = the generated still (facing right) that becomes frame 0; canvas = the animation canvas it is padded onto (feet `foot` px above the bottom, body shifted `dx` px from centre); prompts drive animate_image_pixminimax; strike = attack frame where the blow lands or the shot leaves; shot = where a projectile starts, in canvas px. Paths are relative to games/inkheroes/dev/. face = the centre of the unit's face in its idle frame (canvas px), for the 24 x 24 turn-order portrait. walkLock = how far each walk frame is shifted sideways so the body holds still (a gallop the generator let surge back and forth).",
+ "units": {
+  "spearman": {
+   "name": "Hoplite",
+   "src": "art-direction/greek/hoplite.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an ancient greek hoplite with bronze helmet, round bronze shield and spear",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    35,
+    36
+   ]
+  },
+  "bowman": {
+   "name": "Slinger",
+   "src": "art-direction/greek/slinger.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "an ancient greek slinger in a white tunic swinging a leather sling",
+   "attack": "slinging attack: whirls the sling overhead twice and releases the stone forward to the right with a snap of the arm, then recovers; feet stay in place",
+   "strike": 5,
+   "shot": [
+    70,
+    48
+   ],
+   "face": [
+    40,
+    41
+   ]
+  },
+  "griffin": {
+   "name": "Griffin",
+   "src": "art-direction/pixellab/optB-griffin.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "flies": true,
+   "subject": "a griffin with an eagle head, brown wings and a lion body",
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose",
+   "attack": "pounce attack: rears up, beats its wings once and lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "walkFrom": {
+    "pose": "attack",
+    "frames": [
+     0,
+     1,
+     2,
+     1
+    ]
+   },
+   "face": [
+    88,
+    62
+   ]
+  },
+  "swordsman": {
+   "name": "Minotaur",
+   "src": "pixel/shrink/minotaur.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a huge bull-headed minotaur with a double-headed labrys axe",
+   "attack": "axe chop attack: raises the double axe high over the horns and brings it down hard in front to the right, then lifts it back to the starting pose; hooves stay in place",
+   "strike": 3,
+   "face": [
+    63,
+    40
+   ]
+  },
+  "monk": {
+   "name": "Centaur",
+   "src": "pixel/src/centaur.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a centaur archer: horse body with a bearded man's torso, drawing a bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, the bow snaps forward, then reaches for a new arrow and returns to the starting pose; hooves stay in place",
+   "strike": 3,
+   "shot": [
+    96,
+    50
+   ],
+   "face": [
+    65,
+    41
+   ]
+  },
+  "lancer": {
+   "name": "Companion",
+   "src": "pixel/shrink/companion.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a greek companion cavalryman with a long lance on a white-grey warhorse",
+   "walk": "galloping in place loop: the horse gallops with legs reaching and gathering, the rider rocks with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "lance charge attack: the horse surges forward, the rider drives the long lance hard to the right, then the horse settles back to the starting pose",
+   "strike": 2,
+   "face": [
+    60,
+    37
+   ]
+  },
+  "seraph": {
+   "name": "Titan",
+   "src": "pixel/shrink/titan.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 8,
+   "dx": -8,
+   "subject": "a colossal golden-armoured titan holding a crackling lightning bolt",
+   "walk": "slow heavy striding in place loop: huge legs lift and plant, cloak sways, stays in the same spot, ends back at the starting pose",
+   "attack": "lightning strike attack: raises the lightning bolt high, crackling brighter, then hurls it down and forward to the right with a flash, then returns to the starting pose; feet stay planted",
+   "strike": 4,
+   "face": [
+    66,
+    39
+   ]
+  },
+  "goblin": {
+   "name": "Satyr",
+   "src": "art-direction/greek/satyr.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a satyr with goat legs, small horns, a short spear and a small shield",
+   "attack": "quick spear jab attack: hops forward on goat legs and jabs the short spear to the right, then skips back to the starting pose",
+   "strike": 3,
+   "face": [
+    39,
+    41
+   ]
+  },
+  "skeleton": {
+   "name": "Spartoi",
+   "src": "pixel/src/spartoi.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a skeleton warrior with a bronze crested helmet, round shield and short sword",
+   "attack": "sword slash attack: raises the short sword and slashes forward to the right with a rattle of bones, then recovers to the starting pose; feet stay in place",
+   "strike": 3,
+   "face": [
+    48,
+    39
+   ]
+  },
+  "wolf": {
+   "name": "Wolf",
+   "src": "art-direction/pixellab/b32-wolf.png",
+   "flip": true,
+   "canvas": [
+    112,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a snarling grey wolf",
+   "walk": "trotting in place loop: four legs trot in rhythm, head low, tail streams, stays in the same spot, ends back at the starting pose",
+   "attack": "bite attack: crouches, leaps forward to the right with jaws snapping, then lands back in the starting pose",
+   "strike": 3,
+   "face": [
+    81,
+    48
+   ]
+  },
+  "bandit": {
+   "name": "Brigand",
+   "src": "pixel/src/brigand.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a hooded greek brigand with a curved sword and a dagger",
+   "attack": "sneak attack: darts forward to the right and slashes with the curved sword then stabs with the dagger, then springs back to the starting pose",
+   "strike": 2,
+   "face": [
+    56,
+    38
+   ]
+  },
+  "ogre": {
+   "name": "Cyclops",
+   "src": "pixel/shrink/cyclops-b.png",
+   "canvas": [
+    128,
+    120
+   ],
+   "foot": 8,
+   "dx": -6,
+   "subject": "a one-eyed grey cyclops giant holding a boulder over his head",
+   "attack": "boulder smash attack: lifts the boulder higher, then slams it down in front to the right, then picks it back up into the starting pose; feet stay planted",
+   "strike": 4,
+   "face": [
+    55,
+    45
+   ]
+  },
+  "spearman2": {
+   "name": "Phalangite",
+   "src": "pixel/src/spearman2.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a greek phalangite with a very long sarissa pike, crested bronze helmet and linen corselet",
+   "attack": "sarissa thrust attack: lowers the long pike, lunges forward thrusting it hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    35,
+    36
+   ]
+  },
+  "spearman3": {
+   "name": "Spartan",
+   "src": "pixel/src/spearman3.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a spartan warrior in a red cloak with a Corinthian helmet with a tall red crest, bronze shield with a lambda and a spear",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    35,
+    36
+   ]
+  },
+  "bowman2": {
+   "name": "Peltast",
+   "src": "pixel/src/bowman2.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a greek peltast skirmisher with a crescent wicker shield and a javelin",
+   "attack": "javelin throw attack: leans back, hurls the javelin forward to the right with a snap of the arm, then recovers; feet stay in place",
+   "strike": 5,
+   "shot": [
+    70,
+    48
+   ],
+   "face": [
+    40,
+    41
+   ]
+  },
+  "bowman3": {
+   "name": "Cretan Archer",
+   "src": "pixel/src/bowman3.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a cretan archer with a recurved bow, leather cap and a quiver",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
+   "strike": 5,
+   "shot": [
+    70,
+    48
+   ],
+   "face": [
+    40,
+    41
+   ]
+  },
+  "griffin2": {
+   "name": "War Griffin",
+   "src": "pixel/src/griffin2.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "flies": true,
+   "subject": "a griffin in bronze barding armour and a bronze chamfron",
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose",
+   "attack": "pounce attack: rears up, beats its wings once and lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "walkFrom": {
+    "pose": "attack",
+    "frames": [
+     0,
+     1,
+     2,
+     1
+    ]
+   },
+   "face": [
+    88,
+    62
+   ]
+  },
+  "griffin3": {
+   "name": "Golden Griffin",
+   "src": "pixel/src/griffin3.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "flies": true,
+   "subject": "a griffin with golden feathers and a laurel collar",
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose",
+   "attack": "pounce attack: rears up, beats its wings once and lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "walkFrom": {
+    "pose": "attack",
+    "frames": [
+     0,
+     1,
+     2,
+     1
+    ]
+   },
+   "face": [
+    88,
+    62
+   ]
+  },
+  "swordsman2": {
+   "name": "Minotaur Guard",
+   "src": "pixel/src/swordsman2.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a huge bull-headed minotaur in a bronze breastplate with a double-headed axe",
+   "attack": "axe chop attack: raises the double axe high over the horns and brings it down hard in front to the right, then lifts it back to the starting pose; hooves stay in place",
+   "strike": 3,
+   "face": [
+    63,
+    40
+   ]
+  },
+  "swordsman3": {
+   "name": "Minotaur Lord",
+   "src": "pixel/src/swordsman3.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a huge black minotaur with gilded horns, crested helmet and a great labrys",
+   "attack": "axe chop attack: raises the double axe high over the horns and brings it down hard in front to the right, then lifts it back to the starting pose; hooves stay in place",
+   "strike": 3,
+   "face": [
+    63,
+    40
+   ]
+  },
+  "monk2": {
+   "name": "Centaur Marksman",
+   "src": "pixel/src/monk2.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a centaur marksman in leather armour drawing a composite bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, the bow snaps forward, then reaches for a new arrow and returns to the starting pose; hooves stay in place",
+   "strike": 3,
+   "shot": [
+    96,
+    50
+   ],
+   "face": [
+    65,
+    41
+   ]
+  },
+  "monk3": {
+   "name": "Centaur Sage",
+   "src": "pixel/src/monk3.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an elder centaur with a white beard, laurel wreath and golden bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, the bow snaps forward, then reaches for a new arrow and returns to the starting pose; hooves stay in place",
+   "strike": 3,
+   "shot": [
+    96,
+    50
+   ],
+   "face": [
+    65,
+    41
+   ]
+  },
+  "lancer2": {
+   "name": "Royal Companion",
+   "src": "pixel/src/lancer2.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a royal companion cavalryman with a purple cloak and plumed Boeotian helmet on a white-grey warhorse",
+   "walk": "galloping in place loop: the horse gallops with legs reaching and gathering, the rider rocks with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "lance charge attack: the horse surges forward, the rider drives the long lance hard to the right, then the horse settles back to the starting pose",
+   "strike": 2,
+   "face": [
+    60,
+    37
+   ]
+  },
+  "lancer3": {
+   "name": "Cataphract",
+   "src": "pixel/src/lancer3.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a cataphract heavy cavalryman, rider and horse both in scale armour",
+   "walk": "galloping in place loop: the horse gallops with legs reaching and gathering, the rider rocks with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "lance charge attack: the horse surges forward, the rider drives the long lance hard to the right, then the horse settles back to the starting pose",
+   "strike": 2,
+   "face": [
+    60,
+    37
+   ]
+  },
+  "seraph2": {
+   "name": "Elder Titan",
+   "src": "pixel/src/seraph2.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 8,
+   "dx": -8,
+   "subject": "a colossal titan in bronze armour holding a glowing staff",
+   "walk": "slow heavy striding in place loop: huge legs lift and plant, cloak sways, stays in the same spot, ends back at the starting pose",
+   "attack": "staff strike attack: raises the glowing staff high, the glow flares brighter, then slams it down and forward to the right with a flash, then returns to the starting pose; feet stay planted",
+   "strike": 4,
+   "face": [
+    66,
+    39
+   ]
+  },
+  "seraph3": {
+   "name": "Titan Lord",
+   "src": "pixel/src/seraph3.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 8,
+   "dx": -8,
+   "subject": "a colossal titan in golden armour crowned with storm clouds and lightning",
+   "walk": "slow heavy striding in place loop: huge legs lift and plant, cloak sways, stays in the same spot, ends back at the starting pose",
+   "attack": "lightning strike attack: raises the lightning bolt high, crackling brighter, then hurls it down and forward to the right with a flash, then returns to the starting pose; feet stay planted",
+   "strike": 4,
+   "face": [
+    66,
+    39
+   ]
+  },
+  "catapult": {"name": "Catapult", "src": "pixel/src/catapult.png", "canvas": [96, 96], "foot": 6, "dx": 0, "subject": "an ancient greek wooden catapult on a four-wheeled timber frame, no crew", "idle": "idle loop: the machine stands still, the stone at the end of the arm sways very slightly on its rope, ends back at the starting pose", "attack": "firing: the long throwing arm whips over the top and flings the stone away to the right, then swings back", "strike": 3, "shot": [70, 16], "face": [44, 62]},
+  "catapult2": {"name": "Bronze Catapult", "src": "pixel/src/catapult2.png", "canvas": [96, 96], "foot": 6, "dx": 0, "subject": "an ancient greek wooden catapult on a four-wheeled timber frame, no crew", "idle": "idle loop: the machine stands still, the stone at the end of the arm sways very slightly on its rope, ends back at the starting pose", "attack": "firing: the long throwing arm whips over the top and flings the stone away to the right, then swings back", "strike": 3, "shot": [70, 16], "face": [44, 62]},
+  "catapult3": {"name": "Syracusan Catapult", "src": "pixel/src/catapult3.png", "canvas": [96, 96], "foot": 6, "dx": 0, "subject": "an ancient greek wooden catapult on a four-wheeled timber frame, no crew", "idle": "idle loop: the machine stands still, the stone at the end of the arm sways very slightly on its rope, ends back at the starting pose", "attack": "firing: the long throwing arm whips over the top and flings the stone away to the right, then swings back", "strike": 3, "shot": [70, 16], "face": [44, 62]},
+  "boar": {
+   "name": "Erymanthian Boar",
+   "src": "pixel/src/boar.png",
+   "canvas": [
+    128,
+    104
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a huge dark brown wild boar with big ivory tusks",
+   "walk": "trotting in place loop: four legs trot heavily, head low, tail flicks, stays in the same spot, ends back at the starting pose",
+   "attack": "charge attack: lowers its head and tusks, lunges forward to the right and gores with the tusks, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    76,
+    62
+   ]
+  },
+  "stymphalian": {
+   "name": "Stymphalian Bird",
+   "src": "pixel/src/stymphalian.png",
+   "flies": true,
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a large crane-like bird with bronze metallic feathers and a long sharp bronze beak, flying",
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose",
+   "attack": "dive attack: beats its wings once, lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    88,
+    66
+   ]
+  },
+  "hydra": {
+   "name": "Lernaean Hydra",
+   "src": "pixel/src/hydra.png",
+   "flip": true,
+   "canvas": [
+    164,
+    112
+   ],
+   "foot": 6,
+   "dx": -24,
+   "subject": "a green-black water serpent hydra with five necks and five snarling snake heads",
+   "walk": "slithering in place loop: the five necks sway in turn, the coiled body shifts, stays in the same spot, ends back at the starting pose",
+   "attack": "strike attack: the heads rear back then lash forward to the right biting together, then sway back to the starting pose",
+   "strike": 3,
+   "face": [
+    96,
+    40
+   ]
+  },
+  "basilisk": {
+   "name": "Basilisk",
+   "src": "pixel/src/basilisk.png",
+   "canvas": [
+    120,
+    80
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a heavy scaled crested lizard basilisk, low to the ground",
+   "walk": "crawling in place loop: four short legs step in rhythm, body sways, tail swings, stays in the same spot, ends back at the starting pose",
+   "attack": "bite attack: rears its head back, lunges forward to the right with jaws open, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    82,
+    46
+   ]
+  }
+ },
+ "heroes": {
+  "player": {
+   "name": "Strategos",
+   "src": "pixel/src/hero.png",
+   "strip": [
+    [
+     86,
+     86,
+     86
+    ],
+    10
+   ],
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a greek general in a gilded bronze helmet with a blue crest on a black warhorse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the sword to the sky, it flashes with golden light, then lowers it to the starting pose; the horse stays in place",
+   "strike": 4,
+   "walkLock": [0, -5, -10, -15, -19, -15, -9, 0],
+   "face": [
+    59,
+    29
+   ]
+  },
+  "rival": {
+   "name": "Kassander",
+   "src": "pixel/src/hero_rival.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a rival greek warlord in a blackened bronze helmet with a tall red crest on a pale grey warhorse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the sword to the sky, it flashes with red light, then lowers it to the starting pose; the horse stays in place",
+   "strike": 4,
+   "walkLock": [0, -3, -5, -7, -7, -6, -2, 1],
+   "face": [
+    55,
+    27
+   ]
+  },
+  "ianthe": {
+   "name": "Ianthe",
+   "src": "pixel/src/hero_ianthe.png",
+   "strip": [
+    [
+     89,
+     89,
+     90
+    ],
+    10
+   ],
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a greek priestess of Athena in a white and silver robe with a deep blue cloak and a silver olive-leaf circlet, holding a tall staff topped with a small bronze owl, on a white horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the staff to the sky, the bronze owl on top flashes with silver-blue light, then lowers it to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    59,
+    29
+   ],
+   "walkLock": [
+    0,
+    0,
+    -3,
+    -11,
+    -13,
+    -15,
+    -8,
+    0
+   ]
+  }
+ },
+ "defaults": {
+  "idle": "idle breathing loop: stands in place, chest rises and falls gently, weapon bobs slightly, feet stay planted, ends back at the starting pose",
+  "walk": "walking in place loop: steps with legs alternating, body stays in the same spot, weapon held ready, ends back at the starting pose",
+  "frames": {
+   "idle": 4,
+   "walk": 8,
+   "attack": 8
+  }
+ }
+}

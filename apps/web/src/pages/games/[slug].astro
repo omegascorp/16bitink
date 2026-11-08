@@ -1,4 +1,5 @@
 ---
+import GameTitle from '../../components/GameTitle.astro';
 import Base from '../../layouts/Base.astro';
 import BuyButton from '../../components/BuyButton.astro';
 import GameStats from '../../components/GameStats.astro';
@@ -64,7 +65,7 @@ const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
     </div>
     <div class="info">
       <p class="pixel-label">{owned ? 'Full game · unlocked' : forSale ? `Free demo · full game ${game.price} one-time` : 'Free demo · the full game is coming soon'}</p>
-      <h1>{game.title}</h1>
+      <h1><GameTitle game={game} /></h1>
       <p class="tag">{game.tagline}</p>
       {fansOf && (
         <p class="fans">
@@ -118,7 +119,7 @@ const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
                   <source type="image/webp" srcset={coverSrcset(art, 'webp')} sizes="(min-width: 900px) 340px, calc(100vw - 32px)" />
                   <img src={coverVariant(art, 640, 'webp')} alt="" width="1200" height="675" loading="lazy" decoding="async" />
                 </picture>
-                <span class="more-title">{g.title}</span>
+                <span class="more-title"><GameTitle game={g} /></span>
                 <span class="more-tag">{g.tagline}</span>
                 <span class="more-play">{ownedSlugs.has(g.slug) ? 'Play' : 'Play free'} →</span>
               </a>

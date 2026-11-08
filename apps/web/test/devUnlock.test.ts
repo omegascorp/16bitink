@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { devUnlockAllowed } from '../src/lib/devUnlock';
+import { devCheatsAllowed, devUnlockAllowed } from '../src/lib/devUnlock';
 
 describe('dev unlock guard (DEV_UNLOCK and DEV_ALL_LEVELS)', () => {
   it('works only when the flag is on and the request is local', () => {
@@ -26,5 +26,18 @@ describe('local host check', () => {
     const { isLocalHost } = await import('../src/lib/devUnlock');
     expect(isLocalHost('localhost')).toBe(true);
     expect(isLocalHost('16bit.ink')).toBe(false);
+  });
+});
+
+describe('game cheats (DEV_ALL_LEVELS, for admins)', () => {
+  it('are for a signed-in admin with the flag on, on this machine', () => {
+    expect(devCheatsAllowed('true', 'localhost', 'admin')).toBe(true);
+  });
+
+  it('stay off for anyone else, and everywhere else', () => {
+    expect(devCheatsAllowed('true', 'localhost', 'user')).toBe(false);
+    expect(devCheatsAllowed('true', 'localhost', null)).toBe(false);
+    expect(devCheatsAllowed(undefined, 'localhost', 'admin')).toBe(false);
+    expect(devCheatsAllowed('true', '16bit.ink', 'admin')).toBe(false);
   });
 });

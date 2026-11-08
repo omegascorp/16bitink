@@ -1,5 +1,8 @@
 export type GameStatus = 'playable' | 'sketching';
 
+/** How a game is drawn: its title is lettered to match, and the catalog will filter by it. */
+export type ArtStyle = 'ink' | 'pixel';
+
 /** Colours for the play page splash, matching the game's first screen. */
 export interface GameTheme {
   readonly paper: string;
@@ -34,6 +37,8 @@ export interface CatalogGame {
   readonly description: readonly string[];
   readonly status: GameStatus;
   readonly cover?: string;
+  /** How the game is drawn; ink when unset. */
+  readonly style?: ArtStyle;
   /** Has a silent gameplay loop in src/assets/loops/ (made by scripts/loops.mjs), played over the cover. */
   readonly loop?: boolean;
   /** Release day (YYYY-MM-DD, UTC): the home page marks a game "New" for NEW_FOR_DAYS from it. */
@@ -312,6 +317,51 @@ export const GAMES: readonly CatalogGame[] = [
       'Arrows / A D: walk; Space: jump; ↑ ↓: climb a vine',
       'R or ↺: restart',
       'Esc / P / ❚❚: pause · M / ♪: sound on/off',
+    ],
+  },
+  {
+    slug: 'inkheroes',
+    title: 'InkHeroes',
+    style: 'pixel',
+    tagline: 'Raise an army. Build your towns. Win back the Border March.',
+    kind: 'strategy game',
+    fansOf: {
+      games: ['Heroes of Might and Magic III'],
+      how: 'Yes, it plays like Heroes III at heart: heroes ride across the map taking mines and treasure, your towns build one thing a day and hire each week’s troops, and fights happen on a hex field with retaliation, shooters, flyers, morale, luck, spells and sieges. InkHeroes makes it short and phone-sized: a campaign of hand-made maps with one clear goal each, a rival lord who races you for towns and retreats to fight another day, and every number shown before you commit.',
+    },
+    genre: ['Strategy', 'Turn-based', 'Fantasy'],
+    short: 'heroes',
+    description: [
+      'A turn-based strategy game in painted pixel art, set among the myths of ancient Greece. Lead the knight Rowan across the Border March: take sawmills and gold mines, open treasure chests, and fight satyrs, wolves, Stymphalian birds, cyclopes and hydras on a hex battlefield.',
+      'Grow your towns one building a day and hire Hoplites, Slingers, Griffins and Minotaurs. Find a spellbook, buy a Catapult to break town walls, gear your heroes and hire the priestess Ianthe to ride beside Rowan. Then race the rival lord Kassander for Eudora before you storm his fortress of Korax.',
+      'Early access: chapter 1, The Border March, is complete and free, three maps that grow into one land, with a narrator telling the story. More chapters, each a new people with its own heroes, troops and war machine, are being made.',
+    ],
+    status: 'playable',
+    cover: '/covers/inkheroes.png',
+    // Listed on the home page from this day (see isOut); its pages answer before that, for a look ahead of launch.
+    released: '2026-11-08',
+    updated: '2026-11-08',
+    size: { chapters: 4, ready: 1 },
+    demo: 'Chapter 1 free',
+    theme: { paper: '#15110d', ink: '#efe2c2', accent: '#d4a849' },
+    icon: 'inkheroes',
+    orientation: 'landscape',
+    fonts: { googleCss: 'family=Caveat:wght@500;700&family=Cinzel:wght@500;600;700;800&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400', await: ['32px Caveat', '700 32px Cinzel', '32px "EB Garamond"', '600 32px "EB Garamond"'] },
+    features: [
+      'Early access: chapter 1 complete and free, three campaign maps, no sign-up',
+      'Heroes III-style battles on a hex field: retaliation, shooters, flyers, morale, luck, spells and sieges',
+      'A rival lord who races you for towns, builds his own and retreats to fight again',
+      'Two heroes to lead, with gear sets, bigger bags and a Storehouse in every town',
+      'Painted towns that grow one building a day, and a narrator for the story',
+      'More chapters with new peoples are on the way',
+    ],
+    controls: [
+      'Map: tap a tile to plan a path, tap it again to go; drag to pan, wheel or pinch to zoom',
+      'Space or End day: end the day · T: open the town · H: back to the hero',
+      'Tap a hero’s face to pick them; ride into another of yours to trade troops and gear',
+      'Battle: tap a lit hex to move, an enemy to attack (the side you tap is where you strike from)',
+      'W: wait · D: defend · C: spellbook · A: auto-battle',
+      '❚❚: pause · Esc: leave the town',
     ],
   },
   {

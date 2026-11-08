@@ -1,4 +1,5 @@
 ---
+import GameTitle from '../../components/GameTitle.astro';
 import { isPurchasable, playableGames, type CatalogGame } from '../../data/games';
 import { appleTouchIcon } from '../../lib/manifest';
 import { GAME_VERSIONS } from '../../games/versions';
@@ -47,7 +48,7 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
           <source type="image/webp" srcset={coverSrcset(cover, 'webp')} sizes="min(420px, 80vw)" />
           <img src={coverVariant(cover, 640, 'webp')} alt="" width="1200" height="675" decoding="async" />
         </picture>
-        <h1>{game.title}</h1>
+        <h1><GameTitle game={game} /></h1>
         <p class="tag">{game.tagline}</p>
         <p class="free">No download · No sign-up</p>
         <!-- The price up front, so the offer later is no surprise; never a button, so Play stays the one tap.

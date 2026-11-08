@@ -1,0 +1,83 @@
+[
+  {
+    "line": "part-ashford",
+    "title": "Ashford",
+    "text": "Ogres have taken the old bridge on the north road… and no cart has crossed it in a week. Ashford is small, but its people are stubborn! Hold the town, raise an army… and clear that bridge.",
+    "script": "[warm, storytelling] Ogres have taken the old bridge on the north road… and no cart has crossed it in a week. [proud] Ashford is small, but its people are stubborn! [resolute] Hold the town, raise an army… and clear that bridge.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": "2026-11-08T10:34:30Z"
+  },
+  {
+    "line": "part-thornwood",
+    "title": "Thornwood",
+    "text": "The ogres are gone, and the old bridge is open again! The north road runs on east… into Thornwood forest. Across the next river, brigands and their cyclops chief have taken the timber town. Take it back from its garrison, and its dwellings are yours. Near the road, a spellbook lies on a marble altar… guarded by Stymphalian birds. Win it, and magic is yours. And this land is too wide for one rider. Ianthe, a priestess of Athena, waits at your Tavern. Hire her… and she'll hold the roads behind you.",
+    "script": "[relieved] The ogres are gone, and the old bridge is open again! [storytelling] The north road runs on east… into Thornwood forest. [grim] Across the next river, brigands and their cyclops chief have taken the timber town. Take it back from its garrison, and its dwellings are yours. [intrigued] Near the road, a spellbook lies on a marble altar… guarded by Stymphalian birds. Win it, and magic is yours. [warm] And this land is too wide for one rider. Ianthe, a priestess of Athena, waits at your Tavern. Hire her… and she'll hold the roads behind you.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": "2026-11-08T10:34:30Z"
+  },
+  {
+    "line": "part-blackBanner",
+    "title": "The Black Banner",
+    "text": "Thornwood is free… and its foresters show Rowan an old trail, south, down through the trees. Somewhere below, a town called Eudora still keeps its gates shut against the Black Banner. Kassander of Korax flies that banner, a red raven on black, and he serves no crown. His riders want Eudora too. Get there first… or you'll be storming its walls! Beat him in the field, and he simply runs home and hires again. So take Korax… then hunt him down!",
+    "script": "[grand, storytelling] Thornwood is free… and its foresters show Rowan an old trail, south, down through the trees. [mysterious] Somewhere below, a town called Eudora still keeps its gates shut against the Black Banner. [ominous] Kassander of Korax flies that banner, a red raven on black, and he serves no crown. [urgent] His riders want Eudora too. Get there first… or you'll be storming its walls! [wry] Beat him in the field, and he simply runs home and hires again. [resolute] So take Korax… then hunt him down!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": "2026-11-08T10:17:09Z"
+  },
+  {
+    "line": "eudora-joins",
+    "title": "Eudora opens its gates",
+    "text": "Eudora's gates swing open! It held out against the Black Banner all this time… and now its walls, its garrison and its dwellings are yours.",
+    "script": "[joyful] Eudora's gates swing open! [warm] It held out against the Black Banner all this time… and now its walls, its garrison and its dwellings are yours.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": "2026-11-08T10:34:30Z"
+  },
+  {
+    "line": "eudora-lost",
+    "title": "Eudora has fallen",
+    "text": "Too late… Kassander's riders reached Eudora first. The red raven flies over its walls now. Take it back from him!",
+    "script": "[dismayed] Too late… Kassander's riders reached Eudora first. [bitter] The red raven flies over its walls now. [determined] Take it back from him!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": "2026-11-08T10:34:30Z"
+  },
+  {
+    "line": "kassander-flees",
+    "title": "Kassander flees",
+    "text": "Kassander turns his horse and runs! He's left his whole army on the field… but he'll hire another at home. Take his town, and he'll have nowhere left to run.",
+    "script": "[scornful] Kassander turns his horse and runs! [wry] He's left his whole army on the field… [warning] but he'll hire another at home. Take his town, and he'll have nowhere left to run.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": "2026-11-08T10:34:30Z"
+  },
+  {
+    "line": "korax-taken",
+    "title": "Korax is yours",
+    "text": "Korax is yours! Kassander has no town left to run to… and your scouts are on his trail. Hunt him down!",
+    "script": "[triumphant] Korax is yours! [eager] Kassander has no town left to run to… and your scouts are on his trail. Hunt him down!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": "2026-11-08T10:34:30Z"
+  },
+  {
+    "line": "kassander-beaten",
+    "title": "Kassander is beaten",
+    "text": "Kassander falls! The black banner is down… and it won't rise again.",
+    "script": "[triumphant] Kassander falls! [solemn] The black banner is down… and it won't rise again.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": "2026-11-08T10:34:30Z"
+  },
+  {
+    "line": "chapter-won",
+    "title": "The Border March is free",
+    "text": "The Border March is free! From Ashford's bridge to the walls of Korax, the Crown's roads are open again… and Rowan's name is known in every town along them.",
+    "script": "[warm, proud] The Border March is free! [storytelling] From Ashford's bridge to the walls of Korax, the Crown's roads are open again… [hopeful] and Rowan's name is known in every town along them.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": "2026-11-08T10:34:30Z"
+  }
+]

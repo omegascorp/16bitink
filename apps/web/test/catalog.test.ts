@@ -17,7 +17,7 @@ describe('catalog', () => {
   });
 
   it('lists every game for sale, so the admin panel can unlock it and make keys for it', () => {
-    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko', 'inksnake', 'inkpin']);
+    expect(playableGames().map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko', 'inksnake', 'inkpin', 'inkheroes']);
   });
 
   it('is out from the start of its release day (UTC), or always when undated', () => {
@@ -34,10 +34,16 @@ describe('catalog', () => {
     expect(listedGames(new Date('2026-11-01T00:00:00Z')).map((g) => g.slug)).toEqual(['inkfish', 'inkcrab', 'inkmine', 'inkgecko', 'inksnake', 'inkpin']);
   });
 
+  it('lists InkHeroes from Sunday, Nov 8 (UTC), not the day before', () => {
+    expect(listedGames(new Date('2026-11-07T23:59:59Z')).map((g) => g.slug)).not.toContain('inkheroes');
+    expect(listedGames(new Date('2026-11-08T00:00:00Z')).map((g) => g.slug)).toContain('inkheroes');
+  });
+
   it('puts the newest game first on the home page, so this week\'s game is the featured one', () => {
     expect(homeGames(new Date('2026-10-21T23:59:59Z')).map((g) => g.slug)).toEqual(['inkmine', 'inkcrab', 'inkfish']);
     expect(homeGames(new Date('2026-10-22T00:00:00Z')).map((g) => g.slug)).toEqual(['inkgecko', 'inkmine', 'inkcrab', 'inkfish']);
     expect(homeGames(new Date('2026-11-01T00:00:00Z')).map((g) => g.slug)).toEqual(['inkpin', 'inksnake', 'inkgecko', 'inkmine', 'inkcrab', 'inkfish']);
+    expect(homeGames(new Date('2026-11-08T00:00:00Z')).map((g) => g.slug)).toEqual(['inkheroes', 'inkpin', 'inksnake', 'inkgecko', 'inkmine', 'inkcrab', 'inkfish']);
   });
 
   it('heads the home page with the newest game and the most played one, each labelled, then the rest newest first', () => {
@@ -47,9 +53,9 @@ describe('catalog', () => {
   });
 
   it('still calls the newest game the latest once its new week is over', () => {
-    const home = homeListings(new Date('2026-11-09T00:00:00Z'));
+    const home = homeListings(new Date('2026-11-16T00:00:00Z'));
     expect(home.top[0]).toMatchObject({ label: 'latest' });
-    expect(home.top[0]!.game.slug).toBe('inkpin');
+    expect(home.top[0]!.game.slug).toBe('inkheroes');
   });
 
   it('shows one top card when the newest game is also the most played', () => {
