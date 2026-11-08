@@ -8,6 +8,7 @@ import { drawFrame, FILLS, PRIMARY_FILLS, type FrameLook, type RimName } from '.
 import type { PixelBuffer, Rgba } from './pixelRaster';
 import { renderPixelText, wrapLines, type PixelTextStyle } from './pixelFont';
 import type { Pixels } from './pixelScenery';
+import { pressStep, type PressEvent } from '../press';
 
 /**
  * The battle UI's pieces as Phaser objects. Frames, buttons and portraits
@@ -242,7 +243,7 @@ export class PixelButton {
   private readonly face: Phaser.GameObjects.Container;
   private readonly label: TextLabel;
   private readonly note: TextLabel | null;
-  private state: ButtonState = 'idle';
+  private pressed = false;
   private enabled = true;
 
   constructor(private readonly scene: Phaser.Scene, private readonly opts: ButtonOpts) {
@@ -270,14 +271,14 @@ export class PixelButton {
     this.face = scene.add.container(0, 0, parts);
     this.root = scene.add.container(0, 0, [this.frame, this.face]);
     this.frame.setInteractive({ useHandCursor: false });
-    this.frame.on('pointerover', () => this.set('hover'));
-    this.frame.on('pointerout', () => this.set('idle'));
-    this.frame.on('pointerdown', () => this.set('down'));
-    this.frame.on('pointerup', () => {
-      if (this.state !== 'down') return;
-      this.set('hover');
-      opts.onClick();
-    });
+    // A touch sends over after down, so the press is kept apart from the look.
+    const on = (ev: PressEvent, p: Phaser.Input.Pointer): void => {
+      const step = pressStep(this.pressed, ev, this.enabled);
+      this.pressed = step.pressed;
+      this.set(step.pressed ? 'down' : ev === 'out' || p.wasTouch ? 'idle' : 'hover');
+      if (step.click) opts.onClick();
+    };
+    for (const ev of ['over', 'out', 'down', 'up'] as const) this.frame.on(`pointer${ev}`, (p: Phaser.Input.Pointer) => on(ev, p));
   }
 
   /** Icon then label, centred together (a note line goes under the label: beside the icon, or each centred with none). */
@@ -338,7 +339,6 @@ export class PixelButton {
 
   private set(s: ButtonState): void {
     if (!this.enabled && s !== 'off') return;
-    this.state = s;
     this.frame.setTexture(this.keys[s]);
     this.face.setPosition(0, s === 'down' ? 1 : 0).setAlpha(s === 'off' ? 0.55 : 1);
   }

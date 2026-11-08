@@ -6,7 +6,7 @@ import type { BattleCameras } from './battleCameras';
 import { FIELD_RECT, HERO_FEET, WORLD } from './pixelLayout';
 import { PixelCard } from './pixelCard';
 import type { Rgba } from './pixelRaster';
-import { PixelButton, PixelFrame, TextLabel } from './pixelUi';
+import { INK, PixelButton, PixelFrame, TextLabel } from './pixelUi';
 import { LINE_H } from './pixelFont';
 import { FILLS, SLOT, SLOT_GAP } from './pixelFrames';
 import { TurnOrder } from './turnOrder';
@@ -31,6 +31,9 @@ const STATUS_H = LINE_H + 2 + PLATE_PAD.y * 2;
 /** How far a float rises and how long it takes, UI pixels and ms. */
 const FLOAT_RISE = 14;
 const FLOAT_MS = 1300;
+/** On a phone held upright, the field is small: a word in the empty sky asks for it sideways. */
+const TURN_HINT = 'Turn your phone for a bigger field';
+const isTouch = (): boolean => typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
 
 export interface HudActions {
   readonly wait: () => void;
@@ -56,6 +59,7 @@ export interface HudActions {
  */
 export class BattleHud {
   private readonly status: TextLabel;
+  private readonly turnHint: TextLabel;
   private plate: PixelFrame | null = null;
   private readonly order: TurnOrder;
   private winBtn: PixelButton | null = null;
@@ -76,12 +80,13 @@ export class BattleHud {
 
   constructor(private readonly scene: Phaser.Scene, private readonly cams: BattleCameras, actions: HudActions, canCast: boolean) {
     this.status = new TextLabel(scene, { anchor: { x: 0.5, y: 0 } });
+    this.turnHint = new TextLabel(scene, { anchor: { x: 0.5, y: 0.5 }, align: 'center', ink: INK.text, outline: true });
     this.order = new TurnOrder(scene);
     const btn = (label: string, icon: IconName, onClick: () => void): PixelButton => new PixelButton(scene, { w: BTN.w, h: BTN.h, label, icon, stacked: true, onClick });
     this.autoBtn = btn('Auto', 'auto', actions.auto);
     this.buttons = [btn('Wait', 'wait', actions.wait), btn('Defend', 'defend', actions.defend), ...(canCast ? [btn('Spell', 'spell', actions.spell)] : []), this.autoBtn];
     this.soundBtn = new PixelButton(scene, { w: SOUND_BTN.w, h: SOUND_BTN.h, label: 'Sound', onClick: actions.sound });
-    cams.ui.add([this.order.root, this.status.img, this.soundBtn.root, ...this.buttons.map((b) => b.root)]);
+    cams.ui.add([this.turnHint.img, this.order.root, this.status.img, this.soundBtn.root, ...this.buttons.map((b) => b.root)]);
     if (actions.win) {
       this.winBtn = new PixelButton(scene, { w: WIN_BTN.w, h: WIN_BTN.h, label: 'Win', rim: 'gold', onClick: actions.win });
       cams.ui.add(this.winBtn.root);
@@ -99,6 +104,7 @@ export class BattleHud {
     // Room under the world, device pixels, for the bar at a zoom that fits its row of buttons.
     const below = this.scene.scale.height - this.worldBottomDevice();
     const barK = Math.max(1, Math.floor(this.scene.scale.width / BAR_W));
+    this.turnHint.img.setVisible(false);
     if (below >= BAR_H * barK) this.layoutBar(barK);
     else this.layoutSides();
     this.soundBtn.setPosition(SOUND_BTN.margin, SOUND_BTN.margin);
@@ -120,11 +126,16 @@ export class BattleHud {
     this.statusAt = { x: Math.round(top.x), y: Math.round(top.y) };
     this.orderAt = { x: Math.round(top.x), y: Math.round(top.y) + STATUS_H + 1 };
     this.statusWrap = FIELD_RECT.w;
-    // Each pair side by side under its hero, standing on the field's bottom edge.
+    // Each pair side by side under its hero, standing on the field's bottom edge, kept off the hexes
+    // (a phone draws the UI bigger than the art, so a pair centred under its hero would cover them).
     const bottom = at(0, FIELD_RECT.y + FIELD_RECT.h).y;
+    const fieldL = at(FIELD_RECT.x, 0).x;
+    const fieldR = at(FIELD_RECT.x + FIELD_RECT.w, 0).x;
+    const uiW = this.cams.uiSize().w;
     [this.buttons.slice(0, 2), this.buttons.slice(2)].forEach((row, side) => {
       const rowW = row.length * BTN.w + (row.length - 1) * BTN.gap;
-      const col = at(HERO_FEET[side as 0 | 1].x, 0).x - Math.floor(rowW / 2);
+      const under = at(HERO_FEET[side as 0 | 1].x, 0).x - Math.floor(rowW / 2);
+      const col = side === 0 ? Math.max(4, Math.min(under, Math.floor(fieldL) - rowW - BTN.gap)) : Math.min(uiW - rowW - 4, Math.max(under, Math.ceil(fieldR) + BTN.gap));
       row.forEach((b, i) => b.setPosition(col + i * (BTN.w + BTN.gap), bottom - BTN.h));
     });
     this.orderMax = Math.min(ORDER_MAX, Math.floor((FIELD_RECT.w + SLOT_GAP) / (SLOT + SLOT_GAP)));
@@ -145,6 +156,15 @@ export class BattleHud {
     const y = this.orderAt.y + TurnOrder.height + 4;
     this.buttons.forEach((b, i) => b.setPosition(left + i * (BTN.w + BTN.gap), y));
     this.orderMax = Math.min(ORDER_MAX, Math.floor((ui.w - 8 + SLOT_GAP) / (SLOT + SLOT_GAP)));
+    // Midway down the sky, under the Sound button, when there is sky enough for it.
+    const skyTop = SOUND_BTN.margin + SOUND_BTN.h + 4;
+    const skyBottom = statusAbove ? this.statusAt.y : worldTop;
+    if (ui.h > ui.w && isTouch()) {
+      this.turnHint.setWrap(ui.w - 16).setText(TURN_HINT);
+      const fits = skyBottom - skyTop >= this.turnHint.height + 8;
+      this.turnHint.img.setVisible(fits);
+      this.turnHint.setPosition(Math.floor(ui.w / 2), Math.floor((skyTop + skyBottom) / 2));
+    }
   }
 
   /** The status line's text. */
@@ -235,6 +255,7 @@ export class BattleHud {
   destroy(): void {
     this.card?.close();
     this.status.destroy();
+    this.turnHint.destroy();
     this.plate?.destroy();
     this.order.destroy();
     for (const b of this.buttons) b.destroy();

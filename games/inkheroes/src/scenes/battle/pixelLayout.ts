@@ -117,7 +117,7 @@ export function hexAtPx(x: number, y: number): Hex | null {
 
 /** How the 960 × 540 world sits on a canvas `w` × `h` device pixels. */
 export interface WorldFit {
-  /** Device pixels per native pixel: a whole number whenever the world fits at 1× or more. */
+  /** Device pixels per native pixel: a whole number whenever that zoom reaches the fit's `minK`. */
   readonly k: number;
   /** The world's top-left corner on the canvas, device pixels (whole; a whole number of native pixels when k is). */
   readonly x: number;
@@ -127,17 +127,19 @@ export interface WorldFit {
 }
 
 /**
- * The largest whole zoom that fits (or, only when even 1× doesn't, the
- * largest fraction), centred across; down the screen centred, or (`bottom`)
- * standing on the canvas's bottom edge so the spare height goes to the sky
- * above. At a whole zoom the offset is snapped to whole native pixels, so
- * the world camera scrolls by whole pixels as it fills the canvas round the
- * world.
+ * The largest whole zoom that fits (or, when it is under `minK`, the largest
+ * fraction: a phone, where 1× would draw a native pixel smaller than a CSS
+ * pixel and the field too small for a finger), centred across; down the
+ * screen centred, or (`bottom`) standing on the canvas's bottom edge so the
+ * spare height goes to the sky above. At a whole zoom the offset is snapped
+ * to whole native pixels, so the world camera scrolls by whole pixels as it
+ * fills the canvas round the world.
  */
-export function fitWorld(w: number, h: number, alignY: 'center' | 'bottom' = 'center'): WorldFit {
+export function fitWorld(w: number, h: number, alignY: 'center' | 'bottom' = 'center', minK = 1): WorldFit {
   const fit = Math.min(w / WORLD.w, h / WORLD.h);
-  const k = fit >= 1 ? Math.floor(fit) : fit;
-  const snap = (v: number): number => (fit >= 1 ? Math.floor(v / k) * k : Math.floor(v));
+  const whole = Math.floor(fit);
+  const k = whole >= Math.max(1, minK) ? whole : fit;
+  const snap = (v: number): number => (k === whole ? Math.floor(v / k) * k : Math.floor(v));
   const x = snap((w - WORLD.w * k) / 2);
   const y = snap(alignY === 'bottom' ? h - WORLD.h * k : (h - WORLD.h * k) / 2);
   return {

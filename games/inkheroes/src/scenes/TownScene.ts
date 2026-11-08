@@ -358,7 +358,7 @@ export class TownScene extends Phaser.Scene {
       return;
     }
     const spec = this.screen === 'hall' ? hallScreen(this, adv, this.town(), this.session.def.off, act) : fortScreen(this, adv, this.town(), act);
-    this.window = new TownWindow(this, spec, area, () => this.openScreen(null), DEPTH.window);
+    this.window = new TownWindow(this, spec, area, () => this.openScreen(null), DEPTH.window, { area: this.size, depth: DEPTH.coveringWindow });
   }
 
   private pickSpell(id: SpellId): void {

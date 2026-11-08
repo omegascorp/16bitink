@@ -97,10 +97,20 @@ describe('world fit', () => {
     expect(f.y + WORLD.h * f.k).toBe(1502);
   });
 
+  it('fills a phone instead when a whole zoom would draw a native pixel under a CSS pixel', () => {
+    // An 844 × 390 phone at 2 device pixels per CSS pixel: 1× would show the world at 480 × 270.
+    const f = fitWorld(1688, 780, 'bottom', 2);
+    expect(f.k).toBeCloseTo(780 / 540);
+    expect(f.y + WORLD.h * f.k).toBeCloseTo(780, 0);
+    // A laptop at the same density keeps its whole zoom.
+    expect(fitWorld(2880, 1800, 'center', 2).k).toBe(3);
+    expect(fitWorld(2400, 1300, 'center', 2).k).toBe(2);
+  });
+
   it('snaps the offset to whole native pixels and covers the whole canvas', () => {
-    for (const [w, h] of [[2576, 1279], [1921, 1083], [1280, 720], [844, 390], [390, 844]] as const) {
-      const f = fitWorld(w, h);
-      if (f.k >= 1) expect([f.x % f.k, f.y % f.k]).toEqual([0, 0]);
+    for (const [w, h, minK] of [[2576, 1279, 1], [1921, 1083, 1], [1280, 720, 1], [844, 390, 1], [390, 844, 1], [1688, 780, 2], [780, 1688, 2]] as const) {
+      const f = fitWorld(w, h, 'center', minK);
+      if (Number.isInteger(f.k)) expect([f.x % f.k, f.y % f.k]).toEqual([0, 0]);
       expect(f.x - f.margin.left * f.k).toBeLessThanOrEqual(0);
       expect(f.y - f.margin.top * f.k).toBeLessThanOrEqual(0);
       expect(f.x + (WORLD.w + f.margin.right) * f.k).toBeGreaterThanOrEqual(w);

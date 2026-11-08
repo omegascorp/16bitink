@@ -3,6 +3,9 @@ import { BACKDROP } from '../../art/palette';
 import { DPR, uiCamera } from '../hidpi';
 import { fitWorld, WORLD, type WorldFit } from './pixelLayout';
 
+/** Device pixels per CSS pixel, rounded: the least zoom for a native or UI pixel (1 at a laptop's 125%, 2 on a phone). */
+const MIN_K = Math.round(DPR);
+
 /** The world's place on screen in CSS pixels (the HUD's units). */
 export interface ScreenRect {
   readonly x: number;
@@ -55,17 +58,18 @@ export class BattleCameras {
   refit(): void {
     const { width, height } = this.scene.scale;
     // A wide screen stands the field on its bottom edge (the spare height is sky); a tall one centres it, room below for the bar.
-    this.fit = fitWorld(width, height, width >= height ? 'bottom' : 'center');
+    // A native pixel never under a CSS pixel: a phone fills its screen at a fractional zoom instead.
+    this.fit = fitWorld(width, height, width >= height ? 'bottom' : 'center', MIN_K);
     const { k, x, y } = this.fit;
     // The camera fills the canvas; the world's corner lands on (x, y) and the extended background covers the rest.
     this.worldCam.setViewport(0, 0, width, height).setZoom(k).setScroll(-x / k, -y / k);
     this.hudCam.setSize(width, height);
-    this.setUiZoom(Math.max(1, Math.floor(k)));
+    this.setUiZoom(Math.floor(k));
   }
 
-  /** Device pixels per UI pixel (a whole number); the world's own zoom unless the layout wants bigger. */
+  /** Device pixels per UI pixel (a whole number, never a UI pixel under a CSS one); the world's own zoom unless the layout wants bigger. */
   setUiZoom(z: number): void {
-    this.uiK = Math.max(1, Math.round(z));
+    this.uiK = Math.max(MIN_K, Math.round(z));
     const { width, height } = this.scene.scale;
     this.uiCam.setViewport(0, 0, width, height).setZoom(this.uiK).setScroll(0, 0);
   }

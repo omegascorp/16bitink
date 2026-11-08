@@ -57,6 +57,8 @@ export class SpellBook {
   private readonly tabIcons = new Map<SpellSchool, Phaser.GameObjects.Image>();
   private school: SpellSchool;
   private closed = false;
+  /** On touch, the spell a first tap read out (and lit); a second tap on it casts. */
+  private armed: { readonly id: SpellId; readonly glow: Phaser.GameObjects.Rectangle } | null = null;
   private readonly origin: { x: number; y: number };
   private readonly pageW: number;
 
@@ -120,6 +122,7 @@ export class SpellBook {
   /** Turns to a school: its tab stands out, its known spells fill the pages. */
   private open(school: SpellSchool): void {
     this.school = school;
+    this.armed = null;
     this.foot.setText(this.idle());
     const size = bookSize(this.pageW, PAGE_H);
     SCHOOLS.forEach((sch) => {
@@ -157,7 +160,7 @@ export class SpellBook {
     this.pageLayer.add([title.img, rule.img, lore.img]);
   }
 
-  /** One spell on the page: its icon, name, and level and cost; hover tells what it does, a click picks it. */
+  /** One spell on the page: its icon, name, and level and cost; hover (or a first tap) tells what it does, a click picks it. */
   private slot(id: SpellId, i: number): void {
     const def = SPELLS[id];
     const why = this.spec.why(id);
@@ -179,10 +182,20 @@ export class SpellBook {
       this.foot.setText(why ? `${def.name}: ${why}` : `${def.name}: ${def.says}`);
     });
     glow.on('pointerout', () => {
+      // A finger lifting leaves the spell it read out lit.
+      if (this.armed?.id === id) return;
       glow.setFillStyle(0xfff4d6, 0);
       this.foot.setText(this.idle());
     });
-    glow.on('pointerup', () => {
+    glow.on('pointerup', (ptr: Phaser.Input.Pointer) => {
+      // There's no hover on a phone: the first tap reads the spell out (or why it can't be cast), a second casts it.
+      if (ptr.wasTouch && this.armed?.id !== id) {
+        this.armed?.glow.setFillStyle(0xfff4d6, 0);
+        this.armed = { id, glow };
+        glow.setFillStyle(0xfff4d6, 0.35);
+        this.foot.setText(why ? `${def.name}: ${why}` : `${def.name}: ${def.says} · tap again to cast`);
+        return;
+      }
       if (why) return;
       this.close();
       this.spec.onPick(id);

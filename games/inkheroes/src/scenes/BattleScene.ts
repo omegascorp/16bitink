@@ -19,10 +19,11 @@ import { unitInfo } from './battle/unitCard';
 import { backdropSource, loadBattleArt } from './battle/pixelAssets';
 import { texturePixels } from './battle/pixelUi';
 import { hexAtPx, hexPx, towerAtPx } from './battle/pixelLayout';
-import { crispText } from './hidpi';
+import { crispText, toView } from './hidpi';
 import type { MapScene } from './MapScene';
 import { coverWhileLoading } from './LoadingScene';
 import { PixelCursors, swordDir, type CursorKind } from './pixelCursors';
+import { isLongPress } from './press';
 import { Session } from './session';
 import { soundCard } from './soundCard';
 
@@ -439,8 +440,8 @@ export class BattleScene extends Phaser.Scene {
 
   private tap(p: Phaser.Input.Pointer): void {
     if (this.hud.modal) return;
-    // A right click on any unit shows its stats, whoever's turn it is (as in Heroes 3).
-    if (p.rightButtonReleased()) {
+    // A right click (or, on a phone, a long press) on any unit shows its stats, whoever's turn it is (as in Heroes 3).
+    if (p.rightButtonReleased() || (p.wasTouch && isLongPress(p.upTime - p.downTime, toView(p.getDistance(), 0).x))) {
       const h = this.hexAt(p);
       const s = h === null ? undefined : stackAt(this.state, h);
       if (s) this.showUnit(s);

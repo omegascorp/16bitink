@@ -33,6 +33,11 @@ export interface GridSpec {
   readonly buttons?: readonly FootButton[];
 }
 
+interface Size {
+  readonly w: number;
+  readonly h: number;
+}
+
 const PAD = 8;
 const GAP = 6;
 const LINE = 15;
@@ -67,11 +72,11 @@ export class TownWindow {
   private readonly innerW: number;
   private readonly pageLabel: TextLabel | null = null;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly spec: GridSpec, area: { w: number; h: number }, onClose: () => void, private readonly depth: number) {
-    const shade = scene.add.rectangle(0, 0, area.w, area.h, 0x0a0604, 0.5).setOrigin(0).setDepth(depth).setInteractive();
-    shade.on('pointerup', () => onClose());
-    this.objects.push(shade);
-    const maxW = area.w - 8;
+  private readonly depth: number;
+
+  /** Drawn in `area`; when not even one row of cards fits there (a phone held sideways), over all of `cover` instead. */
+  constructor(private readonly scene: Phaser.Scene, private readonly spec: GridSpec, inArea: Size, onClose: () => void, inDepth: number, cover?: { readonly area: Size; readonly depth: number }) {
+    const maxW = inArea.w - 8;
     const cols = Math.max(1, Math.min(spec.maxCols, spec.count || 1, Math.floor((maxW - PAD * 2 + GAP) / (spec.cell.w + GAP))));
     const gridW = cols * (spec.cell.w + GAP) - GAP;
     const note = spec.note ? new TextLabel(scene, { wrap: Math.max(gridW, 200), anchor: { x: 0.5, y: 0 }, ink: INK.dim }).setText(spec.note) : null;
@@ -81,6 +86,14 @@ export class TownWindow {
     const btnRows = inRow ? 1 : buttons.length;
     const btnH = buttons.some((b) => b.note) ? BTN_NOTE_H : BTN_H;
     const footH = (note ? note.height + 4 : 0) + btnRows * (btnH + 4);
+    const oneRowH = HEAD + (spec.count ? spec.cell.h : 0) + 6 + footH + PAD + 8;
+    const covers = !!cover && oneRowH > inArea.h;
+    const area = covers ? cover.area : inArea;
+    const depth = covers ? cover.depth : inDepth;
+    this.depth = depth;
+    const shade = scene.add.rectangle(0, 0, area.w, area.h, 0x0a0604, 0.5).setOrigin(0).setDepth(depth).setInteractive();
+    shade.on('pointerup', () => onClose());
+    this.objects.push(shade);
     const roomRows = Math.max(1, Math.floor((area.h - 8 - HEAD - PAD - footH - NAV.h - 4 + GAP) / (spec.cell.h + GAP)));
     const rows = Math.min(roomRows, Math.max(1, Math.ceil(spec.count / cols)));
     this.cols = cols;
