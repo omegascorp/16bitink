@@ -4,8 +4,9 @@ import type { HeroDef, MapDef } from '../level/types';
 import { DEFEND, gridOf, lyingItem, MAX_MONSTER, queueLevelUps, RIVAL, type Adventure, type Prompt, type RivalState } from './adventure';
 import { ARMY_SLOTS, type Army, type ArmySlot } from './army';
 import { BUILDINGS, isBuildingId, type BuildingId } from './buildings';
+import { buildingOf, buildsAt } from './factions';
 import { parseDayReport } from './dayReport';
-import { canManTower, isCreatureId, lineOf, type CreatureId } from './creatures';
+import { canManTower, isCreatureId, lineOf, type CreatureId, type TownFaction } from './creatures';
 import { dailyMp, levelFor, maxMana, PRIMARIES } from './hero';
 import { passable, STABLES_MP } from './map';
 import { CHEST_XP, townCore, type MapObject } from './objects';
@@ -13,11 +14,13 @@ import { storeRoom } from './storage';
 import { addTo, RESOURCES, type Purse } from './resources';
 import { isSkillId, MAX_SKILLS, SKILL_IDS, type Rank } from './skills';
 import { isSpellId, type SpellId } from './spells';
-import { SPELLBOOK_SOLD, type Town } from './town';
+import { dwellings, SPELLBOOK_SOLD, type Town } from './town';
 import { isLineId } from '../narration/lines';
 
 /** What the war machines since cut from the game cost, gold. */
 const OLD_MACHINES: Readonly<Record<string, number>> = { ballista: 1500, tent: 750 };
+/** Most Ankhs a hero or a town's temple may hold in a save. */
+const MAX_ANKHS = 999;
 /** Most cards a save may hold waiting. */
 const MAX_PROMPTS = 20;
 /** The most a hero can have left today beyond a day's movement (a town's Stables, and one on the road). */
@@ -39,6 +42,8 @@ export interface Progress {
 export const EMPTY_PROGRESS: Progress = { maps: {} };
 const PROGRESS_KEY = 'inkheroes.progress.v1';
 const ADVENTURE_KEY = 'inkheroes.adventure.v1';
+/** Where a chapter's game is saved: chapter 1's where it always was, each later chapter's in a slot of its own. */
+export const adventureKey = (slot?: string): string => (slot ? `inkheroes.adventure.${slot}.v1` : ADVENTURE_KEY);
 const MAX_MAPS = 200;
 
 /** Blots for a won map: winning, winning within par, and losing no stack. */
@@ -95,13 +100,14 @@ export interface AdventureSave {
   readonly partStart?: Adventure;
 }
 
-export function saveAdventure(store: KeyValueStore | undefined, save: AdventureSave | null): void {
-  writeJson(store, ADVENTURE_KEY, save);
+/** Saves the game in play (`slot`: its chapter's; none for chapter 1). */
+export function saveAdventure(store: KeyValueStore | undefined, save: AdventureSave | null, slot?: string): void {
+  writeJson(store, adventureKey(slot), save);
 }
 
 /** The saved map in play, if there is one and it's sound; `defs` finds its map. */
-export function loadAdventure(store: KeyValueStore | undefined, defs: (id: string) => MapDef | undefined): AdventureSave | null {
-  const raw = readJson(store, ADVENTURE_KEY);
+export function loadAdventure(store: KeyValueStore | undefined, defs: (id: string) => MapDef | undefined, slot?: string): AdventureSave | null {
+  const raw = readJson(store, adventureKey(slot));
   if (!isObj(raw)) return null;
   const id = isObj(raw.current) ? raw.current.mapId : null;
   const def = typeof id === 'string' ? defs(id) : undefined;
@@ -224,8 +230,10 @@ function parseHero(raw: Record<string, unknown>, def: MapDef, h: HeroDef = def.h
   const army = parseArmy(raw.army);
   if (!army) return null;
   const skills = Object.fromEntries(SKILL_IDS.filter((k) => (raw.skills as Record<string, unknown>)[k]).map((k) => [k, (raw.skills as Record<string, Rank>)[k]]));
+  // Their people come from the map; Ankhs from the save (a save from before Egypt has none).
+  const ankhs = isInt(raw.ankhs, 1, MAX_ANKHS) ? raw.ankhs : 0;
   const hero = {
-    id: h.id, name: h.name, heroClass: h.heroClass, x: raw.x, y: raw.y,
+    id: h.id, name: h.name, heroClass: h.heroClass, x: raw.x, y: raw.y, ...(h.faction ? { faction: h.faction } : {}), ...(ankhs ? { ankhs } : {}),
     attack: raw.attack as number, defense: raw.defense as number, power: raw.power as number, knowledge: raw.knowledge as number,
     mana: raw.mana, xp: raw.xp, level: Math.min(raw.level, levelFor(raw.xp)), skills, spells: [...new Set(raw.spells)], army, mp: raw.mp, visited: raw.visited as string[],
     ...bookFromFlag(raw, parseGear(raw)),
@@ -263,8 +271,8 @@ function parseGear(raw: Record<string, unknown>): { gear?: Gear; bag?: ItemId[];
   return { ...(Object.keys(gear).length ? { gear } : {}), ...(bag.length ? { bag } : {}), ...(pack ? { pack } : {}) };
 }
 
-/** A saved town on the map's town `t` (its place, name and guild come from the map). The first town is always the player's. */
-function parseTown(raw: Record<string, unknown>, t: { id: string; name: string; x: number; y: number; built: readonly BuildingId[]; guild: readonly SpellId[] }, first: boolean, def: MapDef): Town | null {
+/** A saved town on the map's town `t` (its place, name, guild and people come from the map: a town from before Egypt is Greek). The first town is always the player's. */
+function parseTown(raw: Record<string, unknown>, t: { id: string; name: string; x: number; y: number; built: readonly BuildingId[]; guild: readonly SpellId[]; faction?: TownFaction }, first: boolean, def: MapDef): Town | null {
   if (!Array.isArray(raw.built) || !raw.built.every(isBuildingId) || typeof raw.builtToday !== 'boolean' || !isObj(raw.stock)) return null;
   if (!Object.entries(raw.stock).every(([k, v]) => isCreatureId(k) && isInt(v, 0, 1e6))) return null;
   // Any town can change hands; a save from before owners were kept has the first town as the player's.
@@ -272,26 +280,28 @@ function parseTown(raw: Record<string, unknown>, t: { id: string; name: string; 
   if (!owner) return null;
   const garrison = parseArmy(raw.garrison);
   if (!garrison) return null;
-  const built = buildable(raw.built, t.built, def);
-  // Stock is kept by line (every level of a line hires from its base's).
-  const lines = new Set(built.map((b) => BUILDINGS[b].dwelling).filter((d): d is CreatureId => !!d).map(lineOf));
+  const people = t.faction ? { faction: t.faction } : {};
+  const built = buildable(raw.built, t.built, def, t.faction);
+  // Stock is kept by line (every level of a line hires from its base's), the town's people's own.
+  const lines = new Set(dwellings({ built, ...people }).map(lineOf));
   const stock = Object.fromEntries(Object.entries(raw.stock).filter(([k]) => lines.has(k as CreatureId))) as Partial<Record<CreatureId, number>>;
   // Older saves have no towers; a company that can't stand on one comes down with its place lost.
   const up = raw.towers === undefined ? null : parseArmy(raw.towers);
   const towers = up?.some((s) => s && canManTower(s.creature)) ? { towers: up.map((s) => (s && canManTower(s.creature) ? s : null)) } : {};
   // Gear in its store, no more than its store keeps.
   const store = Array.isArray(raw.store) ? raw.store.filter(isItemId).slice(0, storeRoom({ built })) : [];
-  return { id: t.id, name: t.name, owner, x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, ...towers, guild: t.guild, ...(raw.ally === true && owner === 'neutral' ? { ally: true } : {}), ...(store.length ? { store } : {}) };
+  const ankhs = isInt(raw.ankhs, 1, MAX_ANKHS) ? { ankhs: raw.ankhs } : {};
+  return { id: t.id, name: t.name, owner, x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, ...towers, guild: t.guild, ...people, ...ankhs, ...(raw.ally === true && owner === 'neutral' ? { ally: true } : {}), ...(store.length ? { store } : {}) };
 }
 
-/** The saved buildings the map allows and whose needs are met (the town's starting ones always). */
-export function buildable(raw: readonly BuildingId[], start: readonly BuildingId[], def: MapDef): BuildingId[] {
+/** The saved buildings the map allows, the town's people build, and whose needs are met (the town's starting ones always). */
+export function buildable(raw: readonly BuildingId[], start: readonly BuildingId[], def: MapDef, faction: TownFaction = 'crown'): BuildingId[] {
   let kept = new Set<BuildingId>(start);
-  const wanted = new Set(raw.filter((b) => !def.off.includes(b)));
+  const wanted = new Set(raw.filter((b) => !def.off.includes(b) && buildsAt(faction, b)));
   for (let grew = true; grew;) {
     grew = false;
     for (const b of wanted) {
-      if (!kept.has(b) && BUILDINGS[b].needs.every((n) => kept.has(n))) {
+      if (!kept.has(b) && buildingOf(faction, b).needs.every((n) => kept.has(n))) {
         kept = new Set([...kept, b]);
         grew = true;
       }

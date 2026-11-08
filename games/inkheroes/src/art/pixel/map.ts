@@ -31,9 +31,11 @@ import sitePileMercury from './map/site-pile-mercury.png?url';
 import sitePileSulfur from './map/site-pile-sulfur.png?url';
 import sitePileCrystal from './map/site-pile-crystal.png?url';
 import sitePileGems from './map/site-pile-gems.png?url';
+import siteTownKemet from './map/site-town-kemet.png?url';
 import vignetteAshford from './map/vignette-ashford.png?url';
 import vignetteThornwood from './map/vignette-thornwood.png?url';
 import vignetteBlackBanner from './map/vignette-blackBanner.png?url';
+import vignetteNekhen from './map/vignette-nekhen.png?url';
 import tree0 from './map/tree-0.png?url';
 import tree1 from './map/tree-1.png?url';
 import tree2 from './map/tree-2.png?url';
@@ -103,11 +105,15 @@ export const MAP_SITES: Readonly<Partial<Record<SiteArt, MapSprite>>> = {
   'pile-gems': { url: sitePileGems, w: 33, h: 25, footX: 16, footY: 24 },
 };
 
+/** Egypt's walled town (sandstone, pylons, an obelisk), drawn whole: it does not grow with the buildings as the Greek town does. */
+export const KEMET_TOWN: MapSprite = { url: siteTownKemet, w: 188, h: 116, footX: 94, footY: 115 };
+
 /** The campaign menu's picture of each map (192 x 96), by map or planned-map id. */
 export const MAP_VIGNETTES: Readonly<Record<string, string>> = {
   ashford: vignetteAshford,
   thornwood: vignetteThornwood,
   blackBanner: vignetteBlackBanner,
+  nekhen: vignetteNekhen,
 };
 
 /** Trees, mountains, boulders and the bridge, a few of each to vary. */

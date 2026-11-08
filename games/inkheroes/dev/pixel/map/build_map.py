@@ -68,7 +68,7 @@ COVER = {
     'bridge': ['cover/bridge.png'],
 }
 # The campaign menu's map pictures, by map (or planned map) id.
-VIGNETTES = ('ashford', 'thornwood', 'blackBanner')
+VIGNETTES = ('ashford', 'thornwood', 'blackBanner', 'nekhen')
 EDGE = (34, 24, 16, 255)
 
 
@@ -140,6 +140,7 @@ def main() -> None:
         return soil(im) if art in MOUNDED else im
 
     site_rows = [f"  '{art}': {sprite(f'site-{art}', site(art, src, rows))}," for art, (src, rows) in SITES.items()]
+    kemet_town = sprite('site-town-kemet', trimmed(HERE / 'sites/town-kemet.png'))
     vignette_rows = []
     for v in VIGNETTES:
         Image.open(HERE / 'vignettes' / f'{v}.png').convert('RGBA').save(OUT / f'vignette-{v}.png')
@@ -174,6 +175,9 @@ export const MAP_GROUND: Readonly<Partial<Record<string, string>>> = {{
 export const MAP_SITES: Readonly<Partial<Record<SiteArt, MapSprite>>> = {{
 {chr(10).join(site_rows)}
 }};
+
+/** Egypt's walled town (sandstone, pylons, an obelisk), drawn whole: it does not grow with the buildings as the Greek town does. */
+export const KEMET_TOWN: MapSprite = {kemet_town};
 
 /** The campaign menu's picture of each map (192 x 96), by map or planned-map id. */
 export const MAP_VIGNETTES: Readonly<Record<string, string>> = {{

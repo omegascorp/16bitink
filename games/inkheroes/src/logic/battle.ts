@@ -4,9 +4,11 @@ import { creature, type CreatureId, type MachineId } from './creatures';
 import { hexAt, reachable, rowOf, route, type Hex, COLS, ROWS } from './hex';
 import { adjacent, around, covers, facesTarget, footprintAt, headOf, isWide, occupiedHexes, shotDistance, tailFn, touching } from './footprint';
 import { roll, rollInt } from './rng';
-import { heal, hurt, rollDamage, speedOf } from './damage';
+import { heal, rollDamage, speedOf } from './damage';
+import { afflict, poisonTick, wound } from './battleTraits';
 import { castSpell } from './battleSpells';
 import { activeStack, alive, isStone, onGround, playerSide, stackById, targetable, update, winnerOf } from './battleCore';
+import { UNTIMED_EFFECTS } from './spells';
 import { aimFor, batter, moatFor, MOAT_DAMAGE, nearestFree, PART_HEX, raiseWalls, standing, strikeByHand, strikesLeft, TOWERS, wallsAgainst, type Fortification, type Siege, type SiegePart } from './siege';
 
 export { activeStack, alive, isStone, onGround, playerSide, stackById, targetable, update, winnerOf };
@@ -314,9 +316,10 @@ function intoMoat(s: BattleState, id: number, events: BattleEvent[]): BattleStat
   const st = stackById(s, id);
   const moat = moatOf(s, st.side);
   if (!occupiedHexes(st).some((h) => moat.has(h))) return s;
-  const { stack, kills } = hurt(st, MOAT_DAMAGE);
-  events.push({ type: 'moat', stack: id, damage: MOAT_DAMAGE, kills });
-  return update(s, id, () => stack);
+  const after: BattleEvent[] = [];
+  const w = wound(s, id, MOAT_DAMAGE, after);
+  events.push({ type: 'moat', stack: id, damage: w.damage, kills: w.kills }, ...after);
+  return w.state;
 }
 
 /** A company strikes `part` by hand; a walker that ended up in the moat may not live to. */
@@ -367,9 +370,9 @@ export function struckBy(state: BattleState, me: Stack, target: Stack, from: Hex
   return [target, ...state.stacks.filter((o) => o.id !== target.id && isEnemy(me, o) && onGround(o) && touching(hexes, occupiedHexes(o)))];
 }
 
-/** Whether `def` would answer a melee strike from `att`. */
+/** Whether `def` would answer a melee strike from `att` (a guardian answers every one). */
 export function answers(att: Stack, def: Stack): boolean {
-  return def.retaliationsLeft > 0 && !isStone(def) && !creature(att.creature).noRetaliation;
+  return (def.retaliationsLeft > 0 || !!creature(def.creature).guardian) && !isStone(def) && !creature(att.creature).noRetaliation;
 }
 
 /** A melee strike: every blow lands first, then each stack struck that still can answers once. */
@@ -385,7 +388,7 @@ function answer(s: BattleState, a: number, d: number, events: BattleEvent[]): Ba
   const def = stackById(s, d);
   if (!alive(att) || !alive(def) || !answers(att, def)) return s;
   const next = strike(s, d, a, { ranged: false, distance: 1, moved: 0 }, true, events);
-  return update(next, d, (x) => ({ ...x, retaliationsLeft: x.retaliationsLeft - 1 }));
+  return update(next, d, (x) => ({ ...x, retaliationsLeft: Math.max(0, x.retaliationsLeft - 1) }));
 }
 
 /** After a strike, a swooper flies back to where `start` shows it began, if it lived, isn't stone and the hex is free. */
@@ -399,9 +402,12 @@ function strike(s: BattleState, a: number, d: number, ctx: { ranged: boolean; di
   const att = stackById(s, a);
   const def = stackById(s, d);
   const r = rollDamage(s, att, def, ctx, s.seed);
-  const { stack, kills } = hurt(def, r.damage);
-  events.push({ type: 'strike', stack: a, target: d, damage: r.damage, kills, lucky: r.lucky, retaliation, ranged: ctx.ranged });
-  const next = { ...update(s, d, () => stack), seed: r.seed };
+  // A ward soaks first; a rebirth shows after the blow that brought it.
+  const after: BattleEvent[] = [];
+  const w = wound({ ...s, seed: r.seed }, d, r.damage, after);
+  events.push({ type: 'strike', stack: a, target: d, damage: w.damage, kills: w.kills, lucky: r.lucky, retaliation, ranged: ctx.ranged, ...(w.soaked ? { soaked: w.soaked } : {}) }, ...after);
+  // A stack that rose from this wound comes back clean.
+  const next = after.some((e) => e.type === 'rebirth') ? w.state : afflict(w.state, att, d, w.damage, events);
   return ctx.ranged ? next : petrify(next, att, d, events);
 }
 
@@ -461,6 +467,16 @@ export function advance(s: BattleState, events: BattleEvent[]): Step {
     }
     // A unit's Defend lasts until its own next turn.
     s = update(s, next.id, (x) => ({ ...x, defending: false }));
+    // Poison eats at it first, and may finish it (or the battle).
+    s = poisonTick(s, next, events);
+    if (!alive(stackById(s, next.id))) {
+      const over = winnerOf(s);
+      if (over !== null) {
+        events.push({ type: 'end', winner: over });
+        return { state: { ...s, active: null, winner: over }, events };
+      }
+      continue;
+    }
     if (isStone(next)) {
       events.push({ type: 'stone', stack: next.id, lost: true });
       s = update(s, next.id, (x) => ({ ...x, acted: true, effects: x.effects.filter((e) => e.kind !== 'stone') }));
@@ -511,8 +527,8 @@ function newRound(s: BattleState): BattleState {
       waited: false,
       moraleUsed: false,
       retaliationsLeft: creature(x.creature).retaliations ?? 1,
-      // Stone doesn't wear off with the round: it lasts until the stack's lost turn (see advance).
-      effects: x.effects.map((e) => (e.kind === 'stone' ? e : { ...e, rounds: e.rounds - 1 })).filter((e) => e.rounds > 0),
+      // Stone lasts until the stack's lost turn, poison counts its turns (see advance), a ward until it is spent.
+      effects: x.effects.map((e) => (UNTIMED_EFFECTS.includes(e.kind) ? e : { ...e, rounds: e.rounds - 1 })).filter((e) => e.rounds > 0),
     })),
   };
 }

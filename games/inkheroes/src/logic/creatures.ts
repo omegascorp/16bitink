@@ -1,6 +1,9 @@
 import type { Amount } from './resources';
 
-export type Faction = 'crown' | 'neutral' | 'machine';
+/** A people (`crown` the Greeks, `kemet` Egypt), the wild neutrals, or the war machines. */
+export type Faction = 'crown' | 'kemet' | 'neutral' | 'machine';
+/** The peoples who hold towns and lead heroes. */
+export type TownFaction = Extract<Faction, 'crown' | 'kemet'>;
 
 export interface CreatureDef {
   readonly id: CreatureId;
@@ -36,6 +39,18 @@ export interface CreatureDef {
   readonly regen?: number;
   /** The chance a melee strike that lands turns the target to stone, losing it its next turn. */
   readonly petrify?: number;
+  /** The chance a strike that lands curses a living target: it deals its least damage (the Curse of Set). */
+  readonly curse?: number;
+  /** Once a battle, wiped out, it rises again: with half the creatures it had (at least 1), or all of them. */
+  readonly rebirth?: 'half' | 'all';
+  /** Answers every strike, however many come in a round. */
+  readonly guardian?: boolean;
+  /** Shots against it do half damage. */
+  readonly shieldWall?: boolean;
+  /** Its shots do full damage at any range. */
+  readonly noRangePenalty?: boolean;
+  /** A strike that lands poisons a living target: at the start of each of its next 3 turns it loses this share of the damage that strike dealt. */
+  readonly poison?: number;
   /** Raises its own army's morale. */
   readonly morale?: number;
   /** Takes two hexes on the battlefield: its head and the one behind it (H3's double-wide). */
@@ -89,6 +104,34 @@ export const CREATURES = {
   stymphalian: def({ id: 'stymphalian', name: 'Stymphalian Bird', plural: 'Stymphalian Birds', faction: 'neutral', level: 2, attack: 8, defense: 3, minDmg: 2, maxDmg: 4, hp: 8, speed: 9, growth: 8, cost: { gold: 120 }, flies: true, swoop: true }),
   hydra: def({ id: 'hydra', name: 'Lernaean Hydra', plural: 'Lernaean Hydras', faction: 'neutral', level: 5, attack: 13, defense: 10, minDmg: 8, maxDmg: 12, hp: 60, speed: 5, growth: 3, cost: { gold: 600 }, wide: true, cleave: true, regen: 10 }),
   basilisk: def({ id: 'basilisk', name: 'Basilisk', plural: 'Basilisks', faction: 'neutral', level: 3, attack: 8, defense: 9, minDmg: 3, maxDmg: 5, hp: 22, speed: 5, growth: 6, cost: { gold: 200 }, petrify: 0.25 }),
+  // The Two Lands (chapter 2): Egypt's seven lines, level by level as even with the Greeks' (docs/inkheroes-design.md).
+  levy: def({ id: 'levy', name: 'Nile Levy', plural: 'Nile Levies', faction: 'kemet', level: 1, attack: 4, defense: 5, minDmg: 1, maxDmg: 3, hp: 10, speed: 4, growth: 14, cost: { gold: 60 } }),
+  nubian: def({ id: 'nubian', name: 'Nubian Archer', plural: 'Nubian Archers', faction: 'kemet', level: 2, attack: 6, defense: 3, minDmg: 2, maxDmg: 3, hp: 10, speed: 4, growth: 9, cost: { gold: 100 }, shots: 12 }),
+  jackal: def({ id: 'jackal', name: 'Jackal Warrior', plural: 'Jackal Warriors', faction: 'kemet', level: 3, attack: 9, defense: 6, minDmg: 3, maxDmg: 6, hp: 22, speed: 7, growth: 7, cost: { gold: 200 } }),
+  chariot: def({ id: 'chariot', name: 'War Chariot', plural: 'War Chariots', faction: 'kemet', level: 4, attack: 10, defense: 10, minDmg: 5, maxDmg: 9, hp: 35, speed: 8, growth: 4, cost: { gold: 300 }, charge: true, wide: true }),
+  mummy: def({ id: 'mummy', name: 'Mummy', plural: 'Mummies', faction: 'kemet', level: 5, attack: 11, defense: 11, minDmg: 8, maxDmg: 12, hp: 40, speed: 4, growth: 3, cost: { gold: 400 }, undead: true, curse: 0.25 }),
+  sphinx: def({ id: 'sphinx', name: 'Sphinx', plural: 'Sphinxes', faction: 'kemet', level: 6, attack: 15, defense: 16, minDmg: 15, maxDmg: 25, hp: 110, speed: 6, growth: 2, cost: { gold: 1000 }, wide: true, guardian: true }),
+  bennu: def({ id: 'bennu', name: 'Bennu', plural: 'Bennu', faction: 'kemet', level: 7, attack: 20, defense: 18, minDmg: 40, maxDmg: 50, hp: 180, speed: 11, growth: 1, cost: { gold: 3000, gems: 1 }, flies: true, rebirth: 'half' }),
+  levy2: def({ id: 'levy2', name: 'Khopesh Warrior', plural: 'Khopesh Warriors', faction: 'kemet', level: 1, attack: 6, defense: 5, minDmg: 2, maxDmg: 3, hp: 12, speed: 5, growth: 14, cost: { gold: 80 }, line: 'levy', tier: 2 }),
+  levy3: def({ id: 'levy3', name: 'Shardana Guard', plural: 'Shardana Guards', faction: 'kemet', level: 1, attack: 7, defense: 8, minDmg: 2, maxDmg: 4, hp: 15, speed: 5, growth: 14, cost: { gold: 100 }, shieldWall: true, line: 'levy', tier: 3 }),
+  nubian2: def({ id: 'nubian2', name: 'Medjay Archer', plural: 'Medjay Archers', faction: 'kemet', level: 2, attack: 7, defense: 4, minDmg: 2, maxDmg: 4, hp: 10, speed: 6, growth: 9, cost: { gold: 130 }, shots: 16, line: 'nubian', tier: 2 }),
+  nubian3: def({ id: 'nubian3', name: 'Bowman of Ta-Seti', plural: 'Bowmen of Ta-Seti', faction: 'kemet', level: 2, attack: 8, defense: 5, minDmg: 3, maxDmg: 4, hp: 12, speed: 6, growth: 9, cost: { gold: 170 }, shots: 20, noRangePenalty: true, line: 'nubian', tier: 3 }),
+  jackal2: def({ id: 'jackal2', name: 'Sentinel of Anubis', plural: 'Sentinels of Anubis', faction: 'kemet', level: 3, attack: 10, defense: 7, minDmg: 3, maxDmg: 7, hp: 25, speed: 8, growth: 7, cost: { gold: 240 }, line: 'jackal', tier: 2 }),
+  jackal3: def({ id: 'jackal3', name: 'Hand of Anubis', plural: 'Hands of Anubis', faction: 'kemet', level: 3, attack: 11, defense: 8, minDmg: 4, maxDmg: 8, hp: 28, speed: 8, growth: 7, cost: { gold: 290 }, noRetaliation: true, line: 'jackal', tier: 3 }),
+  chariot2: def({ id: 'chariot2', name: 'Royal Chariot', plural: 'Royal Chariots', faction: 'kemet', level: 4, attack: 12, defense: 11, minDmg: 6, maxDmg: 10, hp: 40, speed: 9, growth: 4, cost: { gold: 360 }, charge: true, wide: true, line: 'chariot', tier: 2 }),
+  chariot3: def({ id: 'chariot3', name: 'Chariot of Horus', plural: 'Chariots of Horus', faction: 'kemet', level: 4, attack: 14, defense: 12, minDmg: 7, maxDmg: 11, hp: 45, speed: 10, growth: 4, cost: { gold: 430 }, charge: true, wide: true, line: 'chariot', tier: 3 }),
+  mummy2: def({ id: 'mummy2', name: 'Royal Mummy', plural: 'Royal Mummies', faction: 'kemet', level: 5, attack: 12, defense: 12, minDmg: 9, maxDmg: 13, hp: 45, speed: 5, growth: 3, cost: { gold: 450 }, undead: true, curse: 0.35, line: 'mummy', tier: 2 }),
+  mummy3: def({ id: 'mummy3', name: 'Pharaoh’s Mummy', plural: 'Pharaoh’s Mummies', faction: 'kemet', level: 5, attack: 14, defense: 13, minDmg: 10, maxDmg: 14, hp: 50, speed: 5, growth: 3, cost: { gold: 520 }, undead: true, curse: 0.5, line: 'mummy', tier: 3 }),
+  sphinx2: def({ id: 'sphinx2', name: 'Guardian Sphinx', plural: 'Guardian Sphinxes', faction: 'kemet', level: 6, attack: 16, defense: 17, minDmg: 18, maxDmg: 25, hp: 110, speed: 7, growth: 2, cost: { gold: 1200 }, wide: true, guardian: true, line: 'sphinx', tier: 2 }),
+  sphinx3: def({ id: 'sphinx3', name: 'Great Sphinx', plural: 'Great Sphinxes', faction: 'kemet', level: 6, attack: 18, defense: 19, minDmg: 20, maxDmg: 28, hp: 130, speed: 8, growth: 2, cost: { gold: 1500 }, wide: true, guardian: true, line: 'sphinx', tier: 3 }),
+  bennu2: def({ id: 'bennu2', name: 'Golden Bennu', plural: 'Golden Bennu', faction: 'kemet', level: 7, attack: 22, defense: 20, minDmg: 45, maxDmg: 55, hp: 210, speed: 13, growth: 1, cost: { gold: 3600, gems: 2 }, flies: true, rebirth: 'half', line: 'bennu', tier: 2 }),
+  bennu3: def({ id: 'bennu3', name: 'Bennu of Ra', plural: 'Bennu of Ra', faction: 'kemet', level: 7, attack: 25, defense: 22, minDmg: 50, maxDmg: 60, hp: 250, speed: 15, growth: 1, cost: { gold: 4400, gems: 3 }, flies: true, rebirth: 'all', line: 'bennu', tier: 3 }),
+  // Egypt's lands bring their own neutrals (chapter 2). Growth and cost set their strength for the rival, as the Greeks' neutrals'.
+  hyena: def({ id: 'hyena', name: 'Hyena', plural: 'Hyenas', faction: 'neutral', level: 1, attack: 4, defense: 3, minDmg: 1, maxDmg: 3, hp: 7, speed: 6, growth: 14, cost: { gold: 50 } }),
+  raider: def({ id: 'raider', name: 'Sand Raider', plural: 'Sand Raiders', faction: 'neutral', level: 2, attack: 7, defense: 3, minDmg: 2, maxDmg: 4, hp: 10, speed: 6, growth: 8, cost: { gold: 110 }, shots: 8 }),
+  scorpion: def({ id: 'scorpion', name: 'Giant Scorpion', plural: 'Giant Scorpions', faction: 'neutral', level: 3, attack: 8, defense: 9, minDmg: 3, maxDmg: 6, hp: 22, speed: 5, growth: 6, cost: { gold: 200 }, poison: 0.1 }),
+  crocodile: def({ id: 'crocodile', name: 'Nile Crocodile', plural: 'Nile Crocodiles', faction: 'neutral', level: 3, attack: 9, defense: 8, minDmg: 4, maxDmg: 6, hp: 26, speed: 4, growth: 6, cost: { gold: 200 }, wide: true, noRetaliation: true }),
+  petsuchos: def({ id: 'petsuchos', name: 'Petsuchos', plural: 'Petsuchoi', faction: 'neutral', level: 6, attack: 16, defense: 14, minDmg: 15, maxDmg: 22, hp: 120, speed: 4, growth: 1, cost: { gold: 1500 }, wide: true, regen: 10 }),
 } as const;
 
 export type CreatureId =
@@ -97,7 +140,11 @@ export type CreatureId =
   | 'monk2' | 'monk3' | 'lancer2' | 'lancer3' | 'seraph2' | 'seraph3'
   | 'goblin' | 'skeleton' | 'wolf' | 'bandit' | 'ogre'
   | 'boar' | 'stymphalian' | 'hydra' | 'basilisk'
-  | 'catapult' | 'catapult2' | 'catapult3';
+  | 'catapult' | 'catapult2' | 'catapult3'
+  | 'levy' | 'nubian' | 'jackal' | 'chariot' | 'mummy' | 'sphinx' | 'bennu'
+  | 'levy2' | 'levy3' | 'nubian2' | 'nubian3' | 'jackal2' | 'jackal3' | 'chariot2' | 'chariot3'
+  | 'mummy2' | 'mummy3' | 'sphinx2' | 'sphinx3' | 'bennu2' | 'bennu3'
+  | 'hyena' | 'raider' | 'scorpion' | 'crocodile' | 'petsuchos';
 export const CREATURE_IDS = Object.keys(CREATURES) as CreatureId[];
 
 export const creature = (id: CreatureId): CreatureDef => CREATURES[id];
@@ -129,7 +176,8 @@ export function sizeWord(count: number): string {
 
 /** What a creature's ways of fighting add to its plain stats. */
 const traitsWorth = (c: CreatureDef): number =>
-  (c.shots ? 1.3 : 1) * (c.flies ? 1.15 : 1) * (c.charge ? 1.1 : 1) * (c.swoop ? 1.1 : 1) * (c.cleave ? 1.25 : 1) * (c.regen ? 1.15 : 1) * (1 + (c.petrify ?? 0));
+  (c.shots ? 1.3 : 1) * (c.flies ? 1.15 : 1) * (c.charge ? 1.1 : 1) * (c.swoop ? 1.1 : 1) * (c.cleave ? 1.25 : 1) * (c.regen ? 1.15 : 1) * (1 + (c.petrify ?? 0))
+  * (1 + (c.curse ?? 0) * 0.4) * (c.rebirth ? (c.rebirth === 'all' ? 1.3 : 1.15) : 1) * (c.guardian ? 1.1 : 1) * (c.shieldWall ? 1.05 : 1) * (c.noRangePenalty ? 1.05 : 1) * (1 + (c.poison ?? 0));
 
 /** A rough fighting strength, for the AI and for monsters' join/flee checks. */
 export function strengthOf(id: CreatureId, count: number): number {

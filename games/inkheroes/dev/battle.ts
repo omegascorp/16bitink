@@ -7,7 +7,7 @@ import { REG } from '../src/host';
 import { ASHFORD } from '../src/level/borderMarch';
 import { startAdventure } from '../src/logic/adventure';
 import { armyOf } from '../src/logic/army';
-import { CREATURE_IDS, MACHINES, type CreatureId } from '../src/logic/creatures';
+import { creature, CREATURE_IDS, MACHINES, type CreatureId } from '../src/logic/creatures';
 import { toBattleHero } from '../src/logic/hero';
 import { fortification } from '../src/logic/siege';
 import { SPELL_IDS } from '../src/logic/spells';
@@ -23,24 +23,34 @@ import { uiTextureJobs } from '../src/scenes/uiPaint';
 //   &hero=0                  no heroes          &feet=1   a magenta dot on each occupied hex centre
 //   &siege=fort|citadel|castle   walls round b; &machine=catapult2 gives a that war machine; &towers=bowman:8,bowman2:4 mans them; &me=1 plays the defender
 //   &play=1                  run turns (the AI plays b; &auto=1 plays a too)   &seed=7
+//   Units go by id or by the name shown, run together: ?a=levy:20,nubian3:10,mummy:4&b=hoplite:20,slinger:12 stages Egypt against Greece.
+//   &hero=kemet              both heroes are Egypt's priestess: the Sacred Rites, mana and Ankhs to spare
 // Sets window.__ready once the field is drawn (for dev/snap.mjs).
 await Promise.all(['700 32px Cinzel', '32px "EB Garamond"', '600 32px "EB Garamond"'].map((f) => document.fonts.load(f))).catch(() => undefined);
 const q = new URLSearchParams(location.search);
 const flag = (k: string, d: boolean): boolean => (q.has(k) ? q.get(k) !== '0' : d);
 
+/** A unit by its id, or by the name the game shows run together ('hoplite', 'nilelevy'). */
+const squash = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+function creatureNamed(word: string): CreatureId {
+  const id = CREATURE_IDS.find((c) => c === word) ?? CREATURE_IDS.find((c) => squash(creature(c).name) === squash(word) || squash(creature(c).plural) === squash(word));
+  if (!id) throw new Error(`unknown creature ${word}`);
+  return id;
+}
+
 function army(spec: string | null, fallback: string): ReturnType<typeof armyOf> {
   const slots = (spec ?? fallback).split(',').filter(Boolean).map((part) => {
     const [id, n] = part.split(':');
-    if (!CREATURE_IDS.includes(id as CreatureId)) throw new Error(`unknown creature ${id}`);
-    return { creature: id as CreatureId, count: Math.max(1, Number(n) || 1) };
+    return { creature: creatureNamed(id ?? ''), count: Math.max(1, Number(n) || 1) };
   });
   return armyOf(slots.slice(0, 7));
 }
 
 const anim = q.get('anim');
 const startHero = toBattleHero(startAdventure(ASHFORD).hero);
-// ?spells=all gives the hero every spell and mana to spare (to review the spellbook).
-const hero = q.get('spells') === 'all' ? { ...startHero, spells: [...SPELL_IDS], mana: 40 } : startHero;
+// ?spells=all gives the hero every spell and mana to spare (to review the spellbook); ?hero=kemet, Egypt's priestess with the Rites.
+const priestess = { ...startHero, name: 'Neferet', power: 2, spells: ['curse', 'ward', 'rebirth', 'cure'] as const, mana: 60, ankhs: 3 };
+const hero = q.get('hero') === 'kemet' ? priestess : q.get('spells') === 'all' ? { ...startHero, spells: [...SPELL_IDS], mana: 40, ankhs: 3 } : startHero;
 const heroes = flag('hero', true);
 const walls = q.get('siege');
 const fort = walls ? fortification(['fort', ...(walls === 'fort' ? [] : ['citadel']), ...(walls === 'castle' ? ['castle'] : [])]) : null;
@@ -54,7 +64,7 @@ const sandbox: SandboxBattle = {
   obstacles: flag('obstacles', true),
   play: flag('play', false),
   auto: flag('auto', false),
-  view: { pose: anim === 'idle' || anim === 'walk' || anim === 'attack' ? (anim as Pose) : undefined, feet: flag('feet', false) },
+  view: { pose: anim === 'idle' || anim === 'walk' || anim === 'attack' ? (anim as Pose) : undefined, feet: flag('feet', false), heroId: q.get('hero') === 'kemet' ? 'neferet' : undefined },
   onReady: () => requestAnimationFrame(() => requestAnimationFrame(() => ((window as unknown as { __ready: boolean }).__ready = true))),
 };
 

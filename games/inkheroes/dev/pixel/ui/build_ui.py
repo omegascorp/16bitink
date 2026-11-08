@@ -116,12 +116,12 @@ export const SKILL_ICONS: Readonly<Record<SkillId, string>> = {{
 {chr(10).join(skill_rows)}
 }};
 
-export const SPELL_ICONS: Readonly<Record<SpellId, string>> = {{
+export const SPELL_ICONS: Readonly<Partial<Record<SpellId, string>>> = {{
 {chr(10).join(spell_rows)}
 }};
 
 /** The guild's spell paintings (64 x 64). */
-export const SPELL_ART: Readonly<Record<SpellId, string>> = {{
+export const SPELL_ART: Readonly<Partial<Record<SpellId, string>>> = {{
 {chr(10).join(spell_art_rows)}
 }};
 
@@ -142,7 +142,7 @@ export const BAG_ART: Readonly<Record<BagArt, string>> = {{
 }};
 
 /** The gear's item icons (64 x 64). */
-export const ITEM_ICONS: Readonly<Record<ItemId, string>> = {{
+export const ITEM_ICONS: Readonly<Partial<Record<ItemId, string>>> = {{
 {chr(10).join(item_rows)}
 }};
 

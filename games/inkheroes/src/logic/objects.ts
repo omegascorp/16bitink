@@ -26,6 +26,8 @@ export interface MapObject {
   /** Monster: who and how many. */
   readonly creature?: CreatureId;
   readonly count?: number;
+  /** Monster: others fighting beside it, as they stand (a boss's brood: they never grow). */
+  readonly brood?: { readonly creature: CreatureId; readonly count: number };
   /** Monster: the piece it leaves when beaten. */
   readonly drop?: ItemId;
   /** Spellbook: the book itself; item: the piece lying there. */

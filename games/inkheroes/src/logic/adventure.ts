@@ -1,7 +1,7 @@
 import { bagRoom, gainItem, hasAsGood, hasSpellbook, itemDef, itemQuality, itemSays, machineOf, QUALITY_NAMES, SET_NAMES, wear, type ItemId, type SoldMachine } from './items';
 import type { HeroDef, MapDef } from '../level/types';
 import type { DayReport, GoldSource, TownRecruits } from './dayReport';
-import { armyMorale, armyOf, emptyArmy, isEmptyArmy, moveAll, splitMonster, type Army } from './army';
+import { ARMY_SLOTS, armyMorale, armyOf, emptyArmy, isEmptyArmy, moveAll, splitMonster, type Army, type ArmySlot } from './army';
 import { experienceFor, playerSide, survivors, towerSurvivors, type SiegeSetup } from './battle';
 import type { BattleSide } from './battle';
 import type { BattleState, Side } from './battleTypes';
@@ -98,6 +98,7 @@ export function heroFromDef(h: HeroDef): Hero {
     attack: h.attack, defense: h.defense, power: h.power, knowledge: h.knowledge,
     mana: h.knowledge * 10, xp: 0, level: 1, skills: h.skills, spells: h.spells,
     army: armyOf(h.army), mp: 0, visited: [], ...(h.gear ? { gear: h.gear } : {}),
+    ...(h.faction ? { faction: h.faction } : {}), ...(h.ankhs ? { ankhs: h.ankhs } : {}),
   };
   return { ...hero, mp: dailyMp(hero) };
 }
@@ -121,9 +122,9 @@ export function startAdventure(def: MapDef): Adventure {
   const g = gridOf(def);
   const hero = heroFromDef(def.hero);
   const t = def.town;
-  const town: Town = { id: t.id, name: t.name, owner: 'player', x: t.x, y: t.y, built: t.built, builtToday: false, stock: {}, garrison: armyOf(t.garrison ?? []), guild: t.guild };
+  const town: Town = { id: t.id, name: t.name, owner: 'player', x: t.x, y: t.y, built: t.built, builtToday: false, stock: {}, garrison: armyOf(t.garrison ?? []), guild: t.guild, ...(t.faction ? { faction: t.faction } : {}) };
   // The map's other towns stand neutral (or the rival's), held by their garrisons, until a hero takes them.
-  const others = (def.towns ?? []).map((o): Town => ({ id: o.id, name: o.name, owner: o.owner ?? 'neutral', x: o.x, y: o.y, built: o.built, builtToday: false, stock: {}, garrison: armyOf(o.garrison), guild: o.guild }));
+  const others = (def.towns ?? []).map((o): Town => ({ id: o.id, name: o.name, owner: o.owner ?? 'neutral', x: o.x, y: o.y, built: o.built, builtToday: false, stock: {}, garrison: armyOf(o.garrison), guild: o.guild, ...(o.faction ? { faction: o.faction } : {}) }));
   const adv: Adventure = {
     mapId: def.id, day: 1, seed: def.seed, purse: purse(def.purse), hero,
     towns: [town, ...others].map(weekly), objects: def.objects, explored: '0'.repeat(g.w * g.h), status: 'playing',
@@ -328,14 +329,23 @@ function joinTown(adv: Adventure, { ally: _ally, ...town }: Town): Adventure {
   return withTown({ ...adv, prompts: [...adv.prompts, card] }, { ...town, owner: 'player' });
 }
 
-/** A hero entering its town learns the guild's spells (with a spellbook). */
-export function enterTown(adv: Adventure): Adventure {
+/** A hero entering its town takes the Ankhs its temple has made, and learns the guild's spells (with a spellbook). */
+export function enterTown(played: Adventure): Adventure {
+  const adv = takeAnkhs(played);
   const { hero } = adv;
   const town = heroTown(adv);
   if (!town || !hasSpellbook(hero)) return adv;
   const floors = has(town, 'mageGuild2') ? 5 : has(town, 'mageGuild1') ? 3 : 0;
   const learn = town.guild.slice(0, floors).filter((s) => !hero.spells.includes(s));
   return learn.length ? { ...adv, hero: { ...hero, spells: [...hero.spells, ...learn] } } : adv;
+}
+
+/** The hero in a town of ours takes the Ankhs waiting in its temple. */
+export function takeAnkhs(adv: Adventure): Adventure {
+  const town = heroTown(adv);
+  if (!town?.ankhs) return adv;
+  const { ankhs, ...emptied } = town;
+  return withTown({ ...adv, hero: { ...adv.hero, ankhs: (adv.hero.ankhs ?? 0) + ankhs } }, emptied);
 }
 
 /** Why the visiting hero can't buy war machine `m` at this town's Blacksmith now, or null when they can. */
@@ -415,7 +425,8 @@ export function endDay(adv: Adventure): Adventure {
   // The rival rests and is paid too (the rival's turn itself is rivalTurn's, after the night).
   const r = adv.rival;
   const rival = r ? { hero: r.hero ? { ...r.hero, mp: dailyMp(r.hero) } : null, purse: addTo(r.purse, incomeOf(adv, 'rival')) } : undefined;
-  const next = { ...adv, day, hero, ...(others ? { others } : {}), towns, objects, purse: addTo(adv.purse, dailyIncome(adv)), ...(rival ? { rival } : {}) };
+  // A hero waiting in a town takes the Ankh its temple makes on Monday.
+  const next = takeAnkhs({ ...adv, day, hero, ...(others ? { others } : {}), towns, objects, purse: addTo(adv.purse, dailyIncome(adv)), ...(rival ? { rival } : {}) });
   return { ...next, prompts: [...adv.prompts, { kind: 'message', title: calendar(day), text: '', report: dayReport(adv, next) }] };
 }
 
@@ -538,12 +549,21 @@ export function battleSides(adv: Adventure, id: string): BattleSetup {
   const m = adv.objects.find((o) => o.id === id);
   if (!town && (!m || m.kind !== 'monster' || !m.creature)) throw new Error(`no monster or town ${id}`);
   const lord = town && foe && rivalAt(adv, town.x, town.y) ? heroSide(foe, joined(foe.army, town.garrison)) : null;
-  const defender = lord ?? { hero: null, army: town ? town.garrison : splitMonster(m!.creature!, m!.count ?? 1) };
+  const defender = lord ?? { hero: null, army: town ? town.garrison : monsterArmy(m!) };
   const fort = town ? fortification(town.built) : null;
   return fort ? { attacker: me, defender: manned(defender, fort), seed, siege: { fort, me: 0 } } : { attacker: me, defender, seed };
 }
 
 const hashId = (s: string): number => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261);
+
+/** A map monster's army: its own stacks, and its brood's beside them (a boss's brood takes up to 3 stacks). */
+export function monsterArmy(m: MapObject): Army {
+  const own = splitMonster(m.creature!, m.count ?? 1, m.brood ? 2 : 4);
+  if (!m.brood) return own;
+  // Stacks of their own (two armies joined would merge the brood into one).
+  const slots = [...own, ...splitMonster(m.brood.creature, m.brood.count, 3)].filter((s): s is ArmySlot => !!s);
+  return armyOf(slots.slice(0, ARMY_SLOTS));
+}
 
 /** The map after a fight `id` (see battleSides) ends as `battle`; `then` is the site a monster guarded, taken on a win. */
 export function afterBattle(played: Adventure, def: MapDef, id: string, battle: BattleState, then?: string): Adventure {
@@ -557,7 +577,9 @@ export function afterBattle(played: Adventure, def: MapDef, id: string, battle: 
   const army = survivors(battle, side, before);
   const lost = before.filter((s, i) => s && !army[i]).length;
   const xp = gainedXp(adv.hero, experienceFor(battle, side));
-  const hero = { ...adv.hero, army: garrisoned ? adv.hero.army : army, xp: adv.hero.xp + xp, mana: battle.heroes[side]?.mana ?? adv.hero.mana };
+  const ankhs = battle.heroes[side]?.ankhs ?? adv.hero.ankhs ?? 0;
+  const { ankhs: _was, ...fought } = adv.hero;
+  const hero = { ...fought, army: garrisoned ? adv.hero.army : army, xp: adv.hero.xp + xp, mana: battle.heroes[side]?.mana ?? adv.hero.mana, ...(ankhs ? { ankhs } : {}) };
   const objects = adv.objects.map((o) => (o.id === id ? { ...o, gone: true } : o));
   const beaten = adv.objects.find((o) => o.id === id && !o.gone);
   let next: Adventure = claimDrop({ ...adv, hero, objects, lostStacks: adv.lostStacks + lost }, beaten);
@@ -630,13 +652,18 @@ function afterDefence(adv: Adventure, def: MapDef, townId: string, battle: Battl
   if (!town || !foe) return adv;
   const side = playerSide(battle);
   const his: Side = side === 0 ? 1 : 0;
+  // A hero who fought carries his spent Ankhs and mana back (as afterBattle does).
+  const fought = battle.heroes[side];
+  const ankhs = fought?.ankhs ?? adv.hero.ankhs ?? 0;
+  const { ankhs: _was, ...rest } = adv.hero;
+  const back: Adventure = fought ? { ...adv, hero: { ...rest, mana: fought.mana, ...(ankhs ? { ankhs } : {}) } } : adv;
   if (battle.winner === side) {
-    const held = withTown(adv, { ...town, garrison: survivors(battle, side, town.garrison), towers: towerSurvivors(battle, side, towersOf(town)) });
+    const held = withTown(back, { ...town, garrison: survivors(battle, side, town.garrison), towers: towerSurvivors(battle, side, towersOf(town)) });
     return checkGoal(battle.fled === his ? rivalFled(held, foe) : beatRival(held, foe), def);
   }
   // The town falls: the rival rides in through its gate.
   const rival = { ...foe, x: town.x, y: town.y, army: survivors(battle, his, foe.army) };
-  const next = withTown({ ...adv, rival: { ...adv.rival!, hero: rival } }, { ...town, owner: 'rival', garrison: armyOf([]), towers: emptyArmy() });
+  const next = withTown({ ...back, rival: { ...adv.rival!, hero: rival } }, { ...town, owner: 'rival', garrison: armyOf([]), towers: emptyArmy() });
   const fell: Adventure = { ...next, prompts: [...next.prompts, { kind: 'message', title: `${town.name} has fallen`, text: `${foe.name}'s banner flies over ${town.name}. Take it back!` }] };
   return checkGoal(fell, def);
 }

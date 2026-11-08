@@ -47,6 +47,8 @@ export interface TownViewOpts {
   readonly fresh?: BuildingId;
   /** How far the clouds have drifted already (the view before this one's `drift`). */
   readonly drift?: number;
+  /** What the town's people call a building (none: BUILDINGS' Greek names). */
+  readonly nameOf?: (building: BuildingId) => string;
 }
 
 /**
@@ -158,7 +160,7 @@ export class PixelTownView {
     img.setInteractive({ pixelPerfect: true, alphaTolerance: 128, useHandCursor: true });
     img.on('pointerover', () => {
       img.setTint(LIFT).setTintMode(Phaser.TintModes.ADD);
-      this.label.setText(BUILDINGS[building].name).setPosition(p.spot.x, Math.max(this.label.height + 2 - this.root.y, y - 2));
+      this.label.setText(this.opts.nameOf?.(building) ?? BUILDINGS[building].name).setPosition(p.spot.x, Math.max(this.label.height + 2 - this.root.y, y - 2));
       this.label.img.setVisible(true);
     });
     img.on('pointerout', () => {

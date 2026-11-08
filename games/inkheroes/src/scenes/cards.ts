@@ -1,7 +1,7 @@
 import type Phaser from 'phaser';
-import { nextMap } from '../level/maps';
+import { chapterById, isLoaded, nextMap, partsOf, type ChapterId } from '../level/maps';
 import { answerPrompt, ourHeroes, playerTowns, type Adventure } from '../logic/adventure';
-import { getHost } from '../host';
+import { getHost, trackOffer } from '../host';
 import { partDays } from '../logic/chapter';
 import { PRIMARY_NAMES } from '../logic/hero';
 import { RANK_NAMES, SKILLS } from '../logic/skills';
@@ -105,29 +105,57 @@ export function wallsCard(town: Town, adv: Adventure, storm: () => void): CardSp
 }
 
 /**
- * The end of everything built so far: the chapter's ending (told by the
+ * The end of everything built of a chapter: its ending (told by the
  * narrator, or read here), how the whole march went, and what comes next,
- * so finishing the early access reads as an ending, not a dead end.
+ * so finishing reads as an ending, not a dead end. Chapter 1's points on to
+ * chapter 2: open to an owner, the full game's offer to anyone else.
  */
 function chapterDoneCard(scene: Phaser.Scene, session: Session): CardSpec {
   const adv = session.adv;
-  const told = !!narrator(scene)?.say('chapter-won');
+  const chapter = session.chapter;
+  const told = !!narrator(scene)?.say(chapter.ending);
   const towns = playerTowns(adv).length;
   const heroes = ourHeroes(adv).length;
   const march = `${adv.day} days on the march, ${towns} ${towns === 1 ? 'town' : 'towns'} under your banner, ${heroes === 1 ? 'one hero' : `${heroes} heroes`} riding.`;
+  const back = { label: 'Back to the campaign', kind: 'plain' as const, onClick: () => toMenu(scene, session, null) };
+  const more = { label: 'More games', kind: 'plain' as const, onClick: () => getHost(scene).onExit() };
+  const story = told ? [] : [lineText(chapter.ending)];
+  if (chapter.n > 1) {
+    return {
+      title: `Chapter ${chapter.n}: ${chapter.name}, so far`,
+      body: [...story, march, `That is all of ${chapter.name} for now: its next parts are being made, and come to the full game as free updates.`, 'Thank you for playing!'].join('\n\n'),
+      buttons: [{ ...back, kind: 'crown' }, more],
+    };
+  }
+  const host = getHost(scene);
+  const next = chapterById('twoLands');
+  const owned = isLoaded(next);
+  if (!owned && host.price) trackOffer(scene, 'free_end');
+  const onward = owned
+    ? 'Chapter 2, The Two Lands, crosses to Egypt: a new people, Neferet the priestess of Isis, and Sacred Rites that curse, ward and raise the fallen. It waits for you now.'
+    : 'Chapter 2, The Two Lands, crosses to Egypt: a new people, Neferet the priestess of Isis, and Sacred Rites that curse, ward and raise the fallen. It is part of the full game.';
   return {
     title: 'Chapter 1 complete',
-    body: [
-      ...(told ? [] : [lineText('chapter-won')]),
-      march,
-      'That is all of InkHeroes for now: the game is in early access. Chapter 2 crosses to a new land with a new people, their own heroes, troops and way of taking walls. It is being made now.',
-      'Thank you for playing!',
-    ].join('\n\n'),
+    body: [...story, march, onward, 'Thank you for playing!'].join('\n\n'),
     buttons: [
-      { label: 'Back to the campaign', kind: 'crown', onClick: () => toMenu(scene, session, null) },
-      { label: 'More games', kind: 'plain', onClick: () => getHost(scene).onExit() },
+      owned
+        ? { label: 'On to chapter 2', kind: 'crown', onClick: () => startChapter(scene, next.id) }
+        : host.price
+          ? { label: `Full game · ${host.price}`, kind: 'crown', onClick: () => host.onBuy('free_end') }
+          : { ...back, kind: 'crown' },
+      ...(owned || host.price ? [back] : []),
+      more,
     ],
   };
+}
+
+/** Leaves the chapter won for the start (or the saved game) of chapter `id`. */
+function startChapter(scene: Phaser.Scene, id: ChapterId): void {
+  const chapter = chapterById(id);
+  const host = getHost(scene);
+  for (const key of ['MapHud', 'Card', 'Town', 'Battle']) if (key !== scene.scene.key) scene.scene.stop(key);
+  if (!Session.resume(scene, host, chapter)) Session.begin(scene, host, partsOf(chapter)[0]!);
+  scene.scene.start('Map');
 }
 
 /** The part won, the land opens further and the hero rides straight on. */

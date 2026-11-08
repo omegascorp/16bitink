@@ -4,6 +4,7 @@ import { afterBattle, battleSides, DEFEND, gridOf, type BattleSetup } from '../l
 import { act, activeStack, alive, canShoot, conquer, createBattle, experienceFor, handOptions, moveHeadFor, occupiableHexes, playerSide, stackAt, strikeChoices, strikeFrom, targetable, type BattleSide, type SiegeSetup, type StrikeOption } from '../logic/battle';
 import { chooseAction } from '../logic/battleAi';
 import { cantCast, spellAmount } from '../logic/battleSpells';
+import { pastWard } from '../logic/battleTraits';
 import type { Action, BattleState, Stack } from '../logic/battleTypes';
 import { creature } from '../logic/creatures';
 import { damageRange, hurt, inCover, RANGE_PENALTY_DISTANCE, speedOf } from '../logic/damage';
@@ -337,7 +338,7 @@ export class BattleScene extends Phaser.Scene {
       const def = SPELLS[this.casting];
       if (why) return { action: { type: 'wait' }, text: why, key: 'no' };
       const amount = spellAmount(this.state, this.me, this.casting);
-      const extra = def.target === 'enemy' && amount ? `: ${amount} damage, ${hurt(target, amount).kills} fall` : '';
+      const extra = def.target === 'enemy' && amount ? `: ${amount} damage, ${hurt(target, pastWard(target, amount)).kills} fall` : '';
       return { action: { type: 'cast', spell: this.casting, target: target.id }, text: `Cast ${def.name} on the ${creature(target.creature).plural}${extra}`, key: `cast-${target.id}`, cursor: 'cast' };
     }
     if (target && target.side !== me.side && targetable(target)) {
@@ -398,8 +399,8 @@ export class BattleScene extends Phaser.Scene {
   /** "12–18 damage, 1–2 fall" */
   private preview(a: Stack, d: Stack, ctx: { ranged: boolean; distance: number; moved: number }): string {
     const r = damageRange(this.state, a, d, ctx);
-    const k0 = hurt(d, r.min).kills;
-    const k1 = hurt(d, r.max).kills;
+    const k0 = hurt(d, pastWard(d, r.min)).kills;
+    const k1 = hurt(d, pastWard(d, r.max)).kills;
     return `${r.min === r.max ? r.min : `${r.min}–${r.max}`} damage, ${k0 === k1 ? k0 : `${k0}–${k1}`} fall`;
   }
 
@@ -489,6 +490,7 @@ export class BattleScene extends Phaser.Scene {
     if (!hero || hero.spells.length === 0) return;
     this.hud.openBook({
       mana: hero.mana,
+      ankhs: hero.ankhs ?? 0,
       spells: hero.spells,
       why: (id) => cantCast(this.state, this.me, id, null),
       onPick: (id) => {

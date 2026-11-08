@@ -103,6 +103,21 @@ import hydraAttack from './units/hydra-attack.png?url';
 import basiliskIdle from './units/basilisk-idle.png?url';
 import basiliskWalk from './units/basilisk-walk.png?url';
 import basiliskAttack from './units/basilisk-attack.png?url';
+import hyenaIdle from './units/hyena-idle.png?url';
+import hyenaWalk from './units/hyena-walk.png?url';
+import hyenaAttack from './units/hyena-attack.png?url';
+import raiderIdle from './units/raider-idle.png?url';
+import raiderWalk from './units/raider-walk.png?url';
+import raiderAttack from './units/raider-attack.png?url';
+import scorpionIdle from './units/scorpion-idle.png?url';
+import scorpionWalk from './units/scorpion-walk.png?url';
+import scorpionAttack from './units/scorpion-attack.png?url';
+import crocodileIdle from './units/crocodile-idle.png?url';
+import crocodileWalk from './units/crocodile-walk.png?url';
+import crocodileAttack from './units/crocodile-attack.png?url';
+import petsuchosIdle from './units/petsuchos-idle.png?url';
+import petsuchosWalk from './units/petsuchos-walk.png?url';
+import petsuchosAttack from './units/petsuchos-attack.png?url';
 import hero_playerIdle from './units/hero_player-idle.png?url';
 import hero_playerWalk from './units/hero_player-walk.png?url';
 import hero_playerAttack from './units/hero_player-attack.png?url';
@@ -112,6 +127,9 @@ import hero_rivalAttack from './units/hero_rival-attack.png?url';
 import hero_iantheIdle from './units/hero_ianthe-idle.png?url';
 import hero_iantheWalk from './units/hero_ianthe-walk.png?url';
 import hero_iantheAttack from './units/hero_ianthe-attack.png?url';
+import hero_neferetIdle from './units/hero_neferet-idle.png?url';
+import hero_neferetWalk from './units/hero_neferet-walk.png?url';
+import hero_neferetAttack from './units/hero_neferet-attack.png?url';
 import bgGrass from './battle/bg-grass.png?url';
 import bgDirt from './battle/bg-dirt.png?url';
 import bgRough from './battle/bg-rough.png?url';
@@ -361,6 +379,37 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 82, y: 46 },
     url: { idle: basiliskIdle, walk: basiliskWalk, attack: basiliskAttack },
   },
+  hyena: {
+    name: 'Hyena', w: 128, h: 104, footX: 50, footY: 98,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 82, y: 40 },
+    url: { idle: hyenaIdle, walk: hyenaWalk, attack: hyenaAttack },
+  },
+  raider: {
+    name: 'Sand Raider', w: 104, h: 104, footX: 35, footY: 98,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    shotFrom: { x: 84, y: 42 },
+    face: { x: 40, y: 31 },
+    url: { idle: raiderIdle, walk: raiderWalk, attack: raiderAttack },
+  },
+  scorpion: {
+    name: 'Giant Scorpion', w: 128, h: 84, footX: 50, footY: 78,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 70, y: 58 },
+    url: { idle: scorpionIdle, walk: scorpionWalk, attack: scorpionAttack },
+  },
+  crocodile: {
+    name: 'Nile Crocodile', w: 176, h: 64, footX: 80, footY: 58,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 112, y: 36 },
+    url: { idle: crocodileIdle, walk: crocodileWalk, attack: crocodileAttack },
+  },
+  petsuchos: {
+    name: 'Petsuchos', w: 232, h: 120, footX: 70, footY: 114,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 140, y: 42 },
+    url: { idle: petsuchosIdle, walk: petsuchosWalk, attack: petsuchosAttack },
+  },
 };
 
 /** The hero standing beside the field. Keyed by the ids in units.json `heroes`. */
@@ -385,6 +434,12 @@ export const HERO_ART: Readonly<Record<string, UnitArt>> = {
     walkFootX: 61,
     face: { x: 59, y: 29 },
     url: { idle: hero_iantheIdle, walk: hero_iantheWalk, attack: hero_iantheAttack },
+  },
+  neferet: {
+    name: 'Neferet', w: 152, h: 160, footX: 59, footY: 154,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 71, y: 33 },
+    url: { idle: hero_neferetIdle, walk: hero_neferetWalk, attack: hero_neferetAttack },
   },
 };
 

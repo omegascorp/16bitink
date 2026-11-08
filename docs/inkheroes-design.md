@@ -306,7 +306,7 @@ A person, who casts spells, should lose less.
 
 ### The end of the early access (user, Nov 8)
 
-Winning the last part built shows its Victory card, then **Chapter 1 complete** (`chapterDoneCard` in `src/scenes/cards.ts`): the narrator tells the chapter's ending (its words read on the card with narration off), the march in numbers (days, towns held, heroes riding), that the game is in early access and the next chapter, a new people with its own heroes, troops and way of taking walls, is being made, and thanks. Back to the campaign, or More games (the host's exit, to the catalog). Finishing no longer drops the player straight on the chapter card.
+Winning the last part built shows its Victory card, then **Chapter 1 complete** (`chapterDoneCard` in `src/scenes/cards.ts`): the narrator tells the chapter's ending (its words read on the card with narration off), the march in numbers (days, towns held, heroes riding), then chapter 2 (since Nov 8, when part 4 was built): The Two Lands crosses to Egypt, with a new people, Neferet and the Sacred Rites. An owner gets **On to chapter 2** (its saved game, or its start); anyone else reads that it is part of the full game and gets **Full game · <price>** (the host's checkout, counted as the `free_end` offer). Back to the campaign, or More games (the host's exit, to the catalog). Finishing no longer drops the player straight on the chapter card. A later chapter's last part built ends on the same card, titled "Chapter 2: The Two Lands, so far", saying its next parts are being made.
 
 ### No laurels on screen
 
@@ -314,11 +314,142 @@ Winning the last part built shows its Victory card, then **Chapter 1 complete** 
 
 ### The chapter card
 
+**Two chapters (Nov 8).** The menu has a card per chapter, each under its own heading ("Chapter II · The Two Lands"), side by side where both fit; on a screen too small for both, one shows (the last with a game in play) with arrows by its heading to the other. Part numbers run on through the campaign, so chapter 2's card says "Part 4 of 6: Nekhen". Chapter 2 is the full game's: to a player who doesn't own it, its card shows its parts dim, a short pitch in place of the goal and **Unlock · <price>** (the host's checkout, counted as the `locked` offer); to an owner whose maps failed to load, the error and Try again. Each chapter keeps its own game: Continue and Start the chapter over act on that chapter only.
+
 The menu shows **this game**: each part before the one in play says Won, the one in play says In play, the rest wait dim. What earlier games won doesn't count: after Start over the chapter reads from part 1 again. With no game in play it shows Won throughout only if the whole chapter was won. Continue is the one main button, Start the chapter over a plain one under it.
 
 ### Skill icons
 
 Every skill has a 32 px icon, each its own object so none repeats an icon the game already uses (spells, stats, gear). The level-up card puts it at the left of each choice. The hero sheet lists icon, rank and name, and what the skill does, one to a row; under 680 px of screen height it goes two to a row with only the name and rank, since eight rows would not fit.
+
+## Chapter 2: The Two Lands (Egypt, paid)
+
+Map 4 is chapter 2's first part, played as Egypt (user, Nov 8: "Ch. 2 map 1, Egypt"; the roster, Neferet first and the sluice story approved as drafted the same day). As in chapter 1, the chapter is one land that grows over three parts, with a fresh hero; gear and progress from chapter 1 don't carry over. Chapter 2 is the first paid content.
+
+Players arrive having won chapter 1, so this chapter doesn't re-teach armies, towns or magic. Each part still adds one new thing: **part 4, the new people and Sacred Rites**; part 5, the siege ramp (Egypt's way past walls); part 6, a rival lord.
+
+### The Two Lands (faction id `kemet`)
+
+The Nile kingdom under its old gods. Soldiers and archers at the bottom, the temple's guardians and sacred beasts at the top. Its strengths are toughness and rites: curses, wards and raising the fallen. It has no early flier (the Bennu at level 7 is its only one), and it is slower than the Greeks but harder to wear down. Art risk (PixelLab, Nov 3): human-animal hybrids fail when the bodies merge (centaur, satyr), but animal heads on human bodies work (the Minotaur). So the Jackal Warrior is safe, the Sphinx is the risk (fallback: a ram-headed sphinx, an animal-animal blend like the Griffin), and the Chariot must be drawn as one two-hex unit, horses and car together.
+
+| Lvl | Unit (id) | Att | Def | Damage | HP | Speed | Growth | Cost | Notes |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Nile Levy (levy) | 4 | 5 | 1–3 | 10 | 4 | 14 | 60 | Spear and hide shield |
+| 2 | Nubian Archer (nubian) | 6 | 3 | 2–3 | 10 | 4 | 9 | 100 | Shoots, 12 shots |
+| 3 | Jackal Warrior (jackal) | 9 | 6 | 3–6 | 22 | 7 | 7 | 200 | Jackal-headed temple guard. Fast, on foot |
+| 4 | War Chariot (chariot) | 10 | 10 | 5–9 | 35 | 8 | 4 | 300 | Two hexes. Charge (+5% damage a hex moved) |
+| 5 | Mummy (mummy) | 11 | 11 | 8–12 | 40 | 4 | 3 | 400 | Undead. **Curse 25%:** a strike that lands may curse the target (it deals its least damage) |
+| 6 | Sphinx (sphinx) | 15 | 16 | 15–25 | 110 | 6 | 2 | 1000 | Two hexes. **Guardian:** answers every strike |
+| 7 | Bennu (bennu) | 20 | 18 | 40–50 | 180 | 11 | 1 | 3000 + 1 gem | Flies. **Rebirth:** once a battle, when the stack is wiped out it rises again with half its creatures (at least 1) |
+
+| Line | Level 2 (id) | Att | Def | Damage | HP | Speed | Cost | Level 3 (id) | Att | Def | Damage | HP | Speed | Cost |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | Khopesh Warrior (levy2) | 6 | 5 | 2–3 | 12 | 5 | 80 | Shardana Guard (levy3) | 7 | 8 | 2–4 | 15 | 5 | 100, **shield wall:** shots against it do half |
+| 2 | Medjay Archer (nubian2) | 7 | 4 | 2–4 | 10 | 6 | 130, 16 shots | Bowman of Ta-Seti (nubian3) | 8 | 5 | 3–4 | 12 | 6 | 170, 20 shots, no range penalty |
+| 3 | Sentinel of Anubis (jackal2) | 10 | 7 | 3–7 | 25 | 8 | 240 | Hand of Anubis (jackal3) | 11 | 8 | 4–8 | 28 | 8 | 290, strikes unanswered |
+| 4 | Royal Chariot (chariot2) | 12 | 11 | 6–10 | 40 | 9 | 360 | Chariot of Horus (chariot3) | 14 | 12 | 7–11 | 45 | 10 | 430 |
+| 5 | Royal Mummy (mummy2) | 12 | 12 | 9–13 | 45 | 5 | 450, curse 35% | Pharaoh's Mummy (mummy3) | 14 | 13 | 10–14 | 50 | 5 | 520, curse 50% |
+| 6 | Guardian Sphinx (sphinx2) | 16 | 17 | 18–25 | 110 | 7 | 1200 | Great Sphinx (sphinx3) | 18 | 19 | 20–28 | 130 | 8 | 1500 |
+| 7 | Golden Bennu (bennu2) | 22 | 20 | 45–55 | 210 | 13 | 3600 + 2 gems | Bennu of Ra (bennu3) | 25 | 22 | 50–60 | 250 | 15 | 4400 + 3 gems, rises with all its creatures |
+
+The numbers follow the Olympian League's level by level so the two armies are about even; the balance bot (bot vs bot on the real rules) settles them before release, as it did for chapter 1.
+
+**Buildings.** Halls, walls, Tavern, Marketplace, Storehouse and Treasury work as the Greeks' under the same ids. The Mage Guild is the **House of Life** (the temple's scriptorium), the Blacksmith the **Workshop** (sells the ramp from part 5), the Stables the **Chariot Road**. The dwellings are Egypt's own:
+
+| Line | Dwelling | First upgrade | Second upgrade |
+|---|---|---|---|
+| 1 Levies | Levy Camp | Khopesh Hall | Shardana Barracks |
+| 2 Archers | Archers' Yard | Medjay Post | Range of Ta-Seti |
+| 3 Jackals | Jackal Shrine | Temple of Anubis | Hall of Two Truths |
+| 4 Chariots | Chariot Yard | Royal Chariot House | House of Horus |
+| 5 Mummies | House of Embalming | Per-Nefer | Valley Tomb |
+| 6 Sphinxes | Sphinx Terrace | Avenue of Sphinxes | Great Sphinx Court |
+| 7 Bennu | Benben Stone | Obelisk of Heliopolis | Temple of Ra |
+
+Egypt's own building: the **Temple of Osiris** (needs the House of Life) makes one Ankh a week for the hero in town. Egypt's dwellings stand in their own order (see What the engine needs).
+
+### Sacred Rites (Egypt's divine powers)
+
+| Spell (id) | Level | Mana | Effect |
+|---|---|---|---|
+| Curse of Set (curse) | 1 | 5 | An enemy always deals its least damage (the opposite of Wisdom of Athena; the Mummy's curse is the same effect) |
+| Ward of Isis (ward) | 1 | 6 | The next 10 × SP + 20 damage to a friendly stack is soaked |
+| Rite of Osiris (rebirth) | 2 | 12 + 1 Ankh | Brings back 30 × SP + 40 HP of a friendly stack's fallen, for good |
+
+Raising the dead "needs preparation or a scarce resource" (lore, Nov 3): the Rite of Osiris costs one **Ankh**, carried by the hero (a count shown in the spellbook, not a town resource). Ankhs come from the Temple of Osiris and from a few map sites. The undead can't be raised or cursed.
+
+### Heroes
+
+- **Neferet**, priestess of Isis (mystical, the chapter's first hero): Attack 1, Defense 1, Spell Power 2, Knowledge 3, basic Wisdom, the Novice's Papyrus (Egypt's spellbook) with Curse of Set and Ward of Isis, 2 Ankhs. Army: 18 Nile Levies, 7 Nubian Archers. Chapter 1 opened with a fighter; this one opens with a mystic.
+- **Paser**, a chariot captain (military), hired at a Tavern from part 5, as Ianthe was.
+
+Gear: one gray set of Egypt's own on part 4 (Faience, for the mystic), as fixed drops, as the Bronze set was on map 1.
+
+### Part 4: Nekhen (the map to build first)
+
+32 × 24, on the Upper Nile. The flood didn't come: the great sluice of the canal is held by a **Petsuchos**, the temple's giant crocodile gone wild, with its brood. Neferet holds **Nekhen** (Village Hall, Tavern, Levy Camp). The Nile runs down the land with a green strip each side and desert beyond (the `sand` terrain, already built for battles); the canal crosses it at the sluice. **Goal:** take the sluice back from the Petsuchos. Opens: halls, Fort, Citadel, Tavern, House of Life (level 1), the dwellings of lines 1–4, the Temple of Osiris.
+
+New neutrals (Egypt's lands):
+
+| Unit (id) | Lvl | Att | Def | Damage | HP | Speed | Notes |
+|---|---|---|---|---|---|---|---|
+| Hyena (hyena) | 1 | 4 | 3 | 1–3 | 7 | 6 | |
+| Sand Raider (raider) | 2 | 7 | 3 | 2–4 | 10 | 6 | Shoots, 8 shots |
+| Giant Scorpion (scorpion) | 3 | 8 | 9 | 3–6 | 22 | 5 | **Poison:** a strike that lands takes a tenth of its damage again at the start of each of the target's next 3 turns |
+| Nile Crocodile (crocodile) | 3 | 9 | 8 | 4–6 | 26 | 4 | Two hexes. Strikes unanswered |
+| Petsuchos (petsuchos) | 6 | 16 | 14 | 15–22 | 120 | 4 | Two hexes. The boss at the sluice. Regen 10 (as the Hydra) |
+
+The story is narrated by the chapter-1 narrator (David), as chapter 1's is.
+
+### What the engine needs (before content)
+
+1. A faction per town and per hero: `BUILDINGS` keeps its ids, and each faction maps the dwelling ids to its own units and names (Greek saves load unchanged).
+2. New unit traits: curse on strike, rebirth, guardian (answers every strike), shield wall, no range penalty, poison.
+3. The three Sacred Rites and Ankhs.
+4. Chapter 2 as a second land in the campaign: a second chapter card, locked behind the full version.
+5. Art (PixelLab, the chapter-1 pipeline): 21 units and 5 neutrals with their animations, 21 dwellings, the Egyptian town, the Nekhen map town, two hero faces, desert and floodplain on the map.
+
+**Built (steps 1–3, Nov 8), and where the code had to settle what this section leaves open** (`src/logic/factions.ts`, `battleTraits.ts`; tests in `test/egypt.test.ts`):
+
+- **A town's and a hero's people** come from the map (`faction` on a town or hero; none is Greek), never from the save, so every older save loads as Greek, unchanged. Ankhs are saved on the hero and in a town's temple.
+- **Egypt's dwellings stand in their own order** (coordinator, Nov 8; `needs` in `factions.ts`, the Greeks' unchanged): the Archers' Yard and the Jackal Shrine need the Levy Camp; the Chariot Yard needs the Jackal Shrine; the Chariot Road the Chariot Yard; the House of Embalming the House of Life and the Jackal Shrine (Anubis is the embalmers' god); the Sphinx Terrace the House of Embalming; the Benben Stone the Sphinx Terrace and the Temple of Osiris. Upgrades follow the Greek rule (the first needs the dwelling, the second the first and the Citadel, lines 1–4, or the Castle, 5–7). Egypt's build plan follows that order, with the Temple of Osiris right after the House of Life.
+- **New neutrals' growth and cost** (for the rival's strength checks; the table gives none): Hyena 14 a week, 50 gold; Sand Raider 8, 110; Giant Scorpion 6, 200; Nile Crocodile 6, 200; Petsuchos 1, 1500.
+- **Temple of Osiris** costs 2000 gold, 5 wood, 5 ore (no price was set). Its Ankhs wait in the temple and go to a hero of ours in the town: on entering, or there on a Monday. A new temple has its first Ankh ready, as a new dwelling has its first week.
+- **Curse:** a Mummy's lasts 3 rounds (the spell, Spell Power rounds). A curse and Wisdom of Athena put each other out. Healing lifts curse and poison.
+- **Poison** (coordinator, Nov 8, in place of the table's tenth of one creature's HP, which barely showed): each tick is a tenth of the damage the poisoning strike dealt (at least 1), at the start of each of the target's next 3 turns, the turns counted and not the rounds (not again on a turn after Wait). So it grows with the scorpion stack. A fresh sting replaces the old poison; the undead are immune; Healing lifts it.
+- **Rebirth:** "half its creatures" is half of what the stack had when it was wiped out (the Bennu of Ra: all of them).
+- **Ward of Isis** lasts until it has soaked its fill (not Spell Power rounds), and soaks any damage: blows, spells, the moat, poison.
+- **Rite of Osiris** is cast on a friendly stack still standing (a stack wiped out has left the field) and raises it no higher than the count it began the battle with. Raised creatures stay after the battle.
+- **The spellbook** shows a divine school's tab only when the hero knows one of its spells (a Greek book with none still shows Olympian Favor). The Rite's page shows its Ankh price and the hero's Ankhs.
+- **No Egypt art yet:** each unit stands in as a drawn one of the same make and level, tinted sand (`src/scenes/battle/standIns.ts`, the one place); the Temple of Osiris borrows the Mage Guild's picture in the hall and has no plot in the townscape yet; the new spells and the Papyrus borrow icons. The Workshop sells the Greeks' catapults until the ramp (part 5). `dev/battle.html?a=levy:20,mummy:4&b=hoplite:20&hero=kemet` stages Egypt against Greece (units by id or shown name).
+
+**Built (step 4 and part 4, Nov 8): chapter 2 in the campaign, and Nekhen.**
+
+- **Chapters** (`src/level/maps.ts`): `CHAPTERS` names each chapter, its parts (numbered on: chapter 2 is parts 4 to 6), whether it is paid, its pitch, its save slot and its ending line. `MAPS` is still chapter 1's three. A part rides on only within its chapter (`nextMap`), so the Black Banner never leads into Nekhen. Chapter 2 is one land like the Border March: `src/level/twoLands.ts` stitches it from `nekhen.ts` (only Nekhen so far, 32 × 24 at the top-left corner), so parts 5 and 6 are added there and `rideOn` takes the hero into them.
+- **Paid, as InkSnake's chapters are:** `content/paid.ts` serves `twoLands.ts`'s parts; the website's registry (`apps/web/src/games/content.server.ts`) now lists InkHeroes. For an owner, boot fetches them (`host.loadContent()`), checks every field and id (`src/level/validate.ts`: a throw on anything off; a paid map with a rival is refused until part 6 brings its check) and installs them; nobody else's game has them. `test/twoLands.test.ts` fails if client code imports `content/paid`, `twoLands` or `nekhen`. In dev, `?unlock` plays as an owner and `?locked` as a player without the game, whatever `DEV_UNLOCK` says (`QUERY='&unlock' node dev/drive.mjs …`).
+- **Ending:** with only part 4 built, Nekhen's win ends on the chapter card "so far" with `nekhen-won` (see "The end of the early access").
+
+### Part 4 as built (Nov 8)
+
+`src/level/nekhen.ts`. The Nile runs down the middle of the land, three tiles wide, with three tiles of floodplain (grass, palm clumps drawn as the map's trees) each side and sand beyond, roughened at the edges, with dunes and boulders; desert dunes close the edges. Two crossings: the **bridge** below Nekhen (the road from the town runs to it) and a **ford** (a sandbar) to the south. On the east bank, at the head of the canal, the **great sluice**: the Petsuchos lies there; the river runs into the canal's head and stops, and the canal's bed runs on east dry (the sluice is shut). Nekhen's gate is at (9, 7) on the west bank, Neferet before it. Par 21 days, as map 1.
+
+- **Neferet** (Cleric) as the design: Attack 1, Defense 1, Power 2, Knowledge 3, basic Wisdom, the Novice's Papyrus, Curse of Set and Ward of Isis, 2 Ankhs, 18 Nile Levies and 7 Nubian Archers. **Nekhen**: Village Hall, Tavern, Levy Camp; its House of Life teaches Healing (which lifts the scorpions' poison), Shield and Haste (Slow and Magic Arrow wait for the second floor). **Purse** 9000 gold, 20 wood, 20 ore, 3 of each rare (map 1: 7500, 15, 15, 3), a little richer since players arrive having won chapter 1.
+- **Opens** (`TWO_LANDS_UNLOCKS` in `unlocks.ts`, a list per part like chapter 1's): Village and Town Hall, Fort, Citadel, Tavern, the House of Life's first floor, the Temple of Osiris, and the four lowest dwellings (Levy Camp, Archers' Yard, Jackal Shrine, Chariot Yard). "Halls" was read as map 1's two; the City Hall, Marketplace, Workshop, upgrades and the rest stay off.
+- **Neutrals**, light at home and heavier toward the sluice: west bank, 6 Hyenas at the palm-grove sawmill, 5 Sand Raiders at the ore pit, 10 Hyenas holding the bridge's west end, 12 Hyenas in the southern dunes, 10 Sand Raiders at the ford; east bank, 5 Giant Scorpions at the gold mine, 12 Sand Raiders at the far chest (2000 gold), 6 Scorpions at the shrine, 7 Scorpions in the waste, 5 Nile Crocodiles on the road down to the sluice; and **the Petsuchos with its brood of 8 Nile Crocodiles**, one fight: a map monster can now carry a `brood` (a second creature in up to 3 stacks of its own beside it, which never grows; `monsterArmy` in adventure.ts). The design names one Petsuchos, so it is one.
+- **Sites:** sawmill, ore pit, gold mine; a Mercenary Camp, a Watchtower and a Standing Stone; a **shrine of the Rite of Osiris** east of the river (Neferet knows two Rites; the third is found); two chests, three campfires, seven piles. No site gives Ankhs yet (no such site exists): Ankhs come from Neferet's two and the Temple.
+- **The gray Faience set** (`items.ts`, Neferet's, as the Linen set is Ianthe's), as fixed drops: Faience Diadem (+1 Knowledge) from the grove hyenas, Reed Sandals (+1 Knowledge) from the pit raiders, Faience Bangles (+1 Spell Power) from the bridge hyenas, Faience Anklets (+1 Knowledge) from the dune hyenas, Scarab Girdle (+1 Luck) from the ford raiders, and the Faience Collar (+1 Spell Power) from the Petsuchos. Their icons borrow the Linen set's.
+- **Stand-ins (no Egypt art yet):** units as in `standIns.ts`; on the map Nekhen is the Greek town tinted sand, Neferet rides as Rowan (the hero art's fallback), and the desert's dunes and boulders are the map's mountains and rocks on sand (new tiles `D` and `k` in `map.ts`); the menu's picture for Nekhen is Ashford's river, tinted.
+
+**Balance (Nov 8), on the real rules** (`test/partBot.ts`, a bot reusable for every part: it builds the town's plan a building a day, hires all it can at home, rides to the nearest pile, chest, mine, site or monster it is at least `edge` times stronger than, comes home at the start of a week, and takes on the goal at `bossEdge`; every fight is the battle AI on both sides, so no spells; `test/nekhenBalance.test.ts`, `BALANCE_SEEDS=24` for the table). Three styles: a rusher (edge 1.6, the goal at 1.3), a steady player (2, 1.6) and a careful one (2.5, 2). 24 seeds each, all won:
+
+| | Days | The goal's fight cost | Worst first-week fight |
+|---|---|---|---|
+| Nekhen, rusher | 6 to 12 | 13 to 50% of the army | 4% |
+| Nekhen, steady / careful | 12 | 10 to 22% | 8% |
+| Map 1 (Ashford), rusher | 5 to 10 | 2 to 33% | 7% |
+| Map 1, steady / careful | 10 | 0 to 8% | 7% |
+
+So Nekhen plays about map 1's length (two days longer for a steady player: the sluice is across the river and down the far bank), its goal costs a real share of the army where the ogres hardly do, and the first week near home is as safe as map 1's. Tried and dropped: two Petsuchoi with 6 crocodiles (the bot waited until week 3, day 17, and lost 5%); 9 Sand Raiders on the bridge (lost 23% on day 1: shooters bite at the start); a brood of 10 (steady day 12 at 17 to 35%, but a careful player waited to day 17).
 
 ## The day card
 
@@ -351,6 +482,8 @@ Decided with the user on Nov 8, 2026, after the Black Banner's part card ("it's 
 | `korax-taken` | Korax falls while Kassander rides | none |
 | `kassander-beaten` | Kassander falls with no town left | none |
 | `chapter-won` | the chapter's victory card | the victory card, without the story |
+| `part-nekhen` | Part 4 opens (not recorded yet: its card shows the story) | the brief and goal |
+| `nekhen-won` | Part 4 won: chapter 2's ending card while it is the last part built (not recorded yet) | the ending card, without the story |
 
 **Writing a line:** lively tags (`[warm, storytelling]`, `[grim]`, `[wry]`…), "!" and "…", a change of mood every sentence or two, never [whispers]; the test checks those. `part-blackBanner`'s script must stay word for word what was recorded.
 
@@ -383,9 +516,13 @@ Oct 24 (third session): the town fills the screen (drag sideways when it's wider
 
 Oct 24 (fourth session): the whole game was repainted dark and serious after H3 (see Art direction). Figures are about 7 heads tall with stern faces, and the interface is leather and gilt in Cinzel and EB Garamond. The shared map ground lives in `src/art/terrainGround.ts` and `terrainBrush.ts`, with water, roads and peaks in their own files.
 
+Nov 8: chapter 2's engine (steps 1–3 of "What the engine needs"): Egypt (`kemet`) with its 21 units, 5 desert neutrals, its building names and the Temple of Osiris, the six new traits, the Sacred Rites and Ankhs; towns and heroes carry a people, older saves load Greek. Art stands in until PixelLab's lands.
+
+Nov 8 (later): step 4 and part 4. Chapter 2, The Two Lands, is a second chapter on the menu, the full game's, fetched for owners only and saved in its own slot; part 4, Nekhen, is built and balanced (see "Part 4 as built"). Chapter 1's ending card points on to it. Its two narrated lines (`part-nekhen`, `nekhen-won`) are written and not recorded: their cards show the words meanwhile. Next: parts 5 and 6 (stitched on in `twoLands.ts`), and the art of step 5.
+
 ## Saving
 
-The adventure is saved in localStorage after every action, and a copy is kept at the start of each day (so a lost battle can replay the day). Progress (maps won, blots) is saved and merged like the other games.
+The adventure is saved in localStorage after every action, and a copy is kept at the start of each day (so a lost battle can replay the day). Progress (maps won, blots) is saved and merged like the other games. **Each chapter has its own game (Nov 8):** chapter 1's stays at `inkheroes.adventure.v1`, so every older save loads unchanged; chapter 2's is `inkheroes.adventure.twoLands.v1` (`ChapterDef.slot` in `src/level/maps.ts`, `adventureKey` in save.ts). A save is only opened with its own chapter's maps, so neither chapter can load the other's game, and a chapter-2 save on a device without the full game is kept, unread, until the maps come.
 
 ## Items, the hero sheet and several heroes (planned, user Nov 4)
 

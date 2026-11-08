@@ -172,7 +172,7 @@ export const SKILL_ICONS: Readonly<Record<SkillId, string>> = {
   learning: skillLearning,
 };
 
-export const SPELL_ICONS: Readonly<Record<SpellId, string>> = {
+export const SPELL_ICONS: Readonly<Partial<Record<SpellId, string>>> = {
   magicArrow: spellMagicArrow,
   haste: spellHaste,
   slow: spellSlow,
@@ -185,7 +185,7 @@ export const SPELL_ICONS: Readonly<Record<SpellId, string>> = {
 };
 
 /** The guild's spell paintings (64 x 64). */
-export const SPELL_ART: Readonly<Record<SpellId, string>> = {
+export const SPELL_ART: Readonly<Partial<Record<SpellId, string>>> = {
   magicArrow: spellArtMagicArrow,
   haste: spellArtHaste,
   slow: spellArtSlow,
@@ -216,7 +216,7 @@ export const BAG_ART: Readonly<Record<BagArt, string>> = {
 };
 
 /** The gear's item icons (64 x 64). */
-export const ITEM_ICONS: Readonly<Record<ItemId, string>> = {
+export const ITEM_ICONS: Readonly<Partial<Record<ItemId, string>>> = {
   bronzeHelm: itemBronzeHelm,
   bronzeCuirass: itemBronzeCuirass,
   bronzeBracers: itemBronzeBracers,

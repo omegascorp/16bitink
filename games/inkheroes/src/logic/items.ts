@@ -50,7 +50,7 @@ export interface ItemDef {
   readonly machine?: MachineId;
 }
 
-export const SET_NAMES: Readonly<Record<string, string>> = { bronze: 'Bronze set', linen: 'Linen set' };
+export const SET_NAMES: Readonly<Record<string, string>> = { bronze: 'Bronze set', linen: 'Linen set', faience: 'Faience set' };
 
 /** Every piece. Numbers in docs/inkheroes-design.md. */
 export const ITEMS = {
@@ -66,7 +66,16 @@ export const ITEMS = {
   cordSash: { name: 'Cord Sash', slot: 'belt', quality: 'gray', set: 'linen', gives: { luck: 1 } },
   linenLeggings: { name: 'Linen Leggings', slot: 'greaves', quality: 'gray', set: 'linen', gives: { knowledge: 1 } },
   templeSandals: { name: 'Temple Sandals', slot: 'boots', quality: 'gray', set: 'linen', gives: { knowledge: 1 } },
+  // Egypt's mystic set (chapter 2, part 4): Neferet's, as the Linen set is Ianthe's.
+  faienceDiadem: { name: 'Faience Diadem', slot: 'helm', quality: 'gray', set: 'faience', gives: { knowledge: 1 } },
+  faienceCollar: { name: 'Faience Collar', slot: 'cuirass', quality: 'gray', set: 'faience', gives: { power: 1 } },
+  faienceBangles: { name: 'Faience Bangles', slot: 'bracers', quality: 'gray', set: 'faience', gives: { power: 1 } },
+  scarabGirdle: { name: 'Scarab Girdle', slot: 'belt', quality: 'gray', set: 'faience', gives: { luck: 1 } },
+  faienceAnklets: { name: 'Faience Anklets', slot: 'greaves', quality: 'gray', set: 'faience', gives: { knowledge: 1 } },
+  reedSandals: { name: 'Reed Sandals', slot: 'boots', quality: 'gray', set: 'faience', gives: { knowledge: 1 } },
   noviceSpellbook: { name: 'Novice’s Spellbook', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
+  // Egypt's spellbook: the same grade as the Greeks' first.
+  novicePapyrus: { name: 'Novice’s Papyrus', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
   oracleSpellbook: { name: 'Oracle’s Spellbook', slot: 'book', quality: 'green', gives: { knowledge: 1, power: 1 } },
   alexandrianCodex: { name: 'Alexandrian Codex', slot: 'book', quality: 'blue', gives: { knowledge: 2, power: 1 } },
   catapult: { name: 'Catapult', slot: 'machine', quality: 'gray', gives: {}, machine: 'catapult' },

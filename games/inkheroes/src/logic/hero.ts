@@ -5,6 +5,7 @@ import type { BattleHero } from './battleTypes';
 import { rollInt } from './rng';
 import { MAX_SKILLS, SKILL_IDS, skillValue, type Rank, type SkillId, type Skills } from './skills';
 import type { SpellId } from './spells';
+import type { TownFaction } from './creatures';
 
 export type HeroClass = 'knight' | 'cleric';
 export type Primary = 'attack' | 'defense' | 'power' | 'knowledge';
@@ -37,6 +38,10 @@ export interface Hero {
   readonly bag?: readonly ItemId[];
   /** Which bag they carry them in (`BAGS`): none means the Satchel. */
   readonly pack?: number;
+  /** Their people (none: the Greeks'). */
+  readonly faction?: TownFaction;
+  /** Ankhs carried, for the Rite of Osiris (none: 0). */
+  readonly ankhs?: number;
 }
 
 interface ClassDef {
@@ -95,7 +100,7 @@ export function toBattleHero(h: Hero): BattleHero {
   const worn = gearBonus(h);
   return {
     name: h.name, attack: geared.attack, defense: geared.defense, power: geared.power, mana: h.mana,
-    spells: hasSpellbook(h) ? h.spells : [], skills: h.skills,
+    spells: hasSpellbook(h) ? h.spells : [], skills: h.skills, ...(h.ankhs ? { ankhs: h.ankhs } : {}),
     morale: skillValue(h.skills, 'leadership') + (worn.morale ?? 0), luck: skillValue(h.skills, 'luck') + (worn.luck ?? 0),
   };
 }

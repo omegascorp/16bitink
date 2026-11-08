@@ -79,5 +79,23 @@
     "voice": "BNgbHR0DNeZixGQVzloa",
     "model": "eleven_v4",
     "recorded": "2026-11-08T10:34:30Z"
+  },
+  {
+    "line": "part-nekhen",
+    "title": "Nekhen",
+    "text": "Far to the south, where the Nile runs between two deserts, the flood is late this year. The great sluice of the canal is shut… and the Petsuchos lies across it, the temple's own crocodile, gone wild, with its brood. Neferet, priestess of Isis, holds Nekhen on the west bank. Her rites can curse a foe, ward a friend… and, with an Ankh, raise the fallen! Cross the river… and take the sluice back.",
+    "script": "[grand, storytelling] Far to the south, where the Nile runs between two deserts, the flood is late this year. [ominous] The great sluice of the canal is shut… and the Petsuchos lies across it, the temple's own crocodile, gone wild, with its brood. [warm] Neferet, priestess of Isis, holds Nekhen on the west bank. Her rites can curse a foe, ward a friend… [hopeful] and, with an Ankh, raise the fallen! [resolute] Cross the river… and take the sluice back.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "nekhen-won",
+    "title": "The flood comes",
+    "text": "The Petsuchos is beaten, and the sluice swings open! The water runs down the old canal, and the fields drink at last… In Nekhen they light lamps for Neferet tonight. But the flood brought word from downriver… and the Two Lands are not at peace yet.",
+    "script": "[triumphant] The Petsuchos is beaten, and the sluice swings open! [joyful] The water runs down the old canal, and the fields drink at last… [warm] In Nekhen they light lamps for Neferet tonight. [intrigued] But the flood brought word from downriver… and the Two Lands are not at peace yet.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
   }
 ]

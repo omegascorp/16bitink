@@ -16,11 +16,26 @@ export const UNLOCKS: readonly (readonly BuildingId[])[] = [
   ['castle', 'treasury', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3'],
 ];
 
-/** The buildings open by map `n` (1-based). */
-export const openBy = (n: number): Set<BuildingId> => new Set(UNLOCKS.slice(0, n).flat());
+/**
+ * Chapter 2, the Two Lands: a fresh start with a new people, so its towns
+ * grow their tree again from the bottom, part by part (part 4 is the first).
+ */
+export const TWO_LANDS_UNLOCKS: readonly (readonly BuildingId[])[] = [
+  // Part 4, Nekhen: the halls and walls, the Tavern, the House of Life's first floor and Osiris's temple (the Rites and Ankhs are the part's lesson), the four lowest dwellings.
+  ['villageHall', 'townHall', 'fort', 'citadel', 'tavern', 'mageGuild1', 'templeOsiris', 'guardhouse', 'archeryRange', 'griffinTower', 'barracks'],
+];
 
-/** What map `n` switches off: everything the campaign hasn't opened by then. */
-export const lockedOn = (n: number): BuildingId[] => BUILDING_IDS.filter((b) => !openBy(n).has(b));
+/** The buildings a chapter's `k`th part (1-based) can build: all its parts before it opened, and what it adds. */
+export const openIn = (unlocks: readonly (readonly BuildingId[])[], k: number): Set<BuildingId> => new Set(unlocks.slice(0, k).flat());
+
+/** What a chapter's `k`th part switches off. */
+export const lockedIn = (unlocks: readonly (readonly BuildingId[])[], k: number): BuildingId[] => BUILDING_IDS.filter((b) => !openIn(unlocks, k).has(b));
+
+/** The buildings open by map `n` (1-based) of chapter 1. */
+export const openBy = (n: number): Set<BuildingId> => openIn(UNLOCKS, n);
+
+/** What map `n` of chapter 1 switches off: everything the campaign hasn't opened by then. */
+export const lockedOn = (n: number): BuildingId[] => lockedIn(UNLOCKS, n);
 
 /** The war machines the Blacksmith sells, map by map, opened like its buildings: one grade at a time. */
 export const MACHINE_UNLOCKS: readonly (readonly SoldMachine[])[] = [

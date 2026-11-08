@@ -343,6 +343,8 @@ export const GAMES: readonly CatalogGame[] = [
     updated: '2026-11-08',
     size: { chapters: 4, ready: 1 },
     demo: 'Chapter 1 free',
+    price: '$4.99',
+    stripeLookupKey: 'inkheroes_full',
     theme: { paper: '#15110d', ink: '#efe2c2', accent: '#d4a849' },
     icon: 'inkheroes',
     orientation: 'landscape',

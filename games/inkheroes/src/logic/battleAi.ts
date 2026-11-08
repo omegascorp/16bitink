@@ -32,15 +32,22 @@ function worth(target: Stack, damage: number): number {
   return Math.min(total, damage) * (1 + c.level * 0.15);
 }
 
-/** The trade one blow on `e` makes: damage dealt, less what's answered, plus what a chance of stone would spare. */
+/** The trade one blow on `e` makes: damage dealt, less what's answered, plus what a chance of stone, a curse or poison would spare or take. */
 function tradeOn(state: BattleState, me: Stack, e: Stack, moved: number): number {
+  const c = creature(me.creature);
   const dealt = average(damageRange(state, me, e, { ranged: false, distance: 1, moved }));
   const left = { ...e, count: e.count - killsBy(e, dealt) };
   const threat = left.count > 0 ? worth(me, average(damageRange(state, left, me, { ranged: false, distance: 1, moved: 0 }))) : 0;
   const back = answers(me, e) ? threat : 0;
-  const stone = isStone(e) ? 0 : (creature(me.creature).petrify ?? 0) * threat;
-  return worth(e, dealt) - back * 0.8 + stone;
+  const stone = isStone(e) ? 0 : (c.petrify ?? 0) * threat;
+  const mortal = left.count > 0 && !creature(e.creature).undead;
+  // A curse takes about a third off its blows for a few rounds; poison three ticks of a share of the blow (a fresh one replaces the old).
+  const curse = mortal && !hasEffect(e, 'curse') ? (c.curse ?? 0) * threat * 0.3 : 0;
+  const poison = mortal && c.poison ? worth(e, 3 * dealt * c.poison) : 0;
+  return worth(e, dealt) - back * 0.8 + stone + curse + poison;
 }
+
+const hasEffect = (s: Stack, kind: string): boolean => s.effects.some((x) => x.kind === kind);
 
 /**
  * The neutral AI, after VCMI's StupidAI: a shooter shoots the target it hurts

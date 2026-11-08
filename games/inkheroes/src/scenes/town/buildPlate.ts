@@ -3,7 +3,7 @@ import { BUILDINGS, type BuildingId } from '../../logic/buildings';
 import { tilesOf } from '../../logic/map';
 import { briefAmount, shortfall, type Purse } from '../../logic/resources';
 import { creature } from '../../logic/creatures';
-import type { Town } from '../../logic/town';
+import { buildingIn, type Town } from '../../logic/town';
 import { drawFrame } from '../battle/pixelFrames';
 import type { Pixels } from '../battle/pixelScenery';
 import { INK, PixelButton, PixelFrame, PixelImage, TextLabel } from '../battle/pixelUi';
@@ -22,9 +22,9 @@ export function buildButton(town: Town, id: BuildingId, purse: Purse): { label: 
   return { label: 'Build', note: briefAmount(cost) || 'Free', ready: true };
 }
 
-/** What a building does, in one short line. */
-function shortSays(id: BuildingId): string {
-  const def = BUILDINGS[id];
+/** What a building does, in one short line (in the town's people's words). */
+function shortSays(town: Town, id: BuildingId): string {
+  const def = buildingIn(town, id);
   if (def.dwelling) return `Hires ${creature(def.dwelling).plural}`;
   return def.travel ? `Heroes ride ${tilesOf(def.travel)} tiles further` : def.says;
 }
@@ -61,8 +61,8 @@ export class BuildPlate {
     const textW = x + w - PLATE.pad - (narrow ? 0 : PLATE.btn.w + 6) - textX;
     const line = { wrap: textW, align: 'left', anchor: { x: 0, y: 0 } } as const;
     const head = new TextLabel(scene, { ...line, ink: INK.dim }).setText('Build next');
-    const name = new TextLabel(scene, { ...line, kind: 'title' }).setText(BUILDINGS[id].name);
-    const what = new TextLabel(scene, line).setText(shortSays(id));
+    const name = new TextLabel(scene, { ...line, kind: 'title' }).setText(buildingIn(opts.town, id).name);
+    const what = new TextLabel(scene, line).setText(shortSays(opts.town, id));
     const body = Math.max(PLATE.pic.h, LINE + name.height + 2 + what.height);
     const btnW = narrow ? w - PLATE.pad * 2 : PLATE.btn.w;
     const button = new PixelButton(scene, { w: btnW, h: PLATE.btn.h, label: btn.label, note: btn.note, primary: btn.ready, rim: btn.ready ? 'gold' : 'bronze', onClick: opts.onBuild });

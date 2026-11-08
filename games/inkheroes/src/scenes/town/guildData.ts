@@ -1,7 +1,7 @@
 import { heroTown, type Adventure } from '../../logic/adventure';
 import { hasSpellbook, itemDef, itemSays, QUALITY_NAMES, type ItemId } from '../../logic/items';
 import { canAfford } from '../../logic/resources';
-import { SPELLBOOK_COST, SPELLBOOK_SOLD, type Town } from '../../logic/town';
+import { SPELLBOOK_COST, spellbookSold, type Town } from '../../logic/town';
 import { SPELLS, type SpellId } from '../../logic/spells';
 
 /** What the guild's book stand shows: always the book it sells. */
@@ -20,8 +20,9 @@ export interface BookStand {
 /** The guild's book, and whether the hero in town can buy it. */
 export function bookStand(adv: Adventure, town: Town): BookStand {
   const { hero } = adv;
-  const def = itemDef(SPELLBOOK_SOLD);
-  const stand = { item: SPELLBOOK_SOLD, name: def.name, says: `${QUALITY_NAMES[def.quality]}: ${itemSays(SPELLBOOK_SOLD)}`, price: `${SPELLBOOK_COST} gold` };
+  const sold = spellbookSold(town);
+  const def = itemDef(sold);
+  const stand = { item: sold, name: def.name, says: `${QUALITY_NAMES[def.quality]}: ${itemSays(sold)}`, price: `${SPELLBOOK_COST} gold` };
   if (heroTown(adv)?.id !== town.id) return { ...stand, note: null, buy: null };
   if (hasSpellbook(hero)) return { ...stand, note: `${hero.name} has a spellbook`, buy: null };
   if (hero.bag?.some((id) => itemDef(id).slot === 'book')) return { ...stand, note: `${hero.name} has one in the bag: wear it from the Gear tab`, buy: null };
@@ -30,7 +31,7 @@ export function bookStand(adv: Adventure, town: Town): BookStand {
 }
 
 /** A spell's level and cost, in a line. */
-export const spellFacts = (id: SpellId): string => `Level ${SPELLS[id].level} · ${SPELLS[id].mana} mana`;
+export const spellFacts = (id: SpellId): string => `Level ${SPELLS[id].level} · ${SPELLS[id].mana} mana${SPELLS[id].ankhs ? ` + ${SPELLS[id].ankhs} Ankh` : ''}`;
 
 /** Whether the hero has `id`, or what they still need. */
 export function spellNote(adv: Adventure, town: Town, id: SpellId): { readonly text: string; readonly known: boolean } {

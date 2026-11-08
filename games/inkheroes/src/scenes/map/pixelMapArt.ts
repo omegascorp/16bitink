@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { MAP_COVER, MAP_GROUND, MAP_SITES, MAP_VIGNETTES, type MapCover, type MapSprite } from '../../art/pixel/map';
+import { KEMET_TOWN, MAP_COVER, MAP_GROUND, MAP_SITES, MAP_VIGNETTES, type MapCover, type MapSprite } from '../../art/pixel/map';
 import { HERO_ART, UNIT_ART } from '../../art/pixel/manifest';
 import type { SiteArt } from '../../art/sites/types';
 import { CREATURE_IDS } from '../../logic/creatures';
@@ -24,6 +24,7 @@ export const MAP_TEX = {
   fog: (map: string) => `pxm-fog-${map}`,
   vignette: (id: string) => `pxm-vignette-${id}`,
   town: (map: string) => `pxm-town-${map}`,
+  kemetTown: 'pxm-town-kemet',
 } as const;
 
 /** The art a map object is drawn with (monsters, towns and gear on the ground are drawn apart). */
@@ -58,6 +59,7 @@ export function loadMapArt(scene: Phaser.Scene, creatures: readonly string[], wo
     for (const [t, url] of Object.entries(MAP_GROUND)) if (url) image(MAP_TEX.ground(t), url);
     for (const [art, s] of Object.entries(MAP_SITES) as [SiteArt, MapSprite][]) image(MAP_TEX.site(art), s.url);
     for (const [kind, list] of Object.entries(MAP_COVER) as [MapCover, readonly MapSprite[]][]) list.forEach((s, i) => image(MAP_TEX.cover(kind, i), s.url));
+    image(MAP_TEX.kemetTown, KEMET_TOWN.url);
     // The town's own sprites: the map draws its town from the city the town screen shows.
     keys.push(...queueTownArt(scene));
   }

@@ -4,20 +4,21 @@
  * and the divine powers of its own gods (for Greece, Olympian Favor: Zeus,
  * Athena, Ares and Poseidon). Ids stay as first named, so saves keep them.
  */
-export const SPELL_IDS = ['magicArrow', 'bless', 'stoneSkin', 'bloodlust', 'haste', 'slow', 'cure', 'lightningBolt', 'dispel'] as const;
+export const SPELL_IDS = ['magicArrow', 'bless', 'stoneSkin', 'bloodlust', 'haste', 'slow', 'cure', 'lightningBolt', 'dispel', 'curse', 'ward', 'rebirth'] as const;
 export type SpellId = (typeof SPELL_IDS)[number];
 
 /** Who a spell is cast on; `any` is either side's unit. */
 export type SpellTarget = 'enemy' | 'friend' | 'any';
 
 /** Common magic, or a civilisation's divine powers. */
-export type SpellSchool = 'common' | 'olympian';
-export type God = 'zeus' | 'athena' | 'ares' | 'poseidon';
+export type SpellSchool = 'common' | 'olympian' | 'rites';
+export type God = 'zeus' | 'athena' | 'ares' | 'poseidon' | 'set' | 'isis' | 'osiris';
 
 /** The spellbook's tabs, in order. */
 export const SCHOOLS: readonly { readonly id: SpellSchool; readonly name: string; readonly lore: string }[] = [
   { id: 'common', name: 'Common Magic', lore: 'Spells any hero can learn: speed and slowness, shields, healing, and the breaking of other spells.' },
   { id: 'olympian', name: 'Olympian Favor', lore: 'The gods of Olympus lend their power to those they favor. Zeus hurls lightning, Athena guides every blow, Ares feeds the fury of battle.' },
+  { id: 'rites', name: 'Sacred Rites', lore: 'The temple’s old rituals: Set curses the foe, Isis wards the faithful, and Osiris gives back the fallen to one who brings an Ankh.' },
 ];
 
 export interface SpellDef {
@@ -34,11 +35,17 @@ export interface SpellDef {
   readonly base?: number;
   /** A timed effect it puts on its target. */
   readonly effect?: EffectKind;
+  /** Ankhs the hero spends on it, beside the mana. */
+  readonly ankhs?: number;
   readonly says: string;
 }
 
-/** `stone` is no spell: a basilisk's strike puts it on a stack, for one lost turn (see battle.ts). */
-export type EffectKind = 'bless' | 'stoneSkin' | 'bloodlust' | 'haste' | 'slow' | 'stone';
+/**
+ * `stone` is no spell: a basilisk's strike puts it on a stack, for one lost
+ * turn (see battle.ts); `poison`, a scorpion's, counts its target's turns.
+ * `curse` comes from the spell or a mummy's strike; `ward` soaks damage.
+ */
+export type EffectKind = 'bless' | 'stoneSkin' | 'bloodlust' | 'haste' | 'slow' | 'stone' | 'curse' | 'ward' | 'poison';
 
 export const SPELLS: Readonly<Record<SpellId, SpellDef>> = {
   magicArrow: { id: 'magicArrow', name: 'Magic Arrow', level: 1, mana: 5, target: 'enemy', school: 'common', perPower: 10, base: 10, says: 'A bolt of force: 10 × power + 10 damage' },
@@ -50,7 +57,12 @@ export const SPELLS: Readonly<Record<SpellId, SpellDef>> = {
   lightningBolt: { id: 'lightningBolt', name: 'Thunderbolt of Zeus', level: 2, mana: 10, target: 'enemy', school: 'olympian', god: 'zeus', perPower: 25, base: 10, says: 'Zeus strikes: 25 × power + 10 damage' },
   bless: { id: 'bless', name: 'Wisdom of Athena', level: 1, mana: 5, target: 'friend', school: 'olympian', god: 'athena', effect: 'bless', says: 'Every blow lands true: always its most damage' },
   bloodlust: { id: 'bloodlust', name: 'Fury of Ares', level: 1, mana: 5, target: 'friend', school: 'olympian', god: 'ares', effect: 'bloodlust', says: '+3 Attack in melee' },
+  curse: { id: 'curse', name: 'Curse of Set', level: 1, mana: 5, target: 'enemy', school: 'rites', god: 'set', effect: 'curse', says: 'Every blow falls short: always its least damage' },
+  ward: { id: 'ward', name: 'Ward of Isis', level: 1, mana: 6, target: 'friend', school: 'rites', god: 'isis', effect: 'ward', perPower: 10, base: 20, says: 'Soaks the next 10 × power + 20 damage' },
+  rebirth: { id: 'rebirth', name: 'Rite of Osiris', level: 2, mana: 12, ankhs: 1, target: 'friend', school: 'rites', god: 'osiris', perPower: 30, base: 40, says: 'Brings back 30 × power + 40 health of the fallen, for good; costs an Ankh' },
 };
 
-export const BAD_EFFECTS: readonly EffectKind[] = ['slow', 'stone'];
+export const BAD_EFFECTS: readonly EffectKind[] = ['slow', 'stone', 'curse', 'poison'];
+/** Effects that don't wear off with the round: stone lasts until its lost turn, poison counts turns, a ward until it is spent. */
+export const UNTIMED_EFFECTS: readonly EffectKind[] = ['stone', 'poison', 'ward'];
 export const isSpellId = (v: unknown): v is SpellId => typeof v === 'string' && (SPELL_IDS as readonly string[]).includes(v);

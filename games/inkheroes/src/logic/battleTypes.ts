@@ -8,7 +8,12 @@ export type Side = 0 | 1;
 
 export interface Effect {
   readonly kind: EffectKind;
+  /** Rounds left (poison counts its stack's turns instead; a ward lasts until spent). */
   readonly rounds: number;
+  /** A ward: the damage it will still soak. */
+  readonly left?: number;
+  /** Poison: the damage each tick takes. */
+  readonly dose?: number;
 }
 
 /** One stack on the field. */
@@ -33,6 +38,8 @@ export interface Stack {
   readonly effects: readonly Effect[];
   /** Up on this tower (its index in TOWERS): it shoots from there, out of reach of any blow, until the tower falls. */
   readonly tower?: number;
+  /** Has risen again once this battle (a Bennu's rebirth). */
+  readonly reborn?: boolean;
 }
 
 /** What a hero brings to a battle. */
@@ -43,6 +50,8 @@ export interface BattleHero {
   readonly power: number;
   readonly mana: number;
   readonly spells: readonly SpellId[];
+  /** Ankhs carried: the Rite of Osiris spends one. */
+  readonly ankhs?: number;
   readonly skills: Skills;
   /** Morale and luck from skills and sites (the army's own bonuses are added per stack). */
   readonly morale: number;
@@ -85,12 +94,19 @@ export type Action =
 /** What happened, in order, for the battle scene to animate. */
 export type BattleEvent =
   | { readonly type: 'move'; readonly stack: number; readonly path: readonly Hex[]; readonly flies: boolean }
-  | { readonly type: 'strike'; readonly stack: number; readonly target: number; readonly damage: number; readonly kills: number; readonly lucky: boolean; readonly retaliation: boolean; readonly ranged: boolean }
+  /** `damage` is what got through; `soaked`, what a ward took first. */
+  | { readonly type: 'strike'; readonly stack: number; readonly target: number; readonly damage: number; readonly kills: number; readonly lucky: boolean; readonly retaliation: boolean; readonly ranged: boolean; readonly soaked?: number }
   | { readonly type: 'spell'; readonly side: Side; readonly spell: SpellId; readonly target: number; readonly amount: number; readonly kills: number }
   | { readonly type: 'wait'; readonly stack: number }
   | { readonly type: 'defend'; readonly stack: number }
   | { readonly type: 'heal'; readonly stack: number; readonly target: number; readonly amount: number }
   | { readonly type: 'morale'; readonly stack: number; readonly good: boolean }
+  /** A strike that landed cursed or poisoned its target. */
+  | { readonly type: 'afflict'; readonly stack: number; readonly effect: 'curse' | 'poison' }
+  /** Poison ate at a stack as its turn began. */
+  | { readonly type: 'poison'; readonly stack: number; readonly damage: number; readonly kills: number }
+  /** A stack wiped out rose again with `count` creatures. */
+  | { readonly type: 'rebirth'; readonly stack: number; readonly count: number }
   /** A stack turned to stone, or (`lost`) the turn that costs it. */
   | { readonly type: 'stone'; readonly stack: number; readonly lost: boolean }
   /** A stone from a catapult: `blows` 0 is a miss. */

@@ -1,5 +1,6 @@
 import type { ArmySlot } from '../logic/army';
 import type { BuildingId } from '../logic/buildings';
+import type { TownFaction } from '../logic/creatures';
 import type { HeroClass } from '../logic/hero';
 import type { Gear } from '../logic/items';
 import type { LineId } from '../narration/lines';
@@ -39,6 +40,8 @@ export interface MapDef {
     readonly guild: readonly SpellId[];
     /** Troops holding it on day one (none if left out). */
     readonly garrison?: readonly ArmySlot[];
+    /** Its people (none: the Greeks'). */
+    readonly faction?: TownFaction;
   };
   /** The map's other towns, neutral and held by a garrison until a hero beats it and takes them. */
   readonly towns?: readonly {
@@ -53,6 +56,8 @@ export interface MapDef {
     readonly owner?: 'rival' | 'player';
     /** Ridden on into from the part before, it waits for the hero as an ally instead, so a new town isn't simply handed over. */
     readonly waits?: boolean;
+    /** Its people (none: the Greeks'). */
+    readonly faction?: TownFaction;
   }[];
   readonly hero: HeroDef;
   /** A rival lord: an AI hero who rides out from the map's rival-held towns. */
@@ -90,6 +95,10 @@ export interface HeroDef {
   /** What they wear from the start: a `book` is what gives them magic. */
   readonly gear?: Gear;
   readonly army: readonly ArmySlot[];
+  /** Their people (none: the Greeks'). */
+  readonly faction?: TownFaction;
+  /** Ankhs they carry from the start. */
+  readonly ankhs?: number;
   /** A line about them, for the Tavern that hires them. */
   readonly blurb?: string;
 }

@@ -1,7 +1,8 @@
 import type { ItemId } from './items';
 import { addTroops, armyOf, emptyArmy, isEmptyArmy, type Army, type ArmySlot } from './army';
-import { BUILDINGS, BUILDING_IDS, type BuildingId } from './buildings';
-import { canManTower, creature, lineOf, strengthOf, tierOf, type CreatureId } from './creatures';
+import { BUILDINGS, type BuildingDef, type BuildingId } from './buildings';
+import { canManTower, creature, lineOf, strengthOf, tierOf, type CreatureId, type TownFaction } from './creatures';
+import { buildingIdsOf, buildingOf, buildsAt, FACTIONS, factionOf } from './factions';
 import type { Owner } from './objects';
 import { affordable, canAfford, pay, RESOURCES, shortfall, type Amount, type Purse } from './resources';
 import { fortification } from './siege';
@@ -26,9 +27,15 @@ export interface Town {
   readonly ally?: boolean;
   /** Gear kept in its Storehouse for any hero of ours. */
   readonly store?: readonly ItemId[];
+  /** Its people (none: the Greeks', as every town before chapter 2): names its buildings and hires its own units. */
+  readonly faction?: TownFaction;
+  /** Ankhs its Temple of Osiris has made and no hero has taken yet. */
+  readonly ankhs?: number;
 }
 
 export const has = (t: Town, b: BuildingId): boolean => t.built.includes(b);
+/** Building `b` as this town's people have it. */
+export const buildingIn = (t: Pick<Town, 'faction'>, b: BuildingId): BuildingDef => buildingOf(factionOf(t), b);
 
 /** The tower places the town's Fort, Citadel and Castle have opened. */
 export const towerPlaces = (t: Pick<Town, 'built'>): number => fortification(t.built)?.places ?? 0;
@@ -48,11 +55,12 @@ export function manTowers(army: Army, places: number): { army: Army; towers: Arm
 
 /** Why `b` can't be built now, or null when it can. */
 export function cantBuild(t: Town, b: BuildingId, p: Purse, off: readonly BuildingId[]): string | null {
-  const def = BUILDINGS[b];
+  const def = buildingIn(t, b);
   if (has(t, b)) return 'Built';
+  if (!buildsAt(factionOf(t), b)) return `Not built by ${FACTIONS[factionOf(t)].name}`;
   if (off.includes(b)) return 'Not on this map';
   const missing = def.needs.filter((n) => !has(t, n));
-  if (missing.length) return `Needs ${missing.map((n) => BUILDINGS[n].name).join(', ')}`;
+  if (missing.length) return `Needs ${missing.map((n) => buildingIn(t, n).name).join(', ')}`;
   if (t.builtToday) return 'Already built today';
   if (!canAfford(p, def.cost)) return 'Not enough resources';
   return null;
@@ -60,8 +68,8 @@ export function cantBuild(t: Town, b: BuildingId, p: Purse, off: readonly Buildi
 
 /** The building `b` starts from: itself, or the first thing still in its way; null when the map keeps it out of reach. */
 function firstStep(t: Town, b: BuildingId, off: readonly BuildingId[]): BuildingId | null {
-  if (off.includes(b)) return null;
-  const steps = BUILDINGS[b].needs.filter((n) => !has(t, n)).map((n) => firstStep(t, n, off));
+  if (off.includes(b) || !buildsAt(factionOf(t), b)) return null;
+  const steps = buildingIn(t, b).needs.filter((n) => !has(t, n)).map((n) => firstStep(t, n, off));
   if (steps.includes(null)) return null;
   return steps[0] ?? b;
 }
@@ -73,7 +81,7 @@ function firstStep(t: Town, b: BuildingId, off: readonly BuildingId[]): Building
  * has no wood, ore or rare goods for, which might never come.
  */
 export function suggestBuilding(t: Town, p: Purse, off: readonly BuildingId[]): BuildingId | null {
-  const steps = BUILD_PLAN.filter((b) => !has(t, b)).flatMap((b) => firstStep(t, b, off) ?? []);
+  const steps = BUILD_PLANS[factionOf(t)].filter((b) => !has(t, b)).flatMap((b) => firstStep(t, b, off) ?? []);
   const inReach = (b: BuildingId): boolean => Object.keys(shortfall(p, BUILDINGS[b].cost)).every((r) => r === 'gold');
   return steps.find(inReach) ?? steps[0] ?? null;
 }
@@ -82,13 +90,13 @@ export function suggestBuilding(t: Town, p: Purse, off: readonly BuildingId[]): 
 export function build(t: Town, b: BuildingId, p: Purse, off: readonly BuildingId[]): { town: Town; purse: Purse } {
   const why = cantBuild(t, b, p, off);
   if (why) throw new Error(why);
-  const def = BUILDINGS[b];
+  const def = buildingIn(t, b);
   const built = [...t.built, b];
   const next = { ...t, built, builtToday: true };
-  // A new dwelling opens with a week's growth; upgrading it hires better units from the same stock.
+  // A new dwelling opens with a week's growth; upgrading it hires better units from the same stock. A new temple has its first Ankh ready.
   const opens = def.dwelling && tierOf(def.dwelling) === 1;
   const stock = opens ? { ...t.stock, [def.dwelling!]: (t.stock[def.dwelling!] ?? 0) + growthOf(next, def.dwelling!) } : t.stock;
-  return { town: { ...next, stock }, purse: pay(p, def.cost) };
+  return { town: { ...next, stock, ...(def.ankhs ? { ankhs: (t.ankhs ?? 0) + def.ankhs } : {}) }, purse: pay(p, def.cost) };
 }
 
 /**
@@ -96,7 +104,7 @@ export function build(t: Town, b: BuildingId, p: Purse, off: readonly BuildingId
  * each dwelling opening with its week's growth as usual. The same town back when nothing is left.
  */
 export function buildAll(t: Town, off: readonly BuildingId[]): Town {
-  const next = BUILD_ORDER.find((b) => !has(t, b) && !off.includes(b) && BUILDINGS[b].needs.every((n) => has(t, n)));
+  const next = buildingIdsOf(factionOf(t)).find((b) => !has(t, b) && !off.includes(b) && buildingIn(t, b).needs.every((n) => has(t, n)));
   if (!next) return t;
   const free = Object.fromEntries(RESOURCES.map((r) => [r, Infinity])) as Purse;
   return buildAll({ ...build({ ...t, builtToday: false }, next, free, off).town, builtToday: t.builtToday }, off);
@@ -112,23 +120,30 @@ export function growthOf(t: Town, id: CreatureId): number {
   return Math.floor(creature(lineOf(id)).growth * (1 + bonus));
 }
 
+/** The units the town's built dwellings hire, its people's own. */
+const hiredBy = (t: Pick<Town, 'built' | 'faction'>): CreatureId[] => t.built.map((b) => buildingIn(t, b).dwelling).filter((d): d is CreatureId => !!d);
+
 /** The lines the town hires, by their base units, in the order their dwellings were built. */
-export const dwellings = (t: Town): CreatureId[] => [...new Set(t.built.map((b) => BUILDINGS[b].dwelling).filter((d): d is CreatureId => !!d).map(lineOf))];
+export const dwellings = (t: Pick<Town, 'built' | 'faction'>): CreatureId[] => [...new Set(hiredBy(t).map(lineOf))];
 
 /** The best level of `base`'s line the town hires (its highest dwelling built), or null when it hires none. */
 export function bestUnit(t: Town, base: CreatureId): CreatureId | null {
-  const units = t.built.map((b) => BUILDINGS[b].dwelling).filter((d): d is CreatureId => !!d && lineOf(d) === base);
+  const units = hiredBy(t).filter((d) => lineOf(d) === base);
   return units.length ? units.reduce((a, b) => (tierOf(b) > tierOf(a) ? b : a)) : null;
 }
 
 /** The units waiting in `id`'s line. */
 export const stockOf = (t: Town, id: CreatureId): number => t.stock[lineOf(id)] ?? 0;
 
-/** Monday: every dwelling gains a week's growth (unhired units stay). */
+/** Ankhs a town's temples make a week. */
+export const ankhsAWeek = (t: Pick<Town, 'built'>): number => t.built.reduce((n, b) => n + (BUILDINGS[b].ankhs ?? 0), 0);
+
+/** Monday: every dwelling gains a week's growth (unhired units stay), and a temple makes its Ankh. */
 export function weekly(t: Town): Town {
   const stock = { ...t.stock };
   for (const d of dwellings(t)) stock[d] = (stock[d] ?? 0) + growthOf(t, d);
-  return { ...t, stock, builtToday: false };
+  const made = ankhsAWeek(t);
+  return { ...t, stock, builtToday: false, ...(made ? { ankhs: (t.ankhs ?? 0) + made } : {}) };
 }
 
 /** How many of `id` the player can hire now: stock and purse permitting. */
@@ -222,16 +237,32 @@ export function guildSpells(t: Town): SpellId[] {
 }
 
 export const SPELLBOOK_COST = 500;
-/** What a Mage Guild sells for that. */
-export const SPELLBOOK_SOLD: ItemId = 'noviceSpellbook';
+/** What a Greek Mage Guild sells for that. */
+export const SPELLBOOK_SOLD: ItemId = FACTIONS.crown.book;
+/** The book a town's guild sells: its people's own. */
+export const spellbookSold = (t: Pick<Town, 'faction'>): ItemId => FACTIONS[factionOf(t)].book;
 
-/** Buildings in the order the town screen lists them. */
-export const BUILD_ORDER: readonly BuildingId[] = BUILDING_IDS;
+/** Buildings in the order the town screen lists them (a Greek town's: see buildOrderOf). */
+export const BUILD_ORDER: readonly BuildingId[] = buildingIdsOf('crown');
+/** The buildings a town's hall lists, in order: every one its people build. */
+export const buildOrderOf = (t: Pick<Town, 'faction'>): readonly BuildingId[] => BUILD_ORDERS[factionOf(t)];
+const BUILD_ORDERS: Readonly<Record<TownFaction, readonly BuildingId[]>> = { crown: BUILD_ORDER, kemet: buildingIdsOf('kemet') };
 
 /** The order a town grows in: income, the best troops, their growth, spells, then upgrades; whatever else there is comes last. */
-export const BUILD_PLAN: readonly BuildingId[] = [...new Set<BuildingId>([
+const plan = (f: TownFaction, first: readonly BuildingId[]): readonly BuildingId[] => [...new Set<BuildingId>([...first, ...BUILD_ORDERS[f]])];
+const CORE_PLAN: readonly BuildingId[] = [
   'townHall', 'barracks', 'archeryRange', 'citadel', 'griffinTower', 'mageGuild1', 'blacksmith',
   'guardhouse2', 'archeryRange2', 'barracks2', 'griffinTower2', 'cityHall', 'stables', 'monastery',
   'castle', 'guardhouse3', 'archeryRange3', 'barracks3', 'griffinTower3', 'tiltyard',
-  ...BUILD_ORDER,
-])];
+];
+/** Each people's plan, in the order its dwellings stand: Egypt's jackals before its chariots, and its Temple of Osiris once the House of Life is up. */
+export const BUILD_PLANS: Readonly<Record<TownFaction, readonly BuildingId[]>> = {
+  crown: plan('crown', CORE_PLAN),
+  kemet: plan('kemet', [
+    'townHall', 'archeryRange', 'griffinTower', 'citadel', 'barracks', 'mageGuild1', 'templeOsiris', 'blacksmith',
+    'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2', 'cityHall', 'stables', 'monastery',
+    'castle', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3', 'tiltyard',
+  ]),
+};
+/** The Greek plan (every town's before chapter 2). */
+export const BUILD_PLAN: readonly BuildingId[] = BUILD_PLANS.crown;

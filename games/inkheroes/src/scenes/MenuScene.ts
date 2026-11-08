@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import { SCENERY } from '../art/pixel/scenery';
 import { BACKDROP } from '../art/palette';
-import { getHost, getSound } from '../host';
-import { MAPS } from '../level/maps';
+import type { GameHost } from '@16bitink/game-sdk';
+import { getFullError, getHost, getSound, trackOffer } from '../host';
+import { CHAPTERS, isLoaded, partsOf, type ChapterDef } from '../level/maps';
 import { calendar } from '../logic/adventure';
-import { loadProgress } from '../logic/save';
+import { loadProgress, type Progress } from '../logic/save';
+import { loadPaidMaps } from './BootScene';
 import { heroArt, nearest, PX_TEX, unitArt } from './battle/pixelAssets';
 import { FIGURE_DEPTH, PixelFigure } from './battle/pixelFigure';
 import { drawRule } from './battle/pixelFrames';
@@ -26,6 +28,11 @@ const HORIZON_AT = 0.5;
 const MUSTER_FOOT = 22;
 const SCENERY_SEED = 3041;
 const TERRAIN = 'grass';
+/** Between two chapters' cards standing side by side, UI pixels. */
+const PAIR_GAP = 16;
+/** The room the cards keep from the screen's edges. */
+const EDGE = 16;
+const ROMAN = ['I', 'II', 'III', 'IV', 'V'] as const;
 
 /**
  * The campaign, as pixel art on the art's grid like the battle: a landscape
@@ -43,6 +50,10 @@ export class MenuScene extends Phaser.Scene {
   private country: DriftingScenery | null = null;
   /** How far the clouds have drifted (kept when the menu is redrawn). */
   private drift = 0;
+  /** The chapter shown when only one card fits (an index into CHAPTERS). */
+  private shown: number | null = null;
+  /** The full game's offer was counted as seen on this visit. */
+  private offered = false;
 
   constructor() {
     super('Menu');
@@ -52,6 +63,7 @@ export class MenuScene extends Phaser.Scene {
     getSound(this)?.music('map');
     this.cameras.main.setBackgroundColor(BACKDROP);
     this.ready = false;
+    this.offered = false;
     this.owned = [];
     this.keys = [];
     this.figures = [];
@@ -96,35 +108,96 @@ export class MenuScene extends Phaser.Scene {
     const { w, h } = this.size;
     const host = getHost(this);
     const progress = loadProgress(host.storage);
-    const resumed = Session.resume(this, host);
     this.backdrop();
     this.layer = this.add.layer().setDepth(1);
     const ui = this.add.container(0, 0).setDepth(2);
     // The wordmark: as big as the screen's width allows.
     const mask = renderPixelText({ lines: ['INKHEROES'] }, { ink: [255, 255, 255, 255] });
     const scale = Math.max(2, Math.min(5, Math.floor((w - 24) / mask.w)));
-    const tall: ChapterCardSpec = {
-      parts: MAPS, records: progress.maps,
-      playing: resumed ? { def: resumed.def, when: calendar(resumed.adv.day) } : null,
-      onPlay: () => this.play(resumed),
-      ...(resumed ? { onStartOver: () => this.startOver(resumed) } : {}),
-    };
-    // The title and the chapter's card as one block, centred in the screen above the muster.
     const markH = mask.h * scale + 7;
     const head = markH + 2 + 15 + 12;
-    const spec = { ...tall, wide: spreadCard(head + chapterCardHeight(tall), chapterCardWidth({ ...tall, wide: true }), { w, h }) };
-    const blockH = head + chapterCardHeight(spec);
+    const specs = CHAPTERS.map((c) => this.cardSpec(c, host, progress));
+    // Every chapter's card side by side where they fit, else one at a time with a way across.
+    const pairW = specs.reduce((n, sp) => n + chapterCardWidth(sp), 0) + PAIR_GAP * (specs.length - 1);
+    const pairH = Math.max(...specs.map((sp) => chapterCardHeight(sp)));
+    const pair = pairW + EDGE * 2 <= w && head + pairH + EDGE <= h - MUSTER_FOOT;
+    const one = this.shown ?? this.defaultChapter();
+    const shownSpecs = pair ? specs : [specs[one]!].map((tall) => ({ ...tall, wide: spreadCard(head + chapterCardHeight(tall), chapterCardWidth({ ...tall, wide: true }), { w, h }) }));
+    const blockW = pair ? pairW : chapterCardWidth(shownSpecs[0]!);
+    const blockH = head + Math.max(...shownSpecs.map((sp) => chapterCardHeight(sp)));
     const top = Math.max(8, Math.floor((h - MUSTER_FOOT - blockH) / 2) - 10);
     const mark = new PixelImage(this, drawWordmark(mask, scale), { x: 0.5, y: 0 }).setPosition(Math.floor(w / 2), top);
-    const chapter = new TextLabel(this, { kind: 'title', anchor: { x: 0.5, y: 0 } }).setText('Chapter I · The Border March').setPosition(Math.floor(w / 2), top + mark.height + 2);
-    const rule = new PixelImage(this, drawRule(Math.min(w - 20, chapter.width + 60)), { x: 0.5, y: 0 }).setPosition(Math.floor(w / 2), top + mark.height + 2 + chapter.height + 1);
-    this.owned.push(mark, chapter, rule);
-    ui.add([mark.img, chapter.img, rule.img]);
-    const y = top + mark.height + 2 + chapter.height + 12;
-    const left = Math.floor((w - chapterCardWidth(spec)) / 2);
-    ui.add(chapterCard(this, this.owned, spec).setPosition(left, y));
-    this.muster({ bottom: y + chapterCardHeight(spec), left });
+    this.owned.push(mark);
+    ui.add(mark.img);
+    const y = top + mark.height + 2 + 15 + 12;
+    let left = Math.floor((w - blockW) / 2);
+    shownSpecs.forEach((spec, i) => {
+      const c = pair ? CHAPTERS[i]! : CHAPTERS[one]!;
+      const cw = chapterCardWidth(spec);
+      this.heading(ui, c, left + Math.floor(cw / 2), top + mark.height + 2, pair ? null : one);
+      ui.add(chapterCard(this, this.owned, spec).setPosition(left, y));
+      left += cw + PAIR_GAP;
+    });
+    this.muster({ bottom: y + blockH - head, left: Math.floor((w - blockW) / 2) });
     this.soundButton(ui);
+  }
+
+  /** The chapter to show first when only one fits: the last with a game in play, else the first. */
+  private defaultChapter(): number {
+    const host = getHost(this);
+    const inPlay = CHAPTERS.map((c, i) => (isLoaded(c) && Session.look(host, c) ? i : -1)).filter((i) => i >= 0);
+    return inPlay[inPlay.length - 1] ?? 0;
+  }
+
+  /** "Chapter II · The Two Lands" over a card, with arrows to the other chapters when only one card fits (`one`: the one shown). */
+  private heading(ui: Phaser.GameObjects.Container, c: ChapterDef, cx: number, y: number, one: number | null): void {
+    const label = new TextLabel(this, { kind: 'title', anchor: { x: 0.5, y: 0 } }).setText(`Chapter ${ROMAN[c.n - 1] ?? c.n} · ${c.name}`).setPosition(cx, y);
+    const rule = new PixelImage(this, drawRule(Math.min(this.size.w - 20, label.width + 60)), { x: 0.5, y: 0 }).setPosition(cx, y + label.height + 1);
+    this.owned.push(label, rule);
+    ui.add([label.img, rule.img]);
+    if (one === null || CHAPTERS.length < 2) return;
+    const step = (by: number, x: number, text: string): void => {
+      const to = one + by;
+      if (to < 0 || to >= CHAPTERS.length) return;
+      const btn = new PixelButton(this, { w: 22, h: 18, label: text, onClick: () => {
+        this.shown = to;
+        this.draw();
+      } });
+      btn.setPosition(x, y - 2);
+      this.owned.push(btn);
+      ui.add(btn.root);
+    };
+    step(-1, Math.floor(cx - label.width / 2) - 30, '<');
+    step(1, Math.ceil(cx + label.width / 2) + 8, '>');
+  }
+
+  /** Chapter `c`'s card: its game, or (the full game's, not loaded) what it is and how to get it. */
+  private cardSpec(c: ChapterDef, host: GameHost, progress: Progress): ChapterCardSpec {
+    const base = { records: progress.maps, last: c.last };
+    if (!isLoaded(c)) {
+      return { ...base, parts: c.parts, playing: null, ...this.lockedOf(c, host) };
+    }
+    const looked = Session.look(host, c);
+    return {
+      ...base, parts: partsOf(c),
+      playing: looked ? { def: looked.def, when: calendar(looked.day) } : null,
+      onPlay: () => this.play(c),
+      ...(looked ? { onStartOver: () => this.startOver(c, looked) } : {}),
+    };
+  }
+
+  /** A chapter the player can't play now: an owner whose maps didn't come can try again; anyone else sees the offer. */
+  private lockedOf(c: ChapterDef, host: GameHost): Pick<ChapterCardSpec, 'locked' | 'onPlay'> {
+    if (host.unlocked) {
+      const retry = (): void => void loadPaidMaps(this).then(() => this.sys.isActive() && this.draw());
+      return { locked: { pitch: getFullError(this) ?? 'Your full game is still on its way.', label: 'Try again' }, onPlay: retry };
+    }
+    if (!this.offered && host.price) {
+      this.offered = true;
+      trackOffer(this, 'locked');
+    }
+    const label = host.price ? `Unlock · ${host.price}` : 'In the full game';
+    return { locked: { pitch: `The full game: ${c.pitch}`, label }, onPlay: () => host.onBuy('locked') };
   }
 
   /** The sound switches, in the corner. */
@@ -168,20 +241,24 @@ export class MenuScene extends Phaser.Scene {
     for (const [id, x] of right) place(id, x, true);
   }
 
-  /** Continue the game saved, or start the chapter from its first part. */
-  private play(resumed: Session | null): void {
-    if (!resumed) Session.begin(this, getHost(this), MAPS[0]!);
+  /** Continue chapter `c`'s saved game, or start the chapter from its first part. */
+  private play(c: ChapterDef): void {
+    const host = getHost(this);
+    if (!Session.resume(this, host, c)) Session.begin(this, host, partsOf(c)[0]!);
     this.scene.start('Map');
   }
 
-  private startOver(resumed: Session): void {
+  private startOver(c: ChapterDef, looked: { readonly def: { readonly name: string }; readonly day: number }): void {
     openCard(this, {
       title: 'Start the chapter over?',
-      body: `Your game on ${resumed.def.name} (${calendar(resumed.adv.day)}) will be lost.`,
+      body: `Your game on ${looked.def.name} (${calendar(looked.day)}) will be lost.`,
       buttons: [
         { label: 'Start over', onClick: () => {
-          resumed.abandon(this);
-          this.play(null);
+          const host = getHost(this);
+          const saved = Session.resume(this, host, c);
+          if (saved) saved.abandon(this);
+          else Session.discard(host, c);
+          this.play(c);
         } },
         { label: 'Keep my game', kind: 'plain', onClick: () => undefined },
       ],

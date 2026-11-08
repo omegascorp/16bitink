@@ -24,11 +24,12 @@ function bannerLines(adv: Adventure): LineId[] {
   ];
 }
 
-/** What each part of chapter 1 can tell next, by the part in play. */
+/** What each part can tell next, by the part in play. */
 function storyLines(adv: Adventure): LineId[] {
   if (adv.mapId === 'ashford') return ['part-thornwood'];
   if (adv.mapId === 'thornwood') return ['part-blackBanner'];
   if (adv.mapId === 'blackBanner') return bannerLines(adv);
+  if (adv.mapId === 'nekhen') return ['nekhen-won'];
   return [];
 }
 

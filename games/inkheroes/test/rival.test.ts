@@ -103,6 +103,21 @@ describe('the rival lord', () => {
     expect(fell.status).toBe('lost');
   });
 
+  it('a defence carries the battle hero\'s spent Ankhs and mana back, win or lose', () => {
+    const start = lastTown(startAdventure(def));
+    const town = townById(start, eudora)!;
+    const hero = { ...start.rival!.hero!, x: town.x + 2, y: town.y + 1, army: armyOf([{ creature: 'swordsman', count: 30 }]) };
+    const held = withTown({ ...start, hero: { ...start.hero, ankhs: 2, mana: 30, x: 2, y: 9 }, rival: { ...start.rival!, hero } }, { ...town, garrison: armyOf([{ creature: 'spearman', count: 10 }]) });
+    const r = rivalTurn(held, def);
+    for (const side of [0, 1] as const) {
+      const done = wonBy(r.adv, DEFEND + eudora, side);
+      const spent = { ...done, heroes: [done.heroes[0], { name: 'Eudora', attack: 0, defense: 0, power: 1, mana: 12, spells: [], skills: {}, morale: 0, luck: 0, ankhs: 1 }] as BattleState['heroes'] };
+      const after = afterBattle(r.adv, def, DEFEND + eudora, spent);
+      expect(after.hero.ankhs).toBe(1);
+      expect(after.hero.mana).toBe(12);
+    }
+  });
+
   it('attacks our hero when he is the stronger, and the player plays it (RIVAL)', () => {
     const start = startAdventure(def);
     const hero = { ...start.rival!.hero!, x: start.hero.x + 2, y: start.hero.y, army: armyOf([{ creature: 'swordsman', count: 40 }]) };

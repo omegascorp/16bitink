@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { MAP_VIGNETTES } from '../../art/pixel/map';
-import type { MapDef } from '../../level/types';
+import type { PartName } from '../../level/maps';
 import type { MapRecord } from '../../logic/save';
 import { cardButtonLook, drawFrame, drawRule, FILLS } from '../battle/pixelFrames';
 import { INK, PixelButton, PixelImage, TextLabel } from '../battle/pixelUi';
@@ -26,12 +26,22 @@ const STANDING: Readonly<Record<PartState, { readonly says: string; readonly ink
   ahead: { says: '', ink: INK.dim },
 };
 
+/** A part on the card: its name, and its goal once its map is loaded. */
+export type CardPart = PartName & { readonly goal?: { readonly text: string } };
+
+/** Parts with no picture of their own yet, and the picture each borrows, tinted (every part drawn so far has its own). */
+const VIGNETTE_STAND_IN: Readonly<Record<string, { readonly id: string; readonly tint: number }>> = {};
+
 export interface ChapterCardSpec {
-  readonly parts: readonly MapDef[];
+  readonly parts: readonly CardPart[];
+  /** The chapter's last part, built or not, for "Part 4 of 6" (none: its last built). */
+  readonly last?: number;
   readonly records: Readonly<Record<string, MapRecord>>;
   /** The part in play, and how far into it (a game is saved). */
-  readonly playing: { readonly def: MapDef; readonly when: string } | null;
+  readonly playing: { readonly def: CardPart; readonly when: string } | null;
   readonly onPlay: () => void;
+  /** A chapter this player can't play now (the full game's): what it is, and the one way on (buy, or try the fetch again). */
+  readonly locked?: { readonly pitch: string; readonly label: string };
   /** Only when there is a game to throw away. */
   readonly onStartOver?: () => void;
   /** Spread over two columns, for a screen too short for one. */
@@ -50,10 +60,11 @@ export const chapterCardHeight = (spec: ChapterCardSpec): number =>
   (spec.wide ? Math.max(STORY_H + PAD, PAD + ACTIONS_H(spec)) : STORY_H + 6 + ACTIONS_H(spec));
 
 /**
- * Chapter 1 as one story told in parts: the part in play (or the first) up
+ * A chapter as one story told in parts: the part in play (or the first) up
  * top, then each part as it stands in this game, the parts still ahead dim.
  * Continue picks the game up; with no game saved, the chapter starts again
- * from its first part.
+ * from its first part. A chapter the player can't play yet shows what it
+ * is and its one way on instead.
  */
 export function chapterCard(scene: Phaser.Scene, owned: { destroy(): void }[], spec: ChapterCardSpec): Phaser.GameObjects.Container {
   const w = chapterCardWidth(spec);
@@ -67,13 +78,16 @@ export function chapterCard(scene: Phaser.Scene, owned: { destroy(): void }[], s
   const shown = spec.playing?.def ?? spec.parts[0]!;
   const picX = Math.floor((CARD_W - PIC.w - 4) / 2);
   parts.push(keep(new PixelImage(scene, drawFrame(PIC.w + 4, PIC.h + 4, { rim: 'gold', fill: FILLS.portrait })).setPosition(picX, PAD)).img);
+  const borrowed = MAP_VIGNETTES[shown.id] ? null : VIGNETTE_STAND_IN[shown.id];
   if (MAP_VIGNETTES[shown.id]) parts.push(scene.add.image(picX + 2, PAD + 2, MAP_TEX.vignette(shown.id)).setOrigin(0));
+  else if (borrowed && MAP_VIGNETTES[borrowed.id]) parts.push(scene.add.image(picX + 2, PAD + 2, MAP_TEX.vignette(borrowed.id)).setOrigin(0).setTint(borrowed.tint));
   const cx = Math.floor(CARD_W / 2);
   let y = PAD + PIC.h + 4 + 6;
   const title = keep(new TextLabel(scene, { kind: 'title', ink: INK.title, wrap: CARD_W - PAD * 2, anchor: { x: 0.5, y: 0 } }))
-    .setText(`Part ${shown.n} of ${spec.parts.length}: ${shown.name}`).setPosition(cx, y);
+    .setText(`Part ${shown.n} of ${spec.last ?? spec.parts[spec.parts.length - 1]!.n}: ${shown.name}`).setPosition(cx, y);
   y += 15 + 3;
-  const goal = `${shown.goal.text[0]!.toUpperCase()}${shown.goal.text.slice(1)}.${spec.playing ? `\n${spec.playing.when}` : ''}`;
+  const goalText = shown.goal?.text;
+  const goal = spec.locked ? spec.locked.pitch : goalText ? `${goalText[0]!.toUpperCase()}${goalText.slice(1)}.${spec.playing ? `\n${spec.playing.when}` : ''}` : '';
   const body = keep(new TextLabel(scene, { ink: INK.text, wrap: CARD_W - PAD * 2 - 6, anchor: { x: 0.5, y: 0 } })).setText(goal).setPosition(cx, y);
   parts.push(title.img, body.img);
   y += GOAL_H + 2;
@@ -86,7 +100,7 @@ export function chapterCard(scene: Phaser.Scene, owned: { destroy(): void }[], s
   // The list and the buttons: under the story, or in their own column beside it.
   const left = spec.wide ? CARD_W - PAD : 0;
   const room = w - left;
-  const states = partStates(spec.parts, spec.playing?.def.id ?? null, spec.records);
+  const states: PartState[] = spec.locked ? spec.parts.map(() => 'ahead') : partStates(spec.parts, spec.playing?.def.id ?? null, spec.records);
   spec.parts.forEach((def, i) => {
     const state = states[i]!;
     const { says, ink } = STANDING[state];
@@ -97,7 +111,7 @@ export function chapterCard(scene: Phaser.Scene, owned: { destroy(): void }[], s
   });
   y += 8;
   const bw = room - PAD * 4;
-  const label = spec.playing ? 'Continue' : states.every((s) => s === 'won') ? 'Play the chapter again' : 'Start the chapter';
+  const label = spec.locked ? spec.locked.label : spec.playing ? 'Continue' : states.every((s) => s === 'won') ? 'Play the chapter again' : 'Start the chapter';
   const play = keep(new PixelButton(scene, { w: bw, h: PLAY_H, label, ...cardButtonLook('primary', 0), onClick: spec.onPlay }));
   play.setPosition(left + PAD * 2, y);
   parts.push(play.root);

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BATTLE_BG, HERO_ART, OBSTACLE_ART, UNIT_ART, type Pose, type StillArt, type UnitArt } from '../../art/pixel/manifest';
 import { SCENERY } from '../../art/pixel/scenery';
-import { isCreatureId, lineOf } from '../../logic/creatures';
+import { figureArt, type FigureArt } from './standIns';
 import type { BackdropSource } from './pixelBackdrop';
 import type { PixelBuffer, Rgba } from './pixelRaster';
 import { drawBadge } from './pixelRaster';
@@ -32,11 +32,8 @@ export const PX_TEX = {
   rock: 'px-ob-fallback-rock',
 } as const;
 
-/** The art for a creature, or the first one as a stand-in (an id the manifest doesn't know yet). */
-/** A unit's battle art: its own, or (an upgrade not drawn yet) its line's base unit's. */
-export function unitArt(id: string): UnitArt {
-  return UNIT_ART[id] ?? (isCreatureId(id) ? UNIT_ART[lineOf(id)] : undefined) ?? Object.values(UNIT_ART)[0]!;
-}
+/** A unit's battle art: its own; a stand-in's, tinted (standIns.ts); or (an upgrade not drawn yet) its line's base unit's. Never missing. */
+export const unitArt = (id: string): FigureArt => figureArt(id);
 
 /** The square of an idle strip's first frame round the art's face point (see faceBox), `size` across. */
 export function faceOf(scene: Phaser.Scene, key: string, art: UnitArt, size: number = FACE): Pixels {

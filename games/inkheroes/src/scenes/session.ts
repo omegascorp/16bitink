@@ -1,7 +1,7 @@
 import type { GameHost } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { trackGame } from '../host';
-import { mapById, nextMap } from '../level/maps';
+import { chapterOf, CHAPTERS, nextMap, partsOf, type ChapterDef } from '../level/maps';
 import type { MapDef } from '../level/types';
 import { commitProgress } from '../logic/accountSave';
 import { endDay, startAdventure, type Adventure } from '../logic/adventure';
@@ -36,11 +36,29 @@ export class Session extends Phaser.Events.EventEmitter {
     return (scene.registry.get(KEY) as Session | undefined) ?? null;
   }
 
-  /** The saved map in play, if any (a part left on its victory card rides on into the next). */
-  static resume(scene: Phaser.Scene, host: GameHost): Session | null {
-    const saved = loadAdventure(host.storage, mapById);
+  /** Chapter `chapter`'s saved game, read but not taken up: the part in play and its day (a part left won shows the next), or null with none to continue. */
+  static look(host: GameHost, chapter: ChapterDef = CHAPTERS[0]!): { def: MapDef; day: number } | null {
+    const saved = loadAdventure(host.storage, inChapter(chapter), chapter.slot);
     if (!saved) return null;
-    const def = mapById(saved.current.mapId)!;
+    const def = inChapter(chapter)(saved.current.mapId)!;
+    if (saved.current.status === 'won') {
+      const next = nextMap(def);
+      return next ? { def: next, day: saved.current.day } : null;
+    }
+    const current = saved.current.status === 'lost' ? saved.dayStart : saved.current;
+    return current.status === 'playing' ? { def, day: current.day } : null;
+  }
+
+  /** Throws chapter `chapter`'s saved game away (the menu's "start over"). */
+  static discard(host: GameHost, chapter: ChapterDef): void {
+    saveAdventure(host.storage, null, chapter.slot);
+  }
+
+  /** The saved map in play in chapter `chapter`, if any (a part left on its victory card rides on into the next). */
+  static resume(scene: Phaser.Scene, host: GameHost, chapter: ChapterDef = CHAPTERS[0]!): Session | null {
+    const saved = loadAdventure(host.storage, inChapter(chapter), chapter.slot);
+    if (!saved) return null;
+    const def = inChapter(chapter)(saved.current.mapId)!;
     if (saved.current.status === 'won') {
       const next = nextMap(def);
       return next ? Session.open(scene, host, next, rideOn(saved.current, def, next), true) : null;
@@ -73,6 +91,13 @@ export class Session extends Phaser.Events.EventEmitter {
     scene.registry.set(KEY, s);
     trackGame(scene, { type: 'level_start', level: def.id, n: def.n, name: def.name });
     return s;
+  }
+
+  /** The chapter this map is part of (its game is saved in the chapter's own slot). */
+  get chapter(): ChapterDef {
+    const c = chapterOf(this.def);
+    if (!c) throw new Error(`map ${this.def.id} is in no chapter`);
+    return c;
   }
 
   get adv(): Adventure {
@@ -116,7 +141,7 @@ export class Session extends Phaser.Events.EventEmitter {
   /** Leaves the chapter for good (the menu's "start over"). */
   abandon(scene: Phaser.Scene): void {
     this.track(scene, 'quit');
-    saveAdventure(this.host.storage, null);
+    saveAdventure(this.host.storage, null, this.chapter.slot);
     scene.registry.remove(KEY);
   }
 
@@ -142,6 +167,9 @@ export class Session extends Phaser.Events.EventEmitter {
   }
 
   private save(): void {
-    saveAdventure(this.host.storage, { current: this.current, dayStart: this.dayStart, partStart: this.partStart });
+    saveAdventure(this.host.storage, { current: this.current, dayStart: this.dayStart, partStart: this.partStart }, this.chapter.slot);
   }
 }
+
+/** Finds a map among chapter `c`'s loaded parts only, so one chapter's save never opens another's map. */
+const inChapter = (c: ChapterDef) => (id: string): MapDef | undefined => partsOf(c).find((m) => m.id === id);

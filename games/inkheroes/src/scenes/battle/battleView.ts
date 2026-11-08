@@ -195,7 +195,7 @@ export class BattleView {
       const here = alive(s) && state.fled !== s.side;
       u.fig.sprite.setVisible(here).setAlpha(1);
       if (isStone(s)) u.fig.sprite.setTint(STONE_TINT);
-      else u.fig.sprite.clearTint();
+      else u.fig.restTint();
       this.setBadge(u, s.count, here);
     }
     if (state.fled !== undefined) this.heroes[state.fled]?.sprite.setVisible(false);
@@ -249,7 +249,7 @@ export class BattleView {
         const t = this.units.get(ev.target)!;
         await this.playStrike(a, t, ev.ranged, stackById(after, ev.stack), stackById(after, ev.target));
         this.hit(t.fig);
-        this.floatAt(t.fig, `−${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}${ev.lucky ? '  Lucky!' : ''}`, ev.retaliation ? INK.retaliation : INK.damage);
+        this.floatAt(t.fig, `−${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}${ev.lucky ? '  Lucky!' : ''}${ev.soaked ? `  Ward soaks ${ev.soaked}` : ''}`, ev.retaliation ? INK.retaliation : INK.damage);
         await this.wait(260);
         this.syncOne(after, ev.target);
         return;
@@ -324,6 +324,27 @@ export class BattleView {
       }
       case 'morale': {
         this.floatAt(this.units.get(ev.stack)!.fig, ev.good ? 'High morale! Again!' : 'Low morale: falters', ev.good ? INK.good : INK.damage, 10);
+        await this.wait(450);
+        return;
+      }
+      case 'afflict': {
+        this.floatAt(this.units.get(ev.stack)!.fig, ev.effect === 'curse' ? 'Cursed!' : 'Poisoned!', INK.damage, 10);
+        await this.wait(350);
+        return;
+      }
+      case 'poison': {
+        const u = this.units.get(ev.stack)!;
+        this.hit(u.fig);
+        this.floatAt(u.fig, `Poison: −${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}`, INK.damage);
+        this.syncOne(after, ev.stack);
+        await this.wait(350);
+        return;
+      }
+      case 'rebirth': {
+        const u = this.units.get(ev.stack)!;
+        this.syncOne(after, ev.stack);
+        await this.flash(u.fig);
+        this.floatAt(u.fig, `Rises again! ${ev.count}`, INK.good, 10);
         await this.wait(450);
         return;
       }
@@ -440,7 +461,7 @@ export class BattleView {
   /** A blow lands: a red flash and a two-pixel jolt. */
   private hit(fig: PixelFigure): void {
     fig.sprite.setTint(0xd0574e);
-    this.scene.time.delayedCall(90, () => fig.sprite.clearTint());
+    this.scene.time.delayedCall(90, () => fig.restTint());
     [2, -2, 2, 0].forEach((dx, i) => this.scene.time.delayedCall(40 * (i + 1), () => fig.offset(0, dx)));
   }
 
@@ -449,7 +470,7 @@ export class BattleView {
     for (let i = 0; i < 3; i++) {
       fig.sprite.setTint(0xfff3c0).setTintMode(Phaser.TintModes.FILL);
       await this.wait(70);
-      fig.sprite.clearTint();
+      fig.restTint();
       await this.wait(70);
     }
   }

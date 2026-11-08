@@ -1,7 +1,8 @@
 import { alive, stackById, targetable, update, winnerOf } from './battleCore';
-import type { BattleEvent, BattleState, Side, Stack, Step } from './battleTypes';
+import type { BattleEvent, BattleHero, BattleState, Side, Stack, Step } from './battleTypes';
 import { creature } from './creatures';
-import { heal, hurt } from './damage';
+import { heal, raise } from './damage';
+import { putEffect, wound } from './battleTraits';
 import { skillValue } from './skills';
 import { BAD_EFFECTS, SPELLS, type SpellId } from './spells';
 
@@ -13,11 +14,16 @@ export function cantCast(state: BattleState, side: Side, spell: SpellId, target:
   if (state.cast[side]) return 'Already cast this round';
   if (!hero.spells.includes(spell)) return 'Spell not known';
   if (hero.mana < def.mana) return 'Not enough mana';
+  if ((hero.ankhs ?? 0) < (def.ankhs ?? 0)) return 'Needs an Ankh';
   if (!target) return null;
   if (!alive(target) || !targetable(target)) return 'Nothing there';
   if (def.target !== 'any' && (def.target === 'enemy') !== (target.side !== side)) return def.target === 'enemy' ? 'Cast it on an enemy' : 'Cast it on your own unit';
   if (spell === 'dispel' && target.effects.length === 0) return 'No spells on it to lift';
-  if (creature(target.creature).undead && (spell === 'bless' || spell === 'bloodlust')) return 'The undead are immune';
+  if (creature(target.creature).undead && (spell === 'bless' || spell === 'bloodlust' || spell === 'curse')) return 'The undead are immune';
+  if (spell === 'rebirth') {
+    if (creature(target.creature).undead) return 'The undead can’t be raised';
+    if (target.count >= target.startCount && target.topHp >= creature(target.creature).hp) return 'No fallen to raise';
+  }
   return null;
 }
 
@@ -37,26 +43,32 @@ export function castSpell(state: BattleState, side: Side, spell: SpellId, target
   if (why) throw new Error(why);
   const hero = state.heroes[side]!;
   const def = SPELLS[spell];
-  const heroes = state.heroes.map((h, i) => (i === side && h ? { ...h, mana: h.mana - def.mana } : h)) as unknown as BattleState['heroes'];
+  const paid = (h: BattleHero): BattleHero => ({ ...h, mana: h.mana - def.mana, ...(def.ankhs ? { ankhs: (h.ankhs ?? 0) - def.ankhs } : {}) });
+  const heroes = state.heroes.map((h, i) => (i === side && h ? paid(h) : h)) as unknown as BattleState['heroes'];
   const cast = state.cast.map((c, i) => (i === side ? true : c)) as unknown as BattleState['cast'];
   let s: BattleState = { ...state, heroes, cast };
-  const amount = spellAmount(state, side, spell);
+  let amount = spellAmount(state, side, spell);
   let kills = 0;
+  const after: BattleEvent[] = [];
   if (def.target === 'enemy' && amount > 0) {
-    const r = hurt(target, amount);
-    kills = r.kills;
-    s = update(s, targetId, () => r.stack);
+    const w = wound(s, targetId, amount, after);
+    kills = w.kills;
+    s = w.state;
+  } else if (spell === 'rebirth') {
+    const raised = raise(target, amount);
+    amount = (raised.count - target.count) * creature(target.creature).hp + raised.topHp - target.topHp;
+    s = update(s, targetId, () => raised);
   } else if (spell === 'cure') {
     s = update(s, targetId, (x) => ({ ...heal(x, amount), effects: x.effects.filter((e) => !BAD_EFFECTS.includes(e.kind)) }));
   } else if (spell === 'dispel') {
     s = update(s, targetId, (x) => ({ ...x, effects: [] }));
   }
   if (def.effect) {
-    const kind = def.effect;
+    // A ward holds until it has soaked its fill; the rest last Spell Power rounds.
     const rounds = Math.max(1, hero.power);
-    s = update(s, targetId, (x) => ({ ...x, effects: [...x.effects.filter((e) => e.kind !== kind), { kind, rounds }] }));
+    s = putEffect(s, targetId, def.effect === 'ward' ? { kind: 'ward', rounds: 1, left: amount } : { kind: def.effect, rounds });
   }
-  const events: BattleEvent[] = [{ type: 'spell', side, spell, target: targetId, amount, kills }];
+  const events: BattleEvent[] = [{ type: 'spell', side, spell, target: targetId, amount, kills }, ...after];
   const won = winnerOf(s);
   if (won !== null) {
     events.push({ type: 'end', winner: won });

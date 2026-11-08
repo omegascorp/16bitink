@@ -4,10 +4,10 @@ import { heroInGarrison, heroTown, heroVisiting, type Adventure } from '../../lo
 import type { Army } from '../../logic/army';
 import { hasSpellbook } from '../../logic/items';
 import type { Town } from '../../logic/town';
-import { BUILDINGS, type BuildingId } from '../../logic/buildings';
+import type { BuildingId } from '../../logic/buildings';
 import { creature, type CreatureId } from '../../logic/creatures';
 import { SPELLS } from '../../logic/spells';
-import { bestUnit, BUILD_ORDER, cantBuild, dwellings, growthOf, guildSpells, has, hireable, hireAll, SPELLBOOK_COST, stockOf, suggestBuilding, towersOf, upgradeAll } from '../../logic/town';
+import { bestUnit, buildingIn, buildOrderOf, cantBuild, dwellings, growthOf, guildSpells, has, hireable, hireAll, SPELLBOOK_COST, stockOf, suggestBuilding, towersOf, upgradeAll } from '../../logic/town';
 import { describeAmount, RESOURCES } from '../../logic/resources';
 import { PX_TEX, unitArt } from '../battle/pixelAssets';
 import { drawFrame, drawPicture, FILLS, inkBox, pictureOffset, type RimName } from '../battle/pixelFrames';
@@ -118,7 +118,7 @@ export const platePicture = (scene: Phaser.Scene, id: BuildingId): Pixels => bui
 /** The hall: the suggested building first and framed in gold, then a card for each on this map (its next step for an upgrade), coloured by whether it can be built today. */
 export function hallScreen(scene: Phaser.Scene, adv: Adventure, town: Town, off: readonly BuildingId[], act: ScreenActions): GridSpec {
   const next = suggestBuilding(town, adv.purse, off);
-  const ids = [...(next ? [next] : []), ...ledgerOf(town.built, BUILD_ORDER, off).filter((b) => b !== next)];
+  const ids = [...(next ? [next] : []), ...ledgerOf(town.built, buildOrderOf(town), off).filter((b) => b !== next)];
   const { pic } = HALL_CARD;
   const btn = next ? buildButton(town, next, adv.purse) : null;
   return {
@@ -127,7 +127,7 @@ export function hallScreen(scene: Phaser.Scene, adv: Adventure, town: Town, off:
     count: ids.length,
     maxCols: 5,
     note: town.builtToday ? 'Built today: the masons start again tomorrow.' : 'One building a day. Tap a card to see what it costs.',
-    buttons: next && btn ? [{ label: btn.ready ? `Build ${BUILDINGS[next].name}` : `Next: ${BUILDINGS[next].name}`, note: btn.ready ? btn.note : `${btn.label}: ${btn.note}`, enabled: btn.ready, primary: true, onClick: () => act.build(next) }] : [],
+    buttons: next && btn ? [{ label: btn.ready ? `Build ${buildingIn(town, next).name}` : `Next: ${buildingIn(town, next).name}`, note: btn.ready ? btn.note : `${btn.label}: ${btn.note}`, enabled: btn.ready, primary: true, onClick: () => act.build(next) }] : [],
     draw: (i, x, y) => {
       const id = ids[i]!;
       const picture = buildingPicture(scene, id, pic.w, pic.h, i + 3);
@@ -138,7 +138,7 @@ export function hallScreen(scene: Phaser.Scene, adv: Adventure, town: Town, off:
         id === next ? glow(scene, x, y, HALL_CARD.w, HALL_CARD.h) : { parts: [], owned: [] },
         card(scene, x, y, HALL_CARD.w, HALL_CARD.h, () => act.pickBuilding(id), id === next ? 'gold' : 'bronze'),
         framed(scene, picture, x + 3, y + 3),
-        label(scene, BUILDINGS[id].name, x + Math.floor(HALL_CARD.w / 2), y + pic.h + 7, { kind: 'title', anchor: { x: 0.5, y: 0 }, align: 'center' }),
+        label(scene, buildingIn(town, id).name, x + Math.floor(HALL_CARD.w / 2), y + pic.h + 7, { kind: 'title', anchor: { x: 0.5, y: 0 }, align: 'center' }),
         { parts: [bar.img], owned: [bar] },
         label(scene, st.word, x + Math.floor(HALL_CARD.w / 2), y + HALL_CARD.h - 21, { anchor: { x: 0.5, y: 0 }, align: 'center' }),
       );

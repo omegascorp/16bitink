@@ -17,7 +17,9 @@ export type LineId =
   | 'kassander-flees'
   | 'korax-taken'
   | 'kassander-beaten'
-  | 'chapter-won';
+  | 'chapter-won'
+  | 'part-nekhen'
+  | 'nekhen-won';
 
 export interface NarratedLine {
   /** Who's speaking, named on the strip. */
@@ -48,6 +50,8 @@ export const LINES: Readonly<Record<LineId, NarratedLine>> = {
   'korax-taken': told('Korax is yours', '[triumphant] Korax is yours! [eager] Kassander has no town left to run to… and your scouts are on his trail. Hunt him down!'),
   'kassander-beaten': told('Kassander is beaten', "[triumphant] Kassander falls! [solemn] The black banner is down… and it won't rise again."),
   'chapter-won': told('The Border March is free', "[warm, proud] The Border March is free! [storytelling] From Ashford's bridge to the walls of Korax, the Crown's roads are open again… [hopeful] and Rowan's name is known in every town along them."),
+  'part-nekhen': told('Nekhen', "[grand, storytelling] Far to the south, where the Nile runs between two deserts, the flood is late this year. [ominous] The great sluice of the canal is shut… and the Petsuchos lies across it, the temple's own crocodile, gone wild, with its brood. [warm] Neferet, priestess of Isis, holds Nekhen on the west bank. Her rites can curse a foe, ward a friend… [hopeful] and, with an Ankh, raise the fallen! [resolute] Cross the river… and take the sluice back."),
+  'nekhen-won': told('The flood comes', "[triumphant] The Petsuchos is beaten, and the sluice swings open! [joyful] The water runs down the old canal, and the fields drink at last… [warm] In Nekhen they light lamps for Neferet tonight. [intrigued] But the flood brought word from downriver… and the Two Lands are not at peace yet."),
 };
 
 /** Chapter 1's places and people the lines name: a line is told only where its words are true. */

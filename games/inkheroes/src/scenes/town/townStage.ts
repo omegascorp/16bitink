@@ -178,8 +178,12 @@ export function buildingArt(building: BuildingId): TownArt {
     const step = lot.ladder.find(([, b]) => b === building);
     if (step) return step[0];
   }
-  return building as BuildingId & TownArt;
+  const borrowed = ART_STAND_IN[building];
+  return borrowed ? buildingArt(borrowed) : (building as BuildingId & TownArt);
 }
+
+/** Buildings with no drawing or plot of their own yet (Egypt's art is still to come) show another's picture in the hall. */
+const ART_STAND_IN: Readonly<Partial<Record<BuildingId, BuildingId>>> = { templeOsiris: 'mageGuild1' };
 
 /** The upgrade ladders, lowest first: the hall's ledger shows one card for each, its next step. */
 const LADDERS: readonly (readonly BuildingId[])[] = [
