@@ -35,6 +35,8 @@ export interface Hero {
   readonly gear?: Gear;
   /** Spare pieces carried. */
   readonly bag?: readonly ItemId[];
+  /** Which bag they carry them in (`BAGS`): none means the Satchel. */
+  readonly pack?: number;
 }
 
 interface ClassDef {

@@ -2,9 +2,12 @@ import type Phaser from 'phaser';
 import { getSound } from '../../host';
 import { CLASSES, type Hero } from '../../logic/hero';
 import { faceOf, heroArt, PX_TEX } from '../battle/pixelAssets';
-import { cardButtonLook, drawPortrait, drawRule } from '../battle/pixelFrames';
+import { cardButtonLook, drawPortrait, drawRule, drawSocket } from '../battle/pixelFrames';
 import type { CardView } from '../battle/pixelBuildCard';
-import { INK, PixelButton, PixelFrame, PixelImage, putBuffer, TextLabel } from '../battle/pixelUi';
+import { INK, PixelButton, PixelFrame, PixelImage, putBuffer, TextLabel, UI_TEX } from '../battle/pixelUi';
+import { itemLine } from '../../logic/adventure';
+import { bagOf, bagSize, itemDef } from '../../logic/items';
+import { ITEM_CELL, ItemCells, itemCols } from './itemCells';
 import type { CardSpec } from '../CardScene';
 import { ArmyDrag } from './armyDrag';
 import { ArmyRow } from './armyRow';
@@ -16,6 +19,8 @@ const PAD = 9;
 const GAP = 8;
 const LINE = 15;
 const RULE_H = 5;
+/** Between a hero's army and their bag. */
+const BAG_GAP = 4;
 /** Between a hero's face and their army. */
 const HEAD_GAP = 6;
 const BTN_H = 30;
@@ -32,6 +37,14 @@ export interface TradeSource {
   heroes(): readonly [Hero, Hero];
   /** Puts the trade in; false when the game refuses it. */
   change(a: TradeArmies[0], b: TradeArmies[1]): boolean;
+  /** Hero `side` hands the other the piece in their bag's place `i`; why not, or null when it's done. */
+  give(side: 0 | 1, i: number): string | null;
+}
+
+/** A piece picked in one hero's bag. */
+interface ItemRef {
+  readonly side: 0 | 1;
+  readonly i: number;
 }
 
 /**
@@ -40,6 +53,8 @@ export interface TradeSource {
  * as on the hero sheet and in a town: drag one, or tap it and then a slot
  * (like ones merge, others swap), across the two armies or within one;
  * Split parts a picked company. Each hero keeps at least one company.
+ * Under each army is the hero's bag: a tap picks a piece and a tap on the
+ * other bag hands it over (worn at once in an empty slot).
  */
 export class PixelTradeCard implements CardView {
   private readonly root: Phaser.GameObjects.Container;
@@ -48,6 +63,7 @@ export class PixelTradeCard implements CardView {
   private keys: string[] = [];
   private closed = false;
   private picked: TradeRef | null = null;
+  private itemPicked: ItemRef | null = null;
   private splitter: SplitPicker | null = null;
   /** A word under the armies after a move that wasn't allowed. */
   private warning = '';
@@ -130,7 +146,44 @@ export class PixelTradeCard implements CardView {
     this.owned.push(row);
     this.body.add(row.root);
     drag.watch(row, (i) => ({ side, i }));
-    return top + slot;
+    return this.bagRow(h, side, x, top + slot + BAG_GAP, slot);
+  }
+
+  /** The hero's bag under their army: its picture in the face's column, then its places. Returns the y below. */
+  private bagRow(h: Hero, side: 0 | 1, x: number, y: number, slot: number): number {
+    const bagX = x + slot + HEAD_GAP;
+    if (slot >= ITEM_CELL) {
+      const key = putBuffer(this.scene, drawSocket(ITEM_CELL, 'bronze'));
+      this.keys.push(key);
+      const left = x + slot - ITEM_CELL;
+      this.body.add([this.scene.add.image(left, y, key).setOrigin(0), this.scene.add.image(left + ITEM_CELL / 2, y + ITEM_CELL / 2, UI_TEX.bag(bagOf(h).id)).setScale(0.5)]);
+    }
+    const cells = new ItemCells(this.scene, {
+      items: h.bag ?? [], count: bagSize(h), cols: itemCols(armyRowW(slot)),
+      picked: this.itemPicked?.side === side ? this.itemPicked.i : null,
+      onTap: (i) => this.tapItem({ side, i }),
+    }).setPosition(bagX, y);
+    this.owned.push(cells);
+    this.body.add(cells.root);
+    return y + cells.h;
+  }
+
+  /** The first tap picks a piece, a tap on the other hero's bag hands it over; on the same bag it picks another, or lets go. */
+  private tapItem(r: ItemRef): void {
+    const from = this.itemPicked;
+    const heroes = this.source.heroes();
+    this.warning = '';
+    this.picked = null;
+    if (from && from.side !== r.side) {
+      this.itemPicked = null;
+      const why = this.source.give(from.side, from.i);
+      if (why) this.warning = why;
+      else getSound(this.scene)?.play('card');
+    } else {
+      const here = heroes[r.side].bag?.[r.i];
+      this.itemPicked = from && from.i === r.i ? null : here ? r : null;
+    }
+    this.draw();
   }
 
   /** What to do next (or why a move was refused), and Split for a picked company of more than one. Returns the y below. */
@@ -145,7 +198,9 @@ export class PixelTradeCard implements CardView {
       this.owned.push(btn);
       this.body.add(btn.root);
     }
-    const hint = this.warning || (picked ? 'Tap a slot to move them' : 'Drag a company, or tap it, to move it');
+    const item = this.itemPicked && this.source.heroes()[this.itemPicked.side].bag?.[this.itemPicked.i];
+    const other = this.itemPicked && this.source.heroes()[this.itemPicked.side === 0 ? 1 : 0].name;
+    const hint = this.warning || (item ? `${itemDef(item).name}: ${itemLine(item)}. Tap ${other}'s bag to hand it over` : picked ? 'Tap a slot to move them' : 'Drag a company, or tap it or a piece of gear, to move it');
     this.label({ align: 'left', anchor: { x: 0, y: 0 }, ink: this.warning ? INK.title : INK.dim, wrap: w - (canSplit ? FOOT.split + 4 : 0) }, hint, x, y + 4);
     return y + FOOT.h;
   }
@@ -177,6 +232,7 @@ export class PixelTradeCard implements CardView {
   private tap(r: TradeRef): void {
     const from = this.picked;
     this.warning = '';
+    this.itemPicked = null;
     if (!from) this.picked = this.armies()[r.side][r.i] ? r : null;
     else if (from.side === r.side && from.i === r.i) this.picked = null;
     else {

@@ -1,4 +1,4 @@
-import { BAG_SIZE, gainItem, hasAsGood, hasSpellbook, itemDef, itemQuality, itemSays, machineOf, QUALITY_NAMES, SET_NAMES, wear, type ItemId, type SoldMachine } from './items';
+import { bagRoom, gainItem, hasAsGood, hasSpellbook, itemDef, itemQuality, itemSays, machineOf, QUALITY_NAMES, SET_NAMES, wear, type ItemId, type SoldMachine } from './items';
 import type { HeroDef, MapDef } from '../level/types';
 import type { DayReport, GoldSource, TownRecruits } from './dayReport';
 import { armyMorale, armyOf, emptyArmy, isEmptyArmy, moveAll, splitMonster, type Army } from './army';
@@ -345,7 +345,7 @@ export function cantBuyMachine(adv: Adventure, m: SoldMachine): string | null {
   if (!heroVisiting(adv, town)) return `${adv.hero.name} must be in town, leading an army`;
   if (hasAsGood(adv.hero, m)) return `${adv.hero.name} has one as good`;
   if (!canAfford(adv.purse, creature(m).cost)) return 'Not enough gold';
-  if ((adv.hero.bag?.length ?? 0) >= BAG_SIZE) return 'The bag is full';
+  if (!bagRoom(adv.hero)) return 'The bag is full';
   return null;
 }
 
@@ -560,7 +560,7 @@ export function afterBattle(played: Adventure, def: MapDef, id: string, battle: 
   const hero = { ...adv.hero, army: garrisoned ? adv.hero.army : army, xp: adv.hero.xp + xp, mana: battle.heroes[side]?.mana ?? adv.hero.mana };
   const objects = adv.objects.map((o) => (o.id === id ? { ...o, gone: true } : o));
   const beaten = adv.objects.find((o) => o.id === id && !o.gone);
-  let next: Adventure = claimDrop({ ...adv, hero, objects, lostStacks: adv.lostStacks + lost }, beaten?.drop);
+  let next: Adventure = claimDrop({ ...adv, hero, objects, lostStacks: adv.lostStacks + lost }, beaten);
   if (garrisoned) next = withTown(next, { ...garrisoned, garrison: army });
   // Holding a town of ours, its towers count their dead too.
   const home = side === 1 ? heroTown(next) : undefined;
@@ -590,15 +590,29 @@ function heroFell(adv: Adventure, def: MapDef): Adventure {
   return checkGoal(left, def);
 }
 
-/** What a beaten monster left, on the hero or in the bag, and the card that shows it. */
-function claimDrop(adv: Adventure, id: ItemId | undefined): Adventure {
-  if (!id) return adv;
+/**
+ * What a beaten monster left, on the hero or in the bag, and the card that
+ * shows it. With the bag full it lies on the ground where the monster stood,
+ * to be picked up later.
+ */
+function claimDrop(adv: Adventure, beaten: MapObject | undefined): Adventure {
+  const id = beaten?.drop;
+  if (!beaten || !id) return adv;
   const got = gainItem(adv.hero, id);
-  const end = got.worn ? `${adv.hero.name} puts it on.` : got.kept ? 'It goes in the bag.' : 'The bag is full, so it stays behind.';
-  const { name, set } = itemDef(id);
-  const prompt: Prompt = { kind: 'message', title: name, text: `${QUALITY_NAMES[itemQuality(id)]}: ${itemSays(id)}${set ? ` · ${SET_NAMES[set]}` : ''}\n${end}`, item: id };
-  return { ...adv, hero: got.hero, prompts: [...adv.prompts, prompt] };
+  const end = got.worn ? `${adv.hero.name} puts it on.` : got.kept ? 'It goes in the bag.' : 'The bag is full, so it lies here on the ground: make room and come back for it.';
+  const prompt: Prompt = { kind: 'message', title: itemDef(id).name, text: `${itemLine(id)}\n${end}`, item: id };
+  const objects = got.kept ? adv.objects : adv.objects.map((o) => (o.id === beaten.id ? lyingItem(beaten, id) : o));
+  return { ...adv, hero: got.hero, objects, prompts: [...adv.prompts, prompt] };
 }
+
+/** A piece's grade, what it gives and its set, in a line. */
+export function itemLine(id: ItemId): string {
+  const { set } = itemDef(id);
+  return `${QUALITY_NAMES[itemQuality(id)]}: ${itemSays(id)}${set ? ` · ${SET_NAMES[set]}` : ''}`;
+}
+
+/** Piece `id` lying where `o` stood (a beaten monster's place). */
+export const lyingItem = (o: Pick<MapObject, 'id' | 'x' | 'y'>, id: ItemId): MapObject => ({ id: o.id, kind: 'item', x: o.x, y: o.y, item: id });
 
 /** The rival lord is gone from the map; his towns still stand. */
 function beatRival(adv: Adventure, foe: Hero): Adventure {

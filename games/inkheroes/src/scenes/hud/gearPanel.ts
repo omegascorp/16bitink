@@ -1,13 +1,15 @@
 import type Phaser from 'phaser';
 import type { SlotIcon } from '../../art/pixel/ui';
 import type { Hero } from '../../logic/hero';
-import { BAG_SIZE, itemDef, itemQuality, itemSays, QUALITY_NAMES, SET_NAMES, takeOff, wear, type ItemId, type Quality, type Slot } from '../../logic/items';
+import { BAGS, bagOf, bagSize, itemDef, itemQuality, itemSays, QUALITY_NAMES, SET_NAMES, takeOff, wear, type ItemId, type Quality, type Slot } from '../../logic/items';
 import { drawSocket, type RimName } from '../battle/pixelFrames';
 import { INK, PixelButton, putBuffer, TextLabel, UI_TEX } from '../battle/pixelUi';
 import type { GearCell, GearLayout } from './gearLayout';
 
 const BTN = { w: 92, h: 28 } as const;
 const BTN_GAP = 6;
+/** How faint a place the bag doesn't have yet is drawn. */
+const LOCKED_ALPHA = 0.35;
 
 /** A piece's grade shows in its frame. */
 export const QUALITY_RIM: Readonly<Record<Quality, RimName>> = { gray: 'bronze', green: 'green', blue: 'player', purple: 'purple', gold: 'gold' };
@@ -34,10 +36,11 @@ export function pickedItem(hero: Hero, pick: GearPick | null): ItemId | undefine
   return 'slot' in pick ? hero.gear?.[pick.slot] : hero.bag?.[pick.bag];
 }
 
-function cell(host: GearHost, at: GearCell, layout: GearLayout, item: ItemId | undefined, picked: boolean, onTap: () => void, ghost?: SlotIcon): void {
-  const key = putBuffer(host.scene, drawSocket(layout.cell, picked ? 'gold' : item ? QUALITY_RIM[itemQuality(item)] : 'bronze'));
+/** A slot or a place in the bag; a `locked` place is one the hero's bag doesn't have yet, drawn faint. */
+function cell(host: GearHost, at: GearCell, layout: GearLayout, item: ItemId | undefined, picked: boolean, onTap: () => void, ghost?: SlotIcon, locked = false): void {
+  const key = putBuffer(host.scene, drawSocket(layout.cell, picked ? 'gold' : item ? QUALITY_RIM[itemQuality(item)] : locked ? 'dim' : 'bronze'));
   host.keys.push(key);
-  const frame = host.scene.add.image(at.x, at.y, key).setOrigin(0).setInteractive();
+  const frame = host.scene.add.image(at.x, at.y, key).setOrigin(0).setInteractive().setAlpha(locked && !picked ? LOCKED_ALPHA : 1);
   frame.on('pointerup', onTap);
   host.body.add(frame);
   const mid = { x: at.x + Math.floor(layout.cell / 2), y: at.y + Math.floor(layout.cell / 2) };
@@ -63,19 +66,26 @@ export function drawGear(host: GearHost, x: number, y: number, layout: GearLayou
   }
   const bag = hero.bag ?? [];
   const label = moved(layout.bagLabel);
-  line(host, `Bag: ${bag.length} / ${BAG_SIZE}`, label.x, label.y, INK.dim);
-  layout.bag.forEach((at, i) => cell(host, moved(at), layout, bag[i], !!pick && 'bag' in pick && pick.bag === i, () => on.pick({ bag: i })));
+  line(host, `${bagOf(hero).name}: ${bag.length} / ${bagSize(hero)}`, label.x, label.y, INK.dim);
+  layout.bag.forEach((at, i) => cell(host, moved(at), layout, bag[i], !!pick && 'bag' in pick && pick.bag === i, () => on.pick({ bag: i }), undefined, i >= bagSize(hero)));
   detail(host, moved(layout.detail), layout.detail.w, hero, pick, on);
 }
 
 /** What an empty slot says; the war machine's is where a hero learns what it's for. */
 const emptySlot = (slot: Slot): string => (slot === 'machine' ? 'No war machine: buy one at a Blacksmith to break town walls' : `${FULL[slot]}: nothing worn`);
 
+/** What an empty place in the bag says: room, or (past the bag's size) the bag that would give it. */
+function emptyBag(hero: Hero, i: number): string {
+  if (i < bagSize(hero)) return 'Room in the bag';
+  const next = BAGS.find((b) => b.size > i)!;
+  return `Needs a bigger bag: ${next.name} (${next.size}), sold at a town's Storehouse`;
+}
+
 function detail(host: GearHost, at: GearCell, w: number, hero: Hero, pick: GearPick | null, on: { change(h: Hero): void }): void {
   const { x, y } = at;
   const item = pickedItem(hero, pick);
   if (!item) {
-    line(host, pick && 'slot' in pick ? emptySlot(pick.slot) : 'Tap a piece to see what it gives', x, y + 6, INK.dim, w);
+    line(host, !pick ? 'Tap a piece to see what it gives' : 'slot' in pick ? emptySlot(pick.slot) : emptyBag(hero, pick.bag), x, y + 6, INK.dim, w);
     return;
   }
   const def = itemDef(item);

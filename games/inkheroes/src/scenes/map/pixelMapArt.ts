@@ -26,10 +26,10 @@ export const MAP_TEX = {
   town: (map: string) => `pxm-town-${map}`,
 } as const;
 
-/** The art a map object is drawn with (monsters and the town are drawn apart). */
+/** The art a map object is drawn with (monsters, towns and gear on the ground are drawn apart). */
 export function siteArtOf(o: MapObject): SiteArt | null {
   if (o.kind === 'mine' || o.kind === 'pile') return `${o.kind}-${o.resource!}` as SiteArt;
-  if (o.kind === 'monster' || o.kind === 'town') return null;
+  if (o.kind === 'monster' || o.kind === 'town' || o.kind === 'item') return null;
   return o.kind;
 }
 

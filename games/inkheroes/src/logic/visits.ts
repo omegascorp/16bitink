@@ -1,5 +1,5 @@
 import { STABLES_MP, tilesOf } from './map';
-import type { Adventure } from './adventure';
+import { itemLine, type Adventure } from './adventure';
 import { gainedXp, maxMana } from './hero';
 import { gainItem, hasSpellbook, itemSays, ITEMS, QUALITY_NAMES } from './items';
 import { CHEST_XP, MINE_NAMES, MINE_OUTPUT, ONCE_PER_HERO, type MapObject } from './objects';
@@ -56,6 +56,14 @@ export function visitSite(adv: Adventure, o: MapObject): VisitResult {
       if (!hasSpellbook(hero)) return { adv: message(adv, 'Wayside Shrine', `A prayer to ${SPELLS[spell].name} is carved here, but your hero has no spellbook to write it in.`), notes: [] };
       if (hero.spells.includes(spell)) return { adv: message({ ...adv, hero: visited }, 'Wayside Shrine', `Your hero already knows ${SPELLS[spell].name}.`), notes: [] };
       return { adv: message({ ...adv, hero: { ...visited, spells: [...hero.spells, spell] } }, 'Wayside Shrine', `Your hero copies ${SPELLS[spell].name} into the spellbook.\n${SPELLS[spell].says}.`), notes: [`Learned ${SPELLS[spell].name}`] };
+    }
+    case 'item': {
+      const id = o.item!;
+      const got = gainItem(hero, id);
+      if (!got.kept) return { adv: message(adv, ITEMS[id].name, `${itemLine(id)}\n${hero.name}'s bag is full. Leave something in a town's Storehouse, or wear it, and come back.`), notes: [] };
+      const end = got.worn ? `${hero.name} puts it on.` : 'It goes in the bag.';
+      const found = gone({ ...adv, hero: got.hero }, o.id);
+      return { adv: { ...found, prompts: [...found.prompts, { kind: 'message', title: ITEMS[id].name, text: `${itemLine(id)}\n${end}`, item: id }] }, notes: [] };
     }
     case 'spellbook': {
       const spell = SPELLS[o.spell!];

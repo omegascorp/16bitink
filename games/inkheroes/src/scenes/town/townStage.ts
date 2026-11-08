@@ -85,6 +85,7 @@ export const LOTS: readonly Lot[] = [
   { plot: { a: 24, b: 2, n: 6 }, ladder: dwelling('tiltyard') },
   { plot: { a: 14, b: 24, n: 5 }, ladder: one('tavern') },
   { plot: { a: 9, b: 28, n: 4 }, ladder: one('blacksmith') },
+  { plot: { a: 8, b: 15, n: 4 }, ladder: [['treasury', 'treasury'], ['storehouse', 'storehouse']] },
   { plot: { a: 21, b: 26, n: 4 }, ladder: dwelling('guardhouse') },
   { plot: { a: 24, b: 20, n: 5 }, ladder: one('marketplace') },
   { plot: { a: 27, b: 14, n: 5 }, ladder: dwelling('archeryRange') },

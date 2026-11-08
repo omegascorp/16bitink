@@ -26,9 +26,10 @@ GAME = HERE.parents[2]
 OUT = GAME / 'src' / 'art' / 'pixel' / 'ui'
 TS = GAME / 'src' / 'art' / 'pixel' / 'ui.ts'
 
-ICONS = ('wait', 'defend', 'spell', 'auto', 'endDay', 'town', 'menu', 'hall', 'recruit', 'leave', 'smith', 'tavern', 'tower', 'voicePause', 'voicePlay', 'voiceSkip', 'voiceRead')
+ICONS = ('wait', 'defend', 'spell', 'auto', 'endDay', 'town', 'menu', 'hall', 'recruit', 'leave', 'smith', 'tavern', 'store', 'tower', 'voicePause', 'voicePlay', 'voiceSkip', 'voiceRead')
 STATS = ('attack', 'defense', 'shots', 'damage', 'health', 'left', 'speed', 'mana', 'power', 'knowledge', 'morale', 'luck', 'sight')
-ITEMS = ('bronzeHelm', 'bronzeCuirass', 'bronzeBracers', 'warBelt', 'bronzeGreaves', 'warSandals', 'noviceSpellbook', 'oracleSpellbook', 'alexandrianCodex', 'catapult', 'catapult2', 'catapult3')
+ITEMS = ('bronzeHelm', 'bronzeCuirass', 'bronzeBracers', 'warBelt', 'bronzeGreaves', 'warSandals', 'linenHood', 'linenChiton', 'linenArmbands', 'cordSash', 'linenLeggings', 'templeSandals', 'noviceSpellbook', 'oracleSpellbook', 'alexandrianCodex', 'catapult', 'catapult2', 'catapult3')
+BAGS = ('satchel', 'saddlebags', 'packMule')
 SLOT_ICONS = ('helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring', 'book', 'machine')
 RESOURCES = ('gold', 'wood', 'ore', 'mercury', 'sulfur', 'crystal', 'gems')
 SKILLS = ('logistics', 'pathfinding', 'offense', 'archery', 'armorer', 'leadership', 'luck', 'wisdom', 'intelligence', 'mysticism', 'sorcery', 'estates', 'scouting', 'learning')
@@ -65,6 +66,9 @@ def main() -> None:
     shutil.copyfile(HERE / 'laurel.png', OUT / 'laurel.png')
     shutil.copyfile(HERE / 'guild' / 'room.png', OUT / 'guildRoom.png')
     shutil.copyfile(HERE / 'smith' / 'room.png', OUT / 'smithRoom.png')
+    shutil.copyfile(HERE / 'store' / 'room.png', OUT / 'storeRoom.png')
+    for bag in BAGS:
+        shutil.copyfile(HERE / 'bags' / f'{bag}.png', OUT / f'bag-{bag}.png')
     cap = lambda i: i[0].upper() + i[1:]  # noqa: E731
     imports = [f"import icon{cap(i)} from './ui/icon-{i}.png?url';" for i in ICONS]
     imports += [f"import stat{i.title()} from './ui/stat-{i}.png?url';" for i in STATS]
@@ -75,7 +79,9 @@ def main() -> None:
     imports += [f"import spell{i[0].upper() + i[1:]} from './ui/spell-{i}.png?url';" for i in SPELLS]
     spell_rows = [f"  {i}: spell{i[0].upper() + i[1:]}," for i in SPELLS]
     imports += [f"import spellArt{i[0].upper() + i[1:]} from './ui/spellArt-{i}.png?url';" for i in SPELLS]
-    imports += ["import guildRoom from './ui/guildRoom.png?url';", "import smithRoom from './ui/smithRoom.png?url';"]
+    imports += ["import guildRoom from './ui/guildRoom.png?url';", "import smithRoom from './ui/smithRoom.png?url';", "import storeRoom from './ui/storeRoom.png?url';"]
+    imports += [f"import bag{cap(i)} from './ui/bag-{i}.png?url';" for i in BAGS]
+    bag_rows = [f"  {i}: bag{cap(i)}," for i in BAGS]
     spell_art_rows = [f"  {i}: spellArt{i[0].upper() + i[1:]}," for i in SPELLS]
     imports += [f"import item{cap(i)} from './ui/item-{i}.png?url';" for i in ITEMS]
     item_rows = [f"  {i}: item{cap(i)}," for i in ITEMS]
@@ -124,6 +130,16 @@ export const GUILD_ROOM = guildRoom;
 
 /** The Blacksmith's forge (768 x 340). */
 export const SMITH_ROOM = smithRoom;
+
+/** The Storeroom's interior (768 x 340). */
+export const STORE_ROOM = storeRoom;
+
+export type BagArt = {' | '.join(repr(i) for i in BAGS)};
+
+/** The bag upgrades' icons (64 x 64). */
+export const BAG_ART: Readonly<Record<BagArt, string>> = {{
+{chr(10).join(bag_rows)}
+}};
 
 /** The gear's item icons (64 x 64). */
 export const ITEM_ICONS: Readonly<Record<ItemId, string>> = {{

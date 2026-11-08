@@ -1,7 +1,7 @@
-import { BAG_SIZE, ITEM_IDS, ITEMS, SLOTS, type Gear, type ItemId } from './items';
+import { BAGS, ITEM_IDS, MAX_BAG, ITEMS, SLOTS, type Gear, type ItemId } from './items';
 import type { KeyValueStore } from '@16bitink/game-sdk';
 import type { HeroDef, MapDef } from '../level/types';
-import { DEFEND, gridOf, MAX_MONSTER, queueLevelUps, RIVAL, type Adventure, type Prompt, type RivalState } from './adventure';
+import { DEFEND, gridOf, lyingItem, MAX_MONSTER, queueLevelUps, RIVAL, type Adventure, type Prompt, type RivalState } from './adventure';
 import { ARMY_SLOTS, type Army, type ArmySlot } from './army';
 import { BUILDINGS, isBuildingId, type BuildingId } from './buildings';
 import { parseDayReport } from './dayReport';
@@ -9,6 +9,7 @@ import { canManTower, isCreatureId, lineOf, type CreatureId } from './creatures'
 import { dailyMp, levelFor, maxMana, PRIMARIES } from './hero';
 import { passable, STABLES_MP } from './map';
 import { CHEST_XP, townCore, type MapObject } from './objects';
+import { storeRoom } from './storage';
 import { addTo, RESOURCES, type Purse } from './resources';
 import { isSkillId, MAX_SKILLS, SKILL_IDS, type Rank } from './skills';
 import { isSpellId, type SpellId } from './spells';
@@ -233,7 +234,7 @@ function parseHero(raw: Record<string, unknown>, def: MapDef, h: HeroDef = def.h
 }
 
 /** A hero saved when a spellbook was only a flag has the guild's book now. */
-function bookFromFlag(raw: Record<string, unknown>, worn: { gear?: Gear; bag?: ItemId[] }): { gear?: Gear; bag?: ItemId[] } {
+function bookFromFlag<W extends { gear?: Gear }>(raw: Record<string, unknown>, worn: W): W {
   return raw.hasBook === true && !worn.gear?.book ? { ...worn, gear: { ...worn.gear, book: SPELLBOOK_SOLD } } : worn;
 }
 
@@ -245,14 +246,21 @@ function refundMachines(hero: unknown, p: Purse): Purse {
 
 const isItemId = (x: unknown): x is ItemId => typeof x === 'string' && (ITEM_IDS as readonly string[]).includes(x);
 
-/** A saved hero's gear and bag: a piece only in its own slot, the bag no bigger than it can be (older saves have neither). */
-function parseGear(raw: Record<string, unknown>): { gear?: Gear; bag?: ItemId[] } {
+/**
+ * A saved hero's gear, bag and the bag they carry it in: a piece only in its
+ * own slot, the bag no bigger than the biggest. Older saves have none of it,
+ * and saves from when every bag held 20 get a bag big enough for what they
+ * carried, so nothing is lost.
+ */
+function parseGear(raw: Record<string, unknown>): { gear?: Gear; bag?: ItemId[]; pack?: number } {
   const gear = isObj(raw.gear) ? Object.fromEntries(SLOTS.flatMap((s) => {
     const id = (raw.gear as Record<string, unknown>)[s];
     return isItemId(id) && ITEMS[id].slot === s ? [[s, id]] : [];
   })) as Gear : {};
-  const bag = Array.isArray(raw.bag) ? raw.bag.filter(isItemId).slice(0, BAG_SIZE) : [];
-  return { ...(Object.keys(gear).length ? { gear } : {}), ...(bag.length ? { bag } : {}) };
+  const bag = Array.isArray(raw.bag) ? raw.bag.filter(isItemId).slice(0, MAX_BAG) : [];
+  const saved = isInt(raw.pack, 0, BAGS.length - 1) ? raw.pack : 0;
+  const pack = Math.max(saved, BAGS.findIndex((b) => b.size >= bag.length));
+  return { ...(Object.keys(gear).length ? { gear } : {}), ...(bag.length ? { bag } : {}), ...(pack ? { pack } : {}) };
 }
 
 /** A saved town on the map's town `t` (its place, name and guild come from the map). The first town is always the player's. */
@@ -271,7 +279,9 @@ function parseTown(raw: Record<string, unknown>, t: { id: string; name: string; 
   // Older saves have no towers; a company that can't stand on one comes down with its place lost.
   const up = raw.towers === undefined ? null : parseArmy(raw.towers);
   const towers = up?.some((s) => s && canManTower(s.creature)) ? { towers: up.map((s) => (s && canManTower(s.creature) ? s : null)) } : {};
-  return { id: t.id, name: t.name, owner, x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, ...towers, guild: t.guild, ...(raw.ally === true && owner === 'neutral' ? { ally: true } : {}) };
+  // Gear in its store, no more than its store keeps.
+  const store = Array.isArray(raw.store) ? raw.store.filter(isItemId).slice(0, storeRoom({ built })) : [];
+  return { id: t.id, name: t.name, owner, x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, ...towers, guild: t.guild, ...(raw.ally === true && owner === 'neutral' ? { ally: true } : {}), ...(store.length ? { store } : {}) };
 }
 
 /** The saved buildings the map allows and whose needs are met (the town's starting ones always). */
@@ -302,6 +312,11 @@ function parseObjects(raw: readonly unknown[], def: MapDef): MapObject[] | null 
       continue;
     }
     if (!s) return null;
+    // A beaten monster's piece left lying on the ground.
+    if (base.kind === 'monster' && s.kind === 'item' && isItemId(s.item)) {
+      out.push(lyingItem(base, s.item));
+      continue;
+    }
     const ownable = base.kind === 'mine' || base.kind === 'town';
     const owner = ownable && (s.owner === 'player' || s.owner === 'neutral' || s.owner === 'rival') ? s.owner : base.owner;
     const count = base.kind === 'monster' && isInt(s.count, 1, MAX_MONSTER) ? s.count : base.count;

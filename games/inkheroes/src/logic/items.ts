@@ -5,8 +5,30 @@ import type { Hero } from './hero';
 export const SLOTS = ['helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring1', 'ring2', 'book', 'machine'] as const;
 export type Slot = (typeof SLOTS)[number];
 
-/** How many spare pieces a hero carries. */
-export const BAG_SIZE = 20;
+/**
+ * What a hero carries spare pieces in, smallest first: everyone starts with
+ * the Satchel, and a town's Storehouse sells the bigger ones (`bags.ts`).
+ */
+export type BagId = 'satchel' | 'saddlebags' | 'packMule';
+export interface Bag {
+  readonly id: BagId;
+  readonly name: string;
+  readonly size: number;
+}
+export const BAGS: readonly Bag[] = [
+  { id: 'satchel', name: 'Leather Satchel', size: 4 },
+  { id: 'saddlebags', name: 'Saddlebags', size: 8 },
+  { id: 'packMule', name: 'Pack Mule', size: 12 },
+];
+/** The most any bag holds. */
+export const MAX_BAG = 12;
+
+/** The hero's bag (0 the Satchel, 1 the Saddlebags, 2 the Pack Mule). */
+export const bagOf = (h: Pick<Hero, 'pack'>): Bag => BAGS[Math.min(h.pack ?? 0, BAGS.length - 1)]!;
+/** How many spare pieces `h` can carry. */
+export const bagSize = (h: Pick<Hero, 'pack'>): number => bagOf(h).size;
+/** Whether `h`'s bag has room for one more. */
+export const bagRoom = (h: Pick<Hero, 'pack' | 'bag'>): boolean => (h.bag?.length ?? 0) < bagSize(h);
 
 export const QUALITIES = ['gray', 'green', 'blue', 'purple', 'gold'] as const;
 export type Quality = (typeof QUALITIES)[number];
@@ -28,7 +50,7 @@ export interface ItemDef {
   readonly machine?: MachineId;
 }
 
-export const SET_NAMES: Readonly<Record<string, string>> = { bronze: 'Bronze set' };
+export const SET_NAMES: Readonly<Record<string, string>> = { bronze: 'Bronze set', linen: 'Linen set' };
 
 /** Every piece. Numbers in docs/inkheroes-design.md. */
 export const ITEMS = {
@@ -38,6 +60,12 @@ export const ITEMS = {
   warBelt: { name: 'War Belt', slot: 'belt', quality: 'gray', set: 'bronze', gives: { morale: 1 } },
   bronzeGreaves: { name: 'Bronze Greaves', slot: 'greaves', quality: 'gray', set: 'bronze', gives: { defense: 1 } },
   warSandals: { name: 'War Sandals', slot: 'boots', quality: 'gray', set: 'bronze', gives: { attack: 1 } },
+  linenHood: { name: 'Linen Hood', slot: 'helm', quality: 'gray', set: 'linen', gives: { knowledge: 1 } },
+  linenChiton: { name: 'Linen Chiton', slot: 'cuirass', quality: 'gray', set: 'linen', gives: { power: 1 } },
+  linenArmbands: { name: 'Linen Armbands', slot: 'bracers', quality: 'gray', set: 'linen', gives: { power: 1 } },
+  cordSash: { name: 'Cord Sash', slot: 'belt', quality: 'gray', set: 'linen', gives: { luck: 1 } },
+  linenLeggings: { name: 'Linen Leggings', slot: 'greaves', quality: 'gray', set: 'linen', gives: { knowledge: 1 } },
+  templeSandals: { name: 'Temple Sandals', slot: 'boots', quality: 'gray', set: 'linen', gives: { knowledge: 1 } },
   noviceSpellbook: { name: 'Novice’s Spellbook', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
   oracleSpellbook: { name: 'Oracle’s Spellbook', slot: 'book', quality: 'green', gives: { knowledge: 1, power: 1 } },
   alexandrianCodex: { name: 'Alexandrian Codex', slot: 'book', quality: 'blue', gives: { knowledge: 2, power: 1 } },
@@ -106,9 +134,8 @@ export function withGear<H extends Pick<Hero, 'gear' | 'attack' | 'defense' | 'p
 export function gainItem(h: Hero, id: ItemId): { hero: Hero; worn: boolean; kept: boolean } {
   const { slot } = itemDef(id);
   if (!h.gear?.[slot]) return { hero: { ...h, gear: { ...h.gear, [slot]: id } }, worn: true, kept: true };
-  const bag = h.bag ?? [];
-  if (bag.length >= BAG_SIZE) return { hero: h, worn: false, kept: false };
-  return { hero: { ...h, bag: [...bag, id] }, worn: false, kept: true };
+  if (!bagRoom(h)) return { hero: h, worn: false, kept: false };
+  return { hero: { ...h, bag: [...(h.bag ?? []), id] }, worn: false, kept: true };
 }
 
 /** The bag's piece `i` put on; what was in its slot goes to the bag. */
@@ -123,8 +150,7 @@ export function wear(h: Hero, i: number): Hero {
 /** The piece in `slot` taken off into the bag, if the bag has room. */
 export function takeOff(h: Hero, slot: Slot): Hero {
   const id = h.gear?.[slot];
-  const bag = h.bag ?? [];
-  if (!id || bag.length >= BAG_SIZE) return h;
+  if (!id || !bagRoom(h)) return h;
   const { [slot]: _off, ...gear } = h.gear!;
-  return { ...h, gear, bag: [...bag, id] };
+  return { ...h, gear, bag: [...(h.bag ?? []), id] };
 }

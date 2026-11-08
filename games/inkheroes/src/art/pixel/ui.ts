@@ -17,6 +17,7 @@ import iconRecruit from './ui/icon-recruit.png?url';
 import iconLeave from './ui/icon-leave.png?url';
 import iconSmith from './ui/icon-smith.png?url';
 import iconTavern from './ui/icon-tavern.png?url';
+import iconStore from './ui/icon-store.png?url';
 import iconTower from './ui/icon-tower.png?url';
 import iconVoicePause from './ui/icon-voicePause.png?url';
 import iconVoicePlay from './ui/icon-voicePlay.png?url';
@@ -69,12 +70,22 @@ import spellArtBless from './ui/spellArt-bless.png?url';
 import spellArtBloodlust from './ui/spellArt-bloodlust.png?url';
 import guildRoom from './ui/guildRoom.png?url';
 import smithRoom from './ui/smithRoom.png?url';
+import storeRoom from './ui/storeRoom.png?url';
+import bagSatchel from './ui/bag-satchel.png?url';
+import bagSaddlebags from './ui/bag-saddlebags.png?url';
+import bagPackMule from './ui/bag-packMule.png?url';
 import itemBronzeHelm from './ui/item-bronzeHelm.png?url';
 import itemBronzeCuirass from './ui/item-bronzeCuirass.png?url';
 import itemBronzeBracers from './ui/item-bronzeBracers.png?url';
 import itemWarBelt from './ui/item-warBelt.png?url';
 import itemBronzeGreaves from './ui/item-bronzeGreaves.png?url';
 import itemWarSandals from './ui/item-warSandals.png?url';
+import itemLinenHood from './ui/item-linenHood.png?url';
+import itemLinenChiton from './ui/item-linenChiton.png?url';
+import itemLinenArmbands from './ui/item-linenArmbands.png?url';
+import itemCordSash from './ui/item-cordSash.png?url';
+import itemLinenLeggings from './ui/item-linenLeggings.png?url';
+import itemTempleSandals from './ui/item-templeSandals.png?url';
 import itemNoviceSpellbook from './ui/item-noviceSpellbook.png?url';
 import itemOracleSpellbook from './ui/item-oracleSpellbook.png?url';
 import itemAlexandrianCodex from './ui/item-alexandrianCodex.png?url';
@@ -102,7 +113,7 @@ import resCrystal from './ui/res-crystal.png?url';
 import resGems from './ui/res-gems.png?url';
 import laurel from './ui/laurel.png?url';
 
-export type IconName = 'wait' | 'defend' | 'spell' | 'auto' | 'endDay' | 'town' | 'menu' | 'hall' | 'recruit' | 'leave' | 'smith' | 'tavern' | 'tower' | 'voicePause' | 'voicePlay' | 'voiceSkip' | 'voiceRead';
+export type IconName = 'wait' | 'defend' | 'spell' | 'auto' | 'endDay' | 'town' | 'menu' | 'hall' | 'recruit' | 'leave' | 'smith' | 'tavern' | 'store' | 'tower' | 'voicePause' | 'voicePlay' | 'voiceSkip' | 'voiceRead';
 
 export const ICONS: Readonly<Record<IconName, string>> = {
   wait: iconWait,
@@ -117,6 +128,7 @@ export const ICONS: Readonly<Record<IconName, string>> = {
   leave: iconLeave,
   smith: iconSmith,
   tavern: iconTavern,
+  store: iconStore,
   tower: iconTower,
   voicePause: iconVoicePause,
   voicePlay: iconVoicePlay,
@@ -191,6 +203,18 @@ export const GUILD_ROOM = guildRoom;
 /** The Blacksmith's forge (768 x 340). */
 export const SMITH_ROOM = smithRoom;
 
+/** The Storeroom's interior (768 x 340). */
+export const STORE_ROOM = storeRoom;
+
+export type BagArt = 'satchel' | 'saddlebags' | 'packMule';
+
+/** The bag upgrades' icons (64 x 64). */
+export const BAG_ART: Readonly<Record<BagArt, string>> = {
+  satchel: bagSatchel,
+  saddlebags: bagSaddlebags,
+  packMule: bagPackMule,
+};
+
 /** The gear's item icons (64 x 64). */
 export const ITEM_ICONS: Readonly<Record<ItemId, string>> = {
   bronzeHelm: itemBronzeHelm,
@@ -199,6 +223,12 @@ export const ITEM_ICONS: Readonly<Record<ItemId, string>> = {
   warBelt: itemWarBelt,
   bronzeGreaves: itemBronzeGreaves,
   warSandals: itemWarSandals,
+  linenHood: itemLinenHood,
+  linenChiton: itemLinenChiton,
+  linenArmbands: itemLinenArmbands,
+  cordSash: itemCordSash,
+  linenLeggings: itemLinenLeggings,
+  templeSandals: itemTempleSandals,
   noviceSpellbook: itemNoviceSpellbook,
   oracleSpellbook: itemOracleSpellbook,
   alexandrianCodex: itemAlexandrianCodex,

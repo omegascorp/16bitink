@@ -3,7 +3,7 @@ import { ROAD_COST, STABLES_MP, tilesOf } from './map';
 import type { Amount } from './resources';
 
 export const BUILDING_IDS = [
-  'villageHall', 'townHall', 'cityHall', 'capitol', 'fort', 'citadel', 'castle', 'tavern', 'blacksmith', 'marketplace', 'mageGuild1', 'mageGuild2',
+  'villageHall', 'townHall', 'cityHall', 'capitol', 'fort', 'citadel', 'castle', 'tavern', 'blacksmith', 'storehouse', 'treasury', 'marketplace', 'mageGuild1', 'mageGuild2',
   'guardhouse', 'archeryRange', 'griffinTower', 'barracks', 'monastery', 'stables', 'tiltyard', 'seraphSpire',
   'guardhouse2', 'guardhouse3', 'archeryRange2', 'archeryRange3', 'griffinTower2', 'griffinTower3', 'barracks2', 'barracks3',
   'monastery2', 'monastery3', 'tiltyard2', 'tiltyard3', 'seraphSpire2', 'seraphSpire3',
@@ -23,6 +23,8 @@ export interface BuildingDef {
   readonly growth?: number;
   /** Movement points it adds to a hero's day. */
   readonly travel?: number;
+  /** Pieces of gear the town keeps (the best of its stores counts). */
+  readonly store?: number;
 }
 
 /** The Crown's buildings. Numbers in docs/inkheroes-design.md. */
@@ -36,6 +38,8 @@ export const BUILDINGS: Readonly<Record<BuildingId, BuildingDef>> = {
   castle: { name: 'Castle', cost: { gold: 5000, wood: 10, ore: 10 }, needs: ['citadel'], says: '+100% growth for every dwelling, stronger walls and a third tower', growth: 0.5 },
   tavern: { name: 'Tavern', cost: { gold: 500, wood: 5 }, needs: [], says: '+1 morale when defending the town' },
   blacksmith: { name: 'Blacksmith', cost: { gold: 1000, wood: 5 }, needs: [], says: 'Sells war machines, which break town walls' },
+  storehouse: { name: 'Storehouse', cost: { gold: 1000, wood: 5 }, needs: [], says: 'Keeps 8 pieces of gear for your heroes; sells Saddlebags', store: 8 },
+  treasury: { name: 'Treasury', cost: { gold: 2500, wood: 5, ore: 5 }, needs: ['storehouse'], says: 'Keeps 20 pieces of gear; sells a Pack Mule', store: 20 },
   marketplace: { name: 'Marketplace', cost: { gold: 500, wood: 5 }, needs: [], says: 'Trade resources' },
   mageGuild1: { name: 'Mage Guild', cost: { gold: 2000, wood: 5, ore: 5 }, needs: [], says: 'Teaches 3 level-1 spells; sells a spellbook' },
   mageGuild2: { name: 'Mage Guild, 2nd floor', cost: { gold: 1000, wood: 5, ore: 5, mercury: 4, sulfur: 4, crystal: 4, gems: 4 }, needs: ['mageGuild1'], says: 'Teaches 2 level-2 spells' },

@@ -60,6 +60,8 @@ PIECES = {
     'tiltyard-3': ('tiltyard-3.png', None),
     'seraphSpire-2': ('seraphSpire-2.png', None),
     'seraphSpire-3': ('seraphSpire-3.png', None),
+    'storehouse': ('storehouse.png', None),
+    'treasury': ('treasury.png', None),
     # The city round them, always there: houses and the fountain.
     **{f'house-{k}': (f'house-{k}.png', None) for k in 'abcdef'},
     'fountain': ('fountain.png', None),

@@ -13,7 +13,7 @@ import { heroArt, PX_TEX, unitArt } from '../battle/pixelAssets';
 import { FIGURE_DEPTH, PixelFigure } from '../battle/pixelFigure';
 import { PixelBuffer, type Rgba } from '../battle/pixelRaster';
 import type { Pixels } from '../battle/pixelScenery';
-import { putBuffer, texturePixels } from '../battle/pixelUi';
+import { putBuffer, texturePixels, UI_TEX } from '../battle/pixelUi';
 import { coverPlacements } from './mapCover';
 import type { BuildingId } from '../../logic/buildings';
 import { renderMapTown, type CityArt } from '../town/cityRender';
@@ -32,6 +32,8 @@ const FOOT_Y = 44;
 const PATH_DEPTH = 1e6;
 /** The fog lies on the ground, under every figure: what stands on a seen tile shows whole (a tree's crown over the fog too), the rest is hidden until seen. */
 const FOG_DEPTH = FIGURE_DEPTH - 0.5;
+/** Gear on the ground: its 64 px icon at half size, about a tile. */
+const LYING_SCALE = 0.5;
 /** The planned path: reachable today (green, as in H3) and on later days (red). */
 const PATH_TODAY: Rgba = [143, 216, 96, 255];
 const PATH_LATER: Rgba = [224, 87, 74, 255];
@@ -107,6 +109,8 @@ export class PixelMapWorld {
   private readonly sprites = new Map<string, Phaser.GameObjects.GameObject & { setVisible(v: boolean): unknown }>();
   private readonly flags = new Map<string, Phaser.GameObjects.Image>();
   private readonly figures: PixelFigure[] = [];
+  /** Each monster's figure, by its object id: one beaten with the hero's bag full gives way to the piece it left. */
+  private readonly monsters = new Map<string, PixelFigure>();
   /** A figure for each hero of ours, by id: the picked one rides, the rest stand. */
   private readonly ours = new Map<string, PixelFigure>();
   /** The picked hero's id: the figure the ride moves (it only changes between rides). */
@@ -247,7 +251,12 @@ export class PixelMapWorld {
       // Monsters face whichever way their id says, so a map doesn't look stamped.
       const fig = new PixelFigure(this.scene, this.layer, unitArt(id), () => PX_TEX.unit(id, 'idle'), feet, o.id.length % 2 === 0);
       this.figures.push(fig);
+      this.monsters.set(o.id, fig);
       this.sprites.set(o.id, fig.sprite);
+      return;
+    }
+    if (o.kind === 'item') {
+      this.addLyingItem(o);
       return;
     }
     const art = siteArtOf(o);
@@ -256,6 +265,22 @@ export class PixelMapWorld {
     const img = this.place(s.key, s.sprite, feet.x, feet.y + 2, FIGURE_DEPTH + feet.y - 1);
     this.sprites.set(o.id, img);
     if (o.kind === 'mine') this.addFlag(o.id, 'neutral', feet.x + Math.floor(s.sprite.w * 0.25), feet.y - s.sprite.h + 12, FIGURE_DEPTH + feet.y);
+  }
+
+  /** A piece of gear on the ground, in its own icon at half size, where the monster that left it stood. */
+  private addLyingItem(o: MapObject): void {
+    const fig = this.monsters.get(o.id);
+    if (fig) {
+      fig.destroy();
+      this.monsters.delete(o.id);
+      this.figures.splice(this.figures.indexOf(fig), 1);
+    }
+    const feet = tileFeet(o.x, o.y);
+    const shadow = this.scene.add.ellipse(0, 0, 26, 8, 0x000000, 0.3);
+    const icon = this.scene.add.image(0, 2, UI_TEX.item(o.item!)).setOrigin(0.5, 1).setScale(LYING_SCALE);
+    const piece = this.scene.add.container(feet.x, feet.y, [shadow, icon]).setDepth(FIGURE_DEPTH + feet.y - 1);
+    this.layer.add(piece);
+    this.sprites.set(o.id, piece);
   }
 
   /** A figure for hero `h` of ours, in their own art when drawn (else Rowan's), standing on their tile. */
@@ -300,6 +325,7 @@ export class PixelMapWorld {
     const live = new Set(liveObjects(adv).map((o) => o.id));
     const seen = (x: number, y: number): boolean => isSeen(adv, this.def, x, y);
     for (const o of adv.objects) {
+      if (o.kind === 'item' && this.monsters.has(o.id)) this.addLyingItem(o);
       this.sprites.get(o.id)?.setVisible(live.has(o.id) && seen(o.x, o.y));
       const flag = this.flags.get(o.id);
       if (flag) flag.setTexture(this.flagKey(o.owner === 'player' ? 'player' : o.owner === 'rival' ? 'rival' : 'neutral')).setVisible(seen(o.x, o.y));

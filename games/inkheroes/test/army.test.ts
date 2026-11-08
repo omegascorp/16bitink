@@ -129,8 +129,13 @@ describe('the town’s strip', () => {
     expect(townButtons(['mageGuild1', 'blacksmith', 'tavern'], true)).toEqual(['hall', 'fort', 'guild', 'smith', 'tavern', 'leave']);
   });
 
-  it('fits all six buttons in a row on the narrowest phone', () => {
-    for (let w = 300; w < 420; w += 3) expect(narrowButtonW(6, w) * 6 + 5 * 3).toBeLessThanOrEqual(w - 12);
+  it('shows the Storehouse once it stands, before Leave', () => {
+    expect(townButtons(['storehouse'])).toEqual(['hall', 'fort', 'store', 'leave']);
+    expect(townButtons(['mageGuild1', 'blacksmith', 'tavern', 'storehouse', 'treasury'], true)).toEqual(['hall', 'fort', 'guild', 'smith', 'tavern', 'store', 'leave']);
+  });
+
+  it('fits all seven buttons in a row on the narrowest phone', () => {
+    for (let w = 300; w < 420; w += 3) expect(narrowButtonW(7, w) * 7 + 6 * 3).toBeLessThanOrEqual(w - 12);
     expect(narrowButtonW(5, 390)).toBe(56);
   });
 

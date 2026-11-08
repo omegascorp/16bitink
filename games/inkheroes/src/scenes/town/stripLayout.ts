@@ -14,12 +14,12 @@ const TOWN_W = { max: 150, min: 110 } as const;
 export const BTN = { w: 56, gap: 3, narrowH: 56 } as const;
 /** The rows of buttons beside the armies, each as high as a slot. */
 const GRID_ROWS = 2;
-export type TownButton = 'hall' | 'fort' | 'guild' | 'smith' | 'tavern' | 'leave';
+export type TownButton = 'hall' | 'fort' | 'guild' | 'smith' | 'tavern' | 'store' | 'leave';
 
-/** The buttons a town shows: the Guild and the Blacksmith only once they stand, the Tavern once it stands on a map with heroes to hire (`hires`). */
+/** The buttons a town shows: the Guild, the Blacksmith and the Storehouse only once they stand, the Tavern once it stands on a map with heroes to hire (`hires`). */
 export function townButtons(built: readonly BuildingId[], hires = false): TownButton[] {
   const has = (b: BuildingId): boolean => built.includes(b);
-  return ['hall', 'fort', ...(has('mageGuild1') ? ['guild' as const] : []), ...(has('blacksmith') ? ['smith' as const] : []), ...(hires && has('tavern') ? ['tavern' as const] : []), 'leave'];
+  return ['hall', 'fort', ...(has('mageGuild1') ? ['guild' as const] : []), ...(has('blacksmith') ? ['smith' as const] : []), ...(hires && has('tavern') ? ['tavern' as const] : []), ...(has('storehouse') ? ['store' as const] : []), 'leave'];
 }
 
 /** `cells` buttons' width, side by side. */

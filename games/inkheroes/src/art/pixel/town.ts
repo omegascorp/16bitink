@@ -33,22 +33,24 @@ import p30 from './town/tiltyard-2.png?url';
 import p31 from './town/tiltyard-3.png?url';
 import p32 from './town/seraphSpire-2.png?url';
 import p33 from './town/seraphSpire-3.png?url';
-import p34 from './town/house-a.png?url';
-import p35 from './town/house-b.png?url';
-import p36 from './town/house-c.png?url';
-import p37 from './town/house-d.png?url';
-import p38 from './town/house-e.png?url';
-import p39 from './town/house-f.png?url';
-import p40 from './town/fountain.png?url';
-import p41 from './town/wall.png?url';
-import p42 from './town/wall-up.png?url';
-import p43 from './town/wall-gate.png?url';
-import p44 from './town/corner-front.png?url';
-import p45 from './town/corner-back.png?url';
-import p46 from './town/corner-left.png?url';
-import p47 from './town/corner-left-rear.png?url';
-import p48 from './town/corner-right.png?url';
-import p49 from './town/corner-right-rear.png?url';
+import p34 from './town/storehouse.png?url';
+import p35 from './town/treasury.png?url';
+import p36 from './town/house-a.png?url';
+import p37 from './town/house-b.png?url';
+import p38 from './town/house-c.png?url';
+import p39 from './town/house-d.png?url';
+import p40 from './town/house-e.png?url';
+import p41 from './town/house-f.png?url';
+import p42 from './town/fountain.png?url';
+import p43 from './town/wall.png?url';
+import p44 from './town/wall-up.png?url';
+import p45 from './town/wall-gate.png?url';
+import p46 from './town/corner-front.png?url';
+import p47 from './town/corner-back.png?url';
+import p48 from './town/corner-left.png?url';
+import p49 from './town/corner-left-rear.png?url';
+import p50 from './town/corner-right.png?url';
+import p51 from './town/corner-right-rear.png?url';
 import paving from './town/paving.png?url';
 
 /** One town sprite: its url and size; it stands on the middle of its bottom row. */
@@ -58,7 +60,7 @@ export interface TownSprite {
   readonly h: number;
 }
 
-export type TownArt = 'hall-village' | 'hall-town' | 'hall-city' | 'hall-capitol' | 'walls-fort' | 'walls-citadel' | 'walls-castle' | 'guild-1' | 'guild-2' | 'tavern' | 'blacksmith' | 'marketplace' | 'guardhouse' | 'archeryRange' | 'griffinTower' | 'barracks' | 'monastery' | 'stables' | 'tiltyard' | 'seraphSpire' | 'guardhouse-2' | 'guardhouse-3' | 'archeryRange-2' | 'archeryRange-3' | 'griffinTower-2' | 'griffinTower-3' | 'barracks-2' | 'barracks-3' | 'monastery-2' | 'monastery-3' | 'tiltyard-2' | 'tiltyard-3' | 'seraphSpire-2' | 'seraphSpire-3' | 'house-a' | 'house-b' | 'house-c' | 'house-d' | 'house-e' | 'house-f' | 'fountain' | 'wall' | 'wall-up' | 'wall-gate' | 'corner-front' | 'corner-back' | 'corner-left' | 'corner-left-rear' | 'corner-right' | 'corner-right-rear';
+export type TownArt = 'hall-village' | 'hall-town' | 'hall-city' | 'hall-capitol' | 'walls-fort' | 'walls-citadel' | 'walls-castle' | 'guild-1' | 'guild-2' | 'tavern' | 'blacksmith' | 'marketplace' | 'guardhouse' | 'archeryRange' | 'griffinTower' | 'barracks' | 'monastery' | 'stables' | 'tiltyard' | 'seraphSpire' | 'guardhouse-2' | 'guardhouse-3' | 'archeryRange-2' | 'archeryRange-3' | 'griffinTower-2' | 'griffinTower-3' | 'barracks-2' | 'barracks-3' | 'monastery-2' | 'monastery-3' | 'tiltyard-2' | 'tiltyard-3' | 'seraphSpire-2' | 'seraphSpire-3' | 'storehouse' | 'treasury' | 'house-a' | 'house-b' | 'house-c' | 'house-d' | 'house-e' | 'house-f' | 'fountain' | 'wall' | 'wall-up' | 'wall-gate' | 'corner-front' | 'corner-back' | 'corner-left' | 'corner-left-rear' | 'corner-right' | 'corner-right-rear';
 
 export const TOWN_ART: Readonly<Record<TownArt, TownSprite>> = {
   'hall-village': { url: p0, w: 138, h: 109 },
@@ -95,22 +97,24 @@ export const TOWN_ART: Readonly<Record<TownArt, TownSprite>> = {
   'tiltyard-3': { url: p31, w: 222, h: 166 },
   'seraphSpire-2': { url: p32, w: 184, h: 261 },
   'seraphSpire-3': { url: p33, w: 120, h: 246 },
-  'house-a': { url: p34, w: 107, h: 106 },
-  'house-b': { url: p35, w: 126, h: 98 },
-  'house-c': { url: p36, w: 140, h: 115 },
-  'house-d': { url: p37, w: 82, h: 74 },
-  'house-e': { url: p38, w: 96, h: 126 },
-  'house-f': { url: p39, w: 122, h: 115 },
-  'fountain': { url: p40, w: 90, h: 79 },
-  'wall': { url: p41, w: 135, h: 117 },
-  'wall-up': { url: p42, w: 134, h: 116 },
-  'wall-gate': { url: p43, w: 191, h: 150 },
-  'corner-front': { url: p44, w: 121, h: 107 },
-  'corner-back': { url: p45, w: 159, h: 134 },
-  'corner-left': { url: p46, w: 108, h: 134 },
-  'corner-left-rear': { url: p47, w: 34, h: 47 },
-  'corner-right': { url: p48, w: 110, h: 134 },
-  'corner-right-rear': { url: p49, w: 34, h: 49 },
+  'storehouse': { url: p34, w: 144, h: 118 },
+  'treasury': { url: p35, w: 148, h: 128 },
+  'house-a': { url: p36, w: 107, h: 106 },
+  'house-b': { url: p37, w: 126, h: 98 },
+  'house-c': { url: p38, w: 140, h: 115 },
+  'house-d': { url: p39, w: 82, h: 74 },
+  'house-e': { url: p40, w: 96, h: 126 },
+  'house-f': { url: p41, w: 122, h: 115 },
+  'fountain': { url: p42, w: 90, h: 79 },
+  'wall': { url: p43, w: 135, h: 117 },
+  'wall-up': { url: p44, w: 134, h: 116 },
+  'wall-gate': { url: p45, w: 191, h: 150 },
+  'corner-front': { url: p46, w: 121, h: 107 },
+  'corner-back': { url: p47, w: 159, h: 134 },
+  'corner-left': { url: p48, w: 108, h: 134 },
+  'corner-left-rear': { url: p49, w: 34, h: 47 },
+  'corner-right': { url: p50, w: 110, h: 134 },
+  'corner-right-rear': { url: p51, w: 34, h: 49 },
 };
 
 /** The streets' paving swatch (isometric already; tiled as it is). */

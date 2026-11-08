@@ -39,6 +39,9 @@ import { STAGE } from './town/townStage';
 import { GuildRoom } from './town/guildRoom';
 import { SmithRoom } from './town/smithRoom';
 import { TavernRoom } from './town/tavernRoom';
+import { StoreRoom } from './town/storeRoom';
+import { storeTap, type StoreRef } from './town/storeData';
+import { buyBag, cantBuyBag } from '../logic/storage';
 import { TownWindow } from './town/townWindow';
 
 /** A press that moves further than this (UI px) is a drag, not a tap. */
@@ -63,7 +66,7 @@ const OPENS: Partial<Record<BuildingId, TownScreen>> = {
   guardhouse: 'fort', archeryRange: 'fort', griffinTower: 'fort', barracks: 'fort', monastery: 'fort', tiltyard: 'fort', seraphSpire: 'fort',
   guardhouse2: 'fort', archeryRange2: 'fort', griffinTower2: 'fort', barracks2: 'fort', monastery2: 'fort', tiltyard2: 'fort', seraphSpire2: 'fort',
   guardhouse3: 'fort', archeryRange3: 'fort', griffinTower3: 'fort', barracks3: 'fort', monastery3: 'fort', tiltyard3: 'fort', seraphSpire3: 'fort',
-  mageGuild1: 'guild', mageGuild2: 'guild', blacksmith: 'smith', tavern: 'tavern',
+  mageGuild1: 'guild', mageGuild2: 'guild', blacksmith: 'smith', tavern: 'tavern', storehouse: 'store', treasury: 'store',
 };
 
 /** What a building does, in words (a dwelling names the creature it hires by its name in this game). */
@@ -86,11 +89,13 @@ export class TownScene extends Phaser.Scene {
   private size = { w: 0, h: 0, k: 1 };
   private view: PixelTownView | null = null;
   private bar: TownBar | null = null;
-  private window: TownWindow | GuildRoom | SmithRoom | TavernRoom | null = null;
+  private window: TownWindow | GuildRoom | SmithRoom | TavernRoom | StoreRoom | null = null;
   /** The spell being read in the guild. */
   private guildPick: SpellId | null = null;
   /** The machine being looked at in the Blacksmith. */
   private smithPick: SoldMachine | null = null;
+  /** The piece picked in the Storehouse, and a word on a move it refused. */
+  private storePick: { ref: StoreRef | null; note: string } = { ref: null, note: '' };
   private plate: BuildPlate | null = null;
   /** The player's towns, a tap away from each other. */
   private towns: TownList | null = null;
@@ -344,6 +349,10 @@ export class TownScene extends Phaser.Scene {
       this.window = new TavernRoom(this, adv, this.session.def, this.town(), room, { close: () => this.openScreen(null), hire: () => this.hireHero() }, depth);
       return;
     }
+    if (this.screen === 'store') {
+      this.window = new StoreRoom(this, adv, this.townId, this.storePick.ref, this.storePick.note, room, { close: () => this.openScreen(null), tap: (r) => this.tapStore(r), buyBag: (id) => this.buyBag(id) }, depth);
+      return;
+    }
     if (this.screen === 'smith') {
       this.window = new SmithRoom(this, adv, this.town(), this.smithPick, soldOn(this.session.def.n), room, { close: () => this.openScreen(null), buy: (m) => this.buyMachine(m), pick: (m) => this.pickWare(m) }, depth);
       return;
@@ -358,6 +367,28 @@ export class TownScene extends Phaser.Scene {
     this.drawWindow();
   }
 
+  /** A tap in the Storehouse: picks a piece, or sends the picked one (see storeTap). */
+  private tapStore(r: StoreRef): void {
+    const t = storeTap(this.session.adv, this.townId, this.storePick.ref, r);
+    this.storePick = { ref: t.picked, note: t.note };
+    if (t.moved) this.changed(t.adv, 'card');
+    else this.drawWindow();
+  }
+
+  private buyBag(heroId: string): void {
+    const next = buyBag(this.session.adv, this.townId, heroId);
+    if (next) this.changed(next, 'hire');
+    else this.toast(cantBuyBag(this.session.adv, this.townId, heroId) ?? 'No bag to buy here');
+  }
+
+  /** The game moved on in town: kept, heard, said (`toast`) and shown. */
+  private changed(adv: Adventure, sound: 'card' | 'hire', toast?: string): void {
+    this.session.set(adv);
+    getSound(this)?.play(sound);
+    if (toast) this.toast(toast);
+    this.refresh();
+  }
+
   private pickWare(m: SoldMachine): void {
     if (m === this.smithPick) return;
     this.smithPick = m;
@@ -366,6 +397,7 @@ export class TownScene extends Phaser.Scene {
 
   private openScreen(s: TownScreen | null): void {
     if (s && s !== this.screen) getSound(this)?.play('card');
+    if (s !== this.screen) this.storePick = { ref: null, note: '' };
     this.screen = s;
     this.drawPlate();
     this.drawTowns();
@@ -405,10 +437,7 @@ export class TownScene extends Phaser.Scene {
       this.toast(why);
       return;
     }
-    this.session.set(buyMachine(adv, m));
-    getSound(this)?.play('hire');
-    this.toast(`${adv.hero.name} has a ${itemDef(m).name} now`);
-    this.refresh();
+    this.changed(buyMachine(adv, m), 'hire', `${adv.hero.name} has a ${itemDef(m).name} now`);
   }
 
   /** The Tavern's hero joins: paid for, in the town's gate, and picked, so the town now serves them. */
@@ -514,10 +543,7 @@ export class TownScene extends Phaser.Scene {
       return;
     }
     const town = toHero ? r.town : { ...r.town, garrison: r.army };
-    this.session.set(withTown({ ...adv, purse: r.purse, hero: toHero ? { ...adv.hero, army: r.army } : adv.hero }, town));
-    getSound(this)?.play('hire');
-    this.toast(`Hired ${r.hired.map((h) => `${h.count} ${creature(h.id).plural}`).join(', ')}`);
-    this.refresh();
+    this.changed(withTown({ ...adv, purse: r.purse, hero: toHero ? { ...adv.hero, army: r.army } : adv.hero }, town), 'hire', `Hired ${r.hired.map((h) => `${h.count} ${creature(h.id).plural}`).join(', ')}`);
   }
 
   /** A company's card, as in battle: its stats and abilities, and Upgrade when this town has built a higher level of its line. */
@@ -553,10 +579,7 @@ export class TownScene extends Phaser.Scene {
       this.toast('Not enough resources to upgrade them');
       return;
     }
-    this.session.set(this.withRows({ ...adv, purse: r.purse }, { [ref.army]: r.army }));
-    getSound(this)?.play('hire');
-    this.toast(`${from.count} upgraded to ${creature(r.army[ref.i]!.creature).plural}`);
-    this.refresh();
+    this.changed(this.withRows({ ...adv, purse: r.purse }, { [ref.army]: r.army }), 'hire', `${from.count} upgraded to ${creature(r.army[ref.i]!.creature).plural}`);
   }
 
   /** Every company here the purse affords, the strongest first, up to its line's best level built. */
@@ -571,10 +594,7 @@ export class TownScene extends Phaser.Scene {
     }
     const hero = toHero ? { ...adv.hero, army: r.armies[0]! } : adv.hero;
     const [garrison, towers] = r.armies.slice(-2);
-    this.session.set(withTown({ ...adv, purse: r.purse, hero }, { ...town, garrison: garrison!, towers: towers! }));
-    getSound(this)?.play('hire');
-    this.toast(`${r.upgraded} ${r.upgraded === 1 ? 'unit' : 'units'} upgraded`);
-    this.refresh();
+    this.changed(withTown({ ...adv, purse: r.purse, hero }, { ...town, garrison: garrison!, towers: towers! }), 'hire', `${r.upgraded} ${r.upgraded === 1 ? 'unit' : 'units'} upgraded`);
   }
 
   private buyBook(): void {

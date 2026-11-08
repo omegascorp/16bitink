@@ -10,10 +10,10 @@ import type { SoldMachine } from '../logic/items';
 export const UNLOCKS: readonly (readonly BuildingId[])[] = [
   // Map 1: the walls, a hall, the four lowest dwellings. No magic yet: Rowan finds a spellbook on map 2.
   ['villageHall', 'townHall', 'fort', 'citadel', 'tavern', 'guardhouse', 'archeryRange', 'griffinTower', 'barracks'],
-  // Map 2: the first upgrades of those four, the centaurs, the market, both floors of the guild, and the Blacksmith, ahead of the chapter's first siege.
-  ['cityHall', 'marketplace', 'mageGuild1', 'mageGuild2', 'blacksmith', 'stables', 'monastery', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2'],
-  // Map 3: the Castle, the second upgrades of the first four, the companions and the centaurs' first upgrade.
-  ['castle', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3'],
+  // Map 2: the first upgrades of those four, the centaurs, the market, both floors of the guild, the Blacksmith, ahead of the chapter's first siege, and the Storehouse, for the second hero's gear.
+  ['cityHall', 'marketplace', 'mageGuild1', 'mageGuild2', 'blacksmith', 'storehouse', 'stables', 'monastery', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2'],
+  // Map 3: the Castle, the Treasury, the second upgrades of the first four, the companions and the centaurs' first upgrade.
+  ['castle', 'treasury', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3'],
 ];
 
 /** The buildings open by map `n` (1-based). */

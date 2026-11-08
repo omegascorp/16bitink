@@ -24,6 +24,8 @@ export interface Town {
   readonly guild: readonly SpellId[];
   /** A neutral town on our side: it opens its gates to our hero, and its garrison joins us. */
   readonly ally?: boolean;
+  /** Gear kept in its Storehouse for any hero of ours. */
+  readonly store?: readonly ItemId[];
 }
 
 export const has = (t: Town, b: BuildingId): boolean => t.built.includes(b);

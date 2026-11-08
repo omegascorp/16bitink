@@ -74,10 +74,10 @@ export const THORNWOOD_LAND: MapDef = {
     { id: 'ore-pit', kind: 'mine', x: 13, y: 17, resource: 'ore', owner: 'neutral' },
     { id: 'gold-mine', kind: 'mine', x: 35, y: 7, resource: 'gold', owner: 'neutral' },
     // The west: Millbrook's side of the river.
-    { id: 'meadow-satyrs', kind: 'monster', x: 12, y: 7, creature: 'goblin', count: 20 },
-    { id: 'copse-wolves', kind: 'monster', x: 5, y: 18, creature: 'wolf', count: 16 },
-    { id: 'swamp-dead', kind: 'monster', x: 8, y: 23, creature: 'skeleton', count: 24 },
-    { id: 'pit-brigands', kind: 'monster', x: 13, y: 20, creature: 'bandit', count: 16 },
+    { id: 'meadow-satyrs', kind: 'monster', x: 12, y: 7, creature: 'goblin', count: 20, drop: 'linenHood' },
+    { id: 'copse-wolves', kind: 'monster', x: 5, y: 18, creature: 'wolf', count: 16, drop: 'templeSandals' },
+    { id: 'swamp-dead', kind: 'monster', x: 8, y: 23, creature: 'skeleton', count: 24, drop: 'linenLeggings' },
+    { id: 'pit-brigands', kind: 'monster', x: 13, y: 20, creature: 'bandit', count: 16, drop: 'cordSash' },
     { id: 'fork-birds', kind: 'monster', x: 4, y: 10, creature: 'stymphalian', count: 16 },
     { id: 'stone-satyrs', kind: 'monster', x: 4, y: 14, creature: 'goblin', count: 28 },
     { id: 'sawmill-boars', kind: 'monster', x: 5, y: 7, creature: 'boar', count: 8 },
@@ -85,11 +85,11 @@ export const THORNWOOD_LAND: MapDef = {
     // A spellbook on an altar, in sight of the north road: where Rowan's magic begins.
     { id: 'book-birds', kind: 'monster', x: 6, y: 10, creature: 'stymphalian', count: 30 },
     { id: 'altar-spellbook', kind: 'spellbook', x: 6, y: 9, item: 'noviceSpellbook', spell: 'magicArrow' },
-    { id: 'road-boars', kind: 'monster', x: 11, y: 12, creature: 'boar', count: 10 },
+    { id: 'road-boars', kind: 'monster', x: 11, y: 12, creature: 'boar', count: 10, drop: 'linenArmbands' },
     { id: 'pile-birds', kind: 'monster', x: 13, y: 10, creature: 'stymphalian', count: 24 },
     { id: 'ore-boars', kind: 'monster', x: 12, y: 16, creature: 'boar', count: 14 },
     // The crossings.
-    { id: 'bridge-wolves', kind: 'monster', x: 21, y: 6, creature: 'wolf', count: 40 },
+    { id: 'bridge-wolves', kind: 'monster', x: 21, y: 6, creature: 'wolf', count: 40, drop: 'linenChiton' },
     { id: 'ford-spartoi', kind: 'monster', x: 21, y: 26, creature: 'skeleton', count: 60 },
     // Thornwood forest.
     { id: 'lane-brigands', kind: 'monster', x: 24, y: 11, creature: 'bandit', count: 40 },

@@ -1,4 +1,4 @@
-import { BAG_SIZE, SLOTS, type Slot } from '../../logic/items';
+import { MAX_BAG, SLOTS, type Slot } from '../../logic/items';
 
 /** An icon's size at single scale (they're painted at double), the frame round it, and the space between slots, UI pixels. */
 const ICON = 32;
@@ -52,7 +52,7 @@ function arrange(scale: 1 | 2, doll: Doll, bagCols: number, place: 'beside' | 'b
   const step = cell + GAP;
   const span = (n: number): number => n * step - GAP;
   const d = DOLLS[doll];
-  const bagRows = Math.ceil(BAG_SIZE / bagCols);
+  const bagRows = Math.ceil(MAX_BAG / bagCols);
   const dollW = span(d.cols);
   const dollH = span(d.rows);
   const bagW = span(bagCols);
@@ -68,7 +68,7 @@ function arrange(scale: 1 | 2, doll: Doll, bagCols: number, place: 'beside' | 'b
     scale, doll, cell, w,
     h: Math.max(contentH, detail.y + DETAIL_H),
     slots: SLOTS.map((slot) => ({ slot, x: dollX + d.at[slot][0] * step, y: d.at[slot][1] * step })),
-    bag: Array.from({ length: BAG_SIZE }, (_, i) => ({ x: bagX + (i % bagCols) * step, y: bagY + BAG_LABEL + Math.floor(i / bagCols) * step })),
+    bag: Array.from({ length: MAX_BAG }, (_, i) => ({ x: bagX + (i % bagCols) * step, y: bagY + BAG_LABEL + Math.floor(i / bagCols) * step })),
     bagLabel: { x: bagX, y: bagY },
     detail,
   };

@@ -5,16 +5,21 @@ import { startAdventure } from '../src/logic/adventure';
 import { rideOn } from '../src/logic/chapter';
 import { dailyMp, maxMana, sightOf, toBattleHero } from '../src/logic/hero';
 import { loadAdventure, saveAdventure } from '../src/logic/save';
-import { BAG_SIZE, gainItem, gearBonus, ITEM_IDS, itemDef, ITEMS, SLOTS, takeOff, wear, withGear } from '../src/logic/items';
+import { BAGS, bagSize, gainItem, gearBonus, ITEM_IDS, itemDef, ITEMS, SLOTS, takeOff, wear, withGear } from '../src/logic/items';
 import { gearLayout } from '../src/scenes/hud/gearLayout';
 
 const hero = startAdventure(ASHFORD).hero;
 
 describe('items', () => {
-  it('has the six pieces of the gray Bronze set, one for each armor slot', () => {
-    const bronze = ITEM_IDS.map(itemDef).filter((i) => i.set === 'bronze');
-    expect(bronze.map((i) => i.slot).sort()).toEqual(['belt', 'boots', 'bracers', 'cuirass', 'greaves', 'helm']);
-    expect(bronze.every((i) => i.quality === 'gray')).toBe(true);
+  it('has the six pieces of each gray set, Bronze for a fighter and Linen for a priestess, one for each armor slot', () => {
+    for (const set of ['bronze', 'linen']) {
+      const pieces = ITEM_IDS.map(itemDef).filter((i) => i.set === set);
+      expect(pieces.map((i) => i.slot).sort(), set).toEqual(['belt', 'boots', 'bracers', 'cuirass', 'greaves', 'helm']);
+      expect(pieces.every((i) => i.quality === 'gray')).toBe(true);
+    }
+    // Linen feeds magic: Knowledge and Spell Power, and Luck from the sash.
+    const linen = ITEM_IDS.filter((id) => itemDef(id).set === 'linen');
+    expect(gearBonus({ gear: Object.fromEntries(linen.map((id) => [itemDef(id).slot, id])) })).toEqual({ knowledge: 3, power: 2, luck: 1 });
     expect(SLOTS).toHaveLength(13);
   });
 
@@ -48,7 +53,7 @@ describe('items', () => {
   });
 
   it('turns away what a full bag has no room for', () => {
-    const full = { ...hero, gear: { helm: 'bronzeHelm' as const }, bag: Array.from({ length: BAG_SIZE }, () => 'warBelt' as const) };
+    const full = { ...hero, gear: { helm: 'bronzeHelm' as const }, bag: Array.from({ length: bagSize(hero) }, () => 'warBelt' as const) };
     expect(gainItem(full, 'bronzeHelm').kept).toBe(false);
     expect(gainItem(full, 'bronzeHelm').hero).toBe(full);
   });
@@ -69,7 +74,7 @@ describe('items', () => {
   });
 
   it('leaves a piece on when the bag has no room for it', () => {
-    const h = { ...hero, gear: { helm: 'bronzeHelm' as const }, bag: Array.from({ length: BAG_SIZE }, () => 'warBelt' as const) };
+    const h = { ...hero, gear: { helm: 'bronzeHelm' as const }, bag: Array.from({ length: bagSize(hero) }, () => 'warBelt' as const) };
     expect(takeOff(h, 'helm')).toBe(h);
   });
 
@@ -78,7 +83,14 @@ describe('items', () => {
     expect(drops.map((o) => [o.id, o.drop])).toEqual(expect.arrayContaining([['goblins', 'bronzeHelm'], ['ogres', 'bronzeCuirass']]));
     expect(new Set(drops.map((o) => o.drop)).size).toBe(6);
     expect(drops).toHaveLength(6);
-    expect(BLACK_BANNER.objects.filter((o) => o.drop)).toHaveLength(9);
+    // Map 3 is the same land grown: map 2's drops ride on in it.
+    expect(BLACK_BANNER.objects.filter((o) => o.drop)).toHaveLength(15);
+  });
+
+  it('puts the six Linen pieces on map 2, west of the river where the second hero is hired, and none of it twice', () => {
+    const linen = THORNWOOD.objects.filter((o) => o.drop && itemDef(o.drop).set === 'linen');
+    expect(new Set(linen.map((o) => o.drop)).size).toBe(6);
+    expect(linen).toHaveLength(6);
   });
 });
 
@@ -110,7 +122,13 @@ describe('gear in a save', () => {
     const forged = { ...hero, gear: { helm: 'warBelt', boots: 'excalibur' }, bag: ['excalibur', 'warBelt', ...Array.from({ length: 40 }, () => 'warBelt')] } as unknown as typeof hero;
     const h = roundTrip(forged)!;
     expect(h.gear).toBeUndefined();
-    expect(h.bag).toHaveLength(BAG_SIZE);
+    expect(h.bag).toHaveLength(12);
+  });
+
+  it('gives a hero saved with a big bag of pieces a bag big enough for them', () => {
+    expect(roundTrip({ ...hero, bag: Array.from({ length: 6 }, () => 'warBelt' as const) })!.pack).toBe(1);
+    expect(roundTrip({ ...hero, bag: ['warBelt'] })!.pack).toBeUndefined();
+    expect(roundTrip({ ...hero, pack: 2 })!.pack).toBe(2);
   });
 });
 
@@ -130,14 +148,15 @@ describe('the gear panel', () => {
     expect(gearLayout({ w: 1300, h: 800 })).toMatchObject({ scale: 2, doll: 'tall' });
     expect(gearLayout({ w: 818, h: 287 })).toMatchObject({ scale: 2, doll: 'square' });
     expect(gearLayout({ w: 364, h: 745 })).toMatchObject({ scale: 2, doll: 'square' });
-    expect(gearLayout({ w: 364, h: 600 })).toMatchObject({ scale: 2, doll: 'broad' });
+    expect(gearLayout({ w: 364, h: 520 })).toMatchObject({ scale: 2, doll: 'broad' });
   });
 
-  it('keeps a full bag: rows of the same length but for the last', () => {
-    expect(BAG_SIZE).toBe(20);
+  it('lays out the biggest bag: rows of the same length but for the last', () => {
+    expect(BAGS.map((b) => b.size)).toEqual([4, 8, 12]);
+    expect(bagSize(hero)).toBe(4);
     const { bag } = gearLayout({ w: 364, h: 745 });
     const rows = [...new Set(bag.map((c) => c.y))];
-    expect(rows.map((y) => bag.filter((c) => c.y === y).length)).toEqual([5, 5, 5, 5]);
+    expect(rows.map((y) => bag.filter((c) => c.y === y).length)).toEqual([5, 5, 2]);
   });
 
   it('falls back to single size only on the smallest screens', () => {
@@ -151,7 +170,7 @@ describe('the gear panel', () => {
       expect(fits(l, w, h), `${w}x${h}`).toBe(true);
       expect(l.slots).toHaveLength(SLOTS.length);
       expect(new Set(l.slots.map((s) => `${s.x},${s.y}`)).size).toBe(SLOTS.length);
-      expect(l.bag).toHaveLength(BAG_SIZE);
+      expect(l.bag).toHaveLength(12);
       const right = Math.max(...[...l.slots, ...l.bag].map((c) => c.x)) + l.cell;
       expect(right).toBeLessThanOrEqual(l.w);
     }
