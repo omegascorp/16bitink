@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { PixelBuffer, type Rgba } from '../battle/pixelRaster';
-import { INK, PixelButton, PixelFrame, putBuffer, TextLabel } from '../battle/pixelUi';
+import type { Rgba } from '../battle/pixelRaster';
+import { INK, PixelButton, PixelFrame, TextLabel, UI_TEX } from '../battle/pixelUi';
+import type { IconName } from '../../art/pixel/ui';
 import { buttonsW, STRIP, stripBox, textWidth, type Box, type StripRoom } from './stripLayout';
 
 /** What the strip needs from the narrator: its three buttons. */
@@ -13,26 +14,11 @@ export interface StripActions {
 /** The panel's fill: the map HUD's, solid, so nothing under it shows through the words. */
 const FILL: Rgba = [34, 24, 17, 255];
 
-/** A small icon drawn in code: 'pause' two bars, 'play' a triangle. */
-function drawIcon(kind: 'pause' | 'play'): PixelBuffer {
-  const b = new PixelBuffer(7, 9);
-  const ink = INK.text;
-  for (let y = 1; y < 8; y++) {
-    if (kind === 'pause') {
-      for (const x of [1, 2, 4, 5]) b.put(x, y, ink);
-    } else {
-      const reach = Math.min(y - 1, 7 - y);
-      for (let x = 1; x <= 1 + reach * 1.5; x++) b.put(x, y, ink);
-    }
-  }
-  return b;
-}
-
 /**
  * The narrator's strip (spec, "Narration"), as the HUD's pixel panel: the
  * speaker's name in gold and the card's title beside it, the subtitle
  * under them, a thin line along the foot for how far through the line is,
- * and ❚❚ (pause), » (skip) and Read at the right.
+ * and pause, skip and read (the full card) as icon buttons at the right.
  */
 export class NarratorStrip {
   readonly root: Phaser.GameObjects.Container;
@@ -42,7 +28,6 @@ export class NarratorStrip {
   private readonly text: TextLabel;
   private readonly buttons: PixelButton[];
   private readonly pauseIcon: Phaser.GameObjects.Image;
-  private readonly icons: Record<'pause' | 'play', string>;
   private frame: PixelFrame | null = null;
   private readonly track: Phaser.GameObjects.Rectangle;
   private readonly fill: Phaser.GameObjects.Rectangle;
@@ -59,13 +44,16 @@ export class NarratorStrip {
     this.twoLines = this.text.height;
     this.text.setText('…');
     const { button } = STRIP;
-    this.icons = { pause: putBuffer(scene, drawIcon('pause')), play: putBuffer(scene, drawIcon('play')) };
-    const pause = new PixelButton(scene, { w: button.w, h: button.h, label: ' ', onClick: actions.pause });
-    this.pauseIcon = scene.add.image(Math.floor((button.w - 7) / 2), Math.floor((button.h - 9) / 2), this.icons.pause).setOrigin(0);
-    pause.root.add(this.pauseIcon);
-    const skip = new PixelButton(scene, { w: button.w, h: button.h, label: '»', onClick: actions.skip });
-    const read = new PixelButton(scene, { w: button.read, h: button.h, label: 'Read', onClick: actions.read });
-    this.buttons = [pause, skip, read];
+    // Icon buttons (dev/pixel/ui/make_voice_icons.py): the icon centred on a blank face.
+    const iconButton = (icon: IconName, w: number, onClick: () => void): { btn: PixelButton; img: Phaser.GameObjects.Image } => {
+      const btn = new PixelButton(scene, { w, h: button.h, label: ' ', onClick });
+      const img = scene.add.image(Math.floor(w / 2), Math.floor(button.h / 2), UI_TEX.icon(icon));
+      btn.root.add(img);
+      return { btn, img };
+    };
+    const pause = iconButton('voicePause', button.w, actions.pause);
+    this.pauseIcon = pause.img;
+    this.buttons = [pause.btn, iconButton('voiceSkip', button.w, actions.skip).btn, iconButton('voiceRead', button.read, actions.read).btn];
     this.track = scene.add.rectangle(0, 0, 1, STRIP.bar, 0x140d08, 0.9).setOrigin(0);
     this.fill = scene.add.rectangle(0, 0, 1, STRIP.bar, 0xf8d26e, 0.85).setOrigin(0);
     this.owned.push(this.name, this.title, this.text, ...this.buttons);
@@ -123,7 +111,7 @@ export class NarratorStrip {
   }
 
   setPaused(paused: boolean): void {
-    this.pauseIcon.setTexture(this.icons[paused ? 'play' : 'pause']);
+    this.pauseIcon.setTexture(UI_TEX.icon(paused ? 'voicePlay' : 'voicePause'));
   }
 
   setVisible(on: boolean): void {
@@ -134,6 +122,5 @@ export class NarratorStrip {
     for (const o of this.owned) o.destroy();
     this.frame?.destroy();
     this.root.destroy();
-    for (const key of Object.values(this.icons)) if (this.scene.textures.exists(key)) this.scene.textures.remove(key);
   }
 }

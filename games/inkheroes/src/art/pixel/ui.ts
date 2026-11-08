@@ -18,6 +18,10 @@ import iconLeave from './ui/icon-leave.png?url';
 import iconSmith from './ui/icon-smith.png?url';
 import iconTavern from './ui/icon-tavern.png?url';
 import iconTower from './ui/icon-tower.png?url';
+import iconVoicePause from './ui/icon-voicePause.png?url';
+import iconVoicePlay from './ui/icon-voicePlay.png?url';
+import iconVoiceSkip from './ui/icon-voiceSkip.png?url';
+import iconVoiceRead from './ui/icon-voiceRead.png?url';
 import statAttack from './ui/stat-attack.png?url';
 import statDefense from './ui/stat-defense.png?url';
 import statShots from './ui/stat-shots.png?url';
@@ -98,7 +102,7 @@ import resCrystal from './ui/res-crystal.png?url';
 import resGems from './ui/res-gems.png?url';
 import laurel from './ui/laurel.png?url';
 
-export type IconName = 'wait' | 'defend' | 'spell' | 'auto' | 'endDay' | 'town' | 'menu' | 'hall' | 'recruit' | 'leave' | 'smith' | 'tavern' | 'tower';
+export type IconName = 'wait' | 'defend' | 'spell' | 'auto' | 'endDay' | 'town' | 'menu' | 'hall' | 'recruit' | 'leave' | 'smith' | 'tavern' | 'tower' | 'voicePause' | 'voicePlay' | 'voiceSkip' | 'voiceRead';
 
 export const ICONS: Readonly<Record<IconName, string>> = {
   wait: iconWait,
@@ -114,6 +118,10 @@ export const ICONS: Readonly<Record<IconName, string>> = {
   smith: iconSmith,
   tavern: iconTavern,
   tower: iconTower,
+  voicePause: iconVoicePause,
+  voicePlay: iconVoicePlay,
+  voiceSkip: iconVoiceSkip,
+  voiceRead: iconVoiceRead,
 };
 
 export type StatName = 'attack' | 'defense' | 'shots' | 'damage' | 'health' | 'left' | 'speed' | 'mana' | 'power' | 'knowledge' | 'morale' | 'luck' | 'sight';

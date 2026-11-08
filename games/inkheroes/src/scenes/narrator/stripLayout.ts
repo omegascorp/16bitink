@@ -29,7 +29,7 @@ export const STRIP = {
   minW: 300,
   pad: 6,
   /** The buttons: pause and skip square, Read wider, a gap between. */
-  button: { w: 28, h: 26, read: 40, gap: 3 },
+  button: { w: 28, h: 26, read: 28, gap: 3 },
   /** Between the speaker's name and the subtitle, and above the progress line. */
   gap: 3,
   /** The progress line along the foot. */
