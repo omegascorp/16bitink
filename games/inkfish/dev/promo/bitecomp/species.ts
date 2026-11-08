@@ -50,7 +50,7 @@ export const SPECIES: Readonly<Record<Animal, Species>> = {
   jaguar: { name: 'JAGUAR', note: 'at the fangs, from its skull', lb: 228, approx: false, newtons: '1,014 N', status: 'ESTIMATED', size: 330, short: 'Jaguar', perWeight: 2, draw: drawJaguar },
   dog: { name: 'BIG PET DOG', note: '22 dogs tested: the hardest bite', lb: 313, approx: false, newtons: '1,394 N', status: 'MEASURED', size: 320, short: 'Dog', perWeight: 4, draw: drawDog },
   lion: { name: 'LION', note: 'at the fangs, from its skull', lb: 397, approx: false, newtons: '1,768 N', status: 'ESTIMATED', size: 400, short: 'Lion', perWeight: 2, draw: drawLion },
-  bullShark: { name: 'BULL SHARK', note: 'a 9 ft shark, from its jaw muscles', lb: 1330, approx: false, newtons: '5,914 N', status: 'ESTIMATED', size: 480, short: 'Bull shark', perWeight: 4, draw: drawBullShark },
+  bullShark: { name: 'BULL SHARK', note: 'a 9 ft (2.7 m) shark, from its jaw muscles', lb: 1330, approx: false, newtons: '5,914 N', status: 'ESTIMATED', size: 480, short: 'Bull shark', perWeight: 4, draw: drawBullShark },
   alligator: { name: 'AMERICAN ALLIGATOR', note: 'biting a real sensor', lb: 2960, approx: false, newtons: '13,172 N', status: 'MEASURED', size: 560, short: 'Alligator', perWeight: 5, draw: drawAlligator },
   saltCroc: { name: 'SALTWATER CROCODILE', note: 'about 15 ft (4.5 m) long', lb: 3690, approx: false, newtons: '16,414 N', status: 'MEASURED', size: 640, short: 'Croc', perWeight: 3, draw: drawSaltCroc },
   greatWhite: { name: 'GREAT WHITE SHARK', note: 'from a 3D model of its skull', lb: 4000, approx: true, newtons: '~18,000 N', status: 'ESTIMATED', size: 760, short: 'Great white', perWeight: 1, draw: drawGreatWhite },
@@ -66,6 +66,16 @@ export const STATUS_COLOUR: Readonly<Record<Status | 'RECORD', string>> = { MEAS
 
 /** "3,690 lb", "~40,000 lb". */
 export const lbLabel = (lb: number, approx = false): string => `${approx ? '~' : ''}${Math.round(lb).toLocaleString('en-US')} lb`;
+
+const KG_PER_LB = 0.45359237;
+
+/** The same force as kilograms on a scale: "1,674 kg"; a rounded source figure stays rounded, to two digits ("~18,000 kg"). */
+export function kgLabel(lb: number, approx = false): string {
+  const kg = lb * KG_PER_LB;
+  if (!approx) return `${Math.round(kg).toLocaleString('en-US')} kg`;
+  const step = 10 ** Math.max(0, Math.floor(Math.log10(kg)) - 1);
+  return `~${(Math.round(kg / step) * step).toLocaleString('en-US')} kg`;
+}
 
 export async function prepareSpecies(): Promise<void> {
   await Promise.all([

@@ -2,8 +2,8 @@ import { INK, PAPER } from '../../../src/art/pen';
 import { FRAME } from '../descent/frame';
 import { smooth } from '../short';
 import { drawPop, drawText, INK_ON_PAPER, PAPER_ON_INK, RED_ON_PAPER, YELLOW_ON_INK } from '../swallowyou/text';
-import { drawHand } from './shapes';
-import { ANIMALS, lbLabel, SPECIES, type Animal } from './species';
+import { drawPiranhaInHandIcon } from './art/handIcon';
+import { ANIMALS, kgLabel, lbLabel, SPECIES, type Animal } from './species';
 import { T } from './timeline';
 
 /**
@@ -55,6 +55,7 @@ export function drawLineup(ctx: CanvasRenderingContext2D, t: number, k: number, 
     ctx.restore();
     const sp = SPECIES[s.a];
     drawText(ctx, lbLabel(sp.lb, sp.approx), { x: s.x - 0.6 * s.size, y: s.y + 0.42 * s.size + 50, size: 50, maxWidth: 1.8 * s.size }, 700, alpha * on, PAPER_ON_INK);
+    drawText(ctx, kgLabel(sp.lb, sp.approx), { x: s.x - 0.6 * s.size, y: s.y + 0.42 * s.size + 92, size: 34, maxWidth: 1.8 * s.size }, 500, alpha * on * 0.85, PAPER_ON_INK);
   });
   ctx.restore();
 }
@@ -120,10 +121,11 @@ export function drawPiranhaInHand(ctx: CanvasRenderingContext2D, t: number, alph
   ctx.save();
   ctx.globalAlpha = alpha;
   const bob = 5 * Math.sin(t * 2.4);
-  drawHand(ctx, 820, 760, 720, '#3a3f45');
-  SPECIES.piranha.draw(ctx, { x: 1180, y: 640 + bob, size: 360, jaw: 0.3 + 0.3 * Math.max(0, Math.sin(t * 2.2)) ** 6, t });
+  const jaw = 0.3 + 0.3 * Math.max(0, Math.sin(t * 2.2)) ** 6;
+  drawPiranhaInHandIcon(ctx, { x: 880, y: 650 + bob, size: 780, jaw });
   ctx.restore();
   drawText(ctx, 'pound for pound, the scariest bite', { x: W / 2, y: 150, size: 86, maxWidth: 1600 }, 700, alpha, INK_ON_PAPER);
   drawPop(ctx, 'fits in one hand', W / 2, 1000, 96, t, T.fitsHand - 0.1, 1e9, RED_ON_PAPER, -0.03);
-  drawText(ctx, '2.5 lb · bites 72 lb', { x: 1360, y: 300, size: 60, maxWidth: 600 }, 700, alpha, { fill: INK, halo: PAPER });
+  drawText(ctx, '2.5 lb (1.1 kg) fish', { x: 1360, y: 290, size: 56, maxWidth: 640 }, 700, alpha, { fill: INK, halo: PAPER });
+  drawText(ctx, `bites ${lbLabel(SPECIES.piranha.lb)} (${kgLabel(SPECIES.piranha.lb)})`, { x: 1360, y: 360, size: 56, maxWidth: 640 }, 700, alpha, { fill: INK, halo: PAPER });
 }

@@ -2,7 +2,8 @@ import { INK, PAPER } from '../../../src/art/pen';
 import { FRAME } from '../descent/frame';
 import { clamp01, smooth, window01 } from '../short';
 import { drawCard, drawPop, drawText, INK_ON_PAPER, PAPER_ON_INK, RED_ON_PAPER, YELLOW_ON_INK } from '../swallowyou/text';
-import { drawCar, drawElephant, drawFang, drawFishShape, drawHand, drawMolar, drawShell, drawStickPerson } from './shapes';
+import { drawHandSilhouette, drawPiranhaInHandIcon } from './art/handIcon';
+import { drawCar, drawElephant, drawFang, drawFishShape, drawMolar, drawShell, drawStickPerson } from './shapes';
 import { drawStamp } from './hud';
 import { SPECIES } from './species';
 import { said, T } from './timeline';
@@ -107,8 +108,8 @@ function fishInHand(caption: string, from: number) {
     ctx.beginPath();
     ctx.rect(card.x, card.y, card.w, card.h);
     ctx.clip();
-    drawHand(ctx, 900, 730, 600);
-    drawFishShape(ctx, 920, 665 + bob, 300);
+    // The whole piranha resting in a cupped hand: flat silhouettes, like the card's other icons.
+    drawPiranhaInHandIcon(ctx, { x: 890, y: 735 + bob, size: 620, jaw: 0.4 * Math.max(0, Math.sin((t - from) * 2.2)) ** 6 });
     ctx.restore();
     drawPop(ctx, '?', 1290, 560, 300, t, from + 0.5, 1e9, RED_ON_PAPER, 0.12, 300);
     drawText(ctx, caption, { x: W / 2, y: card.y + 100, size: 70, maxWidth: card.w - 80 }, 700, a, INK_ON_PAPER);
@@ -209,12 +210,8 @@ function drawTaping(ctx: CanvasRenderingContext2D, t: number, a: number): void {
       ctx.stroke();
       ctx.restore();
     }
-    // The handler's hand, palm down on the snout.
-    ctx.save();
-    ctx.translate(bx - 70, by - 120);
-    ctx.rotate(Math.PI);
-    drawHand(ctx, 0, 0, 230, '#3a3f45');
-    ctx.restore();
+    // The handler's hand, palm down over the snout, the arm reaching in from above.
+    drawHandSilhouette(ctx, { x: bx - 30, y: by - 66, size: 340, angle: 0.55, flipY: true, curl: 0.7 });
   }
   ctx.restore();
   drawText(ctx, 'CLOSING muscles: huge', { x: 640, y: card.y + 110, size: 64, maxWidth: 760 }, 700, a * smooth((t - T.funny) / 0.3), RED_ON_PAPER);

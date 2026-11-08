@@ -9,7 +9,7 @@ import { drawSwallowyouThumbnail, SWALLOWYOU_THUMBNAILS, type SwallowyouThumbnai
  * Dev-only page for the YouTube thumbnails (1280x720). ?set= picks the video:
  * level1 (the default: ?v=hunter|glowup|run) or descent, the first long-form
  * video (?v=split|line|layers), foodchain, the second (?v=split|nest|wrong|lunch), swallowyou, the third
- * (?v=throat|lineup|inside), or seamonsters, the fourth (?v=legend|lineup|eye), or bitecomp, the sixth (?v=ends|record|twist). ?guides outlines the duration badge's corner.
+ * (?v=throat|lineup|inside), or seamonsters, the fourth (?v=legend|lineup|eye), or bitecomp, the sixth (?v=split|rex|twist). ?guides outlines the duration badge's corner.
  * `pnpm thumbnail` saves them all as PNGs.
  */
 const SETS: Readonly<Record<string, { readonly ids: readonly string[]; readonly draw: (ctx: CanvasRenderingContext2D, id: string) => void | Promise<void> }>> = {

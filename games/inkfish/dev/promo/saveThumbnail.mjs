@@ -17,7 +17,7 @@ const SETS = {
   foodchain: { ids: ['split', 'nest', 'wrong', 'lunch'], dir: 'promo/longform', prefix: '2 - thumb-', badge: '4:34' },
   swallowyou: { ids: ['throat', 'lineup', 'inside'], dir: 'promo/longform', prefix: '3 - thumb-', badge: '4:06' },
   seamonsters: { ids: ['legend', 'lineup', 'eye'], dir: 'promo/longform', prefix: '4 - thumb-', badge: '4:37' },
-  bitecomp: { ids: ['ends', 'record', 'twist'], dir: 'promo/longform', prefix: '6 - thumb-', badge: '2:48' },
+  bitecomp: { ids: ['split', 'rex', 'twist'], dir: 'promo/longform', prefix: '6 - thumb-', badge: '2:48' },
 };
 const setName = process.argv[2] ?? 'level1';
 const SET = SETS[setName];

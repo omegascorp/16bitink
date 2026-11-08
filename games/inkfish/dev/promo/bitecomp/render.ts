@@ -1,6 +1,6 @@
 import { INK, PAPER } from '../../../src/art/pen';
 import { FRAME } from '../descent/frame';
-import { createGameCard } from '../foodchain/inserts';
+import { createGameCard } from './gameCard';
 import type { Short } from '../short';
 import { smooth } from '../short';
 import { vignette, wash } from '../swallowyou/sea';

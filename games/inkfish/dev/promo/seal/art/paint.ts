@@ -28,6 +28,8 @@ export const BUCKETS: readonly Bucket[] = [
   { res: 1.6, w: 1.1 },
   { res: 2.4, w: 1 },
   { res: 3.5, w: 1 },
+  // The bite-force video's crocodile and alligator fill the frame at about 7 px per unit.
+  { res: 7.5, w: 1 },
 ];
 
 /** `n` screen px as local units, at this brush's size. */

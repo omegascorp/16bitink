@@ -1,7 +1,7 @@
 import { INK, PAPER } from '../../../src/art/pen';
 
 /**
- * Simple ink silhouettes for the cut-ins: a hand, a fish, a molar and a
+ * Simple ink silhouettes for the cut-ins (the hand and piranha are in art/handIcon.ts): a fish, a molar and a
  * fang, a stick person, a turtle's shell, a small car and an elephant. Each
  * is drawn about (x, y) at `s` px across.
  */
@@ -13,50 +13,6 @@ function inked(ctx: CanvasRenderingContext2D, fill: string, width: number): void
   ctx.lineWidth = width;
   ctx.lineJoin = 'round';
   ctx.stroke();
-}
-
-/** A cupped hand from the side, palm up: thumb rising at the left, fingers curling up at the right, the forearm off to the bottom left. (x, y) is the middle of the palm's hollow. */
-export function drawHand(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, fill = INK): void {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = fill;
-  ctx.strokeStyle = fill;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  // The forearm.
-  ctx.beginPath();
-  ctx.moveTo(-0.3 * s, 0.05 * s);
-  ctx.lineTo(-0.95 * s, 0.75 * s);
-  ctx.lineTo(-0.6 * s, 0.95 * s);
-  ctx.lineTo(0.05 * s, 0.25 * s);
-  ctx.closePath();
-  ctx.fill();
-  // The palm: a shallow bowl.
-  ctx.beginPath();
-  ctx.moveTo(-0.42 * s, 0.02 * s);
-  ctx.quadraticCurveTo(-0.05 * s, 0.1 * s, 0.38 * s, 0.0);
-  ctx.quadraticCurveTo(0.4 * s, 0.3 * s, 0.05 * s, 0.32 * s);
-  ctx.quadraticCurveTo(-0.35 * s, 0.3 * s, -0.42 * s, 0.02 * s);
-  ctx.fill();
-  // Four fingers curling up, the nearest lowest.
-  ctx.lineWidth = 0.11 * s;
-  for (let i = 0; i < 4; i++) {
-    const bx = 0.28 * s + i * 0.02 * s;
-    const by = 0.17 * s - i * 0.05 * s;
-    ctx.globalAlpha = 1 - 0.12 * (3 - i);
-    ctx.beginPath();
-    ctx.moveTo(bx, by);
-    ctx.quadraticCurveTo(bx + 0.24 * s, by - 0.02 * s, bx + 0.22 * s, by - 0.2 * s);
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-  // The thumb.
-  ctx.lineWidth = 0.13 * s;
-  ctx.beginPath();
-  ctx.moveTo(-0.3 * s, 0.1 * s);
-  ctx.quadraticCurveTo(-0.42 * s, -0.08 * s, -0.36 * s, -0.2 * s);
-  ctx.stroke();
-  ctx.restore();
 }
 
 /** A small fish lying on its side, facing right. */

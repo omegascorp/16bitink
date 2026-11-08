@@ -3,7 +3,7 @@ import { drawTextLine, type TextInk } from '../captions';
 import { FRAME } from '../descent/frame';
 import { clamp01, smooth } from '../short';
 import { drawCard, drawText, INK_ON_PAPER, PAPER_ON_INK, YELLOW_ON_INK } from '../swallowyou/text';
-import { lbLabel, SPECIES, STATUS_COLOUR, type Animal, type Status } from './species';
+import { kgLabel, lbLabel, SPECIES, STATUS_COLOUR, type Animal, type Status } from './species';
 import { READOUT } from './stage';
 import { BITES, LADDER, T, type Bite } from './timeline';
 
@@ -77,7 +77,8 @@ export function drawReadout(ctx: CanvasRenderingContext2D, t: number, alpha: num
   drawText(ctx, landed ? lbLabel(sp.lb, sp.approx) : lbLabel(c.lb), { x: 0, y: 0, size: 140, maxWidth: r.w - 60 }, 700, alpha, YELLOW_ON_INK);
   ctx.restore();
   const n = landed ? sp.newtons : `${(Math.round((c.lb * LB_TO_N) / 10) * 10).toLocaleString('en-US')} N`;
-  drawText(ctx, `${n} of force`, { x: W / 2, y: r.y + 186, size: 50, maxWidth: r.w - 80 }, 500, alpha * (landed ? 1 : 0.6), PAPER_ON_INK);
+  const kg = landed ? kgLabel(sp.lb, sp.approx) : kgLabel(c.lb);
+  drawText(ctx, `${kg} · ${n} of force`, { x: W / 2, y: r.y + 186, size: 50, maxWidth: r.w - 80 }, 500, alpha * (landed ? 1 : 0.6), PAPER_ON_INK);
 }
 
 // ---------------------------------------------------------------- stamps
@@ -129,7 +130,7 @@ export function drawStamps(ctx: CanvasRenderingContext2D, t: number, alpha: numb
 /** The line under the readout: only the everyday weights (and asides) the narration says. */
 const LINES: readonly { readonly at: number; readonly until: number; readonly text: string }[] = [
   { at: T.person, until: T.jaguar, text: '= a person standing on one tooth' },
-  { at: T.average, until: T.lion, text: 'the average of the 22 dogs: just 58 lb' },
+  { at: T.average, until: T.lion, text: 'the average of the 22 dogs: just 58 lb (26 kg)' },
   { at: T.smallCar, until: T.record, text: '= the weight of a small car' },
   { at: T.higher, until: T.elephant, text: 'some studies go even higher' },
   { at: T.elephant + 0.8, until: T.megalodon, text: '= an elephant on one tooth' },
@@ -151,15 +152,17 @@ export function drawNameCard(ctx: CanvasRenderingContext2D, t: number, alpha: nu
     if (a <= 0) continue;
     const sp = SPECIES[b.animal];
     const note = b.preview ? 'the record' : sp.note;
-    drawCard(ctx, 40, 156, 700, 132, a);
-    drawText(ctx, sp.name, { x: 66, y: 218, size: 62, maxWidth: 650, left: true }, 700, a, INK_ON_PAPER);
-    drawText(ctx, note, { x: 68, y: 268, size: 40, maxWidth: 650, left: true }, 500, a, INK_ON_PAPER);
+    drawCard(ctx, 40, LADDER_H + 20, 700, 132, a);
+    drawText(ctx, sp.name, { x: 66, y: LADDER_H + 82, size: 62, maxWidth: 650, left: true }, 700, a, INK_ON_PAPER);
+    drawText(ctx, note, { x: 68, y: LADDER_H + 132, size: 40, maxWidth: 650, left: true }, 500, a, INK_ON_PAPER);
   }
 }
 
 // ---------------------------------------------------------------- the ladder
 
 const SLOT = W / LADDER.length;
+/** The ladder's dark strip: each head, its pounds, and its kilograms under them. */
+export const LADDER_H = 168;
 const ICON = { w: 168, h: 82, x: 146, y: 52, size: 56 } as const;
 const icons = new Map<Animal, HTMLCanvasElement>();
 
@@ -188,7 +191,7 @@ export function drawLadder(ctx: CanvasRenderingContext2D, t: number, alpha: numb
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.fillStyle = 'rgba(16,20,24,0.86)';
-  ctx.fillRect(0, 0, W, 136);
+  ctx.fillRect(0, 0, W, LADDER_H);
   ctx.restore();
   LADDER.forEach((b, i) => {
     const x = i * SLOT;
@@ -206,5 +209,6 @@ export function drawLadder(ctx: CanvasRenderingContext2D, t: number, alpha: numb
     ctx.drawImage(iconOf(b.animal), -ICON.w / 2 + 6, -ICON.h / 2 - 2);
     ctx.restore();
     drawTextLine(ctx, lbLabel(sp.lb, sp.approx), x + SLOT / 2, 126, 40, 700, alpha * on, ladderInk(sp.status));
+    drawTextLine(ctx, kgLabel(sp.lb, sp.approx), x + SLOT / 2, 158, 28, 500, alpha * on * 0.85, { fill: PAPER, halo: INK });
   });
 }
