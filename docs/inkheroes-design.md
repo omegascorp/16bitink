@@ -252,7 +252,7 @@ Part 2, **Thornwood** (its land 40 × 32, east of Ashford's): Rowan rides on fro
 Map 3, **The Black Banner** (48 × 36, the last free map, par 35 days): Rowan holds **Eudora** in the south-west (Village and Town Hall, Fort, Citadel, Tavern, Guardhouse, Archery Range, Barracks, Mage Guild; a garrison of 14 Hoplites and 6 Slingers); played fresh he starts there with 70 Hoplites, 36 Slingers, 18 Griffins and 9 Minotaurs, about what a rider brings. **Kassander**, the rival lord, rides out of **Korax** in the north-east with 24 Hoplites, 10 Slingers, 4 Griffins and a Catapult, plus what his head start hired. Korax holds 80 Hoplites, 50 Slingers, 30 Griffins and 12 Minotaurs. **Balance (Nov 4), set by a bot playing the whole chapter on the real rules, so it rests on an army actually earned:** the bot reaches this part around day 22 to 46 with 800 to 1500 in the field, about 2300 more in Ashford's garrison and far more gold than it can spend (recruits, not gold, limit an army). So neutrals run 155 to 620 in strength against map 2's east at 234 to 423, Eudora's vale lightest and the lakelands' prizes and the Black Banner's own lands heaviest, and Korax's garrison is 2.4 times Thornwood's. Over 24 bot games all were won, in 6 to 48 days, and the deciding fight cost 10 to 25% of the army, up to 85% when it came too early. The bot casts no spells, so a person should lose less. Two ridges split the map into Eudora's vale, the lakelands in the middle (the gold mine, the gem pond and the crystal cavern, guarded) and the Black Banner's rough hills; the western ridge has two passes: wolves hold the south one, and the Black Banner's riders cleared the north one, so it is Kassander's road into Eudora's vale, up the forest trail and on to Thornwood and Ashford. New on this map: a small Basilisk group at Eudora's ore pit, more at the sulfur and the alchemist's lab, and Hydras guarding the better prizes (the Thunderbolt shrine, the gems, the lake chest). **Winning takes both, in either order (user, Nov 4): Korax taken and Kassander beaten.** Losing a town is never the end of the map while another stands, Eudora included; only the last town falling loses it.
 
 **Map 3 made harder (user, Nov 8).** The user found the part handed over two towns too easily and Kassander too easy to kill. A probe on the real rules showed why: he opened at 0.7 to 1.2 times Rowan's field army, never attacked (he needs 1.3 times), spent every coin on buildings, Korax's garrison never grew, and Eudora was given away and shown on the opening flight. Now:
-- **The race for Eudora.** Ridden on into, Eudora's place isn't shown. From the part's third night Kassander rides for it (through the north pass), and if he gets there first it flies his banner, with its Citadel walls, and has to be stormed. Ridden straight down the trail, Rowan reaches it on the part's third day; three days lost on the way and Kassander has it (`RACE` in rival.ts). The intro says both.
+- **The race for Eudora.** Ridden on into, Eudora's place isn't shown. From the part's third night Kassander rides for it (through the north pass), and if he gets there first it flies his banner, with its Citadel walls, and has to be stormed. Ridden straight down the trail, Rowan reaches it on the part's third day; three days lost on the way and Kassander has it (`RACE` in rival.ts). The opening's brief and story say both.
 - **A head start of three quarters of the days gone by** (was half): about 1140 at day 20, 1560 at day 28 and 2000 at day 36, roughly 1.35 times the army a rider brings, so he hunts Rowan's weaker hero and raids north up the trail.
 - **He leaves a lost battle (H3's retreat)** while he has a town to ride to: once his army is down to 60% and the enemy's is twice what he has left, he flees, gives up his army, and is back in his nearest town with no moves left, where he hires again (with no army he stays home). He fights to the end defending his own town, and with no town left he can't run: then the hunt. The battle shows him fleeing and the victory card says so; his fights with monsters work the same way.
 
@@ -283,11 +283,11 @@ Map 3, **The Black Banner** (48 × 36, the last free map, par 35 days): Rowan ho
 
 **The Blacksmith's room (user, Nov 5).** A room like the guild's (`src/scenes/town/smithRoom.ts`, both on `townRoom.ts`): the forge painted behind, each machine for sale on a tile with its name and price, the picked one read out below (grade, what it does, what buying it means), and a stand with what the hero brings now and Buy. A hero away from the town sees the wares and can't buy.
 
-**The lesson (user, Nov 5).** Thornwood on map 2 is the chapter's first siege, so the Blacksmith opens on map 2, the build plan moves it up, and the game says it five ways: the part's intro; a card on riding at any walled town with no machine, saying what walls do, where to buy one and what going without costs, with Not yet and Storm it now; the Blacksmith's own room; the empty War Machine slot on the Gear tab; and in battle, the status line saying to strike the gate by hand.
+**The lesson (user, Nov 5).** Thornwood on map 2 is the chapter's first siege, so the Blacksmith opens on map 2, the build plan moves it up, and the game says it five ways: the part's intro (since Nov 8 the chapter's Thornwood opening is narrated and its brief is short: see "Narration"); a card on riding at any walled town with no machine, saying what walls do, where to buy one and what going without costs, with Not yet and Storm it now; the Blacksmith's own room; the empty War Machine slot on the Gear tab; and in battle, the status line saying to strike the gate by hand.
 
 **Music (user, Nov 5).** Three looping tracks from ElevenLabs Music, no vocals: **map** (chill, also the menu), **townGreek** (lyre and aulos, for the Greek faction's towns; each later faction gets its own) and **battle**. `dev/music/make_loops.py` takes `dev/music/raw/<id>.mp3`, finds where a take best meets its own start by comparing its sound frame by frame, blends the join and writes `src/audio/music/` and `src/audio/tracks.ts`. Each file has half a second of the loop on either side, so what an MP3 encoder adds never reaches the loop points, and `MusicPlayer` loops the decoded track on Web Audio, gap-free, fading 1.2 seconds between tracks and keeping two decoded.
 
-**Sound switches (user, Nov 5).** Music and effects switch off apart, on one Sound card: Menu → Sound on the map, and a small Sound button on the campaign menu, in town and in battle. A switch brings the card straight back so both can be set in one go, and the choice is remembered. Music that's off isn't downloaded at all until it's switched on. A player who had muted the old single switch comes back with both off.
+**Sound switches (user, Nov 5).** Music and effects switch off apart, on one Sound card: Menu → Sound on the map, and a small Sound button on the campaign menu, in town and in battle. A switch brings the card straight back so all can be set in one go, and the choice is remembered. A third switch, **Narration** (Nov 8), turns the narrator off (see "Narration"); Music off doesn't turn it off. Music that's off isn't downloaded at all until it's switched on. A player who had muted the old single switch comes back with both off.
 
 **Balance (Nov 5).** A simulation of bot against bot, 20 seeds each, with no spells. Thornwood's first siege needed shooters on its tower, or a slow gate cost nothing, so its garrison is now 16 + 12 Brigands, 5 Cyclopes, 8 Wolves and 18 Slingers. Korax stays at 66 Hoplites, 42 Slingers, 25 Griffins and 10 Minotaurs. Share of army strength lost:
 
@@ -315,6 +315,49 @@ Every skill has a 32 px icon, each its own object so none repeats an icon the ga
 ## The day card
 
 The morning's card is an infographic, built from a report the night leaves on the prompt (older saves keep their text card): the totals with their icons; a bar per source of gold, each town by name, then gold mines and estates, measured against the biggest; the hero's face with the tiles to ride and a mana gauge; on the first day of a week, each town's fresh recruits as faces with counts, lowest level first so the columns line up, and that the wilds have grown; then the rival's news. On a short, wide screen it spreads into two columns.
+
+## Narration
+
+Decided with the user on Nov 8, 2026, after the Black Banner's part card ("it's too much text here, should we make voiceovers and play this in background like we did for inkmine?"): the story is heard, not read on cards that stop play. Ported from InkMine (docs/inkmine-design.md, "Narration"), without its journal, speakers' own voices or star map. The narrator is ElevenLabs' **David - British Storyteller** (voice `BNgbHR0DNeZixGQVzloa`, model eleven_v4), an old British storyteller, picked by the user (`src/narration/script.ts`).
+
+**How it plays** (`src/scenes/NarratorScene.ts`, over every screen and kept through scene changes):
+- **A part opens with a short card:** its brief (what the player needs) and the goal, and the story plays in the strip at the same time and goes on after the card closes (`MapDef.brief` and `MapDef.story`; `openingPrompt` in adventure.ts).
+- **The strip** names the speaker (and the story's title), shows the subtitles (at most two lines of about 42 characters, the BBC's guideline, timed to the voice by their length), a thin line for how far through, and three buttons: ❚❚ pause (▶ to go on), » skip, and **Read**, which opens the full text on a card and holds the map (and the voice) while it's open. Where it sits: on the map at the bottom left beside the hero's panel when there's room (a laptop), with the status line lifted above it; else under the top bar and the date (a phone); in town under the Sound button, clear of the town strip; anywhere else under the corner buttons; over a card, at the foot (`src/scenes/narrator/stripLayout.ts`).
+- **Other story moments have no card at all** while they're heard: a message prompt with a `line` plays in the strip instead of opening a card, and play goes on (`openPrompt` in cards.ts). A line is told only where its words are true: Korax taken while Kassander lives, Kassander fleeing with one town left, beaten with none, Eudora joining or lost; otherwise the old card with its own words.
+- **One line at a time,** queued; a line already playing or queued isn't queued again. The music and effects dip to 40% under the voice (`SoundBoard.duck`; the voice has its own track).
+- **The voice waits for the browser:** until the first click, tap or key has started sound (`SoundBoard.waitingForGesture`), the line waits at its first subtitle. While its recording is on the way it waits up to 4 s, then the subtitles go on at a reading pace and the voice joins where they are.
+- **Narration off** (the Sound card's third switch, remembered), or a browser with no Web Audio: every story shows on its card as before (a part's card with the full story, then the goal) and nothing is fetched. Switched off mid-line, the line moves onto its card.
+- **A line with no recording** falls back to its card, and in development the console says so once (`Narration: no recording for "<line>"`).
+- **Loading:** a recording is fetched only when it's near, never in the game's loading: a few seconds after start and every 3 s after, the narrator fetches the next two lines (`src/narration/upcoming.ts`: the cards waiting, then what the part tells next). Recordings are kept as mp3 bytes and only the playing one is decoded.
+
+**The lines** (`src/narration/lines.ts`, id → speaker, title and hand-written script; the subtitles and the cards are the script with its [tags] taken out):
+
+| Line | When | Shown on a card when narrated |
+|---|---|---|
+| `part-ashford` | Part 1 opens | the brief and goal |
+| `part-thornwood` | Part 2 opens | the brief and goal |
+| `part-blackBanner` | Part 3 opens (recorded Nov 8) | the brief and goal |
+| `eudora-joins` | Eudora opens its gates to Rowan | none |
+| `eudora-lost` | Kassander reaches Eudora first (the night's card keeps a short note) | none |
+| `kassander-flees` | Kassander leaves a lost battle, with one town to run to | none |
+| `korax-taken` | Korax falls while Kassander rides | none |
+| `kassander-beaten` | Kassander falls with no town left | none |
+| `chapter-won` | the chapter's victory card | the victory card, without the story |
+
+**Writing a line:** lively tags (`[warm, storytelling]`, `[grim]`, `[wry]`…), "!" and "…", a change of mood every sentence or two, never [whispers]; the test checks those. `part-blackBanner`'s script must stay word for word what was recorded.
+
+**The recordings** (`games/inkheroes/narration/<line>.mp3`, mono 64 kbps, loudness-normalized, bundled by Vite as their own files). `narration/lines.json` keeps, for each line, the words and the script the voice read, the voice, the model and when (`recorded: null` while still to record). `test/narration.test.ts` keeps CI green before everything is recorded and catches stale takes after:
+- always fails on a recording no line tells, a recording whose words no longer match its script (punctuation, spacing and capitals don't count), lines.json out of step with the recordings, or an unrecorded line whose script changed since lines.json was written;
+- lists the lines still to record (on stdout) but passes; with `NARRATION_REQUIRED=1` (for release) it fails while any is missing.
+
+**To record** (in `games/inkheroes`):
+1. `NARRATION_DUMP=1 npx vitest run test/narration.test.ts` brings `narration/lines.json` up to date and prints the lines still to record; each has `recorded: null` and its `script`.
+2. In ElevenLabs, text to speech with voice `BNgbHR0DNeZixGQVzloa` (David - British Storyteller) on `eleven_v4`, paste the line's `script` exactly, tags and all, generate, and pick the best take. Download it as `<line>-raw.mp3`.
+3. `ffmpeg -i <line>-raw.mp3 -ac 1 -af loudnorm=I=-17:TP=-1.5:LRA=11 -ar 44100 -b:a 64k narration/<line>.mp3`
+4. `NARRATION_DUMP=1 npx vitest run test/narration.test.ts` again: it marks the new files recorded with the date.
+5. `npx vitest run` and play the part to hear it.
+
+To record a line again after its words change: change its script in `lines.ts`, delete its mp3, and follow the steps. A new line needs an id in `LineId`, a script in `LINES`, a place where the game tells it (`toldPrompt(id)`, a map's `story`, or `narrator(scene)?.say(id)`), and a place in `upcoming.ts` if it should be fetched ahead.
 
 ## Controls
 

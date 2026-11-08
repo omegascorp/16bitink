@@ -7,7 +7,9 @@ import { RANK_NAMES, SKILLS } from '../logic/skills';
 import { has, type Town } from '../logic/town';
 import { UI_TEX } from './battle/pixelUi';
 import { openCard, type CardSpec } from './CardScene';
+import { narrator } from './NarratorScene';
 import { Session } from './session';
+import { isLineId, lineText } from '../narration/lines';
 
 /**
  * The cards the map shows from the adventure's state: its waiting prompts
@@ -21,7 +23,13 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
   };
   const first = adv.prompts[0];
   if (first?.kind === 'message') {
-    openCard(scene, { title: first.title, body: first.text, picture: first.item ? UI_TEX.item(first.item) : undefined, report: first.report, buttons: [{ label: 'On we go', onClick: () => next() }] });
+    // Told aloud, the story plays in the narrator's strip while play goes on: a part's opening keeps a short card (its brief and goal), the rest none.
+    const told = isLineId(first.line) && !!narrator(scene)?.say(first.line);
+    if (told && first.brief === undefined) {
+      next();
+      return;
+    }
+    openCard(scene, { title: first.title, body: told ? first.brief! : first.text, picture: first.item ? UI_TEX.item(first.item) : undefined, report: first.report, buttons: [{ label: 'On we go', onClick: () => next() }] });
     return;
   }
   if (first?.kind === 'chest') {
@@ -53,8 +61,9 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
   if (adv.status === 'won') {
     const next = nextMap(session.def);
     const days = partDays(adv);
-    // The last part built: the chapter is done. Otherwise the land opens further and the hero rides on.
-    const end = next ? `\nThe road goes on: ${next.name} lies ahead.` : '\nThe Border March is won: that is the end of chapter 1.';
+    // The last part built: the chapter is done (its ending told by the narrator, or read here). Otherwise the land opens further and the hero rides on.
+    const told = !next && !!narrator(scene)?.say('chapter-won');
+    const end = next ? `\nThe road goes on: ${next.name} lies ahead.` : told ? '\nThe Border March is won: that is the end of chapter 1.' : `\n${lineText('chapter-won')}\nThat is the end of chapter 1.`;
     openCard(scene, {
       title: 'Victory!',
       body: `${session.def.goal.text[0]!.toUpperCase()}${session.def.goal.text.slice(1)}: done in ${days} ${days === 1 ? 'day' : 'days'}${adv.lostStacks === 0 ? ', and not one company lost' : ''}.${end}`,

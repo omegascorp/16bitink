@@ -19,6 +19,7 @@ import { loadMapArt } from './map/pixelMapArt';
 import { PixelMapWorld } from './map/pixelMapWorld';
 import { GROUND_BORDER, MAP_TILE as TILE } from './map/pixelGround';
 import { coverWhileLoading } from './LoadingScene';
+import { narratorReading } from './NarratorScene';
 import { PixelCursors, type CursorKind } from './pixelCursors';
 import { pixelZoom } from './pixelScreen';
 import { Session } from './session';
@@ -216,7 +217,7 @@ export class MapScene extends Phaser.Scene {
 
   /** Map input waits while the hero walks or a card, the town or a battle is open. */
   blocked(): boolean {
-    return !this.ready || this.walking || this.scene.isActive('Card') || this.scene.isActive('Town') || this.scene.isActive('Battle');
+    return !this.ready || this.walking || this.scene.isActive('Card') || this.scene.isActive('Town') || this.scene.isActive('Battle') || narratorReading(this);
   }
 
   private hover(p: Phaser.Input.Pointer): void {

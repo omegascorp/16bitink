@@ -13,6 +13,7 @@ import { addTo, RESOURCES, type Purse } from './resources';
 import { isSkillId, MAX_SKILLS, SKILL_IDS, type Rank } from './skills';
 import { isSpellId, type SpellId } from './spells';
 import { SPELLBOOK_SOLD, type Town } from './town';
+import { isLineId } from '../narration/lines';
 
 /** What the war machines since cut from the game cost, gold. */
 const OLD_MACHINES: Readonly<Record<string, number>> = { ballista: 1500, tent: 750 };
@@ -307,7 +308,9 @@ function parsePrompt(raw: unknown, objects: readonly MapObject[]): Prompt | null
   if (!isObj(raw)) return null;
   if (raw.kind === 'message' && typeof raw.title === 'string' && typeof raw.text === 'string') {
     const report = parseDayReport(raw.report);
-    return { kind: 'message', title: raw.title.slice(0, 200), text: raw.text.slice(0, 2000), ...(isItemId(raw.item) ? { item: raw.item } : {}), ...(report ? { report } : {}) };
+    // A line the game no longer has is dropped: the card shows its words.
+    const told = isLineId(raw.line) ? { line: raw.line, ...(typeof raw.brief === 'string' ? { brief: raw.brief.slice(0, 1000) } : {}) } : {};
+    return { kind: 'message', title: raw.title.slice(0, 200), text: raw.text.slice(0, 2000), ...(isItemId(raw.item) ? { item: raw.item } : {}), ...(report ? { report } : {}), ...told };
   }
   if (raw.kind === 'chest' && typeof raw.id === 'string') {
     const chest = objects.find((o) => o.id === raw.id && o.kind === 'chest' && !o.gone);

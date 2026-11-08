@@ -72,12 +72,8 @@ const thornwoodObjects = placed(THORNWOOD_LAND.objects, AT.thornwood, 'thornwood
 /** Part 2. Played fresh (with nothing won before it), Rowan waits on the north road at the forest's edge. */
 export const THORNWOOD: MapDef = {
   ...THORNWOOD_LAND,
-  intro: [
-    'The ogres are gone and the old bridge is open again. The north road runs on east, into Thornwood forest.',
-    'Across the next river, brigands and their cyclops chief have taken Thornwood, the timber town. Take it back from its garrison, and its dwellings will be yours to hire from.',
-    'Near the road a spellbook lies on a marble altar, and Stymphalian birds have nested round it. Win it, and magic is yours. Your towns can raise a Mage Guild now too.',
-    'This land is too wide for one rider. Ianthe, a priestess of Athena, waits at your Tavern: hire her for 2500 gold, and she can hold the roads behind you, gather what lies there, and bring your new recruits up.',
-  ],
+  brief: 'Take Thornwood back from the brigands. A spellbook waits on the altar by the road. Ianthe waits at your Tavern: a second hero for 2500 gold.',
+  story: 'part-thornwood',
   rows: cut(72, 32),
   seed: SEED,
   town: ASHFORD.town,
@@ -99,11 +95,8 @@ const rival = BLACK_BANNER_LAND.rival!;
  */
 export const BLACK_BANNER: MapDef = {
   ...BLACK_BANNER_LAND,
-  intro: [
-    'Thornwood is free, and its foresters show you an old trail: it leaves the south road west of the river and runs down through the trees into the lands beyond. Somewhere down there a town called Eudora still keeps its gates shut against the Black Banner. Find it, and it will open them to you: yours to build in and hire from.',
-    'Kassander of Korax flies a black banner with a red raven, and he serves no crown. His riders are out for Eudora too, and if he gets there first it will fly his banner. He builds and hires as you do, takes the mines, and will come for your towns when he thinks he can win. Take Korax and hunt him down: while he has a town to run to, he will leave a lost battle and hire again.',
-    'Korax stands behind higher walls than Thornwood’s. Your Catapult will have more to do there: a finer one breaks them faster.',
-  ],
+  brief: "Find Eudora, somewhere south down the forest trail, before Kassander's riders do. Then take Korax and hunt him down.",
+  story: 'part-blackBanner',
   rows: cut(72, 68),
   seed: SEED,
   town: ASHFORD.town,

@@ -2,6 +2,7 @@ import type { ArmySlot } from '../logic/army';
 import type { BuildingId } from '../logic/buildings';
 import type { HeroClass } from '../logic/hero';
 import type { Gear } from '../logic/items';
+import type { LineId } from '../narration/lines';
 import type { MapObject } from '../logic/objects';
 import type { Amount } from '../logic/resources';
 import type { Skills } from '../logic/skills';
@@ -19,8 +20,10 @@ export interface MapDef {
   readonly name: string;
   /** Its place in the campaign (1-based). */
   readonly n: number;
-  /** The scroll read before the map starts. */
-  readonly intro: readonly string[];
+  /** What the player needs to know as the part opens, short: the opening card shows it over the goal while the story is told aloud. */
+  readonly brief: string;
+  /** The part's story, told by the narrator as it opens (src/narration/lines.ts); with narration off, the opening card shows its words instead of the brief. */
+  readonly story?: LineId;
   readonly goal: Goal;
   /** Win within this many days for the second blot. */
   readonly parDays: number;

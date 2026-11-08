@@ -11,10 +11,8 @@ export const ASHFORD_LAND: MapDef = {
   id: 'ashford',
   name: 'Ashford',
   n: 1,
-  intro: [
-    'Ogres have taken the old bridge on the north road, and no cart has crossed it in a week.',
-    'Ashford is small, but its people are stubborn. Hold the town, raise an army, and clear the bridge.',
-  ],
+  brief: 'Ogres hold the old bridge on the north road. Raise an army in Ashford and clear it.',
+  story: 'part-ashford',
   goal: { kind: 'defeat', target: 'ogres', text: 'beat the ogre warband at the old bridge' },
   parDays: 21,
   rows: [

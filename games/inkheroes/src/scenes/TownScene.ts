@@ -27,6 +27,7 @@ import { TownList } from './hud/townList';
 import { MAP_TEX } from './map/pixelMapArt';
 import { Session } from './session';
 import { SOUND_BTN, soundCard } from './soundCard';
+import { defaultRoom, type StripRoom } from './narrator/stripLayout';
 import { BuildPlate } from './town/buildPlate';
 import { loadTownArt, PixelTownView, townScenery } from './town/pixelTownView';
 import { HEAD, TownBar, type SlotRef, type TownScreen } from './town/townBar';
@@ -246,6 +247,11 @@ export class TownScene extends Phaser.Scene {
     const left = buildAll(this.town(), this.session.def.off) !== this.town();
     this.cheatBtn.root.setDepth(DEPTH.plate).setVisible(left && !this.screen);
     this.cheatBtn.setPosition(this.size.w - CHEAT_BTN.w - CHEAT_BTN.margin, CHEAT_BTN.top);
+  }
+
+  /** Where the narrator's strip goes in town: under the Sound button, clear of the town strip at the foot. */
+  narratorRoom(): StripRoom {
+    return defaultRoom(this.size, CHEAT_BTN.top + CHEAT_BTN.h + 4);
   }
 
   /** The sound switches' button, level with the cheat's on the other side, while no window is in the way. */

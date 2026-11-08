@@ -16,11 +16,23 @@ import { skillValue, type SkillId } from './skills';
 import { BUILDING_IDS } from './buildings';
 import { cantBuild, dwellings, growthOf, has, income, manTowers, towersOf, undefended, weekly, type Town } from './town';
 import { visitSite } from './visits';
+import { CHAPTER1, lineText, LINES, narrated, type LineId } from '../narration/lines';
 
 export type Prompt =
   | { readonly kind: 'chest'; readonly id: string; readonly gold: number; readonly xp: number }
   | { readonly kind: 'levelUp'; readonly offer: LevelUp }
-  | { readonly kind: 'message'; readonly title: string; readonly text: string; readonly item?: ItemId; readonly report?: DayReport };
+  | {
+    readonly kind: 'message';
+    readonly title: string;
+    /** The card's words (for a narrated card, the story, shown when it isn't heard). */
+    readonly text: string;
+    readonly item?: ItemId;
+    readonly report?: DayReport;
+    /** The narrator's line for it (src/narration/lines.ts): heard, it's told in the strip instead of on a card. */
+    readonly line?: LineId;
+    /** With a line: the short card shown while the story is heard (a part's brief and goal). None: no card while it's heard. */
+    readonly brief?: string;
+  };
 
 export type Status = 'playing' | 'won' | 'lost';
 
@@ -90,6 +102,21 @@ export function heroFromDef(h: HeroDef): Hero {
   return { ...hero, mp: dailyMp(hero) };
 }
 
+/** A message card that the narrator tells (line `id`): its title and words are the line's. */
+export const toldPrompt = (id: LineId): Prompt => ({ kind: 'message', title: LINES[id].title, ...narrated(id) });
+
+/**
+ * The card a part opens with: the story (told by the narrator, or read on
+ * the card when it isn't heard) and the goal; while the story is heard,
+ * the card shows the brief and the goal.
+ */
+export function openingPrompt(def: MapDef): Prompt {
+  const goal = `Goal: ${def.goal.text}`;
+  const brief = `${def.brief}\n\n${goal}`;
+  if (!def.story) return { kind: 'message', title: def.name, text: brief };
+  return { kind: 'message', title: def.name, text: `${lineText(def.story)}\n\n${goal}`, line: def.story, brief };
+}
+
 export function startAdventure(def: MapDef): Adventure {
   const g = gridOf(def);
   const hero = heroFromDef(def.hero);
@@ -100,7 +127,7 @@ export function startAdventure(def: MapDef): Adventure {
   const adv: Adventure = {
     mapId: def.id, day: 1, seed: def.seed, purse: purse(def.purse), hero,
     towns: [town, ...others].map(weekly), objects: def.objects, explored: '0'.repeat(g.w * g.h), status: 'playing',
-    prompts: [{ kind: 'message', title: def.name, text: [...def.intro, '', `Goal: ${def.goal.text}`].join('\n') }], lostStacks: 0,
+    prompts: [openingPrompt(def)], lostStacks: 0,
     ...(def.rival ? { rival: { hero: heroFromDef(def.rival.hero), purse: purse(def.rival.purse) } } : {}),
   };
   return revealAround(revealAround(adv, def, hero.x, hero.y, sightOf(hero)), def, t.x, t.y, 5);
@@ -282,13 +309,15 @@ export function takeTown(adv: Adventure, id: string): Adventure {
   const foe = rivalHero(adv);
   if (town.owner !== 'rival' || !foe || taken.towns.some((t) => t.owner === 'rival')) return taken;
   const text = `${foe.name} has no town left to ride home to, and your scouts are on his trail. Hunt him down!`;
-  return { ...taken, prompts: [...taken.prompts, { kind: 'message', title: `${town.name} is yours`, text }] };
+  const card: Prompt = town.id === CHAPTER1.korax && foe.id === CHAPTER1.kassander ? toldPrompt('korax-taken') : { kind: 'message', title: `${town.name} is yours`, text };
+  return { ...taken, prompts: [...taken.prompts, card] };
 }
 
 /** An ally opens its gates: the town is the player's, garrison and all. */
 function joinTown(adv: Adventure, { ally: _ally, ...town }: Town): Adventure {
   const text = `${town.name} has held out against the Black Banner, and now it stands with you: its garrison, its buildings and its dwellings are yours.`;
-  return withTown({ ...adv, prompts: [...adv.prompts, { kind: 'message', title: `${town.name} opens its gates`, text }] }, { ...town, owner: 'player' });
+  const card: Prompt = town.id === CHAPTER1.eudora ? toldPrompt('eudora-joins') : { kind: 'message', title: `${town.name} opens its gates`, text };
+  return withTown({ ...adv, prompts: [...adv.prompts, card] }, { ...town, owner: 'player' });
 }
 
 /** A hero entering its town learns the guild's spells (with a spellbook). */
@@ -446,7 +475,9 @@ function rivalFled(adv: Adventure, foe: Hero): Adventure {
   if (!r) return beatRival(adv, foe);
   const many = r.adv.towns.filter((t) => t.owner === 'rival').length > 1;
   const text = `${foe.name} has left the field and ridden hard for ${r.town.name}, leaving his army behind. He will hire another there. Take ${many ? 'his towns' : r.town.name}, and he will have nowhere left to run.`;
-  return { ...r.adv, prompts: [...r.adv.prompts, { kind: 'message', title: `${foe.name} flees`, text }] };
+  // The line says "his town": told while he has just the one.
+  const card: Prompt = foe.id === CHAPTER1.kassander && !many ? toldPrompt('kassander-flees') : { kind: 'message', title: `${foe.name} flees`, text };
+  return { ...r.adv, prompts: [...r.adv.prompts, card] };
 }
 
 /** The two sides of a fight, and the walls between them if there are any. */
@@ -565,7 +596,9 @@ function claimDrop(adv: Adventure, id: ItemId | undefined): Adventure {
 function beatRival(adv: Adventure, foe: Hero): Adventure {
   const left = adv.towns.filter((t) => t.owner === 'rival').map((t) => t.name);
   const text = left.length ? `${foe.name} rides no more. ${left.join(' and ')} still stand${left.length === 1 ? 's' : ''} behind ${left.length === 1 ? 'its' : 'their'} walls.` : `${foe.name} rides no more.`;
-  return { ...adv, rival: { ...adv.rival!, hero: null }, prompts: [...adv.prompts, { kind: 'message', title: `${foe.name} is beaten`, text }] };
+  // The line says the banner is down for good: told once no town of his is left standing.
+  const card: Prompt = foe.id === CHAPTER1.kassander && !left.length ? toldPrompt('kassander-beaten') : { kind: 'message', title: `${foe.name} is beaten`, text };
+  return { ...adv, rival: { ...adv.rival!, hero: null }, prompts: [...adv.prompts, card] };
 }
 
 /** The map after the rival storms town `townId` with only its garrison in it: held, or taken (and the map lost with the last town). */

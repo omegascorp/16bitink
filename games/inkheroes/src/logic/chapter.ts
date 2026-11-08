@@ -1,5 +1,5 @@
 import type { MapDef } from '../level/types';
-import { gridOf, heroFromDef, revealAround, type Adventure } from './adventure';
+import { gridOf, heroFromDef, openingPrompt, revealAround, type Adventure } from './adventure';
 import { armyOf } from './army';
 import { sightOf } from './hero';
 import { addTo, purse } from './resources';
@@ -40,7 +40,7 @@ export function rideOn(adv: Adventure, from: MapDef, next: MapDef): Adventure {
     towns,
     objects,
     explored: widen(adv.explored, gridOf(from).w, next),
-    prompts: [...adv.prompts, { kind: 'message', title: next.name, text: [...next.intro, '', `Goal: ${next.goal.text}`].join('\n') }],
+    prompts: [...adv.prompts, openingPrompt(next)],
     lostStacks: 0,
     begun: adv.day,
     ...(rival ? { rival } : {}),

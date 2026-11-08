@@ -1,8 +1,9 @@
 import { gainItem, machineOf } from './items';
 import type { MapDef } from '../level/types';
 import {
-  calendar, checkGoal, dayOfWeek, DEFEND, fledHome, guardAt, lordSide, heroInGarrison, incomeOf, liveObjects, ourHeroes, playerArmy, RIVAL, rivalHero, revealAround, terrainView, townAt, withTown, type Adventure,
+  calendar, checkGoal, dayOfWeek, DEFEND, fledHome, guardAt, lordSide, heroInGarrison, incomeOf, liveObjects, ourHeroes, playerArmy, RIVAL, rivalHero, revealAround, terrainView, toldPrompt, townAt, withTown, type Adventure, type Prompt,
 } from './adventure';
+import { CHAPTER1 } from '../narration/lines';
 import { armyMorale, armyOf, isEmptyArmy, splitMonster, type Army } from './army';
 import { act, createBattle, survivors, type BattleSide } from './battle';
 import { chooseAction } from './battleAi';
@@ -127,15 +128,24 @@ export function headStart(adv: Adventure, def: MapDef): Adventure {
   return next;
 }
 
+/** A town that waited for us, taken by the rival first: told by the narrator for Eudora. */
+function lostAlly(foe: Hero, town: Town): Prompt {
+  if (town.id === CHAPTER1.eudora && foe.id === CHAPTER1.kassander) return toldPrompt('eudora-lost');
+  return { kind: 'message', title: `${town.name} has fallen`, text: `${foe.name} reached ${town.name} before you, and it flies his banner now. Take it back from him!` };
+}
+
 /** The rival's news on the day's card (or a card of its own), and the fight he starts, announced and waiting. */
 function withNews(adv: Adventure, notes: readonly string[], fight?: string): Adventure {
   const foe = rivalHero(adv);
   let prompts = adv.prompts;
   if (notes.length) {
-    const last = prompts[prompts.length - 1];
+    // The night's card, even with a card of his (a town he took) after it.
     const day = calendar(adv.day);
-    prompts = last?.kind === 'message' && last.title === day
-      ? [...prompts.slice(0, -1), { ...last, text: [last.text, ...notes].filter(Boolean).join('\n') }]
+    let at = prompts.length - 1;
+    while (at >= 0 && !(prompts[at]!.kind === 'message' && (prompts[at] as { title: string }).title === day)) at--;
+    const card = prompts[at];
+    prompts = card?.kind === 'message'
+      ? prompts.map((p, i) => (i === at ? { ...card, text: [card.text, ...notes].filter(Boolean).join('\n') } : p))
       : [...prompts, { kind: 'message', title: 'The Black Banner', text: notes.join('\n') }];
   }
   if (!fight || !foe) return { ...adv, prompts };
@@ -293,7 +303,11 @@ function ride(adv: Adventure, def: MapDef, route: Route): Ride {
       const home: Town = { ...taken, owner: 'rival', ...(gate.owner === 'neutral' ? { garrison: armyOf([]) } : {}) };
       next = hireAtHome(withTown(moved, home), home);
       walked.push(step);
-      if (waited) notes.push(`${hero.name} reached ${home.name} before you, and it flies the Black Banner now. Take it back from him!`);
+      if (waited) {
+        // A short note on the day's card, and the loss on a card (told by the narrator) of its own.
+        notes.push(`${hero.name} reached ${home.name} before you.`);
+        next = { ...next, prompts: [...next.prompts, lostAlly(hero, home)] };
+      }
       return { adv: next, walked, notes, stopped: false };
     }
     const o = liveObjects(next).find((x) => x.x === step.x && x.y === step.y);

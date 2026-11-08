@@ -18,6 +18,8 @@ import { PurseRow, PURSE_BAR_H } from './hud/purseRow';
 import { TownList } from './hud/townList';
 import { MAP_TEX } from './map/pixelMapArt';
 import type { MapScene } from './MapScene';
+import { mapRoom, type Box, type StripRoom } from './narrator/stripLayout';
+import { narrator, STRIP_EVENT } from './NarratorScene';
 import { pixelUiCamera } from './pixelScreen';
 import { Session } from './session';
 
@@ -97,6 +99,9 @@ export class MapHudScene extends Phaser.Scene {
     const onStatus = (s: string): void => this.setStatus(s);
     const onNote = (text: string): void => this.note(text);
     const onEnd = (): void => this.endDay();
+    // The status line keeps clear of the narrator's strip, which shares the bottom left.
+    const onStrip = (): void => this.setStatus(this.status?.text ?? '');
+    this.game.events.on(STRIP_EVENT, onStrip);
     map.events.on('status', onStatus);
     map.events.on('note', onNote);
     map.events.on('end-day', onEnd);
@@ -108,6 +113,7 @@ export class MapHudScene extends Phaser.Scene {
       map.events.off('status', onStatus);
       map.events.off('note', onNote);
       map.events.off('end-day', onEnd);
+      this.game.events.off(STRIP_EVENT, onStrip);
       this.session.off('change', onChange);
       for (const o of this.owned) o.destroy();
       this.bar?.destroy();
@@ -204,6 +210,19 @@ export class MapHudScene extends Phaser.Scene {
     this.setStatus(this.status?.text ?? '');
   }
 
+  /** Where the narrator's strip goes on the map: at the bottom left beside the hero's panel when there's room, else under the top bar (and the date). */
+  narratorRoom(): StripRoom {
+    const { w, h } = this.size;
+    const dateBelow = this.date.img.y > BAR_H - 2;
+    return mapRoom({ w, h }, this.narrow ? 0 : this.panel.x, dateBelow ? this.date.img.y + this.date.height + 4 : BAR_H + 4);
+  }
+
+  /** The narrator's strip, when it's at the bottom (the status line goes above it). */
+  private stripBelow(): Box | null {
+    const box = narrator(this)?.stripBounds ?? null;
+    return box && box.y > this.size.h / 2 ? box : null;
+  }
+
   /** What's under the pointer, on a dark plate at the bottom left (or above the panel on a narrow screen). */
   private setStatus(text: string): void {
     if (!this.status) return;
@@ -222,7 +241,8 @@ export class MapHudScene extends Phaser.Scene {
     const pw = this.status.width + PLATE_PAD.x * 2;
     const ph = this.status.height + PLATE_PAD.y * 2 + 2;
     const x = 4;
-    const y = (narrow ? above : h - 2) - ph;
+    const strip = narrow ? null : this.stripBelow();
+    const y = (narrow ? above : strip ? strip.y - 2 : h - 2) - ph;
     if (!this.plate || this.plate.width !== pw || this.plate.height !== ph) {
       this.plate?.destroy();
       this.plate = new PixelFrame(this, pw, ph, { rim: 'bronze', fill: FILLS.plate });

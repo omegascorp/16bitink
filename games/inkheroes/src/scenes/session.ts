@@ -31,6 +31,11 @@ export class Session extends Phaser.Events.EventEmitter {
     return s;
   }
 
+  /** The map in play, or null with none (on the menu). */
+  static peek(scene: Phaser.Scene): Session | null {
+    return (scene.registry.get(KEY) as Session | undefined) ?? null;
+  }
+
   /** The saved map in play, if any (a part left on its victory card rides on into the next). */
   static resume(scene: Phaser.Scene, host: GameHost): Session | null {
     const saved = loadAdventure(host.storage, mapById);

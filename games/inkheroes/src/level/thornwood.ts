@@ -13,11 +13,7 @@ export const THORNWOOD_LAND: MapDef = {
   id: 'thornwood',
   name: 'Thornwood',
   n: 2,
-  intro: [
-    'Across the river, brigands and their cyclops chief have taken Thornwood. Its sawmills stand idle and its people hide in the forest.',
-    'Raise an army at Millbrook, cross the river, and take Thornwood back from its garrison. Its dwellings will be yours to hire from.',
-    'Thornwood stands behind walls, and only a war machine can break them. Build a Blacksmith and buy a Catapult before you march: without one, your troops must hack at the gate by hand, under fire.',
-  ],
+  brief: 'Raise an army at Millbrook, cross the river and take Thornwood back from the brigands. Its walls need a Catapult from a Blacksmith.',
   goal: { kind: 'capture', target: 'thornwood-town', text: 'take Thornwood from the brigands' },
   parDays: 28,
   rows: [

@@ -376,6 +376,11 @@ describe('the race for Eudora', () => {
     expect(e.owner).toBe('rival');
     expect(e.ally).toBeUndefined();
     expect(r.notes.some((n) => /Eudora/.test(n) && /before you/.test(n))).toBe(true);
+    // The loss gets a card the narrator tells, after the night's card that keeps the short note.
+    const lost = r.adv.prompts.findIndex((p) => p.kind === 'message' && p.line === 'eudora-lost');
+    expect(lost).toBeGreaterThan(0);
+    const night = r.adv.prompts.slice(0, lost).filter((p) => p.kind === 'message' && p.report);
+    expect(night.some((p) => p.kind === 'message' && /Eudora before you/.test(p.text))).toBe(true);
     // Now it is his town to flee to, and a town to storm.
     expect(stepHero({ ...r.adv, hero: { ...r.adv.hero, x: e.x, y: e.y + 1 } }, def, { x: e.x, y: e.y, cost: 100, day: 0 } as never).battle ?? 'walked in').toBeTruthy();
   });

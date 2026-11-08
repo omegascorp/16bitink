@@ -63,6 +63,8 @@ export class BootScene extends Phaser.Scene {
     this.screen.setProgress(ART_SHARE, 'unrolling the map…');
     await pullFromAccount(getHost(this));
     this.screen.setProgress(1);
+    // The narrator runs over every screen from here on (it fetches nothing until a line is near).
+    this.scene.launch('Narrator');
     this.scene.start('Menu');
   }
 }
