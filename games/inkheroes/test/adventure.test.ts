@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ASHFORD, BLACK_BANNER } from '../src/level/borderMarch';
 import { isOpen, MAPS, nextMap } from '../src/level/maps';
-import { openBy, UNLOCKS } from '../src/level/unlocks';
+import { MACHINE_UNLOCKS, openBy, soldOn, UNLOCKS } from '../src/level/unlocks';
 import { THORNWOOD } from '../src/level/borderMarch';
 import type { MapDef } from '../src/level/types';
 import { afterBattle, answerPrompt, unfinished, heroTown, playerTowns, townById, battleSides, dailyIncome, endDay, garrisonHero, withTown, gridOf, heroInGarrison, heroVisiting, isSeen, leadOut, objectAt, planPath, startAdventure, stepHero, type Adventure } from '../src/logic/adventure';
@@ -552,6 +552,14 @@ describe('the campaign', () => {
     expect(openBy(1).has('blacksmith')).toBe(false);
     expect(openBy(2).has('blacksmith')).toBe(true);
     expect(openBy(2).has('guardhouse2')).toBe(true);
+  });
+
+  it('sells one grade of war machine more each map: the Catapult on map 2, the Bronze Catapult from map 3', () => {
+    expect(soldOn(1)).toEqual([]);
+    expect(soldOn(2)).toEqual(['catapult']);
+    expect(soldOn(3)).toEqual(['catapult', 'catapult2']);
+    // Machines go on sale only where a Blacksmith can stand.
+    for (let n = 1; n <= MACHINE_UNLOCKS.length; n++) if (soldOn(n).length) expect(openBy(n).has('blacksmith'), `map ${n}`).toBe(true);
   });
 
   it('opens each map once the one before it is won, and leads from one to the next', () => {

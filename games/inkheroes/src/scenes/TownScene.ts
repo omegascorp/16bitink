@@ -28,6 +28,7 @@ import { SplitPicker } from './hud/splitPicker';
 import { TownList } from './hud/townList';
 import { MAP_TEX } from './map/pixelMapArt';
 import { Session } from './session';
+import { soldOn } from '../level/unlocks';
 import { SOUND_BTN, soundCard } from './soundCard';
 import { defaultRoom, type StripRoom } from './narrator/stripLayout';
 import { BuildPlate } from './town/buildPlate';
@@ -344,7 +345,7 @@ export class TownScene extends Phaser.Scene {
       return;
     }
     if (this.screen === 'smith') {
-      this.window = new SmithRoom(this, adv, this.town(), this.smithPick, room, { close: () => this.openScreen(null), buy: (m) => this.buyMachine(m), pick: (m) => this.pickWare(m) }, depth);
+      this.window = new SmithRoom(this, adv, this.town(), this.smithPick, soldOn(this.session.def.n), room, { close: () => this.openScreen(null), buy: (m) => this.buyMachine(m), pick: (m) => this.pickWare(m) }, depth);
       return;
     }
     const spec = this.screen === 'hall' ? hallScreen(this, adv, this.town(), this.session.def.off, act) : fortScreen(this, adv, this.town(), act);
