@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import { nextMap } from '../level/maps';
-import { answerPrompt, playerTowns, type Adventure } from '../logic/adventure';
+import { answerPrompt, ourHeroes, playerTowns, type Adventure } from '../logic/adventure';
+import { getHost } from '../host';
 import { partDays } from '../logic/chapter';
 import { PRIMARY_NAMES } from '../logic/hero';
 import { RANK_NAMES, SKILLS } from '../logic/skills';
@@ -61,16 +62,15 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
   if (adv.status === 'won') {
     const next = nextMap(session.def);
     const days = partDays(adv);
-    // The last part built: the chapter is done (its ending told by the narrator, or read here). Otherwise the land opens further and the hero rides on.
-    const told = !next && !!narrator(scene)?.say('chapter-won');
-    const end = next ? `\nThe road goes on: ${next.name} lies ahead.` : told ? '\nThe Border March is won: that is the end of chapter 1.' : `\n${lineText('chapter-won')}\nThat is the end of chapter 1.`;
+    // Otherwise the land opens further and the hero rides on; after the last part built, the chapter's own card.
+    const end = next ? `\nThe road goes on: ${next.name} lies ahead.` : '';
     openCard(scene, {
       title: 'Victory!',
       body: `${session.def.goal.text[0]!.toUpperCase()}${session.def.goal.text.slice(1)}: done in ${days} ${days === 1 ? 'day' : 'days'}${adv.lostStacks === 0 ? ', and not one company lost' : ''}.${end}`,
       // One way on: from the next part the map's own menu still leads back to the campaign.
       buttons: [next
         ? { label: `Ride on to ${next.name}`, onClick: () => rideOnward(scene, session) }
-        : { label: 'Back to the campaign', onClick: () => toMenu(scene, session, null) }],
+        : { label: 'On we go', onClick: () => openCard(scene, chapterDoneCard(scene, session)) }],
     });
     return;
   }
@@ -100,6 +100,32 @@ export function wallsCard(town: Town, adv: Adventure, storm: () => void): CardSp
     buttons: [
       { label: 'Not yet', kind: 'crown', onClick: () => undefined },
       { label: 'Storm it now', kind: 'plain', onClick: storm },
+    ],
+  };
+}
+
+/**
+ * The end of everything built so far: the chapter's ending (told by the
+ * narrator, or read here), how the whole march went, and what comes next,
+ * so finishing the early access reads as an ending, not a dead end.
+ */
+function chapterDoneCard(scene: Phaser.Scene, session: Session): CardSpec {
+  const adv = session.adv;
+  const told = !!narrator(scene)?.say('chapter-won');
+  const towns = playerTowns(adv).length;
+  const heroes = ourHeroes(adv).length;
+  const march = `${adv.day} days on the march, ${towns} ${towns === 1 ? 'town' : 'towns'} under your banner, ${heroes === 1 ? 'one hero' : `${heroes} heroes`} riding.`;
+  return {
+    title: 'Chapter 1 complete',
+    body: [
+      ...(told ? [] : [lineText('chapter-won')]),
+      march,
+      'That is all of InkHeroes for now: the game is in early access. Chapter 2 crosses to a new land with a new people, their own heroes, troops and way of taking walls. It is being made now.',
+      'Thank you for playing!',
+    ].join('\n\n'),
+    buttons: [
+      { label: 'Back to the campaign', kind: 'crown', onClick: () => toMenu(scene, session, null) },
+      { label: 'More games', kind: 'plain', onClick: () => getHost(scene).onExit() },
     ],
   };
 }

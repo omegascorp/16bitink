@@ -304,6 +304,10 @@ A person, who casts spells, should lose less.
 
 **Several towns.** A map can have more towns than the player's first. Each one is neutral until a hero beats its garrison at the gate (an empty one is just walked into); then it is the player's, with its own buildings, stock and garrison. It pays its income and fills its dwellings every week. The town screen shows the town the hero stands in, else the player's first.
 
+### The end of the early access (user, Nov 8)
+
+Winning the last part built shows its Victory card, then **Chapter 1 complete** (`chapterDoneCard` in `src/scenes/cards.ts`): the narrator tells the chapter's ending (its words read on the card with narration off), the march in numbers (days, towns held, heroes riding), that the game is in early access and the next chapter, a new people with its own heroes, troops and way of taking walls, is being made, and thanks. Back to the campaign, or More games (the host's exit, to the catalog). Finishing no longer drops the player straight on the chapter card.
+
 ### No laurels on screen
 
 **Laurels are off (Nov 4).** They rewarded rushing and losing nothing, which works against a slow game of building up; they unlocked nothing; and a chapter is one run, so a part can't be replayed for a better score. The game still records them with each win (best laurels and days, for the account's progress and the win event), and the art is kept, so they can come back as something else.
