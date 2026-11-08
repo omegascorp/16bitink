@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getHost, getSound } from '../host';
-import { calendar, playerTowns, unfinished, type Adventure } from '../logic/adventure';
+import { calendar, ourHeroes, playerTowns, unfinished, type Adventure } from '../logic/adventure';
 import { CLASSES, dailyMp, maxMana, withinMana } from '../logic/hero';
 import { hasSpellbook } from '../logic/items';
 import { tilesOf } from '../logic/map';
@@ -11,6 +11,8 @@ import { openCard } from './CardScene';
 import { soundCard } from './soundCard';
 import { toMenu } from './cards';
 import { HERO_SLOT } from './hud/armySlots';
+import { HERO_LIST_H, HeroList } from './hud/heroList';
+import { heroListOrder } from './hud/heroListData';
 import { freeSlot, releaseSlot, takeSlot } from './hud/noteStack';
 import { PurseRow, PURSE_BAR_H } from './hud/purseRow';
 import { TownList } from './hud/townList';
@@ -42,7 +44,8 @@ const NOTE_GAP = 2;
  * The map's interface, as pixel art on the art's grid (the battle's kit):
  * the purse and the date along the top, a status line for what's under the
  * pointer, and the hero's panel (face, level, moves and mana) with End day
- * and the menu beside it, and the player's towns listed above those two.
+ * and the menu beside it, and the player's towns listed above those two;
+ * with more than one hero, their faces in a row on the panel, to pick one.
  */
 export class MapHudScene extends Phaser.Scene {
   private session!: Session;
@@ -61,7 +64,10 @@ export class MapHudScene extends Phaser.Scene {
   private portrait!: Phaser.GameObjects.Image;
   private buttons: PixelButton[] = [];
   private towns!: TownList;
+  private heroes!: HeroList;
   private heroKey = '';
+  /** The hero whose face the panel shows. */
+  private faceFor = '';
   private owned: { destroy(): void }[] = [];
   private narrow = false;
   /** Lines of the note stack in use. */
@@ -127,6 +133,7 @@ export class MapHudScene extends Phaser.Scene {
     // The panel opens the hero's sheet.
     this.panelFrame.img.setInteractive();
     this.panelFrame.img.on('pointerup', () => this.openHero());
+    this.faceFor = this.session.adv.hero.id;
     this.heroKey = this.heroFace();
     this.portrait = this.add.image(PAD, PAD, this.heroKey).setOrigin(0).setInteractive();
     this.portrait.on('pointerup', () => this.openHero());
@@ -149,6 +156,11 @@ export class MapHudScene extends Phaser.Scene {
     });
     this.owned.push(this.towns);
     parts.push(this.towns.root);
+    // The heroes stand on the panel's top left edge (the towns have the right).
+    this.heroes = new HeroList(this, (id) => (this.scene.get('Map') as MapScene).pickHero(id));
+    this.heroes.root.setPosition(0, -BTN.gap);
+    this.owned.push(this.heroes);
+    parts.push(this.heroes.root);
     const specs = [
       { label: 'End day', icon: 'endDay' as const, rim: 'gold' as const, onClick: () => this.endDay() },
       { label: 'Menu', icon: 'menu' as const, onClick: () => this.menu() },
@@ -163,9 +175,9 @@ export class MapHudScene extends Phaser.Scene {
     this.panel = this.add.container(0, 0, parts).setDepth(1);
   }
 
-  /** The hero's face, cut 1:1 from the battle figure's idle frame. */
+  /** The picked hero's face, cut 1:1 from the battle figure's idle frame. */
   private heroFace(): string {
-    const h = heroArt();
+    const h = heroArt('player', this.faceFor);
     return putBuffer(this, drawPortrait(faceOf(this, PX_TEX.hero(h.id, 'idle'), h.art, HERO_SLOT - 4), 'bronze', false, false, HERO_SLOT));
   }
 
@@ -198,7 +210,9 @@ export class MapHudScene extends Phaser.Scene {
     const { w, h } = this.size;
     const room = w - PANEL_W - BUTTONS_W - 12;
     const narrow = this.narrow || room < 160;
-    const above = h - 2 - PANEL_H - (this.narrow ? PANEL_H + BTN.gap : 0) - 4;
+    // Clear of the buttons' row on a phone, and of the heroes' faces on the panel.
+    const lift = Math.max(this.narrow ? PANEL_H + BTN.gap : 0, this.heroes.visible ? HERO_LIST_H + BTN.gap : 0);
+    const above = h - 2 - PANEL_H - lift - 4;
     // Above the panel it stays clear of the towns, which rise on that side.
     const clear = this.panel.x + this.towns.root.x - 8;
     this.status.setWrap((narrow ? clear : room) - PLATE_PAD.x * 2).setText(text);
@@ -227,6 +241,21 @@ export class MapHudScene extends Phaser.Scene {
     this.manaLine.setText(`${h.mana}/${maxMana(h)}`).img.setVisible(hasSpellbook(h));
     this.manaIcon.setVisible(hasSpellbook(h));
     this.towns.set(playerTowns(adv));
+    const shown = this.heroes.visible;
+    const { def } = this.session;
+    this.heroes.set(heroListOrder(ourHeroes(adv), [def.hero.id, ...(def.recruits ?? []).map((r) => r.id)]), h.id);
+    if (h.id !== this.faceFor) this.swapFace(h.id);
+    // The status plate may sit over the panel: it moves when the faces come or go.
+    if (shown !== this.heroes.visible) this.setStatus(this.status?.text ?? '');
+  }
+
+  /** The panel shows hero `id`'s face now (another was picked). */
+  private swapFace(id: string): void {
+    const old = this.heroKey;
+    this.faceFor = id;
+    this.heroKey = this.heroFace();
+    this.portrait.setTexture(this.heroKey);
+    if (this.textures.exists(old)) this.textures.remove(old);
   }
 
   /** The hero's sheet, as Heroes 3's hero screen. */

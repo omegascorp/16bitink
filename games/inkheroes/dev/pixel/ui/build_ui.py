@@ -26,7 +26,7 @@ GAME = HERE.parents[2]
 OUT = GAME / 'src' / 'art' / 'pixel' / 'ui'
 TS = GAME / 'src' / 'art' / 'pixel' / 'ui.ts'
 
-ICONS = ('wait', 'defend', 'spell', 'auto', 'endDay', 'town', 'menu', 'hall', 'recruit', 'leave', 'smith')
+ICONS = ('wait', 'defend', 'spell', 'auto', 'endDay', 'town', 'menu', 'hall', 'recruit', 'leave', 'smith', 'tavern')
 STATS = ('attack', 'defense', 'shots', 'damage', 'health', 'left', 'speed', 'mana', 'power', 'knowledge', 'morale', 'luck', 'sight')
 ITEMS = ('bronzeHelm', 'bronzeCuirass', 'bronzeBracers', 'warBelt', 'bronzeGreaves', 'warSandals', 'noviceSpellbook', 'oracleSpellbook', 'alexandrianCodex', 'catapult', 'catapult2', 'catapult3')
 SLOT_ICONS = ('helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring', 'book', 'machine')

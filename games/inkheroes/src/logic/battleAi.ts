@@ -1,10 +1,27 @@
 import { activeStack, alive, answers, canShoot, handOptions, isStone, moves, strikeFrom, struckBy, targetable } from './battle';
-import type { Action, BattleState, Stack } from './battleTypes';
-import { creature } from './creatures';
+import type { Action, BattleState, Side, Stack } from './battleTypes';
+import { creature, strengthOf } from './creatures';
 import { damageRange, killsBy } from './damage';
 import { distance, HEX_COUNT, neighbours, type Hex } from './hex';
 import { occupiedHexes, shotDistance } from './footprint';
 import { aimFor, insideWalls, moatFor, PART_HEX, standing, TOWERS, wallsAgainst, type SiegePart } from './siege';
+
+/** A lord who can leave the field does once his army is cut down this far and the enemy's is this much stronger. */
+const FLEE = { kept: 0.6, odds: 2 } as const;
+
+/** The fighting strength a side has on the field (war machines don't count). */
+function fieldStrength(state: BattleState, side: Side, at: 'now' | 'start'): number {
+  return state.stacks
+    .filter((x) => x.side === side && !creature(x.creature).machine)
+    .reduce((n, x) => n + strengthOf(x.creature, at === 'now' ? x.count : x.startCount), 0);
+}
+
+/** Whether side `side`'s hero should leave the field: able to, already hurt, and outmatched. */
+export function losing(state: BattleState, side: Side): boolean {
+  if (!state.heroes[side]?.canFlee) return false;
+  const mine = fieldStrength(state, side, 'now');
+  return mine < fieldStrength(state, side, 'start') * FLEE.kept && fieldStrength(state, side === 0 ? 1 : 0, 'now') > mine * FLEE.odds;
+}
 
 const average = (r: { min: number; max: number }): number => (r.min + r.max) / 2;
 
@@ -35,6 +52,7 @@ export function chooseAction(state: BattleState): Action {
   const me = activeStack(state);
   if (!me) throw new Error('no active stack');
   if (creature(me.creature).machine) return machineAction(state, me);
+  if (losing(state, me.side)) return { type: 'flee' };
   const enemies = foesOf(state, me);
   if (canShoot(state, me)) {
     const best = maxBy(enemies, (e) => worth(e, average(damageRange(state, me, e, { ranged: true, distance: shotDistance(me, e), moved: 0 }))));

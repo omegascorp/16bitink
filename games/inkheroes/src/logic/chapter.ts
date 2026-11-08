@@ -45,8 +45,8 @@ export function rideOn(adv: Adventure, from: MapDef, next: MapDef): Adventure {
     begun: adv.day,
     ...(rival ? { rival } : {}),
   };
-  // The hero looks about the newly opened land, and so does each new town on our side.
-  const fresh = towns.filter((t) => (t.owner === 'player' || t.ally) && !adv.towns.some((o) => o.id === t.id));
+  // The hero looks about the newly opened land, and so does each new town of ours (a town waiting for us has to be found).
+  const fresh = towns.filter((t) => t.owner === 'player' && !adv.towns.some((o) => o.id === t.id));
   const seen = openLand(fresh.reduce((a, t) => revealAround(a, next, t.x, t.y, 5), revealAround(opened, next, adv.hero.x, adv.hero.y, sightOf(adv.hero))), next);
   return adv.rival === undefined && seen.rival ? headStart(seen, next) : seen;
 }

@@ -1,6 +1,7 @@
 import type { MapObject } from '../logic/objects';
 import { BLACK_BANNER_LAND } from './blackBanner';
 import { ASHFORD_LAND } from './chapter1';
+import { BORDER_RECRUITS } from './recruits';
 import { THORNWOOD_LAND } from './thornwood';
 import type { HeroDef, MapDef } from './types';
 
@@ -75,6 +76,7 @@ export const THORNWOOD: MapDef = {
     'The ogres are gone and the old bridge is open again. The north road runs on east, into Thornwood forest.',
     'Across the next river, brigands and their cyclops chief have taken Thornwood, the timber town. Take it back from its garrison, and its dwellings will be yours to hire from.',
     'Near the road a spellbook lies on a marble altar, and Stymphalian birds have nested round it. Win it, and magic is yours. Your towns can raise a Mage Guild now too.',
+    'This land is too wide for one rider. Ianthe, a priestess of Athena, waits at your Tavern: hire her for 2500 gold, and she can hold the roads behind you, gather what lies there, and bring your new recruits up.',
   ],
   rows: cut(72, 32),
   seed: SEED,
@@ -82,18 +84,24 @@ export const THORNWOOD: MapDef = {
   towns: (THORNWOOD_LAND.towns ?? []).map((t) => at(t, AT.thornwood)),
   hero: { ...heroAt(THORNWOOD_LAND.hero, AT.thornwood), x: AT.thornwood.x + 1, y: 12 },
   grant: { gold: 2500, wood: 5, ore: 5 },
+  recruits: BORDER_RECRUITS,
   objects: [...ASHFORD.objects, ...thornwoodObjects],
 };
 
 const bannerTowns = BLACK_BANNER_LAND.towns ?? [];
 const rival = BLACK_BANNER_LAND.rival!;
 
-/** Part 3: Eudora opens its gates to Rowan, and the Black Banner rides. Played fresh, Rowan starts at Eudora's gate. */
+/**
+ * Part 3: the Black Banner rides, and Eudora waits somewhere south of the
+ * forest for whoever reaches it first: its gates open to Rowan, or
+ * Kassander takes it. Only the trail's way through the trees is shown, so
+ * the town has to be found. Played fresh, Rowan starts at Eudora's gate.
+ */
 export const BLACK_BANNER: MapDef = {
   ...BLACK_BANNER_LAND,
   intro: [
-    'Thornwood is free, and its foresters show you an old trail: it leaves the south road west of the river and runs down through the trees to Eudora. Eudora has kept its gates shut against the Black Banner. Ride down to it, and it opens them to you: yours to build in and hire from.',
-    'Kassander of Korax flies a black banner with a red raven, and he serves no crown. He builds and hires as you do, takes the mines, and will come for your towns when he thinks he can win. Beat him to the lakelands, take Korax, and hunt him down.',
+    'Thornwood is free, and its foresters show you an old trail: it leaves the south road west of the river and runs down through the trees into the lands beyond. Somewhere down there a town called Eudora still keeps its gates shut against the Black Banner. Find it, and it will open them to you: yours to build in and hire from.',
+    'Kassander of Korax flies a black banner with a red raven, and he serves no crown. His riders are out for Eudora too, and if he gets there first it will fly his banner. He builds and hires as you do, takes the mines, and will come for your towns when he thinks he can win. Take Korax and hunt him down: while he has a town to run to, he will leave a lost battle and hire again.',
     'Korax stands behind higher walls than Thornwood’s. Your Catapult will have more to do there: a finer one breaks them faster.',
   ],
   rows: cut(72, 68),
@@ -107,9 +115,10 @@ export const BLACK_BANNER: MapDef = {
   hero: heroAt(BLACK_BANNER_LAND.hero, AT.blackBanner),
   rival: { ...rival, hero: heroAt(rival.hero, AT.blackBanner) },
   grant: { gold: 3000, wood: 5, ore: 5, mercury: 2, sulfur: 2, crystal: 2, gems: 2 },
+  recruits: BORDER_RECRUITS,
   opening: {
-    text: 'The forest trail south, down to Eudora',
-    way: [{ x: TRAIL_X, y: 30 }, { x: TRAIL_X, y: 41 }, { x: TRAIL_X - 1, y: 61 }, { x: BLACK_BANNER_LAND.town.x + AT.blackBanner.x, y: 61 }],
+    text: 'The forest trail south, into the lands beyond',
+    way: [{ x: TRAIL_X, y: 30 }, { x: TRAIL_X, y: 41 }],
   },
   objects: [...THORNWOOD.objects, ...placed(BLACK_BANNER_LAND.objects, AT.blackBanner, 'banner', THORNWOOD.objects)],
 };

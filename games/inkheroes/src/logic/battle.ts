@@ -250,6 +250,7 @@ export function act(state: BattleState, action: Action): Step {
   const me = activeStack(state);
   if (!me) throw new Error('no active stack');
   if (action.type === 'cast') return castSpell(state, me.side, action.spell, action.target);
+  if (action.type === 'flee') return flee(state, me.side);
   const events: BattleEvent[] = [];
   let s = state;
   switch (action.type) {
@@ -432,6 +433,13 @@ function afterAction(s: BattleState, id: number, events: BattleEvent[]): Step {
 }
 
 /** A stack's morale: its side's hero and army make-up; undead have none. */
+/** Side `side`'s hero leaves the field (only a hero who can): the other side holds it. */
+export function flee(state: BattleState, side: Side): Step {
+  if (!state.heroes[side]?.canFlee) throw new Error('this side cannot flee');
+  const winner: Side = side === 0 ? 1 : 0;
+  return { state: { ...state, active: null, winner, fled: side }, events: [{ type: 'flee', side }, { type: 'end', winner }] };
+}
+
 export function moraleFor(s: BattleState, st: Stack): number {
   if (creature(st.creature).undead) return 0;
   return Math.max(-3, Math.min(3, s.heroes[st.side]?.morale ?? 0));

@@ -43,11 +43,26 @@ export function faceOf(scene: Phaser.Scene, key: string, art: UnitArt, size: num
   return texturePixels(scene, key, faceBox(art, size));
 }
 
-/** A hero's art: the player's ('player') or the rival lord's ('rival'), falling back to the player's. */
-export function heroArt(who: 'player' | 'rival' = 'player'): { id: string; art: UnitArt } {
-  const id = HERO_ART[who] ? who : HERO_ART.player ? 'player' : Object.keys(HERO_ART)[0]!;
+/**
+ * A hero's art: the rival lord's ('rival'), or a hero of the player's, by
+ * their id when that hero has art of their own (`HERO_ART.ianthe`), else the
+ * player's first hero's ('player', Rowan). Anything missing falls back to it.
+ */
+export function heroArt(who: 'player' | 'rival' = 'player', heroId?: string): { id: string; art: UnitArt } {
+  const id = heroArtId(Object.keys(HERO_ART), who, heroId);
   return { id, art: HERO_ART[id]! };
 }
+
+/** Which of the drawn heroes (`drawn`, HERO_ART's keys) stands for `who`, or for player hero `heroId`. */
+export function heroArtId(drawn: readonly string[], who: 'player' | 'rival', heroId?: string): string {
+  const has = (k: string): boolean => drawn.includes(k);
+  if (who === 'player' && heroId && heroId !== 'rival' && has(heroId)) return heroId;
+  if (has(who)) return who;
+  return has('player') ? 'player' : drawn[0]!;
+}
+
+/** Every hero drawn, for the loaders: each one's poses come in with the rest. */
+export const HERO_IDS: readonly string[] = Object.keys(HERO_ART);
 
 /** The terrain a battle's backdrop is drawn for (water and anything unknown fight on grass). */
 function backdropTerrain(terrain: string): string {
@@ -80,9 +95,9 @@ export function loadBattleArt(scene: Phaser.Scene, creatures: readonly string[],
     const art = unitArt(id);
     for (const pose of POSES) sheet(PX_TEX.unit(id, pose), art.url[pose], art);
   }
-  for (const who of ['player', 'rival'] as const) {
-    const hero = heroArt(who);
-    for (const pose of POSES) sheet(PX_TEX.hero(hero.id, pose), hero.art.url[pose], hero.art);
+  for (const id of HERO_IDS) {
+    const art = HERO_ART[id]!;
+    for (const pose of POSES) sheet(PX_TEX.hero(id, pose), art.url[pose], art);
   }
   const bg = backdropTerrain(terrain);
   if (SCENERY[bg]) image(PX_TEX.scenery(bg), SCENERY[bg]!.url);

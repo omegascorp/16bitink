@@ -64,6 +64,8 @@ export interface MapDef {
   readonly grant?: Amount;
   /** The way into this part from the last: the land along it is seen from the start, and the map flies along it once the part's card is read. */
   readonly opening?: { readonly text: string; readonly way: readonly { readonly x: number; readonly y: number }[] };
+  /** The heroes a Tavern of ours can hire on this map, in order (each one once; x and y are where they stand when hired). */
+  readonly recruits?: readonly HeroDef[];
   /** Buildings switched off on this map. */
   readonly off: readonly BuildingId[];
   readonly seed: number;
@@ -85,4 +87,6 @@ export interface HeroDef {
   /** What they wear from the start: a `book` is what gives them magic. */
   readonly gear?: Gear;
   readonly army: readonly ArmySlot[];
+  /** A line about them, for the Tavern that hires them. */
+  readonly blurb?: string;
 }

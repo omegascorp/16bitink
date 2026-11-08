@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { MAP_COVER } from '../../art/pixel/map';
 import { BACKDROP } from '../../art/palette';
 import type { MapDef } from '../../level/types';
-import { gridOf, isSeen, liveObjects, type Adventure } from '../../logic/adventure';
+import { gridOf, isSeen, liveObjects, ourHeroes, type Adventure } from '../../logic/adventure';
+import type { Hero } from '../../logic/hero';
 import type { Town } from '../../logic/town';
 import type { Terrain } from '../../logic/map';
 import type { MapObject, Owner } from '../../logic/objects';
@@ -95,8 +96,9 @@ function drawMark(kind: 'dot' | 'ring' | 'cross', ink: Rgba): PixelBuffer {
  * Everything drawn on the adventure map, as pixel art on the battle's grid:
  * the composed ground, cover (forests, mountain ranges, boulders, the
  * bridge), sites with their flags, monsters and the hero as their battle
- * figures (idle loops; the hero's walk while riding), the planned path and
- * a dithered fog. It only draws: the scene owns the state and calls sync()
+ * figures (idle loops; the picked hero's walk while riding; the player's
+ * other heroes stand idle where they wait), the planned path and a dithered
+ * fog. It only draws: the scene owns the state and calls sync()
  * after every change. World coordinates are map pixels from tile (0, 0).
  */
 export class PixelMapWorld {
@@ -104,7 +106,10 @@ export class PixelMapWorld {
   private readonly sprites = new Map<string, Phaser.GameObjects.GameObject & { setVisible(v: boolean): unknown }>();
   private readonly flags = new Map<string, Phaser.GameObjects.Image>();
   private readonly figures: PixelFigure[] = [];
-  private readonly hero: PixelFigure;
+  /** A figure for each hero of ours, by id: the picked one rides, the rest stand. */
+  private readonly ours = new Map<string, PixelFigure>();
+  /** The picked hero's id: the figure the ride moves (it only changes between rides). */
+  private picked: string;
   /** The rival lord's figure, on a map that has one; shown only on tiles the player has seen. */
   private readonly rival: PixelFigure | null;
   private readonly heroRide: Ride;
@@ -138,10 +143,8 @@ export class PixelMapWorld {
     }
     for (const t of adv.towns) this.addTown(t);
     for (const o of def.objects) this.addObject(o);
-    const h = heroArt();
-    const feet = tileFeet(adv.hero.x, adv.hero.y);
-    this.hero = new PixelFigure(scene, this.layer, h.art, (pose) => PX_TEX.hero(h.id, pose), feet, false);
-    this.figures.push(this.hero);
+    this.picked = adv.hero.id;
+    for (const h of ourHeroes(adv)) this.addHero(h);
     const r = adv.rival?.hero;
     const ra = heroArt('rival');
     this.rival = r ? new PixelFigure(scene, this.layer, ra.art, (pose) => PX_TEX.hero(ra.id, pose), tileFeet(r.x, r.y), true) : null;
@@ -254,6 +257,41 @@ export class PixelMapWorld {
     if (o.kind === 'mine') this.addFlag(o.id, 'neutral', feet.x + Math.floor(s.sprite.w * 0.25), feet.y - s.sprite.h + 12, FIGURE_DEPTH + feet.y);
   }
 
+  /** A figure for hero `h` of ours, in their own art when drawn (else Rowan's), standing on their tile. */
+  private addHero(h: Hero): PixelFigure {
+    const art = heroArt('player', h.id);
+    const feet = tileFeet(h.x, h.y);
+    const fig = new PixelFigure(this.scene, this.layer, art.art, (pose) => PX_TEX.hero(art.id, pose), feet, false);
+    this.figures.push(fig);
+    this.ours.set(h.id, fig);
+    return fig;
+  }
+
+  /** The picked hero's figure (made if it's new: just hired). */
+  private get hero(): PixelFigure {
+    return this.ours.get(this.picked)!;
+  }
+
+  /** One figure for each hero of ours, each on their tile: a new hire gets one, a fallen hero's goes. The rider is left where the ride has them. */
+  private syncHeroes(adv: Adventure): void {
+    const heroes = ourHeroes(adv);
+    const ids = new Set(heroes.map((h) => h.id));
+    for (const [id, fig] of this.ours) {
+      if (ids.has(id)) continue;
+      fig.destroy();
+      this.ours.delete(id);
+      this.figures.splice(this.figures.indexOf(fig), 1);
+    }
+    const riding = this.heroRide.moving;
+    if (!riding) this.picked = adv.hero.id;
+    for (const h of heroes) {
+      const fig = this.ours.get(h.id) ?? this.addHero(h);
+      if (riding && h.id === this.picked) continue;
+      const f = tileFeet(h.x, h.y);
+      fig.setFeet(f.x, f.y);
+    }
+  }
+
   /** Brings every drawing in line with the state. */
   sync(adv: Adventure): void {
     const live = new Set(liveObjects(adv).map((o) => o.id));
@@ -264,7 +302,7 @@ export class PixelMapWorld {
       if (flag) flag.setTexture(this.flagKey(o.owner === 'player' ? 'player' : o.owner === 'rival' ? 'rival' : 'neutral')).setVisible(seen(o.x, o.y));
     }
     for (const s of this.shrouded) s.obj.setVisible(seen(s.x, s.y));
-    if (!this.heroRide.moving) this.placeHero(adv.hero.x, adv.hero.y);
+    this.syncHeroes(adv);
     if (!this.rivalRide.moving) this.placeRival(adv);
     for (const t of adv.towns) {
       this.flags.get(`town-${t.id}`)?.setTexture(this.flagKey(t.owner));
@@ -319,11 +357,6 @@ export class PixelMapWorld {
   /** The hero's feet, map pixels. */
   get heroFeet(): { x: number; y: number } {
     return this.hero.feet;
-  }
-
-  placeHero(x: number, y: number): void {
-    const f = tileFeet(x, y);
-    this.hero.setFeet(f.x, f.y);
   }
 
   /** Whether the hero is between two tiles. */

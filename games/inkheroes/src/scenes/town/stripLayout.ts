@@ -14,17 +14,20 @@ const TOWN_W = { max: 150, min: 110 } as const;
 export const BTN = { w: 56, gap: 3, narrowH: 56 } as const;
 /** The rows of buttons beside the armies, each as high as a slot. */
 const GRID_ROWS = 2;
-export type TownButton = 'hall' | 'fort' | 'guild' | 'smith' | 'leave';
+export type TownButton = 'hall' | 'fort' | 'guild' | 'smith' | 'tavern' | 'leave';
 
-/** The buttons a town shows: the Guild and the Blacksmith only once they stand. */
-export function townButtons(built: readonly BuildingId[]): TownButton[] {
-  return ['hall', 'fort', ...(built.includes('mageGuild1') ? ['guild' as const] : []), ...(built.includes('blacksmith') ? ['smith' as const] : []), 'leave'];
+/** The buttons a town shows: the Guild and the Blacksmith only once they stand, the Tavern once it stands on a map with heroes to hire (`hires`). */
+export function townButtons(built: readonly BuildingId[], hires = false): TownButton[] {
+  const has = (b: BuildingId): boolean => built.includes(b);
+  return ['hall', 'fort', ...(has('mageGuild1') ? ['guild' as const] : []), ...(has('blacksmith') ? ['smith' as const] : []), ...(hires && has('tavern') ? ['tavern' as const] : []), 'leave'];
 }
 
 /** `cells` buttons' width, side by side. */
 export const cellsW = (cells: number): number => cells * BTN.w + (cells - 1) * BTN.gap;
 /** `count` buttons in a row, over the armies on a stacked strip. */
 export const buttonsW = (count: number): number => cellsW(count);
+/** A button's width in the stacked strip's row on a `w` wide screen: narrower than usual when all of them wouldn't fit. */
+export const narrowButtonW = (count: number, w: number): number => Math.min(BTN.w, Math.floor((w - PAD * 2 - (count - 1) * BTN.gap) / count));
 const gridCols = (count: number): number => Math.max(2, Math.ceil(count / GRID_ROWS));
 /** `count` buttons in their grid, beside the armies. */
 export const buttonsGridW = (count: number): number => cellsW(gridCols(count));

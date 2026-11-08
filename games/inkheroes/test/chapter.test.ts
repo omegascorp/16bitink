@@ -35,16 +35,16 @@ const midpoint = (xs: readonly number[]): number => [...xs].sort((a, b) => a - b
 const groups = (objects: readonly MapObject[]): number[] => objects.filter((o) => o.kind === 'monster').map((o) => strengthOf(o.creature!, o.count ?? 1));
 
 describe('the way into the Black Banner', () => {
-  it('is a road the hero can see from the moment the part opens, right down to Eudora', () => {
+  it('is a road the hero can see from the moment the part opens, through the forest and no further', () => {
     const next = rideOn(thornwoodWon(30), THORNWOOD, BLACK_BANNER);
     const g = gridOf(BLACK_BANNER);
     for (let y = 31; y <= 40; y++) {
       expect(g.cover[tileIndex(g, 38, y)]).toBe('road');
       expect(isSeen(next, BLACK_BANNER, 38, y)).toBe(true);
     }
-    expect(isSeen(next, BLACK_BANNER, 37, 50)).toBe(true);
-    expect(isSeen(next, BLACK_BANNER, 32, 61)).toBe(true);
-    // Only the way: the hills beyond the ridge stay dark.
+    // Only the way: Eudora has to be found, and the hills beyond the ridge stay dark.
+    expect(isSeen(next, BLACK_BANNER, 32, 59)).toBe(false);
+    expect(isSeen(next, BLACK_BANNER, 37, 50)).toBe(false);
     expect(isSeen(next, BLACK_BANNER, 63, 40)).toBe(false);
   });
 
@@ -154,14 +154,14 @@ describe('the chapter as one land', () => {
     return rideOn(taken, THORNWOOD, BLACK_BANNER);
   };
 
-  it('rides on into the Black Banner: the rival lord rides, and Eudora waits for the hero', () => {
+  it('rides on into the Black Banner: the rival lord rides, and Eudora waits, unseen, for the hero', () => {
     const next = blackBanner();
     expect(next.mapId).toBe('blackBanner');
     expect(playerTowns(next).map((t) => t.name)).toEqual(['Ashford', 'Thornwood']);
     expect(townById(next, 'eudora-town')).toMatchObject({ owner: 'neutral', ally: true });
     expect(townById(next, 'korax-town')!.owner).toBe('rival');
     expect(next.rival?.hero?.name).toBe('Kassander');
-    expect(isSeen(next, BLACK_BANNER, townById(next, 'eudora-town')!.x, townById(next, 'eudora-town')!.y)).toBe(true);
+    expect(isSeen(next, BLACK_BANNER, townById(next, 'eudora-town')!.x, townById(next, 'eudora-town')!.y)).toBe(false);
     expect(parseAdventure(JSON.parse(JSON.stringify(next)), BLACK_BANNER)).toEqual(next);
   });
 

@@ -47,6 +47,8 @@ export interface BattleHero {
   /** Morale and luck from skills and sites (the army's own bonuses are added per stack). */
   readonly morale: number;
   readonly luck: number;
+  /** A lord with a town of his own to ride to: he can leave a lost battle (H3's retreat), giving up his army. */
+  readonly canFlee?: boolean;
 }
 
 export interface BattleState {
@@ -60,6 +62,8 @@ export interface BattleState {
   readonly cast: readonly [boolean, boolean];
   readonly seed: number;
   readonly winner: Side | null;
+  /** The side whose hero left the field (the other side won). */
+  readonly fled?: Side;
   /** The walls, in a battle at a fortified town. */
   readonly siege?: Siege;
 }
@@ -74,7 +78,9 @@ export type Action =
   | { readonly type: 'catapult' }
   /** Strikes the gate or a tower by hand from head hex `from`, walking there first. */
   | { readonly type: 'bash'; readonly part: SiegePart; readonly from: Hex }
-  | { readonly type: 'cast'; readonly spell: SpellId; readonly target: number };
+  | { readonly type: 'cast'; readonly spell: SpellId; readonly target: number }
+  /** The side's hero leaves the field with what is left of the army lost to them. */
+  | { readonly type: 'flee' };
 
 /** What happened, in order, for the battle scene to animate. */
 export type BattleEvent =
@@ -97,6 +103,8 @@ export type BattleEvent =
   | { readonly type: 'fall'; readonly stack: number; readonly to: Hex }
   | { readonly type: 'turn'; readonly stack: number }
   | { readonly type: 'round'; readonly round: number }
+  /** A hero left the field: the side's companies go with them. */
+  | { readonly type: 'flee'; readonly side: Side }
   | { readonly type: 'end'; readonly winner: Side };
 
 export interface Step {

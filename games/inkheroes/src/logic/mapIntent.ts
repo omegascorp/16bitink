@@ -1,15 +1,17 @@
 import type { MapDef } from '../level/types';
-import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, planPath, rivalAt, townAt, type Adventure } from './adventure';
+import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, otherHeroAt, planPath, rivalAt, townAt, type Adventure } from './adventure';
 import { inGrid } from './map';
 import { undefended } from './town';
 
-/** What a tap on a tile would have the hero do: ride there, end up in a fight, or take or enter something. */
+/** What a tap on a tile would have the hero do: ride there, end up in a fight, or take or enter something (or pick or meet another hero of ours). */
 export type MapIntent = 'move' | 'attack' | 'visit';
 
 /** The intent at (x, y), or null where a tap does nothing: the fog, no way there, a hero left in the garrison. */
 export function intentAt(adv: Adventure, def: MapDef, x: number, y: number): MapIntent | null {
   if (!inGrid(gridOf(def), x, y) || !isSeen(adv, def, x, y)) return null;
   if (x === adv.hero.x && y === adv.hero.y) return heroTown(adv) ? 'visit' : null;
+  // Another hero of ours: picked, or met from beside them.
+  if (otherHeroAt(adv, x, y)) return 'visit';
   if (heroInGarrison(adv)) return null;
   // A tap anywhere on an object's picture heads for the object itself.
   const o = objectCovering(adv, x, y);

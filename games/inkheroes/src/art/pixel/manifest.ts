@@ -109,6 +109,9 @@ import hero_playerAttack from './units/hero_player-attack.png?url';
 import hero_rivalIdle from './units/hero_rival-idle.png?url';
 import hero_rivalWalk from './units/hero_rival-walk.png?url';
 import hero_rivalAttack from './units/hero_rival-attack.png?url';
+import hero_iantheIdle from './units/hero_ianthe-idle.png?url';
+import hero_iantheWalk from './units/hero_ianthe-walk.png?url';
+import hero_iantheAttack from './units/hero_ianthe-attack.png?url';
 import bgGrass from './battle/bg-grass.png?url';
 import bgDirt from './battle/bg-dirt.png?url';
 import bgRough from './battle/bg-rough.png?url';
@@ -375,6 +378,13 @@ export const HERO_ART: Readonly<Record<string, UnitArt>> = {
     walkFootX: 54,
     face: { x: 55, y: 27 },
     url: { idle: hero_rivalIdle, walk: hero_rivalWalk, attack: hero_rivalAttack },
+  },
+  ianthe: {
+    name: 'Ianthe', w: 144, h: 136, footX: 54, footY: 130,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    walkFootX: 61,
+    face: { x: 59, y: 29 },
+    url: { idle: hero_iantheIdle, walk: hero_iantheWalk, attack: hero_iantheAttack },
   },
 };
 

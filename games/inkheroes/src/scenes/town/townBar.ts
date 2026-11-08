@@ -11,9 +11,9 @@ import { ArmyDrag } from '../hud/armyDrag';
 import { ArmyRow } from '../hud/armyRow';
 import { armyRowW, armyRowOf } from '../hud/armySlots';
 import { PurseRow, PURSE_BAR_H, PURSE_ROW_W } from '../hud/purseRow';
-import { armiesW, armyH, BTN, buttonGrid, buttonsGridW, buttonsW, cellsW, GAP, HEAD_GAP, LINE, NARROW_ROUND, PAD, ROW_GAP, stripLayout, townButtons, type TownButton } from './stripLayout';
+import { armiesW, armyH, BTN, buttonGrid, buttonsGridW, cellsW, GAP, HEAD_GAP, LINE, NARROW_ROUND, narrowButtonW, PAD, ROW_GAP, stripLayout, townButtons, type TownButton } from './stripLayout';
 
-export type TownScreen = 'hall' | 'fort' | 'guild' | 'smith';
+export type TownScreen = 'hall' | 'fort' | 'guild' | 'smith' | 'tavern';
 /** A slot of a row; `i` HEAD is the row's head (the crest or the hero's face): picking the hero there moves them with every company. */
 export type SlotRef = { readonly army: 'hero' | 'garrison' | 'tower'; readonly i: number };
 export const HEAD = -1;
@@ -56,7 +56,7 @@ const PANEL_FILL = [34, 24, 17, 246] as const;
  * hero, slot by slot (tap one, then another, to move troops; tap the
  * hero's face, then the other row, to move the hero with every company,
  * or drag a company there; a picked company can be split); Hall, Fort,
- * the Guild and the Blacksmith once built, and Leave, in two rows; under it
+ * the Guild, the Blacksmith and the Tavern once built, and Leave, in two rows; under it
  * all the purse and the date. On a narrow screen the buttons and the town's
  * lines stack above the armies.
  */
@@ -75,6 +75,8 @@ export class TownBar {
   private readonly drag: ArmyDrag<SlotRef>;
   private readonly splitBtn: PixelButton;
   private slot = 0;
+  /** The hero whose face heads their row (the picked one). */
+  private faceFor = '';
   /** The row the hero heads: the visitor's, or the garrison's. */
   private heroRow: SlotRef['army'] = 'hero';
   private readonly away: TextLabel;
@@ -84,6 +86,8 @@ export class TownBar {
   private towersHidden = false;
   private readonly buttons: PixelButton[];
   private narrow = false;
+  /** A button's width on the stacked strip. */
+  private narrowW: number = BTN.w;
   /** What the buttons were last made for. */
   private buttonsKey = '';
   private armiesAt = { x: 0, y: 0 };
@@ -127,12 +131,13 @@ export class TownBar {
       fort: { label: 'Fort', icon: 'recruit', onClick: () => actions.open('fort') },
       guild: { label: 'Guild', icon: 'spell', onClick: () => actions.open('guild') },
       smith: { label: 'Smith', icon: 'smith', onClick: () => actions.open('smith') },
+      tavern: { label: 'Tavern', icon: 'tavern', onClick: () => actions.open('tavern') },
       leave: { label: 'Leave', icon: 'leave', rim: 'gold', onClick: () => actions.leave() },
     };
     const grid = buttonGrid(names.length);
     names.forEach((name, i) => {
       const s = specs[name];
-      const btn = new PixelButton(this.scene, { w: narrow ? BTN.w : cellsW(grid[i]!.span), h, label: s.label, icon: s.icon, stacked: true, rim: s.rim, onClick: s.onClick });
+      const btn = new PixelButton(this.scene, { w: narrow ? this.narrowW : cellsW(grid[i]!.span), h, label: s.label, icon: s.icon, stacked: true, rim: s.rim, onClick: s.onClick });
       btn.root.setDepth(this.depth + 1);
       this.buttons.push(btn);
     });
@@ -151,7 +156,7 @@ export class TownBar {
     const crestIcon = scene.add.image(slot / 2, slot / 2, UI_TEX.icon('town'));
     tapHead(crestFrame.img, () => 'garrison');
     const crest = scene.add.container(0, 0, [crestFrame.img, crestIcon]).setDepth(depth + 1);
-    const hero = heroArt();
+    const hero = heroArt('player', this.faceFor);
     const cut = faceOf(scene, PX_TEX.hero(hero.id, 'idle'), hero.art, slot - 4);
     const face = new PixelImage(scene, drawPortrait(cut, 'bronze', false, false, slot));
     const lit = new PixelImage(scene, drawPortrait(cut, 'gold', false, false, slot));
@@ -188,13 +193,14 @@ export class TownBar {
     this.faces = null;
   }
 
-  /** Lays the strip out for town `t` on a `w` × `h` screen; where its top lands. */
-  layout(w: number, h: number, t: Town): number {
-    const names = townButtons(t.built);
+  /** Lays the strip out for town `t` on a `w` × `h` screen, with the Tavern's button when it `hires`; where its top lands. */
+  layout(w: number, h: number, t: Town, hires = false): number {
+    const names = townButtons(t.built, hires);
     const { narrow, slot, townW } = stripLayout(w, h, PURSE_BAR_H, names.length);
     if (slot !== this.slot) this.makeFaces(slot);
     const buttonsH = narrow ? BTN.narrowH : slot;
-    const key = `${names.join()}:${buttonsH}:${narrow}`;
+    this.narrowW = narrowButtonW(names.length, w);
+    const key = `${names.join()}:${buttonsH}:${narrow}:${this.narrowW}`;
     if (key !== this.buttonsKey) this.makeButtons(names, buttonsH, narrow);
     this.buttonsKey = key;
     this.narrow = narrow;
@@ -236,8 +242,9 @@ export class TownBar {
   private layoutNarrow(w: number): void {
     const armies = armiesW(this.slot);
     let y = this.top + PAD;
-    const bx = Math.floor((w - buttonsW(this.buttons.length)) / 2);
-    this.buttons.forEach((b, i) => b.setPosition(bx + i * (BTN.w + BTN.gap), y));
+    const n = this.buttons.length;
+    const bx = Math.floor((w - (n * this.narrowW + (n - 1) * BTN.gap)) / 2);
+    this.buttons.forEach((b, i) => b.setPosition(bx + i * (this.narrowW + BTN.gap), y));
     y += BTN.narrowH + ROW_GAP;
     const left = Math.floor((w - armies) / 2);
     this.name.setPosition(left, y);
@@ -290,6 +297,12 @@ export class TownBar {
 
   /** Shows town `t`'s lines and armies (the hero's row only when the hero is in it); `picked` lit, with Split when it can be split. */
   refresh(adv: Adventure, t: Town, picked: SlotRef | null): void {
+    if (adv.hero.id !== this.faceFor) {
+      // Another hero picked (one just hired): their face heads the row.
+      this.faceFor = adv.hero.id;
+      this.makeFaces(this.slot);
+      this.placeArmies(this.armiesAt.x, this.armiesAt.y);
+    }
     const f = this.faces!;
     this.purse.set(adv.purse);
     this.date.setText(calendar(adv.day));

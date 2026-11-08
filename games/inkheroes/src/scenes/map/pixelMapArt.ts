@@ -1,10 +1,10 @@
 import Phaser from 'phaser';
 import { MAP_COVER, MAP_GROUND, MAP_SITES, MAP_VIGNETTES, type MapCover, type MapSprite } from '../../art/pixel/map';
-import { UNIT_ART } from '../../art/pixel/manifest';
+import { HERO_ART, UNIT_ART } from '../../art/pixel/manifest';
 import type { SiteArt } from '../../art/sites/types';
 import { CREATURE_IDS } from '../../logic/creatures';
 import type { MapObject } from '../../logic/objects';
-import { heroArt, nearest, POSES, PX_TEX, unitArt } from '../battle/pixelAssets';
+import { HERO_IDS, nearest, POSES, PX_TEX, unitArt } from '../battle/pixelAssets';
 import { loadUiFont } from '../battle/pixelFont';
 import { loadUiArt } from '../battle/pixelUi';
 import { queueTownArt } from '../town/townTex';
@@ -70,9 +70,10 @@ export function loadMapArt(scene: Phaser.Scene, creatures: readonly string[], wo
     const art = unitArt(id);
     sheet(PX_TEX.unit(id, 'idle'), art.url.idle, art.w, art.h);
   }
-  for (const who of ['player', 'rival'] as const) {
-    const hero = heroArt(who);
-    for (const pose of POSES) sheet(PX_TEX.hero(hero.id, pose), hero.art.url[pose], hero.art.w, hero.art.h);
+  // Every hero drawn: any of the player's may be hired or picked on this map.
+  for (const id of HERO_IDS) {
+    const art = HERO_ART[id]!;
+    for (const pose of POSES) sheet(PX_TEX.hero(id, pose), art.url[pose], art.w, art.h);
   }
   keys.push(...loadUiArt(scene));
   const font = loadUiFont().catch((e: unknown) => console.warn('map UI font failed to load', e));

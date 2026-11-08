@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getSound } from '../host';
 import type { MapDef } from '../level/types';
-import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, planPath, rivalHero, stepHero, wallsToStorm, type Adventure } from '../logic/adventure';
+import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, otherHeroAt, planPath, rivalHero, stepHero, wallsToStorm, type Adventure } from '../logic/adventure';
+import { besideEachOther, selectHero } from '../logic/heroes';
 import type { Army } from '../logic/army';
 import { creature, sizeWord, type CreatureId } from '../logic/creatures';
 import { intentAt, type MapIntent } from '../logic/mapIntent';
@@ -12,6 +13,7 @@ import type { RivalReport } from '../logic/rival';
 import { SPELLS } from '../logic/spells';
 import { openCard } from './CardScene';
 import { openPrompt, wallsCard } from './cards';
+import { tradeCard } from './hud/tradeCard';
 import { DPR, toView } from './hidpi';
 import { loadMapArt } from './map/pixelMapArt';
 import { PixelMapWorld } from './map/pixelMapWorld';
@@ -36,8 +38,9 @@ const PINCH_STEP = 1.35;
 const CURSOR: Readonly<Record<MapIntent, CursorKind>> = { move: 'move', attack: 'attack', visit: 'visit' };
 
 /**
- * The adventure map: the painted ground, sites, monsters and the hero.
- * Tap a tile to plan a path, tap it again to go; drag to look round, wheel
+ * The adventure map: the painted ground, sites, monsters and the heroes.
+ * Tap a tile to plan a path, tap it again to go; tap another of your heroes
+ * to pick them (or, beside them, to meet them); drag to look round, wheel
  * or pinch to zoom. Its HUD (MapHudScene) runs on top.
  */
 export class MapScene extends Phaser.Scene {
@@ -247,6 +250,8 @@ export class MapScene extends Phaser.Scene {
     if (x < 0 || y < 0 || x >= g.w || y >= g.h || !isSeen(adv, def, x, y)) return '';
     const foe = rivalHero(adv);
     if (foe && foe.x === x && foe.y === y && !adv.towns.some((t) => t.x === x && t.y === y)) return `${foe.name} of the Black Banner, leading ${armyWords(foe.army)}`;
+    const friend = otherHeroAt(adv, x, y);
+    if (friend) return `${friend.name}, leading ${armyWords(friend.army)}: ${besideEachOther(adv.hero, friend) ? 'tap to meet and trade companies' : 'tap to pick'}`;
     const town = adv.towns.find((t) => Math.abs(x - t.x) <= 1 && (y === t.y || y === t.y - 1));
     if (town) {
       if (town.owner === 'player') return `${town.name}: your town`;
@@ -278,6 +283,7 @@ export class MapScene extends Phaser.Scene {
       this.events.emit('status', this.describe(x, y));
       return;
     }
+    if (this.tapFriend(x, y)) return;
     const { adv, def } = this.session;
     const end = this.path?.[this.path.length - 1];
     this.events.emit('status', this.describe(x, y));
@@ -305,6 +311,37 @@ export class MapScene extends Phaser.Scene {
     this.setPath(planPath(adv, def, o?.x ?? x, o?.y ?? y));
   }
 
+  /**
+   * A tap on another hero of ours: with a path planned to them, or standing
+   * beside them, the picked hero rides over to meet them; otherwise they are
+   * picked. False when no hero of ours stands there.
+   */
+  private tapFriend(x: number, y: number): boolean {
+    const { adv, def } = this.session;
+    const friend = otherHeroAt(adv, x, y);
+    if (!friend) return false;
+    const end = this.path?.[this.path.length - 1];
+    if (end && end.x === x && end.y === y) this.walk(this.path!);
+    else if (besideEachOther(adv.hero, friend) && !heroInGarrison(adv)) {
+      const path = planPath(adv, def, x, y);
+      if (path) this.walk(path);
+      else this.pickHero(friend.id);
+    } else this.pickHero(friend.id);
+    return true;
+  }
+
+  /** Hero `id` of ours becomes the one moved: the path is cleared and the view goes to them. */
+  pickHero(id: string): void {
+    if (this.blocked() || id === this.session.adv.hero.id) return;
+    const next = selectHero(this.session.adv, id);
+    if (next === this.session.adv) return;
+    getSound(this)?.play('card');
+    this.setPath(null);
+    this.session.set(next);
+    this.centreOnHero();
+    this.events.emit('status', `${next.hero.name} is picked`);
+  }
+
   private setPath(path: PathStep[] | null): void {
     this.path = path;
     this.world.showPath(path);
@@ -326,6 +363,12 @@ export class MapScene extends Phaser.Scene {
       return;
     }
     const r = stepHero(this.session.adv, this.session.def, step, path[path.length - 1]);
+    if (r.meet) {
+      this.world.faceHero(step.x);
+      this.endWalk([]);
+      this.meet(r.meet);
+      return;
+    }
     if (r.adv === this.session.adv) {
       if (!r.battle) {
         this.endWalk(path.slice(i));
@@ -356,6 +399,11 @@ export class MapScene extends Phaser.Scene {
       this.world.faceHero(step.x);
       arrive();
     }
+  }
+
+  /** The picked hero has met hero `id` of ours: the card where they trade companies. */
+  private meet(id: string): void {
+    openCard(this, tradeCard(this.session, id));
   }
 
   /** Stops at once, for a scene about to open. */

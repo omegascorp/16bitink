@@ -4,7 +4,8 @@ import { BLACK_BANNER } from '../src/level/borderMarch';
 import { afterBattle, battleSides, checkGoal, DEFEND, endDay, isSeen, playerTowns, RIVAL, startAdventure, stepHero, takeTown, townById, wallsToStorm, withTown, type Adventure } from '../src/logic/adventure';
 import { undefended } from '../src/logic/town';
 import { armyOf } from '../src/logic/army';
-import { createBattle } from '../src/logic/battle';
+import { act, createBattle } from '../src/logic/battle';
+import { losing } from '../src/logic/battleAi';
 import type { BattleState } from '../src/logic/battleTypes';
 import { armyStrength, autoBattle, rivalTurn } from '../src/logic/rival';
 
@@ -215,10 +216,10 @@ describe('the Blacksmith', () => {
     expect(one.purse.gold).toBe(smithy.purse.gold - 1500);
     expect(one.hero.gear?.machine).toBe('catapult');
     expect(cantBuyMachine(one, 'catapult')).toMatch(/as good/);
-    expect(battleSides(one, 'north-pass-brigands').attacker.machine).toBe('catapult');
-    const st = createBattle(battleSides(one, 'north-pass-brigands').attacker, battleSides(one, 'north-pass-brigands').defender, 1).state;
+    expect(battleSides(one, 'south-pass-wolves').attacker.machine).toBe('catapult');
+    const st = createBattle(battleSides(one, 'south-pass-wolves').attacker, battleSides(one, 'south-pass-wolves').defender, 1).state;
     const won = { ...st, winner: 0 as const, stacks: st.stacks.map((x) => (x.side === 1 ? { ...x, count: 0 } : x)) };
-    expect(machineOf(afterBattle(one, def, 'north-pass-brigands', won).hero)).toBe('catapult');
+    expect(machineOf(afterBattle(one, def, 'south-pass-wolves', won).hero)).toBe('catapult');
   });
 
   it('sells a finer grade over a lesser one, which goes to the bag', async () => {
@@ -230,7 +231,7 @@ describe('the Blacksmith', () => {
     expect(better.hero.gear?.machine).toBe('catapult2');
     expect(better.hero.bag).toEqual(['catapult']);
     expect(cantBuyMachine(better, 'catapult')).toMatch(/as good/);
-    expect(battleSides(better, 'north-pass-brigands').attacker.machine).toBe('catapult2');
+    expect(battleSides(better, 'south-pass-wolves').attacker.machine).toBe('catapult2');
   });
 });
 
@@ -239,7 +240,7 @@ describe('a siege on the map', () => {
     const start = startAdventure(def);
     expect(wallsToStorm(start, korax)?.id).toBe(korax);
     expect(wallsToStorm({ ...start, hero: { ...start.hero, gear: { ...start.hero.gear, machine: 'catapult' } } }, korax)).toBeUndefined();
-    expect(wallsToStorm(start, 'north-pass-brigands')).toBeUndefined();
+    expect(wallsToStorm(start, 'south-pass-wolves')).toBeUndefined();
   });
 
   it('mans an enemy town from its garrison, leaving the shooters out of the ground fight', () => {
@@ -303,5 +304,79 @@ describe('saving a map with a rival', () => {
     // Beaten, he stays beaten.
     const beaten = { ...r, rival: { ...r.rival!, hero: null }, rivalFight: undefined };
     expect(parseAdventure(JSON.parse(JSON.stringify(beaten)), def)!.rival!.hero).toBeNull();
+  });
+});
+
+describe('Kassander leaves a lost battle', () => {
+  const field = (start: Adventure, army = armyOf([{ creature: 'spearman', count: 24 }])): Adventure =>
+    ({ ...start, rival: { ...start.rival!, hero: { ...start.rival!.hero!, x: start.hero.x + 2, y: start.hero.y, army } } });
+
+  it('may flee the field while he has a town, and not once he has none', () => {
+    const start = startAdventure(def);
+    expect(battleSides(field(start), RIVAL).defender.hero?.canFlee).toBe(true);
+    const homeless = withTown(field(start), { ...townById(start, korax)!, owner: 'player' });
+    expect(battleSides(homeless, RIVAL).defender.hero?.canFlee).toBeFalsy();
+    // Defending his own town he stands and fights.
+    expect(battleSides(start, korax).defender.hero?.canFlee).toBeFalsy();
+  });
+
+  it('flees when his army is cut down and outmatched, and the field is ours', () => {
+    const start = field(startAdventure(def));
+    const s = battleSides(start, RIVAL);
+    const st = createBattle(s.attacker, s.defender, s.seed).state;
+    const cut = { ...st, stacks: st.stacks.map((x) => (x.side === 1 ? { ...x, count: Math.ceil(x.count / 4) } : x)) };
+    expect(losing(cut, 1)).toBe(true);
+    expect(losing(st, 1)).toBe(false);
+    const end = act({ ...cut, active: cut.stacks.find((x) => x.side === 1)!.id }, { type: 'flee' });
+    expect(end.state).toMatchObject({ winner: 0, fled: 1 });
+    expect(end.events.map((e) => e.type)).toEqual(['flee', 'end']);
+  });
+
+  it('rides back to Korax with no army, still in the game, and hires again before riding out', () => {
+    const start = field(startAdventure(def));
+    const s = battleSides(start, RIVAL);
+    const st = createBattle(s.attacker, s.defender, s.seed).state;
+    const after = afterBattle(start, def, RIVAL, { ...st, winner: 0, fled: 1, active: null });
+    const k = townById(after, korax)!;
+    expect(after.rival!.hero).toMatchObject({ x: k.x, y: k.y, mp: 0 });
+    expect(armyStrength(after.rival!.hero!.army)).toBe(0);
+    expect(after.status).toBe('playing');
+    expect(after.prompts.some((p) => p.kind === 'message' && /flees/.test(p.title))).toBe(true);
+    // With nothing to hire he stays home; with recruits in Korax he leads them out.
+    const broke = { ...after, rival: { ...after.rival!, purse: { ...after.rival!.purse, gold: 0 } } };
+    expect(rivalTurn({ ...broke, towns: broke.towns.map((t) => (t.id === korax ? { ...t, stock: {} } : t)) }, def).report.path).toEqual([]);
+    const paid = rivalTurn(endDay({ ...after, rival: { ...after.rival!, purse: { ...after.rival!.purse, gold: 20000 } } }), def).adv;
+    expect(armyStrength(paid.rival!.hero?.army ?? [])).toBeGreaterThan(0);
+  });
+
+  it('is beaten for good when he has nowhere to run', () => {
+    const start = field(startAdventure(def));
+    const homeless = withTown(start, { ...townById(start, korax)!, owner: 'player' });
+    const won = afterBattle(homeless, def, RIVAL, wonBy(homeless, RIVAL, 0));
+    expect(won.rival!.hero).toBeNull();
+  });
+});
+
+describe('the race for Eudora', () => {
+  /** The Black Banner ridden on into: Eudora waits, Rowan far up the forest trail. */
+  const raced = (): Adventure => {
+    const start = startAdventure(def);
+    const e = townById(start, eudora)!;
+    return { ...withTown(start, { ...e, owner: 'neutral', ally: true }), begun: start.day, hero: { ...start.hero, x: 38, y: 32 } };
+  };
+
+  it('is not his to run before the third night', () => {
+    const r = nights(raced(), 2);
+    expect(townById(r.adv, eudora)).toMatchObject({ owner: 'neutral', ally: true });
+  });
+
+  it('is lost to him if the player dawdles: Eudora flies his banner and the night says so', () => {
+    const r = nights(raced(), 10);
+    const e = townById(r.adv, eudora)!;
+    expect(e.owner).toBe('rival');
+    expect(e.ally).toBeUndefined();
+    expect(r.notes.some((n) => /Eudora/.test(n) && /before you/.test(n))).toBe(true);
+    // Now it is his town to flee to, and a town to storm.
+    expect(stepHero({ ...r.adv, hero: { ...r.adv.hero, x: e.x, y: e.y + 1 } }, def, { x: e.x, y: e.y, cost: 100, day: 0 } as never).battle ?? 'walked in').toBeTruthy();
   });
 });

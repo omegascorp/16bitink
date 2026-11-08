@@ -19,6 +19,11 @@ describe('what a tap on the map would do', () => {
     expect(beside).not.toContain('move');
   });
 
+  it('picks or meets another hero of ours', () => {
+    const friend = { ...adv.hero, id: 'ianthe', name: 'Ianthe', x: adv.hero.x + 3, y: adv.hero.y };
+    expect(intentAt({ ...adv, others: [friend] }, def, friend.x, friend.y)).toBe('visit');
+  });
+
   it('visits a site', () => {
     expect(intentAt(adv, def, site.x, site.y)).toBe('visit');
   });

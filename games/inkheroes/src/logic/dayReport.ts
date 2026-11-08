@@ -23,8 +23,8 @@ export interface DayReport {
   readonly income: Purse;
   /** The gold by source, the card's bars. */
   readonly sources: readonly GoldSource[];
-  /** `tiles` counts today's `horses` from the Stables; `gained` is the mana back overnight. */
-  readonly hero: { readonly name: string; readonly tiles: number; readonly horses: number; readonly mana: number; readonly maxMana: number; readonly gained: number };
+  /** The picked hero (`id` for their face; older saves have none); `tiles` counts today's `horses` from the Stables; `gained` is the mana back overnight. */
+  readonly hero: { readonly id?: string; readonly name: string; readonly tiles: number; readonly horses: number; readonly mana: number; readonly maxMana: number; readonly gained: number };
   /** The first day of a week. */
   readonly week?: { readonly recruits: readonly TownRecruits[] };
 }

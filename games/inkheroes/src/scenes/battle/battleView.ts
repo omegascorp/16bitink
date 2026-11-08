@@ -69,6 +69,9 @@ const SIEGE_NAMES: Readonly<Record<SiegePart, string>> = {
   gate: 'The gate', keep: 'The keep', towerNorth: 'The north tower', towerSouth: 'The south tower',
 };
 
+/** How long a fleeing side takes to leave the field, ms. */
+const FLEE_FADE = 700;
+
 interface UnitSprite {
   readonly fig: PixelFigure;
   readonly badge: Phaser.GameObjects.Image;
@@ -96,6 +99,8 @@ export interface ViewOpts {
   readonly pose?: Pose;
   /** A magenta dot where every unit's feet should be, to check the art's foot points. */
   readonly feet?: boolean;
+  /** The id of the player's hero in this fight (the one picked on the map), for their own art. */
+  readonly heroId?: string;
 }
 
 /**
@@ -133,7 +138,7 @@ export class BattleView {
     heroes.forEach((has, side) => {
       if (!has) return;
       // The other side's hero is always the rival lord (monsters and garrisons fight without one).
-      const hero = heroArt(side === this.me ? 'player' : 'rival');
+      const hero = side === this.me ? heroArt('player', opts.heroId) : heroArt('rival');
       const fig = new PixelFigure(scene, layer, hero.art, (pose) => PX_TEX.hero(hero.id, pose), heroFeet(side as 0 | 1, !!state.siege), side === 1);
       if (opts.pose) fig.hold(opts.pose);
       this.heroes[side] = fig;
@@ -186,11 +191,14 @@ export class BattleView {
       const p = stackFeet(s);
       u.fig.setFeet(p.x, p.y);
       if (s.tower === undefined) u.fig.sortOn(null);
-      u.fig.sprite.setVisible(alive(s)).setAlpha(1);
+      // A side whose hero fled has left the field with them.
+      const here = alive(s) && state.fled !== s.side;
+      u.fig.sprite.setVisible(here).setAlpha(1);
       if (isStone(s)) u.fig.sprite.setTint(STONE_TINT);
       else u.fig.sprite.clearTint();
-      this.setBadge(u, s.count, alive(s));
+      this.setBadge(u, s.count, here);
     }
+    if (state.fled !== undefined) this.heroes[state.fled]?.sprite.setVisible(false);
     this.walls?.hold(state.stacks.some((s) => alive(s) && throughGate(occupiedHexes(s))));
     if (state.siege) this.walls?.show(state.siege);
     if (this.opts.feet) this.markFeet(state);
@@ -322,6 +330,17 @@ export class BattleView {
       case 'stone': {
         this.floatAt(this.units.get(ev.stack)!.fig, ev.lost ? 'Stone: loses its turn' : 'Turned to stone!', INK.damage, 10);
         await this.wait(450);
+        return;
+      }
+      case 'flee': {
+        // The hero rides off, and the companies left to them melt away with them.
+        const name = before.heroes[ev.side]?.name ?? 'The enemy';
+        this.floater(WORLD.w / 2, WORLD.h / 2, `${name} flees the field!`, INK.title, true);
+        const going = [...this.units.values()].filter((u) => u.side === ev.side);
+        const fig = this.heroes[ev.side];
+        const sprites = [...going.flatMap((u) => [u.fig.sprite, u.badge]), ...(fig ? [fig.sprite] : [])];
+        this.scene.tweens.add({ targets: sprites, alpha: 0, duration: FLEE_FADE });
+        await this.wait(FLEE_FADE + 200);
         return;
       }
       case 'round': {

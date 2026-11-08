@@ -127,14 +127,17 @@ export function parseAdventure(raw: unknown, def: MapDef): Adventure | null {
   const p = parsePurse(purse);
   const specs = [def.town, ...(def.towns ?? [])];
   if (!p || !isObj(hero) || towns.length !== specs.length || !towns.every(isObj) || !Array.isArray(objects) || !Array.isArray(prompts)) return null;
-  const h = parseHero(hero, def);
+  const h = parseHero(hero, def, playerHeroDef(hero, def));
+  const others = parseOthers(raw.others, def, h);
   const ts = towns.map((t, i) => parseTown(t as Record<string, unknown>, specs[i]!, i === 0, def));
   const objs = parseObjects(objects, def);
-  if (!h || !ts.every((t) => !!t) || !objs) return null;
-  if (!passable(g, h.x, h.y)) return null;
-  // Not inside a town's walls (its gate is fine), nor on a monster.
-  if (ts.some((t) => townCore(t!.x, t!.y).some((f) => f.x === h.x && f.y === h.y))) return null;
-  if (objs.some((o) => o.kind === 'monster' && !o.gone && o.x === h.x && o.y === h.y)) return null;
+  if (!h || !others || !ts.every((t) => !!t) || !objs) return null;
+  for (const one of [h, ...others]) {
+    if (!passable(g, one.x, one.y)) return null;
+    // Not inside a town's walls (its gate is fine), nor on a monster.
+    if (ts.some((t) => townCore(t!.x, t!.y).some((f) => f.x === one.x && f.y === one.y))) return null;
+    if (objs.some((o) => o.kind === 'monster' && !o.gone && o.x === one.x && o.y === one.y)) return null;
+  }
   const kept = prompts.map((x) => parsePrompt(x, objs)).filter((x): x is Prompt => !!x).slice(0, MAX_PROMPTS);
   const rival = parseRival(raw.rival, def);
   if (def.rival && rival === undefined) return null;
@@ -142,10 +145,30 @@ export function parseAdventure(raw: unknown, def: MapDef): Adventure | null {
   const fight = typeof raw.rivalFight === 'string' && rival?.hero && (raw.rivalFight === RIVAL || ts.some((t) => DEFEND + t!.id === raw.rivalFight && t!.owner === 'player')) ? raw.rivalFight : undefined;
   // Level-ups are never read from a save: they're dealt again from the hero's experience.
   return queueLevelUps({
-    mapId: def.id, day, seed, purse: refundMachines(hero, p), hero: h, towns: ts as Town[], objects: objs, explored, status, prompts: kept, lostStacks,
+    mapId: def.id, day, seed, purse: refundMachines(hero, p), hero: h, ...(others.length ? { others } : {}), towns: ts as Town[], objects: objs, explored, status, prompts: kept, lostStacks,
     ...(isInt(raw.begun, 2, day) ? { begun: raw.begun } : {}),
     ...(rival ? { rival } : {}), ...(fight ? { rivalFight: fight } : {}),
   });
+}
+
+/** Which of the map's heroes a saved hero of ours is (the map's own hero for a save from before there were several). */
+function playerHeroDef(raw: Record<string, unknown>, def: MapDef): HeroDef {
+  return (def.recruits ?? []).find((r) => r.id === raw.id) ?? def.hero;
+}
+
+/** The player's other heroes in a save: each one of the map's, none twice, none on another's tile (null: unreadable). */
+function parseOthers(raw: unknown, def: MapDef, picked: Adventure['hero'] | null): Adventure['hero'][] | null {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw) || !raw.every(isObj)) return null;
+  const known = [def.hero, ...(def.recruits ?? [])];
+  const out = raw.map((h) => {
+    const d = known.find((k) => k.id === (h as Record<string, unknown>).id);
+    return d ? parseHero(h as Record<string, unknown>, def, d) : null;
+  });
+  if (!out.every((h) => !!h)) return null;
+  const all = [...(picked ? [picked] : []), ...(out as Adventure['hero'][])];
+  if (new Set(all.map((h) => h.id)).size !== all.length || new Set(all.map((h) => `${h.x},${h.y}`)).size !== all.length) return null;
+  return out as Adventure['hero'][];
 }
 
 /** The rival's saved state on a map with a rival (undefined: unreadable), null hero once beaten. */

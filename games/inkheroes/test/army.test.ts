@@ -3,7 +3,7 @@ import { UNIT_ART } from '../src/art/pixel/manifest';
 import { armyOf, moveSlot, splitSlot } from '../src/logic/army';
 import { faceBox, FACE } from '../src/scenes/battle/pixelFaces';
 import { armyRowW, fitSlot, splitCount } from '../src/scenes/hud/armySlots';
-import { buttonGrid, buttonsGridW, buttonsW, stripLayout, townButtons } from '../src/scenes/town/stripLayout';
+import { buttonGrid, buttonsGridW, buttonsW, narrowButtonW, stripLayout, townButtons } from '../src/scenes/town/stripLayout';
 
 const army = armyOf([{ creature: 'spearman', count: 10 }, { creature: 'bowman', count: 1 }]);
 
@@ -121,6 +121,17 @@ describe('the town’s strip', () => {
     expect(townButtons(['mageGuild1'])).toEqual(['hall', 'fort', 'guild', 'leave']);
     expect(townButtons(['blacksmith'])).toEqual(['hall', 'fort', 'smith', 'leave']);
     expect(townButtons(['mageGuild1', 'blacksmith', 'tavern'])).toEqual(['hall', 'fort', 'guild', 'smith', 'leave']);
+  });
+
+  it('shows the Tavern only where it stands and a hero can be hired', () => {
+    expect(townButtons(['tavern'], false)).toEqual(['hall', 'fort', 'leave']);
+    expect(townButtons([], true)).toEqual(['hall', 'fort', 'leave']);
+    expect(townButtons(['mageGuild1', 'blacksmith', 'tavern'], true)).toEqual(['hall', 'fort', 'guild', 'smith', 'tavern', 'leave']);
+  });
+
+  it('fits all six buttons in a row on the narrowest phone', () => {
+    for (let w = 300; w < 420; w += 3) expect(narrowButtonW(6, w) * 6 + 5 * 3).toBeLessThanOrEqual(w - 12);
+    expect(narrowButtonW(5, 390)).toBe(56);
   });
 
   it('leaves no hole in the grid: the last button takes what is left of its row', () => {

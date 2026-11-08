@@ -103,8 +103,7 @@ export const BLACK_BANNER_LAND: MapDef = {
     { id: 'pile-wood-1', kind: 'pile', x: 2, y: 9, resource: 'wood', amount: 8 },
     { id: 'pile-ore-1', kind: 'pile', x: 14, y: 18, resource: 'ore', amount: 8 },
     { id: 'pile-gold-1', kind: 'pile', x: 9, y: 33, resource: 'gold', amount: 1000 },
-    // The passes through the western ridge.
-    { id: 'north-pass-brigands', kind: 'monster', x: 19, y: 9, creature: 'bandit', count: 55 },
+    // The passes through the western ridge: the Black Banner's riders cleared the north one, so it is their road into the vale.
     { id: 'south-pass-wolves', kind: 'monster', x: 20, y: 24, creature: 'wolf', count: 55 },
     // The lakelands between: the mines both lords want.
     { id: 'gold-mine', kind: 'mine', x: 24, y: 6, resource: 'gold', owner: 'neutral' },

@@ -632,6 +632,42 @@
     55,
     27
    ]
+  },
+  "ianthe": {
+   "name": "Ianthe",
+   "src": "pixel/src/hero_ianthe.png",
+   "strip": [
+    [
+     89,
+     89,
+     90
+    ],
+    10
+   ],
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a greek priestess of Athena in a white and silver robe with a deep blue cloak and a silver olive-leaf circlet, holding a tall staff topped with a small bronze owl, on a white horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the staff to the sky, the bronze owl on top flashes with silver-blue light, then lowers it to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    59,
+    29
+   ],
+   "walkLock": [
+    0,
+    0,
+    -3,
+    -11,
+    -13,
+    -15,
+    -8,
+    0
+   ]
   }
  },
  "defaults": {

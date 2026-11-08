@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getHost, getSound } from '../host';
-import { buyMachine, cantBuyMachine, enterTown, garrisonHero, heroInGarrison, heroTown, heroVisiting, leadOut, playerTowns, townById, withTown, type Adventure } from '../logic/adventure';
+import { buyMachine, cantBuyMachine, enterTown, garrisonHero, heroInGarrison, heroTown, heroVisiting, leadOut, otherHeroAt, playerTowns, townById, withTown, type Adventure } from '../logic/adventure';
+import { cantHireHero, hireHero, selectHero } from '../logic/heroes';
 import { gainItem } from '../logic/items';
 import type { SpellId } from '../logic/spells';
 import type { Town } from '../logic/town';
@@ -33,6 +34,7 @@ import { fortScreen, hallScreen, platePicture, upgradableArmies, type ScreenActi
 import { STAGE } from './town/townStage';
 import { GuildRoom } from './town/guildRoom';
 import { SmithRoom } from './town/smithRoom';
+import { TavernRoom } from './town/tavernRoom';
 import { TownWindow } from './town/townWindow';
 
 /** A press that moves further than this (UI px) is a drag, not a tap. */
@@ -55,7 +57,7 @@ const OPENS: Partial<Record<BuildingId, TownScreen>> = {
   guardhouse: 'fort', archeryRange: 'fort', griffinTower: 'fort', barracks: 'fort', monastery: 'fort', tiltyard: 'fort', seraphSpire: 'fort',
   guardhouse2: 'fort', archeryRange2: 'fort', griffinTower2: 'fort', barracks2: 'fort', monastery2: 'fort', tiltyard2: 'fort', seraphSpire2: 'fort',
   guardhouse3: 'fort', archeryRange3: 'fort', griffinTower3: 'fort', barracks3: 'fort', monastery3: 'fort', tiltyard3: 'fort', seraphSpire3: 'fort',
-  mageGuild1: 'guild', mageGuild2: 'guild', blacksmith: 'smith',
+  mageGuild1: 'guild', mageGuild2: 'guild', blacksmith: 'smith', tavern: 'tavern',
 };
 
 /** What a building does, in words (a dwelling names the creature it hires by its name in this game). */
@@ -78,7 +80,7 @@ export class TownScene extends Phaser.Scene {
   private size = { w: 0, h: 0, k: 1 };
   private view: PixelTownView | null = null;
   private bar: TownBar | null = null;
-  private window: TownWindow | GuildRoom | SmithRoom | null = null;
+  private window: TownWindow | GuildRoom | SmithRoom | TavernRoom | null = null;
   /** The spell being read in the guild. */
   private guildPick: SpellId | null = null;
   /** The machine being looked at in the Blacksmith. */
@@ -104,6 +106,8 @@ export class TownScene extends Phaser.Scene {
   private dragged = false;
   private toastParts: { destroy(): void }[] = [];
   private ready = false;
+  /** A hero hired here while another stood in the gate: picked once the town is left. */
+  private pickOnLeave: string | null = null;
   /** The town shown: the one the hero stands in, else the player's first. */
   private townId = '';
 
@@ -116,6 +120,8 @@ export class TownScene extends Phaser.Scene {
     this.session = Session.get(this);
     const adv = this.session.adv;
     this.townId = data?.townId ?? heroTown(adv)?.id ?? playerTowns(adv)[0]!.id;
+    this.pickOnLeave = null;
+    this.pickHeroHere();
     this.cameras.main.setBackgroundColor(BACKDROP);
     this.picked = null;
     this.screen = null;
@@ -178,6 +184,19 @@ export class TownScene extends Phaser.Scene {
     return heroInGarrison(adv, this.town(adv));
   }
 
+  /** The town serves the picked hero: opened with another of ours in its gate and the picked one elsewhere, that one is picked. */
+  private pickHeroHere(): void {
+    const adv = this.session.adv;
+    const town = this.town(adv);
+    const waiting = otherHeroAt(adv, town.x, town.y);
+    if (waiting && heroTown(adv)?.id !== town.id) this.session.set(selectHero(adv, waiting.id));
+  }
+
+  /** Whether this map's Taverns have heroes to hire (map 1's don't, so it shows no Tavern button). */
+  private hires(): boolean {
+    return (this.session.def.recruits ?? []).length > 0;
+  }
+
   /** Dragging the townscape sideways pans it when it's wider than the screen. */
   private wirePan(): void {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
@@ -210,7 +229,7 @@ export class TownScene extends Phaser.Scene {
 
   private drawAll(): void {
     if (!this.bar) return;
-    this.bar.layout(this.size.w, this.size.h, this.town());
+    this.bar.layout(this.size.w, this.size.h, this.town(), this.hires());
     this.bar.refresh(this.session.adv, this.town(), this.picked);
     this.drawView();
     this.drawPlate();
@@ -306,6 +325,10 @@ export class TownScene extends Phaser.Scene {
       this.window = new GuildRoom(this, adv, this.town(), this.guildPick, room, { close: () => this.openScreen(null), buy: () => this.buyBook(), pick: (id) => this.pickSpell(id) }, depth);
       return;
     }
+    if (this.screen === 'tavern') {
+      this.window = new TavernRoom(this, adv, this.session.def, this.town(), room, { close: () => this.openScreen(null), hire: () => this.hireHero() }, depth);
+      return;
+    }
     if (this.screen === 'smith') {
       this.window = new SmithRoom(this, adv, this.town(), this.smithPick, room, { close: () => this.openScreen(null), buy: (m) => this.buyMachine(m), pick: (m) => this.pickWare(m) }, depth);
       return;
@@ -343,6 +366,8 @@ export class TownScene extends Phaser.Scene {
   }
 
   private leave(): void {
+    if (this.pickOnLeave) this.session.set(selectHero(this.session.adv, this.pickOnLeave));
+    this.pickOnLeave = null;
     this.scene.stop();
     (this.scene.get('Map') as MapScene).back();
   }
@@ -355,7 +380,7 @@ export class TownScene extends Phaser.Scene {
       return;
     }
     const opens = OPENS[id];
-    if (opens) this.openScreen(opens);
+    if (opens && (opens !== 'tavern' || this.hires())) this.openScreen(opens);
     else this.toast(`${BUILDINGS[id].name}: ${saysOf(id).toLowerCase()}`);
   }
 
@@ -370,6 +395,26 @@ export class TownScene extends Phaser.Scene {
     getSound(this)?.play('hire');
     this.toast(`${adv.hero.name} has a ${itemDef(m).name} now`);
     this.refresh();
+  }
+
+  /** The Tavern's hero joins: paid for, at the gate (or beside it), and picked, so the town now serves them. */
+  private hireHero(): void {
+    const { adv, def } = this.session;
+    const next = hireHero(adv, def, this.townId);
+    if (!next) {
+      this.toast(cantHireHero(adv, def, this.town(adv)) ?? 'No hero can be hired here');
+      return;
+    }
+    const atGate = heroTown(next)?.id === this.townId;
+    // A hero already in the gate keeps the town while it's open; the new one is picked on leaving.
+    const keep = !atGate && heroTown(adv)?.id === this.townId;
+    this.pickOnLeave = keep ? next.hero.id : null;
+    this.session.set(keep ? selectHero(next, adv.hero.id) : next);
+    getSound(this)?.play('hire');
+    this.screen = null;
+    this.picked = null;
+    this.drawAll();
+    this.toast(atGate ? `${next.hero.name} joins you at the gate` : `${next.hero.name} joins you and waits outside the gate, ready to ride`);
   }
 
   /** A building's card from the hall: what it does and costs, and Build when it can be built today. */

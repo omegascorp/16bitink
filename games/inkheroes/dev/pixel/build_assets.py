@@ -234,7 +234,7 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {{
 
 /** The hero standing beside the field. Keyed by the ids in units.json `heroes`. */
 export const HERO_ART: Readonly<Record<string, UnitArt>> = {{
-{chr(10).join(heroes).replace('  hero_player:', '  player:').replace('  hero_rival:', '  rival:')}
+{chr(10).join(heroes).replace('  hero_', '  ')}
 }};
 
 /** 1408x1056 battle backgrounds by terrain (the 960x540 world sits in the middle); the hex field is drawn over them. */

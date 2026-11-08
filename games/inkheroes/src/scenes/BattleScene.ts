@@ -145,7 +145,7 @@ export class BattleScene extends Phaser.Scene {
     this.hud.setAuto(this.auto);
     const src = backdropSource(terrain, seed);
     if ('scenery' in src) this.hud.setScenery({ atlas: texturePixels(this, src.atlasKey), art: src.scenery, seed });
-    this.view = new BattleView(this, this.cams, this.state, terrain, seed, heroes, (x, y, text, ink, big) => this.hud.float(x, y, text, ink, big), this.sandbox?.view);
+    this.view = new BattleView(this, this.cams, this.state, terrain, seed, heroes, (x, y, text, ink, big) => this.hud.float(x, y, text, ink, big), this.sandbox?.view ?? { heroId: this.session?.adv.hero.id });
     this.live = true;
     this.layout();
     this.scale.on('resize', this.layout, this);
@@ -519,6 +519,7 @@ export class BattleScene extends Phaser.Scene {
       return slot && st ? { name: creature(slot.creature).plural, n: st.startCount - st.count } : null;
     }).filter((x): x is { name: string; n: number } => !!x && x.n > 0);
     const xp = experienceFor(this.state, this.me);
+    const fled = this.state.fled !== undefined && this.state.fled !== this.me ? this.state.heroes[this.state.fled]?.name : undefined;
     getSound(this)?.play(won ? 'win' : 'lose');
     const done = (): void => {
       session.set(afterBattle(session.adv, session.def, this.monsterId, this.state, this.then));
@@ -528,7 +529,7 @@ export class BattleScene extends Phaser.Scene {
     this.hud.openCard({
       title: won ? 'Victory!' : 'Defeat',
       body: won
-        ? `${lost.length ? `Fallen: ${lost.map((l) => `${l.n} ${l.name}`).join(', ')}.` : 'Not one of yours fell.'}\n+${xp} experience`
+        ? `${fled ? `${fled} fled the field, leaving his army behind.\n` : ''}${lost.length ? `Fallen: ${lost.map((l) => `${l.n} ${l.name}`).join(', ')}.` : 'Not one of yours fell.'}\n+${xp} experience`
         : this.monsterId.startsWith(DEFEND) ? `The garrison is beaten, and the town falls.` : `${adv.hero.name}'s army is beaten.`,
       buttons: [{ label: won ? 'Back to the map' : 'Go on', onClick: done }],
     });

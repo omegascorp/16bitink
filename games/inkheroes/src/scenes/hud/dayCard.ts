@@ -153,7 +153,7 @@ export class PixelDayCard implements CardView {
   /** The hero's face, rested: the tiles to ride today and the mana. */
   private hero(x: number, y: number, w: number): number {
     const { hero } = this.report;
-    const art = heroArt();
+    const art = heroArt('player', hero.id);
     const face = this.keep(new PixelImage(this.scene, drawPortrait(faceOf(this.scene, PX_TEX.hero(art.id, 'idle'), art.art), 'bronze', false, false)));
     face.setPosition(x + BOX, y + BOX);
     this.front!.add(face.img);
