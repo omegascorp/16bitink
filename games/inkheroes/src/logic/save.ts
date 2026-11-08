@@ -168,7 +168,15 @@ function parseOthers(raw: unknown, def: MapDef, picked: Adventure['hero'] | null
   });
   if (!out.every((h) => !!h)) return null;
   const all = [...(picked ? [picked] : []), ...(out as Adventure['hero'][])];
-  if (new Set(all.map((h) => h.id)).size !== all.length || new Set(all.map((h) => `${h.x},${h.y}`)).size !== all.length) return null;
+  if (new Set(all.map((h) => h.id)).size !== all.length) return null;
+  // Two may share a tile only in a town's two places: one in its garrison (no companies of their own), one in its gate.
+  const at = (h: Adventure['hero']): string => `${h.x},${h.y}`;
+  for (const tile of new Set(all.map(at))) {
+    const here = all.filter((h) => at(h) === tile);
+    if (here.length === 1) continue;
+    const town = def.town.x + ',' + def.town.y === tile || (def.towns ?? []).some((t) => `${t.x},${t.y}` === tile);
+    if (!town || here.length > 2 || here.filter((h) => h.army.every((s) => !s)).length !== 1) return null;
+  }
   return out as Adventure['hero'][];
 }
 

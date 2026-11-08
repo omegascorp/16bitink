@@ -177,15 +177,18 @@ export const heroVisiting = (adv: Adventure, town?: Town): boolean => heroInTown
 /** The visiting hero goes into the garrison, every company with them (merged with like ones); null when it hasn't the room. */
 export function garrisonHero(adv: Adventure): Adventure | null {
   const town = heroTown(adv);
-  if (!town || !heroVisiting(adv)) return null;
+  if (!town || !heroVisiting(adv) || inGarrisonOf(adv, town)) return null;
   const r = moveAll(adv.hero.army, town.garrison);
   return r ? withTown({ ...adv, hero: { ...adv.hero, army: r.src } }, { ...town, garrison: r.dst }) : null;
 }
 
+/** Another hero of ours already holding `town`'s garrison (only one can). */
+const inGarrisonOf = (adv: Adventure, town: Town): Hero | undefined => (adv.others ?? []).find((h) => h.x === town.x && h.y === town.y && isEmptyArmy(h.army));
+
 /** The hero in the garrison steps out to visit, leading the whole garrison. */
 export function leadOut(adv: Adventure): Adventure {
   const town = heroTown(adv);
-  if (!town || !heroInGarrison(adv)) return adv;
+  if (!town || !heroInGarrison(adv) || (adv.others ?? []).some((h) => h.x === town.x && h.y === town.y && !isEmptyArmy(h.army))) return adv;
   return withTown({ ...adv, hero: { ...adv.hero, army: town.garrison } }, { ...town, garrison: armyOf([]) });
 }
 
@@ -199,7 +202,11 @@ export const rivalHero = (adv: Adventure): Hero | null => adv.rival?.hero ?? nul
 /** Every hero of the player's, the picked one first. */
 export const ourHeroes = (adv: Adventure): Hero[] => [adv.hero, ...(adv.others ?? [])];
 /** The player's hero (not the picked one) standing at (x, y). */
-export const otherHeroAt = (adv: Adventure, x: number, y: number): Hero | undefined => (adv.others ?? []).find((h) => h.x === x && h.y === y);
+export function otherHeroAt(adv: Adventure, x: number, y: number): Hero | undefined {
+  const here = (adv.others ?? []).filter((h) => h.x === x && h.y === y);
+  // At a town the one in the gate comes first; the one in the garrison is inside.
+  return here.find((h) => !isEmptyArmy(h.army)) ?? here[0];
+}
 /** Whether the rival lord stands at (x, y). */
 export const rivalAt = (adv: Adventure, x: number, y: number): boolean => {
   const r = rivalHero(adv);
@@ -275,7 +282,8 @@ export function stepHero(adv: Adventure, def: MapDef, step: PathStep, goal?: { x
   // The rival lord, in the field or in his town's gate: a fight.
   if (rivalAt(adv, step.x, step.y)) return { adv, stop: true, battle: gate ? gate.id : RIVAL, notes: [] };
   const friend = otherHeroAt(adv, step.x, step.y);
-  if (friend) return { adv, stop: true, meet: friend.id, notes: [] };
+  // A friend in the gate is met; one in our town's garrison is inside, and the hero rides in.
+  if (friend && !(gate?.owner === 'player' && isEmptyArmy(friend.army))) return { adv, stop: true, meet: friend.id, notes: [] };
   if (!canStep(step, adv.hero.mp)) return { adv, stop: true, notes: [] };
   // A town not ours: its garrison must be beaten from beside the gate (an empty one is just walked into).
   if (gate && gate.owner !== 'player' && !gate.ally && !undefended(gate)) return { adv, stop: true, battle: gate.id, notes: [] };

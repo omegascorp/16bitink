@@ -1,10 +1,8 @@
 import type { HeroDef, MapDef } from '../level/types';
-import { gridOf, heroFromDef, liveObjects, ourHeroes, revealAround, townById, type Adventure } from './adventure';
-import { moveAll, type Army } from './army';
+import { heroFromDef, ourHeroes, revealAround, townById, withTown, type Adventure } from './adventure';
+import { isEmptyArmy, moveAll, type Army } from './army';
 import { has, type Town } from './town';
 import { sightOf, type Hero } from './hero';
-import { passable, tileIndex } from './map';
-import { objectFootprint, townFootprint } from './objects';
 import { canAfford, pay, type Purse } from './resources';
 
 /**
@@ -37,50 +35,55 @@ export function recruitsLeft(adv: Adventure, def: MapDef): HeroDef[] {
   return (def.recruits ?? []).filter((r) => !riding.has(r.id));
 }
 
+/**
+ * A town's two places for heroes, after Heroes III's: the garrison (a hero
+ * whose companies all stand in the town's garrison row) and the gate (a
+ * visiting hero leading their own army). Both stand on the town's tile;
+ * the one in the garrison isn't drawn on the map.
+ */
+export interface TownHeroes {
+  readonly garrison?: Hero;
+  readonly visitor?: Hero;
+}
+
+export function townHeroes(adv: Adventure, town: Pick<Town, 'x' | 'y'>): TownHeroes {
+  const here = ourHeroes(adv).filter((h) => h.x === town.x && h.y === town.y);
+  return { garrison: here.find((h) => isEmptyArmy(h.army)), visitor: here.find((h) => !isEmptyArmy(h.army)) };
+}
+
 /** Why `town` can't hire a hero now, or null when it can. */
 export function cantHireHero(adv: Adventure, def: MapDef, town: Town): string | null {
   if (town.owner !== 'player') return 'Only your own towns hire heroes.';
   if (!has(town, 'tavern')) return 'Build a Tavern to hire heroes.';
   if (!recruitsLeft(adv, def).length) return (def.recruits ?? []).length ? 'Every hero here already rides with you.' : 'No hero comes to the Tavern yet.';
+  const { visitor } = townHeroes(adv, town);
+  if (visitor) return `${visitor.name} stands in the gate. Move them into the garrison, or ride out, to make room.`;
   if (!canAfford(adv.purse, HERO_COST)) return `A hero costs ${HERO_COST.gold} gold.`;
-  if (!arrivalTile(adv, def, town)) return 'There is no room at the gate.';
   return null;
 }
 
-/** Hires the next hero at `town`'s Tavern: paid for, standing at its gate (or beside it), picked. Null when they can't be hired. */
+/** Hires the next hero at `town`'s Tavern: paid for, in the town's gate (its visiting place), and picked. Null when they can't be hired. */
 export function hireHero(adv: Adventure, def: MapDef, townId: string): Adventure | null {
   const town = townById(adv, townId);
   if (!town || cantHireHero(adv, def, town)) return null;
-  const at = arrivalTile(adv, def, town)!;
-  const hero = heroFromDef({ ...recruitsLeft(adv, def)[0]!, ...at });
+  const hero = heroFromDef({ ...recruitsLeft(adv, def)[0]!, x: town.x, y: town.y });
   const hired: Adventure = { ...adv, purse: pay(adv.purse, HERO_COST), hero, others: [...(adv.others ?? []), adv.hero] };
-  return revealAround(hired, def, at.x, at.y, sightOf(hero));
+  return revealAround(hired, def, town.x, town.y, sightOf(hero));
 }
 
-/** Where a hero hired at `town` stands: its gate if no hero is there, else the nearest free tile outside its walls. */
-function arrivalTile(adv: Adventure, def: MapDef, town: Town): { x: number; y: number } | null {
-  const g = gridOf(def);
-  const key = (x: number, y: number): number => tileIndex(g, x, y);
-  const taken = new Set<number>([...ourHeroes(adv), ...(adv.rival?.hero ? [adv.rival.hero] : [])].map((h) => key(h.x, h.y)));
-  if (!taken.has(key(town.x, town.y))) return { x: town.x, y: town.y };
-  const blocked = new Set<number>(taken);
-  for (const t of adv.towns) for (const f of townFootprint(t.x, t.y)) if (passable(g, f.x, f.y)) blocked.add(key(f.x, f.y));
-  for (const o of liveObjects(adv)) for (const f of [o, ...objectFootprint(o)]) blocked.add(key(f.x, f.y));
-  // Rings out from the gate, nearest first.
-  for (let r = 1; r <= ARRIVAL_REACH; r++) {
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-        const x = town.x + dx;
-        const y = town.y + dy;
-        if (passable(g, x, y) && !blocked.has(key(x, y))) return { x, y };
-      }
-    }
-  }
-  return null;
+/**
+ * The heroes in `town`'s garrison and gate change places, as Heroes III's
+ * swap: the garrison's companies ride out with the one leaving it, and the
+ * visitor's companies become the garrison. Null without both.
+ */
+export function swapTownHeroes(adv: Adventure, townId: string): Adventure | null {
+  const town = townById(adv, townId);
+  if (!town || town.owner !== 'player') return null;
+  const { garrison, visitor } = townHeroes(adv, town);
+  if (!garrison || !visitor) return null;
+  const out = withHero(withHero(adv, { ...garrison, army: town.garrison }), { ...visitor, army: garrison.army });
+  return withTown(out, { ...town, garrison: visitor.army });
 }
-/** How far from a gate a new hero may stand, tiles. */
-const ARRIVAL_REACH = 3;
 
 /** Two of our heroes side by side: they can trade companies. */
 export const besideEachOther = (a: Hero, b: Hero): boolean => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) === 1;

@@ -282,7 +282,9 @@ function ride(adv: Adventure, def: MapDef, route: Route): Ride {
     if (step.day > 0 || !canStep(step, hero.mp)) break;
     const spent = { ...hero, mp: Math.max(0, hero.mp - step.cost) };
     // A hero of ours: he attacks, and the player plays the fight (with that hero picked).
-    const met = ourHeroes(next).find((h) => h.x === step.x && h.y === step.y);
+    const here = ourHeroes(next).filter((h) => h.x === step.x && h.y === step.y);
+    // At a town the hero in the gate meets him first.
+    const met = here.find((h) => !isEmptyArmy(h.army)) ?? here[0];
     if (met) return { adv: selectHero(next, met.id), walked, notes, stopped: true, fight: RIVAL };
     const gate = townAt(next, step.x, step.y);
     if (gate?.owner === 'player') {

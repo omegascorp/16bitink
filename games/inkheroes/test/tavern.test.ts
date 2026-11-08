@@ -16,9 +16,12 @@ describe("the Tavern's offer", () => {
     expect(o.knows).toBe('Basic Wisdom · Wisdom of Athena, Healing');
     expect(o.price).toBe('2500 gold');
     expect(o.hire).toEqual({ enabled: true });
-    expect(o.note).toMatch(/at the gate/);
+    expect(o.note).toMatch(/in Ashford's gate/);
+    // A hero in the gate must make room first: no Hire, and the reason.
     const t = townById(a, ashford)!;
-    expect(tavernOffer({ ...a, hero: { ...a.hero, x: t.x, y: t.y } }, THORNWOOD, t).note).toMatch(/beside the gate/);
+    const blocked = tavernOffer({ ...a, hero: { ...a.hero, x: t.x, y: t.y } }, THORNWOOD, t);
+    expect(blocked.note).toMatch(/Rowan stands in the gate/);
+    expect(blocked.hire).toBeNull();
   });
 
   it('dims Hire without the gold, and says why', () => {

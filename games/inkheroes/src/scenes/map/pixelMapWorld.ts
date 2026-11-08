@@ -3,6 +3,7 @@ import { MAP_COVER } from '../../art/pixel/map';
 import { BACKDROP } from '../../art/palette';
 import type { MapDef } from '../../level/types';
 import { gridOf, isSeen, liveObjects, ourHeroes, type Adventure } from '../../logic/adventure';
+import { isEmptyArmy } from '../../logic/army';
 import type { Hero } from '../../logic/hero';
 import type { Town } from '../../logic/town';
 import type { Terrain } from '../../logic/map';
@@ -286,6 +287,8 @@ export class PixelMapWorld {
     if (!riding) this.picked = adv.hero.id;
     for (const h of heroes) {
       const fig = this.ours.get(h.id) ?? this.addHero(h);
+      // A hero in a town's garrison is inside its walls, out of sight.
+      fig.sprite.setVisible(!(isEmptyArmy(h.army) && adv.towns.some((t) => t.x === h.x && t.y === h.y)));
       if (riding && h.id === this.picked) continue;
       const f = tileFeet(h.x, h.y);
       fig.setFeet(f.x, f.y);

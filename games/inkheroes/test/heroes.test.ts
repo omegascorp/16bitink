@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { ASHFORD, BLACK_BANNER, THORNWOOD } from '../src/level/borderMarch';
-import { afterBattle, battleSides, endDay, unfinished, gridOf, isSeen, ourHeroes, RIVAL, startAdventure, stepHero, terrainView, townById, type Adventure } from '../src/logic/adventure';
+import { afterBattle, battleSides, endDay, garrisonHero, leadOut, unfinished, gridOf, isSeen, ourHeroes, RIVAL, startAdventure, stepHero, terrainView, townById, type Adventure } from '../src/logic/adventure';
 import { armyOf } from '../src/logic/army';
 import { createBattle } from '../src/logic/battle';
-import { cantHireHero, HERO_COST, hireHero, recruitsLeft, selectHero, sendAll, trade } from '../src/logic/heroes';
+import { cantHireHero, HERO_COST, hireHero, recruitsLeft, selectHero, sendAll, swapTownHeroes, townHeroes, trade } from '../src/logic/heroes';
 import { passable, tileIndex } from '../src/logic/map';
 import { rivalTurn } from '../src/logic/rival';
 import { parseAdventure } from '../src/logic/save';
@@ -23,40 +23,56 @@ describe('hiring a second hero', () => {
     expect(hireHero(a, ASHFORD, ashford)).toBeNull();
   });
 
-  it('opens from part 2: Ianthe joins for 2500 gold, beside the gate if a hero stands in it, and is picked', () => {
-    const a = atHome();
-    expect(cantHireHero(a, THORNWOOD, townById(a, ashford)!)).toBeNull();
+  it('opens from part 2: Ianthe joins for 2500 gold, in the town\'s gate, and is picked', () => {
+    const a = { ...startAdventure(THORNWOOD), prompts: [] };
+    const t = townById(a, ashford)!;
+    expect(cantHireHero(a, THORNWOOD, t)).toBeNull();
     const hired = hireHero(a, THORNWOOD, ashford)!;
-    expect(hired.hero.name).toBe('Ianthe');
-    expect(hired.hero.heroClass).toBe('cleric');
+    expect(hired.hero).toMatchObject({ name: 'Ianthe', heroClass: 'cleric', x: t.x, y: t.y });
     expect(hired.purse.gold).toBe(a.purse.gold - HERO_COST.gold);
     expect(hired.others!.map((h) => h.name)).toEqual(['Rowan']);
-    const t = townById(a, ashford)!;
-    expect(hired.hero.x !== t.x || hired.hero.y !== t.y).toBe(true);
-    expect(Math.max(Math.abs(hired.hero.x - t.x), Math.abs(hired.hero.y - t.y))).toBeLessThanOrEqual(3);
-    expect(isSeen(hired, THORNWOOD, hired.hero.x, hired.hero.y)).toBe(true);
+    expect(townHeroes(hired, t).visitor?.id).toBe('ianthe');
+    expect(isSeen(hired, THORNWOOD, t.x, t.y)).toBe(true);
     // One each: none left to hire.
     expect(recruitsLeft(hired, THORNWOOD)).toEqual([]);
-    expect(cantHireHero(hired, THORNWOOD, townById(hired, ashford)!)).toMatch(/already rides/);
+    expect(cantHireHero(hired, THORNWOOD, townById(hired, ashford)!)).toMatch(/already rides|stands in the gate/);
+  });
+
+  it('needs the gate free: a hero standing in it moves into the garrison first, and the two share the town', () => {
+    const a = atHome();
+    const t = townById(a, ashford)!;
+    expect(cantHireHero(a, THORNWOOD, t)).toMatch(/Rowan stands in the gate/);
+    expect(hireHero(a, THORNWOOD, ashford)).toBeNull();
+    const kept = garrisonHero(a)!;
+    const hired = hireHero(kept, THORNWOOD, ashford)!;
+    const both = townHeroes(hired, townById(hired, ashford)!);
+    expect(both.garrison?.id).toBe('rowan');
+    expect(both.visitor?.id).toBe('ianthe');
+    expect(hired.hero.id).toBe('ianthe');
+    // Rowan can't lead out past her, and she can't join a garrison he holds: they change places instead.
+    expect(leadOut(selectHero(hired, 'rowan'))).toEqual(selectHero(hired, 'rowan'));
+    expect(garrisonHero(hired)).toBeNull();
+    const swapped = swapTownHeroes(hired, ashford)!;
+    const after = townHeroes(swapped, townById(swapped, ashford)!);
+    expect(after.garrison?.id).toBe('ianthe');
+    expect(after.visitor?.id).toBe('rowan');
+    expect(after.visitor!.army).toEqual(townById(hired, ashford)!.garrison);
+    expect(townById(swapped, ashford)!.garrison).toEqual(both.visitor!.army);
+    // A save keeps both in the one town.
+    expect(parseAdventure(JSON.parse(JSON.stringify(swapped)), THORNWOOD)).toEqual(swapped);
   });
 
   it('needs a Tavern and the gold', () => {
-    const a = atHome();
+    const a = { ...startAdventure(THORNWOOD), prompts: [] };
     const t = townById(a, ashford)!;
     expect(cantHireHero(a, THORNWOOD, { ...t, built: t.built.filter((b) => b !== 'tavern') })).toMatch(/Tavern/);
     expect(cantHireHero({ ...a, purse: { ...a.purse, gold: 100 } }, THORNWOOD, t)).toMatch(/2500/);
   });
-
-  it('stands in the gate when nobody does', () => {
-    const a = startAdventure(THORNWOOD);
-    const hired = hireHero({ ...a, prompts: [] }, THORNWOOD, ashford)!;
-    const t = townById(a, ashford)!;
-    expect(hired.hero).toMatchObject({ x: t.x, y: t.y });
-  });
 });
 
 describe('two heroes on the map', () => {
-  const two = (): Adventure => hireHero(atHome(), THORNWOOD, ashford)!;
+  /** Ianthe hired in Ashford's gate, Rowan out on the north road. */
+  const two = (): Adventure => hireHero({ ...startAdventure(THORNWOOD), prompts: [] }, THORNWOOD, ashford)!;
 
   it('picks either one; the other waits where they stand', () => {
     const a = two();

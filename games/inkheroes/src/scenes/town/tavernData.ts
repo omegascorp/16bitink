@@ -1,5 +1,5 @@
 import type { HeroDef, MapDef } from '../../level/types';
-import { ourHeroes, type Adventure } from '../../logic/adventure';
+import { type Adventure } from '../../logic/adventure';
 import { CLASSES } from '../../logic/hero';
 import { cantHireHero, HERO_COST, recruitsLeft } from '../../logic/heroes';
 import { RANK_NAMES, SKILLS } from '../../logic/skills';
@@ -30,8 +30,7 @@ export function tavernOffer(adv: Adventure, def: MapDef, town: Town): TavernOffe
   const spells = hero.gear?.book ? hero.spells.map((s) => SPELLS[s].name) : [];
   const knows = [skills.join(', '), spells.join(', ')].filter(Boolean).join(' · ');
   const base = { hero, title: CLASSES[hero.heroClass].name, knows, price };
-  const gateTaken = ourHeroes(adv).some((h) => h.x === town.x && h.y === town.y);
-  if (!why) return { ...base, note: `Joins you ${gateTaken ? 'beside' : 'at'} the gate, ready to ride today.`, hire: { enabled: true } };
+  if (!why) return { ...base, note: `Joins you in ${town.name}'s gate, ready to ride today.`, hire: { enabled: true } };
   return { ...base, note: why, hire: why === `A hero costs ${HERO_COST.gold} gold.` ? { enabled: false } : null };
 }
 

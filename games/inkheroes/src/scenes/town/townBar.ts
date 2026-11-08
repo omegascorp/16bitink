@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import type { IconName } from '../../art/pixel/ui';
-import { calendar, heroInGarrison, heroVisiting, type Adventure } from '../../logic/adventure';
+import { calendar, type Adventure } from '../../logic/adventure';
+import type { TownHeroes } from '../../logic/heroes';
 import type { Town } from '../../logic/town';
 import { MAX_TOWERS } from '../../logic/siege';
 import { income, towerPlaces, towersOf } from '../../logic/town';
@@ -21,9 +22,12 @@ export const HEAD = -1;
 /** The parts of the strip drawn at the slot's size. */
 interface StripFaces {
   readonly crest: Phaser.GameObjects.Container;
-  readonly heroFace: Phaser.GameObjects.Image;
-  /** The hero's face lit (picked). */
-  readonly heroLit: Phaser.GameObjects.Image;
+  /** The garrison's hero's face, plain and lit (picked), over the crest. */
+  readonly keepFace: Phaser.GameObjects.Image | null;
+  readonly keepLit: Phaser.GameObjects.Image | null;
+  /** The visiting hero's face, plain and lit. */
+  readonly gateFace: Phaser.GameObjects.Image | null;
+  readonly gateLit: Phaser.GameObjects.Image | null;
   readonly emptyFace: PixelImage;
   readonly garrison: ArmyRow;
   readonly visitor: ArmyRow;
@@ -77,10 +81,9 @@ export class TownBar {
   private readonly drag: ArmyDrag<SlotRef>;
   private readonly splitBtn: PixelButton;
   private slot = 0;
-  /** The hero whose face heads their row (the picked one). */
-  private faceFor = '';
-  /** The row the hero heads: the visitor's, or the garrison's. */
-  private heroRow: SlotRef['army'] = 'hero';
+  /** The heroes whose faces head the rows (garrison | gate), to redraw them when they change. */
+  private faceFor = '|';
+  private heroes: TownHeroes = {};
   private readonly away: TextLabel;
   /** Whether the town has any tower places, and nothing's open over the strip. */
   private towersShown = false;
@@ -155,14 +158,21 @@ export class TownBar {
     const crestIcon = scene.add.image(slot / 2, slot / 2, UI_TEX.icon('town'));
     tapHead(crestFrame.img, () => 'garrison');
     const crest = scene.add.container(0, 0, [crestFrame.img, crestIcon]).setDepth(depth + 1);
-    const hero = heroArt('player', this.faceFor);
-    const cut = faceOf(scene, PX_TEX.hero(hero.id, 'idle'), hero.art, slot - 4);
-    const face = new PixelImage(scene, drawPortrait(cut, 'bronze', false, false, slot));
-    const lit = new PixelImage(scene, drawPortrait(cut, 'gold', false, false, slot));
-    face.img.setDepth(depth + 1);
-    lit.img.setDepth(depth + 1);
-    tapHead(face.img, () => this.heroRow);
-    tapHead(lit.img, () => this.heroRow);
+    // Each hero in the town heads their row: a plain face, and a lit one for when they're picked.
+    const faceOf2 = (id: string | undefined, row: SlotRef['army']): [PixelImage, PixelImage] | null => {
+      if (!id) return null;
+      const hero = heroArt('player', id);
+      const cut = faceOf(scene, PX_TEX.hero(hero.id, 'idle'), hero.art, slot - 4);
+      const pair = [new PixelImage(scene, drawPortrait(cut, 'bronze', false, false, slot)), new PixelImage(scene, drawPortrait(cut, 'gold', false, false, slot))] as [PixelImage, PixelImage];
+      for (const p of pair) {
+        p.img.setDepth(depth + 1);
+        tapHead(p.img, () => row);
+        owned.push(p);
+      }
+      return pair;
+    };
+    const keep = faceOf2(this.heroes.garrison?.id, 'garrison');
+    const gate = faceOf2(this.heroes.visitor?.id, 'hero');
     const emptyFace = new PixelImage(scene, drawSocket(slot, 'bronze'));
     emptyFace.img.setDepth(depth + 1);
     tapHead(emptyFace.img, () => 'hero');
@@ -179,8 +189,11 @@ export class TownBar {
     towersFrame.img.setDepth(depth);
     const towerFrame = new PixelImage(scene, drawSocket(slot, 'gold'));
     const towerHead = scene.add.container(0, 0, [towerFrame.img, scene.add.image(slot / 2, slot / 2, UI_TEX.icon('tower'))]).setDepth(depth + 1);
-    owned.push(crestFrame, towerFrame, face, lit, emptyFace, garrison, visitor, towers, towersFrame);
-    this.faces = { crest, heroFace: face.img, heroLit: lit.img, emptyFace, garrison, visitor, towers, towerHead, towersFrame, owned };
+    owned.push(crestFrame, towerFrame, emptyFace, garrison, visitor, towers, towersFrame);
+    this.faces = {
+      crest, keepFace: keep?.[0].img ?? null, keepLit: keep?.[1].img ?? null, gateFace: gate?.[0].img ?? null, gateLit: gate?.[1].img ?? null,
+      emptyFace, garrison, visitor, towers, towerHead, towersFrame, owned,
+    };
     this.slot = slot;
   }
 
@@ -287,50 +300,51 @@ export class TownBar {
     this.faces?.towerHead.setVisible(on);
   }
 
-  /** The hero's face at the head of the row the hero is in. */
+  /** Each hero's face at the head of their row. */
   private placeHero(): void {
     const { x, y } = this.armiesAt;
     const f = this.faces!;
-    const hy = this.heroRow === 'garrison' ? y : y + this.slot + ROW_GAP;
-    f.heroFace.setPosition(x, hy);
-    f.heroLit.setPosition(x, hy);
+    for (const img of [f.keepFace, f.keepLit]) img?.setPosition(x, y);
+    for (const img of [f.gateFace, f.gateLit]) img?.setPosition(x, y + this.slot + ROW_GAP);
   }
 
-  /** Shows town `t`'s lines and armies (the hero's row only when the hero is in it); `picked` lit, with Split when it can be split. */
-  refresh(adv: Adventure, t: Town, picked: SlotRef | null): void {
-    if (adv.hero.id !== this.faceFor) {
-      // Another hero picked (one just hired): their face heads the row.
-      this.faceFor = adv.hero.id;
+  /** Shows town `t`'s lines and armies, with `heroes` (the town's garrison and gate) heading their rows; `picked` lit, with Split when it can be split. */
+  refresh(adv: Adventure, t: Town, picked: SlotRef | null, heroes: TownHeroes): void {
+    const key = `${heroes.garrison?.id ?? ''}|${heroes.visitor?.id ?? ''}`;
+    this.heroes = heroes;
+    if (key !== this.faceFor) {
+      // Another hero came or went: the faces heading the rows change.
+      this.faceFor = key;
       this.makeFaces(this.slot);
       this.placeArmies(this.armiesAt.x, this.armiesAt.y);
     }
     const f = this.faces!;
+    const { garrison: keeper, visitor } = heroes;
     this.purse.set(adv.purse);
     this.date.setText(calendar(adv.day));
     this.name.setText(t.name);
     this.incomeLine.setText(`+${income(t)} a day`);
-    const here = heroVisiting(adv, t);
-    const held = heroInGarrison(adv, t);
-    this.heroRow = held ? 'garrison' : 'hero';
     this.placeHero();
-    const heroPicked = picked?.i === HEAD;
-    const army = picked?.army === 'garrison' ? t.garrison : picked?.army === 'tower' ? towersOf(t) : adv.hero.army;
-    const company = picked && !heroPicked ? army[picked.i] ?? null : null;
+    const headPicked = (row: SlotRef['army']): boolean => picked?.i === HEAD && picked.army === row;
+    const army = picked?.army === 'garrison' ? t.garrison : picked?.army === 'tower' ? towersOf(t) : visitor?.army ?? [];
+    const company = picked && picked.i !== HEAD ? army[picked.i] ?? null : null;
     this.status.setText(company ? 'Tap a slot to move them' : t.builtToday ? 'Built today: more tomorrow' : 'One building a day');
     this.splitBtn.root.setVisible(!!company && company.count > 1 && picked?.army !== 'tower');
     this.splitBtn.setEnabled(army.includes(null));
     f.garrison.set(t.garrison, picked?.army === 'garrison' ? picked.i : null);
-    f.visitor.set(here ? adv.hero.army : null, here && picked?.army === 'hero' ? picked.i : null);
-    f.visitor.root.setAlpha(here ? 1 : 0.5);
+    f.visitor.set(visitor ? visitor.army : null, visitor && picked?.army === 'hero' ? picked.i : null);
+    f.visitor.root.setAlpha(visitor ? 1 : 0.5);
     const places = towerPlaces(t);
     f.towers.set(towersOf(t), picked?.army === 'tower' ? picked.i : null, places);
     this.towersShown = places > 0;
     this.showTowers();
-    f.crest.setVisible(!held);
-    f.heroFace.setVisible((here || held) && !heroPicked);
-    f.heroLit.setVisible((here || held) && heroPicked);
-    f.emptyFace.img.setVisible(!here);
-    this.away.setText(held ? `${adv.hero.name} is in the garrison` : `${adv.hero.name} is away`).img.setVisible(!here);
+    f.crest.setVisible(!keeper);
+    f.keepFace?.setVisible(!headPicked('garrison'));
+    f.keepLit?.setVisible(headPicked('garrison'));
+    f.gateFace?.setVisible(!headPicked('hero'));
+    f.gateLit?.setVisible(headPicked('hero'));
+    f.emptyFace.img.setVisible(!visitor);
+    this.away.setText(keeper ? `${keeper.name} is in the garrison` : `${adv.hero.name} is away`).img.setVisible(!visitor);
   }
 
   destroy(): void {
