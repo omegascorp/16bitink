@@ -2,6 +2,7 @@ import type { CreatureId, TownFaction } from './creatures';
 import type { Hex } from './hex';
 import type { Siege, SiegePart, WallPart } from './siege';
 import type { Skills } from './skills';
+import type { BattleSpecialty } from './specialty';
 import type { EffectKind, SpellId } from './spells';
 
 export type Side = 0 | 1;
@@ -60,6 +61,8 @@ export interface BattleHero {
   readonly canFlee?: boolean;
   /** Their people (none: the Greeks'), for how the battle speaks of their war machine. */
   readonly faction?: TownFaction;
+  /** Their specialty at their level: a line's Attack and Defense, a spell's bonus (src/logic/specialty.ts). */
+  readonly specialty?: BattleSpecialty;
 }
 
 export interface BattleState {

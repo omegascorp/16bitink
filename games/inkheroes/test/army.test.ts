@@ -131,6 +131,7 @@ describe('the town’s strip', () => {
 
   it('shows the Storehouse once it stands, before Leave', () => {
     expect(townButtons(['storehouse'])).toEqual(['hall', 'fort', 'store', 'leave']);
+    expect(townButtons([], false, true)).toEqual(['hall', 'fort', 'ride', 'leave']);
     expect(townButtons(['mageGuild1', 'blacksmith', 'tavern', 'storehouse', 'treasury'], true)).toEqual(['hall', 'fort', 'guild', 'smith', 'tavern', 'store', 'leave']);
   });
 

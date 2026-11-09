@@ -6,6 +6,7 @@ import { rollInt } from './rng';
 import { MAX_SKILLS, SKILL_IDS, skillValue, type Rank, type SkillId, type Skills } from './skills';
 import type { SpellId } from './spells';
 import type { TownFaction } from './creatures';
+import type { Specialty } from './specialty';
 
 export type HeroClass = 'knight' | 'cleric';
 export type Primary = 'attack' | 'defense' | 'power' | 'knowledge';
@@ -42,6 +43,8 @@ export interface Hero {
   readonly faction?: TownFaction;
   /** Ankhs carried, for the Rite of Osiris (none: 0). */
   readonly ankhs?: number;
+  /** What they do best (src/logic/specialty.ts), from the roster by their id. */
+  readonly specialty?: Specialty;
 }
 
 interface ClassDef {
@@ -103,6 +106,7 @@ export function toBattleHero(h: Hero): BattleHero {
     spells: hasSpellbook(h) ? h.spells : [], skills: h.skills, ...(h.ankhs ? { ankhs: h.ankhs } : {}),
     morale: skillValue(h.skills, 'leadership') + (worn.morale ?? 0), luck: skillValue(h.skills, 'luck') + (worn.luck ?? 0),
     ...(h.faction ? { faction: h.faction } : {}),
+    ...(h.specialty ? { specialty: { ...h.specialty, level: h.level } } : {}),
   };
 }
 

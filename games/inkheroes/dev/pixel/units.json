@@ -1405,6 +1405,190 @@
     -2,
     0
    ]
+  },
+  "nyktimos": {
+   "name": "Nyktimos",
+   "src": "pixel/src/hero_nyktimos.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "a young knight in dark bronze armour with a light grey wolf-fur mantle and a grey crest, holding a spear, on a grey horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spear thrust: the rider levels the spear and thrusts it forward to the right, then draws it back to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    66,
+    28
+   ],
+   "walkLock": [
+    0,
+    -2,
+    -6,
+    -11,
+    -13,
+    -11,
+    -7,
+    -3
+   ]
+  },
+  "auge": {
+   "name": "Auge",
+   "src": "pixel/src/hero_auge.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "a priestess of Athena in a green robe over a bronze cuirass, long hair, holding a staff with a crescent moon, on a dun horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "staff strike: the rider raises the crescent staff and brings it forward to the right in a sweeping blow, then lifts it back to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    59,
+    30
+   ],
+   "strip": [
+    [
+     91,
+     92,
+     92
+    ],
+    8
+   ],
+   "walkLock": [
+    0,
+    -3,
+    -6,
+    -9,
+    -11,
+    -9,
+    -3,
+    0
+   ]
+  },
+  "atalanta": {
+   "name": "Atalanta",
+   "src": "pixel/src/hero_atalanta.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "a huntress with a ponytail, short tunic and a boar-skin cloak holding a longbow, on a light chestnut horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "bow shot: the rider draws the bowstring back, looses an arrow to the right, then lowers the bow to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    69,
+    29
+   ],
+   "walkLock": [
+    0,
+    -2,
+    -5,
+    -9,
+    -12,
+    -8,
+    -4,
+    0
+   ]
+  },
+  "peleus": {
+   "name": "Peleus",
+   "src": "pixel/src/hero_peleus.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "a bearded king in a crimson cloak and gilded bronze armour with a crowned helm holding a sword, on a white horse with a decorated saddle cloth",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "sword attack: the rider swings the sword up and across in a slash to the right, then raises it to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    65,
+    28
+   ],
+   "walkLock": [
+    0,
+    -3,
+    -7,
+    -10,
+    -12,
+    -9,
+    -6,
+    0
+   ]
+  },
+  "kallisto": {
+   "name": "Kallisto",
+   "src": "pixel/src/hero_kallisto.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "a huntress-priestess in silver-white robes with a moon diadem holding a slender spear-staff, on a pale grey horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spear-staff thrust: the rider lowers the slender spear and thrusts it forward to the right, then draws it back to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    61,
+    31
+   ],
+   "walkLock": [
+    0,
+    -1,
+    -5,
+    -8,
+    -10,
+    -7,
+    -4,
+    0
+   ]
+  },
+  "melampus": {
+   "name": "Melampus",
+   "src": "pixel/src/hero_melampus.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "an old bearded seer in a deep blue robe holding a staff with snakes coiled on it, on a brown mule-like horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "staff attack: the rider swings the snake staff forward to the right in a sweeping blow with a flash, then lifts it back to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    63,
+    30
+   ],
+   "strip": [
+    [
+     114,
+     102,
+     92
+    ],
+    8
+   ],
+   "walkLock": [
+    0,
+    -5,
+    -11,
+    -14,
+    -13,
+    -10,
+    -6,
+    0
+   ]
   }
  },
  "defaults": {

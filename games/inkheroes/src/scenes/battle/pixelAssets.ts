@@ -10,6 +10,7 @@ import { siegeArt } from './siegeView';
 import { loadUiArt, texturePixels } from './pixelUi';
 import { FACE, faceBox } from './pixelFaces';
 import type { Pixels } from './pixelScenery';
+import { heroArtId } from './heroArtId';
 
 /**
  * The pixel battle's textures: the manifest's PNG strips and backgrounds
@@ -43,7 +44,8 @@ export function faceOf(scene: Phaser.Scene, key: string, art: UnitArt, size: num
 /**
  * A hero's art: the rival lord's (by his id when he has art of his own,
  * `HERO_ART.sethi`, else 'rival', Kassander), or a hero of the player's, by
- * their id when that hero has art of their own (`HERO_ART.ianthe`), else the
+ * their id when that hero has art of their own (`HERO_ART.ianthe`,
+ * `HERO_ART.nyktimos`), else their class's: a Cleric Ianthe's, a Knight the
  * player's first hero's ('player', Rowan). Anything missing falls back to it.
  */
 export function heroArt(who: 'player' | 'rival' = 'player', heroId?: string): { id: string; art: UnitArt } {
@@ -51,13 +53,7 @@ export function heroArt(who: 'player' | 'rival' = 'player', heroId?: string): { 
   return { id, art: HERO_ART[id]! };
 }
 
-/** Which of the drawn heroes (`drawn`, HERO_ART's keys) stands for `who`, or for player hero `heroId`. */
-export function heroArtId(drawn: readonly string[], who: 'player' | 'rival', heroId?: string): string {
-  const has = (k: string): boolean => drawn.includes(k);
-  if (heroId && heroId !== 'rival' && heroId !== 'player' && has(heroId)) return heroId;
-  if (has(who)) return who;
-  return has('player') ? 'player' : drawn[0]!;
-}
+export { heroArtId };
 
 /** Every hero drawn, for the loaders: each one's poses come in with the rest. */
 export const HERO_IDS: readonly string[] = Object.keys(HERO_ART);

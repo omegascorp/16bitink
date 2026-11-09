@@ -2,10 +2,11 @@ import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getHost, getSound } from '../host';
 import { buyMachine, cantBuyMachine, enterTown, garrisonHero, heroTown, leadOut, ourHeroes, playerTowns, townById, withTown, type Adventure } from '../logic/adventure';
-import { cantHireHero, hireHero, selectHero, swapTownHeroes, townHeroes, withHero, type TownHeroes } from '../logic/heroes';
+import { cantHireHero, hireHero, selectHero, swapTownHeroes, tavernsHire, townHeroes, withHero, type TownHeroes } from '../logic/heroes';
 import { gainItem } from '../logic/items';
 import type { SpellId } from '../logic/spells';
 import type { Town } from '../logic/town';
+import { rideHere, type RideHere } from '../logic/rideHere';
 import { moveSlot, splitSlot, type Army } from '../logic/army';
 import type { BuildingId } from '../logic/buildings';
 import { canManTower, creature, type CreatureId } from '../logic/creatures';
@@ -22,6 +23,8 @@ import { HERO_SLOT } from './hud/armySlots';
 import { armyUnitInfo, dwellingPreview } from './battle/unitCard';
 import { factionOf } from '../logic/factions';
 import { UnitInfoCard, type InfoButton } from './battle/unitInfoCard';
+import { canCompare } from './battle/unitCompare';
+import { UnitCompareView } from './battle/unitCompareView';
 import { openCard, type CardButton } from './CardScene';
 import type { MapScene } from './MapScene';
 import { pixelUiCamera } from './pixelScreen';
@@ -110,7 +113,7 @@ export class TownScene extends Phaser.Scene {
   private screen: TownScreen | null = null;
   private picked: SlotRef | null = null;
   /** A company's info card, while it's open. */
-  private info: { card: UnitInfoCard; layer: Phaser.GameObjects.Container } | null = null;
+  private info: { card: { close(): void }; layer: Phaser.GameObjects.Container } | null = null;
   /** The company being split, while its picker is open. */
   private splitter: SplitPicker | null = null;
   /** Whether this visit has said how to see a company's card. */
@@ -175,7 +178,7 @@ export class TownScene extends Phaser.Scene {
     void loadTownArt(this, factionOf(this.town())).then(() => {
       if (!this.sys.isActive()) return;
       this.ready = true;
-      this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r), canCarry: (r) => this.canPick(r), dropSlot: (from, to) => this.moveCompany(from, to), split: () => this.openSplit() }, DEPTH.bar);
+      this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r), canCarry: (r) => this.canPick(r), dropSlot: (from, to) => this.moveCompany(from, to), split: () => this.openSplit(), ride: () => this.rideHere() }, DEPTH.bar);
       this.drawAll();
     });
   }
@@ -213,7 +216,7 @@ export class TownScene extends Phaser.Scene {
 
   /** Whether this map's Taverns have heroes to hire (map 1's don't, so it shows no Tavern button). */
   private hires(): boolean {
-    return (this.session.def.recruits ?? []).length > 0;
+    return tavernsHire(this.session.def, this.town());
   }
 
   /** Dragging the townscape sideways pans it when it's wider than the screen. */
@@ -248,7 +251,7 @@ export class TownScene extends Phaser.Scene {
 
   private drawAll(): void {
     if (!this.bar) return;
-    this.bar.layout(this.size.w, this.size.h, this.town(), this.hires());
+    this.bar.layout(this.size.w, this.size.h, this.town(), this.hires(), this.rideOffer());
     this.pickHeroHere();
     this.bar.refresh(this.session.adv, this.town(), this.picked, this.heroesHere());
     this.drawView();
@@ -351,7 +354,7 @@ export class TownScene extends Phaser.Scene {
       return;
     }
     if (this.screen === 'tavern') {
-      this.window = new TavernRoom(this, adv, this.session.def, this.town(), room, { close: () => this.openScreen(null), hire: () => this.hireHero() }, depth);
+      this.window = new TavernRoom(this, adv, this.session.def, this.town(), room, { close: () => this.openScreen(null), hire: (id) => this.hireHero(id) }, depth);
       return;
     }
     if (this.screen === 'store') {
@@ -439,6 +442,21 @@ export class TownScene extends Phaser.Scene {
     this.drawWindow();
   }
 
+  /** The ride here for the picked hero while they are away from this (our) town, else null. */
+  private rideOffer(): RideHere | null {
+    const { adv, def } = this.session;
+    const town = this.town();
+    return town.owner === 'player' && heroTown(adv)?.id !== town.id && !this.heroesHere(adv).garrison ? rideHere(adv, def, town) : null;
+  }
+
+  /** "Ride here": the town closes and the hero rides to its gate. */
+  private rideHere(): void {
+    const ride = this.rideOffer();
+    if (!ride || !('path' in ride)) return;
+    this.scene.stop();
+    (this.scene.get('Map') as MapScene).rideTo(ride.path);
+  }
+
   private leave(): void {
     this.scene.stop();
     (this.scene.get('Map') as MapScene).back();
@@ -467,9 +485,9 @@ export class TownScene extends Phaser.Scene {
   }
 
   /** The Tavern's hero joins: paid for, in the town's gate, and picked, so the town now serves them. */
-  private hireHero(): void {
+  private hireHero(id?: string): void {
     const { adv, def } = this.session;
-    const next = hireHero(adv, def, this.townId);
+    const next = hireHero(adv, def, this.townId, id);
     if (!next) {
       this.toast(cantHireHero(adv, def, this.town(adv)) ?? 'No hero can be hired here');
       return;
@@ -589,6 +607,7 @@ export class TownScene extends Phaser.Scene {
       const can = canAfford(adv.purse, cost);
       buttons.push({ label: `Upgrade to ${creature(to).plural}`, note: can ? describeAmount(cost) : `Needs ${describeAmount(cost)}`, enabled: can, onClick: () => this.upgrade(ref) });
     }
+    if (canCompare(s.creature)) buttons.push({ label: 'Compare', note: 'with its earlier levels', onClick: () => this.compareCard(ref, s.creature) });
     const layer = this.add.container(0, 0).setDepth(DEPTH.info);
     const scenery = { atlas: texturePixels(this, PX_TEX.scenery('grass')), art: townScenery(), seed: ref.i + 3 };
     const card = new UnitInfoCard(this, layer, armyUnitInfo(s.creature, s.count), scenery, this.size, () => {
@@ -596,6 +615,18 @@ export class TownScene extends Phaser.Scene {
       this.info = null;
     }, buttons);
     this.info = { card, layer };
+  }
+
+  /** The unit's levels side by side; closing it returns to the card. */
+  private compareCard(ref: SlotRef, id: CreatureId): void {
+    const layer = this.add.container(0, 0).setDepth(DEPTH.info);
+    const scenery = { atlas: texturePixels(this, PX_TEX.scenery('grass')), art: townScenery(), seed: ref.i + 3 };
+    const view = new UnitCompareView(this, layer, id, scenery, this.size, () => {
+      layer.destroy();
+      this.info = null;
+      this.unitCard(ref);
+    });
+    this.info = { card: view, layer };
   }
 
   /** Raises the company at `ref` to its line's best level built here, for the difference in price. */

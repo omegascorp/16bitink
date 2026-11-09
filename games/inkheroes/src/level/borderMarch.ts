@@ -82,7 +82,8 @@ function placed(objects: readonly MapObject[], at: Place, prefix: string, taken:
 const at = <T extends Place>(p: T, a: Place): T => ({ ...p, x: p.x + a.x, y: p.y + a.y });
 const heroAt = (h: HeroDef, a: Place): HeroDef => at(h, a);
 
-export const ASHFORD: MapDef = { ...ASHFORD_LAND, rows: cut(32, 24), seed: SEED };
+/** Part 1: its Tavern hires nobody yet (an empty list of its own, so the roster isn't offered). */
+export const ASHFORD: MapDef = { ...ASHFORD_LAND, rows: cut(32, 24), seed: SEED, recruits: [] };
 
 const thornwoodObjects = placed(THORNWOOD_LAND.objects, AT.thornwood, 'thornwood', ASHFORD.objects);
 
@@ -168,7 +169,7 @@ export const OTHRYS: MapDef = {
   rival: { ...OTHRYS_LAND.rival!, hero: othrysAt(OTHRYS_LAND.rival!.hero) },
   // The Crown's grant, for the chapter's last and biggest part.
   grant: { gold: 4000, wood: 10, ore: 10, mercury: 3, sulfur: 3, crystal: 3, gems: 3 },
-  recruits: BORDER_RECRUITS,
+  // No recruits of its own: from Othrys on the Taverns offer two of the Greek roster a week, to both sides (Ianthe among them if not hired in part 2).
   // Won, the narrator tells of the Titans' oath, then the chapter's ending.
   won: 'othrys-won',
   opening: { text: 'Three ways into Othrys: the coast road, the ford, the mountain pass', way: WAYS_IN, apart: true },

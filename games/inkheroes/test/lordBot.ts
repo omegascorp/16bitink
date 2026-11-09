@@ -77,7 +77,7 @@ export function playLordPart(start: Adventure, def: MapDef, maxDays = 70, onDay?
   const taken: Record<string, { day: number; by: 'player' | 'rival' }> = {};
   const neutral = new Set(adv.towns.filter((t) => t.owner === 'neutral').map((t) => t.id));
   // Our side plays as a person: fights at about 1.5 to 1 (its heroes cast spells), else the lord's rules.
-  const rules = { recruits: def.recruits ?? [], maxHeroes: LORD_HEROES, rest: false, resolve: 'auto' as const, dare: PERSON_ODDS, takeAll: true, commit: true };
+  const rules = { ...(def.recruits ? { recruits: def.recruits } : {}), maxHeroes: LORD_HEROES, rest: false, resolve: 'auto' as const, dare: PERSON_ODDS, takeAll: true, commit: true };
   while (adv.status === 'playing' && partDay(adv) <= maxDays) {
     const d = lordDay(adv, def, mem, rules);
     adv = answerAll(d.adv);

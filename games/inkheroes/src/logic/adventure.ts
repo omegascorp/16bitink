@@ -16,6 +16,8 @@ import { skillValue, type SkillId } from './skills';
 import { BUILDING_IDS } from './buildings';
 import { cantBuild, dwellings, growthOf, has, income, manTowers, towersOf, undefended, weekly, type Town } from './town';
 import { visitSite } from './visits';
+import { specialtyOf } from './roster';
+import { specialtyGold } from './specialty';
 import type { LordMemory } from './lord/knowledge';
 import { growDwellings, hireAtDwelling } from './dwellings';
 import { previousMap } from '../level/maps';
@@ -127,7 +129,8 @@ export function heroFromDef(h: HeroDef): Hero {
     army: armyOf(h.army), mp: 0, visited: [], ...(h.gear ? { gear: h.gear } : {}),
     ...(h.faction ? { faction: h.faction } : {}), ...(h.ankhs ? { ankhs: h.ankhs } : {}),
   };
-  return { ...hero, mp: dailyMp(hero) };
+  const specialty = specialtyOf(h);
+  return { ...hero, mp: dailyMp(hero), ...(specialty ? { specialty } : {}) };
 }
 
 /** A message card that the narrator tells (line `id`): its title and words are the line's. */
@@ -485,7 +488,7 @@ export function incomeOf(adv: Adventure, owner: 'player' | 'rival'): Purse {
 
 /** Gold and resources the player gets each day: towns, mines and the hero's estates. */
 export function dailyIncome(adv: Adventure): Purse {
-  return addTo(incomeOf(adv, 'player'), { gold: skillValue(adv.hero.skills, 'estates') });
+  return addTo(incomeOf(adv, 'player'), { gold: skillValue(adv.hero.skills, 'estates') + specialtyGold(ourHeroes(adv)) });
 }
 
 /** Whether the hero has the movement for at least one more step today (to any open tile beside it). */
@@ -529,7 +532,7 @@ export function endDay(adv: Adventure, def?: MapDef): Adventure {
     : adv.objects;
   // The rival rests and is paid too (the rival's turn itself is rivalTurn's, after the night).
   const r = adv.rival;
-  const rival = r ? { ...r, hero: r.hero ? { ...r.hero, mp: dailyMp(r.hero) } : null, purse: addTo(r.purse, incomeOf(adv, 'rival')), ...(r.others ? { others: r.others.map((h) => ({ ...h, mp: dailyMp(h) })) } : {}) } : undefined;
+  const rival = r ? { ...r, hero: r.hero ? { ...r.hero, mp: dailyMp(r.hero) } : null, purse: addTo(addTo(r.purse, incomeOf(adv, 'rival')), { gold: specialtyGold(rivalHeroes(adv)) }), ...(r.others ? { others: r.others.map((h) => ({ ...h, mp: dailyMp(h) })) } : {}) } : undefined;
   // A hero waiting in a town takes the Ankh its temple makes on Monday.
   const next = takeAnkhs({ ...adv, day, hero, ...(others ? { others } : {}), towns, objects, purse: addTo(adv.purse, dailyIncome(adv)), ...(rival ? { rival } : {}) });
   return { ...next, prompts: [...adv.prompts, { kind: 'message', title: calendar(day), text: stormNews(def, next), report: dayReport(adv, next) }] };
@@ -553,6 +556,7 @@ export function dayReport(before: Adventure, after: Adventure): DayReport {
     ...towns.map((t): GoldSource => ({ kind: 'town', label: t.name, gold: income(t) })),
     { kind: 'mines', label: goldMines === 1 ? 'Gold mine' : `Gold mines ×${goldMines}`, gold: goldMines * MINE_OUTPUT.gold },
     { kind: 'estates', label: 'Estates', gold: estates },
+    ...ourHeroes(before).filter((h) => specialtyGold([h]) > 0).map((h): GoldSource => ({ kind: 'estates', label: `${h.name}'s herds`, gold: specialtyGold([h]) })),
   ];
   const h = after.hero;
   const hero = { id: h.id, name: h.name, tiles: tilesOf(h.mp), horses: tilesOf(Math.max(0, h.mp - dailyMp(h))), mana: h.mana, maxMana: maxMana(h), gained: Math.max(0, h.mana - before.hero.mana) };

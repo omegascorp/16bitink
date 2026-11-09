@@ -3,7 +3,8 @@ import { soldOn } from '../../level/unlocks';
 import { dailyIncome, enterTown, heroTown, ourHeroes, playerTowns, townAt, withTown, type Adventure } from '../adventure';
 import { creature } from '../creatures';
 import { armyOf, isEmptyArmy, moveAll } from '../army';
-import { HERO_COST, hireHero, selectHero, withHero } from '../heroes';
+import { HERO_COST, hireHero, selectHero, tavernHeroes, withHero } from '../heroes';
+import { hireScore, strongestLine, type HireJob } from './recruits';
 import { maxMana, type Hero } from '../hero';
 import { gainItem, hasAsGood, hasSpellbook } from '../items';
 import { pay, RARE, type Amount } from '../resources';
@@ -22,8 +23,8 @@ import { GHOST } from './mirror';
  */
 
 export interface LordRules {
-  /** The heroes his Taverns hire, in order (the player's: the map's recruits). */
-  readonly recruits: readonly HeroDef[];
+  /** The heroes his Taverns hire, in order (the player's: the map's recruits); none: the roster's two a week, as the player's. */
+  readonly recruits?: readonly HeroDef[];
   /** The most heroes he rides with. */
   readonly maxHeroes: number;
   /** His heroes rest in the morning (the rival's: the night rests only ours). */
@@ -151,11 +152,18 @@ function hireHeroes(adv: Adventure, def: MapDef, memory: LordMemory, rules: Lord
   // The second hero is worth dipping into the savings for (rule 2: by about the part's third day); a third waits for spare gold.
   const gold = riding.length <= 1 ? adv.purse.gold : spendable(adv, memory);
   if (!wanted || riding.length >= rules.maxHeroes || gold < HERO_COST.gold) return adv;
-  const left = rules.recruits.filter((r) => !riding.some((h) => h.id === r.id));
-  if (!left.length) return adv;
+  const { recruits: _map, ...open } = def;
+  const pool: MapDef = rules.recruits ? { ...open, recruits: rules.recruits } : open;
   const picked = adv.hero.id;
-  for (const t of playerTowns(adv).filter((x) => has(x, 'tavern'))) {
-    const hired = hireHero(adv, { ...def, recruits: left }, t.id);
+  // With nobody riding the new hero leads the main army (his town's garrison to start): a line specialist of its strongest line; else a runner.
+  const job: HireJob = riding.length === 0 ? 'main' : 'runner';
+  const offers = playerTowns(adv).filter((x) => has(x, 'tavern')).flatMap((t) => {
+    const army = job === 'main' ? t.garrison : [];
+    return tavernHeroes(adv, pool, t, 'lord').map((h) => ({ t, h, score: hireScore(h, job, strongestLine(army)) }));
+  });
+  // The best fit at any Tavern of his (the first town's on a tie).
+  for (const { t, h } of [...offers].sort((a, b) => b.score - a.score)) {
+    const hired = hireHero(adv, pool, t.id, h.id, 'lord');
     if (!hired) continue;
     // The ghost (no hero riding before) is gone once a hero is hired.
     const others = (hired.others ?? []).filter((h) => h.id !== GHOST);

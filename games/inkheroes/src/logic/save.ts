@@ -18,6 +18,7 @@ import { dwellings, SPELLBOOK_SOLD, type Town } from './town';
 import { isLineId } from '../narration/lines';
 import type { LordMemory } from './lord/knowledge';
 import { lordRules } from './lord/turn';
+import { rosterHero, specialtyOf } from './roster';
 
 /** What the war machines since cut from the game cost, gold. */
 const OLD_MACHINES: Readonly<Record<string, number>> = { ballista: 1500, tent: 750 };
@@ -178,17 +179,39 @@ function upgradeFight(adv: Adventure): Adventure {
 
 /** Which of the map's heroes a saved hero of ours is (the map's own hero for a save from before there were several). */
 function playerHeroDef(raw: Record<string, unknown>, def: MapDef): HeroDef {
-  return (def.recruits ?? []).find((r) => r.id === raw.id) ?? def.hero;
+  return heroDefFor(raw, def, def.hero);
+}
+
+const HERO_ID = /^[A-Za-z0-9_-]{1,40}$/;
+const isClass = (v: unknown): v is HeroDef['heroClass'] => v === 'knight' || v === 'cleric';
+const isPeople = (v: unknown): v is TownFaction => v === 'crown' || v === 'kemet';
+
+/**
+ * Which hero a saved one is, by id: one the map names (its hero, recruits or
+ * rival), else the roster's (a Tavern's hire, ours or a lord's, among them
+ * the old LORD_RECRUITS ids), else one nobody knows any more, who still
+ * loads under their saved name and class. No id at all: `fallback`.
+ */
+function heroDefFor(raw: Record<string, unknown>, def: MapDef, fallback: HeroDef): HeroDef {
+  const id = raw.id;
+  if (typeof id !== 'string' || !HERO_ID.test(id)) return fallback;
+  const named = [def.hero, ...(def.recruits ?? []), ...(def.rival ? [def.rival.hero, ...(lordRules(def).recruits ?? [])] : [])];
+  const known = named.find((h) => h.id === id) ?? rosterHero(id);
+  if (known) return known;
+  const name = typeof raw.name === 'string' && raw.name.trim().length > 0 && raw.name.length <= 24 ? raw.name.trim() : id;
+  return {
+    id, name, heroClass: isClass(raw.heroClass) ? raw.heroClass : 'knight', x: 0, y: 0, attack: 0, defense: 0, power: 0, knowledge: 0, skills: {}, spells: [], army: [],
+    ...(isPeople(raw.faction) && raw.faction !== 'crown' ? { faction: raw.faction } : {}),
+  };
 }
 
 /** The player's other heroes in a save: each one of the map's, none twice, none on another's tile (null: unreadable). */
 function parseOthers(raw: unknown, def: MapDef, picked: Adventure['hero'] | null): Adventure['hero'][] | null {
   if (raw === undefined) return [];
   if (!Array.isArray(raw) || !raw.every(isObj)) return null;
-  const known = [def.hero, ...(def.recruits ?? [])];
   const out = raw.map((h) => {
-    const d = known.find((k) => k.id === (h as Record<string, unknown>).id);
-    return d ? parseHero(h as Record<string, unknown>, def, d) : null;
+    const r = h as Record<string, unknown>;
+    return typeof r.id === 'string' ? parseHero(r, def, heroDefFor(r, def, def.hero)) : null;
   });
   if (!out.every((h) => !!h)) return null;
   const all = [...(picked ? [picked] : []), ...(out as Adventure['hero'][])];
@@ -219,7 +242,7 @@ function parseRival(raw: unknown, def: MapDef): RivalState | null | undefined {
 }
 
 /** Which of the lord's heroes a saved one is: the map's rival, or one his Taverns hired. */
-const lordHeroDef = (raw: Record<string, unknown>, def: MapDef): HeroDef => lordRules(def).recruits.find((r) => r.id === raw.id) ?? def.rival!.hero;
+const lordHeroDef = (raw: Record<string, unknown>, def: MapDef): HeroDef => heroDefFor(raw, def, def.rival!.hero);
 
 /** A lord's other heroes, fog and memory in a save (null: unreadable). */
 function parseLord(raw: Record<string, unknown>, def: MapDef): Pick<RivalState, 'others' | 'explored' | 'memory' | 'fallen' | 'homeless'> | null {
@@ -295,7 +318,9 @@ function parseHero(raw: Record<string, unknown>, def: MapDef, h: HeroDef = def.h
     mana: raw.mana, xp: raw.xp, level: Math.min(raw.level, levelFor(raw.xp)), skills, spells: [...new Set(raw.spells)], army, mp: raw.mp, visited: raw.visited as string[],
     ...bookFromFlag(raw, parseGear(raw)),
   };
-  return { ...hero, mana: Math.min(hero.mana, maxMana(hero)), mp: Math.min(hero.mp, dailyMp(hero) + MP_BONUS) };
+  // The specialty is the roster's for their id, never the save's (an old save's heroes get theirs).
+  const specialty = specialtyOf(h);
+  return { ...hero, ...(specialty ? { specialty } : {}), mana: Math.min(hero.mana, maxMana(hero)), mp: Math.min(hero.mp, dailyMp(hero) + MP_BONUS) };
 }
 
 /** A hero saved when a spellbook was only a flag has the guild's book now. */

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { ASHFORD } from '../src/level/borderMarch';
 import { startAdventure, type Adventure } from '../src/logic/adventure';
 import { armyOf } from '../src/logic/army';
-import { intentAt } from '../src/logic/mapIntent';
+import { townFootprint } from '../src/logic/objects';
+import { rideHere } from '../src/logic/rideHere';
+import { intentAt, ownTownPictureAt, townToEnter } from '../src/logic/mapIntent';
 
 const everywhere = (adv: Adventure): Adventure => ({ ...adv, explored: '1'.repeat(adv.explored.length), prompts: [] });
 
@@ -57,5 +59,45 @@ describe('what a tap on the map would do', () => {
     expect(intentAt(held, def, town.x, town.y)).toBe('attack');
     const ally = { ...held, towns: held.towns.map((t) => ({ ...t, ally: true })) };
     expect(intentAt(ally, def, town.x, town.y)).toBe('visit');
+  });
+
+  describe('a tap on the picture of a town of ours', () => {
+    const town = adv.towns[0]!;
+    const away = { ...adv, hero: { ...adv.hero, x: town.x, y: town.y + 6 } };
+    const tiles = [{ x: town.x, y: town.y }, ...townFootprint(town.x, town.y)];
+
+    it('opens it from every tile, whichever the hero, and shows the enter intent there', () => {
+      for (const t of tiles) {
+        expect(ownTownPictureAt(away, def, t.x, t.y)?.id).toBe(town.id);
+        expect(townToEnter(away, def, t.x, t.y)?.id).toBe(town.id);
+        expect(intentAt(away, def, t.x, t.y)).toBe('visit');
+      }
+      expect(ownTownPictureAt(away, def, town.x + 8, town.y)).toBeUndefined();
+    });
+
+    it('rides as before when a path to the gate is planned, and not in the fog', () => {
+      const wall = townFootprint(town.x, town.y)[6]!;
+      expect(townToEnter(away, def, wall.x, wall.y, { x: town.x, y: town.y })).toBeUndefined();
+      expect(townToEnter(away, def, wall.x, wall.y, { x: 1, y: 1 })?.id).toBe(town.id);
+      const fogged = { ...away, explored: '0'.repeat(away.explored.length) };
+      expect(townToEnter(fogged, def, wall.x, wall.y)).toBeUndefined();
+    });
+
+    it('leaves a town not ours as it was: no entering, a fight for a garrison', () => {
+      const held = { ...away, towns: away.towns.map((t) => (t.id === town.id ? { ...t, owner: 'rival' as const, garrison: armyOf([{ creature: 'bandit', count: 5 }]) } : t)) };
+      const wall = townFootprint(town.x, town.y)[6]!;
+      expect(townToEnter(held, def, wall.x, wall.y)).toBeUndefined();
+      expect(intentAt(held, def, town.x, town.y)).toBe('attack');
+    });
+
+    it('offers a ride to its gate, or says why not', () => {
+      expect('path' in rideHere(away, def, town)).toBe(true);
+      const stuck = { ...away, hero: { ...away.hero, mp: 0 }, explored: away.explored };
+      expect(rideHere(stuck, def, town)).toBeDefined();
+      const inOther = { ...away, hero: { ...away.hero, army: armyOf([]) }, towns: [...away.towns] };
+      const other = { ...town, id: 'elsewhere', x: away.hero.x, y: away.hero.y };
+      const garrisoned = { ...inOther, towns: [...away.towns, other] };
+      expect(rideHere(garrisoned, def, town)).toMatchObject({ why: expect.stringContaining('garrison') });
+    });
   });
 });

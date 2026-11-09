@@ -3,7 +3,6 @@ import { checkGoal, DEFEND, GATE, RIVAL, weekOf, type Adventure } from '../adven
 import { dailyMp } from '../hero';
 import { lordDay } from './day';
 import { lookAbout, NO_MEMORY } from './knowledge';
-import { LORD_RECRUITS } from './recruits';
 import { mirrored, unmirrored } from './mirror';
 import { lordNews } from './news';
 
@@ -24,10 +23,10 @@ const RACE_FROM = 4;
 /** Whether the map's rival thinks as a lord. */
 export const isLord = (def: MapDef): boolean => def.rival?.mind === 'lord';
 
-/** The heroes a lord's Taverns hire on `def`, and how many may ride. */
-export function lordRules(def: MapDef): { recruits: readonly HeroDef[]; maxHeroes: number } {
+/** The heroes a lord's Taverns hire on `def` (none named: the roster's offer, as ours), and how many may ride. */
+export function lordRules(def: MapDef): { recruits?: readonly HeroDef[]; maxHeroes: number } {
   const r = def.rival as (MapDef['rival'] & { recruits?: readonly HeroDef[] }) | undefined;
-  return { recruits: r?.recruits ?? LORD_RECRUITS, maxHeroes: r?.heroes ?? LORD_HEROES };
+  return { ...(r?.recruits ? { recruits: r.recruits } : {}), maxHeroes: r?.heroes ?? LORD_HEROES };
 }
 
 /**
@@ -93,7 +92,9 @@ export function playLord(adv: Adventure, def: MapDef, resolve: 'auto' | 'stop'):
   if (counted.fell) return { adv: checkGoal(counted.adv, def), notes: counted.notes, path: [] };
   const known = counted.adv;
   const view = lookAbout(mirrored(known), def);
-  const day = lordDay(view, { ...def, recruits: lordRules(def).recruits }, known.rival!.memory ?? NO_MEMORY, { ...lordRules(def), rest: true, resolve, raceFrom: RACE_FROM });
+  const { recruits: _ours, ...open } = def;
+  const rules = lordRules(def);
+  const day = lordDay(view, rules.recruits ? { ...open, recruits: rules.recruits } : open, known.rival!.memory ?? NO_MEMORY, { ...rules, rest: true, resolve, raceFrom: RACE_FROM });
   const back = unmirrored(day.adv, known);
   // His heroes beaten on his own ride (fought at once) are remembered as fallen, as beatRival remembers those we beat.
   const riding = new Set([...(back.rival!.hero ? [back.rival!.hero.id] : []), ...(back.rival!.others ?? []).map((h) => h.id)]);

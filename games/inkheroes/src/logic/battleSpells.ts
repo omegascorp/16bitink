@@ -4,6 +4,7 @@ import { creature } from './creatures';
 import { heal, raise } from './damage';
 import { putEffect, wound } from './battleTraits';
 import { skillValue } from './skills';
+import { extraRounds, spellShare } from './specialty';
 import { BAD_EFFECTS, SPELLS, type SpellId } from './spells';
 
 /** Why a hero can't cast `spell` on `target` now, or null when it can. */
@@ -33,7 +34,9 @@ export function spellAmount(state: BattleState, side: Side, spell: SpellId): num
   const def = SPELLS[spell];
   if (!hero || def.perPower === undefined) return 0;
   const raw = def.perPower * hero.power + (def.base ?? 0);
-  return def.target === 'enemy' ? Math.floor(raw * (1 + skillValue(hero.skills, 'sorcery'))) : raw;
+  // A spell specialist's bonus adds to Sorcery's (Healing heals more, the Thunderbolt strikes harder).
+  const share = spellShare(hero.specialty, spell);
+  return def.target === 'enemy' ? Math.floor(raw * (1 + skillValue(hero.skills, 'sorcery') + share)) : Math.floor(raw * (1 + share));
 }
 
 /** The hero casts: it costs mana and the round's cast, but not the active unit's turn. */
@@ -65,7 +68,7 @@ export function castSpell(state: BattleState, side: Side, spell: SpellId, target
   }
   if (def.effect) {
     // A ward holds until it has soaked its fill; the rest last Spell Power rounds.
-    const rounds = Math.max(1, hero.power);
+    const rounds = Math.max(1, hero.power) + extraRounds(hero.specialty, spell);
     s = putEffect(s, targetId, def.effect === 'ward' ? { kind: 'ward', rounds: 1, left: amount } : { kind: def.effect, rounds });
   }
   const events: BattleEvent[] = [{ type: 'spell', side, spell, target: targetId, amount, kills }, ...after];

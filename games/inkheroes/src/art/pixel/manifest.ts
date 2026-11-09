@@ -214,6 +214,24 @@ import hero_sethiAttack from './units/hero_sethi-attack.png?url';
 import hero_lykaonIdle from './units/hero_lykaon-idle.png?url';
 import hero_lykaonWalk from './units/hero_lykaon-walk.png?url';
 import hero_lykaonAttack from './units/hero_lykaon-attack.png?url';
+import hero_nyktimosIdle from './units/hero_nyktimos-idle.png?url';
+import hero_nyktimosWalk from './units/hero_nyktimos-walk.png?url';
+import hero_nyktimosAttack from './units/hero_nyktimos-attack.png?url';
+import hero_augeIdle from './units/hero_auge-idle.png?url';
+import hero_augeWalk from './units/hero_auge-walk.png?url';
+import hero_augeAttack from './units/hero_auge-attack.png?url';
+import hero_atalantaIdle from './units/hero_atalanta-idle.png?url';
+import hero_atalantaWalk from './units/hero_atalanta-walk.png?url';
+import hero_atalantaAttack from './units/hero_atalanta-attack.png?url';
+import hero_peleusIdle from './units/hero_peleus-idle.png?url';
+import hero_peleusWalk from './units/hero_peleus-walk.png?url';
+import hero_peleusAttack from './units/hero_peleus-attack.png?url';
+import hero_kallistoIdle from './units/hero_kallisto-idle.png?url';
+import hero_kallistoWalk from './units/hero_kallisto-walk.png?url';
+import hero_kallistoAttack from './units/hero_kallisto-attack.png?url';
+import hero_melampusIdle from './units/hero_melampus-idle.png?url';
+import hero_melampusWalk from './units/hero_melampus-walk.png?url';
+import hero_melampusAttack from './units/hero_melampus-attack.png?url';
 import bgGrass from './battle/bg-grass.png?url';
 import bgDirt from './battle/bg-dirt.png?url';
 import bgRough from './battle/bg-rough.png?url';
@@ -700,6 +718,42 @@ export const HERO_ART: Readonly<Record<string, UnitArt>> = {
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
     face: { x: 85, y: 23 },
     url: { idle: hero_lykaonIdle, walk: hero_lykaonWalk, attack: hero_lykaonAttack },
+  },
+  nyktimos: {
+    name: "Nyktimos", w: 144, h: 136, footX: 63, footY: 130,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 66, y: 28 },
+    url: { idle: hero_nyktimosIdle, walk: hero_nyktimosWalk, attack: hero_nyktimosAttack },
+  },
+  auge: {
+    name: "Auge", w: 144, h: 136, footX: 62, footY: 130,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 59, y: 30 },
+    url: { idle: hero_augeIdle, walk: hero_augeWalk, attack: hero_augeAttack },
+  },
+  atalanta: {
+    name: "Atalanta", w: 144, h: 136, footX: 62, footY: 130,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 69, y: 29 },
+    url: { idle: hero_atalantaIdle, walk: hero_atalantaWalk, attack: hero_atalantaAttack },
+  },
+  peleus: {
+    name: "Peleus", w: 144, h: 136, footX: 63, footY: 130,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 65, y: 28 },
+    url: { idle: hero_peleusIdle, walk: hero_peleusWalk, attack: hero_peleusAttack },
+  },
+  kallisto: {
+    name: "Kallisto", w: 144, h: 136, footX: 62, footY: 130,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 61, y: 31 },
+    url: { idle: hero_kallistoIdle, walk: hero_kallistoWalk, attack: hero_kallistoAttack },
+  },
+  melampus: {
+    name: "Melampus", w: 144, h: 136, footX: 60, footY: 130,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 63, y: 30 },
+    url: { idle: hero_melampusIdle, walk: hero_melampusWalk, attack: hero_melampusAttack },
   },
 };
 

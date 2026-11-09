@@ -3,6 +3,7 @@ import { creature } from './creatures';
 import { roll } from './rng';
 import { shotOverWall } from './siege';
 import { skillValue } from './skills';
+import { lineBonusFor } from './specialty';
 
 /** Beyond this many hexes shots do half damage (H3: 10, on a bigger field). */
 export const RANGE_PENALTY_DISTANCE = 7;
@@ -19,11 +20,12 @@ const has = (s: Stack, kind: string): boolean => s.effects.some((e) => e.kind ==
 
 export function attackOf(state: BattleState, s: Stack, melee: boolean): number {
   const hero = state.heroes[s.side];
-  return creature(s.creature).attack + (hero?.attack ?? 0) + (melee && has(s, 'bloodlust') ? 3 : 0);
+  return creature(s.creature).attack + (hero?.attack ?? 0) + lineBonusFor(hero?.specialty, s.creature) + (melee && has(s, 'bloodlust') ? 3 : 0);
 }
 
 export function defenseOf(state: BattleState, s: Stack): number {
-  const base = creature(s.creature).defense + (state.heroes[s.side]?.defense ?? 0) + (has(s, 'stoneSkin') ? 3 : 0);
+  const hero = state.heroes[s.side];
+  const base = creature(s.creature).defense + (hero?.defense ?? 0) + lineBonusFor(hero?.specialty, s.creature) + (has(s, 'stoneSkin') ? 3 : 0);
   return s.defending ? base + Math.max(1, Math.floor(base * 0.2)) : base;
 }
 

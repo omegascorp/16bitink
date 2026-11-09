@@ -1,3 +1,4 @@
+import type { Specialty } from '../logic/specialty';
 import type { ArmySlot } from '../logic/army';
 import type { BuildingId } from '../logic/buildings';
 import type { TownFaction } from '../logic/creatures';
@@ -120,4 +121,6 @@ export interface HeroDef {
   readonly ankhs?: number;
   /** A line about them, for the Tavern that hires them. */
   readonly blurb?: string;
+  /** What they do best (src/logic/specialty.ts); left out, the roster's for their id (src/logic/roster). */
+  readonly specialty?: Specialty;
 }

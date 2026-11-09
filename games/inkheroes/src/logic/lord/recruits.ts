@@ -1,11 +1,32 @@
 import type { HeroDef } from '../../level/types';
+import { lineOf, type CreatureId } from '../creatures';
+import type { Army } from '../army';
+import { strengthOf } from '../creatures';
+import { specialtyOf } from '../roster';
 
 /**
- * The heroes a lord's Taverns hire when the map names none (Greek classes,
- * the player's price and pool rules: each one once). Lykaon's own: his sons
- * in the old tales. x and y are where they stand when hired.
+ * Whom a lord hires from what his Tavern offers (the player's pool and
+ * price: the roster's two, src/logic/heroes.ts weekOffer), by his needs. A
+ * runner takes a Knight with Logistics, or the gold hero; the main army's
+ * hero takes a line specialist of the line his strongest companies are.
  */
-export const LORD_RECRUITS: readonly HeroDef[] = [
-  { id: 'nyktimos', name: 'Nyktimos', heroClass: 'knight', x: 0, y: 0, attack: 2, defense: 1, power: 1, knowledge: 1, skills: { offense: 1 }, spells: [], army: [{ creature: 'spearman', count: 10 }, { creature: 'bowman', count: 4 }] },
-  { id: 'mainalos', name: 'Mainalos', heroClass: 'cleric', x: 0, y: 0, attack: 1, defense: 1, power: 2, knowledge: 2, skills: { wisdom: 1 }, spells: [], army: [{ creature: 'spearman', count: 8 }, { creature: 'bowman', count: 5 }] },
-];
+
+export type HireJob = 'main' | 'runner';
+
+/** The line most of `army`'s strength is in (null: none). */
+export function strongestLine(army: Army): CreatureId | null {
+  const by = new Map<CreatureId, number>();
+  for (const s of army) if (s) by.set(lineOf(s.creature), (by.get(lineOf(s.creature)) ?? 0) + strengthOf(s.creature, s.count));
+  return [...by].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+}
+
+/** How well `h` fits the job (higher is better). */
+export function hireScore(h: HeroDef, job: HireJob, line: CreatureId | null): number {
+  const spec = specialtyOf(h);
+  if (job === 'runner') {
+    const runs = h.heroClass === 'knight' && !!h.skills.logistics;
+    return (spec?.kind === 'gold' ? 2 : 0) + (runs ? 2 : 0) + (h.heroClass === 'knight' ? 1 : 0);
+  }
+  if (spec?.kind === 'line') return spec.line === line ? 4 : 2;
+  return h.heroClass === 'knight' ? 1 : 0;
+}

@@ -8,7 +8,7 @@ import { rivalHeroAt } from '../logic/mapIntent';
 import { besideEachOther, selectHero } from '../logic/heroes';
 import type { Army } from '../logic/army';
 import { creature, sizeWord, type CreatureId } from '../logic/creatures';
-import { intentAt, type MapIntent } from '../logic/mapIntent';
+import { intentAt, townToEnter, type MapIntent } from '../logic/mapIntent';
 import { LEARNING_XP, MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
 import { dwellingName } from '../logic/dwellings';
 import type { PathStep } from '../logic/path';
@@ -296,9 +296,16 @@ export class MapScene extends Phaser.Scene {
       this.events.emit('status', this.describe(x, y));
       return;
     }
-    if (this.tapFriend(x, y)) return;
     const { adv, def } = this.session;
     const end = this.path?.[this.path.length - 1];
+    // Anywhere on the picture of a town of ours goes in, unless a ride to its gate is already planned.
+    const entering = townToEnter(adv, def, x, y, end);
+    if (entering) {
+      this.events.emit('status', this.describe(x, y));
+      this.openTown(entering.id);
+      return;
+    }
+    if (this.tapFriend(x, y)) return;
     this.events.emit('status', this.describe(x, y));
     const on = isSeen(adv, def, x, y) ? objectCovering(adv, x, y) : undefined;
     if (end && ((end.x === x && end.y === y) || (on && end.x === on.x && end.y === on.y))) {
@@ -467,6 +474,12 @@ export class MapScene extends Phaser.Scene {
     // Always an object: a launch with no data keeps the last town opened.
     this.scene.launch('Town', { townId });
     this.scene.sleep();
+  }
+
+  /** The town screen's "Ride here": the town closes and the hero rides `path`. */
+  rideTo(path: readonly PathStep[]): void {
+    this.back();
+    this.walk(path);
   }
 
   /** Called by the battle and the town when they close. */
