@@ -2,7 +2,8 @@
 import Base from '../../layouts/Base.astro';
 import { findGame, playableGames } from '../../data/games';
 import { currentAdmin } from '../../lib/adminAuth';
-import { countryName, formatDuration, funnelRows, parsePeriod, percent, PERIODS, rangeFor, visitOutcome } from '../../lib/adminStats';
+import { cameFromLabel, countryName, formatDuration, funnelRows, parsePeriod, percent, PERIODS, rangeFor, visitOutcome } from '../../lib/adminStats';
+import { registeredPlayers } from '../../lib/db/playerStatsRepo';
 import { entryStats, homeClicks, playFunnel, QUICK_LEAVE_MS, topErrors } from '../../lib/db/diagnosticsRepo';
 import { breakdown, daily, gameStats, levelFunnel, overview, recentSessions, type Dimension } from '../../lib/db/eventRepo';
 import { countSubscribers } from '../../lib/db/subscriberRepo';
@@ -21,7 +22,7 @@ const range = rangeFor(days, new Date());
 const games = playableGames();
 const DIMENSIONS: readonly (readonly [Dimension, string])[] = [['country', 'Country'], ['os', 'OS'], ['browser', 'Browser'], ['device', 'Device']];
 
-const [totals, perDay, perGame, funnels, shares, recent, entries, plays, errors, home, subscribers] = await Promise.all([
+const [totals, perDay, perGame, funnels, shares, recent, entries, plays, errors, home, subscribers, registered] = await Promise.all([
   overview(range),
   daily(range),
   gameStats(range),
@@ -33,6 +34,11 @@ const [totals, perDay, perGame, funnels, shares, recent, entries, plays, errors,
   topErrors(range),
   homeClicks(range),
   countSubscribers(),
+  // Extra: if it can't be read, the rest of the page still shows.
+  registeredPlayers(range).then((r) => r.summary).catch((err: unknown) => {
+    console.error('[admin] could not read registered players', err);
+    return null;
+  }),
 ]);
 
 const title = (slug: string): string => findGame(slug)?.title ?? slug;
@@ -62,6 +68,54 @@ const when = (d: Date): string => d.toISOString().slice(0, 16).replace('T', ' ')
       <div><dt>Sunday list</dt><dd>{subscribers}</dd></div>
     </dl>
     <p class="note">Sunday list: everyone signed up, all time. <a href="/api/admin/subscribers">Download it as CSV</a> (with each address's unsubscribe link) to import into an email tool. Short links typed from videos show up below as sources like “16bit.ink/fish”.</p>
+
+    <h2>Registered players</h2>
+    {registered === null ? <p class="empty">Couldn't read the registered players just now.</p> : (
+      <>
+        <p class="note">Accounts made in the last {days} days, admins left out, with everything their browsers did here, all time (the visit that brought them included). A browser is tied to an account when it sends statistics while signed in, which began in November 2026: older accounts show up once they come back signed in. Came from: the first page any of their browsers opened. Country and device: each player's commonest. Play time averages count only the players who played that game.</p>
+        <dl class="tiles">
+          <div><dt>Signed up</dt><dd>{registered.players}</dd></div>
+          <div><dt>With statistics</dt><dd>{registered.linked}</dd></div>
+          <div><dt>None yet</dt><dd>{registered.unlinked}</dd></div>
+          <div><dt>Played a game</dt><dd>{registered.total.players}</dd></div>
+          <div><dt>Avg time played</dt><dd>{formatDuration(registered.total.avgSeconds)}</dd></div>
+          <div><dt>Median time</dt><dd>{formatDuration(registered.total.medianSeconds)}</dd></div>
+        </dl>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Game</th><th>Players</th><th>Of players with statistics</th><th>Avg time</th><th>Median time</th></tr></thead>
+            <tbody>
+              {registered.games.map((g) => (
+                <tr><td>{title(g.game)}</td><td>{g.players}</td><td>{g.share}%</td><td>{formatDuration(g.avgSeconds)}</td><td>{formatDuration(g.medianSeconds)}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {registered.games.length === 0 && <p class="empty">No registered player has played yet.</p>}
+        <div class="shares players">
+          {([
+            ['Came from', registered.cameFrom, cameFromLabel],
+            ['Country', registered.countries, countryName],
+            ['Device', registered.deviceTypes, (v: string | null) => v ?? 'Unknown'],
+            ['OS', registered.systems, (v: string | null) => v ?? 'Unknown'],
+          ] as const).map(([heading, rows, name]) => {
+            const total = rows.reduce((sum, r) => sum + r.players, 0);
+            return (
+              <article class="card">
+                <h3>{heading}</h3>
+                {rows.length === 0 ? <p class="empty">No data yet.</p> : (
+                  <ul>
+                    {rows.map((r) => (
+                      <li><span>{name(r.value)}</span><span class="bar" style={`--w:${percent(r.players, total)}%`}></span><span class="soft">{r.players}</span></li>
+                    ))}
+                  </ul>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      </>
+    )}
 
     <h2>Where visits start</h2>
     <p class="note">The first page of each visit. Bounced: left without opening another page or starting a game. Quick: on screen under {QUICK_LEAVE_MS / 1000}s. Before load: left before the page and its pictures finished loading. Times count only while the page was on screen.</p>
@@ -269,4 +323,5 @@ const when = (d: Date): string => d.toISOString().slice(0, 16).replace('T', ' ')
   .shares { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
   .shares ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
   .shares li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .shares.players { margin-top: 14px; }
 </style>

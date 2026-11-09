@@ -59,6 +59,9 @@ import spellDispel from './ui/spell-dispel.png?url';
 import spellLightningBolt from './ui/spell-lightningBolt.png?url';
 import spellBless from './ui/spell-bless.png?url';
 import spellBloodlust from './ui/spell-bloodlust.png?url';
+import spellCurse from './ui/spell-curse.png?url';
+import spellWard from './ui/spell-ward.png?url';
+import spellRebirth from './ui/spell-rebirth.png?url';
 import spellArtMagicArrow from './ui/spellArt-magicArrow.png?url';
 import spellArtHaste from './ui/spellArt-haste.png?url';
 import spellArtSlow from './ui/spellArt-slow.png?url';
@@ -68,6 +71,9 @@ import spellArtDispel from './ui/spellArt-dispel.png?url';
 import spellArtLightningBolt from './ui/spellArt-lightningBolt.png?url';
 import spellArtBless from './ui/spellArt-bless.png?url';
 import spellArtBloodlust from './ui/spellArt-bloodlust.png?url';
+import spellArtCurse from './ui/spellArt-curse.png?url';
+import spellArtWard from './ui/spellArt-ward.png?url';
+import spellArtRebirth from './ui/spellArt-rebirth.png?url';
 import guildRoom from './ui/guildRoom.png?url';
 import smithRoom from './ui/smithRoom.png?url';
 import storeRoom from './ui/storeRoom.png?url';
@@ -184,6 +190,9 @@ export const SPELL_ICONS: Readonly<Partial<Record<SpellId, string>>> = {
   lightningBolt: spellLightningBolt,
   bless: spellBless,
   bloodlust: spellBloodlust,
+  curse: spellCurse,
+  ward: spellWard,
+  rebirth: spellRebirth,
 };
 
 /** The guild's spell paintings (64 x 64). */
@@ -197,6 +206,9 @@ export const SPELL_ART: Readonly<Partial<Record<SpellId, string>>> = {
   lightningBolt: spellArtLightningBolt,
   bless: spellArtBless,
   bloodlust: spellArtBloodlust,
+  curse: spellArtCurse,
+  ward: spellArtWard,
+  rebirth: spellArtRebirth,
 };
 
 /** The guild's library (768 x 340). */

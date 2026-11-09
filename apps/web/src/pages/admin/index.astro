@@ -3,12 +3,15 @@ import Base from '../../layouts/Base.astro';
 import { playableGames } from '../../data/games';
 import { PASS } from '../../data/pass';
 import { currentAdmin } from '../../lib/adminAuth';
+import { cameFromLabel, countryName, deviceLabel, formatDuration, levelLabel } from '../../lib/adminStats';
 import { grantedGamesFor } from '../../lib/db/grantRepo';
+import { playerStats } from '../../lib/db/playerStatsRepo';
 import { findPurchasesForUsers } from '../../lib/db/purchaseRepo';
 import { listUsers } from '../../lib/db/userRepo';
 import { isLocalHost } from '../../lib/devUnlock';
 import { libraryOf, purchasesOf } from '../../lib/library';
 import { formatPlayerId } from '../../lib/playerId';
+import type { PlayerStats } from '../../lib/playerStats';
 
 export const prerender = false;
 
@@ -25,8 +28,13 @@ const search = (Astro.url.searchParams.get('q') ?? '').slice(0, 100);
 const page = Math.max(0, Math.min(10_000, Number.parseInt(Astro.url.searchParams.get('page') ?? '0', 10) || 0));
 const { users, total } = await listUsers({ search, page, perPage: PER_PAGE });
 const [purchases, grants] = await Promise.all([findPurchasesForUsers(users.map((u) => u.id)), grantedGamesFor(users.map((u) => u.id))]);
+/** Statistics are extra: when they can't be read, the page still lists players and their games. */
+const stats: ReadonlyMap<string, PlayerStats> = await playerStats(users.map((u) => ({ id: u.id, createdAt: u.createdAt }))).catch((err: unknown) => {
+  console.error('[admin] could not read player statistics', err);
+  return new Map();
+});
 const opts = { allowTestMode: isLocalHost(Astro.url.hostname) };
-const rows = users.map((u) => ({ ...u, library: libraryOf(purchasesOf(u.id, purchases), grants.get(u.id) ?? [], opts) }));
+const rows = users.map((u) => ({ ...u, stats: stats.get(u.id), library: libraryOf(purchasesOf(u.id, purchases), grants.get(u.id) ?? [], opts) }));
 // The pass first: it unlocks every game below, and every future one.
 const games = [{ slug: PASS.slug, title: PASS.title }, ...playableGames()];
 const here = Astro.url.pathname + Astro.url.search;
@@ -55,14 +63,28 @@ const day = (d: Date): string => d.toISOString().slice(0, 10);
             <span class="admin-email">{u.email}</span>
             {u.playerId && <span class="admin-player-id">{formatPlayerId(u.playerId)}</span>}
             <span class="admin-dates">joined {day(u.createdAt)} · last sign-in {day(u.lastSignInAt)}</span>
+            {u.stats?.linked ? (
+              <dl class="admin-stats">
+                <div><dt>Came from</dt><dd>{u.stats.firstTouch ? <>{cameFromLabel(u.stats.firstTouch.ref)} <span class="soft">→ {u.stats.firstTouch.path ?? '–'}, {day(u.stats.firstTouch.at)}</span></> : '–'}</dd></div>
+                <div><dt>Country</dt><dd>{u.stats.countries.map((c) => countryName(c.country)).join(', ') || '–'}</dd></div>
+                <div><dt>Device</dt><dd>{u.stats.devices.map(deviceLabel).join('; ') || '–'}</dd></div>
+                <div><dt>Played</dt><dd>{formatDuration(u.stats.playSeconds)} in all{u.stats.lastSeen && <> · last seen {day(u.stats.lastSeen)}</>}</dd></div>
+              </dl>
+            ) : u.stats && <span class="admin-dates">No statistics yet: not seen signed in since linking began.</span>}
           </div>
           <ul class="admin-games">
             {games.map((g) => {
               const bought = u.library.bought.includes(g.slug);
               const granted = u.library.granted.includes(g.slug);
+              const play = u.stats?.games.find((p) => p.game === g.slug);
               return (
                 <li class="admin-game">
                   <span class="admin-game-title">{g.title}</span>
+                  {play && (
+                    <span class="admin-play">
+                      reached {levelLabel(play.reached)} · beat {levelLabel(play.beaten)} · {formatDuration(play.playSeconds)} over {play.days} {play.days === 1 ? 'day' : 'days'}
+                    </span>
+                  )}
                   {bought && <span class="admin-state">bought</span>}
                   {granted && <span class="admin-state granted">unlocked by admin</span>}
                   {!bought && !granted && <span class="admin-state none">locked</span>}
@@ -117,6 +139,12 @@ const day = (d: Date): string => d.toISOString().slice(0, 10);
   .admin-games { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
   .admin-game { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
   .admin-game-title { font-weight: 600; }
+  .admin-play { font-size: 0.85rem; color: var(--ink-soft); }
+  .admin-stats { width: 100%; margin: 4px 0 0; display: grid; gap: 2px; font-size: 0.85rem; }
+  .admin-stats div { display: flex; flex-wrap: wrap; gap: 0 8px; }
+  .admin-stats dt { font-family: var(--font-pixel); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); min-width: 7em; }
+  .admin-stats dd { margin: 0; overflow-wrap: anywhere; }
+  .soft { color: var(--ink-soft); }
   .admin-state { color: var(--blue-ink); }
   .admin-state.none { color: var(--ink-faint); }
   .admin-game form { margin-left: auto; }

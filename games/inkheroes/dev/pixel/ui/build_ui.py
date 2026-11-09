@@ -33,7 +33,7 @@ BAGS = ('satchel', 'saddlebags', 'packMule')
 SLOT_ICONS = ('helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring', 'book', 'machine')
 RESOURCES = ('gold', 'wood', 'ore', 'mercury', 'sulfur', 'crystal', 'gems')
 SKILLS = ('logistics', 'pathfinding', 'offense', 'archery', 'armorer', 'leadership', 'luck', 'wisdom', 'intelligence', 'mysticism', 'sorcery', 'estates', 'scouting', 'learning')
-SPELLS = ('magicArrow', 'haste', 'slow', 'stoneSkin', 'cure', 'dispel', 'lightningBolt', 'bless', 'bloodlust')
+SPELLS = ('magicArrow', 'haste', 'slow', 'stoneSkin', 'cure', 'dispel', 'lightningBolt', 'bless', 'bloodlust', 'curse', 'ward', 'rebirth')
 FONT_SRC = HERE / 'fonts' / 'ark-pixel-12px-proportional-latin.otf.woff2'
 # Latin (with its extensions and Vietnamese), Greek, Cyrillic, general punctuation, euro, arrows, minus, times.
 FONT_RANGES = 'U+0020-007E,U+00A0-024F,U+0370-03FF,U+0400-04FF,U+1E00-1EFF,U+2010-205F,U+20AC,U+2190-2193,U+2212,U+00D7'
