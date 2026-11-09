@@ -59,7 +59,8 @@ function rideForGebtu(start: Adventure, def: MapDef): number | null {
   const g = townById(adv, GEBTU)!;
   for (let d = 0; d < 20 && adv.status === 'playing'; d++) {
     // Straight across the ford from Abu's island: its raiders, if still there, are fought on the way.
-    const ford = adv.objects.find((o) => o.id === FORD && !o.gone);
+    // (A drop the full bag had no room for lies where they stood, under their id: that is no fight, and never in the way.)
+    const ford = adv.objects.find((o) => o.id === FORD && !o.gone && o.kind === 'monster');
     const path = (ford ? planPath(adv, def, ford.x, ford.y) : planPath(adv, def, g.x, g.y)) ?? [];
     for (const step of path) {
       if (step.day > 0) break;

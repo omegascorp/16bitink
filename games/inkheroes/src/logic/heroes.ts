@@ -1,4 +1,5 @@
 import type { HeroDef, MapDef } from '../level/types';
+import { kitOf, kitted } from './lord/kit';
 import { heroFromDef, ourHeroes, playerTowns, revealAround, townById, weekOf, withTown, type Adventure } from './adventure';
 import { factionOf } from './factions';
 import { rosterOf } from './roster';
@@ -150,7 +151,9 @@ export function hireHero(adv: Adventure, def: MapDef, townId: string, id?: strin
   const offered = tavernHeroes(adv, def, town, side);
   const pick = id === undefined ? offered[0] : offered.find((h) => h.id === id);
   if (!pick) return null;
-  const hero = heroFromDef({ ...pick, x: town.x, y: town.y });
+  // A lord's hire wears what his map gives him (src/logic/lord/kit.ts).
+  const placed = heroFromDef({ ...pick, x: town.x, y: town.y });
+  const hero = side === 'lord' ? kitted(placed, kitOf(def, pick.id)) : placed;
   const hired: Adventure = { ...adv, purse: pay(adv.purse, HERO_COST), hero, others: [...(adv.others ?? []), adv.hero] };
   return revealAround(hired, def, town.x, town.y, sightOf(hero));
 }

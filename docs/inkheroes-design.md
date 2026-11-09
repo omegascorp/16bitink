@@ -973,7 +973,7 @@ Built in three stages: the hero sheet, then items, then several heroes. Stage 1'
 
 A set has one fixed colour, all six pieces share it: two sets a colour, Greek themes. Boots carry movement, belts the army (morale, troops).
 
-**Where items come from.** About 1 monster group in 2 drops one (stronger groups better ones), and chests and the rival do too: about 35 items a chapter. Drops are fixed by the map's seed, so replaying a day can't reroll them. A drop leans to a piece missing from a set already started. Spare items sell at the Marketplace.
+**Where items come from** (planned Nov 4; replaced by Loot below). About 1 monster group in 2 drops one (stronger groups better ones), and chests and the rival do too: about 35 items a chapter. Drops are fixed by the map's seed, so replaying a day can't reroll them. A drop leans to a piece missing from a set already started. Spare items sell at the Marketplace.
 
 **Spellbooks (user, Nov 4).** Three grades so far, as the table's gray, green and blue: Novice's Spellbook (+1 Knowledge), the altar on map 2 or 500 gold at any Mage Guild; Oracle's Spellbook (+1 Knowledge, +1 Spell Power), left by the 50 birds at Thornwood's forest chest in the far east of map 2, the book the mage hero will want (user: the first book shouldn't be green); Alexandrian Codex (+2 Knowledge, +1 Spell Power), left by the hydras at the Thunderbolt shrine on map 3. A second book goes in the bag and is worn from the Gear tab. Purple and gold wait for later chapters. A hero saved when the book was only a flag has the Novice's Spellbook.
 
@@ -1000,6 +1000,78 @@ A set has one fixed colour, all six pieces share it: two sets a colour, Greek th
 **Screens for the second hero (Nov 8).** The Tavern is a room like the Blacksmith (`src/scenes/town/tavernRoom.ts`): the hero for hire standing in their battle art (on a narrow screen their face), name, class, a line about them, the four stats, what they know, the army they bring, and Hire with the price, or why not (dimmed without the gold). The tavern building in the townscape opens it too. Hired with another hero in the gate, the town keeps serving that one and the new hero is picked on leaving; opening a town where a hero of ours stands in the gate, while the picked one is elsewhere, picks that hero. On the map every hero of ours has a figure (`HERO_ART[id]`, falling back to Rowan's); the picked one rides. Tapping another of ours picks them and centres on them; tapping one beside the picked hero (or with a path planned to them) rides over to meet them. The HUD shows a face per hero above the panel's left edge once there are two (the picked one framed in gold, a bar of travel left under each); a tap picks. Meeting opens the trade card (`src/scenes/hud/pixelTradeCard.ts`): both heroes' faces and armies, companies moved, merged, swapped and split as on the sheet and in a town, All to <the other> (each keeps its first company), a refused move saying the hero must keep one. The end-day check asks while any hero can still move.
 
 **The rival is a player like any other.** It wears items, finds them, hires heroes, and a beaten rival drops one. Keep a side's state (heroes, purse, towns) the same for every side and every action a pure function of a side, so multiplayer can be added later. Nothing is built for multiplayer now.
+
+
+## Loot (user, Nov 9)
+
+Random loot, a few lairs that send out new groups, and the beaten rival's gear. **This replaces "Where items come from" above.** The hand-placed pieces stay: the hero sets on their guards, the spellbooks and the Legendary prizes. Random drops come on top of them.
+
+**Every armor piece belongs to a set, and nothing else does.** Each faction has two sets per grade, gray, green, blue and purple: one for the **fighter** (Attack, Defense, Morale) and one for the **mystic** (Spell Power, Knowledge, Luck). That is 8 sets per faction. The gray ones already exist: Bronze and Linen for the Greeks, Scale and Faience for Egypt. Weapons, shields, amulets and rings are never in a set: each faction has one weapon, one shield, one amulet and two rings per grade, gray to purple. Gold (Legendary) pieces stay hand-placed prizes and are never random. The catalog is in `src/logic/itemCatalog/crown.ts` and `kemet.ts`; random drops in chapter 1 come from the Greek pool and in chapter 2 from the Egyptian one.
+
+**What a piece gives**, armor and the rest alike:
+
+| Grade | Each piece | Set bonus (each on top of the last) |
+|---|---|---|
+| Gray | +1 to one stat | None |
+| Green | +1 to one stat, plus a perk: +1 Sight, +50 gold a day, or on boots +1 tile a day | 2: +1 Morale (fighter) or Luck (mystic). 4: +1 Attack or Defense (fighter), +1 Spell Power or Knowledge (mystic). 6: +1 to both of the role's two main stats |
+| Blue | +2, on one stat or split over two | 2: +1 to a main stat. 4: +2 over the main stats. 6: +1 Speed to every company |
+| Purple | +3, over at most two stats | 2: +2 over the main stats. 4: +1 Speed. 6: +2 over the main stats and +1 Morale or Luck |
+
+"Main stats" are Attack and Defense for the fighter, Spell Power and Knowledge for the mystic. Speed means +1 speed for every company in battle; gold means gold every day.
+
+**Drops.** A guard group with no hand-placed piece may drop one. The chance grows with its strength rank among its part's guards, from 25% for the weakest to 75% for the strongest. That makes about 1 group in 2. The grade is rolled on the part's row. A group in the strongest quarter of its part's guards rolls on the next row down (part 4's strongest use the last row).
+
+| Row | Gray | Green | Blue | Purple |
+|---|---|---|---|---|
+| Part 1 | 85% | 15% | 0 | 0 |
+| Part 2 | 65% | 30% | 5% | 0 |
+| Part 3 | 45% | 38% | 15% | 2% |
+| Part 4 | 30% | 40% | 23% | 7% |
+| Part 4, strongest quarter | 15% | 40% | 32% | 13% |
+
+Parts count 1–4 within each chapter. Chapter 2 starts again on part 1's row, since its hero starts with nothing. A part played fresh uses the same row as one ridden into.
+
+**Which piece.** 1 random drop in 3 is a non-set piece; the rest are armor. Armor is picked from the grade's two sets of the chapter's faction. A set that any hero of ours has already started is 3 times as likely, and so is a missing slot of that set. Everything is rolled from the map's seed and the group's id, so reloading a day can't reroll a drop. The piece choice also reads what our heroes hold, so a reload on the same day gets the same piece. The rival gets the drop of any group he beats, by the same roll.
+
+**Chests.** 1 chest in 4 holds a piece instead of the gold-or-experience choice, rolled on the part's row; which chests is fixed by the map's seed. Its card shows the piece and Take. The rival takes such a chest's piece too.
+
+**Selling.** Spare pieces sell at the Marketplace: gray 100 gold, green 300, blue 800, purple 2000. The Marketplace buys from the bag of a hero in town and from the town's store. Legendary pieces, spellbooks and war machines can't be sold.
+
+**Lairs** (instead of respawning every group). A lair is a site that sends out one new group each week, so there is always something to come back for without the whole map refilling. Each looks like its faction: a **den** (a cave in a Greek hillside) or a **tomb** (a half-buried Egyptian tomb). On the first day of each week, if its group is gone, a new group of its creature stands at its door:
+- **Size:** its base count × (1 + 0.2 × the weeks since its part opened), so farming it costs more each time.
+- **Drops:** 1 in 4 drop a piece, rolled on the row of the part before (a part-2 lair rolls on part 1's row).
+- **The lair itself** can't be taken or destroyed.
+- **The rival** may fight its groups like any other.
+
+Parts 2–4 of each chapter have two lairs each, in the half of the part toward its goal, away from the roads' chokepoints and at least 6 tiles from a town. Part 1 has none.
+
+**The beaten rival's gear.**
+- **Beaten in battle:** the hero who beat him takes everything he wore and carried except his war machine (a machine is never lost). A piece is worn if its slot is empty, otherwise it goes in the bag; if the bag is full it lies on the ground where the battle was, as any drop does.
+- **Fled to his town:** he keeps everything. Taking his towns first pays.
+- **Rehired:** a beaten lord's hero who comes back the next week comes back without the gear.
+- **One-way:** the rival never takes our heroes' gear.
+
+**Lords wear gear, at no cost to their balance.** Kassander wears 3 green Greek pieces. Lykaon wears 2 blue and 2 green, and his other heroes 1–2 green each. Sethi wears 3 green Egyptian pieces, and Apepi 2 blue, 2 green and 1 purple. Each lord's base stats are lowered by what his gear adds, so his fights stay as tuned. His card shows what he wears.
+
+**As built (Nov 9).** The drop chance is 25% for the weakest guard of a part to 75% for the strongest (it was 15–50%). Measured on the maps, a part now rolls about this many random pieces from its guards, hand-placed prizes and chests not counted: chapter 1, 2 / 9 / 4 / 11 for parts 1–4; chapter 2, 3 / 4 / 7 / 11 (the engine's first measure, at 15–50%, was 1 / 3 / 3 / 5 in chapter 1). A hero's bag fills faster now, so a piece may lie on a one-tile ford. **A lying piece never blocks a way** (`src/logic/lying.ts`): a hero, ours or the rival's, rides over its tile like open ground. Passing over it or stopping on it picks it up when there is room (a free slot it fits, else the bag), with its card after the ride; otherwise it stays where it lies and a note says "No room in the bag for the X", once for that pass. The cursor shows a visit with room and a plain move without; the hover says which; a lord rides for one only with room for it. A piece is never lost.
+
+Lairs (two a part, parts 2–4, each in the half toward the part's goal, away from the roads, 6 or more tiles from any town; the door is the tile below):
+- Part 2 Thornwood: the Den by the north-east forest edge (34, 4), 30 wolves; the Den in the south-east swamp (35, 24), 30 bandits.
+- Part 3 The Black Banner: the Den on the rough north-east of the vale (36, 16), 55 bandits; the Den by Korax's south-east sands (45, 22), 22 basilisks.
+- Part 4 Othrys: the Den in the east highlands (51, 45), 80 stymphalian birds; the Den on the Arcadian plain (33, 51), 95 wolves.
+- Part 6 Abu: the Tomb west of the road (9, 20), 8 scorpions; the Tomb in the south-west dunes (8, 28), 14 cobras.
+- Part 7 The Red Land: the Tomb in the north-east ridges (24, 6), 9 lions; the Tomb in the south-east basin (33, 24), 28 raiders.
+- Part 8 The Delta: the Tomb on the Iunu road (56, 14), 65 cobras; the Tomb in the south-east dunes (66, 17), 36 scorpions.
+
+(Coordinates are in each land's own tiles; the count is the base, before the weekly growth.) The test bot never walks to a lair or its groups for their own sake, only fights one that stands in its way.
+
+Lords' kits, all from the fighter's pieces, each with at most one piece of a set:
+- Kassander: Hoplite Dory, Corinthian Helm, Athenian Owl Charm (green).
+- Lykaon: Kopis Blade and Argive Shield (blue), Corinthian Helm and Athenian Owl Charm (green). Nyktimos: Isthmian Bracers; Atalanta: Corinthian Greaves; Peleus: Hoplite Dory; Auge: Delphic Laurel; Kallisto: Tripod Armbands; Melampus: Athenian Owl Charm (all green).
+- Sethi: Nubian Khopesh, Medjay Helm, Ankh Amulet (green).
+- Apepi: Electrum Khopesh and Kushite Shield (blue), Medjay Helm and Ankh Amulet (green), Falcon Cuirass (purple).
+
+Engine notes: rings fit either hand. Set progress shows on the Gear tab while nothing is picked. The Marketplace's "Sell gear" opens a sell room. A lair's door is the tile below it, and its groups are `<lair>@w<week>`. Spoils lying on the ground are `spoils@<day>-<n>`. A lord beaten by monsters loses his gear. Lair groups also grow 10% a week while they stand. A lair counts weeks from its part's first day.
 
 ## Not yet
 

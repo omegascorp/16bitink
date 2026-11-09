@@ -52,6 +52,7 @@ export function siteArtOf(o: MapObject): string | null {
   if (o.kind === 'monster' || o.kind === 'town' || o.kind === 'item') return null;
   if (o.kind === 'dwelling') return o.look ?? 'cyclopsCave';
   if (o.kind === 'bank') return o.look ?? 'keep';
+  if (o.kind === 'lair') return o.look ?? 'den';
   return o.kind;
 }
 

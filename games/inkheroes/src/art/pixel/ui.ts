@@ -100,6 +100,134 @@ import itemCatapult2 from './ui/item-catapult2.png?url';
 import itemCatapult3 from './ui/item-catapult3.png?url';
 import itemKronosHelm from './ui/item-kronosHelm.png?url';
 import itemCrookAndFlail from './ui/item-crookAndFlail.png?url';
+import itemCorinthianHelm from './ui/item-corinthianHelm.png?url';
+import itemBellCuirass from './ui/item-bellCuirass.png?url';
+import itemIsthmianBracers from './ui/item-isthmianBracers.png?url';
+import itemHopliteBelt from './ui/item-hopliteBelt.png?url';
+import itemCorinthianGreaves from './ui/item-corinthianGreaves.png?url';
+import itemIsthmianBoots from './ui/item-isthmianBoots.png?url';
+import itemDelphicLaurel from './ui/item-delphicLaurel.png?url';
+import itemPythiaChiton from './ui/item-pythiaChiton.png?url';
+import itemTripodArmbands from './ui/item-tripodArmbands.png?url';
+import itemLaurelSash from './ui/item-laurelSash.png?url';
+import itemDelphicLeggings from './ui/item-delphicLeggings.png?url';
+import itemOmphalosSandals from './ui/item-omphalosSandals.png?url';
+import itemSpartanHelm from './ui/item-spartanHelm.png?url';
+import itemSpartanCuirass from './ui/item-spartanCuirass.png?url';
+import itemSpartanBracers from './ui/item-spartanBracers.png?url';
+import itemAgogeBelt from './ui/item-agogeBelt.png?url';
+import itemSpartanGreaves from './ui/item-spartanGreaves.png?url';
+import itemLaconianBoots from './ui/item-laconianBoots.png?url';
+import itemOrphicCirclet from './ui/item-orphicCirclet.png?url';
+import itemOrphicRobe from './ui/item-orphicRobe.png?url';
+import itemLyreArmbands from './ui/item-lyreArmbands.png?url';
+import itemMysterySash from './ui/item-mysterySash.png?url';
+import itemOrphicLeggings from './ui/item-orphicLeggings.png?url';
+import itemKatabasisSandals from './ui/item-katabasisSandals.png?url';
+import itemMyrmidonHelm from './ui/item-myrmidonHelm.png?url';
+import itemMyrmidonCuirass from './ui/item-myrmidonCuirass.png?url';
+import itemMyrmidonBracers from './ui/item-myrmidonBracers.png?url';
+import itemGirdleOfAres from './ui/item-girdleOfAres.png?url';
+import itemMyrmidonGreaves from './ui/item-myrmidonGreaves.png?url';
+import itemPelianBoots from './ui/item-pelianBoots.png?url';
+import itemEleusinianCrown from './ui/item-eleusinianCrown.png?url';
+import itemMysteriesRobe from './ui/item-mysteriesRobe.png?url';
+import itemPoppyArmlets from './ui/item-poppyArmlets.png?url';
+import itemSheafGirdle from './ui/item-sheafGirdle.png?url';
+import itemEleusinianLeggings from './ui/item-eleusinianLeggings.png?url';
+import itemPersephonesSandals from './ui/item-persephonesSandals.png?url';
+import itemBronzeXiphos from './ui/item-bronzeXiphos.png?url';
+import itemWoodenAspis from './ui/item-woodenAspis.png?url';
+import itemEvilEyeCharm from './ui/item-evilEyeCharm.png?url';
+import itemOliveWoodRing from './ui/item-oliveWoodRing.png?url';
+import itemBronzeSignet from './ui/item-bronzeSignet.png?url';
+import itemHopliteDory from './ui/item-hopliteDory.png?url';
+import itemHoplonShield from './ui/item-hoplonShield.png?url';
+import itemAthenianOwlCharm from './ui/item-athenianOwlCharm.png?url';
+import itemDrachmaRing from './ui/item-drachmaRing.png?url';
+import itemMeanderRing from './ui/item-meanderRing.png?url';
+import itemKopisBlade from './ui/item-kopisBlade.png?url';
+import itemArgiveShield from './ui/item-argiveShield.png?url';
+import itemGorgoneionAmulet from './ui/item-gorgoneionAmulet.png?url';
+import itemPegasusSignet from './ui/item-pegasusSignet.png?url';
+import itemAmethystRing from './ui/item-amethystRing.png?url';
+import itemArgonautXiphos from './ui/item-argonautXiphos.png?url';
+import itemAegisOfAthena from './ui/item-aegisOfAthena.png?url';
+import itemHeliodorPendant from './ui/item-heliodorPendant.png?url';
+import itemPolykratesRing from './ui/item-polykratesRing.png?url';
+import itemGygesRing from './ui/item-gygesRing.png?url';
+import itemMedjayHelm from './ui/item-medjayHelm.png?url';
+import itemMedjayCorselet from './ui/item-medjayCorselet.png?url';
+import itemArchersBracers from './ui/item-archersBracers.png?url';
+import itemMedjayGirdle from './ui/item-medjayGirdle.png?url';
+import itemMedjayGreaves from './ui/item-medjayGreaves.png?url';
+import itemDesertBoots from './ui/item-desertBoots.png?url';
+import itemLapisDiadem from './ui/item-lapisDiadem.png?url';
+import itemLapisCollar from './ui/item-lapisCollar.png?url';
+import itemLapisBangles from './ui/item-lapisBangles.png?url';
+import itemLapisGirdle from './ui/item-lapisGirdle.png?url';
+import itemLapisAnklets from './ui/item-lapisAnklets.png?url';
+import itemPapyrusSandals from './ui/item-papyrusSandals.png?url';
+import itemLionessHelm from './ui/item-lionessHelm.png?url';
+import itemLionessCuirass from './ui/item-lionessCuirass.png?url';
+import itemLionessBracers from './ui/item-lionessBracers.png?url';
+import itemSekhmetBelt from './ui/item-sekhmetBelt.png?url';
+import itemLionessGreaves from './ui/item-lionessGreaves.png?url';
+import itemLionessSandals from './ui/item-lionessSandals.png?url';
+import itemIbisCrown from './ui/item-ibisCrown.png?url';
+import itemScribesCollar from './ui/item-scribesCollar.png?url';
+import itemThothsBangles from './ui/item-thothsBangles.png?url';
+import itemScribesGirdle from './ui/item-scribesGirdle.png?url';
+import itemThothsAnklets from './ui/item-thothsAnklets.png?url';
+import itemIbisSandals from './ui/item-ibisSandals.png?url';
+import itemHorusFalconHelm from './ui/item-horusFalconHelm.png?url';
+import itemFalconCuirass from './ui/item-falconCuirass.png?url';
+import itemHorusBracers from './ui/item-horusBracers.png?url';
+import itemGoldenFalconBelt from './ui/item-goldenFalconBelt.png?url';
+import itemHorusGreaves from './ui/item-horusGreaves.png?url';
+import itemWingedSunSandals from './ui/item-wingedSunSandals.png?url';
+import itemIsisCrown from './ui/item-isisCrown.png?url';
+import itemWingedCollarOfIsis from './ui/item-wingedCollarOfIsis.png?url';
+import itemIsisBangles from './ui/item-isisBangles.png?url';
+import itemTyetGirdle from './ui/item-tyetGirdle.png?url';
+import itemIsisAnklets from './ui/item-isisAnklets.png?url';
+import itemSandalsOfIsis from './ui/item-sandalsOfIsis.png?url';
+import itemBronzeKhopesh from './ui/item-bronzeKhopesh.png?url';
+import itemHideShield from './ui/item-hideShield.png?url';
+import itemScarabAmulet from './ui/item-scarabAmulet.png?url';
+import itemFaienceRing from './ui/item-faienceRing.png?url';
+import itemCopperSignet from './ui/item-copperSignet.png?url';
+import itemNubianKhopesh from './ui/item-nubianKhopesh.png?url';
+import itemOxHideShield from './ui/item-oxHideShield.png?url';
+import itemAnkhAmulet from './ui/item-ankhAmulet.png?url';
+import itemCarnelianRing from './ui/item-carnelianRing.png?url';
+import itemCatSealRing from './ui/item-catSealRing.png?url';
+import itemElectrumKhopesh from './ui/item-electrumKhopesh.png?url';
+import itemKushiteShield from './ui/item-kushiteShield.png?url';
+import itemWedjatAmulet from './ui/item-wedjatAmulet.png?url';
+import itemLapisSignet from './ui/item-lapisSignet.png?url';
+import itemPtahRing from './ui/item-ptahRing.png?url';
+import itemNubianGoldKhopesh from './ui/item-nubianGoldKhopesh.png?url';
+import itemShieldOfAmun from './ui/item-shieldOfAmun.png?url';
+import itemHeartScarab from './ui/item-heartScarab.png?url';
+import itemCartoucheRing from './ui/item-cartoucheRing.png?url';
+import itemUraeusRing from './ui/item-uraeusRing.png?url';
+import itemFaienceDiadem from './ui/item-faienceDiadem.png?url';
+import itemFaienceCollar from './ui/item-faienceCollar.png?url';
+import itemFaienceBangles from './ui/item-faienceBangles.png?url';
+import itemScarabGirdle from './ui/item-scarabGirdle.png?url';
+import itemFaienceAnklets from './ui/item-faienceAnklets.png?url';
+import itemReedSandals from './ui/item-reedSandals.png?url';
+import itemScaleHelm from './ui/item-scaleHelm.png?url';
+import itemScaleCoat from './ui/item-scaleCoat.png?url';
+import itemScaleBracers from './ui/item-scaleBracers.png?url';
+import itemCaptainsSash from './ui/item-captainsSash.png?url';
+import itemScaleGreaves from './ui/item-scaleGreaves.png?url';
+import itemChariotSandals from './ui/item-chariotSandals.png?url';
+import itemNovicePapyrus from './ui/item-novicePapyrus.png?url';
+import itemRamp from './ui/item-ramp.png?url';
+import itemRamp2 from './ui/item-ramp2.png?url';
+import itemRamp3 from './ui/item-ramp3.png?url';
 import slotHelm from './ui/slot-helm.png?url';
 import slotCuirass from './ui/slot-cuirass.png?url';
 import slotBracers from './ui/slot-bracers.png?url';
@@ -251,6 +379,134 @@ export const ITEM_ICONS: Readonly<Partial<Record<ItemId, string>>> = {
   catapult3: itemCatapult3,
   kronosHelm: itemKronosHelm,
   crookAndFlail: itemCrookAndFlail,
+  corinthianHelm: itemCorinthianHelm,
+  bellCuirass: itemBellCuirass,
+  isthmianBracers: itemIsthmianBracers,
+  hopliteBelt: itemHopliteBelt,
+  corinthianGreaves: itemCorinthianGreaves,
+  isthmianBoots: itemIsthmianBoots,
+  delphicLaurel: itemDelphicLaurel,
+  pythiaChiton: itemPythiaChiton,
+  tripodArmbands: itemTripodArmbands,
+  laurelSash: itemLaurelSash,
+  delphicLeggings: itemDelphicLeggings,
+  omphalosSandals: itemOmphalosSandals,
+  spartanHelm: itemSpartanHelm,
+  spartanCuirass: itemSpartanCuirass,
+  spartanBracers: itemSpartanBracers,
+  agogeBelt: itemAgogeBelt,
+  spartanGreaves: itemSpartanGreaves,
+  laconianBoots: itemLaconianBoots,
+  orphicCirclet: itemOrphicCirclet,
+  orphicRobe: itemOrphicRobe,
+  lyreArmbands: itemLyreArmbands,
+  mysterySash: itemMysterySash,
+  orphicLeggings: itemOrphicLeggings,
+  katabasisSandals: itemKatabasisSandals,
+  myrmidonHelm: itemMyrmidonHelm,
+  myrmidonCuirass: itemMyrmidonCuirass,
+  myrmidonBracers: itemMyrmidonBracers,
+  girdleOfAres: itemGirdleOfAres,
+  myrmidonGreaves: itemMyrmidonGreaves,
+  pelianBoots: itemPelianBoots,
+  eleusinianCrown: itemEleusinianCrown,
+  mysteriesRobe: itemMysteriesRobe,
+  poppyArmlets: itemPoppyArmlets,
+  sheafGirdle: itemSheafGirdle,
+  eleusinianLeggings: itemEleusinianLeggings,
+  persephonesSandals: itemPersephonesSandals,
+  bronzeXiphos: itemBronzeXiphos,
+  woodenAspis: itemWoodenAspis,
+  evilEyeCharm: itemEvilEyeCharm,
+  oliveWoodRing: itemOliveWoodRing,
+  bronzeSignet: itemBronzeSignet,
+  hopliteDory: itemHopliteDory,
+  hoplonShield: itemHoplonShield,
+  athenianOwlCharm: itemAthenianOwlCharm,
+  drachmaRing: itemDrachmaRing,
+  meanderRing: itemMeanderRing,
+  kopisBlade: itemKopisBlade,
+  argiveShield: itemArgiveShield,
+  gorgoneionAmulet: itemGorgoneionAmulet,
+  pegasusSignet: itemPegasusSignet,
+  amethystRing: itemAmethystRing,
+  argonautXiphos: itemArgonautXiphos,
+  aegisOfAthena: itemAegisOfAthena,
+  heliodorPendant: itemHeliodorPendant,
+  polykratesRing: itemPolykratesRing,
+  gygesRing: itemGygesRing,
+  medjayHelm: itemMedjayHelm,
+  medjayCorselet: itemMedjayCorselet,
+  archersBracers: itemArchersBracers,
+  medjayGirdle: itemMedjayGirdle,
+  medjayGreaves: itemMedjayGreaves,
+  desertBoots: itemDesertBoots,
+  lapisDiadem: itemLapisDiadem,
+  lapisCollar: itemLapisCollar,
+  lapisBangles: itemLapisBangles,
+  lapisGirdle: itemLapisGirdle,
+  lapisAnklets: itemLapisAnklets,
+  papyrusSandals: itemPapyrusSandals,
+  lionessHelm: itemLionessHelm,
+  lionessCuirass: itemLionessCuirass,
+  lionessBracers: itemLionessBracers,
+  sekhmetBelt: itemSekhmetBelt,
+  lionessGreaves: itemLionessGreaves,
+  lionessSandals: itemLionessSandals,
+  ibisCrown: itemIbisCrown,
+  scribesCollar: itemScribesCollar,
+  thothsBangles: itemThothsBangles,
+  scribesGirdle: itemScribesGirdle,
+  thothsAnklets: itemThothsAnklets,
+  ibisSandals: itemIbisSandals,
+  horusFalconHelm: itemHorusFalconHelm,
+  falconCuirass: itemFalconCuirass,
+  horusBracers: itemHorusBracers,
+  goldenFalconBelt: itemGoldenFalconBelt,
+  horusGreaves: itemHorusGreaves,
+  wingedSunSandals: itemWingedSunSandals,
+  isisCrown: itemIsisCrown,
+  wingedCollarOfIsis: itemWingedCollarOfIsis,
+  isisBangles: itemIsisBangles,
+  tyetGirdle: itemTyetGirdle,
+  isisAnklets: itemIsisAnklets,
+  sandalsOfIsis: itemSandalsOfIsis,
+  bronzeKhopesh: itemBronzeKhopesh,
+  hideShield: itemHideShield,
+  scarabAmulet: itemScarabAmulet,
+  faienceRing: itemFaienceRing,
+  copperSignet: itemCopperSignet,
+  nubianKhopesh: itemNubianKhopesh,
+  oxHideShield: itemOxHideShield,
+  ankhAmulet: itemAnkhAmulet,
+  carnelianRing: itemCarnelianRing,
+  catSealRing: itemCatSealRing,
+  electrumKhopesh: itemElectrumKhopesh,
+  kushiteShield: itemKushiteShield,
+  wedjatAmulet: itemWedjatAmulet,
+  lapisSignet: itemLapisSignet,
+  ptahRing: itemPtahRing,
+  nubianGoldKhopesh: itemNubianGoldKhopesh,
+  shieldOfAmun: itemShieldOfAmun,
+  heartScarab: itemHeartScarab,
+  cartoucheRing: itemCartoucheRing,
+  uraeusRing: itemUraeusRing,
+  faienceDiadem: itemFaienceDiadem,
+  faienceCollar: itemFaienceCollar,
+  faienceBangles: itemFaienceBangles,
+  scarabGirdle: itemScarabGirdle,
+  faienceAnklets: itemFaienceAnklets,
+  reedSandals: itemReedSandals,
+  scaleHelm: itemScaleHelm,
+  scaleCoat: itemScaleCoat,
+  scaleBracers: itemScaleBracers,
+  captainsSash: itemCaptainsSash,
+  scaleGreaves: itemScaleGreaves,
+  chariotSandals: itemChariotSandals,
+  novicePapyrus: itemNovicePapyrus,
+  ramp: itemRamp,
+  ramp2: itemRamp2,
+  ramp3: itemRamp3,
 };
 
 export type SlotIcon = 'helm' | 'cuirass' | 'bracers' | 'belt' | 'greaves' | 'boots' | 'weapon' | 'shield' | 'amulet' | 'ring' | 'book' | 'machine';

@@ -1,8 +1,9 @@
-import { gainItem, hasAsGood, machineOf } from './items';
+import { gainItem, hasAsGood, machineOf, type ItemId } from './items';
+import { chestPiece, dropOf } from './loot';
 import { soldOn } from '../level/unlocks';
 import type { MapDef } from '../level/types';
 import {
-  calendar, checkGoal, dayOfWeek, DEFEND, fledHome, GATE, stormOf, townGuards, guardAt, lordSide, heroInGarrison, incomeOf, liveObjects, ourHeroes, playerArmy, RIVAL, rivalHero, revealAround, terrainView, toldPrompt, townAt, withTown, type Adventure, type Prompt,
+  calendar, checkGoal, dayOfWeek, DEFEND, fledHome, GATE, stormOf, townGuards, guardAt, lordSide, heroInGarrison, incomeOf, liveObjects, lyingItem, ourHeroes, playerArmy, RIVAL, rivalHero, rivalHeroes, revealAround, terrainView, toldPrompt, townAt, withTown, type Adventure, type Prompt,
 } from './adventure';
 import { CHAPTER1 } from '../narration/lines';
 import { armyMorale, armyOf, isEmptyArmy, splitMonster, type Army } from './army';
@@ -13,6 +14,7 @@ import { dailyMp, toBattleHero, type Hero } from './hero';
 import { MINE_NAMES, type MapObject } from './objects';
 import { canStep, findPath, type PathStep } from './path';
 import { selectHero } from './heroes';
+import { isLying, passOver } from './lying';
 import { addTo, canAfford, pay } from './resources';
 import { fortification } from './siege';
 import { armyStrength } from './strength';
@@ -335,7 +337,7 @@ function ride(adv: Adventure, def: MapDef, route: Route): Ride {
     if (met) return { adv: selectHero(next, met.id), walked, notes, stopped: true, fight: RIVAL };
     if (gate) {
       if (gate.owner === 'neutral' && !isEmptyArmy(gate.garrison)) {
-        const won = fight(next, hero, gate.garrison, gate.id, gate);
+        const won = fight(next, def, hero, gate.garrison, gate.id, gate);
         next = won.adv;
         if (!won.won) return { adv: next, walked, notes: [...notes, ...won.notes], stopped: false };
       }
@@ -351,19 +353,22 @@ function ride(adv: Adventure, def: MapDef, route: Route): Ride {
       }
       return { adv: next, walked, notes, stopped: false };
     }
-    const o = liveObjects(next).find((x) => x.x === step.x && x.y === step.y);
+    const at = liveObjects(next).find((x) => x.x === step.x && x.y === step.y);
+    // Gear lying on the ground is ridden over: taken in passing if he has room, else left (src/logic/lying.ts).
+    const lying = at && isLying(at) ? at : undefined;
+    const o = lying ? undefined : at;
     if (o?.kind === 'monster') {
-      const r = fight(withRival(next, spent), spent, splitMonster(o.creature!, o.count ?? 1), o.id);
+      const r = fight(withRival(next, spent), def, spent, splitMonster(o.creature!, o.count ?? 1), o.id);
       return { adv: r.adv, walked, notes: [...notes, ...r.notes], stopped: r.won };
     }
     if (o) {
       const guard = guardAt(next, o.x, o.y);
       if (guard) {
-        const r = fight(withRival(next, spent), spent, splitMonster(guard.creature!, guard.count ?? 1), guard.id);
+        const r = fight(withRival(next, spent), def, spent, splitMonster(guard.creature!, guard.count ?? 1), guard.id);
         if (!r.won) return { adv: r.adv, walked, notes: [...notes, ...r.notes], stopped: false };
         next = r.adv;
       }
-      const v = visit(withRival(next, { ...rivalHero(next)!, mp: spent.mp }), o);
+      const v = visit(withRival(next, { ...rivalHero(next)!, mp: spent.mp }), def, o);
       return { adv: v.adv, walked, notes: [...notes, ...v.notes], stopped: true };
     }
     next = withRival(next, { ...spent, x: step.x, y: step.y });
@@ -371,8 +376,14 @@ function ride(adv: Adventure, def: MapDef, route: Route): Ride {
     // Into a monster's guard zone: it's fought there.
     const guard = guardAt(next, step.x, step.y);
     if (guard) {
-      const r = fight(next, rivalHero(next)!, splitMonster(guard.creature!, guard.count ?? 1), guard.id);
-      return { adv: r.adv, walked, notes: [...notes, ...r.notes], stopped: r.won };
+      const r = fight(next, def, rivalHero(next)!, splitMonster(guard.creature!, guard.count ?? 1), guard.id);
+      if (!r.won || !lying) return { adv: r.adv, walked, notes: [...notes, ...r.notes], stopped: r.won };
+      next = r.adv;
+    }
+    if (lying) {
+      const p = passOver(rivalHero(next)!, next.objects, lying);
+      next = { ...withRival(next, p.hero), objects: [...p.objects] };
+      if (guard) return { adv: next, walked, notes, stopped: true };
     }
   }
   return { adv: next, walked, notes, stopped: false };
@@ -387,7 +398,7 @@ export function stormSides(adv: Adventure, hero: Hero, town: Town): { attacker: 
 }
 
 /** The rival's hero fights `army` (a monster, or the garrison of `town`, behind its walls) to the end, at once. */
-function fight(adv: Adventure, hero: Hero, army: Army, id: string, town?: Town): { adv: Adventure; won: boolean; notes: string[] } {
+function fight(adv: Adventure, def: MapDef, hero: Hero, army: Army, id: string, town?: Town): { adv: Adventure; won: boolean; notes: string[] } {
   const sides = town ? stormSides(adv, hero, town) : { attacker: lordSide(adv, hero), defender: { hero: null, army } };
   const end = autoBattle(sides.attacker, sides.defender, (adv.seed ^ (adv.day * 7919) ^ hashId(`rival:${id}`)) >>> 0, sides.siege);
   const home = end.fled === 0 ? fledHome(adv, hero) : null;
@@ -396,15 +407,17 @@ function fight(adv: Adventure, hero: Hero, army: Army, id: string, town?: Town):
     const foes = army.find((s) => s)?.creature;
     return { adv: withRival(adv, null), won: false, notes: [`${hero.name} fell in battle${foes ? ` against the ${creature(foes).plural}` : ''}. His banner is down for good.`] };
   }
-  const drop = adv.objects.find((o) => o.id === id)?.drop;
+  // The group's drop, by the same roll as ours (src/logic/loot.ts): with his bag full it lies where the group stood.
+  const beaten = adv.objects.find((o) => o.id === id);
+  const drop = beaten && dropOf(def, beaten, rivalHeroes(adv));
   const fought = { ...hero, army: survivors(end, 0, hero.army) };
-  const after = drop ? gainItem(fought, drop).hero : fought;
-  const objects = adv.objects.map((o) => (o.id === id ? { ...o, gone: true } : o));
-  return { adv: { ...withRival(adv, after), objects }, won: true, notes: [] };
+  const got = drop ? gainItem(fought, drop) : null;
+  const objects = adv.objects.map((o) => (o.id !== id ? o : drop && !got!.kept ? lyingItem(o, drop) : { ...o, gone: true }));
+  return { adv: { ...withRival(adv, got?.hero ?? fought), objects }, won: true, notes: [] };
 }
 
-/** What the rival takes at a site: piles and chests into his purse, mines under his banner. */
-function visit(adv: Adventure, o: MapObject): { adv: Adventure; notes: string[] } {
+/** What the rival takes at a site: piles and chests into his purse (a chest's piece on his hero), mines under his banner, gear left on the ground. */
+function visit(adv: Adventure, def: MapDef, o: MapObject): { adv: Adventure; notes: string[] } {
   const purse = adv.rival!.purse;
   const gone = (a: Adventure): Adventure => ({ ...a, objects: a.objects.map((x) => (x.id === o.id ? { ...x, gone: true } : x)) });
   const paid = (amount: Parameters<typeof addTo>[1]): Adventure => gone({ ...adv, rival: { ...adv.rival!, purse: addTo(purse, amount) } });
@@ -413,8 +426,12 @@ function visit(adv: Adventure, o: MapObject): { adv: Adventure; notes: string[] 
       return { adv: paid({ [o.resource!]: o.amount ?? 0 }), notes: [] };
     case 'campfire':
       return { adv: paid({ gold: o.gold ?? 500, [o.resource!]: o.amount ?? 5 }), notes: [] };
-    case 'chest':
-      return { adv: paid({ gold: o.gold ?? 1000 }), notes: [] };
+    case 'chest': {
+      const piece = chestPiece(def, o, rivalHeroes(adv));
+      return { adv: piece ? takePiece(adv, o, piece) : paid({ gold: o.gold ?? 1000 }), notes: [] };
+    }
+    case 'item':
+      return { adv: takePiece(adv, o, o.item!), notes: [] };
     case 'mine': {
       const ours = o.owner === 'player';
       const objects = adv.objects.map((x) => (x.id === o.id ? { ...x, owner: 'rival' as const } : x));
@@ -423,4 +440,12 @@ function visit(adv: Adventure, o: MapObject): { adv: Adventure; notes: string[] 
     default:
       return { adv, notes: [] };
   }
+}
+
+/** The rival's hero takes piece `id` found at `o`: worn or in his bag; with no room it stays (as gear on the ground). */
+function takePiece(adv: Adventure, o: MapObject, id: ItemId): Adventure {
+  const hero = rivalHero(adv)!;
+  const got = gainItem(hero, id);
+  const objects = adv.objects.map((x) => (x.id !== o.id ? x : got.kept ? { ...x, gone: true } : lyingItem(x, id)));
+  return { ...withRival(adv, got.hero), objects };
 }

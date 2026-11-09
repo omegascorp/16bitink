@@ -31,7 +31,7 @@ function ghost(adv: Adventure): Hero {
 export function mirrored(adv: Adventure): Adventure {
   const r = adv.rival!;
   const [first, ...rest] = [...(r.hero ? [r.hero] : []), ...(r.others ?? [])];
-  const them: RivalState = { hero: adv.hero, purse: adv.purse, others: adv.others ?? [], explored: adv.explored };
+  const them: RivalState = { hero: adv.hero, purse: adv.purse, others: adv.others ?? [], explored: adv.explored, mirror: true };
   const { rivalFight: _fight, others: _others, ...base } = adv;
   return {
     ...base,

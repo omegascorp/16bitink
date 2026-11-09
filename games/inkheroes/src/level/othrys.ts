@@ -130,6 +130,16 @@ export const OTHRYS_LAND: MapDef = {
     army: [{ creature: 'spearman2', count: 110 }, { creature: 'bowman2', count: 60 }, { creature: 'griffin', count: 30 }, { creature: 'swordsman', count: 15 }, { creature: 'monk', count: 6 }],
   },
   rival: {
+    // Lykaon: 2 blue, 2 green; the heroes his Taverns hire, 1 green each.
+    kit: {
+      lykaon: { weapon: 'kopisBlade', shield: 'argiveShield', helm: 'corinthianHelm', amulet: 'athenianOwlCharm' },
+      nyktimos: { bracers: 'isthmianBracers' },
+      atalanta: { greaves: 'corinthianGreaves' },
+      peleus: { weapon: 'hopliteDory' },
+      auge: { helm: 'delphicLaurel' },
+      kallisto: { bracers: 'tripodArmbands' },
+      melampus: { amulet: 'athenianOwlCharm' },
+    },
     mind: 'lord',
     hero: {
       id: 'lykaon', name: 'Lykaon', heroClass: 'knight', x: 30, y: 58,
@@ -148,6 +158,9 @@ export const OTHRYS_LAND: MapDef = {
   off: lockedOn(4),
   seed: 4401,
   objects: [
+    // Lairs: a new group each week, in the south and east toward Lykosoura and Tegea.
+    { id: 'coast-den', kind: 'lair', x: 51, y: 45, creature: 'stymphalian', count: 80, look: 'den' },
+    { id: 'arcadia-den', kind: 'lair', x: 33, y: 51, creature: 'wolf', count: 95, look: 'den' },
     // The coast: the road from Thornwood, Iolkos's harbour, the shrine, the sulfur dunes in the east.
     { id: 'coast-brigands', kind: 'monster', x: 8, y: 8, creature: 'bandit', count: 70 },
     { id: 'chest-shore', kind: 'chest', x: 5, y: 5, gold: 1500 },

@@ -5,7 +5,8 @@ import type { Hero } from '../../logic/hero';
 import { BAGS, bagOf, bagSize, itemDef, itemQuality, itemSays, QUALITY_NAMES, SET_NAMES, takeOff, wear, type ItemId, type Quality, type Slot } from '../../logic/items';
 import { drawSocket, type RimName } from '../battle/pixelFrames';
 import { INK, PixelButton, putBuffer, TextLabel, UI_TEX } from '../battle/pixelUi';
-import type { GearCell, GearLayout } from './gearLayout';
+import { SETS_LINE, type GearCell, type GearLayout } from './gearLayout';
+import { setProgress } from '../../logic/sets';
 
 const BTN = { w: 92, h: 28 } as const;
 const BTN_GAP = 6;
@@ -49,10 +50,39 @@ function cell(host: GearHost, at: GearCell, layout: GearLayout, item: ItemId | u
   if (texture) host.body.add(host.scene.add.image(mid.x, mid.y, texture).setScale(layout.scale / 2));
 }
 
-function line(host: GearHost, text: string, x: number, y: number, ink: typeof INK[keyof typeof INK], wrap?: number): void {
+function line(host: GearHost, text: string, x: number, y: number, ink: typeof INK[keyof typeof INK], wrap?: number): TextLabel {
   const l = new TextLabel(host.scene, { align: 'left', anchor: { x: 0, y: 0 }, ink, ...(wrap ? { wrap } : {}) }).setText(text).setPosition(x, y);
   host.owned.push(l);
   host.body.add(l.img);
+  return l;
+}
+
+/** Space between a set's words on its line. */
+const WORD_GAP = 8;
+
+/**
+ * The sets the hero wears a piece of: "Corinthian set 3/6", then each
+ * bonus at 2, 4 and 6, lit once it is on; words that don't fit go on the
+ * next line, and what doesn't fit the three lines is left out.
+ */
+function drawSets(host: GearHost, at: GearCell, w: number, hero: Hero): void {
+  let row = 0;
+  let x = 0;
+  const put = (text: string, ink: typeof INK[keyof typeof INK], fresh = false): void => {
+    if (row >= 3) return;
+    const probe = line(host, text, at.x + x, at.y + row * SETS_LINE, ink);
+    if ((fresh && x > 0) || (x > 0 && x + probe.img.width > w)) {
+      row += 1;
+      x = 0;
+      probe.setPosition(at.x, at.y + row * SETS_LINE);
+      if (row >= 3) probe.img.setVisible(false);
+    }
+    x += probe.img.width + WORD_GAP;
+  };
+  for (const s of setProgress(hero)) {
+    put(`${s.name} ${s.worn}/6`, INK.title, true);
+    for (const t of s.tiers) put(`${t.at}: ${t.says}`, t.lit ? INK.good : INK.dim);
+  }
 }
 
 /**
@@ -85,6 +115,11 @@ function emptyBag(hero: Hero, i: number): string {
 function detail(host: GearHost, at: GearCell, w: number, hero: Hero, pick: GearPick | null, on: { change(h: Hero): void }): void {
   const { x, y } = at;
   const item = pickedItem(hero, pick);
+  // Nothing picked: the sets worn and their bonuses, else the hint.
+  if (!pick && setProgress(hero).length) {
+    drawSets(host, at, w, hero);
+    return;
+  }
   if (!item) {
     line(host, !pick ? 'Tap a piece to see what it gives' : 'slot' in pick ? emptySlot(pick.slot, hero) : emptyBag(hero, pick.bag), x, y + 6, INK.dim, w);
     return;

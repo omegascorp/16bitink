@@ -18,6 +18,8 @@ export interface MarketActions {
   close(): void;
   pick(p: MarketPick): void;
   trade(p: MarketPick): void;
+  /** The Marketplace buying gear instead (src/scenes/town/sellRoom.ts). */
+  sellGear(): void;
 }
 
 /** `n` of resource `r` in words: "1 gem", "5 gems". */
@@ -61,6 +63,11 @@ export class MarketRoom extends TownRoom {
     go.setEnabled(!!o && lots > 0);
     this.root.add(go.root);
     this.owned.push(go);
+    // Spare pieces sell here too.
+    const gear = new PixelButton(scene, { w: 80, h: STEP.h, label: 'Sell gear', onClick: () => act.sellGear() });
+    gear.setPosition(PAD, 6);
+    this.root.add(gear.root);
+    this.owned.push(gear);
   }
 
   private tile(l: MarketLayout, i: number, y: number, r: Resource, picked: boolean, text: string, onPick: () => void): void {

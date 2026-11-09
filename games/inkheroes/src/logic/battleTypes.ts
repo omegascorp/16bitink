@@ -41,6 +41,8 @@ export interface Stack {
   readonly tower?: number;
   /** Has risen again once this battle (a Bennu's rebirth). */
   readonly reborn?: boolean;
+  /** Speed its hero's gear gives every company (set bonuses). */
+  readonly pace?: number;
 }
 
 /** What a hero brings to a battle. */
@@ -63,6 +65,8 @@ export interface BattleHero {
   readonly faction?: TownFaction;
   /** Their specialty at their level: a line's Attack and Defense, a spell's bonus (src/logic/specialty.ts). */
   readonly specialty?: BattleSpecialty;
+  /** Speed their gear gives every company of theirs (set bonuses). */
+  readonly speed?: number;
 }
 
 export interface BattleState {

@@ -30,7 +30,7 @@ export function defenseOf(state: BattleState, s: Stack): number {
 }
 
 export function speedOf(s: Stack): number {
-  const base = creature(s.creature).speed + (has(s, 'haste') ? 3 : 0);
+  const base = creature(s.creature).speed + (s.pace ?? 0) + (has(s, 'haste') ? 3 : 0);
   return has(s, 'slow') ? Math.floor(base * 0.75) : base;
 }
 

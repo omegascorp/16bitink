@@ -30,6 +30,9 @@ export const SITE_ART: Readonly<Record<SiteArt, SiteDrawer>> = {
   lionRocks: DRAWN['mine-ore'],
   benbenHouse: DRAWN.standingStone,
   mastaba: DRAWN.shrine,
+  // Lairs, likewise.
+  den: DRAWN['mine-ore'],
+  tomb: DRAWN.shrine,
 };
 export const SITE_ARTS = ALL;
 

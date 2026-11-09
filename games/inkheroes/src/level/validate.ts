@@ -4,9 +4,15 @@ import { isBuildingId, type BuildingId } from '../logic/buildings';
 import { isCreatureId } from '../logic/creatures';
 import { isTownFaction } from '../logic/factions';
 import type { HeroClass } from '../logic/hero';
-import { ITEM_IDS, ITEMS, SLOTS, type Gear, type ItemId } from '../logic/items';
+import { fitsSlot, ITEM_IDS, SLOTS, type Gear, type ItemId } from '../logic/items';
 import { TILE_CHARS } from '../logic/map';
-import { BANK_LOOKS, DWELLING_LOOKS, type BankLook, type DwellingLook, type MapObject, type ObjectKind, type Owner } from '../logic/objects';
+import { BANK_LOOKS, DWELLING_LOOKS, LAIR_LOOKS, objectFootprint, type BankLook, type DwellingLook, type LairLook, type MapObject, type ObjectKind, type Owner } from '../logic/objects';
+import { parseGrid, passable } from '../logic/map';
+import { lairDoor } from '../logic/lairs';
+import { heroFromDef } from '../logic/adventure';
+import { kitGain } from '../logic/lord/kit';
+import { partNumber } from './maps';
+import { rosterHero } from '../logic/roster';
 import { RESOURCES, type Amount, type Resource } from '../logic/resources';
 import { isSkillId, type Rank, type Skills } from '../logic/skills';
 import { isSpellId, type SpellId } from '../logic/spells';
@@ -29,7 +35,7 @@ const MAX_COUNT = 4000;
 const MAX_GOLD = 1e6;
 const ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const HERO_CLASSES: readonly HeroClass[] = ['knight', 'cleric'];
-const KINDS: readonly ObjectKind[] = ['mine', 'pile', 'chest', 'campfire', 'mercCamp', 'watchtower', 'standingStone', 'shrine', 'windmill', 'stables', 'spellbook', 'monster', 'item', 'learningStone', 'dwelling', 'bank'];
+const KINDS: readonly ObjectKind[] = ['mine', 'pile', 'chest', 'campfire', 'mercCamp', 'watchtower', 'standingStone', 'shrine', 'windmill', 'stables', 'spellbook', 'monster', 'item', 'learningStone', 'dwelling', 'bank', 'lair'];
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const int = (v: unknown, lo: number, hi: number): v is number => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
@@ -76,7 +82,7 @@ function gear(v: unknown): Gear {
   const out: Partial<Record<(typeof SLOTS)[number], ItemId>> = {};
   for (const [s, item] of Object.entries(v)) {
     const where = SLOTS.find((x) => x === s);
-    if (!where || !isItemId(item) || ITEMS[item].slot !== where) throw new Error('bad gear');
+    if (!where || !isItemId(item) || !fitsSlot(item, where)) throw new Error('bad gear');
     out[where] = item;
   }
   return out;
@@ -161,6 +167,10 @@ function object(v: unknown, g: { w: number; h: number }): MapObject {
     o.look = v.look;
     if (v.prize !== undefined) o.prize = amount(v.prize, 'prize');
   }
+  if (kind === 'lair') {
+    if (!isCreatureId(v.creature) || !int(v.count, 1, MAX_COUNT) || !LAIR_LOOKS.includes(v.look as LairLook)) throw new Error('bad lair');
+    Object.assign(o, { creature: v.creature, count: v.count, look: v.look });
+  }
   if (kind === 'learningStone' && v.visitedBy !== undefined) o.visitedBy = ids<string>(v.visitedBy, 20, 'visited by', (h): h is string => typeof h === 'string' && ID.test(h));
   return o as unknown as MapObject;
 }
@@ -196,7 +206,46 @@ function rival(v: unknown, g: { w: number; h: number }): NonNullable<MapDef['riv
     ...(v.headStart !== undefined ? { headStart: v.headStart as number } : {}),
     ...(v.heroes !== undefined ? { heroes: v.heroes as number } : {}),
     ...(v.mind !== undefined ? { mind: 'lord' as const } : {}),
+    ...(v.kit !== undefined ? { kit: kit(v.kit) } : {}),
   };
+}
+
+/** A lord's kit: what each of his heroes wears from the start, by hero id. */
+function kit(v: unknown): Readonly<Record<string, Gear>> {
+  if (!isObj(v) || Object.keys(v).length > 12) throw new Error('bad rival kit');
+  return Object.fromEntries(Object.entries(v).map(([h, g]) => [id(h, 'kit hero'), gear(g)]));
+}
+
+/** How far (tiles) a lair stands from any town at least. */
+export const LAIR_TOWN_GAP = 6;
+
+/**
+ * What's wrong with `def`'s lairs (src/logic/lairs.ts), if anything: each
+ * needs open ground at its door with nothing on it, stands at least
+ * LAIR_TOWN_GAP tiles from every town, and none is in a chapter's part 1.
+ */
+export function lairProblems(def: MapDef): string[] {
+  const g = parseGrid(def.rows);
+  const towns = [def.town, ...(def.towns ?? [])];
+  const covered = new Set(def.objects.filter((o) => o.kind !== 'lair').flatMap((o) => [{ x: o.x, y: o.y }, ...objectFootprint(o)]).map((t) => `${t.x},${t.y}`));
+  return def.objects.filter((o) => o.kind === 'lair').flatMap((o) => {
+    const out: string[] = [];
+    const door = lairDoor(o);
+    if (!passable(g, door.x, door.y) || covered.has(`${door.x},${door.y}`)) out.push(`lair ${o.id}: its door (${door.x}, ${door.y}) must be open ground`);
+    if (towns.some((t) => Math.max(Math.abs(t.x - o.x), Math.abs(t.y - o.y)) < LAIR_TOWN_GAP)) out.push(`lair ${o.id}: within ${LAIR_TOWN_GAP} tiles of a town`);
+    if (partNumber(def) === 1) out.push(`lair ${o.id}: part 1 has no lairs`);
+    return out;
+  });
+}
+
+/** What's wrong with `def`'s lord kit (src/logic/lord/kit.ts), if anything: it may not lower a stat of a hero it names (his own, or the roster's) below 0. */
+export function kitProblems(def: MapDef, heroes: readonly HeroDef[] = def.rival ? [def.rival.hero] : []): string[] {
+  return Object.entries(def.rival?.kit ?? {}).flatMap(([who, g]) => {
+    const h = heroes.find((x) => x.id === who) ?? rosterHero(who);
+    if (!h) return [];
+    const gain = kitGain(heroFromDef(h), g);
+    return (['attack', 'defense', 'power', 'knowledge'] as const).filter((k) => h[k] - gain[k] < 0).map((k) => `kit for ${who}: ${k} would drop below 0`);
+  });
 }
 
 function map(v: unknown): MapDef {
@@ -223,7 +272,7 @@ function map(v: unknown): MapDef {
       return p;
     });
   }
-  return {
+  const out: MapDef = {
     id: id(v.id, 'map'), name: text(v.name, 'map name'), n, brief: text(v.brief, 'brief'),
     ...(v.story !== undefined ? { story: v.story } : {}),
     goal: goal(v.goal), parDays: v.parDays, rows,
@@ -241,6 +290,9 @@ function map(v: unknown): MapDef {
     off: ids<BuildingId>(v.off, 80, 'off', isBuildingId),
     seed: v.seed,
   };
+  const problems = [...lairProblems(out), ...kitProblems(out)];
+  if (problems.length) throw new Error(problems[0]);
+  return out;
 }
 
 /** The server's maps, checked: a throw on anything off. Ids must be new (never chapter 1's) and unique. */

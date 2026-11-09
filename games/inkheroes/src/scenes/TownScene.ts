@@ -46,6 +46,8 @@ import { firstPick, MarketRoom, type MarketPick } from './town/marketRoom';
 import { marketTrade } from '../logic/market';
 import { TavernRoom } from './town/tavernRoom';
 import { StoreRoom } from './town/storeRoom';
+import { SellRoom } from './town/sellRoom';
+import { forSale, sellPiece } from '../logic/sell';
 import { storeTap, type StoreRef } from './town/storeData';
 import { buyBag, cantBuyBag } from '../logic/storage';
 import { TownWindow } from './town/townWindow';
@@ -95,7 +97,9 @@ export class TownScene extends Phaser.Scene {
   private size = { w: 0, h: 0, k: 1 };
   private view: PixelTownView | null = null;
   private bar: TownBar | null = null;
-  private window: TownWindow | GuildRoom | SmithRoom | TavernRoom | StoreRoom | MarketRoom | null = null;
+  private window: TownWindow | GuildRoom | SmithRoom | TavernRoom | StoreRoom | MarketRoom | SellRoom | null = null;
+  /** The piece picked to sell at the Marketplace (its place in forSale). */
+  private sellPick: number | null = null;
   /** What the Marketplace has picked to trade (none: its first pick). */
   private marketPick: MarketPick | null = null;
   /** The spell being read in the guild. */
@@ -363,7 +367,12 @@ export class TownScene extends Phaser.Scene {
     }
     if (this.screen === 'market') {
       const pick = this.marketPick ?? firstPick(adv);
-      this.window = new MarketRoom(this, adv, this.town(), pick, room, { close: () => this.openScreen(null), pick: (p) => this.pickTrade(p), trade: (p) => this.makeTrade(p) }, depth);
+      this.window = new MarketRoom(this, adv, this.town(), pick, room, { close: () => this.openScreen(null), pick: (p) => this.pickTrade(p), trade: (p) => this.makeTrade(p), sellGear: () => this.openScreen('sell') }, depth);
+      return;
+    }
+    if (this.screen === 'sell') {
+      const act = { close: () => this.openScreen(null), back: () => this.openScreen('market'), pick: (i: number) => this.pickSale(i), sell: (r: Parameters<typeof sellPiece>[2]) => this.sell(r) };
+      this.window = new SellRoom(this, adv, this.townId, this.sellPick, room, act, depth);
       return;
     }
     if (this.screen === 'smith') {
@@ -402,6 +411,23 @@ export class TownScene extends Phaser.Scene {
     this.refresh();
   }
 
+  private pickSale(i: number): void {
+    this.sellPick = i < forSale(this.session.adv, this.townId).length ? i : null;
+    this.drawWindow();
+  }
+
+  /** A piece sold at the Marketplace: its price in the purse, the next piece picked in its place. */
+  private sell(ref: Parameters<typeof sellPiece>[2]): void {
+    const next = sellPiece(this.session.adv, this.townId, ref);
+    if (!next) {
+      this.toast('That piece can’t be sold here');
+      return;
+    }
+    const gold = next.purse.gold - this.session.adv.purse.gold;
+    if (this.sellPick !== null && this.sellPick >= forSale(next, this.townId).length) this.sellPick = null;
+    this.changed(next, 'card', `+${gold} gold`);
+  }
+
   private pickTrade(p: MarketPick): void {
     this.marketPick = p;
     this.drawWindow();
@@ -427,6 +453,7 @@ export class TownScene extends Phaser.Scene {
   private openScreen(s: TownScreen | null): void {
     if (s && s !== this.screen) getSound(this)?.play('card');
     if (s !== this.screen) this.storePick = { ref: null, note: '' };
+    if (s !== this.screen) this.sellPick = null;
     this.screen = s;
     this.drawPlate();
     this.drawTowns();

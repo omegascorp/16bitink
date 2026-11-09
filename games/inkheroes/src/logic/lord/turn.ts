@@ -1,6 +1,7 @@
 import type { HeroDef, MapDef } from '../../level/types';
 import { checkGoal, DEFEND, GATE, RIVAL, weekOf, type Adventure } from '../adventure';
 import { dailyMp } from '../hero';
+import { stripped } from '../spoils';
 import { lordDay } from './day';
 import { lookAbout, NO_MEMORY } from './knowledge';
 import { mirrored, unmirrored } from './mirror';
@@ -42,7 +43,8 @@ export function comesBack(adv: Adventure, def: MapDef): Adventure {
   const home = adv.towns.find((t) => t.owner === 'rival');
   const due = !!lord && !!home && weekOf(adv.day) > weekOf(lord.day);
   const fallen = r.fallen.filter((f) => f.hero.id === def.rival!.hero.id && !due);
-  const back = due ? { ...lord.hero, x: home!.x, y: home!.y, mp: dailyMp(lord.hero) } : null;
+  // Back without the gear he was beaten in (stripped, his war machine kept), as a hero beaten anywhere.
+  const back = due ? { ...stripped(lord.hero), x: home!.x, y: home!.y, mp: dailyMp(stripped(lord.hero)) } : null;
   const heroes = [...(r.hero ? [r.hero] : []), ...(r.others ?? []), ...(back ? [back] : [])];
   const [first, ...others] = heroes;
   return { ...adv, rival: { ...r, hero: first ?? null, others, ...(fallen.length ? { fallen } : { fallen: [] }) } };
@@ -98,7 +100,7 @@ export function playLord(adv: Adventure, def: MapDef, resolve: 'auto' | 'stop'):
   const back = unmirrored(day.adv, known);
   // His heroes beaten on his own ride (fought at once) are remembered as fallen, as beatRival remembers those we beat.
   const riding = new Set([...(back.rival!.hero ? [back.rival!.hero.id] : []), ...(back.rival!.others ?? []).map((h) => h.id)]);
-  const lost = [...(known.rival!.hero ? [known.rival!.hero] : []), ...(known.rival!.others ?? [])].filter((h) => !riding.has(h.id)).map((h) => ({ hero: { ...h, army: h.army.map(() => null) }, day: adv.day }));
+  const lost = [...(known.rival!.hero ? [known.rival!.hero] : []), ...(known.rival!.others ?? [])].filter((h) => !riding.has(h.id)).map((h) => ({ hero: { ...stripped(h), army: h.army.map(() => null) }, day: adv.day }));
   const played: Adventure = { ...back, rival: { ...back.rival!, memory: day.memory, ...(lost.length ? { fallen: [...(back.rival!.fallen ?? []), ...lost] } : {}) } };
   const notes = [...lordNews(known, played, def), ...counted.notes];
   if (!day.fight) return { adv: checkGoal(played, def), notes, path: day.path };

@@ -1,5 +1,10 @@
 import { STABLES_MP, tilesOf } from './map';
-import { itemLine, type Adventure } from './adventure';
+import { itemLine, ourHeroes, type Adventure } from './adventure';
+import type { MapDef } from '../level/types';
+import { mapById } from '../level/maps';
+import { chestPiece } from './loot';
+import { lairWords, lairName } from './lairs';
+import { noRoomWords } from './lying';
 import { gainedXp, maxMana } from './hero';
 import { gainItem, hasSpellbook, itemSays, ITEMS, QUALITY_NAMES } from './items';
 import { bankName, CHEST_XP, LEARNING_XP, MINE_NAMES, MINE_OUTPUT, ONCE_PER_HERO, type MapObject } from './objects';
@@ -18,8 +23,8 @@ const gone = (adv: Adventure, id: string): Adventure => ({ ...adv, objects: adv.
 const setObj = (adv: Adventure, id: string, patch: Partial<MapObject>): Adventure => ({ ...adv, objects: adv.objects.map((o) => (o.id === id ? { ...o, ...patch } : o)) });
 const message = (adv: Adventure, title: string, text: string): Adventure => ({ ...adv, prompts: [...adv.prompts, { kind: 'message', title, text }] });
 
-/** What happens when the hero steps onto a site. Level-ups are queued by the caller. */
-export function visitSite(adv: Adventure, o: MapObject): VisitResult {
+/** What happens when the hero steps onto a site on `def` (none: the adventure's own map). Level-ups are queued by the caller. */
+export function visitSite(adv: Adventure, o: MapObject, def: MapDef | undefined = mapById(adv.mapId)): VisitResult {
   const hero = adv.hero;
   if (ONCE_PER_HERO.includes(o.kind) && hero.visited.includes(o.id)) {
     return { adv: message(adv, siteTitle(o), 'You have already been here.'), notes: [] };
@@ -37,7 +42,9 @@ export function visitSite(adv: Adventure, o: MapObject): VisitResult {
     }
     case 'chest': {
       const gold = o.gold ?? 1000;
-      return { adv: { ...adv, prompts: [...adv.prompts, { kind: 'chest', id: o.id, gold, xp: CHEST_XP[gold] ?? Math.floor(gold / 2) }] }, notes: [] };
+      // 1 chest in 4 holds a piece instead (src/logic/loot.ts).
+      const item = def ? chestPiece(def, o, ourHeroes(adv)) : undefined;
+      return { adv: { ...adv, prompts: [...adv.prompts, { kind: 'chest', id: o.id, gold, xp: CHEST_XP[gold] ?? Math.floor(gold / 2), ...(item ? { item } : {}) }] }, notes: [] };
     }
     case 'mine': {
       if (o.owner === 'player') return { adv, notes: [] };
@@ -62,7 +69,7 @@ export function visitSite(adv: Adventure, o: MapObject): VisitResult {
     case 'item': {
       const id = o.item!;
       const got = gainItem(hero, id);
-      if (!got.kept) return { adv: message(adv, ITEMS[id].name, `${itemLine(id)}\n${hero.name}'s bag is full. Leave something in a town's Storehouse, or wear it, and come back.`), notes: [] };
+      if (!got.kept) return { adv: message(adv, ITEMS[id].name, `${itemLine(id)}\n${noRoomWords(id)}: it lies here, never in the way. Leave something in a town's Storehouse, or wear it, and come back.`), notes: [] };
       const end = got.worn ? `${hero.name} puts it on.` : 'It goes in the bag.';
       const found = gone({ ...adv, hero: got.hero }, o.id);
       return { adv: { ...found, prompts: [...found.prompts, { kind: 'message', title: ITEMS[id].name, text: `${itemLine(id)}\n${end}`, item: id }] }, notes: [] };
@@ -100,6 +107,8 @@ export function visitSite(adv: Adventure, o: MapObject): VisitResult {
       return visitDwelling(adv, o);
     case 'bank':
       return lootKeep(adv, o);
+    case 'lair':
+      return { adv: message(adv, lairName(o), `${lairWords(o)}. It can't be taken or destroyed.`), notes: [] };
     case 'town':
     case 'monster':
       return { adv, notes: [] };

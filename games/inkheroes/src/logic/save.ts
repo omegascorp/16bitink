@@ -1,4 +1,4 @@
-import { BAGS, ITEM_IDS, MAX_BAG, ITEMS, SLOTS, type Gear, type ItemId } from './items';
+import { BAGS, fitsSlot, ITEM_IDS, MAX_BAG, SLOTS, type Gear, type ItemId } from './items';
 import type { KeyValueStore } from '@16bitink/game-sdk';
 import type { HeroDef, MapDef } from '../level/types';
 import { DEFEND, GATE, gridOf, lyingItem, MAX_MONSTER, pickHero, queueLevelUps, RIVAL, townAt, townById, townGuards, type Adventure, type Prompt, type RivalState } from './adventure';
@@ -11,6 +11,9 @@ import { dailyMp, levelFor, maxMana, PRIMARIES } from './hero';
 import { passable, STABLES_MP } from './map';
 import { CHEST_XP, townCore, type MapObject } from './objects';
 import { storeRoom } from './storage';
+import { chestHoldsPiece, lairOfGroup } from './loot';
+import { groupWeek, lairDoor } from './lairs';
+import { SPOILS } from './spoils';
 import { addTo, RESOURCES, type Purse } from './resources';
 import { isSkillId, MAX_SKILLS, SKILL_IDS, type Rank } from './skills';
 import { isSpellId, type SpellId } from './spells';
@@ -149,7 +152,7 @@ export function parseAdventure(raw: unknown, def: MapDef): Adventure | null {
     if (ts.some((t) => townCore(t!.x, t!.y).some((f) => f.x === one.x && f.y === one.y))) return null;
     if (objs.some((o) => o.kind === 'monster' && !o.gone && o.x === one.x && o.y === one.y)) return null;
   }
-  const kept = prompts.map((x) => parsePrompt(x, objs)).filter((x): x is Prompt => !!x).slice(0, MAX_PROMPTS);
+  const kept = prompts.map((x) => parsePrompt(x, objs, def)).filter((x): x is Prompt => !!x).slice(0, MAX_PROMPTS);
   const rival = parseRival(raw.rival, def);
   if (def.rival && rival === undefined) return null;
   // A fight waits only while he rides: one he started against our hero or a town of ours, or the walls of his town after we won its gate.
@@ -345,7 +348,7 @@ const isItemId = (x: unknown): x is ItemId => typeof x === 'string' && (ITEM_IDS
 function parseGear(raw: Record<string, unknown>): { gear?: Gear; bag?: ItemId[]; pack?: number } {
   const gear = isObj(raw.gear) ? Object.fromEntries(SLOTS.flatMap((s) => {
     const id = (raw.gear as Record<string, unknown>)[s];
-    return isItemId(id) && ITEMS[id].slot === s ? [[s, id]] : [];
+    return isItemId(id) && fitsSlot(id, s) ? [[s, id]] : [];
   })) as Gear : {};
   const bag = Array.isArray(raw.bag) ? raw.bag.filter(isItemId).slice(0, MAX_BAG) : [];
   const saved = isInt(raw.pack, 0, BAGS.length - 1) ? raw.pack : 0;
@@ -404,16 +407,45 @@ function parseObjects(raw: readonly unknown[], def: MapDef): MapObject[] | null 
       continue;
     }
     if (!s) return null;
-    // A beaten monster's piece left lying on the ground.
-    if (base.kind === 'monster' && s.kind === 'item' && isItemId(s.item)) {
+    // A beaten monster's piece (or a chest's) left lying on the ground.
+    if ((base.kind === 'monster' || base.kind === 'chest') && s.kind === 'item' && isItemId(s.item)) {
       out.push(lyingItem(base, s.item));
       continue;
     }
     const ownable = base.kind === 'mine' || base.kind === 'town' || base.kind === 'dwelling';
     const owner = ownable && (s.owner === 'player' || s.owner === 'neutral' || s.owner === 'rival') ? s.owner : base.owner;
     const count = base.kind === 'monster' && isInt(s.count, 1, MAX_MONSTER) ? s.count : base.count;
-    const week = (base.kind === 'windmill' || base.kind === 'stables') && isInt(s.week, 1) ? s.week : undefined;
+    const week = (base.kind === 'windmill' || base.kind === 'stables' || base.kind === 'lair') && isInt(s.week, 1) ? s.week : undefined;
     out.push({ ...base, ...(owner ? { owner } : {}), ...(count !== undefined ? { count } : {}), ...(week !== undefined ? { week } : {}), ...siteState(base, s), ...(s.gone === true ? { gone: true } : {}) });
+  }
+  return [...out, ...grownObjects(raw, def)];
+}
+
+/** Most objects play may add to a map (lairs' groups, gear lying on the ground). */
+const MAX_GROWN = 200;
+
+/**
+ * What play added to the map, read back: a lair's group standing at its
+ * door (where it stands and who it is come from the lair), a piece one left
+ * lying there, and a beaten rival's pieces left on open ground. A beaten
+ * group is gone for good and isn't kept.
+ */
+function grownObjects(raw: readonly unknown[], def: MapDef): MapObject[] {
+  const g = gridOf(def);
+  const out: MapObject[] = [];
+  const seen = new Set(def.objects.map((o) => o.id));
+  for (const s of raw.filter(isObj)) {
+    if (out.length >= MAX_GROWN || typeof s.id !== 'string' || s.id.length > 80 || seen.has(s.id) || s.gone === true) continue;
+    const lair = def.objects.find((o) => o.kind === 'lair' && o.id === lairOfGroup(s.id as string));
+    if (lair && groupWeek(s.id)) {
+      const door = lairDoor(lair);
+      if (s.kind === 'monster' && isInt(s.count, 1, MAX_MONSTER)) out.push({ id: s.id, kind: 'monster', ...door, creature: lair.creature!, count: s.count });
+      else if (s.kind === 'item' && isItemId(s.item)) out.push(lyingItem({ id: s.id, ...door }, s.item));
+      else continue;
+    } else if (SPOILS.test(s.id) && s.kind === 'item' && isItemId(s.item) && isInt(s.x, 0, g.w - 1) && isInt(s.y, 0, g.h - 1) && passable(g, s.x, s.y)) {
+      out.push({ id: s.id, kind: 'item', x: s.x, y: s.y, item: s.item });
+    } else continue;
+    seen.add(s.id);
   }
   return out;
 }
@@ -426,11 +458,12 @@ function siteState(base: MapObject, s: Record<string, unknown>): Partial<MapObje
     return by.length ? { visitedBy: [...new Set(by)] } : {};
   }
   if (base.kind === 'bank') return { ...(s.looted === true ? { looted: true } : {}), ...(isObj(s.prize) && Object.keys(s.prize).length === 0 ? { prize: {} } : {}) };
+  if (base.kind === 'lair') return isInt(s.since, 1) ? { since: s.since } : {};
   return {};
 }
 
 /** A saved card: messages as text; a chest only for a real, unopened chest, with what that chest holds. */
-function parsePrompt(raw: unknown, objects: readonly MapObject[]): Prompt | null {
+function parsePrompt(raw: unknown, objects: readonly MapObject[], def: MapDef): Prompt | null {
   if (!isObj(raw)) return null;
   if (raw.kind === 'message' && typeof raw.title === 'string' && typeof raw.text === 'string') {
     const report = parseDayReport(raw.report);
@@ -442,7 +475,9 @@ function parsePrompt(raw: unknown, objects: readonly MapObject[]): Prompt | null
     const chest = objects.find((o) => o.id === raw.id && o.kind === 'chest' && !o.gone);
     if (!chest) return null;
     const gold = chest.gold ?? 1000;
-    return { kind: 'chest', id: chest.id, gold, xp: CHEST_XP[gold] ?? Math.floor(gold / 2) };
+    // Its piece, for a chest that holds one (the roll's own, as it was dealt).
+    const item = chestHoldsPiece(def, chest) && isItemId(raw.item) ? { item: raw.item } : {};
+    return { kind: 'chest', id: chest.id, gold, xp: CHEST_XP[gold] ?? Math.floor(gold / 2), ...item };
   }
   if (raw.kind === 'dwelling' && typeof raw.id === 'string') {
     const home = objects.find((o) => o.id === raw.id && o.kind === 'dwelling' && !o.gone);

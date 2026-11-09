@@ -31,6 +31,8 @@ import siteCrocodileMarsh from './map/site-crocodileMarsh.png?url';
 import siteLionRocks from './map/site-lionRocks.png?url';
 import siteBenbenHouse from './map/site-benbenHouse.png?url';
 import siteMastaba from './map/site-mastaba.png?url';
+import siteDen from './map/site-den.png?url';
+import siteTomb from './map/site-tomb.png?url';
 import siteChest from './map/site-chest.png?url';
 import siteCampfire from './map/site-campfire.png?url';
 import sitePileGold from './map/site-pile-gold.png?url';
@@ -119,6 +121,8 @@ export const MAP_SITES: Readonly<Partial<Record<SiteArt, MapSprite>>> = {
   'lionRocks': { url: siteLionRocks, w: 96, h: 68, footX: 48, footY: 67 },
   'benbenHouse': { url: siteBenbenHouse, w: 84, h: 83, footX: 42, footY: 82 },
   'mastaba': { url: siteMastaba, w: 82, h: 77, footX: 41, footY: 76 },
+  'den': { url: siteDen, w: 96, h: 66, footX: 48, footY: 65 },
+  'tomb': { url: siteTomb, w: 96, h: 74, footX: 48, footY: 73 },
   'chest': { url: siteChest, w: 42, h: 45, footX: 21, footY: 44 },
   'campfire': { url: siteCampfire, w: 54, h: 43, footX: 27, footY: 42 },
   'pile-gold': { url: sitePileGold, w: 48, h: 30, footX: 24, footY: 29 },

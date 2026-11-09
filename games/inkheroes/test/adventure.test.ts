@@ -212,8 +212,21 @@ describe('the adventure', () => {
     expect(report.sources[1]!.label).toMatch(/^Gold mines? ?(×\d+)?$/);
   });
 
+  it('a treasure chest holding a piece (1 in 4, src/logic/loot.ts) offers it to take', () => {
+    let adv = peaceful(startAdventure(ASHFORD));
+    adv = { ...adv, hero: { ...adv.hero, x: 19, y: 5 } };
+    adv = walk(adv, ASHFORD, 19, 4).adv;
+    expect(adv.prompts[0]).toMatchObject({ kind: 'chest', item: 'oliveWoodRing' });
+    const took = answerPrompt(adv, 'gold');
+    expect(took.purse.gold).toBe(adv.purse.gold);
+    expect(took.hero.gear?.ring1).toBe('oliveWoodRing');
+    expect(took.objects.find((o) => o.id === 'chest-glade')?.gone).toBe(true);
+  });
+
   it('a treasure chest offers gold or experience', () => {
     let adv = peaceful(startAdventure(ASHFORD));
+    // The glade's chest holds a piece now: the same chest under another id, one the seed fills with gold.
+    adv = { ...adv, objects: adv.objects.map((o) => (o.id === 'chest-glade' ? { ...o, id: 'chest-east-copy' } : o.id === 'chest-east' ? { ...o, gone: true } : o)) };
     adv = { ...adv, hero: { ...adv.hero, x: 19, y: 5 } };
     adv = walk(adv, ASHFORD, 19, 4).adv;
     expect(adv.prompts[0]).toMatchObject({ kind: 'chest', gold: 1500, xp: 1000 });

@@ -107,6 +107,7 @@ export function toBattleHero(h: Hero): BattleHero {
     morale: skillValue(h.skills, 'leadership') + (worn.morale ?? 0), luck: skillValue(h.skills, 'luck') + (worn.luck ?? 0),
     ...(h.faction ? { faction: h.faction } : {}),
     ...(h.specialty ? { specialty: { ...h.specialty, level: h.level } } : {}),
+    ...(worn.speed ? { speed: worn.speed } : {}),
   };
 }
 

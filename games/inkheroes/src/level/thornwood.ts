@@ -69,6 +69,9 @@ export const THORNWOOD_LAND: MapDef = {
   off: lockedOn(2),
   seed: 2207,
   objects: [
+    // Lairs: a new group each week (docs/inkheroes-design.md, Loot), in the half toward Thornwood town.
+    { id: 'thorn-den', kind: 'lair', x: 34, y: 4, creature: 'wolf', count: 30, look: 'den' },
+    { id: 'fen-den', kind: 'lair', x: 35, y: 24, creature: 'bandit', count: 30, look: 'den' },
     // Mines.
     { id: 'sawmill', kind: 'mine', x: 4, y: 6, resource: 'wood', owner: 'neutral' },
     { id: 'ore-pit', kind: 'mine', x: 13, y: 17, resource: 'ore', owner: 'neutral' },

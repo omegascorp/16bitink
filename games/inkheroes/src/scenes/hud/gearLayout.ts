@@ -6,6 +6,8 @@ const FRAME = 4;
 const GAP = 2;
 const BAG_LABEL = 16;
 const DETAIL_H = 46;
+/** A line of the sets worn, shown in the detail's place while nothing is picked: three fit. */
+export const SETS_LINE = 13;
 const SPACE = 12;
 
 type Doll = 'tall' | 'square' | 'broad';
@@ -42,7 +44,7 @@ export interface GearLayout {
   readonly slots: readonly (GearCell & { readonly slot: Slot })[];
   readonly bag: readonly GearCell[];
   readonly bagLabel: GearCell;
-  /** The picked piece's line and its button. */
+  /** The picked piece's line and its button; with nothing picked, the sets worn and their bonuses. */
   readonly detail: GearCell & { readonly w: number };
 }
 

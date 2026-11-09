@@ -1,4 +1,5 @@
 import type { MapDef } from '../../level/types';
+import { roomFor } from '../lying';
 import { gridOf, guardAt, liveObjects, monsterArmy, playerTowns, terrainView, type Adventure } from '../adventure';
 import { dwellingStock, hireAtDwelling } from '../dwellings';
 import { dailyMp, sightOf, type Hero } from '../hero';
@@ -134,7 +135,8 @@ function siteValue(ctx: Ctx, h: Hero, o: MapObject, job: Job): number {
     case 'pile': return VALUE.pile * (ctx.short.has(o.resource!) ? SHORT : 1);
     case 'campfire': return VALUE.campfire;
     case 'chest': return VALUE.chest;
-    case 'item': return VALUE.item;
+    // A piece lying on the ground is worth the ride only with room for it (else it would stay there: src/logic/lying.ts).
+    case 'item': return roomFor(h, o.item!) ? VALUE.item : 0;
     case 'spellbook': return hasSpellbook(h) ? 0 : VALUE.spellbook;
     case 'mine': return (o.owner === 'player' ? 0 : o.owner === 'rival' ? VALUE.theirMine : o.resource === 'gold' ? VALUE.goldMine : VALUE.mine) * (ctx.short.has(o.resource!) ? SHORT : 1);
     case 'learningStone': return o.visitedBy?.includes(h.id) ? 0 : VALUE.learningStone;
