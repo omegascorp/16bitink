@@ -123,23 +123,27 @@ export interface FunnelStep {
   readonly attempts: number;
   /** Average time of a winning run, or null when nobody won. */
   readonly winSeconds: number | null;
-  /** Where each player who never won it last stopped, as the game put it (games that report progress). */
+  /**
+   * Where each player who never won it last stopped, as the game put it (games that report progress):
+   * the latest note from a run that ended without a win, or from a checkpoint inside the level.
+   */
   readonly stops: readonly string[];
 }
 
 /** How many visitors reached, and beat, each level of `game`, in level order. */
 export async function levelFunnel(game: string, range: Range): Promise<FunnelStep[]> {
   const won: Expression = { $and: [isEvent('level_end'), { $eq: ['$result', 'win'] }] };
-  const unwonProgress: Expression = { $and: [isEvent('level_end'), { $ne: ['$result', 'win'] }, { $gt: ['$progress', null] }] };
+  const unwonEnd: Expression = { $and: [isEvent('level_end'), { $ne: ['$result', 'win'] }] };
+  const progressNote: Expression = { $and: [{ $or: [unwonEnd, isEvent('level_progress')] }, { $gt: ['$progress', null] }] };
   return aggregate<FunnelStep>([
-    { $match: { ...inRange(range), 'meta.game': game, 'meta.event': { $in: ['level_start', 'level_end'] } } },
+    { $match: { ...inRange(range), 'meta.game': game, 'meta.event': { $in: ['level_start', 'level_progress', 'level_end'] } } },
     { $sort: { ts: 1 } },
     {
       $group: {
         _id: { n: '$n', visitor: '$visitor' }, level: { $last: '$level' }, name: { $last: '$name' },
         won: { $max: { $cond: [won, 1, 0] } }, attempts: countOf('level_start'),
         winSeconds: { $push: { $cond: [won, '$seconds', '$$REMOVE'] } },
-        progress: { $push: { $cond: [unwonProgress, '$progress', '$$REMOVE'] } },
+        progress: { $push: { $cond: [progressNote, '$progress', '$$REMOVE'] } },
       },
     },
     {

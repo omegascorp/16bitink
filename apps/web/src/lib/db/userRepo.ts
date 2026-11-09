@@ -154,3 +154,17 @@ export async function listUsers(opts: { readonly search: string; readonly page: 
 export async function countNewUsers(range: { readonly from: Date; readonly to: Date }): Promise<number> {
   return User.countDocuments({ createdAt: { $gte: range.from, $lt: range.to }, role: { $ne: 'admin' } }).exec();
 }
+
+export interface PlayerAccountRow {
+  readonly id: UserId;
+  readonly createdAt: Date;
+  /** Absent until the player first needs one. */
+  readonly playerId?: string;
+}
+
+/** Every account that isn't an admin's, newest first; only those made with `from <= createdAt < to` when a range is given. */
+export async function listPlayerAccounts(joined?: { readonly from: Date; readonly to: Date }): Promise<PlayerAccountRow[]> {
+  const filter = { role: { $ne: 'admin' as const }, ...(joined ? { createdAt: { $gte: joined.from, $lt: joined.to } } : {}) };
+  const docs = await User.find(filter, { createdAt: 1, playerId: 1 }).sort({ createdAt: -1 }).lean().exec();
+  return docs.map((d) => ({ id: d._id.toHexString(), createdAt: d.createdAt, ...(d.playerId ? { playerId: d.playerId } : {}) }));
+}

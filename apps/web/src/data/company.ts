@@ -6,5 +6,7 @@ export const COMPANY = {
   email: 'support@alienart.io',
 } as const;
 
-/** The date both legal documents were last changed. */
+/** The date the legal documents were last changed (the privacy policy's own date, when newer, below). */
 export const LEGAL_UPDATED = 'October 24, 2026';
+/** The privacy policy's last change: signed-in statistics linked to the account. */
+export const PRIVACY_UPDATED = 'November 9, 2026';

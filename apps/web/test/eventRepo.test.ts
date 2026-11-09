@@ -60,6 +60,23 @@ describe.skipIf(!uri)('analytics events (MongoDB)', () => {
     ]);
   });
 
+  it("shows where unbeaten players last stopped, from a run's end or a checkpoint inside it", async () => {
+    const note = (visitor: string, progress: string): StoredEvent => ev(visitor, 'level_progress', { level: 'l1', n: 1, name: 'Level 1', seconds: 60, progress });
+    await recordEvents([
+      // a: two checkpoints, then the tab closes: the latest checkpoint counts.
+      start('a', 1), note('a', 'day 2'), note('a', 'day 5'),
+      // b: a checkpoint, then a lost run with its own note, which is later.
+      start('b', 1), note('b', 'day 3'), { ...end('b', 1, 'lose'), progress: 'day 4, 1 town' },
+      // c: a lost run's note, then a later checkpoint in the next try.
+      start('c', 1), { ...end('c', 1, 'lose'), progress: 'day 1' }, start('c', 1), note('c', 'day 6'),
+      // d: checkpoints, then wins: not stuck.
+      start('d', 1), note('d', 'day 7'), end('d', 1, 'win', 90),
+    ]);
+    const [level1] = await levelFunnel('inkfish', RANGE);
+    expect(level1).toMatchObject({ reached: 4, finished: 1, attempts: 5 });
+    expect([...level1!.stops].sort()).toEqual(['day 4, 1 town', 'day 5', 'day 6']);
+  });
+
   it('sums visitors, players and play time', async () => {
     await recordEvents([
       ev('a', 'pageview', { path: '/' }, null), ev('a', 'game_start'), ev('a', 'play_time', { seconds: 100 }), ev('a', 'play_time', { seconds: 20 }),

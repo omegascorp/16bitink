@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { commonest, countryName, formatDuration, funnelRows, parsePeriod, rangeFor, visitOutcome, type OutcomeInput } from '../src/lib/adminStats';
+import { cameFromLabel, commonest, countryName, deviceLabel, formatDuration, funnelRows, levelLabel, parsePeriod, rangeFor, visitOutcome, type OutcomeInput } from '../src/lib/adminStats';
 import type { FunnelStep } from '../src/lib/db/eventRepo';
 
 const step = (n: number, reached: number, finished: number): FunnelStep => ({ n, level: `l${n}`, name: null, reached, finished, attempts: reached, winSeconds: null, stops: [] });
@@ -81,5 +81,22 @@ describe('visitOutcome', () => {
     ['looked around', { pageviews: 3, paths: ['/', '/about', '/games/inkfish'] }, 'browsed'],
   ])('%s', (_label, over, outcome) => {
     expect(visitOutcome(visit(over))).toBe(outcome);
+  });
+});
+
+describe('player labels', () => {
+  it('names a level by number and name, or its id when it has no name', () => {
+    expect(levelLabel({ n: 12, level: 'c2-l2', name: 'Coral Gate' })).toBe('#12 Coral Gate');
+    expect(levelLabel({ n: 3, level: 'day-run', name: null })).toBe('#3 day-run');
+    expect(levelLabel(null)).toBe('–');
+  });
+
+  it('says where a first visit came from', () => {
+    expect(cameFromLabel('www.youtube.com')).toBe('www.youtube.com');
+    expect(cameFromLabel(null)).toMatch(/^direct/);
+  });
+
+  it('describes a device in one line', () => {
+    expect(deviceLabel({ os: 'iOS', browser: 'Safari', device: 'mobile' })).toBe('iOS · Safari · mobile');
   });
 });

@@ -6,7 +6,7 @@ import { CHEST_FRAME, FLAME_FRAME } from '../art/props';
 import { LiquidPainter, LIQUID_RES } from '../art/liquid';
 import { VOLCANO_SKY_TOP_HEX } from '../art/volcanoSurround';
 import { bedOf, type SoundBoard } from '../audio/sfx';
-import { getHost } from '../host';
+import { getHost, trackGame } from '../host';
 import { CHAPTER_NAMES, isFreeEnd, LEVELS, LEVELS_PER_CHAPTER } from '../level';
 import type { GuardAnimal, LevelDef } from '../logic/level';
 import { COIN, STEPS_PER_SECOND } from '../logic/particles';
@@ -20,6 +20,7 @@ import { Effects } from './effects';
 import { LevelCamera } from './levelCamera';
 import { addToBank, isOpen, readBank, readProgress, recordWin, type Bank } from './progress';
 import { PinsView } from './pinsView';
+import { RunTracker } from './runTracker';
 import { ShrineView } from './shrineView';
 import { TombView } from './tombView';
 import { bakeBoard, bakeTextures, COIN_TURNS, guardKey, guardKind, surroundKeys } from './textures';
@@ -126,6 +127,7 @@ export function openUpTo(registry: Phaser.Data.DataManager): number {
 /** The level in play: steps the world at a fixed rate and draws it. */
 export class GameScene extends Phaser.Scene {
   private world!: World;
+  private run: RunTracker | null = null;
   private world0!: Phaser.GameObjects.Layer;
   private liquid!: LiquidPainter;
   private liquidTex!: Phaser.Textures.CanvasTexture;
@@ -176,6 +178,7 @@ export class GameScene extends Phaser.Scene {
     this.registry.set('session', this.session);
     this.world = new World(level);
     this.ended = false;
+    this.startRun(level);
     this.hearts = HEARTS;
     this.rewinding = false;
     this.acc = 0;
@@ -221,6 +224,7 @@ export class GameScene extends Phaser.Scene {
     this.press = null;
     this.scale.on('resize', this.refit, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.run?.quit();
       this.sfx.bed(null);
       this.scale.off('resize', this.refit, this);
       this.game.events.off('cmd:restart', this.restart, this);
@@ -728,6 +732,8 @@ export class GameScene extends Phaser.Scene {
     }
     this.closeUp(w.nib.x, w.nib.y);
     const won = status.state === 'won';
+    if (won) this.run?.win();
+    else if (status.state === 'lost') this.run?.lose(status.cause);
     const allTreasure = w.coinsTotal > 0 && w.coinsCollected >= Math.ceil(w.coinsTotal * 0.95);
     const firstTry = this.session.tries === 1 && this.hearts === HEARTS;
     if (won) recordWin(w.level.id, w.coinsCollected, allTreasure, firstTry);
@@ -763,6 +769,22 @@ export class GameScene extends Phaser.Scene {
     this.scale.off('resize', this.refit, this);
     cam.zoomTo(zoom, 650, 'Cubic.easeInOut');
     cam.pan(x, y - (height * 0.2 * DPR) / zoom, 650, 'Cubic.easeInOut');
+  }
+
+  /** Reports the level's start, and its end once (the dev page's sampler level is in no chapter, so it is not reported). */
+  private startRun(level: LevelDef): void {
+    this.run = null;
+    const at = LEVELS.findIndex((l) => l.id === level.id);
+    if (at < 0) return;
+    const w = this.world;
+    this.run = new RunTracker({ id: level.id, name: level.name, n: at + 1 }, trackGame, () => ({
+      pinsPulled: w.pins.filter((p) => p.pulledAt !== null).length,
+      pinsTotal: w.pins.length,
+      coins: w.coinsCollected,
+      coinsNeeded: level.coinsNeeded,
+      hasChest: level.chest !== undefined,
+      chestTaken: w.chestTaken,
+    }));
   }
 
   private restart(): void {

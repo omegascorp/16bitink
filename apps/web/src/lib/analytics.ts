@@ -66,6 +66,8 @@ const Event = z.discriminatedUnion('type', [
   /** The browser installed the site as an app. */
   z.object({ type: z.literal('app_install'), at: At }),
   z.object({ type: z.literal('level_start'), at: At, game: Game, ...Level, ...Version }),
+  /** A checkpoint inside a long level: how far the run has got so far, for levels that are often left without ending. */
+  z.object({ type: z.literal('level_progress'), at: At, game: Game, ...Level, ...Version, seconds: Seconds, progress: z.string().min(1).max(PROGRESS_MAX) }),
   z.object({
     type: z.literal('level_end'), at: At, game: Game, ...Level, ...Version,
     result: z.enum(['win', 'lose', 'quit']), seconds: Seconds,
@@ -165,7 +167,7 @@ export interface StoredEvent extends Visit {
   readonly seconds?: number;
   readonly score?: number;
   readonly cause?: string;
-  /** How far a level's run got, in the game's words (level_end). */
+  /** How far a level's run got, in the game's words (level_end), or has got so far (level_progress). */
   readonly progress?: string;
   /** The game's version, on game events. */
   readonly version?: string;

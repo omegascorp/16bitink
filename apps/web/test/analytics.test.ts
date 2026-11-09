@@ -43,6 +43,25 @@ describe('parseBatch', () => {
     expect(parsed?.events[0]).toMatchObject({ progress: 'size 3/4 full, finds 1/3' });
   });
 
+  it('accepts a checkpoint inside a long level, with its progress note', () => {
+    const parsed = parseBatch(batch([
+      { type: 'level_progress', at: 999_000, game: 'inkcrab', level: 'day-run', n: 3, name: 'The Long Road', seconds: 640, progress: 'day 5, 2 towns', version: '1.4.0' },
+    ]))!;
+    expect(parsed.events).toHaveLength(1);
+    const [stored] = toStoredEvents(parsed, VISIT, NOW, isGame);
+    expect(stored).toMatchObject({ meta: { event: 'level_progress', game: 'inkcrab' }, n: 3, seconds: 640, progress: 'day 5, 2 towns', version: '1.4.0' });
+  });
+
+  it.each([
+    ['no progress note', { type: 'level_progress', at: 1, game: 'inkcrab', level: 'a', n: 1, seconds: 10 }],
+    ['an empty progress note', { type: 'level_progress', at: 1, game: 'inkcrab', level: 'a', n: 1, seconds: 10, progress: '' }],
+    ['an overlong progress note', { type: 'level_progress', at: 1, game: 'inkcrab', level: 'a', n: 1, seconds: 10, progress: 'x'.repeat(61) }],
+    ['no time in the level', { type: 'level_progress', at: 1, game: 'inkcrab', level: 'a', n: 1, progress: 'day 2' }],
+    ['a level number of 0', { type: 'level_progress', at: 1, game: 'inkcrab', level: 'a', n: 0, seconds: 10, progress: 'day 2' }],
+  ])('rejects a checkpoint with %s', (_label, event) => {
+    expect(parseBatch(batch([event]))).toBeNull();
+  });
+
   it('keeps the game version on game events', () => {
     const parsed = parseBatch(batch([
       { type: 'game_start', at: 1, game: 'inkcrab', version: '1.2.0' },

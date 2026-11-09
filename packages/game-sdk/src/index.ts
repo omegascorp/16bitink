@@ -133,13 +133,25 @@ export type OfferPlace = (typeof OFFER_PLACES)[number];
 export const isOfferPlace = (value: unknown): value is OfferPlace => (OFFER_PLACES as readonly unknown[]).includes(value);
 
 /**
- * What a game reports: each level it starts, how that level ended, and each
+ * What a game reports: each level it starts, checkpoints inside long ones, how that level ended, and each
  * time it puts the full-game offer in front of the player (`offer_view`:
  * once per showing, not per frame).
  */
 export type GameEvent =
   | { readonly type: 'offer_view'; readonly where: OfferPlace }
   | (LevelRef & { readonly type: 'level_start' })
+  /**
+   * A checkpoint inside a long level (an InkHeroes day): how far the run has got so far, so the
+   * site can see where players stop even when the level never ends (the tab is just closed).
+   * Send it at natural milestones, not per frame.
+   */
+  | (LevelRef & {
+      readonly type: 'level_progress';
+      /** Time spent in the level so far. */
+      readonly seconds: number;
+      /** In the game's own short words, as for `level_end`, e.g. "day 5, 2 towns". */
+      readonly progress: string;
+    })
   | (LevelRef & {
       readonly type: 'level_end';
       readonly result: LevelResult;

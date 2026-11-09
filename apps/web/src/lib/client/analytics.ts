@@ -184,13 +184,15 @@ const PROGRESS_MAX = 60;
 export function fromGameEvent(tag: GameTag, e: GameEvent): Event | null {
   if (e.type === 'offer_view') return isOfferPlace(e.where) ? { type: 'offer_view', where: e.where, ...tag } : null;
   if (!Number.isInteger(e.n) || e.n < 1) return null;
+  // A checkpoint is only its note: without one there is nothing to send.
+  if (e.type === 'level_progress' && !e.progress) return null;
   return {
     ...e, ...tag, level: e.level.slice(0, 40), ...(e.name ? { name: e.name.slice(0, 80) } : {}),
-    ...(e.type === 'level_end' && e.progress ? { progress: e.progress.slice(0, PROGRESS_MAX) } : {}),
+    ...((e.type === 'level_end' || e.type === 'level_progress') && e.progress ? { progress: e.progress.slice(0, PROGRESS_MAX) } : {}),
   };
 }
 
-/** Records an event a game reported: its levels, and the offers it showed. */
+/** Records an event a game reported: its levels and checkpoints in them, and the offers it showed. */
 export function trackGameEvent(tag: GameTag, e: GameEvent): void {
   const event = fromGameEvent(tag, e);
   if (event) track(event);

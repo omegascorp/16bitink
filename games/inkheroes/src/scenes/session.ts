@@ -1,9 +1,10 @@
-import type { GameHost } from '@16bitink/game-sdk';
+import type { GameEvent, GameHost } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { trackGame } from '../host';
 import { chapterOf, CHAPTERS, nextMap, partsOf, type ChapterDef } from '../level/maps';
 import type { MapDef } from '../level/types';
 import { commitProgress } from '../logic/accountSave';
+import { progressNote } from '../logic/runNote';
 import { endDay, startAdventure, type Adventure } from '../logic/adventure';
 import { openLand, partDays, rideOn } from '../logic/chapter';
 import { rivalTurn, type RivalReport } from '../logic/rival';
@@ -17,7 +18,14 @@ const KEY = 'session';
  * can replay the day); listeners hear 'change'.
  */
 export class Session extends Phaser.Events.EventEmitter {
+  /**
+   * When this Session began. A resumed game (Continue) builds a fresh Session,
+   * so `seconds` is the time spent in this sitting, not since the part opened:
+   * the site sums a player's sittings per level.
+   */
   private startedAt = Date.now();
+  /** The scene that opened this session, so events go through trackGame. */
+  private scene: Phaser.Scene | null = null;
   /** A part just opened: the map has its way to show. */
   private wayToShow = false;
 
@@ -70,6 +78,7 @@ export class Session extends Phaser.Events.EventEmitter {
     const lit = openLand(current, def);
     const s = new Session(host, def, lit, openLand(saved.dayStart, def), openLand(saved.partStart ?? saved.dayStart, def));
     s.wayToShow = lit.explored !== current.explored;
+    s.scene = scene;
     scene.registry.set(KEY, s);
     return s;
   }
@@ -87,6 +96,7 @@ export class Session extends Phaser.Events.EventEmitter {
   private static open(scene: Phaser.Scene, host: GameHost, def: MapDef, adv: Adventure, opened = false): Session {
     const s = new Session(host, def, adv, adv, adv);
     s.wayToShow = opened;
+    s.scene = scene;
     s.save();
     scene.registry.set(KEY, s);
     trackGame(scene, { type: 'level_start', level: def.id, n: def.n, name: def.name });
@@ -124,6 +134,7 @@ export class Session extends Phaser.Events.EventEmitter {
     const r = rivalTurn(endDay(this.current, this.def), this.def);
     this.dayStart = r.adv;
     this.set(r.adv);
+    this.send({ type: 'level_progress', level: this.def.id, n: this.def.n, name: this.def.name, seconds: this.seconds(), progress: progressNote(r.adv) });
     return r.report;
   }
 
@@ -152,14 +163,19 @@ export class Session extends Phaser.Events.EventEmitter {
   }
 
   private track(scene: Phaser.Scene, result: 'lose' | 'quit'): void {
-    trackGame(scene, { type: 'level_end', level: this.def.id, n: this.def.n, name: this.def.name, result, seconds: this.seconds(), cause: result === 'lose' ? 'beaten' : undefined, progress: `day ${this.current.day}` });
+    this.send({ type: 'level_end', level: this.def.id, n: this.def.n, name: this.def.name, result, seconds: this.seconds(), cause: result === 'lose' ? 'beaten' : undefined, progress: progressNote(this.current) });
   }
 
   private win(): void {
     const days = partDays(this.current);
     const blots = blotsFor(days, this.def.parDays, this.current.lostStacks);
     commitProgress(this.host, recordWin(loadProgress(this.host.storage), this.def.id, blots, days));
-    this.host.track?.({ type: 'level_end', level: this.def.id, n: this.def.n, name: this.def.name, result: 'win', seconds: this.seconds(), score: blots, progress: `day ${this.current.day}` });
+    this.send({ type: 'level_end', level: this.def.id, n: this.def.n, name: this.def.name, result: 'win', seconds: this.seconds(), score: blots, progress: progressNote(this.current) });
+  }
+
+  /** Through trackGame, so a stat can never break the game. */
+  private send(event: GameEvent): void {
+    if (this.scene) trackGame(this.scene, event);
   }
 
   private seconds(): number {

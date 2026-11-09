@@ -1,11 +1,11 @@
 ---
 import LegalPage from '../layouts/LegalPage.astro';
-import { COMPANY } from '../data/company';
+import { COMPANY, PRIVACY_UPDATED } from '../data/company';
 
 const mail = `mailto:${COMPANY.email}`;
 ---
-<LegalPage title="Privacy Policy" description="What personal data 16bit.ink collects, why, and the choices you have.">
-  <p>This policy explains what personal data 16bit.ink collects when you play or buy our games, why we collect it, who we share it with, and the choices you have. The short version: you can play the free part of a game without giving us anything. When you buy a game, we keep only what we need to deliver it, restore it on your other devices, and keep our accounts. We don't show ads, use tracking cookies or third-party analytics, or sell your data. We count visits and plays with our own simple statistics, which aren't linked to your name, email or account.</p>
+<LegalPage title="Privacy Policy" updated={PRIVACY_UPDATED} description="What personal data 16bit.ink collects, why, and the choices you have.">
+  <p>This policy explains what personal data 16bit.ink collects when you play or buy our games, why we collect it, who we share it with, and the choices you have. The short version: you can play the free part of a game without giving us anything. When you buy a game, we keep only what we need to deliver it, restore it on your other devices, and keep our accounts. We don't show ads, use tracking cookies or third-party analytics, or sell your data. We count visits and plays with our own simple statistics. When you're signed in, they're linked to your account, so we can see how players get on in each game.</p>
 
   <h2>Who is responsible for your data</h2>
   <p>{COMPANY.name}, registered in {COMPANY.registered}, runs 16bit.ink and is responsible for your personal data (the "controller"). Contact us about privacy at <a href={mail}>{COMPANY.email}</a>.</p>
@@ -26,7 +26,7 @@ const mail = `mailto:${COMPANY.email}`;
   <p>We use this record to unlock the game for you, restore it when you sign in on another device, handle refunds and disputes, and keep the accounting records the law requires.</p>
 
   <h3>When you sign in with Google</h3>
-  <p>You don't need to sign in to play the free part of a game. You do need to sign in to buy a game, and to play it on another device. Google tells us your name, your email address and your Google account ID. We don't receive your Google password or access anything else in your Google account. We keep these details in a signed cookie in your browser for up to 30 days, so the site knows who you are. We don't keep a separate account profile on our servers. Your Google account ID is saved in the record of each purchase you make.</p>
+  <p>You don't need to sign in to play the free part of a game. You do need to sign in to buy a game, and to play it on another device. Google tells us your name, your email address and your Google account ID. We don't receive your Google password or access anything else in your Google account. We save them on your account on our server, with the dates you joined and last signed in and a random player ID you can share instead of your email, and keep a signed cookie in your browser for up to 30 days, so the site knows who you are. Your Google account ID is also saved in the record of each purchase you make.</p>
 
   <h3>When you sign in with your email</h3>
   <p>Instead of Google, you can sign in with just your email address. We email you a 6-digit code and a sign-in link, which work once, for 15 minutes. We save your address, the page you were signing in from, and a scrambled (hashed) copy of the code and link, so we can check them; this record is deleted automatically after 15 minutes. Signing in saves your email address and a first name taken from it on your account. If you later sign in with Google using the same address, it's the same account. We use the address to sign you in and to find your purchases, never for marketing.</p>
@@ -49,8 +49,9 @@ const mail = `mailto:${COMPANY.email}`;
     <li>your operating system, browser and type of device (computer, phone or tablet), read from what your browser sends;</li>
     <li>your country, looked up from your IP address. We don't store the IP address itself.</li>
   </ul>
-  <p>To count a returning player once, your browser keeps a random ID in local storage. It isn't a cookie, it isn't made from anything about you or your device, and it isn't linked to your Google account or your purchases. It is replaced with a new one after 13 months. A second random ID, kept only until you close the tab, groups the pages of one visit. We never use these statistics for advertising or share them with anyone.</p>
-  <p>You can turn the statistics off. We don't record anything if your browser sends a Global Privacy Control or Do Not Track signal, or if you use the switch below. You can also clear the IDs at any time by clearing this site's storage in your browser.</p>
+  <p>To count a returning player once, your browser keeps a random ID in local storage. It isn't a cookie, and it isn't made from anything about you or your device. It is replaced with a new one after 13 months. A second random ID, kept only until you close the tab, groups the pages of one visit. We never use these statistics for advertising or share them with anyone.</p>
+  <p>When you're signed in, we link the random ID of the browser you're using to your account. That links the statistics from that browser to you, including those from your earlier visits on it, such as the visit that first brought you here. We do this so we can see how players get on in each game: where they found us, their country and type of device, the levels they reach, and how long they play. Like the rest of our statistics, this stays on our own server: it's never sent to an analytics company, used for ads or shared with anyone.</p>
+  <p>You can turn the statistics off. We don't record anything if your browser sends a Global Privacy Control or Do Not Track signal, or if you use the switch below, and then nothing more from that browser is linked to your account either. You can also clear the IDs at any time by clearing this site's storage in your browser.</p>
   <p class="stats-switch">
     <button type="button" id="stats-toggle" class="btn" hidden>Turn off statistics in this browser</button>
     <span id="stats-state" role="status"></span>
@@ -61,7 +62,7 @@ const mail = `mailto:${COMPANY.email}`;
   <p>We use your email and whatever you tell us to answer you, for example to look up a purchase or give a refund.</p>
 
   <h2>Cookies and local storage</h2>
-  <p>We use only cookies that the site needs to work, and no advertising or analytics cookies. Our statistics use random IDs in your browser's storage, only for counting visits on this site (see above), so we don't ask for cookie consent.</p>
+  <p>We use only cookies that the site needs to work, and no advertising or analytics cookies. Our statistics use random IDs in your browser's storage, only for our own statistics about this site (see above), so we don't ask for cookie consent.</p>
   <table>
     <thead>
       <tr><th>Name</th><th>What it does</th><th>How long it lasts</th></tr>
@@ -72,7 +73,7 @@ const mail = `mailto:${COMPANY.email}`;
       <tr><td><code>ink_signin</code></td><td>Protects a Google sign-in while it is in progress.</td><td>10 minutes</td></tr>
       <tr><td><code>ink_email</code></td><td>Remembers which sign-in email this browser asked for, so the code typed here is checked against it. It holds the email address, signed so it can't be altered.</td><td>15 minutes</td></tr>
       <tr><td>Local storage</td><td>Game progress, settings and discoveries, on your device only.</td><td>Until you clear your browser's site data</td></tr>
-      <tr><td><code>16bitink:visitor</code> (local storage)</td><td>A random ID, so our statistics count a returning visitor once.</td><td>13 months, or until you clear your browser's site data</td></tr>
+      <tr><td><code>16bitink:visitor</code> (local storage)</td><td>A random ID, so our statistics count a returning visitor once and, when you're signed in, link them to your account.</td><td>13 months, or until you clear your browser's site data</td></tr>
       <tr><td><code>16bitink:no-analytics</code> (local storage)</td><td>Remembers that you turned statistics off.</td><td>Until you turn them back on or clear your browser's site data</td></tr>
       <tr><td><code>16bitink:visit</code> (session storage)</td><td>A random ID that groups the pages you open in one visit.</td><td>Until you close the tab</td></tr>
     </tbody>
@@ -96,16 +97,16 @@ const mail = `mailto:${COMPANY.email}`;
     <li><strong>With your consent:</strong> the Sunday email. You can withdraw it at any time with the unsubscribe link.</li>
     <li><strong>To perform our contract with you:</strong> unlocking and restoring a game you bought, sign-in, and refunds.</li>
     <li><strong>To meet legal obligations:</strong> keeping records of sales for tax and accounting.</li>
-    <li><strong>For our legitimate interests:</strong> keeping the website secure, preventing fraud and abuse, answering your messages, and counting visits and plays so we can improve our games. We make sure these interests don't override your rights.</li>
+    <li><strong>For our legitimate interests:</strong> keeping the website secure, preventing fraud and abuse, answering your messages, and counting visits and plays, and seeing how signed-in players get on in each game, so we can improve our games. We make sure these interests don't override your rights.</li>
   </ul>
 
   <h2>How long we keep data</h2>
   <ul>
     <li><strong>Purchase records:</strong> while you own the game, so we can restore it for you, and for as long as tax and accounting law requires us to keep sales records.</li>
-    <li><strong>Sign-in details:</strong> only in the cookie in your browser, for up to 30 days.</li>
+    <li><strong>Your account</strong> (name, email, Google account ID, player ID, game progress): until you ask us to delete it. The sign-in cookie lasts up to 30 days.</li>
     <li><strong>Server logs:</strong> briefly, as kept by our hosting provider.</li>
     <li><strong>Sunday email list:</strong> until you unsubscribe.</li>
-    <li><strong>Visit statistics:</strong> about two years, then deleted automatically.</li>
+    <li><strong>Visit statistics:</strong> about two years, then deleted automatically. The link between a browser and your account goes about two years after you were last signed in on it, or when your account is deleted, whichever comes first.</li>
     <li><strong>Support emails:</strong> as long as needed to resolve your request.</li>
   </ul>
 

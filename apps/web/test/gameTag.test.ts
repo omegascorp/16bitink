@@ -25,6 +25,16 @@ describe('fromGameEvent', () => {
     expect(fromGameEvent(tag, { type: 'offer_view', where: 'popup' } as never)).toBeNull();
   });
 
+  it("trims a checkpoint's progress note like a level end's, and drops one without a note", () => {
+    const e = { type: 'level_progress', level: 'day-run', n: 3, seconds: 600, progress: 'd'.repeat(70) } as const;
+    expect(fromGameEvent(tag, e)).toEqual({ ...e, progress: 'd'.repeat(60), game: 'inkfish', version: '1.0.0' });
+    expect(fromGameEvent(tag, { ...e, progress: '' })).toBeNull();
+  });
+
+  it("trims a level end's progress note", () => {
+    expect(fromGameEvent(tag, { type: 'level_end', level: 'a', n: 1, result: 'quit', seconds: 5, progress: 'p'.repeat(70) })).toMatchObject({ progress: 'p'.repeat(60) });
+  });
+
   it('trims level events and drops ones with no level number', () => {
     expect(fromGameEvent(tag, { type: 'level_start', level: 'x'.repeat(50), n: 2 })).toMatchObject({ level: 'x'.repeat(40), n: 2, game: 'inkfish' });
     expect(fromGameEvent(tag, { type: 'level_start', level: 'a', n: 0 })).toBeNull();

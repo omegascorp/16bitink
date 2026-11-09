@@ -5,13 +5,15 @@ import { LEGAL_UPDATED } from '../data/company';
 interface Props {
   title: string;
   description: string;
+  /** When this document last changed, if not LEGAL_UPDATED. */
+  updated?: string;
 }
-const { title, description } = Astro.props;
+const { title, description, updated = LEGAL_UPDATED } = Astro.props;
 ---
 <Base title={`${title} | 16bit.ink`} description={description}>
   <article class="legal paper-card">
     <h1>{title}</h1>
-    <p class="updated">Last updated {LEGAL_UPDATED}</p>
+    <p class="updated">Last updated {updated}</p>
     <slot />
   </article>
 </Base>

@@ -4,7 +4,7 @@ import { Purchase } from '../src/lib/db/purchaseModel';
 import { User } from '../src/lib/db/userModel';
 import { OAuthToken } from '../src/lib/db/oauthModel';
 import { findAccessToken, issueTokens } from '../src/lib/db/oauthRepo';
-import { countNewUsers, ensurePlayerId, findRole, listUsers, signInEmailUser, signInGoogleUser, syncAdminRoles } from '../src/lib/db/userRepo';
+import { countNewUsers, ensurePlayerId, findRole, listPlayerAccounts, listUsers, signInEmailUser, signInGoogleUser, syncAdminRoles } from '../src/lib/db/userRepo';
 import { Grant } from '../src/lib/db/grantModel';
 import { grantedGames, grantedGamesFor, grantGame, revokeGame } from '../src/lib/db/grantRepo';
 import { isUserId } from '../src/lib/userId';
@@ -150,6 +150,18 @@ describe.skipIf(!uri)('roles and grants (MongoDB)', () => {
     expect((await listUsers({ search: 'ROLE 1', page: 0, perPage: 10 })).users.map((u) => u.email)).toEqual(['role-1@example.com']);
     // Regex characters in the search are taken literally.
     expect((await listUsers({ search: '.*', page: 0, perPage: 10 })).total).toBe(0);
+  });
+
+  it("lists players' accounts newest first, admins left out, optionally only those made in a period", async () => {
+    const before = new Date(Date.now() - 1000);
+    const [one, , three] = [await make(1), await make(2, 'admin'), await make(3)];
+    const playerId = await ensurePlayerId(three);
+    const all = await listPlayerAccounts();
+    expect(all.map((a) => a.id)).toEqual([three, one]);
+    expect(all[0]).toEqual({ id: three, createdAt: expect.any(Date), playerId });
+    expect(all[1]).not.toHaveProperty('playerId');
+    expect((await listPlayerAccounts({ from: before, to: new Date(Date.now() + 1000) })).map((a) => a.id)).toEqual([three, one]);
+    expect(await listPlayerAccounts({ from: new Date(0), to: before })).toEqual([]);
   });
 
   it('gives each user one player id, kept from then on, and finds them by it', async () => {

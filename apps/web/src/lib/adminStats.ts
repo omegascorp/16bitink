@@ -1,4 +1,5 @@
 import type { FunnelStep } from './db/eventRepo';
+import type { Device, LevelMark } from './playerStats';
 
 /** Report periods the analytics page offers, in days. */
 export const PERIODS = [7, 30, 90, 365] as const;
@@ -104,3 +105,14 @@ export function visitOutcome(v: OutcomeInput): VisitOutcome {
   if (v.paths.some((p) => p.startsWith('/play/'))) return 'no tap';
   return v.pageviews <= 1 ? 'bounced' : 'browsed';
 }
+
+/** "#12 Coral Gate" (the level's number and name, or its id when it has no name); "–" for none. */
+export function levelLabel(mark: LevelMark | null): string {
+  return mark ? `#${mark.n} ${mark.name ?? mark.level}` : '–';
+}
+
+/** Where a first visit came from: the linking site or short link, or that there was none. */
+export const cameFromLabel = (ref: string | null): string => ref ?? 'direct (typed in, an app or a bookmark)';
+
+/** "macOS · Safari · desktop". */
+export const deviceLabel = (d: Device): string => `${d.os} · ${d.browser} · ${d.device}`;
