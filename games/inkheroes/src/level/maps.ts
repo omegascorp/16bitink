@@ -15,16 +15,17 @@ export interface PartName {
 }
 
 /**
- * A chapter of the campaign: one land that grows over its parts (numbered
- * on through the campaign: chapter 2 begins at part 5), with its own saved
- * game. A paid chapter's maps are fetched for owners only (src/scenes/BootScene.ts).
+ * A chapter of the campaign: one land that grows over its parts, with its
+ * own saved game. A part's `n` is its place in the whole campaign (chapter
+ * 2 begins at 5), which decides its chapter; the player reads it counted
+ * within the chapter (`partNumber`: every chapter is parts 1, 2, 3…). A paid chapter's maps are fetched for owners only (src/scenes/BootScene.ts).
  */
 export interface ChapterDef {
   readonly id: ChapterId;
   /** 1-based. */
   readonly n: number;
   readonly name: string;
-  /** Its first and last part, campaign-wide (the last may not be built yet). */
+  /** Its first and last part, campaign-wide (the last may not be built yet); shown as 1 to `partsIn`. */
   readonly first: number;
   readonly last: number;
   /** Part of the full game. */
@@ -46,9 +47,9 @@ const named = (m: MapDef): PartName => ({ id: m.id, n: m.n, name: m.name });
 export const CHAPTERS: readonly ChapterDef[] = [
   { id: 'borderMarch', n: 1, name: 'The Border March', first: 1, last: 4, paid: false, parts: MAPS.map(named), ending: 'chapter-won', pitch: 'The Crown’s northern border, in four parts.' },
   {
-    id: 'twoLands', n: 2, name: 'The Two Lands', first: 5, last: 7, paid: true, slot: 'twoLands',
-    parts: [{ id: 'nekhen', n: 5, name: 'Nekhen' }, { id: 'abu', n: 6, name: 'Abu' }, { id: 'red-land', n: 7, name: 'The Red Land' }],
-    // The Red Land's win ends the chapter: the Two Lands are one.
+    id: 'twoLands', n: 2, name: 'The Two Lands', first: 5, last: 8, paid: true, slot: 'twoLands',
+    parts: [{ id: 'nekhen', n: 5, name: 'Nekhen' }, { id: 'abu', n: 6, name: 'Abu' }, { id: 'red-land', n: 7, name: 'The Red Land' }, { id: 'delta', n: 8, name: 'The Delta' }],
+    // The Delta's win ends the chapter: Apepi beaten, the Two Lands are one.
     ending: 'twoLands-won',
     teaser: 'crosses to Egypt: a new people, Neferet the priestess of Isis, and Sacred Rites that curse, ward and raise the fallen.',
     pitch: 'Egypt on the Nile, a new people, and Sacred Rites that curse, ward and raise the fallen.',
@@ -62,6 +63,15 @@ export const chapterOfPart = (n: number): ChapterDef | undefined => CHAPTERS.fin
 
 /** The chapter map `def` belongs to, if any. */
 export const chapterOf = (def: Pick<MapDef, 'n'>): ChapterDef | undefined => chapterOfPart(def.n);
+
+/** A part's number as the player reads it: counted within its chapter, from 1 (the Delta is chapter 2's part 4). */
+export const partNumber = (def: Pick<MapDef, 'n'>): number => {
+  const c = chapterOf(def);
+  return c ? def.n - c.first + 1 : def.n;
+};
+
+/** How many parts chapter `c` has, built or not ("Part 1 of 4"). */
+export const partsIn = (c: Pick<ChapterDef, 'first' | 'last'>): number => c.last - c.first + 1;
 
 let paid: readonly MapDef[] = [];
 

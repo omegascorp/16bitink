@@ -8,7 +8,7 @@ import { pastWard } from '../logic/battleTraits';
 import type { Action, BattleState, Stack } from '../logic/battleTypes';
 import { creature } from '../logic/creatures';
 import { damageRange, hurt, inCover, RANGE_PENALTY_DISTANCE, speedOf } from '../logic/damage';
-import { footprintAt, isWide, occupiedHexes, shotDistance } from '../logic/footprint';
+import { footprintAt, occupiedHexes, shotDistance, sizeOf } from '../logic/footprint';
 import type { Hex } from '../logic/hex';
 import { tileIndex } from '../logic/map';
 import { moatFor, MOAT_DAMAGE, PART_HEX, rampFoot, rampSpots, standing, strikesLeft, TOWERS, type SiegePart } from '../logic/siege';
@@ -246,6 +246,7 @@ export class BattleScene extends Phaser.Scene {
       const second = (this.state.siege?.ramps?.length ?? 0) > 0;
       return `${creature(a.creature).name}: tap a lit stretch of wall to raise ${second ? 'the second ramp' : 'the ramp'} against it`;
     }
+    if (this.state.held) return `${creature(a.creature).plural} (${a.count}): strike an enemy beside them, or Defend`;
     const line = `${creature(a.creature).plural} (${a.count}): your move`;
     const sealed = this.state.siege && a.side === 0 && standing(this.state.siege, 'gate') && !this.state.stacks.some((s) => s.side === 0 && creature(s.creature).machine);
     return sealed && !creature(a.creature).flies ? `${line} · ${FACTIONS[factionOf(this.state.heroes[0] ?? undefined)].siege.bare}` : line;
@@ -281,7 +282,7 @@ export class BattleScene extends Phaser.Scene {
 
   private playerAct(action: Action): void {
     if (this.busy || !this.mine() || this.hud.modal) return;
-    if (action.type === 'wait' && activeStack(this.state)?.waited) {
+    if (action.type === 'wait' && activeStack(this.state)?.waited && !this.state.held) {
       this.hud.setStatus('Already waited this round: move, attack or defend');
       return;
     }
@@ -313,7 +314,7 @@ export class BattleScene extends Phaser.Scene {
     const a = activeStack(this.state);
     if (!a) return;
     const mine = this.mine();
-    // Every hex a move could cover (a two-hex unit's tails included), and every hex of each enemy it can hit.
+    // Every hex a move could cover (a bigger unit's whole body included), and every hex of each enemy it can hit.
     // The ramp's first turn: the stretches it can go against are lit.
     if (mine && rampsToPlace(this.state) > 0) {
       // The ground before each stretch, where the ramp's foot will stand (the wall's own hex is hidden behind it).
@@ -380,8 +381,11 @@ export class BattleScene extends Phaser.Scene {
     // A tap on any hex the unit could cover moves it there (a tail spot gives its head).
     const head = target ? null : moveHeadFor(this.state, h);
     if (head === null) return null;
-    const wet = !creature(me.creature).flies || head === h ? this.state.siege && moatFor(this.state.siege, me.side).has(h) : false;
-    return { action: { type: 'move', to: head }, text: wet ? `Move into the moat: −${MOAT_DAMAGE} health` : 'Move here', key: `move-${head}`, landing: footprintAt(head, isWide(me.creature), me.side) ?? [head], cursor: 'move' };
+    const landing = footprintAt(head, sizeOf(me.creature), me.side) ?? [head];
+    // Wet when any hex it lands on is in the moat (intoMoat's rule).
+    const moat = this.state.siege ? moatFor(this.state.siege, me.side) : null;
+    const wet = !!moat && landing.some((x) => moat.has(x));
+    return { action: { type: 'move', to: head, hold: true }, text: wet ? `Move into the moat: −${MOAT_DAMAGE} health` : 'Move here', key: `move-${head}`, landing, cursor: 'move' };
   }
 
   /** The gate or a tower under the pointer of an attacker: a strike by hand, or word that it's too far. */
@@ -390,7 +394,8 @@ export class BattleScene extends Phaser.Scene {
     if (!siege || me.side !== 0 || !standing(siege, part) || creature(me.creature).machine) return null;
     const o = this.nearestOption(p, handOptions(this.state, part));
     if (!o) return { action: { type: 'wait' }, text: `${name[0]!.toUpperCase()}${name.slice(1)} is out of reach this turn`, key: 'no' };
-    const wet = moatFor(siege, me.side).has(o.from) && o.steps > 0;
+    const moat = moatFor(siege, me.side);
+    const wet = o.hexes.some((x) => moat.has(x)) && o.steps > 0;
     const left = strikesLeft(siege, part);
     return {
       action: { type: 'bash', part, from: o.from }, text: `Strike ${name} by hand: ${left} ${left === 1 ? 'strike' : 'strikes'} to break it${wet ? ` (from the moat: −${MOAT_DAMAGE} health)` : ''}`,
@@ -509,6 +514,11 @@ export class BattleScene extends Phaser.Scene {
 
   private openSpells(): void {
     if (this.busy || !this.mine() || this.hud.modal) return;
+    // Mid-turn, after a move beside an enemy, the hero waits for the strike.
+    if (this.state.held) {
+      this.hud.setStatus(this.moveLine(activeStack(this.state)!));
+      return;
+    }
     const hero = this.state.heroes[this.me];
     if (!hero || hero.spells.length === 0) return;
     this.hud.openBook({

@@ -8,7 +8,7 @@ import { playPart, type BotRun } from './partBot';
 declare const process: { readonly env: Readonly<Record<string, string | undefined>> };
 
 /**
- * Part 4's balance on the real rules (docs/inkheroes-design.md, "Part 4:
+ * Nekhen's balance on the real rules (docs/inkheroes-design.md, "Part 1:
  * Nekhen", Balance): the bot of partBot.ts plays Nekhen, and map 1 for the
  * yardstick, in three styles, a rusher, a steady player and a careful one.
  * BALANCE_SEEDS=12 plays more seeds and prints the table the doc quotes.

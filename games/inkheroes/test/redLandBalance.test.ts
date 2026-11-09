@@ -16,8 +16,9 @@ import { playPart, rideOnInto, type BotOptions, type BotRun } from './partBot';
 declare const process: { readonly env: Readonly<Record<string, string | undefined>> };
 
 /**
- * Part 6's balance on the real rules (docs/inkheroes-design.md, "Part 6 as
- * built"): the bot of partBot.ts plays Nekhen and Abu, and from where it
+ * The Red Land's balance on the real rules (docs/inkheroes-design.md,
+ * "Part 3 as built"; Sethi a lord since Nov 9, the AI-against-AI table is
+ * redLandLordBalance.test.ts): the bot of partBot.ts plays Nekhen and Abu, and from where it
  * rides on, Kassander's probe method (rideOn, endDay, rivalTurn) measures
  * Sethi against the army a rider brings, the race for Gebtu ridden
  * straight, and what Set's storms add to the ride to Nubt. Then the bot
@@ -137,13 +138,15 @@ describe('the Red Land, ridden on into from Abu', () => {
   const all = runs.flatMap((r) => r.runs);
 
   it('opens with Sethi stronger than the army a rider brings, but not out of reach once it hires at Abu', () => {
+    // A lord since Nov 9: no head start, so he is measured after his first night (Nubt's garrison taken along, his purse hired).
+    const first = (r: RedRun): number => armyStrength(rivalTurn(endDay(r.opened, RED_LAND), RED_LAND).adv.rival!.hero!.army);
     // About the 1.35 times of the Black Banner on the whole (a rider who kept a big army arrives the stronger)...
-    const ratios = all.map((r) => armyStrength(r.opened.rival!.hero!.army) / armyStrength(r.opened.hero.army));
+    const ratios = all.map((r) => first(r) / armyStrength(r.opened.hero.army));
     const mean = ratios.reduce((n, x) => n + x, 0) / ratios.length;
     expect(mean).toBeGreaterThan(1.1);
     expect(mean).toBeLessThan(1.8);
     // ...but on the whole under the 1.3 times he needs to ride at our hero once the hero has hired at Abu.
-    const hired = all.map((r) => armyStrength(r.opened.rival!.hero!.army) / armyStrength(hire(r.opened).hero.army));
+    const hired = all.map((r) => first(r) / armyStrength(hire(r.opened).hero.army));
     expect(hired.reduce((n, x) => n + x, 0) / hired.length).toBeLessThan(1.3);
   }, 600_000);
 

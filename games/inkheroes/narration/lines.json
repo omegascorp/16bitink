@@ -144,10 +144,28 @@
     "recorded": null
   },
   {
+    "line": "redLand-won",
+    "title": "Set’s banner falls",
+    "text": "Sethi falls, and Set's red banner comes down over Nubt! The south is one at last… but a boat comes up the river with bad news. In the north a foreign king holds the Delta: Apepi of Avaris, who took the name of the serpent of chaos! And he rides for Iunu, the city of the sun.",
+    "script": "[triumphant] Sethi falls, and Set's red banner comes down over Nubt! [joyful] The south is one at last… [uneasy] but a boat comes up the river with bad news. [grim] In the north a foreign king holds the Delta: Apepi of Avaris, who took the name of the serpent of chaos! [urgent] And he rides for Iunu, the city of the sun.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "part-delta",
+    "title": "The Delta",
+    "text": "North of the Red Land the Nile spreads into a thousand channels… the Delta, green and wide, all the way to the sea. There Apepi, a king of the Hyksos, rules from Avaris. His people came over Sinai with horses and took Egypt's gods as their own! He rides for Iunu, where the Benben stone stands, the hill the Bennu first landed on. Whoever holds it has the Bennu's flight! He scouts, he hires captains, he waits for his moment… Three ways lead in, by the White Walls, the north wadi or the desert road behind Nubt: none of them is easy. Take Avaris and Per-Bastet… and bring the serpent-king down!",
+    "script": "[grand, storytelling] North of the Red Land the Nile spreads into a thousand channels… the Delta, green and wide, all the way to the sea. [ominous] There Apepi, a king of the Hyksos, rules from Avaris. His people came over Sinai with horses and took Egypt's gods as their own! [awed] He rides for Iunu, where the Benben stone stands, the hill the Bennu first landed on. Whoever holds it has the Bennu's flight! [warning] He scouts, he hires captains, he waits for his moment… [wry] Three ways lead in, by the White Walls, the north wadi or the desert road behind Nubt: none of them is easy. [resolute] Take Avaris and Per-Bastet… and bring the serpent-king down!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
     "line": "twoLands-won",
     "title": "The Two Lands are one",
-    "text": "Sethi falls, and his red banner falls with him! The Red Land and the Black Land answer to one crown now… the Two Lands are one! From Nekhen's sluice to the gold of Nubt, the Nile runs free… and Neferet's name is sung on every boat that sails it.",
-    "script": "[triumphant] Sethi falls, and his red banner falls with him! [solemn] The Red Land and the Black Land answer to one crown now… [joyful] the Two Lands are one! [warm] From Nekhen's sluice to the gold of Nubt, the Nile runs free… [hopeful] and Neferet's name is sung on every boat that sails it.",
+    "text": "Apepi falls, and the serpent banners fall from the walls of Avaris! The Hyksos ride back over Sinai… and from the cataract to the sea, the Two Lands are one! Over Iunu the Bennu wheels in the morning light. From Nekhen's sluice to the marshes of the Delta, the Nile runs free… and Neferet's name is sung on every boat that sails it.",
+    "script": "[triumphant] Apepi falls, and the serpent banners fall from the walls of Avaris! [solemn] The Hyksos ride back over Sinai… [joyful] and from the cataract to the sea, the Two Lands are one! [awed] Over Iunu the Bennu wheels in the morning light. [warm] From Nekhen's sluice to the marshes of the Delta, the Nile runs free… [hopeful] and Neferet's name is sung on every boat that sails it.",
     "voice": "BNgbHR0DNeZixGQVzloa",
     "model": "eleven_v4",
     "recorded": null

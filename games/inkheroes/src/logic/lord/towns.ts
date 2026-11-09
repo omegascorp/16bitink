@@ -11,7 +11,7 @@ import { pay, RARE, type Amount } from '../resources';
 import { marketOffer, marketsOf, trade } from '../market';
 import { armyStrength } from '../strength';
 import { build, buildingIn, has, hireAll, SPELLBOOK_COST, spellbookSold, upgradeAll, type Town } from '../town';
-import { goalOf, keepFor, planBuild, SAVE_SHARE } from './build';
+import { goalOf, keepFor, planBuild, SAVE_SHARE, savingTown } from './build';
 import { knownFoes, type LordMemory } from './knowledge';
 import { GHOST } from './mirror';
 
@@ -52,14 +52,14 @@ export const spendable = (adv: Adventure, memory: LordMemory): number => Math.ma
 export function townsMorning(adv: Adventure, def: MapDef, memory: LordMemory, rules: LordRules): { adv: Adventure; memory: LordMemory } {
   let a = rules.rest ? rested(adv) : adv;
   const towns = playerTowns(a);
-  const main = towns.find((t) => goalOf(t, def.off)) ?? towns[0];
+  const main = savingTown(towns, def.off) ?? towns[0];
   const goal = main ? goalOf(main, def.off) : null;
   // A share of the day's gold goes to the savings while there is a goal, never more than its price; the goal built, they are spent.
   let savings = goal ? Math.min(a.purse.gold, buildingIn(main!, goal).cost.gold ?? 0, memory.savings + dailyIncome(a).gold * SAVE_SHARE) : 0;
   // Saved up for the goal and short only of rare goods: buy them at the Marketplace, as a player would.
   if (main && goal) a = tradeFor(a, buildingIn(main, goal).cost);
   for (const town of towns) {
-    const keep = keepFor(goal, savings);
+    const keep = keepFor(goal, savings, main, def.off);
     const b = planBuild(town, a.purse, def.off, keep, town.id === main?.id ? goal : null);
     if (!b) continue;
     const r = build(town, b, a.purse, def.off);

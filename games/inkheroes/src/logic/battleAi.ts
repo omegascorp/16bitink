@@ -61,6 +61,8 @@ export function chooseAction(state: BattleState, casts = true): Action {
   const me = activeStack(state);
   if (!me) throw new Error('no active stack');
   if (creature(me.creature).machine) return machineAction(state, me);
+  // Held after the player's move (Auto switched on then): strike from here, or end the turn.
+  if (state.held) return stackAction(state, me).action;
   if (losing(state, me.side)) return { type: 'flee' };
   const move = stackAction(state, me);
   // The hero's spell, once a round, when it beats the stack's own move (or this is the round's last chance to cast it).

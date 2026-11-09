@@ -50,6 +50,8 @@ SITES = {
     'spellbook': ('iso/spellbook.png', None),
     # Part 4 (Othrys): edit_image_pixen from standingStone, mine-ore, mine-gold, shrine and watchtower.
     **{k: (f'iso/{k}.png', None) for k in ('learningStone', 'cyclopsCave', 'griffinCliff', 'titanForge', 'keep')},
+    # Part 8 (the Delta): edit_image_pixen from the Othrys cave / the shrine / the standing stone.
+    **{k: (f'iso/{k}.png', None) for k in ('crocodileMarsh', 'lionRocks', 'benbenHouse', 'mastaba')},
     'chest': ('sites/chest.png', None),
     'campfire': ('sites/campfire.png', None),
     **{f'pile-{r}': (f'sites/pile-{r}.png', None) for r in ('gold', 'wood', 'ore', 'mercury', 'sulfur', 'crystal', 'gems')},
@@ -70,7 +72,7 @@ COVER = {
     'bridge': ['cover/bridge.png'],
 }
 # The campaign menu's map pictures, by map (or planned map) id.
-VIGNETTES = ('ashford', 'thornwood', 'blackBanner', 'nekhen', 'abu', 'redLand', 'othrys')
+VIGNETTES = ('ashford', 'thornwood', 'blackBanner', 'nekhen', 'abu', 'redLand', 'othrys', 'delta')
 # files whose map id differs from the file name
 VIGNETTE_ID = {'redLand': 'red-land'}
 EDGE = (34, 24, 16, 255)
@@ -147,6 +149,7 @@ def main() -> None:
     kemet_town = sprite('site-town-kemet', trimmed(HERE / 'sites/town-kemet.png'))
     kemet_town_red = sprite('site-town-kemet-red', trimmed(HERE / 'sites/town-kemet-red.png'))
     lykosoura = sprite('site-town-lykosoura', trimmed(HERE / 'sites/town-lykosoura.png'))
+    avaris = sprite('site-town-avaris', trimmed(HERE / 'sites/town-avaris.png'))
     vignette_rows = []
     for v in VIGNETTES:
         Image.open(HERE / 'vignettes' / f'{v}.png').convert('RGBA').save(OUT / f'vignette-{v}.png')
@@ -191,8 +194,11 @@ export const KEMET_TOWN_RED: MapSprite = {kemet_town_red};
 /** Lykosoura: the Greek town under dark banners and a wolf standard (Lykaon's towns). */
 export const LYKOSOURA_TOWN: MapSprite = {lykosoura};
 
+/** Avaris: the same town under dark green Hyksos banners (Apepi's towns; same footprint, anchor and size as KEMET_TOWN). */
+export const AVARIS_TOWN: MapSprite = {avaris};
+
 /** Towns with a picture of their own, by `look` (a town's `look` in a MapDef). */
-export const TOWN_LOOKS: Readonly<Record<string, MapSprite>> = {{ nubt: KEMET_TOWN_RED, kemetRed: KEMET_TOWN_RED, lykosoura: LYKOSOURA_TOWN }};
+export const TOWN_LOOKS: Readonly<Record<string, MapSprite>> = {{ nubt: KEMET_TOWN_RED, kemetRed: KEMET_TOWN_RED, lykosoura: LYKOSOURA_TOWN, avaris: AVARIS_TOWN }};
 
 /** The campaign menu's picture of each map (192 x 96), by map or planned-map id. */
 export const MAP_VIGNETTES: Readonly<Record<string, string>> = {{

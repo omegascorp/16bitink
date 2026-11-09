@@ -28,7 +28,7 @@ TS = GAME / 'src' / 'art' / 'pixel' / 'ui.ts'
 
 ICONS = ('wait', 'defend', 'spell', 'auto', 'endDay', 'town', 'menu', 'hall', 'recruit', 'leave', 'smith', 'tavern', 'store', 'tower', 'voicePause', 'voicePlay', 'voiceSkip', 'voiceRead')
 STATS = ('attack', 'defense', 'shots', 'damage', 'health', 'left', 'speed', 'mana', 'power', 'knowledge', 'morale', 'luck', 'sight')
-ITEMS = ('bronzeHelm', 'bronzeCuirass', 'bronzeBracers', 'warBelt', 'bronzeGreaves', 'warSandals', 'linenHood', 'linenChiton', 'linenArmbands', 'cordSash', 'linenLeggings', 'templeSandals', 'noviceSpellbook', 'oracleSpellbook', 'alexandrianCodex', 'catapult', 'catapult2', 'catapult3', 'kronosHelm')
+ITEMS = ('bronzeHelm', 'bronzeCuirass', 'bronzeBracers', 'warBelt', 'bronzeGreaves', 'warSandals', 'linenHood', 'linenChiton', 'linenArmbands', 'cordSash', 'linenLeggings', 'templeSandals', 'noviceSpellbook', 'oracleSpellbook', 'alexandrianCodex', 'catapult', 'catapult2', 'catapult3', 'kronosHelm', 'crookAndFlail')
 BAGS = ('satchel', 'saddlebags', 'packMule')
 SLOT_ICONS = ('helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring', 'book', 'machine')
 RESOURCES = ('gold', 'wood', 'ore', 'mercury', 'sulfur', 'crystal', 'gems')

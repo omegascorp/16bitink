@@ -12,8 +12,7 @@ import type { PathStep } from '../path';
 import { autoBattle } from '../autoBattle';
 import { armyStrength } from '../strength';
 import { lookAbout, remember, type LordMemory } from './knowledge';
-import { goalOf } from './build';
-import { BUILDINGS } from '../buildings';
+import { goalOf, keepFor, savingTown } from './build';
 import { RESOURCES } from '../resources';
 import { ranked, reachOf, SAFE, targetsFor, threatAt, throughView, type Ctx, type Job } from './targets';
 import { findPath } from '../path';
@@ -129,10 +128,12 @@ function chooseWay(adv: Adventure, def: MapDef, memory: LordMemory, hero: Hero, 
 
 /** The goods the side's big goal (build.ts) still lacks. */
 function lacking(adv: Adventure, def: MapDef): Set<string> {
-  const goal = playerTowns(adv).map((t) => goalOf(t, def.off)).find((g) => !!g);
-  if (!goal) return new Set();
-  const cost = BUILDINGS[goal].cost;
-  return new Set(RESOURCES.filter((r) => r !== 'gold' && (cost[r] ?? 0) > adv.purse[r]));
+  const town = savingTown(playerTowns(adv), def.off);
+  const goal = town ? goalOf(town, def.off) : null;
+  if (!town || !goal) return new Set();
+  // The goal's goods, and the step's on the way to it (keepFor).
+  const keep = keepFor(goal, 0, town, def.off);
+  return new Set(RESOURCES.filter((r) => r !== 'gold' && (keep[r] ?? 0) > adv.purse[r]));
 }
 
 interface Walk {

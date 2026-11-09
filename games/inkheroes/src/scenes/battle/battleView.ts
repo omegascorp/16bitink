@@ -8,16 +8,18 @@ import { creature } from '../../logic/creatures';
 import { throughGate, type SiegePart } from '../../logic/siege';
 import { HEX_COUNT, type Hex } from '../../logic/hex';
 import { SPELLS } from '../../logic/spells';
-import { adjacent, facesTarget, footprintAt, isWide, occupiedHexes } from '../../logic/footprint';
+import { adjacent, facesTarget, footprintAt, occupiedHexes, sizeOf } from '../../logic/footprint';
 import type { BattleCameras } from './battleCameras';
 import { badgeTexture, backdropSource, bufferTexture, heroArt, obstacleArt, PX_TEX, unitArt } from './pixelAssets';
 import { FIGURE_DEPTH, PixelFigure } from './pixelFigure';
 import { Backdrop } from './pixelBackdrop';
 import { feetOn, feetPx, heroFeet, hexPx, TOWER_FEET, WORLD } from './pixelLayout';
 import { PixelBuffer, type Rgba } from './pixelRaster';
-import { INK } from './pixelUi';
+import { INK, texturePixels } from './pixelUi';
 import { partAt, SiegeView } from './siegeView';
 import { rampLook } from './rampView';
+import { bodyMiddle, onBodyMiddle } from './bodyAnchor';
+import type { FigureArt } from './standIns';
 
 /** How far above the part struck by hand its message floats, native pixels. */
 const STRIKE_FLOAT = 44;
@@ -52,7 +54,7 @@ const FLOAT_ABOVE = 0.6;
 /** A stack turned to stone, until its lost turn: a tint only multiplies, so a cold blue is what cancels the art's warm colours to grey. */
 const STONE_TINT = 0x7388b0;
 
-/** The hexes a stack stands on, head first: a two-hex unit is stood centred between its head and tail. */
+/** The hexes a stack stands on, head first: a bigger unit is stood centred on them (between two, on the middle of three). */
 function stackHexes(s: Stack): readonly Hex[] {
   return occupiedHexes(s);
 }
@@ -82,7 +84,7 @@ interface UnitSprite {
 
 /** Highlights to show for the active unit. */
 export interface Marks {
-  /** The active unit's hex (or both hexes of a two-hex stack). */
+  /** The active unit's hex (or every hex of a bigger stack). */
   readonly active: Hex | readonly Hex[] | null;
   readonly reach: readonly Hex[];
   readonly targets: readonly Hex[];
@@ -115,6 +117,8 @@ export interface ViewOpts {
  */
 export class BattleView {
   private readonly units = new Map<number, UnitSprite>();
+  /** Three-hex units' art, re-anchored on the body's middle, by creature. */
+  private readonly centred = new Map<string, FigureArt>();
   /** Done once the last melee striker is back from its lunge. */
   private recovered: Promise<void> = Promise.resolve();
   /** Each side's hero beside the field, if it has one. */
@@ -178,8 +182,21 @@ export class BattleView {
     }
   }
 
+  /** A unit's art, its feet under the body's middle when it fills three hexes (measured once per kind from its idle strip). */
+  private figureArtFor(id: Stack['creature']): FigureArt {
+    const art = unitArt(id);
+    if (sizeOf(id) < 3) return art;
+    const known = this.centred.get(id);
+    if (known) return known;
+    const key = PX_TEX.unit(id, 'idle');
+    const middle = this.scene.textures.exists(key) ? bodyMiddle(texturePixels(this.scene, key), art.w, art.frames.idle) : null;
+    const out = onBodyMiddle(art, middle);
+    this.centred.set(id, out);
+    return out;
+  }
+
   private addUnit(s: Stack): void {
-    const art = unitArt(s.creature);
+    const art = this.figureArtFor(s.creature);
     const fig = new PixelFigure(this.scene, this.cams.world, art, (pose) => PX_TEX.unit(s.creature, pose), stackFeet(s), s.side === 1);
     if (this.opts.pose) fig.hold(this.opts.pose);
     if (s.tower !== undefined) fig.sortOn(hexPx(s.hex).y + TOWER_SORT);
@@ -316,7 +333,7 @@ export class BattleView {
       }
       case 'fall': {
         const u = this.units.get(ev.stack)!;
-        const to = feetOn(footprintAt(ev.to, isWide(stackById(after, ev.stack).creature), stackById(after, ev.stack).side) ?? [ev.to]);
+        const to = feetOn(footprintAt(ev.to, sizeOf(stackById(after, ev.stack).creature), stackById(after, ev.stack).side) ?? [ev.to]);
         u.badge.setVisible(false);
         u.fig.sortOn(null);
         await this.glide(u.fig, to, FALL_MS, 'Quad.easeIn');
@@ -398,8 +415,8 @@ export class BattleView {
     u.badge.setVisible(false);
     if (!flies && throughGate(path)) await this.walls?.openGate();
     u.fig.walk();
-    // The sprite follows the footprint: a two-hex unit's midpoint as its head steps along the path.
-    const feetAt = (head: Hex): { x: number; y: number } => feetOn(footprintAt(head, isWide(from.creature), from.side) ?? [head]);
+    // The sprite follows the footprint: a bigger unit's midpoint as its head steps along the path.
+    const feetAt = (head: Hex): { x: number; y: number } => feetOn(footprintAt(head, sizeOf(from.creature), from.side) ?? [head]);
     if (flies) {
       const to = feetAt(path[path.length - 1]!);
       if (to.x !== u.fig.feet.x) u.fig.face(to.x < u.fig.feet.x);

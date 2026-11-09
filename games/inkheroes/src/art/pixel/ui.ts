@@ -93,6 +93,7 @@ import itemCatapult from './ui/item-catapult.png?url';
 import itemCatapult2 from './ui/item-catapult2.png?url';
 import itemCatapult3 from './ui/item-catapult3.png?url';
 import itemKronosHelm from './ui/item-kronosHelm.png?url';
+import itemCrookAndFlail from './ui/item-crookAndFlail.png?url';
 import slotHelm from './ui/slot-helm.png?url';
 import slotCuirass from './ui/slot-cuirass.png?url';
 import slotBracers from './ui/slot-bracers.png?url';
@@ -237,6 +238,7 @@ export const ITEM_ICONS: Readonly<Partial<Record<ItemId, string>>> = {
   catapult2: itemCatapult2,
   catapult3: itemCatapult3,
   kronosHelm: itemKronosHelm,
+  crookAndFlail: itemCrookAndFlail,
 };
 
 export type SlotIcon = 'helm' | 'cuirass' | 'bracers' | 'belt' | 'greaves' | 'boots' | 'weapon' | 'shield' | 'amulet' | 'ring' | 'book' | 'machine';

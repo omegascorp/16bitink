@@ -20,15 +20,17 @@ export const UNLOCKS: readonly (readonly BuildingId[])[] = [
 
 /**
  * Chapter 2, the Two Lands: a fresh start with a new people, so its towns
- * grow their tree again from the bottom, part by part (part 5 is the first).
+ * grow their tree again from the bottom, part by part (its own parts 1 to 4).
  */
 export const TWO_LANDS_UNLOCKS: readonly (readonly BuildingId[])[] = [
-  // Part 5, Nekhen: the halls and walls, the Tavern, the House of Life's first floor and Osiris's temple (the Rites and Ankhs are the part's lesson), the four lowest dwellings.
+  // Part 1, Nekhen: the halls and walls, the Tavern, the House of Life's first floor and Osiris's temple (the Rites and Ankhs are the part's lesson), the four lowest dwellings.
   ['villageHall', 'townHall', 'fort', 'citadel', 'tavern', 'mageGuild1', 'templeOsiris', 'guardhouse', 'archeryRange', 'griffinTower', 'barracks'],
-  // Part 6, Abu: the chapter's first siege, so the Workshop (the Earth Ramp); the market, the House of Life's second floor, the Storehouse, the Chariot Road, the embalmers, and the first upgrades of lines 1–4.
+  // Part 2, Abu: the chapter's first siege, so the Workshop (the Earth Ramp); the market, the House of Life's second floor, the Storehouse, the Chariot Road, the embalmers, and the first upgrades of lines 1–4.
   ['cityHall', 'marketplace', 'mageGuild2', 'blacksmith', 'storehouse', 'stables', 'monastery', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2'],
-  // Part 7, the Red Land (as the Black Banner opened Korax's tier): the Castle, the Treasury, the Sphinx Terrace (line 6), Per-Nefer (line 5's first upgrade), the second upgrades of lines 1–4. The Benben Stone waits for a later chapter.
+  // Part 3, the Red Land (as the Black Banner opened Korax's tier): the Castle, the Treasury, the Sphinx Terrace (line 6), Per-Nefer (line 5's first upgrade), the second upgrades of lines 1–4. The Benben Stone waits for part 4.
   ['castle', 'treasury', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3'],
+  // Part 4, the Delta, the chapter's last part: the rest of the tree, so the chapter ends with its whole city (the Capitol, the Bennu's line, the last upgrades of lines 5 and 6).
+  ['capitol', 'tiltyard2', 'tiltyard3', 'monastery3', 'seraphSpire', 'seraphSpire2', 'seraphSpire3'],
 ];
 
 /** The buildings a chapter's `k`th part (1-based) can build: all its parts before it opened, and what it adds. */
@@ -55,15 +57,17 @@ export const MACHINE_UNLOCKS: readonly (readonly SoldMachine[])[] = [
   [],
 ];
 
-/** Chapter 2's: Egypt's Workshop sells siege ramps, the Earth Ramp from part 6 (Abu, the chapter's first siege) and the Brick Ramp from part 7. */
+/** Chapter 2's: Egypt's Workshop sells siege ramps, the Earth Ramp from part 2 (Abu, the chapter's first siege) and the Brick Ramp from part 3. */
 export const TWO_LANDS_MACHINE_UNLOCKS: readonly (readonly SoldMachine[])[] = [
-  // Part 5, Nekhen: no Workshop yet.
+  // Part 1, Nekhen: no Workshop yet.
   [],
   ['ramp'],
   ['ramp2'],
+  // Part 4, the Delta: nothing new (the Ramp of the Pyramid Builders stays the Serpent's prize).
+  [],
 ];
 
-/** Where chapter 2's parts begin in the campaign's numbering. */
+/** Where chapter 2's parts begin in the campaign's order (not shown: the player reads them as parts 1–4, src/level/maps.ts `partNumber`). */
 export const TWO_LANDS_FIRST = 5;
 
 /** The machines on sale by map `n` (1-based, campaign-wide), lesser first: each chapter's own, opened part by part. */

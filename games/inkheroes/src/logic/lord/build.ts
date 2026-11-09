@@ -32,16 +32,33 @@ export function stepToward(t: Town, b: BuildingId, off: readonly BuildingId[]): 
   return b;
 }
 
+/** The town the side saves in: the one with most built of those with a goal left (his capital, not a town just taken). */
+export function savingTown(towns: readonly Town[], off: readonly BuildingId[]): Town | undefined {
+  return [...towns].filter((t) => goalOf(t, off)).sort((a, b) => b.built.length - a.built.length)[0];
+}
+
 /** The big building the town saves for next (none: nothing left to save for on this map). */
 export function goalOf(t: Town, off: readonly BuildingId[]): BuildingId | null {
   return BIG_GOALS.find((b) => !has(t, b) && stepToward(t, b, off) !== null) ?? null;
 }
 
-/** What the purse must keep for the goal: the savings in gold, and its rare goods. */
-export function keepFor(goal: BuildingId | null, savings: number): Amount {
+/**
+ * What the purse must keep for the goal: the savings in gold, and its goods,
+ * with the goods of the step on the way to it (`t`'s, goalStep: Egypt's
+ * Benben Stone needs the Sphinx Terrace and its wood first).
+ */
+export function keepFor(goal: BuildingId | null, savings: number, t?: Town, off: readonly BuildingId[] = []): Amount {
   if (!goal) return {};
   const cost = BUILDINGS[goal].cost;
-  return { ...Object.fromEntries(RESOURCES.filter((r) => r !== 'gold').map((r) => [r, cost[r] ?? 0])), gold: savings };
+  const step = t ? goalStep(t, goal, off) : null;
+  const on = step ? buildingIn(t!, step).cost : {};
+  return { ...Object.fromEntries(RESOURCES.filter((r) => r !== 'gold').map((r) => [r, Math.max(cost[r] ?? 0, on[r] ?? 0)])), gold: savings };
+}
+
+/** The building on the way to `goal` that `t` lacks first (null: none, or the goal itself is next). */
+export function goalStep(t: Town, goal: BuildingId | null, off: readonly BuildingId[]): BuildingId | null {
+  const step = goal ? stepToward(t, goal, off) : null;
+  return step && step !== goal ? step : null;
 }
 
 /** Whether `p` can pay `cost` and still hold `keep` (of what it has: rare goods not yet gathered aren't kept). */
@@ -68,6 +85,9 @@ export function planBuild(t: Town, p: Purse, off: readonly BuildingId[], keep: A
   if (t.builtToday) return null;
   const ok = (b: BuildingId | null): b is BuildingId => !!b && !cantBuild(t, b, p, off) && (b === goal || spare(p, buildingIn(t, b).cost, keep));
   if (goal && stepToward(t, goal, off) === goal && ok(goal)) return goal;
+  // A step on the way to the goal (the Sphinx Terrace and the Temple of Osiris before the Benben Stone) goes up first, out of the gold above the savings, its goods kept for it.
+  const onWay = goalStep(t, goal, off);
+  if (onWay && !cantBuild(t, onWay, p, off) && spare(p, buildingIn(t, onWay).cost, { gold: keep.gold ?? 0 })) return onWay;
   // A hall that pays waits only for gold; short of other goods it goes on with the plan.
   const hall = hallStep(t, off);
   if (hall && (ok(hall) || canAfford({ ...p, gold: Infinity }, buildingIn(t, hall).cost))) return ok(hall) ? hall : null;

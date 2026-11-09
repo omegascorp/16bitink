@@ -1,8 +1,9 @@
+import { NEFERET } from './recruits';
 import type { MapDef } from './types';
 import { lockedIn, TWO_LANDS_UNLOCKS } from './unlocks';
 
 /**
- * Chapter 2, part 5: Nekhen, on the Upper Nile (in its own tiles; see
+ * Chapter 2, part 1: Nekhen, on the Upper Nile (in its own tiles; see
  * twoLands.ts, which places it in the chapter). The flood didn't come:
  * the canal's great sluice is held by the Petsuchos, the temple's giant
  * crocodile gone wild, with its brood. Neferet holds Nekhen on the west
@@ -52,11 +53,7 @@ export const NEKHEN_LAND: MapDef = {
     // The House of Life's first floor teaches the first three: Healing lifts the scorpions' poison.
     guild: ['cure', 'stoneSkin', 'haste', 'slow', 'magicArrow'],
   },
-  hero: {
-    id: 'neferet', name: 'Neferet', heroClass: 'cleric', x: 9, y: 8, faction: 'kemet',
-    attack: 1, defense: 1, power: 2, knowledge: 3, skills: { wisdom: 1 }, spells: ['curse', 'ward'], gear: { book: 'novicePapyrus' }, ankhs: 2,
-    army: [{ creature: 'levy', count: 18 }, { creature: 'nubian', count: 7 }],
-  },
+  hero: { ...NEFERET, x: 9, y: 8 },
   purse: { gold: 9000, wood: 20, ore: 20, mercury: 3, sulfur: 3, crystal: 3, gems: 3 },
   // What the chapter has opened by its first part (src/level/unlocks.ts).
   off: lockedIn(TWO_LANDS_UNLOCKS, 1),

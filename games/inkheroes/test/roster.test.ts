@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { ASHFORD, OTHRYS, THORNWOOD } from '../src/level/borderMarch';
+import { NEFERET, PASER } from '../src/level/recruits';
 import { IANTHE } from '../src/level/recruits';
+import { ABU, NEKHEN, RED_LAND } from '../src/level/twoLands';
 import { dailyIncome, endDay, heroFromDef, heroSide, ourHeroes, playerTowns, startAdventure, townById, type Adventure } from '../src/logic/adventure';
 import { armyOf } from '../src/logic/army';
 import { createBattle } from '../src/logic/battle';
@@ -13,8 +15,9 @@ import { cantHireHero, heroesInPlay, hireHero, MAX_HEROES, tavernHeroes, TAVERN_
 import { hireScore, strongestLine } from '../src/logic/lord/recruits';
 import { rosterHero, rosterOf, specialtyOf } from '../src/logic/roster';
 import { GREEK_ROSTER, ROWAN } from '../src/logic/roster/greek';
+import { KEMET_ROSTER } from '../src/logic/roster/kemet';
 import { parseAdventure } from '../src/logic/save';
-import { lineBonus, specialtyGold, SPECIALTY_GOLD } from '../src/logic/specialty';
+import { extraRounds, lineBonus, specialtyGold, specialtyText, SPECIALTY_GOLD } from '../src/logic/specialty';
 import { heroArtId } from '../src/scenes/battle/heroArtId';
 import { heroSheet } from '../src/scenes/hud/heroSheetData';
 import { tavernChoice } from '../src/scenes/town/tavernData';
@@ -40,7 +43,7 @@ describe('the Greek roster', () => {
     expect(new Set(greek.map((h) => h.id)).size).toBe(10);
     expect(greek.every((h) => !!h.specialty)).toBe(true);
     expect(greek.map((h) => h.id)).toEqual(['rowan', 'kassander', 'lykaon', 'nyktimos', 'atalanta', 'peleus', 'ianthe', 'auge', 'kallisto', 'melampus']);
-    expect(rosterOf('kemet')).toEqual([]);
+    expect(rosterOf('kemet')).toHaveLength(10);
   });
 
   it("keeps the story heroes' numbers: Rowan's are map 1's, Ianthe's her own", () => {
@@ -249,5 +252,139 @@ describe('hero art for the roster', () => {
     expect(heroArtId(drawn, 'rival', 'peleus')).toBe('rival');
     expect(heroArtId(drawn, 'player', 'rowan')).toBe('player');
     expect(heroArtId(drawn, 'player', 'kassander')).toBe('rival');
+  });
+});
+
+describe('the Egyptian roster', () => {
+  const kemet = rosterOf('kemet');
+  it("has the table's ten heroes (five Knights, five Clerics), each once, each of Egypt with a specialty", () => {
+    expect(kemet).toBe(KEMET_ROSTER);
+    expect(kemet.filter((h) => h.heroClass === 'knight')).toHaveLength(5);
+    expect(new Set(kemet.map((h) => h.id)).size).toBe(10);
+    expect(kemet.every((h) => !!h.specialty && h.faction === 'kemet' && h.army.length > 0)).toBe(true);
+    expect(kemet.map((h) => h.id)).toEqual(['paser', 'sethi', 'apepi', 'weni', 'ahmose', 'neferet', 'imhotep', 'tiye', 'khaemwaset', 'nebet']);
+    // Every army is Egypt's own, and a Cleric's magic is in a book.
+    expect(kemet.every((h) => h.army.every((a) => creature(a.creature).faction === 'kemet'))).toBe(true);
+    expect(kemet.filter((h) => h.heroClass === 'cleric').every((h) => !!h.gear?.book && h.spells.length > 0)).toBe(true);
+  });
+
+  it("agrees with the map heroes: Neferet's and Paser's are their first part's, Sethi's the Red Land's", () => {
+    const { specialty: _n, ...neferet } = kemet.find((h) => h.id === 'neferet')!;
+    expect(neferet).toEqual(NEFERET);
+    expect(NEKHEN.hero).toMatchObject({ ...NEFERET, x: 9, y: 8 });
+    const { specialty: _p, ...paser } = kemet.find((h) => h.id === 'paser')!;
+    expect(paser).toEqual(PASER);
+    const sethi = kemet.find((h) => h.id === 'sethi')!;
+    expect(RED_LAND.rival!.hero).toMatchObject({ id: 'sethi', attack: sethi.attack, defense: sethi.defense, skills: sethi.skills });
+    expect(heroFromDef(RED_LAND.rival!.hero).specialty).toEqual({ kind: 'line', line: 'jackal' });
+    expect(heroFromDef(ABU.recruits![0]!).specialty).toEqual({ kind: 'line', line: 'chariot' });
+  });
+
+  it('gives the lines +1 Attack and Defense from level 1, the mummy line to the Pharaoh’s Mummies too', () => {
+    const khaemwaset = stateWith(hero('khaemwaset', 4));
+    for (const id of ['mummy', 'mummy2', 'mummy3'] as const) expect(attackOf(khaemwaset, stackOf(id), true)).toBe(creature(id).attack + 1 + 2);
+    expect(attackOf(khaemwaset, stackOf('levy'), true)).toBe(creature('levy').attack + 1);
+    expect(defenseOf(stateWith(hero('weni')), stackOf('levy3'))).toBe(creature('levy3').defense + 2 + 1);
+  });
+
+  it('spells: Ward soaks 50% more, the Rite brings back 50% more, the Curse a round more per 5 levels', () => {
+    const plain = (spell: 'ward' | 'rebirth', h: Hero): number => spellAmount(stateWith({ ...h, specialty: undefined }), 0, spell);
+    const neferet = hero('neferet');
+    expect(spellAmount(stateWith(neferet), 0, 'ward')).toBe(Math.floor(plain('ward', neferet) * 1.5));
+    expect(spellAmount(stateWith(neferet), 0, 'ward')).toBeGreaterThan(plain('ward', neferet));
+    const imhotep = hero('imhotep');
+    expect(spellAmount(stateWith(imhotep), 0, 'rebirth')).toBe(Math.floor(plain('rebirth', imhotep) * 1.5));
+    // Only their own spell: Neferet's Rite (she knows none) and Imhotep's Ward are as any hero's.
+    expect(spellAmount(stateWith(imhotep), 0, 'ward')).toBe(plain('ward', imhotep));
+    const curseRounds = (id: string, level: number): number => {
+      const h = { ...hero(id, level), power: 2 };
+      const b = createBattle(heroSide(h, armyOf([{ creature: 'levy', count: 5 }])), { hero: null, army: armyOf([{ creature: 'wolf', count: 5 }]) }, 7).state;
+      const foe = b.stacks.find((s) => s.side === 1)!;
+      return castSpell(b, 0, 'curse', foe.id).state.stacks.find((s) => s.id === foe.id)!.effects.find((e) => e.kind === 'curse')!.rounds;
+    };
+    expect(curseRounds('tiye', 4)).toBe(2);
+    expect(curseRounds('tiye', 5)).toBe(3);
+    expect(curseRounds('tiye', 10)).toBe(4);
+    expect(extraRounds({ kind: 'spell', spell: 'ward', level: 10 }, 'ward')).toBe(0);
+  });
+
+  it('a ward soaks the bigger amount in battle', () => {
+    const ward = (id: string): number => {
+      const h = hero(id);
+      const b = createBattle(heroSide(h, armyOf([{ creature: 'levy', count: 5 }])), { hero: null, army: armyOf([{ creature: 'wolf', count: 5 }]) }, 7).state;
+      const own = b.stacks.find((s) => s.side === 0)!;
+      return castSpell({ ...b, heroes: [{ ...b.heroes[0]!, spells: ['ward'] }, b.heroes[1]] } as BattleState, 0, 'ward', own.id).state.stacks.find((s) => s.id === own.id)!.effects.find((e) => e.kind === 'ward')!.left!;
+    };
+    expect(ward('neferet')).toBeGreaterThan(ward('tiye'));
+  });
+
+  it('shows on the hero sheet and the Tavern card, in one line', () => {
+    const name = (s: string): string => s;
+    expect(specialtyText({ kind: 'spell', spell: 'ward' }, () => 'Ward of Isis')).toBe('Ward of Isis: soaks 50% more');
+    expect(specialtyText({ kind: 'spell', spell: 'rebirth' }, () => 'Rite of Osiris')).toBe('Rite of Osiris: brings back 50% more');
+    expect(specialtyText({ kind: 'spell', spell: 'curse' }, () => 'Curse of Set')).toBe('Curse of Set: lasts a round more per 5 levels');
+    expect(name(heroSheet(hero('imhotep')).specialty!.text)).toMatch(/Rite of Osiris: brings back 50% more/);
+    expect(heroSheet(hero('weni')).specialty?.text).toMatch(/Nile Levies: \+1 Attack and Defense/);
+    expect(heroSheet(hero('nebet')).specialty?.text).toBe('Gold: +350 a day');
+  });
+
+  it("brings in Nebet's 350 gold a day", () => {
+    const a = rich(startAdventure(RED_LAND));
+    const withNebet: Adventure = { ...a, others: [...(a.others ?? []), { ...hero('nebet'), x: a.hero.x, y: a.hero.y }] };
+    expect(dailyIncome(withNebet).gold - dailyIncome(a).gold).toBe(SPECIALTY_GOLD);
+  });
+});
+
+describe('Taverns from the Red Land on', () => {
+  const red = (): Adventure => rich(startAdventure(RED_LAND));
+  const tavernTown = (a: Adventure) => playerTowns(a).find((t) => t.built.includes('tavern'))!;
+
+  it("keep Paser the part-6 hire, then offer two of Egypt's roster, never Neferet or Sethi while in play", () => {
+    const a1 = startAdventure(ABU);
+    expect(tavernHeroes(a1, ABU, townById(a1, 'abu-town') ?? playerTowns(a1)[0]!).map((h) => h.id)).toEqual(['paser']);
+    const a = red();
+    const t = tavernTown(a);
+    const offer = tavernHeroes(a, RED_LAND, t);
+    expect(offer).toHaveLength(TAVERN_CHOICE);
+    expect(offer.every((h) => h.faction === 'kemet')).toBe(true);
+    const taken = heroesInPlay(a, RED_LAND);
+    expect(taken.has('neferet') && taken.has('sethi')).toBe(true);
+    expect(offer.some((h) => taken.has(h.id))).toBe(false);
+    // The story's villain (Sethi) is never ours to hire, and Apepi, the next one, is not offered to us.
+    for (const day of [1, 8, 15, 22, 29, 36, 43]) {
+      expect(weekOffer({ ...a, day }, RED_LAND, t).some((h) => h.id === 'sethi' || h.id === 'neferet')).toBe(false);
+    }
+    const loaded = parseAdventure(JSON.parse(JSON.stringify(a)), RED_LAND)!;
+    expect(tavernHeroes(loaded, RED_LAND, tavernTown(loaded))).toEqual(offer);
+  });
+
+  it('hire an Egyptian, who keeps their specialty through a save', () => {
+    const a = red();
+    const t = tavernTown(a);
+    const pick = tavernHeroes(a, RED_LAND, t)[0]!;
+    const hired = hireHero(a, RED_LAND, t.id, pick.id)!;
+    expect(hired.hero.specialty).toEqual(pick.specialty);
+    const back = parseAdventure(JSON.parse(JSON.stringify(hired)), RED_LAND)!;
+    expect(back.hero).toMatchObject({ id: pick.id, faction: 'kemet', specialty: pick.specialty });
+  });
+
+  it('a lord of Egypt hires from the same roster', () => {
+    expect(hireScore(rosterHero('weni')!, 'main', 'levy')).toBeGreaterThan(hireScore(rosterHero('weni')!, 'main', 'jackal'));
+    expect(hireScore(rosterHero('nebet')!, 'runner', null)).toBeGreaterThan(hireScore(rosterHero('ahmose')!, 'runner', null) - 1);
+  });
+});
+
+describe('hero art for the Egyptians', () => {
+  it("falls back to Egypt's own drawn heroes, else the Greeks' stand-ins, and never fails", () => {
+    const drawn = ['player', 'rival', 'ianthe', 'neferet', 'paser', 'sethi'];
+    expect(heroArtId(drawn, 'player', 'imhotep')).toBe('neferet');
+    expect(heroArtId(drawn, 'player', 'weni')).toBe('paser');
+    expect(heroArtId(drawn, 'rival', 'apepi')).toBe('paser');
+    expect(heroArtId(drawn, 'rival', 'sethi')).toBe('sethi');
+    expect(heroArtId(['player', 'rival', 'ianthe'], 'player', 'tiye')).toBe('ianthe');
+    expect(heroArtId(['player', 'rival'], 'rival', 'khaemwaset')).toBe('rival');
+    // Their own art, once drawn, wins.
+    expect(heroArtId([...drawn, 'weni'], 'player', 'weni')).toBe('weni');
+    for (const h of KEMET_ROSTER) expect(typeof heroArtId(drawn, 'player', h.id)).toBe('string');
   });
 });

@@ -2,7 +2,7 @@ import type { Army } from './army';
 import type { Action, BattleEvent, BattleHero, BattleState, Side, Stack, Step } from './battleTypes';
 import { creature, type CreatureId, type MachineId } from './creatures';
 import { hexAt, reachable, rowOf, route, type Hex, COLS, ROWS } from './hex';
-import { adjacent, around, covers, facesTarget, footprintAt, headOf, isWide, occupiedHexes, shotDistance, tailFn, touching } from './footprint';
+import { adjacent, around, bodyFn, covers, facesTarget, footprintAt, headsOver, occupiedHexes, shotDistance, sizeOf, touching } from './footprint';
 import { roll, rollInt } from './rng';
 import { heal, rollDamage, speedOf } from './damage';
 import { afflict, poisonTick, wound } from './battleTraits';
@@ -45,10 +45,11 @@ const OBSTACLES = { min: 3, max: 7, firstCol: 3, lastCol: COLS - 4, siegeLastCol
 
 /**
  * A new battle: the attacker lines up in the left column, the defender in the
- * right, with a few obstacles between. A two-hex unit's head stands one column
- * in so its tail sits on the edge column (VCMI's start positions). At a
- * siege the walls stand on the right: the attacker brings their war machine,
- * if they have one, and the defender's companies take their towers.
+ * right, with a few obstacles between. A bigger unit's head stands one or two
+ * columns in so its last hex sits on the edge column (VCMI's start positions).
+ * At a siege the walls stand on the right: the attacker brings their war
+ * machine, if they have one, and the defender's companies take their towers;
+ * a unit whose row runs into the wall there stands on the nearest row it fits.
  */
 export function createBattle(attacker: BattleSide, defender: BattleSide, seed: number, siege?: SiegeSetup): Step {
   const stacks: Stack[] = [];
@@ -56,14 +57,17 @@ export function createBattle(attacker: BattleSide, defender: BattleSide, seed: n
   [attacker, defender].forEach((side, s) => {
     const slots = side.army.map((slot, i) => ({ slot, i })).filter((x) => x.slot && x.slot.count > 0);
     const rows = FORMATION[slots.length]!;
+    const closed = new Set(walls ? wallsAgainst(walls, s as Side) : []);
     slots.forEach(({ slot, i }, k) => {
       const c = creature(slot!.creature);
+      const size = sizeOf(slot!.creature);
       // Behind the walls, the row on the keep's hex stands a column forward.
       const forward = walls && s === 1 && rows[k] === KEEP_ROW ? 1 : 0;
-      const col = s === 0 ? (c.wide ? 1 : 0) : (c.wide ? COLS - 2 : COLS - 1) - forward;
+      const col = s === 0 ? size - 1 : COLS - size - forward;
+      const hex = startHex(col, rows[k]!, size, s as Side, new Set([...closed, ...stacks.flatMap(occupiedHexes)]));
       stacks.push({
         id: stacks.length, side: s as Side, creature: slot!.creature, count: slot!.count, startCount: slot!.count, topHp: c.hp,
-        hex: hexAt(col, rows[k]!), shots: c.shots ?? 0, retaliationsLeft: c.retaliations ?? 1, slot: i,
+        hex, shots: c.shots ?? 0, retaliationsLeft: c.retaliations ?? 1, slot: i,
         acted: false, waited: false, defending: false, moraleUsed: false, effects: [],
       });
     });
@@ -89,6 +93,22 @@ export function createBattle(attacker: BattleSide, defender: BattleSide, seed: n
   return advance(state, [{ type: 'round', round: 1 }]);
 }
 
+/**
+ * Where a unit of `size` lines up: its head on (`col`, `row`), or when its
+ * hexes there run into `closed` (a three-hex defender's row under a wall's
+ * corner tower), the nearest row where they fit: below first, then above.
+ */
+function startHex(col: number, row: number, size: number, side: Side, closed: ReadonlySet<Hex>): Hex {
+  for (let d = 0; d < ROWS; d++) {
+    for (const r of d === 0 ? [row] : [row + d, row - d]) {
+      if (r < 0 || r >= ROWS) continue;
+      const hexes = footprintAt(hexAt(col, r), size, side);
+      if (hexes && !hexes.some((h) => closed.has(h))) return hexAt(col, r);
+    }
+  }
+  return hexAt(col, row);
+}
+
 function machineStack(id: number, side: Side, m: MachineId, hex: Hex, slot: number): Stack {
   const c = creature(m);
   return { id, side, creature: m, count: 1, startCount: 1, topHp: c.hp, hex, shots: c.shots ?? 0, retaliationsLeft: 0, slot, acted: false, waited: false, defending: false, moraleUsed: false, effects: [] };
@@ -110,7 +130,7 @@ function placeObstacles(seed: number, taken: ReadonlySet<Hex>, siege: boolean): 
 }
 
 
-/** Hexes a unit can't enter: obstacles, both hexes of every other living unit, and the walls closed to its side. */
+/** Hexes a unit can't enter: obstacles, every hex of every other living unit, and the walls closed to its side. */
 export function blockedFor(state: BattleState, self: number): Set<Hex> {
   const walls = state.siege ? wallsAgainst(state.siege, stackById(state, self).side) : [];
   return new Set([...state.obstacles, ...walls, ...state.stacks.filter((s) => alive(s) && s.id !== self).flatMap(occupiedHexes)]);
@@ -118,25 +138,26 @@ export function blockedFor(state: BattleState, self: number): Set<Hex> {
 
 /**
  * Where the active unit can go this turn, with step counts. Keys are head
- * hexes (`stack.hex`); a two-hex unit also covers each key's tail.
+ * hexes (`stack.hex`); a bigger unit also covers the hexes behind each key.
  */
 export function moves(state: BattleState): Map<Hex, number> {
   const s = activeStack(state);
   if (!s) return new Map();
-  if (s.tower !== undefined) return new Map([[s.hex, 0]]);
-  return reachable(s.hex, speedOf(s), blockedFor(state, s.id), !!creature(s.creature).flies, tailFn(s.creature, s.side), moatOf(state, s.side));
+  // A tower's company, or a stack held after its move, stays where it is.
+  if (s.tower !== undefined || state.held?.stack === s.id) return new Map([[s.hex, 0]]);
+  return reachable(s.hex, speedOf(s), blockedFor(state, s.id), !!creature(s.creature).flies, bodyFn(s.creature, s.side), moatOf(state, s.side));
 }
 
 const moatOf = (state: BattleState, side: Side): Set<Hex> => (state.siege ? moatFor(state.siege, side) : new Set());
 
-/** The living stack covering `h` (either hex of a two-hex unit), if any. */
+/** The living stack covering `h` (any hex of a bigger unit), if any. */
 export function stackAt(state: BattleState, h: Hex): Stack | undefined {
   return state.stacks.find((s) => alive(s) && covers(s, h));
 }
 
 /**
  * Every hex the active unit could cover after a move: each reachable head and
- * its tail (VCMI's battleGetOccupiableHexes), without its current spot. For
+ * the hexes behind it (VCMI's battleGetOccupiableHexes), without its current spot. For
  * lighting the reach; turn a tapped hex into a move with moveHeadFor.
  */
 export function occupiableHexes(state: BattleState): Set<Hex> {
@@ -145,29 +166,28 @@ export function occupiableHexes(state: BattleState): Set<Hex> {
   if (!s) return out;
   for (const h of moves(state).keys()) {
     if (h === s.hex) continue;
-    for (const x of footprintAt(h, isWide(s.creature), s.side) ?? []) out.add(x);
+    for (const x of footprintAt(h, sizeOf(s.creature), s.side) ?? []) out.add(x);
   }
   return out;
 }
 
 /**
  * The head hex to move to when the player taps `h` (VCMI's toWhichHexMove):
- * `h` itself if the unit can stand there, else (two-hex units) the head that
- * puts the tail on `h`; null if neither, or if it's where the unit stands.
+ * `h` itself if the unit can stand there, else (bigger units) the head that
+ * puts its second hex on `h`, then its third; null if none, or if it's where
+ * the unit stands.
  */
 export function moveHeadFor(state: BattleState, h: Hex): Hex | null {
   const s = activeStack(state);
   if (!s) return null;
   const reach = moves(state);
-  if (reach.has(h)) return h === s.hex ? null : h;
-  if (!isWide(s.creature)) return null;
-  const head = headOf(h, s.side);
-  return head !== null && head !== s.hex && reach.has(head) ? head : null;
+  const head = headsOver(h, sizeOf(s.creature), s.side).find((x) => reach.has(x));
+  return head === undefined || head === s.hex ? null : head;
 }
 
 const isEnemy = (a: Stack, b: Stack): boolean => a.side !== b.side && alive(b) && targetable(b);
 
-/** Whether a stack can shoot now: it has shots and no enemy stands next to either of its hexes. */
+/** Whether a stack can shoot now: it has shots and no enemy stands next to any of its hexes. */
 export function canShoot(state: BattleState, s: Stack): boolean {
   if (!creature(s.creature).shots || s.shots <= 0) return false;
   // A company up on a tower shoots even with an enemy beside it.
@@ -183,9 +203,9 @@ export interface StrikeOption {
   readonly steps: number;
   /** The hexes it covers there, head first. */
   readonly hexes: readonly Hex[];
-  /** Its hex that touches the target (the head when both do). */
+  /** Its hex that touches the target (the one nearest its head when more do). */
   readonly contact: Hex;
-  /** The target's hex it strikes (the head when both touch `contact`). */
+  /** The target's hex it strikes (the one nearest the target's head when more touch `contact`). */
   readonly struck: Hex;
   /** It turns round to strike (target behind it) and turns back after; animation only. */
   readonly reversed: boolean;
@@ -194,8 +214,8 @@ export interface StrikeOption {
 /**
  * Where the active unit can strike `target` from: every reachable head whose
  * hexes touch any of the target's (VCMI's getAttackableHexes): a one-hex unit
- * from any hex round the target; a two-hex unit with its head there, or with
- * its tail there (head one hex forward).
+ * from any hex round the target; a bigger unit with its head there, or with
+ * its second or third hex there (head one or two hexes forward).
  */
 export function strikeOptions(state: BattleState, target: Stack): StrikeOption[] {
   return onGround(target) ? contactOptions(state, occupiedHexes(target)) : [];
@@ -205,18 +225,14 @@ export function strikeOptions(state: BattleState, target: Stack): StrikeOption[]
 function contactOptions(state: BattleState, targetHexes: readonly Hex[]): StrikeOption[] {
   const me = activeStack(state);
   if (!me) return [];
-  const wide = isWide(me.creature);
+  const size = sizeOf(me.creature);
   const reach = moves(state);
   const heads = new Set<Hex>();
-  for (const h of around(targetHexes)) {
-    heads.add(h);
-    const head = wide ? headOf(h, me.side) : null;
-    if (head !== null) heads.add(head);
-  }
+  for (const h of around(targetHexes)) for (const head of headsOver(h, size, me.side)) heads.add(head);
   const out: StrikeOption[] = [];
   for (const from of heads) {
     const steps = reach.get(from);
-    const hexes = footprintAt(from, wide, me.side);
+    const hexes = footprintAt(from, size, me.side);
     if (steps === undefined || !hexes || hexes.some((h) => targetHexes.includes(h))) continue;
     const contact = hexes.find((h) => touching([h], targetHexes));
     if (contact === undefined) continue;
@@ -230,7 +246,7 @@ function contactOptions(state: BattleState, targetHexes: readonly Hex[]): Strike
 export function handOptions(state: BattleState, part: SiegePart): StrikeOption[] {
   const me = activeStack(state);
   const siege = state.siege;
-  if (!me || !siege || me.side !== 0 || !standing(siege, part) || creature(me.creature).machine) return [];
+  if (!me || !siege || me.side !== 0 || !standing(siege, part) || creature(me.creature).machine || state.held) return [];
   return contactOptions(state, [PART_HEX[part]]);
 }
 
@@ -251,25 +267,30 @@ export function act(state: BattleState, action: Action): Step {
   if (state.winner !== null) throw new Error('battle is over');
   const me = activeStack(state);
   if (!me) throw new Error('no active stack');
-  if (action.type === 'cast') return castSpell(state, me.side, action.spell, action.target);
   if (action.type === 'flee') return flee(state, me.side);
+  const held = state.held;
+  if (held && !HELD_ACTIONS.includes(action.type)) throw new Error('only a strike from here, Defend or Wait now');
+  if (action.type === 'cast') return castSpell(state, me.side, action.spell, action.target);
   const events: BattleEvent[] = [];
-  let s = state;
+  let s: BattleState = held ? unhold(state) : state;
   switch (action.type) {
     case 'move': {
       const steps = moves(s).get(action.to);
       if (steps === undefined || action.to === me.hex) throw new Error('cannot move there');
       s = moveTo(s, me, action.to, events);
+      // The player's move that ends beside an enemy leaves the turn open for a strike.
+      if (action.hold && canStrikeHere(s, me.id)) return { state: { ...s, held: { stack: me.id, from: me.hex, moved: steps } }, events };
       break;
     }
     case 'attack': {
       const target = stackById(s, action.target);
       if (!isEnemy(me, target)) throw new Error('not an enemy');
-      const steps = strikeFrom(s, target).get(action.from);
+      // Held after a move, it strikes from where it stands, with the steps already walked.
+      const steps = strikeFrom(state, target).get(action.from);
       if (steps === undefined) throw new Error('cannot strike from there');
       if (action.from !== me.hex) s = moveTo(s, me, action.from, events);
-      s = melee(s, me.id, target.id, action.from, steps, events);
-      s = swoopHome(s, me, events);
+      s = melee(s, me.id, target.id, action.from, held ? held.moved : steps, events);
+      s = swoopHome(s, held ? { ...me, hex: held.from } : me, events);
       break;
     }
     case 'shoot': {
@@ -302,6 +323,8 @@ export function act(state: BattleState, action: Action): Step {
       break;
     }
     case 'wait': {
+      // Held after a move, Wait ends the turn as the move would have.
+      if (held) return afterAction(s, me.id, events);
       if (me.waited) throw new Error('already waited');
       events.push({ type: 'wait', stack: me.id });
       return advance(update(s, me.id, (x) => ({ ...x, waited: true })), events);
@@ -312,6 +335,18 @@ export function act(state: BattleState, action: Action): Step {
     }
   }
   return afterAction(s, me.id, events);
+}
+
+/** What a stack held after its move may still do (and its hero may still leave the field). */
+const HELD_ACTIONS: readonly Action['type'][] = ['attack', 'defend', 'wait'];
+
+const unhold = ({ held: _held, ...s }: BattleState): BattleState => s;
+
+/** Whether stack `id` stands, alive and able to strike, beside an enemy it could strike without moving. */
+function canStrikeHere(s: BattleState, id: number): boolean {
+  const me = stackById(s, id);
+  if (!alive(me) || isStone(me) || creature(me.creature).machine) return false;
+  return s.stacks.some((o) => isEnemy(me, o) && onGround(o) && adjacent(me, o));
 }
 
 /** How many ramps the active stack's workers still have to begin: a siege ramp's, in its first round only. */
@@ -331,7 +366,7 @@ const rampNeed = (me: Stack, i: number): number => {
 
 function moveTo(s: BattleState, me: Stack, to: Hex, events: BattleEvent[]): BattleState {
   const flies = !!creature(me.creature).flies;
-  const path = flies ? [to] : route(me.hex, to, blockedFor(s, me.id), tailFn(me.creature, me.side), moatOf(s, me.side));
+  const path = flies ? [to] : route(me.hex, to, blockedFor(s, me.id), bodyFn(me.creature, me.side), moatOf(s, me.side));
   events.push({ type: 'move', stack: me.id, path, flies });
   return intoMoat(update(s, me.id, (x) => ({ ...x, hex: to })), me.id, events);
 }
@@ -381,8 +416,8 @@ function towerFalls(s: BattleState, part: SiegePart, events: BattleEvent[]): Bat
   const st = s.stacks.find((x) => x.tower === i && alive(x));
   if (!st) return s;
   const taken = blockedFor(s, st.id);
-  const wide = isWide(st.creature);
-  const to = nearestFree(st.hex, wide ? new Set([...taken, st.hex]) : taken);
+  const size = sizeOf(st.creature);
+  const to = nearestFree(st.hex, taken, (h) => footprintAt(h, size, st.side)?.every((x) => !taken.has(x)) ?? false);
   if (to === null) return update(s, st.id, ({ tower: _down, ...x }) => x);
   events.push({ type: 'fall', stack: st.id, to });
   return update(s, st.id, ({ tower: _down, ...x }) => ({ ...x, hex: to }));
@@ -391,7 +426,7 @@ function towerFalls(s: BattleState, part: SiegePart, events: BattleEvent[]): Bat
 /** Whom a melee blow from head hex `from` lands on: the target, and for a cleaver every other enemy beside it there. */
 export function struckBy(state: BattleState, me: Stack, target: Stack, from: Hex): Stack[] {
   if (!creature(me.creature).cleave) return [target];
-  const hexes = footprintAt(from, isWide(me.creature), me.side) ?? [from];
+  const hexes = footprintAt(from, sizeOf(me.creature), me.side) ?? [from];
   return [target, ...state.stacks.filter((o) => o.id !== target.id && isEnemy(me, o) && onGround(o) && touching(hexes, occupiedHexes(o)))];
 }
 
@@ -420,7 +455,9 @@ function answer(s: BattleState, a: number, d: number, events: BattleEvent[]): Ba
 function swoopHome(s: BattleState, start: Stack, events: BattleEvent[]): BattleState {
   const bird = stackById(s, start.id);
   if (!creature(bird.creature).swoop || !alive(bird) || isStone(bird) || bird.hex === start.hex) return s;
-  return blockedFor(s, bird.id).has(start.hex) ? s : moveTo(s, bird, start.hex, events);
+  const blocked = blockedFor(s, bird.id);
+  const home = footprintAt(start.hex, sizeOf(bird.creature), bird.side);
+  return !home || home.some((h) => blocked.has(h)) ? s : moveTo(s, bird, start.hex, events);
 }
 
 function strike(s: BattleState, a: number, d: number, ctx: { ranged: boolean; distance: number; moved: number }, retaliation: boolean, events: BattleEvent[]): BattleState {

@@ -62,7 +62,7 @@ describe('the Two Lands', () => {
 
   it('carries the design’s numbers and traits', () => {
     expect(creature('levy')).toMatchObject({ name: 'Nile Levy', attack: 4, defense: 5, minDmg: 1, maxDmg: 3, hp: 10, speed: 4, growth: 14, cost: { gold: 60 } });
-    expect(creature('chariot')).toMatchObject({ wide: true, charge: true, speed: 8 });
+    expect(creature('chariot')).toMatchObject({ hexes: 3, charge: true, speed: 8 });
     expect(creature('mummy')).toMatchObject({ undead: true, curse: 0.25 });
     expect(creature('mummy2').curse).toBeCloseTo(0.35);
     expect(creature('mummy3').curse).toBeCloseTo(0.5);
@@ -78,8 +78,8 @@ describe('the Two Lands', () => {
     expect(creature('hyena')).toMatchObject({ faction: 'neutral', level: 1, hp: 7, speed: 6 });
     expect(creature('raider')).toMatchObject({ faction: 'neutral', shots: 8 });
     expect(creature('scorpion').poison).toBeCloseTo(0.1);
-    expect(creature('crocodile')).toMatchObject({ wide: true, noRetaliation: true });
-    expect(creature('petsuchos')).toMatchObject({ wide: true, regen: 10, level: 6, hp: 120 });
+    expect(creature('crocodile')).toMatchObject({ hexes: 3, noRetaliation: true });
+    expect(creature('petsuchos')).toMatchObject({ hexes: 3, regen: 10, level: 6, hp: 120, speed: 5 });
     expect(strengthOf('petsuchos', 1)).toBeGreaterThan(strengthOf('hydra', 1));
   });
 

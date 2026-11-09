@@ -55,8 +55,10 @@ export interface CreatureDef {
   readonly poison?: number;
   /** Raises its own army's morale. */
   readonly morale?: number;
-  /** Takes two hexes on the battlefield: its head and the one behind it (H3's double-wide). */
+  /** Takes two hexes on the battlefield: its head and the one behind it (H3's double-wide). Same as `hexes: 2`. */
   readonly wide?: boolean;
+  /** How many hexes it fills in a row on the battlefield: its head and those behind it (1 unless set; `wide` means 2). */
+  readonly hexes?: 1 | 2 | 3;
   /** An upgrade: the line's base unit, and which of its three levels this is (2 or 3; a base unit is 1). */
   readonly line?: CreatureId;
   readonly tier?: 2 | 3;
@@ -116,7 +118,7 @@ export const CREATURES = {
   levy: def({ id: 'levy', name: 'Nile Levy', plural: 'Nile Levies', faction: 'kemet', level: 1, attack: 4, defense: 5, minDmg: 1, maxDmg: 3, hp: 10, speed: 4, growth: 14, cost: { gold: 60 } }),
   nubian: def({ id: 'nubian', name: 'Nubian Archer', plural: 'Nubian Archers', faction: 'kemet', level: 2, attack: 6, defense: 3, minDmg: 2, maxDmg: 3, hp: 10, speed: 4, growth: 9, cost: { gold: 100 }, shots: 12 }),
   jackal: def({ id: 'jackal', name: 'Jackal Warrior', plural: 'Jackal Warriors', faction: 'kemet', level: 3, attack: 9, defense: 6, minDmg: 3, maxDmg: 6, hp: 22, speed: 7, growth: 7, cost: { gold: 200 } }),
-  chariot: def({ id: 'chariot', name: 'War Chariot', plural: 'War Chariots', faction: 'kemet', level: 4, attack: 10, defense: 10, minDmg: 5, maxDmg: 9, hp: 35, speed: 8, growth: 4, cost: { gold: 300 }, charge: true, wide: true }),
+  chariot: def({ id: 'chariot', name: 'War Chariot', plural: 'War Chariots', faction: 'kemet', level: 4, attack: 10, defense: 10, minDmg: 5, maxDmg: 9, hp: 35, speed: 8, growth: 4, cost: { gold: 300 }, charge: true, hexes: 3 }),
   mummy: def({ id: 'mummy', name: 'Mummy', plural: 'Mummies', faction: 'kemet', level: 5, attack: 11, defense: 11, minDmg: 8, maxDmg: 12, hp: 40, speed: 4, growth: 3, cost: { gold: 400 }, undead: true, curse: 0.25 }),
   sphinx: def({ id: 'sphinx', name: 'Sphinx', plural: 'Sphinxes', faction: 'kemet', level: 6, attack: 15, defense: 16, minDmg: 15, maxDmg: 25, hp: 110, speed: 6, growth: 2, cost: { gold: 1000 }, wide: true, guardian: true }),
   bennu: def({ id: 'bennu', name: 'Bennu', plural: 'Bennu', faction: 'kemet', level: 7, attack: 20, defense: 18, minDmg: 40, maxDmg: 50, hp: 180, speed: 11, growth: 1, cost: { gold: 3000, gems: 1 }, flies: true, rebirth: 'half' }),
@@ -126,27 +128,29 @@ export const CREATURES = {
   nubian3: def({ id: 'nubian3', name: 'Bowman of Ta-Seti', plural: 'Bowmen of Ta-Seti', faction: 'kemet', level: 2, attack: 8, defense: 5, minDmg: 3, maxDmg: 4, hp: 12, speed: 6, growth: 9, cost: { gold: 170 }, shots: 20, noRangePenalty: true, line: 'nubian', tier: 3 }),
   jackal2: def({ id: 'jackal2', name: 'Sentinel of Anubis', plural: 'Sentinels of Anubis', faction: 'kemet', level: 3, attack: 10, defense: 7, minDmg: 3, maxDmg: 7, hp: 25, speed: 8, growth: 7, cost: { gold: 240 }, line: 'jackal', tier: 2 }),
   jackal3: def({ id: 'jackal3', name: 'Hand of Anubis', plural: 'Hands of Anubis', faction: 'kemet', level: 3, attack: 11, defense: 8, minDmg: 4, maxDmg: 8, hp: 28, speed: 8, growth: 7, cost: { gold: 290 }, noRetaliation: true, line: 'jackal', tier: 3 }),
-  chariot2: def({ id: 'chariot2', name: 'Royal Chariot', plural: 'Royal Chariots', faction: 'kemet', level: 4, attack: 12, defense: 11, minDmg: 6, maxDmg: 10, hp: 40, speed: 9, growth: 4, cost: { gold: 360 }, charge: true, wide: true, line: 'chariot', tier: 2 }),
-  chariot3: def({ id: 'chariot3', name: 'Chariot of Horus', plural: 'Chariots of Horus', faction: 'kemet', level: 4, attack: 14, defense: 12, minDmg: 7, maxDmg: 11, hp: 45, speed: 10, growth: 4, cost: { gold: 430 }, charge: true, wide: true, line: 'chariot', tier: 3 }),
+  chariot2: def({ id: 'chariot2', name: 'Royal Chariot', plural: 'Royal Chariots', faction: 'kemet', level: 4, attack: 12, defense: 11, minDmg: 6, maxDmg: 10, hp: 40, speed: 9, growth: 4, cost: { gold: 360 }, charge: true, hexes: 3, line: 'chariot', tier: 2 }),
+  chariot3: def({ id: 'chariot3', name: 'Chariot of Horus', plural: 'Chariots of Horus', faction: 'kemet', level: 4, attack: 14, defense: 12, minDmg: 7, maxDmg: 11, hp: 45, speed: 10, growth: 4, cost: { gold: 430 }, charge: true, hexes: 3, cleave: true, line: 'chariot', tier: 3 }),
   mummy2: def({ id: 'mummy2', name: 'Royal Mummy', plural: 'Royal Mummies', faction: 'kemet', level: 5, attack: 12, defense: 12, minDmg: 9, maxDmg: 13, hp: 45, speed: 5, growth: 3, cost: { gold: 450 }, undead: true, curse: 0.35, line: 'mummy', tier: 2 }),
-  mummy3: def({ id: 'mummy3', name: 'Pharaoh’s Mummy', plural: 'Pharaoh’s Mummies', faction: 'kemet', level: 5, attack: 14, defense: 13, minDmg: 10, maxDmg: 14, hp: 50, speed: 5, growth: 3, cost: { gold: 520 }, undead: true, curse: 0.5, line: 'mummy', tier: 3 }),
+  mummy3: def({ id: 'mummy3', name: 'Pharaoh’s Mummy', plural: 'Pharaoh’s Mummies', faction: 'kemet', level: 5, attack: 14, defense: 13, minDmg: 10, maxDmg: 14, hp: 50, speed: 5, growth: 3, cost: { gold: 520 }, undead: true, curse: 0.5, regen: 10, line: 'mummy', tier: 3 }),
   sphinx2: def({ id: 'sphinx2', name: 'Guardian Sphinx', plural: 'Guardian Sphinxes', faction: 'kemet', level: 6, attack: 16, defense: 17, minDmg: 18, maxDmg: 25, hp: 110, speed: 7, growth: 2, cost: { gold: 1200 }, wide: true, guardian: true, line: 'sphinx', tier: 2 }),
-  sphinx3: def({ id: 'sphinx3', name: 'Great Sphinx', plural: 'Great Sphinxes', faction: 'kemet', level: 6, attack: 18, defense: 19, minDmg: 20, maxDmg: 28, hp: 130, speed: 8, growth: 2, cost: { gold: 1500 }, wide: true, guardian: true, line: 'sphinx', tier: 3 }),
+  sphinx3: def({ id: 'sphinx3', name: 'Great Sphinx', plural: 'Great Sphinxes', faction: 'kemet', level: 6, attack: 18, defense: 19, minDmg: 20, maxDmg: 28, hp: 130, speed: 8, growth: 2, cost: { gold: 1500 }, wide: true, guardian: true, petrify: 0.2, line: 'sphinx', tier: 3 }),
   bennu2: def({ id: 'bennu2', name: 'Golden Bennu', plural: 'Golden Bennu', faction: 'kemet', level: 7, attack: 22, defense: 20, minDmg: 45, maxDmg: 55, hp: 210, speed: 13, growth: 1, cost: { gold: 3600, gems: 2 }, flies: true, rebirth: 'half', line: 'bennu', tier: 2 }),
   bennu3: def({ id: 'bennu3', name: 'Bennu of Ra', plural: 'Bennu of Ra', faction: 'kemet', level: 7, attack: 25, defense: 22, minDmg: 50, maxDmg: 60, hp: 250, speed: 15, growth: 1, cost: { gold: 4400, gems: 3 }, flies: true, rebirth: 'all', line: 'bennu', tier: 3 }),
   // Egypt's lands bring their own neutrals (chapter 2). Growth and cost set their strength for the rival, as the Greeks' neutrals'.
   hyena: def({ id: 'hyena', name: 'Hyena', plural: 'Hyenas', faction: 'neutral', level: 1, attack: 4, defense: 3, minDmg: 1, maxDmg: 3, hp: 7, speed: 6, growth: 14, cost: { gold: 50 } }),
   raider: def({ id: 'raider', name: 'Sand Raider', plural: 'Sand Raiders', faction: 'neutral', level: 2, attack: 7, defense: 3, minDmg: 2, maxDmg: 4, hp: 10, speed: 6, growth: 8, cost: { gold: 110 }, shots: 8 }),
   scorpion: def({ id: 'scorpion', name: 'Giant Scorpion', plural: 'Giant Scorpions', faction: 'neutral', level: 3, attack: 8, defense: 9, minDmg: 3, maxDmg: 6, hp: 22, speed: 5, growth: 6, cost: { gold: 200 }, poison: 0.1 }),
-  crocodile: def({ id: 'crocodile', name: 'Nile Crocodile', plural: 'Nile Crocodiles', faction: 'neutral', level: 3, attack: 9, defense: 8, minDmg: 4, maxDmg: 6, hp: 26, speed: 4, growth: 6, cost: { gold: 200 }, wide: true, noRetaliation: true }),
-  petsuchos: def({ id: 'petsuchos', name: 'Petsuchos', plural: 'Petsuchoi', faction: 'neutral', level: 6, attack: 16, defense: 14, minDmg: 15, maxDmg: 22, hp: 120, speed: 4, growth: 1, cost: { gold: 1500 }, wide: true, regen: 10 }),
-  // Part 5's desert (Abu): the cobra's spit poisons as the scorpion's sting, the lion charges.
+  crocodile: def({ id: 'crocodile', name: 'Nile Crocodile', plural: 'Nile Crocodiles', faction: 'neutral', level: 3, attack: 9, defense: 8, minDmg: 4, maxDmg: 6, hp: 26, speed: 4, growth: 6, cost: { gold: 200 }, hexes: 3, noRetaliation: true }),
+  petsuchos: def({ id: 'petsuchos', name: 'Petsuchos', plural: 'Petsuchoi', faction: 'neutral', level: 6, attack: 16, defense: 14, minDmg: 15, maxDmg: 22, hp: 120, speed: 5, growth: 1, cost: { gold: 1500 }, hexes: 3, regen: 10 }),
+  // Abu's desert: the cobra's spit poisons as the scorpion's sting, the lion charges.
   cobra: def({ id: 'cobra', name: 'Spitting Cobra', plural: 'Spitting Cobras', faction: 'neutral', level: 2, attack: 7, defense: 4, minDmg: 2, maxDmg: 3, hp: 9, speed: 6, growth: 8, cost: { gold: 120 }, shots: 6, poison: 0.1 }),
-  lion: def({ id: 'lion', name: 'Desert Lion', plural: 'Desert Lions', faction: 'neutral', level: 4, attack: 12, defense: 9, minDmg: 6, maxDmg: 10, hp: 38, speed: 7, growth: 4, cost: { gold: 320 }, wide: true, charge: true }),
-  // Part 6's Red Land: the Serpent of Apep, coiled over the sunken tomb's prize; it poisons as the scorpion and heals as the Hydra.
+  lion: def({ id: 'lion', name: 'Desert Lion', plural: 'Desert Lions', faction: 'neutral', level: 4, attack: 12, defense: 9, minDmg: 6, maxDmg: 10, hp: 38, speed: 7, growth: 4, cost: { gold: 320 }, hexes: 3, charge: true }),
+  // The Red Land: the Serpent of Apep, coiled over the sunken tomb's prize; it poisons as the scorpion and heals as the Hydra.
   // Part 4's mountain (Othrys): the Gigantes, sons of Gaia, guard the Titans' forge and throw boulders as hard as they strike.
   gigas: def({ id: 'gigas', name: 'Gigas', plural: 'Gigantes', faction: 'neutral', level: 7, attack: 19, defense: 16, minDmg: 30, maxDmg: 40, hp: 220, speed: 6, growth: 1, cost: { gold: 3500 }, shots: 4, noMeleePenalty: true, wide: true }),
-  apep: def({ id: 'apep', name: 'Serpent of Apep', plural: 'Serpents of Apep', faction: 'neutral', level: 6, attack: 17, defense: 13, minDmg: 14, maxDmg: 20, hp: 110, speed: 5, growth: 1, cost: { gold: 1500 }, wide: true, poison: 0.1, regen: 10 }),
+  // The Delta: Ammit, the Devourer, guards the House of the Benben at Iunu; no one answers its strikes.
+  ammit: def({ id: 'ammit', name: 'Ammit', plural: 'Ammits', faction: 'neutral', level: 7, attack: 19, defense: 17, minDmg: 30, maxDmg: 40, hp: 220, speed: 7, growth: 1, cost: { gold: 3500 }, hexes: 3, noRetaliation: true }),
+  apep: def({ id: 'apep', name: 'Serpent of Apep', plural: 'Serpents of Apep', faction: 'neutral', level: 6, attack: 17, defense: 13, minDmg: 14, maxDmg: 20, hp: 110, speed: 5, growth: 1, cost: { gold: 1500 }, hexes: 3, poison: 0.1, regen: 10 }),
 } as const;
 
 export type CreatureId =
@@ -159,7 +163,7 @@ export type CreatureId =
   | 'levy' | 'nubian' | 'jackal' | 'chariot' | 'mummy' | 'sphinx' | 'bennu'
   | 'levy2' | 'levy3' | 'nubian2' | 'nubian3' | 'jackal2' | 'jackal3' | 'chariot2' | 'chariot3'
   | 'mummy2' | 'mummy3' | 'sphinx2' | 'sphinx3' | 'bennu2' | 'bennu3'
-  | 'hyena' | 'raider' | 'scorpion' | 'crocodile' | 'petsuchos' | 'cobra' | 'lion' | 'apep' | 'gigas';
+  | 'hyena' | 'raider' | 'scorpion' | 'crocodile' | 'petsuchos' | 'cobra' | 'lion' | 'apep' | 'gigas' | 'ammit';
 export const CREATURE_IDS = Object.keys(CREATURES) as CreatureId[];
 
 export const creature = (id: CreatureId): CreatureDef => CREATURES[id];
@@ -168,7 +172,9 @@ export const MACHINES = ['catapult', 'catapult2', 'catapult3', 'ramp', 'ramp2', 
 export type MachineId = (typeof MACHINES)[number];
 export const isMachine = (id: CreatureId): boolean => !!creature(id).machine;
 /** Whether a company can man a tower: a shooter that takes one hex. */
-export const canManTower = (id: CreatureId): boolean => !!creature(id).shots && !creature(id).wide && !creature(id).machine;
+export const canManTower = (id: CreatureId): boolean => !!creature(id).shots && sizeOf(id) === 1 && !creature(id).machine;
+/** How many hexes a unit of this kind fills on the battlefield: its `hexes`, else 2 for `wide`, else 1. */
+export const sizeOf = (id: CreatureId): 1 | 2 | 3 => creature(id).hexes ?? (creature(id).wide ? 2 : 1);
 export const isCreatureId = (v: unknown): v is CreatureId => typeof v === 'string' && (CREATURE_IDS as string[]).includes(v);
 
 /** The base unit of `id`'s line (itself for a base unit). */

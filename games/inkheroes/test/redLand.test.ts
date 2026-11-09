@@ -3,6 +3,7 @@ import { INKHEROES_PAID_MAPS } from '../content/paid';
 import { chapterById, CHAPTERS, installPaidMaps, nextMap } from '../src/level/maps';
 import { ABU, NEKHEN, RED_LAND } from '../src/level/twoLands';
 import { openIn, soldOn, TWO_LANDS_UNLOCKS } from '../src/level/unlocks';
+import type { MapDef } from '../src/level/types';
 import { parseMaps } from '../src/level/validate';
 import {
   afterBattle, battleSides, DEFEND, endDay, gridOf, monsterArmy, startAdventure, stepHero, stormOn, terrainView, townById, withTown, type Adventure,
@@ -60,8 +61,9 @@ describe('Sethi, a rival lord of our own people', () => {
     let adv = startAdventure(def);
     for (let i = 0; i < 8; i++) adv = rivalTurn(endDay(adv, def), def).adv;
     const nubt = townById(adv, NUBT)!;
-    expect(nubt.built).toContain('guardhouse2');
-    const units = [...(adv.rival!.hero?.army ?? []), ...nubt.garrison].filter(Boolean).map((s) => creature(s!.creature).faction);
+    // A lord (since Nov 9) builds to his people's plan: a hall first, then Egypt's dwellings.
+    expect(nubt.built.length).toBeGreaterThan(def.towns!.find((t) => t.id === NUBT)!.built.length);
+    const units = [...(adv.rival!.hero?.army ?? []), ...(adv.rival!.others ?? []).flatMap((h) => h.army), ...nubt.garrison].filter(Boolean).map((s) => creature(s!.creature).faction);
     expect(units.length).toBeGreaterThan(0);
     expect(new Set(units)).toEqual(new Set(['kemet']));
   });
@@ -105,11 +107,14 @@ describe('Sethi, a rival lord of our own people', () => {
 
 describe('a rival town’s garrison (coordinator, Nov 8)', () => {
   it('grows from its recruits only to 1.5 times its strength on the map; the rest wait for him', () => {
+    // Sethi a lord (Nov 9): his idle gold hires into Nubt's garrison up to the same 1.5 times (lord/towns.ts). Captains kept out
+    // (`heroes: 1`): one hired at Nubt's Tavern would ride out with its garrison, as a lord's heroes do with no foe near.
+    const lone: MapDef = { ...def, rival: { ...def.rival!, heroes: 1 } };
     const adv = opened(30);
     const start = armyStrength(armyOf(def.towns!.find((t) => t.id === NUBT)!.garrison));
     // Sethi far out of the way for three weeks, a deep purse.
     let a: Adventure = { ...adv, rival: { ...adv.rival!, hero: { ...adv.rival!.hero!, x: 9, y: 8, mp: 0, army: armyOf([]) }, purse: { ...adv.rival!.purse, gold: 1e6 } } };
-    for (let i = 0; i < 21; i++) a = { ...rivalTurn(endDay(a, def), def).adv, prompts: [] };
+    for (let i = 0; i < 21; i++) a = { ...rivalTurn(endDay(a, lone), lone).adv, prompts: [] };
     const nubt = townById(a, NUBT)!;
     expect(armyStrength(nubt.garrison)).toBeLessThanOrEqual(start * 1.5 + 1);
     expect(armyStrength(nubt.garrison)).toBeGreaterThan(start * 1.3);
@@ -144,7 +149,7 @@ describe('the race for Gebtu', () => {
     // The hero waits far back at Nekhen, out of his way.
     const r = nights({ ...start, hero: { ...start.hero, x: 9, y: 8 } }, 12);
     expect(townById(r.adv, GEBTU)!.owner).toBe('rival');
-    expect(r.notes.some((n) => /Gebtu before you/.test(n))).toBe(true);
+    expect(r.notes.some((n) => /banner flies over Gebtu/.test(n))).toBe(true);
   });
 });
 
@@ -194,8 +199,8 @@ describe('Set’s sandstorms', () => {
 describe('the Serpent of Apep', () => {
   const apep = def.objects.find((o) => o.id === 'apep')!;
 
-  it('is the doc’s serpent: two hexes, poison and regeneration', () => {
-    expect(creature('apep')).toMatchObject({ level: 6, attack: 17, defense: 13, minDmg: 14, maxDmg: 20, hp: 110, speed: 5, wide: true, poison: 0.1, regen: 10, growth: 1, cost: { gold: 1500 } });
+  it('is the doc’s serpent: three hexes, poison and regeneration', () => {
+    expect(creature('apep')).toMatchObject({ level: 6, attack: 17, defense: 13, minDmg: 14, maxDmg: 20, hp: 110, speed: 5, hexes: 3, poison: 0.1, regen: 10, growth: 1, cost: { gold: 1500 } });
   });
 
   it('lies coiled with its cobra brood, one fight, over the Ramp of the Pyramid Builders', () => {
@@ -258,12 +263,13 @@ describe('riding on into the Red Land', () => {
     expect(def.parDays).toBe(35);
   });
 
-  it('gives Sethi his head start: three quarters of the days gone by, at home in Nubt', () => {
+  it('brings Sethi in as a lord: no head start, at home in Nubt with the army the map gives him', () => {
+    expect(def.rival!.mind).toBe('lord');
     const early = rideOn(abuWon(20), ABU, RED_LAND).rival!.hero!;
     const late = rideOn(abuWon(36), ABU, RED_LAND).rival!.hero!;
     const start = armyStrength(armyOf(def.rival!.hero.army));
-    expect(armyStrength(early.army)).toBeGreaterThan(start);
-    expect(armyStrength(late.army)).toBeGreaterThan(armyStrength(early.army));
+    expect(armyStrength(early.army)).toBe(start);
+    expect(armyStrength(late.army)).toBe(start);
     expect(late).toMatchObject({ x: townById(startAdventure(def), NUBT)!.x });
   });
 
@@ -274,18 +280,19 @@ describe('riding on into the Red Land', () => {
 });
 
 describe('the end of chapter 2', () => {
-  it('comes with the Red Land: Abu’s win is a part’s end again, the Red Land’s the chapter’s', () => {
+  it('moved on to the Delta (part 8): the Red Land’s win is a part’s end that rides on north', () => {
     installPaidMaps(parseMaps(JSON.parse(JSON.stringify(INKHEROES_PAID_MAPS))));
     expect(nextMap(ABU)?.id).toBe('red-land');
-    expect(nextMap(RED_LAND)).toBeUndefined();
+    expect(nextMap(RED_LAND)?.id).toBe('delta');
     installPaidMaps([]);
     const two = chapterById('twoLands');
     expect(two.ending).toBe('twoLands-won');
     expect(ABU.won).toBe('abu-won');
-    expect(upcoming({ ...opened(), prompts: [] }, 2)).toEqual(['twoLands-won']);
+    expect(RED_LAND.won).toBe('redLand-won');
+    expect(upcoming({ ...opened(), prompts: [] }, 2)).toEqual(['redLand-won', 'part-delta']);
   });
 
-  it('plays the "Chapter 2 complete" card as chapter 1’s, generalised: days, towns, heroes, and the next chapter being made', () => {
+  it('plays the "Chapter 2 complete" card (now the Delta’s) as chapter 1’s, generalised: days, towns, heroes, and the next chapter being made', () => {
     const adv = { ...opened(40), status: 'won' as const };
     const end = chapterEnd(chapterById('twoLands'), adv, false, () => true);
     expect(end.title).toBe('Chapter 2 complete');

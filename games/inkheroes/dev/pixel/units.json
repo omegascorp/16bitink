@@ -1201,6 +1201,29 @@
     112,
     38
    ]
+  },
+  "ammit": {
+   "name": "Ammit",
+   "src": "pixel/src/ammit.png",
+   "canvas": [
+    171,
+    125
+   ],
+   "foot": 5,
+   "dx": 0,
+   "subject": "Ammit the devourer: a lion's body with a big golden mane, a crocodile's head and grey hippo hindquarters",
+   "walk": "prowling in place loop: four legs stride in rhythm with a heavy gait, head held low, tail swings, stays in the same spot, ends back at the starting pose",
+   "attack": "devouring bite attack: rears the head back, then lunges forward to the right snapping the crocodile jaws wide shut with a roar, then settles back to the starting pose; feet stay in place",
+   "strike": 3,
+   "face": [
+    123,
+    33
+   ],
+   "animCanvas": [
+    208,
+    152
+   ],
+   "scale": 0.82
   }
  },
  "heroes": {
@@ -1336,18 +1359,18 @@
    "name": "Paser",
    "src": "pixel/src/hero_paser.png",
    "canvas": [
-    176,
-    172
+    123,
+    140
    ],
-   "foot": 6,
+   "foot": 4,
    "dx": 0,
    "subject": "an egyptian chariot captain in a blue and gold war crown and scale armor with a khopesh sword, on a bay horse",
    "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
    "attack": "sword attack: the rider swings the sword up and across in a slash to the right, then lowers it to the starting pose; the horse stays in place",
    "strike": 3,
    "face": [
-    80,
-    30
+    56,
+    21
    ],
    "walkLock": [
     0,
@@ -1358,25 +1381,35 @@
     -5,
     -3,
     0
-   ]
+   ],
+   "animCanvas": [
+    176,
+    200
+   ],
+   "scale": 0.7
   },
   "sethi": {
    "name": "Sethi",
    "src": "pixel/src/hero_sethi.png",
    "canvas": [
-    176,
-    172
+    120,
+    117
    ],
-   "foot": 6,
+   "foot": 4,
    "dx": 0,
    "subject": "an egyptian warlord in a tall red crown and dark red and black linen holding a staff topped with the head of the Set animal, on a black horse",
    "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
    "attack": "spell casting: the rider raises the Set staff to the sky, the staff flashes with red light, then lowers it to the starting pose; the horse stays in place",
    "strike": 2,
    "face": [
-    84,
-    52
-   ]
+    57,
+    35
+   ],
+   "animCanvas": [
+    176,
+    172
+   ],
+   "scale": 0.68
   },
   "lykaon": {
    "name": "Lykaon",
@@ -1588,6 +1621,202 @@
     -10,
     -6,
     0
+   ]
+  },
+  "apepi": {
+   "name": "Apepi",
+   "src": "pixel/src/hero_apepi.png",
+   "canvas": [
+    152,
+    160
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a hyksos king with a curled dark beard in a pointed bronze helmet and scale armour holding a sickle-sword, a serpent standard pole beside him, on a dark bay horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "sickle-sword attack: the rider swings the sickle-sword up and across in a slash to the right, then lowers it to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    71,
+    44
+   ],
+   "walkLock": [
+    0,
+    -4,
+    -9,
+    -13,
+    -14,
+    -10,
+    -5,
+    1
+   ]
+  },
+  "weni": {
+   "name": "Weni",
+   "src": "pixel/src/hero_weni.png",
+   "canvas": [
+    152,
+    160
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an old white-bearded egyptian general in a bronze breastplate holding a tall staff, on a grey horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "staff attack: the rider swings the staff forward to the right in a sweeping command, then lifts it back to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    67,
+    38
+   ],
+   "walkLock": [
+    0,
+    -3,
+    -7,
+    -13,
+    -15,
+    -12,
+    -7,
+    -1
+   ]
+  },
+  "ahmose": {
+   "name": "Ahmose",
+   "src": "pixel/src/hero_ahmose.png",
+   "canvas": [
+    152,
+    160
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an egyptian marine archer in a striped headband with a bow and a quiver, on a chestnut horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "bow shot: the rider draws the bowstring back, looses an arrow to the right, then lowers the bow to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    69,
+    31
+   ],
+   "walkLock": [
+    0,
+    -4,
+    -9,
+    -15,
+    -18,
+    -16,
+    -11,
+    -4
+   ]
+  },
+  "imhotep": {
+   "name": "Imhotep",
+   "src": "pixel/src/hero_imhotep.png",
+   "canvas": [
+    152,
+    160
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a shaven-headed egyptian sage in a long white robe holding a papyrus scroll, on a cream horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the papyrus scroll to the sky, it flashes with golden light, then lowers it to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    68,
+    30
+   ],
+   "walkLock": [
+    0,
+    -3,
+    -7,
+    -11,
+    -14,
+    -12,
+    -6,
+    -1
+   ]
+  },
+  "khaemwaset": {
+   "name": "Khaemwaset",
+   "src": "pixel/src/hero_khaemwaset.png",
+   "canvas": [
+    152,
+    160
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an egyptian prince-priest in a spotted leopard skin holding a staff topped with a golden ibis, on a dun horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the ibis staff to the sky, it flashes with golden light, then lowers it to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    68,
+    31
+   ],
+   "walkLock": [
+    0,
+    -2,
+    -7,
+    -14,
+    -18,
+    -16,
+    -11,
+    -5
+   ]
+  },
+  "tiye": {
+   "name": "Tiye",
+   "src": "pixel/src/hero_tiye.png",
+   "canvas": [
+    152,
+    160
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an egyptian queen in a gold vulture crown and a white and gold dress holding a golden sceptre, on a bay horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the golden sceptre to the sky, it flashes with dark violet light, then lowers it to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    67,
+    33
+   ],
+   "walkLock": [
+    0,
+    -3,
+    -8,
+    -12,
+    -13,
+    -12,
+    -8,
+    -3
+   ]
+  },
+  "nebet": {
+   "name": "Nebet",
+   "src": "pixel/src/hero_nebet.png",
+   "canvas": [
+    152,
+    160
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an egyptian woman vizier in a white robe and a gold circlet holding a papyrus and a white staff, on a black horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the white staff to the sky, it flashes with white-gold light, then lowers it to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    69,
+    33
+   ],
+   "walkLock": [
+    0,
+    -5,
+    -10,
+    -14,
+    -15,
+    -12,
+    -9,
+    -4
    ]
   }
  },

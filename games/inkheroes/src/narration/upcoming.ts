@@ -33,7 +33,8 @@ function storyLines(adv: Adventure): LineId[] {
   if (adv.mapId === 'othrys') return ['othrys-won', 'chapter-won'];
   if (adv.mapId === 'nekhen') return ['part-abu'];
   if (adv.mapId === 'abu') return ['abu-won', 'part-redLand'];
-  if (adv.mapId === 'red-land') return ['twoLands-won'];
+  if (adv.mapId === 'red-land') return ['redLand-won', 'part-delta'];
+  if (adv.mapId === 'delta') return ['twoLands-won'];
   return [];
 }
 

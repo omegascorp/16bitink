@@ -2,7 +2,7 @@ import type { MapDef } from './types';
 import { lockedIn, TWO_LANDS_UNLOCKS } from './unlocks';
 
 /**
- * Chapter 2, part 7: the Red Land (in its own tiles; see twoLands.ts, which
+ * Chapter 2, part 3: the Red Land (in its own tiles; see twoLands.ts, which
  * places it east of Abu, through a pass in the dunes of Abu's east bank).
  * Deshret, Set's desert: Sethi, a lord of our own people who serves Set,
  * holds Nubt, the city of gold, in the far east behind a ridge with two ways
@@ -89,11 +89,15 @@ export const RED_LAND_LAND: MapDef = {
     },
     // His builds, one a day while his purse allows: troops first, then their growth and upgrades (the part's own unlocks bound it).
     build: ['guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2', 'mageGuild1', 'cityHall', 'monastery', 'guardhouse3', 'archeryRange3', 'castle', 'griffinTower3', 'barracks3', 'monastery2', 'tiltyard'],
-    purse: { gold: 6000, wood: 15, ore: 15, mercury: 3, sulfur: 3, crystal: 3, gems: 3 },
-    // A shorter head start than Kassander's 0.75 (coordinator's third lever, Nov 8).
+    // 4000 gold as a lord (6000 under the old rules): measured, it opens him at about 1.6 times a rider (Nov 9).
+    purse: { gold: 4000, wood: 15, ore: 15, mercury: 3, sulfur: 3, crystal: 3, gems: 3 },
+    // A shorter head start than Kassander's 0.75 (coordinator's third lever, Nov 8): his rules' (rival.ts), unused by the lord.
     headStart: 0.6,
+    // A lord since Nov 9 (the lord mind's trial won 60 to 80% for our side; the old rules' bot won 1 of 24): he plays from Nubt, its garrison and purse, with no head start.
+    mind: 'lord',
   },
-  purse: { gold: 10000, wood: 20, ore: 20, mercury: 5, sulfur: 5, crystal: 5, gems: 5 },
+  // Played fresh: about what a rider brings from Abu (14,000 gold, measured).
+  purse: { gold: 14000, wood: 20, ore: 20, mercury: 5, sulfur: 5, crystal: 5, gems: 5 },
   // What the chapter has opened by its third part (src/level/unlocks.ts).
   off: lockedIn(TWO_LANDS_UNLOCKS, 3),
   seed: 6121,

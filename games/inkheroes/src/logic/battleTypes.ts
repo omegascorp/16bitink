@@ -80,10 +80,18 @@ export interface BattleState {
   readonly fled?: Side;
   /** The walls, in a battle at a fortified town. */
   readonly siege?: Siege;
+  /**
+   * The active stack moved (a `hold` move) and stopped beside an enemy without
+   * striking: its turn waits for a strike from where it stands, Defend or Wait.
+   * `from` is where the move began (a swooper flies back there), `moved` the
+   * steps it took (the charge counts them).
+   */
+  readonly held?: { readonly stack: number; readonly from: Hex; readonly moved: number };
 }
 
 export type Action =
-  | { readonly type: 'move'; readonly to: Hex }
+  /** `hold`: the player's move, which stops short of ending the turn when it ends beside an enemy (BattleState.held). */
+  | { readonly type: 'move'; readonly to: Hex; readonly hold?: boolean }
   | { readonly type: 'attack'; readonly target: number; readonly from: Hex }
   | { readonly type: 'shoot'; readonly target: number }
   | { readonly type: 'wait' }

@@ -193,6 +193,9 @@ import bennu3Attack from './units/bennu3-attack.png?url';
 import gigasIdle from './units/gigas-idle.png?url';
 import gigasWalk from './units/gigas-walk.png?url';
 import gigasAttack from './units/gigas-attack.png?url';
+import ammitIdle from './units/ammit-idle.png?url';
+import ammitWalk from './units/ammit-walk.png?url';
+import ammitAttack from './units/ammit-attack.png?url';
 import hero_playerIdle from './units/hero_player-idle.png?url';
 import hero_playerWalk from './units/hero_player-walk.png?url';
 import hero_playerAttack from './units/hero_player-attack.png?url';
@@ -232,6 +235,27 @@ import hero_kallistoAttack from './units/hero_kallisto-attack.png?url';
 import hero_melampusIdle from './units/hero_melampus-idle.png?url';
 import hero_melampusWalk from './units/hero_melampus-walk.png?url';
 import hero_melampusAttack from './units/hero_melampus-attack.png?url';
+import hero_apepiIdle from './units/hero_apepi-idle.png?url';
+import hero_apepiWalk from './units/hero_apepi-walk.png?url';
+import hero_apepiAttack from './units/hero_apepi-attack.png?url';
+import hero_weniIdle from './units/hero_weni-idle.png?url';
+import hero_weniWalk from './units/hero_weni-walk.png?url';
+import hero_weniAttack from './units/hero_weni-attack.png?url';
+import hero_ahmoseIdle from './units/hero_ahmose-idle.png?url';
+import hero_ahmoseWalk from './units/hero_ahmose-walk.png?url';
+import hero_ahmoseAttack from './units/hero_ahmose-attack.png?url';
+import hero_imhotepIdle from './units/hero_imhotep-idle.png?url';
+import hero_imhotepWalk from './units/hero_imhotep-walk.png?url';
+import hero_imhotepAttack from './units/hero_imhotep-attack.png?url';
+import hero_khaemwasetIdle from './units/hero_khaemwaset-idle.png?url';
+import hero_khaemwasetWalk from './units/hero_khaemwaset-walk.png?url';
+import hero_khaemwasetAttack from './units/hero_khaemwaset-attack.png?url';
+import hero_tiyeIdle from './units/hero_tiye-idle.png?url';
+import hero_tiyeWalk from './units/hero_tiye-walk.png?url';
+import hero_tiyeAttack from './units/hero_tiye-attack.png?url';
+import hero_nebetIdle from './units/hero_nebet-idle.png?url';
+import hero_nebetWalk from './units/hero_nebet-walk.png?url';
+import hero_nebetAttack from './units/hero_nebet-attack.png?url';
 import bgGrass from './battle/bg-grass.png?url';
 import bgDirt from './battle/bg-dirt.png?url';
 import bgRough from './battle/bg-rough.png?url';
@@ -670,6 +694,12 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 58, y: 50 },
     url: { idle: gigasIdle, walk: gigasWalk, attack: gigasAttack },
   },
+  ammit: {
+    name: "Ammit", w: 171, h: 125, footX: 82, footY: 120,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 123, y: 33 },
+    url: { idle: ammitIdle, walk: ammitWalk, attack: ammitAttack },
+  },
 };
 
 /** The hero standing beside the field. Keyed by the ids in units.json `heroes`. */
@@ -702,15 +732,15 @@ export const HERO_ART: Readonly<Record<string, UnitArt>> = {
     url: { idle: hero_neferetIdle, walk: hero_neferetWalk, attack: hero_neferetAttack },
   },
   paser: {
-    name: "Paser", w: 176, h: 172, footX: 73, footY: 166,
+    name: "Paser", w: 123, h: 140, footX: 54, footY: 136,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
-    face: { x: 80, y: 30 },
+    face: { x: 56, y: 21 },
     url: { idle: hero_paserIdle, walk: hero_paserWalk, attack: hero_paserAttack },
   },
   sethi: {
-    name: "Sethi", w: 176, h: 172, footX: 81, footY: 166,
+    name: "Sethi", w: 120, h: 117, footX: 55, footY: 113,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
-    face: { x: 84, y: 52 },
+    face: { x: 57, y: 35 },
     url: { idle: hero_sethiIdle, walk: hero_sethiWalk, attack: hero_sethiAttack },
   },
   lykaon: {
@@ -754,6 +784,51 @@ export const HERO_ART: Readonly<Record<string, UnitArt>> = {
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
     face: { x: 63, y: 30 },
     url: { idle: hero_melampusIdle, walk: hero_melampusWalk, attack: hero_melampusAttack },
+  },
+  apepi: {
+    name: "Apepi", w: 152, h: 160, footX: 59, footY: 154,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    walkFootX: 61,
+    face: { x: 71, y: 44 },
+    url: { idle: hero_apepiIdle, walk: hero_apepiWalk, attack: hero_apepiAttack },
+  },
+  weni: {
+    name: "Weni", w: 152, h: 160, footX: 59, footY: 154,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 67, y: 38 },
+    url: { idle: hero_weniIdle, walk: hero_weniWalk, attack: hero_weniAttack },
+  },
+  ahmose: {
+    name: "Ahmose", w: 152, h: 160, footX: 59, footY: 154,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    walkFootX: 63,
+    face: { x: 69, y: 31 },
+    url: { idle: hero_ahmoseIdle, walk: hero_ahmoseWalk, attack: hero_ahmoseAttack },
+  },
+  imhotep: {
+    name: "Imhotep", w: 152, h: 160, footX: 59, footY: 154,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 68, y: 30 },
+    url: { idle: hero_imhotepIdle, walk: hero_imhotepWalk, attack: hero_imhotepAttack },
+  },
+  khaemwaset: {
+    name: "Khaemwaset", w: 152, h: 160, footX: 59, footY: 154,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 68, y: 31 },
+    url: { idle: hero_khaemwasetIdle, walk: hero_khaemwasetWalk, attack: hero_khaemwasetAttack },
+  },
+  tiye: {
+    name: "Tiye", w: 152, h: 160, footX: 59, footY: 154,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 67, y: 33 },
+    url: { idle: hero_tiyeIdle, walk: hero_tiyeWalk, attack: hero_tiyeAttack },
+  },
+  nebet: {
+    name: "Nebet", w: 152, h: 160, footX: 59, footY: 154,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    walkFootX: 60,
+    face: { x: 69, y: 33 },
+    url: { idle: hero_nebetIdle, walk: hero_nebetWalk, attack: hero_nebetAttack },
   },
 };
 

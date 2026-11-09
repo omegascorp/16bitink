@@ -17,7 +17,19 @@ export const IANTHE: HeroDef = {
 export const BORDER_RECRUITS: readonly HeroDef[] = [IANTHE];
 
 /**
- * The Two Lands' second hero, hired from part 6 (Abu): Paser, a chariot
+ * Neferet as the Two Lands open (Nekhen places her): Isis's priestess, who
+ * curses and wards and, with an Ankh, raises the fallen. The Egyptian
+ * roster's Cleric, with the numbers of her first part.
+ */
+export const NEFERET: HeroDef = {
+  id: 'neferet', name: 'Neferet', heroClass: 'cleric', x: 0, y: 0, faction: 'kemet',
+  attack: 1, defense: 1, power: 2, knowledge: 3, skills: { wisdom: 1 }, spells: ['curse', 'ward'], gear: { book: 'novicePapyrus' }, ankhs: 2,
+  army: [{ creature: 'levy', count: 18 }, { creature: 'nubian', count: 7 }],
+  blurb: "Isis's priestess of Nekhen, whose rites curse a foe and ward a friend.",
+};
+
+/**
+ * The Two Lands' second hero, hired from part 2 (Abu): Paser, a chariot
  * captain, the fighter beside Neferet the mystic. No art of his own yet
  * (the hero art falls back to the player's, as Neferet's did).
  */
@@ -28,5 +40,5 @@ export const PASER: HeroDef = {
   blurb: 'A chariot captain of the southern road, first into any breach.',
 };
 
-/** From part 6 (Abu) on: the chapter's second hero. */
+/** From part 2 (Abu) on: the chapter's second hero. */
 export const TWO_LANDS_RECRUITS: readonly HeroDef[] = [PASER];

@@ -126,6 +126,7 @@ The user: the rival hires more than one hero, so "we need to make different hero
 - **Walking** units go round others and obstacles; **flying** units reach any free hex within their speed.
 - **Two-hex units** (Griffin, Centaur, Companion, Wolf, Boar, Hydra; `wide` in `creatures.ts`), as H3/VCMI's double-wide: the unit stands on its head hex and the hex behind it in the same row (the attacker faces right, so its tail is to the left; the defender's to the right). Facing never changes. They start one column in, tail on the edge column. Both hexes must be free and on the field at every step (walkers) or where they land (flyers); speed counts head steps, so a wide unit can't slip through a one-hex gap in a wall that runs along a row. Anyone may strike them from beside either hex, and either hex counts for "an enemy next to a shooter". A wide unit strikes from any spot where its head or its tail touches the target; with only the tail touching it turns round to strike and back after (animation only, VCMI's isToReverse). Shot range counts from the shooter's head to the target's nearest hex. Code: `src/logic/footprint.ts`.
 - **Melee:** move next to the target and strike. The target **retaliates** once a round, after the first strike only.
+- **A move that ends beside an enemy (user, Nov 9)** doesn't end the player's turn: the unit may still strike an enemy beside it from where it stands, or Defend, or Wait (which ends the turn as the move would have). It adds no power: the charge counts the hexes walked, the strike is answered as usual, a swooper flies back to where it began, and a shooter there gets no shot. Only the player's moves do this (`hold` on the move, `BattleState.held`); the AI and Auto strike as part of the move as before, and Auto switched on mid-turn strikes or ends it. The status line reads "strike an enemy beside them, or Defend"; the spellbook and strikes at the gate wait. Tests: test/strikeAfterMove.test.ts.
 - **Shooting:** shooters fire at any enemy unless an enemy stands next to them; −50% damage beyond 7 hexes; −50% in melee. Ranged hits aren't answered. Shots run out.
 - **Damage:** base = (random between min and max) × count. If Attack > Defense: +5% a point, at most +300%. If Defense > Attack: −2.5% a point, at most −70%. Bonuses (Offense or Archery, luck's ×2) add; penalties (range, melee for shooters, Armorer, Shield) multiply. At least 1. Damage kills from the top creature down.
 - **Morale:** each point gives a 1-in-24 chance of a second action straight after; each negative point a 2-in-24 chance of losing the turn. Undead have none. Mixing factions costs 1 (2+ factions) or 2 (3+).
@@ -344,7 +345,7 @@ A person, who casts spells, should lose less.
 
 **Why a fourth part.** After the Black Banner the Greek town still had 7 of its 36 buildings closed (Capitol, Royal Tiltyard, Cataphract Lists, Chiron's Cave, Seraph Spire, Elder Spire, Olympus Gate) and 6 of its 21 units out of reach (Royal Companion, Cataphract, Centaur Sage, and the whole Titan line), while the hall promised them "on a later map". No later chapter plays the Greeks, so chapter 1 finishes the city itself. **Rule from now on: a chapter's last part opens the rest of its people's tree**, so every chapter ends with its whole city built (Egypt's Benben Stone and the rest of its lines 5–7 then need a part 7 of their own: noted, not built now).
 
-**Part numbers run on:** chapter 1 is parts 1–4 (free), chapter 2 parts 5–7 (Nekhen, Abu, the Red Land; "Part 5 of 7: Nekhen"). Saves and recorded wins are keyed by map ids, never by numbers, so they keep working; anything that counts from `TWO_LANDS_FIRST` moves to 5. The Black Banner stops being the chapter's end: its win tells a part's end (`blackBanner-won`, new line) and rides on; the chapter's ending and "Chapter 1 complete" move to Othrys's win.
+**Part numbers:** chapter 1 is parts 1–4 (free). Chapter 2 first ran on as parts 5–7; since Nov 9 (user) each chapter counts its own parts, so it reads "Part 1 of 4: Nekhen". Saves and recorded wins are keyed by map ids, never by numbers, so they keep working; anything that counts from `TWO_LANDS_FIRST` moves to 5. The Black Banner stops being the chapter's end: its win tells a part's end (`blackBanner-won`, new line) and rides on; the chapter's ending and "Chapter 1 complete" move to Othrys's win.
 
 **Story.** Kassander served a master. **Lykaon**, the wolf-king of Arcadia, who in the old tales served a feast to Zeus to test him and was cursed for it, has woken the old faith of the Titans. From **Lykosoura**, the oldest city of Arcadia, he rides for **Mount Othrys**, the Titans' seat in the war before the gods, where the Titans' forge still burns. Whoever holds the forge has the Titans' oath. The League sends Rowan south.
 
@@ -440,7 +441,7 @@ The lord AI plays the **player's** side too (from what the bot earns riding on t
 
 ### Part 4 as built: the city, the sites and the land (Nov 9)
 
-- **Numbering.** Chapter 1 is parts 1–4, chapter 2 parts 5–7 (`TWO_LANDS_FIRST` 5, `soldOn`, the unlock comments, the cards). Saves and wins are keyed by map id: a save left on the Black Banner's victory card rides on into Othrys, and a recorded Black Banner win opens it (tested). The Black Banner's win now tells `blackBanner-won` and rides on.
+- **Numbering.** Chapter 1 is parts 1–4. Inside, chapter 2's `n` runs on from 5 (`TWO_LANDS_FIRST`, `soldOn`); on screen it is parts 1–4 since Nov 9 (`partNumber`). Saves and wins are keyed by map id: a save left on the Black Banner's victory card rides on into Othrys, and a recorded Black Banner win opens it (tested). The Black Banner's win now tells `blackBanner-won` and rides on.
 - **Narration, written only:** `blackBanner-won`, `part-othrys`, and `othrys-won` (the Titans' oath). `chapter-won` is recorded, so its words stay; `othrys-won` is told on Othrys's victory card just before it (a part's `won` line is now told on a chapter's last part too). To fold the oath into `chapter-won` instead, it must be recorded again.
 - **The city.** `UNLOCKS[3]` opens the seven buildings; on part 4 nothing Greek is off and nothing says "Later map". `BUILD_PLAN` runs on to the Capitol, the Titans and the last upgrades. Checked in the browser: the hall offers them, the fully built town draws each, the fort hires Cataphracts, Centaur Sages and Titan Lords.
 - **Level-3 traits** are the existing ones: Cretan Archer `noRangePenalty`, Cataphract `shieldWall`, Titan Lord `cleave` (seen hitting two stacks at once in dev/battle.html). New trait `noMeleePenalty` for the Gigas (stats as above, 4 shots, two hexes; stands in as the Cyclops until its art).
@@ -461,7 +462,7 @@ Winning the last part built shows its Victory card, then **Chapter 1 complete** 
 
 ### The chapter card
 
-**Two chapters (Nov 8).** The menu has a card per chapter, each under its own heading ("Chapter II · The Two Lands"), side by side where both fit; on a screen too small for both, one shows (the last with a game in play) with arrows by its heading to the other. Part numbers run on through the campaign, so chapter 2's card says "Part 5 of 7: Nekhen" (since Othrys became part 4, Nov 9). Chapter 2 is the full game's: to a player who doesn't own it, its card shows its parts dim, a short pitch in place of the goal and **Unlock · <price>** (the host's checkout, counted as the `locked` offer); to an owner whose maps failed to load, the error and Try again. Each chapter keeps its own game: Continue and Start the chapter over act on that chapter only.
+**Two chapters (Nov 8).** The menu has a card per chapter, each under its own heading ("Chapter II · The Two Lands"), side by side where both fit; on a screen too small for both, one shows (the last with a game in play) with arrows by its heading to the other. Part numbers count within each chapter (user, Nov 9: "the chapter is different anyway"), so chapter 2's card says "Part 1 of 4: Nekhen" and lists its parts 1 to 4, as chapter 1's does. Chapter 2 is the full game's: to a player who doesn't own it, its card shows its parts dim, a short pitch in place of the goal and **Unlock · <price>** (the host's checkout, counted as the `locked` offer); to an owner whose maps failed to load, the error and Try again. Each chapter keeps its own game: Continue and Start the chapter over act on that chapter only.
 
 The menu shows **this game**: each part before the one in play says Won, the one in play says In play, the rest wait dim. What earlier games won doesn't count: after Start over the chapter reads from part 1 again. With no game in play it shows Won throughout only if the whole chapter was won. Continue is the one main button, Start the chapter over a plain one under it.
 
@@ -471,9 +472,9 @@ Every skill has a 32 px icon, each its own object so none repeats an icon the ga
 
 ## Chapter 2: The Two Lands (Egypt, paid)
 
-Map 4 is chapter 2's first part, played as Egypt (user, Nov 8: "Ch. 2 map 1, Egypt"; the roster, Neferet first and the sluice story approved as drafted the same day). As in chapter 1, the chapter is one land that grows over three parts, with a fresh hero; gear and progress from chapter 1 don't carry over. Chapter 2 is the first paid content.
+Nekhen is chapter 2's first part, played as Egypt (user, Nov 8: "Ch. 2 map 1, Egypt"; the roster, Neferet first and the sluice story approved as drafted the same day). As in chapter 1, the chapter is one land that grows over its parts (four since Nov 9), with a fresh hero; gear and progress from chapter 1 don't carry over. Chapter 2 is the first paid content.
 
-Players arrive having won chapter 1, so this chapter doesn't re-teach armies, towns or magic. Each part still adds one new thing: **part 4, the new people and Sacred Rites**; part 5, the siege ramp (Egypt's way past walls); part 6, a rival lord.
+Players arrive having won chapter 1, so this chapter doesn't re-teach armies, towns or magic. Each part still adds one new thing: **part 1, the new people and Sacred Rites**; part 2, the siege ramp (Egypt's way past walls); part 3, a rival lord; part 4, a lord's mind and the rest of the city.
 
 ### The Two Lands (faction id `kemet`)
 
@@ -484,7 +485,7 @@ The Nile kingdom under its old gods. Soldiers and archers at the bottom, the tem
 | 1 | Nile Levy (levy) | 4 | 5 | 1–3 | 10 | 4 | 14 | 60 | Spear and hide shield |
 | 2 | Nubian Archer (nubian) | 6 | 3 | 2–3 | 10 | 4 | 9 | 100 | Shoots, 12 shots |
 | 3 | Jackal Warrior (jackal) | 9 | 6 | 3–6 | 22 | 7 | 7 | 200 | Jackal-headed temple guard. Fast, on foot |
-| 4 | War Chariot (chariot) | 10 | 10 | 5–9 | 35 | 8 | 4 | 300 | Two hexes. Charge (+5% damage a hex moved) |
+| 4 | War Chariot (chariot) | 10 | 10 | 5–9 | 35 | 8 | 4 | 300 | Three hexes (from Nov 9). Charge (+5% damage a hex moved) |
 | 5 | Mummy (mummy) | 11 | 11 | 8–12 | 40 | 4 | 3 | 400 | Undead. **Curse 25%:** a strike that lands may curse the target (it deals its least damage) |
 | 6 | Sphinx (sphinx) | 15 | 16 | 15–25 | 110 | 6 | 2 | 1000 | Two hexes. **Guardian:** answers every strike |
 | 7 | Bennu (bennu) | 20 | 18 | 40–50 | 180 | 11 | 1 | 3000 + 1 gem | Flies. **Rebirth:** once a battle, when the stack is wiped out it rises again with half its creatures (at least 1) |
@@ -501,7 +502,7 @@ The Nile kingdom under its old gods. Soldiers and archers at the bottom, the tem
 
 The numbers follow the Olympian League's level by level so the two armies are about even; the balance bot (bot vs bot on the real rules) settles them before release, as it did for chapter 1.
 
-**Buildings.** Halls, walls, Tavern, Marketplace, Storehouse and Treasury work as the Greeks' under the same ids. The Mage Guild is the **House of Life** (the temple's scriptorium), the Blacksmith the **Workshop** (sells the ramp from part 5), the Stables the **Chariot Road**. The dwellings are Egypt's own:
+**Buildings.** Halls, walls, Tavern, Marketplace, Storehouse and Treasury work as the Greeks' under the same ids. The Mage Guild is the **House of Life** (the temple's scriptorium), the Blacksmith the **Workshop** (sells the ramp from part 2), the Stables the **Chariot Road**. The dwellings are Egypt's own:
 
 | Line | Dwelling | First upgrade | Second upgrade |
 |---|---|---|---|
@@ -528,11 +529,11 @@ Raising the dead "needs preparation or a scarce resource" (lore, Nov 3): the Rit
 ### Heroes
 
 - **Neferet**, priestess of Isis (mystical, the chapter's first hero): Attack 1, Defense 1, Spell Power 2, Knowledge 3, basic Wisdom, the Novice's Papyrus (Egypt's spellbook) with Curse of Set and Ward of Isis, 2 Ankhs. Army: 18 Nile Levies, 7 Nubian Archers. Chapter 1 opened with a fighter; this one opens with a mystic.
-- **Paser**, a chariot captain (military), hired at a Tavern from part 5, as Ianthe was.
+- **Paser**, a chariot captain (military), hired at a Tavern from part 2, as Ianthe was.
 
-Gear: one gray set of Egypt's own on part 4 (Faience, for the mystic), as fixed drops, as the Bronze set was on map 1.
+Gear: one gray set of Egypt's own on part 1 (Faience, for the mystic), as fixed drops, as the Bronze set was on map 1.
 
-### Part 4: Nekhen (the map to build first)
+### Part 1: Nekhen (the map to build first)
 
 32 × 24, on the Upper Nile. The flood didn't come: the great sluice of the canal is held by a **Petsuchos**, the temple's giant crocodile gone wild, with its brood. Neferet holds **Nekhen** (Village Hall, Tavern, Levy Camp). The Nile runs down the land with a green strip each side and desert beyond (the `sand` terrain, already built for battles); the canal crosses it at the sluice. **Goal:** take the sluice back from the Petsuchos. Opens: halls, Fort, Citadel, Tavern, House of Life (level 1), the dwellings of lines 1–4, the Temple of Osiris.
 
@@ -543,8 +544,8 @@ New neutrals (Egypt's lands):
 | Hyena (hyena) | 1 | 4 | 3 | 1–3 | 7 | 6 | |
 | Sand Raider (raider) | 2 | 7 | 3 | 2–4 | 10 | 6 | Shoots, 8 shots |
 | Giant Scorpion (scorpion) | 3 | 8 | 9 | 3–6 | 22 | 5 | **Poison:** a strike that lands takes a tenth of its damage again at the start of each of the target's next 3 turns |
-| Nile Crocodile (crocodile) | 3 | 9 | 8 | 4–6 | 26 | 4 | Two hexes. Strikes unanswered |
-| Petsuchos (petsuchos) | 6 | 16 | 14 | 15–22 | 120 | 4 | Two hexes. The boss at the sluice. Regen 10 (as the Hydra) |
+| Nile Crocodile (crocodile) | 3 | 9 | 8 | 4–6 | 26 | 4 | Three hexes (from Nov 9). Strikes unanswered |
+| Petsuchos (petsuchos) | 6 | 16 | 14 | 15–22 | 120 | 5 | Three hexes and speed 5 (from Nov 9; it was 4). The boss at the sluice. Regen 10 (as the Hydra) |
 
 The story is narrated by the chapter-1 narrator (David), as chapter 1's is.
 
@@ -568,15 +569,15 @@ The story is narrated by the chapter-1 narrator (David), as chapter 1's is.
 - **Ward of Isis** lasts until it has soaked its fill (not Spell Power rounds), and soaks any damage: blows, spells, the moat, poison.
 - **Rite of Osiris** is cast on a friendly stack still standing (a stack wiped out has left the field) and raises it no higher than the count it began the battle with. Raised creatures stay after the battle.
 - **The spellbook** shows a divine school's tab only when the hero knows one of its spells (a Greek book with none still shows Olympian Favor). The Rite's page shows its Ankh price and the hero's Ankhs.
-- **No Egypt art yet:** each unit stands in as a drawn one of the same make and level, tinted sand (`src/scenes/battle/standIns.ts`, the one place); the Temple of Osiris borrows the Mage Guild's picture in the hall and has no plot in the townscape yet; the new spells and the Papyrus borrow icons. The Workshop sold the Greeks' catapults until the ramp (since part 5, it sells only ramps: see "Part 5 as built"). `dev/battle.html?a=levy:20,mummy:4&b=hoplite:20&hero=kemet` stages Egypt against Greece (units by id or shown name).
+- **No Egypt art yet:** each unit stands in as a drawn one of the same make and level, tinted sand (`src/scenes/battle/standIns.ts`, the one place); the Temple of Osiris borrows the Mage Guild's picture in the hall and has no plot in the townscape yet; the new spells and the Papyrus borrow icons. The Workshop sold the Greeks' catapults until the ramp (since part 5, it sells only ramps: see "Part 2 as built"). `dev/battle.html?a=levy:20,mummy:4&b=hoplite:20&hero=kemet` stages Egypt against Greece (units by id or shown name).
 
 **Built (step 4 and part 4, Nov 8): chapter 2 in the campaign, and Nekhen.**
 
-- **Chapters** (`src/level/maps.ts`): `CHAPTERS` names each chapter, its parts (numbered on: chapter 2 is parts 4 to 6), whether it is paid, its pitch, its save slot and its ending line. `MAPS` is still chapter 1's three. A part rides on only within its chapter (`nextMap`), so the Black Banner never leads into Nekhen. Chapter 2 is one land like the Border March: `src/level/twoLands.ts` stitches it from `nekhen.ts` (only Nekhen so far, 32 × 24 at the top-left corner), so parts 5 and 6 are added there and `rideOn` takes the hero into them.
-- **Paid, as InkSnake's chapters are:** `content/paid.ts` serves `twoLands.ts`'s parts; the website's registry (`apps/web/src/games/content.server.ts`) now lists InkHeroes. For an owner, boot fetches them (`host.loadContent()`), checks every field and id (`src/level/validate.ts`: a throw on anything off; since part 6 a rival is checked too: his hero, build order and purse, and the map's storms, `won` line, raced towns and town looks) and installs them; nobody else's game has them. `test/twoLands.test.ts` fails if client code imports `content/paid`, `twoLands` or `nekhen`. In dev, `?unlock` plays as an owner and `?locked` as a player without the game, whatever `DEV_UNLOCK` says (`QUERY='&unlock' node dev/drive.mjs …`).
-- **Ending:** with only part 4 built, Nekhen's win ended on the chapter card "so far" with `nekhen-won` (see "The end of the early access"). Since part 5, Nekhen rides on into Abu and Abu's win (`abu-won`) is the chapter's ending so far.
+- **Chapters** (`src/level/maps.ts`): `CHAPTERS` names each chapter, its parts (`n` runs on through the campaign and decides the chapter; the player reads them counted within it, `partNumber`), whether it is paid, its pitch, its save slot and its ending line. `MAPS` is still chapter 1's three. A part rides on only within its chapter (`nextMap`), so the Black Banner never leads into Nekhen. Chapter 2 is one land like the Border March: `src/level/twoLands.ts` stitches it from `nekhen.ts` (only Nekhen so far, 32 × 24 at the top-left corner), so its later parts are added there and `rideOn` takes the hero into them.
+- **Paid, as InkSnake's chapters are:** `content/paid.ts` serves `twoLands.ts`'s parts; the website's registry (`apps/web/src/games/content.server.ts`) now lists InkHeroes. For an owner, boot fetches them (`host.loadContent()`), checks every field and id (`src/level/validate.ts`: a throw on anything off; since the Red Land a rival is checked too: his hero, build order and purse, and the map's storms, `won` line, raced towns and town looks) and installs them; nobody else's game has them. `test/twoLands.test.ts` fails if client code imports `content/paid`, `twoLands` or `nekhen`. In dev, `?unlock` plays as an owner and `?locked` as a player without the game, whatever `DEV_UNLOCK` says (`QUERY='&unlock' node dev/drive.mjs …`).
+- **Ending:** with only Nekhen built, its win ended on the chapter card "so far" with `nekhen-won` (see "The end of the early access"). Since Abu, Nekhen rides on into Abu and Abu's win (`abu-won`) is the chapter's ending so far.
 
-### Part 4 as built (Nov 8)
+### Part 1 as built (Nov 8)
 
 `src/level/nekhen.ts`. The Nile runs down the middle of the land, three tiles wide, with three tiles of floodplain (grass, palm clumps drawn as the map's trees) each side and sand beyond, roughened at the edges, with dunes and boulders; desert dunes close the edges. Two crossings: the **bridge** below Nekhen (the road from the town runs to it) and a **ford** (a sandbar) to the south. On the east bank, at the head of the canal, the **great sluice**: the Petsuchos lies there; the river runs into the canal's head and stops, and the canal's bed runs on east dry (the sluice is shut). Nekhen's gate is at (9, 7) on the west bank, Neferet before it. Par 21 days, as map 1.
 
@@ -598,43 +599,43 @@ The story is narrated by the chapter-1 narrator (David), as chapter 1's is.
 
 So Nekhen plays about map 1's length (two days longer for a steady player: the sluice is across the river and down the far bank), its goal costs a real share of the army where the ogres hardly do, and the first week near home is as safe as map 1's. Tried and dropped: two Petsuchoi with 6 crocodiles (the bot waited until week 3, day 17, and lost 5%); 9 Sand Raiders on the bridge (lost 23% on day 1: shooters bite at the start); a brood of 10 (steady day 12 at 17 to 35%, but a careful player waited to day 17).
 
-### Part 5: Abu, the fort at the cataract (designed Nov 8; user: "proceed with the next map")
+### Part 2: Abu, the fort at the cataract (designed Nov 8; user: "proceed with the next map")
 
 With the sluice open the flood comes, and the river road south opens. Upstream at the First Cataract, where the Nile breaks over black granite, Sand Raiders have taken **Abu**, the island fort that guards the kingdom's southern gate, and with it the river trade. Neferet has to take it back. Like Thornwood on map 2, it is the chapter's first siege, so the new thing is **Egypt's way past walls: the siege ramp**. A second hero, Paser, waits at the Tavern.
 
 **The siege ramp (Egypt's war machine).** Where the Greek catapult breaks walls at random, Egypt's workers raise an earthen ramp against the wall where the player chooses, and the army walks up it. It goes in the War Machine slot like the catapult, comes to sieges only, works by itself and can't be hit.
 - **Choosing the place:** at the start of a siege the player taps one of the four stretches of wall (the lit ones; the gate can't take a ramp). A bot or auto battle picks the stretch with the fewest manned towers able to shoot at it, ties to the one nearest the gate.
 - **Building:** at the start of each round the ramp grows; when it's done, that stretch's hex can be walked over both ways, as a breach can, and its moat hex is filled (no moat damage there). The wall itself still stands: shots over it are still halved, the towers and gate are untouched, and no tower falls.
-- **Grades:** Earth Ramp (Common, 1500 gold: ready at the start of round 3); Brick Ramp (Uncommon, 3000 gold: round 2); Ramp of the Pyramid Builders (Rare, a prize on part 6: round 2, and a second ramp at another stretch on round 3). The Workshop sells the Earth Ramp from part 5 and the Brick Ramp from part 6 (`MACHINE_UNLOCKS`).
+- **Grades:** Earth Ramp (Common, 1500 gold: ready at the start of round 3); Brick Ramp (Uncommon, 3000 gold: round 2); Ramp of the Pyramid Builders (Rare, a prize on part 3: round 2, and a second ramp at another stretch on round 3). The Workshop sells the Earth Ramp from part 2 and the Brick Ramp from part 3 (`MACHINE_UNLOCKS`).
 - **Against the catapult:** slower to open the first way in than a lucky catapult and never brings down a tower, but sure, aimed where the player wants it (away from the towers' fire), and it crosses the moat. Hand strikes on the gate and towers work as before, so a hero with no machine can still storm.
 - **The lesson:** as Thornwood's (the part's narrated intro, the card on riding at a walled town with no machine, the Workshop's room, the empty slot, the status line in battle), with the ramp's words.
 
-**Paser**, a chariot captain (Fighter), hired at any Tavern of ours from part 5 for 2500 gold, once, as Ianthe is in chapter 1: Attack 3, Defense 2, Spell Power 1, Knowledge 1, basic Offense, no book; 15 Nile Levies and 3 War Chariots. His gear is the **gray Scale set** (Attack, Defense, Morale; six pieces like the Bronze set), fixed drops on this part, on the side of the river where he is hired.
+**Paser**, a chariot captain (Fighter), hired at any Tavern of ours from part 2 for 2500 gold, once, as Ianthe is in chapter 1: Attack 3, Defense 2, Spell Power 1, Knowledge 1, basic Offense, no book; 15 Nile Levies and 3 War Chariots. His gear is the **gray Scale set** (Attack, Defense, Morale; six pieces like the Bronze set), fixed drops on this part, on the side of the river where he is hired.
 
 **New neutrals:**
 
 | Unit (id) | Lvl | Att | Def | Damage | HP | Speed | Growth / cost | Notes |
 |---|---|---|---|---|---|---|---|---|
 | Spitting Cobra (cobra) | 2 | 7 | 4 | 2–3 | 9 | 6 | 8, 120 | Shoots, 6 shots. Its spit poisons, as the scorpion's sting (poison now also comes on shots) |
-| Desert Lion (lion) | 4 | 12 | 9 | 6–10 | 38 | 7 | 4, 320 | Two hexes. Charge (+5% damage a hex moved) |
+| Desert Lion (lion) | 4 | 12 | 9 | 6–10 | 38 | 7 | 4, 320 | Three hexes (from Nov 9). Charge (+5% damage a hex moved) |
 
 **The land:** about Thornwood's size (40 × 32), added to the two lands' map south of Nekhen's (the Nile runs on down from Nekhen's, so the river joins), `src/level/abu.ts`, stitched in `twoLands.ts` with an `opening` that shows where the way south starts (not Abu itself). The river road runs south along the west bank through palm villages and quarries; the desert either side holds the cobras, lions and raiders; the cataract is a belt of granite rocks across the Nile with Abu on its island, reached by one causeway (guarded) and a ford above the rapids. **Abu** (Village Hall, Town Hall, Fort, Tavern, Levy Camp, Archers' Yard) is held by Sand Raiders (on its towers), Hyenas, Spitting Cobras and Desert Lions; its garrison is set by the bot so the siege costs about what Thornwood's did (no machine about 35%, Earth Ramp about 28%). The Crown's grant equivalent: Pharaoh's grant on riding on (2500 gold, 5 wood and ore). **Opens:** City Hall, Marketplace, the House of Life's second floor, the Workshop (Earth Ramp), Storehouse, Chariot Road, House of Embalming, the first upgrades of lines 1–4. Par 28 days, as Thornwood. Siege castle art: Abu stands behind the Greek castle on the field for now (an Egyptian mudbrick castle by the castles process later).
 
 **Balance** with `test/partBot.ts` riding on from Nekhen (the army a bot actually brings), never guessed numbers; the bot needs to buy and use a ramp, and a no-machine run is kept for the table.
 
-### Part 5 as built (Nov 8)
+### Part 2 as built (Nov 8)
 
 `src/level/abu.ts`, stitched in `twoLands.ts` at (0, 24), right under Nekhen (the chapter's land is now 40 × 56; Nekhen's own 32 × 24 is unchanged). The Nile runs on from Nekhen's columns 15 to 17 down a straight reach, with the **river road** on the west bank's floodplain; then the river widens at the cataract into a basin: the **granite belt** (boulders in the water, the rapids) crosses it above the island, **Abu** stands on its island (gate at world (16, 48)), the **causeway** (bridge tiles, then road to the gate) runs to it from the west bank, guarded by Desert Lions at its foot, and the **ford** (a sandbar) above the rapids crosses from the island's south tip to the east bank. Palm villages and quarries (a sawmill and an ore pit) line the west bank; desert either side with dunes and boulders; a gold mine, a windmill (gems) and a shrine of Slow in the east. Played fresh, Neferet waits at the head of the river road with 40 Levies, 20 Archers, 10 Jackals and 5 Chariots, 10000 gold, 20 wood and ore, 5 of each rare. The opening ("The river road south, toward the First Cataract") flies from Nekhen's west bank down the first few tiles of the road; Abu itself stays in the fog until found. Par 28 days. Pharaoh's grant: 2500 gold, 5 wood, 5 ore.
 
 - **Abu** (Village Hall, Town Hall, Fort, Tavern, Levy Camp, Archers' Yard, House of Life spells Healing, Shield, Haste, Slow, Dispel): a garrison of 16 + 7 Sand Raiders, 22 Hyenas, 10 Spitting Cobras and 3 Desert Lions; the 16 Raiders go up on the keep (a Fort has one tower place). As the design has it, a Fort and no Citadel, so **Abu has no moat**: the ramp's filling of the moat shows from the first Citadel the player meets.
 - **Neutrals** (west bank, each dropping a piece of the Scale set): 16 Hyenas in the north village (Scale Helm), 8 Cobras at the quarry (Scale Bracers), 3 Lions in the dunes (Scale Coat), 10 Raiders in the palm grove by the sawmill (Captain's Sash), 12 Cobras on the road (Scale Greaves), 6 Lions at the causeway's foot (Chariot Sandals); 6 and 8 Scorpions in the western desert (the second by a 2000-gold chest). East bank: 10 Scorpions at the east quarry, 5 Lions on the rocks, 14 Raiders at the ford's east end, 14 Cobras in the desert, 30 Hyenas by a 2000-gold chest.
 - **The gray Scale set** (`items.ts`, Paser's): Scale Helm (+1 Defense), Scale Coat (+1 Defense), Scale Bracers (+1 Attack), Captain's Sash (+1 Morale), Scale Greaves (+1 Defense), Chariot Sandals (+1 Attack); icons borrow the Bronze set's.
-- **Paser** (`recruits.ts`, `TWO_LANDS_RECRUITS`): a Knight (the Fighter class), Attack 3, Defense 2, Power 1, Knowledge 1, basic Offense, no book, 15 Levies and 3 War Chariots; hired at any Tavern of ours from part 5 (`MapDef.recruits` on Abu), 2500 gold, once. Stand-in art: the hero art falls back to Rowan's until `HERO_ART.paser` is drawn.
-- **Opens** (`TWO_LANDS_UNLOCKS[1]`): City Hall, Marketplace, the House of Life's second floor, the Workshop, Storehouse, Chariot Road, House of Embalming and the first upgrades of lines 1–4. The Workshop's wares come per chapter (`TWO_LANDS_MACHINE_UNLOCKS`, read by `soldOn` for parts 4 to 6): the Earth Ramp from part 5, the Brick Ramp from part 6; chapter 1's `MACHINE_UNLOCKS` is unchanged.
+- **Paser** (`recruits.ts`, `TWO_LANDS_RECRUITS`): a Knight (the Fighter class), Attack 3, Defense 2, Power 1, Knowledge 1, basic Offense, no book, 15 Levies and 3 War Chariots; hired at any Tavern of ours from part 2 (`MapDef.recruits` on Abu), 2500 gold, once. Stand-in art: the hero art falls back to Rowan's until `HERO_ART.paser` is drawn.
+- **Opens** (`TWO_LANDS_UNLOCKS[1]`): City Hall, Marketplace, the House of Life's second floor, the Workshop, Storehouse, Chariot Road, House of Embalming and the first upgrades of lines 1–4. The Workshop's wares come per chapter (`TWO_LANDS_MACHINE_UNLOCKS`, read by `soldOn` for chapter 2's parts): the Earth Ramp from part 2, the Brick Ramp from part 3; chapter 1's `MACHINE_UNLOCKS` is unchanged.
 - **Ride-on fix:** a town new in a part keeps its people from the map (`rideOn` dropped `faction`, so Abu would have come in Greek).
 
 **The siege ramp as built** (`src/logic/siege.ts`, `battle.ts`, `battleAi.ts`; tests in `test/ramp.test.ts`):
-- The ramp is a war machine like the catapult (`machine: 'ramp'`, gear in the War Machine slot): Earth Ramp (gray, 1500), Brick Ramp (green, 3000), Ramp of the Pyramid Builders (blue, 5000 as the Syracusan Catapult's price; a prize on part 6). Its workers are a stack that never shows on the field (drawn as the ramp on the wall) or in the turn order once placed; they act first in round 1.
+- The ramp is a war machine like the catapult (`machine: 'ramp'`, gear in the War Machine slot): Earth Ramp (gray, 1500), Brick Ramp (green, 3000), Ramp of the Pyramid Builders (blue, 5000 as the Syracusan Catapult's price; a prize on part 3). Its workers are a stack that never shows on the field (drawn as the ramp on the wall) or in the turn order once placed; they act first in round 1.
 - **Choosing:** in round 1 the workers' turn waits for the player: the ground before each stretch that can take a ramp is lit (the wall's own hex hides behind the castle), the status line says "Earth Ramp: tap a lit stretch of wall to raise the ramp against it", and a tap on that ground or the stretch begins it (`{ type: 'ramp', part }`). The Pyramid Builders' workers take two taps in the same turn, the second at another stretch. Wait or Defend on that turn raises none. Under Auto, or for a bot, `rampStretch`: the stretch the fewest manned towers can shoot at in full (a tower within 7 hexes of the ramp's foot, the range a shot keeps its strength; the keep reaches all four, each outer tower all but the far end), ties nearest the gate, then the northern.
 - **Growing:** a ramp is begun in round 1 at stage 0 and grows a stage at the start of each round; ready by round 3 (Earth: 2 stages), round 2 (Brick, and the Pyramid Builders' first), round 3 (their second). When done, its stretch's hex is open both ways (`wallsAgainst`) and the moat hex before it is filled (`moatFor`); the parts' blows, the gate and the towers are untouched, and `shotOverWall` still counts the stretch, so shots over it are still halved.
 - **The AI:** attackers with a ramp wait on the near bank, out of the moat, as near the ramp's foot as they can, and never strike the gate; once it is done they go through it. A ramp opens no tower, so once only a tower's company is left (and nobody on the ground), they strike that tower by hand, as an army with no machine does (without that the bot's sieges stalled on the keep's raiders).
@@ -661,7 +662,7 @@ The siege replayed from the same moment, every run, share of army strength lost 
 
 So Abu's siege costs what Thornwood's did, the Earth Ramp saves about a quarter of it, and the rest of the part costs little (Thornwood's: 0.4% a fight west, 3% east), the siege being the real test. The Pyramid Builders' second ramp adds nothing for the bot over the Brick Ramp's one (it comes a round after the first). Tried and dropped: 20 + 10 Raiders, 30 Hyenas, 12 Cobras and 6 Lions (the bot could only take it after a month of hiring, and then lost 3%); 14 + 6 Raiders, 20 Hyenas, 10 Cobras, 3 Lions (33% / 23%); 4 Lions (a careful player waited to part day 31, past par).
 
-### Part 6: The Red Land (designed Nov 8; user: "proceed with the next map")
+### Part 3: The Red Land (designed Nov 8; user: "proceed with the next map")
 
 The Egyptians called their country Kemet, the Black Land of the Nile's silt, and the desert around it Deshret, the Red Land, the realm of Set. With Abu taken, word comes that **Sethi**, a lord who serves Set, has raised his banner in the Red Land east of the river. From his walled city of **Nubt** (Ombos, "the city of gold", Set's own town) he holds the desert's gold roads and means to rule both lands. This is chapter 2's rival lord, as Kassander is chapter 1's, and the chapter's last part: **winning takes Nubt taken and Sethi beaten**, in either order (the `overthrow` goal).
 
@@ -669,7 +670,7 @@ The Egyptians called their country Kemet, the Black Land of the Nile's silt, and
 - **Sethi plays Egypt** (`kemet`), with the same units, buildings and ramps as the player: the sides stay symmetric, as the design wants for multiplayer later. He uses `src/logic/rival.ts` unchanged: a head start of three quarters of the days gone by, hiring and building at home, raiding a weak hero or town, retreating from a lost battle while he has a town (Kassander's rules). He carries an Earth Ramp, so a town of ours with walls isn't safe from him.
 - **The race for Gebtu.** Halfway between the Nile and Nubt lies **Gebtu** (Koptos), the caravan town where the gold roads meet: neutral, walled (Fort), with a garrison of Sand Raiders and Desert Lions. Whoever beats its garrison first holds it (Sethi rides for it from the part's third night, as he raced for Eudora). Unlike Eudora it is never handed over: it must be fought for.
 - **Set's sandstorms.** Every fourth night a storm crosses the Red Land: the day card says so the morning before ("A storm is rising in the east"), and on the storm day every sand tile costs double to cross, for both sides. Nothing else changes. It makes the desert's distances matter and gives the player a reason to time the march (`stormEvery: 4` on the map, so later maps can reuse it).
-- **New neutral: the Serpent of Apep** (apep), level 6, two hexes, Att 17, Def 13, 14–20 damage, 110 HP, speed 5, poison (as the scorpion) and Regen 10 (as the Hydra); growth 1, cost 1500. One lies coiled with its brood of Spitting Cobras over the **Ramp of the Pyramid Builders** in a sunken tomb, the part's best prize.
+- **New neutral: the Serpent of Apep** (apep), level 6, two hexes (three from Nov 9), Att 17, Def 13, 14–20 damage, 110 HP, speed 5, poison (as the scorpion) and Regen 10 (as the Hydra); growth 1, cost 1500. One lies coiled with its brood of Spitting Cobras over the **Ramp of the Pyramid Builders** in a sunken tomb, the part's best prize.
 - **Opens** (as the Black Banner opened Korax's tier): Castle, Treasury, the Sphinx Terrace (line 6), Per-Nefer (line 5's first upgrade), the second upgrades of lines 1–4; the Workshop adds the Brick Ramp. The Benben Stone (Bennu) waits for a later chapter, as the Titans do.
 
 **The land:** east of Nekhen's and Abu's (the chapter's land grows from 40 × 56 to about 80 × 56), `src/level/redLand.ts`, stitched in `twoLands.ts`. The Nile's east bank floodplain on its west edge (where the way in starts: the `opening` shows only the start of the desert road, not Gebtu or Nubt), then the Red Land: dunes, rock wadis (the gold roads run along them as roads, so the storms bite less on the road), a gold mine and the gem field in the wadis, the sunken tomb of the Serpent, Gebtu at the crossroads in the middle, and Nubt in the far east behind a ridge with two ways in. Sethi's city: Nubt (Village and Town Hall, Fort, Citadel, the dwellings of lines 1–4, Tavern, Workshop), a strong garrison set by the bot as Korax's was. The Pharaoh's grant on riding on (3000 gold and a little of everything). Par 35 days, as the Black Banner.
@@ -680,9 +681,9 @@ The Egyptians called their country Kemet, the Black Land of the Nile's silt, and
 
 **Balance** with `test/partBot.ts` riding on through Nekhen and Abu with the army it earned (the bot must deal with Sethi: Kassander's probe method, `rideOn` + `endDay` + `rivalTurn`), never guessed numbers. Targets, from the Black Banner: Sethi opens at about 1.35 times the army a rider brings so he hunts a weak second hero; a straight ride wins the race for Gebtu by about 2 days; Nubt's siege is the real test; all three bot styles win; sandstorms add a day or two, not more.
 
-### Part 6 as built (Nov 8)
+### Part 3 as built (Nov 8)
 
-`src/level/redLand.ts` (id `red-land`: a paid map's id must be lowercase, since a win is recorded by it), stitched in `twoLands.ts` at (40, 24), east of Abu: the chapter's land is now **80 × 56** (the Red Land is 40 × 32; the sea fills the 40 × 24 north-east corner, beside Nekhen, never walked). Nekhen's and Abu's own rows are unchanged; part 6's land opens three tiles of Abu's eastern dunes (world x 39, y 40 to 42) into a pass, so the way in is from **Abu's east bank across the desert**, not a Nile floodplain on the Red Land's own west edge (the river is far west of it). The `opening` ("The desert road east, into the Red Land") flies from Abu's east bank through the pass along the first tiles of the desert road; Gebtu and Nubt stay in the fog. Par 35.
+`src/level/redLand.ts` (id `red-land`: a paid map's id must be lowercase, since a win is recorded by it), stitched in `twoLands.ts` at (40, 24), east of Abu: the chapter's land is now **80 × 56** (the Red Land is 40 × 32; the sea fills the 40 × 24 north-east corner, beside Nekhen, never walked). Nekhen's and Abu's own rows are unchanged; the Red Land opens three tiles of Abu's eastern dunes (world x 39, y 40 to 42) into a pass, so the way in is from **Abu's east bank across the desert**, not a Nile floodplain on the Red Land's own west edge (the river is far west of it). The `opening` ("The desert road east, into the Red Land") flies from Abu's east bank through the pass along the first tiles of the desert road; Gebtu and Nubt stay in the fog. Par 35.
 
 - **The land:** sand with dune clumps and boulders, and rock wadis (rough ground) carrying the **gold roads** (roads, so the storms spare them): the desert road from the pass to **Gebtu** at the crossroads (gate red-local (14, 16)), on north up the wadi to the **gold mine**, south down it to the **gem field** (a gems mine), and east toward the ridge. **Nubt** (gate (34, 16)) lies behind a ridge of dunes (columns 29 and 30) with two ways in, at its north and south ends (rows 2 to 3 and 28 to 29: first set at rows 5 and 25, moved to the ends so a straight rider wins the race, see the balance). Nubt's basin is open sand with its own ore pit and gold mine (Sethi's) and a chest. The **sunken tomb**: a ring of boulders open to the north-west at (22, 25).
 - **Sethi** (`rival` on the map, id `sethi`): a Fighter (knight), Attack 3, Defense 3, Power 1, Knowledge 1, basic Offense, Egypt's people, with an Earth Ramp; his start army is 12 Levies, 6 Archers, 3 Jackals and a Chariot (half of Kassander's numbers: his head start does the rest), purse 6000 gold, 15 wood and ore, 3 of each rare. His build order: the upgrades of lines 1 to 4, the House of Life, City Hall, House of Embalming, the second upgrades, Castle, Per-Nefer, the Sphinx Terrace. **Nubt**: Village and Town Hall, Fort, Citadel, Tavern, Workshop and the dwellings of lines 1 to 4; garrison 40 Levies, 24 Archers, 12 Jackals, 6 Chariots; `look: 'nubt'` (its red-bannered map picture, `TOWN_LOOKS` in `src/art/pixel/map.ts`). His hero art is `HERO_ART.sethi` (the rival's art now picks the rival's own id, falling back to Kassander's).
@@ -733,6 +734,145 @@ So the bot doesn't win the Black Banner either since the Nov 8 hardening (its "a
 
 **Not met yet: the bot doesn't win the part** (before the coordinator's levers:) In 24 runs (8 seeds × 3 styles, `wise` bot: hires where the purse can buy a tenth of its army early in a week, keeps its two lowest lines as each town's garrison, keeps 6000 gold for hiring before building, falls back on a town when Sethi is near and strong, rides at Nubt while he is away, retakes towns and hunts him) none won in 60 days: 10 lost (Sethi beat the hero in the field or took the last town), the rest stalled. Why: Nubt hires its weekly growth into its garrison whenever Sethi is out (Kassander's rule, 3000 gold kept), so its garrison grows by roughly 500 to 800 a week and passes 5000 by part day 50, while the bot's army grows only when it rides the two days back to Nekhen. The levers left: Nubt's garrison hiring (a cap, or only while he is home), Sethi's head start for this part, Nubt's dwellings, or a bot that lives off Gebtu's and Nubt's dwellings once taken. Needs the user's call before more tuning.
 
+**Sethi on the lord mind (Nov 9), kept.** The trial the Delta's design asks for (`rival.mind: 'lord'` on `red-land`, our side played by the lord mind as on Othrys, `test/redLandLordBalance.test.ts`, BALANCE_SEEDS=16, 70 days; ridden on: the bot plays Nekhen and Abu). Our side wins **24 of 32 (75%)**, so Sethi is a lord now.
+
+| Start | Won / lost / stalled | Won on part day | First strike (part day) | Gebtu ours/his (day) |
+|---|---|---|---|---|
+| Fresh | 10 / 1 / 5 of 16 | 34 to 68 | 5 to 26 | 16/0 (2) |
+| Ridden on (16 of 16 won Abu) | 14 / 0 / 2 of 16 | 19 to 66 | 9 to 25 | 2/14 (6 to 7) |
+
+- **What Egypt needed of the mind:** nothing for the ramps (the Workshop is the `blacksmith` id, `soldOn` sells Egypt's machines), the sieges (the player's own `battleSides`), the storms (paths read `terrainView`) or the race (`race` towns, from the 4th day). Captains come from the kemet roster (Weni, Nebet, Ahmose…); with an empty roster a lord simply hires none. Two fixes, for every lord: a town with a hero of theirs inside is no longer shut to him (the hero is counted in its strength, not as "near"; it deadlocked the Delta), and the House of the Benben is worth what the Titans' forge is (`FORGES` in `lord/targets.ts`).
+- **Tuned by measurement:** Sethi's purse 6000 → **4000 gold** (6000: his first night opens him at ×1.92 a rider, over the ×1.8 the probe allows; 1000: 66%, 3000: 88%, 4000: 36 of 48, 75%). He takes Nubt's garrison along on his first day, so he opens at 1076 against riders of 502 to 840 (×1.3 to 2.1). `headStart` stays for the old rules only. **Played fresh**, Nekhen stands as a rider leaves it (the bot's Nekhen at ride-on: halls to City Hall, Citadel, lines 1 to 4 and their upgrades, the House of Life, Workshop, Marketplace, Storehouse), the old land's mines fly our banner, and the purse is 14,000 (a rider's): bare, fresh lost 0 of 8; built 3 of 8, mines 3 of 8, both 13 of 16.
+- **The probes** (`redLandBalance.test.ts`): Sethi is measured after his first night (×1.6 a rider on the mean, under ×1.3 once the rider hires at Abu); the race and the storms stand. Taken by a lord, Gebtu's card says "Sethi's banner flies over Gebtu now" (`lord/news.ts`). Nubt's garrison still grows from idle gold only to 1.5 times the map's (the lord's own cap), tested with no captains to ride off with it.
+- **Open:** a person's playtest; in the AI runs the ridden-on race goes to Sethi on day 6 to 7 (our lord mind hires at Abu first), while the straight-ride probe still wins it.
+
+### Finishing chapter 2 (designed Nov 9; user: "more heroes in chapter 2 and align with the changes we made in chapter 1 to complete it")
+
+Chapter 1 got a fourth part, Othrys, that finishes the Greek city, a roster of ten Greek heroes, and a lord AI. Chapter 2 gets the same. **Chapter 2 has four parts**: Nekhen 1, Abu 2, the Red Land 3, and the new **part 4, the Delta**. Its Taverns, units and rival follow chapter 1's rules.
+
+**Still closed in Egypt's tree after the Red Land:** Capitol, Avenue and Court of the Sphinxes (`tiltyard2`, `tiltyard3`), the Valley Tomb (`monastery3`), and the Bennu's three (`seraphSpire`, `seraphSpire2`, `seraphSpire3`). Part 4 opens all of them (`TWO_LANDS_UNLOCKS[3]`). The town art for all of them is already drawn (`src/art/pixel/town-kemet/`).
+
+**Level 3 traits.** Each level-3 unit gets one trait of its own, as the Greeks' do. The Shardana Guard, the Bowman of Ta-Seti, the Hand of Anubis and the Bennu of Ra already have theirs. New:
+- **Chariot of Horus:** scythed wheels: strikes every enemy beside it (`cleave`).
+- **Great Sphinx:** the riddle: a strike that lands may turn its target to stone, 20% (`petrify`).
+- **Pharaoh's Mummy:** rewrapped: heals 10 HP at the start of its turn (`regen`, as the Hydra's).
+
+**Units bigger than two hexes (user, Nov 9).** Some units' pictures are wider than the hexes they fill: the Serpent of Apep coils over about three hexes, and the chariots' horses and car pass the second hex. So a unit can now fill **one, two or three hexes** in a row. It uses the same rules as two: it moves, is struck and shoots by any of its hexes, and it needs a free row of three to stand. Each wide unit's size is set from its picture's ground footprint. A unit whose body is wider than about 2.5 hexes takes three. Apep and Ammit take three. The chariots and any others take three if their pictures measure so. This applies to both peoples and to neutrals, and every chapter's balance tests must still pass.
+
+*As built (Nov 9).* `hexes?: 1 | 2 | 3` on the creature def (`wide` still means 2; `sizeOf` in creatures.ts). footprint.ts gives a unit's hexes head first, the body behind it in the row, never wrapping; hex.ts's `reachable`/`route` take the whole body, so walkers need every hex free at each step and flyers on landing. A tap on any hex of the body moves it there (`headsOver`: that hex as the head, then as the middle, then the last). Strikes, answers, cleave, shot distance, the shooter's "enemy beside me", the moat and a swooper's way home all go by every hex. The head lines up two columns in, the last hex on the edge column; behind the walls a three-hex defender whose row runs into a corner tower (rows 0 and 10) stands a row in (`startHex`). Three-hex units never man a tower. The battle scene lights all three hexes, and moves the sprite's feet under the body's middle (its idle strip's alpha bounds, measured in the scene), so it sits evenly on the middle hex. The unit card shows no size, so it is unchanged. Tests: test/threeHexBattle.test.ts.
+
+Measured from the idle and walk frames at the battle's 1:1 scale (a hex is 44 px wide): the median frame's alpha width, and the bottom third's (the ground).
+
+| Unit | Width, hexes | Ground, hexes | Size |
+|---|---|---|---|
+| Ammit | 4.02 | 3.59 | 3 |
+| Serpent of Apep | 3.95 | 3.95 | 3 |
+| Petsuchos | 3.77 | 2.59 | 3 |
+| Nile Crocodile | 3.07 | 2.86 | 3 |
+| War, Royal Chariot, Chariot of Horus | 3.05 | 3.00–3.02 | 3 |
+| Desert Lion | 2.91 | 2.64 | 3 |
+| Lernaean Hydra | 2.45 | 1.91 | 2 |
+| Gigas | 2.45 | 1.39 | 2 |
+| Sphinx (all three) | 2.18–2.20 | 2.11–2.20 | 2 |
+| Cataphract / Companion / Royal Companion | 2.16 / 2.05 / 2.00 | 1.86–2.05 | 2 |
+| Erymanthian Boar | 2.09 | 1.80 | 2 |
+| Wolf | 1.95 | 1.30 | 2 |
+| Griffins | 1.91–1.95 | 1.61–1.77 | 2 |
+| Centaurs | 1.64–1.68 | 1.34–1.39 | 2 |
+
+Balance: every chapter's tests pass at the default seeds. One moved: Nekhen's steady bot on its first seed lost only 8% of its army to the three-hex Petsuchos (the test asks 10). With three hexes it walks into the levies' reach and dies before it strikes. Hit points (130–150), attack, defense and damage didn't change that seed. Speed 5 did. Over 12 seeds, goal fight lost: steady 12–25% (median 16.5; it was 11–25, 18), rush 18–71% (median 42; it was 20–81, 31.5). The one-hex Titans, Catapults, Basilisk and Hyena draw wider than two hexes with wings, arms or tails, but their ground is under two; they stay one hex.
+
+### The Egyptian heroes
+
+As the Greeks', ten heroes, five Knights and five Clerics. Each has a face and a mounted figure, starting stats, skills, a starting army and a specialty (`src/logic/roster/kemet.ts`):
+
+| Hero | Class | Specialty | Starts with | Who |
+|---|---|---|---|---|
+| Paser | Knight | Chariots (line 4) | Offense | The chariot captain (campaign hero) |
+| Sethi | Knight | Jackals (line 3) | Offense | Set's lord at Nubt (rival, part 3) |
+| Apepi | Knight | Sphinxes (line 6) | Offense, Leadership | The Hyksos king at Avaris (rival, part 4) |
+| Weni | Knight | Levies (line 1) | Leadership | The old general who raised the levies of every nome |
+| Ahmose | Knight | Archers (line 2) | Archery | The marine, son of Ebana, who fought at Avaris |
+| Neferet | Cleric | Ward of Isis: it soaks 50% more | Wisdom | Isis's priestess (campaign hero) |
+| Imhotep | Cleric | Rite of Osiris: it brings back 50% more | Wisdom, Mysticism | The builder of the first pyramid, the healer |
+| Tiye | Cleric | Curse of Set: it lasts a round more per 5 levels | Wisdom | The great royal wife, wise in the court's ways |
+| Khaemwaset | Cleric | Mummies (line 5) | Wisdom | The prince-priest who restored the old tombs |
+| Nebet | Cleric | Gold: +350 gold a day | Wisdom, Logistics | The first woman to be vizier |
+
+Same rules as the Greeks' roster. A hero is in play at most once, and a story hero is never offered while in play. Paser stays the part-6 hire, as told. **From the Red Land on, chapter 2's Taverns offer a choice of two from this roster**, for both sides. A rival lord hires his captains from it.
+
+**As built (Nov 9, ROSTER).** `src/logic/roster/kemet.ts` holds the ten, behind `ROSTERS.kemet`, all `faction: 'kemet'` with Egyptian armies. Neferet is now `NEFERET` in `src/level/recruits.ts` (Nekhen spreads it, so the numbers are one), Paser is `PASER` with the Chariot specialty, Sethi's roster entry takes the Red Land's Attack and Defense with a smaller army and no ramp. Clerics carry a Novice's Papyrus and one spell: Imhotep the Rite (with 2 Ankhs), Tiye the Curse, Khaemwaset the Ward (and a Mummy), Nebet the Ward. **Spell specialties** (`specialty.ts`, `SpecialtySpell` now also `ward`, `rebirth`, `curse`): Ward soaks and the Rite brings back 50% more (through `spellShare`, so `spellAmount` and the ward's `left` carry it). A Curse is timed (Spell Power rounds, like Slow), so the Curse specialist's `extraRounds` adds 1 round per 5 levels, as Slow's. Their one-line texts show on the hero sheet and Tavern card, with the spell's icon as stand-in. The Mummies line and Nebet's gold use the existing kinds. Skills: every one named exists, nothing is missing. **Taverns:** `RED_LAND` no longer has `recruits` (Abu keeps Paser), so its Taverns offer two from the roster to both sides; Sethi (and Apepi, once the Delta stands) are barred from ours as story villains, Neferet is in play. **The Delta must also leave `recruits` out** (CITY). Hero art: `heroArtId` falls back for an Egyptian to Neferet (Cleric) or Paser, then Sethi (Knight), then the Greek stand-ins, until `HERO_ART.<id>` lands.
+
+### Part 4: The Delta (the chapter's last part)
+
+**Story.** With Sethi beaten the south is one. But the north is not. **Apepi**, a king of the Hyksos, the foreign rulers who came over Sinai with horses and took Egypt's gods as their own, rules the Delta from **Avaris**. He named himself after Apep, the serpent of chaos. He rides for **Iunu**, the city of the sun, where the Benben stone stands, the hill the Bennu first landed on. Whoever holds the Benben has the Bennu's flight. The two crowns can only be one if the Delta is too.
+
+**Win:** `overthrow`, Avaris taken and every hero of Apepi's beaten. The chapter's ending, "Chapter 2 complete" and `twoLands-won` (adjusted to the Delta) move to this part's win. The Red Land's win becomes a part's end that rides on (`redLand-won`, new line).
+
+**The land, free to explore, like Othrys.** It is the chapter's biggest part, joined to the land so that tiles of parts 1–3 keep their places. The Delta is the north. If it can't be placed north without moving tiles, it is placed where it fits, and the sea corner beside Nekhen can become its coast. It has **three ways in**, none forced, each guarded differently, and the `opening` shows only their first tiles. Its regions:
+- **The marshes:** water, papyrus, islands, fords.
+- **The fields:** green, farms, mines.
+- **The desert edge:** the road from Sinai.
+- **Iunu**, on a rise in the middle.
+
+There are **two neutral towns**, **Men-nefer** (Memphis, the White Walls, a Fort and a hall) and **Per-Wadjet** (Buto, the cobra goddess's town in the marshes). Apepi races for them too. He holds **Avaris** (as Lykosoura: halls, Fort, Citadel, Tavern, Marketplace, House of Life 1, Workshop, lines 1–5 and the first upgrades of 1–4) and **Per-Bastet** (Bubastis, smaller, as Tegea).
+
+**Sites**, as on Othrys:
+- Two learning stones.
+- **Outer dwellings:**
+  - a **crocodile marsh** (Crocodiles, 4 a week)
+  - **lion rocks** (Desert Lions, 3 a week)
+  - **the House of the Benben** at Iunu. It is guarded by **Ammit**, and holding it makes 1 Bennu a week, so its owner gets Bennu before the Benben Stone.
+- A **treasure tomb** (a mastaba: a strong guard and a big prize).
+- Its gold-quality piece of gear, the **Crook and Flail**: Legendary, a fixed prize, as the Kronos Helm.
+
+The rest follows Othrys: mines of every kind, piles, chests, a watchtower, a mercenary camp, stables, shrines, standing stones, and neutrals at the Red Land's top end and above. Par is about 45 days.
+
+**New neutral: Ammit**, the Devourer (`ammit`), a crocodile's head on a lion's body and a hippo's hindquarters. Level 7, three hexes, Att 19, Def 17, damage 30–40, 220 HP, speed 7. **Devourer:** no one answers its strikes (`noRetaliation`). Growth 1, cost 3500.
+
+**Apepi is a lord** (`rival.mind: 'lord'`), the same mind as Lykaon's, under the same rules, knowledge limits and balance targets.
+
+**Sethi.** The Red Land's own balance never worked: the bot won 1 of 24. So the Red Land **tries the lord mind on Sethi**, measured with the lord AI playing our side, as Othrys was. It keeps the lord mind if our side wins 60–80%. If not, it keeps the tuned rules and the numbers are reported.
+
+**Balance** as for Othrys: AI against AI on the real rules, fresh and ridden on through parts 1–3. Our side wins 60–80% within 70 days. Apepi raises the Benben Stone around part day 18–25. Ammit costs a strong army 25–40%.
+
+**Art and words.**
+- Hero art for Apepi and the five new roster heroes (Weni, Ahmose, Imhotep, Tiye, Khaemwaset, Nebet): six, since Apepi is one.
+- The Ammit unit, three hexes wide.
+- Map sprites `crocodileMarsh`, `lionRocks`, `benbenHouse`, `mastaba`.
+- Avaris's map look `avaris`, as Nubt's.
+- The part's menu vignette.
+- Narration written, not recorded: `part-delta` and `redLand-won`, with `twoLands-won` adjusted.
+- The design's headings for chapter 2's parts are renumbered 1–4 (first 5–7, then per chapter, user Nov 9).
+
+### Part 4 as built: the Delta's land, sites and the chapter's end (Nov 9)
+
+- **Numbering.** The Delta is chapter 2's part 4 ("Part 1 of 4" on the card; inside, `n` 8 and `last: 8`, campaign-wide, decide the chapter and the Workshop's wares). Since Nov 9 every chapter reads as parts 1, 2, 3, 4 (`partNumber`, `partsIn` in `maps.ts`). The Red Land's win tells `redLand-won` and rides on north. The chapter's ending and "Chapter 2 complete" move to the Delta's win; it has no `won` line of its own, and `twoLands-won` now tells Apepi's fall. `part-delta`, `redLand-won` and `twoLands-won` are written, not recorded. Saves and wins are keyed by id: a Red Land left won rides on, and its recorded win opens the Delta (tested).
+- **The city.** `TWO_LANDS_UNLOCKS[3]` opens the seven buildings; nothing of Egypt's is off on part 4. The Workshop adds nothing.
+- **Level-3 traits.** Chariot of Horus `cleave`, Great Sphinx `petrify: 0.2`, Pharaoh's Mummy `regen: 10`. Each shows on the unit card and in the upgrade's new traits; the petrify line now gives its chance ("May turn its target to stone (20%)"). **Ammit** (`ammit`) as designed: `hexes: 3`, `noRetaliation`, its own art.
+- **Sites.** New dwelling looks `crocodileMarsh` (Crocodiles, 4 a week), `lionRocks` (Desert Lions, 3), `benbenHouse` (1 Bennu, at 3000 gold and a gem). A bank has a look now, `keep` or `mastaba`: the hover, the card and the server's check name it ("Mastaba"; "The tomb stands empty"). **Crook and Flail** (`crookAndFlail`): weapon, Legendary, +3 Attack, +2 Defense, +1 morale; Ammit drops it, as the Gigantes drop the Helm of Kronos. Until ART lands them, the sprites borrow Othrys's (marsh and rocks the cyclops cave, the House the forge, the mastaba the keep), the vignette borrows Nekhen's, tinted green, the item icon the Helm's, and `avaris` falls back to Egypt's town.
+- **The land** (`src/level/delta.ts`, 80 × 56, laid at (32, 0): 112 × 56). No room north without moving tiles, so it is an L round the land won so far: the old sea east of Nekhen and north of the Red Land, then on down east of the Red Land. Its hole is Abu's and the Red Land's tiles. The north edge is the sea coast. Regions: the **marshes** (the Nile in from the west, a west branch and an east branch to the sea, Per-Wadjet on its island, two fords and two bridges), the **fields** south of the river (Men-nefer), **Iunu** in the middle (a ring of mountains, a west and a north-east way up, the House of the Benben with 10 Ammits beside it), the **desert edge** in the east (Avaris, the desert road south to Per-Bastet, the road from Sinai). Ways in: from Nekhen's east desert past the White Walls (22 Desert Lions), up the Red Land's north wadi (45 Sand Raiders, the long road), out of Nubt's basin (34 Mummies, the short cut to Per-Bastet). Each alone reaches everything (tested). The opening shows only where each starts. 63 objects: 22 monster groups, 9 mines (every kind; 2 Apepi's), 3 dwellings, 2 learning stones, the mastaba (25 Royal Mummies; 6000 gold, 4 crystal, 4 gems and the Alexandrian Codex), 5 chests, 12 piles, 3 campfires, a watchtower, a camp, stables, a standing stone, two shrines (Ward of Isis, Thunderbolt). Neutrals 390–1080 in strength, Ammit about 1470. Par 45. Apepi's roads to the raced towns are guarded (75 Sand Raiders at the east bridge, 130 Hyenas on the field road).
+- **Apepi** is `rival` with `mind: 'lord'`, Avaris and Per-Bastet his, look `avaris`. Played fresh, Neferet waits at the head of the north wadi with about what a rider brings, and Nekhen, Abu, Gebtu and Nubt are ours; Nekhen stands as a rider leaves it, and the old land's mines (Sethi's too) fly our banner (LORD, measured). No recruits of its own: our Taverns offer the roster, never Apepi or Sethi.
+- **First guesses for LORD** (copied from Othrys, Greek lines to Egypt's): `DELTA_LAND.rival.hero.army` (40 Khopesh Warriors, 24 Medjay, 14 Sentinels, 7 Royal Chariots, 3 Mummies), `rival.purse` (10,000 gold, 20 wood and ore, 9 of each rare good), the garrisons of `avaris-town`, `per-bastet-town`, `men-nefer-town` and `per-wadjet-town`, `benben-ammit`'s count, the three ways' guards (`walls-lions`, `wadi-head-raiders`, `gate-mummies`) and the road guards (`bridge-raiders`, `field-road-hyenas`), each marked in the file. `src/logic/lord/targets.ts` still values only `titanForge` as the forge: the House of the Benben needs the same.
+- **Left:** the art (ART); the three lines recorded.
+
+**Balance (Nov 9), AI against AI** (`test/deltaBalance.test.ts`, BALANCE_SEEDS=16, 70 days; ridden on: the bot plays Nekhen and Abu, the lord mind the Red Land against Sethi, 14 of 16 won it; riders bring **4,000 to 19,600**, about 8,800 in the middle, against Othrys's 1,500 to 3,000):
+
+| Start | Won / lost / stalled | Won on part day | Benben Stone, in the game (part day) | First strike (part day) | Men-nefer ours/his (day) | Per-Wadjet ours/his (day) |
+|---|---|---|---|---|---|---|
+| Fresh | 14 / 0 / 2 | 32 to 71 | 35 to 50 | 5 | 16/0 (3) | 16/0 (4) |
+| Ridden on | 9 / 0 / 5 | 15 to 65 | 27 to 56 | 5 to 15 | 6/8 (3 to 9) | 2/12 (4 to 6) |
+
+- **Our side wins 23 of 30 (77%)**: 88% fresh, 64% ridden on. On target on the whole.
+- **The race, a straight ride against Apepi alone:** Men-nefer ours on part day 2 to 5, his on day 6; Per-Wadjet ours on day 2 to 6, his on day 4. Close (within 2 days, Men-nefer up to 4).
+- **Ammit** (22 of them, our strongest hero, spells on): 24 to 34% of 7,400 to 8,200 at part day 20 (fresh, 10 seeds); the table above was run with 28, which cost 31 to 81%. 10 cost 2 to 9% of armies of 7,000 or more.
+- **The Benben Stone:** Apepi left alone raises it on part day 13 to 15 (he takes our empty towns, so his gold grows fast); in the game, pressed, on day 27 to 56 or not at all. The target 18 to 25 sits between: a mind number (`SAVE_SHARE`), left for the playtest as on Othrys.
+- **First strike:** part day 5 fresh (the old land's mines next to the Delta), 5 to 15 ridden on. A little early fresh.
+- **Tuned:** Apepi's army ×3 (120 Khopesh Warriors, 72 Medjay, 42 Sentinels, 21 Royal Chariots, 9 Mummies; at CITY's 40/24/14/7/3 riders won 10 of 11 by day 34), Avaris's and Per-Bastet's garrisons ×2 (ridden on, ×2 won 14 of 18, ×3 11 of 18, ×3.5 5 of 11: the rest stalled, idle and threatened hiring making Avaris too strong to storm), Neferet's fresh army ×3.7 (406 Khopesh Warriors, 221 Medjay, 111 Jackals, 56 Chariots, 22 Mummies, about 8,250: ×3.0 won 1 of 12, ×3.6 7 of 12, ×3.8 15 of 16), Ammit 10 → 22. Played fresh, Nekhen stands as a rider leaves it and the old land's mines (Nubt's too, Sethi's before) are ours: as CITY had them, Apepi's purse got Nubt's gold and ore.
+- **The lord mind, for Egypt:** the Benben Stone needs the Sphinx Terrace and the Temple of Osiris first, so a lord now builds the step on the way to his big goal before the plan's other buildings, out of the gold above his savings, and keeps its wood for it (`goalStep`, `keepFor` in `lord/build.ts`); before, Apepi spent the wood elsewhere and never raised it. He saves in his capital (`savingTown`: the town with most built), not in the first town of ours he takes. The House of the Benben is a forge (`FORGES`). A town with a hero of the other side inside is no longer shut to a lord (the deadlock that stalled most early Delta runs).
+- **Chapter 1, re-run with these mind changes** (Othrys, 16 seeds): 20 of 31 (65%): 13/16 fresh, 7/15 ridden on (the doc's Nov 9 round: 11 of 15). The Seraph Spire in the game: part day 15 to 43 fresh, 16 to 55 ridden on. Saving in the first town (the old rule) gave 17 of 31. Not retuned.
+- **Left:** a person's playtest; the Benben day; the fresh first strike. In the balance runs (paid maps not installed) our Taverns can offer Sethi, and Apepi hires Paser and Sethi as captains: `storyVillains` reads the installed parts (ROSTER's).
+
 ## The day card
 
 The morning's card is an infographic, built from a report the night leaves on the prompt (older saves keep their text card): the totals with their icons; a bar per source of gold, each town by name, then gold mines and estates, measured against the biggest; the hero's face with the tiles to ride and a mana gauge; on the first day of a week, each town's fresh recruits as faces with counts, lowest level first so the columns line up, and that the wilds have grown; then the rival's news. On a short, wide screen it spreads into two columns.
@@ -764,10 +904,10 @@ Decided with the user on Nov 8, 2026, after the Black Banner's part card ("it's 
 | `korax-taken` | Korax falls while Kassander rides | none |
 | `kassander-beaten` | Kassander falls with no town left | none |
 | `chapter-won` | the chapter's victory card | the victory card, without the story |
-| `part-nekhen` | Part 4 opens (not recorded yet: its card shows the story) | the brief and goal |
-| `part-abu` | Part 5 opens: the flood comes, Abu, the ramp's lesson and Paser (not recorded yet) | the brief and goal |
-| `abu-won` | Part 5 won: told on its victory card as the chapter rides on east (`MapDef.won`; not recorded yet) | the victory card, without the story |
-| `part-redLand` | Part 6 opens: the Red Land, Sethi and Nubt, the race for Gebtu, Set's storms (not recorded yet) | the brief and goal |
+| `part-nekhen` | Chapter 2's part 1 opens (not recorded yet: its card shows the story) | the brief and goal |
+| `part-abu` | Part 2 opens: the flood comes, Abu, the ramp's lesson and Paser (not recorded yet) | the brief and goal |
+| `abu-won` | Part 2 won: told on its victory card as the chapter rides on east (`MapDef.won`; not recorded yet) | the victory card, without the story |
+| `part-redLand` | Part 3 opens: the Red Land, Sethi and Nubt, the race for Gebtu, Set's storms (not recorded yet) | the brief and goal |
 | `twoLands-won` | Chapter 2's ending card (`CHAPTERS.twoLands.ending`; not recorded yet) | the ending card, without the story |
 
 (`nekhen-won`, Nekhen's ending while it was the last part, was cut when Abu was built, Nov 8: no part of chapter 1 has a won line of its own between parts, and `part-abu` opens on the sluice swinging open. It was never recorded.)
@@ -805,11 +945,11 @@ Oct 24 (fourth session): the whole game was repainted dark and serious after H3 
 
 Nov 8: chapter 2's engine (steps 1–3 of "What the engine needs"): Egypt (`kemet`) with its 21 units, 5 desert neutrals, its building names and the Temple of Osiris, the six new traits, the Sacred Rites and Ankhs; towns and heroes carry a people, older saves load Greek. Art stands in until PixelLab's lands.
 
-Nov 8 (later): step 4 and part 4. Chapter 2, The Two Lands, is a second chapter on the menu, the full game's, fetched for owners only and saved in its own slot; part 4, Nekhen, is built and balanced (see "Part 4 as built"). Chapter 1's ending card points on to it. Its two narrated lines (`part-nekhen`, `nekhen-won`) are written and not recorded: their cards show the words meanwhile. Next: parts 5 and 6 (stitched on in `twoLands.ts`), and the art of step 5.
+Nov 8 (later): step 4 and Nekhen. Chapter 2, The Two Lands, is a second chapter on the menu, the full game's, fetched for owners only and saved in its own slot; its first part, Nekhen, is built and balanced (see "Part 1 as built"). Chapter 1's ending card points on to it. Its two narrated lines (`part-nekhen`, `nekhen-won`) are written and not recorded: their cards show the words meanwhile. Next: Abu and the Red Land (stitched on in `twoLands.ts`), and the art of step 5.
 
-Nov 8 (night): part 6, the Red Land, built (see "Part 6 as built"): Sethi, a rival lord of Egypt (the rival buys machines at his Workshop and storms walled towns as sieges), the race for Gebtu, Set's sandstorms (`stormEvery`), the Serpent of Apep and its cobra brood over the Ramp of the Pyramid Builders, the land stitched east of Abu (80 × 56), the Brick Ramp on sale, paid maps with a rival validated, and the chapter's end ("Chapter 2 complete", one card for both chapters; `abu-won` a part's end again). Probes met; **the part bot doesn't win it yet** (Nubt's garrison outgrows it): balance waits for the user. `part-redLand` and `twoLands-won` written, not recorded.
+Nov 8 (night): the Red Land built (see "Part 3 as built"): Sethi, a rival lord of Egypt (the rival buys machines at his Workshop and storms walled towns as sieges), the race for Gebtu, Set's sandstorms (`stormEvery`), the Serpent of Apep and its cobra brood over the Ramp of the Pyramid Builders, the land stitched east of Abu (80 × 56), the Brick Ramp on sale, paid maps with a rival validated, and the chapter's end ("Chapter 2 complete", one card for both chapters; `abu-won` a part's end again). Probes met; **the part bot doesn't win it yet** (Nubt's garrison outgrows it): balance waits for the user. `part-redLand` and `twoLands-won` written, not recorded.
 
-Nov 8 (evening): part 5, Abu, built and balanced (see "Part 5 as built"): Egypt's siege ramp (three grades, chosen stretch, growth, done = walked over and the moat filled), poison on shots, the Spitting Cobra and Desert Lion, Paser at the Tavern, the gray Scale set, Abu stitched south of Nekhen with its opening, the Workshop's ramps, and the lesson in the ramp's words. Its two narrated lines (`part-abu`, `abu-won`) are written and not recorded. Next: part 6 (a rival lord, the Brick Ramp on sale), and Egypt's art.
+Nov 8 (evening): Abu built and balanced (see "Part 2 as built"): Egypt's siege ramp (three grades, chosen stretch, growth, done = walked over and the moat filled), poison on shots, the Spitting Cobra and Desert Lion, Paser at the Tavern, the gray Scale set, Abu stitched south of Nekhen with its opening, the Workshop's ramps, and the lesson in the ramp's words. Its two narrated lines (`part-abu`, `abu-won`) are written and not recorded. Next: the Red Land (a rival lord, the Brick Ramp on sale), and Egypt's art.
 
 ## Saving
 

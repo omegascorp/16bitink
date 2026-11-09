@@ -19,8 +19,11 @@ export type ObjectKind =
   | 'bank';
 
 /** How an outer dwelling is drawn (a map sprite key of the same name; src/scenes/map/pixelMapArt.ts falls back while one isn't drawn). */
-export type DwellingLook = 'cyclopsCave' | 'griffinCliff' | 'titanForge';
-export const DWELLING_LOOKS: readonly DwellingLook[] = ['cyclopsCave', 'griffinCliff', 'titanForge'];
+export type DwellingLook = 'cyclopsCave' | 'griffinCliff' | 'titanForge' | 'crocodileMarsh' | 'lionRocks' | 'benbenHouse';
+export const DWELLING_LOOKS: readonly DwellingLook[] = ['cyclopsCave', 'griffinCliff', 'titanForge', 'crocodileMarsh', 'lionRocks', 'benbenHouse'];
+/** How a treasure keep is drawn: Othrys's ruined keep, or the Delta's mastaba (a tomb). */
+export type BankLook = 'keep' | 'mastaba';
+export const BANK_LOOKS: readonly BankLook[] = ['keep', 'mastaba'];
 
 /** A thing on the map. Fields beyond kind/x/y depend on the kind. */
 export interface MapObject {
@@ -50,8 +53,8 @@ export interface MapObject {
   readonly growth?: number;
   /** Dwelling: creatures waiting to be hired. */
   readonly stock?: number;
-  /** Dwelling: its picture; bank: 'keep'. */
-  readonly look?: DwellingLook | 'keep';
+  /** Dwelling: its picture; bank: 'keep' or 'mastaba'. */
+  readonly look?: DwellingLook | BankLook;
   /** Learning stone: the heroes who have read it (each may once). */
   readonly visitedBy?: readonly string[];
   /** Bank: its prize, taken once its guard is beaten: gold and goods (and `item`, a piece of gear). */
@@ -97,7 +100,13 @@ export const SITE_NAMES: Readonly<Record<ObjectKind, string>> = {
 };
 
 /** Each outer dwelling's name on the map. */
-export const DWELLING_NAMES: Readonly<Record<DwellingLook, string>> = { cyclopsCave: 'Cyclops Cave', griffinCliff: 'Griffin Cliff', titanForge: 'The Titans’ Forge' };
+export const DWELLING_NAMES: Readonly<Record<DwellingLook, string>> = {
+  cyclopsCave: 'Cyclops Cave', griffinCliff: 'Griffin Cliff', titanForge: 'The Titans’ Forge',
+  crocodileMarsh: 'Crocodile Marsh', lionRocks: 'Lion Rocks', benbenHouse: 'The House of the Benben',
+};
+/** Each treasure keep's name on the map. */
+export const BANK_NAMES: Readonly<Record<BankLook, string>> = { keep: 'Treasure Keep', mastaba: 'Mastaba' };
+export const bankName = (o: Pick<MapObject, 'look'>): string => BANK_NAMES[o.look === 'mastaba' ? 'mastaba' : 'keep'];
 
 /** Experience a learning stone gives (before Learning). */
 export const LEARNING_XP = 1000;

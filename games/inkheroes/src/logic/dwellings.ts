@@ -1,6 +1,6 @@
 import { addTroops, type Army } from './army';
 import { creature } from './creatures';
-import { DWELLING_NAMES, type MapObject, type Owner } from './objects';
+import { DWELLING_LOOKS, DWELLING_NAMES, type DwellingLook, type MapObject, type Owner } from './objects';
 import { affordable, pay, type Purse } from './resources';
 
 /**
@@ -15,7 +15,7 @@ import { affordable, pay, type Purse } from './resources';
 export const dwellingStock = (o: MapObject): number => o.stock ?? o.growth ?? 0;
 
 /** Its name on the map. */
-export const dwellingName = (o: MapObject): string => (o.look && o.look !== 'keep' ? DWELLING_NAMES[o.look] : 'Dwelling');
+export const dwellingName = (o: MapObject): string => (DWELLING_LOOKS.includes(o.look as DwellingLook) ? DWELLING_NAMES[o.look as DwellingLook] : 'Dwelling');
 
 /** Monday: every flagged dwelling gains its week's growth. */
 export function growDwellings(objects: readonly MapObject[]): MapObject[] {

@@ -183,11 +183,11 @@ export function shotOverWall(s: Siege, from: Hex, to: Hex): boolean {
 }
 
 /** The nearest hex to `from` where nothing in `taken` stands, ring by ring: where a company lands when its tower falls. */
-export function nearestFree(from: Hex, taken: ReadonlySet<Hex>): Hex | null {
+export function nearestFree(from: Hex, taken: ReadonlySet<Hex>, fits: (h: Hex) => boolean = () => true): Hex | null {
   const seen = new Set<Hex>([from]);
   let ring = [from];
   for (let i = 0; i < ROWS * 2 && ring.length; i++) {
-    const free = ring.find((h) => h !== from && !taken.has(h) && insideWalls(h));
+    const free = ring.find((h) => h !== from && !taken.has(h) && insideWalls(h) && fits(h));
     if (free !== undefined) return free;
     ring = ring.flatMap(neighbours).filter((h) => !seen.has(h) && !!seen.add(h));
   }

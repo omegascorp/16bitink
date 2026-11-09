@@ -15,7 +15,7 @@ export type Specialty =
   | { readonly kind: 'gold'; readonly gold: number };
 
 /** The spells a specialty can be in, each with its own bonus. */
-export type SpecialtySpell = Extract<SpellId, 'cure' | 'slow' | 'lightningBolt'>;
+export type SpecialtySpell = Extract<SpellId, 'cure' | 'slow' | 'lightningBolt' | 'ward' | 'rebirth' | 'curse'>;
 
 /** A line specialist's +1 Attack and +1 Defense from level 1, and another +1 every this many hero levels. */
 export const LINE_LEVELS = 4;
@@ -23,6 +23,12 @@ export const LINE_LEVELS = 4;
 export const CURE_SHARE = 0.5;
 /** A Slow specialist's Slow lasts a round more every this many levels. */
 export const SLOW_LEVELS = 5;
+/** A Curse of Set specialist's Curse lasts a round more every this many levels. */
+export const CURSE_LEVELS = 5;
+/** A Ward of Isis specialist's Ward soaks this share more. */
+export const WARD_SHARE = 0.5;
+/** A Rite of Osiris specialist's Rite brings back this share more. */
+export const REBIRTH_SHARE = 0.5;
 /** A Thunderbolt specialist's bolt does this share more damage a hero level. */
 export const BOLT_SHARE = 0.05;
 /** The gold specialist's gold a day. */
@@ -43,13 +49,18 @@ export function lineBonusFor(spec: BattleSpecialty | undefined, id: CreatureId):
 export function spellShare(spec: BattleSpecialty | undefined, spell: SpellId): number {
   if (spec?.kind !== 'spell' || spec.spell !== spell) return 0;
   if (spell === 'cure') return CURE_SHARE;
+  if (spell === 'ward') return WARD_SHARE;
+  if (spell === 'rebirth') return REBIRTH_SHARE;
   if (spell === 'lightningBolt') return BOLT_SHARE * spec.level;
   return 0;
 }
 
-/** Rounds a Slow specialist's Slow lasts beyond Spell Power. */
+/** Rounds a Slow or Curse specialist's spell lasts beyond Spell Power. */
 export function extraRounds(spec: BattleSpecialty | undefined, spell: SpellId): number {
-  return spec?.kind === 'spell' && spec.spell === 'slow' && spell === 'slow' ? Math.floor(spec.level / SLOW_LEVELS) : 0;
+  if (spec?.kind !== 'spell' || spec.spell !== spell) return 0;
+  if (spell === 'slow') return Math.floor(spec.level / SLOW_LEVELS);
+  if (spell === 'curse') return Math.floor(spec.level / CURSE_LEVELS);
+  return 0;
 }
 
 /** Gold a day the heroes' specialties bring in. */
@@ -64,6 +75,9 @@ export function specialtyText(spec: Specialty, spellName: (s: SpellId) => string
     case 'spell':
       if (spec.spell === 'cure') return `${spellName('cure')}: heals ${CURE_SHARE * 100}% more`;
       if (spec.spell === 'slow') return `${spellName('slow')}: lasts a round more per ${SLOW_LEVELS} levels`;
+      if (spec.spell === 'curse') return `${spellName('curse')}: lasts a round more per ${CURSE_LEVELS} levels`;
+      if (spec.spell === 'ward') return `${spellName('ward')}: soaks ${WARD_SHARE * 100}% more`;
+      if (spec.spell === 'rebirth') return `${spellName('rebirth')}: brings back ${REBIRTH_SHARE * 100}% more`;
       return `${spellName(spec.spell)}: +${BOLT_SHARE * 100}% damage per level`;
   }
 }
@@ -75,6 +89,6 @@ export function isSpecialty(v: unknown): v is Specialty {
   if (typeof v !== 'object' || v === null) return false;
   const s = v as Record<string, unknown>;
   if (s.kind === 'gold') return typeof s.gold === 'number';
-  if (s.kind === 'spell') return s.spell === 'cure' || s.spell === 'slow' || s.spell === 'lightningBolt';
+  if (s.kind === 'spell') return ['cure', 'slow', 'lightningBolt', 'ward', 'rebirth', 'curse'].includes(s.spell as string);
   return s.kind === 'line' && typeof s.line === 'string';
 }

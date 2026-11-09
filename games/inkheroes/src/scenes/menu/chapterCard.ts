@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { MAP_VIGNETTES } from '../../art/pixel/map';
-import type { PartName } from '../../level/maps';
+import { partNumber, type PartName } from '../../level/maps';
 import type { MapRecord } from '../../logic/save';
 import { cardButtonLook, drawFrame, drawRule, FILLS } from '../battle/pixelFrames';
 import { INK, PixelButton, PixelImage, TextLabel } from '../battle/pixelUi';
@@ -29,12 +29,15 @@ const STANDING: Readonly<Record<PartState, { readonly says: string; readonly ink
 /** A part on the card: its name, and its goal once its map is loaded. */
 export type CardPart = PartName & { readonly goal?: { readonly text: string } };
 
-/** Parts with no picture of their own yet, and the picture each borrows, tinted (every part drawn so far has its own). */
-const VIGNETTE_STAND_IN: Readonly<Record<string, { readonly id: string; readonly tint: number }>> = {};
+/** Parts with no picture of their own yet, and the picture each borrows, tinted (used only while the part's own is missing). */
+const VIGNETTE_STAND_IN: Readonly<Record<string, { readonly id: string; readonly tint: number }>> = {
+  // The Delta borrows Nekhen's river, greener, until its own is drawn.
+  delta: { id: 'nekhen', tint: 0xc8f0b8 },
+};
 
 export interface ChapterCardSpec {
   readonly parts: readonly CardPart[];
-  /** The chapter's last part, built or not, for "Part 5 of 7" (none: its last built). */
+  /** The chapter's last part, built or not (campaign-wide), for "Part 1 of 4" (none: its last built). */
   readonly last?: number;
   readonly records: Readonly<Record<string, MapRecord>>;
   /** The part in play, and how far into it (a game is saved). */
@@ -84,7 +87,7 @@ export function chapterCard(scene: Phaser.Scene, owned: { destroy(): void }[], s
   const cx = Math.floor(CARD_W / 2);
   let y = PAD + PIC.h + 4 + 6;
   const title = keep(new TextLabel(scene, { kind: 'title', ink: INK.title, wrap: CARD_W - PAD * 2, anchor: { x: 0.5, y: 0 } }))
-    .setText(`Part ${shown.n} of ${spec.last ?? spec.parts[spec.parts.length - 1]!.n}: ${shown.name}`).setPosition(cx, y);
+    .setText(`Part ${partNumber(shown)} of ${partNumber({ n: spec.last ?? spec.parts[spec.parts.length - 1]!.n })}: ${shown.name}`).setPosition(cx, y);
   y += 15 + 3;
   const goalText = shown.goal?.text;
   const goal = spec.locked ? spec.locked.pitch : goalText ? `${goalText[0]!.toUpperCase()}${goalText.slice(1)}.${spec.playing ? `\n${spec.playing.when}` : ''}` : '';
@@ -104,7 +107,7 @@ export function chapterCard(scene: Phaser.Scene, owned: { destroy(): void }[], s
   spec.parts.forEach((def, i) => {
     const state = states[i]!;
     const { says, ink } = STANDING[state];
-    const name = keep(new TextLabel(scene, { ink: state === 'won' ? INK.text : ink, align: 'left', anchor: { x: 0, y: 0.5 } })).setText(`${def.n}. ${def.name}`).setPosition(left + PAD + 6, y + PART_H / 2);
+    const name = keep(new TextLabel(scene, { ink: state === 'won' ? INK.text : ink, align: 'left', anchor: { x: 0, y: 0.5 } })).setText(`${partNumber(def)}. ${def.name}`).setPosition(left + PAD + 6, y + PART_H / 2);
     const standing = keep(new TextLabel(scene, { ink, align: 'right', anchor: { x: 1, y: 0.5 } })).setText(says).setPosition(w - PAD - 6, y + PART_H / 2);
     parts.push(name.img, standing.img);
     y += PART_H;

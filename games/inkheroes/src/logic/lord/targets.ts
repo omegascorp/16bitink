@@ -58,6 +58,9 @@ const SAMPLE = 3;
 const COMMIT = 2.5;
 /** A neutral town not yet seen is worth this share of one he could take. */
 const UNSEEN_TOWN = 0.5;
+/** The outer dwellings of a people's top unit (Othrys's Titans' forge, the Delta's House of the Benben): worth VALUE.forge, fought for a little bolder. */
+const FORGES: ReadonlySet<string> = new Set(['titanForge', 'benbenHouse']);
+const isForge = (o: MapObject): boolean => o.kind === 'dwelling' && FORGES.has(o.look ?? '');
 
 export interface Ctx {
   readonly adv: Adventure;
@@ -139,7 +142,7 @@ function siteValue(ctx: Ctx, h: Hero, o: MapObject, job: Job): number {
     case 'shrine': return h.visited.includes(o.id) || !hasSpellbook(h) ? 0 : VALUE.site;
     case 'bank': return o.looted || job === 'runner' ? 0 : VALUE.keep;
     case 'dwelling': {
-      if (o.owner !== 'player') return o.look === 'titanForge' ? VALUE.forge : VALUE.dwelling;
+      if (o.owner !== 'player') return isForge(o) ? VALUE.forge : VALUE.dwelling;
       // One of ours: worth the ride for what can be hired there.
       const got = armyStrength(hireAtDwelling(o, { ...ctx.adv.purse, gold: ctx.gold }, h.army).army) - armyStrength(h.army);
       return dwellingStock(o) > 0 ? hireValue(got, ctx.main ?? h) : 0;
@@ -173,7 +176,7 @@ export function targetsFor(ctx: Ctx, h: Hero, job: Job, reach: Reach): Target[] 
       if (armyStrength(monsterArmy(o)) < mine * (job === 'main' ? (ctx.bold ? SAFE.bold : ctx.dare ?? SAFE.monster) : SAFE.runner)) add(o.x, o.y, VALUE.monster, 'monster');
       continue;
     }
-    const share = o.kind === 'dwelling' && o.look === 'titanForge' ? (ctx.dare ?? SAFE.guard) * 1.2 : job === 'main' ? ctx.dare ?? SAFE.guard : SAFE.runner;
+    const share = isForge(o) ? (ctx.dare ?? SAFE.guard) * 1.2 : job === 'main' ? ctx.dare ?? SAFE.guard : SAFE.runner;
     if (guardOk(o, share)) add(o.x, o.y, siteValue(ctx, h, o, job), o.kind);
   }
   const foes = knownFoes(adv, ctx.memory);
@@ -196,8 +199,8 @@ export function targetsFor(ctx: Ctx, h: Hero, job: Job, reach: Reach): Target[] 
       else if (!known) add(t.x, t.y, VALUE.neutralTown * UNSEEN_TOWN, 'explore');
       continue;
     }
-    // Far: none of their heroes could be back at it by tomorrow, as far as he knows.
-    const far = foes.every((f) => f.strength < mine * MATTERS || chebyshev(f, t) > foeReach(f) * FAR_DAYS);
+    // Far: none of their heroes could be back at it by tomorrow, as far as he knows (one inside it already is its garrison: heldBy counts him).
+    const far = foes.every((f) => (f.x === t.x && f.y === t.y) || f.strength < mine * MATTERS || chebyshev(f, t) > foeReach(f) * FAR_DAYS);
     const open = known && far && heldBy(ctx, t) < mine * (ctx.dare ?? SAFE.town);
     siege ||= open && !!ctx.commit;
     if (open) add(t.x, t.y, VALUE.theirTown * (ctx.commit ? COMMIT : 1), 'theirTown');

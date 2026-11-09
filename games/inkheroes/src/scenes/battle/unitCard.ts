@@ -46,7 +46,7 @@ function traitsOf(id: CreatureId): string[] {
   if (c.swoop) out.push('Swoops back after striking');
   if (c.cleave) out.push('Strikes all around it');
   if (c.regen) out.push(`Regrows ${c.regen} health a round`);
-  if (c.petrify) out.push('May turn its target to stone');
+  if (c.petrify) out.push(`May turn its target to stone (${Math.round(c.petrify * 100)}%)`);
   if (c.curse) out.push(`Curse: ${Math.round(c.curse * 100)}% to curse its target (its least damage)`);
   if (c.poison) out.push(`Poison: ${Math.round(c.poison * 100)}% of its blow again, 3 turns`);
   if (c.guardian) out.push('Answers every strike');

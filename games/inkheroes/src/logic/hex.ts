@@ -67,40 +67,39 @@ export function hexUnder(x: number, y: number, size: number): Hex | null {
   return bestD <= size ? best : null;
 }
 
-/** Maps a two-hex unit's head hex to its tail (null when the tail would leave the field). */
-export type TailOf = (head: Hex) => Hex | null;
+/** Maps a bigger unit's head hex to the rest of its body, the hexes behind it (null when they would leave the field). */
+export type BodyOf = (head: Hex) => readonly Hex[] | null;
 
 const NONE: ReadonlySet<Hex> = new Set();
 
-/** Whether a walker with its head on `h` is in a `stops` hex (either of its hexes). */
-function stopsAt(h: Hex, stops: ReadonlySet<Hex>, tail?: TailOf): boolean {
+/** Whether a walker with its head on `h` is in a `stops` hex (any of its hexes). */
+function stopsAt(h: Hex, stops: ReadonlySet<Hex>, body?: BodyOf): boolean {
   if (stops.has(h)) return true;
-  const t = tail?.(h);
-  return t !== null && t !== undefined && stops.has(t);
+  return body?.(h)?.some((t) => stops.has(t)) ?? false;
 }
 
 /** Whether a unit can stand with its head on `h`: every hex it would cover is free (VCMI's AccessibilityInfo::accessible). */
-function fits(h: Hex, blocked: ReadonlySet<Hex>, tail?: TailOf): boolean {
+function fits(h: Hex, blocked: ReadonlySet<Hex>, body?: BodyOf): boolean {
   if (blocked.has(h)) return false;
-  if (!tail) return true;
-  const t = tail(h);
-  return t !== null && !blocked.has(t);
+  if (!body) return true;
+  const rest = body(h);
+  return rest !== null && !rest.some((t) => blocked.has(t));
 }
 
 /**
  * Hexes a unit standing on `from` can reach within `speed` steps: by walking
  * round `blocked` hexes, or (flying) any free hex within that distance.
  * Returns each reachable hex with its step count; `from` itself is 0.
- * A two-hex unit passes `tail`: positions are head hexes, steps count head
- * moves, and both hexes must be free at every step (walkers) or on landing
- * (flyers), as in VCMI's makeBFS / getFlyingReachability.
+ * A unit of two or three hexes passes its `body`: positions are head hexes,
+ * steps count head moves, and every hex must be free at every step (walkers)
+ * or on landing (flyers), as in VCMI's makeBFS / getFlyingReachability.
  */
-export function reachable(from: Hex, speed: number, blocked: ReadonlySet<Hex>, flies: boolean, tail?: TailOf, stops: ReadonlySet<Hex> = NONE): Map<Hex, number> {
+export function reachable(from: Hex, speed: number, blocked: ReadonlySet<Hex>, flies: boolean, body?: BodyOf, stops: ReadonlySet<Hex> = NONE): Map<Hex, number> {
   const out = new Map<Hex, number>([[from, 0]]);
   if (flies) {
     for (let h = 0; h < HEX_COUNT; h++) {
       const d = distance(from, h);
-      if (h !== from && d <= speed && fits(h, blocked, tail)) out.set(h, d);
+      if (h !== from && d <= speed && fits(h, blocked, body)) out.set(h, d);
     }
     return out;
   }
@@ -109,9 +108,9 @@ export function reachable(from: Hex, speed: number, blocked: ReadonlySet<Hex>, f
     const next: Hex[] = [];
     for (const h of frontier) {
       for (const n of neighbours(h)) {
-        if (out.has(n) || !fits(n, blocked, tail)) continue;
+        if (out.has(n) || !fits(n, blocked, body)) continue;
         out.set(n, step);
-        if (!stopsAt(n, stops, tail)) next.push(n);
+        if (!stopsAt(n, stops, body)) next.push(n);
       }
     }
     frontier = next;
@@ -120,7 +119,7 @@ export function reachable(from: Hex, speed: number, blocked: ReadonlySet<Hex>, f
 }
 
 /** The walking route of head hexes from `from` to `to` round `blocked` and never on through a `stops` hex (excluding `from`), or [] if none. */
-export function route(from: Hex, to: Hex, blocked: ReadonlySet<Hex>, tail?: TailOf, stops: ReadonlySet<Hex> = NONE): Hex[] {
+export function route(from: Hex, to: Hex, blocked: ReadonlySet<Hex>, body?: BodyOf, stops: ReadonlySet<Hex> = NONE): Hex[] {
   if (from === to) return [];
   const prev = new Map<Hex, Hex>([[from, from]]);
   let frontier = [from];
@@ -128,9 +127,9 @@ export function route(from: Hex, to: Hex, blocked: ReadonlySet<Hex>, tail?: Tail
     const next: Hex[] = [];
     for (const h of frontier) {
       for (const n of neighbours(h)) {
-        if (prev.has(n) || (!fits(n, blocked, tail) && n !== to)) continue;
+        if (prev.has(n) || (!fits(n, blocked, body) && n !== to)) continue;
         prev.set(n, h);
-        if (!stopsAt(n, stops, tail)) next.push(n);
+        if (!stopsAt(n, stops, body)) next.push(n);
       }
     }
     frontier = next;

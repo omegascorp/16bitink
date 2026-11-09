@@ -25,6 +25,11 @@ export const SITE_ART: Readonly<Record<SiteArt, SiteDrawer>> = {
   griffinCliff: DRAWN.watchtower,
   titanForge: DRAWN['mine-gold'],
   keep: DRAWN.shrine,
+  // Part 8's sites, likewise.
+  crocodileMarsh: DRAWN['mine-wood'],
+  lionRocks: DRAWN['mine-ore'],
+  benbenHouse: DRAWN.standingStone,
+  mastaba: DRAWN.shrine,
 };
 export const SITE_ARTS = ALL;
 

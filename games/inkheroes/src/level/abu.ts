@@ -2,7 +2,7 @@ import type { MapDef } from './types';
 import { lockedIn, TWO_LANDS_UNLOCKS } from './unlocks';
 
 /**
- * Chapter 2, part 6: Abu, the fort at the First Cataract (in its own tiles;
+ * Chapter 2, part 2: Abu, the fort at the First Cataract (in its own tiles;
  * see twoLands.ts, which places it south of Nekhen so the Nile runs on).
  * With the sluice open the flood comes and the river road south opens. Up
  * it, where the Nile breaks over black granite, Sand Raiders hold Abu, the
@@ -61,7 +61,7 @@ export const ABU_LAND: MapDef = {
     id: 'abu-town', name: 'Abu', x: 16, y: 24, faction: 'kemet',
     built: ['villageHall', 'townHall', 'fort', 'tavern', 'guardhouse', 'archeryRange'],
     guild: ['cure', 'stoneSkin', 'haste', 'slow', 'dispel'],
-    // Sand Raiders on its tower, Hyenas, Spitting Cobras and Desert Lions behind the walls: set by the bot (docs/inkheroes-design.md, "Part 5", now part 6).
+    // Sand Raiders on its tower, Hyenas, Spitting Cobras and Desert Lions behind the walls: set by the bot (docs/inkheroes-design.md, "Part 2: Abu").
     garrison: [{ creature: 'raider', count: 16 }, { creature: 'hyena', count: 22 }, { creature: 'cobra', count: 10 }, { creature: 'lion', count: 3 }, { creature: 'raider', count: 7 }],
   },
   // Played fresh (nothing won before it), Neferet waits at the head of the river road with about what a rider brings.

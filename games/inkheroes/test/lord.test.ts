@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { BLACK_BANNER, OTHRYS } from '../src/level/borderMarch';
 import type { MapDef } from '../src/level/types';
+import { DELTA } from '../src/level/twoLands';
 import { afterBattle, battleSides, checkGoal, endDay, frontRival, isSeen, rivalAt, rivalHeroes, startAdventure, stepHero, type Adventure } from '../src/logic/adventure';
 import { armyOf } from '../src/logic/army';
 import { autoBattle } from '../src/logic/autoBattle';
-import { goalOf, keepFor, planBuild } from '../src/logic/lord/build';
+import { goalOf, goalStep, keepFor, planBuild, savingTown } from '../src/logic/lord/build';
 import { gives } from '../src/logic/lord/day';
 import { NO_MEMORY, remember } from '../src/logic/lord/knowledge';
 import { mirrored, unmirrored } from '../src/logic/lord/mirror';
@@ -62,6 +63,21 @@ describe('the lord mind', () => {
     expect(planBuild(lyko, { ...rich, mercury: 4 }, OTHRYS.off, keepFor('seraphSpire', 0), 'seraphSpire')).toBe('cityHall');
     // Saving for it: nothing small is bought out of the savings.
     expect(planBuild({ ...lyko, built: [...lyko.built, 'cityHall'] }, { ...rich, gold: 21000, mercury: 4 }, OTHRYS.off, keepFor('seraphSpire', 20000), 'seraphSpire')).toBeNull();
+  });
+
+  it('builds Egypt’s way to the Benben Stone first: the Sphinx Terrace, out of the gold above the savings, its wood kept for it', () => {
+    const avaris = startAdventure(DELTA).towns.find((t) => t.id === 'avaris-town')!;
+    expect(goalOf(avaris, DELTA.off)).toBe('seraphSpire');
+    expect(goalStep(avaris, 'seraphSpire', DELTA.off)).toBe('tiltyard');
+    // The step's 20 wood are kept from the plan's other buildings.
+    expect(keepFor('seraphSpire', 0, avaris, DELTA.off).wood).toBe(20);
+    const purse = { gold: 30000, wood: 25, ore: 30, mercury: 10, sulfur: 10, crystal: 10, gems: 10 };
+    expect(planBuild(avaris, purse, DELTA.off, keepFor('seraphSpire', 20000, avaris, DELTA.off), 'seraphSpire')).toBe('tiltyard');
+    // Only the savings left: it waits.
+    expect(planBuild(avaris, { ...purse, gold: 22000 }, DELTA.off, keepFor('seraphSpire', 20000, avaris, DELTA.off), 'seraphSpire')).not.toBe('tiltyard');
+    // He saves in his capital, not in a town just taken.
+    const taken = startAdventure(DELTA).towns.find((t) => t.id === 'per-bastet-town')!;
+    expect(savingTown([taken, avaris], DELTA.off)?.id).toBe('avaris-town');
   });
 
   it('hands every company but the weakest to the main hero, where they fit', () => {

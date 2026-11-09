@@ -12,7 +12,7 @@ import { playPart, rideOnInto, type BotOptions, type BotRun } from './partBot';
 declare const process: { readonly env: Readonly<Record<string, string | undefined>> };
 
 /**
- * Part 5's balance on the real rules (docs/inkheroes-design.md, "Part 5:
+ * Abu's balance on the real rules (docs/inkheroes-design.md, "Part 2:
  * Abu"): the bot of partBot.ts plays Nekhen, rides on into Abu with the army
  * it earned, buys an Earth Ramp at Nekhen's Workshop and takes Abu, in three
  * styles. The siege is also replayed from the same moment with no machine

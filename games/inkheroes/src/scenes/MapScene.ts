@@ -9,7 +9,7 @@ import { besideEachOther, selectHero } from '../logic/heroes';
 import type { Army } from '../logic/army';
 import { creature, sizeWord, type CreatureId } from '../logic/creatures';
 import { intentAt, townToEnter, type MapIntent } from '../logic/mapIntent';
-import { LEARNING_XP, MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
+import { bankName, LEARNING_XP, MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
 import { dwellingName } from '../logic/dwellings';
 import type { PathStep } from '../logic/path';
 import type { RivalReport } from '../logic/rival';
@@ -282,7 +282,7 @@ export class MapScene extends Phaser.Scene {
       return `${dwellingName(o)}: ${o.growth} ${o.growth === 1 ? c.name : c.plural} a week${holder}`;
     }
     if (o.kind === 'learningStone') return `Learning Stone: +${LEARNING_XP} experience${o.visitedBy?.includes(adv.hero.id) ? ' (read)' : ''}`;
-    if (o.kind === 'bank') return o.looted ? 'Treasure Keep (empty)' : 'Treasure Keep';
+    if (o.kind === 'bank') return o.looted ? `${bankName(o)} (empty)` : bankName(o);
     return SITE_NAMES[o.kind];
   }
 

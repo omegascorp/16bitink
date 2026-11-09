@@ -6,7 +6,7 @@ import { isTownFaction } from '../logic/factions';
 import type { HeroClass } from '../logic/hero';
 import { ITEM_IDS, ITEMS, SLOTS, type Gear, type ItemId } from '../logic/items';
 import { TILE_CHARS } from '../logic/map';
-import { DWELLING_LOOKS, type DwellingLook, type MapObject, type ObjectKind, type Owner } from '../logic/objects';
+import { BANK_LOOKS, DWELLING_LOOKS, type BankLook, type DwellingLook, type MapObject, type ObjectKind, type Owner } from '../logic/objects';
 import { RESOURCES, type Amount, type Resource } from '../logic/resources';
 import { isSkillId, type Rank, type Skills } from '../logic/skills';
 import { isSpellId, type SpellId } from '../logic/spells';
@@ -157,8 +157,8 @@ function object(v: unknown, g: { w: number; h: number }): MapObject {
     Object.assign(o, { creature: v.creature, growth: v.growth, look: v.look }, v.stock !== undefined ? { stock: v.stock } : {});
   }
   if (kind === 'bank') {
-    if (v.look !== 'keep') throw new Error('bad keep');
-    o.look = 'keep';
+    if (!BANK_LOOKS.includes(v.look as BankLook)) throw new Error('bad keep');
+    o.look = v.look;
     if (v.prize !== undefined) o.prize = amount(v.prize, 'prize');
   }
   if (kind === 'learningStone' && v.visitedBy !== undefined) o.visitedBy = ids<string>(v.visitedBy, 20, 'visited by', (h): h is string => typeof h === 'string' && ID.test(h));

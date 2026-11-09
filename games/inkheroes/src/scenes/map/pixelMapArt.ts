@@ -39,9 +39,11 @@ export function townTexOf(def: MapDef, t: Town): string {
   return MAP_TEX.town(`${def.id}-${t.id}`);
 }
 
-/** The new sites' sprite keys (Othrys's), and what each borrows while its own isn't drawn. */
+/** The new sites' sprite keys (Othrys's, then the Delta's), and what each borrows while its own isn't drawn. */
 const NEW_SITES: Readonly<Record<string, SiteArt>> = {
   learningStone: 'standingStone', cyclopsCave: 'mine-ore', griffinCliff: 'watchtower', titanForge: 'shrine', keep: 'mercCamp',
+  // The Delta's, each borrowing the nearest of Othrys's: a marsh for a cave, rocks for a cave, the Benben's house for the forge, a tomb for the keep.
+  crocodileMarsh: 'cyclopsCave', lionRocks: 'cyclopsCave', benbenHouse: 'titanForge', mastaba: 'keep',
 };
 
 /** The art a map object is drawn with (monsters, towns and gear on the ground are drawn apart): a SiteArt, or a new site's key. */
@@ -49,7 +51,7 @@ export function siteArtOf(o: MapObject): string | null {
   if (o.kind === 'mine' || o.kind === 'pile') return `${o.kind}-${o.resource!}`;
   if (o.kind === 'monster' || o.kind === 'town' || o.kind === 'item') return null;
   if (o.kind === 'dwelling') return o.look ?? 'cyclopsCave';
-  if (o.kind === 'bank') return 'keep';
+  if (o.kind === 'bank') return o.look ?? 'keep';
   return o.kind;
 }
 
