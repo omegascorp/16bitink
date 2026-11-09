@@ -437,7 +437,7 @@ The lord AI plays the **player's** side too (from what the bot earns riding on t
 - The part's menu vignette (Othrys over the Thessalian plain).
 
 **Art as built (Nov 9, 22 PixelLab generations).** Gigas (`gigas`, 160x168 canvas, a thrower: strike frame 2, shot from the raised hand) and Lykaon (`HERO_ART.lykaon`, wolf-head helm, black horse, spear thrust; the gallop's surge is only half locked, the spear tip leaves no room) have idle, walk and attack. Map sprites `learningStone`, `cyclopsCave`, `griffinCliff`, `titanForge`, `keep` and the `lykosoura` town look (the Greek town with black banners; the wolf standard is small) are in `map.ts` via `build_map.py`, with ink stand-ins kept in `src/art/sites/index.ts`. The `othrys` vignette is a mountain with a forge glow over olive groves. The griffin cliff is the game's own griffin pasted onto the nest (a model merge turned it into an eagle); Lykosoura has one big black banner with a pale wolf head on its tallest tower.
-- Narration (written, not recorded until the user reads them): `part-othrys` (the opening), `blackBanner-won` (the Black Banner's end, riding on), and the chapter's ending moves to Othrys's win with a new last line about the Titans' oath.
+- Narration (recorded Nov 9): `part-othrys` (the opening), `blackBanner-won` (the Black Banner's end, riding on), and the chapter's ending moves to Othrys's win with a new last line about the Titans' oath.
 
 ### Part 4 as built: the city, the sites and the land (Nov 9)
 
@@ -694,7 +694,7 @@ The Egyptians called their country Kemet, the Black Land of the Nile's silt, and
 - **Neutrals:** 30 Hyenas by the pass, 20 Raiders up the north wadi, 10 Lions at the gold mine, 18 Scorpions at the gem field, 20 Cobras at the ore pit, 8 Lions by the north-west chest, 25 Raiders in the south-west, 30 Cobras east of Gebtu, 12 Lions and 30 Raiders at the ridge's ends, 20 Scorpions and 60 Hyenas in Nubt's basin. Sites: watchtower, mercenary camp, standing stone, a shrine of Bloodlust; three chests, two campfires, eight piles.
 - **Opens** (`TWO_LANDS_UNLOCKS[2]`): Castle, Treasury, Sphinx Terrace, Per-Nefer, the second upgrades of lines 1 to 4; the Workshop adds the Brick Ramp. **Pharaoh's grant:** 3000 gold, 5 wood and ore, 2 of each rare. Paser is still hired at our Taverns. Played fresh, Neferet comes through the pass with 60 Levies, 30 Archers, 16 Jackals, 8 Chariots and an Earth Ramp, Abu already ours.
 - **The chapter's end:** `CHAPTERS.twoLands.ending` is `twoLands-won` ("Sethi falls… the Two Lands are one!"); the card that ends everything built of a chapter is one function for both (`src/scenes/chapterEnd.ts`, `chapterEnd`): "Chapter N complete" when the chapter's last part is built (else "…, so far"), its story unless the narrator told it, days, towns and heroes, then the next chapter (chapter 1 → chapter 2, its words now `ChapterDef.teaser`) or "Chapter 3 is being made, and comes to the full game as a free update." **`abu-won` is a part's end again:** `MapDef.won`, told on Abu's victory card as the chapter rides on (read on the card when it isn't heard); its last sentence now says the lord is "out in the Red Land", not "in the north".
-- **Narration:** `part-redLand` (the intro) and `twoLands-won` written, not recorded.
+- **Narration:** `part-redLand` (the intro) and `twoLands-won` (recorded Nov 9).
 
 **Balance (Nov 8), on the real rules** (`test/redLandBalance.test.ts`, BALANCE_SEEDS=8; the bot plays Nekhen and Abu, rides on, and the probes start from where it rode on). The probes:
 
@@ -842,12 +842,12 @@ The rest follows Othrys: mines of every kind, piles, chests, a watchtower, a mer
 - Map sprites `crocodileMarsh`, `lionRocks`, `benbenHouse`, `mastaba`.
 - Avaris's map look `avaris`, as Nubt's.
 - The part's menu vignette.
-- Narration written, not recorded: `part-delta` and `redLand-won`, with `twoLands-won` adjusted.
+- Narration: `part-delta` and `redLand-won`, with `twoLands-won` adjusted (all recorded Nov 9).
 - The design's headings for chapter 2's parts are renumbered 1–4 (first 5–7, then per chapter, user Nov 9).
 
 ### Part 4 as built: the Delta's land, sites and the chapter's end (Nov 9)
 
-- **Numbering.** The Delta is chapter 2's part 4 ("Part 1 of 4" on the card; inside, `n` 8 and `last: 8`, campaign-wide, decide the chapter and the Workshop's wares). Since Nov 9 every chapter reads as parts 1, 2, 3, 4 (`partNumber`, `partsIn` in `maps.ts`). The Red Land's win tells `redLand-won` and rides on north. The chapter's ending and "Chapter 2 complete" move to the Delta's win; it has no `won` line of its own, and `twoLands-won` now tells Apepi's fall. `part-delta`, `redLand-won` and `twoLands-won` are written, not recorded. Saves and wins are keyed by id: a Red Land left won rides on, and its recorded win opens the Delta (tested).
+- **Numbering.** The Delta is chapter 2's part 4 ("Part 1 of 4" on the card; inside, `n` 8 and `last: 8`, campaign-wide, decide the chapter and the Workshop's wares). Since Nov 9 every chapter reads as parts 1, 2, 3, 4 (`partNumber`, `partsIn` in `maps.ts`). The Red Land's win tells `redLand-won` and rides on north. The chapter's ending and "Chapter 2 complete" move to the Delta's win; it has no `won` line of its own, and `twoLands-won` now tells Apepi's fall. `part-delta`, `redLand-won` and `twoLands-won` were recorded on Nov 9. Saves and wins are keyed by id: a Red Land left won rides on, and its recorded win opens the Delta (tested).
 - **The city.** `TWO_LANDS_UNLOCKS[3]` opens the seven buildings; nothing of Egypt's is off on part 4. The Workshop adds nothing.
 - **Level-3 traits.** Chariot of Horus `cleave`, Great Sphinx `petrify: 0.2`, Pharaoh's Mummy `regen: 10`. Each shows on the unit card and in the upgrade's new traits; the petrify line now gives its chance ("May turn its target to stone (20%)"). **Ammit** (`ammit`) as designed: `hexes: 3`, `noRetaliation`, its own art.
 - **Sites.** New dwelling looks `crocodileMarsh` (Crocodiles, 4 a week), `lionRocks` (Desert Lions, 3), `benbenHouse` (1 Bennu, at 3000 gold and a gem). A bank has a look now, `keep` or `mastaba`: the hover, the card and the server's check name it ("Mastaba"; "The tomb stands empty"). **Crook and Flail** (`crookAndFlail`): weapon, Legendary, +3 Attack, +2 Defense, +1 morale; Ammit drops it, as the Gigantes drop the Helm of Kronos. Until ART lands them, the sprites borrow Othrys's (marsh and rocks the cyclops cave, the House the forge, the mastaba the keep), the vignette borrows Nekhen's, tinted green, the item icon the Helm's, and `avaris` falls back to Egypt's town.
@@ -904,13 +904,15 @@ Decided with the user on Nov 8, 2026, after the Black Banner's part card ("it's 
 | `korax-taken` | Korax falls while Kassander rides | none |
 | `kassander-beaten` | Kassander falls with no town left | none |
 | `chapter-won` | the chapter's victory card | the victory card, without the story |
-| `part-nekhen` | Chapter 2's part 1 opens (not recorded yet: its card shows the story) | the brief and goal |
-| `part-abu` | Part 2 opens: the flood comes, Abu, the ramp's lesson and Paser (not recorded yet) | the brief and goal |
-| `abu-won` | Part 2 won: told on its victory card as the chapter rides on east (`MapDef.won`; not recorded yet) | the victory card, without the story |
-| `part-redLand` | Part 3 opens: the Red Land, Sethi and Nubt, the race for Gebtu, Set's storms (not recorded yet) | the brief and goal |
-| `twoLands-won` | Chapter 2's ending card (`CHAPTERS.twoLands.ending`; not recorded yet) | the ending card, without the story |
+| `part-nekhen` | Chapter 2's part 1 opens (recorded Nov 9) | the brief and goal |
+| `part-abu` | Part 2 opens: the flood comes, Abu, the ramp's lesson and Paser (recorded Nov 9) | the brief and goal |
+| `abu-won` | Part 2 won: told on its victory card as the chapter rides on east (`MapDef.won`; recorded Nov 9) | the victory card, without the story |
+| `part-redLand` | Part 3 opens: the Red Land, Sethi and Nubt, the race for Gebtu, Set's storms (recorded Nov 9) | the brief and goal |
+| `twoLands-won` | Chapter 2's ending card (`CHAPTERS.twoLands.ending`; recorded Nov 9) | the ending card, without the story |
 
 (`nekhen-won`, Nekhen's ending while it was the last part, was cut when Abu was built, Nov 8: no part of chapter 1 has a won line of its own between parts, and `part-abu` opens on the sluice swinging open. It was never recorded.)
+
+**All 19 lines are recorded (Nov 9):** the last ten (`blackBanner-won`, `part-othrys`, `othrys-won`, and chapter 2's seven) in one take each, about 10,400 credits. The untouched takes are in `dev/narration-audition/raw/`; the game's copies are 64 kbps mono. `abu-won`, `othrys-won` and `redLand-won` dipped 5–6 dB in their quiet middles, so their game copies are evened out with ffmpeg `dynaudnorm=f=300:g=9:m=3:p=0.9` (now within ~4 dB).
 
 **Writing a line:** lively tags (`[warm, storytelling]`, `[grim]`, `[wry]`…), "!" and "…", a change of mood every sentence or two, never [whispers]; the test checks those. `part-blackBanner`'s script must stay word for word what was recorded.
 
